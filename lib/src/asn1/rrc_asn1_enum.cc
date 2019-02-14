@@ -43,7 +43,7 @@ static void invalid_enum_number(int value, const char* name)
 /*                                Struct Methods
 /******************************************************************************/
 
-std::string phich_cfg_s::phich_dur_e_::to_string() const
+std::string phich_cfg_s::phich_dur_opts::to_string() const
 {
   switch (value) {
     case normal:
@@ -56,7 +56,7 @@ std::string phich_cfg_s::phich_dur_e_::to_string() const
   return "";
 }
 
-std::string phich_cfg_s::phich_res_e_::to_string() const
+std::string phich_cfg_s::phich_res_opts::to_string() const
 {
   switch (value) {
     case one_sixth:
@@ -72,12 +72,12 @@ std::string phich_cfg_s::phich_res_e_::to_string() const
   }
   return "";
 }
-float phich_cfg_s::phich_res_e_::to_number() const
+float phich_cfg_s::phich_res_opts::to_number() const
 {
   const static float options[] = {0.16666666666666666, 0.5, 1.0, 2.0};
   return get_enum_number(options, 4, value, "phich_cfg_s::phich_res_e_");
 }
-std::string phich_cfg_s::phich_res_e_::to_number_string() const
+std::string phich_cfg_s::phich_res_opts::to_number_string() const
 {
   switch (value) {
     case one_sixth:
@@ -94,7 +94,7 @@ std::string phich_cfg_s::phich_res_e_::to_number_string() const
   return "";
 }
 
-std::string mib_s::dl_bw_e_::to_string() const
+std::string mib_s::dl_bw_opts::to_string() const
 {
   switch (value) {
     case n6:
@@ -114,13 +114,13 @@ std::string mib_s::dl_bw_e_::to_string() const
   }
   return "";
 }
-uint8_t mib_s::dl_bw_e_::to_number() const
+uint8_t mib_s::dl_bw_opts::to_number() const
 {
   const static uint8_t options[] = {6, 15, 25, 50, 75, 100};
   return get_enum_number(options, 6, value, "mib_s::dl_bw_e_");
 }
 
-std::string mib_mbms_r14_s::dl_bw_mbms_r14_e_::to_string() const
+std::string mib_mbms_r14_s::dl_bw_mbms_r14_opts::to_string() const
 {
   switch (value) {
     case n6:
@@ -140,13 +140,13 @@ std::string mib_mbms_r14_s::dl_bw_mbms_r14_e_::to_string() const
   }
   return "";
 }
-uint8_t mib_mbms_r14_s::dl_bw_mbms_r14_e_::to_number() const
+uint8_t mib_mbms_r14_s::dl_bw_mbms_r14_opts::to_number() const
 {
   const static uint8_t options[] = {6, 15, 25, 50, 75, 100};
   return get_enum_number(options, 6, value, "mib_mbms_r14_s::dl_bw_mbms_r14_e_");
 }
 
-std::string gnss_id_r15_s::gnss_id_r15_e_::to_string() const
+std::string gnss_id_r15_s::gnss_id_r15_opts::to_string() const
 {
   switch (value) {
     case gps:
@@ -167,7 +167,7 @@ std::string gnss_id_r15_s::gnss_id_r15_e_::to_string() const
   return "";
 }
 
-std::string sbas_id_r15_s::sbas_id_r15_e_::to_string() const
+std::string sbas_id_r15_s::sbas_id_r15_opts::to_string() const
 {
   switch (value) {
     case waas:
@@ -184,7 +184,7 @@ std::string sbas_id_r15_s::sbas_id_r15_e_::to_string() const
   return "";
 }
 
-std::string pos_sib_type_r15_s::pos_sib_type_r15_e_::to_string() const
+std::string pos_sib_type_r15_s::pos_sib_type_r15_opts::to_string() const
 {
   switch (value) {
     case pos_sib_type1_minus1:
@@ -247,7 +247,7 @@ std::string pos_sib_type_r15_s::pos_sib_type_r15_e_::to_string() const
   return "";
 }
 
-std::string plmn_id_info_r15_s::plmn_id_minus5_gc_r15_c_::types::to_string() const
+std::string plmn_id_info_r15_s::plmn_id_minus5_gc_r15_c_::types_opts::to_string() const
 {
   switch (value) {
     case plmn_id_r15:
@@ -262,7 +262,7 @@ std::string plmn_id_info_r15_s::plmn_id_minus5_gc_r15_c_::types::to_string() con
   return "";
 }
 
-std::string plmn_id_info_r15_s::cell_reserved_for_oper_r15_e_::to_string() const
+std::string plmn_id_info_r15_s::cell_reserved_for_oper_r15_opts::to_string() const
 {
   switch (value) {
     case reserved:
@@ -275,7 +275,7 @@ std::string plmn_id_info_r15_s::cell_reserved_for_oper_r15_e_::to_string() const
   return "";
 }
 
-std::string plmn_id_info_r15_s::cell_reserved_for_oper_crs_r15_e_::to_string() const
+std::string plmn_id_info_r15_s::cell_reserved_for_oper_crs_r15_opts::to_string() const
 {
   switch (value) {
     case reserved:
@@ -288,7 +288,7 @@ std::string plmn_id_info_r15_s::cell_reserved_for_oper_crs_r15_e_::to_string() c
   return "";
 }
 
-std::string cell_id_minus5_gc_r15_c::types::to_string() const
+std::string cell_id_minus5_gc_r15_c::types_opts::to_string() const
 {
   switch (value) {
     case cell_id_r15:
@@ -303,7 +303,7 @@ std::string cell_id_minus5_gc_r15_c::types::to_string() const
   return "";
 }
 
-std::string plmn_id_info_v1530_s::cell_reserved_for_oper_crs_r15_e_::to_string() const
+std::string plmn_id_info_v1530_s::cell_reserved_for_oper_crs_r15_opts::to_string() const
 {
   switch (value) {
     case reserved:
@@ -316,7 +316,7 @@ std::string plmn_id_info_v1530_s::cell_reserved_for_oper_crs_r15_e_::to_string()
   return "";
 }
 
-std::string pos_sched_info_r15_s::pos_si_periodicity_r15_e_::to_string() const
+std::string pos_sched_info_r15_s::pos_si_periodicity_r15_opts::to_string() const
 {
   switch (value) {
     case rf8:
@@ -338,13 +338,13 @@ std::string pos_sched_info_r15_s::pos_si_periodicity_r15_e_::to_string() const
   }
   return "";
 }
-uint16_t pos_sched_info_r15_s::pos_si_periodicity_r15_e_::to_number() const
+uint16_t pos_sched_info_r15_s::pos_si_periodicity_r15_opts::to_number() const
 {
   const static uint16_t options[] = {8, 16, 32, 64, 128, 256, 512};
   return get_enum_number(options, 7, value, "pos_sched_info_r15_s::pos_si_periodicity_r15_e_");
 }
 
-std::string cell_sel_info_ce_v1530_s::pwr_class14dbm_offset_r15_e_::to_string() const
+std::string cell_sel_info_ce_v1530_s::pwr_class14dbm_offset_r15_opts::to_string() const
 {
   switch (value) {
     case db_minus6:
@@ -364,13 +364,13 @@ std::string cell_sel_info_ce_v1530_s::pwr_class14dbm_offset_r15_e_::to_string() 
   }
   return "";
 }
-int8_t cell_sel_info_ce_v1530_s::pwr_class14dbm_offset_r15_e_::to_number() const
+int8_t cell_sel_info_ce_v1530_s::pwr_class14dbm_offset_r15_opts::to_number() const
 {
   const static int8_t options[] = {-6, -3, 3, 6, 9, 12};
   return get_enum_number(options, 6, value, "cell_sel_info_ce_v1530_s::pwr_class14dbm_offset_r15_e_");
 }
 
-std::string plmn_id_info_s::cell_reserved_for_oper_e_::to_string() const
+std::string plmn_id_info_s::cell_reserved_for_oper_opts::to_string() const
 {
   switch (value) {
     case reserved:
@@ -383,7 +383,7 @@ std::string plmn_id_info_s::cell_reserved_for_oper_e_::to_string() const
   return "";
 }
 
-std::string sl_tx_pwr_r14_c::types::to_string() const
+std::string sl_tx_pwr_r14_c::types_opts::to_string() const
 {
   switch (value) {
     case minusinfinity_r14:
@@ -397,14 +397,14 @@ std::string sl_tx_pwr_r14_c::types::to_string() const
   }
   return "";
 }
-int8_t sl_tx_pwr_r14_c::types::to_number() const
+int8_t sl_tx_pwr_r14_c::types_opts::to_number() const
 {
   const static int8_t options[] = {-1};
   return get_enum_number(options, 1, value, "sl_tx_pwr_r14_c::types");
 }
 
 // Alpha-r12 ::= ENUMERATED
-std::string alpha_r12_e::to_string() const
+std::string alpha_r12_opts::to_string() const
 {
   switch (value) {
     case al0:
@@ -428,12 +428,12 @@ std::string alpha_r12_e::to_string() const
   }
   return "";
 }
-float alpha_r12_e::to_number() const
+float alpha_r12_opts::to_number() const
 {
   const static float options[] = {0.0, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
   return get_enum_number(options, 8, value, "alpha_r12_e");
 }
-std::string alpha_r12_e::to_number_string() const
+std::string alpha_r12_opts::to_number_string() const
 {
   switch (value) {
     case al0:
@@ -458,7 +458,7 @@ std::string alpha_r12_e::to_number_string() const
   return "";
 }
 
-std::string sl_pssch_tx_params_r14_s::allowed_retx_num_pssch_r14_e_::to_string() const
+std::string sl_pssch_tx_params_r14_s::allowed_retx_num_pssch_r14_opts::to_string() const
 {
   switch (value) {
     case n0:
@@ -474,14 +474,14 @@ std::string sl_pssch_tx_params_r14_s::allowed_retx_num_pssch_r14_e_::to_string()
   }
   return "";
 }
-uint8_t sl_pssch_tx_params_r14_s::allowed_retx_num_pssch_r14_e_::to_number() const
+uint8_t sl_pssch_tx_params_r14_s::allowed_retx_num_pssch_r14_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1};
   return get_enum_number(options, 2, value, "sl_pssch_tx_params_r14_s::allowed_retx_num_pssch_r14_e_");
 }
 
 // SL-RestrictResourceReservationPeriod-r14 ::= ENUMERATED
-std::string sl_restrict_res_reserv_period_r14_e::to_string() const
+std::string sl_restrict_res_reserv_period_r14_opts::to_string() const
 {
   switch (value) {
     case v0dot2:
@@ -521,12 +521,12 @@ std::string sl_restrict_res_reserv_period_r14_e::to_string() const
   }
   return "";
 }
-float sl_restrict_res_reserv_period_r14_e::to_number() const
+float sl_restrict_res_reserv_period_r14_opts::to_number() const
 {
   const static float options[] = {0.2, 0.5, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0};
   return get_enum_number(options, 12, value, "sl_restrict_res_reserv_period_r14_e");
 }
-std::string sl_restrict_res_reserv_period_r14_e::to_number_string() const
+std::string sl_restrict_res_reserv_period_r14_opts::to_number_string() const
 {
   switch (value) {
     case v0dot2:
@@ -560,7 +560,7 @@ std::string sl_restrict_res_reserv_period_r14_e::to_number_string() const
 }
 
 // SL-TypeTxSync-r14 ::= ENUMERATED
-std::string sl_type_tx_sync_r14_e::to_string() const
+std::string sl_type_tx_sync_r14_opts::to_string() const
 {
   switch (value) {
     case gnss:
@@ -575,7 +575,7 @@ std::string sl_type_tx_sync_r14_e::to_string() const
   return "";
 }
 
-std::string sib_type1_v1530_ies_s::crs_intf_mitig_cfg_r15_c_::crs_intf_mitig_num_prbs_r15_e_::to_string() const
+std::string sib_type1_v1530_ies_s::crs_intf_mitig_cfg_r15_c_::crs_intf_mitig_num_prbs_r15_opts::to_string() const
 {
   switch (value) {
     case n6:
@@ -587,14 +587,14 @@ std::string sib_type1_v1530_ies_s::crs_intf_mitig_cfg_r15_c_::crs_intf_mitig_num
   }
   return "";
 }
-uint8_t sib_type1_v1530_ies_s::crs_intf_mitig_cfg_r15_c_::crs_intf_mitig_num_prbs_r15_e_::to_number() const
+uint8_t sib_type1_v1530_ies_s::crs_intf_mitig_cfg_r15_c_::crs_intf_mitig_num_prbs_r15_opts::to_number() const
 {
   const static uint8_t options[] = {6, 24};
   return get_enum_number(options, 2, value,
                          "sib_type1_v1530_ies_s::crs_intf_mitig_cfg_r15_c_::crs_intf_mitig_num_prbs_r15_e_");
 }
 
-std::string sib_type1_v1530_ies_s::crs_intf_mitig_cfg_r15_c_::types::to_string() const
+std::string sib_type1_v1530_ies_s::crs_intf_mitig_cfg_r15_c_::types_opts::to_string() const
 {
   switch (value) {
     case crs_intf_mitig_enabled_minus15:
@@ -608,13 +608,13 @@ std::string sib_type1_v1530_ies_s::crs_intf_mitig_cfg_r15_c_::types::to_string()
   }
   return "";
 }
-int8_t sib_type1_v1530_ies_s::crs_intf_mitig_cfg_r15_c_::types::to_number() const
+int8_t sib_type1_v1530_ies_s::crs_intf_mitig_cfg_r15_c_::types_opts::to_number() const
 {
   const static int8_t options[] = {-15};
   return get_enum_number(options, 1, value, "sib_type1_v1530_ies_s::crs_intf_mitig_cfg_r15_c_::types");
 }
 
-std::string sib_type1_v1530_ies_s::cell_barred_crs_r15_e_::to_string() const
+std::string sib_type1_v1530_ies_s::cell_barred_crs_r15_opts::to_string() const
 {
   switch (value) {
     case barred:
@@ -628,7 +628,7 @@ std::string sib_type1_v1530_ies_s::cell_barred_crs_r15_e_::to_string() const
 }
 
 std::string
-sib_type1_v1530_ies_s::cell_access_related_info_minus5_gc_r15_s_::cell_barred_minus5_gc_r15_e_::to_string() const
+sib_type1_v1530_ies_s::cell_access_related_info_minus5_gc_r15_s_::cell_barred_minus5_gc_r15_opts::to_string() const
 {
   switch (value) {
     case barred:
@@ -643,7 +643,7 @@ sib_type1_v1530_ies_s::cell_access_related_info_minus5_gc_r15_s_::cell_barred_mi
 }
 
 std::string
-sib_type1_v1530_ies_s::cell_access_related_info_minus5_gc_r15_s_::cell_barred_minus5_gc_crs_r15_e_::to_string() const
+sib_type1_v1530_ies_s::cell_access_related_info_minus5_gc_r15_s_::cell_barred_minus5_gc_crs_r15_opts::to_string() const
 {
   switch (value) {
     case barred:
@@ -658,7 +658,7 @@ sib_type1_v1530_ies_s::cell_access_related_info_minus5_gc_r15_s_::cell_barred_mi
 }
 
 // SL-CP-Len-r12 ::= ENUMERATED
-std::string sl_cp_len_r12_e::to_string() const
+std::string sl_cp_len_r12_opts::to_string() const
 {
   switch (value) {
     case normal:
@@ -671,7 +671,7 @@ std::string sl_cp_len_r12_e::to_string() const
   return "";
 }
 
-std::string sl_offset_ind_r12_c::types::to_string() const
+std::string sl_offset_ind_r12_c::types_opts::to_string() const
 {
   switch (value) {
     case small_r12:
@@ -686,7 +686,7 @@ std::string sl_offset_ind_r12_c::types::to_string() const
   return "";
 }
 
-std::string sl_pssch_tx_cfg_r14_s::thres_ue_speed_r14_e_::to_string() const
+std::string sl_pssch_tx_cfg_r14_s::thres_ue_speed_r14_opts::to_string() const
 {
   switch (value) {
     case kmph60:
@@ -710,13 +710,13 @@ std::string sl_pssch_tx_cfg_r14_s::thres_ue_speed_r14_e_::to_string() const
   }
   return "";
 }
-uint8_t sl_pssch_tx_cfg_r14_s::thres_ue_speed_r14_e_::to_number() const
+uint8_t sl_pssch_tx_cfg_r14_s::thres_ue_speed_r14_opts::to_number() const
 {
   const static uint8_t options[] = {60, 80, 100, 120, 140, 160, 180, 200};
   return get_enum_number(options, 8, value, "sl_pssch_tx_cfg_r14_s::thres_ue_speed_r14_e_");
 }
 
-std::string sf_bitmap_sl_r12_c::types::to_string() const
+std::string sf_bitmap_sl_r12_c::types_opts::to_string() const
 {
   switch (value) {
     case bs4_r12:
@@ -740,13 +740,13 @@ std::string sf_bitmap_sl_r12_c::types::to_string() const
   }
   return "";
 }
-uint8_t sf_bitmap_sl_r12_c::types::to_number() const
+uint8_t sf_bitmap_sl_r12_c::types_opts::to_number() const
 {
   const static uint8_t options[] = {4, 8, 12, 16, 30, 40, 42};
   return get_enum_number(options, 7, value, "sf_bitmap_sl_r12_c::types");
 }
 
-std::string sf_bitmap_sl_r14_c::types::to_string() const
+std::string sf_bitmap_sl_r14_c::types_opts::to_string() const
 {
   switch (value) {
     case bs10_r14:
@@ -772,13 +772,13 @@ std::string sf_bitmap_sl_r14_c::types::to_string() const
   }
   return "";
 }
-uint8_t sf_bitmap_sl_r14_c::types::to_number() const
+uint8_t sf_bitmap_sl_r14_c::types_opts::to_number() const
 {
   const static uint8_t options[] = {10, 16, 20, 30, 40, 50, 60, 100};
   return get_enum_number(options, 8, value, "sf_bitmap_sl_r14_c::types");
 }
 
-std::string tdd_cfg_s::sf_assign_e_::to_string() const
+std::string tdd_cfg_s::sf_assign_opts::to_string() const
 {
   switch (value) {
     case sa0:
@@ -800,13 +800,13 @@ std::string tdd_cfg_s::sf_assign_e_::to_string() const
   }
   return "";
 }
-uint8_t tdd_cfg_s::sf_assign_e_::to_number() const
+uint8_t tdd_cfg_s::sf_assign_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1, 2, 3, 4, 5, 6};
   return get_enum_number(options, 7, value, "tdd_cfg_s::sf_assign_e_");
 }
 
-std::string tdd_cfg_s::special_sf_patterns_e_::to_string() const
+std::string tdd_cfg_s::special_sf_patterns_opts::to_string() const
 {
   switch (value) {
     case ssp0:
@@ -832,14 +832,14 @@ std::string tdd_cfg_s::special_sf_patterns_e_::to_string() const
   }
   return "";
 }
-uint8_t tdd_cfg_s::special_sf_patterns_e_::to_number() const
+uint8_t tdd_cfg_s::special_sf_patterns_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
   return get_enum_number(options, 9, value, "tdd_cfg_s::special_sf_patterns_e_");
 }
 
 // BandclassCDMA2000 ::= ENUMERATED
-std::string bandclass_cdma2000_e::to_string() const
+std::string bandclass_cdma2000_opts::to_string() const
 {
   switch (value) {
     case bc0:
@@ -911,13 +911,13 @@ std::string bandclass_cdma2000_e::to_string() const
   }
   return "";
 }
-uint8_t bandclass_cdma2000_e::to_number() const
+uint8_t bandclass_cdma2000_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21};
   return get_enum_number(options, 22, value, "bandclass_cdma2000_e");
 }
 
-std::string sl_comm_res_pool_v2x_r14_s::size_subch_r14_e_::to_string() const
+std::string sl_comm_res_pool_v2x_r14_s::size_subch_r14_opts::to_string() const
 {
   switch (value) {
     case n4:
@@ -989,13 +989,13 @@ std::string sl_comm_res_pool_v2x_r14_s::size_subch_r14_e_::to_string() const
   }
   return "";
 }
-uint8_t sl_comm_res_pool_v2x_r14_s::size_subch_r14_e_::to_number() const
+uint8_t sl_comm_res_pool_v2x_r14_s::size_subch_r14_opts::to_number() const
 {
   const static uint8_t options[] = {4, 5, 6, 8, 9, 10, 12, 15, 16, 18, 20, 25, 30, 48, 50, 72, 75, 96, 100};
   return get_enum_number(options, 19, value, "sl_comm_res_pool_v2x_r14_s::size_subch_r14_e_");
 }
 
-std::string sl_comm_res_pool_v2x_r14_s::num_subch_r14_e_::to_string() const
+std::string sl_comm_res_pool_v2x_r14_s::num_subch_r14_opts::to_string() const
 {
   switch (value) {
     case n1:
@@ -1019,13 +1019,13 @@ std::string sl_comm_res_pool_v2x_r14_s::num_subch_r14_e_::to_string() const
   }
   return "";
 }
-uint8_t sl_comm_res_pool_v2x_r14_s::num_subch_r14_e_::to_number() const
+uint8_t sl_comm_res_pool_v2x_r14_s::num_subch_r14_opts::to_number() const
 {
   const static uint8_t options[] = {1, 3, 5, 8, 10, 15, 20};
   return get_enum_number(options, 7, value, "sl_comm_res_pool_v2x_r14_s::num_subch_r14_e_");
 }
 
-std::string sl_sync_cfg_nfreq_r13_s::rx_params_r13_s_::disc_sync_win_r13_e_::to_string() const
+std::string sl_sync_cfg_nfreq_r13_s::rx_params_r13_s_::disc_sync_win_r13_opts::to_string() const
 {
   switch (value) {
     case w1:
@@ -1037,13 +1037,13 @@ std::string sl_sync_cfg_nfreq_r13_s::rx_params_r13_s_::disc_sync_win_r13_e_::to_
   }
   return "";
 }
-uint8_t sl_sync_cfg_nfreq_r13_s::rx_params_r13_s_::disc_sync_win_r13_e_::to_number() const
+uint8_t sl_sync_cfg_nfreq_r13_s::rx_params_r13_s_::disc_sync_win_r13_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2};
   return get_enum_number(options, 2, value, "sl_sync_cfg_nfreq_r13_s::rx_params_r13_s_::disc_sync_win_r13_e_");
 }
 
-std::string tdd_cfg_v1130_s::special_sf_patterns_v1130_e_::to_string() const
+std::string tdd_cfg_v1130_s::special_sf_patterns_v1130_opts::to_string() const
 {
   switch (value) {
     case ssp7:
@@ -1055,13 +1055,13 @@ std::string tdd_cfg_v1130_s::special_sf_patterns_v1130_e_::to_string() const
   }
   return "";
 }
-uint8_t tdd_cfg_v1130_s::special_sf_patterns_v1130_e_::to_number() const
+uint8_t tdd_cfg_v1130_s::special_sf_patterns_v1130_opts::to_number() const
 {
   const static uint8_t options[] = {7, 9};
   return get_enum_number(options, 2, value, "tdd_cfg_v1130_s::special_sf_patterns_v1130_e_");
 }
 
-std::string sl_comm_tx_pool_sensing_cfg_r14_s::prob_res_keep_r14_e_::to_string() const
+std::string sl_comm_tx_pool_sensing_cfg_r14_s::prob_res_keep_r14_opts::to_string() const
 {
   switch (value) {
     case v0:
@@ -1085,12 +1085,12 @@ std::string sl_comm_tx_pool_sensing_cfg_r14_s::prob_res_keep_r14_e_::to_string()
   }
   return "";
 }
-float sl_comm_tx_pool_sensing_cfg_r14_s::prob_res_keep_r14_e_::to_number() const
+float sl_comm_tx_pool_sensing_cfg_r14_s::prob_res_keep_r14_opts::to_number() const
 {
   const static float options[] = {0.0, 0.2, 0.4, 0.6, 0.8};
   return get_enum_number(options, 5, value, "sl_comm_tx_pool_sensing_cfg_r14_s::prob_res_keep_r14_e_");
 }
-std::string sl_comm_tx_pool_sensing_cfg_r14_s::prob_res_keep_r14_e_::to_number_string() const
+std::string sl_comm_tx_pool_sensing_cfg_r14_s::prob_res_keep_r14_opts::to_number_string() const
 {
   switch (value) {
     case v0:
@@ -1109,7 +1109,7 @@ std::string sl_comm_tx_pool_sensing_cfg_r14_s::prob_res_keep_r14_e_::to_number_s
   return "";
 }
 
-std::string sl_comm_tx_pool_sensing_cfg_r14_s::sl_reselect_after_r14_e_::to_string() const
+std::string sl_comm_tx_pool_sensing_cfg_r14_s::sl_reselect_after_r14_opts::to_string() const
 {
   switch (value) {
     case n1:
@@ -1149,13 +1149,13 @@ std::string sl_comm_tx_pool_sensing_cfg_r14_s::sl_reselect_after_r14_e_::to_stri
   }
   return "";
 }
-uint8_t sl_comm_tx_pool_sensing_cfg_r14_s::sl_reselect_after_r14_e_::to_number() const
+uint8_t sl_comm_tx_pool_sensing_cfg_r14_s::sl_reselect_after_r14_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3, 4, 5, 6, 7, 8, 9};
   return get_enum_number(options, 9, value, "sl_comm_tx_pool_sensing_cfg_r14_s::sl_reselect_after_r14_e_");
 }
 
-std::string setup_e::to_string() const
+std::string setup_opts::to_string() const
 {
   switch (value) {
     case release:
@@ -1170,7 +1170,7 @@ std::string setup_e::to_string() const
   return "";
 }
 
-std::string sl_disc_res_pool_r12_s::disc_period_r12_e_::to_string() const
+std::string sl_disc_res_pool_r12_s::disc_period_r12_opts::to_string() const
 {
   switch (value) {
     case rf32:
@@ -1194,13 +1194,14 @@ std::string sl_disc_res_pool_r12_s::disc_period_r12_e_::to_string() const
   }
   return "";
 }
-uint16_t sl_disc_res_pool_r12_s::disc_period_r12_e_::to_number() const
+uint16_t sl_disc_res_pool_r12_s::disc_period_r12_opts::to_number() const
 {
   const static uint16_t options[] = {32, 64, 128, 256, 512, 1024, 16};
   return get_enum_number(options, 7, value, "sl_disc_res_pool_r12_s::disc_period_r12_e_");
 }
 
-std::string sl_disc_res_pool_r12_s::tx_params_r12_s_::ue_sel_res_cfg_r12_s_::pool_sel_r12_c_::types::to_string() const
+std::string
+sl_disc_res_pool_r12_s::tx_params_r12_s_::ue_sel_res_cfg_r12_s_::pool_sel_r12_c_::types_opts::to_string() const
 {
   switch (value) {
     case rsrp_based_r12:
@@ -1216,7 +1217,7 @@ std::string sl_disc_res_pool_r12_s::tx_params_r12_s_::ue_sel_res_cfg_r12_s_::poo
   return "";
 }
 
-std::string sl_disc_res_pool_r12_s::tx_params_r12_s_::ue_sel_res_cfg_r12_s_::tx_probability_r12_e_::to_string() const
+std::string sl_disc_res_pool_r12_s::tx_params_r12_s_::ue_sel_res_cfg_r12_s_::tx_probability_r12_opts::to_string() const
 {
   switch (value) {
     case p25:
@@ -1233,14 +1234,14 @@ std::string sl_disc_res_pool_r12_s::tx_params_r12_s_::ue_sel_res_cfg_r12_s_::tx_
   }
   return "";
 }
-uint8_t sl_disc_res_pool_r12_s::tx_params_r12_s_::ue_sel_res_cfg_r12_s_::tx_probability_r12_e_::to_number() const
+uint8_t sl_disc_res_pool_r12_s::tx_params_r12_s_::ue_sel_res_cfg_r12_s_::tx_probability_r12_opts::to_number() const
 {
   const static uint8_t options[] = {25, 50, 75, 100};
   return get_enum_number(options, 4, value,
                          "sl_disc_res_pool_r12_s::tx_params_r12_s_::ue_sel_res_cfg_r12_s_::tx_probability_r12_e_");
 }
 
-std::string sl_disc_res_pool_r12_s::disc_period_v1310_c_::setup_e_::to_string() const
+std::string sl_disc_res_pool_r12_s::disc_period_v1310_c_::setup_opts::to_string() const
 {
   switch (value) {
     case rf4:
@@ -1264,13 +1265,14 @@ std::string sl_disc_res_pool_r12_s::disc_period_v1310_c_::setup_e_::to_string() 
   }
   return "";
 }
-uint8_t sl_disc_res_pool_r12_s::disc_period_v1310_c_::setup_e_::to_number() const
+uint8_t sl_disc_res_pool_r12_s::disc_period_v1310_c_::setup_opts::to_number() const
 {
   const static uint8_t options[] = {4, 6, 7, 8, 12, 14, 24, 28};
   return get_enum_number(options, 8, value, "sl_disc_res_pool_r12_s::disc_period_v1310_c_::setup_e_");
 }
 
-std::string sl_disc_res_pool_r12_s::tx_params_add_neigh_freq_r13_c_::setup_s_::freq_info_s_::ul_bw_e_::to_string() const
+std::string
+sl_disc_res_pool_r12_s::tx_params_add_neigh_freq_r13_c_::setup_s_::freq_info_s_::ul_bw_opts::to_string() const
 {
   switch (value) {
     case n6:
@@ -1291,14 +1293,14 @@ std::string sl_disc_res_pool_r12_s::tx_params_add_neigh_freq_r13_c_::setup_s_::f
   }
   return "";
 }
-uint8_t sl_disc_res_pool_r12_s::tx_params_add_neigh_freq_r13_c_::setup_s_::freq_info_s_::ul_bw_e_::to_number() const
+uint8_t sl_disc_res_pool_r12_s::tx_params_add_neigh_freq_r13_c_::setup_s_::freq_info_s_::ul_bw_opts::to_number() const
 {
   const static uint8_t options[] = {6, 15, 25, 50, 75, 100};
   return get_enum_number(options, 6, value,
                          "sl_disc_res_pool_r12_s::tx_params_add_neigh_freq_r13_c_::setup_s_::freq_info_s_::ul_bw_e_");
 }
 
-std::string sl_zone_cfg_r14_s::zone_len_r14_e_::to_string() const
+std::string sl_zone_cfg_r14_s::zone_len_r14_opts::to_string() const
 {
   switch (value) {
     case m5:
@@ -1322,13 +1324,13 @@ std::string sl_zone_cfg_r14_s::zone_len_r14_e_::to_string() const
   }
   return "";
 }
-uint16_t sl_zone_cfg_r14_s::zone_len_r14_e_::to_number() const
+uint16_t sl_zone_cfg_r14_s::zone_len_r14_opts::to_number() const
 {
   const static uint16_t options[] = {5, 10, 20, 50, 100, 200, 500};
   return get_enum_number(options, 7, value, "sl_zone_cfg_r14_s::zone_len_r14_e_");
 }
 
-std::string sl_zone_cfg_r14_s::zone_width_r14_e_::to_string() const
+std::string sl_zone_cfg_r14_s::zone_width_r14_opts::to_string() const
 {
   switch (value) {
     case m5:
@@ -1352,13 +1354,13 @@ std::string sl_zone_cfg_r14_s::zone_width_r14_e_::to_string() const
   }
   return "";
 }
-uint16_t sl_zone_cfg_r14_s::zone_width_r14_e_::to_number() const
+uint16_t sl_zone_cfg_r14_s::zone_width_r14_opts::to_number() const
 {
   const static uint16_t options[] = {5, 10, 20, 50, 100, 200, 500};
   return get_enum_number(options, 7, value, "sl_zone_cfg_r14_s::zone_width_r14_e_");
 }
 
-std::string pci_range_s::range_e_::to_string() const
+std::string pci_range_s::range_opts::to_string() const
 {
   switch (value) {
     case n4:
@@ -1398,14 +1400,14 @@ std::string pci_range_s::range_e_::to_string() const
   }
   return "";
 }
-uint16_t pci_range_s::range_e_::to_number() const
+uint16_t pci_range_s::range_opts::to_number() const
 {
   const static uint16_t options[] = {4, 8, 12, 16, 24, 32, 48, 64, 84, 96, 128, 168, 252, 504};
   return get_enum_number(options, 14, value, "pci_range_s::range_e_");
 }
 
 // Q-OffsetRange ::= ENUMERATED
-std::string q_offset_range_e::to_string() const
+std::string q_offset_range_opts::to_string() const
 {
   switch (value) {
     case db_minus24:
@@ -1475,14 +1477,14 @@ std::string q_offset_range_e::to_string() const
   }
   return "";
 }
-int8_t q_offset_range_e::to_number() const
+int8_t q_offset_range_opts::to_number() const
 {
   const static int8_t options[] = {-24, -22, -20, -18, -16, -14, -12, -10, -8, -6, -5, -4, -3, -2, -1, 0,
                                    1,   2,   3,   4,   5,   6,   8,   10,  12, 14, 16, 18, 20, 22, 24};
   return get_enum_number(options, 31, value, "q_offset_range_e");
 }
 
-std::string sched_info_br_r13_s::si_tbs_r13_e_::to_string() const
+std::string sched_info_br_r13_s::si_tbs_r13_opts::to_string() const
 {
   switch (value) {
     case b152:
@@ -1510,13 +1512,13 @@ std::string sched_info_br_r13_s::si_tbs_r13_e_::to_string() const
   }
   return "";
 }
-uint16_t sched_info_br_r13_s::si_tbs_r13_e_::to_number() const
+uint16_t sched_info_br_r13_s::si_tbs_r13_opts::to_number() const
 {
   const static uint16_t options[] = {152, 208, 256, 328, 408, 504, 600, 712, 808, 936};
   return get_enum_number(options, 10, value, "sched_info_br_r13_s::si_tbs_r13_e_");
 }
 
-std::string speed_state_scale_factors_s::sf_medium_e_::to_string() const
+std::string speed_state_scale_factors_s::sf_medium_opts::to_string() const
 {
   switch (value) {
     case o_dot25:
@@ -1532,12 +1534,12 @@ std::string speed_state_scale_factors_s::sf_medium_e_::to_string() const
   }
   return "";
 }
-float speed_state_scale_factors_s::sf_medium_e_::to_number() const
+float speed_state_scale_factors_s::sf_medium_opts::to_number() const
 {
   const static float options[] = {0.25, 0.5, 0.75, 1.0};
   return get_enum_number(options, 4, value, "speed_state_scale_factors_s::sf_medium_e_");
 }
-std::string speed_state_scale_factors_s::sf_medium_e_::to_number_string() const
+std::string speed_state_scale_factors_s::sf_medium_opts::to_number_string() const
 {
   switch (value) {
     case o_dot25:
@@ -1554,7 +1556,7 @@ std::string speed_state_scale_factors_s::sf_medium_e_::to_number_string() const
   return "";
 }
 
-std::string speed_state_scale_factors_s::sf_high_e_::to_string() const
+std::string speed_state_scale_factors_s::sf_high_opts::to_string() const
 {
   switch (value) {
     case o_dot25:
@@ -1570,12 +1572,12 @@ std::string speed_state_scale_factors_s::sf_high_e_::to_string() const
   }
   return "";
 }
-float speed_state_scale_factors_s::sf_high_e_::to_number() const
+float speed_state_scale_factors_s::sf_high_opts::to_number() const
 {
   const static float options[] = {0.25, 0.5, 0.75, 1.0};
   return get_enum_number(options, 4, value, "speed_state_scale_factors_s::sf_high_e_");
 }
-std::string speed_state_scale_factors_s::sf_high_e_::to_number_string() const
+std::string speed_state_scale_factors_s::sf_high_opts::to_number_string() const
 {
   switch (value) {
     case o_dot25:
@@ -1593,7 +1595,7 @@ std::string speed_state_scale_factors_s::sf_high_e_::to_number_string() const
 }
 
 // AllowedMeasBandwidth ::= ENUMERATED
-std::string allowed_meas_bw_e::to_string() const
+std::string allowed_meas_bw_opts::to_string() const
 {
   switch (value) {
     case mbw6:
@@ -1613,14 +1615,14 @@ std::string allowed_meas_bw_e::to_string() const
   }
   return "";
 }
-uint8_t allowed_meas_bw_e::to_number() const
+uint8_t allowed_meas_bw_opts::to_number() const
 {
   const static uint8_t options[] = {6, 15, 25, 50, 75, 100};
   return get_enum_number(options, 6, value, "allowed_meas_bw_e");
 }
 
 // BandIndicatorGERAN ::= ENUMERATED
-std::string band_ind_geran_e::to_string() const
+std::string band_ind_geran_opts::to_string() const
 {
   switch (value) {
     case dcs1800:
@@ -1632,13 +1634,13 @@ std::string band_ind_geran_e::to_string() const
   }
   return "";
 }
-uint16_t band_ind_geran_e::to_number() const
+uint16_t band_ind_geran_opts::to_number() const
 {
   const static uint16_t options[] = {1800, 1900};
   return get_enum_number(options, 2, value, "band_ind_geran_e");
 }
 
-std::string barr_per_acdc_category_r13_s::acdc_barr_cfg_r13_s_::ac_barr_factor_r13_e_::to_string() const
+std::string barr_per_acdc_category_r13_s::acdc_barr_cfg_r13_s_::ac_barr_factor_r13_opts::to_string() const
 {
   switch (value) {
     case p00:
@@ -1678,13 +1680,13 @@ std::string barr_per_acdc_category_r13_s::acdc_barr_cfg_r13_s_::ac_barr_factor_r
   }
   return "";
 }
-float barr_per_acdc_category_r13_s::acdc_barr_cfg_r13_s_::ac_barr_factor_r13_e_::to_number() const
+float barr_per_acdc_category_r13_s::acdc_barr_cfg_r13_s_::ac_barr_factor_r13_opts::to_number() const
 {
   const static float options[] = {0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5};
   return get_enum_number(options, 16, value,
                          "barr_per_acdc_category_r13_s::acdc_barr_cfg_r13_s_::ac_barr_factor_r13_e_");
 }
-std::string barr_per_acdc_category_r13_s::acdc_barr_cfg_r13_s_::ac_barr_factor_r13_e_::to_number_string() const
+std::string barr_per_acdc_category_r13_s::acdc_barr_cfg_r13_s_::ac_barr_factor_r13_opts::to_number_string() const
 {
   switch (value) {
     case p00:
@@ -1725,7 +1727,7 @@ std::string barr_per_acdc_category_r13_s::acdc_barr_cfg_r13_s_::ac_barr_factor_r
   return "";
 }
 
-std::string barr_per_acdc_category_r13_s::acdc_barr_cfg_r13_s_::ac_barr_time_r13_e_::to_string() const
+std::string barr_per_acdc_category_r13_s::acdc_barr_cfg_r13_s_::ac_barr_time_r13_opts::to_string() const
 {
   switch (value) {
     case s4:
@@ -1749,13 +1751,13 @@ std::string barr_per_acdc_category_r13_s::acdc_barr_cfg_r13_s_::ac_barr_time_r13
   }
   return "";
 }
-uint16_t barr_per_acdc_category_r13_s::acdc_barr_cfg_r13_s_::ac_barr_time_r13_e_::to_number() const
+uint16_t barr_per_acdc_category_r13_s::acdc_barr_cfg_r13_s_::ac_barr_time_r13_opts::to_number() const
 {
   const static uint16_t options[] = {4, 8, 16, 32, 64, 128, 256, 512};
   return get_enum_number(options, 8, value, "barr_per_acdc_category_r13_s::acdc_barr_cfg_r13_s_::ac_barr_time_r13_e_");
 }
 
-std::string cell_sel_info_nfreq_r13_s::q_hyst_r13_e_::to_string() const
+std::string cell_sel_info_nfreq_r13_s::q_hyst_r13_opts::to_string() const
 {
   switch (value) {
     case db0:
@@ -1795,13 +1797,13 @@ std::string cell_sel_info_nfreq_r13_s::q_hyst_r13_e_::to_string() const
   }
   return "";
 }
-uint8_t cell_sel_info_nfreq_r13_s::q_hyst_r13_e_::to_number() const
+uint8_t cell_sel_info_nfreq_r13_s::q_hyst_r13_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24};
   return get_enum_number(options, 16, value, "cell_sel_info_nfreq_r13_s::q_hyst_r13_e_");
 }
 
-std::string plmn_id_info2_r12_c::types::to_string() const
+std::string plmn_id_info2_r12_c::types_opts::to_string() const
 {
   switch (value) {
     case plmn_idx_r12:
@@ -1816,7 +1818,7 @@ std::string plmn_id_info2_r12_c::types::to_string() const
   return "";
 }
 
-std::string prach_params_ce_r13_s::prach_start_sf_r13_e_::to_string() const
+std::string prach_params_ce_r13_s::prach_start_sf_r13_opts::to_string() const
 {
   switch (value) {
     case sf2:
@@ -1840,13 +1842,13 @@ std::string prach_params_ce_r13_s::prach_start_sf_r13_e_::to_string() const
   }
   return "";
 }
-uint16_t prach_params_ce_r13_s::prach_start_sf_r13_e_::to_number() const
+uint16_t prach_params_ce_r13_s::prach_start_sf_r13_opts::to_number() const
 {
   const static uint16_t options[] = {2, 4, 8, 16, 32, 64, 128, 256};
   return get_enum_number(options, 8, value, "prach_params_ce_r13_s::prach_start_sf_r13_e_");
 }
 
-std::string prach_params_ce_r13_s::max_num_preamb_attempt_ce_r13_e_::to_string() const
+std::string prach_params_ce_r13_s::max_num_preamb_attempt_ce_r13_opts::to_string() const
 {
   switch (value) {
     case n3:
@@ -1868,13 +1870,13 @@ std::string prach_params_ce_r13_s::max_num_preamb_attempt_ce_r13_e_::to_string()
   }
   return "";
 }
-uint8_t prach_params_ce_r13_s::max_num_preamb_attempt_ce_r13_e_::to_number() const
+uint8_t prach_params_ce_r13_s::max_num_preamb_attempt_ce_r13_opts::to_number() const
 {
   const static uint8_t options[] = {3, 4, 5, 6, 7, 8, 10};
   return get_enum_number(options, 7, value, "prach_params_ce_r13_s::max_num_preamb_attempt_ce_r13_e_");
 }
 
-std::string prach_params_ce_r13_s::num_repeat_per_preamb_attempt_r13_e_::to_string() const
+std::string prach_params_ce_r13_s::num_repeat_per_preamb_attempt_r13_opts::to_string() const
 {
   switch (value) {
     case n1:
@@ -1898,13 +1900,13 @@ std::string prach_params_ce_r13_s::num_repeat_per_preamb_attempt_r13_e_::to_stri
   }
   return "";
 }
-uint8_t prach_params_ce_r13_s::num_repeat_per_preamb_attempt_r13_e_::to_number() const
+uint8_t prach_params_ce_r13_s::num_repeat_per_preamb_attempt_r13_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 4, 8, 16, 32, 64, 128};
   return get_enum_number(options, 8, value, "prach_params_ce_r13_s::num_repeat_per_preamb_attempt_r13_e_");
 }
 
-std::string prach_params_ce_r13_s::mpdcch_num_repeat_ra_r13_e_::to_string() const
+std::string prach_params_ce_r13_s::mpdcch_num_repeat_ra_r13_opts::to_string() const
 {
   switch (value) {
     case r1:
@@ -1930,13 +1932,13 @@ std::string prach_params_ce_r13_s::mpdcch_num_repeat_ra_r13_e_::to_string() cons
   }
   return "";
 }
-uint16_t prach_params_ce_r13_s::mpdcch_num_repeat_ra_r13_e_::to_number() const
+uint16_t prach_params_ce_r13_s::mpdcch_num_repeat_ra_r13_opts::to_number() const
 {
   const static uint16_t options[] = {1, 2, 4, 8, 16, 32, 64, 128, 256};
   return get_enum_number(options, 9, value, "prach_params_ce_r13_s::mpdcch_num_repeat_ra_r13_e_");
 }
 
-std::string prach_params_ce_r13_s::prach_hop_cfg_r13_e_::to_string() const
+std::string prach_params_ce_r13_s::prach_hop_cfg_r13_opts::to_string() const
 {
   switch (value) {
     case on:
@@ -1949,7 +1951,7 @@ std::string prach_params_ce_r13_s::prach_hop_cfg_r13_e_::to_string() const
   return "";
 }
 
-std::string rach_ce_level_info_r13_s::ra_resp_win_size_r13_e_::to_string() const
+std::string rach_ce_level_info_r13_s::ra_resp_win_size_r13_opts::to_string() const
 {
   switch (value) {
     case sf20:
@@ -1973,13 +1975,13 @@ std::string rach_ce_level_info_r13_s::ra_resp_win_size_r13_e_::to_string() const
   }
   return "";
 }
-uint16_t rach_ce_level_info_r13_s::ra_resp_win_size_r13_e_::to_number() const
+uint16_t rach_ce_level_info_r13_s::ra_resp_win_size_r13_opts::to_number() const
 {
   const static uint16_t options[] = {20, 50, 80, 120, 180, 240, 320, 400};
   return get_enum_number(options, 8, value, "rach_ce_level_info_r13_s::ra_resp_win_size_r13_e_");
 }
 
-std::string rach_ce_level_info_r13_s::mac_contention_resolution_timer_r13_e_::to_string() const
+std::string rach_ce_level_info_r13_s::mac_contention_resolution_timer_r13_opts::to_string() const
 {
   switch (value) {
     case sf80:
@@ -2003,13 +2005,13 @@ std::string rach_ce_level_info_r13_s::mac_contention_resolution_timer_r13_e_::to
   }
   return "";
 }
-uint16_t rach_ce_level_info_r13_s::mac_contention_resolution_timer_r13_e_::to_number() const
+uint16_t rach_ce_level_info_r13_s::mac_contention_resolution_timer_r13_opts::to_number() const
 {
   const static uint16_t options[] = {80, 100, 120, 160, 200, 240, 480, 960};
   return get_enum_number(options, 8, value, "rach_ce_level_info_r13_s::mac_contention_resolution_timer_r13_e_");
 }
 
-std::string rach_ce_level_info_r13_s::rar_hop_cfg_r13_e_::to_string() const
+std::string rach_ce_level_info_r13_s::rar_hop_cfg_r13_opts::to_string() const
 {
   switch (value) {
     case on:
@@ -2022,7 +2024,7 @@ std::string rach_ce_level_info_r13_s::rar_hop_cfg_r13_e_::to_string() const
   return "";
 }
 
-std::string rach_ce_level_info_r13_s::edt_params_r15_s_::edt_tbs_r15_e_::to_string() const
+std::string rach_ce_level_info_r13_s::edt_params_r15_s_::edt_tbs_r15_opts::to_string() const
 {
   switch (value) {
     case b328:
@@ -2046,13 +2048,13 @@ std::string rach_ce_level_info_r13_s::edt_params_r15_s_::edt_tbs_r15_e_::to_stri
   }
   return "";
 }
-uint16_t rach_ce_level_info_r13_s::edt_params_r15_s_::edt_tbs_r15_e_::to_number() const
+uint16_t rach_ce_level_info_r13_s::edt_params_r15_s_::edt_tbs_r15_opts::to_number() const
 {
   const static uint16_t options[] = {328, 408, 504, 600, 712, 808, 936, 1000};
   return get_enum_number(options, 8, value, "rach_ce_level_info_r13_s::edt_params_r15_s_::edt_tbs_r15_e_");
 }
 
-std::string rach_ce_level_info_r13_s::edt_params_r15_s_::mac_contention_resolution_timer_r15_e_::to_string() const
+std::string rach_ce_level_info_r13_s::edt_params_r15_s_::mac_contention_resolution_timer_r15_opts::to_string() const
 {
   switch (value) {
     case sf240:
@@ -2076,14 +2078,14 @@ std::string rach_ce_level_info_r13_s::edt_params_r15_s_::mac_contention_resoluti
   }
   return "";
 }
-uint16_t rach_ce_level_info_r13_s::edt_params_r15_s_::mac_contention_resolution_timer_r15_e_::to_number() const
+uint16_t rach_ce_level_info_r13_s::edt_params_r15_s_::mac_contention_resolution_timer_r15_opts::to_number() const
 {
   const static uint16_t options[] = {240, 480, 960, 1920, 3840, 5760, 7680, 10240};
   return get_enum_number(options, 8, value,
                          "rach_ce_level_info_r13_s::edt_params_r15_s_::mac_contention_resolution_timer_r15_e_");
 }
 
-std::string sl_disc_tx_res_inter_freq_r13_c::types::to_string() const
+std::string sl_disc_tx_res_inter_freq_r13_c::types_opts::to_string() const
 {
   switch (value) {
     case acquire_si_from_carrier_r13:
@@ -2102,7 +2104,7 @@ std::string sl_disc_tx_res_inter_freq_r13_c::types::to_string() const
   return "";
 }
 
-std::string sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::mpdcch_pdsch_hop_nb_r13_e_::to_string() const
+std::string sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::mpdcch_pdsch_hop_nb_r13_opts::to_string() const
 {
   switch (value) {
     case nb2:
@@ -2114,16 +2116,15 @@ std::string sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::mpdcch_pdsch_hop_n
   }
   return "";
 }
-uint8_t sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::mpdcch_pdsch_hop_nb_r13_e_::to_number() const
+uint8_t sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::mpdcch_pdsch_hop_nb_r13_opts::to_number() const
 {
   const static uint8_t options[] = {2, 4};
   return get_enum_number(options, 2, value,
                          "sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::mpdcch_pdsch_hop_nb_r13_e_");
 }
 
-std::string
-sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::interv_dl_hop_cfg_common_mode_a_r13_c_::interv_fdd_r13_e_::to_string()
-    const
+std::string sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::interv_dl_hop_cfg_common_mode_a_r13_c_::
+    interv_fdd_r13_opts::to_string() const
 {
   switch (value) {
     case int1:
@@ -2140,9 +2141,8 @@ sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::interv_dl_hop_cfg_common_mode_
   }
   return "";
 }
-uint8_t
-sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::interv_dl_hop_cfg_common_mode_a_r13_c_::interv_fdd_r13_e_::to_number()
-    const
+uint8_t sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::interv_dl_hop_cfg_common_mode_a_r13_c_::interv_fdd_r13_opts::
+    to_number() const
 {
   const static uint8_t options[] = {1, 2, 4, 8};
   return get_enum_number(
@@ -2150,9 +2150,8 @@ sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::interv_dl_hop_cfg_common_mode_
       "sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::interv_dl_hop_cfg_common_mode_a_r13_c_::interv_fdd_r13_e_");
 }
 
-std::string
-sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::interv_dl_hop_cfg_common_mode_a_r13_c_::interv_tdd_r13_e_::to_string()
-    const
+std::string sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::interv_dl_hop_cfg_common_mode_a_r13_c_::
+    interv_tdd_r13_opts::to_string() const
 {
   switch (value) {
     case int1:
@@ -2169,9 +2168,8 @@ sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::interv_dl_hop_cfg_common_mode_
   }
   return "";
 }
-uint8_t
-sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::interv_dl_hop_cfg_common_mode_a_r13_c_::interv_tdd_r13_e_::to_number()
-    const
+uint8_t sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::interv_dl_hop_cfg_common_mode_a_r13_c_::interv_tdd_r13_opts::
+    to_number() const
 {
   const static uint8_t options[] = {1, 5, 10, 20};
   return get_enum_number(
@@ -2180,7 +2178,7 @@ sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::interv_dl_hop_cfg_common_mode_
 }
 
 std::string
-sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::interv_dl_hop_cfg_common_mode_a_r13_c_::types::to_string() const
+sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::interv_dl_hop_cfg_common_mode_a_r13_c_::types_opts::to_string() const
 {
   switch (value) {
     case interv_fdd_r13:
@@ -2196,9 +2194,8 @@ sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::interv_dl_hop_cfg_common_mode_
   return "";
 }
 
-std::string
-sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::interv_dl_hop_cfg_common_mode_b_r13_c_::interv_fdd_r13_e_::to_string()
-    const
+std::string sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::interv_dl_hop_cfg_common_mode_b_r13_c_::
+    interv_fdd_r13_opts::to_string() const
 {
   switch (value) {
     case int2:
@@ -2215,9 +2212,8 @@ sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::interv_dl_hop_cfg_common_mode_
   }
   return "";
 }
-uint8_t
-sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::interv_dl_hop_cfg_common_mode_b_r13_c_::interv_fdd_r13_e_::to_number()
-    const
+uint8_t sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::interv_dl_hop_cfg_common_mode_b_r13_c_::interv_fdd_r13_opts::
+    to_number() const
 {
   const static uint8_t options[] = {2, 4, 8, 16};
   return get_enum_number(
@@ -2225,9 +2221,8 @@ sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::interv_dl_hop_cfg_common_mode_
       "sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::interv_dl_hop_cfg_common_mode_b_r13_c_::interv_fdd_r13_e_");
 }
 
-std::string
-sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::interv_dl_hop_cfg_common_mode_b_r13_c_::interv_tdd_r13_e_::to_string()
-    const
+std::string sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::interv_dl_hop_cfg_common_mode_b_r13_c_::
+    interv_tdd_r13_opts::to_string() const
 {
   switch (value) {
     case int5:
@@ -2244,9 +2239,8 @@ sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::interv_dl_hop_cfg_common_mode_
   }
   return "";
 }
-uint8_t
-sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::interv_dl_hop_cfg_common_mode_b_r13_c_::interv_tdd_r13_e_::to_number()
-    const
+uint8_t sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::interv_dl_hop_cfg_common_mode_b_r13_c_::interv_tdd_r13_opts::
+    to_number() const
 {
   const static uint8_t options[] = {5, 10, 20, 40};
   return get_enum_number(
@@ -2255,7 +2249,7 @@ sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::interv_dl_hop_cfg_common_mode_
 }
 
 std::string
-sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::interv_dl_hop_cfg_common_mode_b_r13_c_::types::to_string() const
+sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::interv_dl_hop_cfg_common_mode_b_r13_c_::types_opts::to_string() const
 {
   switch (value) {
     case interv_fdd_r13:
@@ -2271,7 +2265,7 @@ sib_type1_v1320_ies_s::freq_hop_params_dl_r13_s_::interv_dl_hop_cfg_common_mode_
   return "";
 }
 
-std::string sys_time_info_cdma2000_s::cdma_sys_time_c_::types::to_string() const
+std::string sys_time_info_cdma2000_s::cdma_sys_time_c_::types_opts::to_string() const
 {
   switch (value) {
     case sync_sys_time:
@@ -2286,7 +2280,7 @@ std::string sys_time_info_cdma2000_s::cdma_sys_time_c_::types::to_string() const
   return "";
 }
 
-std::string ac_barr_cfg_s::ac_barr_factor_e_::to_string() const
+std::string ac_barr_cfg_s::ac_barr_factor_opts::to_string() const
 {
   switch (value) {
     case p00:
@@ -2326,12 +2320,12 @@ std::string ac_barr_cfg_s::ac_barr_factor_e_::to_string() const
   }
   return "";
 }
-float ac_barr_cfg_s::ac_barr_factor_e_::to_number() const
+float ac_barr_cfg_s::ac_barr_factor_opts::to_number() const
 {
   const static float options[] = {0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5};
   return get_enum_number(options, 16, value, "ac_barr_cfg_s::ac_barr_factor_e_");
 }
-std::string ac_barr_cfg_s::ac_barr_factor_e_::to_number_string() const
+std::string ac_barr_cfg_s::ac_barr_factor_opts::to_number_string() const
 {
   switch (value) {
     case p00:
@@ -2372,7 +2366,7 @@ std::string ac_barr_cfg_s::ac_barr_factor_e_::to_number_string() const
   return "";
 }
 
-std::string ac_barr_cfg_s::ac_barr_time_e_::to_string() const
+std::string ac_barr_cfg_s::ac_barr_time_opts::to_string() const
 {
   switch (value) {
     case s4:
@@ -2396,13 +2390,13 @@ std::string ac_barr_cfg_s::ac_barr_time_e_::to_string() const
   }
   return "";
 }
-uint16_t ac_barr_cfg_s::ac_barr_time_e_::to_number() const
+uint16_t ac_barr_cfg_s::ac_barr_time_opts::to_number() const
 {
   const static uint16_t options[] = {4, 8, 16, 32, 64, 128, 256, 512};
   return get_enum_number(options, 8, value, "ac_barr_cfg_s::ac_barr_time_e_");
 }
 
-std::string carrier_freqs_geran_s::following_arfcns_c_::types::to_string() const
+std::string carrier_freqs_geran_s::following_arfcns_c_::types_opts::to_string() const
 {
   switch (value) {
     case explicit_list_of_arfcns:
@@ -2420,7 +2414,7 @@ std::string carrier_freqs_geran_s::following_arfcns_c_::types::to_string() const
 }
 
 // CellReselectionSubPriority-r13 ::= ENUMERATED
-std::string cell_resel_sub_prio_r13_e::to_string() const
+std::string cell_resel_sub_prio_r13_opts::to_string() const
 {
   switch (value) {
     case o_dot2:
@@ -2436,12 +2430,12 @@ std::string cell_resel_sub_prio_r13_e::to_string() const
   }
   return "";
 }
-float cell_resel_sub_prio_r13_e::to_number() const
+float cell_resel_sub_prio_r13_opts::to_number() const
 {
   const static float options[] = {0.2, 0.4, 0.6, 0.8};
   return get_enum_number(options, 4, value, "cell_resel_sub_prio_r13_e");
 }
-std::string cell_resel_sub_prio_r13_e::to_number_string() const
+std::string cell_resel_sub_prio_r13_opts::to_number_string() const
 {
   switch (value) {
     case o_dot2:
@@ -2458,7 +2452,7 @@ std::string cell_resel_sub_prio_r13_e::to_number_string() const
   return "";
 }
 
-std::string delta_flist_pucch_s::delta_f_pucch_format1_e_::to_string() const
+std::string delta_flist_pucch_s::delta_f_pucch_format1_opts::to_string() const
 {
   switch (value) {
     case delta_f_minus2:
@@ -2472,13 +2466,13 @@ std::string delta_flist_pucch_s::delta_f_pucch_format1_e_::to_string() const
   }
   return "";
 }
-int8_t delta_flist_pucch_s::delta_f_pucch_format1_e_::to_number() const
+int8_t delta_flist_pucch_s::delta_f_pucch_format1_opts::to_number() const
 {
   const static int8_t options[] = {-2, 0, 2};
   return get_enum_number(options, 3, value, "delta_flist_pucch_s::delta_f_pucch_format1_e_");
 }
 
-std::string delta_flist_pucch_s::delta_f_pucch_format1b_e_::to_string() const
+std::string delta_flist_pucch_s::delta_f_pucch_format1b_opts::to_string() const
 {
   switch (value) {
     case delta_f1:
@@ -2492,13 +2486,13 @@ std::string delta_flist_pucch_s::delta_f_pucch_format1b_e_::to_string() const
   }
   return "";
 }
-uint8_t delta_flist_pucch_s::delta_f_pucch_format1b_e_::to_number() const
+uint8_t delta_flist_pucch_s::delta_f_pucch_format1b_opts::to_number() const
 {
   const static uint8_t options[] = {1, 3, 5};
   return get_enum_number(options, 3, value, "delta_flist_pucch_s::delta_f_pucch_format1b_e_");
 }
 
-std::string delta_flist_pucch_s::delta_f_pucch_format2_e_::to_string() const
+std::string delta_flist_pucch_s::delta_f_pucch_format2_opts::to_string() const
 {
   switch (value) {
     case delta_f_minus2:
@@ -2514,13 +2508,13 @@ std::string delta_flist_pucch_s::delta_f_pucch_format2_e_::to_string() const
   }
   return "";
 }
-int8_t delta_flist_pucch_s::delta_f_pucch_format2_e_::to_number() const
+int8_t delta_flist_pucch_s::delta_f_pucch_format2_opts::to_number() const
 {
   const static int8_t options[] = {-2, 0, 1, 2};
   return get_enum_number(options, 4, value, "delta_flist_pucch_s::delta_f_pucch_format2_e_");
 }
 
-std::string delta_flist_pucch_s::delta_f_pucch_format2a_e_::to_string() const
+std::string delta_flist_pucch_s::delta_f_pucch_format2a_opts::to_string() const
 {
   switch (value) {
     case delta_f_minus2:
@@ -2534,13 +2528,13 @@ std::string delta_flist_pucch_s::delta_f_pucch_format2a_e_::to_string() const
   }
   return "";
 }
-int8_t delta_flist_pucch_s::delta_f_pucch_format2a_e_::to_number() const
+int8_t delta_flist_pucch_s::delta_f_pucch_format2a_opts::to_number() const
 {
   const static int8_t options[] = {-2, 0, 2};
   return get_enum_number(options, 3, value, "delta_flist_pucch_s::delta_f_pucch_format2a_e_");
 }
 
-std::string delta_flist_pucch_s::delta_f_pucch_format2b_e_::to_string() const
+std::string delta_flist_pucch_s::delta_f_pucch_format2b_opts::to_string() const
 {
   switch (value) {
     case delta_f_minus2:
@@ -2554,13 +2548,13 @@ std::string delta_flist_pucch_s::delta_f_pucch_format2b_e_::to_string() const
   }
   return "";
 }
-int8_t delta_flist_pucch_s::delta_f_pucch_format2b_e_::to_number() const
+int8_t delta_flist_pucch_s::delta_f_pucch_format2b_opts::to_number() const
 {
   const static int8_t options[] = {-2, 0, 2};
   return get_enum_number(options, 3, value, "delta_flist_pucch_s::delta_f_pucch_format2b_e_");
 }
 
-std::string edt_prach_params_ce_r15_s::edt_prach_params_ce_r15_s_::prach_start_sf_r15_e_::to_string() const
+std::string edt_prach_params_ce_r15_s::edt_prach_params_ce_r15_s_::prach_start_sf_r15_opts::to_string() const
 {
   switch (value) {
     case sf2:
@@ -2584,7 +2578,7 @@ std::string edt_prach_params_ce_r15_s::edt_prach_params_ce_r15_s_::prach_start_s
   }
   return "";
 }
-uint16_t edt_prach_params_ce_r15_s::edt_prach_params_ce_r15_s_::prach_start_sf_r15_e_::to_number() const
+uint16_t edt_prach_params_ce_r15_s::edt_prach_params_ce_r15_s_::prach_start_sf_r15_opts::to_number() const
 {
   const static uint16_t options[] = {2, 4, 8, 16, 32, 64, 128, 256};
   return get_enum_number(options, 8, value,
@@ -2592,7 +2586,7 @@ uint16_t edt_prach_params_ce_r15_s::edt_prach_params_ce_r15_s_::prach_start_sf_r
 }
 
 // FilterCoefficient ::= ENUMERATED
-std::string filt_coef_e::to_string() const
+std::string filt_coef_opts::to_string() const
 {
   switch (value) {
     case fc0:
@@ -2632,13 +2626,13 @@ std::string filt_coef_e::to_string() const
   }
   return "";
 }
-uint8_t filt_coef_e::to_number() const
+uint8_t filt_coef_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 13, 15, 17, 19};
   return get_enum_number(options, 15, value, "filt_coef_e");
 }
 
-std::string mtc_ssb_nr_r15_s::periodicity_and_offset_r15_c_::types::to_string() const
+std::string mtc_ssb_nr_r15_s::periodicity_and_offset_r15_c_::types_opts::to_string() const
 {
   switch (value) {
     case sf5_r15:
@@ -2660,13 +2654,13 @@ std::string mtc_ssb_nr_r15_s::periodicity_and_offset_r15_c_::types::to_string() 
   }
   return "";
 }
-uint8_t mtc_ssb_nr_r15_s::periodicity_and_offset_r15_c_::types::to_number() const
+uint8_t mtc_ssb_nr_r15_s::periodicity_and_offset_r15_c_::types_opts::to_number() const
 {
   const static uint8_t options[] = {5, 10, 20, 40, 80, 160};
   return get_enum_number(options, 6, value, "mtc_ssb_nr_r15_s::periodicity_and_offset_r15_c_::types");
 }
 
-std::string mtc_ssb_nr_r15_s::ssb_dur_r15_e_::to_string() const
+std::string mtc_ssb_nr_r15_s::ssb_dur_r15_opts::to_string() const
 {
   switch (value) {
     case sf1:
@@ -2684,13 +2678,13 @@ std::string mtc_ssb_nr_r15_s::ssb_dur_r15_e_::to_string() const
   }
   return "";
 }
-uint8_t mtc_ssb_nr_r15_s::ssb_dur_r15_e_::to_number() const
+uint8_t mtc_ssb_nr_r15_s::ssb_dur_r15_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3, 4, 5};
   return get_enum_number(options, 5, value, "mtc_ssb_nr_r15_s::ssb_dur_r15_e_");
 }
 
-std::string meas_idle_carrier_eutra_r15_s::report_quantities_e_::to_string() const
+std::string meas_idle_carrier_eutra_r15_s::report_quantities_opts::to_string() const
 {
   switch (value) {
     case rsrp:
@@ -2705,7 +2699,7 @@ std::string meas_idle_carrier_eutra_r15_s::report_quantities_e_::to_string() con
   return "";
 }
 
-std::string params_cdma2000_r11_s::sys_time_info_r11_c_::types::to_string() const
+std::string params_cdma2000_r11_s::sys_time_info_r11_c_::types_opts::to_string() const
 {
   switch (value) {
     case explicit_value:
@@ -2720,7 +2714,7 @@ std::string params_cdma2000_r11_s::sys_time_info_r11_c_::types::to_string() cons
   return "";
 }
 
-std::string pwr_ramp_params_s::pwr_ramp_step_e_::to_string() const
+std::string pwr_ramp_params_s::pwr_ramp_step_opts::to_string() const
 {
   switch (value) {
     case db0:
@@ -2736,13 +2730,13 @@ std::string pwr_ramp_params_s::pwr_ramp_step_e_::to_string() const
   }
   return "";
 }
-uint8_t pwr_ramp_params_s::pwr_ramp_step_e_::to_number() const
+uint8_t pwr_ramp_params_s::pwr_ramp_step_opts::to_number() const
 {
   const static uint8_t options[] = {0, 2, 4, 6};
   return get_enum_number(options, 4, value, "pwr_ramp_params_s::pwr_ramp_step_e_");
 }
 
-std::string pwr_ramp_params_s::preamb_init_rx_target_pwr_e_::to_string() const
+std::string pwr_ramp_params_s::preamb_init_rx_target_pwr_opts::to_string() const
 {
   switch (value) {
     case dbm_minus120:
@@ -2782,7 +2776,7 @@ std::string pwr_ramp_params_s::preamb_init_rx_target_pwr_e_::to_string() const
   }
   return "";
 }
-int8_t pwr_ramp_params_s::preamb_init_rx_target_pwr_e_::to_number() const
+int8_t pwr_ramp_params_s::preamb_init_rx_target_pwr_opts::to_number() const
 {
   const static int8_t options[] = {-120, -118, -116, -114, -112, -110, -108, -106,
                                    -104, -102, -100, -98,  -96,  -94,  -92,  -90};
@@ -2790,7 +2784,7 @@ int8_t pwr_ramp_params_s::preamb_init_rx_target_pwr_e_::to_number() const
 }
 
 // PreambleTransMax ::= ENUMERATED
-std::string preamb_trans_max_e::to_string() const
+std::string preamb_trans_max_opts::to_string() const
 {
   switch (value) {
     case n3:
@@ -2820,13 +2814,13 @@ std::string preamb_trans_max_e::to_string() const
   }
   return "";
 }
-uint8_t preamb_trans_max_e::to_number() const
+uint8_t preamb_trans_max_opts::to_number() const
 {
   const static uint8_t options[] = {3, 4, 5, 6, 7, 8, 10, 20, 50, 100, 200};
   return get_enum_number(options, 11, value, "preamb_trans_max_e");
 }
 
-std::string sl_hop_cfg_comm_r12_s::num_subbands_r12_e_::to_string() const
+std::string sl_hop_cfg_comm_r12_s::num_subbands_r12_opts::to_string() const
 {
   switch (value) {
     case ns1:
@@ -2840,13 +2834,13 @@ std::string sl_hop_cfg_comm_r12_s::num_subbands_r12_e_::to_string() const
   }
   return "";
 }
-uint8_t sl_hop_cfg_comm_r12_s::num_subbands_r12_e_::to_number() const
+uint8_t sl_hop_cfg_comm_r12_s::num_subbands_r12_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 4};
   return get_enum_number(options, 3, value, "sl_hop_cfg_comm_r12_s::num_subbands_r12_e_");
 }
 
-std::string sl_inter_freq_info_v2x_r14_s::sl_bw_r14_e_::to_string() const
+std::string sl_inter_freq_info_v2x_r14_s::sl_bw_r14_opts::to_string() const
 {
   switch (value) {
     case n6:
@@ -2866,13 +2860,13 @@ std::string sl_inter_freq_info_v2x_r14_s::sl_bw_r14_e_::to_string() const
   }
   return "";
 }
-uint8_t sl_inter_freq_info_v2x_r14_s::sl_bw_r14_e_::to_number() const
+uint8_t sl_inter_freq_info_v2x_r14_s::sl_bw_r14_opts::to_number() const
 {
   const static uint8_t options[] = {6, 15, 25, 50, 75, 100};
   return get_enum_number(options, 6, value, "sl_inter_freq_info_v2x_r14_s::sl_bw_r14_e_");
 }
 
-std::string sl_inter_freq_info_v2x_r14_s::add_spec_emission_v2x_r14_c_::types::to_string() const
+std::string sl_inter_freq_info_v2x_r14_s::add_spec_emission_v2x_r14_c_::types_opts::to_string() const
 {
   switch (value) {
     case add_spec_emission_r14:
@@ -2888,7 +2882,7 @@ std::string sl_inter_freq_info_v2x_r14_s::add_spec_emission_v2x_r14_c_::types::t
 }
 
 // SL-PeriodComm-r12 ::= ENUMERATED
-std::string sl_period_comm_r12_e::to_string() const
+std::string sl_period_comm_r12_opts::to_string() const
 {
   switch (value) {
     case sf40:
@@ -2928,13 +2922,13 @@ std::string sl_period_comm_r12_e::to_string() const
   }
   return "";
 }
-uint16_t sl_period_comm_r12_e::to_number() const
+uint16_t sl_period_comm_r12_opts::to_number() const
 {
   const static uint16_t options[] = {40, 60, 70, 80, 120, 140, 160, 240, 280, 320};
   return get_enum_number(options, 10, value, "sl_period_comm_r12_e");
 }
 
-std::string sl_sync_cfg_r12_s::rx_params_ncell_r12_s_::disc_sync_win_r12_e_::to_string() const
+std::string sl_sync_cfg_r12_s::rx_params_ncell_r12_s_::disc_sync_win_r12_opts::to_string() const
 {
   switch (value) {
     case w1:
@@ -2946,13 +2940,13 @@ std::string sl_sync_cfg_r12_s::rx_params_ncell_r12_s_::disc_sync_win_r12_e_::to_
   }
   return "";
 }
-uint8_t sl_sync_cfg_r12_s::rx_params_ncell_r12_s_::disc_sync_win_r12_e_::to_number() const
+uint8_t sl_sync_cfg_r12_s::rx_params_ncell_r12_s_::disc_sync_win_r12_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2};
   return get_enum_number(options, 2, value, "sl_sync_cfg_r12_s::rx_params_ncell_r12_s_::disc_sync_win_r12_e_");
 }
 
-std::string sib_type1_v1310_ies_s::bw_reduced_access_related_info_r13_s_::si_win_len_br_r13_e_::to_string() const
+std::string sib_type1_v1310_ies_s::bw_reduced_access_related_info_r13_s_::si_win_len_br_r13_opts::to_string() const
 {
   switch (value) {
     case ms20:
@@ -2976,14 +2970,14 @@ std::string sib_type1_v1310_ies_s::bw_reduced_access_related_info_r13_s_::si_win
   }
   return "";
 }
-uint8_t sib_type1_v1310_ies_s::bw_reduced_access_related_info_r13_s_::si_win_len_br_r13_e_::to_number() const
+uint8_t sib_type1_v1310_ies_s::bw_reduced_access_related_info_r13_s_::si_win_len_br_r13_opts::to_number() const
 {
   const static uint8_t options[] = {20, 40, 60, 80, 120, 160, 200};
   return get_enum_number(options, 7, value,
                          "sib_type1_v1310_ies_s::bw_reduced_access_related_info_r13_s_::si_win_len_br_r13_e_");
 }
 
-std::string sib_type1_v1310_ies_s::bw_reduced_access_related_info_r13_s_::si_repeat_pattern_r13_e_::to_string() const
+std::string sib_type1_v1310_ies_s::bw_reduced_access_related_info_r13_s_::si_repeat_pattern_r13_opts::to_string() const
 {
   switch (value) {
     case every_rf:
@@ -3000,7 +2994,7 @@ std::string sib_type1_v1310_ies_s::bw_reduced_access_related_info_r13_s_::si_rep
   }
   return "";
 }
-uint8_t sib_type1_v1310_ies_s::bw_reduced_access_related_info_r13_s_::si_repeat_pattern_r13_e_::to_number() const
+uint8_t sib_type1_v1310_ies_s::bw_reduced_access_related_info_r13_s_::si_repeat_pattern_r13_opts::to_number() const
 {
   switch (value) {
     case every2nd_rf:
@@ -3017,7 +3011,7 @@ uint8_t sib_type1_v1310_ies_s::bw_reduced_access_related_info_r13_s_::si_repeat_
 }
 
 std::string
-sib_type1_v1310_ies_s::bw_reduced_access_related_info_r13_s_::fdd_dl_or_tdd_sf_bitmap_br_r13_c_::types::to_string()
+sib_type1_v1310_ies_s::bw_reduced_access_related_info_r13_s_::fdd_dl_or_tdd_sf_bitmap_br_r13_c_::types_opts::to_string()
     const
 {
   switch (value) {
@@ -3035,7 +3029,7 @@ sib_type1_v1310_ies_s::bw_reduced_access_related_info_r13_s_::fdd_dl_or_tdd_sf_b
   return "";
 }
 uint8_t
-sib_type1_v1310_ies_s::bw_reduced_access_related_info_r13_s_::fdd_dl_or_tdd_sf_bitmap_br_r13_c_::types::to_number()
+sib_type1_v1310_ies_s::bw_reduced_access_related_info_r13_s_::fdd_dl_or_tdd_sf_bitmap_br_r13_c_::types_opts::to_number()
     const
 {
   const static uint8_t options[] = {10, 40};
@@ -3044,7 +3038,7 @@ sib_type1_v1310_ies_s::bw_reduced_access_related_info_r13_s_::fdd_dl_or_tdd_sf_b
       "sib_type1_v1310_ies_s::bw_reduced_access_related_info_r13_s_::fdd_dl_or_tdd_sf_bitmap_br_r13_c_::types");
 }
 
-std::string sib_type1_v1310_ies_s::bw_reduced_access_related_info_r13_s_::si_hop_cfg_common_r13_e_::to_string() const
+std::string sib_type1_v1310_ies_s::bw_reduced_access_related_info_r13_s_::si_hop_cfg_common_r13_opts::to_string() const
 {
   switch (value) {
     case on:
@@ -3058,7 +3052,7 @@ std::string sib_type1_v1310_ies_s::bw_reduced_access_related_info_r13_s_::si_hop
   return "";
 }
 
-std::string udt_restricting_r13_s::udt_restricting_time_r13_e_::to_string() const
+std::string udt_restricting_r13_s::udt_restricting_time_r13_opts::to_string() const
 {
   switch (value) {
     case s4:
@@ -3082,14 +3076,14 @@ std::string udt_restricting_r13_s::udt_restricting_time_r13_e_::to_string() cons
   }
   return "";
 }
-uint16_t udt_restricting_r13_s::udt_restricting_time_r13_e_::to_number() const
+uint16_t udt_restricting_r13_s::udt_restricting_time_r13_opts::to_number() const
 {
   const static uint16_t options[] = {4, 8, 16, 32, 64, 128, 256, 512};
   return get_enum_number(options, 8, value, "udt_restricting_r13_s::udt_restricting_time_r13_e_");
 }
 
 // WLAN-backhaulRate-r12 ::= ENUMERATED
-std::string wlan_backhaul_rate_r12_e::to_string() const
+std::string wlan_backhaul_rate_r12_opts::to_string() const
 {
   switch (value) {
     case r0:
@@ -3161,7 +3155,7 @@ std::string wlan_backhaul_rate_r12_e::to_string() const
   }
   return "";
 }
-uint64_t wlan_backhaul_rate_r12_e::to_number() const
+uint64_t wlan_backhaul_rate_r12_opts::to_number() const
 {
   const static uint64_t options[] = {0,         4,          8,          16,        32,       64,        128,
                                      256,       512,        1024,       2048,      4096,     8192,      16384,
@@ -3171,7 +3165,7 @@ uint64_t wlan_backhaul_rate_r12_e::to_number() const
   return get_enum_number(options, 32, value, "wlan_backhaul_rate_r12_e");
 }
 
-std::string bcch_cfg_s::mod_period_coeff_e_::to_string() const
+std::string bcch_cfg_s::mod_period_coeff_opts::to_string() const
 {
   switch (value) {
     case n2:
@@ -3187,13 +3181,13 @@ std::string bcch_cfg_s::mod_period_coeff_e_::to_string() const
   }
   return "";
 }
-uint8_t bcch_cfg_s::mod_period_coeff_e_::to_number() const
+uint8_t bcch_cfg_s::mod_period_coeff_opts::to_number() const
 {
   const static uint8_t options[] = {2, 4, 8, 16};
   return get_enum_number(options, 4, value, "bcch_cfg_s::mod_period_coeff_e_");
 }
 
-std::string carrier_freq_nr_r15_s::subcarrier_spacing_ssb_r15_e_::to_string() const
+std::string carrier_freq_nr_r15_s::subcarrier_spacing_ssb_r15_opts::to_string() const
 {
   switch (value) {
     case k_hz15:
@@ -3209,13 +3203,13 @@ std::string carrier_freq_nr_r15_s::subcarrier_spacing_ssb_r15_e_::to_string() co
   }
   return "";
 }
-uint8_t carrier_freq_nr_r15_s::subcarrier_spacing_ssb_r15_e_::to_number() const
+uint8_t carrier_freq_nr_r15_s::subcarrier_spacing_ssb_r15_opts::to_number() const
 {
   const static uint8_t options[] = {15, 30, 120, 240};
   return get_enum_number(options, 4, value, "carrier_freq_nr_r15_s::subcarrier_spacing_ssb_r15_e_");
 }
 
-std::string eab_cfg_r11_s::eab_category_r11_e_::to_string() const
+std::string eab_cfg_r11_s::eab_category_r11_opts::to_string() const
 {
   switch (value) {
     case a:
@@ -3230,7 +3224,7 @@ std::string eab_cfg_r11_s::eab_category_r11_e_::to_string() const
   return "";
 }
 
-std::string freq_hop_params_r13_s::dummy_e_::to_string() const
+std::string freq_hop_params_r13_s::dummy_opts::to_string() const
 {
   switch (value) {
     case nb2:
@@ -3242,13 +3236,13 @@ std::string freq_hop_params_r13_s::dummy_e_::to_string() const
   }
   return "";
 }
-uint8_t freq_hop_params_r13_s::dummy_e_::to_number() const
+uint8_t freq_hop_params_r13_s::dummy_opts::to_number() const
 {
   const static uint8_t options[] = {2, 4};
   return get_enum_number(options, 2, value, "freq_hop_params_r13_s::dummy_e_");
 }
 
-std::string freq_hop_params_r13_s::dummy2_c_::interv_fdd_r13_e_::to_string() const
+std::string freq_hop_params_r13_s::dummy2_c_::interv_fdd_r13_opts::to_string() const
 {
   switch (value) {
     case int1:
@@ -3264,13 +3258,13 @@ std::string freq_hop_params_r13_s::dummy2_c_::interv_fdd_r13_e_::to_string() con
   }
   return "";
 }
-uint8_t freq_hop_params_r13_s::dummy2_c_::interv_fdd_r13_e_::to_number() const
+uint8_t freq_hop_params_r13_s::dummy2_c_::interv_fdd_r13_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 4, 8};
   return get_enum_number(options, 4, value, "freq_hop_params_r13_s::dummy2_c_::interv_fdd_r13_e_");
 }
 
-std::string freq_hop_params_r13_s::dummy2_c_::interv_tdd_r13_e_::to_string() const
+std::string freq_hop_params_r13_s::dummy2_c_::interv_tdd_r13_opts::to_string() const
 {
   switch (value) {
     case int1:
@@ -3286,13 +3280,13 @@ std::string freq_hop_params_r13_s::dummy2_c_::interv_tdd_r13_e_::to_string() con
   }
   return "";
 }
-uint8_t freq_hop_params_r13_s::dummy2_c_::interv_tdd_r13_e_::to_number() const
+uint8_t freq_hop_params_r13_s::dummy2_c_::interv_tdd_r13_opts::to_number() const
 {
   const static uint8_t options[] = {1, 5, 10, 20};
   return get_enum_number(options, 4, value, "freq_hop_params_r13_s::dummy2_c_::interv_tdd_r13_e_");
 }
 
-std::string freq_hop_params_r13_s::dummy2_c_::types::to_string() const
+std::string freq_hop_params_r13_s::dummy2_c_::types_opts::to_string() const
 {
   switch (value) {
     case interv_fdd_r13:
@@ -3307,7 +3301,7 @@ std::string freq_hop_params_r13_s::dummy2_c_::types::to_string() const
   return "";
 }
 
-std::string freq_hop_params_r13_s::dummy3_c_::interv_fdd_r13_e_::to_string() const
+std::string freq_hop_params_r13_s::dummy3_c_::interv_fdd_r13_opts::to_string() const
 {
   switch (value) {
     case int2:
@@ -3323,13 +3317,13 @@ std::string freq_hop_params_r13_s::dummy3_c_::interv_fdd_r13_e_::to_string() con
   }
   return "";
 }
-uint8_t freq_hop_params_r13_s::dummy3_c_::interv_fdd_r13_e_::to_number() const
+uint8_t freq_hop_params_r13_s::dummy3_c_::interv_fdd_r13_opts::to_number() const
 {
   const static uint8_t options[] = {2, 4, 8, 16};
   return get_enum_number(options, 4, value, "freq_hop_params_r13_s::dummy3_c_::interv_fdd_r13_e_");
 }
 
-std::string freq_hop_params_r13_s::dummy3_c_::interv_tdd_r13_e_::to_string() const
+std::string freq_hop_params_r13_s::dummy3_c_::interv_tdd_r13_opts::to_string() const
 {
   switch (value) {
     case int5:
@@ -3345,13 +3339,13 @@ std::string freq_hop_params_r13_s::dummy3_c_::interv_tdd_r13_e_::to_string() con
   }
   return "";
 }
-uint8_t freq_hop_params_r13_s::dummy3_c_::interv_tdd_r13_e_::to_number() const
+uint8_t freq_hop_params_r13_s::dummy3_c_::interv_tdd_r13_opts::to_number() const
 {
   const static uint8_t options[] = {5, 10, 20, 40};
   return get_enum_number(options, 4, value, "freq_hop_params_r13_s::dummy3_c_::interv_tdd_r13_e_");
 }
 
-std::string freq_hop_params_r13_s::dummy3_c_::types::to_string() const
+std::string freq_hop_params_r13_s::dummy3_c_::types_opts::to_string() const
 {
   switch (value) {
     case interv_fdd_r13:
@@ -3366,7 +3360,7 @@ std::string freq_hop_params_r13_s::dummy3_c_::types::to_string() const
   return "";
 }
 
-std::string freq_hop_params_r13_s::interv_ul_hop_cfg_common_mode_a_r13_c_::interv_fdd_r13_e_::to_string() const
+std::string freq_hop_params_r13_s::interv_ul_hop_cfg_common_mode_a_r13_c_::interv_fdd_r13_opts::to_string() const
 {
   switch (value) {
     case int1:
@@ -3382,14 +3376,14 @@ std::string freq_hop_params_r13_s::interv_ul_hop_cfg_common_mode_a_r13_c_::inter
   }
   return "";
 }
-uint8_t freq_hop_params_r13_s::interv_ul_hop_cfg_common_mode_a_r13_c_::interv_fdd_r13_e_::to_number() const
+uint8_t freq_hop_params_r13_s::interv_ul_hop_cfg_common_mode_a_r13_c_::interv_fdd_r13_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 4, 8};
   return get_enum_number(options, 4, value,
                          "freq_hop_params_r13_s::interv_ul_hop_cfg_common_mode_a_r13_c_::interv_fdd_r13_e_");
 }
 
-std::string freq_hop_params_r13_s::interv_ul_hop_cfg_common_mode_a_r13_c_::interv_tdd_r13_e_::to_string() const
+std::string freq_hop_params_r13_s::interv_ul_hop_cfg_common_mode_a_r13_c_::interv_tdd_r13_opts::to_string() const
 {
   switch (value) {
     case int1:
@@ -3405,14 +3399,14 @@ std::string freq_hop_params_r13_s::interv_ul_hop_cfg_common_mode_a_r13_c_::inter
   }
   return "";
 }
-uint8_t freq_hop_params_r13_s::interv_ul_hop_cfg_common_mode_a_r13_c_::interv_tdd_r13_e_::to_number() const
+uint8_t freq_hop_params_r13_s::interv_ul_hop_cfg_common_mode_a_r13_c_::interv_tdd_r13_opts::to_number() const
 {
   const static uint8_t options[] = {1, 5, 10, 20};
   return get_enum_number(options, 4, value,
                          "freq_hop_params_r13_s::interv_ul_hop_cfg_common_mode_a_r13_c_::interv_tdd_r13_e_");
 }
 
-std::string freq_hop_params_r13_s::interv_ul_hop_cfg_common_mode_a_r13_c_::types::to_string() const
+std::string freq_hop_params_r13_s::interv_ul_hop_cfg_common_mode_a_r13_c_::types_opts::to_string() const
 {
   switch (value) {
     case interv_fdd_r13:
@@ -3427,7 +3421,7 @@ std::string freq_hop_params_r13_s::interv_ul_hop_cfg_common_mode_a_r13_c_::types
   return "";
 }
 
-std::string freq_hop_params_r13_s::interv_ul_hop_cfg_common_mode_b_r13_c_::interv_fdd_r13_e_::to_string() const
+std::string freq_hop_params_r13_s::interv_ul_hop_cfg_common_mode_b_r13_c_::interv_fdd_r13_opts::to_string() const
 {
   switch (value) {
     case int2:
@@ -3443,14 +3437,14 @@ std::string freq_hop_params_r13_s::interv_ul_hop_cfg_common_mode_b_r13_c_::inter
   }
   return "";
 }
-uint8_t freq_hop_params_r13_s::interv_ul_hop_cfg_common_mode_b_r13_c_::interv_fdd_r13_e_::to_number() const
+uint8_t freq_hop_params_r13_s::interv_ul_hop_cfg_common_mode_b_r13_c_::interv_fdd_r13_opts::to_number() const
 {
   const static uint8_t options[] = {2, 4, 8, 16};
   return get_enum_number(options, 4, value,
                          "freq_hop_params_r13_s::interv_ul_hop_cfg_common_mode_b_r13_c_::interv_fdd_r13_e_");
 }
 
-std::string freq_hop_params_r13_s::interv_ul_hop_cfg_common_mode_b_r13_c_::interv_tdd_r13_e_::to_string() const
+std::string freq_hop_params_r13_s::interv_ul_hop_cfg_common_mode_b_r13_c_::interv_tdd_r13_opts::to_string() const
 {
   switch (value) {
     case int5:
@@ -3466,14 +3460,14 @@ std::string freq_hop_params_r13_s::interv_ul_hop_cfg_common_mode_b_r13_c_::inter
   }
   return "";
 }
-uint8_t freq_hop_params_r13_s::interv_ul_hop_cfg_common_mode_b_r13_c_::interv_tdd_r13_e_::to_number() const
+uint8_t freq_hop_params_r13_s::interv_ul_hop_cfg_common_mode_b_r13_c_::interv_tdd_r13_opts::to_number() const
 {
   const static uint8_t options[] = {5, 10, 20, 40};
   return get_enum_number(options, 4, value,
                          "freq_hop_params_r13_s::interv_ul_hop_cfg_common_mode_b_r13_c_::interv_tdd_r13_e_");
 }
 
-std::string freq_hop_params_r13_s::interv_ul_hop_cfg_common_mode_b_r13_c_::types::to_string() const
+std::string freq_hop_params_r13_s::interv_ul_hop_cfg_common_mode_b_r13_c_::types_opts::to_string() const
 {
   switch (value) {
     case interv_fdd_r13:
@@ -3488,7 +3482,7 @@ std::string freq_hop_params_r13_s::interv_ul_hop_cfg_common_mode_b_r13_c_::types
   return "";
 }
 
-std::string mbms_carrier_type_r14_s::carrier_type_r14_e_::to_string() const
+std::string mbms_carrier_type_r14_s::carrier_type_r14_opts::to_string() const
 {
   switch (value) {
     case mbms:
@@ -3503,7 +3497,7 @@ std::string mbms_carrier_type_r14_s::carrier_type_r14_e_::to_string() const
   return "";
 }
 
-std::string mbsfn_area_info_r9_s::non_mbsfn_region_len_e_::to_string() const
+std::string mbsfn_area_info_r9_s::non_mbsfn_region_len_opts::to_string() const
 {
   switch (value) {
     case s1:
@@ -3515,13 +3509,13 @@ std::string mbsfn_area_info_r9_s::non_mbsfn_region_len_e_::to_string() const
   }
   return "";
 }
-uint8_t mbsfn_area_info_r9_s::non_mbsfn_region_len_e_::to_number() const
+uint8_t mbsfn_area_info_r9_s::non_mbsfn_region_len_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2};
   return get_enum_number(options, 2, value, "mbsfn_area_info_r9_s::non_mbsfn_region_len_e_");
 }
 
-std::string mbsfn_area_info_r9_s::mcch_cfg_r9_s_::mcch_repeat_period_r9_e_::to_string() const
+std::string mbsfn_area_info_r9_s::mcch_cfg_r9_s_::mcch_repeat_period_r9_opts::to_string() const
 {
   switch (value) {
     case rf32:
@@ -3537,13 +3531,13 @@ std::string mbsfn_area_info_r9_s::mcch_cfg_r9_s_::mcch_repeat_period_r9_e_::to_s
   }
   return "";
 }
-uint16_t mbsfn_area_info_r9_s::mcch_cfg_r9_s_::mcch_repeat_period_r9_e_::to_number() const
+uint16_t mbsfn_area_info_r9_s::mcch_cfg_r9_s_::mcch_repeat_period_r9_opts::to_number() const
 {
   const static uint16_t options[] = {32, 64, 128, 256};
   return get_enum_number(options, 4, value, "mbsfn_area_info_r9_s::mcch_cfg_r9_s_::mcch_repeat_period_r9_e_");
 }
 
-std::string mbsfn_area_info_r9_s::mcch_cfg_r9_s_::mcch_mod_period_r9_e_::to_string() const
+std::string mbsfn_area_info_r9_s::mcch_cfg_r9_s_::mcch_mod_period_r9_opts::to_string() const
 {
   switch (value) {
     case rf512:
@@ -3555,13 +3549,13 @@ std::string mbsfn_area_info_r9_s::mcch_cfg_r9_s_::mcch_mod_period_r9_e_::to_stri
   }
   return "";
 }
-uint16_t mbsfn_area_info_r9_s::mcch_cfg_r9_s_::mcch_mod_period_r9_e_::to_number() const
+uint16_t mbsfn_area_info_r9_s::mcch_cfg_r9_s_::mcch_mod_period_r9_opts::to_number() const
 {
   const static uint16_t options[] = {512, 1024};
   return get_enum_number(options, 2, value, "mbsfn_area_info_r9_s::mcch_cfg_r9_s_::mcch_mod_period_r9_e_");
 }
 
-std::string mbsfn_area_info_r9_s::mcch_cfg_r9_s_::sig_mcs_r9_e_::to_string() const
+std::string mbsfn_area_info_r9_s::mcch_cfg_r9_s_::sig_mcs_r9_opts::to_string() const
 {
   switch (value) {
     case n2:
@@ -3577,13 +3571,13 @@ std::string mbsfn_area_info_r9_s::mcch_cfg_r9_s_::sig_mcs_r9_e_::to_string() con
   }
   return "";
 }
-uint8_t mbsfn_area_info_r9_s::mcch_cfg_r9_s_::sig_mcs_r9_e_::to_number() const
+uint8_t mbsfn_area_info_r9_s::mcch_cfg_r9_s_::sig_mcs_r9_opts::to_number() const
 {
   const static uint8_t options[] = {2, 7, 13, 19};
   return get_enum_number(options, 4, value, "mbsfn_area_info_r9_s::mcch_cfg_r9_s_::sig_mcs_r9_e_");
 }
 
-std::string mbsfn_area_info_r9_s::mcch_cfg_r14_s_::mcch_repeat_period_v1430_e_::to_string() const
+std::string mbsfn_area_info_r9_s::mcch_cfg_r14_s_::mcch_repeat_period_v1430_opts::to_string() const
 {
   switch (value) {
     case rf1:
@@ -3601,13 +3595,13 @@ std::string mbsfn_area_info_r9_s::mcch_cfg_r14_s_::mcch_repeat_period_v1430_e_::
   }
   return "";
 }
-uint8_t mbsfn_area_info_r9_s::mcch_cfg_r14_s_::mcch_repeat_period_v1430_e_::to_number() const
+uint8_t mbsfn_area_info_r9_s::mcch_cfg_r14_s_::mcch_repeat_period_v1430_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 4, 8, 16};
   return get_enum_number(options, 5, value, "mbsfn_area_info_r9_s::mcch_cfg_r14_s_::mcch_repeat_period_v1430_e_");
 }
 
-std::string mbsfn_area_info_r9_s::mcch_cfg_r14_s_::mcch_mod_period_v1430_e_::to_string() const
+std::string mbsfn_area_info_r9_s::mcch_cfg_r14_s_::mcch_mod_period_v1430_opts::to_string() const
 {
   switch (value) {
     case rf1:
@@ -3635,13 +3629,13 @@ std::string mbsfn_area_info_r9_s::mcch_cfg_r14_s_::mcch_mod_period_v1430_e_::to_
   }
   return "";
 }
-uint16_t mbsfn_area_info_r9_s::mcch_cfg_r14_s_::mcch_mod_period_v1430_e_::to_number() const
+uint16_t mbsfn_area_info_r9_s::mcch_cfg_r14_s_::mcch_mod_period_v1430_opts::to_number() const
 {
   const static uint16_t options[] = {1, 2, 4, 8, 16, 32, 64, 128, 256};
   return get_enum_number(options, 9, value, "mbsfn_area_info_r9_s::mcch_cfg_r14_s_::mcch_mod_period_v1430_e_");
 }
 
-std::string mbsfn_area_info_r9_s::subcarrier_spacing_mbms_r14_e_::to_string() const
+std::string mbsfn_area_info_r9_s::subcarrier_spacing_mbms_r14_opts::to_string() const
 {
   switch (value) {
     case khz_minus7dot5:
@@ -3653,12 +3647,12 @@ std::string mbsfn_area_info_r9_s::subcarrier_spacing_mbms_r14_e_::to_string() co
   }
   return "";
 }
-float mbsfn_area_info_r9_s::subcarrier_spacing_mbms_r14_e_::to_number() const
+float mbsfn_area_info_r9_s::subcarrier_spacing_mbms_r14_opts::to_number() const
 {
   const static float options[] = {-7.5, -1.25};
   return get_enum_number(options, 2, value, "mbsfn_area_info_r9_s::subcarrier_spacing_mbms_r14_e_");
 }
-std::string mbsfn_area_info_r9_s::subcarrier_spacing_mbms_r14_e_::to_number_string() const
+std::string mbsfn_area_info_r9_s::subcarrier_spacing_mbms_r14_opts::to_number_string() const
 {
   switch (value) {
     case khz_minus7dot5:
@@ -3671,7 +3665,7 @@ std::string mbsfn_area_info_r9_s::subcarrier_spacing_mbms_r14_e_::to_number_stri
   return "";
 }
 
-std::string mbsfn_sf_cfg_s::radioframe_alloc_period_e_::to_string() const
+std::string mbsfn_sf_cfg_s::radioframe_alloc_period_opts::to_string() const
 {
   switch (value) {
     case n1:
@@ -3691,13 +3685,13 @@ std::string mbsfn_sf_cfg_s::radioframe_alloc_period_e_::to_string() const
   }
   return "";
 }
-uint8_t mbsfn_sf_cfg_s::radioframe_alloc_period_e_::to_number() const
+uint8_t mbsfn_sf_cfg_s::radioframe_alloc_period_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 4, 8, 16, 32};
   return get_enum_number(options, 6, value, "mbsfn_sf_cfg_s::radioframe_alloc_period_e_");
 }
 
-std::string mbsfn_sf_cfg_s::sf_alloc_c_::types::to_string() const
+std::string mbsfn_sf_cfg_s::sf_alloc_c_::types_opts::to_string() const
 {
   switch (value) {
     case one_frame:
@@ -3711,13 +3705,13 @@ std::string mbsfn_sf_cfg_s::sf_alloc_c_::types::to_string() const
   }
   return "";
 }
-uint8_t mbsfn_sf_cfg_s::sf_alloc_c_::types::to_number() const
+uint8_t mbsfn_sf_cfg_s::sf_alloc_c_::types_opts::to_number() const
 {
   const static uint8_t options[] = {1, 4};
   return get_enum_number(options, 2, value, "mbsfn_sf_cfg_s::sf_alloc_c_::types");
 }
 
-std::string mbsfn_sf_cfg_v1430_s::sf_alloc_v1430_c_::types::to_string() const
+std::string mbsfn_sf_cfg_v1430_s::sf_alloc_v1430_c_::types_opts::to_string() const
 {
   switch (value) {
     case one_frame_v1430:
@@ -3731,13 +3725,13 @@ std::string mbsfn_sf_cfg_v1430_s::sf_alloc_v1430_c_::types::to_string() const
   }
   return "";
 }
-uint8_t mbsfn_sf_cfg_v1430_s::sf_alloc_v1430_c_::types::to_number() const
+uint8_t mbsfn_sf_cfg_v1430_s::sf_alloc_v1430_c_::types_opts::to_number() const
 {
   const static uint8_t options[] = {1, 4};
   return get_enum_number(options, 2, value, "mbsfn_sf_cfg_v1430_s::sf_alloc_v1430_c_::types");
 }
 
-std::string pcch_cfg_s::default_paging_cycle_e_::to_string() const
+std::string pcch_cfg_s::default_paging_cycle_opts::to_string() const
 {
   switch (value) {
     case rf32:
@@ -3753,13 +3747,13 @@ std::string pcch_cfg_s::default_paging_cycle_e_::to_string() const
   }
   return "";
 }
-uint16_t pcch_cfg_s::default_paging_cycle_e_::to_number() const
+uint16_t pcch_cfg_s::default_paging_cycle_opts::to_number() const
 {
   const static uint16_t options[] = {32, 64, 128, 256};
   return get_enum_number(options, 4, value, "pcch_cfg_s::default_paging_cycle_e_");
 }
 
-std::string pcch_cfg_s::nb_e_::to_string() const
+std::string pcch_cfg_s::nb_opts::to_string() const
 {
   switch (value) {
     case four_t:
@@ -3783,12 +3777,12 @@ std::string pcch_cfg_s::nb_e_::to_string() const
   }
   return "";
 }
-float pcch_cfg_s::nb_e_::to_number() const
+float pcch_cfg_s::nb_opts::to_number() const
 {
   const static float options[] = {4.0, 2.0, 1.0, 0.5, 0.25, 0.125, 0.0625, 0.03125};
   return get_enum_number(options, 8, value, "pcch_cfg_s::nb_e_");
 }
-std::string pcch_cfg_s::nb_e_::to_number_string() const
+std::string pcch_cfg_s::nb_opts::to_number_string() const
 {
   switch (value) {
     case four_t:
@@ -3813,7 +3807,7 @@ std::string pcch_cfg_s::nb_e_::to_number_string() const
   return "";
 }
 
-std::string pcch_cfg_v1310_s::mpdcch_num_repeat_paging_r13_e_::to_string() const
+std::string pcch_cfg_v1310_s::mpdcch_num_repeat_paging_r13_opts::to_string() const
 {
   switch (value) {
     case r1:
@@ -3839,13 +3833,13 @@ std::string pcch_cfg_v1310_s::mpdcch_num_repeat_paging_r13_e_::to_string() const
   }
   return "";
 }
-uint16_t pcch_cfg_v1310_s::mpdcch_num_repeat_paging_r13_e_::to_number() const
+uint16_t pcch_cfg_v1310_s::mpdcch_num_repeat_paging_r13_opts::to_number() const
 {
   const static uint16_t options[] = {1, 2, 4, 8, 16, 32, 64, 128, 256};
   return get_enum_number(options, 9, value, "pcch_cfg_v1310_s::mpdcch_num_repeat_paging_r13_e_");
 }
 
-std::string pcch_cfg_v1310_s::nb_v1310_e_::to_string() const
+std::string pcch_cfg_v1310_s::nb_v1310_opts::to_string() const
 {
   switch (value) {
     case one64th_t:
@@ -3859,13 +3853,13 @@ std::string pcch_cfg_v1310_s::nb_v1310_e_::to_string() const
   }
   return "";
 }
-uint16_t pcch_cfg_v1310_s::nb_v1310_e_::to_number() const
+uint16_t pcch_cfg_v1310_s::nb_v1310_opts::to_number() const
 {
   const static uint16_t options[] = {64, 128, 256};
   return get_enum_number(options, 3, value, "pcch_cfg_v1310_s::nb_v1310_e_");
 }
 
-std::string pdsch_cfg_common_v1310_s::pdsch_max_num_repeat_cemode_a_r13_e_::to_string() const
+std::string pdsch_cfg_common_v1310_s::pdsch_max_num_repeat_cemode_a_r13_opts::to_string() const
 {
   switch (value) {
     case r16:
@@ -3877,13 +3871,13 @@ std::string pdsch_cfg_common_v1310_s::pdsch_max_num_repeat_cemode_a_r13_e_::to_s
   }
   return "";
 }
-uint8_t pdsch_cfg_common_v1310_s::pdsch_max_num_repeat_cemode_a_r13_e_::to_number() const
+uint8_t pdsch_cfg_common_v1310_s::pdsch_max_num_repeat_cemode_a_r13_opts::to_number() const
 {
   const static uint8_t options[] = {16, 32};
   return get_enum_number(options, 2, value, "pdsch_cfg_common_v1310_s::pdsch_max_num_repeat_cemode_a_r13_e_");
 }
 
-std::string pdsch_cfg_common_v1310_s::pdsch_max_num_repeat_cemode_b_r13_e_::to_string() const
+std::string pdsch_cfg_common_v1310_s::pdsch_max_num_repeat_cemode_b_r13_opts::to_string() const
 {
   switch (value) {
     case r192:
@@ -3907,13 +3901,13 @@ std::string pdsch_cfg_common_v1310_s::pdsch_max_num_repeat_cemode_b_r13_e_::to_s
   }
   return "";
 }
-uint16_t pdsch_cfg_common_v1310_s::pdsch_max_num_repeat_cemode_b_r13_e_::to_number() const
+uint16_t pdsch_cfg_common_v1310_s::pdsch_max_num_repeat_cemode_b_r13_opts::to_number() const
 {
   const static uint16_t options[] = {192, 256, 384, 512, 768, 1024, 1536, 2048};
   return get_enum_number(options, 8, value, "pdsch_cfg_common_v1310_s::pdsch_max_num_repeat_cemode_b_r13_e_");
 }
 
-std::string prach_cfg_sib_v1310_s::mpdcch_start_sf_css_ra_r13_c_::fdd_r13_e_::to_string() const
+std::string prach_cfg_sib_v1310_s::mpdcch_start_sf_css_ra_r13_c_::fdd_r13_opts::to_string() const
 {
   switch (value) {
     case v1:
@@ -3937,12 +3931,12 @@ std::string prach_cfg_sib_v1310_s::mpdcch_start_sf_css_ra_r13_c_::fdd_r13_e_::to
   }
   return "";
 }
-float prach_cfg_sib_v1310_s::mpdcch_start_sf_css_ra_r13_c_::fdd_r13_e_::to_number() const
+float prach_cfg_sib_v1310_s::mpdcch_start_sf_css_ra_r13_c_::fdd_r13_opts::to_number() const
 {
   const static float options[] = {1.0, 1.5, 2.0, 2.5, 4.0, 5.0, 8.0, 10.0};
   return get_enum_number(options, 8, value, "prach_cfg_sib_v1310_s::mpdcch_start_sf_css_ra_r13_c_::fdd_r13_e_");
 }
-std::string prach_cfg_sib_v1310_s::mpdcch_start_sf_css_ra_r13_c_::fdd_r13_e_::to_number_string() const
+std::string prach_cfg_sib_v1310_s::mpdcch_start_sf_css_ra_r13_c_::fdd_r13_opts::to_number_string() const
 {
   switch (value) {
     case v1:
@@ -3967,7 +3961,7 @@ std::string prach_cfg_sib_v1310_s::mpdcch_start_sf_css_ra_r13_c_::fdd_r13_e_::to
   return "";
 }
 
-std::string prach_cfg_sib_v1310_s::mpdcch_start_sf_css_ra_r13_c_::tdd_r13_e_::to_string() const
+std::string prach_cfg_sib_v1310_s::mpdcch_start_sf_css_ra_r13_c_::tdd_r13_opts::to_string() const
 {
   switch (value) {
     case v1:
@@ -3991,13 +3985,13 @@ std::string prach_cfg_sib_v1310_s::mpdcch_start_sf_css_ra_r13_c_::tdd_r13_e_::to
   }
   return "";
 }
-uint8_t prach_cfg_sib_v1310_s::mpdcch_start_sf_css_ra_r13_c_::tdd_r13_e_::to_number() const
+uint8_t prach_cfg_sib_v1310_s::mpdcch_start_sf_css_ra_r13_c_::tdd_r13_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 4, 5, 8, 10, 20};
   return get_enum_number(options, 7, value, "prach_cfg_sib_v1310_s::mpdcch_start_sf_css_ra_r13_c_::tdd_r13_e_");
 }
 
-std::string prach_cfg_sib_v1310_s::mpdcch_start_sf_css_ra_r13_c_::types::to_string() const
+std::string prach_cfg_sib_v1310_s::mpdcch_start_sf_css_ra_r13_c_::types_opts::to_string() const
 {
   switch (value) {
     case fdd_r13:
@@ -4012,7 +4006,7 @@ std::string prach_cfg_sib_v1310_s::mpdcch_start_sf_css_ra_r13_c_::types::to_stri
   return "";
 }
 
-std::string pucch_cfg_common_s::delta_pucch_shift_e_::to_string() const
+std::string pucch_cfg_common_s::delta_pucch_shift_opts::to_string() const
 {
   switch (value) {
     case ds1:
@@ -4026,13 +4020,13 @@ std::string pucch_cfg_common_s::delta_pucch_shift_e_::to_string() const
   }
   return "";
 }
-uint8_t pucch_cfg_common_s::delta_pucch_shift_e_::to_number() const
+uint8_t pucch_cfg_common_s::delta_pucch_shift_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3};
   return get_enum_number(options, 3, value, "pucch_cfg_common_s::delta_pucch_shift_e_");
 }
 
-std::string pucch_cfg_common_v1310_s::pucch_num_repeat_ce_msg4_level0_r13_e_::to_string() const
+std::string pucch_cfg_common_v1310_s::pucch_num_repeat_ce_msg4_level0_r13_opts::to_string() const
 {
   switch (value) {
     case n1:
@@ -4048,13 +4042,13 @@ std::string pucch_cfg_common_v1310_s::pucch_num_repeat_ce_msg4_level0_r13_e_::to
   }
   return "";
 }
-uint8_t pucch_cfg_common_v1310_s::pucch_num_repeat_ce_msg4_level0_r13_e_::to_number() const
+uint8_t pucch_cfg_common_v1310_s::pucch_num_repeat_ce_msg4_level0_r13_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 4, 8};
   return get_enum_number(options, 4, value, "pucch_cfg_common_v1310_s::pucch_num_repeat_ce_msg4_level0_r13_e_");
 }
 
-std::string pucch_cfg_common_v1310_s::pucch_num_repeat_ce_msg4_level1_r13_e_::to_string() const
+std::string pucch_cfg_common_v1310_s::pucch_num_repeat_ce_msg4_level1_r13_opts::to_string() const
 {
   switch (value) {
     case n1:
@@ -4070,13 +4064,13 @@ std::string pucch_cfg_common_v1310_s::pucch_num_repeat_ce_msg4_level1_r13_e_::to
   }
   return "";
 }
-uint8_t pucch_cfg_common_v1310_s::pucch_num_repeat_ce_msg4_level1_r13_e_::to_number() const
+uint8_t pucch_cfg_common_v1310_s::pucch_num_repeat_ce_msg4_level1_r13_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 4, 8};
   return get_enum_number(options, 4, value, "pucch_cfg_common_v1310_s::pucch_num_repeat_ce_msg4_level1_r13_e_");
 }
 
-std::string pucch_cfg_common_v1310_s::pucch_num_repeat_ce_msg4_level2_r13_e_::to_string() const
+std::string pucch_cfg_common_v1310_s::pucch_num_repeat_ce_msg4_level2_r13_opts::to_string() const
 {
   switch (value) {
     case n4:
@@ -4092,13 +4086,13 @@ std::string pucch_cfg_common_v1310_s::pucch_num_repeat_ce_msg4_level2_r13_e_::to
   }
   return "";
 }
-uint8_t pucch_cfg_common_v1310_s::pucch_num_repeat_ce_msg4_level2_r13_e_::to_number() const
+uint8_t pucch_cfg_common_v1310_s::pucch_num_repeat_ce_msg4_level2_r13_opts::to_number() const
 {
   const static uint8_t options[] = {4, 8, 16, 32};
   return get_enum_number(options, 4, value, "pucch_cfg_common_v1310_s::pucch_num_repeat_ce_msg4_level2_r13_e_");
 }
 
-std::string pucch_cfg_common_v1310_s::pucch_num_repeat_ce_msg4_level3_r13_e_::to_string() const
+std::string pucch_cfg_common_v1310_s::pucch_num_repeat_ce_msg4_level3_r13_opts::to_string() const
 {
   switch (value) {
     case n4:
@@ -4114,13 +4108,13 @@ std::string pucch_cfg_common_v1310_s::pucch_num_repeat_ce_msg4_level3_r13_e_::to
   }
   return "";
 }
-uint8_t pucch_cfg_common_v1310_s::pucch_num_repeat_ce_msg4_level3_r13_e_::to_number() const
+uint8_t pucch_cfg_common_v1310_s::pucch_num_repeat_ce_msg4_level3_r13_opts::to_number() const
 {
   const static uint8_t options[] = {4, 8, 16, 32};
   return get_enum_number(options, 4, value, "pucch_cfg_common_v1310_s::pucch_num_repeat_ce_msg4_level3_r13_e_");
 }
 
-std::string pucch_cfg_common_v1430_s::pucch_num_repeat_ce_msg4_level3_r14_e_::to_string() const
+std::string pucch_cfg_common_v1430_s::pucch_num_repeat_ce_msg4_level3_r14_opts::to_string() const
 {
   switch (value) {
     case n64:
@@ -4132,13 +4126,13 @@ std::string pucch_cfg_common_v1430_s::pucch_num_repeat_ce_msg4_level3_r14_e_::to
   }
   return "";
 }
-uint8_t pucch_cfg_common_v1430_s::pucch_num_repeat_ce_msg4_level3_r14_e_::to_number() const
+uint8_t pucch_cfg_common_v1430_s::pucch_num_repeat_ce_msg4_level3_r14_opts::to_number() const
 {
   const static uint8_t options[] = {64, 128};
   return get_enum_number(options, 2, value, "pucch_cfg_common_v1430_s::pucch_num_repeat_ce_msg4_level3_r14_e_");
 }
 
-std::string pusch_cfg_common_s::pusch_cfg_basic_s_::hop_mode_e_::to_string() const
+std::string pusch_cfg_common_s::pusch_cfg_basic_s_::hop_mode_opts::to_string() const
 {
   switch (value) {
     case inter_sub_frame:
@@ -4151,7 +4145,7 @@ std::string pusch_cfg_common_s::pusch_cfg_basic_s_::hop_mode_e_::to_string() con
   return "";
 }
 
-std::string pusch_cfg_common_v1310_s::pusch_max_num_repeat_cemode_a_r13_e_::to_string() const
+std::string pusch_cfg_common_v1310_s::pusch_max_num_repeat_cemode_a_r13_opts::to_string() const
 {
   switch (value) {
     case r8:
@@ -4165,13 +4159,13 @@ std::string pusch_cfg_common_v1310_s::pusch_max_num_repeat_cemode_a_r13_e_::to_s
   }
   return "";
 }
-uint8_t pusch_cfg_common_v1310_s::pusch_max_num_repeat_cemode_a_r13_e_::to_number() const
+uint8_t pusch_cfg_common_v1310_s::pusch_max_num_repeat_cemode_a_r13_opts::to_number() const
 {
   const static uint8_t options[] = {8, 16, 32};
   return get_enum_number(options, 3, value, "pusch_cfg_common_v1310_s::pusch_max_num_repeat_cemode_a_r13_e_");
 }
 
-std::string pusch_cfg_common_v1310_s::pusch_max_num_repeat_cemode_b_r13_e_::to_string() const
+std::string pusch_cfg_common_v1310_s::pusch_max_num_repeat_cemode_b_r13_opts::to_string() const
 {
   switch (value) {
     case r192:
@@ -4195,13 +4189,13 @@ std::string pusch_cfg_common_v1310_s::pusch_max_num_repeat_cemode_b_r13_e_::to_s
   }
   return "";
 }
-uint16_t pusch_cfg_common_v1310_s::pusch_max_num_repeat_cemode_b_r13_e_::to_number() const
+uint16_t pusch_cfg_common_v1310_s::pusch_max_num_repeat_cemode_b_r13_opts::to_number() const
 {
   const static uint16_t options[] = {192, 256, 384, 512, 768, 1024, 1536, 2048};
   return get_enum_number(options, 8, value, "pusch_cfg_common_v1310_s::pusch_max_num_repeat_cemode_b_r13_e_");
 }
 
-std::string rach_cfg_common_s::preamb_info_s_::nof_ra_preambs_e_::to_string() const
+std::string rach_cfg_common_s::preamb_info_s_::nof_ra_preambs_opts::to_string() const
 {
   switch (value) {
     case n4:
@@ -4241,13 +4235,14 @@ std::string rach_cfg_common_s::preamb_info_s_::nof_ra_preambs_e_::to_string() co
   }
   return "";
 }
-uint8_t rach_cfg_common_s::preamb_info_s_::nof_ra_preambs_e_::to_number() const
+uint8_t rach_cfg_common_s::preamb_info_s_::nof_ra_preambs_opts::to_number() const
 {
   const static uint8_t options[] = {4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64};
   return get_enum_number(options, 16, value, "rach_cfg_common_s::preamb_info_s_::nof_ra_preambs_e_");
 }
 
-std::string rach_cfg_common_s::preamb_info_s_::preambs_group_a_cfg_s_::size_of_ra_preambs_group_a_e_::to_string() const
+std::string
+rach_cfg_common_s::preamb_info_s_::preambs_group_a_cfg_s_::size_of_ra_preambs_group_a_opts::to_string() const
 {
   switch (value) {
     case n4:
@@ -4286,14 +4281,14 @@ std::string rach_cfg_common_s::preamb_info_s_::preambs_group_a_cfg_s_::size_of_r
   }
   return "";
 }
-uint8_t rach_cfg_common_s::preamb_info_s_::preambs_group_a_cfg_s_::size_of_ra_preambs_group_a_e_::to_number() const
+uint8_t rach_cfg_common_s::preamb_info_s_::preambs_group_a_cfg_s_::size_of_ra_preambs_group_a_opts::to_number() const
 {
   const static uint8_t options[] = {4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60};
   return get_enum_number(options, 15, value,
                          "rach_cfg_common_s::preamb_info_s_::preambs_group_a_cfg_s_::size_of_ra_preambs_group_a_e_");
 }
 
-std::string rach_cfg_common_s::preamb_info_s_::preambs_group_a_cfg_s_::msg_size_group_a_e_::to_string() const
+std::string rach_cfg_common_s::preamb_info_s_::preambs_group_a_cfg_s_::msg_size_group_a_opts::to_string() const
 {
   switch (value) {
     case b56:
@@ -4309,14 +4304,14 @@ std::string rach_cfg_common_s::preamb_info_s_::preambs_group_a_cfg_s_::msg_size_
   }
   return "";
 }
-uint16_t rach_cfg_common_s::preamb_info_s_::preambs_group_a_cfg_s_::msg_size_group_a_e_::to_number() const
+uint16_t rach_cfg_common_s::preamb_info_s_::preambs_group_a_cfg_s_::msg_size_group_a_opts::to_number() const
 {
   const static uint16_t options[] = {56, 144, 208, 256};
   return get_enum_number(options, 4, value,
                          "rach_cfg_common_s::preamb_info_s_::preambs_group_a_cfg_s_::msg_size_group_a_e_");
 }
 
-std::string rach_cfg_common_s::preamb_info_s_::preambs_group_a_cfg_s_::msg_pwr_offset_group_b_e_::to_string() const
+std::string rach_cfg_common_s::preamb_info_s_::preambs_group_a_cfg_s_::msg_pwr_offset_group_b_opts::to_string() const
 {
   switch (value) {
     case minusinfinity:
@@ -4340,14 +4335,14 @@ std::string rach_cfg_common_s::preamb_info_s_::preambs_group_a_cfg_s_::msg_pwr_o
   }
   return "";
 }
-int8_t rach_cfg_common_s::preamb_info_s_::preambs_group_a_cfg_s_::msg_pwr_offset_group_b_e_::to_number() const
+int8_t rach_cfg_common_s::preamb_info_s_::preambs_group_a_cfg_s_::msg_pwr_offset_group_b_opts::to_number() const
 {
   const static int8_t options[] = {-1, 0, 5, 8, 10, 12, 15, 18};
   return get_enum_number(options, 8, value,
                          "rach_cfg_common_s::preamb_info_s_::preambs_group_a_cfg_s_::msg_pwr_offset_group_b_e_");
 }
 
-std::string rach_cfg_common_s::ra_supervision_info_s_::ra_resp_win_size_e_::to_string() const
+std::string rach_cfg_common_s::ra_supervision_info_s_::ra_resp_win_size_opts::to_string() const
 {
   switch (value) {
     case sf2:
@@ -4371,13 +4366,13 @@ std::string rach_cfg_common_s::ra_supervision_info_s_::ra_resp_win_size_e_::to_s
   }
   return "";
 }
-uint8_t rach_cfg_common_s::ra_supervision_info_s_::ra_resp_win_size_e_::to_number() const
+uint8_t rach_cfg_common_s::ra_supervision_info_s_::ra_resp_win_size_opts::to_number() const
 {
   const static uint8_t options[] = {2, 3, 4, 5, 6, 7, 8, 10};
   return get_enum_number(options, 8, value, "rach_cfg_common_s::ra_supervision_info_s_::ra_resp_win_size_e_");
 }
 
-std::string rach_cfg_common_s::ra_supervision_info_s_::mac_contention_resolution_timer_e_::to_string() const
+std::string rach_cfg_common_s::ra_supervision_info_s_::mac_contention_resolution_timer_opts::to_string() const
 {
   switch (value) {
     case sf8:
@@ -4401,14 +4396,14 @@ std::string rach_cfg_common_s::ra_supervision_info_s_::mac_contention_resolution
   }
   return "";
 }
-uint8_t rach_cfg_common_s::ra_supervision_info_s_::mac_contention_resolution_timer_e_::to_number() const
+uint8_t rach_cfg_common_s::ra_supervision_info_s_::mac_contention_resolution_timer_opts::to_number() const
 {
   const static uint8_t options[] = {8, 16, 24, 32, 40, 48, 56, 64};
   return get_enum_number(options, 8, value,
                          "rach_cfg_common_s::ra_supervision_info_s_::mac_contention_resolution_timer_e_");
 }
 
-std::string rach_cfg_common_v1250_s::tx_fail_params_r12_s_::conn_est_fail_count_r12_e_::to_string() const
+std::string rach_cfg_common_v1250_s::tx_fail_params_r12_s_::conn_est_fail_count_r12_opts::to_string() const
 {
   switch (value) {
     case n1:
@@ -4424,14 +4419,14 @@ std::string rach_cfg_common_v1250_s::tx_fail_params_r12_s_::conn_est_fail_count_
   }
   return "";
 }
-uint8_t rach_cfg_common_v1250_s::tx_fail_params_r12_s_::conn_est_fail_count_r12_e_::to_number() const
+uint8_t rach_cfg_common_v1250_s::tx_fail_params_r12_s_::conn_est_fail_count_r12_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3, 4};
   return get_enum_number(options, 4, value,
                          "rach_cfg_common_v1250_s::tx_fail_params_r12_s_::conn_est_fail_count_r12_e_");
 }
 
-std::string rach_cfg_common_v1250_s::tx_fail_params_r12_s_::conn_est_fail_offset_validity_r12_e_::to_string() const
+std::string rach_cfg_common_v1250_s::tx_fail_params_r12_s_::conn_est_fail_offset_validity_r12_opts::to_string() const
 {
   switch (value) {
     case s30:
@@ -4455,14 +4450,14 @@ std::string rach_cfg_common_v1250_s::tx_fail_params_r12_s_::conn_est_fail_offset
   }
   return "";
 }
-uint16_t rach_cfg_common_v1250_s::tx_fail_params_r12_s_::conn_est_fail_offset_validity_r12_e_::to_number() const
+uint16_t rach_cfg_common_v1250_s::tx_fail_params_r12_s_::conn_est_fail_offset_validity_r12_opts::to_number() const
 {
   const static uint16_t options[] = {30, 60, 120, 240, 300, 420, 600, 900};
   return get_enum_number(options, 8, value,
                          "rach_cfg_common_v1250_s::tx_fail_params_r12_s_::conn_est_fail_offset_validity_r12_e_");
 }
 
-std::string rss_cfg_r15_s::dur_r15_e_::to_string() const
+std::string rss_cfg_r15_s::dur_r15_opts::to_string() const
 {
   switch (value) {
     case sf8:
@@ -4478,13 +4473,13 @@ std::string rss_cfg_r15_s::dur_r15_e_::to_string() const
   }
   return "";
 }
-uint8_t rss_cfg_r15_s::dur_r15_e_::to_number() const
+uint8_t rss_cfg_r15_s::dur_r15_opts::to_number() const
 {
   const static uint8_t options[] = {8, 16, 32, 40};
   return get_enum_number(options, 4, value, "rss_cfg_r15_s::dur_r15_e_");
 }
 
-std::string rss_cfg_r15_s::periodicity_r15_e_::to_string() const
+std::string rss_cfg_r15_s::periodicity_r15_opts::to_string() const
 {
   switch (value) {
     case ms160:
@@ -4500,13 +4495,13 @@ std::string rss_cfg_r15_s::periodicity_r15_e_::to_string() const
   }
   return "";
 }
-uint16_t rss_cfg_r15_s::periodicity_r15_e_::to_number() const
+uint16_t rss_cfg_r15_s::periodicity_r15_opts::to_number() const
 {
   const static uint16_t options[] = {160, 320, 640, 1280};
   return get_enum_number(options, 4, value, "rss_cfg_r15_s::periodicity_r15_e_");
 }
 
-std::string rss_cfg_r15_s::pwr_boost_r15_e_::to_string() const
+std::string rss_cfg_r15_s::pwr_boost_r15_opts::to_string() const
 {
   switch (value) {
     case db0:
@@ -4522,12 +4517,12 @@ std::string rss_cfg_r15_s::pwr_boost_r15_e_::to_string() const
   }
   return "";
 }
-float rss_cfg_r15_s::pwr_boost_r15_e_::to_number() const
+float rss_cfg_r15_s::pwr_boost_r15_opts::to_number() const
 {
   const static float options[] = {0.0, 3.0, 4.8, 6.0};
   return get_enum_number(options, 4, value, "rss_cfg_r15_s::pwr_boost_r15_e_");
 }
-std::string rss_cfg_r15_s::pwr_boost_r15_e_::to_number_string() const
+std::string rss_cfg_r15_s::pwr_boost_r15_opts::to_number_string() const
 {
   switch (value) {
     case db0:
@@ -4544,7 +4539,7 @@ std::string rss_cfg_r15_s::pwr_boost_r15_e_::to_number_string() const
   return "";
 }
 
-std::string resel_info_relay_r13_s::min_hyst_r13_e_::to_string() const
+std::string resel_info_relay_r13_s::min_hyst_r13_opts::to_string() const
 {
   switch (value) {
     case db0:
@@ -4564,14 +4559,14 @@ std::string resel_info_relay_r13_s::min_hyst_r13_e_::to_string() const
   }
   return "";
 }
-uint8_t resel_info_relay_r13_s::min_hyst_r13_e_::to_number() const
+uint8_t resel_info_relay_r13_s::min_hyst_r13_opts::to_number() const
 {
   const static uint8_t options[] = {0, 3, 6, 9, 12};
   return get_enum_number(options, 5, value, "resel_info_relay_r13_s::min_hyst_r13_e_");
 }
 
 // SIB-Type ::= ENUMERATED
-std::string sib_type_e::to_string() const
+std::string sib_type_opts::to_string() const
 {
   switch (value) {
     case sib_type3:
@@ -4623,13 +4618,13 @@ std::string sib_type_e::to_string() const
   }
   return "";
 }
-uint8_t sib_type_e::to_number() const
+uint8_t sib_type_opts::to_number() const
 {
   const static uint8_t options[] = {3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 24, 25, 26};
   return get_enum_number(options, 22, value, "sib_type_e");
 }
 
-std::string sib8_per_plmn_r11_s::params_cdma2000_r11_c_::types::to_string() const
+std::string sib8_per_plmn_r11_s::params_cdma2000_r11_c_::types_opts::to_string() const
 {
   switch (value) {
     case explicit_value:
@@ -4644,7 +4639,7 @@ std::string sib8_per_plmn_r11_s::params_cdma2000_r11_c_::types::to_string() cons
   return "";
 }
 
-std::string srs_ul_cfg_common_c::setup_s_::srs_bw_cfg_e_::to_string() const
+std::string srs_ul_cfg_common_c::setup_s_::srs_bw_cfg_opts::to_string() const
 {
   switch (value) {
     case bw0:
@@ -4668,13 +4663,13 @@ std::string srs_ul_cfg_common_c::setup_s_::srs_bw_cfg_e_::to_string() const
   }
   return "";
 }
-uint8_t srs_ul_cfg_common_c::setup_s_::srs_bw_cfg_e_::to_number() const
+uint8_t srs_ul_cfg_common_c::setup_s_::srs_bw_cfg_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1, 2, 3, 4, 5, 6, 7};
   return get_enum_number(options, 8, value, "srs_ul_cfg_common_c::setup_s_::srs_bw_cfg_e_");
 }
 
-std::string srs_ul_cfg_common_c::setup_s_::srs_sf_cfg_e_::to_string() const
+std::string srs_ul_cfg_common_c::setup_s_::srs_sf_cfg_opts::to_string() const
 {
   switch (value) {
     case sc0:
@@ -4714,13 +4709,13 @@ std::string srs_ul_cfg_common_c::setup_s_::srs_sf_cfg_e_::to_string() const
   }
   return "";
 }
-uint8_t srs_ul_cfg_common_c::setup_s_::srs_sf_cfg_e_::to_number() const
+uint8_t srs_ul_cfg_common_c::setup_s_::srs_sf_cfg_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
   return get_enum_number(options, 16, value, "srs_ul_cfg_common_c::setup_s_::srs_sf_cfg_e_");
 }
 
-std::string uac_barr_info_set_r15_s::uac_barr_factor_r15_e_::to_string() const
+std::string uac_barr_info_set_r15_s::uac_barr_factor_r15_opts::to_string() const
 {
   switch (value) {
     case p00:
@@ -4760,12 +4755,12 @@ std::string uac_barr_info_set_r15_s::uac_barr_factor_r15_e_::to_string() const
   }
   return "";
 }
-float uac_barr_info_set_r15_s::uac_barr_factor_r15_e_::to_number() const
+float uac_barr_info_set_r15_s::uac_barr_factor_r15_opts::to_number() const
 {
   const static float options[] = {0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0, 7.0, 7.5, 8.0, 8.5, 9.0, 9.5};
   return get_enum_number(options, 16, value, "uac_barr_info_set_r15_s::uac_barr_factor_r15_e_");
 }
-std::string uac_barr_info_set_r15_s::uac_barr_factor_r15_e_::to_number_string() const
+std::string uac_barr_info_set_r15_s::uac_barr_factor_r15_opts::to_number_string() const
 {
   switch (value) {
     case p00:
@@ -4806,7 +4801,7 @@ std::string uac_barr_info_set_r15_s::uac_barr_factor_r15_e_::to_number_string() 
   return "";
 }
 
-std::string uac_barr_info_set_r15_s::uac_barr_time_r15_e_::to_string() const
+std::string uac_barr_info_set_r15_s::uac_barr_time_r15_opts::to_string() const
 {
   switch (value) {
     case s4:
@@ -4830,13 +4825,13 @@ std::string uac_barr_info_set_r15_s::uac_barr_time_r15_e_::to_string() const
   }
   return "";
 }
-uint16_t uac_barr_info_set_r15_s::uac_barr_time_r15_e_::to_number() const
+uint16_t uac_barr_info_set_r15_s::uac_barr_time_r15_opts::to_number() const
 {
   const static uint16_t options[] = {4, 8, 16, 32, 64, 128, 256, 512};
   return get_enum_number(options, 8, value, "uac_barr_info_set_r15_s::uac_barr_time_r15_e_");
 }
 
-std::string uac_barr_per_plmn_r15_s::uac_ac_barr_list_type_r15_c_::types::to_string() const
+std::string uac_barr_per_plmn_r15_s::uac_ac_barr_list_type_r15_c_::types_opts::to_string() const
 {
   switch (value) {
     case uac_implicit_ac_barr_list_r15:
@@ -4852,7 +4847,7 @@ std::string uac_barr_per_plmn_r15_s::uac_ac_barr_list_type_r15_c_::types::to_str
 }
 
 // UL-CyclicPrefixLength ::= ENUMERATED
-std::string ul_cp_len_e::to_string() const
+std::string ul_cp_len_opts::to_string() const
 {
   switch (value) {
     case len1:
@@ -4864,13 +4859,13 @@ std::string ul_cp_len_e::to_string() const
   }
   return "";
 }
-uint8_t ul_cp_len_e::to_number() const
+uint8_t ul_cp_len_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2};
   return get_enum_number(options, 2, value, "ul_cp_len_e");
 }
 
-std::string ul_pwr_ctrl_common_v1020_s::delta_f_pucch_format3_r10_e_::to_string() const
+std::string ul_pwr_ctrl_common_v1020_s::delta_f_pucch_format3_r10_opts::to_string() const
 {
   switch (value) {
     case delta_f_minus1:
@@ -4894,13 +4889,13 @@ std::string ul_pwr_ctrl_common_v1020_s::delta_f_pucch_format3_r10_e_::to_string(
   }
   return "";
 }
-int8_t ul_pwr_ctrl_common_v1020_s::delta_f_pucch_format3_r10_e_::to_number() const
+int8_t ul_pwr_ctrl_common_v1020_s::delta_f_pucch_format3_r10_opts::to_number() const
 {
   const static int8_t options[] = {-1, 0, 1, 2, 3, 4, 5, 6};
   return get_enum_number(options, 8, value, "ul_pwr_ctrl_common_v1020_s::delta_f_pucch_format3_r10_e_");
 }
 
-std::string ul_pwr_ctrl_common_v1020_s::delta_f_pucch_format1b_cs_r10_e_::to_string() const
+std::string ul_pwr_ctrl_common_v1020_s::delta_f_pucch_format1b_cs_r10_opts::to_string() const
 {
   switch (value) {
     case delta_f1:
@@ -4916,13 +4911,13 @@ std::string ul_pwr_ctrl_common_v1020_s::delta_f_pucch_format1b_cs_r10_e_::to_str
   }
   return "";
 }
-uint8_t ul_pwr_ctrl_common_v1020_s::delta_f_pucch_format1b_cs_r10_e_::to_number() const
+uint8_t ul_pwr_ctrl_common_v1020_s::delta_f_pucch_format1b_cs_r10_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2};
   return get_enum_number(options, 2, value, "ul_pwr_ctrl_common_v1020_s::delta_f_pucch_format1b_cs_r10_e_");
 }
 
-std::string wus_cfg_r15_s::max_dur_factor_r15_e_::to_string() const
+std::string wus_cfg_r15_s::max_dur_factor_r15_opts::to_string() const
 {
   switch (value) {
     case one32th:
@@ -4938,13 +4933,13 @@ std::string wus_cfg_r15_s::max_dur_factor_r15_e_::to_string() const
   }
   return "";
 }
-uint8_t wus_cfg_r15_s::max_dur_factor_r15_e_::to_number() const
+uint8_t wus_cfg_r15_s::max_dur_factor_r15_opts::to_number() const
 {
   const static uint8_t options[] = {32, 16, 8, 4};
   return get_enum_number(options, 4, value, "wus_cfg_r15_s::max_dur_factor_r15_e_");
 }
 
-std::string wus_cfg_r15_s::num_pos_r15_e_::to_string() const
+std::string wus_cfg_r15_s::num_pos_r15_opts::to_string() const
 {
   switch (value) {
     case n1:
@@ -4960,13 +4955,13 @@ std::string wus_cfg_r15_s::num_pos_r15_e_::to_string() const
   }
   return "";
 }
-uint8_t wus_cfg_r15_s::num_pos_r15_e_::to_number() const
+uint8_t wus_cfg_r15_s::num_pos_r15_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 4};
   return get_enum_number(options, 3, value, "wus_cfg_r15_s::num_pos_r15_e_");
 }
 
-std::string wus_cfg_r15_s::freq_location_r15_e_::to_string() const
+std::string wus_cfg_r15_s::freq_location_r15_opts::to_string() const
 {
   switch (value) {
     case n0:
@@ -4982,13 +4977,13 @@ std::string wus_cfg_r15_s::freq_location_r15_e_::to_string() const
   }
   return "";
 }
-uint8_t wus_cfg_r15_s::freq_location_r15_e_::to_number() const
+uint8_t wus_cfg_r15_s::freq_location_r15_opts::to_number() const
 {
   const static uint8_t options[] = {0, 2, 4};
   return get_enum_number(options, 3, value, "wus_cfg_r15_s::freq_location_r15_e_");
 }
 
-std::string wus_cfg_r15_s::time_offset_drx_r15_e_::to_string() const
+std::string wus_cfg_r15_s::time_offset_drx_r15_opts::to_string() const
 {
   switch (value) {
     case ms40:
@@ -5004,13 +4999,13 @@ std::string wus_cfg_r15_s::time_offset_drx_r15_e_::to_string() const
   }
   return "";
 }
-uint8_t wus_cfg_r15_s::time_offset_drx_r15_e_::to_number() const
+uint8_t wus_cfg_r15_s::time_offset_drx_r15_opts::to_number() const
 {
   const static uint8_t options[] = {40, 80, 160, 240};
   return get_enum_number(options, 4, value, "wus_cfg_r15_s::time_offset_drx_r15_e_");
 }
 
-std::string wus_cfg_r15_s::time_offset_e_drx_short_r15_e_::to_string() const
+std::string wus_cfg_r15_s::time_offset_e_drx_short_r15_opts::to_string() const
 {
   switch (value) {
     case ms40:
@@ -5026,13 +5021,13 @@ std::string wus_cfg_r15_s::time_offset_e_drx_short_r15_e_::to_string() const
   }
   return "";
 }
-uint8_t wus_cfg_r15_s::time_offset_e_drx_short_r15_e_::to_number() const
+uint8_t wus_cfg_r15_s::time_offset_e_drx_short_r15_opts::to_number() const
 {
   const static uint8_t options[] = {40, 80, 160, 240};
   return get_enum_number(options, 4, value, "wus_cfg_r15_s::time_offset_e_drx_short_r15_e_");
 }
 
-std::string wus_cfg_r15_s::time_offset_e_drx_long_r15_e_::to_string() const
+std::string wus_cfg_r15_s::time_offset_e_drx_long_r15_opts::to_string() const
 {
   switch (value) {
     case ms1000:
@@ -5044,13 +5039,13 @@ std::string wus_cfg_r15_s::time_offset_e_drx_long_r15_e_::to_string() const
   }
   return "";
 }
-uint16_t wus_cfg_r15_s::time_offset_e_drx_long_r15_e_::to_number() const
+uint16_t wus_cfg_r15_s::time_offset_e_drx_long_r15_opts::to_number() const
 {
   const static uint16_t options[] = {1000, 2000};
   return get_enum_number(options, 2, value, "wus_cfg_r15_s::time_offset_e_drx_long_r15_e_");
 }
 
-std::string cell_resel_info_common_v1460_s::s_search_delta_p_r14_e_::to_string() const
+std::string cell_resel_info_common_v1460_s::s_search_delta_p_r14_opts::to_string() const
 {
   switch (value) {
     case db6:
@@ -5066,13 +5061,13 @@ std::string cell_resel_info_common_v1460_s::s_search_delta_p_r14_e_::to_string()
   }
   return "";
 }
-uint8_t cell_resel_info_common_v1460_s::s_search_delta_p_r14_e_::to_number() const
+uint8_t cell_resel_info_common_v1460_s::s_search_delta_p_r14_opts::to_number() const
 {
   const static uint8_t options[] = {6, 9, 12, 15};
   return get_enum_number(options, 4, value, "cell_resel_info_common_v1460_s::s_search_delta_p_r14_e_");
 }
 
-std::string mbms_notif_cfg_r9_s::notif_repeat_coeff_r9_e_::to_string() const
+std::string mbms_notif_cfg_r9_s::notif_repeat_coeff_r9_opts::to_string() const
 {
   switch (value) {
     case n2:
@@ -5084,13 +5079,13 @@ std::string mbms_notif_cfg_r9_s::notif_repeat_coeff_r9_e_::to_string() const
   }
   return "";
 }
-uint8_t mbms_notif_cfg_r9_s::notif_repeat_coeff_r9_e_::to_number() const
+uint8_t mbms_notif_cfg_r9_s::notif_repeat_coeff_r9_opts::to_number() const
 {
   const static uint8_t options[] = {2, 4};
   return get_enum_number(options, 2, value, "mbms_notif_cfg_r9_s::notif_repeat_coeff_r9_e_");
 }
 
-std::string mob_state_params_s::t_eval_e_::to_string() const
+std::string mob_state_params_s::t_eval_opts::to_string() const
 {
   switch (value) {
     case s30:
@@ -5114,13 +5109,13 @@ std::string mob_state_params_s::t_eval_e_::to_string() const
   }
   return "";
 }
-uint8_t mob_state_params_s::t_eval_e_::to_number() const
+uint8_t mob_state_params_s::t_eval_opts::to_number() const
 {
   const static uint8_t options[] = {30, 60, 120, 180, 240};
   return get_enum_number(options, 5, value, "mob_state_params_s::t_eval_e_");
 }
 
-std::string mob_state_params_s::t_hyst_normal_e_::to_string() const
+std::string mob_state_params_s::t_hyst_normal_opts::to_string() const
 {
   switch (value) {
     case s30:
@@ -5144,13 +5139,13 @@ std::string mob_state_params_s::t_hyst_normal_e_::to_string() const
   }
   return "";
 }
-uint8_t mob_state_params_s::t_hyst_normal_e_::to_number() const
+uint8_t mob_state_params_s::t_hyst_normal_opts::to_number() const
 {
   const static uint8_t options[] = {30, 60, 120, 180, 240};
   return get_enum_number(options, 5, value, "mob_state_params_s::t_hyst_normal_e_");
 }
 
-std::string redist_serving_info_r13_s::t360_r13_e_::to_string() const
+std::string redist_serving_info_r13_s::t360_r13_opts::to_string() const
 {
   switch (value) {
     case min4:
@@ -5174,13 +5169,13 @@ std::string redist_serving_info_r13_s::t360_r13_e_::to_string() const
   }
   return "";
 }
-int8_t redist_serving_info_r13_s::t360_r13_e_::to_number() const
+int8_t redist_serving_info_r13_s::t360_r13_opts::to_number() const
 {
   const static int8_t options[] = {4, 8, 16, 32, -1};
   return get_enum_number(options, 5, value, "redist_serving_info_r13_s::t360_r13_e_");
 }
 
-std::string sc_mcch_sched_info_r14_s::on_dur_timer_scptm_r14_e_::to_string() const
+std::string sc_mcch_sched_info_r14_s::on_dur_timer_scptm_r14_opts::to_string() const
 {
   switch (value) {
     case psf10:
@@ -5204,13 +5199,13 @@ std::string sc_mcch_sched_info_r14_s::on_dur_timer_scptm_r14_e_::to_string() con
   }
   return "";
 }
-uint16_t sc_mcch_sched_info_r14_s::on_dur_timer_scptm_r14_e_::to_number() const
+uint16_t sc_mcch_sched_info_r14_s::on_dur_timer_scptm_r14_opts::to_number() const
 {
   const static uint16_t options[] = {10, 20, 100, 300, 500, 1000, 1200, 1600};
   return get_enum_number(options, 8, value, "sc_mcch_sched_info_r14_s::on_dur_timer_scptm_r14_e_");
 }
 
-std::string sc_mcch_sched_info_r14_s::drx_inactivity_timer_scptm_r14_e_::to_string() const
+std::string sc_mcch_sched_info_r14_s::drx_inactivity_timer_scptm_r14_opts::to_string() const
 {
   switch (value) {
     case psf0:
@@ -5250,13 +5245,13 @@ std::string sc_mcch_sched_info_r14_s::drx_inactivity_timer_scptm_r14_e_::to_stri
   }
   return "";
 }
-uint16_t sc_mcch_sched_info_r14_s::drx_inactivity_timer_scptm_r14_e_::to_number() const
+uint16_t sc_mcch_sched_info_r14_s::drx_inactivity_timer_scptm_r14_opts::to_number() const
 {
   const static uint16_t options[] = {0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384};
   return get_enum_number(options, 16, value, "sc_mcch_sched_info_r14_s::drx_inactivity_timer_scptm_r14_e_");
 }
 
-std::string sc_mcch_sched_info_r14_s::sched_period_start_offset_scptm_r14_c_::types::to_string() const
+std::string sc_mcch_sched_info_r14_s::sched_period_start_offset_scptm_r14_c_::types_opts::to_string() const
 {
   switch (value) {
     case sf10:
@@ -5298,13 +5293,13 @@ std::string sc_mcch_sched_info_r14_s::sched_period_start_offset_scptm_r14_c_::ty
   }
   return "";
 }
-uint16_t sc_mcch_sched_info_r14_s::sched_period_start_offset_scptm_r14_c_::types::to_number() const
+uint16_t sc_mcch_sched_info_r14_s::sched_period_start_offset_scptm_r14_c_::types_opts::to_number() const
 {
   const static uint16_t options[] = {10, 20, 32, 40, 64, 80, 128, 160, 256, 320, 512, 640, 1024, 2048, 4096, 8192};
   return get_enum_number(options, 16, value, "sc_mcch_sched_info_r14_s::sched_period_start_offset_scptm_r14_c_::types");
 }
 
-std::string sl_disc_cfg_relay_ue_r13_s::hyst_max_r13_e_::to_string() const
+std::string sl_disc_cfg_relay_ue_r13_s::hyst_max_r13_opts::to_string() const
 {
   switch (value) {
     case db0:
@@ -5324,13 +5319,13 @@ std::string sl_disc_cfg_relay_ue_r13_s::hyst_max_r13_e_::to_string() const
   }
   return "";
 }
-uint8_t sl_disc_cfg_relay_ue_r13_s::hyst_max_r13_e_::to_number() const
+uint8_t sl_disc_cfg_relay_ue_r13_s::hyst_max_r13_opts::to_number() const
 {
   const static uint8_t options[] = {0, 3, 6, 9, 12};
   return get_enum_number(options, 5, value, "sl_disc_cfg_relay_ue_r13_s::hyst_max_r13_e_");
 }
 
-std::string sl_disc_cfg_relay_ue_r13_s::hyst_min_r13_e_::to_string() const
+std::string sl_disc_cfg_relay_ue_r13_s::hyst_min_r13_opts::to_string() const
 {
   switch (value) {
     case db0:
@@ -5348,13 +5343,13 @@ std::string sl_disc_cfg_relay_ue_r13_s::hyst_min_r13_e_::to_string() const
   }
   return "";
 }
-uint8_t sl_disc_cfg_relay_ue_r13_s::hyst_min_r13_e_::to_number() const
+uint8_t sl_disc_cfg_relay_ue_r13_s::hyst_min_r13_opts::to_number() const
 {
   const static uint8_t options[] = {0, 3, 6, 9, 12};
   return get_enum_number(options, 5, value, "sl_disc_cfg_relay_ue_r13_s::hyst_min_r13_e_");
 }
 
-std::string sl_disc_cfg_remote_ue_r13_s::hyst_max_r13_e_::to_string() const
+std::string sl_disc_cfg_remote_ue_r13_s::hyst_max_r13_opts::to_string() const
 {
   switch (value) {
     case db0:
@@ -5372,14 +5367,14 @@ std::string sl_disc_cfg_remote_ue_r13_s::hyst_max_r13_e_::to_string() const
   }
   return "";
 }
-uint8_t sl_disc_cfg_remote_ue_r13_s::hyst_max_r13_e_::to_number() const
+uint8_t sl_disc_cfg_remote_ue_r13_s::hyst_max_r13_opts::to_number() const
 {
   const static uint8_t options[] = {0, 3, 6, 9, 12};
   return get_enum_number(options, 5, value, "sl_disc_cfg_remote_ue_r13_s::hyst_max_r13_e_");
 }
 
 // TimeAlignmentTimer ::= ENUMERATED
-std::string time_align_timer_e::to_string() const
+std::string time_align_timer_opts::to_string() const
 {
   switch (value) {
     case sf500:
@@ -5403,14 +5398,14 @@ std::string time_align_timer_e::to_string() const
   }
   return "";
 }
-int16_t time_align_timer_e::to_number() const
+int16_t time_align_timer_opts::to_number() const
 {
   const static int16_t options[] = {500, 750, 1280, 1920, 2560, 5120, 10240, -1};
   return get_enum_number(options, 8, value, "time_align_timer_e");
 }
 
 // UAC-AC1-SelectAssistInfo-r15 ::= ENUMERATED
-std::string uac_ac1_select_assist_info_r15_e::to_string() const
+std::string uac_ac1_select_assist_info_r15_opts::to_string() const
 {
   switch (value) {
     case a:
@@ -5425,7 +5420,7 @@ std::string uac_ac1_select_assist_info_r15_e::to_string() const
   return "";
 }
 
-std::string ue_timers_and_consts_s::t300_e_::to_string() const
+std::string ue_timers_and_consts_s::t300_opts::to_string() const
 {
   switch (value) {
     case ms100:
@@ -5449,13 +5444,13 @@ std::string ue_timers_and_consts_s::t300_e_::to_string() const
   }
   return "";
 }
-uint16_t ue_timers_and_consts_s::t300_e_::to_number() const
+uint16_t ue_timers_and_consts_s::t300_opts::to_number() const
 {
   const static uint16_t options[] = {100, 200, 300, 400, 600, 1000, 1500, 2000};
   return get_enum_number(options, 8, value, "ue_timers_and_consts_s::t300_e_");
 }
 
-std::string ue_timers_and_consts_s::t301_e_::to_string() const
+std::string ue_timers_and_consts_s::t301_opts::to_string() const
 {
   switch (value) {
     case ms100:
@@ -5479,13 +5474,13 @@ std::string ue_timers_and_consts_s::t301_e_::to_string() const
   }
   return "";
 }
-uint16_t ue_timers_and_consts_s::t301_e_::to_number() const
+uint16_t ue_timers_and_consts_s::t301_opts::to_number() const
 {
   const static uint16_t options[] = {100, 200, 300, 400, 600, 1000, 1500, 2000};
   return get_enum_number(options, 8, value, "ue_timers_and_consts_s::t301_e_");
 }
 
-std::string ue_timers_and_consts_s::t310_e_::to_string() const
+std::string ue_timers_and_consts_s::t310_opts::to_string() const
 {
   switch (value) {
     case ms0:
@@ -5507,13 +5502,13 @@ std::string ue_timers_and_consts_s::t310_e_::to_string() const
   }
   return "";
 }
-uint16_t ue_timers_and_consts_s::t310_e_::to_number() const
+uint16_t ue_timers_and_consts_s::t310_opts::to_number() const
 {
   const static uint16_t options[] = {0, 50, 100, 200, 500, 1000, 2000};
   return get_enum_number(options, 7, value, "ue_timers_and_consts_s::t310_e_");
 }
 
-std::string ue_timers_and_consts_s::n310_e_::to_string() const
+std::string ue_timers_and_consts_s::n310_opts::to_string() const
 {
   switch (value) {
     case n1:
@@ -5537,13 +5532,13 @@ std::string ue_timers_and_consts_s::n310_e_::to_string() const
   }
   return "";
 }
-uint8_t ue_timers_and_consts_s::n310_e_::to_number() const
+uint8_t ue_timers_and_consts_s::n310_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3, 4, 6, 8, 10, 20};
   return get_enum_number(options, 8, value, "ue_timers_and_consts_s::n310_e_");
 }
 
-std::string ue_timers_and_consts_s::t311_e_::to_string() const
+std::string ue_timers_and_consts_s::t311_opts::to_string() const
 {
   switch (value) {
     case ms1000:
@@ -5565,13 +5560,13 @@ std::string ue_timers_and_consts_s::t311_e_::to_string() const
   }
   return "";
 }
-uint16_t ue_timers_and_consts_s::t311_e_::to_number() const
+uint16_t ue_timers_and_consts_s::t311_opts::to_number() const
 {
   const static uint16_t options[] = {1000, 3000, 5000, 10000, 15000, 20000, 30000};
   return get_enum_number(options, 7, value, "ue_timers_and_consts_s::t311_e_");
 }
 
-std::string ue_timers_and_consts_s::n311_e_::to_string() const
+std::string ue_timers_and_consts_s::n311_opts::to_string() const
 {
   switch (value) {
     case n1:
@@ -5595,13 +5590,13 @@ std::string ue_timers_and_consts_s::n311_e_::to_string() const
   }
   return "";
 }
-uint8_t ue_timers_and_consts_s::n311_e_::to_number() const
+uint8_t ue_timers_and_consts_s::n311_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3, 4, 5, 6, 8, 10};
   return get_enum_number(options, 8, value, "ue_timers_and_consts_s::n311_e_");
 }
 
-std::string ue_timers_and_consts_s::t300_v1310_e_::to_string() const
+std::string ue_timers_and_consts_s::t300_v1310_opts::to_string() const
 {
   switch (value) {
     case ms2500:
@@ -5625,13 +5620,13 @@ std::string ue_timers_and_consts_s::t300_v1310_e_::to_string() const
   }
   return "";
 }
-uint16_t ue_timers_and_consts_s::t300_v1310_e_::to_number() const
+uint16_t ue_timers_and_consts_s::t300_v1310_opts::to_number() const
 {
   const static uint16_t options[] = {2500, 3000, 3500, 4000, 5000, 6000, 8000, 10000};
   return get_enum_number(options, 8, value, "ue_timers_and_consts_s::t300_v1310_e_");
 }
 
-std::string ue_timers_and_consts_s::t301_v1310_e_::to_string() const
+std::string ue_timers_and_consts_s::t301_v1310_opts::to_string() const
 {
   switch (value) {
     case ms2500:
@@ -5655,13 +5650,13 @@ std::string ue_timers_and_consts_s::t301_v1310_e_::to_string() const
   }
   return "";
 }
-uint16_t ue_timers_and_consts_s::t301_v1310_e_::to_number() const
+uint16_t ue_timers_and_consts_s::t301_v1310_opts::to_number() const
 {
   const static uint16_t options[] = {2500, 3000, 3500, 4000, 5000, 6000, 8000, 10000};
   return get_enum_number(options, 8, value, "ue_timers_and_consts_s::t301_v1310_e_");
 }
 
-std::string ue_timers_and_consts_s::t310_v1330_e_::to_string() const
+std::string ue_timers_and_consts_s::t310_v1330_opts::to_string() const
 {
   switch (value) {
     case ms4000:
@@ -5673,13 +5668,13 @@ std::string ue_timers_and_consts_s::t310_v1330_e_::to_string() const
   }
   return "";
 }
-uint16_t ue_timers_and_consts_s::t310_v1330_e_::to_number() const
+uint16_t ue_timers_and_consts_s::t310_v1330_opts::to_number() const
 {
   const static uint16_t options[] = {4000, 6000};
   return get_enum_number(options, 2, value, "ue_timers_and_consts_s::t310_v1330_e_");
 }
 
-std::string ue_timers_and_consts_s::t300_r15_e_::to_string() const
+std::string ue_timers_and_consts_s::t300_r15_opts::to_string() const
 {
   switch (value) {
     case ms4000:
@@ -5703,13 +5698,13 @@ std::string ue_timers_and_consts_s::t300_r15_e_::to_string() const
   }
   return "";
 }
-uint16_t ue_timers_and_consts_s::t300_r15_e_::to_number() const
+uint16_t ue_timers_and_consts_s::t300_r15_opts::to_number() const
 {
   const static uint16_t options[] = {4000, 6000, 8000, 10000, 15000, 25000, 40000, 60000};
   return get_enum_number(options, 8, value, "ue_timers_and_consts_s::t300_r15_e_");
 }
 
-std::string sched_info_s::si_periodicity_e_::to_string() const
+std::string sched_info_s::si_periodicity_opts::to_string() const
 {
   switch (value) {
     case rf8:
@@ -5731,13 +5726,13 @@ std::string sched_info_s::si_periodicity_e_::to_string() const
   }
   return "";
 }
-uint16_t sched_info_s::si_periodicity_e_::to_number() const
+uint16_t sched_info_s::si_periodicity_opts::to_number() const
 {
   const static uint16_t options[] = {8, 16, 32, 64, 128, 256, 512};
   return get_enum_number(options, 7, value, "sched_info_s::si_periodicity_e_");
 }
 
-std::string sib_type11_s::warning_msg_segment_type_e_::to_string() const
+std::string sib_type11_s::warning_msg_segment_type_opts::to_string() const
 {
   switch (value) {
     case not_last_segment:
@@ -5750,7 +5745,7 @@ std::string sib_type11_s::warning_msg_segment_type_e_::to_string() const
   return "";
 }
 
-std::string sib_type12_r9_s::warning_msg_segment_type_r9_e_::to_string() const
+std::string sib_type12_r9_s::warning_msg_segment_type_r9_opts::to_string() const
 {
   switch (value) {
     case not_last_segment:
@@ -5763,7 +5758,7 @@ std::string sib_type12_r9_s::warning_msg_segment_type_r9_e_::to_string() const
   return "";
 }
 
-std::string sib_type14_r11_s::eab_param_r11_c_::types::to_string() const
+std::string sib_type14_r11_s::eab_param_r11_c_::types_opts::to_string() const
 {
   switch (value) {
     case eab_common_r11:
@@ -5778,7 +5773,7 @@ std::string sib_type14_r11_s::eab_param_r11_c_::types::to_string() const
   return "";
 }
 
-std::string sib_type14_r11_s::eab_per_rsrp_r15_e_::to_string() const
+std::string sib_type14_r11_s::eab_per_rsrp_r15_opts::to_string() const
 {
   switch (value) {
     case thresh0:
@@ -5794,13 +5789,13 @@ std::string sib_type14_r11_s::eab_per_rsrp_r15_e_::to_string() const
   }
   return "";
 }
-uint8_t sib_type14_r11_s::eab_per_rsrp_r15_e_::to_number() const
+uint8_t sib_type14_r11_s::eab_per_rsrp_r15_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1, 2, 3};
   return get_enum_number(options, 4, value, "sib_type14_r11_s::eab_per_rsrp_r15_e_");
 }
 
-std::string sib_type2_s::freq_info_s_::ul_bw_e_::to_string() const
+std::string sib_type2_s::freq_info_s_::ul_bw_opts::to_string() const
 {
   switch (value) {
     case n6:
@@ -5820,13 +5815,13 @@ std::string sib_type2_s::freq_info_s_::ul_bw_e_::to_string() const
   }
   return "";
 }
-uint8_t sib_type2_s::freq_info_s_::ul_bw_e_::to_number() const
+uint8_t sib_type2_s::freq_info_s_::ul_bw_opts::to_number() const
 {
   const static uint8_t options[] = {6, 15, 25, 50, 75, 100};
   return get_enum_number(options, 6, value, "sib_type2_s::freq_info_s_::ul_bw_e_");
 }
 
-std::string sib_type20_r13_s::sc_mcch_repeat_period_r13_e_::to_string() const
+std::string sib_type20_r13_s::sc_mcch_repeat_period_r13_opts::to_string() const
 {
   switch (value) {
     case rf2:
@@ -5850,13 +5845,13 @@ std::string sib_type20_r13_s::sc_mcch_repeat_period_r13_e_::to_string() const
   }
   return "";
 }
-uint16_t sib_type20_r13_s::sc_mcch_repeat_period_r13_e_::to_number() const
+uint16_t sib_type20_r13_s::sc_mcch_repeat_period_r13_opts::to_number() const
 {
   const static uint16_t options[] = {2, 4, 8, 16, 32, 64, 128, 256};
   return get_enum_number(options, 8, value, "sib_type20_r13_s::sc_mcch_repeat_period_r13_e_");
 }
 
-std::string sib_type20_r13_s::sc_mcch_mod_period_r13_e_::to_string() const
+std::string sib_type20_r13_s::sc_mcch_mod_period_r13_opts::to_string() const
 {
   switch (value) {
     case rf2:
@@ -5896,13 +5891,13 @@ std::string sib_type20_r13_s::sc_mcch_mod_period_r13_e_::to_string() const
   }
   return "";
 }
-uint32_t sib_type20_r13_s::sc_mcch_mod_period_r13_e_::to_number() const
+uint32_t sib_type20_r13_s::sc_mcch_mod_period_r13_opts::to_number() const
 {
   const static uint32_t options[] = {2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536};
   return get_enum_number(options, 16, value, "sib_type20_r13_s::sc_mcch_mod_period_r13_e_");
 }
 
-std::string sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_num_repeat_sc_mcch_r14_e_::to_string() const
+std::string sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_num_repeat_sc_mcch_r14_opts::to_string() const
 {
   switch (value) {
     case r1:
@@ -5928,13 +5923,13 @@ std::string sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_num_repeat_sc_mcch_r14_
   }
   return "";
 }
-uint16_t sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_num_repeat_sc_mcch_r14_e_::to_number() const
+uint16_t sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_num_repeat_sc_mcch_r14_opts::to_number() const
 {
   const static uint16_t options[] = {1, 2, 4, 8, 16, 32, 64, 128, 256};
   return get_enum_number(options, 9, value, "sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_num_repeat_sc_mcch_r14_e_");
 }
 
-std::string sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_::fdd_r14_e_::to_string() const
+std::string sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_::fdd_r14_opts::to_string() const
 {
   switch (value) {
     case v1:
@@ -5958,13 +5953,13 @@ std::string sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_
   }
   return "";
 }
-float sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_::fdd_r14_e_::to_number() const
+float sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_::fdd_r14_opts::to_number() const
 {
   const static float options[] = {1.0, 1.5, 2.0, 2.5, 4.0, 5.0, 8.0, 10.0};
   return get_enum_number(options, 8, value,
                          "sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_::fdd_r14_e_");
 }
-std::string sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_::fdd_r14_e_::to_number_string() const
+std::string sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_::fdd_r14_opts::to_number_string() const
 {
   switch (value) {
     case v1:
@@ -5989,7 +5984,7 @@ std::string sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_
   return "";
 }
 
-std::string sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_::tdd_r14_e_::to_string() const
+std::string sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_::tdd_r14_opts::to_string() const
 {
   switch (value) {
     case v1:
@@ -6011,14 +6006,14 @@ std::string sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_
   }
   return "";
 }
-uint8_t sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_::tdd_r14_e_::to_number() const
+uint8_t sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_::tdd_r14_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 4, 5, 8, 10, 20};
   return get_enum_number(options, 7, value,
                          "sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_::tdd_r14_e_");
 }
 
-std::string sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_::types::to_string() const
+std::string sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_::types_opts::to_string() const
 {
   switch (value) {
     case fdd_r14:
@@ -6033,7 +6028,7 @@ std::string sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_start_sf_sc_mcch_r14_c_
   return "";
 }
 
-std::string sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_pdsch_hop_cfg_sc_mcch_r14_e_::to_string() const
+std::string sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_pdsch_hop_cfg_sc_mcch_r14_opts::to_string() const
 {
   switch (value) {
     case off:
@@ -6048,7 +6043,7 @@ std::string sib_type20_r13_s::br_bcch_cfg_r14_s_::mpdcch_pdsch_hop_cfg_sc_mcch_r
   return "";
 }
 
-std::string sib_type20_r13_s::br_bcch_cfg_r14_s_::sc_mcch_repeat_period_br_r14_e_::to_string() const
+std::string sib_type20_r13_s::br_bcch_cfg_r14_s_::sc_mcch_repeat_period_br_r14_opts::to_string() const
 {
   switch (value) {
     case rf32:
@@ -6072,13 +6067,13 @@ std::string sib_type20_r13_s::br_bcch_cfg_r14_s_::sc_mcch_repeat_period_br_r14_e
   }
   return "";
 }
-uint16_t sib_type20_r13_s::br_bcch_cfg_r14_s_::sc_mcch_repeat_period_br_r14_e_::to_number() const
+uint16_t sib_type20_r13_s::br_bcch_cfg_r14_s_::sc_mcch_repeat_period_br_r14_opts::to_number() const
 {
   const static uint16_t options[] = {32, 128, 512, 1024, 2048, 4096, 8192, 16384};
   return get_enum_number(options, 8, value, "sib_type20_r13_s::br_bcch_cfg_r14_s_::sc_mcch_repeat_period_br_r14_e_");
 }
 
-std::string sib_type20_r13_s::br_bcch_cfg_r14_s_::sc_mcch_mod_period_br_r14_e_::to_string() const
+std::string sib_type20_r13_s::br_bcch_cfg_r14_s_::sc_mcch_mod_period_br_r14_opts::to_string() const
 {
   switch (value) {
     case rf32:
@@ -6116,14 +6111,14 @@ std::string sib_type20_r13_s::br_bcch_cfg_r14_s_::sc_mcch_mod_period_br_r14_e_::
   }
   return "";
 }
-uint32_t sib_type20_r13_s::br_bcch_cfg_r14_s_::sc_mcch_mod_period_br_r14_e_::to_number() const
+uint32_t sib_type20_r13_s::br_bcch_cfg_r14_s_::sc_mcch_mod_period_br_r14_opts::to_number() const
 {
   const static uint32_t options[] = {32,    128,   256,   512,    1024,   2048,   4096,   8192,
                                      16384, 32768, 65536, 131072, 262144, 524288, 1048576};
   return get_enum_number(options, 15, value, "sib_type20_r13_s::br_bcch_cfg_r14_s_::sc_mcch_mod_period_br_r14_e_");
 }
 
-std::string sib_type20_r13_s::pdsch_max_num_repeat_cemode_a_sc_mtch_r14_e_::to_string() const
+std::string sib_type20_r13_s::pdsch_max_num_repeat_cemode_a_sc_mtch_r14_opts::to_string() const
 {
   switch (value) {
     case r16:
@@ -6135,13 +6130,13 @@ std::string sib_type20_r13_s::pdsch_max_num_repeat_cemode_a_sc_mtch_r14_e_::to_s
   }
   return "";
 }
-uint8_t sib_type20_r13_s::pdsch_max_num_repeat_cemode_a_sc_mtch_r14_e_::to_number() const
+uint8_t sib_type20_r13_s::pdsch_max_num_repeat_cemode_a_sc_mtch_r14_opts::to_number() const
 {
   const static uint8_t options[] = {16, 32};
   return get_enum_number(options, 2, value, "sib_type20_r13_s::pdsch_max_num_repeat_cemode_a_sc_mtch_r14_e_");
 }
 
-std::string sib_type20_r13_s::pdsch_max_num_repeat_cemode_b_sc_mtch_r14_e_::to_string() const
+std::string sib_type20_r13_s::pdsch_max_num_repeat_cemode_b_sc_mtch_r14_opts::to_string() const
 {
   switch (value) {
     case r192:
@@ -6165,13 +6160,13 @@ std::string sib_type20_r13_s::pdsch_max_num_repeat_cemode_b_sc_mtch_r14_e_::to_s
   }
   return "";
 }
-uint16_t sib_type20_r13_s::pdsch_max_num_repeat_cemode_b_sc_mtch_r14_e_::to_number() const
+uint16_t sib_type20_r13_s::pdsch_max_num_repeat_cemode_b_sc_mtch_r14_opts::to_number() const
 {
   const static uint16_t options[] = {192, 256, 384, 512, 768, 1024, 1536, 2048};
   return get_enum_number(options, 8, value, "sib_type20_r13_s::pdsch_max_num_repeat_cemode_b_sc_mtch_r14_e_");
 }
 
-std::string sib_type25_r15_s::uac_ac1_select_assist_info_r15_c_::types::to_string() const
+std::string sib_type25_r15_s::uac_ac1_select_assist_info_r15_c_::types_opts::to_string() const
 {
   switch (value) {
     case plmn_common_r15:
@@ -6186,7 +6181,7 @@ std::string sib_type25_r15_s::uac_ac1_select_assist_info_r15_c_::types::to_strin
   return "";
 }
 
-std::string sib_type3_s::cell_resel_info_common_s_::q_hyst_e_::to_string() const
+std::string sib_type3_s::cell_resel_info_common_s_::q_hyst_opts::to_string() const
 {
   switch (value) {
     case db0:
@@ -6226,14 +6221,14 @@ std::string sib_type3_s::cell_resel_info_common_s_::q_hyst_e_::to_string() const
   }
   return "";
 }
-uint8_t sib_type3_s::cell_resel_info_common_s_::q_hyst_e_::to_number() const
+uint8_t sib_type3_s::cell_resel_info_common_s_::q_hyst_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24};
   return get_enum_number(options, 16, value, "sib_type3_s::cell_resel_info_common_s_::q_hyst_e_");
 }
 
 std::string
-sib_type3_s::cell_resel_info_common_s_::speed_state_resel_pars_s_::q_hyst_sf_s_::sf_medium_e_::to_string() const
+sib_type3_s::cell_resel_info_common_s_::speed_state_resel_pars_s_::q_hyst_sf_s_::sf_medium_opts::to_string() const
 {
   switch (value) {
     case db_minus6:
@@ -6250,7 +6245,8 @@ sib_type3_s::cell_resel_info_common_s_::speed_state_resel_pars_s_::q_hyst_sf_s_:
   }
   return "";
 }
-int8_t sib_type3_s::cell_resel_info_common_s_::speed_state_resel_pars_s_::q_hyst_sf_s_::sf_medium_e_::to_number() const
+int8_t
+sib_type3_s::cell_resel_info_common_s_::speed_state_resel_pars_s_::q_hyst_sf_s_::sf_medium_opts::to_number() const
 {
   const static int8_t options[] = {-6, -4, -2, 0};
   return get_enum_number(
@@ -6259,7 +6255,7 @@ int8_t sib_type3_s::cell_resel_info_common_s_::speed_state_resel_pars_s_::q_hyst
 }
 
 std::string
-sib_type3_s::cell_resel_info_common_s_::speed_state_resel_pars_s_::q_hyst_sf_s_::sf_high_e_::to_string() const
+sib_type3_s::cell_resel_info_common_s_::speed_state_resel_pars_s_::q_hyst_sf_s_::sf_high_opts::to_string() const
 {
   switch (value) {
     case db_minus6:
@@ -6276,14 +6272,14 @@ sib_type3_s::cell_resel_info_common_s_::speed_state_resel_pars_s_::q_hyst_sf_s_:
   }
   return "";
 }
-int8_t sib_type3_s::cell_resel_info_common_s_::speed_state_resel_pars_s_::q_hyst_sf_s_::sf_high_e_::to_number() const
+int8_t sib_type3_s::cell_resel_info_common_s_::speed_state_resel_pars_s_::q_hyst_sf_s_::sf_high_opts::to_number() const
 {
   const static int8_t options[] = {-6, -4, -2, 0};
   return get_enum_number(options, 4, value,
                          "sib_type3_s::cell_resel_info_common_s_::speed_state_resel_pars_s_::q_hyst_sf_s_::sf_high_e_");
 }
 
-std::string sib_info_item_c::types::to_string() const
+std::string sib_info_item_c::types_opts::to_string() const
 {
   switch (value) {
     case sib2:
@@ -6339,13 +6335,13 @@ std::string sib_info_item_c::types::to_string() const
   }
   return "";
 }
-uint8_t sib_info_item_c::types::to_number() const
+uint8_t sib_info_item_c::types_opts::to_number() const
 {
   const static uint8_t options[] = {2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 24, 25, 26};
   return get_enum_number(options, 23, value, "sib_info_item_c::types");
 }
 
-std::string sys_info_s::crit_exts_c_::crit_exts_future_r15_c_::types::to_string() const
+std::string sys_info_s::crit_exts_c_::crit_exts_future_r15_c_::types_opts::to_string() const
 {
   switch (value) {
     case pos_sys_info_r15:
@@ -6360,7 +6356,7 @@ std::string sys_info_s::crit_exts_c_::crit_exts_future_r15_c_::types::to_string(
   return "";
 }
 
-std::string sys_info_s::crit_exts_c_::types::to_string() const
+std::string sys_info_s::crit_exts_c_::types_opts::to_string() const
 {
   switch (value) {
     case sys_info_r8:
@@ -6375,7 +6371,7 @@ std::string sys_info_s::crit_exts_c_::types::to_string() const
   return "";
 }
 
-std::string sib_type1_s::cell_access_related_info_s_::cell_barred_e_::to_string() const
+std::string sib_type1_s::cell_access_related_info_s_::cell_barred_opts::to_string() const
 {
   switch (value) {
     case barred:
@@ -6388,7 +6384,7 @@ std::string sib_type1_s::cell_access_related_info_s_::cell_barred_e_::to_string(
   return "";
 }
 
-std::string sib_type1_s::cell_access_related_info_s_::intra_freq_resel_e_::to_string() const
+std::string sib_type1_s::cell_access_related_info_s_::intra_freq_resel_opts::to_string() const
 {
   switch (value) {
     case allowed:
@@ -6401,7 +6397,7 @@ std::string sib_type1_s::cell_access_related_info_s_::intra_freq_resel_e_::to_st
   return "";
 }
 
-std::string sib_type1_s::si_win_len_e_::to_string() const
+std::string sib_type1_s::si_win_len_opts::to_string() const
 {
   switch (value) {
     case ms1:
@@ -6423,13 +6419,13 @@ std::string sib_type1_s::si_win_len_e_::to_string() const
   }
   return "";
 }
-uint8_t sib_type1_s::si_win_len_e_::to_number() const
+uint8_t sib_type1_s::si_win_len_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 5, 10, 15, 20, 40};
   return get_enum_number(options, 7, value, "sib_type1_s::si_win_len_e_");
 }
 
-std::string bcch_dl_sch_msg_type_c::c1_c_::types::to_string() const
+std::string bcch_dl_sch_msg_type_c::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case sys_info:
@@ -6443,7 +6439,7 @@ std::string bcch_dl_sch_msg_type_c::c1_c_::types::to_string() const
   }
   return "";
 }
-uint8_t bcch_dl_sch_msg_type_c::c1_c_::types::to_number() const
+uint8_t bcch_dl_sch_msg_type_c::c1_c_::types_opts::to_number() const
 {
   switch (value) {
     case sib_type1:
@@ -6454,7 +6450,7 @@ uint8_t bcch_dl_sch_msg_type_c::c1_c_::types::to_number() const
   return 0;
 }
 
-std::string bcch_dl_sch_msg_type_c::types::to_string() const
+std::string bcch_dl_sch_msg_type_c::types_opts::to_string() const
 {
   switch (value) {
     case c1:
@@ -6468,13 +6464,13 @@ std::string bcch_dl_sch_msg_type_c::types::to_string() const
   }
   return "";
 }
-uint8_t bcch_dl_sch_msg_type_c::types::to_number() const
+uint8_t bcch_dl_sch_msg_type_c::types_opts::to_number() const
 {
   const static uint8_t options[] = {1};
   return get_enum_number(options, 1, value, "bcch_dl_sch_msg_type_c::types");
 }
 
-std::string bcch_dl_sch_msg_type_br_r13_c::c1_c_::types::to_string() const
+std::string bcch_dl_sch_msg_type_br_r13_c::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case sys_info_br_r13:
@@ -6488,7 +6484,7 @@ std::string bcch_dl_sch_msg_type_br_r13_c::c1_c_::types::to_string() const
   }
   return "";
 }
-uint8_t bcch_dl_sch_msg_type_br_r13_c::c1_c_::types::to_number() const
+uint8_t bcch_dl_sch_msg_type_br_r13_c::c1_c_::types_opts::to_number() const
 {
   switch (value) {
     case sib_type1_br_r13:
@@ -6499,7 +6495,7 @@ uint8_t bcch_dl_sch_msg_type_br_r13_c::c1_c_::types::to_number() const
   return 0;
 }
 
-std::string bcch_dl_sch_msg_type_br_r13_c::types::to_string() const
+std::string bcch_dl_sch_msg_type_br_r13_c::types_opts::to_string() const
 {
   switch (value) {
     case c1:
@@ -6513,14 +6509,14 @@ std::string bcch_dl_sch_msg_type_br_r13_c::types::to_string() const
   }
   return "";
 }
-uint8_t bcch_dl_sch_msg_type_br_r13_c::types::to_number() const
+uint8_t bcch_dl_sch_msg_type_br_r13_c::types_opts::to_number() const
 {
   const static uint8_t options[] = {1};
   return get_enum_number(options, 1, value, "bcch_dl_sch_msg_type_br_r13_c::types");
 }
 
 // SIB-Type-MBMS-r14 ::= ENUMERATED
-std::string sib_type_mbms_r14_e::to_string() const
+std::string sib_type_mbms_r14_opts::to_string() const
 {
   switch (value) {
     case sib_type10:
@@ -6540,13 +6536,13 @@ std::string sib_type_mbms_r14_e::to_string() const
   }
   return "";
 }
-uint8_t sib_type_mbms_r14_e::to_number() const
+uint8_t sib_type_mbms_r14_opts::to_number() const
 {
   const static uint8_t options[] = {10, 11, 12, 13, 15, 16};
   return get_enum_number(options, 6, value, "sib_type_mbms_r14_e");
 }
 
-std::string sched_info_mbms_r14_s::si_periodicity_r14_e_::to_string() const
+std::string sched_info_mbms_r14_s::si_periodicity_r14_opts::to_string() const
 {
   switch (value) {
     case rf16:
@@ -6566,13 +6562,13 @@ std::string sched_info_mbms_r14_s::si_periodicity_r14_e_::to_string() const
   }
   return "";
 }
-uint16_t sched_info_mbms_r14_s::si_periodicity_r14_e_::to_number() const
+uint16_t sched_info_mbms_r14_s::si_periodicity_r14_opts::to_number() const
 {
   const static uint16_t options[] = {16, 32, 64, 128, 256, 512};
   return get_enum_number(options, 6, value, "sched_info_mbms_r14_s::si_periodicity_r14_e_");
 }
 
-std::string non_mbsfn_sf_cfg_r14_s::radio_frame_alloc_period_r14_e_::to_string() const
+std::string non_mbsfn_sf_cfg_r14_s::radio_frame_alloc_period_r14_opts::to_string() const
 {
   switch (value) {
     case rf4:
@@ -6594,13 +6590,13 @@ std::string non_mbsfn_sf_cfg_r14_s::radio_frame_alloc_period_r14_e_::to_string()
   }
   return "";
 }
-uint16_t non_mbsfn_sf_cfg_r14_s::radio_frame_alloc_period_r14_e_::to_number() const
+uint16_t non_mbsfn_sf_cfg_r14_s::radio_frame_alloc_period_r14_opts::to_number() const
 {
   const static uint16_t options[] = {4, 8, 16, 32, 64, 128, 512};
   return get_enum_number(options, 7, value, "non_mbsfn_sf_cfg_r14_s::radio_frame_alloc_period_r14_e_");
 }
 
-std::string sib_type1_mbms_r14_s::si_win_len_r14_e_::to_string() const
+std::string sib_type1_mbms_r14_s::si_win_len_r14_opts::to_string() const
 {
   switch (value) {
     case ms1:
@@ -6624,13 +6620,13 @@ std::string sib_type1_mbms_r14_s::si_win_len_r14_e_::to_string() const
   }
   return "";
 }
-uint8_t sib_type1_mbms_r14_s::si_win_len_r14_e_::to_number() const
+uint8_t sib_type1_mbms_r14_s::si_win_len_r14_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 5, 10, 15, 20, 40, 80};
   return get_enum_number(options, 8, value, "sib_type1_mbms_r14_s::si_win_len_r14_e_");
 }
 
-std::string bcch_dl_sch_msg_type_mbms_r14_c::c1_c_::types::to_string() const
+std::string bcch_dl_sch_msg_type_mbms_r14_c::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case sys_info_mbms_r14:
@@ -6644,7 +6640,7 @@ std::string bcch_dl_sch_msg_type_mbms_r14_c::c1_c_::types::to_string() const
   }
   return "";
 }
-uint8_t bcch_dl_sch_msg_type_mbms_r14_c::c1_c_::types::to_number() const
+uint8_t bcch_dl_sch_msg_type_mbms_r14_c::c1_c_::types_opts::to_number() const
 {
   switch (value) {
     case sib_type1_mbms_r14:
@@ -6655,7 +6651,7 @@ uint8_t bcch_dl_sch_msg_type_mbms_r14_c::c1_c_::types::to_number() const
   return 0;
 }
 
-std::string bcch_dl_sch_msg_type_mbms_r14_c::types::to_string() const
+std::string bcch_dl_sch_msg_type_mbms_r14_c::types_opts::to_string() const
 {
   switch (value) {
     case c1:
@@ -6669,14 +6665,14 @@ std::string bcch_dl_sch_msg_type_mbms_r14_c::types::to_string() const
   }
   return "";
 }
-uint8_t bcch_dl_sch_msg_type_mbms_r14_c::types::to_number() const
+uint8_t bcch_dl_sch_msg_type_mbms_r14_c::types_opts::to_number() const
 {
   const static uint8_t options[] = {1};
   return get_enum_number(options, 1, value, "bcch_dl_sch_msg_type_mbms_r14_c::types");
 }
 
 // NZP-FrequencyDensity-r14 ::= ENUMERATED
-std::string nzp_freq_density_r14_e::to_string() const
+std::string nzp_freq_density_r14_opts::to_string() const
 {
   switch (value) {
     case d1:
@@ -6690,13 +6686,13 @@ std::string nzp_freq_density_r14_e::to_string() const
   }
   return "";
 }
-uint8_t nzp_freq_density_r14_e::to_number() const
+uint8_t nzp_freq_density_r14_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3};
   return get_enum_number(options, 3, value, "nzp_freq_density_r14_e");
 }
 
-std::string p_c_and_cbsr_r13_s::cbsr_sel_r13_c_::types::to_string() const
+std::string p_c_and_cbsr_r13_s::cbsr_sel_r13_c_::types_opts::to_string() const
 {
   switch (value) {
     case non_precoded_r13:
@@ -6712,7 +6708,7 @@ std::string p_c_and_cbsr_r13_s::cbsr_sel_r13_c_::types::to_string() const
   }
   return "";
 }
-uint8_t p_c_and_cbsr_r13_s::cbsr_sel_r13_c_::types::to_number() const
+uint8_t p_c_and_cbsr_r13_s::cbsr_sel_r13_c_::types_opts::to_number() const
 {
   switch (value) {
     case beamformed_k1a_r13:
@@ -6723,7 +6719,7 @@ uint8_t p_c_and_cbsr_r13_s::cbsr_sel_r13_c_::types::to_number() const
   return 0;
 }
 
-std::string csi_rs_cfg_nzp_activation_r14_s::csi_rs_nzp_mode_r14_e_::to_string() const
+std::string csi_rs_cfg_nzp_activation_r14_s::csi_rs_nzp_mode_r14_opts::to_string() const
 {
   switch (value) {
     case semi_persistent:
@@ -6736,7 +6732,7 @@ std::string csi_rs_cfg_nzp_activation_r14_s::csi_rs_nzp_mode_r14_e_::to_string()
   return "";
 }
 
-std::string csi_rs_cfg_nzp_r11_s::ant_ports_count_r11_e_::to_string() const
+std::string csi_rs_cfg_nzp_r11_s::ant_ports_count_r11_opts::to_string() const
 {
   switch (value) {
     case an1:
@@ -6752,13 +6748,13 @@ std::string csi_rs_cfg_nzp_r11_s::ant_ports_count_r11_e_::to_string() const
   }
   return "";
 }
-uint8_t csi_rs_cfg_nzp_r11_s::ant_ports_count_r11_e_::to_number() const
+uint8_t csi_rs_cfg_nzp_r11_s::ant_ports_count_r11_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 4, 8};
   return get_enum_number(options, 4, value, "csi_rs_cfg_nzp_r11_s::ant_ports_count_r11_e_");
 }
 
-std::string csi_rs_cfg_nzp_r11_s::qcl_crs_info_r11_s_::crs_ports_count_r11_e_::to_string() const
+std::string csi_rs_cfg_nzp_r11_s::qcl_crs_info_r11_s_::crs_ports_count_r11_opts::to_string() const
 {
   switch (value) {
     case n1:
@@ -6774,13 +6770,13 @@ std::string csi_rs_cfg_nzp_r11_s::qcl_crs_info_r11_s_::crs_ports_count_r11_e_::t
   }
   return "";
 }
-uint8_t csi_rs_cfg_nzp_r11_s::qcl_crs_info_r11_s_::crs_ports_count_r11_e_::to_number() const
+uint8_t csi_rs_cfg_nzp_r11_s::qcl_crs_info_r11_s_::crs_ports_count_r11_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 4};
   return get_enum_number(options, 3, value, "csi_rs_cfg_nzp_r11_s::qcl_crs_info_r11_s_::crs_ports_count_r11_e_");
 }
 
-std::string csi_rs_cfg_nzp_emimo_r13_c::setup_s_::cdm_type_r13_e_::to_string() const
+std::string csi_rs_cfg_nzp_emimo_r13_c::setup_s_::cdm_type_r13_opts::to_string() const
 {
   switch (value) {
     case cdm2:
@@ -6792,14 +6788,14 @@ std::string csi_rs_cfg_nzp_emimo_r13_c::setup_s_::cdm_type_r13_e_::to_string() c
   }
   return "";
 }
-uint8_t csi_rs_cfg_nzp_emimo_r13_c::setup_s_::cdm_type_r13_e_::to_number() const
+uint8_t csi_rs_cfg_nzp_emimo_r13_c::setup_s_::cdm_type_r13_opts::to_number() const
 {
   const static uint8_t options[] = {2, 4};
   return get_enum_number(options, 2, value, "csi_rs_cfg_nzp_emimo_r13_c::setup_s_::cdm_type_r13_e_");
 }
 
 // CQI-ReportModeAperiodic ::= ENUMERATED
-std::string cqi_report_mode_aperiodic_e::to_string() const
+std::string cqi_report_mode_aperiodic_opts::to_string() const
 {
   switch (value) {
     case rm12:
@@ -6823,13 +6819,13 @@ std::string cqi_report_mode_aperiodic_e::to_string() const
   }
   return "";
 }
-uint8_t cqi_report_mode_aperiodic_e::to_number() const
+uint8_t cqi_report_mode_aperiodic_opts::to_number() const
 {
   const static uint8_t options[] = {12, 20, 22, 30, 31, 32, 10, 11};
   return get_enum_number(options, 8, value, "cqi_report_mode_aperiodic_e");
 }
 
-std::string csi_rs_cfg_non_precoded_r13_s::codebook_cfg_n1_r13_e_::to_string() const
+std::string csi_rs_cfg_non_precoded_r13_s::codebook_cfg_n1_r13_opts::to_string() const
 {
   switch (value) {
     case n1:
@@ -6847,13 +6843,13 @@ std::string csi_rs_cfg_non_precoded_r13_s::codebook_cfg_n1_r13_e_::to_string() c
   }
   return "";
 }
-uint8_t csi_rs_cfg_non_precoded_r13_s::codebook_cfg_n1_r13_e_::to_number() const
+uint8_t csi_rs_cfg_non_precoded_r13_s::codebook_cfg_n1_r13_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3, 4, 8};
   return get_enum_number(options, 5, value, "csi_rs_cfg_non_precoded_r13_s::codebook_cfg_n1_r13_e_");
 }
 
-std::string csi_rs_cfg_non_precoded_r13_s::codebook_cfg_n2_r13_e_::to_string() const
+std::string csi_rs_cfg_non_precoded_r13_s::codebook_cfg_n2_r13_opts::to_string() const
 {
   switch (value) {
     case n1:
@@ -6871,13 +6867,13 @@ std::string csi_rs_cfg_non_precoded_r13_s::codebook_cfg_n2_r13_e_::to_string() c
   }
   return "";
 }
-uint8_t csi_rs_cfg_non_precoded_r13_s::codebook_cfg_n2_r13_e_::to_number() const
+uint8_t csi_rs_cfg_non_precoded_r13_s::codebook_cfg_n2_r13_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3, 4, 8};
   return get_enum_number(options, 5, value, "csi_rs_cfg_non_precoded_r13_s::codebook_cfg_n2_r13_e_");
 }
 
-std::string csi_rs_cfg_non_precoded_r13_s::codebook_over_sampling_rate_cfg_o1_r13_e_::to_string() const
+std::string csi_rs_cfg_non_precoded_r13_s::codebook_over_sampling_rate_cfg_o1_r13_opts::to_string() const
 {
   switch (value) {
     case n4:
@@ -6889,13 +6885,13 @@ std::string csi_rs_cfg_non_precoded_r13_s::codebook_over_sampling_rate_cfg_o1_r1
   }
   return "";
 }
-uint8_t csi_rs_cfg_non_precoded_r13_s::codebook_over_sampling_rate_cfg_o1_r13_e_::to_number() const
+uint8_t csi_rs_cfg_non_precoded_r13_s::codebook_over_sampling_rate_cfg_o1_r13_opts::to_number() const
 {
   const static uint8_t options[] = {4, 8};
   return get_enum_number(options, 2, value, "csi_rs_cfg_non_precoded_r13_s::codebook_over_sampling_rate_cfg_o1_r13_e_");
 }
 
-std::string csi_rs_cfg_non_precoded_r13_s::codebook_over_sampling_rate_cfg_o2_r13_e_::to_string() const
+std::string csi_rs_cfg_non_precoded_r13_s::codebook_over_sampling_rate_cfg_o2_r13_opts::to_string() const
 {
   switch (value) {
     case n4:
@@ -6907,13 +6903,13 @@ std::string csi_rs_cfg_non_precoded_r13_s::codebook_over_sampling_rate_cfg_o2_r1
   }
   return "";
 }
-uint8_t csi_rs_cfg_non_precoded_r13_s::codebook_over_sampling_rate_cfg_o2_r13_e_::to_number() const
+uint8_t csi_rs_cfg_non_precoded_r13_s::codebook_over_sampling_rate_cfg_o2_r13_opts::to_number() const
 {
   const static uint8_t options[] = {4, 8};
   return get_enum_number(options, 2, value, "csi_rs_cfg_non_precoded_r13_s::codebook_over_sampling_rate_cfg_o2_r13_e_");
 }
 
-std::string csi_rs_cfg_non_precoded_v1430_s::codebook_cfg_n1_v1430_e_::to_string() const
+std::string csi_rs_cfg_non_precoded_v1430_s::codebook_cfg_n1_v1430_opts::to_string() const
 {
   switch (value) {
     case n5:
@@ -6935,13 +6931,13 @@ std::string csi_rs_cfg_non_precoded_v1430_s::codebook_cfg_n1_v1430_e_::to_string
   }
   return "";
 }
-uint8_t csi_rs_cfg_non_precoded_v1430_s::codebook_cfg_n1_v1430_e_::to_number() const
+uint8_t csi_rs_cfg_non_precoded_v1430_s::codebook_cfg_n1_v1430_opts::to_number() const
 {
   const static uint8_t options[] = {5, 6, 7, 10, 12, 14, 16};
   return get_enum_number(options, 7, value, "csi_rs_cfg_non_precoded_v1430_s::codebook_cfg_n1_v1430_e_");
 }
 
-std::string csi_rs_cfg_non_precoded_v1430_s::codebook_cfg_n2_v1430_e_::to_string() const
+std::string csi_rs_cfg_non_precoded_v1430_s::codebook_cfg_n2_v1430_opts::to_string() const
 {
   switch (value) {
     case n5:
@@ -6955,13 +6951,13 @@ std::string csi_rs_cfg_non_precoded_v1430_s::codebook_cfg_n2_v1430_e_::to_string
   }
   return "";
 }
-uint8_t csi_rs_cfg_non_precoded_v1430_s::codebook_cfg_n2_v1430_e_::to_number() const
+uint8_t csi_rs_cfg_non_precoded_v1430_s::codebook_cfg_n2_v1430_opts::to_number() const
 {
   const static uint8_t options[] = {5, 6, 7};
   return get_enum_number(options, 3, value, "csi_rs_cfg_non_precoded_v1430_s::codebook_cfg_n2_v1430_e_");
 }
 
-std::string csi_rs_cfg_non_precoded_v1480_s::codebook_cfg_n1_v1480_e_::to_string() const
+std::string csi_rs_cfg_non_precoded_v1480_s::codebook_cfg_n1_v1480_opts::to_string() const
 {
   switch (value) {
     case n5:
@@ -6983,13 +6979,13 @@ std::string csi_rs_cfg_non_precoded_v1480_s::codebook_cfg_n1_v1480_e_::to_string
   }
   return "";
 }
-uint8_t csi_rs_cfg_non_precoded_v1480_s::codebook_cfg_n1_v1480_e_::to_number() const
+uint8_t csi_rs_cfg_non_precoded_v1480_s::codebook_cfg_n1_v1480_opts::to_number() const
 {
   const static uint8_t options[] = {5, 6, 7, 10, 12, 14, 16};
   return get_enum_number(options, 7, value, "csi_rs_cfg_non_precoded_v1480_s::codebook_cfg_n1_v1480_e_");
 }
 
-std::string csi_rs_cfg_non_precoded_v1480_s::codebook_cfg_n2_r1480_e_::to_string() const
+std::string csi_rs_cfg_non_precoded_v1480_s::codebook_cfg_n2_r1480_opts::to_string() const
 {
   switch (value) {
     case n5:
@@ -7003,13 +6999,13 @@ std::string csi_rs_cfg_non_precoded_v1480_s::codebook_cfg_n2_r1480_e_::to_string
   }
   return "";
 }
-uint8_t csi_rs_cfg_non_precoded_v1480_s::codebook_cfg_n2_r1480_e_::to_number() const
+uint8_t csi_rs_cfg_non_precoded_v1480_s::codebook_cfg_n2_r1480_opts::to_number() const
 {
   const static uint8_t options[] = {5, 6, 7};
   return get_enum_number(options, 3, value, "csi_rs_cfg_non_precoded_v1480_s::codebook_cfg_n2_r1480_e_");
 }
 
-std::string csi_rs_cfg_emimo_r13_c::setup_c_::types::to_string() const
+std::string csi_rs_cfg_emimo_r13_c::setup_c_::types_opts::to_string() const
 {
   switch (value) {
     case non_precoded_r13:
@@ -7024,7 +7020,7 @@ std::string csi_rs_cfg_emimo_r13_c::setup_c_::types::to_string() const
   return "";
 }
 
-std::string csi_rs_cfg_emimo_v1430_c::setup_c_::types::to_string() const
+std::string csi_rs_cfg_emimo_v1430_c::setup_c_::types_opts::to_string() const
 {
   switch (value) {
     case non_precoded_v1430:
@@ -7039,7 +7035,7 @@ std::string csi_rs_cfg_emimo_v1430_c::setup_c_::types::to_string() const
   return "";
 }
 
-std::string csi_rs_cfg_emimo_v1480_c::setup_c_::types::to_string() const
+std::string csi_rs_cfg_emimo_v1480_c::setup_c_::types_opts::to_string() const
 {
   switch (value) {
     case non_precoded_v1480:
@@ -7054,7 +7050,7 @@ std::string csi_rs_cfg_emimo_v1480_c::setup_c_::types::to_string() const
   return "";
 }
 
-std::string csi_rs_cfg_emimo_v1530_c::setup_c_::types::to_string() const
+std::string csi_rs_cfg_emimo_v1530_c::setup_c_::types_opts::to_string() const
 {
   switch (value) {
     case non_precoded_v1530:
@@ -7068,7 +7064,7 @@ std::string csi_rs_cfg_emimo_v1530_c::setup_c_::types::to_string() const
 }
 
 std::string cqi_report_periodic_proc_ext_r11_s::cqi_format_ind_periodic_r11_c_::wideband_cqi_r11_s_::
-    csi_report_mode_r11_e_::to_string() const
+    csi_report_mode_r11_opts::to_string() const
 {
   switch (value) {
     case submode1:
@@ -7082,7 +7078,7 @@ std::string cqi_report_periodic_proc_ext_r11_s::cqi_format_ind_periodic_r11_c_::
   return "";
 }
 uint8_t cqi_report_periodic_proc_ext_r11_s::cqi_format_ind_periodic_r11_c_::wideband_cqi_r11_s_::
-    csi_report_mode_r11_e_::to_number() const
+    csi_report_mode_r11_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2};
   return get_enum_number(options, 2, value,
@@ -7091,7 +7087,7 @@ uint8_t cqi_report_periodic_proc_ext_r11_s::cqi_format_ind_periodic_r11_c_::wide
 }
 
 std::string cqi_report_periodic_proc_ext_r11_s::cqi_format_ind_periodic_r11_c_::subband_cqi_r11_s_::
-    periodicity_factor_r11_e_::to_string() const
+    periodicity_factor_r11_opts::to_string() const
 {
   switch (value) {
     case n2:
@@ -7105,7 +7101,7 @@ std::string cqi_report_periodic_proc_ext_r11_s::cqi_format_ind_periodic_r11_c_::
   return "";
 }
 uint8_t cqi_report_periodic_proc_ext_r11_s::cqi_format_ind_periodic_r11_c_::subband_cqi_r11_s_::
-    periodicity_factor_r11_e_::to_number() const
+    periodicity_factor_r11_opts::to_number() const
 {
   const static uint8_t options[] = {2, 4};
   return get_enum_number(options, 2, value,
@@ -7113,7 +7109,7 @@ uint8_t cqi_report_periodic_proc_ext_r11_s::cqi_format_ind_periodic_r11_c_::subb
                          "periodicity_factor_r11_e_");
 }
 
-std::string cqi_report_periodic_proc_ext_r11_s::cqi_format_ind_periodic_r11_c_::types::to_string() const
+std::string cqi_report_periodic_proc_ext_r11_s::cqi_format_ind_periodic_r11_c_::types_opts::to_string() const
 {
   switch (value) {
     case wideband_cqi_r11:
@@ -7128,7 +7124,7 @@ std::string cqi_report_periodic_proc_ext_r11_s::cqi_format_ind_periodic_r11_c_::
   return "";
 }
 
-std::string cqi_report_periodic_proc_ext_r11_s::periodicity_factor_wb_r13_e_::to_string() const
+std::string cqi_report_periodic_proc_ext_r11_s::periodicity_factor_wb_r13_opts::to_string() const
 {
   switch (value) {
     case n2:
@@ -7140,14 +7136,14 @@ std::string cqi_report_periodic_proc_ext_r11_s::periodicity_factor_wb_r13_e_::to
   }
   return "";
 }
-uint8_t cqi_report_periodic_proc_ext_r11_s::periodicity_factor_wb_r13_e_::to_number() const
+uint8_t cqi_report_periodic_proc_ext_r11_s::periodicity_factor_wb_r13_opts::to_number() const
 {
   const static uint8_t options[] = {2, 4};
   return get_enum_number(options, 2, value, "cqi_report_periodic_proc_ext_r11_s::periodicity_factor_wb_r13_e_");
 }
 
 // PollByte-r14 ::= ENUMERATED
-std::string poll_byte_r14_e::to_string() const
+std::string poll_byte_r14_opts::to_string() const
 {
   switch (value) {
     case kb1:
@@ -7219,7 +7215,7 @@ std::string poll_byte_r14_e::to_string() const
   }
   return "";
 }
-uint16_t poll_byte_r14_e::to_number() const
+uint16_t poll_byte_r14_opts::to_number() const
 {
   const static uint16_t options[] = {1,     2,     5,     8,     10,    15,    3500,  4000,  4500,  5000,  5500,
                                      6000,  6500,  7000,  7500,  8000,  9000,  10000, 11000, 12000, 13000, 14000,
@@ -7228,7 +7224,7 @@ uint16_t poll_byte_r14_e::to_number() const
 }
 
 // PollPDU-r15 ::= ENUMERATED
-std::string poll_pdu_r15_e::to_string() const
+std::string poll_pdu_r15_opts::to_string() const
 {
   switch (value) {
     case p4:
@@ -7268,14 +7264,14 @@ std::string poll_pdu_r15_e::to_string() const
   }
   return "";
 }
-int16_t poll_pdu_r15_e::to_number() const
+int16_t poll_pdu_r15_opts::to_number() const
 {
   const static int16_t options[] = {4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 6144, 8192, 12288, 16384, -1};
   return get_enum_number(options, 16, value, "poll_pdu_r15_e");
 }
 
 // SN-FieldLength ::= ENUMERATED
-std::string sn_field_len_e::to_string() const
+std::string sn_field_len_opts::to_string() const
 {
   switch (value) {
     case size5:
@@ -7287,14 +7283,14 @@ std::string sn_field_len_e::to_string() const
   }
   return "";
 }
-uint8_t sn_field_len_e::to_number() const
+uint8_t sn_field_len_opts::to_number() const
 {
   const static uint8_t options[] = {5, 10};
   return get_enum_number(options, 2, value, "sn_field_len_e");
 }
 
 // SN-FieldLength-r15 ::= ENUMERATED
-std::string sn_field_len_r15_e::to_string() const
+std::string sn_field_len_r15_opts::to_string() const
 {
   switch (value) {
     case size5:
@@ -7308,14 +7304,14 @@ std::string sn_field_len_r15_e::to_string() const
   }
   return "";
 }
-uint8_t sn_field_len_r15_e::to_number() const
+uint8_t sn_field_len_r15_opts::to_number() const
 {
   const static uint8_t options[] = {5, 10, 16};
   return get_enum_number(options, 3, value, "sn_field_len_r15_e");
 }
 
 // T-PollRetransmit ::= ENUMERATED
-std::string t_poll_retx_e::to_string() const
+std::string t_poll_retx_opts::to_string() const
 {
   switch (value) {
     case ms5:
@@ -7451,7 +7447,7 @@ std::string t_poll_retx_e::to_string() const
   }
   return "";
 }
-uint16_t t_poll_retx_e::to_number() const
+uint16_t t_poll_retx_opts::to_number() const
 {
   const static uint16_t options[] = {5,   10,  15,  20,  25,  30,  35,  40,  45,  50,  55,  60,   65,   70,  75,
                                      80,  85,  90,  95,  100, 105, 110, 115, 120, 125, 130, 135,  140,  145, 150,
@@ -7461,7 +7457,7 @@ uint16_t t_poll_retx_e::to_number() const
 }
 
 // T-Reordering ::= ENUMERATED
-std::string t_reordering_e::to_string() const
+std::string t_reordering_opts::to_string() const
 {
   switch (value) {
     case ms0:
@@ -7533,7 +7529,7 @@ std::string t_reordering_e::to_string() const
   }
   return "";
 }
-uint16_t t_reordering_e::to_number() const
+uint16_t t_reordering_opts::to_number() const
 {
   const static uint16_t options[] = {0,  5,  10, 15, 20,  25,  30,  35,  40,  45,  50,  55,  60,  65,  70,  75,
                                      80, 85, 90, 95, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 1600};
@@ -7541,7 +7537,7 @@ uint16_t t_reordering_e::to_number() const
 }
 
 // T-StatusProhibit ::= ENUMERATED
-std::string t_status_prohibit_e::to_string() const
+std::string t_status_prohibit_opts::to_string() const
 {
   switch (value) {
     case ms0:
@@ -7677,7 +7673,7 @@ std::string t_status_prohibit_e::to_string() const
   }
   return "";
 }
-uint16_t t_status_prohibit_e::to_number() const
+uint16_t t_status_prohibit_opts::to_number() const
 {
   const static uint16_t options[] = {0,   5,   10,  15,  20,  25,  30,  35,  40,  45,   50,   55,   60,   65,  70,  75,
                                      80,  85,  90,  95,  100, 105, 110, 115, 120, 125,  130,  135,  140,  145, 150, 155,
@@ -7687,7 +7683,7 @@ uint16_t t_status_prohibit_e::to_number() const
 }
 
 std::string
-cqi_report_aperiodic_v1250_c::setup_s_::aperiodic_csi_trigger_v1250_s_::trigger_sf_set_ind_r12_e_::to_string() const
+cqi_report_aperiodic_v1250_c::setup_s_::aperiodic_csi_trigger_v1250_s_::trigger_sf_set_ind_r12_opts::to_string() const
 {
   switch (value) {
     case s1:
@@ -7701,7 +7697,7 @@ cqi_report_aperiodic_v1250_c::setup_s_::aperiodic_csi_trigger_v1250_s_::trigger_
   return "";
 }
 uint8_t
-cqi_report_aperiodic_v1250_c::setup_s_::aperiodic_csi_trigger_v1250_s_::trigger_sf_set_ind_r12_e_::to_number() const
+cqi_report_aperiodic_v1250_c::setup_s_::aperiodic_csi_trigger_v1250_s_::trigger_sf_set_ind_r12_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2};
   return get_enum_number(
@@ -7709,7 +7705,7 @@ cqi_report_aperiodic_v1250_c::setup_s_::aperiodic_csi_trigger_v1250_s_::trigger_
       "cqi_report_aperiodic_v1250_c::setup_s_::aperiodic_csi_trigger_v1250_s_::trigger_sf_set_ind_r12_e_");
 }
 
-std::string cqi_report_aperiodic_hybrid_r14_s::triggers_r14_c_::types::to_string() const
+std::string cqi_report_aperiodic_hybrid_r14_s::triggers_r14_c_::types_opts::to_string() const
 {
   switch (value) {
     case one_bit_r14:
@@ -7725,14 +7721,14 @@ std::string cqi_report_aperiodic_hybrid_r14_s::triggers_r14_c_::types::to_string
   }
   return "";
 }
-uint8_t cqi_report_aperiodic_hybrid_r14_s::triggers_r14_c_::types::to_number() const
+uint8_t cqi_report_aperiodic_hybrid_r14_s::triggers_r14_c_::types_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3};
   return get_enum_number(options, 3, value, "cqi_report_aperiodic_hybrid_r14_s::triggers_r14_c_::types");
 }
 
 std::string cqi_report_periodic_r10_c::setup_s_::cqi_format_ind_periodic_r10_c_::wideband_cqi_r10_s_::
-    csi_report_mode_r10_e_::to_string() const
+    csi_report_mode_r10_opts::to_string() const
 {
   switch (value) {
     case submode1:
@@ -7746,7 +7742,7 @@ std::string cqi_report_periodic_r10_c::setup_s_::cqi_format_ind_periodic_r10_c_:
   return "";
 }
 uint8_t cqi_report_periodic_r10_c::setup_s_::cqi_format_ind_periodic_r10_c_::wideband_cqi_r10_s_::
-    csi_report_mode_r10_e_::to_number() const
+    csi_report_mode_r10_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2};
   return get_enum_number(options, 2, value,
@@ -7755,7 +7751,7 @@ uint8_t cqi_report_periodic_r10_c::setup_s_::cqi_format_ind_periodic_r10_c_::wid
 }
 
 std::string cqi_report_periodic_r10_c::setup_s_::cqi_format_ind_periodic_r10_c_::subband_cqi_r10_s_::
-    periodicity_factor_r10_e_::to_string() const
+    periodicity_factor_r10_opts::to_string() const
 {
   switch (value) {
     case n2:
@@ -7769,7 +7765,7 @@ std::string cqi_report_periodic_r10_c::setup_s_::cqi_format_ind_periodic_r10_c_:
   return "";
 }
 uint8_t cqi_report_periodic_r10_c::setup_s_::cqi_format_ind_periodic_r10_c_::subband_cqi_r10_s_::
-    periodicity_factor_r10_e_::to_number() const
+    periodicity_factor_r10_opts::to_number() const
 {
   const static uint8_t options[] = {2, 4};
   return get_enum_number(options, 2, value,
@@ -7777,7 +7773,7 @@ uint8_t cqi_report_periodic_r10_c::setup_s_::cqi_format_ind_periodic_r10_c_::sub
                          "periodicity_factor_r10_e_");
 }
 
-std::string cqi_report_periodic_r10_c::setup_s_::cqi_format_ind_periodic_r10_c_::types::to_string() const
+std::string cqi_report_periodic_r10_c::setup_s_::cqi_format_ind_periodic_r10_c_::types_opts::to_string() const
 {
   switch (value) {
     case wideband_cqi_r10:
@@ -7792,7 +7788,7 @@ std::string cqi_report_periodic_r10_c::setup_s_::cqi_format_ind_periodic_r10_c_:
   return "";
 }
 
-std::string cqi_report_periodic_v1320_s::periodicity_factor_wb_r13_e_::to_string() const
+std::string cqi_report_periodic_v1320_s::periodicity_factor_wb_r13_opts::to_string() const
 {
   switch (value) {
     case n2:
@@ -7804,13 +7800,13 @@ std::string cqi_report_periodic_v1320_s::periodicity_factor_wb_r13_e_::to_string
   }
   return "";
 }
-uint8_t cqi_report_periodic_v1320_s::periodicity_factor_wb_r13_e_::to_number() const
+uint8_t cqi_report_periodic_v1320_s::periodicity_factor_wb_r13_opts::to_number() const
 {
   const static uint8_t options[] = {2, 4};
   return get_enum_number(options, 2, value, "cqi_report_periodic_v1320_s::periodicity_factor_wb_r13_e_");
 }
 
-std::string meas_sf_pattern_r10_c::sf_pattern_tdd_r10_c_::types::to_string() const
+std::string meas_sf_pattern_r10_c::sf_pattern_tdd_r10_c_::types_opts::to_string() const
 {
   switch (value) {
     case sf_cfg1_minus5_r10:
@@ -7826,13 +7822,13 @@ std::string meas_sf_pattern_r10_c::sf_pattern_tdd_r10_c_::types::to_string() con
   }
   return "";
 }
-uint8_t meas_sf_pattern_r10_c::sf_pattern_tdd_r10_c_::types::to_number() const
+uint8_t meas_sf_pattern_r10_c::sf_pattern_tdd_r10_c_::types_opts::to_number() const
 {
   const static uint8_t options[] = {1, 0, 6};
   return get_enum_number(options, 3, value, "meas_sf_pattern_r10_c::sf_pattern_tdd_r10_c_::types");
 }
 
-std::string meas_sf_pattern_r10_c::types::to_string() const
+std::string meas_sf_pattern_r10_c::types_opts::to_string() const
 {
   switch (value) {
     case sf_pattern_fdd_r10:
@@ -7848,7 +7844,7 @@ std::string meas_sf_pattern_r10_c::types::to_string() const
 }
 
 // PollByte ::= ENUMERATED
-std::string poll_byte_e::to_string() const
+std::string poll_byte_opts::to_string() const
 {
   switch (value) {
     case kb25:
@@ -7888,14 +7884,14 @@ std::string poll_byte_e::to_string() const
   }
   return "";
 }
-int16_t poll_byte_e::to_number() const
+int16_t poll_byte_opts::to_number() const
 {
   const static int16_t options[] = {25, 50, 75, 100, 125, 250, 375, 500, 750, 1000, 1250, 1500, 2000, 3000, -1};
   return get_enum_number(options, 15, value, "poll_byte_e");
 }
 
 // PollPDU ::= ENUMERATED
-std::string poll_pdu_e::to_string() const
+std::string poll_pdu_opts::to_string() const
 {
   switch (value) {
     case p4:
@@ -7919,13 +7915,13 @@ std::string poll_pdu_e::to_string() const
   }
   return "";
 }
-int16_t poll_pdu_e::to_number() const
+int16_t poll_pdu_opts::to_number() const
 {
   const static int16_t options[] = {4, 8, 16, 32, 64, 128, 256, -1};
   return get_enum_number(options, 8, value, "poll_pdu_e");
 }
 
-std::string spdcch_elems_r15_c::setup_s_::spdcch_set_ref_sig_r15_e_::to_string() const
+std::string spdcch_elems_r15_c::setup_s_::spdcch_set_ref_sig_r15_opts::to_string() const
 {
   switch (value) {
     case crs:
@@ -7938,7 +7934,7 @@ std::string spdcch_elems_r15_c::setup_s_::spdcch_set_ref_sig_r15_e_::to_string()
   return "";
 }
 
-std::string spdcch_elems_r15_c::setup_s_::tx_type_r15_e_::to_string() const
+std::string spdcch_elems_r15_c::setup_s_::tx_type_r15_opts::to_string() const
 {
   switch (value) {
     case localised:
@@ -7951,7 +7947,7 @@ std::string spdcch_elems_r15_c::setup_s_::tx_type_r15_e_::to_string() const
   return "";
 }
 
-std::string spdcch_elems_r15_c::setup_s_::sf_type_r15_e_::to_string() const
+std::string spdcch_elems_r15_c::setup_s_::sf_type_r15_opts::to_string() const
 {
   switch (value) {
     case mbsfn:
@@ -7966,7 +7962,7 @@ std::string spdcch_elems_r15_c::setup_s_::sf_type_r15_e_::to_string() const
   return "";
 }
 
-std::string spdcch_elems_r15_c::setup_s_::rate_matching_mode_r15_e_::to_string() const
+std::string spdcch_elems_r15_c::setup_s_::rate_matching_mode_r15_opts::to_string() const
 {
   switch (value) {
     case m1:
@@ -7982,13 +7978,13 @@ std::string spdcch_elems_r15_c::setup_s_::rate_matching_mode_r15_e_::to_string()
   }
   return "";
 }
-uint8_t spdcch_elems_r15_c::setup_s_::rate_matching_mode_r15_e_::to_number() const
+uint8_t spdcch_elems_r15_c::setup_s_::rate_matching_mode_r15_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3, 4};
   return get_enum_number(options, 4, value, "spdcch_elems_r15_c::setup_s_::rate_matching_mode_r15_e_");
 }
 
-std::string tpc_idx_c::types::to_string() const
+std::string tpc_idx_c::types_opts::to_string() const
 {
   switch (value) {
     case idx_of_format3:
@@ -8003,7 +7999,7 @@ std::string tpc_idx_c::types::to_string() const
   return "";
 }
 
-std::string ul_am_rlc_r15_s::max_retx_thres_r15_e_::to_string() const
+std::string ul_am_rlc_r15_s::max_retx_thres_r15_opts::to_string() const
 {
   switch (value) {
     case t1:
@@ -8027,13 +8023,13 @@ std::string ul_am_rlc_r15_s::max_retx_thres_r15_e_::to_string() const
   }
   return "";
 }
-uint8_t ul_am_rlc_r15_s::max_retx_thres_r15_e_::to_number() const
+uint8_t ul_am_rlc_r15_s::max_retx_thres_r15_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3, 4, 6, 8, 16, 32};
   return get_enum_number(options, 8, value, "ul_am_rlc_r15_s::max_retx_thres_r15_e_");
 }
 
-std::string cqi_report_cfg_v1250_s::alt_cqi_table_r12_e_::to_string() const
+std::string cqi_report_cfg_v1250_s::alt_cqi_table_r12_opts::to_string() const
 {
   switch (value) {
     case all_sfs:
@@ -8049,7 +8045,7 @@ std::string cqi_report_cfg_v1250_s::alt_cqi_table_r12_e_::to_string() const
   }
   return "";
 }
-uint8_t cqi_report_cfg_v1250_s::alt_cqi_table_r12_e_::to_number() const
+uint8_t cqi_report_cfg_v1250_s::alt_cqi_table_r12_opts::to_number() const
 {
   switch (value) {
     case csi_sf_set1:
@@ -8062,7 +8058,7 @@ uint8_t cqi_report_cfg_v1250_s::alt_cqi_table_r12_e_::to_number() const
   return 0;
 }
 
-std::string csi_rs_cfg_r10_s::csi_rs_r10_c_::setup_s_::ant_ports_count_r10_e_::to_string() const
+std::string csi_rs_cfg_r10_s::csi_rs_r10_c_::setup_s_::ant_ports_count_r10_opts::to_string() const
 {
   switch (value) {
     case an1:
@@ -8078,13 +8074,13 @@ std::string csi_rs_cfg_r10_s::csi_rs_r10_c_::setup_s_::ant_ports_count_r10_e_::t
   }
   return "";
 }
-uint8_t csi_rs_cfg_r10_s::csi_rs_r10_c_::setup_s_::ant_ports_count_r10_e_::to_number() const
+uint8_t csi_rs_cfg_r10_s::csi_rs_r10_c_::setup_s_::ant_ports_count_r10_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 4, 8};
   return get_enum_number(options, 4, value, "csi_rs_cfg_r10_s::csi_rs_r10_c_::setup_s_::ant_ports_count_r10_e_");
 }
 
-std::string delta_tx_d_offset_list_spucch_r15_s::delta_tx_d_offset_spucch_format1_r15_e_::to_string() const
+std::string delta_tx_d_offset_list_spucch_r15_s::delta_tx_d_offset_spucch_format1_r15_opts::to_string() const
 {
   switch (value) {
     case db0:
@@ -8096,14 +8092,14 @@ std::string delta_tx_d_offset_list_spucch_r15_s::delta_tx_d_offset_spucch_format
   }
   return "";
 }
-int8_t delta_tx_d_offset_list_spucch_r15_s::delta_tx_d_offset_spucch_format1_r15_e_::to_number() const
+int8_t delta_tx_d_offset_list_spucch_r15_s::delta_tx_d_offset_spucch_format1_r15_opts::to_number() const
 {
   const static int8_t options[] = {0, -2};
   return get_enum_number(options, 2, value,
                          "delta_tx_d_offset_list_spucch_r15_s::delta_tx_d_offset_spucch_format1_r15_e_");
 }
 
-std::string delta_tx_d_offset_list_spucch_r15_s::delta_tx_d_offset_spucch_format1a_r15_e_::to_string() const
+std::string delta_tx_d_offset_list_spucch_r15_s::delta_tx_d_offset_spucch_format1a_r15_opts::to_string() const
 {
   switch (value) {
     case db0:
@@ -8115,14 +8111,14 @@ std::string delta_tx_d_offset_list_spucch_r15_s::delta_tx_d_offset_spucch_format
   }
   return "";
 }
-int8_t delta_tx_d_offset_list_spucch_r15_s::delta_tx_d_offset_spucch_format1a_r15_e_::to_number() const
+int8_t delta_tx_d_offset_list_spucch_r15_s::delta_tx_d_offset_spucch_format1a_r15_opts::to_number() const
 {
   const static int8_t options[] = {0, -2};
   return get_enum_number(options, 2, value,
                          "delta_tx_d_offset_list_spucch_r15_s::delta_tx_d_offset_spucch_format1a_r15_e_");
 }
 
-std::string delta_tx_d_offset_list_spucch_r15_s::delta_tx_d_offset_spucch_format1b_r15_e_::to_string() const
+std::string delta_tx_d_offset_list_spucch_r15_s::delta_tx_d_offset_spucch_format1b_r15_opts::to_string() const
 {
   switch (value) {
     case db0:
@@ -8134,14 +8130,14 @@ std::string delta_tx_d_offset_list_spucch_r15_s::delta_tx_d_offset_spucch_format
   }
   return "";
 }
-int8_t delta_tx_d_offset_list_spucch_r15_s::delta_tx_d_offset_spucch_format1b_r15_e_::to_number() const
+int8_t delta_tx_d_offset_list_spucch_r15_s::delta_tx_d_offset_spucch_format1b_r15_opts::to_number() const
 {
   const static int8_t options[] = {0, -2};
   return get_enum_number(options, 2, value,
                          "delta_tx_d_offset_list_spucch_r15_s::delta_tx_d_offset_spucch_format1b_r15_e_");
 }
 
-std::string delta_tx_d_offset_list_spucch_r15_s::delta_tx_d_offset_spucch_format3_r15_e_::to_string() const
+std::string delta_tx_d_offset_list_spucch_r15_s::delta_tx_d_offset_spucch_format3_r15_opts::to_string() const
 {
   switch (value) {
     case db0:
@@ -8153,14 +8149,14 @@ std::string delta_tx_d_offset_list_spucch_r15_s::delta_tx_d_offset_spucch_format
   }
   return "";
 }
-int8_t delta_tx_d_offset_list_spucch_r15_s::delta_tx_d_offset_spucch_format3_r15_e_::to_number() const
+int8_t delta_tx_d_offset_list_spucch_r15_s::delta_tx_d_offset_spucch_format3_r15_opts::to_number() const
 {
   const static int8_t options[] = {0, -2};
   return get_enum_number(options, 2, value,
                          "delta_tx_d_offset_list_spucch_r15_s::delta_tx_d_offset_spucch_format3_r15_e_");
 }
 
-std::string epdcch_set_cfg_r11_s::tx_type_r11_e_::to_string() const
+std::string epdcch_set_cfg_r11_s::tx_type_r11_opts::to_string() const
 {
   switch (value) {
     case localised:
@@ -8173,7 +8169,7 @@ std::string epdcch_set_cfg_r11_s::tx_type_r11_e_::to_string() const
   return "";
 }
 
-std::string epdcch_set_cfg_r11_s::res_block_assign_r11_s_::num_prb_pairs_r11_e_::to_string() const
+std::string epdcch_set_cfg_r11_s::res_block_assign_r11_s_::num_prb_pairs_r11_opts::to_string() const
 {
   switch (value) {
     case n2:
@@ -8187,13 +8183,13 @@ std::string epdcch_set_cfg_r11_s::res_block_assign_r11_s_::num_prb_pairs_r11_e_:
   }
   return "";
 }
-uint8_t epdcch_set_cfg_r11_s::res_block_assign_r11_s_::num_prb_pairs_r11_e_::to_number() const
+uint8_t epdcch_set_cfg_r11_s::res_block_assign_r11_s_::num_prb_pairs_r11_opts::to_number() const
 {
   const static uint8_t options[] = {2, 4, 8};
   return get_enum_number(options, 3, value, "epdcch_set_cfg_r11_s::res_block_assign_r11_s_::num_prb_pairs_r11_e_");
 }
 
-std::string epdcch_set_cfg_r11_s::mpdcch_cfg_r13_c_::setup_s_::csi_num_repeat_ce_r13_e_::to_string() const
+std::string epdcch_set_cfg_r11_s::mpdcch_cfg_r13_c_::setup_s_::csi_num_repeat_ce_r13_opts::to_string() const
 {
   switch (value) {
     case sf1:
@@ -8213,14 +8209,14 @@ std::string epdcch_set_cfg_r11_s::mpdcch_cfg_r13_c_::setup_s_::csi_num_repeat_ce
   }
   return "";
 }
-uint8_t epdcch_set_cfg_r11_s::mpdcch_cfg_r13_c_::setup_s_::csi_num_repeat_ce_r13_e_::to_number() const
+uint8_t epdcch_set_cfg_r11_s::mpdcch_cfg_r13_c_::setup_s_::csi_num_repeat_ce_r13_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 4, 8, 16, 32};
   return get_enum_number(options, 6, value,
                          "epdcch_set_cfg_r11_s::mpdcch_cfg_r13_c_::setup_s_::csi_num_repeat_ce_r13_e_");
 }
 
-std::string epdcch_set_cfg_r11_s::mpdcch_cfg_r13_c_::setup_s_::mpdcch_pdsch_hop_cfg_r13_e_::to_string() const
+std::string epdcch_set_cfg_r11_s::mpdcch_cfg_r13_c_::setup_s_::mpdcch_pdsch_hop_cfg_r13_opts::to_string() const
 {
   switch (value) {
     case on:
@@ -8234,7 +8230,7 @@ std::string epdcch_set_cfg_r11_s::mpdcch_cfg_r13_c_::setup_s_::mpdcch_pdsch_hop_
 }
 
 std::string
-epdcch_set_cfg_r11_s::mpdcch_cfg_r13_c_::setup_s_::mpdcch_start_sf_uess_r13_c_::fdd_r13_e_::to_string() const
+epdcch_set_cfg_r11_s::mpdcch_cfg_r13_c_::setup_s_::mpdcch_start_sf_uess_r13_c_::fdd_r13_opts::to_string() const
 {
   switch (value) {
     case v1:
@@ -8259,14 +8255,14 @@ epdcch_set_cfg_r11_s::mpdcch_cfg_r13_c_::setup_s_::mpdcch_start_sf_uess_r13_c_::
   }
   return "";
 }
-float epdcch_set_cfg_r11_s::mpdcch_cfg_r13_c_::setup_s_::mpdcch_start_sf_uess_r13_c_::fdd_r13_e_::to_number() const
+float epdcch_set_cfg_r11_s::mpdcch_cfg_r13_c_::setup_s_::mpdcch_start_sf_uess_r13_c_::fdd_r13_opts::to_number() const
 {
   const static float options[] = {1.0, 1.5, 2.0, 2.5, 4.0, 5.0, 8.0, 10.0};
   return get_enum_number(options, 8, value,
                          "epdcch_set_cfg_r11_s::mpdcch_cfg_r13_c_::setup_s_::mpdcch_start_sf_uess_r13_c_::fdd_r13_e_");
 }
 std::string
-epdcch_set_cfg_r11_s::mpdcch_cfg_r13_c_::setup_s_::mpdcch_start_sf_uess_r13_c_::fdd_r13_e_::to_number_string() const
+epdcch_set_cfg_r11_s::mpdcch_cfg_r13_c_::setup_s_::mpdcch_start_sf_uess_r13_c_::fdd_r13_opts::to_number_string() const
 {
   switch (value) {
     case v1:
@@ -8293,7 +8289,7 @@ epdcch_set_cfg_r11_s::mpdcch_cfg_r13_c_::setup_s_::mpdcch_start_sf_uess_r13_c_::
 }
 
 std::string
-epdcch_set_cfg_r11_s::mpdcch_cfg_r13_c_::setup_s_::mpdcch_start_sf_uess_r13_c_::tdd_r13_e_::to_string() const
+epdcch_set_cfg_r11_s::mpdcch_cfg_r13_c_::setup_s_::mpdcch_start_sf_uess_r13_c_::tdd_r13_opts::to_string() const
 {
   switch (value) {
     case v1:
@@ -8318,14 +8314,15 @@ epdcch_set_cfg_r11_s::mpdcch_cfg_r13_c_::setup_s_::mpdcch_start_sf_uess_r13_c_::
   }
   return "";
 }
-uint8_t epdcch_set_cfg_r11_s::mpdcch_cfg_r13_c_::setup_s_::mpdcch_start_sf_uess_r13_c_::tdd_r13_e_::to_number() const
+uint8_t epdcch_set_cfg_r11_s::mpdcch_cfg_r13_c_::setup_s_::mpdcch_start_sf_uess_r13_c_::tdd_r13_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 4, 5, 8, 10, 20};
   return get_enum_number(options, 7, value,
                          "epdcch_set_cfg_r11_s::mpdcch_cfg_r13_c_::setup_s_::mpdcch_start_sf_uess_r13_c_::tdd_r13_e_");
 }
 
-std::string epdcch_set_cfg_r11_s::mpdcch_cfg_r13_c_::setup_s_::mpdcch_start_sf_uess_r13_c_::types::to_string() const
+std::string
+epdcch_set_cfg_r11_s::mpdcch_cfg_r13_c_::setup_s_::mpdcch_start_sf_uess_r13_c_::types_opts::to_string() const
 {
   switch (value) {
     case fdd_r13:
@@ -8341,7 +8338,7 @@ std::string epdcch_set_cfg_r11_s::mpdcch_cfg_r13_c_::setup_s_::mpdcch_start_sf_u
   return "";
 }
 
-std::string epdcch_set_cfg_r11_s::mpdcch_cfg_r13_c_::setup_s_::mpdcch_num_repeat_r13_e_::to_string() const
+std::string epdcch_set_cfg_r11_s::mpdcch_cfg_r13_c_::setup_s_::mpdcch_num_repeat_r13_opts::to_string() const
 {
   switch (value) {
     case r1:
@@ -8367,14 +8364,14 @@ std::string epdcch_set_cfg_r11_s::mpdcch_cfg_r13_c_::setup_s_::mpdcch_num_repeat
   }
   return "";
 }
-uint16_t epdcch_set_cfg_r11_s::mpdcch_cfg_r13_c_::setup_s_::mpdcch_num_repeat_r13_e_::to_number() const
+uint16_t epdcch_set_cfg_r11_s::mpdcch_cfg_r13_c_::setup_s_::mpdcch_num_repeat_r13_opts::to_number() const
 {
   const static uint16_t options[] = {1, 2, 4, 8, 16, 32, 64, 128, 256};
   return get_enum_number(options, 9, value,
                          "epdcch_set_cfg_r11_s::mpdcch_cfg_r13_c_::setup_s_::mpdcch_num_repeat_r13_e_");
 }
 
-std::string enable256_qam_r14_c::setup_c_::types::to_string() const
+std::string enable256_qam_r14_c::setup_c_::types_opts::to_string() const
 {
   switch (value) {
     case tpc_sf_set_cfgured_r14:
@@ -8389,7 +8386,7 @@ std::string enable256_qam_r14_c::setup_c_::types::to_string() const
   return "";
 }
 
-std::string lc_ch_cfg_s::ul_specific_params_s_::prioritised_bit_rate_e_::to_string() const
+std::string lc_ch_cfg_s::ul_specific_params_s_::prioritised_bit_rate_opts::to_string() const
 {
   switch (value) {
     case kbps0:
@@ -8429,13 +8426,13 @@ std::string lc_ch_cfg_s::ul_specific_params_s_::prioritised_bit_rate_e_::to_stri
   }
   return "";
 }
-int16_t lc_ch_cfg_s::ul_specific_params_s_::prioritised_bit_rate_e_::to_number() const
+int16_t lc_ch_cfg_s::ul_specific_params_s_::prioritised_bit_rate_opts::to_number() const
 {
   const static int16_t options[] = {0, 8, 16, 32, 64, 128, 256, -1, 512, 1024, 2048};
   return get_enum_number(options, 11, value, "lc_ch_cfg_s::ul_specific_params_s_::prioritised_bit_rate_e_");
 }
 
-std::string lc_ch_cfg_s::ul_specific_params_s_::bucket_size_dur_e_::to_string() const
+std::string lc_ch_cfg_s::ul_specific_params_s_::bucket_size_dur_opts::to_string() const
 {
   switch (value) {
     case ms50:
@@ -8459,13 +8456,13 @@ std::string lc_ch_cfg_s::ul_specific_params_s_::bucket_size_dur_e_::to_string() 
   }
   return "";
 }
-uint16_t lc_ch_cfg_s::ul_specific_params_s_::bucket_size_dur_e_::to_number() const
+uint16_t lc_ch_cfg_s::ul_specific_params_s_::bucket_size_dur_opts::to_number() const
 {
   const static uint16_t options[] = {50, 100, 150, 300, 500, 1000};
   return get_enum_number(options, 6, value, "lc_ch_cfg_s::ul_specific_params_s_::bucket_size_dur_e_");
 }
 
-std::string lc_ch_cfg_s::bit_rate_query_prohibit_timer_r14_e_::to_string() const
+std::string lc_ch_cfg_s::bit_rate_query_prohibit_timer_r14_opts::to_string() const
 {
   switch (value) {
     case s0:
@@ -8489,12 +8486,12 @@ std::string lc_ch_cfg_s::bit_rate_query_prohibit_timer_r14_e_::to_string() const
   }
   return "";
 }
-float lc_ch_cfg_s::bit_rate_query_prohibit_timer_r14_e_::to_number() const
+float lc_ch_cfg_s::bit_rate_query_prohibit_timer_r14_opts::to_number() const
 {
   const static float options[] = {0.0, 0.4, 0.8, 1.6, 3.0, 6.0, 12.0, 30.0};
   return get_enum_number(options, 8, value, "lc_ch_cfg_s::bit_rate_query_prohibit_timer_r14_e_");
 }
-std::string lc_ch_cfg_s::bit_rate_query_prohibit_timer_r14_e_::to_number_string() const
+std::string lc_ch_cfg_s::bit_rate_query_prohibit_timer_r14_opts::to_number_string() const
 {
   switch (value) {
     case s0:
@@ -8519,7 +8516,7 @@ std::string lc_ch_cfg_s::bit_rate_query_prohibit_timer_r14_e_::to_number_string(
   return "";
 }
 
-std::string lc_ch_cfg_s::lc_ch_sr_restrict_r15_c_::setup_e_::to_string() const
+std::string lc_ch_cfg_s::lc_ch_sr_restrict_r15_c_::setup_opts::to_string() const
 {
   switch (value) {
     case spucch:
@@ -8533,7 +8530,7 @@ std::string lc_ch_cfg_s::lc_ch_sr_restrict_r15_c_::setup_e_::to_string() const
 }
 
 // P-a ::= ENUMERATED
-std::string p_a_e::to_string() const
+std::string p_a_opts::to_string() const
 {
   switch (value) {
     case db_minus6:
@@ -8557,12 +8554,12 @@ std::string p_a_e::to_string() const
   }
   return "";
 }
-float p_a_e::to_number() const
+float p_a_opts::to_number() const
 {
   const static float options[] = {-6.0, -4.77, -3.0, -1.77, 0.0, 1.0, 2.0, 3.0};
   return get_enum_number(options, 8, value, "p_a_e");
 }
-std::string p_a_e::to_number_string() const
+std::string p_a_opts::to_number_string() const
 {
   switch (value) {
     case db_minus6:
@@ -8587,7 +8584,7 @@ std::string p_a_e::to_number_string() const
   return "";
 }
 
-std::string pdsch_re_map_qcl_cfg_r11_s::optional_set_of_fields_r11_s_::crs_ports_count_r11_e_::to_string() const
+std::string pdsch_re_map_qcl_cfg_r11_s::optional_set_of_fields_r11_s_::crs_ports_count_r11_opts::to_string() const
 {
   switch (value) {
     case n1:
@@ -8603,14 +8600,14 @@ std::string pdsch_re_map_qcl_cfg_r11_s::optional_set_of_fields_r11_s_::crs_ports
   }
   return "";
 }
-uint8_t pdsch_re_map_qcl_cfg_r11_s::optional_set_of_fields_r11_s_::crs_ports_count_r11_e_::to_number() const
+uint8_t pdsch_re_map_qcl_cfg_r11_s::optional_set_of_fields_r11_s_::crs_ports_count_r11_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 4};
   return get_enum_number(options, 3, value,
                          "pdsch_re_map_qcl_cfg_r11_s::optional_set_of_fields_r11_s_::crs_ports_count_r11_e_");
 }
 
-std::string pdsch_re_map_qcl_cfg_r11_s::optional_set_of_fields_r11_s_::pdsch_start_r11_e_::to_string() const
+std::string pdsch_re_map_qcl_cfg_r11_s::optional_set_of_fields_r11_s_::pdsch_start_r11_opts::to_string() const
 {
   switch (value) {
     case reserved:
@@ -8630,7 +8627,7 @@ std::string pdsch_re_map_qcl_cfg_r11_s::optional_set_of_fields_r11_s_::pdsch_sta
   }
   return "";
 }
-uint8_t pdsch_re_map_qcl_cfg_r11_s::optional_set_of_fields_r11_s_::pdsch_start_r11_e_::to_number() const
+uint8_t pdsch_re_map_qcl_cfg_r11_s::optional_set_of_fields_r11_s_::pdsch_start_r11_opts::to_number() const
 {
   switch (value) {
     case n1:
@@ -8647,7 +8644,8 @@ uint8_t pdsch_re_map_qcl_cfg_r11_s::optional_set_of_fields_r11_s_::pdsch_start_r
   return 0;
 }
 
-std::string pdsch_re_map_qcl_cfg_r11_s::codeword_one_cfg_v1530_c_::setup_s_::crs_ports_count_v1530_e_::to_string() const
+std::string
+pdsch_re_map_qcl_cfg_r11_s::codeword_one_cfg_v1530_c_::setup_s_::crs_ports_count_v1530_opts::to_string() const
 {
   switch (value) {
     case n1:
@@ -8664,14 +8662,14 @@ std::string pdsch_re_map_qcl_cfg_r11_s::codeword_one_cfg_v1530_c_::setup_s_::crs
   }
   return "";
 }
-uint8_t pdsch_re_map_qcl_cfg_r11_s::codeword_one_cfg_v1530_c_::setup_s_::crs_ports_count_v1530_e_::to_number() const
+uint8_t pdsch_re_map_qcl_cfg_r11_s::codeword_one_cfg_v1530_c_::setup_s_::crs_ports_count_v1530_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 4};
   return get_enum_number(options, 3, value,
                          "pdsch_re_map_qcl_cfg_r11_s::codeword_one_cfg_v1530_c_::setup_s_::crs_ports_count_v1530_e_");
 }
 
-std::string pdsch_re_map_qcl_cfg_r11_s::codeword_one_cfg_v1530_c_::setup_s_::pdsch_start_v1530_e_::to_string() const
+std::string pdsch_re_map_qcl_cfg_r11_s::codeword_one_cfg_v1530_c_::setup_s_::pdsch_start_v1530_opts::to_string() const
 {
   switch (value) {
     case reserved:
@@ -8692,7 +8690,7 @@ std::string pdsch_re_map_qcl_cfg_r11_s::codeword_one_cfg_v1530_c_::setup_s_::pds
   }
   return "";
 }
-uint8_t pdsch_re_map_qcl_cfg_r11_s::codeword_one_cfg_v1530_c_::setup_s_::pdsch_start_v1530_e_::to_number() const
+uint8_t pdsch_re_map_qcl_cfg_r11_s::codeword_one_cfg_v1530_c_::setup_s_::pdsch_start_v1530_opts::to_number() const
 {
   switch (value) {
     case n1:
@@ -8711,7 +8709,7 @@ uint8_t pdsch_re_map_qcl_cfg_r11_s::codeword_one_cfg_v1530_c_::setup_s_::pdsch_s
 }
 
 // PollPDU-v1310 ::= ENUMERATED
-std::string poll_pdu_v1310_e::to_string() const
+std::string poll_pdu_v1310_opts::to_string() const
 {
   switch (value) {
     case p512:
@@ -8735,13 +8733,13 @@ std::string poll_pdu_v1310_e::to_string() const
   }
   return "";
 }
-uint16_t poll_pdu_v1310_e::to_number() const
+uint16_t poll_pdu_v1310_opts::to_number() const
 {
   const static uint16_t options[] = {512, 1024, 2048, 4096, 6144, 8192, 12288, 16384};
   return get_enum_number(options, 8, value, "poll_pdu_v1310_e");
 }
 
-std::string rlc_cfg_r15_s::mode_r15_c_::types::to_string() const
+std::string rlc_cfg_r15_s::mode_r15_c_::types_opts::to_string() const
 {
   switch (value) {
     case am_r15:
@@ -8761,7 +8759,7 @@ std::string rlc_cfg_r15_s::mode_r15_c_::types::to_string() const
 }
 
 // SRS-AntennaPort ::= ENUMERATED
-std::string srs_ant_port_e::to_string() const
+std::string srs_ant_port_opts::to_string() const
 {
   switch (value) {
     case an1:
@@ -8777,14 +8775,14 @@ std::string srs_ant_port_e::to_string() const
   }
   return "";
 }
-uint8_t srs_ant_port_e::to_number() const
+uint8_t srs_ant_port_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 4};
   return get_enum_number(options, 3, value, "srs_ant_port_e");
 }
 
 // ShortTTI-Length-r15 ::= ENUMERATED
-std::string short_tti_len_r15_e::to_string() const
+std::string short_tti_len_r15_opts::to_string() const
 {
   switch (value) {
     case slot:
@@ -8797,7 +8795,7 @@ std::string short_tti_len_r15_e::to_string() const
   return "";
 }
 
-std::string ul_am_rlc_s::max_retx_thres_e_::to_string() const
+std::string ul_am_rlc_s::max_retx_thres_opts::to_string() const
 {
   switch (value) {
     case t1:
@@ -8821,13 +8819,13 @@ std::string ul_am_rlc_s::max_retx_thres_e_::to_string() const
   }
   return "";
 }
-uint8_t ul_am_rlc_s::max_retx_thres_e_::to_number() const
+uint8_t ul_am_rlc_s::max_retx_thres_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3, 4, 6, 8, 16, 32};
   return get_enum_number(options, 8, value, "ul_am_rlc_s::max_retx_thres_e_");
 }
 
-std::string ant_info_ded_stti_r15_c::setup_s_::tx_mode_dl_mbsfn_r15_e_::to_string() const
+std::string ant_info_ded_stti_r15_c::setup_s_::tx_mode_dl_mbsfn_r15_opts::to_string() const
 {
   switch (value) {
     case tm9:
@@ -8839,13 +8837,13 @@ std::string ant_info_ded_stti_r15_c::setup_s_::tx_mode_dl_mbsfn_r15_e_::to_strin
   }
   return "";
 }
-uint8_t ant_info_ded_stti_r15_c::setup_s_::tx_mode_dl_mbsfn_r15_e_::to_number() const
+uint8_t ant_info_ded_stti_r15_c::setup_s_::tx_mode_dl_mbsfn_r15_opts::to_number() const
 {
   const static uint8_t options[] = {9, 10};
   return get_enum_number(options, 2, value, "ant_info_ded_stti_r15_c::setup_s_::tx_mode_dl_mbsfn_r15_e_");
 }
 
-std::string ant_info_ded_stti_r15_c::setup_s_::tx_mode_dl_non_mbsfn_r15_e_::to_string() const
+std::string ant_info_ded_stti_r15_c::setup_s_::tx_mode_dl_non_mbsfn_r15_opts::to_string() const
 {
   switch (value) {
     case tm1:
@@ -8869,13 +8867,13 @@ std::string ant_info_ded_stti_r15_c::setup_s_::tx_mode_dl_non_mbsfn_r15_e_::to_s
   }
   return "";
 }
-uint8_t ant_info_ded_stti_r15_c::setup_s_::tx_mode_dl_non_mbsfn_r15_e_::to_number() const
+uint8_t ant_info_ded_stti_r15_c::setup_s_::tx_mode_dl_non_mbsfn_r15_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3, 4, 6, 8, 9, 10};
   return get_enum_number(options, 8, value, "ant_info_ded_stti_r15_c::setup_s_::tx_mode_dl_non_mbsfn_r15_e_");
 }
 
-std::string ant_info_ded_stti_r15_c::setup_s_::codebook_subset_restrict_c_::types::to_string() const
+std::string ant_info_ded_stti_r15_c::setup_s_::codebook_subset_restrict_c_::types_opts::to_string() const
 {
   switch (value) {
     case n2_tx_ant_tm3_r15:
@@ -8912,7 +8910,7 @@ std::string ant_info_ded_stti_r15_c::setup_s_::codebook_subset_restrict_c_::type
   return "";
 }
 
-std::string ant_info_ded_stti_r15_c::setup_s_::max_layers_mimo_stti_r15_e_::to_string() const
+std::string ant_info_ded_stti_r15_c::setup_s_::max_layers_mimo_stti_r15_opts::to_string() const
 {
   switch (value) {
     case two_layers:
@@ -8924,13 +8922,13 @@ std::string ant_info_ded_stti_r15_c::setup_s_::max_layers_mimo_stti_r15_e_::to_s
   }
   return "";
 }
-uint8_t ant_info_ded_stti_r15_c::setup_s_::max_layers_mimo_stti_r15_e_::to_number() const
+uint8_t ant_info_ded_stti_r15_c::setup_s_::max_layers_mimo_stti_r15_opts::to_number() const
 {
   const static uint8_t options[] = {2, 4};
   return get_enum_number(options, 2, value, "ant_info_ded_stti_r15_c::setup_s_::max_layers_mimo_stti_r15_e_");
 }
 
-std::string ant_info_ul_stti_r15_s::tx_mode_ul_stti_r15_e_::to_string() const
+std::string ant_info_ul_stti_r15_s::tx_mode_ul_stti_r15_opts::to_string() const
 {
   switch (value) {
     case tm1:
@@ -8942,13 +8940,13 @@ std::string ant_info_ul_stti_r15_s::tx_mode_ul_stti_r15_e_::to_string() const
   }
   return "";
 }
-uint8_t ant_info_ul_stti_r15_s::tx_mode_ul_stti_r15_e_::to_number() const
+uint8_t ant_info_ul_stti_r15_s::tx_mode_ul_stti_r15_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2};
   return get_enum_number(options, 2, value, "ant_info_ul_stti_r15_s::tx_mode_ul_stti_r15_e_");
 }
 
-std::string cqi_report_cfg_r15_c::setup_s_::alt_cqi_table_minus1024_qam_r15_e_::to_string() const
+std::string cqi_report_cfg_r15_c::setup_s_::alt_cqi_table_minus1024_qam_r15_opts::to_string() const
 {
   switch (value) {
     case all_sfs:
@@ -8964,7 +8962,7 @@ std::string cqi_report_cfg_r15_c::setup_s_::alt_cqi_table_minus1024_qam_r15_e_::
   }
   return "";
 }
-uint8_t cqi_report_cfg_r15_c::setup_s_::alt_cqi_table_minus1024_qam_r15_e_::to_number() const
+uint8_t cqi_report_cfg_r15_c::setup_s_::alt_cqi_table_minus1024_qam_r15_opts::to_number() const
 {
   switch (value) {
     case csi_sf_set1:
@@ -8977,7 +8975,7 @@ uint8_t cqi_report_cfg_r15_c::setup_s_::alt_cqi_table_minus1024_qam_r15_e_::to_n
   return 0;
 }
 
-std::string cqi_report_periodic_c::setup_s_::cqi_format_ind_periodic_c_::types::to_string() const
+std::string cqi_report_periodic_c::setup_s_::cqi_format_ind_periodic_c_::types_opts::to_string() const
 {
   switch (value) {
     case wideband_cqi:
@@ -8992,7 +8990,7 @@ std::string cqi_report_periodic_c::setup_s_::cqi_format_ind_periodic_c_::types::
   return "";
 }
 
-std::string crs_assist_info_r11_s::ant_ports_count_r11_e_::to_string() const
+std::string crs_assist_info_r11_s::ant_ports_count_r11_opts::to_string() const
 {
   switch (value) {
     case an1:
@@ -9008,13 +9006,13 @@ std::string crs_assist_info_r11_s::ant_ports_count_r11_e_::to_string() const
   }
   return "";
 }
-uint8_t crs_assist_info_r11_s::ant_ports_count_r11_e_::to_number() const
+uint8_t crs_assist_info_r11_s::ant_ports_count_r11_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 4};
   return get_enum_number(options, 3, value, "crs_assist_info_r11_s::ant_ports_count_r11_e_");
 }
 
-std::string crs_assist_info_r13_s::ant_ports_count_r13_e_::to_string() const
+std::string crs_assist_info_r13_s::ant_ports_count_r13_opts::to_string() const
 {
   switch (value) {
     case an1:
@@ -9030,13 +9028,13 @@ std::string crs_assist_info_r13_s::ant_ports_count_r13_e_::to_string() const
   }
   return "";
 }
-uint8_t crs_assist_info_r13_s::ant_ports_count_r13_e_::to_number() const
+uint8_t crs_assist_info_r13_s::ant_ports_count_r13_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 4};
   return get_enum_number(options, 3, value, "crs_assist_info_r13_s::ant_ports_count_r13_e_");
 }
 
-std::string delta_tx_d_offset_list_pucch_r10_s::delta_tx_d_offset_pucch_format1_r10_e_::to_string() const
+std::string delta_tx_d_offset_list_pucch_r10_s::delta_tx_d_offset_pucch_format1_r10_opts::to_string() const
 {
   switch (value) {
     case db0:
@@ -9048,14 +9046,14 @@ std::string delta_tx_d_offset_list_pucch_r10_s::delta_tx_d_offset_pucch_format1_
   }
   return "";
 }
-int8_t delta_tx_d_offset_list_pucch_r10_s::delta_tx_d_offset_pucch_format1_r10_e_::to_number() const
+int8_t delta_tx_d_offset_list_pucch_r10_s::delta_tx_d_offset_pucch_format1_r10_opts::to_number() const
 {
   const static int8_t options[] = {0, -2};
   return get_enum_number(options, 2, value,
                          "delta_tx_d_offset_list_pucch_r10_s::delta_tx_d_offset_pucch_format1_r10_e_");
 }
 
-std::string delta_tx_d_offset_list_pucch_r10_s::delta_tx_d_offset_pucch_format1a1b_r10_e_::to_string() const
+std::string delta_tx_d_offset_list_pucch_r10_s::delta_tx_d_offset_pucch_format1a1b_r10_opts::to_string() const
 {
   switch (value) {
     case db0:
@@ -9067,14 +9065,14 @@ std::string delta_tx_d_offset_list_pucch_r10_s::delta_tx_d_offset_pucch_format1a
   }
   return "";
 }
-int8_t delta_tx_d_offset_list_pucch_r10_s::delta_tx_d_offset_pucch_format1a1b_r10_e_::to_number() const
+int8_t delta_tx_d_offset_list_pucch_r10_s::delta_tx_d_offset_pucch_format1a1b_r10_opts::to_number() const
 {
   const static int8_t options[] = {0, -2};
   return get_enum_number(options, 2, value,
                          "delta_tx_d_offset_list_pucch_r10_s::delta_tx_d_offset_pucch_format1a1b_r10_e_");
 }
 
-std::string delta_tx_d_offset_list_pucch_r10_s::delta_tx_d_offset_pucch_format22a2b_r10_e_::to_string() const
+std::string delta_tx_d_offset_list_pucch_r10_s::delta_tx_d_offset_pucch_format22a2b_r10_opts::to_string() const
 {
   switch (value) {
     case db0:
@@ -9086,14 +9084,14 @@ std::string delta_tx_d_offset_list_pucch_r10_s::delta_tx_d_offset_pucch_format22
   }
   return "";
 }
-int8_t delta_tx_d_offset_list_pucch_r10_s::delta_tx_d_offset_pucch_format22a2b_r10_e_::to_number() const
+int8_t delta_tx_d_offset_list_pucch_r10_s::delta_tx_d_offset_pucch_format22a2b_r10_opts::to_number() const
 {
   const static int8_t options[] = {0, -2};
   return get_enum_number(options, 2, value,
                          "delta_tx_d_offset_list_pucch_r10_s::delta_tx_d_offset_pucch_format22a2b_r10_e_");
 }
 
-std::string delta_tx_d_offset_list_pucch_r10_s::delta_tx_d_offset_pucch_format3_r10_e_::to_string() const
+std::string delta_tx_d_offset_list_pucch_r10_s::delta_tx_d_offset_pucch_format3_r10_opts::to_string() const
 {
   switch (value) {
     case db0:
@@ -9105,14 +9103,14 @@ std::string delta_tx_d_offset_list_pucch_r10_s::delta_tx_d_offset_pucch_format3_
   }
   return "";
 }
-int8_t delta_tx_d_offset_list_pucch_r10_s::delta_tx_d_offset_pucch_format3_r10_e_::to_number() const
+int8_t delta_tx_d_offset_list_pucch_r10_s::delta_tx_d_offset_pucch_format3_r10_opts::to_number() const
 {
   const static int8_t options[] = {0, -2};
   return get_enum_number(options, 2, value,
                          "delta_tx_d_offset_list_pucch_r10_s::delta_tx_d_offset_pucch_format3_r10_e_");
 }
 
-std::string delta_tx_d_offset_list_pucch_v1130_s::delta_tx_d_offset_pucch_format1b_cs_r11_e_::to_string() const
+std::string delta_tx_d_offset_list_pucch_v1130_s::delta_tx_d_offset_pucch_format1b_cs_r11_opts::to_string() const
 {
   switch (value) {
     case db0:
@@ -9124,14 +9122,14 @@ std::string delta_tx_d_offset_list_pucch_v1130_s::delta_tx_d_offset_pucch_format
   }
   return "";
 }
-int8_t delta_tx_d_offset_list_pucch_v1130_s::delta_tx_d_offset_pucch_format1b_cs_r11_e_::to_number() const
+int8_t delta_tx_d_offset_list_pucch_v1130_s::delta_tx_d_offset_pucch_format1b_cs_r11_opts::to_number() const
 {
   const static int8_t options[] = {0, -1};
   return get_enum_number(options, 2, value,
                          "delta_tx_d_offset_list_pucch_v1130_s::delta_tx_d_offset_pucch_format1b_cs_r11_e_");
 }
 
-std::string eimta_main_cfg_r12_c::setup_s_::eimta_cmd_periodicity_r12_e_::to_string() const
+std::string eimta_main_cfg_r12_c::setup_s_::eimta_cmd_periodicity_r12_opts::to_string() const
 {
   switch (value) {
     case sf10:
@@ -9147,13 +9145,13 @@ std::string eimta_main_cfg_r12_c::setup_s_::eimta_cmd_periodicity_r12_e_::to_str
   }
   return "";
 }
-uint8_t eimta_main_cfg_r12_c::setup_s_::eimta_cmd_periodicity_r12_e_::to_number() const
+uint8_t eimta_main_cfg_r12_c::setup_s_::eimta_cmd_periodicity_r12_opts::to_number() const
 {
   const static uint8_t options[] = {10, 20, 40, 80};
   return get_enum_number(options, 4, value, "eimta_main_cfg_r12_c::setup_s_::eimta_cmd_periodicity_r12_e_");
 }
 
-std::string eimta_main_cfg_serv_cell_r12_c::setup_s_::eimta_harq_ref_cfg_r12_e_::to_string() const
+std::string eimta_main_cfg_serv_cell_r12_c::setup_s_::eimta_harq_ref_cfg_r12_opts::to_string() const
 {
   switch (value) {
     case sa2:
@@ -9167,13 +9165,13 @@ std::string eimta_main_cfg_serv_cell_r12_c::setup_s_::eimta_harq_ref_cfg_r12_e_:
   }
   return "";
 }
-uint8_t eimta_main_cfg_serv_cell_r12_c::setup_s_::eimta_harq_ref_cfg_r12_e_::to_number() const
+uint8_t eimta_main_cfg_serv_cell_r12_c::setup_s_::eimta_harq_ref_cfg_r12_opts::to_number() const
 {
   const static uint8_t options[] = {2, 4, 5};
   return get_enum_number(options, 3, value, "eimta_main_cfg_serv_cell_r12_c::setup_s_::eimta_harq_ref_cfg_r12_e_");
 }
 
-std::string neigh_cells_info_r12_s::crs_ports_count_r12_e_::to_string() const
+std::string neigh_cells_info_r12_s::crs_ports_count_r12_opts::to_string() const
 {
   switch (value) {
     case n1:
@@ -9189,14 +9187,14 @@ std::string neigh_cells_info_r12_s::crs_ports_count_r12_e_::to_string() const
   }
   return "";
 }
-uint8_t neigh_cells_info_r12_s::crs_ports_count_r12_e_::to_number() const
+uint8_t neigh_cells_info_r12_s::crs_ports_count_r12_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 4};
   return get_enum_number(options, 3, value, "neigh_cells_info_r12_s::crs_ports_count_r12_e_");
 }
 
 // PDCCH-CandidateReductionValue-r13 ::= ENUMERATED
-std::string pdcch_candidate_reduction_value_r13_e::to_string() const
+std::string pdcch_candidate_reduction_value_r13_opts::to_string() const
 {
   switch (value) {
     case n0:
@@ -9212,13 +9210,13 @@ std::string pdcch_candidate_reduction_value_r13_e::to_string() const
   }
   return "";
 }
-uint8_t pdcch_candidate_reduction_value_r13_e::to_number() const
+uint8_t pdcch_candidate_reduction_value_r13_opts::to_number() const
 {
   const static uint8_t options[] = {0, 33, 66, 100};
   return get_enum_number(options, 4, value, "pdcch_candidate_reduction_value_r13_e");
 }
 
-std::string pdcp_cfg_s::discard_timer_e_::to_string() const
+std::string pdcp_cfg_s::discard_timer_opts::to_string() const
 {
   switch (value) {
     case ms50:
@@ -9242,13 +9240,13 @@ std::string pdcp_cfg_s::discard_timer_e_::to_string() const
   }
   return "";
 }
-int16_t pdcp_cfg_s::discard_timer_e_::to_number() const
+int16_t pdcp_cfg_s::discard_timer_opts::to_number() const
 {
   const static int16_t options[] = {50, 100, 150, 300, 500, 750, 1500, -1};
   return get_enum_number(options, 8, value, "pdcp_cfg_s::discard_timer_e_");
 }
 
-std::string pdcp_cfg_s::rlc_um_s_::pdcp_sn_size_e_::to_string() const
+std::string pdcp_cfg_s::rlc_um_s_::pdcp_sn_size_opts::to_string() const
 {
   switch (value) {
     case len7bits:
@@ -9260,13 +9258,13 @@ std::string pdcp_cfg_s::rlc_um_s_::pdcp_sn_size_e_::to_string() const
   }
   return "";
 }
-uint8_t pdcp_cfg_s::rlc_um_s_::pdcp_sn_size_e_::to_number() const
+uint8_t pdcp_cfg_s::rlc_um_s_::pdcp_sn_size_opts::to_number() const
 {
   const static uint8_t options[] = {7, 12};
   return get_enum_number(options, 2, value, "pdcp_cfg_s::rlc_um_s_::pdcp_sn_size_e_");
 }
 
-std::string pdcp_cfg_s::hdr_compress_c_::types::to_string() const
+std::string pdcp_cfg_s::hdr_compress_c_::types_opts::to_string() const
 {
   switch (value) {
     case not_used:
@@ -9281,7 +9279,7 @@ std::string pdcp_cfg_s::hdr_compress_c_::types::to_string() const
   return "";
 }
 
-std::string pdcp_cfg_s::t_reordering_r12_e_::to_string() const
+std::string pdcp_cfg_s::t_reordering_r12_opts::to_string() const
 {
   switch (value) {
     case ms0:
@@ -9353,14 +9351,14 @@ std::string pdcp_cfg_s::t_reordering_r12_e_::to_string() const
   }
   return "";
 }
-uint16_t pdcp_cfg_s::t_reordering_r12_e_::to_number() const
+uint16_t pdcp_cfg_s::t_reordering_r12_opts::to_number() const
 {
   const static uint16_t options[] = {0,   20,  40,  60,  80,  100, 120, 140, 160,
                                      180, 200, 220, 240, 260, 280, 300, 500, 750};
   return get_enum_number(options, 18, value, "pdcp_cfg_s::t_reordering_r12_e_");
 }
 
-std::string pdcp_cfg_s::ul_data_split_thres_r13_c_::setup_e_::to_string() const
+std::string pdcp_cfg_s::ul_data_split_thres_r13_c_::setup_opts::to_string() const
 {
   switch (value) {
     case b0:
@@ -9400,14 +9398,14 @@ std::string pdcp_cfg_s::ul_data_split_thres_r13_c_::setup_e_::to_string() const
   }
   return "";
 }
-uint32_t pdcp_cfg_s::ul_data_split_thres_r13_c_::setup_e_::to_number() const
+uint32_t pdcp_cfg_s::ul_data_split_thres_r13_c_::setup_opts::to_number() const
 {
   const static uint32_t options[] = {0,     100,   200,   400,    800,    1600,   3200,  6400,
                                      12800, 25600, 51200, 102400, 204800, 409600, 819200};
   return get_enum_number(options, 15, value, "pdcp_cfg_s::ul_data_split_thres_r13_c_::setup_e_");
 }
 
-std::string pdcp_cfg_s::status_feedback_r13_c_::setup_s_::status_pdu_type_for_polling_r13_e_::to_string() const
+std::string pdcp_cfg_s::status_feedback_r13_c_::setup_s_::status_pdu_type_for_polling_r13_opts::to_string() const
 {
   switch (value) {
     case type1:
@@ -9419,14 +9417,14 @@ std::string pdcp_cfg_s::status_feedback_r13_c_::setup_s_::status_pdu_type_for_po
   }
   return "";
 }
-uint8_t pdcp_cfg_s::status_feedback_r13_c_::setup_s_::status_pdu_type_for_polling_r13_e_::to_number() const
+uint8_t pdcp_cfg_s::status_feedback_r13_c_::setup_s_::status_pdu_type_for_polling_r13_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2};
   return get_enum_number(options, 2, value,
                          "pdcp_cfg_s::status_feedback_r13_c_::setup_s_::status_pdu_type_for_polling_r13_e_");
 }
 
-std::string pdcp_cfg_s::status_feedback_r13_c_::setup_s_::status_pdu_periodicity_type1_r13_e_::to_string() const
+std::string pdcp_cfg_s::status_feedback_r13_c_::setup_s_::status_pdu_periodicity_type1_r13_opts::to_string() const
 {
   switch (value) {
     case ms5:
@@ -9476,7 +9474,7 @@ std::string pdcp_cfg_s::status_feedback_r13_c_::setup_s_::status_pdu_periodicity
   }
   return "";
 }
-uint16_t pdcp_cfg_s::status_feedback_r13_c_::setup_s_::status_pdu_periodicity_type1_r13_e_::to_number() const
+uint16_t pdcp_cfg_s::status_feedback_r13_c_::setup_s_::status_pdu_periodicity_type1_r13_opts::to_number() const
 {
   const static uint16_t options[] = {5,   10,  20,  30,  40,   50,   60,   70,    80,    90,   100,
                                      150, 200, 300, 500, 1000, 2000, 5000, 10000, 20000, 50000};
@@ -9484,7 +9482,7 @@ uint16_t pdcp_cfg_s::status_feedback_r13_c_::setup_s_::status_pdu_periodicity_ty
                          "pdcp_cfg_s::status_feedback_r13_c_::setup_s_::status_pdu_periodicity_type1_r13_e_");
 }
 
-std::string pdcp_cfg_s::status_feedback_r13_c_::setup_s_::status_pdu_periodicity_type2_r13_e_::to_string() const
+std::string pdcp_cfg_s::status_feedback_r13_c_::setup_s_::status_pdu_periodicity_type2_r13_opts::to_string() const
 {
   switch (value) {
     case ms5:
@@ -9534,7 +9532,7 @@ std::string pdcp_cfg_s::status_feedback_r13_c_::setup_s_::status_pdu_periodicity
   }
   return "";
 }
-uint16_t pdcp_cfg_s::status_feedback_r13_c_::setup_s_::status_pdu_periodicity_type2_r13_e_::to_number() const
+uint16_t pdcp_cfg_s::status_feedback_r13_c_::setup_s_::status_pdu_periodicity_type2_r13_opts::to_number() const
 {
   const static uint16_t options[] = {5,   10,  20,  30,  40,   50,   60,   70,    80,    90,   100,
                                      150, 200, 300, 500, 1000, 2000, 5000, 10000, 20000, 50000};
@@ -9542,7 +9540,7 @@ uint16_t pdcp_cfg_s::status_feedback_r13_c_::setup_s_::status_pdu_periodicity_ty
                          "pdcp_cfg_s::status_feedback_r13_c_::setup_s_::status_pdu_periodicity_type2_r13_e_");
 }
 
-std::string pdcp_cfg_s::status_feedback_r13_c_::setup_s_::status_pdu_periodicity_offset_r13_e_::to_string() const
+std::string pdcp_cfg_s::status_feedback_r13_c_::setup_s_::status_pdu_periodicity_offset_r13_opts::to_string() const
 {
   switch (value) {
     case ms1:
@@ -9574,14 +9572,14 @@ std::string pdcp_cfg_s::status_feedback_r13_c_::setup_s_::status_pdu_periodicity
   }
   return "";
 }
-uint16_t pdcp_cfg_s::status_feedback_r13_c_::setup_s_::status_pdu_periodicity_offset_r13_e_::to_number() const
+uint16_t pdcp_cfg_s::status_feedback_r13_c_::setup_s_::status_pdu_periodicity_offset_r13_opts::to_number() const
 {
   const static uint16_t options[] = {1, 2, 5, 10, 25, 50, 100, 250, 500, 2500, 5000, 25000};
   return get_enum_number(options, 12, value,
                          "pdcp_cfg_s::status_feedback_r13_c_::setup_s_::status_pdu_periodicity_offset_r13_e_");
 }
 
-std::string pdcp_cfg_s::ul_lwa_cfg_r14_c_::setup_s_::ul_lwa_data_split_thres_r14_e_::to_string() const
+std::string pdcp_cfg_s::ul_lwa_cfg_r14_c_::setup_s_::ul_lwa_data_split_thres_r14_opts::to_string() const
 {
   switch (value) {
     case b0:
@@ -9619,14 +9617,14 @@ std::string pdcp_cfg_s::ul_lwa_cfg_r14_c_::setup_s_::ul_lwa_data_split_thres_r14
   }
   return "";
 }
-uint32_t pdcp_cfg_s::ul_lwa_cfg_r14_c_::setup_s_::ul_lwa_data_split_thres_r14_e_::to_number() const
+uint32_t pdcp_cfg_s::ul_lwa_cfg_r14_c_::setup_s_::ul_lwa_data_split_thres_r14_opts::to_number() const
 {
   const static uint32_t options[] = {0,     100,   200,   400,    800,    1600,   3200,  6400,
                                      12800, 25600, 51200, 102400, 204800, 409600, 819200};
   return get_enum_number(options, 15, value, "pdcp_cfg_s::ul_lwa_cfg_r14_c_::setup_s_::ul_lwa_data_split_thres_r14_e_");
 }
 
-std::string pdcp_cfg_s::ul_only_hdr_compress_r14_c_::types::to_string() const
+std::string pdcp_cfg_s::ul_only_hdr_compress_r14_c_::types_opts::to_string() const
 {
   switch (value) {
     case not_used_r14:
@@ -9641,7 +9639,7 @@ std::string pdcp_cfg_s::ul_only_hdr_compress_r14_c_::types::to_string() const
   return "";
 }
 
-std::string pdcp_cfg_s::ul_data_compress_r15_s_::buffer_size_r15_e_::to_string() const
+std::string pdcp_cfg_s::ul_data_compress_r15_s_::buffer_size_r15_opts::to_string() const
 {
   switch (value) {
     case kbyte2:
@@ -9657,13 +9655,13 @@ std::string pdcp_cfg_s::ul_data_compress_r15_s_::buffer_size_r15_e_::to_string()
   }
   return "";
 }
-uint8_t pdcp_cfg_s::ul_data_compress_r15_s_::buffer_size_r15_e_::to_number() const
+uint8_t pdcp_cfg_s::ul_data_compress_r15_s_::buffer_size_r15_opts::to_number() const
 {
   const static uint8_t options[] = {2, 4, 8};
   return get_enum_number(options, 3, value, "pdcp_cfg_s::ul_data_compress_r15_s_::buffer_size_r15_e_");
 }
 
-std::string pdcp_cfg_s::ul_data_compress_r15_s_::dictionary_r15_e_::to_string() const
+std::string pdcp_cfg_s::ul_data_compress_r15_s_::dictionary_r15_opts::to_string() const
 {
   switch (value) {
     case sip_sdp:
@@ -9676,7 +9674,7 @@ std::string pdcp_cfg_s::ul_data_compress_r15_s_::dictionary_r15_e_::to_string() 
   return "";
 }
 
-std::string pdcp_cfg_s::pdcp_dupl_cfg_r15_c_::setup_s_::pdcp_dupl_r15_e_::to_string() const
+std::string pdcp_cfg_s::pdcp_dupl_cfg_r15_c_::setup_s_::pdcp_dupl_r15_opts::to_string() const
 {
   switch (value) {
     case cfgured:
@@ -9689,7 +9687,7 @@ std::string pdcp_cfg_s::pdcp_dupl_cfg_r15_c_::setup_s_::pdcp_dupl_r15_e_::to_str
   return "";
 }
 
-std::string pucch_cfg_ded_v1530_s::codebooksize_determination_stti_r15_e_::to_string() const
+std::string pucch_cfg_ded_v1530_s::codebooksize_determination_stti_r15_opts::to_string() const
 {
   switch (value) {
     case dai:
@@ -9702,7 +9700,7 @@ std::string pucch_cfg_ded_v1530_s::codebooksize_determination_stti_r15_e_::to_st
   return "";
 }
 
-std::string rlc_bearer_cfg_r15_c::setup_s_::lc_ch_id_cfg_r15_c_::types::to_string() const
+std::string rlc_bearer_cfg_r15_c::setup_s_::lc_ch_id_cfg_r15_c_::types_opts::to_string() const
 {
   switch (value) {
     case lc_ch_id_r15:
@@ -9717,7 +9715,7 @@ std::string rlc_bearer_cfg_r15_c::setup_s_::lc_ch_id_cfg_r15_c_::types::to_strin
   return "";
 }
 
-std::string rlc_cfg_c::types::to_string() const
+std::string rlc_cfg_c::types_opts::to_string() const
 {
   switch (value) {
     case am:
@@ -9736,7 +9734,7 @@ std::string rlc_cfg_c::types::to_string() const
   return "";
 }
 
-std::string spdcch_cfg_r15_c::setup_s_::spdcch_l1_reuse_ind_r15_e_::to_string() const
+std::string spdcch_cfg_r15_c::setup_s_::spdcch_l1_reuse_ind_r15_opts::to_string() const
 {
   switch (value) {
     case n0:
@@ -9750,13 +9748,13 @@ std::string spdcch_cfg_r15_c::setup_s_::spdcch_l1_reuse_ind_r15_e_::to_string() 
   }
   return "";
 }
-uint8_t spdcch_cfg_r15_c::setup_s_::spdcch_l1_reuse_ind_r15_e_::to_number() const
+uint8_t spdcch_cfg_r15_c::setup_s_::spdcch_l1_reuse_ind_r15_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1, 2};
   return get_enum_number(options, 3, value, "spdcch_cfg_r15_c::setup_s_::spdcch_l1_reuse_ind_r15_e_");
 }
 
-std::string sps_cfg_sl_r14_s::semi_persist_sched_interv_sl_r14_e_::to_string() const
+std::string sps_cfg_sl_r14_s::semi_persist_sched_interv_sl_r14_opts::to_string() const
 {
   switch (value) {
     case sf20:
@@ -9796,13 +9794,13 @@ std::string sps_cfg_sl_r14_s::semi_persist_sched_interv_sl_r14_e_::to_string() c
   }
   return "";
 }
-uint16_t sps_cfg_sl_r14_s::semi_persist_sched_interv_sl_r14_e_::to_number() const
+uint16_t sps_cfg_sl_r14_s::semi_persist_sched_interv_sl_r14_opts::to_number() const
 {
   const static uint16_t options[] = {20, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000};
   return get_enum_number(options, 12, value, "sps_cfg_sl_r14_s::semi_persist_sched_interv_sl_r14_e_");
 }
 
-std::string sps_cfg_ul_c::setup_s_::semi_persist_sched_interv_ul_e_::to_string() const
+std::string sps_cfg_ul_c::setup_s_::semi_persist_sched_interv_ul_opts::to_string() const
 {
   switch (value) {
     case sf10:
@@ -9842,13 +9840,13 @@ std::string sps_cfg_ul_c::setup_s_::semi_persist_sched_interv_ul_e_::to_string()
   }
   return "";
 }
-uint16_t sps_cfg_ul_c::setup_s_::semi_persist_sched_interv_ul_e_::to_number() const
+uint16_t sps_cfg_ul_c::setup_s_::semi_persist_sched_interv_ul_opts::to_number() const
 {
   const static uint16_t options[] = {10, 20, 32, 40, 64, 80, 128, 160, 320, 640, 1, 2, 3, 4, 5};
   return get_enum_number(options, 15, value, "sps_cfg_ul_c::setup_s_::semi_persist_sched_interv_ul_e_");
 }
 
-std::string sps_cfg_ul_c::setup_s_::implicit_release_after_e_::to_string() const
+std::string sps_cfg_ul_c::setup_s_::implicit_release_after_opts::to_string() const
 {
   switch (value) {
     case e2:
@@ -9864,13 +9862,13 @@ std::string sps_cfg_ul_c::setup_s_::implicit_release_after_e_::to_string() const
   }
   return "";
 }
-uint8_t sps_cfg_ul_c::setup_s_::implicit_release_after_e_::to_number() const
+uint8_t sps_cfg_ul_c::setup_s_::implicit_release_after_opts::to_number() const
 {
   const static uint8_t options[] = {2, 3, 4, 8};
   return get_enum_number(options, 4, value, "sps_cfg_ul_c::setup_s_::implicit_release_after_e_");
 }
 
-std::string sps_cfg_ul_c::setup_s_::semi_persist_sched_interv_ul_v1430_e_::to_string() const
+std::string sps_cfg_ul_c::setup_s_::semi_persist_sched_interv_ul_v1430_opts::to_string() const
 {
   switch (value) {
     case sf50:
@@ -9910,13 +9908,13 @@ std::string sps_cfg_ul_c::setup_s_::semi_persist_sched_interv_ul_v1430_e_::to_st
   }
   return "";
 }
-uint16_t sps_cfg_ul_c::setup_s_::semi_persist_sched_interv_ul_v1430_e_::to_number() const
+uint16_t sps_cfg_ul_c::setup_s_::semi_persist_sched_interv_ul_v1430_opts::to_number() const
 {
   const static uint16_t options[] = {50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000};
   return get_enum_number(options, 11, value, "sps_cfg_ul_c::setup_s_::semi_persist_sched_interv_ul_v1430_e_");
 }
 
-std::string sps_cfg_ul_c::setup_s_::cyclic_shift_sps_r15_e_::to_string() const
+std::string sps_cfg_ul_c::setup_s_::cyclic_shift_sps_r15_opts::to_string() const
 {
   switch (value) {
     case cs0:
@@ -9940,13 +9938,13 @@ std::string sps_cfg_ul_c::setup_s_::cyclic_shift_sps_r15_e_::to_string() const
   }
   return "";
 }
-uint8_t sps_cfg_ul_c::setup_s_::cyclic_shift_sps_r15_e_::to_number() const
+uint8_t sps_cfg_ul_c::setup_s_::cyclic_shift_sps_r15_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1, 2, 3, 4, 5, 6, 7};
   return get_enum_number(options, 8, value, "sps_cfg_ul_c::setup_s_::cyclic_shift_sps_r15_e_");
 }
 
-std::string sps_cfg_ul_c::setup_s_::rv_sps_ul_repeats_r15_e_::to_string() const
+std::string sps_cfg_ul_c::setup_s_::rv_sps_ul_repeats_r15_opts::to_string() const
 {
   switch (value) {
     case ulrvseq1:
@@ -9960,13 +9958,13 @@ std::string sps_cfg_ul_c::setup_s_::rv_sps_ul_repeats_r15_e_::to_string() const
   }
   return "";
 }
-uint8_t sps_cfg_ul_c::setup_s_::rv_sps_ul_repeats_r15_e_::to_number() const
+uint8_t sps_cfg_ul_c::setup_s_::rv_sps_ul_repeats_r15_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3};
   return get_enum_number(options, 3, value, "sps_cfg_ul_c::setup_s_::rv_sps_ul_repeats_r15_e_");
 }
 
-std::string sps_cfg_ul_c::setup_s_::total_num_pusch_sps_ul_repeats_r15_e_::to_string() const
+std::string sps_cfg_ul_c::setup_s_::total_num_pusch_sps_ul_repeats_r15_opts::to_string() const
 {
   switch (value) {
     case n2:
@@ -9982,13 +9980,13 @@ std::string sps_cfg_ul_c::setup_s_::total_num_pusch_sps_ul_repeats_r15_e_::to_st
   }
   return "";
 }
-uint8_t sps_cfg_ul_c::setup_s_::total_num_pusch_sps_ul_repeats_r15_e_::to_number() const
+uint8_t sps_cfg_ul_c::setup_s_::total_num_pusch_sps_ul_repeats_r15_opts::to_number() const
 {
   const static uint8_t options[] = {2, 3, 4, 6};
   return get_enum_number(options, 4, value, "sps_cfg_ul_c::setup_s_::total_num_pusch_sps_ul_repeats_r15_e_");
 }
 
-std::string sps_cfg_ul_stti_r15_c::setup_s_::semi_persist_sched_interv_ul_stti_r15_e_::to_string() const
+std::string sps_cfg_ul_stti_r15_c::setup_s_::semi_persist_sched_interv_ul_stti_r15_opts::to_string() const
 {
   switch (value) {
     case s_tti1:
@@ -10028,14 +10026,14 @@ std::string sps_cfg_ul_stti_r15_c::setup_s_::semi_persist_sched_interv_ul_stti_r
   }
   return "";
 }
-uint8_t sps_cfg_ul_stti_r15_c::setup_s_::semi_persist_sched_interv_ul_stti_r15_e_::to_number() const
+uint8_t sps_cfg_ul_stti_r15_c::setup_s_::semi_persist_sched_interv_ul_stti_r15_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3, 4, 6, 8, 12, 16, 20, 40, 60, 80, 120, 240};
   return get_enum_number(options, 14, value,
                          "sps_cfg_ul_stti_r15_c::setup_s_::semi_persist_sched_interv_ul_stti_r15_e_");
 }
 
-std::string sps_cfg_ul_stti_r15_c::setup_s_::implicit_release_after_e_::to_string() const
+std::string sps_cfg_ul_stti_r15_c::setup_s_::implicit_release_after_opts::to_string() const
 {
   switch (value) {
     case e2:
@@ -10051,13 +10049,13 @@ std::string sps_cfg_ul_stti_r15_c::setup_s_::implicit_release_after_e_::to_strin
   }
   return "";
 }
-uint8_t sps_cfg_ul_stti_r15_c::setup_s_::implicit_release_after_e_::to_number() const
+uint8_t sps_cfg_ul_stti_r15_c::setup_s_::implicit_release_after_opts::to_number() const
 {
   const static uint8_t options[] = {2, 3, 4, 8};
   return get_enum_number(options, 4, value, "sps_cfg_ul_stti_r15_c::setup_s_::implicit_release_after_e_");
 }
 
-std::string sps_cfg_ul_stti_r15_c::setup_s_::cyclic_shift_sps_s_tti_r15_e_::to_string() const
+std::string sps_cfg_ul_stti_r15_c::setup_s_::cyclic_shift_sps_s_tti_r15_opts::to_string() const
 {
   switch (value) {
     case cs0:
@@ -10081,13 +10079,13 @@ std::string sps_cfg_ul_stti_r15_c::setup_s_::cyclic_shift_sps_s_tti_r15_e_::to_s
   }
   return "";
 }
-uint8_t sps_cfg_ul_stti_r15_c::setup_s_::cyclic_shift_sps_s_tti_r15_e_::to_number() const
+uint8_t sps_cfg_ul_stti_r15_c::setup_s_::cyclic_shift_sps_s_tti_r15_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1, 2, 3, 4, 5, 6, 7};
   return get_enum_number(options, 8, value, "sps_cfg_ul_stti_r15_c::setup_s_::cyclic_shift_sps_s_tti_r15_e_");
 }
 
-std::string sps_cfg_ul_stti_r15_c::setup_s_::rv_sps_stti_ul_repeats_r15_e_::to_string() const
+std::string sps_cfg_ul_stti_r15_c::setup_s_::rv_sps_stti_ul_repeats_r15_opts::to_string() const
 {
   switch (value) {
     case ulrvseq1:
@@ -10101,13 +10099,13 @@ std::string sps_cfg_ul_stti_r15_c::setup_s_::rv_sps_stti_ul_repeats_r15_e_::to_s
   }
   return "";
 }
-uint8_t sps_cfg_ul_stti_r15_c::setup_s_::rv_sps_stti_ul_repeats_r15_e_::to_number() const
+uint8_t sps_cfg_ul_stti_r15_c::setup_s_::rv_sps_stti_ul_repeats_r15_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3};
   return get_enum_number(options, 3, value, "sps_cfg_ul_stti_r15_c::setup_s_::rv_sps_stti_ul_repeats_r15_e_");
 }
 
-std::string sps_cfg_ul_stti_r15_c::setup_s_::tbs_scaling_factor_subslot_sps_ul_repeats_r15_e_::to_string() const
+std::string sps_cfg_ul_stti_r15_c::setup_s_::tbs_scaling_factor_subslot_sps_ul_repeats_r15_opts::to_string() const
 {
   switch (value) {
     case n6:
@@ -10119,14 +10117,14 @@ std::string sps_cfg_ul_stti_r15_c::setup_s_::tbs_scaling_factor_subslot_sps_ul_r
   }
   return "";
 }
-uint8_t sps_cfg_ul_stti_r15_c::setup_s_::tbs_scaling_factor_subslot_sps_ul_repeats_r15_e_::to_number() const
+uint8_t sps_cfg_ul_stti_r15_c::setup_s_::tbs_scaling_factor_subslot_sps_ul_repeats_r15_opts::to_number() const
 {
   const static uint8_t options[] = {6, 12};
   return get_enum_number(options, 2, value,
                          "sps_cfg_ul_stti_r15_c::setup_s_::tbs_scaling_factor_subslot_sps_ul_repeats_r15_e_");
 }
 
-std::string sps_cfg_ul_stti_r15_c::setup_s_::total_num_pusch_sps_stti_ul_repeats_r15_e_::to_string() const
+std::string sps_cfg_ul_stti_r15_c::setup_s_::total_num_pusch_sps_stti_ul_repeats_r15_opts::to_string() const
 {
   switch (value) {
     case n2:
@@ -10142,14 +10140,14 @@ std::string sps_cfg_ul_stti_r15_c::setup_s_::total_num_pusch_sps_stti_ul_repeats
   }
   return "";
 }
-uint8_t sps_cfg_ul_stti_r15_c::setup_s_::total_num_pusch_sps_stti_ul_repeats_r15_e_::to_number() const
+uint8_t sps_cfg_ul_stti_r15_c::setup_s_::total_num_pusch_sps_stti_ul_repeats_r15_opts::to_number() const
 {
   const static uint8_t options[] = {2, 3, 4, 6};
   return get_enum_number(options, 4, value,
                          "sps_cfg_ul_stti_r15_c::setup_s_::total_num_pusch_sps_stti_ul_repeats_r15_e_");
 }
 
-std::string srs_cfg_ap_r10_s::srs_bw_ap_r10_e_::to_string() const
+std::string srs_cfg_ap_r10_s::srs_bw_ap_r10_opts::to_string() const
 {
   switch (value) {
     case bw0:
@@ -10165,13 +10163,13 @@ std::string srs_cfg_ap_r10_s::srs_bw_ap_r10_e_::to_string() const
   }
   return "";
 }
-uint8_t srs_cfg_ap_r10_s::srs_bw_ap_r10_e_::to_number() const
+uint8_t srs_cfg_ap_r10_s::srs_bw_ap_r10_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1, 2, 3};
   return get_enum_number(options, 4, value, "srs_cfg_ap_r10_s::srs_bw_ap_r10_e_");
 }
 
-std::string srs_cfg_ap_r10_s::cyclic_shift_ap_r10_e_::to_string() const
+std::string srs_cfg_ap_r10_s::cyclic_shift_ap_r10_opts::to_string() const
 {
   switch (value) {
     case cs0:
@@ -10195,13 +10193,13 @@ std::string srs_cfg_ap_r10_s::cyclic_shift_ap_r10_e_::to_string() const
   }
   return "";
 }
-uint8_t srs_cfg_ap_r10_s::cyclic_shift_ap_r10_e_::to_number() const
+uint8_t srs_cfg_ap_r10_s::cyclic_shift_ap_r10_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1, 2, 3, 4, 5, 6, 7};
   return get_enum_number(options, 8, value, "srs_cfg_ap_r10_s::cyclic_shift_ap_r10_e_");
 }
 
-std::string srs_cfg_ap_r13_s::srs_bw_ap_r13_e_::to_string() const
+std::string srs_cfg_ap_r13_s::srs_bw_ap_r13_opts::to_string() const
 {
   switch (value) {
     case bw0:
@@ -10217,13 +10215,13 @@ std::string srs_cfg_ap_r13_s::srs_bw_ap_r13_e_::to_string() const
   }
   return "";
 }
-uint8_t srs_cfg_ap_r13_s::srs_bw_ap_r13_e_::to_number() const
+uint8_t srs_cfg_ap_r13_s::srs_bw_ap_r13_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1, 2, 3};
   return get_enum_number(options, 4, value, "srs_cfg_ap_r13_s::srs_bw_ap_r13_e_");
 }
 
-std::string srs_cfg_ap_r13_s::cyclic_shift_ap_r13_e_::to_string() const
+std::string srs_cfg_ap_r13_s::cyclic_shift_ap_r13_opts::to_string() const
 {
   switch (value) {
     case cs0:
@@ -10255,13 +10253,13 @@ std::string srs_cfg_ap_r13_s::cyclic_shift_ap_r13_e_::to_string() const
   }
   return "";
 }
-uint8_t srs_cfg_ap_r13_s::cyclic_shift_ap_r13_e_::to_number() const
+uint8_t srs_cfg_ap_r13_s::cyclic_shift_ap_r13_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
   return get_enum_number(options, 12, value, "srs_cfg_ap_r13_s::cyclic_shift_ap_r13_e_");
 }
 
-std::string srs_cfg_ap_r13_s::tx_comb_num_r13_e_::to_string() const
+std::string srs_cfg_ap_r13_s::tx_comb_num_r13_opts::to_string() const
 {
   switch (value) {
     case n2:
@@ -10273,13 +10271,13 @@ std::string srs_cfg_ap_r13_s::tx_comb_num_r13_e_::to_string() const
   }
   return "";
 }
-uint8_t srs_cfg_ap_r13_s::tx_comb_num_r13_e_::to_number() const
+uint8_t srs_cfg_ap_r13_s::tx_comb_num_r13_opts::to_number() const
 {
   const static uint8_t options[] = {2, 4};
   return get_enum_number(options, 2, value, "srs_cfg_ap_r13_s::tx_comb_num_r13_e_");
 }
 
-std::string srs_cfg_ap_v1310_s::cyclic_shift_ap_v1310_e_::to_string() const
+std::string srs_cfg_ap_v1310_s::cyclic_shift_ap_v1310_opts::to_string() const
 {
   switch (value) {
     case cs8:
@@ -10295,13 +10293,13 @@ std::string srs_cfg_ap_v1310_s::cyclic_shift_ap_v1310_e_::to_string() const
   }
   return "";
 }
-uint8_t srs_cfg_ap_v1310_s::cyclic_shift_ap_v1310_e_::to_number() const
+uint8_t srs_cfg_ap_v1310_s::cyclic_shift_ap_v1310_opts::to_number() const
 {
   const static uint8_t options[] = {8, 9, 10, 11};
   return get_enum_number(options, 4, value, "srs_cfg_ap_v1310_s::cyclic_shift_ap_v1310_e_");
 }
 
-std::string srs_cfg_ap_v1310_s::tx_comb_num_r13_e_::to_string() const
+std::string srs_cfg_ap_v1310_s::tx_comb_num_r13_opts::to_string() const
 {
   switch (value) {
     case n2:
@@ -10313,13 +10311,13 @@ std::string srs_cfg_ap_v1310_s::tx_comb_num_r13_e_::to_string() const
   }
   return "";
 }
-uint8_t srs_cfg_ap_v1310_s::tx_comb_num_r13_e_::to_number() const
+uint8_t srs_cfg_ap_v1310_s::tx_comb_num_r13_opts::to_number() const
 {
   const static uint8_t options[] = {2, 4};
   return get_enum_number(options, 2, value, "srs_cfg_ap_v1310_s::tx_comb_num_r13_e_");
 }
 
-std::string sched_request_cfg_v1530_c::setup_s_::dssr_trans_max_r15_e_::to_string() const
+std::string sched_request_cfg_v1530_c::setup_s_::dssr_trans_max_r15_opts::to_string() const
 {
   switch (value) {
     case n4:
@@ -10343,13 +10341,13 @@ std::string sched_request_cfg_v1530_c::setup_s_::dssr_trans_max_r15_e_::to_strin
   }
   return "";
 }
-uint8_t sched_request_cfg_v1530_c::setup_s_::dssr_trans_max_r15_e_::to_number() const
+uint8_t sched_request_cfg_v1530_c::setup_s_::dssr_trans_max_r15_opts::to_number() const
 {
   const static uint8_t options[] = {4, 8, 16, 32, 64};
   return get_enum_number(options, 5, value, "sched_request_cfg_v1530_c::setup_s_::dssr_trans_max_r15_e_");
 }
 
-std::string slot_or_subslot_pdsch_cfg_r15_c::setup_s_::alt_cqi_table_stti_r15_e_::to_string() const
+std::string slot_or_subslot_pdsch_cfg_r15_c::setup_s_::alt_cqi_table_stti_r15_opts::to_string() const
 {
   switch (value) {
     case all_sfs:
@@ -10365,7 +10363,7 @@ std::string slot_or_subslot_pdsch_cfg_r15_c::setup_s_::alt_cqi_table_stti_r15_e_
   }
   return "";
 }
-uint8_t slot_or_subslot_pdsch_cfg_r15_c::setup_s_::alt_cqi_table_stti_r15_e_::to_number() const
+uint8_t slot_or_subslot_pdsch_cfg_r15_c::setup_s_::alt_cqi_table_stti_r15_opts::to_number() const
 {
   switch (value) {
     case csi_sf_set1:
@@ -10378,7 +10376,7 @@ uint8_t slot_or_subslot_pdsch_cfg_r15_c::setup_s_::alt_cqi_table_stti_r15_e_::to
   return 0;
 }
 
-std::string slot_or_subslot_pdsch_cfg_r15_c::setup_s_::alt_cqi_table1024_qam_stti_r15_e_::to_string() const
+std::string slot_or_subslot_pdsch_cfg_r15_c::setup_s_::alt_cqi_table1024_qam_stti_r15_opts::to_string() const
 {
   switch (value) {
     case all_sfs:
@@ -10394,7 +10392,7 @@ std::string slot_or_subslot_pdsch_cfg_r15_c::setup_s_::alt_cqi_table1024_qam_stt
   }
   return "";
 }
-uint8_t slot_or_subslot_pdsch_cfg_r15_c::setup_s_::alt_cqi_table1024_qam_stti_r15_e_::to_number() const
+uint8_t slot_or_subslot_pdsch_cfg_r15_c::setup_s_::alt_cqi_table1024_qam_stti_r15_opts::to_number() const
 {
   switch (value) {
     case csi_sf_set1:
@@ -10407,7 +10405,7 @@ uint8_t slot_or_subslot_pdsch_cfg_r15_c::setup_s_::alt_cqi_table1024_qam_stti_r1
   return 0;
 }
 
-std::string slot_or_subslot_pdsch_cfg_r15_c::setup_s_::res_alloc_r15_e_::to_string() const
+std::string slot_or_subslot_pdsch_cfg_r15_c::setup_s_::res_alloc_r15_opts::to_string() const
 {
   switch (value) {
     case res_alloc_type0:
@@ -10419,13 +10417,13 @@ std::string slot_or_subslot_pdsch_cfg_r15_c::setup_s_::res_alloc_r15_e_::to_stri
   }
   return "";
 }
-uint8_t slot_or_subslot_pdsch_cfg_r15_c::setup_s_::res_alloc_r15_e_::to_number() const
+uint8_t slot_or_subslot_pdsch_cfg_r15_c::setup_s_::res_alloc_r15_opts::to_number() const
 {
   const static uint8_t options[] = {0, 2};
   return get_enum_number(options, 2, value, "slot_or_subslot_pdsch_cfg_r15_c::setup_s_::res_alloc_r15_e_");
 }
 
-std::string tdd_pusch_up_pts_r14_c::setup_s_::sym_pusch_up_pts_r14_e_::to_string() const
+std::string tdd_pusch_up_pts_r14_c::setup_s_::sym_pusch_up_pts_r14_opts::to_string() const
 {
   switch (value) {
     case sym1:
@@ -10445,13 +10443,13 @@ std::string tdd_pusch_up_pts_r14_c::setup_s_::sym_pusch_up_pts_r14_e_::to_string
   }
   return "";
 }
-uint8_t tdd_pusch_up_pts_r14_c::setup_s_::sym_pusch_up_pts_r14_e_::to_number() const
+uint8_t tdd_pusch_up_pts_r14_c::setup_s_::sym_pusch_up_pts_r14_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3, 4, 5, 6};
   return get_enum_number(options, 6, value, "tdd_pusch_up_pts_r14_c::setup_s_::sym_pusch_up_pts_r14_e_");
 }
 
-std::string ant_info_ded_s::tx_mode_e_::to_string() const
+std::string ant_info_ded_s::tx_mode_opts::to_string() const
 {
   switch (value) {
     case tm1:
@@ -10475,13 +10473,13 @@ std::string ant_info_ded_s::tx_mode_e_::to_string() const
   }
   return "";
 }
-uint8_t ant_info_ded_s::tx_mode_e_::to_number() const
+uint8_t ant_info_ded_s::tx_mode_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3, 4, 5, 6, 7, 8};
   return get_enum_number(options, 8, value, "ant_info_ded_s::tx_mode_e_");
 }
 
-std::string ant_info_ded_s::codebook_subset_restrict_c_::types::to_string() const
+std::string ant_info_ded_s::codebook_subset_restrict_c_::types_opts::to_string() const
 {
   switch (value) {
     case n2_tx_ant_tm3:
@@ -10508,7 +10506,7 @@ std::string ant_info_ded_s::codebook_subset_restrict_c_::types::to_string() cons
   return "";
 }
 
-std::string ant_info_ded_s::ue_tx_ant_sel_c_::setup_e_::to_string() const
+std::string ant_info_ded_s::ue_tx_ant_sel_c_::setup_opts::to_string() const
 {
   switch (value) {
     case closed_loop:
@@ -10521,7 +10519,7 @@ std::string ant_info_ded_s::ue_tx_ant_sel_c_::setup_e_::to_string() const
   return "";
 }
 
-std::string ant_info_ded_r10_s::tx_mode_r10_e_::to_string() const
+std::string ant_info_ded_r10_s::tx_mode_r10_opts::to_string() const
 {
   switch (value) {
     case tm1:
@@ -10561,13 +10559,13 @@ std::string ant_info_ded_r10_s::tx_mode_r10_e_::to_string() const
   }
   return "";
 }
-uint8_t ant_info_ded_r10_s::tx_mode_r10_e_::to_number() const
+uint8_t ant_info_ded_r10_s::tx_mode_r10_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
   return get_enum_number(options, 10, value, "ant_info_ded_r10_s::tx_mode_r10_e_");
 }
 
-std::string ant_info_ded_r10_s::ue_tx_ant_sel_c_::setup_e_::to_string() const
+std::string ant_info_ded_r10_s::ue_tx_ant_sel_c_::setup_opts::to_string() const
 {
   switch (value) {
     case closed_loop:
@@ -10580,7 +10578,7 @@ std::string ant_info_ded_r10_s::ue_tx_ant_sel_c_::setup_e_::to_string() const
   return "";
 }
 
-std::string ant_info_ded_v1530_c::setup_c_::ue_tx_ant_sel_srs_minus2_t4_r_nr_of_pairs_r15_e_::to_string() const
+std::string ant_info_ded_v1530_c::setup_c_::ue_tx_ant_sel_srs_minus2_t4_r_nr_of_pairs_r15_opts::to_string() const
 {
   switch (value) {
     case two:
@@ -10592,14 +10590,14 @@ std::string ant_info_ded_v1530_c::setup_c_::ue_tx_ant_sel_srs_minus2_t4_r_nr_of_
   }
   return "";
 }
-uint8_t ant_info_ded_v1530_c::setup_c_::ue_tx_ant_sel_srs_minus2_t4_r_nr_of_pairs_r15_e_::to_number() const
+uint8_t ant_info_ded_v1530_c::setup_c_::ue_tx_ant_sel_srs_minus2_t4_r_nr_of_pairs_r15_opts::to_number() const
 {
   const static uint8_t options[] = {2, 3};
   return get_enum_number(options, 2, value,
                          "ant_info_ded_v1530_c::setup_c_::ue_tx_ant_sel_srs_minus2_t4_r_nr_of_pairs_r15_e_");
 }
 
-std::string ant_info_ded_v1530_c::setup_c_::types::to_string() const
+std::string ant_info_ded_v1530_c::setup_c_::types_opts::to_string() const
 {
   switch (value) {
     case ue_tx_ant_sel_srs_minus1_t4_r_cfg_r15:
@@ -10613,13 +10611,13 @@ std::string ant_info_ded_v1530_c::setup_c_::types::to_string() const
   }
   return "";
 }
-int8_t ant_info_ded_v1530_c::setup_c_::types::to_number() const
+int8_t ant_info_ded_v1530_c::setup_c_::types_opts::to_number() const
 {
   const static int8_t options[] = {-1, -2};
   return get_enum_number(options, 2, value, "ant_info_ded_v1530_c::setup_c_::types");
 }
 
-std::string ant_info_ded_v920_s::codebook_subset_restrict_v920_c_::types::to_string() const
+std::string ant_info_ded_v920_s::codebook_subset_restrict_v920_c_::types_opts::to_string() const
 {
   switch (value) {
     case n2_tx_ant_tm8_r9:
@@ -10633,13 +10631,13 @@ std::string ant_info_ded_v920_s::codebook_subset_restrict_v920_c_::types::to_str
   }
   return "";
 }
-uint8_t ant_info_ded_v920_s::codebook_subset_restrict_v920_c_::types::to_number() const
+uint8_t ant_info_ded_v920_s::codebook_subset_restrict_v920_c_::types_opts::to_number() const
 {
   const static uint8_t options[] = {2, 4};
   return get_enum_number(options, 2, value, "ant_info_ded_v920_s::codebook_subset_restrict_v920_c_::types");
 }
 
-std::string ant_info_ul_r10_s::tx_mode_ul_r10_e_::to_string() const
+std::string ant_info_ul_r10_s::tx_mode_ul_r10_opts::to_string() const
 {
   switch (value) {
     case tm1:
@@ -10663,13 +10661,13 @@ std::string ant_info_ul_r10_s::tx_mode_ul_r10_e_::to_string() const
   }
   return "";
 }
-uint8_t ant_info_ul_r10_s::tx_mode_ul_r10_e_::to_number() const
+uint8_t ant_info_ul_r10_s::tx_mode_ul_r10_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2};
   return get_enum_number(options, 2, value, "ant_info_ul_r10_s::tx_mode_ul_r10_e_");
 }
 
-std::string cqi_report_cfg_v1530_s::alt_cqi_table_minus1024_qam_r15_e_::to_string() const
+std::string cqi_report_cfg_v1530_s::alt_cqi_table_minus1024_qam_r15_opts::to_string() const
 {
   switch (value) {
     case all_sfs:
@@ -10685,7 +10683,7 @@ std::string cqi_report_cfg_v1530_s::alt_cqi_table_minus1024_qam_r15_e_::to_strin
   }
   return "";
 }
-uint8_t cqi_report_cfg_v1530_s::alt_cqi_table_minus1024_qam_r15_e_::to_number() const
+uint8_t cqi_report_cfg_v1530_s::alt_cqi_table_minus1024_qam_r15_opts::to_number() const
 {
   switch (value) {
     case csi_sf_set1:
@@ -10698,7 +10696,7 @@ uint8_t cqi_report_cfg_v1530_s::alt_cqi_table_minus1024_qam_r15_e_::to_number() 
   return 0;
 }
 
-std::string drb_to_add_mod_s::drb_type_lwip_r13_e_::to_string() const
+std::string drb_to_add_mod_s::drb_type_lwip_r13_opts::to_string() const
 {
   switch (value) {
     case lwip:
@@ -10715,7 +10713,7 @@ std::string drb_to_add_mod_s::drb_type_lwip_r13_e_::to_string() const
   return "";
 }
 
-std::string drb_to_add_mod_s::lwa_wlan_ac_r14_e_::to_string() const
+std::string drb_to_add_mod_s::lwa_wlan_ac_r14_opts::to_string() const
 {
   switch (value) {
     case ac_bk:
@@ -10732,7 +10730,7 @@ std::string drb_to_add_mod_s::lwa_wlan_ac_r14_e_::to_string() const
   return "";
 }
 
-std::string drx_cfg_c::setup_s_::on_dur_timer_e_::to_string() const
+std::string drx_cfg_c::setup_s_::on_dur_timer_opts::to_string() const
 {
   switch (value) {
     case psf1:
@@ -10772,13 +10770,13 @@ std::string drx_cfg_c::setup_s_::on_dur_timer_e_::to_string() const
   }
   return "";
 }
-uint8_t drx_cfg_c::setup_s_::on_dur_timer_e_::to_number() const
+uint8_t drx_cfg_c::setup_s_::on_dur_timer_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3, 4, 5, 6, 8, 10, 20, 30, 40, 50, 60, 80, 100, 200};
   return get_enum_number(options, 16, value, "drx_cfg_c::setup_s_::on_dur_timer_e_");
 }
 
-std::string drx_cfg_c::setup_s_::drx_inactivity_timer_e_::to_string() const
+std::string drx_cfg_c::setup_s_::drx_inactivity_timer_opts::to_string() const
 {
   switch (value) {
     case psf1:
@@ -10850,14 +10848,14 @@ std::string drx_cfg_c::setup_s_::drx_inactivity_timer_e_::to_string() const
   }
   return "";
 }
-uint16_t drx_cfg_c::setup_s_::drx_inactivity_timer_e_::to_number() const
+uint16_t drx_cfg_c::setup_s_::drx_inactivity_timer_opts::to_number() const
 {
   const static uint16_t options[] = {1,  2,  3,   4,   5,   6,   8,   10,   20,   30,   40, 50,
                                      60, 80, 100, 200, 300, 500, 750, 1280, 1920, 2560, 0};
   return get_enum_number(options, 23, value, "drx_cfg_c::setup_s_::drx_inactivity_timer_e_");
 }
 
-std::string drx_cfg_c::setup_s_::drx_retx_timer_e_::to_string() const
+std::string drx_cfg_c::setup_s_::drx_retx_timer_opts::to_string() const
 {
   switch (value) {
     case psf1:
@@ -10881,13 +10879,13 @@ std::string drx_cfg_c::setup_s_::drx_retx_timer_e_::to_string() const
   }
   return "";
 }
-uint8_t drx_cfg_c::setup_s_::drx_retx_timer_e_::to_number() const
+uint8_t drx_cfg_c::setup_s_::drx_retx_timer_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 4, 6, 8, 16, 24, 33};
   return get_enum_number(options, 8, value, "drx_cfg_c::setup_s_::drx_retx_timer_e_");
 }
 
-std::string drx_cfg_c::setup_s_::long_drx_cycle_start_offset_c_::types::to_string() const
+std::string drx_cfg_c::setup_s_::long_drx_cycle_start_offset_c_::types_opts::to_string() const
 {
   switch (value) {
     case sf10:
@@ -10929,13 +10927,13 @@ std::string drx_cfg_c::setup_s_::long_drx_cycle_start_offset_c_::types::to_strin
   }
   return "";
 }
-uint16_t drx_cfg_c::setup_s_::long_drx_cycle_start_offset_c_::types::to_number() const
+uint16_t drx_cfg_c::setup_s_::long_drx_cycle_start_offset_c_::types_opts::to_number() const
 {
   const static uint16_t options[] = {10, 20, 32, 40, 64, 80, 128, 160, 256, 320, 512, 640, 1024, 1280, 2048, 2560};
   return get_enum_number(options, 16, value, "drx_cfg_c::setup_s_::long_drx_cycle_start_offset_c_::types");
 }
 
-std::string drx_cfg_c::setup_s_::short_drx_s_::short_drx_cycle_e_::to_string() const
+std::string drx_cfg_c::setup_s_::short_drx_s_::short_drx_cycle_opts::to_string() const
 {
   switch (value) {
     case sf2:
@@ -10975,13 +10973,13 @@ std::string drx_cfg_c::setup_s_::short_drx_s_::short_drx_cycle_e_::to_string() c
   }
   return "";
 }
-uint16_t drx_cfg_c::setup_s_::short_drx_s_::short_drx_cycle_e_::to_number() const
+uint16_t drx_cfg_c::setup_s_::short_drx_s_::short_drx_cycle_opts::to_number() const
 {
   const static uint16_t options[] = {2, 5, 8, 10, 16, 20, 32, 40, 64, 80, 128, 160, 256, 320, 512, 640};
   return get_enum_number(options, 16, value, "drx_cfg_c::setup_s_::short_drx_s_::short_drx_cycle_e_");
 }
 
-std::string drx_cfg_r13_s::on_dur_timer_v1310_e_::to_string() const
+std::string drx_cfg_r13_s::on_dur_timer_v1310_opts::to_string() const
 {
   switch (value) {
     case psf300:
@@ -11005,13 +11003,13 @@ std::string drx_cfg_r13_s::on_dur_timer_v1310_e_::to_string() const
   }
   return "";
 }
-uint16_t drx_cfg_r13_s::on_dur_timer_v1310_e_::to_number() const
+uint16_t drx_cfg_r13_s::on_dur_timer_v1310_opts::to_number() const
 {
   const static uint16_t options[] = {300, 400, 500, 600, 800, 1000, 1200, 1600};
   return get_enum_number(options, 8, value, "drx_cfg_r13_s::on_dur_timer_v1310_e_");
 }
 
-std::string drx_cfg_r13_s::drx_retx_timer_v1310_e_::to_string() const
+std::string drx_cfg_r13_s::drx_retx_timer_v1310_opts::to_string() const
 {
   switch (value) {
     case psf40:
@@ -11035,13 +11033,13 @@ std::string drx_cfg_r13_s::drx_retx_timer_v1310_e_::to_string() const
   }
   return "";
 }
-uint16_t drx_cfg_r13_s::drx_retx_timer_v1310_e_::to_number() const
+uint16_t drx_cfg_r13_s::drx_retx_timer_v1310_opts::to_number() const
 {
   const static uint16_t options[] = {40, 64, 80, 96, 112, 128, 160, 320};
   return get_enum_number(options, 8, value, "drx_cfg_r13_s::drx_retx_timer_v1310_e_");
 }
 
-std::string drx_cfg_r13_s::drx_ul_retx_timer_r13_e_::to_string() const
+std::string drx_cfg_r13_s::drx_ul_retx_timer_r13_opts::to_string() const
 {
   switch (value) {
     case psf0:
@@ -11083,13 +11081,13 @@ std::string drx_cfg_r13_s::drx_ul_retx_timer_r13_e_::to_string() const
   }
   return "";
 }
-uint16_t drx_cfg_r13_s::drx_ul_retx_timer_r13_e_::to_number() const
+uint16_t drx_cfg_r13_s::drx_ul_retx_timer_r13_opts::to_number() const
 {
   const static uint16_t options[] = {0, 1, 2, 4, 6, 8, 16, 24, 33, 40, 64, 80, 96, 112, 128, 160, 320};
   return get_enum_number(options, 17, value, "drx_cfg_r13_s::drx_ul_retx_timer_r13_e_");
 }
 
-std::string drx_cfg_r15_s::drx_retx_timer_short_tti_r15_e_::to_string() const
+std::string drx_cfg_r15_s::drx_retx_timer_short_tti_r15_opts::to_string() const
 {
   switch (value) {
     case tti10:
@@ -11117,13 +11115,13 @@ std::string drx_cfg_r15_s::drx_retx_timer_short_tti_r15_e_::to_string() const
   }
   return "";
 }
-uint16_t drx_cfg_r15_s::drx_retx_timer_short_tti_r15_e_::to_number() const
+uint16_t drx_cfg_r15_s::drx_retx_timer_short_tti_r15_opts::to_number() const
 {
   const static uint16_t options[] = {10, 20, 40, 64, 80, 96, 112, 128, 160, 320};
   return get_enum_number(options, 10, value, "drx_cfg_r15_s::drx_retx_timer_short_tti_r15_e_");
 }
 
-std::string drx_cfg_r15_s::drx_ul_retx_timer_short_tti_r15_e_::to_string() const
+std::string drx_cfg_r15_s::drx_ul_retx_timer_short_tti_r15_opts::to_string() const
 {
   switch (value) {
     case tti0:
@@ -11165,13 +11163,13 @@ std::string drx_cfg_r15_s::drx_ul_retx_timer_short_tti_r15_e_::to_string() const
   }
   return "";
 }
-uint16_t drx_cfg_r15_s::drx_ul_retx_timer_short_tti_r15_e_::to_number() const
+uint16_t drx_cfg_r15_s::drx_ul_retx_timer_short_tti_r15_opts::to_number() const
 {
   const static uint16_t options[] = {0, 1, 2, 4, 6, 8, 16, 24, 33, 40, 64, 80, 96, 112, 128, 160, 320};
   return get_enum_number(options, 17, value, "drx_cfg_r15_s::drx_ul_retx_timer_short_tti_r15_e_");
 }
 
-std::string drx_cfg_v1130_s::long_drx_cycle_start_offset_v1130_c_::types::to_string() const
+std::string drx_cfg_v1130_s::long_drx_cycle_start_offset_v1130_c_::types_opts::to_string() const
 {
   switch (value) {
     case sf60_v1130:
@@ -11185,14 +11183,14 @@ std::string drx_cfg_v1130_s::long_drx_cycle_start_offset_v1130_c_::types::to_str
   }
   return "";
 }
-uint8_t drx_cfg_v1130_s::long_drx_cycle_start_offset_v1130_c_::types::to_number() const
+uint8_t drx_cfg_v1130_s::long_drx_cycle_start_offset_v1130_c_::types_opts::to_number() const
 {
   const static uint8_t options[] = {60, 70};
   return get_enum_number(options, 2, value, "drx_cfg_v1130_s::long_drx_cycle_start_offset_v1130_c_::types");
 }
 
 // DataInactivityTimer-r14 ::= ENUMERATED
-std::string data_inactivity_timer_r14_e::to_string() const
+std::string data_inactivity_timer_r14_opts::to_string() const
 {
   switch (value) {
     case s1:
@@ -11232,13 +11230,13 @@ std::string data_inactivity_timer_r14_e::to_string() const
   }
   return "";
 }
-uint8_t data_inactivity_timer_r14_e::to_number() const
+uint8_t data_inactivity_timer_r14_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3, 5, 7, 10, 15, 20, 40, 50, 60, 80, 100, 120, 150, 180};
   return get_enum_number(options, 16, value, "data_inactivity_timer_r14_e");
 }
 
-std::string pdsch_cfg_ded_s::p_a_e_::to_string() const
+std::string pdsch_cfg_ded_s::p_a_opts::to_string() const
 {
   switch (value) {
     case db_minus6:
@@ -11262,12 +11260,12 @@ std::string pdsch_cfg_ded_s::p_a_e_::to_string() const
   }
   return "";
 }
-float pdsch_cfg_ded_s::p_a_e_::to_number() const
+float pdsch_cfg_ded_s::p_a_opts::to_number() const
 {
   const static float options[] = {-6.0, -4.77, -3.0, -1.77, 0.0, 1.0, 2.0, 3.0};
   return get_enum_number(options, 8, value, "pdsch_cfg_ded_s::p_a_e_");
 }
-std::string pdsch_cfg_ded_s::p_a_e_::to_number_string() const
+std::string pdsch_cfg_ded_s::p_a_opts::to_number_string() const
 {
   switch (value) {
     case db_minus6:
@@ -11292,7 +11290,7 @@ std::string pdsch_cfg_ded_s::p_a_e_::to_number_string() const
   return "";
 }
 
-std::string pdsch_cfg_ded_v1130_s::qcl_operation_e_::to_string() const
+std::string pdsch_cfg_ded_v1130_s::qcl_operation_opts::to_string() const
 {
   switch (value) {
     case type_a:
@@ -11305,7 +11303,7 @@ std::string pdsch_cfg_ded_v1130_s::qcl_operation_e_::to_string() const
   return "";
 }
 
-std::string pdsch_cfg_ded_v1280_s::tbs_idx_alt_r12_e_::to_string() const
+std::string pdsch_cfg_ded_v1280_s::tbs_idx_alt_r12_opts::to_string() const
 {
   switch (value) {
     case a26:
@@ -11317,13 +11315,13 @@ std::string pdsch_cfg_ded_v1280_s::tbs_idx_alt_r12_e_::to_string() const
   }
   return "";
 }
-uint8_t pdsch_cfg_ded_v1280_s::tbs_idx_alt_r12_e_::to_number() const
+uint8_t pdsch_cfg_ded_v1280_s::tbs_idx_alt_r12_opts::to_number() const
 {
   const static uint8_t options[] = {26, 33};
   return get_enum_number(options, 2, value, "pdsch_cfg_ded_v1280_s::tbs_idx_alt_r12_e_");
 }
 
-std::string pdsch_cfg_ded_v1430_s::ce_pdsch_max_bw_r14_e_::to_string() const
+std::string pdsch_cfg_ded_v1430_s::ce_pdsch_max_bw_r14_opts::to_string() const
 {
   switch (value) {
     case bw5:
@@ -11335,13 +11333,13 @@ std::string pdsch_cfg_ded_v1430_s::ce_pdsch_max_bw_r14_e_::to_string() const
   }
   return "";
 }
-uint8_t pdsch_cfg_ded_v1430_s::ce_pdsch_max_bw_r14_e_::to_number() const
+uint8_t pdsch_cfg_ded_v1430_s::ce_pdsch_max_bw_r14_opts::to_number() const
 {
   const static uint8_t options[] = {5, 20};
   return get_enum_number(options, 2, value, "pdsch_cfg_ded_v1430_s::ce_pdsch_max_bw_r14_e_");
 }
 
-std::string pdsch_cfg_ded_v1430_s::ce_sched_enhancement_r14_e_::to_string() const
+std::string pdsch_cfg_ded_v1430_s::ce_sched_enhancement_r14_opts::to_string() const
 {
   switch (value) {
     case range1:
@@ -11353,13 +11351,13 @@ std::string pdsch_cfg_ded_v1430_s::ce_sched_enhancement_r14_e_::to_string() cons
   }
   return "";
 }
-uint8_t pdsch_cfg_ded_v1430_s::ce_sched_enhancement_r14_e_::to_number() const
+uint8_t pdsch_cfg_ded_v1430_s::ce_sched_enhancement_r14_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2};
   return get_enum_number(options, 2, value, "pdsch_cfg_ded_v1430_s::ce_sched_enhancement_r14_e_");
 }
 
-std::string pdsch_cfg_ded_v1530_s::alt_mcs_table_scaling_cfg_r15_e_::to_string() const
+std::string pdsch_cfg_ded_v1530_s::alt_mcs_table_scaling_cfg_r15_opts::to_string() const
 {
   switch (value) {
     case o_dot5:
@@ -11375,12 +11373,12 @@ std::string pdsch_cfg_ded_v1530_s::alt_mcs_table_scaling_cfg_r15_e_::to_string()
   }
   return "";
 }
-float pdsch_cfg_ded_v1530_s::alt_mcs_table_scaling_cfg_r15_e_::to_number() const
+float pdsch_cfg_ded_v1530_s::alt_mcs_table_scaling_cfg_r15_opts::to_number() const
 {
   const static float options[] = {0.5, 0.625, 0.75, 0.875};
   return get_enum_number(options, 4, value, "pdsch_cfg_ded_v1530_s::alt_mcs_table_scaling_cfg_r15_e_");
 }
-std::string pdsch_cfg_ded_v1530_s::alt_mcs_table_scaling_cfg_r15_e_::to_number_string() const
+std::string pdsch_cfg_ded_v1530_s::alt_mcs_table_scaling_cfg_r15_opts::to_number_string() const
 {
   switch (value) {
     case o_dot5:
@@ -11397,7 +11395,7 @@ std::string pdsch_cfg_ded_v1530_s::alt_mcs_table_scaling_cfg_r15_e_::to_number_s
   return "";
 }
 
-std::string pucch_cfg_ded_s::ack_nack_repeat_c_::setup_s_::repeat_factor_e_::to_string() const
+std::string pucch_cfg_ded_s::ack_nack_repeat_c_::setup_s_::repeat_factor_opts::to_string() const
 {
   switch (value) {
     case n2:
@@ -11413,13 +11411,13 @@ std::string pucch_cfg_ded_s::ack_nack_repeat_c_::setup_s_::repeat_factor_e_::to_
   }
   return "";
 }
-uint8_t pucch_cfg_ded_s::ack_nack_repeat_c_::setup_s_::repeat_factor_e_::to_number() const
+uint8_t pucch_cfg_ded_s::ack_nack_repeat_c_::setup_s_::repeat_factor_opts::to_number() const
 {
   const static uint8_t options[] = {2, 4, 6};
   return get_enum_number(options, 3, value, "pucch_cfg_ded_s::ack_nack_repeat_c_::setup_s_::repeat_factor_e_");
 }
 
-std::string pucch_cfg_ded_s::tdd_ack_nack_feedback_mode_e_::to_string() const
+std::string pucch_cfg_ded_s::tdd_ack_nack_feedback_mode_opts::to_string() const
 {
   switch (value) {
     case bundling:
@@ -11432,7 +11430,7 @@ std::string pucch_cfg_ded_s::tdd_ack_nack_feedback_mode_e_::to_string() const
   return "";
 }
 
-std::string pucch_cfg_ded_r13_s::ack_nack_repeat_r13_c_::setup_s_::repeat_factor_r13_e_::to_string() const
+std::string pucch_cfg_ded_r13_s::ack_nack_repeat_r13_c_::setup_s_::repeat_factor_r13_opts::to_string() const
 {
   switch (value) {
     case n2:
@@ -11448,14 +11446,14 @@ std::string pucch_cfg_ded_r13_s::ack_nack_repeat_r13_c_::setup_s_::repeat_factor
   }
   return "";
 }
-uint8_t pucch_cfg_ded_r13_s::ack_nack_repeat_r13_c_::setup_s_::repeat_factor_r13_e_::to_number() const
+uint8_t pucch_cfg_ded_r13_s::ack_nack_repeat_r13_c_::setup_s_::repeat_factor_r13_opts::to_number() const
 {
   const static uint8_t options[] = {2, 4, 6};
   return get_enum_number(options, 3, value,
                          "pucch_cfg_ded_r13_s::ack_nack_repeat_r13_c_::setup_s_::repeat_factor_r13_e_");
 }
 
-std::string pucch_cfg_ded_r13_s::tdd_ack_nack_feedback_mode_r13_e_::to_string() const
+std::string pucch_cfg_ded_r13_s::tdd_ack_nack_feedback_mode_r13_opts::to_string() const
 {
   switch (value) {
     case bundling:
@@ -11468,7 +11466,7 @@ std::string pucch_cfg_ded_r13_s::tdd_ack_nack_feedback_mode_r13_e_::to_string() 
   return "";
 }
 
-std::string pucch_cfg_ded_r13_s::pucch_format_r13_c_::types::to_string() const
+std::string pucch_cfg_ded_r13_s::pucch_format_r13_c_::types_opts::to_string() const
 {
   switch (value) {
     case format3_r13:
@@ -11486,7 +11484,7 @@ std::string pucch_cfg_ded_r13_s::pucch_format_r13_c_::types::to_string() const
   }
   return "";
 }
-uint8_t pucch_cfg_ded_r13_s::pucch_format_r13_c_::types::to_number() const
+uint8_t pucch_cfg_ded_r13_s::pucch_format_r13_c_::types_opts::to_number() const
 {
   switch (value) {
     case format3_r13:
@@ -11501,7 +11499,7 @@ uint8_t pucch_cfg_ded_r13_s::pucch_format_r13_c_::types::to_number() const
   return 0;
 }
 
-std::string pucch_cfg_ded_r13_s::codebooksize_determination_r13_e_::to_string() const
+std::string pucch_cfg_ded_r13_s::codebooksize_determination_r13_opts::to_string() const
 {
   switch (value) {
     case dai:
@@ -11515,7 +11513,7 @@ std::string pucch_cfg_ded_r13_s::codebooksize_determination_r13_e_::to_string() 
 }
 
 std::string
-pucch_cfg_ded_r13_s::pucch_num_repeat_ce_r13_c_::setup_c_::mode_a_s_::pucch_num_repeat_ce_format1_r13_e_::to_string()
+pucch_cfg_ded_r13_s::pucch_num_repeat_ce_r13_c_::setup_c_::mode_a_s_::pucch_num_repeat_ce_format1_r13_opts::to_string()
     const
 {
   switch (value) {
@@ -11535,7 +11533,7 @@ pucch_cfg_ded_r13_s::pucch_num_repeat_ce_r13_c_::setup_c_::mode_a_s_::pucch_num_
   return "";
 }
 uint8_t
-pucch_cfg_ded_r13_s::pucch_num_repeat_ce_r13_c_::setup_c_::mode_a_s_::pucch_num_repeat_ce_format1_r13_e_::to_number()
+pucch_cfg_ded_r13_s::pucch_num_repeat_ce_r13_c_::setup_c_::mode_a_s_::pucch_num_repeat_ce_format1_r13_opts::to_number()
     const
 {
   const static uint8_t options[] = {1, 2, 4, 8};
@@ -11545,7 +11543,7 @@ pucch_cfg_ded_r13_s::pucch_num_repeat_ce_r13_c_::setup_c_::mode_a_s_::pucch_num_
 }
 
 std::string
-pucch_cfg_ded_r13_s::pucch_num_repeat_ce_r13_c_::setup_c_::mode_a_s_::pucch_num_repeat_ce_format2_r13_e_::to_string()
+pucch_cfg_ded_r13_s::pucch_num_repeat_ce_r13_c_::setup_c_::mode_a_s_::pucch_num_repeat_ce_format2_r13_opts::to_string()
     const
 {
   switch (value) {
@@ -11565,7 +11563,7 @@ pucch_cfg_ded_r13_s::pucch_num_repeat_ce_r13_c_::setup_c_::mode_a_s_::pucch_num_
   return "";
 }
 uint8_t
-pucch_cfg_ded_r13_s::pucch_num_repeat_ce_r13_c_::setup_c_::mode_a_s_::pucch_num_repeat_ce_format2_r13_e_::to_number()
+pucch_cfg_ded_r13_s::pucch_num_repeat_ce_r13_c_::setup_c_::mode_a_s_::pucch_num_repeat_ce_format2_r13_opts::to_number()
     const
 {
   const static uint8_t options[] = {1, 2, 4, 8};
@@ -11575,7 +11573,7 @@ pucch_cfg_ded_r13_s::pucch_num_repeat_ce_r13_c_::setup_c_::mode_a_s_::pucch_num_
 }
 
 std::string
-pucch_cfg_ded_r13_s::pucch_num_repeat_ce_r13_c_::setup_c_::mode_b_s_::pucch_num_repeat_ce_format1_r13_e_::to_string()
+pucch_cfg_ded_r13_s::pucch_num_repeat_ce_r13_c_::setup_c_::mode_b_s_::pucch_num_repeat_ce_format1_r13_opts::to_string()
     const
 {
   switch (value) {
@@ -11595,7 +11593,7 @@ pucch_cfg_ded_r13_s::pucch_num_repeat_ce_r13_c_::setup_c_::mode_b_s_::pucch_num_
   return "";
 }
 uint8_t
-pucch_cfg_ded_r13_s::pucch_num_repeat_ce_r13_c_::setup_c_::mode_b_s_::pucch_num_repeat_ce_format1_r13_e_::to_number()
+pucch_cfg_ded_r13_s::pucch_num_repeat_ce_r13_c_::setup_c_::mode_b_s_::pucch_num_repeat_ce_format1_r13_opts::to_number()
     const
 {
   const static uint8_t options[] = {4, 8, 16, 32};
@@ -11605,7 +11603,7 @@ pucch_cfg_ded_r13_s::pucch_num_repeat_ce_r13_c_::setup_c_::mode_b_s_::pucch_num_
 }
 
 std::string
-pucch_cfg_ded_r13_s::pucch_num_repeat_ce_r13_c_::setup_c_::mode_b_s_::pucch_num_repeat_ce_format2_r13_e_::to_string()
+pucch_cfg_ded_r13_s::pucch_num_repeat_ce_r13_c_::setup_c_::mode_b_s_::pucch_num_repeat_ce_format2_r13_opts::to_string()
     const
 {
   switch (value) {
@@ -11625,7 +11623,7 @@ pucch_cfg_ded_r13_s::pucch_num_repeat_ce_r13_c_::setup_c_::mode_b_s_::pucch_num_
   return "";
 }
 uint8_t
-pucch_cfg_ded_r13_s::pucch_num_repeat_ce_r13_c_::setup_c_::mode_b_s_::pucch_num_repeat_ce_format2_r13_e_::to_number()
+pucch_cfg_ded_r13_s::pucch_num_repeat_ce_r13_c_::setup_c_::mode_b_s_::pucch_num_repeat_ce_format2_r13_opts::to_number()
     const
 {
   const static uint8_t options[] = {4, 8, 16, 32};
@@ -11634,7 +11632,7 @@ pucch_cfg_ded_r13_s::pucch_num_repeat_ce_r13_c_::setup_c_::mode_b_s_::pucch_num_
       "pucch_cfg_ded_r13_s::pucch_num_repeat_ce_r13_c_::setup_c_::mode_b_s_::pucch_num_repeat_ce_format2_r13_e_");
 }
 
-std::string pucch_cfg_ded_r13_s::pucch_num_repeat_ce_r13_c_::setup_c_::types::to_string() const
+std::string pucch_cfg_ded_r13_s::pucch_num_repeat_ce_r13_c_::setup_c_::types_opts::to_string() const
 {
   switch (value) {
     case mode_a:
@@ -11649,7 +11647,7 @@ std::string pucch_cfg_ded_r13_s::pucch_num_repeat_ce_r13_c_::setup_c_::types::to
   return "";
 }
 
-std::string pucch_cfg_ded_v1020_s::pucch_format_r10_c_::types::to_string() const
+std::string pucch_cfg_ded_v1020_s::pucch_format_r10_c_::types_opts::to_string() const
 {
   switch (value) {
     case format3_r10:
@@ -11663,13 +11661,13 @@ std::string pucch_cfg_ded_v1020_s::pucch_format_r10_c_::types::to_string() const
   }
   return "";
 }
-uint8_t pucch_cfg_ded_v1020_s::pucch_format_r10_c_::types::to_number() const
+uint8_t pucch_cfg_ded_v1020_s::pucch_format_r10_c_::types_opts::to_number() const
 {
   const static uint8_t options[] = {3};
   return get_enum_number(options, 1, value, "pucch_cfg_ded_v1020_s::pucch_format_r10_c_::types");
 }
 
-std::string pucch_cfg_ded_v1430_s::pucch_num_repeat_ce_format1_r14_e_::to_string() const
+std::string pucch_cfg_ded_v1430_s::pucch_num_repeat_ce_format1_r14_opts::to_string() const
 {
   switch (value) {
     case r64:
@@ -11681,14 +11679,14 @@ std::string pucch_cfg_ded_v1430_s::pucch_num_repeat_ce_format1_r14_e_::to_string
   }
   return "";
 }
-uint8_t pucch_cfg_ded_v1430_s::pucch_num_repeat_ce_format1_r14_e_::to_number() const
+uint8_t pucch_cfg_ded_v1430_s::pucch_num_repeat_ce_format1_r14_opts::to_number() const
 {
   const static uint8_t options[] = {64, 128};
   return get_enum_number(options, 2, value, "pucch_cfg_ded_v1430_s::pucch_num_repeat_ce_format1_r14_e_");
 }
 
 std::string
-pusch_enhance_cfg_r14_c::setup_s_::interv_ul_hop_pusch_enh_r14_c_::interv_fdd_pusch_enh_r14_e_::to_string() const
+pusch_enhance_cfg_r14_c::setup_s_::interv_ul_hop_pusch_enh_r14_c_::interv_fdd_pusch_enh_r14_opts::to_string() const
 {
   switch (value) {
     case int1:
@@ -11706,7 +11704,7 @@ pusch_enhance_cfg_r14_c::setup_s_::interv_ul_hop_pusch_enh_r14_c_::interv_fdd_pu
   return "";
 }
 uint8_t
-pusch_enhance_cfg_r14_c::setup_s_::interv_ul_hop_pusch_enh_r14_c_::interv_fdd_pusch_enh_r14_e_::to_number() const
+pusch_enhance_cfg_r14_c::setup_s_::interv_ul_hop_pusch_enh_r14_c_::interv_fdd_pusch_enh_r14_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 4, 8};
   return get_enum_number(
@@ -11715,7 +11713,7 @@ pusch_enhance_cfg_r14_c::setup_s_::interv_ul_hop_pusch_enh_r14_c_::interv_fdd_pu
 }
 
 std::string
-pusch_enhance_cfg_r14_c::setup_s_::interv_ul_hop_pusch_enh_r14_c_::interv_tdd_pusch_enh_r14_e_::to_string() const
+pusch_enhance_cfg_r14_c::setup_s_::interv_ul_hop_pusch_enh_r14_c_::interv_tdd_pusch_enh_r14_opts::to_string() const
 {
   switch (value) {
     case int1:
@@ -11733,7 +11731,7 @@ pusch_enhance_cfg_r14_c::setup_s_::interv_ul_hop_pusch_enh_r14_c_::interv_tdd_pu
   return "";
 }
 uint8_t
-pusch_enhance_cfg_r14_c::setup_s_::interv_ul_hop_pusch_enh_r14_c_::interv_tdd_pusch_enh_r14_e_::to_number() const
+pusch_enhance_cfg_r14_c::setup_s_::interv_ul_hop_pusch_enh_r14_c_::interv_tdd_pusch_enh_r14_opts::to_number() const
 {
   const static uint8_t options[] = {1, 5, 10, 20};
   return get_enum_number(
@@ -11741,7 +11739,7 @@ pusch_enhance_cfg_r14_c::setup_s_::interv_ul_hop_pusch_enh_r14_c_::interv_tdd_pu
       "pusch_enhance_cfg_r14_c::setup_s_::interv_ul_hop_pusch_enh_r14_c_::interv_tdd_pusch_enh_r14_e_");
 }
 
-std::string pusch_enhance_cfg_r14_c::setup_s_::interv_ul_hop_pusch_enh_r14_c_::types::to_string() const
+std::string pusch_enhance_cfg_r14_c::setup_s_::interv_ul_hop_pusch_enh_r14_c_::types_opts::to_string() const
 {
   switch (value) {
     case interv_fdd_pusch_enh_r14:
@@ -11757,7 +11755,7 @@ std::string pusch_enhance_cfg_r14_c::setup_s_::interv_ul_hop_pusch_enh_r14_c_::t
 }
 
 // PeriodicBSR-Timer-r12 ::= ENUMERATED
-std::string periodic_bsr_timer_r12_e::to_string() const
+std::string periodic_bsr_timer_r12_opts::to_string() const
 {
   switch (value) {
     case sf5:
@@ -11797,13 +11795,13 @@ std::string periodic_bsr_timer_r12_e::to_string() const
   }
   return "";
 }
-int16_t periodic_bsr_timer_r12_e::to_number() const
+int16_t periodic_bsr_timer_r12_opts::to_number() const
 {
   const static int16_t options[] = {5, 10, 16, 20, 32, 40, 64, 80, 128, 160, 320, 640, 1280, 2560, -1};
   return get_enum_number(options, 15, value, "periodic_bsr_timer_r12_e");
 }
 
-std::string rrc_conn_reject_v1130_ies_s::depriorit_req_r11_s_::depriorit_type_r11_e_::to_string() const
+std::string rrc_conn_reject_v1130_ies_s::depriorit_req_r11_s_::depriorit_type_r11_opts::to_string() const
 {
   switch (value) {
     case freq:
@@ -11816,7 +11814,7 @@ std::string rrc_conn_reject_v1130_ies_s::depriorit_req_r11_s_::depriorit_type_r1
   return "";
 }
 
-std::string rrc_conn_reject_v1130_ies_s::depriorit_req_r11_s_::depriorit_timer_r11_e_::to_string() const
+std::string rrc_conn_reject_v1130_ies_s::depriorit_req_r11_s_::depriorit_timer_r11_opts::to_string() const
 {
   switch (value) {
     case min5:
@@ -11832,7 +11830,7 @@ std::string rrc_conn_reject_v1130_ies_s::depriorit_req_r11_s_::depriorit_timer_r
   }
   return "";
 }
-uint8_t rrc_conn_reject_v1130_ies_s::depriorit_req_r11_s_::depriorit_timer_r11_e_::to_number() const
+uint8_t rrc_conn_reject_v1130_ies_s::depriorit_req_r11_s_::depriorit_timer_r11_opts::to_number() const
 {
   const static uint8_t options[] = {5, 10, 15, 30};
   return get_enum_number(options, 4, value,
@@ -11840,7 +11838,7 @@ uint8_t rrc_conn_reject_v1130_ies_s::depriorit_req_r11_s_::depriorit_timer_r11_e
 }
 
 // RetxBSR-Timer-r12 ::= ENUMERATED
-std::string retx_bsr_timer_r12_e::to_string() const
+std::string retx_bsr_timer_r12_opts::to_string() const
 {
   switch (value) {
     case sf320:
@@ -11864,13 +11862,13 @@ std::string retx_bsr_timer_r12_e::to_string() const
   }
   return "";
 }
-uint16_t retx_bsr_timer_r12_e::to_number() const
+uint16_t retx_bsr_timer_r12_opts::to_number() const
 {
   const static uint16_t options[] = {320, 640, 1280, 2560, 5120, 10240};
   return get_enum_number(options, 6, value, "retx_bsr_timer_r12_e");
 }
 
-std::string sps_cfg_dl_c::setup_s_::semi_persist_sched_interv_dl_e_::to_string() const
+std::string sps_cfg_dl_c::setup_s_::semi_persist_sched_interv_dl_opts::to_string() const
 {
   switch (value) {
     case sf10:
@@ -11910,13 +11908,13 @@ std::string sps_cfg_dl_c::setup_s_::semi_persist_sched_interv_dl_e_::to_string()
   }
   return "";
 }
-uint16_t sps_cfg_dl_c::setup_s_::semi_persist_sched_interv_dl_e_::to_number() const
+uint16_t sps_cfg_dl_c::setup_s_::semi_persist_sched_interv_dl_opts::to_number() const
 {
   const static uint16_t options[] = {10, 20, 32, 40, 64, 80, 128, 160, 320, 640};
   return get_enum_number(options, 10, value, "sps_cfg_dl_c::setup_s_::semi_persist_sched_interv_dl_e_");
 }
 
-std::string srb_to_add_mod_s::rlc_cfg_c_::types::to_string() const
+std::string srb_to_add_mod_s::rlc_cfg_c_::types_opts::to_string() const
 {
   switch (value) {
     case explicit_value:
@@ -11931,7 +11929,7 @@ std::string srb_to_add_mod_s::rlc_cfg_c_::types::to_string() const
   return "";
 }
 
-std::string srb_to_add_mod_s::lc_ch_cfg_c_::types::to_string() const
+std::string srb_to_add_mod_s::lc_ch_cfg_c_::types_opts::to_string() const
 {
   switch (value) {
     case explicit_value:
@@ -11946,7 +11944,7 @@ std::string srb_to_add_mod_s::lc_ch_cfg_c_::types::to_string() const
   return "";
 }
 
-std::string sched_request_cfg_c::setup_s_::dsr_trans_max_e_::to_string() const
+std::string sched_request_cfg_c::setup_s_::dsr_trans_max_opts::to_string() const
 {
   switch (value) {
     case n4:
@@ -11970,13 +11968,13 @@ std::string sched_request_cfg_c::setup_s_::dsr_trans_max_e_::to_string() const
   }
   return "";
 }
-uint8_t sched_request_cfg_c::setup_s_::dsr_trans_max_e_::to_number() const
+uint8_t sched_request_cfg_c::setup_s_::dsr_trans_max_opts::to_number() const
 {
   const static uint8_t options[] = {4, 8, 16, 32, 64};
   return get_enum_number(options, 5, value, "sched_request_cfg_c::setup_s_::dsr_trans_max_e_");
 }
 
-std::string srs_ul_cfg_ded_c::setup_s_::srs_bw_e_::to_string() const
+std::string srs_ul_cfg_ded_c::setup_s_::srs_bw_opts::to_string() const
 {
   switch (value) {
     case bw0:
@@ -11992,13 +11990,13 @@ std::string srs_ul_cfg_ded_c::setup_s_::srs_bw_e_::to_string() const
   }
   return "";
 }
-uint8_t srs_ul_cfg_ded_c::setup_s_::srs_bw_e_::to_number() const
+uint8_t srs_ul_cfg_ded_c::setup_s_::srs_bw_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1, 2, 3};
   return get_enum_number(options, 4, value, "srs_ul_cfg_ded_c::setup_s_::srs_bw_e_");
 }
 
-std::string srs_ul_cfg_ded_c::setup_s_::srs_hop_bw_e_::to_string() const
+std::string srs_ul_cfg_ded_c::setup_s_::srs_hop_bw_opts::to_string() const
 {
   switch (value) {
     case hbw0:
@@ -12014,13 +12012,13 @@ std::string srs_ul_cfg_ded_c::setup_s_::srs_hop_bw_e_::to_string() const
   }
   return "";
 }
-uint8_t srs_ul_cfg_ded_c::setup_s_::srs_hop_bw_e_::to_number() const
+uint8_t srs_ul_cfg_ded_c::setup_s_::srs_hop_bw_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1, 2, 3};
   return get_enum_number(options, 4, value, "srs_ul_cfg_ded_c::setup_s_::srs_hop_bw_e_");
 }
 
-std::string srs_ul_cfg_ded_c::setup_s_::cyclic_shift_e_::to_string() const
+std::string srs_ul_cfg_ded_c::setup_s_::cyclic_shift_opts::to_string() const
 {
   switch (value) {
     case cs0:
@@ -12044,13 +12042,13 @@ std::string srs_ul_cfg_ded_c::setup_s_::cyclic_shift_e_::to_string() const
   }
   return "";
 }
-uint8_t srs_ul_cfg_ded_c::setup_s_::cyclic_shift_e_::to_number() const
+uint8_t srs_ul_cfg_ded_c::setup_s_::cyclic_shift_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1, 2, 3, 4, 5, 6, 7};
   return get_enum_number(options, 8, value, "srs_ul_cfg_ded_c::setup_s_::cyclic_shift_e_");
 }
 
-std::string srs_ul_cfg_ded_v1310_c::setup_s_::cyclic_shift_v1310_e_::to_string() const
+std::string srs_ul_cfg_ded_v1310_c::setup_s_::cyclic_shift_v1310_opts::to_string() const
 {
   switch (value) {
     case cs8:
@@ -12066,13 +12064,13 @@ std::string srs_ul_cfg_ded_v1310_c::setup_s_::cyclic_shift_v1310_e_::to_string()
   }
   return "";
 }
-uint8_t srs_ul_cfg_ded_v1310_c::setup_s_::cyclic_shift_v1310_e_::to_number() const
+uint8_t srs_ul_cfg_ded_v1310_c::setup_s_::cyclic_shift_v1310_opts::to_number() const
 {
   const static uint8_t options[] = {8, 9, 10, 11};
   return get_enum_number(options, 4, value, "srs_ul_cfg_ded_v1310_c::setup_s_::cyclic_shift_v1310_e_");
 }
 
-std::string srs_ul_cfg_ded_v1310_c::setup_s_::tx_comb_num_r13_e_::to_string() const
+std::string srs_ul_cfg_ded_v1310_c::setup_s_::tx_comb_num_r13_opts::to_string() const
 {
   switch (value) {
     case n2:
@@ -12084,13 +12082,13 @@ std::string srs_ul_cfg_ded_v1310_c::setup_s_::tx_comb_num_r13_e_::to_string() co
   }
   return "";
 }
-uint8_t srs_ul_cfg_ded_v1310_c::setup_s_::tx_comb_num_r13_e_::to_number() const
+uint8_t srs_ul_cfg_ded_v1310_c::setup_s_::tx_comb_num_r13_opts::to_number() const
 {
   const static uint8_t options[] = {2, 4};
   return get_enum_number(options, 2, value, "srs_ul_cfg_ded_v1310_c::setup_s_::tx_comb_num_r13_e_");
 }
 
-std::string srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_c::setup_s_::srs_up_pts_add_r13_e_::to_string() const
+std::string srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_c::setup_s_::srs_up_pts_add_r13_opts::to_string() const
 {
   switch (value) {
     case sym2:
@@ -12102,14 +12100,14 @@ std::string srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_c::setup_s_::srs_up_pts_add_
   }
   return "";
 }
-uint8_t srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_c::setup_s_::srs_up_pts_add_r13_e_::to_number() const
+uint8_t srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_c::setup_s_::srs_up_pts_add_r13_opts::to_number() const
 {
   const static uint8_t options[] = {2, 4};
   return get_enum_number(options, 2, value,
                          "srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_c::setup_s_::srs_up_pts_add_r13_e_");
 }
 
-std::string srs_ul_cfg_ded_up_pts_ext_r13_c::setup_s_::srs_up_pts_add_r13_e_::to_string() const
+std::string srs_ul_cfg_ded_up_pts_ext_r13_c::setup_s_::srs_up_pts_add_r13_opts::to_string() const
 {
   switch (value) {
     case sym2:
@@ -12121,13 +12119,13 @@ std::string srs_ul_cfg_ded_up_pts_ext_r13_c::setup_s_::srs_up_pts_add_r13_e_::to
   }
   return "";
 }
-uint8_t srs_ul_cfg_ded_up_pts_ext_r13_c::setup_s_::srs_up_pts_add_r13_e_::to_number() const
+uint8_t srs_ul_cfg_ded_up_pts_ext_r13_c::setup_s_::srs_up_pts_add_r13_opts::to_number() const
 {
   const static uint8_t options[] = {2, 4};
   return get_enum_number(options, 2, value, "srs_ul_cfg_ded_up_pts_ext_r13_c::setup_s_::srs_up_pts_add_r13_e_");
 }
 
-std::string srs_ul_cfg_ded_up_pts_ext_r13_c::setup_s_::srs_bw_r13_e_::to_string() const
+std::string srs_ul_cfg_ded_up_pts_ext_r13_c::setup_s_::srs_bw_r13_opts::to_string() const
 {
   switch (value) {
     case bw0:
@@ -12143,13 +12141,13 @@ std::string srs_ul_cfg_ded_up_pts_ext_r13_c::setup_s_::srs_bw_r13_e_::to_string(
   }
   return "";
 }
-uint8_t srs_ul_cfg_ded_up_pts_ext_r13_c::setup_s_::srs_bw_r13_e_::to_number() const
+uint8_t srs_ul_cfg_ded_up_pts_ext_r13_c::setup_s_::srs_bw_r13_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1, 2, 3};
   return get_enum_number(options, 4, value, "srs_ul_cfg_ded_up_pts_ext_r13_c::setup_s_::srs_bw_r13_e_");
 }
 
-std::string srs_ul_cfg_ded_up_pts_ext_r13_c::setup_s_::srs_hop_bw_r13_e_::to_string() const
+std::string srs_ul_cfg_ded_up_pts_ext_r13_c::setup_s_::srs_hop_bw_r13_opts::to_string() const
 {
   switch (value) {
     case hbw0:
@@ -12165,13 +12163,13 @@ std::string srs_ul_cfg_ded_up_pts_ext_r13_c::setup_s_::srs_hop_bw_r13_e_::to_str
   }
   return "";
 }
-uint8_t srs_ul_cfg_ded_up_pts_ext_r13_c::setup_s_::srs_hop_bw_r13_e_::to_number() const
+uint8_t srs_ul_cfg_ded_up_pts_ext_r13_c::setup_s_::srs_hop_bw_r13_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1, 2, 3};
   return get_enum_number(options, 4, value, "srs_ul_cfg_ded_up_pts_ext_r13_c::setup_s_::srs_hop_bw_r13_e_");
 }
 
-std::string srs_ul_cfg_ded_up_pts_ext_r13_c::setup_s_::cyclic_shift_r13_e_::to_string() const
+std::string srs_ul_cfg_ded_up_pts_ext_r13_c::setup_s_::cyclic_shift_r13_opts::to_string() const
 {
   switch (value) {
     case cs0:
@@ -12203,13 +12201,13 @@ std::string srs_ul_cfg_ded_up_pts_ext_r13_c::setup_s_::cyclic_shift_r13_e_::to_s
   }
   return "";
 }
-uint8_t srs_ul_cfg_ded_up_pts_ext_r13_c::setup_s_::cyclic_shift_r13_e_::to_number() const
+uint8_t srs_ul_cfg_ded_up_pts_ext_r13_c::setup_s_::cyclic_shift_r13_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
   return get_enum_number(options, 12, value, "srs_ul_cfg_ded_up_pts_ext_r13_c::setup_s_::cyclic_shift_r13_e_");
 }
 
-std::string srs_ul_cfg_ded_up_pts_ext_r13_c::setup_s_::tx_comb_num_r13_e_::to_string() const
+std::string srs_ul_cfg_ded_up_pts_ext_r13_c::setup_s_::tx_comb_num_r13_opts::to_string() const
 {
   switch (value) {
     case n2:
@@ -12221,13 +12219,13 @@ std::string srs_ul_cfg_ded_up_pts_ext_r13_c::setup_s_::tx_comb_num_r13_e_::to_st
   }
   return "";
 }
-uint8_t srs_ul_cfg_ded_up_pts_ext_r13_c::setup_s_::tx_comb_num_r13_e_::to_number() const
+uint8_t srs_ul_cfg_ded_up_pts_ext_r13_c::setup_s_::tx_comb_num_r13_opts::to_number() const
 {
   const static uint8_t options[] = {2, 4};
   return get_enum_number(options, 2, value, "srs_ul_cfg_ded_up_pts_ext_r13_c::setup_s_::tx_comb_num_r13_e_");
 }
 
-std::string ul_pwr_ctrl_ded_s::delta_mcs_enabled_e_::to_string() const
+std::string ul_pwr_ctrl_ded_s::delta_mcs_enabled_opts::to_string() const
 {
   switch (value) {
     case en0:
@@ -12239,13 +12237,13 @@ std::string ul_pwr_ctrl_ded_s::delta_mcs_enabled_e_::to_string() const
   }
   return "";
 }
-uint8_t ul_pwr_ctrl_ded_s::delta_mcs_enabled_e_::to_number() const
+uint8_t ul_pwr_ctrl_ded_s::delta_mcs_enabled_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1};
   return get_enum_number(options, 2, value, "ul_pwr_ctrl_ded_s::delta_mcs_enabled_e_");
 }
 
-std::string mac_main_cfg_s::ul_sch_cfg_s_::max_harq_tx_e_::to_string() const
+std::string mac_main_cfg_s::ul_sch_cfg_s_::max_harq_tx_opts::to_string() const
 {
   switch (value) {
     case n1:
@@ -12285,13 +12283,13 @@ std::string mac_main_cfg_s::ul_sch_cfg_s_::max_harq_tx_e_::to_string() const
   }
   return "";
 }
-uint8_t mac_main_cfg_s::ul_sch_cfg_s_::max_harq_tx_e_::to_number() const
+uint8_t mac_main_cfg_s::ul_sch_cfg_s_::max_harq_tx_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 16, 20, 24, 28};
   return get_enum_number(options, 14, value, "mac_main_cfg_s::ul_sch_cfg_s_::max_harq_tx_e_");
 }
 
-std::string mac_main_cfg_s::phr_cfg_c_::setup_s_::periodic_phr_timer_e_::to_string() const
+std::string mac_main_cfg_s::phr_cfg_c_::setup_s_::periodic_phr_timer_opts::to_string() const
 {
   switch (value) {
     case sf10:
@@ -12315,13 +12313,13 @@ std::string mac_main_cfg_s::phr_cfg_c_::setup_s_::periodic_phr_timer_e_::to_stri
   }
   return "";
 }
-int16_t mac_main_cfg_s::phr_cfg_c_::setup_s_::periodic_phr_timer_e_::to_number() const
+int16_t mac_main_cfg_s::phr_cfg_c_::setup_s_::periodic_phr_timer_opts::to_number() const
 {
   const static int16_t options[] = {10, 20, 50, 100, 200, 500, 1000, -1};
   return get_enum_number(options, 8, value, "mac_main_cfg_s::phr_cfg_c_::setup_s_::periodic_phr_timer_e_");
 }
 
-std::string mac_main_cfg_s::phr_cfg_c_::setup_s_::prohibit_phr_timer_e_::to_string() const
+std::string mac_main_cfg_s::phr_cfg_c_::setup_s_::prohibit_phr_timer_opts::to_string() const
 {
   switch (value) {
     case sf0:
@@ -12345,13 +12343,13 @@ std::string mac_main_cfg_s::phr_cfg_c_::setup_s_::prohibit_phr_timer_e_::to_stri
   }
   return "";
 }
-uint16_t mac_main_cfg_s::phr_cfg_c_::setup_s_::prohibit_phr_timer_e_::to_number() const
+uint16_t mac_main_cfg_s::phr_cfg_c_::setup_s_::prohibit_phr_timer_opts::to_number() const
 {
   const static uint16_t options[] = {0, 10, 20, 50, 100, 200, 500, 1000};
   return get_enum_number(options, 8, value, "mac_main_cfg_s::phr_cfg_c_::setup_s_::prohibit_phr_timer_e_");
 }
 
-std::string mac_main_cfg_s::phr_cfg_c_::setup_s_::dl_pathloss_change_e_::to_string() const
+std::string mac_main_cfg_s::phr_cfg_c_::setup_s_::dl_pathloss_change_opts::to_string() const
 {
   switch (value) {
     case db1:
@@ -12367,13 +12365,13 @@ std::string mac_main_cfg_s::phr_cfg_c_::setup_s_::dl_pathloss_change_e_::to_stri
   }
   return "";
 }
-int8_t mac_main_cfg_s::phr_cfg_c_::setup_s_::dl_pathloss_change_e_::to_number() const
+int8_t mac_main_cfg_s::phr_cfg_c_::setup_s_::dl_pathloss_change_opts::to_number() const
 {
   const static int8_t options[] = {1, 3, 6, -1};
   return get_enum_number(options, 4, value, "mac_main_cfg_s::phr_cfg_c_::setup_s_::dl_pathloss_change_e_");
 }
 
-std::string mac_main_cfg_s::mac_main_cfg_v1020_s_::s_cell_deactivation_timer_r10_e_::to_string() const
+std::string mac_main_cfg_s::mac_main_cfg_v1020_s_::s_cell_deactivation_timer_r10_opts::to_string() const
 {
   switch (value) {
     case rf2:
@@ -12397,13 +12395,13 @@ std::string mac_main_cfg_s::mac_main_cfg_v1020_s_::s_cell_deactivation_timer_r10
   }
   return "";
 }
-uint8_t mac_main_cfg_s::mac_main_cfg_v1020_s_::s_cell_deactivation_timer_r10_e_::to_number() const
+uint8_t mac_main_cfg_s::mac_main_cfg_v1020_s_::s_cell_deactivation_timer_r10_opts::to_number() const
 {
   const static uint8_t options[] = {2, 4, 8, 16, 32, 64, 128};
   return get_enum_number(options, 7, value, "mac_main_cfg_s::mac_main_cfg_v1020_s_::s_cell_deactivation_timer_r10_e_");
 }
 
-std::string mac_main_cfg_s::dual_connect_phr_c_::setup_s_::phr_mode_other_cg_r12_e_::to_string() const
+std::string mac_main_cfg_s::dual_connect_phr_c_::setup_s_::phr_mode_other_cg_r12_opts::to_string() const
 {
   switch (value) {
     case real:
@@ -12416,7 +12414,7 @@ std::string mac_main_cfg_s::dual_connect_phr_c_::setup_s_::phr_mode_other_cg_r12
   return "";
 }
 
-std::string mac_main_cfg_s::lc_ch_sr_cfg_r12_c_::setup_s_::lc_ch_sr_prohibit_timer_r12_e_::to_string() const
+std::string mac_main_cfg_s::lc_ch_sr_cfg_r12_c_::setup_s_::lc_ch_sr_prohibit_timer_r12_opts::to_string() const
 {
   switch (value) {
     case sf20:
@@ -12440,14 +12438,14 @@ std::string mac_main_cfg_s::lc_ch_sr_cfg_r12_c_::setup_s_::lc_ch_sr_prohibit_tim
   }
   return "";
 }
-uint16_t mac_main_cfg_s::lc_ch_sr_cfg_r12_c_::setup_s_::lc_ch_sr_prohibit_timer_r12_e_::to_number() const
+uint16_t mac_main_cfg_s::lc_ch_sr_cfg_r12_c_::setup_s_::lc_ch_sr_prohibit_timer_r12_opts::to_number() const
 {
   const static uint16_t options[] = {20, 40, 64, 128, 512, 1024, 2560};
   return get_enum_number(options, 7, value,
                          "mac_main_cfg_s::lc_ch_sr_cfg_r12_c_::setup_s_::lc_ch_sr_prohibit_timer_r12_e_");
 }
 
-std::string mac_main_cfg_s::e_drx_cfg_cycle_start_offset_r13_c_::setup_c_::types::to_string() const
+std::string mac_main_cfg_s::e_drx_cfg_cycle_start_offset_r13_c_::setup_c_::types_opts::to_string() const
 {
   switch (value) {
     case sf5120:
@@ -12461,13 +12459,13 @@ std::string mac_main_cfg_s::e_drx_cfg_cycle_start_offset_r13_c_::setup_c_::types
   }
   return "";
 }
-uint16_t mac_main_cfg_s::e_drx_cfg_cycle_start_offset_r13_c_::setup_c_::types::to_number() const
+uint16_t mac_main_cfg_s::e_drx_cfg_cycle_start_offset_r13_c_::setup_c_::types_opts::to_number() const
 {
   const static uint16_t options[] = {5120, 10240};
   return get_enum_number(options, 2, value, "mac_main_cfg_s::e_drx_cfg_cycle_start_offset_r13_c_::setup_c_::types");
 }
 
-std::string mac_main_cfg_s::short_tti_and_spt_r15_c_::setup_s_::periodic_bsr_timer_r15_e_::to_string() const
+std::string mac_main_cfg_s::short_tti_and_spt_r15_c_::setup_s_::periodic_bsr_timer_r15_opts::to_string() const
 {
   switch (value) {
     case sf1:
@@ -12507,14 +12505,14 @@ std::string mac_main_cfg_s::short_tti_and_spt_r15_c_::setup_s_::periodic_bsr_tim
   }
   return "";
 }
-int16_t mac_main_cfg_s::short_tti_and_spt_r15_c_::setup_s_::periodic_bsr_timer_r15_e_::to_number() const
+int16_t mac_main_cfg_s::short_tti_and_spt_r15_c_::setup_s_::periodic_bsr_timer_r15_opts::to_number() const
 {
   const static int16_t options[] = {1, 5, 10, 16, 20, 32, 40, 64, 80, 128, 160, 320, 640, 1280, 2560, -1};
   return get_enum_number(options, 16, value,
                          "mac_main_cfg_s::short_tti_and_spt_r15_c_::setup_s_::periodic_bsr_timer_r15_e_");
 }
 
-std::string mac_main_cfg_s::short_tti_and_spt_r15_c_::setup_s_::proc_timeline_r15_e_::to_string() const
+std::string mac_main_cfg_s::short_tti_and_spt_r15_c_::setup_s_::proc_timeline_r15_opts::to_string() const
 {
   switch (value) {
     case nplus4set1:
@@ -12531,7 +12529,7 @@ std::string mac_main_cfg_s::short_tti_and_spt_r15_c_::setup_s_::proc_timeline_r1
   return "";
 }
 
-std::string mac_main_cfg_s::dormant_state_timers_r15_c_::setup_s_::s_cell_hibernation_timer_r15_e_::to_string() const
+std::string mac_main_cfg_s::dormant_state_timers_r15_c_::setup_s_::s_cell_hibernation_timer_r15_opts::to_string() const
 {
   switch (value) {
     case rf2:
@@ -12556,7 +12554,7 @@ std::string mac_main_cfg_s::dormant_state_timers_r15_c_::setup_s_::s_cell_hibern
   }
   return "";
 }
-uint8_t mac_main_cfg_s::dormant_state_timers_r15_c_::setup_s_::s_cell_hibernation_timer_r15_e_::to_number() const
+uint8_t mac_main_cfg_s::dormant_state_timers_r15_c_::setup_s_::s_cell_hibernation_timer_r15_opts::to_number() const
 {
   const static uint8_t options[] = {2, 4, 8, 16, 32, 64, 128};
   return get_enum_number(options, 7, value,
@@ -12564,7 +12562,7 @@ uint8_t mac_main_cfg_s::dormant_state_timers_r15_c_::setup_s_::s_cell_hibernatio
 }
 
 std::string
-mac_main_cfg_s::dormant_state_timers_r15_c_::setup_s_::dormant_scell_deactivation_timer_r15_e_::to_string() const
+mac_main_cfg_s::dormant_state_timers_r15_c_::setup_s_::dormant_scell_deactivation_timer_r15_opts::to_string() const
 {
   switch (value) {
     case rf2:
@@ -12606,7 +12604,7 @@ mac_main_cfg_s::dormant_state_timers_r15_c_::setup_s_::dormant_scell_deactivatio
   return "";
 }
 uint16_t
-mac_main_cfg_s::dormant_state_timers_r15_c_::setup_s_::dormant_scell_deactivation_timer_r15_e_::to_number() const
+mac_main_cfg_s::dormant_state_timers_r15_c_::setup_s_::dormant_scell_deactivation_timer_r15_opts::to_number() const
 {
   const static uint16_t options[] = {2, 4, 8, 16, 32, 64, 128, 320, 640, 1280, 2560, 5120, 10240};
   return get_enum_number(
@@ -12614,7 +12612,7 @@ mac_main_cfg_s::dormant_state_timers_r15_c_::setup_s_::dormant_scell_deactivatio
       "mac_main_cfg_s::dormant_state_timers_r15_c_::setup_s_::dormant_scell_deactivation_timer_r15_e_");
 }
 
-std::string phys_cfg_ded_s::ant_info_c_::types::to_string() const
+std::string phys_cfg_ded_s::ant_info_c_::types_opts::to_string() const
 {
   switch (value) {
     case explicit_value:
@@ -12629,7 +12627,7 @@ std::string phys_cfg_ded_s::ant_info_c_::types::to_string() const
   return "";
 }
 
-std::string phys_cfg_ded_s::ant_info_r10_c_::types::to_string() const
+std::string phys_cfg_ded_s::ant_info_r10_c_::types_opts::to_string() const
 {
   switch (value) {
     case explicit_value_r10:
@@ -12644,7 +12642,7 @@ std::string phys_cfg_ded_s::ant_info_r10_c_::types::to_string() const
   return "";
 }
 
-std::string phys_cfg_ded_s::ce_mode_r13_c_::setup_e_::to_string() const
+std::string phys_cfg_ded_s::ce_mode_r13_c_::setup_opts::to_string() const
 {
   switch (value) {
     case ce_mode_a:
@@ -12657,7 +12655,7 @@ std::string phys_cfg_ded_s::ce_mode_r13_c_::setup_e_::to_string() const
   return "";
 }
 
-std::string phys_cfg_ded_s::must_cfg_r14_c_::setup_s_::k_max_r14_e_::to_string() const
+std::string phys_cfg_ded_s::must_cfg_r14_c_::setup_s_::k_max_r14_opts::to_string() const
 {
   switch (value) {
     case l1:
@@ -12669,13 +12667,13 @@ std::string phys_cfg_ded_s::must_cfg_r14_c_::setup_s_::k_max_r14_e_::to_string()
   }
   return "";
 }
-uint8_t phys_cfg_ded_s::must_cfg_r14_c_::setup_s_::k_max_r14_e_::to_number() const
+uint8_t phys_cfg_ded_s::must_cfg_r14_c_::setup_s_::k_max_r14_opts::to_number() const
 {
   const static uint8_t options[] = {1, 3};
   return get_enum_number(options, 2, value, "phys_cfg_ded_s::must_cfg_r14_c_::setup_s_::k_max_r14_e_");
 }
 
-std::string phys_cfg_ded_s::must_cfg_r14_c_::setup_s_::p_a_must_r14_e_::to_string() const
+std::string phys_cfg_ded_s::must_cfg_r14_c_::setup_s_::p_a_must_r14_opts::to_string() const
 {
   switch (value) {
     case db_minus6:
@@ -12699,12 +12697,12 @@ std::string phys_cfg_ded_s::must_cfg_r14_c_::setup_s_::p_a_must_r14_e_::to_strin
   }
   return "";
 }
-float phys_cfg_ded_s::must_cfg_r14_c_::setup_s_::p_a_must_r14_e_::to_number() const
+float phys_cfg_ded_s::must_cfg_r14_c_::setup_s_::p_a_must_r14_opts::to_number() const
 {
   const static float options[] = {-6.0, -4.77, -3.0, -1.77, 0.0, 1.0, 2.0, 3.0};
   return get_enum_number(options, 8, value, "phys_cfg_ded_s::must_cfg_r14_c_::setup_s_::p_a_must_r14_e_");
 }
-std::string phys_cfg_ded_s::must_cfg_r14_c_::setup_s_::p_a_must_r14_e_::to_number_string() const
+std::string phys_cfg_ded_s::must_cfg_r14_c_::setup_s_::p_a_must_r14_opts::to_number_string() const
 {
   switch (value) {
     case db_minus6:
@@ -12729,7 +12727,7 @@ std::string phys_cfg_ded_s::must_cfg_r14_c_::setup_s_::p_a_must_r14_e_::to_numbe
   return "";
 }
 
-std::string phys_cfg_ded_s::semi_static_cfi_cfg_r15_c_::setup_c_::types::to_string() const
+std::string phys_cfg_ded_s::semi_static_cfi_cfg_r15_c_::setup_c_::types_opts::to_string() const
 {
   switch (value) {
     case cfi_cfg_r15:
@@ -12744,7 +12742,8 @@ std::string phys_cfg_ded_s::semi_static_cfi_cfg_r15_c_::setup_c_::types::to_stri
   return "";
 }
 
-std::string phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::max_num_sf_pdsch_repeats_r15_e_::to_string() const
+std::string
+phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::max_num_sf_pdsch_repeats_r15_opts::to_string() const
 {
   switch (value) {
     case n4:
@@ -12757,7 +12756,7 @@ std::string phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::max_num_sf_
   }
   return "";
 }
-uint8_t phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::max_num_sf_pdsch_repeats_r15_e_::to_number() const
+uint8_t phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::max_num_sf_pdsch_repeats_r15_opts::to_number() const
 {
   const static uint8_t options[] = {4, 6};
   return get_enum_number(options, 2, value,
@@ -12765,7 +12764,7 @@ uint8_t phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::max_num_sf_pdsc
 }
 
 std::string
-phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::max_num_slot_subslot_pdsch_repeats_r15_e_::to_string() const
+phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::max_num_slot_subslot_pdsch_repeats_r15_opts::to_string() const
 {
   switch (value) {
     case n4:
@@ -12779,7 +12778,7 @@ phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::max_num_slot_subslot_pd
   return "";
 }
 uint8_t
-phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::max_num_slot_subslot_pdsch_repeats_r15_e_::to_number() const
+phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::max_num_slot_subslot_pdsch_repeats_r15_opts::to_number() const
 {
   const static uint8_t options[] = {4, 6};
   return get_enum_number(
@@ -12787,7 +12786,7 @@ phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::max_num_slot_subslot_pd
       "phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::max_num_slot_subslot_pdsch_repeats_r15_e_");
 }
 
-std::string phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::rv_sf_pdsch_repeats_r15_e_::to_string() const
+std::string phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::rv_sf_pdsch_repeats_r15_opts::to_string() const
 {
   switch (value) {
     case dlrvseq1:
@@ -12799,7 +12798,7 @@ std::string phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::rv_sf_pdsch
   }
   return "";
 }
-uint8_t phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::rv_sf_pdsch_repeats_r15_e_::to_number() const
+uint8_t phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::rv_sf_pdsch_repeats_r15_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2};
   return get_enum_number(options, 2, value,
@@ -12807,7 +12806,7 @@ uint8_t phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::rv_sf_pdsch_rep
 }
 
 std::string
-phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::rv_slotsublot_pdsch_repeats_r15_e_::to_string() const
+phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::rv_slotsublot_pdsch_repeats_r15_opts::to_string() const
 {
   switch (value) {
     case dlrvseq1:
@@ -12820,7 +12819,7 @@ phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::rv_slotsublot_pdsch_rep
   }
   return "";
 }
-uint8_t phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::rv_slotsublot_pdsch_repeats_r15_e_::to_number() const
+uint8_t phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::rv_slotsublot_pdsch_repeats_r15_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2};
   return get_enum_number(options, 2, value,
@@ -12828,7 +12827,7 @@ uint8_t phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::rv_slotsublot_p
 }
 
 std::string
-phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::mcs_restrict_sf_pdsch_repeats_r15_e_::to_string() const
+phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::mcs_restrict_sf_pdsch_repeats_r15_opts::to_string() const
 {
   switch (value) {
     case n0:
@@ -12841,7 +12840,8 @@ phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::mcs_restrict_sf_pdsch_r
   }
   return "";
 }
-uint8_t phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::mcs_restrict_sf_pdsch_repeats_r15_e_::to_number() const
+uint8_t
+phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::mcs_restrict_sf_pdsch_repeats_r15_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1};
   return get_enum_number(
@@ -12850,7 +12850,7 @@ uint8_t phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::mcs_restrict_sf
 }
 
 std::string
-phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::mcs_restrict_slot_subslot_pdsch_repeats_r15_e_::to_string()
+phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::mcs_restrict_slot_subslot_pdsch_repeats_r15_opts::to_string()
     const
 {
   switch (value) {
@@ -12866,7 +12866,7 @@ phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::mcs_restrict_slot_subsl
   return "";
 }
 uint8_t
-phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::mcs_restrict_slot_subslot_pdsch_repeats_r15_e_::to_number()
+phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::mcs_restrict_slot_subslot_pdsch_repeats_r15_opts::to_number()
     const
 {
   const static uint8_t options[] = {0, 1};
@@ -12875,7 +12875,7 @@ phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::mcs_restrict_slot_subsl
       "phys_cfg_ded_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::mcs_restrict_slot_subslot_pdsch_repeats_r15_e_");
 }
 
-std::string rlf_timers_and_consts_r13_c::setup_s_::t301_v1310_e_::to_string() const
+std::string rlf_timers_and_consts_r13_c::setup_s_::t301_v1310_opts::to_string() const
 {
   switch (value) {
     case ms2500:
@@ -12899,13 +12899,13 @@ std::string rlf_timers_and_consts_r13_c::setup_s_::t301_v1310_e_::to_string() co
   }
   return "";
 }
-uint16_t rlf_timers_and_consts_r13_c::setup_s_::t301_v1310_e_::to_number() const
+uint16_t rlf_timers_and_consts_r13_c::setup_s_::t301_v1310_opts::to_number() const
 {
   const static uint16_t options[] = {2500, 3000, 3500, 4000, 5000, 6000, 8000, 10000};
   return get_enum_number(options, 8, value, "rlf_timers_and_consts_r13_c::setup_s_::t301_v1310_e_");
 }
 
-std::string rlf_timers_and_consts_r13_c::setup_s_::t310_v1330_e_::to_string() const
+std::string rlf_timers_and_consts_r13_c::setup_s_::t310_v1330_opts::to_string() const
 {
   switch (value) {
     case ms4000:
@@ -12917,13 +12917,13 @@ std::string rlf_timers_and_consts_r13_c::setup_s_::t310_v1330_e_::to_string() co
   }
   return "";
 }
-uint16_t rlf_timers_and_consts_r13_c::setup_s_::t310_v1330_e_::to_number() const
+uint16_t rlf_timers_and_consts_r13_c::setup_s_::t310_v1330_opts::to_number() const
 {
   const static uint16_t options[] = {4000, 6000};
   return get_enum_number(options, 2, value, "rlf_timers_and_consts_r13_c::setup_s_::t310_v1330_e_");
 }
 
-std::string rlf_timers_and_consts_r9_c::setup_s_::t301_r9_e_::to_string() const
+std::string rlf_timers_and_consts_r9_c::setup_s_::t301_r9_opts::to_string() const
 {
   switch (value) {
     case ms100:
@@ -12947,13 +12947,13 @@ std::string rlf_timers_and_consts_r9_c::setup_s_::t301_r9_e_::to_string() const
   }
   return "";
 }
-uint16_t rlf_timers_and_consts_r9_c::setup_s_::t301_r9_e_::to_number() const
+uint16_t rlf_timers_and_consts_r9_c::setup_s_::t301_r9_opts::to_number() const
 {
   const static uint16_t options[] = {100, 200, 300, 400, 600, 1000, 1500, 2000};
   return get_enum_number(options, 8, value, "rlf_timers_and_consts_r9_c::setup_s_::t301_r9_e_");
 }
 
-std::string rlf_timers_and_consts_r9_c::setup_s_::t310_r9_e_::to_string() const
+std::string rlf_timers_and_consts_r9_c::setup_s_::t310_r9_opts::to_string() const
 {
   switch (value) {
     case ms0:
@@ -12975,13 +12975,13 @@ std::string rlf_timers_and_consts_r9_c::setup_s_::t310_r9_e_::to_string() const
   }
   return "";
 }
-uint16_t rlf_timers_and_consts_r9_c::setup_s_::t310_r9_e_::to_number() const
+uint16_t rlf_timers_and_consts_r9_c::setup_s_::t310_r9_opts::to_number() const
 {
   const static uint16_t options[] = {0, 50, 100, 200, 500, 1000, 2000};
   return get_enum_number(options, 7, value, "rlf_timers_and_consts_r9_c::setup_s_::t310_r9_e_");
 }
 
-std::string rlf_timers_and_consts_r9_c::setup_s_::n310_r9_e_::to_string() const
+std::string rlf_timers_and_consts_r9_c::setup_s_::n310_r9_opts::to_string() const
 {
   switch (value) {
     case n1:
@@ -13005,13 +13005,13 @@ std::string rlf_timers_and_consts_r9_c::setup_s_::n310_r9_e_::to_string() const
   }
   return "";
 }
-uint8_t rlf_timers_and_consts_r9_c::setup_s_::n310_r9_e_::to_number() const
+uint8_t rlf_timers_and_consts_r9_c::setup_s_::n310_r9_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3, 4, 6, 8, 10, 20};
   return get_enum_number(options, 8, value, "rlf_timers_and_consts_r9_c::setup_s_::n310_r9_e_");
 }
 
-std::string rlf_timers_and_consts_r9_c::setup_s_::t311_r9_e_::to_string() const
+std::string rlf_timers_and_consts_r9_c::setup_s_::t311_r9_opts::to_string() const
 {
   switch (value) {
     case ms1000:
@@ -13033,13 +13033,13 @@ std::string rlf_timers_and_consts_r9_c::setup_s_::t311_r9_e_::to_string() const
   }
   return "";
 }
-uint16_t rlf_timers_and_consts_r9_c::setup_s_::t311_r9_e_::to_number() const
+uint16_t rlf_timers_and_consts_r9_c::setup_s_::t311_r9_opts::to_number() const
 {
   const static uint16_t options[] = {1000, 3000, 5000, 10000, 15000, 20000, 30000};
   return get_enum_number(options, 7, value, "rlf_timers_and_consts_r9_c::setup_s_::t311_r9_e_");
 }
 
-std::string rlf_timers_and_consts_r9_c::setup_s_::n311_r9_e_::to_string() const
+std::string rlf_timers_and_consts_r9_c::setup_s_::n311_r9_opts::to_string() const
 {
   switch (value) {
     case n1:
@@ -13063,13 +13063,13 @@ std::string rlf_timers_and_consts_r9_c::setup_s_::n311_r9_e_::to_string() const
   }
   return "";
 }
-uint8_t rlf_timers_and_consts_r9_c::setup_s_::n311_r9_e_::to_number() const
+uint8_t rlf_timers_and_consts_r9_c::setup_s_::n311_r9_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3, 4, 5, 6, 8, 10};
   return get_enum_number(options, 8, value, "rlf_timers_and_consts_r9_c::setup_s_::n311_r9_e_");
 }
 
-std::string idle_mode_mob_ctrl_info_s::t320_e_::to_string() const
+std::string idle_mode_mob_ctrl_info_s::t320_opts::to_string() const
 {
   switch (value) {
     case min5:
@@ -13093,13 +13093,13 @@ std::string idle_mode_mob_ctrl_info_s::t320_e_::to_string() const
   }
   return "";
 }
-uint8_t idle_mode_mob_ctrl_info_s::t320_e_::to_number() const
+uint8_t idle_mode_mob_ctrl_info_s::t320_opts::to_number() const
 {
   const static uint8_t options[] = {5, 10, 20, 30, 60, 120, 180};
   return get_enum_number(options, 7, value, "idle_mode_mob_ctrl_info_s::t320_e_");
 }
 
-std::string rr_cfg_ded_s::mac_main_cfg_c_::types::to_string() const
+std::string rr_cfg_ded_s::mac_main_cfg_c_::types_opts::to_string() const
 {
   switch (value) {
     case explicit_value:
@@ -13114,7 +13114,7 @@ std::string rr_cfg_ded_s::mac_main_cfg_c_::types::to_string() const
   return "";
 }
 
-std::string rr_cfg_ded_s::crs_intf_mitig_cfg_r15_c_::setup_c_::crs_intf_mitig_num_prbs_r15_e_::to_string() const
+std::string rr_cfg_ded_s::crs_intf_mitig_cfg_r15_c_::setup_c_::crs_intf_mitig_num_prbs_r15_opts::to_string() const
 {
   switch (value) {
     case n6:
@@ -13126,14 +13126,14 @@ std::string rr_cfg_ded_s::crs_intf_mitig_cfg_r15_c_::setup_c_::crs_intf_mitig_nu
   }
   return "";
 }
-uint8_t rr_cfg_ded_s::crs_intf_mitig_cfg_r15_c_::setup_c_::crs_intf_mitig_num_prbs_r15_e_::to_number() const
+uint8_t rr_cfg_ded_s::crs_intf_mitig_cfg_r15_c_::setup_c_::crs_intf_mitig_num_prbs_r15_opts::to_number() const
 {
   const static uint8_t options[] = {6, 24};
   return get_enum_number(options, 2, value,
                          "rr_cfg_ded_s::crs_intf_mitig_cfg_r15_c_::setup_c_::crs_intf_mitig_num_prbs_r15_e_");
 }
 
-std::string rr_cfg_ded_s::crs_intf_mitig_cfg_r15_c_::setup_c_::types::to_string() const
+std::string rr_cfg_ded_s::crs_intf_mitig_cfg_r15_c_::setup_c_::types_opts::to_string() const
 {
   switch (value) {
     case crs_intf_mitig_enabled_minus15:
@@ -13147,13 +13147,13 @@ std::string rr_cfg_ded_s::crs_intf_mitig_cfg_r15_c_::setup_c_::types::to_string(
   }
   return "";
 }
-int8_t rr_cfg_ded_s::crs_intf_mitig_cfg_r15_c_::setup_c_::types::to_number() const
+int8_t rr_cfg_ded_s::crs_intf_mitig_cfg_r15_c_::setup_c_::types_opts::to_number() const
 {
   const static int8_t options[] = {-15};
   return get_enum_number(options, 1, value, "rr_cfg_ded_s::crs_intf_mitig_cfg_r15_c_::setup_c_::types");
 }
 
-std::string redirected_carrier_info_r15_ies_c::types::to_string() const
+std::string redirected_carrier_info_r15_ies_c::types_opts::to_string() const
 {
   switch (value) {
     case eutra_r15:
@@ -13176,7 +13176,7 @@ std::string redirected_carrier_info_r15_ies_c::types::to_string() const
   return "";
 }
 
-std::string c1_or_crit_ext_e::to_string() const
+std::string c1_or_crit_ext_opts::to_string() const
 {
   switch (value) {
     case c1:
@@ -13190,13 +13190,13 @@ std::string c1_or_crit_ext_e::to_string() const
   }
   return "";
 }
-uint8_t c1_or_crit_ext_e::to_number() const
+uint8_t c1_or_crit_ext_opts::to_number() const
 {
   const static uint8_t options[] = {1};
   return get_enum_number(options, 1, value, "c1_or_crit_ext_e");
 }
 
-std::string rrc_conn_reest_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string rrc_conn_reest_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case rrc_conn_reest_r8:
@@ -13223,7 +13223,7 @@ std::string rrc_conn_reest_s::crit_exts_c_::c1_c_::types::to_string() const
   return "";
 }
 
-std::string rrc_conn_reest_reject_s::crit_exts_c_::types::to_string() const
+std::string rrc_conn_reest_reject_s::crit_exts_c_::types_opts::to_string() const
 {
   switch (value) {
     case rrc_conn_reest_reject_r8:
@@ -13238,7 +13238,7 @@ std::string rrc_conn_reest_reject_s::crit_exts_c_::types::to_string() const
   return "";
 }
 
-std::string rrc_conn_reject_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string rrc_conn_reject_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case rrc_conn_reject_r8:
@@ -13257,7 +13257,7 @@ std::string rrc_conn_reject_s::crit_exts_c_::c1_c_::types::to_string() const
   return "";
 }
 
-std::string rrc_conn_setup_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string rrc_conn_setup_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case rrc_conn_setup_r8:
@@ -13284,7 +13284,7 @@ std::string rrc_conn_setup_s::crit_exts_c_::c1_c_::types::to_string() const
   return "";
 }
 
-std::string rrc_early_data_complete_r15_s::crit_exts_c_::types::to_string() const
+std::string rrc_early_data_complete_r15_s::crit_exts_c_::types_opts::to_string() const
 {
   switch (value) {
     case rrc_early_data_complete_r15:
@@ -13299,7 +13299,7 @@ std::string rrc_early_data_complete_r15_s::crit_exts_c_::types::to_string() cons
   return "";
 }
 
-std::string dl_ccch_msg_type_c::c1_c_::types::to_string() const
+std::string dl_ccch_msg_type_c::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case rrc_conn_reest:
@@ -13318,7 +13318,7 @@ std::string dl_ccch_msg_type_c::c1_c_::types::to_string() const
   return "";
 }
 
-std::string dl_ccch_msg_type_c::msg_class_ext_c_::c2_c_::types::to_string() const
+std::string dl_ccch_msg_type_c::msg_class_ext_c_::c2_c_::types_opts::to_string() const
 {
   switch (value) {
     case rrc_early_data_complete_r15:
@@ -13337,7 +13337,7 @@ std::string dl_ccch_msg_type_c::msg_class_ext_c_::c2_c_::types::to_string() cons
   return "";
 }
 
-std::string dl_ccch_msg_type_c::msg_class_ext_c_::types::to_string() const
+std::string dl_ccch_msg_type_c::msg_class_ext_c_::types_opts::to_string() const
 {
   switch (value) {
     case c2:
@@ -13351,13 +13351,13 @@ std::string dl_ccch_msg_type_c::msg_class_ext_c_::types::to_string() const
   }
   return "";
 }
-uint8_t dl_ccch_msg_type_c::msg_class_ext_c_::types::to_number() const
+uint8_t dl_ccch_msg_type_c::msg_class_ext_c_::types_opts::to_number() const
 {
   const static uint8_t options[] = {2};
   return get_enum_number(options, 1, value, "dl_ccch_msg_type_c::msg_class_ext_c_::types");
 }
 
-std::string dl_ccch_msg_type_c::types::to_string() const
+std::string dl_ccch_msg_type_c::types_opts::to_string() const
 {
   switch (value) {
     case c1:
@@ -13371,14 +13371,14 @@ std::string dl_ccch_msg_type_c::types::to_string() const
   }
   return "";
 }
-uint8_t dl_ccch_msg_type_c::types::to_number() const
+uint8_t dl_ccch_msg_type_c::types_opts::to_number() const
 {
   const static uint8_t options[] = {1};
   return get_enum_number(options, 1, value, "dl_ccch_msg_type_c::types");
 }
 
 // PDCCH-CandidateReductionValue-r14 ::= ENUMERATED
-std::string pdcch_candidate_reduction_value_r14_e::to_string() const
+std::string pdcch_candidate_reduction_value_r14_opts::to_string() const
 {
   switch (value) {
     case n0:
@@ -13394,13 +13394,13 @@ std::string pdcch_candidate_reduction_value_r14_e::to_string() const
   }
   return "";
 }
-uint8_t pdcch_candidate_reduction_value_r14_e::to_number() const
+uint8_t pdcch_candidate_reduction_value_r14_opts::to_number() const
 {
   const static uint8_t options[] = {0, 50, 100, 150};
   return get_enum_number(options, 4, value, "pdcch_candidate_reduction_value_r14_e");
 }
 
-std::string aul_cfg_r15_c::setup_s_::tx_mode_ul_aul_r15_e_::to_string() const
+std::string aul_cfg_r15_c::setup_s_::tx_mode_ul_aul_r15_opts::to_string() const
 {
   switch (value) {
     case tm1:
@@ -13412,13 +13412,13 @@ std::string aul_cfg_r15_c::setup_s_::tx_mode_ul_aul_r15_e_::to_string() const
   }
   return "";
 }
-uint8_t aul_cfg_r15_c::setup_s_::tx_mode_ul_aul_r15_e_::to_number() const
+uint8_t aul_cfg_r15_c::setup_s_::tx_mode_ul_aul_r15_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2};
   return get_enum_number(options, 2, value, "aul_cfg_r15_c::setup_s_::tx_mode_ul_aul_r15_e_");
 }
 
-std::string aul_cfg_r15_c::setup_s_::aul_start_partial_bw_inside_mcot_r15_e_::to_string() const
+std::string aul_cfg_r15_c::setup_s_::aul_start_partial_bw_inside_mcot_r15_opts::to_string() const
 {
   switch (value) {
     case o34:
@@ -13436,13 +13436,13 @@ std::string aul_cfg_r15_c::setup_s_::aul_start_partial_bw_inside_mcot_r15_e_::to
   }
   return "";
 }
-uint8_t aul_cfg_r15_c::setup_s_::aul_start_partial_bw_inside_mcot_r15_e_::to_number() const
+uint8_t aul_cfg_r15_c::setup_s_::aul_start_partial_bw_inside_mcot_r15_opts::to_number() const
 {
   const static uint8_t options[] = {34, 43, 52, 61, 1};
   return get_enum_number(options, 5, value, "aul_cfg_r15_c::setup_s_::aul_start_partial_bw_inside_mcot_r15_e_");
 }
 
-std::string aul_cfg_r15_c::setup_s_::aul_start_partial_bw_outside_mcot_r15_e_::to_string() const
+std::string aul_cfg_r15_c::setup_s_::aul_start_partial_bw_outside_mcot_r15_opts::to_string() const
 {
   switch (value) {
     case o16:
@@ -13464,13 +13464,13 @@ std::string aul_cfg_r15_c::setup_s_::aul_start_partial_bw_outside_mcot_r15_e_::t
   }
   return "";
 }
-uint8_t aul_cfg_r15_c::setup_s_::aul_start_partial_bw_outside_mcot_r15_e_::to_number() const
+uint8_t aul_cfg_r15_c::setup_s_::aul_start_partial_bw_outside_mcot_r15_opts::to_number() const
 {
   const static uint8_t options[] = {16, 25, 34, 43, 52, 61, 1};
   return get_enum_number(options, 7, value, "aul_cfg_r15_c::setup_s_::aul_start_partial_bw_outside_mcot_r15_e_");
 }
 
-std::string aul_cfg_r15_c::setup_s_::aul_retx_timer_r15_e_::to_string() const
+std::string aul_cfg_r15_c::setup_s_::aul_retx_timer_r15_opts::to_string() const
 {
   switch (value) {
     case psf4:
@@ -13512,13 +13512,13 @@ std::string aul_cfg_r15_c::setup_s_::aul_retx_timer_r15_e_::to_string() const
   }
   return "";
 }
-uint16_t aul_cfg_r15_c::setup_s_::aul_retx_timer_r15_e_::to_number() const
+uint16_t aul_cfg_r15_c::setup_s_::aul_retx_timer_r15_opts::to_number() const
 {
   const static uint16_t options[] = {4, 5, 6, 8, 10, 12, 20, 28, 37, 44, 68, 84, 100, 116, 132, 164, 324};
   return get_enum_number(options, 17, value, "aul_cfg_r15_c::setup_s_::aul_retx_timer_r15_e_");
 }
 
-std::string aul_cfg_r15_c::setup_s_::contention_win_size_timer_r15_e_::to_string() const
+std::string aul_cfg_r15_c::setup_s_::contention_win_size_timer_r15_opts::to_string() const
 {
   switch (value) {
     case n0:
@@ -13532,14 +13532,14 @@ std::string aul_cfg_r15_c::setup_s_::contention_win_size_timer_r15_e_::to_string
   }
   return "";
 }
-uint8_t aul_cfg_r15_c::setup_s_::contention_win_size_timer_r15_e_::to_number() const
+uint8_t aul_cfg_r15_c::setup_s_::contention_win_size_timer_r15_opts::to_number() const
 {
   const static uint8_t options[] = {0, 5, 10};
   return get_enum_number(options, 3, value, "aul_cfg_r15_c::setup_s_::contention_win_size_timer_r15_e_");
 }
 
 std::string cqi_report_periodic_scell_r15_c::setup_s_::cqi_format_ind_dormant_r15_c_::wideband_cqi_r15_s_::
-    csi_report_mode_r15_e_::to_string() const
+    csi_report_mode_r15_opts::to_string() const
 {
   switch (value) {
     case submode1:
@@ -13553,7 +13553,7 @@ std::string cqi_report_periodic_scell_r15_c::setup_s_::cqi_format_ind_dormant_r1
   return "";
 }
 uint8_t cqi_report_periodic_scell_r15_c::setup_s_::cqi_format_ind_dormant_r15_c_::wideband_cqi_r15_s_::
-    csi_report_mode_r15_e_::to_number() const
+    csi_report_mode_r15_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2};
   return get_enum_number(options, 2, value,
@@ -13562,7 +13562,7 @@ uint8_t cqi_report_periodic_scell_r15_c::setup_s_::cqi_format_ind_dormant_r15_c_
 }
 
 std::string cqi_report_periodic_scell_r15_c::setup_s_::cqi_format_ind_dormant_r15_c_::subband_cqi_r15_s_::
-    periodicity_factor_r15_e_::to_string() const
+    periodicity_factor_r15_opts::to_string() const
 {
   switch (value) {
     case n2:
@@ -13576,7 +13576,7 @@ std::string cqi_report_periodic_scell_r15_c::setup_s_::cqi_format_ind_dormant_r1
   return "";
 }
 uint8_t cqi_report_periodic_scell_r15_c::setup_s_::cqi_format_ind_dormant_r15_c_::subband_cqi_r15_s_::
-    periodicity_factor_r15_e_::to_number() const
+    periodicity_factor_r15_opts::to_number() const
 {
   const static uint8_t options[] = {2, 4};
   return get_enum_number(options, 2, value,
@@ -13584,7 +13584,7 @@ uint8_t cqi_report_periodic_scell_r15_c::setup_s_::cqi_format_ind_dormant_r15_c_
                          ":periodicity_factor_r15_e_");
 }
 
-std::string cqi_report_periodic_scell_r15_c::setup_s_::cqi_format_ind_dormant_r15_c_::types::to_string() const
+std::string cqi_report_periodic_scell_r15_c::setup_s_::cqi_format_ind_dormant_r15_c_::types_opts::to_string() const
 {
   switch (value) {
     case wideband_cqi_r15:
@@ -13599,7 +13599,7 @@ std::string cqi_report_periodic_scell_r15_c::setup_s_::cqi_format_ind_dormant_r1
   return "";
 }
 
-std::string lbt_cfg_r14_c::types::to_string() const
+std::string lbt_cfg_r14_c::types_opts::to_string() const
 {
   switch (value) {
     case max_energy_detection_thres_r14:
@@ -13614,7 +13614,7 @@ std::string lbt_cfg_r14_c::types::to_string() const
   return "";
 }
 
-std::string pdcch_cfg_laa_r14_s::max_nof_sched_sfs_format0_b_r14_e_::to_string() const
+std::string pdcch_cfg_laa_r14_s::max_nof_sched_sfs_format0_b_r14_opts::to_string() const
 {
   switch (value) {
     case sf2:
@@ -13628,13 +13628,13 @@ std::string pdcch_cfg_laa_r14_s::max_nof_sched_sfs_format0_b_r14_e_::to_string()
   }
   return "";
 }
-uint8_t pdcch_cfg_laa_r14_s::max_nof_sched_sfs_format0_b_r14_e_::to_number() const
+uint8_t pdcch_cfg_laa_r14_s::max_nof_sched_sfs_format0_b_r14_opts::to_number() const
 {
   const static uint8_t options[] = {2, 3, 4};
   return get_enum_number(options, 3, value, "pdcch_cfg_laa_r14_s::max_nof_sched_sfs_format0_b_r14_e_");
 }
 
-std::string pdcch_cfg_laa_r14_s::max_nof_sched_sfs_format4_b_r14_e_::to_string() const
+std::string pdcch_cfg_laa_r14_s::max_nof_sched_sfs_format4_b_r14_opts::to_string() const
 {
   switch (value) {
     case sf2:
@@ -13648,13 +13648,13 @@ std::string pdcch_cfg_laa_r14_s::max_nof_sched_sfs_format4_b_r14_e_::to_string()
   }
   return "";
 }
-uint8_t pdcch_cfg_laa_r14_s::max_nof_sched_sfs_format4_b_r14_e_::to_number() const
+uint8_t pdcch_cfg_laa_r14_s::max_nof_sched_sfs_format4_b_r14_opts::to_number() const
 {
   const static uint8_t options[] = {2, 3, 4};
   return get_enum_number(options, 3, value, "pdcch_cfg_laa_r14_s::max_nof_sched_sfs_format4_b_r14_e_");
 }
 
-std::string cqi_report_cfg_scell_r15_s::alt_cqi_table_minus1024_qam_r15_e_::to_string() const
+std::string cqi_report_cfg_scell_r15_s::alt_cqi_table_minus1024_qam_r15_opts::to_string() const
 {
   switch (value) {
     case all_sfs:
@@ -13670,7 +13670,7 @@ std::string cqi_report_cfg_scell_r15_s::alt_cqi_table_minus1024_qam_r15_e_::to_s
   }
   return "";
 }
-uint8_t cqi_report_cfg_scell_r15_s::alt_cqi_table_minus1024_qam_r15_e_::to_number() const
+uint8_t cqi_report_cfg_scell_r15_s::alt_cqi_table_minus1024_qam_r15_opts::to_number() const
 {
   switch (value) {
     case csi_sf_set1:
@@ -13684,7 +13684,7 @@ uint8_t cqi_report_cfg_scell_r15_s::alt_cqi_table_minus1024_qam_r15_e_::to_numbe
 }
 
 std::string cqi_short_cfg_scell_r15_c::setup_s_::cqi_format_ind_short_r15_c_::wideband_cqi_short_r15_s_::
-    csi_report_mode_short_r15_e_::to_string() const
+    csi_report_mode_short_r15_opts::to_string() const
 {
   switch (value) {
     case submode1:
@@ -13698,7 +13698,7 @@ std::string cqi_short_cfg_scell_r15_c::setup_s_::cqi_format_ind_short_r15_c_::wi
   return "";
 }
 uint8_t cqi_short_cfg_scell_r15_c::setup_s_::cqi_format_ind_short_r15_c_::wideband_cqi_short_r15_s_::
-    csi_report_mode_short_r15_e_::to_number() const
+    csi_report_mode_short_r15_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2};
   return get_enum_number(options, 2, value,
@@ -13707,7 +13707,7 @@ uint8_t cqi_short_cfg_scell_r15_c::setup_s_::cqi_format_ind_short_r15_c_::wideba
 }
 
 std::string cqi_short_cfg_scell_r15_c::setup_s_::cqi_format_ind_short_r15_c_::subband_cqi_short_r15_s_::
-    periodicity_factor_r15_e_::to_string() const
+    periodicity_factor_r15_opts::to_string() const
 {
   switch (value) {
     case n2:
@@ -13721,7 +13721,7 @@ std::string cqi_short_cfg_scell_r15_c::setup_s_::cqi_format_ind_short_r15_c_::su
   return "";
 }
 uint8_t cqi_short_cfg_scell_r15_c::setup_s_::cqi_format_ind_short_r15_c_::subband_cqi_short_r15_s_::
-    periodicity_factor_r15_e_::to_number() const
+    periodicity_factor_r15_opts::to_number() const
 {
   const static uint8_t options[] = {2, 4};
   return get_enum_number(options, 2, value,
@@ -13729,7 +13729,7 @@ uint8_t cqi_short_cfg_scell_r15_c::setup_s_::cqi_format_ind_short_r15_c_::subban
                          "periodicity_factor_r15_e_");
 }
 
-std::string cqi_short_cfg_scell_r15_c::setup_s_::cqi_format_ind_short_r15_c_::types::to_string() const
+std::string cqi_short_cfg_scell_r15_c::setup_s_::cqi_format_ind_short_r15_c_::types_opts::to_string() const
 {
   switch (value) {
     case wideband_cqi_short_r15:
@@ -13744,7 +13744,7 @@ std::string cqi_short_cfg_scell_r15_c::setup_s_::cqi_format_ind_short_r15_c_::ty
   return "";
 }
 
-std::string cross_carrier_sched_cfg_r10_s::sched_cell_info_r10_c_::types::to_string() const
+std::string cross_carrier_sched_cfg_r10_s::sched_cell_info_r10_c_::types_opts::to_string() const
 {
   switch (value) {
     case own_r10:
@@ -13759,7 +13759,7 @@ std::string cross_carrier_sched_cfg_r10_s::sched_cell_info_r10_c_::types::to_str
   return "";
 }
 
-std::string cross_carrier_sched_cfg_r13_s::sched_cell_info_r13_c_::types::to_string() const
+std::string cross_carrier_sched_cfg_r13_s::sched_cell_info_r13_c_::types_opts::to_string() const
 {
   switch (value) {
     case own_r13:
@@ -13774,7 +13774,7 @@ std::string cross_carrier_sched_cfg_r13_s::sched_cell_info_r13_c_::types::to_str
   return "";
 }
 
-std::string delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_format1_r15_e_::to_string() const
+std::string delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_format1_r15_opts::to_string() const
 {
   switch (value) {
     case delta_f_minus1:
@@ -13798,13 +13798,13 @@ std::string delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_format1_r15_
   }
   return "";
 }
-int8_t delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_format1_r15_e_::to_number() const
+int8_t delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_format1_r15_opts::to_number() const
 {
   const static int8_t options[] = {-1, 0, 1, 2, 3, 4, 5, 6};
   return get_enum_number(options, 8, value, "delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_format1_r15_e_");
 }
 
-std::string delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_format1a_r15_e_::to_string() const
+std::string delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_format1a_r15_opts::to_string() const
 {
   switch (value) {
     case delta_f1:
@@ -13828,13 +13828,13 @@ std::string delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_format1a_r15
   }
   return "";
 }
-uint8_t delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_format1a_r15_e_::to_number() const
+uint8_t delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_format1a_r15_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3, 4, 5, 6, 7, 8};
   return get_enum_number(options, 8, value, "delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_format1a_r15_e_");
 }
 
-std::string delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_format1b_r15_e_::to_string() const
+std::string delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_format1b_r15_opts::to_string() const
 {
   switch (value) {
     case delta_f3:
@@ -13858,13 +13858,13 @@ std::string delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_format1b_r15
   }
   return "";
 }
-uint8_t delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_format1b_r15_e_::to_number() const
+uint8_t delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_format1b_r15_opts::to_number() const
 {
   const static uint8_t options[] = {3, 4, 5, 6, 7, 8, 9, 10};
   return get_enum_number(options, 8, value, "delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_format1b_r15_e_");
 }
 
-std::string delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_format3_r15_e_::to_string() const
+std::string delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_format3_r15_opts::to_string() const
 {
   switch (value) {
     case delta_f4:
@@ -13888,13 +13888,13 @@ std::string delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_format3_r15_
   }
   return "";
 }
-uint8_t delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_format3_r15_e_::to_number() const
+uint8_t delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_format3_r15_opts::to_number() const
 {
   const static uint8_t options[] = {4, 5, 6, 7, 8, 9, 10, 11};
   return get_enum_number(options, 8, value, "delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_format3_r15_e_");
 }
 
-std::string delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_rm_format4_r15_e_::to_string() const
+std::string delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_rm_format4_r15_opts::to_string() const
 {
   switch (value) {
     case delta_f13:
@@ -13918,14 +13918,14 @@ std::string delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_rm_format4_r
   }
   return "";
 }
-uint8_t delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_rm_format4_r15_e_::to_number() const
+uint8_t delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_rm_format4_r15_opts::to_number() const
 {
   const static uint8_t options[] = {13, 14, 15, 16, 17, 18, 19, 20};
   return get_enum_number(options, 8, value,
                          "delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_rm_format4_r15_e_");
 }
 
-std::string delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_tbcc_format4_r15_e_::to_string() const
+std::string delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_tbcc_format4_r15_opts::to_string() const
 {
   switch (value) {
     case delta_f10:
@@ -13949,14 +13949,14 @@ std::string delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_tbcc_format4
   }
   return "";
 }
-uint8_t delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_tbcc_format4_r15_e_::to_number() const
+uint8_t delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_tbcc_format4_r15_opts::to_number() const
 {
   const static uint8_t options[] = {10, 11, 12, 13, 14, 15, 16, 17};
   return get_enum_number(options, 8, value,
                          "delta_flist_spucch_r15_c::setup_s_::delta_f_slot_spucch_tbcc_format4_r15_e_");
 }
 
-std::string delta_flist_spucch_r15_c::setup_s_::delta_f_subslot_spucch_format1and1a_r15_e_::to_string() const
+std::string delta_flist_spucch_r15_c::setup_s_::delta_f_subslot_spucch_format1and1a_r15_opts::to_string() const
 {
   switch (value) {
     case delta_f5:
@@ -13980,14 +13980,14 @@ std::string delta_flist_spucch_r15_c::setup_s_::delta_f_subslot_spucch_format1an
   }
   return "";
 }
-uint8_t delta_flist_spucch_r15_c::setup_s_::delta_f_subslot_spucch_format1and1a_r15_e_::to_number() const
+uint8_t delta_flist_spucch_r15_c::setup_s_::delta_f_subslot_spucch_format1and1a_r15_opts::to_number() const
 {
   const static uint8_t options[] = {5, 6, 7, 8, 9, 10, 11, 12};
   return get_enum_number(options, 8, value,
                          "delta_flist_spucch_r15_c::setup_s_::delta_f_subslot_spucch_format1and1a_r15_e_");
 }
 
-std::string delta_flist_spucch_r15_c::setup_s_::delta_f_subslot_spucch_format1b_r15_e_::to_string() const
+std::string delta_flist_spucch_r15_c::setup_s_::delta_f_subslot_spucch_format1b_r15_opts::to_string() const
 {
   switch (value) {
     case delta_f6:
@@ -14011,14 +14011,14 @@ std::string delta_flist_spucch_r15_c::setup_s_::delta_f_subslot_spucch_format1b_
   }
   return "";
 }
-uint8_t delta_flist_spucch_r15_c::setup_s_::delta_f_subslot_spucch_format1b_r15_e_::to_number() const
+uint8_t delta_flist_spucch_r15_c::setup_s_::delta_f_subslot_spucch_format1b_r15_opts::to_number() const
 {
   const static uint8_t options[] = {6, 7, 8, 9, 10, 11, 12, 13};
   return get_enum_number(options, 8, value,
                          "delta_flist_spucch_r15_c::setup_s_::delta_f_subslot_spucch_format1b_r15_e_");
 }
 
-std::string delta_flist_spucch_r15_c::setup_s_::delta_f_subslot_spucch_rm_format4_r15_e_::to_string() const
+std::string delta_flist_spucch_r15_c::setup_s_::delta_f_subslot_spucch_rm_format4_r15_opts::to_string() const
 {
   switch (value) {
     case delta_f15:
@@ -14042,14 +14042,14 @@ std::string delta_flist_spucch_r15_c::setup_s_::delta_f_subslot_spucch_rm_format
   }
   return "";
 }
-uint8_t delta_flist_spucch_r15_c::setup_s_::delta_f_subslot_spucch_rm_format4_r15_e_::to_number() const
+uint8_t delta_flist_spucch_r15_c::setup_s_::delta_f_subslot_spucch_rm_format4_r15_opts::to_number() const
 {
   const static uint8_t options[] = {15, 16, 17, 18, 19, 20, 21, 22};
   return get_enum_number(options, 8, value,
                          "delta_flist_spucch_r15_c::setup_s_::delta_f_subslot_spucch_rm_format4_r15_e_");
 }
 
-std::string delta_flist_spucch_r15_c::setup_s_::delta_f_subslot_spucch_tbcc_format4_r15_e_::to_string() const
+std::string delta_flist_spucch_r15_c::setup_s_::delta_f_subslot_spucch_tbcc_format4_r15_opts::to_string() const
 {
   switch (value) {
     case delta_f10:
@@ -14073,14 +14073,14 @@ std::string delta_flist_spucch_r15_c::setup_s_::delta_f_subslot_spucch_tbcc_form
   }
   return "";
 }
-uint8_t delta_flist_spucch_r15_c::setup_s_::delta_f_subslot_spucch_tbcc_format4_r15_e_::to_number() const
+uint8_t delta_flist_spucch_r15_c::setup_s_::delta_f_subslot_spucch_tbcc_format4_r15_opts::to_number() const
 {
   const static uint8_t options[] = {10, 11, 12, 13, 14, 15, 16, 17};
   return get_enum_number(options, 8, value,
                          "delta_flist_spucch_r15_c::setup_s_::delta_f_subslot_spucch_tbcc_format4_r15_e_");
 }
 
-std::string laa_scell_cfg_r13_s::sf_start_position_r13_e_::to_string() const
+std::string laa_scell_cfg_r13_s::sf_start_position_r13_opts::to_string() const
 {
   switch (value) {
     case s0:
@@ -14092,12 +14092,12 @@ std::string laa_scell_cfg_r13_s::sf_start_position_r13_e_::to_string() const
   }
   return "";
 }
-float laa_scell_cfg_r13_s::sf_start_position_r13_e_::to_number() const
+float laa_scell_cfg_r13_s::sf_start_position_r13_opts::to_number() const
 {
   const static float options[] = {0.0, 0.7};
   return get_enum_number(options, 2, value, "laa_scell_cfg_r13_s::sf_start_position_r13_e_");
 }
-std::string laa_scell_cfg_r13_s::sf_start_position_r13_e_::to_number_string() const
+std::string laa_scell_cfg_r13_s::sf_start_position_r13_opts::to_number_string() const
 {
   switch (value) {
     case s0:
@@ -14110,7 +14110,7 @@ std::string laa_scell_cfg_r13_s::sf_start_position_r13_e_::to_number_string() co
   return "";
 }
 
-std::string sched_request_cfg_scell_r13_c::setup_s_::dsr_trans_max_r13_e_::to_string() const
+std::string sched_request_cfg_scell_r13_c::setup_s_::dsr_trans_max_r13_opts::to_string() const
 {
   switch (value) {
     case n4:
@@ -14134,13 +14134,13 @@ std::string sched_request_cfg_scell_r13_c::setup_s_::dsr_trans_max_r13_e_::to_st
   }
   return "";
 }
-uint8_t sched_request_cfg_scell_r13_c::setup_s_::dsr_trans_max_r13_e_::to_number() const
+uint8_t sched_request_cfg_scell_r13_c::setup_s_::dsr_trans_max_r13_opts::to_number() const
 {
   const static uint8_t options[] = {4, 8, 16, 32, 64};
   return get_enum_number(options, 5, value, "sched_request_cfg_scell_r13_c::setup_s_::dsr_trans_max_r13_e_");
 }
 
-std::string ul_pwr_ctrl_ded_scell_r10_s::delta_mcs_enabled_r10_e_::to_string() const
+std::string ul_pwr_ctrl_ded_scell_r10_s::delta_mcs_enabled_r10_opts::to_string() const
 {
   switch (value) {
     case en0:
@@ -14152,13 +14152,13 @@ std::string ul_pwr_ctrl_ded_scell_r10_s::delta_mcs_enabled_r10_e_::to_string() c
   }
   return "";
 }
-uint8_t ul_pwr_ctrl_ded_scell_r10_s::delta_mcs_enabled_r10_e_::to_number() const
+uint8_t ul_pwr_ctrl_ded_scell_r10_s::delta_mcs_enabled_r10_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1};
   return get_enum_number(options, 2, value, "ul_pwr_ctrl_ded_scell_r10_s::delta_mcs_enabled_r10_e_");
 }
 
-std::string ul_pwr_ctrl_ded_scell_r10_s::pathloss_ref_linking_r10_e_::to_string() const
+std::string ul_pwr_ctrl_ded_scell_r10_s::pathloss_ref_linking_r10_opts::to_string() const
 {
   switch (value) {
     case p_cell:
@@ -14171,7 +14171,7 @@ std::string ul_pwr_ctrl_ded_scell_r10_s::pathloss_ref_linking_r10_e_::to_string(
   return "";
 }
 
-std::string ant_info_common_s::ant_ports_count_e_::to_string() const
+std::string ant_info_common_s::ant_ports_count_opts::to_string() const
 {
   switch (value) {
     case an1:
@@ -14187,13 +14187,13 @@ std::string ant_info_common_s::ant_ports_count_e_::to_string() const
   }
   return "";
 }
-uint8_t ant_info_common_s::ant_ports_count_e_::to_number() const
+uint8_t ant_info_common_s::ant_ports_count_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 4};
   return get_enum_number(options, 3, value, "ant_info_common_s::ant_ports_count_e_");
 }
 
-std::string phys_cfg_ded_scell_r10_s::must_cfg_r14_c_::setup_s_::k_max_r14_e_::to_string() const
+std::string phys_cfg_ded_scell_r10_s::must_cfg_r14_c_::setup_s_::k_max_r14_opts::to_string() const
 {
   switch (value) {
     case l1:
@@ -14205,13 +14205,13 @@ std::string phys_cfg_ded_scell_r10_s::must_cfg_r14_c_::setup_s_::k_max_r14_e_::t
   }
   return "";
 }
-uint8_t phys_cfg_ded_scell_r10_s::must_cfg_r14_c_::setup_s_::k_max_r14_e_::to_number() const
+uint8_t phys_cfg_ded_scell_r10_s::must_cfg_r14_c_::setup_s_::k_max_r14_opts::to_number() const
 {
   const static uint8_t options[] = {1, 3};
   return get_enum_number(options, 2, value, "phys_cfg_ded_scell_r10_s::must_cfg_r14_c_::setup_s_::k_max_r14_e_");
 }
 
-std::string phys_cfg_ded_scell_r10_s::must_cfg_r14_c_::setup_s_::p_a_must_r14_e_::to_string() const
+std::string phys_cfg_ded_scell_r10_s::must_cfg_r14_c_::setup_s_::p_a_must_r14_opts::to_string() const
 {
   switch (value) {
     case db_minus6:
@@ -14235,12 +14235,12 @@ std::string phys_cfg_ded_scell_r10_s::must_cfg_r14_c_::setup_s_::p_a_must_r14_e_
   }
   return "";
 }
-float phys_cfg_ded_scell_r10_s::must_cfg_r14_c_::setup_s_::p_a_must_r14_e_::to_number() const
+float phys_cfg_ded_scell_r10_s::must_cfg_r14_c_::setup_s_::p_a_must_r14_opts::to_number() const
 {
   const static float options[] = {-6.0, -4.77, -3.0, -1.77, 0.0, 1.0, 2.0, 3.0};
   return get_enum_number(options, 8, value, "phys_cfg_ded_scell_r10_s::must_cfg_r14_c_::setup_s_::p_a_must_r14_e_");
 }
-std::string phys_cfg_ded_scell_r10_s::must_cfg_r14_c_::setup_s_::p_a_must_r14_e_::to_number_string() const
+std::string phys_cfg_ded_scell_r10_s::must_cfg_r14_c_::setup_s_::p_a_must_r14_opts::to_number_string() const
 {
   switch (value) {
     case db_minus6:
@@ -14265,7 +14265,7 @@ std::string phys_cfg_ded_scell_r10_s::must_cfg_r14_c_::setup_s_::p_a_must_r14_e_
   return "";
 }
 
-std::string phys_cfg_ded_scell_r10_s::semi_static_cfi_cfg_r15_c_::setup_c_::types::to_string() const
+std::string phys_cfg_ded_scell_r10_s::semi_static_cfi_cfg_r15_c_::setup_c_::types_opts::to_string() const
 {
   switch (value) {
     case cfi_cfg_r15:
@@ -14281,7 +14281,7 @@ std::string phys_cfg_ded_scell_r10_s::semi_static_cfi_cfg_r15_c_::setup_c_::type
 }
 
 std::string
-phys_cfg_ded_scell_r10_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::max_num_sf_pdsch_repeats_r15_e_::to_string() const
+phys_cfg_ded_scell_r10_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::max_num_sf_pdsch_repeats_r15_opts::to_string() const
 {
   switch (value) {
     case n4:
@@ -14295,7 +14295,7 @@ phys_cfg_ded_scell_r10_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::max_num_sf_pd
   return "";
 }
 uint8_t
-phys_cfg_ded_scell_r10_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::max_num_sf_pdsch_repeats_r15_e_::to_number() const
+phys_cfg_ded_scell_r10_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::max_num_sf_pdsch_repeats_r15_opts::to_number() const
 {
   const static uint8_t options[] = {4, 6};
   return get_enum_number(
@@ -14304,7 +14304,7 @@ phys_cfg_ded_scell_r10_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::max_num_sf_pd
 }
 
 std::string phys_cfg_ded_scell_r10_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::
-    max_num_slot_subslot_pdsch_repeats_r15_e_::to_string() const
+    max_num_slot_subslot_pdsch_repeats_r15_opts::to_string() const
 {
   switch (value) {
     case n4:
@@ -14317,7 +14317,7 @@ std::string phys_cfg_ded_scell_r10_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::
   }
   return "";
 }
-uint8_t phys_cfg_ded_scell_r10_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::max_num_slot_subslot_pdsch_repeats_r15_e_::
+uint8_t phys_cfg_ded_scell_r10_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::max_num_slot_subslot_pdsch_repeats_r15_opts::
     to_number() const
 {
   const static uint8_t options[] = {4, 6};
@@ -14327,7 +14327,7 @@ uint8_t phys_cfg_ded_scell_r10_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::max_n
 }
 
 std::string
-phys_cfg_ded_scell_r10_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::rv_sf_pdsch_repeats_r15_e_::to_string() const
+phys_cfg_ded_scell_r10_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::rv_sf_pdsch_repeats_r15_opts::to_string() const
 {
   switch (value) {
     case dlrvseq1:
@@ -14340,7 +14340,8 @@ phys_cfg_ded_scell_r10_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::rv_sf_pdsch_r
   }
   return "";
 }
-uint8_t phys_cfg_ded_scell_r10_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::rv_sf_pdsch_repeats_r15_e_::to_number() const
+uint8_t
+phys_cfg_ded_scell_r10_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::rv_sf_pdsch_repeats_r15_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2};
   return get_enum_number(
@@ -14349,7 +14350,8 @@ uint8_t phys_cfg_ded_scell_r10_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::rv_sf
 }
 
 std::string
-phys_cfg_ded_scell_r10_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::rv_slotsublot_pdsch_repeats_r15_e_::to_string() const
+phys_cfg_ded_scell_r10_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::rv_slotsublot_pdsch_repeats_r15_opts::to_string()
+    const
 {
   switch (value) {
     case dlrvseq1:
@@ -14364,7 +14366,8 @@ phys_cfg_ded_scell_r10_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::rv_slotsublot
   return "";
 }
 uint8_t
-phys_cfg_ded_scell_r10_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::rv_slotsublot_pdsch_repeats_r15_e_::to_number() const
+phys_cfg_ded_scell_r10_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::rv_slotsublot_pdsch_repeats_r15_opts::to_number()
+    const
 {
   const static uint8_t options[] = {1, 2};
   return get_enum_number(
@@ -14373,7 +14376,7 @@ phys_cfg_ded_scell_r10_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::rv_slotsublot
 }
 
 std::string
-phys_cfg_ded_scell_r10_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::mcs_restrict_sf_pdsch_repeats_r15_e_::to_string()
+phys_cfg_ded_scell_r10_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::mcs_restrict_sf_pdsch_repeats_r15_opts::to_string()
     const
 {
   switch (value) {
@@ -14389,7 +14392,7 @@ phys_cfg_ded_scell_r10_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::mcs_restrict_
   return "";
 }
 uint8_t
-phys_cfg_ded_scell_r10_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::mcs_restrict_sf_pdsch_repeats_r15_e_::to_number()
+phys_cfg_ded_scell_r10_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::mcs_restrict_sf_pdsch_repeats_r15_opts::to_number()
     const
 {
   const static uint8_t options[] = {0, 1};
@@ -14399,7 +14402,7 @@ phys_cfg_ded_scell_r10_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::mcs_restrict_
 }
 
 std::string phys_cfg_ded_scell_r10_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::
-    mcs_restrict_slot_subslot_pdsch_repeats_r15_e_::to_string() const
+    mcs_restrict_slot_subslot_pdsch_repeats_r15_opts::to_string() const
 {
   switch (value) {
     case n0:
@@ -14413,7 +14416,7 @@ std::string phys_cfg_ded_scell_r10_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::
   return "";
 }
 uint8_t phys_cfg_ded_scell_r10_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::
-    mcs_restrict_slot_subslot_pdsch_repeats_r15_e_::to_number() const
+    mcs_restrict_slot_subslot_pdsch_repeats_r15_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1};
   return get_enum_number(options, 2, value,
@@ -14421,7 +14424,7 @@ uint8_t phys_cfg_ded_scell_r10_s::blind_pdsch_repeat_cfg_r15_c_::setup_s_::
                          "pdsch_repeats_r15_e_");
 }
 
-std::string ul_pwr_ctrl_common_scell_v1310_s::delta_f_pucch_format3_r12_e_::to_string() const
+std::string ul_pwr_ctrl_common_scell_v1310_s::delta_f_pucch_format3_r12_opts::to_string() const
 {
   switch (value) {
     case delta_f_minus1:
@@ -14445,13 +14448,13 @@ std::string ul_pwr_ctrl_common_scell_v1310_s::delta_f_pucch_format3_r12_e_::to_s
   }
   return "";
 }
-int8_t ul_pwr_ctrl_common_scell_v1310_s::delta_f_pucch_format3_r12_e_::to_number() const
+int8_t ul_pwr_ctrl_common_scell_v1310_s::delta_f_pucch_format3_r12_opts::to_number() const
 {
   const static int8_t options[] = {-1, 0, 1, 2, 3, 4, 5, 6};
   return get_enum_number(options, 8, value, "ul_pwr_ctrl_common_scell_v1310_s::delta_f_pucch_format3_r12_e_");
 }
 
-std::string ul_pwr_ctrl_common_scell_v1310_s::delta_f_pucch_format1b_cs_r12_e_::to_string() const
+std::string ul_pwr_ctrl_common_scell_v1310_s::delta_f_pucch_format1b_cs_r12_opts::to_string() const
 {
   switch (value) {
     case delta_f1:
@@ -14467,13 +14470,13 @@ std::string ul_pwr_ctrl_common_scell_v1310_s::delta_f_pucch_format1b_cs_r12_e_::
   }
   return "";
 }
-uint8_t ul_pwr_ctrl_common_scell_v1310_s::delta_f_pucch_format1b_cs_r12_e_::to_number() const
+uint8_t ul_pwr_ctrl_common_scell_v1310_s::delta_f_pucch_format1b_cs_r12_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2};
   return get_enum_number(options, 2, value, "ul_pwr_ctrl_common_scell_v1310_s::delta_f_pucch_format1b_cs_r12_e_");
 }
 
-std::string ul_pwr_ctrl_common_scell_v1310_s::delta_f_pucch_format4_r13_e_::to_string() const
+std::string ul_pwr_ctrl_common_scell_v1310_s::delta_f_pucch_format4_r13_opts::to_string() const
 {
   switch (value) {
     case delta_f16:
@@ -14497,13 +14500,13 @@ std::string ul_pwr_ctrl_common_scell_v1310_s::delta_f_pucch_format4_r13_e_::to_s
   }
   return "";
 }
-uint8_t ul_pwr_ctrl_common_scell_v1310_s::delta_f_pucch_format4_r13_e_::to_number() const
+uint8_t ul_pwr_ctrl_common_scell_v1310_s::delta_f_pucch_format4_r13_opts::to_number() const
 {
   const static uint8_t options[] = {16, 15, 14, 13, 12, 11, 10};
   return get_enum_number(options, 7, value, "ul_pwr_ctrl_common_scell_v1310_s::delta_f_pucch_format4_r13_e_");
 }
 
-std::string ul_pwr_ctrl_common_scell_v1310_s::delta_f_pucch_format5_minus13_e_::to_string() const
+std::string ul_pwr_ctrl_common_scell_v1310_s::delta_f_pucch_format5_minus13_opts::to_string() const
 {
   switch (value) {
     case delta_f13:
@@ -14527,13 +14530,13 @@ std::string ul_pwr_ctrl_common_scell_v1310_s::delta_f_pucch_format5_minus13_e_::
   }
   return "";
 }
-uint8_t ul_pwr_ctrl_common_scell_v1310_s::delta_f_pucch_format5_minus13_e_::to_number() const
+uint8_t ul_pwr_ctrl_common_scell_v1310_s::delta_f_pucch_format5_minus13_opts::to_number() const
 {
   const static uint8_t options[] = {13, 12, 11, 10, 9, 8, 7};
   return get_enum_number(options, 7, value, "ul_pwr_ctrl_common_scell_v1310_s::delta_f_pucch_format5_minus13_e_");
 }
 
-std::string ant_info_ded_v10i0_s::max_layers_mimo_r10_e_::to_string() const
+std::string ant_info_ded_v10i0_s::max_layers_mimo_r10_opts::to_string() const
 {
   switch (value) {
     case two_layers:
@@ -14547,13 +14550,13 @@ std::string ant_info_ded_v10i0_s::max_layers_mimo_r10_e_::to_string() const
   }
   return "";
 }
-uint8_t ant_info_ded_v10i0_s::max_layers_mimo_r10_e_::to_number() const
+uint8_t ant_info_ded_v10i0_s::max_layers_mimo_r10_opts::to_number() const
 {
   const static uint8_t options[] = {2, 4, 8};
   return get_enum_number(options, 3, value, "ant_info_ded_v10i0_s::max_layers_mimo_r10_e_");
 }
 
-std::string rr_cfg_common_scell_r10_s::non_ul_cfg_r10_s_::dl_bw_r10_e_::to_string() const
+std::string rr_cfg_common_scell_r10_s::non_ul_cfg_r10_s_::dl_bw_r10_opts::to_string() const
 {
   switch (value) {
     case n6:
@@ -14573,13 +14576,13 @@ std::string rr_cfg_common_scell_r10_s::non_ul_cfg_r10_s_::dl_bw_r10_e_::to_strin
   }
   return "";
 }
-uint8_t rr_cfg_common_scell_r10_s::non_ul_cfg_r10_s_::dl_bw_r10_e_::to_number() const
+uint8_t rr_cfg_common_scell_r10_s::non_ul_cfg_r10_s_::dl_bw_r10_opts::to_number() const
 {
   const static uint8_t options[] = {6, 15, 25, 50, 75, 100};
   return get_enum_number(options, 6, value, "rr_cfg_common_scell_r10_s::non_ul_cfg_r10_s_::dl_bw_r10_e_");
 }
 
-std::string rr_cfg_common_scell_r10_s::ul_cfg_r10_s_::ul_freq_info_r10_s_::ul_bw_r10_e_::to_string() const
+std::string rr_cfg_common_scell_r10_s::ul_cfg_r10_s_::ul_freq_info_r10_s_::ul_bw_r10_opts::to_string() const
 {
   switch (value) {
     case n6:
@@ -14599,14 +14602,14 @@ std::string rr_cfg_common_scell_r10_s::ul_cfg_r10_s_::ul_freq_info_r10_s_::ul_bw
   }
   return "";
 }
-uint8_t rr_cfg_common_scell_r10_s::ul_cfg_r10_s_::ul_freq_info_r10_s_::ul_bw_r10_e_::to_number() const
+uint8_t rr_cfg_common_scell_r10_s::ul_cfg_r10_s_::ul_freq_info_r10_s_::ul_bw_r10_opts::to_number() const
 {
   const static uint8_t options[] = {6, 15, 25, 50, 75, 100};
   return get_enum_number(options, 6, value,
                          "rr_cfg_common_scell_r10_s::ul_cfg_r10_s_::ul_freq_info_r10_s_::ul_bw_r10_e_");
 }
 
-std::string rr_cfg_common_scell_r10_s::ul_cfg_r14_s_::ul_freq_info_r14_s_::ul_bw_r14_e_::to_string() const
+std::string rr_cfg_common_scell_r10_s::ul_cfg_r14_s_::ul_freq_info_r14_s_::ul_bw_r14_opts::to_string() const
 {
   switch (value) {
     case n6:
@@ -14626,14 +14629,14 @@ std::string rr_cfg_common_scell_r10_s::ul_cfg_r14_s_::ul_freq_info_r14_s_::ul_bw
   }
   return "";
 }
-uint8_t rr_cfg_common_scell_r10_s::ul_cfg_r14_s_::ul_freq_info_r14_s_::ul_bw_r14_e_::to_number() const
+uint8_t rr_cfg_common_scell_r10_s::ul_cfg_r14_s_::ul_freq_info_r14_s_::ul_bw_r14_opts::to_number() const
 {
   const static uint8_t options[] = {6, 15, 25, 50, 75, 100};
   return get_enum_number(options, 6, value,
                          "rr_cfg_common_scell_r10_s::ul_cfg_r14_s_::ul_freq_info_r14_s_::ul_bw_r14_e_");
 }
 
-std::string rr_cfg_common_scell_r10_s::harq_ref_cfg_r14_e_::to_string() const
+std::string rr_cfg_common_scell_r10_s::harq_ref_cfg_r14_opts::to_string() const
 {
   switch (value) {
     case sa2:
@@ -14647,14 +14650,14 @@ std::string rr_cfg_common_scell_r10_s::harq_ref_cfg_r14_e_::to_string() const
   }
   return "";
 }
-uint8_t rr_cfg_common_scell_r10_s::harq_ref_cfg_r14_e_::to_number() const
+uint8_t rr_cfg_common_scell_r10_s::harq_ref_cfg_r14_opts::to_number() const
 {
   const static uint8_t options[] = {2, 4, 5};
   return get_enum_number(options, 3, value, "rr_cfg_common_scell_r10_s::harq_ref_cfg_r14_e_");
 }
 
 // CipheringAlgorithm-r12 ::= ENUMERATED
-std::string ciphering_algorithm_r12_e::to_string() const
+std::string ciphering_algorithm_r12_opts::to_string() const
 {
   switch (value) {
     case eea0:
@@ -14678,13 +14681,13 @@ std::string ciphering_algorithm_r12_e::to_string() const
   }
   return "";
 }
-uint8_t ciphering_algorithm_r12_e::to_number() const
+uint8_t ciphering_algorithm_r12_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1, 2, 3};
   return get_enum_number(options, 4, value, "ciphering_algorithm_r12_e");
 }
 
-std::string sl_hop_cfg_disc_r12_s::c_r12_e_::to_string() const
+std::string sl_hop_cfg_disc_r12_s::c_r12_opts::to_string() const
 {
   switch (value) {
     case n1:
@@ -14696,13 +14699,13 @@ std::string sl_hop_cfg_disc_r12_s::c_r12_e_::to_string() const
   }
   return "";
 }
-uint8_t sl_hop_cfg_disc_r12_s::c_r12_e_::to_number() const
+uint8_t sl_hop_cfg_disc_r12_s::c_r12_opts::to_number() const
 {
   const static uint8_t options[] = {1, 5};
   return get_enum_number(options, 2, value, "sl_hop_cfg_disc_r12_s::c_r12_e_");
 }
 
-std::string security_algorithm_cfg_s::integrity_prot_algorithm_e_::to_string() const
+std::string security_algorithm_cfg_s::integrity_prot_algorithm_opts::to_string() const
 {
   switch (value) {
     case eia0_v920:
@@ -14726,13 +14729,13 @@ std::string security_algorithm_cfg_s::integrity_prot_algorithm_e_::to_string() c
   }
   return "";
 }
-uint8_t security_algorithm_cfg_s::integrity_prot_algorithm_e_::to_number() const
+uint8_t security_algorithm_cfg_s::integrity_prot_algorithm_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1, 2, 3};
   return get_enum_number(options, 4, value, "security_algorithm_cfg_s::integrity_prot_algorithm_e_");
 }
 
-std::string drb_to_add_mod_scg_r12_s::drb_type_r12_c_::types::to_string() const
+std::string drb_to_add_mod_scg_r12_s::drb_type_r12_c_::types_opts::to_string() const
 {
   switch (value) {
     case split_r12:
@@ -14747,7 +14750,7 @@ std::string drb_to_add_mod_scg_r12_s::drb_type_r12_c_::types::to_string() const
   return "";
 }
 
-std::string ip_address_r13_c::types::to_string() const
+std::string ip_address_r13_c::types_opts::to_string() const
 {
   switch (value) {
     case ipv4_r13:
@@ -14761,13 +14764,13 @@ std::string ip_address_r13_c::types::to_string() const
   }
   return "";
 }
-uint8_t ip_address_r13_c::types::to_number() const
+uint8_t ip_address_r13_c::types_opts::to_number() const
 {
   const static uint8_t options[] = {4, 6};
   return get_enum_number(options, 2, value, "ip_address_r13_c::types");
 }
 
-std::string security_cfg_ho_v1530_s::ho_type_v1530_c_::types::to_string() const
+std::string security_cfg_ho_v1530_s::ho_type_v1530_c_::types_opts::to_string() const
 {
   switch (value) {
     case intra5_gc_r15:
@@ -14783,13 +14786,13 @@ std::string security_cfg_ho_v1530_s::ho_type_v1530_c_::types::to_string() const
   }
   return "";
 }
-uint8_t security_cfg_ho_v1530_s::ho_type_v1530_c_::types::to_number() const
+uint8_t security_cfg_ho_v1530_s::ho_type_v1530_c_::types_opts::to_number() const
 {
   const static uint8_t options[] = {5};
   return get_enum_number(options, 1, value, "security_cfg_ho_v1530_s::ho_type_v1530_c_::types");
 }
 
-std::string ul_pwr_ctrl_common_v1310_s::delta_f_pucch_format4_r13_e_::to_string() const
+std::string ul_pwr_ctrl_common_v1310_s::delta_f_pucch_format4_r13_opts::to_string() const
 {
   switch (value) {
     case delta_f16:
@@ -14813,13 +14816,13 @@ std::string ul_pwr_ctrl_common_v1310_s::delta_f_pucch_format4_r13_e_::to_string(
   }
   return "";
 }
-uint8_t ul_pwr_ctrl_common_v1310_s::delta_f_pucch_format4_r13_e_::to_number() const
+uint8_t ul_pwr_ctrl_common_v1310_s::delta_f_pucch_format4_r13_opts::to_number() const
 {
   const static uint8_t options[] = {16, 15, 14, 13, 12, 11, 10};
   return get_enum_number(options, 7, value, "ul_pwr_ctrl_common_v1310_s::delta_f_pucch_format4_r13_e_");
 }
 
-std::string ul_pwr_ctrl_common_v1310_s::delta_f_pucch_format5_minus13_e_::to_string() const
+std::string ul_pwr_ctrl_common_v1310_s::delta_f_pucch_format5_minus13_opts::to_string() const
 {
   switch (value) {
     case delta_f13:
@@ -14843,13 +14846,13 @@ std::string ul_pwr_ctrl_common_v1310_s::delta_f_pucch_format5_minus13_e_::to_str
   }
   return "";
 }
-uint8_t ul_pwr_ctrl_common_v1310_s::delta_f_pucch_format5_minus13_e_::to_number() const
+uint8_t ul_pwr_ctrl_common_v1310_s::delta_f_pucch_format5_minus13_opts::to_number() const
 {
   const static uint8_t options[] = {13, 12, 11, 10, 9, 8, 7};
   return get_enum_number(options, 7, value, "ul_pwr_ctrl_common_v1310_s::delta_f_pucch_format5_minus13_e_");
 }
 
-std::string ul_pwr_ctrl_common_ps_cell_r12_s::delta_f_pucch_format3_r12_e_::to_string() const
+std::string ul_pwr_ctrl_common_ps_cell_r12_s::delta_f_pucch_format3_r12_opts::to_string() const
 {
   switch (value) {
     case delta_f_minus1:
@@ -14873,13 +14876,13 @@ std::string ul_pwr_ctrl_common_ps_cell_r12_s::delta_f_pucch_format3_r12_e_::to_s
   }
   return "";
 }
-int8_t ul_pwr_ctrl_common_ps_cell_r12_s::delta_f_pucch_format3_r12_e_::to_number() const
+int8_t ul_pwr_ctrl_common_ps_cell_r12_s::delta_f_pucch_format3_r12_opts::to_number() const
 {
   const static int8_t options[] = {-1, 0, 1, 2, 3, 4, 5, 6};
   return get_enum_number(options, 8, value, "ul_pwr_ctrl_common_ps_cell_r12_s::delta_f_pucch_format3_r12_e_");
 }
 
-std::string ul_pwr_ctrl_common_ps_cell_r12_s::delta_f_pucch_format1b_cs_r12_e_::to_string() const
+std::string ul_pwr_ctrl_common_ps_cell_r12_s::delta_f_pucch_format1b_cs_r12_opts::to_string() const
 {
   switch (value) {
     case delta_f1:
@@ -14895,13 +14898,13 @@ std::string ul_pwr_ctrl_common_ps_cell_r12_s::delta_f_pucch_format1b_cs_r12_e_::
   }
   return "";
 }
-uint8_t ul_pwr_ctrl_common_ps_cell_r12_s::delta_f_pucch_format1b_cs_r12_e_::to_number() const
+uint8_t ul_pwr_ctrl_common_ps_cell_r12_s::delta_f_pucch_format1b_cs_r12_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2};
   return get_enum_number(options, 2, value, "ul_pwr_ctrl_common_ps_cell_r12_s::delta_f_pucch_format1b_cs_r12_e_");
 }
 
-std::string rach_skip_r14_s::target_ta_r14_c_::types::to_string() const
+std::string rach_skip_r14_s::target_ta_r14_c_::types_opts::to_string() const
 {
   switch (value) {
     case ta0_r14:
@@ -14921,13 +14924,13 @@ std::string rach_skip_r14_s::target_ta_r14_c_::types::to_string() const
   }
   return "";
 }
-uint8_t rach_skip_r14_s::target_ta_r14_c_::types::to_number() const
+uint8_t rach_skip_r14_s::target_ta_r14_c_::types_opts::to_number() const
 {
   const static uint8_t options[] = {0};
   return get_enum_number(options, 1, value, "rach_skip_r14_s::target_ta_r14_c_::types");
 }
 
-std::string rach_skip_r14_s::ul_cfg_info_r14_s_::ul_sched_interv_r14_e_::to_string() const
+std::string rach_skip_r14_s::ul_cfg_info_r14_s_::ul_sched_interv_r14_opts::to_string() const
 {
   switch (value) {
     case sf2:
@@ -14941,13 +14944,13 @@ std::string rach_skip_r14_s::ul_cfg_info_r14_s_::ul_sched_interv_r14_e_::to_stri
   }
   return "";
 }
-uint8_t rach_skip_r14_s::ul_cfg_info_r14_s_::ul_sched_interv_r14_e_::to_number() const
+uint8_t rach_skip_r14_s::ul_cfg_info_r14_s_::ul_sched_interv_r14_opts::to_number() const
 {
   const static uint8_t options[] = {2, 5, 10};
   return get_enum_number(options, 3, value, "rach_skip_r14_s::ul_cfg_info_r14_s_::ul_sched_interv_r14_e_");
 }
 
-std::string rlf_timers_and_consts_scg_r12_c::setup_s_::t313_r12_e_::to_string() const
+std::string rlf_timers_and_consts_scg_r12_c::setup_s_::t313_r12_opts::to_string() const
 {
   switch (value) {
     case ms0:
@@ -14969,13 +14972,13 @@ std::string rlf_timers_and_consts_scg_r12_c::setup_s_::t313_r12_e_::to_string() 
   }
   return "";
 }
-uint16_t rlf_timers_and_consts_scg_r12_c::setup_s_::t313_r12_e_::to_number() const
+uint16_t rlf_timers_and_consts_scg_r12_c::setup_s_::t313_r12_opts::to_number() const
 {
   const static uint16_t options[] = {0, 50, 100, 200, 500, 1000, 2000};
   return get_enum_number(options, 7, value, "rlf_timers_and_consts_scg_r12_c::setup_s_::t313_r12_e_");
 }
 
-std::string rlf_timers_and_consts_scg_r12_c::setup_s_::n313_r12_e_::to_string() const
+std::string rlf_timers_and_consts_scg_r12_c::setup_s_::n313_r12_opts::to_string() const
 {
   switch (value) {
     case n1:
@@ -14999,13 +15002,13 @@ std::string rlf_timers_and_consts_scg_r12_c::setup_s_::n313_r12_e_::to_string() 
   }
   return "";
 }
-uint8_t rlf_timers_and_consts_scg_r12_c::setup_s_::n313_r12_e_::to_number() const
+uint8_t rlf_timers_and_consts_scg_r12_c::setup_s_::n313_r12_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3, 4, 6, 8, 10, 20};
   return get_enum_number(options, 8, value, "rlf_timers_and_consts_scg_r12_c::setup_s_::n313_r12_e_");
 }
 
-std::string rlf_timers_and_consts_scg_r12_c::setup_s_::n314_r12_e_::to_string() const
+std::string rlf_timers_and_consts_scg_r12_c::setup_s_::n314_r12_opts::to_string() const
 {
   switch (value) {
     case n1:
@@ -15029,13 +15032,13 @@ std::string rlf_timers_and_consts_scg_r12_c::setup_s_::n314_r12_e_::to_string() 
   }
   return "";
 }
-uint8_t rlf_timers_and_consts_scg_r12_c::setup_s_::n314_r12_e_::to_number() const
+uint8_t rlf_timers_and_consts_scg_r12_c::setup_s_::n314_r12_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3, 4, 5, 6, 8, 10};
   return get_enum_number(options, 8, value, "rlf_timers_and_consts_scg_r12_c::setup_s_::n314_r12_e_");
 }
 
-std::string scell_to_add_mod_r10_s::s_cell_state_r15_e_::to_string() const
+std::string scell_to_add_mod_r10_s::s_cell_state_r15_opts::to_string() const
 {
   switch (value) {
     case activ:
@@ -15048,7 +15051,7 @@ std::string scell_to_add_mod_r10_s::s_cell_state_r15_e_::to_string() const
   return "";
 }
 
-std::string scell_to_add_mod_ext_v1430_s::s_cell_state_r15_e_::to_string() const
+std::string scell_to_add_mod_ext_v1430_s::s_cell_state_r15_opts::to_string() const
 {
   switch (value) {
     case activ:
@@ -15061,7 +15064,7 @@ std::string scell_to_add_mod_ext_v1430_s::s_cell_state_r15_e_::to_string() const
   return "";
 }
 
-std::string sl_disc_tx_ref_carrier_ded_r13_c::types::to_string() const
+std::string sl_disc_tx_ref_carrier_ded_r13_c::types_opts::to_string() const
 {
   switch (value) {
     case p_cell:
@@ -15076,7 +15079,7 @@ std::string sl_disc_tx_ref_carrier_ded_r13_c::types::to_string() const
   return "";
 }
 
-std::string sl_disc_tx_res_r13_c::setup_c_::types::to_string() const
+std::string sl_disc_tx_res_r13_c::setup_c_::types_opts::to_string() const
 {
   switch (value) {
     case sched_r13:
@@ -15091,7 +15094,7 @@ std::string sl_disc_tx_res_r13_c::setup_c_::types::to_string() const
   return "";
 }
 
-std::string sl_gap_pattern_r13_s::gap_period_r13_e_::to_string() const
+std::string sl_gap_pattern_r13_s::gap_period_r13_opts::to_string() const
 {
   switch (value) {
     case sf40:
@@ -15129,14 +15132,14 @@ std::string sl_gap_pattern_r13_s::gap_period_r13_e_::to_string() const
   }
   return "";
 }
-uint16_t sl_gap_pattern_r13_s::gap_period_r13_e_::to_number() const
+uint16_t sl_gap_pattern_r13_s::gap_period_r13_opts::to_number() const
 {
   const static uint16_t options[] = {40, 60, 70, 80, 120, 140, 160, 240, 280, 320, 640, 1280, 2560, 5120, 10240};
   return get_enum_number(options, 15, value, "sl_gap_pattern_r13_s::gap_period_r13_e_");
 }
 
 // SubframeAssignment-r15 ::= ENUMERATED
-std::string sf_assign_r15_e::to_string() const
+std::string sf_assign_r15_opts::to_string() const
 {
   switch (value) {
     case sa0:
@@ -15158,13 +15161,13 @@ std::string sf_assign_r15_e::to_string() const
   }
   return "";
 }
-uint8_t sf_assign_r15_e::to_number() const
+uint8_t sf_assign_r15_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1, 2, 3, 4, 5, 6};
   return get_enum_number(options, 7, value, "sf_assign_r15_e");
 }
 
-std::string wlan_mob_cfg_r13_s::association_timer_r13_e_::to_string() const
+std::string wlan_mob_cfg_r13_s::association_timer_r13_opts::to_string() const
 {
   switch (value) {
     case s10:
@@ -15182,14 +15185,14 @@ std::string wlan_mob_cfg_r13_s::association_timer_r13_e_::to_string() const
   }
   return "";
 }
-uint8_t wlan_mob_cfg_r13_s::association_timer_r13_e_::to_number() const
+uint8_t wlan_mob_cfg_r13_s::association_timer_r13_opts::to_number() const
 {
   const static uint8_t options[] = {10, 30, 60, 120, 240};
   return get_enum_number(options, 5, value, "wlan_mob_cfg_r13_s::association_timer_r13_e_");
 }
 
 // CA-BandwidthClass-r10 ::= ENUMERATED
-std::string ca_bw_class_r10_e::to_string() const
+std::string ca_bw_class_r10_opts::to_string() const
 {
   switch (value) {
     case a:
@@ -15210,7 +15213,7 @@ std::string ca_bw_class_r10_e::to_string() const
   return "";
 }
 
-std::string mob_ctrl_info_scg_r12_s::t307_r12_e_::to_string() const
+std::string mob_ctrl_info_scg_r12_s::t307_r12_opts::to_string() const
 {
   switch (value) {
     case ms50:
@@ -15234,13 +15237,13 @@ std::string mob_ctrl_info_scg_r12_s::t307_r12_e_::to_string() const
   }
   return "";
 }
-uint16_t mob_ctrl_info_scg_r12_s::t307_r12_e_::to_number() const
+uint16_t mob_ctrl_info_scg_r12_s::t307_r12_opts::to_number() const
 {
   const static uint16_t options[] = {50, 100, 150, 200, 500, 1000, 2000};
   return get_enum_number(options, 7, value, "mob_ctrl_info_scg_r12_s::t307_r12_e_");
 }
 
-std::string rclwi_cfg_r13_s::cmd_c_::types::to_string() const
+std::string rclwi_cfg_r13_s::cmd_c_::types_opts::to_string() const
 {
   switch (value) {
     case steer_to_wlan_r13:
@@ -15255,7 +15258,7 @@ std::string rclwi_cfg_r13_s::cmd_c_::types::to_string() const
   return "";
 }
 
-std::string sl_v2x_cfg_ded_r14_s::comm_tx_res_r14_c_::setup_c_::types::to_string() const
+std::string sl_v2x_cfg_ded_r14_s::comm_tx_res_r14_c_::setup_c_::types_opts::to_string() const
 {
   switch (value) {
     case sched_r14:
@@ -15270,7 +15273,7 @@ std::string sl_v2x_cfg_ded_r14_s::comm_tx_res_r14_c_::setup_c_::types::to_string
   return "";
 }
 
-std::string sl_v2x_cfg_ded_r14_s::comm_tx_res_v1530_c_::setup_c_::types::to_string() const
+std::string sl_v2x_cfg_ded_r14_s::comm_tx_res_v1530_c_::setup_c_::types_opts::to_string() const
 {
   switch (value) {
     case sched_v1530:
@@ -15285,7 +15288,7 @@ std::string sl_v2x_cfg_ded_r14_s::comm_tx_res_v1530_c_::setup_c_::types::to_stri
   return "";
 }
 
-std::string ran_notif_area_info_r15_c::types::to_string() const
+std::string ran_notif_area_info_r15_c::types_opts::to_string() const
 {
   switch (value) {
     case cell_list_r15:
@@ -15300,7 +15303,7 @@ std::string ran_notif_area_info_r15_c::types::to_string() const
   return "";
 }
 
-std::string meas_idle_cfg_ded_r15_s::meas_idle_dur_r15_e_::to_string() const
+std::string meas_idle_cfg_ded_r15_s::meas_idle_dur_r15_opts::to_string() const
 {
   switch (value) {
     case sec10:
@@ -15324,13 +15327,13 @@ std::string meas_idle_cfg_ded_r15_s::meas_idle_dur_r15_e_::to_string() const
   }
   return "";
 }
-uint16_t meas_idle_cfg_ded_r15_s::meas_idle_dur_r15_e_::to_number() const
+uint16_t meas_idle_cfg_ded_r15_s::meas_idle_dur_r15_opts::to_number() const
 {
   const static uint16_t options[] = {10, 30, 60, 120, 180, 240, 300};
   return get_enum_number(options, 7, value, "meas_idle_cfg_ded_r15_s::meas_idle_dur_r15_e_");
 }
 
-std::string rrc_inactive_cfg_r15_s::ran_paging_cycle_r15_e_::to_string() const
+std::string rrc_inactive_cfg_r15_s::ran_paging_cycle_r15_opts::to_string() const
 {
   switch (value) {
     case rf32:
@@ -15346,13 +15349,13 @@ std::string rrc_inactive_cfg_r15_s::ran_paging_cycle_r15_e_::to_string() const
   }
   return "";
 }
-uint16_t rrc_inactive_cfg_r15_s::ran_paging_cycle_r15_e_::to_number() const
+uint16_t rrc_inactive_cfg_r15_s::ran_paging_cycle_r15_opts::to_number() const
 {
   const static uint16_t options[] = {32, 64, 128, 256};
   return get_enum_number(options, 4, value, "rrc_inactive_cfg_r15_s::ran_paging_cycle_r15_e_");
 }
 
-std::string rrc_inactive_cfg_r15_s::periodic_rnau_timer_r15_e_::to_string() const
+std::string rrc_inactive_cfg_r15_s::periodic_rnau_timer_r15_opts::to_string() const
 {
   switch (value) {
     case min5:
@@ -15376,13 +15379,13 @@ std::string rrc_inactive_cfg_r15_s::periodic_rnau_timer_r15_e_::to_string() cons
   }
   return "";
 }
-uint16_t rrc_inactive_cfg_r15_s::periodic_rnau_timer_r15_e_::to_number() const
+uint16_t rrc_inactive_cfg_r15_s::periodic_rnau_timer_r15_opts::to_number() const
 {
   const static uint16_t options[] = {5, 10, 20, 30, 60, 120, 360, 720};
   return get_enum_number(options, 8, value, "rrc_inactive_cfg_r15_s::periodic_rnau_timer_r15_e_");
 }
 
-std::string sl_comm_cfg_r12_s::comm_tx_res_r12_c_::setup_c_::types::to_string() const
+std::string sl_comm_cfg_r12_s::comm_tx_res_r12_c_::setup_c_::types_opts::to_string() const
 {
   switch (value) {
     case sched_r12:
@@ -15397,7 +15400,7 @@ std::string sl_comm_cfg_r12_s::comm_tx_res_r12_c_::setup_c_::types::to_string() 
   return "";
 }
 
-std::string sl_comm_cfg_r12_s::comm_tx_res_v1310_c_::setup_c_::types::to_string() const
+std::string sl_comm_cfg_r12_s::comm_tx_res_v1310_c_::setup_c_::types_opts::to_string() const
 {
   switch (value) {
     case sched_v1310:
@@ -15412,7 +15415,7 @@ std::string sl_comm_cfg_r12_s::comm_tx_res_v1310_c_::setup_c_::types::to_string(
   return "";
 }
 
-std::string sl_disc_cfg_r12_s::disc_tx_res_r12_c_::setup_c_::types::to_string() const
+std::string sl_disc_cfg_r12_s::disc_tx_res_r12_c_::setup_c_::types_opts::to_string() const
 {
   switch (value) {
     case sched_r12:
@@ -15427,7 +15430,7 @@ std::string sl_disc_cfg_r12_s::disc_tx_res_r12_c_::setup_c_::types::to_string() 
   return "";
 }
 
-std::string sl_disc_cfg_r12_s::disc_tx_res_ps_r13_c_::setup_c_::types::to_string() const
+std::string sl_disc_cfg_r12_s::disc_tx_res_ps_r13_c_::setup_c_::types_opts::to_string() const
 {
   switch (value) {
     case sched_r13:
@@ -15442,7 +15445,7 @@ std::string sl_disc_cfg_r12_s::disc_tx_res_ps_r13_c_::setup_c_::types::to_string
   return "";
 }
 
-std::string sl_sync_tx_ctrl_r12_s::network_ctrl_sync_tx_r12_e_::to_string() const
+std::string sl_sync_tx_ctrl_r12_s::network_ctrl_sync_tx_r12_opts::to_string() const
 {
   switch (value) {
     case on:
@@ -15456,7 +15459,7 @@ std::string sl_sync_tx_ctrl_r12_s::network_ctrl_sync_tx_r12_e_::to_string() cons
 }
 
 // CDMA2000-Type ::= ENUMERATED
-std::string cdma2000_type_e::to_string() const
+std::string cdma2000_type_opts::to_string() const
 {
   switch (value) {
     case type1_xrtt:
@@ -15468,14 +15471,14 @@ std::string cdma2000_type_e::to_string() const
   }
   return "";
 }
-uint8_t cdma2000_type_e::to_number() const
+uint8_t cdma2000_type_opts::to_number() const
 {
   const static uint8_t options[] = {1};
   return get_enum_number(options, 1, value, "cdma2000_type_e");
 }
 
 // MeasCycleSCell-r10 ::= ENUMERATED
-std::string meas_cycle_scell_r10_e::to_string() const
+std::string meas_cycle_scell_r10_opts::to_string() const
 {
   switch (value) {
     case sf160:
@@ -15499,13 +15502,13 @@ std::string meas_cycle_scell_r10_e::to_string() const
   }
   return "";
 }
-uint16_t meas_cycle_scell_r10_e::to_number() const
+uint16_t meas_cycle_scell_r10_opts::to_number() const
 {
   const static uint16_t options[] = {160, 256, 320, 512, 640, 1024, 1280};
   return get_enum_number(options, 7, value, "meas_cycle_scell_r10_e");
 }
 
-std::string meas_ds_cfg_r12_c::setup_s_::dmtc_period_offset_r12_c_::types::to_string() const
+std::string meas_ds_cfg_r12_c::setup_s_::dmtc_period_offset_r12_c_::types_opts::to_string() const
 {
   switch (value) {
     case ms40_r12:
@@ -15521,13 +15524,13 @@ std::string meas_ds_cfg_r12_c::setup_s_::dmtc_period_offset_r12_c_::types::to_st
   }
   return "";
 }
-uint8_t meas_ds_cfg_r12_c::setup_s_::dmtc_period_offset_r12_c_::types::to_number() const
+uint8_t meas_ds_cfg_r12_c::setup_s_::dmtc_period_offset_r12_c_::types_opts::to_number() const
 {
   const static uint8_t options[] = {40, 80, 160};
   return get_enum_number(options, 3, value, "meas_ds_cfg_r12_c::setup_s_::dmtc_period_offset_r12_c_::types");
 }
 
-std::string meas_ds_cfg_r12_c::setup_s_::ds_occasion_dur_r12_c_::types::to_string() const
+std::string meas_ds_cfg_r12_c::setup_s_::ds_occasion_dur_r12_c_::types_opts::to_string() const
 {
   switch (value) {
     case dur_fdd_r12:
@@ -15542,7 +15545,7 @@ std::string meas_ds_cfg_r12_c::setup_s_::ds_occasion_dur_r12_c_::types::to_strin
   return "";
 }
 
-std::string meas_gap_cfg_c::setup_s_::gap_offset_c_::types::to_string() const
+std::string meas_gap_cfg_c::setup_s_::gap_offset_c_::types_opts::to_string() const
 {
   switch (value) {
     case gp0:
@@ -15593,7 +15596,7 @@ std::string meas_gap_cfg_c::setup_s_::gap_offset_c_::types::to_string() const
   return "";
 }
 
-std::string meas_sensing_cfg_r15_s::sensing_periodicity_r15_e_::to_string() const
+std::string meas_sensing_cfg_r15_s::sensing_periodicity_r15_opts::to_string() const
 {
   switch (value) {
     case ms20:
@@ -15625,13 +15628,13 @@ std::string meas_sensing_cfg_r15_s::sensing_periodicity_r15_e_::to_string() cons
   }
   return "";
 }
-uint16_t meas_sensing_cfg_r15_s::sensing_periodicity_r15_e_::to_number() const
+uint16_t meas_sensing_cfg_r15_s::sensing_periodicity_r15_opts::to_number() const
 {
   const static uint16_t options[] = {20, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000};
   return get_enum_number(options, 12, value, "meas_sensing_cfg_r15_s::sensing_periodicity_r15_e_");
 }
 
-std::string rmtc_cfg_r13_c::setup_s_::rmtc_period_r13_e_::to_string() const
+std::string rmtc_cfg_r13_c::setup_s_::rmtc_period_r13_opts::to_string() const
 {
   switch (value) {
     case ms40:
@@ -15649,13 +15652,13 @@ std::string rmtc_cfg_r13_c::setup_s_::rmtc_period_r13_e_::to_string() const
   }
   return "";
 }
-uint16_t rmtc_cfg_r13_c::setup_s_::rmtc_period_r13_e_::to_number() const
+uint16_t rmtc_cfg_r13_c::setup_s_::rmtc_period_r13_opts::to_number() const
 {
   const static uint16_t options[] = {40, 80, 160, 320, 640};
   return get_enum_number(options, 5, value, "rmtc_cfg_r13_c::setup_s_::rmtc_period_r13_e_");
 }
 
-std::string rmtc_cfg_r13_c::setup_s_::meas_dur_r13_e_::to_string() const
+std::string rmtc_cfg_r13_c::setup_s_::meas_dur_r13_opts::to_string() const
 {
   switch (value) {
     case sym1:
@@ -15673,13 +15676,13 @@ std::string rmtc_cfg_r13_c::setup_s_::meas_dur_r13_e_::to_string() const
   }
   return "";
 }
-uint8_t rmtc_cfg_r13_c::setup_s_::meas_dur_r13_e_::to_number() const
+uint8_t rmtc_cfg_r13_c::setup_s_::meas_dur_r13_opts::to_number() const
 {
   const static uint8_t options[] = {1, 14, 28, 42, 70};
   return get_enum_number(options, 5, value, "rmtc_cfg_r13_c::setup_s_::meas_dur_r13_e_");
 }
 
-std::string rrc_conn_recfg_v1250_ies_s::wlan_offload_info_r12_c_::setup_s_::t350_r12_e_::to_string() const
+std::string rrc_conn_recfg_v1250_ies_s::wlan_offload_info_r12_c_::setup_s_::t350_r12_opts::to_string() const
 {
   switch (value) {
     case min5:
@@ -15703,14 +15706,14 @@ std::string rrc_conn_recfg_v1250_ies_s::wlan_offload_info_r12_c_::setup_s_::t350
   }
   return "";
 }
-uint8_t rrc_conn_recfg_v1250_ies_s::wlan_offload_info_r12_c_::setup_s_::t350_r12_e_::to_number() const
+uint8_t rrc_conn_recfg_v1250_ies_s::wlan_offload_info_r12_c_::setup_s_::t350_r12_opts::to_number() const
 {
   const static uint8_t options[] = {5, 10, 20, 30, 60, 120, 180};
   return get_enum_number(options, 7, value,
                          "rrc_conn_recfg_v1250_ies_s::wlan_offload_info_r12_c_::setup_s_::t350_r12_e_");
 }
 
-std::string rrc_conn_release_v1530_ies_s::cn_type_r15_e_::to_string() const
+std::string rrc_conn_release_v1530_ies_s::cn_type_r15_opts::to_string() const
 {
   switch (value) {
     case epc:
@@ -15722,7 +15725,7 @@ std::string rrc_conn_release_v1530_ies_s::cn_type_r15_e_::to_string() const
   }
   return "";
 }
-uint8_t rrc_conn_release_v1530_ies_s::cn_type_r15_e_::to_number() const
+uint8_t rrc_conn_release_v1530_ies_s::cn_type_r15_opts::to_number() const
 {
   switch (value) {
     case fivegc:
@@ -15733,7 +15736,7 @@ uint8_t rrc_conn_release_v1530_ies_s::cn_type_r15_e_::to_number() const
   return 0;
 }
 
-std::string rs_cfg_ssb_nr_r15_s::subcarrier_spacing_ssb_r15_e_::to_string() const
+std::string rs_cfg_ssb_nr_r15_s::subcarrier_spacing_ssb_r15_opts::to_string() const
 {
   switch (value) {
     case k_hz15:
@@ -15749,14 +15752,14 @@ std::string rs_cfg_ssb_nr_r15_s::subcarrier_spacing_ssb_r15_e_::to_string() cons
   }
   return "";
 }
-uint8_t rs_cfg_ssb_nr_r15_s::subcarrier_spacing_ssb_r15_e_::to_number() const
+uint8_t rs_cfg_ssb_nr_r15_s::subcarrier_spacing_ssb_r15_opts::to_number() const
 {
   const static uint8_t options[] = {15, 30, 120, 240};
   return get_enum_number(options, 4, value, "rs_cfg_ssb_nr_r15_s::subcarrier_spacing_ssb_r15_e_");
 }
 
 // ReportInterval ::= ENUMERATED
-std::string report_interv_e::to_string() const
+std::string report_interv_opts::to_string() const
 {
   switch (value) {
     case ms120:
@@ -15796,13 +15799,13 @@ std::string report_interv_e::to_string() const
   }
   return "";
 }
-uint16_t report_interv_e::to_number() const
+uint16_t report_interv_opts::to_number() const
 {
   const static uint16_t options[] = {120, 240, 480, 640, 1024, 2048, 5120, 10240, 1, 6, 12, 30, 60};
   return get_enum_number(options, 13, value, "report_interv_e");
 }
 
-std::string thres_eutra_c::types::to_string() const
+std::string thres_eutra_c::types_opts::to_string() const
 {
   switch (value) {
     case thres_rsrp:
@@ -15817,7 +15820,7 @@ std::string thres_eutra_c::types::to_string() const
   return "";
 }
 
-std::string thres_nr_r15_c::types::to_string() const
+std::string thres_nr_r15_c::types_opts::to_string() const
 {
   switch (value) {
     case nr_rsrp_r15:
@@ -15834,7 +15837,7 @@ std::string thres_nr_r15_c::types::to_string() const
   return "";
 }
 
-std::string thres_utra_c::types::to_string() const
+std::string thres_utra_c::types_opts::to_string() const
 {
   switch (value) {
     case utra_rscp:
@@ -15848,7 +15851,7 @@ std::string thres_utra_c::types::to_string() const
   }
   return "";
 }
-uint8_t thres_utra_c::types::to_number() const
+uint8_t thres_utra_c::types_opts::to_number() const
 {
   switch (value) {
     case utra_ec_n0:
@@ -15860,7 +15863,7 @@ uint8_t thres_utra_c::types::to_number() const
 }
 
 // TimeToTrigger ::= ENUMERATED
-std::string time_to_trigger_e::to_string() const
+std::string time_to_trigger_opts::to_string() const
 {
   switch (value) {
     case ms0:
@@ -15900,13 +15903,13 @@ std::string time_to_trigger_e::to_string() const
   }
   return "";
 }
-uint16_t time_to_trigger_e::to_number() const
+uint16_t time_to_trigger_opts::to_number() const
 {
   const static uint16_t options[] = {0, 40, 64, 80, 100, 128, 160, 256, 320, 480, 512, 640, 1024, 1280, 2560, 5120};
   return get_enum_number(options, 16, value, "time_to_trigger_e");
 }
 
-std::string ul_delay_cfg_r13_c::setup_s_::delay_thres_r13_e_::to_string() const
+std::string ul_delay_cfg_r13_c::setup_s_::delay_thres_r13_opts::to_string() const
 {
   switch (value) {
     case ms30:
@@ -15946,14 +15949,14 @@ std::string ul_delay_cfg_r13_c::setup_s_::delay_thres_r13_e_::to_string() const
   }
   return "";
 }
-uint16_t ul_delay_cfg_r13_c::setup_s_::delay_thres_r13_e_::to_number() const
+uint16_t ul_delay_cfg_r13_c::setup_s_::delay_thres_r13_opts::to_number() const
 {
   const static uint16_t options[] = {30, 40, 50, 60, 70, 80, 90, 100, 150, 300, 500, 750};
   return get_enum_number(options, 12, value, "ul_delay_cfg_r13_c::setup_s_::delay_thres_r13_e_");
 }
 
 // WLAN-BandIndicator-r13 ::= ENUMERATED
-std::string wlan_band_ind_r13_e::to_string() const
+std::string wlan_band_ind_r13_opts::to_string() const
 {
   switch (value) {
     case band2dot4:
@@ -15977,12 +15980,12 @@ std::string wlan_band_ind_r13_e::to_string() const
   }
   return "";
 }
-float wlan_band_ind_r13_e::to_number() const
+float wlan_band_ind_r13_opts::to_number() const
 {
   const static float options[] = {2.4, 5.0, 60.0};
   return get_enum_number(options, 3, value, "wlan_band_ind_r13_e");
 }
-std::string wlan_band_ind_r13_e::to_number_string() const
+std::string wlan_band_ind_r13_opts::to_number_string() const
 {
   switch (value) {
     case band2dot4:
@@ -15997,7 +16000,7 @@ std::string wlan_band_ind_r13_e::to_number_string() const
   return "";
 }
 
-std::string wlan_carrier_info_r13_s::country_code_r13_e_::to_string() const
+std::string wlan_carrier_info_r13_s::country_code_r13_opts::to_string() const
 {
   switch (value) {
     case united_states:
@@ -16014,7 +16017,7 @@ std::string wlan_carrier_info_r13_s::country_code_r13_e_::to_string() const
   return "";
 }
 
-std::string idc_cfg_r11_s::autonomous_denial_params_r11_s_::autonomous_denial_sfs_r11_e_::to_string() const
+std::string idc_cfg_r11_s::autonomous_denial_params_r11_s_::autonomous_denial_sfs_r11_opts::to_string() const
 {
   switch (value) {
     case n2:
@@ -16038,14 +16041,14 @@ std::string idc_cfg_r11_s::autonomous_denial_params_r11_s_::autonomous_denial_sf
   }
   return "";
 }
-uint8_t idc_cfg_r11_s::autonomous_denial_params_r11_s_::autonomous_denial_sfs_r11_e_::to_number() const
+uint8_t idc_cfg_r11_s::autonomous_denial_params_r11_s_::autonomous_denial_sfs_r11_opts::to_number() const
 {
   const static uint8_t options[] = {2, 5, 10, 15, 20, 30};
   return get_enum_number(options, 6, value,
                          "idc_cfg_r11_s::autonomous_denial_params_r11_s_::autonomous_denial_sfs_r11_e_");
 }
 
-std::string idc_cfg_r11_s::autonomous_denial_params_r11_s_::autonomous_denial_validity_r11_e_::to_string() const
+std::string idc_cfg_r11_s::autonomous_denial_params_r11_s_::autonomous_denial_validity_r11_opts::to_string() const
 {
   switch (value) {
     case sf200:
@@ -16069,14 +16072,14 @@ std::string idc_cfg_r11_s::autonomous_denial_params_r11_s_::autonomous_denial_va
   }
   return "";
 }
-uint16_t idc_cfg_r11_s::autonomous_denial_params_r11_s_::autonomous_denial_validity_r11_e_::to_number() const
+uint16_t idc_cfg_r11_s::autonomous_denial_params_r11_s_::autonomous_denial_validity_r11_opts::to_number() const
 {
   const static uint16_t options[] = {200, 500, 1000, 2000};
   return get_enum_number(options, 4, value,
                          "idc_cfg_r11_s::autonomous_denial_params_r11_s_::autonomous_denial_validity_r11_e_");
 }
 
-std::string meas_obj_eutra_s::t312_r12_c_::setup_e_::to_string() const
+std::string meas_obj_eutra_s::t312_r12_c_::setup_opts::to_string() const
 {
   switch (value) {
     case ms0:
@@ -16100,13 +16103,13 @@ std::string meas_obj_eutra_s::t312_r12_c_::setup_e_::to_string() const
   }
   return "";
 }
-uint16_t meas_obj_eutra_s::t312_r12_c_::setup_e_::to_number() const
+uint16_t meas_obj_eutra_s::t312_r12_c_::setup_opts::to_number() const
 {
   const static uint16_t options[] = {0, 50, 100, 200, 300, 400, 500, 1000};
   return get_enum_number(options, 8, value, "meas_obj_eutra_s::t312_r12_c_::setup_e_");
 }
 
-std::string meas_obj_utra_s::cells_to_add_mod_list_c_::types::to_string() const
+std::string meas_obj_utra_s::cells_to_add_mod_list_c_::types_opts::to_string() const
 {
   switch (value) {
     case cells_to_add_mod_list_utra_fdd:
@@ -16121,7 +16124,7 @@ std::string meas_obj_utra_s::cells_to_add_mod_list_c_::types::to_string() const
   return "";
 }
 
-std::string meas_obj_utra_s::cell_for_which_to_report_cgi_c_::types::to_string() const
+std::string meas_obj_utra_s::cell_for_which_to_report_cgi_c_::types_opts::to_string() const
 {
   switch (value) {
     case utra_fdd:
@@ -16136,7 +16139,7 @@ std::string meas_obj_utra_s::cell_for_which_to_report_cgi_c_::types::to_string()
   return "";
 }
 
-std::string meas_obj_wlan_r13_s::carrier_freq_r13_c_::types::to_string() const
+std::string meas_obj_wlan_r13_s::carrier_freq_r13_c_::types_opts::to_string() const
 {
   switch (value) {
     case band_ind_list_wlan_r13:
@@ -16151,7 +16154,7 @@ std::string meas_obj_wlan_r13_s::carrier_freq_r13_c_::types::to_string() const
   return "";
 }
 
-std::string pwr_pref_ind_cfg_r11_c::setup_s_::pwr_pref_ind_timer_r11_e_::to_string() const
+std::string pwr_pref_ind_cfg_r11_c::setup_s_::pwr_pref_ind_timer_r11_opts::to_string() const
 {
   switch (value) {
     case s0:
@@ -16191,12 +16194,12 @@ std::string pwr_pref_ind_cfg_r11_c::setup_s_::pwr_pref_ind_timer_r11_e_::to_stri
   }
   return "";
 }
-float pwr_pref_ind_cfg_r11_c::setup_s_::pwr_pref_ind_timer_r11_e_::to_number() const
+float pwr_pref_ind_cfg_r11_c::setup_s_::pwr_pref_ind_timer_r11_opts::to_number() const
 {
   const static float options[] = {0.0, 0.5, 1.0, 2.0, 5.0, 10.0, 20.0, 30.0, 60.0, 90.0, 120.0, 300.0, 600.0};
   return get_enum_number(options, 13, value, "pwr_pref_ind_cfg_r11_c::setup_s_::pwr_pref_ind_timer_r11_e_");
 }
-std::string pwr_pref_ind_cfg_r11_c::setup_s_::pwr_pref_ind_timer_r11_e_::to_number_string() const
+std::string pwr_pref_ind_cfg_r11_c::setup_s_::pwr_pref_ind_timer_r11_opts::to_number_string() const
 {
   switch (value) {
     case s0:
@@ -16231,7 +16234,7 @@ std::string pwr_pref_ind_cfg_r11_c::setup_s_::pwr_pref_ind_timer_r11_e_::to_numb
   return "";
 }
 
-std::string report_cfg_eutra_s::trigger_type_c_::event_s_::event_id_c_::types::to_string() const
+std::string report_cfg_eutra_s::trigger_type_c_::event_s_::event_id_c_::types_opts::to_string() const
 {
   switch (value) {
     case event_a1:
@@ -16266,7 +16269,7 @@ std::string report_cfg_eutra_s::trigger_type_c_::event_s_::event_id_c_::types::t
   return "";
 }
 
-std::string report_cfg_eutra_s::trigger_type_c_::periodical_s_::purpose_e_::to_string() const
+std::string report_cfg_eutra_s::trigger_type_c_::periodical_s_::purpose_opts::to_string() const
 {
   switch (value) {
     case report_strongest_cells:
@@ -16279,7 +16282,7 @@ std::string report_cfg_eutra_s::trigger_type_c_::periodical_s_::purpose_e_::to_s
   return "";
 }
 
-std::string report_cfg_eutra_s::trigger_type_c_::types::to_string() const
+std::string report_cfg_eutra_s::trigger_type_c_::types_opts::to_string() const
 {
   switch (value) {
     case event:
@@ -16294,7 +16297,7 @@ std::string report_cfg_eutra_s::trigger_type_c_::types::to_string() const
   return "";
 }
 
-std::string report_cfg_eutra_s::trigger_quant_e_::to_string() const
+std::string report_cfg_eutra_s::trigger_quant_opts::to_string() const
 {
   switch (value) {
     case rsrp:
@@ -16307,7 +16310,7 @@ std::string report_cfg_eutra_s::trigger_quant_e_::to_string() const
   return "";
 }
 
-std::string report_cfg_eutra_s::report_quant_e_::to_string() const
+std::string report_cfg_eutra_s::report_quant_opts::to_string() const
 {
   switch (value) {
     case same_as_trigger_quant:
@@ -16320,7 +16323,7 @@ std::string report_cfg_eutra_s::report_quant_e_::to_string() const
   return "";
 }
 
-std::string report_cfg_eutra_s::report_amount_e_::to_string() const
+std::string report_cfg_eutra_s::report_amount_opts::to_string() const
 {
   switch (value) {
     case r1:
@@ -16344,13 +16347,13 @@ std::string report_cfg_eutra_s::report_amount_e_::to_string() const
   }
   return "";
 }
-int8_t report_cfg_eutra_s::report_amount_e_::to_number() const
+int8_t report_cfg_eutra_s::report_amount_opts::to_number() const
 {
   const static int8_t options[] = {1, 2, 4, 8, 16, 32, 64, -1};
   return get_enum_number(options, 8, value, "report_cfg_eutra_s::report_amount_e_");
 }
 
-std::string report_cfg_eutra_s::rs_sinr_cfg_r13_c_::setup_s_::report_quant_v1310_e_::to_string() const
+std::string report_cfg_eutra_s::rs_sinr_cfg_r13_c_::setup_s_::report_quant_v1310_opts::to_string() const
 {
   switch (value) {
     case rsrp_andsinr:
@@ -16365,7 +16368,7 @@ std::string report_cfg_eutra_s::rs_sinr_cfg_r13_c_::setup_s_::report_quant_v1310
   return "";
 }
 
-std::string report_cfg_eutra_s::purpose_v1430_e_::to_string() const
+std::string report_cfg_eutra_s::purpose_v1430_opts::to_string() const
 {
   switch (value) {
     case report_location:
@@ -16383,7 +16386,7 @@ std::string report_cfg_eutra_s::purpose_v1430_e_::to_string() const
 }
 
 std::string
-report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::event_b1_s_::b1_thres_c_::types::to_string() const
+report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::event_b1_s_::b1_thres_c_::types_opts::to_string() const
 {
   switch (value) {
     case b1_thres_utra:
@@ -16402,7 +16405,7 @@ report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::event_b1_s_::b1_
 }
 
 std::string
-report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::event_b2_s_::b2_thres2_c_::types::to_string() const
+report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::event_b2_s_::b2_thres2_c_::types_opts::to_string() const
 {
   switch (value) {
     case b2_thres2_utra:
@@ -16420,7 +16423,7 @@ report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::event_b2_s_::b2_
   return "";
 }
 
-std::string report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::types::to_string() const
+std::string report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::types_opts::to_string() const
 {
   switch (value) {
     case event_b1:
@@ -16445,7 +16448,7 @@ std::string report_cfg_inter_rat_s::trigger_type_c_::event_s_::event_id_c_::type
   return "";
 }
 
-std::string report_cfg_inter_rat_s::trigger_type_c_::periodical_s_::purpose_e_::to_string() const
+std::string report_cfg_inter_rat_s::trigger_type_c_::periodical_s_::purpose_opts::to_string() const
 {
   switch (value) {
     case report_strongest_cells:
@@ -16460,7 +16463,7 @@ std::string report_cfg_inter_rat_s::trigger_type_c_::periodical_s_::purpose_e_::
   return "";
 }
 
-std::string report_cfg_inter_rat_s::trigger_type_c_::types::to_string() const
+std::string report_cfg_inter_rat_s::trigger_type_c_::types_opts::to_string() const
 {
   switch (value) {
     case event:
@@ -16475,7 +16478,7 @@ std::string report_cfg_inter_rat_s::trigger_type_c_::types::to_string() const
   return "";
 }
 
-std::string report_cfg_inter_rat_s::report_amount_e_::to_string() const
+std::string report_cfg_inter_rat_s::report_amount_opts::to_string() const
 {
   switch (value) {
     case r1:
@@ -16499,13 +16502,13 @@ std::string report_cfg_inter_rat_s::report_amount_e_::to_string() const
   }
   return "";
 }
-int8_t report_cfg_inter_rat_s::report_amount_e_::to_number() const
+int8_t report_cfg_inter_rat_s::report_amount_opts::to_number() const
 {
   const static int8_t options[] = {1, 2, 4, 8, 16, 32, 64, -1};
   return get_enum_number(options, 8, value, "report_cfg_inter_rat_s::report_amount_e_");
 }
 
-std::string report_cfg_inter_rat_s::report_sftd_meas_r15_e_::to_string() const
+std::string report_cfg_inter_rat_s::report_sftd_meas_r15_opts::to_string() const
 {
   switch (value) {
     case p_scell:
@@ -16518,7 +16521,7 @@ std::string report_cfg_inter_rat_s::report_sftd_meas_r15_e_::to_string() const
   return "";
 }
 
-std::string meas_obj_to_add_mod_s::meas_obj_c_::types::to_string() const
+std::string meas_obj_to_add_mod_s::meas_obj_c_::types_opts::to_string() const
 {
   switch (value) {
     case meas_obj_eutra:
@@ -16540,7 +16543,7 @@ std::string meas_obj_to_add_mod_s::meas_obj_c_::types::to_string() const
   }
   return "";
 }
-uint16_t meas_obj_to_add_mod_s::meas_obj_c_::types::to_number() const
+uint16_t meas_obj_to_add_mod_s::meas_obj_c_::types_opts::to_number() const
 {
   switch (value) {
     case meas_obj_cdma2000:
@@ -16551,7 +16554,7 @@ uint16_t meas_obj_to_add_mod_s::meas_obj_c_::types::to_number() const
   return 0;
 }
 
-std::string meas_obj_to_add_mod_ext_r13_s::meas_obj_r13_c_::types::to_string() const
+std::string meas_obj_to_add_mod_ext_r13_s::meas_obj_r13_c_::types_opts::to_string() const
 {
   switch (value) {
     case meas_obj_eutra_r13:
@@ -16573,7 +16576,7 @@ std::string meas_obj_to_add_mod_ext_r13_s::meas_obj_r13_c_::types::to_string() c
   }
   return "";
 }
-uint16_t meas_obj_to_add_mod_ext_r13_s::meas_obj_r13_c_::types::to_number() const
+uint16_t meas_obj_to_add_mod_ext_r13_s::meas_obj_r13_c_::types_opts::to_number() const
 {
   switch (value) {
     case meas_obj_cdma2000_r13:
@@ -16584,7 +16587,7 @@ uint16_t meas_obj_to_add_mod_ext_r13_s::meas_obj_r13_c_::types::to_number() cons
   return 0;
 }
 
-std::string other_cfg_r9_s::bw_pref_ind_timer_r14_e_::to_string() const
+std::string other_cfg_r9_s::bw_pref_ind_timer_r14_opts::to_string() const
 {
   switch (value) {
     case s0:
@@ -16624,12 +16627,12 @@ std::string other_cfg_r9_s::bw_pref_ind_timer_r14_e_::to_string() const
   }
   return "";
 }
-float other_cfg_r9_s::bw_pref_ind_timer_r14_e_::to_number() const
+float other_cfg_r9_s::bw_pref_ind_timer_r14_opts::to_number() const
 {
   const static float options[] = {0.0, 0.5, 1.0, 2.0, 5.0, 10.0, 20.0, 30.0, 60.0, 90.0, 120.0, 300.0, 600.0};
   return get_enum_number(options, 13, value, "other_cfg_r9_s::bw_pref_ind_timer_r14_e_");
 }
-std::string other_cfg_r9_s::bw_pref_ind_timer_r14_e_::to_number_string() const
+std::string other_cfg_r9_s::bw_pref_ind_timer_r14_opts::to_number_string() const
 {
   switch (value) {
     case s0:
@@ -16665,7 +16668,7 @@ std::string other_cfg_r9_s::bw_pref_ind_timer_r14_e_::to_number_string() const
 }
 
 std::string
-other_cfg_r9_s::delay_budget_report_cfg_r14_c_::setup_s_::delay_budget_report_prohibit_timer_r14_e_::to_string() const
+other_cfg_r9_s::delay_budget_report_cfg_r14_c_::setup_s_::delay_budget_report_prohibit_timer_r14_opts::to_string() const
 {
   switch (value) {
     case s0:
@@ -16690,7 +16693,7 @@ other_cfg_r9_s::delay_budget_report_cfg_r14_c_::setup_s_::delay_budget_report_pr
   }
   return "";
 }
-float other_cfg_r9_s::delay_budget_report_cfg_r14_c_::setup_s_::delay_budget_report_prohibit_timer_r14_e_::to_number()
+float other_cfg_r9_s::delay_budget_report_cfg_r14_c_::setup_s_::delay_budget_report_prohibit_timer_r14_opts::to_number()
     const
 {
   const static float options[] = {0.0, 0.4, 0.8, 1.6, 3.0, 6.0, 12.0, 30.0};
@@ -16698,9 +16701,8 @@ float other_cfg_r9_s::delay_budget_report_cfg_r14_c_::setup_s_::delay_budget_rep
       options, 8, value,
       "other_cfg_r9_s::delay_budget_report_cfg_r14_c_::setup_s_::delay_budget_report_prohibit_timer_r14_e_");
 }
-std::string
-other_cfg_r9_s::delay_budget_report_cfg_r14_c_::setup_s_::delay_budget_report_prohibit_timer_r14_e_::to_number_string()
-    const
+std::string other_cfg_r9_s::delay_budget_report_cfg_r14_c_::setup_s_::delay_budget_report_prohibit_timer_r14_opts::
+    to_number_string() const
 {
   switch (value) {
     case s0:
@@ -16726,7 +16728,7 @@ other_cfg_r9_s::delay_budget_report_cfg_r14_c_::setup_s_::delay_budget_report_pr
   return "";
 }
 
-std::string other_cfg_r9_s::rlm_report_cfg_r14_c_::setup_s_::rlm_report_timer_r14_e_::to_string() const
+std::string other_cfg_r9_s::rlm_report_cfg_r14_c_::setup_s_::rlm_report_timer_r14_opts::to_string() const
 {
   switch (value) {
     case s0:
@@ -16766,13 +16768,13 @@ std::string other_cfg_r9_s::rlm_report_cfg_r14_c_::setup_s_::rlm_report_timer_r1
   }
   return "";
 }
-float other_cfg_r9_s::rlm_report_cfg_r14_c_::setup_s_::rlm_report_timer_r14_e_::to_number() const
+float other_cfg_r9_s::rlm_report_cfg_r14_c_::setup_s_::rlm_report_timer_r14_opts::to_number() const
 {
   const static float options[] = {0.0, 0.5, 1.0, 2.0, 5.0, 10.0, 20.0, 30.0, 60.0, 90.0, 120.0, 300.0, 600.0};
   return get_enum_number(options, 13, value,
                          "other_cfg_r9_s::rlm_report_cfg_r14_c_::setup_s_::rlm_report_timer_r14_e_");
 }
-std::string other_cfg_r9_s::rlm_report_cfg_r14_c_::setup_s_::rlm_report_timer_r14_e_::to_number_string() const
+std::string other_cfg_r9_s::rlm_report_cfg_r14_c_::setup_s_::rlm_report_timer_r14_opts::to_number_string() const
 {
   switch (value) {
     case s0:
@@ -16807,7 +16809,8 @@ std::string other_cfg_r9_s::rlm_report_cfg_r14_c_::setup_s_::rlm_report_timer_r1
   return "";
 }
 
-std::string other_cfg_r9_s::overheat_assist_cfg_r14_c_::setup_s_::overheat_ind_prohibit_timer_r14_e_::to_string() const
+std::string
+other_cfg_r9_s::overheat_assist_cfg_r14_c_::setup_s_::overheat_ind_prohibit_timer_r14_opts::to_string() const
 {
   switch (value) {
     case s0:
@@ -16848,14 +16851,14 @@ std::string other_cfg_r9_s::overheat_assist_cfg_r14_c_::setup_s_::overheat_ind_p
   }
   return "";
 }
-float other_cfg_r9_s::overheat_assist_cfg_r14_c_::setup_s_::overheat_ind_prohibit_timer_r14_e_::to_number() const
+float other_cfg_r9_s::overheat_assist_cfg_r14_c_::setup_s_::overheat_ind_prohibit_timer_r14_opts::to_number() const
 {
   const static float options[] = {0.0, 0.5, 1.0, 2.0, 5.0, 10.0, 20.0, 30.0, 60.0, 90.0, 120.0, 300.0, 600.0};
   return get_enum_number(options, 13, value,
                          "other_cfg_r9_s::overheat_assist_cfg_r14_c_::setup_s_::overheat_ind_prohibit_timer_r14_e_");
 }
 std::string
-other_cfg_r9_s::overheat_assist_cfg_r14_c_::setup_s_::overheat_ind_prohibit_timer_r14_e_::to_number_string() const
+other_cfg_r9_s::overheat_assist_cfg_r14_c_::setup_s_::overheat_ind_prohibit_timer_r14_opts::to_number_string() const
 {
   switch (value) {
     case s0:
@@ -16891,7 +16894,7 @@ other_cfg_r9_s::overheat_assist_cfg_r14_c_::setup_s_::overheat_ind_prohibit_time
   return "";
 }
 
-std::string other_cfg_r9_s::meas_cfg_app_layer_r15_c_::setup_s_::service_type_e_::to_string() const
+std::string other_cfg_r9_s::meas_cfg_app_layer_r15_c_::setup_s_::service_type_opts::to_string() const
 {
   switch (value) {
     case qoe:
@@ -16916,7 +16919,7 @@ std::string other_cfg_r9_s::meas_cfg_app_layer_r15_c_::setup_s_::service_type_e_
   return "";
 }
 
-std::string prach_cfg_v1310_s::mpdcch_start_sf_css_ra_r13_c_::fdd_r13_e_::to_string() const
+std::string prach_cfg_v1310_s::mpdcch_start_sf_css_ra_r13_c_::fdd_r13_opts::to_string() const
 {
   switch (value) {
     case v1:
@@ -16940,12 +16943,12 @@ std::string prach_cfg_v1310_s::mpdcch_start_sf_css_ra_r13_c_::fdd_r13_e_::to_str
   }
   return "";
 }
-float prach_cfg_v1310_s::mpdcch_start_sf_css_ra_r13_c_::fdd_r13_e_::to_number() const
+float prach_cfg_v1310_s::mpdcch_start_sf_css_ra_r13_c_::fdd_r13_opts::to_number() const
 {
   const static float options[] = {1.0, 1.5, 2.0, 2.5, 4.0, 5.0, 8.0, 10.0};
   return get_enum_number(options, 8, value, "prach_cfg_v1310_s::mpdcch_start_sf_css_ra_r13_c_::fdd_r13_e_");
 }
-std::string prach_cfg_v1310_s::mpdcch_start_sf_css_ra_r13_c_::fdd_r13_e_::to_number_string() const
+std::string prach_cfg_v1310_s::mpdcch_start_sf_css_ra_r13_c_::fdd_r13_opts::to_number_string() const
 {
   switch (value) {
     case v1:
@@ -16970,7 +16973,7 @@ std::string prach_cfg_v1310_s::mpdcch_start_sf_css_ra_r13_c_::fdd_r13_e_::to_num
   return "";
 }
 
-std::string prach_cfg_v1310_s::mpdcch_start_sf_css_ra_r13_c_::tdd_r13_e_::to_string() const
+std::string prach_cfg_v1310_s::mpdcch_start_sf_css_ra_r13_c_::tdd_r13_opts::to_string() const
 {
   switch (value) {
     case v1:
@@ -16994,13 +16997,13 @@ std::string prach_cfg_v1310_s::mpdcch_start_sf_css_ra_r13_c_::tdd_r13_e_::to_str
   }
   return "";
 }
-uint8_t prach_cfg_v1310_s::mpdcch_start_sf_css_ra_r13_c_::tdd_r13_e_::to_number() const
+uint8_t prach_cfg_v1310_s::mpdcch_start_sf_css_ra_r13_c_::tdd_r13_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 4, 5, 8, 10, 20};
   return get_enum_number(options, 7, value, "prach_cfg_v1310_s::mpdcch_start_sf_css_ra_r13_c_::tdd_r13_e_");
 }
 
-std::string prach_cfg_v1310_s::mpdcch_start_sf_css_ra_r13_c_::types::to_string() const
+std::string prach_cfg_v1310_s::mpdcch_start_sf_css_ra_r13_c_::types_opts::to_string() const
 {
   switch (value) {
     case fdd_r13:
@@ -17015,7 +17018,7 @@ std::string prach_cfg_v1310_s::mpdcch_start_sf_css_ra_r13_c_::types::to_string()
   return "";
 }
 
-std::string quant_cfg_cdma2000_s::meas_quant_cdma2000_e_::to_string() const
+std::string quant_cfg_cdma2000_s::meas_quant_cdma2000_opts::to_string() const
 {
   switch (value) {
     case pilot_strength:
@@ -17028,7 +17031,7 @@ std::string quant_cfg_cdma2000_s::meas_quant_cdma2000_e_::to_string() const
   return "";
 }
 
-std::string quant_cfg_utra_s::meas_quant_utra_fdd_e_::to_string() const
+std::string quant_cfg_utra_s::meas_quant_utra_fdd_opts::to_string() const
 {
   switch (value) {
     case cpich_rscp:
@@ -17040,7 +17043,7 @@ std::string quant_cfg_utra_s::meas_quant_utra_fdd_e_::to_string() const
   }
   return "";
 }
-uint8_t quant_cfg_utra_s::meas_quant_utra_fdd_e_::to_number() const
+uint8_t quant_cfg_utra_s::meas_quant_utra_fdd_opts::to_number() const
 {
   switch (value) {
     case cpich_ec_n0:
@@ -17051,7 +17054,7 @@ uint8_t quant_cfg_utra_s::meas_quant_utra_fdd_e_::to_number() const
   return 0;
 }
 
-std::string report_cfg_to_add_mod_s::report_cfg_c_::types::to_string() const
+std::string report_cfg_to_add_mod_s::report_cfg_c_::types_opts::to_string() const
 {
   switch (value) {
     case report_cfg_eutra:
@@ -17066,7 +17069,7 @@ std::string report_cfg_to_add_mod_s::report_cfg_c_::types::to_string() const
   return "";
 }
 
-std::string carrier_bw_eutra_s::dl_bw_e_::to_string() const
+std::string carrier_bw_eutra_s::dl_bw_opts::to_string() const
 {
   switch (value) {
     case n6:
@@ -17106,13 +17109,13 @@ std::string carrier_bw_eutra_s::dl_bw_e_::to_string() const
   }
   return "";
 }
-uint8_t carrier_bw_eutra_s::dl_bw_e_::to_number() const
+uint8_t carrier_bw_eutra_s::dl_bw_opts::to_number() const
 {
   const static uint8_t options[] = {6, 15, 25, 50, 75, 100};
   return get_enum_number(options, 6, value, "carrier_bw_eutra_s::dl_bw_e_");
 }
 
-std::string carrier_bw_eutra_s::ul_bw_e_::to_string() const
+std::string carrier_bw_eutra_s::ul_bw_opts::to_string() const
 {
   switch (value) {
     case n6:
@@ -17152,13 +17155,13 @@ std::string carrier_bw_eutra_s::ul_bw_e_::to_string() const
   }
   return "";
 }
-uint8_t carrier_bw_eutra_s::ul_bw_e_::to_number() const
+uint8_t carrier_bw_eutra_s::ul_bw_opts::to_number() const
 {
   const static uint8_t options[] = {6, 15, 25, 50, 75, 100};
   return get_enum_number(options, 6, value, "carrier_bw_eutra_s::ul_bw_e_");
 }
 
-std::string carrier_info_nr_r15_s::subcarrier_spacing_ssb_r15_e_::to_string() const
+std::string carrier_info_nr_r15_s::subcarrier_spacing_ssb_r15_opts::to_string() const
 {
   switch (value) {
     case k_hz15:
@@ -17174,13 +17177,13 @@ std::string carrier_info_nr_r15_s::subcarrier_spacing_ssb_r15_e_::to_string() co
   }
   return "";
 }
-uint8_t carrier_info_nr_r15_s::subcarrier_spacing_ssb_r15_e_::to_number() const
+uint8_t carrier_info_nr_r15_s::subcarrier_spacing_ssb_r15_opts::to_number() const
 {
   const static uint8_t options[] = {15, 30, 120, 240};
   return get_enum_number(options, 4, value, "carrier_info_nr_r15_s::subcarrier_spacing_ssb_r15_e_");
 }
 
-std::string meas_gap_cfg_dense_prs_r15_c::setup_s_::gap_offset_dense_prs_r15_c_::types::to_string() const
+std::string meas_gap_cfg_dense_prs_r15_c::setup_s_::gap_offset_dense_prs_r15_c_::types_opts::to_string() const
 {
   switch (value) {
     case rstd0_r15:
@@ -17232,14 +17235,14 @@ std::string meas_gap_cfg_dense_prs_r15_c::setup_s_::gap_offset_dense_prs_r15_c_:
   }
   return "";
 }
-uint8_t meas_gap_cfg_dense_prs_r15_c::setup_s_::gap_offset_dense_prs_r15_c_::types::to_number() const
+uint8_t meas_gap_cfg_dense_prs_r15_c::setup_s_::gap_offset_dense_prs_r15_c_::types_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
   return get_enum_number(options, 21, value,
                          "meas_gap_cfg_dense_prs_r15_c::setup_s_::gap_offset_dense_prs_r15_c_::types");
 }
 
-std::string meas_gap_sharing_cfg_r14_c::setup_s_::meas_gap_sharing_scheme_r14_e_::to_string() const
+std::string meas_gap_sharing_cfg_r14_c::setup_s_::meas_gap_sharing_scheme_r14_opts::to_string() const
 {
   switch (value) {
     case scheme00:
@@ -17255,12 +17258,12 @@ std::string meas_gap_sharing_cfg_r14_c::setup_s_::meas_gap_sharing_scheme_r14_e_
   }
   return "";
 }
-float meas_gap_sharing_cfg_r14_c::setup_s_::meas_gap_sharing_scheme_r14_e_::to_number() const
+float meas_gap_sharing_cfg_r14_c::setup_s_::meas_gap_sharing_scheme_r14_opts::to_number() const
 {
   const static float options[] = {0.0, 0.1, 1.0, 1.1};
   return get_enum_number(options, 4, value, "meas_gap_sharing_cfg_r14_c::setup_s_::meas_gap_sharing_scheme_r14_e_");
 }
-std::string meas_gap_sharing_cfg_r14_c::setup_s_::meas_gap_sharing_scheme_r14_e_::to_number_string() const
+std::string meas_gap_sharing_cfg_r14_c::setup_s_::meas_gap_sharing_scheme_r14_opts::to_number_string() const
 {
   switch (value) {
     case scheme00:
@@ -17278,7 +17281,7 @@ std::string meas_gap_sharing_cfg_r14_c::setup_s_::meas_gap_sharing_scheme_r14_e_
 }
 
 // MeasScaleFactor-r12 ::= ENUMERATED
-std::string meas_scale_factor_r12_e::to_string() const
+std::string meas_scale_factor_r12_opts::to_string() const
 {
   switch (value) {
     case sf_eutra_cf1:
@@ -17290,14 +17293,14 @@ std::string meas_scale_factor_r12_e::to_string() const
   }
   return "";
 }
-uint8_t meas_scale_factor_r12_e::to_number() const
+uint8_t meas_scale_factor_r12_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2};
   return get_enum_number(options, 2, value, "meas_scale_factor_r12_e");
 }
 
 // RAT-Type ::= ENUMERATED
-std::string rat_type_e::to_string() const
+std::string rat_type_opts::to_string() const
 {
   switch (value) {
     case eutra:
@@ -17321,7 +17324,7 @@ std::string rat_type_e::to_string() const
   }
   return "";
 }
-uint16_t rat_type_e::to_number() const
+uint16_t rat_type_opts::to_number() const
 {
   switch (value) {
     case cdma2000_minus1_xrtt:
@@ -17332,7 +17335,7 @@ uint16_t rat_type_e::to_number() const
   return 0;
 }
 
-std::string rrc_conn_release_v920_ies_s::cell_info_list_r9_c_::types::to_string() const
+std::string rrc_conn_release_v920_ies_s::cell_info_list_r9_c_::types_opts::to_string() const
 {
   switch (value) {
     case geran_r9:
@@ -17351,7 +17354,7 @@ std::string rrc_conn_release_v920_ies_s::cell_info_list_r9_c_::types::to_string(
   return "";
 }
 
-std::string si_or_psi_geran_c::types::to_string() const
+std::string si_or_psi_geran_c::types_opts::to_string() const
 {
   switch (value) {
     case si:
@@ -17366,7 +17369,7 @@ std::string si_or_psi_geran_c::types::to_string() const
   return "";
 }
 
-std::string area_cfg_r10_c::types::to_string() const
+std::string area_cfg_r10_c::types_opts::to_string() const
 {
   switch (value) {
     case cell_global_id_list_r10:
@@ -17381,7 +17384,7 @@ std::string area_cfg_r10_c::types::to_string() const
   return "";
 }
 
-std::string cell_change_order_s::t304_e_::to_string() const
+std::string cell_change_order_s::t304_opts::to_string() const
 {
   switch (value) {
     case ms100:
@@ -17405,13 +17408,13 @@ std::string cell_change_order_s::t304_e_::to_string() const
   }
   return "";
 }
-uint16_t cell_change_order_s::t304_e_::to_number() const
+uint16_t cell_change_order_s::t304_opts::to_number() const
 {
   const static uint16_t options[] = {100, 200, 500, 1000, 2000, 4000, 8000, 10000};
   return get_enum_number(options, 8, value, "cell_change_order_s::t304_e_");
 }
 
-std::string cell_change_order_s::target_rat_type_c_::types::to_string() const
+std::string cell_change_order_s::target_rat_type_c_::types_opts::to_string() const
 {
   switch (value) {
     case geran:
@@ -17424,7 +17427,7 @@ std::string cell_change_order_s::target_rat_type_c_::types::to_string() const
   return "";
 }
 
-std::string e_csfb_r9_s::mob_cdma2000_hrpd_r9_e_::to_string() const
+std::string e_csfb_r9_s::mob_cdma2000_hrpd_r9_opts::to_string() const
 {
   switch (value) {
     case ho:
@@ -17437,7 +17440,7 @@ std::string e_csfb_r9_s::mob_cdma2000_hrpd_r9_e_::to_string() const
   return "";
 }
 
-std::string ho_s::target_rat_type_e_::to_string() const
+std::string ho_s::target_rat_type_opts::to_string() const
 {
   switch (value) {
     case utra:
@@ -17463,7 +17466,7 @@ std::string ho_s::target_rat_type_e_::to_string() const
 }
 
 // LoggingDuration-r10 ::= ENUMERATED
-std::string logging_dur_r10_e::to_string() const
+std::string logging_dur_r10_opts::to_string() const
 {
   switch (value) {
     case min10:
@@ -17487,14 +17490,14 @@ std::string logging_dur_r10_e::to_string() const
   }
   return "";
 }
-uint8_t logging_dur_r10_e::to_number() const
+uint8_t logging_dur_r10_opts::to_number() const
 {
   const static uint8_t options[] = {10, 20, 40, 60, 90, 120};
   return get_enum_number(options, 6, value, "logging_dur_r10_e");
 }
 
 // LoggingInterval-r10 ::= ENUMERATED
-std::string logging_interv_r10_e::to_string() const
+std::string logging_interv_r10_opts::to_string() const
 {
   switch (value) {
     case ms1280:
@@ -17518,13 +17521,13 @@ std::string logging_interv_r10_e::to_string() const
   }
   return "";
 }
-uint16_t logging_interv_r10_e::to_number() const
+uint16_t logging_interv_r10_opts::to_number() const
 {
   const static uint16_t options[] = {1280, 2560, 5120, 10240, 20480, 30720, 40960, 61440};
   return get_enum_number(options, 8, value, "logging_interv_r10_e");
 }
 
-std::string mob_ctrl_info_s::t304_e_::to_string() const
+std::string mob_ctrl_info_s::t304_opts::to_string() const
 {
   switch (value) {
     case ms50:
@@ -17548,13 +17551,13 @@ std::string mob_ctrl_info_s::t304_e_::to_string() const
   }
   return "";
 }
-uint16_t mob_ctrl_info_s::t304_e_::to_number() const
+uint16_t mob_ctrl_info_s::t304_opts::to_number() const
 {
   const static uint16_t options[] = {50, 100, 150, 200, 500, 1000, 2000, 10000};
   return get_enum_number(options, 8, value, "mob_ctrl_info_s::t304_e_");
 }
 
-std::string mob_ctrl_info_s::ho_without_wt_change_r14_e_::to_string() const
+std::string mob_ctrl_info_s::ho_without_wt_change_r14_opts::to_string() const
 {
   switch (value) {
     case keep_lwa_cfg:
@@ -17567,7 +17570,7 @@ std::string mob_ctrl_info_s::ho_without_wt_change_r14_e_::to_string() const
   return "";
 }
 
-std::string rn_sf_cfg_r10_s::sf_cfg_pattern_r10_c_::types::to_string() const
+std::string rn_sf_cfg_r10_s::sf_cfg_pattern_r10_c_::types_opts::to_string() const
 {
   switch (value) {
     case sf_cfg_pattern_fdd_r10:
@@ -17582,7 +17585,7 @@ std::string rn_sf_cfg_r10_s::sf_cfg_pattern_r10_c_::types::to_string() const
   return "";
 }
 
-std::string rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::res_alloc_type_r10_e_::to_string() const
+std::string rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::res_alloc_type_r10_opts::to_string() const
 {
   switch (value) {
     case type0:
@@ -17607,7 +17610,7 @@ std::string rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::res_alloc_type_r10_e_::to_string
   return "";
 }
 
-std::string rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::res_block_assign_r10_c_::type01_r10_c_::types::to_string() const
+std::string rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::res_block_assign_r10_c_::type01_r10_c_::types_opts::to_string() const
 {
   switch (value) {
     case nrb6_r10:
@@ -17629,14 +17632,14 @@ std::string rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::res_block_assign_r10_c_::type01_
   }
   return "";
 }
-uint8_t rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::res_block_assign_r10_c_::type01_r10_c_::types::to_number() const
+uint8_t rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::res_block_assign_r10_c_::type01_r10_c_::types_opts::to_number() const
 {
   const static uint8_t options[] = {6, 15, 25, 50, 75, 100};
   return get_enum_number(options, 6, value,
                          "rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::res_block_assign_r10_c_::type01_r10_c_::types");
 }
 
-std::string rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::res_block_assign_r10_c_::type2_r10_c_::types::to_string() const
+std::string rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::res_block_assign_r10_c_::type2_r10_c_::types_opts::to_string() const
 {
   switch (value) {
     case nrb6_r10:
@@ -17658,14 +17661,14 @@ std::string rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::res_block_assign_r10_c_::type2_r
   }
   return "";
 }
-uint8_t rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::res_block_assign_r10_c_::type2_r10_c_::types::to_number() const
+uint8_t rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::res_block_assign_r10_c_::type2_r10_c_::types_opts::to_number() const
 {
   const static uint8_t options[] = {6, 15, 25, 50, 75, 100};
   return get_enum_number(options, 6, value,
                          "rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::res_block_assign_r10_c_::type2_r10_c_::types");
 }
 
-std::string rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::res_block_assign_r10_c_::types::to_string() const
+std::string rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::res_block_assign_r10_c_::types_opts::to_string() const
 {
   switch (value) {
     case type01_r10:
@@ -17679,12 +17682,12 @@ std::string rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::res_block_assign_r10_c_::types::
   }
   return "";
 }
-float rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::res_block_assign_r10_c_::types::to_number() const
+float rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::res_block_assign_r10_c_::types_opts::to_number() const
 {
   const static float options[] = {0.1, 2.0};
   return get_enum_number(options, 2, value, "rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::res_block_assign_r10_c_::types");
 }
-std::string rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::res_block_assign_r10_c_::types::to_number_string() const
+std::string rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::res_block_assign_r10_c_::types_opts::to_number_string() const
 {
   switch (value) {
     case type01_r10:
@@ -17697,7 +17700,7 @@ std::string rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::res_block_assign_r10_c_::types::
   return "";
 }
 
-std::string rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::demod_rs_r10_c_::no_interleaving_r10_e_::to_string() const
+std::string rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::demod_rs_r10_c_::no_interleaving_r10_opts::to_string() const
 {
   switch (value) {
     case crs:
@@ -17710,7 +17713,7 @@ std::string rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::demod_rs_r10_c_::no_interleaving
   return "";
 }
 
-std::string rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::demod_rs_r10_c_::types::to_string() const
+std::string rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::demod_rs_r10_c_::types_opts::to_string() const
 {
   switch (value) {
     case interleaving_r10:
@@ -17725,7 +17728,7 @@ std::string rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::demod_rs_r10_c_::types::to_strin
   return "";
 }
 
-std::string rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::pucch_cfg_r10_c_::tdd_c_::types::to_string() const
+std::string rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::pucch_cfg_r10_c_::tdd_c_::types_opts::to_string() const
 {
   switch (value) {
     case ch_sel_mux_bundling:
@@ -17739,7 +17742,7 @@ std::string rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::pucch_cfg_r10_c_::tdd_c_::types:
   }
   return "";
 }
-uint8_t rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::pucch_cfg_r10_c_::tdd_c_::types::to_number() const
+uint8_t rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::pucch_cfg_r10_c_::tdd_c_::types_opts::to_number() const
 {
   switch (value) {
     case fallback_for_format3:
@@ -17750,7 +17753,7 @@ uint8_t rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::pucch_cfg_r10_c_::tdd_c_::types::to_
   return 0;
 }
 
-std::string rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::pucch_cfg_r10_c_::types::to_string() const
+std::string rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::pucch_cfg_r10_c_::types_opts::to_string() const
 {
   switch (value) {
     case tdd:
@@ -17765,7 +17768,7 @@ std::string rn_sf_cfg_r10_s::rpdcch_cfg_r10_s_::pucch_cfg_r10_c_::types::to_stri
   return "";
 }
 
-std::string redirected_carrier_info_c::types::to_string() const
+std::string redirected_carrier_info_c::types_opts::to_string() const
 {
   switch (value) {
     case eutra:
@@ -17793,7 +17796,7 @@ std::string redirected_carrier_info_c::types::to_string() const
 }
 
 // ReleaseCause ::= ENUMERATED
-std::string release_cause_e::to_string() const
+std::string release_cause_opts::to_string() const
 {
   switch (value) {
     case load_balancing_ta_urequired:
@@ -17810,7 +17813,7 @@ std::string release_cause_e::to_string() const
   return "";
 }
 
-std::string security_cfg_ho_s::ho_type_c_::types::to_string() const
+std::string security_cfg_ho_s::ho_type_c_::types_opts::to_string() const
 {
   switch (value) {
     case intra_lte:
@@ -17825,7 +17828,7 @@ std::string security_cfg_ho_s::ho_type_c_::types::to_string() const
   return "";
 }
 
-std::string dl_info_transfer_r15_ies_s::ded_info_type_r15_c_::types::to_string() const
+std::string dl_info_transfer_r15_ies_s::ded_info_type_r15_c_::types_opts::to_string() const
 {
   switch (value) {
     case ded_info_nas_r15:
@@ -17842,7 +17845,7 @@ std::string dl_info_transfer_r15_ies_s::ded_info_type_r15_c_::types::to_string()
   return "";
 }
 
-std::string dl_info_transfer_r8_ies_s::ded_info_type_c_::types::to_string() const
+std::string dl_info_transfer_r8_ies_s::ded_info_type_c_::types_opts::to_string() const
 {
   switch (value) {
     case ded_info_nas:
@@ -17859,7 +17862,7 @@ std::string dl_info_transfer_r8_ies_s::ded_info_type_c_::types::to_string() cons
   return "";
 }
 
-std::string mob_from_eutra_cmd_r8_ies_s::purpose_c_::types::to_string() const
+std::string mob_from_eutra_cmd_r8_ies_s::purpose_c_::types_opts::to_string() const
 {
   switch (value) {
     case ho:
@@ -17874,7 +17877,7 @@ std::string mob_from_eutra_cmd_r8_ies_s::purpose_c_::types::to_string() const
   return "";
 }
 
-std::string mob_from_eutra_cmd_r9_ies_s::purpose_c_::types::to_string() const
+std::string mob_from_eutra_cmd_r9_ies_s::purpose_c_::types_opts::to_string() const
 {
   switch (value) {
     case ho:
@@ -17891,7 +17894,7 @@ std::string mob_from_eutra_cmd_r9_ies_s::purpose_c_::types::to_string() const
   return "";
 }
 
-std::string csfb_params_resp_cdma2000_s::crit_exts_c_::types::to_string() const
+std::string csfb_params_resp_cdma2000_s::crit_exts_c_::types_opts::to_string() const
 {
   switch (value) {
     case csfb_params_resp_cdma2000_r8:
@@ -17905,13 +17908,13 @@ std::string csfb_params_resp_cdma2000_s::crit_exts_c_::types::to_string() const
   }
   return "";
 }
-uint16_t csfb_params_resp_cdma2000_s::crit_exts_c_::types::to_number() const
+uint16_t csfb_params_resp_cdma2000_s::crit_exts_c_::types_opts::to_number() const
 {
   const static uint16_t options[] = {2000};
   return get_enum_number(options, 1, value, "csfb_params_resp_cdma2000_s::crit_exts_c_::types");
 }
 
-std::string counter_check_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string counter_check_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case counter_check_r8:
@@ -17930,7 +17933,7 @@ std::string counter_check_s::crit_exts_c_::c1_c_::types::to_string() const
   return "";
 }
 
-std::string dl_info_transfer_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string dl_info_transfer_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case dl_info_transfer_r8:
@@ -17949,7 +17952,7 @@ std::string dl_info_transfer_s::crit_exts_c_::c1_c_::types::to_string() const
   return "";
 }
 
-std::string ho_from_eutra_prep_request_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string ho_from_eutra_prep_request_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case ho_from_eutra_prep_request_r8:
@@ -17968,7 +17971,7 @@ std::string ho_from_eutra_prep_request_s::crit_exts_c_::c1_c_::types::to_string(
   return "";
 }
 
-std::string logged_meas_cfg_r10_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string logged_meas_cfg_r10_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case logged_meas_cfg_r10:
@@ -17987,7 +17990,7 @@ std::string logged_meas_cfg_r10_s::crit_exts_c_::c1_c_::types::to_string() const
   return "";
 }
 
-std::string mob_from_eutra_cmd_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string mob_from_eutra_cmd_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case mob_from_eutra_cmd_r8:
@@ -18006,7 +18009,7 @@ std::string mob_from_eutra_cmd_s::crit_exts_c_::c1_c_::types::to_string() const
   return "";
 }
 
-std::string rn_recfg_r10_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string rn_recfg_r10_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case rn_recfg_r10:
@@ -18025,7 +18028,7 @@ std::string rn_recfg_r10_s::crit_exts_c_::c1_c_::types::to_string() const
   return "";
 }
 
-std::string rrc_conn_recfg_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string rrc_conn_recfg_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case rrc_conn_recfg_r8:
@@ -18052,7 +18055,7 @@ std::string rrc_conn_recfg_s::crit_exts_c_::c1_c_::types::to_string() const
   return "";
 }
 
-std::string rrc_conn_release_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string rrc_conn_release_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case rrc_conn_release_r8:
@@ -18071,7 +18074,7 @@ std::string rrc_conn_release_s::crit_exts_c_::c1_c_::types::to_string() const
   return "";
 }
 
-std::string rrc_conn_resume_r13_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string rrc_conn_resume_r13_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case rrc_conn_resume_r13:
@@ -18090,7 +18093,7 @@ std::string rrc_conn_resume_r13_s::crit_exts_c_::c1_c_::types::to_string() const
   return "";
 }
 
-std::string security_mode_cmd_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string security_mode_cmd_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case security_mode_cmd_r8:
@@ -18109,7 +18112,7 @@ std::string security_mode_cmd_s::crit_exts_c_::c1_c_::types::to_string() const
   return "";
 }
 
-std::string ue_cap_enquiry_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string ue_cap_enquiry_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case ue_cap_enquiry_r8:
@@ -18128,7 +18131,7 @@ std::string ue_cap_enquiry_s::crit_exts_c_::c1_c_::types::to_string() const
   return "";
 }
 
-std::string ue_info_request_r9_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string ue_info_request_r9_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case ue_info_request_r9:
@@ -18147,7 +18150,7 @@ std::string ue_info_request_r9_s::crit_exts_c_::c1_c_::types::to_string() const
   return "";
 }
 
-std::string dl_dcch_msg_type_c::c1_c_::types::to_string() const
+std::string dl_dcch_msg_type_c::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case csfb_params_resp_cdma2000:
@@ -18189,13 +18192,13 @@ std::string dl_dcch_msg_type_c::c1_c_::types::to_string() const
   }
   return "";
 }
-uint16_t dl_dcch_msg_type_c::c1_c_::types::to_number() const
+uint16_t dl_dcch_msg_type_c::c1_c_::types_opts::to_number() const
 {
   const static uint16_t options[] = {2000};
   return get_enum_number(options, 1, value, "dl_dcch_msg_type_c::c1_c_::types");
 }
 
-std::string dl_dcch_msg_type_c::types::to_string() const
+std::string dl_dcch_msg_type_c::types_opts::to_string() const
 {
   switch (value) {
     case c1:
@@ -18209,13 +18212,13 @@ std::string dl_dcch_msg_type_c::types::to_string() const
   }
   return "";
 }
-uint8_t dl_dcch_msg_type_c::types::to_number() const
+uint8_t dl_dcch_msg_type_c::types_opts::to_number() const
 {
   const static uint8_t options[] = {1};
   return get_enum_number(options, 1, value, "dl_dcch_msg_type_c::types");
 }
 
-std::string tmgi_r9_s::plmn_id_r9_c_::types::to_string() const
+std::string tmgi_r9_s::plmn_id_r9_c_::types_opts::to_string() const
 {
   switch (value) {
     case plmn_idx_r9:
@@ -18230,7 +18233,7 @@ std::string tmgi_r9_s::plmn_id_r9_c_::types::to_string() const
   return "";
 }
 
-std::string pmch_cfg_r12_s::data_mcs_r12_c_::types::to_string() const
+std::string pmch_cfg_r12_s::data_mcs_r12_c_::types_opts::to_string() const
 {
   switch (value) {
     case normal_r12:
@@ -18245,7 +18248,7 @@ std::string pmch_cfg_r12_s::data_mcs_r12_c_::types::to_string() const
   return "";
 }
 
-std::string pmch_cfg_r12_s::mch_sched_period_r12_e_::to_string() const
+std::string pmch_cfg_r12_s::mch_sched_period_r12_opts::to_string() const
 {
   switch (value) {
     case rf4:
@@ -18271,13 +18274,13 @@ std::string pmch_cfg_r12_s::mch_sched_period_r12_e_::to_string() const
   }
   return "";
 }
-uint16_t pmch_cfg_r12_s::mch_sched_period_r12_e_::to_number() const
+uint16_t pmch_cfg_r12_s::mch_sched_period_r12_opts::to_number() const
 {
   const static uint16_t options[] = {4, 8, 16, 32, 64, 128, 256, 512, 1024};
   return get_enum_number(options, 9, value, "pmch_cfg_r12_s::mch_sched_period_r12_e_");
 }
 
-std::string pmch_cfg_r12_s::mch_sched_period_v1430_e_::to_string() const
+std::string pmch_cfg_r12_s::mch_sched_period_v1430_opts::to_string() const
 {
   switch (value) {
     case rf1:
@@ -18289,13 +18292,13 @@ std::string pmch_cfg_r12_s::mch_sched_period_v1430_e_::to_string() const
   }
   return "";
 }
-uint8_t pmch_cfg_r12_s::mch_sched_period_v1430_e_::to_number() const
+uint8_t pmch_cfg_r12_s::mch_sched_period_v1430_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2};
   return get_enum_number(options, 2, value, "pmch_cfg_r12_s::mch_sched_period_v1430_e_");
 }
 
-std::string pmch_cfg_r9_s::mch_sched_period_r9_e_::to_string() const
+std::string pmch_cfg_r9_s::mch_sched_period_r9_opts::to_string() const
 {
   switch (value) {
     case rf8:
@@ -18319,13 +18322,13 @@ std::string pmch_cfg_r9_s::mch_sched_period_r9_e_::to_string() const
   }
   return "";
 }
-uint16_t pmch_cfg_r9_s::mch_sched_period_r9_e_::to_number() const
+uint16_t pmch_cfg_r9_s::mch_sched_period_r9_opts::to_number() const
 {
   const static uint16_t options[] = {8, 16, 32, 64, 128, 256, 512, 1024};
   return get_enum_number(options, 8, value, "pmch_cfg_r9_s::mch_sched_period_r9_e_");
 }
 
-std::string mbsfn_area_cfg_r9_s::common_sf_alloc_period_r9_e_::to_string() const
+std::string mbsfn_area_cfg_r9_s::common_sf_alloc_period_r9_opts::to_string() const
 {
   switch (value) {
     case rf4:
@@ -18347,13 +18350,13 @@ std::string mbsfn_area_cfg_r9_s::common_sf_alloc_period_r9_e_::to_string() const
   }
   return "";
 }
-uint16_t mbsfn_area_cfg_r9_s::common_sf_alloc_period_r9_e_::to_number() const
+uint16_t mbsfn_area_cfg_r9_s::common_sf_alloc_period_r9_opts::to_number() const
 {
   const static uint16_t options[] = {4, 8, 16, 32, 64, 128, 256};
   return get_enum_number(options, 7, value, "mbsfn_area_cfg_r9_s::common_sf_alloc_period_r9_e_");
 }
 
-std::string mcch_msg_type_c::c1_c_::types::to_string() const
+std::string mcch_msg_type_c::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case mbsfn_area_cfg_r9:
@@ -18366,7 +18369,7 @@ std::string mcch_msg_type_c::c1_c_::types::to_string() const
   return "";
 }
 
-std::string mcch_msg_type_c::later_c_::c2_c_::types::to_string() const
+std::string mcch_msg_type_c::later_c_::c2_c_::types_opts::to_string() const
 {
   switch (value) {
     case mbms_count_request_r10:
@@ -18379,7 +18382,7 @@ std::string mcch_msg_type_c::later_c_::c2_c_::types::to_string() const
   return "";
 }
 
-std::string mcch_msg_type_c::later_c_::types::to_string() const
+std::string mcch_msg_type_c::later_c_::types_opts::to_string() const
 {
   switch (value) {
     case c2:
@@ -18393,13 +18396,13 @@ std::string mcch_msg_type_c::later_c_::types::to_string() const
   }
   return "";
 }
-uint8_t mcch_msg_type_c::later_c_::types::to_number() const
+uint8_t mcch_msg_type_c::later_c_::types_opts::to_number() const
 {
   const static uint8_t options[] = {2};
   return get_enum_number(options, 1, value, "mcch_msg_type_c::later_c_::types");
 }
 
-std::string mcch_msg_type_c::types::to_string() const
+std::string mcch_msg_type_c::types_opts::to_string() const
 {
   switch (value) {
     case c1:
@@ -18413,13 +18416,13 @@ std::string mcch_msg_type_c::types::to_string() const
   }
   return "";
 }
-uint8_t mcch_msg_type_c::types::to_number() const
+uint8_t mcch_msg_type_c::types_opts::to_number() const
 {
   const static uint8_t options[] = {1};
   return get_enum_number(options, 1, value, "mcch_msg_type_c::types");
 }
 
-std::string paging_ue_id_c::types::to_string() const
+std::string paging_ue_id_c::types_opts::to_string() const
 {
   switch (value) {
     case s_tmsi:
@@ -18437,7 +18440,7 @@ std::string paging_ue_id_c::types::to_string() const
   }
   return "";
 }
-int8_t paging_ue_id_c::types::to_number() const
+int8_t paging_ue_id_c::types_opts::to_number() const
 {
   switch (value) {
     case ng_minus5_g_s_tmsi_r15:
@@ -18448,7 +18451,7 @@ int8_t paging_ue_id_c::types::to_number() const
   return 0;
 }
 
-std::string paging_record_s::cn_domain_e_::to_string() const
+std::string paging_record_s::cn_domain_opts::to_string() const
 {
   switch (value) {
     case ps:
@@ -18461,7 +18464,7 @@ std::string paging_record_s::cn_domain_e_::to_string() const
   return "";
 }
 
-std::string pcch_msg_type_c::c1_c_::types::to_string() const
+std::string pcch_msg_type_c::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case paging:
@@ -18474,7 +18477,7 @@ std::string pcch_msg_type_c::c1_c_::types::to_string() const
   return "";
 }
 
-std::string pcch_msg_type_c::types::to_string() const
+std::string pcch_msg_type_c::types_opts::to_string() const
 {
   switch (value) {
     case c1:
@@ -18488,13 +18491,13 @@ std::string pcch_msg_type_c::types::to_string() const
   }
   return "";
 }
-uint8_t pcch_msg_type_c::types::to_number() const
+uint8_t pcch_msg_type_c::types_opts::to_number() const
 {
   const static uint8_t options[] = {1};
   return get_enum_number(options, 1, value, "pcch_msg_type_c::types");
 }
 
-std::string sc_mtch_sched_info_br_r14_s::on_dur_timer_scptm_r14_e_::to_string() const
+std::string sc_mtch_sched_info_br_r14_s::on_dur_timer_scptm_r14_opts::to_string() const
 {
   switch (value) {
     case psf300:
@@ -18518,13 +18521,13 @@ std::string sc_mtch_sched_info_br_r14_s::on_dur_timer_scptm_r14_e_::to_string() 
   }
   return "";
 }
-uint16_t sc_mtch_sched_info_br_r14_s::on_dur_timer_scptm_r14_e_::to_number() const
+uint16_t sc_mtch_sched_info_br_r14_s::on_dur_timer_scptm_r14_opts::to_number() const
 {
   const static uint16_t options[] = {300, 400, 500, 600, 800, 1000, 1200, 1600};
   return get_enum_number(options, 8, value, "sc_mtch_sched_info_br_r14_s::on_dur_timer_scptm_r14_e_");
 }
 
-std::string sc_mtch_sched_info_br_r14_s::drx_inactivity_timer_scptm_r14_e_::to_string() const
+std::string sc_mtch_sched_info_br_r14_s::drx_inactivity_timer_scptm_r14_opts::to_string() const
 {
   switch (value) {
     case psf0:
@@ -18564,13 +18567,13 @@ std::string sc_mtch_sched_info_br_r14_s::drx_inactivity_timer_scptm_r14_e_::to_s
   }
   return "";
 }
-uint16_t sc_mtch_sched_info_br_r14_s::drx_inactivity_timer_scptm_r14_e_::to_number() const
+uint16_t sc_mtch_sched_info_br_r14_s::drx_inactivity_timer_scptm_r14_opts::to_number() const
 {
   const static uint16_t options[] = {0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384};
   return get_enum_number(options, 16, value, "sc_mtch_sched_info_br_r14_s::drx_inactivity_timer_scptm_r14_e_");
 }
 
-std::string sc_mtch_sched_info_br_r14_s::sched_period_start_offset_scptm_r14_c_::types::to_string() const
+std::string sc_mtch_sched_info_br_r14_s::sched_period_start_offset_scptm_r14_c_::types_opts::to_string() const
 {
   switch (value) {
     case sf10:
@@ -18612,14 +18615,14 @@ std::string sc_mtch_sched_info_br_r14_s::sched_period_start_offset_scptm_r14_c_:
   }
   return "";
 }
-uint16_t sc_mtch_sched_info_br_r14_s::sched_period_start_offset_scptm_r14_c_::types::to_number() const
+uint16_t sc_mtch_sched_info_br_r14_s::sched_period_start_offset_scptm_r14_c_::types_opts::to_number() const
 {
   const static uint16_t options[] = {10, 20, 32, 40, 64, 80, 128, 160, 256, 320, 512, 640, 1024, 2048, 4096, 8192};
   return get_enum_number(options, 16, value,
                          "sc_mtch_sched_info_br_r14_s::sched_period_start_offset_scptm_r14_c_::types");
 }
 
-std::string sc_mtch_sched_info_r13_s::on_dur_timer_scptm_r13_e_::to_string() const
+std::string sc_mtch_sched_info_r13_s::on_dur_timer_scptm_r13_opts::to_string() const
 {
   switch (value) {
     case psf1:
@@ -18659,13 +18662,13 @@ std::string sc_mtch_sched_info_r13_s::on_dur_timer_scptm_r13_e_::to_string() con
   }
   return "";
 }
-uint8_t sc_mtch_sched_info_r13_s::on_dur_timer_scptm_r13_e_::to_number() const
+uint8_t sc_mtch_sched_info_r13_s::on_dur_timer_scptm_r13_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3, 4, 5, 6, 8, 10, 20, 30, 40, 50, 60, 80, 100, 200};
   return get_enum_number(options, 16, value, "sc_mtch_sched_info_r13_s::on_dur_timer_scptm_r13_e_");
 }
 
-std::string sc_mtch_sched_info_r13_s::drx_inactivity_timer_scptm_r13_e_::to_string() const
+std::string sc_mtch_sched_info_r13_s::drx_inactivity_timer_scptm_r13_opts::to_string() const
 {
   switch (value) {
     case psf0:
@@ -18705,13 +18708,13 @@ std::string sc_mtch_sched_info_r13_s::drx_inactivity_timer_scptm_r13_e_::to_stri
   }
   return "";
 }
-uint16_t sc_mtch_sched_info_r13_s::drx_inactivity_timer_scptm_r13_e_::to_number() const
+uint16_t sc_mtch_sched_info_r13_s::drx_inactivity_timer_scptm_r13_opts::to_number() const
 {
   const static uint16_t options[] = {0, 1, 2, 4, 8, 10, 20, 40, 80, 160, 320, 640, 960, 1280, 1920, 2560};
   return get_enum_number(options, 16, value, "sc_mtch_sched_info_r13_s::drx_inactivity_timer_scptm_r13_e_");
 }
 
-std::string sc_mtch_sched_info_r13_s::sched_period_start_offset_scptm_r13_c_::types::to_string() const
+std::string sc_mtch_sched_info_r13_s::sched_period_start_offset_scptm_r13_c_::types_opts::to_string() const
 {
   switch (value) {
     case sf10:
@@ -18753,13 +18756,13 @@ std::string sc_mtch_sched_info_r13_s::sched_period_start_offset_scptm_r13_c_::ty
   }
   return "";
 }
-uint16_t sc_mtch_sched_info_r13_s::sched_period_start_offset_scptm_r13_c_::types::to_number() const
+uint16_t sc_mtch_sched_info_r13_s::sched_period_start_offset_scptm_r13_c_::types_opts::to_number() const
 {
   const static uint16_t options[] = {10, 20, 32, 40, 64, 80, 128, 160, 256, 320, 512, 640, 1024, 2048, 4096, 8192};
   return get_enum_number(options, 16, value, "sc_mtch_sched_info_r13_s::sched_period_start_offset_scptm_r13_c_::types");
 }
 
-std::string sc_mtch_info_br_r14_s::mpdcch_num_repeat_sc_mtch_r14_e_::to_string() const
+std::string sc_mtch_info_br_r14_s::mpdcch_num_repeat_sc_mtch_r14_opts::to_string() const
 {
   switch (value) {
     case r1:
@@ -18785,13 +18788,13 @@ std::string sc_mtch_info_br_r14_s::mpdcch_num_repeat_sc_mtch_r14_e_::to_string()
   }
   return "";
 }
-uint16_t sc_mtch_info_br_r14_s::mpdcch_num_repeat_sc_mtch_r14_e_::to_number() const
+uint16_t sc_mtch_info_br_r14_s::mpdcch_num_repeat_sc_mtch_r14_opts::to_number() const
 {
   const static uint16_t options[] = {1, 2, 4, 8, 16, 32, 64, 128, 256};
   return get_enum_number(options, 9, value, "sc_mtch_info_br_r14_s::mpdcch_num_repeat_sc_mtch_r14_e_");
 }
 
-std::string sc_mtch_info_br_r14_s::mpdcch_start_sf_sc_mtch_r14_c_::fdd_r14_e_::to_string() const
+std::string sc_mtch_info_br_r14_s::mpdcch_start_sf_sc_mtch_r14_c_::fdd_r14_opts::to_string() const
 {
   switch (value) {
     case v1:
@@ -18815,12 +18818,12 @@ std::string sc_mtch_info_br_r14_s::mpdcch_start_sf_sc_mtch_r14_c_::fdd_r14_e_::t
   }
   return "";
 }
-float sc_mtch_info_br_r14_s::mpdcch_start_sf_sc_mtch_r14_c_::fdd_r14_e_::to_number() const
+float sc_mtch_info_br_r14_s::mpdcch_start_sf_sc_mtch_r14_c_::fdd_r14_opts::to_number() const
 {
   const static float options[] = {1.0, 1.5, 2.0, 2.5, 4.0, 5.0, 8.0, 10.0};
   return get_enum_number(options, 8, value, "sc_mtch_info_br_r14_s::mpdcch_start_sf_sc_mtch_r14_c_::fdd_r14_e_");
 }
-std::string sc_mtch_info_br_r14_s::mpdcch_start_sf_sc_mtch_r14_c_::fdd_r14_e_::to_number_string() const
+std::string sc_mtch_info_br_r14_s::mpdcch_start_sf_sc_mtch_r14_c_::fdd_r14_opts::to_number_string() const
 {
   switch (value) {
     case v1:
@@ -18845,7 +18848,7 @@ std::string sc_mtch_info_br_r14_s::mpdcch_start_sf_sc_mtch_r14_c_::fdd_r14_e_::t
   return "";
 }
 
-std::string sc_mtch_info_br_r14_s::mpdcch_start_sf_sc_mtch_r14_c_::tdd_r14_e_::to_string() const
+std::string sc_mtch_info_br_r14_s::mpdcch_start_sf_sc_mtch_r14_c_::tdd_r14_opts::to_string() const
 {
   switch (value) {
     case v1:
@@ -18867,13 +18870,13 @@ std::string sc_mtch_info_br_r14_s::mpdcch_start_sf_sc_mtch_r14_c_::tdd_r14_e_::t
   }
   return "";
 }
-uint8_t sc_mtch_info_br_r14_s::mpdcch_start_sf_sc_mtch_r14_c_::tdd_r14_e_::to_number() const
+uint8_t sc_mtch_info_br_r14_s::mpdcch_start_sf_sc_mtch_r14_c_::tdd_r14_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 4, 5, 8, 10, 20};
   return get_enum_number(options, 7, value, "sc_mtch_info_br_r14_s::mpdcch_start_sf_sc_mtch_r14_c_::tdd_r14_e_");
 }
 
-std::string sc_mtch_info_br_r14_s::mpdcch_start_sf_sc_mtch_r14_c_::types::to_string() const
+std::string sc_mtch_info_br_r14_s::mpdcch_start_sf_sc_mtch_r14_c_::types_opts::to_string() const
 {
   switch (value) {
     case fdd_r14:
@@ -18888,7 +18891,7 @@ std::string sc_mtch_info_br_r14_s::mpdcch_start_sf_sc_mtch_r14_c_::types::to_str
   return "";
 }
 
-std::string sc_mtch_info_br_r14_s::mpdcch_pdsch_hop_cfg_sc_mtch_r14_e_::to_string() const
+std::string sc_mtch_info_br_r14_s::mpdcch_pdsch_hop_cfg_sc_mtch_r14_opts::to_string() const
 {
   switch (value) {
     case on:
@@ -18901,7 +18904,7 @@ std::string sc_mtch_info_br_r14_s::mpdcch_pdsch_hop_cfg_sc_mtch_r14_e_::to_strin
   return "";
 }
 
-std::string sc_mtch_info_br_r14_s::mpdcch_pdsch_cemode_cfg_sc_mtch_r14_e_::to_string() const
+std::string sc_mtch_info_br_r14_s::mpdcch_pdsch_cemode_cfg_sc_mtch_r14_opts::to_string() const
 {
   switch (value) {
     case ce_mode_a:
@@ -18914,7 +18917,7 @@ std::string sc_mtch_info_br_r14_s::mpdcch_pdsch_cemode_cfg_sc_mtch_r14_e_::to_st
   return "";
 }
 
-std::string sc_mtch_info_br_r14_s::mpdcch_pdsch_max_bw_sc_mtch_r14_e_::to_string() const
+std::string sc_mtch_info_br_r14_s::mpdcch_pdsch_max_bw_sc_mtch_r14_opts::to_string() const
 {
   switch (value) {
     case bw1dot4:
@@ -18926,12 +18929,12 @@ std::string sc_mtch_info_br_r14_s::mpdcch_pdsch_max_bw_sc_mtch_r14_e_::to_string
   }
   return "";
 }
-float sc_mtch_info_br_r14_s::mpdcch_pdsch_max_bw_sc_mtch_r14_e_::to_number() const
+float sc_mtch_info_br_r14_s::mpdcch_pdsch_max_bw_sc_mtch_r14_opts::to_number() const
 {
   const static float options[] = {1.4, 5.0};
   return get_enum_number(options, 2, value, "sc_mtch_info_br_r14_s::mpdcch_pdsch_max_bw_sc_mtch_r14_e_");
 }
-std::string sc_mtch_info_br_r14_s::mpdcch_pdsch_max_bw_sc_mtch_r14_e_::to_number_string() const
+std::string sc_mtch_info_br_r14_s::mpdcch_pdsch_max_bw_sc_mtch_r14_opts::to_number_string() const
 {
   switch (value) {
     case bw1dot4:
@@ -18944,7 +18947,7 @@ std::string sc_mtch_info_br_r14_s::mpdcch_pdsch_max_bw_sc_mtch_r14_e_::to_number
   return "";
 }
 
-std::string sc_mtch_info_br_r14_s::mpdcch_offset_sc_mtch_r14_e_::to_string() const
+std::string sc_mtch_info_br_r14_s::mpdcch_offset_sc_mtch_r14_opts::to_string() const
 {
   switch (value) {
     case zero:
@@ -18968,12 +18971,12 @@ std::string sc_mtch_info_br_r14_s::mpdcch_offset_sc_mtch_r14_e_::to_string() con
   }
   return "";
 }
-float sc_mtch_info_br_r14_s::mpdcch_offset_sc_mtch_r14_e_::to_number() const
+float sc_mtch_info_br_r14_s::mpdcch_offset_sc_mtch_r14_opts::to_number() const
 {
   const static float options[] = {0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875};
   return get_enum_number(options, 8, value, "sc_mtch_info_br_r14_s::mpdcch_offset_sc_mtch_r14_e_");
 }
-std::string sc_mtch_info_br_r14_s::mpdcch_offset_sc_mtch_r14_e_::to_number_string() const
+std::string sc_mtch_info_br_r14_s::mpdcch_offset_sc_mtch_r14_opts::to_number_string() const
 {
   switch (value) {
     case zero:
@@ -18998,7 +19001,7 @@ std::string sc_mtch_info_br_r14_s::mpdcch_offset_sc_mtch_r14_e_::to_number_strin
   return "";
 }
 
-std::string sc_mtch_info_br_r14_s::p_a_r14_e_::to_string() const
+std::string sc_mtch_info_br_r14_s::p_a_r14_opts::to_string() const
 {
   switch (value) {
     case db_minus6:
@@ -19022,12 +19025,12 @@ std::string sc_mtch_info_br_r14_s::p_a_r14_e_::to_string() const
   }
   return "";
 }
-float sc_mtch_info_br_r14_s::p_a_r14_e_::to_number() const
+float sc_mtch_info_br_r14_s::p_a_r14_opts::to_number() const
 {
   const static float options[] = {-6.0, -4.77, -3.0, -1.77, 0.0, 1.0, 2.0, 3.0};
   return get_enum_number(options, 8, value, "sc_mtch_info_br_r14_s::p_a_r14_e_");
 }
-std::string sc_mtch_info_br_r14_s::p_a_r14_e_::to_number_string() const
+std::string sc_mtch_info_br_r14_s::p_a_r14_opts::to_number_string() const
 {
   switch (value) {
     case db_minus6:
@@ -19052,7 +19055,7 @@ std::string sc_mtch_info_br_r14_s::p_a_r14_e_::to_number_string() const
   return "";
 }
 
-std::string sc_mtch_info_r13_s::p_a_r13_e_::to_string() const
+std::string sc_mtch_info_r13_s::p_a_r13_opts::to_string() const
 {
   switch (value) {
     case db_minus6:
@@ -19076,12 +19079,12 @@ std::string sc_mtch_info_r13_s::p_a_r13_e_::to_string() const
   }
   return "";
 }
-float sc_mtch_info_r13_s::p_a_r13_e_::to_number() const
+float sc_mtch_info_r13_s::p_a_r13_opts::to_number() const
 {
   const static float options[] = {-6.0, -4.77, -3.0, -1.77, 0.0, 1.0, 2.0, 3.0};
   return get_enum_number(options, 8, value, "sc_mtch_info_r13_s::p_a_r13_e_");
 }
-std::string sc_mtch_info_r13_s::p_a_r13_e_::to_number_string() const
+std::string sc_mtch_info_r13_s::p_a_r13_opts::to_number_string() const
 {
   switch (value) {
     case db_minus6:
@@ -19106,7 +19109,7 @@ std::string sc_mtch_info_r13_s::p_a_r13_e_::to_number_string() const
   return "";
 }
 
-std::string sc_mcch_msg_type_r13_c::c1_c_::types::to_string() const
+std::string sc_mcch_msg_type_r13_c::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case scptm_cfg_r13:
@@ -19119,7 +19122,7 @@ std::string sc_mcch_msg_type_r13_c::c1_c_::types::to_string() const
   return "";
 }
 
-std::string sc_mcch_msg_type_r13_c::msg_class_ext_c_::c2_c_::types::to_string() const
+std::string sc_mcch_msg_type_r13_c::msg_class_ext_c_::c2_c_::types_opts::to_string() const
 {
   switch (value) {
     case scptm_cfg_br_r14:
@@ -19134,7 +19137,7 @@ std::string sc_mcch_msg_type_r13_c::msg_class_ext_c_::c2_c_::types::to_string() 
   return "";
 }
 
-std::string sc_mcch_msg_type_r13_c::msg_class_ext_c_::types::to_string() const
+std::string sc_mcch_msg_type_r13_c::msg_class_ext_c_::types_opts::to_string() const
 {
   switch (value) {
     case c2:
@@ -19148,13 +19151,13 @@ std::string sc_mcch_msg_type_r13_c::msg_class_ext_c_::types::to_string() const
   }
   return "";
 }
-uint8_t sc_mcch_msg_type_r13_c::msg_class_ext_c_::types::to_number() const
+uint8_t sc_mcch_msg_type_r13_c::msg_class_ext_c_::types_opts::to_number() const
 {
   const static uint8_t options[] = {2};
   return get_enum_number(options, 1, value, "sc_mcch_msg_type_r13_c::msg_class_ext_c_::types");
 }
 
-std::string sc_mcch_msg_type_r13_c::types::to_string() const
+std::string sc_mcch_msg_type_r13_c::types_opts::to_string() const
 {
   switch (value) {
     case c1:
@@ -19168,14 +19171,14 @@ std::string sc_mcch_msg_type_r13_c::types::to_string() const
   }
   return "";
 }
-uint8_t sc_mcch_msg_type_r13_c::types::to_number() const
+uint8_t sc_mcch_msg_type_r13_c::types_opts::to_number() const
 {
   const static uint8_t options[] = {1};
   return get_enum_number(options, 1, value, "sc_mcch_msg_type_r13_c::types");
 }
 
 // EstablishmentCause ::= ENUMERATED
-std::string establishment_cause_e::to_string() const
+std::string establishment_cause_opts::to_string() const
 {
   switch (value) {
     case emergency:
@@ -19200,7 +19203,7 @@ std::string establishment_cause_e::to_string() const
   return "";
 }
 
-std::string init_ue_id_c::types::to_string() const
+std::string init_ue_id_c::types_opts::to_string() const
 {
   switch (value) {
     case s_tmsi:
@@ -19216,7 +19219,7 @@ std::string init_ue_id_c::types::to_string() const
 }
 
 // ReestablishmentCause ::= ENUMERATED
-std::string reest_cause_e::to_string() const
+std::string reest_cause_opts::to_string() const
 {
   switch (value) {
     case recfg_fail:
@@ -19234,7 +19237,7 @@ std::string reest_cause_e::to_string() const
 }
 
 // ResumeCause ::= ENUMERATED
-std::string resume_cause_e::to_string() const
+std::string resume_cause_opts::to_string() const
 {
   switch (value) {
     case emergency:
@@ -19260,7 +19263,7 @@ std::string resume_cause_e::to_string() const
 }
 
 // ResumeCause-r15 ::= ENUMERATED
-std::string resume_cause_r15_e::to_string() const
+std::string resume_cause_r15_opts::to_string() const
 {
   switch (value) {
     case emergency:
@@ -19285,7 +19288,7 @@ std::string resume_cause_r15_e::to_string() const
   return "";
 }
 
-std::string rrc_conn_resume_request_minus5_gc_r15_ies_s::resume_id_r15_c_::types::to_string() const
+std::string rrc_conn_resume_request_minus5_gc_r15_ies_s::resume_id_r15_c_::types_opts::to_string() const
 {
   switch (value) {
     case full_i_rnti_r15:
@@ -19300,7 +19303,7 @@ std::string rrc_conn_resume_request_minus5_gc_r15_ies_s::resume_id_r15_c_::types
   return "";
 }
 
-std::string rrc_conn_resume_request_r13_ies_s::resume_id_r13_c_::types::to_string() const
+std::string rrc_conn_resume_request_r13_ies_s::resume_id_r13_c_::types_opts::to_string() const
 {
   switch (value) {
     case resume_id_r13:
@@ -19315,7 +19318,7 @@ std::string rrc_conn_resume_request_r13_ies_s::resume_id_r13_c_::types::to_strin
   return "";
 }
 
-std::string rrc_early_data_request_r15_ies_s::establishment_cause_r15_e_::to_string() const
+std::string rrc_early_data_request_r15_ies_s::establishment_cause_r15_opts::to_string() const
 {
   switch (value) {
     case mo_data_r15:
@@ -19328,7 +19331,7 @@ std::string rrc_early_data_request_r15_ies_s::establishment_cause_r15_e_::to_str
   return "";
 }
 
-std::string rrc_conn_reest_request_s::crit_exts_c_::types::to_string() const
+std::string rrc_conn_reest_request_s::crit_exts_c_::types_opts::to_string() const
 {
   switch (value) {
     case rrc_conn_reest_request_r8:
@@ -19343,7 +19346,7 @@ std::string rrc_conn_reest_request_s::crit_exts_c_::types::to_string() const
   return "";
 }
 
-std::string rrc_conn_request_s::crit_exts_c_::types::to_string() const
+std::string rrc_conn_request_s::crit_exts_c_::types_opts::to_string() const
 {
   switch (value) {
     case rrc_conn_request_r8:
@@ -19358,7 +19361,7 @@ std::string rrc_conn_request_s::crit_exts_c_::types::to_string() const
   return "";
 }
 
-std::string rrc_conn_resume_request_r13_s::crit_exts_c_::types::to_string() const
+std::string rrc_conn_resume_request_r13_s::crit_exts_c_::types_opts::to_string() const
 {
   switch (value) {
     case rrc_conn_resume_request_r13:
@@ -19373,7 +19376,7 @@ std::string rrc_conn_resume_request_r13_s::crit_exts_c_::types::to_string() cons
   return "";
 }
 
-std::string rrc_early_data_request_r15_s::crit_exts_c_::types::to_string() const
+std::string rrc_early_data_request_r15_s::crit_exts_c_::types_opts::to_string() const
 {
   switch (value) {
     case rrc_early_data_request_r15:
@@ -19388,7 +19391,7 @@ std::string rrc_early_data_request_r15_s::crit_exts_c_::types::to_string() const
   return "";
 }
 
-std::string ul_ccch_msg_type_c::c1_c_::types::to_string() const
+std::string ul_ccch_msg_type_c::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case rrc_conn_reest_request:
@@ -19403,7 +19406,7 @@ std::string ul_ccch_msg_type_c::c1_c_::types::to_string() const
   return "";
 }
 
-std::string ul_ccch_msg_type_c::msg_class_ext_c_::c2_c_::types::to_string() const
+std::string ul_ccch_msg_type_c::msg_class_ext_c_::c2_c_::types_opts::to_string() const
 {
   switch (value) {
     case rrc_conn_resume_request_r13:
@@ -19416,7 +19419,7 @@ std::string ul_ccch_msg_type_c::msg_class_ext_c_::c2_c_::types::to_string() cons
   return "";
 }
 
-std::string ul_ccch_msg_type_c::msg_class_ext_c_::msg_class_ext_future_r13_c_::c3_c_::types::to_string() const
+std::string ul_ccch_msg_type_c::msg_class_ext_c_::msg_class_ext_future_r13_c_::c3_c_::types_opts::to_string() const
 {
   switch (value) {
     case rrc_early_data_request_r15:
@@ -19435,7 +19438,7 @@ std::string ul_ccch_msg_type_c::msg_class_ext_c_::msg_class_ext_future_r13_c_::c
   return "";
 }
 
-std::string ul_ccch_msg_type_c::msg_class_ext_c_::msg_class_ext_future_r13_c_::types::to_string() const
+std::string ul_ccch_msg_type_c::msg_class_ext_c_::msg_class_ext_future_r13_c_::types_opts::to_string() const
 {
   switch (value) {
     case c3:
@@ -19449,13 +19452,13 @@ std::string ul_ccch_msg_type_c::msg_class_ext_c_::msg_class_ext_future_r13_c_::t
   }
   return "";
 }
-uint8_t ul_ccch_msg_type_c::msg_class_ext_c_::msg_class_ext_future_r13_c_::types::to_number() const
+uint8_t ul_ccch_msg_type_c::msg_class_ext_c_::msg_class_ext_future_r13_c_::types_opts::to_number() const
 {
   const static uint8_t options[] = {3};
   return get_enum_number(options, 1, value, "ul_ccch_msg_type_c::msg_class_ext_c_::msg_class_ext_future_r13_c_::types");
 }
 
-std::string ul_ccch_msg_type_c::msg_class_ext_c_::types::to_string() const
+std::string ul_ccch_msg_type_c::msg_class_ext_c_::types_opts::to_string() const
 {
   switch (value) {
     case c2:
@@ -19469,13 +19472,13 @@ std::string ul_ccch_msg_type_c::msg_class_ext_c_::types::to_string() const
   }
   return "";
 }
-uint8_t ul_ccch_msg_type_c::msg_class_ext_c_::types::to_number() const
+uint8_t ul_ccch_msg_type_c::msg_class_ext_c_::types_opts::to_number() const
 {
   const static uint8_t options[] = {2};
   return get_enum_number(options, 1, value, "ul_ccch_msg_type_c::msg_class_ext_c_::types");
 }
 
-std::string ul_ccch_msg_type_c::types::to_string() const
+std::string ul_ccch_msg_type_c::types_opts::to_string() const
 {
   switch (value) {
     case c1:
@@ -19489,13 +19492,13 @@ std::string ul_ccch_msg_type_c::types::to_string() const
   }
   return "";
 }
-uint8_t ul_ccch_msg_type_c::types::to_number() const
+uint8_t ul_ccch_msg_type_c::types_opts::to_number() const
 {
   const static uint8_t options[] = {1};
   return get_enum_number(options, 1, value, "ul_ccch_msg_type_c::types");
 }
 
-std::string cell_global_id_cdma2000_c::types::to_string() const
+std::string cell_global_id_cdma2000_c::types_opts::to_string() const
 {
   switch (value) {
     case cell_global_id1_xrtt:
@@ -19509,13 +19512,13 @@ std::string cell_global_id_cdma2000_c::types::to_string() const
   }
   return "";
 }
-uint8_t cell_global_id_cdma2000_c::types::to_number() const
+uint8_t cell_global_id_cdma2000_c::types_opts::to_number() const
 {
   const static uint8_t options[] = {1};
   return get_enum_number(options, 1, value, "cell_global_id_cdma2000_c::types");
 }
 
-std::string meas_result_utra_s::pci_c_::types::to_string() const
+std::string meas_result_utra_s::pci_c_::types_opts::to_string() const
 {
   switch (value) {
     case fdd:
@@ -19530,7 +19533,7 @@ std::string meas_result_utra_s::pci_c_::types::to_string() const
   return "";
 }
 
-std::string s_nssai_r15_c::types::to_string() const
+std::string s_nssai_r15_c::types_opts::to_string() const
 {
   switch (value) {
     case sst:
@@ -19545,7 +19548,7 @@ std::string s_nssai_r15_c::types::to_string() const
   return "";
 }
 
-std::string location_info_r10_s::location_coordinates_r10_c_::types::to_string() const
+std::string location_info_r10_s::location_coordinates_r10_c_::types_opts::to_string() const
 {
   switch (value) {
     case ellipsoid_point_r10:
@@ -19570,7 +19573,7 @@ std::string location_info_r10_s::location_coordinates_r10_c_::types::to_string()
   return "";
 }
 
-std::string location_info_r10_s::vertical_velocity_info_r15_c_::types::to_string() const
+std::string location_info_r10_s::vertical_velocity_info_r15_c_::types_opts::to_string() const
 {
   switch (value) {
     case vertical_velocity_r15:
@@ -19585,7 +19588,7 @@ std::string location_info_r10_s::vertical_velocity_info_r15_c_::types::to_string
   return "";
 }
 
-std::string rrc_conn_setup_complete_v1530_ies_s::ng_minus5_g_s_tmsi_bits_r15_c_::types::to_string() const
+std::string rrc_conn_setup_complete_v1530_ies_s::ng_minus5_g_s_tmsi_bits_r15_c_::types_opts::to_string() const
 {
   switch (value) {
     case ng_minus5_g_s_tmsi_r15:
@@ -19600,7 +19603,7 @@ std::string rrc_conn_setup_complete_v1530_ies_s::ng_minus5_g_s_tmsi_bits_r15_c_:
   return "";
 }
 
-std::string wlan_rtt_r15_s::rtt_units_r15_e_::to_string() const
+std::string wlan_rtt_r15_s::rtt_units_r15_opts::to_string() const
 {
   switch (value) {
     case microseconds:
@@ -19619,7 +19622,7 @@ std::string wlan_rtt_r15_s::rtt_units_r15_e_::to_string() const
   return "";
 }
 
-std::string meas_result_idle_r15_s::meas_result_neigh_cells_r15_c_::types::to_string() const
+std::string meas_result_idle_r15_s::meas_result_neigh_cells_r15_c_::types_opts::to_string() const
 {
   switch (value) {
     case meas_result_idle_list_eutra_r15:
@@ -19632,7 +19635,7 @@ std::string meas_result_idle_r15_s::meas_result_neigh_cells_r15_c_::types::to_st
   return "";
 }
 
-std::string per_cc_gap_ind_r14_s::gap_ind_r14_e_::to_string() const
+std::string per_cc_gap_ind_r14_s::gap_ind_r14_opts::to_string() const
 {
   switch (value) {
     case gap:
@@ -19647,7 +19650,7 @@ std::string per_cc_gap_ind_r14_s::gap_ind_r14_e_::to_string() const
   return "";
 }
 
-std::string visited_cell_info_r12_s::visited_cell_id_r12_c_::types::to_string() const
+std::string visited_cell_info_r12_s::visited_cell_id_r12_c_::types_opts::to_string() const
 {
   switch (value) {
     case cell_global_id_r12:
@@ -19662,7 +19665,7 @@ std::string visited_cell_info_r12_s::visited_cell_id_r12_c_::types::to_string() 
   return "";
 }
 
-std::string affected_carrier_freq_comb_info_mrdc_r15_s::interference_direction_mrdc_r15_e_::to_string() const
+std::string affected_carrier_freq_comb_info_mrdc_r15_s::interference_direction_mrdc_r15_opts::to_string() const
 {
   switch (value) {
     case eutra_nr:
@@ -19687,7 +19690,7 @@ std::string affected_carrier_freq_comb_info_mrdc_r15_s::interference_direction_m
   return "";
 }
 
-std::string rrc_conn_setup_complete_v1250_ies_s::mob_state_r12_e_::to_string() const
+std::string rrc_conn_setup_complete_v1250_ies_s::mob_state_r12_opts::to_string() const
 {
   switch (value) {
     case normal:
@@ -19704,7 +19707,7 @@ std::string rrc_conn_setup_complete_v1250_ies_s::mob_state_r12_e_::to_string() c
   return "";
 }
 
-std::string idc_sf_pattern_r11_c::sf_pattern_tdd_r11_c_::types::to_string() const
+std::string idc_sf_pattern_r11_c::sf_pattern_tdd_r11_c_::types_opts::to_string() const
 {
   switch (value) {
     case sf_cfg0_r11:
@@ -19720,13 +19723,13 @@ std::string idc_sf_pattern_r11_c::sf_pattern_tdd_r11_c_::types::to_string() cons
   }
   return "";
 }
-uint8_t idc_sf_pattern_r11_c::sf_pattern_tdd_r11_c_::types::to_number() const
+uint8_t idc_sf_pattern_r11_c::sf_pattern_tdd_r11_c_::types_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1, 6};
   return get_enum_number(options, 3, value, "idc_sf_pattern_r11_c::sf_pattern_tdd_r11_c_::types");
 }
 
-std::string idc_sf_pattern_r11_c::types::to_string() const
+std::string idc_sf_pattern_r11_c::types_opts::to_string() const
 {
   switch (value) {
     case sf_pattern_fdd_r11:
@@ -19741,7 +19744,7 @@ std::string idc_sf_pattern_r11_c::types::to_string() const
   return "";
 }
 
-std::string sl_disc_sys_info_report_r13_s::cell_resel_info_r13_s_::q_hyst_r13_e_::to_string() const
+std::string sl_disc_sys_info_report_r13_s::cell_resel_info_r13_s_::q_hyst_r13_opts::to_string() const
 {
   switch (value) {
     case db0:
@@ -19781,13 +19784,13 @@ std::string sl_disc_sys_info_report_r13_s::cell_resel_info_r13_s_::q_hyst_r13_e_
   }
   return "";
 }
-uint8_t sl_disc_sys_info_report_r13_s::cell_resel_info_r13_s_::q_hyst_r13_e_::to_number() const
+uint8_t sl_disc_sys_info_report_r13_s::cell_resel_info_r13_s_::q_hyst_r13_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1, 2, 3, 4, 5, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24};
   return get_enum_number(options, 16, value, "sl_disc_sys_info_report_r13_s::cell_resel_info_r13_s_::q_hyst_r13_e_");
 }
 
-std::string sl_disc_sys_info_report_r13_s::freq_info_r13_s_::ul_bw_r13_e_::to_string() const
+std::string sl_disc_sys_info_report_r13_s::freq_info_r13_s_::ul_bw_r13_opts::to_string() const
 {
   switch (value) {
     case n6:
@@ -19807,13 +19810,13 @@ std::string sl_disc_sys_info_report_r13_s::freq_info_r13_s_::ul_bw_r13_e_::to_st
   }
   return "";
 }
-uint8_t sl_disc_sys_info_report_r13_s::freq_info_r13_s_::ul_bw_r13_e_::to_number() const
+uint8_t sl_disc_sys_info_report_r13_s::freq_info_r13_s_::ul_bw_r13_opts::to_number() const
 {
   const static uint8_t options[] = {6, 15, 25, 50, 75, 100};
   return get_enum_number(options, 6, value, "sl_disc_sys_info_report_r13_s::freq_info_r13_s_::ul_bw_r13_e_");
 }
 
-std::string traffic_pattern_info_r14_s::traffic_periodicity_r14_e_::to_string() const
+std::string traffic_pattern_info_r14_s::traffic_periodicity_r14_opts::to_string() const
 {
   switch (value) {
     case sf20:
@@ -19845,13 +19848,13 @@ std::string traffic_pattern_info_r14_s::traffic_periodicity_r14_e_::to_string() 
   }
   return "";
 }
-uint16_t traffic_pattern_info_r14_s::traffic_periodicity_r14_e_::to_number() const
+uint16_t traffic_pattern_info_r14_s::traffic_periodicity_r14_opts::to_number() const
 {
   const static uint16_t options[] = {20, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000};
   return get_enum_number(options, 12, value, "traffic_pattern_info_r14_s::traffic_periodicity_r14_e_");
 }
 
-std::string ue_radio_paging_info_r12_s::wake_up_signal_min_gap_e_drx_r15_e_::to_string() const
+std::string ue_radio_paging_info_r12_s::wake_up_signal_min_gap_e_drx_r15_opts::to_string() const
 {
   switch (value) {
     case ms40:
@@ -19867,13 +19870,13 @@ std::string ue_radio_paging_info_r12_s::wake_up_signal_min_gap_e_drx_r15_e_::to_
   }
   return "";
 }
-uint16_t ue_radio_paging_info_r12_s::wake_up_signal_min_gap_e_drx_r15_e_::to_number() const
+uint16_t ue_radio_paging_info_r12_s::wake_up_signal_min_gap_e_drx_r15_opts::to_number() const
 {
   const static uint16_t options[] = {40, 240, 1000, 2000};
   return get_enum_number(options, 4, value, "ue_radio_paging_info_r12_s::wake_up_signal_min_gap_e_drx_r15_e_");
 }
 
-std::string ue_radio_paging_info_r12_s::wake_up_signal_min_gap_e_drx_tdd_r15_e_::to_string() const
+std::string ue_radio_paging_info_r12_s::wake_up_signal_min_gap_e_drx_tdd_r15_opts::to_string() const
 {
   switch (value) {
     case ms40:
@@ -19889,13 +19892,13 @@ std::string ue_radio_paging_info_r12_s::wake_up_signal_min_gap_e_drx_tdd_r15_e_:
   }
   return "";
 }
-uint16_t ue_radio_paging_info_r12_s::wake_up_signal_min_gap_e_drx_tdd_r15_e_::to_number() const
+uint16_t ue_radio_paging_info_r12_s::wake_up_signal_min_gap_e_drx_tdd_r15_opts::to_number() const
 {
   const static uint16_t options[] = {40, 240, 1000, 2000};
   return get_enum_number(options, 4, value, "ue_radio_paging_info_r12_s::wake_up_signal_min_gap_e_drx_tdd_r15_e_");
 }
 
-std::string ul_pdcp_delay_result_r13_s::qci_id_r13_e_::to_string() const
+std::string ul_pdcp_delay_result_r13_s::qci_id_r13_opts::to_string() const
 {
   switch (value) {
     case qci1:
@@ -19919,13 +19922,13 @@ std::string ul_pdcp_delay_result_r13_s::qci_id_r13_e_::to_string() const
   }
   return "";
 }
-uint8_t ul_pdcp_delay_result_r13_s::qci_id_r13_e_::to_number() const
+uint8_t ul_pdcp_delay_result_r13_s::qci_id_r13_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3, 4};
   return get_enum_number(options, 4, value, "ul_pdcp_delay_result_r13_s::qci_id_r13_e_");
 }
 
-std::string affected_carrier_freq_r11_s::interference_direction_r11_e_::to_string() const
+std::string affected_carrier_freq_r11_s::interference_direction_r11_opts::to_string() const
 {
   switch (value) {
     case eutra:
@@ -19942,7 +19945,7 @@ std::string affected_carrier_freq_r11_s::interference_direction_r11_e_::to_strin
   return "";
 }
 
-std::string bw_pref_r14_s::dl_pref_r14_e_::to_string() const
+std::string bw_pref_r14_s::dl_pref_r14_opts::to_string() const
 {
   switch (value) {
     case mhz1dot4:
@@ -19956,12 +19959,12 @@ std::string bw_pref_r14_s::dl_pref_r14_e_::to_string() const
   }
   return "";
 }
-float bw_pref_r14_s::dl_pref_r14_e_::to_number() const
+float bw_pref_r14_s::dl_pref_r14_opts::to_number() const
 {
   const static float options[] = {1.4, 5.0, 20.0};
   return get_enum_number(options, 3, value, "bw_pref_r14_s::dl_pref_r14_e_");
 }
-std::string bw_pref_r14_s::dl_pref_r14_e_::to_number_string() const
+std::string bw_pref_r14_s::dl_pref_r14_opts::to_number_string() const
 {
   switch (value) {
     case mhz1dot4:
@@ -19976,7 +19979,7 @@ std::string bw_pref_r14_s::dl_pref_r14_e_::to_number_string() const
   return "";
 }
 
-std::string bw_pref_r14_s::ul_pref_r14_e_::to_string() const
+std::string bw_pref_r14_s::ul_pref_r14_opts::to_string() const
 {
   switch (value) {
     case mhz1dot4:
@@ -19988,12 +19991,12 @@ std::string bw_pref_r14_s::ul_pref_r14_e_::to_string() const
   }
   return "";
 }
-float bw_pref_r14_s::ul_pref_r14_e_::to_number() const
+float bw_pref_r14_s::ul_pref_r14_opts::to_number() const
 {
   const static float options[] = {1.4, 5.0};
   return get_enum_number(options, 2, value, "bw_pref_r14_s::ul_pref_r14_e_");
 }
-std::string bw_pref_r14_s::ul_pref_r14_e_::to_number_string() const
+std::string bw_pref_r14_s::ul_pref_r14_opts::to_number_string() const
 {
   switch (value) {
     case mhz1dot4:
@@ -20006,7 +20009,7 @@ std::string bw_pref_r14_s::ul_pref_r14_e_::to_number_string() const
   return "";
 }
 
-std::string delay_budget_report_r14_c::type1_e_::to_string() const
+std::string delay_budget_report_r14_c::type1_opts::to_string() const
 {
   switch (value) {
     case ms_minus1280:
@@ -20048,14 +20051,14 @@ std::string delay_budget_report_r14_c::type1_e_::to_string() const
   }
   return "";
 }
-int16_t delay_budget_report_r14_c::type1_e_::to_number() const
+int16_t delay_budget_report_r14_c::type1_opts::to_number() const
 {
   const static int16_t options[] = {-1280, -640, -320, -160, -80, -60, -40, -20, 0,
                                     20,    40,   60,   80,   160, 320, 640, 1280};
   return get_enum_number(options, 17, value, "delay_budget_report_r14_c::type1_e_");
 }
 
-std::string delay_budget_report_r14_c::type2_e_::to_string() const
+std::string delay_budget_report_r14_c::type2_opts::to_string() const
 {
   switch (value) {
     case ms_minus192:
@@ -20097,13 +20100,13 @@ std::string delay_budget_report_r14_c::type2_e_::to_string() const
   }
   return "";
 }
-int16_t delay_budget_report_r14_c::type2_e_::to_number() const
+int16_t delay_budget_report_r14_c::type2_opts::to_number() const
 {
   const static int16_t options[] = {-192, -168, -144, -120, -96, -72, -48, -24, 0, 24, 48, 72, 96, 120, 144, 168, 192};
   return get_enum_number(options, 17, value, "delay_budget_report_r14_c::type2_e_");
 }
 
-std::string delay_budget_report_r14_c::types::to_string() const
+std::string delay_budget_report_r14_c::types_opts::to_string() const
 {
   switch (value) {
     case type1:
@@ -20117,13 +20120,13 @@ std::string delay_budget_report_r14_c::types::to_string() const
   }
   return "";
 }
-uint8_t delay_budget_report_r14_c::types::to_number() const
+uint8_t delay_budget_report_r14_c::types_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2};
   return get_enum_number(options, 2, value, "delay_budget_report_r14_c::types");
 }
 
-std::string rrc_conn_setup_complete_v1020_ies_s::gummei_type_r10_e_::to_string() const
+std::string rrc_conn_setup_complete_v1020_ies_s::gummei_type_r10_opts::to_string() const
 {
   switch (value) {
     case native:
@@ -20136,7 +20139,7 @@ std::string rrc_conn_setup_complete_v1020_ies_s::gummei_type_r10_e_::to_string()
   return "";
 }
 
-std::string rrc_conn_setup_complete_v1020_ies_s::rn_sf_cfg_req_r10_e_::to_string() const
+std::string rrc_conn_setup_complete_v1020_ies_s::rn_sf_cfg_req_r10_opts::to_string() const
 {
   switch (value) {
     case required:
@@ -20149,7 +20152,7 @@ std::string rrc_conn_setup_complete_v1020_ies_s::rn_sf_cfg_req_r10_e_::to_string
   return "";
 }
 
-std::string rstd_inter_freq_info_r10_s::meas_prs_offset_r15_c_::types::to_string() const
+std::string rstd_inter_freq_info_r10_s::meas_prs_offset_r15_c_::types_opts::to_string() const
 {
   switch (value) {
     case rstd0_r15:
@@ -20201,14 +20204,14 @@ std::string rstd_inter_freq_info_r10_s::meas_prs_offset_r15_c_::types::to_string
   }
   return "";
 }
-uint8_t rstd_inter_freq_info_r10_s::meas_prs_offset_r15_c_::types::to_number() const
+uint8_t rstd_inter_freq_info_r10_s::meas_prs_offset_r15_c_::types_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
   return get_enum_number(options, 21, value, "rstd_inter_freq_info_r10_s::meas_prs_offset_r15_c_::types");
 }
 
 // WLAN-Status-v1430 ::= ENUMERATED
-std::string wlan_status_v1430_e::to_string() const
+std::string wlan_status_v1430_opts::to_string() const
 {
   switch (value) {
     case suspended:
@@ -20221,7 +20224,7 @@ std::string wlan_status_v1430_e::to_string() const
   return "";
 }
 
-std::string fail_report_scg_nr_r15_s::fail_type_r15_e_::to_string() const
+std::string fail_report_scg_nr_r15_s::fail_type_r15_opts::to_string() const
 {
   switch (value) {
     case t310_expiry:
@@ -20241,7 +20244,7 @@ std::string fail_report_scg_nr_r15_s::fail_type_r15_e_::to_string() const
   }
   return "";
 }
-uint16_t fail_report_scg_nr_r15_s::fail_type_r15_e_::to_number() const
+uint16_t fail_report_scg_nr_r15_s::fail_type_r15_opts::to_number() const
 {
   switch (value) {
     case t310_expiry:
@@ -20254,7 +20257,7 @@ uint16_t fail_report_scg_nr_r15_s::fail_type_r15_e_::to_number() const
   return 0;
 }
 
-std::string fail_report_scg_r12_s::fail_type_r12_e_::to_string() const
+std::string fail_report_scg_r12_s::fail_type_r12_opts::to_string() const
 {
   switch (value) {
     case t313_expiry:
@@ -20270,13 +20273,13 @@ std::string fail_report_scg_r12_s::fail_type_r12_e_::to_string() const
   }
   return "";
 }
-uint16_t fail_report_scg_r12_s::fail_type_r12_e_::to_number() const
+uint16_t fail_report_scg_r12_s::fail_type_r12_opts::to_number() const
 {
   const static uint16_t options[] = {313};
   return get_enum_number(options, 1, value, "fail_report_scg_r12_s::fail_type_r12_e_");
 }
 
-std::string meas_results_s::meas_result_neigh_cells_c_::types::to_string() const
+std::string meas_results_s::meas_result_neigh_cells_c_::types_opts::to_string() const
 {
   switch (value) {
     case meas_result_list_eutra:
@@ -20296,7 +20299,7 @@ std::string meas_results_s::meas_result_neigh_cells_c_::types::to_string() const
   }
   return "";
 }
-uint16_t meas_results_s::meas_result_neigh_cells_c_::types::to_number() const
+uint16_t meas_results_s::meas_result_neigh_cells_c_::types_opts::to_number() const
 {
   switch (value) {
     case meas_results_cdma2000:
@@ -20307,7 +20310,7 @@ uint16_t meas_results_s::meas_result_neigh_cells_c_::types::to_number() const
   return 0;
 }
 
-std::string rlf_report_r9_s::failed_pcell_id_r10_c_::types::to_string() const
+std::string rlf_report_r9_s::failed_pcell_id_r10_c_::types_opts::to_string() const
 {
   switch (value) {
     case cell_global_id_r10:
@@ -20322,7 +20325,7 @@ std::string rlf_report_r9_s::failed_pcell_id_r10_c_::types::to_string() const
   return "";
 }
 
-std::string rlf_report_r9_s::conn_fail_type_r10_e_::to_string() const
+std::string rlf_report_r9_s::conn_fail_type_r10_opts::to_string() const
 {
   switch (value) {
     case rlf:
@@ -20335,7 +20338,7 @@ std::string rlf_report_r9_s::conn_fail_type_r10_e_::to_string() const
   return "";
 }
 
-std::string rlf_report_r9_s::basic_fields_r11_s_::rlf_cause_r11_e_::to_string() const
+std::string rlf_report_r9_s::basic_fields_r11_s_::rlf_cause_r11_opts::to_string() const
 {
   switch (value) {
     case t310_expiry:
@@ -20351,7 +20354,7 @@ std::string rlf_report_r9_s::basic_fields_r11_s_::rlf_cause_r11_e_::to_string() 
   }
   return "";
 }
-uint16_t rlf_report_r9_s::basic_fields_r11_s_::rlf_cause_r11_e_::to_number() const
+uint16_t rlf_report_r9_s::basic_fields_r11_s_::rlf_cause_r11_opts::to_number() const
 {
   switch (value) {
     case t310_expiry:
@@ -20364,7 +20367,7 @@ uint16_t rlf_report_r9_s::basic_fields_r11_s_::rlf_cause_r11_e_::to_number() con
   return 0;
 }
 
-std::string rlf_report_r9_s::prev_utra_cell_id_r11_s_::pci_r11_c_::types::to_string() const
+std::string rlf_report_r9_s::prev_utra_cell_id_r11_s_::pci_r11_c_::types_opts::to_string() const
 {
   switch (value) {
     case fdd_r11:
@@ -20379,7 +20382,7 @@ std::string rlf_report_r9_s::prev_utra_cell_id_r11_s_::pci_r11_c_::types::to_str
   return "";
 }
 
-std::string rlf_report_r9_s::sel_utra_cell_id_r11_s_::pci_r11_c_::types::to_string() const
+std::string rlf_report_r9_s::sel_utra_cell_id_r11_s_::pci_r11_c_::types_opts::to_string() const
 {
   switch (value) {
     case fdd_r11:
@@ -20394,7 +20397,7 @@ std::string rlf_report_r9_s::sel_utra_cell_id_r11_s_::pci_r11_c_::types::to_stri
   return "";
 }
 
-std::string sidelink_ue_info_v1310_ies_s::comm_tx_res_info_req_relay_r13_s_::ue_type_r13_e_::to_string() const
+std::string sidelink_ue_info_v1310_ies_s::comm_tx_res_info_req_relay_r13_s_::ue_type_r13_opts::to_string() const
 {
   switch (value) {
     case relay_ue:
@@ -20407,7 +20410,7 @@ std::string sidelink_ue_info_v1310_ies_s::comm_tx_res_info_req_relay_r13_s_::ue_
   return "";
 }
 
-std::string tdm_assist_info_r11_c::drx_assist_info_r11_s_::drx_cycle_len_r11_e_::to_string() const
+std::string tdm_assist_info_r11_c::drx_assist_info_r11_s_::drx_cycle_len_r11_opts::to_string() const
 {
   switch (value) {
     case sf40:
@@ -20431,13 +20434,13 @@ std::string tdm_assist_info_r11_c::drx_assist_info_r11_s_::drx_cycle_len_r11_e_:
   }
   return "";
 }
-uint16_t tdm_assist_info_r11_c::drx_assist_info_r11_s_::drx_cycle_len_r11_e_::to_number() const
+uint16_t tdm_assist_info_r11_c::drx_assist_info_r11_s_::drx_cycle_len_r11_opts::to_number() const
 {
   const static uint16_t options[] = {40, 64, 80, 128, 160, 256};
   return get_enum_number(options, 6, value, "tdm_assist_info_r11_c::drx_assist_info_r11_s_::drx_cycle_len_r11_e_");
 }
 
-std::string tdm_assist_info_r11_c::drx_assist_info_r11_s_::drx_active_time_r11_e_::to_string() const
+std::string tdm_assist_info_r11_c::drx_assist_info_r11_s_::drx_active_time_r11_opts::to_string() const
 {
   switch (value) {
     case sf20:
@@ -20461,13 +20464,13 @@ std::string tdm_assist_info_r11_c::drx_assist_info_r11_s_::drx_active_time_r11_e
   }
   return "";
 }
-uint8_t tdm_assist_info_r11_c::drx_assist_info_r11_s_::drx_active_time_r11_e_::to_number() const
+uint8_t tdm_assist_info_r11_c::drx_assist_info_r11_s_::drx_active_time_r11_opts::to_number() const
 {
   const static uint8_t options[] = {20, 30, 40, 60, 80, 100};
   return get_enum_number(options, 6, value, "tdm_assist_info_r11_c::drx_assist_info_r11_s_::drx_active_time_r11_e_");
 }
 
-std::string tdm_assist_info_r11_c::types::to_string() const
+std::string tdm_assist_info_r11_c::types_opts::to_string() const
 {
   switch (value) {
     case drx_assist_info_r11:
@@ -20482,7 +20485,7 @@ std::string tdm_assist_info_r11_c::types::to_string() const
   return "";
 }
 
-std::string ueassist_info_v1430_ies_s::rlm_report_r14_s_::rlm_event_r14_e_::to_string() const
+std::string ueassist_info_v1430_ies_s::rlm_report_r14_s_::rlm_event_r14_opts::to_string() const
 {
   switch (value) {
     case early_out_of_sync:
@@ -20495,7 +20498,7 @@ std::string ueassist_info_v1430_ies_s::rlm_report_r14_s_::rlm_event_r14_e_::to_s
   return "";
 }
 
-std::string ueassist_info_v1430_ies_s::rlm_report_r14_s_::excess_rep_mpdcch_r14_e_::to_string() const
+std::string ueassist_info_v1430_ies_s::rlm_report_r14_s_::excess_rep_mpdcch_r14_opts::to_string() const
 {
   switch (value) {
     case excess_rep1:
@@ -20507,14 +20510,14 @@ std::string ueassist_info_v1430_ies_s::rlm_report_r14_s_::excess_rep_mpdcch_r14_
   }
   return "";
 }
-uint8_t ueassist_info_v1430_ies_s::rlm_report_r14_s_::excess_rep_mpdcch_r14_e_::to_number() const
+uint8_t ueassist_info_v1430_ies_s::rlm_report_r14_s_::excess_rep_mpdcch_r14_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2};
   return get_enum_number(options, 2, value, "ueassist_info_v1430_ies_s::rlm_report_r14_s_::excess_rep_mpdcch_r14_e_");
 }
 
 // WLAN-Status-r13 ::= ENUMERATED
-std::string wlan_status_r13_e::to_string() const
+std::string wlan_status_r13_opts::to_string() const
 {
   switch (value) {
     case successful_association:
@@ -20531,7 +20534,7 @@ std::string wlan_status_r13_e::to_string() const
   return "";
 }
 
-std::string failed_lc_ch_info_r15_s::failed_lc_ch_id_r15_s_::cell_group_ind_r15_e_::to_string() const
+std::string failed_lc_ch_info_r15_s::failed_lc_ch_id_r15_s_::cell_group_ind_r15_opts::to_string() const
 {
   switch (value) {
     case mn:
@@ -20544,7 +20547,7 @@ std::string failed_lc_ch_info_r15_s::failed_lc_ch_id_r15_s_::cell_group_ind_r15_
   return "";
 }
 
-std::string failed_lc_ch_info_r15_s::fail_type_e_::to_string() const
+std::string failed_lc_ch_info_r15_s::fail_type_opts::to_string() const
 {
   switch (value) {
     case dupl:
@@ -20561,7 +20564,7 @@ std::string failed_lc_ch_info_r15_s::fail_type_e_::to_string() const
   return "";
 }
 
-std::string inter_freq_rstd_meas_ind_r10_ies_s::rstd_inter_freq_ind_r10_c_::types::to_string() const
+std::string inter_freq_rstd_meas_ind_r10_ies_s::rstd_inter_freq_ind_r10_c_::types_opts::to_string() const
 {
   switch (value) {
     case start:
@@ -20576,7 +20579,7 @@ std::string inter_freq_rstd_meas_ind_r10_ies_s::rstd_inter_freq_ind_r10_c_::type
   return "";
 }
 
-std::string meas_report_app_layer_r15_ies_s::service_type_e_::to_string() const
+std::string meas_report_app_layer_r15_ies_s::service_type_opts::to_string() const
 {
   switch (value) {
     case qoe:
@@ -20601,7 +20604,7 @@ std::string meas_report_app_layer_r15_ies_s::service_type_e_::to_string() const
   return "";
 }
 
-std::string proximity_ind_r9_ies_s::type_r9_e_::to_string() const
+std::string proximity_ind_r9_ies_s::type_r9_opts::to_string() const
 {
   switch (value) {
     case entering:
@@ -20614,7 +20617,7 @@ std::string proximity_ind_r9_ies_s::type_r9_e_::to_string() const
   return "";
 }
 
-std::string proximity_ind_r9_ies_s::carrier_freq_r9_c_::types::to_string() const
+std::string proximity_ind_r9_ies_s::carrier_freq_r9_c_::types_opts::to_string() const
 {
   switch (value) {
     case eutra_r9:
@@ -20630,7 +20633,7 @@ std::string proximity_ind_r9_ies_s::carrier_freq_r9_c_::types::to_string() const
   }
   return "";
 }
-uint8_t proximity_ind_r9_ies_s::carrier_freq_r9_c_::types::to_number() const
+uint8_t proximity_ind_r9_ies_s::carrier_freq_r9_c_::types_opts::to_number() const
 {
   switch (value) {
     case eutra2_v9e0:
@@ -20641,7 +20644,7 @@ uint8_t proximity_ind_r9_ies_s::carrier_freq_r9_c_::types::to_number() const
   return 0;
 }
 
-std::string rrc_conn_resume_complete_r13_ies_s::mob_state_r13_e_::to_string() const
+std::string rrc_conn_resume_complete_r13_ies_s::mob_state_r13_opts::to_string() const
 {
   switch (value) {
     case normal:
@@ -20658,7 +20661,7 @@ std::string rrc_conn_resume_complete_r13_ies_s::mob_state_r13_e_::to_string() co
   return "";
 }
 
-std::string ueassist_info_r11_ies_s::pwr_pref_ind_r11_e_::to_string() const
+std::string ueassist_info_r11_ies_s::pwr_pref_ind_r11_opts::to_string() const
 {
   switch (value) {
     case normal:
@@ -20671,7 +20674,7 @@ std::string ueassist_info_r11_ies_s::pwr_pref_ind_r11_e_::to_string() const
   return "";
 }
 
-std::string ul_info_transfer_r8_ies_s::ded_info_type_c_::types::to_string() const
+std::string ul_info_transfer_r8_ies_s::ded_info_type_c_::types_opts::to_string() const
 {
   switch (value) {
     case ded_info_nas:
@@ -20688,7 +20691,7 @@ std::string ul_info_transfer_r8_ies_s::ded_info_type_c_::types::to_string() cons
   return "";
 }
 
-std::string csfb_params_request_cdma2000_s::crit_exts_c_::types::to_string() const
+std::string csfb_params_request_cdma2000_s::crit_exts_c_::types_opts::to_string() const
 {
   switch (value) {
     case csfb_params_request_cdma2000_r8:
@@ -20702,13 +20705,13 @@ std::string csfb_params_request_cdma2000_s::crit_exts_c_::types::to_string() con
   }
   return "";
 }
-uint16_t csfb_params_request_cdma2000_s::crit_exts_c_::types::to_number() const
+uint16_t csfb_params_request_cdma2000_s::crit_exts_c_::types_opts::to_number() const
 {
   const static uint16_t options[] = {2000};
   return get_enum_number(options, 1, value, "csfb_params_request_cdma2000_s::crit_exts_c_::types");
 }
 
-std::string counter_check_resp_s::crit_exts_c_::types::to_string() const
+std::string counter_check_resp_s::crit_exts_c_::types_opts::to_string() const
 {
   switch (value) {
     case counter_check_resp_r8:
@@ -20723,7 +20726,7 @@ std::string counter_check_resp_s::crit_exts_c_::types::to_string() const
   return "";
 }
 
-std::string in_dev_coex_ind_r11_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string in_dev_coex_ind_r11_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case in_dev_coex_ind_r11:
@@ -20742,7 +20745,7 @@ std::string in_dev_coex_ind_r11_s::crit_exts_c_::c1_c_::types::to_string() const
   return "";
 }
 
-std::string inter_freq_rstd_meas_ind_r10_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string inter_freq_rstd_meas_ind_r10_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case inter_freq_rstd_meas_ind_r10:
@@ -20761,7 +20764,7 @@ std::string inter_freq_rstd_meas_ind_r10_s::crit_exts_c_::c1_c_::types::to_strin
   return "";
 }
 
-std::string mbms_count_resp_r10_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string mbms_count_resp_r10_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case count_resp_r10:
@@ -20780,7 +20783,7 @@ std::string mbms_count_resp_r10_s::crit_exts_c_::c1_c_::types::to_string() const
   return "";
 }
 
-std::string mbms_interest_ind_r11_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string mbms_interest_ind_r11_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case interest_ind_r11:
@@ -20799,7 +20802,7 @@ std::string mbms_interest_ind_r11_s::crit_exts_c_::c1_c_::types::to_string() con
   return "";
 }
 
-std::string meas_report_app_layer_r15_s::crit_exts_c_::types::to_string() const
+std::string meas_report_app_layer_r15_s::crit_exts_c_::types_opts::to_string() const
 {
   switch (value) {
     case meas_report_app_layer_r15:
@@ -20814,7 +20817,7 @@ std::string meas_report_app_layer_r15_s::crit_exts_c_::types::to_string() const
   return "";
 }
 
-std::string meas_report_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string meas_report_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case meas_report_r8:
@@ -20841,7 +20844,7 @@ std::string meas_report_s::crit_exts_c_::c1_c_::types::to_string() const
   return "";
 }
 
-std::string proximity_ind_r9_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string proximity_ind_r9_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case proximity_ind_r9:
@@ -20860,7 +20863,7 @@ std::string proximity_ind_r9_s::crit_exts_c_::c1_c_::types::to_string() const
   return "";
 }
 
-std::string rn_recfg_complete_r10_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string rn_recfg_complete_r10_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case rn_recfg_complete_r10:
@@ -20879,7 +20882,7 @@ std::string rn_recfg_complete_r10_s::crit_exts_c_::c1_c_::types::to_string() con
   return "";
 }
 
-std::string rrc_conn_recfg_complete_s::crit_exts_c_::types::to_string() const
+std::string rrc_conn_recfg_complete_s::crit_exts_c_::types_opts::to_string() const
 {
   switch (value) {
     case rrc_conn_recfg_complete_r8:
@@ -20894,7 +20897,7 @@ std::string rrc_conn_recfg_complete_s::crit_exts_c_::types::to_string() const
   return "";
 }
 
-std::string rrc_conn_reest_complete_s::crit_exts_c_::types::to_string() const
+std::string rrc_conn_reest_complete_s::crit_exts_c_::types_opts::to_string() const
 {
   switch (value) {
     case rrc_conn_reest_complete_r8:
@@ -20909,7 +20912,7 @@ std::string rrc_conn_reest_complete_s::crit_exts_c_::types::to_string() const
   return "";
 }
 
-std::string rrc_conn_resume_complete_r13_s::crit_exts_c_::types::to_string() const
+std::string rrc_conn_resume_complete_r13_s::crit_exts_c_::types_opts::to_string() const
 {
   switch (value) {
     case rrc_conn_resume_complete_r13:
@@ -20924,7 +20927,7 @@ std::string rrc_conn_resume_complete_r13_s::crit_exts_c_::types::to_string() con
   return "";
 }
 
-std::string rrc_conn_setup_complete_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string rrc_conn_setup_complete_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case rrc_conn_setup_complete_r8:
@@ -20943,7 +20946,7 @@ std::string rrc_conn_setup_complete_s::crit_exts_c_::c1_c_::types::to_string() c
   return "";
 }
 
-std::string scg_fail_info_r12_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string scg_fail_info_r12_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case scg_fail_info_r12:
@@ -20962,7 +20965,7 @@ std::string scg_fail_info_r12_s::crit_exts_c_::c1_c_::types::to_string() const
   return "";
 }
 
-std::string scg_fail_info_nr_r15_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string scg_fail_info_nr_r15_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case scg_fail_info_nr_r15:
@@ -20981,7 +20984,7 @@ std::string scg_fail_info_nr_r15_s::crit_exts_c_::c1_c_::types::to_string() cons
   return "";
 }
 
-std::string security_mode_complete_s::crit_exts_c_::types::to_string() const
+std::string security_mode_complete_s::crit_exts_c_::types_opts::to_string() const
 {
   switch (value) {
     case security_mode_complete_r8:
@@ -20996,7 +20999,7 @@ std::string security_mode_complete_s::crit_exts_c_::types::to_string() const
   return "";
 }
 
-std::string security_mode_fail_s::crit_exts_c_::types::to_string() const
+std::string security_mode_fail_s::crit_exts_c_::types_opts::to_string() const
 {
   switch (value) {
     case security_mode_fail_r8:
@@ -21011,7 +21014,7 @@ std::string security_mode_fail_s::crit_exts_c_::types::to_string() const
   return "";
 }
 
-std::string sidelink_ue_info_r12_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string sidelink_ue_info_r12_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case sidelink_ue_info_r12:
@@ -21030,7 +21033,7 @@ std::string sidelink_ue_info_r12_s::crit_exts_c_::c1_c_::types::to_string() cons
   return "";
 }
 
-std::string ueassist_info_r11_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string ueassist_info_r11_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case ue_assist_info_r11:
@@ -21049,7 +21052,7 @@ std::string ueassist_info_r11_s::crit_exts_c_::c1_c_::types::to_string() const
   return "";
 }
 
-std::string ue_cap_info_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string ue_cap_info_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case ue_cap_info_r8:
@@ -21076,7 +21079,7 @@ std::string ue_cap_info_s::crit_exts_c_::c1_c_::types::to_string() const
   return "";
 }
 
-std::string ue_info_resp_r9_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string ue_info_resp_r9_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case ue_info_resp_r9:
@@ -21095,7 +21098,7 @@ std::string ue_info_resp_r9_s::crit_exts_c_::c1_c_::types::to_string() const
   return "";
 }
 
-std::string ul_ho_prep_transfer_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string ul_ho_prep_transfer_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case ul_ho_prep_transfer_r8:
@@ -21114,7 +21117,7 @@ std::string ul_ho_prep_transfer_s::crit_exts_c_::c1_c_::types::to_string() const
   return "";
 }
 
-std::string ul_info_transfer_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string ul_info_transfer_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case ul_info_transfer_r8:
@@ -21133,7 +21136,7 @@ std::string ul_info_transfer_s::crit_exts_c_::c1_c_::types::to_string() const
   return "";
 }
 
-std::string ul_info_transfer_mrdc_r15_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string ul_info_transfer_mrdc_r15_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case ul_info_transfer_mrdc_r15:
@@ -21152,7 +21155,7 @@ std::string ul_info_transfer_mrdc_r15_s::crit_exts_c_::c1_c_::types::to_string()
   return "";
 }
 
-std::string wlan_conn_status_report_r13_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string wlan_conn_status_report_r13_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case wlan_conn_status_report_r13:
@@ -21171,7 +21174,7 @@ std::string wlan_conn_status_report_r13_s::crit_exts_c_::c1_c_::types::to_string
   return "";
 }
 
-std::string ul_dcch_msg_type_c::c1_c_::types::to_string() const
+std::string ul_dcch_msg_type_c::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case csfb_params_request_cdma2000:
@@ -21213,13 +21216,13 @@ std::string ul_dcch_msg_type_c::c1_c_::types::to_string() const
   }
   return "";
 }
-uint16_t ul_dcch_msg_type_c::c1_c_::types::to_number() const
+uint16_t ul_dcch_msg_type_c::c1_c_::types_opts::to_number() const
 {
   const static uint16_t options[] = {2000};
   return get_enum_number(options, 1, value, "ul_dcch_msg_type_c::c1_c_::types");
 }
 
-std::string ul_dcch_msg_type_c::msg_class_ext_c_::c2_c_::types::to_string() const
+std::string ul_dcch_msg_type_c::msg_class_ext_c_::c2_c_::types_opts::to_string() const
 {
   switch (value) {
     case ue_assist_info_r11:
@@ -21262,7 +21265,7 @@ std::string ul_dcch_msg_type_c::msg_class_ext_c_::c2_c_::types::to_string() cons
   return "";
 }
 
-std::string ul_dcch_msg_type_c::msg_class_ext_c_::types::to_string() const
+std::string ul_dcch_msg_type_c::msg_class_ext_c_::types_opts::to_string() const
 {
   switch (value) {
     case c2:
@@ -21276,13 +21279,13 @@ std::string ul_dcch_msg_type_c::msg_class_ext_c_::types::to_string() const
   }
   return "";
 }
-uint8_t ul_dcch_msg_type_c::msg_class_ext_c_::types::to_number() const
+uint8_t ul_dcch_msg_type_c::msg_class_ext_c_::types_opts::to_number() const
 {
   const static uint8_t options[] = {2};
   return get_enum_number(options, 1, value, "ul_dcch_msg_type_c::msg_class_ext_c_::types");
 }
 
-std::string ul_dcch_msg_type_c::types::to_string() const
+std::string ul_dcch_msg_type_c::types_opts::to_string() const
 {
   switch (value) {
     case c1:
@@ -21296,14 +21299,14 @@ std::string ul_dcch_msg_type_c::types::to_string() const
   }
   return "";
 }
-uint8_t ul_dcch_msg_type_c::types::to_number() const
+uint8_t ul_dcch_msg_type_c::types_opts::to_number() const
 {
   const static uint8_t options[] = {1};
   return get_enum_number(options, 1, value, "ul_dcch_msg_type_c::types");
 }
 
 // MIMO-CapabilityDL-r10 ::= ENUMERATED
-std::string mimo_cap_dl_r10_e::to_string() const
+std::string mimo_cap_dl_r10_opts::to_string() const
 {
   switch (value) {
     case two_layers:
@@ -21317,14 +21320,14 @@ std::string mimo_cap_dl_r10_e::to_string() const
   }
   return "";
 }
-uint8_t mimo_cap_dl_r10_e::to_number() const
+uint8_t mimo_cap_dl_r10_opts::to_number() const
 {
   const static uint8_t options[] = {2, 4, 8};
   return get_enum_number(options, 3, value, "mimo_cap_dl_r10_e");
 }
 
 // MIMO-CapabilityUL-r10 ::= ENUMERATED
-std::string mimo_cap_ul_r10_e::to_string() const
+std::string mimo_cap_ul_r10_opts::to_string() const
 {
   switch (value) {
     case two_layers:
@@ -21336,13 +21339,13 @@ std::string mimo_cap_ul_r10_e::to_string() const
   }
   return "";
 }
-uint8_t mimo_cap_ul_r10_e::to_number() const
+uint8_t mimo_cap_ul_r10_opts::to_number() const
 {
   const static uint8_t options[] = {2, 4};
   return get_enum_number(options, 2, value, "mimo_cap_ul_r10_e");
 }
 
-std::string band_params_r11_s::supported_csi_proc_r11_e_::to_string() const
+std::string band_params_r11_s::supported_csi_proc_r11_opts::to_string() const
 {
   switch (value) {
     case n1:
@@ -21356,13 +21359,13 @@ std::string band_params_r11_s::supported_csi_proc_r11_e_::to_string() const
   }
   return "";
 }
-uint8_t band_params_r11_s::supported_csi_proc_r11_e_::to_number() const
+uint8_t band_params_r11_s::supported_csi_proc_r11_opts::to_number() const
 {
   const static uint8_t options[] = {1, 3, 4};
   return get_enum_number(options, 3, value, "band_params_r11_s::supported_csi_proc_r11_e_");
 }
 
-std::string intra_band_contiguous_cc_info_r12_s::supported_csi_proc_r12_e_::to_string() const
+std::string intra_band_contiguous_cc_info_r12_s::supported_csi_proc_r12_opts::to_string() const
 {
   switch (value) {
     case n1:
@@ -21376,13 +21379,13 @@ std::string intra_band_contiguous_cc_info_r12_s::supported_csi_proc_r12_e_::to_s
   }
   return "";
 }
-uint8_t intra_band_contiguous_cc_info_r12_s::supported_csi_proc_r12_e_::to_number() const
+uint8_t intra_band_contiguous_cc_info_r12_s::supported_csi_proc_r12_opts::to_number() const
 {
   const static uint8_t options[] = {1, 3, 4};
   return get_enum_number(options, 3, value, "intra_band_contiguous_cc_info_r12_s::supported_csi_proc_r12_e_");
 }
 
-std::string band_params_r13_s::supported_csi_proc_r13_e_::to_string() const
+std::string band_params_r13_s::supported_csi_proc_r13_opts::to_string() const
 {
   switch (value) {
     case n1:
@@ -21396,13 +21399,14 @@ std::string band_params_r13_s::supported_csi_proc_r13_e_::to_string() const
   }
   return "";
 }
-uint8_t band_params_r13_s::supported_csi_proc_r13_e_::to_number() const
+uint8_t band_params_r13_s::supported_csi_proc_r13_opts::to_number() const
 {
   const static uint8_t options[] = {1, 3, 4};
   return get_enum_number(options, 3, value, "band_params_r13_s::supported_csi_proc_r13_e_");
 }
 
-std::string band_combination_params_r13_s::dc_support_r13_s_::supported_cell_grouping_r13_c_::types::to_string() const
+std::string
+band_combination_params_r13_s::dc_support_r13_s_::supported_cell_grouping_r13_c_::types_opts::to_string() const
 {
   switch (value) {
     case three_entries_r13:
@@ -21419,14 +21423,14 @@ std::string band_combination_params_r13_s::dc_support_r13_s_::supported_cell_gro
   }
   return "";
 }
-uint8_t band_combination_params_r13_s::dc_support_r13_s_::supported_cell_grouping_r13_c_::types::to_number() const
+uint8_t band_combination_params_r13_s::dc_support_r13_s_::supported_cell_grouping_r13_c_::types_opts::to_number() const
 {
   const static uint8_t options[] = {3, 4, 5};
   return get_enum_number(options, 3, value,
                          "band_combination_params_r13_s::dc_support_r13_s_::supported_cell_grouping_r13_c_::types");
 }
 
-std::string band_params_v1130_s::supported_csi_proc_r11_e_::to_string() const
+std::string band_params_v1130_s::supported_csi_proc_r11_opts::to_string() const
 {
   switch (value) {
     case n1:
@@ -21440,13 +21444,14 @@ std::string band_params_v1130_s::supported_csi_proc_r11_e_::to_string() const
   }
   return "";
 }
-uint8_t band_params_v1130_s::supported_csi_proc_r11_e_::to_number() const
+uint8_t band_params_v1130_s::supported_csi_proc_r11_opts::to_number() const
 {
   const static uint8_t options[] = {1, 3, 4};
   return get_enum_number(options, 3, value, "band_params_v1130_s::supported_csi_proc_r11_e_");
 }
 
-std::string band_combination_params_v1250_s::dc_support_r12_s_::supported_cell_grouping_r12_c_::types::to_string() const
+std::string
+band_combination_params_v1250_s::dc_support_r12_s_::supported_cell_grouping_r12_c_::types_opts::to_string() const
 {
   switch (value) {
     case three_entries_r12:
@@ -21463,14 +21468,15 @@ std::string band_combination_params_v1250_s::dc_support_r12_s_::supported_cell_g
   }
   return "";
 }
-uint8_t band_combination_params_v1250_s::dc_support_r12_s_::supported_cell_grouping_r12_c_::types::to_number() const
+uint8_t
+band_combination_params_v1250_s::dc_support_r12_s_::supported_cell_grouping_r12_c_::types_opts::to_number() const
 {
   const static uint8_t options[] = {3, 4, 5};
   return get_enum_number(options, 3, value,
                          "band_combination_params_v1250_s::dc_support_r12_s_::supported_cell_grouping_r12_c_::types");
 }
 
-std::string retuning_time_info_r14_s::retuning_info_s_::rf_retuning_time_dl_r14_e_::to_string() const
+std::string retuning_time_info_r14_s::retuning_info_s_::rf_retuning_time_dl_r14_opts::to_string() const
 {
   switch (value) {
     case n0:
@@ -21510,12 +21516,12 @@ std::string retuning_time_info_r14_s::retuning_info_s_::rf_retuning_time_dl_r14_
   }
   return "";
 }
-float retuning_time_info_r14_s::retuning_info_s_::rf_retuning_time_dl_r14_e_::to_number() const
+float retuning_time_info_r14_s::retuning_info_s_::rf_retuning_time_dl_r14_opts::to_number() const
 {
   const static float options[] = {0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0};
   return get_enum_number(options, 15, value, "retuning_time_info_r14_s::retuning_info_s_::rf_retuning_time_dl_r14_e_");
 }
-std::string retuning_time_info_r14_s::retuning_info_s_::rf_retuning_time_dl_r14_e_::to_number_string() const
+std::string retuning_time_info_r14_s::retuning_info_s_::rf_retuning_time_dl_r14_opts::to_number_string() const
 {
   switch (value) {
     case n0:
@@ -21554,7 +21560,7 @@ std::string retuning_time_info_r14_s::retuning_info_s_::rf_retuning_time_dl_r14_
   return "";
 }
 
-std::string retuning_time_info_r14_s::retuning_info_s_::rf_retuning_time_ul_r14_e_::to_string() const
+std::string retuning_time_info_r14_s::retuning_info_s_::rf_retuning_time_ul_r14_opts::to_string() const
 {
   switch (value) {
     case n0:
@@ -21594,12 +21600,12 @@ std::string retuning_time_info_r14_s::retuning_info_s_::rf_retuning_time_ul_r14_
   }
   return "";
 }
-float retuning_time_info_r14_s::retuning_info_s_::rf_retuning_time_ul_r14_e_::to_number() const
+float retuning_time_info_r14_s::retuning_info_s_::rf_retuning_time_ul_r14_opts::to_number() const
 {
   const static float options[] = {0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0};
   return get_enum_number(options, 15, value, "retuning_time_info_r14_s::retuning_info_s_::rf_retuning_time_ul_r14_e_");
 }
-std::string retuning_time_info_r14_s::retuning_info_s_::rf_retuning_time_ul_r14_e_::to_number_string() const
+std::string retuning_time_info_r14_s::retuning_info_s_::rf_retuning_time_ul_r14_opts::to_number_string() const
 {
   switch (value) {
     case n0:
@@ -21638,7 +21644,7 @@ std::string retuning_time_info_r14_s::retuning_info_s_::rf_retuning_time_ul_r14_
   return "";
 }
 
-std::string mimo_ca_params_per_bo_bc_per_tm_v1470_s::csi_report_advanced_max_ports_r14_e_::to_string() const
+std::string mimo_ca_params_per_bo_bc_per_tm_v1470_s::csi_report_advanced_max_ports_r14_opts::to_string() const
 {
   switch (value) {
     case n8:
@@ -21658,14 +21664,14 @@ std::string mimo_ca_params_per_bo_bc_per_tm_v1470_s::csi_report_advanced_max_por
   }
   return "";
 }
-uint8_t mimo_ca_params_per_bo_bc_per_tm_v1470_s::csi_report_advanced_max_ports_r14_e_::to_number() const
+uint8_t mimo_ca_params_per_bo_bc_per_tm_v1470_s::csi_report_advanced_max_ports_r14_opts::to_number() const
 {
   const static uint8_t options[] = {8, 12, 16, 20, 24, 28};
   return get_enum_number(options, 6, value,
                          "mimo_ca_params_per_bo_bc_per_tm_v1470_s::csi_report_advanced_max_ports_r14_e_");
 }
 
-std::string stti_spt_band_params_r15_s::s_tti_supported_csi_proc_r15_e_::to_string() const
+std::string stti_spt_band_params_r15_s::s_tti_supported_csi_proc_r15_opts::to_string() const
 {
   switch (value) {
     case n1:
@@ -21679,14 +21685,14 @@ std::string stti_spt_band_params_r15_s::s_tti_supported_csi_proc_r15_e_::to_stri
   }
   return "";
 }
-uint8_t stti_spt_band_params_r15_s::s_tti_supported_csi_proc_r15_e_::to_number() const
+uint8_t stti_spt_band_params_r15_s::s_tti_supported_csi_proc_r15_opts::to_number() const
 {
   const static uint8_t options[] = {1, 3, 4};
   return get_enum_number(options, 3, value, "stti_spt_band_params_r15_s::s_tti_supported_csi_proc_r15_e_");
 }
 
 // V2X-BandwidthClass-r14 ::= ENUMERATED
-std::string v2x_bw_class_r14_e::to_string() const
+std::string v2x_bw_class_r14_opts::to_string() const
 {
   switch (value) {
     case a:
@@ -21708,7 +21714,7 @@ std::string v2x_bw_class_r14_e::to_string() const
   }
   return "";
 }
-uint8_t v2x_bw_class_r14_e::to_number() const
+uint8_t v2x_bw_class_r14_opts::to_number() const
 {
   switch (value) {
     case c1_v1530:
@@ -21719,7 +21725,7 @@ uint8_t v2x_bw_class_r14_e::to_number() const
   return 0;
 }
 
-std::string feature_set_dl_per_cc_r15_s::supported_csi_proc_r15_e_::to_string() const
+std::string feature_set_dl_per_cc_r15_s::supported_csi_proc_r15_opts::to_string() const
 {
   switch (value) {
     case n1:
@@ -21733,13 +21739,13 @@ std::string feature_set_dl_per_cc_r15_s::supported_csi_proc_r15_e_::to_string() 
   }
   return "";
 }
-uint8_t feature_set_dl_per_cc_r15_s::supported_csi_proc_r15_e_::to_number() const
+uint8_t feature_set_dl_per_cc_r15_s::supported_csi_proc_r15_opts::to_number() const
 {
   const static uint8_t options[] = {1, 3, 4};
   return get_enum_number(options, 3, value, "feature_set_dl_per_cc_r15_s::supported_csi_proc_r15_e_");
 }
 
-std::string irat_params_cdma2000_minus1_xrtt_s::tx_cfg1_xrtt_e_::to_string() const
+std::string irat_params_cdma2000_minus1_xrtt_s::tx_cfg1_xrtt_opts::to_string() const
 {
   switch (value) {
     case single:
@@ -21752,7 +21758,7 @@ std::string irat_params_cdma2000_minus1_xrtt_s::tx_cfg1_xrtt_e_::to_string() con
   return "";
 }
 
-std::string irat_params_cdma2000_minus1_xrtt_s::rx_cfg1_xrtt_e_::to_string() const
+std::string irat_params_cdma2000_minus1_xrtt_s::rx_cfg1_xrtt_opts::to_string() const
 {
   switch (value) {
     case single:
@@ -21765,7 +21771,7 @@ std::string irat_params_cdma2000_minus1_xrtt_s::rx_cfg1_xrtt_e_::to_string() con
   return "";
 }
 
-std::string irat_params_cdma2000_hrpd_s::tx_cfg_hrpd_e_::to_string() const
+std::string irat_params_cdma2000_hrpd_s::tx_cfg_hrpd_opts::to_string() const
 {
   switch (value) {
     case single:
@@ -21778,7 +21784,7 @@ std::string irat_params_cdma2000_hrpd_s::tx_cfg_hrpd_e_::to_string() const
   return "";
 }
 
-std::string irat_params_cdma2000_hrpd_s::rx_cfg_hrpd_e_::to_string() const
+std::string irat_params_cdma2000_hrpd_s::rx_cfg_hrpd_opts::to_string() const
 {
   switch (value) {
     case single:
@@ -21792,7 +21798,7 @@ std::string irat_params_cdma2000_hrpd_s::rx_cfg_hrpd_e_::to_string() const
 }
 
 // SupportedBandGERAN ::= ENUMERATED
-std::string supported_band_geran_e::to_string() const
+std::string supported_band_geran_opts::to_string() const
 {
   switch (value) {
     case gsm450:
@@ -21834,7 +21840,7 @@ std::string supported_band_geran_e::to_string() const
 }
 
 // SupportedBandUTRA-FDD ::= ENUMERATED
-std::string supported_band_utra_fdd_e::to_string() const
+std::string supported_band_utra_fdd_opts::to_string() const
 {
   switch (value) {
     case band_i:
@@ -21908,7 +21914,7 @@ std::string supported_band_utra_fdd_e::to_string() const
 }
 
 // SupportedBandUTRA-TDD128 ::= ENUMERATED
-std::string supported_band_utra_tdd128_e::to_string() const
+std::string supported_band_utra_tdd128_opts::to_string() const
 {
   switch (value) {
     case a:
@@ -21950,7 +21956,7 @@ std::string supported_band_utra_tdd128_e::to_string() const
 }
 
 // SupportedBandUTRA-TDD384 ::= ENUMERATED
-std::string supported_band_utra_tdd384_e::to_string() const
+std::string supported_band_utra_tdd384_opts::to_string() const
 {
   switch (value) {
     case a:
@@ -21992,7 +21998,7 @@ std::string supported_band_utra_tdd384_e::to_string() const
 }
 
 // SupportedBandUTRA-TDD768 ::= ENUMERATED
-std::string supported_band_utra_tdd768_e::to_string() const
+std::string supported_band_utra_tdd768_opts::to_string() const
 {
   switch (value) {
     case a:
@@ -22034,7 +22040,7 @@ std::string supported_band_utra_tdd768_e::to_string() const
 }
 
 // ProcessingTimelineSet-r15 ::= ENUMERATED
-std::string processing_timeline_set_r15_e::to_string() const
+std::string processing_timeline_set_r15_opts::to_string() const
 {
   switch (value) {
     case set1:
@@ -22046,13 +22052,13 @@ std::string processing_timeline_set_r15_e::to_string() const
   }
   return "";
 }
-uint8_t processing_timeline_set_r15_e::to_number() const
+uint8_t processing_timeline_set_r15_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2};
   return get_enum_number(options, 2, value, "processing_timeline_set_r15_e");
 }
 
-std::string mimo_ue_params_per_tm_v1430_s::nzp_csi_rs_aperiodic_info_r14_s_::n_max_res_r14_e_::to_string() const
+std::string mimo_ue_params_per_tm_v1430_s::nzp_csi_rs_aperiodic_info_r14_s_::n_max_res_r14_opts::to_string() const
 {
   switch (value) {
     case ffs1:
@@ -22068,14 +22074,14 @@ std::string mimo_ue_params_per_tm_v1430_s::nzp_csi_rs_aperiodic_info_r14_s_::n_m
   }
   return "";
 }
-uint8_t mimo_ue_params_per_tm_v1430_s::nzp_csi_rs_aperiodic_info_r14_s_::n_max_res_r14_e_::to_number() const
+uint8_t mimo_ue_params_per_tm_v1430_s::nzp_csi_rs_aperiodic_info_r14_s_::n_max_res_r14_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3, 4};
   return get_enum_number(options, 4, value,
                          "mimo_ue_params_per_tm_v1430_s::nzp_csi_rs_aperiodic_info_r14_s_::n_max_res_r14_e_");
 }
 
-std::string mimo_ue_params_per_tm_v1430_s::nzp_csi_rs_periodic_info_r14_s_::n_max_res_r14_e_::to_string() const
+std::string mimo_ue_params_per_tm_v1430_s::nzp_csi_rs_periodic_info_r14_s_::n_max_res_r14_opts::to_string() const
 {
   switch (value) {
     case ffs1:
@@ -22091,14 +22097,14 @@ std::string mimo_ue_params_per_tm_v1430_s::nzp_csi_rs_periodic_info_r14_s_::n_ma
   }
   return "";
 }
-uint8_t mimo_ue_params_per_tm_v1430_s::nzp_csi_rs_periodic_info_r14_s_::n_max_res_r14_e_::to_number() const
+uint8_t mimo_ue_params_per_tm_v1430_s::nzp_csi_rs_periodic_info_r14_s_::n_max_res_r14_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3, 4};
   return get_enum_number(options, 4, value,
                          "mimo_ue_params_per_tm_v1430_s::nzp_csi_rs_periodic_info_r14_s_::n_max_res_r14_e_");
 }
 
-std::string mimo_ue_params_per_tm_v1470_s::csi_report_advanced_max_ports_r14_e_::to_string() const
+std::string mimo_ue_params_per_tm_v1470_s::csi_report_advanced_max_ports_r14_opts::to_string() const
 {
   switch (value) {
     case n8:
@@ -22118,13 +22124,13 @@ std::string mimo_ue_params_per_tm_v1470_s::csi_report_advanced_max_ports_r14_e_:
   }
   return "";
 }
-uint8_t mimo_ue_params_per_tm_v1470_s::csi_report_advanced_max_ports_r14_e_::to_number() const
+uint8_t mimo_ue_params_per_tm_v1470_s::csi_report_advanced_max_ports_r14_opts::to_number() const
 {
   const static uint8_t options[] = {8, 12, 16, 20, 24, 28};
   return get_enum_number(options, 6, value, "mimo_ue_params_per_tm_v1470_s::csi_report_advanced_max_ports_r14_e_");
 }
 
-std::string naics_cap_entry_r12_s::nof_aggregated_prb_r12_e_::to_string() const
+std::string naics_cap_entry_r12_s::nof_aggregated_prb_r12_opts::to_string() const
 {
   switch (value) {
     case n50:
@@ -22164,13 +22170,13 @@ std::string naics_cap_entry_r12_s::nof_aggregated_prb_r12_e_::to_string() const
   }
   return "";
 }
-uint16_t naics_cap_entry_r12_s::nof_aggregated_prb_r12_e_::to_number() const
+uint16_t naics_cap_entry_r12_s::nof_aggregated_prb_r12_opts::to_number() const
 {
   const static uint16_t options[] = {50, 75, 100, 125, 150, 175, 200, 225, 250, 275, 300, 350, 400, 450, 500};
   return get_enum_number(options, 15, value, "naics_cap_entry_r12_s::nof_aggregated_prb_r12_e_");
 }
 
-std::string pdcp_params_s::max_num_rohc_context_sessions_e_::to_string() const
+std::string pdcp_params_s::max_num_rohc_context_sessions_opts::to_string() const
 {
   switch (value) {
     case cs2:
@@ -22210,13 +22216,13 @@ std::string pdcp_params_s::max_num_rohc_context_sessions_e_::to_string() const
   }
   return "";
 }
-uint16_t pdcp_params_s::max_num_rohc_context_sessions_e_::to_number() const
+uint16_t pdcp_params_s::max_num_rohc_context_sessions_opts::to_number() const
 {
   const static uint16_t options[] = {2, 4, 8, 12, 16, 24, 32, 48, 64, 128, 256, 512, 1024, 16384};
   return get_enum_number(options, 14, value, "pdcp_params_s::max_num_rohc_context_sessions_e_");
 }
 
-std::string pdcp_params_nr_r15_s::rohc_context_max_sessions_r15_e_::to_string() const
+std::string pdcp_params_nr_r15_s::rohc_context_max_sessions_r15_opts::to_string() const
 {
   switch (value) {
     case cs2:
@@ -22256,13 +22262,13 @@ std::string pdcp_params_nr_r15_s::rohc_context_max_sessions_r15_e_::to_string() 
   }
   return "";
 }
-uint16_t pdcp_params_nr_r15_s::rohc_context_max_sessions_r15_e_::to_number() const
+uint16_t pdcp_params_nr_r15_s::rohc_context_max_sessions_r15_opts::to_number() const
 {
   const static uint16_t options[] = {2, 4, 8, 12, 16, 24, 32, 48, 64, 128, 256, 512, 1024, 16384};
   return get_enum_number(options, 14, value, "pdcp_params_nr_r15_s::rohc_context_max_sessions_r15_e_");
 }
 
-std::string phy_layer_params_v1430_s::ce_pdsch_pusch_max_bw_r14_e_::to_string() const
+std::string phy_layer_params_v1430_s::ce_pdsch_pusch_max_bw_r14_opts::to_string() const
 {
   switch (value) {
     case bw5:
@@ -22274,13 +22280,13 @@ std::string phy_layer_params_v1430_s::ce_pdsch_pusch_max_bw_r14_e_::to_string() 
   }
   return "";
 }
-uint8_t phy_layer_params_v1430_s::ce_pdsch_pusch_max_bw_r14_e_::to_number() const
+uint8_t phy_layer_params_v1430_s::ce_pdsch_pusch_max_bw_r14_opts::to_number() const
 {
   const static uint8_t options[] = {5, 20};
   return get_enum_number(options, 2, value, "phy_layer_params_v1430_s::ce_pdsch_pusch_max_bw_r14_e_");
 }
 
-std::string phy_layer_params_v1430_s::ce_retuning_symbols_r14_e_::to_string() const
+std::string phy_layer_params_v1430_s::ce_retuning_symbols_r14_opts::to_string() const
 {
   switch (value) {
     case n0:
@@ -22292,14 +22298,14 @@ std::string phy_layer_params_v1430_s::ce_retuning_symbols_r14_e_::to_string() co
   }
   return "";
 }
-uint8_t phy_layer_params_v1430_s::ce_retuning_symbols_r14_e_::to_number() const
+uint8_t phy_layer_params_v1430_s::ce_retuning_symbols_r14_opts::to_number() const
 {
   const static uint8_t options[] = {0, 1};
   return get_enum_number(options, 2, value, "phy_layer_params_v1430_s::ce_retuning_symbols_r14_e_");
 }
 
 std::string
-phy_layer_params_v1530_s::stti_spt_capabilities_r15_s_::max_layers_slot_or_subslot_pusch_r15_e_::to_string() const
+phy_layer_params_v1530_s::stti_spt_capabilities_r15_s_::max_layers_slot_or_subslot_pusch_r15_opts::to_string() const
 {
   switch (value) {
     case one_layer:
@@ -22315,7 +22321,7 @@ phy_layer_params_v1530_s::stti_spt_capabilities_r15_s_::max_layers_slot_or_subsl
   return "";
 }
 uint8_t
-phy_layer_params_v1530_s::stti_spt_capabilities_r15_s_::max_layers_slot_or_subslot_pusch_r15_e_::to_number() const
+phy_layer_params_v1530_s::stti_spt_capabilities_r15_s_::max_layers_slot_or_subslot_pusch_r15_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 4};
   return get_enum_number(
@@ -22323,7 +22329,7 @@ phy_layer_params_v1530_s::stti_spt_capabilities_r15_s_::max_layers_slot_or_subsl
       "phy_layer_params_v1530_s::stti_spt_capabilities_r15_s_::max_layers_slot_or_subslot_pusch_r15_e_");
 }
 
-std::string phy_layer_params_v1530_s::stti_spt_capabilities_r15_s_::sps_stti_r15_e_::to_string() const
+std::string phy_layer_params_v1530_s::stti_spt_capabilities_r15_s_::sps_stti_r15_opts::to_string() const
 {
   switch (value) {
     case slot:
@@ -22338,7 +22344,7 @@ std::string phy_layer_params_v1530_s::stti_spt_capabilities_r15_s_::sps_stti_r15
   return "";
 }
 
-std::string supported_band_eutra_v1320_s::ue_pwr_class_n_r13_e_::to_string() const
+std::string supported_band_eutra_v1320_s::ue_pwr_class_n_r13_opts::to_string() const
 {
   switch (value) {
     case class1:
@@ -22352,13 +22358,13 @@ std::string supported_band_eutra_v1320_s::ue_pwr_class_n_r13_e_::to_string() con
   }
   return "";
 }
-uint8_t supported_band_eutra_v1320_s::ue_pwr_class_n_r13_e_::to_number() const
+uint8_t supported_band_eutra_v1320_s::ue_pwr_class_n_r13_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 4};
   return get_enum_number(options, 3, value, "supported_band_eutra_v1320_s::ue_pwr_class_n_r13_e_");
 }
 
-std::string sl_params_r12_s::disc_supported_proc_r12_e_::to_string() const
+std::string sl_params_r12_s::disc_supported_proc_r12_opts::to_string() const
 {
   switch (value) {
     case n50:
@@ -22370,13 +22376,13 @@ std::string sl_params_r12_s::disc_supported_proc_r12_e_::to_string() const
   }
   return "";
 }
-uint16_t sl_params_r12_s::disc_supported_proc_r12_e_::to_number() const
+uint16_t sl_params_r12_s::disc_supported_proc_r12_opts::to_number() const
 {
   const static uint16_t options[] = {50, 400};
   return get_enum_number(options, 2, value, "sl_params_r12_s::disc_supported_proc_r12_e_");
 }
 
-std::string sl_params_v1530_s::slss_supported_tx_freq_r15_e_::to_string() const
+std::string sl_params_v1530_s::slss_supported_tx_freq_r15_opts::to_string() const
 {
   switch (value) {
     case single:
@@ -22389,7 +22395,7 @@ std::string sl_params_v1530_s::slss_supported_tx_freq_r15_e_::to_string() const
   return "";
 }
 
-std::string sps_cfg_dl_stti_r15_c::setup_s_::semi_persist_sched_interv_dl_stti_r15_e_::to_string() const
+std::string sps_cfg_dl_stti_r15_c::setup_s_::semi_persist_sched_interv_dl_stti_r15_opts::to_string() const
 {
   switch (value) {
     case s_tti1:
@@ -22429,14 +22435,14 @@ std::string sps_cfg_dl_stti_r15_c::setup_s_::semi_persist_sched_interv_dl_stti_r
   }
   return "";
 }
-uint8_t sps_cfg_dl_stti_r15_c::setup_s_::semi_persist_sched_interv_dl_stti_r15_e_::to_number() const
+uint8_t sps_cfg_dl_stti_r15_c::setup_s_::semi_persist_sched_interv_dl_stti_r15_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3, 4, 6, 8, 12, 16, 20, 40, 60, 80, 120, 240};
   return get_enum_number(options, 14, value,
                          "sps_cfg_dl_stti_r15_c::setup_s_::semi_persist_sched_interv_dl_stti_r15_e_");
 }
 
-std::string laa_params_v1430_s::two_step_sched_timing_info_r14_e_::to_string() const
+std::string laa_params_v1430_s::two_step_sched_timing_info_r14_opts::to_string() const
 {
   switch (value) {
     case n_plus1:
@@ -22450,13 +22456,13 @@ std::string laa_params_v1430_s::two_step_sched_timing_info_r14_e_::to_string() c
   }
   return "";
 }
-uint8_t laa_params_v1430_s::two_step_sched_timing_info_r14_e_::to_number() const
+uint8_t laa_params_v1430_s::two_step_sched_timing_info_r14_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3};
   return get_enum_number(options, 3, value, "laa_params_v1430_s::two_step_sched_timing_info_r14_e_");
 }
 
-std::string pdcp_params_v1430_s::max_num_rohc_context_sessions_r14_e_::to_string() const
+std::string pdcp_params_v1430_s::max_num_rohc_context_sessions_r14_opts::to_string() const
 {
   switch (value) {
     case cs2:
@@ -22496,13 +22502,13 @@ std::string pdcp_params_v1430_s::max_num_rohc_context_sessions_r14_e_::to_string
   }
   return "";
 }
-uint16_t pdcp_params_v1430_s::max_num_rohc_context_sessions_r14_e_::to_number() const
+uint16_t pdcp_params_v1430_s::max_num_rohc_context_sessions_r14_opts::to_number() const
 {
   const static uint16_t options[] = {2, 4, 8, 12, 16, 24, 32, 48, 64, 128, 256, 512, 1024, 16384};
   return get_enum_number(options, 14, value, "pdcp_params_v1430_s::max_num_rohc_context_sessions_r14_e_");
 }
 
-std::string mbms_params_v1470_s::mbms_max_bw_r14_c_::types::to_string() const
+std::string mbms_params_v1470_s::mbms_max_bw_r14_c_::types_opts::to_string() const
 {
   switch (value) {
     case implicit_value:
@@ -22517,7 +22523,7 @@ std::string mbms_params_v1470_s::mbms_max_bw_r14_c_::types::to_string() const
   return "";
 }
 
-std::string mbms_params_v1470_s::mbms_scaling_factor1dot25_r14_e_::to_string() const
+std::string mbms_params_v1470_s::mbms_scaling_factor1dot25_r14_opts::to_string() const
 {
   switch (value) {
     case n3:
@@ -22533,13 +22539,13 @@ std::string mbms_params_v1470_s::mbms_scaling_factor1dot25_r14_e_::to_string() c
   }
   return "";
 }
-uint8_t mbms_params_v1470_s::mbms_scaling_factor1dot25_r14_e_::to_number() const
+uint8_t mbms_params_v1470_s::mbms_scaling_factor1dot25_r14_opts::to_number() const
 {
   const static uint8_t options[] = {3, 6, 9, 12};
   return get_enum_number(options, 4, value, "mbms_params_v1470_s::mbms_scaling_factor1dot25_r14_e_");
 }
 
-std::string mbms_params_v1470_s::mbms_scaling_factor7dot5_r14_e_::to_string() const
+std::string mbms_params_v1470_s::mbms_scaling_factor7dot5_r14_opts::to_string() const
 {
   switch (value) {
     case n1:
@@ -22555,13 +22561,13 @@ std::string mbms_params_v1470_s::mbms_scaling_factor7dot5_r14_e_::to_string() co
   }
   return "";
 }
-uint8_t mbms_params_v1470_s::mbms_scaling_factor7dot5_r14_e_::to_number() const
+uint8_t mbms_params_v1470_s::mbms_scaling_factor7dot5_r14_opts::to_number() const
 {
   const static uint8_t options[] = {1, 2, 3, 4};
   return get_enum_number(options, 4, value, "mbms_params_v1470_s::mbms_scaling_factor7dot5_r14_e_");
 }
 
-std::string ue_eutra_cap_v1430_ies_s::ue_category_ul_v1430_e_::to_string() const
+std::string ue_eutra_cap_v1430_ies_s::ue_category_ul_v1430_opts::to_string() const
 {
   switch (value) {
     case n16:
@@ -22581,13 +22587,13 @@ std::string ue_eutra_cap_v1430_ies_s::ue_category_ul_v1430_e_::to_string() const
   }
   return "";
 }
-uint8_t ue_eutra_cap_v1430_ies_s::ue_category_ul_v1430_e_::to_number() const
+uint8_t ue_eutra_cap_v1430_ies_s::ue_category_ul_v1430_opts::to_number() const
 {
   const static uint8_t options[] = {16, 17, 18, 19, 20, 2};
   return get_enum_number(options, 6, value, "ue_eutra_cap_v1430_ies_s::ue_category_ul_v1430_e_");
 }
 
-std::string ue_eutra_cap_v1310_ies_s::ue_category_dl_v1310_e_::to_string() const
+std::string ue_eutra_cap_v1310_ies_s::ue_category_dl_v1310_opts::to_string() const
 {
   switch (value) {
     case n17:
@@ -22599,13 +22605,13 @@ std::string ue_eutra_cap_v1310_ies_s::ue_category_dl_v1310_e_::to_string() const
   }
   return "";
 }
-uint8_t ue_eutra_cap_v1310_ies_s::ue_category_dl_v1310_e_::to_number() const
+uint8_t ue_eutra_cap_v1310_ies_s::ue_category_dl_v1310_opts::to_number() const
 {
   const static uint8_t options[] = {17, 1};
   return get_enum_number(options, 2, value, "ue_eutra_cap_v1310_ies_s::ue_category_dl_v1310_e_");
 }
 
-std::string ue_eutra_cap_v1310_ies_s::ue_category_ul_v1310_e_::to_string() const
+std::string ue_eutra_cap_v1310_ies_s::ue_category_ul_v1310_opts::to_string() const
 {
   switch (value) {
     case n14:
@@ -22617,14 +22623,14 @@ std::string ue_eutra_cap_v1310_ies_s::ue_category_ul_v1310_e_::to_string() const
   }
   return "";
 }
-uint8_t ue_eutra_cap_v1310_ies_s::ue_category_ul_v1310_e_::to_number() const
+uint8_t ue_eutra_cap_v1310_ies_s::ue_category_ul_v1310_opts::to_number() const
 {
   const static uint8_t options[] = {14, 1};
   return get_enum_number(options, 2, value, "ue_eutra_cap_v1310_ies_s::ue_category_ul_v1310_e_");
 }
 
 // AccessStratumRelease ::= ENUMERATED
-std::string access_stratum_release_e::to_string() const
+std::string access_stratum_release_opts::to_string() const
 {
   switch (value) {
     case rel8:
@@ -22648,13 +22654,13 @@ std::string access_stratum_release_e::to_string() const
   }
   return "";
 }
-uint8_t access_stratum_release_e::to_number() const
+uint8_t access_stratum_release_opts::to_number() const
 {
   const static uint8_t options[] = {8, 9, 10, 11, 12, 13, 14, 15};
   return get_enum_number(options, 8, value, "access_stratum_release_e");
 }
 
-std::string scg_cfg_r12_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string scg_cfg_r12_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case scg_cfg_r12:
@@ -22681,7 +22687,7 @@ std::string scg_cfg_r12_s::crit_exts_c_::c1_c_::types::to_string() const
   return "";
 }
 
-std::string cells_triggered_list_item_c_::pci_utra_c_::types::to_string() const
+std::string cells_triggered_list_item_c_::pci_utra_c_::types_opts::to_string() const
 {
   switch (value) {
     case fdd:
@@ -22696,7 +22702,7 @@ std::string cells_triggered_list_item_c_::pci_utra_c_::types::to_string() const
   return "";
 }
 
-std::string cells_triggered_list_item_c_::types::to_string() const
+std::string cells_triggered_list_item_c_::types_opts::to_string() const
 {
   switch (value) {
     case pci_eutra:
@@ -22718,7 +22724,7 @@ std::string cells_triggered_list_item_c_::types::to_string() const
   }
   return "";
 }
-uint16_t cells_triggered_list_item_c_::types::to_number() const
+uint16_t cells_triggered_list_item_c_::types_opts::to_number() const
 {
   switch (value) {
     case pci_cdma2000:
@@ -22729,7 +22735,7 @@ uint16_t cells_triggered_list_item_c_::types::to_number() const
   return 0;
 }
 
-std::string drb_info_scg_r12_s::drb_type_r12_e_::to_string() const
+std::string drb_info_scg_r12_s::drb_type_r12_opts::to_string() const
 {
   switch (value) {
     case split:
@@ -22742,7 +22748,7 @@ std::string drb_info_scg_r12_s::drb_type_r12_e_::to_string() const
   return "";
 }
 
-std::string ho_cmd_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string ho_cmd_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case ho_cmd_r8:
@@ -22769,7 +22775,7 @@ std::string ho_cmd_s::crit_exts_c_::c1_c_::types::to_string() const
   return "";
 }
 
-std::string ho_prep_info_v920_ies_s::ue_cfg_release_r9_e_::to_string() const
+std::string ho_prep_info_v920_ies_s::ue_cfg_release_r9_opts::to_string() const
 {
   switch (value) {
     case rel9:
@@ -22798,7 +22804,7 @@ std::string ho_prep_info_v920_ies_s::ue_cfg_release_r9_e_::to_string() const
   return "";
 }
 
-std::string rrm_cfg_s::ue_inactive_time_e_::to_string() const
+std::string rrm_cfg_s::ue_inactive_time_opts::to_string() const
 {
   switch (value) {
     case s1:
@@ -22935,7 +22941,7 @@ std::string rrm_cfg_s::ue_inactive_time_e_::to_string() const
   return "";
 }
 
-std::string ho_prep_info_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string ho_prep_info_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case ho_prep_info_r8:
@@ -22962,7 +22968,7 @@ std::string ho_prep_info_s::crit_exts_c_::c1_c_::types::to_string() const
   return "";
 }
 
-std::string tdd_cfg_sl_r12_s::sf_assign_sl_r12_e_::to_string() const
+std::string tdd_cfg_sl_r12_s::sf_assign_sl_r12_opts::to_string() const
 {
   switch (value) {
     case none:
@@ -22987,7 +22993,7 @@ std::string tdd_cfg_sl_r12_s::sf_assign_sl_r12_e_::to_string() const
   return "";
 }
 
-std::string mib_sl_s::sl_bw_r12_e_::to_string() const
+std::string mib_sl_s::sl_bw_r12_opts::to_string() const
 {
   switch (value) {
     case n6:
@@ -23007,13 +23013,13 @@ std::string mib_sl_s::sl_bw_r12_e_::to_string() const
   }
   return "";
 }
-uint8_t mib_sl_s::sl_bw_r12_e_::to_number() const
+uint8_t mib_sl_s::sl_bw_r12_opts::to_number() const
 {
   const static uint8_t options[] = {6, 15, 25, 50, 75, 100};
   return get_enum_number(options, 6, value, "mib_sl_s::sl_bw_r12_e_");
 }
 
-std::string mib_sl_v2x_r14_s::sl_bw_r14_e_::to_string() const
+std::string mib_sl_v2x_r14_s::sl_bw_r14_opts::to_string() const
 {
   switch (value) {
     case n6:
@@ -23033,13 +23039,13 @@ std::string mib_sl_v2x_r14_s::sl_bw_r14_e_::to_string() const
   }
   return "";
 }
-uint8_t mib_sl_v2x_r14_s::sl_bw_r14_e_::to_number() const
+uint8_t mib_sl_v2x_r14_s::sl_bw_r14_opts::to_number() const
 {
   const static uint8_t options[] = {6, 15, 25, 50, 75, 100};
   return get_enum_number(options, 6, value, "mib_sl_v2x_r14_s::sl_bw_r14_e_");
 }
 
-std::string scg_cfg_info_r12_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string scg_cfg_info_r12_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case scg_cfg_info_r12:
@@ -23066,7 +23072,7 @@ std::string scg_cfg_info_r12_s::crit_exts_c_::c1_c_::types::to_string() const
   return "";
 }
 
-std::string sl_precfg_disc_pool_r13_s::disc_period_r13_e_::to_string() const
+std::string sl_precfg_disc_pool_r13_s::disc_period_r13_opts::to_string() const
 {
   switch (value) {
     case rf4:
@@ -23106,13 +23112,13 @@ std::string sl_precfg_disc_pool_r13_s::disc_period_r13_e_::to_string() const
   }
   return "";
 }
-uint16_t sl_precfg_disc_pool_r13_s::disc_period_r13_e_::to_number() const
+uint16_t sl_precfg_disc_pool_r13_s::disc_period_r13_opts::to_number() const
 {
   const static uint16_t options[] = {4, 6, 7, 8, 12, 14, 16, 24, 28, 32, 64, 128, 256, 512, 1024};
   return get_enum_number(options, 15, value, "sl_precfg_disc_pool_r13_s::disc_period_r13_e_");
 }
 
-std::string sl_precfg_disc_pool_r13_s::tx_params_r13_s_::tx_probability_r13_e_::to_string() const
+std::string sl_precfg_disc_pool_r13_s::tx_params_r13_s_::tx_probability_r13_opts::to_string() const
 {
   switch (value) {
     case p25:
@@ -23128,13 +23134,13 @@ std::string sl_precfg_disc_pool_r13_s::tx_params_r13_s_::tx_probability_r13_e_::
   }
   return "";
 }
-uint8_t sl_precfg_disc_pool_r13_s::tx_params_r13_s_::tx_probability_r13_e_::to_number() const
+uint8_t sl_precfg_disc_pool_r13_s::tx_params_r13_s_::tx_probability_r13_opts::to_number() const
 {
   const static uint8_t options[] = {25, 50, 75, 100};
   return get_enum_number(options, 4, value, "sl_precfg_disc_pool_r13_s::tx_params_r13_s_::tx_probability_r13_e_");
 }
 
-std::string sl_precfg_general_r12_s::sl_bw_r12_e_::to_string() const
+std::string sl_precfg_general_r12_s::sl_bw_r12_opts::to_string() const
 {
   switch (value) {
     case n6:
@@ -23154,13 +23160,13 @@ std::string sl_precfg_general_r12_s::sl_bw_r12_e_::to_string() const
   }
   return "";
 }
-uint8_t sl_precfg_general_r12_s::sl_bw_r12_e_::to_number() const
+uint8_t sl_precfg_general_r12_s::sl_bw_r12_opts::to_number() const
 {
   const static uint8_t options[] = {6, 15, 25, 50, 75, 100};
   return get_enum_number(options, 6, value, "sl_precfg_general_r12_s::sl_bw_r12_e_");
 }
 
-std::string sl_precfg_sync_r12_s::sync_ref_min_hyst_r12_e_::to_string() const
+std::string sl_precfg_sync_r12_s::sync_ref_min_hyst_r12_opts::to_string() const
 {
   switch (value) {
     case db0:
@@ -23178,13 +23184,13 @@ std::string sl_precfg_sync_r12_s::sync_ref_min_hyst_r12_e_::to_string() const
   }
   return "";
 }
-uint8_t sl_precfg_sync_r12_s::sync_ref_min_hyst_r12_e_::to_number() const
+uint8_t sl_precfg_sync_r12_s::sync_ref_min_hyst_r12_opts::to_number() const
 {
   const static uint8_t options[] = {0, 3, 6, 9, 12};
   return get_enum_number(options, 5, value, "sl_precfg_sync_r12_s::sync_ref_min_hyst_r12_e_");
 }
 
-std::string sl_precfg_sync_r12_s::sync_ref_diff_hyst_r12_e_::to_string() const
+std::string sl_precfg_sync_r12_s::sync_ref_diff_hyst_r12_opts::to_string() const
 {
   switch (value) {
     case db0:
@@ -23204,13 +23210,13 @@ std::string sl_precfg_sync_r12_s::sync_ref_diff_hyst_r12_e_::to_string() const
   }
   return "";
 }
-uint8_t sl_precfg_sync_r12_s::sync_ref_diff_hyst_r12_e_::to_number() const
+uint8_t sl_precfg_sync_r12_s::sync_ref_diff_hyst_r12_opts::to_number() const
 {
   const static uint8_t options[] = {0, 3, 6, 9, 12};
   return get_enum_number(options, 5, value, "sl_precfg_sync_r12_s::sync_ref_diff_hyst_r12_e_");
 }
 
-std::string sl_v2x_precfg_comm_pool_r14_s::size_subch_r14_e_::to_string() const
+std::string sl_v2x_precfg_comm_pool_r14_s::size_subch_r14_opts::to_string() const
 {
   switch (value) {
     case n4:
@@ -23282,13 +23288,13 @@ std::string sl_v2x_precfg_comm_pool_r14_s::size_subch_r14_e_::to_string() const
   }
   return "";
 }
-uint8_t sl_v2x_precfg_comm_pool_r14_s::size_subch_r14_e_::to_number() const
+uint8_t sl_v2x_precfg_comm_pool_r14_s::size_subch_r14_opts::to_number() const
 {
   const static uint8_t options[] = {4, 5, 6, 8, 9, 10, 12, 15, 16, 18, 20, 25, 30, 48, 50, 72, 75, 96, 100};
   return get_enum_number(options, 19, value, "sl_v2x_precfg_comm_pool_r14_s::size_subch_r14_e_");
 }
 
-std::string sl_v2x_precfg_comm_pool_r14_s::num_subch_r14_e_::to_string() const
+std::string sl_v2x_precfg_comm_pool_r14_s::num_subch_r14_opts::to_string() const
 {
   switch (value) {
     case n1:
@@ -23312,13 +23318,13 @@ std::string sl_v2x_precfg_comm_pool_r14_s::num_subch_r14_e_::to_string() const
   }
   return "";
 }
-uint8_t sl_v2x_precfg_comm_pool_r14_s::num_subch_r14_e_::to_number() const
+uint8_t sl_v2x_precfg_comm_pool_r14_s::num_subch_r14_opts::to_number() const
 {
   const static uint8_t options[] = {1, 3, 5, 8, 10, 15, 20};
   return get_enum_number(options, 7, value, "sl_v2x_precfg_comm_pool_r14_s::num_subch_r14_e_");
 }
 
-std::string sl_precfg_v2x_sync_r14_s::sync_ref_min_hyst_r14_e_::to_string() const
+std::string sl_precfg_v2x_sync_r14_s::sync_ref_min_hyst_r14_opts::to_string() const
 {
   switch (value) {
     case db0:
@@ -23336,13 +23342,13 @@ std::string sl_precfg_v2x_sync_r14_s::sync_ref_min_hyst_r14_e_::to_string() cons
   }
   return "";
 }
-uint8_t sl_precfg_v2x_sync_r14_s::sync_ref_min_hyst_r14_e_::to_number() const
+uint8_t sl_precfg_v2x_sync_r14_s::sync_ref_min_hyst_r14_opts::to_number() const
 {
   const static uint8_t options[] = {0, 3, 6, 9, 12};
   return get_enum_number(options, 5, value, "sl_precfg_v2x_sync_r14_s::sync_ref_min_hyst_r14_e_");
 }
 
-std::string sl_precfg_v2x_sync_r14_s::sync_ref_diff_hyst_r14_e_::to_string() const
+std::string sl_precfg_v2x_sync_r14_s::sync_ref_diff_hyst_r14_opts::to_string() const
 {
   switch (value) {
     case db0:
@@ -23362,13 +23368,13 @@ std::string sl_precfg_v2x_sync_r14_s::sync_ref_diff_hyst_r14_e_::to_string() con
   }
   return "";
 }
-uint8_t sl_precfg_v2x_sync_r14_s::sync_ref_diff_hyst_r14_e_::to_number() const
+uint8_t sl_precfg_v2x_sync_r14_s::sync_ref_diff_hyst_r14_opts::to_number() const
 {
   const static uint8_t options[] = {0, 3, 6, 9, 12};
   return get_enum_number(options, 5, value, "sl_precfg_v2x_sync_r14_s::sync_ref_diff_hyst_r14_e_");
 }
 
-std::string sl_v2x_precfg_freq_info_r14_s::sync_prio_r14_e_::to_string() const
+std::string sl_v2x_precfg_freq_info_r14_s::sync_prio_r14_opts::to_string() const
 {
   switch (value) {
     case gnss:
@@ -23382,7 +23388,7 @@ std::string sl_v2x_precfg_freq_info_r14_s::sync_prio_r14_e_::to_string() const
 }
 
 // SL-V2X-TxProfile-r15 ::= ENUMERATED
-std::string sl_v2x_tx_profile_r15_e::to_string() const
+std::string sl_v2x_tx_profile_r15_opts::to_string() const
 {
   switch (value) {
     case rel14:
@@ -23406,13 +23412,13 @@ std::string sl_v2x_tx_profile_r15_e::to_string() const
   }
   return "";
 }
-uint8_t sl_v2x_tx_profile_r15_e::to_number() const
+uint8_t sl_v2x_tx_profile_r15_opts::to_number() const
 {
   const static uint8_t options[] = {14, 15};
   return get_enum_number(options, 2, value, "sl_v2x_tx_profile_r15_e");
 }
 
-std::string ue_paging_coverage_info_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string ue_paging_coverage_info_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case ue_paging_coverage_info_r13:
@@ -23439,7 +23445,7 @@ std::string ue_paging_coverage_info_s::crit_exts_c_::c1_c_::types::to_string() c
   return "";
 }
 
-std::string ue_radio_access_cap_info_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string ue_radio_access_cap_info_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case ue_radio_access_cap_info_r8:
@@ -23466,7 +23472,7 @@ std::string ue_radio_access_cap_info_s::crit_exts_c_::c1_c_::types::to_string() 
   return "";
 }
 
-std::string ue_radio_paging_info_s::crit_exts_c_::c1_c_::types::to_string() const
+std::string ue_radio_paging_info_s::crit_exts_c_::c1_c_::types_opts::to_string() const
 {
   switch (value) {
     case ue_radio_paging_info_r12:
@@ -23493,7 +23499,7 @@ std::string ue_radio_paging_info_s::crit_exts_c_::c1_c_::types::to_string() cons
   return "";
 }
 
-std::string var_meas_idle_cfg_r15_s::meas_idle_dur_r15_e_::to_string() const
+std::string var_meas_idle_cfg_r15_s::meas_idle_dur_r15_opts::to_string() const
 {
   switch (value) {
     case sec10:
@@ -23515,7 +23521,7 @@ std::string var_meas_idle_cfg_r15_s::meas_idle_dur_r15_e_::to_string() const
   }
   return "";
 }
-uint16_t var_meas_idle_cfg_r15_s::meas_idle_dur_r15_e_::to_number() const
+uint16_t var_meas_idle_cfg_r15_s::meas_idle_dur_r15_opts::to_number() const
 {
   const static uint16_t options[] = {10, 30, 60, 120, 180, 240, 300};
   return get_enum_number(options, 7, value, "var_meas_idle_cfg_r15_s::meas_idle_dur_r15_e_");

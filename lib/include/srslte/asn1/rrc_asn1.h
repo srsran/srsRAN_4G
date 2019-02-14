@@ -275,45 +275,21 @@ NumType get_enum_number(NumType* array, uint32_t nof_types, uint32_t enum_val, c
 
 // PHICH-Config ::= SEQUENCE
 struct phich_cfg_s {
-  struct phich_dur_e_ {
-    enum options { normal, extended };
+  struct phich_dur_opts {
+    enum options { normal, extended } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    phich_dur_e_() {}
-    phich_dur_e_(options v) : value(v) {}
-    phich_dur_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
-  struct phich_res_e_ {
-    enum options { one_sixth, half, one, two };
+  typedef enumerated<phich_dur_opts, 2, 0, false> phich_dur_e_;
+  struct phich_res_opts {
+    enum options { one_sixth, half, one, two } value;
     typedef float number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    phich_res_e_() {}
-    phich_res_e_(options v) : value(v) {}
-    phich_res_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     float       to_number() const;
     std::string to_number_string() const;
   };
+  typedef enumerated<phich_res_opts, 4, 0, false> phich_res_e_;
 
   // member variables
   phich_dur_e_ phich_dur;
@@ -327,26 +303,14 @@ struct phich_cfg_s {
 
 // MasterInformationBlock ::= SEQUENCE
 struct mib_s {
-  struct dl_bw_e_ {
-    enum options { n6, n15, n25, n50, n75, n100 };
+  struct dl_bw_opts {
+    enum options { n6, n15, n25, n50, n75, n100 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 6, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    dl_bw_e_() {}
-    dl_bw_e_(options v) : value(v) {}
-    dl_bw_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<dl_bw_opts, 6, 0, false> dl_bw_e_;
 
   // member variables
   dl_bw_e_           dl_bw;
@@ -378,26 +342,14 @@ struct bcch_bch_msg_s {
 
 // MasterInformationBlock-MBMS-r14 ::= SEQUENCE
 struct mib_mbms_r14_s {
-  struct dl_bw_mbms_r14_e_ {
-    enum options { n6, n15, n25, n50, n75, n100 };
+  struct dl_bw_mbms_r14_opts {
+    enum options { n6, n15, n25, n50, n75, n100 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 6, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    dl_bw_mbms_r14_e_() {}
-    dl_bw_mbms_r14_e_(options v) : value(v) {}
-    dl_bw_mbms_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<dl_bw_mbms_r14_opts, 6, 0, false> dl_bw_mbms_r14_e_;
 
   // member variables
   dl_bw_mbms_r14_e_   dl_bw_mbms_r14;
@@ -427,24 +379,12 @@ struct bcch_bch_msg_mbms_s {
 
 // GNSS-ID-r15 ::= SEQUENCE
 struct gnss_id_r15_s {
-  struct gnss_id_r15_e_ {
-    enum options { gps, sbas, qzss, galileo, glonass, bds, /*...*/ };
+  struct gnss_id_r15_opts {
+    enum options { gps, sbas, qzss, galileo, glonass, bds, /*...*/ } value;
 
-    options               value;
-    static const uint32_t nof_types = 6, nof_exts = 0;
-    static const bool     has_ext = true;
-
-    // enumerated methods
-    gnss_id_r15_e_() {}
-    gnss_id_r15_e_(options v) : value(v) {}
-    gnss_id_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<gnss_id_r15_opts, 6, 0, true> gnss_id_r15_e_;
 
   // member variables
   bool           ext;
@@ -466,24 +406,12 @@ typedef bounded_array<uint8_t, 3> mnc_l;
 
 // SBAS-ID-r15 ::= SEQUENCE
 struct sbas_id_r15_s {
-  struct sbas_id_r15_e_ {
-    enum options { waas, egnos, msas, gagan, /*...*/ };
+  struct sbas_id_r15_opts {
+    enum options { waas, egnos, msas, gagan, /*...*/ } value;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = true;
-
-    // enumerated methods
-    sbas_id_r15_e_() {}
-    sbas_id_r15_e_(options v) : value(v) {}
-    sbas_id_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<sbas_id_r15_opts, 4, 0, true> sbas_id_r15_e_;
 
   // member variables
   bool           ext;
@@ -513,7 +441,7 @@ struct plmn_id_s {
 
 // PosSIB-Type-r15 ::= SEQUENCE
 struct pos_sib_type_r15_s {
-  struct pos_sib_type_r15_e_ {
+  struct pos_sib_type_r15_opts {
     enum options {
       pos_sib_type1_minus1,
       pos_sib_type1_minus2,
@@ -543,23 +471,11 @@ struct pos_sib_type_r15_s {
       pos_sib_type2_minus19,
       pos_sib_type3_minus1,
       // ...
-    };
+    } value;
 
-    options               value;
-    static const uint32_t nof_types = 27, nof_exts = 0;
-    static const bool     has_ext = true;
-
-    // enumerated methods
-    pos_sib_type_r15_e_() {}
-    pos_sib_type_r15_e_(options v) : value(v) {}
-    pos_sib_type_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<pos_sib_type_r15_opts, 27, 0, true> pos_sib_type_r15_e_;
 
   // member variables
   bool                ext;
@@ -581,24 +497,12 @@ struct pos_sib_type_r15_s {
 // PLMN-IdentityInfo-r15 ::= SEQUENCE
 struct plmn_id_info_r15_s {
   struct plmn_id_minus5_gc_r15_c_ {
-    struct types {
-      enum options { plmn_id_r15, plmn_idx_r15, nulltype };
+    struct types_opts {
+      enum options { plmn_id_r15, plmn_idx_r15, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     plmn_id_minus5_gc_r15_c_() : type_(types::nulltype) {}
@@ -638,42 +542,18 @@ struct plmn_id_info_r15_s {
 
     void destroy_();
   };
-  struct cell_reserved_for_oper_r15_e_ {
-    enum options { reserved, not_reserved };
+  struct cell_reserved_for_oper_r15_opts {
+    enum options { reserved, not_reserved } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    cell_reserved_for_oper_r15_e_() {}
-    cell_reserved_for_oper_r15_e_(options v) : value(v) {}
-    cell_reserved_for_oper_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
-  struct cell_reserved_for_oper_crs_r15_e_ {
-    enum options { reserved, not_reserved };
+  typedef enumerated<cell_reserved_for_oper_r15_opts, 2, 0, false> cell_reserved_for_oper_r15_e_;
+  struct cell_reserved_for_oper_crs_r15_opts {
+    enum options { reserved, not_reserved } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    cell_reserved_for_oper_crs_r15_e_() {}
-    cell_reserved_for_oper_crs_r15_e_(options v) : value(v) {}
-    cell_reserved_for_oper_crs_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<cell_reserved_for_oper_crs_r15_opts, 2, 0, false> cell_reserved_for_oper_crs_r15_e_;
 
   // member variables
   plmn_id_minus5_gc_r15_c_          plmn_id_minus5_gc_r15;
@@ -691,24 +571,12 @@ typedef dyn_array<pos_sib_type_r15_s> pos_sib_map_info_r15_l;
 
 // CellIdentity-5GC-r15 ::= CHOICE
 struct cell_id_minus5_gc_r15_c {
-  struct types {
-    enum options { cell_id_r15, cell_id_idx_r15, nulltype };
+  struct types_opts {
+    enum options { cell_id_r15, cell_id_idx_r15, nulltype } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<types_opts, 2, 0, false> types;
 
   // choice methods
   cell_id_minus5_gc_r15_c() : type_(types::nulltype) {}
@@ -751,24 +619,12 @@ private:
 
 // PLMN-IdentityInfo-v1530 ::= SEQUENCE
 struct plmn_id_info_v1530_s {
-  struct cell_reserved_for_oper_crs_r15_e_ {
-    enum options { reserved, not_reserved };
+  struct cell_reserved_for_oper_crs_r15_opts {
+    enum options { reserved, not_reserved } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    cell_reserved_for_oper_crs_r15_e_() {}
-    cell_reserved_for_oper_crs_r15_e_(options v) : value(v) {}
-    cell_reserved_for_oper_crs_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<cell_reserved_for_oper_crs_r15_opts, 2, 0, false> cell_reserved_for_oper_crs_r15_e_;
 
   // member variables
   cell_reserved_for_oper_crs_r15_e_ cell_reserved_for_oper_crs_r15;
@@ -784,26 +640,14 @@ typedef dyn_array<plmn_id_info_r15_s> plmn_id_list_r15_l;
 
 // PosSchedulingInfo-r15 ::= SEQUENCE
 struct pos_sched_info_r15_s {
-  struct pos_si_periodicity_r15_e_ {
-    enum options { rf8, rf16, rf32, rf64, rf128, rf256, rf512 };
+  struct pos_si_periodicity_r15_opts {
+    enum options { rf8, rf16, rf32, rf64, rf128, rf256, rf512 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 7, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    pos_si_periodicity_r15_e_() {}
-    pos_si_periodicity_r15_e_(options v) : value(v) {}
-    pos_si_periodicity_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<pos_si_periodicity_r15_opts, 7, 0, false> pos_si_periodicity_r15_e_;
 
   // member variables
   pos_si_periodicity_r15_e_ pos_si_periodicity_r15;
@@ -833,26 +677,14 @@ struct cell_access_related_info_minus5_gc_r15_s {
 
 // CellSelectionInfoCE-v1530 ::= SEQUENCE
 struct cell_sel_info_ce_v1530_s {
-  struct pwr_class14dbm_offset_r15_e_ {
-    enum options { db_minus6, db_minus3, db3, db6, db9, db12 };
+  struct pwr_class14dbm_offset_r15_opts {
+    enum options { db_minus6, db_minus3, db3, db6, db9, db12 } value;
     typedef int8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 6, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    pwr_class14dbm_offset_r15_e_() {}
-    pwr_class14dbm_offset_r15_e_(options v) : value(v) {}
-    pwr_class14dbm_offset_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     int8_t      to_number() const;
   };
+  typedef enumerated<pwr_class14dbm_offset_r15_opts, 6, 0, false> pwr_class14dbm_offset_r15_e_;
 
   // member variables
   pwr_class14dbm_offset_r15_e_ pwr_class14dbm_offset_r15;
@@ -877,24 +709,12 @@ struct mcs_pssch_range_r15_s {
 
 // PLMN-IdentityInfo ::= SEQUENCE
 struct plmn_id_info_s {
-  struct cell_reserved_for_oper_e_ {
-    enum options { reserved, not_reserved };
+  struct cell_reserved_for_oper_opts {
+    enum options { reserved, not_reserved } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    cell_reserved_for_oper_e_() {}
-    cell_reserved_for_oper_e_(options v) : value(v) {}
-    cell_reserved_for_oper_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<cell_reserved_for_oper_opts, 2, 0, false> cell_reserved_for_oper_e_;
 
   // member variables
   plmn_id_s                 plmn_id;
@@ -917,26 +737,14 @@ typedef bounded_array<uint8_t, 8> sl_prio_list_r13_l;
 
 // SL-TxPower-r14 ::= CHOICE
 struct sl_tx_pwr_r14_c {
-  struct types {
-    enum options { minusinfinity_r14, tx_pwr_r14, nulltype };
+  struct types_opts {
+    enum options { minusinfinity_r14, tx_pwr_r14, nulltype } value;
     typedef int8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     int8_t      to_number() const;
   };
+  typedef enumerated<types_opts, 2, 0, false> types;
 
   // choice methods
   sl_tx_pwr_r14_c() : type_(types::nulltype) {}
@@ -963,27 +771,15 @@ private:
 };
 
 // Alpha-r12 ::= ENUMERATED
-struct alpha_r12_e {
-  enum options { al0, al04, al05, al06, al07, al08, al09, al1 };
+struct alpha_r12_opts {
+  enum options { al0, al04, al05, al06, al07, al08, al09, al1 } value;
   typedef float number_type;
 
-  options               value;
-  static const uint32_t nof_types = 8, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  alpha_r12_e() {}
-  alpha_r12_e(options v) : value(v) {}
-  alpha_r12_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   float       to_number() const;
   std::string to_number_string() const;
 };
+typedef enumerated<alpha_r12_opts, 8, 0, false> alpha_r12_e;
 
 // PLMN-IdentityList ::= SEQUENCE (SIZE (1..maxPLMN-r11)) OF PLMN-IdentityInfo
 typedef dyn_array<plmn_id_info_s> plmn_id_list_l;
@@ -1033,26 +829,14 @@ struct sl_pppp_tx_cfg_idx_v1530_s {
 
 // SL-PSSCH-TxParameters-r14 ::= SEQUENCE
 struct sl_pssch_tx_params_r14_s {
-  struct allowed_retx_num_pssch_r14_e_ {
-    enum options { n0, n1, both, spare1 };
+  struct allowed_retx_num_pssch_r14_opts {
+    enum options { n0, n1, both, spare1 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    allowed_retx_num_pssch_r14_e_() {}
-    allowed_retx_num_pssch_r14_e_(options v) : value(v) {}
-    allowed_retx_num_pssch_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<allowed_retx_num_pssch_r14_opts, 4, 0, false> allowed_retx_num_pssch_r14_e_;
 
   // member variables
   bool                          max_tx_pwr_r14_present;
@@ -1083,91 +867,43 @@ struct sl_pssch_tx_params_v1530_s {
 };
 
 // SL-RestrictResourceReservationPeriod-r14 ::= ENUMERATED
-struct sl_restrict_res_reserv_period_r14_e {
-  enum options { v0dot2, v0dot5, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, spare4, spare3, spare2, spare1 };
+struct sl_restrict_res_reserv_period_r14_opts {
+  enum options { v0dot2, v0dot5, v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, spare4, spare3, spare2, spare1 } value;
   typedef float number_type;
 
-  options               value;
-  static const uint32_t nof_types = 16, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  sl_restrict_res_reserv_period_r14_e() {}
-  sl_restrict_res_reserv_period_r14_e(options v) : value(v) {}
-  sl_restrict_res_reserv_period_r14_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   float       to_number() const;
   std::string to_number_string() const;
 };
+typedef enumerated<sl_restrict_res_reserv_period_r14_opts, 16, 0, false> sl_restrict_res_reserv_period_r14_e;
 
 // SL-TypeTxSync-r14 ::= ENUMERATED
-struct sl_type_tx_sync_r14_e {
-  enum options { gnss, enb, ue };
+struct sl_type_tx_sync_r14_opts {
+  enum options { gnss, enb, ue } value;
 
-  options               value;
-  static const uint32_t nof_types = 3, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  sl_type_tx_sync_r14_e() {}
-  sl_type_tx_sync_r14_e(options v) : value(v) {}
-  sl_type_tx_sync_r14_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
 };
+typedef enumerated<sl_type_tx_sync_r14_opts, 3, 0, false> sl_type_tx_sync_r14_e;
 
 // SystemInformationBlockType1-v1530-IEs ::= SEQUENCE
 struct sib_type1_v1530_ies_s {
   struct crs_intf_mitig_cfg_r15_c_ {
-    struct crs_intf_mitig_num_prbs_r15_e_ {
-      enum options { n6, n24 };
+    struct crs_intf_mitig_num_prbs_r15_opts {
+      enum options { n6, n24 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      crs_intf_mitig_num_prbs_r15_e_() {}
-      crs_intf_mitig_num_prbs_r15_e_(options v) : value(v) {}
-      crs_intf_mitig_num_prbs_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct types {
-      enum options { crs_intf_mitig_enabled_minus15, crs_intf_mitig_num_prbs_r15, nulltype };
+    typedef enumerated<crs_intf_mitig_num_prbs_r15_opts, 2, 0, false> crs_intf_mitig_num_prbs_r15_e_;
+    struct types_opts {
+      enum options { crs_intf_mitig_enabled_minus15, crs_intf_mitig_num_prbs_r15, nulltype } value;
       typedef int8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       int8_t      to_number() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     crs_intf_mitig_cfg_r15_c_() : type_(types::nulltype) {}
@@ -1192,62 +928,26 @@ struct sib_type1_v1530_ies_s {
     types                          type_;
     crs_intf_mitig_num_prbs_r15_e_ c;
   };
-  struct cell_barred_crs_r15_e_ {
-    enum options { barred, not_barred };
+  struct cell_barred_crs_r15_opts {
+    enum options { barred, not_barred } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    cell_barred_crs_r15_e_() {}
-    cell_barred_crs_r15_e_(options v) : value(v) {}
-    cell_barred_crs_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<cell_barred_crs_r15_opts, 2, 0, false> cell_barred_crs_r15_e_;
   struct cell_access_related_info_minus5_gc_r15_s_ {
-    struct cell_barred_minus5_gc_r15_e_ {
-      enum options { barred, not_barred };
+    struct cell_barred_minus5_gc_r15_opts {
+      enum options { barred, not_barred } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      cell_barred_minus5_gc_r15_e_() {}
-      cell_barred_minus5_gc_r15_e_(options v) : value(v) {}
-      cell_barred_minus5_gc_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
-    struct cell_barred_minus5_gc_crs_r15_e_ {
-      enum options { barred, not_barred };
+    typedef enumerated<cell_barred_minus5_gc_r15_opts, 2, 0, false> cell_barred_minus5_gc_r15_e_;
+    struct cell_barred_minus5_gc_crs_r15_opts {
+      enum options { barred, not_barred } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      cell_barred_minus5_gc_crs_r15_e_() {}
-      cell_barred_minus5_gc_crs_r15_e_(options v) : value(v) {}
-      cell_barred_minus5_gc_crs_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
-    typedef dyn_array<cell_access_related_info_minus5_gc_r15_s> cell_access_related_info_list_minus5_gc_r15_l_;
+    typedef enumerated<cell_barred_minus5_gc_crs_r15_opts, 2, 0, false> cell_barred_minus5_gc_crs_r15_e_;
+    typedef dyn_array<cell_access_related_info_minus5_gc_r15_s>         cell_access_related_info_list_minus5_gc_r15_l_;
 
     // member variables
     cell_barred_minus5_gc_r15_e_                   cell_barred_minus5_gc_r15;
@@ -1331,48 +1031,24 @@ typedef dyn_array<sl_pppp_tx_cfg_idx_r14_s> sl_cbr_pppp_tx_cfg_list_r14_l;
 typedef dyn_array<sl_pppp_tx_cfg_idx_v1530_s> sl_cbr_pppp_tx_cfg_list_v1530_l;
 
 // SL-CP-Len-r12 ::= ENUMERATED
-struct sl_cp_len_r12_e {
-  enum options { normal, extended };
+struct sl_cp_len_r12_opts {
+  enum options { normal, extended } value;
 
-  options               value;
-  static const uint32_t nof_types = 2, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  sl_cp_len_r12_e() {}
-  sl_cp_len_r12_e(options v) : value(v) {}
-  sl_cp_len_r12_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
 };
+typedef enumerated<sl_cp_len_r12_opts, 2, 0, false> sl_cp_len_r12_e;
 
 // SL-MinT2ValueList-r15 ::= SEQUENCE (SIZE (1..maxSL-Prio-r13)) OF SL-MinT2Value-r15
 typedef dyn_array<sl_min_t2_value_r15_s> sl_min_t2_value_list_r15_l;
 
 // SL-OffsetIndicator-r12 ::= CHOICE
 struct sl_offset_ind_r12_c {
-  struct types {
-    enum options { small_r12, large_r12, nulltype };
+  struct types_opts {
+    enum options { small_r12, large_r12, nulltype } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<types_opts, 2, 0, false> types;
 
   // choice methods
   sl_offset_ind_r12_c() : type_(types::nulltype) {}
@@ -1428,26 +1104,14 @@ struct sl_p2_x_res_sel_cfg_r14_s {
 
 // SL-PSSCH-TxConfig-r14 ::= SEQUENCE
 struct sl_pssch_tx_cfg_r14_s {
-  struct thres_ue_speed_r14_e_ {
-    enum options { kmph60, kmph80, kmph100, kmph120, kmph140, kmph160, kmph180, kmph200 };
+  struct thres_ue_speed_r14_opts {
+    enum options { kmph60, kmph80, kmph100, kmph120, kmph140, kmph160, kmph180, kmph200 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    thres_ue_speed_r14_e_() {}
-    thres_ue_speed_r14_e_(options v) : value(v) {}
-    thres_ue_speed_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<thres_ue_speed_r14_opts, 8, 0, false> thres_ue_speed_r14_e_;
 
   // member variables
   bool                     ext;
@@ -1502,26 +1166,14 @@ struct sl_tx_params_r12_s {
 
 // SubframeBitmapSL-r12 ::= CHOICE
 struct sf_bitmap_sl_r12_c {
-  struct types {
-    enum options { bs4_r12, bs8_r12, bs12_r12, bs16_r12, bs30_r12, bs40_r12, bs42_r12, nulltype };
+  struct types_opts {
+    enum options { bs4_r12, bs8_r12, bs12_r12, bs16_r12, bs30_r12, bs40_r12, bs42_r12, nulltype } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 7, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<types_opts, 7, 0, false> types;
 
   // choice methods
   sf_bitmap_sl_r12_c() : type_(types::nulltype) {}
@@ -1614,26 +1266,14 @@ private:
 
 // SubframeBitmapSL-r14 ::= CHOICE
 struct sf_bitmap_sl_r14_c {
-  struct types {
-    enum options { bs10_r14, bs16_r14, bs20_r14, bs30_r14, bs40_r14, bs50_r14, bs60_r14, bs100_r14, nulltype };
+  struct types_opts {
+    enum options { bs10_r14, bs16_r14, bs20_r14, bs30_r14, bs40_r14, bs50_r14, bs60_r14, bs100_r14, nulltype } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<types_opts, 8, 0, false> types;
 
   // choice methods
   sf_bitmap_sl_r14_c() : type_(types::nulltype) {}
@@ -1751,46 +1391,22 @@ struct sib_type1_v1450_ies_s {
 
 // TDD-Config ::= SEQUENCE
 struct tdd_cfg_s {
-  struct sf_assign_e_ {
-    enum options { sa0, sa1, sa2, sa3, sa4, sa5, sa6 };
+  struct sf_assign_opts {
+    enum options { sa0, sa1, sa2, sa3, sa4, sa5, sa6 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 7, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    sf_assign_e_() {}
-    sf_assign_e_(options v) : value(v) {}
-    sf_assign_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct special_sf_patterns_e_ {
-    enum options { ssp0, ssp1, ssp2, ssp3, ssp4, ssp5, ssp6, ssp7, ssp8 };
+  typedef enumerated<sf_assign_opts, 7, 0, false> sf_assign_e_;
+  struct special_sf_patterns_opts {
+    enum options { ssp0, ssp1, ssp2, ssp3, ssp4, ssp5, ssp6, ssp7, ssp8 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 9, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    special_sf_patterns_e_() {}
-    special_sf_patterns_e_(options v) : value(v) {}
-    special_sf_patterns_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<special_sf_patterns_opts, 9, 0, false> special_sf_patterns_e_;
 
   // member variables
   sf_assign_e_           sf_assign;
@@ -1811,7 +1427,7 @@ struct tdd_cfg_v1430_s {
 };
 
 // BandclassCDMA2000 ::= ENUMERATED
-struct bandclass_cdma2000_e {
+struct bandclass_cdma2000_opts {
   enum options {
     bc0,
     bc1,
@@ -1846,25 +1462,13 @@ struct bandclass_cdma2000_e {
     spare2,
     spare1,
     // ...
-  };
+  } value;
   typedef uint8_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 32, nof_exts = 0;
-  static const bool     has_ext = true;
-
-  // enumerated methods
-  bandclass_cdma2000_e() {}
-  bandclass_cdma2000_e(options v) : value(v) {}
-  bandclass_cdma2000_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint8_t     to_number() const;
 };
+typedef enumerated<bandclass_cdma2000_opts, 32, 0, true> bandclass_cdma2000_e;
 
 // InterFreqCarrierFreqInfo-v1360 ::= SEQUENCE
 struct inter_freq_carrier_freq_info_v1360_s {
@@ -1901,7 +1505,7 @@ typedef bounded_array<uint16_t, 16> pci_list_r13_l;
 
 // SL-CommResourcePoolV2X-r14 ::= SEQUENCE
 struct sl_comm_res_pool_v2x_r14_s {
-  struct size_subch_r14_e_ {
+  struct size_subch_r14_opts {
     enum options {
       n4,
       n5,
@@ -1935,45 +1539,21 @@ struct sl_comm_res_pool_v2x_r14_s {
       spare3,
       spare2,
       spare1
-    };
+    } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 32, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    size_subch_r14_e_() {}
-    size_subch_r14_e_(options v) : value(v) {}
-    size_subch_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct num_subch_r14_e_ {
-    enum options { n1, n3, n5, n8, n10, n15, n20, spare1 };
+  typedef enumerated<size_subch_r14_opts, 32, 0, false> size_subch_r14_e_;
+  struct num_subch_r14_opts {
+    enum options { n1, n3, n5, n8, n10, n15, n20, spare1 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    num_subch_r14_e_() {}
-    num_subch_r14_e_(options v) : value(v) {}
-    num_subch_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<num_subch_r14_opts, 8, 0, false> num_subch_r14_e_;
   struct rx_params_ncell_r14_s_ {
     // member variables
     bool      tdd_cfg_r14_present;
@@ -2062,26 +1642,14 @@ struct sl_sync_cfg_nfreq_r13_s {
     tx_params_r13_s_();
   };
   struct rx_params_r13_s_ {
-    struct disc_sync_win_r13_e_ {
-      enum options { w1, w2 };
+    struct disc_sync_win_r13_opts {
+      enum options { w1, w2 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      disc_sync_win_r13_e_() {}
-      disc_sync_win_r13_e_(options v) : value(v) {}
-      disc_sync_win_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<disc_sync_win_r13_opts, 2, 0, false> disc_sync_win_r13_e_;
 
     // member variables
     disc_sync_win_r13_e_ disc_sync_win_r13;
@@ -2155,26 +1723,14 @@ struct sib_type1_v1430_ies_s {
 
 // TDD-Config-v1130 ::= SEQUENCE
 struct tdd_cfg_v1130_s {
-  struct special_sf_patterns_v1130_e_ {
-    enum options { ssp7, ssp9 };
+  struct special_sf_patterns_v1130_opts {
+    enum options { ssp7, ssp9 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    special_sf_patterns_v1130_e_() {}
-    special_sf_patterns_v1130_e_(options v) : value(v) {}
-    special_sf_patterns_v1130_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<special_sf_patterns_v1130_opts, 2, 0, false> special_sf_patterns_v1130_e_;
 
   // member variables
   special_sf_patterns_v1130_e_ special_sf_patterns_v1130;
@@ -2254,52 +1810,28 @@ typedef dyn_array<sl_comm_res_pool_v2x_r14_s> sl_comm_tx_pool_list_v2x_r14_l;
 
 // SL-CommTxPoolSensingConfig-r14 ::= SEQUENCE
 struct sl_comm_tx_pool_sensing_cfg_r14_s {
-  struct prob_res_keep_r14_e_ {
-    enum options { v0, v0dot2, v0dot4, v0dot6, v0dot8, spare3, spare2, spare1 };
+  struct prob_res_keep_r14_opts {
+    enum options { v0, v0dot2, v0dot4, v0dot6, v0dot8, spare3, spare2, spare1 } value;
     typedef float number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    prob_res_keep_r14_e_() {}
-    prob_res_keep_r14_e_(options v) : value(v) {}
-    prob_res_keep_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     float       to_number() const;
     std::string to_number_string() const;
   };
+  typedef enumerated<prob_res_keep_r14_opts, 8, 0, false> prob_res_keep_r14_e_;
   struct p2x_sensing_cfg_r14_s_ {
     // member variables
     uint8_t             min_num_candidate_sf_r14;
     fixed_bitstring<10> gap_candidate_sensing_r14;
   };
-  struct sl_reselect_after_r14_e_ {
-    enum options { n1, n2, n3, n4, n5, n6, n7, n8, n9, spare7, spare6, spare5, spare4, spare3, spare2, spare1 };
+  struct sl_reselect_after_r14_opts {
+    enum options { n1, n2, n3, n4, n5, n6, n7, n8, n9, spare7, spare6, spare5, spare4, spare3, spare2, spare1 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 16, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    sl_reselect_after_r14_e_() {}
-    sl_reselect_after_r14_e_(options v) : value(v) {}
-    sl_reselect_after_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<sl_reselect_after_r14_opts, 16, 0, false> sl_reselect_after_r14_e_;
 
   // member variables
   bool                                     restrict_res_reserv_period_r14_present;
@@ -2319,68 +1851,32 @@ struct sl_comm_tx_pool_sensing_cfg_r14_s {
   void        to_json(json_writer& j) const;
 };
 
-struct setup_e {
-  enum options { release, setup, nulltype };
+struct setup_opts {
+  enum options { release, setup, nulltype } value;
 
-  options               value;
-  static const uint32_t nof_types = 2, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  setup_e() {}
-  setup_e(options v) : value(v) {}
-  setup_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
 };
+typedef enumerated<setup_opts, 2, 0, false> setup_e;
 
 // SL-DiscResourcePool-r12 ::= SEQUENCE
 struct sl_disc_res_pool_r12_s {
-  struct disc_period_r12_e_ {
-    enum options { rf32, rf64, rf128, rf256, rf512, rf1024, rf16_v1310, spare };
+  struct disc_period_r12_opts {
+    enum options { rf32, rf64, rf128, rf256, rf512, rf1024, rf16_v1310, spare } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    disc_period_r12_e_() {}
-    disc_period_r12_e_(options v) : value(v) {}
-    disc_period_r12_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<disc_period_r12_opts, 8, 0, false> disc_period_r12_e_;
   struct tx_params_r12_s_ {
     struct ue_sel_res_cfg_r12_s_ {
       struct pool_sel_r12_c_ {
-        struct types {
-          enum options { rsrp_based_r12, random_r12, nulltype };
+        struct types_opts {
+          enum options { rsrp_based_r12, random_r12, nulltype } value;
 
-          options               value;
-          static const uint32_t nof_types = 2, nof_exts = 0;
-          static const bool     has_ext = false;
-
-          // enumerated methods
-          types() {}
-          types(options v) : value(v) {}
-          types& operator=(options v)
-          {
-            value = v;
-            return *this;
-          }
-                      operator options() const { return value; }
           std::string to_string() const;
         };
+        typedef enumerated<types_opts, 2, 0, false> types;
 
         // choice methods
         pool_sel_r12_c_() : type_(types::nulltype) {}
@@ -2405,26 +1901,14 @@ struct sl_disc_res_pool_r12_s {
         types                 type_;
         sl_pool_sel_cfg_r12_s c;
       };
-      struct tx_probability_r12_e_ {
-        enum options { p25, p50, p75, p100 };
+      struct tx_probability_r12_opts {
+        enum options { p25, p50, p75, p100 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        tx_probability_r12_e_() {}
-        tx_probability_r12_e_(options v) : value(v) {}
-        tx_probability_r12_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
+      typedef enumerated<tx_probability_r12_opts, 4, 0, false> tx_probability_r12_e_;
 
       // member variables
       pool_sel_r12_c_       pool_sel_r12;
@@ -2449,27 +1933,15 @@ struct sl_disc_res_pool_r12_s {
     rx_params_r12_s_();
   };
   struct disc_period_v1310_c_ {
-    struct setup_e_ {
-      enum options { rf4, rf6, rf7, rf8, rf12, rf14, rf24, rf28 };
+    struct setup_opts {
+      enum options { rf4, rf6, rf7, rf8, rf12, rf14, rf24, rf28 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      setup_e_() {}
-      setup_e_(options v) : value(v) {}
-      setup_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    typedef setup_e types;
+    typedef enumerated<setup_opts, 8, 0, false> setup_e_;
+    typedef setup_e                             types;
 
     // choice methods
     disc_period_v1310_c_() : type_(types::nulltype) {}
@@ -2527,26 +1999,14 @@ struct sl_disc_res_pool_r12_s {
   struct tx_params_add_neigh_freq_r13_c_ {
     struct setup_s_ {
       struct freq_info_s_ {
-        struct ul_bw_e_ {
-          enum options { n6, n15, n25, n50, n75, n100 };
+        struct ul_bw_opts {
+          enum options { n6, n15, n25, n50, n75, n100 } value;
           typedef uint8_t number_type;
 
-          options               value;
-          static const uint32_t nof_types = 6, nof_exts = 0;
-          static const bool     has_ext = false;
-
-          // enumerated methods
-          ul_bw_e_() {}
-          ul_bw_e_(options v) : value(v) {}
-          ul_bw_e_& operator=(options v)
-          {
-            value = v;
-            return *this;
-          }
-                      operator options() const { return value; }
           std::string to_string() const;
           uint8_t     to_number() const;
         };
+        typedef enumerated<ul_bw_opts, 6, 0, false> ul_bw_e_;
 
         // member variables
         bool     ul_carrier_freq_present;
@@ -2671,46 +2131,22 @@ typedef dyn_array<sl_sync_cfg_nfreq_r13_s> sl_sync_cfg_list_nfreq_v2x_r14_l;
 
 // SL-ZoneConfig-r14 ::= SEQUENCE
 struct sl_zone_cfg_r14_s {
-  struct zone_len_r14_e_ {
-    enum options { m5, m10, m20, m50, m100, m200, m500, spare1 };
+  struct zone_len_r14_opts {
+    enum options { m5, m10, m20, m50, m100, m200, m500, spare1 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    zone_len_r14_e_() {}
-    zone_len_r14_e_(options v) : value(v) {}
-    zone_len_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
-  struct zone_width_r14_e_ {
-    enum options { m5, m10, m20, m50, m100, m200, m500, spare1 };
+  typedef enumerated<zone_len_r14_opts, 8, 0, false> zone_len_r14_e_;
+  struct zone_width_r14_opts {
+    enum options { m5, m10, m20, m50, m100, m200, m500, spare1 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    zone_width_r14_e_() {}
-    zone_width_r14_e_(options v) : value(v) {}
-    zone_width_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<zone_width_r14_opts, 8, 0, false> zone_width_r14_e_;
 
   // member variables
   zone_len_r14_e_   zone_len_r14;
@@ -2812,26 +2248,14 @@ struct neigh_cells_per_bandclass_cdma2000_v920_s {
 
 // PhysCellIdRange ::= SEQUENCE
 struct pci_range_s {
-  struct range_e_ {
-    enum options { n4, n8, n12, n16, n24, n32, n48, n64, n84, n96, n128, n168, n252, n504, spare2, spare1 };
+  struct range_opts {
+    enum options { n4, n8, n12, n16, n24, n32, n48, n64, n84, n96, n128, n168, n252, n504, spare2, spare1 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 16, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    range_e_() {}
-    range_e_(options v) : value(v) {}
-    range_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<range_opts, 16, 0, false> range_e_;
 
   // member variables
   bool     range_present;
@@ -2846,7 +2270,7 @@ struct pci_range_s {
 };
 
 // Q-OffsetRange ::= ENUMERATED
-struct q_offset_range_e {
+struct q_offset_range_opts {
   enum options {
     db_minus24,
     db_minus22,
@@ -2879,25 +2303,13 @@ struct q_offset_range_e {
     db20,
     db22,
     db24
-  };
+  } value;
   typedef int8_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 31, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  q_offset_range_e() {}
-  q_offset_range_e(options v) : value(v) {}
-  q_offset_range_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   int8_t      to_number() const;
 };
+typedef enumerated<q_offset_range_opts, 31, 0, false> q_offset_range_e;
 
 // RedistributionNeighCell-r13 ::= SEQUENCE
 struct redist_neigh_cell_r13_s {
@@ -2979,26 +2391,14 @@ struct sl_v2x_inter_freq_ue_cfg_r14_s {
 
 // SchedulingInfo-BR-r13 ::= SEQUENCE
 struct sched_info_br_r13_s {
-  struct si_tbs_r13_e_ {
-    enum options { b152, b208, b256, b328, b408, b504, b600, b712, b808, b936 };
+  struct si_tbs_r13_opts {
+    enum options { b152, b208, b256, b328, b408, b504, b600, b712, b808, b936 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 10, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    si_tbs_r13_e_() {}
-    si_tbs_r13_e_(options v) : value(v) {}
-    si_tbs_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<si_tbs_r13_opts, 10, 0, false> si_tbs_r13_e_;
 
   // member variables
   uint8_t       si_nb_r13;
@@ -3015,48 +2415,24 @@ typedef bounded_array<uint8_t, 2> secondary_pre_regist_zone_id_list_hrpd_l;
 
 // SpeedStateScaleFactors ::= SEQUENCE
 struct speed_state_scale_factors_s {
-  struct sf_medium_e_ {
-    enum options { o_dot25, o_dot5, o_dot75, l_dot0 };
+  struct sf_medium_opts {
+    enum options { o_dot25, o_dot5, o_dot75, l_dot0 } value;
     typedef float number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    sf_medium_e_() {}
-    sf_medium_e_(options v) : value(v) {}
-    sf_medium_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     float       to_number() const;
     std::string to_number_string() const;
   };
-  struct sf_high_e_ {
-    enum options { o_dot25, o_dot5, o_dot75, l_dot0 };
+  typedef enumerated<sf_medium_opts, 4, 0, false> sf_medium_e_;
+  struct sf_high_opts {
+    enum options { o_dot25, o_dot5, o_dot75, l_dot0 } value;
     typedef float number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    sf_high_e_() {}
-    sf_high_e_(options v) : value(v) {}
-    sf_high_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     float       to_number() const;
     std::string to_number_string() const;
   };
+  typedef enumerated<sf_high_opts, 4, 0, false> sf_high_e_;
 
   // member variables
   sf_medium_e_ sf_medium;
@@ -3120,93 +2496,45 @@ struct ac_barr_cfg1_xrtt_r9_s {
 };
 
 // AllowedMeasBandwidth ::= ENUMERATED
-struct allowed_meas_bw_e {
-  enum options { mbw6, mbw15, mbw25, mbw50, mbw75, mbw100 };
+struct allowed_meas_bw_opts {
+  enum options { mbw6, mbw15, mbw25, mbw50, mbw75, mbw100 } value;
   typedef uint8_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 6, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  allowed_meas_bw_e() {}
-  allowed_meas_bw_e(options v) : value(v) {}
-  allowed_meas_bw_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint8_t     to_number() const;
 };
+typedef enumerated<allowed_meas_bw_opts, 6, 0, false> allowed_meas_bw_e;
 
 // BandIndicatorGERAN ::= ENUMERATED
-struct band_ind_geran_e {
-  enum options { dcs1800, pcs1900 };
+struct band_ind_geran_opts {
+  enum options { dcs1800, pcs1900 } value;
   typedef uint16_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 2, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  band_ind_geran_e() {}
-  band_ind_geran_e(options v) : value(v) {}
-  band_ind_geran_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint16_t    to_number() const;
 };
+typedef enumerated<band_ind_geran_opts, 2, 0, false> band_ind_geran_e;
 
 // BarringPerACDC-Category-r13 ::= SEQUENCE
 struct barr_per_acdc_category_r13_s {
   struct acdc_barr_cfg_r13_s_ {
-    struct ac_barr_factor_r13_e_ {
-      enum options { p00, p05, p10, p15, p20, p25, p30, p40, p50, p60, p70, p75, p80, p85, p90, p95 };
+    struct ac_barr_factor_r13_opts {
+      enum options { p00, p05, p10, p15, p20, p25, p30, p40, p50, p60, p70, p75, p80, p85, p90, p95 } value;
       typedef float number_type;
 
-      options               value;
-      static const uint32_t nof_types = 16, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      ac_barr_factor_r13_e_() {}
-      ac_barr_factor_r13_e_(options v) : value(v) {}
-      ac_barr_factor_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       float       to_number() const;
       std::string to_number_string() const;
     };
-    struct ac_barr_time_r13_e_ {
-      enum options { s4, s8, s16, s32, s64, s128, s256, s512 };
+    typedef enumerated<ac_barr_factor_r13_opts, 16, 0, false> ac_barr_factor_r13_e_;
+    struct ac_barr_time_r13_opts {
+      enum options { s4, s8, s16, s32, s64, s128, s256, s512 } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      ac_barr_time_r13_e_() {}
-      ac_barr_time_r13_e_(options v) : value(v) {}
-      ac_barr_time_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
+    typedef enumerated<ac_barr_time_r13_opts, 8, 0, false> ac_barr_time_r13_e_;
 
     // member variables
     ac_barr_factor_r13_e_ ac_barr_factor_r13;
@@ -3293,26 +2621,14 @@ struct cell_sel_info_ce_r13_s {
 
 // CellSelectionInfoNFreq-r13 ::= SEQUENCE
 struct cell_sel_info_nfreq_r13_s {
-  struct q_hyst_r13_e_ {
-    enum options { db0, db1, db2, db3, db4, db5, db6, db8, db10, db12, db14, db16, db18, db20, db22, db24 };
+  struct q_hyst_r13_opts {
+    enum options { db0, db1, db2, db3, db4, db5, db6, db8, db10, db12, db14, db16, db18, db20, db22, db24 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 16, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    q_hyst_r13_e_() {}
-    q_hyst_r13_e_(options v) : value(v) {}
-    q_hyst_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<q_hyst_r13_opts, 16, 0, false> q_hyst_r13_e_;
 
   // member variables
   bool          q_rx_lev_min_offset_present;
@@ -3384,24 +2700,12 @@ typedef dyn_array<neigh_cells_per_bandclass_cdma2000_v920_s> neigh_cells_per_ban
 
 // PLMN-IdentityInfo2-r12 ::= CHOICE
 struct plmn_id_info2_r12_c {
-  struct types {
-    enum options { plmn_idx_r12, plmn_id_r12, nulltype };
+  struct types_opts {
+    enum options { plmn_idx_r12, plmn_id_r12, nulltype } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<types_opts, 2, 0, false> types;
 
   // choice methods
   plmn_id_info2_r12_c() : type_(types::nulltype) {}
@@ -3444,105 +2748,45 @@ private:
 
 // PRACH-ParametersCE-r13 ::= SEQUENCE
 struct prach_params_ce_r13_s {
-  struct prach_start_sf_r13_e_ {
-    enum options { sf2, sf4, sf8, sf16, sf32, sf64, sf128, sf256 };
+  struct prach_start_sf_r13_opts {
+    enum options { sf2, sf4, sf8, sf16, sf32, sf64, sf128, sf256 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    prach_start_sf_r13_e_() {}
-    prach_start_sf_r13_e_(options v) : value(v) {}
-    prach_start_sf_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
-  struct max_num_preamb_attempt_ce_r13_e_ {
-    enum options { n3, n4, n5, n6, n7, n8, n10 };
+  typedef enumerated<prach_start_sf_r13_opts, 8, 0, false> prach_start_sf_r13_e_;
+  struct max_num_preamb_attempt_ce_r13_opts {
+    enum options { n3, n4, n5, n6, n7, n8, n10 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 7, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    max_num_preamb_attempt_ce_r13_e_() {}
-    max_num_preamb_attempt_ce_r13_e_(options v) : value(v) {}
-    max_num_preamb_attempt_ce_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct num_repeat_per_preamb_attempt_r13_e_ {
-    enum options { n1, n2, n4, n8, n16, n32, n64, n128 };
+  typedef enumerated<max_num_preamb_attempt_ce_r13_opts, 7, 0, false> max_num_preamb_attempt_ce_r13_e_;
+  struct num_repeat_per_preamb_attempt_r13_opts {
+    enum options { n1, n2, n4, n8, n16, n32, n64, n128 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    num_repeat_per_preamb_attempt_r13_e_() {}
-    num_repeat_per_preamb_attempt_r13_e_(options v) : value(v) {}
-    num_repeat_per_preamb_attempt_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  typedef bounded_array<uint8_t, 2> mpdcch_nbs_to_monitor_r13_l_;
-  struct mpdcch_num_repeat_ra_r13_e_ {
-    enum options { r1, r2, r4, r8, r16, r32, r64, r128, r256 };
+  typedef enumerated<num_repeat_per_preamb_attempt_r13_opts, 8, 0, false> num_repeat_per_preamb_attempt_r13_e_;
+  typedef bounded_array<uint8_t, 2>                                       mpdcch_nbs_to_monitor_r13_l_;
+  struct mpdcch_num_repeat_ra_r13_opts {
+    enum options { r1, r2, r4, r8, r16, r32, r64, r128, r256 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 9, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    mpdcch_num_repeat_ra_r13_e_() {}
-    mpdcch_num_repeat_ra_r13_e_(options v) : value(v) {}
-    mpdcch_num_repeat_ra_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
-  struct prach_hop_cfg_r13_e_ {
-    enum options { on, off };
+  typedef enumerated<mpdcch_num_repeat_ra_r13_opts, 9, 0, false> mpdcch_num_repeat_ra_r13_e_;
+  struct prach_hop_cfg_r13_opts {
+    enum options { on, off } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    prach_hop_cfg_r13_e_() {}
-    prach_hop_cfg_r13_e_(options v) : value(v) {}
-    prach_hop_cfg_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<prach_hop_cfg_r13_opts, 2, 0, false> prach_hop_cfg_r13_e_;
 
   // member variables
   bool                                 prach_start_sf_r13_present;
@@ -3586,105 +2830,45 @@ struct rach_ce_level_info_r13_s {
     uint8_t first_preamb_r13;
     uint8_t last_preamb_r13;
   };
-  struct ra_resp_win_size_r13_e_ {
-    enum options { sf20, sf50, sf80, sf120, sf180, sf240, sf320, sf400 };
+  struct ra_resp_win_size_r13_opts {
+    enum options { sf20, sf50, sf80, sf120, sf180, sf240, sf320, sf400 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    ra_resp_win_size_r13_e_() {}
-    ra_resp_win_size_r13_e_(options v) : value(v) {}
-    ra_resp_win_size_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
-  struct mac_contention_resolution_timer_r13_e_ {
-    enum options { sf80, sf100, sf120, sf160, sf200, sf240, sf480, sf960 };
+  typedef enumerated<ra_resp_win_size_r13_opts, 8, 0, false> ra_resp_win_size_r13_e_;
+  struct mac_contention_resolution_timer_r13_opts {
+    enum options { sf80, sf100, sf120, sf160, sf200, sf240, sf480, sf960 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    mac_contention_resolution_timer_r13_e_() {}
-    mac_contention_resolution_timer_r13_e_(options v) : value(v) {}
-    mac_contention_resolution_timer_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
-  struct rar_hop_cfg_r13_e_ {
-    enum options { on, off };
+  typedef enumerated<mac_contention_resolution_timer_r13_opts, 8, 0, false> mac_contention_resolution_timer_r13_e_;
+  struct rar_hop_cfg_r13_opts {
+    enum options { on, off } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    rar_hop_cfg_r13_e_() {}
-    rar_hop_cfg_r13_e_(options v) : value(v) {}
-    rar_hop_cfg_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<rar_hop_cfg_r13_opts, 2, 0, false> rar_hop_cfg_r13_e_;
   struct edt_params_r15_s_ {
-    struct edt_tbs_r15_e_ {
-      enum options { b328, b408, b504, b600, b712, b808, b936, b1000or456 };
+    struct edt_tbs_r15_opts {
+      enum options { b328, b408, b504, b600, b712, b808, b936, b1000or456 } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      edt_tbs_r15_e_() {}
-      edt_tbs_r15_e_(options v) : value(v) {}
-      edt_tbs_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
-    struct mac_contention_resolution_timer_r15_e_ {
-      enum options { sf240, sf480, sf960, sf1920, sf3840, sf5760, sf7680, sf10240 };
+    typedef enumerated<edt_tbs_r15_opts, 8, 0, false> edt_tbs_r15_e_;
+    struct mac_contention_resolution_timer_r15_opts {
+      enum options { sf240, sf480, sf960, sf1920, sf3840, sf5760, sf7680, sf10240 } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      mac_contention_resolution_timer_r15_e_() {}
-      mac_contention_resolution_timer_r15_e_(options v) : value(v) {}
-      mac_contention_resolution_timer_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
+    typedef enumerated<mac_contention_resolution_timer_r15_opts, 8, 0, false> mac_contention_resolution_timer_r15_e_;
 
     // member variables
     bool                                   mac_contention_resolution_timer_r15_present;
@@ -3744,30 +2928,18 @@ typedef fixed_array<sl_disc_tx_pwr_info_r12_s, 3> sl_disc_tx_pwr_info_list_r12_l
 
 // SL-DiscTxResourcesInterFreq-r13 ::= CHOICE
 struct sl_disc_tx_res_inter_freq_r13_c {
-  struct types {
+  struct types_opts {
     enum options {
       acquire_si_from_carrier_r13,
       disc_tx_pool_common_r13,
       request_ded_r13,
       no_tx_on_carrier_r13,
       nulltype
-    };
+    } value;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<types_opts, 4, 0, false> types;
 
   // choice methods
   sl_disc_tx_res_inter_freq_r13_c() : type_(types::nulltype) {}
@@ -3811,85 +2983,37 @@ typedef bounded_array<uint8_t, 32> sys_info_value_tag_list_r13_l;
 // SystemInformationBlockType1-v1320-IEs ::= SEQUENCE
 struct sib_type1_v1320_ies_s {
   struct freq_hop_params_dl_r13_s_ {
-    struct mpdcch_pdsch_hop_nb_r13_e_ {
-      enum options { nb2, nb4 };
+    struct mpdcch_pdsch_hop_nb_r13_opts {
+      enum options { nb2, nb4 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      mpdcch_pdsch_hop_nb_r13_e_() {}
-      mpdcch_pdsch_hop_nb_r13_e_(options v) : value(v) {}
-      mpdcch_pdsch_hop_nb_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<mpdcch_pdsch_hop_nb_r13_opts, 2, 0, false> mpdcch_pdsch_hop_nb_r13_e_;
     struct interv_dl_hop_cfg_common_mode_a_r13_c_ {
-      struct interv_fdd_r13_e_ {
-        enum options { int1, int2, int4, int8 };
+      struct interv_fdd_r13_opts {
+        enum options { int1, int2, int4, int8 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        interv_fdd_r13_e_() {}
-        interv_fdd_r13_e_(options v) : value(v) {}
-        interv_fdd_r13_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
-      struct interv_tdd_r13_e_ {
-        enum options { int1, int5, int10, int20 };
+      typedef enumerated<interv_fdd_r13_opts, 4, 0, false> interv_fdd_r13_e_;
+      struct interv_tdd_r13_opts {
+        enum options { int1, int5, int10, int20 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        interv_tdd_r13_e_() {}
-        interv_tdd_r13_e_(options v) : value(v) {}
-        interv_tdd_r13_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
-      struct types {
-        enum options { interv_fdd_r13, interv_tdd_r13, nulltype };
+      typedef enumerated<interv_tdd_r13_opts, 4, 0, false> interv_tdd_r13_e_;
+      struct types_opts {
+        enum options { interv_fdd_r13, interv_tdd_r13, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 2, 0, false> types;
 
       // choice methods
       interv_dl_hop_cfg_common_mode_a_r13_c_() : type_(types::nulltype) {}
@@ -3930,64 +3054,28 @@ struct sib_type1_v1320_ies_s {
       void destroy_();
     };
     struct interv_dl_hop_cfg_common_mode_b_r13_c_ {
-      struct interv_fdd_r13_e_ {
-        enum options { int2, int4, int8, int16 };
+      struct interv_fdd_r13_opts {
+        enum options { int2, int4, int8, int16 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        interv_fdd_r13_e_() {}
-        interv_fdd_r13_e_(options v) : value(v) {}
-        interv_fdd_r13_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
-      struct interv_tdd_r13_e_ {
-        enum options { int5, int10, int20, int40 };
+      typedef enumerated<interv_fdd_r13_opts, 4, 0, false> interv_fdd_r13_e_;
+      struct interv_tdd_r13_opts {
+        enum options { int5, int10, int20, int40 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        interv_tdd_r13_e_() {}
-        interv_tdd_r13_e_(options v) : value(v) {}
-        interv_tdd_r13_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
-      struct types {
-        enum options { interv_fdd_r13, interv_tdd_r13, nulltype };
+      typedef enumerated<interv_tdd_r13_opts, 4, 0, false> interv_tdd_r13_e_;
+      struct types_opts {
+        enum options { interv_fdd_r13, interv_tdd_r13, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 2, 0, false> types;
 
       // choice methods
       interv_dl_hop_cfg_common_mode_b_r13_c_() : type_(types::nulltype) {}
@@ -4097,24 +3185,12 @@ struct sib_type5_v10l0_ies_s {
 // SystemTimeInfoCDMA2000 ::= SEQUENCE
 struct sys_time_info_cdma2000_s {
   struct cdma_sys_time_c_ {
-    struct types {
-      enum options { sync_sys_time, async_sys_time, nulltype };
+    struct types_opts {
+      enum options { sync_sys_time, async_sys_time, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     cdma_sys_time_c_() : type_(types::nulltype) {}
@@ -4179,47 +3255,23 @@ struct uac_barr_per_cat_r15_s {
 
 // AC-BarringConfig ::= SEQUENCE
 struct ac_barr_cfg_s {
-  struct ac_barr_factor_e_ {
-    enum options { p00, p05, p10, p15, p20, p25, p30, p40, p50, p60, p70, p75, p80, p85, p90, p95 };
+  struct ac_barr_factor_opts {
+    enum options { p00, p05, p10, p15, p20, p25, p30, p40, p50, p60, p70, p75, p80, p85, p90, p95 } value;
     typedef float number_type;
 
-    options               value;
-    static const uint32_t nof_types = 16, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    ac_barr_factor_e_() {}
-    ac_barr_factor_e_(options v) : value(v) {}
-    ac_barr_factor_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     float       to_number() const;
     std::string to_number_string() const;
   };
-  struct ac_barr_time_e_ {
-    enum options { s4, s8, s16, s32, s64, s128, s256, s512 };
+  typedef enumerated<ac_barr_factor_opts, 16, 0, false> ac_barr_factor_e_;
+  struct ac_barr_time_opts {
+    enum options { s4, s8, s16, s32, s64, s128, s256, s512 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    ac_barr_time_e_() {}
-    ac_barr_time_e_(options v) : value(v) {}
-    ac_barr_time_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<ac_barr_time_opts, 8, 0, false> ac_barr_time_e_;
 
   // member variables
   ac_barr_factor_e_  ac_barr_factor;
@@ -4243,24 +3295,12 @@ struct carrier_freqs_geran_s {
       uint8_t arfcn_spacing;
       uint8_t nof_following_arfcns;
     };
-    struct types {
-      enum options { explicit_list_of_arfcns, equally_spaced_arfcns, variable_bit_map_of_arfcns, nulltype };
+    struct types_opts {
+      enum options { explicit_list_of_arfcns, equally_spaced_arfcns, variable_bit_map_of_arfcns, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 3, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 3, 0, false> types;
 
     // choice methods
     following_arfcns_c_() : type_(types::nulltype) {}
@@ -4324,27 +3364,15 @@ struct carrier_freqs_geran_s {
 };
 
 // CellReselectionSubPriority-r13 ::= ENUMERATED
-struct cell_resel_sub_prio_r13_e {
-  enum options { o_dot2, o_dot4, o_dot6, o_dot8 };
+struct cell_resel_sub_prio_r13_opts {
+  enum options { o_dot2, o_dot4, o_dot6, o_dot8 } value;
   typedef float number_type;
 
-  options               value;
-  static const uint32_t nof_types = 4, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  cell_resel_sub_prio_r13_e() {}
-  cell_resel_sub_prio_r13_e(options v) : value(v) {}
-  cell_resel_sub_prio_r13_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   float       to_number() const;
   std::string to_number_string() const;
 };
+typedef enumerated<cell_resel_sub_prio_r13_opts, 4, 0, false> cell_resel_sub_prio_r13_e;
 
 // CellSelectionInfo-v1250 ::= SEQUENCE
 struct cell_sel_info_v1250_s {
@@ -4359,106 +3387,46 @@ struct cell_sel_info_v1250_s {
 
 // DeltaFList-PUCCH ::= SEQUENCE
 struct delta_flist_pucch_s {
-  struct delta_f_pucch_format1_e_ {
-    enum options { delta_f_minus2, delta_f0, delta_f2 };
+  struct delta_f_pucch_format1_opts {
+    enum options { delta_f_minus2, delta_f0, delta_f2 } value;
     typedef int8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 3, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    delta_f_pucch_format1_e_() {}
-    delta_f_pucch_format1_e_(options v) : value(v) {}
-    delta_f_pucch_format1_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     int8_t      to_number() const;
   };
-  struct delta_f_pucch_format1b_e_ {
-    enum options { delta_f1, delta_f3, delta_f5 };
+  typedef enumerated<delta_f_pucch_format1_opts, 3, 0, false> delta_f_pucch_format1_e_;
+  struct delta_f_pucch_format1b_opts {
+    enum options { delta_f1, delta_f3, delta_f5 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 3, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    delta_f_pucch_format1b_e_() {}
-    delta_f_pucch_format1b_e_(options v) : value(v) {}
-    delta_f_pucch_format1b_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct delta_f_pucch_format2_e_ {
-    enum options { delta_f_minus2, delta_f0, delta_f1, delta_f2 };
+  typedef enumerated<delta_f_pucch_format1b_opts, 3, 0, false> delta_f_pucch_format1b_e_;
+  struct delta_f_pucch_format2_opts {
+    enum options { delta_f_minus2, delta_f0, delta_f1, delta_f2 } value;
     typedef int8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    delta_f_pucch_format2_e_() {}
-    delta_f_pucch_format2_e_(options v) : value(v) {}
-    delta_f_pucch_format2_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     int8_t      to_number() const;
   };
-  struct delta_f_pucch_format2a_e_ {
-    enum options { delta_f_minus2, delta_f0, delta_f2 };
+  typedef enumerated<delta_f_pucch_format2_opts, 4, 0, false> delta_f_pucch_format2_e_;
+  struct delta_f_pucch_format2a_opts {
+    enum options { delta_f_minus2, delta_f0, delta_f2 } value;
     typedef int8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 3, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    delta_f_pucch_format2a_e_() {}
-    delta_f_pucch_format2a_e_(options v) : value(v) {}
-    delta_f_pucch_format2a_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     int8_t      to_number() const;
   };
-  struct delta_f_pucch_format2b_e_ {
-    enum options { delta_f_minus2, delta_f0, delta_f2 };
+  typedef enumerated<delta_f_pucch_format2a_opts, 3, 0, false> delta_f_pucch_format2a_e_;
+  struct delta_f_pucch_format2b_opts {
+    enum options { delta_f_minus2, delta_f0, delta_f2 } value;
     typedef int8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 3, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    delta_f_pucch_format2b_e_() {}
-    delta_f_pucch_format2b_e_(options v) : value(v) {}
-    delta_f_pucch_format2b_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     int8_t      to_number() const;
   };
+  typedef enumerated<delta_f_pucch_format2b_opts, 3, 0, false> delta_f_pucch_format2b_e_;
 
   // member variables
   delta_f_pucch_format1_e_  delta_f_pucch_format1;
@@ -4476,27 +3444,15 @@ struct delta_flist_pucch_s {
 // EDT-PRACH-ParametersCE-r15 ::= SEQUENCE
 struct edt_prach_params_ce_r15_s {
   struct edt_prach_params_ce_r15_s_ {
-    struct prach_start_sf_r15_e_ {
-      enum options { sf2, sf4, sf8, sf16, sf32, sf64, sf128, sf256 };
+    struct prach_start_sf_r15_opts {
+      enum options { sf2, sf4, sf8, sf16, sf32, sf64, sf128, sf256 } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      prach_start_sf_r15_e_() {}
-      prach_start_sf_r15_e_(options v) : value(v) {}
-      prach_start_sf_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
-    typedef bounded_array<uint8_t, 2> mpdcch_nbs_to_monitor_r15_l_;
+    typedef enumerated<prach_start_sf_r15_opts, 8, 0, false> prach_start_sf_r15_e_;
+    typedef bounded_array<uint8_t, 2>                        mpdcch_nbs_to_monitor_r15_l_;
 
     // member variables
     bool                         prach_start_sf_r15_present;
@@ -4521,26 +3477,32 @@ struct edt_prach_params_ce_r15_s {
 };
 
 // FilterCoefficient ::= ENUMERATED
-struct filt_coef_e {
-  enum options { fc0, fc1, fc2, fc3, fc4, fc5, fc6, fc7, fc8, fc9, fc11, fc13, fc15, fc17, fc19, spare1, /*...*/ };
+struct filt_coef_opts {
+  enum options {
+    fc0,
+    fc1,
+    fc2,
+    fc3,
+    fc4,
+    fc5,
+    fc6,
+    fc7,
+    fc8,
+    fc9,
+    fc11,
+    fc13,
+    fc15,
+    fc17,
+    fc19,
+    spare1,
+    /*...*/
+  } value;
   typedef uint8_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 16, nof_exts = 0;
-  static const bool     has_ext = true;
-
-  // enumerated methods
-  filt_coef_e() {}
-  filt_coef_e(options v) : value(v) {}
-  filt_coef_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint8_t     to_number() const;
 };
+typedef enumerated<filt_coef_opts, 16, 0, true> filt_coef_e;
 
 // InterFreqBlackCellList ::= SEQUENCE (SIZE (1..maxCellBlack)) OF PhysCellIdRange
 typedef dyn_array<pci_range_s> inter_freq_black_cell_list_l;
@@ -4572,26 +3534,14 @@ typedef dyn_array<uint16_t> mbms_sai_list_r11_l;
 // MTC-SSB-NR-r15 ::= SEQUENCE
 struct mtc_ssb_nr_r15_s {
   struct periodicity_and_offset_r15_c_ {
-    struct types {
-      enum options { sf5_r15, sf10_r15, sf20_r15, sf40_r15, sf80_r15, sf160_r15, nulltype };
+    struct types_opts {
+      enum options { sf5_r15, sf10_r15, sf20_r15, sf40_r15, sf80_r15, sf160_r15, nulltype } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 6, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<types_opts, 6, 0, false> types;
 
     // choice methods
     periodicity_and_offset_r15_c_() : type_(types::nulltype) {}
@@ -4671,26 +3621,14 @@ struct mtc_ssb_nr_r15_s {
 
     void destroy_();
   };
-  struct ssb_dur_r15_e_ {
-    enum options { sf1, sf2, sf3, sf4, sf5 };
+  struct ssb_dur_r15_opts {
+    enum options { sf1, sf2, sf3, sf4, sf5 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 5, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    ssb_dur_r15_e_() {}
-    ssb_dur_r15_e_(options v) : value(v) {}
-    ssb_dur_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<ssb_dur_r15_opts, 5, 0, false> ssb_dur_r15_e_;
 
   // member variables
   periodicity_and_offset_r15_c_ periodicity_and_offset_r15;
@@ -4704,24 +3642,12 @@ struct mtc_ssb_nr_r15_s {
 
 // MeasIdleCarrierEUTRA-r15 ::= SEQUENCE
 struct meas_idle_carrier_eutra_r15_s {
-  struct report_quantities_e_ {
-    enum options { rsrp, rsrq, both };
+  struct report_quantities_opts {
+    enum options { rsrp, rsrq, both } value;
 
-    options               value;
-    static const uint32_t nof_types = 3, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    report_quantities_e_() {}
-    report_quantities_e_(options v) : value(v) {}
-    report_quantities_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<report_quantities_opts, 3, 0, false> report_quantities_e_;
   struct quality_thres_r15_s_ {
     // member variables
     bool    idle_rsrp_thres_r15_present;
@@ -4814,24 +3740,12 @@ typedef dyn_array<prach_params_ce_r13_s> prach_params_list_ce_r13_l;
 // ParametersCDMA2000-r11 ::= SEQUENCE
 struct params_cdma2000_r11_s {
   struct sys_time_info_r11_c_ {
-    struct types {
-      enum options { explicit_value, default_value, nulltype };
+    struct types_opts {
+      enum options { explicit_value, default_value, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     sys_time_info_r11_c_() : type_(types::nulltype) {}
@@ -4905,27 +3819,15 @@ struct params_cdma2000_r11_s {
 
 // PowerRampingParameters ::= SEQUENCE
 struct pwr_ramp_params_s {
-  struct pwr_ramp_step_e_ {
-    enum options { db0, db2, db4, db6 };
+  struct pwr_ramp_step_opts {
+    enum options { db0, db2, db4, db6 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    pwr_ramp_step_e_() {}
-    pwr_ramp_step_e_(options v) : value(v) {}
-    pwr_ramp_step_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct preamb_init_rx_target_pwr_e_ {
+  typedef enumerated<pwr_ramp_step_opts, 4, 0, false> pwr_ramp_step_e_;
+  struct preamb_init_rx_target_pwr_opts {
     enum options {
       dbm_minus120,
       dbm_minus118,
@@ -4943,25 +3845,13 @@ struct pwr_ramp_params_s {
       dbm_minus94,
       dbm_minus92,
       dbm_minus90
-    };
+    } value;
     typedef int8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 16, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    preamb_init_rx_target_pwr_e_() {}
-    preamb_init_rx_target_pwr_e_(options v) : value(v) {}
-    preamb_init_rx_target_pwr_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     int8_t      to_number() const;
   };
+  typedef enumerated<preamb_init_rx_target_pwr_opts, 16, 0, false> preamb_init_rx_target_pwr_e_;
 
   // member variables
   pwr_ramp_step_e_             pwr_ramp_step;
@@ -4974,26 +3864,14 @@ struct pwr_ramp_params_s {
 };
 
 // PreambleTransMax ::= ENUMERATED
-struct preamb_trans_max_e {
-  enum options { n3, n4, n5, n6, n7, n8, n10, n20, n50, n100, n200 };
+struct preamb_trans_max_opts {
+  enum options { n3, n4, n5, n6, n7, n8, n10, n20, n50, n100, n200 } value;
   typedef uint8_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 11, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  preamb_trans_max_e() {}
-  preamb_trans_max_e(options v) : value(v) {}
-  preamb_trans_max_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint8_t     to_number() const;
 };
+typedef enumerated<preamb_trans_max_opts, 11, 0, false> preamb_trans_max_e;
 
 // RACH-CE-LevelInfoList-r13 ::= SEQUENCE (SIZE (1..maxCE-Level-r13)) OF RACH-CE-LevelInfo-r13
 typedef dyn_array<rach_ce_level_info_r13_s> rach_ce_level_info_list_r13_l;
@@ -5051,26 +3929,14 @@ struct sl_disc_cfg_other_inter_freq_r13_s {
 
 // SL-HoppingConfigComm-r12 ::= SEQUENCE
 struct sl_hop_cfg_comm_r12_s {
-  struct num_subbands_r12_e_ {
-    enum options { ns1, ns2, ns4 };
+  struct num_subbands_r12_opts {
+    enum options { ns1, ns2, ns4 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 3, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    num_subbands_r12_e_() {}
-    num_subbands_r12_e_(options v) : value(v) {}
-    num_subbands_r12_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<num_subbands_r12_opts, 3, 0, false> num_subbands_r12_e_;
 
   // member variables
   uint16_t            hop_param_r12;
@@ -5085,45 +3951,21 @@ struct sl_hop_cfg_comm_r12_s {
 
 // SL-InterFreqInfoV2X-r14 ::= SEQUENCE
 struct sl_inter_freq_info_v2x_r14_s {
-  struct sl_bw_r14_e_ {
-    enum options { n6, n15, n25, n50, n75, n100 };
+  struct sl_bw_r14_opts {
+    enum options { n6, n15, n25, n50, n75, n100 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 6, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    sl_bw_r14_e_() {}
-    sl_bw_r14_e_(options v) : value(v) {}
-    sl_bw_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<sl_bw_r14_opts, 6, 0, false> sl_bw_r14_e_;
   struct add_spec_emission_v2x_r14_c_ {
-    struct types {
-      enum options { add_spec_emission_r14, add_spec_emission_v1440, nulltype };
+    struct types_opts {
+      enum options { add_spec_emission_r14, add_spec_emission_v1440, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     add_spec_emission_v2x_r14_c_() : type_(types::nulltype) {}
@@ -5208,7 +4050,7 @@ struct sl_pppr_dest_carrier_freq_s {
 };
 
 // SL-PeriodComm-r12 ::= ENUMERATED
-struct sl_period_comm_r12_e {
+struct sl_period_comm_r12_opts {
   enum options {
     sf40,
     sf60,
@@ -5226,25 +4068,13 @@ struct sl_period_comm_r12_e {
     spare3,
     spare2,
     spare
-  };
+  } value;
   typedef uint16_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 16, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  sl_period_comm_r12_e() {}
-  sl_period_comm_r12_e(options v) : value(v) {}
-  sl_period_comm_r12_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint16_t    to_number() const;
 };
+typedef enumerated<sl_period_comm_r12_opts, 16, 0, false> sl_period_comm_r12_e;
 
 // SL-ResourcesInterFreq-r13 ::= SEQUENCE
 struct sl_res_inter_freq_r13_s {
@@ -5274,26 +4104,14 @@ struct sl_sync_cfg_r12_s {
     tx_params_r12_s_();
   };
   struct rx_params_ncell_r12_s_ {
-    struct disc_sync_win_r12_e_ {
-      enum options { w1, w2 };
+    struct disc_sync_win_r12_opts {
+      enum options { w1, w2 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      disc_sync_win_r12_e_() {}
-      disc_sync_win_r12_e_(options v) : value(v) {}
-      disc_sync_win_r12_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<disc_sync_win_r12_opts, 2, 0, false> disc_sync_win_r12_e_;
 
     // member variables
     uint16_t             pci_r12;
@@ -5362,67 +4180,31 @@ struct sib_type1_v10l0_ies_s {
 // SystemInformationBlockType1-v1310-IEs ::= SEQUENCE
 struct sib_type1_v1310_ies_s {
   struct bw_reduced_access_related_info_r13_s_ {
-    struct si_win_len_br_r13_e_ {
-      enum options { ms20, ms40, ms60, ms80, ms120, ms160, ms200, spare };
+    struct si_win_len_br_r13_opts {
+      enum options { ms20, ms40, ms60, ms80, ms120, ms160, ms200, spare } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      si_win_len_br_r13_e_() {}
-      si_win_len_br_r13_e_(options v) : value(v) {}
-      si_win_len_br_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct si_repeat_pattern_r13_e_ {
-      enum options { every_rf, every2nd_rf, every4th_rf, every8th_rf };
+    typedef enumerated<si_win_len_br_r13_opts, 8, 0, false> si_win_len_br_r13_e_;
+    struct si_repeat_pattern_r13_opts {
+      enum options { every_rf, every2nd_rf, every4th_rf, every8th_rf } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      si_repeat_pattern_r13_e_() {}
-      si_repeat_pattern_r13_e_(options v) : value(v) {}
-      si_repeat_pattern_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<si_repeat_pattern_r13_opts, 4, 0, false> si_repeat_pattern_r13_e_;
     struct fdd_dl_or_tdd_sf_bitmap_br_r13_c_ {
-      struct types {
-        enum options { sf_pattern10_r13, sf_pattern40_r13, nulltype };
+      struct types_opts {
+        enum options { sf_pattern10_r13, sf_pattern40_r13, nulltype } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
+      typedef enumerated<types_opts, 2, 0, false> types;
 
       // choice methods
       fdd_dl_or_tdd_sf_bitmap_br_r13_c_() : type_(types::nulltype) {}
@@ -5462,24 +4244,12 @@ struct sib_type1_v1310_ies_s {
 
       void destroy_();
     };
-    struct si_hop_cfg_common_r13_e_ {
-      enum options { on, off };
+    struct si_hop_cfg_common_r13_opts {
+      enum options { on, off } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      si_hop_cfg_common_r13_e_() {}
-      si_hop_cfg_common_r13_e_(options v) : value(v) {}
-      si_hop_cfg_common_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<si_hop_cfg_common_r13_opts, 2, 0, false> si_hop_cfg_common_r13_e_;
 
     // member variables
     bool                              sched_info_list_br_r13_present;
@@ -5571,26 +4341,14 @@ typedef dyn_array<uac_barr_per_cat_r15_s> uac_barr_per_cat_list_r15_l;
 
 // UDT-Restricting-r13 ::= SEQUENCE
 struct udt_restricting_r13_s {
-  struct udt_restricting_time_r13_e_ {
-    enum options { s4, s8, s16, s32, s64, s128, s256, s512 };
+  struct udt_restricting_time_r13_opts {
+    enum options { s4, s8, s16, s32, s64, s128, s256, s512 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    udt_restricting_time_r13_e_() {}
-    udt_restricting_time_r13_e_(options v) : value(v) {}
-    udt_restricting_time_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<udt_restricting_time_r13_opts, 8, 0, false> udt_restricting_time_r13_e_;
 
   // member variables
   bool                        udt_restricting_r13_present;
@@ -5638,7 +4396,7 @@ struct wlan_ids_r12_s {
 };
 
 // WLAN-backhaulRate-r12 ::= ENUMERATED
-struct wlan_backhaul_rate_r12_e {
+struct wlan_backhaul_rate_r12_opts {
   enum options {
     r0,
     r4,
@@ -5672,25 +4430,13 @@ struct wlan_backhaul_rate_r12_e {
     r1073741824,
     r2147483648,
     r4294967296
-  };
+  } value;
   typedef uint64_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 32, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  wlan_backhaul_rate_r12_e() {}
-  wlan_backhaul_rate_r12_e(options v) : value(v) {}
-  wlan_backhaul_rate_r12_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint64_t    to_number() const;
 };
+typedef enumerated<wlan_backhaul_rate_r12_opts, 32, 0, false> wlan_backhaul_rate_r12_e;
 
 // AC-BarringPerPLMN-r12 ::= SEQUENCE
 struct ac_barr_per_plmn_r12_s {
@@ -5742,26 +4488,14 @@ struct acdc_barr_per_plmn_r13_s {
 
 // BCCH-Config ::= SEQUENCE
 struct bcch_cfg_s {
-  struct mod_period_coeff_e_ {
-    enum options { n2, n4, n8, n16 };
+  struct mod_period_coeff_opts {
+    enum options { n2, n4, n8, n16 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    mod_period_coeff_e_() {}
-    mod_period_coeff_e_(options v) : value(v) {}
-    mod_period_coeff_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<mod_period_coeff_opts, 4, 0, false> mod_period_coeff_e_;
 
   // member variables
   mod_period_coeff_e_ mod_period_coeff;
@@ -5811,26 +4545,14 @@ struct carrier_freq_info_utra_fdd_v8h0_s {
 
 // CarrierFreqNR-r15 ::= SEQUENCE
 struct carrier_freq_nr_r15_s {
-  struct subcarrier_spacing_ssb_r15_e_ {
-    enum options { k_hz15, k_hz30, k_hz120, k_hz240 };
+  struct subcarrier_spacing_ssb_r15_opts {
+    enum options { k_hz15, k_hz30, k_hz120, k_hz240 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    subcarrier_spacing_ssb_r15_e_() {}
-    subcarrier_spacing_ssb_r15_e_(options v) : value(v) {}
-    subcarrier_spacing_ssb_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<subcarrier_spacing_ssb_r15_opts, 4, 0, false> subcarrier_spacing_ssb_r15_e_;
   struct thresh_x_q_r15_s_ {
     // member variables
     uint8_t thresh_x_high_q_r15;
@@ -6026,24 +4748,12 @@ struct cell_sel_info_v1130_s {
 
 // EAB-Config-r11 ::= SEQUENCE
 struct eab_cfg_r11_s {
-  struct eab_category_r11_e_ {
-    enum options { a, b, c };
+  struct eab_category_r11_opts {
+    enum options { a, b, c } value;
 
-    options               value;
-    static const uint32_t nof_types = 3, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    eab_category_r11_e_() {}
-    eab_category_r11_e_(options v) : value(v) {}
-    eab_category_r11_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<eab_category_r11_opts, 3, 0, false> eab_category_r11_e_;
 
   // member variables
   eab_category_r11_e_ eab_category_r11;
@@ -6060,85 +4770,37 @@ typedef dyn_array<meas_idle_carrier_eutra_r15_s> eutra_carrier_list_r15_l;
 
 // FreqHoppingParameters-r13 ::= SEQUENCE
 struct freq_hop_params_r13_s {
-  struct dummy_e_ {
-    enum options { nb2, nb4 };
+  struct dummy_opts {
+    enum options { nb2, nb4 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    dummy_e_() {}
-    dummy_e_(options v) : value(v) {}
-    dummy_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<dummy_opts, 2, 0, false> dummy_e_;
   struct dummy2_c_ {
-    struct interv_fdd_r13_e_ {
-      enum options { int1, int2, int4, int8 };
+    struct interv_fdd_r13_opts {
+      enum options { int1, int2, int4, int8 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      interv_fdd_r13_e_() {}
-      interv_fdd_r13_e_(options v) : value(v) {}
-      interv_fdd_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct interv_tdd_r13_e_ {
-      enum options { int1, int5, int10, int20 };
+    typedef enumerated<interv_fdd_r13_opts, 4, 0, false> interv_fdd_r13_e_;
+    struct interv_tdd_r13_opts {
+      enum options { int1, int5, int10, int20 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      interv_tdd_r13_e_() {}
-      interv_tdd_r13_e_(options v) : value(v) {}
-      interv_tdd_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct types {
-      enum options { interv_fdd_r13, interv_tdd_r13, nulltype };
+    typedef enumerated<interv_tdd_r13_opts, 4, 0, false> interv_tdd_r13_e_;
+    struct types_opts {
+      enum options { interv_fdd_r13, interv_tdd_r13, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     dummy2_c_() : type_(types::nulltype) {}
@@ -6179,64 +4841,28 @@ struct freq_hop_params_r13_s {
     void destroy_();
   };
   struct dummy3_c_ {
-    struct interv_fdd_r13_e_ {
-      enum options { int2, int4, int8, int16 };
+    struct interv_fdd_r13_opts {
+      enum options { int2, int4, int8, int16 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      interv_fdd_r13_e_() {}
-      interv_fdd_r13_e_(options v) : value(v) {}
-      interv_fdd_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct interv_tdd_r13_e_ {
-      enum options { int5, int10, int20, int40 };
+    typedef enumerated<interv_fdd_r13_opts, 4, 0, false> interv_fdd_r13_e_;
+    struct interv_tdd_r13_opts {
+      enum options { int5, int10, int20, int40 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      interv_tdd_r13_e_() {}
-      interv_tdd_r13_e_(options v) : value(v) {}
-      interv_tdd_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct types {
-      enum options { interv_fdd_r13, interv_tdd_r13, nulltype };
+    typedef enumerated<interv_tdd_r13_opts, 4, 0, false> interv_tdd_r13_e_;
+    struct types_opts {
+      enum options { interv_fdd_r13, interv_tdd_r13, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     dummy3_c_() : type_(types::nulltype) {}
@@ -6277,64 +4903,28 @@ struct freq_hop_params_r13_s {
     void destroy_();
   };
   struct interv_ul_hop_cfg_common_mode_a_r13_c_ {
-    struct interv_fdd_r13_e_ {
-      enum options { int1, int2, int4, int8 };
+    struct interv_fdd_r13_opts {
+      enum options { int1, int2, int4, int8 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      interv_fdd_r13_e_() {}
-      interv_fdd_r13_e_(options v) : value(v) {}
-      interv_fdd_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct interv_tdd_r13_e_ {
-      enum options { int1, int5, int10, int20 };
+    typedef enumerated<interv_fdd_r13_opts, 4, 0, false> interv_fdd_r13_e_;
+    struct interv_tdd_r13_opts {
+      enum options { int1, int5, int10, int20 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      interv_tdd_r13_e_() {}
-      interv_tdd_r13_e_(options v) : value(v) {}
-      interv_tdd_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct types {
-      enum options { interv_fdd_r13, interv_tdd_r13, nulltype };
+    typedef enumerated<interv_tdd_r13_opts, 4, 0, false> interv_tdd_r13_e_;
+    struct types_opts {
+      enum options { interv_fdd_r13, interv_tdd_r13, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     interv_ul_hop_cfg_common_mode_a_r13_c_() : type_(types::nulltype) {}
@@ -6375,64 +4965,28 @@ struct freq_hop_params_r13_s {
     void destroy_();
   };
   struct interv_ul_hop_cfg_common_mode_b_r13_c_ {
-    struct interv_fdd_r13_e_ {
-      enum options { int2, int4, int8, int16 };
+    struct interv_fdd_r13_opts {
+      enum options { int2, int4, int8, int16 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      interv_fdd_r13_e_() {}
-      interv_fdd_r13_e_(options v) : value(v) {}
-      interv_fdd_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct interv_tdd_r13_e_ {
-      enum options { int5, int10, int20, int40 };
+    typedef enumerated<interv_fdd_r13_opts, 4, 0, false> interv_fdd_r13_e_;
+    struct interv_tdd_r13_opts {
+      enum options { int5, int10, int20, int40 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      interv_tdd_r13_e_() {}
-      interv_tdd_r13_e_(options v) : value(v) {}
-      interv_tdd_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct types {
-      enum options { interv_fdd_r13, interv_tdd_r13, nulltype };
+    typedef enumerated<interv_tdd_r13_opts, 4, 0, false> interv_tdd_r13_e_;
+    struct types_opts {
+      enum options { interv_fdd_r13, interv_tdd_r13, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     interv_ul_hop_cfg_common_mode_b_r13_c_() : type_(types::nulltype) {}
@@ -6704,24 +5258,12 @@ struct intra_freq_neigh_cell_info_s {
 
 // MBMS-CarrierType-r14 ::= SEQUENCE
 struct mbms_carrier_type_r14_s {
-  struct carrier_type_r14_e_ {
-    enum options { mbms, fembms_mixed, fembms_ded };
+  struct carrier_type_r14_opts {
+    enum options { mbms, fembms_mixed, fembms_ded } value;
 
-    options               value;
-    static const uint32_t nof_types = 3, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    carrier_type_r14_e_() {}
-    carrier_type_r14_e_(options v) : value(v) {}
-    carrier_type_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<carrier_type_r14_opts, 3, 0, false> carrier_type_r14_e_;
 
   // member variables
   bool                frame_offset_r14_present;
@@ -6762,87 +5304,39 @@ struct mbms_sai_inter_freq_v1140_s {
 
 // MBSFN-AreaInfo-r9 ::= SEQUENCE
 struct mbsfn_area_info_r9_s {
-  struct non_mbsfn_region_len_e_ {
-    enum options { s1, s2 };
+  struct non_mbsfn_region_len_opts {
+    enum options { s1, s2 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    non_mbsfn_region_len_e_() {}
-    non_mbsfn_region_len_e_(options v) : value(v) {}
-    non_mbsfn_region_len_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<non_mbsfn_region_len_opts, 2, 0, false> non_mbsfn_region_len_e_;
   struct mcch_cfg_r9_s_ {
-    struct mcch_repeat_period_r9_e_ {
-      enum options { rf32, rf64, rf128, rf256 };
+    struct mcch_repeat_period_r9_opts {
+      enum options { rf32, rf64, rf128, rf256 } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      mcch_repeat_period_r9_e_() {}
-      mcch_repeat_period_r9_e_(options v) : value(v) {}
-      mcch_repeat_period_r9_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
-    struct mcch_mod_period_r9_e_ {
-      enum options { rf512, rf1024 };
+    typedef enumerated<mcch_repeat_period_r9_opts, 4, 0, false> mcch_repeat_period_r9_e_;
+    struct mcch_mod_period_r9_opts {
+      enum options { rf512, rf1024 } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      mcch_mod_period_r9_e_() {}
-      mcch_mod_period_r9_e_(options v) : value(v) {}
-      mcch_mod_period_r9_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
-    struct sig_mcs_r9_e_ {
-      enum options { n2, n7, n13, n19 };
+    typedef enumerated<mcch_mod_period_r9_opts, 2, 0, false> mcch_mod_period_r9_e_;
+    struct sig_mcs_r9_opts {
+      enum options { n2, n7, n13, n19 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      sig_mcs_r9_e_() {}
-      sig_mcs_r9_e_(options v) : value(v) {}
-      sig_mcs_r9_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<sig_mcs_r9_opts, 4, 0, false> sig_mcs_r9_e_;
 
     // member variables
     mcch_repeat_period_r9_e_ mcch_repeat_period_r9;
@@ -6852,46 +5346,22 @@ struct mbsfn_area_info_r9_s {
     sig_mcs_r9_e_            sig_mcs_r9;
   };
   struct mcch_cfg_r14_s_ {
-    struct mcch_repeat_period_v1430_e_ {
-      enum options { rf1, rf2, rf4, rf8, rf16 };
+    struct mcch_repeat_period_v1430_opts {
+      enum options { rf1, rf2, rf4, rf8, rf16 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 5, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      mcch_repeat_period_v1430_e_() {}
-      mcch_repeat_period_v1430_e_(options v) : value(v) {}
-      mcch_repeat_period_v1430_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct mcch_mod_period_v1430_e_ {
-      enum options { rf1, rf2, rf4, rf8, rf16, rf32, rf64, rf128, rf256, spare7 };
+    typedef enumerated<mcch_repeat_period_v1430_opts, 5, 0, false> mcch_repeat_period_v1430_e_;
+    struct mcch_mod_period_v1430_opts {
+      enum options { rf1, rf2, rf4, rf8, rf16, rf32, rf64, rf128, rf256, spare7 } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 10, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      mcch_mod_period_v1430_e_() {}
-      mcch_mod_period_v1430_e_(options v) : value(v) {}
-      mcch_mod_period_v1430_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
+    typedef enumerated<mcch_mod_period_v1430_opts, 10, 0, false> mcch_mod_period_v1430_e_;
 
     // member variables
     bool                        mcch_repeat_period_v1430_present;
@@ -6902,27 +5372,15 @@ struct mbsfn_area_info_r9_s {
     // sequence methods
     mcch_cfg_r14_s_();
   };
-  struct subcarrier_spacing_mbms_r14_e_ {
-    enum options { khz_minus7dot5, khz_minus1dot25 };
+  struct subcarrier_spacing_mbms_r14_opts {
+    enum options { khz_minus7dot5, khz_minus1dot25 } value;
     typedef float number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    subcarrier_spacing_mbms_r14_e_() {}
-    subcarrier_spacing_mbms_r14_e_(options v) : value(v) {}
-    subcarrier_spacing_mbms_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     float       to_number() const;
     std::string to_number_string() const;
   };
+  typedef enumerated<subcarrier_spacing_mbms_r14_opts, 2, 0, false> subcarrier_spacing_mbms_r14_e_;
 
   // member variables
   bool                    ext;
@@ -6946,47 +5404,23 @@ struct mbsfn_area_info_r9_s {
 
 // MBSFN-SubframeConfig ::= SEQUENCE
 struct mbsfn_sf_cfg_s {
-  struct radioframe_alloc_period_e_ {
-    enum options { n1, n2, n4, n8, n16, n32 };
+  struct radioframe_alloc_period_opts {
+    enum options { n1, n2, n4, n8, n16, n32 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 6, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    radioframe_alloc_period_e_() {}
-    radioframe_alloc_period_e_(options v) : value(v) {}
-    radioframe_alloc_period_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<radioframe_alloc_period_opts, 6, 0, false> radioframe_alloc_period_e_;
   struct sf_alloc_c_ {
-    struct types {
-      enum options { one_frame, four_frames, nulltype };
+    struct types_opts {
+      enum options { one_frame, four_frames, nulltype } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     sf_alloc_c_() : type_(types::nulltype) {}
@@ -7041,26 +5475,14 @@ struct mbsfn_sf_cfg_s {
 // MBSFN-SubframeConfig-v1430 ::= SEQUENCE
 struct mbsfn_sf_cfg_v1430_s {
   struct sf_alloc_v1430_c_ {
-    struct types {
-      enum options { one_frame_v1430, four_frames_v1430, nulltype };
+    struct types_opts {
+      enum options { one_frame_v1430, four_frames_v1430, nulltype } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     sf_alloc_v1430_c_() : type_(types::nulltype) {}
@@ -7118,47 +5540,23 @@ typedef dyn_array<neigh_cell_cdma2000_v920_s> neigh_cell_list_cdma2000_v920_l;
 
 // PCCH-Config ::= SEQUENCE
 struct pcch_cfg_s {
-  struct default_paging_cycle_e_ {
-    enum options { rf32, rf64, rf128, rf256 };
+  struct default_paging_cycle_opts {
+    enum options { rf32, rf64, rf128, rf256 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    default_paging_cycle_e_() {}
-    default_paging_cycle_e_(options v) : value(v) {}
-    default_paging_cycle_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
-  struct nb_e_ {
-    enum options { four_t, two_t, one_t, half_t, quarter_t, one_eighth_t, one_sixteenth_t, one_thirty_second_t };
+  typedef enumerated<default_paging_cycle_opts, 4, 0, false> default_paging_cycle_e_;
+  struct nb_opts {
+    enum options { four_t, two_t, one_t, half_t, quarter_t, one_eighth_t, one_sixteenth_t, one_thirty_second_t } value;
     typedef float number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    nb_e_() {}
-    nb_e_(options v) : value(v) {}
-    nb_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     float       to_number() const;
     std::string to_number_string() const;
   };
+  typedef enumerated<nb_opts, 8, 0, false> nb_e_;
 
   // member variables
   default_paging_cycle_e_ default_paging_cycle;
@@ -7172,46 +5570,22 @@ struct pcch_cfg_s {
 
 // PCCH-Config-v1310 ::= SEQUENCE
 struct pcch_cfg_v1310_s {
-  struct mpdcch_num_repeat_paging_r13_e_ {
-    enum options { r1, r2, r4, r8, r16, r32, r64, r128, r256 };
+  struct mpdcch_num_repeat_paging_r13_opts {
+    enum options { r1, r2, r4, r8, r16, r32, r64, r128, r256 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 9, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    mpdcch_num_repeat_paging_r13_e_() {}
-    mpdcch_num_repeat_paging_r13_e_(options v) : value(v) {}
-    mpdcch_num_repeat_paging_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
-  struct nb_v1310_e_ {
-    enum options { one64th_t, one128th_t, one256th_t };
+  typedef enumerated<mpdcch_num_repeat_paging_r13_opts, 9, 0, false> mpdcch_num_repeat_paging_r13_e_;
+  struct nb_v1310_opts {
+    enum options { one64th_t, one128th_t, one256th_t } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 3, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    nb_v1310_e_() {}
-    nb_v1310_e_(options v) : value(v) {}
-    nb_v1310_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<nb_v1310_opts, 3, 0, false> nb_v1310_e_;
 
   // member variables
   bool                            nb_v1310_present;
@@ -7240,46 +5614,22 @@ struct pdsch_cfg_common_s {
 
 // PDSCH-ConfigCommon-v1310 ::= SEQUENCE
 struct pdsch_cfg_common_v1310_s {
-  struct pdsch_max_num_repeat_cemode_a_r13_e_ {
-    enum options { r16, r32 };
+  struct pdsch_max_num_repeat_cemode_a_r13_opts {
+    enum options { r16, r32 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    pdsch_max_num_repeat_cemode_a_r13_e_() {}
-    pdsch_max_num_repeat_cemode_a_r13_e_(options v) : value(v) {}
-    pdsch_max_num_repeat_cemode_a_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct pdsch_max_num_repeat_cemode_b_r13_e_ {
-    enum options { r192, r256, r384, r512, r768, r1024, r1536, r2048 };
+  typedef enumerated<pdsch_max_num_repeat_cemode_a_r13_opts, 2, 0, false> pdsch_max_num_repeat_cemode_a_r13_e_;
+  struct pdsch_max_num_repeat_cemode_b_r13_opts {
+    enum options { r192, r256, r384, r512, r768, r1024, r1536, r2048 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    pdsch_max_num_repeat_cemode_b_r13_e_() {}
-    pdsch_max_num_repeat_cemode_b_r13_e_(options v) : value(v) {}
-    pdsch_max_num_repeat_cemode_b_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<pdsch_max_num_repeat_cemode_b_r13_opts, 8, 0, false> pdsch_max_num_repeat_cemode_b_r13_e_;
 
   // member variables
   bool                                 pdsch_max_num_repeat_cemode_a_r13_present;
@@ -7335,65 +5685,29 @@ struct prach_cfg_sib_s {
 // PRACH-ConfigSIB-v1310 ::= SEQUENCE
 struct prach_cfg_sib_v1310_s {
   struct mpdcch_start_sf_css_ra_r13_c_ {
-    struct fdd_r13_e_ {
-      enum options { v1, v1dot5, v2, v2dot5, v4, v5, v8, v10 };
+    struct fdd_r13_opts {
+      enum options { v1, v1dot5, v2, v2dot5, v4, v5, v8, v10 } value;
       typedef float number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      fdd_r13_e_() {}
-      fdd_r13_e_(options v) : value(v) {}
-      fdd_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       float       to_number() const;
       std::string to_number_string() const;
     };
-    struct tdd_r13_e_ {
-      enum options { v1, v2, v4, v5, v8, v10, v20, spare };
+    typedef enumerated<fdd_r13_opts, 8, 0, false> fdd_r13_e_;
+    struct tdd_r13_opts {
+      enum options { v1, v2, v4, v5, v8, v10, v20, spare } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      tdd_r13_e_() {}
-      tdd_r13_e_(options v) : value(v) {}
-      tdd_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct types {
-      enum options { fdd_r13, tdd_r13, nulltype };
+    typedef enumerated<tdd_r13_opts, 8, 0, false> tdd_r13_e_;
+    struct types_opts {
+      enum options { fdd_r13, tdd_r13, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     mpdcch_start_sf_css_ra_r13_c_() : type_(types::nulltype) {}
@@ -7464,26 +5778,14 @@ struct prach_cfg_sib_v1530_s {
 
 // PUCCH-ConfigCommon ::= SEQUENCE
 struct pucch_cfg_common_s {
-  struct delta_pucch_shift_e_ {
-    enum options { ds1, ds2, ds3 };
+  struct delta_pucch_shift_opts {
+    enum options { ds1, ds2, ds3 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 3, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    delta_pucch_shift_e_() {}
-    delta_pucch_shift_e_(options v) : value(v) {}
-    delta_pucch_shift_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<delta_pucch_shift_opts, 3, 0, false> delta_pucch_shift_e_;
 
   // member variables
   delta_pucch_shift_e_ delta_pucch_shift;
@@ -7499,86 +5801,38 @@ struct pucch_cfg_common_s {
 
 // PUCCH-ConfigCommon-v1310 ::= SEQUENCE
 struct pucch_cfg_common_v1310_s {
-  struct pucch_num_repeat_ce_msg4_level0_r13_e_ {
-    enum options { n1, n2, n4, n8 };
+  struct pucch_num_repeat_ce_msg4_level0_r13_opts {
+    enum options { n1, n2, n4, n8 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    pucch_num_repeat_ce_msg4_level0_r13_e_() {}
-    pucch_num_repeat_ce_msg4_level0_r13_e_(options v) : value(v) {}
-    pucch_num_repeat_ce_msg4_level0_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct pucch_num_repeat_ce_msg4_level1_r13_e_ {
-    enum options { n1, n2, n4, n8 };
+  typedef enumerated<pucch_num_repeat_ce_msg4_level0_r13_opts, 4, 0, false> pucch_num_repeat_ce_msg4_level0_r13_e_;
+  struct pucch_num_repeat_ce_msg4_level1_r13_opts {
+    enum options { n1, n2, n4, n8 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    pucch_num_repeat_ce_msg4_level1_r13_e_() {}
-    pucch_num_repeat_ce_msg4_level1_r13_e_(options v) : value(v) {}
-    pucch_num_repeat_ce_msg4_level1_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct pucch_num_repeat_ce_msg4_level2_r13_e_ {
-    enum options { n4, n8, n16, n32 };
+  typedef enumerated<pucch_num_repeat_ce_msg4_level1_r13_opts, 4, 0, false> pucch_num_repeat_ce_msg4_level1_r13_e_;
+  struct pucch_num_repeat_ce_msg4_level2_r13_opts {
+    enum options { n4, n8, n16, n32 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    pucch_num_repeat_ce_msg4_level2_r13_e_() {}
-    pucch_num_repeat_ce_msg4_level2_r13_e_(options v) : value(v) {}
-    pucch_num_repeat_ce_msg4_level2_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct pucch_num_repeat_ce_msg4_level3_r13_e_ {
-    enum options { n4, n8, n16, n32 };
+  typedef enumerated<pucch_num_repeat_ce_msg4_level2_r13_opts, 4, 0, false> pucch_num_repeat_ce_msg4_level2_r13_e_;
+  struct pucch_num_repeat_ce_msg4_level3_r13_opts {
+    enum options { n4, n8, n16, n32 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    pucch_num_repeat_ce_msg4_level3_r13_e_() {}
-    pucch_num_repeat_ce_msg4_level3_r13_e_(options v) : value(v) {}
-    pucch_num_repeat_ce_msg4_level3_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<pucch_num_repeat_ce_msg4_level3_r13_opts, 4, 0, false> pucch_num_repeat_ce_msg4_level3_r13_e_;
 
   // member variables
   bool                                   n1_pucch_an_info_list_r13_present;
@@ -7601,26 +5855,14 @@ struct pucch_cfg_common_v1310_s {
 
 // PUCCH-ConfigCommon-v1430 ::= SEQUENCE
 struct pucch_cfg_common_v1430_s {
-  struct pucch_num_repeat_ce_msg4_level3_r14_e_ {
-    enum options { n64, n128 };
+  struct pucch_num_repeat_ce_msg4_level3_r14_opts {
+    enum options { n64, n128 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    pucch_num_repeat_ce_msg4_level3_r14_e_() {}
-    pucch_num_repeat_ce_msg4_level3_r14_e_(options v) : value(v) {}
-    pucch_num_repeat_ce_msg4_level3_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<pucch_num_repeat_ce_msg4_level3_r14_opts, 2, 0, false> pucch_num_repeat_ce_msg4_level3_r14_e_;
 
   // member variables
   bool                                   pucch_num_repeat_ce_msg4_level3_r14_present;
@@ -7636,24 +5878,12 @@ struct pucch_cfg_common_v1430_s {
 // PUSCH-ConfigCommon ::= SEQUENCE
 struct pusch_cfg_common_s {
   struct pusch_cfg_basic_s_ {
-    struct hop_mode_e_ {
-      enum options { inter_sub_frame, intra_and_inter_sub_frame };
+    struct hop_mode_opts {
+      enum options { inter_sub_frame, intra_and_inter_sub_frame } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      hop_mode_e_() {}
-      hop_mode_e_(options v) : value(v) {}
-      hop_mode_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<hop_mode_opts, 2, 0, false> hop_mode_e_;
 
     // member variables
     uint8_t     n_sb;
@@ -7682,46 +5912,22 @@ struct pusch_cfg_common_v1270_s {
 
 // PUSCH-ConfigCommon-v1310 ::= SEQUENCE
 struct pusch_cfg_common_v1310_s {
-  struct pusch_max_num_repeat_cemode_a_r13_e_ {
-    enum options { r8, r16, r32 };
+  struct pusch_max_num_repeat_cemode_a_r13_opts {
+    enum options { r8, r16, r32 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 3, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    pusch_max_num_repeat_cemode_a_r13_e_() {}
-    pusch_max_num_repeat_cemode_a_r13_e_(options v) : value(v) {}
-    pusch_max_num_repeat_cemode_a_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct pusch_max_num_repeat_cemode_b_r13_e_ {
-    enum options { r192, r256, r384, r512, r768, r1024, r1536, r2048 };
+  typedef enumerated<pusch_max_num_repeat_cemode_a_r13_opts, 3, 0, false> pusch_max_num_repeat_cemode_a_r13_e_;
+  struct pusch_max_num_repeat_cemode_b_r13_opts {
+    enum options { r192, r256, r384, r512, r768, r1024, r1536, r2048 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    pusch_max_num_repeat_cemode_b_r13_e_() {}
-    pusch_max_num_repeat_cemode_b_r13_e_(options v) : value(v) {}
-    pusch_max_num_repeat_cemode_b_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<pusch_max_num_repeat_cemode_b_r13_opts, 8, 0, false> pusch_max_num_repeat_cemode_b_r13_e_;
 
   // member variables
   bool                                 pusch_max_num_repeat_cemode_a_r13_present;
@@ -7741,87 +5947,39 @@ struct pusch_cfg_common_v1310_s {
 // RACH-ConfigCommon ::= SEQUENCE
 struct rach_cfg_common_s {
   struct preamb_info_s_ {
-    struct nof_ra_preambs_e_ {
-      enum options { n4, n8, n12, n16, n20, n24, n28, n32, n36, n40, n44, n48, n52, n56, n60, n64 };
+    struct nof_ra_preambs_opts {
+      enum options { n4, n8, n12, n16, n20, n24, n28, n32, n36, n40, n44, n48, n52, n56, n60, n64 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 16, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      nof_ra_preambs_e_() {}
-      nof_ra_preambs_e_(options v) : value(v) {}
-      nof_ra_preambs_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<nof_ra_preambs_opts, 16, 0, false> nof_ra_preambs_e_;
     struct preambs_group_a_cfg_s_ {
-      struct size_of_ra_preambs_group_a_e_ {
-        enum options { n4, n8, n12, n16, n20, n24, n28, n32, n36, n40, n44, n48, n52, n56, n60 };
+      struct size_of_ra_preambs_group_a_opts {
+        enum options { n4, n8, n12, n16, n20, n24, n28, n32, n36, n40, n44, n48, n52, n56, n60 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 15, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        size_of_ra_preambs_group_a_e_() {}
-        size_of_ra_preambs_group_a_e_(options v) : value(v) {}
-        size_of_ra_preambs_group_a_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
-      struct msg_size_group_a_e_ {
-        enum options { b56, b144, b208, b256 };
+      typedef enumerated<size_of_ra_preambs_group_a_opts, 15, 0, false> size_of_ra_preambs_group_a_e_;
+      struct msg_size_group_a_opts {
+        enum options { b56, b144, b208, b256 } value;
         typedef uint16_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        msg_size_group_a_e_() {}
-        msg_size_group_a_e_(options v) : value(v) {}
-        msg_size_group_a_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint16_t    to_number() const;
       };
-      struct msg_pwr_offset_group_b_e_ {
-        enum options { minusinfinity, db0, db5, db8, db10, db12, db15, db18 };
+      typedef enumerated<msg_size_group_a_opts, 4, 0, false> msg_size_group_a_e_;
+      struct msg_pwr_offset_group_b_opts {
+        enum options { minusinfinity, db0, db5, db8, db10, db12, db15, db18 } value;
         typedef int8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 8, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        msg_pwr_offset_group_b_e_() {}
-        msg_pwr_offset_group_b_e_(options v) : value(v) {}
-        msg_pwr_offset_group_b_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         int8_t      to_number() const;
       };
+      typedef enumerated<msg_pwr_offset_group_b_opts, 8, 0, false> msg_pwr_offset_group_b_e_;
 
       // member variables
       bool                          ext;
@@ -7843,46 +6001,22 @@ struct rach_cfg_common_s {
     preamb_info_s_();
   };
   struct ra_supervision_info_s_ {
-    struct ra_resp_win_size_e_ {
-      enum options { sf2, sf3, sf4, sf5, sf6, sf7, sf8, sf10 };
+    struct ra_resp_win_size_opts {
+      enum options { sf2, sf3, sf4, sf5, sf6, sf7, sf8, sf10 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      ra_resp_win_size_e_() {}
-      ra_resp_win_size_e_(options v) : value(v) {}
-      ra_resp_win_size_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct mac_contention_resolution_timer_e_ {
-      enum options { sf8, sf16, sf24, sf32, sf40, sf48, sf56, sf64 };
+    typedef enumerated<ra_resp_win_size_opts, 8, 0, false> ra_resp_win_size_e_;
+    struct mac_contention_resolution_timer_opts {
+      enum options { sf8, sf16, sf24, sf32, sf40, sf48, sf56, sf64 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      mac_contention_resolution_timer_e_() {}
-      mac_contention_resolution_timer_e_(options v) : value(v) {}
-      mac_contention_resolution_timer_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<mac_contention_resolution_timer_opts, 8, 0, false> mac_contention_resolution_timer_e_;
 
     // member variables
     preamb_trans_max_e                 preamb_trans_max;
@@ -7915,46 +6049,22 @@ struct rach_cfg_common_s {
 // RACH-ConfigCommon-v1250 ::= SEQUENCE
 struct rach_cfg_common_v1250_s {
   struct tx_fail_params_r12_s_ {
-    struct conn_est_fail_count_r12_e_ {
-      enum options { n1, n2, n3, n4 };
+    struct conn_est_fail_count_r12_opts {
+      enum options { n1, n2, n3, n4 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      conn_est_fail_count_r12_e_() {}
-      conn_est_fail_count_r12_e_(options v) : value(v) {}
-      conn_est_fail_count_r12_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct conn_est_fail_offset_validity_r12_e_ {
-      enum options { s30, s60, s120, s240, s300, s420, s600, s900 };
+    typedef enumerated<conn_est_fail_count_r12_opts, 4, 0, false> conn_est_fail_count_r12_e_;
+    struct conn_est_fail_offset_validity_r12_opts {
+      enum options { s30, s60, s120, s240, s300, s420, s600, s900 } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      conn_est_fail_offset_validity_r12_e_() {}
-      conn_est_fail_offset_validity_r12_e_(options v) : value(v) {}
-      conn_est_fail_offset_validity_r12_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
+    typedef enumerated<conn_est_fail_offset_validity_r12_opts, 8, 0, false> conn_est_fail_offset_validity_r12_e_;
 
     // member variables
     bool                                 conn_est_fail_offset_r12_present;
@@ -7977,67 +6087,31 @@ struct rach_cfg_common_v1250_s {
 
 // RSS-Config-r15 ::= SEQUENCE
 struct rss_cfg_r15_s {
-  struct dur_r15_e_ {
-    enum options { sf8, sf16, sf32, sf40 };
+  struct dur_r15_opts {
+    enum options { sf8, sf16, sf32, sf40 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    dur_r15_e_() {}
-    dur_r15_e_(options v) : value(v) {}
-    dur_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct periodicity_r15_e_ {
-    enum options { ms160, ms320, ms640, ms1280 };
+  typedef enumerated<dur_r15_opts, 4, 0, false> dur_r15_e_;
+  struct periodicity_r15_opts {
+    enum options { ms160, ms320, ms640, ms1280 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    periodicity_r15_e_() {}
-    periodicity_r15_e_(options v) : value(v) {}
-    periodicity_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
-  struct pwr_boost_r15_e_ {
-    enum options { db0, db3, db4dot8, db6 };
+  typedef enumerated<periodicity_r15_opts, 4, 0, false> periodicity_r15_e_;
+  struct pwr_boost_r15_opts {
+    enum options { db0, db3, db4dot8, db6 } value;
     typedef float number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    pwr_boost_r15_e_() {}
-    pwr_boost_r15_e_(options v) : value(v) {}
-    pwr_boost_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     float       to_number() const;
     std::string to_number_string() const;
   };
+  typedef enumerated<pwr_boost_r15_opts, 4, 0, false> pwr_boost_r15_e_;
 
   // member variables
   dur_r15_e_         dur_r15;
@@ -8068,26 +6142,14 @@ struct ref_time_r15_s {
 
 // ReselectionInfoRelay-r13 ::= SEQUENCE
 struct resel_info_relay_r13_s {
-  struct min_hyst_r13_e_ {
-    enum options { db0, db3, db6, db9, db12, dbinf };
+  struct min_hyst_r13_opts {
+    enum options { db0, db3, db6, db9, db12, dbinf } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 6, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    min_hyst_r13_e_() {}
-    min_hyst_r13_e_(options v) : value(v) {}
-    min_hyst_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<min_hyst_r13_opts, 6, 0, false> min_hyst_r13_e_;
 
   // member variables
   bool            min_hyst_r13_present;
@@ -8103,7 +6165,7 @@ struct resel_info_relay_r13_s {
 };
 
 // SIB-Type ::= ENUMERATED
-struct sib_type_e {
+struct sib_type_opts {
   enum options {
     sib_type3,
     sib_type4,
@@ -8128,47 +6190,23 @@ struct sib_type_e {
     sib_type24_v1530,
     sib_type25_v1530,
     sib_type26_v1530
-  };
+  } value;
   typedef uint8_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 22, nof_exts = 6;
-  static const bool     has_ext = true;
-
-  // enumerated methods
-  sib_type_e() {}
-  sib_type_e(options v) : value(v) {}
-  sib_type_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint8_t     to_number() const;
 };
+typedef enumerated<sib_type_opts, 22, 6, true> sib_type_e;
 
 // SIB8-PerPLMN-r11 ::= SEQUENCE
 struct sib8_per_plmn_r11_s {
   struct params_cdma2000_r11_c_ {
-    struct types {
-      enum options { explicit_value, default_value, nulltype };
+    struct types_opts {
+      enum options { explicit_value, default_value, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     params_cdma2000_r11_c_() : type_(types::nulltype) {}
@@ -8336,46 +6374,22 @@ typedef dyn_array<sl_sync_cfg_r12_s> sl_sync_cfg_list_v2x_r14_l;
 // SoundingRS-UL-ConfigCommon ::= CHOICE
 struct srs_ul_cfg_common_c {
   struct setup_s_ {
-    struct srs_bw_cfg_e_ {
-      enum options { bw0, bw1, bw2, bw3, bw4, bw5, bw6, bw7 };
+    struct srs_bw_cfg_opts {
+      enum options { bw0, bw1, bw2, bw3, bw4, bw5, bw6, bw7 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      srs_bw_cfg_e_() {}
-      srs_bw_cfg_e_(options v) : value(v) {}
-      srs_bw_cfg_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct srs_sf_cfg_e_ {
-      enum options { sc0, sc1, sc2, sc3, sc4, sc5, sc6, sc7, sc8, sc9, sc10, sc11, sc12, sc13, sc14, sc15 };
+    typedef enumerated<srs_bw_cfg_opts, 8, 0, false> srs_bw_cfg_e_;
+    struct srs_sf_cfg_opts {
+      enum options { sc0, sc1, sc2, sc3, sc4, sc5, sc6, sc7, sc8, sc9, sc10, sc11, sc12, sc13, sc14, sc15 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 16, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      srs_sf_cfg_e_() {}
-      srs_sf_cfg_e_(options v) : value(v) {}
-      srs_sf_cfg_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<srs_sf_cfg_opts, 16, 0, false> srs_sf_cfg_e_;
 
     // member variables
     bool          srs_max_up_pts_present;
@@ -8504,47 +6518,23 @@ struct sib_type5_v9e0_ies_s {
 
 // UAC-BarringInfoSet-r15 ::= SEQUENCE
 struct uac_barr_info_set_r15_s {
-  struct uac_barr_factor_r15_e_ {
-    enum options { p00, p05, p10, p15, p20, p25, p30, p40, p50, p60, p70, p75, p80, p85, p90, p95 };
+  struct uac_barr_factor_r15_opts {
+    enum options { p00, p05, p10, p15, p20, p25, p30, p40, p50, p60, p70, p75, p80, p85, p90, p95 } value;
     typedef float number_type;
 
-    options               value;
-    static const uint32_t nof_types = 16, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    uac_barr_factor_r15_e_() {}
-    uac_barr_factor_r15_e_(options v) : value(v) {}
-    uac_barr_factor_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     float       to_number() const;
     std::string to_number_string() const;
   };
-  struct uac_barr_time_r15_e_ {
-    enum options { s4, s8, s16, s32, s64, s128, s256, s512 };
+  typedef enumerated<uac_barr_factor_r15_opts, 16, 0, false> uac_barr_factor_r15_e_;
+  struct uac_barr_time_r15_opts {
+    enum options { s4, s8, s16, s32, s64, s128, s256, s512 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    uac_barr_time_r15_e_() {}
-    uac_barr_time_r15_e_(options v) : value(v) {}
-    uac_barr_time_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<uac_barr_time_r15_opts, 8, 0, false> uac_barr_time_r15_e_;
 
   // member variables
   uac_barr_factor_r15_e_ uac_barr_factor_r15;
@@ -8561,24 +6551,12 @@ struct uac_barr_info_set_r15_s {
 struct uac_barr_per_plmn_r15_s {
   struct uac_ac_barr_list_type_r15_c_ {
     typedef fixed_array<uint8_t, 63> uac_implicit_ac_barr_list_r15_l_;
-    struct types {
-      enum options { uac_implicit_ac_barr_list_r15, uac_explicit_ac_barr_list_r15, nulltype };
+    struct types_opts {
+      enum options { uac_implicit_ac_barr_list_r15, uac_explicit_ac_barr_list_r15, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     uac_ac_barr_list_type_r15_c_() : type_(types::nulltype) {}
@@ -8646,26 +6624,14 @@ struct udt_restricting_per_plmn_r13_s {
 };
 
 // UL-CyclicPrefixLength ::= ENUMERATED
-struct ul_cp_len_e {
-  enum options { len1, len2 };
+struct ul_cp_len_opts {
+  enum options { len1, len2 } value;
   typedef uint8_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 2, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  ul_cp_len_e() {}
-  ul_cp_len_e(options v) : value(v) {}
-  ul_cp_len_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint8_t     to_number() const;
 };
+typedef enumerated<ul_cp_len_opts, 2, 0, false> ul_cp_len_e;
 
 // UplinkPowerControlCommon ::= SEQUENCE
 struct ul_pwr_ctrl_common_s {
@@ -8684,46 +6650,22 @@ struct ul_pwr_ctrl_common_s {
 
 // UplinkPowerControlCommon-v1020 ::= SEQUENCE
 struct ul_pwr_ctrl_common_v1020_s {
-  struct delta_f_pucch_format3_r10_e_ {
-    enum options { delta_f_minus1, delta_f0, delta_f1, delta_f2, delta_f3, delta_f4, delta_f5, delta_f6 };
+  struct delta_f_pucch_format3_r10_opts {
+    enum options { delta_f_minus1, delta_f0, delta_f1, delta_f2, delta_f3, delta_f4, delta_f5, delta_f6 } value;
     typedef int8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    delta_f_pucch_format3_r10_e_() {}
-    delta_f_pucch_format3_r10_e_(options v) : value(v) {}
-    delta_f_pucch_format3_r10_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     int8_t      to_number() const;
   };
-  struct delta_f_pucch_format1b_cs_r10_e_ {
-    enum options { delta_f1, delta_f2, spare2, spare1 };
+  typedef enumerated<delta_f_pucch_format3_r10_opts, 8, 0, false> delta_f_pucch_format3_r10_e_;
+  struct delta_f_pucch_format1b_cs_r10_opts {
+    enum options { delta_f1, delta_f2, spare2, spare1 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    delta_f_pucch_format1b_cs_r10_e_() {}
-    delta_f_pucch_format1b_cs_r10_e_(options v) : value(v) {}
-    delta_f_pucch_format1b_cs_r10_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<delta_f_pucch_format1b_cs_r10_opts, 4, 0, false> delta_f_pucch_format1b_cs_r10_e_;
 
   // member variables
   delta_f_pucch_format3_r10_e_     delta_f_pucch_format3_r10;
@@ -8816,126 +6758,54 @@ struct wlan_offload_cfg_r12_s {
 
 // WUS-Config-r15 ::= SEQUENCE
 struct wus_cfg_r15_s {
-  struct max_dur_factor_r15_e_ {
-    enum options { one32th, one16th, one8th, one4th };
+  struct max_dur_factor_r15_opts {
+    enum options { one32th, one16th, one8th, one4th } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    max_dur_factor_r15_e_() {}
-    max_dur_factor_r15_e_(options v) : value(v) {}
-    max_dur_factor_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct num_pos_r15_e_ {
-    enum options { n1, n2, n4, spare1 };
+  typedef enumerated<max_dur_factor_r15_opts, 4, 0, false> max_dur_factor_r15_e_;
+  struct num_pos_r15_opts {
+    enum options { n1, n2, n4, spare1 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    num_pos_r15_e_() {}
-    num_pos_r15_e_(options v) : value(v) {}
-    num_pos_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct freq_location_r15_e_ {
-    enum options { n0, n2, n4, spare1 };
+  typedef enumerated<num_pos_r15_opts, 4, 0, false> num_pos_r15_e_;
+  struct freq_location_r15_opts {
+    enum options { n0, n2, n4, spare1 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    freq_location_r15_e_() {}
-    freq_location_r15_e_(options v) : value(v) {}
-    freq_location_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct time_offset_drx_r15_e_ {
-    enum options { ms40, ms80, ms160, ms240 };
+  typedef enumerated<freq_location_r15_opts, 4, 0, false> freq_location_r15_e_;
+  struct time_offset_drx_r15_opts {
+    enum options { ms40, ms80, ms160, ms240 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    time_offset_drx_r15_e_() {}
-    time_offset_drx_r15_e_(options v) : value(v) {}
-    time_offset_drx_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct time_offset_e_drx_short_r15_e_ {
-    enum options { ms40, ms80, ms160, ms240 };
+  typedef enumerated<time_offset_drx_r15_opts, 4, 0, false> time_offset_drx_r15_e_;
+  struct time_offset_e_drx_short_r15_opts {
+    enum options { ms40, ms80, ms160, ms240 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    time_offset_e_drx_short_r15_e_() {}
-    time_offset_e_drx_short_r15_e_(options v) : value(v) {}
-    time_offset_e_drx_short_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct time_offset_e_drx_long_r15_e_ {
-    enum options { ms1000, ms2000 };
+  typedef enumerated<time_offset_e_drx_short_r15_opts, 4, 0, false> time_offset_e_drx_short_r15_e_;
+  struct time_offset_e_drx_long_r15_opts {
+    enum options { ms1000, ms2000 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    time_offset_e_drx_long_r15_e_() {}
-    time_offset_e_drx_long_r15_e_(options v) : value(v) {}
-    time_offset_e_drx_long_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<time_offset_e_drx_long_r15_opts, 2, 0, false> time_offset_e_drx_long_r15_e_;
 
   // member variables
   bool                           num_pos_r15_present;
@@ -9007,26 +6877,14 @@ typedef dyn_array<carrier_freqs_info_geran_s> carrier_freqs_info_list_geran_l;
 
 // CellReselectionInfoCommon-v1460 ::= SEQUENCE
 struct cell_resel_info_common_v1460_s {
-  struct s_search_delta_p_r14_e_ {
-    enum options { db6, db9, db12, db15 };
+  struct s_search_delta_p_r14_opts {
+    enum options { db6, db9, db12, db15 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    s_search_delta_p_r14_e_() {}
-    s_search_delta_p_r14_e_(options v) : value(v) {}
-    s_search_delta_p_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<s_search_delta_p_r14_opts, 4, 0, false> s_search_delta_p_r14_e_;
 
   // member variables
   s_search_delta_p_r14_e_ s_search_delta_p_r14;
@@ -9160,26 +7018,14 @@ typedef dyn_array<mbms_carrier_type_r14_s> mbms_inter_freq_carrier_type_list_r14
 
 // MBMS-NotificationConfig-r9 ::= SEQUENCE
 struct mbms_notif_cfg_r9_s {
-  struct notif_repeat_coeff_r9_e_ {
-    enum options { n2, n4 };
+  struct notif_repeat_coeff_r9_opts {
+    enum options { n2, n4 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    notif_repeat_coeff_r9_e_() {}
-    notif_repeat_coeff_r9_e_(options v) : value(v) {}
-    notif_repeat_coeff_r9_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<notif_repeat_coeff_r9_opts, 2, 0, false> notif_repeat_coeff_r9_e_;
 
   // member variables
   notif_repeat_coeff_r9_e_ notif_repeat_coeff_r9;
@@ -9234,46 +7080,22 @@ struct meas_idle_cfg_sib_r15_s {
 
 // MobilityStateParameters ::= SEQUENCE
 struct mob_state_params_s {
-  struct t_eval_e_ {
-    enum options { s30, s60, s120, s180, s240, spare3, spare2, spare1 };
+  struct t_eval_opts {
+    enum options { s30, s60, s120, s180, s240, spare3, spare2, spare1 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    t_eval_e_() {}
-    t_eval_e_(options v) : value(v) {}
-    t_eval_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct t_hyst_normal_e_ {
-    enum options { s30, s60, s120, s180, s240, spare3, spare2, spare1 };
+  typedef enumerated<t_eval_opts, 8, 0, false> t_eval_e_;
+  struct t_hyst_normal_opts {
+    enum options { s30, s60, s120, s180, s240, spare3, spare2, spare1 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    t_hyst_normal_e_() {}
-    t_hyst_normal_e_(options v) : value(v) {}
-    t_hyst_normal_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<t_hyst_normal_opts, 8, 0, false> t_hyst_normal_e_;
 
   // member variables
   t_eval_e_        t_eval;
@@ -9355,26 +7177,14 @@ struct rr_cfg_common_sib_s {
 
 // RedistributionServingInfo-r13 ::= SEQUENCE
 struct redist_serving_info_r13_s {
-  struct t360_r13_e_ {
-    enum options { min4, min8, min16, min32, infinity, spare3, spare2, spare1 };
+  struct t360_r13_opts {
+    enum options { min4, min8, min16, min32, infinity, spare3, spare2, spare1 } value;
     typedef int8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    t360_r13_e_() {}
-    t360_r13_e_(options v) : value(v) {}
-    t360_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     int8_t      to_number() const;
   };
+  typedef enumerated<t360_r13_opts, 8, 0, false> t360_r13_e_;
 
   // member variables
   bool        redist_factor_cell_r13_present;
@@ -9391,27 +7201,15 @@ struct redist_serving_info_r13_s {
 
 // SC-MCCH-SchedulingInfo-r14 ::= SEQUENCE
 struct sc_mcch_sched_info_r14_s {
-  struct on_dur_timer_scptm_r14_e_ {
-    enum options { psf10, psf20, psf100, psf300, psf500, psf1000, psf1200, psf1600 };
+  struct on_dur_timer_scptm_r14_opts {
+    enum options { psf10, psf20, psf100, psf300, psf500, psf1000, psf1200, psf1600 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    on_dur_timer_scptm_r14_e_() {}
-    on_dur_timer_scptm_r14_e_(options v) : value(v) {}
-    on_dur_timer_scptm_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
-  struct drx_inactivity_timer_scptm_r14_e_ {
+  typedef enumerated<on_dur_timer_scptm_r14_opts, 8, 0, false> on_dur_timer_scptm_r14_e_;
+  struct drx_inactivity_timer_scptm_r14_opts {
     enum options {
       psf0,
       psf1,
@@ -9429,27 +7227,15 @@ struct sc_mcch_sched_info_r14_s {
       psf4096,
       psf8192,
       psf16384
-    };
+    } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 16, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    drx_inactivity_timer_scptm_r14_e_() {}
-    drx_inactivity_timer_scptm_r14_e_(options v) : value(v) {}
-    drx_inactivity_timer_scptm_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<drx_inactivity_timer_scptm_r14_opts, 16, 0, false> drx_inactivity_timer_scptm_r14_e_;
   struct sched_period_start_offset_scptm_r14_c_ {
-    struct types {
+    struct types_opts {
       enum options {
         sf10,
         sf20,
@@ -9468,25 +7254,13 @@ struct sc_mcch_sched_info_r14_s {
         sf4096,
         sf8192,
         nulltype
-      };
+      } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 16, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
+    typedef enumerated<types_opts, 16, 0, false> types;
 
     // choice methods
     sched_period_start_offset_scptm_r14_c_() : type_(types::nulltype) {}
@@ -9707,46 +7481,22 @@ typedef dyn_array<sl_comm_res_pool_r12_s> sl_comm_tx_pool_list_ext_r13_l;
 
 // SL-DiscConfigRelayUE-r13 ::= SEQUENCE
 struct sl_disc_cfg_relay_ue_r13_s {
-  struct hyst_max_r13_e_ {
-    enum options { db0, db3, db6, db9, db12, dbinf };
+  struct hyst_max_r13_opts {
+    enum options { db0, db3, db6, db9, db12, dbinf } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 6, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    hyst_max_r13_e_() {}
-    hyst_max_r13_e_(options v) : value(v) {}
-    hyst_max_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct hyst_min_r13_e_ {
-    enum options { db0, db3, db6, db9, db12 };
+  typedef enumerated<hyst_max_r13_opts, 6, 0, false> hyst_max_r13_e_;
+  struct hyst_min_r13_opts {
+    enum options { db0, db3, db6, db9, db12 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 5, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    hyst_min_r13_e_() {}
-    hyst_min_r13_e_(options v) : value(v) {}
-    hyst_min_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<hyst_min_r13_opts, 5, 0, false> hyst_min_r13_e_;
 
   // member variables
   bool            thresh_high_r13_present;
@@ -9767,26 +7517,14 @@ struct sl_disc_cfg_relay_ue_r13_s {
 
 // SL-DiscConfigRemoteUE-r13 ::= SEQUENCE
 struct sl_disc_cfg_remote_ue_r13_s {
-  struct hyst_max_r13_e_ {
-    enum options { db0, db3, db6, db9, db12 };
+  struct hyst_max_r13_opts {
+    enum options { db0, db3, db6, db9, db12 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 5, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    hyst_max_r13_e_() {}
-    hyst_max_r13_e_(options v) : value(v) {}
-    hyst_max_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<hyst_max_r13_opts, 5, 0, false> hyst_max_r13_e_;
 
   // member variables
   bool                   thresh_high_r13_present;
@@ -9963,26 +7701,14 @@ struct sib_type6_v8h0_ies_s {
 };
 
 // TimeAlignmentTimer ::= ENUMERATED
-struct time_align_timer_e {
-  enum options { sf500, sf750, sf1280, sf1920, sf2560, sf5120, sf10240, infinity };
+struct time_align_timer_opts {
+  enum options { sf500, sf750, sf1280, sf1920, sf2560, sf5120, sf10240, infinity } value;
   typedef int16_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 8, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  time_align_timer_e() {}
-  time_align_timer_e(options v) : value(v) {}
-  time_align_timer_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   int16_t     to_number() const;
 };
+typedef enumerated<time_align_timer_opts, 8, 0, false> time_align_timer_e;
 
 // TimeReferenceInfo-r15 ::= SEQUENCE
 struct time_ref_info_r15_s {
@@ -10002,24 +7728,12 @@ struct time_ref_info_r15_s {
 };
 
 // UAC-AC1-SelectAssistInfo-r15 ::= ENUMERATED
-struct uac_ac1_select_assist_info_r15_e {
-  enum options { a, b, c };
+struct uac_ac1_select_assist_info_r15_opts {
+  enum options { a, b, c } value;
 
-  options               value;
-  static const uint32_t nof_types = 3, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  uac_ac1_select_assist_info_r15_e() {}
-  uac_ac1_select_assist_info_r15_e(options v) : value(v) {}
-  uac_ac1_select_assist_info_r15_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
 };
+typedef enumerated<uac_ac1_select_assist_info_r15_opts, 3, 0, false> uac_ac1_select_assist_info_r15_e;
 
 // UAC-BarringInfoSetList-r15 ::= SEQUENCE (SIZE (1..maxBarringInfoSet-r15)) OF UAC-BarringInfoSet-r15
 typedef dyn_array<uac_barr_info_set_r15_s> uac_barr_info_set_list_r15_l;
@@ -10032,206 +7746,86 @@ typedef dyn_array<udt_restricting_per_plmn_r13_s> udt_restricting_per_plmn_list_
 
 // UE-TimersAndConstants ::= SEQUENCE
 struct ue_timers_and_consts_s {
-  struct t300_e_ {
-    enum options { ms100, ms200, ms300, ms400, ms600, ms1000, ms1500, ms2000 };
+  struct t300_opts {
+    enum options { ms100, ms200, ms300, ms400, ms600, ms1000, ms1500, ms2000 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    t300_e_() {}
-    t300_e_(options v) : value(v) {}
-    t300_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
-  struct t301_e_ {
-    enum options { ms100, ms200, ms300, ms400, ms600, ms1000, ms1500, ms2000 };
+  typedef enumerated<t300_opts, 8, 0, false> t300_e_;
+  struct t301_opts {
+    enum options { ms100, ms200, ms300, ms400, ms600, ms1000, ms1500, ms2000 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    t301_e_() {}
-    t301_e_(options v) : value(v) {}
-    t301_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
-  struct t310_e_ {
-    enum options { ms0, ms50, ms100, ms200, ms500, ms1000, ms2000 };
+  typedef enumerated<t301_opts, 8, 0, false> t301_e_;
+  struct t310_opts {
+    enum options { ms0, ms50, ms100, ms200, ms500, ms1000, ms2000 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 7, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    t310_e_() {}
-    t310_e_(options v) : value(v) {}
-    t310_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
-  struct n310_e_ {
-    enum options { n1, n2, n3, n4, n6, n8, n10, n20 };
+  typedef enumerated<t310_opts, 7, 0, false> t310_e_;
+  struct n310_opts {
+    enum options { n1, n2, n3, n4, n6, n8, n10, n20 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    n310_e_() {}
-    n310_e_(options v) : value(v) {}
-    n310_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct t311_e_ {
-    enum options { ms1000, ms3000, ms5000, ms10000, ms15000, ms20000, ms30000 };
+  typedef enumerated<n310_opts, 8, 0, false> n310_e_;
+  struct t311_opts {
+    enum options { ms1000, ms3000, ms5000, ms10000, ms15000, ms20000, ms30000 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 7, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    t311_e_() {}
-    t311_e_(options v) : value(v) {}
-    t311_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
-  struct n311_e_ {
-    enum options { n1, n2, n3, n4, n5, n6, n8, n10 };
+  typedef enumerated<t311_opts, 7, 0, false> t311_e_;
+  struct n311_opts {
+    enum options { n1, n2, n3, n4, n5, n6, n8, n10 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    n311_e_() {}
-    n311_e_(options v) : value(v) {}
-    n311_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct t300_v1310_e_ {
-    enum options { ms2500, ms3000, ms3500, ms4000, ms5000, ms6000, ms8000, ms10000 };
+  typedef enumerated<n311_opts, 8, 0, false> n311_e_;
+  struct t300_v1310_opts {
+    enum options { ms2500, ms3000, ms3500, ms4000, ms5000, ms6000, ms8000, ms10000 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    t300_v1310_e_() {}
-    t300_v1310_e_(options v) : value(v) {}
-    t300_v1310_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
-  struct t301_v1310_e_ {
-    enum options { ms2500, ms3000, ms3500, ms4000, ms5000, ms6000, ms8000, ms10000 };
+  typedef enumerated<t300_v1310_opts, 8, 0, false> t300_v1310_e_;
+  struct t301_v1310_opts {
+    enum options { ms2500, ms3000, ms3500, ms4000, ms5000, ms6000, ms8000, ms10000 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    t301_v1310_e_() {}
-    t301_v1310_e_(options v) : value(v) {}
-    t301_v1310_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
-  struct t310_v1330_e_ {
-    enum options { ms4000, ms6000 };
+  typedef enumerated<t301_v1310_opts, 8, 0, false> t301_v1310_e_;
+  struct t310_v1330_opts {
+    enum options { ms4000, ms6000 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    t310_v1330_e_() {}
-    t310_v1330_e_(options v) : value(v) {}
-    t310_v1330_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
-  struct t300_r15_e_ {
-    enum options { ms4000, ms6000, ms8000, ms10000, ms15000, ms25000, ms40000, ms60000 };
+  typedef enumerated<t310_v1330_opts, 2, 0, false> t310_v1330_e_;
+  struct t300_r15_opts {
+    enum options { ms4000, ms6000, ms8000, ms10000, ms15000, ms25000, ms40000, ms60000 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    t300_r15_e_() {}
-    t300_r15_e_(options v) : value(v) {}
-    t300_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<t300_r15_opts, 8, 0, false> t300_r15_e_;
 
   // member variables
   bool    ext;
@@ -10280,26 +7874,14 @@ struct wlan_offload_info_per_plmn_r12_s {
 
 // SchedulingInfo ::= SEQUENCE
 struct sched_info_s {
-  struct si_periodicity_e_ {
-    enum options { rf8, rf16, rf32, rf64, rf128, rf256, rf512 };
+  struct si_periodicity_opts {
+    enum options { rf8, rf16, rf32, rf64, rf128, rf256, rf512 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 7, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    si_periodicity_e_() {}
-    si_periodicity_e_(options v) : value(v) {}
-    si_periodicity_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<si_periodicity_opts, 7, 0, false> si_periodicity_e_;
 
   // member variables
   si_periodicity_e_ si_periodicity;
@@ -10394,24 +7976,12 @@ struct sib_type10_s {
 
 // SystemInformationBlockType11 ::= SEQUENCE
 struct sib_type11_s {
-  struct warning_msg_segment_type_e_ {
-    enum options { not_last_segment, last_segment };
+  struct warning_msg_segment_type_opts {
+    enum options { not_last_segment, last_segment } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    warning_msg_segment_type_e_() {}
-    warning_msg_segment_type_e_(options v) : value(v) {}
-    warning_msg_segment_type_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<warning_msg_segment_type_opts, 2, 0, false> warning_msg_segment_type_e_;
 
   // member variables
   bool                        ext;
@@ -10435,24 +8005,12 @@ struct sib_type11_s {
 
 // SystemInformationBlockType12-r9 ::= SEQUENCE
 struct sib_type12_r9_s {
-  struct warning_msg_segment_type_r9_e_ {
-    enum options { not_last_segment, last_segment };
+  struct warning_msg_segment_type_r9_opts {
+    enum options { not_last_segment, last_segment } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    warning_msg_segment_type_r9_e_() {}
-    warning_msg_segment_type_r9_e_(options v) : value(v) {}
-    warning_msg_segment_type_r9_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<warning_msg_segment_type_r9_opts, 2, 0, false> warning_msg_segment_type_r9_e_;
 
   // member variables
   bool                           ext;
@@ -10501,24 +8059,12 @@ struct sib_type13_r9_s {
 struct sib_type14_r11_s {
   struct eab_param_r11_c_ {
     typedef dyn_array<eab_cfg_plmn_r11_s> eab_per_plmn_list_r11_l_;
-    struct types {
-      enum options { eab_common_r11, eab_per_plmn_list_r11, nulltype };
+    struct types_opts {
+      enum options { eab_common_r11, eab_per_plmn_list_r11, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     eab_param_r11_c_() : type_(types::nulltype) {}
@@ -10558,26 +8104,14 @@ struct sib_type14_r11_s {
 
     void destroy_();
   };
-  struct eab_per_rsrp_r15_e_ {
-    enum options { thresh0, thresh1, thresh2, thresh3 };
+  struct eab_per_rsrp_r15_opts {
+    enum options { thresh0, thresh1, thresh2, thresh3 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    eab_per_rsrp_r15_e_() {}
-    eab_per_rsrp_r15_e_(options v) : value(v) {}
-    eab_per_rsrp_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<eab_per_rsrp_r15_opts, 4, 0, false> eab_per_rsrp_r15_e_;
 
   // member variables
   bool             ext;
@@ -10790,26 +8324,14 @@ struct sib_type2_s {
     ac_barr_info_s_();
   };
   struct freq_info_s_ {
-    struct ul_bw_e_ {
-      enum options { n6, n15, n25, n50, n75, n100 };
+    struct ul_bw_opts {
+      enum options { n6, n15, n25, n50, n75, n100 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 6, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      ul_bw_e_() {}
-      ul_bw_e_(options v) : value(v) {}
-      ul_bw_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<ul_bw_opts, 6, 0, false> ul_bw_e_;
 
     // member variables
     bool     ul_carrier_freq_present;
@@ -10888,27 +8410,15 @@ struct sib_type2_s {
 
 // SystemInformationBlockType20-r13 ::= SEQUENCE
 struct sib_type20_r13_s {
-  struct sc_mcch_repeat_period_r13_e_ {
-    enum options { rf2, rf4, rf8, rf16, rf32, rf64, rf128, rf256 };
+  struct sc_mcch_repeat_period_r13_opts {
+    enum options { rf2, rf4, rf8, rf16, rf32, rf64, rf128, rf256 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    sc_mcch_repeat_period_r13_e_() {}
-    sc_mcch_repeat_period_r13_e_(options v) : value(v) {}
-    sc_mcch_repeat_period_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
-  struct sc_mcch_mod_period_r13_e_ {
+  typedef enumerated<sc_mcch_repeat_period_r13_opts, 8, 0, false> sc_mcch_repeat_period_r13_e_;
+  struct sc_mcch_mod_period_r13_opts {
     enum options {
       rf2,
       rf4,
@@ -10926,106 +8436,46 @@ struct sib_type20_r13_s {
       rf16384,
       rf32768,
       rf65536
-    };
+    } value;
     typedef uint32_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 16, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    sc_mcch_mod_period_r13_e_() {}
-    sc_mcch_mod_period_r13_e_(options v) : value(v) {}
-    sc_mcch_mod_period_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint32_t    to_number() const;
   };
+  typedef enumerated<sc_mcch_mod_period_r13_opts, 16, 0, false> sc_mcch_mod_period_r13_e_;
   struct br_bcch_cfg_r14_s_ {
-    struct mpdcch_num_repeat_sc_mcch_r14_e_ {
-      enum options { r1, r2, r4, r8, r16, r32, r64, r128, r256 };
+    struct mpdcch_num_repeat_sc_mcch_r14_opts {
+      enum options { r1, r2, r4, r8, r16, r32, r64, r128, r256 } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 9, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      mpdcch_num_repeat_sc_mcch_r14_e_() {}
-      mpdcch_num_repeat_sc_mcch_r14_e_(options v) : value(v) {}
-      mpdcch_num_repeat_sc_mcch_r14_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
+    typedef enumerated<mpdcch_num_repeat_sc_mcch_r14_opts, 9, 0, false> mpdcch_num_repeat_sc_mcch_r14_e_;
     struct mpdcch_start_sf_sc_mcch_r14_c_ {
-      struct fdd_r14_e_ {
-        enum options { v1, v1dot5, v2, v2dot5, v4, v5, v8, v10 };
+      struct fdd_r14_opts {
+        enum options { v1, v1dot5, v2, v2dot5, v4, v5, v8, v10 } value;
         typedef float number_type;
 
-        options               value;
-        static const uint32_t nof_types = 8, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        fdd_r14_e_() {}
-        fdd_r14_e_(options v) : value(v) {}
-        fdd_r14_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         float       to_number() const;
         std::string to_number_string() const;
       };
-      struct tdd_r14_e_ {
-        enum options { v1, v2, v4, v5, v8, v10, v20 };
+      typedef enumerated<fdd_r14_opts, 8, 0, false> fdd_r14_e_;
+      struct tdd_r14_opts {
+        enum options { v1, v2, v4, v5, v8, v10, v20 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 7, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        tdd_r14_e_() {}
-        tdd_r14_e_(options v) : value(v) {}
-        tdd_r14_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
-      struct types {
-        enum options { fdd_r14, tdd_r14, nulltype };
+      typedef enumerated<tdd_r14_opts, 7, 0, false> tdd_r14_e_;
+      struct types_opts {
+        enum options { fdd_r14, tdd_r14, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 2, 0, false> types;
 
       // choice methods
       mpdcch_start_sf_sc_mcch_r14_c_() : type_(types::nulltype) {}
@@ -11065,45 +8515,21 @@ struct sib_type20_r13_s {
 
       void destroy_();
     };
-    struct mpdcch_pdsch_hop_cfg_sc_mcch_r14_e_ {
-      enum options { off, ce_mode_a, ce_mode_b };
+    struct mpdcch_pdsch_hop_cfg_sc_mcch_r14_opts {
+      enum options { off, ce_mode_a, ce_mode_b } value;
 
-      options               value;
-      static const uint32_t nof_types = 3, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      mpdcch_pdsch_hop_cfg_sc_mcch_r14_e_() {}
-      mpdcch_pdsch_hop_cfg_sc_mcch_r14_e_(options v) : value(v) {}
-      mpdcch_pdsch_hop_cfg_sc_mcch_r14_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
-    struct sc_mcch_repeat_period_br_r14_e_ {
-      enum options { rf32, rf128, rf512, rf1024, rf2048, rf4096, rf8192, rf16384 };
+    typedef enumerated<mpdcch_pdsch_hop_cfg_sc_mcch_r14_opts, 3, 0, false> mpdcch_pdsch_hop_cfg_sc_mcch_r14_e_;
+    struct sc_mcch_repeat_period_br_r14_opts {
+      enum options { rf32, rf128, rf512, rf1024, rf2048, rf4096, rf8192, rf16384 } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      sc_mcch_repeat_period_br_r14_e_() {}
-      sc_mcch_repeat_period_br_r14_e_(options v) : value(v) {}
-      sc_mcch_repeat_period_br_r14_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
-    struct sc_mcch_mod_period_br_r14_e_ {
+    typedef enumerated<sc_mcch_repeat_period_br_r14_opts, 8, 0, false> sc_mcch_repeat_period_br_r14_e_;
+    struct sc_mcch_mod_period_br_r14_opts {
       enum options {
         rf32,
         rf128,
@@ -11120,25 +8546,13 @@ struct sib_type20_r13_s {
         rf262144,
         rf524288,
         rf1048576
-      };
+      } value;
       typedef uint32_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 15, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      sc_mcch_mod_period_br_r14_e_() {}
-      sc_mcch_mod_period_br_r14_e_(options v) : value(v) {}
-      sc_mcch_mod_period_br_r14_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint32_t    to_number() const;
     };
+    typedef enumerated<sc_mcch_mod_period_br_r14_opts, 15, 0, false> sc_mcch_mod_period_br_r14_e_;
 
     // member variables
     uint8_t                             mpdcch_nb_sc_mcch_r14;
@@ -11150,46 +8564,24 @@ struct sib_type20_r13_s {
     sc_mcch_repeat_period_br_r14_e_     sc_mcch_repeat_period_br_r14;
     sc_mcch_mod_period_br_r14_e_        sc_mcch_mod_period_br_r14;
   };
-  struct pdsch_max_num_repeat_cemode_a_sc_mtch_r14_e_ {
-    enum options { r16, r32 };
+  struct pdsch_max_num_repeat_cemode_a_sc_mtch_r14_opts {
+    enum options { r16, r32 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    pdsch_max_num_repeat_cemode_a_sc_mtch_r14_e_() {}
-    pdsch_max_num_repeat_cemode_a_sc_mtch_r14_e_(options v) : value(v) {}
-    pdsch_max_num_repeat_cemode_a_sc_mtch_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct pdsch_max_num_repeat_cemode_b_sc_mtch_r14_e_ {
-    enum options { r192, r256, r384, r512, r768, r1024, r1536, r2048 };
+  typedef enumerated<pdsch_max_num_repeat_cemode_a_sc_mtch_r14_opts, 2, 0, false>
+      pdsch_max_num_repeat_cemode_a_sc_mtch_r14_e_;
+  struct pdsch_max_num_repeat_cemode_b_sc_mtch_r14_opts {
+    enum options { r192, r256, r384, r512, r768, r1024, r1536, r2048 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    pdsch_max_num_repeat_cemode_b_sc_mtch_r14_e_() {}
-    pdsch_max_num_repeat_cemode_b_sc_mtch_r14_e_(options v) : value(v) {}
-    pdsch_max_num_repeat_cemode_b_sc_mtch_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<pdsch_max_num_repeat_cemode_b_sc_mtch_r14_opts, 8, 0, false>
+      pdsch_max_num_repeat_cemode_b_sc_mtch_r14_e_;
 
   // member variables
   bool                         ext;
@@ -11263,24 +8655,12 @@ struct sib_type24_r15_s {
 struct sib_type25_r15_s {
   struct uac_ac1_select_assist_info_r15_c_ {
     typedef bounded_array<uac_ac1_select_assist_info_r15_e, 6> individual_plmn_list_r15_l_;
-    struct types {
-      enum options { plmn_common_r15, individual_plmn_list_r15, nulltype };
+    struct types_opts {
+      enum options { plmn_common_r15, individual_plmn_list_r15, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     uac_ac1_select_assist_info_r15_c_() : type_(types::nulltype) {}
@@ -11370,68 +8750,32 @@ struct sib_type26_r15_s {
 // SystemInformationBlockType3 ::= SEQUENCE
 struct sib_type3_s {
   struct cell_resel_info_common_s_ {
-    struct q_hyst_e_ {
-      enum options { db0, db1, db2, db3, db4, db5, db6, db8, db10, db12, db14, db16, db18, db20, db22, db24 };
+    struct q_hyst_opts {
+      enum options { db0, db1, db2, db3, db4, db5, db6, db8, db10, db12, db14, db16, db18, db20, db22, db24 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 16, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      q_hyst_e_() {}
-      q_hyst_e_(options v) : value(v) {}
-      q_hyst_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<q_hyst_opts, 16, 0, false> q_hyst_e_;
     struct speed_state_resel_pars_s_ {
       struct q_hyst_sf_s_ {
-        struct sf_medium_e_ {
-          enum options { db_minus6, db_minus4, db_minus2, db0 };
+        struct sf_medium_opts {
+          enum options { db_minus6, db_minus4, db_minus2, db0 } value;
           typedef int8_t number_type;
 
-          options               value;
-          static const uint32_t nof_types = 4, nof_exts = 0;
-          static const bool     has_ext = false;
-
-          // enumerated methods
-          sf_medium_e_() {}
-          sf_medium_e_(options v) : value(v) {}
-          sf_medium_e_& operator=(options v)
-          {
-            value = v;
-            return *this;
-          }
-                      operator options() const { return value; }
           std::string to_string() const;
           int8_t      to_number() const;
         };
-        struct sf_high_e_ {
-          enum options { db_minus6, db_minus4, db_minus2, db0 };
+        typedef enumerated<sf_medium_opts, 4, 0, false> sf_medium_e_;
+        struct sf_high_opts {
+          enum options { db_minus6, db_minus4, db_minus2, db0 } value;
           typedef int8_t number_type;
 
-          options               value;
-          static const uint32_t nof_types = 4, nof_exts = 0;
-          static const bool     has_ext = false;
-
-          // enumerated methods
-          sf_high_e_() {}
-          sf_high_e_(options v) : value(v) {}
-          sf_high_e_& operator=(options v)
-          {
-            value = v;
-            return *this;
-          }
-                      operator options() const { return value; }
           std::string to_string() const;
           int8_t      to_number() const;
         };
+        typedef enumerated<sf_high_opts, 4, 0, false> sf_high_e_;
 
         // member variables
         sf_medium_e_ sf_medium;
@@ -11751,7 +9095,7 @@ struct sib_type9_s {
 // PosSystemInformation-r15-IEs ::= SEQUENCE
 struct pos_sys_info_r15_ies_s {
   struct pos_sib_type_and_info_r15_item_c_ {
-    struct types {
+    struct types_opts {
       enum options {
         pos_sib1_minus1_r15,
         pos_sib1_minus2_r15,
@@ -11782,23 +9126,11 @@ struct pos_sys_info_r15_ies_s {
         pos_sib3_minus1_r15,
         // ...
         nulltype
-      };
+      } value;
 
-      options               value;
-      static const uint32_t nof_types = 27, nof_exts = 0;
-      static const bool     has_ext = true;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 27, 0, true> types;
 
     // choice methods
     pos_sib_type_and_info_r15_item_c_() : type_(types::nulltype) {}
@@ -12107,7 +9439,7 @@ struct pos_sys_info_r15_ies_s {
 typedef dyn_array<sched_info_s> sched_info_list_l;
 
 struct sib_info_item_c {
-  struct types {
+  struct types_opts {
     enum options {
       sib2,
       sib3,
@@ -12134,25 +9466,13 @@ struct sib_info_item_c {
       sib25_v1530,
       sib26_v1530,
       nulltype
-    };
+    } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 23, nof_exts = 13;
-    static const bool     has_ext = true;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<types_opts, 23, 13, true> types;
 
   // choice methods
   sib_info_item_c() : type_(types::nulltype) {}
@@ -12446,24 +9766,12 @@ struct sib_type1_v890_ies_s {
 struct sys_info_s {
   struct crit_exts_c_ {
     struct crit_exts_future_r15_c_ {
-      struct types {
-        enum options { pos_sys_info_r15, crit_exts_future, nulltype };
+      struct types_opts {
+        enum options { pos_sys_info_r15, crit_exts_future, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 2, 0, false> types;
 
       // choice methods
       crit_exts_future_r15_c_() : type_(types::nulltype) {}
@@ -12493,24 +9801,12 @@ struct sys_info_s {
 
       void destroy_();
     };
-    struct types {
-      enum options { sys_info_r8, crit_exts_future_r15, nulltype };
+    struct types_opts {
+      enum options { sys_info_r8, crit_exts_future_r15, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     crit_exts_c_() : type_(types::nulltype) {}
@@ -12563,42 +9859,18 @@ struct sys_info_s {
 // SystemInformationBlockType1 ::= SEQUENCE
 struct sib_type1_s {
   struct cell_access_related_info_s_ {
-    struct cell_barred_e_ {
-      enum options { barred, not_barred };
+    struct cell_barred_opts {
+      enum options { barred, not_barred } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      cell_barred_e_() {}
-      cell_barred_e_(options v) : value(v) {}
-      cell_barred_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
-    struct intra_freq_resel_e_ {
-      enum options { allowed, not_allowed };
+    typedef enumerated<cell_barred_opts, 2, 0, false> cell_barred_e_;
+    struct intra_freq_resel_opts {
+      enum options { allowed, not_allowed } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      intra_freq_resel_e_() {}
-      intra_freq_resel_e_(options v) : value(v) {}
-      intra_freq_resel_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<intra_freq_resel_opts, 2, 0, false> intra_freq_resel_e_;
 
     // member variables
     bool                csg_id_present;
@@ -12622,26 +9894,14 @@ struct sib_type1_s {
     // sequence methods
     cell_sel_info_s_();
   };
-  struct si_win_len_e_ {
-    enum options { ms1, ms2, ms5, ms10, ms15, ms20, ms40 };
+  struct si_win_len_opts {
+    enum options { ms1, ms2, ms5, ms10, ms15, ms20, ms40 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 7, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    si_win_len_e_() {}
-    si_win_len_e_(options v) : value(v) {}
-    si_win_len_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<si_win_len_opts, 7, 0, false> si_win_len_e_;
 
   // member variables
   bool                        p_max_present;
@@ -12667,26 +9927,14 @@ struct sib_type1_s {
 // BCCH-DL-SCH-MessageType ::= CHOICE
 struct bcch_dl_sch_msg_type_c {
   struct c1_c_ {
-    struct types {
-      enum options { sys_info, sib_type1, nulltype };
+    struct types_opts {
+      enum options { sys_info, sib_type1, nulltype } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     c1_c_() : type_(types::nulltype) {}
@@ -12726,26 +9974,14 @@ struct bcch_dl_sch_msg_type_c {
 
     void destroy_();
   };
-  struct types {
-    enum options { c1, msg_class_ext, nulltype };
+  struct types_opts {
+    enum options { c1, msg_class_ext, nulltype } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<types_opts, 2, 0, false> types;
 
   // choice methods
   bcch_dl_sch_msg_type_c() : type_(types::nulltype) {}
@@ -12796,26 +10032,14 @@ typedef sib_type1_s sib_type1_br_r13_s;
 // BCCH-DL-SCH-MessageType-BR-r13 ::= CHOICE
 struct bcch_dl_sch_msg_type_br_r13_c {
   struct c1_c_ {
-    struct types {
-      enum options { sys_info_br_r13, sib_type1_br_r13, nulltype };
+    struct types_opts {
+      enum options { sys_info_br_r13, sib_type1_br_r13, nulltype } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     c1_c_() : type_(types::nulltype) {}
@@ -12855,26 +10079,14 @@ struct bcch_dl_sch_msg_type_br_r13_c {
 
     void destroy_();
   };
-  struct types {
-    enum options { c1, msg_class_ext, nulltype };
+  struct types_opts {
+    enum options { c1, msg_class_ext, nulltype } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<types_opts, 2, 0, false> types;
 
   // choice methods
   bcch_dl_sch_msg_type_br_r13_c() : type_(types::nulltype) {}
@@ -12917,7 +10129,7 @@ struct bcch_dl_sch_msg_br_s {
 };
 
 // SIB-Type-MBMS-r14 ::= ENUMERATED
-struct sib_type_mbms_r14_e {
+struct sib_type_mbms_r14_opts {
   enum options {
     sib_type10,
     sib_type11,
@@ -12926,51 +10138,27 @@ struct sib_type_mbms_r14_e {
     sib_type15_v1130,
     sib_type16_v1130,
     // ...
-  };
+  } value;
   typedef uint8_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 6, nof_exts = 0;
-  static const bool     has_ext = true;
-
-  // enumerated methods
-  sib_type_mbms_r14_e() {}
-  sib_type_mbms_r14_e(options v) : value(v) {}
-  sib_type_mbms_r14_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint8_t     to_number() const;
 };
+typedef enumerated<sib_type_mbms_r14_opts, 6, 0, true> sib_type_mbms_r14_e;
 
 // SIB-MappingInfo-MBMS-r14 ::= SEQUENCE (SIZE (0..maxSIB-1)) OF SIB-Type-MBMS-r14
 typedef bounded_array<sib_type_mbms_r14_e, 31> sib_map_info_mbms_r14_l;
 
 // SchedulingInfo-MBMS-r14 ::= SEQUENCE
 struct sched_info_mbms_r14_s {
-  struct si_periodicity_r14_e_ {
-    enum options { rf16, rf32, rf64, rf128, rf256, rf512 };
+  struct si_periodicity_r14_opts {
+    enum options { rf16, rf32, rf64, rf128, rf256, rf512 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 6, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    si_periodicity_r14_e_() {}
-    si_periodicity_r14_e_(options v) : value(v) {}
-    si_periodicity_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<si_periodicity_r14_opts, 6, 0, false> si_periodicity_r14_e_;
 
   // member variables
   si_periodicity_r14_e_   si_periodicity_r14;
@@ -12984,26 +10172,14 @@ struct sched_info_mbms_r14_s {
 
 // NonMBSFN-SubframeConfig-r14 ::= SEQUENCE
 struct non_mbsfn_sf_cfg_r14_s {
-  struct radio_frame_alloc_period_r14_e_ {
-    enum options { rf4, rf8, rf16, rf32, rf64, rf128, rf512 };
+  struct radio_frame_alloc_period_r14_opts {
+    enum options { rf4, rf8, rf16, rf32, rf64, rf128, rf512 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 7, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    radio_frame_alloc_period_r14_e_() {}
-    radio_frame_alloc_period_r14_e_(options v) : value(v) {}
-    radio_frame_alloc_period_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<radio_frame_alloc_period_r14_opts, 7, 0, false> radio_frame_alloc_period_r14_e_;
 
   // member variables
   radio_frame_alloc_period_r14_e_ radio_frame_alloc_period_r14;
@@ -13033,27 +10209,15 @@ struct sib_type1_mbms_r14_s {
     fixed_bitstring<16>     tac_r14;
     fixed_bitstring<28>     cell_id_r14;
   };
-  struct si_win_len_r14_e_ {
-    enum options { ms1, ms2, ms5, ms10, ms15, ms20, ms40, ms80 };
+  struct si_win_len_r14_opts {
+    enum options { ms1, ms2, ms5, ms10, ms15, ms20, ms40, ms80 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    si_win_len_r14_e_() {}
-    si_win_len_r14_e_(options v) : value(v) {}
-    si_win_len_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  typedef dyn_array<cell_access_related_info_r14_s> cell_access_related_info_list_r14_l_;
+  typedef enumerated<si_win_len_r14_opts, 8, 0, false> si_win_len_r14_e_;
+  typedef dyn_array<cell_access_related_info_r14_s>    cell_access_related_info_list_r14_l_;
 
   // member variables
   bool                                 multi_band_info_list_r14_present;
@@ -13082,26 +10246,14 @@ struct sib_type1_mbms_r14_s {
 // BCCH-DL-SCH-MessageType-MBMS-r14 ::= CHOICE
 struct bcch_dl_sch_msg_type_mbms_r14_c {
   struct c1_c_ {
-    struct types {
-      enum options { sys_info_mbms_r14, sib_type1_mbms_r14, nulltype };
+    struct types_opts {
+      enum options { sys_info_mbms_r14, sib_type1_mbms_r14, nulltype } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     c1_c_() : type_(types::nulltype) {}
@@ -13141,26 +10293,14 @@ struct bcch_dl_sch_msg_type_mbms_r14_c {
 
     void destroy_();
   };
-  struct types {
-    enum options { c1, msg_class_ext, nulltype };
+  struct types_opts {
+    enum options { c1, msg_class_ext, nulltype } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<types_opts, 2, 0, false> types;
 
   // choice methods
   bcch_dl_sch_msg_type_mbms_r14_c() : type_(types::nulltype) {}
@@ -13203,26 +10343,14 @@ struct bcch_dl_sch_msg_mbms_s {
 };
 
 // NZP-FrequencyDensity-r14 ::= ENUMERATED
-struct nzp_freq_density_r14_e {
-  enum options { d1, d2, d3 };
+struct nzp_freq_density_r14_opts {
+  enum options { d1, d2, d3 } value;
   typedef uint8_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 3, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  nzp_freq_density_r14_e() {}
-  nzp_freq_density_r14_e(options v) : value(v) {}
-  nzp_freq_density_r14_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint8_t     to_number() const;
 };
+typedef enumerated<nzp_freq_density_r14_opts, 3, 0, false> nzp_freq_density_r14_e;
 
 // P-C-AndCBSR-r13 ::= SEQUENCE
 struct p_c_and_cbsr_r13_s {
@@ -13240,26 +10368,14 @@ struct p_c_and_cbsr_r13_s {
       // member variables
       dyn_bitstring codebook_subset_restrict_r13;
     };
-    struct types {
-      enum options { non_precoded_r13, beamformed_k1a_r13, beamformed_kn_r13, nulltype };
+    struct types_opts {
+      enum options { non_precoded_r13, beamformed_k1a_r13, beamformed_kn_r13, nulltype } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 3, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<types_opts, 3, 0, false> types;
 
     // choice methods
     cbsr_sel_r13_c_() : type_(types::nulltype) {}
@@ -13341,24 +10457,12 @@ struct csi_rs_cfg_nzp_v1430_s {
 
 // CSI-RS-ConfigNZP-Activation-r14 ::= SEQUENCE
 struct csi_rs_cfg_nzp_activation_r14_s {
-  struct csi_rs_nzp_mode_r14_e_ {
-    enum options { semi_persistent, aperiodic };
+  struct csi_rs_nzp_mode_r14_opts {
+    enum options { semi_persistent, aperiodic } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    csi_rs_nzp_mode_r14_e_() {}
-    csi_rs_nzp_mode_r14_e_(options v) : value(v) {}
-    csi_rs_nzp_mode_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<csi_rs_nzp_mode_r14_opts, 2, 0, false> csi_rs_nzp_mode_r14_e_;
 
   // member variables
   csi_rs_nzp_mode_r14_e_ csi_rs_nzp_mode_r14;
@@ -13372,47 +10476,23 @@ struct csi_rs_cfg_nzp_activation_r14_s {
 
 // CSI-RS-ConfigNZP-r11 ::= SEQUENCE
 struct csi_rs_cfg_nzp_r11_s {
-  struct ant_ports_count_r11_e_ {
-    enum options { an1, an2, an4, an8 };
+  struct ant_ports_count_r11_opts {
+    enum options { an1, an2, an4, an8 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    ant_ports_count_r11_e_() {}
-    ant_ports_count_r11_e_(options v) : value(v) {}
-    ant_ports_count_r11_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<ant_ports_count_r11_opts, 4, 0, false> ant_ports_count_r11_e_;
   struct qcl_crs_info_r11_s_ {
-    struct crs_ports_count_r11_e_ {
-      enum options { n1, n2, n4, spare1 };
+    struct crs_ports_count_r11_opts {
+      enum options { n1, n2, n4, spare1 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      crs_ports_count_r11_e_() {}
-      crs_ports_count_r11_e_(options v) : value(v) {}
-      crs_ports_count_r11_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<crs_ports_count_r11_opts, 4, 0, false> crs_ports_count_r11_e_;
     struct mbsfn_sf_cfg_list_r11_c_ {
       struct setup_s_ {
         // member variables
@@ -13584,26 +10664,14 @@ struct csi_rs_cfg_beamformed_r14_s {
 struct csi_rs_cfg_nzp_emimo_r13_c {
   struct setup_s_ {
     typedef dyn_array<nzp_res_cfg_r13_s> nzp_res_cfg_list_r13_l_;
-    struct cdm_type_r13_e_ {
-      enum options { cdm2, cdm4 };
+    struct cdm_type_r13_opts {
+      enum options { cdm2, cdm4 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      cdm_type_r13_e_() {}
-      cdm_type_r13_e_(options v) : value(v) {}
-      cdm_type_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<cdm_type_r13_opts, 2, 0, false> cdm_type_r13_e_;
 
     // member variables
     bool                    cdm_type_r13_present;
@@ -13658,26 +10726,14 @@ struct csi_rs_cfg_nzp_emimo_v1430_s {
 typedef dyn_array<p_c_and_cbsr_r15_s> p_c_and_cbsr_pair_r15_l;
 
 // CQI-ReportModeAperiodic ::= ENUMERATED
-struct cqi_report_mode_aperiodic_e {
-  enum options { rm12, rm20, rm22, rm30, rm31, rm32_v1250, rm10_v1310, rm11_v1310 };
+struct cqi_report_mode_aperiodic_opts {
+  enum options { rm12, rm20, rm22, rm30, rm31, rm32_v1250, rm10_v1310, rm11_v1310 } value;
   typedef uint8_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 8, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  cqi_report_mode_aperiodic_e() {}
-  cqi_report_mode_aperiodic_e(options v) : value(v) {}
-  cqi_report_mode_aperiodic_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint8_t     to_number() const;
 };
+typedef enumerated<cqi_report_mode_aperiodic_opts, 8, 0, false> cqi_report_mode_aperiodic_e;
 
 // CSI-RS-ConfigBeamformed-r13 ::= SEQUENCE
 struct csi_rs_cfg_beamformed_r13_s {
@@ -13754,86 +10810,40 @@ private:
 
 // CSI-RS-ConfigNonPrecoded-r13 ::= SEQUENCE
 struct csi_rs_cfg_non_precoded_r13_s {
-  struct codebook_cfg_n1_r13_e_ {
-    enum options { n1, n2, n3, n4, n8 };
+  struct codebook_cfg_n1_r13_opts {
+    enum options { n1, n2, n3, n4, n8 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 5, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    codebook_cfg_n1_r13_e_() {}
-    codebook_cfg_n1_r13_e_(options v) : value(v) {}
-    codebook_cfg_n1_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct codebook_cfg_n2_r13_e_ {
-    enum options { n1, n2, n3, n4, n8 };
+  typedef enumerated<codebook_cfg_n1_r13_opts, 5, 0, false> codebook_cfg_n1_r13_e_;
+  struct codebook_cfg_n2_r13_opts {
+    enum options { n1, n2, n3, n4, n8 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 5, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    codebook_cfg_n2_r13_e_() {}
-    codebook_cfg_n2_r13_e_(options v) : value(v) {}
-    codebook_cfg_n2_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct codebook_over_sampling_rate_cfg_o1_r13_e_ {
-    enum options { n4, n8 };
+  typedef enumerated<codebook_cfg_n2_r13_opts, 5, 0, false> codebook_cfg_n2_r13_e_;
+  struct codebook_over_sampling_rate_cfg_o1_r13_opts {
+    enum options { n4, n8 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    codebook_over_sampling_rate_cfg_o1_r13_e_() {}
-    codebook_over_sampling_rate_cfg_o1_r13_e_(options v) : value(v) {}
-    codebook_over_sampling_rate_cfg_o1_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct codebook_over_sampling_rate_cfg_o2_r13_e_ {
-    enum options { n4, n8 };
+  typedef enumerated<codebook_over_sampling_rate_cfg_o1_r13_opts, 2, 0, false>
+      codebook_over_sampling_rate_cfg_o1_r13_e_;
+  struct codebook_over_sampling_rate_cfg_o2_r13_opts {
+    enum options { n4, n8 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    codebook_over_sampling_rate_cfg_o2_r13_e_() {}
-    codebook_over_sampling_rate_cfg_o2_r13_e_(options v) : value(v) {}
-    codebook_over_sampling_rate_cfg_o2_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<codebook_over_sampling_rate_cfg_o2_r13_opts, 2, 0, false>
+                                    codebook_over_sampling_rate_cfg_o2_r13_e_;
   typedef bounded_array<uint8_t, 2> csi_im_cfg_id_list_r13_l_;
 
   // member variables
@@ -13860,46 +10870,22 @@ struct csi_rs_cfg_non_precoded_r13_s {
 
 // CSI-RS-ConfigNonPrecoded-v1430 ::= SEQUENCE
 struct csi_rs_cfg_non_precoded_v1430_s {
-  struct codebook_cfg_n1_v1430_e_ {
-    enum options { n5, n6, n7, n10, n12, n14, n16 };
+  struct codebook_cfg_n1_v1430_opts {
+    enum options { n5, n6, n7, n10, n12, n14, n16 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 7, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    codebook_cfg_n1_v1430_e_() {}
-    codebook_cfg_n1_v1430_e_(options v) : value(v) {}
-    codebook_cfg_n1_v1430_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct codebook_cfg_n2_v1430_e_ {
-    enum options { n5, n6, n7 };
+  typedef enumerated<codebook_cfg_n1_v1430_opts, 7, 0, false> codebook_cfg_n1_v1430_e_;
+  struct codebook_cfg_n2_v1430_opts {
+    enum options { n5, n6, n7 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 3, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    codebook_cfg_n2_v1430_e_() {}
-    codebook_cfg_n2_v1430_e_(options v) : value(v) {}
-    codebook_cfg_n2_v1430_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<codebook_cfg_n2_v1430_opts, 3, 0, false> codebook_cfg_n2_v1430_e_;
 
   // member variables
   bool                         csi_rs_cfg_nzp_emimo_v1430_present;
@@ -13917,46 +10903,22 @@ struct csi_rs_cfg_non_precoded_v1430_s {
 
 // CSI-RS-ConfigNonPrecoded-v1480 ::= SEQUENCE
 struct csi_rs_cfg_non_precoded_v1480_s {
-  struct codebook_cfg_n1_v1480_e_ {
-    enum options { n5, n6, n7, n10, n12, n14, n16 };
+  struct codebook_cfg_n1_v1480_opts {
+    enum options { n5, n6, n7, n10, n12, n14, n16 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 7, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    codebook_cfg_n1_v1480_e_() {}
-    codebook_cfg_n1_v1480_e_(options v) : value(v) {}
-    codebook_cfg_n1_v1480_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct codebook_cfg_n2_r1480_e_ {
-    enum options { n5, n6, n7 };
+  typedef enumerated<codebook_cfg_n1_v1480_opts, 7, 0, false> codebook_cfg_n1_v1480_e_;
+  struct codebook_cfg_n2_r1480_opts {
+    enum options { n5, n6, n7 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 3, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    codebook_cfg_n2_r1480_e_() {}
-    codebook_cfg_n2_r1480_e_(options v) : value(v) {}
-    codebook_cfg_n2_r1480_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<codebook_cfg_n2_r1480_opts, 3, 0, false> codebook_cfg_n2_r1480_e_;
 
   // member variables
   bool                         csi_rs_cfg_nzp_emimo_v1480_present;
@@ -14122,24 +11084,12 @@ private:
 // CSI-RS-ConfigEMIMO-r13 ::= CHOICE
 struct csi_rs_cfg_emimo_r13_c {
   struct setup_c_ {
-    struct types {
-      enum options { non_precoded_r13, beamformed_r13, nulltype };
+    struct types_opts {
+      enum options { non_precoded_r13, beamformed_r13, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     setup_c_() : type_(types::nulltype) {}
@@ -14208,24 +11158,12 @@ private:
 // CSI-RS-ConfigEMIMO-v1430 ::= CHOICE
 struct csi_rs_cfg_emimo_v1430_c {
   struct setup_c_ {
-    struct types {
-      enum options { non_precoded_v1430, beamformed_v1430, nulltype };
+    struct types_opts {
+      enum options { non_precoded_v1430, beamformed_v1430, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     setup_c_() : type_(types::nulltype) {}
@@ -14294,24 +11232,12 @@ private:
 // CSI-RS-ConfigEMIMO-v1480 ::= CHOICE
 struct csi_rs_cfg_emimo_v1480_c {
   struct setup_c_ {
-    struct types {
-      enum options { non_precoded_v1480, beamformed_v1480, nulltype };
+    struct types_opts {
+      enum options { non_precoded_v1480, beamformed_v1480, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     setup_c_() : type_(types::nulltype) {}
@@ -14380,24 +11306,12 @@ private:
 // CSI-RS-ConfigEMIMO-v1530 ::= CHOICE
 struct csi_rs_cfg_emimo_v1530_c {
   struct setup_c_ {
-    struct types {
-      enum options { non_precoded_v1530, nulltype };
+    struct types_opts {
+      enum options { non_precoded_v1530, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 1, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 1, 0, false> types;
 
     // choice methods
     setup_c_() : type_(types::nulltype) {}
@@ -14455,26 +11369,14 @@ typedef dyn_array<p_c_and_cbsr_r11_s> p_c_and_cbsr_pair_r13a_l;
 struct cqi_report_periodic_proc_ext_r11_s {
   struct cqi_format_ind_periodic_r11_c_ {
     struct wideband_cqi_r11_s_ {
-      struct csi_report_mode_r11_e_ {
-        enum options { submode1, submode2 };
+      struct csi_report_mode_r11_opts {
+        enum options { submode1, submode2 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        csi_report_mode_r11_e_() {}
-        csi_report_mode_r11_e_(options v) : value(v) {}
-        csi_report_mode_r11_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
+      typedef enumerated<csi_report_mode_r11_opts, 2, 0, false> csi_report_mode_r11_e_;
 
       // member variables
       bool                   csi_report_mode_r11_present;
@@ -14484,49 +11386,25 @@ struct cqi_report_periodic_proc_ext_r11_s {
       wideband_cqi_r11_s_();
     };
     struct subband_cqi_r11_s_ {
-      struct periodicity_factor_r11_e_ {
-        enum options { n2, n4 };
+      struct periodicity_factor_r11_opts {
+        enum options { n2, n4 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        periodicity_factor_r11_e_() {}
-        periodicity_factor_r11_e_(options v) : value(v) {}
-        periodicity_factor_r11_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
+      typedef enumerated<periodicity_factor_r11_opts, 2, 0, false> periodicity_factor_r11_e_;
 
       // member variables
       uint8_t                   k;
       periodicity_factor_r11_e_ periodicity_factor_r11;
     };
-    struct types {
-      enum options { wideband_cqi_r11, subband_cqi_r11, nulltype };
+    struct types_opts {
+      enum options { wideband_cqi_r11, subband_cqi_r11, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     cqi_format_ind_periodic_r11_c_() : type_(types::nulltype) {}
@@ -14601,26 +11479,14 @@ struct cqi_report_periodic_proc_ext_r11_s {
     types    type_;
     setup_s_ c;
   };
-  struct periodicity_factor_wb_r13_e_ {
-    enum options { n2, n4 };
+  struct periodicity_factor_wb_r13_opts {
+    enum options { n2, n4 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    periodicity_factor_wb_r13_e_() {}
-    periodicity_factor_wb_r13_e_(options v) : value(v) {}
-    periodicity_factor_wb_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<periodicity_factor_wb_r13_opts, 2, 0, false> periodicity_factor_wb_r13_e_;
 
   // member variables
   bool                           ext;
@@ -14884,7 +11750,7 @@ struct n4_spucch_res_r15_s {
 };
 
 // PollByte-r14 ::= ENUMERATED
-struct poll_byte_r14_e {
+struct poll_byte_r14_opts {
   enum options {
     kb1,
     kb2,
@@ -14918,28 +11784,16 @@ struct poll_byte_r14_e {
     kb30000,
     kb35000,
     kb40000
-  };
+  } value;
   typedef uint16_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 32, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  poll_byte_r14_e() {}
-  poll_byte_r14_e(options v) : value(v) {}
-  poll_byte_r14_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint16_t    to_number() const;
 };
+typedef enumerated<poll_byte_r14_opts, 32, 0, false> poll_byte_r14_e;
 
 // PollPDU-r15 ::= ENUMERATED
-struct poll_pdu_r15_e {
+struct poll_pdu_r15_opts {
   enum options {
     p4,
     p8,
@@ -14957,72 +11811,36 @@ struct poll_pdu_r15_e {
     p12288_r15,
     p16384_r15,
     p_infinity
-  };
+  } value;
   typedef int16_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 16, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  poll_pdu_r15_e() {}
-  poll_pdu_r15_e(options v) : value(v) {}
-  poll_pdu_r15_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   int16_t     to_number() const;
 };
+typedef enumerated<poll_pdu_r15_opts, 16, 0, false> poll_pdu_r15_e;
 
 // SN-FieldLength ::= ENUMERATED
-struct sn_field_len_e {
-  enum options { size5, size10 };
+struct sn_field_len_opts {
+  enum options { size5, size10 } value;
   typedef uint8_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 2, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  sn_field_len_e() {}
-  sn_field_len_e(options v) : value(v) {}
-  sn_field_len_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint8_t     to_number() const;
 };
+typedef enumerated<sn_field_len_opts, 2, 0, false> sn_field_len_e;
 
 // SN-FieldLength-r15 ::= ENUMERATED
-struct sn_field_len_r15_e {
-  enum options { size5, size10, size16_r15 };
+struct sn_field_len_r15_opts {
+  enum options { size5, size10, size16_r15 } value;
   typedef uint8_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 3, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  sn_field_len_r15_e() {}
-  sn_field_len_r15_e(options v) : value(v) {}
-  sn_field_len_r15_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint8_t     to_number() const;
 };
+typedef enumerated<sn_field_len_r15_opts, 3, 0, false> sn_field_len_r15_e;
 
 // T-PollRetransmit ::= ENUMERATED
-struct t_poll_retx_e {
+struct t_poll_retx_opts {
   enum options {
     ms5,
     ms10,
@@ -15088,28 +11906,16 @@ struct t_poll_retx_e {
     spare3,
     spare2,
     spare1
-  };
+  } value;
   typedef uint16_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 64, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  t_poll_retx_e() {}
-  t_poll_retx_e(options v) : value(v) {}
-  t_poll_retx_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint16_t    to_number() const;
 };
+typedef enumerated<t_poll_retx_opts, 64, 0, false> t_poll_retx_e;
 
 // T-Reordering ::= ENUMERATED
-struct t_reordering_e {
+struct t_reordering_opts {
   enum options {
     ms0,
     ms5,
@@ -15143,28 +11949,16 @@ struct t_reordering_e {
     ms190,
     ms200,
     ms1600_v1310
-  };
+  } value;
   typedef uint16_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 32, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  t_reordering_e() {}
-  t_reordering_e(options v) : value(v) {}
-  t_reordering_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint16_t    to_number() const;
 };
+typedef enumerated<t_reordering_opts, 32, 0, false> t_reordering_e;
 
 // T-StatusProhibit ::= ENUMERATED
-struct t_status_prohibit_e {
+struct t_status_prohibit_opts {
   enum options {
     ms0,
     ms5,
@@ -15230,25 +12024,13 @@ struct t_status_prohibit_e {
     ms2400_v1310,
     spare2,
     spare1
-  };
+  } value;
   typedef uint16_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 64, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  t_status_prohibit_e() {}
-  t_status_prohibit_e(options v) : value(v) {}
-  t_status_prohibit_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint16_t    to_number() const;
 };
+typedef enumerated<t_status_prohibit_opts, 64, 0, false> t_status_prohibit_e;
 
 // ZeroTxPowerCSI-RS-r12 ::= SEQUENCE
 struct zero_tx_pwr_csi_rs_r12_s {
@@ -15309,26 +12091,14 @@ private:
 struct cqi_report_aperiodic_v1250_c {
   struct setup_s_ {
     struct aperiodic_csi_trigger_v1250_s_ {
-      struct trigger_sf_set_ind_r12_e_ {
-        enum options { s1, s2 };
+      struct trigger_sf_set_ind_r12_opts {
+        enum options { s1, s2 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        trigger_sf_set_ind_r12_e_() {}
-        trigger_sf_set_ind_r12_e_(options v) : value(v) {}
-        trigger_sf_set_ind_r12_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
+      typedef enumerated<trigger_sf_set_ind_r12_opts, 2, 0, false> trigger_sf_set_ind_r12_e_;
 
       // member variables
       trigger_sf_set_ind_r12_e_ trigger_sf_set_ind_r12;
@@ -15471,26 +12241,14 @@ struct cqi_report_aperiodic_hybrid_r14_s {
       fixed_bitstring<32> trigger110_ind_r14;
       fixed_bitstring<32> trigger111_ind_r14;
     };
-    struct types {
-      enum options { one_bit_r14, two_bit_r14, three_bit_r14, nulltype };
+    struct types_opts {
+      enum options { one_bit_r14, two_bit_r14, three_bit_r14, nulltype } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 3, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<types_opts, 3, 0, false> types;
 
     // choice methods
     triggers_r14_c_() : type_(types::nulltype) {}
@@ -15606,26 +12364,14 @@ struct cqi_report_periodic_r10_c {
   struct setup_s_ {
     struct cqi_format_ind_periodic_r10_c_ {
       struct wideband_cqi_r10_s_ {
-        struct csi_report_mode_r10_e_ {
-          enum options { submode1, submode2 };
+        struct csi_report_mode_r10_opts {
+          enum options { submode1, submode2 } value;
           typedef uint8_t number_type;
 
-          options               value;
-          static const uint32_t nof_types = 2, nof_exts = 0;
-          static const bool     has_ext = false;
-
-          // enumerated methods
-          csi_report_mode_r10_e_() {}
-          csi_report_mode_r10_e_(options v) : value(v) {}
-          csi_report_mode_r10_e_& operator=(options v)
-          {
-            value = v;
-            return *this;
-          }
-                      operator options() const { return value; }
           std::string to_string() const;
           uint8_t     to_number() const;
         };
+        typedef enumerated<csi_report_mode_r10_opts, 2, 0, false> csi_report_mode_r10_e_;
 
         // member variables
         bool                   csi_report_mode_r10_present;
@@ -15635,49 +12381,25 @@ struct cqi_report_periodic_r10_c {
         wideband_cqi_r10_s_();
       };
       struct subband_cqi_r10_s_ {
-        struct periodicity_factor_r10_e_ {
-          enum options { n2, n4 };
+        struct periodicity_factor_r10_opts {
+          enum options { n2, n4 } value;
           typedef uint8_t number_type;
 
-          options               value;
-          static const uint32_t nof_types = 2, nof_exts = 0;
-          static const bool     has_ext = false;
-
-          // enumerated methods
-          periodicity_factor_r10_e_() {}
-          periodicity_factor_r10_e_(options v) : value(v) {}
-          periodicity_factor_r10_e_& operator=(options v)
-          {
-            value = v;
-            return *this;
-          }
-                      operator options() const { return value; }
           std::string to_string() const;
           uint8_t     to_number() const;
         };
+        typedef enumerated<periodicity_factor_r10_opts, 2, 0, false> periodicity_factor_r10_e_;
 
         // member variables
         uint8_t                   k;
         periodicity_factor_r10_e_ periodicity_factor_r10;
       };
-      struct types {
-        enum options { wideband_cqi_r10, subband_cqi_r10, nulltype };
+      struct types_opts {
+        enum options { wideband_cqi_r10, subband_cqi_r10, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 2, 0, false> types;
 
       // choice methods
       cqi_format_ind_periodic_r10_c_() : type_(types::nulltype) {}
@@ -15827,26 +12549,14 @@ struct cqi_report_periodic_v1310_s {
 
 // CQI-ReportPeriodic-v1320 ::= SEQUENCE
 struct cqi_report_periodic_v1320_s {
-  struct periodicity_factor_wb_r13_e_ {
-    enum options { n2, n4 };
+  struct periodicity_factor_wb_r13_opts {
+    enum options { n2, n4 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    periodicity_factor_wb_r13_e_() {}
-    periodicity_factor_wb_r13_e_(options v) : value(v) {}
-    periodicity_factor_wb_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<periodicity_factor_wb_r13_opts, 2, 0, false> periodicity_factor_wb_r13_e_;
 
   // member variables
   bool                         periodicity_factor_wb_r13_present;
@@ -15887,26 +12597,14 @@ struct dl_um_rlc_r15_s {
 // MeasSubframePattern-r10 ::= CHOICE
 struct meas_sf_pattern_r10_c {
   struct sf_pattern_tdd_r10_c_ {
-    struct types {
-      enum options { sf_cfg1_minus5_r10, sf_cfg0_r10, sf_cfg6_r10, /*...*/ nulltype };
+    struct types_opts {
+      enum options { sf_cfg1_minus5_r10, sf_cfg0_r10, sf_cfg6_r10, /*...*/ nulltype } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 3, nof_exts = 0;
-      static const bool     has_ext = true;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<types_opts, 3, 0, true> types;
 
     // choice methods
     sf_pattern_tdd_r10_c_() : type_(types::nulltype) {}
@@ -15956,24 +12654,12 @@ struct meas_sf_pattern_r10_c {
 
     void destroy_();
   };
-  struct types {
-    enum options { sf_pattern_fdd_r10, sf_pattern_tdd_r10, /*...*/ nulltype };
+  struct types_opts {
+    enum options { sf_pattern_fdd_r10, sf_pattern_tdd_r10, /*...*/ nulltype } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = true;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<types_opts, 2, 0, true> types;
 
   // choice methods
   meas_sf_pattern_r10_c() : type_(types::nulltype) {}
@@ -16015,7 +12701,7 @@ private:
 };
 
 // PollByte ::= ENUMERATED
-struct poll_byte_e {
+struct poll_byte_opts {
   enum options {
     kb25,
     kb50,
@@ -16033,87 +12719,39 @@ struct poll_byte_e {
     kb3000,
     kbinfinity,
     spare1
-  };
+  } value;
   typedef int16_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 16, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  poll_byte_e() {}
-  poll_byte_e(options v) : value(v) {}
-  poll_byte_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   int16_t     to_number() const;
 };
+typedef enumerated<poll_byte_opts, 16, 0, false> poll_byte_e;
 
 // PollPDU ::= ENUMERATED
-struct poll_pdu_e {
-  enum options { p4, p8, p16, p32, p64, p128, p256, p_infinity };
+struct poll_pdu_opts {
+  enum options { p4, p8, p16, p32, p64, p128, p256, p_infinity } value;
   typedef int16_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 8, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  poll_pdu_e() {}
-  poll_pdu_e(options v) : value(v) {}
-  poll_pdu_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   int16_t     to_number() const;
 };
+typedef enumerated<poll_pdu_opts, 8, 0, false> poll_pdu_e;
 
 // SPDCCH-Elements-r15 ::= CHOICE
 struct spdcch_elems_r15_c {
   struct setup_s_ {
-    struct spdcch_set_ref_sig_r15_e_ {
-      enum options { crs, dmrs };
+    struct spdcch_set_ref_sig_r15_opts {
+      enum options { crs, dmrs } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      spdcch_set_ref_sig_r15_e_() {}
-      spdcch_set_ref_sig_r15_e_(options v) : value(v) {}
-      spdcch_set_ref_sig_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
-    struct tx_type_r15_e_ {
-      enum options { localised, distributed };
+    typedef enumerated<spdcch_set_ref_sig_r15_opts, 2, 0, false> spdcch_set_ref_sig_r15_e_;
+    struct tx_type_r15_opts {
+      enum options { localised, distributed } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      tx_type_r15_e_() {}
-      tx_type_r15_e_(options v) : value(v) {}
-      tx_type_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<tx_type_r15_opts, 2, 0, false>      tx_type_r15_e_;
     typedef bounded_array<uint8_t, 4>                      dci7_candidates_per_al_pdcch_r15_l_;
     typedef dyn_array<dci7_candidates_per_al_spdcch_r15_l> dci7_candidate_sets_per_al_spdcch_r15_l_;
     struct res_block_assign_r15_s_ {
@@ -16122,44 +12760,20 @@ struct spdcch_elems_r15_c {
       fixed_bitstring<98> res_block_assign_r15;
     };
     typedef bounded_array<uint8_t, 4> al_start_point_spdcch_r15_l_;
-    struct sf_type_r15_e_ {
-      enum options { mbsfn, nonmbsfn, all };
+    struct sf_type_r15_opts {
+      enum options { mbsfn, nonmbsfn, all } value;
 
-      options               value;
-      static const uint32_t nof_types = 3, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      sf_type_r15_e_() {}
-      sf_type_r15_e_(options v) : value(v) {}
-      sf_type_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
-    struct rate_matching_mode_r15_e_ {
-      enum options { m1, m2, m3, m4 };
+    typedef enumerated<sf_type_r15_opts, 3, 0, false> sf_type_r15_e_;
+    struct rate_matching_mode_r15_opts {
+      enum options { m1, m2, m3, m4 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      rate_matching_mode_r15_e_() {}
-      rate_matching_mode_r15_e_(options v) : value(v) {}
-      rate_matching_mode_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<rate_matching_mode_r15_opts, 4, 0, false> rate_matching_mode_r15_e_;
 
     // member variables
     bool                                     ext;
@@ -16278,24 +12892,12 @@ private:
 
 // TPC-Index ::= CHOICE
 struct tpc_idx_c {
-  struct types {
-    enum options { idx_of_format3, idx_of_format3_a, nulltype };
+  struct types_opts {
+    enum options { idx_of_format3, idx_of_format3_a, nulltype } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<types_opts, 2, 0, false> types;
 
   // choice methods
   tpc_idx_c() : type_(types::nulltype) {}
@@ -16338,26 +12940,14 @@ private:
 
 // UL-AM-RLC-r15 ::= SEQUENCE
 struct ul_am_rlc_r15_s {
-  struct max_retx_thres_r15_e_ {
-    enum options { t1, t2, t3, t4, t6, t8, t16, t32 };
+  struct max_retx_thres_r15_opts {
+    enum options { t1, t2, t3, t4, t6, t8, t16, t32 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    max_retx_thres_r15_e_() {}
-    max_retx_thres_r15_e_(options v) : value(v) {}
-    max_retx_thres_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<max_retx_thres_r15_opts, 8, 0, false> max_retx_thres_r15_e_;
 
   // member variables
   t_poll_retx_e         t_poll_retx_r15;
@@ -16506,26 +13096,14 @@ struct cqi_report_cfg_v1250_s {
     types    type_;
     setup_s_ c;
   };
-  struct alt_cqi_table_r12_e_ {
-    enum options { all_sfs, csi_sf_set1, csi_sf_set2, spare1 };
+  struct alt_cqi_table_r12_opts {
+    enum options { all_sfs, csi_sf_set1, csi_sf_set2, spare1 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    alt_cqi_table_r12_e_() {}
-    alt_cqi_table_r12_e_(options v) : value(v) {}
-    alt_cqi_table_r12_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<alt_cqi_table_r12_opts, 4, 0, false> alt_cqi_table_r12_e_;
 
   // member variables
   bool                         csi_sf_pattern_cfg_r12_present;
@@ -16591,26 +13169,14 @@ struct cqi_report_cfg_v1430_s {
 struct csi_rs_cfg_r10_s {
   struct csi_rs_r10_c_ {
     struct setup_s_ {
-      struct ant_ports_count_r10_e_ {
-        enum options { an1, an2, an4, an8 };
+      struct ant_ports_count_r10_opts {
+        enum options { an1, an2, an4, an8 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        ant_ports_count_r10_e_() {}
-        ant_ports_count_r10_e_(options v) : value(v) {}
-        ant_ports_count_r10_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
+      typedef enumerated<ant_ports_count_r10_opts, 4, 0, false> ant_ports_count_r10_e_;
 
       // member variables
       ant_ports_count_r10_e_ ant_ports_count_r10;
@@ -16777,86 +13343,38 @@ struct dl_um_rlc_s {
 
 // DeltaTxD-OffsetListSPUCCH-r15 ::= SEQUENCE
 struct delta_tx_d_offset_list_spucch_r15_s {
-  struct delta_tx_d_offset_spucch_format1_r15_e_ {
-    enum options { db0, db_minus2 };
+  struct delta_tx_d_offset_spucch_format1_r15_opts {
+    enum options { db0, db_minus2 } value;
     typedef int8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    delta_tx_d_offset_spucch_format1_r15_e_() {}
-    delta_tx_d_offset_spucch_format1_r15_e_(options v) : value(v) {}
-    delta_tx_d_offset_spucch_format1_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     int8_t      to_number() const;
   };
-  struct delta_tx_d_offset_spucch_format1a_r15_e_ {
-    enum options { db0, db_minus2 };
+  typedef enumerated<delta_tx_d_offset_spucch_format1_r15_opts, 2, 0, false> delta_tx_d_offset_spucch_format1_r15_e_;
+  struct delta_tx_d_offset_spucch_format1a_r15_opts {
+    enum options { db0, db_minus2 } value;
     typedef int8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    delta_tx_d_offset_spucch_format1a_r15_e_() {}
-    delta_tx_d_offset_spucch_format1a_r15_e_(options v) : value(v) {}
-    delta_tx_d_offset_spucch_format1a_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     int8_t      to_number() const;
   };
-  struct delta_tx_d_offset_spucch_format1b_r15_e_ {
-    enum options { db0, db_minus2 };
+  typedef enumerated<delta_tx_d_offset_spucch_format1a_r15_opts, 2, 0, false> delta_tx_d_offset_spucch_format1a_r15_e_;
+  struct delta_tx_d_offset_spucch_format1b_r15_opts {
+    enum options { db0, db_minus2 } value;
     typedef int8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    delta_tx_d_offset_spucch_format1b_r15_e_() {}
-    delta_tx_d_offset_spucch_format1b_r15_e_(options v) : value(v) {}
-    delta_tx_d_offset_spucch_format1b_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     int8_t      to_number() const;
   };
-  struct delta_tx_d_offset_spucch_format3_r15_e_ {
-    enum options { db0, db_minus2 };
+  typedef enumerated<delta_tx_d_offset_spucch_format1b_r15_opts, 2, 0, false> delta_tx_d_offset_spucch_format1b_r15_e_;
+  struct delta_tx_d_offset_spucch_format3_r15_opts {
+    enum options { db0, db_minus2 } value;
     typedef int8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    delta_tx_d_offset_spucch_format3_r15_e_() {}
-    delta_tx_d_offset_spucch_format3_r15_e_(options v) : value(v) {}
-    delta_tx_d_offset_spucch_format3_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     int8_t      to_number() const;
   };
+  typedef enumerated<delta_tx_d_offset_spucch_format3_r15_opts, 2, 0, false> delta_tx_d_offset_spucch_format3_r15_e_;
 
   // member variables
   bool                                     ext;
@@ -16875,45 +13393,21 @@ struct delta_tx_d_offset_list_spucch_r15_s {
 
 // EPDCCH-SetConfig-r11 ::= SEQUENCE
 struct epdcch_set_cfg_r11_s {
-  struct tx_type_r11_e_ {
-    enum options { localised, distributed };
+  struct tx_type_r11_opts {
+    enum options { localised, distributed } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    tx_type_r11_e_() {}
-    tx_type_r11_e_(options v) : value(v) {}
-    tx_type_r11_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<tx_type_r11_opts, 2, 0, false> tx_type_r11_e_;
   struct res_block_assign_r11_s_ {
-    struct num_prb_pairs_r11_e_ {
-      enum options { n2, n4, n8 };
+    struct num_prb_pairs_r11_opts {
+      enum options { n2, n4, n8 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 3, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      num_prb_pairs_r11_e_() {}
-      num_prb_pairs_r11_e_(options v) : value(v) {}
-      num_prb_pairs_r11_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<num_prb_pairs_r11_opts, 3, 0, false> num_prb_pairs_r11_e_;
 
     // member variables
     num_prb_pairs_r11_e_ num_prb_pairs_r11;
@@ -16961,104 +13455,44 @@ struct epdcch_set_cfg_r11_s {
   };
   struct mpdcch_cfg_r13_c_ {
     struct setup_s_ {
-      struct csi_num_repeat_ce_r13_e_ {
-        enum options { sf1, sf2, sf4, sf8, sf16, sf32 };
+      struct csi_num_repeat_ce_r13_opts {
+        enum options { sf1, sf2, sf4, sf8, sf16, sf32 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 6, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        csi_num_repeat_ce_r13_e_() {}
-        csi_num_repeat_ce_r13_e_(options v) : value(v) {}
-        csi_num_repeat_ce_r13_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
-      struct mpdcch_pdsch_hop_cfg_r13_e_ {
-        enum options { on, off };
+      typedef enumerated<csi_num_repeat_ce_r13_opts, 6, 0, false> csi_num_repeat_ce_r13_e_;
+      struct mpdcch_pdsch_hop_cfg_r13_opts {
+        enum options { on, off } value;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        mpdcch_pdsch_hop_cfg_r13_e_() {}
-        mpdcch_pdsch_hop_cfg_r13_e_(options v) : value(v) {}
-        mpdcch_pdsch_hop_cfg_r13_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<mpdcch_pdsch_hop_cfg_r13_opts, 2, 0, false> mpdcch_pdsch_hop_cfg_r13_e_;
       struct mpdcch_start_sf_uess_r13_c_ {
-        struct fdd_r13_e_ {
-          enum options { v1, v1dot5, v2, v2dot5, v4, v5, v8, v10 };
+        struct fdd_r13_opts {
+          enum options { v1, v1dot5, v2, v2dot5, v4, v5, v8, v10 } value;
           typedef float number_type;
 
-          options               value;
-          static const uint32_t nof_types = 8, nof_exts = 0;
-          static const bool     has_ext = false;
-
-          // enumerated methods
-          fdd_r13_e_() {}
-          fdd_r13_e_(options v) : value(v) {}
-          fdd_r13_e_& operator=(options v)
-          {
-            value = v;
-            return *this;
-          }
-                      operator options() const { return value; }
           std::string to_string() const;
           float       to_number() const;
           std::string to_number_string() const;
         };
-        struct tdd_r13_e_ {
-          enum options { v1, v2, v4, v5, v8, v10, v20, spare1 };
+        typedef enumerated<fdd_r13_opts, 8, 0, false> fdd_r13_e_;
+        struct tdd_r13_opts {
+          enum options { v1, v2, v4, v5, v8, v10, v20, spare1 } value;
           typedef uint8_t number_type;
 
-          options               value;
-          static const uint32_t nof_types = 8, nof_exts = 0;
-          static const bool     has_ext = false;
-
-          // enumerated methods
-          tdd_r13_e_() {}
-          tdd_r13_e_(options v) : value(v) {}
-          tdd_r13_e_& operator=(options v)
-          {
-            value = v;
-            return *this;
-          }
-                      operator options() const { return value; }
           std::string to_string() const;
           uint8_t     to_number() const;
         };
-        struct types {
-          enum options { fdd_r13, tdd_r13, nulltype };
+        typedef enumerated<tdd_r13_opts, 8, 0, false> tdd_r13_e_;
+        struct types_opts {
+          enum options { fdd_r13, tdd_r13, nulltype } value;
 
-          options               value;
-          static const uint32_t nof_types = 2, nof_exts = 0;
-          static const bool     has_ext = false;
-
-          // enumerated methods
-          types() {}
-          types(options v) : value(v) {}
-          types& operator=(options v)
-          {
-            value = v;
-            return *this;
-          }
-                      operator options() const { return value; }
           std::string to_string() const;
         };
+        typedef enumerated<types_opts, 2, 0, false> types;
 
         // choice methods
         mpdcch_start_sf_uess_r13_c_() : type_(types::nulltype) {}
@@ -17098,26 +13532,14 @@ struct epdcch_set_cfg_r11_s {
 
         void destroy_();
       };
-      struct mpdcch_num_repeat_r13_e_ {
-        enum options { r1, r2, r4, r8, r16, r32, r64, r128, r256 };
+      struct mpdcch_num_repeat_r13_opts {
+        enum options { r1, r2, r4, r8, r16, r32, r64, r128, r256 } value;
         typedef uint16_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 9, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        mpdcch_num_repeat_r13_e_() {}
-        mpdcch_num_repeat_r13_e_(options v) : value(v) {}
-        mpdcch_num_repeat_r13_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint16_t    to_number() const;
       };
+      typedef enumerated<mpdcch_num_repeat_r13_opts, 9, 0, false> mpdcch_num_repeat_r13_e_;
 
       // member variables
       csi_num_repeat_ce_r13_e_    csi_num_repeat_ce_r13;
@@ -17193,24 +13615,12 @@ struct enable256_qam_r14_c {
       bool dci_format0_r14;
       bool dci_format4_r14;
     };
-    struct types {
-      enum options { tpc_sf_set_cfgured_r14, tpc_sf_set_not_cfgured_r14, nulltype };
+    struct types_opts {
+      enum options { tpc_sf_set_cfgured_r14, tpc_sf_set_not_cfgured_r14, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     setup_c_() : type_(types::nulltype) {}
@@ -17279,7 +13689,7 @@ private:
 // LogicalChannelConfig ::= SEQUENCE
 struct lc_ch_cfg_s {
   struct ul_specific_params_s_ {
-    struct prioritised_bit_rate_e_ {
+    struct prioritised_bit_rate_opts {
       enum options {
         kbps0,
         kbps8,
@@ -17297,45 +13707,21 @@ struct lc_ch_cfg_s {
         spare3,
         spare2,
         spare1
-      };
+      } value;
       typedef int16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 16, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      prioritised_bit_rate_e_() {}
-      prioritised_bit_rate_e_(options v) : value(v) {}
-      prioritised_bit_rate_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       int16_t     to_number() const;
     };
-    struct bucket_size_dur_e_ {
-      enum options { ms50, ms100, ms150, ms300, ms500, ms1000, spare2, spare1 };
+    typedef enumerated<prioritised_bit_rate_opts, 16, 0, false> prioritised_bit_rate_e_;
+    struct bucket_size_dur_opts {
+      enum options { ms50, ms100, ms150, ms300, ms500, ms1000, spare2, spare1 } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      bucket_size_dur_e_() {}
-      bucket_size_dur_e_(options v) : value(v) {}
-      bucket_size_dur_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
+    typedef enumerated<bucket_size_dur_opts, 8, 0, false> bucket_size_dur_e_;
 
     // member variables
     bool                    lc_ch_group_present;
@@ -17347,27 +13733,15 @@ struct lc_ch_cfg_s {
     // sequence methods
     ul_specific_params_s_();
   };
-  struct bit_rate_query_prohibit_timer_r14_e_ {
-    enum options { s0, s0dot4, s0dot8, s1dot6, s3, s6, s12, s30 };
+  struct bit_rate_query_prohibit_timer_r14_opts {
+    enum options { s0, s0dot4, s0dot8, s1dot6, s3, s6, s12, s30 } value;
     typedef float number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    bit_rate_query_prohibit_timer_r14_e_() {}
-    bit_rate_query_prohibit_timer_r14_e_(options v) : value(v) {}
-    bit_rate_query_prohibit_timer_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     float       to_number() const;
     std::string to_number_string() const;
   };
+  typedef enumerated<bit_rate_query_prohibit_timer_r14_opts, 8, 0, false> bit_rate_query_prohibit_timer_r14_e_;
   struct allowed_tti_lens_r15_c_ {
     struct setup_s_ {
       // member variables
@@ -17400,25 +13774,13 @@ struct lc_ch_cfg_s {
     setup_s_ c;
   };
   struct lc_ch_sr_restrict_r15_c_ {
-    struct setup_e_ {
-      enum options { spucch, pucch };
+    struct setup_opts {
+      enum options { spucch, pucch } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      setup_e_() {}
-      setup_e_(options v) : value(v) {}
-      setup_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
-    typedef setup_e types;
+    typedef enumerated<setup_opts, 2, 0, false> setup_e_;
+    typedef setup_e                             types;
 
     // choice methods
     lc_ch_sr_restrict_r15_c_() : type_(types::nulltype) {}
@@ -17503,51 +13865,27 @@ struct lc_ch_cfg_s {
 };
 
 // P-a ::= ENUMERATED
-struct p_a_e {
-  enum options { db_minus6, db_minus4dot77, db_minus3, db_minus1dot77, db0, db1, db2, db3 };
+struct p_a_opts {
+  enum options { db_minus6, db_minus4dot77, db_minus3, db_minus1dot77, db0, db1, db2, db3 } value;
   typedef float number_type;
 
-  options               value;
-  static const uint32_t nof_types = 8, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  p_a_e() {}
-  p_a_e(options v) : value(v) {}
-  p_a_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   float       to_number() const;
   std::string to_number_string() const;
 };
+typedef enumerated<p_a_opts, 8, 0, false> p_a_e;
 
 // PDSCH-RE-MappingQCL-Config-r11 ::= SEQUENCE
 struct pdsch_re_map_qcl_cfg_r11_s {
   struct optional_set_of_fields_r11_s_ {
-    struct crs_ports_count_r11_e_ {
-      enum options { n1, n2, n4, spare1 };
+    struct crs_ports_count_r11_opts {
+      enum options { n1, n2, n4, spare1 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      crs_ports_count_r11_e_() {}
-      crs_ports_count_r11_e_(options v) : value(v) {}
-      crs_ports_count_r11_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<crs_ports_count_r11_opts, 4, 0, false> crs_ports_count_r11_e_;
     struct mbsfn_sf_cfg_list_r11_c_ {
       struct setup_s_ {
         // member variables
@@ -17578,26 +13916,14 @@ struct pdsch_re_map_qcl_cfg_r11_s {
       types    type_;
       setup_s_ c;
     };
-    struct pdsch_start_r11_e_ {
-      enum options { reserved, n1, n2, n3, n4, assigned };
+    struct pdsch_start_r11_opts {
+      enum options { reserved, n1, n2, n3, n4, assigned } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 6, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      pdsch_start_r11_e_() {}
-      pdsch_start_r11_e_(options v) : value(v) {}
-      pdsch_start_r11_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<pdsch_start_r11_opts, 6, 0, false> pdsch_start_r11_e_;
 
     // member variables
     bool                     mbsfn_sf_cfg_list_r11_present;
@@ -17641,46 +13967,22 @@ struct pdsch_re_map_qcl_cfg_r11_s {
   };
   struct codeword_one_cfg_v1530_c_ {
     struct setup_s_ {
-      struct crs_ports_count_v1530_e_ {
-        enum options { n1, n2, n4, spare1 };
+      struct crs_ports_count_v1530_opts {
+        enum options { n1, n2, n4, spare1 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        crs_ports_count_v1530_e_() {}
-        crs_ports_count_v1530_e_(options v) : value(v) {}
-        crs_ports_count_v1530_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
-      struct pdsch_start_v1530_e_ {
-        enum options { reserved, n1, n2, n3, n4, assigned };
+      typedef enumerated<crs_ports_count_v1530_opts, 4, 0, false> crs_ports_count_v1530_e_;
+      struct pdsch_start_v1530_opts {
+        enum options { reserved, n1, n2, n3, n4, assigned } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 6, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        pdsch_start_v1530_e_() {}
-        pdsch_start_v1530_e_(options v) : value(v) {}
-        pdsch_start_v1530_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
+      typedef enumerated<pdsch_start_v1530_opts, 6, 0, false> pdsch_start_v1530_e_;
 
       // member variables
       bool                      mbsfn_sf_cfg_list_v1530_present;
@@ -17747,26 +14049,14 @@ struct pdsch_re_map_qcl_cfg_r11_s {
 };
 
 // PollPDU-v1310 ::= ENUMERATED
-struct poll_pdu_v1310_e {
-  enum options { p512, p1024, p2048, p4096, p6144, p8192, p12288, p16384 };
+struct poll_pdu_v1310_opts {
+  enum options { p512, p1024, p2048, p4096, p6144, p8192, p12288, p16384 } value;
   typedef uint16_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 8, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  poll_pdu_v1310_e() {}
-  poll_pdu_v1310_e(options v) : value(v) {}
-  poll_pdu_v1310_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint16_t    to_number() const;
 };
+typedef enumerated<poll_pdu_v1310_opts, 8, 0, false> poll_pdu_v1310_e;
 
 // RLC-Config-r15 ::= SEQUENCE
 struct rlc_cfg_r15_s {
@@ -17789,24 +14079,12 @@ struct rlc_cfg_r15_s {
       // member variables
       dl_um_rlc_r15_s dl_um_rlc_r15;
     };
-    struct types {
-      enum options { am_r15, um_bi_dir_r15, um_uni_dir_ul_r15, um_uni_dir_dl_r15, nulltype };
+    struct types_opts {
+      enum options { am_r15, um_bi_dir_r15, um_uni_dir_ul_r15, um_uni_dir_dl_r15, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 4, 0, false> types;
 
     // choice methods
     mode_r15_c_() : type_(types::nulltype) {}
@@ -17893,46 +14171,22 @@ typedef dyn_array<spucch_elems_r15_c> spucch_set_r15_l;
 typedef bounded_array<uint16_t, 4> sr_subslot_spucch_res_list_r15_l;
 
 // SRS-AntennaPort ::= ENUMERATED
-struct srs_ant_port_e {
-  enum options { an1, an2, an4, spare1 };
+struct srs_ant_port_opts {
+  enum options { an1, an2, an4, spare1 } value;
   typedef uint8_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 4, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  srs_ant_port_e() {}
-  srs_ant_port_e(options v) : value(v) {}
-  srs_ant_port_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint8_t     to_number() const;
 };
+typedef enumerated<srs_ant_port_opts, 4, 0, false> srs_ant_port_e;
 
 // ShortTTI-Length-r15 ::= ENUMERATED
-struct short_tti_len_r15_e {
-  enum options { slot, subslot };
+struct short_tti_len_r15_opts {
+  enum options { slot, subslot } value;
 
-  options               value;
-  static const uint32_t nof_types = 2, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  short_tti_len_r15_e() {}
-  short_tti_len_r15_e(options v) : value(v) {}
-  short_tti_len_r15_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
 };
+typedef enumerated<short_tti_len_r15_opts, 2, 0, false> short_tti_len_r15_e;
 
 // TPC-PDCCH-Config ::= CHOICE
 struct tpc_pdcch_cfg_c {
@@ -17969,26 +14223,14 @@ private:
 
 // UL-AM-RLC ::= SEQUENCE
 struct ul_am_rlc_s {
-  struct max_retx_thres_e_ {
-    enum options { t1, t2, t3, t4, t6, t8, t16, t32 };
+  struct max_retx_thres_opts {
+    enum options { t1, t2, t3, t4, t6, t8, t16, t32 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    max_retx_thres_e_() {}
-    max_retx_thres_e_(options v) : value(v) {}
-    max_retx_thres_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<max_retx_thres_opts, 8, 0, false> max_retx_thres_e_;
 
   // member variables
   t_poll_retx_e     t_poll_retx;
@@ -18005,48 +14247,24 @@ struct ul_am_rlc_s {
 // AntennaInfoDedicatedSTTI-r15 ::= CHOICE
 struct ant_info_ded_stti_r15_c {
   struct setup_s_ {
-    struct tx_mode_dl_mbsfn_r15_e_ {
-      enum options { tm9, tm10 };
+    struct tx_mode_dl_mbsfn_r15_opts {
+      enum options { tm9, tm10 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      tx_mode_dl_mbsfn_r15_e_() {}
-      tx_mode_dl_mbsfn_r15_e_(options v) : value(v) {}
-      tx_mode_dl_mbsfn_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct tx_mode_dl_non_mbsfn_r15_e_ {
-      enum options { tm1, tm2, tm3, tm4, tm6, tm8, tm9, tm10 };
+    typedef enumerated<tx_mode_dl_mbsfn_r15_opts, 2, 0, false> tx_mode_dl_mbsfn_r15_e_;
+    struct tx_mode_dl_non_mbsfn_r15_opts {
+      enum options { tm1, tm2, tm3, tm4, tm6, tm8, tm9, tm10 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      tx_mode_dl_non_mbsfn_r15_e_() {}
-      tx_mode_dl_non_mbsfn_r15_e_(options v) : value(v) {}
-      tx_mode_dl_non_mbsfn_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<tx_mode_dl_non_mbsfn_r15_opts, 8, 0, false> tx_mode_dl_non_mbsfn_r15_e_;
     struct codebook_subset_restrict_c_ {
-      struct types {
+      struct types_opts {
         enum options {
           n2_tx_ant_tm3_r15,
           n4_tx_ant_tm3_r15,
@@ -18062,23 +14280,11 @@ struct ant_info_ded_stti_r15_c {
           n4_tx_ant_tm9and10_r15,
           n8_tx_ant_tm9and10_r15,
           nulltype
-        };
+        } value;
 
-        options               value;
-        static const uint32_t nof_types = 13, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 13, 0, false> types;
 
       // choice methods
       codebook_subset_restrict_c_() : type_(types::nulltype) {}
@@ -18228,26 +14434,14 @@ struct ant_info_ded_stti_r15_c {
 
       void destroy_();
     };
-    struct max_layers_mimo_stti_r15_e_ {
-      enum options { two_layers, four_layers };
+    struct max_layers_mimo_stti_r15_opts {
+      enum options { two_layers, four_layers } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      max_layers_mimo_stti_r15_e_() {}
-      max_layers_mimo_stti_r15_e_(options v) : value(v) {}
-      max_layers_mimo_stti_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<max_layers_mimo_stti_r15_opts, 2, 0, false> max_layers_mimo_stti_r15_e_;
 
     // member variables
     bool                        tx_mode_dl_mbsfn_r15_present;
@@ -18292,26 +14486,14 @@ private:
 
 // AntennaInfoUL-STTI-r15 ::= SEQUENCE
 struct ant_info_ul_stti_r15_s {
-  struct tx_mode_ul_stti_r15_e_ {
-    enum options { tm1, tm2 };
+  struct tx_mode_ul_stti_r15_opts {
+    enum options { tm1, tm2 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    tx_mode_ul_stti_r15_e_() {}
-    tx_mode_ul_stti_r15_e_(options v) : value(v) {}
-    tx_mode_ul_stti_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<tx_mode_ul_stti_r15_opts, 2, 0, false> tx_mode_ul_stti_r15_e_;
 
   // member variables
   bool                   tx_mode_ul_stti_r15_present;
@@ -18327,26 +14509,14 @@ struct ant_info_ul_stti_r15_s {
 // CQI-ReportConfig-r15 ::= CHOICE
 struct cqi_report_cfg_r15_c {
   struct setup_s_ {
-    struct alt_cqi_table_minus1024_qam_r15_e_ {
-      enum options { all_sfs, csi_sf_set1, csi_sf_set2, spare1 };
+    struct alt_cqi_table_minus1024_qam_r15_opts {
+      enum options { all_sfs, csi_sf_set1, csi_sf_set2, spare1 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      alt_cqi_table_minus1024_qam_r15_e_() {}
-      alt_cqi_table_minus1024_qam_r15_e_(options v) : value(v) {}
-      alt_cqi_table_minus1024_qam_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<alt_cqi_table_minus1024_qam_r15_opts, 4, 0, false> alt_cqi_table_minus1024_qam_r15_e_;
 
     // member variables
     bool                               cqi_report_cfg_r10_present;
@@ -18401,24 +14571,12 @@ struct cqi_report_periodic_c {
         // member variables
         uint8_t k;
       };
-      struct types {
-        enum options { wideband_cqi, subband_cqi, nulltype };
+      struct types_opts {
+        enum options { wideband_cqi, subband_cqi, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 2, 0, false> types;
 
       // choice methods
       cqi_format_ind_periodic_c_() : type_(types::nulltype) {}
@@ -18483,26 +14641,14 @@ private:
 
 // CRS-AssistanceInfo-r11 ::= SEQUENCE
 struct crs_assist_info_r11_s {
-  struct ant_ports_count_r11_e_ {
-    enum options { an1, an2, an4, spare1 };
+  struct ant_ports_count_r11_opts {
+    enum options { an1, an2, an4, spare1 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    ant_ports_count_r11_e_() {}
-    ant_ports_count_r11_e_(options v) : value(v) {}
-    ant_ports_count_r11_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<ant_ports_count_r11_opts, 4, 0, false> ant_ports_count_r11_e_;
 
   // member variables
   bool                   ext;
@@ -18523,26 +14669,14 @@ struct crs_assist_info_r11_s {
 
 // CRS-AssistanceInfo-r13 ::= SEQUENCE
 struct crs_assist_info_r13_s {
-  struct ant_ports_count_r13_e_ {
-    enum options { an1, an2, an4, spare1 };
+  struct ant_ports_count_r13_opts {
+    enum options { an1, an2, an4, spare1 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    ant_ports_count_r13_e_() {}
-    ant_ports_count_r13_e_(options v) : value(v) {}
-    ant_ports_count_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<ant_ports_count_r13_opts, 4, 0, false> ant_ports_count_r13_e_;
 
   // member variables
   bool                   ext;
@@ -18705,86 +14839,40 @@ struct dmrs_cfg_v1310_s {
 
 // DeltaTxD-OffsetListPUCCH-r10 ::= SEQUENCE
 struct delta_tx_d_offset_list_pucch_r10_s {
-  struct delta_tx_d_offset_pucch_format1_r10_e_ {
-    enum options { db0, db_minus2 };
+  struct delta_tx_d_offset_pucch_format1_r10_opts {
+    enum options { db0, db_minus2 } value;
     typedef int8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    delta_tx_d_offset_pucch_format1_r10_e_() {}
-    delta_tx_d_offset_pucch_format1_r10_e_(options v) : value(v) {}
-    delta_tx_d_offset_pucch_format1_r10_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     int8_t      to_number() const;
   };
-  struct delta_tx_d_offset_pucch_format1a1b_r10_e_ {
-    enum options { db0, db_minus2 };
+  typedef enumerated<delta_tx_d_offset_pucch_format1_r10_opts, 2, 0, false> delta_tx_d_offset_pucch_format1_r10_e_;
+  struct delta_tx_d_offset_pucch_format1a1b_r10_opts {
+    enum options { db0, db_minus2 } value;
     typedef int8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    delta_tx_d_offset_pucch_format1a1b_r10_e_() {}
-    delta_tx_d_offset_pucch_format1a1b_r10_e_(options v) : value(v) {}
-    delta_tx_d_offset_pucch_format1a1b_r10_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     int8_t      to_number() const;
   };
-  struct delta_tx_d_offset_pucch_format22a2b_r10_e_ {
-    enum options { db0, db_minus2 };
+  typedef enumerated<delta_tx_d_offset_pucch_format1a1b_r10_opts, 2, 0, false>
+      delta_tx_d_offset_pucch_format1a1b_r10_e_;
+  struct delta_tx_d_offset_pucch_format22a2b_r10_opts {
+    enum options { db0, db_minus2 } value;
     typedef int8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    delta_tx_d_offset_pucch_format22a2b_r10_e_() {}
-    delta_tx_d_offset_pucch_format22a2b_r10_e_(options v) : value(v) {}
-    delta_tx_d_offset_pucch_format22a2b_r10_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     int8_t      to_number() const;
   };
-  struct delta_tx_d_offset_pucch_format3_r10_e_ {
-    enum options { db0, db_minus2 };
+  typedef enumerated<delta_tx_d_offset_pucch_format22a2b_r10_opts, 2, 0, false>
+      delta_tx_d_offset_pucch_format22a2b_r10_e_;
+  struct delta_tx_d_offset_pucch_format3_r10_opts {
+    enum options { db0, db_minus2 } value;
     typedef int8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    delta_tx_d_offset_pucch_format3_r10_e_() {}
-    delta_tx_d_offset_pucch_format3_r10_e_(options v) : value(v) {}
-    delta_tx_d_offset_pucch_format3_r10_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     int8_t      to_number() const;
   };
+  typedef enumerated<delta_tx_d_offset_pucch_format3_r10_opts, 2, 0, false> delta_tx_d_offset_pucch_format3_r10_e_;
 
   // member variables
   bool                                       ext;
@@ -18803,26 +14891,15 @@ struct delta_tx_d_offset_list_pucch_r10_s {
 
 // DeltaTxD-OffsetListPUCCH-v1130 ::= SEQUENCE
 struct delta_tx_d_offset_list_pucch_v1130_s {
-  struct delta_tx_d_offset_pucch_format1b_cs_r11_e_ {
-    enum options { db0, db_minus1 };
+  struct delta_tx_d_offset_pucch_format1b_cs_r11_opts {
+    enum options { db0, db_minus1 } value;
     typedef int8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    delta_tx_d_offset_pucch_format1b_cs_r11_e_() {}
-    delta_tx_d_offset_pucch_format1b_cs_r11_e_(options v) : value(v) {}
-    delta_tx_d_offset_pucch_format1b_cs_r11_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     int8_t      to_number() const;
   };
+  typedef enumerated<delta_tx_d_offset_pucch_format1b_cs_r11_opts, 2, 0, false>
+      delta_tx_d_offset_pucch_format1b_cs_r11_e_;
 
   // member variables
   delta_tx_d_offset_pucch_format1b_cs_r11_e_ delta_tx_d_offset_pucch_format1b_cs_r11;
@@ -18836,26 +14913,14 @@ struct delta_tx_d_offset_list_pucch_v1130_s {
 // EIMTA-MainConfig-r12 ::= CHOICE
 struct eimta_main_cfg_r12_c {
   struct setup_s_ {
-    struct eimta_cmd_periodicity_r12_e_ {
-      enum options { sf10, sf20, sf40, sf80 };
+    struct eimta_cmd_periodicity_r12_opts {
+      enum options { sf10, sf20, sf40, sf80 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      eimta_cmd_periodicity_r12_e_() {}
-      eimta_cmd_periodicity_r12_e_(options v) : value(v) {}
-      eimta_cmd_periodicity_r12_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<eimta_cmd_periodicity_r12_opts, 4, 0, false> eimta_cmd_periodicity_r12_e_;
 
     // member variables
     fixed_bitstring<16>          eimta_rnti_r12;
@@ -18891,26 +14956,14 @@ private:
 // EIMTA-MainConfigServCell-r12 ::= CHOICE
 struct eimta_main_cfg_serv_cell_r12_c {
   struct setup_s_ {
-    struct eimta_harq_ref_cfg_r12_e_ {
-      enum options { sa2, sa4, sa5 };
+    struct eimta_harq_ref_cfg_r12_opts {
+      enum options { sa2, sa4, sa5 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 3, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      eimta_harq_ref_cfg_r12_e_() {}
-      eimta_harq_ref_cfg_r12_e_(options v) : value(v) {}
-      eimta_harq_ref_cfg_r12_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<eimta_harq_ref_cfg_r12_opts, 3, 0, false> eimta_harq_ref_cfg_r12_e_;
     struct mbsfn_sf_cfg_list_v1250_c_ {
       struct setup_s_ {
         // member variables
@@ -19011,27 +15064,15 @@ typedef bounded_array<uint16_t, 4> n1_pucch_an_persistent_list_l;
 
 // NeighCellsInfo-r12 ::= SEQUENCE
 struct neigh_cells_info_r12_s {
-  struct crs_ports_count_r12_e_ {
-    enum options { n1, n2, n4, spare };
+  struct crs_ports_count_r12_opts {
+    enum options { n1, n2, n4, spare } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    crs_ports_count_r12_e_() {}
-    crs_ports_count_r12_e_(options v) : value(v) {}
-    crs_ports_count_r12_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  typedef bounded_array<p_a_e, 3> p_a_list_r12_l_;
+  typedef enumerated<crs_ports_count_r12_opts, 4, 0, false> crs_ports_count_r12_e_;
+  typedef bounded_array<p_a_e, 3>                           p_a_list_r12_l_;
 
   // member variables
   bool                   ext;
@@ -19053,74 +15094,38 @@ struct neigh_cells_info_r12_s {
 };
 
 // PDCCH-CandidateReductionValue-r13 ::= ENUMERATED
-struct pdcch_candidate_reduction_value_r13_e {
-  enum options { n0, n33, n66, n100 };
+struct pdcch_candidate_reduction_value_r13_opts {
+  enum options { n0, n33, n66, n100 } value;
   typedef uint8_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 4, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  pdcch_candidate_reduction_value_r13_e() {}
-  pdcch_candidate_reduction_value_r13_e(options v) : value(v) {}
-  pdcch_candidate_reduction_value_r13_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint8_t     to_number() const;
 };
+typedef enumerated<pdcch_candidate_reduction_value_r13_opts, 4, 0, false> pdcch_candidate_reduction_value_r13_e;
 
 // PDCP-Config ::= SEQUENCE
 struct pdcp_cfg_s {
-  struct discard_timer_e_ {
-    enum options { ms50, ms100, ms150, ms300, ms500, ms750, ms1500, infinity };
+  struct discard_timer_opts {
+    enum options { ms50, ms100, ms150, ms300, ms500, ms750, ms1500, infinity } value;
     typedef int16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    discard_timer_e_() {}
-    discard_timer_e_(options v) : value(v) {}
-    discard_timer_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     int16_t     to_number() const;
   };
+  typedef enumerated<discard_timer_opts, 8, 0, false> discard_timer_e_;
   struct rlc_am_s_ {
     // member variables
     bool status_report_required;
   };
   struct rlc_um_s_ {
-    struct pdcp_sn_size_e_ {
-      enum options { len7bits, len12bits };
+    struct pdcp_sn_size_opts {
+      enum options { len7bits, len12bits } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      pdcp_sn_size_e_() {}
-      pdcp_sn_size_e_(options v) : value(v) {}
-      pdcp_sn_size_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<pdcp_sn_size_opts, 2, 0, false> pdcp_sn_size_e_;
 
     // member variables
     pdcp_sn_size_e_ pdcp_sn_size;
@@ -19150,24 +15155,12 @@ struct pdcp_cfg_s {
       // sequence methods
       rohc_s_();
     };
-    struct types {
-      enum options { not_used, rohc, nulltype };
+    struct types_opts {
+      enum options { not_used, rohc, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     hdr_compress_c_() : type_(types::nulltype) {}
@@ -19192,7 +15185,7 @@ struct pdcp_cfg_s {
     types   type_;
     rohc_s_ c;
   };
-  struct t_reordering_r12_e_ {
+  struct t_reordering_r12_opts {
     enum options {
       ms0,
       ms20,
@@ -19226,27 +15219,15 @@ struct pdcp_cfg_s {
       spare3,
       spare2,
       spare1
-    };
+    } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 32, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    t_reordering_r12_e_() {}
-    t_reordering_r12_e_(options v) : value(v) {}
-    t_reordering_r12_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<t_reordering_r12_opts, 32, 0, false> t_reordering_r12_e_;
   struct ul_data_split_thres_r13_c_ {
-    struct setup_e_ {
+    struct setup_opts {
       enum options {
         b0,
         b100,
@@ -19264,26 +15245,14 @@ struct pdcp_cfg_s {
         b409600,
         b819200,
         spare1
-      };
+      } value;
       typedef uint32_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 16, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      setup_e_() {}
-      setup_e_(options v) : value(v) {}
-      setup_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint32_t    to_number() const;
     };
-    typedef setup_e types;
+    typedef enumerated<setup_opts, 16, 0, false> setup_e_;
+    typedef setup_e                              types;
 
     // choice methods
     ul_data_split_thres_r13_c_() : type_(types::nulltype) {}
@@ -19310,27 +15279,15 @@ struct pdcp_cfg_s {
   };
   struct status_feedback_r13_c_ {
     struct setup_s_ {
-      struct status_pdu_type_for_polling_r13_e_ {
-        enum options { type1, type2 };
+      struct status_pdu_type_for_polling_r13_opts {
+        enum options { type1, type2 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        status_pdu_type_for_polling_r13_e_() {}
-        status_pdu_type_for_polling_r13_e_(options v) : value(v) {}
-        status_pdu_type_for_polling_r13_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
-      struct status_pdu_periodicity_type1_r13_e_ {
+      typedef enumerated<status_pdu_type_for_polling_r13_opts, 2, 0, false> status_pdu_type_for_polling_r13_e_;
+      struct status_pdu_periodicity_type1_r13_opts {
         enum options {
           ms5,
           ms10,
@@ -19353,26 +15310,14 @@ struct pdcp_cfg_s {
           ms10000,
           ms20000,
           ms50000
-        };
+        } value;
         typedef uint16_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 21, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        status_pdu_periodicity_type1_r13_e_() {}
-        status_pdu_periodicity_type1_r13_e_(options v) : value(v) {}
-        status_pdu_periodicity_type1_r13_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint16_t    to_number() const;
       };
-      struct status_pdu_periodicity_type2_r13_e_ {
+      typedef enumerated<status_pdu_periodicity_type1_r13_opts, 21, 0, false> status_pdu_periodicity_type1_r13_e_;
+      struct status_pdu_periodicity_type2_r13_opts {
         enum options {
           ms5,
           ms10,
@@ -19395,45 +15340,21 @@ struct pdcp_cfg_s {
           ms10000,
           ms20000,
           ms50000
-        };
+        } value;
         typedef uint16_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 21, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        status_pdu_periodicity_type2_r13_e_() {}
-        status_pdu_periodicity_type2_r13_e_(options v) : value(v) {}
-        status_pdu_periodicity_type2_r13_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint16_t    to_number() const;
       };
-      struct status_pdu_periodicity_offset_r13_e_ {
-        enum options { ms1, ms2, ms5, ms10, ms25, ms50, ms100, ms250, ms500, ms2500, ms5000, ms25000 };
+      typedef enumerated<status_pdu_periodicity_type2_r13_opts, 21, 0, false> status_pdu_periodicity_type2_r13_e_;
+      struct status_pdu_periodicity_offset_r13_opts {
+        enum options { ms1, ms2, ms5, ms10, ms25, ms50, ms100, ms250, ms500, ms2500, ms5000, ms25000 } value;
         typedef uint16_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 12, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        status_pdu_periodicity_offset_r13_e_() {}
-        status_pdu_periodicity_offset_r13_e_(options v) : value(v) {}
-        status_pdu_periodicity_offset_r13_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint16_t    to_number() const;
       };
+      typedef enumerated<status_pdu_periodicity_offset_r13_opts, 12, 0, false> status_pdu_periodicity_offset_r13_e_;
 
       // member variables
       bool                                 status_pdu_type_for_polling_r13_present;
@@ -19475,7 +15396,7 @@ struct pdcp_cfg_s {
   };
   struct ul_lwa_cfg_r14_c_ {
     struct setup_s_ {
-      struct ul_lwa_data_split_thres_r14_e_ {
+      struct ul_lwa_data_split_thres_r14_opts {
         enum options {
           b0,
           b100,
@@ -19492,25 +15413,13 @@ struct pdcp_cfg_s {
           b204800,
           b409600,
           b819200
-        };
+        } value;
         typedef uint32_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 15, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        ul_lwa_data_split_thres_r14_e_() {}
-        ul_lwa_data_split_thres_r14_e_(options v) : value(v) {}
-        ul_lwa_data_split_thres_r14_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint32_t    to_number() const;
       };
+      typedef enumerated<ul_lwa_data_split_thres_r14_opts, 15, 0, false> ul_lwa_data_split_thres_r14_e_;
 
       // member variables
       bool                           ul_lwa_data_split_thres_r14_present;
@@ -19562,24 +15471,12 @@ struct pdcp_cfg_s {
       // sequence methods
       rohc_r14_s_();
     };
-    struct types {
-      enum options { not_used_r14, rohc_r14, nulltype };
+    struct types_opts {
+      enum options { not_used_r14, rohc_r14, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     ul_only_hdr_compress_r14_c_() : type_(types::nulltype) {}
@@ -19605,44 +15502,20 @@ struct pdcp_cfg_s {
     rohc_r14_s_ c;
   };
   struct ul_data_compress_r15_s_ {
-    struct buffer_size_r15_e_ {
-      enum options { kbyte2, kbyte4, kbyte8, spare1 };
+    struct buffer_size_r15_opts {
+      enum options { kbyte2, kbyte4, kbyte8, spare1 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      buffer_size_r15_e_() {}
-      buffer_size_r15_e_(options v) : value(v) {}
-      buffer_size_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct dictionary_r15_e_ {
-      enum options { sip_sdp, operator_type };
+    typedef enumerated<buffer_size_r15_opts, 4, 0, false> buffer_size_r15_e_;
+    struct dictionary_r15_opts {
+      enum options { sip_sdp, operator_type } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      dictionary_r15_e_() {}
-      dictionary_r15_e_(options v) : value(v) {}
-      dictionary_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<dictionary_r15_opts, 2, 0, false> dictionary_r15_e_;
 
     // member variables
     bool               ext;
@@ -19656,24 +15529,12 @@ struct pdcp_cfg_s {
   };
   struct pdcp_dupl_cfg_r15_c_ {
     struct setup_s_ {
-      struct pdcp_dupl_r15_e_ {
-        enum options { cfgured, activ };
+      struct pdcp_dupl_r15_opts {
+        enum options { cfgured, activ } value;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        pdcp_dupl_r15_e_() {}
-        pdcp_dupl_r15_e_(options v) : value(v) {}
-        pdcp_dupl_r15_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<pdcp_dupl_r15_opts, 2, 0, false> pdcp_dupl_r15_e_;
 
       // member variables
       pdcp_dupl_r15_e_ pdcp_dupl_r15;
@@ -19749,24 +15610,12 @@ struct pdcp_cfg_s {
 
 // PUCCH-ConfigDedicated-v1530 ::= SEQUENCE
 struct pucch_cfg_ded_v1530_s {
-  struct codebooksize_determination_stti_r15_e_ {
-    enum options { dai, cc };
+  struct codebooksize_determination_stti_r15_opts {
+    enum options { dai, cc } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    codebooksize_determination_stti_r15_e_() {}
-    codebooksize_determination_stti_r15_e_(options v) : value(v) {}
-    codebooksize_determination_stti_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<codebooksize_determination_stti_r15_opts, 2, 0, false> codebooksize_determination_stti_r15_e_;
 
   // member variables
   bool                                   n1_pucch_an_spt_r15_present;
@@ -19840,24 +15689,12 @@ typedef bounded_array<uint8_t, 4> re_map_qcl_cfg_to_release_list_r11_l;
 struct rlc_bearer_cfg_r15_c {
   struct setup_s_ {
     struct lc_ch_id_cfg_r15_c_ {
-      struct types {
-        enum options { lc_ch_id_r15, lc_ch_id_ext_r15, nulltype };
+      struct types_opts {
+        enum options { lc_ch_id_r15, lc_ch_id_ext_r15, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 2, 0, false> types;
 
       // choice methods
       lc_ch_id_cfg_r15_c_() : type_(types::nulltype) {}
@@ -19954,24 +15791,12 @@ struct rlc_cfg_c {
     // member variables
     dl_um_rlc_s dl_um_rlc;
   };
-  struct types {
-    enum options { am, um_bi_dir, um_uni_dir_ul, um_uni_dir_dl, /*...*/ nulltype };
+  struct types_opts {
+    enum options { am, um_bi_dir, um_uni_dir_ul, um_uni_dir_dl, /*...*/ nulltype } value;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = true;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<types_opts, 4, 0, true> types;
 
   // choice methods
   rlc_cfg_c() : type_(types::nulltype) {}
@@ -20145,26 +15970,14 @@ struct rrc_conn_reject_v1320_ies_s {
 // SPDCCH-Config-r15 ::= CHOICE
 struct spdcch_cfg_r15_c {
   struct setup_s_ {
-    struct spdcch_l1_reuse_ind_r15_e_ {
-      enum options { n0, n1, n2 };
+    struct spdcch_l1_reuse_ind_r15_opts {
+      enum options { n0, n1, n2 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 3, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      spdcch_l1_reuse_ind_r15_e_() {}
-      spdcch_l1_reuse_ind_r15_e_(options v) : value(v) {}
-      spdcch_l1_reuse_ind_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<spdcch_l1_reuse_ind_r15_opts, 3, 0, false> spdcch_l1_reuse_ind_r15_e_;
 
     // member variables
     bool                       spdcch_l1_reuse_ind_r15_present;
@@ -20203,7 +16016,7 @@ private:
 
 // SPS-ConfigSL-r14 ::= SEQUENCE
 struct sps_cfg_sl_r14_s {
-  struct semi_persist_sched_interv_sl_r14_e_ {
+  struct semi_persist_sched_interv_sl_r14_opts {
     enum options {
       sf20,
       sf50,
@@ -20221,25 +16034,13 @@ struct sps_cfg_sl_r14_s {
       spare3,
       spare2,
       spare1
-    };
+    } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 16, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    semi_persist_sched_interv_sl_r14_e_() {}
-    semi_persist_sched_interv_sl_r14_e_(options v) : value(v) {}
-    semi_persist_sched_interv_sl_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<semi_persist_sched_interv_sl_r14_opts, 16, 0, false> semi_persist_sched_interv_sl_r14_e_;
 
   // member variables
   uint8_t                             sps_cfg_idx_r14;
@@ -20254,7 +16055,7 @@ struct sps_cfg_sl_r14_s {
 // SPS-ConfigUL ::= CHOICE
 struct sps_cfg_ul_c {
   struct setup_s_ {
-    struct semi_persist_sched_interv_ul_e_ {
+    struct semi_persist_sched_interv_ul_opts {
       enum options {
         sf10,
         sf20,
@@ -20272,45 +16073,21 @@ struct sps_cfg_ul_c {
         sf4_v1430,
         sf5_v1430,
         spare1
-      };
+      } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 16, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      semi_persist_sched_interv_ul_e_() {}
-      semi_persist_sched_interv_ul_e_(options v) : value(v) {}
-      semi_persist_sched_interv_ul_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
-    struct implicit_release_after_e_ {
-      enum options { e2, e3, e4, e8 };
+    typedef enumerated<semi_persist_sched_interv_ul_opts, 16, 0, false> semi_persist_sched_interv_ul_e_;
+    struct implicit_release_after_opts {
+      enum options { e2, e3, e4, e8 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      implicit_release_after_e_() {}
-      implicit_release_after_e_(options v) : value(v) {}
-      implicit_release_after_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<implicit_release_after_opts, 4, 0, false> implicit_release_after_e_;
     struct p0_persistent_s_ {
       // member variables
       int8_t p0_nominal_pusch_persistent;
@@ -20347,7 +16124,7 @@ struct sps_cfg_ul_c {
       types    type_;
       setup_s_ c;
     };
-    struct semi_persist_sched_interv_ul_v1430_e_ {
+    struct semi_persist_sched_interv_ul_v1430_opts {
       enum options {
         sf50,
         sf100,
@@ -20365,85 +16142,37 @@ struct sps_cfg_ul_c {
         spare3,
         spare2,
         spare1
-      };
+      } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 16, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      semi_persist_sched_interv_ul_v1430_e_() {}
-      semi_persist_sched_interv_ul_v1430_e_(options v) : value(v) {}
-      semi_persist_sched_interv_ul_v1430_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
-    struct cyclic_shift_sps_r15_e_ {
-      enum options { cs0, cs1, cs2, cs3, cs4, cs5, cs6, cs7 };
+    typedef enumerated<semi_persist_sched_interv_ul_v1430_opts, 16, 0, false> semi_persist_sched_interv_ul_v1430_e_;
+    struct cyclic_shift_sps_r15_opts {
+      enum options { cs0, cs1, cs2, cs3, cs4, cs5, cs6, cs7 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      cyclic_shift_sps_r15_e_() {}
-      cyclic_shift_sps_r15_e_(options v) : value(v) {}
-      cyclic_shift_sps_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct rv_sps_ul_repeats_r15_e_ {
-      enum options { ulrvseq1, ulrvseq2, ulrvseq3 };
+    typedef enumerated<cyclic_shift_sps_r15_opts, 8, 0, false> cyclic_shift_sps_r15_e_;
+    struct rv_sps_ul_repeats_r15_opts {
+      enum options { ulrvseq1, ulrvseq2, ulrvseq3 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 3, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      rv_sps_ul_repeats_r15_e_() {}
-      rv_sps_ul_repeats_r15_e_(options v) : value(v) {}
-      rv_sps_ul_repeats_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct total_num_pusch_sps_ul_repeats_r15_e_ {
-      enum options { n2, n3, n4, n6 };
+    typedef enumerated<rv_sps_ul_repeats_r15_opts, 3, 0, false> rv_sps_ul_repeats_r15_e_;
+    struct total_num_pusch_sps_ul_repeats_r15_opts {
+      enum options { n2, n3, n4, n6 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      total_num_pusch_sps_ul_repeats_r15_e_() {}
-      total_num_pusch_sps_ul_repeats_r15_e_(options v) : value(v) {}
-      total_num_pusch_sps_ul_repeats_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<total_num_pusch_sps_ul_repeats_r15_opts, 4, 0, false> total_num_pusch_sps_ul_repeats_r15_e_;
 
     // member variables
     bool                            ext;
@@ -20514,7 +16243,7 @@ private:
 // SPS-ConfigUL-STTI-r15 ::= CHOICE
 struct sps_cfg_ul_stti_r15_c {
   struct setup_s_ {
-    struct semi_persist_sched_interv_ul_stti_r15_e_ {
+    struct semi_persist_sched_interv_ul_stti_r15_opts {
       enum options {
         s_tti1,
         s_tti2,
@@ -20532,45 +16261,22 @@ struct sps_cfg_ul_stti_r15_c {
         s_tti240,
         spare2,
         spare1
-      };
+      } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 16, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      semi_persist_sched_interv_ul_stti_r15_e_() {}
-      semi_persist_sched_interv_ul_stti_r15_e_(options v) : value(v) {}
-      semi_persist_sched_interv_ul_stti_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct implicit_release_after_e_ {
-      enum options { e2, e3, e4, e8 };
+    typedef enumerated<semi_persist_sched_interv_ul_stti_r15_opts, 16, 0, false>
+        semi_persist_sched_interv_ul_stti_r15_e_;
+    struct implicit_release_after_opts {
+      enum options { e2, e3, e4, e8 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      implicit_release_after_e_() {}
-      implicit_release_after_e_(options v) : value(v) {}
-      implicit_release_after_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<implicit_release_after_opts, 4, 0, false> implicit_release_after_e_;
     struct p0_persistent_r15_s_ {
       // member variables
       int8_t p0_nominal_spusch_persistent_r15;
@@ -20607,86 +16313,40 @@ struct sps_cfg_ul_stti_r15_c {
       types    type_;
       setup_s_ c;
     };
-    struct cyclic_shift_sps_s_tti_r15_e_ {
-      enum options { cs0, cs1, cs2, cs3, cs4, cs5, cs6, cs7 };
+    struct cyclic_shift_sps_s_tti_r15_opts {
+      enum options { cs0, cs1, cs2, cs3, cs4, cs5, cs6, cs7 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      cyclic_shift_sps_s_tti_r15_e_() {}
-      cyclic_shift_sps_s_tti_r15_e_(options v) : value(v) {}
-      cyclic_shift_sps_s_tti_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct rv_sps_stti_ul_repeats_r15_e_ {
-      enum options { ulrvseq1, ulrvseq2, ulrvseq3 };
+    typedef enumerated<cyclic_shift_sps_s_tti_r15_opts, 8, 0, false> cyclic_shift_sps_s_tti_r15_e_;
+    struct rv_sps_stti_ul_repeats_r15_opts {
+      enum options { ulrvseq1, ulrvseq2, ulrvseq3 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 3, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      rv_sps_stti_ul_repeats_r15_e_() {}
-      rv_sps_stti_ul_repeats_r15_e_(options v) : value(v) {}
-      rv_sps_stti_ul_repeats_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct tbs_scaling_factor_subslot_sps_ul_repeats_r15_e_ {
-      enum options { n6, n12 };
+    typedef enumerated<rv_sps_stti_ul_repeats_r15_opts, 3, 0, false> rv_sps_stti_ul_repeats_r15_e_;
+    struct tbs_scaling_factor_subslot_sps_ul_repeats_r15_opts {
+      enum options { n6, n12 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      tbs_scaling_factor_subslot_sps_ul_repeats_r15_e_() {}
-      tbs_scaling_factor_subslot_sps_ul_repeats_r15_e_(options v) : value(v) {}
-      tbs_scaling_factor_subslot_sps_ul_repeats_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct total_num_pusch_sps_stti_ul_repeats_r15_e_ {
-      enum options { n2, n3, n4, n6 };
+    typedef enumerated<tbs_scaling_factor_subslot_sps_ul_repeats_r15_opts, 2, 0, false>
+        tbs_scaling_factor_subslot_sps_ul_repeats_r15_e_;
+    struct total_num_pusch_sps_stti_ul_repeats_r15_opts {
+      enum options { n2, n3, n4, n6 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      total_num_pusch_sps_stti_ul_repeats_r15_e_() {}
-      total_num_pusch_sps_stti_ul_repeats_r15_e_(options v) : value(v) {}
-      total_num_pusch_sps_stti_ul_repeats_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<total_num_pusch_sps_stti_ul_repeats_r15_opts, 4, 0, false>
+        total_num_pusch_sps_stti_ul_repeats_r15_e_;
 
     // member variables
     bool                                             ext;
@@ -20806,46 +16466,22 @@ struct srs_cc_set_idx_r14_s {
 
 // SRS-ConfigAp-r10 ::= SEQUENCE
 struct srs_cfg_ap_r10_s {
-  struct srs_bw_ap_r10_e_ {
-    enum options { bw0, bw1, bw2, bw3 };
+  struct srs_bw_ap_r10_opts {
+    enum options { bw0, bw1, bw2, bw3 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    srs_bw_ap_r10_e_() {}
-    srs_bw_ap_r10_e_(options v) : value(v) {}
-    srs_bw_ap_r10_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct cyclic_shift_ap_r10_e_ {
-    enum options { cs0, cs1, cs2, cs3, cs4, cs5, cs6, cs7 };
+  typedef enumerated<srs_bw_ap_r10_opts, 4, 0, false> srs_bw_ap_r10_e_;
+  struct cyclic_shift_ap_r10_opts {
+    enum options { cs0, cs1, cs2, cs3, cs4, cs5, cs6, cs7 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    cyclic_shift_ap_r10_e_() {}
-    cyclic_shift_ap_r10_e_(options v) : value(v) {}
-    cyclic_shift_ap_r10_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<cyclic_shift_ap_r10_opts, 8, 0, false> cyclic_shift_ap_r10_e_;
 
   // member variables
   srs_ant_port_e         srs_ant_port_ap_r10;
@@ -20862,66 +16498,30 @@ struct srs_cfg_ap_r10_s {
 
 // SRS-ConfigAp-r13 ::= SEQUENCE
 struct srs_cfg_ap_r13_s {
-  struct srs_bw_ap_r13_e_ {
-    enum options { bw0, bw1, bw2, bw3 };
+  struct srs_bw_ap_r13_opts {
+    enum options { bw0, bw1, bw2, bw3 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    srs_bw_ap_r13_e_() {}
-    srs_bw_ap_r13_e_(options v) : value(v) {}
-    srs_bw_ap_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct cyclic_shift_ap_r13_e_ {
-    enum options { cs0, cs1, cs2, cs3, cs4, cs5, cs6, cs7, cs8, cs9, cs10, cs11 };
+  typedef enumerated<srs_bw_ap_r13_opts, 4, 0, false> srs_bw_ap_r13_e_;
+  struct cyclic_shift_ap_r13_opts {
+    enum options { cs0, cs1, cs2, cs3, cs4, cs5, cs6, cs7, cs8, cs9, cs10, cs11 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 12, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    cyclic_shift_ap_r13_e_() {}
-    cyclic_shift_ap_r13_e_(options v) : value(v) {}
-    cyclic_shift_ap_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct tx_comb_num_r13_e_ {
-    enum options { n2, n4 };
+  typedef enumerated<cyclic_shift_ap_r13_opts, 12, 0, false> cyclic_shift_ap_r13_e_;
+  struct tx_comb_num_r13_opts {
+    enum options { n2, n4 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    tx_comb_num_r13_e_() {}
-    tx_comb_num_r13_e_(options v) : value(v) {}
-    tx_comb_num_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<tx_comb_num_r13_opts, 2, 0, false> tx_comb_num_r13_e_;
 
   // member variables
   srs_ant_port_e         srs_ant_port_ap_r13;
@@ -20939,46 +16539,22 @@ struct srs_cfg_ap_r13_s {
 
 // SRS-ConfigAp-v1310 ::= SEQUENCE
 struct srs_cfg_ap_v1310_s {
-  struct cyclic_shift_ap_v1310_e_ {
-    enum options { cs8, cs9, cs10, cs11 };
+  struct cyclic_shift_ap_v1310_opts {
+    enum options { cs8, cs9, cs10, cs11 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    cyclic_shift_ap_v1310_e_() {}
-    cyclic_shift_ap_v1310_e_(options v) : value(v) {}
-    cyclic_shift_ap_v1310_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct tx_comb_num_r13_e_ {
-    enum options { n2, n4 };
+  typedef enumerated<cyclic_shift_ap_v1310_opts, 4, 0, false> cyclic_shift_ap_v1310_e_;
+  struct tx_comb_num_r13_opts {
+    enum options { n2, n4 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    tx_comb_num_r13_e_() {}
-    tx_comb_num_r13_e_(options v) : value(v) {}
-    tx_comb_num_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<tx_comb_num_r13_opts, 2, 0, false> tx_comb_num_r13_e_;
 
   // member variables
   bool                     tx_comb_ap_v1310_present;
@@ -21013,26 +16589,14 @@ struct stag_to_add_mod_r11_s {
 // SchedulingRequestConfig-v1530 ::= CHOICE
 struct sched_request_cfg_v1530_c {
   struct setup_s_ {
-    struct dssr_trans_max_r15_e_ {
-      enum options { n4, n8, n16, n32, n64, spare3, spare2, spare1 };
+    struct dssr_trans_max_r15_opts {
+      enum options { n4, n8, n16, n32, n64, spare3, spare2, spare1 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      dssr_trans_max_r15_e_() {}
-      dssr_trans_max_r15_e_(options v) : value(v) {}
-      dssr_trans_max_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<dssr_trans_max_r15_opts, 8, 0, false> dssr_trans_max_r15_e_;
 
     // member variables
     bool                             sr_slot_spucch_idx_fh_r15_present;
@@ -21094,66 +16658,30 @@ struct short_tti_r15_s {
 // SlotOrSubslotPDSCH-Config-r15 ::= CHOICE
 struct slot_or_subslot_pdsch_cfg_r15_c {
   struct setup_s_ {
-    struct alt_cqi_table_stti_r15_e_ {
-      enum options { all_sfs, csi_sf_set1, csi_sf_set2, spare1 };
+    struct alt_cqi_table_stti_r15_opts {
+      enum options { all_sfs, csi_sf_set1, csi_sf_set2, spare1 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      alt_cqi_table_stti_r15_e_() {}
-      alt_cqi_table_stti_r15_e_(options v) : value(v) {}
-      alt_cqi_table_stti_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct alt_cqi_table1024_qam_stti_r15_e_ {
-      enum options { all_sfs, csi_sf_set1, csi_sf_set2, spare1 };
+    typedef enumerated<alt_cqi_table_stti_r15_opts, 4, 0, false> alt_cqi_table_stti_r15_e_;
+    struct alt_cqi_table1024_qam_stti_r15_opts {
+      enum options { all_sfs, csi_sf_set1, csi_sf_set2, spare1 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      alt_cqi_table1024_qam_stti_r15_e_() {}
-      alt_cqi_table1024_qam_stti_r15_e_(options v) : value(v) {}
-      alt_cqi_table1024_qam_stti_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct res_alloc_r15_e_ {
-      enum options { res_alloc_type0, res_alloc_type2 };
+    typedef enumerated<alt_cqi_table1024_qam_stti_r15_opts, 4, 0, false> alt_cqi_table1024_qam_stti_r15_e_;
+    struct res_alloc_r15_opts {
+      enum options { res_alloc_type0, res_alloc_type2 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      res_alloc_r15_e_() {}
-      res_alloc_r15_e_(options v) : value(v) {}
-      res_alloc_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<res_alloc_r15_opts, 2, 0, false> res_alloc_r15_e_;
 
     // member variables
     bool                              ext;
@@ -21261,26 +16789,14 @@ private:
 // TDD-PUSCH-UpPTS-r14 ::= CHOICE
 struct tdd_pusch_up_pts_r14_c {
   struct setup_s_ {
-    struct sym_pusch_up_pts_r14_e_ {
-      enum options { sym1, sym2, sym3, sym4, sym5, sym6 };
+    struct sym_pusch_up_pts_r14_opts {
+      enum options { sym1, sym2, sym3, sym4, sym5, sym6 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 6, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      sym_pusch_up_pts_r14_e_() {}
-      sym_pusch_up_pts_r14_e_(options v) : value(v) {}
-      sym_pusch_up_pts_r14_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<sym_pusch_up_pts_r14_opts, 6, 0, false> sym_pusch_up_pts_r14_e_;
 
     // member variables
     bool                    sym_pusch_up_pts_r14_present;
@@ -21333,28 +16849,16 @@ struct ul_pwr_ctrl_ded_stti_r15_s {
 
 // AntennaInfoDedicated ::= SEQUENCE
 struct ant_info_ded_s {
-  struct tx_mode_e_ {
-    enum options { tm1, tm2, tm3, tm4, tm5, tm6, tm7, tm8_v920 };
+  struct tx_mode_opts {
+    enum options { tm1, tm2, tm3, tm4, tm5, tm6, tm7, tm8_v920 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    tx_mode_e_() {}
-    tx_mode_e_(options v) : value(v) {}
-    tx_mode_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<tx_mode_opts, 8, 0, false> tx_mode_e_;
   struct codebook_subset_restrict_c_ {
-    struct types {
+    struct types_opts {
       enum options {
         n2_tx_ant_tm3,
         n4_tx_ant_tm3,
@@ -21365,23 +16869,11 @@ struct ant_info_ded_s {
         n2_tx_ant_tm6,
         n4_tx_ant_tm6,
         nulltype
-      };
+      } value;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 8, 0, false> types;
 
     // choice methods
     codebook_subset_restrict_c_() : type_(types::nulltype) {}
@@ -21482,25 +16974,13 @@ struct ant_info_ded_s {
     void destroy_();
   };
   struct ue_tx_ant_sel_c_ {
-    struct setup_e_ {
-      enum options { closed_loop, open_loop };
+    struct setup_opts {
+      enum options { closed_loop, open_loop } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      setup_e_() {}
-      setup_e_(options v) : value(v) {}
-      setup_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
-    typedef setup_e types;
+    typedef enumerated<setup_opts, 2, 0, false> setup_e_;
+    typedef setup_e                             types;
 
     // choice methods
     ue_tx_ant_sel_c_() : type_(types::nulltype) {}
@@ -21541,7 +17021,7 @@ struct ant_info_ded_s {
 
 // AntennaInfoDedicated-r10 ::= SEQUENCE
 struct ant_info_ded_r10_s {
-  struct tx_mode_r10_e_ {
+  struct tx_mode_r10_opts {
     enum options {
       tm1,
       tm2,
@@ -21559,45 +17039,21 @@ struct ant_info_ded_r10_s {
       spare3,
       spare2,
       spare1
-    };
+    } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 16, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    tx_mode_r10_e_() {}
-    tx_mode_r10_e_(options v) : value(v) {}
-    tx_mode_r10_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<tx_mode_r10_opts, 16, 0, false> tx_mode_r10_e_;
   struct ue_tx_ant_sel_c_ {
-    struct setup_e_ {
-      enum options { closed_loop, open_loop };
+    struct setup_opts {
+      enum options { closed_loop, open_loop } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      setup_e_() {}
-      setup_e_(options v) : value(v) {}
-      setup_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
-    typedef setup_e types;
+    typedef enumerated<setup_opts, 2, 0, false> setup_e_;
+    typedef setup_e                             types;
 
     // choice methods
     ue_tx_ant_sel_c_() : type_(types::nulltype) {}
@@ -21662,46 +17118,27 @@ struct ant_info_ded_v1430_s {
 // AntennaInfoDedicated-v1530 ::= CHOICE
 struct ant_info_ded_v1530_c {
   struct setup_c_ {
-    struct ue_tx_ant_sel_srs_minus2_t4_r_nr_of_pairs_r15_e_ {
-      enum options { two, three };
+    struct ue_tx_ant_sel_srs_minus2_t4_r_nr_of_pairs_r15_opts {
+      enum options { two, three } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      ue_tx_ant_sel_srs_minus2_t4_r_nr_of_pairs_r15_e_() {}
-      ue_tx_ant_sel_srs_minus2_t4_r_nr_of_pairs_r15_e_(options v) : value(v) {}
-      ue_tx_ant_sel_srs_minus2_t4_r_nr_of_pairs_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct types {
-      enum options { ue_tx_ant_sel_srs_minus1_t4_r_cfg_r15, ue_tx_ant_sel_srs_minus2_t4_r_nr_of_pairs_r15, nulltype };
+    typedef enumerated<ue_tx_ant_sel_srs_minus2_t4_r_nr_of_pairs_r15_opts, 2, 0, false>
+        ue_tx_ant_sel_srs_minus2_t4_r_nr_of_pairs_r15_e_;
+    struct types_opts {
+      enum options {
+        ue_tx_ant_sel_srs_minus1_t4_r_cfg_r15,
+        ue_tx_ant_sel_srs_minus2_t4_r_nr_of_pairs_r15,
+        nulltype
+      } value;
       typedef int8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       int8_t      to_number() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     setup_c_() : type_(types::nulltype) {}
@@ -21755,26 +17192,14 @@ private:
 // AntennaInfoDedicated-v920 ::= SEQUENCE
 struct ant_info_ded_v920_s {
   struct codebook_subset_restrict_v920_c_ {
-    struct types {
-      enum options { n2_tx_ant_tm8_r9, n4_tx_ant_tm8_r9, nulltype };
+    struct types_opts {
+      enum options { n2_tx_ant_tm8_r9, n4_tx_ant_tm8_r9, nulltype } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     codebook_subset_restrict_v920_c_() : type_(types::nulltype) {}
@@ -21828,26 +17253,14 @@ struct ant_info_ded_v920_s {
 
 // AntennaInfoUL-r10 ::= SEQUENCE
 struct ant_info_ul_r10_s {
-  struct tx_mode_ul_r10_e_ {
-    enum options { tm1, tm2, spare6, spare5, spare4, spare3, spare2, spare1 };
+  struct tx_mode_ul_r10_opts {
+    enum options { tm1, tm2, spare6, spare5, spare4, spare3, spare2, spare1 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    tx_mode_ul_r10_e_() {}
-    tx_mode_ul_r10_e_(options v) : value(v) {}
-    tx_mode_ul_r10_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<tx_mode_ul_r10_opts, 8, 0, false> tx_mode_ul_r10_e_;
 
   // member variables
   bool              tx_mode_ul_r10_present;
@@ -21940,26 +17353,14 @@ struct cqi_report_cfg_s {
 
 // CQI-ReportConfig-v1530 ::= SEQUENCE
 struct cqi_report_cfg_v1530_s {
-  struct alt_cqi_table_minus1024_qam_r15_e_ {
-    enum options { all_sfs, csi_sf_set1, csi_sf_set2, spare1 };
+  struct alt_cqi_table_minus1024_qam_r15_opts {
+    enum options { all_sfs, csi_sf_set1, csi_sf_set2, spare1 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    alt_cqi_table_minus1024_qam_r15_e_() {}
-    alt_cqi_table_minus1024_qam_r15_e_(options v) : value(v) {}
-    alt_cqi_table_minus1024_qam_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<alt_cqi_table_minus1024_qam_r15_opts, 4, 0, false> alt_cqi_table_minus1024_qam_r15_e_;
 
   // member variables
   bool                               alt_cqi_table_minus1024_qam_r15_present;
@@ -22034,42 +17435,18 @@ typedef bounded_array<uint8_t, 21> csi_rs_cfg_nzp_to_release_list_ext_r13_l;
 
 // DRB-ToAddMod ::= SEQUENCE
 struct drb_to_add_mod_s {
-  struct drb_type_lwip_r13_e_ {
-    enum options { lwip, lwip_dl_only, lwip_ul_only, eutran };
+  struct drb_type_lwip_r13_opts {
+    enum options { lwip, lwip_dl_only, lwip_ul_only, eutran } value;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    drb_type_lwip_r13_e_() {}
-    drb_type_lwip_r13_e_(options v) : value(v) {}
-    drb_type_lwip_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
-  struct lwa_wlan_ac_r14_e_ {
-    enum options { ac_bk, ac_be, ac_vi, ac_vo };
+  typedef enumerated<drb_type_lwip_r13_opts, 4, 0, false> drb_type_lwip_r13_e_;
+  struct lwa_wlan_ac_r14_opts {
+    enum options { ac_bk, ac_be, ac_vi, ac_vo } value;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    lwa_wlan_ac_r14_e_() {}
-    lwa_wlan_ac_r14_e_(options v) : value(v) {}
-    lwa_wlan_ac_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<lwa_wlan_ac_r14_opts, 4, 0, false> lwa_wlan_ac_r14_e_;
 
   // member variables
   bool        ext;
@@ -22126,7 +17503,7 @@ struct drb_to_add_mod_s {
 // DRX-Config ::= CHOICE
 struct drx_cfg_c {
   struct setup_s_ {
-    struct on_dur_timer_e_ {
+    struct on_dur_timer_opts {
       enum options {
         psf1,
         psf2,
@@ -22144,26 +17521,14 @@ struct drx_cfg_c {
         psf80,
         psf100,
         psf200
-      };
+      } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 16, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      on_dur_timer_e_() {}
-      on_dur_timer_e_(options v) : value(v) {}
-      on_dur_timer_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct drx_inactivity_timer_e_ {
+    typedef enumerated<on_dur_timer_opts, 16, 0, false> on_dur_timer_e_;
+    struct drx_inactivity_timer_opts {
       enum options {
         psf1,
         psf2,
@@ -22197,47 +17562,23 @@ struct drx_cfg_c {
         spare3,
         spare2,
         spare1
-      };
+      } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 32, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      drx_inactivity_timer_e_() {}
-      drx_inactivity_timer_e_(options v) : value(v) {}
-      drx_inactivity_timer_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
-    struct drx_retx_timer_e_ {
-      enum options { psf1, psf2, psf4, psf6, psf8, psf16, psf24, psf33 };
+    typedef enumerated<drx_inactivity_timer_opts, 32, 0, false> drx_inactivity_timer_e_;
+    struct drx_retx_timer_opts {
+      enum options { psf1, psf2, psf4, psf6, psf8, psf16, psf24, psf33 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      drx_retx_timer_e_() {}
-      drx_retx_timer_e_(options v) : value(v) {}
-      drx_retx_timer_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<drx_retx_timer_opts, 8, 0, false> drx_retx_timer_e_;
     struct long_drx_cycle_start_offset_c_ {
-      struct types {
+      struct types_opts {
         enum options {
           sf10,
           sf20,
@@ -22256,25 +17597,13 @@ struct drx_cfg_c {
           sf2048,
           sf2560,
           nulltype
-        };
+        } value;
         typedef uint16_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 16, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint16_t    to_number() const;
       };
+      typedef enumerated<types_opts, 16, 0, false> types;
 
       // choice methods
       long_drx_cycle_start_offset_c_() : type_(types::nulltype) {}
@@ -22455,7 +17784,7 @@ struct drx_cfg_c {
       void destroy_();
     };
     struct short_drx_s_ {
-      struct short_drx_cycle_e_ {
+      struct short_drx_cycle_opts {
         enum options {
           sf2,
           sf5,
@@ -22473,25 +17802,13 @@ struct drx_cfg_c {
           sf320,
           sf512,
           sf640
-        };
+        } value;
         typedef uint16_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 16, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        short_drx_cycle_e_() {}
-        short_drx_cycle_e_(options v) : value(v) {}
-        short_drx_cycle_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint16_t    to_number() const;
       };
+      typedef enumerated<short_drx_cycle_opts, 16, 0, false> short_drx_cycle_e_;
 
       // member variables
       short_drx_cycle_e_ short_drx_cycle;
@@ -22537,47 +17854,23 @@ private:
 
 // DRX-Config-r13 ::= SEQUENCE
 struct drx_cfg_r13_s {
-  struct on_dur_timer_v1310_e_ {
-    enum options { psf300, psf400, psf500, psf600, psf800, psf1000, psf1200, psf1600 };
+  struct on_dur_timer_v1310_opts {
+    enum options { psf300, psf400, psf500, psf600, psf800, psf1000, psf1200, psf1600 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    on_dur_timer_v1310_e_() {}
-    on_dur_timer_v1310_e_(options v) : value(v) {}
-    on_dur_timer_v1310_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
-  struct drx_retx_timer_v1310_e_ {
-    enum options { psf40, psf64, psf80, psf96, psf112, psf128, psf160, psf320 };
+  typedef enumerated<on_dur_timer_v1310_opts, 8, 0, false> on_dur_timer_v1310_e_;
+  struct drx_retx_timer_v1310_opts {
+    enum options { psf40, psf64, psf80, psf96, psf112, psf128, psf160, psf320 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    drx_retx_timer_v1310_e_() {}
-    drx_retx_timer_v1310_e_(options v) : value(v) {}
-    drx_retx_timer_v1310_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
-  struct drx_ul_retx_timer_r13_e_ {
+  typedef enumerated<drx_retx_timer_v1310_opts, 8, 0, false> drx_retx_timer_v1310_e_;
+  struct drx_ul_retx_timer_r13_opts {
     enum options {
       psf0,
       psf1,
@@ -22596,25 +17889,13 @@ struct drx_cfg_r13_s {
       psf128,
       psf160,
       psf320
-    };
+    } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 17, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    drx_ul_retx_timer_r13_e_() {}
-    drx_ul_retx_timer_r13_e_(options v) : value(v) {}
-    drx_ul_retx_timer_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<drx_ul_retx_timer_r13_opts, 17, 0, false> drx_ul_retx_timer_r13_e_;
 
   // member variables
   bool                     on_dur_timer_v1310_present;
@@ -22633,27 +17914,15 @@ struct drx_cfg_r13_s {
 
 // DRX-Config-r15 ::= SEQUENCE
 struct drx_cfg_r15_s {
-  struct drx_retx_timer_short_tti_r15_e_ {
-    enum options { tti10, tti20, tti40, tti64, tti80, tti96, tti112, tti128, tti160, tti320 };
+  struct drx_retx_timer_short_tti_r15_opts {
+    enum options { tti10, tti20, tti40, tti64, tti80, tti96, tti112, tti128, tti160, tti320 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 10, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    drx_retx_timer_short_tti_r15_e_() {}
-    drx_retx_timer_short_tti_r15_e_(options v) : value(v) {}
-    drx_retx_timer_short_tti_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
-  struct drx_ul_retx_timer_short_tti_r15_e_ {
+  typedef enumerated<drx_retx_timer_short_tti_r15_opts, 10, 0, false> drx_retx_timer_short_tti_r15_e_;
+  struct drx_ul_retx_timer_short_tti_r15_opts {
     enum options {
       tti0,
       tti1,
@@ -22672,25 +17941,13 @@ struct drx_cfg_r15_s {
       tti128,
       tti160,
       tti320
-    };
+    } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 17, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    drx_ul_retx_timer_short_tti_r15_e_() {}
-    drx_ul_retx_timer_short_tti_r15_e_(options v) : value(v) {}
-    drx_ul_retx_timer_short_tti_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<drx_ul_retx_timer_short_tti_r15_opts, 17, 0, false> drx_ul_retx_timer_short_tti_r15_e_;
 
   // member variables
   bool                               drx_retx_timer_short_tti_r15_present;
@@ -22708,26 +17965,14 @@ struct drx_cfg_r15_s {
 // DRX-Config-v1130 ::= SEQUENCE
 struct drx_cfg_v1130_s {
   struct long_drx_cycle_start_offset_v1130_c_ {
-    struct types {
-      enum options { sf60_v1130, sf70_v1130, nulltype };
+    struct types_opts {
+      enum options { sf60_v1130, sf70_v1130, nulltype } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     long_drx_cycle_start_offset_v1130_c_() : type_(types::nulltype) {}
@@ -22800,26 +18045,14 @@ struct drx_cfg_v1310_s {
 };
 
 // DataInactivityTimer-r14 ::= ENUMERATED
-struct data_inactivity_timer_r14_e {
-  enum options { s1, s2, s3, s5, s7, s10, s15, s20, s40, s50, s60, s80, s100, s120, s150, s180 };
+struct data_inactivity_timer_r14_opts {
+  enum options { s1, s2, s3, s5, s7, s10, s15, s20, s40, s50, s60, s80, s100, s120, s150, s180 } value;
   typedef uint8_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 16, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  data_inactivity_timer_r14_e() {}
-  data_inactivity_timer_r14_e(options v) : value(v) {}
-  data_inactivity_timer_r14_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint8_t     to_number() const;
 };
+typedef enumerated<data_inactivity_timer_r14_opts, 16, 0, false> data_inactivity_timer_r14_e;
 
 // EPDCCH-Config-r11 ::= SEQUENCE
 struct epdcch_cfg_r11_s {
@@ -23036,27 +18269,15 @@ private:
 
 // PDSCH-ConfigDedicated ::= SEQUENCE
 struct pdsch_cfg_ded_s {
-  struct p_a_e_ {
-    enum options { db_minus6, db_minus4dot77, db_minus3, db_minus1dot77, db0, db1, db2, db3 };
+  struct p_a_opts {
+    enum options { db_minus6, db_minus4dot77, db_minus3, db_minus1dot77, db0, db1, db2, db3 } value;
     typedef float number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    p_a_e_() {}
-    p_a_e_(options v) : value(v) {}
-    p_a_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     float       to_number() const;
     std::string to_number_string() const;
   };
+  typedef enumerated<p_a_opts, 8, 0, false> p_a_e_;
 
   // member variables
   p_a_e_ p_a;
@@ -23069,24 +18290,12 @@ struct pdsch_cfg_ded_s {
 
 // PDSCH-ConfigDedicated-v1130 ::= SEQUENCE
 struct pdsch_cfg_ded_v1130_s {
-  struct qcl_operation_e_ {
-    enum options { type_a, type_b };
+  struct qcl_operation_opts {
+    enum options { type_a, type_b } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    qcl_operation_e_() {}
-    qcl_operation_e_(options v) : value(v) {}
-    qcl_operation_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<qcl_operation_opts, 2, 0, false> qcl_operation_e_;
 
   // member variables
   bool                                 dmrs_cfg_pdsch_r11_present;
@@ -23107,26 +18316,14 @@ struct pdsch_cfg_ded_v1130_s {
 
 // PDSCH-ConfigDedicated-v1280 ::= SEQUENCE
 struct pdsch_cfg_ded_v1280_s {
-  struct tbs_idx_alt_r12_e_ {
-    enum options { a26, a33 };
+  struct tbs_idx_alt_r12_opts {
+    enum options { a26, a33 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    tbs_idx_alt_r12_e_() {}
-    tbs_idx_alt_r12_e_(options v) : value(v) {}
-    tbs_idx_alt_r12_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<tbs_idx_alt_r12_opts, 2, 0, false> tbs_idx_alt_r12_e_;
 
   // member variables
   bool               tbs_idx_alt_r12_present;
@@ -23154,46 +18351,22 @@ struct pdsch_cfg_ded_v1310_s {
 
 // PDSCH-ConfigDedicated-v1430 ::= SEQUENCE
 struct pdsch_cfg_ded_v1430_s {
-  struct ce_pdsch_max_bw_r14_e_ {
-    enum options { bw5, bw20 };
+  struct ce_pdsch_max_bw_r14_opts {
+    enum options { bw5, bw20 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    ce_pdsch_max_bw_r14_e_() {}
-    ce_pdsch_max_bw_r14_e_(options v) : value(v) {}
-    ce_pdsch_max_bw_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct ce_sched_enhancement_r14_e_ {
-    enum options { range1, range2 };
+  typedef enumerated<ce_pdsch_max_bw_r14_opts, 2, 0, false> ce_pdsch_max_bw_r14_e_;
+  struct ce_sched_enhancement_r14_opts {
+    enum options { range1, range2 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    ce_sched_enhancement_r14_e_() {}
-    ce_sched_enhancement_r14_e_(options v) : value(v) {}
-    ce_sched_enhancement_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<ce_sched_enhancement_r14_opts, 2, 0, false> ce_sched_enhancement_r14_e_;
 
   // member variables
   bool                        ce_pdsch_max_bw_r14_present;
@@ -23213,27 +18386,15 @@ struct pdsch_cfg_ded_v1430_s {
 
 // PDSCH-ConfigDedicated-v1530 ::= SEQUENCE
 struct pdsch_cfg_ded_v1530_s {
-  struct alt_mcs_table_scaling_cfg_r15_e_ {
-    enum options { o_dot5, o_dot625, o_dot75, o_dot875 };
+  struct alt_mcs_table_scaling_cfg_r15_opts {
+    enum options { o_dot5, o_dot625, o_dot75, o_dot875 } value;
     typedef float number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    alt_mcs_table_scaling_cfg_r15_e_() {}
-    alt_mcs_table_scaling_cfg_r15_e_(options v) : value(v) {}
-    alt_mcs_table_scaling_cfg_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     float       to_number() const;
     std::string to_number_string() const;
   };
+  typedef enumerated<alt_mcs_table_scaling_cfg_r15_opts, 4, 0, false> alt_mcs_table_scaling_cfg_r15_e_;
 
   // member variables
   bool                             qcl_operation_v1530_present;
@@ -23255,26 +18416,14 @@ struct pdsch_cfg_ded_v1530_s {
 struct pucch_cfg_ded_s {
   struct ack_nack_repeat_c_ {
     struct setup_s_ {
-      struct repeat_factor_e_ {
-        enum options { n2, n4, n6, spare1 };
+      struct repeat_factor_opts {
+        enum options { n2, n4, n6, spare1 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        repeat_factor_e_() {}
-        repeat_factor_e_(options v) : value(v) {}
-        repeat_factor_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
+      typedef enumerated<repeat_factor_opts, 4, 0, false> repeat_factor_e_;
 
       // member variables
       repeat_factor_e_ repeat_factor;
@@ -23305,24 +18454,12 @@ struct pucch_cfg_ded_s {
     types    type_;
     setup_s_ c;
   };
-  struct tdd_ack_nack_feedback_mode_e_ {
-    enum options { bundling, mux };
+  struct tdd_ack_nack_feedback_mode_opts {
+    enum options { bundling, mux } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    tdd_ack_nack_feedback_mode_e_() {}
-    tdd_ack_nack_feedback_mode_e_(options v) : value(v) {}
-    tdd_ack_nack_feedback_mode_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<tdd_ack_nack_feedback_mode_opts, 2, 0, false> tdd_ack_nack_feedback_mode_e_;
 
   // member variables
   bool                          tdd_ack_nack_feedback_mode_present;
@@ -23340,26 +18477,14 @@ struct pucch_cfg_ded_s {
 struct pucch_cfg_ded_r13_s {
   struct ack_nack_repeat_r13_c_ {
     struct setup_s_ {
-      struct repeat_factor_r13_e_ {
-        enum options { n2, n4, n6, spare1 };
+      struct repeat_factor_r13_opts {
+        enum options { n2, n4, n6, spare1 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        repeat_factor_r13_e_() {}
-        repeat_factor_r13_e_(options v) : value(v) {}
-        repeat_factor_r13_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
+      typedef enumerated<repeat_factor_r13_opts, 4, 0, false> repeat_factor_r13_e_;
 
       // member variables
       repeat_factor_r13_e_ repeat_factor_r13;
@@ -23390,24 +18515,12 @@ struct pucch_cfg_ded_r13_s {
     types    type_;
     setup_s_ c;
   };
-  struct tdd_ack_nack_feedback_mode_r13_e_ {
-    enum options { bundling, mux };
+  struct tdd_ack_nack_feedback_mode_r13_opts {
+    enum options { bundling, mux } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    tdd_ack_nack_feedback_mode_r13_e_() {}
-    tdd_ack_nack_feedback_mode_r13_e_(options v) : value(v) {}
-    tdd_ack_nack_feedback_mode_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<tdd_ack_nack_feedback_mode_r13_opts, 2, 0, false> tdd_ack_nack_feedback_mode_r13_e_;
   struct pucch_format_r13_c_ {
     struct format3_r13_s_ {
       typedef bounded_array<uint16_t, 4> n3_pucch_an_list_r13_l_;
@@ -23519,26 +18632,14 @@ struct pucch_cfg_ded_r13_s {
       // sequence methods
       format5_r13_s_();
     };
-    struct types {
-      enum options { format3_r13, ch_sel_r13, format4_r13, format5_r13, nulltype };
+    struct types_opts {
+      enum options { format3_r13, ch_sel_r13, format4_r13, format5_r13, nulltype } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<types_opts, 4, 0, false> types;
 
     // choice methods
     pucch_format_r13_c_() : type_(types::nulltype) {}
@@ -23660,136 +18761,64 @@ struct pucch_cfg_ded_r13_s {
     types    type_;
     setup_s_ c;
   };
-  struct codebooksize_determination_r13_e_ {
-    enum options { dai, cc };
+  struct codebooksize_determination_r13_opts {
+    enum options { dai, cc } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    codebooksize_determination_r13_e_() {}
-    codebooksize_determination_r13_e_(options v) : value(v) {}
-    codebooksize_determination_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<codebooksize_determination_r13_opts, 2, 0, false> codebooksize_determination_r13_e_;
   struct pucch_num_repeat_ce_r13_c_ {
     struct setup_c_ {
       struct mode_a_s_ {
-        struct pucch_num_repeat_ce_format1_r13_e_ {
-          enum options { r1, r2, r4, r8 };
+        struct pucch_num_repeat_ce_format1_r13_opts {
+          enum options { r1, r2, r4, r8 } value;
           typedef uint8_t number_type;
 
-          options               value;
-          static const uint32_t nof_types = 4, nof_exts = 0;
-          static const bool     has_ext = false;
-
-          // enumerated methods
-          pucch_num_repeat_ce_format1_r13_e_() {}
-          pucch_num_repeat_ce_format1_r13_e_(options v) : value(v) {}
-          pucch_num_repeat_ce_format1_r13_e_& operator=(options v)
-          {
-            value = v;
-            return *this;
-          }
-                      operator options() const { return value; }
           std::string to_string() const;
           uint8_t     to_number() const;
         };
-        struct pucch_num_repeat_ce_format2_r13_e_ {
-          enum options { r1, r2, r4, r8 };
+        typedef enumerated<pucch_num_repeat_ce_format1_r13_opts, 4, 0, false> pucch_num_repeat_ce_format1_r13_e_;
+        struct pucch_num_repeat_ce_format2_r13_opts {
+          enum options { r1, r2, r4, r8 } value;
           typedef uint8_t number_type;
 
-          options               value;
-          static const uint32_t nof_types = 4, nof_exts = 0;
-          static const bool     has_ext = false;
-
-          // enumerated methods
-          pucch_num_repeat_ce_format2_r13_e_() {}
-          pucch_num_repeat_ce_format2_r13_e_(options v) : value(v) {}
-          pucch_num_repeat_ce_format2_r13_e_& operator=(options v)
-          {
-            value = v;
-            return *this;
-          }
-                      operator options() const { return value; }
           std::string to_string() const;
           uint8_t     to_number() const;
         };
+        typedef enumerated<pucch_num_repeat_ce_format2_r13_opts, 4, 0, false> pucch_num_repeat_ce_format2_r13_e_;
 
         // member variables
         pucch_num_repeat_ce_format1_r13_e_ pucch_num_repeat_ce_format1_r13;
         pucch_num_repeat_ce_format2_r13_e_ pucch_num_repeat_ce_format2_r13;
       };
       struct mode_b_s_ {
-        struct pucch_num_repeat_ce_format1_r13_e_ {
-          enum options { r4, r8, r16, r32 };
+        struct pucch_num_repeat_ce_format1_r13_opts {
+          enum options { r4, r8, r16, r32 } value;
           typedef uint8_t number_type;
 
-          options               value;
-          static const uint32_t nof_types = 4, nof_exts = 0;
-          static const bool     has_ext = false;
-
-          // enumerated methods
-          pucch_num_repeat_ce_format1_r13_e_() {}
-          pucch_num_repeat_ce_format1_r13_e_(options v) : value(v) {}
-          pucch_num_repeat_ce_format1_r13_e_& operator=(options v)
-          {
-            value = v;
-            return *this;
-          }
-                      operator options() const { return value; }
           std::string to_string() const;
           uint8_t     to_number() const;
         };
-        struct pucch_num_repeat_ce_format2_r13_e_ {
-          enum options { r4, r8, r16, r32 };
+        typedef enumerated<pucch_num_repeat_ce_format1_r13_opts, 4, 0, false> pucch_num_repeat_ce_format1_r13_e_;
+        struct pucch_num_repeat_ce_format2_r13_opts {
+          enum options { r4, r8, r16, r32 } value;
           typedef uint8_t number_type;
 
-          options               value;
-          static const uint32_t nof_types = 4, nof_exts = 0;
-          static const bool     has_ext = false;
-
-          // enumerated methods
-          pucch_num_repeat_ce_format2_r13_e_() {}
-          pucch_num_repeat_ce_format2_r13_e_(options v) : value(v) {}
-          pucch_num_repeat_ce_format2_r13_e_& operator=(options v)
-          {
-            value = v;
-            return *this;
-          }
-                      operator options() const { return value; }
           std::string to_string() const;
           uint8_t     to_number() const;
         };
+        typedef enumerated<pucch_num_repeat_ce_format2_r13_opts, 4, 0, false> pucch_num_repeat_ce_format2_r13_e_;
 
         // member variables
         pucch_num_repeat_ce_format1_r13_e_ pucch_num_repeat_ce_format1_r13;
         pucch_num_repeat_ce_format2_r13_e_ pucch_num_repeat_ce_format2_r13;
       };
-      struct types {
-        enum options { mode_a, mode_b, nulltype };
+      struct types_opts {
+        enum options { mode_a, mode_b, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 2, 0, false> types;
 
       // choice methods
       setup_c_() : type_(types::nulltype) {}
@@ -23930,26 +18959,14 @@ struct pucch_cfg_ded_v1020_s {
       // sequence methods
       ch_sel_r10_s_();
     };
-    struct types {
-      enum options { format3_r10, ch_sel_r10, nulltype };
+    struct types_opts {
+      enum options { format3_r10, ch_sel_r10, nulltype } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     pucch_format_r10_c_() : type_(types::nulltype) {}
@@ -24128,26 +19145,14 @@ struct pucch_cfg_ded_v1250_s {
 
 // PUCCH-ConfigDedicated-v1430 ::= SEQUENCE
 struct pucch_cfg_ded_v1430_s {
-  struct pucch_num_repeat_ce_format1_r14_e_ {
-    enum options { r64, r128 };
+  struct pucch_num_repeat_ce_format1_r14_opts {
+    enum options { r64, r128 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    pucch_num_repeat_ce_format1_r14_e_() {}
-    pucch_num_repeat_ce_format1_r14_e_(options v) : value(v) {}
-    pucch_num_repeat_ce_format1_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<pucch_num_repeat_ce_format1_r14_opts, 2, 0, false> pucch_num_repeat_ce_format1_r14_e_;
 
   // member variables
   bool                               pucch_num_repeat_ce_format1_r14_present;
@@ -24520,64 +19525,28 @@ struct pusch_cfg_ded_v1530_s {
 struct pusch_enhance_cfg_r14_c {
   struct setup_s_ {
     struct interv_ul_hop_pusch_enh_r14_c_ {
-      struct interv_fdd_pusch_enh_r14_e_ {
-        enum options { int1, int2, int4, int8 };
+      struct interv_fdd_pusch_enh_r14_opts {
+        enum options { int1, int2, int4, int8 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        interv_fdd_pusch_enh_r14_e_() {}
-        interv_fdd_pusch_enh_r14_e_(options v) : value(v) {}
-        interv_fdd_pusch_enh_r14_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
-      struct interv_tdd_pusch_enh_r14_e_ {
-        enum options { int1, int5, int10, int20 };
+      typedef enumerated<interv_fdd_pusch_enh_r14_opts, 4, 0, false> interv_fdd_pusch_enh_r14_e_;
+      struct interv_tdd_pusch_enh_r14_opts {
+        enum options { int1, int5, int10, int20 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        interv_tdd_pusch_enh_r14_e_() {}
-        interv_tdd_pusch_enh_r14_e_(options v) : value(v) {}
-        interv_tdd_pusch_enh_r14_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
-      struct types {
-        enum options { interv_fdd_pusch_enh_r14, interv_tdd_pusch_enh_r14, nulltype };
+      typedef enumerated<interv_tdd_pusch_enh_r14_opts, 4, 0, false> interv_tdd_pusch_enh_r14_e_;
+      struct types_opts {
+        enum options { interv_fdd_pusch_enh_r14, interv_tdd_pusch_enh_r14, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 2, 0, false> types;
 
       // choice methods
       interv_ul_hop_pusch_enh_r14_c_() : type_(types::nulltype) {}
@@ -24654,7 +19623,7 @@ private:
 };
 
 // PeriodicBSR-Timer-r12 ::= ENUMERATED
-struct periodic_bsr_timer_r12_e {
+struct periodic_bsr_timer_r12_opts {
   enum options {
     sf5,
     sf10,
@@ -24672,25 +19641,13 @@ struct periodic_bsr_timer_r12_e {
     sf2560,
     infinity,
     spare1
-  };
+  } value;
   typedef int16_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 16, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  periodic_bsr_timer_r12_e() {}
-  periodic_bsr_timer_r12_e(options v) : value(v) {}
-  periodic_bsr_timer_r12_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   int16_t     to_number() const;
 };
+typedef enumerated<periodic_bsr_timer_r12_opts, 16, 0, false> periodic_bsr_timer_r12_e;
 
 // PhysicalConfigDedicatedSTTI-r15 ::= CHOICE
 struct phys_cfg_ded_stti_r15_c {
@@ -24770,44 +19727,20 @@ private:
 // RRCConnectionReject-v1130-IEs ::= SEQUENCE
 struct rrc_conn_reject_v1130_ies_s {
   struct depriorit_req_r11_s_ {
-    struct depriorit_type_r11_e_ {
-      enum options { freq, e_utra };
+    struct depriorit_type_r11_opts {
+      enum options { freq, e_utra } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      depriorit_type_r11_e_() {}
-      depriorit_type_r11_e_(options v) : value(v) {}
-      depriorit_type_r11_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
-    struct depriorit_timer_r11_e_ {
-      enum options { min5, min10, min15, min30 };
+    typedef enumerated<depriorit_type_r11_opts, 2, 0, false> depriorit_type_r11_e_;
+    struct depriorit_timer_r11_opts {
+      enum options { min5, min10, min15, min30 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      depriorit_timer_r11_e_() {}
-      depriorit_timer_r11_e_(options v) : value(v) {}
-      depriorit_timer_r11_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<depriorit_timer_r11_opts, 4, 0, false> depriorit_timer_r11_e_;
 
     // member variables
     depriorit_type_r11_e_  depriorit_type_r11;
@@ -24828,31 +19761,19 @@ struct rrc_conn_reject_v1130_ies_s {
 };
 
 // RetxBSR-Timer-r12 ::= ENUMERATED
-struct retx_bsr_timer_r12_e {
-  enum options { sf320, sf640, sf1280, sf2560, sf5120, sf10240, spare2, spare1 };
+struct retx_bsr_timer_r12_opts {
+  enum options { sf320, sf640, sf1280, sf2560, sf5120, sf10240, spare2, spare1 } value;
   typedef uint16_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 8, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  retx_bsr_timer_r12_e() {}
-  retx_bsr_timer_r12_e(options v) : value(v) {}
-  retx_bsr_timer_r12_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint16_t    to_number() const;
 };
+typedef enumerated<retx_bsr_timer_r12_opts, 8, 0, false> retx_bsr_timer_r12_e;
 
 // SPS-ConfigDL ::= CHOICE
 struct sps_cfg_dl_c {
   struct setup_s_ {
-    struct semi_persist_sched_interv_dl_e_ {
+    struct semi_persist_sched_interv_dl_opts {
       enum options {
         sf10,
         sf20,
@@ -24870,25 +19791,13 @@ struct sps_cfg_dl_c {
         spare3,
         spare2,
         spare1
-      };
+      } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 16, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      semi_persist_sched_interv_dl_e_() {}
-      semi_persist_sched_interv_dl_e_(options v) : value(v) {}
-      semi_persist_sched_interv_dl_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
+    typedef enumerated<semi_persist_sched_interv_dl_opts, 16, 0, false> semi_persist_sched_interv_dl_e_;
     struct two_ant_port_activ_r10_c_ {
       struct setup_s_ {
         // member variables
@@ -24989,24 +19898,12 @@ typedef bounded_array<uint8_t, 6> sps_cfg_ul_to_release_list_r15_l;
 // SRB-ToAddMod ::= SEQUENCE
 struct srb_to_add_mod_s {
   struct rlc_cfg_c_ {
-    struct types {
-      enum options { explicit_value, default_value, nulltype };
+    struct types_opts {
+      enum options { explicit_value, default_value, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     rlc_cfg_c_() : type_(types::nulltype) {}
@@ -25032,24 +19929,12 @@ struct srb_to_add_mod_s {
     rlc_cfg_c c;
   };
   struct lc_ch_cfg_c_ {
-    struct types {
-      enum options { explicit_value, default_value, nulltype };
+    struct types_opts {
+      enum options { explicit_value, default_value, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     lc_ch_cfg_c_() : type_(types::nulltype) {}
@@ -25149,26 +20034,14 @@ typedef bounded_array<uint8_t, 3> stag_to_release_list_r11_l;
 // SchedulingRequestConfig ::= CHOICE
 struct sched_request_cfg_c {
   struct setup_s_ {
-    struct dsr_trans_max_e_ {
-      enum options { n4, n8, n16, n32, n64, spare3, spare2, spare1 };
+    struct dsr_trans_max_opts {
+      enum options { n4, n8, n16, n32, n64, spare3, spare2, spare1 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      dsr_trans_max_e_() {}
-      dsr_trans_max_e_(options v) : value(v) {}
-      dsr_trans_max_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<dsr_trans_max_opts, 8, 0, false> dsr_trans_max_e_;
 
     // member variables
     uint16_t         sr_pucch_res_idx;
@@ -25217,66 +20090,30 @@ struct sched_request_cfg_v1020_s {
 // SoundingRS-UL-ConfigDedicated ::= CHOICE
 struct srs_ul_cfg_ded_c {
   struct setup_s_ {
-    struct srs_bw_e_ {
-      enum options { bw0, bw1, bw2, bw3 };
+    struct srs_bw_opts {
+      enum options { bw0, bw1, bw2, bw3 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      srs_bw_e_() {}
-      srs_bw_e_(options v) : value(v) {}
-      srs_bw_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct srs_hop_bw_e_ {
-      enum options { hbw0, hbw1, hbw2, hbw3 };
+    typedef enumerated<srs_bw_opts, 4, 0, false> srs_bw_e_;
+    struct srs_hop_bw_opts {
+      enum options { hbw0, hbw1, hbw2, hbw3 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      srs_hop_bw_e_() {}
-      srs_hop_bw_e_(options v) : value(v) {}
-      srs_hop_bw_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct cyclic_shift_e_ {
-      enum options { cs0, cs1, cs2, cs3, cs4, cs5, cs6, cs7 };
+    typedef enumerated<srs_hop_bw_opts, 4, 0, false> srs_hop_bw_e_;
+    struct cyclic_shift_opts {
+      enum options { cs0, cs1, cs2, cs3, cs4, cs5, cs6, cs7 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      cyclic_shift_e_() {}
-      cyclic_shift_e_(options v) : value(v) {}
-      cyclic_shift_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<cyclic_shift_opts, 8, 0, false> cyclic_shift_e_;
 
     // member variables
     srs_bw_e_       srs_bw;
@@ -25327,46 +20164,22 @@ struct srs_ul_cfg_ded_v1020_s {
 // SoundingRS-UL-ConfigDedicated-v1310 ::= CHOICE
 struct srs_ul_cfg_ded_v1310_c {
   struct setup_s_ {
-    struct cyclic_shift_v1310_e_ {
-      enum options { cs8, cs9, cs10, cs11 };
+    struct cyclic_shift_v1310_opts {
+      enum options { cs8, cs9, cs10, cs11 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      cyclic_shift_v1310_e_() {}
-      cyclic_shift_v1310_e_(options v) : value(v) {}
-      cyclic_shift_v1310_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct tx_comb_num_r13_e_ {
-      enum options { n2, n4 };
+    typedef enumerated<cyclic_shift_v1310_opts, 4, 0, false> cyclic_shift_v1310_e_;
+    struct tx_comb_num_r13_opts {
+      enum options { n2, n4 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      tx_comb_num_r13_e_() {}
-      tx_comb_num_r13_e_(options v) : value(v) {}
-      tx_comb_num_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<tx_comb_num_r13_opts, 2, 0, false> tx_comb_num_r13_e_;
 
     // member variables
     bool                  tx_comb_v1310_present;
@@ -25561,27 +20374,15 @@ private:
 // SoundingRS-UL-ConfigDedicatedAperiodicUpPTsExt-r13 ::= CHOICE
 struct srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_c {
   struct setup_s_ {
-    struct srs_up_pts_add_r13_e_ {
-      enum options { sym2, sym4 };
+    struct srs_up_pts_add_r13_opts {
+      enum options { sym2, sym4 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      srs_up_pts_add_r13_e_() {}
-      srs_up_pts_add_r13_e_(options v) : value(v) {}
-      srs_up_pts_add_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    typedef dyn_array<srs_cfg_ap_r13_s> srs_cfg_ap_dci_format4_r13_l_;
+    typedef enumerated<srs_up_pts_add_r13_opts, 2, 0, false> srs_up_pts_add_r13_e_;
+    typedef dyn_array<srs_cfg_ap_r13_s>                      srs_cfg_ap_dci_format4_r13_l_;
     struct srs_activ_ap_r13_c_ {
       struct setup_s_ {
         // member variables
@@ -25654,106 +20455,46 @@ private:
 // SoundingRS-UL-ConfigDedicatedUpPTsExt-r13 ::= CHOICE
 struct srs_ul_cfg_ded_up_pts_ext_r13_c {
   struct setup_s_ {
-    struct srs_up_pts_add_r13_e_ {
-      enum options { sym2, sym4 };
+    struct srs_up_pts_add_r13_opts {
+      enum options { sym2, sym4 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      srs_up_pts_add_r13_e_() {}
-      srs_up_pts_add_r13_e_(options v) : value(v) {}
-      srs_up_pts_add_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct srs_bw_r13_e_ {
-      enum options { bw0, bw1, bw2, bw3 };
+    typedef enumerated<srs_up_pts_add_r13_opts, 2, 0, false> srs_up_pts_add_r13_e_;
+    struct srs_bw_r13_opts {
+      enum options { bw0, bw1, bw2, bw3 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      srs_bw_r13_e_() {}
-      srs_bw_r13_e_(options v) : value(v) {}
-      srs_bw_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct srs_hop_bw_r13_e_ {
-      enum options { hbw0, hbw1, hbw2, hbw3 };
+    typedef enumerated<srs_bw_r13_opts, 4, 0, false> srs_bw_r13_e_;
+    struct srs_hop_bw_r13_opts {
+      enum options { hbw0, hbw1, hbw2, hbw3 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      srs_hop_bw_r13_e_() {}
-      srs_hop_bw_r13_e_(options v) : value(v) {}
-      srs_hop_bw_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct cyclic_shift_r13_e_ {
-      enum options { cs0, cs1, cs2, cs3, cs4, cs5, cs6, cs7, cs8, cs9, cs10, cs11 };
+    typedef enumerated<srs_hop_bw_r13_opts, 4, 0, false> srs_hop_bw_r13_e_;
+    struct cyclic_shift_r13_opts {
+      enum options { cs0, cs1, cs2, cs3, cs4, cs5, cs6, cs7, cs8, cs9, cs10, cs11 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 12, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      cyclic_shift_r13_e_() {}
-      cyclic_shift_r13_e_(options v) : value(v) {}
-      cyclic_shift_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct tx_comb_num_r13_e_ {
-      enum options { n2, n4 };
+    typedef enumerated<cyclic_shift_r13_opts, 12, 0, false> cyclic_shift_r13_e_;
+    struct tx_comb_num_r13_opts {
+      enum options { n2, n4 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      tx_comb_num_r13_e_() {}
-      tx_comb_num_r13_e_(options v) : value(v) {}
-      tx_comb_num_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<tx_comb_num_r13_opts, 2, 0, false> tx_comb_num_r13_e_;
 
     // member variables
     srs_up_pts_add_r13_e_ srs_up_pts_add_r13;
@@ -25795,26 +20536,14 @@ private:
 
 // UplinkPowerControlDedicated ::= SEQUENCE
 struct ul_pwr_ctrl_ded_s {
-  struct delta_mcs_enabled_e_ {
-    enum options { en0, en1 };
+  struct delta_mcs_enabled_opts {
+    enum options { en0, en1 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    delta_mcs_enabled_e_() {}
-    delta_mcs_enabled_e_(options v) : value(v) {}
-    delta_mcs_enabled_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<delta_mcs_enabled_opts, 2, 0, false> delta_mcs_enabled_e_;
 
   // member variables
   bool                 filt_coef_present;
@@ -25997,26 +20726,14 @@ typedef dyn_array<freqs_prio_geran_s> freqs_prio_list_geran_l;
 // MAC-MainConfig ::= SEQUENCE
 struct mac_main_cfg_s {
   struct ul_sch_cfg_s_ {
-    struct max_harq_tx_e_ {
-      enum options { n1, n2, n3, n4, n5, n6, n7, n8, n10, n12, n16, n20, n24, n28, spare2, spare1 };
+    struct max_harq_tx_opts {
+      enum options { n1, n2, n3, n4, n5, n6, n7, n8, n10, n12, n16, n20, n24, n28, spare2, spare1 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 16, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      max_harq_tx_e_() {}
-      max_harq_tx_e_(options v) : value(v) {}
-      max_harq_tx_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<max_harq_tx_opts, 16, 0, false> max_harq_tx_e_;
 
     // member variables
     bool                     max_harq_tx_present;
@@ -26031,66 +20748,30 @@ struct mac_main_cfg_s {
   };
   struct phr_cfg_c_ {
     struct setup_s_ {
-      struct periodic_phr_timer_e_ {
-        enum options { sf10, sf20, sf50, sf100, sf200, sf500, sf1000, infinity };
+      struct periodic_phr_timer_opts {
+        enum options { sf10, sf20, sf50, sf100, sf200, sf500, sf1000, infinity } value;
         typedef int16_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 8, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        periodic_phr_timer_e_() {}
-        periodic_phr_timer_e_(options v) : value(v) {}
-        periodic_phr_timer_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         int16_t     to_number() const;
       };
-      struct prohibit_phr_timer_e_ {
-        enum options { sf0, sf10, sf20, sf50, sf100, sf200, sf500, sf1000 };
+      typedef enumerated<periodic_phr_timer_opts, 8, 0, false> periodic_phr_timer_e_;
+      struct prohibit_phr_timer_opts {
+        enum options { sf0, sf10, sf20, sf50, sf100, sf200, sf500, sf1000 } value;
         typedef uint16_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 8, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        prohibit_phr_timer_e_() {}
-        prohibit_phr_timer_e_(options v) : value(v) {}
-        prohibit_phr_timer_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint16_t    to_number() const;
       };
-      struct dl_pathloss_change_e_ {
-        enum options { db1, db3, db6, infinity };
+      typedef enumerated<prohibit_phr_timer_opts, 8, 0, false> prohibit_phr_timer_e_;
+      struct dl_pathloss_change_opts {
+        enum options { db1, db3, db6, infinity } value;
         typedef int8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        dl_pathloss_change_e_() {}
-        dl_pathloss_change_e_(options v) : value(v) {}
-        dl_pathloss_change_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         int8_t      to_number() const;
       };
+      typedef enumerated<dl_pathloss_change_opts, 4, 0, false> dl_pathloss_change_e_;
 
       // member variables
       periodic_phr_timer_e_ periodic_phr_timer;
@@ -26123,26 +20804,14 @@ struct mac_main_cfg_s {
     setup_s_ c;
   };
   struct mac_main_cfg_v1020_s_ {
-    struct s_cell_deactivation_timer_r10_e_ {
-      enum options { rf2, rf4, rf8, rf16, rf32, rf64, rf128, spare };
+    struct s_cell_deactivation_timer_r10_opts {
+      enum options { rf2, rf4, rf8, rf16, rf32, rf64, rf128, spare } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      s_cell_deactivation_timer_r10_e_() {}
-      s_cell_deactivation_timer_r10_e_(options v) : value(v) {}
-      s_cell_deactivation_timer_r10_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<s_cell_deactivation_timer_r10_opts, 8, 0, false> s_cell_deactivation_timer_r10_e_;
 
     // member variables
     bool                             s_cell_deactivation_timer_r10_present;
@@ -26155,24 +20824,12 @@ struct mac_main_cfg_s {
   };
   struct dual_connect_phr_c_ {
     struct setup_s_ {
-      struct phr_mode_other_cg_r12_e_ {
-        enum options { real, virtual_type };
+      struct phr_mode_other_cg_r12_opts {
+        enum options { real, virtual_type } value;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        phr_mode_other_cg_r12_e_() {}
-        phr_mode_other_cg_r12_e_(options v) : value(v) {}
-        phr_mode_other_cg_r12_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<phr_mode_other_cg_r12_opts, 2, 0, false> phr_mode_other_cg_r12_e_;
 
       // member variables
       phr_mode_other_cg_r12_e_ phr_mode_other_cg_r12;
@@ -26204,26 +20861,14 @@ struct mac_main_cfg_s {
   };
   struct lc_ch_sr_cfg_r12_c_ {
     struct setup_s_ {
-      struct lc_ch_sr_prohibit_timer_r12_e_ {
-        enum options { sf20, sf40, sf64, sf128, sf512, sf1024, sf2560, spare1 };
+      struct lc_ch_sr_prohibit_timer_r12_opts {
+        enum options { sf20, sf40, sf64, sf128, sf512, sf1024, sf2560, spare1 } value;
         typedef uint16_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 8, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        lc_ch_sr_prohibit_timer_r12_e_() {}
-        lc_ch_sr_prohibit_timer_r12_e_(options v) : value(v) {}
-        lc_ch_sr_prohibit_timer_r12_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint16_t    to_number() const;
       };
+      typedef enumerated<lc_ch_sr_prohibit_timer_r12_opts, 8, 0, false> lc_ch_sr_prohibit_timer_r12_e_;
 
       // member variables
       lc_ch_sr_prohibit_timer_r12_e_ lc_ch_sr_prohibit_timer_r12;
@@ -26255,26 +20900,14 @@ struct mac_main_cfg_s {
   };
   struct e_drx_cfg_cycle_start_offset_r13_c_ {
     struct setup_c_ {
-      struct types {
-        enum options { sf5120, sf10240, nulltype };
+      struct types_opts {
+        enum options { sf5120, sf10240, nulltype } value;
         typedef uint16_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint16_t    to_number() const;
       };
+      typedef enumerated<types_opts, 2, 0, false> types;
 
       // choice methods
       setup_c_() : type_(types::nulltype) {}
@@ -26431,7 +21064,7 @@ struct mac_main_cfg_s {
   };
   struct short_tti_and_spt_r15_c_ {
     struct setup_s_ {
-      struct periodic_bsr_timer_r15_e_ {
+      struct periodic_bsr_timer_r15_opts {
         enum options {
           sf1,
           sf5,
@@ -26449,43 +21082,19 @@ struct mac_main_cfg_s {
           sf1280,
           sf2560,
           infinity
-        };
+        } value;
         typedef int16_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 16, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        periodic_bsr_timer_r15_e_() {}
-        periodic_bsr_timer_r15_e_(options v) : value(v) {}
-        periodic_bsr_timer_r15_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         int16_t     to_number() const;
       };
-      struct proc_timeline_r15_e_ {
-        enum options { nplus4set1, nplus6set1, nplus6set2, nplus8set2 };
+      typedef enumerated<periodic_bsr_timer_r15_opts, 16, 0, false> periodic_bsr_timer_r15_e_;
+      struct proc_timeline_r15_opts {
+        enum options { nplus4set1, nplus6set1, nplus6set2, nplus8set2 } value;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        proc_timeline_r15_e_() {}
-        proc_timeline_r15_e_(options v) : value(v) {}
-        proc_timeline_r15_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<proc_timeline_r15_opts, 4, 0, false> proc_timeline_r15_e_;
 
       // member variables
       bool                      drx_cfg_r15_present;
@@ -26527,27 +21136,15 @@ struct mac_main_cfg_s {
   };
   struct dormant_state_timers_r15_c_ {
     struct setup_s_ {
-      struct s_cell_hibernation_timer_r15_e_ {
-        enum options { rf2, rf4, rf8, rf16, rf32, rf64, rf128, spare };
+      struct s_cell_hibernation_timer_r15_opts {
+        enum options { rf2, rf4, rf8, rf16, rf32, rf64, rf128, spare } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 8, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        s_cell_hibernation_timer_r15_e_() {}
-        s_cell_hibernation_timer_r15_e_(options v) : value(v) {}
-        s_cell_hibernation_timer_r15_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
-      struct dormant_scell_deactivation_timer_r15_e_ {
+      typedef enumerated<s_cell_hibernation_timer_r15_opts, 8, 0, false> s_cell_hibernation_timer_r15_e_;
+      struct dormant_scell_deactivation_timer_r15_opts {
         enum options {
           rf2,
           rf4,
@@ -26565,25 +21162,14 @@ struct mac_main_cfg_s {
           spare3,
           spare2,
           spare1
-        };
+        } value;
         typedef uint16_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 16, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        dormant_scell_deactivation_timer_r15_e_() {}
-        dormant_scell_deactivation_timer_r15_e_(options v) : value(v) {}
-        dormant_scell_deactivation_timer_r15_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint16_t    to_number() const;
       };
+      typedef enumerated<dormant_scell_deactivation_timer_r15_opts, 16, 0, false>
+          dormant_scell_deactivation_timer_r15_e_;
 
       // member variables
       bool                                    s_cell_hibernation_timer_r15_present;
@@ -26837,24 +21423,12 @@ private:
 // PhysicalConfigDedicated ::= SEQUENCE
 struct phys_cfg_ded_s {
   struct ant_info_c_ {
-    struct types {
-      enum options { explicit_value, default_value, nulltype };
+    struct types_opts {
+      enum options { explicit_value, default_value, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     ant_info_c_() : type_(types::nulltype) {}
@@ -26880,24 +21454,12 @@ struct phys_cfg_ded_s {
     ant_info_ded_s c;
   };
   struct ant_info_r10_c_ {
-    struct types {
-      enum options { explicit_value_r10, default_value, nulltype };
+    struct types_opts {
+      enum options { explicit_value_r10, default_value, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     ant_info_r10_c_() : type_(types::nulltype) {}
@@ -26953,25 +21515,13 @@ struct phys_cfg_ded_s {
     setup_s_ c;
   };
   struct ce_mode_r13_c_ {
-    struct setup_e_ {
-      enum options { ce_mode_a, ce_mode_b };
+    struct setup_opts {
+      enum options { ce_mode_a, ce_mode_b } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      setup_e_() {}
-      setup_e_(options v) : value(v) {}
-      setup_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
-    typedef setup_e types;
+    typedef enumerated<setup_opts, 2, 0, false> setup_e_;
+    typedef setup_e                             types;
 
     // choice methods
     ce_mode_r13_c_() : type_(types::nulltype) {}
@@ -27025,47 +21575,23 @@ struct phys_cfg_ded_s {
   };
   struct must_cfg_r14_c_ {
     struct setup_s_ {
-      struct k_max_r14_e_ {
-        enum options { l1, l3 };
+      struct k_max_r14_opts {
+        enum options { l1, l3 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        k_max_r14_e_() {}
-        k_max_r14_e_(options v) : value(v) {}
-        k_max_r14_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
-      struct p_a_must_r14_e_ {
-        enum options { db_minus6, db_minus4dot77, db_minus3, db_minus1dot77, db0, db1, db2, db3 };
+      typedef enumerated<k_max_r14_opts, 2, 0, false> k_max_r14_e_;
+      struct p_a_must_r14_opts {
+        enum options { db_minus6, db_minus4dot77, db_minus3, db_minus1dot77, db0, db1, db2, db3 } value;
         typedef float number_type;
 
-        options               value;
-        static const uint32_t nof_types = 8, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        p_a_must_r14_e_() {}
-        p_a_must_r14_e_(options v) : value(v) {}
-        p_a_must_r14_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         float       to_number() const;
         std::string to_number_string() const;
       };
+      typedef enumerated<p_a_must_r14_opts, 8, 0, false> p_a_must_r14_e_;
 
       // member variables
       bool            p_a_must_r14_present;
@@ -27106,24 +21632,12 @@ struct phys_cfg_ded_s {
   typedef dyn_array<srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_c> srs_ul_cfg_ded_ap_up_pts_ext_list_r14_l_;
   struct semi_static_cfi_cfg_r15_c_ {
     struct setup_c_ {
-      struct types {
-        enum options { cfi_cfg_r15, cfi_pattern_cfg_r15, nulltype };
+      struct types_opts {
+        enum options { cfi_cfg_r15, cfi_pattern_cfg_r15, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 2, 0, false> types;
 
       // choice methods
       setup_c_() : type_(types::nulltype) {}
@@ -27190,126 +21704,56 @@ struct phys_cfg_ded_s {
   };
   struct blind_pdsch_repeat_cfg_r15_c_ {
     struct setup_s_ {
-      struct max_num_sf_pdsch_repeats_r15_e_ {
-        enum options { n4, n6 };
+      struct max_num_sf_pdsch_repeats_r15_opts {
+        enum options { n4, n6 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        max_num_sf_pdsch_repeats_r15_e_() {}
-        max_num_sf_pdsch_repeats_r15_e_(options v) : value(v) {}
-        max_num_sf_pdsch_repeats_r15_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
-      struct max_num_slot_subslot_pdsch_repeats_r15_e_ {
-        enum options { n4, n6 };
+      typedef enumerated<max_num_sf_pdsch_repeats_r15_opts, 2, 0, false> max_num_sf_pdsch_repeats_r15_e_;
+      struct max_num_slot_subslot_pdsch_repeats_r15_opts {
+        enum options { n4, n6 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        max_num_slot_subslot_pdsch_repeats_r15_e_() {}
-        max_num_slot_subslot_pdsch_repeats_r15_e_(options v) : value(v) {}
-        max_num_slot_subslot_pdsch_repeats_r15_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
-      struct rv_sf_pdsch_repeats_r15_e_ {
-        enum options { dlrvseq1, dlrvseq2 };
+      typedef enumerated<max_num_slot_subslot_pdsch_repeats_r15_opts, 2, 0, false>
+          max_num_slot_subslot_pdsch_repeats_r15_e_;
+      struct rv_sf_pdsch_repeats_r15_opts {
+        enum options { dlrvseq1, dlrvseq2 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        rv_sf_pdsch_repeats_r15_e_() {}
-        rv_sf_pdsch_repeats_r15_e_(options v) : value(v) {}
-        rv_sf_pdsch_repeats_r15_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
-      struct rv_slotsublot_pdsch_repeats_r15_e_ {
-        enum options { dlrvseq1, dlrvseq2 };
+      typedef enumerated<rv_sf_pdsch_repeats_r15_opts, 2, 0, false> rv_sf_pdsch_repeats_r15_e_;
+      struct rv_slotsublot_pdsch_repeats_r15_opts {
+        enum options { dlrvseq1, dlrvseq2 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        rv_slotsublot_pdsch_repeats_r15_e_() {}
-        rv_slotsublot_pdsch_repeats_r15_e_(options v) : value(v) {}
-        rv_slotsublot_pdsch_repeats_r15_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
-      struct mcs_restrict_sf_pdsch_repeats_r15_e_ {
-        enum options { n0, n1 };
+      typedef enumerated<rv_slotsublot_pdsch_repeats_r15_opts, 2, 0, false> rv_slotsublot_pdsch_repeats_r15_e_;
+      struct mcs_restrict_sf_pdsch_repeats_r15_opts {
+        enum options { n0, n1 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        mcs_restrict_sf_pdsch_repeats_r15_e_() {}
-        mcs_restrict_sf_pdsch_repeats_r15_e_(options v) : value(v) {}
-        mcs_restrict_sf_pdsch_repeats_r15_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
-      struct mcs_restrict_slot_subslot_pdsch_repeats_r15_e_ {
-        enum options { n0, n1 };
+      typedef enumerated<mcs_restrict_sf_pdsch_repeats_r15_opts, 2, 0, false> mcs_restrict_sf_pdsch_repeats_r15_e_;
+      struct mcs_restrict_slot_subslot_pdsch_repeats_r15_opts {
+        enum options { n0, n1 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        mcs_restrict_slot_subslot_pdsch_repeats_r15_e_() {}
-        mcs_restrict_slot_subslot_pdsch_repeats_r15_e_(options v) : value(v) {}
-        mcs_restrict_slot_subslot_pdsch_repeats_r15_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
+      typedef enumerated<mcs_restrict_slot_subslot_pdsch_repeats_r15_opts, 2, 0, false>
+          mcs_restrict_slot_subslot_pdsch_repeats_r15_e_;
 
       // member variables
       bool                                           max_num_sf_pdsch_repeats_r15_present;
@@ -27550,46 +21994,22 @@ struct phys_cfg_ded_s {
 // RLF-TimersAndConstants-r13 ::= CHOICE
 struct rlf_timers_and_consts_r13_c {
   struct setup_s_ {
-    struct t301_v1310_e_ {
-      enum options { ms2500, ms3000, ms3500, ms4000, ms5000, ms6000, ms8000, ms10000 };
+    struct t301_v1310_opts {
+      enum options { ms2500, ms3000, ms3500, ms4000, ms5000, ms6000, ms8000, ms10000 } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      t301_v1310_e_() {}
-      t301_v1310_e_(options v) : value(v) {}
-      t301_v1310_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
-    struct t310_v1330_e_ {
-      enum options { ms4000, ms6000 };
+    typedef enumerated<t301_v1310_opts, 8, 0, false> t301_v1310_e_;
+    struct t310_v1330_opts {
+      enum options { ms4000, ms6000 } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      t310_v1330_e_() {}
-      t310_v1330_e_(options v) : value(v) {}
-      t310_v1330_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
+    typedef enumerated<t310_v1330_opts, 2, 0, false> t310_v1330_e_;
 
     // member variables
     bool          ext;
@@ -27634,106 +22054,46 @@ private:
 // RLF-TimersAndConstants-r9 ::= CHOICE
 struct rlf_timers_and_consts_r9_c {
   struct setup_s_ {
-    struct t301_r9_e_ {
-      enum options { ms100, ms200, ms300, ms400, ms600, ms1000, ms1500, ms2000 };
+    struct t301_r9_opts {
+      enum options { ms100, ms200, ms300, ms400, ms600, ms1000, ms1500, ms2000 } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      t301_r9_e_() {}
-      t301_r9_e_(options v) : value(v) {}
-      t301_r9_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
-    struct t310_r9_e_ {
-      enum options { ms0, ms50, ms100, ms200, ms500, ms1000, ms2000 };
+    typedef enumerated<t301_r9_opts, 8, 0, false> t301_r9_e_;
+    struct t310_r9_opts {
+      enum options { ms0, ms50, ms100, ms200, ms500, ms1000, ms2000 } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 7, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      t310_r9_e_() {}
-      t310_r9_e_(options v) : value(v) {}
-      t310_r9_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
-    struct n310_r9_e_ {
-      enum options { n1, n2, n3, n4, n6, n8, n10, n20 };
+    typedef enumerated<t310_r9_opts, 7, 0, false> t310_r9_e_;
+    struct n310_r9_opts {
+      enum options { n1, n2, n3, n4, n6, n8, n10, n20 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      n310_r9_e_() {}
-      n310_r9_e_(options v) : value(v) {}
-      n310_r9_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct t311_r9_e_ {
-      enum options { ms1000, ms3000, ms5000, ms10000, ms15000, ms20000, ms30000 };
+    typedef enumerated<n310_r9_opts, 8, 0, false> n310_r9_e_;
+    struct t311_r9_opts {
+      enum options { ms1000, ms3000, ms5000, ms10000, ms15000, ms20000, ms30000 } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 7, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      t311_r9_e_() {}
-      t311_r9_e_(options v) : value(v) {}
-      t311_r9_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
-    struct n311_r9_e_ {
-      enum options { n1, n2, n3, n4, n5, n6, n8, n10 };
+    typedef enumerated<t311_r9_opts, 7, 0, false> t311_r9_e_;
+    struct n311_r9_opts {
+      enum options { n1, n2, n3, n4, n5, n6, n8, n10 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      n311_r9_e_() {}
-      n311_r9_e_(options v) : value(v) {}
-      n311_r9_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<n311_r9_opts, 8, 0, false> n311_r9_e_;
 
     // member variables
     bool       ext;
@@ -27862,26 +22222,14 @@ typedef bounded_array<uint8_t, 2> srb_to_release_list_dupl_r15_l;
 
 // IdleModeMobilityControlInfo ::= SEQUENCE
 struct idle_mode_mob_ctrl_info_s {
-  struct t320_e_ {
-    enum options { min5, min10, min20, min30, min60, min120, min180, spare1 };
+  struct t320_opts {
+    enum options { min5, min10, min20, min30, min60, min120, min180, spare1 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    t320_e_() {}
-    t320_e_(options v) : value(v) {}
-    t320_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<t320_opts, 8, 0, false> t320_e_;
 
   // member variables
   bool                         ext;
@@ -27992,24 +22340,12 @@ struct rrc_conn_setup_v8a0_ies_s {
 // RadioResourceConfigDedicated ::= SEQUENCE
 struct rr_cfg_ded_s {
   struct mac_main_cfg_c_ {
-    struct types {
-      enum options { explicit_value, default_value, nulltype };
+    struct types_opts {
+      enum options { explicit_value, default_value, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     mac_main_cfg_c_() : type_(types::nulltype) {}
@@ -28036,46 +22372,22 @@ struct rr_cfg_ded_s {
   };
   struct crs_intf_mitig_cfg_r15_c_ {
     struct setup_c_ {
-      struct crs_intf_mitig_num_prbs_r15_e_ {
-        enum options { n6, n24 };
+      struct crs_intf_mitig_num_prbs_r15_opts {
+        enum options { n6, n24 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        crs_intf_mitig_num_prbs_r15_e_() {}
-        crs_intf_mitig_num_prbs_r15_e_(options v) : value(v) {}
-        crs_intf_mitig_num_prbs_r15_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
-      struct types {
-        enum options { crs_intf_mitig_enabled_minus15, crs_intf_mitig_num_prbs_r15, nulltype };
+      typedef enumerated<crs_intf_mitig_num_prbs_r15_opts, 2, 0, false> crs_intf_mitig_num_prbs_r15_e_;
+      struct types_opts {
+        enum options { crs_intf_mitig_enabled_minus15, crs_intf_mitig_num_prbs_r15, nulltype } value;
         typedef int8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         int8_t      to_number() const;
       };
+      typedef enumerated<types_opts, 2, 0, false> types;
 
       // choice methods
       setup_c_() : type_(types::nulltype) {}
@@ -28188,7 +22500,7 @@ struct rr_cfg_ded_s {
 
 // RedirectedCarrierInfo-r15-IEs ::= CHOICE
 struct redirected_carrier_info_r15_ies_c {
-  struct types {
+  struct types_opts {
     enum options {
       eutra_r15,
       geran_r15,
@@ -28197,23 +22509,11 @@ struct redirected_carrier_info_r15_ies_c {
       cdma2000_minus1x_rtt_r15,
       utra_tdd_r15,
       nulltype
-    };
+    } value;
 
-    options               value;
-    static const uint32_t nof_types = 6, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<types_opts, 6, 0, false> types;
 
   // choice methods
   redirected_carrier_info_r15_ies_c() : type_(types::nulltype) {}
@@ -28374,49 +22674,25 @@ struct rrc_early_data_complete_r15_ies_s {
   void        to_json(json_writer& j) const;
 };
 
-struct c1_or_crit_ext_e {
-  enum options { c1, crit_exts_future, nulltype };
+struct c1_or_crit_ext_opts {
+  enum options { c1, crit_exts_future, nulltype } value;
   typedef uint8_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 2, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  c1_or_crit_ext_e() {}
-  c1_or_crit_ext_e(options v) : value(v) {}
-  c1_or_crit_ext_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint8_t     to_number() const;
 };
+typedef enumerated<c1_or_crit_ext_opts, 2, 0, false> c1_or_crit_ext_e;
 
 // RRCConnectionReestablishment ::= SEQUENCE
 struct rrc_conn_reest_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { rrc_conn_reest_r8, spare7, spare6, spare5, spare4, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { rrc_conn_reest_r8, spare7, spare6, spare5, spare4, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 8, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 8, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -28485,24 +22761,12 @@ struct rrc_conn_reest_s {
 // RRCConnectionReestablishmentReject ::= SEQUENCE
 struct rrc_conn_reest_reject_s {
   struct crit_exts_c_ {
-    struct types {
-      enum options { rrc_conn_reest_reject_r8, crit_exts_future, nulltype };
+    struct types_opts {
+      enum options { rrc_conn_reest_reject_r8, crit_exts_future, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     crit_exts_c_() : type_(types::nulltype) {}
@@ -28546,24 +22810,12 @@ struct rrc_conn_reest_reject_s {
 struct rrc_conn_reject_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { rrc_conn_reject_r8, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { rrc_conn_reject_r8, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 4, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -28632,24 +22884,12 @@ struct rrc_conn_reject_s {
 struct rrc_conn_setup_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { rrc_conn_setup_r8, spare7, spare6, spare5, spare4, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { rrc_conn_setup_r8, spare7, spare6, spare5, spare4, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 8, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 8, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -28718,24 +22958,12 @@ struct rrc_conn_setup_s {
 // RRCEarlyDataComplete-r15 ::= SEQUENCE
 struct rrc_early_data_complete_r15_s {
   struct crit_exts_c_ {
-    struct types {
-      enum options { rrc_early_data_complete_r15, crit_exts_future, nulltype };
+    struct types_opts {
+      enum options { rrc_early_data_complete_r15, crit_exts_future, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     crit_exts_c_() : type_(types::nulltype) {}
@@ -28778,24 +23006,12 @@ struct rrc_early_data_complete_r15_s {
 // DL-CCCH-MessageType ::= CHOICE
 struct dl_ccch_msg_type_c {
   struct c1_c_ {
-    struct types {
-      enum options { rrc_conn_reest, rrc_conn_reest_reject, rrc_conn_reject, rrc_conn_setup, nulltype };
+    struct types_opts {
+      enum options { rrc_conn_reest, rrc_conn_reest_reject, rrc_conn_reject, rrc_conn_setup, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 4, 0, false> types;
 
     // choice methods
     c1_c_() : type_(types::nulltype) {}
@@ -28859,24 +23075,12 @@ struct dl_ccch_msg_type_c {
   };
   struct msg_class_ext_c_ {
     struct c2_c_ {
-      struct types {
-        enum options { rrc_early_data_complete_r15, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { rrc_early_data_complete_r15, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 4, 0, false> types;
 
       // choice methods
       c2_c_() : type_(types::nulltype) {}
@@ -28901,26 +23105,14 @@ struct dl_ccch_msg_type_c {
       types                         type_;
       rrc_early_data_complete_r15_s c;
     };
-    struct types {
-      enum options { c2, msg_class_ext_future_r15, nulltype };
+    struct types_opts {
+      enum options { c2, msg_class_ext_future_r15, nulltype } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     msg_class_ext_c_() : type_(types::nulltype) {}
@@ -28950,26 +23142,14 @@ struct dl_ccch_msg_type_c {
 
     void destroy_();
   };
-  struct types {
-    enum options { c1, msg_class_ext, nulltype };
+  struct types_opts {
+    enum options { c1, msg_class_ext, nulltype } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<types_opts, 2, 0, false> types;
 
   // choice methods
   dl_ccch_msg_type_c() : type_(types::nulltype) {}
@@ -29022,26 +23202,14 @@ struct dl_ccch_msg_s {
 };
 
 // PDCCH-CandidateReductionValue-r14 ::= ENUMERATED
-struct pdcch_candidate_reduction_value_r14_e {
-  enum options { n0, n50, n100, n150 };
+struct pdcch_candidate_reduction_value_r14_opts {
+  enum options { n0, n50, n100, n150 } value;
   typedef uint8_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 4, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  pdcch_candidate_reduction_value_r14_e() {}
-  pdcch_candidate_reduction_value_r14_e(options v) : value(v) {}
-  pdcch_candidate_reduction_value_r14_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint8_t     to_number() const;
 };
+typedef enumerated<pdcch_candidate_reduction_value_r14_opts, 4, 0, false> pdcch_candidate_reduction_value_r14_e;
 
 // PDCCH-CandidateReductionsLAA-UL-r14 ::= CHOICE
 struct pdcch_candidate_reductions_laa_ul_r14_c {
@@ -29082,67 +23250,32 @@ private:
 // AUL-Config-r15 ::= CHOICE
 struct aul_cfg_r15_c {
   struct setup_s_ {
-    struct tx_mode_ul_aul_r15_e_ {
-      enum options { tm1, tm2 };
+    struct tx_mode_ul_aul_r15_opts {
+      enum options { tm1, tm2 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      tx_mode_ul_aul_r15_e_() {}
-      tx_mode_ul_aul_r15_e_(options v) : value(v) {}
-      tx_mode_ul_aul_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct aul_start_partial_bw_inside_mcot_r15_e_ {
-      enum options { o34, o43, o52, o61, o_os1 };
+    typedef enumerated<tx_mode_ul_aul_r15_opts, 2, 0, false> tx_mode_ul_aul_r15_e_;
+    struct aul_start_partial_bw_inside_mcot_r15_opts {
+      enum options { o34, o43, o52, o61, o_os1 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 5, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      aul_start_partial_bw_inside_mcot_r15_e_() {}
-      aul_start_partial_bw_inside_mcot_r15_e_(options v) : value(v) {}
-      aul_start_partial_bw_inside_mcot_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct aul_start_partial_bw_outside_mcot_r15_e_ {
-      enum options { o16, o25, o34, o43, o52, o61, o_os1 };
+    typedef enumerated<aul_start_partial_bw_inside_mcot_r15_opts, 5, 0, false> aul_start_partial_bw_inside_mcot_r15_e_;
+    struct aul_start_partial_bw_outside_mcot_r15_opts {
+      enum options { o16, o25, o34, o43, o52, o61, o_os1 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 7, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      aul_start_partial_bw_outside_mcot_r15_e_() {}
-      aul_start_partial_bw_outside_mcot_r15_e_(options v) : value(v) {}
-      aul_start_partial_bw_outside_mcot_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct aul_retx_timer_r15_e_ {
+    typedef enumerated<aul_start_partial_bw_outside_mcot_r15_opts, 7, 0, false>
+        aul_start_partial_bw_outside_mcot_r15_e_;
+    struct aul_retx_timer_r15_opts {
       enum options {
         psf4,
         psf5,
@@ -29161,45 +23294,21 @@ struct aul_cfg_r15_c {
         psf132,
         psf164,
         psf324
-      };
+      } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 17, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      aul_retx_timer_r15_e_() {}
-      aul_retx_timer_r15_e_(options v) : value(v) {}
-      aul_retx_timer_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
-    struct contention_win_size_timer_r15_e_ {
-      enum options { n0, n5, n10 };
+    typedef enumerated<aul_retx_timer_r15_opts, 17, 0, false> aul_retx_timer_r15_e_;
+    struct contention_win_size_timer_r15_opts {
+      enum options { n0, n5, n10 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 3, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      contention_win_size_timer_r15_e_() {}
-      contention_win_size_timer_r15_e_(options v) : value(v) {}
-      contention_win_size_timer_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<contention_win_size_timer_r15_opts, 3, 0, false> contention_win_size_timer_r15_e_;
 
     // member variables
     fixed_bitstring<16>                      aul_crnti_r15;
@@ -29277,26 +23386,14 @@ struct cqi_report_periodic_scell_r15_c {
     };
     struct cqi_format_ind_dormant_r15_c_ {
       struct wideband_cqi_r15_s_ {
-        struct csi_report_mode_r15_e_ {
-          enum options { submode1, submode2 };
+        struct csi_report_mode_r15_opts {
+          enum options { submode1, submode2 } value;
           typedef uint8_t number_type;
 
-          options               value;
-          static const uint32_t nof_types = 2, nof_exts = 0;
-          static const bool     has_ext = false;
-
-          // enumerated methods
-          csi_report_mode_r15_e_() {}
-          csi_report_mode_r15_e_(options v) : value(v) {}
-          csi_report_mode_r15_e_& operator=(options v)
-          {
-            value = v;
-            return *this;
-          }
-                      operator options() const { return value; }
           std::string to_string() const;
           uint8_t     to_number() const;
         };
+        typedef enumerated<csi_report_mode_r15_opts, 2, 0, false> csi_report_mode_r15_e_;
 
         // member variables
         bool                   csi_report_mode_r15_present;
@@ -29306,49 +23403,25 @@ struct cqi_report_periodic_scell_r15_c {
         wideband_cqi_r15_s_();
       };
       struct subband_cqi_r15_s_ {
-        struct periodicity_factor_r15_e_ {
-          enum options { n2, n4 };
+        struct periodicity_factor_r15_opts {
+          enum options { n2, n4 } value;
           typedef uint8_t number_type;
 
-          options               value;
-          static const uint32_t nof_types = 2, nof_exts = 0;
-          static const bool     has_ext = false;
-
-          // enumerated methods
-          periodicity_factor_r15_e_() {}
-          periodicity_factor_r15_e_(options v) : value(v) {}
-          periodicity_factor_r15_e_& operator=(options v)
-          {
-            value = v;
-            return *this;
-          }
-                      operator options() const { return value; }
           std::string to_string() const;
           uint8_t     to_number() const;
         };
+        typedef enumerated<periodicity_factor_r15_opts, 2, 0, false> periodicity_factor_r15_e_;
 
         // member variables
         uint8_t                   k_r15;
         periodicity_factor_r15_e_ periodicity_factor_r15;
       };
-      struct types {
-        enum options { wideband_cqi_r15, subband_cqi_r15, nulltype };
+      struct types_opts {
+        enum options { wideband_cqi_r15, subband_cqi_r15, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 2, 0, false> types;
 
       // choice methods
       cqi_format_ind_dormant_r15_c_() : type_(types::nulltype) {}
@@ -29441,24 +23514,12 @@ struct cross_carrier_sched_cfg_laa_ul_r14_s {
 
 // LBT-Config-r14 ::= CHOICE
 struct lbt_cfg_r14_c {
-  struct types {
-    enum options { max_energy_detection_thres_r14, energy_detection_thres_offset_r14, nulltype };
+  struct types_opts {
+    enum options { max_energy_detection_thres_r14, energy_detection_thres_offset_r14, nulltype } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<types_opts, 2, 0, false> types;
 
   // choice methods
   lbt_cfg_r14_c() : type_(types::nulltype) {}
@@ -29501,46 +23562,22 @@ private:
 
 // PDCCH-ConfigLAA-r14 ::= SEQUENCE
 struct pdcch_cfg_laa_r14_s {
-  struct max_nof_sched_sfs_format0_b_r14_e_ {
-    enum options { sf2, sf3, sf4 };
+  struct max_nof_sched_sfs_format0_b_r14_opts {
+    enum options { sf2, sf3, sf4 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 3, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    max_nof_sched_sfs_format0_b_r14_e_() {}
-    max_nof_sched_sfs_format0_b_r14_e_(options v) : value(v) {}
-    max_nof_sched_sfs_format0_b_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct max_nof_sched_sfs_format4_b_r14_e_ {
-    enum options { sf2, sf3, sf4 };
+  typedef enumerated<max_nof_sched_sfs_format0_b_r14_opts, 3, 0, false> max_nof_sched_sfs_format0_b_r14_e_;
+  struct max_nof_sched_sfs_format4_b_r14_opts {
+    enum options { sf2, sf3, sf4 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 3, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    max_nof_sched_sfs_format4_b_r14_e_() {}
-    max_nof_sched_sfs_format4_b_r14_e_(options v) : value(v) {}
-    max_nof_sched_sfs_format4_b_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<max_nof_sched_sfs_format4_b_r14_opts, 3, 0, false> max_nof_sched_sfs_format4_b_r14_e_;
 
   // member variables
   bool                                    max_nof_sched_sfs_format0_b_r14_present;
@@ -29633,26 +23670,14 @@ struct cqi_report_cfg_scell_r10_s {
 
 // CQI-ReportConfigSCell-r15 ::= SEQUENCE
 struct cqi_report_cfg_scell_r15_s {
-  struct alt_cqi_table_minus1024_qam_r15_e_ {
-    enum options { all_sfs, csi_sf_set1, csi_sf_set2, spare1 };
+  struct alt_cqi_table_minus1024_qam_r15_opts {
+    enum options { all_sfs, csi_sf_set1, csi_sf_set2, spare1 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    alt_cqi_table_minus1024_qam_r15_e_() {}
-    alt_cqi_table_minus1024_qam_r15_e_(options v) : value(v) {}
-    alt_cqi_table_minus1024_qam_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<alt_cqi_table_minus1024_qam_r15_opts, 4, 0, false> alt_cqi_table_minus1024_qam_r15_e_;
 
   // member variables
   bool                               cqi_report_periodic_scell_r15_present;
@@ -29672,26 +23697,14 @@ struct cqi_short_cfg_scell_r15_c {
   struct setup_s_ {
     struct cqi_format_ind_short_r15_c_ {
       struct wideband_cqi_short_r15_s_ {
-        struct csi_report_mode_short_r15_e_ {
-          enum options { submode1, submode2 };
+        struct csi_report_mode_short_r15_opts {
+          enum options { submode1, submode2 } value;
           typedef uint8_t number_type;
 
-          options               value;
-          static const uint32_t nof_types = 2, nof_exts = 0;
-          static const bool     has_ext = false;
-
-          // enumerated methods
-          csi_report_mode_short_r15_e_() {}
-          csi_report_mode_short_r15_e_(options v) : value(v) {}
-          csi_report_mode_short_r15_e_& operator=(options v)
-          {
-            value = v;
-            return *this;
-          }
-                      operator options() const { return value; }
           std::string to_string() const;
           uint8_t     to_number() const;
         };
+        typedef enumerated<csi_report_mode_short_r15_opts, 2, 0, false> csi_report_mode_short_r15_e_;
 
         // member variables
         bool                         csi_report_mode_short_r15_present;
@@ -29701,49 +23714,25 @@ struct cqi_short_cfg_scell_r15_c {
         wideband_cqi_short_r15_s_();
       };
       struct subband_cqi_short_r15_s_ {
-        struct periodicity_factor_r15_e_ {
-          enum options { n2, n4 };
+        struct periodicity_factor_r15_opts {
+          enum options { n2, n4 } value;
           typedef uint8_t number_type;
 
-          options               value;
-          static const uint32_t nof_types = 2, nof_exts = 0;
-          static const bool     has_ext = false;
-
-          // enumerated methods
-          periodicity_factor_r15_e_() {}
-          periodicity_factor_r15_e_(options v) : value(v) {}
-          periodicity_factor_r15_e_& operator=(options v)
-          {
-            value = v;
-            return *this;
-          }
-                      operator options() const { return value; }
           std::string to_string() const;
           uint8_t     to_number() const;
         };
+        typedef enumerated<periodicity_factor_r15_opts, 2, 0, false> periodicity_factor_r15_e_;
 
         // member variables
         uint8_t                   k_r15;
         periodicity_factor_r15_e_ periodicity_factor_r15;
       };
-      struct types {
-        enum options { wideband_cqi_short_r15, subband_cqi_short_r15, nulltype };
+      struct types_opts {
+        enum options { wideband_cqi_short_r15, subband_cqi_short_r15, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 2, 0, false> types;
 
       // choice methods
       cqi_format_ind_short_r15_c_() : type_(types::nulltype) {}
@@ -29832,24 +23821,12 @@ struct cross_carrier_sched_cfg_r10_s {
       uint8_t sched_cell_id_r10;
       uint8_t pdsch_start_r10;
     };
-    struct types {
-      enum options { own_r10, other_r10, nulltype };
+    struct types_opts {
+      enum options { own_r10, other_r10, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     sched_cell_info_r10_c_() : type_(types::nulltype) {}
@@ -29912,24 +23889,12 @@ struct cross_carrier_sched_cfg_r13_s {
       uint8_t pdsch_start_r13;
       uint8_t cif_in_sched_cell_r13;
     };
-    struct types {
-      enum options { own_r13, other_r13, nulltype };
+    struct types_opts {
+      enum options { own_r13, other_r13, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     sched_cell_info_r13_c_() : type_(types::nulltype) {}
@@ -29982,206 +23947,89 @@ struct cross_carrier_sched_cfg_r13_s {
 // DeltaFList-SPUCCH-r15 ::= CHOICE
 struct delta_flist_spucch_r15_c {
   struct setup_s_ {
-    struct delta_f_slot_spucch_format1_r15_e_ {
-      enum options { delta_f_minus1, delta_f0, delta_f1, delta_f2, delta_f3, delta_f4, delta_f5, delta_f6 };
+    struct delta_f_slot_spucch_format1_r15_opts {
+      enum options { delta_f_minus1, delta_f0, delta_f1, delta_f2, delta_f3, delta_f4, delta_f5, delta_f6 } value;
       typedef int8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      delta_f_slot_spucch_format1_r15_e_() {}
-      delta_f_slot_spucch_format1_r15_e_(options v) : value(v) {}
-      delta_f_slot_spucch_format1_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       int8_t      to_number() const;
     };
-    struct delta_f_slot_spucch_format1a_r15_e_ {
-      enum options { delta_f1, delta_f2, delta_f3, delta_f4, delta_f5, delta_f6, delta_f7, delta_f8 };
+    typedef enumerated<delta_f_slot_spucch_format1_r15_opts, 8, 0, false> delta_f_slot_spucch_format1_r15_e_;
+    struct delta_f_slot_spucch_format1a_r15_opts {
+      enum options { delta_f1, delta_f2, delta_f3, delta_f4, delta_f5, delta_f6, delta_f7, delta_f8 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      delta_f_slot_spucch_format1a_r15_e_() {}
-      delta_f_slot_spucch_format1a_r15_e_(options v) : value(v) {}
-      delta_f_slot_spucch_format1a_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct delta_f_slot_spucch_format1b_r15_e_ {
-      enum options { delta_f3, delta_f4, delta_f5, delta_f6, delta_f7, delta_f8, delta_f9, delta_f10 };
+    typedef enumerated<delta_f_slot_spucch_format1a_r15_opts, 8, 0, false> delta_f_slot_spucch_format1a_r15_e_;
+    struct delta_f_slot_spucch_format1b_r15_opts {
+      enum options { delta_f3, delta_f4, delta_f5, delta_f6, delta_f7, delta_f8, delta_f9, delta_f10 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      delta_f_slot_spucch_format1b_r15_e_() {}
-      delta_f_slot_spucch_format1b_r15_e_(options v) : value(v) {}
-      delta_f_slot_spucch_format1b_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct delta_f_slot_spucch_format3_r15_e_ {
-      enum options { delta_f4, delta_f5, delta_f6, delta_f7, delta_f8, delta_f9, delta_f10, delta_f11 };
+    typedef enumerated<delta_f_slot_spucch_format1b_r15_opts, 8, 0, false> delta_f_slot_spucch_format1b_r15_e_;
+    struct delta_f_slot_spucch_format3_r15_opts {
+      enum options { delta_f4, delta_f5, delta_f6, delta_f7, delta_f8, delta_f9, delta_f10, delta_f11 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      delta_f_slot_spucch_format3_r15_e_() {}
-      delta_f_slot_spucch_format3_r15_e_(options v) : value(v) {}
-      delta_f_slot_spucch_format3_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct delta_f_slot_spucch_rm_format4_r15_e_ {
-      enum options { delta_f13, delta_f14, delta_f15, delta_f16, delta_f17, delta_f18, delta_f19, delta_f20 };
+    typedef enumerated<delta_f_slot_spucch_format3_r15_opts, 8, 0, false> delta_f_slot_spucch_format3_r15_e_;
+    struct delta_f_slot_spucch_rm_format4_r15_opts {
+      enum options { delta_f13, delta_f14, delta_f15, delta_f16, delta_f17, delta_f18, delta_f19, delta_f20 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      delta_f_slot_spucch_rm_format4_r15_e_() {}
-      delta_f_slot_spucch_rm_format4_r15_e_(options v) : value(v) {}
-      delta_f_slot_spucch_rm_format4_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct delta_f_slot_spucch_tbcc_format4_r15_e_ {
-      enum options { delta_f10, delta_f11, delta_f12, delta_f13, delta_f14, delta_f15, delta_f16, delta_f17 };
+    typedef enumerated<delta_f_slot_spucch_rm_format4_r15_opts, 8, 0, false> delta_f_slot_spucch_rm_format4_r15_e_;
+    struct delta_f_slot_spucch_tbcc_format4_r15_opts {
+      enum options { delta_f10, delta_f11, delta_f12, delta_f13, delta_f14, delta_f15, delta_f16, delta_f17 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      delta_f_slot_spucch_tbcc_format4_r15_e_() {}
-      delta_f_slot_spucch_tbcc_format4_r15_e_(options v) : value(v) {}
-      delta_f_slot_spucch_tbcc_format4_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct delta_f_subslot_spucch_format1and1a_r15_e_ {
-      enum options { delta_f5, delta_f6, delta_f7, delta_f8, delta_f9, delta_f10, delta_f11, delta_f12 };
+    typedef enumerated<delta_f_slot_spucch_tbcc_format4_r15_opts, 8, 0, false> delta_f_slot_spucch_tbcc_format4_r15_e_;
+    struct delta_f_subslot_spucch_format1and1a_r15_opts {
+      enum options { delta_f5, delta_f6, delta_f7, delta_f8, delta_f9, delta_f10, delta_f11, delta_f12 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      delta_f_subslot_spucch_format1and1a_r15_e_() {}
-      delta_f_subslot_spucch_format1and1a_r15_e_(options v) : value(v) {}
-      delta_f_subslot_spucch_format1and1a_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct delta_f_subslot_spucch_format1b_r15_e_ {
-      enum options { delta_f6, delta_f7, delta_f8, delta_f9, delta_f10, delta_f11, delta_f12, delta_f13 };
+    typedef enumerated<delta_f_subslot_spucch_format1and1a_r15_opts, 8, 0, false>
+        delta_f_subslot_spucch_format1and1a_r15_e_;
+    struct delta_f_subslot_spucch_format1b_r15_opts {
+      enum options { delta_f6, delta_f7, delta_f8, delta_f9, delta_f10, delta_f11, delta_f12, delta_f13 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      delta_f_subslot_spucch_format1b_r15_e_() {}
-      delta_f_subslot_spucch_format1b_r15_e_(options v) : value(v) {}
-      delta_f_subslot_spucch_format1b_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct delta_f_subslot_spucch_rm_format4_r15_e_ {
-      enum options { delta_f15, delta_f16, delta_f17, delta_f18, delta_f19, delta_f20, delta_f21, delta_f22 };
+    typedef enumerated<delta_f_subslot_spucch_format1b_r15_opts, 8, 0, false> delta_f_subslot_spucch_format1b_r15_e_;
+    struct delta_f_subslot_spucch_rm_format4_r15_opts {
+      enum options { delta_f15, delta_f16, delta_f17, delta_f18, delta_f19, delta_f20, delta_f21, delta_f22 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      delta_f_subslot_spucch_rm_format4_r15_e_() {}
-      delta_f_subslot_spucch_rm_format4_r15_e_(options v) : value(v) {}
-      delta_f_subslot_spucch_rm_format4_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct delta_f_subslot_spucch_tbcc_format4_r15_e_ {
-      enum options { delta_f10, delta_f11, delta_f12, delta_f13, delta_f14, delta_f15, delta_f16, delta_f17 };
+    typedef enumerated<delta_f_subslot_spucch_rm_format4_r15_opts, 8, 0, false>
+        delta_f_subslot_spucch_rm_format4_r15_e_;
+    struct delta_f_subslot_spucch_tbcc_format4_r15_opts {
+      enum options { delta_f10, delta_f11, delta_f12, delta_f13, delta_f14, delta_f15, delta_f16, delta_f17 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      delta_f_subslot_spucch_tbcc_format4_r15_e_() {}
-      delta_f_subslot_spucch_tbcc_format4_r15_e_(options v) : value(v) {}
-      delta_f_subslot_spucch_tbcc_format4_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<delta_f_subslot_spucch_tbcc_format4_r15_opts, 8, 0, false>
+        delta_f_subslot_spucch_tbcc_format4_r15_e_;
 
     // member variables
     bool                                       ext;
@@ -30238,27 +24086,15 @@ private:
 
 // LAA-SCellConfiguration-r13 ::= SEQUENCE
 struct laa_scell_cfg_r13_s {
-  struct sf_start_position_r13_e_ {
-    enum options { s0, s07 };
+  struct sf_start_position_r13_opts {
+    enum options { s0, s07 } value;
     typedef float number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    sf_start_position_r13_e_() {}
-    sf_start_position_r13_e_(options v) : value(v) {}
-    sf_start_position_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     float       to_number() const;
     std::string to_number_string() const;
   };
+  typedef enumerated<sf_start_position_r13_opts, 2, 0, false> sf_start_position_r13_e_;
 
   // member variables
   sf_start_position_r13_e_ sf_start_position_r13;
@@ -30469,26 +24305,14 @@ struct pusch_cfg_ded_scell_v1530_s {
 // SchedulingRequestConfigSCell-r13 ::= CHOICE
 struct sched_request_cfg_scell_r13_c {
   struct setup_s_ {
-    struct dsr_trans_max_r13_e_ {
-      enum options { n4, n8, n16, n32, n64, spare3, spare2, spare1 };
+    struct dsr_trans_max_r13_opts {
+      enum options { n4, n8, n16, n32, n64, spare3, spare2, spare1 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      dsr_trans_max_r13_e_() {}
-      dsr_trans_max_r13_e_(options v) : value(v) {}
-      dsr_trans_max_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<dsr_trans_max_r13_opts, 8, 0, false> dsr_trans_max_r13_e_;
 
     // member variables
     bool                 sr_pucch_res_idx_p1_r13_present;
@@ -30608,44 +24432,20 @@ struct ul_pusch_less_pwr_ctrl_ded_v1430_s {
 
 // UplinkPowerControlDedicatedSCell-r10 ::= SEQUENCE
 struct ul_pwr_ctrl_ded_scell_r10_s {
-  struct delta_mcs_enabled_r10_e_ {
-    enum options { en0, en1 };
+  struct delta_mcs_enabled_r10_opts {
+    enum options { en0, en1 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    delta_mcs_enabled_r10_e_() {}
-    delta_mcs_enabled_r10_e_(options v) : value(v) {}
-    delta_mcs_enabled_r10_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct pathloss_ref_linking_r10_e_ {
-    enum options { p_cell, s_cell };
+  typedef enumerated<delta_mcs_enabled_r10_opts, 2, 0, false> delta_mcs_enabled_r10_e_;
+  struct pathloss_ref_linking_r10_opts {
+    enum options { p_cell, s_cell } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    pathloss_ref_linking_r10_e_() {}
-    pathloss_ref_linking_r10_e_(options v) : value(v) {}
-    pathloss_ref_linking_r10_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<pathloss_ref_linking_r10_opts, 2, 0, false> pathloss_ref_linking_r10_e_;
 
   // member variables
   bool                        p_srs_offset_ap_r10_present;
@@ -30681,26 +24481,14 @@ struct ul_pwr_ctrl_ded_scell_v1310_s {
 
 // AntennaInfoCommon ::= SEQUENCE
 struct ant_info_common_s {
-  struct ant_ports_count_e_ {
-    enum options { an1, an2, an4, spare1 };
+  struct ant_ports_count_opts {
+    enum options { an1, an2, an4, spare1 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    ant_ports_count_e_() {}
-    ant_ports_count_e_(options v) : value(v) {}
-    ant_ports_count_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<ant_ports_count_opts, 4, 0, false> ant_ports_count_e_;
 
   // member variables
   ant_ports_count_e_ ant_ports_count;
@@ -30847,47 +24635,23 @@ struct phys_cfg_ded_scell_r10_s {
   typedef dyn_array<srs_aperiodic_set_up_pts_ext_r14_s> srs_ul_cfg_ded_ap_up_pts_ext_list_r14_l_;
   struct must_cfg_r14_c_ {
     struct setup_s_ {
-      struct k_max_r14_e_ {
-        enum options { l1, l3 };
+      struct k_max_r14_opts {
+        enum options { l1, l3 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        k_max_r14_e_() {}
-        k_max_r14_e_(options v) : value(v) {}
-        k_max_r14_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
-      struct p_a_must_r14_e_ {
-        enum options { db_minus6, db_minus4dot77, db_minus3, db_minus1dot77, db0, db1, db2, db3 };
+      typedef enumerated<k_max_r14_opts, 2, 0, false> k_max_r14_e_;
+      struct p_a_must_r14_opts {
+        enum options { db_minus6, db_minus4dot77, db_minus3, db_minus1dot77, db0, db1, db2, db3 } value;
         typedef float number_type;
 
-        options               value;
-        static const uint32_t nof_types = 8, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        p_a_must_r14_e_() {}
-        p_a_must_r14_e_(options v) : value(v) {}
-        p_a_must_r14_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         float       to_number() const;
         std::string to_number_string() const;
       };
+      typedef enumerated<p_a_must_r14_opts, 8, 0, false> p_a_must_r14_e_;
 
       // member variables
       bool            p_a_must_r14_present;
@@ -30924,24 +24688,12 @@ struct phys_cfg_ded_scell_r10_s {
   };
   struct semi_static_cfi_cfg_r15_c_ {
     struct setup_c_ {
-      struct types {
-        enum options { cfi_cfg_r15, cfi_pattern_cfg_r15, nulltype };
+      struct types_opts {
+        enum options { cfi_cfg_r15, cfi_pattern_cfg_r15, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 2, 0, false> types;
 
       // choice methods
       setup_c_() : type_(types::nulltype) {}
@@ -31008,126 +24760,56 @@ struct phys_cfg_ded_scell_r10_s {
   };
   struct blind_pdsch_repeat_cfg_r15_c_ {
     struct setup_s_ {
-      struct max_num_sf_pdsch_repeats_r15_e_ {
-        enum options { n4, n6 };
+      struct max_num_sf_pdsch_repeats_r15_opts {
+        enum options { n4, n6 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        max_num_sf_pdsch_repeats_r15_e_() {}
-        max_num_sf_pdsch_repeats_r15_e_(options v) : value(v) {}
-        max_num_sf_pdsch_repeats_r15_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
-      struct max_num_slot_subslot_pdsch_repeats_r15_e_ {
-        enum options { n4, n6 };
+      typedef enumerated<max_num_sf_pdsch_repeats_r15_opts, 2, 0, false> max_num_sf_pdsch_repeats_r15_e_;
+      struct max_num_slot_subslot_pdsch_repeats_r15_opts {
+        enum options { n4, n6 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        max_num_slot_subslot_pdsch_repeats_r15_e_() {}
-        max_num_slot_subslot_pdsch_repeats_r15_e_(options v) : value(v) {}
-        max_num_slot_subslot_pdsch_repeats_r15_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
-      struct rv_sf_pdsch_repeats_r15_e_ {
-        enum options { dlrvseq1, dlrvseq2 };
+      typedef enumerated<max_num_slot_subslot_pdsch_repeats_r15_opts, 2, 0, false>
+          max_num_slot_subslot_pdsch_repeats_r15_e_;
+      struct rv_sf_pdsch_repeats_r15_opts {
+        enum options { dlrvseq1, dlrvseq2 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        rv_sf_pdsch_repeats_r15_e_() {}
-        rv_sf_pdsch_repeats_r15_e_(options v) : value(v) {}
-        rv_sf_pdsch_repeats_r15_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
-      struct rv_slotsublot_pdsch_repeats_r15_e_ {
-        enum options { dlrvseq1, dlrvseq2 };
+      typedef enumerated<rv_sf_pdsch_repeats_r15_opts, 2, 0, false> rv_sf_pdsch_repeats_r15_e_;
+      struct rv_slotsublot_pdsch_repeats_r15_opts {
+        enum options { dlrvseq1, dlrvseq2 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        rv_slotsublot_pdsch_repeats_r15_e_() {}
-        rv_slotsublot_pdsch_repeats_r15_e_(options v) : value(v) {}
-        rv_slotsublot_pdsch_repeats_r15_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
-      struct mcs_restrict_sf_pdsch_repeats_r15_e_ {
-        enum options { n0, n1 };
+      typedef enumerated<rv_slotsublot_pdsch_repeats_r15_opts, 2, 0, false> rv_slotsublot_pdsch_repeats_r15_e_;
+      struct mcs_restrict_sf_pdsch_repeats_r15_opts {
+        enum options { n0, n1 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        mcs_restrict_sf_pdsch_repeats_r15_e_() {}
-        mcs_restrict_sf_pdsch_repeats_r15_e_(options v) : value(v) {}
-        mcs_restrict_sf_pdsch_repeats_r15_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
-      struct mcs_restrict_slot_subslot_pdsch_repeats_r15_e_ {
-        enum options { n0, n1 };
+      typedef enumerated<mcs_restrict_sf_pdsch_repeats_r15_opts, 2, 0, false> mcs_restrict_sf_pdsch_repeats_r15_e_;
+      struct mcs_restrict_slot_subslot_pdsch_repeats_r15_opts {
+        enum options { n0, n1 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        mcs_restrict_slot_subslot_pdsch_repeats_r15_e_() {}
-        mcs_restrict_slot_subslot_pdsch_repeats_r15_e_(options v) : value(v) {}
-        mcs_restrict_slot_subslot_pdsch_repeats_r15_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
+      typedef enumerated<mcs_restrict_slot_subslot_pdsch_repeats_r15_opts, 2, 0, false>
+          mcs_restrict_slot_subslot_pdsch_repeats_r15_e_;
 
       // member variables
       bool                                           max_num_sf_pdsch_repeats_r15_present;
@@ -31431,86 +25113,38 @@ struct ul_pwr_ctrl_common_scell_v1130_s {
 
 // UplinkPowerControlCommonSCell-v1310 ::= SEQUENCE
 struct ul_pwr_ctrl_common_scell_v1310_s {
-  struct delta_f_pucch_format3_r12_e_ {
-    enum options { delta_f_minus1, delta_f0, delta_f1, delta_f2, delta_f3, delta_f4, delta_f5, delta_f6 };
+  struct delta_f_pucch_format3_r12_opts {
+    enum options { delta_f_minus1, delta_f0, delta_f1, delta_f2, delta_f3, delta_f4, delta_f5, delta_f6 } value;
     typedef int8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    delta_f_pucch_format3_r12_e_() {}
-    delta_f_pucch_format3_r12_e_(options v) : value(v) {}
-    delta_f_pucch_format3_r12_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     int8_t      to_number() const;
   };
-  struct delta_f_pucch_format1b_cs_r12_e_ {
-    enum options { delta_f1, delta_f2, spare2, spare1 };
+  typedef enumerated<delta_f_pucch_format3_r12_opts, 8, 0, false> delta_f_pucch_format3_r12_e_;
+  struct delta_f_pucch_format1b_cs_r12_opts {
+    enum options { delta_f1, delta_f2, spare2, spare1 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    delta_f_pucch_format1b_cs_r12_e_() {}
-    delta_f_pucch_format1b_cs_r12_e_(options v) : value(v) {}
-    delta_f_pucch_format1b_cs_r12_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct delta_f_pucch_format4_r13_e_ {
-    enum options { delta_f16, delta_f15, delta_f14, delta_f13, delta_f12, delta_f11, delta_f10, spare1 };
+  typedef enumerated<delta_f_pucch_format1b_cs_r12_opts, 4, 0, false> delta_f_pucch_format1b_cs_r12_e_;
+  struct delta_f_pucch_format4_r13_opts {
+    enum options { delta_f16, delta_f15, delta_f14, delta_f13, delta_f12, delta_f11, delta_f10, spare1 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    delta_f_pucch_format4_r13_e_() {}
-    delta_f_pucch_format4_r13_e_(options v) : value(v) {}
-    delta_f_pucch_format4_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct delta_f_pucch_format5_minus13_e_ {
-    enum options { delta_f13, delta_f12, delta_f11, delta_f10, delta_f9, delta_f8, delta_f7, spare1 };
+  typedef enumerated<delta_f_pucch_format4_r13_opts, 8, 0, false> delta_f_pucch_format4_r13_e_;
+  struct delta_f_pucch_format5_minus13_opts {
+    enum options { delta_f13, delta_f12, delta_f11, delta_f10, delta_f9, delta_f8, delta_f7, spare1 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    delta_f_pucch_format5_minus13_e_() {}
-    delta_f_pucch_format5_minus13_e_(options v) : value(v) {}
-    delta_f_pucch_format5_minus13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<delta_f_pucch_format5_minus13_opts, 8, 0, false> delta_f_pucch_format5_minus13_e_;
 
   // member variables
   bool                             delta_f_pucch_format3_r12_present;
@@ -31533,26 +25167,14 @@ struct ul_pwr_ctrl_common_scell_v1310_s {
 
 // AntennaInfoDedicated-v10i0 ::= SEQUENCE
 struct ant_info_ded_v10i0_s {
-  struct max_layers_mimo_r10_e_ {
-    enum options { two_layers, four_layers, eight_layers };
+  struct max_layers_mimo_r10_opts {
+    enum options { two_layers, four_layers, eight_layers } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 3, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    max_layers_mimo_r10_e_() {}
-    max_layers_mimo_r10_e_(options v) : value(v) {}
-    max_layers_mimo_r10_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<max_layers_mimo_r10_opts, 3, 0, false> max_layers_mimo_r10_e_;
 
   // member variables
   bool                   max_layers_mimo_r10_present;
@@ -31568,26 +25190,14 @@ struct ant_info_ded_v10i0_s {
 // RadioResourceConfigCommonSCell-r10 ::= SEQUENCE
 struct rr_cfg_common_scell_r10_s {
   struct non_ul_cfg_r10_s_ {
-    struct dl_bw_r10_e_ {
-      enum options { n6, n15, n25, n50, n75, n100 };
+    struct dl_bw_r10_opts {
+      enum options { n6, n15, n25, n50, n75, n100 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 6, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      dl_bw_r10_e_() {}
-      dl_bw_r10_e_(options v) : value(v) {}
-      dl_bw_r10_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<dl_bw_r10_opts, 6, 0, false> dl_bw_r10_e_;
 
     // member variables
     bool                mbsfn_sf_cfg_list_r10_present;
@@ -31604,26 +25214,14 @@ struct rr_cfg_common_scell_r10_s {
   };
   struct ul_cfg_r10_s_ {
     struct ul_freq_info_r10_s_ {
-      struct ul_bw_r10_e_ {
-        enum options { n6, n15, n25, n50, n75, n100 };
+      struct ul_bw_r10_opts {
+        enum options { n6, n15, n25, n50, n75, n100 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 6, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        ul_bw_r10_e_() {}
-        ul_bw_r10_e_(options v) : value(v) {}
-        ul_bw_r10_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
+      typedef enumerated<ul_bw_r10_opts, 6, 0, false> ul_bw_r10_e_;
 
       // member variables
       bool         ul_carrier_freq_r10_present;
@@ -31652,26 +25250,14 @@ struct rr_cfg_common_scell_r10_s {
   };
   struct ul_cfg_r14_s_ {
     struct ul_freq_info_r14_s_ {
-      struct ul_bw_r14_e_ {
-        enum options { n6, n15, n25, n50, n75, n100 };
+      struct ul_bw_r14_opts {
+        enum options { n6, n15, n25, n50, n75, n100 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 6, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        ul_bw_r14_e_() {}
-        ul_bw_r14_e_(options v) : value(v) {}
-        ul_bw_r14_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
+      typedef enumerated<ul_bw_r14_opts, 6, 0, false> ul_bw_r14_e_;
 
       // member variables
       bool         ul_carrier_freq_r14_present;
@@ -31698,26 +25284,14 @@ struct rr_cfg_common_scell_r10_s {
     // sequence methods
     ul_cfg_r14_s_();
   };
-  struct harq_ref_cfg_r14_e_ {
-    enum options { sa2, sa4, sa5 };
+  struct harq_ref_cfg_r14_opts {
+    enum options { sa2, sa4, sa5 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 3, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    harq_ref_cfg_r14_e_() {}
-    harq_ref_cfg_r14_e_(options v) : value(v) {}
-    harq_ref_cfg_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<harq_ref_cfg_r14_opts, 3, 0, false> harq_ref_cfg_r14_e_;
 
   // member variables
   bool              ext;
@@ -31830,26 +25404,14 @@ struct scell_to_add_mod_ext_r13_s {
 };
 
 // CipheringAlgorithm-r12 ::= ENUMERATED
-struct ciphering_algorithm_r12_e {
-  enum options { eea0, eea1, eea2, eea3_v1130, spare4, spare3, spare2, spare1, /*...*/ };
+struct ciphering_algorithm_r12_opts {
+  enum options { eea0, eea1, eea2, eea3_v1130, spare4, spare3, spare2, spare1, /*...*/ } value;
   typedef uint8_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 8, nof_exts = 0;
-  static const bool     has_ext = true;
-
-  // enumerated methods
-  ciphering_algorithm_r12_e() {}
-  ciphering_algorithm_r12_e(options v) : value(v) {}
-  ciphering_algorithm_r12_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint8_t     to_number() const;
 };
+typedef enumerated<ciphering_algorithm_r12_opts, 8, 0, true> ciphering_algorithm_r12_e;
 
 // SCellConfigCommon-r15 ::= SEQUENCE
 struct scell_cfg_common_r15_s {
@@ -31924,26 +25486,14 @@ typedef dyn_array<sl_disc_tx_pool_to_add_mod_r12_s> sl_disc_tx_pool_to_add_mod_l
 
 // SL-HoppingConfigDisc-r12 ::= SEQUENCE
 struct sl_hop_cfg_disc_r12_s {
-  struct c_r12_e_ {
-    enum options { n1, n5 };
+  struct c_r12_opts {
+    enum options { n1, n5 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    c_r12_e_() {}
-    c_r12_e_(options v) : value(v) {}
-    c_r12_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<c_r12_opts, 2, 0, false> c_r12_e_;
 
   // member variables
   uint8_t  a_r12;
@@ -31964,26 +25514,14 @@ typedef bounded_array<uint8_t, 4> sl_tx_pool_to_release_list_r12_l;
 
 // SecurityAlgorithmConfig ::= SEQUENCE
 struct security_algorithm_cfg_s {
-  struct integrity_prot_algorithm_e_ {
-    enum options { eia0_v920, eia1, eia2, eia3_v1130, spare4, spare3, spare2, spare1, /*...*/ };
+  struct integrity_prot_algorithm_opts {
+    enum options { eia0_v920, eia1, eia2, eia3_v1130, spare4, spare3, spare2, spare1, /*...*/ } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = true;
-
-    // enumerated methods
-    integrity_prot_algorithm_e_() {}
-    integrity_prot_algorithm_e_(options v) : value(v) {}
-    integrity_prot_algorithm_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<integrity_prot_algorithm_opts, 8, 0, true> integrity_prot_algorithm_e_;
 
   // member variables
   ciphering_algorithm_r12_e   ciphering_algorithm;
@@ -32008,24 +25546,12 @@ struct drb_to_add_mod_scg_r12_s {
       // sequence methods
       scg_r12_s_();
     };
-    struct types {
-      enum options { split_r12, scg_r12, nulltype };
+    struct types_opts {
+      enum options { split_r12, scg_r12, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     drb_type_r12_c_() : type_(types::nulltype) {}
@@ -32096,26 +25622,14 @@ struct ike_id_r13_s {
 
 // IP-Address-r13 ::= CHOICE
 struct ip_address_r13_c {
-  struct types {
-    enum options { ipv4_r13, ipv6_r13, nulltype };
+  struct types_opts {
+    enum options { ipv4_r13, ipv6_r13, nulltype } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<types_opts, 2, 0, false> types;
 
   // choice methods
   ip_address_r13_c() : type_(types::nulltype) {}
@@ -32302,26 +25816,14 @@ struct security_cfg_ho_v1530_s {
       security_algorithm_cfg_s security_algorithm_cfg_r15;
       dyn_octstring            nas_container_r15;
     };
-    struct types {
-      enum options { intra5_gc_r15, ngc_to_epc_r15, epc_to_ngc_r15, nulltype };
+    struct types_opts {
+      enum options { intra5_gc_r15, ngc_to_epc_r15, epc_to_ngc_r15, nulltype } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 3, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<types_opts, 3, 0, false> types;
 
     // choice methods
     ho_type_v1530_c_() : type_(types::nulltype) {}
@@ -32386,46 +25888,22 @@ struct security_cfg_ho_v1530_s {
 
 // UplinkPowerControlCommon-v1310 ::= SEQUENCE
 struct ul_pwr_ctrl_common_v1310_s {
-  struct delta_f_pucch_format4_r13_e_ {
-    enum options { delta_f16, delta_f15, delta_f14, delta_f13, delta_f12, delta_f11, delta_f10, spare1 };
+  struct delta_f_pucch_format4_r13_opts {
+    enum options { delta_f16, delta_f15, delta_f14, delta_f13, delta_f12, delta_f11, delta_f10, spare1 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    delta_f_pucch_format4_r13_e_() {}
-    delta_f_pucch_format4_r13_e_(options v) : value(v) {}
-    delta_f_pucch_format4_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct delta_f_pucch_format5_minus13_e_ {
-    enum options { delta_f13, delta_f12, delta_f11, delta_f10, delta_f9, delta_f8, delta_f7, spare1 };
+  typedef enumerated<delta_f_pucch_format4_r13_opts, 8, 0, false> delta_f_pucch_format4_r13_e_;
+  struct delta_f_pucch_format5_minus13_opts {
+    enum options { delta_f13, delta_f12, delta_f11, delta_f10, delta_f9, delta_f8, delta_f7, spare1 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    delta_f_pucch_format5_minus13_e_() {}
-    delta_f_pucch_format5_minus13_e_(options v) : value(v) {}
-    delta_f_pucch_format5_minus13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<delta_f_pucch_format5_minus13_opts, 8, 0, false> delta_f_pucch_format5_minus13_e_;
 
   // member variables
   bool                             delta_f_pucch_format4_r13_present;
@@ -32442,46 +25920,22 @@ struct ul_pwr_ctrl_common_v1310_s {
 
 // UplinkPowerControlCommonPSCell-r12 ::= SEQUENCE
 struct ul_pwr_ctrl_common_ps_cell_r12_s {
-  struct delta_f_pucch_format3_r12_e_ {
-    enum options { delta_f_minus1, delta_f0, delta_f1, delta_f2, delta_f3, delta_f4, delta_f5, delta_f6 };
+  struct delta_f_pucch_format3_r12_opts {
+    enum options { delta_f_minus1, delta_f0, delta_f1, delta_f2, delta_f3, delta_f4, delta_f5, delta_f6 } value;
     typedef int8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    delta_f_pucch_format3_r12_e_() {}
-    delta_f_pucch_format3_r12_e_(options v) : value(v) {}
-    delta_f_pucch_format3_r12_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     int8_t      to_number() const;
   };
-  struct delta_f_pucch_format1b_cs_r12_e_ {
-    enum options { delta_f1, delta_f2, spare2, spare1 };
+  typedef enumerated<delta_f_pucch_format3_r12_opts, 8, 0, false> delta_f_pucch_format3_r12_e_;
+  struct delta_f_pucch_format1b_cs_r12_opts {
+    enum options { delta_f1, delta_f2, spare2, spare1 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    delta_f_pucch_format1b_cs_r12_e_() {}
-    delta_f_pucch_format1b_cs_r12_e_(options v) : value(v) {}
-    delta_f_pucch_format1b_cs_r12_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<delta_f_pucch_format1b_cs_r12_opts, 4, 0, false> delta_f_pucch_format1b_cs_r12_e_;
 
   // member variables
   delta_f_pucch_format3_r12_e_     delta_f_pucch_format3_r12;
@@ -32586,26 +26040,14 @@ struct rach_cfg_ded_s {
 // RACH-Skip-r14 ::= SEQUENCE
 struct rach_skip_r14_s {
   struct target_ta_r14_c_ {
-    struct types {
-      enum options { ta0_r14, mcg_ptag_r14, scg_ptag_r14, mcg_stag_r14, scg_stag_r14, nulltype };
+    struct types_opts {
+      enum options { ta0_r14, mcg_ptag_r14, scg_ptag_r14, mcg_stag_r14, scg_stag_r14, nulltype } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 5, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<types_opts, 5, 0, false> types;
 
     // choice methods
     target_ta_r14_c_() : type_(types::nulltype) {}
@@ -32646,26 +26088,14 @@ struct rach_skip_r14_s {
     void destroy_();
   };
   struct ul_cfg_info_r14_s_ {
-    struct ul_sched_interv_r14_e_ {
-      enum options { sf2, sf5, sf10 };
+    struct ul_sched_interv_r14_opts {
+      enum options { sf2, sf5, sf10 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 3, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      ul_sched_interv_r14_e_() {}
-      ul_sched_interv_r14_e_(options v) : value(v) {}
-      ul_sched_interv_r14_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<ul_sched_interv_r14_opts, 3, 0, false> ul_sched_interv_r14_e_;
 
     // member variables
     uint8_t                nof_conf_ul_processes_r14;
@@ -32689,66 +26119,30 @@ struct rach_skip_r14_s {
 // RLF-TimersAndConstantsSCG-r12 ::= CHOICE
 struct rlf_timers_and_consts_scg_r12_c {
   struct setup_s_ {
-    struct t313_r12_e_ {
-      enum options { ms0, ms50, ms100, ms200, ms500, ms1000, ms2000 };
+    struct t313_r12_opts {
+      enum options { ms0, ms50, ms100, ms200, ms500, ms1000, ms2000 } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 7, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      t313_r12_e_() {}
-      t313_r12_e_(options v) : value(v) {}
-      t313_r12_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
-    struct n313_r12_e_ {
-      enum options { n1, n2, n3, n4, n6, n8, n10, n20 };
+    typedef enumerated<t313_r12_opts, 7, 0, false> t313_r12_e_;
+    struct n313_r12_opts {
+      enum options { n1, n2, n3, n4, n6, n8, n10, n20 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      n313_r12_e_() {}
-      n313_r12_e_(options v) : value(v) {}
-      n313_r12_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct n314_r12_e_ {
-      enum options { n1, n2, n3, n4, n5, n6, n8, n10 };
+    typedef enumerated<n313_r12_opts, 8, 0, false> n313_r12_e_;
+    struct n314_r12_opts {
+      enum options { n1, n2, n3, n4, n5, n6, n8, n10 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      n314_r12_e_() {}
-      n314_r12_e_(options v) : value(v) {}
-      n314_r12_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<n314_r12_opts, 8, 0, false> n314_r12_e_;
 
     // member variables
     bool        ext;
@@ -32909,24 +26303,12 @@ struct scell_to_add_mod_r10_s {
     uint16_t pci_r10;
     uint16_t dl_carrier_freq_r10;
   };
-  struct s_cell_state_r15_e_ {
-    enum options { activ, dormant };
+  struct s_cell_state_r15_opts {
+    enum options { activ, dormant } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    s_cell_state_r15_e_() {}
-    s_cell_state_r15_e_(options v) : value(v) {}
-    s_cell_state_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<s_cell_state_r15_opts, 2, 0, false> s_cell_state_r15_e_;
 
   // member variables
   bool                      ext;
@@ -32986,24 +26368,12 @@ struct scell_to_add_mod_ext_v1370_s {
 
 // SCellToAddModExt-v1430 ::= SEQUENCE
 struct scell_to_add_mod_ext_v1430_s {
-  struct s_cell_state_r15_e_ {
-    enum options { activ, dormant };
+  struct s_cell_state_r15_opts {
+    enum options { activ, dormant } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    s_cell_state_r15_e_() {}
-    s_cell_state_r15_e_(options v) : value(v) {}
-    s_cell_state_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<s_cell_state_r15_opts, 2, 0, false> s_cell_state_r15_e_;
 
   // member variables
   bool    ext;
@@ -33023,24 +26393,12 @@ struct scell_to_add_mod_ext_v1430_s {
 
 // SL-DiscTxRefCarrierDedicated-r13 ::= CHOICE
 struct sl_disc_tx_ref_carrier_ded_r13_c {
-  struct types {
-    enum options { p_cell, s_cell, nulltype };
+  struct types_opts {
+    enum options { p_cell, s_cell, nulltype } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<types_opts, 2, 0, false> types;
 
   // choice methods
   sl_disc_tx_ref_carrier_ded_r13_c() : type_(types::nulltype) {}
@@ -33069,24 +26427,12 @@ private:
 // SL-DiscTxResource-r13 ::= CHOICE
 struct sl_disc_tx_res_r13_c {
   struct setup_c_ {
-    struct types {
-      enum options { sched_r13, ue_sel_r13, nulltype };
+    struct types_opts {
+      enum options { sched_r13, ue_sel_r13, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     setup_c_() : type_(types::nulltype) {}
@@ -33154,7 +26500,7 @@ private:
 
 // SL-GapPattern-r13 ::= SEQUENCE
 struct sl_gap_pattern_r13_s {
-  struct gap_period_r13_e_ {
+  struct gap_period_r13_opts {
     enum options {
       sf40,
       sf60,
@@ -33171,25 +26517,13 @@ struct sl_gap_pattern_r13_s {
       sf2560,
       sf5120,
       sf10240
-    };
+    } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 15, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    gap_period_r13_e_() {}
-    gap_period_r13_e_(options v) : value(v) {}
-    gap_period_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<gap_period_r13_opts, 15, 0, false> gap_period_r13_e_;
 
   // member variables
   bool                ext;
@@ -33212,26 +26546,14 @@ typedef dyn_array<sl_tx_pool_to_add_mod_r14_s> sl_tx_pool_to_add_mod_list_v2x_r1
 typedef bounded_array<uint8_t, 8> sl_tx_pool_to_release_list_v2x_r14_l;
 
 // SubframeAssignment-r15 ::= ENUMERATED
-struct sf_assign_r15_e {
-  enum options { sa0, sa1, sa2, sa3, sa4, sa5, sa6 };
+struct sf_assign_r15_opts {
+  enum options { sa0, sa1, sa2, sa3, sa4, sa5, sa6 } value;
   typedef uint8_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 7, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  sf_assign_r15_e() {}
-  sf_assign_r15_e(options v) : value(v) {}
-  sf_assign_r15_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint8_t     to_number() const;
 };
+typedef enumerated<sf_assign_r15_opts, 7, 0, false> sf_assign_r15_e;
 
 // TunnelConfigLWIP-r13 ::= SEQUENCE
 struct tunnel_cfg_lwip_r13_s {
@@ -33253,26 +26575,14 @@ struct tunnel_cfg_lwip_r13_s {
 
 // WLAN-MobilityConfig-r13 ::= SEQUENCE
 struct wlan_mob_cfg_r13_s {
-  struct association_timer_r13_e_ {
-    enum options { s10, s30, s60, s120, s240 };
+  struct association_timer_r13_opts {
+    enum options { s10, s30, s60, s120, s240 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 5, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    association_timer_r13_e_() {}
-    association_timer_r13_e_(options v) : value(v) {}
-    association_timer_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<association_timer_r13_opts, 5, 0, false> association_timer_r13_e_;
 
   // member variables
   bool                     ext;
@@ -33296,24 +26606,12 @@ struct wlan_mob_cfg_r13_s {
 };
 
 // CA-BandwidthClass-r10 ::= ENUMERATED
-struct ca_bw_class_r10_e {
-  enum options { a, b, c, d, e, f, /*...*/ };
+struct ca_bw_class_r10_opts {
+  enum options { a, b, c, d, e, f, /*...*/ } value;
 
-  options               value;
-  static const uint32_t nof_types = 6, nof_exts = 0;
-  static const bool     has_ext = true;
-
-  // enumerated methods
-  ca_bw_class_r10_e() {}
-  ca_bw_class_r10_e(options v) : value(v) {}
-  ca_bw_class_r10_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
 };
+typedef enumerated<ca_bw_class_r10_opts, 6, 0, true> ca_bw_class_r10_e;
 
 // LWA-Config-r13 ::= SEQUENCE
 struct lwa_cfg_r13_s {
@@ -33354,26 +26652,14 @@ struct lwip_cfg_r13_s {
 
 // MobilityControlInfoSCG-r12 ::= SEQUENCE
 struct mob_ctrl_info_scg_r12_s {
-  struct t307_r12_e_ {
-    enum options { ms50, ms100, ms150, ms200, ms500, ms1000, ms2000, spare1 };
+  struct t307_r12_opts {
+    enum options { ms50, ms100, ms150, ms200, ms500, ms1000, ms2000, spare1 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    t307_r12_e_() {}
-    t307_r12_e_(options v) : value(v) {}
-    t307_r12_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<t307_r12_opts, 8, 0, false> t307_r12_e_;
 
   // member variables
   bool                      ext;
@@ -33471,24 +26757,12 @@ struct rclwi_cfg_r13_s {
       // member variables
       wlan_id_list_r12_l mob_cfg_r13;
     };
-    struct types {
-      enum options { steer_to_wlan_r13, steer_to_lte_r13, nulltype };
+    struct types_opts {
+      enum options { steer_to_wlan_r13, steer_to_lte_r13, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     cmd_c_() : type_(types::nulltype) {}
@@ -33753,24 +27027,12 @@ struct sl_v2x_cfg_ded_r14_s {
         // member variables
         v2x_comm_tx_pool_normal_ded_r14_s_ v2x_comm_tx_pool_normal_ded_r14;
       };
-      struct types {
-        enum options { sched_r14, ue_sel_r14, nulltype };
+      struct types_opts {
+        enum options { sched_r14, ue_sel_r14, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 2, 0, false> types;
 
       // choice methods
       setup_c_() : type_(types::nulltype) {}
@@ -33855,24 +27117,12 @@ struct sl_v2x_cfg_ded_r14_s {
         // sequence methods
         ue_sel_v1530_s_();
       };
-      struct types {
-        enum options { sched_v1530, ue_sel_v1530, nulltype };
+      struct types_opts {
+        enum options { sched_v1530, ue_sel_v1530, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 2, 0, false> types;
 
       // choice methods
       setup_c_() : type_(types::nulltype) {}
@@ -34094,24 +27344,12 @@ struct pwr_coordination_info_r12_s {
 
 // RAN-NotificationAreaInfo-r15 ::= CHOICE
 struct ran_notif_area_info_r15_c {
-  struct types {
-    enum options { cell_list_r15, ran_area_cfg_list_r15, nulltype };
+  struct types_opts {
+    enum options { cell_list_r15, ran_area_cfg_list_r15, nulltype } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<types_opts, 2, 0, false> types;
 
   // choice methods
   ran_notif_area_info_r15_c() : type_(types::nulltype) {}
@@ -34429,26 +27667,14 @@ typedef dyn_array<uint8_t> meas_csi_rs_to_rem_list_r12_l;
 
 // MeasIdleConfigDedicated-r15 ::= SEQUENCE
 struct meas_idle_cfg_ded_r15_s {
-  struct meas_idle_dur_r15_e_ {
-    enum options { sec10, sec30, sec60, sec120, sec180, sec240, sec300, spare };
+  struct meas_idle_dur_r15_opts {
+    enum options { sec10, sec30, sec60, sec120, sec180, sec240, sec300, spare } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    meas_idle_dur_r15_e_() {}
-    meas_idle_dur_r15_e_(options v) : value(v) {}
-    meas_idle_dur_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<meas_idle_dur_r15_opts, 8, 0, false> meas_idle_dur_r15_e_;
 
   // member variables
   bool                     ext;
@@ -34472,46 +27698,22 @@ typedef dyn_array<pci_range_utra_fdd_r9_s> pci_range_utra_fdd_list_r9_l;
 
 // RRC-InactiveConfig-r15 ::= SEQUENCE
 struct rrc_inactive_cfg_r15_s {
-  struct ran_paging_cycle_r15_e_ {
-    enum options { rf32, rf64, rf128, rf256 };
+  struct ran_paging_cycle_r15_opts {
+    enum options { rf32, rf64, rf128, rf256 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    ran_paging_cycle_r15_e_() {}
-    ran_paging_cycle_r15_e_(options v) : value(v) {}
-    ran_paging_cycle_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
-  struct periodic_rnau_timer_r15_e_ {
-    enum options { min5, min10, min20, min30, min60, min120, min360, min720 };
+  typedef enumerated<ran_paging_cycle_r15_opts, 4, 0, false> ran_paging_cycle_r15_e_;
+  struct periodic_rnau_timer_r15_opts {
+    enum options { min5, min10, min20, min30, min60, min120, min360, min720 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    periodic_rnau_timer_r15_e_() {}
-    periodic_rnau_timer_r15_e_(options v) : value(v) {}
-    periodic_rnau_timer_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<periodic_rnau_timer_r15_opts, 8, 0, false> periodic_rnau_timer_r15_e_;
 
   // member variables
   bool                       ran_paging_cycle_r15_present;
@@ -34689,24 +27891,12 @@ struct sl_comm_cfg_r12_s {
         // member variables
         comm_tx_pool_normal_ded_r12_s_ comm_tx_pool_normal_ded_r12;
       };
-      struct types {
-        enum options { sched_r12, ue_sel_r12, nulltype };
+      struct types_opts {
+        enum options { sched_r12, ue_sel_r12, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 2, 0, false> types;
 
       // choice methods
       setup_c_() : type_(types::nulltype) {}
@@ -34793,24 +27983,12 @@ struct sl_comm_cfg_r12_s {
         // member variables
         comm_tx_pool_normal_ded_ext_r13_s_ comm_tx_pool_normal_ded_ext_r13;
       };
-      struct types {
-        enum options { sched_v1310, ue_sel_v1310, nulltype };
+      struct types_opts {
+        enum options { sched_v1310, ue_sel_v1310, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 2, 0, false> types;
 
       // choice methods
       setup_c_() : type_(types::nulltype) {}
@@ -34929,24 +28107,12 @@ struct sl_disc_cfg_r12_s {
         // sequence methods
         ue_sel_r12_s_();
       };
-      struct types {
-        enum options { sched_r12, ue_sel_r12, nulltype };
+      struct types_opts {
+        enum options { sched_r12, ue_sel_r12, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 2, 0, false> types;
 
       // choice methods
       setup_c_() : type_(types::nulltype) {}
@@ -35047,24 +28213,12 @@ struct sl_disc_cfg_r12_s {
         // member variables
         sl_disc_tx_pool_ded_r13_s disc_tx_pool_ps_ded_r13;
       };
-      struct types {
-        enum options { sched_r13, ue_sel_r13, nulltype };
+      struct types_opts {
+        enum options { sched_r13, ue_sel_r13, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 2, 0, false> types;
 
       // choice methods
       setup_c_() : type_(types::nulltype) {}
@@ -35277,24 +28431,12 @@ struct sl_disc_cfg_r12_s {
 
 // SL-SyncTxControl-r12 ::= SEQUENCE
 struct sl_sync_tx_ctrl_r12_s {
-  struct network_ctrl_sync_tx_r12_e_ {
-    enum options { on, off };
+  struct network_ctrl_sync_tx_r12_opts {
+    enum options { on, off } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    network_ctrl_sync_tx_r12_e_() {}
-    network_ctrl_sync_tx_r12_e_(options v) : value(v) {}
-    network_ctrl_sync_tx_r12_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<network_ctrl_sync_tx_r12_opts, 2, 0, false> network_ctrl_sync_tx_r12_e_;
 
   // member variables
   bool                        network_ctrl_sync_tx_r12_present;
@@ -35377,26 +28519,14 @@ typedef dyn_array<band_combination_r14_l> band_combination_list_r14_l;
 typedef dyn_array<black_cells_to_add_mod_s> black_cells_to_add_mod_list_l;
 
 // CDMA2000-Type ::= ENUMERATED
-struct cdma2000_type_e {
-  enum options { type1_xrtt, type_hrpd };
+struct cdma2000_type_opts {
+  enum options { type1_xrtt, type_hrpd } value;
   typedef uint8_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 2, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  cdma2000_type_e() {}
-  cdma2000_type_e(options v) : value(v) {}
-  cdma2000_type_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint8_t     to_number() const;
 };
+typedef enumerated<cdma2000_type_opts, 2, 0, false> cdma2000_type_e;
 
 // CSG-AllowedReportingCells-r9 ::= SEQUENCE
 struct csg_allowed_report_cells_r9_s {
@@ -35445,51 +28575,27 @@ typedef dyn_array<cells_to_add_mod_utra_fdd_s> cells_to_add_mod_list_utra_fdd_l;
 typedef dyn_array<cells_to_add_mod_utra_tdd_s> cells_to_add_mod_list_utra_tdd_l;
 
 // MeasCycleSCell-r10 ::= ENUMERATED
-struct meas_cycle_scell_r10_e {
-  enum options { sf160, sf256, sf320, sf512, sf640, sf1024, sf1280, spare1 };
+struct meas_cycle_scell_r10_opts {
+  enum options { sf160, sf256, sf320, sf512, sf640, sf1024, sf1280, spare1 } value;
   typedef uint16_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 8, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  meas_cycle_scell_r10_e() {}
-  meas_cycle_scell_r10_e(options v) : value(v) {}
-  meas_cycle_scell_r10_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint16_t    to_number() const;
 };
+typedef enumerated<meas_cycle_scell_r10_opts, 8, 0, false> meas_cycle_scell_r10_e;
 
 // MeasDS-Config-r12 ::= CHOICE
 struct meas_ds_cfg_r12_c {
   struct setup_s_ {
     struct dmtc_period_offset_r12_c_ {
-      struct types {
-        enum options { ms40_r12, ms80_r12, ms160_r12, /*...*/ nulltype };
+      struct types_opts {
+        enum options { ms40_r12, ms80_r12, ms160_r12, /*...*/ nulltype } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 3, nof_exts = 0;
-        static const bool     has_ext = true;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
+      typedef enumerated<types_opts, 3, 0, true> types;
 
       // choice methods
       dmtc_period_offset_r12_c_() : type_(types::nulltype) {}
@@ -35540,24 +28646,12 @@ struct meas_ds_cfg_r12_c {
       void destroy_();
     };
     struct ds_occasion_dur_r12_c_ {
-      struct types {
-        enum options { dur_fdd_r12, dur_tdd_r12, nulltype };
+      struct types_opts {
+        enum options { dur_fdd_r12, dur_tdd_r12, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 2, 0, false> types;
 
       // choice methods
       ds_occasion_dur_r12_c_() : type_(types::nulltype) {}
@@ -35641,7 +28735,7 @@ private:
 struct meas_gap_cfg_c {
   struct setup_s_ {
     struct gap_offset_c_ {
-      struct types {
+      struct types_opts {
         enum options {
           gp0,
           gp1,
@@ -35665,23 +28759,11 @@ struct meas_gap_cfg_c {
           gp10_r15,
           gp11_r15,
           nulltype
-        };
+        } value;
 
-        options               value;
-        static const uint32_t nof_types = 20, nof_exts = 18;
-        static const bool     has_ext = true;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 20, 18, true> types;
 
       // choice methods
       gap_offset_c_() : type_(types::nulltype) {}
@@ -35946,26 +29028,14 @@ struct meas_rssi_report_cfg_r13_s {
 
 // MeasSensing-Config-r15 ::= SEQUENCE
 struct meas_sensing_cfg_r15_s {
-  struct sensing_periodicity_r15_e_ {
-    enum options { ms20, ms50, ms100, ms200, ms300, ms400, ms500, ms600, ms700, ms800, ms900, ms1000 };
+  struct sensing_periodicity_r15_opts {
+    enum options { ms20, ms50, ms100, ms200, ms300, ms400, ms500, ms600, ms700, ms800, ms900, ms1000 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 12, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    sensing_periodicity_r15_e_() {}
-    sensing_periodicity_r15_e_(options v) : value(v) {}
-    sensing_periodicity_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<sensing_periodicity_r15_opts, 12, 0, false> sensing_periodicity_r15_e_;
 
   // member variables
   uint8_t                    sensing_subch_num_r15;
@@ -36061,46 +29131,22 @@ struct quant_cfg_rs_nr_r15_s {
 // RMTC-Config-r13 ::= CHOICE
 struct rmtc_cfg_r13_c {
   struct setup_s_ {
-    struct rmtc_period_r13_e_ {
-      enum options { ms40, ms80, ms160, ms320, ms640 };
+    struct rmtc_period_r13_opts {
+      enum options { ms40, ms80, ms160, ms320, ms640 } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 5, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      rmtc_period_r13_e_() {}
-      rmtc_period_r13_e_(options v) : value(v) {}
-      rmtc_period_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
-    struct meas_dur_r13_e_ {
-      enum options { sym1, sym14, sym28, sym42, sym70 };
+    typedef enumerated<rmtc_period_r13_opts, 5, 0, false> rmtc_period_r13_e_;
+    struct meas_dur_r13_opts {
+      enum options { sym1, sym14, sym28, sym42, sym70 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 5, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      meas_dur_r13_e_() {}
-      meas_dur_r13_e_(options v) : value(v) {}
-      meas_dur_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<meas_dur_r13_opts, 5, 0, false> meas_dur_r13_e_;
 
     // member variables
     bool               ext;
@@ -36143,26 +29189,14 @@ private:
 struct rrc_conn_recfg_v1250_ies_s {
   struct wlan_offload_info_r12_c_ {
     struct setup_s_ {
-      struct t350_r12_e_ {
-        enum options { min5, min10, min20, min30, min60, min120, min180, spare1 };
+      struct t350_r12_opts {
+        enum options { min5, min10, min20, min30, min60, min120, min180, spare1 } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 8, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        t350_r12_e_() {}
-        t350_r12_e_(options v) : value(v) {}
-        t350_r12_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
+      typedef enumerated<t350_r12_opts, 8, 0, false> t350_r12_e_;
 
       // member variables
       bool                   t350_r12_present;
@@ -36238,26 +29272,14 @@ struct rrc_conn_recfg_v12f0_ies_s {
 
 // RRCConnectionRelease-v1530-IEs ::= SEQUENCE
 struct rrc_conn_release_v1530_ies_s {
-  struct cn_type_r15_e_ {
-    enum options { epc, fivegc };
+  struct cn_type_r15_opts {
+    enum options { epc, fivegc } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    cn_type_r15_e_() {}
-    cn_type_r15_e_(options v) : value(v) {}
-    cn_type_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<cn_type_r15_opts, 2, 0, false> cn_type_r15_e_;
 
   // member variables
   bool                    drb_continue_rohc_r15_present;
@@ -36280,26 +29302,14 @@ struct rrc_conn_release_v1530_ies_s {
 
 // RS-ConfigSSB-NR-r15 ::= SEQUENCE
 struct rs_cfg_ssb_nr_r15_s {
-  struct subcarrier_spacing_ssb_r15_e_ {
-    enum options { k_hz15, k_hz30, k_hz120, k_hz240 };
+  struct subcarrier_spacing_ssb_r15_opts {
+    enum options { k_hz15, k_hz30, k_hz120, k_hz240 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    subcarrier_spacing_ssb_r15_e_() {}
-    subcarrier_spacing_ssb_r15_e_(options v) : value(v) {}
-    subcarrier_spacing_ssb_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<subcarrier_spacing_ssb_r15_opts, 4, 0, false> subcarrier_spacing_ssb_r15_e_;
 
   // member variables
   bool                          ext;
@@ -36343,7 +29353,7 @@ private:
 };
 
 // ReportInterval ::= ENUMERATED
-struct report_interv_e {
+struct report_interv_opts {
   enum options {
     ms120,
     ms240,
@@ -36361,25 +29371,13 @@ struct report_interv_e {
     spare3,
     spare2,
     spare1
-  };
+  } value;
   typedef uint16_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 16, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  report_interv_e() {}
-  report_interv_e(options v) : value(v) {}
-  report_interv_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint16_t    to_number() const;
 };
+typedef enumerated<report_interv_opts, 16, 0, false> report_interv_e;
 
 // ReportQuantityNR-r15 ::= SEQUENCE
 struct report_quant_nr_r15_s {
@@ -36435,24 +29433,12 @@ struct target_mbsfn_area_r12_s {
 
 // ThresholdEUTRA ::= CHOICE
 struct thres_eutra_c {
-  struct types {
-    enum options { thres_rsrp, thres_rsrq, nulltype };
+  struct types_opts {
+    enum options { thres_rsrp, thres_rsrq, nulltype } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<types_opts, 2, 0, false> types;
 
   // choice methods
   thres_eutra_c() : type_(types::nulltype) {}
@@ -36495,24 +29481,12 @@ private:
 
 // ThresholdNR-r15 ::= CHOICE
 struct thres_nr_r15_c {
-  struct types {
-    enum options { nr_rsrp_r15, nr_rsrq_r15, nr_sinr_r15, nulltype };
+  struct types_opts {
+    enum options { nr_rsrp_r15, nr_rsrq_r15, nr_sinr_r15, nulltype } value;
 
-    options               value;
-    static const uint32_t nof_types = 3, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<types_opts, 3, 0, false> types;
 
   // choice methods
   thres_nr_r15_c() : type_(types::nulltype) {}
@@ -36565,26 +29539,14 @@ private:
 
 // ThresholdUTRA ::= CHOICE
 struct thres_utra_c {
-  struct types {
-    enum options { utra_rscp, utra_ec_n0, nulltype };
+  struct types_opts {
+    enum options { utra_rscp, utra_ec_n0, nulltype } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<types_opts, 2, 0, false> types;
 
   // choice methods
   thres_utra_c() : type_(types::nulltype) {}
@@ -36626,7 +29588,7 @@ private:
 };
 
 // TimeToTrigger ::= ENUMERATED
-struct time_to_trigger_e {
+struct time_to_trigger_opts {
   enum options {
     ms0,
     ms40,
@@ -36644,25 +29606,13 @@ struct time_to_trigger_e {
     ms1280,
     ms2560,
     ms5120
-  };
+  } value;
   typedef uint16_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 16, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  time_to_trigger_e() {}
-  time_to_trigger_e(options v) : value(v) {}
-  time_to_trigger_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint16_t    to_number() const;
 };
+typedef enumerated<time_to_trigger_opts, 16, 0, false> time_to_trigger_e;
 
 // Tx-ResourcePoolMeasList-r14 ::= SEQUENCE (SIZE (1..maxSL-PoolToMeasure-r14)) OF INTEGER
 typedef dyn_array<uint8_t> tx_res_pool_meas_list_r14_l;
@@ -36700,7 +29650,7 @@ struct ue_info_request_v1530_ies_s {
 // UL-DelayConfig-r13 ::= CHOICE
 struct ul_delay_cfg_r13_c {
   struct setup_s_ {
-    struct delay_thres_r13_e_ {
+    struct delay_thres_r13_opts {
       enum options {
         ms30,
         ms40,
@@ -36718,25 +29668,13 @@ struct ul_delay_cfg_r13_c {
         spare3,
         spare2,
         spare1
-      };
+      } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 16, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      delay_thres_r13_e_() {}
-      delay_thres_r13_e_(options v) : value(v) {}
-      delay_thres_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
+    typedef enumerated<delay_thres_r13_opts, 16, 0, false> delay_thres_r13_e_;
 
     // member variables
     delay_thres_r13_e_ delay_thres_r13;
@@ -36768,48 +29706,24 @@ private:
 };
 
 // WLAN-BandIndicator-r13 ::= ENUMERATED
-struct wlan_band_ind_r13_e {
-  enum options { band2dot4, band5, band60_v1430, spare5, spare4, spare3, spare2, spare1, /*...*/ };
+struct wlan_band_ind_r13_opts {
+  enum options { band2dot4, band5, band60_v1430, spare5, spare4, spare3, spare2, spare1, /*...*/ } value;
   typedef float number_type;
 
-  options               value;
-  static const uint32_t nof_types = 8, nof_exts = 0;
-  static const bool     has_ext = true;
-
-  // enumerated methods
-  wlan_band_ind_r13_e() {}
-  wlan_band_ind_r13_e(options v) : value(v) {}
-  wlan_band_ind_r13_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   float       to_number() const;
   std::string to_number_string() const;
 };
+typedef enumerated<wlan_band_ind_r13_opts, 8, 0, true> wlan_band_ind_r13_e;
 
 // WLAN-CarrierInfo-r13 ::= SEQUENCE
 struct wlan_carrier_info_r13_s {
-  struct country_code_r13_e_ {
-    enum options { united_states, europe, japan, global, /*...*/ };
+  struct country_code_r13_opts {
+    enum options { united_states, europe, japan, global, /*...*/ } value;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = true;
-
-    // enumerated methods
-    country_code_r13_e_() {}
-    country_code_r13_e_(options v) : value(v) {}
-    country_code_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<country_code_r13_opts, 4, 0, true> country_code_r13_e_;
 
   // member variables
   bool                ext;
@@ -36925,46 +29839,22 @@ struct drb_count_msb_info_s {
 // IDC-Config-r11 ::= SEQUENCE
 struct idc_cfg_r11_s {
   struct autonomous_denial_params_r11_s_ {
-    struct autonomous_denial_sfs_r11_e_ {
-      enum options { n2, n5, n10, n15, n20, n30, spare2, spare1 };
+    struct autonomous_denial_sfs_r11_opts {
+      enum options { n2, n5, n10, n15, n20, n30, spare2, spare1 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      autonomous_denial_sfs_r11_e_() {}
-      autonomous_denial_sfs_r11_e_(options v) : value(v) {}
-      autonomous_denial_sfs_r11_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct autonomous_denial_validity_r11_e_ {
-      enum options { sf200, sf500, sf1000, sf2000, spare4, spare3, spare2, spare1 };
+    typedef enumerated<autonomous_denial_sfs_r11_opts, 8, 0, false> autonomous_denial_sfs_r11_e_;
+    struct autonomous_denial_validity_r11_opts {
+      enum options { sf200, sf500, sf1000, sf2000, spare4, spare3, spare2, spare1 } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      autonomous_denial_validity_r11_e_() {}
-      autonomous_denial_validity_r11_e_(options v) : value(v) {}
-      autonomous_denial_validity_r11_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
+    typedef enumerated<autonomous_denial_validity_r11_opts, 8, 0, false> autonomous_denial_validity_r11_e_;
 
     // member variables
     autonomous_denial_sfs_r11_e_      autonomous_denial_sfs_r11;
@@ -37074,27 +29964,15 @@ struct meas_obj_cdma2000_s {
 // MeasObjectEUTRA ::= SEQUENCE
 struct meas_obj_eutra_s {
   struct t312_r12_c_ {
-    struct setup_e_ {
-      enum options { ms0, ms50, ms100, ms200, ms300, ms400, ms500, ms1000 };
+    struct setup_opts {
+      enum options { ms0, ms50, ms100, ms200, ms300, ms400, ms500, ms1000 } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      setup_e_() {}
-      setup_e_(options v) : value(v) {}
-      setup_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
-    typedef setup_e types;
+    typedef enumerated<setup_opts, 8, 0, false> setup_e_;
+    typedef setup_e                             types;
 
     // choice methods
     t312_r12_c_() : type_(types::nulltype) {}
@@ -37284,24 +30162,12 @@ struct meas_obj_nr_r15_s {
 // MeasObjectUTRA ::= SEQUENCE
 struct meas_obj_utra_s {
   struct cells_to_add_mod_list_c_ {
-    struct types {
-      enum options { cells_to_add_mod_list_utra_fdd, cells_to_add_mod_list_utra_tdd, nulltype };
+    struct types_opts {
+      enum options { cells_to_add_mod_list_utra_fdd, cells_to_add_mod_list_utra_tdd, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     cells_to_add_mod_list_c_() : type_(types::nulltype) {}
@@ -37342,24 +30208,12 @@ struct meas_obj_utra_s {
     void destroy_();
   };
   struct cell_for_which_to_report_cgi_c_ {
-    struct types {
-      enum options { utra_fdd, utra_tdd, nulltype };
+    struct types_opts {
+      enum options { utra_fdd, utra_tdd, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     cell_for_which_to_report_cgi_c_() : type_(types::nulltype) {}
@@ -37431,24 +30285,12 @@ struct meas_obj_wlan_r13_s {
   struct carrier_freq_r13_c_ {
     typedef bounded_array<wlan_band_ind_r13_e, 8> band_ind_list_wlan_r13_l_;
     typedef dyn_array<wlan_carrier_info_r13_s>    carrier_info_list_wlan_r13_l_;
-    struct types {
-      enum options { band_ind_list_wlan_r13, carrier_info_list_wlan_r13, nulltype };
+    struct types_opts {
+      enum options { band_ind_list_wlan_r13, carrier_info_list_wlan_r13, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     carrier_freq_r13_c_() : type_(types::nulltype) {}
@@ -37521,27 +30363,15 @@ struct obtain_location_cfg_r11_s {
 // PowerPrefIndicationConfig-r11 ::= CHOICE
 struct pwr_pref_ind_cfg_r11_c {
   struct setup_s_ {
-    struct pwr_pref_ind_timer_r11_e_ {
-      enum options { s0, s0dot5, s1, s2, s5, s10, s20, s30, s60, s90, s120, s300, s600, spare3, spare2, spare1 };
+    struct pwr_pref_ind_timer_r11_opts {
+      enum options { s0, s0dot5, s1, s2, s5, s10, s20, s30, s60, s90, s120, s300, s600, spare3, spare2, spare1 } value;
       typedef float number_type;
 
-      options               value;
-      static const uint32_t nof_types = 16, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      pwr_pref_ind_timer_r11_e_() {}
-      pwr_pref_ind_timer_r11_e_(options v) : value(v) {}
-      pwr_pref_ind_timer_r11_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       float       to_number() const;
       std::string to_number_string() const;
     };
+    typedef enumerated<pwr_pref_ind_timer_r11_opts, 16, 0, false> pwr_pref_ind_timer_r11_e_;
 
     // member variables
     pwr_pref_ind_timer_r11_e_ pwr_pref_ind_timer_r11;
@@ -37693,7 +30523,7 @@ struct eutra_event_s {
       uint16_t h2_thres_offset_r15;
       uint8_t  h2_hysteresis_minus15;
     };
-    struct types {
+    struct types_opts {
       enum options {
         event_a1,
         event_a2,
@@ -37709,23 +30539,11 @@ struct eutra_event_s {
         event_h1_r15,
         event_h2_r15,
         nulltype
-      };
+      } value;
 
-      options               value;
-      static const uint32_t nof_types = 12, nof_exts = 7;
-      static const bool     has_ext = true;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 12, 7, true> types;
 
     // choice methods
     event_id_c_() : type_(types::nulltype) {}
@@ -37886,46 +30704,22 @@ struct report_cfg_eutra_s {
   struct trigger_type_c_ {
     typedef eutra_event_s event_s_;
     struct periodical_s_ {
-      struct purpose_e_ {
-        enum options { report_strongest_cells, report_cgi };
+      struct purpose_opts {
+        enum options { report_strongest_cells, report_cgi } value;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        purpose_e_() {}
-        purpose_e_(options v) : value(v) {}
-        purpose_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<purpose_opts, 2, 0, false> purpose_e_;
 
       // member variables
       purpose_e_ purpose;
     };
-    struct types {
-      enum options { event, periodical, nulltype };
+    struct types_opts {
+      enum options { event, periodical, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     trigger_type_c_() : type_(types::nulltype) {}
@@ -37965,62 +30759,26 @@ struct report_cfg_eutra_s {
 
     void destroy_();
   };
-  struct trigger_quant_e_ {
-    enum options { rsrp, rsrq };
+  struct trigger_quant_opts {
+    enum options { rsrp, rsrq } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    trigger_quant_e_() {}
-    trigger_quant_e_(options v) : value(v) {}
-    trigger_quant_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
-  struct report_quant_e_ {
-    enum options { same_as_trigger_quant, both };
+  typedef enumerated<trigger_quant_opts, 2, 0, false> trigger_quant_e_;
+  struct report_quant_opts {
+    enum options { same_as_trigger_quant, both } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    report_quant_e_() {}
-    report_quant_e_(options v) : value(v) {}
-    report_quant_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
-  struct report_amount_e_ {
-    enum options { r1, r2, r4, r8, r16, r32, r64, infinity };
+  typedef enumerated<report_quant_opts, 2, 0, false> report_quant_e_;
+  struct report_amount_opts {
+    enum options { r1, r2, r4, r8, r16, r32, r64, infinity } value;
     typedef int8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    report_amount_e_() {}
-    report_amount_e_(options v) : value(v) {}
-    report_amount_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     int8_t      to_number() const;
   };
+  typedef enumerated<report_amount_opts, 8, 0, false> report_amount_e_;
   struct alternative_time_to_trigger_r12_c_ {
     typedef setup_e types;
 
@@ -38049,24 +30807,12 @@ struct report_cfg_eutra_s {
   };
   struct rs_sinr_cfg_r13_c_ {
     struct setup_s_ {
-      struct report_quant_v1310_e_ {
-        enum options { rsrp_andsinr, rsrq_andsinr, all };
+      struct report_quant_v1310_opts {
+        enum options { rsrp_andsinr, rsrq_andsinr, all } value;
 
-        options               value;
-        static const uint32_t nof_types = 3, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        report_quant_v1310_e_() {}
-        report_quant_v1310_e_(options v) : value(v) {}
-        report_quant_v1310_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<report_quant_v1310_opts, 3, 0, false> report_quant_v1310_e_;
 
       // member variables
       bool                  trigger_quant_v1310_present;
@@ -38104,24 +30850,12 @@ struct report_cfg_eutra_s {
     types    type_;
     setup_s_ c;
   };
-  struct purpose_v1430_e_ {
-    enum options { report_location, sidelink, spare2, spare1 };
+  struct purpose_v1430_opts {
+    enum options { report_location, sidelink, spare2, spare1 } value;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    purpose_v1430_e_() {}
-    purpose_v1430_e_(options v) : value(v) {}
-    purpose_v1430_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<purpose_v1430_opts, 4, 0, false> purpose_v1430_e_;
 
   // member variables
   bool             ext;
@@ -38201,24 +30935,12 @@ struct report_cfg_inter_rat_s {
       struct event_id_c_ {
         struct event_b1_s_ {
           struct b1_thres_c_ {
-            struct types {
-              enum options { b1_thres_utra, b1_thres_geran, b1_thres_cdma2000, nulltype };
+            struct types_opts {
+              enum options { b1_thres_utra, b1_thres_geran, b1_thres_cdma2000, nulltype } value;
 
-              options               value;
-              static const uint32_t nof_types = 3, nof_exts = 0;
-              static const bool     has_ext = false;
-
-              // enumerated methods
-              types() {}
-              types(options v) : value(v) {}
-              types& operator=(options v)
-              {
-                value = v;
-                return *this;
-              }
-                          operator options() const { return value; }
               std::string to_string() const;
             };
+            typedef enumerated<types_opts, 3, 0, false> types;
 
             // choice methods
             b1_thres_c_() : type_(types::nulltype) {}
@@ -38274,24 +30996,12 @@ struct report_cfg_inter_rat_s {
         };
         struct event_b2_s_ {
           struct b2_thres2_c_ {
-            struct types {
-              enum options { b2_thres2_utra, b2_thres2_geran, b2_thres2_cdma2000, nulltype };
+            struct types_opts {
+              enum options { b2_thres2_utra, b2_thres2_geran, b2_thres2_cdma2000, nulltype } value;
 
-              options               value;
-              static const uint32_t nof_types = 3, nof_exts = 0;
-              static const bool     has_ext = false;
-
-              // enumerated methods
-              types() {}
-              types(options v) : value(v) {}
-              types& operator=(options v)
-              {
-                value = v;
-                return *this;
-              }
-                          operator options() const { return value; }
               std::string to_string() const;
             };
+            typedef enumerated<types_opts, 3, 0, false> types;
 
             // choice methods
             b2_thres2_c_() : type_(types::nulltype) {}
@@ -38370,7 +31080,7 @@ struct report_cfg_inter_rat_s {
           thres_nr_r15_c b2_thres2_nr_r15;
           bool           report_on_leave_r15;
         };
-        struct types {
+        struct types_opts {
           enum options {
             event_b1,
             event_b2,
@@ -38381,23 +31091,11 @@ struct report_cfg_inter_rat_s {
             event_b1_nr_r15,
             event_b2_nr_r15,
             nulltype
-          };
+          } value;
 
-          options               value;
-          static const uint32_t nof_types = 7, nof_exts = 5;
-          static const bool     has_ext = true;
-
-          // enumerated methods
-          types() {}
-          types(options v) : value(v) {}
-          types& operator=(options v)
-          {
-            value = v;
-            return *this;
-          }
-                      operator options() const { return value; }
           std::string to_string() const;
         };
+        typedef enumerated<types_opts, 7, 5, true> types;
 
         // choice methods
         event_id_c_() : type_(types::nulltype) {}
@@ -38497,46 +31195,22 @@ struct report_cfg_inter_rat_s {
       time_to_trigger_e time_to_trigger;
     };
     struct periodical_s_ {
-      struct purpose_e_ {
-        enum options { report_strongest_cells, report_strongest_cells_for_son, report_cgi };
+      struct purpose_opts {
+        enum options { report_strongest_cells, report_strongest_cells_for_son, report_cgi } value;
 
-        options               value;
-        static const uint32_t nof_types = 3, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        purpose_e_() {}
-        purpose_e_(options v) : value(v) {}
-        purpose_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<purpose_opts, 3, 0, false> purpose_e_;
 
       // member variables
       purpose_e_ purpose;
     };
-    struct types {
-      enum options { event, periodical, nulltype };
+    struct types_opts {
+      enum options { event, periodical, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     trigger_type_c_() : type_(types::nulltype) {}
@@ -38576,26 +31250,14 @@ struct report_cfg_inter_rat_s {
 
     void destroy_();
   };
-  struct report_amount_e_ {
-    enum options { r1, r2, r4, r8, r16, r32, r64, infinity };
+  struct report_amount_opts {
+    enum options { r1, r2, r4, r8, r16, r32, r64, infinity } value;
     typedef int8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    report_amount_e_() {}
-    report_amount_e_(options v) : value(v) {}
-    report_amount_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     int8_t      to_number() const;
   };
+  typedef enumerated<report_amount_opts, 8, 0, false> report_amount_e_;
   struct b2_thres1_v1250_c_ {
     typedef setup_e types;
 
@@ -38622,24 +31284,12 @@ struct report_cfg_inter_rat_s {
     types  type_;
     int8_t c;
   };
-  struct report_sftd_meas_r15_e_ {
-    enum options { p_scell, neighbor_cells };
+  struct report_sftd_meas_r15_opts {
+    enum options { p_scell, neighbor_cells } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    report_sftd_meas_r15_e_() {}
-    report_sftd_meas_r15_e_(options v) : value(v) {}
-    report_sftd_meas_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<report_sftd_meas_r15_opts, 2, 0, false> report_sftd_meas_r15_e_;
 
   // member variables
   bool             ext;
@@ -38857,7 +31507,7 @@ struct meas_id_to_add_mod_ext_r12_s {
 // MeasObjectToAddMod ::= SEQUENCE
 struct meas_obj_to_add_mod_s {
   struct meas_obj_c_ {
-    struct types {
+    struct types_opts {
       enum options {
         meas_obj_eutra,
         meas_obj_utra,
@@ -38867,25 +31517,13 @@ struct meas_obj_to_add_mod_s {
         meas_obj_wlan_r13,
         meas_obj_nr_r15,
         nulltype
-      };
+      } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 6, nof_exts = 2;
-      static const bool     has_ext = true;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
+    typedef enumerated<types_opts, 6, 2, true> types;
 
     // choice methods
     meas_obj_c_() : type_(types::nulltype) {}
@@ -38994,7 +31632,7 @@ struct meas_obj_to_add_mod_v9e0_s {
 // MeasObjectToAddModExt-r13 ::= SEQUENCE
 struct meas_obj_to_add_mod_ext_r13_s {
   struct meas_obj_r13_c_ {
-    struct types {
+    struct types_opts {
       enum options {
         meas_obj_eutra_r13,
         meas_obj_utra_r13,
@@ -39004,25 +31642,13 @@ struct meas_obj_to_add_mod_ext_r13_s {
         meas_obj_wlan_v1320,
         meas_obj_nr_r15,
         nulltype
-      };
+      } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 6, nof_exts = 2;
-      static const bool     has_ext = true;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
+    typedef enumerated<types_opts, 6, 2, true> types;
 
     // choice methods
     meas_obj_r13_c_() : type_(types::nulltype) {}
@@ -39131,50 +31757,27 @@ struct mob_from_eutra_cmd_v1530_ies_s {
 
 // OtherConfig-r9 ::= SEQUENCE
 struct other_cfg_r9_s {
-  struct bw_pref_ind_timer_r14_e_ {
-    enum options { s0, s0dot5, s1, s2, s5, s10, s20, s30, s60, s90, s120, s300, s600, spare3, spare2, spare1 };
+  struct bw_pref_ind_timer_r14_opts {
+    enum options { s0, s0dot5, s1, s2, s5, s10, s20, s30, s60, s90, s120, s300, s600, spare3, spare2, spare1 } value;
     typedef float number_type;
 
-    options               value;
-    static const uint32_t nof_types = 16, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    bw_pref_ind_timer_r14_e_() {}
-    bw_pref_ind_timer_r14_e_(options v) : value(v) {}
-    bw_pref_ind_timer_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     float       to_number() const;
     std::string to_number_string() const;
   };
+  typedef enumerated<bw_pref_ind_timer_r14_opts, 16, 0, false> bw_pref_ind_timer_r14_e_;
   struct delay_budget_report_cfg_r14_c_ {
     struct setup_s_ {
-      struct delay_budget_report_prohibit_timer_r14_e_ {
-        enum options { s0, s0dot4, s0dot8, s1dot6, s3, s6, s12, s30 };
+      struct delay_budget_report_prohibit_timer_r14_opts {
+        enum options { s0, s0dot4, s0dot8, s1dot6, s3, s6, s12, s30 } value;
         typedef float number_type;
 
-        options               value;
-        static const uint32_t nof_types = 8, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        delay_budget_report_prohibit_timer_r14_e_() {}
-        delay_budget_report_prohibit_timer_r14_e_(options v) : value(v) {}
-        delay_budget_report_prohibit_timer_r14_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         float       to_number() const;
         std::string to_number_string() const;
       };
+      typedef enumerated<delay_budget_report_prohibit_timer_r14_opts, 8, 0, false>
+          delay_budget_report_prohibit_timer_r14_e_;
 
       // member variables
       delay_budget_report_prohibit_timer_r14_e_ delay_budget_report_prohibit_timer_r14;
@@ -39206,27 +31809,32 @@ struct other_cfg_r9_s {
   };
   struct rlm_report_cfg_r14_c_ {
     struct setup_s_ {
-      struct rlm_report_timer_r14_e_ {
-        enum options { s0, s0dot5, s1, s2, s5, s10, s20, s30, s60, s90, s120, s300, s600, spare3, spare2, spare1 };
+      struct rlm_report_timer_r14_opts {
+        enum options {
+          s0,
+          s0dot5,
+          s1,
+          s2,
+          s5,
+          s10,
+          s20,
+          s30,
+          s60,
+          s90,
+          s120,
+          s300,
+          s600,
+          spare3,
+          spare2,
+          spare1
+        } value;
         typedef float number_type;
 
-        options               value;
-        static const uint32_t nof_types = 16, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        rlm_report_timer_r14_e_() {}
-        rlm_report_timer_r14_e_(options v) : value(v) {}
-        rlm_report_timer_r14_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         float       to_number() const;
         std::string to_number_string() const;
       };
+      typedef enumerated<rlm_report_timer_r14_opts, 16, 0, false> rlm_report_timer_r14_e_;
 
       // member variables
       bool                    rlm_report_rep_mpdcch_r14_present;
@@ -39262,27 +31870,32 @@ struct other_cfg_r9_s {
   };
   struct overheat_assist_cfg_r14_c_ {
     struct setup_s_ {
-      struct overheat_ind_prohibit_timer_r14_e_ {
-        enum options { s0, s0dot5, s1, s2, s5, s10, s20, s30, s60, s90, s120, s300, s600, spare3, spare2, spare1 };
+      struct overheat_ind_prohibit_timer_r14_opts {
+        enum options {
+          s0,
+          s0dot5,
+          s1,
+          s2,
+          s5,
+          s10,
+          s20,
+          s30,
+          s60,
+          s90,
+          s120,
+          s300,
+          s600,
+          spare3,
+          spare2,
+          spare1
+        } value;
         typedef float number_type;
 
-        options               value;
-        static const uint32_t nof_types = 16, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        overheat_ind_prohibit_timer_r14_e_() {}
-        overheat_ind_prohibit_timer_r14_e_(options v) : value(v) {}
-        overheat_ind_prohibit_timer_r14_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         float       to_number() const;
         std::string to_number_string() const;
       };
+      typedef enumerated<overheat_ind_prohibit_timer_r14_opts, 16, 0, false> overheat_ind_prohibit_timer_r14_e_;
 
       // member variables
       overheat_ind_prohibit_timer_r14_e_ overheat_ind_prohibit_timer_r14;
@@ -39314,24 +31927,12 @@ struct other_cfg_r9_s {
   };
   struct meas_cfg_app_layer_r15_c_ {
     struct setup_s_ {
-      struct service_type_e_ {
-        enum options { qoe, qoemtsi, spare6, spare5, spare4, spare3, spare2, spare1 };
+      struct service_type_opts {
+        enum options { qoe, qoemtsi, spare6, spare5, spare4, spare3, spare2, spare1 } value;
 
-        options               value;
-        static const uint32_t nof_types = 8, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        service_type_e_() {}
-        service_type_e_(options v) : value(v) {}
-        service_type_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<service_type_opts, 8, 0, false> service_type_e_;
 
       // member variables
       dyn_octstring   meas_cfg_app_layer_container_r15;
@@ -39410,65 +32011,29 @@ typedef dyn_array<plmn_id_s> plmn_id_list3_r11_l;
 // PRACH-Config-v1310 ::= SEQUENCE
 struct prach_cfg_v1310_s {
   struct mpdcch_start_sf_css_ra_r13_c_ {
-    struct fdd_r13_e_ {
-      enum options { v1, v1dot5, v2, v2dot5, v4, v5, v8, v10 };
+    struct fdd_r13_opts {
+      enum options { v1, v1dot5, v2, v2dot5, v4, v5, v8, v10 } value;
       typedef float number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      fdd_r13_e_() {}
-      fdd_r13_e_(options v) : value(v) {}
-      fdd_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       float       to_number() const;
       std::string to_number_string() const;
     };
-    struct tdd_r13_e_ {
-      enum options { v1, v2, v4, v5, v8, v10, v20, spare };
+    typedef enumerated<fdd_r13_opts, 8, 0, false> fdd_r13_e_;
+    struct tdd_r13_opts {
+      enum options { v1, v2, v4, v5, v8, v10, v20, spare } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      tdd_r13_e_() {}
-      tdd_r13_e_(options v) : value(v) {}
-      tdd_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct types {
-      enum options { fdd_r13, tdd_r13, nulltype };
+    typedef enumerated<tdd_r13_opts, 8, 0, false> tdd_r13_e_;
+    struct types_opts {
+      enum options { fdd_r13, tdd_r13, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     mpdcch_start_sf_css_ra_r13_c_() : type_(types::nulltype) {}
@@ -39530,24 +32095,12 @@ struct prach_cfg_v1310_s {
 
 // QuantityConfigCDMA2000 ::= SEQUENCE
 struct quant_cfg_cdma2000_s {
-  struct meas_quant_cdma2000_e_ {
-    enum options { pilot_strength, pilot_pn_phase_and_pilot_strength };
+  struct meas_quant_cdma2000_opts {
+    enum options { pilot_strength, pilot_pn_phase_and_pilot_strength } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    meas_quant_cdma2000_e_() {}
-    meas_quant_cdma2000_e_(options v) : value(v) {}
-    meas_quant_cdma2000_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<meas_quant_cdma2000_opts, 2, 0, false> meas_quant_cdma2000_e_;
 
   // member variables
   meas_quant_cdma2000_e_ meas_quant_cdma2000;
@@ -39617,26 +32170,14 @@ typedef dyn_array<quant_cfg_nr_r15_s> quant_cfg_nr_list_r15_l;
 
 // QuantityConfigUTRA ::= SEQUENCE
 struct quant_cfg_utra_s {
-  struct meas_quant_utra_fdd_e_ {
-    enum options { cpich_rscp, cpich_ec_n0 };
+  struct meas_quant_utra_fdd_opts {
+    enum options { cpich_rscp, cpich_ec_n0 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    meas_quant_utra_fdd_e_() {}
-    meas_quant_utra_fdd_e_(options v) : value(v) {}
-    meas_quant_utra_fdd_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<meas_quant_utra_fdd_opts, 2, 0, false> meas_quant_utra_fdd_e_;
 
   // member variables
   bool                   filt_coef_present;
@@ -39750,24 +32291,12 @@ struct redirected_carrier_info_v9e0_s {
 // ReportConfigToAddMod ::= SEQUENCE
 struct report_cfg_to_add_mod_s {
   struct report_cfg_c_ {
-    struct types {
-      enum options { report_cfg_eutra, report_cfg_inter_rat, nulltype };
+    struct types_opts {
+      enum options { report_cfg_eutra, report_cfg_inter_rat, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     report_cfg_c_() : type_(types::nulltype) {}
@@ -39854,7 +32383,7 @@ struct ue_info_request_v1130_ies_s {
 
 // CarrierBandwidthEUTRA ::= SEQUENCE
 struct carrier_bw_eutra_s {
-  struct dl_bw_e_ {
+  struct dl_bw_opts {
     enum options {
       n6,
       n15,
@@ -39872,26 +32401,14 @@ struct carrier_bw_eutra_s {
       spare3,
       spare2,
       spare1
-    };
+    } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 16, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    dl_bw_e_() {}
-    dl_bw_e_(options v) : value(v) {}
-    dl_bw_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct ul_bw_e_ {
+  typedef enumerated<dl_bw_opts, 16, 0, false> dl_bw_e_;
+  struct ul_bw_opts {
     enum options {
       n6,
       n15,
@@ -39909,25 +32426,13 @@ struct carrier_bw_eutra_s {
       spare3,
       spare2,
       spare1
-    };
+    } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 16, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    ul_bw_e_() {}
-    ul_bw_e_(options v) : value(v) {}
-    ul_bw_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<ul_bw_opts, 16, 0, false> ul_bw_e_;
 
   // member variables
   bool     ul_bw_present;
@@ -39971,26 +32476,14 @@ struct carrier_freq_eutra_v9e0_s {
 
 // CarrierInfoNR-r15 ::= SEQUENCE
 struct carrier_info_nr_r15_s {
-  struct subcarrier_spacing_ssb_r15_e_ {
-    enum options { k_hz15, k_hz30, k_hz120, k_hz240 };
+  struct subcarrier_spacing_ssb_r15_opts {
+    enum options { k_hz15, k_hz30, k_hz120, k_hz240 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    subcarrier_spacing_ssb_r15_e_() {}
-    subcarrier_spacing_ssb_r15_e_(options v) : value(v) {}
-    subcarrier_spacing_ssb_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<subcarrier_spacing_ssb_r15_opts, 4, 0, false> subcarrier_spacing_ssb_r15_e_;
 
   // member variables
   bool                          smtc_r15_present;
@@ -40058,7 +32551,7 @@ struct logged_meas_cfg_v1130_ies_s {
 struct meas_gap_cfg_dense_prs_r15_c {
   struct setup_s_ {
     struct gap_offset_dense_prs_r15_c_ {
-      struct types {
+      struct types_opts {
         enum options {
           rstd0_r15,
           rstd1_r15,
@@ -40083,25 +32576,13 @@ struct meas_gap_cfg_dense_prs_r15_c {
           rstd20_r15,
           // ...
           nulltype
-        };
+        } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 21, nof_exts = 0;
-        static const bool     has_ext = true;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
+      typedef enumerated<types_opts, 21, 0, true> types;
 
       // choice methods
       gap_offset_dense_prs_r15_c_() : type_(types::nulltype) {}
@@ -40402,27 +32883,15 @@ private:
 // MeasGapSharingConfig-r14 ::= CHOICE
 struct meas_gap_sharing_cfg_r14_c {
   struct setup_s_ {
-    struct meas_gap_sharing_scheme_r14_e_ {
-      enum options { scheme00, scheme01, scheme10, scheme11 };
+    struct meas_gap_sharing_scheme_r14_opts {
+      enum options { scheme00, scheme01, scheme10, scheme11 } value;
       typedef float number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      meas_gap_sharing_scheme_r14_e_() {}
-      meas_gap_sharing_scheme_r14_e_(options v) : value(v) {}
-      meas_gap_sharing_scheme_r14_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       float       to_number() const;
       std::string to_number_string() const;
     };
+    typedef enumerated<meas_gap_sharing_scheme_r14_opts, 4, 0, false> meas_gap_sharing_scheme_r14_e_;
 
     // member variables
     meas_gap_sharing_scheme_r14_e_ meas_gap_sharing_scheme_r14;
@@ -40487,26 +32956,14 @@ typedef bounded_array<uint8_t, 32> meas_obj_to_rem_list_l;
 typedef bounded_array<uint8_t, 32> meas_obj_to_rem_list_ext_r13_l;
 
 // MeasScaleFactor-r12 ::= ENUMERATED
-struct meas_scale_factor_r12_e {
-  enum options { sf_eutra_cf1, sf_eutra_cf2 };
+struct meas_scale_factor_r12_opts {
+  enum options { sf_eutra_cf1, sf_eutra_cf2 } value;
   typedef uint8_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 2, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  meas_scale_factor_r12_e() {}
-  meas_scale_factor_r12_e(options v) : value(v) {}
-  meas_scale_factor_r12_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint8_t     to_number() const;
 };
+typedef enumerated<meas_scale_factor_r12_opts, 2, 0, false> meas_scale_factor_r12_e;
 
 // MobilityControlInfoV2X-r14 ::= SEQUENCE
 struct mob_ctrl_info_v2x_r14_s {
@@ -40592,26 +33049,14 @@ struct quant_cfg_s {
 };
 
 // RAT-Type ::= ENUMERATED
-struct rat_type_e {
-  enum options { eutra, utra, geran_cs, geran_ps, cdma2000_minus1_xrtt, nr, eutra_nr, spare1, /*...*/ };
+struct rat_type_opts {
+  enum options { eutra, utra, geran_cs, geran_ps, cdma2000_minus1_xrtt, nr, eutra_nr, spare1, /*...*/ } value;
   typedef uint16_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 8, nof_exts = 0;
-  static const bool     has_ext = true;
-
-  // enumerated methods
-  rat_type_e() {}
-  rat_type_e(options v) : value(v) {}
-  rat_type_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint16_t    to_number() const;
 };
+typedef enumerated<rat_type_opts, 8, 0, true> rat_type_e;
 
 // RRCConnectionReconfiguration-v8m0-IEs ::= SEQUENCE
 struct rrc_conn_recfg_v8m0_ies_s {
@@ -40647,24 +33092,12 @@ struct rrc_conn_recfg_v920_ies_s {
 // RRCConnectionRelease-v920-IEs ::= SEQUENCE
 struct rrc_conn_release_v920_ies_s {
   struct cell_info_list_r9_c_ {
-    struct types {
-      enum options { geran_r9, utra_fdd_r9, utra_tdd_r9, /*...*/ utra_tdd_r10, nulltype };
+    struct types_opts {
+      enum options { geran_r9, utra_fdd_r9, utra_tdd_r9, /*...*/ utra_tdd_r10, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 1;
-      static const bool     has_ext = true;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 4, 1, true> types;
 
     // choice methods
     cell_info_list_r9_c_() : type_(types::nulltype) {}
@@ -40856,24 +33289,12 @@ typedef bounded_array<uint8_t, 32> report_cfg_to_rem_list_l;
 
 // SI-OrPSI-GERAN ::= CHOICE
 struct si_or_psi_geran_c {
-  struct types {
-    enum options { si, psi, nulltype };
+  struct types_opts {
+    enum options { si, psi, nulltype } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<types_opts, 2, 0, false> types;
 
   // choice methods
   si_or_psi_geran_c() : type_(types::nulltype) {}
@@ -40950,24 +33371,12 @@ struct ue_info_request_v1020_ies_s {
 
 // AreaConfiguration-r10 ::= CHOICE
 struct area_cfg_r10_c {
-  struct types {
-    enum options { cell_global_id_list_r10, tac_list_r10, nulltype };
+  struct types_opts {
+    enum options { cell_global_id_list_r10, tac_list_r10, nulltype } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<types_opts, 2, 0, false> types;
 
   // choice methods
   area_cfg_r10_c() : type_(types::nulltype) {}
@@ -41024,26 +33433,14 @@ struct csfb_params_resp_cdma2000_v8a0_ies_s {
 
 // CellChangeOrder ::= SEQUENCE
 struct cell_change_order_s {
-  struct t304_e_ {
-    enum options { ms100, ms200, ms500, ms1000, ms2000, ms4000, ms8000, ms10000_v1310 };
+  struct t304_opts {
+    enum options { ms100, ms200, ms500, ms1000, ms2000, ms4000, ms8000, ms10000_v1310 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    t304_e_() {}
-    t304_e_(options v) : value(v) {}
-    t304_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<t304_opts, 8, 0, false> t304_e_;
   struct target_rat_type_c_ {
     struct geran_s_ {
       // member variables
@@ -41057,24 +33454,12 @@ struct cell_change_order_s {
       // sequence methods
       geran_s_();
     };
-    struct types {
-      enum options { geran, /*...*/ nulltype };
+    struct types_opts {
+      enum options { geran, /*...*/ nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 1, nof_exts = 0;
-      static const bool     has_ext = true;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 1, 0, true> types;
 
     // choice methods
     target_rat_type_c_() : type_(types::nulltype) {}
@@ -41144,24 +33529,12 @@ typedef dyn_array<drb_count_msb_info_s> drb_count_msb_info_list_l;
 
 // E-CSFB-r9 ::= SEQUENCE
 struct e_csfb_r9_s {
-  struct mob_cdma2000_hrpd_r9_e_ {
-    enum options { ho, redirection };
+  struct mob_cdma2000_hrpd_r9_opts {
+    enum options { ho, redirection } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    mob_cdma2000_hrpd_r9_e_() {}
-    mob_cdma2000_hrpd_r9_e_(options v) : value(v) {}
-    mob_cdma2000_hrpd_r9_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<mob_cdma2000_hrpd_r9_opts, 2, 0, false> mob_cdma2000_hrpd_r9_e_;
 
   // member variables
   bool                    msg_cont_cdma2000_minus1_xrtt_r9_present;
@@ -41182,24 +33555,12 @@ struct e_csfb_r9_s {
 
 // Handover ::= SEQUENCE
 struct ho_s {
-  struct target_rat_type_e_ {
-    enum options { utra, geran, cdma2000_minus1_xrtt, cdma2000_hrpd, nr, eutra, spare2, spare1, /*...*/ };
+  struct target_rat_type_opts {
+    enum options { utra, geran, cdma2000_minus1_xrtt, cdma2000_hrpd, nr, eutra, spare2, spare1, /*...*/ } value;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = true;
-
-    // enumerated methods
-    target_rat_type_e_() {}
-    target_rat_type_e_(options v) : value(v) {}
-    target_rat_type_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<target_rat_type_opts, 8, 0, true> target_rat_type_e_;
 
   // member variables
   bool               nas_security_param_from_eutra_present;
@@ -41247,48 +33608,24 @@ struct logged_meas_cfg_v1080_ies_s {
 };
 
 // LoggingDuration-r10 ::= ENUMERATED
-struct logging_dur_r10_e {
-  enum options { min10, min20, min40, min60, min90, min120, spare2, spare1 };
+struct logging_dur_r10_opts {
+  enum options { min10, min20, min40, min60, min90, min120, spare2, spare1 } value;
   typedef uint8_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 8, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  logging_dur_r10_e() {}
-  logging_dur_r10_e(options v) : value(v) {}
-  logging_dur_r10_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint8_t     to_number() const;
 };
+typedef enumerated<logging_dur_r10_opts, 8, 0, false> logging_dur_r10_e;
 
 // LoggingInterval-r10 ::= ENUMERATED
-struct logging_interv_r10_e {
-  enum options { ms1280, ms2560, ms5120, ms10240, ms20480, ms30720, ms40960, ms61440 };
+struct logging_interv_r10_opts {
+  enum options { ms1280, ms2560, ms5120, ms10240, ms20480, ms30720, ms40960, ms61440 } value;
   typedef uint16_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 8, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  logging_interv_r10_e() {}
-  logging_interv_r10_e(options v) : value(v) {}
-  logging_interv_r10_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint16_t    to_number() const;
 };
+typedef enumerated<logging_interv_r10_opts, 8, 0, false> logging_interv_r10_e;
 
 // MeasConfig ::= SEQUENCE
 struct meas_cfg_s {
@@ -41450,44 +33787,20 @@ struct meas_cfg_s {
 
 // MobilityControlInfo ::= SEQUENCE
 struct mob_ctrl_info_s {
-  struct t304_e_ {
-    enum options { ms50, ms100, ms150, ms200, ms500, ms1000, ms2000, ms10000_v1310 };
+  struct t304_opts {
+    enum options { ms50, ms100, ms150, ms200, ms500, ms1000, ms2000, ms10000_v1310 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    t304_e_() {}
-    t304_e_(options v) : value(v) {}
-    t304_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
-  struct ho_without_wt_change_r14_e_ {
-    enum options { keep_lwa_cfg, send_end_marker };
+  typedef enumerated<t304_opts, 8, 0, false> t304_e_;
+  struct ho_without_wt_change_r14_opts {
+    enum options { keep_lwa_cfg, send_end_marker } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    ho_without_wt_change_r14_e_() {}
-    ho_without_wt_change_r14_e_(options v) : value(v) {}
-    ho_without_wt_change_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<ho_without_wt_change_r14_opts, 2, 0, false> ho_without_wt_change_r14_e_;
 
   // member variables
   bool                 ext;
@@ -41564,24 +33877,12 @@ struct mob_from_eutra_cmd_v930_ies_s {
 // RN-SubframeConfig-r10 ::= SEQUENCE
 struct rn_sf_cfg_r10_s {
   struct sf_cfg_pattern_r10_c_ {
-    struct types {
-      enum options { sf_cfg_pattern_fdd_r10, sf_cfg_pattern_tdd_r10, nulltype };
+    struct types_opts {
+      enum options { sf_cfg_pattern_fdd_r10, sf_cfg_pattern_tdd_r10, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     sf_cfg_pattern_r10_c_() : type_(types::nulltype) {}
@@ -41622,46 +33923,22 @@ struct rn_sf_cfg_r10_s {
     void destroy_();
   };
   struct rpdcch_cfg_r10_s_ {
-    struct res_alloc_type_r10_e_ {
-      enum options { type0, type1, type2_localized, type2_distributed, spare4, spare3, spare2, spare1 };
+    struct res_alloc_type_r10_opts {
+      enum options { type0, type1, type2_localized, type2_distributed, spare4, spare3, spare2, spare1 } value;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      res_alloc_type_r10_e_() {}
-      res_alloc_type_r10_e_(options v) : value(v) {}
-      res_alloc_type_r10_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<res_alloc_type_r10_opts, 8, 0, false> res_alloc_type_r10_e_;
     struct res_block_assign_r10_c_ {
       struct type01_r10_c_ {
-        struct types {
-          enum options { nrb6_r10, nrb15_r10, nrb25_r10, nrb50_r10, nrb75_r10, nrb100_r10, nulltype };
+        struct types_opts {
+          enum options { nrb6_r10, nrb15_r10, nrb25_r10, nrb50_r10, nrb75_r10, nrb100_r10, nulltype } value;
           typedef uint8_t number_type;
 
-          options               value;
-          static const uint32_t nof_types = 6, nof_exts = 0;
-          static const bool     has_ext = false;
-
-          // enumerated methods
-          types() {}
-          types(options v) : value(v) {}
-          types& operator=(options v)
-          {
-            value = v;
-            return *this;
-          }
-                      operator options() const { return value; }
           std::string to_string() const;
           uint8_t     to_number() const;
         };
+        typedef enumerated<types_opts, 6, 0, false> types;
 
         // choice methods
         type01_r10_c_() : type_(types::nulltype) {}
@@ -41742,26 +34019,14 @@ struct rn_sf_cfg_r10_s {
         void destroy_();
       };
       struct type2_r10_c_ {
-        struct types {
-          enum options { nrb6_r10, nrb15_r10, nrb25_r10, nrb50_r10, nrb75_r10, nrb100_r10, nulltype };
+        struct types_opts {
+          enum options { nrb6_r10, nrb15_r10, nrb25_r10, nrb50_r10, nrb75_r10, nrb100_r10, nulltype } value;
           typedef uint8_t number_type;
 
-          options               value;
-          static const uint32_t nof_types = 6, nof_exts = 0;
-          static const bool     has_ext = false;
-
-          // enumerated methods
-          types() {}
-          types(options v) : value(v) {}
-          types& operator=(options v)
-          {
-            value = v;
-            return *this;
-          }
-                      operator options() const { return value; }
           std::string to_string() const;
           uint8_t     to_number() const;
         };
+        typedef enumerated<types_opts, 6, 0, false> types;
 
         // choice methods
         type2_r10_c_() : type_(types::nulltype) {}
@@ -41841,27 +34106,15 @@ struct rn_sf_cfg_r10_s {
 
         void destroy_();
       };
-      struct types {
-        enum options { type01_r10, type2_r10, /*...*/ nulltype };
+      struct types_opts {
+        enum options { type01_r10, type2_r10, /*...*/ nulltype } value;
         typedef float number_type;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = true;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         float       to_number() const;
         std::string to_number_string() const;
       };
+      typedef enumerated<types_opts, 2, 0, true> types;
 
       // choice methods
       res_block_assign_r10_c_() : type_(types::nulltype) {}
@@ -41902,42 +34155,18 @@ struct rn_sf_cfg_r10_s {
       void destroy_();
     };
     struct demod_rs_r10_c_ {
-      struct no_interleaving_r10_e_ {
-        enum options { crs, dmrs };
+      struct no_interleaving_r10_opts {
+        enum options { crs, dmrs } value;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        no_interleaving_r10_e_() {}
-        no_interleaving_r10_e_(options v) : value(v) {}
-        no_interleaving_r10_e_& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
-      struct types {
-        enum options { interleaving_r10, no_interleaving_r10, nulltype };
+      typedef enumerated<no_interleaving_r10_opts, 2, 0, false> no_interleaving_r10_e_;
+      struct types_opts {
+        enum options { interleaving_r10, no_interleaving_r10, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 2, 0, false> types;
 
       // choice methods
       demod_rs_r10_c_() : type_(types::nulltype) {}
@@ -41984,26 +34213,14 @@ struct rn_sf_cfg_r10_s {
           // sequence methods
           fallback_for_format3_s_();
         };
-        struct types {
-          enum options { ch_sel_mux_bundling, fallback_for_format3, nulltype };
+        struct types_opts {
+          enum options { ch_sel_mux_bundling, fallback_for_format3, nulltype } value;
           typedef uint8_t number_type;
 
-          options               value;
-          static const uint32_t nof_types = 2, nof_exts = 0;
-          static const bool     has_ext = false;
-
-          // enumerated methods
-          types() {}
-          types(options v) : value(v) {}
-          types& operator=(options v)
-          {
-            value = v;
-            return *this;
-          }
-                      operator options() const { return value; }
           std::string to_string() const;
           uint8_t     to_number() const;
         };
+        typedef enumerated<types_opts, 2, 0, false> types;
 
         // choice methods
         tdd_c_() : type_(types::nulltype) {}
@@ -42052,24 +34269,12 @@ struct rn_sf_cfg_r10_s {
         // sequence methods
         fdd_s_();
       };
-      struct types {
-        enum options { tdd, fdd, nulltype };
+      struct types_opts {
+        enum options { tdd, fdd, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 2, 0, false> types;
 
       // choice methods
       pucch_cfg_r10_c_() : type_(types::nulltype) {}
@@ -42202,7 +34407,7 @@ struct rrc_conn_resume_v1430_ies_s {
 
 // RedirectedCarrierInfo ::= CHOICE
 struct redirected_carrier_info_c {
-  struct types {
+  struct types_opts {
     enum options {
       eutra,
       geran,
@@ -42214,23 +34419,11 @@ struct redirected_carrier_info_c {
       utra_tdd_r10,
       nr_r15,
       nulltype
-    };
+    } value;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 2;
-    static const bool     has_ext = true;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<types_opts, 8, 2, true> types;
 
   // choice methods
   redirected_carrier_info_c() : type_(types::nulltype) {}
@@ -42334,24 +34527,12 @@ private:
 };
 
 // ReleaseCause ::= ENUMERATED
-struct release_cause_e {
-  enum options { load_balancing_ta_urequired, other, cs_fallback_high_prio_v1020, rrc_suspend_v1320 };
+struct release_cause_opts {
+  enum options { load_balancing_ta_urequired, other, cs_fallback_high_prio_v1020, rrc_suspend_v1320 } value;
 
-  options               value;
-  static const uint32_t nof_types = 4, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  release_cause_e() {}
-  release_cause_e(options v) : value(v) {}
-  release_cause_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
 };
+typedef enumerated<release_cause_opts, 4, 0, false> release_cause_e;
 
 // SecurityConfigHO ::= SEQUENCE
 struct security_cfg_ho_s {
@@ -42371,24 +34552,12 @@ struct security_cfg_ho_s {
       security_algorithm_cfg_s security_algorithm_cfg;
       fixed_octstring<6>       nas_security_param_to_eutra;
     };
-    struct types {
-      enum options { intra_lte, inter_rat, nulltype };
+    struct types_opts {
+      enum options { intra_lte, inter_rat, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     ho_type_c_() : type_(types::nulltype) {}
@@ -42546,24 +34715,12 @@ struct counter_check_r8_ies_s {
 // DLInformationTransfer-r15-IEs ::= SEQUENCE
 struct dl_info_transfer_r15_ies_s {
   struct ded_info_type_r15_c_ {
-    struct types {
-      enum options { ded_info_nas_r15, ded_info_cdma2000_minus1_xrtt_r15, ded_info_cdma2000_hrpd_r15, nulltype };
+    struct types_opts {
+      enum options { ded_info_nas_r15, ded_info_cdma2000_minus1_xrtt_r15, ded_info_cdma2000_hrpd_r15, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 3, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 3, 0, false> types;
 
     // choice methods
     ded_info_type_r15_c_() : type_(types::nulltype) {}
@@ -42632,24 +34789,12 @@ struct dl_info_transfer_r15_ies_s {
 // DLInformationTransfer-r8-IEs ::= SEQUENCE
 struct dl_info_transfer_r8_ies_s {
   struct ded_info_type_c_ {
-    struct types {
-      enum options { ded_info_nas, ded_info_cdma2000_minus1_xrtt, ded_info_cdma2000_hrpd, nulltype };
+    struct types_opts {
+      enum options { ded_info_nas, ded_info_cdma2000_minus1_xrtt, ded_info_cdma2000_hrpd, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 3, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 3, 0, false> types;
 
     // choice methods
     ded_info_type_c_() : type_(types::nulltype) {}
@@ -42754,24 +34899,12 @@ struct logged_meas_cfg_r10_ies_s {
 // MobilityFromEUTRACommand-r8-IEs ::= SEQUENCE
 struct mob_from_eutra_cmd_r8_ies_s {
   struct purpose_c_ {
-    struct types {
-      enum options { ho, cell_change_order, nulltype };
+    struct types_opts {
+      enum options { ho, cell_change_order, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     purpose_c_() : type_(types::nulltype) {}
@@ -42828,24 +34961,12 @@ struct mob_from_eutra_cmd_r8_ies_s {
 // MobilityFromEUTRACommand-r9-IEs ::= SEQUENCE
 struct mob_from_eutra_cmd_r9_ies_s {
   struct purpose_c_ {
-    struct types {
-      enum options { ho, cell_change_order, e_csfb_r9, /*...*/ nulltype };
+    struct types_opts {
+      enum options { ho, cell_change_order, e_csfb_r9, /*...*/ nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 3, nof_exts = 0;
-      static const bool     has_ext = true;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 3, 0, true> types;
 
     // choice methods
     purpose_c_() : type_(types::nulltype) {}
@@ -43039,26 +35160,14 @@ struct ue_info_request_r9_ies_s {
 // CSFBParametersResponseCDMA2000 ::= SEQUENCE
 struct csfb_params_resp_cdma2000_s {
   struct crit_exts_c_ {
-    struct types {
-      enum options { csfb_params_resp_cdma2000_r8, crit_exts_future, nulltype };
+    struct types_opts {
+      enum options { csfb_params_resp_cdma2000_r8, crit_exts_future, nulltype } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     crit_exts_c_() : type_(types::nulltype) {}
@@ -43103,24 +35212,12 @@ struct csfb_params_resp_cdma2000_s {
 struct counter_check_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { counter_check_r8, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { counter_check_r8, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 4, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -43190,24 +35287,12 @@ struct counter_check_s {
 struct dl_info_transfer_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { dl_info_transfer_r8, dl_info_transfer_r15, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { dl_info_transfer_r8, dl_info_transfer_r15, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 4, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -43292,24 +35377,12 @@ struct dl_info_transfer_s {
 struct ho_from_eutra_prep_request_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { ho_from_eutra_prep_request_r8, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { ho_from_eutra_prep_request_r8, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 4, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -43379,24 +35452,12 @@ struct ho_from_eutra_prep_request_s {
 struct logged_meas_cfg_r10_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { logged_meas_cfg_r10, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { logged_meas_cfg_r10, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 4, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -43465,24 +35526,12 @@ struct logged_meas_cfg_r10_s {
 struct mob_from_eutra_cmd_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { mob_from_eutra_cmd_r8, mob_from_eutra_cmd_r9, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { mob_from_eutra_cmd_r8, mob_from_eutra_cmd_r9, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 4, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -43567,24 +35616,12 @@ struct mob_from_eutra_cmd_s {
 struct rn_recfg_r10_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { rn_recfg_r10, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { rn_recfg_r10, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 4, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -43654,24 +35691,12 @@ struct rn_recfg_r10_s {
 struct rrc_conn_recfg_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { rrc_conn_recfg_r8, spare7, spare6, spare5, spare4, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { rrc_conn_recfg_r8, spare7, spare6, spare5, spare4, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 8, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 8, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -43741,24 +35766,12 @@ struct rrc_conn_recfg_s {
 struct rrc_conn_release_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { rrc_conn_release_r8, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { rrc_conn_release_r8, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 4, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -43828,24 +35841,12 @@ struct rrc_conn_release_s {
 struct rrc_conn_resume_r13_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { rrc_conn_resume_r13, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { rrc_conn_resume_r13, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 4, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -43915,24 +35916,12 @@ struct rrc_conn_resume_r13_s {
 struct security_mode_cmd_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { security_mode_cmd_r8, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { security_mode_cmd_r8, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 4, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -44002,24 +35991,12 @@ struct security_mode_cmd_s {
 struct ue_cap_enquiry_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { ue_cap_enquiry_r8, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { ue_cap_enquiry_r8, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 4, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -44089,24 +36066,12 @@ struct ue_cap_enquiry_s {
 struct ue_info_request_r9_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { ue_info_request_r9, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { ue_info_request_r9, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 4, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -44175,7 +36140,7 @@ struct ue_info_request_r9_s {
 // DL-DCCH-MessageType ::= CHOICE
 struct dl_dcch_msg_type_c {
   struct c1_c_ {
-    struct types {
+    struct types_opts {
       enum options {
         csfb_params_resp_cdma2000,
         dl_info_transfer,
@@ -44194,25 +36159,13 @@ struct dl_dcch_msg_type_c {
         spare2,
         spare1,
         nulltype
-      };
+      } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 16, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
+    typedef enumerated<types_opts, 16, 0, false> types;
 
     // choice methods
     c1_c_() : type_(types::nulltype) {}
@@ -44367,26 +36320,14 @@ struct dl_dcch_msg_type_c {
 
     void destroy_();
   };
-  struct types {
-    enum options { c1, msg_class_ext, nulltype };
+  struct types_opts {
+    enum options { c1, msg_class_ext, nulltype } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<types_opts, 2, 0, false> types;
 
   // choice methods
   dl_dcch_msg_type_c() : type_(types::nulltype) {}
@@ -44431,24 +36372,12 @@ struct dl_dcch_msg_s {
 // TMGI-r9 ::= SEQUENCE
 struct tmgi_r9_s {
   struct plmn_id_r9_c_ {
-    struct types {
-      enum options { plmn_idx_r9, explicit_value_r9, nulltype };
+    struct types_opts {
+      enum options { plmn_idx_r9, explicit_value_r9, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     plmn_id_r9_c_() : type_(types::nulltype) {}
@@ -44522,24 +36451,12 @@ typedef dyn_array<mbms_session_info_r9_s> mbms_session_info_list_r9_l;
 // PMCH-Config-r12 ::= SEQUENCE
 struct pmch_cfg_r12_s {
   struct data_mcs_r12_c_ {
-    struct types {
-      enum options { normal_r12, higer_order_r12, nulltype };
+    struct types_opts {
+      enum options { normal_r12, higer_order_r12, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     data_mcs_r12_c_() : type_(types::nulltype) {}
@@ -44579,46 +36496,22 @@ struct pmch_cfg_r12_s {
 
     void destroy_();
   };
-  struct mch_sched_period_r12_e_ {
-    enum options { rf4, rf8, rf16, rf32, rf64, rf128, rf256, rf512, rf1024 };
+  struct mch_sched_period_r12_opts {
+    enum options { rf4, rf8, rf16, rf32, rf64, rf128, rf256, rf512, rf1024 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 9, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    mch_sched_period_r12_e_() {}
-    mch_sched_period_r12_e_(options v) : value(v) {}
-    mch_sched_period_r12_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
-  struct mch_sched_period_v1430_e_ {
-    enum options { rf1, rf2 };
+  typedef enumerated<mch_sched_period_r12_opts, 9, 0, false> mch_sched_period_r12_e_;
+  struct mch_sched_period_v1430_opts {
+    enum options { rf1, rf2 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    mch_sched_period_v1430_e_() {}
-    mch_sched_period_v1430_e_(options v) : value(v) {}
-    mch_sched_period_v1430_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<mch_sched_period_v1430_opts, 2, 0, false> mch_sched_period_v1430_e_;
 
   // member variables
   bool                    ext;
@@ -44670,26 +36563,14 @@ struct mbsfn_area_cfg_v1430_ies_s {
 
 // PMCH-Config-r9 ::= SEQUENCE
 struct pmch_cfg_r9_s {
-  struct mch_sched_period_r9_e_ {
-    enum options { rf8, rf16, rf32, rf64, rf128, rf256, rf512, rf1024 };
+  struct mch_sched_period_r9_opts {
+    enum options { rf8, rf16, rf32, rf64, rf128, rf256, rf512, rf1024 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    mch_sched_period_r9_e_() {}
-    mch_sched_period_r9_e_(options v) : value(v) {}
-    mch_sched_period_r9_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<mch_sched_period_r9_opts, 8, 0, false> mch_sched_period_r9_e_;
 
   // member variables
   bool                   ext;
@@ -44793,26 +36674,14 @@ struct mbms_count_request_r10_s {
 
 // MBSFNAreaConfiguration-r9 ::= SEQUENCE
 struct mbsfn_area_cfg_r9_s {
-  struct common_sf_alloc_period_r9_e_ {
-    enum options { rf4, rf8, rf16, rf32, rf64, rf128, rf256 };
+  struct common_sf_alloc_period_r9_opts {
+    enum options { rf4, rf8, rf16, rf32, rf64, rf128, rf256 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 7, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    common_sf_alloc_period_r9_e_() {}
-    common_sf_alloc_period_r9_e_(options v) : value(v) {}
-    common_sf_alloc_period_r9_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<common_sf_alloc_period_r9_opts, 7, 0, false> common_sf_alloc_period_r9_e_;
 
   // member variables
   bool                              non_crit_ext_present;
@@ -44831,24 +36700,12 @@ struct mbsfn_area_cfg_r9_s {
 // MCCH-MessageType ::= CHOICE
 struct mcch_msg_type_c {
   struct c1_c_ {
-    struct types {
-      enum options { mbsfn_area_cfg_r9, nulltype };
+    struct types_opts {
+      enum options { mbsfn_area_cfg_r9, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 1, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 1, 0, false> types;
 
     // choice methods
     c1_c_() : type_(types::nulltype) {}
@@ -44875,24 +36732,12 @@ struct mcch_msg_type_c {
   };
   struct later_c_ {
     struct c2_c_ {
-      struct types {
-        enum options { mbms_count_request_r10, nulltype };
+      struct types_opts {
+        enum options { mbms_count_request_r10, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 1, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 1, 0, false> types;
 
       // choice methods
       c2_c_() : type_(types::nulltype) {}
@@ -44917,26 +36762,14 @@ struct mcch_msg_type_c {
       types                    type_;
       mbms_count_request_r10_s c;
     };
-    struct types {
-      enum options { c2, msg_class_ext, nulltype };
+    struct types_opts {
+      enum options { c2, msg_class_ext, nulltype } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     later_c_() : type_(types::nulltype) {}
@@ -44966,26 +36799,14 @@ struct mcch_msg_type_c {
 
     void destroy_();
   };
-  struct types {
-    enum options { c1, later, nulltype };
+  struct types_opts {
+    enum options { c1, later, nulltype } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<types_opts, 2, 0, false> types;
 
   // choice methods
   mcch_msg_type_c() : type_(types::nulltype) {}
@@ -45096,26 +36917,14 @@ struct paging_v1130_ies_s {
 
 // PagingUE-Identity ::= CHOICE
 struct paging_ue_id_c {
-  struct types {
-    enum options { s_tmsi, imsi, /*...*/ ng_minus5_g_s_tmsi_r15, i_rnti_r15, nulltype };
+  struct types_opts {
+    enum options { s_tmsi, imsi, /*...*/ ng_minus5_g_s_tmsi_r15, i_rnti_r15, nulltype } value;
     typedef int8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 2;
-    static const bool     has_ext = true;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     int8_t      to_number() const;
   };
+  typedef enumerated<types_opts, 4, 2, true> types;
 
   // choice methods
   paging_ue_id_c() : type_(types::nulltype) {}
@@ -45192,24 +37001,12 @@ struct paging_v920_ies_s {
 
 // PagingRecord ::= SEQUENCE
 struct paging_record_s {
-  struct cn_domain_e_ {
-    enum options { ps, cs };
+  struct cn_domain_opts {
+    enum options { ps, cs } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    cn_domain_e_() {}
-    cn_domain_e_(options v) : value(v) {}
-    cn_domain_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<cn_domain_opts, 2, 0, false> cn_domain_e_;
 
   // member variables
   bool           ext;
@@ -45262,24 +37059,12 @@ struct paging_s {
 // PCCH-MessageType ::= CHOICE
 struct pcch_msg_type_c {
   struct c1_c_ {
-    struct types {
-      enum options { paging, nulltype };
+    struct types_opts {
+      enum options { paging, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 1, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 1, 0, false> types;
 
     // choice methods
     c1_c_() : type_(types::nulltype) {}
@@ -45304,26 +37089,14 @@ struct pcch_msg_type_c {
     types    type_;
     paging_s c;
   };
-  struct types {
-    enum options { c1, msg_class_ext, nulltype };
+  struct types_opts {
+    enum options { c1, msg_class_ext, nulltype } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<types_opts, 2, 0, false> types;
 
   // choice methods
   pcch_msg_type_c() : type_(types::nulltype) {}
@@ -45381,27 +37154,15 @@ struct mbms_session_info_r13_s {
 
 // SC-MTCH-SchedulingInfo-BR-r14 ::= SEQUENCE
 struct sc_mtch_sched_info_br_r14_s {
-  struct on_dur_timer_scptm_r14_e_ {
-    enum options { psf300, psf400, psf500, psf600, psf800, psf1000, psf1200, psf1600 };
+  struct on_dur_timer_scptm_r14_opts {
+    enum options { psf300, psf400, psf500, psf600, psf800, psf1000, psf1200, psf1600 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    on_dur_timer_scptm_r14_e_() {}
-    on_dur_timer_scptm_r14_e_(options v) : value(v) {}
-    on_dur_timer_scptm_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
-  struct drx_inactivity_timer_scptm_r14_e_ {
+  typedef enumerated<on_dur_timer_scptm_r14_opts, 8, 0, false> on_dur_timer_scptm_r14_e_;
+  struct drx_inactivity_timer_scptm_r14_opts {
     enum options {
       psf0,
       psf1,
@@ -45419,27 +37180,15 @@ struct sc_mtch_sched_info_br_r14_s {
       psf4096,
       psf8192,
       psf16384
-    };
+    } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 16, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    drx_inactivity_timer_scptm_r14_e_() {}
-    drx_inactivity_timer_scptm_r14_e_(options v) : value(v) {}
-    drx_inactivity_timer_scptm_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<drx_inactivity_timer_scptm_r14_opts, 16, 0, false> drx_inactivity_timer_scptm_r14_e_;
   struct sched_period_start_offset_scptm_r14_c_ {
-    struct types {
+    struct types_opts {
       enum options {
         sf10,
         sf20,
@@ -45458,25 +37207,13 @@ struct sc_mtch_sched_info_br_r14_s {
         sf4096,
         sf8192,
         nulltype
-      };
+      } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 16, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
+    typedef enumerated<types_opts, 16, 0, false> types;
 
     // choice methods
     sched_period_start_offset_scptm_r14_c_() : type_(types::nulltype) {}
@@ -45673,7 +37410,7 @@ struct sc_mtch_sched_info_br_r14_s {
 
 // SC-MTCH-SchedulingInfo-r13 ::= SEQUENCE
 struct sc_mtch_sched_info_r13_s {
-  struct on_dur_timer_scptm_r13_e_ {
+  struct on_dur_timer_scptm_r13_opts {
     enum options {
       psf1,
       psf2,
@@ -45691,26 +37428,14 @@ struct sc_mtch_sched_info_r13_s {
       psf80,
       psf100,
       psf200
-    };
+    } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 16, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    on_dur_timer_scptm_r13_e_() {}
-    on_dur_timer_scptm_r13_e_(options v) : value(v) {}
-    on_dur_timer_scptm_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct drx_inactivity_timer_scptm_r13_e_ {
+  typedef enumerated<on_dur_timer_scptm_r13_opts, 16, 0, false> on_dur_timer_scptm_r13_e_;
+  struct drx_inactivity_timer_scptm_r13_opts {
     enum options {
       psf0,
       psf1,
@@ -45728,27 +37453,15 @@ struct sc_mtch_sched_info_r13_s {
       psf1280,
       psf1920,
       psf2560
-    };
+    } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 16, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    drx_inactivity_timer_scptm_r13_e_() {}
-    drx_inactivity_timer_scptm_r13_e_(options v) : value(v) {}
-    drx_inactivity_timer_scptm_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<drx_inactivity_timer_scptm_r13_opts, 16, 0, false> drx_inactivity_timer_scptm_r13_e_;
   struct sched_period_start_offset_scptm_r13_c_ {
-    struct types {
+    struct types_opts {
       enum options {
         sf10,
         sf20,
@@ -45767,25 +37480,13 @@ struct sc_mtch_sched_info_r13_s {
         sf4096,
         sf8192,
         nulltype
-      };
+      } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 16, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
+    typedef enumerated<types_opts, 16, 0, false> types;
 
     // choice methods
     sched_period_start_offset_scptm_r13_c_() : type_(types::nulltype) {}
@@ -45996,86 +37697,38 @@ struct pci_arfcn_r13_s {
 
 // SC-MTCH-Info-BR-r14 ::= SEQUENCE
 struct sc_mtch_info_br_r14_s {
-  struct mpdcch_num_repeat_sc_mtch_r14_e_ {
-    enum options { r1, r2, r4, r8, r16, r32, r64, r128, r256 };
+  struct mpdcch_num_repeat_sc_mtch_r14_opts {
+    enum options { r1, r2, r4, r8, r16, r32, r64, r128, r256 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 9, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    mpdcch_num_repeat_sc_mtch_r14_e_() {}
-    mpdcch_num_repeat_sc_mtch_r14_e_(options v) : value(v) {}
-    mpdcch_num_repeat_sc_mtch_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<mpdcch_num_repeat_sc_mtch_r14_opts, 9, 0, false> mpdcch_num_repeat_sc_mtch_r14_e_;
   struct mpdcch_start_sf_sc_mtch_r14_c_ {
-    struct fdd_r14_e_ {
-      enum options { v1, v1dot5, v2, v2dot5, v4, v5, v8, v10 };
+    struct fdd_r14_opts {
+      enum options { v1, v1dot5, v2, v2dot5, v4, v5, v8, v10 } value;
       typedef float number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      fdd_r14_e_() {}
-      fdd_r14_e_(options v) : value(v) {}
-      fdd_r14_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       float       to_number() const;
       std::string to_number_string() const;
     };
-    struct tdd_r14_e_ {
-      enum options { v1, v2, v4, v5, v8, v10, v20 };
+    typedef enumerated<fdd_r14_opts, 8, 0, false> fdd_r14_e_;
+    struct tdd_r14_opts {
+      enum options { v1, v2, v4, v5, v8, v10, v20 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 7, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      tdd_r14_e_() {}
-      tdd_r14_e_(options v) : value(v) {}
-      tdd_r14_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct types {
-      enum options { fdd_r14, tdd_r14, nulltype };
+    typedef enumerated<tdd_r14_opts, 7, 0, false> tdd_r14_e_;
+    struct types_opts {
+      enum options { fdd_r14, tdd_r14, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     mpdcch_start_sf_sc_mtch_r14_c_() : type_(types::nulltype) {}
@@ -46115,105 +37768,54 @@ struct sc_mtch_info_br_r14_s {
 
     void destroy_();
   };
-  struct mpdcch_pdsch_hop_cfg_sc_mtch_r14_e_ {
-    enum options { on, off };
+  struct mpdcch_pdsch_hop_cfg_sc_mtch_r14_opts {
+    enum options { on, off } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    mpdcch_pdsch_hop_cfg_sc_mtch_r14_e_() {}
-    mpdcch_pdsch_hop_cfg_sc_mtch_r14_e_(options v) : value(v) {}
-    mpdcch_pdsch_hop_cfg_sc_mtch_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
-  struct mpdcch_pdsch_cemode_cfg_sc_mtch_r14_e_ {
-    enum options { ce_mode_a, ce_mode_b };
+  typedef enumerated<mpdcch_pdsch_hop_cfg_sc_mtch_r14_opts, 2, 0, false> mpdcch_pdsch_hop_cfg_sc_mtch_r14_e_;
+  struct mpdcch_pdsch_cemode_cfg_sc_mtch_r14_opts {
+    enum options { ce_mode_a, ce_mode_b } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    mpdcch_pdsch_cemode_cfg_sc_mtch_r14_e_() {}
-    mpdcch_pdsch_cemode_cfg_sc_mtch_r14_e_(options v) : value(v) {}
-    mpdcch_pdsch_cemode_cfg_sc_mtch_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
-  struct mpdcch_pdsch_max_bw_sc_mtch_r14_e_ {
-    enum options { bw1dot4, bw5 };
+  typedef enumerated<mpdcch_pdsch_cemode_cfg_sc_mtch_r14_opts, 2, 0, false> mpdcch_pdsch_cemode_cfg_sc_mtch_r14_e_;
+  struct mpdcch_pdsch_max_bw_sc_mtch_r14_opts {
+    enum options { bw1dot4, bw5 } value;
     typedef float number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    mpdcch_pdsch_max_bw_sc_mtch_r14_e_() {}
-    mpdcch_pdsch_max_bw_sc_mtch_r14_e_(options v) : value(v) {}
-    mpdcch_pdsch_max_bw_sc_mtch_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     float       to_number() const;
     std::string to_number_string() const;
   };
-  struct mpdcch_offset_sc_mtch_r14_e_ {
-    enum options { zero, one_eighth, one_quarter, three_eighth, one_half, five_eighth, three_quarter, seven_eighth };
+  typedef enumerated<mpdcch_pdsch_max_bw_sc_mtch_r14_opts, 2, 0, false> mpdcch_pdsch_max_bw_sc_mtch_r14_e_;
+  struct mpdcch_offset_sc_mtch_r14_opts {
+    enum options {
+      zero,
+      one_eighth,
+      one_quarter,
+      three_eighth,
+      one_half,
+      five_eighth,
+      three_quarter,
+      seven_eighth
+    } value;
     typedef float number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    mpdcch_offset_sc_mtch_r14_e_() {}
-    mpdcch_offset_sc_mtch_r14_e_(options v) : value(v) {}
-    mpdcch_offset_sc_mtch_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     float       to_number() const;
     std::string to_number_string() const;
   };
-  struct p_a_r14_e_ {
-    enum options { db_minus6, db_minus4dot77, db_minus3, db_minus1dot77, db0, db1, db2, db3 };
+  typedef enumerated<mpdcch_offset_sc_mtch_r14_opts, 8, 0, false> mpdcch_offset_sc_mtch_r14_e_;
+  struct p_a_r14_opts {
+    enum options { db_minus6, db_minus4dot77, db_minus3, db_minus1dot77, db0, db1, db2, db3 } value;
     typedef float number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    p_a_r14_e_() {}
-    p_a_r14_e_(options v) : value(v) {}
-    p_a_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     float       to_number() const;
     std::string to_number_string() const;
   };
+  typedef enumerated<p_a_r14_opts, 8, 0, false> p_a_r14_e_;
 
   // member variables
   bool                                   ext;
@@ -46244,27 +37846,15 @@ struct sc_mtch_info_br_r14_s {
 
 // SC-MTCH-Info-r13 ::= SEQUENCE
 struct sc_mtch_info_r13_s {
-  struct p_a_r13_e_ {
-    enum options { db_minus6, db_minus4dot77, db_minus3, db_minus1dot77, db0, db1, db2, db3 };
+  struct p_a_r13_opts {
+    enum options { db_minus6, db_minus4dot77, db_minus3, db_minus1dot77, db0, db1, db2, db3 } value;
     typedef float number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    p_a_r13_e_() {}
-    p_a_r13_e_(options v) : value(v) {}
-    p_a_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     float       to_number() const;
     std::string to_number_string() const;
   };
+  typedef enumerated<p_a_r13_opts, 8, 0, false> p_a_r13_e_;
 
   // member variables
   bool                     ext;
@@ -46349,24 +37939,12 @@ struct scptm_cfg_r13_s {
 // SC-MCCH-MessageType-r13 ::= CHOICE
 struct sc_mcch_msg_type_r13_c {
   struct c1_c_ {
-    struct types {
-      enum options { scptm_cfg_r13, nulltype };
+    struct types_opts {
+      enum options { scptm_cfg_r13, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 1, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 1, 0, false> types;
 
     // choice methods
     c1_c_() : type_(types::nulltype) {}
@@ -46393,24 +37971,12 @@ struct sc_mcch_msg_type_r13_c {
   };
   struct msg_class_ext_c_ {
     struct c2_c_ {
-      struct types {
-        enum options { scptm_cfg_br_r14, spare, nulltype };
+      struct types_opts {
+        enum options { scptm_cfg_br_r14, spare, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 2, 0, false> types;
 
       // choice methods
       c2_c_() : type_(types::nulltype) {}
@@ -46435,26 +38001,14 @@ struct sc_mcch_msg_type_r13_c {
       types              type_;
       scptm_cfg_br_r14_s c;
     };
-    struct types {
-      enum options { c2, msg_class_ext_future_r14, nulltype };
+    struct types_opts {
+      enum options { c2, msg_class_ext_future_r14, nulltype } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     msg_class_ext_c_() : type_(types::nulltype) {}
@@ -46484,26 +38038,14 @@ struct sc_mcch_msg_type_r13_c {
 
     void destroy_();
   };
-  struct types {
-    enum options { c1, msg_class_ext, nulltype };
+  struct types_opts {
+    enum options { c1, msg_class_ext, nulltype } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<types_opts, 2, 0, false> types;
 
   // choice methods
   sc_mcch_msg_type_r13_c() : type_(types::nulltype) {}
@@ -46556,7 +38098,7 @@ struct sc_mcch_msg_r13_s {
 };
 
 // EstablishmentCause ::= ENUMERATED
-struct establishment_cause_e {
+struct establishment_cause_opts {
   enum options {
     emergency,
     high_prio_access,
@@ -46566,44 +38108,20 @@ struct establishment_cause_e {
     delay_tolerant_access_v1020,
     mo_voice_call_v1280,
     spare1
-  };
+  } value;
 
-  options               value;
-  static const uint32_t nof_types = 8, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  establishment_cause_e() {}
-  establishment_cause_e(options v) : value(v) {}
-  establishment_cause_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
 };
+typedef enumerated<establishment_cause_opts, 8, 0, false> establishment_cause_e;
 
 // InitialUE-Identity ::= CHOICE
 struct init_ue_id_c {
-  struct types {
-    enum options { s_tmsi, random_value, nulltype };
+  struct types_opts {
+    enum options { s_tmsi, random_value, nulltype } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<types_opts, 2, 0, false> types;
 
   // choice methods
   init_ue_id_c() : type_(types::nulltype) {}
@@ -46658,27 +38176,15 @@ struct reestab_ue_id_s {
 };
 
 // ReestablishmentCause ::= ENUMERATED
-struct reest_cause_e {
-  enum options { recfg_fail, ho_fail, other_fail, spare1 };
+struct reest_cause_opts {
+  enum options { recfg_fail, ho_fail, other_fail, spare1 } value;
 
-  options               value;
-  static const uint32_t nof_types = 4, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  reest_cause_e() {}
-  reest_cause_e(options v) : value(v) {}
-  reest_cause_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
 };
+typedef enumerated<reest_cause_opts, 4, 0, false> reest_cause_e;
 
 // ResumeCause ::= ENUMERATED
-struct resume_cause_e {
+struct resume_cause_opts {
   enum options {
     emergency,
     high_prio_access,
@@ -46688,43 +38194,19 @@ struct resume_cause_e {
     delay_tolerant_access_v1020,
     mo_voice_call_v1280,
     spare1
-  };
+  } value;
 
-  options               value;
-  static const uint32_t nof_types = 8, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  resume_cause_e() {}
-  resume_cause_e(options v) : value(v) {}
-  resume_cause_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
 };
+typedef enumerated<resume_cause_opts, 8, 0, false> resume_cause_e;
 
 // ResumeCause-r15 ::= ENUMERATED
-struct resume_cause_r15_e {
-  enum options { emergency, high_prio_access, mt_access, mo_sig, mo_data, rna_update, mo_voice_call, spare1 };
+struct resume_cause_r15_opts {
+  enum options { emergency, high_prio_access, mt_access, mo_sig, mo_data, rna_update, mo_voice_call, spare1 } value;
 
-  options               value;
-  static const uint32_t nof_types = 8, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  resume_cause_r15_e() {}
-  resume_cause_r15_e(options v) : value(v) {}
-  resume_cause_r15_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
 };
+typedef enumerated<resume_cause_r15_opts, 8, 0, false> resume_cause_r15_e;
 
 // RRCConnectionReestablishmentRequest-r8-IEs ::= SEQUENCE
 struct rrc_conn_reest_request_r8_ies_s {
@@ -46755,24 +38237,12 @@ struct rrc_conn_request_r8_ies_s {
 // RRCConnectionResumeRequest-5GC-r15-IEs ::= SEQUENCE
 struct rrc_conn_resume_request_minus5_gc_r15_ies_s {
   struct resume_id_r15_c_ {
-    struct types {
-      enum options { full_i_rnti_r15, short_i_rnti_r15, nulltype };
+    struct types_opts {
+      enum options { full_i_rnti_r15, short_i_rnti_r15, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     resume_id_r15_c_() : type_(types::nulltype) {}
@@ -46828,24 +38298,12 @@ struct rrc_conn_resume_request_minus5_gc_r15_ies_s {
 // RRCConnectionResumeRequest-r13-IEs ::= SEQUENCE
 struct rrc_conn_resume_request_r13_ies_s {
   struct resume_id_r13_c_ {
-    struct types {
-      enum options { resume_id_r13, truncated_resume_id_r13, nulltype };
+    struct types_opts {
+      enum options { resume_id_r13, truncated_resume_id_r13, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     resume_id_r13_c_() : type_(types::nulltype) {}
@@ -46900,24 +38358,12 @@ struct rrc_conn_resume_request_r13_ies_s {
 
 // RRCEarlyDataRequest-r15-IEs ::= SEQUENCE
 struct rrc_early_data_request_r15_ies_s {
-  struct establishment_cause_r15_e_ {
-    enum options { mo_data_r15, delay_tolerant_access_r15 };
+  struct establishment_cause_r15_opts {
+    enum options { mo_data_r15, delay_tolerant_access_r15 } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    establishment_cause_r15_e_() {}
-    establishment_cause_r15_e_(options v) : value(v) {}
-    establishment_cause_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<establishment_cause_r15_opts, 2, 0, false> establishment_cause_r15_e_;
 
   // member variables
   bool                       non_crit_ext_present;
@@ -46935,24 +38381,12 @@ struct rrc_early_data_request_r15_ies_s {
 // RRCConnectionReestablishmentRequest ::= SEQUENCE
 struct rrc_conn_reest_request_s {
   struct crit_exts_c_ {
-    struct types {
-      enum options { rrc_conn_reest_request_r8, crit_exts_future, nulltype };
+    struct types_opts {
+      enum options { rrc_conn_reest_request_r8, crit_exts_future, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     crit_exts_c_() : type_(types::nulltype) {}
@@ -46995,24 +38429,12 @@ struct rrc_conn_reest_request_s {
 // RRCConnectionRequest ::= SEQUENCE
 struct rrc_conn_request_s {
   struct crit_exts_c_ {
-    struct types {
-      enum options { rrc_conn_request_r8, crit_exts_future, nulltype };
+    struct types_opts {
+      enum options { rrc_conn_request_r8, crit_exts_future, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     crit_exts_c_() : type_(types::nulltype) {}
@@ -47055,24 +38477,12 @@ struct rrc_conn_request_s {
 // RRCConnectionResumeRequest-r13 ::= SEQUENCE
 struct rrc_conn_resume_request_r13_s {
   struct crit_exts_c_ {
-    struct types {
-      enum options { rrc_conn_resume_request_r13, rrc_conn_resume_request_r15, nulltype };
+    struct types_opts {
+      enum options { rrc_conn_resume_request_r13, rrc_conn_resume_request_r15, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     crit_exts_c_() : type_(types::nulltype) {}
@@ -47127,24 +38537,12 @@ struct rrc_conn_resume_request_r13_s {
 // RRCEarlyDataRequest-r15 ::= SEQUENCE
 struct rrc_early_data_request_r15_s {
   struct crit_exts_c_ {
-    struct types {
-      enum options { rrc_early_data_request_r15, crit_exts_future, nulltype };
+    struct types_opts {
+      enum options { rrc_early_data_request_r15, crit_exts_future, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     crit_exts_c_() : type_(types::nulltype) {}
@@ -47187,24 +38585,12 @@ struct rrc_early_data_request_r15_s {
 // UL-CCCH-MessageType ::= CHOICE
 struct ul_ccch_msg_type_c {
   struct c1_c_ {
-    struct types {
-      enum options { rrc_conn_reest_request, rrc_conn_request, nulltype };
+    struct types_opts {
+      enum options { rrc_conn_reest_request, rrc_conn_request, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     c1_c_() : type_(types::nulltype) {}
@@ -47246,24 +38632,12 @@ struct ul_ccch_msg_type_c {
   };
   struct msg_class_ext_c_ {
     struct c2_c_ {
-      struct types {
-        enum options { rrc_conn_resume_request_r13, nulltype };
+      struct types_opts {
+        enum options { rrc_conn_resume_request_r13, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 1, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 1, 0, false> types;
 
       // choice methods
       c2_c_() : type_(types::nulltype) {}
@@ -47290,24 +38664,12 @@ struct ul_ccch_msg_type_c {
     };
     struct msg_class_ext_future_r13_c_ {
       struct c3_c_ {
-        struct types {
-          enum options { rrc_early_data_request_r15, spare3, spare2, spare1, nulltype };
+        struct types_opts {
+          enum options { rrc_early_data_request_r15, spare3, spare2, spare1, nulltype } value;
 
-          options               value;
-          static const uint32_t nof_types = 4, nof_exts = 0;
-          static const bool     has_ext = false;
-
-          // enumerated methods
-          types() {}
-          types(options v) : value(v) {}
-          types& operator=(options v)
-          {
-            value = v;
-            return *this;
-          }
-                      operator options() const { return value; }
           std::string to_string() const;
         };
+        typedef enumerated<types_opts, 4, 0, false> types;
 
         // choice methods
         c3_c_() : type_(types::nulltype) {}
@@ -47332,26 +38694,14 @@ struct ul_ccch_msg_type_c {
         types                        type_;
         rrc_early_data_request_r15_s c;
       };
-      struct types {
-        enum options { c3, msg_class_ext_future_r15, nulltype };
+      struct types_opts {
+        enum options { c3, msg_class_ext_future_r15, nulltype } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
+      typedef enumerated<types_opts, 2, 0, false> types;
 
       // choice methods
       msg_class_ext_future_r13_c_() : type_(types::nulltype) {}
@@ -47381,26 +38731,14 @@ struct ul_ccch_msg_type_c {
 
       void destroy_();
     };
-    struct types {
-      enum options { c2, msg_class_ext_future_r13, nulltype };
+    struct types_opts {
+      enum options { c2, msg_class_ext_future_r13, nulltype } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     msg_class_ext_c_() : type_(types::nulltype) {}
@@ -47440,26 +38778,14 @@ struct ul_ccch_msg_type_c {
 
     void destroy_();
   };
-  struct types {
-    enum options { c1, msg_class_ext, nulltype };
+  struct types_opts {
+    enum options { c1, msg_class_ext, nulltype } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<types_opts, 2, 0, false> types;
 
   // choice methods
   ul_ccch_msg_type_c() : type_(types::nulltype) {}
@@ -47513,26 +38839,14 @@ struct ul_ccch_msg_s {
 
 // CellGlobalIdCDMA2000 ::= CHOICE
 struct cell_global_id_cdma2000_c {
-  struct types {
-    enum options { cell_global_id1_xrtt, cell_global_id_hrpd, nulltype };
+  struct types_opts {
+    enum options { cell_global_id1_xrtt, cell_global_id_hrpd, nulltype } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<types_opts, 2, 0, false> types;
 
   // choice methods
   cell_global_id_cdma2000_c() : type_(types::nulltype) {}
@@ -47772,24 +39086,12 @@ typedef dyn_array<meas_result_cdma2000_s> meas_result_list_cdma2000_l;
 // MeasResultUTRA ::= SEQUENCE
 struct meas_result_utra_s {
   struct pci_c_ {
-    struct types {
-      enum options { fdd, tdd, nulltype };
+    struct types_opts {
+      enum options { fdd, tdd, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     pci_c_() : type_(types::nulltype) {}
@@ -47895,24 +39197,12 @@ struct registered_amf_r15_s {
 
 // S-NSSAI-r15 ::= CHOICE
 struct s_nssai_r15_c {
-  struct types {
-    enum options { sst, sst_sd, nulltype };
+  struct types_opts {
+    enum options { sst, sst_sd, nulltype } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<types_opts, 2, 0, false> types;
 
   // choice methods
   s_nssai_r15_c() : type_(types::nulltype) {}
@@ -47959,7 +39249,7 @@ typedef dyn_array<data_bler_mch_result_r12_s> data_bler_mch_result_list_r12_l;
 // LocationInfo-r10 ::= SEQUENCE
 struct location_info_r10_s {
   struct location_coordinates_r10_c_ {
-    struct types {
+    struct types_opts {
       enum options {
         ellipsoid_point_r10,
         ellipsoid_point_with_altitude_r10,
@@ -47970,23 +39260,11 @@ struct location_info_r10_s {
         ellipsoid_arc_r11,
         polygon_r11,
         nulltype
-      };
+      } value;
 
-      options               value;
-      static const uint32_t nof_types = 7, nof_exts = 5;
-      static const bool     has_ext = true;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 7, 5, true> types;
 
     // choice methods
     location_coordinates_r10_c_() : type_(types::nulltype) {}
@@ -48079,24 +39357,12 @@ struct location_info_r10_s {
     void destroy_();
   };
   struct vertical_velocity_info_r15_c_ {
-    struct types {
-      enum options { vertical_velocity_r15, vertical_velocity_and_uncertainty_r15, nulltype };
+    struct types_opts {
+      enum options { vertical_velocity_r15, vertical_velocity_and_uncertainty_r15, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     vertical_velocity_info_r15_c_() : type_(types::nulltype) {}
@@ -48252,24 +39518,12 @@ struct plmn_id_info_nr_r15_s {
 struct rrc_conn_setup_complete_v1530_ies_s {
   typedef dyn_array<s_nssai_r15_c> s_nssai_list_r15_l_;
   struct ng_minus5_g_s_tmsi_bits_r15_c_ {
-    struct types {
-      enum options { ng_minus5_g_s_tmsi_r15, ng_minus5_g_s_tmsi_part2_r15, nulltype };
+    struct types_opts {
+      enum options { ng_minus5_g_s_tmsi_r15, ng_minus5_g_s_tmsi_part2_r15, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     ng_minus5_g_s_tmsi_bits_r15_c_() : type_(types::nulltype) {}
@@ -48345,24 +39599,19 @@ struct rsrq_type_r12_s {
 
 // WLAN-RTT-r15 ::= SEQUENCE
 struct wlan_rtt_r15_s {
-  struct rtt_units_r15_e_ {
-    enum options { microseconds, hundredsofnanoseconds, tensofnanoseconds, nanoseconds, tenthsofnanoseconds, /*...*/ };
+  struct rtt_units_r15_opts {
+    enum options {
+      microseconds,
+      hundredsofnanoseconds,
+      tensofnanoseconds,
+      nanoseconds,
+      tenthsofnanoseconds,
+      /*...*/
+    } value;
 
-    options               value;
-    static const uint32_t nof_types = 5, nof_exts = 0;
-    static const bool     has_ext = true;
-
-    // enumerated methods
-    rtt_units_r15_e_() {}
-    rtt_units_r15_e_(options v) : value(v) {}
-    rtt_units_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<rtt_units_r15_opts, 5, 0, true> rtt_units_r15_e_;
 
   // member variables
   bool             ext;
@@ -48489,24 +39738,12 @@ struct meas_result_idle_r15_s {
     int8_t  rsrq_result_r15;
   };
   struct meas_result_neigh_cells_r15_c_ {
-    struct types {
-      enum options { meas_result_idle_list_eutra_r15, /*...*/ nulltype };
+    struct types_opts {
+      enum options { meas_result_idle_list_eutra_r15, /*...*/ nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 1, nof_exts = 0;
-      static const bool     has_ext = true;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 1, 0, true> types;
 
     // choice methods
     meas_result_neigh_cells_r15_c_() : type_(types::nulltype) {}
@@ -48596,24 +39833,12 @@ typedef dyn_array<plmn_id_info_nr_r15_s> plmn_id_info_list_nr_r15_l;
 
 // PerCC-GapIndication-r14 ::= SEQUENCE
 struct per_cc_gap_ind_r14_s {
-  struct gap_ind_r14_e_ {
-    enum options { gap, ncsg, nogap_no_ncsg };
+  struct gap_ind_r14_opts {
+    enum options { gap, ncsg, nogap_no_ncsg } value;
 
-    options               value;
-    static const uint32_t nof_types = 3, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    gap_ind_r14_e_() {}
-    gap_ind_r14_e_(options v) : value(v) {}
-    gap_ind_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<gap_ind_r14_opts, 3, 0, false> gap_ind_r14_e_;
 
   // member variables
   uint8_t        serv_cell_id_r14;
@@ -48680,24 +39905,12 @@ struct visited_cell_info_r12_s {
       uint16_t pci_r12;
       uint32_t carrier_freq_r12;
     };
-    struct types {
-      enum options { cell_global_id_r12, pci_arfcn_r12, nulltype };
+    struct types_opts {
+      enum options { cell_global_id_r12, pci_arfcn_r12, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     visited_cell_id_r12_c_() : type_(types::nulltype) {}
@@ -48768,24 +39981,12 @@ struct way_point_location_r15_s {
 
 // AffectedCarrierFreqCombInfoMRDC-r15 ::= SEQUENCE
 struct affected_carrier_freq_comb_info_mrdc_r15_s {
-  struct interference_direction_mrdc_r15_e_ {
-    enum options { eutra_nr, nr, other, eutra_nr_other, nr_other, spare3, spare2, spare1 };
+  struct interference_direction_mrdc_r15_opts {
+    enum options { eutra_nr, nr, other, eutra_nr_other, nr_other, spare3, spare2, spare1 } value;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    interference_direction_mrdc_r15_e_() {}
-    interference_direction_mrdc_r15_e_(options v) : value(v) {}
-    interference_direction_mrdc_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<interference_direction_mrdc_r15_opts, 8, 0, false> interference_direction_mrdc_r15_e_;
   struct affected_carrier_freq_comb_mrdc_r15_s_ {
     // member variables
     bool                                affected_carrier_freq_comb_eutra_r15_present;
@@ -49260,24 +40461,12 @@ struct rrc_conn_reest_complete_v1130_ies_s {
 
 // RRCConnectionSetupComplete-v1250-IEs ::= SEQUENCE
 struct rrc_conn_setup_complete_v1250_ies_s {
-  struct mob_state_r12_e_ {
-    enum options { normal, medium, high, spare };
+  struct mob_state_r12_opts {
+    enum options { normal, medium, high, spare } value;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    mob_state_r12_e_() {}
-    mob_state_r12_e_(options v) : value(v) {}
-    mob_state_r12_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<mob_state_r12_opts, 4, 0, false> mob_state_r12_e_;
 
   // member variables
   bool                                mob_state_r12_present;
@@ -49357,26 +40546,14 @@ struct fail_report_scg_v12d0_s {
 // IDC-SubframePattern-r11 ::= CHOICE
 struct idc_sf_pattern_r11_c {
   struct sf_pattern_tdd_r11_c_ {
-    struct types {
-      enum options { sf_cfg0_r11, sf_cfg1_minus5_r11, sf_cfg6_r11, nulltype };
+    struct types_opts {
+      enum options { sf_cfg0_r11, sf_cfg1_minus5_r11, sf_cfg6_r11, nulltype } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 3, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<types_opts, 3, 0, false> types;
 
     // choice methods
     sf_pattern_tdd_r11_c_() : type_(types::nulltype) {}
@@ -49426,24 +40603,12 @@ struct idc_sf_pattern_r11_c {
 
     void destroy_();
   };
-  struct types {
-    enum options { sf_pattern_fdd_r11, sf_pattern_tdd_r11, /*...*/ nulltype };
+  struct types_opts {
+    enum options { sf_pattern_fdd_r11, sf_pattern_tdd_r11, /*...*/ nulltype } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = true;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<types_opts, 2, 0, true> types;
 
   // choice methods
   idc_sf_pattern_r11_c() : type_(types::nulltype) {}
@@ -49827,26 +40992,14 @@ struct sl_disc_sys_info_report_r13_s {
     disc_cell_sel_info_r13_s_();
   };
   struct cell_resel_info_r13_s_ {
-    struct q_hyst_r13_e_ {
-      enum options { db0, db1, db2, db3, db4, db5, db6, db8, db10, db12, db14, db16, db18, db20, db22, db24 };
+    struct q_hyst_r13_opts {
+      enum options { db0, db1, db2, db3, db4, db5, db6, db8, db10, db12, db14, db16, db18, db20, db22, db24 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 16, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      q_hyst_r13_e_() {}
-      q_hyst_r13_e_(options v) : value(v) {}
-      q_hyst_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<q_hyst_r13_opts, 16, 0, false> q_hyst_r13_e_;
 
     // member variables
     q_hyst_r13_e_ q_hyst_r13;
@@ -49854,26 +41007,14 @@ struct sl_disc_sys_info_report_r13_s {
     uint8_t       t_resel_eutra_r13;
   };
   struct freq_info_r13_s_ {
-    struct ul_bw_r13_e_ {
-      enum options { n6, n15, n25, n50, n75, n100 };
+    struct ul_bw_r13_opts {
+      enum options { n6, n15, n25, n50, n75, n100 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 6, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      ul_bw_r13_e_() {}
-      ul_bw_r13_e_(options v) : value(v) {}
-      ul_bw_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<ul_bw_r13_opts, 6, 0, false> ul_bw_r13_e_;
 
     // member variables
     bool         ul_carrier_freq_r13_present;
@@ -49992,26 +41133,14 @@ struct sidelink_ue_info_v1530_ies_s {
 
 // TrafficPatternInfo-r14 ::= SEQUENCE
 struct traffic_pattern_info_r14_s {
-  struct traffic_periodicity_r14_e_ {
-    enum options { sf20, sf50, sf100, sf200, sf300, sf400, sf500, sf600, sf700, sf800, sf900, sf1000 };
+  struct traffic_periodicity_r14_opts {
+    enum options { sf20, sf50, sf100, sf200, sf300, sf400, sf500, sf600, sf700, sf800, sf900, sf1000 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 12, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    traffic_periodicity_r14_e_() {}
-    traffic_periodicity_r14_e_(options v) : value(v) {}
-    traffic_periodicity_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<traffic_periodicity_r14_opts, 12, 0, false> traffic_periodicity_r14_e_;
 
   // member variables
   bool                       prio_info_sl_r14_present;
@@ -50031,46 +41160,22 @@ struct traffic_pattern_info_r14_s {
 
 // UE-RadioPagingInfo-r12 ::= SEQUENCE
 struct ue_radio_paging_info_r12_s {
-  struct wake_up_signal_min_gap_e_drx_r15_e_ {
-    enum options { ms40, ms240, ms1000, ms2000 };
+  struct wake_up_signal_min_gap_e_drx_r15_opts {
+    enum options { ms40, ms240, ms1000, ms2000 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    wake_up_signal_min_gap_e_drx_r15_e_() {}
-    wake_up_signal_min_gap_e_drx_r15_e_(options v) : value(v) {}
-    wake_up_signal_min_gap_e_drx_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
-  struct wake_up_signal_min_gap_e_drx_tdd_r15_e_ {
-    enum options { ms40, ms240, ms1000, ms2000 };
+  typedef enumerated<wake_up_signal_min_gap_e_drx_r15_opts, 4, 0, false> wake_up_signal_min_gap_e_drx_r15_e_;
+  struct wake_up_signal_min_gap_e_drx_tdd_r15_opts {
+    enum options { ms40, ms240, ms1000, ms2000 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    wake_up_signal_min_gap_e_drx_tdd_r15_e_() {}
-    wake_up_signal_min_gap_e_drx_tdd_r15_e_(options v) : value(v) {}
-    wake_up_signal_min_gap_e_drx_tdd_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<wake_up_signal_min_gap_e_drx_tdd_r15_opts, 4, 0, false> wake_up_signal_min_gap_e_drx_tdd_r15_e_;
 
   // member variables
   bool    ext;
@@ -50132,26 +41237,14 @@ struct ue_info_resp_v1130_ies_s {
 
 // UL-PDCP-DelayResult-r13 ::= SEQUENCE
 struct ul_pdcp_delay_result_r13_s {
-  struct qci_id_r13_e_ {
-    enum options { qci1, qci2, qci3, qci4, spare4, spare3, spare2, spare1 };
+  struct qci_id_r13_opts {
+    enum options { qci1, qci2, qci3, qci4, spare4, spare3, spare2, spare1 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    qci_id_r13_e_() {}
-    qci_id_r13_e_(options v) : value(v) {}
-    qci_id_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<qci_id_r13_opts, 8, 0, false> qci_id_r13_e_;
 
   // member variables
   bool          ext;
@@ -50168,24 +41261,12 @@ struct ul_pdcp_delay_result_r13_s {
 
 // AffectedCarrierFreq-r11 ::= SEQUENCE
 struct affected_carrier_freq_r11_s {
-  struct interference_direction_r11_e_ {
-    enum options { eutra, other, both, spare };
+  struct interference_direction_r11_opts {
+    enum options { eutra, other, both, spare } value;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    interference_direction_r11_e_() {}
-    interference_direction_r11_e_(options v) : value(v) {}
-    interference_direction_r11_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<interference_direction_r11_opts, 4, 0, false> interference_direction_r11_e_;
 
   // member variables
   uint8_t                       carrier_freq_r11;
@@ -50202,48 +41283,24 @@ typedef dyn_array<affected_carrier_freq_comb_r11_l> affected_carrier_freq_comb_l
 
 // BW-Preference-r14 ::= SEQUENCE
 struct bw_pref_r14_s {
-  struct dl_pref_r14_e_ {
-    enum options { mhz1dot4, mhz5, mhz20 };
+  struct dl_pref_r14_opts {
+    enum options { mhz1dot4, mhz5, mhz20 } value;
     typedef float number_type;
 
-    options               value;
-    static const uint32_t nof_types = 3, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    dl_pref_r14_e_() {}
-    dl_pref_r14_e_(options v) : value(v) {}
-    dl_pref_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     float       to_number() const;
     std::string to_number_string() const;
   };
-  struct ul_pref_r14_e_ {
-    enum options { mhz1dot4, mhz5 };
+  typedef enumerated<dl_pref_r14_opts, 3, 0, false> dl_pref_r14_e_;
+  struct ul_pref_r14_opts {
+    enum options { mhz1dot4, mhz5 } value;
     typedef float number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    ul_pref_r14_e_() {}
-    ul_pref_r14_e_(options v) : value(v) {}
-    ul_pref_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     float       to_number() const;
     std::string to_number_string() const;
   };
+  typedef enumerated<ul_pref_r14_opts, 2, 0, false> ul_pref_r14_e_;
 
   // member variables
   bool           dl_pref_r14_present;
@@ -50288,7 +41345,7 @@ struct count_resp_info_r10_s {
 
 // DelayBudgetReport-r14 ::= CHOICE
 struct delay_budget_report_r14_c {
-  struct type1_e_ {
+  struct type1_opts {
     enum options {
       ms_minus1280,
       ms_minus640,
@@ -50307,26 +41364,14 @@ struct delay_budget_report_r14_c {
       ms320,
       ms640,
       ms1280
-    };
+    } value;
     typedef int16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 17, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    type1_e_() {}
-    type1_e_(options v) : value(v) {}
-    type1_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     int16_t     to_number() const;
   };
-  struct type2_e_ {
+  typedef enumerated<type1_opts, 17, 0, false> type1_e_;
+  struct type2_opts {
     enum options {
       ms_minus192,
       ms_minus168,
@@ -50345,45 +41390,21 @@ struct delay_budget_report_r14_c {
       ms144,
       ms168,
       ms192
-    };
+    } value;
     typedef int16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 17, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    type2_e_() {}
-    type2_e_(options v) : value(v) {}
-    type2_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     int16_t     to_number() const;
   };
-  struct types {
-    enum options { type1, type2, nulltype };
+  typedef enumerated<type2_opts, 17, 0, false> type2_e_;
+  struct types_opts {
+    enum options { type1, type2, nulltype } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<types_opts, 2, 0, false> types;
 
   // choice methods
   delay_budget_report_r14_c() : type_(types::nulltype) {}
@@ -50560,42 +41581,18 @@ struct rrc_conn_reest_complete_v8a0_ies_s {
 
 // RRCConnectionSetupComplete-v1020-IEs ::= SEQUENCE
 struct rrc_conn_setup_complete_v1020_ies_s {
-  struct gummei_type_r10_e_ {
-    enum options { native, mapped };
+  struct gummei_type_r10_opts {
+    enum options { native, mapped } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    gummei_type_r10_e_() {}
-    gummei_type_r10_e_(options v) : value(v) {}
-    gummei_type_r10_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
-  struct rn_sf_cfg_req_r10_e_ {
-    enum options { required, not_required };
+  typedef enumerated<gummei_type_r10_opts, 2, 0, false> gummei_type_r10_e_;
+  struct rn_sf_cfg_req_r10_opts {
+    enum options { required, not_required } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    rn_sf_cfg_req_r10_e_() {}
-    rn_sf_cfg_req_r10_e_(options v) : value(v) {}
-    rn_sf_cfg_req_r10_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<rn_sf_cfg_req_r10_opts, 2, 0, false> rn_sf_cfg_req_r10_e_;
 
   // member variables
   bool                                gummei_type_r10_present;
@@ -50617,7 +41614,7 @@ struct rrc_conn_setup_complete_v1020_ies_s {
 // RSTD-InterFreqInfo-r10 ::= SEQUENCE
 struct rstd_inter_freq_info_r10_s {
   struct meas_prs_offset_r15_c_ {
-    struct types {
+    struct types_opts {
       enum options {
         rstd0_r15,
         rstd1_r15,
@@ -50641,25 +41638,13 @@ struct rstd_inter_freq_info_r10_s {
         rstd19_r15,
         rstd20_r15,
         nulltype
-      };
+      } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 21, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<types_opts, 21, 0, false> types;
 
     // choice methods
     meas_prs_offset_r15_c_() : type_(types::nulltype) {}
@@ -51042,24 +42027,12 @@ struct ue_info_resp_v9e0_ies_s {
 typedef dyn_array<ul_pdcp_delay_result_r13_s> ul_pdcp_delay_result_list_r13_l;
 
 // WLAN-Status-v1430 ::= ENUMERATED
-struct wlan_status_v1430_e {
-  enum options { suspended, resumed };
+struct wlan_status_v1430_opts {
+  enum options { suspended, resumed } value;
 
-  options               value;
-  static const uint32_t nof_types = 2, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  wlan_status_v1430_e() {}
-  wlan_status_v1430_e(options v) : value(v) {}
-  wlan_status_v1430_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
 };
+typedef enumerated<wlan_status_v1430_opts, 2, 0, false> wlan_status_v1430_e;
 
 // AffectedCarrierFreqList-r11 ::= SEQUENCE (SIZE (1..maxFreqIDC-r11)) OF AffectedCarrierFreq-r11
 typedef dyn_array<affected_carrier_freq_r11_s> affected_carrier_freq_list_r11_l;
@@ -51104,7 +42077,7 @@ typedef dyn_array<drb_count_info_s> drb_count_info_list_l;
 
 // FailureReportSCG-NR-r15 ::= SEQUENCE
 struct fail_report_scg_nr_r15_s {
-  struct fail_type_r15_e_ {
+  struct fail_type_r15_opts {
     enum options {
       t310_expiry,
       random_access_problem,
@@ -51112,25 +42085,13 @@ struct fail_report_scg_nr_r15_s {
       scg_change_fail,
       scg_recfg_fail,
       srb3_integrity_fail
-    };
+    } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 6, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    fail_type_r15_e_() {}
-    fail_type_r15_e_(options v) : value(v) {}
-    fail_type_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<fail_type_r15_opts, 6, 0, false> fail_type_r15_e_;
 
   // member variables
   bool                                ext;
@@ -51150,26 +42111,14 @@ struct fail_report_scg_nr_r15_s {
 
 // FailureReportSCG-r12 ::= SEQUENCE
 struct fail_report_scg_r12_s {
-  struct fail_type_r12_e_ {
-    enum options { t313_expiry, random_access_problem, rlc_max_num_retx, scg_change_fail };
+  struct fail_type_r12_opts {
+    enum options { t313_expiry, random_access_problem, rlc_max_num_retx, scg_change_fail } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    fail_type_r12_e_() {}
-    fail_type_r12_e_(options v) : value(v) {}
-    fail_type_r12_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<fail_type_r12_opts, 4, 0, false> fail_type_r12_e_;
 
   // member variables
   bool                             ext;
@@ -51239,7 +42188,7 @@ struct meas_results_s {
     uint8_t rsrq_result;
   };
   struct meas_result_neigh_cells_c_ {
-    struct types {
+    struct types_opts {
       enum options {
         meas_result_list_eutra,
         meas_result_list_utra,
@@ -51248,25 +42197,13 @@ struct meas_results_s {
         // ...
         meas_result_neigh_cell_list_nr_r15,
         nulltype
-      };
+      } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 5, nof_exts = 1;
-      static const bool     has_ext = true;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
+    typedef enumerated<types_opts, 5, 1, true> types;
 
     // choice methods
     meas_result_neigh_cells_c_() : type_(types::nulltype) {}
@@ -51468,24 +42405,12 @@ struct rlf_report_r9_s {
       uint16_t pci_r10;
       uint16_t carrier_freq_r10;
     };
-    struct types {
-      enum options { cell_global_id_r10, pci_arfcn_r10, nulltype };
+    struct types_opts {
+      enum options { cell_global_id_r10, pci_arfcn_r10, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     failed_pcell_id_r10_c_() : type_(types::nulltype) {}
@@ -51525,49 +42450,25 @@ struct rlf_report_r9_s {
 
     void destroy_();
   };
-  struct conn_fail_type_r10_e_ {
-    enum options { rlf, hof };
+  struct conn_fail_type_r10_opts {
+    enum options { rlf, hof } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    conn_fail_type_r10_e_() {}
-    conn_fail_type_r10_e_(options v) : value(v) {}
-    conn_fail_type_r10_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<conn_fail_type_r10_opts, 2, 0, false> conn_fail_type_r10_e_;
   struct failed_pcell_id_v1090_s_ {
     // member variables
     uint32_t carrier_freq_v1090;
   };
   struct basic_fields_r11_s_ {
-    struct rlf_cause_r11_e_ {
-      enum options { t310_expiry, random_access_problem, rlc_max_num_retx, t312_expiry_r12 };
+    struct rlf_cause_r11_opts {
+      enum options { t310_expiry, random_access_problem, rlc_max_num_retx, t312_expiry_r12 } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      rlf_cause_r11_e_() {}
-      rlf_cause_r11_e_(options v) : value(v) {}
-      rlf_cause_r11_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
+    typedef enumerated<rlf_cause_r11_opts, 4, 0, false> rlf_cause_r11_e_;
 
     // member variables
     fixed_bitstring<16> c_rnti_r11;
@@ -51576,24 +42477,12 @@ struct rlf_report_r9_s {
   };
   struct prev_utra_cell_id_r11_s_ {
     struct pci_r11_c_ {
-      struct types {
-        enum options { fdd_r11, tdd_r11, nulltype };
+      struct types_opts {
+        enum options { fdd_r11, tdd_r11, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 2, 0, false> types;
 
       // choice methods
       pci_r11_c_() : type_(types::nulltype) {}
@@ -51645,24 +42534,12 @@ struct rlf_report_r9_s {
   };
   struct sel_utra_cell_id_r11_s_ {
     struct pci_r11_c_ {
-      struct types {
-        enum options { fdd_r11, tdd_r11, nulltype };
+      struct types_opts {
+        enum options { fdd_r11, tdd_r11, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 2, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 2, 0, false> types;
 
       // choice methods
       pci_r11_c_() : type_(types::nulltype) {}
@@ -51891,24 +42768,12 @@ struct security_mode_fail_v8a0_ies_s {
 // SidelinkUEInformation-v1310-IEs ::= SEQUENCE
 struct sidelink_ue_info_v1310_ies_s {
   struct comm_tx_res_info_req_relay_r13_s_ {
-    struct ue_type_r13_e_ {
-      enum options { relay_ue, remote_ue };
+    struct ue_type_r13_opts {
+      enum options { relay_ue, remote_ue } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      ue_type_r13_e_() {}
-      ue_type_r13_e_(options v) : value(v) {}
-      ue_type_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<ue_type_r13_opts, 2, 0, false> ue_type_r13_e_;
 
     // member variables
     bool                     comm_tx_res_req_relay_r13_present;
@@ -51959,46 +42824,22 @@ struct sidelink_ue_info_v1310_ies_s {
 // TDM-AssistanceInfo-r11 ::= CHOICE
 struct tdm_assist_info_r11_c {
   struct drx_assist_info_r11_s_ {
-    struct drx_cycle_len_r11_e_ {
-      enum options { sf40, sf64, sf80, sf128, sf160, sf256, spare2, spare1 };
+    struct drx_cycle_len_r11_opts {
+      enum options { sf40, sf64, sf80, sf128, sf160, sf256, spare2, spare1 } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      drx_cycle_len_r11_e_() {}
-      drx_cycle_len_r11_e_(options v) : value(v) {}
-      drx_cycle_len_r11_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
-    struct drx_active_time_r11_e_ {
-      enum options { sf20, sf30, sf40, sf60, sf80, sf100, spare2, spare1 };
+    typedef enumerated<drx_cycle_len_r11_opts, 8, 0, false> drx_cycle_len_r11_e_;
+    struct drx_active_time_r11_opts {
+      enum options { sf20, sf30, sf40, sf60, sf80, sf100, spare2, spare1 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 8, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      drx_active_time_r11_e_() {}
-      drx_active_time_r11_e_(options v) : value(v) {}
-      drx_active_time_r11_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<drx_active_time_r11_opts, 8, 0, false> drx_active_time_r11_e_;
 
     // member variables
     bool                   drx_offset_r11_present;
@@ -52009,24 +42850,12 @@ struct tdm_assist_info_r11_c {
     // sequence methods
     drx_assist_info_r11_s_();
   };
-  struct types {
-    enum options { drx_assist_info_r11, idc_sf_pattern_list_r11, /*...*/ nulltype };
+  struct types_opts {
+    enum options { drx_assist_info_r11, idc_sf_pattern_list_r11, /*...*/ nulltype } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = true;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<types_opts, 2, 0, true> types;
 
   // choice methods
   tdm_assist_info_r11_c() : type_(types::nulltype) {}
@@ -52083,44 +42912,20 @@ struct ueassist_info_v1430_ies_s {
     sps_assist_info_r14_s_();
   };
   struct rlm_report_r14_s_ {
-    struct rlm_event_r14_e_ {
-      enum options { early_out_of_sync, early_in_sync };
+    struct rlm_event_r14_opts {
+      enum options { early_out_of_sync, early_in_sync } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      rlm_event_r14_e_() {}
-      rlm_event_r14_e_(options v) : value(v) {}
-      rlm_event_r14_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
-    struct excess_rep_mpdcch_r14_e_ {
-      enum options { excess_rep1, excess_rep2 };
+    typedef enumerated<rlm_event_r14_opts, 2, 0, false> rlm_event_r14_e_;
+    struct excess_rep_mpdcch_r14_opts {
+      enum options { excess_rep1, excess_rep2 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      excess_rep_mpdcch_r14_e_() {}
-      excess_rep_mpdcch_r14_e_(options v) : value(v) {}
-      excess_rep_mpdcch_r14_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<excess_rep_mpdcch_r14_opts, 2, 0, false> excess_rep_mpdcch_r14_e_;
 
     // member variables
     bool                     excess_rep_mpdcch_r14_present;
@@ -52209,24 +43014,12 @@ struct ul_info_transfer_v8a0_ies_s {
 };
 
 // WLAN-Status-r13 ::= ENUMERATED
-struct wlan_status_r13_e {
-  enum options { successful_association, fail_wlan_radio_link, fail_wlan_unavailable, fail_timeout };
+struct wlan_status_r13_opts {
+  enum options { successful_association, fail_wlan_radio_link, fail_wlan_unavailable, fail_timeout } value;
 
-  options               value;
-  static const uint32_t nof_types = 4, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  wlan_status_r13_e() {}
-  wlan_status_r13_e(options v) : value(v) {}
-  wlan_status_r13_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
 };
+typedef enumerated<wlan_status_r13_opts, 4, 0, false> wlan_status_r13_e;
 
 // WLANConnectionStatusReport-v1430-IEs ::= SEQUENCE
 struct wlan_conn_status_report_v1430_ies_s {
@@ -52271,24 +43064,12 @@ struct counter_check_resp_r8_ies_s {
 // FailedLogicalChannelInfo-r15 ::= SEQUENCE
 struct failed_lc_ch_info_r15_s {
   struct failed_lc_ch_id_r15_s_ {
-    struct cell_group_ind_r15_e_ {
-      enum options { mn, sn };
+    struct cell_group_ind_r15_opts {
+      enum options { mn, sn } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      cell_group_ind_r15_e_() {}
-      cell_group_ind_r15_e_(options v) : value(v) {}
-      cell_group_ind_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<cell_group_ind_r15_opts, 2, 0, false> cell_group_ind_r15_e_;
 
     // member variables
     bool                  lc_ch_id_r15_present;
@@ -52300,24 +43081,12 @@ struct failed_lc_ch_info_r15_s {
     // sequence methods
     failed_lc_ch_id_r15_s_();
   };
-  struct fail_type_e_ {
-    enum options { dupl, spare3, spare2, spare1 };
+  struct fail_type_opts {
+    enum options { dupl, spare3, spare2, spare1 } value;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    fail_type_e_() {}
-    fail_type_e_(options v) : value(v) {}
-    fail_type_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<fail_type_opts, 4, 0, false> fail_type_e_;
 
   // member variables
   failed_lc_ch_id_r15_s_ failed_lc_ch_id_r15;
@@ -52355,24 +43124,12 @@ struct inter_freq_rstd_meas_ind_r10_ies_s {
       // member variables
       rstd_inter_freq_info_list_r10_l rstd_inter_freq_info_list_r10;
     };
-    struct types {
-      enum options { start, stop, nulltype };
+    struct types_opts {
+      enum options { start, stop, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     rstd_inter_freq_ind_r10_c_() : type_(types::nulltype) {}
@@ -52449,24 +43206,12 @@ struct mbms_interest_ind_r11_ies_s {
 
 // MeasReportAppLayer-r15-IEs ::= SEQUENCE
 struct meas_report_app_layer_r15_ies_s {
-  struct service_type_e_ {
-    enum options { qoe, qoemtsi, spare6, spare5, spare4, spare3, spare2, spare1 };
+  struct service_type_opts {
+    enum options { qoe, qoemtsi, spare6, spare5, spare4, spare3, spare2, spare1 } value;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    service_type_e_() {}
-    service_type_e_(options v) : value(v) {}
-    service_type_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<service_type_opts, 8, 0, false> service_type_e_;
 
   // member variables
   bool            meas_report_app_layer_container_r15_present;
@@ -52498,45 +43243,21 @@ struct meas_report_r8_ies_s {
 
 // ProximityIndication-r9-IEs ::= SEQUENCE
 struct proximity_ind_r9_ies_s {
-  struct type_r9_e_ {
-    enum options { entering, leaving };
+  struct type_r9_opts {
+    enum options { entering, leaving } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    type_r9_e_() {}
-    type_r9_e_(options v) : value(v) {}
-    type_r9_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<type_r9_opts, 2, 0, false> type_r9_e_;
   struct carrier_freq_r9_c_ {
-    struct types {
-      enum options { eutra_r9, utra_r9, /*...*/ eutra2_v9e0, nulltype };
+    struct types_opts {
+      enum options { eutra_r9, utra_r9, /*...*/ eutra2_v9e0, nulltype } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 3, nof_exts = 1;
-      static const bool     has_ext = true;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<types_opts, 3, 1, true> types;
 
     // choice methods
     carrier_freq_r9_c_() : type_(types::nulltype) {}
@@ -52642,24 +43363,12 @@ struct rrc_conn_reest_complete_r8_ies_s {
 
 // RRCConnectionResumeComplete-r13-IEs ::= SEQUENCE
 struct rrc_conn_resume_complete_r13_ies_s {
-  struct mob_state_r13_e_ {
-    enum options { normal, medium, high, spare };
+  struct mob_state_r13_opts {
+    enum options { normal, medium, high, spare } value;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    mob_state_r13_e_() {}
-    mob_state_r13_e_(options v) : value(v) {}
-    mob_state_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<mob_state_r13_opts, 4, 0, false> mob_state_r13_e_;
 
   // member variables
   bool                                 sel_plmn_id_r13_present;
@@ -52781,24 +43490,12 @@ struct sidelink_ue_info_r12_ies_s {
 
 // UEAssistanceInformation-r11-IEs ::= SEQUENCE
 struct ueassist_info_r11_ies_s {
-  struct pwr_pref_ind_r11_e_ {
-    enum options { normal, low_pwr_consumption };
+  struct pwr_pref_ind_r11_opts {
+    enum options { normal, low_pwr_consumption } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    pwr_pref_ind_r11_e_() {}
-    pwr_pref_ind_r11_e_(options v) : value(v) {}
-    pwr_pref_ind_r11_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<pwr_pref_ind_r11_opts, 2, 0, false> pwr_pref_ind_r11_e_;
 
   // member variables
   bool                      pwr_pref_ind_r11_present;
@@ -52872,24 +43569,12 @@ struct ul_ho_prep_transfer_r8_ies_s {
 // ULInformationTransfer-r8-IEs ::= SEQUENCE
 struct ul_info_transfer_r8_ies_s {
   struct ded_info_type_c_ {
-    struct types {
-      enum options { ded_info_nas, ded_info_cdma2000_minus1_xrtt, ded_info_cdma2000_hrpd, nulltype };
+    struct types_opts {
+      enum options { ded_info_nas, ded_info_cdma2000_minus1_xrtt, ded_info_cdma2000_hrpd, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 3, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 3, 0, false> types;
 
     // choice methods
     ded_info_type_c_() : type_(types::nulltype) {}
@@ -52987,26 +43672,14 @@ struct wlan_conn_status_report_r13_ies_s {
 // CSFBParametersRequestCDMA2000 ::= SEQUENCE
 struct csfb_params_request_cdma2000_s {
   struct crit_exts_c_ {
-    struct types {
-      enum options { csfb_params_request_cdma2000_r8, crit_exts_future, nulltype };
+    struct types_opts {
+      enum options { csfb_params_request_cdma2000_r8, crit_exts_future, nulltype } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     crit_exts_c_() : type_(types::nulltype) {}
@@ -53049,24 +43722,12 @@ struct csfb_params_request_cdma2000_s {
 // CounterCheckResponse ::= SEQUENCE
 struct counter_check_resp_s {
   struct crit_exts_c_ {
-    struct types {
-      enum options { counter_check_resp_r8, crit_exts_future, nulltype };
+    struct types_opts {
+      enum options { counter_check_resp_r8, crit_exts_future, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     crit_exts_c_() : type_(types::nulltype) {}
@@ -53124,24 +43785,12 @@ struct fail_info_r15_s {
 struct in_dev_coex_ind_r11_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { in_dev_coex_ind_r11, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { in_dev_coex_ind_r11, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 4, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -53210,24 +43859,12 @@ struct in_dev_coex_ind_r11_s {
 struct inter_freq_rstd_meas_ind_r10_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { inter_freq_rstd_meas_ind_r10, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { inter_freq_rstd_meas_ind_r10, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 4, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -53296,24 +43933,12 @@ struct inter_freq_rstd_meas_ind_r10_s {
 struct mbms_count_resp_r10_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { count_resp_r10, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { count_resp_r10, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 4, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -53382,24 +44007,12 @@ struct mbms_count_resp_r10_s {
 struct mbms_interest_ind_r11_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { interest_ind_r11, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { interest_ind_r11, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 4, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -53467,24 +44080,12 @@ struct mbms_interest_ind_r11_s {
 // MeasReportAppLayer-r15 ::= SEQUENCE
 struct meas_report_app_layer_r15_s {
   struct crit_exts_c_ {
-    struct types {
-      enum options { meas_report_app_layer_r15, crit_exts_future, nulltype };
+    struct types_opts {
+      enum options { meas_report_app_layer_r15, crit_exts_future, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     crit_exts_c_() : type_(types::nulltype) {}
@@ -53528,24 +44129,12 @@ struct meas_report_app_layer_r15_s {
 struct meas_report_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { meas_report_r8, spare7, spare6, spare5, spare4, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { meas_report_r8, spare7, spare6, spare5, spare4, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 8, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 8, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -53614,24 +44203,12 @@ struct meas_report_s {
 struct proximity_ind_r9_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { proximity_ind_r9, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { proximity_ind_r9, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 4, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -53700,24 +44277,12 @@ struct proximity_ind_r9_s {
 struct rn_recfg_complete_r10_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { rn_recfg_complete_r10, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { rn_recfg_complete_r10, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 4, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -53786,24 +44351,12 @@ struct rn_recfg_complete_r10_s {
 // RRCConnectionReconfigurationComplete ::= SEQUENCE
 struct rrc_conn_recfg_complete_s {
   struct crit_exts_c_ {
-    struct types {
-      enum options { rrc_conn_recfg_complete_r8, crit_exts_future, nulltype };
+    struct types_opts {
+      enum options { rrc_conn_recfg_complete_r8, crit_exts_future, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     crit_exts_c_() : type_(types::nulltype) {}
@@ -53847,24 +44400,12 @@ struct rrc_conn_recfg_complete_s {
 // RRCConnectionReestablishmentComplete ::= SEQUENCE
 struct rrc_conn_reest_complete_s {
   struct crit_exts_c_ {
-    struct types {
-      enum options { rrc_conn_reest_complete_r8, crit_exts_future, nulltype };
+    struct types_opts {
+      enum options { rrc_conn_reest_complete_r8, crit_exts_future, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     crit_exts_c_() : type_(types::nulltype) {}
@@ -53908,24 +44449,12 @@ struct rrc_conn_reest_complete_s {
 // RRCConnectionResumeComplete-r13 ::= SEQUENCE
 struct rrc_conn_resume_complete_r13_s {
   struct crit_exts_c_ {
-    struct types {
-      enum options { rrc_conn_resume_complete_r13, crit_exts_future, nulltype };
+    struct types_opts {
+      enum options { rrc_conn_resume_complete_r13, crit_exts_future, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     crit_exts_c_() : type_(types::nulltype) {}
@@ -53970,24 +44499,12 @@ struct rrc_conn_resume_complete_r13_s {
 struct rrc_conn_setup_complete_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { rrc_conn_setup_complete_r8, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { rrc_conn_setup_complete_r8, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 4, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -54057,24 +44574,12 @@ struct rrc_conn_setup_complete_s {
 struct scg_fail_info_r12_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { scg_fail_info_r12, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { scg_fail_info_r12, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 4, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -54143,24 +44648,12 @@ struct scg_fail_info_r12_s {
 struct scg_fail_info_nr_r15_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { scg_fail_info_nr_r15, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { scg_fail_info_nr_r15, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 4, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -54228,24 +44721,12 @@ struct scg_fail_info_nr_r15_s {
 // SecurityModeComplete ::= SEQUENCE
 struct security_mode_complete_s {
   struct crit_exts_c_ {
-    struct types {
-      enum options { security_mode_complete_r8, crit_exts_future, nulltype };
+    struct types_opts {
+      enum options { security_mode_complete_r8, crit_exts_future, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     crit_exts_c_() : type_(types::nulltype) {}
@@ -54289,24 +44770,12 @@ struct security_mode_complete_s {
 // SecurityModeFailure ::= SEQUENCE
 struct security_mode_fail_s {
   struct crit_exts_c_ {
-    struct types {
-      enum options { security_mode_fail_r8, crit_exts_future, nulltype };
+    struct types_opts {
+      enum options { security_mode_fail_r8, crit_exts_future, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     crit_exts_c_() : type_(types::nulltype) {}
@@ -54351,24 +44820,12 @@ struct security_mode_fail_s {
 struct sidelink_ue_info_r12_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { sidelink_ue_info_r12, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { sidelink_ue_info_r12, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 4, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -54437,24 +44894,12 @@ struct sidelink_ue_info_r12_s {
 struct ueassist_info_r11_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { ue_assist_info_r11, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { ue_assist_info_r11, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 4, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -54523,24 +44968,12 @@ struct ueassist_info_r11_s {
 struct ue_cap_info_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { ue_cap_info_r8, spare7, spare6, spare5, spare4, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { ue_cap_info_r8, spare7, spare6, spare5, spare4, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 8, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 8, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -54610,24 +45043,12 @@ struct ue_cap_info_s {
 struct ue_info_resp_r9_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { ue_info_resp_r9, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { ue_info_resp_r9, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 4, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -54697,24 +45118,12 @@ struct ue_info_resp_r9_s {
 struct ul_ho_prep_transfer_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { ul_ho_prep_transfer_r8, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { ul_ho_prep_transfer_r8, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 4, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -54783,24 +45192,12 @@ struct ul_ho_prep_transfer_s {
 struct ul_info_transfer_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { ul_info_transfer_r8, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { ul_info_transfer_r8, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 4, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -54869,24 +45266,12 @@ struct ul_info_transfer_s {
 struct ul_info_transfer_mrdc_r15_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { ul_info_transfer_mrdc_r15, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { ul_info_transfer_mrdc_r15, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 4, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -54955,24 +45340,12 @@ struct ul_info_transfer_mrdc_r15_s {
 struct wlan_conn_status_report_r13_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { wlan_conn_status_report_r13, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { wlan_conn_status_report_r13, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 4, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 4, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -55040,7 +45413,7 @@ struct wlan_conn_status_report_r13_s {
 // UL-DCCH-MessageType ::= CHOICE
 struct ul_dcch_msg_type_c {
   struct c1_c_ {
-    struct types {
+    struct types_opts {
       enum options {
         csfb_params_request_cdma2000,
         meas_report,
@@ -55059,25 +45432,13 @@ struct ul_dcch_msg_type_c {
         mbms_count_resp_r10,
         inter_freq_rstd_meas_ind_r10,
         nulltype
-      };
+      } value;
       typedef uint16_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 16, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint16_t    to_number() const;
     };
+    typedef enumerated<types_opts, 16, 0, false> types;
 
     // choice methods
     c1_c_() : type_(types::nulltype) {}
@@ -55265,7 +45626,7 @@ struct ul_dcch_msg_type_c {
   };
   struct msg_class_ext_c_ {
     struct c2_c_ {
-      struct types {
+      struct types_opts {
         enum options {
           ue_assist_info_r11,
           in_dev_coex_ind_r11,
@@ -55284,23 +45645,11 @@ struct ul_dcch_msg_type_c {
           spare2,
           spare1,
           nulltype
-        };
+        } value;
 
-        options               value;
-        static const uint32_t nof_types = 16, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 16, 0, false> types;
 
       // choice methods
       c2_c_() : type_(types::nulltype) {}
@@ -55435,26 +45784,14 @@ struct ul_dcch_msg_type_c {
 
       void destroy_();
     };
-    struct types {
-      enum options { c2, msg_class_ext_future_r11, nulltype };
+    struct types_opts {
+      enum options { c2, msg_class_ext_future_r11, nulltype } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     msg_class_ext_c_() : type_(types::nulltype) {}
@@ -55484,26 +45821,14 @@ struct ul_dcch_msg_type_c {
 
     void destroy_();
   };
-  struct types {
-    enum options { c1, msg_class_ext, nulltype };
+  struct types_opts {
+    enum options { c1, msg_class_ext, nulltype } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<types_opts, 2, 0, false> types;
 
   // choice methods
   ul_dcch_msg_type_c() : type_(types::nulltype) {}
@@ -55601,48 +45926,24 @@ struct band_info_eutra_s {
 typedef dyn_array<band_info_eutra_s> band_combination_list_eutra_r10_l;
 
 // MIMO-CapabilityDL-r10 ::= ENUMERATED
-struct mimo_cap_dl_r10_e {
-  enum options { two_layers, four_layers, eight_layers };
+struct mimo_cap_dl_r10_opts {
+  enum options { two_layers, four_layers, eight_layers } value;
   typedef uint8_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 3, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  mimo_cap_dl_r10_e() {}
-  mimo_cap_dl_r10_e(options v) : value(v) {}
-  mimo_cap_dl_r10_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint8_t     to_number() const;
 };
+typedef enumerated<mimo_cap_dl_r10_opts, 3, 0, false> mimo_cap_dl_r10_e;
 
 // MIMO-CapabilityUL-r10 ::= ENUMERATED
-struct mimo_cap_ul_r10_e {
-  enum options { two_layers, four_layers };
+struct mimo_cap_ul_r10_opts {
+  enum options { two_layers, four_layers } value;
   typedef uint8_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 2, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  mimo_cap_ul_r10_e() {}
-  mimo_cap_ul_r10_e(options v) : value(v) {}
-  mimo_cap_ul_r10_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint8_t     to_number() const;
 };
+typedef enumerated<mimo_cap_ul_r10_opts, 2, 0, false> mimo_cap_ul_r10_e;
 
 // CA-MIMO-ParametersDL-r10 ::= SEQUENCE
 struct ca_mimo_params_dl_r10_s {
@@ -55699,26 +46000,14 @@ typedef dyn_array<band_params_r10_s> band_combination_params_r10_l;
 
 // BandParameters-r11 ::= SEQUENCE
 struct band_params_r11_s {
-  struct supported_csi_proc_r11_e_ {
-    enum options { n1, n3, n4 };
+  struct supported_csi_proc_r11_opts {
+    enum options { n1, n3, n4 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 3, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    supported_csi_proc_r11_e_() {}
-    supported_csi_proc_r11_e_(options v) : value(v) {}
-    supported_csi_proc_r11_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<supported_csi_proc_r11_opts, 3, 0, false> supported_csi_proc_r11_e_;
 
   // member variables
   bool                      band_params_ul_r11_present;
@@ -55759,26 +46048,14 @@ struct band_combination_params_r11_s {
 
 // IntraBandContiguousCC-Info-r12 ::= SEQUENCE
 struct intra_band_contiguous_cc_info_r12_s {
-  struct supported_csi_proc_r12_e_ {
-    enum options { n1, n3, n4 };
+  struct supported_csi_proc_r12_opts {
+    enum options { n1, n3, n4 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 3, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    supported_csi_proc_r12_e_() {}
-    supported_csi_proc_r12_e_(options v) : value(v) {}
-    supported_csi_proc_r12_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<supported_csi_proc_r12_opts, 3, 0, false> supported_csi_proc_r12_e_;
 
   // member variables
   bool                      four_layer_tm3_tm4_per_cc_r12_present;
@@ -55820,26 +46097,14 @@ typedef ca_mimo_params_ul_r10_s band_params_ul_r13_s;
 
 // BandParameters-r13 ::= SEQUENCE
 struct band_params_r13_s {
-  struct supported_csi_proc_r13_e_ {
-    enum options { n1, n3, n4 };
+  struct supported_csi_proc_r13_opts {
+    enum options { n1, n3, n4 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 3, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    supported_csi_proc_r13_e_() {}
-    supported_csi_proc_r13_e_(options v) : value(v) {}
-    supported_csi_proc_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<supported_csi_proc_r13_opts, 3, 0, false> supported_csi_proc_r13_e_;
 
   // member variables
   bool                      band_params_ul_r13_present;
@@ -55862,26 +46127,14 @@ struct band_combination_params_r13_s {
   typedef dyn_array<band_params_r13_s> band_param_list_r13_l_;
   struct dc_support_r13_s_ {
     struct supported_cell_grouping_r13_c_ {
-      struct types {
-        enum options { three_entries_r13, four_entries_r13, five_entries_r13, nulltype };
+      struct types_opts {
+        enum options { three_entries_r13, four_entries_r13, five_entries_r13, nulltype } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 3, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
+      typedef enumerated<types_opts, 3, 0, false> types;
 
       // choice methods
       supported_cell_grouping_r13_c_() : type_(types::nulltype) {}
@@ -56023,26 +46276,14 @@ struct band_combination_params_v10i0_s {
 
 // BandParameters-v1130 ::= SEQUENCE
 struct band_params_v1130_s {
-  struct supported_csi_proc_r11_e_ {
-    enum options { n1, n3, n4 };
+  struct supported_csi_proc_r11_opts {
+    enum options { n1, n3, n4 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 3, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    supported_csi_proc_r11_e_() {}
-    supported_csi_proc_r11_e_(options v) : value(v) {}
-    supported_csi_proc_r11_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<supported_csi_proc_r11_opts, 3, 0, false> supported_csi_proc_r11_e_;
 
   // member variables
   supported_csi_proc_r11_e_ supported_csi_proc_r11;
@@ -56076,26 +46317,14 @@ struct band_combination_params_v1130_s {
 struct band_combination_params_v1250_s {
   struct dc_support_r12_s_ {
     struct supported_cell_grouping_r12_c_ {
-      struct types {
-        enum options { three_entries_r12, four_entries_r12, five_entries_r12, nulltype };
+      struct types_opts {
+        enum options { three_entries_r12, four_entries_r12, five_entries_r12, nulltype } value;
         typedef uint8_t number_type;
 
-        options               value;
-        static const uint32_t nof_types = 3, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
         uint8_t     to_number() const;
       };
+      typedef enumerated<types_opts, 3, 0, false> types;
 
       // choice methods
       supported_cell_grouping_r12_c_() : type_(types::nulltype) {}
@@ -56364,48 +46593,58 @@ struct mimo_ca_params_per_bo_bc_v1430_s {
 // RetuningTimeInfo-r14 ::= SEQUENCE
 struct retuning_time_info_r14_s {
   struct retuning_info_s_ {
-    struct rf_retuning_time_dl_r14_e_ {
-      enum options { n0, n0dot5, n1, n1dot5, n2, n2dot5, n3, n3dot5, n4, n4dot5, n5, n5dot5, n6, n6dot5, n7, spare1 };
+    struct rf_retuning_time_dl_r14_opts {
+      enum options {
+        n0,
+        n0dot5,
+        n1,
+        n1dot5,
+        n2,
+        n2dot5,
+        n3,
+        n3dot5,
+        n4,
+        n4dot5,
+        n5,
+        n5dot5,
+        n6,
+        n6dot5,
+        n7,
+        spare1
+      } value;
       typedef float number_type;
 
-      options               value;
-      static const uint32_t nof_types = 16, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      rf_retuning_time_dl_r14_e_() {}
-      rf_retuning_time_dl_r14_e_(options v) : value(v) {}
-      rf_retuning_time_dl_r14_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       float       to_number() const;
       std::string to_number_string() const;
     };
-    struct rf_retuning_time_ul_r14_e_ {
-      enum options { n0, n0dot5, n1, n1dot5, n2, n2dot5, n3, n3dot5, n4, n4dot5, n5, n5dot5, n6, n6dot5, n7, spare1 };
+    typedef enumerated<rf_retuning_time_dl_r14_opts, 16, 0, false> rf_retuning_time_dl_r14_e_;
+    struct rf_retuning_time_ul_r14_opts {
+      enum options {
+        n0,
+        n0dot5,
+        n1,
+        n1dot5,
+        n2,
+        n2dot5,
+        n3,
+        n3dot5,
+        n4,
+        n4dot5,
+        n5,
+        n5dot5,
+        n6,
+        n6dot5,
+        n7,
+        spare1
+      } value;
       typedef float number_type;
 
-      options               value;
-      static const uint32_t nof_types = 16, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      rf_retuning_time_ul_r14_e_() {}
-      rf_retuning_time_ul_r14_e_(options v) : value(v) {}
-      rf_retuning_time_ul_r14_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       float       to_number() const;
       std::string to_number_string() const;
     };
+    typedef enumerated<rf_retuning_time_ul_r14_opts, 16, 0, false> rf_retuning_time_ul_r14_e_;
 
     // member variables
     bool                       rf_retuning_time_dl_r14_present;
@@ -56524,26 +46763,14 @@ struct band_combination_params_v1450_s {
 
 // MIMO-CA-ParametersPerBoBCPerTM-v1470 ::= SEQUENCE
 struct mimo_ca_params_per_bo_bc_per_tm_v1470_s {
-  struct csi_report_advanced_max_ports_r14_e_ {
-    enum options { n8, n12, n16, n20, n24, n28 };
+  struct csi_report_advanced_max_ports_r14_opts {
+    enum options { n8, n12, n16, n20, n24, n28 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 6, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    csi_report_advanced_max_ports_r14_e_() {}
-    csi_report_advanced_max_ports_r14_e_(options v) : value(v) {}
-    csi_report_advanced_max_ports_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<csi_report_advanced_max_ports_r14_opts, 6, 0, false> csi_report_advanced_max_ports_r14_e_;
 
   // member variables
   bool                                 csi_report_advanced_max_ports_r14_present;
@@ -56673,26 +46900,14 @@ struct stti_supported_combinations_r15_s {
 
 // STTI-SPT-BandParameters-r15 ::= SEQUENCE
 struct stti_spt_band_params_r15_s {
-  struct s_tti_supported_csi_proc_r15_e_ {
-    enum options { n1, n3, n4 };
+  struct s_tti_supported_csi_proc_r15_opts {
+    enum options { n1, n3, n4 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 3, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    s_tti_supported_csi_proc_r15_e_() {}
-    s_tti_supported_csi_proc_r15_e_(options v) : value(v) {}
-    s_tti_supported_csi_proc_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<s_tti_supported_csi_proc_r15_opts, 3, 0, false> s_tti_supported_csi_proc_r15_e_;
 
   // member variables
   bool                              ext;
@@ -56791,26 +47006,14 @@ struct band_combination_params_ext_r10_s {
 typedef dyn_array<band_info_eutra_s> band_list_eutra_l;
 
 // V2X-BandwidthClass-r14 ::= ENUMERATED
-struct v2x_bw_class_r14_e {
-  enum options { a, b, c, d, e, f, /*...*/ c1_v1530 };
+struct v2x_bw_class_r14_opts {
+  enum options { a, b, c, d, e, f, /*...*/ c1_v1530 } value;
   typedef uint8_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 7, nof_exts = 1;
-  static const bool     has_ext = true;
-
-  // enumerated methods
-  v2x_bw_class_r14_e() {}
-  v2x_bw_class_r14_e(options v) : value(v) {}
-  v2x_bw_class_r14_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint8_t     to_number() const;
 };
+typedef enumerated<v2x_bw_class_r14_opts, 7, 1, true> v2x_bw_class_r14_e;
 
 // V2X-BandwidthClassSL-r14 ::= SEQUENCE (SIZE (1..maxBandwidthClass-r10)) OF V2X-BandwidthClass-r14
 typedef bounded_array<v2x_bw_class_r14_e, 16> v2x_bw_class_sl_r14_l;
@@ -56844,26 +47047,14 @@ struct band_params_tx_sl_r14_s {
 
 // FeatureSetDL-PerCC-r15 ::= SEQUENCE
 struct feature_set_dl_per_cc_r15_s {
-  struct supported_csi_proc_r15_e_ {
-    enum options { n1, n3, n4 };
+  struct supported_csi_proc_r15_opts {
+    enum options { n1, n3, n4 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 3, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    supported_csi_proc_r15_e_() {}
-    supported_csi_proc_r15_e_(options v) : value(v) {}
-    supported_csi_proc_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<supported_csi_proc_r15_opts, 3, 0, false> supported_csi_proc_r15_e_;
 
   // member variables
   bool                      four_layer_tm3_tm4_r15_present;
@@ -56989,42 +47180,18 @@ typedef bounded_array<bandclass_cdma2000_e, 32> supported_band_list1_xrtt_l;
 
 // IRAT-ParametersCDMA2000-1XRTT ::= SEQUENCE
 struct irat_params_cdma2000_minus1_xrtt_s {
-  struct tx_cfg1_xrtt_e_ {
-    enum options { single, dual };
+  struct tx_cfg1_xrtt_opts {
+    enum options { single, dual } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    tx_cfg1_xrtt_e_() {}
-    tx_cfg1_xrtt_e_(options v) : value(v) {}
-    tx_cfg1_xrtt_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
-  struct rx_cfg1_xrtt_e_ {
-    enum options { single, dual };
+  typedef enumerated<tx_cfg1_xrtt_opts, 2, 0, false> tx_cfg1_xrtt_e_;
+  struct rx_cfg1_xrtt_opts {
+    enum options { single, dual } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    rx_cfg1_xrtt_e_() {}
-    rx_cfg1_xrtt_e_(options v) : value(v) {}
-    rx_cfg1_xrtt_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<rx_cfg1_xrtt_opts, 2, 0, false> rx_cfg1_xrtt_e_;
 
   // member variables
   supported_band_list1_xrtt_l supported_band_list1_xrtt;
@@ -57042,42 +47209,18 @@ typedef bounded_array<bandclass_cdma2000_e, 32> supported_band_list_hrpd_l;
 
 // IRAT-ParametersCDMA2000-HRPD ::= SEQUENCE
 struct irat_params_cdma2000_hrpd_s {
-  struct tx_cfg_hrpd_e_ {
-    enum options { single, dual };
+  struct tx_cfg_hrpd_opts {
+    enum options { single, dual } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    tx_cfg_hrpd_e_() {}
-    tx_cfg_hrpd_e_(options v) : value(v) {}
-    tx_cfg_hrpd_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
-  struct rx_cfg_hrpd_e_ {
-    enum options { single, dual };
+  typedef enumerated<tx_cfg_hrpd_opts, 2, 0, false> tx_cfg_hrpd_e_;
+  struct rx_cfg_hrpd_opts {
+    enum options { single, dual } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    rx_cfg_hrpd_e_() {}
-    rx_cfg_hrpd_e_(options v) : value(v) {}
-    rx_cfg_hrpd_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<rx_cfg_hrpd_opts, 2, 0, false> rx_cfg_hrpd_e_;
 
   // member variables
   supported_band_list_hrpd_l supported_band_list_hrpd;
@@ -57091,7 +47234,7 @@ struct irat_params_cdma2000_hrpd_s {
 };
 
 // SupportedBandGERAN ::= ENUMERATED
-struct supported_band_geran_e {
+struct supported_band_geran_opts {
   enum options {
     gsm450,
     gsm480,
@@ -57110,23 +47253,11 @@ struct supported_band_geran_e {
     spare2,
     spare1,
     // ...
-  };
+  } value;
 
-  options               value;
-  static const uint32_t nof_types = 16, nof_exts = 0;
-  static const bool     has_ext = true;
-
-  // enumerated methods
-  supported_band_geran_e() {}
-  supported_band_geran_e(options v) : value(v) {}
-  supported_band_geran_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
 };
+typedef enumerated<supported_band_geran_opts, 16, 0, true> supported_band_geran_e;
 
 // SupportedBandListGERAN ::= SEQUENCE (SIZE (1..maxBands)) OF SupportedBandGERAN
 typedef dyn_array<supported_band_geran_e> supported_band_list_geran_l;
@@ -57173,7 +47304,7 @@ struct irat_params_nr_r15_s {
 };
 
 // SupportedBandUTRA-FDD ::= ENUMERATED
-struct supported_band_utra_fdd_e {
+struct supported_band_utra_fdd_opts {
   enum options {
     band_i,
     band_ii,
@@ -57208,23 +47339,11 @@ struct supported_band_utra_fdd_e {
     band_xxx_minus8a0,
     band_xxxi_minus8a0,
     band_xxxii_minus8a0
-  };
+  } value;
 
-  options               value;
-  static const uint32_t nof_types = 32, nof_exts = 16;
-  static const bool     has_ext = true;
-
-  // enumerated methods
-  supported_band_utra_fdd_e() {}
-  supported_band_utra_fdd_e(options v) : value(v) {}
-  supported_band_utra_fdd_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
 };
+typedef enumerated<supported_band_utra_fdd_opts, 32, 16, true> supported_band_utra_fdd_e;
 
 // SupportedBandListUTRA-FDD ::= SEQUENCE (SIZE (1..maxBands)) OF SupportedBandUTRA-FDD
 typedef dyn_array<supported_band_utra_fdd_e> supported_band_list_utra_fdd_l;
@@ -57241,24 +47360,12 @@ struct irat_params_utra_fdd_s {
 };
 
 // SupportedBandUTRA-TDD128 ::= ENUMERATED
-struct supported_band_utra_tdd128_e {
-  enum options { a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, /*...*/ };
+struct supported_band_utra_tdd128_opts {
+  enum options { a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, /*...*/ } value;
 
-  options               value;
-  static const uint32_t nof_types = 16, nof_exts = 0;
-  static const bool     has_ext = true;
-
-  // enumerated methods
-  supported_band_utra_tdd128_e() {}
-  supported_band_utra_tdd128_e(options v) : value(v) {}
-  supported_band_utra_tdd128_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
 };
+typedef enumerated<supported_band_utra_tdd128_opts, 16, 0, true> supported_band_utra_tdd128_e;
 
 // SupportedBandListUTRA-TDD128 ::= SEQUENCE (SIZE (1..maxBands)) OF SupportedBandUTRA-TDD128
 typedef dyn_array<supported_band_utra_tdd128_e> supported_band_list_utra_tdd128_l;
@@ -57275,24 +47382,12 @@ struct irat_params_utra_tdd128_s {
 };
 
 // SupportedBandUTRA-TDD384 ::= ENUMERATED
-struct supported_band_utra_tdd384_e {
-  enum options { a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, /*...*/ };
+struct supported_band_utra_tdd384_opts {
+  enum options { a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, /*...*/ } value;
 
-  options               value;
-  static const uint32_t nof_types = 16, nof_exts = 0;
-  static const bool     has_ext = true;
-
-  // enumerated methods
-  supported_band_utra_tdd384_e() {}
-  supported_band_utra_tdd384_e(options v) : value(v) {}
-  supported_band_utra_tdd384_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
 };
+typedef enumerated<supported_band_utra_tdd384_opts, 16, 0, true> supported_band_utra_tdd384_e;
 
 // SupportedBandListUTRA-TDD384 ::= SEQUENCE (SIZE (1..maxBands)) OF SupportedBandUTRA-TDD384
 typedef dyn_array<supported_band_utra_tdd384_e> supported_band_list_utra_tdd384_l;
@@ -57309,24 +47404,12 @@ struct irat_params_utra_tdd384_s {
 };
 
 // SupportedBandUTRA-TDD768 ::= ENUMERATED
-struct supported_band_utra_tdd768_e {
-  enum options { a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, /*...*/ };
+struct supported_band_utra_tdd768_opts {
+  enum options { a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, /*...*/ } value;
 
-  options               value;
-  static const uint32_t nof_types = 16, nof_exts = 0;
-  static const bool     has_ext = true;
-
-  // enumerated methods
-  supported_band_utra_tdd768_e() {}
-  supported_band_utra_tdd768_e(options v) : value(v) {}
-  supported_band_utra_tdd768_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
 };
+typedef enumerated<supported_band_utra_tdd768_opts, 16, 0, true> supported_band_utra_tdd768_e;
 
 // SupportedBandListUTRA-TDD768 ::= SEQUENCE (SIZE (1..maxBands)) OF SupportedBandUTRA-TDD768
 typedef dyn_array<supported_band_utra_tdd768_e> supported_band_list_utra_tdd768_l;
@@ -57358,26 +47441,14 @@ struct irat_params_wlan_r13_s {
 };
 
 // ProcessingTimelineSet-r15 ::= ENUMERATED
-struct processing_timeline_set_r15_e {
-  enum options { set1, set2 };
+struct processing_timeline_set_r15_opts {
+  enum options { set1, set2 } value;
   typedef uint8_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 2, nof_exts = 0;
-  static const bool     has_ext = false;
-
-  // enumerated methods
-  processing_timeline_set_r15_e() {}
-  processing_timeline_set_r15_e(options v) : value(v) {}
-  processing_timeline_set_r15_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint8_t     to_number() const;
 };
+typedef enumerated<processing_timeline_set_r15_opts, 2, 0, false> processing_timeline_set_r15_e;
 
 // SkipSubframeProcessing-r15 ::= SEQUENCE
 struct skip_sf_processing_r15_s {
@@ -57473,52 +47544,28 @@ struct mimo_ue_params_r13_s {
 // MIMO-UE-ParametersPerTM-v1430 ::= SEQUENCE
 struct mimo_ue_params_per_tm_v1430_s {
   struct nzp_csi_rs_aperiodic_info_r14_s_ {
-    struct n_max_res_r14_e_ {
-      enum options { ffs1, ffs2, ffs3, ffs4 };
+    struct n_max_res_r14_opts {
+      enum options { ffs1, ffs2, ffs3, ffs4 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      n_max_res_r14_e_() {}
-      n_max_res_r14_e_(options v) : value(v) {}
-      n_max_res_r14_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<n_max_res_r14_opts, 4, 0, false> n_max_res_r14_e_;
 
     // member variables
     uint8_t          n_max_proc_r14;
     n_max_res_r14_e_ n_max_res_r14;
   };
   struct nzp_csi_rs_periodic_info_r14_s_ {
-    struct n_max_res_r14_e_ {
-      enum options { ffs1, ffs2, ffs3, ffs4 };
+    struct n_max_res_r14_opts {
+      enum options { ffs1, ffs2, ffs3, ffs4 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      n_max_res_r14_e_() {}
-      n_max_res_r14_e_(options v) : value(v) {}
-      n_max_res_r14_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<n_max_res_r14_opts, 4, 0, false> n_max_res_r14_e_;
 
     // member variables
     n_max_res_r14_e_ n_max_res_r14;
@@ -57562,26 +47609,14 @@ struct mimo_ue_params_v1430_s {
 
 // MIMO-UE-ParametersPerTM-v1470 ::= SEQUENCE
 struct mimo_ue_params_per_tm_v1470_s {
-  struct csi_report_advanced_max_ports_r14_e_ {
-    enum options { n8, n12, n16, n20, n24, n28 };
+  struct csi_report_advanced_max_ports_r14_opts {
+    enum options { n8, n12, n16, n20, n24, n28 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 6, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    csi_report_advanced_max_ports_r14_e_() {}
-    csi_report_advanced_max_ports_r14_e_(options v) : value(v) {}
-    csi_report_advanced_max_ports_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<csi_report_advanced_max_ports_r14_opts, 6, 0, false> csi_report_advanced_max_ports_r14_e_;
 
   // member variables
   bool                                 csi_report_advanced_max_ports_r14_present;
@@ -57630,26 +47665,31 @@ struct meas_params_v1020_s {
 
 // NAICS-Capability-Entry-r12 ::= SEQUENCE
 struct naics_cap_entry_r12_s {
-  struct nof_aggregated_prb_r12_e_ {
-    enum options { n50, n75, n100, n125, n150, n175, n200, n225, n250, n275, n300, n350, n400, n450, n500, spare };
+  struct nof_aggregated_prb_r12_opts {
+    enum options {
+      n50,
+      n75,
+      n100,
+      n125,
+      n150,
+      n175,
+      n200,
+      n225,
+      n250,
+      n275,
+      n300,
+      n350,
+      n400,
+      n450,
+      n500,
+      spare
+    } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 16, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    nof_aggregated_prb_r12_e_() {}
-    nof_aggregated_prb_r12_e_(options v) : value(v) {}
-    nof_aggregated_prb_r12_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<nof_aggregated_prb_r12_opts, 16, 0, false> nof_aggregated_prb_r12_e_;
 
   // member variables
   bool                      ext;
@@ -57703,7 +47743,7 @@ struct rohc_profile_support_list_r15_s {
 
 // PDCP-Parameters ::= SEQUENCE
 struct pdcp_params_s {
-  struct max_num_rohc_context_sessions_e_ {
+  struct max_num_rohc_context_sessions_opts {
     enum options {
       cs2,
       cs4,
@@ -57721,25 +47761,13 @@ struct pdcp_params_s {
       cs16384,
       spare2,
       spare1
-    };
+    } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 16, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    max_num_rohc_context_sessions_e_() {}
-    max_num_rohc_context_sessions_e_(options v) : value(v) {}
-    max_num_rohc_context_sessions_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<max_num_rohc_context_sessions_opts, 16, 0, false> max_num_rohc_context_sessions_e_;
 
   // member variables
   bool                             ext;
@@ -57797,7 +47825,7 @@ struct pdcp_params_v1530_s {
 
 // PDCP-ParametersNR-r15 ::= SEQUENCE
 struct pdcp_params_nr_r15_s {
-  struct rohc_context_max_sessions_r15_e_ {
+  struct rohc_context_max_sessions_r15_opts {
     enum options {
       cs2,
       cs4,
@@ -57815,25 +47843,13 @@ struct pdcp_params_nr_r15_s {
       cs16384,
       spare2,
       spare1
-    };
+    } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 16, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    rohc_context_max_sessions_r15_e_() {}
-    rohc_context_max_sessions_r15_e_(options v) : value(v) {}
-    rohc_context_max_sessions_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<rohc_context_max_sessions_r15_opts, 16, 0, false> rohc_context_max_sessions_r15_e_;
   struct rohc_profiles_ul_only_r15_s_ {
     // member variables
     bool profile0x0006_r15;
@@ -57945,46 +47961,22 @@ struct fe_mbms_unicast_params_r14_s {
 
 // PhyLayerParameters-v1430 ::= SEQUENCE
 struct phy_layer_params_v1430_s {
-  struct ce_pdsch_pusch_max_bw_r14_e_ {
-    enum options { bw5, bw20 };
+  struct ce_pdsch_pusch_max_bw_r14_opts {
+    enum options { bw5, bw20 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    ce_pdsch_pusch_max_bw_r14_e_() {}
-    ce_pdsch_pusch_max_bw_r14_e_(options v) : value(v) {}
-    ce_pdsch_pusch_max_bw_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct ce_retuning_symbols_r14_e_ {
-    enum options { n0, n1 };
+  typedef enumerated<ce_pdsch_pusch_max_bw_r14_opts, 2, 0, false> ce_pdsch_pusch_max_bw_r14_e_;
+  struct ce_retuning_symbols_r14_opts {
+    enum options { n0, n1 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    ce_retuning_symbols_r14_e_() {}
-    ce_retuning_symbols_r14_e_(options v) : value(v) {}
-    ce_retuning_symbols_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<ce_retuning_symbols_r14_opts, 2, 0, false> ce_retuning_symbols_r14_e_;
 
   // member variables
   bool                         ce_pusch_nb_max_tbs_r14_present;
@@ -58032,44 +48024,20 @@ struct phy_layer_params_v1470_s {
 // PhyLayerParameters-v1530 ::= SEQUENCE
 struct phy_layer_params_v1530_s {
   struct stti_spt_capabilities_r15_s_ {
-    struct max_layers_slot_or_subslot_pusch_r15_e_ {
-      enum options { one_layer, two_layers, four_layers };
+    struct max_layers_slot_or_subslot_pusch_r15_opts {
+      enum options { one_layer, two_layers, four_layers } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 3, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      max_layers_slot_or_subslot_pusch_r15_e_() {}
-      max_layers_slot_or_subslot_pusch_r15_e_(options v) : value(v) {}
-      max_layers_slot_or_subslot_pusch_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    struct sps_stti_r15_e_ {
-      enum options { slot, subslot, slot_and_subslot };
+    typedef enumerated<max_layers_slot_or_subslot_pusch_r15_opts, 3, 0, false> max_layers_slot_or_subslot_pusch_r15_e_;
+    struct sps_stti_r15_opts {
+      enum options { slot, subslot, slot_and_subslot } value;
 
-      options               value;
-      static const uint32_t nof_types = 3, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      sps_stti_r15_e_() {}
-      sps_stti_r15_e_(options v) : value(v) {}
-      sps_stti_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<sps_stti_r15_opts, 3, 0, false> sps_stti_r15_e_;
 
     // member variables
     bool                                    aperiodic_csi_report_stti_r15_present;
@@ -58441,26 +48409,14 @@ struct rf_params_v1310_s {
 
 // SupportedBandEUTRA-v1320 ::= SEQUENCE
 struct supported_band_eutra_v1320_s {
-  struct ue_pwr_class_n_r13_e_ {
-    enum options { class1, class2, class4 };
+  struct ue_pwr_class_n_r13_opts {
+    enum options { class1, class2, class4 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 3, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    ue_pwr_class_n_r13_e_() {}
-    ue_pwr_class_n_r13_e_(options v) : value(v) {}
-    ue_pwr_class_n_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<ue_pwr_class_n_r13_opts, 3, 0, false> ue_pwr_class_n_r13_e_;
 
   // member variables
   bool                  intra_freq_ce_need_for_gaps_r13_present;
@@ -58729,26 +48685,14 @@ typedef dyn_array<supported_band_info_r12_s> supported_band_info_list_r12_l;
 
 // SL-Parameters-r12 ::= SEQUENCE
 struct sl_params_r12_s {
-  struct disc_supported_proc_r12_e_ {
-    enum options { n50, n400 };
+  struct disc_supported_proc_r12_opts {
+    enum options { n50, n400 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    disc_supported_proc_r12_e_() {}
-    disc_supported_proc_r12_e_(options v) : value(v) {}
-    disc_supported_proc_r12_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<disc_supported_proc_r12_opts, 2, 0, false> disc_supported_proc_r12_e_;
 
   // member variables
   bool                           comm_simul_tx_r12_present;
@@ -58845,24 +48789,12 @@ typedef dyn_array<v2x_band_combination_params_v1530_l> v2x_supported_band_combin
 
 // SL-Parameters-v1530 ::= SEQUENCE
 struct sl_params_v1530_s {
-  struct slss_supported_tx_freq_r15_e_ {
-    enum options { single, multiple };
+  struct slss_supported_tx_freq_r15_opts {
+    enum options { single, multiple } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    slss_supported_tx_freq_r15_e_() {}
-    slss_supported_tx_freq_r15_e_(options v) : value(v) {}
-    slss_supported_tx_freq_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<slss_supported_tx_freq_r15_opts, 2, 0, false> slss_supported_tx_freq_r15_e_;
 
   // member variables
   bool                                   slss_supported_tx_freq_r15_present;
@@ -58887,7 +48819,7 @@ typedef bounded_array<uint16_t, 4> n1_spucch_an_persistent_list_r15_l;
 // SPS-ConfigDL-STTI-r15 ::= CHOICE
 struct sps_cfg_dl_stti_r15_c {
   struct setup_s_ {
-    struct semi_persist_sched_interv_dl_stti_r15_e_ {
+    struct semi_persist_sched_interv_dl_stti_r15_opts {
       enum options {
         s_tti1,
         s_tti2,
@@ -58905,25 +48837,14 @@ struct sps_cfg_dl_stti_r15_c {
         s_tti240,
         spare2,
         spare1
-      };
+      } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 16, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      semi_persist_sched_interv_dl_stti_r15_e_() {}
-      semi_persist_sched_interv_dl_stti_r15_e_(options v) : value(v) {}
-      semi_persist_sched_interv_dl_stti_r15_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<semi_persist_sched_interv_dl_stti_r15_opts, 16, 0, false>
+        semi_persist_sched_interv_dl_stti_r15_e_;
     struct two_ant_port_activ_r15_c_ {
       struct setup_s_ {
         // member variables
@@ -59344,26 +49265,14 @@ struct high_speed_enh_params_r14_s {
 
 // LAA-Parameters-v1430 ::= SEQUENCE
 struct laa_params_v1430_s {
-  struct two_step_sched_timing_info_r14_e_ {
-    enum options { n_plus1, n_plus2, n_plus3 };
+  struct two_step_sched_timing_info_r14_opts {
+    enum options { n_plus1, n_plus2, n_plus3 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 3, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    two_step_sched_timing_info_r14_e_() {}
-    two_step_sched_timing_info_r14_e_(options v) : value(v) {}
-    two_step_sched_timing_info_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<two_step_sched_timing_info_r14_opts, 3, 0, false> two_step_sched_timing_info_r14_e_;
 
   // member variables
   bool                              cross_carrier_sched_laa_ul_r14_present;
@@ -59491,7 +49400,7 @@ struct pdcp_params_v1430_s {
     // member variables
     bool profile0x0006_r14;
   };
-  struct max_num_rohc_context_sessions_r14_e_ {
+  struct max_num_rohc_context_sessions_r14_opts {
     enum options {
       cs2,
       cs4,
@@ -59509,25 +49418,13 @@ struct pdcp_params_v1430_s {
       cs16384,
       spare2,
       spare1
-    };
+    } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 16, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    max_num_rohc_context_sessions_r14_e_() {}
-    max_num_rohc_context_sessions_r14_e_(options v) : value(v) {}
-    max_num_rohc_context_sessions_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<max_num_rohc_context_sessions_r14_opts, 16, 0, false> max_num_rohc_context_sessions_r14_e_;
 
   // member variables
   bool                                   max_num_rohc_context_sessions_r14_present;
@@ -59598,24 +49495,12 @@ struct ue_eutra_cap_add_xdd_mode_v1430_s {
 // MBMS-Parameters-v1470 ::= SEQUENCE
 struct mbms_params_v1470_s {
   struct mbms_max_bw_r14_c_ {
-    struct types {
-      enum options { implicit_value, explicit_value, nulltype };
+    struct types_opts {
+      enum options { implicit_value, explicit_value, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     mbms_max_bw_r14_c_() : type_(types::nulltype) {}
@@ -59640,46 +49525,22 @@ struct mbms_params_v1470_s {
     types   type_;
     uint8_t c;
   };
-  struct mbms_scaling_factor1dot25_r14_e_ {
-    enum options { n3, n6, n9, n12 };
+  struct mbms_scaling_factor1dot25_r14_opts {
+    enum options { n3, n6, n9, n12 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    mbms_scaling_factor1dot25_r14_e_() {}
-    mbms_scaling_factor1dot25_r14_e_(options v) : value(v) {}
-    mbms_scaling_factor1dot25_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct mbms_scaling_factor7dot5_r14_e_ {
-    enum options { n1, n2, n3, n4 };
+  typedef enumerated<mbms_scaling_factor1dot25_r14_opts, 4, 0, false> mbms_scaling_factor1dot25_r14_e_;
+  struct mbms_scaling_factor7dot5_r14_opts {
+    enum options { n1, n2, n3, n4 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 4, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    mbms_scaling_factor7dot5_r14_e_() {}
-    mbms_scaling_factor7dot5_r14_e_(options v) : value(v) {}
-    mbms_scaling_factor7dot5_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<mbms_scaling_factor7dot5_r14_opts, 4, 0, false> mbms_scaling_factor7dot5_r14_e_;
 
   // member variables
   bool                             mbms_scaling_factor1dot25_r14_present;
@@ -59709,26 +49570,14 @@ struct other_params_v1360_s {
 
 // UE-EUTRA-Capability-v1430-IEs ::= SEQUENCE
 struct ue_eutra_cap_v1430_ies_s {
-  struct ue_category_ul_v1430_e_ {
-    enum options { n16, n17, n18, n19, n20, m2 };
+  struct ue_category_ul_v1430_opts {
+    enum options { n16, n17, n18, n19, n20, m2 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 6, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    ue_category_ul_v1430_e_() {}
-    ue_category_ul_v1430_e_(options v) : value(v) {}
-    ue_category_ul_v1430_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<ue_category_ul_v1430_opts, 6, 0, false> ue_category_ul_v1430_e_;
 
   // member variables
   bool                                   ue_category_dl_v1430_present;
@@ -60304,46 +50153,22 @@ struct ue_eutra_cap_v12x0_ies_s {
 
 // UE-EUTRA-Capability-v1310-IEs ::= SEQUENCE
 struct ue_eutra_cap_v1310_ies_s {
-  struct ue_category_dl_v1310_e_ {
-    enum options { n17, m1 };
+  struct ue_category_dl_v1310_opts {
+    enum options { n17, m1 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    ue_category_dl_v1310_e_() {}
-    ue_category_dl_v1310_e_(options v) : value(v) {}
-    ue_category_dl_v1310_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct ue_category_ul_v1310_e_ {
-    enum options { n14, m1 };
+  typedef enumerated<ue_category_dl_v1310_opts, 2, 0, false> ue_category_dl_v1310_e_;
+  struct ue_category_ul_v1310_opts {
+    enum options { n14, m1 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    ue_category_ul_v1310_e_() {}
-    ue_category_ul_v1310_e_(options v) : value(v) {}
-    ue_category_ul_v1310_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<ue_category_ul_v1310_opts, 2, 0, false> ue_category_ul_v1310_e_;
 
   // member variables
   bool                              ue_category_dl_v1310_present;
@@ -61326,26 +51151,14 @@ struct ue_eutra_cap_v940_ies_s {
 };
 
 // AccessStratumRelease ::= ENUMERATED
-struct access_stratum_release_e {
-  enum options { rel8, rel9, rel10, rel11, rel12, rel13, rel14, rel15, /*...*/ };
+struct access_stratum_release_opts {
+  enum options { rel8, rel9, rel10, rel11, rel12, rel13, rel14, rel15, /*...*/ } value;
   typedef uint8_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 8, nof_exts = 0;
-  static const bool     has_ext = true;
-
-  // enumerated methods
-  access_stratum_release_e() {}
-  access_stratum_release_e(options v) : value(v) {}
-  access_stratum_release_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint8_t     to_number() const;
 };
+typedef enumerated<access_stratum_release_opts, 8, 0, true> access_stratum_release_e;
 
 // UE-EUTRA-Capability-v920-IEs ::= SEQUENCE
 struct ue_eutra_cap_v920_ies_s {
@@ -61448,24 +51261,12 @@ struct as_cfg_nr_r15_s {
 struct scg_cfg_r12_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { scg_cfg_r12, spare7, spare6, spare5, spare4, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { scg_cfg_r12, spare7, spare6, spare5, spare4, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 8, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 8, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -61799,24 +51600,12 @@ typedef dyn_array<uint8_t> ssb_idx_list_r15_l;
 
 struct cells_triggered_list_item_c_ {
   struct pci_utra_c_ {
-    struct types {
-      enum options { fdd, tdd, nulltype };
+    struct types_opts {
+      enum options { fdd, tdd, nulltype } value;
 
-      options               value;
-      static const uint32_t nof_types = 2, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      types() {}
-      types(options v) : value(v) {}
-      types& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
     };
+    typedef enumerated<types_opts, 2, 0, false> types;
 
     // choice methods
     pci_utra_c_() : type_(types::nulltype) {}
@@ -61871,26 +51660,14 @@ struct cells_triggered_list_item_c_ {
     // sequence methods
     pci_nr_r15_s_();
   };
-  struct types {
-    enum options { pci_eutra, pci_utra, pci_geran, pci_cdma2000, wlan_ids_r13, pci_nr_r15, nulltype };
+  struct types_opts {
+    enum options { pci_eutra, pci_utra, pci_geran, pci_cdma2000, wlan_ids_r13, pci_nr_r15, nulltype } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 6, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    types() {}
-    types(options v) : value(v) {}
-    types& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<types_opts, 6, 0, false> types;
 
   // choice methods
   cells_triggered_list_item_c_() : type_(types::nulltype) {}
@@ -61976,24 +51753,12 @@ typedef dyn_array<cells_triggered_list_item_c_> cells_triggered_list_l;
 
 // DRB-InfoSCG-r12 ::= SEQUENCE
 struct drb_info_scg_r12_s {
-  struct drb_type_r12_e_ {
-    enum options { split, scg };
+  struct drb_type_r12_opts {
+    enum options { split, scg } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    drb_type_r12_e_() {}
-    drb_type_r12_e_(options v) : value(v) {}
-    drb_type_r12_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<drb_type_r12_opts, 2, 0, false> drb_type_r12_e_;
 
   // member variables
   bool            ext;
@@ -62034,24 +51799,12 @@ struct ho_cmd_r8_ies_s {
 struct ho_cmd_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { ho_cmd_r8, spare7, spare6, spare5, spare4, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { ho_cmd_r8, spare7, spare6, spare5, spare4, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 8, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 8, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -62241,24 +51994,12 @@ struct ho_prep_info_v9d0_ies_s {
 
 // HandoverPreparationInformation-v920-IEs ::= SEQUENCE
 struct ho_prep_info_v920_ies_s {
-  struct ue_cfg_release_r9_e_ {
-    enum options { rel9, rel10, rel11, rel12, v10j0, v11e0, v1280, rel13, /*...*/ rel14, rel15 };
+  struct ue_cfg_release_r9_opts {
+    enum options { rel9, rel10, rel11, rel12, v10j0, v11e0, v1280, rel13, /*...*/ rel14, rel15 } value;
 
-    options               value;
-    static const uint32_t nof_types = 10, nof_exts = 2;
-    static const bool     has_ext = true;
-
-    // enumerated methods
-    ue_cfg_release_r9_e_() {}
-    ue_cfg_release_r9_e_(options v) : value(v) {}
-    ue_cfg_release_r9_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<ue_cfg_release_r9_opts, 10, 2, true> ue_cfg_release_r9_e_;
 
   // member variables
   bool                    ue_cfg_release_r9_present;
@@ -62275,7 +52016,7 @@ struct ho_prep_info_v920_ies_s {
 
 // RRM-Config ::= SEQUENCE
 struct rrm_cfg_s {
-  struct ue_inactive_time_e_ {
+  struct ue_inactive_time_opts {
     enum options {
       s1,
       s2,
@@ -62341,23 +52082,11 @@ struct rrm_cfg_s {
       day24,
       day30,
       day_more_than30
-    };
+    } value;
 
-    options               value;
-    static const uint32_t nof_types = 64, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    ue_inactive_time_e_() {}
-    ue_inactive_time_e_(options v) : value(v) {}
-    ue_inactive_time_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<ue_inactive_time_opts, 64, 0, false> ue_inactive_time_e_;
 
   // member variables
   bool                ext;
@@ -62402,24 +52131,12 @@ struct ho_prep_info_r8_ies_s {
 struct ho_prep_info_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { ho_prep_info_r8, spare7, spare6, spare5, spare4, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { ho_prep_info_r8, spare7, spare6, spare5, spare4, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 8, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 8, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -62503,24 +52220,12 @@ typedef dyn_array<log_meas_info_r10_s> log_meas_info_list2_r10_l;
 
 // TDD-ConfigSL-r12 ::= SEQUENCE
 struct tdd_cfg_sl_r12_s {
-  struct sf_assign_sl_r12_e_ {
-    enum options { none, sa0, sa1, sa2, sa3, sa4, sa5, sa6 };
+  struct sf_assign_sl_r12_opts {
+    enum options { none, sa0, sa1, sa2, sa3, sa4, sa5, sa6 } value;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    sf_assign_sl_r12_e_() {}
-    sf_assign_sl_r12_e_(options v) : value(v) {}
-    sf_assign_sl_r12_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<sf_assign_sl_r12_opts, 8, 0, false> sf_assign_sl_r12_e_;
 
   // member variables
   sf_assign_sl_r12_e_ sf_assign_sl_r12;
@@ -62533,26 +52238,14 @@ struct tdd_cfg_sl_r12_s {
 
 // MasterInformationBlock-SL ::= SEQUENCE
 struct mib_sl_s {
-  struct sl_bw_r12_e_ {
-    enum options { n6, n15, n25, n50, n75, n100 };
+  struct sl_bw_r12_opts {
+    enum options { n6, n15, n25, n50, n75, n100 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 6, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    sl_bw_r12_e_() {}
-    sl_bw_r12_e_(options v) : value(v) {}
-    sl_bw_r12_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<sl_bw_r12_opts, 6, 0, false> sl_bw_r12_e_;
 
   // member variables
   sl_bw_r12_e_        sl_bw_r12;
@@ -62570,26 +52263,14 @@ struct mib_sl_s {
 
 // MasterInformationBlock-SL-V2X-r14 ::= SEQUENCE
 struct mib_sl_v2x_r14_s {
-  struct sl_bw_r14_e_ {
-    enum options { n6, n15, n25, n50, n75, n100 };
+  struct sl_bw_r14_opts {
+    enum options { n6, n15, n25, n50, n75, n100 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 6, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    sl_bw_r14_e_() {}
-    sl_bw_r14_e_(options v) : value(v) {}
-    sl_bw_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<sl_bw_r14_opts, 6, 0, false> sl_bw_r14_e_;
 
   // member variables
   sl_bw_r14_e_        sl_bw_r14;
@@ -62817,24 +52498,12 @@ struct scg_cfg_info_r12_ies_s {
 struct scg_cfg_info_r12_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { scg_cfg_info_r12, spare7, spare6, spare5, spare4, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options { scg_cfg_info_r12, spare7, spare6, spare5, spare4, spare3, spare2, spare1, nulltype } value;
 
-        options               value;
-        static const uint32_t nof_types = 8, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 8, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -62987,47 +52656,40 @@ typedef dyn_array<sl_precfg_comm_pool_r12_s> sl_precfg_comm_tx_pool_list_r13_l;
 
 // SL-PreconfigDiscPool-r13 ::= SEQUENCE
 struct sl_precfg_disc_pool_r13_s {
-  struct disc_period_r13_e_ {
-    enum options { rf4, rf6, rf7, rf8, rf12, rf14, rf16, rf24, rf28, rf32, rf64, rf128, rf256, rf512, rf1024, spare };
+  struct disc_period_r13_opts {
+    enum options {
+      rf4,
+      rf6,
+      rf7,
+      rf8,
+      rf12,
+      rf14,
+      rf16,
+      rf24,
+      rf28,
+      rf32,
+      rf64,
+      rf128,
+      rf256,
+      rf512,
+      rf1024,
+      spare
+    } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 16, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    disc_period_r13_e_() {}
-    disc_period_r13_e_(options v) : value(v) {}
-    disc_period_r13_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<disc_period_r13_opts, 16, 0, false> disc_period_r13_e_;
   struct tx_params_r13_s_ {
-    struct tx_probability_r13_e_ {
-      enum options { p25, p50, p75, p100 };
+    struct tx_probability_r13_opts {
+      enum options { p25, p50, p75, p100 } value;
       typedef uint8_t number_type;
 
-      options               value;
-      static const uint32_t nof_types = 4, nof_exts = 0;
-      static const bool     has_ext = false;
-
-      // enumerated methods
-      tx_probability_r13_e_() {}
-      tx_probability_r13_e_(options v) : value(v) {}
-      tx_probability_r13_e_& operator=(options v)
-      {
-        value = v;
-        return *this;
-      }
-                  operator options() const { return value; }
       std::string to_string() const;
       uint8_t     to_number() const;
     };
+    typedef enumerated<tx_probability_r13_opts, 4, 0, false> tx_probability_r13_e_;
 
     // member variables
     int8_t                tx_params_general_r13;
@@ -63070,26 +52732,14 @@ struct sl_precfg_general_r12_s {
     bool profile0x0102_r12;
     bool profile0x0104_r12;
   };
-  struct sl_bw_r12_e_ {
-    enum options { n6, n15, n25, n50, n75, n100 };
+  struct sl_bw_r12_opts {
+    enum options { n6, n15, n25, n50, n75, n100 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 6, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    sl_bw_r12_e_() {}
-    sl_bw_r12_e_(options v) : value(v) {}
-    sl_bw_r12_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<sl_bw_r12_opts, 6, 0, false> sl_bw_r12_e_;
 
   // member variables
   bool                 ext;
@@ -63125,46 +52775,22 @@ struct sl_precfg_relay_r13_s {
 
 // SL-PreconfigSync-r12 ::= SEQUENCE
 struct sl_precfg_sync_r12_s {
-  struct sync_ref_min_hyst_r12_e_ {
-    enum options { db0, db3, db6, db9, db12 };
+  struct sync_ref_min_hyst_r12_opts {
+    enum options { db0, db3, db6, db9, db12 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 5, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    sync_ref_min_hyst_r12_e_() {}
-    sync_ref_min_hyst_r12_e_(options v) : value(v) {}
-    sync_ref_min_hyst_r12_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct sync_ref_diff_hyst_r12_e_ {
-    enum options { db0, db3, db6, db9, db12, dbinf };
+  typedef enumerated<sync_ref_min_hyst_r12_opts, 5, 0, false> sync_ref_min_hyst_r12_e_;
+  struct sync_ref_diff_hyst_r12_opts {
+    enum options { db0, db3, db6, db9, db12, dbinf } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 6, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    sync_ref_diff_hyst_r12_e_() {}
-    sync_ref_diff_hyst_r12_e_(options v) : value(v) {}
-    sync_ref_diff_hyst_r12_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<sync_ref_diff_hyst_r12_opts, 6, 0, false> sync_ref_diff_hyst_r12_e_;
 
   // member variables
   bool                      ext;
@@ -63189,7 +52815,7 @@ struct sl_precfg_sync_r12_s {
 
 // SL-V2X-PreconfigCommPool-r14 ::= SEQUENCE
 struct sl_v2x_precfg_comm_pool_r14_s {
-  struct size_subch_r14_e_ {
+  struct size_subch_r14_opts {
     enum options {
       n4,
       n5,
@@ -63223,45 +52849,21 @@ struct sl_v2x_precfg_comm_pool_r14_s {
       spare3,
       spare2,
       spare1
-    };
+    } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 32, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    size_subch_r14_e_() {}
-    size_subch_r14_e_(options v) : value(v) {}
-    size_subch_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct num_subch_r14_e_ {
-    enum options { n1, n3, n5, n8, n10, n15, n20, spare1 };
+  typedef enumerated<size_subch_r14_opts, 32, 0, false> size_subch_r14_e_;
+  struct num_subch_r14_opts {
+    enum options { n1, n3, n5, n8, n10, n15, n20, spare1 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 8, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    num_subch_r14_e_() {}
-    num_subch_r14_e_(options v) : value(v) {}
-    num_subch_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<num_subch_r14_opts, 8, 0, false> num_subch_r14_e_;
 
   // member variables
   bool                                     ext;
@@ -63321,46 +52923,22 @@ struct sl_v2x_sync_offset_inds_r14_s {
 
 // SL-PreconfigV2X-Sync-r14 ::= SEQUENCE
 struct sl_precfg_v2x_sync_r14_s {
-  struct sync_ref_min_hyst_r14_e_ {
-    enum options { db0, db3, db6, db9, db12 };
+  struct sync_ref_min_hyst_r14_opts {
+    enum options { db0, db3, db6, db9, db12 } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 5, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    sync_ref_min_hyst_r14_e_() {}
-    sync_ref_min_hyst_r14_e_(options v) : value(v) {}
-    sync_ref_min_hyst_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  struct sync_ref_diff_hyst_r14_e_ {
-    enum options { db0, db3, db6, db9, db12, dbinf };
+  typedef enumerated<sync_ref_min_hyst_r14_opts, 5, 0, false> sync_ref_min_hyst_r14_e_;
+  struct sync_ref_diff_hyst_r14_opts {
+    enum options { db0, db3, db6, db9, db12, dbinf } value;
     typedef uint8_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 6, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    sync_ref_diff_hyst_r14_e_() {}
-    sync_ref_diff_hyst_r14_e_(options v) : value(v) {}
-    sync_ref_diff_hyst_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint8_t     to_number() const;
   };
+  typedef enumerated<sync_ref_diff_hyst_r14_opts, 6, 0, false> sync_ref_diff_hyst_r14_e_;
 
   // member variables
   bool                          ext;
@@ -63428,24 +53006,12 @@ struct sl_precfg_r12_s {
 
 // SL-V2X-PreconfigFreqInfo-r14 ::= SEQUENCE
 struct sl_v2x_precfg_freq_info_r14_s {
-  struct sync_prio_r14_e_ {
-    enum options { gnss, enb };
+  struct sync_prio_r14_opts {
+    enum options { gnss, enb } value;
 
-    options               value;
-    static const uint32_t nof_types = 2, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    sync_prio_r14_e_() {}
-    sync_prio_r14_e_(options v) : value(v) {}
-    sync_prio_r14_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
   };
+  typedef enumerated<sync_prio_r14_opts, 2, 0, false> sync_prio_r14_e_;
 
   // member variables
   bool                              ext;
@@ -63480,26 +53046,14 @@ struct sl_v2x_precfg_freq_info_r14_s {
 typedef dyn_array<sl_v2x_precfg_freq_info_r14_s> sl_v2x_precfg_freq_list_r14_l;
 
 // SL-V2X-TxProfile-r15 ::= ENUMERATED
-struct sl_v2x_tx_profile_r15_e {
-  enum options { rel14, rel15, spare6, spare5, spare4, spare3, spare2, spare1, /*...*/ };
+struct sl_v2x_tx_profile_r15_opts {
+  enum options { rel14, rel15, spare6, spare5, spare4, spare3, spare2, spare1, /*...*/ } value;
   typedef uint8_t number_type;
 
-  options               value;
-  static const uint32_t nof_types = 8, nof_exts = 0;
-  static const bool     has_ext = true;
-
-  // enumerated methods
-  sl_v2x_tx_profile_r15_e() {}
-  sl_v2x_tx_profile_r15_e(options v) : value(v) {}
-  sl_v2x_tx_profile_r15_e& operator=(options v)
-  {
-    value = v;
-    return *this;
-  }
-              operator options() const { return value; }
   std::string to_string() const;
   uint8_t     to_number() const;
 };
+typedef enumerated<sl_v2x_tx_profile_r15_opts, 8, 0, true> sl_v2x_tx_profile_r15_e;
 
 // SL-V2X-TxProfileList-r15 ::= SEQUENCE (SIZE (1..256)) OF SL-V2X-TxProfile-r15
 typedef dyn_array<sl_v2x_tx_profile_r15_e> sl_v2x_tx_profile_list_r15_l;
@@ -63548,24 +53102,22 @@ struct ue_paging_coverage_info_r13_ies_s {
 struct ue_paging_coverage_info_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { ue_paging_coverage_info_r13, spare7, spare6, spare5, spare4, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options {
+          ue_paging_coverage_info_r13,
+          spare7,
+          spare6,
+          spare5,
+          spare4,
+          spare3,
+          spare2,
+          spare1,
+          nulltype
+        } value;
 
-        options               value;
-        static const uint32_t nof_types = 8, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 8, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -63647,24 +53199,22 @@ struct ue_radio_access_cap_info_r8_ies_s {
 struct ue_radio_access_cap_info_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { ue_radio_access_cap_info_r8, spare7, spare6, spare5, spare4, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options {
+          ue_radio_access_cap_info_r8,
+          spare7,
+          spare6,
+          spare5,
+          spare4,
+          spare3,
+          spare2,
+          spare1,
+          nulltype
+        } value;
 
-        options               value;
-        static const uint32_t nof_types = 8, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 8, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -63763,24 +53313,22 @@ struct ue_radio_paging_info_r12_ies_s {
 struct ue_radio_paging_info_s {
   struct crit_exts_c_ {
     struct c1_c_ {
-      struct types {
-        enum options { ue_radio_paging_info_r12, spare7, spare6, spare5, spare4, spare3, spare2, spare1, nulltype };
+      struct types_opts {
+        enum options {
+          ue_radio_paging_info_r12,
+          spare7,
+          spare6,
+          spare5,
+          spare4,
+          spare3,
+          spare2,
+          spare1,
+          nulltype
+        } value;
 
-        options               value;
-        static const uint32_t nof_types = 8, nof_exts = 0;
-        static const bool     has_ext = false;
-
-        // enumerated methods
-        types() {}
-        types(options v) : value(v) {}
-        types& operator=(options v)
-        {
-          value = v;
-          return *this;
-        }
-                    operator options() const { return value; }
         std::string to_string() const;
       };
+      typedef enumerated<types_opts, 8, 0, false> types;
 
       // choice methods
       c1_c_() : type_(types::nulltype) {}
@@ -64034,26 +53582,14 @@ struct var_meas_cfg_s {
 
 // VarMeasIdleConfig-r15 ::= SEQUENCE
 struct var_meas_idle_cfg_r15_s {
-  struct meas_idle_dur_r15_e_ {
-    enum options { sec10, sec30, sec60, sec120, sec180, sec240, sec300 };
+  struct meas_idle_dur_r15_opts {
+    enum options { sec10, sec30, sec60, sec120, sec180, sec240, sec300 } value;
     typedef uint16_t number_type;
 
-    options               value;
-    static const uint32_t nof_types = 7, nof_exts = 0;
-    static const bool     has_ext = false;
-
-    // enumerated methods
-    meas_idle_dur_r15_e_() {}
-    meas_idle_dur_r15_e_(options v) : value(v) {}
-    meas_idle_dur_r15_e_& operator=(options v)
-    {
-      value = v;
-      return *this;
-    }
-                operator options() const { return value; }
     std::string to_string() const;
     uint16_t    to_number() const;
   };
+  typedef enumerated<meas_idle_dur_r15_opts, 7, 0, false> meas_idle_dur_r15_e_;
 
   // member variables
   bool                     meas_idle_carrier_list_eutra_r15_present;

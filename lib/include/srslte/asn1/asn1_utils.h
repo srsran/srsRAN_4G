@@ -314,6 +314,25 @@ bool number_string_to_enum(EnumType& e, const std::string& val)
   return false;
 }
 
+template <class EnumType, uint32_t N, uint32_t M, bool E>
+class enumerated : public EnumType
+{
+public:
+  static const uint32_t nof_types = N, nof_exts = M;
+  static const bool     has_ext = E;
+
+  enumerated() {}
+  enumerated(typename EnumType::options o) { EnumType::value = o; }
+  SRSASN_CODE pack(bit_ref& bref) const { return pack_enum(bref, EnumType::value); }
+  SRSASN_CODE unpack(bit_ref& bref) { return unpack_enum(EnumType::value, bref); }
+  EnumType&   operator=(EnumType v)
+  {
+    EnumType::value = v;
+    return *this;
+  }
+  operator typename EnumType::options() const { return EnumType::value; }
+};
+
 /************************
     integer packing
 ************************/
@@ -844,41 +863,41 @@ public:
                  // instead of this ctor
   copy_ptr(const copy_ptr<T>& other) { ptr = other.make_obj_(); } // it allocates new memory for the new object
   ~copy_ptr() { destroy_(); }
-  inline copy_ptr<T>& operator=(const copy_ptr<T>& other)
+  copy_ptr<T>& operator=(const copy_ptr<T>& other)
   {
     if (this != &other) {
       acquire(other.make_obj_());
     }
     return *this;
   }
-  inline bool     operator==(const copy_ptr<T>& other) const { return *ptr == *other; }
-  inline T*       operator->() { return ptr; }
-  inline const T* operator->() const { return ptr; }
-  inline T&       operator*() { return *ptr; }       // like pointers, don't call this if ptr==NULL
-  inline const T& operator*() const { return *ptr; } // like pointers, don't call this if ptr==NULL
-  inline T*       get() { return ptr; }
-  inline const T* get() const { return ptr; }
-  inline T*       release()
+  bool     operator==(const copy_ptr<T>& other) const { return *ptr == *other; }
+  T*       operator->() { return ptr; }
+  const T* operator->() const { return ptr; }
+  T&       operator*() { return *ptr; }       // like pointers, don't call this if ptr==NULL
+  const T& operator*() const { return *ptr; } // like pointers, don't call this if ptr==NULL
+  T*       get() { return ptr; }
+  const T* get() const { return ptr; }
+  T*       release()
   {
     T* ret = ptr;
     ptr    = NULL;
     return ret;
   }
-  inline void acquire(T* ptr_)
+  void acquire(T* ptr_)
   {
     destroy_();
     ptr = ptr_;
   }
-  inline void reset() { acquire(NULL); }
+  void reset() { acquire(NULL); }
 
 private:
-  inline void destroy_()
+  void destroy_()
   {
     if (ptr != NULL) {
       delete ptr;
     }
   }
-  inline T* make_obj_() const { return (ptr == NULL) ? NULL : new T(*ptr); }
+  T*        make_obj_() const { return (ptr == NULL) ? NULL : new T(*ptr); }
   T*        ptr;
 };
 
