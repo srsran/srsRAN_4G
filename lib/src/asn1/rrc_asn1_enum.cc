@@ -1,5 +1,5 @@
 /*
-Copyright 2013-2017 Software Radio Systems Limited
+Copyright 2019 Software Radio Systems Limited
 
 This file is part of srsLTE
 
@@ -23,6 +23,10 @@ and at http://www.gnu.org/licenses/.
 
 using namespace asn1;
 using namespace asn1::rrc;
+
+/*******************************************************************************
+/*                               Helper Functions
+/******************************************************************************/
 
 static void invalid_enum_value(int value, const char* name)
 {
