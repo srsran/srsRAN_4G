@@ -19,7 +19,6 @@
 #
 
 if(RF_FOUND)
-
   # This library is only used by the examples 
   add_library(srslte_rf_utils STATIC rf_utils.c)
   target_link_libraries(srslte_rf_utils srslte_phy)
@@ -38,11 +37,10 @@ if(RF_FOUND)
     list(APPEND SOURCES_RF rf_blade_imp.c)
   endif (BLADERF_FOUND)
 
-  if (SOAPYSDR_FOUND)
+  if (SOAPYSDR_FOUND AND ENABLE_SOAPYSDR)
     add_definitions(-DENABLE_SOAPYSDR)
     list(APPEND SOURCES_RF rf_soapy_imp.c)
-  endif (SOAPYSDR_FOUND)
-
+  endif (SOAPYSDR_FOUND AND ENABLE_SOAPYSDR)
 
   add_library(srslte_rf SHARED ${SOURCES_RF})
   target_link_libraries(srslte_rf srslte_rf_utils srslte_phy)
@@ -55,10 +53,9 @@ if(RF_FOUND)
     target_link_libraries(srslte_rf ${BLADERF_LIBRARIES})
   endif (BLADERF_FOUND)
 
-  if (SOAPYSDR_FOUND)
+  if (SOAPYSDR_FOUND AND ENABLE_SOAPYSDR)
     target_link_libraries(srslte_rf ${SOAPYSDR_LIBRARIES})
-  endif (SOAPYSDR_FOUND)
-
+  endif (SOAPYSDR_FOUND AND ENABLE_SOAPYSDR)
 
   INSTALL(TARGETS srslte_rf DESTINATION ${LIBRARY_DIR})
 endif(RF_FOUND)

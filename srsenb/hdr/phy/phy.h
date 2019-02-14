@@ -27,29 +27,29 @@
 #ifndef SRSENB_PHY_H
 #define SRSENB_PHY_H
 
+#include "phch_common.h"
+#include "phch_worker.h"
 #include "srslte/common/log.h"
 #include "srslte/common/log_filter.h"
-#include "txrx.h"
-#include "phch_worker.h"
-#include "phch_common.h"
-#include "srslte/radio/radio.h"
-#include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/common/task_dispatcher.h"
 #include "srslte/common/trace.h"
+#include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
+#include "srslte/radio/radio.h"
+#include "txrx.h"
+#include <srslte/asn1/rrc_asn1.h>
 
 namespace srsenb {
  
 typedef struct {
-  srslte_cell_t cell; 
-  LIBLTE_RRC_PRACH_CONFIG_SIB_STRUCT          prach_cnfg;
-  LIBLTE_RRC_PDSCH_CONFIG_COMMON_STRUCT       pdsch_cnfg;
-  LIBLTE_RRC_PUSCH_CONFIG_COMMON_STRUCT       pusch_cnfg;
-  LIBLTE_RRC_PUCCH_CONFIG_COMMON_STRUCT       pucch_cnfg;
-  LIBLTE_RRC_SRS_UL_CONFIG_COMMON_STRUCT      srs_ul_cnfg;    
-} phy_cfg_t; 
+  srslte_cell_t                  cell;
+  asn1::rrc::prach_cfg_sib_s     prach_cnfg;
+  asn1::rrc::pdsch_cfg_common_s  pdsch_cnfg;
+  asn1::rrc::pusch_cfg_common_s  pusch_cnfg;
+  asn1::rrc::pucch_cfg_common_s  pucch_cnfg;
+  asn1::rrc::srs_ul_cfg_common_c srs_ul_cnfg;
+} phy_cfg_t;
 
-  
 class phy : public phy_interface_mac,
             public phy_interface_rrc
 {
@@ -65,15 +65,15 @@ public:
   void rem_rnti(uint16_t rnti);
   
   /*RRC-PHY interface*/
-  void configure_mbsfn(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13, LIBLTE_RRC_MCCH_MSG_STRUCT mcch);
+  void configure_mbsfn(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s mcch);
 
   static uint32_t tti_to_SFN(uint32_t tti);
   static uint32_t tti_to_subf(uint32_t tti);
   
   void start_plot();
   void set_conf_dedicated_ack(uint16_t rnti, bool dedicated_ack);
-  void set_config_dedicated(uint16_t rnti, LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT* dedicated);
-  
+  void set_config_dedicated(uint16_t rnti, asn1::rrc::phys_cfg_ded_s* dedicated);
+
   void get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS]);
   
 private:

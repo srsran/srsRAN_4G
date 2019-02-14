@@ -31,6 +31,8 @@
 #define USE_RADIO
 #define PRINT_GW 0
 
+using namespace asn1::rrc;
+
 /**********************************************************************
  *  Program arguments processing
  ***********************************************************************/
@@ -181,7 +183,7 @@ public:
         // Instruct MAC to look for SIB2
         usleep(10000);
         tti          = mac->get_current_tti();
-        period       = liblte_rrc_si_periodicity_num[sib1.sched_info[0].si_periodicity];
+        period       = sib1.sched_info[0].si_periodicity.to_number();
         si_win_start = sib_start_tti(tti, period, 0);
         si_win_len   = liblte_rrc_si_window_length_num[sib1.si_window_length];
 
@@ -553,9 +555,9 @@ int main(int argc, char *argv[])
     my_mac.start_pcap(&mac_pcap);
     signal(SIGINT, sig_int_handler);     
   }
-  
-  // Set MAC defaults 
-  LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT default_cfg;
+
+  // Set MAC defaults
+  mac_main_cfg_s default_cfg;
   bzero(&default_cfg, sizeof(LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT));
   default_cfg.ulsch_cnfg.max_harq_tx        = LIBLTE_RRC_MAX_HARQ_TX_N5;
   default_cfg.ulsch_cnfg.periodic_bsr_timer = LIBLTE_RRC_PERIODIC_BSR_TIMER_INFINITY;

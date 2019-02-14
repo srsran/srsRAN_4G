@@ -32,14 +32,18 @@
 #include <sstream>
 #include <algorithm>
 #include <iterator>
+#include <sstream>
 
 using namespace srslte;
 
 namespace srsue{
 
 ue::ue()
-    :started(false)
+    :started(false), mac_log()
 {
+  usim = NULL;
+  logger = NULL;
+  args = NULL;
 }
 
 ue::~ue()
@@ -147,7 +151,25 @@ bool ue::init(all_args_t *args_) {
     phy.start_trace();
     radio.start_trace();
   }
-  
+
+  // populate EARFCN list
+  std::vector<uint32_t> earfcn_list;
+  if (!args->rf.dl_earfcn.empty()) {
+    std::stringstream ss(args->rf.dl_earfcn);
+    int idx = 0;
+    while (ss.good()) {
+      std::string substr;
+      getline(ss, substr, ',');
+      const int earfcn               = atoi(substr.c_str());
+      args->rrc.supported_bands[idx] = srslte_band_get_band(earfcn);
+      args->rrc.nof_supported_bands  = ++idx;
+      earfcn_list.push_back(earfcn);
+    }
+  } else {
+    printf("Error: dl_earfcn list is empty\n");
+    return false;
+  }
+
   // Init layers
 
   // Init USIM first to allow early exit in case reader couldn't be found
@@ -221,20 +243,16 @@ bool ue::init(all_args_t *args_) {
   rlc.init(&pdcp, &rrc, this, &rlc_log, &mac, 0 /* RB_ID_SRB0 */);
   pdcp.init(&rlc, &rrc, &gw, &pdcp_log, 0 /* RB_ID_SRB0 */, SECURITY_DIRECTION_UPLINK);
 
-  srslte_nas_config_t nas_cfg(1, args->nas.apn_name, args->nas.apn_user, args->nas.apn_pass, args->nas.force_imsi_attach); /* RB_ID_SRB1 */
+  srslte_nas_config_t nas_cfg(1, args->nas.apn_name, args->nas.apn_protocol, args->nas.apn_user, args->nas.apn_pass, args->nas.force_imsi_attach); /* RB_ID_SRB1 */
   nas.init(usim, &rrc, &gw, &nas_log, nas_cfg);
   gw.init(&pdcp, &nas, &gw_log, 3 /* RB_ID_DRB1 */);
   gw.set_netmask(args->expert.ip_netmask);
   gw.set_tundevname(args->expert.ip_devname);
-  
-  // Get current band from provided EARFCN
-  // args->rrc.supported_bands[0] = srslte_band_get_band(args->rf.dl_earfcn);
-  // args->rrc.nof_supported_bands = 1;
   args->rrc.ue_category = atoi(args->ue_category_str.c_str());
 
   // set args and initialize RRC
-  rrc.set_args(args->rrc);
   rrc.init(&phy, &mac, &rlc, &pdcp, &nas, usim, &gw, &mac, &rrc_log);
+  rrc.set_args(args->rrc);
 
   // Currently EARFCN list is set to only one frequency as indicated in ue.conf
   std::vector<uint32_t> earfcn_list;
@@ -254,7 +272,6 @@ bool ue::init(all_args_t *args_) {
 
   printf("Waiting PHY to initialize...\n");
   phy.wait_initialize();
-  phy.configure_ul_params();
 
   // Enable AGC once PHY is initialized
   if (args->rf.rx_gain < 0) {
@@ -319,11 +336,11 @@ bool ue::switch_off() {
   // wait for max. 5s for it to be sent (according to TS 24.301 Sec 25.5.2.2)
   const uint32_t RB_ID_SRB1 = 1;
   int cnt = 0, timeout = 5;
-  while (rlc.get_buffer_state(RB_ID_SRB1) && ++cnt <= timeout) {
+  while (rlc.has_data(RB_ID_SRB1) && ++cnt <= timeout) {
     sleep(1);
   }
   bool detach_sent = true;
-  if (rlc.get_buffer_state(RB_ID_SRB1)) {
+  if (rlc.has_data(RB_ID_SRB1)) {
     nas_log.warning("Detach couldn't be sent after %ds.\n", timeout);
     detach_sent = false;
   }

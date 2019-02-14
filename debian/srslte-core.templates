@@ -3,4 +3,4 @@ Type: boolean
 Default: true
 Description: Install configs?
  This installs the default srsLTE configuration files to the user's
- home directory (~/.srs) but keeps any existing config files.
+ home directory (~/.config/srslte) but keeps any existing config files.

@@ -206,7 +206,8 @@ static int encode_tb_off(srslte_sch_t *q,
     }
 
     if (cb_segm->C > softbuffer->max_cb) {
-      fprintf(stderr, "Error number of CB (%d) exceeds soft buffer size (%d CBs)\n", cb_segm->C, softbuffer->max_cb);
+      fprintf(stderr, "Error number of CB to encode (%d) exceeds soft buffer size (%d CBs)\n", cb_segm->C,
+              softbuffer->max_cb);
       return -1; 
     }
 
@@ -457,7 +458,8 @@ static int decode_tb(srslte_sch_t *q,
     }
 
     if (cb_segm->C > softbuffer->max_cb) {
-      fprintf(stderr, "Error number of CB (%d) exceeds soft buffer size (%d CBs)\n", cb_segm->C, softbuffer->max_cb);
+      fprintf(stderr, "Error number of CB to decode (%d) exceeds soft buffer size (%d CBs)\n", cb_segm->C,
+              softbuffer->max_cb);
       return SRSLTE_ERROR_INVALID_INPUTS;
     }
         
@@ -612,6 +614,7 @@ static void ulsch_interleave_qm4(uint8_t *g_bits, uint32_t rows, uint32_t cols, 
     int32_t i = 0;
 
 #ifndef LV_HAVE_SSE
+  #ifndef HAVE_NEON
     __m128i _counter = _mm_slli_epi32(_mm_add_epi32(_mm_mullo_epi32(_counter0,_rows),_mm_set1_epi32(j)), 2);
     uint8_t *_g_bits = &g_bits[bit_read_idx/8];
 
@@ -650,6 +653,7 @@ static void ulsch_interleave_qm4(uint8_t *g_bits, uint32_t rows, uint32_t cols, 
       }
     }
     bit_read_idx += i * 4;
+  #endif /* HAVE_NEON */
 #endif /* LV_HAVE_SSE */
 
     /* Spare bits */

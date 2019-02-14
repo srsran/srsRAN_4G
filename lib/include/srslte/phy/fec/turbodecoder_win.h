@@ -179,7 +179,100 @@
 
 
 #else
+#ifdef WINIMP_IS_NEON16
+  #include <arm_neon.h>
+
+  #define WINIMP arm16
+  #define nof_blocks 8
+
+  #define llr_t int16_t
+
+  
+ 
+  #define v_insert_s16(a, b, imm) \
+  ({ \
+	  (vsetq_lane_s16((b), (a), (imm))); \
+  })
+
+ #define int8x16_to_8x8x2(v) ((int8x8x2_t) {{ vget_low_s8(v), vget_high_s8(v) }})// TODO 
+
+static inline int movemask_neon(uint8x16_t movemask_low_in) {
+  
+  uint8x8_t mask_and = vdup_n_u8(0x80); 
+  int8_t __attribute__((aligned(16))) xr[8];
+  for(int i = 0; i <8;i++)
+    xr[i] = i-7;
+  
+  int8x8_t mask_shift = vld1_s8(xr);
+  uint8x8_t lo = vget_low_u8(movemask_low_in);
+  uint8x8_t hi = vget_high_u8(movemask_low_in);
+  lo = vand_u8(lo, mask_and);
+  lo = vshl_u8(lo, mask_shift);
+  hi = vand_u8(hi, mask_and);
+  hi = vshl_u8(hi, mask_shift);
+
+  lo = vpadd_u8(lo, lo);
+  lo = vpadd_u8(lo, lo);
+  lo = vpadd_u8(lo, lo);
+
+  hi = vpadd_u8(hi, hi);
+  hi = vpadd_u8(hi, hi);
+  hi = vpadd_u8(hi, hi);
+
+  return ((hi[0] << 8) | (lo[0] & 0xFF));
+}
+ inline static int16x8_t vshuff_s8(int16x8_t in, uint8x16_t mask)
+{
+  int8x8x2_t x = int8x16_to_8x8x2((int8x16_t)in);
+	int8x8_t u = (int8x8_t)vget_low_u8(mask);
+  int8x8_t eq = vtbl2_s8(x,u);
+   
+  int8x8x2_t x2 = int8x16_to_8x8x2((int8x16_t)in);
+	int8x8_t u2 = (int8x8_t)vget_high_u8(mask);
+  int8x8_t eq2 = vtbl2_s8(x2,u2);
+	return (int16x8_t)vcombine_s8(eq,eq2);
+}
+ static inline int16x8_t v_packs_s16(int16x8_t a, int16x8_t b)
+{
+	return (int16x8_t)(vcombine_s8(vqmovn_s16((a)), vqmovn_s16((b))));
+}
+ 
+
+inline static int16x8_t v_srai_s16(const int16x8_t a, const int count) {
+    int16x8_t b = vmovq_n_s16(-count);
+    return vshlq_s16(a,b);
+}
+inline static uint8x16_t v_load_s8(int i15, int i14, int i13, int i12, int i11, int i10, int i9, int i8, int i7, int i6, int i5, int i4, int i3, int i2, int i1, int i0)
+{
+	uint8_t __attribute__((aligned(16))) data[16] = {i0, i1, i2, i3, i4, i5, i6, i7, i8, i9, i10, i11, i12, i13, i14, i15};
+	return vld1q_u8(data);
+}
+  
+  
+  #define simd_type_t       int16x8_t
+  #define simd_load(x)      vld1q_s16((int16_t*)x)
+  #define simd_store(x,y)   vst1q_s16((int16_t*)x,y)
+  #define simd_add          vaddq_s16
+  #define simd_sub          vsubq_s16
+  #define simd_max          vmaxq_s16
+  #define simd_set1         vdupq_n_s16
+  #define simd_insert       v_insert_s16
+  #define simd_shuffle      vshuff_s8
+  #define move_right        v_load_s8(15,14,15,14,13,12,11,10,9,8,7,6,5,4,3,2)
+  #define move_left         v_load_s8(13,12,11,10,9,8,7,6,5,4,3,2,1,0,1,0)
+  #define simd_rb_shift     v_srai_s16
+
+  #define normalize_period 2
+  #define win_overlap_len  40
+
+#define divide_output 1
+
+#define INF 10000
+  
+#else
   #error "Unknown WINIMP value"
+#endif
+
 #endif
 #endif
 #endif
@@ -681,10 +774,20 @@ void MAKE_FUNC(extract_input)(llr_t *input, llr_t *systematic, llr_t *app2, llr_
                                 k -= (long_cb-1);\
                               }\
                             }
+
+
+
+#ifdef WINIMP_IS_NEON16
+#define insert_bit(a,b)     ap = v_insert_s16(ap, app1[k+(a%b)*nof_blocks], 7-a); \
+                            reset_cnt(a,b); 
+#else
 #define insert_bit(a,b)     ap = _mm_insert_epi16(ap, app1[k+(a%b)*nof_blocks], 7-a); \
-                            reset_cnt(a,b); \
+                            reset_cnt(a,b); 
+#endif
 
 
+
+#ifndef WINIMP_IS_NEON16
 #define decide_for(b)     for (uint32_t i = 0; i < long_cb/8; i++) { \
                             insert_bit(0,b);\
                             insert_bit(1,b);\
@@ -696,14 +799,31 @@ void MAKE_FUNC(extract_input)(llr_t *input, llr_t *systematic, llr_t *app2, llr_
                             insert_bit(7,b);\
                             output[i] = (uint8_t) _mm_movemask_epi8(_mm_cmpgt_epi8(_mm_packs_epi16(ap,zeros),zeros));\
                           }
-
+#else
+#define decide_for(b)     for (uint32_t i = 0; i < long_cb/8; i++) { \
+                            insert_bit(0,b);\
+                            insert_bit(1,b);\
+                            insert_bit(2,b);\
+                            insert_bit(3,b);\
+                            insert_bit(4,b);\
+                            insert_bit(5,b);\
+                            insert_bit(6,b);\
+                            insert_bit(7,b);\
+                            output[i] = (uint8_t) movemask_neon((uint8x16_t)vcgtq_s8((int8x16_t)v_packs_s16(ap,(int16x8_t)zeros),zeros));\
+                          }
+#endif
 /* No improvement to use AVX here */
 void MAKE_FUNC(decision_byte)(llr_t *app1, uint8_t *output, uint32_t long_cb)
 {
   uint32_t k=0;
+#ifdef WINIMP_IS_NEON16
+  int8_t z = 0;
+  int8x16_t zeros =  vld1q_dup_s8(&z);
+  int16x8_t ap;
+#else
   __m128i zeros = _mm_setzero_si128();
   __m128i ap;
-
+#endif
   if ((long_cb%(nof_blocks*8)) == 0) {
     decide_for(8);
   } else if ((long_cb%(nof_blocks*4)) == 0) {

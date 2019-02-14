@@ -32,6 +32,8 @@
 
 #define RX_MOD_BASE(x) (((x)-vr_uh-cfg.rx_window_size)%cfg.rx_mod)
 
+using namespace asn1::rrc;
+
 namespace srslte {
 
 rlc_um::rlc_um(uint32_t queue_len)
@@ -80,9 +82,9 @@ bool rlc_um::configure(srslte_rlc_config_t cnfg_)
   // store config
   cfg = cnfg_.um;
 
-  log->warning("%s configured in %s mode: ft_reordering=%d ms, rx_sn_field_length=%u bits, tx_sn_field_length=%u bits\n",
-               rb_name.c_str(), rlc_mode_text[cnfg_.rlc_mode],
-               cfg.t_reordering, rlc_umd_sn_size_num[cfg.rx_sn_field_length], rlc_umd_sn_size_num[cfg.rx_sn_field_length]);
+  log->warning("%s configured in %s: t_reordering=%d ms, rx_sn_field_length=%u bits, tx_sn_field_length=%u bits\n",
+               rb_name.c_str(), rlc_mode_text[cnfg_.rlc_mode], cfg.t_reordering,
+               rlc_umd_sn_size_num[cfg.rx_sn_field_length], rlc_umd_sn_size_num[cfg.rx_sn_field_length]);
 
   return true;
 }
@@ -162,14 +164,14 @@ void rlc_um::write_sdu(byte_buffer_t *sdu, bool blocking)
  * MAC interface
  ***************************************************************************/
 
-uint32_t rlc_um::get_buffer_state()
+bool rlc_um::has_data()
 {
-  return tx.get_buffer_size_bytes();
+  return tx.has_data();
 }
 
-uint32_t rlc_um::get_total_buffer_state()
+uint32_t rlc_um::get_buffer_state()
 {
-  return get_buffer_state();
+  return tx.get_buffer_state();
 }
 
 int rlc_um::read_pdu(uint8_t *payload, uint32_t nof_bytes)
@@ -313,7 +315,13 @@ void rlc_um::rlc_um_tx::reset_metrics()
 }
 
 
-uint32_t rlc_um::rlc_um_tx::get_buffer_size_bytes()
+bool rlc_um::rlc_um_tx::has_data()
+{
+  return (tx_sdu != NULL || !tx_sdu_queue.is_empty());
+}
+
+
+uint32_t rlc_um::rlc_um_tx::get_buffer_state()
 {
   // Bytes needed for tx SDUs
   uint32_t n_sdus  = tx_sdu_queue.size();

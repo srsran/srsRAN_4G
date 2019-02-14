@@ -1,3 +1,9 @@
+srslte (18.12-0ubuntu1) bionic; urgency=medium
+
+  * Update to srsLTE 18.12
+
+ -- Andre Puschmann <andre@softwareradiosystems.com>  Mon, 21 Jan 2019 13:50:00 +0200
+
 srslte (18.09-0ubuntu1) bionic; urgency=medium
 
   * Update to srsLTE 18.09

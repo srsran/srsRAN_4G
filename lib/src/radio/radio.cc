@@ -81,9 +81,6 @@ bool radio::is_init() {
 
 void radio::stop() 
 {
-  if (zeros) {
-    free(zeros);
-  }
   if (is_initialized) {
     srslte_rf_close(&rf_device);
   }
@@ -363,17 +360,23 @@ void radio::set_tx_srate(double srate)
       
       double srate_khz = round(cur_tx_srate/1e3);
       if (srate_khz == 1.92e3) {
-        nsamples = 54;
+        // 6 PRB
+        nsamples = 94;
       } else if (srate_khz == 3.84e3) {
-        nsamples = 69;
+        // 15 PRB
+        nsamples = 94;
       } else if (srate_khz == 5.76e3) {
-        nsamples = 93;
+        // 25 PRB
+        nsamples = 92;
       } else if (srate_khz == 11.52e3) {
-        nsamples = 120;
+        // 50 PRB
+        nsamples = 171;
       } else if (srate_khz == 15.36e3) {
-        nsamples = 131;
+        // 75 PRB
+        nsamples = 171;
       } else if (srate_khz == 23.04e3) {
-        nsamples = 150;
+        // 100 PRB
+        nsamples = 171;
       } else {
         /* Interpolate from known values */
         printf("\nWarning TX/RX time offset for sampling rate %.0f KHz not calibrated. Using interpolated value\n\n", cur_tx_srate);
@@ -403,17 +406,17 @@ void radio::set_tx_srate(double srate)
     } else if(!strcmp(srslte_rf_name(&rf_device), "lime")) {
       double srate_khz = round(cur_tx_srate/1e3);
       if (srate_khz == 1.92e3) {
-        nsamples = 70;// estimated
+        nsamples = 76;
       } else if (srate_khz == 3.84e3) {
-        nsamples = 76;//estimated
+        nsamples = 76;
       } else if (srate_khz == 5.76e3) {
         nsamples = 76;
       } else if (srate_khz == 11.52e3) {
         nsamples = 76;
       } else if (srate_khz == 15.36e3) {
-        nsamples = 73;
+        nsamples = 76;
       } else if (srate_khz == 23.04e3) {
-        nsamples = 87;
+        nsamples = 76;
       } else {
         /* Interpolate from known values */
         printf("\nWarning TX/RX time offset for sampling rate %.0f KHz not calibrated. Using interpolated value\n\n", cur_tx_srate);

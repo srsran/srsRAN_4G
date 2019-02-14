@@ -152,14 +152,14 @@ void rlc_am::write_sdu(byte_buffer_t *sdu, bool blocking)
  * MAC interface
  ***************************************************************************/
 
+bool rlc_am::has_data()
+{
+  return tx.has_data();
+}
+
 uint32_t rlc_am::get_buffer_state()
 {
   return tx.get_buffer_state();
-}
-
-uint32_t rlc_am::get_total_buffer_state()
-{
-  return tx.get_total_buffer_state();
 }
 
 int rlc_am::read_pdu(uint8_t *payload, uint32_t nof_bytes)
@@ -314,63 +314,16 @@ bool rlc_am::rlc_am_tx::do_status()
   return parent->rx.get_do_status();
 }
 
-uint32_t rlc_am::rlc_am_tx::get_buffer_state()
+// Function is supposed to return as fast as possible
+bool rlc_am::rlc_am_tx::has_data()
 {
-  pthread_mutex_lock(&mutex);
-  uint32_t n_bytes = 0;
-  uint32_t n_sdus  = 0;
-
-  // Bytes needed for status report
-  if (do_status() && not status_prohibited) {
-    n_bytes = parent->rx.get_status_pdu_length();
-    log->debug("%s Buffer state - status report: %d bytes\n", RB_NAME, n_bytes);
-    goto unlock_and_return;
-  }
-
-  // Bytes needed for retx
-  if (not retx_queue.empty()) {
-    rlc_amd_retx_t retx = retx_queue.front();
-    log->debug("Buffer state - retx - SN: %d, Segment: %s, %d:%d\n", retx.sn, retx.is_segment ? "true" : "false", retx.so_start, retx.so_end);
-    if(tx_window.end() != tx_window.find(retx.sn)) {
-      int req_bytes = required_buffer_size(retx);
-      if (req_bytes < 0) {
-        log->error("In get_buffer_state(): Removing retx.sn=%d from queue\n", retx.sn);
-        retx_queue.pop_front();
-        goto unlock_and_return;
-      }
-      n_bytes = static_cast<uint32_t>(req_bytes);
-      log->debug("Buffer state - retx: %d bytes\n", n_bytes);
-      goto unlock_and_return;
-    }
-  }
-
-  // Bytes needed for tx SDUs
-  if (tx_window.size() < 1024) {
-    n_sdus  = tx_sdu_queue.size();
-    n_bytes = tx_sdu_queue.size_bytes();
-    if (tx_sdu != NULL) {
-      n_sdus++;
-      n_bytes += tx_sdu->N_bytes;
-    }
-  }
-
-  // Room needed for header extensions? (integer rounding)
-  if (n_sdus > 1) {
-    n_bytes += ((n_sdus-1)*1.5)+0.5;
-  }
-
-  // Room needed for fixed header?
-  if (n_bytes > 0) {
-    n_bytes += 3;
-    log->debug("Buffer state - tx SDUs: %d bytes\n", n_bytes);
-  }
-
-unlock_and_return:
-  pthread_mutex_unlock(&mutex);
-  return n_bytes;
+  return (((do_status() && not status_prohibited)) ||        // if we have a status PDU to transmit
+           (not retx_queue.empty()) ||                       // if we have a retransmission
+           (tx_sdu != NULL) ||                               // if we are currently transmitting a SDU
+           (not tx_sdu_queue.is_empty()));                   // or if there is a SDU queued up for transmission
 }
 
-uint32_t rlc_am::rlc_am_tx::get_total_buffer_state()
+uint32_t rlc_am::rlc_am_tx::get_buffer_state()
 {
   pthread_mutex_lock(&mutex);
   uint32_t n_bytes = 0;
@@ -385,11 +338,11 @@ uint32_t rlc_am::rlc_am_tx::get_total_buffer_state()
   // Bytes needed for retx
   if(not retx_queue.empty()) {
     rlc_amd_retx_t retx = retx_queue.front();
-    log->debug("Buffer state - retx - SN: %d, Segment: %s, %d:%d\n", retx.sn, retx.is_segment ? "true" : "false", retx.so_start, retx.so_end);
+    log->debug("%s Buffer state - retx - SN: %d, Segment: %s, %d:%d\n", RB_NAME, retx.sn, retx.is_segment ? "true" : "false", retx.so_start, retx.so_end);
     if(tx_window.end() != tx_window.find(retx.sn)) {
       int req_bytes = required_buffer_size(retx);
       if (req_bytes < 0) {
-        log->error("In get_total_buffer_state(): Removing retx.sn=%d from queue\n", retx.sn);
+        log->error("In get_buffer_state(): Removing retx.sn=%d from queue\n", retx.sn);
         retx_queue.pop_front();
       } else {
         n_bytes += req_bytes;
@@ -413,10 +366,10 @@ uint32_t rlc_am::rlc_am_tx::get_total_buffer_state()
     n_bytes += ((n_sdus-1)*1.5)+0.5;
   }
 
-  // Room needed for fixed header?
-  if (n_bytes > 0) {
+  // Room needed for fixed header of data PDUs
+  if (n_bytes > 0 && n_sdus > 0) {
     n_bytes += 3;
-    log->debug("Buffer state - tx SDUs: %d bytes\n", n_bytes);
+    log->debug("%s Total buffer state - %d SDUs (%d B)\n", RB_NAME, n_sdus, n_bytes);
   }
 
   pthread_mutex_unlock(&mutex);
@@ -1759,7 +1712,9 @@ bool rlc_am::rlc_am_rx::add_segment_and_check(rlc_amd_rx_pdu_segments_t *pdu, rl
     rlc_amd_rx_pdu_t &back = pdu->segments.back();
     n = back.header.so + back.buf->N_bytes;
   }
+
   if(segment->header.so != n) {
+    log->warning("Received PDU with SO=%d, expected %d. Discarding PDU.\n", segment->header.so, n);
     pool->deallocate(segment->buf);
     return false;
   } else {

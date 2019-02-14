@@ -398,7 +398,7 @@ int main(int argc, char **argv) {
     ret = SRSLTE_SUCCESS;
   }
 
-  printf("%ld were transmitted, %ld bits were received.\n", tx_nof_bits, rx_nof_bits);
+  printf("%zd were transmitted, %zd bits were received.\n", tx_nof_bits, rx_nof_bits);
   printf("[Rates in Mbps] Granted  Processed\n");
   printf("           eNb:   %5.1f      %5.1f\n",
          (float) tx_nof_bits / (float) nof_subframes / 1000.0f,

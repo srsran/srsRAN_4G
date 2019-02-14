@@ -57,6 +57,9 @@
 #define LIBLTE_MAX_MSG_SIZE_BYTES 12756
 #define LIBLTE_MSG_HEADER_OFFSET  1020
 
+//Macro to make it easier to convert defines into strings
+#define LIBLTE_CASE_STR(code) case code: return #code
+
 /*******************************************************************************
                               TYPEDEFS
 *******************************************************************************/

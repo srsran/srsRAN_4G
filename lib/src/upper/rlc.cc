@@ -25,11 +25,12 @@
  */
 
 
-#include <srslte/asn1/liblte_rrc.h>
 #include "srslte/upper/rlc.h"
 #include "srslte/upper/rlc_tm.h"
 #include "srslte/upper/rlc_um.h"
 #include "srslte/upper/rlc_am.h"
+
+using namespace asn1::rrc;
 
 namespace srslte {
 
@@ -256,6 +257,19 @@ bool rlc::rb_is_um(uint32_t lcid)
 /*******************************************************************************
   MAC interface
 *******************************************************************************/
+bool rlc::has_data(uint32_t lcid)
+{
+  bool has_data = false;
+
+  pthread_rwlock_rdlock(&rwlock);
+  if (valid_lcid(lcid)) {
+    has_data = rlc_array.at(lcid)->has_data();
+  }
+  pthread_rwlock_unlock(&rwlock);
+
+  return has_data;
+}
+
 uint32_t rlc::get_buffer_state(uint32_t lcid)
 {
   uint32_t ret = 0;
@@ -269,26 +283,13 @@ uint32_t rlc::get_buffer_state(uint32_t lcid)
   return ret;
 }
 
-uint32_t rlc::get_total_buffer_state(uint32_t lcid)
-{
-  uint32_t ret = 0;
-
-  pthread_rwlock_rdlock(&rwlock);
-  if (valid_lcid(lcid)) {
-    ret = rlc_array.at(lcid)->get_total_buffer_state();
-  }
-  pthread_rwlock_unlock(&rwlock);
-
-  return ret;
-}
-
 uint32_t rlc::get_total_mch_buffer_state(uint32_t lcid)
 {
   uint32_t ret = 0;
 
   pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid_mrb(lcid)) {
-    ret = rlc_array_mrb.at(lcid)->get_total_buffer_state();
+    ret = rlc_array_mrb.at(lcid)->get_buffer_state();
   }
   pthread_rwlock_unlock(&rwlock);
 
@@ -402,14 +403,15 @@ void rlc::add_bearer(uint32_t lcid)
     add_bearer(lcid, srslte_rlc_config_t());
   } else {
     // SRB1 and SRB2 are AM
-    LIBLTE_RRC_RLC_CONFIG_STRUCT cnfg = {};
-    cnfg.rlc_mode = LIBLTE_RRC_RLC_MODE_AM;
-    cnfg.ul_am_rlc.t_poll_retx = LIBLTE_RRC_T_POLL_RETRANSMIT_MS45;
-    cnfg.ul_am_rlc.poll_pdu = LIBLTE_RRC_POLL_PDU_INFINITY;
-    cnfg.ul_am_rlc.poll_byte = LIBLTE_RRC_POLL_BYTE_INFINITY;
-    cnfg.ul_am_rlc.max_retx_thresh = LIBLTE_RRC_MAX_RETX_THRESHOLD_T4;
-    cnfg.dl_am_rlc.t_reordering = LIBLTE_RRC_T_REORDERING_MS35;
-    cnfg.dl_am_rlc.t_status_prohibit = LIBLTE_RRC_T_STATUS_PROHIBIT_MS0;
+    rlc_cfg_c cnfg;
+    cnfg.set(rlc_cfg_c::types::am);
+    rlc_cfg_c::am_s_* amcfg            = &cnfg.am();
+    amcfg->ul_am_rlc.t_poll_retx       = t_poll_retx_e::ms45;
+    amcfg->ul_am_rlc.poll_pdu          = poll_pdu_e::p_infinity;
+    amcfg->ul_am_rlc.poll_byte         = poll_byte_e::kbinfinity;
+    amcfg->ul_am_rlc.max_retx_thres    = ul_am_rlc_s::max_retx_thres_e_::t4;
+    amcfg->dl_am_rlc.t_reordering      = t_reordering_e::ms35;
+    amcfg->dl_am_rlc.t_status_prohibit = t_status_prohibit_e::ms0;
     add_bearer(lcid, srslte_rlc_config_t(&cnfg));
   }
 }
@@ -571,6 +573,15 @@ exit:
 }
 
 
+bool rlc::has_bearer(uint32_t lcid)
+{
+  pthread_rwlock_rdlock(&rwlock);
+  bool ret = valid_lcid(lcid);
+  pthread_rwlock_unlock(&rwlock);
+  return ret;
+}
+
+
 /*******************************************************************************
   Helpers (Lock must be hold when calling those)
 *******************************************************************************/
@@ -578,7 +589,7 @@ exit:
 bool rlc::valid_lcid(uint32_t lcid)
 {
   if (lcid >= SRSLTE_N_RADIO_BEARERS) {
-    rlc_log->error("Radio bearer id must be in [0:%d] - %d", SRSLTE_N_RADIO_BEARERS, lcid);
+    rlc_log->error("Radio bearer id must be in [0:%d] - %d\n", SRSLTE_N_RADIO_BEARERS, lcid);
     return false;
   }
 
@@ -592,7 +603,7 @@ bool rlc::valid_lcid(uint32_t lcid)
 bool rlc::valid_lcid_mrb(uint32_t lcid)
 {
   if (lcid >= SRSLTE_N_MCH_LCIDS) {
-    rlc_log->error("Radio bearer id must be in [0:%d] - %d", SRSLTE_N_RADIO_BEARERS, lcid);
+    rlc_log->error("Radio bearer id must be in [0:%d] - %d\n", SRSLTE_N_RADIO_BEARERS, lcid);
     return false;
   }
 

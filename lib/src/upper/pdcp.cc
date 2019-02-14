@@ -48,6 +48,11 @@ pdcp::~pdcp()
   }
   pdcp_array.clear();
 
+  for (pdcp_map_t::iterator it = pdcp_array_mrb.begin(); it != pdcp_array_mrb.end(); ++it) {
+    delete (it->second);
+  }
+  pdcp_array_mrb.clear();
+
   pthread_rwlock_unlock(&rwlock);
   pthread_rwlock_destroy(&rwlock);
 }
@@ -93,10 +98,10 @@ void pdcp::reset()
 {
   // destroy all bearers
   pthread_rwlock_wrlock(&rwlock);
-  for (pdcp_map_t::iterator it = pdcp_array.begin(); it != pdcp_array.end(); ++it) {
+  for (pdcp_map_t::iterator it = pdcp_array.begin(); it != pdcp_array.end(); /* post increment in erase */ ) {
     it->second->reset();
     delete(it->second);
-    pdcp_array.erase(it);
+    pdcp_array.erase(it++);
   }
   pthread_rwlock_unlock(&rwlock);
 

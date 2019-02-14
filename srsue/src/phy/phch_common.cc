@@ -24,16 +24,19 @@
  *
  */
 
-#include <assert.h>
-#include <string.h>
-#include <sstream>
-#include "srslte/srslte.h"
 #include "srsue/hdr/phy/phch_common.h"
+#include "srslte/asn1/rrc_asn1.h"
+#include "srslte/srslte.h"
+#include <assert.h>
+#include <sstream>
+#include <string.h>
 
 #define Error(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) if (SRSLTE_DEBUG_ENABLED) log_h->warning(fmt, ##__VA_ARGS__)
 #define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug(fmt, ##__VA_ARGS__)
+
+using namespace asn1::rrc;
 
 namespace srsue {
 
@@ -50,6 +53,7 @@ phch_common::phch_common(uint32_t max_workers) : tx_sem(max_workers)
   rx_gain_offset = 0;
   last_ri = 0;
   last_pmi = 0;
+  avg_noise         = 0;
   //have_mtch_stop = false;
   
   bzero(&dl_metrics, sizeof(dl_metrics_t));
@@ -153,8 +157,8 @@ bool phch_common::get_pending_rar(uint32_t tti, srslte_dci_rar_grant_t *rar_gran
 {
   if (rar_grant_pending && tti >= rar_grant_tti) {
     if (rar_grant_) {
-      rar_grant_pending = false; 
-      memcpy(rar_grant_, &rar_grant, sizeof(srslte_dci_rar_grant_t));
+      rar_grant_pending = false;
+      *rar_grant_       = rar_grant;
     }
     return true; 
   }
@@ -359,6 +363,8 @@ void phch_common::reset() {
   avg_rsrp = 0;
   avg_rsrp_dbm = 0;
   avg_rsrq_db = 0;
+  avg_ri = 0;
+  avg_noise         = 0;
 
   pcell_report_period = 20;
 
@@ -390,7 +396,13 @@ void phch_common::build_mch_table()
   bzero(&mch_table[0], sizeof(uint8_t)*40);
 
   // 40 element table represents 4 frames (40 subframes)
-  generate_mch_table(&mch_table[0], config->mbsfn.mbsfn_subfr_cnfg.subfr_alloc,(LIBLTE_RRC_SUBFRAME_ALLOCATION_NUM_FRAMES_ONE == config->mbsfn.mbsfn_subfr_cnfg.subfr_alloc_num_frames)?1:4);
+  if (config->mbsfn.mbsfn_subfr_cnfg.sf_alloc.type() == mbsfn_sf_cfg_s::sf_alloc_c_::types::one_frame) {
+    generate_mch_table(&mch_table[0], (uint32_t)config->mbsfn.mbsfn_subfr_cnfg.sf_alloc.one_frame().to_number(), 1u);
+  } else if (config->mbsfn.mbsfn_subfr_cnfg.sf_alloc.type() == mbsfn_sf_cfg_s::sf_alloc_c_::types::four_frames) {
+    generate_mch_table(&mch_table[0], (uint32_t)config->mbsfn.mbsfn_subfr_cnfg.sf_alloc.four_frames().to_number(), 4u);
+  } else {
+    log_h->error("The subframe config has not been set for MBSFN\n");
+  }
   // Debug
 
   
@@ -406,7 +418,7 @@ void phch_common::build_mcch_table()
 {
   // First reset tables
   bzero(&mcch_table[0], sizeof(uint8_t)*10);
-  generate_mcch_table(&mcch_table[0], config->mbsfn.mbsfn_area_info.sf_alloc_info_r9);
+  generate_mcch_table(&mcch_table[0], (uint32_t)config->mbsfn.mbsfn_area_info.mcch_cfg_r9.sf_alloc_info_r9.to_number());
   // Debug
   std::stringstream ss;
   ss << "|";
@@ -427,63 +439,64 @@ void phch_common::set_mch_period_stop(uint32_t stop)
   pthread_mutex_lock(&mtch_mutex);
   have_mtch_stop = true;
   mch_period_stop = stop;
-  pthread_cond_signal(&mtch_cvar);
+  pthread_cond_broadcast(&mtch_cvar);
   pthread_mutex_unlock(&mtch_mutex);
 
 }
 
-bool phch_common::is_mch_subframe(subframe_cfg_t *cfg, uint32_t phy_tti)
+bool phch_common::is_mch_subframe(subframe_cfg_t* cfg, uint32_t phy_tti)
 {
-  uint32_t sfn;   // System Frame Number
-  uint8_t  sf;    // Subframe
+  uint32_t sfn; // System Frame Number
+  uint8_t  sf;  // Subframe
   uint8_t  offset;
   uint8_t  period;
 
-  sfn = phy_tti/10;
-  sf  = phy_tti%10;
+  sfn = phy_tti / 10;
+  sf  = phy_tti % 10;
 
   // Set some defaults
-  cfg->mbsfn_area_id            = 0;
-  cfg->non_mbsfn_region_length  = 1;
-  cfg->mbsfn_mcs                = 2;
-  cfg->mbsfn_decode             = false;
-  cfg->is_mcch                  = false;
+  cfg->mbsfn_area_id           = 0;
+  cfg->non_mbsfn_region_length = 1;
+  cfg->mbsfn_mcs               = 2;
+  cfg->mbsfn_decode            = false;
+  cfg->is_mcch                 = false;
   // Check for MCCH
-  if(is_mcch_subframe(cfg, phy_tti)) {
+  if (is_mcch_subframe(cfg, phy_tti)) {
     cfg->is_mcch = true;
     return true;
   }
-  
-  // Not MCCH, check for MCH
-  LIBLTE_RRC_MBSFN_SUBFRAME_CONFIG_STRUCT *subfr_cnfg = &config->mbsfn.mbsfn_subfr_cnfg;
-  LIBLTE_RRC_MBSFN_AREA_INFO_STRUCT *area_info = &config->mbsfn.mbsfn_area_info;
-  offset = subfr_cnfg->radio_fr_alloc_offset;
-  period = liblte_rrc_radio_frame_allocation_period_num[subfr_cnfg->radio_fr_alloc_period];
 
-  if(LIBLTE_RRC_SUBFRAME_ALLOCATION_NUM_FRAMES_ONE == subfr_cnfg->subfr_alloc_num_frames) {
-    if((sfn%period == offset) && (mch_table[sf] > 0)) {
-      if(sib13_configured) {
-        cfg->mbsfn_area_id = area_info->mbsfn_area_id_r9;
-        cfg->non_mbsfn_region_length = liblte_rrc_non_mbsfn_region_length_num[area_info->non_mbsfn_region_length];
-        if(mcch_configured) {
+  // Not MCCH, check for MCH
+  mbsfn_sf_cfg_s*       subfr_cnfg = &config->mbsfn.mbsfn_subfr_cnfg;
+  mbsfn_area_info_r9_s* area_info  = &config->mbsfn.mbsfn_area_info;
+  offset                           = subfr_cnfg->radioframe_alloc_offset;
+  period                           = subfr_cnfg->radioframe_alloc_period.to_number();
+
+  if (subfr_cnfg->sf_alloc.type() == mbsfn_sf_cfg_s::sf_alloc_c_::types::one_frame) {
+    if ((sfn % period == offset) && (mch_table[sf] > 0)) {
+      if (sib13_configured) {
+        cfg->mbsfn_area_id           = area_info->mbsfn_area_id_r9;
+        cfg->non_mbsfn_region_length = area_info->non_mbsfn_region_len.to_number();
+        if (mcch_configured) {
           // Iterate through PMCH configs to see which one applies in the current frame
-          LIBLTE_RRC_MCCH_MSG_STRUCT *mcch = &config->mbsfn.mcch;
-          uint32_t mbsfn_per_frame = mcch->pmch_infolist_r9[0].pmch_config_r9.sf_alloc_end_r9/liblte_rrc_mch_scheduling_period_r9_num[mcch->pmch_infolist_r9[0].pmch_config_r9.mch_schedulingperiod_r9];
-          uint32_t frame_alloc_idx = sfn%liblte_rrc_mbsfn_common_sf_alloc_period_r9_num[mcch->commonsf_allocperiod_r9];        
-          uint32_t sf_alloc_idx = frame_alloc_idx*mbsfn_per_frame + ((sf<4)?sf-1:sf-3); 
+          mbsfn_area_cfg_r9_s* mcch            = &config->mbsfn.mcch.msg.c1().mbsfn_area_cfg_r9();
+          uint32_t             mbsfn_per_frame = mcch->pmch_info_list_r9[0].pmch_cfg_r9.sf_alloc_end_r9 /
+                                     mcch->pmch_info_list_r9[0].pmch_cfg_r9.mch_sched_period_r9.to_number();
+          uint32_t frame_alloc_idx = sfn % mcch->common_sf_alloc_period_r9.to_number();
+          uint32_t sf_alloc_idx    = frame_alloc_idx * mbsfn_per_frame + ((sf < 4) ? sf - 1 : sf - 3);
           pthread_mutex_lock(&mtch_mutex);
-          while(!have_mtch_stop) {
+          while (!have_mtch_stop) {
             pthread_cond_wait(&mtch_cvar, &mtch_mutex);
           }
           pthread_mutex_unlock(&mtch_mutex);
 
-          for(uint32_t i=0; i<mcch->pmch_infolist_r9_size; i++) {
-            if(sf_alloc_idx <= mch_period_stop) {
-              //trigger conditional variable, has ot be untriggered by mtch stop location
-              cfg->mbsfn_mcs = mcch->pmch_infolist_r9[i].pmch_config_r9.datamcs_r9;
+          for (uint32_t i = 0; i < mcch->pmch_info_list_r9.size(); i++) {
+            if (sf_alloc_idx <= mch_period_stop) {
+              // trigger conditional variable, has ot be untriggered by mtch stop location
+              cfg->mbsfn_mcs    = mcch->pmch_info_list_r9[i].pmch_cfg_r9.data_mcs_r9;
               cfg->mbsfn_decode = true;
             } else {
-              //have_mtch_stop = false;
+              // have_mtch_stop = false;
             }
           }
           Debug("MCH subframe TTI:%d\n", phy_tti);
@@ -491,47 +504,47 @@ bool phch_common::is_mch_subframe(subframe_cfg_t *cfg, uint32_t phy_tti)
       }
       return true;
     }
-  }else if(LIBLTE_RRC_SUBFRAME_ALLOCATION_NUM_FRAMES_FOUR == subfr_cnfg->subfr_alloc_num_frames) {
-    uint8_t idx = sfn%period;
-    if((idx >= offset) && (idx < offset+4)) {
-      if(mch_table[(idx*10)+sf] > 0){
-        if(sib13_configured) {
-          cfg->mbsfn_area_id = area_info->mbsfn_area_id_r9;
-          cfg->non_mbsfn_region_length = liblte_rrc_non_mbsfn_region_length_num[area_info->non_mbsfn_region_length];
-         // TODO: check for MCCH configuration, set MCS and decode
-
+  } else if (subfr_cnfg->sf_alloc.type() == mbsfn_sf_cfg_s::sf_alloc_c_::types::four_frames) {
+    uint8_t idx = sfn % period;
+    if ((idx >= offset) && (idx < offset + 4)) {
+      if (mch_table[(idx * 10) + sf] > 0) {
+        if (sib13_configured) {
+          cfg->mbsfn_area_id           = area_info->mbsfn_area_id_r9;
+          cfg->non_mbsfn_region_length = area_info->non_mbsfn_region_len.to_number();
+          // TODO: check for MCCH configuration, set MCS and decode
         }
         return true;
       }
     }
+  } else {
+    log_h->error("The subframe allocation type is not yet configured\n");
   }
 
   return false;
 }
 
-bool phch_common::is_mcch_subframe(subframe_cfg_t *cfg, uint32_t phy_tti)
+bool phch_common::is_mcch_subframe(subframe_cfg_t* cfg, uint32_t phy_tti)
 {
-  uint32_t sfn;   // System Frame Number
-  uint8_t  sf;    // Subframe
+  uint32_t sfn; // System Frame Number
+  uint8_t  sf;  // Subframe
   uint8_t  offset;
-  uint8_t  period;
+  uint16_t period;
 
-  sfn = phy_tti/10;
-  sf  = phy_tti%10;
+  sfn = phy_tti / 10;
+  sf  = (uint8_t)(phy_tti % 10);
 
-  if(sib13_configured) {
-    LIBLTE_RRC_MBSFN_SUBFRAME_CONFIG_STRUCT *subfr_cnfg = &config->mbsfn.mbsfn_subfr_cnfg;
-    LIBLTE_RRC_MBSFN_AREA_INFO_STRUCT *area_info = &config->mbsfn.mbsfn_area_info;
+  if (sib13_configured) {
+    mbsfn_area_info_r9_s* area_info = &config->mbsfn.mbsfn_area_info;
 
-    offset = area_info->mcch_offset_r9;
-    period = liblte_rrc_mcch_repetition_period_r9_num[area_info->mcch_repetition_period_r9];
+    offset = area_info->mcch_cfg_r9.mcch_offset_r9;
+    period = area_info->mcch_cfg_r9.mcch_repeat_period_r9.to_number();
 
-    if((sfn%period == offset) && mcch_table[sf] > 0) {
-      cfg->mbsfn_area_id = area_info->mbsfn_area_id_r9;
-      cfg->non_mbsfn_region_length = liblte_rrc_non_mbsfn_region_length_num[area_info->non_mbsfn_region_length];
-      cfg->mbsfn_mcs = liblte_rrc_mcch_signalling_mcs_r9_num[area_info->signalling_mcs_r9];
-      cfg->mbsfn_decode = true;
-      have_mtch_stop = false;
+    if ((sfn % period == offset) && mcch_table[sf] > 0) {
+      cfg->mbsfn_area_id           = area_info->mbsfn_area_id_r9;
+      cfg->non_mbsfn_region_length = area_info->non_mbsfn_region_len.to_number();
+      cfg->mbsfn_mcs               = area_info->mcch_cfg_r9.sig_mcs_r9.to_number();
+      cfg->mbsfn_decode            = true;
+      have_mtch_stop               = false;
       Debug("MCCH subframe TTI:%d\n", phy_tti);
       return true;
     }
@@ -541,10 +554,11 @@ bool phch_common::is_mcch_subframe(subframe_cfg_t *cfg, uint32_t phy_tti)
 
 void phch_common::get_sf_config(subframe_cfg_t *cfg, uint32_t phy_tti)
 {
-  if(is_mch_subframe(cfg, phy_tti)) {
-    cfg->sf_type = SUBFRAME_TYPE_MBSFN;
-  }else{
-    cfg->sf_type = SUBFRAME_TYPE_REGULAR;
+  cfg->sf_type = SUBFRAME_TYPE_REGULAR;
+  if (sib13_configured) {
+    if (is_mch_subframe(cfg, phy_tti)) {
+      cfg->sf_type = SUBFRAME_TYPE_MBSFN;
+    }
   }
 }
 

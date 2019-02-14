@@ -245,10 +245,11 @@ bool demux::process_ce(srslte::sch_subh *subh) {
     case srslte::sch_subh::TA_CMD:
       phy_h->set_timeadv(subh->get_ta_cmd());
       Info("Received TA=%d\n", subh->get_ta_cmd());
-      
-      // Start or restart timeAlignmentTimer
-      time_alignment_timer->reset();
-      time_alignment_timer->run();
+      // Start or restart timeAlignmentTimer only if running
+      if (time_alignment_timer->is_running()) {
+        time_alignment_timer->reset();
+        time_alignment_timer->run();
+      }
       break;
     case srslte::sch_subh::PADDING:
       break;

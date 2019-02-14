@@ -27,26 +27,21 @@ target_link_libraries(rlc_am_control_test srslte_upper srslte_phy)
 add_test(rlc_am_control_test rlc_am_control_test)
 
 add_executable(rlc_am_test rlc_am_test.cc)
-target_link_libraries(rlc_am_test srslte_upper srslte_phy srslte_common)
+target_link_libraries(rlc_am_test srslte_upper srslte_phy srslte_common rrc_asn1)
 add_test(rlc_am_test rlc_am_test)
 
 add_executable(rlc_stress_test rlc_stress_test.cc)
-target_link_libraries(rlc_stress_test srslte_upper srslte_phy srslte_common ${Boost_LIBRARIES})
+target_link_libraries(rlc_stress_test srslte_upper srslte_phy srslte_common rrc_asn1 ${Boost_LIBRARIES})
 add_test(rlc_am_stress_test rlc_stress_test --mode=AM --loglevel 1 --sdu_gen_delay 250)
 add_test(rlc_um_stress_test rlc_stress_test --mode=UM --loglevel 1)
 add_test(rlc_tm_stress_test rlc_stress_test --mode=TM --loglevel 1 --random_opp=false)
-
-# Run clang-tidy if available
-if(CLANG_TIDY_BIN)
-  set_target_properties(rlc_stress_test PROPERTIES CXX_CLANG_TIDY "${DO_CLANG_TIDY}")
-endif()
 
 add_executable(rlc_um_data_test rlc_um_data_test.cc)
 target_link_libraries(rlc_um_data_test srslte_upper srslte_phy srslte_common)
 add_test(rlc_um_data_test rlc_um_data_test)
 
 add_executable(rlc_um_test rlc_um_test.cc)
-target_link_libraries(rlc_um_test srslte_upper srslte_phy)
+target_link_libraries(rlc_um_test srslte_upper srslte_phy rrc_asn1)
 add_test(rlc_um_test rlc_um_test)
   
 

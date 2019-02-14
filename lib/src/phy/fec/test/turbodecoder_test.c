@@ -197,11 +197,16 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
+#ifdef HAVE_NEON
+  tdec_type = SRSLTE_TDEC_NEON_WINDOW;
+#else
+ // tdec_type = SRSLTE_TDEC_SSE_WINDOW;
+#endif
   if (srslte_tdec_init_manual(&tdec, frame_length, tdec_type)) {
     fprintf(stderr, "Error initiating Turbo decoder\n");
     exit(-1);
   }
-
+  
   srslte_tdec_force_not_sb(&tdec);
 
   float ebno_inc, esno_db;

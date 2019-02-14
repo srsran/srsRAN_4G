@@ -142,7 +142,7 @@ int rlc::read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_b
   if(users.count(rnti)) {
     if(rnti != SRSLTE_MRNTI) {
       ret = users[rnti].rlc->read_pdu(lcid, payload, nof_bytes);
-      tx_queue = users[rnti].rlc->get_total_buffer_state(lcid);
+      tx_queue = users[rnti].rlc->get_buffer_state(lcid);
     } else {
       ret = users[rnti].rlc->read_pdu_mch(lcid, payload, nof_bytes);
       tx_queue = users[rnti].rlc->get_total_mch_buffer_state(lcid);
@@ -168,7 +168,7 @@ void rlc::write_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof
     
     // In the eNodeB, there is no polling for buffer state from the scheduler, thus 
     // communicate buffer state every time a new PDU is written
-    uint32_t tx_queue   = users[rnti].rlc->get_total_buffer_state(lcid);
+    uint32_t tx_queue   = users[rnti].rlc->get_buffer_state(lcid);
     uint32_t retx_queue = 0; 
     log_h->debug("Buffer state PDCP: rnti=0x%x, lcid=%d, tx_queue=%d\n", rnti, lcid, tx_queue);
     mac->rlc_buffer_state(rnti, lcid, tx_queue, retx_queue);
@@ -191,7 +191,7 @@ void rlc::write_sdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* sdu)
   if (users.count(rnti)) {
     if(rnti != SRSLTE_MRNTI){
       users[rnti].rlc->write_sdu(lcid, sdu, false);
-      tx_queue   = users[rnti].rlc->get_total_buffer_state(lcid);
+      tx_queue   = users[rnti].rlc->get_buffer_state(lcid);
     }else {
       users[rnti].rlc->write_sdu_mch(lcid, sdu);
       tx_queue   = users[rnti].rlc->get_total_mch_buffer_state(lcid);

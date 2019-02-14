@@ -39,6 +39,7 @@
 #include "srsenb/hdr/mac/mac.h"
 
 //#define WRITE_SIB_PCAP
+using namespace asn1::rrc;
 
 namespace srsenb {
 
@@ -365,7 +366,8 @@ int mac::crc_info(uint32_t tti, uint16_t rnti, uint32_t nof_bytes, bool crc)
   return ret;
 }
 
-int mac::set_dl_ant_info(uint16_t rnti, LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT *dl_ant_info) {
+int mac::set_dl_ant_info(uint16_t rnti, phys_cfg_ded_s::ant_info_c_* dl_ant_info)
+{
   log_h->step(tti);
 
   int ret = -1;
@@ -654,7 +656,7 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
 
 void mac::build_mch_sched(uint32_t tbs)
 {
-  int sfs_per_sched_period = mcch.pmch_infolist_r9[0].pmch_config_r9.sf_alloc_end_r9;
+  int sfs_per_sched_period = mcch.msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[0].pmch_cfg_r9.sf_alloc_end_r9;
   int bytes_per_sf = tbs/8 - 6;// leave 6 bytes for header
 
   int total_space_avail_bytes =  sfs_per_sched_period*bytes_per_sf;
@@ -691,8 +693,8 @@ int mac::get_mch_sched(bool is_mcch, dl_sched_t *dl_sched_res)
 
   srslte_ra_mcs_t mcs;
   srslte_ra_mcs_t mcs_data;
-  mcs.idx = this->sib13.mbsfn_area_info_list_r9[0].signalling_mcs_r9;
-  mcs_data.idx = this->mcch.pmch_infolist_r9[0].pmch_config_r9.datamcs_r9;
+  mcs.idx      = this->sib13.mbsfn_area_info_list_r9[0].mcch_cfg_r9.sig_mcs_r9;
+  mcs_data.idx = this->mcch.msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[0].pmch_cfg_r9.data_mcs_r9;
   srslte_dl_fill_ra_mcs(&mcs, this->cell_config.cell.nof_prb);
   srslte_dl_fill_ra_mcs(&mcs_data, this->cell_config.cell.nof_prb);
   if(is_mcch){
@@ -961,29 +963,22 @@ bool mac::process_pdus()
   return ret;
 }
 
-
-void mac::write_mcch(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13, LIBLTE_RRC_MCCH_MSG_STRUCT *mcch)
+void mac::write_mcch(sib_type2_s* sib2, sib_type13_r9_s* sib13, mcch_msg_s* mcch)
 {
-  bzero(&mcch_payload_buffer[0],sizeof(uint8_t)*3000);
-  
-  
-  LIBLTE_BIT_MSG_STRUCT bitbuffer;
-  liblte_rrc_pack_mcch_msg(mcch, &bitbuffer);
-  memcpy(&this->mcch ,mcch, sizeof(LIBLTE_RRC_MCCH_MSG_STRUCT));
-  mch.num_mtch_sched =  this->mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9_size;
-  for(uint32_t i = 0; i < mch.num_mtch_sched; i++){
-    mch.mtch_sched[i].lcid = this->mcch.pmch_infolist_r9[0].mbms_sessioninfolist_r9[i].logicalchannelid_r9;
+  this->mcch         = *mcch;
+  mch.num_mtch_sched = this->mcch.msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[0].mbms_session_info_list_r9.size();
+  for (uint32_t i = 0; i < mch.num_mtch_sched; ++i) {
+    mch.mtch_sched[i].lcid =
+        this->mcch.msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[0].mbms_session_info_list_r9[i].lc_ch_id_r9;
   }
+  this->sib2  = *sib2;
+  this->sib13 = *sib13;
 
-  memcpy(&this->sib2,sib2, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT));
-  memcpy(&this->sib2,sib13, sizeof(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT)); // TODO: consolidate relevant parts into 1 struct
-  current_mcch_length = floor(bitbuffer.N_bits/8);
-  if(bitbuffer.N_bits%8 != 0) {
-    current_mcch_length++;
-  }
-  int rlc_header_len = 1;
+  const int     rlc_header_len = 1;
+  asn1::bit_ref bref(&mcch_payload_buffer[rlc_header_len], sizeof(mcch_payload_buffer) - rlc_header_len);
+  mcch->pack(bref);
+  current_mcch_length = bref.distance_bytes(&mcch_payload_buffer[1]);
   current_mcch_length =  current_mcch_length + rlc_header_len;
-  srslte_bit_pack_vector(&bitbuffer.msg[0], &mcch_payload_buffer[rlc_header_len], bitbuffer.N_bits);
   ue_db[SRSLTE_MRNTI] = new ue;
   ue_db[SRSLTE_MRNTI]->config(SRSLTE_MRNTI, cell.nof_prb, &scheduler, rrc_h, rlc_h, log_h);
 

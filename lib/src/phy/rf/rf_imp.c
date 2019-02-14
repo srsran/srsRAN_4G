@@ -58,7 +58,7 @@ void srslte_rf_set_tx_rx_gain_offset(srslte_rf_t *rf, double offset) {
 static void* thread_gain_fcn(void *h) {
   srslte_rf_t* rf = (srslte_rf_t*) h;
   
-  while(1) {
+  while(rf->thread_gain_run) {
     pthread_mutex_lock(&rf->mutex);
     while(rf->cur_rx_gain == rf->new_rx_gain) 
     {
@@ -89,8 +89,10 @@ int srslte_rf_start_gain_thread(srslte_rf_t *rf, bool tx_gain_same_rx) {
   if (pthread_cond_init(&rf->cond, NULL)) {
     return -1;
   }
+  rf->thread_gain_run = true;
   if (pthread_create(&rf->thread_gain, NULL, thread_gain_fcn, rf)) {
     perror("pthread_create");
+    rf->thread_gain_run = false;
     return -1;
   }
   return 0;
@@ -185,6 +187,12 @@ int srslte_rf_open_multi(srslte_rf_t *h, char *args, uint32_t nof_channels)
 
 int srslte_rf_close(srslte_rf_t *rf)
 {
+  // Stop gain thread
+  if (rf->thread_gain_run) {
+    pthread_cancel(rf->thread_gain);
+    pthread_join(rf->thread_gain, NULL);
+  }
+
   return ((rf_dev_t*) rf->dev)->srslte_rf_close(rf->handler);  
 }
 

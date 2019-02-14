@@ -3,8 +3,29 @@
 # Auto-updated by CMake with actual install path
 SRSLTE_INSTALL_DIR="${CMAKE_INSTALL_PREFIX}/${DATA_DIR}"
 
-# Default folder where configs go
-dest_folder="$HOME/.srs"
+# check if install mode has been provided
+if ([ ! $1 ])
+then
+  echo "Please call script with either user or service as first parameter."
+  echo ""
+  echo "E.g. ./srslte_install_configs.sh user"
+  echo " .. to install all config files to $HOME/.config/srslte"
+  echo ""
+  echo "E.g. ./srslte_install_configs.sh service"
+  echo " .. to install all config files to /etc/srslte"
+  exit
+fi
+
+if [ "$1" == "user" ]
+then
+  dest_folder="$HOME/.config/srslte"
+elif [ "$1" == "service" ]
+then
+  dest_folder="/etc/srslte"
+else
+  echo "Please call script with either user or service as first parameter."
+  exit
+fi
 
 install_file(){
   source_path="$SRSLTE_INSTALL_DIR/$1"
@@ -39,7 +60,10 @@ echo "Installing srsLTE configuration files:"
 # Make sure the target directory exists
 if [ ! -d "$dest_folder" ]; then
   echo " - Creating srsLTE config folder $dest_folder"
-  mkdir $dest_folder
+  mkdir -p $dest_folder
+  if [ $? -ne 0 ]; then
+    exit
+  fi
 fi
 
 

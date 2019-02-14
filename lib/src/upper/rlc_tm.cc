@@ -29,14 +29,16 @@
 
 namespace srslte {
 
-rlc_tm::rlc_tm(uint32_t queue_len) : ul_queue(queue_len)
+rlc_tm::rlc_tm(uint32_t queue_len) :
+  ul_queue(queue_len),
+  tx_enabled(false),
+  log(NULL),
+  pdcp(NULL),
+  rrc(NULL),
+  lcid(0),
+  num_tx_bytes(0),
+  num_rx_bytes(0)
 {
-  log = NULL;
-  pdcp = NULL;
-  rrc = NULL;
-  lcid = 0;
-  num_tx_bytes = 0;
-  num_rx_bytes = 0;
   pool = byte_buffer_pool::get_instance();
 }
 
@@ -123,14 +125,14 @@ void rlc_tm::write_sdu(byte_buffer_t *sdu, bool blocking)
 }
 
 // MAC interface
+bool rlc_tm::has_data()
+{
+  return not ul_queue.is_empty();
+}
+
 uint32_t rlc_tm::get_buffer_state()
 {
   return ul_queue.size_bytes();
-}
-
-uint32_t rlc_tm::get_total_buffer_state()
-{
-  return get_buffer_state();
 }
 
 uint32_t rlc_tm::get_num_tx_bytes()

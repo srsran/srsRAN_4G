@@ -27,28 +27,29 @@
 #ifndef SRSENB_RRC_H
 #define SRSENB_RRC_H
 
-#include <map>
-#include <queue>
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/common.h"
-#include "srslte/common/block_queue.h"
-#include "srslte/common/threads.h"
-#include "srslte/common/timeout.h"
-#include "srslte/common/log.h"
-#include "srslte/interfaces/enb_interfaces.h"
 #include "common_enb.h"
 #include "rrc_metrics.h"
+#include "srslte/asn1/rrc_asn1.h"
+#include "srslte/common/block_queue.h"
+#include "srslte/common/buffer_pool.h"
+#include "srslte/common/common.h"
+#include "srslte/common/log.h"
+#include "srslte/common/threads.h"
+#include "srslte/common/timeout.h"
+#include "srslte/interfaces/enb_interfaces.h"
+#include <map>
+#include <queue>
 
 namespace srsenb {
 
-typedef struct {
-  uint32_t                      period;   
-  LIBLTE_RRC_DSR_TRANS_MAX_ENUM dsr_max; 
-  uint32_t                      nof_prb; 
-  uint32_t                      sf_mapping[80]; 
-  uint32_t                      nof_subframes; 
-} rrc_cfg_sr_t; 
-  
+struct rrc_cfg_sr_t {
+  uint32_t                                                   period;
+  asn1::rrc::sched_request_cfg_c::setup_s_::dsr_trans_max_e_ dsr_max;
+  uint32_t                                                   nof_prb;
+  uint32_t                                                   sf_mapping[80];
+  uint32_t                                                   nof_subframes;
+};
+
 typedef enum {
   RRC_CFG_CQI_MODE_PERIODIC = 0,
   RRC_CFG_CQI_MODE_APERIODIC,
@@ -67,27 +68,28 @@ typedef struct {
 } rrc_cfg_cqi_t; 
 
 typedef struct {
-  bool configured; 
-  LIBLTE_RRC_UL_SPECIFIC_PARAMETERS_STRUCT lc_cfg; 
-  LIBLTE_RRC_PDCP_CONFIG_STRUCT            pdcp_cfg; 
-  LIBLTE_RRC_RLC_CONFIG_STRUCT             rlc_cfg; 
+  bool                                          configured;
+  asn1::rrc::lc_ch_cfg_s::ul_specific_params_s_ lc_cfg;
+  asn1::rrc::pdcp_cfg_s                         pdcp_cfg;
+  asn1::rrc::rlc_cfg_c                          rlc_cfg;
 } rrc_cfg_qci_t;
 
 #define MAX_NOF_QCI 10
   
 typedef struct {
-  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_STRUCT    sibs[LIBLTE_RRC_MAX_SIB];  
-  LIBLTE_RRC_MAC_MAIN_CONFIG_STRUCT        mac_cnfg; 
-  
-  LIBLTE_RRC_PUSCH_CONFIG_DEDICATED_STRUCT pusch_cfg;   
-  LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT antenna_info;
-  LIBLTE_RRC_PDSCH_CONFIG_P_A_ENUM         pdsch_cfg;
-  rrc_cfg_sr_t                             sr_cfg; 
-  rrc_cfg_cqi_t                            cqi_cfg; 
-  rrc_cfg_qci_t                            qci_cfg[MAX_NOF_QCI]; 
-  srslte_cell_t cell; 
-  bool enable_mbsfn;
-  uint32_t inactivity_timeout_ms; 
+  asn1::rrc::sib_type1_s     sib1;
+  asn1::rrc::sib_info_item_c sibs[ASN1_RRC_MAX_SIB];
+  asn1::rrc::mac_main_cfg_s  mac_cnfg;
+
+  asn1::rrc::pusch_cfg_ded_s         pusch_cfg;
+  asn1::rrc::ant_info_ded_s          antenna_info;
+  asn1::rrc::pdsch_cfg_ded_s::p_a_e_ pdsch_cfg;
+  rrc_cfg_sr_t                       sr_cfg;
+  rrc_cfg_cqi_t                      cqi_cfg;
+  rrc_cfg_qci_t                      qci_cfg[MAX_NOF_QCI];
+  srslte_cell_t                      cell;
+  bool                               enable_mbsfn;
+  uint32_t                           inactivity_timeout_ms;
 }rrc_cfg_t; 
 
 static const char rrc_state_text[RRC_STATE_N_ITEMS][100] = {"IDLE",
@@ -121,10 +123,10 @@ public:
 
     bzero(&sr_sched, sizeof(sr_sched));
     bzero(&cqi_sched, sizeof(cqi_sched));
-    bzero(&cfg, sizeof(cfg));
-    bzero(&sib2, sizeof(sib2));
-    bzero(&paging_mutex, sizeof(paging_mutex));
-
+    bzero(&cfg.sr_cfg, sizeof(cfg.sr_cfg));
+    bzero(&cfg.cqi_cfg, sizeof(cfg.cqi_cfg));
+    bzero(&cfg.qci_cfg, sizeof(cfg.qci_cfg));
+    bzero(&cfg.cell, sizeof(cfg.cell));
   }
   
   void init(rrc_cfg_t *cfg,
@@ -161,9 +163,14 @@ public:
   
   // rrc_interface_pdcp
   void write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t *pdu);
-  
-  void parse_sibs(); 
+
+  void     parse_sibs();
   uint32_t get_nof_users();
+
+  // logging
+  typedef enum { Rx = 0, Tx } direction_t;
+  template <class T>
+  void log_rrc_message(const std::string& source, direction_t dir, const srslte::byte_buffer_t* pdu, const T& msg);
 
   // Notifier for user connect 
   class connect_notifier {
@@ -198,6 +205,7 @@ public:
 
     void send_connection_setup(bool is_setup = true);
     void send_connection_reest();
+    void send_connection_reject();
     void send_connection_release();
     void send_connection_reest_rej();
     void send_connection_reconf(srslte::byte_buffer_t *sdu);
@@ -207,13 +215,13 @@ public:
     void send_ue_cap_enquiry();
     void parse_ul_dcch(uint32_t lcid, srslte::byte_buffer_t* pdu);
 
-    void handle_rrc_con_req(LIBLTE_RRC_CONNECTION_REQUEST_STRUCT *msg);
-    void handle_rrc_con_reest_req(LIBLTE_RRC_CONNECTION_REESTABLISHMENT_REQUEST_STRUCT *msg);
-    void handle_rrc_con_setup_complete(LIBLTE_RRC_CONNECTION_SETUP_COMPLETE_STRUCT *msg, srslte::byte_buffer_t *pdu);
-    void handle_rrc_reconf_complete(LIBLTE_RRC_CONNECTION_RECONFIGURATION_COMPLETE_STRUCT *msg, srslte::byte_buffer_t *pdu);
-    void handle_security_mode_complete(LIBLTE_RRC_SECURITY_MODE_COMPLETE_STRUCT *msg);
-    void handle_security_mode_failure(LIBLTE_RRC_SECURITY_MODE_FAILURE_STRUCT *msg);
-    void handle_ue_cap_info(LIBLTE_RRC_UE_CAPABILITY_INFORMATION_STRUCT *msg);
+    void handle_rrc_con_req(asn1::rrc::rrc_conn_request_s* msg);
+    void handle_rrc_con_reest_req(asn1::rrc::rrc_conn_reest_request_r8_ies_s* msg);
+    void handle_rrc_con_setup_complete(asn1::rrc::rrc_conn_setup_complete_s* msg, srslte::byte_buffer_t* pdu);
+    void handle_rrc_reconf_complete(asn1::rrc::rrc_conn_recfg_complete_s* msg, srslte::byte_buffer_t* pdu);
+    void handle_security_mode_complete(asn1::rrc::security_mode_complete_s* msg);
+    void handle_security_mode_failure(asn1::rrc::security_mode_fail_s* msg);
+    void handle_ue_cap_info(asn1::rrc::ue_cap_info_s* msg);
 
     void set_bitrates(LIBLTE_S1AP_UEAGGREGATEMAXIMUMBITRATE_STRUCT *rates);
     void set_security_capabilities(LIBLTE_S1AP_UESECURITYCAPABILITIES_STRUCT *caps);
@@ -229,19 +237,19 @@ public:
     void notify_s1ap_ue_ctxt_setup_complete();
     void notify_s1ap_ue_erab_setup_response(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT *e);
 
-    int sr_allocate(uint32_t period, uint32_t *I_sr, uint32_t *N_pucch_sr);
-    void sr_get(uint32_t *I_sr, uint32_t *N_pucch_sr);
+    int  sr_allocate(uint32_t period, uint8_t* I_sr, uint16_t* N_pucch_sr);
+    void sr_get(uint8_t* I_sr, uint16_t* N_pucch_sr);
     int sr_free();
 
-    int cqi_allocate(uint32_t period, uint32_t *pmi_idx, uint32_t *n_pucch);
-    void cqi_get(uint32_t *pmi_idx, uint32_t *n_pucch);
-    int cqi_free();
+    int  cqi_allocate(uint32_t period, uint16_t* pmi_idx, uint16_t* n_pucch);
+    void cqi_get(uint16_t* pmi_idx, uint16_t* n_pucch);
+    int  cqi_free();
 
-    void send_dl_ccch(LIBLTE_RRC_DL_CCCH_MSG_STRUCT *dl_ccch_msg);
-    void send_dl_dcch(LIBLTE_RRC_DL_DCCH_MSG_STRUCT *dl_dcch_msg, srslte::byte_buffer_t *pdu = NULL);
+    void send_dl_ccch(asn1::rrc::dl_ccch_msg_s* dl_ccch_msg);
+    void send_dl_dcch(asn1::rrc::dl_dcch_msg_s* dl_dcch_msg, srslte::byte_buffer_t* pdu = NULL);
 
     uint16_t rnti;
-    rrc *parent;
+    rrc*     parent;
 
     bool connect_notified;
 
@@ -250,7 +258,7 @@ public:
 
     struct timeval t_last_activity;
 
-    LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM establishment_cause;
+    asn1::rrc::establishment_cause_e establishment_cause;
 
     // S-TMSI for this UE
     bool      has_tmsi;
@@ -261,8 +269,8 @@ public:
     uint8_t     transaction_id;
     rrc_state_t state;
 
-    std::map<uint32_t, LIBLTE_RRC_SRB_TO_ADD_MOD_STRUCT>  srbs;
-    std::map<uint32_t, LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT>  drbs;
+    std::map<uint32_t, asn1::rrc::srb_to_add_mod_s> srbs;
+    std::map<uint32_t, asn1::rrc::drb_to_add_mod_s> drbs;
 
     uint8_t               k_enb[32];      // Provided by MME
     uint8_t               k_rrc_enc[32];
@@ -275,7 +283,7 @@ public:
 
     LIBLTE_S1AP_UEAGGREGATEMAXIMUMBITRATE_STRUCT  bitrates;
     LIBLTE_S1AP_UESECURITYCAPABILITIES_STRUCT     security_capabilities;
-    LIBLTE_RRC_UE_EUTRA_CAPABILITY_STRUCT         eutra_capabilities;
+    asn1::rrc::ue_eutra_cap_s                     eutra_capabilities;
 
     typedef struct {
       uint8_t                                     id;
@@ -295,21 +303,19 @@ public:
     bool cqi_allocated;
     int cqi_sched_sf_idx;
     int cqi_sched_prb_idx;
-    int get_drbid_config(LIBLTE_RRC_DRB_TO_ADD_MOD_STRUCT *drb, int drbid);
+    int                       get_drbid_config(asn1::rrc::drb_to_add_mod_s* drb, int drbid);
     bool nas_pending;
     srslte::byte_buffer_t erab_info;
   };
 
-
 private:
-
   std::map<uint16_t,ue> users;
 
-  std::map<uint32_t, LIBLTE_S1AP_UEPAGINGID_STRUCT > pending_paging; 
+  std::map<uint32_t, LIBLTE_S1AP_UEPAGINGID_STRUCT > pending_paging;
 
-  activity_monitor act_monitor; 
-  
-  LIBLTE_BYTE_MSG_STRUCT sib_buffer[LIBLTE_RRC_MAX_SIB];
+  activity_monitor act_monitor;
+
+  std::vector<srslte::byte_buffer_t*> sib_buffer;
 
   // user connect notifier 
   connect_notifier *cnotifier; 
@@ -318,7 +324,7 @@ private:
   void process_rl_failure(uint16_t rnti);
   void rem_user(uint16_t rnti); 
   uint32_t generate_sibs();
-  void configure_mbsfn_sibs(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13);
+  void     configure_mbsfn_sibs(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13);
 
   void config_mac();
   void parse_ul_dcch(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t *pdu);
@@ -332,17 +338,16 @@ private:
                           srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                           srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
 
-  srslte::byte_buffer_pool  *pool;
-  srslte::bit_buffer_t  bit_buf;
-  srslte::bit_buffer_t  bit_buf_paging;
+  srslte::byte_buffer_pool* pool;
+  srslte::byte_buffer_t     byte_buf_paging;
 
-  phy_interface_rrc    *phy;
-  mac_interface_rrc    *mac;
-  rlc_interface_rrc    *rlc;
-  pdcp_interface_rrc   *pdcp;
-  gtpu_interface_rrc   *gtpu;
-  s1ap_interface_rrc   *s1ap;
-  srslte::log          *rrc_log;
+  phy_interface_rrc*  phy;
+  mac_interface_rrc*  mac;
+  rlc_interface_rrc*  rlc;
+  pdcp_interface_rrc* pdcp;
+  gtpu_interface_rrc* gtpu;
+  s1ap_interface_rrc* s1ap;
+  srslte::log*        rrc_log;
 
   typedef struct{
     uint16_t                rnti;
@@ -360,18 +365,17 @@ private:
   static const int      RRC_THREAD_PRIO = 65;
   srslte::block_queue<rrc_pdu> rx_pdu_queue;
 
-  typedef struct {
-    uint32_t nof_users[100][80]; 
-  } sr_sched_t;
+  struct sr_sched_t {
+    uint32_t nof_users[100][80];
+  };
 
-
-  sr_sched_t sr_sched; 
-  sr_sched_t cqi_sched; 
-  LIBLTE_RRC_MCCH_MSG_STRUCT mcch;
-  bool enable_mbms;
-  rrc_cfg_t cfg; 
-  uint32_t nof_si_messages;
-  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT sib2; 
+  sr_sched_t             sr_sched;
+  sr_sched_t             cqi_sched;
+  asn1::rrc::mcch_msg_s  mcch;
+  bool                   enable_mbms;
+  rrc_cfg_t              cfg;
+  uint32_t               nof_si_messages;
+  asn1::rrc::sib_type2_s sib2;
 
   void run_thread();
   void rem_user_thread(uint16_t rnti);

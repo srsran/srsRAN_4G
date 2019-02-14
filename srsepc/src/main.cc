@@ -48,6 +48,8 @@ sig_int_handler(int signo){
 }
 
 typedef struct {
+  std::string   nas_level;
+  int           nas_hex_limit;
   std::string   s1ap_level;
   int           s1ap_hex_limit;
   std::string   gtpc_level;
@@ -85,6 +87,8 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
   string mnc;
   string mme_bind_addr;
   string mme_apn;
+  string encryption_algo;
+  string integrity_algo;
   string spgw_bind_addr;
   string sgi_if_addr;
   string sgi_if_name;
@@ -113,6 +117,8 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
     ("mme.mme_bind_addr",   bpo::value<string>(&mme_bind_addr)->default_value("127.0.0.1"),  "IP address of MME for S1 connection")
     ("mme.dns_addr",        bpo::value<string>(&dns_addr)->default_value("8.8.8.8"),         "IP address of the DNS server for the UEs")
     ("mme.apn",             bpo::value<string>(&mme_apn)->default_value(""),                 "Set Access Point Name (APN) for data services")
+    ("mme.encryption_algo", bpo::value<string>(&encryption_algo)->default_value("EEA0"),     "Set preferred encryption algorithm for NAS layer ")
+    ("mme.integrity_algo",  bpo::value<string>(&integrity_algo)->default_value("EIA1"),      "Set preferred integrity protection algorithm for NAS")
     ("hss.db_file",         bpo::value<string>(&hss_db_file)->default_value("ue_db.csv"),    ".csv file that stores UE's keys")
     ("hss.auth_algo",       bpo::value<string>(&hss_auth_algo)->default_value("milenage"),   "HSS uthentication algorithm.")
     ("spgw.gtpu_bind_addr", bpo::value<string>(&spgw_bind_addr)->default_value("127.0.0.1"), "IP address of SP-GW for the S1-U connection")
@@ -122,6 +128,8 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
     ("pcap.enable",         bpo::value<bool>(&args->mme_args.s1ap_args.pcap_enable)->default_value(false),         "Enable S1AP PCAP")
     ("pcap.filename",       bpo::value<string>(&args->mme_args.s1ap_args.pcap_filename)->default_value("/tmp/epc.pcap"), "PCAP filename")
 
+    ("log.nas_level",       bpo::value<string>(&args->log_args.nas_level),    "MME NAS  log level")
+    ("log.nas_hex_limit",   bpo::value<int>(&args->log_args.nas_hex_limit),   "MME NAS log hex dump limit")
     ("log.s1ap_level",      bpo::value<string>(&args->log_args.s1ap_level),   "MME S1AP log level")
     ("log.s1ap_hex_limit",  bpo::value<int>(&args->log_args.s1ap_hex_limit),  "MME S1AP log hex dump limit")
     ("log.gtpc_level",      bpo::value<string>(&args->log_args.gtpc_level),   "MME GTPC log level")
@@ -153,8 +161,13 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
 
   // parse the command line and store result in vm
   bpo::variables_map vm;
-  bpo::store(bpo::command_line_parser(argc, argv).options(cmdline_options).positional(p).run(), vm);
-  bpo::notify(vm);
+  try {
+    bpo::store(bpo::command_line_parser(argc, argv).options(cmdline_options).positional(p).run(), vm);
+    bpo::notify(vm);
+  } catch(bpo::error &e) {
+    cerr<< e.what() << endl;
+    exit(1);
+  }
 
   // help option was given - print usage and exit
   if (vm.count("help")) {
@@ -166,7 +179,7 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
   // if no config file given, check users home path
   if (!vm.count("config_file")) {
     if (!config_exists(config_file, "epc.conf")) {
-      cout << "Failed to read ePC configuration file " << config_file << " - exiting" << endl;
+      cout << "Failed to read EPC configuration file " << config_file << " - exiting" << endl;
       exit(1);
     }
   }
@@ -206,13 +219,38 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
   if(!srslte::string_to_mnc(mnc, &args->mme_args.s1ap_args.mnc)) {
     cout << "Error parsing mme.mnc:" << mnc << " - must be a 2 or 3-digit string." << endl;
   }
- 
+
   // Convert MCC/MNC strings
   if(!srslte::string_to_mcc(mcc, &args->hss_args.mcc)) {
     cout << "Error parsing mme.mcc:" << mcc << " - must be a 3-digit string." << endl;
   }
   if(!srslte::string_to_mnc(mnc, &args->hss_args.mnc)) {
     cout << "Error parsing mme.mnc:" << mnc << " - must be a 2 or 3-digit string." << endl;
+  }
+
+  if(boost::iequals(encryption_algo, "eea0")){
+    args->mme_args.s1ap_args.encryption_algo = srslte::CIPHERING_ALGORITHM_ID_EEA0;
+  } else if (boost::iequals(encryption_algo, "eea1")){
+    args->mme_args.s1ap_args.encryption_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA1;
+  } else if (boost::iequals(encryption_algo, "eea2")){
+    args->mme_args.s1ap_args.encryption_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA2;
+  } else{
+    args->mme_args.s1ap_args.encryption_algo = srslte::CIPHERING_ALGORITHM_ID_EEA0;
+    cout << "Error parsing mme.encryption_algo:" << encryption_algo << " - must be EEA0, EEA1, or EEA2." << endl;
+    cout << "Using default mme.encryption_algo: EEA0" << endl;
+  }
+
+  if (boost::iequals(integrity_algo, "eia0")){
+    args->mme_args.s1ap_args.integrity_algo = srslte::INTEGRITY_ALGORITHM_ID_EIA0;
+    cout << "Warning parsing mme.integrity_algo:" << encryption_algo << " - EIA0 will not supported by UEs use EIA1 or EIA2" << endl;
+  } else if (boost::iequals(integrity_algo, "eia1")) {
+    args->mme_args.s1ap_args.integrity_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA1;
+  } else if (boost::iequals(integrity_algo, "eia2")) {
+    args->mme_args.s1ap_args.integrity_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA2;
+  } else {
+    args->mme_args.s1ap_args.integrity_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA1;
+    cout << "Error parsing mme.integrity_algo:" << encryption_algo << " - must be EIA0, EIA1, or EIA2." << endl;
+    cout << "Using default mme.integrity_algo: EIA1" << endl;
   }
 
   args->mme_args.s1ap_args.mme_bind_addr = mme_bind_addr;
@@ -227,6 +265,9 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
 
   // Apply all_level to any unset layers
   if (vm.count("log.all_level")) {
+    if(!vm.count("log.nas_level")) {
+      args->log_args.nas_level = args->log_args.all_level;
+    }
     if(!vm.count("log.s1ap_level")) {
       args->log_args.s1ap_level = args->log_args.all_level;
     }
@@ -254,6 +295,9 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
     }
     if(!vm.count("log.hss_hex_limit")) {
       args->log_args.hss_hex_limit = args->log_args.all_hex_limit;
+    }
+    if(!vm.count("log.nas_hex_limit")) {
+      args->log_args.nas_hex_limit = args->log_args.all_hex_limit;
     }
   }
 
@@ -292,7 +336,7 @@ std::string get_build_mode()
 
 std::string get_build_info()
 {
-  if (std::string(srslte_get_build_info()) == "") {
+  if (std::string(srslte_get_build_info()).find("  ") != std::string::npos) {
     return std::string(srslte_get_version());
   }
   return std::string(srslte_get_build_info());
@@ -336,6 +380,11 @@ main (int argc,char * argv[] )
     logger = &logger_file;
   }
 
+  srslte::log_filter nas_log;
+  nas_log.init("NAS ",logger);
+  nas_log.set_level(level(args.log_args.nas_level));
+  nas_log.set_hex_limit(args.log_args.nas_hex_limit);
+
   srslte::log_filter s1ap_log;
   s1ap_log.init("S1AP",logger);
   s1ap_log.set_level(level(args.log_args.s1ap_level));
@@ -364,7 +413,7 @@ main (int argc,char * argv[] )
   }
 
   mme *mme = mme::get_instance();
-  if (mme->init(&args.mme_args, &s1ap_log, &mme_gtpc_log, hss)) {
+  if (mme->init(&args.mme_args, &nas_log, &s1ap_log, &mme_gtpc_log, hss)) {
     cout << "Error initializing MME" << endl;
     exit(1);
   }
@@ -388,6 +437,6 @@ main (int argc,char * argv[] )
   hss->stop();
   hss->cleanup();
 
-  cout << std::endl <<"---  exiting  ---" << endl;  
+  cout << std::endl <<"---  exiting  ---" << endl;
   return 0;
 }

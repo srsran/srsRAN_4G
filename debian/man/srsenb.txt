@@ -1,0 +1,26 @@
+NAME
+  srsENB - A complete SDR LTE eNodeB application
+
+SYNOPSIS
+  srsenb [options] <config_file>
+
+DESCRIPTION
+
+  srsENB provides the Evolved Node B (eNodeB or eNB) part in the LTE network.
+
+  Features:
+
+    - Round Robin MAC scheduler with FAPI-like C++ API
+    - SR support
+    - Periodic and Aperiodic CQI feedback support
+    - Standard S1AP and GTP-U interfaces to the Core Network
+    - 150 Mbps DL in 20 MHz MIMO TM3/TM4 with commercial UEs
+    - 75 Mbps DL in SISO configuration with commercial UEs
+    - 50 Mbps UL in 20 MHz with commercial UEs
+
+  An example configuration file is available in /usr/share/srslte/enb.conf.example
+
+OPTIONS
+
+  -h/--help       Produce help message
+  -v/--version    Print version information and exit

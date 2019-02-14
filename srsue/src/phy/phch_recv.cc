@@ -49,6 +49,7 @@ double callback_set_rx_gain(void *h, double gain) {
 
 
 phch_recv::phch_recv() {
+  tti = 0;
   dl_freq = -1;
   ul_freq = -1;
   bzero(&cell, sizeof(srslte_cell_t));
@@ -56,6 +57,12 @@ phch_recv::phch_recv() {
   cellsearch_earfcn_index = 0;
   running = false;
   worker_com = NULL;
+  current_sflen = 0;
+  next_offset = 0;
+  nof_rx_antennas = 1;
+  current_srate = 0.0f;
+  time_adv_sec = 0;
+  next_time_adv_sec = 0;
 }
 
 void phch_recv::init(srslte::radio_multi *_radio_handler, mac_interface_phy *_mac, rrc_interface_phy *_rrc,
@@ -188,7 +195,7 @@ phy_interface_rrc::cell_search_ret_t phch_recv::cell_search(phy_interface_rrc::p
   pthread_mutex_lock(&rrc_mutex);
 
   // Move state to IDLE
-  Info("Cell Search: Start EARFCN index=%u/%lu\n", cellsearch_earfcn_index, earfcn.size());
+  Info("Cell Search: Start EARFCN index=%u/%zd\n", cellsearch_earfcn_index, earfcn.size());
   phy_state.go_idle();
 
   if (current_earfcn != (int) earfcn[cellsearch_earfcn_index]) {
@@ -441,6 +448,7 @@ void phch_recv::run_thread()
                 if (!prach_ptr) {
                   Error("Generating PRACH\n");
                 }
+                set_time_adv_sec(0.0f);
               }
 
               /* Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time */
@@ -900,6 +908,11 @@ void phch_recv::search::set_agc_enable(bool enable) {
   if (enable) {
     srslte_rf_info_t *rf_info = p->radio_h->get_info();
     srslte_ue_sync_start_agc(&ue_mib_sync.ue_sync,
+                             callback_set_rx_gain,
+                             rf_info->min_rx_gain,
+                             rf_info->max_rx_gain,
+                             p->radio_h->get_rx_gain());
+    srslte_ue_sync_start_agc(&cs.ue_sync,
                              callback_set_rx_gain,
                              rf_info->min_rx_gain,
                              rf_info->max_rx_gain,
@@ -1525,6 +1538,28 @@ int phch_recv::meas_stop(uint32_t earfcn, int pci) {
             current_earfcn, earfcn);
   }
   return -1;
+}
+
+phch_recv::intra_measure::intra_measure()
+    : scell() {
+
+  rrc = NULL;
+  common = NULL;
+  search_buffer = NULL;
+  log_h = NULL;
+
+  current_earfcn = 0;
+  current_sflen = 0;
+  measure_tti = 0;
+  receive_cnt = 0;
+
+  running = false;
+  receive_enabled = false;
+  receiving = false;
+
+  ZERO_OBJECT(info);
+  ZERO_OBJECT(ring_buffer);
+  ZERO_OBJECT(primary_cell);
 }
 
 phch_recv::intra_measure::~intra_measure() {

@@ -133,12 +133,12 @@ private:
   uint32_t nof_preambles;
   uint32_t nof_groupA_preambles;
   uint32_t nof_groupB_preambles;
-  uint32_t messagePowerOffsetGroupB;
+  int32_t  messagePowerOffsetGroupB;
   uint32_t messageSizeGroupA;
   uint32_t responseWindowSize;
   uint32_t powerRampingStep;
   uint32_t preambleTransMax;
-  uint32_t iniReceivedTargetPower;
+  int32_t  iniReceivedTargetPower;
   int      delta_preamble_db;
   uint32_t contentionResolutionTimer;
   uint32_t maskIndex;

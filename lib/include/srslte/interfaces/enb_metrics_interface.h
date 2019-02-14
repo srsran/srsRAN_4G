@@ -29,6 +29,7 @@
 
 #include <stdint.h>
 
+#include "srslte/common/metrics_hub.h"
 #include "srsenb/hdr/upper/common_enb.h"
 #include "srsenb/hdr/upper/s1ap_metrics.h"
 #include "srsenb/hdr/upper/rrc_metrics.h"
@@ -56,7 +57,7 @@ typedef struct {
 }enb_metrics_t;
 
 // ENB interface
-class enb_metrics_interface
+class enb_metrics_interface : public srslte::metrics_interface<enb_metrics_t>
 {
 public:
   virtual bool get_metrics(enb_metrics_t &m) = 0;

@@ -44,15 +44,6 @@
 
 namespace srsepc{
 
-/*
-typedef struct {
-  std::string   s1ap_level;
-  std::string   all_level;
-  int           s1ap_hex_limit;
-  std::string   filename;
-}log_args_t;
-*/
-
 typedef struct{
   s1ap_args_t s1ap_args;
   //diameter_args_t diameter_args;
@@ -66,7 +57,7 @@ class mme:
 public:
   static mme* get_instance(void);
   static void cleanup(void);
-  int init(mme_args_t* args, srslte::log_filter *s1ap_log, srslte::log_filter *mme_gtpc_log, hss_interface_s1ap * hss_);
+  int init(mme_args_t* args, srslte::log_filter *nas_log, srslte::log_filter *s1ap_log, srslte::log_filter *mme_gtpc_log, hss_interface_nas * hss);
   void stop();
   int get_s1_mme();
   void run_thread();
@@ -83,6 +74,7 @@ private:
   srslte::byte_buffer_pool *m_pool;
 
   /*Logs*/
+  srslte::log_filter  *m_nas_log;
   srslte::log_filter  *m_s1ap_log;
   srslte::log_filter  *m_mme_gtpc_log;
 };

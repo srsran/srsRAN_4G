@@ -28,11 +28,11 @@ if(HAVE_PCSC)
 endif(HAVE_PCSC)
 
 add_executable(rrc_reconfig_test rrc_reconfig_test.cc)
-target_link_libraries(rrc_reconfig_test srsue_upper srslte_upper srslte_phy)
+target_link_libraries(rrc_reconfig_test srsue_upper srslte_upper srslte_phy rrc_asn1)
 add_test(rrc_reconfig_test rrc_reconfig_test)
 
 add_executable(nas_test nas_test.cc)
-target_link_libraries(nas_test srsue_upper srslte_upper srslte_phy)
+target_link_libraries(nas_test srsue_upper srslte_upper srslte_phy rrc_asn1)
 add_test(nas_test nas_test)
 
 ########################################################################
