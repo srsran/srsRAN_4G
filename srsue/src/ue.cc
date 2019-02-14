@@ -32,7 +32,6 @@
 #include <sstream>
 #include <algorithm>
 #include <iterator>
-#include <sstream>
 
 using namespace srslte;
 
@@ -253,18 +252,6 @@ bool ue::init(all_args_t *args_) {
   // set args and initialize RRC
   rrc.init(&phy, &mac, &rlc, &pdcp, &nas, usim, &gw, &mac, &rrc_log);
   rrc.set_args(args->rrc);
-
-  // Currently EARFCN list is set to only one frequency as indicated in ue.conf
-  std::vector<uint32_t> earfcn_list;
-  std::stringstream ss;
-  ss << args->rf.dl_earfcn;
-  while(ss.good())
-  {
-      std::string substr;
-      getline(ss, substr, ',');
-      earfcn_list.push_back(atoi(substr.c_str()));
-  }
-  phy.set_earfcn(earfcn_list);
 
   if (args->rf.dl_freq > 0 && args->rf.ul_freq > 0) {
     phy.force_freq(args->rf.dl_freq, args->rf.ul_freq);
