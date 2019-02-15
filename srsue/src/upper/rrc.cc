@@ -445,7 +445,7 @@ int rrc::plmn_search(found_plmn_t found_plmns[MAX_FOUND_PLMNS])
   pthread_mutex_unlock(&mutex);
 
   if (ret.found == phy_interface_rrc::cell_search_ret_t::ERROR) {
-    return -1; 
+    return -1;
   } else {
     return nof_plmns;
   }

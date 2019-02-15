@@ -29,9 +29,9 @@
 #include <pthread.h>
 #include <iostream>
 #include <string>
-#include <sstream>
 #include <algorithm>
 #include <iterator>
+#include <sstream>
 
 using namespace srslte;
 
@@ -102,7 +102,7 @@ bool ue::init(all_args_t *args_) {
   for (int i=0;i<nof_phy_threads;i++) {
     ((srslte::log_filter*) phy_log[i])->set_level(level(args->log.phy_level));
   }
-  
+
   /* here we add a log layer to handle logging from the phy library*/
   if (level(args->log.phy_lib_level) != LOG_LEVEL_NONE) {
     srslte::log_filter *lib_log = new srslte::log_filter;
@@ -115,7 +115,7 @@ bool ue::init(all_args_t *args_) {
     phy_log.push_back(NULL);
   }
 
-  
+
   mac_log.set_level(level(args->log.mac_level));
   rlc_log.set_level(level(args->log.rlc_level));
   pdcp_log.set_level(level(args->log.pdcp_level));
@@ -187,19 +187,19 @@ bool ue::init(all_args_t *args_) {
   if (args->rf.device_name.compare("auto")) {
     dev_name = (char*) args->rf.device_name.c_str();
   }
-  
+
   char *dev_args = NULL;
   if (args->rf.device_args.compare("auto")) {
     dev_args = (char*) args->rf.device_args.c_str();
   }
-  
+
   printf("Opening RF device with %d RX antennas...\n", args->rf.nof_rx_ant);
   if(!radio.init_multi(args->rf.nof_rx_ant, dev_args, dev_name)) {
     printf("Failed to find device %s with args %s\n",
            args->rf.device_name.c_str(), args->rf.device_args.c_str());
     return false;
-  }    
-  
+  }
+
   // Set RF options
   if (args->rf.time_adv_nsamples.compare("auto")) {
     int t = atoi(args->rf.time_adv_nsamples.c_str());
@@ -207,7 +207,7 @@ bool ue::init(all_args_t *args_) {
     radio.set_tx_adv_neg(t<0);
   }
   if (args->rf.burst_preamble.compare("auto")) {
-    radio.set_burst_preamble(atof(args->rf.burst_preamble.c_str()));    
+    radio.set_burst_preamble(atof(args->rf.burst_preamble.c_str()));
   }
   if (args->rf.continuous_tx.compare("auto")) {
     printf("set continuous %s\n", args->rf.continuous_tx.c_str());
@@ -216,23 +216,23 @@ bool ue::init(all_args_t *args_) {
 
   // Set PHY options
   if (args->rf.tx_gain > 0) {
-    args->expert.phy.ul_pwr_ctrl_en = false; 
+    args->expert.phy.ul_pwr_ctrl_en = false;
   } else {
-    args->expert.phy.ul_pwr_ctrl_en = true; 
+    args->expert.phy.ul_pwr_ctrl_en = true;
   }
 
   if (args->rf.rx_gain < 0) {
-    radio.start_agc(false);    
+    radio.start_agc(false);
   } else {
     radio.set_rx_gain(args->rf.rx_gain);
   }
   if (args->rf.tx_gain > 0) {
-    radio.set_tx_gain(args->rf.tx_gain);    
+    radio.set_tx_gain(args->rf.tx_gain);
   } else {
     radio.set_tx_gain(args->rf.rx_gain);
-    std::cout << std::endl << 
-                "Warning: TX gain was not set. " << 
-                "Using open-loop power control (not working properly)" << std::endl << std::endl; 
+    std::cout << std::endl <<
+                "Warning: TX gain was not set. " <<
+                "Using open-loop power control (not working properly)" << std::endl << std::endl;
   }
 
   radio.register_error_handler(rf_msg);
@@ -252,6 +252,8 @@ bool ue::init(all_args_t *args_) {
   // set args and initialize RRC
   rrc.init(&phy, &mac, &rlc, &pdcp, &nas, usim, &gw, &mac, &rrc_log);
   rrc.set_args(args->rrc);
+
+  phy.set_earfcn(earfcn_list);
 
   if (args->rf.dl_freq > 0 && args->rf.ul_freq > 0) {
     phy.force_freq(args->rf.dl_freq, args->rf.ul_freq);
@@ -283,10 +285,10 @@ void ue::stop()
     usim->stop();
     nas.stop();
     rrc.stop();
-    
+
     // Caution here order of stop is very important to avoid locks
 
-    
+
     // Stop RLC and PDCP before GW to avoid locking on queue
     rlc.stop();
     pdcp.stop();
@@ -296,7 +298,7 @@ void ue::stop()
     mac.stop();
     phy.stop();
     radio.stop();
-    
+
     usleep(1e5);
     if(args->pcap.enable) {
        mac_pcap.close();

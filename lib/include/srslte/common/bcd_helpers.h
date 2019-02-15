@@ -31,9 +31,6 @@
 #include <srslte/asn1/rrc_asn1.h>
 #include <stdint.h>
 #include <string>
-#include <srslte/asn1/liblte_rrc.h>
-#include <stdexcept>
-#include <stdio.h>
 
 namespace srslte {
 

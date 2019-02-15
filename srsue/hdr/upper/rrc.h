@@ -45,7 +45,6 @@
 
 #define SRSLTE_RRC_N_BANDS 43
 typedef struct {
-  std::string                   db_path;
   uint32_t                      ue_category;
   uint32_t                      feature_group;
   uint8_t                       supported_bands[SRSLTE_RRC_N_BANDS];
@@ -260,7 +259,7 @@ class cell_t
 
 private:
   float    rsrp;
-  
+
   struct timeval last_update;
 
   bool     has_valid_sib1;
