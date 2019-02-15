@@ -90,7 +90,11 @@ typedef struct {
   srslte_cell_t                      cell;
   bool                               enable_mbsfn;
   uint32_t                           inactivity_timeout_ms;
-}rrc_cfg_t; 
+  srslte::CIPHERING_ALGORITHM_ID_ENUM
+      eea_preference_list[srslte::CIPHERING_ALGORITHM_ID_N_ITEMS];
+  srslte::INTEGRITY_ALGORITHM_ID_ENUM
+      eia_preference_list[srslte::INTEGRITY_ALGORITHM_ID_N_ITEMS];
+} rrc_cfg_t;
 
 static const char rrc_state_text[RRC_STATE_N_ITEMS][100] = {"IDLE",
                                                             "WAIT FOR CON SETUP COMPLETE",

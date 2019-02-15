@@ -155,6 +155,8 @@ nof_ctrl_symbols = 3
 # enable_mbsfn:         Enable MBMS transmission in the eNB
 # m1u_multiaddr:        Multicast addres the M1-U socket will register to
 # m1u_if_addr:          Address of the inteferface the M1-U interface will listen for multicast packets.
+# eea_pref_list:        Ordered preference list for the selection of encryption algorithm (EEA) (default: EEA0, EEA2, EEA1). 
+# eia_pref_list:        Ordered preference list for the selection of integrity algorithm (EIA) (default: EIA2, EIA1, EIA0).
 #
 #####################################################################
 [expert]
@@ -172,3 +174,5 @@ nof_ctrl_symbols = 3
 #enable_mbsfn = false
 #m1u_multiaddr = 239.255.0.1
 #m1u_if_addr = 127.0.1.201 
+#eea_pref_list = EEA0, EEA2, EEA1
+#eia_pref_list = EIA2, EIA1, EIA0

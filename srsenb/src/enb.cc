@@ -179,6 +179,56 @@ bool enb::init(all_args_t *args_)
   rrc_cfg.inactivity_timeout_ms = args->expert.rrc_inactivity_timer;
   rrc_cfg.enable_mbsfn          = args->expert.enable_mbsfn;
 
+  // Parse EEA preference list
+  std::vector<std::string> eea_pref_list;
+  boost::split(eea_pref_list, args->expert.eea_pref_list,
+               boost::is_any_of(","));
+  int i = 0;
+  for (std::vector<std::string>::iterator it = eea_pref_list.begin();
+       it != eea_pref_list.end() && i < srslte::CIPHERING_ALGORITHM_ID_N_ITEMS;
+       it++) {
+    boost::trim_left(*it);
+    if ((*it).compare("EEA0") == 0) {
+      rrc_cfg.eea_preference_list[i] = srslte::CIPHERING_ALGORITHM_ID_EEA0;
+      i++;
+    } else if ((*it).compare("EEA1") == 0) {
+      rrc_cfg.eea_preference_list[i] = srslte::CIPHERING_ALGORITHM_ID_128_EEA1;
+      i++;
+    } else if ((*it).compare("EEA2") == 0) {
+      rrc_cfg.eea_preference_list[i] = srslte::CIPHERING_ALGORITHM_ID_128_EEA2;
+      i++;
+    } else {
+      fprintf(stderr, "Failed to parse EEA prefence list %s \n",
+              args->expert.eea_pref_list.c_str());
+      return false;
+    }
+  }
+
+  // Parse EIA preference list
+  std::vector<std::string> eia_pref_list;
+  boost::split(eia_pref_list, args->expert.eia_pref_list,
+               boost::is_any_of(","));
+  i = 0;
+  for (std::vector<std::string>::iterator it = eia_pref_list.begin();
+       it != eia_pref_list.end() && i < srslte::INTEGRITY_ALGORITHM_ID_N_ITEMS;
+       it++) {
+    boost::trim_left(*it);
+    if ((*it).compare("EIA0") == 0) {
+      rrc_cfg.eia_preference_list[i] = srslte::INTEGRITY_ALGORITHM_ID_EIA0;
+      i++;
+    } else if ((*it).compare("EIA1") == 0) {
+      rrc_cfg.eia_preference_list[i] = srslte::INTEGRITY_ALGORITHM_ID_128_EIA1;
+      i++;
+    } else if ((*it).compare("EIA2") == 0) {
+      rrc_cfg.eia_preference_list[i] = srslte::INTEGRITY_ALGORITHM_ID_128_EIA2;
+      i++;
+    } else {
+      fprintf(stderr, "Failed to parse EIA prefence list %s \n",
+              args->expert.eia_pref_list.c_str());
+      return false;
+    }
+  }
+
   // Copy cell struct to rrc and phy
   memcpy(&rrc_cfg.cell, &cell_cfg, sizeof(srslte_cell_t));
   memcpy(&phy_cfg.cell, &cell_cfg, sizeof(srslte_cell_t));

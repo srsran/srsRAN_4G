@@ -1214,7 +1214,7 @@ void rrc::ue::set_security_key(uint8_t* key, uint32_t length)
   // Selects security algorithms (cipher_algo and integ_algo) based on capabilities and config preferences 
   select_security_algorithms();
 
-  parent->rrc_log->info("Selected security algorithms EEA: EEA-%d EIA: EIA-%d\n", cipher_algo, integ_algo);
+  parent->rrc_log->info("Selected security algorithms EEA: EEA%d EIA: EIA%d\n", cipher_algo, integ_algo);
   
   // Generate K_rrc_enc and K_rrc_int
   srslte::security_generate_k_rrc(k_enb, cipher_algo, integ_algo, k_rrc_enc, k_rrc_int);
@@ -1903,35 +1903,23 @@ void rrc::ue::send_ue_cap_enquiry()
 
 /********************** HELPERS ***************************/
 
-bool rrc::ue::select_security_algorithms()
-{
-  srslte::CIPHERING_ALGORITHM_ID_ENUM
-      enc_algo_preference[srslte::CIPHERING_ALGORITHM_ID_N_ITEMS] = {
-          srslte::CIPHERING_ALGORITHM_ID_128_EEA2,
-          srslte::CIPHERING_ALGORITHM_ID_128_EEA1,
-          srslte::CIPHERING_ALGORITHM_ID_EEA0};
-
-  srslte::INTEGRITY_ALGORITHM_ID_ENUM
-      intgrity_algo_preference[srslte::INTEGRITY_ALGORITHM_ID_N_ITEMS] = {
-          srslte::INTEGRITY_ALGORITHM_ID_128_EIA2,
-          srslte::INTEGRITY_ALGORITHM_ID_128_EIA1,
-          srslte::INTEGRITY_ALGORITHM_ID_EIA0};
-
+bool rrc::ue::select_security_algorithms() {
   // Each position in the bitmap represents an encryption algorithm:
   // “all bits equal to 0” – UE supports no other algorithm than EEA0,
   // “first bit” – 128-EEA1,
   // “second bit” – 128-EEA2,
   // “third bit” – 128-EEA3,
-  // other bits reserved for future use. Value ‘1’ indicates support and value ‘0’ indicates no support of the algorithm.
+  // other bits reserved for future use. Value ‘1’ indicates support and value
+  // ‘0’ indicates no support of the algorithm.
   // Algorithms are defined in TS 33.401 [15].
-  // Note: information missing 
+  // Note: information missing
 
-  bool enc_algo_found = false; 
+  bool enc_algo_found = false;
   bool integ_algo_found = false;
   bool zero_vector = true;
   int i = 0;
   for (i = 0; i < srslte::CIPHERING_ALGORITHM_ID_N_ITEMS; i++) {
-    switch (enc_algo_preference[i]) {
+    switch (parent->cfg.eea_preference_list[i]) {
     case srslte::CIPHERING_ALGORITHM_ID_EEA0:
       // “all bits equal to 0” – UE supports no other algorithm than EEA0,
       zero_vector = true;
@@ -1974,7 +1962,7 @@ bool rrc::ue::select_security_algorithms()
   }
 
   for (i = 0; i < srslte::INTEGRITY_ALGORITHM_ID_N_ITEMS; i++) {
-    switch (intgrity_algo_preference[i]) {
+    switch (parent->cfg.eia_preference_list[i]) {
     case srslte::INTEGRITY_ALGORITHM_ID_EIA0:
       // “all bits equal to 0” – UE supports no other algorithm than EEA0,
       zero_vector = true;
@@ -2015,7 +2003,7 @@ bool rrc::ue::select_security_algorithms()
     }
   }
 
-  if(integ_algo_found == false || enc_algo_found == false){
+  if (integ_algo_found == false || enc_algo_found == false) {
     // TODO: if no security algorithm found abort radio connection and issue
     // cryption-and-or-integrity-protection-algorithms-not-supported message
     return false;
