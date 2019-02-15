@@ -70,12 +70,11 @@ inline void assert_choice_type(const std::string& access_type, const std::string
   }
 }
 
-template <class NumType>
-NumType get_enum_number(NumType* array, uint32_t nof_types, uint32_t enum_val, const char* enum_type)
+template <class ItemType>
+ItemType convert_enum_idx(ItemType* array, uint32_t nof_types, uint32_t enum_val, const char* enum_type)
 {
   if (enum_val >= nof_types) {
-    rrc_log_print(LOG_LEVEL_ERROR, "The provided enum value=%d of type %s cannot be translated into a number\n",
-                  enum_val, enum_type);
+    rrc_log_print(LOG_LEVEL_ERROR, "The provided enum value=%d of type %s cannot be converted.\n", enum_val, enum_type);
     return 0;
   }
   return array[enum_val];
