@@ -1212,7 +1212,7 @@ void rrc::ue::set_security_key(uint8_t* key, uint32_t length)
   memcpy(k_enb, key, length);
   parent->rrc_log->info_hex(k_enb, 32, "Key eNodeB (k_enb)");
   // Select algos (TODO: use security capabilities and config preferences)
-  cipher_algo = srslte::CIPHERING_ALGORITHM_ID_EEA0; // FIXME: Should i keep this type???
+  cipher_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA2; // FIXME: Should i keep this type???
   integ_algo  = srslte::INTEGRITY_ALGORITHM_ID_128_EIA1;
 
   // Generate K_rrc_enc and K_rrc_int
@@ -1234,7 +1234,7 @@ void rrc::ue::set_security_key(uint8_t* key, uint32_t length)
 
   parent->rrc_log->info_hex(k_rrc_enc, 32, "RRC Encryption Key (k_rrc_enc)");
   parent->rrc_log->info_hex(k_rrc_int, 32, "RRC Integrity Key (k_rrc_int)");
-  parent->rrc_log->info_hex(k_up_enc, 32, "RRC Encryption Key (k_rrc_enc)");
+  parent->rrc_log->info_hex(k_up_enc, 32, "UP Encryption Key (k_up_enc)");
 }
 
 bool rrc::ue::setup_erabs(LIBLTE_S1AP_E_RABTOBESETUPLISTCTXTSUREQ_STRUCT *e)
@@ -1771,6 +1771,7 @@ void rrc::ue::send_connection_reconf(srslte::byte_buffer_t *pdu)
   // Configure DRB1 in PDCP
   pdcp_cnfg.is_control = false;
   pdcp_cnfg.is_data = true;
+  pdcp_cnfg.bearer_id = 1; // TODO: Review all ID mapping LCID DRB ERAB EPSBID Mapping 
   if (conn_reconf->rr_cfg_ded.drb_to_add_mod_list[0].pdcp_cfg.rlc_um_present) {
     if (conn_reconf->rr_cfg_ded.drb_to_add_mod_list[0].pdcp_cfg.rlc_um.pdcp_sn_size.value ==
         pdcp_cfg_s::rlc_um_s_::pdcp_sn_size_e_::len7bits) {
@@ -1839,7 +1840,7 @@ void rrc::ue::send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBE
     parent->rlc->add_bearer(rnti, lcid, &drb_item.rlc_cfg);
     // Configure DRB in PDCP
     srslte::srslte_pdcp_config_t pdcp_config;
-    pdcp_config.bearer_id = drb_item.drb_id;
+    pdcp_config.bearer_id = drb_item.drb_id - 1; // TODO: Review all ID mapping LCID DRB ERAB EPSBID Mapping
     pdcp_config.is_data = true;
     pdcp_config.direction = SECURITY_DIRECTION_DOWNLINK;
     parent->pdcp->add_bearer(rnti, lcid, pdcp_config);

@@ -85,7 +85,7 @@ void pdcp_entity::init(srsue::rlc_interface_pdcp      *rlc_,
     sn_len_bytes = 2;
   }
 
-  log->debug("Init %s\n", rrc->get_rb_name(lcid).c_str());
+  log->info("Init %s with bearer ID: %d\n", rrc->get_rb_name(lcid).c_str(), cfg.bearer_id);
 }
 
 // Reestablishment procedure: 36.323 5.2
@@ -205,7 +205,7 @@ void pdcp_entity::write_pdu(byte_buffer_t *pdu)
                      rx_count,
                      pdu->N_bytes - sn_len_bytes,
                      &(pdu->msg[sn_len_bytes]));
-      log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
+      log->debug_hex(pdu->msg, pdu->N_bytes, "RX %s PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
     }
     if(12 == cfg.sn_len)
     {
