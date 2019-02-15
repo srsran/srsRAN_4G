@@ -80,7 +80,7 @@ int usim::init(usim_args_t *args, srslte::log *usim_log_)
       imsi += imsi_c[i] - '0';
     }
   } else {
-    usim_log->error("Invalid length for ISMI: %zu should be %d\n", args->imsi.length(), 15);
+    usim_log->error("Invalid length for IMSI: %zu should be %d\n", args->imsi.length(), 15);
     usim_log->console("Invalid length for IMSI: %zu should be %d\n", args->imsi.length(), 15);
   }
 
