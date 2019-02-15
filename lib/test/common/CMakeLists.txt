@@ -29,6 +29,10 @@ add_executable(msg_queue_test msg_queue_test.cc)
 target_link_libraries(msg_queue_test srslte_phy srslte_common ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
 add_test(msg_queue_test msg_queue_test)
 
+add_executable(test_eia1 test_eia1.cc)
+target_link_libraries(test_eia1 srslte_common srslte_phy ${CMAKE_THREAD_LIBS_INIT})
+add_test(test_eia1 test_eia1)
+
 add_executable(test_eea1 test_eea1.cc)
 target_link_libraries(test_eea1 srslte_common srslte_phy ${CMAKE_THREAD_LIBS_INIT})
 add_test(test_eea1 test_eea1)

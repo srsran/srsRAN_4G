@@ -47,11 +47,13 @@ metrics_csv::metrics_csv(std::string filename)
   ,ue(NULL)
 {
   file.open(filename.c_str(), std::ios_base::out);
+  pthread_mutex_init(&mutex, NULL);
 }
 
 metrics_csv::~metrics_csv()
 {
   stop();
+  pthread_mutex_destroy(&mutex);
 }
 
 void metrics_csv::set_ue_handle(ue_metrics_interface *ue_)
@@ -61,15 +63,18 @@ void metrics_csv::set_ue_handle(ue_metrics_interface *ue_)
 
 void metrics_csv::stop()
 {
+  pthread_mutex_lock(&mutex);
   if (file.is_open()) {
     file << "#eof\n";
     file.flush();
     file.close();
   }
+  pthread_mutex_unlock(&mutex);
 }
 
 void metrics_csv::set_metrics(ue_metrics_t &metrics, const uint32_t period_usec)
 {
+  pthread_mutex_lock(&mutex);
   if (file.is_open() && ue != NULL) {
     if(n_reports == 0) {
       file << "time;rsrp;pl;cfo;dl_mcs;dl_snr;dl_turbo;dl_brate;dl_bler;ul_ta;ul_mcs;ul_buff;ul_brate;ul_bler;rf_o;rf_u;rf_l;is_attached\n";
@@ -106,6 +111,7 @@ void metrics_csv::set_metrics(ue_metrics_t &metrics, const uint32_t period_usec)
   } else {
     std::cout << "Error, couldn't write CSV file." << std::endl;
   }
+  pthread_mutex_unlock(&mutex);
 }
 
 std::string metrics_csv::float_to_string(float f, int digits, bool add_semicolon)

@@ -28,11 +28,9 @@
 #define SRSLTE_BCD_HELPERS_H
 
 #include <ctype.h>
+#include <srslte/asn1/rrc_asn1.h>
 #include <stdint.h>
 #include <string>
-#include <srslte/asn1/liblte_rrc.h>
-#include <stdexcept>
-#include <stdio.h>
 
 namespace srslte {
 
@@ -43,7 +41,7 @@ namespace srslte {
  *****************************************************************************/
 inline bool string_to_mcc(std::string str, uint16_t *mcc)
 {
-  uint32_t len = str.size();
+  uint32_t len = (uint32_t)str.size();
   if(len != 3) {
     return false;
   }
@@ -67,6 +65,43 @@ inline bool mcc_to_string(uint16_t mcc, std::string *str)
   *str += ((mcc & 0x00F0) >> 4) + '0';
   *str += (mcc & 0x000F) + '0';
   return true;
+}
+
+/******************************************************************************
+ * Convert between array of bytes and BCD-coded MCC.
+ * Digits are represented by 4-bit nibbles. Unused nibbles are filled with 0xF.
+ * MCC 001 results in 0xF001
+ *****************************************************************************/
+
+inline bool bytes_to_mcc(uint8_t* bytes, uint16_t* mcc)
+{
+  *mcc = 0xF000;
+  *mcc |= (((uint16_t)bytes[0]) << 8u);
+  *mcc |= (((uint16_t)bytes[1]) << 4u);
+  *mcc |= (uint16_t)bytes[2];
+  return true;
+}
+
+inline bool mcc_to_bytes(uint16_t mcc, uint8_t* bytes)
+{
+  if ((mcc & 0xF000) != 0xF000) {
+    return false;
+  }
+  bytes[0] = (uint8_t)((mcc & 0xF00) >> 8);
+  bytes[1] = (uint8_t)((mcc & 0x0F0) >> 4);
+  bytes[2] = (uint8_t)(mcc & 0x00F);
+  return true;
+}
+
+inline std::string mcc_bytes_to_string(asn1::rrc::mcc_l mcc_bytes)
+{
+  std::string mcc_str;
+  uint16_t    mcc;
+  bytes_to_mcc(&mcc_bytes[0], &mcc);
+  if (!mcc_to_string(mcc, &mcc_str)) {
+    mcc_str = "000";
+  }
+  return mcc_str;
 }
 
 /******************************************************************************
@@ -115,11 +150,99 @@ inline bool mnc_to_string(uint16_t mnc, std::string *str)
   *str += (mnc & 0x000F) + '0';
   return true;
 }
-inline std::string plmn_id_to_string(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) {
+
+/******************************************************************************
+ * Convert between array of bytes and BCD-coded MNC.
+ * Digits are represented by 4-bit nibbles. Unused nibbles are filled with 0xF.
+ * MNC 001 results in 0xF001
+ * MNC 01 results in 0xFF01
+ *****************************************************************************/
+inline bool bytes_to_mnc(uint8_t* bytes, uint16_t* mnc, uint8_t len)
+{
+  if (len != 3 && len != 2) {
+    *mnc = 0;
+    return false;
+  }
+  if (len == 3) {
+    *mnc = 0xF000;
+    *mnc |= ((uint16_t)bytes[0]) << 8u;
+    *mnc |= ((uint16_t)bytes[1]) << 4u;
+    *mnc |= ((uint16_t)bytes[2]) << 0u;
+  }
+  if (len == 2) {
+    *mnc = 0xFF00;
+    *mnc |= ((uint16_t)bytes[0]) << 4u;
+    *mnc |= ((uint16_t)bytes[1]) << 0u;
+  }
+  return true;
+}
+
+inline bool mnc_to_bytes(uint16_t mnc, uint8_t* bytes, uint8_t* len)
+{
+  if ((mnc & 0xF000) != 0xF000) {
+    *len = 0;
+    return false;
+  }
+  uint8_t count = 0;
+  if ((mnc & 0xFF00) != 0xFF00) {
+    bytes[count++] = (mnc & 0xF00) >> 8u;
+  }
+  bytes[count++] = (mnc & 0x00F0) >> 4u;
+  bytes[count++] = (mnc & 0x000F);
+  *len           = count;
+  return true;
+}
+
+template <class Vec>
+bool mnc_to_bytes(uint16_t mnc, Vec& vec)
+{
+  uint8_t len;
+  uint8_t v[3];
+  bool    ret = mnc_to_bytes(mnc, &v[0], &len);
+  vec.resize(len);
+  memcpy(&vec[0], &v[0], len);
+  return ret;
+}
+
+inline std::string mnc_bytes_to_string(asn1::rrc::mnc_l mnc_bytes)
+{
+  std::string mnc_str;
+  uint16_t    mnc;
+  bytes_to_mnc(&mnc_bytes[0], &mnc, mnc_bytes.size());
+  if (!mnc_to_string(mnc, &mnc_str)) {
+    mnc_str = "000";
+  }
+  return mnc_str;
+}
+
+inline std::string plmn_id_to_string(asn1::rrc::plmn_id_s plmn_id)
+{
   std::string mcc_str, mnc_str;
-  mnc_to_string(plmn_id.mnc, &mnc_str);
-  mcc_to_string(plmn_id.mcc, &mcc_str);
+  uint16_t    mnc, mcc;
+  bytes_to_mnc(&plmn_id.mnc[0], &mnc, plmn_id.mnc.size());
+  bytes_to_mcc(&plmn_id.mcc[0], &mcc);
+  mnc_to_string(mnc, &mnc_str);
+  mcc_to_string(mcc, &mcc_str);
   return mcc_str + mnc_str;
+}
+
+inline bool string_to_plmn_id(asn1::rrc::plmn_id_s& plmn, std::string mccmnc_str)
+{
+  if (mccmnc_str.size() < 5 or mccmnc_str.size() > 6) {
+    return false;
+  }
+  uint16_t mnc, mcc;
+  if (not string_to_mcc(std::string(mccmnc_str.begin(), mccmnc_str.begin() + 3), &mcc)) {
+    return false;
+  }
+  if (not string_to_mnc(std::string(mccmnc_str.begin() + 3, mccmnc_str.end()), &mnc)) {
+    return false;
+  }
+  plmn.mcc_present = true;
+  if (not mcc_to_bytes(mcc, &plmn.mcc[0])) {
+    return false;
+  }
+  return mnc_to_bytes(mnc, plmn.mnc);
 }
 
 /******************************************************************************

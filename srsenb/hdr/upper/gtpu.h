@@ -76,7 +76,7 @@ private:
   // Class to create
   class mch_thread : public thread {
   public:
-    mch_thread() : initiated(false),running(false),run_enable(false),pool(NULL) {}
+    mch_thread() : initiated(false), running(false), run_enable(false), pool(NULL), lcid_counter(0) {}
     bool init(std::string m1u_multiaddr_, std::string m1u_if_addr_, pdcp_interface_gtpu *pdcp_, srslte::log *gtpu_log_);
     void stop();
   private:

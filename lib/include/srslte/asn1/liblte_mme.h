@@ -2482,14 +2482,19 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_transaction_identifier_ie(uint8             
     Document Reference: 24.301 v10.2.0 Section 9.1
 *********************************************************************/
 // Defines
+//Protocol Descriptor
 #define LIBLTE_MME_PD_EPS_SESSION_MANAGEMENT                                              0x2
 #define LIBLTE_MME_PD_EPS_MOBILITY_MANAGEMENT                                             0x7
+//Header Type
 #define LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS                                            0x0
 #define LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY                                            0x1
 #define LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED                               0x2
 #define LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_WITH_NEW_EPS_SECURITY_CONTEXT              0x3
 #define LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED_WITH_NEW_EPS_SECURITY_CONTEXT 0x4
 #define LIBLTE_MME_SECURITY_HDR_TYPE_SERVICE_REQUEST                                      0xC
+const char* liblte_nas_sec_hdr_type_to_string(int code);
+
+//Message Type
 #define LIBLTE_MME_MSG_TYPE_ATTACH_REQUEST                                                0x41
 #define LIBLTE_MME_MSG_TYPE_ATTACH_ACCEPT                                                 0x42
 #define LIBLTE_MME_MSG_TYPE_ATTACH_COMPLETE                                               0x43
@@ -2543,6 +2548,8 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_transaction_identifier_ie(uint8             
 #define LIBLTE_MME_MSG_TYPE_ESM_INFORMATION_RESPONSE                                      0xDA
 #define LIBLTE_MME_MSG_TYPE_NOTIFICATION                                                  0xDB
 #define LIBLTE_MME_MSG_TYPE_ESM_STATUS                                                    0xE8
+const char* liblte_nas_msg_type_to_string(int code);
+
 // Enums
 // Structs
 // Functions

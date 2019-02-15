@@ -159,8 +159,7 @@ spgw::init_sgi_if(spgw_args_t *args)
 {
   struct ifreq ifr;
 
-  if(m_sgi_up)
-  {
+  if (m_sgi_up) {
     return(srslte::ERROR_ALREADY_STARTED);
   }
 
@@ -168,10 +167,9 @@ spgw::init_sgi_if(spgw_args_t *args)
   // Construct the TUN device
   m_sgi_if = open("/dev/net/tun", O_RDWR);
   m_spgw_log->info("TUN file descriptor = %d\n", m_sgi_if);
-  if(m_sgi_if < 0)
-  {
-      m_spgw_log->error("Failed to open TUN device: %s\n", strerror(errno));
-      return(srslte::ERROR_CANT_START);
+  if (m_sgi_if < 0) {
+    m_spgw_log->error("Failed to open TUN device: %s\n", strerror(errno));
+    return(srslte::ERROR_CANT_START);
   }
 
   memset(&ifr, 0, sizeof(ifr));
@@ -179,28 +177,26 @@ spgw::init_sgi_if(spgw_args_t *args)
   strncpy(ifr.ifr_ifrn.ifrn_name, args->sgi_if_name.c_str(), std::min(args->sgi_if_name.length(), (size_t)(IFNAMSIZ-1)));
   ifr.ifr_ifrn.ifrn_name[IFNAMSIZ-1]='\0';
 
-  if(ioctl(m_sgi_if, TUNSETIFF, &ifr) < 0)
-  {
-      m_spgw_log->error("Failed to set TUN device name: %s\n", strerror(errno));
-      close(m_sgi_if);
-      return(srslte::ERROR_CANT_START);
+  if (ioctl(m_sgi_if, TUNSETIFF, &ifr) < 0) {
+    m_spgw_log->error("Failed to set TUN device name: %s\n", strerror(errno));
+    close(m_sgi_if);
+    return(srslte::ERROR_CANT_START);
   }
 
   // Bring up the interface
   m_sgi_sock = socket(AF_INET, SOCK_DGRAM, 0);
 
-  if(ioctl(m_sgi_sock, SIOCGIFFLAGS, &ifr) < 0)
-  {
-      m_spgw_log->error("Failed to bring up socket: %s\n", strerror(errno));
-      close(m_sgi_if);
-      return(srslte::ERROR_CANT_START);
+  if (ioctl(m_sgi_sock, SIOCGIFFLAGS, &ifr) < 0) {
+    m_spgw_log->error("Failed to bring up socket: %s\n", strerror(errno));
+    close(m_sgi_if);
+    return(srslte::ERROR_CANT_START);
   }
+
   ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
-  if(ioctl(m_sgi_sock, SIOCSIFFLAGS, &ifr) < 0)
-  {
-      m_spgw_log->error("Failed to set socket flags: %s\n", strerror(errno));
-      close(m_sgi_if);
-      return(srslte::ERROR_CANT_START);
+  if (ioctl(m_sgi_sock, SIOCSIFFLAGS, &ifr) < 0) {
+    m_spgw_log->error("Failed to set socket flags: %s\n", strerror(errno));
+    close(m_sgi_if);
+    return(srslte::ERROR_CANT_START);
   }
 
   //Set IP of the interface
@@ -237,8 +233,7 @@ spgw::init_s1u(spgw_args_t *args)
 {
   //Open S1-U socket
   m_s1u = socket(AF_INET,SOCK_DGRAM,0);
-  if (m_s1u == -1)
-  {
+  if (m_s1u == -1) {
     m_spgw_log->error("Failed to open socket: %s\n", strerror(errno));
     return srslte::ERROR_CANT_START;
   }
@@ -282,8 +277,7 @@ spgw::run_thread()
   fd_set set;
   //struct timeval to;
   int max_fd = std::max(m_s1u,sgi);
-  while (m_running)
-  {
+  while (m_running) {
     msg->reset();
     FD_ZERO(&set);
     FD_SET(m_s1u, &set);
@@ -291,26 +285,18 @@ spgw::run_thread()
 
     //m_spgw_log->info("Waiting for S1-U or SGi packets.\n");
     int n = select(max_fd+1, &set, NULL, NULL, NULL);
-    if (n == -1)
-    { 
+    if (n == -1) {
       m_spgw_log->error("Error from select\n");
-    }
-    else if (n)
-    {
-      //m_spgw_log->info("Data is available now.\n");
-      if (FD_ISSET(m_s1u, &set))
-      {
+    } else if (n) {
+      if (FD_ISSET(m_s1u, &set)) {
         msg->N_bytes = recvfrom(m_s1u, msg->msg, SRSLTE_MAX_BUFFER_SIZE_BYTES, 0, &src_addr, &addrlen );
         handle_s1u_pdu(msg);
       }
-      if (FD_ISSET(m_sgi_if, &set))
-      {
+      if (FD_ISSET(m_sgi_if, &set)) {
         msg->N_bytes = read(sgi, msg->msg, SRSLTE_MAX_BUFFER_SIZE_BYTES);
         handle_sgi_pdu(msg);
       }
-    }
-    else
-    {
+    } else {
       m_spgw_log->debug("No data from select.\n");
     }
   }
@@ -347,14 +333,13 @@ spgw::handle_sgi_pdu(srslte::byte_buffer_t *msg)
   pthread_mutex_unlock(&m_mutex);
 
   if (ip_found == false) {
-    //m_spgw_log->console("IP Packet is not for any UE\n");
     return;
   }
+
   struct sockaddr_in enb_addr;
   enb_addr.sin_family = AF_INET;
   enb_addr.sin_port = htons(GTPU_RX_PORT);
   enb_addr.sin_addr.s_addr = enb_fteid.ipv4;
-  //m_spgw_log->console("UE F-TEID found, TEID 0x%x, eNB IP %s\n", enb_fteid.teid, inet_ntoa(enb_addr.sin_addr));
 
   //Setup GTP-U header
   srslte::gtpu_header_t header;
@@ -371,15 +356,13 @@ spgw::handle_sgi_pdu(srslte::byte_buffer_t *msg)
 
   //Send packet to destination
   int n = sendto(m_s1u,msg->msg,msg->N_bytes,0,(struct sockaddr*) &enb_addr,sizeof(enb_addr));
-  if(n<0)
-  {
+  if (n<0) {
     m_spgw_log->error("Error sending packet to eNB\n");
     return;
-  }
-  else if((unsigned int) n!=msg->N_bytes)
-  {
+  } else if((unsigned int) n!=msg->N_bytes) {
     m_spgw_log->error("Mis-match between packet bytes and sent bytes: Sent: %d, Packet: %d \n",n,msg->N_bytes);
   }
+
   return;
 }
 
@@ -390,15 +373,12 @@ spgw::handle_s1u_pdu(srslte::byte_buffer_t *msg)
   //m_spgw_log->console("Received PDU from S1-U. Bytes=%d\n",msg->N_bytes);
   srslte::gtpu_header_t header;
   srslte::gtpu_read_header(msg, &header, m_spgw_log);
- 
+
   //m_spgw_log->console("TEID 0x%x. Bytes=%d\n", header.teid, msg->N_bytes);
   int n = write(m_sgi_if, msg->msg, msg->N_bytes);
-  if(n<0)
-  {
+  if (n<0) {
     m_spgw_log->error("Could not write to TUN interface.\n");
-  }
-  else
-  {
+  } else {
     //m_spgw_log->console("Forwarded packet to TUN interface. Bytes= %d/%d\n", n, msg->N_bytes);
   }
   return;
@@ -467,19 +447,19 @@ bool
 spgw::delete_gtp_ctx(uint32_t ctrl_teid)
 {
   spgw_tunnel_ctx_t *tunnel_ctx;
-  if(!m_teid_to_tunnel_ctx.count(ctrl_teid)){
+  if (!m_teid_to_tunnel_ctx.count(ctrl_teid)) {
     m_spgw_log->error("Could not find GTP context to delete.\n");
     return false;
   }
   tunnel_ctx = m_teid_to_tunnel_ctx[ctrl_teid];
 
   //Remove GTP-U connections, if any.
-  if(m_ip_to_teid.count(tunnel_ctx->ue_ipv4))
-  {
+  if (m_ip_to_teid.count(tunnel_ctx->ue_ipv4)) {
     pthread_mutex_lock(&m_mutex);
     m_ip_to_teid.erase(tunnel_ctx->ue_ipv4);
-    pthread_mutex_unlock(&m_mutex);   
+    pthread_mutex_unlock(&m_mutex);
   }
+
   //Remove Ctrl TEID from IMSI to control TEID map
   m_imsi_to_ctr_teid.erase(tunnel_ctx->imsi);
 
@@ -497,9 +477,8 @@ spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *
   int default_bearer_id = 5;
   //Check if IMSI has active GTP-C and/or GTP-U
   bool gtpc_present = m_imsi_to_ctr_teid.count(cs_req->imsi);
-  if(gtpc_present)
-  {
-    m_spgw_log->console("SPGW: GTP-C context for IMSI %015lu already exists.\n", cs_req->imsi);
+  if (gtpc_present) {
+    m_spgw_log->console("SPGW: GTP-C context for IMSI %015" PRIu64 " already exists.\n", cs_req->imsi);
     delete_gtp_ctx(m_imsi_to_ctr_teid[cs_req->imsi]);
     m_spgw_log->console("SPGW: Deleted previous context.\n");
   }
@@ -541,9 +520,6 @@ spgw::handle_create_session_request(struct srslte::gtpc_create_session_request *
   return;
 }
 
-
-
-
 void
 spgw::handle_modify_bearer_request(struct srslte::gtpc_pdu *mb_req_pdu, struct srslte::gtpc_pdu *mb_resp_pdu)
 {
@@ -552,8 +528,7 @@ spgw::handle_modify_bearer_request(struct srslte::gtpc_pdu *mb_req_pdu, struct s
   //Get control tunnel info from mb_req PDU
   uint32_t ctrl_teid = mb_req_pdu->header.teid;
   std::map<uint32_t,spgw_tunnel_ctx_t*>::iterator tunnel_it = m_teid_to_tunnel_ctx.find(ctrl_teid);
-  if(tunnel_it == m_teid_to_tunnel_ctx.end())
-  {
+  if (tunnel_it == m_teid_to_tunnel_ctx.end()) {
     m_spgw_log->warning("Could not find TEID %d to modify\n",ctrl_teid);
     return;
   }
@@ -570,7 +545,7 @@ spgw::handle_modify_bearer_request(struct srslte::gtpc_pdu *mb_req_pdu, struct s
   m_spgw_log->info("IMSI: %lu, UE IP, %s \n",tunnel_ctx->imsi, inet_ntoa(addr));
   m_spgw_log->info("S-GW Rx Ctrl TEID 0x%x, MME Rx Ctrl TEID 0x%x\n", tunnel_ctx->up_ctrl_fteid.teid, tunnel_ctx->dw_ctrl_fteid.teid);
   m_spgw_log->info("S-GW Rx Ctrl IP (NA), MME Rx Ctrl IP (NA)\n");
-  
+
   struct in_addr addr2;
   addr2.s_addr = tunnel_ctx->up_user_fteid.ipv4;
   m_spgw_log->info("S-GW Rx User TEID 0x%x, S-GW Rx User IP %s\n", tunnel_ctx->up_user_fteid.teid, inet_ntoa(addr2));
@@ -598,8 +573,9 @@ spgw::handle_modify_bearer_request(struct srslte::gtpc_pdu *mb_req_pdu, struct s
   srslte::gtpc_modify_bearer_response *mb_resp = &mb_resp_pdu->choice.modify_bearer_response;
   mb_resp->cause.cause_value = srslte::GTPC_CAUSE_VALUE_REQUEST_ACCEPTED;
   mb_resp->eps_bearer_context_modified.ebi = tunnel_ctx->ebi;
-  //printf("%d %d\n",mb_resp->eps_bearer_context_modified.ebi, tunnel_ctx->ebi);
   mb_resp->eps_bearer_context_modified.cause.cause_value = srslte::GTPC_CAUSE_VALUE_REQUEST_ACCEPTED;
+
+  return;
 }
 
 void
@@ -608,8 +584,7 @@ spgw::handle_delete_session_request(struct srslte::gtpc_pdu *del_req_pdu, struct
   //Find tunel ctxt
   uint32_t ctrl_teid = del_req_pdu->header.teid;
   std::map<uint32_t,spgw_tunnel_ctx_t*>::iterator tunnel_it = m_teid_to_tunnel_ctx.find(ctrl_teid);
-  if(tunnel_it == m_teid_to_tunnel_ctx.end())
-  {
+  if (tunnel_it == m_teid_to_tunnel_ctx.end()) {
     m_spgw_log->warning("Could not find TEID %d to delete\n",ctrl_teid);
     return;
   }
@@ -619,8 +594,7 @@ spgw::handle_delete_session_request(struct srslte::gtpc_pdu *del_req_pdu, struct
   //Delete data tunnel
   pthread_mutex_lock(&m_mutex);
   std::map<in_addr_t,srslte::gtp_fteid_t>::iterator data_it = m_ip_to_teid.find(tunnel_ctx->ue_ipv4);
-  if(data_it != m_ip_to_teid.end())
-  {
+  if (data_it != m_ip_to_teid.end()) {
     m_ip_to_teid.erase(data_it);
   }
   pthread_mutex_unlock(&m_mutex);
@@ -636,8 +610,7 @@ spgw::handle_release_access_bearers_request(struct srslte::gtpc_pdu *rel_req_pdu
   //Find tunel ctxt
   uint32_t ctrl_teid = rel_req_pdu->header.teid;
   std::map<uint32_t,spgw_tunnel_ctx_t*>::iterator tunnel_it = m_teid_to_tunnel_ctx.find(ctrl_teid);
-  if(tunnel_it == m_teid_to_tunnel_ctx.end())
-  {
+  if (tunnel_it == m_teid_to_tunnel_ctx.end()) {
     m_spgw_log->warning("Could not find TEID %d to release bearers from\n",ctrl_teid);
     return;
   }
@@ -647,8 +620,7 @@ spgw::handle_release_access_bearers_request(struct srslte::gtpc_pdu *rel_req_pdu
   //Delete data tunnel
   pthread_mutex_lock(&m_mutex);
   std::map<in_addr_t,srslte::gtpc_f_teid_ie>::iterator data_it = m_ip_to_teid.find(tunnel_ctx->ue_ipv4);
-  if(data_it != m_ip_to_teid.end())
-  {
+  if (data_it != m_ip_to_teid.end()) {
     m_ip_to_teid.erase(data_it);
   }
   pthread_mutex_unlock(&m_mutex);

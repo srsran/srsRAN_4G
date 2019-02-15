@@ -35,8 +35,11 @@ class metrics_hub : public periodic_thread
 public:
   metrics_hub()
     :m(NULL)
-    ,sleep_period_start()
-  {}
+  {
+    for (int i = 0; i < 3; ++i) {
+      sleep_period_start[i] = (struct timeval){};
+    }
+  }
   bool init(metrics_interface<metrics_t> *m_, float report_period_secs_=1.0) {
     m = m_;
     // Start with user-default priority
@@ -44,6 +47,7 @@ public:
     return true;
   }
   void stop() {
+    stop_thread();
     // stop all listeners
     for (uint32_t i=0;i<listeners.size();i++) {
       listeners[i]->stop();

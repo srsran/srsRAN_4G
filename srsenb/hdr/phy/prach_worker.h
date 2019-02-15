@@ -68,7 +68,7 @@ private:
   const static int sf_buffer_sz = 128*1024;
   class sf_buffer {
   public:
-    sf_buffer() { nof_samples = 0; tti = 0; }
+    sf_buffer() { nof_samples = 0; tti = 0; bzero(samples, sizeof(samples)); }
     void reset() { nof_samples = 0; tti = 0; }
     cf_t samples[sf_buffer_sz];
     uint32_t nof_samples;

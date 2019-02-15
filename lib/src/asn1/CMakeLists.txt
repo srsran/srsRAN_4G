@@ -21,9 +21,16 @@
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-switch -Wno-unused-but-set-variable -Wno-unused-variable -Wno-return-type -Wno-sign-compare -Wno-reorder -Wno-parantheses")
 add_library(srslte_asn1 STATIC
   liblte_common.cc
-  liblte_rrc.cc
   liblte_mme.cc
   liblte_s1ap.cc
+  liblte_m2ap.cc
   gtpc.cc
 )
 install(TARGETS srslte_asn1 DESTINATION ${LIBRARY_DIR})
+
+add_library(rrc_asn1 STATIC
+        rrc_asn1.cc
+        rrc_asn1_enum.cc
+        asn1_utils.cc
+        )
+install(TARGETS rrc_asn1 DESTINATION ${LIBRARY_DIR})

@@ -41,8 +41,8 @@
 #define Info(fmt, ...)    if (SRSLTE_DEBUG_ENABLED) log_h->info(fmt, ##__VA_ARGS__)
 #define Debug(fmt, ...)   if (SRSLTE_DEBUG_ENABLED) log_h->debug(fmt, ##__VA_ARGS__)
 
-using namespace std; 
-
+using namespace std;
+using namespace asn1::rrc;
 
 namespace srsenb {
 
@@ -59,27 +59,31 @@ void phy::parse_config(phy_cfg_t* cfg)
 {
   
   // PRACH configuration
-  prach_cfg.config_idx     = cfg->prach_cnfg.prach_cnfg_info.prach_config_index;
-  prach_cfg.hs_flag        = cfg->prach_cnfg.prach_cnfg_info.high_speed_flag;
-  prach_cfg.root_seq_idx   = cfg->prach_cnfg.root_sequence_index;
-  prach_cfg.zero_corr_zone = cfg->prach_cnfg.prach_cnfg_info.zero_correlation_zone_config;
-  prach_cfg.freq_offset    = cfg->prach_cnfg.prach_cnfg_info.prach_freq_offset;
-  
-  // PUSCH DMRS configuration 
-  workers_common.pusch_cfg.cyclic_shift        = cfg->pusch_cnfg.ul_rs.cyclic_shift;
-  workers_common.pusch_cfg.delta_ss            = cfg->pusch_cnfg.ul_rs.group_assignment_pusch;
-  workers_common.pusch_cfg.group_hopping_en    = cfg->pusch_cnfg.ul_rs.group_hopping_enabled;
-  workers_common.pusch_cfg.sequence_hopping_en = cfg->pusch_cnfg.ul_rs.sequence_hopping_enabled;
-  
-  // PUSCH hopping configuration 
-  workers_common.hopping_cfg.hop_mode       = cfg->pusch_cnfg.hopping_mode  == LIBLTE_RRC_HOPPING_MODE_INTRA_AND_INTER_SUBFRAME ? 
-                                                srslte_pusch_hopping_cfg_t::SRSLTE_PUSCH_HOP_MODE_INTRA_SF : 
-                                                srslte_pusch_hopping_cfg_t::SRSLTE_PUSCH_HOP_MODE_INTER_SF; ;
-  workers_common.hopping_cfg.n_sb           = cfg->pusch_cnfg.n_sb; 
-  workers_common.hopping_cfg.hopping_offset = cfg->pusch_cnfg.pusch_hopping_offset;
-  
-  // PUCCH configuration 
-  workers_common.pucch_cfg.delta_pucch_shift  = liblte_rrc_delta_pucch_shift_num[cfg->pucch_cnfg.delta_pucch_shift%LIBLTE_RRC_DELTA_PUCCH_SHIFT_N_ITEMS];
+  prach_cfg.config_idx     = cfg->prach_cnfg.prach_cfg_info.prach_cfg_idx;
+  prach_cfg.hs_flag        = cfg->prach_cnfg.prach_cfg_info.high_speed_flag;
+  prach_cfg.root_seq_idx   = cfg->prach_cnfg.root_seq_idx;
+  prach_cfg.zero_corr_zone = cfg->prach_cnfg.prach_cfg_info.zero_correlation_zone_cfg;
+  prach_cfg.freq_offset    = cfg->prach_cnfg.prach_cfg_info.prach_freq_offset;
+
+  // PUSCH DMRS configuration
+  workers_common.pusch_cfg.cyclic_shift        = cfg->pusch_cnfg.ul_ref_sigs_pusch.cyclic_shift;
+  workers_common.pusch_cfg.delta_ss            = cfg->pusch_cnfg.ul_ref_sigs_pusch.group_assign_pusch;
+  workers_common.pusch_cfg.group_hopping_en    = cfg->pusch_cnfg.ul_ref_sigs_pusch.group_hop_enabled;
+  workers_common.pusch_cfg.sequence_hopping_en = cfg->pusch_cnfg.ul_ref_sigs_pusch.seq_hop_enabled;
+
+  // PUSCH hopping configuration
+  workers_common.hopping_cfg.hop_mode =
+      cfg->pusch_cnfg.pusch_cfg_basic.hop_mode ==
+              asn1::rrc::pusch_cfg_common_s::pusch_cfg_basic_s_::hop_mode_e_::intra_and_inter_sub_frame
+          ? srslte_pusch_hopping_cfg_t::SRSLTE_PUSCH_HOP_MODE_INTRA_SF
+          : srslte_pusch_hopping_cfg_t::SRSLTE_PUSCH_HOP_MODE_INTER_SF;
+  ;
+  workers_common.hopping_cfg.n_sb           = cfg->pusch_cnfg.pusch_cfg_basic.n_sb;
+  workers_common.hopping_cfg.hopping_offset = cfg->pusch_cnfg.pusch_cfg_basic.pusch_hop_offset;
+
+  // PUCCH configuration
+  workers_common.pucch_cfg.delta_pucch_shift =
+      cfg->pucch_cnfg.delta_pucch_shift.to_number(); // FIXME: Why was it a % operator before?
   workers_common.pucch_cfg.N_cs               = cfg->pucch_cnfg.n_cs_an;
   workers_common.pucch_cfg.n_rb_2             = cfg->pucch_cnfg.n_rb_cqi;
   workers_common.pucch_cfg.srs_configured     = false;
@@ -222,32 +226,36 @@ void phy::set_conf_dedicated_ack(uint16_t rnti, bool ack)
   }
 }
 
-void phy::set_config_dedicated(uint16_t rnti, LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT* dedicated)
+void phy::set_config_dedicated(uint16_t rnti, phys_cfg_ded_s* dedicated)
 {
   for (uint32_t i=0;i<nof_workers;i++) {
     workers[i].set_config_dedicated(rnti, NULL, dedicated);
   }
 }
 
-void phy::configure_mbsfn(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13, LIBLTE_RRC_MCCH_MSG_STRUCT mcch)
+void phy::configure_mbsfn(sib_type2_s* sib2, sib_type13_r9_s* sib13, mcch_msg_s mcch)
 {
-  if(sib2->mbsfn_subfr_cnfg_list_size > 1) {
-    Warning("SIB2 has %d MBSFN subframe configs - only 1 supported\n", sib2->mbsfn_subfr_cnfg_list_size);
+  if (sib2->mbsfn_sf_cfg_list_present) {
+    if (sib2->mbsfn_sf_cfg_list.size() == 0) {
+      Warning("SIB2 does not have any MBSFN config although it was set as present\n");
+    } else {
+      if (sib2->mbsfn_sf_cfg_list.size() > 1) {
+        Warning("SIB2 has %d MBSFN subframe configs - only 1 supported\n", sib2->mbsfn_sf_cfg_list.size());
+      }
+      phy_rrc_config.mbsfn.mbsfn_subfr_cnfg = sib2->mbsfn_sf_cfg_list[0];
+    }
   }
-  if(sib2->mbsfn_subfr_cnfg_list_size > 0) {
-    memcpy(&phy_rrc_config.mbsfn.mbsfn_subfr_cnfg, &sib2->mbsfn_subfr_cnfg_list[0], sizeof(LIBLTE_RRC_MBSFN_SUBFRAME_CONFIG_STRUCT));
+
+  phy_rrc_config.mbsfn.mbsfn_notification_cnfg = sib13->notif_cfg_r9;
+  if (sib13->mbsfn_area_info_list_r9.size() > 0) {
+    if (sib13->mbsfn_area_info_list_r9.size() > 1) {
+      Warning("SIB13 has %d MBSFN area info elements - only 1 supported\n", sib13->mbsfn_area_info_list_r9.size());
+    }
+    phy_rrc_config.mbsfn.mbsfn_area_info = sib13->mbsfn_area_info_list_r9[0];
   }
-    
-  memcpy(&phy_rrc_config.mbsfn.mbsfn_notification_cnfg, &sib13->mbsfn_notification_config, sizeof(LIBLTE_RRC_MBSFN_NOTIFICATION_CONFIG_STRUCT));
-  if(sib13->mbsfn_area_info_list_r9_size > 1) {
-    Warning("SIB13 has %d MBSFN area info elements - only 1 supported\n", sib13->mbsfn_area_info_list_r9_size);
-  }
-   if(sib13->mbsfn_area_info_list_r9_size > 0) {
-    memcpy(&phy_rrc_config.mbsfn.mbsfn_area_info, &sib13->mbsfn_area_info_list_r9[0], sizeof(LIBLTE_RRC_MBSFN_AREA_INFO_STRUCT));
-  }
-  
-  memcpy(&phy_rrc_config.mbsfn.mcch, &mcch, sizeof(LIBLTE_RRC_MCCH_MSG_STRUCT));
-  
+
+  phy_rrc_config.mbsfn.mcch = mcch;
+
   workers_common.configure_mbsfn(&phy_rrc_config.mbsfn);
 }
 

@@ -38,6 +38,7 @@
     
 bsr_proc::bsr_proc()
 {
+  log_h = NULL;
   initiated = false; 
   last_print = 0; 
   next_tx_tti = 0; 
@@ -89,7 +90,7 @@ void bsr_proc::timer_expired(uint32_t timer_id) {
     }
   } else if (timer_id == timer_retx_id) {
     // Enable reTx of SR only if periodic timer is not infinity
-    int periodic = liblte_rrc_periodic_bsr_timer_num[mac_cfg->main.ulsch_cnfg.periodic_bsr_timer];
+    int periodic = mac_cfg->main.ul_sch_cfg.periodic_bsr_timer.to_number();
     if (periodic >= 0) {
       triggered_bsr_type = REGULAR;
       Debug("BSR:   Triggering BSR reTX\n");
@@ -104,10 +105,10 @@ bool bsr_proc::check_highest_channel() {
   
   for (int i=0;i<MAX_LCID && pending_data_lcid == -1;i++) {
     if (lcg[i] >= 0) {
-      if (rlc->get_buffer_state(i) > 0) {
+      if (rlc->has_data(i)) {
         pending_data_lcid = i; 
         for (int j=0;j<MAX_LCID;j++) {
-          if (rlc->get_buffer_state(j) > 0) {
+          if (rlc->has_data(j)) {
             if (priorities[j] > priorities[i]) {
               pending_data_lcid = -1; 
             }
@@ -148,7 +149,7 @@ bool bsr_proc::check_single_channel() {
   
   for (int i=0;i<MAX_LCID;i++) {
     if (lcg[i] >= 0) {
-      if (rlc->get_buffer_state(i) > 0) {
+      if (rlc->has_data(i)) {
         pending_data_lcid = i;
         nof_nonzero_lcid++; 
       }
@@ -224,16 +225,16 @@ void bsr_proc::step(uint32_t tti)
 {
   if (!initiated) {
     return;
-  }  
-  
-  int periodic = liblte_rrc_periodic_bsr_timer_num[mac_cfg->main.ulsch_cnfg.periodic_bsr_timer];
+  }
+
+  int periodic = mac_cfg->main.ul_sch_cfg.periodic_bsr_timer.to_number();
   if (periodic > 0 && (uint32_t)periodic != timers_db->get(timer_periodic_id)->get_timeout())
   {
     timers_db->get(timer_periodic_id)->set(this, periodic);
     timers_db->get(timer_periodic_id)->run();
     Info("BSR:   Configured timer periodic %d ms\n", periodic);    
-  }      
-  int retx = liblte_rrc_retransmission_bsr_timer_num[mac_cfg->main.ulsch_cnfg.retx_bsr_timer];
+  }
+  int retx = mac_cfg->main.ul_sch_cfg.retx_bsr_timer.to_number();
   if (retx > 0 && (uint32_t)retx != timers_db->get(timer_retx_id)->get_timeout())
   {
     timers_db->get(timer_retx_id)->set(this, retx);

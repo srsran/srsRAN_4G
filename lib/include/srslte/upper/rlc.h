@@ -67,8 +67,8 @@ public:
   bool rb_is_um(uint32_t lcid);
 
   // MAC interface
-  uint32_t get_buffer_state(uint32_t lcid);
-  uint32_t get_total_buffer_state(uint32_t lcid);
+  bool     has_data(const uint32_t lcid);
+  uint32_t get_buffer_state(const uint32_t lcid);
   uint32_t get_total_mch_buffer_state(uint32_t lcid);
   int      read_pdu(uint32_t lcid, uint8_t *payload, uint32_t nof_bytes);
   int      read_pdu_mch(uint32_t lcid, uint8_t *payload, uint32_t nof_bytes);
@@ -90,6 +90,7 @@ public:
   void del_bearer(uint32_t lcid);
   void del_bearer_mrb(uint32_t lcid);
   void change_lcid(uint32_t old_lcid, uint32_t new_lcid);
+  bool has_bearer(uint32_t lcid);
 
 private:
   void reset_metrics(); 

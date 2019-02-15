@@ -146,7 +146,7 @@ uint8_t security_128_eia1( uint8_t  *key,
   msg_len_bits = msg_len*8;
   m_ptr = snow3g_f9(key,
                     count,
-                    bearer,
+                    bearer<<27,
                     direction,
                     msg,
                     msg_len_bits);

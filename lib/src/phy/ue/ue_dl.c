@@ -674,7 +674,7 @@ int srslte_ue_dl_decode_mbsfn(srslte_ue_dl_t * q,
   if (ret == SRSLTE_SUCCESS) {
     return q->pmch_cfg.grant.mcs[0].tbs;
   } else {
-    return 0;
+    return ret;
   }
 }
 

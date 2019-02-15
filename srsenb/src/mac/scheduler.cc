@@ -285,7 +285,8 @@ int sched::dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code)
   return ret;
 }
 
-int sched::dl_ant_info(uint16_t rnti, LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT *dl_ant_info) {
+int sched::dl_ant_info(uint16_t rnti, asn1::rrc::phys_cfg_ded_s::ant_info_c_* dl_ant_info)
+{
   int ret = 0;
   pthread_rwlock_rdlock(&rwlock);
   if (ue_db.count(rnti)) {

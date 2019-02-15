@@ -77,6 +77,7 @@ option(BUILD_STATIC    "Attempt to statically link external deps" OFF)
 option(RPATH           "Enable RPATH"                             OFF)
 option(ENABLE_ASAN     "Enable gcc/clang address sanitizer"       OFF)
 option(ENABLE_MSAN     "Enable clang memory sanitizer"            OFF)
+option(ENABLE_TIDY     "Enable clang tidy"                        OFF)
 
 option(USE_LTE_RATES   "Use standard LTE sampling rates"          OFF)
 
@@ -253,16 +254,16 @@ macro(ADD_CXX_COMPILER_FLAG_IF_AVAILABLE flag have)
 endmacro(ADD_CXX_COMPILER_FLAG_IF_AVAILABLE)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=${GCC_ARCH} -Wall -Wno-comment -Wno-reorder -Wno-unused-but-set-variable -Wno-unused-variable -Wformat -Wmissing-field-initializers -Wtype-limits -std=c++11")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-comment -Wno-reorder -Wno-unused-but-set-variable -Wno-unused-variable -Wformat -Wmissing-field-initializers -Wtype-limits -std=c++11")
 
   find_package(SSE)
   if (HAVE_AVX2)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfpmath=sse -mavx2 -DLV_HAVE_AVX2 -DLV_HAVE_AVX -DLV_HAVE_SSE")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=${GCC_ARCH} -mfpmath=sse -mavx2 -DLV_HAVE_AVX2 -DLV_HAVE_AVX -DLV_HAVE_SSE")
   else (HAVE_AVX2)
     if(HAVE_AVX)
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfpmath=sse -mavx -DLV_HAVE_AVX -DLV_HAVE_SSE")
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=${GCC_ARCH} -mfpmath=sse -mavx -DLV_HAVE_AVX -DLV_HAVE_SSE")
     elseif(HAVE_SSE)
-      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfpmath=sse -msse4.1 -DLV_HAVE_SSE")
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=${GCC_ARCH} -mfpmath=sse -msse4.1 -DLV_HAVE_SSE")
     endif(HAVE_AVX)
   endif (HAVE_AVX2)
 endif(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -270,7 +271,7 @@ endif(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clan
 ADD_CXX_COMPILER_FLAG_IF_AVAILABLE("-Werror=incompatible-pointer-types" HAVE_ERROR_INCOMPATIBLE)
 
 if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=${GCC_ARCH} -Wall -Wno-comment -Wno-write-strings -Winline -Wno-unused-result -Wformat -Wmissing-field-initializers -Wtype-limits -std=c99 -D_GNU_SOURCE")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wno-comment -Wno-write-strings -Winline -Wno-unused-result -Wformat -Wmissing-field-initializers -Wtype-limits -std=c99 -D_GNU_SOURCE")
 
   if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ggdb -O0 -DDEBUG_MODE -DBUILD_TYPE_DEBUG")
@@ -292,12 +293,12 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
 
   find_package(SSE)
   if (HAVE_AVX2)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mfpmath=sse -mavx2 -DLV_HAVE_AVX2 -DLV_HAVE_AVX -DLV_HAVE_SSE")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=${GCC_ARCH} -mfpmath=sse -mavx2 -DLV_HAVE_AVX2 -DLV_HAVE_AVX -DLV_HAVE_SSE")
   else (HAVE_AVX2)
     if(HAVE_AVX)
-      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mfpmath=sse -mavx -DLV_HAVE_AVX -DLV_HAVE_SSE")
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=${GCC_ARCH} -mfpmath=sse -mavx -DLV_HAVE_AVX -DLV_HAVE_SSE")
     elseif(HAVE_SSE)
-      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mfpmath=sse -msse4.1 -DLV_HAVE_SSE")
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=${GCC_ARCH} -mfpmath=sse -msse4.1 -DLV_HAVE_SSE")
     endif(HAVE_AVX)
   endif (HAVE_AVX2)
 
@@ -306,8 +307,8 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
   endif (HAVE_FMA)
 
   if (HAVE_AVX512)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mavx512f -mavx512cd -DLV_HAVE_AVX512")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx512f -mavx512cd -DLV_HAVE_AVX512")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=${GCC_ARCH} -mavx512f -mavx512cd -mavx512bw -mavx512dq -DLV_HAVE_AVX512")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=${GCC_ARCH} -mavx512f -mavx512cd -mavx512bw -mavx512dq -DLV_HAVE_AVX512")
   endif(HAVE_AVX512)
 
   if(NOT ${CMAKE_BUILD_TYPE} STREQUAL "Debug")
@@ -316,13 +317,14 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
     endif(HAVE_SSE)
   endif(NOT ${CMAKE_BUILD_TYPE} STREQUAL "Debug")
 
-  if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
-    set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} -mfpu=neon -march=native -DIS_ARM -DHAVE_NEON")
-    message(STATUS "have ARM")
+  if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm" OR ${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DIS_ARM -DHAVE_NEON -mfloat-abi=hard -mfpu=neon")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DIS_ARM -mfloat-abi=hard -mfpu=neon")
+    message(STATUS "Detected ARM processor")
     set(HAVE_NEON "True")
-  else(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
+  else(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm" OR ${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch")
     set(HAVE_NEON "False")
-  endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
+  endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm" OR ${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch")
   set(CMAKE_REQUIRED_FLAGS ${CMAKE_C_FLAGS})
 
   if(NOT HAVE_SSE AND NOT HAVE_NEON AND NOT DISABLE_SIMD)
@@ -361,18 +363,19 @@ message(STATUS "CMAKE_CXX_FLAGS is ${CMAKE_CXX_FLAGS}")
 ########################################################################
 # clang-tidy check
 ########################################################################
-find_program(
-        CLANG_TIDY_BIN
-        NAMES "clang-tidy"
-        DOC "Path to clang-tidy executable"
-)
-if(NOT CLANG_TIDY_BIN)
-  message(STATUS "clang-tidy not found.")
-else()
-  message(STATUS "clang-tidy found: ${CLANG_TIDY_BIN}")
-  set(DO_CLANG_TIDY "${CLANG_TIDY_BIN}" "-checks=*,-clang-analyzer-alpha.*,-modernize-*,-cppcoreguidelines-pro-type-vararg,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-cppcoreguidelines-pro-bounds-constant-array-index")
-endif()
-
+if(ENABLE_TIDY)
+  find_program(
+          CLANG_TIDY_BIN
+          NAMES "clang-tidy"
+          DOC "Path to clang-tidy executable"
+  )
+  if(NOT CLANG_TIDY_BIN)
+    message(STATUS "clang-tidy not found.")
+  else()
+    message(STATUS "clang-tidy found: ${CLANG_TIDY_BIN}")
+    set(DO_CLANG_TIDY "${CLANG_TIDY_BIN}" "-checks=*,-clang-analyzer-alpha.*,-modernize-*,-cppcoreguidelines-pro-type-vararg,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-cppcoreguidelines-pro-bounds-constant-array-index")
+  endif()
+endif(ENABLE_TIDY)
 
 ########################################################################
 # Create uninstall targets

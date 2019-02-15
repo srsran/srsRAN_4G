@@ -45,7 +45,7 @@
 #define FFTW_TYPE 0
 #endif
 
-pthread_mutex_t fft_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t fft_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void srslte_dft_load() {
 #ifdef FFTW_WISDOM_FILE
@@ -347,7 +347,6 @@ void srslte_dft_plan_free(srslte_dft_plan_t *plan) {
   }
   if (plan->p) fftwf_destroy_plan(plan->p);
   pthread_mutex_unlock(&fft_mutex);
-
   bzero(plan, sizeof(srslte_dft_plan_t));
 }
 

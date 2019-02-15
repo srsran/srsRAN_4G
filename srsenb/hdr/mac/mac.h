@@ -70,9 +70,9 @@ public:
   
   /******** Interface from PHY (PHY -> MAC) ****************/ 
   int sr_detected(uint32_t tti, uint16_t rnti); 
-  int rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv); 
-  
-  int set_dl_ant_info(uint16_t rnti, LIBLTE_RRC_ANTENNA_INFO_DEDICATED_STRUCT *dl_ant_info);
+  int rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv);
+
+  int set_dl_ant_info(uint16_t rnti, asn1::rrc::phys_cfg_ded_s::ant_info_c_* dl_ant_info);
 
   int ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value);
   int pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value);
@@ -115,7 +115,8 @@ public:
 
   uint32_t get_current_tti();
   void get_metrics(mac_metrics_t metrics[ENB_METRICS_MAX_USERS]);
-  void write_mcch(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2, LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13, LIBLTE_RRC_MCCH_MSG_STRUCT *mcch);
+  void     write_mcch(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s* mcch);
+
 private:  
 
   static const int MAX_LOCATIONS = 20;
@@ -181,10 +182,10 @@ private:
   const static int mcch_payload_len = 3000; //TODO FIND OUT MAX LENGTH
   int current_mcch_length;
   uint8_t mcch_payload_buffer[mcch_payload_len];
-  LIBLTE_RRC_MCCH_MSG_STRUCT mcch;
-  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT sib2; 
-  LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT sib13;
-  
+  asn1::rrc::mcch_msg_s      mcch;
+  asn1::rrc::sib_type2_s     sib2;
+  asn1::rrc::sib_type13_r9_s sib13;
+
   const static int mtch_payload_len = 10000;
   uint8_t mtch_payload_buffer[mtch_payload_len];
   

@@ -35,7 +35,7 @@
 
 namespace srslte{
 
-log_filter::log_filter()
+log_filter::log_filter() : log()
 {
   do_tti      = false;
   time_src    = NULL;
@@ -43,12 +43,12 @@ log_filter::log_filter()
   logger_h    = NULL;
 }
 
-log_filter::log_filter(std::string layer)
+log_filter::log_filter(std::string layer) : log()
 {
   do_tti      = false;
   time_src    = NULL;
   time_format = TIME;
-  init(layer, &def_logger_stdout, tti);
+  init(layer, &def_logger_stdout, do_tti);
 }
 
 log_filter::log_filter(std::string layer, logger *logger_, bool tti)

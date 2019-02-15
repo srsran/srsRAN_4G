@@ -18,10 +18,30 @@
 # and at http://www.gnu.org/licenses/.
 #
 
+add_executable(s1ap_test s1ap_test.cc)
+target_link_libraries(s1ap_test srslte_common srslte_asn1)
+add_test(s1ap_test s1ap_test)
+
 add_executable(srslte_asn1_rrc_mcch_test srslte_asn1_rrc_mcch_test.cc)
-target_link_libraries(srslte_asn1_rrc_mcch_test srslte_asn1 srslte_common)
+target_link_libraries(srslte_asn1_rrc_mcch_test rrc_asn1 srslte_common)
 add_test(srslte_asn1_rrc_mcch_test srslte_asn1_rrc_mcch_test)
 
 add_executable(srslte_asn1_rrc_meas_test srslte_asn1_rrc_meas_test.cc)
-target_link_libraries(srslte_asn1_rrc_meas_test srslte_common srslte_phy srslte_asn1)
+target_link_libraries(srslte_asn1_rrc_meas_test rrc_asn1 srslte_common)
 add_test(srslte_asn1_rrc_meas_test srslte_asn1_rrc_meas_test)
+
+add_executable(srslte_asn1_rrc_ul_dcch_test srslte_asn1_rrc_ul_dcch_test.cc)
+target_link_libraries(srslte_asn1_rrc_ul_dcch_test rrc_asn1 srslte_common)
+add_test(srslte_asn1_rrc_ul_dcch_test srslte_asn1_rrc_ul_dcch_test)
+
+add_executable(srslte_asn1_rrc_dl_ccch_test srslte_asn1_rrc_dl_ccch_test.cc)
+target_link_libraries(srslte_asn1_rrc_dl_ccch_test rrc_asn1 srslte_common)
+add_test(srslte_asn1_rrc_dl_ccch_test srslte_asn1_rrc_dl_ccch_test)
+
+add_executable(srslte_asn1_rrc_dl_dcch_test srslte_asn1_rrc_dl_dcch_test.cc)
+target_link_libraries(srslte_asn1_rrc_dl_dcch_test rrc_asn1 srslte_common)
+add_test(srslte_asn1_rrc_dl_dcch_test srslte_asn1_rrc_dl_dcch_test)
+
+add_executable(srslte_asn1_m2ap_test srslte_asn1_m2ap_test.cc)
+target_link_libraries(srslte_asn1_m2ap_test srslte_common srslte_phy srslte_asn1)
+add_test(srslte_asn1_m2ap_test srslte_asn1_m2ap_test)

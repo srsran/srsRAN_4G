@@ -132,13 +132,64 @@ bool enb::init(all_args_t *args_)
   gtpu_log.set_hex_limit(args->log.gtpu_hex_limit);
   s1ap_log.set_hex_limit(args->log.s1ap_hex_limit);
 
+  // Parse config files
+  srslte_cell_t cell_cfg;
+  phy_cfg_t     phy_cfg;
+  rrc_cfg_t     rrc_cfg;
+
+  if (parse_cell_cfg(args, &cell_cfg)) {
+    fprintf(stderr, "Error parsing Cell configuration\n");
+    return false;
+  }
+  if (parse_sibs(args, &rrc_cfg, &phy_cfg)) {
+    fprintf(stderr, "Error parsing SIB configuration\n");
+    return false;
+  }
+  if (parse_rr(args, &rrc_cfg)) {
+    fprintf(stderr, "Error parsing Radio Resources configuration\n");
+    return false;
+  }
+  if (parse_drb(args, &rrc_cfg)) {
+    fprintf(stderr, "Error parsing DRB configuration\n");
+    return false;
+  }
+
+  uint32_t prach_freq_offset = rrc_cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.prach_cfg_info.prach_freq_offset;
+
+  if (cell_cfg.nof_prb > 10) {
+    if (prach_freq_offset + 6 > cell_cfg.nof_prb - SRSLTE_MAX(rrc_cfg.cqi_cfg.nof_prb, rrc_cfg.sr_cfg.nof_prb)) {
+      fprintf(stderr, "Invalid PRACH configuration: frequency offset=%d outside bandwidth limits\n", prach_freq_offset);
+      return false;
+    }
+
+    if (prach_freq_offset < SRSLTE_MAX(rrc_cfg.cqi_cfg.nof_prb, rrc_cfg.sr_cfg.nof_prb)) {
+      fprintf(stderr, "Invalid PRACH configuration: frequency offset=%d lower than CQI offset: %d or SR offset: %d\n",
+              prach_freq_offset, rrc_cfg.cqi_cfg.nof_prb, rrc_cfg.sr_cfg.nof_prb);
+      return false;
+    }
+  } else { // 6 PRB case
+    if (prach_freq_offset + 6 > cell_cfg.nof_prb) {
+      fprintf(stderr,
+              "Invalid PRACH configuration: frequency interval=(%d, %d) does not fit into the eNB PRBs=(0,%d)\n",
+              prach_freq_offset, prach_freq_offset + 6, cell_cfg.nof_prb);
+      return false;
+    }
+  }
+
+  rrc_cfg.inactivity_timeout_ms = args->expert.rrc_inactivity_timer;
+  rrc_cfg.enable_mbsfn          = args->expert.enable_mbsfn;
+
+  // Copy cell struct to rrc and phy
+  memcpy(&rrc_cfg.cell, &cell_cfg, sizeof(srslte_cell_t));
+  memcpy(&phy_cfg.cell, &cell_cfg, sizeof(srslte_cell_t));
+
   // Set up pcap and trace
   if(args->pcap.enable)
   {
     mac_pcap.open(args->pcap.filename.c_str());
     mac.start_pcap(&mac_pcap);
   }
-  
+
   // Init layers
   
   /* Start Radio */
@@ -193,55 +244,6 @@ bool enb::init(all_args_t *args_)
   radio.set_rx_freq(args->rf.ul_freq);
 
   radio.register_error_handler(rf_msg);
-
-  srslte_cell_t cell_cfg; 
-  phy_cfg_t     phy_cfg; 
-  rrc_cfg_t     rrc_cfg; 
-  
-  if (parse_cell_cfg(args, &cell_cfg)) {
-    fprintf(stderr, "Error parsing Cell configuration\n");
-    return false; 
-  }
-  if (parse_sibs(args, &rrc_cfg, &phy_cfg)) {
-    fprintf(stderr, "Error parsing SIB configuration\n");
-    return false; 
-  }
-  if (parse_rr(args, &rrc_cfg)) {
-    fprintf(stderr, "Error parsing Radio Resources configuration\n");
-    return false; 
-  }
-  if (parse_drb(args, &rrc_cfg)) {
-    fprintf(stderr, "Error parsing DRB configuration\n");
-    return false; 
-  }
-
-  uint32_t prach_freq_offset = rrc_cfg.sibs[1].sib.sib2.rr_config_common_sib.prach_cnfg.prach_cnfg_info.prach_freq_offset;
-
-  if(cell_cfg.nof_prb>10) {
-    if (prach_freq_offset + 6 > cell_cfg.nof_prb - SRSLTE_MAX(rrc_cfg.cqi_cfg.nof_prb, rrc_cfg.sr_cfg.nof_prb)) {
-      fprintf(stderr, "Invalid PRACH configuration: frequency offset=%d outside bandwidth limits\n", prach_freq_offset);
-      return false;
-    }
-
-    if (prach_freq_offset < SRSLTE_MAX(rrc_cfg.cqi_cfg.nof_prb, rrc_cfg.sr_cfg.nof_prb)) {
-      fprintf(stderr, "Invalid PRACH configuration: frequency offset=%d lower than CQI offset: %d or SR offset: %d\n",
-              prach_freq_offset, rrc_cfg.cqi_cfg.nof_prb, rrc_cfg.sr_cfg.nof_prb);
-      return false;
-    }
-  } else { // 6 PRB case
-    if (prach_freq_offset+6 > cell_cfg.nof_prb) {
-      fprintf(stderr, "Invalid PRACH configuration: frequency interval=(%d, %d) does not fit into the eNB PRBs=(0,%d)\n",
-              prach_freq_offset, prach_freq_offset+6, cell_cfg.nof_prb);
-      return false;
-    }
-  }
-
-  rrc_cfg.inactivity_timeout_ms = args->expert.rrc_inactivity_timer;
-  rrc_cfg.enable_mbsfn =  args->expert.enable_mbsfn;
-  
-  // Copy cell struct to rrc and phy 
-  memcpy(&rrc_cfg.cell, &cell_cfg, sizeof(srslte_cell_t));
-  memcpy(&phy_cfg.cell, &cell_cfg, sizeof(srslte_cell_t));
 
   // Init all layers   
   phy.init(&args->expert.phy, &phy_cfg, &radio, &mac, phy_log);
@@ -362,7 +364,7 @@ std::string enb::get_build_mode()
 
 std::string enb::get_build_info()
 {
-  if (std::string(srslte_get_build_info()) == "") {
+  if (std::string(srslte_get_build_info()).find("  ") != std::string::npos) {
     return std::string(srslte_get_version());
   }
   return std::string(srslte_get_build_info());

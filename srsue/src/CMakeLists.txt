@@ -39,7 +39,7 @@ target_link_libraries(srsue   srsue_mac
                               srslte_phy
                               srslte_upper
                               srslte_radio
-                              sqlite3
+                              rrc_asn1
                               ${CMAKE_THREAD_LIBS_INIT}
                               ${Boost_LIBRARIES})
 

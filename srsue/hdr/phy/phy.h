@@ -123,15 +123,15 @@ public:
   
   /* Get/Set PHY parameters interface from RRC */  
   void get_config(phy_cfg_t *phy_cfg); 
-  void set_config(phy_cfg_t *phy_cfg); 
-  void set_config_dedicated(LIBLTE_RRC_PHYSICAL_CONFIG_DEDICATED_STRUCT *dedicated);
-  void set_config_common(phy_cfg_common_t *common); 
-  void set_config_tdd(LIBLTE_RRC_TDD_CONFIG_STRUCT *tdd); 
+  void set_config(phy_cfg_t *phy_cfg);
+  void set_config_dedicated(asn1::rrc::phys_cfg_ded_s* dedicated);
+  void set_config_common(phy_cfg_common_t *common);
+  void set_config_tdd(asn1::rrc::tdd_cfg_s* tdd);
   void set_config_64qam_en(bool enable);
-  void set_config_mbsfn_sib2(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_2_STRUCT *sib2);
-  void set_config_mbsfn_sib13(LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13_STRUCT *sib13);
-  void set_config_mbsfn_mcch(LIBLTE_RRC_MCCH_MSG_STRUCT *mcch);
-  
+  void set_config_mbsfn_sib2(asn1::rrc::sib_type2_s* sib2);
+  void set_config_mbsfn_sib13(asn1::rrc::sib_type13_r9_s* sib13);
+  void set_config_mbsfn_mcch(asn1::rrc::mcch_msg_s* mcch);
+
   /*Set MAC->PHY MCH period  stopping point*/
   void set_mch_period_stop(uint32_t stop);
   

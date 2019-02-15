@@ -29,6 +29,7 @@
 #include "srsue/hdr/upper/usim_base.h"
 #include "srsue/hdr/upper/usim.h"
 #include "srsue/hdr/upper/nas.h"
+#include "srsue/hdr/upper/gw.h"
 #include "srslte/upper/rlc.h"
 #include "srsue/hdr/upper/rrc.h"
 #include "srsue/hdr/mac/mac.h"
@@ -40,6 +41,7 @@
 
 
 using namespace srsue;
+using namespace asn1::rrc;
 
 #define LCID 1
 
@@ -70,26 +72,29 @@ using namespace srslte;
 namespace srslte {
 
 // fake classes
-class pdcp_dummy : public rrc_interface_pdcp
+class pdcp_dummy : public rrc_interface_pdcp, public pdcp_interface_gw
 {
 public:
-      void write_pdu(uint32_t lcid, byte_buffer_t *pdu) {}
-      void write_pdu_bcch_bch(byte_buffer_t *pdu) {}
-      void write_pdu_bcch_dlsch(byte_buffer_t *pdu) {}
-      void write_pdu_pcch(byte_buffer_t *pdu) {}
-      void write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *sdu) {}
-      std::string get_rb_name(uint32_t lcid) { return std::string("lcid"); }
+  void write_pdu(uint32_t lcid, byte_buffer_t *pdu) {}
+  void write_pdu_bcch_bch(byte_buffer_t *pdu) {}
+  void write_pdu_bcch_dlsch(byte_buffer_t *pdu) {}
+  void write_pdu_pcch(byte_buffer_t *pdu) {}
+  void write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *sdu) {}
+  std::string get_rb_name(uint32_t lcid) { return std::string("lcid"); }
+  void write_sdu(uint32_t lcid, srslte::byte_buffer_t *sdu, bool blocking) {}
+  bool is_lcid_enabled(uint32_t lcid) { return false; }
 };
 
 class rrc_dummy : public rrc_interface_nas
 {
 public:
   rrc_dummy() : last_sdu_len(0) {
-    plmns.plmn_id.mcc = mcc;
-    plmns.plmn_id.mnc = mnc;
+    plmns.plmn_id.mcc_present = true;
+    mcc_to_bytes(mcc, plmns.plmn_id.mcc.data());
+    mnc_to_bytes(mnc, plmns.plmn_id.mnc);
     plmns.tac = 0xffff;
   }
-  void write_sdu(uint32_t lcid, byte_buffer_t *sdu)
+  void write_sdu(byte_buffer_t *sdu)
   {
     last_sdu_len = sdu->N_bytes;
     //printf("NAS generated SDU (len=%d):\n", sdu->N_bytes);
@@ -104,9 +109,10 @@ public:
     memcpy(found, &plmns, sizeof(found_plmn_t));
     return 1;
   };
-  void plmn_select(LIBLTE_RRC_PLMN_IDENTITY_STRUCT plmn_id) {};
-  void set_ue_idenity(LIBLTE_RRC_S_TMSI_STRUCT s_tmsi) {}
-  bool connection_request(LIBLTE_RRC_CON_REQ_EST_CAUSE_ENUM cause, srslte::byte_buffer_t *sdu) {
+  void plmn_select(plmn_id_s plmn_id){};
+  void set_ue_idenity(s_tmsi_s s_tmsi) {}
+  bool connection_request(establishment_cause_e cause, srslte::byte_buffer_t* sdu)
+  {
     printf("NAS generated SDU (len=%d):\n", sdu->N_bytes);
     last_sdu_len = sdu->N_bytes;
     srslte_vec_fprint_byte(stdout, sdu->msg, sdu->N_bytes);
@@ -126,7 +132,7 @@ private:
 
 class gw_dummy : public gw_interface_nas, public gw_interface_pdcp
 {
-  error_t setup_if_addr(uint32_t ip_addr, char *err_str) { return ERROR_NONE; }
+  error_t setup_if_addr(uint8_t pdn_type, uint32_t ip_addr, uint8_t *ipv6_if_id, char *err_str) { return ERROR_NONE; }
   void write_pdu(uint32_t lcid, byte_buffer_t *pdu) {}
   void write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *sdu) {}
 };
@@ -155,7 +161,7 @@ int security_command_test()
   args.imsi = "001010123456789";
   args.k = "00112233445566778899aabbccddeeff";
   args.op = "63BFA50EE6523365FF14C1F45F88737D";
-
+  args.using_op = true;
 
   // init USIM
   srsue::usim usim;
@@ -200,16 +206,20 @@ int mme_attach_request_test()
   srslte::log_filter rrc_log("RRC");
   srslte::log_filter mac_log("MAC");
   srslte::log_filter usim_log("USIM");
+  srslte::log_filter gw_log("GW");
 
   nas_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   usim_log.set_level(srslte::LOG_LEVEL_DEBUG);
+  gw_log.set_level(srslte::LOG_LEVEL_DEBUG);
   nas_log.set_hex_limit(100000);
   rrc_log.set_hex_limit(100000);
   usim_log.set_hex_limit(100000);
+  gw_log.set_hex_limit(100000);
 
   rrc_dummy rrc_dummy;
-  gw_dummy gw;
+  pdcp_dummy pdcp_dummy;
+
   srsue::usim usim;
   usim_args_t args;
   args.mode = "soft";
@@ -225,8 +235,15 @@ int mme_attach_request_test()
   nas_cfg.force_imsi_attach = true;
   nas_cfg.apn = "test123";
   srsue::nas nas;
+  srsue::gw gw;
+
   nas.init(&usim, &rrc_dummy, &gw, &nas_log, nas_cfg);
 
+  srslte_gw_config_t gw_config(3);
+  gw.init(&pdcp_dummy, &nas, &gw_log, gw_config);
+  gw.set_tundevname("tun0");
+
+  // trigger test
   nas.attach_request();
 
   // this will time out in the first place

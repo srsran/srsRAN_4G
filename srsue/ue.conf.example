@@ -3,7 +3,7 @@
 #####################################################################
 # RF configuration
 #
-# dl_earfcn: Downlink EARFCN code.
+# dl_earfcn: Downlink EARFCN code list 3400,2100,...
 # freq_offset: Uplink and Downlink optional frequency offset (in Hz)
 # tx_gain: Transmit gain (dB). 
 # rx_gain: Optional receive gain (dB). If disabled, AGC if enabled
@@ -120,12 +120,14 @@ imei = 353490069873319
 # NAS configuration
 #
 # apn:               Set Access Point Name (APN)
+# apn_protocol:      Set APN protocol (IPv4, IPv6 or IPv4v6.)
 # user:              Username for CHAP authentication
 # pass:              Password for CHAP authentication
 # force_imsi_attach: Whether to always perform an IMSI attach
 #####################################################################
 [nas]
 #apn = internetinternet
+#apn_protocol = ipv4
 #user = srsuser
 #pass = srspass
 #force_imsi_attach = false

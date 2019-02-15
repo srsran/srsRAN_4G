@@ -1,0 +1,11 @@
+[Unit]
+Description=Software Radio System's light-weight EPC implementation
+
+[Service]
+Type=simple
+Restart=always
+ExecStart=/usr/bin/srsepc /etc/srslte/epc.conf
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

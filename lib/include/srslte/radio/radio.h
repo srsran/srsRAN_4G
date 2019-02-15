@@ -39,31 +39,39 @@ namespace srslte {
   */
 class radio {
  public:
-  radio() : tr_local_time(1024 * 10), tr_usrp_time(1024 * 10), tr_tx_time(1024 * 10), tr_is_eob(1024 * 10) {
-    bzero(&rf_device, sizeof(srslte_rf_t));
-    bzero(&end_of_burst_time, sizeof(srslte_timestamp_t));
-    zeros  = (cf_t *) srslte_vec_malloc(burst_preamble_max_samples * sizeof (cf_t));
-    bzero(zeros, burst_preamble_max_samples * sizeof(cf_t));
+   radio() : tr_local_time(1024 * 10), tr_usrp_time(1024 * 10), tr_tx_time(1024 * 10), tr_is_eob(1024 * 10), zeros(NULL)
+   {
+     bzero(&rf_device, sizeof(srslte_rf_t));
+     bzero(&end_of_burst_time, sizeof(srslte_timestamp_t));
+     zeros = (cf_t*)srslte_vec_malloc(burst_preamble_max_samples * sizeof(cf_t));
+     bzero(zeros, burst_preamble_max_samples * sizeof(cf_t));
 
-    burst_preamble_sec = 0;
-    is_start_of_burst = false;
-    burst_preamble_samples = 0;
-    burst_preamble_time_rounded = 0;
+     burst_preamble_sec          = 0;
+     is_start_of_burst           = false;
+     burst_preamble_samples      = 0;
+     burst_preamble_time_rounded = 0;
 
-    cur_tx_srate = 0;
-    tx_adv_sec = 0;
-    tx_adv_nsamples = 0;
-    tx_adv_auto = false;
-    tx_adv_negative = false;
-    tx_freq = 0;
-    rx_freq = 0;
-    trace_enabled = false;
-    tti = 0;
-    agc_enabled = false;
-    radio_is_streaming = false;
-    is_initialized = false;
-    continuous_tx = false;
+     cur_tx_srate       = 0;
+     tx_adv_sec         = 0;
+     tx_adv_nsamples    = 0;
+     tx_adv_auto        = false;
+     tx_adv_negative    = false;
+     tx_freq            = 0;
+     rx_freq            = 0;
+     trace_enabled      = false;
+     tti                = 0;
+     agc_enabled        = false;
+     radio_is_streaming = false;
+     is_initialized     = false;
+     continuous_tx      = false;
   };
+
+  ~radio()
+  {
+    if (zeros) {
+      free(zeros);
+    }
+  }
 
   bool init(char *args = NULL, char *devname = NULL, uint32_t nof_channels = 1);
   void stop();
