@@ -47,6 +47,7 @@
 
 #include "srslte/radio/radio.h"
 
+#include "srslte/common/security.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/interfaces/ue_interfaces.h"
@@ -132,6 +133,8 @@ typedef struct {
   bool        print_buffer_state;
   std::string m1u_multiaddr;
   std::string m1u_if_addr;
+  std::string eia_pref_list;
+  std::string eea_pref_list;
 }expert_args_t;
 
 typedef struct { 

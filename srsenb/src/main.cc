@@ -155,6 +155,8 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
     ("expert.print_buffer_state", bpo::value<bool>(&args->expert.print_buffer_state)->default_value(false), "Prints on the console the buffer state every 10 seconds")
     ("expert.m1u_multiaddr", bpo::value<string>(&args->expert.m1u_multiaddr)->default_value("239.255.0.1"), "M1-U Multicast address the eNB joins.")
     ("expert.m1u_if_addr", bpo::value<string>(&args->expert.m1u_if_addr)->default_value("127.0.1.201"), "IP address of the interface the eNB will listen for M1-U traffic.")
+    ("expert.eea_pref_list", bpo::value<string>(&args->expert.eea_pref_list)->default_value("EEA0, EEA2, EEA1"), "Ordered preference list for the selection of encryption algorithm (EEA) (default: EEA0, EEA2, EEA1).")
+    ("expert.eia_pref_list", bpo::value<string>(&args->expert.eia_pref_list)->default_value("EIA2, EIA1, EIA0"), "Ordered preference list for the selection of integrity algorithm (EIA) (default: EIA2, EIA1, EIA0).")
   ;
 
   // Positional options - config file location
