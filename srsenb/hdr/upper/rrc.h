@@ -245,6 +245,7 @@ public:
     void cqi_get(uint16_t* pmi_idx, uint16_t* n_pucch);
     int  cqi_free();
 
+    bool select_security_algorithms();
     void send_dl_ccch(asn1::rrc::dl_ccch_msg_s* dl_ccch_msg);
     void send_dl_dcch(asn1::rrc::dl_dcch_msg_s* dl_dcch_msg, srslte::byte_buffer_t* pdu = NULL);
 

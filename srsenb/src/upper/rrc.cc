@@ -1211,10 +1211,11 @@ void rrc::ue::set_security_key(uint8_t* key, uint32_t length)
 {
   memcpy(k_enb, key, length);
   parent->rrc_log->info_hex(k_enb, 32, "Key eNodeB (k_enb)");
-  // Select algos (TODO: use security capabilities and config preferences)
-  cipher_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA2; // FIXME: Should i keep this type???
-  integ_algo  = srslte::INTEGRITY_ALGORITHM_ID_128_EIA1;
+  // Selects security algorithms (cipher_algo and integ_algo) based on capabilities and config preferences 
+  select_security_algorithms();
 
+  parent->rrc_log->info("Selected security algorithms EEA: EEA-%d EIA: EIA-%d\n", cipher_algo, integ_algo);
+  
   // Generate K_rrc_enc and K_rrc_int
   srslte::security_generate_k_rrc(k_enb, cipher_algo, integ_algo, k_rrc_enc, k_rrc_int);
 
@@ -1900,6 +1901,125 @@ void rrc::ue::send_ue_cap_enquiry()
 
 /********************** HELPERS ***************************/
 
+bool rrc::ue::select_security_algorithms()
+{
+  srslte::CIPHERING_ALGORITHM_ID_ENUM
+      enc_algo_preference[srslte::CIPHERING_ALGORITHM_ID_N_ITEMS] = {
+          srslte::CIPHERING_ALGORITHM_ID_128_EEA2,
+          srslte::CIPHERING_ALGORITHM_ID_128_EEA1,
+          srslte::CIPHERING_ALGORITHM_ID_EEA0};
+
+  srslte::INTEGRITY_ALGORITHM_ID_ENUM
+      intgrity_algo_preference[srslte::INTEGRITY_ALGORITHM_ID_N_ITEMS] = {
+          srslte::INTEGRITY_ALGORITHM_ID_128_EIA2,
+          srslte::INTEGRITY_ALGORITHM_ID_128_EIA1,
+          srslte::INTEGRITY_ALGORITHM_ID_EIA0};
+
+  // Each position in the bitmap represents an encryption algorithm:
+  // “all bits equal to 0” – UE supports no other algorithm than EEA0,
+  // “first bit” – 128-EEA1,
+  // “second bit” – 128-EEA2,
+  // “third bit” – 128-EEA3,
+  // other bits reserved for future use. Value ‘1’ indicates support and value ‘0’ indicates no support of the algorithm.
+  // Algorithms are defined in TS 33.401 [15].
+  // Note: information missing 
+
+  bool enc_algo_found = false; 
+  bool integ_algo_found = false;
+  bool zero_vector = true;
+  int i = 0;
+  for (i = 0; i < srslte::CIPHERING_ALGORITHM_ID_N_ITEMS; i++) {
+    switch (enc_algo_preference[i]) {
+    case srslte::CIPHERING_ALGORITHM_ID_EEA0:
+      // “all bits equal to 0” – UE supports no other algorithm than EEA0,
+      zero_vector = true;
+      for (int j; j < LIBLTE_S1AP_ENCRYPTIONALGORITHMS_BIT_STRING_LEN; j++) {
+        if (security_capabilities.encryptionAlgorithms.buffer[j]) {
+          zero_vector = false;
+        }
+      }
+      if (zero_vector == true) {
+        cipher_algo = srslte::CIPHERING_ALGORITHM_ID_EEA0;
+        enc_algo_found = true;
+        break;
+      }
+      break;
+    case srslte::CIPHERING_ALGORITHM_ID_128_EEA1:
+      // “first bit” – 128-EEA1,
+      if (security_capabilities.encryptionAlgorithms
+              .buffer[srslte::CIPHERING_ALGORITHM_ID_128_EEA1 - 1]) {
+        cipher_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA1;
+        enc_algo_found = true;
+        break;
+      }
+      break;
+    case srslte::CIPHERING_ALGORITHM_ID_128_EEA2:
+      // “second bit” – 128-EEA2,
+      if (security_capabilities.encryptionAlgorithms
+              .buffer[srslte::CIPHERING_ALGORITHM_ID_128_EEA2 - 1]) {
+        cipher_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA2;
+        enc_algo_found = true;
+        break;
+      }
+      break;
+    default:
+      enc_algo_found = false;
+      break;
+    }
+    if (enc_algo_found == true) {
+      break;
+    }
+  }
+
+  for (i = 0; i < srslte::INTEGRITY_ALGORITHM_ID_N_ITEMS; i++) {
+    switch (intgrity_algo_preference[i]) {
+    case srslte::INTEGRITY_ALGORITHM_ID_EIA0:
+      // “all bits equal to 0” – UE supports no other algorithm than EEA0,
+      zero_vector = true;
+      for (int j; j < LIBLTE_S1AP_INTEGRITYPROTECTIONALGORITHMS_BIT_STRING_LEN;
+           j++) {
+        if (security_capabilities.integrityProtectionAlgorithms.buffer[j]) {
+          zero_vector = false;
+        }
+      }
+      if (zero_vector == true) {
+        integ_algo = srslte::INTEGRITY_ALGORITHM_ID_EIA0;
+        integ_algo_found = true;
+      }
+      break;
+    case srslte::INTEGRITY_ALGORITHM_ID_128_EIA1:
+      // “first bit” – 128-EEA1,
+      if (security_capabilities.encryptionAlgorithms
+              .buffer[srslte::INTEGRITY_ALGORITHM_ID_128_EIA1 - 1]) {
+        integ_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA1;
+        integ_algo_found = true;
+      }
+      break;
+    case srslte::INTEGRITY_ALGORITHM_ID_128_EIA2:
+      // “second bit” – 128-EEA2,
+      if (security_capabilities.encryptionAlgorithms
+              .buffer[srslte::INTEGRITY_ALGORITHM_ID_128_EIA2 - 1]) {
+        integ_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA2;
+        integ_algo_found = true;
+      }
+      break;
+    default:
+      integ_algo_found = false;
+      break;
+    }
+
+    if (integ_algo_found == true) {
+      break;
+    }
+  }
+
+  if(integ_algo_found == false || enc_algo_found == false){
+    // TODO: if no security algorithm found abort radio connection and issue
+    // cryption-and-or-integrity-protection-algorithms-not-supported message
+    return false;
+  }
+  return true;
+}
 void rrc::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
 {
   // Allocate a new PDU buffer, pack the message and send to PDCP
