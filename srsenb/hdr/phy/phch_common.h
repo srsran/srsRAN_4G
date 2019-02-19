@@ -74,8 +74,6 @@ typedef struct {
 class phch_common
 {
 public:
- 
-
   phch_common(uint32_t nof_workers);
   ~phch_common();
 

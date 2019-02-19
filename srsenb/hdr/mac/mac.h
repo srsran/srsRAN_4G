@@ -63,6 +63,7 @@ class mac
 {
 public:
   mac();
+  ~mac();
   bool init(mac_args_t *args, srslte_cell_t *cell, phy_interface_mac *phy, rlc_interface_mac *rlc, rrc_interface_mac *rrc, srslte::log *log_h);
   void stop();
   

@@ -78,7 +78,7 @@ void txrx::run_thread()
 {
   phch_worker *worker = NULL;
   cf_t *buffer[SRSLTE_MAX_PORTS] = {NULL};
-  srslte_timestamp_t rx_time, tx_time; 
+  srslte_timestamp_t rx_time = {}, tx_time = {};
   uint32_t sf_len = SRSLTE_SF_LEN_PRB(worker_com->cell.nof_prb);
   
   float samp_rate = srslte_sampling_freq_hz(worker_com->cell.nof_prb);

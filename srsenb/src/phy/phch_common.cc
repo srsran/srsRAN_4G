@@ -42,16 +42,21 @@ using namespace asn1::rrc;
 
 namespace srsenb {
 
-phch_common::phch_common(uint32_t max_workers) : tx_sem(max_workers)
+phch_common::phch_common(uint32_t max_workers_) :
+  tx_sem(max_workers_),
+  sib13_configured(false),
+  mcch_configured(false),
+  radio(NULL),
+  mac(NULL),
+  is_first_tx(false),
+  is_first_of_burst(false),
+  pdsch_p_b(0),
+  max_workers(max_workers_),
+  nof_workers(0),
+  params()
 {
-  this->nof_workers = nof_workers;
   params.max_prach_offset_us = 20;
-  radio = NULL;
-  mac = NULL;
-  is_first_tx = false;
-  is_first_of_burst = false;
-  pdsch_p_b = 0;
-  this->max_workers = max_workers;
+
   bzero(&pusch_cfg, sizeof(pusch_cfg));
   bzero(&hopping_cfg, sizeof(hopping_cfg));
   bzero(&pucch_cfg, sizeof(pucch_cfg));
@@ -68,9 +73,9 @@ phch_common::~phch_common() {
   }
 }
 
-void phch_common::set_nof_workers(uint32_t nof_workers)
+void phch_common::set_nof_workers(uint32_t nof_workers_)
 {
-  this->nof_workers = nof_workers;
+  nof_workers = nof_workers_;
 }
 
 void phch_common::reset() {
@@ -301,7 +306,7 @@ bool phch_common::is_mcch_subframe(subframe_cfg_t *cfg, uint32_t phy_tti)
   sfn = phy_tti/10;
   sf  = phy_tti%10;
 
-  if(sib13_configured) {
+  if (sib13_configured) {
     mbsfn_area_info_r9_s* area_info = &mbsfn.mbsfn_area_info;
 
     offset = area_info->mcch_cfg_r9.mcch_offset_r9;

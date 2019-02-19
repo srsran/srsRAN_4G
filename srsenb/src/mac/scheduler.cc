@@ -61,10 +61,11 @@ sched::sched() : bc_aggr_level(0), rar_aggr_level(0), avail_rbg(0), P(0), start_
   for (int i = 0; i < 3; i++) {
     bzero(rar_locations[i], sizeof(sched_ue::sched_dci_cce_t) * 10);
   }
-  reset();
 
   pthread_rwlock_init(&rwlock, NULL);
   pthread_mutex_init(&sched_mutex, NULL);
+
+  reset();
 }
 
 sched::~sched()

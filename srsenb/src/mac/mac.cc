@@ -63,6 +63,13 @@ mac::mac() : timers_db(128), timers_thread(&timers_db), tti(0), last_rnti(0),
   bzero(&bcch_softbuffer_tx, sizeof(bcch_softbuffer_tx));
   bzero(&pcch_softbuffer_tx, sizeof(pcch_softbuffer_tx));
   bzero(&rar_softbuffer_tx, sizeof(rar_softbuffer_tx));
+  pthread_rwlock_init(&rwlock, NULL);
+}
+
+mac::~mac()
+{
+  pthread_rwlock_unlock(&rwlock);
+  pthread_rwlock_destroy(&rwlock);
 }
   
 bool mac::init(mac_args_t *args_, srslte_cell_t *cell_, phy_interface_mac *phy, rlc_interface_mac *rlc, rrc_interface_mac *rrc, srslte::log *log_h_)
@@ -97,8 +104,6 @@ bool mac::init(mac_args_t *args_, srslte_cell_t *cell_, phy_interface_mac *phy, 
 
     reset();
 
-    pthread_rwlock_init(&rwlock, NULL);
-
     started = true;
   }
 
@@ -120,9 +125,6 @@ void mac::stop()
   started = false;
   timers_thread.stop();
   pdu_process_thread.stop();
-
-  pthread_rwlock_unlock(&rwlock);
-  pthread_rwlock_destroy(&rwlock);
 }
 
 // Implement Section 5.9
@@ -137,7 +139,6 @@ void mac::reset()
 
   /* Setup scheduler */
   scheduler.reset();
-
 }
 
 void mac::start_pcap(srslte::mac_pcap* pcap_)
