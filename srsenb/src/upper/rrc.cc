@@ -1707,6 +1707,9 @@ void rrc::ue::send_connection_reconf(srslte::byte_buffer_t *pdu)
     }
   }
   phy_cfg->cqi_report_cfg.nom_pdsch_rs_epre_offset = 0;
+  // PDSCH
+  phy_cfg->pdsch_cfg_ded_present = true;
+  phy_cfg->pdsch_cfg_ded.p_a     = parent->cfg.pdsch_cfg;
 
   parent->phy->set_config_dedicated(rnti, phy_cfg);
   parent->phy->set_conf_dedicated_ack(rnti, false);
