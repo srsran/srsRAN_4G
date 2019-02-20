@@ -240,6 +240,25 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
     cout << "Error parsing enb.mnc:" << mnc << " - must be a 2 or 3-digit string." << endl;
   }
 
+  // Convert UL/DL EARFCN to frequency if needed
+  if (args->rf.dl_freq < 0) {
+    args->rf.dl_freq = 1e6 * srslte_band_fd(args->rf.dl_earfcn);
+    if (args->rf.dl_freq < 0) {
+      fprintf(stderr, "Error getting DL frequency for EARFCN=%d\n", args->rf.dl_earfcn);
+      exit(1);
+    }
+  }
+  if (args->rf.ul_freq < 0) {
+    if (args->rf.ul_earfcn == 0) {
+      args->rf.ul_earfcn = srslte_band_ul_earfcn(args->rf.dl_earfcn);
+    }
+    args->rf.ul_freq = 1e6 * srslte_band_fu(args->rf.ul_earfcn);
+    if (args->rf.ul_freq < 0) {
+      fprintf(stderr, "Error getting UL frequency for EARFCN=%d\n", args->rf.dl_earfcn);
+      exit(1);
+    }
+  }
+
   // Apply all_level to any unset layers
   if (vm.count("log.all_level")) {
     if(!vm.count("log.phy_level")) {
