@@ -35,8 +35,9 @@
 #define USE_QUEUE
 
 namespace srslte {
- 
-  
+
+thread_pool::worker::worker() : my_id(0), running(false), my_parent(NULL) {}
+
 void thread_pool::worker::setup(uint32_t id, thread_pool *parent, uint32_t prio, uint32_t mask)
 {
   my_id = id; 

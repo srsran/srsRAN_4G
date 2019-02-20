@@ -50,6 +50,7 @@ public:
   class worker : public thread
   {
   public:
+    worker();
     void setup(uint32_t id, thread_pool *parent, uint32_t prio=0, uint32_t mask = 255);
     void stop();
     uint32_t get_id();
