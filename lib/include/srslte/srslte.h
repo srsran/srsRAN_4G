@@ -29,10 +29,12 @@
 #define SRSLTE_SRSLTE_H
 
 #ifdef __cplusplus
-    extern "C" {
+#include <complex>
+extern "C" {
+#else
+#include <complex.h>
 #endif
 
-#include <complex.h>
 #include <math.h>
 
 #include "srslte/config.h"
