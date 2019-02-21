@@ -1591,7 +1591,7 @@ int phch_worker::read_ce_abs(float *ce_abs, uint32_t tx_antenna, uint32_t rx_ant
   int g = (sz - 12*cell.nof_prb)/2;
   for (i = 0; i < 12*cell.nof_prb; i++) {
     ce_abs[g+i] = 20 * log10f(cabsf(ue_dl.ce_m[tx_antenna][rx_antenna][i]));
-    if (isinf(ce_abs[g+i])) {
+    if (std::isinf(ce_abs[g + i])) {
       ce_abs[g+i] = -80;
     }
   }

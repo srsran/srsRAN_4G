@@ -123,8 +123,7 @@ std::string metrics_stdout::float_to_eng_string(float f, int digits)
 
   std::string factor;
 
-  if ( abs( degree ) < 9 )
-  {
+  if (abs(degree) < 9) {
     if(degree < 0)
       factor = prefixes[0][ abs( degree ) ];
     else

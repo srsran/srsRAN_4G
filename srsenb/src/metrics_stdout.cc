@@ -144,7 +144,7 @@ std::string metrics_stdout::float_to_string(float f, int digits)
 {
   std::ostringstream os;
   int precision;
-  if(isnan(f) or abs(f) < 0.0001) {
+  if (isnan(f) or fabs(f) < 0.0001) {
     f = 0.0;
     precision = digits-1;
   }

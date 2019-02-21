@@ -69,7 +69,7 @@ class cell_t
   }
   // NaN means an RSRP value has not yet been obtained. Keep then in the list and clean them if never updated
   bool greater(cell_t *x) {
-    return rsrp > x->rsrp || isnan(rsrp);
+    return rsrp > x->rsrp || std::isnan(rsrp);
   }
   bool plmn_equals(asn1::rrc::plmn_id_s plmn_id)
   {
@@ -142,7 +142,7 @@ class cell_t
   }
 
   void set_rsrp(float rsrp) {
-    if (!isnan(rsrp)) {
+    if (!std::isnan(rsrp)) {
       this->rsrp = rsrp;
     }
     in_sync = true;
