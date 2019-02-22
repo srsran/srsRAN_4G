@@ -551,6 +551,7 @@ void rlc_um::rlc_um_rx::init(srslte::log *log_, uint32_t lcid_, srsue::pdcp_inte
 void rlc_um::rlc_um_rx::reestablish()
 {
   stop();
+  rx_enabled = true;
 }
 
 
