@@ -550,8 +550,18 @@ void rlc_um::rlc_um_rx::init(srslte::log *log_, uint32_t lcid_, srsue::pdcp_inte
 
 void rlc_um::rlc_um_rx::reestablish()
 {
-  stop();
+  // try to reassemble any SDUs if possible
+  if (reordering_timer != NULL) {
+    if (reordering_timer->is_running()) {
+      reordering_timer->stop();
+      timer_expired(reordering_timer_id);
+    }
+  }
+
+  pthread_mutex_lock(&mutex);
+  reset();
   rx_enabled = true;
+  pthread_mutex_unlock(&mutex);
 }
 
 
@@ -559,21 +569,28 @@ void rlc_um::rlc_um_rx::stop()
 {
   pthread_mutex_lock(&mutex);
 
+  reset();
+
+  if (mac_timers != NULL && reordering_timer != NULL) {
+    reordering_timer->stop();
+    mac_timers->timer_release_id(reordering_timer_id);
+    reordering_timer = NULL;
+  }
+
+  pthread_mutex_unlock(&mutex);
+}
+
+void rlc_um::rlc_um_rx::reset()
+{
   vr_ur    = 0;
   vr_ux    = 0;
   vr_uh    = 0;
   pdu_lost = false;
   rx_enabled = false;
 
-  if(rx_sdu) {
+  if (rx_sdu) {
     pool->deallocate(rx_sdu);
     rx_sdu = NULL;
-  }
-
-  if (mac_timers != NULL && reordering_timer != NULL) {
-    reordering_timer->stop();
-    mac_timers->timer_release_id(reordering_timer_id);
-    reordering_timer = NULL;
   }
 
   // Drop all messages in RX window
@@ -582,7 +599,6 @@ void rlc_um::rlc_um_rx::stop()
     pool->deallocate(it->second.buf);
   }
   rx_window.clear();
-  pthread_mutex_unlock(&mutex);
 }
 
 
@@ -949,7 +965,9 @@ void rlc_um::rlc_um_rx::timer_expired(uint32_t timeout_id)
     log->warning("Lost PDU SN: %d\n", vr_ur);
 
     pdu_lost = true;
-    rx_sdu->reset();
+    if (rx_sdu != NULL) {
+      rx_sdu->reset();
+    }
 
     while(RX_MOD_BASE(vr_ur) < RX_MOD_BASE(vr_ux)) {
       vr_ur = (vr_ur + 1)%cfg.rx_mod;

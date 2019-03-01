@@ -156,6 +156,8 @@ private:
     void timer_expired(uint32_t timeout_id);
 
   private:
+    void reset();
+
     byte_buffer_pool                    *pool;
     srslte::log                         *log;
     mac_interface_timers                *mac_timers;
