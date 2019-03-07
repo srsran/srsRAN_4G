@@ -19,7 +19,7 @@
  *
  */
 
-#include "srsue/hdr/upper/rrc.h"
+#include "srsue/hdr/rrc/rrc.h"
 #include "srslte/asn1/rrc_asn1.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/security.h"
@@ -2002,6 +2002,11 @@ void rrc::write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
       serving_cell->has_mcch = true;
       phy->set_config_mbsfn_mcch(&serving_cell->mcch);
       log_rrc_message("MCH", Rx, pdu.get(), serving_cell->mcch);
+
+      if (args.mbms_service_id >= 0) {
+        rrc_log->info("Attempting to auto-start MBMS service %d\n", args.mbms_service_id);
+        mbms_service_start(args.mbms_service_id, args.mbms_service_port);
+      }
     }
   }
 }

@@ -116,15 +116,20 @@ imei = 353490069873319
 #####################################################################
 # RRC configuration
 #
-# ue_category:   Sets UE category (range 1-5). Default: 4
-# release:       UE Release (8 to 10)
-# feature_group: Hex value of the featureGroupIndicators field in the
-#                UECapabilityInformation message. Default 0xe6041000
+# ue_category:       Sets UE category (range 1-5). Default: 4
+# release:           UE Release (8 to 10)
+# feature_group:     Hex value of the featureGroupIndicators field in the
+#                    UECapabilityInformation message. Default 0xe6041000
+# mbms_service_id:   MBMS service id for autostarting MBMS reception
+#                    (default -1 means disabled)
+# mbms_service_port: Port of the MBMS service
 #####################################################################
 [rrc]
-#ue_category   = 4
-#release       = 8
-#feature_group = 0xe6041000
+#ue_category       = 4
+#release           = 8
+#feature_group     = 0xe6041000
+#mbms_service_id   = -1
+#mbms_service_port = 4321
 
 #####################################################################
 # NAS configuration
@@ -222,10 +227,6 @@ enable = false
 #
 #####################################################################
 [expert]
-#ip_netmask          = 255.255.255.0
-#ip_devname          = tun_srsue
-#mbms_service        = -1
-#rssi_sensor_enabled = false
 #rx_gain_offset      = 62
 #prach_gain          = 30
 #cqi_max             = 15

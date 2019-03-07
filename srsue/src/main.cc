@@ -86,21 +86,23 @@ void parse_args(all_args_t* args, int argc, char* argv[])
 
     ("rrc.feature_group", bpo::value<uint32_t>(&args->rrc.feature_group)->default_value(0xe6041000), "Hex value of the featureGroupIndicators field in the"
                                                                                            "UECapabilityInformation message. Default 0xe6041000")
-    ("rrc.ue_category",   bpo::value<string>(&args->rrc.ue_category_str)->default_value(SRSLTE_UE_CATEGORY_DEFAULT),  "UE Category (1 to 10)")
-    ("rrc.release",       bpo::value<uint32_t>(&args->rrc.release)->default_value(8),  "UE Release (8 to 10)")
+    ("rrc.ue_category",       bpo::value<string>(&args->stack.rrc.ue_category_str)->default_value(SRSLTE_UE_CATEGORY_DEFAULT),  "UE Category (1 to 10)")
+    ("rrc.release",           bpo::value<uint32_t>(&args->stack.rrc.release)->default_value(SRSLTE_RELEASE_DEFAULT),  "UE Release (8 to 10)")
+    ("rrc.mbms_service_id",   bpo::value<int32_t>(&args->stack.rrc.mbms_service_id)->default_value(-1),  "MBMS service id for autostart (-1 means disabled)")
+    ("rrc.mbms_service_port", bpo::value<uint32_t>(&args->stack.rrc.mbms_service_port)->default_value(4321),  "Port of the MBMS service")
 
-    ("nas.apn",               bpo::value<string>(&args->nas.apn_name)->default_value(""),          "Set Access Point Name (APN) for data services")
-    ("nas.apn_protocol",      bpo::value<string>(&args->nas.apn_protocol)->default_value(""),  "Set Access Point Name (APN) protocol for data services")
-    ("nas.user",              bpo::value<string>(&args->nas.apn_user)->default_value(""),  "Username for CHAP authentication")
-    ("nas.pass",              bpo::value<string>(&args->nas.apn_pass)->default_value(""),  "Password for CHAP authentication")
-    ("nas.force_imsi_attach", bpo::value<bool>(&args->nas.force_imsi_attach)->default_value(false),  "Whether to always perform an IMSI attach")
-    ("nas.eia",               bpo::value<string>(&args->nas.eia)->default_value("1,2"),  "List of integrity algorithms included in UE capabilities")
-    ("nas.eea",               bpo::value<string>(&args->nas.eea)->default_value("0,1,2"),  "List of ciphering algorithms included in UE capabilities")
+    ("nas.apn",               bpo::value<string>(&args->stack.nas.apn_name)->default_value(""),          "Set Access Point Name (APN) for data services")
+    ("nas.apn_protocol",      bpo::value<string>(&args->stack.nas.apn_protocol)->default_value(""),  "Set Access Point Name (APN) protocol for data services")
+    ("nas.user",              bpo::value<string>(&args->stack.nas.apn_user)->default_value(""),  "Username for CHAP authentication")
+    ("nas.pass",              bpo::value<string>(&args->stack.nas.apn_pass)->default_value(""),  "Password for CHAP authentication")
+    ("nas.force_imsi_attach", bpo::value<bool>(&args->stack.nas.force_imsi_attach)->default_value(false),  "Whether to always perform an IMSI attach")
+    ("nas.eia",               bpo::value<string>(&args->stack.nas.eia)->default_value("1,2"),  "List of integrity algorithms included in UE capabilities")
+    ("nas.eea",               bpo::value<string>(&args->stack.nas.eea)->default_value("0,1,2"),  "List of ciphering algorithms included in UE capabilities")
 
-    ("pcap.enable", bpo::value<bool>(&args->pcap.enable)->default_value(false), "Enable MAC packet captures for wireshark")
-    ("pcap.filename", bpo::value<string>(&args->pcap.filename)->default_value("ue.pcap"), "MAC layer capture filename")
-    ("pcap.nas_enable",   bpo::value<bool>(&args->pcap.nas_enable)->default_value(false), "Enable NAS packet captures for wireshark")
-    ("pcap.nas_filename", bpo::value<string>(&args->pcap.nas_filename)->default_value("ue_nas.pcap"), "NAS layer capture filename (useful when NAS encryption is enabled)")
+    ("pcap.enable", bpo::value<bool>(&args->stack.pcap.enable)->default_value(false), "Enable MAC packet captures for wireshark")
+    ("pcap.filename", bpo::value<string>(&args->stack.pcap.filename)->default_value("ue.pcap"), "MAC layer capture filename")
+    ("pcap.nas_enable",   bpo::value<bool>(&args->stack.pcap.nas_enable)->default_value(false), "Enable NAS packet captures for wireshark")
+    ("pcap.nas_filename", bpo::value<string>(&args->stack.pcap.nas_filename)->default_value("ue_nas.pcap"), "NAS layer capture filename (useful when NAS encryption is enabled)")
     
     ("gui.enable", bpo::value<bool>(&args->gui.enable)->default_value(false), "Enable GUI plots")
 
@@ -281,8 +283,8 @@ void parse_args(all_args_t* args, int argc, char* argv[])
      bpo::value<bool>(&args->expert.phy.sic_pss_enabled)->default_value(false),
      "Applies Successive Interference Cancellation to PSS signals when searching for neighbour cells. Must be disabled if cells have identical channel and timing.")
 
-    ("expert.interpolate_subframe_enabled",
-     bpo::value<bool>(&args->expert.phy.interpolate_subframe_enabled)->default_value(false),
+    ("phy.interpolate_subframe_enabled",
+     bpo::value<bool>(&args->phy.interpolate_subframe_enabled)->default_value(false),
      "Interpolates in the time domain the channel estimates within 1 subframe.")
 
     ("expert.estimator_fil_auto",

@@ -10,7 +10,7 @@
 #
 # srsLTE is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
 #
 # A copy of the GNU Affero General Public License can be found in
@@ -18,13 +18,8 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-if(RF_FOUND)
-  add_executable(benchmark_radio benchmark_radio.cc)
-  target_link_libraries(benchmark_radio srslte_common srslte_phy srslte_radio)
-  if(SRSGUI_FOUND)
-    include_directories(${SRSGUI_INCLUDE_DIRS})
-    target_link_libraries(benchmark_radio ${SRSGUI_LIBRARIES})
-  endif(SRSGUI_FOUND)
-endif(RF_FOUND)
+set(SOURCES rrc.cc)
 
+add_library(srsue_rrc STATIC ${SOURCES})
 
+install(TARGETS srsue_rrc DESTINATION ${LIBRARY_DIR})

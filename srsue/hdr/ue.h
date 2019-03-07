@@ -32,14 +32,15 @@
 #include <string>
 #include <pthread.h>
 
-#include "ue_base.h"
-#include "phy/phy.h"
 #include "mac/mac.h"
-#include "srslte/upper/rlc.h"
+#include "phy/phy.h"
+#include "rrc/rrc.h"
+#include "srslte/radio/radio_multi.h"
 #include "srslte/upper/pdcp.h"
-#include "upper/rrc.h"
-#include "upper/nas.h"
+#include "srslte/upper/rlc.h"
+#include "ue_base.h"
 #include "upper/gw.h"
+#include "upper/nas.h"
 #include "upper/usim.h"
 
 #include "srslte/common/buffer_pool.h"

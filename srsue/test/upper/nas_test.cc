@@ -19,21 +19,20 @@
  *
  */
 
-#include <iostream>
-#include <assert.h>
-#include "srsue/hdr/upper/usim_base.h"
-#include "srsue/hdr/upper/usim.h"
-#include "srsue/hdr/upper/nas.h"
-#include "srsue/hdr/upper/gw.h"
-#include "srslte/upper/rlc.h"
-#include "srsue/hdr/upper/rrc.h"
-#include "srsue/hdr/mac/mac.h"
-#include "srslte/common/log_filter.h"
-#include "srslte/upper/pdcp_entity.h"
-#include "srslte/upper/pdcp.h"
-#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/bcd_helpers.h"
-
+#include "srslte/common/log_filter.h"
+#include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/upper/pdcp.h"
+#include "srslte/upper/pdcp_entity.h"
+#include "srslte/upper/rlc.h"
+#include "srsue/hdr/mac/mac.h"
+#include "srsue/hdr/rrc/rrc.h"
+#include "srsue/hdr/upper/gw.h"
+#include "srsue/hdr/upper/nas.h"
+#include "srsue/hdr/upper/usim.h"
+#include "srsue/hdr/upper/usim_base.h"
+#include <assert.h>
+#include <iostream>
 
 using namespace srsue;
 using namespace asn1::rrc;

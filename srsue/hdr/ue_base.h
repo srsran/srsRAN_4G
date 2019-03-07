@@ -27,14 +27,15 @@
 #ifndef SRSUE_UE_BASE_H
 #define SRSUE_UE_BASE_H
 
+#include "phy/phy.h"
+#include "rrc/rrc.h"
+#include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/radio/radio_multi.h"
+#include "upper/nas.h"
+#include "upper/usim.h"
+#include <pthread.h>
 #include <stdarg.h>
 #include <string>
-#include <pthread.h>
-#include "phy/phy.h"
-#include "upper/usim.h"
-#include "upper/rrc.h"
-#include "upper/nas.h"
-#include "srslte/interfaces/ue_interfaces.h"
 
 #include "srslte/common/logger.h"
 #include "srslte/common/log_filter.h"
