@@ -877,7 +877,14 @@ int rf_soapy_send_timed_multi(void *h,
     printf(" - tx_samples=%zd at timeNs=%llu flags=%d\n", tx_samples, timeNs, flags);
 #endif
 
-    ret = SoapySDRDevice_writeStream(handler->device, handler->txStream, (const void *)data, tx_samples, &flags, timeNs, timeoutUs);
+    const void* buffs_ptr[SRSLTE_MAX_PORTS];
+    for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
+      cf_t* data_c = data[i] ? data[i] : zero_mem;
+      buffs_ptr[i] = &data_c[n];
+    }
+
+    ret = SoapySDRDevice_writeStream(handler->device, handler->txStream, buffs_ptr, tx_samples, &flags, timeNs,
+                                     timeoutUs);
     if (ret >= 0) {
       // Tx was ok
 #if PRINT_TX_STATS
