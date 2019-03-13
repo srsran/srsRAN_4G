@@ -1104,7 +1104,7 @@ int phch_worker::read_ce_abs(float *ce_abs) {
   bzero(ce_abs, sizeof(float)*sz);
   int g = (sz - 12*phy->cell.nof_prb)/2;
   for (i = 0; i < 12*phy->cell.nof_prb; i++) {
-    ce_abs[g+i] = 20 * log10(cabs(enb_ul.ce[i]));
+    ce_abs[g+i] = 20 * log10(std::abs(std::complex<double>(enb_ul.ce[i])));
     if (std::isinf(ce_abs[g + i])) {
       ce_abs[g+i] = -80;
     }
@@ -1118,7 +1118,7 @@ int phch_worker::read_ce_arg(float *ce_arg) {
   bzero(ce_arg, sizeof(float)*sz);
   int g = (sz - 12*phy->cell.nof_prb)/2;
   for (i = 0; i < 12*phy->cell.nof_prb; i++) {
-    ce_arg[g+i] = cargf(enb_ul.ce[i]) * 180.0f / (float) M_PI;
+    ce_arg[g+i] = std::arg(std::complex<float>(enb_ul.ce[i])) * 180.0f / (float) M_PI;
     if (std::isinf(ce_arg[g + i])) {
       ce_arg[g+i] = -80;
     }
