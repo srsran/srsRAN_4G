@@ -41,7 +41,7 @@ n_prb = 25
 # drb_config:  DRB configuration file 
 #####################################################################
 [enb_files]
-sib_config = sib.mbsfn.conf
+sib_config = sib.conf
 rr_config  = rr.conf
 drb_config = drb.conf
 
@@ -113,11 +113,11 @@ filename = /tmp/enb.pcap
 #                If set to negative, a single log file will be created.
 #####################################################################
 [log]
-all_level = warn
-phy_level = warn
-phy_lib_level = warn
+all_level = warning
+phy_level = warning
+phy_lib_level = warning
 all_hex_limit = 32
-filename = enb.log
+filename = /tmp/enb.log
 file_max_size = -1
 
 [gui]
@@ -143,40 +143,34 @@ nof_ctrl_symbols = 3
 #####################################################################
 # Expert configuration options
 #
-# pdsch_max_its:        Maximum number of turbo decoder iterations (Default 4)
+# pusch_max_its:        Maximum number of turbo decoder iterations (Default 4)
+# pusch_8bit_decoder:   Use 8-bit for LLR representation and turbo decoder trellis computation (Experimental)
 # nof_phy_threads:      Selects the number of PHY threads (maximum 4, minimum 1, default 2)
-# metrics_period_secs:  Sets the period at which metrics are requested from the UE. 
+# metrics_period_secs:  Sets the period at which metrics are requested from the eNB. 
+# metrics_csv_enable:   Write eNB metrics to CSV file.
+# metrics_csv_filename: File path to use for CSV metrics.
 # pregenerate_signals:  Pregenerate uplink signals after attach. Improves CPU performance.
 # tx_amplitude:         Transmit amplitude factor (set 0-1 to reduce PAPR)
 # link_failure_nof_err: Number of PUSCH failures after which a radio-link failure is triggered. 
 #                       a link failure is when SNR<0 and CRC=KO
-# max_prach_offset_us:  Maximum allowed RACH offset (in us) 
+# max_prach_offset_us:  Maximum allowed RACH offset (in us)
+# enable_mbsfn:         Enable MBMS transmission in the eNB
+# m1u_multiaddr:        Multicast addres the M1-U socket will register to
+# m1u_if_addr:          Address of the inteferface the M1-U interface will listen for multicast packets.
 #
 #####################################################################
 [expert]
-#pdsch_max_its        = 4
+#pusch_max_its        = 8 # These are half iterations
+#pusch_8bit_decoder   = false
 nof_phy_threads       = 1
+#metrics_period_secs  = 1
+#metrics_csv_enable   = false
+#metrics_csv_filename = /tmp/enb_metrics.csv
 #pregenerate_signals  = false
 #tx_amplitude         = 0.6
 #link_failure_nof_err = 50
 #rrc_inactivity_timer = 60000
 #max_prach_offset_us  = 30
-enable_mbsfn = true
-
-#####################################################################
-# Manual RF calibration
-#
-# Applies DC offset and IQ imbalance to TX and RX modules. 
-# Currently this configuration is only used if the detected device is a bladeRF
-#
-# tx_corr_dc_gain: TX DC offset gain correction
-# tx_corr_dc_phase: TX DC offset phase correction
-# tx_corr_iq_i: TX IQ imbalance inphase correction
-# tx_corr_iq_q: TX IQ imbalance quadrature correction
-# same can be configured for rx_*
-#####################################################################
-[rf_calibration]
-#tx_corr_dc_gain = 20
-#tx_corr_dc_phase = 184
-#tx_corr_iq_i = 19
-#tx_corr_iq_q = 97
+#enable_mbsfn = false
+#m1u_multiaddr = 239.255.0.1
+#m1u_if_addr = 127.0.1.201 

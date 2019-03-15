@@ -3,7 +3,7 @@
 #####################################################################
 # RF configuration
 #
-# dl_earfcn: Downlink EARFCN code.
+# dl_earfcn: Downlink EARFCN code list 3400,2100,...
 # freq_offset: Uplink and Downlink optional frequency offset (in Hz)
 # tx_gain: Transmit gain (dB). 
 # rx_gain: Optional receive gain (dB). If disabled, AGC if enabled
@@ -16,7 +16,7 @@
 # device_args:        Arguments for the device driver. Options are "auto" or any string. 
 #                     Default for UHD: "recv_frame_size=9232,send_frame_size=9232"
 #                     Default for bladeRF: ""
-# #time_adv_nsamples: Transmission time advance (in number of samples) to compensate for RF delay 
+# time_adv_nsamples:  Transmission time advance (in number of samples) to compensate for RF delay
 #                     from antenna to timestamp insertion. 
 #                     Default "auto". B210 USRP: 100 samples, bladeRF: 27.
 # burst_preamble_us:  Preamble length to transmit before start of burst. 
@@ -28,7 +28,7 @@
 dl_earfcn = 3400
 freq_offset = 0
 tx_gain = 80
-rx_gain = 40
+#rx_gain = 40
 
 nof_rx_ant = 1
 device_name = shmemrf
@@ -77,11 +77,10 @@ nas_filename = /tmp/nas.pcap
 #                If set to negative, a single log file will be created.
 #####################################################################
 [log]
-all_level = info
-phy_level = info
-phy_lib_level = info
+all_level = warning
+phy_lib_level = warning
 all_hex_limit = 32
-filename = ue.log
+filename = /tmp/ue.log
 file_max_size = -1
 
 #####################################################################
@@ -121,12 +120,14 @@ imei = 353490069873319
 # NAS configuration
 #
 # apn:               Set Access Point Name (APN)
+# apn_protocol:      Set APN protocol (IPv4, IPv6 or IPv4v6.)
 # user:              Username for CHAP authentication
 # pass:              Password for CHAP authentication
-# force_imsi_attach: Whether to always perform an IMSI
+# force_imsi_attach: Whether to always perform an IMSI attach
 #####################################################################
 [nas]
 #apn = internetinternet
+#apn_protocol = ipv4
 #user = srsuser
 #pass = srspass
 #force_imsi_attach = false
@@ -138,6 +139,7 @@ enable = false
 # Expert configuration options
 #
 # ip_netmask:           Netmask of the tun_srsue device. Default: 255.255.255.0
+# ip_devname:           Nanme of the tun_srsue device. Default: tun_srsue
 # rssi_sensor_enabled:  Enable or disable RF frontend RSSI sensor. Required for RSRP metrics but
 #                       can cause UHD instability for long-duration testing. Default true.
 # rx_gain_offset:       RX Gain offset to add to rx_gain to calibrate RSRP readings
@@ -169,7 +171,6 @@ enable = false
 # estimator_fil_stddev: Sets the channel estimator smooth gaussian filter standard deviation.
 # estimator_fil_order:  Sets the channel estimator smooth gaussian filter order (even values perform better).
 #                       The taps are [w, 1-2w, w]
-# metrics_period_secs:  Sets the period at which metrics are requested from the UE. 
 #
 # pregenerate_signals:  Pregenerate uplink signals after attach. Improves CPU performance.
 #
@@ -181,6 +182,8 @@ enable = false
 #                       the same source.
 #
 # metrics_csv_enable:   Write UE metrics to CSV file.
+#
+# metrics_period_secs:  Sets the period at which metrics are requested from the UE. 
 #
 # metrics_csv_filename: File path to use for CSV metrics.
 #
@@ -204,18 +207,21 @@ enable = false
 # pdsch_csi_enabled:     Stores the Channel State Information and uses it for weightening the softbits. It is only
 #                        used in TM1. It is True by default.
 #
+# pdsch_8bit_decoder:    Use 8-bit for LLR representation and turbo decoder trellis computation (Experimental)
+#
 #####################################################################
 [expert]
 #ip_netmask          = 255.255.255.0
-mbms_service         = 0
+#ip_devname          = tun_srsue
+#mbms_service        = -1
 #rssi_sensor_enabled = false
-#rx_gain_offset      = 72
+#rx_gain_offset      = 62
 #prach_gain          = 30
 #cqi_max             = 15
 #cqi_fixed           = 10
 #snr_ema_coeff       = 0.1
 #snr_estim_alg       = refs
-#pdsch_max_its       = 4
+#pdsch_max_its       = 8    # These are half iterations
 #attach_enable_64qam = false
 nof_phy_threads      = 1
 #equalizer_mode      = mmse
@@ -231,8 +237,10 @@ nof_phy_threads      = 1
 #sic_pss_enabled     = true
 #pregenerate_signals = false
 #metrics_csv_enable  = false
+#metrics_period_secs = 1
 #metrics_csv_filename = /tmp/ue_metrics.csv
 #pdsch_csi_enabled  = true
+#pdsch_8bit_decoder = false
 
 # CFO related values
 #cfo_is_doppler      = false
@@ -245,21 +253,3 @@ nof_phy_threads      = 1
 #cfo_loop_pss_tol    = 400
 #cfo_loop_ref_min    = 0
 #cfo_loop_pss_conv   = 20
-
-#####################################################################
-# Manual RF calibration
-#
-# Applies DC offset and IQ imbalance to TX and RX modules. 
-# Currently this configuration is only used if the detected device is a bladeRF
-#
-# tx_corr_dc_gain: TX DC offset gain correction
-# tx_corr_dc_phase: TX DC offset phase correction
-# tx_corr_iq_i: TX IQ imbalance inphase correction
-# tx_corr_iq_q: TX IQ imbalance quadrature correction
-# same can be configured for rx_*
-#####################################################################
-[rf_calibration]
-#tx_corr_dc_gain = 20
-#tx_corr_dc_phase = 184
-#tx_corr_iq_i = 19
-#tx_corr_iq_q = 97
