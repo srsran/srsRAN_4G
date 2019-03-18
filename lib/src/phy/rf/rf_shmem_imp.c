@@ -32,7 +32,7 @@
 // "jammming" of the data stream my be desireable by substiting some random values.
 // Shared memory was chosen over unix/inet sockets to allow for the fastest
 // data transfer and possible combining IQ data in a single buffer. Each ul and dl subframe
-// worth of iqdata and metadata  is held in a "bin" where tx bin index is 4 sf 
+// worth of iqdata and metadata is held in a "bin" where tx bin index is 4 sf 
 // ahead of the rx bin index.
 
 // J Giovatto Aug 08, 2018
@@ -53,8 +53,14 @@
 // 2) sudo ./srsue  ./ue.conf
 // 3) sudo ./srsenb ./enb.conf
 
+// J Giovatto March 18, 2019
+// added support to control loss externally using netcat
+// enb listens on port 12000 and ue on 12001 (pass via args todo)
+// for example using netcat to set the enb tx loss to 100%
+// echo "100" | ncat -u localhost 12000
 
 #include <string.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <semaphore.h>
@@ -66,8 +72,12 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/ipc.h>
+#include <sys/select.h>
+#include <sys/socket.h>
 #include <sys/mman.h>
 #include <sys/stat.h> /* For mode constants */
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <fcntl.h>    /* For O_* constants */
 
 #include "srslte/srslte.h"
@@ -253,6 +263,7 @@ typedef struct {
    rf_shmem_segment_t * rx_segment;  // rx bins
    rf_shmem_segment_t * tx_segment;  // tx bins
    int                  rand_loss;   // random loss 0=none, 100=all
+   int                  ctrl_fd;     // control fd
 } rf_shmem_state_t;
 
 
@@ -315,6 +326,7 @@ static rf_shmem_state_t rf_shmem_state = { .dev_name        = "shmemrf",
                                            .rx_segment      = NULL,
                                            .tx_segment      = NULL,
                                            .rand_loss       = 0,
+                                           .ctrl_fd         = -1,
                                         };
 
 #define RF_SHMEM_GET_STATE(h)  assert(h); rf_shmem_state_t *_state = (rf_shmem_state_t *)(h)
@@ -387,6 +399,45 @@ static int rf_shmem_resample(double srate_in,
 }
 
 
+static int rf_shmem_open_ctrl_sock(rf_shmem_state_t * _state)
+{
+   const int s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+
+   if(s < 0)
+     {
+       RF_SHMEM_WARN("failed to get ctrl_fd %s", strerror(errno));
+
+       return -1;
+     }
+   else
+     {
+       struct sockaddr_in sin;
+       sin.sin_family      = AF_INET;
+       sin.sin_addr.s_addr = INADDR_ANY;
+       sin.sin_port        = rf_shmem_is_enb(_state) ? htons(12000) : htons(12001); // TODO pass via args
+
+       if(bind(s, (const struct sockaddr *) &sin, sizeof(sin)) < 0)
+         {
+           RF_SHMEM_WARN("failed to bind ctrl_fd %s, %s:%d",
+                         strerror(errno), 
+                         inet_ntoa(sin.sin_addr),
+                         ntohs(sin.sin_port));
+
+           return -1;
+         }
+       else
+         {
+           RF_SHMEM_INFO("bind ctrl_fd %s:%d",
+                         inet_ntoa(sin.sin_addr),
+                         ntohs(sin.sin_port));
+
+           _state->ctrl_fd = s;
+
+           return 0;
+         }
+     }
+}
+
 
 static int rf_shmem_open_ipc(rf_shmem_state_t * _state)
 {
@@ -433,7 +484,7 @@ static int rf_shmem_open_ipc(rf_shmem_state_t * _state)
       }
     else
       {
-        if(rf_shmem_node_type == 'E')
+        if(rf_shmem_is_enb(_state))
           {
             ftruncate(_state->shm_dl_fd, RF_SHMEM_DATA_SEGMENT_SIZE);
           }
@@ -441,8 +492,6 @@ static int rf_shmem_open_ipc(rf_shmem_state_t * _state)
       }
   } while(_state->shm_dl_fd < 0);
     
-  
-
 
   // ul shm key
   do {
@@ -463,7 +512,7 @@ static int rf_shmem_open_ipc(rf_shmem_state_t * _state)
       }
     else
       {
-        if(rf_shmem_node_type == 'E')
+        if(rf_shmem_is_enb(_state))
           {
             ftruncate(_state->shm_ul_fd, RF_SHMEM_DATA_SEGMENT_SIZE);
           }
@@ -739,6 +788,14 @@ int rf_shmem_open_multi(char *args, void **h, uint32_t nof_channels)
       return -1;
     }
 
+   if(rf_shmem_open_ctrl_sock(&rf_shmem_state) < 0)
+    {
+      RF_SHMEM_WARN("could not create control channel");
+
+      return -1;
+    }
+
+
    *h = &rf_shmem_state;
 
    return 0;
@@ -792,8 +849,10 @@ int rf_shmem_close(void *h)
          sem[i] = NULL;
        }
     }
+
+  close(_state->ctrl_fd);
  
-   return 0;
+  return 0;
  }
 
 
@@ -1023,6 +1082,7 @@ int rf_shmem_recv_with_time_multi(void *h, void **data, uint32_t nsamples,
         if(rf_shmem_is_enb(_state))
          {
            // enb clear ul bin on every rx
+           // ue leaves data for other ue(s) to read
            memset(element, 0x0, sizeof(*element));
          }
 
@@ -1060,8 +1120,21 @@ int rf_shmem_send_timed_multi(void *h, void *data[4], int nsamples,
        return 0;
      }
 
+   // check for loss change
+   char buff[256] = {0};
+
+   const int n = recv(_state->ctrl_fd, buff, sizeof(buff)-1, MSG_DONTWAIT);
+
+   if(n > 0)
+     {
+       const int val = atoi(buff); 
+ 
+       RF_SHMEM_INFO("set tx loss to from %d to %d", _state->rand_loss, val);
+
+       _state->rand_loss = val;
+     }
+
    // some random loss the higher the number the more loss (0-100)
-   // xxx todo set via config
    if(_state->rand_loss > 0)
     {
       if((rand() % 100) < _state->rand_loss)
@@ -1075,7 +1148,7 @@ int rf_shmem_send_timed_multi(void *h, void *data[4], int nsamples,
 
    // all tx are 4 tti in the future
    // code base may advance timespec slightly which can mess up our bin index
-   // so we just force the tx_time here to be 4 sf ahead
+   // so we just force the tx_time here to be exactly 4 sf ahead
    timeradd(&_state->tv_this_tti, &tv_4step, &tv_tx_tti);
 
    gettimeofday(&tv_now, NULL);
