@@ -571,8 +571,9 @@ bool nas::handle_service_request(uint32_t                m_tmsi,
     nas nas_tmp;
     nas_tmp.m_ecm_ctx.enb_ue_s1ap_id = enb_ue_s1ap_id;
     nas_tmp.m_ecm_ctx.mme_ue_s1ap_id = s1ap->get_next_mme_ue_s1ap_id();
+
     srslte::byte_buffer_t* nas_tx    = pool->allocate();
-    nas_tmp.pack_service_reject(nas_tx);
+    nas_tmp.pack_service_reject(nas_tx, LIBLTE_MME_EMM_CAUSE_IMPLICITLY_DETACHED);
     s1ap->send_downlink_nas_transport(enb_ue_s1ap_id, nas_tmp.m_ecm_ctx.mme_ue_s1ap_id, nas_tx, *enb_sri);
     pool->deallocate(nas_tx);
     return true;
@@ -585,8 +586,9 @@ bool nas::handle_service_request(uint32_t                m_tmsi,
     nas nas_tmp;
     nas_tmp.m_ecm_ctx.enb_ue_s1ap_id = enb_ue_s1ap_id;
     nas_tmp.m_ecm_ctx.mme_ue_s1ap_id = s1ap->get_next_mme_ue_s1ap_id();
-    srslte::byte_buffer_t* nas_tx    = pool->allocate();
-    nas_tmp.pack_service_reject(nas_tx);
+
+    srslte::byte_buffer_t* nas_tx = pool->allocate();
+    nas_tmp.pack_service_reject(nas_tx, LIBLTE_MME_EMM_CAUSE_IMPLICITLY_DETACHED);
     s1ap->send_downlink_nas_transport(enb_ue_s1ap_id, nas_tmp.m_ecm_ctx.mme_ue_s1ap_id, nas_tx, *enb_sri);
     pool->deallocate(nas_tx);
     return true;
@@ -649,8 +651,15 @@ bool nas::handle_service_request(uint32_t                m_tmsi,
     s1ap->send_initial_context_setup_request(imsi, 5);
     sec_ctx->ul_nas_count++;
   } else {
-    nas_log->console("Service Request -- Short MAC invalid. Ignoring service request\n");
-    nas_log->warning("Service Request -- Short MAC invalid. Ignoring service request\n");
+    uint32_t mme_ue_s1ap_id = s1ap->get_next_mme_ue_s1ap_id();
+    srslte::byte_buffer_t *nas_tx = pool->allocate();
+    nas_ctx->pack_service_reject(nas_tx, LIBLTE_MME_EMM_CAUSE_UE_IDENTITY_CANNOT_BE_DERIVED_BY_THE_NETWORK);
+    s1ap->send_downlink_nas_transport(enb_ue_s1ap_id, mme_ue_s1ap_id, nas_tx, *enb_sri);
+    pool->deallocate(nas_tx);
+    
+    nas_log->console("Service Request -- Short MAC invalid. Sending service reject.\n");
+    nas_log->warning("Service Request -- Short MAC invalid. Sending service reject.\n");
+    nas_log->info("Service Reject -- eNB_UE_S1AP_ID %d MME_UE_S1AP_ID %d.\n", enb_ue_s1ap_id, mme_ue_s1ap_id);
   }
   return true;
 }
@@ -1368,10 +1377,8 @@ bool nas::pack_emm_information(srslte::byte_buffer_t* nas_buffer)
   return true;
 }
 
-bool nas::pack_service_reject(srslte::byte_buffer_t* nas_buffer)
+bool nas::pack_service_reject(srslte::byte_buffer_t* nas_buffer, uint8_t emm_cause)
 {
-  uint8_t emm_cause = LIBLTE_MME_EMM_CAUSE_IMPLICITLY_DETACHED;
-
   LIBLTE_MME_SERVICE_REJECT_MSG_STRUCT service_rej;
   service_rej.t3442_present = true;
   service_rej.t3442.unit    = LIBLTE_MME_GPRS_TIMER_DEACTIVATED;
