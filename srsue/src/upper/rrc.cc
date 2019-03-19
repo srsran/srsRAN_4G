@@ -1266,6 +1266,7 @@ void rrc::send_con_request(asn1::rrc::establishment_cause_e cause)
   rrc_log->debug("Preparing RRC Connection Request\n");
 
   // Prepare ConnectionRequest packet
+  ul_ccch_msg_s ul_ccch_msg;
   ul_ccch_msg.msg.set(asn1::rrc::ul_ccch_msg_type_c::types::c1);
   ul_ccch_msg.msg.c1().set(asn1::rrc::ul_ccch_msg_type_c::c1_c_::types::rrc_conn_request);
   ul_ccch_msg.msg.c1().rrc_conn_request().crit_exts.set(
@@ -1286,7 +1287,7 @@ void rrc::send_con_request(asn1::rrc::establishment_cause_e cause)
   }
   rrc_conn_req->establishment_cause = cause;
 
-  send_ul_ccch_msg();
+  send_ul_ccch_msg(ul_ccch_msg);
 }
 
 /* RRC connection re-establishment procedure (5.3.7) */
@@ -1351,6 +1352,7 @@ void rrc::send_con_restablish_request(asn1::rrc::reest_cause_e cause)
   }
 
   // Prepare ConnectionRestalishmentRequest packet
+  asn1::rrc::ul_ccch_msg_s ul_ccch_msg;
   ul_ccch_msg.msg.set(asn1::rrc::ul_ccch_msg_type_c::types::c1);
   ul_ccch_msg.msg.c1().set(asn1::rrc::ul_ccch_msg_type_c::c1_c_::types::rrc_conn_reest_request);
   ul_ccch_msg.msg.c1().rrc_conn_reest_request().crit_exts.set(
@@ -1385,7 +1387,7 @@ void rrc::send_con_restablish_request(asn1::rrc::reest_cause_e cause)
         mac_timers->timer_get(t301)->reset();
         mac_timers->timer_get(t301)->run();
         mac_timers->timer_get(t311)->stop();
-        send_ul_ccch_msg();
+        send_ul_ccch_msg(ul_ccch_msg);
       } else {
         rrc_log->info("T311 expired while selecting cell. Going to IDLE\n");
         go_idle = true;
@@ -1407,6 +1409,7 @@ void rrc::send_con_restablish_complete() {
   rrc_log->console("RRC Connected\n");
 
   // Prepare ConnectionSetupComplete packet
+  asn1::rrc::ul_dcch_msg_s ul_dcch_msg;
   ul_dcch_msg.msg.set(asn1::rrc::ul_dcch_msg_type_c::types::c1);
   ul_dcch_msg.msg.c1().set(asn1::rrc::ul_dcch_msg_type_c::c1_c_::types::rrc_conn_reest_complete);
   ul_dcch_msg.msg.c1().rrc_conn_reest_complete().crit_exts.set(
@@ -1414,13 +1417,14 @@ void rrc::send_con_restablish_complete() {
 
   ul_dcch_msg.msg.c1().rrc_conn_reest_complete().rrc_transaction_id = transaction_id;
 
-  send_ul_dcch_msg(RB_ID_SRB1);
+  send_ul_dcch_msg(RB_ID_SRB1, ul_dcch_msg);
 }
 
 void rrc::send_con_setup_complete(byte_buffer_t *nas_msg) {
   rrc_log->debug("Preparing RRC Connection Setup Complete\n");
 
   // Prepare ConnectionSetupComplete packet
+  asn1::rrc::ul_dcch_msg_s ul_dcch_msg;
   ul_dcch_msg.msg.set(asn1::rrc::ul_dcch_msg_type_c::types::c1);
   ul_dcch_msg.msg.c1().set(asn1::rrc::ul_dcch_msg_type_c::c1_c_::types::rrc_conn_setup_complete);
   ul_dcch_msg.msg.c1().rrc_conn_setup_complete().crit_exts.set(
@@ -1437,7 +1441,7 @@ void rrc::send_con_setup_complete(byte_buffer_t *nas_msg) {
   memcpy(rrc_conn_setup_complete->ded_info_nas.data(), nas_msg->msg, nas_msg->N_bytes); // TODO Check!
 
   pool->deallocate(nas_msg);
-  send_ul_dcch_msg(RB_ID_SRB1);
+  send_ul_dcch_msg(RB_ID_SRB1, ul_dcch_msg);
 }
 
 void rrc::send_ul_info_transfer(byte_buffer_t* nas_msg)
@@ -1445,6 +1449,7 @@ void rrc::send_ul_info_transfer(byte_buffer_t* nas_msg)
   uint32_t lcid = rlc->has_bearer(RB_ID_SRB2) ? RB_ID_SRB2 : RB_ID_SRB1;
 
   // Prepare UL INFO packet
+  asn1::rrc::ul_dcch_msg_s ul_dcch_msg;
   ul_dcch_msg.msg.set(asn1::rrc::ul_dcch_msg_type_c::types::c1);
   ul_dcch_msg.msg.c1().set(asn1::rrc::ul_dcch_msg_type_c::c1_c_::types::ul_info_transfer);
   ul_dcch_msg.msg.c1().ul_info_transfer().crit_exts.set(asn1::rrc::ul_info_transfer_s::crit_exts_c_::types::c1);
@@ -1459,13 +1464,14 @@ void rrc::send_ul_info_transfer(byte_buffer_t* nas_msg)
 
   pool->deallocate(nas_msg);
 
-  send_ul_dcch_msg(lcid);
+  send_ul_dcch_msg(lcid, ul_dcch_msg);
 }
 
 void rrc::send_security_mode_complete() {
   rrc_log->debug("Preparing Security Mode Complete\n");
 
   // Prepare Security Mode Command Complete
+  asn1::rrc::ul_dcch_msg_s ul_dcch_msg;
   ul_dcch_msg.msg.set(asn1::rrc::ul_dcch_msg_type_c::types::c1);
   ul_dcch_msg.msg.c1().set(asn1::rrc::ul_dcch_msg_type_c::c1_c_::types::security_mode_complete);
   ul_dcch_msg.msg.c1().security_mode_complete().crit_exts.set(
@@ -1473,12 +1479,13 @@ void rrc::send_security_mode_complete() {
 
   ul_dcch_msg.msg.c1().security_mode_complete().rrc_transaction_id = transaction_id;
 
-  send_ul_dcch_msg(RB_ID_SRB1);
+  send_ul_dcch_msg(RB_ID_SRB1, ul_dcch_msg);
 }
 
 void rrc::send_rrc_con_reconfig_complete() {
   rrc_log->debug("Preparing RRC Connection Reconfig Complete\n");
 
+  asn1::rrc::ul_dcch_msg_s ul_dcch_msg;
   ul_dcch_msg.msg.set(asn1::rrc::ul_dcch_msg_type_c::types::c1);
   ul_dcch_msg.msg.c1().set(asn1::rrc::ul_dcch_msg_type_c::c1_c_::types::rrc_conn_recfg_complete);
   ul_dcch_msg.msg.c1().rrc_conn_recfg_complete().crit_exts.set(
@@ -1486,10 +1493,11 @@ void rrc::send_rrc_con_reconfig_complete() {
 
   ul_dcch_msg.msg.c1().rrc_conn_recfg_complete().rrc_transaction_id = transaction_id;
 
-  send_ul_dcch_msg(RB_ID_SRB1);
+  send_ul_dcch_msg(RB_ID_SRB1, ul_dcch_msg);
 }
 
-bool rrc::ho_prepare() {
+bool rrc::ho_prepare()
+{
   if (pending_mob_reconf) {
     asn1::rrc::rrc_conn_recfg_r8_ies_s* mob_reconf_r8 = &mob_reconf.crit_exts.c1().rrc_conn_recfg_r8();
     asn1::rrc::mob_ctrl_info_s*         mob_ctrl_info = &mob_reconf_r8->mob_ctrl_info;
@@ -1951,7 +1959,7 @@ void rrc::write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *pdu)
 *
 *******************************************************************************/
 
-void rrc::send_ul_ccch_msg()
+void rrc::send_ul_ccch_msg(const asn1::rrc::ul_ccch_msg_s& msg)
 {
   // Reset and reuse sdu buffer if provided
   byte_buffer_t *pdcp_buf = pool_allocate_blocking;
@@ -1961,7 +1969,7 @@ void rrc::send_ul_ccch_msg()
   }
 
   asn1::bit_ref bref(pdcp_buf->msg, pdcp_buf->get_tailroom());
-  ul_ccch_msg.pack(bref);
+  msg.pack(bref);
   bref.align_bytes_zero();
   pdcp_buf->N_bytes = (uint32_t)bref.distance_bytes(pdcp_buf->msg);
   pdcp_buf->set_timestamp();
@@ -1978,12 +1986,12 @@ void rrc::send_ul_ccch_msg()
   mac->set_contention_id(uecri);
 
   uint32_t lcid = RB_ID_SRB0;
-  log_rrc_message(get_rb_name(lcid).c_str(), Tx, pdcp_buf, ul_ccch_msg);
+  log_rrc_message(get_rb_name(lcid).c_str(), Tx, pdcp_buf, msg);
 
   pdcp->write_sdu(lcid, pdcp_buf);
 }
 
-void rrc::send_ul_dcch_msg(uint32_t lcid)
+void rrc::send_ul_dcch_msg(uint32_t lcid, const asn1::rrc::ul_dcch_msg_s& msg)
 {
   // Reset and reuse sdu buffer if provided
   byte_buffer_t* pdcp_buf = pool_allocate_blocking;
@@ -1993,12 +2001,12 @@ void rrc::send_ul_dcch_msg(uint32_t lcid)
   }
 
   asn1::bit_ref bref(pdcp_buf->msg, pdcp_buf->get_tailroom());
-  ul_dcch_msg.pack(bref);
+  msg.pack(bref);
   bref.align_bytes_zero();
   pdcp_buf->N_bytes = (uint32_t)bref.distance_bytes(pdcp_buf->msg);
   pdcp_buf->set_timestamp();
 
-  log_rrc_message(get_rb_name(lcid).c_str(), Tx, pdcp_buf, ul_dcch_msg);
+  log_rrc_message(get_rb_name(lcid).c_str(), Tx, pdcp_buf, msg);
 
   pdcp->write_sdu(lcid, pdcp_buf);
 }
@@ -2018,6 +2026,7 @@ void rrc::write_pdu(uint32_t lcid, byte_buffer_t* pdu)
   if (lcid == 0) {
     // FIXME: We unpack and process this message twice to check if it's ConnectionSetup
     asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
+    asn1::rrc::dl_ccch_msg_s dl_ccch_msg;
     dl_ccch_msg.unpack(bref);
     if (dl_ccch_msg.msg.c1().type() == dl_ccch_msg_type_c::c1_c_::types::rrc_conn_setup) {
       // Must enter CONNECT before stopping T300
@@ -2056,6 +2065,7 @@ void rrc::process_pdu(uint32_t lcid, byte_buffer_t *pdu)
 void rrc::parse_dl_ccch(byte_buffer_t* pdu)
 {
   asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
+  asn1::rrc::dl_ccch_msg_s dl_ccch_msg;
   dl_ccch_msg.unpack(bref);
   log_rrc_message(get_rb_name(RB_ID_SRB0).c_str(), Rx, pdu, dl_ccch_msg);
   pool->deallocate(pdu);
@@ -2103,6 +2113,7 @@ void rrc::parse_dl_ccch(byte_buffer_t* pdu)
 void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t* pdu)
 {
   asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
+  asn1::rrc::dl_dcch_msg_s dl_dcch_msg;
   dl_dcch_msg.unpack(bref);
   log_rrc_message(get_rb_name(lcid).c_str(), Rx, pdu, dl_dcch_msg);
   pool->deallocate(pdu);
@@ -2197,6 +2208,7 @@ void rrc::send_rrc_ue_cap_info()
 {
   rrc_log->debug("Preparing UE Capability Info\n");
 
+  asn1::rrc::ul_dcch_msg_s ul_dcch_msg;
   ul_dcch_msg.msg.set(ul_dcch_msg_type_c::types::c1);
   ul_dcch_msg.msg.c1().set(ul_dcch_msg_type_c::c1_c_::types::ue_cap_info);
   ul_dcch_msg.msg.c1().ue_cap_info().rrc_transaction_id = transaction_id;
@@ -2236,7 +2248,7 @@ void rrc::send_rrc_ue_cap_info()
   info->ue_cap_rat_container_list[0].ue_cap_rat_container.resize(cap_len);
   memcpy(info->ue_cap_rat_container_list[0].ue_cap_rat_container.data(), buf, cap_len);
 
-  send_ul_dcch_msg(RB_ID_SRB1);
+  send_ul_dcch_msg(RB_ID_SRB1, ul_dcch_msg);
 }
 
 /*******************************************************************************
@@ -2982,12 +2994,12 @@ bool rrc::rrc_meas::find_earfcn_cell(uint32_t earfcn, uint32_t pci, meas_obj_t *
 /* Generate report procedure 5.5.5 */
 void rrc::rrc_meas::generate_report(uint32_t meas_id)
 {
-  parent->ul_dcch_msg.msg.set(ul_dcch_msg_type_c::types::c1);
-  parent->ul_dcch_msg.msg.c1().set(ul_dcch_msg_type_c::c1_c_::types::meas_report);
-  parent->ul_dcch_msg.msg.c1().meas_report().crit_exts.set(meas_report_s::crit_exts_c_::types::c1);
-  parent->ul_dcch_msg.msg.c1().meas_report().crit_exts.c1().set(
-      meas_report_s::crit_exts_c_::c1_c_::types::meas_report_r8);
-  meas_results_s* report = &parent->ul_dcch_msg.msg.c1().meas_report().crit_exts.c1().meas_report_r8().meas_results;
+  asn1::rrc::ul_dcch_msg_s ul_dcch_msg;
+  ul_dcch_msg.msg.set(ul_dcch_msg_type_c::types::c1);
+  ul_dcch_msg.msg.c1().set(ul_dcch_msg_type_c::c1_c_::types::meas_report);
+  ul_dcch_msg.msg.c1().meas_report().crit_exts.set(meas_report_s::crit_exts_c_::types::c1);
+  ul_dcch_msg.msg.c1().meas_report().crit_exts.c1().set(meas_report_s::crit_exts_c_::c1_c_::types::meas_report_r8);
+  meas_results_s* report = &ul_dcch_msg.msg.c1().meas_report().crit_exts.c1().meas_report_r8().meas_results;
 
   meas_t       *m   = &active[meas_id];
   report_cfg_t *cfg = &reports_cfg[m->report_id];
@@ -3034,7 +3046,7 @@ void rrc::rrc_meas::generate_report(uint32_t meas_id)
   }
 
   // Send to lower layers
-  parent->send_ul_dcch_msg(RB_ID_SRB1);
+  parent->send_ul_dcch_msg(RB_ID_SRB1, ul_dcch_msg);
 }
 
 /* Handle entering/leaving event conditions 5.5.4.1 */

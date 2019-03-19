@@ -366,15 +366,11 @@ private:
   usim_interface_rrc *usim;
   gw_interface_rrc    *gw;
 
-  asn1::rrc::ul_dcch_msg_s ul_dcch_msg;
-  asn1::rrc::ul_ccch_msg_s ul_ccch_msg;
-  asn1::rrc::dl_ccch_msg_s dl_ccch_msg;
-  asn1::rrc::dl_dcch_msg_s dl_dcch_msg;
-
   byte_buffer_t* dedicated_info_nas;
 
-  void send_ul_ccch_msg();
-  void send_ul_dcch_msg(uint32_t lcid);
+  void send_ul_ccch_msg(const asn1::rrc::ul_ccch_msg_s& msg);
+  void send_ul_dcch_msg(uint32_t lcid, const asn1::rrc::ul_dcch_msg_s& msg);
+
   srslte::bit_buffer_t          bit_buf;
 
   pthread_mutex_t mutex;
