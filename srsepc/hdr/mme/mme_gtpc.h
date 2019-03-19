@@ -26,58 +26,53 @@
 #ifndef SRSEPC_MME_GTPC_H
 #define SRSEPC_MME_GTPC_H
 
+#include "nas.h"
+#include "srslte/asn1/gtpc.h"
+#include "srslte/common/buffer_pool.h"
 #include "srslte/common/log.h"
 #include "srslte/common/log_filter.h"
-#include "srslte/common/buffer_pool.h"
-#include "srslte/asn1/gtpc.h"
-#include "nas.h"
 
-namespace srsepc
-{
+namespace srsepc {
 
 class spgw;
 class s1ap;
 
-class mme_gtpc
-  : public gtpc_interface_nas
+class mme_gtpc : public gtpc_interface_nas
 {
 public:
-
-  typedef struct gtpc_ctx{
+  typedef struct gtpc_ctx {
     srslte::gtp_fteid_t mme_ctr_fteid;
     srslte::gtp_fteid_t sgw_ctr_fteid;
-  }gtpc_ctx_t;
+  } gtpc_ctx_t;
   static mme_gtpc* get_instance(void);
-  static void cleanup(void);
+  static void      cleanup(void);
 
-  bool init(srslte::log_filter *mme_gtpc_log);
+  bool init(srslte::log_filter* mme_gtpc_log);
 
-  uint32_t get_new_ctrl_teid();
+  uint32_t     get_new_ctrl_teid();
   virtual bool send_create_session_request(uint64_t imsi);
-  bool handle_create_session_response(srslte::gtpc_pdu *cs_resp_pdu);
-  virtual bool send_modify_bearer_request(uint64_t imsi, uint16_t erab_to_modify, srslte::gtp_fteid_t *enb_fteid);
-  void handle_modify_bearer_response(srslte::gtpc_pdu *mb_resp_pdu);
-  void send_release_access_bearers_request(uint64_t imsi);
+  bool         handle_create_session_response(srslte::gtpc_pdu* cs_resp_pdu);
+  virtual bool send_modify_bearer_request(uint64_t imsi, uint16_t erab_to_modify, srslte::gtp_fteid_t* enb_fteid);
+  void         handle_modify_bearer_response(srslte::gtpc_pdu* mb_resp_pdu);
+  void         send_release_access_bearers_request(uint64_t imsi);
   virtual bool send_delete_session_request(uint64_t imsi);
 
 private:
-
   mme_gtpc();
   virtual ~mme_gtpc();
-  static mme_gtpc *m_instance;
+  static mme_gtpc* m_instance;
 
-  srslte::log_filter *m_mme_gtpc_log;
-  srslte::byte_buffer_pool *m_pool;
+  srslte::log_filter*       m_mme_gtpc_log;
+  srslte::byte_buffer_pool* m_pool;
 
-  s1ap* m_s1ap;
-  spgw* m_spgw;
+  s1ap*     m_s1ap;
+  spgw*     m_spgw;
   in_addr_t m_mme_gtpc_ip;
 
-  uint32_t m_next_ctrl_teid;
-  std::map<uint32_t,uint64_t> m_mme_ctr_teid_to_imsi;
-  std::map<uint64_t,struct gtpc_ctx> m_imsi_to_gtpc_ctx;
-
+  uint32_t                            m_next_ctrl_teid;
+  std::map<uint32_t, uint64_t>        m_mme_ctr_teid_to_imsi;
+  std::map<uint64_t, struct gtpc_ctx> m_imsi_to_gtpc_ctx;
 };
 
-}
+} // namespace srsepc
 #endif // SRSEPC_MME_GTPC_H

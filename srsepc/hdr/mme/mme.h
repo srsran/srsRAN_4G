@@ -41,44 +41,43 @@
 #include "srslte/common/threads.h"
 #include "s1ap.h"
 
+namespace srsepc {
 
-namespace srsepc{
-
-typedef struct{
+typedef struct {
   s1ap_args_t s1ap_args;
-  //diameter_args_t diameter_args;
-  //gtpc_args_t gtpc_args;
+  // diameter_args_t diameter_args;
+  // gtpc_args_t gtpc_args;
 } mme_args_t;
 
-
-class mme:
-  public thread
+class mme : public thread
 {
 public:
   static mme* get_instance(void);
   static void cleanup(void);
-  int init(mme_args_t* args, srslte::log_filter *nas_log, srslte::log_filter *s1ap_log, srslte::log_filter *mme_gtpc_log, hss_interface_nas * hss);
+
+  int  init(mme_args_t*         args,
+            srslte::log_filter* nas_log,
+            srslte::log_filter* s1ap_log,
+            srslte::log_filter* mme_gtpc_log);
   void stop();
-  int get_s1_mme();
+  int  get_s1_mme();
   void run_thread();
 
 private:
-
   mme();
   virtual ~mme();
-  static mme *m_instance;
-  s1ap *m_s1ap;
-  mme_gtpc *m_mme_gtpc;
+  static mme* m_instance;
+  s1ap*       m_s1ap;
+  mme_gtpc*   m_mme_gtpc;
 
-  bool m_running;
-  srslte::byte_buffer_pool *m_pool;
+  bool                      m_running;
+  srslte::byte_buffer_pool* m_pool;
 
   /*Logs*/
-  srslte::log_filter  *m_nas_log;
-  srslte::log_filter  *m_s1ap_log;
-  srslte::log_filter  *m_mme_gtpc_log;
+  srslte::log_filter* m_nas_log;
+  srslte::log_filter* m_s1ap_log;
+  srslte::log_filter* m_mme_gtpc_log;
 };
 
 } // namespace srsepc
-
 #endif // SRSEPC_MME_H

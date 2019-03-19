@@ -24,22 +24,28 @@
  *
  */
 
-#include "srslte/common/bcd_helpers.h"
-#include "srsepc/hdr/mme/s1ap.h"
 #include "srsepc/hdr/mme/s1ap_ctx_mngmt_proc.h"
-#include "srslte/common/liblte_security.h"
+#include "srsepc/hdr/mme/s1ap.h"
+#include "srslte/common/bcd_helpers.h"
 #include "srslte/common/int_helpers.h"
+#include "srslte/common/liblte_security.h"
 
-
-namespace srsepc{
+namespace srsepc {
 
 s1ap_ctx_mngmt_proc* s1ap_ctx_mngmt_proc::m_instance    = NULL;
 pthread_mutex_t      s1ap_ctx_mngmt_proc_instance_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-s1ap_ctx_mngmt_proc::s1ap_ctx_mngmt_proc() {}
-s1ap_ctx_mngmt_proc::~s1ap_ctx_mngmt_proc() {}
+s1ap_ctx_mngmt_proc::s1ap_ctx_mngmt_proc()
+{
+  return;
+}
 
-s1ap_ctx_mngmt_proc* s1ap_ctx_mngmt_proc::get_instance(void)
+s1ap_ctx_mngmt_proc::~s1ap_ctx_mngmt_proc()
+{
+  return;
+}
+
+s1ap_ctx_mngmt_proc* s1ap_ctx_mngmt_proc::get_instance()
 {
   pthread_mutex_lock(&s1ap_ctx_mngmt_proc_instance_mutex);
   if (NULL == m_instance) {
@@ -49,7 +55,7 @@ s1ap_ctx_mngmt_proc* s1ap_ctx_mngmt_proc::get_instance(void)
   return (m_instance);
 }
 
-void s1ap_ctx_mngmt_proc::cleanup(void)
+void s1ap_ctx_mngmt_proc::cleanup()
 {
   pthread_mutex_lock(&s1ap_ctx_mngmt_proc_instance_mutex);
   if (NULL != m_instance) {
@@ -59,14 +65,13 @@ void s1ap_ctx_mngmt_proc::cleanup(void)
   pthread_mutex_unlock(&s1ap_ctx_mngmt_proc_instance_mutex);
 }
 
-void s1ap_ctx_mngmt_proc::init(void)
+void s1ap_ctx_mngmt_proc::init()
 {
-  m_s1ap               = s1ap::get_instance();
-  m_mme_gtpc           = mme_gtpc::get_instance();
-  m_s1ap_log           = m_s1ap->m_s1ap_log;
-  m_s1ap_args          = m_s1ap->m_s1ap_args;
-  m_pool               = srslte::byte_buffer_pool::get_instance();
-  m_s1ap_nas_transport = s1ap_nas_transport::get_instance();
+  m_s1ap      = s1ap::get_instance();
+  m_mme_gtpc  = mme_gtpc::get_instance();
+  m_s1ap_log  = m_s1ap->m_s1ap_log;
+  m_s1ap_args = m_s1ap->m_s1ap_args;
+  m_pool      = srslte::byte_buffer_pool::get_instance();
 }
 
 bool s1ap_ctx_mngmt_proc::send_initial_context_setup_request(nas* nas_ctx, uint16_t erab_to_setup)
@@ -238,7 +243,8 @@ bool s1ap_ctx_mngmt_proc::handle_initial_context_setup_response(
 
 bool s1ap_ctx_mngmt_proc::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQUEST_STRUCT* ue_rel,
                                                             struct sctp_sndrcvinfo*                             enb_sri,
-                                                            srslte::byte_buffer_t* reply_buffer, bool* reply_flag)
+                                                            srslte::byte_buffer_t* reply_buffer,
+                                                            bool*                  reply_flag)
 {
   LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQUEST_STRUCT ue_rel_req;
 
@@ -246,40 +252,40 @@ bool s1ap_ctx_mngmt_proc::handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_
   m_s1ap_log->info("Received UE Context Release Request. MME-UE S1AP Id: %d\n", mme_ue_s1ap_id);
   m_s1ap_log->console("Received UE Context Release Request. MME-UE S1AP Id %d\n", mme_ue_s1ap_id);
 
-  nas * nas_ctx = m_s1ap->find_nas_ctx_from_mme_ue_s1ap_id(mme_ue_s1ap_id);
+  nas* nas_ctx = m_s1ap->find_nas_ctx_from_mme_ue_s1ap_id(mme_ue_s1ap_id);
   if (nas_ctx == NULL) {
     m_s1ap_log->info("No UE context to release found. MME-UE S1AP Id: %d\n", mme_ue_s1ap_id);
     m_s1ap_log->console("No UE context to release found. MME-UE S1AP Id: %d\n", mme_ue_s1ap_id);
     return false;
   }
 
-  emm_ctx_t *emm_ctx = &nas_ctx->m_emm_ctx;
-  ecm_ctx_t *ecm_ctx = &nas_ctx->m_ecm_ctx;
+  emm_ctx_t* emm_ctx = &nas_ctx->m_emm_ctx;
+  ecm_ctx_t* ecm_ctx = &nas_ctx->m_ecm_ctx;
 
-  //Delete user plane context at the SPGW (but keep GTP-C connection).
+  // Delete user plane context at the SPGW (but keep GTP-C connection).
   if (ecm_ctx->state == ECM_STATE_CONNECTED) {
-    //There are active E-RABs, send release access mearers request
+    // There are active E-RABs, send release access mearers request
     m_s1ap_log->console("There are active E-RABs, send release access bearers request\n");
     m_s1ap_log->info("There are active E-RABs, send release access bearers request\n");
 
-    //The handle_release_access_bearers_response function will make sure to mark E-RABS DEACTIVATED
-    //It will release the UEs downstream S1-u and keep the upstream S1-U connection active.
+    // The handle_release_access_bearers_response function will make sure to mark E-RABS DEACTIVATED
+    // It will release the UEs downstream S1-u and keep the upstream S1-U connection active.
     m_mme_gtpc->send_release_access_bearers_request(emm_ctx->imsi);
 
-    //Send release context command to enb, so that it can release it's bearers
+    // Send release context command to enb, so that it can release it's bearers
     send_ue_context_release_command(nas_ctx);
   } else {
-    //No ECM Context to release
+    // No ECM Context to release
     m_s1ap_log->info("UE is not ECM connected. No need to release S1-U. MME UE S1AP Id %d\n", mme_ue_s1ap_id);
     m_s1ap_log->console("UE is not ECM connected. No need to release S1-U. MME UE S1AP Id %d\n", mme_ue_s1ap_id);
-    //Make sure E-RABS are merked as DEACTIVATED.
-    for (int i=0;i<MAX_ERABS_PER_UE;i++) {
+    // Make sure E-RABS are merked as DEACTIVATED.
+    for (int i = 0; i < MAX_ERABS_PER_UE; i++) {
       nas_ctx->m_esm_ctx[i].state = ERAB_DEACTIVATED;
     }
   }
 
-  //Set UE context to ECM Idle
-  ecm_ctx->state = ECM_STATE_IDLE;
+  // Set UE context to ECM Idle
+  ecm_ctx->state          = ECM_STATE_IDLE;
   ecm_ctx->enb_ue_s1ap_id = 0;
   ecm_ctx->mme_ue_s1ap_id = 0;
   m_s1ap_log->info("UE is ECM IDLE.\n");
@@ -334,14 +340,14 @@ bool s1ap_ctx_mngmt_proc::handle_ue_context_release_complete(
   m_s1ap_log->info("Received UE Context Release Complete. MME-UE S1AP Id: %d\n", mme_ue_s1ap_id);
   m_s1ap_log->console("Received UE Context Release Complete. MME-UE S1AP Id %d\n", mme_ue_s1ap_id);
 
-  nas * nas_ctx = m_s1ap->find_nas_ctx_from_mme_ue_s1ap_id(mme_ue_s1ap_id);
+  nas* nas_ctx = m_s1ap->find_nas_ctx_from_mme_ue_s1ap_id(mme_ue_s1ap_id);
   if (nas_ctx == NULL) {
     m_s1ap_log->info("No UE context to release found. MME-UE S1AP Id: %d\n", mme_ue_s1ap_id);
     m_s1ap_log->console("No UE context to release found. MME-UE S1AP Id: %d\n", mme_ue_s1ap_id);
     return false;
   }
-  emm_ctx_t *emm_ctx = &nas_ctx->m_emm_ctx;
-  ecm_ctx_t *ecm_ctx = &nas_ctx->m_ecm_ctx;
+  emm_ctx_t* emm_ctx = &nas_ctx->m_emm_ctx;
+  ecm_ctx_t* ecm_ctx = &nas_ctx->m_ecm_ctx;
 
   // Delete user plane context at the SPGW (but keep GTP-C connection).
   if (ecm_ctx->state == ECM_STATE_CONNECTED) {
@@ -349,22 +355,22 @@ bool s1ap_ctx_mngmt_proc::handle_ue_context_release_complete(
     m_s1ap_log->console("There are active E-RABs, send release access bearers request");
     m_s1ap_log->info("There are active E-RABs, send release access bearers request");
     m_mme_gtpc->send_release_access_bearers_request(emm_ctx->imsi);
-    //The handle_release_access_bearers_response function will make sure to mark E-RABS DEACTIVATED
-    //It will release the UEs downstream S1-U and keep the upstream S1-U connection active.
+    // The handle_release_access_bearers_response function will make sure to mark E-RABS DEACTIVATED
+    // It will release the UEs downstream S1-U and keep the upstream S1-U connection active.
   } else {
-    //No ECM Context to release
+    // No ECM Context to release
     m_s1ap_log->info("UE is not ECM connected. No need to release S1-U. MME UE S1AP Id %d\n", mme_ue_s1ap_id);
     m_s1ap_log->console("UE is not ECM connected. No need to release S1-U. MME UE S1AP Id %d\n", mme_ue_s1ap_id);
-    //Make sure E-RABS are marked as DEACTIVATED.
-    for (int i=0;i<MAX_ERABS_PER_UE;i++) {
+    // Make sure E-RABS are marked as DEACTIVATED.
+    for (int i = 0; i < MAX_ERABS_PER_UE; i++) {
       nas_ctx->m_esm_ctx[i].state = ERAB_DEACTIVATED;
     }
   }
 
-  //Delete UE context
+  // Delete UE context
   m_s1ap->release_ue_ecm_ctx(nas_ctx->m_ecm_ctx.mme_ue_s1ap_id);
   m_s1ap_log->info("UE Context Release Completed.\n");
   m_s1ap_log->console("UE Context Release Completed.\n");
   return true;
 }
-} //namespace srsepc
+} // namespace srsepc

@@ -26,47 +26,47 @@
 #ifndef SRSEPC_S1AP_CTX_MNGMT_PROC_H
 #define SRSEPC_S1AP_CTX_MNGMT_PROC_H
 
-#include "srslte/asn1/liblte_s1ap.h"
-#include "srslte/common/common.h"
-#include "s1ap_common.h"
-#include "srslte/common/log_filter.h"
 #include "mme_gtpc.h"
+#include "s1ap_common.h"
+#include "srslte/asn1/liblte_s1ap.h"
 #include "srslte/common/buffer_pool.h"
+#include "srslte/common/common.h"
+#include "srslte/common/log_filter.h"
 
-namespace srsepc{
+namespace srsepc {
 
 class s1ap;
 
 class s1ap_ctx_mngmt_proc
 {
 public:
-
-  static s1ap_ctx_mngmt_proc *m_instance;
+  static s1ap_ctx_mngmt_proc* m_instance;
   static s1ap_ctx_mngmt_proc* get_instance(void);
-  static void cleanup(void);
+  static void                 cleanup(void);
 
   void init(void);
 
-  bool send_initial_context_setup_request(nas *nas_ctx, uint16_t erab_to_setup);
-  bool handle_initial_context_setup_response(LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT *in_ctxt_resp);
-  bool handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQUEST_STRUCT *ue_rel, struct sctp_sndrcvinfo *enb_sri, srslte::byte_buffer_t *reply_buffer, bool *reply_flag);
-  bool send_ue_context_release_command(nas *nas_ctx);
-  bool handle_ue_context_release_complete(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASECOMPLETE_STRUCT *rel_comp);
+  bool send_initial_context_setup_request(nas* nas_ctx, uint16_t erab_to_setup);
+  bool handle_initial_context_setup_response(LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT* in_ctxt_resp);
+  bool handle_ue_context_release_request(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASEREQUEST_STRUCT* ue_rel,
+                                         struct sctp_sndrcvinfo*                             enb_sri,
+                                         srslte::byte_buffer_t*                              reply_buffer,
+                                         bool*                                               reply_flag);
+  bool send_ue_context_release_command(nas* nas_ctx);
+  bool handle_ue_context_release_complete(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASECOMPLETE_STRUCT* rel_comp);
 
 private:
   s1ap_ctx_mngmt_proc();
   virtual ~s1ap_ctx_mngmt_proc();
 
-  s1ap* m_s1ap;
-  s1ap_nas_transport* m_s1ap_nas_transport;
-  srslte::log_filter *m_s1ap_log;
+  s1ap*               m_s1ap;
+  srslte::log_filter* m_s1ap_log;
 
   s1ap_args_t m_s1ap_args;
 
-  mme_gtpc* m_mme_gtpc;
-  srslte::byte_buffer_pool      *m_pool;
+  mme_gtpc*                 m_mme_gtpc;
+  srslte::byte_buffer_pool* m_pool;
 };
 
-} //namespace srsepc
-
+} // namespace srsepc
 #endif // SRSEPC_S1AP_CTX_MNGMT_PROC_H

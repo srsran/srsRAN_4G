@@ -47,93 +47,86 @@
 #define LTE_FDD_ENB_IND_HE_MAX_VALUE 31
 #define LTE_FDD_ENB_SEQ_HE_MAX_VALUE 0x07FFFFFFFFFFUL
 
-namespace srsepc{
+namespace srsepc {
 
-typedef struct{
+typedef struct {
   std::string auth_algo;
   std::string db_file;
-  uint16_t mcc;
-  uint16_t mnc;
-}hss_args_t;
+  uint16_t    mcc;
+  uint16_t    mnc;
+} hss_args_t;
 
-typedef struct{
-    std::string name;
-    uint64_t imsi;
-    uint8_t  key[16];
-    bool     op_configured;
-    uint8_t  op[16];
-    uint8_t  opc[16];
-    uint8_t  amf[2];
-    uint8_t  sqn[6];
-    uint16_t qci;
-    uint8_t  last_rand[16];
-}hss_ue_ctx_t;
+typedef struct {
+  std::string name;
+  uint64_t    imsi;
+  uint8_t     key[16];
+  bool        op_configured;
+  uint8_t     op[16];
+  uint8_t     opc[16];
+  uint8_t     amf[2];
+  uint8_t     sqn[6];
+  uint16_t    qci;
+  uint8_t     last_rand[16];
+} hss_ue_ctx_t;
 
-enum hss_auth_algo {
-  HSS_ALGO_XOR,
-  HSS_ALGO_MILENAGE
-};
+enum hss_auth_algo { HSS_ALGO_XOR, HSS_ALGO_MILENAGE };
 
 class hss : public hss_interface_nas
 {
 public:
   static hss* get_instance(void);
   static void cleanup(void);
-  int init(hss_args_t *hss_args, srslte::log_filter* hss_log);
-  void stop(void);
+  int         init(hss_args_t* hss_args, srslte::log_filter* hss_log);
+  void        stop(void);
 
-  virtual bool gen_auth_info_answer(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uint8_t *rand, uint8_t *xres);
+  virtual bool gen_auth_info_answer(uint64_t imsi, uint8_t* k_asme, uint8_t* autn, uint8_t* rand, uint8_t* xres);
   virtual bool gen_update_loc_answer(uint64_t imsi, uint8_t* qci);
 
-  virtual bool resync_sqn(uint64_t imsi, uint8_t *auts);
+  virtual bool resync_sqn(uint64_t imsi, uint8_t* auts);
 
 private:
-
   hss();
   virtual ~hss();
-  static hss *m_instance;
+  static hss* m_instance;
 
-  srslte::byte_buffer_pool *m_pool;
-
-  std::map<uint64_t,hss_ue_ctx_t*> m_imsi_to_ue_ctx;
-
+  std::map<uint64_t, hss_ue_ctx_t*> m_imsi_to_ue_ctx;
 
   void gen_rand(uint8_t rand_[16]);
-  bool get_k_amf_opc_sqn(uint64_t imsi, uint8_t *k, uint8_t *amf, uint8_t *opc, uint8_t *sqn);
+  bool get_k_amf_opc_sqn(uint64_t imsi, uint8_t* k, uint8_t* amf, uint8_t* opc, uint8_t* sqn);
 
-  bool gen_auth_info_answer_milenage(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uint8_t *rand, uint8_t *xres);
-  bool gen_auth_info_answer_xor(uint64_t imsi, uint8_t *k_asme, uint8_t *autn, uint8_t *rand, uint8_t *xres);
+  bool gen_auth_info_answer_milenage(uint64_t imsi, uint8_t* k_asme, uint8_t* autn, uint8_t* rand, uint8_t* xres);
+  bool gen_auth_info_answer_xor(uint64_t imsi, uint8_t* k_asme, uint8_t* autn, uint8_t* rand, uint8_t* xres);
 
-  bool resync_sqn_milenage(uint64_t imsi, uint8_t *auts);
-  bool resync_sqn_xor(uint64_t imsi, uint8_t *auts);
+  bool resync_sqn_milenage(uint64_t imsi, uint8_t* auts);
+  bool resync_sqn_xor(uint64_t imsi, uint8_t* auts);
 
-  std::vector<std::string> split_string(const std::string &str, char delimiter);
-  void get_uint_vec_from_hex_str(const std::string &key_str, uint8_t *key, uint len);
+  std::vector<std::string> split_string(const std::string& str, char delimiter);
+  void                     get_uint_vec_from_hex_str(const std::string& key_str, uint8_t* key, uint len);
 
   void increment_ue_sqn(uint64_t imsi);
   void increment_seq_after_resync(uint64_t imsi);
-  void increment_sqn(uint8_t *sqn, uint8_t *next_sqn);
-  void set_sqn(uint64_t imsi, uint8_t *sqn);
+  void increment_sqn(uint8_t* sqn, uint8_t* next_sqn);
+  void set_sqn(uint64_t imsi, uint8_t* sqn);
 
-  void set_last_rand(uint64_t imsi, uint8_t *rand);
-  void get_last_rand(uint64_t imsi, uint8_t *rand);
+  void set_last_rand(uint64_t imsi, uint8_t* rand);
+  void get_last_rand(uint64_t imsi, uint8_t* rand);
 
   bool set_auth_algo(std::string auth_algo);
   bool read_db_file(std::string db_file);
   bool write_db_file(std::string db_file);
-  bool get_ue_ctx(uint64_t imsi, hss_ue_ctx_t **ue_ctx);
-  
-  std::string hex_string(uint8_t *hex, int size);
+  bool get_ue_ctx(uint64_t imsi, hss_ue_ctx_t** ue_ctx);
+
+  std::string hex_string(uint8_t* hex, int size);
 
   enum hss_auth_algo m_auth_algo;
-  std::string db_file;
+  std::string        db_file;
+
   /*Logs*/
-  srslte::log_filter       *m_hss_log;
-  
+  srslte::log_filter* m_hss_log;
+
   uint16_t mcc;
   uint16_t mnc;
 };
 
 } // namespace srsepc
-
 #endif // SRSEPC_HSS_H

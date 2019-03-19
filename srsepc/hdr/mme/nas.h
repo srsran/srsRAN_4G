@@ -21,16 +21,15 @@
 #ifndef SRSEPC_NAS_H
 #define SRSEPC_NAS_H
 
+#include "srslte/asn1/gtpc_ies.h"
+#include "srslte/asn1/liblte_mme.h"
+#include "srslte/asn1/liblte_s1ap.h"
+#include "srslte/common/buffer_pool.h"
+#include "srslte/common/security.h"
+#include "srslte/interfaces/epc_interfaces.h"
 #include <netinet/sctp.h>
 
-#include "srslte/common/security.h"
-#include "srslte/asn1/gtpc_ies.h"
-#include "srslte/asn1/liblte_s1ap.h"
-#include "srslte/asn1/liblte_mme.h"
-#include "srslte/common/buffer_pool.h"
-#include "srslte/interfaces/epc_interfaces.h"
-
-namespace srsepc{
+namespace srsepc {
 
 static const uint8_t MAX_ERABS_PER_UE = 16;
 
@@ -42,9 +41,7 @@ typedef enum {
   EMM_STATE_DEREGISTERED_INITIATED,
   EMM_STATE_N_ITEMS,
 } emm_state_t;
-static const char emm_state_text[EMM_STATE_N_ITEMS][100] = {"DEREGISTERED",
-                                                            "COMMON PROCEDURE INITIATED",
-                                                            "REGISTERED",
+static const char emm_state_text[EMM_STATE_N_ITEMS][100] = {"DEREGISTERED", "COMMON PROCEDURE INITIATED", "REGISTERED",
                                                             "DEREGISTERED INITIATED"};
 
 // MME ECM states (3GPP 23.401 v10.0.0, section 4.6.3)
@@ -53,8 +50,8 @@ typedef enum {
   ECM_STATE_CONNECTED,
   ECM_STATE_N_ITEMS,
 } ecm_state_t;
-static const char ecm_state_text[ECM_STATE_N_ITEMS][100] = {"IDLE",
-                                                            "CONNECTED"};
+static const char ecm_state_text[ECM_STATE_N_ITEMS][100] = {"IDLE", "CONNECTED"};
+
 /*
 // MME ESM states (3GPP 23.401 v10.0.0, section 4.6.3)
 typedef enum {
@@ -75,73 +72,67 @@ static const char esm_state_text[ESM_STATE_N_ITEMS][100] = {"CONTEXT INACTIVE",
                                                             "PROCEDURE_TRANSACTION_INACTIVE"
                                                             "PROCEDURE_TRANSACTION_PENDING"};
 */
-typedef enum
-{
-  ERAB_DEACTIVATED,
-  ERAB_CTX_REQUESTED,
-  ERAB_CTX_SETUP,
-  ERAB_ACTIVE
-} esm_state_t;
+typedef enum { ERAB_DEACTIVATED, ERAB_CTX_REQUESTED, ERAB_CTX_SETUP, ERAB_ACTIVE } esm_state_t;
 
 /*
  * EMM, ECM, ESM and EPS Security context definitions
  */
-typedef struct{
-    uint64_t    imsi;
-    emm_state_t state;
-    uint8_t     procedure_transaction_id;
-    uint8_t     attach_type;
-    struct in_addr ue_ip;
-    srslte::gtpc_f_teid_ie sgw_ctrl_fteid;
+typedef struct {
+  uint64_t               imsi;
+  emm_state_t            state;
+  uint8_t                procedure_transaction_id;
+  uint8_t                attach_type;
+  struct in_addr         ue_ip;
+  srslte::gtpc_f_teid_ie sgw_ctrl_fteid;
 } emm_ctx_t;
 
-typedef struct{
-  ecm_state_t state;
-  uint32_t enb_ue_s1ap_id;
-  uint32_t mme_ue_s1ap_id;
-  struct   sctp_sndrcvinfo enb_sri;
-  bool eit;
+typedef struct {
+  ecm_state_t            state;
+  uint32_t               enb_ue_s1ap_id;
+  uint32_t               mme_ue_s1ap_id;
+  struct sctp_sndrcvinfo enb_sri;
+  bool                   eit;
 } ecm_ctx_t;
 
-typedef struct{
-  uint8_t erab_id;
-  esm_state_t state;
-  uint8_t qci;
-  srslte::gtpc_f_teid_ie enb_fteid;
-  srslte::gtpc_f_teid_ie sgw_s1u_fteid;
+typedef struct {
+  uint8_t                                erab_id;
+  esm_state_t                            state;
+  uint8_t                                qci;
+  srslte::gtpc_f_teid_ie                 enb_fteid;
+  srslte::gtpc_f_teid_ie                 sgw_s1u_fteid;
   srslte::gtpc_pdn_address_allocation_ie pdn_addr_alloc;
 } esm_ctx_t;
 
-typedef struct{
-  uint8_t  eksi;
-  uint8_t  k_asme[32];
-  uint8_t  autn[16];
-  uint8_t  rand[16];
-  uint8_t  xres[16]; //minimum 6, maximum 16
-  uint32_t dl_nas_count;
-  uint32_t ul_nas_count;
-  srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
-  srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
-  uint8_t k_nas_enc[32];
-  uint8_t k_nas_int[32];
-  uint8_t k_enb[32];
+typedef struct {
+  uint8_t                                 eksi;
+  uint8_t                                 k_asme[32];
+  uint8_t                                 autn[16];
+  uint8_t                                 rand[16];
+  uint8_t                                 xres[16]; // minimum 6, maximum 16
+  uint32_t                                dl_nas_count;
+  uint32_t                                ul_nas_count;
+  srslte::CIPHERING_ALGORITHM_ID_ENUM     cipher_algo;
+  srslte::INTEGRITY_ALGORITHM_ID_ENUM     integ_algo;
+  uint8_t                                 k_nas_enc[32];
+  uint8_t                                 k_nas_int[32];
+  uint8_t                                 k_enb[32];
   LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT ue_network_cap;
-  bool ms_network_cap_present;
+  bool                                    ms_network_cap_present;
   LIBLTE_MME_MS_NETWORK_CAPABILITY_STRUCT ms_network_cap;
-  LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT guti;
+  LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT    guti;
 } sec_ctx_t;
 
 /*
  * NAS Initialization Arguments
  */
 typedef struct {
-  uint16_t mcc;
-  uint16_t mnc;
-  uint8_t  mme_code;
-  uint16_t mme_group;
-  uint16_t tac;
-  std::string apn;
-  std::string dns;
+  uint16_t                            mcc;
+  uint16_t                            mnc;
+  uint8_t                             mme_code;
+  uint16_t                            mme_group;
+  uint16_t                            tac;
+  std::string                         apn;
+  std::string                         dns;
   srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
   srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
 } nas_init_t;
@@ -150,101 +141,101 @@ class nas
 {
 public:
   nas();
-  void init(nas_init_t args,
-            s1ap_interface_nas *s1ap,
-            gtpc_interface_nas *gtpc,
-            hss_interface_nas *hss,
-            srslte::log *nas_log);
+  void init(nas_init_t          args,
+            s1ap_interface_nas* s1ap,
+            gtpc_interface_nas* gtpc,
+            hss_interface_nas*  hss,
+            srslte::log*        nas_log);
 
   /***********************
    * Initial UE messages *
    ***********************/
-  //Attach request messages
-  static bool handle_attach_request( uint32_t enb_ue_s1ap_id,
-                                     struct sctp_sndrcvinfo *enb_sri,
-                                     srslte::byte_buffer_t *nas_rx,
-                                     nas_init_t args,
-                                     s1ap_interface_nas *s1ap,
-                                     gtpc_interface_nas *gtpc,
-                                     hss_interface_nas  *hss,
-                                     srslte::log        *nas_log);
+  // Attach request messages
+  static bool handle_attach_request(uint32_t                enb_ue_s1ap_id,
+                                    struct sctp_sndrcvinfo* enb_sri,
+                                    srslte::byte_buffer_t*  nas_rx,
+                                    nas_init_t              args,
+                                    s1ap_interface_nas*     s1ap,
+                                    gtpc_interface_nas*     gtpc,
+                                    hss_interface_nas*      hss,
+                                    srslte::log*            nas_log);
 
-  static bool handle_imsi_attach_request_unknown_ue( uint32_t enb_ue_s1ap_id,
-                                                     struct sctp_sndrcvinfo *enb_sri,
-                                                     const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT &attach_req,
-                                                     const LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT &pdn_con_req,
-                                                     nas_init_t args,
-                                                     s1ap_interface_nas *s1ap,
-                                                     gtpc_interface_nas *gtpc,
-                                                     hss_interface_nas  *hss,
-                                                     srslte::log        *nas_log);
+  static bool handle_imsi_attach_request_unknown_ue(uint32_t                                    enb_ue_s1ap_id,
+                                                    struct sctp_sndrcvinfo*                     enb_sri,
+                                                    const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT& attach_req,
+                                                    const LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT& pdn_con_req,
+                                                    nas_init_t                                            args,
+                                                    s1ap_interface_nas*                                   s1ap,
+                                                    gtpc_interface_nas*                                   gtpc,
+                                                    hss_interface_nas*                                    hss,
+                                                    srslte::log*                                          nas_log);
 
-  static bool handle_imsi_attach_request_known_ue( nas *nas_ctx,
-                                                   uint32_t enb_ue_s1ap_id,
-                                                   struct sctp_sndrcvinfo *enb_sri,
-                                                   const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT &attach_req,
-                                                   const LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT &pdn_con_req,
-                                                   srslte::byte_buffer_t *nas_rx,
-                                                   nas_init_t args,
-                                                   s1ap_interface_nas *s1ap,
-                                                   gtpc_interface_nas *gtpc,
-                                                   hss_interface_nas  *hss,
-                                                   srslte::log        *nas_log);
+  static bool handle_imsi_attach_request_known_ue(nas*                                                  nas_ctx,
+                                                  uint32_t                                              enb_ue_s1ap_id,
+                                                  struct sctp_sndrcvinfo*                               enb_sri,
+                                                  const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT&           attach_req,
+                                                  const LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT& pdn_con_req,
+                                                  srslte::byte_buffer_t*                                nas_rx,
+                                                  nas_init_t                                            args,
+                                                  s1ap_interface_nas*                                   s1ap,
+                                                  gtpc_interface_nas*                                   gtpc,
+                                                  hss_interface_nas*                                    hss,
+                                                  srslte::log*                                          nas_log);
 
+  static bool handle_guti_attach_request_unknown_ue(uint32_t                                    enb_ue_s1ap_id,
+                                                    struct sctp_sndrcvinfo*                     enb_sri,
+                                                    const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT& attach_req,
+                                                    const LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT& pdn_con_req,
+                                                    nas_init_t                                            args,
+                                                    s1ap_interface_nas*                                   s1ap,
+                                                    gtpc_interface_nas*                                   gtpc,
+                                                    hss_interface_nas*                                    hss,
+                                                    srslte::log*                                          nas_log);
 
-  static bool handle_guti_attach_request_unknown_ue( uint32_t enb_ue_s1ap_id,
-                                                     struct sctp_sndrcvinfo *enb_sri,
-                                                     const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT &attach_req,
-                                                     const LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT &pdn_con_req,
-                                                     nas_init_t args,
-                                                     s1ap_interface_nas *s1ap,
-                                                     gtpc_interface_nas *gtpc,
-                                                     hss_interface_nas  *hss,
-                                                     srslte::log        *nas_log);
+  static bool handle_guti_attach_request_known_ue(nas*                                                  nas_ctx,
+                                                  uint32_t                                              enb_ue_s1ap_id,
+                                                  struct sctp_sndrcvinfo*                               enb_sri,
+                                                  const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT&           attach_req,
+                                                  const LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT& pdn_con_req,
+                                                  srslte::byte_buffer_t*                                nas_rx,
+                                                  nas_init_t                                            args,
+                                                  s1ap_interface_nas*                                   s1ap,
+                                                  gtpc_interface_nas*                                   gtpc,
+                                                  hss_interface_nas*                                    hss,
+                                                  srslte::log*                                          nas_log);
 
-  static bool handle_guti_attach_request_known_ue( nas *nas_ctx,
-                                                   uint32_t enb_ue_s1ap_id,
-                                                   struct sctp_sndrcvinfo *enb_sri,
-                                                   const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT &attach_req,
-                                                   const LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT &pdn_con_req,
-                                                   srslte::byte_buffer_t *nas_rx,
-                                                   nas_init_t args,
-                                                   s1ap_interface_nas *s1ap,
-                                                   gtpc_interface_nas *gtpc,
-                                                   hss_interface_nas  *hss,
-                                                   srslte::log        *nas_log);
-  //Service request messages
-  static bool handle_service_request( uint32_t m_tmsi,
-                                      uint32_t enb_ue_s1ap_id,
-                                      struct sctp_sndrcvinfo *enb_sri,
-                                      srslte::byte_buffer_t *nas_rx,
-                                      nas_init_t args,
-                                      s1ap_interface_nas *s1ap,
-                                      gtpc_interface_nas *gtpc,
-                                      hss_interface_nas  *hss,
-                                      srslte::log        *nas_log);
+  // Service request messages
+  static bool handle_service_request(uint32_t                m_tmsi,
+                                     uint32_t                enb_ue_s1ap_id,
+                                     struct sctp_sndrcvinfo* enb_sri,
+                                     srslte::byte_buffer_t*  nas_rx,
+                                     nas_init_t              args,
+                                     s1ap_interface_nas*     s1ap,
+                                     gtpc_interface_nas*     gtpc,
+                                     hss_interface_nas*      hss,
+                                     srslte::log*            nas_log);
 
-  //Dettach request messages
-  static bool handle_detach_request(  uint32_t m_tmsi,
-                                      uint32_t enb_ue_s1ap_id,
-                                      struct sctp_sndrcvinfo *enb_sri,
-                                      srslte::byte_buffer_t *nas_rx,
-                                      nas_init_t args,
-                                      s1ap_interface_nas *s1ap,
-                                      gtpc_interface_nas *gtpc,
-                                      hss_interface_nas  *hss,
-                                      srslte::log        *nas_log);
+  // Dettach request messages
+  static bool handle_detach_request(uint32_t                m_tmsi,
+                                    uint32_t                enb_ue_s1ap_id,
+                                    struct sctp_sndrcvinfo* enb_sri,
+                                    srslte::byte_buffer_t*  nas_rx,
+                                    nas_init_t              args,
+                                    s1ap_interface_nas*     s1ap,
+                                    gtpc_interface_nas*     gtpc,
+                                    hss_interface_nas*      hss,
+                                    srslte::log*            nas_log);
 
-  //Tracking area update request messages
-  static bool handle_tracking_area_update_request( uint32_t m_tmsi,
-                                                   uint32_t enb_ue_s1ap_id,
-                                                   struct sctp_sndrcvinfo *enb_sri,
-                                                   srslte::byte_buffer_t *nas_rx,
-                                                   nas_init_t args,
-                                                   s1ap_interface_nas *s1ap,
-                                                   gtpc_interface_nas *gtpc,
-                                                   hss_interface_nas  *hss,
-                                                   srslte::log        *nas_log);
+  // Tracking area update request messages
+  static bool handle_tracking_area_update_request(uint32_t                m_tmsi,
+                                                  uint32_t                enb_ue_s1ap_id,
+                                                  struct sctp_sndrcvinfo* enb_sri,
+                                                  srslte::byte_buffer_t*  nas_rx,
+                                                  nas_init_t              args,
+                                                  s1ap_interface_nas*     s1ap,
+                                                  gtpc_interface_nas*     gtpc,
+                                                  hss_interface_nas*      hss,
+                                                  srslte::log*            nas_log);
 
   /* Uplink NAS messages handling */
   bool handle_authentication_response(srslte::byte_buffer_t* nas_rx);
@@ -269,7 +260,7 @@ public:
   /* Security functions */
   bool integrity_check(srslte::byte_buffer_t* pdu);
   bool short_integrity_check(srslte::byte_buffer_t* pdu);
-  void integrity_generate(srslte::byte_buffer_t* pdu, uint8_t *mac);
+  void integrity_generate(srslte::byte_buffer_t* pdu, uint8_t* mac);
   void cipher_decrypt(srslte::byte_buffer_t* pdu);
   void cipher_encrypt(srslte::byte_buffer_t* pdu);
 
@@ -280,20 +271,20 @@ public:
   sec_ctx_t m_sec_ctx;
 
 private:
-  srslte::byte_buffer_pool   *m_pool;
-  srslte::log                *m_nas_log;
-  gtpc_interface_nas         *m_gtpc;
-  s1ap_interface_nas         *m_s1ap;
-  hss_interface_nas          *m_hss;
+  srslte::byte_buffer_pool* m_pool;
+  srslte::log*              m_nas_log;
+  gtpc_interface_nas*       m_gtpc;
+  s1ap_interface_nas*       m_s1ap;
+  hss_interface_nas*        m_hss;
 
-  uint16_t                    m_mcc;
-  uint16_t                    m_mnc;
-  uint16_t                    m_mme_group;
-  uint16_t                    m_mme_code;
-  uint16_t                    m_tac;
-  std::string                 m_apn;
-  std::string                 m_dns;
+  uint16_t    m_mcc;
+  uint16_t    m_mnc;
+  uint16_t    m_mme_group;
+  uint16_t    m_mme_code;
+  uint16_t    m_tac;
+  std::string m_apn;
+  std::string m_dns;
 };
 
-}//namespace
+} // namespace srsepc
 #endif // SRSEPC_NAS_H

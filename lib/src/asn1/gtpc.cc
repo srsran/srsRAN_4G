@@ -1,5 +1,4 @@
-/**
- *
+/*
  * \section COPYRIGHT
  *
  * Copyright 2013-2017 Software Radio Systems Limited
@@ -27,14 +26,11 @@
 #include "srslte/asn1/gtpc.h"
 #include "srslte/common/common.h"
 
-namespace srslte{
+namespace srslte {
 
-
-int
-gtpc_pack_create_session_request(struct gtpc_create_session_request *cs_req, srslte::byte_buffer_t)
+int gtpc_pack_create_session_request(struct gtpc_create_session_request* cs_req, srslte::byte_buffer_t)
 {
-  //FIXME    
+  // TODO
   return 0;
 }
-
-};
+} // namespace srslte
