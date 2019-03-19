@@ -35,9 +35,7 @@
 SRSLTE_API int rf_soapy_open(char *args,
                              void **handler);
 
-SRSLTE_API int rf_soapy_open_multi(char *args,
-                                   void **handler,
-                                   uint32_t nof_rx_antennas);
+SRSLTE_API int rf_soapy_open_multi(char* args, void** handler, uint32_t num_requested_channels);
 
 SRSLTE_API char* rf_soapy_devname(void *h);
 
