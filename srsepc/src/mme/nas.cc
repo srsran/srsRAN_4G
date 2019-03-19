@@ -38,8 +38,7 @@ nas::nas()
   m_pool = srslte::byte_buffer_pool::get_instance();
 }
 
-void nas::init(
-    nas_init_t args, s1ap_interface_nas* s1ap, gtpc_interface_nas* gtpc, hss_interface_nas* hss, srslte::log* nas_log)
+void nas::init(nas_init_t args, nas_if_t itf, srslte::log* nas_log)
 {
   m_mcc       = args.mcc;
   m_mnc       = args.mnc;
@@ -52,9 +51,9 @@ void nas::init(
   m_sec_ctx.integ_algo  = args.integ_algo;
   m_sec_ctx.cipher_algo = args.cipher_algo;
 
-  m_s1ap    = s1ap;
-  m_gtpc    = gtpc;
-  m_hss     = hss;
+  m_s1ap    = itf.s1ap;
+  m_gtpc    = itf.gtpc;
+  m_hss     = itf.hss;
   m_nas_log = nas_log;
   m_nas_log->info("NAS Context Initialized. MCC: 0x%x, MNC 0x%x\n", m_mcc, m_mnc);
 }
@@ -68,15 +67,18 @@ bool nas::handle_attach_request(uint32_t                enb_ue_s1ap_id,
                                 struct sctp_sndrcvinfo* enb_sri,
                                 srslte::byte_buffer_t*  nas_rx,
                                 nas_init_t              args,
-                                s1ap_interface_nas*     s1ap,
-                                gtpc_interface_nas*     gtpc,
-                                hss_interface_nas*      hss,
+                                nas_if_t                itf,
                                 srslte::log*            nas_log)
 {
   uint32_t                                       m_tmsi = 0;
   uint64_t                                       imsi   = 0;
   LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT           attach_req;
   LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT pdn_con_req;
+
+  // Interfaces
+  s1ap_interface_nas* s1ap = itf.s1ap;
+  hss_interface_nas*  hss  = itf.hss;
+  gtpc_interface_nas* gtpc = itf.gtpc;
 
   // Get NAS Attach Request and PDN connectivity request messages
   LIBLTE_ERROR_ENUM err = liblte_mme_unpack_attach_request_msg((LIBLTE_BYTE_MSG_STRUCT*)nas_rx, &attach_req);
@@ -151,11 +153,9 @@ bool nas::handle_attach_request(uint32_t                enb_ue_s1ap_id,
   if (nas_ctx == NULL) {
     // Get attach type from attach request
     if (attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI) {
-      nas::handle_imsi_attach_request_unknown_ue(enb_ue_s1ap_id, enb_sri, attach_req, pdn_con_req, args, s1ap, gtpc,
-                                                 hss, nas_log);
+      nas::handle_imsi_attach_request_unknown_ue(enb_ue_s1ap_id, enb_sri, attach_req, pdn_con_req, args, itf, nas_log);
     } else if (attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_GUTI) {
-      nas::handle_guti_attach_request_unknown_ue(enb_ue_s1ap_id, enb_sri, attach_req, pdn_con_req, args, s1ap, gtpc,
-                                                 hss, nas_log);
+      nas::handle_guti_attach_request_unknown_ue(enb_ue_s1ap_id, enb_sri, attach_req, pdn_con_req, args, itf, nas_log);
     } else {
       return false;
     }
@@ -164,10 +164,10 @@ bool nas::handle_attach_request(uint32_t                enb_ue_s1ap_id,
     nas_log->console("Attach Request -- Found previously attach UE.\n");
     if (attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI) {
       nas::handle_imsi_attach_request_known_ue(nas_ctx, enb_ue_s1ap_id, enb_sri, attach_req, pdn_con_req, nas_rx, args,
-                                               s1ap, gtpc, hss, nas_log);
+                                               itf, nas_log);
     } else if (attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_GUTI) {
       nas::handle_guti_attach_request_known_ue(nas_ctx, enb_ue_s1ap_id, enb_sri, attach_req, pdn_con_req, nas_rx, args,
-                                               s1ap, gtpc, hss, nas_log);
+                                               itf, nas_log);
     } else {
       return false;
     }
@@ -180,14 +180,17 @@ bool nas::handle_imsi_attach_request_unknown_ue(uint32_t                        
                                                 const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT&           attach_req,
                                                 const LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT& pdn_con_req,
                                                 nas_init_t                                            args,
-                                                s1ap_interface_nas*                                   s1ap,
-                                                gtpc_interface_nas*                                   gtpc,
-                                                hss_interface_nas*                                    hss,
+                                                nas_if_t                                              itf,
                                                 srslte::log*                                          nas_log)
 {
   nas*                      nas_ctx;
   srslte::byte_buffer_t*    nas_tx;
   srslte::byte_buffer_pool* pool = srslte::byte_buffer_pool::get_instance();
+
+  // Interfaces
+  s1ap_interface_nas* s1ap = itf.s1ap;
+  hss_interface_nas*  hss  = itf.hss;
+  gtpc_interface_nas* gtpc = itf.gtpc;
 
   // Get IMSI
   uint64_t imsi = 0;
@@ -197,7 +200,7 @@ bool nas::handle_imsi_attach_request_unknown_ue(uint32_t                        
 
   // Create UE context
   nas_ctx = new nas;
-  nas_ctx->init(args, s1ap, gtpc, hss, nas_log);
+  nas_ctx->init(args, itf, nas_log);
 
   // Save IMSI, eNB UE S1AP Id, MME UE S1AP Id and make sure UE is EMM_DEREGISTERED
   nas_ctx->m_emm_ctx.imsi           = imsi;
@@ -275,12 +278,16 @@ bool nas::handle_imsi_attach_request_known_ue(nas*                              
                                               const LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT& pdn_con_req,
                                               srslte::byte_buffer_t*                                nas_rx,
                                               nas_init_t                                            args,
-                                              s1ap_interface_nas*                                   s1ap,
-                                              gtpc_interface_nas*                                   gtpc,
-                                              hss_interface_nas*                                    hss,
+                                              nas_if_t                                              itf,
                                               srslte::log*                                          nas_log)
 {
   bool err;
+
+  // Interfaces
+  s1ap_interface_nas* s1ap = itf.s1ap;
+  hss_interface_nas*  hss  = itf.hss;
+  gtpc_interface_nas* gtpc = itf.gtpc;
+
   // Delete previous GTP-U session
   gtpc->send_delete_session_request(nas_ctx->m_emm_ctx.imsi);
 
@@ -292,8 +299,7 @@ bool nas::handle_imsi_attach_request_known_ue(nas*                              
   s1ap->delete_ue_ctx(nas_ctx->m_emm_ctx.imsi);
 
   // Handle new attach
-  err = nas::handle_imsi_attach_request_unknown_ue(enb_ue_s1ap_id, enb_sri, attach_req, pdn_con_req, args, s1ap, gtpc,
-                                                   hss, nas_log);
+  err = nas::handle_imsi_attach_request_unknown_ue(enb_ue_s1ap_id, enb_sri, attach_req, pdn_con_req, args, itf, nas_log);
   return err;
 }
 
@@ -302,9 +308,7 @@ bool nas::handle_guti_attach_request_unknown_ue(uint32_t                        
                                                 const LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT&           attach_req,
                                                 const LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT& pdn_con_req,
                                                 nas_init_t                                            args,
-                                                s1ap_interface_nas*                                   s1ap,
-                                                gtpc_interface_nas*                                   gtpc,
-                                                hss_interface_nas*                                    hss,
+                                                nas_if_t                                              itf,
                                                 srslte::log*                                          nas_log)
 
 {
@@ -312,9 +316,14 @@ bool nas::handle_guti_attach_request_unknown_ue(uint32_t                        
   srslte::byte_buffer_pool* pool = srslte::byte_buffer_pool::get_instance();
   srslte::byte_buffer_t*    nas_tx;
 
+  // Interfaces
+  s1ap_interface_nas* s1ap = itf.s1ap;
+  hss_interface_nas*  hss  = itf.hss;
+  gtpc_interface_nas* gtpc = itf.gtpc;
+
   // Create new NAS context.
   nas_ctx = new nas;
-  nas_ctx->init(args, s1ap, gtpc, hss, nas_log);
+  nas_ctx->init(args, itf, nas_log);
 
   // Could not find IMSI from M-TMSI, send Id request
   // The IMSI will be set when the identity response is received
@@ -377,9 +386,7 @@ bool nas::handle_guti_attach_request_known_ue(nas*                              
                                               const LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT& pdn_con_req,
                                               srslte::byte_buffer_t*                                nas_rx,
                                               nas_init_t                                            args,
-                                              s1ap_interface_nas*                                   s1ap,
-                                              gtpc_interface_nas*                                   gtpc,
-                                              hss_interface_nas*                                    hss,
+                                              nas_if_t                                              itf,
                                               srslte::log*                                          nas_log)
 {
   bool                      msg_valid = false;
@@ -389,6 +396,11 @@ bool nas::handle_guti_attach_request_known_ue(nas*                              
   emm_ctx_t* emm_ctx = &nas_ctx->m_emm_ctx;
   ecm_ctx_t* ecm_ctx = &nas_ctx->m_ecm_ctx;
   sec_ctx_t* sec_ctx = &nas_ctx->m_sec_ctx;
+
+  // Interfaces
+  s1ap_interface_nas* s1ap = itf.s1ap;
+  hss_interface_nas*  hss  = itf.hss;
+  gtpc_interface_nas* gtpc = itf.gtpc;
 
   nas_log->console("Found UE context. IMSI: %015" PRIu64 ", old eNB UE S1ap Id %d, old MME UE S1AP Id %d\n",
                    emm_ctx->imsi, ecm_ctx->enb_ue_s1ap_id, ecm_ctx->mme_ue_s1ap_id);
@@ -526,9 +538,7 @@ bool nas::handle_service_request(uint32_t                m_tmsi,
                                  struct sctp_sndrcvinfo* enb_sri,
                                  srslte::byte_buffer_t*  nas_rx,
                                  nas_init_t              args,
-                                 s1ap_interface_nas*     s1ap,
-                                 gtpc_interface_nas*     gtpc,
-                                 hss_interface_nas*      hss,
+                                 nas_if_t                itf,
                                  srslte::log*            nas_log)
 {
   nas_log->info("Service request -- S-TMSI 0x%x\n", m_tmsi);
@@ -539,6 +549,11 @@ bool nas::handle_service_request(uint32_t                m_tmsi,
   bool                                  mac_valid = false;
   LIBLTE_MME_SERVICE_REQUEST_MSG_STRUCT service_req;
   srslte::byte_buffer_pool*             pool = srslte::byte_buffer_pool::get_instance();
+
+  // Interfaces
+  s1ap_interface_nas* s1ap = itf.s1ap;
+  hss_interface_nas*  hss  = itf.hss;
+  gtpc_interface_nas* gtpc = itf.gtpc;
 
   LIBLTE_ERROR_ENUM err = liblte_mme_unpack_service_request_msg((LIBLTE_BYTE_MSG_STRUCT*)nas_rx, &service_req);
   if (err != LIBLTE_SUCCESS) {
@@ -637,9 +652,7 @@ bool nas::handle_detach_request(uint32_t                m_tmsi,
                                 struct sctp_sndrcvinfo* enb_sri,
                                 srslte::byte_buffer_t*  nas_rx,
                                 nas_init_t              args,
-                                s1ap_interface_nas*     s1ap,
-                                gtpc_interface_nas*     gtpc,
-                                hss_interface_nas*      hss,
+                                nas_if_t                itf,
                                 srslte::log*            nas_log)
 {
   nas_log->info("Detach Request -- S-TMSI 0x%x\n", m_tmsi);
@@ -649,6 +662,11 @@ bool nas::handle_detach_request(uint32_t                m_tmsi,
 
   bool                                 mac_valid = false;
   LIBLTE_MME_DETACH_REQUEST_MSG_STRUCT detach_req;
+
+  // Interfaces
+  s1ap_interface_nas* s1ap = itf.s1ap;
+  hss_interface_nas*  hss  = itf.hss;
+  gtpc_interface_nas* gtpc = itf.gtpc;
 
   LIBLTE_ERROR_ENUM err = liblte_mme_unpack_detach_request_msg((LIBLTE_BYTE_MSG_STRUCT*)nas_rx, &detach_req);
   if (err != LIBLTE_SUCCESS) {
@@ -692,9 +710,7 @@ bool nas::handle_tracking_area_update_request(uint32_t                m_tmsi,
                                               struct sctp_sndrcvinfo* enb_sri,
                                               srslte::byte_buffer_t*  nas_rx,
                                               nas_init_t              args,
-                                              s1ap_interface_nas*     s1ap,
-                                              gtpc_interface_nas*     gtpc,
-                                              hss_interface_nas*      hss,
+                                              nas_if_t                itf,
                                               srslte::log*            nas_log)
 {
   nas_log->info("Tracking Area Update Request -- S-TMSI 0x%x\n", m_tmsi);
@@ -704,6 +720,11 @@ bool nas::handle_tracking_area_update_request(uint32_t                m_tmsi,
 
   nas_log->console("Warning: Tracking area update requests are not handled yet.\n");
   nas_log->warning("Tracking area update requests are not handled yet.\n");
+
+  // Interfaces
+  s1ap_interface_nas* s1ap = itf.s1ap;
+  hss_interface_nas*  hss  = itf.hss;
+  gtpc_interface_nas* gtpc = itf.gtpc;
 
   uint64_t imsi = s1ap->find_imsi_from_m_tmsi(m_tmsi);
   if (imsi == 0) {

@@ -47,10 +47,12 @@ public:
                                  struct sctp_sndrcvinfo*                      enb_sri,
                                  srslte::byte_buffer_t*                       reply_buffer,
                                  bool*                                        reply_flag);
+
   bool handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKNASTRANSPORT_STRUCT* ul_xport,
                                    struct sctp_sndrcvinfo*                        enb_sri,
                                    srslte::byte_buffer_t*                         reply_buffer,
                                    bool*                                          reply_flag);
+
   bool send_downlink_nas_transport(uint32_t               enb_ue_s1ap_id,
                                    uint32_t               mme_ue_s1ap_id,
                                    srslte::byte_buffer_t* nas_msg,
@@ -66,6 +68,9 @@ private:
   s1ap*              m_s1ap;
   hss_interface_nas* m_hss;
   mme_gtpc*          m_mme_gtpc;
+
+  nas_init_t m_nas_init;
+  nas_if_t   m_nas_if;
 };
 
 } // namespace srsepc

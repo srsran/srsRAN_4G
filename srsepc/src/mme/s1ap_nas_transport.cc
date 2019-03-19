@@ -73,8 +73,21 @@ void s1ap_nas_transport::init()
   m_s1ap_log = m_s1ap->m_s1ap_log;
   m_pool     = srslte::byte_buffer_pool::get_instance();
 
-  m_hss      = hss::get_instance();
-  m_mme_gtpc = mme_gtpc::get_instance();
+  //Init NAS args
+  m_nas_init.mcc         = m_s1ap->m_s1ap_args.mcc;
+  m_nas_init.mnc         = m_s1ap->m_s1ap_args.mnc;
+  m_nas_init.mme_code    = m_s1ap->m_s1ap_args.mme_code;
+  m_nas_init.mme_group   = m_s1ap->m_s1ap_args.mme_group;
+  m_nas_init.tac         = m_s1ap->m_s1ap_args.tac;
+  m_nas_init.apn         = m_s1ap->m_s1ap_args.mme_apn;
+  m_nas_init.dns         = m_s1ap->m_s1ap_args.dns_addr;
+  m_nas_init.integ_algo  = m_s1ap->m_s1ap_args.integrity_algo;
+  m_nas_init.cipher_algo = m_s1ap->m_s1ap_args.encryption_algo;
+
+  //Init NAS interface
+  m_nas_if.s1ap = s1ap::get_instance();
+  m_nas_if.gtpc = mme_gtpc::get_instance();
+  m_nas_if.hss = hss::get_instance();
 }
 
 bool s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT* init_ue,
@@ -96,17 +109,6 @@ bool s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUE
   m_s1ap_log->console("Initial UE message: %s\n", liblte_nas_msg_type_to_string(msg_type));
   m_s1ap_log->info("Initial UE message: %s\n", liblte_nas_msg_type_to_string(msg_type));
 
-  nas_init_t nas_init;
-  nas_init.mcc         = m_s1ap->m_s1ap_args.mcc;
-  nas_init.mnc         = m_s1ap->m_s1ap_args.mnc;
-  nas_init.mme_code    = m_s1ap->m_s1ap_args.mme_code;
-  nas_init.mme_group   = m_s1ap->m_s1ap_args.mme_group;
-  nas_init.tac         = m_s1ap->m_s1ap_args.tac;
-  nas_init.apn         = m_s1ap->m_s1ap_args.mme_apn;
-  nas_init.dns         = m_s1ap->m_s1ap_args.dns_addr;
-  nas_init.integ_algo  = m_s1ap->m_s1ap_args.integrity_algo;
-  nas_init.cipher_algo = m_s1ap->m_s1ap_args.encryption_algo;
-
   if (init_ue->S_TMSI_present) {
     srslte::uint8_to_uint32(init_ue->S_TMSI.m_TMSI.buffer, &m_tmsi);
   }
@@ -115,26 +117,24 @@ bool s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUE
     case LIBLTE_MME_MSG_TYPE_ATTACH_REQUEST:
       m_s1ap_log->console("Received Initial UE message -- Attach Request\n");
       m_s1ap_log->info("Received Initial UE message -- Attach Request\n");
-      err = nas::handle_attach_request(enb_ue_s1ap_id, enb_sri, nas_msg, nas_init, m_s1ap, m_mme_gtpc, m_hss,
-                                       m_s1ap->m_nas_log);
+      err = nas::handle_attach_request(enb_ue_s1ap_id, enb_sri, nas_msg, m_nas_init, m_nas_if, m_s1ap->m_nas_log);
       break;
     case LIBLTE_MME_SECURITY_HDR_TYPE_SERVICE_REQUEST:
       m_s1ap_log->console("Received Initial UE message -- Service Request\n");
       m_s1ap_log->info("Received Initial UE message -- Service Request\n");
-      err = nas::handle_service_request(m_tmsi, enb_ue_s1ap_id, enb_sri, nas_msg, nas_init, m_s1ap, m_mme_gtpc, m_hss,
+      err = nas::handle_service_request(m_tmsi, enb_ue_s1ap_id, enb_sri, nas_msg, m_nas_init, m_nas_if,
                                         m_s1ap->m_nas_log);
       break;
     case LIBLTE_MME_MSG_TYPE_DETACH_REQUEST:
       m_s1ap_log->console("Received Initial UE message -- Detach Request\n");
       m_s1ap_log->info("Received Initial UE message -- Detach Request\n");
-      err = nas::handle_detach_request(m_tmsi, enb_ue_s1ap_id, enb_sri, nas_msg, nas_init, m_s1ap, m_mme_gtpc, m_hss,
-                                       m_s1ap->m_nas_log);
+      err = nas::handle_detach_request(m_tmsi, enb_ue_s1ap_id, enb_sri, nas_msg, m_nas_init, m_nas_if, m_s1ap->m_nas_log);
       break;
     case LIBLTE_MME_MSG_TYPE_TRACKING_AREA_UPDATE_REQUEST:
       m_s1ap_log->console("Received Initial UE message -- Tracking Area Update Request\n");
       m_s1ap_log->info("Received Initial UE message -- Tracking Area Update Request\n");
-      err = nas::handle_tracking_area_update_request(m_tmsi, enb_ue_s1ap_id, enb_sri, nas_msg, nas_init, m_s1ap,
-                                                     m_mme_gtpc, m_hss, m_s1ap->m_nas_log);
+      err = nas::handle_tracking_area_update_request(m_tmsi, enb_ue_s1ap_id, enb_sri, nas_msg, m_nas_init, m_nas_if,
+                                                     m_s1ap->m_nas_log);
       break;
     default:
       m_s1ap_log->info("Unhandled Initial UE Message 0x%x \n", msg_type);
