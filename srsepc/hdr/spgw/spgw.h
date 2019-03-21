@@ -33,13 +33,13 @@
 #ifndef SRSEPC_SPGW_H
 #define SRSEPC_SPGW_H
 
-#include <cstddef>
-#include "srslte/common/log.h"
-#include "srslte/common/logger_file.h"
-#include "srslte/common/log_filter.h"
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/threads.h"
 #include "srslte/asn1/gtpc.h"
+#include "srslte/common/buffer_pool.h"
+#include "srslte/common/log.h"
+#include "srslte/common/log_filter.h"
+#include "srslte/common/logger_file.h"
+#include "srslte/common/threads.h"
+#include <cstddef>
 
 namespace srsepc {
 
@@ -54,9 +54,9 @@ typedef struct {
 } spgw_args_t;
 
 typedef struct spgw_tunnel_ctx {
-  uint64_t                      imsi;
-  in_addr_t                     ue_ipv4;
-  uint8_t                       ebi;
+  uint64_t            imsi;
+  in_addr_t           ue_ipv4;
+  uint8_t             ebi;
   srslte::gtp_fteid_t up_ctrl_fteid;
   srslte::gtp_fteid_t up_user_fteid;
   srslte::gtp_fteid_t dw_ctrl_fteid;
@@ -65,22 +65,19 @@ typedef struct spgw_tunnel_ctx {
 
 class spgw : public thread
 {
+  class gtpc;
+  class gtpu;
+
 public:
   static spgw* get_instance(void);
   static void  cleanup(void);
-  int          init(spgw_args_t* args, srslte::log_filter* spgw_log);
-  void         stop();
-  void         run_thread();
-
-  void handle_create_session_request(struct srslte::gtpc_create_session_request* cs_req,
-                                     struct srslte::gtpc_pdu*                    cs_resp_pdu);
-  void handle_modify_bearer_request(struct srslte::gtpc_pdu* mb_req_pdu, struct srslte::gtpc_pdu* mb_resp_pdu);
-  void handle_delete_session_request(struct srslte::gtpc_pdu* del_req_pdu, struct srslte::gtpc_pdu* del_resp_pdu);
-  void handle_release_access_bearers_request(struct srslte::gtpc_pdu* rel_req_pdu,
-                                             struct srslte::gtpc_pdu* rel_resp_pdu);
+  int init(spgw_args_t* args, srslte::log_filter* gtpu_log, srslte::log_filter* gtpc_log, srslte::log_filter* spgw_log);
+  void stop();
+  void run_thread();
 
   void handle_sgi_pdu(srslte::byte_buffer_t* msg);
   void handle_s1u_pdu(srslte::byte_buffer_t* msg);
+  void handle_s11_pdu(srslte::gtpc_pdu* pdu, srslte::gtpc_pdu* reply_pdu);
 
 private:
   spgw();
@@ -102,31 +99,14 @@ private:
   srslte::byte_buffer_pool* m_pool;
   mme_gtpc*                 m_mme_gtpc;
 
-  bool m_sgi_up;
-  int  m_sgi_if;
-  int  m_sgi_sock;
-
-  bool m_s1u_up;
-  int  m_s1u;
-
-  uint64_t m_next_ctrl_teid;
-  uint64_t m_next_user_teid;
-
-  sockaddr_in m_s1u_addr;
-
+  // data-plane/control-plane mutex
   pthread_mutex_t m_mutex;
 
-  std::map<uint64_t, uint32_t> m_imsi_to_ctr_teid; // IMSI to control TEID map.
-                                                   // Important to check if UE is previously connected
+  // GTP-C and GTP-U handlers
+  gtpc* m_gtpc;
+  gtpu* m_gtpu;
 
-  std::map<uint32_t, spgw_tunnel_ctx*> m_teid_to_tunnel_ctx; // Map control TEID to tunnel ctx.
-                                                             // Usefull to get reply ctrl TEID, UE IP, etc.
-
-  std::map<in_addr_t, srslte::gtpc_f_teid_ie> m_ip_to_teid; // Map IP to User-plane TEID for downlink traffic
-
-  uint32_t m_h_next_ue_ip;
-
-  /*Logs*/
+  // Logs
   srslte::log_filter* m_spgw_log;
 };
 

@@ -85,18 +85,21 @@ filename = /tmp/epc.pcap
 # configured.
 # Format: e.g. s1ap_hex_limit = 32
 #
-# Logging layers: s1ap, gtpc, spgw, hss, all
+# Logging layers: nas, s1ap, mme_gtpc, spgw_gtpc, gtpu, spgw, hss, all
 # Logging levels: debug, info, warning, error, none
 #
 # filename: File path to use for log output. Can be set to stdout
 #           to print logs to standard output
 #####################################################################
 [log]
-all_level = debug
+all_level = info
 all_hex_limit = 32
 filename = /tmp/epc.log
 
+#nas_level = debug
 #s1ap_level = debug
-#gtpc_level = debug
+#mme_gtpc_level = debug
+#spgw_gtpc_level = debug
+#gtpu_level = debug
 #spgw_level = debug
 #hss_level = debug

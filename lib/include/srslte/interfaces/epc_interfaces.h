@@ -20,7 +20,9 @@
  */
 #ifndef SRSLTE_EPC_INTERFACES_H
 #define SRSLTE_EPC_INTERFACES_H
+
 #include "srslte/asn1/gtpc_ies.h"
+#include "srslte/common/common.h"
 #include <netinet/sctp.h>
 
 namespace srsepc {
@@ -70,6 +72,18 @@ public:
   virtual bool gen_auth_info_answer(uint64_t imsi, uint8_t* k_asme, uint8_t* autn, uint8_t* rand, uint8_t* xres) = 0;
   virtual bool gen_update_loc_answer(uint64_t imsi, uint8_t* qci)                                                = 0;
   virtual bool resync_sqn(uint64_t imsi, uint8_t* auts)                                                          = 0;
+};
+
+/*******************
+ * SPGW Interfaces *
+ *******************/
+class gtpu_interface_gtpc //GTP-C -> GTP-U
+{
+public:
+  virtual in_addr_t get_s1u_addr() = 0;
+
+  virtual bool modify_gtpu_tunnel(in_addr_t ue_ipv4, srslte::gtpc_f_teid_ie dw_user_fteid, uint32_t up_ctrl_teid) = 0;
+  virtual bool delete_gtpu_tunnel(in_addr_t ue_ipv4)                                                              = 0;
 };
 
 } // namespace srsepc

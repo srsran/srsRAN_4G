@@ -52,8 +52,12 @@ typedef struct {
   int         nas_hex_limit;
   std::string s1ap_level;
   int         s1ap_hex_limit;
-  std::string gtpc_level;
-  int         gtpc_hex_limit;
+  std::string mme_gtpc_level;
+  int         mme_gtpc_hex_limit;
+  std::string spgw_gtpc_level;
+  int         spgw_gtpc_hex_limit;
+  std::string gtpu_level;
+  int         gtpu_hex_limit;
   std::string spgw_level;
   int         spgw_hex_limit;
   std::string hss_level;
@@ -122,24 +126,28 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("spgw.sgi_if_addr",    bpo::value<string>(&sgi_if_addr)->default_value("176.16.0.1"),   "IP address of TUN interface for the SGi connection")
     ("spgw.sgi_if_name",    bpo::value<string>(&sgi_if_name)->default_value("srs_spgw_sgi"), "Name of TUN interface for the SGi connection")
 
-    ("pcap.enable",         bpo::value<bool>(&args->mme_args.s1ap_args.pcap_enable)->default_value(false),         "Enable S1AP PCAP")
-    ("pcap.filename",       bpo::value<string>(&args->mme_args.s1ap_args.pcap_filename)->default_value("/tmp/epc.pcap"), "PCAP filename")
+    ("pcap.enable",   bpo::value<bool>(&args->mme_args.s1ap_args.pcap_enable)->default_value(false),         "Enable S1AP PCAP")
+    ("pcap.filename", bpo::value<string>(&args->mme_args.s1ap_args.pcap_filename)->default_value("/tmp/epc.pcap"), "PCAP filename")
 
-    ("log.nas_level",       bpo::value<string>(&args->log_args.nas_level),    "MME NAS  log level")
-    ("log.nas_hex_limit",   bpo::value<int>(&args->log_args.nas_hex_limit),   "MME NAS log hex dump limit")
-    ("log.s1ap_level",      bpo::value<string>(&args->log_args.s1ap_level),   "MME S1AP log level")
-    ("log.s1ap_hex_limit",  bpo::value<int>(&args->log_args.s1ap_hex_limit),  "MME S1AP log hex dump limit")
-    ("log.gtpc_level",      bpo::value<string>(&args->log_args.gtpc_level),   "MME GTPC log level")
-    ("log.gtpc_hex_limit",  bpo::value<int>(&args->log_args.gtpc_hex_limit),  "MME GTPC log hex dump limit")
-    ("log.spgw_level",      bpo::value<string>(&args->log_args.spgw_level),   "SPGW log level")
-    ("log.spgw_hex_limit",  bpo::value<int>(&args->log_args.spgw_hex_limit),  "SPGW log hex dump limit")
-    ("log.hss_level",       bpo::value<string>(&args->log_args.hss_level),   "HSS log level")
-    ("log.hss_hex_limit",   bpo::value<int>(&args->log_args.hss_hex_limit),  "HSS log hex dump limit")
+    ("log.nas_level",           bpo::value<string>(&args->log_args.nas_level),        "MME NAS  log level")
+    ("log.nas_hex_limit",       bpo::value<int>(&args->log_args.nas_hex_limit),       "MME NAS log hex dump limit")
+    ("log.s1ap_level",          bpo::value<string>(&args->log_args.s1ap_level),       "MME S1AP log level")
+    ("log.s1ap_hex_limit",      bpo::value<int>(&args->log_args.s1ap_hex_limit),      "MME S1AP log hex dump limit")
+    ("log.mme_gtpc_level",      bpo::value<string>(&args->log_args.mme_gtpc_level),   "MME GTPC log level")
+    ("log.mme_gtpc_hex_limit",  bpo::value<int>(&args->log_args.mme_gtpc_hex_limit),  "MME GTPC log hex dump limit")
+    ("log.spgw_gtpc_level",     bpo::value<string>(&args->log_args.spgw_gtpc_level),  "SPGW GTPC log level")
+    ("log.spgw_gtpc_hex_limit", bpo::value<int>(&args->log_args.spgw_gtpc_hex_limit), "SPGW GTPC log hex dump limit")
+    ("log.gtpu_level",          bpo::value<string>(&args->log_args.gtpu_level),       "GTP-U log level")
+    ("log.gtpu_hex_limit",      bpo::value<int>(&args->log_args.gtpu_hex_limit),      "GTP-U log hex dump limit")
+    ("log.spgw_level",          bpo::value<string>(&args->log_args.spgw_level),       "SPGW log level")
+    ("log.spgw_hex_limit",      bpo::value<int>(&args->log_args.spgw_hex_limit),      "SPGW log hex dump limit")
+    ("log.hss_level",           bpo::value<string>(&args->log_args.hss_level),        "HSS log level")
+    ("log.hss_hex_limit",       bpo::value<int>(&args->log_args.hss_hex_limit),       "HSS log hex dump limit")
 
-    ("log.all_level",       bpo::value<string>(&args->log_args.all_level)->default_value("info"),   "ALL log level")
-    ("log.all_hex_limit",   bpo::value<int>(&args->log_args.all_hex_limit)->default_value(32),  "ALL log hex dump limit")
+    ("log.all_level",     bpo::value<string>(&args->log_args.all_level)->default_value("info"),   "ALL log level")
+    ("log.all_hex_limit", bpo::value<int>(&args->log_args.all_hex_limit)->default_value(32),  "ALL log hex dump limit")
 
-    ("log.filename",        bpo::value<string>(&args->log_args.filename)->default_value("/tmp/epc.log"),"Log filename")
+    ("log.filename", bpo::value<string>(&args->log_args.filename)->default_value("/tmp/epc.log"),"Log filename")
     ;
 
   // Positional options - config file location
@@ -268,8 +276,14 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     if (!vm.count("log.s1ap_level")) {
       args->log_args.s1ap_level = args->log_args.all_level;
     }
-    if (!vm.count("log.gtpc_level")) {
-      args->log_args.gtpc_level = args->log_args.all_level;
+    if (!vm.count("log.mme_gtpc_level")) {
+      args->log_args.mme_gtpc_level = args->log_args.all_level;
+    }
+    if (!vm.count("log.spgw_gtpc_level")) {
+      args->log_args.spgw_gtpc_level = args->log_args.all_level;
+    }
+    if (!vm.count("log.gtpu_level")) {
+      args->log_args.gtpu_level = args->log_args.all_level;
     }
     if (!vm.count("log.spgw_level")) {
       args->log_args.spgw_level = args->log_args.all_level;
@@ -284,8 +298,14 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     if (!vm.count("log.s1ap_hex_limit")) {
       args->log_args.s1ap_hex_limit = args->log_args.all_hex_limit;
     }
-    if (!vm.count("log.gtpc_hex_limit")) {
-      args->log_args.gtpc_hex_limit = args->log_args.all_hex_limit;
+    if (!vm.count("log.mme_gtpc_hex_limit")) {
+      args->log_args.mme_gtpc_hex_limit = args->log_args.all_hex_limit;
+    }
+    if (!vm.count("log.spgw_gtpc_hex_limit")) {
+      args->log_args.spgw_gtpc_hex_limit = args->log_args.all_hex_limit;
+    }
+    if (!vm.count("log.gtpu_hex_limit")) {
+      args->log_args.gtpu_hex_limit = args->log_args.all_hex_limit;
     }
     if (!vm.count("log.spgw_hex_limit")) {
       args->log_args.spgw_hex_limit = args->log_args.all_hex_limit;
@@ -386,14 +406,24 @@ int main(int argc, char* argv[])
   s1ap_log.set_hex_limit(args.log_args.s1ap_hex_limit);
 
   srslte::log_filter mme_gtpc_log;
-  mme_gtpc_log.init("GTPC", logger);
-  mme_gtpc_log.set_level(level(args.log_args.gtpc_level));
-  mme_gtpc_log.set_hex_limit(args.log_args.gtpc_hex_limit);
+  mme_gtpc_log.init("MME GTPC", logger);
+  mme_gtpc_log.set_level(level(args.log_args.mme_gtpc_level));
+  mme_gtpc_log.set_hex_limit(args.log_args.mme_gtpc_hex_limit);
 
   srslte::log_filter hss_log;
   hss_log.init("HSS ", logger);
   hss_log.set_level(level(args.log_args.hss_level));
   hss_log.set_hex_limit(args.log_args.hss_hex_limit);
+
+  srslte::log_filter spgw_gtpc_log;
+  spgw_gtpc_log.init("SPGW GTPC", logger);
+  spgw_gtpc_log.set_level(level(args.log_args.spgw_gtpc_level));
+  spgw_gtpc_log.set_hex_limit(args.log_args.spgw_gtpc_hex_limit);
+
+  srslte::log_filter gtpu_log;
+  gtpu_log.init("GTPU", logger);
+  gtpu_log.set_level(level(args.log_args.mme_gtpc_level));
+  gtpu_log.set_hex_limit(args.log_args.mme_gtpc_hex_limit);
 
   srslte::log_filter spgw_log;
   spgw_log.init("SPGW", logger);
@@ -413,7 +443,7 @@ int main(int argc, char* argv[])
   }
 
   spgw* spgw = spgw::get_instance();
-  if (spgw->init(&args.spgw_args, &spgw_log)) {
+  if (spgw->init(&args.spgw_args, &gtpu_log, &spgw_gtpc_log, &spgw_log)) {
     cout << "Error initializing SP-GW" << endl;
     exit(1);
   }

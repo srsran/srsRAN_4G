@@ -142,6 +142,9 @@ const uint8_t GTPC_MSG_TYPE_MBMS_SESSION_STOP_RESPONSE   = 236;
 // Other
 // 240 - 255 For future use
 
+// Helper function to pretty print GTP-C message type
+const char* gtpc_msg_type_to_str(uint8_t type);
+
 /****************************************************************************
  *
  * GTP-C v2 Create Session Request

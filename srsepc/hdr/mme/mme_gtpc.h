@@ -48,6 +48,7 @@ public:
   static void      cleanup(void);
 
   bool init(srslte::log_filter* mme_gtpc_log);
+  void handle_s11_pdu(srslte::gtpc_pdu* msg);
 
   uint32_t     get_new_ctrl_teid();
   virtual bool send_create_session_request(uint64_t imsi);
@@ -73,6 +74,11 @@ private:
   std::map<uint32_t, uint64_t>        m_mme_ctr_teid_to_imsi;
   std::map<uint64_t, struct gtpc_ctx> m_imsi_to_gtpc_ctx;
 };
+
+inline uint32_t mme_gtpc::get_new_ctrl_teid()
+{
+  return m_next_ctrl_teid++;
+}
 
 } // namespace srsepc
 #endif // SRSEPC_MME_GTPC_H
