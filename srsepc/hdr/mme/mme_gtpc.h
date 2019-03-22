@@ -51,7 +51,8 @@ public:
   static void      cleanup(void);
 
   bool init(srslte::log_filter* mme_gtpc_log);
-  void handle_s11_pdu(srslte::gtpc_pdu* msg);
+  bool send_s11_pdu(const srslte::gtpc_pdu& pdu);
+  void handle_s11_pdu(srslte::byte_buffer_t* msg);
 
   virtual bool send_create_session_request(uint64_t imsi);
   bool         handle_create_session_response(srslte::gtpc_pdu* cs_resp_pdu);
@@ -59,6 +60,8 @@ public:
   void         handle_modify_bearer_response(srslte::gtpc_pdu* mb_resp_pdu);
   void         send_release_access_bearers_request(uint64_t imsi);
   virtual bool send_delete_session_request(uint64_t imsi);
+
+  int get_s11();
 
 private:
   mme_gtpc();
@@ -86,6 +89,11 @@ private:
 inline uint32_t mme_gtpc::get_new_ctrl_teid()
 {
   return m_next_ctrl_teid++;
+}
+
+inline int mme_gtpc::get_s11()
+{
+  return m_s11;
 }
 
 } // namespace srsepc

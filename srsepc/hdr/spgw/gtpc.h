@@ -50,18 +50,16 @@ public:
   uint64_t  get_new_user_teid();
   in_addr_t get_new_ue_ipv4();
 
-  void handle_s11_pdu(srslte::gtpc_pdu* msg, srslte::gtpc_pdu* reply_msg);
+  void handle_s11_pdu(srslte::byte_buffer_t* msg);
+  bool send_s11_pdu(const srslte::gtpc_pdu& pdu);
 
-  void handle_create_session_request(const srslte::gtpc_create_session_request& cs_req, srslte::gtpc_pdu* gtpc_pdu);
+  void handle_create_session_request(const srslte::gtpc_create_session_request& cs_req);
   void handle_modify_bearer_request(const srslte::gtpc_header&                mb_req_hdr,
-                                    const srslte::gtpc_modify_bearer_request& mb_req,
-                                    srslte::gtpc_pdu*                         mb_resp_pdu);
+                                    const srslte::gtpc_modify_bearer_request& mb_req);
   void handle_delete_session_request(const srslte::gtpc_header&                 header,
-                                     const srslte::gtpc_delete_session_request& del_req,
-                                     srslte::gtpc_pdu*                          del_resp_pdu);
+                                     const srslte::gtpc_delete_session_request& del_req);
   void handle_release_access_bearers_request(const srslte::gtpc_header&                         header,
-                                             const srslte::gtpc_release_access_bearers_request& rel_req,
-                                             srslte::gtpc_pdu*                                  rel_resp_pdu);
+                                             const srslte::gtpc_release_access_bearers_request& rel_req);
 
   spgw_tunnel_ctx_t* create_gtpc_ctx(const srslte::gtpc_create_session_request& cs_req);
   bool               delete_gtpc_ctx(uint32_t ctrl_teid);

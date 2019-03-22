@@ -197,7 +197,7 @@ bool s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKN
     mac_valid = nas_ctx->integrity_check(nas_msg);
     if (mac_valid == false) {
       m_s1ap_log->warning("Invalid MAC message. Even if security header indicates integrity protection (Maybe: "
-                          "Identity Response or Authenticatio Response)\n");
+                          "Identity Response or Authentication Response)\n");
     }
   }
 

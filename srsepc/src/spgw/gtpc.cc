@@ -133,22 +133,40 @@ srslte::error_t spgw::gtpc::init_s11(spgw_args_t* args)
   return srslte::ERROR_NONE;
 }
 
-void spgw::gtpc::handle_s11_pdu(srslte::gtpc_pdu* pdu, srslte::gtpc_pdu* reply_pdu)
+bool spgw::gtpc::send_s11_pdu(const srslte::gtpc_pdu& pdu)
 {
+  m_gtpc_log->debug("SPGW Sending S11 PDU! N_Bytes: %lu\n", sizeof(pdu));
+
+  // FIXME add serialization code here
+  // Send S11 message to MME
+  int n = sendto(m_s11, &pdu, sizeof(pdu), 0, (const sockaddr*)&m_mme_addr, sizeof(m_mme_addr));
+  if (n < 0) {
+    m_gtpc_log->error("Error sending to socket. Error %s", strerror(errno));
+    return false;
+  } else {
+    m_gtpc_log->debug("SPGW S11 Sent %d Bytes.\n", n);
+  }
+  return true;
+}
+
+void spgw::gtpc::handle_s11_pdu(srslte::byte_buffer_t* msg)
+{
+  //FIXME add deserialization code here
+  srslte::gtpc_pdu *pdu = (srslte::gtpc_pdu*) msg->msg;
   m_gtpc_log->console("Received GTP-C PDU. Message type: %s\n", srslte::gtpc_msg_type_to_str(pdu->header.type));
   m_gtpc_log->debug("Received GTP-C PDU. Message type: %s\n", srslte::gtpc_msg_type_to_str(pdu->header.type));
   switch (pdu->header.type) {
     case srslte::GTPC_MSG_TYPE_CREATE_SESSION_REQUEST:
-      handle_create_session_request(pdu->choice.create_session_request, reply_pdu);
+      handle_create_session_request(pdu->choice.create_session_request);
       break;
     case srslte::GTPC_MSG_TYPE_MODIFY_BEARER_REQUEST:
-      handle_modify_bearer_request(pdu->header, pdu->choice.modify_bearer_request, reply_pdu);
+      handle_modify_bearer_request(pdu->header, pdu->choice.modify_bearer_request);
       break;
     case srslte::GTPC_MSG_TYPE_DELETE_SESSION_REQUEST:
-      handle_delete_session_request(pdu->header, pdu->choice.delete_session_request, reply_pdu);
+      handle_delete_session_request(pdu->header, pdu->choice.delete_session_request);
       break;
     case srslte::GTPC_MSG_TYPE_RELEASE_ACCESS_BEARERS_REQUEST:
-      handle_release_access_bearers_request(pdu->header, pdu->choice.release_access_bearers_request, reply_pdu);
+      handle_release_access_bearers_request(pdu->header, pdu->choice.release_access_bearers_request);
       break;
     default:
       m_gtpc_log->error("Unhandled GTP-C message type\n");
@@ -156,7 +174,7 @@ void spgw::gtpc::handle_s11_pdu(srslte::gtpc_pdu* pdu, srslte::gtpc_pdu* reply_p
   return;
 }
 
-void spgw::gtpc::handle_create_session_request(const struct srslte::gtpc_create_session_request& cs_req, srslte::gtpc_pdu *cs_resp_pdu)
+void spgw::gtpc::handle_create_session_request(const struct srslte::gtpc_create_session_request& cs_req)
 {
   m_gtpc_log->info("SPGW Received Create Session Request\n");
   spgw_tunnel_ctx_t* tunnel_ctx;
@@ -173,8 +191,9 @@ void spgw::gtpc::handle_create_session_request(const struct srslte::gtpc_create_
   tunnel_ctx = create_gtpc_ctx(cs_req);
 
   // Create session response message
-  srslte::gtpc_header*                  header  = &cs_resp_pdu->header;
-  srslte::gtpc_create_session_response* cs_resp = &cs_resp_pdu->choice.create_session_response;
+  srslte::gtpc_pdu cs_resp_pdu;
+  srslte::gtpc_header*                  header  = &cs_resp_pdu.header;
+  srslte::gtpc_create_session_response* cs_resp = &cs_resp_pdu.choice.create_session_response;
 
   // Setup GTP-C header
   header->piggyback    = false;
@@ -204,12 +223,12 @@ void spgw::gtpc::handle_create_session_request(const struct srslte::gtpc_create_
   m_gtpc_log->info("Sending Create Session Response\n");
 
   // Send Create session response to MME
+  send_s11_pdu(cs_resp_pdu);
   return;
 }
 
 void spgw::gtpc::handle_modify_bearer_request(const struct srslte::gtpc_header&                mb_req_hdr,
-                                              const struct srslte::gtpc_modify_bearer_request& mb_req,
-                                              srslte::gtpc_pdu*                                mb_resp_pdu)
+                                              const struct srslte::gtpc_modify_bearer_request& mb_req)
 {
   m_gtpc_log->info("Received Modified Bearer Request\n");
 
@@ -247,25 +266,25 @@ void spgw::gtpc::handle_modify_bearer_request(const struct srslte::gtpc_header& 
 
   // Setting up Modify bearer response PDU
   // Header
-  srslte::gtpc_header* header = &mb_resp_pdu->header;
+  srslte::gtpc_pdu     mb_resp_pdu;
+  srslte::gtpc_header* header = &mb_resp_pdu.header;
   header->piggyback           = false;
   header->teid_present        = true;
   header->teid                = tunnel_ctx->dw_ctrl_fteid.teid;
   header->type                = srslte::GTPC_MSG_TYPE_MODIFY_BEARER_RESPONSE;
 
   // PDU
-  srslte::gtpc_modify_bearer_response* mb_resp           = &mb_resp_pdu->choice.modify_bearer_response;
+  srslte::gtpc_modify_bearer_response* mb_resp           = &mb_resp_pdu.choice.modify_bearer_response;
   mb_resp->cause.cause_value                             = srslte::GTPC_CAUSE_VALUE_REQUEST_ACCEPTED;
   mb_resp->eps_bearer_context_modified.ebi               = tunnel_ctx->ebi;
   mb_resp->eps_bearer_context_modified.cause.cause_value = srslte::GTPC_CAUSE_VALUE_REQUEST_ACCEPTED;
-  
+
   //Send Modify Bearer Response PDU
   return;
 }
 
 void spgw::gtpc::handle_delete_session_request(const srslte::gtpc_header&                 header,
-                                               const srslte::gtpc_delete_session_request& del_req_pdu,
-                                               srslte::gtpc_pdu*                          del_resp_pdu)
+                                               const srslte::gtpc_delete_session_request& del_req_pdu)
 {
   uint32_t                                         ctrl_teid = header.teid;
   std::map<uint32_t, spgw_tunnel_ctx_t*>::iterator tunnel_it = m_teid_to_tunnel_ctx.find(ctrl_teid);
@@ -281,8 +300,7 @@ void spgw::gtpc::handle_delete_session_request(const srslte::gtpc_header&       
 }
 
 void spgw::gtpc::handle_release_access_bearers_request(const srslte::gtpc_header&                         header,
-                                                       const srslte::gtpc_release_access_bearers_request& rel_req,
-                                                       srslte::gtpc_pdu*                                  rel_resp_pdu)
+                                                       const srslte::gtpc_release_access_bearers_request& rel_req)
 {
   // Find tunel ctxt
   uint32_t                                         ctrl_teid = header.teid;

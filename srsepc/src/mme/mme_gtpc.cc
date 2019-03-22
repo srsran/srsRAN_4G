@@ -126,8 +126,30 @@ bool mme_gtpc::init_s11()
   return true;
 }
 
-void mme_gtpc::handle_s11_pdu(srslte::gtpc_pdu *pdu)
+bool mme_gtpc::send_s11_pdu(const srslte::gtpc_pdu& pdu)
 {
+  int n;
+  m_mme_gtpc_log->debug("Sending S-11 GTP-C PDU\n");
+
+  // FIXME Add GTP-C serialization code
+  // Send S11 message to SPGW
+  n = sendto(m_s11, &pdu, sizeof(pdu), 0, (const sockaddr*)&m_spgw_addr, sizeof(m_spgw_addr));
+  if (n < 0) {
+    m_mme_gtpc_log->error("Error sending to socket. Error %s\n", strerror(errno));
+    m_mme_gtpc_log->console("Error sending to socket. Error %s\n", strerror(errno));
+    return false;
+  } else {
+    m_mme_gtpc_log->debug("MME S11 Sent %d Bytes.\n", n);
+  }
+  return true;
+}
+
+void mme_gtpc::handle_s11_pdu(srslte::byte_buffer_t *msg)
+{
+  m_mme_gtpc_log->debug("Received S11 message\n");
+
+  srslte::gtpc_pdu *pdu;
+  pdu = (srslte::gtpc_pdu *) msg->msg;
   m_mme_gtpc_log->debug("MME Received GTP-C PDU. Message type %s\n",srslte::gtpc_msg_type_to_str(pdu->header.type));
   switch(pdu->header.type){
     case srslte::GTPC_MSG_TYPE_CREATE_SESSION_RESPONSE:
@@ -208,9 +230,7 @@ bool mme_gtpc::send_create_session_request(uint64_t imsi)
   m_imsi_to_gtpc_ctx.insert(std::pair<uint64_t, gtpc_ctx_t>(imsi, gtpc_ctx));
 
   // Send msg to SPGW
-  srslte::gtpc_pdu mb_resp_pdu;
-  m_spgw->handle_s11_pdu(&cs_req_pdu, &cs_resp_pdu);
-  handle_s11_pdu(&cs_resp_pdu);
+  send_s11_pdu(cs_req_pdu);
   return true;
 }
 
@@ -328,9 +348,7 @@ bool mme_gtpc::send_modify_bearer_request(uint64_t imsi, uint16_t erab_to_modify
   m_mme_gtpc_log->info("GTP-C Modify bearer request -- S1-U TEID 0x%x, IP %s\n", enb_fteid->teid, inet_ntoa(addr));
 
   // Send msg to SPGW
-  srslte::gtpc_pdu mb_resp_pdu;
-  m_spgw->handle_s11_pdu(&mb_req_pdu, &mb_resp_pdu);
-  handle_s11_pdu(&mb_resp_pdu);
+  send_s11_pdu(mb_req_pdu);
   return true;
 }
 
@@ -376,8 +394,7 @@ bool mme_gtpc::send_delete_session_request(uint64_t imsi)
   m_mme_gtpc_log->info("GTP-C Delete Session Request -- S-GW Control TEID %d\n", sgw_ctr_fteid.teid);
 
   // Send msg to SPGW
-  srslte::gtpc_pdu del_resp_pdu;
-  m_spgw->handle_s11_pdu(&del_req_pdu, &del_resp_pdu);
+  send_s11_pdu(del_req_pdu);
   
   // Delete GTP-C context
   std::map<uint32_t, uint64_t>::iterator it_imsi = m_mme_ctr_teid_to_imsi.find(mme_ctr_fteid.teid);
@@ -392,6 +409,7 @@ bool mme_gtpc::send_delete_session_request(uint64_t imsi)
 
 void mme_gtpc::send_release_access_bearers_request(uint64_t imsi)
 {
+  // The GTP-C connection will not be torn down, just the user plane bearers.
   m_mme_gtpc_log->info("Sending GTP-C Delete Access Bearers Request\n");
   srslte::gtpc_pdu    rel_req_pdu;
   srslte::gtp_fteid_t sgw_ctr_fteid;
@@ -414,10 +432,8 @@ void mme_gtpc::send_release_access_bearers_request(uint64_t imsi)
   m_mme_gtpc_log->info("GTP-C Release Access Berarers Request -- S-GW Control TEID %d\n", sgw_ctr_fteid.teid);
 
   // Send msg to SPGW
-  srslte::gtpc_pdu rel_resp_pdu;
-  m_spgw->handle_s11_pdu(&rel_req_pdu, &rel_resp_pdu);
+  send_s11_pdu(rel_req_pdu);
 
-  // The GTP-C connection will not be torn down, just the user plane bearers.
   return;
 }
 

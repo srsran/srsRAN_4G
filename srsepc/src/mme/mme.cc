@@ -124,32 +124,55 @@ void mme::run_thread()
   // Mark the thread as running
   m_running = true;
 
-  // Get S1-MME socket
+  // Get S1-MME and S11 sockets
   int s1mme = m_s1ap->get_s1_mme();
+  int s11   = m_mme_gtpc->get_s11();
+
   while (m_running) {
-    m_s1ap_log->debug("Waiting for SCTP Msg\n");
     pdu->reset();
-    rd_sz = sctp_recvmsg(s1mme, pdu->msg, sz, (struct sockaddr*)&enb_addr, &fromlen, &sri, &msg_flags);
-    if (rd_sz == -1 && errno != EAGAIN) {
-      m_s1ap_log->error("Error reading from SCTP socket: %s", strerror(errno));
-    } else if (rd_sz == -1 && errno == EAGAIN) {
-      m_s1ap_log->debug("Socket timeout reached");
-    } else {
-      if (msg_flags & MSG_NOTIFICATION) {
-        // Received notification
-        union sctp_notification* notification = (union sctp_notification*)pdu->msg;
-        m_s1ap_log->debug("SCTP Notification %d\n", notification->sn_header.sn_type);
-        if (notification->sn_header.sn_type == SCTP_SHUTDOWN_EVENT) {
-          m_s1ap_log->info("SCTP Association Shutdown. Association: %d\n", sri.sinfo_assoc_id);
-          m_s1ap_log->console("SCTP Association Shutdown. Association: %d\n", sri.sinfo_assoc_id);
-          m_s1ap->delete_enb_ctx(sri.sinfo_assoc_id);
+    int max_fd = std::max(s1mme, s11);
+   
+    FD_ZERO(&m_set);
+    FD_SET(s1mme, &m_set);
+    FD_SET(s11, &m_set);
+
+    m_s1ap_log->debug("Waiting for S1-MME or S11 Message\n");
+    int n = select(max_fd + 1, &m_set, NULL, NULL, NULL);
+    if (n == -1) {
+      m_s1ap_log->error("Error from select\n");
+    } else if (n) {
+      // Handle S1-MME
+      if (FD_ISSET(s1mme, &m_set)) {
+        rd_sz = sctp_recvmsg(s1mme, pdu->msg, sz, (struct sockaddr*)&enb_addr, &fromlen, &sri, &msg_flags);
+        if (rd_sz == -1 && errno != EAGAIN) {
+          m_s1ap_log->error("Error reading from SCTP socket: %s", strerror(errno));
+        } else if (rd_sz == -1 && errno == EAGAIN) {
+          m_s1ap_log->debug("Socket timeout reached");
+        } else {
+          if (msg_flags & MSG_NOTIFICATION) {
+            // Received notification
+            union sctp_notification* notification = (union sctp_notification*)pdu->msg;
+            m_s1ap_log->debug("SCTP Notification %d\n", notification->sn_header.sn_type);
+            if (notification->sn_header.sn_type == SCTP_SHUTDOWN_EVENT) {
+              m_s1ap_log->info("SCTP Association Shutdown. Association: %d\n", sri.sinfo_assoc_id);
+              m_s1ap_log->console("SCTP Association Shutdown. Association: %d\n", sri.sinfo_assoc_id);
+              m_s1ap->delete_enb_ctx(sri.sinfo_assoc_id);
+            }
+          } else {
+            // Received data
+            pdu->N_bytes = rd_sz;
+            m_s1ap_log->info("Received S1AP msg. Size: %d\n", pdu->N_bytes);
+            m_s1ap->handle_s1ap_rx_pdu(pdu, &sri);
+          }
         }
-      } else {
-        // Received data
-        pdu->N_bytes = rd_sz;
-        m_s1ap_log->info("Received S1AP msg. Size: %d\n", pdu->N_bytes);
-        m_s1ap->handle_s1ap_rx_pdu(pdu, &sri);
       }
+      // Handle S11
+      if (FD_ISSET(s11, &m_set)) {
+        pdu->N_bytes = recvfrom(s11, pdu->msg, SRSLTE_MAX_BUFFER_SIZE_BYTES, 0, NULL, NULL);
+        m_mme_gtpc->handle_s11_pdu(pdu);
+      }
+    } else {
+      m_s1ap_log->debug("No data from select.\n");
     }
   }
   return;

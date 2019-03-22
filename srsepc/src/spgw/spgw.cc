@@ -121,31 +121,43 @@ void spgw::run_thread()
   srslte::byte_buffer_t* msg;
   msg = m_pool->allocate();
 
-  struct sockaddr src_addr;
+  struct sockaddr_in src_addr_in;
+  struct sockaddr_un src_addr_un;
   socklen_t       addrlen;
   struct iphdr*   ip_pkt;
-  int             sgi = m_gtpu->get_sgi();
-  int             s1u = m_gtpu->get_s1u();
+
+  int sgi = m_gtpu->get_sgi();
+  int s1u = m_gtpu->get_s1u();
+  int s11 = m_gtpc->get_s11();
+
+  size_t buf_len = SRSLTE_MAX_BUFFER_SIZE_BYTES - SRSLTE_BUFFER_HEADER_OFFSET;
 
   fd_set set;
   int max_fd = std::max(s1u, sgi);
+  max_fd = std::max(max_fd, s11);
   while (m_running) {
     msg->reset();
     FD_ZERO(&set);
     FD_SET(s1u, &set);
     FD_SET(sgi, &set);
+    FD_SET(s11, &set);
 
     int n = select(max_fd + 1, &set, NULL, NULL, NULL);
     if (n == -1) {
       m_spgw_log->error("Error from select\n");
     } else if (n) {
       if (FD_ISSET(s1u, &set)) {
-        msg->N_bytes = recvfrom(s1u, msg->msg, SRSLTE_MAX_BUFFER_SIZE_BYTES, 0, &src_addr, &addrlen);
+        msg->N_bytes = recvfrom(s1u, msg->msg, buf_len, 0, (struct sockaddr*)&src_addr_in, &addrlen);
         m_gtpu->handle_s1u_pdu(msg);
       }
       if (FD_ISSET(sgi, &set)) {
-        msg->N_bytes = read(sgi, msg->msg, SRSLTE_MAX_BUFFER_SIZE_BYTES);
+        msg->N_bytes = read(sgi, msg->msg, buf_len);
         m_gtpu->handle_sgi_pdu(msg);
+      }
+      if (FD_ISSET(s11, &set)) {
+        m_spgw_log->debug("Message received at SPGW: S11 Message\n");
+        msg->N_bytes = recvfrom(s11, msg->msg, buf_len, 0, (struct sockaddr*)&src_addr_un, &addrlen);
+        m_gtpc->handle_s11_pdu(msg);
       }
     } else {
       m_spgw_log->debug("No data from select.\n");
@@ -155,7 +167,4 @@ void spgw::run_thread()
   return;
 }
 
-void spgw::handle_s11_pdu(srslte::gtpc_pdu *pdu, srslte::gtpc_pdu *reply_pdu){
-  m_gtpc->handle_s11_pdu(pdu, reply_pdu);
-}
 } // namespace srsepc

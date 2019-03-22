@@ -75,10 +75,6 @@ public:
   void stop();
   void run_thread();
 
-  void handle_sgi_pdu(srslte::byte_buffer_t* msg);
-  void handle_s1u_pdu(srslte::byte_buffer_t* msg);
-  void handle_s11_pdu(srslte::gtpc_pdu* pdu, srslte::gtpc_pdu* reply_pdu);
-
 private:
   spgw();
   virtual ~spgw();

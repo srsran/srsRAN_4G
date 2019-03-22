@@ -72,6 +72,7 @@ private:
 
   bool                      m_running;
   srslte::byte_buffer_pool* m_pool;
+  fd_set                    m_set;
 
   /*Logs*/
   srslte::log_filter* m_nas_log;
