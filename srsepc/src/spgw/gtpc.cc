@@ -66,6 +66,13 @@ int spgw::gtpc::init(spgw_args_t* args, spgw* spgw, gtpu_interface_gtpc* gtpu, s
   m_spgw = spgw;
   m_gtpu = gtpu;
 
+  // Init S11 interface
+  err = init_s11(args);
+  if (err != srslte::ERROR_NONE) {
+    m_gtpc_log->console("Could not initialize the S11 interface.\n");
+    return -1;
+  }
+
   // Init IP pool
   err = init_ue_ip(args);
   if (err != srslte::ERROR_NONE) {
@@ -88,6 +95,42 @@ void spgw::gtpc::stop()
     m_teid_to_tunnel_ctx.erase(it++);
   }
   return;
+}
+
+srslte::error_t spgw::gtpc::init_s11(spgw_args_t* args)
+{
+  socklen_t sock_len;
+  char      spgw_addr_name[] = "@spgw_s11";
+  char      mme_addr_name[]  = "@mme_s11";
+
+  // Logs
+  m_gtpc_log->info("Initializing SPGW S11 interface.\n");
+
+  // Open Socket
+  m_s11 = socket(AF_UNIX, SOCK_DGRAM, 0);
+  if (m_s11 < 0) {
+    m_gtpc_log->error("Error opening UNIX socket. Error %s\n", strerror(errno));
+    return srslte::ERROR_CANT_START;
+  }
+
+  // Set MME Address
+  memset(&m_mme_addr, 0, sizeof(struct sockaddr_un));
+  m_mme_addr.sun_family = AF_UNIX;
+  strncpy(m_mme_addr.sun_path, mme_addr_name, strlen(mme_addr_name));
+  m_mme_addr.sun_path[0] = '\0';
+
+  // Set SPGW Address
+  memset(&m_spgw_addr, 0, sizeof(struct sockaddr_un));
+  m_spgw_addr.sun_family = AF_UNIX;
+  strncpy(m_spgw_addr.sun_path, spgw_addr_name, strlen(spgw_addr_name));
+  m_spgw_addr.sun_path[0] = '\0';
+
+  // Bind socket to address
+  if (bind(m_s11, (const struct sockaddr*)&m_spgw_addr, sizeof(m_spgw_addr)) == -1) {
+    m_gtpc_log->error("Error binding UNIX socket. Error %s\n", strerror(errno));
+    return srslte::ERROR_CANT_START;
+  }
+  return srslte::ERROR_NONE;
 }
 
 void spgw::gtpc::handle_s11_pdu(srslte::gtpc_pdu* pdu, srslte::gtpc_pdu* reply_pdu)

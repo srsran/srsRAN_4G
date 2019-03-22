@@ -29,6 +29,8 @@
 #include "srsepc/hdr/spgw/spgw.h"
 #include "srslte/asn1/gtpc.h"
 #include "srslte/interfaces/epc_interfaces.h"
+#include <sys/socket.h>
+#include <sys/un.h>
 
 namespace srsepc {
 
@@ -40,13 +42,16 @@ public:
   int  init(spgw_args_t* args, spgw* spgw, gtpu_interface_gtpc* gtpu, srslte::log_filter* gtpc_log);
   void stop();
 
+  srslte::error_t init_s11(spgw_args_t *args);
   srslte::error_t init_ue_ip(spgw_args_t* args);
 
+  int       get_s11();
   uint64_t  get_new_ctrl_teid();
   uint64_t  get_new_user_teid();
   in_addr_t get_new_ue_ipv4();
 
   void handle_s11_pdu(srslte::gtpc_pdu* msg, srslte::gtpc_pdu* reply_msg);
+
   void handle_create_session_request(const srslte::gtpc_create_session_request& cs_req, srslte::gtpc_pdu* gtpc_pdu);
   void handle_modify_bearer_request(const srslte::gtpc_header&                mb_req_hdr,
                                     const srslte::gtpc_modify_bearer_request& mb_req,
@@ -64,6 +69,9 @@ public:
   spgw*                m_spgw;
   gtpu_interface_gtpc* m_gtpu;
 
+  int                m_s11;
+  struct sockaddr_un m_spgw_addr, m_mme_addr;
+
   uint32_t m_h_next_ue_ip;
   uint64_t m_next_ctrl_teid;
   uint64_t m_next_user_teid;
@@ -76,6 +84,11 @@ public:
   srslte::log_filter*       m_gtpc_log;
   srslte::byte_buffer_pool* m_pool;
 };
+
+inline int spgw::gtpc::get_s11()
+{
+  return m_s11;
+}
 
 inline uint64_t spgw::gtpc::get_new_ctrl_teid()
 {

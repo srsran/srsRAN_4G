@@ -31,6 +31,8 @@
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log.h"
 #include "srslte/common/log_filter.h"
+#include <sys/socket.h>
+#include <sys/un.h>
 
 namespace srsepc {
 
@@ -44,13 +46,13 @@ public:
     srslte::gtp_fteid_t mme_ctr_fteid;
     srslte::gtp_fteid_t sgw_ctr_fteid;
   } gtpc_ctx_t;
+
   static mme_gtpc* get_instance(void);
   static void      cleanup(void);
 
   bool init(srslte::log_filter* mme_gtpc_log);
   void handle_s11_pdu(srslte::gtpc_pdu* msg);
 
-  uint32_t     get_new_ctrl_teid();
   virtual bool send_create_session_request(uint64_t imsi);
   bool         handle_create_session_response(srslte::gtpc_pdu* cs_resp_pdu);
   virtual bool send_modify_bearer_request(uint64_t imsi, uint16_t erab_to_modify, srslte::gtp_fteid_t* enb_fteid);
@@ -73,6 +75,12 @@ private:
   uint32_t                            m_next_ctrl_teid;
   std::map<uint32_t, uint64_t>        m_mme_ctr_teid_to_imsi;
   std::map<uint64_t, struct gtpc_ctx> m_imsi_to_gtpc_ctx;
+
+  int                m_s11;
+  struct sockaddr_un m_mme_addr, m_spgw_addr;
+
+  bool     init_s11();
+  uint32_t get_new_ctrl_teid();
 };
 
 inline uint32_t mme_gtpc::get_new_ctrl_teid()
