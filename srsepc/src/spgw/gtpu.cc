@@ -228,13 +228,11 @@ void spgw::gtpu::handle_sgi_pdu(srslte::byte_buffer_t *msg)
   m_gtpu_log->debug("SGi PDU -- IP dst addr %s\n", gtpu_ntoa(iph->daddr).c_str());
 
   // Find user and control tunnel
-  pthread_mutex_lock(&m_spgw->m_mutex);
   gtpu_fteid_it = m_ip_to_usr_teid.find(iph->daddr);
   if (gtpu_fteid_it != m_ip_to_usr_teid.end()) {
     usr_found = true;
     enb_fteid = gtpu_fteid_it->second;
   }
-  pthread_mutex_unlock(&m_spgw->m_mutex);
 
   if (usr_found == false) {
     m_gtpu_log->debug("Packet for unknown UE. Discarding packet.\n");
@@ -305,22 +303,17 @@ bool spgw::gtpu::modify_gtpu_tunnel(in_addr_t ue_ipv4, srslte::gtpc_f_teid_ie dw
   m_gtpu_log->info("UE IP %s\n", gtpu_ntoa(ue_ipv4).c_str());
   m_gtpu_log->info("Downlink eNB addr %s, U-TEID 0x%x\n", gtpu_ntoa(dw_user_fteid.ipv4).c_str(), dw_user_fteid.teid);
   m_gtpu_log->info("Uplink C-TEID: 0x%x\n", up_ctrl_teid);
-  pthread_mutex_lock(&m_spgw->m_mutex);
   m_ip_to_usr_teid[ue_ipv4] = dw_user_fteid;
-  pthread_mutex_unlock(&m_spgw->m_mutex);
   return true;
 }
 
 bool spgw::gtpu::delete_gtpu_tunnel(in_addr_t ue_ipv4)
 {
   // Remove GTP-U connections, if any.
-  pthread_mutex_lock(&m_spgw->m_mutex);
   if (m_ip_to_usr_teid.count(ue_ipv4)) {
     m_ip_to_usr_teid.erase(ue_ipv4);
-    pthread_mutex_unlock(&m_spgw->m_mutex);
   } else {
     m_gtpu_log->error("Could not find GTP-U Tunnel to delete.\n");
-    pthread_mutex_unlock(&m_spgw->m_mutex);
     return false;
   }
   return true;

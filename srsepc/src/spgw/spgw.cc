@@ -94,8 +94,6 @@ int spgw::init(spgw_args_t*        args,
     return -1;
   }
 
-  // Init mutex
-  pthread_mutex_init(&m_mutex, NULL);
   m_spgw_log->info("SP-GW Initialized.\n");
   m_spgw_log->console("SP-GW Initialized.\n");
   return 0;

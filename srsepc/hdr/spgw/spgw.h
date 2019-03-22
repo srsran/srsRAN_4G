@@ -95,9 +95,6 @@ private:
   srslte::byte_buffer_pool* m_pool;
   mme_gtpc*                 m_mme_gtpc;
 
-  // data-plane/control-plane mutex
-  pthread_mutex_t m_mutex;
-
   // GTP-C and GTP-U handlers
   gtpc* m_gtpc;
   gtpu* m_gtpu;
