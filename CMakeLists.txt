@@ -63,14 +63,14 @@ configure_file(
 # Options
 ########################################################################
 option(ENABLE_SRSUE    "Build srsUE application"                  ON)
-option(ENABLE_SRSENB   "Build srsENB application"                 ON)
-option(ENABLE_SRSEPC   "Build srsEPC application"                 ON)
+option(ENABLE_SRSENB   "Build srsENB application"                 OFF)
+option(ENABLE_SRSEPC   "Build srsEPC application"                 OFF)
 option(DISABLE_SIMD    "disable simd instructions"                OFF)
 
 option(ENABLE_GUI      "Enable GUI (using srsGUI)"                ON)
 option(ENABLE_UHD      "Enable UHD"                               ON)
 option(ENABLE_BLADERF  "Enable BladeRF"                           ON)
-option(ENABLE_SOAPYSDR "Enable SoapySDR"                          ON)
+option(ENABLE_SOAPYSDR "Enable SoapySDR"                          OFF)
 option(ENABLE_HARDSIM  "Enable support for SIM cards"             ON)
 
 option(BUILD_STATIC    "Attempt to statically link external deps" OFF)
@@ -249,12 +249,12 @@ macro(ADD_CXX_COMPILER_FLAG_IF_AVAILABLE flag have)
     include(CheckCXXCompilerFlag)
     check_cxx_compiler_flag(${flag} ${have})
     if(${have})
-        add_definitions(${flag})        
+        add_definitions(${flag})
     endif(${have})
 endmacro(ADD_CXX_COMPILER_FLAG_IF_AVAILABLE)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-comment -Wno-reorder -Wno-unused-but-set-variable -Wno-unused-variable -Wformat -Wmissing-field-initializers -Wtype-limits -std=c++03")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-comment -Wno-reorder -Wno-unused-but-set-variable -Wno-unused-variable -Wformat -Wmissing-field-initializers -Wtype-limits -std=c++11")
 
   find_package(SSE)
   if (HAVE_AVX2)

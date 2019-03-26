@@ -259,7 +259,7 @@ class cell_t
 
 private:
   float    rsrp;
-  
+
   struct timeval last_update;
 
   bool     has_valid_sib1;

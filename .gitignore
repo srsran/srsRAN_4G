@@ -1,7 +1,9 @@
-.fftw_wisdom
-.vscode/
-build/
+*.swp
+*.swo
+build*/
 debug/
-srsLTE.backtrace.crash
-workspace.code-workspace
-
+*workspace
+db
+*.crash
+.fftw_wisdom
+debug

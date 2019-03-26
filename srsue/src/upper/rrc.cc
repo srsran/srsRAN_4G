@@ -24,9 +24,17 @@
  *
  */
 
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <time.h>
+#include <srslte/asn1/liblte_rrc.h>
 #include "srsue/hdr/upper/rrc.h"
 #include "srslte/asn1/rrc_asn1.h"
 #include "srslte/common/bcd_helpers.h"
+#include <boost/algorithm/string.hpp>
+#include <thread>
 #include "srslte/common/security.h"
 #include <cstdlib>
 #include <ctime>
@@ -44,38 +52,100 @@ namespace srsue {
 const static uint32_t NOF_REQUIRED_SIBS = 4;
 const static uint32_t required_sibs[NOF_REQUIRED_SIBS] = {0,1,2,12}; // SIB1, SIB2, SIB3 and SIB13 (eMBMS)
 
-/*******************************************************************************
-  Base functions 
-*******************************************************************************/
 
-rrc::rrc() :
-  state(RRC_STATE_IDLE),
-  last_state(RRC_STATE_CONNECTED),
-  drb_up(false),
-  rlc_flush_timeout(2000),
-  rlc_flush_counter(0)
-{
-  n310_cnt     = 0;
-  n311_cnt     = 0;
-  serving_cell = new cell_t();
-  neighbour_cells.reserve(NOF_NEIGHBOUR_CELLS);
-  initiated = false;
-  running = false;
-  go_idle = false;
-  go_rlf  = false;
-}
+  static int write_sib1_data(cell_t *serving_cell){
+      // TODO Does the serving cell change under us after this function is called?
+      // Could we have our data corrupted? If so should we pass in a copy of serving_cell instead?
+      std::ostringstream os;
+      std::string mcc_string = "";
+      std::string mnc_string = "";
+      mcc_to_string(serving_cell->get_mcc(), &mcc_string);
+      mnc_to_string(serving_cell->get_mnc(), &mnc_string);
+      uint16_t tac = serving_cell->get_tac();
+      uint32_t cid = serving_cell->get_cell_id();
+      uint32_t phyid = serving_cell->get_pci();
+      uint32_t earfcn = serving_cell->get_earfcn();
+      long seconds = (unsigned long)time(NULL);
+      float rsrp = serving_cell->get_rsrp();
 
-rrc::~rrc()
-{
-  if (serving_cell) {
-    delete(serving_cell);
+      os << mcc_string << ","
+        << mnc_string << ", "
+        << tac << ","
+        << cid << ","
+        << phyid << ","
+        << earfcn << ","
+        << seconds << ","
+        << rsrp;
+      // https://stackoverflow.com/questions/1374468/stringstream-string-and-char-conversion-confusion
+
+      const std::string& tmp = os.str();
+      const char* packet = tmp.c_str();
+
+      printf("**** sending packet: <%s>\n", packet);
+
+      char *socket_path = "/tmp/croc.sock";
+      struct sockaddr_un addr;
+      int fd;
+      if ( (fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
+        perror("socket error");
+        exit(-1);
+      }
+      memset(&addr, 0, sizeof(addr));
+      addr.sun_family = AF_UNIX;
+      if (*socket_path == '\0')
+      {
+        *addr.sun_path = '\0';
+        strncpy(addr.sun_path + 1, socket_path + 1, sizeof(addr.sun_path) - 2);
+      }
+      else
+      {
+        strncpy(addr.sun_path, socket_path, sizeof(addr.sun_path) - 1);
+      }
+
+      if (connect(fd, (struct sockaddr *)&addr, sizeof(addr)) == -1)
+      {
+        perror("connect error");
+        exit(-1);
+      }
+
+      write(fd, packet, strlen(packet));
+
+
+  } // namespace srsue
+
+  /*******************************************************************************
+    Base functions
+  *******************************************************************************/
+
+  rrc::rrc() :
+    state(RRC_STATE_IDLE),
+    last_state(RRC_STATE_CONNECTED),
+    drb_up(false),
+    rlc_flush_timeout(2000),
+    rlc_flush_counter(0)
+  {
+    n310_cnt     = 0;
+    n311_cnt     = 0;
+    serving_cell = new cell_t();
+    neighbour_cells.reserve(NOF_NEIGHBOUR_CELLS);
+    initiated = false;
+    running = false;
+    go_idle = false;
+    go_rlf  = false;
   }
 
-  std::vector<cell_t*>::iterator it;
-  for (it = neighbour_cells.begin(); it != neighbour_cells.end(); ++it) {
-    delete(*it);
+
+  rrc::~rrc()
+  {
+    if (serving_cell) {
+      delete(serving_cell);
+    }
+
+    std::vector<cell_t*>::iterator it;
+    for (it = neighbour_cells.begin(); it != neighbour_cells.end(); ++it) {
+      delete(*it);
+    }
   }
-}
 
 static void srslte_rrc_handler(asn1::srsasn_logger_level_t level, void* ctx, const char* str)
 {
@@ -245,7 +315,6 @@ void rrc::run_tti(uint32_t tti) {
     // Run state machine
     switch (state) {
       case RRC_STATE_IDLE:
-
         /* CAUTION: The execution of cell_search() and cell_selection() take more than 1 ms
          * and will slow down MAC TTI ticks. This has no major effect at the moment because
          * the UE is in IDLE but we could consider splitting MAC and RRC threads to avoid this
@@ -256,6 +325,7 @@ void rrc::run_tti(uint32_t tti) {
           rrc_log->debug("Running cell selection and reselection in IDLE\n");
           switch(cell_selection()) {
             case rrc::CHANGED_CELL:
+              rrc_log->info("changed cell!!");
               // New cell has been selected, start receiving PCCH
               mac->pcch_start_rx();
               break;
@@ -375,7 +445,7 @@ int rrc::plmn_search(found_plmn_t found_plmns[MAX_FOUND_PLMNS])
   pthread_mutex_unlock(&mutex);
 
   if (ret.found == phy_interface_rrc::cell_search_ret_t::ERROR) {
-    return -1; 
+    return -1;
   } else {
     return nof_plmns;
   }
@@ -445,7 +515,7 @@ bool rrc::connection_request(asn1::rrc::establishment_cause_e cause, srslte::byt
       mac_timers->timer_get(t300)->run();
 
       // Send connectionRequest message to lower layers
-      send_con_request(cause);
+      // send_con_request(cause);
 
       // Save dedicatedInfoNAS SDU
       if (this->dedicated_info_nas) {
@@ -467,7 +537,8 @@ bool rrc::connection_request(asn1::rrc::establishment_cause_e cause, srslte::byt
         rrc_log->info("Timer T300 expired: ConnectionRequest timed out\n");
         mac->reset();
         set_mac_default();
-        rlc->reestablish();
+        ret = false;
+        //rlc->reestablish();
       } else {
         // T300 is stopped but RRC not Connected is because received Reject: Section 5.3.3.8
         rrc_log->info("Timer T300 stopped: Received ConnectionReject\n");
@@ -1786,8 +1857,12 @@ void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu) {
             serving_cell->set_sib3(&sib_list[i].sib3());
           }
           handle_sib3();
+          leave_connected();
+          cell_search();
           break;
         case sib_info_item_c::types::sib13_v920:
+          leave_connected();
+          cell_search();
           if (not serving_cell->has_sib13()) {
             serving_cell->set_sib13(&sib_list[i].sib13_v920());
           }
@@ -1820,6 +1895,7 @@ void rrc::handle_sib1()
   if (sib1->tdd_cfg_present) {
     phy->set_config_tdd(&sib1->tdd_cfg);
   }
+
 }
 
 void rrc::handle_sib2()
@@ -1827,7 +1903,6 @@ void rrc::handle_sib2()
   rrc_log->info("SIB2 received\n");
 
   apply_sib2_configs(serving_cell->sib2ptr());
-
 }
 
 void rrc::handle_sib3()
@@ -1849,6 +1924,9 @@ void rrc::handle_sib3()
   } else {
     cell_resel_cfg.s_intrasearchP  = INFINITY;
   }
+
+  std::thread thread_socket (write_sib1_data, serving_cell);
+  thread_socket.detach();
 }
 
 void rrc::handle_sib13()
@@ -1979,9 +2057,9 @@ void rrc::send_ul_ccch_msg()
   mac->set_contention_id(uecri);
 
   uint32_t lcid = RB_ID_SRB0;
-  log_rrc_message(get_rb_name(lcid).c_str(), Tx, pdcp_buf, ul_ccch_msg);
+  //log_rrc_message(get_rb_name(lcid).c_str(), Tx, pdcp_buf, ul_ccch_msg);
 
-  pdcp->write_sdu(lcid, pdcp_buf);
+  //pdcp->write_sdu(lcid, pdcp_buf);
 }
 
 void rrc::send_ul_dcch_msg(uint32_t lcid)
