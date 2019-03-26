@@ -7,3 +7,4 @@ db
 *.crash
 .fftw_wisdom
 debug
+.vscode/ipch
