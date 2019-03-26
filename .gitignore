@@ -1,0 +1,7 @@
+	.fftw_wisdom
+	.vscode/
+	build/
+	debug/
+	srsLTE.backtrace.crash
+	workspace.code-workspace
+
