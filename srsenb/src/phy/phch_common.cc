@@ -344,6 +344,9 @@ bool phch_common::is_mch_subframe(subframe_cfg_t *cfg, uint32_t phy_tti)
   if (is_mcch_subframe(cfg, phy_tti)) {
     return true;
   }
+  if (not mcch_configured) {
+    return false;
+  }
 
   // Not MCCH, check for MCH
   mbsfn_sf_cfg_s*       subfr_cnfg = &mbsfn.mbsfn_subfr_cnfg;
