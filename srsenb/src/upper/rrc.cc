@@ -1468,6 +1468,8 @@ void rrc::ue::send_connection_setup(bool is_setup)
   phy_cfg->pucch_cfg_ded_present = true;
   phy_cfg->pucch_cfg_ded.ack_nack_repeat.set(pucch_cfg_ded_s::ack_nack_repeat_c_::types::setup);
   phy_cfg->pucch_cfg_ded.ack_nack_repeat.setup().n1_pucch_an_rep = 0;
+  phy_cfg->pucch_cfg_ded.ack_nack_repeat.setup().repeat_factor.value =
+      pucch_cfg_ded_s::ack_nack_repeat_c_::setup_s_::repeat_factor_opts::n2; // FIXME: which default value?
 
   phy_cfg->cqi_report_cfg_present = true;
   if(parent->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC) {
