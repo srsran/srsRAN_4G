@@ -432,7 +432,6 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t *payload_len)
 
   asn1::rrc::pcch_msg_s pcch_msg;
   pcch_msg.msg.set(pcch_msg_type_c::types::c1);
-  pcch_msg.msg.c1().set(pcch_msg_type_c::c1_c_::types::paging);
   paging_s* paging_rec = &pcch_msg.msg.c1().paging();
 
   // Default paging cycle, should get DRX from user
@@ -755,7 +754,6 @@ void rrc::configure_mbsfn_sibs(sib_type2_s* sib2, sib_type13_r9_s* sib13)
 {
   // Temp assignment of MCCH, this will eventually come from a cfg file
   mcch.msg.set(mcch_msg_type_c::types::c1);
-  mcch.msg.c1().set(mcch_msg_type_c::c1_c_::types::mbsfn_area_cfg_r9);
   mbsfn_area_cfg_r9_s& area_cfg_r9      = mcch.msg.c1().mbsfn_area_cfg_r9();
   area_cfg_r9.common_sf_alloc_period_r9 = mbsfn_area_cfg_r9_s::common_sf_alloc_period_r9_e_::rf64;
   area_cfg_r9.common_sf_alloc_r9.resize(1);

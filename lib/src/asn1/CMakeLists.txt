@@ -18,7 +18,7 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-switch -Wno-unused-but-set-variable -Wno-unused-variable -Wno-return-type -Wno-sign-compare -Wno-reorder -Wno-parantheses")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-switch -Wno-unused-but-set-variable -Wno-unused-variable -Wno-return-type -Wno-sign-compare -Wno-reorder -Wno-parantheses -fno-exceptions")
 add_library(srslte_asn1 STATIC
   liblte_common.cc
   liblte_mme.cc

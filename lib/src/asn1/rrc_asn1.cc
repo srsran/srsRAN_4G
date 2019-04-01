@@ -24550,49 +24550,21 @@ SRSASN_CODE csi_rs_cfg_emimo_v1530_c::unpack(bit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
-void csi_rs_cfg_emimo_v1530_c::setup_c_::set(types::options e)
-{
-  type_ = e;
-}
 void csi_rs_cfg_emimo_v1530_c::setup_c_::to_json(json_writer& j) const
 {
   j.start_obj();
-  switch (type_) {
-    case types::non_precoded_v1530:
-      j.write_fieldname("nonPrecoded-v1530");
-      c.to_json(j);
-      break;
-    default:
-      log_invalid_choice_id(type_, "csi_rs_cfg_emimo_v1530_c::setup_c_");
-  }
+  j.write_fieldname("nonPrecoded-v1530");
+  c.to_json(j);
   j.end_obj();
 }
 SRSASN_CODE csi_rs_cfg_emimo_v1530_c::setup_c_::pack(bit_ref& bref) const
 {
-  pack_enum(bref, type_);
-  switch (type_) {
-    case types::non_precoded_v1530:
-      HANDLE_CODE(c.pack(bref));
-      break;
-    default:
-      log_invalid_choice_id(type_, "csi_rs_cfg_emimo_v1530_c::setup_c_");
-      return SRSASN_ERROR_ENCODE_FAIL;
-  }
+  HANDLE_CODE(c.pack(bref));
   return SRSASN_SUCCESS;
 }
 SRSASN_CODE csi_rs_cfg_emimo_v1530_c::setup_c_::unpack(bit_ref& bref)
 {
-  types e;
-  unpack_enum(e, bref);
-  set(e);
-  switch (type_) {
-    case types::non_precoded_v1530:
-      HANDLE_CODE(c.unpack(bref));
-      break;
-    default:
-      log_invalid_choice_id(type_, "csi_rs_cfg_emimo_v1530_c::setup_c_");
-      return SRSASN_ERROR_DECODE_FAIL;
-  }
+  HANDLE_CODE(c.unpack(bref));
   return SRSASN_SUCCESS;
 }
 
@@ -74747,54 +74719,37 @@ void cell_change_order_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-void cell_change_order_s::target_rat_type_c_::set(types::options e)
-{
-  type_ = e;
-}
 void cell_change_order_s::target_rat_type_c_::to_json(json_writer& j) const
 {
   j.start_obj();
-  switch (type_) {
-    case types::geran:
-      j.write_fieldname("geran");
-      j.start_obj();
-      j.write_fieldname("physCellId");
-      c.pci.to_json(j);
-      j.write_fieldname("carrierFreq");
-      c.carrier_freq.to_json(j);
-      if (c.network_ctrl_order_present) {
-        j.write_str("networkControlOrder", c.network_ctrl_order.to_string());
-      }
-      if (c.sys_info_present) {
-        j.write_fieldname("systemInformation");
-        c.sys_info.to_json(j);
-      }
-      j.end_obj();
-      break;
-    default:
-      log_invalid_choice_id(type_, "cell_change_order_s::target_rat_type_c_");
+  j.write_fieldname("geran");
+  j.start_obj();
+  j.write_fieldname("physCellId");
+  c.pci.to_json(j);
+  j.write_fieldname("carrierFreq");
+  c.carrier_freq.to_json(j);
+  if (c.network_ctrl_order_present) {
+    j.write_str("networkControlOrder", c.network_ctrl_order.to_string());
   }
+  if (c.sys_info_present) {
+    j.write_fieldname("systemInformation");
+    c.sys_info.to_json(j);
+  }
+  j.end_obj();
   j.end_obj();
 }
 SRSASN_CODE cell_change_order_s::target_rat_type_c_::pack(bit_ref& bref) const
 {
-  pack_enum(bref, type_);
-  switch (type_) {
-    case types::geran:
-      HANDLE_CODE(bref.pack(c.network_ctrl_order_present, 1));
-      HANDLE_CODE(bref.pack(c.sys_info_present, 1));
-      HANDLE_CODE(c.pci.pack(bref));
-      HANDLE_CODE(c.carrier_freq.pack(bref));
-      if (c.network_ctrl_order_present) {
-        HANDLE_CODE(c.network_ctrl_order.pack(bref));
-      }
-      if (c.sys_info_present) {
-        HANDLE_CODE(c.sys_info.pack(bref));
-      }
-      break;
-    default:
-      log_invalid_choice_id(type_, "cell_change_order_s::target_rat_type_c_");
-      return SRSASN_ERROR_ENCODE_FAIL;
+  pack_enum(bref, type());
+  HANDLE_CODE(bref.pack(c.network_ctrl_order_present, 1));
+  HANDLE_CODE(bref.pack(c.sys_info_present, 1));
+  HANDLE_CODE(c.pci.pack(bref));
+  HANDLE_CODE(c.carrier_freq.pack(bref));
+  if (c.network_ctrl_order_present) {
+    HANDLE_CODE(c.network_ctrl_order.pack(bref));
+  }
+  if (c.sys_info_present) {
+    HANDLE_CODE(c.sys_info.pack(bref));
   }
   return SRSASN_SUCCESS;
 }
@@ -74802,23 +74757,19 @@ SRSASN_CODE cell_change_order_s::target_rat_type_c_::unpack(bit_ref& bref)
 {
   types e;
   unpack_enum(e, bref);
-  set(e);
-  switch (type_) {
-    case types::geran:
-      HANDLE_CODE(bref.unpack(c.network_ctrl_order_present, 1));
-      HANDLE_CODE(bref.unpack(c.sys_info_present, 1));
-      HANDLE_CODE(c.pci.unpack(bref));
-      HANDLE_CODE(c.carrier_freq.unpack(bref));
-      if (c.network_ctrl_order_present) {
-        HANDLE_CODE(c.network_ctrl_order.unpack(bref));
-      }
-      if (c.sys_info_present) {
-        HANDLE_CODE(c.sys_info.unpack(bref));
-      }
-      break;
-    default:
-      log_invalid_choice_id(type_, "cell_change_order_s::target_rat_type_c_");
-      return SRSASN_ERROR_DECODE_FAIL;
+  if (e != type()) {
+    log_invalid_choice_id(e, "cell_change_order_s::target_rat_type_c_");
+    return SRSASN_ERROR_DECODE_FAIL;
+  }
+  HANDLE_CODE(bref.unpack(c.network_ctrl_order_present, 1));
+  HANDLE_CODE(bref.unpack(c.sys_info_present, 1));
+  HANDLE_CODE(c.pci.unpack(bref));
+  HANDLE_CODE(c.carrier_freq.unpack(bref));
+  if (c.network_ctrl_order_present) {
+    HANDLE_CODE(c.network_ctrl_order.unpack(bref));
+  }
+  if (c.sys_info_present) {
+    HANDLE_CODE(c.sys_info.unpack(bref));
   }
   return SRSASN_SUCCESS;
 }
@@ -83525,49 +83476,21 @@ SRSASN_CODE mcch_msg_type_c::unpack(bit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
-void mcch_msg_type_c::c1_c_::set(types::options e)
-{
-  type_ = e;
-}
 void mcch_msg_type_c::c1_c_::to_json(json_writer& j) const
 {
   j.start_obj();
-  switch (type_) {
-    case types::mbsfn_area_cfg_r9:
-      j.write_fieldname("mbsfnAreaConfiguration-r9");
-      c.to_json(j);
-      break;
-    default:
-      log_invalid_choice_id(type_, "mcch_msg_type_c::c1_c_");
-  }
+  j.write_fieldname("mbsfnAreaConfiguration-r9");
+  c.to_json(j);
   j.end_obj();
 }
 SRSASN_CODE mcch_msg_type_c::c1_c_::pack(bit_ref& bref) const
 {
-  pack_enum(bref, type_);
-  switch (type_) {
-    case types::mbsfn_area_cfg_r9:
-      HANDLE_CODE(c.pack(bref));
-      break;
-    default:
-      log_invalid_choice_id(type_, "mcch_msg_type_c::c1_c_");
-      return SRSASN_ERROR_ENCODE_FAIL;
-  }
+  HANDLE_CODE(c.pack(bref));
   return SRSASN_SUCCESS;
 }
 SRSASN_CODE mcch_msg_type_c::c1_c_::unpack(bit_ref& bref)
 {
-  types e;
-  unpack_enum(e, bref);
-  set(e);
-  switch (type_) {
-    case types::mbsfn_area_cfg_r9:
-      HANDLE_CODE(c.unpack(bref));
-      break;
-    default:
-      log_invalid_choice_id(type_, "mcch_msg_type_c::c1_c_");
-      return SRSASN_ERROR_DECODE_FAIL;
-  }
+  HANDLE_CODE(c.unpack(bref));
   return SRSASN_SUCCESS;
 }
 
@@ -83680,49 +83603,21 @@ SRSASN_CODE mcch_msg_type_c::later_c_::unpack(bit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
-void mcch_msg_type_c::later_c_::c2_c_::set(types::options e)
-{
-  type_ = e;
-}
 void mcch_msg_type_c::later_c_::c2_c_::to_json(json_writer& j) const
 {
   j.start_obj();
-  switch (type_) {
-    case types::mbms_count_request_r10:
-      j.write_fieldname("mbmsCountingRequest-r10");
-      c.to_json(j);
-      break;
-    default:
-      log_invalid_choice_id(type_, "mcch_msg_type_c::later_c_::c2_c_");
-  }
+  j.write_fieldname("mbmsCountingRequest-r10");
+  c.to_json(j);
   j.end_obj();
 }
 SRSASN_CODE mcch_msg_type_c::later_c_::c2_c_::pack(bit_ref& bref) const
 {
-  pack_enum(bref, type_);
-  switch (type_) {
-    case types::mbms_count_request_r10:
-      HANDLE_CODE(c.pack(bref));
-      break;
-    default:
-      log_invalid_choice_id(type_, "mcch_msg_type_c::later_c_::c2_c_");
-      return SRSASN_ERROR_ENCODE_FAIL;
-  }
+  HANDLE_CODE(c.pack(bref));
   return SRSASN_SUCCESS;
 }
 SRSASN_CODE mcch_msg_type_c::later_c_::c2_c_::unpack(bit_ref& bref)
 {
-  types e;
-  unpack_enum(e, bref);
-  set(e);
-  switch (type_) {
-    case types::mbms_count_request_r10:
-      HANDLE_CODE(c.unpack(bref));
-      break;
-    default:
-      log_invalid_choice_id(type_, "mcch_msg_type_c::later_c_::c2_c_");
-      return SRSASN_ERROR_DECODE_FAIL;
-  }
+  HANDLE_CODE(c.unpack(bref));
   return SRSASN_SUCCESS;
 }
 
@@ -84360,49 +84255,21 @@ SRSASN_CODE pcch_msg_type_c::unpack(bit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
-void pcch_msg_type_c::c1_c_::set(types::options e)
-{
-  type_ = e;
-}
 void pcch_msg_type_c::c1_c_::to_json(json_writer& j) const
 {
   j.start_obj();
-  switch (type_) {
-    case types::paging:
-      j.write_fieldname("paging");
-      c.to_json(j);
-      break;
-    default:
-      log_invalid_choice_id(type_, "pcch_msg_type_c::c1_c_");
-  }
+  j.write_fieldname("paging");
+  c.to_json(j);
   j.end_obj();
 }
 SRSASN_CODE pcch_msg_type_c::c1_c_::pack(bit_ref& bref) const
 {
-  pack_enum(bref, type_);
-  switch (type_) {
-    case types::paging:
-      HANDLE_CODE(c.pack(bref));
-      break;
-    default:
-      log_invalid_choice_id(type_, "pcch_msg_type_c::c1_c_");
-      return SRSASN_ERROR_ENCODE_FAIL;
-  }
+  HANDLE_CODE(c.pack(bref));
   return SRSASN_SUCCESS;
 }
 SRSASN_CODE pcch_msg_type_c::c1_c_::unpack(bit_ref& bref)
 {
-  types e;
-  unpack_enum(e, bref);
-  set(e);
-  switch (type_) {
-    case types::paging:
-      HANDLE_CODE(c.unpack(bref));
-      break;
-    default:
-      log_invalid_choice_id(type_, "pcch_msg_type_c::c1_c_");
-      return SRSASN_ERROR_DECODE_FAIL;
-  }
+  HANDLE_CODE(c.unpack(bref));
   return SRSASN_SUCCESS;
 }
 
@@ -85776,49 +85643,21 @@ SRSASN_CODE sc_mcch_msg_type_r13_c::unpack(bit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
-void sc_mcch_msg_type_r13_c::c1_c_::set(types::options e)
-{
-  type_ = e;
-}
 void sc_mcch_msg_type_r13_c::c1_c_::to_json(json_writer& j) const
 {
   j.start_obj();
-  switch (type_) {
-    case types::scptm_cfg_r13:
-      j.write_fieldname("scptmConfiguration-r13");
-      c.to_json(j);
-      break;
-    default:
-      log_invalid_choice_id(type_, "sc_mcch_msg_type_r13_c::c1_c_");
-  }
+  j.write_fieldname("scptmConfiguration-r13");
+  c.to_json(j);
   j.end_obj();
 }
 SRSASN_CODE sc_mcch_msg_type_r13_c::c1_c_::pack(bit_ref& bref) const
 {
-  pack_enum(bref, type_);
-  switch (type_) {
-    case types::scptm_cfg_r13:
-      HANDLE_CODE(c.pack(bref));
-      break;
-    default:
-      log_invalid_choice_id(type_, "sc_mcch_msg_type_r13_c::c1_c_");
-      return SRSASN_ERROR_ENCODE_FAIL;
-  }
+  HANDLE_CODE(c.pack(bref));
   return SRSASN_SUCCESS;
 }
 SRSASN_CODE sc_mcch_msg_type_r13_c::c1_c_::unpack(bit_ref& bref)
 {
-  types e;
-  unpack_enum(e, bref);
-  set(e);
-  switch (type_) {
-    case types::scptm_cfg_r13:
-      HANDLE_CODE(c.unpack(bref));
-      break;
-    default:
-      log_invalid_choice_id(type_, "sc_mcch_msg_type_r13_c::c1_c_");
-      return SRSASN_ERROR_DECODE_FAIL;
-  }
+  HANDLE_CODE(c.unpack(bref));
   return SRSASN_SUCCESS;
 }
 
@@ -87444,49 +87283,21 @@ SRSASN_CODE ul_ccch_msg_type_c::msg_class_ext_c_::unpack(bit_ref& bref)
   return SRSASN_SUCCESS;
 }
 
-void ul_ccch_msg_type_c::msg_class_ext_c_::c2_c_::set(types::options e)
-{
-  type_ = e;
-}
 void ul_ccch_msg_type_c::msg_class_ext_c_::c2_c_::to_json(json_writer& j) const
 {
   j.start_obj();
-  switch (type_) {
-    case types::rrc_conn_resume_request_r13:
-      j.write_fieldname("rrcConnectionResumeRequest-r13");
-      c.to_json(j);
-      break;
-    default:
-      log_invalid_choice_id(type_, "ul_ccch_msg_type_c::msg_class_ext_c_::c2_c_");
-  }
+  j.write_fieldname("rrcConnectionResumeRequest-r13");
+  c.to_json(j);
   j.end_obj();
 }
 SRSASN_CODE ul_ccch_msg_type_c::msg_class_ext_c_::c2_c_::pack(bit_ref& bref) const
 {
-  pack_enum(bref, type_);
-  switch (type_) {
-    case types::rrc_conn_resume_request_r13:
-      HANDLE_CODE(c.pack(bref));
-      break;
-    default:
-      log_invalid_choice_id(type_, "ul_ccch_msg_type_c::msg_class_ext_c_::c2_c_");
-      return SRSASN_ERROR_ENCODE_FAIL;
-  }
+  HANDLE_CODE(c.pack(bref));
   return SRSASN_SUCCESS;
 }
 SRSASN_CODE ul_ccch_msg_type_c::msg_class_ext_c_::c2_c_::unpack(bit_ref& bref)
 {
-  types e;
-  unpack_enum(e, bref);
-  set(e);
-  switch (type_) {
-    case types::rrc_conn_resume_request_r13:
-      HANDLE_CODE(c.unpack(bref));
-      break;
-    default:
-      log_invalid_choice_id(type_, "ul_ccch_msg_type_c::msg_class_ext_c_::c2_c_");
-      return SRSASN_ERROR_DECODE_FAIL;
-  }
+  HANDLE_CODE(c.unpack(bref));
   return SRSASN_SUCCESS;
 }
 
@@ -90045,52 +89856,31 @@ void meas_result_idle_r15_s::to_json(json_writer& j) const
   j.end_obj();
 }
 
-void meas_result_idle_r15_s::meas_result_neigh_cells_r15_c_::set(types::options e)
-{
-  type_ = e;
-}
 void meas_result_idle_r15_s::meas_result_neigh_cells_r15_c_::to_json(json_writer& j) const
 {
   j.start_obj();
-  switch (type_) {
-    case types::meas_result_idle_list_eutra_r15:
-      j.start_array("measResultIdleListEUTRA-r15");
-      for (uint32_t i1 = 0; i1 < c.size(); ++i1) {
-        c[i1].to_json(j);
-      }
-      j.end_array();
-      break;
-    default:
-      log_invalid_choice_id(type_, "meas_result_idle_r15_s::meas_result_neigh_cells_r15_c_");
+  j.start_array("measResultIdleListEUTRA-r15");
+  for (uint32_t i1 = 0; i1 < c.size(); ++i1) {
+    c[i1].to_json(j);
   }
+  j.end_array();
   j.end_obj();
 }
 SRSASN_CODE meas_result_idle_r15_s::meas_result_neigh_cells_r15_c_::pack(bit_ref& bref) const
 {
-  pack_enum(bref, type_);
-  switch (type_) {
-    case types::meas_result_idle_list_eutra_r15:
-      HANDLE_CODE(pack_dyn_seq_of(bref, c, 1, 8));
-      break;
-    default:
-      log_invalid_choice_id(type_, "meas_result_idle_r15_s::meas_result_neigh_cells_r15_c_");
-      return SRSASN_ERROR_ENCODE_FAIL;
-  }
+  pack_enum(bref, type());
+  HANDLE_CODE(pack_dyn_seq_of(bref, c, 1, 8));
   return SRSASN_SUCCESS;
 }
 SRSASN_CODE meas_result_idle_r15_s::meas_result_neigh_cells_r15_c_::unpack(bit_ref& bref)
 {
   types e;
   unpack_enum(e, bref);
-  set(e);
-  switch (type_) {
-    case types::meas_result_idle_list_eutra_r15:
-      HANDLE_CODE(unpack_dyn_seq_of(c, bref, 1, 8));
-      break;
-    default:
-      log_invalid_choice_id(type_, "meas_result_idle_r15_s::meas_result_neigh_cells_r15_c_");
-      return SRSASN_ERROR_DECODE_FAIL;
+  if (e != type()) {
+    log_invalid_choice_id(e, "meas_result_idle_r15_s::meas_result_neigh_cells_r15_c_");
+    return SRSASN_ERROR_DECODE_FAIL;
   }
+  HANDLE_CODE(unpack_dyn_seq_of(c, bref, 1, 8));
   return SRSASN_SUCCESS;
 }
 

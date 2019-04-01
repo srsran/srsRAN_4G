@@ -29,10 +29,6 @@ and at http://www.gnu.org/licenses/.
 #include <stdint.h>
 #include <string>
 
-// TODOS/FIXME:
-// - ext flag as an template arg?
-// - custom allocators?
-
 namespace asn1 {
 
 #define ASN_16K 16383
@@ -314,14 +310,14 @@ bool number_string_to_enum(EnumType& e, const std::string& val)
   return false;
 }
 
-template <class EnumType, uint32_t N, uint32_t M, bool E>
+template <class EnumType, bool E = false, uint32_t M = 0>
 class enumerated : public EnumType
 {
 public:
-  static const uint32_t nof_types = N, nof_exts = M;
+  static const uint32_t nof_types = EnumType::nulltype, nof_exts = M;
   static const bool     has_ext = E;
 
-  enumerated() {}
+  enumerated() { EnumType::value = EnumType::nulltype; }
   enumerated(typename EnumType::options o) { EnumType::value = o; }
   SRSASN_CODE pack(bit_ref& bref) const { return pack_enum(bref, EnumType::value); }
   SRSASN_CODE unpack(bit_ref& bref) { return unpack_enum(EnumType::value, bref); }
@@ -347,8 +343,8 @@ struct UnalignedIntegerPacker {
   UnalignedIntegerPacker(IntType, IntType);
   IntType     lb;
   IntType     ub;
-  SRSASN_CODE pack(bit_ref& bref, IntType n);
-  SRSASN_CODE unpack(IntType& n, bit_ref& bref);
+  SRSASN_CODE pack(bit_ref& bref, IntType n) const;
+  SRSASN_CODE unpack(IntType& n, bit_ref& bref) const;
 };
 
 template <class IntType>
@@ -763,7 +759,7 @@ template <class InnerPacker>
 struct SeqOfPacker {
   SeqOfPacker(uint32_t lb_, uint32_t ub_, InnerPacker packer_) : lb(lb_), ub(ub_), packer(packer_) {}
   template <typename T>
-  SRSASN_CODE pack(bit_ref& bref, const T& topack)
+  SRSASN_CODE pack(bit_ref& bref, const T& topack) const
   {
     return pack_dyn_seq_of(bref, topack, lb, ub, packer);
   }
@@ -791,15 +787,15 @@ union alignment_t {
   uint32_t*   ptr;
 };
 #define MAX2(a, b) ((a) > (b)) ? (a) : (b)
-#define MAX4(a, b, c, d) MAX2((MAX2(a, b)), MAX2(c, d))
-#define MAX8(a, b, c, d, e, f, g, h) MAX2((MAX4(a, b, c, d)), (MAX4(e, f, g, h)))
-#define MAX12(a, b, c, d, e, f, g, h, i, j, k, l) MAX2((MAX8(a, b, c, d, e, f, g, h)), (MAX4(i, j, k, l)))
-#define MAX16(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p)                                                          \
-  MAX2((MAX8(a, b, c, d, e, f, g, h)), (MAX8(i, j, k, l, m, n, o, p)))
-#define MAX32(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, a1, b1, c1, d1, e1, f1, g1, h1, i1, j1, k1, l1, m1, n1,  \
-              o1, p1)                                                                                                  \
-  MAX2((MAX16(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p)),                                                        \
-       (MAX16(a1, b1, c1, d1, e1, f1, g1, h1, i1, j1, k1, l1, m1, n1, o1, p1)))
+template <class It>
+constexpr size_t max_size(It b, It e)
+{
+  return (b != e) ? MAX2(max_size((b + 1), e), *b) : 0;
+}
+constexpr size_t max_sizeof(const std::initializer_list<size_t>& l)
+{
+  return max_size(l.begin(), l.end());
+}
 
 template <size_t SIZE>
 class choice_buffer_t

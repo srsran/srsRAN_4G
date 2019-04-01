@@ -375,12 +375,12 @@ UnalignedIntegerPacker<IntType>::UnalignedIntegerPacker(IntType lb_, IntType ub_
 {
 }
 template <class IntType>
-SRSASN_CODE UnalignedIntegerPacker<IntType>::pack(bit_ref& bref, IntType n)
+SRSASN_CODE UnalignedIntegerPacker<IntType>::pack(bit_ref& bref, IntType n) const
 {
   return pack_unalign_integer(bref, n, lb, ub);
 }
 template <class IntType>
-SRSASN_CODE UnalignedIntegerPacker<IntType>::unpack(IntType& n, bit_ref& bref)
+SRSASN_CODE UnalignedIntegerPacker<IntType>::unpack(IntType& n, bit_ref& bref) const
 {
   return unpack_unalign_integer(n, bref, lb, ub);
 }
