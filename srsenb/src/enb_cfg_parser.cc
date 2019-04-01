@@ -205,6 +205,7 @@ int mbsfn_sf_cfg_list_parser::parse(Setting& root)
   parser::field<uint8_t> f("radioframeAllocationOffset", &(*mbsfn_list)[0].radioframe_alloc_offset);
   f.parse(root["mbsfnSubframeConfigList"]);
 
+  (*mbsfn_list)[0].radioframe_alloc_period.value = mbsfn_sf_cfg_s::radioframe_alloc_period_opts::n1;
   field_asn1_enum_number<mbsfn_sf_cfg_s::radioframe_alloc_period_e_> e("radioframeAllocationPeriod",
                                                                        &(*mbsfn_list)[0].radioframe_alloc_period);
   e.parse(root["mbsfnSubframeConfigList"]);
