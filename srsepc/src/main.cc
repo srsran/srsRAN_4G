@@ -81,23 +81,24 @@ string config_file;
 
 void parse_args(all_args_t* args, int argc, char* argv[])
 {
-  string mme_name;
-  string mme_code;
-  string mme_group;
-  string tac;
-  string mcc;
-  string mnc;
-  string mme_bind_addr;
-  string mme_apn;
-  string encryption_algo;
-  string integrity_algo;
-  string spgw_bind_addr;
-  string sgi_if_addr;
-  string sgi_if_name;
-  string dns_addr;
-  string hss_db_file;
-  string hss_auth_algo;
-  string log_filename;
+  string   mme_name;
+  string   mme_code;
+  string   mme_group;
+  string   tac;
+  string   mcc;
+  string   mnc;
+  string   mme_bind_addr;
+  string   mme_apn;
+  string   encryption_algo;
+  string   integrity_algo;
+  uint16_t paging_timer;
+  string   spgw_bind_addr;
+  string   sgi_if_addr;
+  string   sgi_if_name;
+  string   dns_addr;
+  string   hss_db_file;
+  string   hss_auth_algo;
+  string   log_filename;
 
   // Command line only options
   bpo::options_description general("General options");
@@ -120,6 +121,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("mme.apn",             bpo::value<string>(&mme_apn)->default_value(""),                 "Set Access Point Name (APN) for data services")
     ("mme.encryption_algo", bpo::value<string>(&encryption_algo)->default_value("EEA0"),     "Set preferred encryption algorithm for NAS layer ")
     ("mme.integrity_algo",  bpo::value<string>(&integrity_algo)->default_value("EIA1"),      "Set preferred integrity protection algorithm for NAS")
+    ("mme.paging_timer",    bpo::value<uint16_t>(&paging_timer)->default_value(2),           "Set paging timer value in seconds (T3413)")
     ("hss.db_file",         bpo::value<string>(&hss_db_file)->default_value("ue_db.csv"),    ".csv file that stores UE's keys")
     ("hss.auth_algo",       bpo::value<string>(&hss_auth_algo)->default_value("milenage"),   "HSS uthentication algorithm.")
     ("spgw.gtpu_bind_addr", bpo::value<string>(&spgw_bind_addr)->default_value("127.0.0.1"), "IP address of SP-GW for the S1-U connection")
@@ -262,6 +264,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
   args->mme_args.s1ap_args.mme_name      = mme_name;
   args->mme_args.s1ap_args.dns_addr      = dns_addr;
   args->mme_args.s1ap_args.mme_apn       = mme_apn;
+  args->mme_args.s1ap_args.paging_timer  = paging_timer;
   args->spgw_args.gtpu_bind_addr         = spgw_bind_addr;
   args->spgw_args.sgi_if_addr            = sgi_if_addr;
   args->spgw_args.sgi_if_name            = sgi_if_name;

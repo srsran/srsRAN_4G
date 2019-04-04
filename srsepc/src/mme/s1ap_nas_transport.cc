@@ -25,6 +25,7 @@
  */
 
 #include "srsepc/hdr/mme/s1ap_nas_transport.h"
+#include "srsepc/hdr/mme/mme.h"
 #include "srsepc/hdr/mme/s1ap.h"
 #include "srslte/common/int_helpers.h"
 #include "srslte/common/liblte_security.h"
@@ -74,20 +75,22 @@ void s1ap_nas_transport::init()
   m_pool     = srslte::byte_buffer_pool::get_instance();
 
   //Init NAS args
-  m_nas_init.mcc         = m_s1ap->m_s1ap_args.mcc;
-  m_nas_init.mnc         = m_s1ap->m_s1ap_args.mnc;
-  m_nas_init.mme_code    = m_s1ap->m_s1ap_args.mme_code;
-  m_nas_init.mme_group   = m_s1ap->m_s1ap_args.mme_group;
-  m_nas_init.tac         = m_s1ap->m_s1ap_args.tac;
-  m_nas_init.apn         = m_s1ap->m_s1ap_args.mme_apn;
-  m_nas_init.dns         = m_s1ap->m_s1ap_args.dns_addr;
-  m_nas_init.integ_algo  = m_s1ap->m_s1ap_args.integrity_algo;
-  m_nas_init.cipher_algo = m_s1ap->m_s1ap_args.encryption_algo;
+  m_nas_init.mcc          = m_s1ap->m_s1ap_args.mcc;
+  m_nas_init.mnc          = m_s1ap->m_s1ap_args.mnc;
+  m_nas_init.mme_code     = m_s1ap->m_s1ap_args.mme_code;
+  m_nas_init.mme_group    = m_s1ap->m_s1ap_args.mme_group;
+  m_nas_init.tac          = m_s1ap->m_s1ap_args.tac;
+  m_nas_init.apn          = m_s1ap->m_s1ap_args.mme_apn;
+  m_nas_init.dns          = m_s1ap->m_s1ap_args.dns_addr;
+  m_nas_init.paging_timer = m_s1ap->m_s1ap_args.paging_timer;
+  m_nas_init.integ_algo   = m_s1ap->m_s1ap_args.integrity_algo;
+  m_nas_init.cipher_algo  = m_s1ap->m_s1ap_args.encryption_algo;
 
   //Init NAS interface
   m_nas_if.s1ap = s1ap::get_instance();
   m_nas_if.gtpc = mme_gtpc::get_instance();
-  m_nas_if.hss = hss::get_instance();
+  m_nas_if.hss  = hss::get_instance();
+  m_nas_if.mme  = mme::get_instance();
 }
 
 bool s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUEMESSAGE_STRUCT* init_ue,

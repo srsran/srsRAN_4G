@@ -49,7 +49,13 @@ typedef struct {
   // gtpc_args_t gtpc_args;
 } mme_args_t;
 
-class mme : public thread
+typedef struct {
+  int fd;
+  uint64_t imsi;
+  enum nas_timer_type type;
+} mme_timer_t;
+
+class mme : public thread, public mme_interface_nas
 {
 public:
   static mme* get_instance(void);
@@ -63,6 +69,11 @@ public:
   int  get_s1_mme();
   void run_thread();
 
+  // Timer Methods
+  virtual bool add_nas_timer(int timer_fd, enum nas_timer_type type, uint64_t imsi);
+  virtual bool is_nas_timer_running(enum nas_timer_type type, uint64_t imsi);
+  virtual bool remove_nas_timer(enum nas_timer_type type, uint64_t imsi);
+
 private:
   mme();
   virtual ~mme();
@@ -74,7 +85,13 @@ private:
   srslte::byte_buffer_pool* m_pool;
   fd_set                    m_set;
 
-  /*Logs*/
+  // Timer map
+  std::vector<mme_timer_t> m_timers;
+
+  // Timer Methods
+  void handle_timer_expire(int timer_fd);
+
+  // Logs
   srslte::log_filter* m_nas_log;
   srslte::log_filter* m_s1ap_log;
   srslte::log_filter* m_mme_gtpc_log;

@@ -29,6 +29,10 @@ namespace srsepc {
 
 class nas;
 
+enum nas_timer_type {
+  T_3413,
+};
+
 /******************
  * MME Interfaces *
  ******************/
@@ -72,6 +76,20 @@ public:
   virtual bool gen_auth_info_answer(uint64_t imsi, uint8_t* k_asme, uint8_t* autn, uint8_t* rand, uint8_t* xres) = 0;
   virtual bool gen_update_loc_answer(uint64_t imsi, uint8_t* qci)                                                = 0;
   virtual bool resync_sqn(uint64_t imsi, uint8_t* auts)                                                          = 0;
+};
+
+class mme_interface_nas   //NAS -> MME
+{
+public:
+  virtual bool add_nas_timer(int timer_fd, enum nas_timer_type type, uint64_t imsi) = 0;
+  virtual bool is_nas_timer_running(enum nas_timer_type type, uint64_t imsi)        = 0;
+  virtual bool remove_nas_timer(enum nas_timer_type type, uint64_t imsi)            = 0;
+};
+
+class s1ap_interface_mme   //MME -> S1AP
+{
+public:
+  virtual bool expire_nas_timer(enum nas_timer_type type, uint64_t imsi) = 0;
 };
 
 /*******************

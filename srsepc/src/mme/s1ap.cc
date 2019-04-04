@@ -627,4 +627,16 @@ bool s1ap::send_downlink_nas_transport(uint32_t               enb_ue_s1ap_id,
 {
   return m_s1ap_nas_transport->send_downlink_nas_transport(enb_ue_s1ap_id, mme_ue_s1ap_id, nas_msg, enb_sri);
 }
+
+bool s1ap::expire_nas_timer(enum nas_timer_type type, uint64_t imsi)
+{
+  nas* nas_ctx = find_nas_ctx_from_imsi(imsi);
+  if (nas_ctx == NULL) {
+    m_s1ap_log->error("Error finding NAS context to handle timer\n");
+    return false;
+  }
+  bool err = nas_ctx->expire_timer(type);
+  return err;
+}
+
 } // namespace srsepc

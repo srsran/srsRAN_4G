@@ -131,6 +131,7 @@ typedef struct {
   uint8_t                             mme_code;
   uint16_t                            mme_group;
   uint16_t                            tac;
+  uint16_t                            paging_timer;
   std::string                         apn;
   std::string                         dns;
   srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
@@ -141,6 +142,7 @@ typedef struct {
   s1ap_interface_nas* s1ap;
   gtpc_interface_nas* gtpc;
   hss_interface_nas*  hss;
+  mme_interface_nas*  mme;
 } nas_if_t;
 
 class nas
@@ -250,6 +252,10 @@ public:
   void cipher_decrypt(srslte::byte_buffer_t* pdu);
   void cipher_encrypt(srslte::byte_buffer_t* pdu);
 
+  /*Timer functions*/
+  bool start_timer(enum nas_timer_type type);
+  bool expire_timer(enum nas_timer_type type);
+
   /* UE Context */
   emm_ctx_t m_emm_ctx;
   ecm_ctx_t m_ecm_ctx;
@@ -262,6 +268,7 @@ private:
   gtpc_interface_nas*       m_gtpc;
   s1ap_interface_nas*       m_s1ap;
   hss_interface_nas*        m_hss;
+  mme_interface_nas*        m_mme;
 
   uint16_t    m_mcc;
   uint16_t    m_mnc;
@@ -270,6 +277,13 @@ private:
   uint16_t    m_tac;
   std::string m_apn;
   std::string m_dns;
+
+  // Timers timeout values
+  uint16_t    m_t3413;
+
+  // Timer functions
+  bool start_t3413();
+  bool expire_t3413();
 };
 
 } // namespace srsepc

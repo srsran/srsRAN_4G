@@ -47,6 +47,7 @@ void nas::init(nas_init_t args, nas_if_t itf, srslte::log* nas_log)
   m_tac       = args.tac;
   m_apn       = args.apn;
   m_dns       = args.dns;
+  m_t3413     = args.paging_timer;
 
   m_sec_ctx.integ_algo  = args.integ_algo;
   m_sec_ctx.cipher_algo = args.cipher_algo;
@@ -54,6 +55,7 @@ void nas::init(nas_init_t args, nas_if_t itf, srslte::log* nas_log)
   m_s1ap    = itf.s1ap;
   m_gtpc    = itf.gtpc;
   m_hss     = itf.hss;
+  m_mme     = itf.mme;
   m_nas_log = nas_log;
   m_nas_log->info("NAS Context Initialized. MCC: 0x%x, MNC 0x%x\n", m_mcc, m_mnc);
 }
@@ -1565,4 +1567,79 @@ void nas::cipher_encrypt(srslte::byte_buffer_t* pdu)
       break;
   }
 }
+
+/**************************
+ *
+ * Timer related functions
+ *
+ **************************/
+bool nas::start_timer(enum nas_timer_type type)
+{
+  m_nas_log->debug("Starting NAS timer\n");
+  bool err = false;
+  switch (type) {
+    case T_3413:
+      err = start_t3413();
+      break;
+    default:
+      m_nas_log->error("Invalid timer type\n");
+  }
+  return err;
+}
+
+bool nas::expire_timer(enum nas_timer_type type)
+{
+  m_nas_log->debug("NAS timer expired\n");
+  bool err = false;
+  switch (type) {
+    case T_3413:
+      err = expire_t3413();
+      break;
+    default:
+      m_nas_log->error("Invalid timer type\n");
+  }
+  return err;
+}
+
+// T3413 -> Paging timer
+bool nas::start_t3413()
+{
+  m_nas_log->info("Starting T3413 Timer: Timeout value %d\n", m_t3413);
+  if (m_emm_ctx.state != EMM_STATE_REGISTERED) {
+    m_nas_log->error("EMM invalid status to start T3413\n");
+    return false;
+  }
+
+  int fdt = timerfd_create(CLOCK_MONOTONIC, 0);
+  if (fdt < 0) {
+    m_nas_log->error("Error creating timer. %s\n", strerror(errno));
+    return false;
+  }
+  struct itimerspec t_value;
+  t_value.it_value.tv_sec     = m_t3413;
+  t_value.it_value.tv_nsec    = 0;
+  t_value.it_interval.tv_sec  = 0;
+  t_value.it_interval.tv_nsec = 0;
+
+  if (timerfd_settime(fdt, 0, &t_value, NULL) == -1) {
+    m_nas_log->error("Could not set timer\n");
+    close(fdt);
+    return false;
+  }
+
+  m_mme->add_nas_timer(fdt, T_3413, m_emm_ctx.imsi); // TODO timers without IMSI?
+  return true;
+}
+
+bool nas::expire_t3413()
+{
+  m_nas_log->info("T3413 expired -- Could not page the ue.\n");
+  if (m_emm_ctx.state != EMM_STATE_REGISTERED) {
+    m_nas_log->error("EMM invalid status upon T3413 expiration\n");
+    return false;
+  }
+  // Send Paging Failure to the SPGW (TODO)
+  return true;
+}
+
 } // namespace srsepc

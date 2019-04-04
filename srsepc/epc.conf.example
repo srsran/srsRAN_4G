@@ -17,6 +17,7 @@
 #                   (default: EEA0, support: EEA1, EEA2)
 # integrity_algo:   Preferred integrity protection algorithm for NAS 
 #                   (default: EIA1, support: EIA1, EIA2 (EIA0 not support)
+# paging_timer:     Value of paging timer in seconds (T3413)
 #
 #####################################################################
 [mme]
@@ -30,6 +31,7 @@ apn = srsapn
 dns_addr = 8.8.8.8
 encryption_algo = EEA0
 integrity_algo = EIA1
+paging_timer = 2
 
 #####################################################################
 # HSS configuration

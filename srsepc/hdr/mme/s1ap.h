@@ -52,7 +52,7 @@ namespace srsepc {
 
 const uint16_t S1MME_PORT = 36412;
 
-class s1ap : public s1ap_interface_nas, public s1ap_interface_gtpc
+class s1ap : public s1ap_interface_nas, public s1ap_interface_gtpc, public s1ap_interface_mme
 {
 public:
   static s1ap* get_instance();
@@ -112,6 +112,8 @@ public:
                                            uint32_t               mme_ue_s1ap_id,
                                            srslte::byte_buffer_t* nas_msg,
                                            struct sctp_sndrcvinfo enb_sri);
+
+  virtual bool expire_nas_timer(enum nas_timer_type type, uint64_t imsi);
 
 private:
   s1ap();
