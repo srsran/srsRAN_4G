@@ -124,7 +124,6 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("mme.integrity_algo",  bpo::value<string>(&integrity_algo)->default_value("EIA1"),      "Set preferred integrity protection algorithm for NAS")
     ("mme.paging_timer",    bpo::value<uint16_t>(&paging_timer)->default_value(2),           "Set paging timer value in seconds (T3413)")
     ("hss.db_file",         bpo::value<string>(&hss_db_file)->default_value("ue_db.csv"),    ".csv file that stores UE's keys")
-    ("hss.auth_algo",       bpo::value<string>(&hss_auth_algo)->default_value("milenage"),   "HSS uthentication algorithm.")
     ("spgw.gtpu_bind_addr", bpo::value<string>(&spgw_bind_addr)->default_value("127.0.0.1"), "IP address of SP-GW for the S1-U connection")
     ("spgw.sgi_if_addr",    bpo::value<string>(&sgi_if_addr)->default_value("176.16.0.1"),   "IP address of TUN interface for the SGi connection")
     ("spgw.sgi_if_name",    bpo::value<string>(&sgi_if_name)->default_value("srs_spgw_sgi"), "Name of TUN interface for the SGi connection")
@@ -272,7 +271,6 @@ void parse_args(all_args_t* args, int argc, char* argv[])
   args->spgw_args.sgi_if_name            = sgi_if_name;
   args->spgw_args.max_paging_queue       = max_paging_queue;
   args->hss_args.db_file                 = hss_db_file;
-  args->hss_args.auth_algo               = hss_auth_algo;
 
   // Apply all_level to any unset layers
   if (vm.count("log.all_level")) {

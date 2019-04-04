@@ -36,12 +36,10 @@ paging_timer = 2
 #####################################################################
 # HSS configuration
 #
-# algo:            Authentication algorithm (xor/milenage)
 # db_file:         Location of .csv file that stores UEs information.
 #
 #####################################################################
 [hss]
-auth_algo = xor
 db_file = user_db.csv
 
 #####################################################################

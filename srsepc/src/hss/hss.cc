@@ -73,10 +73,6 @@ int hss::init(hss_args_t* hss_args, srslte::log_filter* hss_log)
   /*Init loggers*/
   m_hss_log = hss_log;
 
-  /*Set authentication algorithm*/
-  if (set_auth_algo(hss_args->auth_algo) == false) {
-    return -1;
-  }
   /*Read user information from DB*/
   if (read_db_file(hss_args->db_file) == false) {
     m_hss_log->console("Error reading user database file %s\n", hss_args->db_file.c_str());
@@ -88,8 +84,8 @@ int hss::init(hss_args_t* hss_args, srslte::log_filter* hss_log)
 
   db_file = hss_args->db_file;
 
-  m_hss_log->info("HSS Initialized. DB file %s, authentication algorithm %s, MCC: %d, MNC: %d\n",
-                  hss_args->db_file.c_str(), hss_args->auth_algo.c_str(), mcc, mnc);
+  m_hss_log->info("HSS Initialized. DB file %s, MCC: %d, MNC: %d\n",
+                  hss_args->db_file.c_str(), mcc, mnc);
   m_hss_log->console("HSS Initialized.\n");
   return 0;
 }
@@ -107,20 +103,6 @@ void hss::stop()
   return;
 }
 
-bool hss::set_auth_algo(std::string auth_algo)
-{
-  if (auth_algo != "xor" && auth_algo != "milenage") {
-    m_hss_log->error("Unrecognized authentication algorithm. auth_algo = %s\n", auth_algo.c_str());
-    return false;
-  }
-  if (auth_algo == "xor") {
-    m_auth_algo = HSS_ALGO_XOR;
-  } else {
-    m_auth_algo = HSS_ALGO_MILENAGE;
-  }
-  return true;
-}
-
 bool hss::read_db_file(std::string db_filename)
 {
   std::ifstream m_db_file;
@@ -134,30 +116,45 @@ bool hss::read_db_file(std::string db_filename)
   std::string line;
   while (std::getline(m_db_file, line)) {
     if (line[0] != '#') {
-      uint                     column_size = 8;
+      uint                     column_size = 9;
       std::vector<std::string> split       = split_string(line, ',');
       if (split.size() != column_size) {
         m_hss_log->error("Error parsing UE database. Wrong number of columns in .csv\n");
         m_hss_log->error("Columns: %zd, Expected %d.\n", split.size(), column_size);
+        if (split.size() == 8) {
+          m_hss_log->console("\nError parsing UE database. Wrong number of columns in user database CSV.\n");
+          m_hss_log->console("Perhaps you are using an old user_db.csv?\n");
+          m_hss_log->console("In the new 19.03 version of srsLTE you are required to specify the authentication "
+                             "algorithim in the CSV file.\n");
+          m_hss_log->console("See 'srsepc/user_db.csv.example' for an example.\n\n");
+        }
         return false;
       }
       hss_ue_ctx_t* ue_ctx = new hss_ue_ctx_t;
       ue_ctx->name         = split[0];
-      ue_ctx->imsi         = atoll(split[1].c_str());
-      get_uint_vec_from_hex_str(split[2], ue_ctx->key, 16);
-      if (split[3] == std::string("op")) {
+      if (split[1] == std::string("xor")) {
+        ue_ctx->algo = HSS_ALGO_XOR;
+      } else if (split[1] == std::string("mil")) {
+        ue_ctx->algo = HSS_ALGO_MILENAGE;
+      } else {
+        m_hss_log->error("Neither XOR nor MILENAGE configured.\n");
+        return false;
+      }
+      ue_ctx->imsi         = atoll(split[2].c_str());
+      get_uint_vec_from_hex_str(split[3], ue_ctx->key, 16);
+      if (split[4] == std::string("op")) {
         ue_ctx->op_configured = true;
-        get_uint_vec_from_hex_str(split[4], ue_ctx->op, 16);
+        get_uint_vec_from_hex_str(split[5], ue_ctx->op, 16);
         srslte::compute_opc(ue_ctx->key, ue_ctx->op, ue_ctx->opc);
-      } else if (split[3] == std::string("opc")) {
+      } else if (split[4] == std::string("opc")) {
         ue_ctx->op_configured = false;
-        get_uint_vec_from_hex_str(split[4], ue_ctx->opc, 16);
+        get_uint_vec_from_hex_str(split[5], ue_ctx->opc, 16);
       } else {
         m_hss_log->error("Neither OP nor OPc configured.\n");
         return false;
       }
-      get_uint_vec_from_hex_str(split[5], ue_ctx->amf, 2);
-      get_uint_vec_from_hex_str(split[6], ue_ctx->sqn, 6);
+      get_uint_vec_from_hex_str(split[6], ue_ctx->amf, 2);
+      get_uint_vec_from_hex_str(split[7], ue_ctx->sqn, 6);
 
       m_hss_log->debug("Added user from DB, IMSI: %015" PRIu64 "\n", ue_ctx->imsi);
       m_hss_log->debug_hex(ue_ctx->key, 16, "User Key : ");
@@ -167,7 +164,7 @@ bool hss::read_db_file(std::string db_filename)
       m_hss_log->debug_hex(ue_ctx->opc, 16, "User OPc : ");
       m_hss_log->debug_hex(ue_ctx->amf, 2, "AMF : ");
       m_hss_log->debug_hex(ue_ctx->sqn, 6, "SQN : ");
-      ue_ctx->qci = atoi(split[7].c_str());
+      ue_ctx->qci = atoi(split[8].c_str());
       m_hss_log->debug("Default Bearer QCI: %d\n", ue_ctx->qci);
       m_imsi_to_ue_ctx.insert(std::pair<uint64_t, hss_ue_ctx_t*>(ue_ctx->imsi, ue_ctx));
     }
@@ -203,6 +200,8 @@ bool hss::write_db_file(std::string db_filename)
             << "#                                                                            " << std::endl
             << "# Name:    Human readable name to help distinguish UE's. Ignored by the HSS  " << std::endl
             << "# IMSI:    UE's IMSI value                                                   " << std::endl
+            << "# Auth:    Authentication algorithm used by the UE. Valid algorithms are XOR "
+               "(xor) and MILENAGE (mil)"                                                      << std::endl
             << "# Key:     UE's key, where other keys are derived from. Stored in hexadecimal" << std::endl
             << "# OP_Type: Operator's code type, either OP or OPc                            " << std::endl
             << "# OP/OPc:  Operator Code/Cyphered Operator Code, stored in hexadecimal       " << std::endl
@@ -215,6 +214,8 @@ bool hss::write_db_file(std::string db_filename)
   std::map<uint64_t, hss_ue_ctx_t*>::iterator it = m_imsi_to_ue_ctx.begin();
   while (it != m_imsi_to_ue_ctx.end()) {
     m_db_file << it->second->name;
+    m_db_file << ",";
+    m_db_file << (it->second->algo == HSS_ALGO_XOR ? "xor" : "mil");
     m_db_file << ",";
     m_db_file << std::setfill('0') << std::setw(15) << it->second->imsi;
     m_db_file << ",";
@@ -244,8 +245,16 @@ bool hss::write_db_file(std::string db_filename)
 
 bool hss::gen_auth_info_answer(uint64_t imsi, uint8_t* k_asme, uint8_t* autn, uint8_t* rand, uint8_t* xres)
 {
-  bool ret = false;
-  switch (m_auth_algo) {
+  hss_ue_ctx_t* ue_ctx = NULL;
+
+  bool ret = get_ue_ctx(imsi, &ue_ctx);
+  if (ret == false) {
+    m_hss_log->console("User not found at HSS. IMSI: %015" PRIu64 "\n", imsi);
+    m_hss_log->error("User not found at HSS. IMSI: %015" PRIu64 "\n", imsi);
+    return false;
+  }
+
+  switch (ue_ctx->algo) {
     case HSS_ALGO_XOR:
       ret = gen_auth_info_answer_xor(imsi, k_asme, autn, rand, xres);
       break;
@@ -439,8 +448,16 @@ bool hss::get_k_amf_opc_sqn(uint64_t imsi, uint8_t* k, uint8_t* amf, uint8_t* op
 
 bool hss::resync_sqn(uint64_t imsi, uint8_t* auts)
 {
-  bool ret = false;
-  switch (m_auth_algo) {
+  hss_ue_ctx_t* ue_ctx = NULL;
+
+  bool ret = get_ue_ctx(imsi, &ue_ctx);
+  if (ret == false) {
+    m_hss_log->console("User not found at HSS. IMSI: %015" PRIu64 "\n", imsi);
+    m_hss_log->error("User not found at HSS. IMSI: %015" PRIu64 "\n", imsi);
+    return false;
+  }
+
+  switch (ue_ctx->algo) {
     case HSS_ALGO_XOR:
       ret = resync_sqn_xor(imsi, auts);
       break;
@@ -448,6 +465,7 @@ bool hss::resync_sqn(uint64_t imsi, uint8_t* auts)
       ret = resync_sqn_milenage(imsi, auts);
       break;
   }
+
   increment_seq_after_resync(imsi);
   return ret;
 }

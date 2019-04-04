@@ -50,26 +50,26 @@
 namespace srsepc {
 
 typedef struct {
-  std::string auth_algo;
   std::string db_file;
   uint16_t    mcc;
   uint16_t    mnc;
 } hss_args_t;
 
-typedef struct {
-  std::string name;
-  uint64_t    imsi;
-  uint8_t     key[16];
-  bool        op_configured;
-  uint8_t     op[16];
-  uint8_t     opc[16];
-  uint8_t     amf[2];
-  uint8_t     sqn[6];
-  uint16_t    qci;
-  uint8_t     last_rand[16];
-} hss_ue_ctx_t;
-
 enum hss_auth_algo { HSS_ALGO_XOR, HSS_ALGO_MILENAGE };
+
+typedef struct {
+  std::string        name;
+  uint64_t           imsi;
+  enum hss_auth_algo algo;
+  uint8_t            key[16];
+  bool               op_configured;
+  uint8_t            op[16];
+  uint8_t            opc[16];
+  uint8_t            amf[2];
+  uint8_t            sqn[6];
+  uint16_t           qci;
+  uint8_t            last_rand[16];
+} hss_ue_ctx_t;
 
 class hss : public hss_interface_nas
 {
@@ -118,7 +118,6 @@ private:
 
   std::string hex_string(uint8_t* hex, int size);
 
-  enum hss_auth_algo m_auth_algo;
   std::string        db_file;
 
   /*Logs*/
