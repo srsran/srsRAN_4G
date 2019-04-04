@@ -333,7 +333,7 @@ void srslte_enb_dl_put_sync(srslte_enb_dl_t *q, uint32_t sf_idx)
     for (int p = 0; p < q->cell.nof_ports; p++) {
       srslte_pss_put_slot(q->pss_signal, q->sf_symbols[p], q->cell.nof_prb, q->cell.cp);
       srslte_sss_put_slot(sf_idx ? q->sss_signal5 : q->sss_signal0, q->sf_symbols[p],
-                          q->cell.nof_prb, SRSLTE_CP_NORM);
+                          q->cell.nof_prb, q->cell.cp);
     }
   }  
 }
