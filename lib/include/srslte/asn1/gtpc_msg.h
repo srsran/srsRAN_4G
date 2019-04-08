@@ -401,6 +401,51 @@ struct gtpc_delete_session_response {
 
 /****************************************************************************
  *
+ * GTP-C v2 Downlink Data Notification
+ * Ref: 3GPP TS 29.274 v10.14.0 Table 7.2.11.1-1
+ *
+ ***************************************************************************/
+struct gtpc_downlink_data_notification
+{
+  bool cause_present;
+  struct gtpc_cause_ie cause;
+  bool eps_bearer_id_present;
+  uint8_t eps_bearer_id;
+  bool allocation_retention_priority_present;
+  // struct gtpc_allocation_rention_priority_ie
+  bool imsi_present;
+  uint64_t imsi;
+  //Private extension
+};
+
+/****************************************************************************
+ *
+ * GTP-C v2 Downlink Data Notification Acknowledge
+ * Ref: 3GPP TS 29.274 v10.14.0 Table 7.2.11.2-1
+ *
+ ***************************************************************************/
+struct gtpc_downlink_data_notification_acknowledge
+{
+  struct gtpc_cause_ie cause;
+  //Data Notification Delay
+  //Recovery
+  //Private extension
+};
+
+/****************************************************************************
+ *
+ * GTP-C v2 Downlink Data Notification Failure Indication
+ * Ref: 3GPP TS 29.274 v10.14.0 Table 7.2.11.3-1
+ *
+ ***************************************************************************/
+struct gtpc_downlink_data_notification_failure_indication
+{
+  struct gtpc_cause_ie cause;
+  //Private extension
+};
+
+/****************************************************************************
+ *
  * GTP-C v2 Release Access Bearers Request
  * Ref: 3GPP TS 29.274 v10.14.0 Table 7.2.21.1-1
  *

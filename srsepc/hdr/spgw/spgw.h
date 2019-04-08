@@ -40,6 +40,7 @@
 #include "srslte/common/logger_file.h"
 #include "srslte/common/threads.h"
 #include <cstddef>
+#include <queue>
 
 namespace srsepc {
 
@@ -51,16 +52,19 @@ typedef struct {
   std::string gtpu_bind_addr;
   std::string sgi_if_addr;
   std::string sgi_if_name;
+  uint32_t    max_paging_queue;
 } spgw_args_t;
 
 typedef struct spgw_tunnel_ctx {
-  uint64_t            imsi;
-  in_addr_t           ue_ipv4;
-  uint8_t             ebi;
-  srslte::gtp_fteid_t up_ctrl_fteid;
-  srslte::gtp_fteid_t up_user_fteid;
-  srslte::gtp_fteid_t dw_ctrl_fteid;
-  srslte::gtp_fteid_t dw_user_fteid;
+  uint64_t                           imsi;
+  in_addr_t                          ue_ipv4;
+  uint8_t                            ebi;
+  srslte::gtp_fteid_t                up_ctrl_fteid;
+  srslte::gtp_fteid_t                up_user_fteid;
+  srslte::gtp_fteid_t                dw_ctrl_fteid;
+  srslte::gtp_fteid_t                dw_user_fteid;
+  bool                               paging_pending;
+  std::queue<srslte::byte_buffer_t*> paging_queue;
 } spgw_tunnel_ctx_t;
 
 class spgw : public thread

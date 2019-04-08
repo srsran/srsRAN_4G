@@ -44,20 +44,21 @@ paging_timer = 2
 auth_algo = xor
 db_file = user_db.csv
 
-
 #####################################################################
 # SP-GW configuration
 #
 # gtpu_bind_addr:   GTP-U bind address.
 # sgi_if_addr:      SGi TUN interface IP address.
 # sgi_if_name:      SGi TUN interface name.
+# max_paging_queue: Maximum packets in paging queue (per UE).
 #
 #####################################################################
 
 [spgw]
-gtpu_bind_addr = 127.0.1.100
-sgi_if_addr    = 172.16.0.1
-sgi_if_name    = srs_spgw_sgi
+gtpu_bind_addr   = 127.0.1.100
+sgi_if_addr      = 172.16.0.1
+sgi_if_name      = srs_spgw_sgi
+max_paging_queue = 100
 
 ####################################################################
 # PCAP configuration

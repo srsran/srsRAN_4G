@@ -44,7 +44,7 @@ namespace srsepc {
  * comminication with the MME
  *
  **********************************************/
-spgw::gtpc::gtpc() : m_h_next_ue_ip(0), m_next_ctrl_teid(1), m_next_user_teid(1)
+spgw::gtpc::gtpc() : m_h_next_ue_ip(0), m_next_ctrl_teid(1), m_next_user_teid(1), m_max_paging_queue(0)
 {
   return;
 }
@@ -79,6 +79,9 @@ int spgw::gtpc::init(spgw_args_t* args, spgw* spgw, gtpu_interface_gtpc* gtpu, s
     m_gtpc_log->console("Could not initialize the IP pool.\n");
     return -1;
   }
+
+  // Limit paging queue
+  m_max_paging_queue = args->max_paging_queue;
 
   m_gtpc_log->info("SPGW S11 Initialized.\n");
   m_gtpc_log->console("SPGW S11 Initialized.\n");
@@ -151,8 +154,8 @@ bool spgw::gtpc::send_s11_pdu(const srslte::gtpc_pdu& pdu)
 
 void spgw::gtpc::handle_s11_pdu(srslte::byte_buffer_t* msg)
 {
-  //FIXME add deserialization code here
-  srslte::gtpc_pdu *pdu = (srslte::gtpc_pdu*) msg->msg;
+  // FIXME add deserialization code here
+  srslte::gtpc_pdu* pdu = (srslte::gtpc_pdu*)msg->msg;
   m_gtpc_log->console("Received GTP-C PDU. Message type: %s\n", srslte::gtpc_msg_type_to_str(pdu->header.type));
   m_gtpc_log->debug("Received GTP-C PDU. Message type: %s\n", srslte::gtpc_msg_type_to_str(pdu->header.type));
   switch (pdu->header.type) {
@@ -167,6 +170,13 @@ void spgw::gtpc::handle_s11_pdu(srslte::byte_buffer_t* msg)
       break;
     case srslte::GTPC_MSG_TYPE_RELEASE_ACCESS_BEARERS_REQUEST:
       handle_release_access_bearers_request(pdu->header, pdu->choice.release_access_bearers_request);
+      break;
+    case srslte::GTPC_MSG_TYPE_DOWNLINK_DATA_NOTIFICATION_ACKNOWLEDGE:
+      handle_downlink_data_notification_acknowledge(pdu->header, pdu->choice.downlink_data_notification_acknowledge);
+      break;
+    case srslte::GTPC_MSG_TYPE_DOWNLINK_DATA_NOTIFICATION_FAILURE_INDICATION:
+      handle_downlink_data_notification_failure_indication(pdu->header,
+                                                           pdu->choice.downlink_data_notification_failure_indication);
       break;
     default:
       m_gtpc_log->error("Unhandled GTP-C message type\n");
@@ -191,7 +201,7 @@ void spgw::gtpc::handle_create_session_request(const struct srslte::gtpc_create_
   tunnel_ctx = create_gtpc_ctx(cs_req);
 
   // Create session response message
-  srslte::gtpc_pdu cs_resp_pdu;
+  srslte::gtpc_pdu                      cs_resp_pdu;
   srslte::gtpc_header*                  header  = &cs_resp_pdu.header;
   srslte::gtpc_create_session_response* cs_resp = &cs_resp_pdu.choice.create_session_response;
 
@@ -264,6 +274,14 @@ void spgw::gtpc::handle_modify_bearer_request(const struct srslte::gtpc_header& 
   // Setup IP to F-TEID map
   m_gtpu->modify_gtpu_tunnel(tunnel_ctx->ue_ipv4, tunnel_ctx->dw_user_fteid, tunnel_ctx->up_ctrl_fteid.teid);
 
+  // Mark paging as done & send queued packets
+  if (tunnel_ctx->paging_pending == true) {
+    tunnel_ctx->paging_pending = false;
+    m_gtpc_log->debug("Modify Bearer Request received after Downling Data Notification was sent\n");
+    m_gtpc_log->console("Modify Bearer Request received after Downling Data Notification was sent\n");
+    m_gtpu->send_all_queued_packets(tunnel_ctx->dw_user_fteid, tunnel_ctx->paging_queue);
+  }
+
   // Setting up Modify bearer response PDU
   // Header
   srslte::gtpc_pdu     mb_resp_pdu;
@@ -279,7 +297,8 @@ void spgw::gtpc::handle_modify_bearer_request(const struct srslte::gtpc_header& 
   mb_resp->eps_bearer_context_modified.ebi               = tunnel_ctx->ebi;
   mb_resp->eps_bearer_context_modified.cause.cause_value = srslte::GTPC_CAUSE_VALUE_REQUEST_ACCEPTED;
 
-  //Send Modify Bearer Response PDU
+  // Send Modify Bearer Response PDU
+  send_s11_pdu(mb_resp_pdu);
   return;
 }
 
@@ -317,6 +336,102 @@ void spgw::gtpc::handle_release_access_bearers_request(const srslte::gtpc_header
   return;
 }
 
+bool spgw::gtpc::send_downlink_data_notification(uint32_t spgw_ctr_teid)
+{
+  m_gtpc_log->debug("Sending Downlink Notification Request\n");
+
+  struct srslte::gtpc_pdu                         dl_not_pdu;
+  struct srslte::gtpc_header*                     header = &dl_not_pdu.header;
+  struct srslte::gtpc_downlink_data_notification* dl_not = &dl_not_pdu.choice.downlink_data_notification;
+  bzero(&dl_not_pdu, sizeof(struct srslte::gtpc_pdu));
+
+  // Find MME Ctrl TEID
+  std::map<uint32_t, spgw_tunnel_ctx_t*>::iterator tunnel_it = m_teid_to_tunnel_ctx.find(spgw_ctr_teid);
+  if (tunnel_it == m_teid_to_tunnel_ctx.end()) {
+    m_gtpc_log->warning("Could not find TEID 0x%x to send downlink notification.\n", spgw_ctr_teid);
+    return false;
+  }
+  spgw_tunnel_ctx_t* tunnel_ctx = tunnel_it->second;
+
+  // Check if there is no Paging already pending.
+  if (tunnel_ctx->paging_pending == true) {
+    m_gtpc_log->console("UE Downlink Data Notification still pending.\n");
+    m_gtpc_log->warning("UE Downlink Data Notification still pending.\n");
+    return false;
+  }
+
+  tunnel_ctx->paging_pending = true;
+  m_gtpc_log->console("Found UE for Downlink Notification \n");
+  m_gtpc_log->console("MME Ctr TEID 0x%x, IMSI: %lu\n", tunnel_ctx->dw_ctrl_fteid.teid, tunnel_ctx->imsi);
+
+  // Setup GTP-C header
+  header->piggyback    = false;
+  header->teid_present = true;
+  header->teid         = tunnel_ctx->dw_ctrl_fteid.teid; // Send downlink data notification to the UE's MME Ctrl TEID
+  header->type         = srslte::GTPC_MSG_TYPE_DOWNLINK_DATA_NOTIFICATION;
+
+  dl_not->eps_bearer_id_present = true;
+  dl_not->eps_bearer_id         = 5; // Only default bearer supported.
+
+  // Send Downlink Data Notification PDU
+  send_s11_pdu(dl_not_pdu);
+  return true;
+}
+
+void spgw::gtpc::handle_downlink_data_notification_acknowledge(
+    const srslte::gtpc_header& header, const srslte::gtpc_downlink_data_notification_acknowledge& not_ack)
+{
+  m_gtpc_log->debug("Handling downlink data notification acknowledge\n");
+
+  // Find tunel ctxt
+  uint32_t                                         ctrl_teid = header.teid;
+  std::map<uint32_t, spgw_tunnel_ctx_t*>::iterator tunnel_it = m_teid_to_tunnel_ctx.find(ctrl_teid);
+  if (tunnel_it == m_teid_to_tunnel_ctx.end()) {
+    m_gtpc_log->warning("Could not find TEID 0x%x to handle notification acknowldge\n", ctrl_teid);
+    return;
+  }
+  spgw_tunnel_ctx_t* tunnel_ctx = tunnel_it->second;
+  if (not_ack.cause.cause_value == srslte::GTPC_CAUSE_VALUE_CONTEXT_NOT_FOUND ||
+      not_ack.cause.cause_value == srslte::GTPC_CAUSE_VALUE_UE_ALREADY_RE_ATTACHED ||
+      not_ack.cause.cause_value == srslte::GTPC_CAUSE_VALUE_UNABLE_TO_PAGE_UE ||
+      not_ack.cause.cause_value == srslte::GTPC_CAUSE_VALUE_UNABLE_TO_PAGE_UE_DUE_TO_SUSPENSION) {
+    m_gtpc_log->warning("Downlink Data Notification Acknowledge indicates failure.\n");
+    free_all_queued_packets(tunnel_ctx);
+    tunnel_ctx->paging_pending = false;
+  } else if (not_ack.cause.cause_value != srslte::GTPC_CAUSE_VALUE_REQUEST_ACCEPTED) {
+    m_gtpc_log->warning("Invalid cause in Downlink Data Notification Acknowledge.\n");
+    free_all_queued_packets(tunnel_ctx);
+    tunnel_ctx->paging_pending = false;
+  }
+  return;
+}
+
+void spgw::gtpc::handle_downlink_data_notification_failure_indication(
+    const srslte::gtpc_header& header, const srslte::gtpc_downlink_data_notification_failure_indication& not_fail)
+{
+  m_gtpc_log->debug("Handling downlink data notification failure indication\n");
+  // Find tunel ctxt
+  uint32_t                                         ctrl_teid = header.teid;
+  std::map<uint32_t, spgw_tunnel_ctx_t*>::iterator tunnel_it = m_teid_to_tunnel_ctx.find(ctrl_teid);
+  if (tunnel_it == m_teid_to_tunnel_ctx.end()) {
+    m_gtpc_log->warning("Could not find TEID 0x%x to handle notification failure indication\n", ctrl_teid);
+    return;
+  }
+
+  spgw_tunnel_ctx_t* tunnel_ctx = tunnel_it->second;
+  if (not_fail.cause.cause_value == srslte::GTPC_CAUSE_VALUE_UE_NOT_RESPONDING ||
+      not_fail.cause.cause_value == srslte::GTPC_CAUSE_VALUE_SERVICE_DENIED ||
+      not_fail.cause.cause_value == srslte::GTPC_CAUSE_VALUE_UE_ALREADY_RE_ATTACHED) {
+    m_gtpc_log->debug("Downlink Data Notification failure indication cause: %d.\n", not_fail.cause.cause_value);
+  } else {
+    m_gtpc_log->warning("Invalid cause in Downlink Data Notification Failure Indication %d\n",
+                        not_fail.cause.cause_value);
+  }
+  free_all_queued_packets(tunnel_ctx);
+  tunnel_ctx->paging_pending = false;
+  return;
+}
+
 /*
  * Context management functions
  */
@@ -340,8 +455,8 @@ spgw_tunnel_ctx_t* spgw::gtpc::create_gtpc_ctx(const struct srslte::gtpc_create_
   // Save the UE IP to User TEID map
   spgw_tunnel_ctx_t* tunnel_ctx = new spgw_tunnel_ctx_t;
 
-  tunnel_ctx->imsi           = cs_req.imsi;
-  tunnel_ctx->ebi            = default_bearer_id;
+  tunnel_ctx->imsi = cs_req.imsi;
+  tunnel_ctx->ebi  = default_bearer_id;
 
   tunnel_ctx->up_ctrl_fteid.teid = spgw_uplink_ctrl_teid;
   tunnel_ctx->ue_ipv4            = ue_ip;
@@ -365,12 +480,58 @@ bool spgw::gtpc::delete_gtpc_ctx(uint32_t ctrl_teid)
   }
   tunnel_ctx = m_teid_to_tunnel_ctx[ctrl_teid];
 
+  // Remove Ctrl TEID from GTP-U Mapping
+  m_gtpu->delete_gtpc_tunnel(tunnel_ctx->ue_ipv4);
+
   // Remove Ctrl TEID from IMSI to control TEID map
   m_imsi_to_ctr_teid.erase(tunnel_ctx->imsi);
 
   // Remove GTP context from control TEID mapping
   m_teid_to_tunnel_ctx.erase(ctrl_teid);
   delete tunnel_ctx;
+  return true;
+}
+
+/*
+ * Queueing functions
+ */
+bool spgw::gtpc::queue_downlink_packet(uint32_t ctrl_teid, srslte::byte_buffer_t* msg)
+{
+  spgw_tunnel_ctx_t* tunnel_ctx;
+  if (!m_teid_to_tunnel_ctx.count(ctrl_teid)) {
+    m_gtpc_log->error("Could not find GTP context to queue.\n");
+    return false;
+  }
+  tunnel_ctx = m_teid_to_tunnel_ctx[ctrl_teid];
+  if (tunnel_ctx->paging_pending) {
+    m_gtpc_log->error("Paging not pending. Not queueing packet\n");
+    return false;
+  }
+
+  if (tunnel_ctx->paging_queue.size() < m_max_paging_queue) {
+    tunnel_ctx->paging_queue.push(msg);
+    m_gtpc_log->debug("Queued packet. IMSI %" PRIu64 ", Packets in Queue %lu\n", tunnel_ctx->imsi,
+                      tunnel_ctx->paging_queue.size());
+  } else {
+    m_gtpc_log->warning("Paging queue full. IMSI %" PRIu64 ", Packets in Queue %lu\n", tunnel_ctx->imsi,
+                        tunnel_ctx->paging_queue.size());
+    m_pool->deallocate(msg);
+  }
+  return true;
+}
+
+bool spgw::gtpc::free_all_queued_packets(spgw_tunnel_ctx_t* tunnel_ctx)
+{
+  if (tunnel_ctx->paging_pending) {
+    m_gtpc_log->warning("Freeing queue with paging not pending.\n");
+  }
+
+  while (!tunnel_ctx->paging_queue.empty()) {
+    srslte::byte_buffer_t* pkt = tunnel_ctx->paging_queue.front();
+    m_gtpc_log->debug("Dropping packet. Bytes %d\n", pkt->N_bytes);
+    m_pool->deallocate(pkt);
+    tunnel_ctx->paging_queue.pop();
+  }
   return true;
 }
 

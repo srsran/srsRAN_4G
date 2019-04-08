@@ -57,7 +57,7 @@ spgw::gtpu::~gtpu()
   return;
 }
 
-int spgw::gtpu::init(spgw_args_t* args, spgw* spgw, srslte::log_filter* gtpu_log)
+int spgw::gtpu::init(spgw_args_t* args, spgw* spgw, gtpc_interface_gtpu* gtpc, srslte::log_filter* gtpu_log)
 {
   srslte::error_t err;
 
@@ -66,6 +66,7 @@ int spgw::gtpu::init(spgw_args_t* args, spgw* spgw, srslte::log_filter* gtpu_log
 
   // Store interfaces
   m_spgw = spgw;
+  m_gtpc = gtpc;
 
   // Init SGi interface
   err = init_sgi(args);
@@ -98,10 +99,10 @@ void spgw::gtpu::stop()
   }
 }
 
-srslte::error_t spgw::gtpu::init_sgi(spgw_args_t *args)
+srslte::error_t spgw::gtpu::init_sgi(spgw_args_t* args)
 {
   struct ifreq ifr;
-  int sgi_sock;
+  int          sgi_sock;
 
   if (m_sgi_up) {
     return (srslte::ERROR_ALREADY_STARTED);
@@ -144,7 +145,7 @@ srslte::error_t spgw::gtpu::init_sgi(spgw_args_t *args)
   }
 
   // Set IP of the interface
-  struct sockaddr_in *addr = (struct sockaddr_in *)&ifr.ifr_addr;
+  struct sockaddr_in* addr = (struct sockaddr_in*)&ifr.ifr_addr;
   addr->sin_family         = AF_INET;
   addr->sin_addr.s_addr    = inet_addr(args->sgi_if_addr.c_str());
   addr->sin_port           = 0;
@@ -157,8 +158,8 @@ srslte::error_t spgw::gtpu::init_sgi(spgw_args_t *args)
     return srslte::ERROR_CANT_START;
   }
 
-  ifr.ifr_netmask.sa_family                                 = AF_INET;
-  ((struct sockaddr_in *)&ifr.ifr_netmask)->sin_addr.s_addr = inet_addr("255.255.255.0");
+  ifr.ifr_netmask.sa_family                                = AF_INET;
+  ((struct sockaddr_in*)&ifr.ifr_netmask)->sin_addr.s_addr = inet_addr("255.255.255.0");
   if (ioctl(sgi_sock, SIOCSIFNETMASK, &ifr) < 0) {
     m_gtpu_log->error("Failed to set TUN interface Netmask. Error: %s\n", strerror(errno));
     close(m_sgi);
@@ -198,19 +199,19 @@ srslte::error_t spgw::gtpu::init_s1u(spgw_args_t* args)
   return srslte::ERROR_NONE;
 }
 
-void spgw::gtpu::handle_sgi_pdu(srslte::byte_buffer_t *msg)
+void spgw::gtpu::handle_sgi_pdu(srslte::byte_buffer_t* msg)
 {
-  uint8_t version = 0;
+  uint8_t  version = 0;
   uint32_t dest_ip;
-  bool usr_found = false;
-  bool ctr_found = false;
+  bool     usr_found = false;
+  bool     ctr_found = false;
 
-  struct in_addr dest_addr;
+  struct in_addr                                       dest_addr;
   std::map<uint32_t, srslte::gtpc_f_teid_ie>::iterator gtpu_fteid_it;
-  std::map<in_addr_t, uint32_t>::iterator gtpc_teid_it;
-  srslte::gtpc_f_teid_ie enb_fteid;
-  uint32_t spgw_teid;
-  struct iphdr *iph = (struct iphdr *)msg->msg;
+  std::map<in_addr_t, uint32_t>::iterator              gtpc_teid_it;
+  srslte::gtpc_f_teid_ie                               enb_fteid;
+  uint32_t                                             spgw_teid;
+  struct iphdr*                                        iph = (struct iphdr*)msg->msg;
   m_gtpu_log->debug("Received SGi PDU. Bytes %d\n", msg->N_bytes);
 
   if (iph->version != 4) {
@@ -222,7 +223,7 @@ void spgw::gtpu::handle_sgi_pdu(srslte::byte_buffer_t *msg)
     return;
   }
 
-  //Logging PDU info
+  // Logging PDU info
   m_gtpu_log->debug("SGi PDU -- IP version %d, Total length %d\n", iph->version, ntohs(iph->tot_len));
   m_gtpu_log->debug("SGi PDU -- IP src addr %s\n", gtpu_ntoa(iph->saddr).c_str());
   m_gtpu_log->debug("SGi PDU -- IP dst addr %s\n", gtpu_ntoa(iph->daddr).c_str());
@@ -233,13 +234,32 @@ void spgw::gtpu::handle_sgi_pdu(srslte::byte_buffer_t *msg)
     usr_found = true;
     enb_fteid = gtpu_fteid_it->second;
   }
+  gtpc_teid_it = m_ip_to_ctr_teid.find(iph->daddr);
+  if (gtpc_teid_it != m_ip_to_ctr_teid.end()) {
+    ctr_found = true;
+    spgw_teid = gtpc_teid_it->second;
+  }
 
-  if (usr_found == false) {
-    m_gtpu_log->debug("Packet for unknown UE. Discarding packet.\n");
+  // Handle SGi packet
+  if (usr_found == false && ctr_found == false) {
+    m_gtpu_log->debug("Packet for unknown UE.\n");
+    goto pkt_discard_out;
+  } else if (usr_found == false && ctr_found == true) {
+    m_gtpu_log->debug("Packet for attached UE that is not ECM connected.\n");
+    m_gtpu_log->debug("Triggering Donwlink Notification Requset.\n");
+    m_gtpc->queue_downlink_packet(spgw_teid, msg);
+    m_gtpc->send_downlink_data_notification(spgw_teid);
     return;
+  } else if (usr_found == false && ctr_found == true) {
+    m_gtpu_log->error("User plane tunnel found without a control plane tunnel present.\n");
+    goto pkt_discard_out;
   } else {
     send_s1u_pdu(enb_fteid, msg);
   }
+  return;
+
+pkt_discard_out:
+  m_pool->deallocate(msg);
   return;
 }
 
@@ -278,17 +298,34 @@ void spgw::gtpu::send_s1u_pdu(srslte::gtp_fteid_t enb_fteid, srslte::byte_buffer
   m_gtpu_log->debug("eNB F-TEID -- eNB IP %s, eNB TEID 0x%x.\n", inet_ntoa(enb_addr.sin_addr), enb_fteid.teid);
 
   // Write header into packet
+  int n;
   if (!srslte::gtpu_write_header(&header, msg, m_gtpu_log)) {
     m_gtpu_log->error("Error writing GTP-U header on PDU\n");
-    return;
+    goto out;
   }
 
   // Send packet to destination
-  int n = sendto(m_s1u, msg->msg, msg->N_bytes, 0, (struct sockaddr*)&enb_addr, sizeof(enb_addr));
+  n = sendto(m_s1u, msg->msg, msg->N_bytes, 0, (struct sockaddr*)&enb_addr, sizeof(enb_addr));
   if (n < 0) {
     m_gtpu_log->error("Error sending packet to eNB\n");
   } else if ((unsigned int)n != msg->N_bytes) {
     m_gtpu_log->error("Mis-match between packet bytes and sent bytes: Sent: %d/%d\n", n, msg->N_bytes);
+  }
+
+out:
+  m_gtpu_log->debug("Deallocating packet after sending S1-U message\n");
+  m_pool->deallocate(msg);
+  return;
+}
+
+void spgw::gtpu::send_all_queued_packets(srslte::gtp_fteid_t                 dw_user_fteid,
+                                         std::queue<srslte::byte_buffer_t*>& pkt_queue)
+{
+  m_gtpu_log->debug("Sending all queued packets\n");
+  while (!pkt_queue.empty()) {
+    srslte::byte_buffer_t* msg = pkt_queue.front();
+    send_s1u_pdu(dw_user_fteid, msg);
+    pkt_queue.pop();
   }
   return;
 }
@@ -296,14 +333,14 @@ void spgw::gtpu::send_s1u_pdu(srslte::gtp_fteid_t enb_fteid, srslte::byte_buffer
 /*
  * Tunnel managment
  */
-bool spgw::gtpu::modify_gtpu_tunnel(in_addr_t ue_ipv4, srslte::gtpc_f_teid_ie dw_user_fteid,
-                                    uint32_t up_ctrl_teid)
+bool spgw::gtpu::modify_gtpu_tunnel(in_addr_t ue_ipv4, srslte::gtpc_f_teid_ie dw_user_fteid, uint32_t up_ctrl_teid)
 {
   m_gtpu_log->info("Modifying GTP-U Tunnel.\n");
   m_gtpu_log->info("UE IP %s\n", gtpu_ntoa(ue_ipv4).c_str());
   m_gtpu_log->info("Downlink eNB addr %s, U-TEID 0x%x\n", gtpu_ntoa(dw_user_fteid.ipv4).c_str(), dw_user_fteid.teid);
   m_gtpu_log->info("Uplink C-TEID: 0x%x\n", up_ctrl_teid);
   m_ip_to_usr_teid[ue_ipv4] = dw_user_fteid;
+  m_ip_to_ctr_teid[ue_ipv4] = up_ctrl_teid;
   return true;
 }
 
@@ -314,6 +351,18 @@ bool spgw::gtpu::delete_gtpu_tunnel(in_addr_t ue_ipv4)
     m_ip_to_usr_teid.erase(ue_ipv4);
   } else {
     m_gtpu_log->error("Could not find GTP-U Tunnel to delete.\n");
+    return false;
+  }
+  return true;
+}
+
+bool spgw::gtpu::delete_gtpc_tunnel(in_addr_t ue_ipv4)
+{
+  // Remove Ctrl TEID from IP mapping.
+  if (m_ip_to_ctr_teid.count(ue_ipv4)) {
+    m_ip_to_ctr_teid.erase(ue_ipv4);
+  } else {
+    m_gtpu_log->error("Could not find GTP-C Tunnel info to delete.\n");
     return false;
   }
   return true;

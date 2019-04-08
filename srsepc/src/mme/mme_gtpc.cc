@@ -74,7 +74,6 @@ bool mme_gtpc::init(srslte::log_filter* mme_gtpc_log)
   m_next_ctrl_teid = 1;
 
   m_s1ap = s1ap::get_instance();
-  m_spgw = spgw::get_instance();
 
   if (!init_s11()) {
     m_mme_gtpc_log->error("Error Initializing MME S11 Interface\n");
@@ -157,6 +156,9 @@ void mme_gtpc::handle_s11_pdu(srslte::byte_buffer_t *msg)
       break;
     case srslte::GTPC_MSG_TYPE_MODIFY_BEARER_RESPONSE:
       handle_modify_bearer_response(pdu);
+      break;
+    case srslte::GTPC_MSG_TYPE_DOWNLINK_DATA_NOTIFICATION:
+      handle_downlink_data_notification(pdu);
       break;
     default:
       m_mme_gtpc_log->error("Unhandled GTP-C Message type\n");
@@ -435,6 +437,88 @@ void mme_gtpc::send_release_access_bearers_request(uint64_t imsi)
   send_s11_pdu(rel_req_pdu);
 
   return;
+}
+
+bool mme_gtpc::handle_downlink_data_notification(srslte::gtpc_pdu* dl_not_pdu)
+{
+  uint32_t                                 mme_ctrl_teid = dl_not_pdu->header.teid;
+  srslte::gtpc_downlink_data_notification* dl_not        = &dl_not_pdu->choice.downlink_data_notification;
+  std::map<uint32_t, uint64_t>::iterator   imsi_it       = m_mme_ctr_teid_to_imsi.find(mme_ctrl_teid);
+  if (imsi_it == m_mme_ctr_teid_to_imsi.end()) {
+    m_mme_gtpc_log->error("Could not find IMSI from control TEID\n");
+    return false;
+  }
+
+  if (!dl_not->eps_bearer_id_present) {
+    m_mme_gtpc_log->error("No EPS bearer Id in downlink data notification\n");
+    return false;
+  }
+  uint8_t ebi = dl_not->eps_bearer_id;
+  m_mme_gtpc_log->debug("Downlink Data Notification -- IMSI: %lu, EBI %d\n", imsi_it->second, ebi);
+
+  m_s1ap->send_paging(imsi_it->second, ebi);
+  return true;
+}
+
+void mme_gtpc::send_downlink_data_notification_acknowledge(uint64_t imsi, enum srslte::gtpc_cause_value cause)
+{
+  m_mme_gtpc_log->debug("Sending GTP-C Data Notification Acknowledge. Cause %d\n", cause);
+  srslte::gtpc_pdu    not_ack_pdu;
+  srslte::gtp_fteid_t sgw_ctr_fteid;
+  bzero(&not_ack_pdu, sizeof(srslte::gtpc_pdu));
+
+  // get s-gw ctr teid
+  std::map<uint64_t, gtpc_ctx_t>::iterator it_ctx = m_imsi_to_gtpc_ctx.find(imsi);
+  if (it_ctx == m_imsi_to_gtpc_ctx.end()) {
+    m_mme_gtpc_log->error("could not find gtp-c context to remove\n");
+    return;
+  }
+  sgw_ctr_fteid = it_ctx->second.sgw_ctr_fteid;
+
+  // set gtp-c header
+  srslte::gtpc_header* header = &not_ack_pdu.header;
+  header->teid_present        = true;
+  header->teid                = sgw_ctr_fteid.teid;
+  header->type                = srslte::GTPC_MSG_TYPE_DOWNLINK_DATA_NOTIFICATION_ACKNOWLEDGE;
+
+  srslte::gtpc_downlink_data_notification_acknowledge* not_ack =
+      &not_ack_pdu.choice.downlink_data_notification_acknowledge;
+  m_mme_gtpc_log->info("gtp-c downlink data notification acknowledge -- s-gw control teid %d\n", sgw_ctr_fteid.teid);
+
+  // send msg to spgw
+  send_s11_pdu(not_ack_pdu);
+  return;
+}
+
+bool mme_gtpc::send_downlink_data_notification_failure_indication(uint64_t imsi, enum srslte::gtpc_cause_value cause)
+{
+  m_mme_gtpc_log->debug("Sending GTP-C Data Notification Failure Indication. Cause %d\n", cause);
+  srslte::gtpc_pdu    not_fail_pdu;
+  srslte::gtp_fteid_t sgw_ctr_fteid;
+  bzero(&not_fail_pdu, sizeof(srslte::gtpc_pdu));
+
+  // get s-gw ctr teid
+  std::map<uint64_t, gtpc_ctx_t>::iterator it_ctx = m_imsi_to_gtpc_ctx.find(imsi);
+  if (it_ctx == m_imsi_to_gtpc_ctx.end()) {
+    m_mme_gtpc_log->error("could not find gtp-c context to send paging failure\n");
+    return false;
+  }
+  sgw_ctr_fteid = it_ctx->second.sgw_ctr_fteid;
+
+  // set gtp-c header
+  srslte::gtpc_header* header = &not_fail_pdu.header;
+  header->teid_present        = true;
+  header->teid                = sgw_ctr_fteid.teid;
+  header->type                = srslte::GTPC_MSG_TYPE_DOWNLINK_DATA_NOTIFICATION_FAILURE_INDICATION;
+
+  srslte::gtpc_downlink_data_notification_failure_indication* not_fail =
+      &not_fail_pdu.choice.downlink_data_notification_failure_indication;
+  not_fail->cause.cause_value = cause;
+  m_mme_gtpc_log->info("Downlink Data Notification Failure Indication -- SP-GW control teid %d\n", sgw_ctr_fteid.teid);
+
+  // send msg to spgw
+  send_s11_pdu(not_fail_pdu);
+  return true;
 }
 
 } // namespace srsepc

@@ -31,6 +31,7 @@
 #include "s1ap_ctx_mngmt_proc.h"
 #include "s1ap_mngmt_proc.h"
 #include "s1ap_nas_transport.h"
+#include "s1ap_paging.h"
 #include "srsepc/hdr/hss/hss.h"
 #include "srslte/asn1/gtpc.h"
 #include "srslte/asn1/liblte_mme.h"
@@ -102,8 +103,10 @@ public:
   s1ap_mngmt_proc*     m_s1ap_mngmt_proc;
   s1ap_nas_transport*  m_s1ap_nas_transport;
   s1ap_ctx_mngmt_proc* m_s1ap_ctx_mngmt_proc;
+  s1ap_paging*         m_s1ap_paging;
 
-  std::map<uint32_t, uint64_t> m_tmsi_to_imsi;
+  std::map<uint32_t, uint64_t>   m_tmsi_to_imsi;
+  std::map<uint16_t, enb_ctx_t*> m_active_enbs;
 
   // Interfaces
   virtual bool send_initial_context_setup_request(uint64_t imsi, uint16_t erab_to_setup);
@@ -112,6 +115,7 @@ public:
                                            uint32_t               mme_ue_s1ap_id,
                                            srslte::byte_buffer_t* nas_msg,
                                            struct sctp_sndrcvinfo enb_sri);
+  virtual bool send_paging(uint64_t imsi, uint16_t erab_to_setup);
 
   virtual bool expire_nas_timer(enum nas_timer_type type, uint64_t imsi);
 
@@ -126,7 +130,6 @@ private:
 
   hss_interface_nas*                     m_hss;
   int                                    m_s1mme;
-  std::map<uint16_t, enb_ctx_t*>         m_active_enbs;
   std::map<int32_t, uint16_t>            m_sctp_to_enb_id;
   std::map<int32_t, std::set<uint32_t> > m_enb_assoc_to_ue_ids;
 
@@ -136,7 +139,7 @@ private:
   uint32_t m_next_mme_ue_s1ap_id;
   uint32_t m_next_m_tmsi;
 
-  // FIXME the GTP-C should be moved to the MME class, when the packaging of GTP-C messages is done.
+  // GTP-C Interface
   mme_gtpc* m_mme_gtpc;
 
   // PCAP

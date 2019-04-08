@@ -34,7 +34,7 @@
 
 namespace srsepc {
 
-class spgw::gtpc
+class spgw::gtpc : public gtpc_interface_gtpu
 {
 public:
   gtpc();
@@ -60,9 +60,19 @@ public:
                                      const srslte::gtpc_delete_session_request& del_req);
   void handle_release_access_bearers_request(const srslte::gtpc_header&                         header,
                                              const srslte::gtpc_release_access_bearers_request& rel_req);
+  void
+       handle_downlink_data_notification_acknowledge(const srslte::gtpc_header&                                 header,
+                                                     const srslte::gtpc_downlink_data_notification_acknowledge& not_ack);
+  void handle_downlink_data_notification_failure_indication(
+      const srslte::gtpc_header& header, const srslte::gtpc_downlink_data_notification_failure_indication& not_fail);
+
+  virtual bool queue_downlink_packet(uint32_t spgw_ctr_teid, srslte::byte_buffer_t* msg);
+  virtual bool send_downlink_data_notification(uint32_t spgw_ctr_teid);
 
   spgw_tunnel_ctx_t* create_gtpc_ctx(const srslte::gtpc_create_session_request& cs_req);
   bool               delete_gtpc_ctx(uint32_t ctrl_teid);
+
+  bool free_all_queued_packets(spgw_tunnel_ctx_t* tunnel_ctx);
 
   spgw*                m_spgw;
   gtpu_interface_gtpc* m_gtpu;
@@ -73,6 +83,7 @@ public:
   uint32_t m_h_next_ue_ip;
   uint64_t m_next_ctrl_teid;
   uint64_t m_next_user_teid;
+  uint32_t m_max_paging_queue;
 
   std::map<uint64_t, uint32_t> m_imsi_to_ctr_teid;           // IMSI to control TEID map. Important to check if UE
                                                              // is previously connected

@@ -84,6 +84,9 @@ bool s1ap_mngmt_proc::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST
     return false;
   }
 
+  //Store SCTP sendrecv info
+  memcpy(&enb_ctx.sri, enb_sri,sizeof(struct sctp_sndrcvinfo));
+
   // Log S1 Setup Request Info
   m_s1ap_log->console("Received S1 Setup Request.\n");
   m_s1ap->print_enb_ctx_info(std::string("S1 Setup Request"), enb_ctx);

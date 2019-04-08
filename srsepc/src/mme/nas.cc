@@ -556,6 +556,7 @@ bool nas::handle_service_request(uint32_t                m_tmsi,
   s1ap_interface_nas* s1ap = itf.s1ap;
   hss_interface_nas*  hss  = itf.hss;
   gtpc_interface_nas* gtpc = itf.gtpc;
+  mme_interface_nas*  mme  = itf.mme;
 
   LIBLTE_ERROR_ENUM err = liblte_mme_unpack_service_request_msg((LIBLTE_BYTE_MSG_STRUCT*)nas_rx, &service_req);
   if (err != LIBLTE_SUCCESS) {
@@ -629,7 +630,7 @@ bool nas::handle_service_request(uint32_t                m_tmsi,
       nas_log->error("UE has no valid IP assigned upon reception of service request");
     }
 
-    nas_log->console("UE previously assigned IP: %s", inet_ntoa(emm_ctx->ue_ip));
+    nas_log->console("UE previously assigned IP: %s\n", inet_ntoa(emm_ctx->ue_ip));
 
     // Re-generate K_eNB
     srslte::security_generate_k_enb(sec_ctx->k_asme, sec_ctx->ul_nas_count, sec_ctx->k_enb);
@@ -637,6 +638,11 @@ bool nas::handle_service_request(uint32_t                m_tmsi,
     nas_log->console("Generating KeNB with UL NAS COUNT: %d\n", sec_ctx->ul_nas_count);
     nas_log->info_hex(sec_ctx->k_enb, 32, "Key eNodeB (k_enb)\n");
     nas_log->console("UE Ctr TEID %d\n", emm_ctx->sgw_ctrl_fteid.teid);
+
+    // Stop T3413 if running
+    if (mme->is_nas_timer_running(T_3413, emm_ctx->imsi)) {
+      mme->remove_nas_timer(T_3413, emm_ctx->imsi);
+    }
 
     // Save UE ctx to MME UE S1AP id
     s1ap->add_nas_ctx_to_mme_ue_s1ap_id_map(nas_ctx);
@@ -1232,6 +1238,8 @@ bool nas::pack_attach_accept(srslte::byte_buffer_t* nas_buffer)
                    attach_accept.guti.guti.mcc, attach_accept.guti.guti.mnc, attach_accept.guti.guti.mme_group_id,
                    attach_accept.guti.guti.mme_code, attach_accept.guti.guti.m_tmsi);
 
+  memcpy(&m_sec_ctx.guti, &attach_accept.guti, sizeof(LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT));
+
   // Set up LAI for combined EPS/IMSI attach
   attach_accept.lai_present = true;
   attach_accept.lai.mcc     = mcc;
@@ -1634,11 +1642,13 @@ bool nas::start_t3413()
 bool nas::expire_t3413()
 {
   m_nas_log->info("T3413 expired -- Could not page the ue.\n");
+  m_nas_log->console("T3413 expired -- Could not page the ue.\n");
   if (m_emm_ctx.state != EMM_STATE_REGISTERED) {
     m_nas_log->error("EMM invalid status upon T3413 expiration\n");
     return false;
   }
-  // Send Paging Failure to the SPGW (TODO)
+  // Send Paging Failure to the SPGW
+  m_gtpc->send_downlink_data_notification_failure_indication(m_emm_ctx.imsi, srslte::GTPC_CAUSE_VALUE_UE_NOT_RESPONDING);
   return true;
 }
 

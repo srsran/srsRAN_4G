@@ -204,6 +204,7 @@ void mme::run_thread()
 bool mme::add_nas_timer(int timer_fd, nas_timer_type type, uint64_t imsi)
 {
   m_s1ap_log->debug("Adding NAS timer to MME. IMSI %" PRIu64 ", Type %d, Fd: %d\n", imsi, type, timer_fd);
+
   mme_timer_t timer;
   timer.fd   = timer_fd;
   timer.type = type;

@@ -68,14 +68,17 @@ typedef struct gtpc_header {
  * Union that hold the different structures for the possible message types.
  ***************************************************************************/
 typedef union gtpc_msg_choice {
-  struct gtpc_create_session_request          create_session_request;
-  struct gtpc_create_session_response         create_session_response;
-  struct gtpc_modify_bearer_request           modify_bearer_request;
-  struct gtpc_modify_bearer_response          modify_bearer_response;
-  struct gtpc_release_access_bearers_request  release_access_bearers_request;
-  struct gtpc_release_access_bearers_response release_access_bearers_response;
-  struct gtpc_delete_session_request          delete_session_request;
-  struct gtpc_delete_session_response         delete_session_response;
+  struct gtpc_create_session_request                        create_session_request;
+  struct gtpc_create_session_response                       create_session_response;
+  struct gtpc_modify_bearer_request                         modify_bearer_request;
+  struct gtpc_modify_bearer_response                        modify_bearer_response;
+  struct gtpc_release_access_bearers_request                release_access_bearers_request;
+  struct gtpc_release_access_bearers_response               release_access_bearers_response;
+  struct gtpc_delete_session_request                        delete_session_request;
+  struct gtpc_delete_session_response                       delete_session_response;
+  struct gtpc_downlink_data_notification                    downlink_data_notification;
+  struct gtpc_downlink_data_notification_acknowledge        downlink_data_notification_acknowledge;
+  struct gtpc_downlink_data_notification_failure_indication downlink_data_notification_failure_indication;
 } gtpc_msg_choice_t;
 
 /****************************************************************************

@@ -88,6 +88,8 @@ int s1ap::init(s1ap_args_t s1ap_args, srslte::log_filter* nas_log, srslte::log_f
   m_s1ap_nas_transport->init();
   m_s1ap_ctx_mngmt_proc = s1ap_ctx_mngmt_proc::get_instance(); // Context Management Procedures
   m_s1ap_ctx_mngmt_proc->init();
+  m_s1ap_paging = s1ap_paging::get_instance(); // Paging
+  m_s1ap_paging->init();
 
   // Get pointer to GTP-C class
   m_mme_gtpc = mme_gtpc::get_instance();
@@ -596,7 +598,15 @@ void s1ap::print_enb_ctx_info(const std::string& prefix, const enb_ctx_t& enb_ct
 /*
  * Interfaces
  */
-/* GTP-C || NAS -> S1AP interface */
+
+// GTP-C -> S1AP interface
+bool s1ap::send_paging(uint64_t imsi, uint16_t erab_to_setup)
+{
+  m_s1ap_paging->send_paging(imsi, erab_to_setup);
+  return true;
+}
+
+// GTP-C || NAS -> S1AP interface
 bool s1ap::send_initial_context_setup_request(uint64_t imsi, uint16_t erab_to_setup)
 {
   nas* nas_ctx = find_nas_ctx_from_imsi(imsi);
@@ -608,7 +618,7 @@ bool s1ap::send_initial_context_setup_request(uint64_t imsi, uint16_t erab_to_se
   return true;
 }
 
-/* NAS -> S1AP interface */
+// NAS -> S1AP interface
 bool s1ap::send_ue_context_release_command(uint32_t mme_ue_s1ap_id)
 {
   nas* nas_ctx = find_nas_ctx_from_mme_ue_s1ap_id(mme_ue_s1ap_id);

@@ -80,10 +80,9 @@ int spgw::init(spgw_args_t*        args,
 
   // Init log
   m_spgw_log = spgw_log;
-  m_mme_gtpc = mme_gtpc::get_instance();
 
   // Init GTP-U
-  if (m_gtpu->init(args, this, gtpu_log) != 0) {
+  if (m_gtpu->init(args, this, m_gtpc, gtpu_log) != 0) {
     m_spgw_log->console("Could not initialize the SPGW's GTP-U.\n");
     return -1;
   }
@@ -116,8 +115,9 @@ void spgw::run_thread()
 {
   // Mark the thread as running
   m_running = true;
-  srslte::byte_buffer_t* msg;
-  msg = m_pool->allocate();
+  srslte::byte_buffer_t *sgi_msg, *s1u_msg, *s11_msg;
+  s1u_msg = m_pool->allocate("spgw::run_thread::s1u");
+  s11_msg = m_pool->allocate("spgw::run_thread::s11");
 
   struct sockaddr_in src_addr_in;
   struct sockaddr_un src_addr_un;
@@ -134,7 +134,10 @@ void spgw::run_thread()
   int max_fd = std::max(s1u, sgi);
   max_fd = std::max(max_fd, s11);
   while (m_running) {
-    msg->reset();
+
+    s1u_msg->reset();
+    s11_msg->reset();
+
     FD_ZERO(&set);
     FD_SET(s1u, &set);
     FD_SET(sgi, &set);
@@ -144,24 +147,36 @@ void spgw::run_thread()
     if (n == -1) {
       m_spgw_log->error("Error from select\n");
     } else if (n) {
-      if (FD_ISSET(s1u, &set)) {
-        msg->N_bytes = recvfrom(s1u, msg->msg, buf_len, 0, (struct sockaddr*)&src_addr_in, &addrlen);
-        m_gtpu->handle_s1u_pdu(msg);
-      }
       if (FD_ISSET(sgi, &set)) {
-        msg->N_bytes = read(sgi, msg->msg, buf_len);
-        m_gtpu->handle_sgi_pdu(msg);
+        /*
+         * SGi messages may need to be queued when waiting for UE Paging procedure.
+         * For this reason, buffers for SGi pdus are allocated here and deallocated
+         * at the gtpu::send_s1u_pdu() when the PDU is sent, at handle_sgi_pdu() when the PDU is dropped or at
+         * gtpc::free_all_queued_packets, which is called when the Downlink Data Notification
+         * procedure fails (see handle_downlink_data_notification_acknowledgment and
+         * handle_downlink_data_notification_failure)
+         */
+        m_spgw_log->debug("Message received at SPGW: SGi Message\n");
+        sgi_msg      = m_pool->allocate("spgw::run_thread::sgi_msg");
+        sgi_msg->N_bytes = read(sgi, sgi_msg->msg, buf_len);
+        m_gtpu->handle_sgi_pdu(sgi_msg);
+      }
+      if (FD_ISSET(s1u, &set)) {
+        m_spgw_log->debug("Message received at SPGW: S1-U Message\n");
+        s1u_msg->N_bytes = recvfrom(s1u, s1u_msg->msg, buf_len, 0, (struct sockaddr*)&src_addr_in, &addrlen);
+        m_gtpu->handle_s1u_pdu(s1u_msg);
       }
       if (FD_ISSET(s11, &set)) {
         m_spgw_log->debug("Message received at SPGW: S11 Message\n");
-        msg->N_bytes = recvfrom(s11, msg->msg, buf_len, 0, (struct sockaddr*)&src_addr_un, &addrlen);
-        m_gtpc->handle_s11_pdu(msg);
+        s11_msg->N_bytes = recvfrom(s11, s11_msg->msg, buf_len, 0, (struct sockaddr*)&src_addr_un, &addrlen);
+        m_gtpc->handle_s11_pdu(s11_msg);
       }
     } else {
       m_spgw_log->debug("No data from select.\n");
     }
   }
-  m_pool->deallocate(msg);
+  m_pool->deallocate(s1u_msg);
+  m_pool->deallocate(s11_msg);
   return;
 }
 

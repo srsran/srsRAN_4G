@@ -24,6 +24,7 @@
 #include "srslte/asn1/gtpc_ies.h"
 #include "srslte/common/common.h"
 #include <netinet/sctp.h>
+#include <queue>
 
 namespace srsepc {
 
@@ -42,6 +43,8 @@ public:
   virtual bool send_create_session_request(uint64_t imsi)                                                         = 0;
   virtual bool send_modify_bearer_request(uint64_t imsi, uint16_t erab_to_modify, srslte::gtp_fteid_t* enb_fteid) = 0;
   virtual bool send_delete_session_request(uint64_t imsi)                                                         = 0;
+  virtual bool send_downlink_data_notification_failure_indication(uint64_t                      imsi,
+                                                                  enum srslte::gtpc_cause_value cause)            = 0;
 };
 
 class s1ap_interface_gtpc // GTP-C -> S1AP
@@ -102,6 +105,16 @@ public:
 
   virtual bool modify_gtpu_tunnel(in_addr_t ue_ipv4, srslte::gtpc_f_teid_ie dw_user_fteid, uint32_t up_ctrl_teid) = 0;
   virtual bool delete_gtpu_tunnel(in_addr_t ue_ipv4)                                                              = 0;
+  virtual bool delete_gtpc_tunnel(in_addr_t ue_ipv4)                                                              = 0;
+  virtual void send_all_queued_packets(srslte::gtp_fteid_t                 dw_user_fteid,
+                                       std::queue<srslte::byte_buffer_t*>& pkt_queue)                             = 0;
+};
+
+class gtpc_interface_gtpu //GTP-U -> GTP-C
+{
+public:
+  virtual bool queue_downlink_packet(uint32_t spgw_ctr_teid, srslte::byte_buffer_t *msg) = 0;
+  virtual bool send_downlink_data_notification(uint32_t spgw_ctr_teid) = 0;
 };
 
 } // namespace srsepc

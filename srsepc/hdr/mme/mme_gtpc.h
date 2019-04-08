@@ -60,6 +60,9 @@ public:
   void         handle_modify_bearer_response(srslte::gtpc_pdu* mb_resp_pdu);
   void         send_release_access_bearers_request(uint64_t imsi);
   virtual bool send_delete_session_request(uint64_t imsi);
+  bool         handle_downlink_data_notification(srslte::gtpc_pdu* dl_not_pdu);
+  void         send_downlink_data_notification_acknowledge(uint64_t imsi, enum srslte::gtpc_cause_value cause);
+  virtual bool send_downlink_data_notification_failure_indication(uint64_t imsi, enum srslte::gtpc_cause_value cause);
 
   int get_s11();
 
@@ -70,10 +73,7 @@ private:
 
   srslte::log_filter*       m_mme_gtpc_log;
   srslte::byte_buffer_pool* m_pool;
-
-  s1ap*     m_s1ap;
-  spgw*     m_spgw;
-  in_addr_t m_mme_gtpc_ip;
+  s1ap*                     m_s1ap;
 
   uint32_t                            m_next_ctrl_teid;
   std::map<uint32_t, uint64_t>        m_mme_ctr_teid_to_imsi;
@@ -81,6 +81,7 @@ private:
 
   int                m_s11;
   struct sockaddr_un m_mme_addr, m_spgw_addr;
+  in_addr_t m_mme_gtpc_ip;
 
   bool     init_s11();
   uint32_t get_new_ctrl_teid();

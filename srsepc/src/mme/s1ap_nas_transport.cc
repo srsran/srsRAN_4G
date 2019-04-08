@@ -24,6 +24,7 @@
  *
  */
 
+#include "srsepc/hdr/mme/mme.h"
 #include "srsepc/hdr/mme/s1ap_nas_transport.h"
 #include "srsepc/hdr/mme/mme.h"
 #include "srsepc/hdr/mme/s1ap.h"
