@@ -110,6 +110,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
 
   // Command line or config file options
   bpo::options_description common("Configuration options");
+  // clang-format off
   common.add_options()
     ("mme.mme_code",        bpo::value<string>(&mme_code)->default_value("0x01"),            "MME Code")
     ("mme.name",            bpo::value<string>(&mme_name)->default_value("srsmme01"),        "MME Name")
@@ -158,6 +159,8 @@ void parse_args(all_args_t* args, int argc, char* argv[])
   position.add_options()
     ("config_file", bpo::value< string >(&config_file), "MME configuration file")
   ;
+  // clang-format on
+
   bpo::positional_options_description p;
   p.add("config_file", -1);
 
@@ -197,8 +200,14 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     cout << "Failed to read configuration file " << config_file << " - exiting" << endl;
     exit(1);
   }
-  bpo::store(bpo::parse_config_file(conf, common), vm);
-  bpo::notify(vm);
+  // parse config file and handle errors gracefully
+  try {
+    bpo::store(bpo::parse_config_file(conf, common), vm);
+    bpo::notify(vm);
+  } catch (const boost::program_options::error& e) {
+    cerr << e.what() << endl;
+    exit(1);
+  }
 
   //Concert hex strings
   {
