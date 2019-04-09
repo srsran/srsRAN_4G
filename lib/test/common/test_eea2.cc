@@ -23,7 +23,6 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "srslte/common/liblte_security.h"
 #include "srslte/srslte.h"
 #include "srslte/common/liblte_security.h"
 

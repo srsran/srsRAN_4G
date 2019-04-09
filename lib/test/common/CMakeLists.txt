@@ -41,6 +41,10 @@ add_executable(test_eea2 test_eea2.cc)
 target_link_libraries(test_eea2 srslte_common srslte_phy ${CMAKE_THREAD_LIBS_INIT})
 add_test(test_eea2 test_eea2)
 
+add_executable(test_eea3 test_eea3.cc)
+target_link_libraries(test_eea3 srslte_common srslte_phy ${CMAKE_THREAD_LIBS_INIT})
+add_test(test_eea3 test_eea3)
+
 add_executable(test_f12345 test_f12345.cc)
 target_link_libraries(test_f12345 srslte_common ${CMAKE_THREAD_LIBS_INIT})
 add_test(test_f12345 test_f12345)
