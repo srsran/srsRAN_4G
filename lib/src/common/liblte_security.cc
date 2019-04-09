@@ -952,7 +952,6 @@ LIBLTE_ERROR_ENUM liblte_security_decryption_eea2(
   return liblte_security_encryption_eea2(key, count, bearer, direction, ct, ct_len, out);
 }
 
-
 /*********************************************************************
     Name: liblte_security_encryption_eea1
 
@@ -1049,6 +1048,12 @@ LIBLTE_ERROR_ENUM liblte_security_encryption_eea3(uint8  *key,
     }
 
     return(err);
+}
+
+LIBLTE_ERROR_ENUM liblte_security_decryption_eea3(uint8* key, uint32 count, uint8 bearer, uint8 direction, uint8* msg,
+                                                  uint32 msg_len, uint8* out)
+{
+  return liblte_security_encryption_eea3(key, count, bearer, direction, msg, msg_len, out);
 }
 
 /*********************************************************************
