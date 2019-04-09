@@ -234,6 +234,16 @@ LIBLTE_ERROR_ENUM liblte_security_encryption_eea3(uint8  *key,
                                                   uint8  *msg,
                                                   uint32  msg_len,
                                                   uint8  *out);
+
+
+LIBLTE_ERROR_ENUM liblte_security_decryption_eea3(uint8  *key,
+                                                  uint32  count,
+                                                  uint8   bearer,
+                                                  uint8   direction,
+                                                  uint8  *msg,
+                                                  uint32  msg_len,
+                                                  uint8  *out);
+
 /*********************************************************************
     Name: liblte_security_milenage_f1
 
