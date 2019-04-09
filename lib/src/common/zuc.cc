@@ -4,28 +4,7 @@
 
 /* ——————————————————————- */
 /* the state registers of LFSR */
-u32 ZUC_LFSR_S0 = 0x00;
-u32 ZUC_LFSR_S1 = 0x00;
-u32 ZUC_LFSR_S2 = 0x00;
-u32 ZUC_LFSR_S3 = 0x00;
-u32 ZUC_LFSR_S4 = 0x00;
-u32 ZUC_LFSR_S5 = 0x00;
-u32 ZUC_LFSR_S6 = 0x00;
-u32 ZUC_LFSR_S7 = 0x00;
-u32 ZUC_LFSR_S8 = 0x00;
-u32 ZUC_LFSR_S9 = 0x00;
-u32 ZUC_LFSR_S10 = 0x00;
-u32 ZUC_LFSR_S11 = 0x00;
-u32 ZUC_LFSR_S12 = 0x00;
-u32 ZUC_LFSR_S13 = 0x00;
-u32 ZUC_LFSR_S14 = 0x00;
-u32 ZUC_LFSR_S15 = 0x00; /* the registers of F */
-u32 F_R1 = 0x00;
-u32 F_R2 = 0x00;/* the outputs of BitReorganization */
-u32 BRC_X0 = 0x00;
-u32 BRC_X1 = 0x00;
-u32 BRC_X2 = 0x00;
-u32 BRC_X3 = 0x00; 
+
 
 #define MAKEU32(a, b, c, d) (((u32)(a) << 24) | ((u32)(b) << 16) | ((u32)(c) << 8) | ((u32)(d))) 
 #define MulByPow2(x, k) ((((x) << k) | ((x) >> (31 - k))) & 0x7FFFFFFF)
@@ -75,79 +54,80 @@ u32 AddM(u32 a, u32 b)
   u32 c = a + b;
   return (c & 0x7FFFFFFF) + (c >> 31);
 }
+
 /* LFSR with initialization mode */
-void LFSRWithInitialisationMode(u32 u)
+void LFSRWithInitialisationMode(zuc_state_t * state, u32 u)
 {
   u32 f, v;
-  f        = ZUC_LFSR_S0;
-  v        = MulByPow2(ZUC_LFSR_S0, 8);
+  f        = state->LFSR_S0;
+  v        = MulByPow2(state->LFSR_S0, 8);
   f        = AddM(f, v);
-  v        = MulByPow2(ZUC_LFSR_S4, 20);
+  v        = MulByPow2(state->LFSR_S4, 20);
   f        = AddM(f, v);
-  v        = MulByPow2(ZUC_LFSR_S10, 21);
+  v        = MulByPow2(state->LFSR_S10, 21);
   f        = AddM(f, v);
-  v        = MulByPow2(ZUC_LFSR_S13, 17);
+  v        = MulByPow2(state->LFSR_S13, 17);
   f        = AddM(f, v);
-  v        = MulByPow2(ZUC_LFSR_S15, 15);
+  v        = MulByPow2(state->LFSR_S15, 15);
   f        = AddM(f, v);
   f        = AddM(f, u); /* update the state */
-  ZUC_LFSR_S0  = ZUC_LFSR_S1;
-  ZUC_LFSR_S1  = ZUC_LFSR_S2;
-  ZUC_LFSR_S2  = ZUC_LFSR_S3;
-  ZUC_LFSR_S3  = ZUC_LFSR_S4;
-  ZUC_LFSR_S4  = ZUC_LFSR_S5;
-  ZUC_LFSR_S5  = ZUC_LFSR_S6;
-  ZUC_LFSR_S6  = ZUC_LFSR_S7;
-  ZUC_LFSR_S7  = ZUC_LFSR_S8;
-  ZUC_LFSR_S8  = ZUC_LFSR_S9;
-  ZUC_LFSR_S9  = ZUC_LFSR_S10;
-  ZUC_LFSR_S10 = ZUC_LFSR_S11;
-  ZUC_LFSR_S11 = ZUC_LFSR_S12;
-  ZUC_LFSR_S12 = ZUC_LFSR_S13;
-  ZUC_LFSR_S13 = ZUC_LFSR_S14;
-  ZUC_LFSR_S14 = ZUC_LFSR_S15;
-  ZUC_LFSR_S15 = f;
+  state->LFSR_S0  = state->LFSR_S1;
+  state->LFSR_S1  = state->LFSR_S2;
+  state->LFSR_S2  = state->LFSR_S3;
+  state->LFSR_S3  = state->LFSR_S4;
+  state->LFSR_S4  = state->LFSR_S5;
+  state->LFSR_S5  = state->LFSR_S6;
+  state->LFSR_S6  = state->LFSR_S7;
+  state->LFSR_S7  = state->LFSR_S8;
+  state->LFSR_S8  = state->LFSR_S9;
+  state->LFSR_S9  = state->LFSR_S10;
+  state->LFSR_S10 = state->LFSR_S11;
+  state->LFSR_S11 = state->LFSR_S12;
+  state->LFSR_S12 = state->LFSR_S13;
+  state->LFSR_S13 = state->LFSR_S14;
+  state->LFSR_S14 = state->LFSR_S15;
+  state->LFSR_S15 = f;
 } /* LFSR with work mode */
 
-void LFSRWithWorkMode()
+void LFSRWithWorkMode(zuc_state_t *state)
 {
   u32 f, v;
-  f        = ZUC_LFSR_S0;
-  v        = MulByPow2(ZUC_LFSR_S0, 8);
+  f        = state->LFSR_S0;
+  v        = MulByPow2(state->LFSR_S0, 8);
   f        = AddM(f, v);
-  v        = MulByPow2(ZUC_LFSR_S4, 20);
+  v        = MulByPow2(state->LFSR_S4, 20);
   f        = AddM(f, v);
-  v        = MulByPow2(ZUC_LFSR_S10, 21);
+  v        = MulByPow2(state->LFSR_S10, 21);
   f        = AddM(f, v);
-  v        = MulByPow2(ZUC_LFSR_S13, 17);
+  v        = MulByPow2(state->LFSR_S13, 17);
   f        = AddM(f, v);
-  v        = MulByPow2(ZUC_LFSR_S15, 15);
+  v        = MulByPow2(state->LFSR_S15, 15);
   f        = AddM(f, v); /* update the state */
-  ZUC_LFSR_S0  = ZUC_LFSR_S1;
-  ZUC_LFSR_S1  = ZUC_LFSR_S2;
-  ZUC_LFSR_S2  = ZUC_LFSR_S3;
-  ZUC_LFSR_S3  = ZUC_LFSR_S4;
-  ZUC_LFSR_S4  = ZUC_LFSR_S5;
-  ZUC_LFSR_S5  = ZUC_LFSR_S6;
-  ZUC_LFSR_S6  = ZUC_LFSR_S7;
-  ZUC_LFSR_S7  = ZUC_LFSR_S8;
-  ZUC_LFSR_S8  = ZUC_LFSR_S9;
-  ZUC_LFSR_S9  = ZUC_LFSR_S10;
-  ZUC_LFSR_S10 = ZUC_LFSR_S11;
-  ZUC_LFSR_S11 = ZUC_LFSR_S12;
-  ZUC_LFSR_S12 = ZUC_LFSR_S13;
-  ZUC_LFSR_S13 = ZUC_LFSR_S14;
-  ZUC_LFSR_S14 = ZUC_LFSR_S15;
-  ZUC_LFSR_S15 = f;
+  state->LFSR_S0  = state->LFSR_S1;
+  state->LFSR_S1  = state->LFSR_S2;
+  state->LFSR_S2  = state->LFSR_S3;
+  state->LFSR_S3  = state->LFSR_S4;
+  state->LFSR_S4  = state->LFSR_S5;
+  state->LFSR_S5  = state->LFSR_S6;
+  state->LFSR_S6  = state->LFSR_S7;
+  state->LFSR_S7  = state->LFSR_S8;
+  state->LFSR_S8  = state->LFSR_S9;
+  state->LFSR_S9  = state->LFSR_S10;
+  state->LFSR_S10 = state->LFSR_S11;
+  state->LFSR_S11 = state->LFSR_S12;
+  state->LFSR_S12 = state->LFSR_S13;
+  state->LFSR_S13 = state->LFSR_S14;
+  state->LFSR_S14 = state->LFSR_S15;
+  state->LFSR_S15 = f;
 }
 
 /* BitReorganization */
-void BitReorganization()
+void BitReorganization(zuc_state_t *state)
 {
-  BRC_X0 = ((ZUC_LFSR_S15 & 0x7FFF8000) << 1) | (ZUC_LFSR_S14 & 0xFFFF);
-  BRC_X1 = ((ZUC_LFSR_S11 & 0xFFFF) << 16) | (ZUC_LFSR_S9 >> 15);
-  BRC_X2 = ((ZUC_LFSR_S7 & 0xFFFF) << 16) | (ZUC_LFSR_S5 >> 15);
-  BRC_X3 = ((ZUC_LFSR_S2 & 0xFFFF) << 16) | (ZUC_LFSR_S0 >> 15);
+  state->BRC_X0 = ((state->LFSR_S15 & 0x7FFF8000) << 1) | (state->LFSR_S14 & 0xFFFF);
+  state->BRC_X1 = ((state->LFSR_S11 & 0xFFFF) << 16) | (state->LFSR_S9 >> 15);
+  state->BRC_X2 = ((state->LFSR_S7 & 0xFFFF) << 16) | (state->LFSR_S5 >> 15);
+  state->BRC_X3 = ((state->LFSR_S2 & 0xFFFF) << 16) | (state->LFSR_S0 >> 15);
 }
 
 /* L1 */
@@ -162,62 +142,64 @@ u32 L2(u32 X)
 }
 
 /* F */
-u32 F()
+u32 F(zuc_state_t *state)
 {
   u32 W, W1, W2, u, v;
-  W    = (BRC_X0 ^ F_R1) + F_R2;
-  W1   = F_R1 + BRC_X1;
-  W2   = F_R2 ^ BRC_X2;
+  W    = (state->BRC_X0 ^ state->F_R1) + state->F_R2;
+  W1   = state->F_R1 + state->BRC_X1;
+  W2   = state->F_R2 ^ state->BRC_X2;
   u    = L1((W1 << 16) | (W2 >> 16));
   v    = L2((W2 << 16) | (W1 >> 16));
-  F_R1 = MAKEU32(S0[u >> 24], S1[(u >> 16) & 0xFF], S0[(u >> 8) & 0xFF], S1[u & 0xFF]);
-  F_R2 = MAKEU32(S0[v >> 24], S1[(v >> 16) & 0xFF], S0[(v >> 8) & 0xFF], S1[v & 0xFF]);
+  state->F_R1 = MAKEU32(S0[u >> 24], S1[(u >> 16) & 0xFF], S0[(u >> 8) & 0xFF], S1[u & 0xFF]);
+  state->F_R2 = MAKEU32(S0[v >> 24], S1[(v >> 16) & 0xFF], S0[(v >> 8) & 0xFF], S1[v & 0xFF]);
   return W;
 }
 
 /* initialize */
 
-void zuc_initialize(u8* k, u8* iv)
+void zuc_initialize(zuc_state_t *state, u8* k, u8* iv)
 {
-  u32 w, nCount; /* expand key */
-  ZUC_LFSR_S0  = MAKEU31(k[0], EK_d[0], iv[0]);
-  ZUC_LFSR_S1  = MAKEU31(k[1], EK_d[1], iv[1]);
-  ZUC_LFSR_S2  = MAKEU31(k[2], EK_d[2], iv[2]);
-  ZUC_LFSR_S3  = MAKEU31(k[3], EK_d[3], iv[3]);
-  ZUC_LFSR_S4  = MAKEU31(k[4], EK_d[4], iv[4]);
-  ZUC_LFSR_S5  = MAKEU31(k[5], EK_d[5], iv[5]);
-  ZUC_LFSR_S6  = MAKEU31(k[6], EK_d[6], iv[6]);
-  ZUC_LFSR_S7  = MAKEU31(k[7], EK_d[7], iv[7]);
-  ZUC_LFSR_S8  = MAKEU31(k[8], EK_d[8], iv[8]);
-  ZUC_LFSR_S9  = MAKEU31(k[9], EK_d[9], iv[9]);
-  ZUC_LFSR_S10 = MAKEU31(k[10], EK_d[10], iv[10]);
-  ZUC_LFSR_S11 = MAKEU31(k[11], EK_d[11], iv[11]);
-  ZUC_LFSR_S12 = MAKEU31(k[12], EK_d[12], iv[12]);
-  ZUC_LFSR_S13 = MAKEU31(k[13], EK_d[13], iv[13]);
-  ZUC_LFSR_S14 = MAKEU31(k[14], EK_d[14], iv[14]);
-  ZUC_LFSR_S15 = MAKEU31(k[15], EK_d[15], iv[15]); /* set F_R1 and F_R2 to zero */
-  F_R1     = 0;
-  F_R2     = 0;
+  u32 w, nCount;
+   /* expand key */
+  state->LFSR_S0  = MAKEU31(k[0], EK_d[0], iv[0]);
+  state->LFSR_S1  = MAKEU31(k[1], EK_d[1], iv[1]);
+  state->LFSR_S2  = MAKEU31(k[2], EK_d[2], iv[2]);
+  state->LFSR_S3  = MAKEU31(k[3], EK_d[3], iv[3]);
+  state->LFSR_S4  = MAKEU31(k[4], EK_d[4], iv[4]);
+  state->LFSR_S5  = MAKEU31(k[5], EK_d[5], iv[5]);
+  state->LFSR_S6  = MAKEU31(k[6], EK_d[6], iv[6]);
+  state->LFSR_S7  = MAKEU31(k[7], EK_d[7], iv[7]);
+  state->LFSR_S8  = MAKEU31(k[8], EK_d[8], iv[8]);
+  state->LFSR_S9  = MAKEU31(k[9], EK_d[9], iv[9]);
+  state->LFSR_S10 = MAKEU31(k[10], EK_d[10], iv[10]);
+  state->LFSR_S11 = MAKEU31(k[11], EK_d[11], iv[11]);
+  state->LFSR_S12 = MAKEU31(k[12], EK_d[12], iv[12]);
+  state->LFSR_S13 = MAKEU31(k[13], EK_d[13], iv[13]);
+  state->LFSR_S14 = MAKEU31(k[14], EK_d[14], iv[14]);
+  state->LFSR_S15 = MAKEU31(k[15], EK_d[15], iv[15]); 
+  /* set F_R1 and F_R2 to zero */
+  state->F_R1     = 0;
+  state->F_R2     = 0;
   nCount   = 32;
   while (nCount > 0) {
-    BitReorganization();
-    w = F();
-    LFSRWithInitialisationMode(w >> 1);
+    BitReorganization(state);
+    w = F(state);
+    LFSRWithInitialisationMode(state, w >> 1);
     nCount--;
   }
 }
 
-void zuc_generate_keystream(int KeystreamLen, u32* pKeystream)
+void zuc_generate_keystream(zuc_state_t *state, int key_stream_len, u32* p_keystream)
 {
   int i;
   {
-    BitReorganization();
-    F(); /* discard the output of F */
-    LFSRWithWorkMode();
+    BitReorganization(state);
+    F(state); /* discard the output of F */
+    LFSRWithWorkMode(state);
   }
-  for (i = 0; i < KeystreamLen; i++) {
-    BitReorganization();
-    pKeystream[i] = F() ^ BRC_X3;
-    LFSRWithWorkMode();
+  for (i = 0; i < key_stream_len; i++) {
+    BitReorganization(state);
+    p_keystream[i] = F(state) ^ state->BRC_X3;
+    LFSRWithWorkMode(state);
   }
 }

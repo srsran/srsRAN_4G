@@ -1015,14 +1015,15 @@ LIBLTE_ERROR_ENUM liblte_security_encryption_eea3(uint8  *key,
         iv[13] = iv[5];
         iv[14] = iv[6];
         iv[15] = iv[7];
-
+        
+        zuc_state_t zuc_state;
         // Initialize keystream
-        zuc_initialize(key, iv);
+        zuc_initialize(&zuc_state, key, iv);
 
         // Generate keystream
 
         ks = (uint32 *) calloc(msg_len_block_32, sizeof(uint32));
-        zuc_generate_keystream(msg_len_block_32, ks);
+        zuc_generate_keystream(&zuc_state, msg_len_block_32, ks);
 
         // Generate output except last block
         for (i = 0; i < (int32_t)msg_len_block_32 - 1; i++) {
