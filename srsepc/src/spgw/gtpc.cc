@@ -504,12 +504,12 @@ bool spgw::gtpc::queue_downlink_packet(uint32_t ctrl_teid, srslte::byte_buffer_t
   spgw_tunnel_ctx_t* tunnel_ctx;
   if (!m_teid_to_tunnel_ctx.count(ctrl_teid)) {
     m_gtpc_log->error("Could not find GTP context to queue.\n");
-    return false;
+    goto pkt_discard;
   }
   tunnel_ctx = m_teid_to_tunnel_ctx[ctrl_teid];
-  if (tunnel_ctx->paging_pending) {
+  if (!tunnel_ctx->paging_pending) {
     m_gtpc_log->error("Paging not pending. Not queueing packet\n");
-    return false;
+    goto pkt_discard;
   }
 
   if (tunnel_ctx->paging_queue.size() < m_max_paging_queue) {
@@ -519,14 +519,18 @@ bool spgw::gtpc::queue_downlink_packet(uint32_t ctrl_teid, srslte::byte_buffer_t
   } else {
     m_gtpc_log->warning("Paging queue full. IMSI %" PRIu64 ", Packets in Queue %zd\n", tunnel_ctx->imsi,
                         tunnel_ctx->paging_queue.size());
-    m_pool->deallocate(msg);
+    goto pkt_discard;
   }
   return true;
+
+pkt_discard:
+  m_pool->deallocate(msg);
+  return false;
 }
 
 bool spgw::gtpc::free_all_queued_packets(spgw_tunnel_ctx_t* tunnel_ctx)
 {
-  if (tunnel_ctx->paging_pending) {
+  if (!tunnel_ctx->paging_pending) {
     m_gtpc_log->warning("Freeing queue with paging not pending.\n");
   }
 

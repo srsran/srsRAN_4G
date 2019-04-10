@@ -412,7 +412,7 @@ bool mme_gtpc::send_delete_session_request(uint64_t imsi)
 void mme_gtpc::send_release_access_bearers_request(uint64_t imsi)
 {
   // The GTP-C connection will not be torn down, just the user plane bearers.
-  m_mme_gtpc_log->info("Sending GTP-C Delete Access Bearers Request\n");
+  m_mme_gtpc_log->info("Sending GTP-C Release Access Bearers Request\n");
   srslte::gtpc_pdu    rel_req_pdu;
   srslte::gtp_fteid_t sgw_ctr_fteid;
 
