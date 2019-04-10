@@ -79,6 +79,9 @@ void pdcp_entity_base::integrity_generate(uint8_t* msg, uint32_t msg_len, uint32
     case INTEGRITY_ALGORITHM_ID_128_EIA2:
       security_128_eia2(&k_int[16], count, cfg.bearer_id - 1, cfg.tx_direction, msg, msg_len, mac);
       break;
+    case INTEGRITY_ALGORITHM_ID_128_EIA3:
+      security_128_eia3(&k_int[16], count, cfg.bearer_id - 1, cfg.tx_direction, msg, msg_len, mac);
+      break;
     default:
       break;
   }
@@ -112,6 +115,9 @@ bool pdcp_entity_base::integrity_verify(uint8_t* msg, uint32_t msg_len, uint32_t
       break;
     case INTEGRITY_ALGORITHM_ID_128_EIA2:
       security_128_eia2(&k_int[16], count, cfg.bearer_id - 1, cfg.rx_direction, msg, msg_len, mac_exp);
+      break;
+    case INTEGRITY_ALGORITHM_ID_128_EIA3:
+      security_128_eia3(&k_int[16], count, cfg.bearer_id - 1, cfg.rx_direction, msg, msg_len, mac_exp);
       break;
     default:
       break;
@@ -169,6 +175,10 @@ void pdcp_entity_base::cipher_encrypt(uint8_t* msg, uint32_t msg_len, uint32_t c
       security_128_eea2(&(k_enc[16]), count, cfg.bearer_id - 1, cfg.tx_direction, msg, msg_len, ct_tmp);
       memcpy(ct, ct_tmp, msg_len);
       break;
+    case CIPHERING_ALGORITHM_ID_128_EEA3:
+      security_128_eea3(&(k_enc[16]), count, cfg.bearer_id - 1, cfg.tx_direction, msg, msg_len, ct_tmp);
+      memcpy(ct, ct_tmp, msg_len);
+      break;
     default:
       break;
   }
@@ -202,6 +212,10 @@ void pdcp_entity_base::cipher_decrypt(uint8_t* ct, uint32_t ct_len, uint32_t cou
       break;
     case CIPHERING_ALGORITHM_ID_128_EEA2:
       security_128_eea2(&k_enc[16], count, cfg.bearer_id - 1, cfg.rx_direction, ct, ct_len, msg_tmp);
+      memcpy(msg, msg_tmp, ct_len);
+      break;
+    case CIPHERING_ALGORITHM_ID_128_EEA3:
+      security_128_eea3(&k_enc[16], count, cfg.bearer_id - 1, cfg.rx_direction, ct, ct_len, msg_tmp);
       memcpy(msg, msg_tmp, ct_len);
       break;
     default:
