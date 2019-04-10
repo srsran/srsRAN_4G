@@ -842,25 +842,26 @@ LIBLTE_ERROR_ENUM liblte_security_128_eia3(uint8* key, uint32 count, uint8 beare
         msg_len_block_8 = (msg_len + 7) / 8;
         msg_len_block_32 = (msg_len + 31) / 32;
 
-        // Construct IV
-        iv[0]  = (count >> 24) & 0xFF;
-        iv[1]  = (count >> 16) & 0xFF;
-        iv[2]  = (count >> 8) & 0xFF;
-        iv[3]  = (count)&0xFF;
-        iv[4]  = ((bearer & 0x1F) << 3) | ((direction & 0x01) << 2);
-        iv[5]  = 0;
-        iv[6]  = 0;
-        iv[7]  = 0;
-        iv[8]  = iv[0];
-        iv[9]  = iv[1];
-        iv[10] = iv[2];
-        iv[11] = iv[3];
+        // Construct iv
+        iv[0] = (count >> 24) & 0xFF;
+        iv[1] = (count >> 16) & 0xFF;
+        iv[2] = (count >> 8) & 0xFF;
+        iv[3] = count & 0xFF;
+
+        iv[4] = (bearer << 3) & 0xF8;
+        iv[5] = iv[6] = iv[7] = 0;
+
+        iv[8]  = ((count >> 24) & 0xFF) ^ ((direction & 1) << 7);
+        iv[9]  = (count >> 16) & 0xFF;
+        iv[10] = (count >> 8) & 0xFF;
+        iv[11] = count & 0xFF;
+
         iv[12] = iv[4];
         iv[13] = iv[5];
-        iv[14] = iv[6];
+        iv[14] = iv[6] ^ ((direction & 1) << 7);
         iv[15] = iv[7];
 
-        zuc_state_t zuc_state;
+               zuc_state_t zuc_state;
         // Initialize keystream
         zuc_initialize(&zuc_state, key, iv);
 
@@ -869,6 +870,7 @@ LIBLTE_ERROR_ENUM liblte_security_128_eia3(uint8* key, uint32 count, uint8 beare
         int L = (N + 31) / 32;
 
         ks = (uint32*)calloc(L, sizeof(uint32));
+
         zuc_generate_keystream(&zuc_state, L, ks);
 
         uint32_t T = 0;
@@ -881,7 +883,6 @@ LIBLTE_ERROR_ENUM liblte_security_128_eia3(uint8* key, uint32 count, uint8 beare
         T ^= GET_WORD(ks, msg_len);
 
         uint32_t mac_tmp = T ^ ks[L - 1];
-
         mac[0] = (mac_tmp >> 24) & 0xFF;
         mac[1] = (mac_tmp >> 16) & 0xFF;
         mac[2] = (mac_tmp >> 8) & 0xFF;
@@ -1069,7 +1070,7 @@ LIBLTE_ERROR_ENUM liblte_security_encryption_eea3(uint8  *key,
         msg_len_block_8 = (msg_len + 7) / 8;
         msg_len_block_32 = (msg_len + 31) / 32;
 
-        // Construct IV
+        // Construct iv
         iv[0] = (count >> 24) & 0xFF;
         iv[1] = (count >> 16) & 0xFF;
         iv[2]  = (count >> 8) & 0xFF;
