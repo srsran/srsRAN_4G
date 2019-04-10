@@ -808,6 +808,91 @@ LIBLTE_ERROR_ENUM liblte_security_128_eia2(
   return (err);
 }
 
+u32 GET_WORD(u32 * DATA, u32 i)
+{
+	u32 WORD, ti;
+	ti	= i % 32;
+	if (ti == 0)
+		WORD = DATA[i/32];
+	else
+		WORD = (DATA[i/32]<<ti) | (DATA[i/32+1]>>(32-ti));
+	return WORD;
+}
+
+u8 GET_BIT(uint8_t * DATA, u32 i)
+{
+	return (DATA[i/8] & (1<<(7-(i%8)))) ? 1 : 0;
+}
+
+LIBLTE_ERROR_ENUM liblte_security_128_eia3(uint8* key, uint32 count, uint8 bearer, uint8 direction, uint8* msg,
+                                           uint32 msg_len, uint8* mac)
+
+{   
+    LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
+    uint8_t iv[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+    
+    uint32 *ks;
+    int32 i;
+    uint32 msg_len_block_8, msg_len_block_32, m;
+    
+    if(key != NULL &&
+       msg != NULL &&
+       mac != NULL)
+    {
+        msg_len_block_8 = (msg_len + 7) / 8;
+        msg_len_block_32 = (msg_len + 31) / 32;
+
+        // Construct IV
+        iv[0]  = (count >> 24) & 0xFF;
+        iv[1]  = (count >> 16) & 0xFF;
+        iv[2]  = (count >> 8) & 0xFF;
+        iv[3]  = (count)&0xFF;
+        iv[4]  = ((bearer & 0x1F) << 3) | ((direction & 0x01) << 2);
+        iv[5]  = 0;
+        iv[6]  = 0;
+        iv[7]  = 0;
+        iv[8]  = iv[0];
+        iv[9]  = iv[1];
+        iv[10] = iv[2];
+        iv[11] = iv[3];
+        iv[12] = iv[4];
+        iv[13] = iv[5];
+        iv[14] = iv[6];
+        iv[15] = iv[7];
+
+        zuc_state_t zuc_state;
+        // Initialize keystream
+        zuc_initialize(&zuc_state, key, iv);
+
+        // Generate keystream
+        int N = msg_len + 64;
+        int L = (N + 31) / 32;
+
+        ks = (uint32*)calloc(L, sizeof(uint32));
+        zuc_generate_keystream(&zuc_state, L, ks);
+
+        uint32_t T = 0;
+        for (i = 0; i < msg_len; i++) {
+          if (GET_BIT(msg, i)) {
+            T ^= GET_WORD(ks, i);
+          }
+        }
+
+        T ^= GET_WORD(ks, msg_len);
+
+        uint32_t mac_tmp = T ^ ks[L - 1];
+
+        mac[0] = (mac_tmp >> 24) & 0xFF;
+        mac[1] = (mac_tmp >> 16) & 0xFF;
+        mac[2] = (mac_tmp >> 8) & 0xFF;
+        mac[3] = mac_tmp & 0xFF;
+
+        free(ks);
+    }
+
+    return (err);
+}
+
 /*********************************************************************
     Name: liblte_security_encryption_eea1
 
@@ -971,9 +1056,7 @@ LIBLTE_ERROR_ENUM liblte_security_encryption_eea3(uint8  *key,
                                                   uint8  *out)
 {
     LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
-    S3G_STATE state, *state_ptr;
-    uint32 k[] = {0,0,0,0};
-    uint32 iv[] = {0,0,0,0};
+    uint8_t iv[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
     
     uint32 *ks;
     int32 i;
@@ -983,21 +1066,10 @@ LIBLTE_ERROR_ENUM liblte_security_encryption_eea3(uint8  *key,
         msg != NULL &&
         out != NULL)
     {
-        state_ptr = &state;
         msg_len_block_8 = (msg_len + 7) / 8;
         msg_len_block_32 = (msg_len + 31) / 32;
 
-        // Transform key
-        for (i = 3; i >= 0; i--) {
-            k[i] = (key[4 * (3 - i) + 0] << 24) |
-                   (key[4 * (3 - i) + 1] << 16) |
-                   (key[4 * (3 - i) + 2] <<  8) |
-                   (key[4 * (3 - i) + 3]);
-        }
-
-        // Construct iv
-        uint8_t iv[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-
+        // Construct IV
         iv[0] = (count >> 24) & 0xFF;
         iv[1] = (count >> 16) & 0xFF;
         iv[2]  = (count >> 8) & 0xFF;
