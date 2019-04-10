@@ -180,6 +180,8 @@ LIBLTE_ERROR_ENUM liblte_security_128_eia2(
     uint8* key, uint32 count, uint8 bearer, uint8 direction, uint8* msg, uint32 msg_len, uint8* mac);
 LIBLTE_ERROR_ENUM liblte_security_128_eia2(
     uint8* key, uint32 count, uint8 bearer, uint8 direction, LIBLTE_BIT_MSG_STRUCT* msg, uint8* mac);
+LIBLTE_ERROR_ENUM liblte_security_128_eia3(
+    uint8* key, uint32 count, uint8 bearer, uint8 direction, uint8* msg, uint32 msg_len, uint8* mac);
 
 /*********************************************************************
     Name: liblte_security_encryption_eea1
@@ -227,22 +229,11 @@ LIBLTE_ERROR_ENUM liblte_security_encryption_eea2(
 LIBLTE_ERROR_ENUM liblte_security_decryption_eea2(
     uint8* key, uint32 count, uint8 bearer, uint8 direction, uint8* ct, uint32 ct_len, uint8* out);
 
-LIBLTE_ERROR_ENUM liblte_security_encryption_eea3(uint8  *key,
-                                                  uint32  count,
-                                                  uint8   bearer,
-                                                  uint8   direction,
-                                                  uint8  *msg,
-                                                  uint32  msg_len,
-                                                  uint8  *out);
+LIBLTE_ERROR_ENUM liblte_security_encryption_eea3(
+    uint8* key, uint32 count, uint8 bearer, uint8 direction, uint8* msg, uint32 msg_len, uint8* out);
 
-
-LIBLTE_ERROR_ENUM liblte_security_decryption_eea3(uint8  *key,
-                                                  uint32  count,
-                                                  uint8   bearer,
-                                                  uint8   direction,
-                                                  uint8  *msg,
-                                                  uint32  msg_len,
-                                                  uint8  *out);
+LIBLTE_ERROR_ENUM liblte_security_decryption_eea3(
+    uint8* key, uint32 count, uint8 bearer, uint8 direction, uint8* msg, uint32 msg_len, uint8* out);
 
 /*********************************************************************
     Name: liblte_security_milenage_f1
