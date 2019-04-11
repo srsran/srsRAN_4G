@@ -121,13 +121,10 @@ bool hss::read_db_file(std::string db_filename)
       if (split.size() != column_size) {
         m_hss_log->error("Error parsing UE database. Wrong number of columns in .csv\n");
         m_hss_log->error("Columns: %zd, Expected %d.\n", split.size(), column_size);
-        if (split.size() == 8) {
-          m_hss_log->console("\nError parsing UE database. Wrong number of columns in user database CSV.\n");
-          m_hss_log->console("Perhaps you are using an old user_db.csv?\n");
-          m_hss_log->console("In the new 19.03 version of srsLTE you are required to specify the authentication "
-                             "algorithim in the CSV file.\n");
-          m_hss_log->console("See 'srsepc/user_db.csv.example' for an example.\n\n");
-        }
+
+        m_hss_log->console("\nError parsing UE database. Wrong number of columns in user database CSV.\n");
+        m_hss_log->console("Perhaps you are using an old user_db.csv?\n");
+        m_hss_log->console("See 'srsepc/user_db.csv.example' for an example.\n\n");
         return false;
       }
       hss_ue_ctx_t* ue_ctx = new hss_ue_ctx_t;
@@ -212,22 +209,25 @@ bool hss::write_db_file(std::string db_filename)
   m_hss_log->info("Opened DB file: %s\n", db_filename.c_str());
 
   //Write comment info
-  m_db_file << "#                                                                            " << std::endl
-            << "# .csv to store UE's information in HSS                                      " << std::endl
-            << "# Kept in the following format: \"Name,IMSI,Key,OP_Type,OP,AMF,SQN,QCI\"     " << std::endl
-            << "#                                                                            " << std::endl
-            << "# Name:    Human readable name to help distinguish UE's. Ignored by the HSS  " << std::endl
-            << "# IMSI:    UE's IMSI value                                                   " << std::endl
-            << "# Auth:    Authentication algorithm used by the UE. Valid algorithms are XOR "
-               "(xor) and MILENAGE (mil)"                                                      << std::endl
-            << "# Key:     UE's key, where other keys are derived from. Stored in hexadecimal" << std::endl
-            << "# OP_Type: Operator's code type, either OP or OPc                            " << std::endl
-            << "# OP/OPc:  Operator Code/Cyphered Operator Code, stored in hexadecimal       " << std::endl
-            << "# AMF:     Authentication management field, stored in hexadecimal            " << std::endl
-            << "# SQN:     UE's Sequence number for freshness of the authentication          " << std::endl
-            << "# QCI:     QoS Class Identifier for the UE's default bearer.                 " << std::endl
-            << "#                                                                            " << std::endl
-            << "# Note: Lines starting by '#' are ignored and will be overwritten            " << std::endl;
+  m_db_file << "#                                                                                           \n"
+            << "# .csv to store UE's information in HSS                                                     \n"
+            << "# Kept in the following format: \"Name,Auth,IMSI,Key,OP_Type,OP,AMF,SQN,QCI,IP_alloc\"      \n"
+            << "#                                                                                           \n"
+            << "# Name:     Human readable name to help distinguish UE's. Ignored by the HSS                \n"
+            << "# IMSI:     UE's IMSI value                                                                 \n"
+            << "# Auth:     Authentication algorithm used by the UE. Valid algorithms are XOR               \n"
+            << "#           (xor) and MILENAGE (mil)                                                        \n"
+            << "# Key:      UE's key, where other keys are derived from. Stored in hexadecimal              \n"
+            << "# OP_Type:  Operator's code type, either OP or OPc                                          \n"
+            << "# OP/OPc:   Operator Code/Cyphered Operator Code, stored in hexadecimal                     \n"
+            << "# AMF:      Authentication management field, stored in hexadecimal                          \n"
+            << "# SQN:      UE's Sequence number for freshness of the authentication                        \n"
+            << "# QCI:      QoS Class Identifier for the UE's default bearer.                               \n"
+            << "# IP_alloc: IP allocation stratagy for the SPGW.                                            \n"
+            << "#           With 'dynamic' the SPGW will automatically allocate IPs                         \n"
+            << "#           With a valid IPv4 (e.g. '172.16.0.2') the UE will have a statically assigned IP.\n"
+            << "#                                                                                           \n"
+            << "# Note: Lines starting by '#' are ignored and will be overwritten                           \n";
 
   std::map<uint64_t, hss_ue_ctx_t*>::iterator it = m_imsi_to_ue_ctx.begin();
   while (it != m_imsi_to_ue_ctx.end()) {
