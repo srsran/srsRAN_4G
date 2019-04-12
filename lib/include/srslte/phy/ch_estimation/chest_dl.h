@@ -63,6 +63,7 @@ typedef struct SRSLTE_API {
   float    rsrq_ant_port_db[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
   float    rssi_dbm;
   float    cfo;
+  float    sync_error;
 } srslte_chest_dl_res_t;
 
 typedef enum SRSLTE_API {
@@ -98,6 +99,7 @@ typedef struct SRSLTE_API {
   float rsrp[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
   float rsrp_corr[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
   float noise_estimate[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
+  float sync_err[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
   float cfo;
 
   /* Use PSS for noise estimation in LS linear interpolation mode */
@@ -118,6 +120,7 @@ typedef struct SRSLTE_API {
   bool     rsrp_neighbour;
   bool     cfo_estimate_enable;
   uint32_t cfo_estimate_sf_mask;
+  bool     sync_error_enable;
 
 } srslte_chest_dl_cfg_t;
 

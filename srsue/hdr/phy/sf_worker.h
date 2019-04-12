@@ -61,6 +61,7 @@ public:
   void set_crnti(uint16_t rnti);
   void enable_pregen_signals(bool enabled);
 
+  /* Methods for plotting */
   int      read_ce_abs(float* ce_abs, uint32_t tx_antenna, uint32_t rx_antenna);
   uint32_t get_cell_nof_ports()
   {
@@ -72,6 +73,8 @@ public:
   }
   uint32_t get_rx_nof_antennas() { return phy->args->nof_rx_ant; }
   int      read_pdsch_d(cf_t* pdsch_d);
+  float    get_sync_error();
+  float    get_cfo();
   void     start_plot();
 
 private:

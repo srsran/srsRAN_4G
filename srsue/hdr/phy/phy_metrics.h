@@ -44,6 +44,7 @@ struct dl_metrics_t
   float turbo_iters;
   float mcs;
   float pathloss;
+  float sync_err;
 };
 
 struct ul_metrics_t

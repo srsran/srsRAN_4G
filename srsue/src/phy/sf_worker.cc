@@ -395,7 +395,19 @@ int sf_worker::read_pdsch_d(cf_t* pdsch_d)
 {
   return cc_workers[0]->read_pdsch_d(pdsch_d);
 }
+float sf_worker::get_sync_error()
+{
+  dl_metrics_t dl_metrics[SRSLTE_MAX_CARRIERS] = {};
+  phy->get_dl_metrics(dl_metrics);
+  return dl_metrics->sync_err;
+}
 
+float sf_worker::get_cfo()
+{
+  sync_metrics_t sync_metrics = {};
+  phy->get_sync_metrics(sync_metrics);
+  return sync_metrics.cfo;
+}
 } // namespace srsue
 
 /***********************************************************
@@ -419,9 +431,17 @@ static uint32_t    icfo = 0;
 static float       cfo_buffer[CFO_PLOT_LEN];
 #endif /* CFO_PLOT_LEN > 0 */
 
+#define SYNC_PLOT_LEN 0 /* Set to non zero for enabling Sync error plot */
+#if SYNC_PLOT_LEN > 0
+static plot_real_t psync;
+static uint32_t    isync = 0;
+static float       sync_buffer[SYNC_PLOT_LEN];
+#endif /* SYNC_PLOT_LEN > 0 */
+
 void* plot_thread_run(void* arg)
 {
   srsue::sf_worker* worker = (srsue::sf_worker*)arg;
+  uint32_t          row_count = 0;
 
   sdrgui_init();
   for (uint32_t tx = 0; tx < worker->get_cell_nof_ports(); tx++) {
@@ -436,13 +456,14 @@ void* plot_thread_run(void* arg)
       plot_real_addToWindowGrid(&pce[tx][rx], (char*)"srsue", tx, rx);
     }
   }
+  row_count = worker->get_rx_nof_antennas();
 
   plot_scatter_init(&pconst);
   plot_scatter_setTitle(&pconst, (char*)"PDSCH - Equalized Symbols");
   plot_scatter_setXAxisScale(&pconst, -4, 4);
   plot_scatter_setYAxisScale(&pconst, -4, 4);
 
-  plot_scatter_addToWindowGrid(&pconst, (char*)"srsue", 0, worker->get_rx_nof_antennas());
+  plot_scatter_addToWindowGrid(&pconst, (char*)"srsue", 0, row_count);
 
 #if CFO_PLOT_LEN > 0
   plot_real_init(&pcfo);
@@ -450,8 +471,17 @@ void* plot_thread_run(void* arg)
   plot_real_setLabels(&pcfo, (char*)"Time", (char*)"Hz");
   plot_real_setYAxisScale(&pcfo, -4000, 4000);
 
-  plot_scatter_addToWindowGrid(&pcfo, (char*)"srsue", 1, worker->get_rx_nof_antennas());
+  plot_scatter_addToWindowGrid(&pcfo, (char*)"srsue", 1, row_count++);
 #endif /* CFO_PLOT_LEN > 0 */
+
+#if SYNC_PLOT_LEN > 0
+  plot_real_init(&psync);
+  plot_real_setTitle(&psync, (char*)"Sync error (in samples)");
+  plot_real_setLabels(&psync, (char*)"Time", (char*)"Error");
+  plot_real_setYAxisScale(&psync, -2, +2);
+
+  plot_scatter_addToWindowGrid(&psync, (char*)"srsue", 1, row_count++);
+#endif /* SYNC_PLOT_LEN > 0 */
 
   int n;
   int readed_pdsch_re = 0;

@@ -154,6 +154,7 @@ void phy_common::set_ue_dl_cfg(srslte_ue_dl_cfg_t* ue_dl_cfg)
   }
 
   chest_cfg->rsrp_neighbour       = false;
+  chest_cfg->sync_error_enable    = false;
   chest_cfg->interpolate_subframe = args->interpolate_subframe_enabled;
   chest_cfg->cfo_estimate_enable  = args->cfo_ref_mask != 0;
   chest_cfg->cfo_estimate_sf_mask = args->cfo_ref_mask;
@@ -610,6 +611,8 @@ void phy_common::set_dl_metrics(const dl_metrics_t m, uint32_t cc_idx)
   dl_metrics[cc_idx].rssi = dl_metrics[cc_idx].rssi + (m.rssi - dl_metrics[cc_idx].rssi) / dl_metrics_count;
   dl_metrics[cc_idx].rsrp = dl_metrics[cc_idx].rsrp + (m.rsrp - dl_metrics[cc_idx].rsrp) / dl_metrics_count;
   dl_metrics[cc_idx].sinr = dl_metrics[cc_idx].sinr + (m.sinr - dl_metrics[cc_idx].sinr) / dl_metrics_count;
+  dl_metrics[cc_idx].sync_err =
+      dl_metrics[cc_idx].sync_err + (m.sync_err - dl_metrics[cc_idx].sync_err) / dl_metrics_count;
   dl_metrics[cc_idx].pathloss =
       dl_metrics[cc_idx].pathloss + (m.pathloss - dl_metrics[cc_idx].pathloss) / dl_metrics_count;
   dl_metrics[cc_idx].turbo_iters =

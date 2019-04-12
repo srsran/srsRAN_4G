@@ -652,6 +652,7 @@ void cc_worker::update_measurements()
   dl_metrics.rssi     = phy->avg_rssi_dbm;
   dl_metrics.pathloss = phy->pathloss[cc_idx];
   dl_metrics.sinr     = phy->avg_snr_db_cqi[cc_idx];
+  dl_metrics.sync_err = ue_dl.chest_res.sync_error;
 
   phy->set_dl_metrics(dl_metrics, cc_idx);
   phy->set_ul_metrics(ul_metrics, cc_idx);

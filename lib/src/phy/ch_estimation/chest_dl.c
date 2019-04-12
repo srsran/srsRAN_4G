@@ -691,6 +691,19 @@ static int estimate_port(srslte_chest_dl_t*     q,
   srslte_vec_prod_conj_ccc(
       q->pilot_recv_signal, q->csr_refs.pilots[port_id / 2][sf->tti % 10], q->pilot_estimates, npilots);
 
+  // Estimate synchronization error
+  if (cfg->sync_error_enable) {
+    uint32_t nsymb = srslte_refsignal_cs_nof_symbols(&q->csr_refs, sf, port_id);
+    float    k     = (float)srslte_symbol_sz(q->cell.nof_prb) / 6.0f;
+    float    sum   = 0.0f;
+    for (uint32_t i = 0; i < nsymb; i++) {
+      sum += srslte_vec_estimate_frequency(q->pilot_estimates + i * npilots / nsymb, npilots / nsymb) * k;
+    }
+    q->sync_err[rxant_id][port_id] = sum / nsymb;
+  } else {
+    q->sync_err[rxant_id][port_id] = NAN;
+  }
+
   /* Compute RSRP for the channel estimates in this port */
   if (cfg->rsrp_neighbour) {
     double energy = cabs(srslte_vec_acc_cc(q->pilot_estimates, npilots)/npilots);
@@ -843,6 +856,7 @@ static void fill_res(srslte_chest_dl_t* q, srslte_chest_dl_res_t* res)
   res->rsrq_db            = db(res->rsrq);
   res->snr_db             = db(get_snr(q));
   res->rssi_dbm           = dbm(get_rssi(q));
+  res->sync_error         = q->sync_err[0][0]; // Take only the channel used for synch
 
   for (uint32_t port_id = 0; port_id < q->cell.nof_ports; port_id++) {
     res->rsrp_port_dbm[port_id] = dbm(get_rsrp_port(q, port_id));
