@@ -393,6 +393,8 @@ void sync::run_thread()
     // If not camping, clear SFN sync
     if (!phy_state.is_camping()) {
       force_camping_sfn_sync = false;
+    } else {
+      out_of_sync();
     }
 
     if (log_phy_lib_h) {
@@ -673,7 +675,7 @@ void sync::in_sync()
 // Out of sync called by worker or sync every 1 or 5 ms
 void sync::out_of_sync()
 {
-  // Send RRC out-of-sync signal after 200 ms consecutive subframes
+  // Send RRC out-of-sync signal after NOF_OUT_OF_SYNC_SF consecutive subframes
   Info("Out-of-sync %d/%d\n", out_of_sync_cnt, NOF_OUT_OF_SYNC_SF);
   out_of_sync_cnt++;
   if (out_of_sync_cnt == NOF_OUT_OF_SYNC_SF) {

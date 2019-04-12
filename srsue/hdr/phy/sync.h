@@ -297,8 +297,8 @@ private:
   uint32_t out_of_sync_cnt;
   uint32_t in_sync_cnt;
 
-  const static uint32_t NOF_OUT_OF_SYNC_SF = 200;
-  const static uint32_t NOF_IN_SYNC_SF     = 100;
+  const static uint32_t NOF_OUT_OF_SYNC_SF = 20;
+  const static uint32_t NOF_IN_SYNC_SF     = 10;
 
   // State machine for SYNC thread
   class sync_state {
