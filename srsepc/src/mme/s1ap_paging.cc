@@ -28,6 +28,7 @@
 #include "srsepc/hdr/mme/s1ap.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/int_helpers.h"
+#include <inttypes.h> // for printing uint64_t
 
 namespace srsepc {
 
@@ -75,7 +76,7 @@ void s1ap_paging::init(void)
 
 bool s1ap_paging::send_paging(uint64_t imsi, uint16_t erab_to_setup)
 {
-  m_s1ap_log->info("Preparing to Page UE -- IMSI %lu\n", imsi);
+  m_s1ap_log->info("Preparing to Page UE -- IMSI %015" PRIu64 "\n", imsi);
 
   // Prepare reply PDU
   LIBLTE_S1AP_S1AP_PDU_STRUCT pdu;

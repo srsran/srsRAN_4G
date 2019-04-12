@@ -96,8 +96,8 @@ void spgw::gtpc::stop()
 {
   std::map<uint32_t, spgw_tunnel_ctx*>::iterator it = m_teid_to_tunnel_ctx.begin();
   while (it != m_teid_to_tunnel_ctx.end()) {
-    m_gtpc_log->info("Deleting SP-GW GTP-C Tunnel. IMSI: %lu\n", it->second->imsi);
-    m_gtpc_log->console("Deleting SP-GW GTP-C Tunnel. IMSI: %lu\n", it->second->imsi);
+    m_gtpc_log->info("Deleting SP-GW GTP-C Tunnel. IMSI: %015" PRIu64 "\n", it->second->imsi);
+    m_gtpc_log->console("Deleting SP-GW GTP-C Tunnel. IMSI: %015" PRIu64 "\n", it->second->imsi);
     delete it->second;
     m_teid_to_tunnel_ctx.erase(it++);
   }
@@ -142,7 +142,7 @@ srslte::error_t spgw::gtpc::init_s11(spgw_args_t* args)
 
 bool spgw::gtpc::send_s11_pdu(const srslte::gtpc_pdu& pdu)
 {
-  m_gtpc_log->debug("SPGW Sending S11 PDU! N_Bytes: %lu\n", sizeof(pdu));
+  m_gtpc_log->debug("SPGW Sending S11 PDU! N_Bytes: %zd\n", sizeof(pdu));
 
   // FIXME add serialization code here
   // Send S11 message to MME
@@ -196,7 +196,7 @@ void spgw::gtpc::handle_create_session_request(const struct srslte::gtpc_create_
   // Check if IMSI has active GTP-C and/or GTP-U
   bool gtpc_present = m_imsi_to_ctr_teid.count(cs_req.imsi);
   if (gtpc_present) {
-    m_gtpc_log->console("SPGW: GTP-C context for IMSI %015lu already exists.\n", cs_req.imsi);
+    m_gtpc_log->console("SPGW: GTP-C context for IMSI %015" PRIu64 " already exists.\n", cs_req.imsi);
     delete_gtpc_ctx(m_imsi_to_ctr_teid[cs_req.imsi]);
     m_gtpc_log->console("SPGW: Deleted previous context.\n");
   }
@@ -262,7 +262,7 @@ void spgw::gtpc::handle_modify_bearer_request(const struct srslte::gtpc_header& 
   m_gtpc_log->info("Setting Up GTP-U tunnel. Tunnel info: \n");
   struct in_addr addr;
   addr.s_addr = tunnel_ctx->ue_ipv4;
-  m_gtpc_log->info("IMSI: %lu, UE IP: %s \n", tunnel_ctx->imsi, inet_ntoa(addr));
+  m_gtpc_log->info("IMSI: %015" PRIu64 ", UE IP: %s \n", tunnel_ctx->imsi, inet_ntoa(addr));
   m_gtpc_log->info("S-GW Rx Ctrl TEID 0x%x, MME Rx Ctrl TEID 0x%x\n", tunnel_ctx->up_ctrl_fteid.teid,
                    tunnel_ctx->dw_ctrl_fteid.teid);
   m_gtpc_log->info("S-GW Rx Ctrl IP (NA), MME Rx Ctrl IP (NA)\n");
@@ -366,7 +366,7 @@ bool spgw::gtpc::send_downlink_data_notification(uint32_t spgw_ctr_teid)
 
   tunnel_ctx->paging_pending = true;
   m_gtpc_log->console("Found UE for Downlink Notification \n");
-  m_gtpc_log->console("MME Ctr TEID 0x%x, IMSI: %lu\n", tunnel_ctx->dw_ctrl_fteid.teid, tunnel_ctx->imsi);
+  m_gtpc_log->console("MME Ctr TEID 0x%x, IMSI: %015" PRIu64 "\n", tunnel_ctx->dw_ctrl_fteid.teid, tunnel_ctx->imsi);
 
   // Setup GTP-C header
   header->piggyback    = false;
@@ -514,10 +514,10 @@ bool spgw::gtpc::queue_downlink_packet(uint32_t ctrl_teid, srslte::byte_buffer_t
 
   if (tunnel_ctx->paging_queue.size() < m_max_paging_queue) {
     tunnel_ctx->paging_queue.push(msg);
-    m_gtpc_log->debug("Queued packet. IMSI %" PRIu64 ", Packets in Queue %lu\n", tunnel_ctx->imsi,
+    m_gtpc_log->debug("Queued packet. IMSI %" PRIu64 ", Packets in Queue %zd\n", tunnel_ctx->imsi,
                       tunnel_ctx->paging_queue.size());
   } else {
-    m_gtpc_log->warning("Paging queue full. IMSI %" PRIu64 ", Packets in Queue %lu\n", tunnel_ctx->imsi,
+    m_gtpc_log->warning("Paging queue full. IMSI %" PRIu64 ", Packets in Queue %zd\n", tunnel_ctx->imsi,
                         tunnel_ctx->paging_queue.size());
     m_pool->deallocate(msg);
   }
@@ -545,7 +545,7 @@ srslte::error_t spgw::gtpc::init_ue_ip(spgw_args_t* args, const std::map<std::st
 
   // check for collision w/our ip address
   if (iter != ip_to_imsi.end()) {
-    m_gtpc_log->error("SPGW: static ip addr %s for imsi %lu, is reserved for the epc tun interface\n",
+    m_gtpc_log->error("SPGW: static ip addr %s for imsi %015" PRIu64 ", is reserved for the epc tun interface\n",
                       iter->first.c_str(), iter->second);
     return srslte::ERROR_OUT_OF_BOUNDS;
   }
@@ -555,7 +555,7 @@ srslte::error_t spgw::gtpc::init_ue_ip(spgw_args_t* args, const std::map<std::st
     struct in_addr in_addr;
     in_addr.s_addr = inet_addr(iter->first.c_str());
     if (!m_imsi_to_ip.insert(std::make_pair(iter->second, in_addr)).second) {
-      m_gtpc_log->error("SPGW: duplicate imsi %lu for static ip address %s.\n", iter->second, iter->first.c_str());
+      m_gtpc_log->error("SPGW: duplicate imsi %015" PRIu64 " for static ip address %s.\n", iter->second, iter->first.c_str());
       return srslte::ERROR_OUT_OF_BOUNDS;
     }
   }
@@ -568,7 +568,7 @@ srslte::error_t spgw::gtpc::init_ue_ip(spgw_args_t* args, const std::map<std::st
 
     std::map<std::string, uint64_t>::const_iterator iter = ip_to_imsi.find(inet_ntoa(ue_addr));
     if (iter != ip_to_imsi.end()) {
-      m_gtpc_log->debug("SPGW: init_ue_ip ue ip addr %s is reserved for imsi %lu, not adding to pool\n",
+      m_gtpc_log->debug("SPGW: init_ue_ip ue ip addr %s is reserved for imsi %015" PRIu64 ", not adding to pool\n",
                         iter->first.c_str(), iter->second);
     } else {
       m_ue_ip_addr_pool.insert(ue_addr.s_addr);

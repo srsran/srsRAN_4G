@@ -292,7 +292,7 @@ bool mme_gtpc::handle_create_session_response(srslte::gtpc_pdu* cs_resp_pdu)
   // Save create session response info to E-RAB context
   nas* nas_ctx = m_s1ap->find_nas_ctx_from_imsi(imsi);
   if (nas_ctx == NULL) {
-    m_mme_gtpc_log->error("Could not find UE context. IMSI %015lu\n", imsi);
+    m_mme_gtpc_log->error("Could not find UE context. IMSI %015" PRIu64 "\n", imsi);
     return false;
   }
   emm_ctx_t* emm_ctx = &nas_ctx->m_emm_ctx;
@@ -300,7 +300,7 @@ bool mme_gtpc::handle_create_session_response(srslte::gtpc_pdu* cs_resp_pdu)
 
   // Save UE IP to nas ctxt
   emm_ctx->ue_ip.s_addr = cs_resp->paa.ipv4;
-  m_mme_gtpc_log->console("SPGW Allocated IP %s to IMSI %015lu\n", inet_ntoa(emm_ctx->ue_ip), emm_ctx->imsi);
+  m_mme_gtpc_log->console("SPGW Allocated IP %s to IMSI %015" PRIu64 "\n", inet_ntoa(emm_ctx->ue_ip), emm_ctx->imsi);
 
   // Save SGW ctrl F-TEID in GTP-C context
   std::map<uint64_t, struct gtpc_ctx>::iterator it_g = m_imsi_to_gtpc_ctx.find(imsi);
@@ -454,7 +454,7 @@ bool mme_gtpc::handle_downlink_data_notification(srslte::gtpc_pdu* dl_not_pdu)
     return false;
   }
   uint8_t ebi = dl_not->eps_bearer_id;
-  m_mme_gtpc_log->debug("Downlink Data Notification -- IMSI: %lu, EBI %d\n", imsi_it->second, ebi);
+  m_mme_gtpc_log->debug("Downlink Data Notification -- IMSI: %015" PRIu64 ", EBI %d\n", imsi_it->second, ebi);
 
   m_s1ap->send_paging(imsi_it->second, ebi);
   return true;
