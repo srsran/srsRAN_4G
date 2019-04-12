@@ -212,8 +212,15 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
     cout << "Failed to read configuration file " << config_file << " - exiting" << endl;
     exit(1);
   }
-  bpo::store(bpo::parse_config_file(conf, common), vm);
-  bpo::notify(vm);
+
+  // parse config file and handle errors gracefully
+  try {
+    bpo::store(bpo::parse_config_file(conf, common), vm);
+    bpo::notify(vm);
+  } catch (const boost::program_options::error& e) {
+    cerr << e.what() << endl;
+    exit(1);
+  }
 
   // Convert hex strings
   {
