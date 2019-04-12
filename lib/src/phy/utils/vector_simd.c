@@ -1557,3 +1557,54 @@ void srslte_vec_apply_cfo_simd(const cf_t *x, float cfo, cf_t *z, int len) {
   }
 }
 
+float srslte_vec_estimate_frequency_simd(const cf_t* x, int len)
+{
+  float sum_sin = 0.0f;
+
+  /* Asssumes x[n] = cexp(j·2·pi·n·O) = cos(j·2·pi·n·O) + j · sin(j·2·pi·n·O)
+   * where O = f / f_s */
+
+  int i = 1;
+
+#if SRSLTE_SIMD_CF_SIZE
+  simd_f_t _sum_sin = srslte_simd_f_zero();
+
+  for (; i < len - SRSLTE_SIMD_CF_SIZE + 1; i += SRSLTE_SIMD_CF_SIZE) {
+    simd_cf_t a1  = srslte_simd_cfi_loadu(&x[i]);
+    simd_f_t  re1 = srslte_simd_cf_re(a1);
+    simd_f_t  im1 = srslte_simd_cf_im(a1);
+
+    simd_cf_t a2  = srslte_simd_cfi_loadu(&x[i - 1]);
+    simd_f_t  re2 = srslte_simd_cf_re(a2);
+    simd_f_t  im2 = srslte_simd_cf_im(a2);
+
+    simd_f_t _pow = srslte_simd_f_sqrt(
+        srslte_simd_f_mul(srslte_simd_f_add(srslte_simd_f_mul(re1, re1), srslte_simd_f_mul(im1, im1)),
+                          srslte_simd_f_add(srslte_simd_f_mul(re2, re2), srslte_simd_f_mul(im2, im2))));
+
+    simd_f_t _sin = srslte_simd_f_mul(srslte_simd_f_sub(srslte_simd_f_mul(re1, im2), srslte_simd_f_mul(re2, im1)),
+                                      srslte_simd_f_rcp(_pow));
+    _sum_sin      = srslte_simd_f_add(_sum_sin, _sin);
+  }
+
+  float _sum_sin_v[SRSLTE_SIMD_CF_SIZE];
+  srslte_simd_f_storeu(_sum_sin_v, _sum_sin);
+  for (int k = 0; k < SRSLTE_SIMD_CF_SIZE; k++) {
+    sum_sin += _sum_sin_v[k];
+  }
+#endif /* SRSLTE_SIMD_CF_SIZE */
+
+  for (; i < len; i++) {
+    /* Load current Sample */
+    float re1 = crealf(x[i]);
+    float im1 = cimagf(x[i]);
+
+    /* Load previous sample */
+    float re2 = crealf(x[i - 1]);
+    float im2 = cimagf(x[i - 1]);
+
+    float pow = sqrtf((re1 * re1 + im1 * im1) * (re2 * re2 + im2 * im2));
+    sum_sin += (re1 * im2 - re2 * im1) / pow;
+  }
+  return asinf(sum_sin / (float)(len - 1)) / (2.0f * (float)M_PI);
+}

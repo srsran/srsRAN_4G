@@ -162,6 +162,7 @@ SRSLTE_API void srslte_vec_interleave_add(const cf_t *x, const cf_t *y, cf_t *z,
 
 SRSLTE_API void srslte_vec_apply_cfo(const cf_t *x, float cfo, cf_t *z, int len);
 
+SRSLTE_API float srslte_vec_estimate_frequency(const cf_t* x, int len);
 
 #ifdef __cplusplus
 }

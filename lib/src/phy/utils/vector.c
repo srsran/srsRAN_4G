@@ -467,3 +467,8 @@ void srslte_vec_interleave_add(const cf_t *x, const cf_t *y, cf_t *z, const int 
 void srslte_vec_apply_cfo(const cf_t *x, float cfo, cf_t *z, int len) {
   srslte_vec_apply_cfo_simd(x, cfo, z, len);
 }
+
+float srslte_vec_estimate_frequency(const cf_t* x, int len)
+{
+  return srslte_vec_estimate_frequency_simd(x, len);
+}

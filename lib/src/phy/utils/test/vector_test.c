@@ -800,6 +800,16 @@ TEST(srslte_vec_apply_cfo,
          free(z);
 )
 
+TEST(srslte_vec_estimate_frequency, MALLOC(cf_t, x); float freq_gold = 0.1f; float freq = 0.1f;
+
+     for (int i = 0; i < block_size; i++) { x[i] = cexpf(-I * 2.0f * M_PI * (float)i * freq_gold); }
+
+     if (block_size > 6) {
+       TEST_CALL(freq = srslte_vec_estimate_frequency(x, block_size);)
+     } mse = cabsf(freq - freq_gold);
+
+     free(x);)
+
 TEST(srslte_cfo_correct,
      srslte_cfo_t srslte_cfo;
      bzero(&srslte_cfo, sizeof(srslte_cfo));
@@ -959,6 +969,10 @@ int main(int argc, char **argv) {
     func_count++;
 
     passed[func_count][size_count] = test_srslte_vec_apply_cfo(func_names[func_count], &timmings[func_count][size_count], block_size);
+    func_count++;
+
+    passed[func_count][size_count] =
+        test_srslte_vec_estimate_frequency(func_names[func_count], &timmings[func_count][size_count], block_size);
     func_count++;
 
     passed[func_count][size_count] = test_srslte_cfo_correct(func_names[func_count], &timmings[func_count][size_count], block_size);

@@ -773,6 +773,23 @@ static inline simd_f_t srslte_simd_cf_re(simd_cf_t in) {
   return out;
 }
 
+static inline simd_f_t srslte_simd_cf_im(simd_cf_t in)
+{
+#ifdef HAVE_NEON
+  simd_f_t out = in.val[1];
+#else
+  simd_f_t out      = in.im;
+#endif /*HAVE_NEON*/
+#ifndef LV_HAVE_AVX512
+#ifdef LV_HAVE_AVX2
+  /* Permute for AVX registers (mis SSE registers) */
+  const __m256i idx = _mm256_setr_epi32(0, 2, 4, 6, 1, 3, 5, 7);
+  out               = _mm256_permutevar8x32_ps(out, idx);
+#endif /* LV_HAVE_AVX2 */
+#endif /* LV_HAVE_AVX512 */
+  return out;
+}
+
 static inline simd_cf_t srslte_simd_cf_set1 (cf_t x) {
   simd_cf_t ret;
 #ifdef LV_HAVE_AVX512
