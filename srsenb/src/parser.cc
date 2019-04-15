@@ -122,7 +122,7 @@ int parser::section::parse(Setting &root)
     if (enabled_value) {
       *enabled_value = true; 
     }
-  } catch(const SettingNotFoundException ex) {
+  } catch (const SettingNotFoundException& ex) {
     if (enabled_value) {
       *enabled_value = false;       
       return 0; 
