@@ -44,9 +44,9 @@ namespace srsue {
 
 phy::phy() : workers_pool(MAX_WORKERS), workers(0), common(MAX_WORKERS)
 {
-  ZERO_OBJECT(tdd_config);
-  ZERO_OBJECT(prach_cfg);
-  ZERO_OBJECT(default_args);
+  tdd_config   = {};
+  prach_cfg    = {};
+  default_args = {};
   ZERO_OBJECT(scell_earfcn);
   n_ta = 0;
 }
