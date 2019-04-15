@@ -59,6 +59,7 @@
 #define SRSLTE_SUCCESS                0
 #define SRSLTE_ERROR                  -1
 #define SRSLTE_ERROR_INVALID_INPUTS   -2
+#define SRSLTE_ERROR_TIMEOUT -3
 
 // cf_t definition
 typedef _Complex float cf_t;

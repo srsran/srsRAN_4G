@@ -58,6 +58,8 @@ SRSLTE_API int  srslte_ringbuffer_read(srslte_ringbuffer_t *q,
                                        void *ptr,
                                        int nof_bytes);
 
+SRSLTE_API int srslte_ringbuffer_read_timed(srslte_ringbuffer_t* q, void* p, int nof_bytes, uint32_t timeout_ms);
+
 SRSLTE_API void srslte_ringbuffer_stop(srslte_ringbuffer_t *q);
 
 #endif // SRSLTE_RINGBUFFER_H

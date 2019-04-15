@@ -133,6 +133,54 @@ int srslte_ringbuffer_read(srslte_ringbuffer_t *q, void *p, int nof_bytes)
   return nof_bytes; 
 }
 
+int srslte_ringbuffer_read_timed(srslte_ringbuffer_t* q, void* p, int nof_bytes, uint32_t timeout_ms)
+{
+  int             ret = SRSLTE_SUCCESS;
+  uint8_t*        ptr = (uint8_t*)p;
+  struct timespec towait;
+  struct timeval  now;
+
+  // Get current time and update timeout
+  gettimeofday(&now, NULL);
+  towait.tv_sec  = now.tv_sec + timeout_ms / 1000U;
+  towait.tv_nsec = (now.tv_usec + 1000UL * (timeout_ms % 1000U)) * 1000UL;
+
+  // Lock mutex
+  pthread_mutex_lock(&q->mutex);
+
+  // Wait for having enough samples
+  while (q->count < nof_bytes && q->active && ret == SRSLTE_SUCCESS) {
+    ret = pthread_cond_timedwait(&q->cvar, &q->mutex, &towait);
+  }
+
+  if (ret == ETIMEDOUT) {
+    ret = SRSLTE_ERROR_TIMEOUT;
+  } else if (!q->active) {
+    ret = SRSLTE_SUCCESS;
+  } else if (ret == SRSLTE_SUCCESS) {
+    if (nof_bytes + q->rpm > q->capacity) {
+      int x = q->capacity - q->rpm;
+      memcpy(ptr, &q->buffer[q->rpm], x);
+      memcpy(&ptr[x], q->buffer, nof_bytes - x);
+    } else {
+      memcpy(ptr, &q->buffer[q->rpm], nof_bytes);
+    }
+    q->rpm += nof_bytes;
+    if (q->rpm >= q->capacity) {
+      q->rpm -= q->capacity;
+    }
+    q->count -= nof_bytes;
+    ret = nof_bytes;
+  } else {
+    ret = SRSLTE_ERROR;
+  }
+
+  // Unlock mutex
+  pthread_mutex_unlock(&q->mutex);
+
+  return ret;
+}
+
 void srslte_ringbuffer_stop(srslte_ringbuffer_t *q) {
   pthread_mutex_lock(&q->mutex);
   q->active = false;
