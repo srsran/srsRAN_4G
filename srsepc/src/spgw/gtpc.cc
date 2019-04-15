@@ -359,8 +359,7 @@ bool spgw::gtpc::send_downlink_data_notification(uint32_t spgw_ctr_teid)
 
   // Check if there is no Paging already pending.
   if (tunnel_ctx->paging_pending == true) {
-    m_gtpc_log->console("UE Downlink Data Notification still pending.\n");
-    m_gtpc_log->warning("UE Downlink Data Notification still pending.\n");
+    m_gtpc_log->debug("UE Downlink Data Notification still pending.\n");
     return false;
   }
 
@@ -517,7 +516,7 @@ bool spgw::gtpc::queue_downlink_packet(uint32_t ctrl_teid, srslte::byte_buffer_t
     m_gtpc_log->debug("Queued packet. IMSI %" PRIu64 ", Packets in Queue %zd\n", tunnel_ctx->imsi,
                       tunnel_ctx->paging_queue.size());
   } else {
-    m_gtpc_log->warning("Paging queue full. IMSI %" PRIu64 ", Packets in Queue %zd\n", tunnel_ctx->imsi,
+    m_gtpc_log->debug("Paging queue full. IMSI %" PRIu64 ", Packets in Queue %zd\n", tunnel_ctx->imsi,
                         tunnel_ctx->paging_queue.size());
     goto pkt_discard;
   }
