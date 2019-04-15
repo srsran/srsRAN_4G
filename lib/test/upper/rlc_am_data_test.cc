@@ -51,90 +51,104 @@ uint32_t PDU4_LEN = 5;
 
 using namespace srslte;
 
-int main(int argc, char **argv) {
+void test1()
+{
   srslte::rlc_amd_pdu_header_t h;
-  srslte::byte_buffer_t b1,b2;
+  srslte::byte_buffer_t        b1, b2;
 
   memcpy(b1.msg, &pdu1[0], PDU1_LEN);
   b1.N_bytes = PDU1_LEN;
   rlc_am_read_data_pdu_header(&b1, &h);
   assert(RLC_DC_FIELD_DATA_PDU == h.dc);
   assert(0x01 == h.fi);
-  assert(0    == h.N_li);
-  assert(0    == h.lsf);
-  assert(0    == h.p);
-  assert(0    == h.rf);
-  assert(0    == h.so);
-  assert(6    == h.sn);
+  assert(0 == h.N_li);
+  assert(0 == h.lsf);
+  assert(0 == h.p);
+  assert(0 == h.rf);
+  assert(0 == h.so);
+  assert(6 == h.sn);
   rlc_am_write_data_pdu_header(&h, &b2);
   assert(b2.N_bytes == PDU1_LEN);
-  for(uint32_t i=0;i<b2.N_bytes;i++)
+  for (uint32_t i = 0; i < b2.N_bytes; i++)
     assert(b2.msg[i] == b1.msg[i]);
+}
 
-  b1.reset();
-  b2.reset();
-  memset(&h, 0, sizeof(srslte::rlc_amd_pdu_header_t));
+void test2()
+{
+  srslte::rlc_amd_pdu_header_t h;
+  srslte::byte_buffer_t        b1, b2;
 
   memcpy(b1.msg, &pdu2[0], PDU2_LEN);
   b1.N_bytes = PDU2_LEN;
   rlc_am_read_data_pdu_header(&b1, &h);
   assert(RLC_DC_FIELD_DATA_PDU == h.dc);
   assert(0x01 == h.fi);
-  assert(2    == h.N_li);
+  assert(2 == h.N_li);
   assert(1500 == h.li[0]);
   assert(1500 == h.li[1]);
-  assert(0    == h.lsf);
-  assert(0    == h.p);
-  assert(0    == h.rf);
-  assert(0    == h.so);
-  assert(0    == h.sn);
+  assert(0 == h.lsf);
+  assert(0 == h.p);
+  assert(0 == h.rf);
+  assert(0 == h.so);
+  assert(0 == h.sn);
   rlc_am_write_data_pdu_header(&h, &b2);
   assert(b2.N_bytes == PDU2_LEN);
-  for(uint32_t i=0;i<b2.N_bytes;i++)
+  for (uint32_t i = 0; i < b2.N_bytes; i++)
     assert(b2.msg[i] == b1.msg[i]);
+}
 
-  b1.reset();
-  b2.reset();
-  memset(&h, 0, sizeof(srslte::rlc_amd_pdu_header_t));
+void test3()
+{
+  srslte::rlc_amd_pdu_header_t h;
+  srslte::byte_buffer_t        b1, b2;
 
   memcpy(b1.msg, &pdu3[0], PDU3_LEN);
   b1.N_bytes = PDU3_LEN;
   rlc_am_read_data_pdu_header(&b1, &h);
   assert(RLC_DC_FIELD_DATA_PDU == h.dc);
   assert(0x01 == h.fi);
-  assert(3    == h.N_li);
+  assert(3 == h.N_li);
   assert(1500 == h.li[0]);
   assert(1500 == h.li[1]);
   assert(1500 == h.li[2]);
-  assert(0    == h.lsf);
-  assert(0    == h.p);
-  assert(0    == h.rf);
-  assert(0    == h.so);
-  assert(0    == h.sn);
+  assert(0 == h.lsf);
+  assert(0 == h.p);
+  assert(0 == h.rf);
+  assert(0 == h.so);
+  assert(0 == h.sn);
   rlc_am_write_data_pdu_header(&h, &b2);
   assert(b2.N_bytes == PDU3_LEN);
-  for(uint32_t i=0;i<b2.N_bytes;i++)
+  for (uint32_t i = 0; i < b2.N_bytes; i++)
     assert(b2.msg[i] == b1.msg[i]);
+}
 
-  b1.reset();
-  b2.reset();
-  memset(&h, 0, sizeof(srslte::rlc_amd_pdu_header_t));
+void test4()
+{
+  srslte::rlc_amd_pdu_header_t h;
+  srslte::byte_buffer_t        b1, b2;
 
   memcpy(b1.msg, &pdu4[0], PDU4_LEN);
   b1.N_bytes = PDU4_LEN;
   rlc_am_read_data_pdu_header(&b1, &h);
   assert(RLC_DC_FIELD_DATA_PDU == h.dc);
   assert(0x03 == h.fi);
-  assert(2    == h.N_li);
+  assert(2 == h.N_li);
   assert(1342 == h.li[0]);
   assert(1500 == h.li[1]);
-  assert(0    == h.lsf);
-  assert(0    == h.p);
-  assert(0    == h.rf);
-  assert(0    == h.so);
-  assert(2    == h.sn);
+  assert(0 == h.lsf);
+  assert(0 == h.p);
+  assert(0 == h.rf);
+  assert(0 == h.so);
+  assert(2 == h.sn);
   rlc_am_write_data_pdu_header(&h, &b2);
   assert(b2.N_bytes == PDU4_LEN);
-  for(uint32_t i=0;i<b2.N_bytes;i++)
+  for (uint32_t i = 0; i < b2.N_bytes; i++)
     assert(b2.msg[i] == b1.msg[i]);
+}
+
+int main(int argc, char **argv) {
+  test1();
+  test2();
+  test3();
+  test4();
 }
