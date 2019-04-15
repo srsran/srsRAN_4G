@@ -178,11 +178,11 @@ rlc_am::rlc_am_tx::rlc_am_tx(rlc_am* parent_) :
   tx_sdu(NULL),
   log(NULL),
   cfg(),
+  tx_status(),
   pool(byte_buffer_pool::get_instance()),
   tx_enabled(false)
 {
   pthread_mutex_init(&mutex, NULL);
-  ZERO_OBJECT(tx_status);
 }
 
 rlc_am::rlc_am_tx::~rlc_am_tx()
@@ -1297,7 +1297,7 @@ void rlc_am::rlc_am_rx::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes, rl
   }
   memcpy(pdu.buf->msg, payload, nof_bytes);
   pdu.buf->N_bytes  = nof_bytes;
-  memcpy(&pdu.header, &header, sizeof(rlc_amd_pdu_header_t));
+  pdu.header = header;
 
   rx_window[header.sn] = pdu;
 
@@ -1382,7 +1382,7 @@ void rlc_am::rlc_am_rx::handle_data_pdu_segment(uint8_t *payload, uint32_t nof_b
 
   memcpy(segment.buf->msg, payload, nof_bytes);
   segment.buf->N_bytes = nof_bytes;
-  memcpy(&segment.header, &header, sizeof(rlc_amd_pdu_header_t));
+  segment.header = header;
 
   // Check if we already have a segment from the same PDU
   it = rx_segments.find(header.sn);
