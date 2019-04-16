@@ -62,10 +62,10 @@ rrc::rrc() :
   go_idle = false;
   go_rlf  = false;
 
-  ZERO_OBJECT(current_mac_cfg);
-  ZERO_OBJECT(previous_mac_cfg);
-  ZERO_OBJECT(current_phy_cfg);
-  ZERO_OBJECT(previous_phy_cfg);
+  current_mac_cfg  = {};
+  previous_mac_cfg = {};
+  current_phy_cfg  = {};
+  previous_phy_cfg = {};
 }
 
 rrc::~rrc()
