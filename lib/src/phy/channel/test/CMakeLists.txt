@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2017 Software Radio Systems Limited
+# Copyright 2013-2019 Software Radio Systems Limited
 #
 # This file is part of srsLTE
 #
@@ -18,7 +18,13 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-file(GLOB SOURCES "*.c")
-add_library(srslte_channel OBJECT ${SOURCES})
+add_executable(fading_channel_test fading_channel_test.c)
 
-add_subdirectory(test)
+if(SRSGUI_FOUND)
+  target_link_libraries(fading_channel_test ${SRSGUI_LIBRARIES})
+endif(SRSGUI_FOUND)
+
+target_link_libraries(fading_channel_test srslte_phy srslte_common srslte_phy ${SEC_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+add_test(fading_channel_test_epa5 fading_channel_test -m epa5 -s 26.04e6 -t 1000)
+add_test(fading_channel_test_eva70 fading_channel_test -m eva70 -s 23.04e6 -t 1000)
+add_test(fading_channel_test_etu300 fading_channel_test -m etu70 -s 23.04e6 -t 1000)
