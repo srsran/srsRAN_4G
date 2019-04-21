@@ -18,7 +18,7 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-file(GLOB SOURCES "*.c")
+file(GLOB SOURCES "*.c" "*.cpp")
 add_library(srslte_utils OBJECT ${SOURCES})
 
 if(VOLK_FOUND)

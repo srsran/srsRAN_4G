@@ -41,6 +41,7 @@ static char     default_model[] = "epa5";
 static uint32_t duration_ms     = 1000;
 static char*    model           = default_model;
 static uint32_t srate           = (uint32_t)30.72e6;
+static uint32_t random_seed     = 0x12345678; // Default seed, deterministic channel
 
 #define INPUT_TYPE 0 /* 0: Dirac Delta; Otherwise: Random*/
 
@@ -50,6 +51,7 @@ static void usage(char* prog)
   printf("\t-m Channel model: epa5, eva70, etu300 [Default %s]\n", model);
   printf("\t-t Simulation time in ms: [Default %d]\n", duration_ms);
   printf("\t-s Sampling rate in Hz: [Default %d]\n", srate);
+  printf("\t-r Random generator seed: [Default %d]\n", random_seed);
 #ifdef ENABLE_GUI
   printf("\t-g Enable GUI: [Default %s]\n", enable_gui ? "enabled" : "disabled");
 #endif /* ENABLE_GUI */
@@ -58,7 +60,7 @@ static void usage(char* prog)
 static void parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "mtsg")) != -1) {
+  while ((opt = getopt(argc, argv, "mtsrg")) != -1) {
     switch (opt) {
       case 'm':
         model = argv[optind];
@@ -68,6 +70,9 @@ static void parse_args(int argc, char** argv)
         break;
       case 's':
         srate = (uint32_t)atof(argv[optind]);
+        break;
+      case 'r':
+        random_seed = (uint32_t)atoi(argv[optind]);
         break;
 #ifdef ENABLE_GUI
       case 'g':
@@ -146,7 +151,7 @@ int main(int argc, char** argv)
 #endif /* ENABLE_GUI */
 
   // Initialise channel
-  if (srslte_channel_fading_init(&channel_fading, srate, model)) {
+  if (srslte_channel_fading_init(&channel_fading, srate, model, 0x12345678)) {
     fprintf(stderr, "Error: initialising fading channel. model=%s, srate=%d\n", model, srate);
     goto clean_exit;
   }

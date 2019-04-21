@@ -58,7 +58,7 @@ typedef struct {
   cf_t* state; // Length fft_size/2
 } srslte_channel_fading_t;
 
-SRSLTE_API int srslte_channel_fading_init(srslte_channel_fading_t* q, double srate, const char* model);
+SRSLTE_API int srslte_channel_fading_init(srslte_channel_fading_t* q, double srate, const char* model, uint32_t seed);
 
 SRSLTE_API void srslte_channel_fading_free(srslte_channel_fading_t* q);
 

@@ -20,6 +20,7 @@
  */
 
 #include "srslte/phy/channel/fading.h"
+#include "srslte/phy/utils/random.h"
 #include "srslte/phy/utils/vector.h"
 
 #include <complex.h>
@@ -147,7 +148,7 @@ static void filter_segment(srslte_channel_fading_t* q, const cf_t* input, cf_t* 
   bzero(&q->state[q->N - nsamples], sizeof(cf_t) * nsamples);
 }
 
-int srslte_channel_fading_init(srslte_channel_fading_t* q, double srate, const char* model)
+int srslte_channel_fading_init(srslte_channel_fading_t* q, double srate, const char* model, uint32_t seed)
 {
   int ret = SRSLTE_ERROR;
 
@@ -166,11 +167,19 @@ int srslte_channel_fading_init(srslte_channel_fading_t* q, double srate, const c
                           round(log2(excess_tap_delay_ns[q->model][nof_taps[q->model] - 1] * 1e-9 * srate)) + 3),
                       64);
     q->path_delay = q->N / 4;
+
+    // Initialise random number
+    srslte_random_t* random = srslte_random_init(seed);
+
+    // Initialise values
     for (int i = 0; i < nof_taps[q->model]; i++) {
-      q->coeff_a[i] = (((double)rand() / (double)RAND_MAX) * (COEFF_A_MAX - COEFF_A_MIN)) + COEFF_A_MIN;
+      q->coeff_a[i] = srslte_random_uniform_real_dist(random, COEFF_A_MIN, COEFF_A_MAX);
       q->coeff_w[i] = 2.0 * M_PI * q->doppler / q->coeff_a[i];
-      q->coeff_p[i] = ((double)rand() / (double)RAND_MAX) * M_PI / 2.0;
+      q->coeff_p[i] = srslte_random_uniform_real_dist(random, 0, (float)M_PI / 2.0f);
     }
+
+    // Free random
+    srslte_random_free(random);
 
     // Plan FFT
     if (srslte_dft_plan_c(&q->fft, q->N, SRSLTE_DFT_FORWARD) != SRSLTE_SUCCESS) {
