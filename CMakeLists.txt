@@ -71,6 +71,7 @@ option(ENABLE_GUI      "Enable GUI (using srsGUI)"                ON)
 option(ENABLE_UHD      "Enable UHD"                               ON)
 option(ENABLE_BLADERF  "Enable BladeRF"                           ON)
 option(ENABLE_SOAPYSDR "Enable SoapySDR"                          ON)
+option(ENABLE_ZEROMQ   "Enable ZeroMQ"                            ON)
 option(ENABLE_HARDSIM  "Enable support for SIM cards"             ON)
 
 option(BUILD_STATIC    "Attempt to statically link external deps" OFF)
@@ -175,12 +176,21 @@ if(ENABLE_SOAPYSDR)
   endif(SOAPYSDR_FOUND)
 endif(ENABLE_SOAPYSDR)
 
-if(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
+# ZeroMQ
+if(ENABLE_ZEROMQ)
+  find_package(ZeroMQ)
+  if(ZEROMQ_FOUND)
+    include_directories(${ZEROMQ_INCLUDE_DIRS})
+    link_directories(${ZEROMQ_LIBRARY_DIRS})
+  endif(ZEROMQ_FOUND)
+endif(ENABLE_ZEROMQ)
+
+if(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND OR ZEROMQ_FOUND)
   set(RF_FOUND TRUE CACHE INTERNAL "RF frontend found")
-else(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
+else(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND OR ZEROMQ_FOUND)
   set(RF_FOUND FALSE CACHE INTERNAL "RF frontend found")
   add_definitions(-DDISABLE_RF)
-endif(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND)
+endif(BLADERF_FOUND OR UHD_FOUND OR SOAPYSDR_FOUND OR ZEROMQ_FOUND)
 
 # Boost
 if(ENABLE_SRSUE OR ENABLE_SRSENB OR ENABLE_SRSEPC)

@@ -178,6 +178,42 @@ static rf_dev_t dev_soapy = {
 
 #endif
 
+/* Define implementation for UHD */
+#ifdef ENABLE_ZEROMQ
+
+#include "rf_zmq_imp.h"
+
+static rf_dev_t dev_zmq = {"zmq",
+                           rf_zmq_devname,
+                           rf_zmq_rx_wait_lo_locked,
+                           rf_zmq_start_rx_stream,
+                           rf_zmq_stop_rx_stream,
+                           rf_zmq_flush_buffer,
+                           rf_zmq_has_rssi,
+                           rf_zmq_get_rssi,
+                           rf_zmq_suppress_stdout,
+                           rf_zmq_register_error_handler,
+                           rf_zmq_open,
+                           .srslte_rf_open_multi = rf_zmq_open_multi,
+                           rf_zmq_close,
+                           rf_zmq_set_master_clock_rate,
+                           rf_zmq_is_master_clock_dynamic,
+                           rf_zmq_set_rx_srate,
+                           rf_zmq_set_rx_gain,
+                           rf_zmq_set_tx_gain,
+                           rf_zmq_get_rx_gain,
+                           rf_zmq_get_tx_gain,
+                           rf_zmq_get_info,
+                           rf_zmq_set_rx_freq,
+                           rf_zmq_set_tx_srate,
+                           rf_zmq_set_tx_freq,
+                           rf_zmq_get_time,
+                           rf_zmq_recv_with_time,
+                           rf_zmq_recv_with_time_multi,
+                           rf_zmq_send_timed,
+                           .srslte_rf_send_timed_multi = rf_zmq_send_timed_multi};
+#endif
+
 //#define ENABLE_DUMMY_DEV
 
 #ifdef ENABLE_DUMMY_DEV
@@ -220,19 +256,21 @@ static rf_dev_t dev_dummy = {
 };
 #endif
 
-static rf_dev_t *available_devices[] = {
+static rf_dev_t* available_devices[] = {
 
 #ifdef ENABLE_UHD
-  &dev_uhd, 
+    &dev_uhd,
 #endif
 #ifdef ENABLE_SOAPYSDR
-  &dev_soapy,
+    &dev_soapy,
 #endif
 #ifdef ENABLE_BLADERF
-  &dev_blade,  
+    &dev_blade,
+#endif
+#ifdef ENABLE_ZEROMQ
+    &dev_zmq,
 #endif
 #ifdef ENABLE_DUMMY_DEV
-  &dev_dummy,
+    &dev_dummy,
 #endif
-  NULL
-};
+    NULL};
