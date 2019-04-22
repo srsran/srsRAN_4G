@@ -1917,13 +1917,12 @@ bool rrc::ue::select_security_algorithms() {
   bool enc_algo_found = false;
   bool integ_algo_found = false;
   bool zero_vector = true;
-  int i = 0;
-  for (i = 0; i < srslte::CIPHERING_ALGORITHM_ID_N_ITEMS; i++) {
+  for (int i = 0; i < srslte::CIPHERING_ALGORITHM_ID_N_ITEMS; i++) {
     switch (parent->cfg.eea_preference_list[i]) {
     case srslte::CIPHERING_ALGORITHM_ID_EEA0:
       // “all bits equal to 0” – UE supports no other algorithm than EEA0,
       zero_vector = true;
-      for (int j; j < LIBLTE_S1AP_ENCRYPTIONALGORITHMS_BIT_STRING_LEN; j++) {
+      for (int j = 0; j < LIBLTE_S1AP_ENCRYPTIONALGORITHMS_BIT_STRING_LEN; j++) {
         if (security_capabilities.encryptionAlgorithms.buffer[j]) {
           zero_vector = false;
         }
@@ -1961,13 +1960,12 @@ bool rrc::ue::select_security_algorithms() {
     }
   }
 
-  for (i = 0; i < srslte::INTEGRITY_ALGORITHM_ID_N_ITEMS; i++) {
+  for (int i = 0; i < srslte::INTEGRITY_ALGORITHM_ID_N_ITEMS; i++) {
     switch (parent->cfg.eia_preference_list[i]) {
     case srslte::INTEGRITY_ALGORITHM_ID_EIA0:
       // “all bits equal to 0” – UE supports no other algorithm than EEA0,
       zero_vector = true;
-      for (int j; j < LIBLTE_S1AP_INTEGRITYPROTECTIONALGORITHMS_BIT_STRING_LEN;
-           j++) {
+      for (int j = 0; j < LIBLTE_S1AP_INTEGRITYPROTECTIONALGORITHMS_BIT_STRING_LEN; j++) {
         if (security_capabilities.integrityProtectionAlgorithms.buffer[j]) {
           zero_vector = false;
         }
