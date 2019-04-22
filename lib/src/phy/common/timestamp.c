@@ -37,6 +37,17 @@ int srslte_timestamp_init(srslte_timestamp_t *t, time_t full_secs, double frac_s
   return ret;
 }
 
+void srslte_timestamp_init_uint64(srslte_timestamp_t* ts_time, uint64_t ts_count, double base_srate)
+{
+  uint64_t seconds      = ts_count / (uint64_t)base_srate;
+  uint64_t frac_samples = (uint64_t)(seconds * (uint64_t)base_srate);
+  double   frac_seconds = (double)(ts_count - frac_samples) / base_srate;
+
+  if (ts_time) {
+    srslte_timestamp_init(ts_time, seconds, frac_seconds);
+  }
+}
+
 int srslte_timestamp_copy(srslte_timestamp_t *dest, srslte_timestamp_t *src){
   int ret = SRSLTE_ERROR;
   if(dest != NULL && src != NULL){
@@ -44,6 +55,23 @@ int srslte_timestamp_copy(srslte_timestamp_t *dest, srslte_timestamp_t *src){
     dest->frac_secs = src->frac_secs;
     ret = SRSLTE_SUCCESS;
   }
+  return ret;
+}
+
+int srslte_timestamp_compare(srslte_timestamp_t* a, srslte_timestamp_t* b)
+{
+  int ret = 0;
+
+  if (a->full_secs > b->full_secs) {
+    ret = +1;
+  } else if (a->full_secs < b->full_secs) {
+    ret = -1;
+  } else if (a->frac_secs > b->frac_secs) {
+    ret = +1;
+  } else if (a->frac_secs < b->frac_secs) {
+    ret = -1;
+  }
+
   return ret;
 }
 
@@ -80,7 +108,17 @@ double srslte_timestamp_real(srslte_timestamp_t *t){
  return t->frac_secs + t->full_secs;
 }
 
+bool srslte_timestamp_iszero(const srslte_timestamp_t* t)
+{
+  return ((t->full_secs == 0) && (t->frac_secs == 0));
+}
+
 uint32_t srslte_timestamp_uint32(srslte_timestamp_t *t){
  uint32_t x = t->full_secs*1e6 + (uint32_t) (t->frac_secs*1e6);
  return x; 
+}
+
+uint64_t srslte_timestamp_uint64(const srslte_timestamp_t* t, double srate)
+{
+  return (uint64_t)(t->full_secs * (uint64_t)srate) + (uint64_t)round(t->frac_secs * srate);
 }
