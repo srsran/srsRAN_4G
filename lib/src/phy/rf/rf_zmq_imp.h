@@ -76,7 +76,7 @@ SRSLTE_API void rf_zmq_suppress_stdout(void* h);
 
 SRSLTE_API void rf_zmq_register_error_handler(void* h, srslte_rf_error_handler_t error_handler);
 
-SRSLTE_API double rf_zmq_set_rx_freq(void* h, double freq);
+SRSLTE_API double rf_zmq_set_rx_freq(void* h, uint32_t ch, double freq);
 
 SRSLTE_API int rf_zmq_recv_with_time(void* h,
                                      void* data,
@@ -96,7 +96,7 @@ SRSLTE_API double rf_zmq_set_tx_srate(void* h, double freq);
 
 SRSLTE_API double rf_zmq_set_tx_gain(void* h, double gain);
 
-SRSLTE_API double rf_zmq_set_tx_freq(void* h, double freq);
+SRSLTE_API double rf_zmq_set_tx_freq(void* h, uint32_t ch, double freq);
 
 SRSLTE_API void rf_zmq_get_time(void* h, time_t* secs, double* frac_secs);
 

@@ -345,9 +345,6 @@ public:
 
   /* MUX calls BSR to let it generate a padding BSR if there is space in PDU */
   virtual bool generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t *bsr) = 0;
-
-  /* MAX calls BSR to set the Tx TTI */
-  virtual void set_tx_tti(uint32_t tti) = 0;
 };
 
 
@@ -359,91 +356,82 @@ class mac_interface_phy
 {
 public:
   typedef struct {
-      uint32_t nof_mbsfn_services;
-  } mac_phy_cfg_mbsfn_t; 
-    
-    
-    
+    uint32_t nof_mbsfn_services;
+  } mac_phy_cfg_mbsfn_t;
+
   typedef struct {
-    uint32_t    pid;    
-    uint32_t    tti;
-    uint32_t    last_tti;
-    bool        ndi[SRSLTE_MAX_CODEWORDS];
-    bool        last_ndi[SRSLTE_MAX_CODEWORDS];
-    uint32_t    n_bytes[SRSLTE_MAX_CODEWORDS];
-    int         rv[SRSLTE_MAX_CODEWORDS];
-    bool        tb_en[SRSLTE_MAX_CODEWORDS];
-    bool        tb_cw_swap;
-    uint16_t    rnti; 
-    bool        is_from_rar;
-    bool        is_sps_release;
-    bool        has_cqi_request;
-    srslte_rnti_type_t rnti_type; 
-    srslte_phy_grant_t phy_grant; 
-  } mac_grant_t; 
-  
+    uint32_t tbs;
+    bool     ndi;
+    bool     ndi_present;
+    int      rv;
+  } mac_tb_t;
+
   typedef struct {
-    bool                    decode_enabled[SRSLTE_MAX_TB];
-    int                     rv[SRSLTE_MAX_TB];
-    uint16_t                rnti; 
-    bool                    generate_ack; 
-    bool                    default_ack[SRSLTE_MAX_TB];
-    // If non-null, called after tb_decoded_ok to determine if ack needs to be sent
-    bool                  (*generate_ack_callback)(void*); 
-    void                   *generate_ack_callback_arg;
-    uint8_t                *payload_ptr[SRSLTE_MAX_TB];
-    srslte_softbuffer_rx_t *softbuffers[SRSLTE_MAX_TB];
-    srslte_phy_grant_t      phy_grant;
+    mac_tb_t tb[SRSLTE_MAX_TB];
+    uint32_t pid;
+    uint16_t rnti;
+    bool     is_sps_release;
+  } mac_grant_dl_t;
+
+  typedef struct {
+    mac_tb_t tb;
+    uint32_t pid;
+    uint16_t rnti;
+    bool     phich_available;
+    bool     hi_value;
+  } mac_grant_ul_t;
+
+  typedef struct {
+    bool     enabled;
+    uint32_t rv;
+    uint8_t* payload;
+    union {
+      srslte_softbuffer_rx_t* rx;
+      srslte_softbuffer_tx_t* tx;
+    } softbuffer;
+  } tb_action_t;
+
+  typedef struct {
+    tb_action_t tb[SRSLTE_MAX_TB];
+
+    bool generate_ack;
   } tb_action_dl_t;
 
   typedef struct {
-    bool                    tx_enabled;
-    bool                    expect_ack;
-    uint32_t                rv[SRSLTE_MAX_TB];
-    uint16_t                rnti; 
+    tb_action_t             tb;
     uint32_t                current_tx_nb;
-    int32_t                 tti_offset;     // relative offset between grant and UL tx/HARQ rx
-    srslte_softbuffer_tx_t *softbuffers;
-    srslte_phy_grant_t      phy_grant;
-    uint8_t                *payload_ptr[SRSLTE_MAX_TB];
+    bool                    expect_ack;
   } tb_action_ul_t;
-  
-  /* Indicate reception of UL grant. 
+
+  /* Query the MAC for the current RNTI to look for
+   */
+  virtual uint16_t get_dl_sched_rnti(uint32_t tti) = 0;
+  virtual uint16_t get_ul_sched_rnti(uint32_t tti) = 0;
+
+  /* Indicate reception of UL dci.
    * payload_ptr points to memory where MAC PDU must be written by MAC layer */
-  virtual void new_grant_ul(mac_grant_t grant, tb_action_ul_t *action) = 0;
+  virtual void new_grant_ul(uint32_t cc_idx, mac_grant_ul_t grant, tb_action_ul_t* action) = 0;
 
-  /* Indicate reception of UL grant + HARQ information throught PHICH in the same TTI. */
-  virtual void new_grant_ul_ack(mac_grant_t grant, bool ack, tb_action_ul_t *action) = 0;
+  /* Indicate reception of DL dci. */
+  virtual void new_grant_dl(uint32_t cc_idx, mac_grant_dl_t grant, tb_action_dl_t* action) = 0;
 
-  /* Obtain action for a new MCH subframe. */
-  virtual void new_mch_dl(srslte_ra_dl_grant_t phy_grant, tb_action_dl_t *action) = 0;
+  /* Indicate successful decoding of PDSCH AND PCH TB. */
+  virtual void tb_decoded(uint32_t cc_idx, mac_grant_dl_t grant, bool ack[SRSLTE_MAX_CODEWORDS]) = 0;
 
-  /* Indicate reception of HARQ information only through PHICH.   */
-  virtual void harq_recv(uint32_t tti, bool ack, tb_action_ul_t *action) = 0;
-  
-  /* Indicate reception of DL grant. */ 
-  virtual void new_grant_dl(mac_grant_t grant, tb_action_dl_t *action) = 0;
-  
-  /* Indicate successful decoding of PDSCH TB. */
-  virtual void tb_decoded(bool ack, uint32_t tb_idx, srslte_rnti_type_t rnti_type, uint32_t harq_pid) = 0;
-  
   /* Indicate successful decoding of BCH TB through PBCH */
   virtual void bch_decoded_ok(uint8_t *payload, uint32_t len) = 0;  
   
-  /* Indicate successful decoding of PCH TB through PDSCH */
-  virtual void pch_decoded_ok(uint32_t len) = 0;  
-
   /* Indicate successful decoding of MCH TB through PMCH */
-  virtual void mch_decoded_ok(uint32_t len) = 0;
-  
+  virtual void mch_decoded(uint32_t len, bool crc) = 0;
+
+  /* Obtain action for a new MCH subframe. */
+  virtual void new_mch_dl(srslte_pdsch_grant_t phy_grant, tb_action_dl_t* action) = 0;
+
   /* Communicate the number of mbsfn services available  */
   virtual void set_mbsfn_config(uint32_t nof_mbsfn_services) = 0;
-  
-  /* Function called every start of a subframe (TTI). Warning, this function is called 
-   * from a high priority thread and should terminate asap 
-   */
 
-
+  /* Indicate new TTI */
+  virtual void run_tti(const uint32_t tti) = 0;
 };
 
 /* Interface RRC -> MAC shared between different RATs */
@@ -453,53 +441,200 @@ public:
   // Class to handle UE specific RNTIs between RRC and MAC
   typedef struct {
     uint16_t crnti;
+    uint16_t rar_rnti;
     uint16_t temp_rnti;
     uint16_t tpc_rnti;
     uint16_t sps_rnti;
     uint64_t contention_id;
   } ue_rnti_t;
 
-  typedef struct {
+  typedef struct ul_harq_cfg_t {
     uint32_t max_harq_msg3_tx;
     uint32_t max_harq_tx;
-  } ul_harq_params_t;
+    ul_harq_cfg_t() { reset(); }
+    void reset()
+    {
+      max_harq_msg3_tx = 5;
+      max_harq_tx      = 5;
+    }
+  } ul_harq_cfg_t;
 };
 
 /* Interface RRC -> MAC */
 class mac_interface_rrc : public mac_interface_rrc_common
 {
 public:
-  
-  typedef struct {
-    asn1::rrc::mac_main_cfg_s      main;
-    asn1::rrc::rach_cfg_common_s   rach;
-    asn1::rrc::sched_request_cfg_c sr;
-    ul_harq_params_t               ul_harq_params;
-    uint32_t                       prach_config_index;
-  } mac_cfg_t;
+  typedef struct bsr_cfg_t {
+    int periodic_timer;
+    int retx_timer;
+    bsr_cfg_t() { reset(); }
+    void reset()
+    {
+      periodic_timer = -1;
+      retx_timer     = 2560;
+    }
+  } bsr_cfg_t;
 
-  virtual void    clear_rntis() = 0;
+  typedef struct phr_cfg_t {
+    bool enabled;
+    int  periodic_timer;
+    int  prohibit_timer;
+    int  db_pathloss_change;
+    bool extended;
+    phr_cfg_t() { reset(); }
+    void reset()
+    {
+      enabled            = false;
+      periodic_timer     = -1;
+      prohibit_timer     = -1;
+      db_pathloss_change = -1;
+      extended           = false;
+    }
+  } phr_cfg_t;
+
+  typedef struct sr_cfg_t {
+    bool enabled;
+    int  dsr_transmax;
+    sr_cfg_t() { reset(); }
+    void reset() { enabled = false; }
+  } sr_cfg_t;
+
+  typedef struct rach_cfg_t {
+    bool     enabled;
+    uint32_t nof_preambles;
+    uint32_t nof_groupA_preambles;
+    int32_t  messagePowerOffsetGroupB;
+    uint32_t messageSizeGroupA;
+    uint32_t responseWindowSize;
+    uint32_t powerRampingStep;
+    uint32_t preambleTransMax;
+    int32_t  iniReceivedTargetPower;
+    uint32_t contentionResolutionTimer;
+    uint32_t new_ra_msg_len;
+    rach_cfg_t() { reset(); }
+    void reset() { enabled = false; }
+  } rach_cfg_t;
+
+  class mac_cfg_t
+  {
+  public:
+    // Default constructor with default values as in 36.331 9.2.2
+    mac_cfg_t() { time_alignment_timer = -1; }
+
+    void set_defaults()
+    {
+      bsr_cfg.reset();
+      phr_cfg.reset();
+      sr_cfg.reset();
+      rach_cfg.reset();
+      harq_cfg.reset();
+      time_alignment_timer = -1;
+    }
+
+    // Called only if section is present
+    void set_sched_request_cfg(asn1::rrc::sched_request_cfg_c& cfg)
+    {
+      sr_cfg.enabled = cfg.type() == asn1::rrc::setup_e::setup;
+      if (sr_cfg.enabled) {
+        sr_cfg.dsr_transmax = cfg.setup().dsr_trans_max.to_number();
+      }
+    }
+
+    // MAC-MainConfig section is always present
+    void set_mac_main_cfg(asn1::rrc::mac_main_cfg_s& cfg)
+    {
+      // Update values only if each section is present
+      if (cfg.phr_cfg_present) {
+        phr_cfg.enabled = cfg.phr_cfg.type() == asn1::rrc::setup_e::setup;
+        if (phr_cfg.enabled) {
+          phr_cfg.prohibit_timer     = cfg.phr_cfg.setup().prohibit_phr_timer.to_number();
+          phr_cfg.periodic_timer     = cfg.phr_cfg.setup().periodic_phr_timer.to_number();
+          phr_cfg.db_pathloss_change = cfg.phr_cfg.setup().dl_pathloss_change.to_number();
+        }
+      }
+      if (cfg.mac_main_cfg_v1020_present) {
+        typedef asn1::rrc::mac_main_cfg_s::mac_main_cfg_v1020_s_ mac_main_cfg_v1020_t;
+        mac_main_cfg_v1020_t*                                    mac_main_cfg_v1020 = cfg.mac_main_cfg_v1020.get();
+        phr_cfg.extended = mac_main_cfg_v1020->extended_phr_r10_present;
+      }
+      if (cfg.ul_sch_cfg_present) {
+        bsr_cfg.periodic_timer = cfg.ul_sch_cfg.periodic_bsr_timer.to_number();
+        bsr_cfg.retx_timer     = cfg.ul_sch_cfg.retx_bsr_timer.to_number();
+        if (cfg.ul_sch_cfg.max_harq_tx_present) {
+          harq_cfg.max_harq_tx = cfg.ul_sch_cfg.max_harq_tx.to_number();
+        }
+      }
+      // TimeAlignmentDedicated overwrites Common??
+      time_alignment_timer = cfg.time_align_timer_ded.to_number();
+    }
+
+    // RACH-Common section is always present
+    void set_rach_cfg_common(asn1::rrc::rach_cfg_common_s& cfg)
+    {
+
+      // Preamble info
+      rach_cfg.nof_preambles = cfg.preamb_info.nof_ra_preambs.to_number();
+      if (cfg.preamb_info.preambs_group_a_cfg_present) {
+        rach_cfg.nof_groupA_preambles     = cfg.preamb_info.preambs_group_a_cfg.size_of_ra_preambs_group_a.to_number();
+        rach_cfg.messageSizeGroupA        = cfg.preamb_info.preambs_group_a_cfg.msg_size_group_a.to_number();
+        rach_cfg.messagePowerOffsetGroupB = cfg.preamb_info.preambs_group_a_cfg.msg_pwr_offset_group_b.to_number();
+      } else {
+        rach_cfg.nof_groupA_preambles = 0;
+      }
+
+      // Power ramping
+      rach_cfg.powerRampingStep       = cfg.pwr_ramp_params.pwr_ramp_step.to_number();
+      rach_cfg.iniReceivedTargetPower = cfg.pwr_ramp_params.preamb_init_rx_target_pwr.to_number();
+
+      // Supervision info
+      rach_cfg.preambleTransMax          = cfg.ra_supervision_info.preamb_trans_max.to_number();
+      rach_cfg.responseWindowSize        = cfg.ra_supervision_info.ra_resp_win_size.to_number();
+      rach_cfg.contentionResolutionTimer = cfg.ra_supervision_info.mac_contention_resolution_timer.to_number();
+
+      // HARQ Msg3
+      harq_cfg.max_harq_msg3_tx = cfg.max_harq_msg3_tx;
+    }
+
+    void set_time_alignment(asn1::rrc::time_align_timer_e time_alignment_timer)
+    {
+      this->time_alignment_timer = time_alignment_timer.to_number();
+    }
+
+    bsr_cfg_t&     get_bsr_cfg() { return bsr_cfg; }
+    phr_cfg_t&     get_phr_cfg() { return phr_cfg; }
+    rach_cfg_t&    get_rach_cfg() { return rach_cfg; }
+    sr_cfg_t&      get_sr_cfg() { return sr_cfg; }
+    ul_harq_cfg_t& get_harq_cfg() { return harq_cfg; }
+    int            get_time_alignment_timer() { return time_alignment_timer; }
+
+  private:
+    bsr_cfg_t     bsr_cfg;
+    phr_cfg_t     phr_cfg;
+    sr_cfg_t      sr_cfg;
+    rach_cfg_t    rach_cfg;
+    ul_harq_cfg_t harq_cfg;
+    int           time_alignment_timer;
+  };
+
+  virtual void clear_rntis() = 0;
 
   /* Instructs the MAC to start receiving BCCH */
-  virtual void    bcch_start_rx(int si_window_start, int si_window_length) = 0;
+  virtual void bcch_start_rx(int si_window_start, int si_window_length) = 0;
+  virtual void bcch_stop_rx()                                           = 0;
 
   /* Instructs the MAC to start receiving PCCH */
-  virtual void    pcch_start_rx() = 0; 
+  virtual void pcch_start_rx() = 0;
 
   /* RRC configures a logical channel */
-  virtual void    setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority, int PBR_x_tti, uint32_t BSD) = 0;
+  virtual void setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority, int PBR_x_tti, uint32_t BSD) = 0;
 
   /* Instructs the MAC to start receiving an MCH */
-  virtual void    mch_start_rx(uint32_t lcid) = 0;
+  virtual void mch_start_rx(uint32_t lcid) = 0;
 
   virtual uint32_t get_current_tti() = 0;
 
-  virtual void set_config(mac_cfg_t *mac_cfg) = 0;
-  virtual void set_config_main(asn1::rrc::mac_main_cfg_s* main_cfg)                                 = 0;
-  virtual void set_config_rach(asn1::rrc::rach_cfg_common_s* rach_cfg, uint32_t prach_config_index) = 0;
-  virtual void set_config_sr(asn1::rrc::sched_request_cfg_c* sr_cfg)                                = 0;
-  virtual void get_config(mac_cfg_t *mac_cfg) = 0;
-  
+  virtual void set_config(mac_cfg_t& mac_cfg) = 0;
+
   virtual void get_rntis(ue_rnti_t *rntis) = 0;
   virtual void set_contention_id(uint64_t uecri) = 0;
   virtual void set_ho_rnti(uint16_t crnti, uint16_t target_pci) = 0;
@@ -518,20 +653,29 @@ public:
  */
 
 typedef struct {
+  uint32_t radio_idx;
+  uint32_t channel_idx;
+} carrier_map_t;
+
+typedef struct {
   bool ul_pwr_ctrl_en; 
   float prach_gain;
   int pdsch_max_its;
-  bool attach_enable_64qam; 
   int nof_phy_threads;
   
   int worker_cpu_mask;
   int sync_cpu_affinity;
-  
+
+  uint32_t      ue_category;
+  uint32_t      nof_carriers;
+  uint32_t      nof_radios;
   uint32_t nof_rx_ant;
-  std::string equalizer_mode;
-  int cqi_max; 
-  int cqi_fixed; 
-  float snr_ema_coeff; 
+  uint32_t      nof_rf_channels;
+  carrier_map_t carrier_map[SRSLTE_MAX_CARRIERS];
+  std::string   equalizer_mode;
+  int           cqi_max;
+  int           cqi_fixed;
+  float         snr_ema_coeff;
   std::string snr_estim_alg;
   bool cfo_is_doppler;
   bool cfo_integer_enabled; 
@@ -540,16 +684,17 @@ typedef struct {
   float cfo_ref_ema;
   float cfo_loop_bw_pss;
   float cfo_loop_bw_ref;
-  float cfo_loop_ref_min;
-  float cfo_loop_pss_tol;
-  float sfo_ema;
-  uint32_t sfo_correct_period;
+  float         cfo_loop_ref_min;
+  float         cfo_loop_pss_tol;
+  float         sfo_ema;
+  uint32_t      sfo_correct_period;
   uint32_t cfo_loop_pss_conv;
-  uint32_t cfo_ref_mask;
-  bool average_subframe_enabled;
+  uint32_t      cfo_ref_mask;
+  bool          interpolate_subframe_enabled;
   bool estimator_fil_auto;
-  float estimator_fil_stddev;
-  uint32_t estimator_fil_order;
+  float         estimator_fil_stddev;
+  uint32_t      estimator_fil_order;
+  float         snr_to_cqi_offset;
   std::string sss_algorithm;
   bool rssi_sensor_enabled;
   bool sic_pss_enabled;
@@ -565,7 +710,6 @@ typedef struct {
 class phy_interface_mac_common
 {
 public:
-
   /* Sets a C-RNTI allowing the PHY to pregenerate signals if necessary */
   virtual void set_crnti(uint16_t rnti) = 0;
 
@@ -573,8 +717,11 @@ public:
   virtual void set_timeadv_rar(uint32_t ta_cmd) = 0;
   virtual void set_timeadv(uint32_t ta_cmd) = 0;
 
-  /* Sets RAR grant payload */
-  virtual void set_rar_grant(uint32_t tti, uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN]) = 0;
+  /* Activate / Disactivate SCell*/
+  virtual void set_activation_deactivation_scell(uint32_t cmd) = 0;
+
+  /* Sets RAR dci payload */
+  virtual void set_rar_grant(uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN], uint16_t rnti) = 0;
 
   virtual uint32_t get_current_tti() = 0;
 
@@ -586,24 +733,24 @@ public:
 class phy_interface_mac : public phy_interface_mac_common
 {
 public:
-      
+  typedef struct {
+    bool     is_transmitted;
+    uint32_t tti_ra;
+    uint32_t f_id;
+    uint32_t preamble_format;
+  } prach_info_t;
+
   /* Configure PRACH using parameters written by RRC */
   virtual void configure_prach_params() = 0;
 
-  virtual void prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm) = 0;  
-  virtual int  prach_tx_tti() = 0;   
+  virtual void         prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm) = 0;
+  virtual prach_info_t prach_get_info()                                                                = 0;
+
   /* Indicates the transmission of a SR signal in the next opportunity */
   virtual void sr_send() = 0;  
   virtual int  sr_last_tx_tti() = 0; 
 
-  /* Instruct the PHY to decode PDCCH with the CRC scrambled with given RNTI */
-  virtual void pdcch_ul_search(srslte_rnti_type_t rnti_type, uint16_t rnti, int tti_start = -1, int tti_end = -1) = 0;
-  virtual void pdcch_dl_search(srslte_rnti_type_t rnti_type, uint16_t rnti, int tti_start = -1, int tti_end = -1) = 0;
-  virtual void pdcch_ul_search_reset() = 0;
-  virtual void pdcch_dl_search_reset() = 0;
-  
   virtual void set_mch_period_stop(uint32_t stop) = 0;
-  
 };
 
 class phy_interface_rrc
@@ -632,19 +779,15 @@ public:
     asn1::rrc::phys_cfg_ded_s dedicated;
     phy_cfg_common_t          common;
     phy_cfg_mbsfn_t           mbsfn;
-    bool                      enable_64qam;
-  } phy_cfg_t; 
+  } phy_cfg_t;
 
   virtual void get_current_cell(srslte_cell_t *cell, uint32_t *current_earfcn = NULL) = 0;
   virtual uint32_t get_current_earfcn() = 0;
   virtual uint32_t get_current_pci() = 0;
 
-  virtual void get_config(phy_cfg_t *phy_cfg) = 0;
-  virtual void set_config(phy_cfg_t *phy_cfg) = 0;
-  virtual void set_config_dedicated(asn1::rrc::phys_cfg_ded_s* dedicated) = 0;
-  virtual void set_config_common(phy_cfg_common_t *common) = 0;
+  virtual void set_config(phy_cfg_t* config)                                     = 0;
+  virtual void set_config_scell(asn1::rrc::scell_to_add_mod_r10_s* scell_config) = 0;
   virtual void set_config_tdd(asn1::rrc::tdd_cfg_s* tdd)                  = 0;
-  virtual void set_config_64qam_en(bool enable) = 0;
   virtual void set_config_mbsfn_sib2(asn1::rrc::sib_type2_s* sib2)        = 0;
   virtual void set_config_mbsfn_sib13(asn1::rrc::sib_type13_r9_s* sib13)  = 0;
   virtual void set_config_mbsfn_mcch(asn1::rrc::mcch_msg_s* mcch)         = 0;
@@ -656,7 +799,7 @@ public:
 
   typedef struct {
     enum {CELL_FOUND = 0, CELL_NOT_FOUND, ERROR} found;
-    enum {MORE_FREQS = 0, NO_MORE_FREQS} last_freq;
+    enum { MORE_FREQS = 0, NO_MORE_FREQS } last_freq;
   } cell_search_ret_t;
 
   typedef struct {
@@ -668,9 +811,6 @@ public:
   virtual cell_search_ret_t  cell_search(phy_cell_t *cell) = 0;
   virtual bool cell_select(phy_cell_t *cell = NULL) = 0;
   virtual bool cell_is_camping() = 0;
-
-  /* Configure UL using parameters written with set_param() */
-  virtual void configure_ul_params(bool pregen_disabled = false) = 0;
 
   virtual void reset() = 0;
 

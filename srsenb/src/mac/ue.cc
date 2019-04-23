@@ -37,42 +37,90 @@
 
 
 namespace srsenb {
-  
+
+ue::ue() :
+  mac_msg_dl(20),
+  mch_mac_msg_dl(10),
+  mac_msg_ul(20),
+  conres_id_available(false),
+  dl_ri_counter(0),
+  dl_pmi_counter(0),
+  conres_id(0),
+  last_tti(0),
+  pdus(128)
+{
+  rrc            = NULL;
+  sched          = NULL;
+  rlc            = NULL;
+  log_h          = NULL;
+  rnti           = 0;
+  pcap           = NULL;
+  nof_failures   = 0;
+  phr_counter    = 0;
+  dl_cqi_counter = 0;
+  is_phy_added   = false;
+  for (int i = 0; i < NOF_RX_HARQ_PROCESSES; i++) {
+    pending_buffers[i] = NULL;
+  }
+
+  bzero(&metrics, sizeof(mac_metrics_t));
+  bzero(&mutex, sizeof(pthread_mutex_t));
+  bzero(softbuffer_tx, sizeof(softbuffer_tx));
+  bzero(softbuffer_rx, sizeof(softbuffer_rx));
+  for (int i = 0; i < SRSLTE_MAX_TB; ++i) {
+    bzero(tx_payload_buffer, sizeof(uint8_t) * payload_buffer_len);
+  }
+  pthread_mutex_init(&mutex, NULL);
+}
+
+ue::~ue()
+{
+  for (int i = 0; i < NOF_RX_HARQ_PROCESSES; i++) {
+    srslte_softbuffer_rx_free(&softbuffer_rx[i]);
+  }
+  for (int i = 0; i < NOF_TX_HARQ_PROCESSES; i++) {
+    srslte_softbuffer_tx_free(&softbuffer_tx[i]);
+  }
+  pthread_mutex_destroy(&mutex);
+}
+
 void ue::config(uint16_t rnti_, uint32_t nof_prb, sched_interface *sched_, rrc_interface_mac *rrc_, rlc_interface_mac *rlc_, srslte::log *log_h_)
 {
   rnti  = rnti_; 
   rlc   = rlc_; 
-  rrc   = rrc_; 
-  log_h = log_h_; 
-  sched = sched_; 
+  rrc   = rrc_;
+  log_h = log_h_;
+  sched = sched_;
   pdus.init(this, log_h);
-  
-  for (int i=0;i<NOF_HARQ_PROCESSES;i++) {
+
+  for (int i = 0; i < NOF_RX_HARQ_PROCESSES; i++) {
     srslte_softbuffer_rx_init(&softbuffer_rx[i], nof_prb);
+  }
+  for (int i = 0; i < NOF_TX_HARQ_PROCESSES; i++) {
     srslte_softbuffer_tx_init(&softbuffer_tx[i], nof_prb);
   }
   // don't need to reset because just initiated the buffers
-  bzero(&metrics, sizeof(mac_metrics_t));  
-  nof_failures = 0; 
-  
-  for(int i=0;i<NOF_HARQ_PROCESSES;i++) {
+  bzero(&metrics, sizeof(mac_metrics_t));
+  nof_failures = 0;
+
+  for (int i = 0; i < NOF_RX_HARQ_PROCESSES; i++) {
     pending_buffers[i] = NULL; 
   }
 
   // Set LCID group for SRB0 and SRB1
   set_lcg(0, 0);
   set_lcg(1, 0);
-}  
-
-
+}
 
 void ue::reset()
 {
-  bzero(&metrics, sizeof(mac_metrics_t));  
+  bzero(&metrics, sizeof(mac_metrics_t));
 
-  nof_failures = 0; 
-  for (int i=0;i<NOF_HARQ_PROCESSES;i++) {
+  nof_failures = 0;
+  for (int i = 0; i < NOF_RX_HARQ_PROCESSES; i++) {
     srslte_softbuffer_rx_reset(&softbuffer_rx[i]);
+  }
+  for (int i = 0; i < NOF_TX_HARQ_PROCESSES; i++) {
     srslte_softbuffer_tx_reset(&softbuffer_tx[i]);
   }
 }
@@ -104,24 +152,24 @@ void ue::set_lcg(uint32_t lcid, uint32_t lcg)
 
 srslte_softbuffer_rx_t* ue::get_rx_softbuffer(uint32_t tti)
 {
-  return &softbuffer_rx[tti%NOF_HARQ_PROCESSES];
+  return &softbuffer_rx[tti % NOF_RX_HARQ_PROCESSES];
 }
 
 srslte_softbuffer_tx_t* ue::get_tx_softbuffer(uint32_t harq_process, uint32_t tb_idx)
 {
-  return &softbuffer_tx[(harq_process * SRSLTE_MAX_TB + tb_idx  )%NOF_HARQ_PROCESSES];
+  return &softbuffer_tx[(harq_process * SRSLTE_MAX_TB + tb_idx) % NOF_TX_HARQ_PROCESSES];
 }
 
 uint8_t* ue::request_buffer(uint32_t tti, uint32_t len)
 {
-  uint8_t *ret = NULL; 
+  uint8_t* ret = NULL;
   if (len > 0) {
-    if (!pending_buffers[tti%NOF_HARQ_PROCESSES]) {
-      ret = pdus.request(len);   
-      pending_buffers[tti%NOF_HARQ_PROCESSES] = ret; 
+    if (!pending_buffers[tti % NOF_RX_HARQ_PROCESSES]) {
+      ret                                          = pdus.request(len);
+      pending_buffers[tti % NOF_RX_HARQ_PROCESSES] = ret;
     } else {
-      log_h->console("Error requesting buffer for pid %d, not pushed yet\n", tti%NOF_HARQ_PROCESSES);
-      log_h->error("Requesting buffer for pid %d, not pushed yet\n", tti%NOF_HARQ_PROCESSES);
+      log_h->console("Error requesting buffer for pid %d, not pushed yet\n", tti % NOF_RX_HARQ_PROCESSES);
+      log_h->error("Requesting buffer for pid %d, not pushed yet\n", tti % NOF_RX_HARQ_PROCESSES);
     }
   } else {
     log_h->warning("Requesting buffer for zero bytes\n");
@@ -140,7 +188,7 @@ void ue::set_tti(uint32_t tti) {
 
 #include <assert.h>
 
-void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channel_t channel, uint32_t tstamp)
+void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channel_t channel)
 {
   // Unpack ULSCH MAC PDU 
   mac_msg_ul.init_rx(nof_bytes, true);
@@ -232,7 +280,7 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channe
   if (!bsr_received && lcid_most_data > 2) {
     // Add BSR to the LCID for which most data was received
     sched->ul_bsr(rnti, lcid_most_data, 256, false); // false adds BSR instead of setting
-    Debug("BSR not received. Giving extra grant\n");
+    Debug("BSR not received. Giving extra dci\n");
   }
 
   Debug("MAC PDU processed\n");
@@ -241,21 +289,21 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channe
 
 void ue::deallocate_pdu(uint32_t tti)
 {
-  if (pending_buffers[tti%NOF_HARQ_PROCESSES]) {
-    pdus.deallocate(pending_buffers[tti%NOF_HARQ_PROCESSES]);
-    pending_buffers[tti%NOF_HARQ_PROCESSES] = NULL; 
+  if (pending_buffers[tti % NOF_RX_HARQ_PROCESSES]) {
+    pdus.deallocate(pending_buffers[tti % NOF_RX_HARQ_PROCESSES]);
+    pending_buffers[tti % NOF_RX_HARQ_PROCESSES] = NULL;
   } else {
-    log_h->console("Error deallocating buffer for pid=%d. Not requested\n", tti%NOF_HARQ_PROCESSES);
+    log_h->console("Error deallocating buffer for pid=%d. Not requested\n", tti % NOF_RX_HARQ_PROCESSES);
   }
 }
 
 void ue::push_pdu(uint32_t tti, uint32_t len)
 {
-  if (pending_buffers[tti%NOF_HARQ_PROCESSES]) {
-    pdus.push(pending_buffers[tti%NOF_HARQ_PROCESSES], len);
-    pending_buffers[tti%NOF_HARQ_PROCESSES] = NULL; 
+  if (pending_buffers[tti % NOF_RX_HARQ_PROCESSES]) {
+    pdus.push(pending_buffers[tti % NOF_RX_HARQ_PROCESSES], len);
+    pending_buffers[tti % NOF_RX_HARQ_PROCESSES] = NULL;
   } else {
-    log_h->console("Error pushing buffer for pid=%d. Not requested\n", tti%NOF_HARQ_PROCESSES);
+    log_h->console("Error pushing buffer for pid=%d. Not requested\n", tti % NOF_RX_HARQ_PROCESSES);
   }
 }
 

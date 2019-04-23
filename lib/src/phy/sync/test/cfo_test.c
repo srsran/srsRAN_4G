@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
   }
 
   if (srslte_cfo_init(&cfocorr, num_samples)) {
-    fprintf(stderr, "Error initiating CFO\n");
+    ERROR("Error initiating CFO\n");
     return -1;
   }
 

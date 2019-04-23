@@ -58,7 +58,8 @@
 
 typedef struct SRSLTE_API {
   uint32_t cell_id;
-  srslte_cp_t cp; 
+  srslte_cp_t         cp;
+  srslte_frame_type_t frame_type;
   float peak; 
   float mode; 
   float psr;
@@ -70,8 +71,8 @@ typedef struct SRSLTE_API {
   srslte_ue_sync_t ue_sync;
   
   cf_t *sf_buffer[SRSLTE_MAX_PORTS];
-  uint32_t nof_rx_antennas; 
-  
+  uint32_t nof_rx_antennas;
+
   uint32_t max_frames;
   uint32_t nof_valid_frames;  // number of 5 ms frames to scan 
     

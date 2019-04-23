@@ -46,18 +46,24 @@
 
 #define SRSLTE_N_MCH_LCIDS     32
 
-#define HARQ_DELAY_MS   4
-#define MSG3_DELAY_MS   2 // Delay added to HARQ_DELAY_MS
-#define TTI_RX(tti)     (tti>HARQ_DELAY_MS?((tti-HARQ_DELAY_MS)%10240):(10240+tti-HARQ_DELAY_MS))
-#define TTI_TX(tti)     ((tti+HARQ_DELAY_MS)%10240)
-#define TTI_RX_ACK(tti) ((tti+(2*HARQ_DELAY_MS))%10240)
+#define TX_DELAY 4
+#define MSG3_DELAY_MS 2 // Delay added to TX_DELAY
 
-#define UL_PIDOF(tti)   (tti%(2*HARQ_DELAY_MS))
+#define TTI_SUB(a, b) ((((a) + 10240) - (b)) % 10240)
 
-#define TTIMOD_SZ       (((2*HARQ_DELAY_MS) < 10)?10:20)
+#define TTI_TX(tti) ((tti + TX_DELAY) % 10240)
+
+// Use only in FDD mode!!
+#define FDD_HARQ_DELAY_MS 4
+#define TTI_RX(tti) (TTI_SUB(tti, FDD_HARQ_DELAY_MS))
+#define TTI_RX_ACK(tti) ((tti + (2 * FDD_HARQ_DELAY_MS)) % 10240)
+
+#define TTIMOD_SZ 20
 #define TTIMOD(tti)     (tti%TTIMOD_SZ)
 
-#define ASYNC_DL_SCHED  (HARQ_DELAY_MS <= 4)
+#define PHICH_MAX_SF 6 // Maximum PHICH in a subframe (1 in FDD, > 1 in TDD, see table 9.1.2-1 36.213)
+
+#define ASYNC_DL_SCHED (FDD_HARQ_DELAY_MS <= 4)
 
 // Cat 4 UE - Max number of DL-SCH transport block bits received within a TTI
 // 3GPP 36.306 Table 4.1.1
@@ -75,8 +81,6 @@
 #define pool_allocate (pool->allocate())
 #define pool_allocate_blocking (pool->allocate(NULL, true))
 #endif
-
-#define ZERO_OBJECT(x) memset(&(x), 0x0, sizeof((x)))
 
 #include "srslte/srslte.h"
 

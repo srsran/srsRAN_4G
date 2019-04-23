@@ -33,12 +33,14 @@
 #include "srslte/srslte.h"
 
 srslte_cell_t cell = {
-  6,            // nof_prb
-  1,    // nof_ports
-  0, 
-  1000,         // cell_id
-  SRSLTE_CP_NORM,        // cyclic prefix
-  SRSLTE_PHICH_NORM
+    6,              // nof_prb
+    1,              // nof_ports
+    1000,           // cell_id
+    SRSLTE_CP_NORM, // cyclic prefix
+    SRSLTE_PHICH_NORM,
+    SRSLTE_PHICH_R_1, // PHICH length
+    SRSLTE_FDD,
+
 };
 
 char *output_matlab = NULL;
@@ -128,13 +130,13 @@ int main(int argc, char **argv) {
   }
   printf("max_cid=%d, cid=%d, cell.id=%d\n", max_cid, cid, cell.id);
   if (srslte_chest_ul_init(&est, cell.nof_prb)) {
-    fprintf(stderr, "Error initializing equalizer\n");
+    ERROR("Error initializing equalizer\n");
     goto do_exit;
   }
   while(cid <= max_cid) {
     cell.id = cid; 
     if (srslte_chest_ul_set_cell(&est, cell)) {
-      fprintf(stderr, "Error initializing equalizer\n");
+      ERROR("Error initializing equalizer\n");
       goto do_exit;
     }
 
@@ -165,8 +167,8 @@ int main(int argc, char **argv) {
               }
               pusch_cfg.group_hopping_en = group_hopping_en; 
               pusch_cfg.sequence_hopping_en = sequence_hopping_en;
-              srslte_chest_ul_set_cfg(&est, &pusch_cfg, NULL, NULL);
-              
+              srslte_chest_ul_pregen(&est, &pusch_cfg);
+
               // Loop through subframe idx and cyclic shifts
               
               for (int sf_idx=0;sf_idx<10;sf_idx+=3) {
@@ -195,11 +197,25 @@ int main(int argc, char **argv) {
                       input[i*cell.nof_prb * SRSLTE_NRE+j] *= h[i*cell.nof_prb * SRSLTE_NRE+j];            
                     }
                   }
-                  
+
+                  // Configure estimator
+                  srslte_chest_ul_res_t res;
+                  srslte_pusch_cfg_t    cfg;
+
+                  ZERO_OBJECT(cfg);
+                  res.ce                   = ce;
+                  cfg.grant.L_prb          = n;
+                  cfg.grant.n_prb_tilde[0] = 0;
+                  cfg.grant.n_prb_tilde[1] = 0;
+                  cfg.grant.n_dmrs         = cshift_dmrs;
+
+                  srslte_ul_sf_cfg_t ul_sf;
+                  ZERO_OBJECT(ul_sf);
+                  ul_sf.tti = sf_idx;
+
                   // Estimate channel
-                  uint32_t prb_idx[2]= {0, 0}; 
-                  srslte_chest_ul_estimate(&est, input, ce, n, sf_idx, cshift_dmrs, prb_idx);          
-                  
+                  srslte_chest_ul_estimate_pusch(&est, &ul_sf, &cfg, input, &res);
+
                   // Compute MSE 
                   float mse = 0;
                   for (i=0;i<num_re;i++) {

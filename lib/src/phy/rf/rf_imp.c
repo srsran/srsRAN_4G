@@ -128,7 +128,7 @@ int srslte_rf_open_devname(srslte_rf_t *rf, char *devname, char *args, uint32_t 
     }
     i++;
   }
-  fprintf(stderr, "No compatible RF frontend found\n");
+  ERROR("No compatible RF frontend found\n");
   return -1; 
 }
 
@@ -235,10 +235,9 @@ srslte_rf_info_t *srslte_rf_get_info(srslte_rf_t *rf) {
   return ret;
 }
 
-
-double srslte_rf_set_rx_freq(srslte_rf_t *rf, double freq)
+double srslte_rf_set_rx_freq(srslte_rf_t* rf, uint32_t ch, double freq)
 {
-  return ((rf_dev_t*) rf->dev)->srslte_rf_set_rx_freq(rf->handler, freq);  
+  return ((rf_dev_t*)rf->dev)->srslte_rf_set_rx_freq(rf->handler, ch, freq);
 }
 
 
@@ -282,9 +281,9 @@ double srslte_rf_set_tx_srate(srslte_rf_t *rf, double freq)
   return ((rf_dev_t*) rf->dev)->srslte_rf_set_tx_srate(rf->handler, freq);  
 }
 
-double srslte_rf_set_tx_freq(srslte_rf_t *rf, double freq)
+double srslte_rf_set_tx_freq(srslte_rf_t* rf, uint32_t ch, double freq)
 {
-  return ((rf_dev_t*) rf->dev)->srslte_rf_set_tx_freq(rf->handler, freq);  
+  return ((rf_dev_t*)rf->dev)->srslte_rf_set_tx_freq(rf->handler, ch, freq);
 }
 
 void srslte_rf_get_time(srslte_rf_t *rf, time_t *secs, double *frac_secs) 
@@ -292,7 +291,19 @@ void srslte_rf_get_time(srslte_rf_t *rf, time_t *secs, double *frac_secs)
   return ((rf_dev_t*) rf->dev)->srslte_rf_get_time(rf->handler, secs, frac_secs);  
 }
 
-                   
+int srslte_rf_sync(srslte_rf_t* rf)
+{
+  int ret = SRSLTE_ERROR;
+
+  if (((rf_dev_t*)rf->dev)->srslte_rf_sync_pps) {
+    ((rf_dev_t*)rf->dev)->srslte_rf_sync_pps(rf->handler);
+
+    ret = SRSLTE_SUCCESS;
+  }
+
+  return ret;
+}
+
 int srslte_rf_send_timed3(srslte_rf_t *rf,
                      void *data,
                      int nsamples,

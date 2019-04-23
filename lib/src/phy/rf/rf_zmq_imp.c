@@ -695,7 +695,7 @@ srslte_rf_info_t* rf_zmq_get_info(void* h)
   return info;
 }
 
-double rf_zmq_set_rx_freq(void* h, double freq)
+double rf_zmq_set_rx_freq(void* h, uint32_t ch, double freq)
 {
   double ret = NAN;
   if (h) {
@@ -706,7 +706,7 @@ double rf_zmq_set_rx_freq(void* h, double freq)
   return ret;
 }
 
-double rf_zmq_set_tx_freq(void* h, double freq)
+double rf_zmq_set_tx_freq(void* h, uint32_t ch, double freq)
 {
   double ret = NAN;
   if (h) {

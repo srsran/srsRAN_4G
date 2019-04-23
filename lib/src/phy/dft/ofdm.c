@@ -24,12 +24,12 @@
  *
  */
 
-#include <string.h>
-#include <strings.h>
-#include <stdlib.h>
+#include "srslte/srslte.h"
 #include <complex.h>
 #include <math.h>
-#include <srslte/srslte.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
 
 #include "srslte/phy/common/phy_common.h"
 #include "srslte/phy/dft/dft.h"
@@ -60,7 +60,7 @@ int srslte_ofdm_init_mbsfn_(srslte_ofdm_t *q, srslte_cp_t cp, cf_t *in_buffer, c
   q->out_buffer= out_buffer;
 
   if (srslte_dft_plan_c(&q->fft_plan, symbol_sz, dir)) {
-    fprintf(stderr, "Error: Creating DFT plan\n");
+    ERROR("Error: Creating DFT plan\n");
     return -1;
   }
 
@@ -96,7 +96,7 @@ int srslte_ofdm_init_mbsfn_(srslte_ofdm_t *q, srslte_cp_t cp, cf_t *in_buffer, c
                                  in_buffer + cp1 + q->slot_sz * slot,
                                  q->tmp + q->nof_symbols * q->symbol_sz * slot,
                                  1, 1, SRSLTE_CP_NSYMB(cp), symbol_sz + cp2, symbol_sz)) {
-        fprintf(stderr, "Error: Creating DFT plan (1)\n");
+        ERROR("Error: Creating DFT plan (1)\n");
         return -1;
       }
     } else {
@@ -104,7 +104,7 @@ int srslte_ofdm_init_mbsfn_(srslte_ofdm_t *q, srslte_cp_t cp, cf_t *in_buffer, c
                                  q->tmp + q->nof_symbols * q->symbol_sz * slot,
                                  out_buffer + cp1 + q->slot_sz * slot,
                                  1, 1, SRSLTE_CP_NSYMB(cp), symbol_sz, symbol_sz + cp2)) {
-        fprintf(stderr, "Error: Creating DFT plan (1)\n");
+        ERROR("Error: Creating DFT plan (1)\n");
         return -1;
       }
     }
@@ -143,7 +143,7 @@ void srslte_ofdm_set_non_mbsfn_region(srslte_ofdm_t *q, uint8_t non_mbsfn_region
 int srslte_ofdm_replan_(srslte_ofdm_t *q, srslte_cp_t cp, int symbol_sz, int nof_prb) {
 
   if (srslte_dft_replan_c(&q->fft_plan, symbol_sz)) {
-    fprintf(stderr, "Error: Creating DFT plan\n");
+    ERROR("Error: Creating DFT plan\n");
     return -1;
   }
 
@@ -190,7 +190,7 @@ int srslte_ofdm_replan_(srslte_ofdm_t *q, srslte_cp_t cp, int symbol_sz, int nof
                                  in_buffer + cp1 + q->slot_sz * slot,
                                  q->tmp + q->nof_symbols * q->symbol_sz * slot,
                                  1, 1, SRSLTE_CP_NSYMB(cp), symbol_sz + cp2, symbol_sz)) {
-        fprintf(stderr, "Error: Creating DFT plan (1)\n");
+        ERROR("Error: Creating DFT plan (1)\n");
         return -1;
       }
     } else {
@@ -198,7 +198,7 @@ int srslte_ofdm_replan_(srslte_ofdm_t *q, srslte_cp_t cp, int symbol_sz, int nof
                                  q->tmp + q->nof_symbols * q->symbol_sz * slot,
                                  out_buffer + cp1 + q->slot_sz * slot,
                                  1, 1, SRSLTE_CP_NSYMB(cp), symbol_sz, symbol_sz + cp2)) {
-        fprintf(stderr, "Error: Creating DFT plan (1)\n");
+        ERROR("Error: Creating DFT plan (1)\n");
         return -1;
       }
     }
@@ -240,7 +240,7 @@ void srslte_ofdm_free_(srslte_ofdm_t *q) {
 int srslte_ofdm_rx_init(srslte_ofdm_t *q, srslte_cp_t cp, cf_t *in_buffer, cf_t *out_buffer, uint32_t max_prb) {
   int symbol_sz = srslte_symbol_sz(max_prb);
   if (symbol_sz < 0) {
-    fprintf(stderr, "Error: Invalid nof_prb=%d\n", max_prb);
+    ERROR("Error: Invalid nof_prb=%d\n", max_prb);
     return -1;
   }
   q->max_prb = max_prb;
@@ -251,7 +251,7 @@ int srslte_ofdm_rx_init_mbsfn(srslte_ofdm_t *q, srslte_cp_t cp, cf_t *in_buffer,
 {
   int symbol_sz = srslte_symbol_sz(max_prb);
   if (symbol_sz < 0) {
-    fprintf(stderr, "Error: Invalid nof_prb=%d\n", max_prb);
+    ERROR("Error: Invalid nof_prb=%d\n", max_prb);
     return -1;
   }
   q->max_prb = max_prb;
@@ -265,7 +265,7 @@ int srslte_ofdm_tx_init(srslte_ofdm_t *q, srslte_cp_t cp, cf_t *in_buffer, cf_t 
   
   int symbol_sz = srslte_symbol_sz(max_prb);
   if (symbol_sz < 0) {
-    fprintf(stderr, "Error: Invalid nof_prb=%d\n", max_prb);
+    ERROR("Error: Invalid nof_prb=%d\n", max_prb);
     return -1;
   }
   q->max_prb = max_prb;
@@ -290,8 +290,8 @@ int srslte_ofdm_tx_init_mbsfn(srslte_ofdm_t *q, srslte_cp_t cp, cf_t *in_buffer,
   int ret;
   
   int symbol_sz = srslte_symbol_sz(nof_prb);
-  if (symbol_sz < 0) { 
-    fprintf(stderr, "Error: Invalid nof_prb=%d\n", nof_prb);
+  if (symbol_sz < 0) {
+    ERROR("Error: Invalid nof_prb=%d\n", nof_prb);
     return -1;
   }
   q->max_prb = nof_prb;
@@ -313,13 +313,14 @@ int srslte_ofdm_rx_set_prb(srslte_ofdm_t *q, srslte_cp_t cp, uint32_t nof_prb) {
   if (nof_prb <= q->max_prb) {
     int symbol_sz = srslte_symbol_sz(nof_prb);
     if (symbol_sz < 0) {
-      fprintf(stderr, "Error: Invalid nof_prb=%d\n", nof_prb);
+      ERROR("Error: Invalid nof_prb=%d\n", nof_prb);
       return -1;
     }
     return srslte_ofdm_replan_(q, cp, symbol_sz, nof_prb);
   } else {
-    fprintf(stderr, "OFDM (Rx): Error calling set_prb: nof_prb (%d) must be equal or lower initialized max_prb (%d)\n",
-            nof_prb, q->max_prb);
+    ERROR("OFDM (Rx): Error calling set_prb: nof_prb (%d) must be equal or lower initialized max_prb (%d)\n",
+          nof_prb,
+          q->max_prb);
     return -1;
   }
 }
@@ -331,7 +332,7 @@ int srslte_ofdm_tx_set_prb(srslte_ofdm_t *q, srslte_cp_t cp, uint32_t nof_prb) {
   if (nof_prb <= q->max_prb) {
     int symbol_sz = srslte_symbol_sz(nof_prb);
     if (symbol_sz < 0) {
-      fprintf(stderr, "Error: Invalid nof_prb=%d\n", nof_prb);
+      ERROR("Error: Invalid nof_prb=%d\n", nof_prb);
       return -1;
     }
 
@@ -346,8 +347,9 @@ int srslte_ofdm_tx_set_prb(srslte_ofdm_t *q, srslte_cp_t cp, uint32_t nof_prb) {
     }
     return ret;
   } else {
-    fprintf(stderr, "OFDM (Tx): Error calling set_prb: nof_prb (%d) must be equal or lower initialized max_prb (%d)\n",
-            nof_prb, q->max_prb);
+    ERROR("OFDM (Tx): Error calling set_prb: nof_prb (%d) must be equal or lower initialized max_prb (%d)\n",
+          nof_prb,
+          q->max_prb);
     return -1;
   }
 }
@@ -550,7 +552,7 @@ void srslte_ofdm_tx_slot(srslte_ofdm_t *q, int slot_in_sf) {
   for (int i = 0; i < q->slot_sz; i++) {
     float error = cabsf(output1[i] - output2[i])/cabsf(output2[i]);
     cf_t k = output1[i]/output2[i];
-    if (error > 0.1) printf("%d/%05d error=%f output=%+f%+fi gold=%+f%+fi k=%+f%+fi\n", slot_in_sf, i, error,
+    if (error > 0.1) printf("%d/%05d error=%f output=%+f%+fi gold=%+f%+fi k=%+f%+fi\n", slot_in_sf, i, ERROR(
                             __real__ output1[i], __imag__ output1[i],
                             __real__ output2[i], __imag__ output2[i],
                             __real__ k, __imag__ k);

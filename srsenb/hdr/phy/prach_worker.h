@@ -68,11 +68,22 @@ private:
   const static int sf_buffer_sz = 128*1024;
   class sf_buffer {
   public:
-    sf_buffer() { nof_samples = 0; tti = 0; bzero(samples, sizeof(samples)); }
-    void reset() { nof_samples = 0; tti = 0; }
-    cf_t samples[sf_buffer_sz];
+    sf_buffer()
+    {
+      nof_samples = 0;
+      tti         = 0;
+    }
+    void reset()
+    {
+      nof_samples = 0;
+      tti         = 0;
+    }
+    cf_t     samples[sf_buffer_sz];
     uint32_t nof_samples;
     uint32_t tti;
+#ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
+    char debug_name[SRSLTE_BUFFER_POOL_LOG_NAME_LEN];
+#endif /* SRSLTE_BUFFER_POOL_LOG_ENABLED */
   };
   srslte::buffer_pool<sf_buffer>  buffer_pool;
   srslte::block_queue<sf_buffer*> pending_buffers;

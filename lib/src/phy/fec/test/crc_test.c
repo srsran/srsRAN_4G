@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
   // check if generated word is as expected
   if (get_expected_word(num_bits, crc_length, crc_poly, seed,
       &expected_word)) {
-    fprintf(stderr, "Test parameters not defined in test_results.h\n");
+    ERROR("Test parameters not defined in test_results.h\n");
     exit(-1);
   }
   exit(expected_word != crc_word);

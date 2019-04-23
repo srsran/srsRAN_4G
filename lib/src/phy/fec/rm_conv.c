@@ -29,6 +29,7 @@
 #include <stdint.h>
 
 #include "srslte/phy/fec/rm_conv.h"
+#include "srslte/phy/utils/debug.h"
 
 #define NCOLS 32
 #define NROWS_MAX NCOLS
@@ -54,8 +55,7 @@ int srslte_rm_conv_tx(uint8_t *input, uint32_t in_len, uint8_t *output, uint32_t
 
   nrows = (uint32_t) (in_len / 3 - 1) / NCOLS + 1;
   if (nrows > NROWS_MAX) {
-    fprintf(stderr, "Input too large. Max input length is %d\n",
-        3 * NCOLS * NROWS_MAX);
+    ERROR("Input too large. Max input length is %d\n", 3 * NCOLS * NROWS_MAX);
     return -1;
   }
   K_p = nrows * NCOLS;
@@ -106,8 +106,7 @@ int srslte_rm_conv_rx(float *input, uint32_t in_len, float *output, uint32_t out
   
   nrows = (uint32_t) (out_len / 3 - 1) / NCOLS + 1;
   if (nrows > NROWS_MAX) {
-    fprintf(stderr, "Output too large. Max output length is %d\n",
-        3 * NCOLS * NROWS_MAX);
+    ERROR("Output too large. Max output length is %d\n", 3 * NCOLS * NROWS_MAX);
     return -1;
   }
   K_p = nrows * NCOLS;
@@ -173,8 +172,7 @@ int srslte_rm_conv_rx_s(int16_t *input, uint32_t in_len, int16_t *output, uint32
   
   nrows = (uint32_t) (out_len / 3 - 1) / NCOLS + 1;
   if (nrows > NROWS_MAX) {
-    fprintf(stderr, "Output too large. Max output length is %d\n",
-        3 * NCOLS * NROWS_MAX);
+    ERROR("Output too large. Max output length is %d\n", 3 * NCOLS * NROWS_MAX);
     return -1;
   }
   K_p = nrows * NCOLS;

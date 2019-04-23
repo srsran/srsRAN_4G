@@ -285,7 +285,7 @@ int main(int argc, char **argv) {
   if (snr_points == 1) {
     int expected_errors = get_expected_errors(nof_frames, seed, frame_length, tail_biting, ebno_db);
     if (expected_errors == -1) {
-      fprintf(stderr, "Test parameters not defined in test_results.h\n");
+      ERROR("Test parameters not defined in test_results.h\n");
       exit(-1);
     } else {
       printf("errors =%d, expected =%d\n", errors, expected_errors);

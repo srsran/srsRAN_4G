@@ -48,10 +48,11 @@ typedef struct {
   double (*srslte_rf_get_rx_gain)(void *h);
   double (*srslte_rf_get_tx_gain)(void *h);
   srslte_rf_info_t *(*srslte_rf_get_info)(void *h);
-  double (*srslte_rf_set_rx_freq)(void *h, double freq);  
+  double (*srslte_rf_set_rx_freq)(void* h, uint32_t ch, double freq);
   double (*srslte_rf_set_tx_srate)(void *h, double freq);
-  double (*srslte_rf_set_tx_freq)(void *h, double freq);
-  void   (*srslte_rf_get_time)(void *h, time_t *secs, double *frac_secs);  
+  double (*srslte_rf_set_tx_freq)(void* h, uint32_t ch, double freq);
+  void (*srslte_rf_get_time)(void* h, time_t* secs, double* frac_secs);
+  void (*srslte_rf_sync_pps)(void* h);
   int    (*srslte_rf_recv_with_time)(void *h, void *data, uint32_t nsamples, 
                            bool blocking, time_t *secs,double *frac_secs);
   int    (*srslte_rf_recv_with_time_multi)(void *h, void **data, uint32_t nsamples, 
@@ -69,37 +70,36 @@ typedef struct {
 
 #include "rf_uhd_imp.h"
 
-static rf_dev_t dev_uhd = {
-  "UHD", 
-  rf_uhd_devname,
-  rf_uhd_rx_wait_lo_locked,
-  rf_uhd_start_rx_stream,
-  rf_uhd_stop_rx_stream,
-  rf_uhd_flush_buffer,
-  rf_uhd_has_rssi,
-  rf_uhd_get_rssi,
-  rf_uhd_suppress_stdout,
-  rf_uhd_register_error_handler,
-  rf_uhd_open,
-  .srslte_rf_open_multi = rf_uhd_open_multi,
-  rf_uhd_close,
-  rf_uhd_set_master_clock_rate,
-  rf_uhd_is_master_clock_dynamic,
-  rf_uhd_set_rx_srate,
-  rf_uhd_set_rx_gain,
-  rf_uhd_set_tx_gain,
-  rf_uhd_get_rx_gain,
-  rf_uhd_get_tx_gain,
-  rf_uhd_get_info,
-  rf_uhd_set_rx_freq, 
-  rf_uhd_set_tx_srate,
-  rf_uhd_set_tx_freq,
-  rf_uhd_get_time,  
-  rf_uhd_recv_with_time,
-  rf_uhd_recv_with_time_multi,
-  rf_uhd_send_timed,
-  .srslte_rf_send_timed_multi = rf_uhd_send_timed_multi
-};
+static rf_dev_t dev_uhd = {"UHD",
+                           rf_uhd_devname,
+                           rf_uhd_rx_wait_lo_locked,
+                           rf_uhd_start_rx_stream,
+                           rf_uhd_stop_rx_stream,
+                           rf_uhd_flush_buffer,
+                           rf_uhd_has_rssi,
+                           rf_uhd_get_rssi,
+                           rf_uhd_suppress_stdout,
+                           rf_uhd_register_error_handler,
+                           rf_uhd_open,
+                           .srslte_rf_open_multi = rf_uhd_open_multi,
+                           rf_uhd_close,
+                           rf_uhd_set_master_clock_rate,
+                           rf_uhd_is_master_clock_dynamic,
+                           rf_uhd_set_rx_srate,
+                           rf_uhd_set_rx_gain,
+                           rf_uhd_set_tx_gain,
+                           rf_uhd_get_rx_gain,
+                           rf_uhd_get_tx_gain,
+                           rf_uhd_get_info,
+                           rf_uhd_set_rx_freq,
+                           rf_uhd_set_tx_srate,
+                           rf_uhd_set_tx_freq,
+                           rf_uhd_get_time,
+                           rf_uhd_sync_pps,
+                           rf_uhd_recv_with_time,
+                           rf_uhd_recv_with_time_multi,
+                           rf_uhd_send_timed,
+                           .srslte_rf_send_timed_multi = rf_uhd_send_timed_multi};
 #endif
 
 /* Define implementation for bladeRF */
@@ -107,74 +107,72 @@ static rf_dev_t dev_uhd = {
 
 #include "rf_blade_imp.h"
 
-static rf_dev_t dev_blade = {
-  "bladeRF", 
-  rf_blade_devname,
-  rf_blade_rx_wait_lo_locked,
-  rf_blade_start_rx_stream,
-  rf_blade_stop_rx_stream,
-  rf_blade_flush_buffer,
-  rf_blade_has_rssi,
-  rf_blade_get_rssi,
-  rf_blade_suppress_stdout,
-  rf_blade_register_error_handler,
-  rf_blade_open,
-  .srslte_rf_open_multi = rf_blade_open_multi,
-  rf_blade_close,
-  rf_blade_set_master_clock_rate,
-  rf_blade_is_master_clock_dynamic,
-  rf_blade_set_rx_srate,
-  rf_blade_set_rx_gain,
-  rf_blade_set_tx_gain,
-  rf_blade_get_rx_gain,
-  rf_blade_get_tx_gain,
-  rf_blade_get_info,
-  rf_blade_set_rx_freq, 
-  rf_blade_set_tx_srate,
-  rf_blade_set_tx_freq,
-  rf_blade_get_time,  
-  rf_blade_recv_with_time,
-  rf_blade_recv_with_time_multi,
-  rf_blade_send_timed,
-  .srslte_rf_send_timed_multi = rf_blade_send_timed_multi
-};
+static rf_dev_t dev_blade = {"bladeRF",
+                             rf_blade_devname,
+                             rf_blade_rx_wait_lo_locked,
+                             rf_blade_start_rx_stream,
+                             rf_blade_stop_rx_stream,
+                             rf_blade_flush_buffer,
+                             rf_blade_has_rssi,
+                             rf_blade_get_rssi,
+                             rf_blade_suppress_stdout,
+                             rf_blade_register_error_handler,
+                             rf_blade_open,
+                             .srslte_rf_open_multi = rf_blade_open_multi,
+                             rf_blade_close,
+                             rf_blade_set_master_clock_rate,
+                             rf_blade_is_master_clock_dynamic,
+                             rf_blade_set_rx_srate,
+                             rf_blade_set_rx_gain,
+                             rf_blade_set_tx_gain,
+                             rf_blade_get_rx_gain,
+                             rf_blade_get_tx_gain,
+                             rf_blade_get_info,
+                             rf_blade_set_rx_freq,
+                             rf_blade_set_tx_srate,
+                             rf_blade_set_tx_freq,
+                             rf_blade_get_time,
+                             NULL,
+                             rf_blade_recv_with_time,
+                             rf_blade_recv_with_time_multi,
+                             rf_blade_send_timed,
+                             .srslte_rf_send_timed_multi = rf_blade_send_timed_multi};
 #endif
 
 #ifdef ENABLE_SOAPYSDR
 
 #include "rf_soapy_imp.h"
 
-static rf_dev_t dev_soapy = {
-  "soapy",
-  rf_soapy_devname,
-  rf_soapy_rx_wait_lo_locked,
-  rf_soapy_start_rx_stream,
-  rf_soapy_stop_rx_stream,
-  rf_soapy_flush_buffer,
-  rf_soapy_has_rssi,
-  rf_soapy_get_rssi,
-  rf_soapy_suppress_stdout,
-  rf_soapy_register_error_handler,
-  rf_soapy_open,
-  rf_soapy_open_multi,
-  rf_soapy_close,
-  rf_soapy_set_master_clock_rate,
-  rf_soapy_is_master_clock_dynamic,
-  rf_soapy_set_rx_srate,
-  rf_soapy_set_rx_gain,
-  rf_soapy_set_tx_gain,
-  rf_soapy_get_rx_gain,
-  rf_soapy_get_tx_gain,
-  rf_soapy_get_info,
-  rf_soapy_set_rx_freq,
-  rf_soapy_set_tx_srate,
-  rf_soapy_set_tx_freq,
-  rf_soapy_get_time,
-  rf_soapy_recv_with_time,
-  rf_soapy_recv_with_time_multi,
-  rf_soapy_send_timed,
-  .srslte_rf_send_timed_multi = rf_soapy_send_timed_multi
-};
+static rf_dev_t dev_soapy = {"soapy",
+                             rf_soapy_devname,
+                             rf_soapy_rx_wait_lo_locked,
+                             rf_soapy_start_rx_stream,
+                             rf_soapy_stop_rx_stream,
+                             rf_soapy_flush_buffer,
+                             rf_soapy_has_rssi,
+                             rf_soapy_get_rssi,
+                             rf_soapy_suppress_stdout,
+                             rf_soapy_register_error_handler,
+                             rf_soapy_open,
+                             rf_soapy_open_multi,
+                             rf_soapy_close,
+                             rf_soapy_set_master_clock_rate,
+                             rf_soapy_is_master_clock_dynamic,
+                             rf_soapy_set_rx_srate,
+                             rf_soapy_set_rx_gain,
+                             rf_soapy_set_tx_gain,
+                             rf_soapy_get_rx_gain,
+                             rf_soapy_get_tx_gain,
+                             rf_soapy_get_info,
+                             rf_soapy_set_rx_freq,
+                             rf_soapy_set_tx_srate,
+                             rf_soapy_set_tx_freq,
+                             rf_soapy_get_time,
+                             NULL,
+                             rf_soapy_recv_with_time,
+                             rf_soapy_recv_with_time_multi,
+                             rf_soapy_send_timed,
+                             .srslte_rf_send_timed_multi = rf_soapy_send_timed_multi};
 
 #endif
 
@@ -208,6 +206,7 @@ static rf_dev_t dev_zmq = {"zmq",
                            rf_zmq_set_tx_srate,
                            rf_zmq_set_tx_freq,
                            rf_zmq_get_time,
+                           NULL,
                            rf_zmq_recv_with_time,
                            rf_zmq_recv_with_time_multi,
                            rf_zmq_send_timed,

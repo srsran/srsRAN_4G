@@ -41,13 +41,14 @@ namespace srsue {
 class phr_proc : public srslte::timer_callback
 {
 public:
-  phr_proc();  
-  void init(phy_interface_mac* phy_h, srslte::log* log_h_, mac_interface_rrc::mac_cfg_t *mac_cfg, srslte::timers *timers_db_);
-  
+  phr_proc();
+  void init(phy_interface_mac* phy_h, srslte::log* log_h_, srslte::timers* timers_db_);
+  void set_config(mac_interface_rrc::phr_cfg_t& cfg);
   void step(uint32_t tti);
   void reset();
   
   bool generate_phr_on_ul_grant(float *phr);
+  bool is_extended();
   void timer_expired(uint32_t timer_id);
 
   void start_timer();
@@ -57,13 +58,10 @@ private:
   bool pathloss_changed(); 
   
   srslte::log* log_h;
-  mac_interface_rrc::mac_cfg_t *mac_cfg; 
-  phy_interface_mac* phy_h; 
+  phy_interface_mac*           phy_h;
   srslte::timers* timers_db;
+  mac_interface_rrc::phr_cfg_t phr_cfg;
   bool initiated;
-  int timer_prohibit_value;
-  int timer_periodic_value;
-  int dl_pathloss_change; 
   int last_pathloss_db;
   bool phr_is_triggered;
 

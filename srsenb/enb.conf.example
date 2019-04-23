@@ -162,7 +162,7 @@ nof_ctrl_symbols = 3
 [expert]
 #pusch_max_its        = 8 # These are half iterations
 #pusch_8bit_decoder   = false
-#nof_phy_threads      = 2
+#nof_phy_threads      = 3
 #metrics_period_secs  = 1
 #metrics_csv_enable   = false
 #metrics_csv_filename = /tmp/enb_metrics.csv

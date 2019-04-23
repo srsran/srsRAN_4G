@@ -47,9 +47,13 @@ float snr_db = 100.0f;
 float scaling = 0.1f;
 
 void usage(char *prog) {
-  printf(
-      "Usage: %s -m [single|diversity|multiplex|cdd] -l [nof_layers] -p [nof_tx_ports]\n"
-          " -r [nof_rx_ports] -g [scaling]\n", prog);
+  printf("Usage: %s -m [%s|%s|%s|%s] -l [nof_layers] -p [nof_tx_ports]\n"
+         " -r [nof_rx_ports] -g [scaling]\n",
+         prog,
+         srslte_mimotype2str(0),
+         srslte_mimotype2str(1),
+         srslte_mimotype2str(2),
+         srslte_mimotype2str(3));
   printf("\t-n num_symbols [Default %d]\n", nof_symbols);
   printf("\t-c codebook_idx [Default %d]\n", codebook_idx);
   printf("\t-s SNR in dB [Default %.1fdB]*\n", snr_db);
@@ -134,20 +138,21 @@ void populate_channel_single(cf_t *h) {
   int i;
 
   for (i = 0; i < nof_re; i++) {
-    h[i] = (float) rand() / RAND_MAX + ((float) rand() / RAND_MAX) * _Complex_I;
+    h[i] = (float)rand() / RAND_MAX + ((float)rand() / RAND_MAX) * _Complex_I;
   }
 }
 
-void populate_channel(srslte_mimo_type_t type, cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS]) {
+void populate_channel(srslte_tx_scheme_t type, cf_t* h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS])
+{
   switch (type) {
-    case SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX:
-    case SRSLTE_MIMO_TYPE_CDD:
-      populate_channel_cdd(h, (uint32_t) nof_re);
+    case SRSLTE_TXSCHEME_SPATIALMUX:
+    case SRSLTE_TXSCHEME_CDD:
+      populate_channel_cdd(h, (uint32_t)nof_re);
       break;
-    case SRSLTE_MIMO_TYPE_TX_DIVERSITY:
+    case SRSLTE_TXSCHEME_DIVERSITY:
       populate_channel_diversity(h, (uint32_t) nof_re);
       break;
-    case SRSLTE_MIMO_TYPE_SINGLE_ANTENNA:
+    case SRSLTE_TXSCHEME_PORT0:
     default:
       populate_channel_single(h[0][0]);
   }
@@ -162,39 +167,40 @@ static void awgn(cf_t *y[SRSLTE_MAX_PORTS], uint32_t n, float snr) {
   }
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv)
+{
   int i, j, k, nof_errors = 0, ret = SRSLTE_SUCCESS;
   float mse;
   cf_t *x[SRSLTE_MAX_LAYERS], *r[SRSLTE_MAX_PORTS], *y[SRSLTE_MAX_PORTS], *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
       *xr[SRSLTE_MAX_LAYERS];
-  srslte_mimo_type_t type;
-  
+  srslte_tx_scheme_t type;
+
   parse_args(argc, argv);
 
   /* Check input ranges */
   if (nof_tx_ports > SRSLTE_MAX_PORTS || nof_rx_ports > SRSLTE_MAX_PORTS || nof_layers > SRSLTE_MAX_LAYERS) {
-    fprintf(stderr, "Invalid number of layers or ports\n");
+    ERROR("Invalid number of layers or ports\n");
     exit(-1);
   }
 
   /* Parse MIMO Type */
   if (srslte_str2mimotype(mimo_type_name, &type)) {
-    fprintf(stderr, "Invalid MIMO type %s\n", mimo_type_name);
+    ERROR("Invalid MIMO type %s\n", mimo_type_name);
     exit(-1);
   }
 
   /* Check scenario conditions are OK */
   switch (type) {
-    case SRSLTE_MIMO_TYPE_TX_DIVERSITY:
-      nof_re = nof_layers*nof_symbols;
+    case SRSLTE_TXSCHEME_DIVERSITY:
+      nof_re = nof_layers * nof_symbols;
       break;
-    case SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX:
+    case SRSLTE_TXSCHEME_SPATIALMUX:
       nof_re = nof_symbols;
       break;
-    case SRSLTE_MIMO_TYPE_CDD:
+    case SRSLTE_TXSCHEME_CDD:
       nof_re = nof_symbols*nof_tx_ports/nof_layers;
       if (nof_rx_ports != 2 || nof_tx_ports != 2) {
-        fprintf(stderr, "CDD nof_tx_ports=%d nof_rx_ports=%d is not currently supported\n", nof_tx_ports, nof_rx_ports);
+        ERROR("CDD nof_tx_ports=%d nof_rx_ports=%d is not currently supported\n", nof_tx_ports, nof_rx_ports);
         exit(-1);
       }
       break;
@@ -257,7 +263,7 @@ int main(int argc, char **argv) {
 
   /* Execute Precoding (Tx) */
   if (srslte_precoding_type(x, y, nof_layers, nof_tx_ports, codebook_idx, nof_symbols, scaling, type) < 0) {
-    fprintf(stderr, "Error layer mapper encoder\n");
+    ERROR("Error layer mapper encoder\n");
     exit(-1);
   }
 

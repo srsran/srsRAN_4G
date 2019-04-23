@@ -49,28 +49,17 @@
 #include "srslte/phy/dft/dft_precoding.h"
 #include "srslte/phy/ch_estimation/refsignal_ul.h"
 
-#define SRSLTE_PUSCH_MAX_TDEC_ITERS         5
-
 typedef struct {
-  enum {
-    SRSLTE_PUSCH_HOP_MODE_INTER_SF = 1,
-    SRSLTE_PUSCH_HOP_MODE_INTRA_SF = 0
-  } hop_mode; 
-  uint32_t hopping_offset;
-  uint32_t n_sb;
-} srslte_pusch_hopping_cfg_t;
-
-typedef struct {
-  srslte_sequence_t seq[SRSLTE_NSUBFRAMES_X_FRAME];
-  uint32_t cell_id;
-  bool sequence_generated;
+  srslte_sequence_t seq[SRSLTE_NOF_SF_X_FRAME];
+  uint32_t          cell_id;
+  bool              sequence_generated;
 } srslte_pusch_user_t;
 
 /* PUSCH object */
 typedef struct SRSLTE_API {
   srslte_cell_t cell;
 
-  bool is_ue;
+  bool     is_ue;
   uint16_t ue_rnti;
   uint32_t max_re;
 
@@ -89,17 +78,25 @@ typedef struct SRSLTE_API {
 
   /* tx & rx objects */
   srslte_modem_table_t mod[4];
-  srslte_sequence_t seq_type2_fo; 
-  
+  srslte_sch_t         ul_sch;
+
   // This is to generate the scrambling seq for multiple CRNTIs
   srslte_pusch_user_t **users;
   srslte_sequence_t tmp_seq;
 
-  srslte_sch_t ul_sch;
-  bool shortened;
-  
-}srslte_pusch_t;
+} srslte_pusch_t;
 
+typedef struct SRSLTE_API {
+  uint8_t*           ptr;
+  srslte_uci_value_t uci;
+} srslte_pusch_data_t;
+
+typedef struct SRSLTE_API {
+  uint8_t*           data;
+  srslte_uci_value_t uci;
+  bool               crc;
+  float              avg_iterations_block;
+} srslte_pusch_res_t;
 
 SRSLTE_API int srslte_pusch_init_ue(srslte_pusch_t *q,
                                     uint32_t max_prb);
@@ -109,46 +106,40 @@ SRSLTE_API int srslte_pusch_init_enb(srslte_pusch_t *q,
 
 SRSLTE_API void srslte_pusch_free(srslte_pusch_t *q);
 
+/* These functions modify the state of the object and may take some time */
 SRSLTE_API int srslte_pusch_set_cell(srslte_pusch_t *q,
                                      srslte_cell_t cell);
 
-SRSLTE_API int srslte_pusch_cfg(srslte_pusch_t             *q,
-                                srslte_pusch_cfg_t         *cfg, 
-                                srslte_ra_ul_grant_t       *grant, 
-                                srslte_uci_cfg_t           *uci_cfg, 
-                                srslte_pusch_hopping_cfg_t *hopping_cfg, 
-                                srslte_refsignal_srs_cfg_t *srs_cfg, 
-                                uint32_t tti, 
-                                uint32_t rv_idx, 
-                                uint32_t current_tx_nb); 
-
-SRSLTE_API int srslte_pusch_set_rnti(srslte_pusch_t *q, 
-                                     uint16_t rnti);
+SRSLTE_API int srslte_pusch_set_rnti(srslte_pusch_t* q, uint16_t rnti);
 
 SRSLTE_API void srslte_pusch_free_rnti(srslte_pusch_t *q,
                                        uint16_t rnti);
 
-SRSLTE_API int srslte_pusch_encode(srslte_pusch_t *q, 
-                                   srslte_pusch_cfg_t *cfg,
-                                   srslte_softbuffer_tx_t *softbuffer,
-                                   uint8_t *data, 
-                                       srslte_uci_data_t uci_data, 
-                                   uint16_t rnti, 
-                                   cf_t *sf_symbols); 
+/* These functions do not modify the state and run in real-time */
+SRSLTE_API int srslte_pusch_encode(srslte_pusch_t* q,
+                                   srslte_ul_sf_cfg_t* sf,
+                                   srslte_pusch_cfg_t* cfg,
+                                   srslte_pusch_data_t* data,
+                                   cf_t* sf_symbols);
 
-SRSLTE_API int srslte_pusch_decode(srslte_pusch_t *q, 
-                                   srslte_pusch_cfg_t *cfg,
-                                   srslte_softbuffer_rx_t *softbuffer,
-                                   cf_t *sf_symbols, 
-                                   cf_t *ce,
-                                   float noise_estimate, 
-                                   uint16_t rnti,
-                                   uint8_t *data, 
-                                   srslte_cqi_value_t *cqi_value,
-                                   srslte_uci_data_t *uci_data);
+SRSLTE_API int srslte_pusch_decode(srslte_pusch_t*        q,
+                                   srslte_ul_sf_cfg_t*    sf,
+                                   srslte_pusch_cfg_t*    cfg,
+                                   srslte_chest_ul_res_t* channel,
+                                   cf_t*                  sf_symbols,
+                                   srslte_pusch_res_t*    data);
 
-SRSLTE_API float srslte_pusch_average_noi(srslte_pusch_t *q); 
+SRSLTE_API uint32_t srslte_pusch_grant_tx_info(srslte_pusch_grant_t* grant,
+                                               srslte_uci_cfg_t* uci_cfg,
+                                               srslte_uci_value_t* uci_data,
+                                               char* str,
+                                               uint32_t str_len);
 
-SRSLTE_API uint32_t srslte_pusch_last_noi(srslte_pusch_t *q); 
+SRSLTE_API uint32_t srslte_pusch_tx_info(srslte_pusch_cfg_t* cfg,
+                                         srslte_uci_value_t* uci_data,
+                                         char*               str,
+                                         uint32_t            str_len);
+
+SRSLTE_API uint32_t srslte_pusch_rx_info(srslte_pusch_cfg_t* cfg, srslte_pusch_res_t* res, char* str, uint32_t str_len);
 
 #endif // SRSLTE_PUSCH_H

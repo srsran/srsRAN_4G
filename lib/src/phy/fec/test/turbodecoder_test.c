@@ -193,7 +193,7 @@ int main(int argc, char **argv) {
   }
 
   if (srslte_tcod_init(&tcod, frame_length)) {
-    fprintf(stderr, "Error initiating Turbo coder\n");
+    ERROR("Error initiating Turbo coder\n");
     exit(-1);
   }
 
@@ -203,7 +203,7 @@ int main(int argc, char **argv) {
  // tdec_type = SRSLTE_TDEC_SSE_WINDOW;
 #endif
   if (srslte_tdec_init_manual(&tdec, frame_length, tdec_type)) {
-    fprintf(stderr, "Error initiating Turbo decoder\n");
+    ERROR("Error initiating Turbo decoder\n");
     exit(-1);
   }
   

@@ -24,14 +24,15 @@
  *
  */
 
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
-#include <strings.h>
-#include <stdlib.h>
-#include <stdbool.h>
+#include "srslte/srslte.h"
 #include <assert.h>
 #include <math.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
 
 #include "srslte/phy/phch/cqi.h"
 #include "srslte/phy/common/phy_common.h"
@@ -42,30 +43,30 @@
 /*******************************************************
  *            PACKING FUNCTIONS                        *
  *******************************************************/
-int srslte_cqi_hl_subband_pack(srslte_cqi_hl_subband_t *msg, uint8_t buff[SRSLTE_CQI_MAX_BITS]) 
+static int cqi_hl_subband_pack(srslte_cqi_cfg_t* cfg, srslte_cqi_hl_subband_t* msg, uint8_t* buff)
 {
   uint8_t *body_ptr = buff;
   uint32_t bit_count = 0;
 
   /* Unpack codeword 0, common for 3GPP 36.212 Tables 5.2.2.6.2-1 and 5.2.2.6.2-2 */
   srslte_bit_unpack(msg->wideband_cqi_cw0, &body_ptr, 4);
-  srslte_bit_unpack(msg->subband_diff_cqi_cw0, &body_ptr, 2*msg->N);
-  bit_count += 4+2*msg->N;
+  srslte_bit_unpack(msg->subband_diff_cqi_cw0, &body_ptr, 2 * cfg->N);
+  bit_count += 4 + 2 * cfg->N;
 
   /* Unpack codeword 1, 3GPP 36.212 Table 5.2.2.6.2-2 */
-  if (msg->rank_is_not_one) {
+  if (cfg->rank_is_not_one) {
     srslte_bit_unpack(msg->wideband_cqi_cw1, &body_ptr, 4);
-    srslte_bit_unpack(msg->subband_diff_cqi_cw1, &body_ptr, 2*msg->N);
-    bit_count += 4+2*msg->N;
+    srslte_bit_unpack(msg->subband_diff_cqi_cw1, &body_ptr, 2 * cfg->N);
+    bit_count += 4 + 2 * cfg->N;
   }
 
   /* If PMI is present, unpack it */
-  if (msg->pmi_present) {
-    if (msg->four_antenna_ports) {
+  if (cfg->pmi_present) {
+    if (cfg->four_antenna_ports) {
       srslte_bit_unpack(msg->pmi, &body_ptr, 4);
       bit_count += 4;
     } else {
-      if (msg->rank_is_not_one) {
+      if (cfg->rank_is_not_one) {
         srslte_bit_unpack(msg->pmi, &body_ptr, 1);
         bit_count += 1;
       } else {
@@ -78,31 +79,31 @@ int srslte_cqi_hl_subband_pack(srslte_cqi_hl_subband_t *msg, uint8_t buff[SRSLTE
   return bit_count;
 }
 
-int srslte_cqi_ue_subband_pack(srslte_cqi_ue_subband_t *msg, uint8_t buff[SRSLTE_CQI_MAX_BITS])
+static int cqi_ue_subband_pack(srslte_cqi_cfg_t* cfg, srslte_cqi_ue_subband_t* msg, uint8_t* buff)
 {
-  uint8_t *body_ptr = buff; 
+  uint8_t* body_ptr = buff;
   srslte_bit_unpack(msg->wideband_cqi, &body_ptr, 4);
-  srslte_bit_unpack(msg->subband_diff_cqi, &body_ptr, 2);  
-  srslte_bit_unpack(msg->subband_diff_cqi, &body_ptr, msg->L);  
-  
-  return 4+2+msg->L;
+  srslte_bit_unpack(msg->subband_diff_cqi, &body_ptr, 2);
+  srslte_bit_unpack(msg->subband_diff_cqi, &body_ptr, cfg->L);
+
+  return 4 + 2 + cfg->L;
 }
 
 /* Pack CQI following 3GPP TS 36.212 Tables 5.2.3.3.1-1 and 5.2.3.3.1-2 */
-int srslte_cqi_format2_wideband_pack(srslte_cqi_format2_wideband_t *msg, uint8_t buff[SRSLTE_CQI_MAX_BITS])
+static int cqi_format2_wideband_pack(srslte_cqi_cfg_t* cfg, srslte_cqi_format2_wideband_t* msg, uint8_t* buff)
 {
   uint8_t *body_ptr = buff;
 
   srslte_bit_unpack(msg->wideband_cqi, &body_ptr, 4);
 
-  if (msg->pmi_present) {
-    if (msg->four_antenna_ports) {
-      if (msg->rank_is_not_one) {
+  if (cfg->pmi_present) {
+    if (cfg->four_antenna_ports) {
+      if (cfg->rank_is_not_one) {
         srslte_bit_unpack(msg->spatial_diff_cqi, &body_ptr, 3);
       }
       srslte_bit_unpack(msg->pmi, &body_ptr, 4);
     } else {
-      if (msg->rank_is_not_one) {
+      if (cfg->rank_is_not_one) {
         srslte_bit_unpack(msg->spatial_diff_cqi, &body_ptr, 3);
         srslte_bit_unpack(msg->pmi, &body_ptr, 1);
       } else {
@@ -114,27 +115,27 @@ int srslte_cqi_format2_wideband_pack(srslte_cqi_format2_wideband_t *msg, uint8_t
   return (int)(body_ptr - buff);
 }
 
-int srslte_cqi_format2_subband_pack(srslte_cqi_format2_subband_t *msg, uint8_t buff[SRSLTE_CQI_MAX_BITS]) 
+static int cqi_format2_subband_pack(srslte_cqi_cfg_t* cfg, srslte_cqi_format2_subband_t* msg, uint8_t* buff)
 {
-  uint8_t *body_ptr = buff; 
-  srslte_bit_unpack(msg->subband_cqi, &body_ptr, 4);  
-  srslte_bit_unpack(msg->subband_label, &body_ptr, msg->subband_label_2_bits?2:1);  
-  return 4+(msg->subband_label_2_bits)?2:1;    
+  uint8_t* body_ptr = buff;
+  srslte_bit_unpack(msg->subband_cqi, &body_ptr, 4);
+  srslte_bit_unpack(msg->subband_label, &body_ptr, cfg->subband_label_2_bits ? 2 : 1);
+  return 4 + (cfg->subband_label_2_bits) ? 2 : 1;
 }
 
-int srslte_cqi_value_pack(srslte_cqi_value_t *value, uint8_t buff[SRSLTE_CQI_MAX_BITS])
+int srslte_cqi_value_pack(srslte_cqi_cfg_t* cfg, srslte_cqi_value_t* value, uint8_t buff[SRSLTE_CQI_MAX_BITS])
 {
-  switch(value->type) {
+  switch (cfg->type) {
     case SRSLTE_CQI_TYPE_WIDEBAND:
-      return srslte_cqi_format2_wideband_pack(&value->wideband, buff);
+      return cqi_format2_wideband_pack(cfg, &value->wideband, buff);
     case SRSLTE_CQI_TYPE_SUBBAND:
-      return srslte_cqi_format2_subband_pack(&value->subband, buff);
+      return cqi_format2_subband_pack(cfg, &value->subband, buff);
     case SRSLTE_CQI_TYPE_SUBBAND_UE:
-      return srslte_cqi_ue_subband_pack(&value->subband_ue, buff);
+      return cqi_ue_subband_pack(cfg, &value->subband_ue, buff);
     case SRSLTE_CQI_TYPE_SUBBAND_HL:
-      return srslte_cqi_hl_subband_pack(&value->subband_hl, buff);
+      return cqi_hl_subband_pack(cfg, &value->subband_hl, buff);
   }
-  return -1; 
+  return -1;
 }
 
 
@@ -142,29 +143,29 @@ int srslte_cqi_value_pack(srslte_cqi_value_t *value, uint8_t buff[SRSLTE_CQI_MAX
  *          UNPACKING FUNCTIONS                        *
  *******************************************************/
 
-int srslte_cqi_hl_subband_unpack(uint8_t buff[SRSLTE_CQI_MAX_BITS], srslte_cqi_hl_subband_t *msg) 
+int cqi_hl_subband_unpack(srslte_cqi_cfg_t* cfg, uint8_t* buff, srslte_cqi_hl_subband_t* msg)
 {
   uint8_t *body_ptr     = buff;
   uint32_t bit_count = 0;
 
   msg->wideband_cqi_cw0     = (uint8_t) srslte_bit_pack(&body_ptr, 4);
-  msg->subband_diff_cqi_cw0 = srslte_bit_pack(&body_ptr, 2*msg->N);
-  bit_count += 4+2*msg->N;
+  msg->subband_diff_cqi_cw0 = srslte_bit_pack(&body_ptr, 2 * cfg->N);
+  bit_count += 4 + 2 * cfg->N;
 
   /* Unpack codeword 1, 3GPP 36.212 Table 5.2.2.6.2-2 */
-  if (msg->rank_is_not_one) {
+  if (cfg->rank_is_not_one) {
     msg->wideband_cqi_cw1     = (uint8_t) srslte_bit_pack(&body_ptr, 4);
-    msg->subband_diff_cqi_cw1 = srslte_bit_pack(&body_ptr, 2*msg->N);
-    bit_count += 4+2*msg->N;
+    msg->subband_diff_cqi_cw1 = srslte_bit_pack(&body_ptr, 2 * cfg->N);
+    bit_count += 4 + 2 * cfg->N;
   }
 
   /* If PMI is present, unpack it */
-  if (msg->pmi_present) {
-    if (msg->four_antenna_ports) {
+  if (cfg->pmi_present) {
+    if (cfg->four_antenna_ports) {
       msg->pmi = (uint8_t) srslte_bit_pack(&body_ptr, 4);
       bit_count += 4;
     } else {
-      if (msg->rank_is_not_one) {
+      if (cfg->rank_is_not_one) {
         msg->pmi = (uint8_t) srslte_bit_pack(&body_ptr, 1);
         bit_count += 1;
       } else {
@@ -177,30 +178,30 @@ int srslte_cqi_hl_subband_unpack(uint8_t buff[SRSLTE_CQI_MAX_BITS], srslte_cqi_h
   return bit_count;
 }
 
-int srslte_cqi_ue_subband_unpack(uint8_t buff[SRSLTE_CQI_MAX_BITS], srslte_cqi_ue_subband_t *msg)
+int cqi_ue_subband_unpack(srslte_cqi_cfg_t* cfg, uint8_t* buff, srslte_cqi_ue_subband_t* msg)
 {
-  uint8_t *body_ptr     = buff; 
+  uint8_t* body_ptr     = buff;
   msg->wideband_cqi     = srslte_bit_pack(&body_ptr, 4);
-  msg->subband_diff_cqi = srslte_bit_pack(&body_ptr, 2);  
-  msg->subband_diff_cqi = srslte_bit_pack(&body_ptr, msg->L);  
-  
-  return 4+2+msg->L;
+  msg->subband_diff_cqi = srslte_bit_pack(&body_ptr, 2);
+  msg->subband_diff_cqi = srslte_bit_pack(&body_ptr, cfg->L);
+
+  return 4 + 2 + cfg->L;
 }
 
 /* Unpack CQI following 3GPP TS 36.212 Tables 5.2.3.3.1-1 and 5.2.3.3.1-2 */
-int srslte_cqi_format2_wideband_unpack(uint8_t buff[SRSLTE_CQI_MAX_BITS], srslte_cqi_format2_wideband_t *msg)
+static int cqi_format2_wideband_unpack(srslte_cqi_cfg_t* cfg, uint8_t* buff, srslte_cqi_format2_wideband_t* msg)
 {
-  uint8_t *body_ptr = buff; 
+  uint8_t* body_ptr = buff;
   msg->wideband_cqi = (uint8_t) srslte_bit_pack(&body_ptr, 4);
 
-  if (msg->pmi_present) {
-    if (msg->four_antenna_ports) {
-      if (msg->rank_is_not_one) {
+  if (cfg->pmi_present) {
+    if (cfg->four_antenna_ports) {
+      if (cfg->rank_is_not_one) {
         msg->spatial_diff_cqi = (uint8_t) srslte_bit_pack(&body_ptr, 3);
       }
       msg->pmi = (uint8_t) srslte_bit_pack(&body_ptr, 4);
     } else {
-      if (msg->rank_is_not_one) {
+      if (cfg->rank_is_not_one) {
         msg->spatial_diff_cqi = (uint8_t) srslte_bit_pack(&body_ptr, 3);
         msg->pmi = (uint8_t) srslte_bit_pack(&body_ptr, 1);
       } else {
@@ -208,43 +209,45 @@ int srslte_cqi_format2_wideband_unpack(uint8_t buff[SRSLTE_CQI_MAX_BITS], srslte
       }
     }
   }
-  return 4;  
+  return 4;
 }
 
-int srslte_cqi_format2_subband_unpack(uint8_t buff[SRSLTE_CQI_MAX_BITS], srslte_cqi_format2_subband_t *msg) 
+static int cqi_format2_subband_unpack(srslte_cqi_cfg_t* cfg, uint8_t* buff, srslte_cqi_format2_subband_t* msg)
 {
-  uint8_t *body_ptr  = buff; 
-  msg->subband_cqi   = srslte_bit_pack(&body_ptr, 4);  
-  msg->subband_label = srslte_bit_pack(&body_ptr, msg->subband_label_2_bits?2:1);  
-  return 4+(msg->subband_label_2_bits)?2:1;    
+  uint8_t* body_ptr  = buff;
+  msg->subband_cqi   = srslte_bit_pack(&body_ptr, 4);
+  msg->subband_label = srslte_bit_pack(&body_ptr, cfg->subband_label_2_bits ? 2 : 1);
+  return 4 + (cfg->subband_label_2_bits) ? 2 : 1;
 }
 
-int srslte_cqi_value_unpack(uint8_t buff[SRSLTE_CQI_MAX_BITS], srslte_cqi_value_t *value)
+int srslte_cqi_value_unpack(srslte_cqi_cfg_t* cfg, uint8_t buff[SRSLTE_CQI_MAX_BITS], srslte_cqi_value_t* value)
 {
-  switch(value->type) {
+  switch (cfg->type) {
     case SRSLTE_CQI_TYPE_WIDEBAND:
-      return srslte_cqi_format2_wideband_unpack(buff, &value->wideband);
+      return cqi_format2_wideband_unpack(cfg, buff, &value->wideband);
     case SRSLTE_CQI_TYPE_SUBBAND:
-      return srslte_cqi_format2_subband_unpack(buff, &value->subband);
+      return cqi_format2_subband_unpack(cfg, buff, &value->subband);
     case SRSLTE_CQI_TYPE_SUBBAND_UE:
-      return srslte_cqi_ue_subband_unpack(buff, &value->subband_ue);
+      return cqi_ue_subband_unpack(cfg, buff, &value->subband_ue);
     case SRSLTE_CQI_TYPE_SUBBAND_HL:
-      return srslte_cqi_hl_subband_unpack(buff, &value->subband_hl);
+      return cqi_hl_subband_unpack(cfg, buff, &value->subband_hl);
   }
-  return -1; 
+  return -1;
 }
 
 /*******************************************************
  *                TO STRING FUNCTIONS                  *
  *******************************************************/
 
-static int srslte_cqi_format2_wideband_tostring(srslte_cqi_format2_wideband_t *msg, char *buff, uint32_t buff_len) {
+static int
+cqi_format2_wideband_tostring(srslte_cqi_cfg_t* cfg, srslte_cqi_format2_wideband_t* msg, char* buff, uint32_t buff_len)
+{
   int n = 0;
 
   n += snprintf(buff + n, buff_len - n, ", cqi=%d", msg->wideband_cqi);
 
-  if (msg->pmi_present) {
-    if (msg->rank_is_not_one) {
+  if (cfg->pmi_present) {
+    if (cfg->rank_is_not_one) {
       n += snprintf(buff + n, buff_len - n, ", diff_cqi=%d", msg->spatial_diff_cqi);
     }
     n += snprintf(buff + n, buff_len - n, ", pmi=%d", msg->pmi);
@@ -253,7 +256,9 @@ static int srslte_cqi_format2_wideband_tostring(srslte_cqi_format2_wideband_t *m
   return n;
 }
 
-static int srslte_cqi_format2_subband_tostring(srslte_cqi_format2_subband_t *msg, char *buff, uint32_t buff_len) {
+static int
+cqi_format2_subband_tostring(srslte_cqi_cfg_t* cfg, srslte_cqi_format2_subband_t* msg, char* buff, uint32_t buff_len)
+{
   int n = 0;
 
   n += snprintf(buff + n, buff_len - n, ", cqi=%d", msg->subband_cqi);
@@ -262,51 +267,54 @@ static int srslte_cqi_format2_subband_tostring(srslte_cqi_format2_subband_t *msg
   return n;
 }
 
-static int srslte_cqi_ue_subband_tostring(srslte_cqi_ue_subband_t *msg, char *buff, uint32_t buff_len) {
+static int cqi_ue_subband_tostring(srslte_cqi_cfg_t* cfg, srslte_cqi_ue_subband_t* msg, char* buff, uint32_t buff_len)
+{
   int n = 0;
 
   n += snprintf(buff + n, buff_len - n, ", cqi=%d", msg->wideband_cqi);
   n += snprintf(buff + n, buff_len - n, ", diff_cqi=%d", msg->subband_diff_cqi);
-  n += snprintf(buff + n, buff_len - n, ", L=%d", msg->L);
+  n += snprintf(buff + n, buff_len - n, ", L=%d", cfg->L);
 
   return n;
 }
 
-static int srslte_cqi_hl_subband_tostring(srslte_cqi_hl_subband_t *msg, char *buff, uint32_t buff_len) {
+static int cqi_hl_subband_tostring(srslte_cqi_cfg_t* cfg, srslte_cqi_hl_subband_t* msg, char* buff, uint32_t buff_len)
+{
   int n = 0;
 
   n += snprintf(buff + n, buff_len - n, ", cqi=%d", msg->wideband_cqi_cw0);
   n += snprintf(buff + n, buff_len - n, ", diff=%d", msg->subband_diff_cqi_cw0);
 
-  if (msg->rank_is_not_one) {
+  if (cfg->rank_is_not_one) {
     n += snprintf(buff + n, buff_len - n, ", cqi1=%d", msg->wideband_cqi_cw1);
     n += snprintf(buff + n, buff_len - n, ", diff1=%d", msg->subband_diff_cqi_cw1);
   }
 
-  if (msg->pmi_present) {
+  if (cfg->pmi_present) {
     n += snprintf(buff + n, buff_len - n, ", pmi=%d", msg->pmi);
   }
 
-  n += snprintf(buff + n, buff_len - n, ", N=%d", msg->N);
+  n += snprintf(buff + n, buff_len - n, ", N=%d", cfg->N);
 
   return n;
 }
 
-int srslte_cqi_value_tostring(srslte_cqi_value_t *value, char *buff, uint32_t buff_len) {
+int srslte_cqi_value_tostring(srslte_cqi_cfg_t* cfg, srslte_cqi_value_t* value, char* buff, uint32_t buff_len)
+{
   int ret = -1;
 
-  switch (value->type) {
+  switch (cfg->type) {
     case SRSLTE_CQI_TYPE_WIDEBAND:
-      ret = srslte_cqi_format2_wideband_tostring(&value->wideband, buff, buff_len);
+      ret = cqi_format2_wideband_tostring(cfg, &value->wideband, buff, buff_len);
       break;
     case SRSLTE_CQI_TYPE_SUBBAND:
-      ret = srslte_cqi_format2_subband_tostring(&value->subband, buff, buff_len);
+      ret = cqi_format2_subband_tostring(cfg, &value->subband, buff, buff_len);
       break;
     case SRSLTE_CQI_TYPE_SUBBAND_UE:
-      ret = srslte_cqi_ue_subband_tostring(&value->subband_ue, buff, buff_len);
+      ret = cqi_ue_subband_tostring(cfg, &value->subband_ue, buff, buff_len);
       break;
     case SRSLTE_CQI_TYPE_SUBBAND_HL:
-      ret = srslte_cqi_hl_subband_tostring(&value->subband_hl, buff, buff_len);
+      ret = cqi_hl_subband_tostring(cfg, &value->subband_hl, buff, buff_len);
       break;
     default:
       /* Do nothing */;
@@ -315,23 +323,28 @@ int srslte_cqi_value_tostring(srslte_cqi_value_t *value, char *buff, uint32_t bu
   return ret;
 }
 
-int srslte_cqi_size(srslte_cqi_value_t *value) {
+int srslte_cqi_size(srslte_cqi_cfg_t* cfg)
+{
   int size = 0;
 
-  switch(value->type) {
+  if (!cfg->data_enable) {
+    return 0;
+  }
+
+  switch (cfg->type) {
     case SRSLTE_CQI_TYPE_WIDEBAND:
       /* Compute size according to 3GPP TS 36.212 Tables 5.2.3.3.1-1 and 5.2.3.3.1-2 */
       size = 4;
-      if (value->wideband.pmi_present) {
-        if (value->wideband.four_antenna_ports) {
-          if (value->wideband.rank_is_not_one) {
+      if (cfg->pmi_present) {
+        if (cfg->four_antenna_ports) {
+          if (cfg->rank_is_not_one) {
             size += 3; // Differential
           } else {
             size += 0; // Differential
           }
           size += 4; // PMI
         } else {
-          if (value->wideband.rank_is_not_one) {
+          if (cfg->rank_is_not_one) {
             size += 3; // Differential
             size += 1; // PMI
           } else {
@@ -342,26 +355,26 @@ int srslte_cqi_size(srslte_cqi_value_t *value) {
       }
       break;
     case SRSLTE_CQI_TYPE_SUBBAND:
-      size = 4 + (value->subband.subband_label_2_bits) ? 2 : 1;
+      size = 4 + (cfg->subband_label_2_bits) ? 2 : 1;
       break;
     case SRSLTE_CQI_TYPE_SUBBAND_UE:
-      size = 4 + 2 + value->subband_ue.L;
+      size = 4 + 2 + cfg->L;
       break;
     case SRSLTE_CQI_TYPE_SUBBAND_HL:
       /* First codeword */
-      size += 4 + 2 * value->subband_hl.N;
+      size += 4 + 2 * cfg->N;
 
       /* Add Second codeword if required */
-      if (value->subband_hl.rank_is_not_one && value->subband_hl.pmi_present) {
-        size += 4 + 2 * value->subband_hl.N;
+      if (cfg->rank_is_not_one && cfg->pmi_present) {
+        size += 4 + 2 * cfg->N;
       }
 
       /* Add PMI if required*/
-      if (value->subband_hl.pmi_present) {
-        if (value->subband_hl.four_antenna_ports) {
+      if (cfg->pmi_present) {
+        if (cfg->four_antenna_ports) {
           size += 4;
         } else {
-          if (value->subband_hl.rank_is_not_one) {
+          if (cfg->rank_is_not_one) {
             size += 1;
           } else {
             size += 2;
@@ -375,7 +388,9 @@ int srslte_cqi_size(srslte_cqi_value_t *value) {
   return size;
 }
 
-static bool srslte_cqi_get_N(uint32_t I_cqi_pmi, uint32_t *N_p, uint32_t *N_offset) {
+static bool cqi_get_N_fdd(uint32_t I_cqi_pmi, uint32_t* N_p, uint32_t* N_offset)
+{
+  // Acccording to 3GPP 36.213 R10 Table 7.2.2-1A: Mapping of I CQI / PMI to N pd and N OFFSET , CQI for FDD
   if (I_cqi_pmi <= 1) {
     *N_p = 2;
     *N_offset = I_cqi_pmi;
@@ -414,64 +429,119 @@ static bool srslte_cqi_get_N(uint32_t I_cqi_pmi, uint32_t *N_p, uint32_t *N_offs
   return true;
 }
 
-bool srslte_cqi_send(uint32_t I_cqi_pmi, uint32_t tti) {
-  
-  uint32_t N_p = 0;
+static bool cqi_get_N_tdd(uint32_t I_cqi_pmi, uint32_t* N_p, uint32_t* N_offset)
+{
+  // Acccording to 3GPP 36.213 R10 Table 7.2.2-1A: Mapping of I CQI / PMI to N pd and N OFFSET , CQI for TDD
+  if (I_cqi_pmi == 0) {
+    *N_p      = 1;
+    *N_offset = I_cqi_pmi;
+  } else if (I_cqi_pmi <= 5) {
+    *N_p      = 5;
+    *N_offset = I_cqi_pmi - 1;
+  } else if (I_cqi_pmi <= 15) {
+    *N_p      = 10;
+    *N_offset = I_cqi_pmi - 5;
+  } else if (I_cqi_pmi <= 35) {
+    *N_p      = 20;
+    *N_offset = I_cqi_pmi - 16;
+  } else if (I_cqi_pmi <= 75) {
+    *N_p      = 40;
+    *N_offset = I_cqi_pmi - 36;
+  } else if (I_cqi_pmi <= 155) {
+    *N_p      = 80;
+    *N_offset = I_cqi_pmi - 76;
+  } else if (I_cqi_pmi <= 315) {
+    *N_p      = 160;
+    *N_offset = I_cqi_pmi - 156;
+  } else if (I_cqi_pmi == 1023) {
+    return false;
+  }
+  return true;
+}
+
+static bool cqi_send(uint32_t I_cqi_pmi, uint32_t tti, bool is_fdd)
+{
+
+  uint32_t N_p      = 0;
   uint32_t N_offset = 0;
 
-  if (!srslte_cqi_get_N(I_cqi_pmi, &N_p, &N_offset)) {
-    return false;
+  if (is_fdd) {
+    if (!cqi_get_N_fdd(I_cqi_pmi, &N_p, &N_offset)) {
+      return false;
+    }
+  } else {
+    if (!cqi_get_N_tdd(I_cqi_pmi, &N_p, &N_offset)) {
+      return false;
+    }
   }
 
   if (N_p) {
     if ((tti-N_offset)%N_p == 0) {
-      return true; 
-    } 
+      return true;
+    }
   }
   return false; 
 }
 
-bool srslte_ri_send(uint32_t I_cqi_pmi, uint32_t I_ri, uint32_t tti) {
+static bool ri_send(uint32_t I_cqi_pmi, uint32_t I_ri, uint32_t tti, bool is_fdd)
+{
 
-  uint32_t M_ri = 0;
-  uint32_t N_offset_ri = 0;
-  uint32_t N_p = 0;
-  uint32_t N_offset_p = 0;
+  uint32_t M_ri        = 0;
+  int      N_offset_ri = 0;
+  uint32_t N_p         = 0;
+  uint32_t N_offset_p  = 0;
 
-  if (!srslte_cqi_get_N(I_cqi_pmi, &N_p, &N_offset_p)) {
-    return false;
+  if (is_fdd) {
+    if (!cqi_get_N_fdd(I_cqi_pmi, &N_p, &N_offset_p)) {
+      return false;
+    }
+  } else {
+    if (!cqi_get_N_tdd(I_cqi_pmi, &N_p, &N_offset_p)) {
+      return false;
+    }
   }
 
+  // According to 3GPP 36.213 R10 Table 7.2.2-1B Mapping I_RI to M_RI and N_OFFSET_RI
   if (I_ri <= 160) {
-    M_ri = 1;
-    N_offset_ri = I_ri;
-  } else if (I_ri <= 161) {
-    M_ri = 2;
-    N_offset_ri = I_ri - 161;
-  } else if (I_ri <= 322) {
-    M_ri = 4;
-    N_offset_ri = I_ri - 322;
-  } else if (I_ri <= 483) {
-    M_ri = 8;
-    N_offset_ri = I_ri - 483;
-  } else if (I_ri <= 644) {
-    M_ri = 16;
-    N_offset_ri = I_ri - 644;
-  } else if (I_ri <= 805) {
+    M_ri        = 1;
+    N_offset_ri = -I_ri;
+  } else if (I_ri <= 321) {
+    M_ri        = 2;
+    N_offset_ri = -(I_ri - 161);
+  } else if (I_ri <= 482) {
+    M_ri        = 4;
+    N_offset_ri = -(I_ri - 322);
+  } else if (I_ri <= 643) {
+    M_ri        = 8;
+    N_offset_ri = -(I_ri - 483);
+  } else if (I_ri <= 804) {
+    M_ri        = 16;
+    N_offset_ri = -(I_ri - 644);
+  } else if (I_ri <= 965) {
     M_ri = 32;
-    N_offset_ri = I_ri - 805;
-  } else if (I_ri <= 966) {
+    N_offset_ri = -(I_ri - 805);
+  } else {
     return false;
   }
 
   if (M_ri && N_p) {
-    if ((tti - N_offset_p + N_offset_ri) % (N_p * M_ri) == 0) {
+    if ((tti - N_offset_p - N_offset_ri) % (N_p * M_ri) == 0) {
       return true;
     }
   }
   return false;
 }
 
+bool srslte_cqi_periodic_ri_send(srslte_cqi_report_cfg_t* cfg, uint32_t tti, srslte_frame_type_t frame_type)
+{
+  return cfg->periodic_configured && cfg->ri_idx_present &&
+         ri_send(cfg->pmi_idx, cfg->ri_idx, tti, frame_type == SRSLTE_FDD);
+}
+
+bool srslte_cqi_periodic_send(srslte_cqi_report_cfg_t* cfg, uint32_t tti, srslte_frame_type_t frame_type)
+{
+  return cfg->periodic_configured && cqi_send(cfg->pmi_idx, tti, frame_type == SRSLTE_FDD);
+}
 
 // CQI-to-Spectral Efficiency:  36.213 Table 7.2.3-1  */
 static float cqi_to_coderate[16] = {0, 0.1523, 0.2344, 0.3770, 0.6016, 0.8770, 1.1758, 1.4766, 1.9141, 2.4063, 2.7305, 3.3223, 3.9023, 4.5234, 5.1152, 5.5547}; 
@@ -507,7 +577,7 @@ uint8_t srslte_cqi_from_snr(float snr)
  * i.e., the number of RBs per subband as a function of the cell bandwidth
  * (Table 7.2.1-3 in TS 36.213)
  */
-int srslte_cqi_hl_get_subband_size(int nof_prb)
+static int cqi_hl_get_subband_size(int nof_prb)
 {
   if (nof_prb < 7) {
     return 0;
@@ -527,7 +597,7 @@ int srslte_cqi_hl_get_subband_size(int nof_prb)
  */
 int srslte_cqi_hl_get_no_subbands(int nof_prb)
 {
-  int hl_size = srslte_cqi_hl_get_subband_size(nof_prb); 
+  int hl_size = cqi_hl_get_subband_size(nof_prb);
   if (hl_size > 0) {
     return (int)ceil((float)nof_prb/hl_size);
   } else {

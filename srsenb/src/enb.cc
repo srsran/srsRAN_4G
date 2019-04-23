@@ -154,6 +154,12 @@ bool enb::init(all_args_t *args_)
     return false;
   }
 
+  if (args->enb.transmission_mode == 1) {
+    phy_cfg.pdsch_cnfg.p_b = 0.0;
+  } else {
+    phy_cfg.pdsch_cnfg.p_b = 1.0;
+  }
+
   uint32_t prach_freq_offset = rrc_cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.prach_cfg_info.prach_freq_offset;
 
   if (cell_cfg.nof_prb > 10) {
@@ -178,6 +184,14 @@ bool enb::init(all_args_t *args_)
 
   rrc_cfg.inactivity_timeout_ms = args->expert.rrc_inactivity_timer;
   rrc_cfg.enable_mbsfn          = args->expert.enable_mbsfn;
+
+  // Check number of control symbols
+  if (cell_cfg.nof_prb < 50 && args->expert.mac.sched.nof_ctrl_symbols != 3) {
+    args->expert.mac.sched.nof_ctrl_symbols = 3;
+    mac_log.info("Setting number of control symbols to %d for %d PRB cell.\n",
+                 args->expert.mac.sched.nof_ctrl_symbols,
+                 cell_cfg.nof_prb);
+  }
 
   // Parse EEA preference list
   std::vector<std::string> eea_pref_list;
@@ -253,10 +267,9 @@ bool enb::init(all_args_t *args_)
     dev_args = (char*) args->rf.device_args.c_str();
   }
 
-  if(!radio.init(dev_args, dev_name, args->enb.nof_ports))
-  {
-    printf("Failed to find device %s with args %s\n",
-           args->rf.device_name.c_str(), args->rf.device_args.c_str());
+  if (!radio.init(phy_log[0], dev_args, dev_name, args->enb.nof_ports)) {
+    phy_log[0]->console(
+        "Failed to find device %s with args %s\n", args->rf.device_name.c_str(), args->rf.device_args.c_str());
     return false;
   }    
   
@@ -272,8 +285,8 @@ bool enb::init(all_args_t *args_)
   radio.set_tx_gain(args->rf.tx_gain);
   ((srslte::log_filter*) phy_log[0])->console("Setting frequency: DL=%.1f Mhz, UL=%.1f MHz\n", args->rf.dl_freq/1e6, args->rf.ul_freq/1e6);
 
-  radio.set_tx_freq(args->rf.dl_freq);
-  radio.set_rx_freq(args->rf.ul_freq);
+  radio.set_tx_freq(args->enb.nof_ports, args->rf.dl_freq);
+  radio.set_rx_freq(args->enb.nof_ports, args->rf.ul_freq);
 
   radio.register_error_handler(rf_msg);
 

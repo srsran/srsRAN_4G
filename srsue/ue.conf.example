@@ -3,7 +3,7 @@
 #####################################################################
 # RF configuration
 #
-# dl_earfcn: Downlink EARFCN code list 3400,2100,...
+# dl_earfcn: Downlink EARFCN code.
 # freq_offset: Uplink and Downlink optional frequency offset (in Hz)
 # tx_gain: Transmit gain (dB). 
 # rx_gain: Optional receive gain (dB). If disabled, AGC if enabled
@@ -11,11 +11,15 @@
 # Optional parameters: 
 # dl_freq:            Override DL frequency corresponding to dl_earfcn
 # ul_freq:            Override UL frequency corresponding to dl_earfcn
-# nof_rx_ant:         Number of RX antennas (Default 1, supported 1 or 2)
+# nof_radios:         Number of available RF devices
+# nof_rf_channels:    Number of RF channels per radio
+# nof_rx_ant:         Number of RX antennas per channel
 # device_name:        Device driver family. Supported options: "auto" (uses first found), "UHD" or "bladeRF" 
 # device_args:        Arguments for the device driver. Options are "auto" or any string. 
 #                     Default for UHD: "recv_frame_size=9232,send_frame_size=9232"
 #                     Default for bladeRF: ""
+# device_args_2:      Arguments for the RF device driver 2.
+# device_args_3:      Arguments for the RF device driver 3.
 # time_adv_nsamples:  Transmission time advance (in number of samples) to compensate for RF delay
 #                     from antenna to timestamp insertion. 
 #                     Default "auto". B210 USRP: 100 samples, bladeRF: 27.
@@ -30,9 +34,12 @@ freq_offset = 0
 tx_gain = 80
 #rx_gain = 40
 
+#nof_radios = 1
 #nof_rx_ant = 1
 #device_name = auto
 #device_args = auto
+#device_args_2 = auto
+#device_args_3 = auto
 #time_adv_nsamples = auto
 #burst_preamble_us = auto
 #continuous_tx     = auto
@@ -109,11 +116,13 @@ imei = 353490069873319
 # RRC configuration
 #
 # ue_category:   Sets UE category (range 1-5). Default: 4
+# release:       UE Release (8 to 10)
 # feature_group: Hex value of the featureGroupIndicators field in the
 #                UECapabilityInformation message. Default 0xe6041000
 #####################################################################
 [rrc]
 #ue_category   = 4
+#release       = 8
 #feature_group = 0xe6041000
 
 #####################################################################
@@ -159,8 +168,6 @@ enable = false
 #                                   refs:  use difference between noise references and noiseless (after filtering)
 #                                   empty: use empty subcarriers in the boarder of pss/sss signal
 # pdsch_max_its:        Maximum number of turbo decoder iterations (Default 4)
-# attach_enable_64qam:  Enables PUSCH 64QAM modulation before attachment (Necessary for old 
-#                        Amarisoft LTE 100 eNodeB, disabled by default)
 # nof_phy_threads:      Selects the number of PHY threads (maximum 4, minimum 1, default 2)
 # equalizer_mode:       Selects equalizer mode. Valid modes are: "mmse", "zf" or any 
 #                       non-negative real number to indicate a regularized zf coefficient.
@@ -178,10 +185,11 @@ enable = false
 # estimator_fil_order:  Sets the channel estimator smooth gaussian filter order (even values perform better).
 #                       The taps are [w, 1-2w, w]
 #
+# snr_to_cqi_offset:    Sets an offset in the SNR to CQI table. This is used to adjust the reported CQI.
+#
 # pregenerate_signals:  Pregenerate uplink signals after attach. Improves CPU performance.
 #
-# average_subframe_enabled: Averages in the time domain the channel estimates within 1 subframe.
-#                           Needs accurate CFO correction.
+# interpolate_subframe_enabled: Interpolates in the time domain the channel estimates within 1 subframe. Default is to average.
 #
 # sic_pss_enabled:      Applies Successive Interference Cancellation to PSS signals when searching for neighbour cells.
 #                       Must be disabled if cells have identical channel and timing, for instance if generated from
@@ -228,8 +236,7 @@ enable = false
 #snr_ema_coeff       = 0.1
 #snr_estim_alg       = refs
 #pdsch_max_its       = 8    # These are half iterations
-#attach_enable_64qam = false
-#nof_phy_threads     = 2
+#nof_phy_threads     = 3
 #equalizer_mode      = mmse
 #time_correct_period = 5
 #sfo_correct_disable = false
@@ -239,7 +246,8 @@ enable = false
 #estimator_fil_auto  = false
 #estimator_fil_stddev  = 1.0
 #estimator_fil_order  = 4
-#average_subframe_enabled = true
+#snr_to_cqi_offset   = 0.0
+#interpolate_subframe_enabled = false
 #sic_pss_enabled     = true
 #pregenerate_signals = false
 #metrics_csv_enable  = false

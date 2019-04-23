@@ -24,6 +24,7 @@
  *
  */
 
+#include "srslte/common/common.h"
 #include "srslte/srslte.h"
 
 #ifndef SRSLTE_SCHED_INTERFACE_H
@@ -103,26 +104,18 @@ public:
   } ue_bearer_cfg_t; 
   
   typedef struct {
-    
-    bool continuous_pusch; 
-    
+
     /* ue capabilities, etc */
-    
-    uint32_t maxharq_tx; 
+
+    uint32_t maxharq_tx;
+    bool     continuous_pusch;
+
+    srslte_uci_offset_cfg_t uci_offset;
+    srslte_pucch_cfg_t      pucch_cfg;
+
     uint32_t aperiodic_cqi_period; // if 0 is periodic CQI
-    uint32_t beta_ack_index;
-    uint32_t beta_ri_index;
-    uint32_t beta_cqi_index;
-    
-    srslte_pucch_cfg_t pucch_cfg; 
-    uint32_t n_pucch_cqi; 
-    uint32_t sr_I; 
-    uint32_t sr_N_pucch; 
-    bool     sr_enabled; 
-    uint32_t cqi_pucch; 
-    uint32_t cqi_idx; 
-    bool     cqi_enabled; 
-    
+    srslte_dl_cfg_t dl_cfg;
+
     ue_bearer_cfg_t ue_bearers[MAX_LC]; 
     
   } ue_cfg_t; 
@@ -134,10 +127,10 @@ public:
   
   
   typedef struct {
-      uint32_t lcid;
-      uint32_t lcid_buffer_size;
-      uint32_t stop;
-      uint8_t *mtch_payload;
+    uint32_t lcid;
+    uint32_t lcid_buffer_size;
+    uint32_t stop;
+    uint8_t* mtch_payload;
   } dl_mtch_sched_t;
   
   typedef struct {
@@ -149,10 +142,7 @@ public:
   } dl_pdu_mch_t; 
  
   typedef struct {
-    uint32_t              rnti; 
-    srslte_dci_format_t   dci_format;
-    srslte_ra_dl_dci_t    dci;     
-    srslte_dci_location_t dci_location;
+    srslte_dci_dl_t       dci;
     uint32_t              tbs[SRSLTE_MAX_TB];
     bool mac_ce_ta;
     bool mac_ce_rnti;
@@ -161,12 +151,10 @@ public:
   } dl_sched_data_t;
   
   typedef struct {
-    uint32_t              rnti;
-    bool                  needs_pdcch; 
-    uint32_t              current_tx_nb; 
-    uint32_t              tbs; 
-    srslte_ra_ul_dci_t    dci;     
-    srslte_dci_location_t dci_location;
+    bool            needs_pdcch;
+    uint32_t        current_tx_nb;
+    uint32_t        tbs;
+    srslte_dci_ul_t dci;
   } ul_sched_data_t;
   
   typedef struct {
@@ -175,17 +163,14 @@ public:
   } dl_sched_rar_grant_t;
   
   typedef struct {
-    uint32_t               rarnti; 
-    uint32_t               tbs;         
-    srslte_ra_dl_dci_t     dci; 
-    srslte_dci_location_t  dci_location;
-    uint32_t               nof_grants; 
-    dl_sched_rar_grant_t   grants[MAX_RAR_LIST];    
+    uint32_t             tbs;
+    srslte_dci_dl_t      dci;
+    uint32_t             nof_grants;
+    dl_sched_rar_grant_t msg3_grant[MAX_RAR_LIST];
   } dl_sched_rar_t; 
 
   typedef struct {
-    srslte_ra_dl_dci_t dci; 
-    srslte_dci_location_t  dci_location;
+    srslte_dci_dl_t dci;
 
     enum bc_type {
       BCCH, PCCH

@@ -38,16 +38,17 @@
 #define SRSLTE_PBCH_H
 
 #include "srslte/config.h"
+#include "srslte/phy/ch_estimation/chest_dl.h"
 #include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/mimo/precoding.h"
-#include "srslte/phy/mimo/layermap.h"
-#include "srslte/phy/modem/mod.h"
-#include "srslte/phy/modem/demod_soft.h"
-#include "srslte/phy/scrambling/scrambling.h"
-#include "srslte/phy/fec/rm_conv.h"
 #include "srslte/phy/fec/convcoder.h"
-#include "srslte/phy/fec/viterbi.h"
 #include "srslte/phy/fec/crc.h"
+#include "srslte/phy/fec/rm_conv.h"
+#include "srslte/phy/fec/viterbi.h"
+#include "srslte/phy/mimo/layermap.h"
+#include "srslte/phy/mimo/precoding.h"
+#include "srslte/phy/modem/demod_soft.h"
+#include "srslte/phy/modem/mod.h"
+#include "srslte/phy/scrambling/scrambling.h"
 
 #define SRSLTE_BCH_PAYLOAD_LEN     24
 #define SRSLTE_BCH_PAYLOADCRC_LEN  (SRSLTE_BCH_PAYLOAD_LEN+16)
@@ -92,27 +93,22 @@ SRSLTE_API void srslte_pbch_free(srslte_pbch_t *q);
 SRSLTE_API int srslte_pbch_set_cell(srslte_pbch_t *q,
                                     srslte_cell_t cell);
 
-SRSLTE_API int srslte_pbch_decode(srslte_pbch_t *q,
-                           cf_t *slot1_symbols, 
-                           cf_t *ce_slot1[SRSLTE_MAX_PORTS], 
-                           float noise_estimate, 
-                           uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN], 
-                           uint32_t *nof_tx_ports,
-                           int *sfn_offset);
+SRSLTE_API int srslte_pbch_decode(srslte_pbch_t*         q,
+                                  srslte_chest_dl_res_t* channel,
+                                  cf_t*                  sf_symbols[SRSLTE_MAX_PORTS],
+                                  uint8_t                bch_payload[SRSLTE_BCH_PAYLOAD_LEN],
+                                  uint32_t*              nof_tx_ports,
+                                  int*                   sfn_offset);
 
-SRSLTE_API int srslte_pbch_encode(srslte_pbch_t *q, 
-                           uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN], 
-                           cf_t *slot1_symbols[SRSLTE_MAX_PORTS], 
-                           uint32_t frame_idx);
+SRSLTE_API int srslte_pbch_encode(srslte_pbch_t* q,
+                                  uint8_t        bch_payload[SRSLTE_BCH_PAYLOAD_LEN],
+                                  cf_t*          sf_symbols[SRSLTE_MAX_PORTS],
+                                  uint32_t       frame_idx);
 
 SRSLTE_API void srslte_pbch_decode_reset(srslte_pbch_t *q);
 
-SRSLTE_API void srslte_pbch_mib_unpack(uint8_t *msg, 
-                                srslte_cell_t *cell, 
-                                uint32_t *sfn);
+SRSLTE_API void srslte_pbch_mib_unpack(uint8_t* msg, srslte_cell_t* cell, uint32_t* sfn);
 
-SRSLTE_API void srslte_pbch_mib_pack(srslte_cell_t *cell, 
-                              uint32_t sfn, 
-                              uint8_t *msg);
+SRSLTE_API void srslte_pbch_mib_pack(srslte_cell_t* cell, uint32_t sfn, uint8_t* msg);
 
 #endif // SRSLTE_PBCH_H

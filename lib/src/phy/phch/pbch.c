@@ -24,16 +24,15 @@
  *
  */
 
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
-#include <strings.h>
-#include <stdlib.h>
-#include <stdbool.h>
+#include "srslte/srslte.h"
 #include <assert.h>
 #include <math.h>
-#include <srslte/srslte.h>
-#include <srslte/phy/common/phy_common.h>
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <strings.h>
 
 #include "prb_dl.h"
 #include "srslte/phy/phch/pbch.h"
@@ -252,7 +251,7 @@ int srslte_pbch_set_cell(srslte_pbch_t *q, srslte_cell_t cell) {
     }
 
     if (q->cell.id != cell.id || q->cell.nof_prb == 0) {
-      memcpy(&q->cell, &cell, sizeof(srslte_cell_t));
+      q->cell = cell;
       if (srslte_sequence_pbch(&q->seq, q->cell.cp, q->cell.id)) {
         return SRSLTE_ERROR;
       }
@@ -430,7 +429,7 @@ int decode_frame(srslte_pbch_t *q, uint32_t src, uint32_t dst, uint32_t n,
       return SRSLTE_SUCCESS;
     }
   } else {
-    fprintf(stderr, "Error in PBCH decoder: Invalid frame pointers dst=%d, src=%d, n=%d\n", src, dst, n);
+    ERROR("Error in PBCH decoder: Invalid frame pointers dst=%d, src=%d, n=%d\n", src, dst, n);
     return -1;
   }
 
@@ -444,24 +443,27 @@ int decode_frame(srslte_pbch_t *q, uint32_t src, uint32_t dst, uint32_t n,
  *
  * Returns 1 if successfully decoded MIB, 0 if not and -1 on error
  */
-int srslte_pbch_decode(srslte_pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRSLTE_MAX_PORTS], float noise_estimate, 
-                 uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN], uint32_t *nof_tx_ports, int *sfn_offset) 
+int srslte_pbch_decode(srslte_pbch_t*         q,
+                       srslte_chest_dl_res_t* channel,
+                       cf_t*                  sf_symbols[SRSLTE_MAX_PORTS],
+                       uint8_t                bch_payload[SRSLTE_BCH_PAYLOAD_LEN],
+                       uint32_t*              nof_tx_ports,
+                       int*                   sfn_offset)
 {
   uint32_t src, dst, nb;
   uint32_t nant;
   int i;
   int nof_bits;
-  cf_t *x[SRSLTE_MAX_LAYERS];
-  
+  cf_t*    x[SRSLTE_MAX_LAYERS];
+
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
-  
-  if (q                 != NULL &&
-      slot1_symbols     != NULL)
-  {
-    for (i=0;i<q->cell.nof_ports;i++) {
-      if (ce_slot1[i] == NULL) {
-        return SRSLTE_ERROR_INVALID_INPUTS;
-      } 
+
+  if (q != NULL && sf_symbols != NULL) {
+    cf_t* slot1_symbols = &sf_symbols[0][SRSLTE_SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)];
+
+    cf_t* ce_slot1[SRSLTE_MAX_PORTS];
+    for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
+      ce_slot1[i] = &channel->ce[i][0][SRSLTE_SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)];
     }
 
     /* Set pointers for layermapping & precoding */
@@ -471,17 +473,17 @@ int srslte_pbch_decode(srslte_pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRS
     for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
       x[i] = q->x[i];
     }
-    
+
     /* extract symbols */
     if (q->nof_symbols != srslte_pbch_get(slot1_symbols, q->symbols[0], q->cell)) {
-      fprintf(stderr, "There was an error getting the PBCH symbols\n");
+      ERROR("There was an error getting the PBCH symbols\n");
       return SRSLTE_ERROR;
     }
 
     /* extract channel estimates */
     for (i = 0; i < q->cell.nof_ports; i++) {
       if (q->nof_symbols != srslte_pbch_get(ce_slot1[i], q->ce[i], q->cell)) {
-        fprintf(stderr, "There was an error getting the PBCH symbols\n");
+        ERROR("There was an error getting the PBCH symbols\n");
         return SRSLTE_ERROR;
       }
     }
@@ -505,10 +507,9 @@ int srslte_pbch_decode(srslte_pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRS
         /* in control channels, only diversity is supported */
         if (nant == 1) {
           /* no need for layer demapping */
-          srslte_predecoding_single(q->symbols[0], q->ce[0], q->d, NULL, q->nof_symbols, 1.0f, noise_estimate);
+          srslte_predecoding_single(q->symbols[0], q->ce[0], q->d, NULL, q->nof_symbols, 1.0f, channel->noise_estimate);
         } else {
-          srslte_predecoding_diversity(q->symbols[0], q->ce, x, nant,
-                                       q->nof_symbols, 1.0f);
+          srslte_predecoding_diversity(q->symbols[0], q->ce, x, nant, q->nof_symbols, 1.0f);
           srslte_layerdemap_diversity(x, q->d, nant, q->nof_symbols / nant);
         }
 
@@ -555,19 +556,16 @@ int srslte_pbch_decode(srslte_pbch_t *q, cf_t *slot1_symbols, cf_t *ce_slot1[SRS
 
 /** Converts the MIB message to symbols mapped to SLOT #1 ready for transmission
  */
-int srslte_pbch_encode(srslte_pbch_t *q, uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN], cf_t *slot1_symbols[SRSLTE_MAX_PORTS], uint32_t frame_idx) {
+int srslte_pbch_encode(srslte_pbch_t* q,
+                       uint8_t        bch_payload[SRSLTE_BCH_PAYLOAD_LEN],
+                       cf_t*          sf_symbols[SRSLTE_MAX_PORTS],
+                       uint32_t       frame_idx)
+{
   int i;
   int nof_bits;
   cf_t *x[SRSLTE_MAX_LAYERS];
-  
-  if (q                 != NULL &&
-      bch_payload               != NULL)
-  {
-    for (i=0;i<q->cell.nof_ports;i++) {
-      if (slot1_symbols[i] == NULL) {
-        return SRSLTE_ERROR_INVALID_INPUTS;
-      } 
-    }
+
+  if (q != NULL && bch_payload != NULL) {
     /* Set pointers for layermapping & precoding */
     nof_bits = 2 * q->nof_symbols;
 
@@ -605,7 +603,7 @@ int srslte_pbch_encode(srslte_pbch_t *q, uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_
 
     /* mapping to resource elements */
     for (i = 0; i < q->cell.nof_ports; i++) {
-      srslte_pbch_put(q->symbols[i], slot1_symbols[i], q->cell);
+      srslte_pbch_put(q->symbols[i], &sf_symbols[i][SRSLTE_SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)], q->cell);
     }
     return SRSLTE_SUCCESS;
   } else {

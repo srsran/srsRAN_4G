@@ -31,10 +31,11 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+#include "srslte/phy/fec/cbsegm.h"
 #include "srslte/phy/fec/rm_turbo.h"
 #include "srslte/phy/utils/bit.h"
+#include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
-#include "srslte/phy/fec/cbsegm.h"
 
 #ifdef DEBUG_MODE
 #warning FIXME: Disabling SSE/AVX turbo rate matching 
@@ -83,7 +84,7 @@ int deinter_table_idx_from_sb_len(uint32_t nof_subblocks) {
     }
   }
   if (nof_subblocks != 0) {
-    fprintf(stderr, "Error number of sub-blocks %d not supported in RM\n", nof_subblocks);
+    ERROR("Error number of sub-blocks %d not supported in RM\n", nof_subblocks);
   }
   return -1;
 }
@@ -402,7 +403,7 @@ int srslte_rm_turbo_rx_lut_(int16_t *input, int16_t *output, uint32_t in_len, ui
   } else if (idx < NOF_DEINTER_TABLE_SB_IDX) {
     deinter = deinterleaver_sb[idx][cb_idx][rv_idx];
   } else {
-    fprintf(stderr, "Sub-block size index %d not supported in srslte_rm_turbo_rx_lut()\n", idx);
+    ERROR("Sub-block size index %d not supported in srslte_rm_turbo_rx_lut()\n", idx);
     return -1;
   }
 #else
@@ -442,7 +443,7 @@ int srslte_rm_turbo_rx_lut_8bit(int8_t *input, int8_t *output, uint32_t in_len, 
     } else if (idx < NOF_DEINTER_TABLE_SB_IDX) {
       deinter = deinterleaver_sb[idx][cb_idx][rv_idx];
     } else {
-      fprintf(stderr, "Sub-block size index %d not supported in srslte_rm_turbo_rx_lut()\n", idx);
+      ERROR("Sub-block size index %d not supported in srslte_rm_turbo_rx_lut()\n", idx);
       return -1;
     }
 #else
@@ -1019,14 +1020,15 @@ int srslte_rm_turbo_rx(float *w_buff, uint32_t w_buff_len, float *input, uint32_
   nrows = (uint16_t) (out_len / 3 - 1) / NCOLS + 1;
   K_p = nrows * NCOLS;
   if (3 * K_p > w_buff_len) {
-    fprintf(stderr,
-        "Output too large. Max output length including dummy bits is %d (3x%dx32, in_len %d)\n",
-        w_buff_len, nrows, out_len);
+    ERROR("Output too large. Max output length including dummy bits is %d (3x%dx32, in_len %d)\n",
+          w_buff_len,
+          nrows,
+          out_len);
     return -1;
   }
-  
+
   if (out_len < 3) {
-    fprintf(stderr, "Error minimum input length for rate matching is 3\n");
+    ERROR("Error minimum input length for rate matching is 3\n");
     return -1;
   }
 

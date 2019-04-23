@@ -24,12 +24,11 @@
  *
  */
 
-
-#include <math.h>
+#include "srslte/srslte.h"
 #include <complex.h>
 #include <fftw3.h>
+#include <math.h>
 #include <string.h>
-#include <srslte/srslte.h>
 
 #include "srslte/phy/dft/dft.h"
 #include "srslte/phy/utils/vector.h"
@@ -81,8 +80,10 @@ int srslte_dft_replan(srslte_dft_plan_t *plan, const int new_dft_points) {
       return srslte_dft_replan_r(plan,new_dft_points);
     }
   } else {
-    fprintf(stderr, "DFT: Error calling replan: new_dft_points (%d) must be lower or equal "
-      "dft_size passed initially (%d)\n", new_dft_points, plan->init_size);
+    ERROR("DFT: Error calling replan: new_dft_points (%d) must be lower or equal "
+          "dft_size passed initially (%d)\n",
+          new_dft_points,
+          plan->init_size);
     return -1;
   }
 }
@@ -312,7 +313,7 @@ void srslte_dft_run_guru_c(srslte_dft_plan_t *plan) {
   if (plan->is_guru == true) {
     fftwf_execute(plan->p);
   } else {
-    fprintf(stderr, "srslte_dft_run_guru_c: the selected plan is not guru!\n");
+    ERROR("srslte_dft_run_guru_c: the selected plan is not guru!\n");
   }
 }
 

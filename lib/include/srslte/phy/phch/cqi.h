@@ -45,16 +45,30 @@
 #define SRSLTE_PMI_MAX_BITS 4
 #define SRSLTE_CQI_STR_MAX_CHAR 64
 
+typedef enum {
+  SRSLTE_CQI_MODE_10,
+  SRSLTE_CQI_MODE_11,
+  SRSLTE_CQI_MODE_12,
+  SRSLTE_CQI_MODE_20,
+  SRSLTE_CQI_MODE_21,
+  SRSLTE_CQI_MODE_22,
+  SRSLTE_CQI_MODE_30,
+  SRSLTE_CQI_MODE_31,
+  SRSLTE_CQI_MODE_NA,
+} srslte_cqi_report_mode_t;
+
 typedef struct {
-  bool     configured; 
-  uint32_t pmi_idx; 
+  bool                     periodic_configured;
+  bool                     aperiodic_configured;
+  uint32_t                 pmi_idx;
   uint32_t ri_idx;
-  bool ri_idx_present;
-  bool     simul_cqi_ack;
-  bool     format_is_subband; 
-  uint32_t subband_size; 
-} srslte_cqi_periodic_cfg_t; 
-  
+  bool                     ri_idx_present;
+  bool                     format_is_subband;
+  uint32_t                 subband_size;
+  srslte_cqi_report_mode_t periodic_mode;
+  srslte_cqi_report_mode_t aperiodic_mode;
+} srslte_cqi_report_cfg_t;
+
 /* Table 5.2.2.6.2-1: Fields for channel quality information feedback for higher layer configured subband
    CQI reports  (transmission mode 1, transmission mode 2, transmission mode 3, transmission mode 7 and
    transmission mode 8 configured without PMI/RI reporting). */
@@ -68,11 +82,6 @@ typedef struct SRSLTE_API {
   uint8_t  wideband_cqi_cw1;      // if RI > 1 then 4-bit width otherwise 0-bit width
   uint32_t subband_diff_cqi_cw1;  // if RI > 1 then 2N-bit width otherwise 0-bit width
   uint32_t pmi;                   // if RI > 1 then 2-bit width otherwise 1-bit width
-  uint32_t N;
-  bool ri_present;
-  bool pmi_present;
-  bool four_antenna_ports;        // If cell has 4 antenna ports then true otherwise false
-  bool rank_is_not_one;           // If rank > 1 then true otherwise false
 } srslte_cqi_hl_subband_t;
 
 /* Table 5.2.2.6.3-1: Fields for channel quality information feedback for UE selected subband CQI
@@ -83,7 +92,6 @@ typedef struct SRSLTE_API {
   uint8_t  wideband_cqi; // 4-bit width
   uint8_t  subband_diff_cqi; // 2-bit width
   uint32_t position_subband; // L-bit width
-  uint32_t L;
 } srslte_cqi_ue_subband_t;
 
 /* Table 5.2.3.3.1-1: Fields for channel quality information feedback for wideband CQI reports
@@ -101,15 +109,11 @@ typedef struct SRSLTE_API {
   uint8_t  wideband_cqi; // 4-bit width
   uint8_t  spatial_diff_cqi; // If Rank==1 then it is 0-bit width otherwise it is 3-bit width
   uint8_t  pmi;
-  bool pmi_present;
-  bool four_antenna_ports;        // If cell has 4 antenna ports then true otherwise false
-  bool rank_is_not_one;           // If rank > 1 then true otherwise false
 } srslte_cqi_format2_wideband_t;
 
 typedef struct SRSLTE_API {
   uint8_t  subband_cqi; // 4-bit width
   uint8_t  subband_label; // 1- or 2-bit width
-  bool     subband_label_2_bits; // false, label=1-bit, true label=2-bits
 } srslte_cqi_format2_subband_t;
 
 typedef enum {
@@ -117,7 +121,20 @@ typedef enum {
   SRSLTE_CQI_TYPE_SUBBAND,
   SRSLTE_CQI_TYPE_SUBBAND_UE,
   SRSLTE_CQI_TYPE_SUBBAND_HL
-} srslte_cqi_type_t; 
+} srslte_cqi_type_t;
+
+typedef struct SRSLTE_API {
+  bool              data_enable;
+  bool              ri_present;
+  bool              pmi_present;
+  bool              four_antenna_ports;   // If cell has 4 antenna ports then true otherwise false
+  bool              rank_is_not_one;      // If rank > 1 then true otherwise false
+  bool              subband_label_2_bits; // false, label=1-bit, true label=2-ack_value
+  uint32_t          L;
+  uint32_t          N;
+  srslte_cqi_type_t type;
+  uint32_t          ri_len;
+} srslte_cqi_cfg_t;
 
 typedef struct {
   union {
@@ -126,60 +143,32 @@ typedef struct {
     srslte_cqi_ue_subband_t       subband_ue;
     srslte_cqi_hl_subband_t       subband_hl;
   };
-  srslte_cqi_type_t type; 
+  bool data_crc;
 } srslte_cqi_value_t;
 
+SRSLTE_API int srslte_cqi_size(srslte_cqi_cfg_t* cfg);
 
-SRSLTE_API int srslte_cqi_size(srslte_cqi_value_t *value); 
+SRSLTE_API int srslte_cqi_value_pack(srslte_cqi_cfg_t* cfg, srslte_cqi_value_t* value, uint8_t* buff);
 
-SRSLTE_API int srslte_cqi_value_pack(srslte_cqi_value_t *value, 
-                                     uint8_t buff[SRSLTE_CQI_MAX_BITS]);
+SRSLTE_API int srslte_cqi_value_unpack(srslte_cqi_cfg_t* cfg,
+                                       uint8_t buff[SRSLTE_CQI_MAX_BITS],
+                                       srslte_cqi_value_t* value);
 
-SRSLTE_API int srslte_cqi_hl_subband_pack(srslte_cqi_hl_subband_t *msg, 
-                                    uint8_t buff[SRSLTE_CQI_MAX_BITS]);
+SRSLTE_API int srslte_cqi_value_tostring(srslte_cqi_cfg_t* cfg,
+                                         srslte_cqi_value_t* value,
+                                         char* buff,
+                                         uint32_t buff_len);
 
-SRSLTE_API int srslte_cqi_ue_subband_pack(srslte_cqi_ue_subband_t *msg, 
-                                    uint8_t buff[SRSLTE_CQI_MAX_BITS]);
+SRSLTE_API bool srslte_cqi_periodic_send(srslte_cqi_report_cfg_t* periodic_cfg,uint32_t tti, srslte_frame_type_t frame_type);
 
-SRSLTE_API int srslte_cqi_format2_wideband_pack(srslte_cqi_format2_wideband_t *msg, 
-                                          uint8_t buff[SRSLTE_CQI_MAX_BITS]);
+SRSLTE_API bool srslte_cqi_periodic_ri_send(srslte_cqi_report_cfg_t* periodic_cfg,
+                                            uint32_t tti,
+                                            srslte_frame_type_t frame_type);
 
-SRSLTE_API int srslte_cqi_format2_subband_pack(srslte_cqi_format2_subband_t *msg, 
-                                        uint8_t buff[SRSLTE_CQI_MAX_BITS]);
-
-SRSLTE_API int srslte_cqi_value_unpack(uint8_t buff[SRSLTE_CQI_MAX_BITS], 
-                                       srslte_cqi_value_t *value);
-
-SRSLTE_API int srslte_cqi_value_tostring(srslte_cqi_value_t *value, char *buff, uint32_t buff_len);
-
-
-SRSLTE_API int srslte_cqi_hl_subband_unpack(uint8_t buff[SRSLTE_CQI_MAX_BITS], 
-                                            srslte_cqi_hl_subband_t *msg);
-
-SRSLTE_API int srslte_cqi_ue_subband_unpack(uint8_t buff[SRSLTE_CQI_MAX_BITS], 
-                                            srslte_cqi_ue_subband_t *msg);
-
-SRSLTE_API int srslte_cqi_format2_wideband_unpack(uint8_t buff[SRSLTE_CQI_MAX_BITS], 
-                                                  srslte_cqi_format2_wideband_t *msg);
-
-SRSLTE_API int srslte_cqi_format2_subband_unpack(uint8_t buff[SRSLTE_CQI_MAX_BITS], 
-                                                 srslte_cqi_format2_subband_t *msg);
-
-SRSLTE_API bool srslte_cqi_send(uint32_t I_cqi_pmi, 
-                                uint32_t tti);
-
-SRSLTE_API bool srslte_ri_send(uint32_t I_cqi_pmi,
-                               uint32_t I_ri,
-                               uint32_t tti);
+SRSLTE_API int srslte_cqi_hl_get_no_subbands(int nof_prb);
 
 SRSLTE_API uint8_t srslte_cqi_from_snr(float snr);
 
-SRSLTE_API float srslte_cqi_to_coderate(uint32_t cqi); 
-
-SRSLTE_API int srslte_cqi_hl_get_subband_size(int num_prbs);
-
-SRSLTE_API int srslte_cqi_hl_get_no_subbands(int num_prbs);
-
-SRSLTE_API void srslte_cqi_to_str(const uint8_t *cqi_value, int cqi_len, char *str, int str_len);
+SRSLTE_API float srslte_cqi_to_coderate(uint32_t cqi);
 
 #endif // SRSLTE_CQI_H

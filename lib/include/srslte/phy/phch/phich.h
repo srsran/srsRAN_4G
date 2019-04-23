@@ -35,16 +35,15 @@
 #ifndef SRSLTE_PHICH_H
 #define SRSLTE_PHICH_H
 
-#include "srslte/config.h"
-#include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/mimo/precoding.h"
-#include "srslte/phy/mimo/layermap.h"
-#include "srslte/phy/modem/mod.h"
-#include "srslte/phy/modem/demod_soft.h"
-#include "srslte/phy/scrambling/scrambling.h"
 #include "regs.h"
-
-
+#include "srslte/config.h"
+#include "srslte/phy/ch_estimation/chest_dl.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/mimo/layermap.h"
+#include "srslte/phy/mimo/precoding.h"
+#include "srslte/phy/modem/demod_soft.h"
+#include "srslte/phy/modem/mod.h"
+#include "srslte/phy/scrambling/scrambling.h"
 
 #define SRSLTE_PHICH_NORM_NSEQUENCES  8
 #define SRSLTE_PHICH_EXT_NSEQUENCES   4
@@ -61,11 +60,11 @@
 /* phich object */
 typedef struct SRSLTE_API {
   srslte_cell_t cell;
-  
-  uint32_t nof_rx_antennas; 
-  
+
+  uint32_t nof_rx_antennas;
+
   /* handler to REGs resource mapper */
-  srslte_regs_t *regs;
+  srslte_regs_t* regs;
 
   /* buffers */
   cf_t ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS][SRSLTE_PHICH_MAX_NSYMB];
@@ -81,12 +80,27 @@ typedef struct SRSLTE_API {
 
   /* tx & rx objects */
   srslte_modem_table_t mod;
-  srslte_sequence_t seq[SRSLTE_NSUBFRAMES_X_FRAME];
-  
+  srslte_sequence_t    seq[SRSLTE_NOF_SF_X_FRAME];
+
 } srslte_phich_t;
 
-SRSLTE_API int srslte_phich_init(srslte_phich_t *q,
-                                 uint32_t nof_rx_antennas);
+typedef struct SRSLTE_API {
+  uint32_t ngroup;
+  uint32_t nseq;
+} srslte_phich_resource_t;
+
+typedef struct SRSLTE_API {
+  uint32_t n_prb_lowest;
+  uint32_t n_dmrs;
+  uint32_t I_phich;
+} srslte_phich_grant_t;
+
+typedef struct SRSLTE_API {
+  bool  ack_value;
+  float distance;
+} srslte_phich_res_t;
+
+SRSLTE_API int srslte_phich_init(srslte_phich_t* q, uint32_t nof_rx_antennas);
 
 SRSLTE_API void srslte_phich_free(srslte_phich_t *q);
 
@@ -94,34 +108,27 @@ SRSLTE_API int srslte_phich_set_cell(srslte_phich_t *q,
                                      srslte_regs_t *regs,
                                      srslte_cell_t cell);
 
-SRSLTE_API void srslte_phich_calc(srslte_phich_t *q,
-                                  uint32_t n_prb_lowest, 
-                                  uint32_t n_dmrs, 
-                                  uint32_t *ngroup, 
-                                  uint32_t *nseq); 
+SRSLTE_API void srslte_phich_set_regs(srslte_phich_t* q, srslte_regs_t* regs);
 
-SRSLTE_API int srslte_phich_decode(srslte_phich_t *q, 
-                                   cf_t *slot_symbols[SRSLTE_MAX_PORTS],
-                                   cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
-                                   float noise_estimate, 
-                                   uint32_t ngroup, 
-                                   uint32_t nseq, 
-                                   uint32_t nsubframe, 
-                                   uint8_t *ack, 
-                                   float *distance);
+SRSLTE_API void srslte_phich_calc(srslte_phich_t* q, srslte_phich_grant_t* grant, srslte_phich_resource_t* n_phich);
 
-SRSLTE_API int srslte_phich_encode(srslte_phich_t *q, 
-                                   uint8_t ack, 
-                                   uint32_t ngroup, 
-                                   uint32_t nseq, 
-                                   uint32_t nsubframe,
-                                   cf_t *slot_symbols[SRSLTE_MAX_PORTS]);
+SRSLTE_API int srslte_phich_decode(srslte_phich_t*         q,
+                                   srslte_dl_sf_cfg_t*     sf,
+                                   srslte_chest_dl_res_t*  channel,
+                                   srslte_phich_resource_t n_phich,
+                                   cf_t*                   sf_symbols[SRSLTE_MAX_PORTS],
+                                   srslte_phich_res_t*     result);
 
-SRSLTE_API void srslte_phich_reset(srslte_phich_t *q, 
-                                   cf_t *slot_symbols[SRSLTE_MAX_PORTS]);
+SRSLTE_API int srslte_phich_encode(srslte_phich_t*         q,
+                                   srslte_dl_sf_cfg_t*     sf,
+                                   srslte_phich_resource_t n_phich,
+                                   uint8_t                 ack,
+                                   cf_t*                   sf_symbols[SRSLTE_MAX_PORTS]);
 
-SRSLTE_API uint32_t srslte_phich_ngroups(srslte_phich_t *q);
+SRSLTE_API void srslte_phich_reset(srslte_phich_t* q, cf_t* slot_symbols[SRSLTE_MAX_PORTS]);
 
-SRSLTE_API uint32_t srslte_phich_nsf(srslte_phich_t *q);
+SRSLTE_API uint32_t srslte_phich_ngroups(srslte_phich_t* q);
+
+SRSLTE_API uint32_t srslte_phich_nsf(srslte_phich_t* q);
 
 #endif // SRSLTE_PHICH_H

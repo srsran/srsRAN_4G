@@ -464,7 +464,7 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t *payload_len)
           paging_elem.ue_id.set(paging_ue_id_c::types::imsi);
           paging_elem.ue_id.imsi().resize(u.choice.iMSI.n_octets);
           memcpy(paging_elem.ue_id.imsi().data(), u.choice.iMSI.buffer, u.choice.iMSI.n_octets);
-          printf("Warning IMSI paging not tested\n");
+          rrc_log->console("Warning IMSI paging not tested\n");
         } else {
           paging_elem.ue_id.set(paging_ue_id_c::types::s_tmsi);
           paging_elem.ue_id.s_tmsi().mmec.from_number(u.choice.s_TMSI.mMEC.buffer[0]);
@@ -786,7 +786,7 @@ void rrc::configure_mbsfn_sibs(sib_type2_s* sib2, sib_type13_r9_s* sib13)
     memcpy(&pmch_item->mbms_session_info_list_r9[1].tmgi_r9.service_id_r9[0], &byte[0],
            3); // FIXME: Check if service is set to 1
   }
-  pmch_item->pmch_cfg_r9.data_mcs_r9         = 10;
+  pmch_item->pmch_cfg_r9.data_mcs_r9         = 20;
   pmch_item->pmch_cfg_r9.mch_sched_period_r9 = pmch_cfg_r9_s::mch_sched_period_r9_e_::rf64;
   pmch_item->pmch_cfg_r9.sf_alloc_end_r9     = 64 * 6;
 
@@ -1142,7 +1142,6 @@ void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srsl
   memcpy(pdu->msg, msg_r8->ded_info_nas.data(), pdu->N_bytes);
 
   // Acknowledge Dedicated Configuration
-  parent->phy->set_conf_dedicated_ack(rnti, true);
   parent->mac->phy_config_enabled(rnti, true);
 
   if(has_tmsi) {
@@ -1159,7 +1158,6 @@ void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte:
   parent->rrc_log->info("RRCReconfigurationComplete transaction ID: %d\n", msg->rrc_transaction_id);
 
   // Acknowledge Dedicated Configuration
-  parent->phy->set_conf_dedicated_ack(rnti, true);
   parent->mac->phy_config_enabled(rnti, true);
 }
 
@@ -1449,12 +1447,14 @@ void rrc::ue::send_connection_setup(bool is_setup)
   phy_cfg->sched_request_cfg.set(sched_request_cfg_c::types::setup);
   phy_cfg->sched_request_cfg.setup().dsr_trans_max = parent->cfg.sr_cfg.dsr_max;
 
-  //  phy_cfg->ant_info_present = false;
-  //  phy_cfg->ant_info.set(phys_cfg_ded_s::ant_info_c_::types::default_value);
   // set default antenna config
   phy_cfg->ant_info_present = true;
   phy_cfg->ant_info.set(phys_cfg_ded_s::ant_info_c_::types::explicit_value);
-  phy_cfg->ant_info.explicit_value().tx_mode.value = ant_info_ded_s::tx_mode_e_::tm1;
+  if (parent->cfg.cell.nof_ports == 1) {
+    phy_cfg->ant_info.explicit_value().tx_mode.value = ant_info_ded_s::tx_mode_e_::tm1;
+  } else {
+    phy_cfg->ant_info.explicit_value().tx_mode.value = ant_info_ded_s::tx_mode_e_::tm2;
+  }
   phy_cfg->ant_info.explicit_value().ue_tx_ant_sel.set(setup_e::release);
 
   if (is_setup) {
@@ -1511,18 +1511,23 @@ void rrc::ue::send_connection_setup(bool is_setup)
   sched_cfg.maxharq_tx              = parent->cfg.mac_cnfg.ul_sch_cfg.max_harq_tx.to_number();
   sched_cfg.continuous_pusch = false;   
   sched_cfg.aperiodic_cqi_period = parent->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC?parent->cfg.cqi_cfg.period:0; 
-  sched_cfg.ue_bearers[0].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH; 
-  sched_cfg.ue_bearers[1].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH; 
-  sched_cfg.sr_I       = sr_I; 
-  sched_cfg.sr_N_pucch = sr_N_pucch; 
-  sched_cfg.sr_enabled = true;
-  sched_cfg.cqi_pucch  = cqi_pucch; 
-  sched_cfg.cqi_idx    = cqi_idx; 
-  sched_cfg.cqi_enabled = parent->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_PERIODIC;
+  sched_cfg.ue_bearers[0].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+  sched_cfg.ue_bearers[1].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
+  if (parent->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC) {
+    sched_cfg.aperiodic_cqi_period                   = parent->cfg.cqi_cfg.mode == parent->cfg.cqi_cfg.period;
+    sched_cfg.dl_cfg.cqi_report.aperiodic_configured = true;
+  } else {
+    sched_cfg.dl_cfg.cqi_report.pmi_idx             = cqi_idx;
+    sched_cfg.dl_cfg.cqi_report.periodic_configured = true;
+  }
+  sched_cfg.pucch_cfg.I_sr              = sr_I;
+  sched_cfg.pucch_cfg.n_pucch_sr        = sr_N_pucch;
+  sched_cfg.pucch_cfg.sr_configured     = true;
+  sched_cfg.pucch_cfg.n_pucch           = cqi_pucch;
   sched_cfg.pucch_cfg.delta_pucch_shift = parent->sib2.rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number();
   sched_cfg.pucch_cfg.N_cs              = parent->sib2.rr_cfg_common.pucch_cfg_common.n_cs_an;
   sched_cfg.pucch_cfg.n_rb_2            = parent->sib2.rr_cfg_common.pucch_cfg_common.n_rb_cqi;
-  sched_cfg.pucch_cfg.n1_pucch_an       = parent->sib2.rr_cfg_common.pucch_cfg_common.n1_pucch_an;
+  sched_cfg.pucch_cfg.N_pucch_1         = parent->sib2.rr_cfg_common.pucch_cfg_common.n1_pucch_an;
 
   // Configure MAC 
   parent->mac->ue_cfg(rnti, &sched_cfg);
@@ -1539,7 +1544,6 @@ void rrc::ue::send_connection_setup(bool is_setup)
 
   // Configure PHY layer
   parent->phy->set_config_dedicated(rnti, phy_cfg);
-  parent->phy->set_conf_dedicated_ack(rnti, false);
   parent->mac->set_dl_ant_info(rnti, &phy_cfg->ant_info);
   parent->mac->phy_config_enabled(rnti, false);
 
@@ -1679,16 +1683,9 @@ void rrc::ue::send_connection_reconf(srslte::byte_buffer_t *pdu)
   conn_reconf->rr_cfg_ded.phys_cfg_ded_present = true;
   phys_cfg_ded_s* phy_cfg                      = &conn_reconf->rr_cfg_ded.phys_cfg_ded;
 
-  if (parent->cfg.antenna_info.tx_mode > ant_info_ded_s::tx_mode_e_::tm1) {
-    phy_cfg->ant_info_present = true;
-    phy_cfg->ant_info.set(phys_cfg_ded_s::ant_info_c_::types::explicit_value);
-    phy_cfg->ant_info.explicit_value() = parent->cfg.antenna_info;
-  } else {
-    phy_cfg->ant_info_present = true;
-    phy_cfg->ant_info.set(phys_cfg_ded_s::ant_info_c_::types::explicit_value);
-    phy_cfg->ant_info.explicit_value().tx_mode.value = ant_info_ded_s::tx_mode_e_::tm1;
-    phy_cfg->ant_info.explicit_value().ue_tx_ant_sel.set(setup_e::release);
-  }
+  phy_cfg->ant_info_present = true;
+  phy_cfg->ant_info.set(phys_cfg_ded_s::ant_info_c_::types::explicit_value);
+  phy_cfg->ant_info.explicit_value() = parent->cfg.antenna_info;
 
   // Configure PHY layer
   phy_cfg->cqi_report_cfg_present = true;
@@ -1714,6 +1711,7 @@ void rrc::ue::send_connection_reconf(srslte::byte_buffer_t *pdu)
       phy_cfg->cqi_report_cfg.cqi_report_periodic.set(cqi_report_periodic_c::types::setup);
       phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx_present = true;
       phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx         = 483;
+      parent->rrc_log->console("\nWarning: Only 1 user is supported in TM3 and TM4\n\n");
     } else {
       phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx_present = false;
     }
@@ -1724,7 +1722,6 @@ void rrc::ue::send_connection_reconf(srslte::byte_buffer_t *pdu)
   phy_cfg->pdsch_cfg_ded.p_a     = parent->cfg.pdsch_cfg;
 
   parent->phy->set_config_dedicated(rnti, phy_cfg);
-  parent->phy->set_conf_dedicated_ack(rnti, false);
   parent->mac->set_dl_ant_info(rnti, &phy_cfg->ant_info);
   parent->mac->phy_config_enabled(rnti, false);
 
@@ -1742,7 +1739,7 @@ void rrc::ue::send_connection_reconf(srslte::byte_buffer_t *pdu)
   conn_reconf->rr_cfg_ded.drb_to_add_mod_list.resize(1);
   if (get_drbid_config(&conn_reconf->rr_cfg_ded.drb_to_add_mod_list[0], 1)) {
     parent->rrc_log->error("Getting DRB1 configuration\n");
-    printf("The QCI %d for DRB1 is invalid or not configured.\n", erabs[5].qos_params.qCI.QCI);
+    parent->rrc_log->console("The QCI %d for DRB1 is invalid or not configured.\n", erabs[5].qos_params.qCI.QCI);
     return;
   }
   
@@ -1829,8 +1826,8 @@ void rrc::ue::send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBE
     // Get DRB configuration
     drb_to_add_mod_s drb_item;
     if (get_drbid_config(&drb_item, lcid - 2)) {
-      parent->rrc_log->error("Getting DRB configuration\n");    
-      printf("ERROR: The QCI %d is invalid or not configured.\n", erabs[lcid+4].qos_params.qCI.QCI);
+      parent->rrc_log->error("Getting DRB configuration\n");
+      parent->rrc_log->console("ERROR: The QCI %d is invalid or not configured.\n", erabs[lcid + 4].qos_params.qCI.QCI);
       return;
     }
 
@@ -1921,12 +1918,14 @@ bool rrc::ue::select_security_algorithms() {
     switch (parent->cfg.eea_preference_list[i]) {
     case srslte::CIPHERING_ALGORITHM_ID_EEA0:
       // “all bits equal to 0” – UE supports no other algorithm than EEA0,
+#if 0
       zero_vector = true;
       for (int j = 0; j < LIBLTE_S1AP_ENCRYPTIONALGORITHMS_BIT_STRING_LEN; j++) {
         if (security_capabilities.encryptionAlgorithms.buffer[j]) {
           zero_vector = false;
         }
       }
+#endif
       if (zero_vector == true) {
         cipher_algo = srslte::CIPHERING_ALGORITHM_ID_EEA0;
         enc_algo_found = true;
@@ -1965,11 +1964,13 @@ bool rrc::ue::select_security_algorithms() {
     case srslte::INTEGRITY_ALGORITHM_ID_EIA0:
       // “all bits equal to 0” – UE supports no other algorithm than EEA0,
       zero_vector = true;
+#if 0
       for (int j = 0; j < LIBLTE_S1AP_INTEGRITYPROTECTIONALGORITHMS_BIT_STRING_LEN; j++) {
         if (security_capabilities.integrityProtectionAlgorithms.buffer[j]) {
           zero_vector = false;
         }
       }
+#endif
       if (zero_vector == true) {
         integ_algo = srslte::INTEGRITY_ALGORITHM_ID_EIA0;
         integ_algo_found = true;
@@ -2038,7 +2039,7 @@ void rrc::ue::send_dl_dcch(dl_dcch_msg_s* dl_dcch_msg, byte_buffer_t* pdu)
     pdu->N_bytes = 1u + (uint32_t)bref.distance_bytes(pdu->msg);
 
     char buf[32];
-    sprintf(buf, "SRB0 - rnti=0x%x", rnti);
+    sprintf(buf, "SRB1 - rnti=0x%x", rnti);
     parent->log_rrc_message(buf, Tx, pdu, *dl_dcch_msg);
 
     parent->pdcp->write_sdu(rnti, RB_ID_SRB1, pdu);
@@ -2205,12 +2206,15 @@ int rrc::ue::cqi_allocate(uint32_t period, uint16_t* pmi_idx, uint16_t* n_pucch)
   parent->cqi_sched.nof_users[i_min][j_min]++; 
   cqi_sched_prb_idx = i_min; 
   cqi_sched_sf_idx  = j_min; 
-  cqi_allocated     = true; 
-  cqi_idx           = *pmi_idx; 
-  cqi_pucch         = *n_pucch; 
- 
-  parent->rrc_log->info("Allocated CQI resources for time-frequency slot (%d, %d), n_pucch_2=%d, pmi_cfg_idx=%d\n", 
-                        cqi_sched_prb_idx, cqi_sched_sf_idx, *n_pucch, *pmi_idx);
+  cqi_allocated     = true;
+  cqi_idx           = *pmi_idx;
+  cqi_pucch         = *n_pucch;
+
+  parent->rrc_log->info("Allocated CQI resources for time-frequency slot (%d, %d), n_pucch_2=%d, pmi_cfg_idx=%d\n",
+                        cqi_sched_prb_idx,
+                        cqi_sched_sf_idx,
+                        *n_pucch,
+                        *pmi_idx);
 
   return 0; 
 }

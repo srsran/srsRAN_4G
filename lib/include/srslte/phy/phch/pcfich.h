@@ -36,13 +36,14 @@
 #define SRSLTE_PCFICH_H
 
 #include "srslte/config.h"
+#include "srslte/phy/ch_estimation/chest_dl.h"
 #include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/mimo/precoding.h"
 #include "srslte/phy/mimo/layermap.h"
-#include "srslte/phy/modem/mod.h"
+#include "srslte/phy/mimo/precoding.h"
 #include "srslte/phy/modem/demod_soft.h"
-#include "srslte/phy/scrambling/scrambling.h"
+#include "srslte/phy/modem/mod.h"
 #include "srslte/phy/phch/regs.h"
+#include "srslte/phy/scrambling/scrambling.h"
 
 #define PCFICH_CFI_LEN  32
 #define PCFICH_RE       PCFICH_CFI_LEN/2
@@ -73,9 +74,9 @@ typedef struct SRSLTE_API {
   float data_f[PCFICH_CFI_LEN]; 
 
   /* tx & rx objects */
-  srslte_modem_table_t mod;  
-  srslte_sequence_t seq[SRSLTE_NSUBFRAMES_X_FRAME];
-  
+  srslte_modem_table_t mod;
+  srslte_sequence_t    seq[SRSLTE_NOF_SF_X_FRAME];
+
 } srslte_pcfich_t;
 
 SRSLTE_API int srslte_pcfich_init(srslte_pcfich_t *q,
@@ -87,25 +88,12 @@ SRSLTE_API int srslte_pcfich_set_cell(srslte_pcfich_t *q,
 
 SRSLTE_API void srslte_pcfich_free(srslte_pcfich_t *q);
 
-SRSLTE_API int srslte_pcfich_decode(srslte_pcfich_t *q, 
-                             cf_t *sf_symbols, 
-                             cf_t *ce[SRSLTE_MAX_PORTS],
-                             float noise_estimate, 
-                             uint32_t subframe, 
-                             uint32_t *cfi, 
-                             float *corr_result);
+SRSLTE_API int srslte_pcfich_decode(srslte_pcfich_t*       q,
+                                    srslte_dl_sf_cfg_t*    sf,
+                                    srslte_chest_dl_res_t* channel,
+                                    cf_t*                  sf_symbols[SRSLTE_MAX_PORTS],
+                                    float*                 corr_result);
 
-SRSLTE_API int srslte_pcfich_decode_multi(srslte_pcfich_t *q, 
-                                          cf_t *sf_symbols[SRSLTE_MAX_PORTS], 
-                                          cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
-                                          float noise_estimate, 
-                                          uint32_t subframe, 
-                                          uint32_t *cfi, 
-                                          float *corr_result);
-
-SRSLTE_API int srslte_pcfich_encode(srslte_pcfich_t *q, 
-                             uint32_t cfi, 
-                             cf_t *sf_symbols[SRSLTE_MAX_PORTS],
-                             uint32_t subframe);
+SRSLTE_API int srslte_pcfich_encode(srslte_pcfich_t* q, srslte_dl_sf_cfg_t* sf, cf_t* sf_symbols[SRSLTE_MAX_PORTS]);
 
 #endif // SRSLTE_PCFICH_H

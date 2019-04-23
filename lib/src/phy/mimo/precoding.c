@@ -422,7 +422,7 @@ int srslte_predecoding_diversity_gen_(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_
     }
     return i;
   } else {
-    fprintf(stderr, "Number of ports must be 2 or 4 for transmit diversity (nof_ports=%d)\n", nof_ports);
+    ERROR("Number of ports must be 2 or 4 for transmit diversity (nof_ports=%d)\n", nof_ports);
     return -1;
   }
 }
@@ -662,7 +662,7 @@ int srslte_predecoding_diversity_csi(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_M
     }
     return i;
   } else {
-    fprintf(stderr, "Number of ports must be 2 or 4 for transmit diversity (nof_ports=%d)\n", nof_ports);
+    ERROR("Number of ports must be 2 or 4 for transmit diversity (nof_ports=%d)\n", nof_ports);
     return -1;
   }
 }
@@ -706,8 +706,8 @@ int srslte_precoding_mimo_2x2_gen(cf_t W[2][2], cf_t *y[SRSLTE_MAX_PORTS], cf_t 
       Gx[1][0] = conjf(G[0][1]); 
       Gx[1][1] = conjf(G[1][1]); 
     } else {
-      // MMSE equalizer: Gx = (G'G+I)      
-      fprintf(stderr, "MMSE MIMO decoder not implemented\n");
+      // MMSE equalizer: Gx = (G'G+I)
+      ERROR("MMSE MIMO decoder not implemented\n");
       return -1; 
     }
     
@@ -909,13 +909,13 @@ static int srslte_predecoding_ccd_zf(cf_t *y[SRSLTE_MAX_PORTS],
         return srslte_predecoding_ccd_2x2_zf(y, h, x, nof_symbols, scaling);
       }
     } else {
-      DEBUG("Error predecoding CCD: Invalid number of layers %d\n", nof_layers);
+      ERROR("Error predecoding CCD: Invalid number of layers %d\n", nof_layers);
       return -1;
     }
   } else if (nof_ports == 4) {
-    DEBUG("Error predecoding CCD: Only 2 ports supported\n");
+    ERROR("Error predecoding CCD: Only 2 ports supported\n");
   } else {
-    DEBUG("Error predecoding CCD: Invalid combination of ports %d and rx antennax %d\n", nof_ports, nof_rxant);
+    ERROR("Error predecoding CCD: Invalid combination of ports %d and rx antennax %d\n", nof_ports, nof_rxant);
   }
   return SRSLTE_ERROR;
 }
@@ -1107,13 +1107,13 @@ int srslte_predecoding_ccd_mmse(cf_t *y[SRSLTE_MAX_PORTS],
         return srslte_predecoding_ccd_2x2_mmse(y, h, x, nof_symbols, scaling, noise_estimate);
       }
     } else {
-      DEBUG("Error predecoding CCD: Invalid number of layers %d\n", nof_layers);
+      ERROR("Error predecoding CCD: Invalid number of layers %d\n", nof_layers);
       return -1;
     }
   } else if (nof_ports == 4) {
-    DEBUG("Error predecoding CCD: Only 2 ports supported\n");
+    ERROR("Error predecoding CCD: Only 2 ports supported\n");
   } else {
-    DEBUG("Error predecoding CCD: Invalid combination of ports %d and rx antennax %d\n", nof_ports, nof_rxant);
+    ERROR("Error predecoding CCD: Invalid combination of ports %d and rx antennax %d\n", nof_ports, nof_rxant);
   }
   return SRSLTE_ERROR;
 }
@@ -1137,7 +1137,7 @@ static int srslte_predecoding_multiplex_2x2_zf_csi(cf_t *y[SRSLTE_MAX_PORTS],
       norm = 2.0f / scaling;
       break;
     default:
-      DEBUG("Wrong codebook_idx=%d", codebook_idx);
+      ERROR("Wrong codebook_idx=%d", codebook_idx);
       return SRSLTE_ERROR;
   }
 
@@ -1169,7 +1169,7 @@ static int srslte_predecoding_multiplex_2x2_zf_csi(cf_t *y[SRSLTE_MAX_PORTS],
         h11 = srslte_simd_cf_sub(h01i, srslte_simd_cf_mulj(h11i));
         break;
       default:
-        fprintf(stderr, "Wrong codebook_idx=%d\n", codebook_idx);
+        ERROR("Wrong codebook_idx=%d\n", codebook_idx);
         return SRSLTE_ERROR;
     }
 
@@ -1211,7 +1211,7 @@ static int srslte_predecoding_multiplex_2x2_zf_csi(cf_t *y[SRSLTE_MAX_PORTS],
         h11 = h[0][1][i] - _Complex_I * h[1][1][i];
         break;
       default:
-        fprintf(stderr, "Wrong codebook_idx=%d\n", codebook_idx);
+        ERROR("Wrong codebook_idx=%d\n", codebook_idx);
         return SRSLTE_ERROR;
     }
 
@@ -1278,7 +1278,7 @@ static int srslte_predecoding_multiplex_2x2_zf(cf_t *y[SRSLTE_MAX_PORTS],
         h11 = srslte_simd_cf_sub(h01i, srslte_simd_cf_mulj(h11i));
         break;
       default:
-        fprintf(stderr, "Wrong codebook_idx=%d\n", codebook_idx);
+        ERROR("Wrong codebook_idx=%d\n", codebook_idx);
         return SRSLTE_ERROR;
     }
 
@@ -1318,7 +1318,7 @@ static int srslte_predecoding_multiplex_2x2_zf(cf_t *y[SRSLTE_MAX_PORTS],
         h11 = h[0][1][i] - _Complex_I * h[1][1][i];
         break;
       default:
-        fprintf(stderr, "Wrong codebook_idx=%d\n", codebook_idx);
+        ERROR("Wrong codebook_idx=%d\n", codebook_idx);
         return SRSLTE_ERROR;
     }
 
@@ -1380,7 +1380,7 @@ static int srslte_predecoding_multiplex_2x2_mmse_csi(cf_t *y[SRSLTE_MAX_PORTS],
         h11 = srslte_simd_cf_sub(h01i, srslte_simd_cf_mulj(h11i));
         break;
       default:
-        fprintf(stderr, "Wrong codebook_idx=%d\n", codebook_idx);
+        ERROR("Wrong codebook_idx=%d\n", codebook_idx);
         return SRSLTE_ERROR;
     }
 
@@ -1422,7 +1422,7 @@ static int srslte_predecoding_multiplex_2x2_mmse_csi(cf_t *y[SRSLTE_MAX_PORTS],
         h11 = h[0][1][i] - _Complex_I * h[1][1][i];
         break;
       default:
-        fprintf(stderr, "Wrong codebook_idx=%d\n", codebook_idx);
+        ERROR("Wrong codebook_idx=%d\n", codebook_idx);
         return SRSLTE_ERROR;
     }
 
@@ -1493,7 +1493,7 @@ static int srslte_predecoding_multiplex_2x2_mmse(cf_t *y[SRSLTE_MAX_PORTS],
         h11 = srslte_simd_cf_sub(h01i, srslte_simd_cf_mulj(h11i));
         break;
       default:
-        fprintf(stderr, "Wrong codebook_idx=%d\n", codebook_idx);
+        ERROR("Wrong codebook_idx=%d\n", codebook_idx);
         return SRSLTE_ERROR;
     }
 
@@ -1532,7 +1532,7 @@ static int srslte_predecoding_multiplex_2x2_mmse(cf_t *y[SRSLTE_MAX_PORTS],
         h11 = h[0][1][i] - _Complex_I*h[1][1][i];
         break;
       default:
-        fprintf(stderr, "Wrong codebook_idx=%d\n", codebook_idx);
+        ERROR("Wrong codebook_idx=%d\n", codebook_idx);
         return SRSLTE_ERROR;
     }
 
@@ -1579,7 +1579,7 @@ static int srslte_predecoding_multiplex_2x1_mrc(cf_t *y[SRSLTE_MAX_PORTS],
           hx = srslte_simd_cf_sub(h0xi, srslte_simd_cf_mulj(h1xi));
           break;
         default:
-          fprintf(stderr, "Wrong codebook_idx=%d\n", codebook_idx);
+          ERROR("Wrong codebook_idx=%d\n", codebook_idx);
           return SRSLTE_ERROR;
       }
 
@@ -1614,7 +1614,7 @@ static int srslte_predecoding_multiplex_2x1_mrc(cf_t *y[SRSLTE_MAX_PORTS],
         h1 = h[0][1][i] - _Complex_I * h[1][1][i];
         break;
       default:
-        fprintf(stderr, "Wrong codebook_idx=%d\n", codebook_idx);
+        ERROR("Wrong codebook_idx=%d\n", codebook_idx);
         return SRSLTE_ERROR;
     }
 
@@ -1663,7 +1663,7 @@ static int srslte_predecoding_multiplex_2x1_mrc_csi(cf_t *y[SRSLTE_MAX_PORTS],
           hx = srslte_simd_cf_sub(h0xi, srslte_simd_cf_mulj(h1xi));
           break;
         default:
-          fprintf(stderr, "Wrong codebook_idx=%d\n", codebook_idx);
+          ERROR("Wrong codebook_idx=%d\n", codebook_idx);
           return SRSLTE_ERROR;
       }
 
@@ -1699,7 +1699,7 @@ static int srslte_predecoding_multiplex_2x1_mrc_csi(cf_t *y[SRSLTE_MAX_PORTS],
         h1 = h[0][1][i] - _Complex_I * h[1][1][i];
         break;
       default:
-        fprintf(stderr, "Wrong codebook_idx=%d\n", codebook_idx);
+        ERROR("Wrong codebook_idx=%d\n", codebook_idx);
         return SRSLTE_ERROR;
     }
 
@@ -1756,9 +1756,9 @@ static int srslte_predecoding_multiplex(cf_t *y[SRSLTE_MAX_PORTS],
       }
     }
   } else if (nof_ports == 4) {
-    DEBUG("Error predecoding multiplex: not implemented for %d Tx ports", nof_ports);
+    ERROR("Error predecoding multiplex: not implemented for %d Tx ports", nof_ports);
   } else {
-    DEBUG("Error predecoding multiplex: Invalid combination of ports %d and rx antennas %d\n", nof_ports, nof_rxant);
+    ERROR("Error predecoding multiplex: Invalid combination of ports %d and rx antennas %d\n", nof_ports, nof_rxant);
   }
   return SRSLTE_ERROR;
 }
@@ -1768,63 +1768,67 @@ void srslte_predecoding_set_mimo_decoder (srslte_mimo_decoder_t _mimo_decoder) {
 }
 
 /* 36.211 v10.3.0 Section 6.3.4 */
-int srslte_predecoding_type(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
-                            cf_t *x[SRSLTE_MAX_LAYERS], float *csi[SRSLTE_MAX_CODEWORDS], int nof_rxant, int nof_ports, int nof_layers,
-                            int codebook_idx, int nof_symbols, srslte_mimo_type_t type, float scaling,
-                            float noise_estimate) {
+int srslte_predecoding_type(cf_t*              y[SRSLTE_MAX_PORTS],
+                            cf_t*              h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
+                            cf_t*              x[SRSLTE_MAX_LAYERS],
+                            float*             csi[SRSLTE_MAX_CODEWORDS],
+                            int                nof_rxant,
+                            int                nof_ports,
+                            int                nof_layers,
+                            int                codebook_idx,
+                            int                nof_symbols,
+                            srslte_tx_scheme_t type,
+                            float              scaling,
+                            float              noise_estimate)
+{
 
   if (nof_ports > SRSLTE_MAX_PORTS) {
-    fprintf(stderr, "Maximum number of ports is %d (nof_ports=%d)\n", SRSLTE_MAX_PORTS,
-        nof_ports);
+    ERROR("Maximum number of ports is %d (nof_ports=%d)\n", SRSLTE_MAX_PORTS, nof_ports);
     return -1;
   }
   if (nof_layers > SRSLTE_MAX_LAYERS) {
-    fprintf(stderr, "Maximum number of layers is %d (nof_layers=%d)\n",
-        SRSLTE_MAX_LAYERS, nof_layers);
+    ERROR("Maximum number of layers is %d (nof_layers=%d)\n", SRSLTE_MAX_LAYERS, nof_layers);
     return -1;
   }
 
   switch (type) {
-  case SRSLTE_MIMO_TYPE_CDD:
-    if (nof_layers >= 2 && nof_layers <= 4) {
-      switch (mimo_decoder) {
-        case SRSLTE_MIMO_DECODER_ZF:
-          return srslte_predecoding_ccd_zf(y, h, x, csi, nof_rxant, nof_ports, nof_layers, nof_symbols, scaling);
-          break;
-        case SRSLTE_MIMO_DECODER_MMSE:
-          return srslte_predecoding_ccd_mmse(y, h, x, csi, nof_rxant, nof_ports, nof_layers, nof_symbols, scaling, noise_estimate);
-          break;
+    case SRSLTE_TXSCHEME_CDD:
+      if (nof_layers >= 2 && nof_layers <= 4) {
+        switch (mimo_decoder) {
+          case SRSLTE_MIMO_DECODER_ZF:
+            return srslte_predecoding_ccd_zf(y, h, x, csi, nof_rxant, nof_ports, nof_layers, nof_symbols, scaling);
+          case SRSLTE_MIMO_DECODER_MMSE:
+            return srslte_predecoding_ccd_mmse(
+                y, h, x, csi, nof_rxant, nof_ports, nof_layers, nof_symbols, scaling, noise_estimate);
+        }
+      } else {
+        ERROR("Invalid number of layers %d\n", nof_layers);
+        return -1;
       }
-    } else {
-      DEBUG("Invalid number of layers %d\n", nof_layers);
       return -1;
-    }
-    return -1; 
-  case SRSLTE_MIMO_TYPE_SINGLE_ANTENNA:
-    if (nof_ports == 1 && nof_layers == 1) {
-      return srslte_predecoding_single_multi(y, h[0], x[0], csi, nof_rxant, nof_symbols, scaling, noise_estimate);
-    } else {
-      fprintf(stderr,
-          "Number of ports and layers must be 1 for transmission on single antenna ports (%d, %d)\n", nof_ports, nof_layers);
-      return -1;
-    }
-    break;
-  case SRSLTE_MIMO_TYPE_TX_DIVERSITY:
-    if (nof_ports == nof_layers) {
-      return srslte_predecoding_diversity_multi(y, h, x, csi, nof_rxant, nof_ports, nof_symbols, scaling);
-    } else {
-      fprintf(stderr,
-          "Error number of layers must equal number of ports in transmit diversity\n");
-      return -1;
-    }
-    break;
-  case SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX:
-    return srslte_predecoding_multiplex(y, h, x, csi, nof_rxant, nof_ports, nof_layers, codebook_idx, nof_symbols,
-                                        scaling, noise_estimate);
+    case SRSLTE_TXSCHEME_PORT0:
+      if (nof_ports == 1 && nof_layers == 1) {
+        return srslte_predecoding_single_multi(y, h[0], x[0], csi, nof_rxant, nof_symbols, scaling, noise_estimate);
+      } else {
+        ERROR("Number of ports and layers must be 1 for transmission on single antenna ports (%d, %d)\n",
+              nof_ports,
+              nof_layers);
+        return -1;
+      }
+    case SRSLTE_TXSCHEME_DIVERSITY:
+      if (nof_ports == nof_layers) {
+        return srslte_predecoding_diversity_multi(y, h, x, csi, nof_rxant, nof_ports, nof_symbols, scaling);
+      } else {
+        ERROR("Error number of layers must equal number of ports in transmit diversity\n");
+        return -1;
+      }
+    case SRSLTE_TXSCHEME_SPATIALMUX:
+      return srslte_predecoding_multiplex(
+          y, h, x, csi, nof_rxant, nof_ports, nof_layers, codebook_idx, nof_symbols, scaling, noise_estimate);
     default:
+      ERROR("Invalid Txscheme=%d\n", type);
       return SRSLTE_ERROR;
   }
-  return SRSLTE_ERROR;
 }
 
 
@@ -1888,7 +1892,7 @@ int srslte_precoding_diversity(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PO
     }
     return 4 * i;
   } else {
-    fprintf(stderr, "Number of ports must be 2 or 4 for transmit diversity (nof_ports=%d)\n", nof_ports);
+    ERROR("Number of ports must be 2 or 4 for transmit diversity (nof_ports=%d)\n", nof_ports);
     return -1;
   }
 }
@@ -1961,7 +1965,7 @@ int srslte_precoding_cdd(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PORTS], 
 {
   if (nof_ports == 2) {
     if (nof_layers != 2) {
-      DEBUG("Invalid number of layers %d for 2 ports\n", nof_layers);
+      ERROR("Invalid number of layers %d for 2 ports\n", nof_layers);
       return -1;
     }
 #ifdef LV_HAVE_AVX
@@ -1974,10 +1978,10 @@ int srslte_precoding_cdd(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PORTS], 
 #endif /* LV_HAVE_SSE */
 #endif /* LV_HAVE_AVX */
   } else if (nof_ports == 4) {
-    DEBUG("Not implemented\n");
+    ERROR("Not implemented\n");
     return -1;
   } else {
-    DEBUG("Number of ports must be 2 or 4 for transmit diversity (nof_ports=%d)\n", nof_ports);
+    ERROR("Number of ports must be 2 or 4 for transmit diversity (nof_ports=%d)\n", nof_ports);
     return -1;
   }
 }
@@ -2007,8 +2011,10 @@ int srslte_precoding_multiplex(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PO
           srslte_vec_sc_prod_ccc(x[0], -_Complex_I * scaling, y[1], nof_symbols);
           break;
         default:
-          fprintf(stderr, "Invalid multiplex combination: codebook_idx=%d, nof_layers=%d, nof_ports=%d\n",
-                  codebook_idx, nof_layers, nof_ports);
+          ERROR("Invalid multiplex combination: codebook_idx=%d, nof_layers=%d, nof_ports=%d\n",
+                codebook_idx,
+                nof_layers,
+                nof_ports);
           return SRSLTE_ERROR;
       }
     } else if (nof_layers == 2) {
@@ -2086,8 +2092,10 @@ int srslte_precoding_multiplex(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PO
           break;
         case 3:
         default:
-          fprintf(stderr, "Invalid multiplex combination: codebook_idx=%d, nof_layers=%d, nof_ports=%d\n",
-                  codebook_idx, nof_layers, nof_ports);
+          ERROR("Invalid multiplex combination: codebook_idx=%d, nof_layers=%d, nof_ports=%d\n",
+                codebook_idx,
+                nof_layers,
+                nof_ports);
           return SRSLTE_ERROR;
       }
     } else {
@@ -2100,41 +2108,44 @@ int srslte_precoding_multiplex(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PO
 }
 
 /* 36.211 v10.3.0 Section 6.3.4 */
-int srslte_precoding_type(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PORTS], int nof_layers,
-    int nof_ports, int codebook_idx, int nof_symbols, float scaling, srslte_mimo_type_t type) {
+int srslte_precoding_type(cf_t*              x[SRSLTE_MAX_LAYERS],
+                          cf_t*              y[SRSLTE_MAX_PORTS],
+                          int                nof_layers,
+                          int                nof_ports,
+                          int                codebook_idx,
+                          int                nof_symbols,
+                          float              scaling,
+                          srslte_tx_scheme_t type)
+{
 
   if (nof_ports > SRSLTE_MAX_PORTS) {
-    fprintf(stderr, "Maximum number of ports is %d (nof_ports=%d)\n", SRSLTE_MAX_PORTS,
-        nof_ports);
+    ERROR("Maximum number of ports is %d (nof_ports=%d)\n", SRSLTE_MAX_PORTS, nof_ports);
     return -1;
   }
   if (nof_layers > SRSLTE_MAX_LAYERS) {
-    fprintf(stderr, "Maximum number of layers is %d (nof_layers=%d)\n",
-        SRSLTE_MAX_LAYERS, nof_layers);
+    ERROR("Maximum number of layers is %d (nof_layers=%d)\n", SRSLTE_MAX_LAYERS, nof_layers);
     return -1;
   }
 
   switch (type) {
-    case SRSLTE_MIMO_TYPE_CDD:
+    case SRSLTE_TXSCHEME_CDD:
       return srslte_precoding_cdd(x, y, nof_layers, nof_ports, nof_symbols, scaling);
-    case SRSLTE_MIMO_TYPE_SINGLE_ANTENNA:
+    case SRSLTE_TXSCHEME_PORT0:
       if (nof_ports == 1 && nof_layers == 1) {
         return srslte_precoding_single(x[0], y[0], nof_symbols, scaling);
       } else {
-        fprintf(stderr,
-                "Number of ports and layers must be 1 for transmission on single antenna ports\n");
+        ERROR("Number of ports and layers must be 1 for transmission on single antenna ports\n");
         return -1;
       }
       break;
-    case SRSLTE_MIMO_TYPE_TX_DIVERSITY:
+    case SRSLTE_TXSCHEME_DIVERSITY:
       if (nof_ports == nof_layers) {
         return srslte_precoding_diversity(x, y, nof_ports, nof_symbols, scaling);
       } else {
-        fprintf(stderr,
-                "Error number of layers must equal number of ports in transmit diversity\n");
+        ERROR("Error number of layers must equal number of ports in transmit diversity\n");
         return -1;
       }
-    case SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX:
+    case SRSLTE_TXSCHEME_SPATIALMUX:
       return srslte_precoding_multiplex(x, y, nof_layers, nof_ports, codebook_idx, (uint32_t) nof_symbols, scaling);
     default:
       return SRSLTE_ERROR;
@@ -2917,7 +2928,7 @@ int srslte_precoding_cn(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], uint32_t no
     *cn = srslte_precoding_2x2_cn_gen(h, nof_symbols);
     return SRSLTE_SUCCESS;
   } else {
-    DEBUG("MIMO Condition Number calculation not implemented for %d×%d", nof_tx_antennas, nof_rx_antennas);
+    ERROR("MIMO Condition Number calculation not implemented for %d×%d\n", nof_tx_antennas, nof_rx_antennas);
     return SRSLTE_ERROR;
   }
 }

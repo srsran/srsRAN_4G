@@ -40,19 +40,19 @@ demux::demux() : mac_msg(20), mch_mac_msg(20), pending_mac_msg(20), rlc(NULL)
 {
 }
 
-void demux::init(phy_interface_mac_common* phy_h_, rlc_interface_mac *rlc_, srslte::log* log_h_, srslte::timers::timer* time_alignment_timer_)
+void demux::init(phy_interface_mac_common* phy_h,
+                 rlc_interface_mac*        rlc,
+                 mac_interface_demux*      mac,
+                 srslte::log*              log_h,
+                 srslte::timers::timer*    time_alignment_timer)
 {
-  phy_h     = phy_h_; 
-  log_h     = log_h_; 
-  rlc       = rlc_;
-  time_alignment_timer = time_alignment_timer_;
+  this->phy_h                = phy_h;
+  this->log_h                = log_h;
+  this->rlc                  = rlc;
+  this->mac                  = mac;
+  this->time_alignment_timer = time_alignment_timer;
   pdus.init(this, log_h);
-   bzero(&mch_lcids, SRSLTE_N_MCH_LCIDS);
-}
-
-void demux::set_uecrid_callback(bool (*callback)(void*,uint64_t), void *arg) {
-  uecrid_callback     = callback;
-  uecrid_callback_arg = arg; 
+  bzero(&mch_lcids, SRSLTE_N_MCH_LCIDS);
 }
 
 bool demux::get_uecrid_successful() {
@@ -94,13 +94,13 @@ void demux::push_pdu_temp_crnti(uint8_t *buff, uint32_t nof_bytes)
     // Unpack DLSCH MAC PDU 
     pending_mac_msg.init_rx(nof_bytes);
     pending_mac_msg.parse_packet(buff);
-    
-    // Look for Contention Resolution UE ID 
-    is_uecrid_successful = false; 
+
+    // Look for Contention Resolution UE ID
+    is_uecrid_successful = false;
     while(pending_mac_msg.next() && !is_uecrid_successful) {
       if (pending_mac_msg.get()->ce_type() == srslte::sch_subh::CON_RES_ID) {
         Debug("Found Contention Resolution ID CE\n");
-        is_uecrid_successful = uecrid_callback(uecrid_callback_arg, pending_mac_msg.get()->get_con_res_id());
+        is_uecrid_successful = mac->contention_resolution_id_rcv(pending_mac_msg.get()->get_con_res_id());
       }
     }
     
@@ -118,21 +118,28 @@ void demux::push_pdu_temp_crnti(uint8_t *buff, uint32_t nof_bytes)
  * This function enqueues the packet and returns quickly because ACK
  * deadline is important here.
  */
-void demux::push_pdu(uint8_t *buff, uint32_t nof_bytes, uint32_t tstamp) {
-  return pdus.push(buff, nof_bytes, srslte::pdu_queue::DCH, tstamp);
+void demux::push_pdu(uint8_t* buff, uint32_t nof_bytes)
+{
+
+  // Process Real-Time PDUs
+  process_sch_pdu_rt(buff, nof_bytes);
+
+  return pdus.push(buff, nof_bytes, srslte::pdu_queue::DCH);
 }
 
 /* Demultiplexing of MAC PDU associated with SI-RNTI. The PDU passes through
-* the MAC in transparent mode.
-*/
-void demux::push_pdu_bcch(uint8_t *buff, uint32_t nof_bytes, uint32_t tstamp) {
-  pdus.push(buff, nof_bytes, srslte::pdu_queue::BCH, tstamp);
+ * the MAC in transparent mode.
+ */
+void demux::push_pdu_bcch(uint8_t* buff, uint32_t nof_bytes)
+{
+  pdus.push(buff, nof_bytes, srslte::pdu_queue::BCH);
 }
 
-void demux::push_pdu_mch(uint8_t *buff, uint32_t nof_bytes, uint32_t tstamp) {
+void demux::push_pdu_mch(uint8_t* buff, uint32_t nof_bytes)
+{
   uint8_t *mch_buffer_ptr = request_buffer(nof_bytes);
   memcpy(mch_buffer_ptr, buff, nof_bytes);
-  pdus.push(mch_buffer_ptr, nof_bytes, srslte::pdu_queue::MCH, tstamp);
+  pdus.push(mch_buffer_ptr, nof_bytes, srslte::pdu_queue::MCH);
   mch_buffer_ptr = NULL;
 }
 
@@ -141,7 +148,7 @@ bool demux::process_pdus()
   return pdus.process_pdus();
 }
 
-void demux::process_pdu(uint8_t *mac_pdu, uint32_t nof_bytes, srslte::pdu_queue::channel_t channel, uint32_t tstamp)
+void demux::process_pdu(uint8_t* mac_pdu, uint32_t nof_bytes, srslte::pdu_queue::channel_t channel)
 {
   Debug("Processing MAC PDU channel %d\n", channel);
   switch(channel) {
@@ -165,6 +172,25 @@ void demux::process_pdu(uint8_t *mac_pdu, uint32_t nof_bytes, srslte::pdu_queue:
   }
 }
 
+void demux::process_sch_pdu_rt(uint8_t* buff, uint32_t nof_bytes)
+{
+  srslte::sch_pdu mac_msg_rt(20);
+
+  mac_msg_rt.init_rx(nof_bytes);
+  mac_msg_rt.parse_packet(buff);
+
+  while (mac_msg_rt.next()) {
+    if (mac_msg_rt.get()->is_sdu()) {
+      // Ignore SDU
+    } else {
+      // Process MAC Control Element
+      if (!process_ce(mac_msg_rt.get())) {
+        Warning("Received Subheader with invalid or unknown LCID\n");
+      }
+    }
+  }
+}
+
 void demux::process_sch_pdu(srslte::sch_pdu *pdu_msg)
 {  
   while(pdu_msg->next()) {
@@ -177,13 +203,15 @@ void demux::process_sch_pdu(srslte::sch_pdu *pdu_msg)
           sum += x[i];
         }
         if (sum == 0) {
-          route_pdu = false; 
+          route_pdu = false;
           Warning("Received all zero PDU\n");
         }
       }
       // Route logical channel 
       if (route_pdu) {
-        Info("Delivering PDU for lcid=%d, %d bytes\n", pdu_msg->get()->get_sdu_lcid(), pdu_msg->get()->get_payload_size());
+        Info("Delivering PDU for lcid=%d, %d bytes\n",
+             pdu_msg->get()->get_sdu_lcid(),
+             pdu_msg->get()->get_payload_size());
         if (pdu_msg->get()->get_payload_size() < MAX_PDU_LEN) {
           rlc->write_pdu(pdu_msg->get()->get_sdu_lcid(), pdu_msg->get()->get_sdu_ptr(), pdu_msg->get()->get_payload_size());
         } else {
@@ -194,10 +222,7 @@ void demux::process_sch_pdu(srslte::sch_pdu *pdu_msg)
         }
       }
     } else {
-      // Process MAC Control Element
-      if (!process_ce(pdu_msg->get())) {
-        Warning("Received Subheader with invalid or unkonwn LCID\n");
-      }
+      // Ignore MAC Control Element
     }
   }      
 }
@@ -238,6 +263,7 @@ void demux::mch_start_rx(uint32_t lcid)
 }
 
 bool demux::process_ce(srslte::sch_subh *subh) {
+  uint32_t cc_idx = 0;
   switch(subh->ce_type()) {
     case srslte::sch_subh::CON_RES_ID:
       // Do nothing
@@ -250,6 +276,11 @@ bool demux::process_ce(srslte::sch_subh *subh) {
         time_alignment_timer->reset();
         time_alignment_timer->run();
       }
+      break;
+    case srslte::sch_subh::SCELL_ACTIVATION:
+      cc_idx = (uint32_t)subh->get_activation_deactivation_cmd();
+      phy_h->set_activation_deactivation_scell(cc_idx);
+      mac->reset_harq(cc_idx);
       break;
     case srslte::sch_subh::PADDING:
       break;

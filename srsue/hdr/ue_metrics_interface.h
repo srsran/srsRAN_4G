@@ -47,7 +47,7 @@ typedef struct {
 typedef struct {
   rf_metrics_t          rf;
   phy_metrics_t         phy;
-  mac_metrics_t         mac;
+  mac_metrics_t         mac[SRSLTE_MAX_CARRIERS];
   srslte::rlc_metrics_t rlc;
   gw_metrics_t          gw;
 }ue_metrics_t;

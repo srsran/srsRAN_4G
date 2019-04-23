@@ -24,15 +24,15 @@
  *
  */
 
+#include "srslte/srslte.h"
+#include <complex.h>
+#include <math.h>
+#include <memory.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <complex.h>
-#include <stdbool.h>
 #include <sys/time.h>
-#include <memory.h>
-#include <math.h>
-#include <srslte/srslte.h>
+#include <unistd.h>
 
 #include "srslte/phy/utils/mat.h"
 #include "srslte/phy/utils/simd.h"

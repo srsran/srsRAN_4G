@@ -84,7 +84,7 @@ public:
     
   int get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res);
   int get_ul_sched(uint32_t tti, ul_sched_t *ul_sched_res);
-  int get_mch_sched(bool is_mcch, dl_sched_t *dl_sched_res);
+  int  get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_t* dl_sched_res);
   void build_mch_sched(uint32_t tbs);
   void rl_failure(uint16_t rnti);
   void rl_ok(uint16_t rnti); 

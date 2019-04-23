@@ -81,7 +81,7 @@ public:
 
   void set_time_src(time_itf *source, time_format_t format);
 
-private:
+protected:
   logger *logger_h;
   bool    do_tti;
 

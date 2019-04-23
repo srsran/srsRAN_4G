@@ -49,7 +49,7 @@ public:
   class process_callback
   {
     public:
-      virtual void process_pdu(uint8_t *buff, uint32_t len, channel_t channel, uint32_t tstamp) = 0;
+      virtual void process_pdu(uint8_t* buff, uint32_t len, channel_t channel) = 0;
   };
 
   pdu_queue(uint32_t pool_size = DEFAULT_POOL_SIZE) : pool(pool_size), callback(NULL), log_h(NULL) {}
@@ -57,7 +57,7 @@ public:
 
   uint8_t* request(uint32_t len);
   void     deallocate(uint8_t* pdu);
-  void     push(uint8_t *ptr, uint32_t len, channel_t channel = DCH, uint32_t tstamp = 0);
+  void     push(uint8_t* ptr, uint32_t len, channel_t channel = DCH);
 
   bool   process_pdus();
 
@@ -68,7 +68,6 @@ private:
   typedef struct  {
     uint8_t  ptr[MAX_PDU_LEN];
     uint32_t len;
-    uint32_t tstamp;
     channel_t channel;
     #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
       char   debug_name[128];

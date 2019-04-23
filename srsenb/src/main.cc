@@ -37,7 +37,6 @@
 #include <string>
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
-#include <srsenb/hdr/enb.h>
 
 #include "srsenb/hdr/enb.h"
 #include "srsenb/hdr/metrics_stdout.h"
@@ -145,7 +144,7 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
     ("expert.pusch_max_its", bpo::value<int>(&args->expert.phy.pusch_max_its)->default_value(8), "Maximum number of turbo decoder iterations")
     ("expert.pusch_8bit_decoder", bpo::value<bool>(&args->expert.phy.pusch_8bit_decoder)->default_value(false), "Use 8-bit for LLR representation and turbo decoder trellis computation (Experimental)")
     ("expert.tx_amplitude", bpo::value<float>(&args->expert.phy.tx_amplitude)->default_value(0.6), "Transmit amplitude factor")
-    ("expert.nof_phy_threads", bpo::value<int>(&args->expert.phy.nof_phy_threads)->default_value(2), "Number of PHY threads")
+    ("expert.nof_phy_threads", bpo::value<int>(&args->expert.phy.nof_phy_threads)->default_value(3), "Number of PHY threads")
     ("expert.link_failure_nof_err", bpo::value<int>(&args->expert.mac.link_failure_nof_err)->default_value(100), "Number of PUSCH failures after which a radio-link failure is triggered")
     ("expert.max_prach_offset_us", bpo::value<float>(&args->expert.phy.max_prach_offset_us)->default_value(30), "Maximum allowed RACH offset (in us)")
     ("expert.equalizer_mode", bpo::value<string>(&args->expert.phy.equalizer_mode)->default_value("mmse"), "Equalizer mode")
@@ -267,6 +266,15 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
       exit(1);
     }
   }
+  if (args->expert.enable_mbsfn) {
+    if (args->expert.mac.sched.nof_ctrl_symbols == 3) {
+      fprintf(stderr,
+              "nof_ctrl_symbols = %d, While using MBMS, please set number of control symbols to either 1 or 2, "
+              "depending on the length of the non-mbsfn region\n",
+              args->expert.mac.sched.nof_ctrl_symbols);
+      exit(1);
+    }
+  }
 
   // Apply all_level to any unset layers
   if (vm.count("log.all_level")) {
@@ -346,7 +354,7 @@ void sig_int_handler(int signo)
 {
   sigcnt++;
   running = false;
-  printf("Stopping srsENB... Press Ctrl+C %d more times to force stop\n", 10-sigcnt);
+  cout << "Stopping srsENB... Press Ctrl+C " << (10 - sigcnt) << " more times to force stop" << endl;
   if (sigcnt >= 10) {
     exit(-1);
   }

@@ -124,7 +124,7 @@ std::string usim::get_imei_str()
 bool usim::get_imsi_vec(uint8_t* imsi_, uint32_t n)
 {
   if (!initiated) {
-    fprintf(stderr, "USIM not initiated!\n");
+    ERROR("USIM not initiated!\n");
     return false;
   }
 
@@ -144,7 +144,7 @@ bool usim::get_imsi_vec(uint8_t* imsi_, uint32_t n)
 bool usim::get_imei_vec(uint8_t* imei_, uint32_t n)
 {
   if (!initiated) {
-    fprintf(stderr, "USIM not initiated!\n");
+    ERROR("USIM not initiated!\n");
     return false;
   }
 
@@ -165,7 +165,7 @@ bool usim::get_imei_vec(uint8_t* imei_, uint32_t n)
 bool usim::get_home_plmn_id(plmn_id_s* home_plmn_id)
 {
   if (!initiated) {
-    fprintf(stderr, "USIM not initiated!\n");
+    ERROR("USIM not initiated!\n");
     return false;
   }
 

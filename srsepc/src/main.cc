@@ -21,6 +21,7 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
+
 #include "srsepc/hdr/hss/hss.h"
 #include "srsepc/hdr/mme/mme.h"
 #include "srsepc/hdr/spgw/spgw.h"
@@ -153,6 +154,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
 
     ("log.filename", bpo::value<string>(&args->log_args.filename)->default_value("/tmp/epc.log"),"Log filename")
     ;
+  // clang-format on
 
   // Positional options - config file location
   bpo::options_description position("Positional options");

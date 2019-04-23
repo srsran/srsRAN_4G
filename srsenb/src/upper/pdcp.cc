@@ -182,17 +182,17 @@ void pdcp::user_interface_rrc::write_pdu(uint32_t lcid, srslte::byte_buffer_t* p
 
 void pdcp::user_interface_rrc::write_pdu_bcch_bch(srslte::byte_buffer_t* pdu)
 {
-  fprintf(stderr, "Error: Received BCCH from ue=%d\n", rnti);
+  ERROR("Error: Received BCCH from ue=%d\n", rnti);
 }
 
 void pdcp::user_interface_rrc::write_pdu_bcch_dlsch(srslte::byte_buffer_t* pdu)
 {
-  fprintf(stderr, "Error: Received BCCH from ue=%d\n", rnti);
+  ERROR("Error: Received BCCH from ue=%d\n", rnti);
 }
 
 void pdcp::user_interface_rrc::write_pdu_pcch(srslte::byte_buffer_t* pdu)
 {
-  fprintf(stderr, "Error: Received PCCH from ue=%d\n", rnti);
+  ERROR("Error: Received PCCH from ue=%d\n", rnti);
 }
 
 std::string pdcp::user_interface_rrc::get_rb_name(uint32_t lcid)

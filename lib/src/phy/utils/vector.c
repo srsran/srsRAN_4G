@@ -31,11 +31,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "srslte/phy/utils/bit.h"
+#include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 #include "srslte/phy/utils/vector_simd.h"
-#include "srslte/phy/utils/bit.h"
-
-
 
 void srslte_vec_xor_bbb(int8_t *x,int8_t *y,int8_t *z, const uint32_t len) {
   srslte_vec_xor_bbb_simd(x, y, z, len);
@@ -233,7 +232,7 @@ void srslte_vec_sprint_hex(char *str, const uint32_t max_str_len, uint8_t *x, co
   nbytes = len/8;
   // check that hex string fits in buffer (every byte takes 3 characters, plus brackets)
   if ((3*(len/8 + ((len%8)?1:0))) + 2 >= max_str_len) {
-    fprintf(stderr, "Buffer too small for printing hex string (max_str_len=%d, payload_len=%d).\n", max_str_len, len);
+    ERROR("Buffer too small for printing hex string (max_str_len=%d, payload_len=%d).\n", max_str_len, len);
     return;
   }
 

@@ -27,6 +27,7 @@
 #ifndef SRSUE_PHY_METRICS_H
 #define SRSUE_PHY_METRICS_H
 
+#include "srslte/phy/common/phy_common.h"
 
 namespace srsue {
 
@@ -48,21 +49,20 @@ struct dl_metrics_t
   float turbo_iters;
   float mcs;
   float pathloss;
-  float mabr_mbps;
 };
 
 struct ul_metrics_t
 {
   float mcs;
   float power;
-  float mabr_mbps;
 };
 
 struct phy_metrics_t
 {
   sync_metrics_t sync;
-  dl_metrics_t   dl;
-  ul_metrics_t   ul;
+  dl_metrics_t   dl[SRSLTE_MAX_CARRIERS];
+  ul_metrics_t   ul[SRSLTE_MAX_CARRIERS];
+  uint32_t       nof_active_cc;
 };
 
 } // namespace srsue

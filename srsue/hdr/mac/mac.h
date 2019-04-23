@@ -35,7 +35,6 @@
 #include "proc_phr.h"
 #include "proc_ra.h"
 #include "proc_sr.h"
-#include "srslte/asn1/rrc_asn1.h"
 #include "srslte/common/log.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/common/threads.h"
@@ -45,55 +44,59 @@
 #include "ul_harq.h"
 
 namespace srsue {
-  
-class mac
-    :public mac_interface_phy
-    ,public mac_interface_rrc
-    ,public srslte::timer_callback
-    ,public srslte::mac_interface_timers
-    ,public periodic_thread
+
+class mac : public mac_interface_phy,
+            public mac_interface_rrc,
+            public srslte::timer_callback,
+            public srslte::mac_interface_timers,
+            public thread,
+            public mac_interface_demux
 {
 public:
   mac();
-  bool init(phy_interface_mac *phy, rlc_interface_mac *rlc, rrc_interface_mac* rrc, srslte::log *log_h);
+  bool init(phy_interface_mac* phy,
+            rlc_interface_mac* rlc,
+            rrc_interface_mac* rrc,
+            srslte::log*       log_h,
+            uint32_t           nof_carriers = 1);
   void stop();
 
-  void get_metrics(mac_metrics_t &m);
+  void get_metrics(mac_metrics_t m[SRSLTE_MAX_CARRIERS]);
 
-  /******** Interface from PHY (PHY -> MAC) ****************/ 
+  /******** Interface from PHY (PHY -> MAC) ****************/
   /* see mac_interface.h for comments */
-  void new_grant_ul(mac_grant_t grant, tb_action_ul_t *action);
-  void new_grant_ul_ack(mac_grant_t grant, bool ack, tb_action_ul_t *action);
-  void harq_recv(uint32_t tti, bool ack, tb_action_ul_t *action);
-  void new_grant_dl(mac_grant_t grant, tb_action_dl_t *action);
-  void new_mch_dl(srslte_ra_dl_grant_t phy_grant, tb_action_dl_t *action);
-  void tb_decoded(bool ack, uint32_t tb_idx, srslte_rnti_type_t rnti_type, uint32_t harq_pid);
+  void     new_grant_ul(uint32_t cc_idx, mac_grant_ul_t grant, tb_action_ul_t* action);
+  void     new_grant_dl(uint32_t cc_idx, mac_grant_dl_t grant, tb_action_dl_t* action);
+  void     new_mch_dl(srslte_pdsch_grant_t phy_grant, tb_action_dl_t* action);
+  void     tb_decoded(uint32_t cc_idx, mac_grant_dl_t grant, bool ack[SRSLTE_MAX_CODEWORDS]);
   void bch_decoded_ok(uint8_t *payload, uint32_t len);
+  uint16_t get_dl_sched_rnti(uint32_t tti);
+  uint16_t get_ul_sched_rnti(uint32_t tti);
 
-  void pch_decoded_ok(uint32_t len);
-  void mch_decoded_ok(uint32_t len);
+  void mch_decoded(uint32_t len, bool crc);
   void process_mch_pdu(uint32_t len);
 
   void set_mbsfn_config(uint32_t nof_mbsfn_services);
-  
+
+  void run_tti(const uint32_t tti);
+
   /******** Interface from RRC (RRC -> MAC) ****************/
-  void bcch_start_rx(); 
   void bcch_start_rx(int si_window_start, int si_window_length);
+  void bcch_stop_rx();
   void pcch_start_rx(); 
-  void clear_rntis();
   void setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority, int PBR_x_tti, uint32_t BSD);
   void mch_start_rx(uint32_t lcid);
-  void reconfiguration(); 
+  void reconfiguration();
   void reset();
   void wait_uplink();
 
-  /******** set/get MAC configuration  ****************/ 
-  void set_config(mac_cfg_t *mac_cfg);
-  void get_config(mac_cfg_t *mac_cfg);
-  void set_config_main(asn1::rrc::mac_main_cfg_s* main_cfg);
-  void set_config_rach(asn1::rrc::rach_cfg_common_s* rach_cfg, uint32_t prach_config_index);
-  void set_config_sr(asn1::rrc::sched_request_cfg_c* sr_cfg);
+  /******** set/get MAC configuration  ****************/
+  void set_config(mac_cfg_t& mac_cfg);
   void set_contention_id(uint64_t uecri);
+
+  /******* interface from demux object ****************/
+  void reset_harq(uint32_t cc_idx);
+  bool contention_resolution_id_rcv(uint64_t id);
 
   void start_noncont_ho(uint32_t preamble_index, uint32_t prach_mask);
   void start_cont_ho();
@@ -113,13 +116,14 @@ public:
   void                   timer_release_id(uint32_t timer_id);
   uint32_t               timer_get_unique_id();
 
+private:
+  void run_thread();
+  void clear_rntis();
 
-private:  
-  void run_period();
-  
+  bool is_in_window(uint32_t tti, int* start, int* len);
+
   static const int MAC_MAIN_THREAD_PRIO = -1; // Use default high-priority below UHD
-  static const int MAC_PDU_THREAD_PRIO  = DEFAULT_PRIORITY-5;
-  static const int MAC_NOF_HARQ_PROC    = 2*HARQ_DELAY_MS;
+  static const int MAC_PDU_THREAD_PRIO  = 5;
 
   // Interaction with PHY 
   phy_interface_mac    *phy_h;
@@ -127,23 +131,23 @@ private:
   rrc_interface_mac    *rrc_h; 
   srslte::log          *log_h;
   mac_interface_phy::mac_phy_cfg_mbsfn_t phy_mbsfn_cfg;
-  
-  // MAC configuration 
-  mac_cfg_t     config; 
 
-  // UE-specific RNTIs 
-  ue_rnti_t     uernti; 
-  
-  uint32_t      tti; 
+  // RNTI search window scheduling
+  int si_window_length, si_window_start;
+  int ra_window_length, ra_window_start;
+  int p_window_start;
+
+  // UE-specific RNTIs
+  ue_rnti_t uernti;
 
   /* Multiplexing/Demultiplexing Units */
-  mux           mux_unit; 
-  demux         demux_unit; 
-  
+  mux           mux_unit;
+  demux         demux_unit;
+
   /* DL/UL HARQ */
-  dl_harq_entity<MAC_NOF_HARQ_PROC, mac_grant_t, tb_action_dl_t, srslte_phy_grant_t> dl_harq;
-  ul_harq_entity<MAC_NOF_HARQ_PROC, mac_grant_t, tb_action_ul_t, srslte_phy_grant_t> ul_harq;
-  
+  std::vector<dl_harq_entity> dl_harq;
+  std::vector<ul_harq_entity> ul_harq;
+
   /* MAC Uplink-related Procedures */
   ra_proc       ra_procedure;
   sr_proc       sr_procedure; 
@@ -160,21 +164,22 @@ private:
   srslte_softbuffer_rx_t mch_softbuffer;
   uint8_t                mch_payload_buffer[mch_payload_buffer_sz];
   srslte::mch_pdu        mch_msg;
- 
 
+  // MAC thread
+  srslte::block_queue<uint16_t> tti_sync;
+  bool                          running;
 
   /* Functions for MAC Timers */
   uint32_t        timer_alignment;
-  uint32_t        contention_resolution_timer;
-  void            setup_timers();
+  void            setup_timers(int time_alignment_timer);
   void            timer_alignment_expire();
   srslte::timers  timers;
 
   // pointer to MAC PCAP object
   srslte::mac_pcap* pcap;
-  bool is_first_ul_grant;
+  bool              is_first_ul_grant;
 
-  mac_metrics_t metrics;
+  mac_metrics_t metrics[SRSLTE_MAX_CARRIERS];
 
   /* Class to process MAC PDUs from DEMUX unit */
   class pdu_process : public thread {

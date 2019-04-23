@@ -40,20 +40,21 @@ class sr_proc
 {
 public:
   sr_proc();
-  void init(phy_interface_mac *phy_h, rrc_interface_mac *rrc, srslte::log *log_h, mac_interface_rrc::mac_cfg_t *mac_cfg);
-  void step(uint32_t tti);  
+  void init(phy_interface_mac* phy_h, rrc_interface_mac* rrc, srslte::log* log_h);
+  void step(uint32_t tti);
+  void set_config(mac_interface_rrc::sr_cfg_t& cfg);
   void reset();
   void start();
   bool need_random_access(); 
   
 private:
-  bool need_tx(uint32_t tti); 
-  
-  uint32_t      sr_counter;
-  uint32_t      dsr_transmax; 
+  bool need_tx(uint32_t tti);
+
+  int           sr_counter;
   bool          is_pending_sr;
-  mac_interface_rrc::mac_cfg_t *mac_cfg; 
-  
+
+  mac_interface_rrc::sr_cfg_t sr_cfg;
+
   rrc_interface_mac *rrc;
   phy_interface_mac *phy_h; 
   srslte::log       *log_h;

@@ -145,6 +145,7 @@ void log_filter::console(const char * message, ...) {
   va_start(args, message);
   if(vasprintf(&args_msg, message, args) > 0)
     printf("%s",args_msg); // Print directly to stdout
+  fflush(stdout);
   va_end(args);
   free(args_msg);
 }

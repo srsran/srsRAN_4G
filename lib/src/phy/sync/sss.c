@@ -31,9 +31,10 @@
 #include <stdio.h>
 #include <math.h>
 
-#include "srslte/phy/sync/sss.h"
 #include "srslte/phy/dft/dft.h"
+#include "srslte/phy/sync/sss.h"
 #include "srslte/phy/utils/convolution.h"
+#include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 
 void generate_sss_all_tables(srslte_sss_tables_t *tables, uint32_t N_id_2);
@@ -77,7 +78,7 @@ int srslte_sss_resize(srslte_sss_t *q, uint32_t fft_size) {
       fft_size          <= 2048)
   {
     if (fft_size > q->max_fft_size) {
-      fprintf(stderr, "Error in sss_synch_resize(): fft_size must be lower than initialized\n");
+      ERROR("Error in sss_synch_resize(): fft_size must be lower than initialized\n");
       return SRSLTE_ERROR;
     }
     if (srslte_dft_replan(&q->dftp_input, fft_size)) {
@@ -98,7 +99,7 @@ void srslte_sss_free(srslte_sss_t *q) {
 /** Sets the N_id_2 to search for */
 int srslte_sss_set_N_id_2(srslte_sss_t *q, uint32_t N_id_2) {
   if (!srslte_N_id_2_isvalid(N_id_2)) {
-    fprintf(stderr, "Invalid N_id_2 %d\n", N_id_2);
+    ERROR("Invalid N_id_2 %d\n", N_id_2);
     return SRSLTE_ERROR;
   } else {
     q->N_id_2 = N_id_2;

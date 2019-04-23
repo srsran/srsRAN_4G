@@ -35,9 +35,9 @@
 #ifndef SRSLTE_DEBUG_H
 #define SRSLTE_DEBUG_H
 
-#include <stdio.h>
+#include "phy_logger.h"
 #include "srslte/config.h"
-#include "srslte/phy/common/phy_logger.h"
+#include <stdio.h>
 
 #define SRSLTE_VERBOSE_DEBUG 2
 #define SRSLTE_VERBOSE_INFO  1
@@ -59,19 +59,34 @@ SRSLTE_API extern int handler_registered;
 #define PRINT_INFO srslte_verbose=SRSLTE_VERBOSE_INFO
 #define PRINT_NONE srslte_verbose=SRSLTE_VERBOSE_NONE
 
-#define DEBUG(_fmt, ...) if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_DEBUG && !handler_registered)\
-        {  fprintf(stdout, "[DEBUG]: " _fmt, ##__VA_ARGS__);  }\
-        else{  srslte_phy_log_print(LOG_LEVEL_DEBUG, _fmt, ##__VA_ARGS__); }
+#define DEBUG(_fmt, ...)                                                                                               \
+  do {                                                                                                                 \
+    if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_DEBUG && !handler_registered) {                       \
+      fprintf(stdout, "[DEBUG]: " _fmt, ##__VA_ARGS__);                                                                \
+    } else {                                                                                                           \
+      srslte_phy_log_print(LOG_LEVEL_DEBUG_S, _fmt, ##__VA_ARGS__);                                                    \
+    }                                                                                                                  \
+  } while (0)
 
-#define INFO(_fmt, ...) if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO   && !handler_registered) \
-        {  fprintf(stdout, "[INFO]: " _fmt, ##__VA_ARGS__);  }\
-        else{  srslte_phy_log_print(LOG_LEVEL_INFO, _fmt, ##__VA_ARGS__); }
+#define INFO(_fmt, ...)                                                                                                \
+  do {                                                                                                                 \
+    if (SRSLTE_DEBUG_ENABLED && srslte_verbose >= SRSLTE_VERBOSE_INFO && !handler_registered) {                        \
+      fprintf(stdout, "[INFO]: " _fmt, ##__VA_ARGS__);                                                                 \
+    } else {                                                                                                           \
+      srslte_phy_log_print(LOG_LEVEL_INFO_S, _fmt, ##__VA_ARGS__);                                                     \
+    }                                                                                                                  \
+  } while (0)
 
 #if CMAKE_BUILD_TYPE==Debug
 /* In debug mode, it prints out the  */
-#define ERROR(_fmt, ...) if (!handler_registered)\
-    {   fprintf(stderr, "\e[31m%s.%d: " _fmt "\e[0m\n", __FILE__, __LINE__, ##__VA_ARGS__);}\
-        else {srslte_phy_log_print(LOG_LEVEL_ERROR, _fmt, ##__VA_ARGS__);} // 
+#define ERROR(_fmt, ...)                                                                                               \
+  do {                                                                                                                 \
+    if (!handler_registered) {                                                                                         \
+      fprintf(stderr, "\e[31m%s.%d: " _fmt "\e[0m\n", __FILE__, __LINE__, ##__VA_ARGS__);                              \
+    } else {                                                                                                           \
+      srslte_phy_log_print(LOG_LEVEL_ERROR_S, _fmt, ##__VA_ARGS__);                                                    \
+    }                                                                                                                  \
+  } while (0)
 #else
 #define ERROR(_fmt, ...) if (!handler_registered)\
         {   fprintf(stderr, "[ERROR in %s]:" _fmt "\n", __FUNCTION__, ##__VA_ARGS__);}\

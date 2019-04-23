@@ -18,6 +18,7 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
+
 #ifndef SRSLTE_EPC_INTERFACES_H
 #define SRSLTE_EPC_INTERFACES_H
 
@@ -37,7 +38,7 @@ enum nas_timer_type {
 /******************
  * MME Interfaces *
  ******************/
-class gtpc_interface_nas  // NAS -> GTP-C
+class gtpc_interface_nas // NAS -> GTP-C
 {
 public:
   virtual bool send_create_session_request(uint64_t imsi)                                                         = 0;
@@ -98,7 +99,7 @@ public:
 /*******************
  * SPGW Interfaces *
  *******************/
-class gtpu_interface_gtpc //GTP-C -> GTP-U
+class gtpu_interface_gtpc // GTP-C -> GTP-U
 {
 public:
   virtual in_addr_t get_s1u_addr() = 0;

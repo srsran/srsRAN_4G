@@ -39,8 +39,7 @@ if(SRSGUI_FOUND)
   if(UHD_FOUND)
     target_link_libraries(pss_usrp ${SRSGUI_LIBRARIES})
   endif(UHD_FOUND)
-else(SRSGUI_FOUND)
-  add_definitions(-DDISABLE_GRAPHICS)
+  add_definitions(-DENABLE_GUI)
 endif(SRSGUI_FOUND)
 
 ########################################################################

@@ -131,7 +131,7 @@ void mme::run_thread()
   while (m_running) {
     pdu->reset();
     int max_fd = std::max(s1mme, s11);
-   
+
     FD_ZERO(&m_set);
     FD_SET(s1mme, &m_set);
     FD_SET(s11, &m_set);

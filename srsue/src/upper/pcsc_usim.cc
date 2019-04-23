@@ -26,8 +26,9 @@
 
 
 #include <sstream>
-#include <srsue/hdr/upper/pcsc_usim.h>
+
 #include "srslte/common/bcd_helpers.h"
+#include "srsue/hdr/upper/pcsc_usim.h"
 #include "string.h"
 
 #define CHECK_SIM_PIN 1
@@ -127,7 +128,7 @@ std::string pcsc_usim::get_imei_str()
 bool pcsc_usim::get_imsi_vec(uint8_t* imsi_, uint32_t n)
 {
   if (!initiated) {
-    fprintf(stderr, "USIM not initiated!\n");
+    ERROR("USIM not initiated!\n");
     return false;
   }
 
@@ -147,7 +148,7 @@ bool pcsc_usim::get_imsi_vec(uint8_t* imsi_, uint32_t n)
 bool pcsc_usim::get_imei_vec(uint8_t* imei_, uint32_t n)
 {
   if (!initiated) {
-    fprintf(stderr, "USIM not initiated!\n");
+    ERROR("USIM not initiated!\n");
     return false;
   }
 
@@ -168,7 +169,7 @@ bool pcsc_usim::get_imei_vec(uint8_t* imei_, uint32_t n)
 bool pcsc_usim::get_home_plmn_id(plmn_id_s* home_plmn_id)
 {
   if (!initiated) {
-    fprintf(stderr, "USIM not initiated!\n");
+    ERROR("USIM not initiated!\n");
     return false;
   }
 
@@ -208,7 +209,7 @@ auth_result_t pcsc_usim::generate_authentication_response(uint8_t  *rand,
 {
   auth_result_t ret = AUTH_FAILED;
   if (!initiated) {
-    fprintf(stderr, "USIM not initiated!\n");
+    ERROR("USIM not initiated!\n");
     return ret;
   }
 
@@ -267,7 +268,7 @@ void pcsc_usim::generate_nas_keys(uint8_t *k_asme,
                              INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
 {
   if (!initiated) {
-    fprintf(stderr, "USIM not initiated!\n");
+    ERROR("USIM not initiated!\n");
     return;
   }
 
@@ -293,7 +294,7 @@ void pcsc_usim::generate_as_keys(uint8_t *k_asme,
                             INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
 {
   if (!initiated) {
-    fprintf(stderr, "USIM not initiated!\n");
+    ERROR("USIM not initiated!\n");
     return;
   }
 
@@ -332,7 +333,7 @@ void pcsc_usim::generate_as_keys_ho(uint32_t pci,
                                INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
 {
   if (!initiated) {
-    fprintf(stderr, "USIM not initiated!\n");
+    ERROR("USIM not initiated!\n");
     return;
   }
 

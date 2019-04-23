@@ -42,39 +42,35 @@ namespace srsue {
       bzero(&prach_obj, sizeof(srslte_prach_t));
       bzero(&cell, sizeof(srslte_cell_t));
       bzero(&cfo_h, sizeof(srslte_cfo_t));
-      
-      args              = NULL; 
-      config            = NULL; 
-      transmitted_tti   = 0; 
+
+      transmitted_tti   = 0;
       target_power_dbm  = 0;
       mem_initiated     = false;
       cell_initiated    = false;
       signal_buffer     = NULL;   
     }
     ~prach();
-    void           init(asn1::rrc::prach_cfg_sib_s* config, uint32_t max_prb, phy_args_t* args, srslte::log* log_h);
-    bool           set_cell(srslte_cell_t cell);
+    void           init(uint32_t max_prb, srslte::log* log_h);
+    void           stop();
+    bool           set_cell(srslte_cell_t cell, srslte_prach_cfg_t prach_cfg);
     bool           prepare_to_send(uint32_t preamble_idx, int allowed_subframe = -1, float target_power_dbm = -1);
     bool           is_ready_to_send(uint32_t current_tti);
     bool           is_pending();
-    int            tx_tti();
     cf_t*          generate(float cfo, uint32_t *nof_sf, float *target_power = NULL);
 
+    phy_interface_mac::prach_info_t get_info();
+
   private:
-
     const static int MAX_LEN_SF = 3;
-
-    asn1::rrc::prach_cfg_sib_s* config;
-    phy_args_t*                 args;
 
     srslte::log   *log_h;
     int            preamble_idx;  
     int            allowed_subframe; 
     bool           mem_initiated;
     bool           cell_initiated;
-    uint32_t       len; 
-    cf_t          *buffer[64]; 
-    srslte_prach_t prach_obj; 
+    uint32_t       len;
+    cf_t*          buffer[12][64];
+    srslte_prach_t prach_obj;
     int            transmitted_tti;
     srslte_cell_t  cell;
     cf_t          *signal_buffer;

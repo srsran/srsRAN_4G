@@ -27,17 +27,18 @@
 #ifndef SRSUE_PHY_H
 #define SRSUE_PHY_H
 
-#include "srslte/srslte.h"
-#include "srslte/common/log_filter.h"
+#include "async_scell_recv.h"
+#include "phy_common.h"
 #include "phy_metrics.h"
-#include "phch_recv.h"
 #include "prach.h"
-#include "phch_worker.h"
-#include "phch_common.h"
-#include "srslte/radio/radio.h"
+#include "sf_worker.h"
+#include "srslte/common/log_filter.h"
 #include "srslte/common/task_dispatcher.h"
 #include "srslte/common/trace.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/radio/radio.h"
+#include "srslte/srslte.h"
+#include "sync.h"
 
 namespace srsue {
 
@@ -50,12 +51,12 @@ class phy
 {
 public:
   phy();
-  bool init(srslte::radio_multi *radio_handler, 
-            mac_interface_phy *mac, 
-            rrc_interface_phy *rrc,
+  bool init(srslte::radio*                   radio_handler,
+            mac_interface_phy*               mac,
+            rrc_interface_phy*               rrc,
             std::vector<srslte::log_filter*> log_vec,
-            phy_args_t *args = NULL);
-  
+            phy_args_t*                      args = NULL);
+
   void stop();
 
   void wait_initialize();
@@ -65,15 +66,8 @@ public:
 
   void get_metrics(phy_metrics_t &m);
   void srslte_phy_logger(phy_logger_level_t log_level, char *str);
-  
-  
-  static uint32_t tti_to_SFN(uint32_t tti);
-  static uint32_t tti_to_subf(uint32_t tti);
 
   void enable_pregen_signals(bool enable); 
-  
-  void start_trace();
-  void write_trace(std::string filename);
 
   void set_earfcn(std::vector<uint32_t> earfcns);
   void force_freq(float dl_freq, float ul_freq);
@@ -82,7 +76,6 @@ public:
 
   /********** RRC INTERFACE ********************/
   void    reset();
-  void    configure_ul_params(bool pregen_disabled = false);
   cell_search_ret_t cell_search(phy_cell_t *cell);
   bool    cell_select(phy_cell_t *cell);
 
@@ -101,9 +94,9 @@ public:
   void    configure_prach_params();
   
   /* Transmits PRACH in the next opportunity */
-  void    prach_send(uint32_t preamble_idx, int allowed_subframe = -1, float target_power_dbm = 0.0);  
-  int     prach_tx_tti();
-  
+  void         prach_send(uint32_t preamble_idx, int allowed_subframe = -1, float target_power_dbm = 0.0);
+  prach_info_t prach_get_info();
+
   /* Indicates the transmission of a SR signal in the next opportunity */
   void    sr_send();  
   int     sr_last_tx_tti();
@@ -111,23 +104,17 @@ public:
   // Time advance commands
   void    set_timeadv_rar(uint32_t ta_cmd);
   void    set_timeadv(uint32_t ta_cmd);
-  
-  /* Sets RAR grant payload */
-  void    set_rar_grant(uint32_t tti, uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN]); 
 
-  /* Instruct the PHY to decode PDCCH with the CRC scrambled with given RNTI */  
-  void    pdcch_ul_search(srslte_rnti_type_t rnti_type, uint16_t rnti, int tti_start = -1, int tti_end = -1);
-  void    pdcch_dl_search(srslte_rnti_type_t rnti_type, uint16_t rnti, int tti_start = -1, int tti_end = -1);
-  void    pdcch_ul_search_reset();
-  void    pdcch_dl_search_reset();
-  
+  /* Activate / Disactivate SCell*/
+  void set_activation_deactivation_scell(uint32_t ta_cmd);
+
+  /* Sets RAR dci payload */
+  void set_rar_grant(uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN], uint16_t rnti);
+
   /* Get/Set PHY parameters interface from RRC */  
-  void get_config(phy_cfg_t *phy_cfg); 
   void set_config(phy_cfg_t *phy_cfg);
-  void set_config_dedicated(asn1::rrc::phys_cfg_ded_s* dedicated);
-  void set_config_common(phy_cfg_common_t *common);
+  void set_config_scell(asn1::rrc::scell_to_add_mod_r10_s* scell_config);
   void set_config_tdd(asn1::rrc::tdd_cfg_s* tdd);
-  void set_config_64qam_en(bool enable);
   void set_config_mbsfn_sib2(asn1::rrc::sib_type2_s* sib2);
   void set_config_mbsfn_sib13(asn1::rrc::sib_type13_r9_s* sib13);
   void set_config_mbsfn_mcch(asn1::rrc::mcch_msg_s* mcch);
@@ -146,40 +133,40 @@ public:
   uint32_t get_current_pci();
   
   void    start_plot();
-    
-private:
 
+  const static int MAX_WORKERS     = 4;
+  const static int DEFAULT_WORKERS = 4;
+
+private:
   void run_thread();
 
   bool     initiated;
-  uint32_t nof_workers; 
-  uint32_t nof_coworkers;
+  uint32_t nof_workers;
 
-  const static int MAX_WORKERS         = 3;
-  const static int DEFAULT_WORKERS     = 2;
-  
   const static int SF_RECV_THREAD_PRIO = 1;
-  const static int WORKERS_THREAD_PRIO = 2; 
-  
-  srslte::radio_multi      *radio_handler;
+  const static int WORKERS_THREAD_PRIO = 2;
+
+  srslte::radio*                          radio_handler;
   std::vector<srslte::log_filter*>        log_vec;
-  srslte::log              *log_h;
+  srslte::log*                            log_h;
   srslte::log              *log_phy_lib_h;
   srsue::mac_interface_phy *mac;
   srsue::rrc_interface_phy *rrc;
 
-  srslte::thread_pool      workers_pool;
-  std::vector<phch_worker> workers;
-  phch_common              workers_common; 
-  phch_recv                sf_recv; 
-  prach                    prach_buffer; 
-  
-  srslte_cell_t cell;
-  
-  phy_cfg_t  config;
-  phy_args_t *args;
-  phy_args_t default_args; 
-  
+  srslte::thread_pool     workers_pool;
+  std::vector<sf_worker*> workers;
+  phy_common              common;
+  sync                    sfsync;
+  async_scell_recv        scell_sync[SRSLTE_MAX_RADIOS - 1];
+  uint32_t                scell_earfcn[SRSLTE_MAX_CARRIERS - 1];
+  prach                   prach_buffer;
+
+  srslte_prach_cfg_t  prach_cfg;
+  srslte_tdd_config_t tdd_config;
+
+  phy_args_t* args;
+  phy_args_t  default_args;
+
   /* Current time advance */
   uint32_t     n_ta;
 

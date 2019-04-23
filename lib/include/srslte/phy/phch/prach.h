@@ -99,7 +99,10 @@ typedef struct SRSLTE_API {
   uint32_t deadzone; 
   float    peak_values[65];
   uint32_t peak_offsets[65];
-  
+
+  srslte_tdd_config_t tdd_config;
+  uint32_t            current_prach_idx;
+
 } srslte_prach_t;
 
 typedef struct SRSLTE_API {
@@ -117,9 +120,21 @@ typedef struct {
   uint32_t root_seq_idx;
   uint32_t zero_corr_zone;
   uint32_t freq_offset;
-  bool     hs_flag; 
-} srslte_prach_cfg_t;     
+  bool                hs_flag;
+  srslte_tdd_config_t tdd_config;
+} srslte_prach_cfg_t;
 
+typedef struct SRSLTE_API {
+  uint32_t f;
+  uint32_t t0;
+  uint32_t t1;
+  uint32_t t2;
+} srslte_prach_tdd_loc_t;
+
+typedef struct SRSLTE_API {
+  uint32_t               nof_elems;
+  srslte_prach_tdd_loc_t elems[6];
+} srslte_prach_tdd_loc_table_t;
 
 SRSLTE_API uint32_t srslte_prach_get_preamble_format(uint32_t config_idx);
 
@@ -129,38 +144,55 @@ SRSLTE_API bool srslte_prach_tti_opportunity(srslte_prach_t *p,
                                              uint32_t current_tti, 
                                              int allowed_subframe);
 
-SRSLTE_API bool srslte_prach_tti_opportunity_config(uint32_t config_idx,
-                                                    uint32_t current_tti,
-                                                    int allowed_subframe);
+SRSLTE_API bool srslte_prach_tti_opportunity_config_fdd(uint32_t config_idx,
+                                                        uint32_t current_tti,
+                                                        int allowed_subframe);
 
-SRSLTE_API void srslte_prach_sf_config(uint32_t config_idx, 
-                                       srslte_prach_sf_config_t *sf_config);
+SRSLTE_API bool srslte_prach_tti_opportunity_config_tdd(uint32_t  config_idx,
+                                                        uint32_t  tdd_ul_dl_config,
+                                                        uint32_t  current_tti,
+                                                        uint32_t* prach_idx);
 
-SRSLTE_API int srslte_prach_init(srslte_prach_t *p,
-                                 uint32_t max_N_ifft_ul);
+SRSLTE_API uint32_t srslte_prach_f_ra_tdd(uint32_t config_idx,
+                                          uint32_t tdd_ul_dl_config,
+                                          uint32_t current_tti,
+                                          uint32_t prach_idx,
+                                          uint32_t prach_offset,
+                                          uint32_t n_rb_ul);
 
-SRSLTE_API int srslte_prach_set_cell(srslte_prach_t *p,
-                                     uint32_t N_ifft_ul,
-                                     uint32_t config_idx,
-                                     uint32_t root_seq_index,
-                                     bool high_speed_flag,
-                                     uint32_t zero_corr_zone_config);
+SRSLTE_API uint32_t srslte_prach_f_id_tdd(uint32_t config_idx, uint32_t tdd_ul_dl_config, uint32_t prach_idx);
 
-SRSLTE_API int srslte_prach_init_cfg(srslte_prach_t* p, 
-                                     srslte_prach_cfg_t* cfg, 
-                                     uint32_t nof_prb);
+SRSLTE_API uint32_t srslte_prach_nof_f_idx_tdd(uint32_t config_idx, uint32_t tdd_ul_dl_config);
 
-SRSLTE_API int srslte_prach_gen(srslte_prach_t *p,
-                                uint32_t seq_index,
-                                uint32_t freq_offset,
-                                cf_t *signal);
+SRSLTE_API void srslte_prach_sf_config(uint32_t config_idx, srslte_prach_sf_config_t* sf_config);
 
-SRSLTE_API int srslte_prach_detect(srslte_prach_t *p,
+SRSLTE_API int srslte_prach_init(srslte_prach_t* p, uint32_t max_N_ifft_ul);
+
+SRSLTE_API int srslte_prach_set_cell_fdd(srslte_prach_t* p,
+                                         uint32_t        N_ifft_ul,
+                                         uint32_t        config_idx,
+                                         uint32_t        root_seq_index,
+                                         bool            high_speed_flag,
+                                         uint32_t        zero_corr_zone_config);
+
+SRSLTE_API int srslte_prach_set_cell_tdd(srslte_prach_t*      p,
+                                         uint32_t             N_ifft_ul,
+                                         uint32_t             config_idx,
+                                         uint32_t             root_seq_index,
+                                         bool                 high_speed_flag,
+                                         uint32_t             zero_corr_zone_config,
+                                         srslte_tdd_config_t* tdd_config);
+
+SRSLTE_API int srslte_prach_set_cfg(srslte_prach_t* p, srslte_prach_cfg_t* cfg, uint32_t nof_prb);
+
+SRSLTE_API int srslte_prach_gen(srslte_prach_t* p, uint32_t seq_index, uint32_t freq_offset, cf_t* signal);
+
+SRSLTE_API int srslte_prach_detect(srslte_prach_t* p,
                                    uint32_t freq_offset,
-                                   cf_t *signal,
+                                   cf_t* signal,
                                    uint32_t sig_len,
-                                   uint32_t *indices, 
-                                   uint32_t *ind_len);
+                                   uint32_t* indices,
+                                   uint32_t* ind_len);
 
 SRSLTE_API int srslte_prach_detect_offset(srslte_prach_t *p,
                                           uint32_t freq_offset,
@@ -171,8 +203,7 @@ SRSLTE_API int srslte_prach_detect_offset(srslte_prach_t *p,
                                           float    *peak_to_avg,
                                           uint32_t *ind_len);
 
-SRSLTE_API void srslte_prach_set_detect_factor(srslte_prach_t *p, 
-                                               float factor); 
+SRSLTE_API void srslte_prach_set_detect_factor(srslte_prach_t *p, float factor);
 
 SRSLTE_API int srslte_prach_free(srslte_prach_t *p);
 

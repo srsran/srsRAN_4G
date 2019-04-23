@@ -38,7 +38,6 @@
 
 #ifdef LV_HAVE_SSE
 #include <smmintrin.h>
-#include <srslte/phy/fec/turbodecoder_sse.h>
 
 #endif
 

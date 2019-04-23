@@ -35,11 +35,15 @@ int prach_worker::init(srslte_cell_t *cell_, srslte_prach_cfg_t *prach_cfg_, mac
   mac   = mac_; 
   memcpy(&prach_cfg, prach_cfg_, sizeof(srslte_prach_cfg_t));
   memcpy(&cell, cell_, sizeof(srslte_cell_t));
-  
-  max_prach_offset_us = 50; 
-  
-  if (srslte_prach_init_cfg(&prach, &prach_cfg, cell.nof_prb)) {
-    fprintf(stderr, "Error initiating PRACH\n");
+
+  max_prach_offset_us = 50;
+
+  if (srslte_prach_init(&prach, srslte_symbol_sz(cell.nof_prb))) {
+    return -1;
+  }
+
+  if (srslte_prach_set_cfg(&prach, &prach_cfg, cell.nof_prb)) {
+    ERROR("Error initiating PRACH\n");
     return -1; 
   }
 

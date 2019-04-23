@@ -94,7 +94,7 @@ public:
             fprintf(stderr, "Invalid option: %s for field %s\n", val.c_str(), name);
             fprintf(stderr, "Valid options:  %s", value_str[0]);
             for (uint32_t i=1;i<nof_items;i++) {
-              fprintf(stderr, ", %s", value_str[i]); 
+              fprintf(stderr, ", %s", value_str[i]);
             }
             fprintf(stderr, "\n");
             return -1; 

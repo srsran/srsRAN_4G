@@ -37,25 +37,24 @@
 
 #include "srslte/config.h"
 #include "srslte/phy/common/phy_common.h"
-#include "srslte/phy/mimo/precoding.h"
+#include "srslte/phy/common/sequence.h"
 #include "srslte/phy/mimo/layermap.h"
-#include "srslte/phy/modem/mod.h"
+#include "srslte/phy/mimo/precoding.h"
 #include "srslte/phy/modem/demod_soft.h"
-#include "srslte/phy/scrambling/scrambling.h"
+#include "srslte/phy/modem/mod.h"
 #include "srslte/phy/phch/dci.h"
+#include "srslte/phy/phch/pdsch.h"
 #include "srslte/phy/phch/regs.h"
 #include "srslte/phy/phch/sch.h"
-#include "srslte/phy/common/sequence.h"
-
+#include "srslte/phy/scrambling/scrambling.h"
+#include "srslte/phy/phch/ra_dl.h"
 typedef struct {
-  srslte_sequence_t seq[SRSLTE_NSUBFRAMES_X_FRAME];  
+  srslte_sequence_t seq[SRSLTE_NOF_SF_X_FRAME];
 } srslte_pmch_seq_t;
 
 typedef struct SRSLTE_API {
-  srslte_cbsegm_t cb_segm;
-  srslte_ra_dl_grant_t grant;
-  srslte_ra_nbits_t nbits[SRSLTE_MAX_CODEWORDS];
-  uint32_t sf_idx;
+  srslte_pdsch_cfg_t pdsch_cfg;
+  uint16_t           area_id;
 } srslte_pmch_cfg_t;
 
 /* PMCH object */
@@ -84,69 +83,29 @@ typedef struct SRSLTE_API {
   
 } srslte_pmch_t;
 
+SRSLTE_API int srslte_pmch_init(srslte_pmch_t* q, uint32_t max_prb, uint32_t nof_rx_antennas);
 
-SRSLTE_API int srslte_pmch_init(srslte_pmch_t *q,
-                                 uint32_t max_prb);
+SRSLTE_API void srslte_pmch_free(srslte_pmch_t* q);
 
-SRSLTE_API int srslte_pmch_init_multi(srslte_pmch_t *q,
-                                       uint32_t max_prb, 
-                                       uint32_t nof_rx_antennas);
+SRSLTE_API int srslte_pmch_set_cell(srslte_pmch_t* q, srslte_cell_t cell);
 
-SRSLTE_API void srslte_pmch_free(srslte_pmch_t *q);
+SRSLTE_API int srslte_pmch_set_area_id(srslte_pmch_t* q, uint16_t area_id);
 
-SRSLTE_API int srslte_pmch_set_cell(srslte_pmch_t *q, srslte_cell_t cell);
+SRSLTE_API void srslte_pmch_free_area_id(srslte_pmch_t* q, uint16_t area_id);
 
-SRSLTE_API int srslte_pmch_set_area_id(srslte_pmch_t *q, uint16_t area_id);
+SRSLTE_API void srslte_configure_pmch(srslte_pmch_cfg_t* pmch_cfg, srslte_cell_t* cell, srslte_mbsfn_cfg_t* mbsfn_cfg);
 
-SRSLTE_API void srslte_pmch_free_area_id(srslte_pmch_t *q, uint16_t area_id);
+SRSLTE_API int srslte_pmch_encode(srslte_pmch_t*      q,
+                                  srslte_dl_sf_cfg_t* sf,
+                                  srslte_pmch_cfg_t*  cfg,
+                                  uint8_t*            data,
+                                  cf_t*               sf_symbols[SRSLTE_MAX_PORTS]);
 
-
-
-SRSLTE_API int srslte_pmch_get(srslte_pmch_t *q, cf_t *sf_symbols, cf_t *symbols, uint32_t lstart);
-
-SRSLTE_API int srslte_pmch_put(srslte_pmch_t *q, cf_t *symbols, cf_t *sf_symbols, uint32_t lstart);
-
-SRSLTE_API int srslte_pmch_cp(srslte_pmch_t *q, cf_t *input, cf_t *output, uint32_t lstart_grant, bool put);
-
-
-
-SRSLTE_API float srslte_pmch_coderate(uint32_t tbs,
-                                       uint32_t nof_re); 
-
-
-SRSLTE_API int srslte_pmch_cfg(srslte_pdsch_cfg_t *cfg,
-                               srslte_cell_t cell,
-                               srslte_ra_dl_grant_t *grant,
-                               uint32_t cfi,
-                               uint32_t sf_idx);
-
-SRSLTE_API int srslte_pmch_encode(srslte_pmch_t *q,
-                                   srslte_pdsch_cfg_t *cfg,
-                                   srslte_softbuffer_tx_t *softbuffer,
-                                   uint8_t *data, 
-                                   uint16_t area_id,
-                                   cf_t *sf_symbols[SRSLTE_MAX_PORTS]);
-
-SRSLTE_API int srslte_pmch_decode(srslte_pmch_t *q,
-                                   srslte_pdsch_cfg_t *cfg,
-                                   srslte_softbuffer_rx_t *softbuffer,
-                                   cf_t *sf_symbols, 
-                                   cf_t *ce[SRSLTE_MAX_PORTS],
-                                   float noise_estimate, 
-                                   uint16_t area_id,
-                                   uint8_t *data);
-
-SRSLTE_API int srslte_pmch_decode_multi(srslte_pmch_t *q,
-                                         srslte_pdsch_cfg_t *cfg,
-                                         srslte_softbuffer_rx_t *softbuffer,
-                                         cf_t *sf_symbols[SRSLTE_MAX_PORTS], 
-                                         cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
-                                         float noise_estimate, 
-                                         uint16_t area_id,
-                                         uint8_t *data);
-
-SRSLTE_API float srslte_pmch_average_noi(srslte_pmch_t *q);
-
-SRSLTE_API uint32_t srslte_pmch_last_noi(srslte_pmch_t *q);
+SRSLTE_API int srslte_pmch_decode(srslte_pmch_t*         q,
+                                  srslte_dl_sf_cfg_t*    sf,
+                                  srslte_pmch_cfg_t*     cfg,
+                                  srslte_chest_dl_res_t* channel,
+                                  cf_t*                  sf_symbols[SRSLTE_MAX_PORTS],
+                                  srslte_pdsch_res_t*    data);
 
 #endif // SRSLTE_PMCH_H

@@ -42,13 +42,13 @@ srslte_cell_t cell = {
 };
 
 uint32_t transmission_mode = 1;
-srslte_mimo_type_t mimo_type = SRSLTE_MIMO_TYPE_SINGLE_ANTENNA;
-uint32_t cfi = 1;
+uint32_t cfi               = 1;
 uint32_t nof_rx_ant = 1;
-uint32_t nof_subframes = 100;
+uint32_t nof_subframes     = 0;
 uint16_t rnti = 0x1234;
 bool print_dci_table;
-uint32_t mcs = 28;
+uint32_t mcs                     = 20;
+int      cross_carrier_indicator = -1;
 
 void usage(char *prog) {
   printf("Usage: %s [cfpndvs]\n", prog);
@@ -57,35 +57,44 @@ void usage(char *prog) {
   printf("\t-p cell.nof_prb [Default %d]\n", cell.nof_prb);
   printf("\t-s number of subframes to simulate [Default %d]\n", nof_subframes);
   printf("\t-d Print DCI table [Default %s]\n", print_dci_table ? "yes" : "no");
-  printf("\t-x MIMO Type: single, diversity, cdd, multiplex [Default %s]\n", srslte_mimotype2str(mimo_type));
+  printf("\t-t Transmission mode: 1,2,3,4 [Default %d]\n", transmission_mode);
   printf("\t-m mcs [Default %d]\n", mcs);
+  printf("\tAdvanced parameters:\n");
+  if (cross_carrier_indicator >= 0) {
+    printf("\t\t-a carrier-indicator [Default %d]\n", cross_carrier_indicator);
+  } else {
+    printf("\t\t-a carrier-indicator [Default none]\n");
+  }
   printf("\t-v [set srslte_verbose to debug, default none]\n");
+}
+
+void parse_extensive_param(char* param, char* arg)
+{
+  int ext_code = SRSLTE_SUCCESS;
+  if (!strcmp(param, "carrier-indicator")) {
+    cross_carrier_indicator = atoi(arg);
+  } else {
+    ext_code = SRSLTE_ERROR;
+  }
+
+  if (ext_code) {
+    ERROR("Error parsing parameter '%s' and argument '%s'\n", param, arg);
+    exit(ext_code);
+  }
 }
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "cfpndvsxm")) != -1) {
+  while ((opt = getopt(argc, argv, "cfapndvstm")) != -1) {
     switch (opt) {
-      case 'x':
-        if (srslte_str2mimotype(argv[optind], &mimo_type)) {
-          fprintf(stderr, "'%s' is not a valid MIMO type\n", argv[optind]);
-          usage(argv[0]);
-          exit(SRSLTE_ERROR);
-        }
-        if (mimo_type == SRSLTE_MIMO_TYPE_SINGLE_ANTENNA) {
+      case 't':
+        transmission_mode = strtol(argv[optind], NULL, 10) - 1;
+        if (transmission_mode == 0) {
           cell.nof_ports = 1;
-          nof_rx_ant = 1;
-          transmission_mode = 1;
-        } else {
+          nof_rx_ant     = 1;
+        } else if (transmission_mode < 4) {
           cell.nof_ports = 2;
           nof_rx_ant = 2;
-          if (mimo_type == SRSLTE_MIMO_TYPE_TX_DIVERSITY) {
-            transmission_mode = 2;
-          } else if (mimo_type == SRSLTE_MIMO_TYPE_CDD) {
-            transmission_mode = 3;
-          } else {
-            transmission_mode = 4;
-          }
         }
         break;
       case 'f':
@@ -106,6 +115,10 @@ void parse_args(int argc, char **argv) {
       case 'd':
         print_dci_table = true;
         break;
+      case 'a':
+        parse_extensive_param(argv[optind], argv[optind + 1]);
+        optind++;
+        break;
       case 'v':
         srslte_verbose++;
         break;
@@ -119,51 +132,110 @@ void parse_args(int argc, char **argv) {
 int prbset_num = 1, last_prbset_num = 1;
 int prbset_orig = 0;
 
-int work_enb(srslte_enb_dl_t *enb_dl,
-             srslte_dci_format_t dci_format,
-             srslte_ra_dl_dci_t *dci,
-             srslte_ra_dl_grant_t *grant,
-             srslte_softbuffer_tx_t **softbuffer_tx,
-             uint32_t sf_idx, uint8_t **data_tx) {
+int work_enb(srslte_enb_dl_t*         enb_dl,
+             srslte_dl_sf_cfg_t*      dl_sf,
+             srslte_dci_cfg_t*        dci_cfg,
+             srslte_dci_dl_t*         dci,
+             srslte_softbuffer_tx_t** softbuffer_tx,
+             uint8_t**                data_tx)
+{
   int ret = SRSLTE_ERROR;
 
-  srslte_dci_location_t location = {
-      .ncce = 8,
-      .L = 3
-  };
-
-  srslte_enb_dl_clear_sf(enb_dl);
-
-  srslte_enb_dl_put_base(enb_dl, sf_idx);
-
-  if (srslte_enb_dl_put_pdcch_dl(enb_dl,
-                                 dci,
-                                 dci_format,
-                                 location,
-                                 rnti,
-                                 sf_idx % 10) < 0) {
-    fprintf(stderr, "Error putting PDCCH\n");
+  srslte_enb_dl_put_base(enb_dl, dl_sf);
+  if (srslte_enb_dl_put_pdcch_dl(enb_dl, dci_cfg, dci)) {
+    ERROR("Error putting PDCCH sf_idx=%d\n", dl_sf->tti);
     goto quit;
   }
 
-  if (srslte_enb_dl_put_pdsch(enb_dl,
-                              grant,
-                              softbuffer_tx,
-                              rnti,
-                              (int[SRSLTE_MAX_CODEWORDS]) {dci->rv_idx, dci->rv_idx_1},
-                              sf_idx % 10,
-                              data_tx,
-                              mimo_type) < 0) {
-    fprintf(stderr, "Error putting PDSCH\n");
+  // Create pdsch config
+  srslte_pdsch_cfg_t pdsch_cfg;
+  if (srslte_ra_dl_dci_to_grant(&cell, dl_sf, transmission_mode, dci, &pdsch_cfg.grant)) {
+    ERROR("Computing DL grant sf_idx=%d\n", dl_sf->tti);
     goto quit;
   }
+  char str[512];
+  srslte_dci_dl_info(dci, str, 512);
+  INFO("eNb PDCCH: rnti=0x%x, %s\n", rnti, str);
+
+  for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+    pdsch_cfg.softbuffers.tx[i] = softbuffer_tx[i];
+  }
+
+  // Enable power allocation
+  pdsch_cfg.power_scale  = true;
+  pdsch_cfg.p_a          = 0.0f;                                     // 0 dB
+  pdsch_cfg.p_b          = (transmission_mode > SRSLTE_TM1) ? 1 : 0; // 0 dB
+  pdsch_cfg.rnti         = rnti;
+  pdsch_cfg.meas_time_en = false;
+
+  if (srslte_enb_dl_put_pdsch(enb_dl, &pdsch_cfg, data_tx) < 0) {
+    ERROR("Error putting PDSCH sf_idx=%d\n", dl_sf->tti);
+    goto quit;
+  }
+  srslte_pdsch_tx_info(&pdsch_cfg, str, 512);
+  INFO("eNb PDSCH: rnti=0x%x, %s\n", rnti, str);
 
   srslte_enb_dl_gen_signal(enb_dl);
 
   ret = SRSLTE_SUCCESS;
 
-  quit:
+quit:
   return ret;
+}
+
+int work_ue(srslte_ue_dl_t*     ue_dl,
+            srslte_dl_sf_cfg_t* sf_cfg_dl,
+            srslte_ue_dl_cfg_t* ue_dl_cfg,
+            srslte_dci_dl_t*    dci_dl,
+            uint32_t            sf_idx,
+            srslte_pdsch_res_t  pdsch_res[SRSLTE_MAX_CODEWORDS])
+{
+  if (srslte_ue_dl_decode_fft_estimate(ue_dl, sf_cfg_dl, ue_dl_cfg) < 0) {
+    ERROR("Getting PDCCH FFT estimate sf_idx=%d\n", sf_idx);
+    return -1;
+  }
+
+  int nof_grants = srslte_ue_dl_find_dl_dci(ue_dl, sf_cfg_dl, ue_dl_cfg, rnti, dci_dl);
+  if (nof_grants < 0) {
+    ERROR("Looking for DL grants sf_idx=%d\n", sf_idx);
+    return -1;
+  } else if (nof_grants == 0) {
+    ERROR("Failed to find DCI in sf_idx=%d\n", sf_idx);
+    return -1;
+  }
+
+  // Enable power allocation
+  ue_dl_cfg->cfg.pdsch.power_scale = true;
+  ue_dl_cfg->cfg.pdsch.p_a         = 0.0f;                                     // 0 dB
+  ue_dl_cfg->cfg.pdsch.p_b         = (transmission_mode > SRSLTE_TM1) ? 1 : 0; // 0 dB
+  ue_dl_cfg->cfg.pdsch.rnti        = dci_dl->rnti;
+  ue_dl_cfg->cfg.pdsch.csi_enable  = false;
+
+  char str[512];
+  srslte_dci_dl_info(&dci_dl[0], str, 512);
+  INFO("UE PDCCH: rnti=0x%x, %s\n", rnti, str);
+
+  if (srslte_ra_dl_dci_to_grant(&cell, sf_cfg_dl, transmission_mode, &dci_dl[0], &ue_dl_cfg->cfg.pdsch.grant)) {
+    ERROR("Computing DL grant sf_idx=%d\n", sf_idx);
+    return -1;
+  }
+
+  // Reset softbuffer
+  for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+    if (ue_dl_cfg->cfg.pdsch.grant.tb[i].enabled) {
+      srslte_softbuffer_rx_reset(ue_dl_cfg->cfg.pdsch.softbuffers.rx[i]);
+    }
+  }
+
+  if (srslte_ue_dl_decode_pdsch(ue_dl, sf_cfg_dl, &ue_dl_cfg->cfg.pdsch, pdsch_res)) {
+    ERROR("ERROR: Decoding PDSCH sf_idx=%d\n", sf_idx);
+    return -1;
+  }
+
+  srslte_pdsch_tx_info(&ue_dl_cfg->cfg.pdsch, str, 512);
+  INFO("UE PDSCH: rnti=0x%x, %s\n", rnti, str);
+
+  return 0;
 }
 
 unsigned int
@@ -178,7 +250,7 @@ reverse(register unsigned int x) {
 
 uint32_t prbset_to_bitmask() {
   uint32_t mask = 0;
-  int nb = (int) ceilf((float) cell.nof_prb / srslte_ra_type0_P(cell.nof_prb));
+  int      nb   = (int)ceilf((float)cell.nof_prb / srslte_ra_type0_P(cell.nof_prb));
   for (int i = 0; i < nb; i++) {
     if (i >= prbset_orig && i < prbset_orig + prbset_num) {
       mask = mask | (0x1 << i);
@@ -187,18 +259,67 @@ uint32_t prbset_to_bitmask() {
   return reverse(mask) >> (32 - nb);
 }
 
+static srslte_enb_dl_t enb_dl;
+static srslte_ue_dl_t  ue_dl;
+
+static int check_softbits(srslte_ue_dl_cfg_t* ue_dl_cfg, uint32_t sf_idx, int tb)
+{
+  int ret = SRSLTE_SUCCESS;
+
+  // Generate sequence
+  srslte_sequence_pdsch(&ue_dl.pdsch.tmp_seq,
+                        rnti,
+                        ue_dl_cfg->cfg.pdsch.grant.tb[tb].cw_idx,
+                        2 * (sf_idx % 10),
+                        cell.id,
+                        ue_dl_cfg->cfg.pdsch.grant.tb[tb].nof_bits);
+
+  // Scramble
+  if (ue_dl.pdsch.llr_is_8bit) {
+    srslte_scrambling_sb_offset(&ue_dl.pdsch.tmp_seq, ue_dl.pdsch.e[tb], 0, ue_dl_cfg->cfg.pdsch.grant.tb[tb].nof_bits);
+  } else {
+    srslte_scrambling_s_offset(&ue_dl.pdsch.tmp_seq, ue_dl.pdsch.e[tb], 0, ue_dl_cfg->cfg.pdsch.grant.tb[tb].nof_bits);
+  }
+  int16_t* rx       = ue_dl.pdsch.e[tb];
+  uint8_t* rx_bytes = ue_dl.pdsch.e[tb];
+  for (int i = 0, k = 0; i < ue_dl_cfg->cfg.pdsch.grant.tb[tb].nof_bits / 8; i++) {
+    uint8_t w = 0;
+    for (int j = 0; j < 8; j++, k++) {
+      w |= (rx[k] > 0) ? (1 << (7 - j)) : 0;
+    }
+    rx_bytes[i] = w;
+  }
+  if (memcmp(ue_dl.pdsch.e[tb], enb_dl.pdsch.e[tb], ue_dl_cfg->cfg.pdsch.grant.tb[tb].nof_bits / 8) != 0) {
+    ret = SRSLTE_ERROR;
+  }
+
+  return ret;
+}
+
+static int check_evm(srslte_ue_dl_cfg_t* ue_dl_cfg, int tb)
+{
+  int ret = SRSLTE_SUCCESS;
+  srslte_vec_sub_ccc(enb_dl.pdsch.d[tb], ue_dl.pdsch.d[tb], enb_dl.pdsch.d[tb], ue_dl_cfg->cfg.pdsch.grant.nof_re);
+  float evm = srslte_vec_avg_power_cf(enb_dl.pdsch.d[tb], ue_dl_cfg->cfg.pdsch.grant.nof_re);
+
+  if (evm > 0.1f) {
+    printf("TB%d Constellation EVM (%.3f) is too high\n", tb, evm);
+    ret = SRSLTE_ERROR;
+  }
+
+  return ret;
+}
+
 int main(int argc, char **argv) {
   struct timeval t[3] = {};
   size_t tx_nof_bits = 0, rx_nof_bits = 0;
-  srslte_enb_dl_t enb_dl;
-  srslte_ue_dl_t ue_dl;
   srslte_softbuffer_tx_t *softbuffer_tx[SRSLTE_MAX_TB] = {};
   srslte_softbuffer_rx_t *softbuffer_rx[SRSLTE_MAX_TB] = {};
   uint8_t *data_tx[SRSLTE_MAX_TB] = {};
   uint8_t *data_rx[SRSLTE_MAX_TB] = {};
   uint32_t count_failures = 0, count_tbs = 0;
   size_t pdsch_decode_us = 0;
-  size_t pdsch_encode_us = 0;
+  size_t                  pdsch_encode_us = 0;
 
   int ret = -1;
 
@@ -206,16 +327,13 @@ int main(int argc, char **argv) {
 
   cf_t *signal_buffer[SRSLTE_MAX_PORTS] = {NULL};
 
-  bzero(&enb_dl, sizeof(enb_dl));
-  bzero(&ue_dl, sizeof(ue_dl));
-
   /*
    * Allocate Memory
    */
   for (int i = 0; i < cell.nof_ports; i++) {
     signal_buffer[i] = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
     if (!signal_buffer[i]) {
-      fprintf(stderr, "Error allocating buffer\n");
+      ERROR("Error allocating buffer\n");
       goto quit;
     }
   }
@@ -223,35 +341,35 @@ int main(int argc, char **argv) {
   for (int i = 0; i < SRSLTE_MAX_TB; i++) {
     softbuffer_tx[i] = (srslte_softbuffer_tx_t *) calloc(sizeof(srslte_softbuffer_tx_t), 1);
     if (!softbuffer_tx[i]) {
-      fprintf(stderr, "Error allocating softbuffer_tx\n");
+      ERROR("Error allocating softbuffer_tx\n");
       goto quit;
     }
 
     if (srslte_softbuffer_tx_init(softbuffer_tx[i], cell.nof_prb)) {
-      fprintf(stderr, "Error initiating softbuffer_tx\n");
+      ERROR("Error initiating softbuffer_tx\n");
       goto quit;
     }
 
     softbuffer_rx[i] = (srslte_softbuffer_rx_t *) calloc(sizeof(srslte_softbuffer_rx_t), 1);
     if (!softbuffer_rx[i]) {
-      fprintf(stderr, "Error allocating softbuffer_rx\n");
+      ERROR("Error allocating softbuffer_rx\n");
       goto quit;
     }
 
     if (srslte_softbuffer_rx_init(softbuffer_rx[i], cell.nof_prb)) {
-      fprintf(stderr, "Error initiating softbuffer_rx\n");
+      ERROR("Error initiating softbuffer_rx\n");
       goto quit;
     }
 
     data_tx[i] = srslte_vec_malloc(sizeof(uint8_t) * MAX_DATABUFFER_SIZE);
     if (!data_tx[i]) {
-      fprintf(stderr, "Error allocating data tx\n");
+      ERROR("Error allocating data tx\n");
       goto quit;
     }
 
     data_rx[i] = srslte_vec_malloc(sizeof(uint8_t) * MAX_DATABUFFER_SIZE);
     if (!data_rx[i]) {
-      fprintf(stderr, "Error allocating data tx\n");
+      ERROR("Error allocating data tx\n");
       goto quit;
     }
   }
@@ -260,137 +378,247 @@ int main(int argc, char **argv) {
    * Initialise eNb
    */
   if (srslte_enb_dl_init(&enb_dl, signal_buffer, cell.nof_prb)) {
-    fprintf(stderr, "Error initiating eNb downlink\n");
+    ERROR("Error initiating eNb downlink\n");
     goto quit;
   }
 
   if (srslte_enb_dl_set_cell(&enb_dl, cell)) {
-    fprintf(stderr, "Error setting eNb DL cell\n");
+    ERROR("Error setting eNb DL cell\n");
     goto quit;
   }
 
-  srslte_enb_dl_set_cfi(&enb_dl, cfi);
-  srslte_enb_dl_set_power_allocation(&enb_dl, 0.0f, 0.0f); /* Default: none */
+  if (srslte_enb_dl_add_rnti(&enb_dl, rnti)) {
+    ERROR("Error adding RNTI\n");
+    goto quit;
+  }
 
   /*
    * Initialise UE
    */
   if (srslte_ue_dl_init(&ue_dl, signal_buffer, cell.nof_prb, nof_rx_ant)) {
-    fprintf(stderr, "Error initiating UE downlink\n");
+    ERROR("Error initiating UE downlink\n");
     goto quit;
   }
 
   if (srslte_ue_dl_set_cell(&ue_dl, cell)) {
-    fprintf(stderr, "Error setting UE downlink cell\n");
+    ERROR("Error setting UE downlink cell\n");
     goto quit;
   }
 
   srslte_ue_dl_set_rnti(&ue_dl, rnti);
 
-  srslte_chest_dl_average_subframe(&ue_dl.chest, true);
-  //srslte_chest_dl_set_smooth_filter_gauss(&ue_dl.chest, 4, 1.0f);
+  /*
+   * Create PDCCH Allocations
+   */
+  uint32_t              nof_locations[SRSLTE_NOF_SF_X_FRAME];
+  srslte_dci_location_t dci_locations[SRSLTE_NOF_SF_X_FRAME][MAX_CANDIDATES_UE];
+  uint32_t              location_counter = 0;
+  for (uint32_t i = 0; i < SRSLTE_NOF_SF_X_FRAME; i++) {
+    srslte_dl_sf_cfg_t sf_cfg_dl;
+    ZERO_OBJECT(sf_cfg_dl);
+    sf_cfg_dl.tti     = i;
+    sf_cfg_dl.cfi     = cfi;
+    sf_cfg_dl.sf_type = SRSLTE_SF_NORM;
+
+    nof_locations[i] = srslte_pdcch_ue_locations(&enb_dl.pdcch, &sf_cfg_dl, dci_locations[i], MAX_CANDIDATES_UE, rnti);
+    location_counter += nof_locations[i];
+  }
+
+  if (nof_subframes == 0) {
+    nof_subframes = location_counter;
+  }
+
+  /*
+   *  DCI Configuration
+   */
+  srslte_dci_dl_t  dci;
+  srslte_dci_cfg_t dci_cfg;
+  dci_cfg.srs_request_enabled          = false;
+  dci_cfg.ra_format_enabled            = false;
+  dci_cfg.multiple_csi_request_enabled = false;
+
+  // DCI Fixed values
+  dci.pid                 = 0;
+  dci.pinfo               = 0;
+  dci.rnti                = rnti;
+  dci.is_tdd              = false;
+  dci.is_dwpts            = false;
+  dci.is_ra_order         = false;
+  dci.tb_cw_swap          = false;
+  dci.pconf               = false;
+  dci.power_offset        = false;
+  dci.tpc_pucch           = false;
+  dci.ra_preamble         = false;
+  dci.ra_mask_idx         = false;
+  dci.srs_request         = false;
+  dci.srs_request_present = false;
+
+  if (cross_carrier_indicator >= 0) {
+    dci.cif_present     = true;
+    dci_cfg.cif_enabled = true;
+    dci.cif             = (uint32_t)cross_carrier_indicator;
+  } else {
+    dci.cif_present     = false;
+    dci_cfg.cif_enabled = false;
+  }
+
+  // Set PRB Allocation type
+  dci.alloc_type              = SRSLTE_RA_ALLOC_TYPE0;
+  prbset_num                  = (int)ceilf((float)cell.nof_prb / srslte_ra_type0_P(cell.nof_prb));
+  last_prbset_num             = prbset_num;
+  dci.type0_alloc.rbg_bitmask = prbset_to_bitmask();
+
+  // Set TB
+  if (transmission_mode < SRSLTE_TM3) {
+    dci.format        = SRSLTE_DCI_FORMAT1;
+    dci.tb[0].mcs_idx = mcs;
+    dci.tb[0].rv      = 0;
+    dci.tb[0].ndi     = 0;
+    dci.tb[0].cw_idx  = 0;
+    dci.tb[1].mcs_idx = 0;
+    dci.tb[1].rv      = 1;
+  } else if (transmission_mode == SRSLTE_TM3) {
+    dci.format = SRSLTE_DCI_FORMAT2A;
+    for (int i = 0; i < SRSLTE_MAX_TB; i++) {
+      dci.tb[i].mcs_idx = mcs;
+      dci.tb[i].rv      = 0;
+      dci.tb[i].ndi     = 0;
+      dci.tb[i].cw_idx  = i;
+    }
+  } else if (transmission_mode == SRSLTE_TM4) {
+    dci.format = SRSLTE_DCI_FORMAT2;
+    dci.pinfo  = 0;
+    for (int i = 0; i < SRSLTE_MAX_TB; i++) {
+      dci.tb[i].mcs_idx = mcs;
+      dci.tb[i].rv      = 0;
+      dci.tb[i].ndi     = 0;
+      dci.tb[i].cw_idx  = i;
+    }
+  } else {
+    ERROR("Wrong transmission mode (%d)\n", transmission_mode);
+  }
 
   /*
    * Loop
    */
   INFO("--- Starting test ---\n");
   for (uint32_t sf_idx = 0; sf_idx < nof_subframes; sf_idx++) {
-    bool acks[SRSLTE_MAX_TB] = {};
-
     /* Generate random data */
     for (int t = 0; t < SRSLTE_MAX_TB; t++) {
       for (int i = 0; i < MAX_DATABUFFER_SIZE; i++) {
-        data_tx[t][i] = (uint8_t) (rand() & 0xff);
+        data_tx[t][i] = (uint8_t)(rand() & 0xff);
       }
     }
 
     /*
      * Run eNodeB
      */
-    srslte_ra_dl_dci_t dci;
-    srslte_dci_format_t dci_format = SRSLTE_DCI_FORMAT1A;
-    srslte_ra_dl_grant_t grant;
+    srslte_dl_sf_cfg_t sf_cfg_dl;
+    sf_cfg_dl.tti     = sf_idx % 10;
+    sf_cfg_dl.cfi     = cfi;
+    sf_cfg_dl.sf_type = SRSLTE_SF_NORM;
 
-    bzero(&dci, sizeof(dci));
-    bzero(&grant, sizeof(grant));
-
-    prbset_num = (int) ceilf((float) cell.nof_prb / srslte_ra_type0_P(cell.nof_prb));
-    last_prbset_num = prbset_num;
-
-    /* Pupulate TB Common */
-    dci.harq_process = 0;
-
-    /* Pupulate TB0 */
-    dci.mcs_idx = mcs;
-    dci.ndi = 0;
-    dci.rv_idx = 0;
-    dci.tb_en[0] = true;
-
-    if (mimo_type == SRSLTE_MIMO_TYPE_CDD || mimo_type == SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX) {
-      dci_format = (transmission_mode == 3) ? SRSLTE_DCI_FORMAT2A : SRSLTE_DCI_FORMAT2;
-
-      /* Pupulate TB1 */
-      dci.mcs_idx_1 = mcs;
-      dci.ndi_1 = 0;
-      dci.rv_idx_1 = 0;
-      dci.tb_en[1] = true;
-
-      /* Pupulate Allocation */
-      dci.alloc_type = SRSLTE_RA_ALLOC_TYPE0;
-      dci.type0_alloc.rbg_bitmask = prbset_to_bitmask();
-    } else {
-      dci_format = SRSLTE_DCI_FORMAT1A;
-      dci.alloc_type = SRSLTE_RA_ALLOC_TYPE2;
-      dci.type2_alloc.riv = 0;
-      dci.type2_alloc.L_crb = 4;
-      dci.type2_alloc.RB_start = 0;
-      dci.type2_alloc.n_prb1a = 1;
-      dci.type2_alloc.n_gap = 0;
-      dci.type2_alloc.mode = 0;
+    // Set DCI Location
+    dci.location = dci_locations[sf_idx % 10][(sf_idx / 10) % nof_locations[sf_idx % 10]];
+    if (cell.nof_prb == 6) {
+      for (int i = 0; i < SRSLTE_MAX_TB; i++) {
+        dci.tb[i].mcs_idx = (sf_idx % 5 == 0) ? 0 : mcs;
+      }
+    } else if (cell.nof_prb == 15) {
+      for (int i = 0; i < SRSLTE_MAX_TB; i++) {
+        dci.tb[i].mcs_idx = (sf_idx % 5 == 0) ? SRSLTE_MIN(mcs, 27) : mcs;
+      }
     }
-
-    dci.dci_is_1a = (dci_format == SRSLTE_DCI_FORMAT1A);
-    dci.dci_is_1c = (dci_format == SRSLTE_DCI_FORMAT1C);
-
-    srslte_ra_dl_dci_to_grant(&dci, cell.nof_prb, rnti, &grant);
-    INFO("--- Process Uplink ---\n");
+    INFO("--- Process eNb ---\n");
 
     gettimeofday(&t[1], NULL);
-    if (work_enb(&enb_dl, dci_format, &dci, &grant, softbuffer_tx, sf_idx, data_tx)) {
+    if (work_enb(&enb_dl, &sf_cfg_dl, &dci_cfg, &dci, softbuffer_tx, data_tx)) {
       goto quit;
     }
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
     pdsch_encode_us += t[0].tv_sec * 1e6 + t[0].tv_usec;
 
+    // MIMO perfect crossed channel
+    if (transmission_mode > 1) {
+      for (int i = 0; i < SRSLTE_SF_LEN_PRB(cell.nof_prb); i++) {
+        cf_t x0 = signal_buffer[0][i];
+        cf_t x1 = signal_buffer[1][i];
+
+        cf_t y0 = x0 + x1;
+        cf_t y1 = x0 - x1;
+
+        signal_buffer[0][i] = y0;
+        signal_buffer[1][i] = y1;
+      }
+    }
+
     /*
      * Run UE
      */
-    INFO("--- Process Downlink ---\n");
+    INFO("--- Process  UE ---\n");
     gettimeofday(&t[1], NULL);
-    int n = srslte_ue_dl_decode(&ue_dl, data_rx, transmission_mode - 1, sf_idx, acks);
-    if (n < 0) {
-      fprintf(stderr, "Error decoding PDSCH\n");
+
+    srslte_ue_dl_cfg_t ue_dl_cfg;
+    srslte_dci_dl_t    dci_dl[SRSLTE_MAX_DCI_MSG];
+
+    ue_dl_cfg.cfg.tm                       = transmission_mode;
+    ue_dl_cfg.cfg.pdsch.p_a                = 0.0;
+    ue_dl_cfg.cfg.pdsch.power_scale        = false;
+    ue_dl_cfg.cfg.pdsch.decoder_type       = SRSLTE_MIMO_DECODER_MMSE;
+    ue_dl_cfg.cfg.pdsch.max_nof_iterations = 10;
+    ue_dl_cfg.cfg.pdsch.meas_time_en       = false;
+
+    ue_dl_cfg.chest_cfg.filter_coef[0]       = 4;
+    ue_dl_cfg.chest_cfg.filter_coef[1]       = 1;
+    ue_dl_cfg.chest_cfg.filter_type          = SRSLTE_CHEST_FILTER_GAUSS;
+    ue_dl_cfg.chest_cfg.noise_alg            = SRSLTE_NOISE_ALG_REFS;
+    ue_dl_cfg.chest_cfg.rsrp_neighbour       = false;
+    ue_dl_cfg.chest_cfg.interpolate_subframe = false;
+    ue_dl_cfg.chest_cfg.cfo_estimate_enable  = false;
+    ue_dl_cfg.chest_cfg.cfo_estimate_sf_mask = false;
+    ue_dl_cfg.dci_cfg                        = dci_cfg;
+
+    srslte_pdsch_res_t pdsch_res[SRSLTE_MAX_CODEWORDS];
+    for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+      pdsch_res[i].payload                  = data_rx[i];
+      pdsch_res[i].avg_iterations_block     = 0.0f;
+      pdsch_res[i].crc                      = false;
+      ue_dl_cfg.cfg.pdsch.softbuffers.rx[i] = softbuffer_rx[i];
+    }
+    if (work_ue(&ue_dl, &sf_cfg_dl, &ue_dl_cfg, dci_dl, sf_idx, pdsch_res)) {
       goto quit;
     }
+
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
     pdsch_decode_us += t[0].tv_sec * 1e6 + t[0].tv_usec;
 
-    for (int i = 0; i < SRSLTE_RA_DL_GRANT_NOF_TB(&grant); i++) {
-      if (!acks[i] || memcmp(data_tx[i], data_rx[i], grant.mcs[i].tbs / 8) != 0) {
-        printf("UE Failed decoding tb %d in subframe %d\n", i, sf_idx);
-        srslte_vec_fprint_hex(stdout, data_tx[i], grant.mcs[i].tbs / 8);
-        srslte_vec_fprint_hex(stdout, data_rx[i], grant.mcs[i].tbs / 8);
-        count_failures++;
+    for (int i = 0; i < SRSLTE_MAX_TB; i++) {
+      if (ue_dl_cfg.cfg.pdsch.grant.tb[i].enabled) {
+        if (check_evm(&ue_dl_cfg, i)) {
+          count_failures++;
+        } else if (check_softbits(&ue_dl_cfg, sf_idx, i) != SRSLTE_SUCCESS) {
+          printf("TB%d: The received softbits in subframe %d DO NOT match the encoded bits (crc=%d)\n",
+                 i,
+                 sf_idx,
+                 pdsch_res[i].crc);
+          srslte_vec_fprint_byte(stdout, (uint8_t*)enb_dl.pdsch.e[i], ue_dl_cfg.cfg.pdsch.grant.tb[i].nof_bits / 8);
+          srslte_vec_fprint_byte(stdout, (uint8_t*)ue_dl.pdsch.e[i], ue_dl_cfg.cfg.pdsch.grant.tb[i].nof_bits / 8);
+          count_failures++;
+        } else if (!pdsch_res[i].crc || memcmp(data_tx[i], data_rx[i], ue_dl_cfg.cfg.pdsch.grant.tb[i].tbs / 8) != 0) {
+          printf("UE Failed decoding tb %d in subframe %d. crc=%d; Bytes:\n", i, sf_idx, pdsch_res[i].crc);
+          srslte_vec_fprint_byte(stdout, data_tx[i], ue_dl_cfg.cfg.pdsch.grant.tb[i].tbs / 8);
+          srslte_vec_fprint_byte(stdout, data_rx[i], ue_dl_cfg.cfg.pdsch.grant.tb[i].tbs / 8);
+          count_failures++;
+        } else {
+          // Decoded Ok
+          rx_nof_bits += ue_dl_cfg.cfg.pdsch.grant.tb[i].tbs;
+        }
+        count_tbs++;
+        tx_nof_bits += ue_dl_cfg.cfg.pdsch.grant.tb[i].tbs;
       }
-      count_tbs++;
     }
-
-    tx_nof_bits += (enb_dl.pdsch_cfg.grant.tb_en[0] ? enb_dl.pdsch_cfg.grant.mcs[0].tbs : 0);
-    tx_nof_bits += (enb_dl.pdsch_cfg.grant.tb_en[1] ? enb_dl.pdsch_cfg.grant.mcs[1].tbs : 0);
-    rx_nof_bits += (acks[0] ? ue_dl.pdsch_cfg.grant.mcs[0].tbs : 0);
-    rx_nof_bits += (acks[1] ? ue_dl.pdsch_cfg.grant.mcs[1].tbs : 0);
   }
 
   printf("Finished! The UE failed decoding %d of %d transport blocks.\n", count_failures, count_tbs);

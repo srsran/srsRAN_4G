@@ -27,8 +27,8 @@
 #ifndef SRSENB_PHY_H
 #define SRSENB_PHY_H
 
-#include "phch_common.h"
-#include "phch_worker.h"
+#include "phy_common.h"
+#include "sf_worker.h"
 #include "srslte/common/log.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/task_dispatcher.h"
@@ -37,7 +37,6 @@
 #include "srslte/interfaces/enb_metrics_interface.h"
 #include "srslte/radio/radio.h"
 #include "txrx.h"
-#include <srslte/asn1/rrc_asn1.h>
 
 namespace srsenb {
  
@@ -61,9 +60,10 @@ public:
   void stop();
   
   /* MAC->PHY interface */
-  int  add_rnti(uint16_t rnti);
+  int  add_rnti(uint16_t rnti, bool is_temporal = false);
   void rem_rnti(uint16_t rnti);
-  
+  void set_mch_period_stop(uint32_t stop);
+
   /*RRC-PHY interface*/
   void configure_mbsfn(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s mcch);
 
@@ -71,7 +71,6 @@ public:
   static uint32_t tti_to_subf(uint32_t tti);
   
   void start_plot();
-  void set_conf_dedicated_ack(uint16_t rnti, bool dedicated_ack);
   void set_config_dedicated(uint16_t rnti, asn1::rrc::phys_cfg_ded_s* dedicated);
 
   void get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS]);
@@ -90,8 +89,8 @@ private:
   srslte::radio         *radio_handler;
   srslte::log              *log_h;
   srslte::thread_pool      workers_pool;
-  std::vector<phch_worker> workers;
-  phch_common              workers_common; 
+  std::vector<sf_worker>    workers;
+  phy_common                workers_common;
   prach_worker             prach; 
   txrx                     tx_rx; 
   

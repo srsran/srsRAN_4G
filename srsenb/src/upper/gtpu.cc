@@ -372,7 +372,7 @@ bool gtpu::mch_thread::init(std::string m1u_multiaddr_, std::string m1u_if_addr_
 void gtpu::mch_thread::run_thread()
 {
   if (!initiated) {
-    fprintf(stderr, "Fatal error running mch_thread without initialization\n");
+    ERROR("Fatal error running mch_thread without initialization\n");
     return;
   }
 

@@ -40,7 +40,12 @@ int nof_cw = 1, nof_layers = 1;
 char *mimo_type_name = NULL;
 
 void usage(char *prog) {
-  printf("Usage: %s -m [single|diversity|multiplex|cdd] -c [nof_cw] -l [nof_layers]\n", prog);
+  printf("Usage: %s -m [%s|%s|%s|%s] -c [nof_cw] -l [nof_layers]\n",
+         prog,
+         srslte_mimotype2str(0),
+         srslte_mimotype2str(1),
+         srslte_mimotype2str(2),
+         srslte_mimotype2str(3));
   printf("\t-n num_symbols [Default %d]\n", nof_symbols);
 }
 
@@ -74,14 +79,14 @@ void parse_args(int argc, char **argv) {
 int main(int argc, char **argv) {
   int i, j, num_errors, symbols_layer;
   cf_t *d[SRSLTE_MAX_CODEWORDS], *x[SRSLTE_MAX_LAYERS], *dp[SRSLTE_MAX_CODEWORDS];
-  srslte_mimo_type_t type;
+  srslte_tx_scheme_t type;
   int nof_symb_cw[SRSLTE_MAX_CODEWORDS];
   int n[2];
 
   parse_args(argc, argv);
 
   if (srslte_str2mimotype(mimo_type_name, &type)) {
-    fprintf(stderr, "Invalid MIMO type %s\n", mimo_type_name);
+    ERROR("Invalid MIMO type %s\n", mimo_type_name);
     exit(-1);
   }
 
@@ -124,13 +129,13 @@ int main(int argc, char **argv) {
 
   /* layer mapping */
   if ((symbols_layer = srslte_layermap_type(d, x, nof_cw, nof_layers, nof_symb_cw, type)) < 0) {
-    fprintf(stderr, "Error layer mapper encoder\n");
+    ERROR("Error layer mapper encoder\n");
     exit(-1);
   }
 
   /* layer de-mapping */
   if (srslte_layerdemap_type(x, dp, nof_layers, nof_cw, nof_symbols/nof_layers, nof_symb_cw, type) < 0) {
-    fprintf(stderr, "Error layer mapper encoder\n");
+    ERROR("Error layer mapper encoder\n");
     exit(-1);
   }
 

@@ -44,42 +44,22 @@
 #include "srslte/phy/phch/ra.h"
 
 #define SRSLTE_DCI_MAX_BITS  128
-
 #define SRSLTE_RAR_GRANT_LEN 20
 
-SRSLTE_API extern int harq_pid_len; 
+#define SRSLTE_DCI_IS_TB_EN(tb) (!(tb.mcs_idx == 0 && tb.rv == 1))
+#define SRSLTE_DCI_TB_DISABLE(tb)                                                                                      \
+  do {                                                                                                                 \
+    tb.mcs_idx = 0;                                                                                                    \
+    tb.rv      = 1;                                                                                                    \
+  } while (0)
+#define SRSLTE_DCI_HEXDEBUG 0
 
-typedef enum {
-  SRSLTE_DCI_FORMAT0 = 0, 
-  SRSLTE_DCI_FORMAT1, 
-  SRSLTE_DCI_FORMAT1A, 
-  SRSLTE_DCI_FORMAT1C, 
-  SRSLTE_DCI_FORMAT1B,
-  SRSLTE_DCI_FORMAT1D, 
-  SRSLTE_DCI_FORMAT2, 
-  SRSLTE_DCI_FORMAT2A, 
-  SRSLTE_DCI_FORMAT2B, 
-  //SRSLTE_DCI_FORMAT3, 
-  //SRSLTE_DCI_FORMAT3A, 
-  SRSLTE_DCI_NOF_FORMATS
-} srslte_dci_format_t;
-
-// Each type is for a different interface to packing/unpacking functions
-typedef struct SRSLTE_API {
-  enum {
-    SRSLTE_DCI_MSG_TYPE_PUSCH_SCHED, 
-    SRSLTE_DCI_MSG_TYPE_PDSCH_SCHED, 
-    SRSLTE_DCI_MSG_TYPE_MCCH_CHANGE, 
-    SRSLTE_DCI_MSG_TYPE_TPC_COMMAND, 
-    SRSLTE_DCI_MSG_TYPE_RA_PROC_PDCCH
-  } type;
-  srslte_dci_format_t format;
-}srslte_dci_msg_type_t;
-
-typedef enum {
-  SRSLTE_DCI_SPEC_COMMON_ = 0, 
-  SRSLTE_DCI_SPEC_UE = 1
-} dci_spec_t;
+typedef struct {
+  bool multiple_csi_request_enabled;
+  bool cif_enabled;
+  bool srs_request_enabled;
+  bool ra_format_enabled;
+} srslte_dci_cfg_t;
 
 typedef struct SRSLTE_API {
   uint32_t L;    // Aggregation level
@@ -87,110 +67,182 @@ typedef struct SRSLTE_API {
 } srslte_dci_location_t;
 
 typedef struct SRSLTE_API {
-  uint8_t data[SRSLTE_DCI_MAX_BITS];
-  uint32_t nof_bits;
-  srslte_dci_format_t format; 
+  uint8_t               payload[SRSLTE_DCI_MAX_BITS];
+  uint32_t              nof_bits;
+  srslte_dci_location_t location;
+  srslte_dci_format_t   format;
+  uint16_t              rnti;
 } srslte_dci_msg_t;
+
+typedef struct SRSLTE_API {
+  uint32_t mcs_idx;
+  int      rv;
+  bool     ndi;
+  uint32_t cw_idx;
+} srslte_dci_tb_t;
+
+typedef struct SRSLTE_API {
+
+  uint16_t              rnti;
+  srslte_dci_format_t   format;
+  srslte_dci_location_t location;
+
+  // Resource Allocation
+  srslte_ra_type_t alloc_type;
+  union {
+    srslte_ra_type0_t type0_alloc;
+    srslte_ra_type1_t type1_alloc;
+    srslte_ra_type2_t type2_alloc;
+  };
+
+  // Codeword information
+  srslte_dci_tb_t tb[SRSLTE_MAX_CODEWORDS];
+  bool            tb_cw_swap;
+  uint32_t        pinfo;
+
+  // Power control
+  bool    pconf;
+  bool    power_offset;
+  uint8_t tpc_pucch;
+
+  // RA order
+  bool     is_ra_order;
+  uint32_t ra_preamble;
+  uint32_t ra_mask_idx;
+
+  // Release 10
+  uint32_t cif;
+  bool     cif_present;
+  bool     srs_request;
+  bool     srs_request_present;
+
+  // Other parameters
+  uint32_t pid;
+  uint32_t dai;
+  bool     is_tdd;
+  bool     is_dwpts;
+  bool     sram_id;
+
+  // For debugging purposes
+#if SRSLTE_DCI_HEXDEBUG
+  uint32_t nof_bits;
+  char     hex_str[SRSLTE_DCI_MAX_BITS];
+#endif
+} srslte_dci_dl_t;
+
+/** Unpacked DCI Format0 message */
+typedef struct SRSLTE_API {
+
+  uint16_t              rnti;
+  srslte_dci_format_t   format;
+  srslte_dci_location_t location;
+
+  srslte_ra_type2_t type2_alloc;
+  /* 36.213 Table 8.4-2: SRSLTE_RA_PUSCH_HOP_HALF is 0 for < 10 Mhz and 10 for > 10 Mhz.
+   * SRSLTE_RA_PUSCH_HOP_QUART is 00 for > 10 Mhz and SRSLTE_RA_PUSCH_HOP_QUART_NEG is 01 for > 10 Mhz.
+   */
+  enum {
+    SRSLTE_RA_PUSCH_HOP_DISABLED  = -1,
+    SRSLTE_RA_PUSCH_HOP_QUART     = 0,
+    SRSLTE_RA_PUSCH_HOP_QUART_NEG = 1,
+    SRSLTE_RA_PUSCH_HOP_HALF      = 2,
+    SRSLTE_RA_PUSCH_HOP_TYPE2     = 3
+  } freq_hop_fl;
+
+  // Codeword information
+  srslte_dci_tb_t tb;
+  uint32_t        n_dmrs;
+  bool            cqi_request;
+
+  // TDD parametres
+  uint32_t dai;
+  uint32_t ul_idx;
+  bool     is_tdd;
+
+  // Power control
+  uint8_t tpc_pusch;
+
+  // Release 10
+  uint32_t         cif;
+  bool             cif_present;
+  bool             multiple_csi_request_present;
+  uint32_t         srs_request;
+  bool             srs_request_present;
+  srslte_ra_type_t ra_type;
+  bool             ra_type_present;
+
+  // For debugging purposes
+#ifdef SRSLTE_DCI_HEXDEBUG
+  uint32_t nof_bits;
+  char     hex_str[SRSLTE_DCI_MAX_BITS];
+#endif
+
+} srslte_dci_ul_t;
 
 typedef struct SRSLTE_API {
   uint32_t rba;
   uint32_t trunc_mcs;
   uint32_t tpc_pusch;
   bool ul_delay;
-  bool cqi_request; 
-  bool hopping_flag; 
+  bool     cqi_request;
+  bool     hopping_flag;
 } srslte_dci_rar_grant_t;
 
-/* Converts a received PDSCH DL scheduling DCI message 
- * to ra structures ready to be passed to the harq setup function
- */
-SRSLTE_API int srslte_dci_msg_to_dl_grant(srslte_dci_msg_t *msg, 
-                                          uint16_t msg_rnti,
-                                          uint32_t nof_prb, 
-                                          uint32_t nof_ports, 
-                                          srslte_ra_dl_dci_t *dl_dci, 
-                                          srslte_ra_dl_grant_t *grant);
+SRSLTE_API void srslte_dci_rar_unpack(uint8_t payload[SRSLTE_RAR_GRANT_LEN], srslte_dci_rar_grant_t* rar);
 
-SRSLTE_API int srslte_dci_msg_to_ul_grant(srslte_dci_msg_t *msg, 
-                                          uint32_t nof_prb,
-                                          uint32_t n_rb_ho, 
-                                          srslte_ra_ul_dci_t *ul_dci, 
-                                          srslte_ra_ul_grant_t *grant, 
-                                          uint32_t harq_pid);
+SRSLTE_API void srslte_dci_rar_pack(srslte_dci_rar_grant_t* rar, uint8_t payload[SRSLTE_RAR_GRANT_LEN]);
 
-SRSLTE_API int srslte_dci_rar_to_ul_grant(srslte_dci_rar_grant_t *rar,
-                                          uint32_t nof_prb, 
-                                          uint32_t n_rb_ho, 
-                                          srslte_ra_ul_dci_t *ul_dci,
-                                          srslte_ra_ul_grant_t *grant); 
+SRSLTE_API int srslte_dci_rar_to_ul_dci(srslte_cell_t* cell, srslte_dci_rar_grant_t* rar, srslte_dci_ul_t* dci_ul);
 
-SRSLTE_API void srslte_dci_rar_grant_unpack(srslte_dci_rar_grant_t *rar, 
-                                            uint8_t grant[SRSLTE_RAR_GRANT_LEN]);
+SRSLTE_API int srslte_dci_msg_pack_pusch(srslte_cell_t* cell,
+                                         srslte_dl_sf_cfg_t* sf,
+                                         srslte_dci_cfg_t* cfg,
+                                         srslte_dci_ul_t* dci,
+                                         srslte_dci_msg_t* msg);
 
-SRSLTE_API void srslte_dci_rar_grant_pack(srslte_dci_rar_grant_t *rar, 
-                                          uint8_t grant[SRSLTE_RAR_GRANT_LEN]);
+SRSLTE_API int srslte_dci_msg_unpack_pusch(srslte_cell_t* cell,
+                                           srslte_dl_sf_cfg_t* sf,
+                                           srslte_dci_cfg_t* cfg,
+                                           srslte_dci_msg_t* msg,
+                                           srslte_dci_ul_t* dci);
 
-SRSLTE_API void srslte_dci_rar_grant_fprint(FILE *stream, 
-                                            srslte_dci_rar_grant_t *rar);
+SRSLTE_API int srslte_dci_msg_pack_pdsch(srslte_cell_t* cell,
+                                         srslte_dl_sf_cfg_t* sf,
+                                         srslte_dci_cfg_t* cfg, srslte_dci_dl_t* dci, srslte_dci_msg_t* msg);
 
-SRSLTE_API srslte_dci_format_t srslte_dci_format_from_string(char *str);
+SRSLTE_API int srslte_dci_msg_unpack_pdsch(srslte_cell_t* cell,
+                                           srslte_dl_sf_cfg_t* sf,
+                                           srslte_dci_cfg_t* cfg,
+                                           srslte_dci_msg_t* msg,
+                                           srslte_dci_dl_t* dci);
+
+SRSLTE_API uint32_t srslte_dci_format_sizeof(srslte_cell_t*      cell,
+                                             srslte_dl_sf_cfg_t* sf,
+                                             srslte_dci_cfg_t*   cfg,
+                                             srslte_dci_format_t format);
+
+SRSLTE_API void srslte_dci_dl_fprint(FILE* f,
+                                     srslte_dci_dl_t* dci,
+                                     uint32_t nof_prb);
+
+SRSLTE_API uint32_t srslte_dci_dl_info(srslte_dci_dl_t* dci_dl,
+                                       char* str,
+                                       uint32_t str_len);
+
+SRSLTE_API uint32_t srslte_dci_ul_info(srslte_dci_ul_t* dci_ul,
+                                       char* info_str,
+                                       uint32_t len);
+
+SRSLTE_API srslte_dci_format_t srslte_dci_format_from_string(char* str);
 
 SRSLTE_API char* srslte_dci_format_string(srslte_dci_format_t format);
 
 SRSLTE_API char* srslte_dci_format_string_short(srslte_dci_format_t format);
 
-SRSLTE_API int srslte_dci_location_set(srslte_dci_location_t *c,
-                                       uint32_t L, 
+SRSLTE_API int srslte_dci_location_set(srslte_dci_location_t* c,
+                                       uint32_t L,
                                        uint32_t nCCE);
 
-SRSLTE_API bool srslte_dci_location_isvalid(srslte_dci_location_t *c);
-
-SRSLTE_API int srslte_dci_msg_get_type(srslte_dci_msg_t *msg, 
-                                       srslte_dci_msg_type_t *type, 
-                                       uint32_t nof_prb, 
-                                       uint16_t msg_rnti);
-
-SRSLTE_API void srslte_dci_msg_type_fprint(FILE *f, 
-                                           srslte_dci_msg_type_t type);
-
-// For srslte_dci_msg_type_t = SRSLTE_DCI_MSG_TYPE_PUSCH_SCHED
-SRSLTE_API int srslte_dci_msg_pack_pusch(srslte_ra_ul_dci_t *data, 
-                                         srslte_dci_msg_t *msg, 
-                                         uint32_t nof_prb);
-
-SRSLTE_API int srslte_dci_msg_unpack_pusch(srslte_dci_msg_t *msg, 
-                                           srslte_ra_ul_dci_t *data, 
-                                           uint32_t nof_prb);
-
-// For srslte_dci_msg_type_t = SRSLTE_DCI_MSG_TYPE_PDSCH_SCHED
-SRSLTE_API int srslte_dci_msg_pack_pdsch(srslte_ra_dl_dci_t *data, 
-                                         srslte_dci_format_t format,
-                                         srslte_dci_msg_t *msg, 
-                                         uint32_t nof_prb, 
-                                         uint32_t nof_ports,
-                                         bool crc_is_crnti);
-
-SRSLTE_API int srslte_dci_msg_unpack_pdsch(srslte_dci_msg_t *msg, 
-                                           srslte_ra_dl_dci_t *data, 
-                                           uint32_t nof_prb, 
-                                           uint32_t nof_ports, 
-                                           bool crc_is_crnti);
-
-SRSLTE_API uint32_t srslte_dci_format_sizeof(srslte_dci_format_t format, 
-                                             uint32_t nof_prb, 
-                                             uint32_t nof_ports);
-
-SRSLTE_API uint32_t srslte_dci_dl_info(char *info_str,
-                                    uint32_t str_len,
-                                    srslte_ra_dl_dci_t *dci_msg,
-                                    srslte_dci_format_t format);
-
-SRSLTE_API uint32_t srslte_dci_ul_info(char *info_str,
-                                       uint32_t len,
-                                       srslte_ra_ul_dci_t *dci_msg);
-
-// This is for backwards compatibility only for tm1 formats
-SRSLTE_API uint32_t srslte_dci_format_sizeof_lut(srslte_dci_format_t format, 
-                                                 uint32_t nof_prb);
+SRSLTE_API bool srslte_dci_location_isvalid(srslte_dci_location_t* c);
 
 #endif // DCI_

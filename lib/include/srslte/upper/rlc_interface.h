@@ -150,7 +150,7 @@ public:
     cfg.um.tx_sn_field_length  = RLC_UMD_SN_SIZE_5_BITS;
     cfg.um.tx_mod              = 32;
     cfg.um.is_mrb              = true;
-    cfg.tx_queue_length        = 512;
+    cfg.tx_queue_length        = 1024;
     return cfg;
   }
 };

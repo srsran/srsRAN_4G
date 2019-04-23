@@ -78,33 +78,39 @@ void metrics_stdout::set_metrics(ue_metrics_t &metrics, const uint32_t period_us
   {
     n_reports = 0;
     cout << endl;
-    cout << "--Signal--------------DL------------------------------UL----------------------" << endl;
-    cout << "  rsrp    pl    cfo   mcs   snr turbo  brate   bler   ta_us  mcs   buff  brate   bler" << endl;
+    cout << "----Signal--------------DL-------------------------------------UL----------------------" << endl;
+    cout << "cc  rsrp    pl    cfo   mcs   snr turbo  brate   bler   ta_us  mcs   buff  brate   bler" << endl;
   }
-  cout << float_to_string(metrics.phy.dl.rsrp, 2);
-  cout << float_to_string(metrics.phy.dl.pathloss, 2);
-  cout << float_to_eng_string(metrics.phy.sync.cfo, 2);
-  cout << float_to_string(metrics.phy.dl.mcs, 2);
-  cout << float_to_string(metrics.phy.dl.sinr, 2);
-  cout << float_to_string(metrics.phy.dl.turbo_iters, 2);
-  cout << float_to_eng_string((float) metrics.mac.rx_brate/period_usec*1e6, 2);
-  if (metrics.mac.rx_pkts > 0) {
-    cout << float_to_string((float) 100*metrics.mac.rx_errors/metrics.mac.rx_pkts, 1) << "%";
-  } else {
-    cout << float_to_string(0, 1) << "%";
-  }
-  cout << float_to_string(metrics.phy.sync.ta_us, 2);
-  cout << float_to_string(metrics.phy.ul.mcs, 2);
-  cout << float_to_eng_string((float) metrics.mac.ul_buffer, 2);
-  cout << float_to_eng_string((float) metrics.mac.tx_brate/period_usec*1e6, 2);
-  if (metrics.mac.tx_pkts > 0) {
-    cout << float_to_string((float) 100*metrics.mac.tx_errors/metrics.mac.tx_pkts, 1) << "%";
-  } else {
-    cout << float_to_string(0, 1) << "%";
-  }
-  cout << endl;
+  for (uint32_t r = 0; r < metrics.phy.nof_active_cc; r++) {
+    cout << " " << r;
+    cout << float_to_string(metrics.phy.dl[r].rsrp, 2);
+    cout << float_to_string(metrics.phy.dl[r].pathloss, 2);
+    cout << float_to_eng_string(metrics.phy.sync.cfo, 2);
+    cout << float_to_string(metrics.phy.dl[r].mcs, 2);
+    cout << float_to_string(metrics.phy.dl[r].sinr, 2);
+    cout << float_to_string(metrics.phy.dl[r].turbo_iters, 2);
 
-  if(metrics.rf.rf_error) {
+    cout << float_to_eng_string((float)metrics.mac[r].rx_brate / period_usec * 1e6, 2);
+    if (metrics.mac[r].rx_pkts > 0) {
+      cout << float_to_string((float)100 * metrics.mac[r].rx_errors / metrics.mac[r].rx_pkts, 1) << "%";
+    } else {
+      cout << float_to_string(0, 1) << "%";
+    }
+
+    cout << float_to_string(metrics.phy.sync.ta_us, 2);
+
+    cout << float_to_string(metrics.phy.ul[r].mcs, 2);
+    cout << float_to_eng_string((float)metrics.mac[r].ul_buffer, 2);
+    cout << float_to_eng_string((float)metrics.mac[r].tx_brate / period_usec * 1e6, 2);
+    if (metrics.mac[r].tx_pkts > 0) {
+      cout << float_to_string((float)100 * metrics.mac[r].tx_errors / metrics.mac[r].tx_pkts, 1) << "%";
+    } else {
+      cout << float_to_string(0, 1) << "%";
+    }
+    cout << endl;
+  }
+
+  if (metrics.rf.rf_error) {
     printf("RF status: O=%d, U=%d, L=%d\n", metrics.rf.rf_o, metrics.rf.rf_u, metrics.rf.rf_l);
   }
 }
@@ -112,7 +118,7 @@ void metrics_stdout::set_metrics(ue_metrics_t &metrics, const uint32_t period_us
 std::string metrics_stdout::float_to_string(float f, int digits)
 {
   std::ostringstream os;
-  const int    precision = (f == 0.0) ? digits-1 : digits - log10(fabs(f))-2*DBL_EPSILON;
+  const int precision = SRSLTE_MIN((int)((f == 0.0f) ? digits - 1 : digits - log10f(fabsf(f)) - 2 * FLT_EPSILON), 3);
   os << std::setw(6) << std::fixed << std::setprecision(precision) << f;
   return os.str();
 }

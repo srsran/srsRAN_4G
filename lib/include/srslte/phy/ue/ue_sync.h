@@ -76,7 +76,9 @@
 
 typedef enum SRSLTE_API { SF_FIND, SF_TRACK} srslte_ue_sync_state_t;
 
-//#define MEASURE_EXEC_TIME 
+//#define MEASURE_EXEC_TIME
+
+typedef int(ue_sync_recv_callback_t)(void*, cf_t * [SRSLTE_MAX_PORTS], uint32_t, srslte_timestamp_t*);
 
 typedef struct SRSLTE_API {
   srslte_sync_t sfind;
@@ -122,8 +124,6 @@ typedef struct SRSLTE_API {
   srslte_cell_t cell; 
   uint32_t sf_idx;
       
-  bool decode_sss_on_track; 
-
   bool  cfo_is_copied;
   bool  cfo_correct_enable_track;
   bool  cfo_correct_enable_find;
@@ -157,12 +157,13 @@ SRSLTE_API int srslte_ue_sync_init(srslte_ue_sync_t *q,
                                    int (recv_callback)(void*, void*, uint32_t, srslte_timestamp_t*), 
                                    void *stream_handler);
 
-SRSLTE_API int srslte_ue_sync_init_multi(srslte_ue_sync_t *q,
-                                         uint32_t max_prb,
-                                         bool search_cell,
-                                         int (recv_callback)(void*, cf_t*[SRSLTE_MAX_PORTS], uint32_t, srslte_timestamp_t*), 
-                                         uint32_t nof_rx_antennas,
-                                         void *stream_handler);
+SRSLTE_API int
+srslte_ue_sync_init_multi(srslte_ue_sync_t* q,
+                          uint32_t          max_prb,
+                          bool              search_cell,
+                          int(recv_callback)(void*, cf_t * [SRSLTE_MAX_PORTS], uint32_t, srslte_timestamp_t*),
+                          uint32_t nof_rx_antennas,
+                          void*    stream_handler);
 
 SRSLTE_API int srslte_ue_sync_init_multi_decim(srslte_ue_sync_t *q,
                                                uint32_t max_prb,
@@ -197,8 +198,14 @@ SRSLTE_API void srslte_ue_sync_cfo_reset(srslte_ue_sync_t *q);
 
 SRSLTE_API void srslte_ue_sync_reset(srslte_ue_sync_t *q);
 
-SRSLTE_API int srslte_ue_sync_start_agc(srslte_ue_sync_t *q, 
-                                        double (set_gain_callback)(void*, double), 
+SRSLTE_API void srslte_ue_sync_set_frame_type(srslte_ue_sync_t* q, srslte_frame_type_t frame_type);
+
+SRSLTE_API void srslte_ue_sync_set_nof_find_frames(srslte_ue_sync_t* q, uint32_t nof_frames);
+
+SRSLTE_API srslte_frame_type_t srslte_ue_sync_get_frame_type(srslte_ue_sync_t* q);
+
+SRSLTE_API int srslte_ue_sync_start_agc(srslte_ue_sync_t* q,
+                                        double(set_gain_callback)(void*, double),
                                         double min_gain,
                                         double max_gain,
                                         double init_gain_value);
@@ -209,14 +216,9 @@ SRSLTE_API void srslte_ue_sync_set_agc_period(srslte_ue_sync_t *q,
                                               uint32_t period); 
 
 /* CAUTION: input_buffer MUST have space for 2 subframes */
-SRSLTE_API int srslte_ue_sync_zerocopy(srslte_ue_sync_t *q,
-                                       cf_t *input_buffer);
+SRSLTE_API int srslte_ue_sync_zerocopy(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_PORTS]);
 
-SRSLTE_API int srslte_ue_sync_zerocopy_multi(srslte_ue_sync_t *q,
-                                             cf_t *input_buffer[SRSLTE_MAX_PORTS]);
-
-SRSLTE_API void srslte_ue_sync_set_cfo_tol(srslte_ue_sync_t *q,
-                                           float tol);
+SRSLTE_API void srslte_ue_sync_set_cfo_tol(srslte_ue_sync_t* q, float tol);
 
 SRSLTE_API void srslte_ue_sync_copy_cfo(srslte_ue_sync_t *q,
                                         srslte_ue_sync_t *src_obj);
@@ -239,9 +241,6 @@ SRSLTE_API void srslte_ue_sync_set_cfo_i_enable(srslte_ue_sync_t *q,
 
 SRSLTE_API void srslte_ue_sync_set_N_id_2(srslte_ue_sync_t *q,
                                           uint32_t N_id_2);
-
-SRSLTE_API void srslte_ue_sync_decode_sss_on_track(srslte_ue_sync_t *q, 
-                                                   bool enabled);
 
 SRSLTE_API uint32_t srslte_ue_sync_get_sfidx(srslte_ue_sync_t *q);
 

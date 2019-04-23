@@ -24,10 +24,11 @@
  *
  */
 
-#include <srsue/hdr/upper/usim_base.h>
-#include <srsue/hdr/upper/usim.h>
+#include "srsue/hdr/upper/usim_base.h"
+#include "srsue/hdr/upper/usim.h"
+
 #ifdef HAVE_PCSC
-#include <srsue/hdr/upper/pcsc_usim.h>
+#include "srsue/hdr/upper/pcsc_usim.h"
 #endif
 
 namespace srsue{

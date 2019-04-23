@@ -125,7 +125,7 @@ int main(int argc, char **argv) {
 
   printf("Opening RF device...\n");
   if (srslte_rf_open_multi(&rf, rf_args, nof_rx_antennas)) {
-    fprintf(stderr, "Error opening rf\n");
+    ERROR("Error opening rf\n");
     exit(-1);
   }
   srslte_rf_set_master_clock_rate(&rf, 30.72e6);        
@@ -135,7 +135,7 @@ int main(int argc, char **argv) {
   sigaddset(&sigset, SIGINT);
   sigprocmask(SIG_UNBLOCK, &sigset, NULL);
 
-  printf("Set RX freq: %.2f MHz\n", srslte_rf_set_rx_freq(&rf, rf_freq) / 1000000);
+  printf("Set RX freq: %.2f MHz\n", srslte_rf_set_rx_freq(&rf, nof_rx_antennas, rf_freq) / 1000000);
   printf("Set RX gain: %.2f dB\n", srslte_rf_set_rx_gain(&rf, rf_gain));
   float srate = srslte_rf_set_rx_srate(&rf, rf_rate); 
   if (srate != rf_rate) {
@@ -146,7 +146,7 @@ int main(int argc, char **argv) {
     }
     srate = srslte_rf_set_rx_srate(&rf, rf_rate);
     if (srate != rf_rate) {
-      fprintf(stderr, "Errror setting samplign frequency %.2f MHz\n", rf_rate*1e-6);
+      ERROR("Errror setting samplign frequency %.2f MHz\n", rf_rate * 1e-6);
       exit(-1);
     }
   }
@@ -160,7 +160,7 @@ int main(int argc, char **argv) {
         && keep_running){
     n = srslte_rf_recv_with_time_multi(&rf, (void**) buffer, buflen, true, NULL, NULL);
     if (n < 0) {
-      fprintf(stderr, "Error receiving samples\n");
+      ERROR("Error receiving samples\n");
       exit(-1);
     }
     

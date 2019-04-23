@@ -37,7 +37,7 @@
 
 using namespace srslte;
 
-namespace srsue{
+namespace srsue {
 
 static ue_base* instance = NULL;
 pthread_mutex_t ue_instance_mutex = PTHREAD_MUTEX_INITIALIZER;

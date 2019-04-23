@@ -32,201 +32,78 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <math.h>
-#include <srslte/phy/phch/ra.h>
 
-#include "srslte/phy/phch/dci.h"
 #include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/phch/dci.h"
 #include "srslte/phy/utils/bit.h"
-#include "srslte/phy/utils/vector.h"
 #include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/vector.h"
+#include "srslte/srslte.h"
 
-#include "dci_sz_table.h"
+#define IS_TDD (cell->frame_type == SRSLTE_TDD)
+#define IS_TDD_CFG0 (IS_TDD && (sf->tdd_config.sf_config == 0))
+#define HARQ_PID_LEN ((IS_TDD | IS_TDD_CFG0) ? 4 : 3)
 
-#define HARQ_PID_LEN 3 
-
-/* Unpacks a DCI message and configures the DL grant object
- */
-int srslte_dci_msg_to_dl_grant(srslte_dci_msg_t *msg, uint16_t msg_rnti,
-                               uint32_t nof_prb, uint32_t nof_ports, 
-                               srslte_ra_dl_dci_t *dl_dci, 
-                               srslte_ra_dl_grant_t *grant) 
+/* Unpack RAR UL dci as defined in Section 6.2 of 36.213 */
+void srslte_dci_rar_unpack(uint8_t payload[SRSLTE_RAR_GRANT_LEN], srslte_dci_rar_grant_t* rar)
 {
-  int ret = SRSLTE_ERROR_INVALID_INPUTS;
-  
-  if (msg               !=  NULL   &&
-      grant             !=  NULL)
-  {
-    ret = SRSLTE_ERROR;
-    
-    bzero(dl_dci, sizeof(srslte_ra_dl_dci_t));
-    bzero(grant, sizeof(srslte_ra_dl_grant_t));
-    
-    bool crc_is_crnti = false; 
-    if (msg_rnti >= SRSLTE_CRNTI_START && msg_rnti <= SRSLTE_CRNTI_END) {
-      crc_is_crnti = true; 
-    }
-    //srslte_dci_format_t tmp = msg->format; 
-    ret = srslte_dci_msg_unpack_pdsch(msg, dl_dci, nof_prb, nof_ports, crc_is_crnti);
-    if (ret) {
-      //fprintf(stderr, "Can't unpack DCI message %s (%d)\n", srslte_dci_format_string(msg->format), msg->format);
-      return ret;
-    } 
-
-    if (!dl_dci->is_ra_order) {
-      if (srslte_ra_dl_dci_to_grant(dl_dci, nof_prb, msg_rnti, grant)) {
-        return ret;
-      }
-
-      if (SRSLTE_VERBOSE_ISINFO()) {
-        srslte_ra_pdsch_fprint(stdout, dl_dci, nof_prb);
-        srslte_ra_dl_grant_fprint(stdout, grant);
-      }
-    }
-
-    ret = SRSLTE_SUCCESS;
-  }
-  return ret;
+  uint8_t* ptr      = payload;
+  rar->hopping_flag = srslte_bit_pack(&ptr, 1) ? true : false;
+  rar->rba          = srslte_bit_pack(&ptr, 10);
+  rar->trunc_mcs    = srslte_bit_pack(&ptr, 4);
+  rar->tpc_pusch    = srslte_bit_pack(&ptr, 3);
+  rar->ul_delay     = srslte_bit_pack(&ptr, 1) ? true : false;
+  rar->cqi_request  = srslte_bit_pack(&ptr, 1) ? true : false;
 }
 
-/* Creates the UL PUSCH resource allocation grant from the random access respone message 
- */
-int srslte_dci_rar_to_ul_grant(srslte_dci_rar_grant_t *rar, uint32_t nof_prb, 
-                               uint32_t n_rb_ho, 
-                               srslte_ra_ul_dci_t *ul_dci, 
-                               srslte_ra_ul_grant_t *grant) 
+/* Pack RAR UL dci as defined in Section 6.2 of 36.213 */
+void srslte_dci_rar_pack(srslte_dci_rar_grant_t* rar, uint8_t payload[SRSLTE_RAR_GRANT_LEN])
 {
-  bzero(ul_dci, sizeof(srslte_ra_ul_dci_t));
-  
+  uint8_t* ptr = payload;
+  srslte_bit_unpack(rar->hopping_flag ? 1 : 0, &ptr, 1);
+  srslte_bit_unpack(rar->rba, &ptr, 10);
+  srslte_bit_unpack(rar->trunc_mcs, &ptr, 4);
+  srslte_bit_unpack(rar->tpc_pusch, &ptr, 3);
+  srslte_bit_unpack(rar->ul_delay ? 1 : 0, &ptr, 1);
+  srslte_bit_unpack(rar->cqi_request ? 1 : 0, &ptr, 1);
+}
+
+/* Creates an equivalent DCI UL grant from the random access respone message
+ */
+int srslte_dci_rar_to_ul_dci(srslte_cell_t* cell, srslte_dci_rar_grant_t* rar, srslte_dci_ul_t* dci_ul)
+{
+  bzero(dci_ul, sizeof(srslte_dci_ul_t));
+
   if (!rar->hopping_flag) {
-    ul_dci->freq_hop_fl = SRSLTE_RA_PUSCH_HOP_DISABLED;
+    dci_ul->freq_hop_fl = SRSLTE_RA_PUSCH_HOP_DISABLED;
   } else {
-    fprintf(stderr, "FIXME: Frequency hopping in RAR not implemented\n");
-    ul_dci->freq_hop_fl = 1;
+    ERROR("FIXME: Frequency hopping in RAR not implemented\n");
+    dci_ul->freq_hop_fl = 1;
   }
-  uint32_t riv = rar->rba; 
-  // Truncate resource block assignment 
+  uint32_t riv = rar->rba;
+  // Truncate resource block assignment
   uint32_t b = 0;
-  if (nof_prb <= 44) {
-    b = (uint32_t) (ceilf(log2((float) nof_prb*(nof_prb+1)/2)));
-    riv = riv & ((1<<(b+1))-1); 
+  if (cell->nof_prb <= 44) {
+    b   = (uint32_t)(ceilf(log2((float)cell->nof_prb * (cell->nof_prb + 1) / 2)));
+    riv = riv & ((1 << (b + 1)) - 1);
   }
-  ul_dci->type2_alloc.riv = riv; 
-  ul_dci->mcs_idx = rar->trunc_mcs;
+  dci_ul->type2_alloc.riv = riv;
+  dci_ul->tb.mcs_idx      = rar->trunc_mcs;
+  dci_ul->tb.rv           = -1;
+  dci_ul->dai             = 3;
 
-  srslte_ra_type2_from_riv(riv, &ul_dci->type2_alloc.L_crb, &ul_dci->type2_alloc.RB_start,
-                           nof_prb, nof_prb);
-  
-  if (srslte_ra_ul_dci_to_grant(ul_dci, nof_prb, n_rb_ho, grant)) {
-    return SRSLTE_ERROR;
-  }
-  
-  if (SRSLTE_VERBOSE_ISINFO()) {
-    srslte_ra_pusch_fprint(stdout, ul_dci, nof_prb);
-    srslte_ra_ul_grant_fprint(stdout, grant);
-  }
   return SRSLTE_SUCCESS;
 }
 
-/* Unpack RAR UL grant as defined in Section 6.2 of 36.213 */
-void srslte_dci_rar_grant_unpack(srslte_dci_rar_grant_t *rar, uint8_t grant[SRSLTE_RAR_GRANT_LEN])
+static uint32_t riv_nbits(uint32_t nof_prb)
 {
-  uint8_t *grant_ptr = grant; 
-  rar->hopping_flag = srslte_bit_pack(&grant_ptr, 1)?true:false;
-  rar->rba          = srslte_bit_pack(&grant_ptr, 10);
-  rar->trunc_mcs    = srslte_bit_pack(&grant_ptr, 4);
-  rar->tpc_pusch    = srslte_bit_pack(&grant_ptr, 3);
-  rar->ul_delay     = srslte_bit_pack(&grant_ptr, 1)?true:false;
-  rar->cqi_request  = srslte_bit_pack(&grant_ptr, 1)?true:false;
-}
-
-/* Pack RAR UL grant as defined in Section 6.2 of 36.213 */
-void srslte_dci_rar_grant_pack(srslte_dci_rar_grant_t *rar, uint8_t grant[SRSLTE_RAR_GRANT_LEN])
-{
-  uint8_t *grant_ptr = grant; 
-  srslte_bit_unpack(rar->hopping_flag?1:0, &grant_ptr, 1);
-  srslte_bit_unpack(rar->rba, &grant_ptr, 10);
-  srslte_bit_unpack(rar->trunc_mcs, &grant_ptr, 4);
-  srslte_bit_unpack(rar->tpc_pusch, &grant_ptr, 3);
-  srslte_bit_unpack(rar->ul_delay?1:0, &grant_ptr, 1);
-  srslte_bit_unpack(rar->cqi_request?1:0, &grant_ptr, 1);
-}
-
-void srslte_dci_rar_grant_fprint(FILE *stream, srslte_dci_rar_grant_t *rar) {
-  fprintf(stream, "RBA: %d, MCS: %d, TPC: %d, Hopping=%s, UL-Delay=%s, CQI=%s\n",
-    rar->rba, rar->trunc_mcs, rar->tpc_pusch, 
-    rar->hopping_flag?"yes":"no",
-    rar->ul_delay?"yes":"no",
-    rar->cqi_request?"yes":"no"
-  );
-}
-
-/* Creates the UL PUSCH resource allocation grant from a DCI format 0 message
- */
-int srslte_dci_msg_to_ul_grant(srslte_dci_msg_t *msg, uint32_t nof_prb, 
-                               uint32_t n_rb_ho, 
-                               srslte_ra_ul_dci_t *ul_dci, 
-                               srslte_ra_ul_grant_t *grant, uint32_t harq_pid) 
-{
-  int ret = SRSLTE_ERROR_INVALID_INPUTS;
-  
-  if (msg               !=  NULL   &&
-      ul_dci            !=  NULL   &&
-      grant             !=  NULL)
-  {
-    ret = SRSLTE_ERROR;
-    
-    bzero(ul_dci, sizeof(srslte_ra_ul_dci_t));
-    bzero(grant, sizeof(srslte_ra_ul_grant_t));
-    
-    if (srslte_dci_msg_unpack_pusch(msg, ul_dci, nof_prb)) {
-      return ret;
-    } 
-
-    if (srslte_ra_ul_dci_to_grant(ul_dci, nof_prb, n_rb_ho, grant)) {
-      return ret;
-    }
-    
-    if (SRSLTE_VERBOSE_ISINFO()) {
-      srslte_ra_pusch_fprint(stdout, ul_dci, nof_prb);
-      srslte_ra_ul_grant_fprint(stdout, grant);     
-    }
-    
-    ret = SRSLTE_SUCCESS;
-  }
-  return ret;
-}
-
-int srslte_dci_location_set(srslte_dci_location_t *c, uint32_t L, uint32_t nCCE) {
-  if (L <= 3) {
-    c->L = L;
-  } else {
-    fprintf(stderr, "Invalid L %d\n", L);
-    return SRSLTE_ERROR;
-  }
-  if (nCCE <= 87) {
-    c->ncce = nCCE;
-  } else {
-    fprintf(stderr, "Invalid nCCE %d\n", nCCE);
-    return SRSLTE_ERROR;
-  }
-  return SRSLTE_SUCCESS;
-}
-
-bool srslte_dci_location_isvalid(srslte_dci_location_t *c) {
-  if (c->L <= 3 && c->ncce <= 87) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-uint32_t riv_nbits(uint32_t nof_prb) {
   return (uint32_t) ceilf(log2f((float) nof_prb * ((float) nof_prb + 1) / 2));
 }
 
 const uint32_t ambiguous_sizes[10] = { 12, 14, 16, 20, 24, 26, 32, 40, 44, 56 };
 
-bool is_ambiguous_size(uint32_t size) {
+static bool is_ambiguous_size(uint32_t size)
+{
   int i;
   for (i = 0; i < 10; i++) {
     if (size == ambiguous_sizes[i]) {
@@ -239,14 +116,87 @@ bool is_ambiguous_size(uint32_t size) {
 /**********************************
  *  PAYLOAD sizeof functions
  * ********************************/
-uint32_t dci_format0_sizeof_(uint32_t nof_prb) {
-  return 1 + 1 + riv_nbits(nof_prb) + 5 + 1 + 2 + 3 + 1;
+static uint32_t dci_format0_sizeof_(srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg)
+{
+  uint32_t n = 0;
+
+  /* Carrier indicator – 0 or 3 bits */
+  n += (cfg->cif_enabled) ? 3 : 0;
+
+  /* Flag for format0/format1A differentiation – 1 bit */
+  n += 1;
+
+  /* Frequency hopping flag – 1 bit */
+  n += 1;
+
+  /* Resource block assignment and hopping resource allocation */
+  n += riv_nbits(cell->nof_prb);
+
+  /* Modulation and coding scheme and redundancy version – 5 bits */
+  n += 5;
+
+  /* New data indicator – 1 bit */
+  n += 1;
+
+  /* TPC command for scheduled PUSCH – 2 bits */
+  n += 2;
+
+  /* Cyclic shift for DM RS and OCC index – 3 bits */
+  n += 3;
+
+  /* Downlink Assignment Index (DAI) or UL Index – 2 bits (TDD) */
+  n += ((IS_TDD | IS_TDD_CFG0) ? 2 : 0);
+
+  /* CSI request – 1 or 2 bits */
+  n += (cfg->multiple_csi_request_enabled) ? 2 : 1;
+
+  /* SRS request – 0 or 1 bit */
+  n += (cfg->srs_request_enabled) ? 1 : 0;
+
+  /* Resource allocation type – 1 bit (N^UL_RB ≤ N^DL_RB) */
+  n += (cfg->ra_format_enabled) ? 1 : 0;
+
+  return n;
 }
 
-uint32_t dci_format1A_sizeof(uint32_t nof_prb) {
-  uint32_t n;
-  n = 1 + 1 + riv_nbits(nof_prb) + 5 + HARQ_PID_LEN + 1 + 2 + 2;
-  while (n < dci_format0_sizeof_(nof_prb)) {
+static uint32_t dci_format1A_sizeof(srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg)
+{
+  uint32_t n = 0;
+
+  /* Carrier indicator – 0 or 3 bits */
+  n += (cfg->cif_enabled) ? 3 : 0;
+
+  /* Flag for format0/format1A differentiation – 1 bit */
+  n += 1;
+
+  /* Localized/Distributed VRB assignment flag – 1 bit */
+  n += 1;
+
+  /* Resource block assignment */
+  n += riv_nbits(cell->nof_prb);
+
+  /* Modulation and coding scheme and redundancy version – 5 bits */
+  n += 5;
+
+  /* HARQ process number – 3 bits (FDD) , 4 bits (TDD) */
+  n += HARQ_PID_LEN;
+
+  /* New data indicator – 1 bit */
+  n += 1;
+
+  /* Redundancy version – 2 bits */
+  n += 2;
+
+  /* TPC command for PUCCH – 2 bits */
+  n += 2;
+
+  /* Downlink Assignment Index – 2 bits (TDD) */
+  n += (IS_TDD ? 2 : 0);
+
+  /* SRS request – 0 or 1 bit */
+  n += (cfg->srs_request_enabled ? 1 : 0);
+
+  while (n < dci_format0_sizeof_(cell, sf, cfg)) {
     n++;
   }
   if (is_ambiguous_size(n)) {
@@ -255,74 +205,82 @@ uint32_t dci_format1A_sizeof(uint32_t nof_prb) {
   return n;
 }
 
-uint32_t dci_format0_sizeof(uint32_t nof_prb) {
-  uint32_t n = dci_format0_sizeof_(nof_prb);
-  while (n < dci_format1A_sizeof(nof_prb)) {
+static uint32_t dci_format0_sizeof(srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg)
+{
+  uint32_t n = dci_format0_sizeof_(cell, sf, cfg);
+  while (n < dci_format1A_sizeof(cell, sf, cfg)) {
     n++;
   }
   return n;
 }
 
-uint32_t dci_format1_sizeof(uint32_t nof_prb) {
+static uint32_t dci_format1_sizeof(srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg)
+{
 
-  uint32_t n = (uint32_t) ceilf((float) nof_prb / srslte_ra_type0_P(nof_prb)) + 5 + HARQ_PID_LEN + 1 + 2
-      + 2;
-  if (nof_prb > 10) {
+  uint32_t n = (uint32_t)ceilf((float)cell->nof_prb / srslte_ra_type0_P(cell->nof_prb)) + 5 + HARQ_PID_LEN + 1 + 2 + 2 +
+               (cfg->cif_enabled ? 3 : 0) + (IS_TDD ? 2 : 0);
+  if (cell->nof_prb > 10) {
     n++;
   }
-  while (n == dci_format0_sizeof(nof_prb) || n == dci_format1A_sizeof(nof_prb)
-      || is_ambiguous_size(n)) {
+  while (n == dci_format0_sizeof(cell, sf, cfg) || n == dci_format1A_sizeof(cell, sf, cfg) || is_ambiguous_size(n)) {
     n++;
   }
   return n;
 }
 
-uint32_t dci_format1C_sizeof(uint32_t nof_prb) {
-  uint32_t n_vrb_dl_gap1 = srslte_ra_type2_n_vrb_dl(nof_prb, true);
-  uint32_t n_step = srslte_ra_type2_n_rb_step(nof_prb);
+static uint32_t dci_format1C_sizeof(srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg)
+{
+  uint32_t n_vrb_dl_gap1 = srslte_ra_type2_n_vrb_dl(cell->nof_prb, true);
+  uint32_t n_step        = srslte_ra_type2_n_rb_step(cell->nof_prb);
   uint32_t n = riv_nbits((uint32_t) n_vrb_dl_gap1 / n_step) + 5;
-  if (nof_prb >= 50) {
+  if (cell->nof_prb >= 50) {
     n++;
   }
   return n;
 }
 
-// Number of TPMI bits 
-uint32_t tpmi_bits(uint32_t nof_ports) {
+// Number of TPMI bits
+static uint32_t tpmi_bits(uint32_t nof_ports)
+{
   if (nof_ports <= 2) {
-    return 2; 
+    return 2;
   } else {
     return 4;
   }
 }
 
-uint32_t dci_format1B_sizeof(uint32_t nof_prb, uint32_t nof_ports) {
+static uint32_t dci_format1B_sizeof(srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg)
+{
   // same as format1A minus the differentiation bit plus TPMI + PMI
-  uint32_t n = dci_format1A_sizeof(nof_prb)-1+tpmi_bits(nof_ports)+1;
-  
+  uint32_t n = dci_format1A_sizeof(cell, sf, cfg) - 1 + tpmi_bits(cell->nof_ports) + 1 + (IS_TDD ? 2 : 0);
+
   while (is_ambiguous_size(n)) {
     n++;
   }
   return n;
 }
 
-uint32_t dci_format1D_sizeof(uint32_t nof_prb, uint32_t nof_ports) {
+static uint32_t dci_format1D_sizeof(srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg)
+{
   // same size as format1B
-  return dci_format1B_sizeof(nof_prb, nof_ports);
+  return dci_format1B_sizeof(cell, sf, cfg);
 }
 
 // Number of bits for precoding information
-uint32_t precoding_bits_f2(uint32_t nof_ports) {
+static uint32_t precoding_bits_f2(uint32_t nof_ports)
+{
   if (nof_ports <= 2) {
-    return 3; 
+    return 3;
   } else {
     return 6;
   }
 }
 
-uint32_t dci_format2_sizeof(uint32_t nof_prb, uint32_t nof_ports) {
-  uint32_t n = (uint32_t) ceilf((float) nof_prb / srslte_ra_type0_P(nof_prb))+2+HARQ_PID_LEN+1+2*(5+1+2)+precoding_bits_f2(nof_ports);
-  if (nof_prb > 10) {
+static uint32_t dci_format2_sizeof(srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg)
+{
+  uint32_t n = (uint32_t)ceilf((float)cell->nof_prb / srslte_ra_type0_P(cell->nof_prb)) + 2 + HARQ_PID_LEN + 1 +
+               2 * (5 + 1 + 2) + precoding_bits_f2(cell->nof_ports) + (cfg->cif_enabled ? 3 : 0) + (IS_TDD ? 2 : 0);
+  if (cell->nof_prb > 10) {
     n++;
   }
   while (is_ambiguous_size(n)) {
@@ -332,7 +290,8 @@ uint32_t dci_format2_sizeof(uint32_t nof_prb, uint32_t nof_ports) {
 }
 
 // Number of bits for precoding information
-uint32_t precoding_bits_f2a(uint32_t nof_ports) {
+static uint32_t precoding_bits_f2a(uint32_t nof_ports)
+{
   if (nof_ports <= 2) {
     return 0; 
   } else {
@@ -340,9 +299,11 @@ uint32_t precoding_bits_f2a(uint32_t nof_ports) {
   }
 }
 
-uint32_t dci_format2A_sizeof(uint32_t nof_prb, uint32_t nof_ports) {
-  uint32_t n = (uint32_t) ceilf((float) nof_prb / srslte_ra_type0_P(nof_prb))+2+HARQ_PID_LEN+1+2*(5+1+2)+precoding_bits_f2a(nof_ports);
-  if (nof_prb > 10) {
+static uint32_t dci_format2A_sizeof(srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg)
+{
+  uint32_t n = (uint32_t)ceilf((float)cell->nof_prb / srslte_ra_type0_P(cell->nof_prb)) + 2 + HARQ_PID_LEN + 1 +
+               2 * (5 + 1 + 2) + precoding_bits_f2a(cell->nof_ports) + (cfg->cif_enabled ? 3 : 0) + (IS_TDD ? 2 : 0);
+  if (cell->nof_prb > 10) {
     n++;
   }
   while (is_ambiguous_size(n)) {
@@ -352,153 +313,64 @@ uint32_t dci_format2A_sizeof(uint32_t nof_prb, uint32_t nof_ports) {
   
 }
 
-uint32_t dci_format2B_sizeof(uint32_t nof_prb, uint32_t nof_ports) {
-  uint32_t n = (uint32_t) ceilf((float) nof_prb / srslte_ra_type0_P(nof_prb))+2+HARQ_PID_LEN+1+2*(5+1+2);
-  if (nof_prb > 10) {
+static uint32_t dci_format2B_sizeof(srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg)
+{
+  uint32_t n = (uint32_t)ceilf((float)cell->nof_prb / srslte_ra_type0_P(cell->nof_prb)) + 2 + HARQ_PID_LEN + 1 +
+               2 * (5 + 1 + 2) + (cfg->cif_enabled ? 3 : 0) + (IS_TDD ? 2 : 0);
+  if (cell->nof_prb > 10) {
     n++;
   }
   while (is_ambiguous_size(n)) {
     n++;
   }
   return n;
-  
 }
 
-uint32_t srslte_dci_dl_info(char *info_str, uint32_t len, srslte_ra_dl_dci_t *dci_msg, srslte_dci_format_t format)
+uint32_t
+srslte_dci_format_sizeof(srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg, srslte_dci_format_t format)
 {
-  int n = 0;
-
-  switch(dci_msg->alloc_type) {
-    case SRSLTE_RA_ALLOC_TYPE0:
-      n += snprintf(&info_str[n], len-n, "type0={rbg=0x%x}, ", dci_msg->type0_alloc.rbg_bitmask);
-      break;
-    case SRSLTE_RA_ALLOC_TYPE1:
-      n += snprintf(&info_str[n], len-n, "type1={vrb=0x%x, rbg_s=%d, sh=%d}, ",
-                    dci_msg->type1_alloc.vrb_bitmask, dci_msg->type1_alloc.rbg_subset, dci_msg->type1_alloc.shift);
-      break;
-    case SRSLTE_RA_ALLOC_TYPE2:
-      n += snprintf(&info_str[n], len-n, "type2={riv=%d, rb=(%d,%d), mode=%s",
-                    dci_msg->type2_alloc.riv,
-                    dci_msg->type2_alloc.RB_start, dci_msg->type2_alloc.RB_start+dci_msg->type2_alloc.L_crb-1,
-                    dci_msg->type2_alloc.mode==SRSLTE_RA_TYPE2_LOC?"local":"dist");
-      if (dci_msg->type2_alloc.mode==SRSLTE_RA_TYPE2_DIST) {
-        n += snprintf(&info_str[n], len-n, ", ngap=%s, nprb1a=%d",
-                      dci_msg->type2_alloc.n_gap==SRSLTE_RA_TYPE2_NG1?"ng1":"ng2",
-                      dci_msg->type2_alloc.n_prb1a==SRSLTE_RA_TYPE2_NPRB1A_2?2:3);
-      }
-      n += snprintf(&info_str[n], len-n, "}, ");
-      break;
+  srslte_dl_sf_cfg_t _sf;
+  if (sf == NULL) {
+    ZERO_OBJECT(_sf);
+    sf = &_sf;
   }
-  n += snprintf(&info_str[n], len-n, "pid=%d, ", dci_msg->harq_process);
-
-  n += snprintf(&info_str[n], len-n, "mcs={");
-  if (dci_msg->tb_en[0]) {
-    n += snprintf(&info_str[n], len-n, "%d", dci_msg->mcs_idx);
-    if (dci_msg->tb_en[1]) {
-      n += snprintf(&info_str[n], len-n, "/");
-    } else {
-      n += snprintf(&info_str[n], len-n, "}, ");
-    }
-  }
-  if (dci_msg->tb_en[1]) {
-    n += snprintf(&info_str[n], len - n, "%d}, ", dci_msg->mcs_idx_1);
-  }
-  n += snprintf(&info_str[n], len-n, "rv={");
-  if (dci_msg->tb_en[0]) {
-    n += snprintf(&info_str[n], len-n, "%d", dci_msg->rv_idx);
-    if (dci_msg->tb_en[1]) {
-      n += snprintf(&info_str[n], len-n, "/");
-    } else {
-      n += snprintf(&info_str[n], len-n, "}, ");
-    }
-  }
-  if (dci_msg->tb_en[1]) {
-    n += snprintf(&info_str[n], len - n, "%d}, ", dci_msg->rv_idx_1);
-  }
-  n += snprintf(&info_str[n], len-n, "ndi={");
-  if (dci_msg->tb_en[0]) {
-    n += snprintf(&info_str[n], len-n, "%d", dci_msg->ndi);
-    if (dci_msg->tb_en[1]) {
-      n += snprintf(&info_str[n], len-n, "/");
-    } else {
-      n += snprintf(&info_str[n], len-n, "}, ");
-    }
-  }
-  if (dci_msg->tb_en[1]) {
-    n += snprintf(&info_str[n], len - n, "%d}, ", dci_msg->ndi_1);
+  srslte_dci_cfg_t _cfg;
+  if (cfg == NULL) {
+    ZERO_OBJECT(_cfg);
+    cfg = &_cfg;
   }
 
-  if (format == SRSLTE_DCI_FORMAT1 || format == SRSLTE_DCI_FORMAT1A || format == SRSLTE_DCI_FORMAT1B ||
-      format == SRSLTE_DCI_FORMAT2 || format == SRSLTE_DCI_FORMAT2A || format == SRSLTE_DCI_FORMAT2B) {
-    n += snprintf(&info_str[n], len-n, "tpc_pucch=%d, ", dci_msg->tpc_pucch);
-  }
-  if (format == SRSLTE_DCI_FORMAT2 || format == SRSLTE_DCI_FORMAT2A || format == SRSLTE_DCI_FORMAT2B) {
-    n += snprintf(&info_str[n], len-n, "tb_sw=%d, pinfo=%d, ", dci_msg->tb_cw_swap, dci_msg->pinfo);
-  }
-  return n;
-}
-
-uint32_t srslte_dci_ul_info(char *info_str, uint32_t len, srslte_ra_ul_dci_t *dci_msg)
-{
-  int n = 0;
-
-  n += snprintf(&info_str[n], len-n, "riv=%d, rb=(%d,%d), ", dci_msg->type2_alloc.riv,
-                dci_msg->type2_alloc.RB_start, dci_msg->type2_alloc.RB_start+dci_msg->type2_alloc.L_crb-1);
-
-  switch(dci_msg->freq_hop_fl) {
-    case SRSLTE_RA_PUSCH_HOP_DISABLED:
-      n += snprintf(&info_str[n], len-n, "f_h=n/a, ");
-      break;
-    default:
-      n += snprintf(&info_str[n], len-n, "f_h=%d, ", dci_msg->freq_hop_fl);
-      break;
-  }
-  n += snprintf(&info_str[n], len-n, "mcs=%d, rv=%d, ndi=%d, ", dci_msg->mcs_idx, dci_msg->rv_idx, dci_msg->ndi);
-  n += snprintf(&info_str[n], len-n, "tpc_pusch=%d, dmrs_cs=%d, cqi=%s, ",
-                dci_msg->tpc_pusch, dci_msg->n_dmrs, dci_msg->cqi_request?"yes":"no");
-
-  return n;
-}
-
-uint32_t srslte_dci_format_sizeof(srslte_dci_format_t format, uint32_t nof_prb, uint32_t nof_ports) {
   switch (format) {
-  case SRSLTE_DCI_FORMAT0:
-    return dci_format0_sizeof(nof_prb);
-  case SRSLTE_DCI_FORMAT1:
-    return dci_format1_sizeof(nof_prb);
-  case SRSLTE_DCI_FORMAT1A:
-    return dci_format1A_sizeof(nof_prb);
-  case SRSLTE_DCI_FORMAT1C:
-    return dci_format1C_sizeof(nof_prb);
-  case SRSLTE_DCI_FORMAT1B:
-    return dci_format1B_sizeof(nof_prb, nof_ports);
-  case SRSLTE_DCI_FORMAT1D:
-    return dci_format1D_sizeof(nof_prb, nof_ports);
-  case SRSLTE_DCI_FORMAT2:
-    return dci_format2_sizeof(nof_prb, nof_ports);
-  case SRSLTE_DCI_FORMAT2A:
-    return dci_format2A_sizeof(nof_prb, nof_ports);
-  case SRSLTE_DCI_FORMAT2B:
-    return dci_format2B_sizeof(nof_prb, nof_ports);
-    /*
-  case SRSLTE_DCI_FORMAT3:
-    return dci_format3_sizeof(nof_prb);
-  case SRSLTE_DCI_FORMAT3A:
-    return dci_format3A_sizeof(nof_prb);
-    */
-  default:
-    printf("Error computing DCI bits: Unknown format %d\n", format);
-    return 0;
+    case SRSLTE_DCI_FORMAT0:
+      return dci_format0_sizeof(cell, sf, cfg);
+    case SRSLTE_DCI_FORMAT1:
+      return dci_format1_sizeof(cell, sf, cfg);
+    case SRSLTE_DCI_FORMAT1A:
+      return dci_format1A_sizeof(cell, sf, cfg);
+    case SRSLTE_DCI_FORMAT1C:
+      return dci_format1C_sizeof(cell, sf, cfg);
+    case SRSLTE_DCI_FORMAT1B:
+      return dci_format1B_sizeof(cell, sf, cfg);
+    case SRSLTE_DCI_FORMAT1D:
+      return dci_format1D_sizeof(cell, sf, cfg);
+    case SRSLTE_DCI_FORMAT2:
+      return dci_format2_sizeof(cell, sf, cfg);
+    case SRSLTE_DCI_FORMAT2A:
+      return dci_format2A_sizeof(cell, sf, cfg);
+    case SRSLTE_DCI_FORMAT2B:
+      return dci_format2B_sizeof(cell, sf, cfg);
+      /*
+    case SRSLTE_DCI_FORMAT3:
+      return dci_format3_sizeof(nof_prb);
+    case SRSLTE_DCI_FORMAT3A:
+      return dci_format3A_sizeof(nof_prb);
+      */
+    default:
+      printf("Error computing DCI bits: Unknown format %d\n", format);
+      return 0;
   }
 }
 
-uint32_t srslte_dci_format_sizeof_lut(srslte_dci_format_t format, uint32_t nof_prb) {
-  if (nof_prb < 101 && format < 4) {
-    return dci_sz_table[nof_prb][format];
-  } else {
-    return 0;
-  }
-}
 /**********************************
  *  DCI Resource Allocation functions
  * ********************************/
@@ -508,113 +380,133 @@ uint32_t srslte_dci_format_sizeof_lut(srslte_dci_format_t format, uint32_t nof_p
  *
  * TODO: TPC and cyclic shift for DM RS not implemented
  */
-int dci_format0_pack(srslte_ra_ul_dci_t *data, srslte_dci_msg_t *msg, uint32_t nof_prb) {
+static int dci_format0_pack(
+    srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg, srslte_dci_ul_t* dci, srslte_dci_msg_t* msg)
+{
 
   /* pack bits */
-  uint8_t *y = msg->data;
+  uint8_t* y = msg->payload;
   uint32_t n_ul_hop;
 
+  if (dci->cif_present) {
+    srslte_bit_unpack(dci->cif, &y, 3);
+  }
+
   *y++ = 0; // format differentiation
-  if (data->freq_hop_fl == SRSLTE_RA_PUSCH_HOP_DISABLED) { // frequency hopping
+  if (dci->freq_hop_fl == SRSLTE_RA_PUSCH_HOP_DISABLED) { // frequency hopping
     *y++ = 0;
     n_ul_hop = 0;
   } else {
     *y++ = 1;
-    if (nof_prb < 50) {
+    if (cell->nof_prb < 50) {
       n_ul_hop = 1; // Table 8.4-1 of 36.213
-      *y++ = data->freq_hop_fl & 1;
+      *y++     = dci->freq_hop_fl & 1;
     } else {
       n_ul_hop = 2; // Table 8.4-1 of 36.213
-      *y++ = (data->freq_hop_fl & 2) >> 1;
-      *y++ = data->freq_hop_fl & 1;
+      *y++     = (dci->freq_hop_fl & 2) >> 1;
+      *y++     = dci->freq_hop_fl & 1;
     }
   }
 
   /* pack RIV according to 8.1 of 36.213 */
-  uint32_t riv;
-  if (data->type2_alloc.L_crb) {
-    riv = srslte_ra_type2_to_riv(data->type2_alloc.L_crb, data->type2_alloc.RB_start,
-        nof_prb);
-  } else {
-    riv = data->type2_alloc.riv;
-  }
+  uint32_t riv = dci->type2_alloc.riv;
 
-  srslte_bit_unpack(riv, &y, riv_nbits(nof_prb) - n_ul_hop);
+  srslte_bit_unpack(riv, &y, riv_nbits(cell->nof_prb) - n_ul_hop);
 
   /* pack MCS according to 8.6.1 of 36.213 */
-  srslte_bit_unpack(data->mcs_idx, &y, 5);
+  srslte_bit_unpack(dci->tb.mcs_idx, &y, 5);
 
-  *y++ = data->ndi;
+  *y++ = dci->tb.ndi;
 
-  // TCP command for PUSCH 
-  srslte_bit_unpack(data->tpc_pusch, &y, 2);
+  // TCP command for PUSCH
+  srslte_bit_unpack(dci->tpc_pusch, &y, 2);
 
   // DM RS not implemented
-  srslte_bit_unpack(data->n_dmrs, &y, 3);
+  srslte_bit_unpack(dci->n_dmrs, &y, 3);
 
   // CQI request
-  *y++ = data->cqi_request;
+  *y++ = dci->cqi_request;
 
   // Padding with zeros
-  uint32_t n = srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT0, nof_prb, 1);
-  while (y - msg->data < n) {
+  uint32_t n = srslte_dci_format_sizeof(cell, sf, cfg, SRSLTE_DCI_FORMAT0);
+  while (y - msg->payload < n) {
     *y++ = 0;
   }
-  msg->nof_bits = (y - msg->data);
+  msg->nof_bits = (y - msg->payload);
   return SRSLTE_SUCCESS;
 }
+
 /* Unpacks DCI format 0 data and store result in msg according
  * to 36.212 5.3.3.1.1
  *
  * TODO: TPC and cyclic shift for DM RS not implemented
  */
-int dci_format0_unpack(srslte_dci_msg_t *msg, srslte_ra_ul_dci_t *data, uint32_t nof_prb) {
+static int dci_format0_unpack(
+    srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg, srslte_dci_msg_t* msg, srslte_dci_ul_t* dci)
+{
 
   /* pack bits */
-  uint8_t *y = msg->data;
+  uint8_t* y = msg->payload;
   uint32_t n_ul_hop;
 
   /* Make sure it's a SRSLTE_DCI_FORMAT0 message */
-  if (msg->nof_bits != srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT0, nof_prb, 1)) {
-    fprintf(stderr, "Invalid message length for format 0\n");
+  uint32_t msg_len = srslte_dci_format_sizeof(cell, sf, cfg, SRSLTE_DCI_FORMAT0);
+  if (msg->nof_bits != msg_len) {
+    ERROR("Invalid message length for format 0 (%d != %d)\n", msg->nof_bits, msg_len);
     return SRSLTE_ERROR;
   }
+
+  if (cfg->cif_enabled) {
+    dci->cif         = srslte_bit_pack(&y, 3);
+    dci->cif_present = true;
+  }
+
   if (*y++ != 0) {
     INFO("DCI message is Format1A\n");
     return SRSLTE_ERROR;
   }
+
+  // Update DCI format
+  msg->format = SRSLTE_DCI_FORMAT0;
+
   if (*y++ == 0) {
-    data->freq_hop_fl = SRSLTE_RA_PUSCH_HOP_DISABLED;
-    n_ul_hop = 0;
+    dci->freq_hop_fl = SRSLTE_RA_PUSCH_HOP_DISABLED;
+    n_ul_hop         = 0;
   } else {
-    if (nof_prb < 50) {
-      n_ul_hop = 1; // Table 8.4-1 of 36.213
-      data->freq_hop_fl = *y++;
+    if (cell->nof_prb < 50) {
+      n_ul_hop         = 1; // Table 8.4-1 of 36.213
+      dci->freq_hop_fl = *y++;
     } else {
       n_ul_hop = 2; // Table 8.4-1 of 36.213
-      data->freq_hop_fl = y[0] << 1 | y[1];
+      dci->freq_hop_fl = y[0] << 1 | y[1];
       y += 2;
     }
   }
   /* unpack RIV according to 8.1 of 36.213 */
-  uint32_t riv = srslte_bit_pack(&y, riv_nbits(nof_prb) - n_ul_hop);
-  srslte_ra_type2_from_riv(riv, &data->type2_alloc.L_crb, &data->type2_alloc.RB_start,
-      nof_prb, nof_prb);
-  data->type2_alloc.riv = riv;
+  uint32_t riv         = srslte_bit_pack(&y, riv_nbits(cell->nof_prb) - n_ul_hop);
+  dci->type2_alloc.riv = riv;
 
   /* unpack MCS according to 8.6 of 36.213 */
-  data->mcs_idx = srslte_bit_pack(&y, 5);
-
-  data->ndi = *y++ ? true : false;
+  dci->tb.mcs_idx = srslte_bit_pack(&y, 5);
+  dci->tb.ndi     = *y++ ? true : false;
 
   // TPC command for scheduled PUSCH
-  data->tpc_pusch = srslte_bit_pack(&y, 2);
-  
+  dci->tpc_pusch = srslte_bit_pack(&y, 2);
+
   // Cyclic shift for DMRS
-  data->n_dmrs = srslte_bit_pack(&y, 3); 
-  
+  dci->n_dmrs = srslte_bit_pack(&y, 3);
+
+  // TDD fields
+  if (IS_TDD_CFG0) {
+    dci->ul_idx = srslte_bit_pack(&y, 2);
+    dci->is_tdd = true;
+  } else if (IS_TDD) {
+    dci->dai    = srslte_bit_pack(&y, 2);
+    dci->is_tdd = true;
+  }
+
   // CQI request
-  data->cqi_request = *y++ ? true : false;
+  dci->cqi_request = *y++ ? true : false;
 
   return SRSLTE_SUCCESS;
 }
@@ -625,107 +517,124 @@ int dci_format0_unpack(srslte_dci_msg_t *msg, srslte_ra_ul_dci_t *data, uint32_t
  * TODO: TPC commands
  */
 
-int dci_format1_pack(srslte_ra_dl_dci_t *data, srslte_dci_msg_t *msg, uint32_t nof_prb) {
+static int dci_format1_pack(
+    srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg, srslte_dci_dl_t* dci, srslte_dci_msg_t* msg)
+{
+  uint32_t nof_prb = cell->nof_prb;
 
   /* pack bits */
-  uint8_t *y = msg->data;
+  uint8_t* y = msg->payload;
+
+  if (dci->cif_present) {
+    srslte_bit_unpack(dci->cif, &y, 3);
+  }
 
   if (nof_prb > 10) {
-    *y++ = data->alloc_type;
+    *y++ = dci->alloc_type;
   }
 
   /* Resource allocation: type0 or type 1 */
   uint32_t P = srslte_ra_type0_P(nof_prb);
-  uint32_t alloc_size = (uint32_t) ceilf((float) nof_prb / P);
-  switch (data->alloc_type) {
-  case SRSLTE_RA_ALLOC_TYPE0:
-    srslte_bit_unpack((uint32_t) data->type0_alloc.rbg_bitmask, &y, alloc_size);
-    break;
-  case SRSLTE_RA_ALLOC_TYPE1:
-    srslte_bit_unpack((uint32_t) data->type1_alloc.rbg_subset, &y, (int) ceilf(log2f(P)));
-    *y++ = data->type1_alloc.shift ? 1 : 0;
-    srslte_bit_unpack((uint32_t) data->type1_alloc.vrb_bitmask, &y,
-        alloc_size - (int) ceilf(log2f(P)) - 1);
-    break;
-  default:
-    fprintf(stderr,
-        "Format 1 accepts type0 or type1 resource allocation only\n");
-    return SRSLTE_ERROR;
-
+  uint32_t alloc_size = (uint32_t)ceilf((float)nof_prb / P);
+  switch (dci->alloc_type) {
+    case SRSLTE_RA_ALLOC_TYPE0:
+      srslte_bit_unpack((uint32_t)dci->type0_alloc.rbg_bitmask, &y, alloc_size);
+      break;
+    case SRSLTE_RA_ALLOC_TYPE1:
+      srslte_bit_unpack((uint32_t)dci->type1_alloc.rbg_subset, &y, (int)ceilf(log2f(P)));
+      *y++ = dci->type1_alloc.shift ? 1 : 0;
+      srslte_bit_unpack((uint32_t)dci->type1_alloc.vrb_bitmask, &y, alloc_size - (int)ceilf(log2f(P)) - 1);
+      break;
+    default:
+      ERROR("Format 1 accepts type0 or type1 resource allocation only\n");
+      return SRSLTE_ERROR;
   }
   /* pack MCS */
-  srslte_bit_unpack(data->mcs_idx, &y, 5);
+  srslte_bit_unpack(dci->tb[0].mcs_idx, &y, 5);
 
   /* harq process number */
-  srslte_bit_unpack(data->harq_process, &y, HARQ_PID_LEN);
+  srslte_bit_unpack(dci->pid, &y, HARQ_PID_LEN);
 
-  *y++ = data->ndi;
+  *y++ = dci->tb[0].ndi;
 
   // rv version
-  srslte_bit_unpack(data->rv_idx, &y, 2);
+  srslte_bit_unpack(dci->tb[0].rv, &y, 2);
 
-  // TCP command for PUCCH 
-  srslte_bit_unpack(data->tpc_pucch, &y, 2);
+  // TCP command for PUCCH
+  srslte_bit_unpack(dci->tpc_pucch, &y, 2);
 
-  // Padding with zeros
-  uint32_t n = srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT1, nof_prb, 1);
-  while (y - msg->data < n) {
+  uint32_t n = srslte_dci_format_sizeof(cell, sf, cfg, SRSLTE_DCI_FORMAT1);
+  while (y - msg->payload < n) {
     *y++ = 0;
   }
-  msg->nof_bits = (y - msg->data);
+  msg->nof_bits = (y - msg->payload);
+
+  if (msg->nof_bits != dci_format1_sizeof(cell, sf, cfg)) {
+    ERROR("Invalid message length for format 1A (Cross scheduling %s)\n", dci->cif_present ? "enabled" : "disabled");
+  }
 
   return SRSLTE_SUCCESS;
 }
 
-int dci_format1_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_t nof_prb) {
+static int dci_format1_unpack(
+    srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg, srslte_dci_msg_t* msg, srslte_dci_dl_t* dci)
+{
 
   /* pack bits */
-  uint8_t *y = msg->data;
+  uint8_t* y = msg->payload;
 
   /* Make sure it's a SRSLTE_DCI_FORMAT1 message */
-  if (msg->nof_bits != srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT1, nof_prb, 1)) {
-    fprintf(stderr, "Invalid message length for format 1\n");
+  uint32_t msg_len = srslte_dci_format_sizeof(cell, sf, cfg, SRSLTE_DCI_FORMAT1);
+  if (msg->nof_bits != msg_len) {
+    ERROR("Invalid message length (%d!=%d) for format 1\n", msg->nof_bits, msg_len);
     return SRSLTE_ERROR;
   }
 
-  if (nof_prb > 10) {
-    data->alloc_type = *y++;
+  if (cfg->cif_enabled) {
+    dci->cif         = srslte_bit_pack(&y, 3);
+    dci->cif_present = true;
+  }
+
+  if (cell->nof_prb > 10) {
+    dci->alloc_type = *y++;
   } else {
-    data->alloc_type = SRSLTE_RA_ALLOC_TYPE0;
+    dci->alloc_type = SRSLTE_RA_ALLOC_TYPE0;
   }
 
   /* Resource allocation: type0 or type 1 */
-  uint32_t P = srslte_ra_type0_P(nof_prb);
-  uint32_t alloc_size = (uint32_t) ceilf((float) nof_prb / P);
-  switch (data->alloc_type) {
-  case SRSLTE_RA_ALLOC_TYPE0:
-    data->type0_alloc.rbg_bitmask = srslte_bit_pack(&y, alloc_size);
-    break;
-  case SRSLTE_RA_ALLOC_TYPE1:
-    data->type1_alloc.rbg_subset = srslte_bit_pack(&y, (int) ceilf(log2f(P)));
-    data->type1_alloc.shift = *y++ ? true : false;
-    data->type1_alloc.vrb_bitmask = srslte_bit_pack(&y,
-        alloc_size - (int) ceilf(log2f(P)) - 1);
-    break;
-  default:
-    fprintf(stderr, "Format 1 accepts type0 or type1 resource allocation only\n");
-    return SRSLTE_ERROR;
-
+  uint32_t P          = srslte_ra_type0_P(cell->nof_prb);
+  uint32_t alloc_size = (uint32_t)ceilf((float)cell->nof_prb / P);
+  switch (dci->alloc_type) {
+    case SRSLTE_RA_ALLOC_TYPE0:
+      dci->type0_alloc.rbg_bitmask = srslte_bit_pack(&y, alloc_size);
+      break;
+    case SRSLTE_RA_ALLOC_TYPE1:
+      dci->type1_alloc.rbg_subset  = srslte_bit_pack(&y, (int)ceilf(log2f(P)));
+      dci->type1_alloc.shift       = *y++ ? true : false;
+      dci->type1_alloc.vrb_bitmask = srslte_bit_pack(&y, alloc_size - (int)ceilf(log2f(P)) - 1);
+      break;
+    default:
+      ERROR("Format 1 accepts type0 or type1 resource allocation only\n");
+      return SRSLTE_ERROR;
   }
   /* unpack MCS according to 7.1.7 of 36.213 */
-  data->mcs_idx = srslte_bit_pack(&y, 5);
-  
-  /* harq process number */
-  data->harq_process = srslte_bit_pack(&y, HARQ_PID_LEN);
+  dci->tb[0].mcs_idx = srslte_bit_pack(&y, 5);
 
-  data->ndi = *y++ ? true : false;
+  /* harq process number */
+  dci->pid = srslte_bit_pack(&y, HARQ_PID_LEN);
+
+  dci->tb[0].ndi = *y++ ? true : false;
   // rv version
-  data->rv_idx = srslte_bit_pack(&y, 2);
-  
-  // TPC not implemented
-  
-  data->tb_en[0] = true;
-  data->tb_en[1] = false;
+  dci->tb[0].rv = srslte_bit_pack(&y, 2);
+
+  // TPC PUCCH
+  dci->tpc_pucch = srslte_bit_pack(&y, 2);
+
+  // TDD
+  if (IS_TDD) {
+    dci->dai    = srslte_bit_pack(&y, 2);
+    dci->is_tdd = true;
+  }
 
   return SRSLTE_SUCCESS;
 }
@@ -734,120 +643,104 @@ int dci_format1_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_t
  *
  * TODO: RA procedure initiated by PDCCH, TPC commands
  */
-int dci_format1As_pack(srslte_ra_dl_dci_t *data, srslte_dci_msg_t *msg, uint32_t nof_prb,
-    bool crc_is_crnti) {
+static int dci_format1As_pack(
+    srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg, srslte_dci_dl_t* dci, srslte_dci_msg_t* msg)
+{
+  uint32_t nof_prb = cell->nof_prb;
 
   /* pack bits */
-  uint8_t *y = msg->data;
+  uint8_t* y = msg->payload;
+  if (dci->cif_present) {
+    srslte_bit_unpack(dci->cif, &y, 3);
+  }
 
   *y++ = 1; // format differentiation
 
-  if (data->alloc_type != SRSLTE_RA_ALLOC_TYPE2) {
-    fprintf(stderr, "Format 1A accepts type2 resource allocation only\n");
+  if (dci->alloc_type != SRSLTE_RA_ALLOC_TYPE2) {
+    ERROR("Format 1A accepts type2 resource allocation only\n");
     return SRSLTE_ERROR;
   }
-  
-  data->dci_is_1a = true; 
 
-  *y++ = data->type2_alloc.mode; // localized or distributed VRB assignment
+  *y++ = dci->type2_alloc.mode; // localized or distributed VRB assignment
 
-  if (data->type2_alloc.mode == SRSLTE_RA_TYPE2_LOC) {
-    if (data->type2_alloc.L_crb > nof_prb) {
-      fprintf(stderr, "L_CRB=%d can not exceed system BW for localized type2\n",
-          data->type2_alloc.L_crb);
-      return SRSLTE_ERROR;
-    }
-  } else {
-    uint32_t n_vrb_dl;
-    if (crc_is_crnti && nof_prb > 50) {
-      n_vrb_dl = 16;
-    } else {
-      n_vrb_dl = srslte_ra_type2_n_vrb_dl(nof_prb, data->type2_alloc.n_gap == SRSLTE_RA_TYPE2_NG1);
-    }
-    if (data->type2_alloc.L_crb > n_vrb_dl) {
-      fprintf(stderr,
-          "L_CRB=%d can not exceed N_vrb_dl=%d for distributed type2\n",
-          data->type2_alloc.L_crb, n_vrb_dl);
-      return SRSLTE_ERROR;
-    }
-  }
   /* pack RIV according to 7.1.6.3 of 36.213 */
-  uint32_t riv;
-  if (data->type2_alloc.L_crb) {
-    riv = srslte_ra_type2_to_riv(data->type2_alloc.L_crb, data->type2_alloc.RB_start,
-        nof_prb);
-  } else {
-    riv = data->type2_alloc.riv;
-  }
+  uint32_t riv    = dci->type2_alloc.riv;
   uint32_t nb_gap = 0;
-  if (crc_is_crnti && data->type2_alloc.mode == SRSLTE_RA_TYPE2_DIST && nof_prb >= 50) {
+  if (SRSLTE_RNTI_ISUSER(dci->rnti) && dci->type2_alloc.mode == SRSLTE_RA_TYPE2_DIST && nof_prb >= 50) {
     nb_gap = 1;
-    *y++ = data->type2_alloc.n_gap;
+    *y++   = dci->type2_alloc.n_gap;
   }
   srslte_bit_unpack(riv, &y, riv_nbits(nof_prb) - nb_gap);
 
   // in format1A, MCS = TBS according to 7.1.7.2 of 36.213
-  srslte_bit_unpack(data->mcs_idx, &y, 5);
+  srslte_bit_unpack(dci->tb[0].mcs_idx, &y, 5);
 
-  srslte_bit_unpack(data->harq_process, &y, HARQ_PID_LEN);
+  srslte_bit_unpack(dci->pid, &y, HARQ_PID_LEN);
 
-  if (crc_is_crnti) {
-    if (nof_prb >= 50 && data->type2_alloc.mode == SRSLTE_RA_TYPE2_DIST) {
-      *y++ = data->type2_alloc.n_gap;
+  if (SRSLTE_RNTI_ISUSER(dci->rnti)) {
+    if (nof_prb >= 50 && dci->type2_alloc.mode == SRSLTE_RA_TYPE2_DIST) {
+      *y++ = dci->type2_alloc.n_gap;
     } else {
       y++; // bit reserved
     }
   } else {
-    *y++ = data->ndi; 
+    *y++ = dci->tb[0].ndi;
   }
 
   // rv version
-  srslte_bit_unpack(data->rv_idx, &y, 2);
+  srslte_bit_unpack(dci->tb[0].rv, &y, 2);
 
-  if (crc_is_crnti) {
+  if (SRSLTE_RNTI_ISUSER(dci->rnti)) {
     // TPC not implemented
     *y++ = 0;
     *y++ = 0;
   } else {
     y++; // MSB of TPC is reserved
-    *y++ = data->type2_alloc.n_prb1a; // LSB indicates N_prb_1a for TBS
+    *y++ = dci->type2_alloc.n_prb1a; // LSB indicates N_prb_1a for TBS
   }
 
   // Padding with zeros
-  uint32_t n = srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT1A, nof_prb, 1);
-  while (y - msg->data < n) {
+  uint32_t n = srslte_dci_format_sizeof(cell, sf, cfg, SRSLTE_DCI_FORMAT1A);
+  while (y - msg->payload < n) {
     *y++ = 0;
   }
-  msg->nof_bits = (y - msg->data);
-  
+  msg->nof_bits = (y - msg->payload);
+
   return SRSLTE_SUCCESS;
 }
 
 /* Unpacks DCI format 1A for compact scheduling of PDSCH words according to 36.212 5.3.3.1.3
  *
  */
-int dci_format1As_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_t nof_prb,
-    bool crc_is_crnti) {
+static int dci_format1As_unpack(
+    srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg, srslte_dci_msg_t* msg, srslte_dci_dl_t* dci)
+{
 
   /* pack bits */
-  uint8_t *y = msg->data;
+  uint8_t* y = msg->payload;
 
   /* Make sure it's a SRSLTE_DCI_FORMAT0 message */
-  if (msg->nof_bits != srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT1A, nof_prb, 1)) {
-    fprintf(stderr, "Invalid message length for format 1A\n");
+  if (msg->nof_bits != srslte_dci_format_sizeof(cell, sf, cfg, SRSLTE_DCI_FORMAT1A)) {
+    ERROR("Invalid message length for format 1A (Cross scheduling %s)\n", cfg->cif_enabled ? "enabled" : "disabled");
     return SRSLTE_ERROR;
+  }
+
+  if (cfg->cif_enabled) {
+    dci->cif         = srslte_bit_pack(&y, 3);
+    dci->cif_present = true;
   }
 
   if (*y++ != 1) {
     INFO("DCI message is Format0\n");
     return SRSLTE_ERROR;
   }
-  
-  data->dci_is_1a = true; 
-  
+
+  // Update DCI format
+  msg->format = SRSLTE_DCI_FORMAT1A;
+
   // Check if RA procedure by PDCCH order
   if (*y == 0) {
-    int nof_bits = riv_nbits(nof_prb);
+    int nof_bits = riv_nbits(cell->nof_prb);
     int i=0;
     // Check all bits in RBA are set to 1
     while(i<nof_bits && y[1+i] == 1) {
@@ -855,7 +748,7 @@ int dci_format1As_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
     }
     if (i == nof_bits) {
       // Check all remaining bits are set to 0
-      i=1+10+nof_bits;
+      i = 1 + 10 + nof_bits;
       while(i<msg->nof_bits-1 && y[i] == 0) {
         i++;
       }
@@ -863,116 +756,112 @@ int dci_format1As_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32
         // This is a Random access order
         y+=1+nof_bits;
 
-        data->is_ra_order = true;
-        data->ra_preamble = srslte_bit_pack(&y, 6);
-        data->ra_mask_idx = srslte_bit_pack(&y, 4);
+        dci->is_ra_order = true;
+        dci->ra_preamble = srslte_bit_pack(&y, 6);
+        dci->ra_mask_idx = srslte_bit_pack(&y, 4);
 
         return SRSLTE_SUCCESS;
       }
     }
   }
 
-  data->is_ra_order = false;
+  dci->is_ra_order = false;
 
-  data->alloc_type = SRSLTE_RA_ALLOC_TYPE2;
-  data->type2_alloc.mode = *y++;
+  dci->alloc_type       = SRSLTE_RA_ALLOC_TYPE2;
+  dci->type2_alloc.mode = *y++;
 
   // by default, set N_gap to 1
-  data->type2_alloc.n_gap = SRSLTE_RA_TYPE2_NG1;
+  dci->type2_alloc.n_gap = SRSLTE_RA_TYPE2_NG1;
 
-  /* unpack RIV according to 7.1.6.3 of 36.213 */
+  /* unpack RIV  */
   uint32_t nb_gap = 0;
-  if (crc_is_crnti && data->type2_alloc.mode == SRSLTE_RA_TYPE2_DIST && nof_prb >= 50) {
-    nb_gap = 1;
-    data->type2_alloc.n_gap = *y++;
+  if (SRSLTE_RNTI_ISUSER(msg->rnti) && dci->type2_alloc.mode == SRSLTE_RA_TYPE2_DIST && cell->nof_prb >= 50) {
+    nb_gap                 = 1;
+    dci->type2_alloc.n_gap = *y++;
   }
-  uint32_t nof_vrb;
-  if (data->type2_alloc.mode == SRSLTE_RA_TYPE2_LOC) {
-    nof_vrb = nof_prb;
-  } else {
-    nof_vrb = srslte_ra_type2_n_vrb_dl(nof_prb, data->type2_alloc.n_gap == SRSLTE_RA_TYPE2_NG1);
-  }
-  uint32_t riv = srslte_bit_pack(&y, riv_nbits(nof_prb) - nb_gap);
-  srslte_ra_type2_from_riv(riv, &data->type2_alloc.L_crb, &data->type2_alloc.RB_start,
-      nof_prb, nof_vrb);
-  data->type2_alloc.riv = riv;
+  uint32_t riv         = srslte_bit_pack(&y, riv_nbits(cell->nof_prb) - nb_gap);
+  dci->type2_alloc.riv = riv;
 
   // unpack MCS
-  data->mcs_idx = srslte_bit_pack(&y, 5);
+  dci->tb[0].mcs_idx = srslte_bit_pack(&y, 5);
 
-  data->harq_process = srslte_bit_pack(&y, HARQ_PID_LEN);
+  dci->pid = srslte_bit_pack(&y, HARQ_PID_LEN);
 
-  if (!crc_is_crnti)  {
-    if (nof_prb >= 50 && data->type2_alloc.mode == SRSLTE_RA_TYPE2_DIST) {
-      data->type2_alloc.n_gap = *y++;
+  if (!SRSLTE_RNTI_ISUSER(msg->rnti)) {
+    if (cell->nof_prb >= 50 && dci->type2_alloc.mode == SRSLTE_RA_TYPE2_DIST) {
+      dci->type2_alloc.n_gap = *y++;
     } else {
       y++; // NDI reserved
     }
   } else {
-    data->ndi = *y++ ? true : false;
+    dci->tb[0].ndi = *y++ ? true : false;
   }
 
   // rv version
-  data->rv_idx = srslte_bit_pack(&y, 2);
+  dci->tb[0].rv = srslte_bit_pack(&y, 2);
 
-  if (crc_is_crnti) {
+  if (SRSLTE_RNTI_ISUSER(msg->rnti)) {
     // TPC not implemented
     y++;
     y++;
   } else {
-    y++; // MSB of TPC is reserved
-    data->type2_alloc.n_prb1a = *y++; // LSB indicates N_prb_1a for TBS
+    y++;                             // MSB of TPC is reserved
+    dci->type2_alloc.n_prb1a = *y++; // LSB indicates N_prb_1a for TBS
   }
-  
-  data->tb_en[0] = true;
-  data->tb_en[1] = false;
+
+  // TDD
+  if (IS_TDD) {
+    dci->dai    = srslte_bit_pack(&y, 2);
+    dci->is_tdd = true;
+  }
 
   return SRSLTE_SUCCESS;
 }
 
-int dci_format1B_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_t nof_prb, uint32_t nof_ports) 
+static int dci_format1B_unpack(
+    srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg, srslte_dci_msg_t* msg, srslte_dci_dl_t* dci)
 {
 
   /* pack bits */
-  uint8_t *y = msg->data;
-  
-  data->alloc_type = SRSLTE_RA_ALLOC_TYPE2;
-  data->type2_alloc.mode = *y++;
+  uint8_t* y = msg->payload;
+
+  if (cfg->cif_enabled) {
+    dci->cif         = srslte_bit_pack(&y, 3);
+    dci->cif_present = true;
+  }
+
+  dci->alloc_type       = SRSLTE_RA_ALLOC_TYPE2;
+  dci->type2_alloc.mode = *y++;
 
   // by default, set N_gap to 1
-  data->type2_alloc.n_gap = SRSLTE_RA_TYPE2_NG1;
+  dci->type2_alloc.n_gap = SRSLTE_RA_TYPE2_NG1;
 
   /* unpack RIV according to 7.1.6.3 of 36.213 */
   uint32_t nb_gap = 0;
-  if (data->type2_alloc.mode == SRSLTE_RA_TYPE2_DIST && nof_prb >= 50) {
-    nb_gap = 1;
-    data->type2_alloc.n_gap = *y++;
+  if (dci->type2_alloc.mode == SRSLTE_RA_TYPE2_DIST && cell->nof_prb >= 50) {
+    nb_gap                 = 1;
+    dci->type2_alloc.n_gap = *y++;
   }
-  uint32_t nof_vrb;
-  if (data->type2_alloc.mode == SRSLTE_RA_TYPE2_LOC) {
-    nof_vrb = nof_prb;
-  } else {
-    nof_vrb = srslte_ra_type2_n_vrb_dl(nof_prb, data->type2_alloc.n_gap == SRSLTE_RA_TYPE2_NG1);
+  uint32_t riv         = srslte_bit_pack(&y, riv_nbits(cell->nof_prb) - nb_gap);
+  dci->type2_alloc.riv = riv;
+
+  // unpack MCS, Harq pid and ndi
+  dci->tb[0].mcs_idx = srslte_bit_pack(&y, 5);
+  dci->pid           = srslte_bit_pack(&y, HARQ_PID_LEN);
+  dci->tb[0].ndi     = *y++ ? true : false;
+  dci->tb[0].rv      = srslte_bit_pack(&y, 2);
+
+  // TPC PUCCH
+  dci->tpc_pucch = srslte_bit_pack(&y, 2);
+
+  // TDD
+  if (IS_TDD) {
+    dci->dai    = srslte_bit_pack(&y, 2);
+    dci->is_tdd = true;
   }
-  uint32_t riv = srslte_bit_pack(&y, riv_nbits(nof_prb) - nb_gap);
-  srslte_ra_type2_from_riv(riv, &data->type2_alloc.L_crb, &data->type2_alloc.RB_start,
-      nof_prb, nof_vrb);
-  data->type2_alloc.riv = riv;
 
-  // unpack MCS, Harq pid and ndi 
-  data->mcs_idx = srslte_bit_pack(&y, 5);
-  data->harq_process = srslte_bit_pack(&y, HARQ_PID_LEN);
-  data->ndi = *y++ ? true : false;
-  data->rv_idx = srslte_bit_pack(&y, 2);
-  
-  // Ignore TPC command for PUCCH 
-  y += 2; 
-  
-  data->pinfo = srslte_bit_pack(&y, tpmi_bits(nof_ports));
-  data->pconf = *y++ ? true : false;
-
-  data->tb_en[0] = true;
-  data->tb_en[1] = false;
+  dci->pinfo = srslte_bit_pack(&y, tpmi_bits(cell->nof_ports));
+  dci->pconf = *y++ ? true : false;
 
   return SRSLTE_SUCCESS;
 }
@@ -980,435 +869,482 @@ int dci_format1B_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_
 /* Format 1C for compact scheduling of PDSCH words
  *
  */
-int dci_format1Cs_pack(srslte_ra_dl_dci_t *data, srslte_dci_msg_t *msg, uint32_t nof_prb) {
+static int dci_format1Cs_pack(
+    srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg, srslte_dci_dl_t* dci, srslte_dci_msg_t* msg)
+{
+
+  uint32_t nof_prb = cell->nof_prb;
 
   /* pack bits */
-  uint8_t *y = msg->data;
+  uint8_t* y = msg->payload;
 
-  if (data->alloc_type != SRSLTE_RA_ALLOC_TYPE2 || data->type2_alloc.mode != SRSLTE_RA_TYPE2_DIST) {
-    fprintf(stderr,
-        "Format 1C accepts distributed type2 resource allocation only\n");
+  if (dci->cif_present) {
+    srslte_bit_unpack(dci->cif, &y, 3);
+  }
+
+  if (dci->alloc_type != SRSLTE_RA_ALLOC_TYPE2 || dci->type2_alloc.mode != SRSLTE_RA_TYPE2_DIST) {
+    ERROR("Format 1C accepts distributed type2 resource allocation only\n");
     return SRSLTE_ERROR;
   }
-  
-  data->dci_is_1c = true; 
 
   if (nof_prb >= 50) {
-    *y++ = data->type2_alloc.n_gap;
+    *y++ = dci->type2_alloc.n_gap;
   }
-  uint32_t n_step = srslte_ra_type2_n_rb_step(nof_prb);
-  uint32_t n_vrb_dl = srslte_ra_type2_n_vrb_dl(nof_prb, data->type2_alloc.n_gap == SRSLTE_RA_TYPE2_NG1);
+  uint32_t n_step   = srslte_ra_type2_n_rb_step(nof_prb);
+  uint32_t n_vrb_dl = srslte_ra_type2_n_vrb_dl(nof_prb, dci->type2_alloc.n_gap == SRSLTE_RA_TYPE2_NG1);
 
-  if (data->type2_alloc.L_crb > ((uint32_t) n_vrb_dl / n_step) * n_step) {
-    fprintf(stderr, "L_CRB=%d can not exceed N_vrb_dl=%d for distributed type2\n",
-        data->type2_alloc.L_crb, ((uint32_t) n_vrb_dl / n_step) * n_step);
-    return SRSLTE_ERROR;
-  }
-  if (data->type2_alloc.L_crb % n_step) {
-    fprintf(stderr, "L_crb must be multiple of n_step\n");
-    return SRSLTE_ERROR;
-  }
-  if (data->type2_alloc.RB_start % n_step) {
-    fprintf(stderr, "RB_start must be multiple of n_step\n");
-    return SRSLTE_ERROR;
-  }
-  uint32_t L_p = data->type2_alloc.L_crb / n_step;
-  uint32_t RB_p = data->type2_alloc.RB_start / n_step;
-  uint32_t n_vrb_p = (int) n_vrb_dl / n_step;
+  uint32_t riv = dci->type2_alloc.riv;
 
-  uint32_t riv;
-  if (data->type2_alloc.L_crb) {
-    riv = srslte_ra_type2_to_riv(L_p, RB_p, n_vrb_p);
-  } else {
-    riv = data->type2_alloc.riv;
-  }
-  srslte_bit_unpack(riv, &y, riv_nbits((int) n_vrb_dl / n_step));
+  srslte_bit_unpack(riv, &y, riv_nbits((int)n_vrb_dl / n_step));
 
   // in format1C, MCS = TBS according to 7.1.7.2 of 36.213
-  srslte_bit_unpack(data->mcs_idx, &y, 5);
+  srslte_bit_unpack(dci->tb[0].mcs_idx, &y, 5);
 
-  msg->nof_bits = (y - msg->data);
+  msg->nof_bits = (y - msg->payload);
 
   return SRSLTE_SUCCESS;
 }
 
-int dci_format1Cs_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_t nof_prb) {
-  uint32_t L_p, RB_p;
-
+static int dci_format1Cs_unpack(
+    srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg, srslte_dci_msg_t* msg, srslte_dci_dl_t* dci)
+{
   /* pack bits */
-  uint8_t *y = msg->data;
+  uint8_t* y = msg->payload;
 
-  if (msg->nof_bits != srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT1C, nof_prb, 1)) {
-    fprintf(stderr, "Invalid message length for format 1C\n");
+  if (msg->nof_bits != srslte_dci_format_sizeof(cell, sf, cfg, SRSLTE_DCI_FORMAT1C)) {
+    ERROR("Invalid message length for format 1C\n");
     return SRSLTE_ERROR;
   }
-  
-  data->dci_is_1c = true; 
-  
-  data->alloc_type = SRSLTE_RA_ALLOC_TYPE2;
-  data->type2_alloc.mode = SRSLTE_RA_TYPE2_DIST;
-  if (nof_prb >= 50) {
-    data->type2_alloc.n_gap = *y++;
+
+  dci->alloc_type       = SRSLTE_RA_ALLOC_TYPE2;
+  dci->type2_alloc.mode = SRSLTE_RA_TYPE2_DIST;
+  if (cell->nof_prb >= 50) {
+    dci->type2_alloc.n_gap = *y++;
   }
-  uint32_t n_step = srslte_ra_type2_n_rb_step(nof_prb);
-  uint32_t n_vrb_dl = srslte_ra_type2_n_vrb_dl(nof_prb, data->type2_alloc.n_gap == SRSLTE_RA_TYPE2_NG1);
+  uint32_t n_step   = srslte_ra_type2_n_rb_step(cell->nof_prb);
+  uint32_t n_vrb_dl = srslte_ra_type2_n_vrb_dl(cell->nof_prb, dci->type2_alloc.n_gap == SRSLTE_RA_TYPE2_NG1);
 
-  uint32_t riv = srslte_bit_pack(&y, riv_nbits((int) n_vrb_dl / n_step));
-  uint32_t n_vrb_p = (uint32_t) n_vrb_dl / n_step;
+  uint32_t riv = srslte_bit_pack(&y, riv_nbits((int)n_vrb_dl / n_step));
 
-  srslte_ra_type2_from_riv(riv, &L_p, &RB_p, n_vrb_p, n_vrb_p);
-  data->type2_alloc.L_crb = L_p * n_step;
-  data->type2_alloc.RB_start = RB_p * n_step;
-  data->type2_alloc.riv = riv;
+  dci->type2_alloc.riv = riv;
 
-  data->mcs_idx = srslte_bit_pack(&y, 5);
-  
-  data->rv_idx = -1; // Get RV later
-  
-  msg->nof_bits = (y - msg->data);
-  
-  data->tb_en[0] = true;
-  data->tb_en[1] = false;
+  dci->tb[0].mcs_idx = srslte_bit_pack(&y, 5);
+
+  dci->tb[0].rv = -1; // Get RV later
+
+  msg->nof_bits = (y - msg->payload);
 
   return SRSLTE_SUCCESS;
 }
 
-int dci_format1D_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_t nof_prb, uint32_t nof_ports) 
+static int dci_format1D_unpack(
+    srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg, srslte_dci_msg_t* msg, srslte_dci_dl_t* dci)
 {
 
   /* pack bits */
-  uint8_t *y = msg->data;
-  
-  data->alloc_type = SRSLTE_RA_ALLOC_TYPE2;
-  data->type2_alloc.mode = *y++;
+  uint8_t* y = msg->payload;
+
+  if (cfg->cif_enabled) {
+    dci->cif         = srslte_bit_pack(&y, 3);
+    dci->cif_present = true;
+  }
+
+  dci->alloc_type       = SRSLTE_RA_ALLOC_TYPE2;
+  dci->type2_alloc.mode = *y++;
 
   // by default, set N_gap to 1
-  data->type2_alloc.n_gap = SRSLTE_RA_TYPE2_NG1;
+  dci->type2_alloc.n_gap = SRSLTE_RA_TYPE2_NG1;
 
   /* unpack RIV according to 7.1.6.3 of 36.213 */
   uint32_t nb_gap = 0;
-  if (data->type2_alloc.mode == SRSLTE_RA_TYPE2_DIST && nof_prb >= 50) {
-    nb_gap = 1;
-    data->type2_alloc.n_gap = *y++;
+  if (dci->type2_alloc.mode == SRSLTE_RA_TYPE2_DIST && cell->nof_prb >= 50) {
+    nb_gap                 = 1;
+    dci->type2_alloc.n_gap = *y++;
   }
-  uint32_t nof_vrb;
-  if (data->type2_alloc.mode == SRSLTE_RA_TYPE2_LOC) {
-    nof_vrb = nof_prb;
-  } else {
-    nof_vrb = srslte_ra_type2_n_vrb_dl(nof_prb, data->type2_alloc.n_gap == SRSLTE_RA_TYPE2_NG1);
-  }
-  uint32_t riv = srslte_bit_pack(&y, riv_nbits(nof_prb) - nb_gap);
-  srslte_ra_type2_from_riv(riv, &data->type2_alloc.L_crb, &data->type2_alloc.RB_start,
-      nof_prb, nof_vrb);
-  data->type2_alloc.riv = riv;
 
-  // unpack MCS, Harq pid and ndi 
-  data->mcs_idx = srslte_bit_pack(&y, 5);
-  data->harq_process = srslte_bit_pack(&y, HARQ_PID_LEN);
-  data->ndi = *y++ ? true : false;
-  data->rv_idx = srslte_bit_pack(&y, 2);
-  
-  // Ignore TPC command for PUCCH 
-  y += 2; 
-  
-  data->pinfo = srslte_bit_pack(&y, tpmi_bits(nof_ports));
-  data->power_offset = *y++ ? true : false;
-  
-  data->tb_en[0] = true;
-  data->tb_en[1] = false;
+  uint32_t riv         = srslte_bit_pack(&y, riv_nbits(cell->nof_prb) - nb_gap);
+  dci->type2_alloc.riv = riv;
+
+  // unpack MCS, Harq pid and ndi
+  dci->tb[0].mcs_idx = srslte_bit_pack(&y, 5);
+  dci->pid           = srslte_bit_pack(&y, HARQ_PID_LEN);
+  dci->tb[0].ndi     = *y++ ? true : false;
+  dci->tb[0].rv      = srslte_bit_pack(&y, 2);
+
+  // TPC PUCCH
+  dci->tpc_pucch = srslte_bit_pack(&y, 2);
+
+  // TDD
+  if (IS_TDD) {
+    dci->dai    = srslte_bit_pack(&y, 2);
+    dci->is_tdd = true;
+  }
+
+  dci->pinfo        = srslte_bit_pack(&y, tpmi_bits(cell->nof_ports));
+  dci->power_offset = *y++ ? true : false;
 
   return SRSLTE_SUCCESS;
 }
 
+static int dci_format2AB_pack(
+    srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg, srslte_dci_dl_t* dci, srslte_dci_msg_t* msg)
+{
 
-int dci_format2AB_pack(srslte_ra_dl_dci_t *data, srslte_dci_msg_t *msg, uint32_t nof_prb, uint32_t nof_ports) {
+  uint32_t nof_prb   = cell->nof_prb;
+  uint32_t nof_ports = cell->nof_ports;
 
   /* pack bits */
-  uint8_t *y = msg->data;
+  uint8_t* y = msg->payload;
+
+  if (dci->cif_present) {
+    srslte_bit_unpack(dci->cif, &y, 3);
+  }
 
   if (nof_prb > 10) {
-    *y++ = data->alloc_type;
+    *y++ = dci->alloc_type;
   }
-  
-  /* Resource allocation: type0 or type 1 */
-  uint32_t P = srslte_ra_type0_P(nof_prb);
-  uint32_t alloc_size = (uint32_t) ceilf((float) nof_prb / P);
-  switch (data->alloc_type) {
-  case SRSLTE_RA_ALLOC_TYPE0:
-    srslte_bit_unpack((uint32_t) data->type0_alloc.rbg_bitmask, &y, alloc_size);
-    break;
-  case SRSLTE_RA_ALLOC_TYPE1:
-    srslte_bit_unpack((uint32_t) data->type1_alloc.rbg_subset, &y, (int) ceilf(log2f(P)));
-    *y++ = data->type1_alloc.shift ? 1 : 0;
-    srslte_bit_unpack((uint32_t) data->type1_alloc.vrb_bitmask, &y,
-        alloc_size - (int) ceilf(log2f(P)) - 1);
-    break;
-  default:
-    fprintf(stderr,
-        "Format 1 accepts type0 or type1 resource allocation only\n");
-    return SRSLTE_ERROR;
 
+  /* Resource allocation: type0 or type 1 */
+  uint32_t P          = srslte_ra_type0_P(nof_prb);
+  uint32_t alloc_size = (uint32_t) ceilf((float) nof_prb / P);
+  switch (dci->alloc_type) {
+    case SRSLTE_RA_ALLOC_TYPE0:
+      srslte_bit_unpack((uint32_t)dci->type0_alloc.rbg_bitmask, &y, alloc_size);
+      break;
+    case SRSLTE_RA_ALLOC_TYPE1:
+      srslte_bit_unpack((uint32_t)dci->type1_alloc.rbg_subset, &y, (int)ceilf(log2f(P)));
+      *y++ = dci->type1_alloc.shift ? 1 : 0;
+      srslte_bit_unpack((uint32_t)dci->type1_alloc.vrb_bitmask, &y, alloc_size - (int)ceilf(log2f(P)) - 1);
+      break;
+    default:
+      ERROR("Format 1 accepts type0 or type1 resource allocation only\n");
+      return SRSLTE_ERROR;
   }
 
   /* TCP command for PUCCH */
-  srslte_bit_unpack(data->tpc_pucch, &y, 2);
+  srslte_bit_unpack(dci->tpc_pucch, &y, 2);
 
   /* harq process number */
-  srslte_bit_unpack(data->harq_process, &y, HARQ_PID_LEN);
-  
-  // Transpor block to codeword swap flag 
+  srslte_bit_unpack(dci->pid, &y, HARQ_PID_LEN);
+
+  // Transpor block to codeword swap flag
   if (msg->format == SRSLTE_DCI_FORMAT2B) {
-    *y++ = data->sram_id;
+    *y++ = dci->sram_id;
   } else {
-    *y++ = data->tb_cw_swap;
+    *y++ = dci->tb_cw_swap;
   }
 
-  /* Force MCS_idx and RV_idx in function of block enable according to 7.1.7 of 36.213 */
-  if (!data->tb_en[0]) {
-    data->mcs_idx = 0;
-    data->rv_idx= 1;
-  }
-  if (!data->tb_en[1]) {
-    data->mcs_idx_1 = 0;
-    data->rv_idx_1 = 1;
-  }
-  
   /* pack TB1 */
-  srslte_bit_unpack(data->mcs_idx, &y, 5);
-  *y++ = data->ndi;
-  srslte_bit_unpack(data->rv_idx, &y, 2);
+  srslte_bit_unpack(dci->tb[0].mcs_idx, &y, 5);
+  *y++ = dci->tb[0].ndi;
+  srslte_bit_unpack(dci->tb[0].rv, &y, 2);
 
   /* pack TB2 */
-  srslte_bit_unpack(data->mcs_idx_1, &y, 5);
-  *y++ = data->ndi_1;
-  srslte_bit_unpack(data->rv_idx_1, &y, 2);
+  srslte_bit_unpack(dci->tb[1].mcs_idx, &y, 5);
+  *y++ = dci->tb[1].ndi;
+  srslte_bit_unpack(dci->tb[1].rv, &y, 2);
 
-  // Precoding information 
+  // Precoding information
   if (msg->format == SRSLTE_DCI_FORMAT2) {
-    srslte_bit_unpack(data->pinfo, &y, precoding_bits_f2(nof_ports));
+    srslte_bit_unpack(dci->pinfo, &y, precoding_bits_f2(nof_ports));
   } else if (msg->format == SRSLTE_DCI_FORMAT2A) {
-    srslte_bit_unpack(data->pinfo, &y, precoding_bits_f2a(nof_ports));
+    srslte_bit_unpack(dci->pinfo, &y, precoding_bits_f2a(nof_ports));
   }
 
-  // Padding with zeros  
-  uint32_t n = srslte_dci_format_sizeof(msg->format, nof_prb, nof_ports);
-  while (y - msg->data < n) {
+  // Padding with zeros
+  uint32_t n = srslte_dci_format_sizeof(cell, sf, cfg, msg->format);
+  while (y - msg->payload < n) {
     *y++ = 0;
   }
-  msg->nof_bits = (y - msg->data);
-
-
+  msg->nof_bits = (y - msg->payload);
 
   return SRSLTE_SUCCESS;
 }
 
-int dci_format2AB_unpack(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, uint32_t nof_prb, uint32_t nof_ports) {
+static int dci_format2AB_unpack(
+    srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg, srslte_dci_msg_t* msg, srslte_dci_dl_t* dci)
+{
 
   /* pack bits */
-  uint8_t *y = msg->data;
+  uint8_t* y = msg->payload;
 
-  if (nof_prb > 10) {
-    data->alloc_type = *y++;
+  if (cfg->cif_enabled) {
+    dci->cif         = srslte_bit_pack(&y, 3);
+    dci->cif_present = true;
+  }
+
+  if (cell->nof_prb > 10) {
+    dci->alloc_type = *y++;
   } else {
-    data->alloc_type = SRSLTE_RA_ALLOC_TYPE0;
+    dci->alloc_type = SRSLTE_RA_ALLOC_TYPE0;
   }
 
   /* Resource allocation: type0 or type 1 */
-  uint32_t P = srslte_ra_type0_P(nof_prb);
-  uint32_t alloc_size = (uint32_t) ceilf((float) nof_prb / P);
-  switch (data->alloc_type) {
-  case SRSLTE_RA_ALLOC_TYPE0:
-    data->type0_alloc.rbg_bitmask = srslte_bit_pack(&y, alloc_size);
-    break;
-  case SRSLTE_RA_ALLOC_TYPE1:
-    data->type1_alloc.rbg_subset = srslte_bit_pack(&y, (int) ceilf(log2f(P)));
-    data->type1_alloc.shift = *y++ ? true : false;
-    data->type1_alloc.vrb_bitmask = srslte_bit_pack(&y,
-        alloc_size - (int) ceilf(log2f(P)) - 1);
-    break;
-  default:
-    fprintf(stderr, "Format2 accepts type0 or type1 resource allocation only\n");
-    return SRSLTE_ERROR;
-
+  uint32_t P          = srslte_ra_type0_P(cell->nof_prb);
+  uint32_t alloc_size = (uint32_t)ceilf((float)cell->nof_prb / P);
+  switch (dci->alloc_type) {
+    case SRSLTE_RA_ALLOC_TYPE0:
+      dci->type0_alloc.rbg_bitmask = srslte_bit_pack(&y, alloc_size);
+      break;
+    case SRSLTE_RA_ALLOC_TYPE1:
+      dci->type1_alloc.rbg_subset  = srslte_bit_pack(&y, (int)ceilf(log2f(P)));
+      dci->type1_alloc.shift       = *y++ ? true : false;
+      dci->type1_alloc.vrb_bitmask = srslte_bit_pack(&y, alloc_size - (int)ceilf(log2f(P)) - 1);
+      break;
+    default:
+      ERROR("Format2 accepts type0 or type1 resource allocation only\n");
+      return SRSLTE_ERROR;
   }
-  // unpack TPC command for PUCCH (not implemented) 
-  y+=2; 
-  
+
+  // TPC PUCCH
+  dci->tpc_pucch = srslte_bit_pack(&y, 2);
+
+  // TDD
+  if (IS_TDD) {
+    dci->dai    = srslte_bit_pack(&y, 2);
+    dci->is_tdd = true;
+  }
+
   /* harq process number */
-  data->harq_process = srslte_bit_pack(&y, HARQ_PID_LEN);
+  dci->pid = srslte_bit_pack(&y, HARQ_PID_LEN);
 
   // Transpor block to codeword swap flag 
   if (msg->format == SRSLTE_DCI_FORMAT2B) {
-    data->sram_id    = *y++ ? true : false; 
+    dci->sram_id = *y++ ? true : false;
   } else {
-    data->tb_cw_swap = *y++ ? true : false;     
+    dci->tb_cw_swap = *y++ ? true : false;
   }
-  
+
+  uint32_t nof_tb = 0;
   /* unpack MCS according to 7.1.7 of 36.213 */
-  data->mcs_idx = srslte_bit_pack(&y, 5);
-  data->ndi = *y++ ? true : false;
-  data->rv_idx = srslte_bit_pack(&y, 2);
-  if (data->mcs_idx == 0 && data->rv_idx == 1) {
-    data->tb_en[0] = false; 
-  } else {
-    data->tb_en[0] = true; 
-  }
-  
-  // same for tb1
-  data->mcs_idx_1 = srslte_bit_pack(&y, 5);  
-  data->ndi_1 = *y++ ? true : false;  
-  data->rv_idx_1 = srslte_bit_pack(&y, 2);
-  if (data->mcs_idx_1 == 0 && data->rv_idx_1 == 1) {
-    data->tb_en[1] = false; 
-  } else {
-    data->tb_en[1] = true; 
-  }
-  
-  // Precoding information 
-  if (msg->format == SRSLTE_DCI_FORMAT2) {
-    data->pinfo = srslte_bit_pack(&y, precoding_bits_f2(nof_ports));
-  } else if (msg->format == SRSLTE_DCI_FORMAT2A) {
-    data->pinfo = srslte_bit_pack(&y, precoding_bits_f2a(nof_ports));
-  }
-
-  // Table 5.3.3.1.5-1
-  if (SRSLTE_RA_DL_GRANT_NOF_TB(data) == 2) {
-    if (data->tb_cw_swap) {
-      uint32_t tmp   = data->rv_idx;
-      data->rv_idx   = data->rv_idx_1;
-      data->rv_idx_1 = tmp;
-
-      tmp             = data->mcs_idx;
-      data->mcs_idx   = data->mcs_idx_1;
-      data->mcs_idx_1 = tmp;
-
-      bool tmp_ndi    = data->ndi;
-      data->ndi       = data->ndi_1;
-      data->ndi_1     = tmp_ndi;
+  for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+    dci->tb[i].mcs_idx = srslte_bit_pack(&y, 5);
+    dci->tb[i].ndi     = *y++ ? true : false;
+    dci->tb[i].rv      = srslte_bit_pack(&y, 2);
+    if (SRSLTE_DCI_IS_TB_EN(dci->tb[i])) {
+      nof_tb++;
     }
   }
 
-  // Table 5.3.3.1.5-2
-  if (!data->tb_en[0]) {
-    data->rv_idx  = data->rv_idx_1;
-    data->mcs_idx = data->mcs_idx_1;
-    data->ndi     = data->ndi_1;
-
-    data->tb_en[1] = false;
+  // Precoding information 
+  if (msg->format == SRSLTE_DCI_FORMAT2) {
+    dci->pinfo = srslte_bit_pack(&y, precoding_bits_f2(cell->nof_ports));
+  } else if (msg->format == SRSLTE_DCI_FORMAT2A) {
+    dci->pinfo = srslte_bit_pack(&y, precoding_bits_f2a(cell->nof_ports));
   }
-  
+
+  // Apply TB swap table
+  if (nof_tb == 2) {
+    // Table 5.3.3.1.5-1
+    for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+      dci->tb[i].cw_idx = (((dci->tb_cw_swap) ? 1 : 0) + i) % nof_tb;
+    }
+  } else {
+    // Table 5.3.3.1.5-2
+    if (!SRSLTE_DCI_IS_TB_EN(dci->tb[0])) {
+      dci->tb[0] = dci->tb[1];
+    }
+    SRSLTE_DCI_TB_DISABLE(dci->tb[1]);
+    for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+      dci->tb[i].cw_idx = 0;
+    }
+  }
+
   return SRSLTE_SUCCESS;
 }
 
-
-
-int srslte_dci_msg_pack_pdsch(srslte_ra_dl_dci_t *data, srslte_dci_format_t format, 
-                              srslte_dci_msg_t *msg, uint32_t nof_prb, uint32_t nof_ports, 
-                              bool crc_is_crnti) 
+int srslte_dci_msg_pack_pdsch(
+    srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg, srslte_dci_dl_t* dci, srslte_dci_msg_t* msg)
 {
-  msg->format = format; 
-  switch (format) {
-  case SRSLTE_DCI_FORMAT1:
-    msg->format = format; 
-    return dci_format1_pack(data, msg, nof_prb);
-  case SRSLTE_DCI_FORMAT1A:
-    msg->format = format; 
-    return dci_format1As_pack(data, msg, nof_prb, crc_is_crnti);
-  case SRSLTE_DCI_FORMAT1C:
-    msg->format = format; 
-    return dci_format1Cs_pack(data, msg, nof_prb);
-  case SRSLTE_DCI_FORMAT2:
-  case SRSLTE_DCI_FORMAT2A:
-  case SRSLTE_DCI_FORMAT2B:
-    msg->format = format; 
-    return dci_format2AB_pack(data, msg, nof_prb, nof_ports);
-  default:
-    fprintf(stderr, "DCI pack pdsch: Invalid DCI format %s\n",
-        srslte_dci_format_string(format));
-    return SRSLTE_ERROR;
+  msg->rnti     = dci->rnti;
+  msg->location = dci->location;
+  msg->format   = dci->format;
+
+  srslte_dci_cfg_t _dci_cfg;
+  if (!cfg) {
+    ZERO_OBJECT(_dci_cfg);
+    cfg = &_dci_cfg;
   }
-}
 
-int srslte_dci_msg_unpack_pdsch(srslte_dci_msg_t *msg, srslte_ra_dl_dci_t *data, 
-                                uint32_t nof_prb, uint32_t nof_ports, bool crc_is_crnti) 
-{
   switch (msg->format) {
-    case SRSLTE_DCI_FORMAT1: 
-      return dci_format1_unpack(msg, data, nof_prb);
-    case SRSLTE_DCI_FORMAT1A: 
-      return dci_format1As_unpack(msg, data, nof_prb, crc_is_crnti);
-    case SRSLTE_DCI_FORMAT1B: 
-      return dci_format1B_unpack(msg, data, nof_prb, nof_ports);
+    case SRSLTE_DCI_FORMAT1:
+      return dci_format1_pack(cell, sf, cfg, dci, msg);
+    case SRSLTE_DCI_FORMAT1A:
+      return dci_format1As_pack(cell, sf, cfg, dci, msg);
     case SRSLTE_DCI_FORMAT1C:
-      return dci_format1Cs_unpack(msg, data, nof_prb);
-    case SRSLTE_DCI_FORMAT1D: 
-      return dci_format1D_unpack(msg, data, nof_prb, nof_ports);
+      return dci_format1Cs_pack(cell, sf, cfg, dci, msg);
     case SRSLTE_DCI_FORMAT2:
     case SRSLTE_DCI_FORMAT2A:
     case SRSLTE_DCI_FORMAT2B:
-      return dci_format2AB_unpack(msg, data, nof_prb, nof_ports);
+      return dci_format2AB_pack(cell, sf, cfg, dci, msg);
     default:
-      fprintf(stderr, "DCI unpack pdsch: Invalid DCI format %s\n",
-        srslte_dci_format_string(msg->format));
+      ERROR("DCI pack pdsch: Invalid DCI format %s\n", srslte_dci_format_string(msg->format));
       return SRSLTE_ERROR;
-  }    
-  return SRSLTE_SUCCESS; 
+  }
 }
 
-int srslte_dci_msg_pack_pusch(srslte_ra_ul_dci_t *data, srslte_dci_msg_t *msg, uint32_t nof_prb) {
-  return dci_format0_pack(data, msg, nof_prb);
+int srslte_dci_msg_unpack_pdsch(
+    srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg, srslte_dci_msg_t* msg, srslte_dci_dl_t* dci)
+{
+  // Initialize DCI
+  bzero(dci, sizeof(srslte_dci_dl_t));
+
+  // Enable just 1 TB per default
+  for (int i = 1; i < SRSLTE_MAX_CODEWORDS; i++) {
+    SRSLTE_DCI_TB_DISABLE(dci->tb[i]);
+  }
+  dci->rnti     = msg->rnti;
+  dci->location = msg->location;
+  dci->format   = msg->format;
+
+  srslte_dci_cfg_t _dci_cfg;
+  if (!cfg) {
+    ZERO_OBJECT(_dci_cfg);
+    cfg = &_dci_cfg;
+  }
+
+#if SRSLTE_DCI_HEXDEBUG
+  dci->hex_str[0] = '\0';
+  srslte_vec_sprint_hex(dci->hex_str, sizeof(dci->hex_str), msg->payload, msg->nof_bits);
+  dci->nof_bits = msg->nof_bits;
+#endif
+
+  switch (msg->format) {
+    case SRSLTE_DCI_FORMAT1:
+      return dci_format1_unpack(cell, sf, cfg, msg, dci);
+    case SRSLTE_DCI_FORMAT1A:
+      return dci_format1As_unpack(cell, sf, cfg, msg, dci);
+    case SRSLTE_DCI_FORMAT1B:
+      return dci_format1B_unpack(cell, sf, cfg, msg, dci);
+    case SRSLTE_DCI_FORMAT1C:
+      return dci_format1Cs_unpack(cell, sf, cfg, msg, dci);
+    case SRSLTE_DCI_FORMAT1D:
+      return dci_format1D_unpack(cell, sf, cfg, msg, dci);
+    case SRSLTE_DCI_FORMAT2:
+    case SRSLTE_DCI_FORMAT2A:
+    case SRSLTE_DCI_FORMAT2B:
+      return dci_format2AB_unpack(cell, sf, cfg, msg, dci);
+    default:
+      ERROR("DCI unpack pdsch: Invalid DCI format %s\n", srslte_dci_format_string(msg->format));
+      return SRSLTE_ERROR;
+  }
 }
 
-int srslte_dci_msg_unpack_pusch(srslte_dci_msg_t *msg, srslte_ra_ul_dci_t *data, uint32_t nof_prb) {
-  return dci_format0_unpack(msg, data, nof_prb);
+int srslte_dci_msg_pack_pusch(
+    srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg, srslte_dci_ul_t* dci, srslte_dci_msg_t* msg)
+{
+  msg->rnti     = dci->rnti;
+  msg->location = dci->location;
+  msg->format   = dci->format;
+
+  srslte_dci_cfg_t _dci_cfg;
+  if (!cfg) {
+    ZERO_OBJECT(_dci_cfg);
+    cfg = &_dci_cfg;
+  }
+
+  return dci_format0_pack(cell, sf, cfg, dci, msg);
 }
 
-srslte_dci_format_t srslte_dci_format_from_string(char *str) {
+int srslte_dci_msg_unpack_pusch(
+    srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg, srslte_dci_msg_t* msg, srslte_dci_ul_t* dci)
+{
+  // Initialize DCI
+  bzero(dci, sizeof(srslte_dci_ul_t));
+
+  dci->rnti     = msg->rnti;
+  dci->location = msg->location;
+  dci->format   = msg->format;
+
+  srslte_dci_cfg_t _dci_cfg;
+  if (!cfg) {
+    ZERO_OBJECT(_dci_cfg);
+    cfg = &_dci_cfg;
+  }
+
+#ifdef SRSLTE_DCI_HEXDEBUG
+  dci->hex_str[0] = '\0';
+  srslte_vec_sprint_hex(dci->hex_str, sizeof(dci->hex_str), msg->payload, msg->nof_bits);
+  dci->nof_bits = msg->nof_bits;
+#endif
+
+  return dci_format0_unpack(cell, sf, cfg, msg, dci);
+}
+
+int srslte_dci_location_set(srslte_dci_location_t* c, uint32_t L, uint32_t nCCE)
+{
+  if (L <= 3) {
+    c->L = L;
+  } else {
+    ERROR("Invalid L %d\n", L);
+    return SRSLTE_ERROR;
+  }
+  if (nCCE <= 87) {
+    c->ncce = nCCE;
+  } else {
+    ERROR("Invalid nCCE %d\n", nCCE);
+    return SRSLTE_ERROR;
+  }
+  return SRSLTE_SUCCESS;
+}
+
+bool srslte_dci_location_isvalid(srslte_dci_location_t* c)
+{
+  if (c->L <= 3 && c->ncce <= 87) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+srslte_dci_format_t srslte_dci_format_from_string(char* str)
+{
   if (!strcmp(str, "Format0")) {
     return SRSLTE_DCI_FORMAT0;
   } else if (!strcmp(str, "Format1")) {
-    return SRSLTE_DCI_FORMAT1; 
+    return SRSLTE_DCI_FORMAT1;
   } else if (!strcmp(str, "Format1A")) {
-    return SRSLTE_DCI_FORMAT1A; 
+    return SRSLTE_DCI_FORMAT1A;
   } else if (!strcmp(str, "Format1B")) {
-    return SRSLTE_DCI_FORMAT1B; 
+    return SRSLTE_DCI_FORMAT1B;
   } else if (!strcmp(str, "Format1C")) {
-    return SRSLTE_DCI_FORMAT1C; 
+    return SRSLTE_DCI_FORMAT1C;
   } else if (!strcmp(str, "Format1D")) {
-    return SRSLTE_DCI_FORMAT1D; 
+    return SRSLTE_DCI_FORMAT1D;
   } else if (!strcmp(str, "Format2")) {
-    return SRSLTE_DCI_FORMAT2; 
+    return SRSLTE_DCI_FORMAT2;
   } else if (!strcmp(str, "Format2A")) {
-    return SRSLTE_DCI_FORMAT2A; 
+    return SRSLTE_DCI_FORMAT2A;
   } else if (!strcmp(str, "Format2B")) {
-    return SRSLTE_DCI_FORMAT2B; 
+    return SRSLTE_DCI_FORMAT2B;
   } else {
     return SRSLTE_DCI_NOF_FORMATS;
   }
 }
 
-char* srslte_dci_format_string(srslte_dci_format_t format) {
+char* srslte_dci_format_string(srslte_dci_format_t format)
+{
   switch (format) {
-  case SRSLTE_DCI_FORMAT0:
-    return "Format0 ";
-  case SRSLTE_DCI_FORMAT1:
-    return "Format1 ";
-  case SRSLTE_DCI_FORMAT1A:
-    return "Format1A";
-  case SRSLTE_DCI_FORMAT1B:
-    return "Format1B";
-  case SRSLTE_DCI_FORMAT1C:
-    return "Format1C";
-  case SRSLTE_DCI_FORMAT1D:
-    return "Format1D";
-  case SRSLTE_DCI_FORMAT2:
-    return "Format2 ";
-  case SRSLTE_DCI_FORMAT2A:
-    return "Format2A";
-  case SRSLTE_DCI_FORMAT2B:
-    return "Format2B";
-  default:
-    return "N/A"; // fatal error
+    case SRSLTE_DCI_FORMAT0:
+      return "Format0 ";
+    case SRSLTE_DCI_FORMAT1:
+      return "Format1 ";
+    case SRSLTE_DCI_FORMAT1A:
+      return "Format1A";
+    case SRSLTE_DCI_FORMAT1B:
+      return "Format1B";
+    case SRSLTE_DCI_FORMAT1C:
+      return "Format1C";
+    case SRSLTE_DCI_FORMAT1D:
+      return "Format1D";
+    case SRSLTE_DCI_FORMAT2:
+      return "Format2 ";
+    case SRSLTE_DCI_FORMAT2A:
+      return "Format2A";
+    case SRSLTE_DCI_FORMAT2B:
+      return "Format2B";
+    default:
+      return "N/A"; // fatal error
   }
 }
 
@@ -1438,62 +1374,168 @@ char* srslte_dci_format_string_short(srslte_dci_format_t format) {
   }
 }
 
-void srslte_dci_msg_type_fprint(FILE *f, srslte_dci_msg_type_t type) {
-  switch (type.type) {
-  case SRSLTE_DCI_MSG_TYPE_PUSCH_SCHED:
-    fprintf(f, "%s PUSCH Scheduling\n", srslte_dci_format_string(type.format));
-    break;
-  case SRSLTE_DCI_MSG_TYPE_PDSCH_SCHED:
-    fprintf(f, "%s PDSCH Scheduling\n", srslte_dci_format_string(type.format));
-    break;
-  case SRSLTE_DCI_MSG_TYPE_RA_PROC_PDCCH:
-    fprintf(f, "%s Random access initiated by PDCCH\n",
-        srslte_dci_format_string(type.format));
-    break;
-  case SRSLTE_DCI_MSG_TYPE_MCCH_CHANGE:
-    fprintf(f, "%s MCCH change notification\n", srslte_dci_format_string(type.format));
-    break;
-  case SRSLTE_DCI_MSG_TYPE_TPC_COMMAND:
-    fprintf(f, "%s TPC command\n", srslte_dci_format_string(type.format));
-    break;
-  }
-}
-
-/** Warning this function will be deprecated. Currently only used in test programs */
-int srslte_dci_msg_get_type(srslte_dci_msg_t *msg, srslte_dci_msg_type_t *type, uint32_t nof_prb,
-    uint16_t msg_rnti) 
+char* ra_type_string(srslte_ra_type_t alloc_type)
 {
-  DEBUG("Get message type: nof_bits=%d, msg_rnti=0x%x\n", msg->nof_bits, msg_rnti);
-  if (msg->nof_bits == srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT0, nof_prb, 1)
-      && !msg->data[0]) {
-    type->type = SRSLTE_DCI_MSG_TYPE_PUSCH_SCHED;
-    type->format = SRSLTE_DCI_FORMAT0;
-    return SRSLTE_SUCCESS;
-  } else if (msg->nof_bits == srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT1, nof_prb, 1)) {
-    type->type = SRSLTE_DCI_MSG_TYPE_PDSCH_SCHED; // only these 2 types supported
-    type->format = SRSLTE_DCI_FORMAT1;
-    return SRSLTE_SUCCESS;
-  } else if (msg->nof_bits == srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT1A, nof_prb, 1)) {
-    /* The RNTI is not the only condition. Also some fields in the packet. 
-     * if (msg_rnti >= SRSLTE_CRNTI_START && msg_rnti <= SRSLTE_CRNTI_END) {
-      type->type = SRSLTE_DCI_MSG_TYPE_RA_PROC_PDCCH;
-      type->format = SRSLTE_DCI_FORMAT1A;
-    } else {
-      */
-      type->type = SRSLTE_DCI_MSG_TYPE_PDSCH_SCHED; // only these 2 types supported
-      type->format = SRSLTE_DCI_FORMAT1A;
-    //}
-    return SRSLTE_SUCCESS;
-  } else if (msg->nof_bits == srslte_dci_format_sizeof(SRSLTE_DCI_FORMAT1C, nof_prb, 1)) {
-    if (msg_rnti == SRSLTE_MRNTI) {
-      type->type = SRSLTE_DCI_MSG_TYPE_MCCH_CHANGE;
-      type->format = SRSLTE_DCI_FORMAT1C;
-    } else {
-      type->type = SRSLTE_DCI_MSG_TYPE_PDSCH_SCHED; // only these 2 types supported
-      type->format = SRSLTE_DCI_FORMAT1C;
-    }
-    return SRSLTE_SUCCESS;
+  switch (alloc_type) {
+    case SRSLTE_RA_ALLOC_TYPE0:
+      return "Type 0";
+    case SRSLTE_RA_ALLOC_TYPE1:
+      return "Type 1";
+    case SRSLTE_RA_ALLOC_TYPE2:
+      return "Type 2";
+    default:
+      return "N/A";
   }
-  return SRSLTE_ERROR;
 }
 
+void srslte_dci_dl_fprint(FILE* f, srslte_dci_dl_t* dci, uint32_t nof_prb)
+{
+  fprintf(f, " - Resource Allocation Type:\t\t%s\n", ra_type_string(dci->alloc_type));
+  switch (dci->alloc_type) {
+    case SRSLTE_RA_ALLOC_TYPE0:
+      fprintf(f, "   + Resource Block Group Size:\t\t%d\n", srslte_ra_type0_P(nof_prb));
+      fprintf(f, "   + RBG Bitmap:\t\t\t0x%x\n", dci->type0_alloc.rbg_bitmask);
+      break;
+    case SRSLTE_RA_ALLOC_TYPE1:
+      fprintf(f, "   + Resource Block Group Size:\t\t%d\n", srslte_ra_type0_P(nof_prb));
+      fprintf(f, "   + RBG Bitmap:\t\t\t0x%x\n", dci->type1_alloc.vrb_bitmask);
+      fprintf(f, "   + RBG Subset:\t\t\t%d\n", dci->type1_alloc.rbg_subset);
+      fprintf(f, "   + RBG Shift:\t\t\t\t%s\n", dci->type1_alloc.shift ? "Yes" : "No");
+      break;
+    case SRSLTE_RA_ALLOC_TYPE2:
+      fprintf(f, "   + Type:\t\t\t\t%s\n", dci->type2_alloc.mode == SRSLTE_RA_TYPE2_LOC ? "Localized" : "Distributed");
+      fprintf(f, "   + Resource Indicator Value:\t\t%d\n", dci->type2_alloc.riv);
+      break;
+  }
+  if (dci->cif_present) {
+    fprintf(f, " - Carrier idx:\t\t\t\t%d\n", dci->cif);
+  }
+  fprintf(f, " - HARQ process:\t\t\t%d\n", dci->pid);
+  fprintf(f, " - TPC command for PUCCH:\t\t--\n");
+  fprintf(f, " - Transport blocks swapped:\t\t%s\n", (dci->tb_cw_swap) ? "true" : "false");
+
+  for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+    fprintf(f, " - Transport block %d enabled:\t\t%s\n", i, SRSLTE_DCI_IS_TB_EN(dci->tb[i]) ? "true" : "false");
+    if (SRSLTE_DCI_IS_TB_EN(dci->tb[i])) {
+      fprintf(f, "   + Modulation and coding scheme index:\t%d\n", dci->tb[i].mcs_idx);
+      fprintf(f, "   + New data indicator:\t\t\t%s\n", dci->tb[i].ndi ? "Yes" : "No");
+      fprintf(f, "   + Redundancy version:\t\t\t%d\n", dci->tb[i].rv);
+    }
+  }
+}
+
+static uint32_t print_multi(char* info_str, uint32_t n, uint32_t len, srslte_dci_dl_t* dci_dl, uint32_t value_id)
+{
+  uint32_t nof_tb = 1;
+  if (dci_dl->format >= SRSLTE_DCI_FORMAT2) {
+    nof_tb = 2;
+  }
+  for (uint32_t i = 0; i < nof_tb; i++) {
+    switch (value_id) {
+      case 0:
+        n = srslte_print_check(info_str, len, n, "%d", dci_dl->tb[i].mcs_idx);
+        break;
+      case 1:
+        n = srslte_print_check(info_str, len, n, "%d", dci_dl->tb[i].rv);
+        break;
+      case 2:
+        n = srslte_print_check(info_str, len, n, "%d", dci_dl->tb[i].ndi);
+        break;
+    }
+    if (i < SRSLTE_MAX_CODEWORDS - 1 && nof_tb > 1) {
+      n = srslte_print_check(info_str, len, n, "/");
+    }
+  }
+  return n;
+}
+
+uint32_t srslte_dci_dl_info(srslte_dci_dl_t* dci_dl, char* info_str, uint32_t len)
+{
+  uint32_t n = 0;
+  n          = srslte_print_check(info_str,
+                         len,
+                         0,
+                         "f=%s, cce=%2d, L=%d",
+                         srslte_dci_format_string_short(dci_dl->format),
+                         dci_dl->location.ncce,
+                         dci_dl->location.L);
+
+#if SRSLTE_DCI_HEXDEBUG
+  n = srslte_print_check(info_str, len, n, ", len=%d, hex=%s", dci_dl->nof_bits, dci_dl->hex_str);
+#endif
+
+  if (dci_dl->cif_present) {
+    n = srslte_print_check(info_str, len, n, ", cif=%d", dci_dl->cif);
+  }
+
+  switch (dci_dl->alloc_type) {
+    case SRSLTE_RA_ALLOC_TYPE0:
+      n = srslte_print_check(info_str, len, n, ", rbg=0x%x", dci_dl->type0_alloc.rbg_bitmask);
+      break;
+    case SRSLTE_RA_ALLOC_TYPE1:
+      n = srslte_print_check(info_str,
+                             len,
+                             n,
+                             ", vrb=0x%x, rbg_s=%d, sh=%d",
+                             dci_dl->type1_alloc.vrb_bitmask,
+                             dci_dl->type1_alloc.rbg_subset,
+                             dci_dl->type1_alloc.shift);
+      break;
+    case SRSLTE_RA_ALLOC_TYPE2:
+      n = srslte_print_check(info_str, len, n, ", riv=%d", dci_dl->type2_alloc.riv);
+      break;
+  }
+
+  n = srslte_print_check(info_str, len, n, ", pid=%d", dci_dl->pid);
+
+  n = srslte_print_check(info_str, len, n, ", mcs={", 0);
+  n = print_multi(info_str, n, len, dci_dl, 0);
+  n = srslte_print_check(info_str, len, n, "}", 0);
+  n = srslte_print_check(info_str, len, n, ", rv={", 0);
+  n = print_multi(info_str, n, len, dci_dl, 1);
+  n = srslte_print_check(info_str, len, n, "}", 0);
+  n = srslte_print_check(info_str, len, n, ", ndi={", 0);
+  n = print_multi(info_str, n, len, dci_dl, 2);
+  n = srslte_print_check(info_str, len, n, "}", 0);
+
+  if (dci_dl->format == SRSLTE_DCI_FORMAT1 || dci_dl->format == SRSLTE_DCI_FORMAT1A ||
+      dci_dl->format == SRSLTE_DCI_FORMAT1B || dci_dl->format == SRSLTE_DCI_FORMAT2 ||
+      dci_dl->format == SRSLTE_DCI_FORMAT2A || dci_dl->format == SRSLTE_DCI_FORMAT2B) {
+    n = srslte_print_check(info_str, len, n, ", tpc_pucch=%d", dci_dl->tpc_pucch);
+  }
+
+  if (dci_dl->is_tdd) {
+    n = srslte_print_check(info_str, len, n, ", dai=%d", dci_dl->dai);
+  }
+
+  if (dci_dl->format == SRSLTE_DCI_FORMAT2 || dci_dl->format == SRSLTE_DCI_FORMAT2A ||
+      dci_dl->format == SRSLTE_DCI_FORMAT2B) {
+    n = srslte_print_check(info_str, len, n, ", tb_sw=%d, pinfo=%d", dci_dl->tb_cw_swap, dci_dl->pinfo);
+  }
+
+  return n;
+}
+
+uint32_t srslte_dci_ul_info(srslte_dci_ul_t* dci_ul, char* info_str, uint32_t len)
+{
+  uint32_t n = 0;
+
+  n = srslte_print_check(info_str, len, 0, "f=0, cce=%2d, L=%d", dci_ul->location.ncce, dci_ul->location.L);
+
+  n = srslte_print_check(info_str, len, n, ", riv=%d", dci_ul->type2_alloc.riv);
+
+  n = srslte_print_check(
+      info_str, len, n, ", mcs=%d, rv=%d, ndi=%d", dci_ul->tb.mcs_idx, dci_ul->tb.rv, dci_ul->tb.ndi);
+
+  if (dci_ul->is_tdd) {
+    n = srslte_print_check(info_str, len, n, ", ul_idx=%d", dci_ul->ul_idx);
+  }
+
+  if (dci_ul->is_tdd) {
+    n = srslte_print_check(info_str, len, n, ", dai=%d", dci_ul->dai);
+  }
+
+  n = srslte_print_check(info_str, len, n, ", tpc_pusch=%d, dmrs_cs=%d", dci_ul->tpc_pusch, dci_ul->n_dmrs);
+
+  return n;
+}

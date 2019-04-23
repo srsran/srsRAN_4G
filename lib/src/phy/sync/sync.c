@@ -24,12 +24,11 @@
  *
  */
 
-#include <stdlib.h>
-#include <strings.h>
+#include "srslte/srslte.h"
 #include <complex.h>
 #include <math.h>
-#include <srslte/srslte.h>
-#include <srslte/phy/sync/sync.h>
+#include <stdlib.h>
+#include <strings.h>
 
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/common/phy_common.h"
@@ -79,6 +78,7 @@ int srslte_sync_init_decim(srslte_sync_t *q, uint32_t frame_size, uint32_t max_o
     q->cfo_cp_enable   = false;
     q->cfo_i_initiated = false;
     q->pss_filtering_enabled = false;
+    q->detect_frame_type     = true;
 
     q->cfo_cp_nsymbols = 3;
     q->fft_size = fft_size;
@@ -89,12 +89,12 @@ int srslte_sync_init_decim(srslte_sync_t *q, uint32_t frame_size, uint32_t max_o
     srslte_sync_cfo_reset(q);
 
     if (srslte_cfo_init(&q->cfo_corr_frame, q->frame_size)) {
-      fprintf(stderr, "Error initiating CFO\n");
+      ERROR("Error initiating CFO\n");
       goto clean_exit;
     }
 
     if (srslte_cfo_init(&q->cfo_corr_symbol, q->fft_size)) {
-      fprintf(stderr, "Error initiating CFO\n");
+      ERROR("Error initiating CFO\n");
       goto clean_exit;
     }
     
@@ -121,17 +121,25 @@ int srslte_sync_init_decim(srslte_sync_t *q, uint32_t frame_size, uint32_t max_o
       decimate = 1;
     }
 
+    if (srslte_dft_plan(&q->idftp_sss, fft_size, SRSLTE_DFT_BACKWARD, SRSLTE_DFT_COMPLEX)) {
+      ERROR("Error creating DFT plan \n");
+      goto clean_exit;
+    }
+    srslte_dft_plan_set_mirror(&q->idftp_sss, true);
+    srslte_dft_plan_set_dc(&q->idftp_sss, true);
+    srslte_dft_plan_set_norm(&q->idftp_sss, false);
+
     if (srslte_pss_init_fft_offset_decim(&q->pss, max_offset, fft_size, 0, decimate)) {
-      fprintf(stderr, "Error initializing PSS object\n");
+      ERROR("Error initializing PSS object\n");
       goto clean_exit;
     }
     if (srslte_sss_init(&q->sss, fft_size)) {
-      fprintf(stderr, "Error initializing SSS object\n");
+      ERROR("Error initializing SSS object\n");
       goto clean_exit;
     }
 
     if (srslte_cp_synch_init(&q->cp_synch, fft_size)) {
-      fprintf(stderr, "Error initiating CFO\n");
+      ERROR("Error initiating CFO\n");
       goto clean_exit;
     }
 
@@ -139,7 +147,7 @@ int srslte_sync_init_decim(srslte_sync_t *q, uint32_t frame_size, uint32_t max_o
     
     ret = SRSLTE_SUCCESS;
   }  else {
-    fprintf(stderr, "Invalid parameters frame_size: %d, fft_size: %d\n", frame_size, fft_size);
+    ERROR("Invalid parameters frame_size: %d, fft_size: %d\n", frame_size, fft_size);
   }
   
 clean_exit: 
@@ -157,6 +165,8 @@ void srslte_sync_free(srslte_sync_t *q)
     srslte_cfo_free(&q->cfo_corr_frame);
     srslte_cfo_free(&q->cfo_corr_symbol);
     srslte_cp_synch_free(&q->cp_synch);
+
+    srslte_dft_plan_free(&q->idftp_sss);
 
     for (int i = 0; i < 2; i++) {
       if (q->cfo_i_corr[i]) {
@@ -179,7 +189,7 @@ int srslte_sync_resize(srslte_sync_t *q, uint32_t frame_size, uint32_t max_offse
       fft_size_isvalid(fft_size))
   {
     if (frame_size > q->max_frame_size) {
-      fprintf(stderr, "Error in sync_resize(): frame_size must be lower than initialized\n");
+      ERROR("Error in sync_resize(): frame_size must be lower than initialized\n");
       return SRSLTE_ERROR;
     }
 
@@ -188,26 +198,31 @@ int srslte_sync_resize(srslte_sync_t *q, uint32_t frame_size, uint32_t max_offse
     q->max_offset = max_offset;
 
     if (srslte_pss_resize(&q->pss, q->max_offset, q->fft_size, 0)) {
-      fprintf(stderr, "Error resizing PSS object\n");
+      ERROR("Error resizing PSS object\n");
       return SRSLTE_ERROR;
     }
     if (srslte_sss_resize(&q->sss, q->fft_size)) {
-      fprintf(stderr, "Error resizing SSS object\n");
+      ERROR("Error resizing SSS object\n");
+      return SRSLTE_ERROR;
+    }
+
+    if (srslte_dft_replan(&q->idftp_sss, fft_size)) {
+      ERROR("Error resizing DFT plan \n");
       return SRSLTE_ERROR;
     }
 
     if (srslte_cp_synch_resize(&q->cp_synch, q->fft_size)) {
-      fprintf(stderr, "Error resizing CFO\n");
+      ERROR("Error resizing CFO\n");
       return SRSLTE_ERROR;
     }
 
     if (srslte_cfo_resize(&q->cfo_corr_frame, q->frame_size)) {
-      fprintf(stderr, "Error resizing CFO\n");
+      ERROR("Error resizing CFO\n");
       return SRSLTE_ERROR;
     }
 
     if (srslte_cfo_resize(&q->cfo_corr_symbol, q->fft_size)) {
-      fprintf(stderr, "Error resizing CFO\n");
+      ERROR("Error resizing CFO\n");
       return SRSLTE_ERROR;
     }
 
@@ -215,7 +230,7 @@ int srslte_sync_resize(srslte_sync_t *q, uint32_t frame_size, uint32_t max_offse
       for (int i=0;i<2;i++) {
         int offset=(i==0)?-1:1;
         if (srslte_pss_resize(&q->pss_i[i], q->max_offset, q->fft_size, offset)) {
-          fprintf(stderr, "Error initializing PSS object\n");
+          ERROR("Error initializing PSS object\n");
         }
         for (int t=0;t<q->frame_size;t++) {
           q->cfo_i_corr[i][t] = cexpf(-2*_Complex_I*M_PI*offset*(float) t/q->fft_size);
@@ -230,10 +245,16 @@ int srslte_sync_resize(srslte_sync_t *q, uint32_t frame_size, uint32_t max_offse
 
     ret = SRSLTE_SUCCESS;
   }  else {
-    fprintf(stderr, "Invalid parameters frame_size: %d, fft_size: %d\n", frame_size, fft_size);
+    ERROR("Invalid parameters frame_size: %d, fft_size: %d\n", frame_size, fft_size);
   }
 
   return ret;
+}
+
+void srslte_sync_set_frame_type(srslte_sync_t* q, srslte_frame_type_t frame_type)
+{
+  q->frame_type        = frame_type;
+  q->detect_frame_type = false;
 }
 
 void srslte_sync_set_cfo_tol(srslte_sync_t *q, float tol) {
@@ -250,8 +271,14 @@ void srslte_sync_sss_en(srslte_sync_t *q, bool enabled) {
   q->sss_en = enabled;
 }
 
-bool srslte_sync_sss_detected(srslte_sync_t *q) {
-  return srslte_N_id_1_isvalid(q->N_id_1);
+bool srslte_sync_sss_detected(srslte_sync_t* q)
+{
+  return q->sss_detected;
+}
+
+bool srslte_sync_sss_available(srslte_sync_t* q)
+{
+  return q->sss_available;
 }
 
 int srslte_sync_get_cell_id(srslte_sync_t *q) {
@@ -262,12 +289,48 @@ int srslte_sync_get_cell_id(srslte_sync_t *q) {
   }
 }
 
-int srslte_sync_set_N_id_2(srslte_sync_t *q, uint32_t N_id_2) {
+int srslte_sync_set_N_id_2(srslte_sync_t* q, uint32_t N_id_2)
+{
   if (srslte_N_id_2_isvalid(N_id_2)) {
-    q->N_id_2 = N_id_2;    
+    q->N_id_2 = N_id_2;
     return SRSLTE_SUCCESS;
   } else {
-    fprintf(stderr, "Invalid N_id_2=%d\n", N_id_2);
+    ERROR("Invalid N_id_2=%d\n", N_id_2);
+    return SRSLTE_ERROR_INVALID_INPUTS;
+  }
+}
+
+static void generate_freq_sss(srslte_sync_t* q, uint32_t N_id_1)
+{
+  float sf[2][SRSLTE_SSS_LEN];
+  cf_t  symbol[SRSLTE_SYMBOL_SZ_MAX];
+
+  q->N_id_1        = N_id_1;
+  uint32_t cell_id = q->N_id_1 * 3 + q->N_id_2;
+  srslte_sss_generate(sf[0], sf[1], cell_id);
+
+  uint32_t k = q->fft_size / 2 - 31;
+
+  for (int n = 0; n < 2; n++) {
+    bzero(symbol, q->fft_size * sizeof(cf_t));
+    for (uint32_t i = 0; i < SRSLTE_SSS_LEN; i++) {
+      __real__ symbol[k + i] = sf[n][i];
+      __imag__ symbol[k + i] = 0;
+    }
+    // Get freq-domain version of the SSS signal
+    srslte_dft_run_c(&q->idftp_sss, symbol, q->sss_signal[n]);
+  }
+  q->sss_generated = true;
+  INFO("Generated SSS for N_id_1=%d, cell_id=%d\n", N_id_1, cell_id);
+}
+
+int srslte_sync_set_N_id_1(srslte_sync_t* q, uint32_t N_id_1)
+{
+  if (srslte_N_id_1_isvalid(N_id_1)) {
+    generate_freq_sss(q, N_id_1);
+    return SRSLTE_SUCCESS;
+  } else {
+    ERROR("Invalid N_id_2=%d\n", N_id_1);
     return SRSLTE_ERROR_INVALID_INPUTS;
   }
 }
@@ -300,9 +363,9 @@ void srslte_sync_set_cfo_i_enable(srslte_sync_t *q, bool enable) {
   q->cfo_i_enable = enable;
   if (q->cfo_i_enable  && !q->cfo_i_initiated) {
     for (int i=0;i<2;i++) {
-      int offset=(i==0)?-1:1;
+      int offset = (i == 0) ? -1 : 1;
       if (srslte_pss_init_fft_offset(&q->pss_i[i], q->max_offset, q->fft_size, offset)) {
-        fprintf(stderr, "Error initializing PSS object\n");
+        ERROR("Error initializing PSS object\n");
       }
       for (int t=0;t<q->frame_size;t++) {
         q->cfo_i_corr[i][t] = cexpf(-2*_Complex_I*M_PI*offset*(float) t/q->fft_size);
@@ -431,38 +494,72 @@ srslte_cp_t srslte_sync_detect_cp(srslte_sync_t *q, const cf_t *input, uint32_t 
   }
 }
 
-/* Returns 1 if the SSS is found, 0 if not and -1 if there is not enough space 
+/* Returns 1 if the SSS is found, 0 if not and -1 if there is not enough space
  * to correlate
  */
-int sync_sss_symbol(srslte_sync_t *q, const cf_t *input)
+static bool sync_sss_symbol(srslte_sync_t* q, const cf_t* input, uint32_t* sf_idx, uint32_t* N_id_1, float* corr)
 {
   int ret;
 
   srslte_sss_set_N_id_2(&q->sss, q->N_id_2);
 
-  switch(q->sss_alg) {
-    case SSS_DIFF:
-      srslte_sss_m0m1_diff(&q->sss, input, &q->m0, &q->m0_value, &q->m1, &q->m1_value);
-      break;
-    case SSS_PARTIAL_3:
-      srslte_sss_m0m1_partial(&q->sss, input, 3, NULL, &q->m0, &q->m0_value, &q->m1, &q->m1_value);
-      break;
-    case SSS_FULL:
-      srslte_sss_m0m1_partial(&q->sss, input, 1, NULL, &q->m0, &q->m0_value, &q->m1, &q->m1_value);
-      break;
-  }
-
-  q->sf_idx = srslte_sss_subframe(q->m0, q->m1);
-  ret = srslte_sss_N_id_1(&q->sss, q->m0, q->m1);
-  if (ret >= 0) {
-    q->N_id_1 = (uint32_t) ret;
-    DEBUG("SSS detected N_id_1=%d, sf_idx=%d, %s CP\n",
-      q->N_id_1, q->sf_idx, SRSLTE_CP_ISNORM(q->cp)?"Normal":"Extended");
-    return 1;
+  // If N_Id_1 is set and SSS generated, correlate with sf0 and sf5 signals to find sf boundaries
+  if (q->sss_generated) {
+    bool c                 = q->pss.chest_on_filter;
+    q->pss.chest_on_filter = false;
+    srslte_pss_filter(&q->pss, input, q->sss_recv);
+    q->pss.chest_on_filter = c;
+    float res[2];
+    for (int s = 0; s < 2; s++) {
+      res[s] = cabsf(srslte_vec_dot_prod_conj_ccc(q->sss_signal[s], q->sss_recv, q->fft_size));
+    }
+    float ratio;
+    if (res[0] > res[1]) {
+      *sf_idx = 0;
+      ratio   = res[0] / res[1];
+    } else {
+      *sf_idx = 5;
+      ratio   = res[1] / res[0];
+    }
+    *N_id_1 = q->N_id_1;
+    *corr   = ratio;
+    INFO("SSS correlation with N_id_1=%d, sf0=%.2f, sf5=%.2f, sf_idx=%d, ratio=%.1f\n",
+         q->N_id_1,
+         res[0],
+         res[1],
+         *sf_idx,
+         ratio);
+    if (ratio > 1.2) {
+      return true;
+    } else {
+      return false;
+    }
   } else {
-    q->N_id_1 = 1000;
-    return SRSLTE_SUCCESS;
+    switch (q->sss_alg) {
+      case SSS_DIFF:
+        srslte_sss_m0m1_diff(&q->sss, input, &q->m0, &q->m0_value, &q->m1, &q->m1_value);
+        break;
+      case SSS_PARTIAL_3:
+        srslte_sss_m0m1_partial(&q->sss, input, 3, NULL, &q->m0, &q->m0_value, &q->m1, &q->m1_value);
+        break;
+      case SSS_FULL:
+        srslte_sss_m0m1_partial(&q->sss, input, 1, NULL, &q->m0, &q->m0_value, &q->m1, &q->m1_value);
+        break;
+    }
+
+    *corr   = q->m0_value + q->m1_value;
+    *sf_idx = srslte_sss_subframe(q->m0, q->m1);
+    ret     = srslte_sss_N_id_1(&q->sss, q->m0, q->m1);
+    if (ret >= 0) {
+      *N_id_1 = (uint32_t)ret;
+      INFO("SSS detected N_id_1=%d, sf_idx=%d, %s CP\n",
+           *N_id_1,
+           *sf_idx,
+           SRSLTE_CP_ISNORM(q->cp) ? "Normal" : "Extended");
+      return true;
+    }
   }
+  return false;
 }
 
 srslte_pss_t* srslte_sync_get_cur_pss_obj(srslte_sync_t *q)
@@ -531,10 +628,12 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, const cf_t *input, uin
       fft_size_isvalid(q->fft_size))
   {
 
+    q->sss_detected = false;
+
     if (peak_position) {
-      *peak_position = 0; 
+      *peak_position = 0;
     }
-    
+
     const cf_t *input_ptr = input;
 
     /* First CFO estimation stage is integer.
@@ -543,7 +642,7 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, const cf_t *input, uin
      */
     if (q->cfo_i_enable) {
       if (cfo_i_estimate(q, input_ptr, find_offset, &peak_pos, &q->cfo_i_value) < 0) {
-        fprintf(stderr, "Error calling finding PSS sequence at : %d  \n", peak_pos);
+        ERROR("Error calling finding PSS sequence at : %d  \n", peak_pos);
         return SRSLTE_ERROR;
       }
       // Correct it using precomputed signal and store in buffer (don't modify input signal)
@@ -581,7 +680,7 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, const cf_t *input, uin
       srslte_pss_set_N_id_2(&q->pss, q->N_id_2);
       peak_pos = srslte_pss_find_pss(&q->pss, &input_ptr[find_offset], q->threshold>0?&q->peak_value:NULL);
       if (peak_pos < 0) {
-        fprintf(stderr, "Error calling finding PSS sequence at : %d  \n", peak_pos);
+        ERROR("Error calling finding PSS sequence at : %d  \n", peak_pos);
         return SRSLTE_ERROR;
       }
     }
@@ -620,8 +719,9 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, const cf_t *input, uin
         }
 
         INFO("PSS-CFO: filter=%s, estimated=%f, mean=%f\n",
-             q->pss_filtering_enabled?"yes":"no", q->cfo_pss, q->cfo_pss_mean);
-
+             q->pss_filtering_enabled ? "yes" : "no",
+             q->cfo_pss,
+             q->cfo_pss_mean);
       }
 
       // If there is enough space for CP and SSS estimation
@@ -630,36 +730,80 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, const cf_t *input, uin
         // If SSS search is enabled, correlate SSS sequence
         if (q->sss_en) {
 
-          // Set an invalid N_id_1 indicating SSS is yet to be detected
-          q->N_id_1 = 1000;
+          int                 sss_idx;
+          uint32_t            nof_frame_type_trials;
+          srslte_frame_type_t frame_type_trials[2];
+          float               sss_corr[2];
+          uint32_t            sf_idx[2], N_id_1[2];
 
-          int sss_idx = find_offset + peak_pos - 2 * q->fft_size -
-                        SRSLTE_CP_LEN(q->fft_size, (SRSLTE_CP_ISNORM(q->cp) ? SRSLTE_CP_NORM_LEN : SRSLTE_CP_EXT_LEN));
-
-          const cf_t *sss_ptr = &input_ptr[sss_idx];
-
-          // Correct CFO if detected in PSS
-          if (q->cfo_pss_enable) {
-            srslte_cfo_correct(&q->cfo_corr_symbol, sss_ptr, q->sss_filt, -q->cfo_pss_mean / q->fft_size);
-            // Equalize channel if estimated in PSS
-            if (q->sss_channel_equalize && q->pss.chest_on_filter && q->pss_filtering_enabled) {
-              srslte_vec_prod_ccc(&q->sss_filt[q->fft_size/2-SRSLTE_PSS_LEN/2], q->pss.tmp_ce,
-                                  &q->sss_filt[q->fft_size/2-SRSLTE_PSS_LEN/2], SRSLTE_PSS_LEN);
-            }
-            sss_ptr = q->sss_filt;
+          if (q->detect_frame_type) {
+            nof_frame_type_trials = 2;
+            frame_type_trials[0]  = SRSLTE_FDD;
+            frame_type_trials[1]  = SRSLTE_TDD;
+          } else {
+            frame_type_trials[0]  = q->frame_type;
+            nof_frame_type_trials = 1;
           }
 
-          if (sync_sss_symbol(q, sss_ptr) < 0) {
-            fprintf(stderr, "Error correlating SSS\n");
-            return -1;
+          q->sss_available = true;
+          for (uint32_t f = 0; f < nof_frame_type_trials; f++) {
+            if (frame_type_trials[f] == SRSLTE_FDD) {
+              sss_idx = (int)find_offset + peak_pos - 2 * SRSLTE_SYMBOL_SZ(q->fft_size, q->cp) +
+                        SRSLTE_CP_SZ(q->fft_size, q->cp);
+            } else {
+              sss_idx = (int)find_offset + peak_pos - 4 * SRSLTE_SYMBOL_SZ(q->fft_size, q->cp) +
+                        SRSLTE_CP_SZ(q->fft_size, q->cp);
+              ;
+            }
+
+            if (sss_idx >= 0) {
+              const cf_t* sss_ptr = &input_ptr[sss_idx];
+
+              // Correct CFO if detected in PSS
+              if (q->cfo_pss_enable) {
+                srslte_cfo_correct(&q->cfo_corr_symbol, sss_ptr, q->sss_filt, -q->cfo_pss_mean / q->fft_size);
+                // Equalize channel if estimated in PSS
+                if (q->sss_channel_equalize && q->pss.chest_on_filter && q->pss_filtering_enabled) {
+                  srslte_vec_prod_ccc(&q->sss_filt[q->fft_size / 2 - SRSLTE_PSS_LEN / 2],
+                                      q->pss.tmp_ce,
+                                      &q->sss_filt[q->fft_size / 2 - SRSLTE_PSS_LEN / 2],
+                                      SRSLTE_PSS_LEN);
+                }
+                sss_ptr = q->sss_filt;
+              }
+              q->sss_detected = sync_sss_symbol(q, sss_ptr, &sf_idx[f], &N_id_1[f], &sss_corr[f]);
+            } else {
+              q->sss_available = false;
+            }
+          }
+
+          if (q->detect_frame_type) {
+            if (sss_corr[0] > sss_corr[1]) {
+              q->frame_type = SRSLTE_FDD;
+              q->sf_idx     = sf_idx[0];
+              q->N_id_1     = N_id_1[0];
+            } else {
+              q->frame_type = SRSLTE_TDD;
+              q->sf_idx     = sf_idx[1] + 1;
+              q->N_id_1     = N_id_1[1];
+            }
+            DEBUG("SYNC: Detected SSS %s, corr=%.2f/%.2f\n",
+                  q->frame_type == SRSLTE_FDD ? "FDD" : "TDD",
+                  sss_corr[0],
+                  sss_corr[1]);
+          } else if (q->sss_detected) {
+            if (q->frame_type == SRSLTE_FDD) {
+              q->sf_idx = sf_idx[0];
+            } else {
+              q->sf_idx = sf_idx[0] + 1;
+            }
+            q->N_id_1 = N_id_1[0];
           }
         }
 
         // Detect CP length
         if (q->detect_cp) {
           srslte_sync_set_cp(q, srslte_sync_detect_cp(q, input_ptr, peak_pos + find_offset));
-        } else {
-          DEBUG("Not enough room to detect CP length. Peak position: %d\n", peak_pos);
         }
 
         ret = SRSLTE_SYNC_FOUND;
@@ -669,13 +813,19 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, const cf_t *input, uin
     } else {
       ret = SRSLTE_SYNC_NOFOUND;
     }
-    
-    DEBUG("SYNC ret=%d N_id_2=%d find_offset=%d frame_len=%d, pos=%d peak=%.2f threshold=%.2f sf_idx=%d, CFO=%.3f kHz\n",
-         ret, q->N_id_2, find_offset, q->frame_size, peak_pos, q->peak_value, 
-         q->threshold, q->sf_idx, 15*(srslte_sync_get_cfo(q)));
+
+    DEBUG("SYNC ret=%d N_id_2=%d find_offset=%d frame_len=%d, pos=%d peak=%.2f threshold=%.2f CFO=%.3f kHz\n",
+          ret,
+          q->N_id_2,
+          find_offset,
+          q->frame_size,
+          peak_pos,
+          q->peak_value,
+          q->threshold,
+          15 * (srslte_sync_get_cfo(q)));
 
   } else if (srslte_N_id_2_isvalid(q->N_id_2)) {
-    fprintf(stderr, "Must call srslte_sync_set_N_id_2() first!\n");
+    ERROR("Must call srslte_sync_set_N_id_2() first!\n");
   }
   
   return ret; 

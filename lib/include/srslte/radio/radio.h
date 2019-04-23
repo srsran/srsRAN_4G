@@ -26,12 +26,25 @@
 
 #include <string.h>
 
-#include "srslte/srslte.h"
-#include "srslte/phy/rf/rf.h"
+#include "srslte/common/log_filter.h"
 #include "srslte/common/trace.h"
+#include "srslte/phy/rf/rf.h"
+#include "srslte/radio/radio_sync.h"
+#include "srslte/srslte.h"
 
 #ifndef SRSLTE_RADIO_H
 #define SRSLTE_RADIO_H
+
+typedef struct {
+  float tx_corr_dc_gain;
+  float tx_corr_dc_phase;
+  float tx_corr_iq_i;
+  float tx_corr_iq_q;
+  float rx_corr_dc_gain;
+  float rx_corr_dc_phase;
+  float rx_corr_iq_i;
+  float rx_corr_iq_q;
+} rf_cal_t;
 
 namespace srslte {
 
@@ -45,6 +58,9 @@ class radio {
      bzero(&end_of_burst_time, sizeof(srslte_timestamp_t));
      zeros = (cf_t*)srslte_vec_malloc(burst_preamble_max_samples * sizeof(cf_t));
      bzero(zeros, burst_preamble_max_samples * sizeof(cf_t));
+
+     sync  = NULL;
+     log_h = NULL;
 
      burst_preamble_sec          = 0;
      is_start_of_burst           = false;
@@ -70,13 +86,18 @@ class radio {
   {
     if (zeros) {
       free(zeros);
+      zeros = NULL;
     }
   }
 
-  bool init(char *args = NULL, char *devname = NULL, uint32_t nof_channels = 1);
+  bool init(log_filter* _log_h,
+            char*       args         = NULL,
+            char*       devname      = NULL,
+            uint32_t    nof_channels = 1,
+            bool        enable_synch = false);
   void stop();
   void reset();
-  bool start_agc(bool tx_gain_same_rx);
+  bool start_agc(bool tx_gain_same_rx = false);
 
   void set_burst_preamble(double preamble_us);
   void set_tx_adv(int nsamples);
@@ -86,11 +107,13 @@ class radio {
   void set_continuous_tx(bool enable);
 
   void get_time(srslte_timestamp_t *now);
-  bool tx_single(void *buffer, uint32_t nof_samples, srslte_timestamp_t tx_time);
-  bool tx(void *buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t tx_time);
+  int  synch_wait();
+  void synch_issue();
+  bool tx_single(cf_t* buffer, uint32_t nof_samples, srslte_timestamp_t tx_time);
+  bool tx(cf_t* buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t tx_time);
   void tx_end();
-  bool rx_now(void *buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t *rxd_time);
-  bool rx_at(void *buffer, uint32_t nof_samples, srslte_timestamp_t rx_time);
+  bool rx_now(cf_t* buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t* rxd_time);
+  bool rx_at(cf_t* buffer, uint32_t nof_samples, srslte_timestamp_t rx_time);
 
   void set_tx_gain(float gain);
   void set_rx_gain(float gain);
@@ -98,8 +121,8 @@ class radio {
   double set_rx_gain_th(float gain);
 
   void set_freq_offset(double freq);
-  void set_tx_freq(double freq);
-  void set_rx_freq(double freq);
+  void set_tx_freq(uint32_t chan, double freq);
+  void set_rx_freq(uint32_t chan, double freq);
 
   double get_freq_offset();
   double get_tx_freq();
@@ -118,9 +141,6 @@ class radio {
   float get_rssi();
   bool has_rssi();
 
-  void start_trace();
-  void write_trace(std::string filename);
-
   void set_tti(uint32_t tti);
 
   bool is_first_of_burst();
@@ -131,9 +151,9 @@ class radio {
 
  protected:
 
-  void save_trace(uint32_t is_eob, srslte_timestamp_t *usrp_time);
-
   srslte_rf_t rf_device;
+  radio_sync* sync;
+  log_filter* log_h;
 
   const static uint32_t burst_preamble_max_samples = 13824;
   double burst_preamble_sec;// Start of burst preamble time (off->on RF transition time)

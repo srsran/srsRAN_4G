@@ -24,10 +24,6 @@
  *
  */
 
-//#include <srsenb/hdr/upper/rrc.h>
-//#include <srsenb/hdr/enb.h>
-//#include <srsenb/hdr/upper/s1ap.h>
-//#include <srsenb/hdr/phy/phy.h>
 #include "srsenb/hdr/cfg_parser.h"
 #include "srslte/srslte.h"
 
@@ -54,7 +50,7 @@ int enb::parse_cell_cfg(all_args_t* args, srslte_cell_t* cell)
   parser::parse_section(args->enb_files.rr_config, &phy_cnfg);
 
   cell->phich_length    = (srslte_phich_length_t)(int)phichcfg.phich_dur;
-  cell->phich_resources = (srslte_phich_resources_t)(int)phichcfg.phich_res;
+  cell->phich_resources = (srslte_phich_r_t)(int)phichcfg.phich_res;
 
   if (!srslte_cell_isvalid(cell)) {
     fprintf(stderr, "Invalid cell parameters: nof_prb=%d, cell_id=%d\n", args->enb.n_prb, args->enb.s1ap.cell_id);
@@ -753,20 +749,31 @@ int enb::parse_rr(all_args_t* args, rrc_cfg_t* rrc_cfg)
   rrc_cfg->antenna_info.tx_mode = (ant_info_ded_s::tx_mode_e_::options)(args->enb.transmission_mode - 1);
 
   rrc_cfg->antenna_info.ue_tx_ant_sel.set(ant_info_ded_s::ue_tx_ant_sel_c_::types::setup);
-  if (rrc_cfg->antenna_info.tx_mode == ant_info_ded_s::tx_mode_e_::tm3) {
-    rrc_cfg->antenna_info.ue_tx_ant_sel.setup().value = ant_info_ded_s::ue_tx_ant_sel_c_::setup_e_::open_loop;
+  switch (rrc_cfg->antenna_info.tx_mode) {
+    case ant_info_ded_s::tx_mode_e_::tm1:
+    case ant_info_ded_s::tx_mode_e_::tm2:
+      rrc_cfg->antenna_info.ue_tx_ant_sel.set(setup_e::release);
+      rrc_cfg->antenna_info.codebook_subset_restrict_present = false;
+      break;
+    case ant_info_ded_s::tx_mode_e_::tm3:
+      rrc_cfg->antenna_info.ue_tx_ant_sel.setup().value = ant_info_ded_s::ue_tx_ant_sel_c_::setup_e_::open_loop;
 
-    rrc_cfg->antenna_info.codebook_subset_restrict_present = true;
-    rrc_cfg->antenna_info.codebook_subset_restrict.set(
-        ant_info_ded_s::codebook_subset_restrict_c_::types::n2_tx_ant_tm3);
-    rrc_cfg->antenna_info.codebook_subset_restrict.n2_tx_ant_tm3().from_number(0b11);
-  } else if (rrc_cfg->antenna_info.tx_mode == ant_info_ded_s::tx_mode_e_::tm4) {
-    rrc_cfg->antenna_info.ue_tx_ant_sel.setup().value = ant_info_ded_s::ue_tx_ant_sel_c_::setup_e_::closed_loop;
+      rrc_cfg->antenna_info.codebook_subset_restrict_present = true;
+      rrc_cfg->antenna_info.codebook_subset_restrict.set(
+          ant_info_ded_s::codebook_subset_restrict_c_::types::n2_tx_ant_tm3);
+      rrc_cfg->antenna_info.codebook_subset_restrict.n2_tx_ant_tm3().from_number(0b11);
+      break;
+    case ant_info_ded_s::tx_mode_e_::tm4:
+      rrc_cfg->antenna_info.ue_tx_ant_sel.setup().value = ant_info_ded_s::ue_tx_ant_sel_c_::setup_e_::closed_loop;
 
-    rrc_cfg->antenna_info.codebook_subset_restrict_present = true;
-    rrc_cfg->antenna_info.codebook_subset_restrict.set(
-        ant_info_ded_s::codebook_subset_restrict_c_::types::n2_tx_ant_tm4);
-    rrc_cfg->antenna_info.codebook_subset_restrict.n2_tx_ant_tm4().from_number(0b111111);
+      rrc_cfg->antenna_info.codebook_subset_restrict_present = true;
+      rrc_cfg->antenna_info.codebook_subset_restrict.set(
+          ant_info_ded_s::codebook_subset_restrict_c_::types::n2_tx_ant_tm4);
+      rrc_cfg->antenna_info.codebook_subset_restrict.n2_tx_ant_tm4().from_number(0b111111);
+      break;
+    default:
+      ERROR("Unsupported transmission mode %d\n", rrc_cfg->antenna_info.tx_mode.to_number());
+      return SRSLTE_ERROR;
   }
 
   /* Parse power allocation */
@@ -930,7 +937,7 @@ int field_qci::parse(libconfig::Setting& root)
 
       field_asn1_enum_number<sn_field_len_e> sn_field_len("sn_field_length", &um_rlc->sn_field_len);
       if (sn_field_len.parse(q["rlc_config"]["ul_um"])) {
-        fprintf(stderr, "Error can't find sn_field_length in section ul_um\n");
+        ERROR("Error can't find sn_field_length in section ul_um\n");
       }
     }
 
@@ -945,12 +952,12 @@ int field_qci::parse(libconfig::Setting& root)
 
       field_asn1_enum_number<sn_field_len_e> sn_field_len("sn_field_length", &um_rlc->sn_field_len);
       if (sn_field_len.parse(q["rlc_config"]["dl_um"])) {
-        fprintf(stderr, "Error can't find sn_field_length in section dl_um\n");
+        ERROR("Error can't find sn_field_length in section dl_um\n");
       }
 
       field_asn1_enum_number<t_reordering_e> t_reordering("t_reordering", &um_rlc->t_reordering);
       if (t_reordering.parse(q["rlc_config"]["dl_um"])) {
-        fprintf(stderr, "Error can't find t_reordering in section dl_um\n");
+        ERROR("Error can't find t_reordering in section dl_um\n");
       }
     }
 
@@ -960,23 +967,23 @@ int field_qci::parse(libconfig::Setting& root)
 
       field_asn1_enum_number<t_poll_retx_e> t_poll_retx("t_poll_retx", &am_rlc->t_poll_retx);
       if (t_poll_retx.parse(q["rlc_config"]["ul_am"])) {
-        fprintf(stderr, "Error can't find t_poll_retx in section ul_am\n");
+        ERROR("Error can't find t_poll_retx in section ul_am\n");
       }
 
       field_asn1_enum_number<poll_pdu_e> poll_pdu("poll_pdu", &am_rlc->poll_pdu);
       if (poll_pdu.parse(q["rlc_config"]["ul_am"])) {
-        fprintf(stderr, "Error can't find poll_pdu in section ul_am\n");
+        ERROR("Error can't find poll_pdu in section ul_am\n");
       }
 
       field_asn1_enum_number<poll_byte_e> poll_byte("poll_byte", &am_rlc->poll_byte);
       if (poll_byte.parse(q["rlc_config"]["ul_am"])) {
-        fprintf(stderr, "Error can't find poll_byte in section ul_am\n");
+        ERROR("Error can't find poll_byte in section ul_am\n");
       }
 
       field_asn1_enum_number<ul_am_rlc_s::max_retx_thres_e_> max_retx_thresh("max_retx_thresh",
                                                                              &am_rlc->max_retx_thres);
       if (max_retx_thresh.parse(q["rlc_config"]["ul_am"])) {
-        fprintf(stderr, "Error can't find max_retx_thresh in section ul_am\n");
+        ERROR("Error can't find max_retx_thresh in section ul_am\n");
       }
     }
 
@@ -985,12 +992,12 @@ int field_qci::parse(libconfig::Setting& root)
 
       field_asn1_enum_number<t_reordering_e> t_reordering("t_reordering", &am_rlc->t_reordering);
       if (t_reordering.parse(q["rlc_config"]["dl_am"])) {
-        fprintf(stderr, "Error can't find t_reordering in section dl_am\n");
+        ERROR("Error can't find t_reordering in section dl_am\n");
       }
 
       field_asn1_enum_number<t_status_prohibit_e> t_status_prohibit("t_status_prohibit", &am_rlc->t_status_prohibit);
       if (t_status_prohibit.parse(q["rlc_config"]["dl_am"])) {
-        fprintf(stderr, "Error can't find t_status_prohibit in section dl_am\n");
+        ERROR("Error can't find t_status_prohibit in section dl_am\n");
       }
     }
 
@@ -1004,7 +1011,7 @@ int field_qci::parse(libconfig::Setting& root)
 
     parser::field<uint8> priority("priority", &lc_cfg->prio);
     if (priority.parse(q["logical_channel_config"])) {
-      fprintf(stderr, "Error can't find logical_channel_config in section priority\n");
+      ERROR("Error can't find logical_channel_config in section priority\n");
     }
 
     field_asn1_enum_number<lc_ch_cfg_s::ul_specific_params_s_::prioritised_bit_rate_e_> prioritised_bit_rate(
@@ -1016,7 +1023,7 @@ int field_qci::parse(libconfig::Setting& root)
     field_asn1_enum_number<lc_ch_cfg_s::ul_specific_params_s_::bucket_size_dur_e_> bucket_size_duration(
         "bucket_size_duration", &lc_cfg->bucket_size_dur);
     if (bucket_size_duration.parse(q["logical_channel_config"])) {
-      fprintf(stderr, "Error can't find bucket_size_duration in section logical_channel_config\n");
+      ERROR("Error can't find bucket_size_duration in section logical_channel_config\n");
     }
 
     parser::field<uint8> log_chan_group("log_chan_group", &lc_cfg->lc_ch_group);

@@ -43,13 +43,9 @@ namespace srsenb {
  * 1 mutex is created for every user and only access to same user variables are mutexed
  */
 class sched_ue {
-  
-public: 
-  
-  // used by sched_metric
-  dl_harq_proc* dl_next_alloc;
-  ul_harq_proc* ul_next_alloc;
 
+public:
+  // used by sched_metric to store the pdsch/pusch allocations
   bool has_pucch;
   
   typedef struct {
@@ -92,14 +88,19 @@ public:
   void tpc_inc(); 
   void tpc_dec();
 
-  void set_max_mcs(int mcs_ul, int mcs_dl); 
-  void set_fixed_mcs(int mcs_ul, int mcs_dl); 
-  
-  
-  
-/*******************************************************
- * Functions used by scheduler metric objects
- *******************************************************/
+  void set_max_mcs(int mcs_ul, int mcs_dl);
+  void set_fixed_mcs(int mcs_ul, int mcs_dl);
+
+  void                set_dl_alloc(dl_harq_proc* alloc);
+  dl_harq_proc*       get_dl_alloc();
+  void                set_ul_alloc(ul_harq_proc* alloc);
+  ul_harq_proc*       get_ul_alloc();
+  dl_harq_proc*       find_dl_harq(uint32_t tti);
+  const dl_harq_proc* get_dl_harq(uint32_t idx) const;
+
+  /*******************************************************
+   * Functions used by scheduler metric objects
+   *******************************************************/
 
   uint32_t   get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_symbols);
   uint32_t   get_required_prb_ul(uint32_t req_bytes);
@@ -114,12 +115,12 @@ public:
 
   void          reset_timeout_dl_harq(uint32_t tti);
   dl_harq_proc *get_pending_dl_harq(uint32_t tti);
-  dl_harq_proc *get_empty_dl_harq();   
-  ul_harq_proc *get_ul_harq(uint32_t tti);   
+  dl_harq_proc* get_empty_dl_harq();
+  ul_harq_proc* get_ul_harq(uint32_t tti);
 
-/*******************************************************
- * Functions used by the scheduler object
- *******************************************************/
+  /*******************************************************
+   * Functions used by the scheduler object
+   *******************************************************/
 
   void       set_sr();
   void       unset_sr();
@@ -152,8 +153,8 @@ private:
   int        alloc_pdu(int tbs, sched_interface::dl_sched_pdu_t* pdu);
 
   static uint32_t format1_count_prb(uint32_t bitmask, uint32_t cell_nof_prb);
-  static int cqi_to_tbs(uint32_t cqi, uint32_t nof_prb, uint32_t nof_re, uint32_t max_mcs, uint32_t max_Qm, bool is_ul,
-                        uint32_t* mcs);
+  static int      cqi_to_tbs(
+           uint32_t cqi, uint32_t nof_prb, uint32_t nof_re, uint32_t max_mcs, uint32_t max_Qm, bool is_ul, uint32_t* mcs);
   int alloc_tbs_dl(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int *mcs);
   int alloc_tbs_ul(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int *mcs);
   int alloc_tbs(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, bool is_ul, int *mcs);
@@ -164,6 +165,7 @@ private:
   uint32_t   get_pending_dl_new_data_unlocked(uint32_t tti);
   uint32_t   get_pending_ul_old_data_unlocked();
   uint32_t   get_pending_ul_new_data_unlocked(uint32_t tti);
+  uint32_t   get_pending_dl_new_data_total_unlocked(uint32_t tti);
 
   bool       needs_cqi_unlocked(uint32_t tti, bool will_send = false);
 
@@ -203,17 +205,19 @@ private:
   int next_tpc_pusch;
   int next_tpc_pucch; 
 
-  // Allowed DCI locations per CFI and per subframe    
-  sched_dci_cce_t dci_locations[3][10];   
+  // Allowed DCI locations per CFI and per subframe
+  sched_dci_cce_t dci_locations[3][10];
 
-  const static int SCHED_MAX_HARQ_PROC = 2*HARQ_DELAY_MS;
+  const static int SCHED_MAX_HARQ_PROC = SRSLTE_FDD_NOF_HARQ;
   dl_harq_proc dl_harq[SCHED_MAX_HARQ_PROC]; 
   ul_harq_proc ul_harq[SCHED_MAX_HARQ_PROC]; 
   
   bool phy_config_dedicated_enabled;
   asn1::rrc::phys_cfg_ded_s::ant_info_c_ dl_ant_info;
-}; 
-  
+
+  dl_harq_proc* next_dl_harq_proc;
+  ul_harq_proc* next_ul_harq_proc;
+};
 }
  
 

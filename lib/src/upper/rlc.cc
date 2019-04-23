@@ -445,23 +445,18 @@ void rlc::add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg)
         goto unlock_and_exit;
     }
 
-    if (rlc_entity) {
-      // configure and add to array
-      rlc_entity->init(rlc_log, lcid, pdcp, rrc, mac_timers);
+    // configure and add to array
+    rlc_entity->init(rlc_log, lcid, pdcp, rrc, mac_timers);
 
-      if (cnfg.rlc_mode != RLC_MODE_TM) {
-        if (rlc_entity->configure(cnfg) == false) {
-          rlc_log->error("Error configuring RLC entity\n.");
-          goto delete_and_exit;
-        }
-      }
-
-      if (not rlc_array.insert(rlc_map_pair_t(lcid, rlc_entity)).second) {
-        rlc_log->error("Error inserting RLC entity in to array\n.");
+    if (cnfg.rlc_mode != RLC_MODE_TM) {
+      if (rlc_entity->configure(cnfg) == false) {
+        rlc_log->error("Error configuring RLC entity\n.");
         goto delete_and_exit;
       }
-    } else {
-      rlc_log->error("Error instantiating RLC\n");
+    }
+
+    if (not rlc_array.insert(rlc_map_pair_t(lcid, rlc_entity)).second) {
+      rlc_log->error("Error inserting RLC entity in to array\n.");
       goto delete_and_exit;
     }
     rlc_log->warning("Added radio bearer %s in %s\n", rrc->get_rb_name(lcid).c_str(), rlc_mode_text[cnfg.rlc_mode]);
@@ -487,19 +482,14 @@ void rlc::add_bearer_mrb(uint32_t lcid)
 
   if (not valid_lcid_mrb(lcid)) {
     rlc_entity = new rlc_um();
-    if (rlc_entity != NULL) {
-      // configure and add to array
-      rlc_entity->init(rlc_log, lcid, pdcp, rrc, mac_timers);
-      if (not rlc_entity->configure(srslte_rlc_config_t::mch_config())) {
-        rlc_log->error("Error configuring RLC entity\n.");
-        goto delete_and_exit;
-      }
-      if (not rlc_array_mrb.insert(rlc_map_pair_t(lcid, rlc_entity)).second) {
-        rlc_log->error("Error inserting RLC entity in to array\n.");
-        goto delete_and_exit;
-      }
-    } else {
-      rlc_log->error("Error instantiating RLC\n");
+    // configure and add to array
+    rlc_entity->init(rlc_log, lcid, pdcp, rrc, mac_timers);
+    if (not rlc_entity->configure(srslte_rlc_config_t::mch_config())) {
+      rlc_log->error("Error configuring RLC entity\n.");
+      goto delete_and_exit;
+    }
+    if (not rlc_array_mrb.insert(rlc_map_pair_t(lcid, rlc_entity)).second) {
+      rlc_log->error("Error inserting RLC entity in to array\n.");
       goto delete_and_exit;
     }
     rlc_log->warning("Added radio bearer %s with mode RLC_UM\n", rrc->get_rb_name(lcid).c_str());

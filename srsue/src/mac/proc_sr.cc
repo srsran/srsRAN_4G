@@ -35,17 +35,15 @@
 namespace srsue {
 
 sr_proc::sr_proc() {
-  initiated = false; 
+  initiated = false;
 }
-  
-void sr_proc::init(phy_interface_mac* phy_h_, rrc_interface_mac *rrc_, srslte::log* log_h_, mac_interface_rrc::mac_cfg_t *mac_cfg_)
+
+void sr_proc::init(phy_interface_mac* phy_h_, rrc_interface_mac* rrc_, srslte::log* log_h_)
 {
   log_h     = log_h_;
   rrc       = rrc_; 
-  mac_cfg   = mac_cfg_; 
   phy_h     = phy_h_;
   initiated    = true;
-  dsr_transmax = 0;
   sr_counter   = 0;
   do_ra = false; 
 }
@@ -73,12 +71,17 @@ bool sr_proc::need_tx(uint32_t tti)
   return false; 
 }
 
+void sr_proc::set_config(srsue::mac_interface_rrc::sr_cfg_t& cfg)
+{
+  sr_cfg = cfg;
+}
+
 void sr_proc::step(uint32_t tti)
 {
   if (initiated) {
     if (is_pending_sr) {
-      if (mac_cfg->sr.type() == asn1::rrc::setup_e::setup) {
-        if (sr_counter < dsr_transmax) {
+      if (sr_cfg.enabled) {
+        if (sr_counter < sr_cfg.dsr_transmax) {
           if (sr_counter == 0 || need_tx(tti)) {
             sr_counter++;
             Info("SR:    Signalling PHY sr_counter=%d\n", sr_counter);
@@ -86,8 +89,9 @@ void sr_proc::step(uint32_t tti)
           }
         } else {
           if (need_tx(tti)) {
-            Info("SR:    Releasing PUCCH/SRS resources, sr_counter=%d, dsr_transmax=%d\n", 
-                 sr_counter, dsr_transmax);
+            Info("SR:    Releasing PUCCH/SRS resources, sr_counter=%d, dsr_transmax=%d\n",
+                 sr_counter,
+                 sr_cfg.dsr_transmax);
             log_h->console("Scheduling request failed: releasing RRC connection...\n");
             rrc->release_pucch_srs();
             do_ra = true; 
@@ -120,11 +124,10 @@ void sr_proc::start()
   if (initiated) {
     if (!is_pending_sr) {
       sr_counter = 0;
-      is_pending_sr = true; 
+      is_pending_sr = true;
     }
-    if (mac_cfg->sr.type() == asn1::rrc::setup_e::setup) {
-      dsr_transmax = mac_cfg->sr.setup().dsr_trans_max.to_number();
-      Info("SR:    Starting Procedure. dsrTransMax=%d\n", dsr_transmax);
+    if (sr_cfg.enabled) {
+      Info("SR:    Starting Procedure. dsrTransMax=%d\n", sr_cfg.dsr_transmax);
     }
   }
 }

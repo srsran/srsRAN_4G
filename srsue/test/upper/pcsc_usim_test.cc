@@ -24,11 +24,11 @@
  *
  */
 
+#include <assert.h>
 #include <iostream>
+
 #include "srsue/hdr/upper/pcsc_usim.h"
 #include "srslte/common/log_filter.h"
-#include <assert.h>
-#include <srsue/hdr/upper/usim_base.h>
 
 using namespace srsue;
 using namespace std;

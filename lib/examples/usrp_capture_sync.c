@@ -105,11 +105,11 @@ void parse_args(int argc, char **argv) {
 
 int srslte_rf_recv_wrapper(void *h, cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *t) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
-  return srslte_rf_recv_with_time_multi(h, (void**) data, nsamples, true, NULL, NULL);
+  return srslte_rf_recv_with_time_multi(h, (void**)data[0], nsamples, true, NULL, NULL);
 }
 
 int main(int argc, char **argv) {
-  cf_t *buffer[SRSLTE_MAX_PORTS] = {NULL, NULL}; 
+  cf_t*             buffer[SRSLTE_MAX_PORTS] = {NULL};
   int n;
   srslte_rf_t rf;
   srslte_filesink_t sink;
@@ -124,12 +124,12 @@ int main(int argc, char **argv) {
 
   printf("Opening RF device...\n");
   if (srslte_rf_open_multi(&rf, rf_args, nof_rx_antennas)) {
-    fprintf(stderr, "Error opening rf\n");
+    ERROR("Error opening rf\n");
     exit(-1);
   }
-  srslte_rf_set_master_clock_rate(&rf, 30.72e6);        
+  srslte_rf_set_master_clock_rate(&rf, 30.72e6);
 
-  for (int i = 0; i< SRSLTE_MAX_PORTS; i++) {
+  for (int i = 0; i < nof_rx_antennas; i++) {
     buffer[i] = srslte_vec_malloc(3 * sizeof(cf_t) * SRSLTE_SF_LEN_PRB(100));
   }
   
@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
   sigaddset(&sigset, SIGINT);
   sigprocmask(SIG_UNBLOCK, &sigset, NULL);
 
-  printf("Set RX freq: %.6f MHz\n", srslte_rf_set_rx_freq(&rf, rf_freq) / 1000000);
+  printf("Set RX freq: %.6f MHz\n", srslte_rf_set_rx_freq(&rf, nof_rx_antennas, rf_freq) / 1000000);
   printf("Set RX gain: %.1f dB\n", srslte_rf_set_rx_gain(&rf, rf_gain));
     int srate = srslte_sampling_freq_hz(nof_prb);    
     if (srate != -1) {  
@@ -150,11 +150,11 @@ int main(int argc, char **argv) {
       printf("Setting sampling rate %.2f MHz\n", (float) srate/1000000);
       float srate_rf = srslte_rf_set_rx_srate(&rf, (double) srate);
       if (srate_rf != srate) {
-        fprintf(stderr, "Could not set sampling rate\n");
+        ERROR("Could not set sampling rate\n");
         exit(-1);
       }
     } else {
-      fprintf(stderr, "Invalid number of PRB %d\n", nof_prb);
+      ERROR("Invalid number of PRB %d\n", nof_prb);
       exit(-1);
     }
   srslte_rf_rx_wait_lo_locked(&rf);
@@ -170,7 +170,7 @@ int main(int argc, char **argv) {
     exit(-1); 
   }
   if (srslte_ue_sync_set_cell(&ue_sync, cell)) {
-    fprintf(stderr, "Error initiating ue_sync\n");
+    ERROR("Error initiating ue_sync\n");
     exit(-1);
   }
 
@@ -180,9 +180,9 @@ int main(int argc, char **argv) {
   while((subframe_count < nof_subframes || nof_subframes == -1)
         && !stop_capture)
   {
-    n = srslte_ue_sync_zerocopy_multi(&ue_sync, buffer);
+    n = srslte_ue_sync_zerocopy(&ue_sync, buffer);
     if (n < 0) {
-      fprintf(stderr, "Error receiving samples\n");
+      ERROR("Error receiving samples\n");
       exit(-1);
     }
     if (n == 1) {
@@ -207,7 +207,7 @@ int main(int argc, char **argv) {
   srslte_rf_close(&rf);
   srslte_ue_sync_free(&ue_sync);
 
-  for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
+  for (int i = 0; i < nof_rx_antennas; i++) {
     if (buffer[i]) {
       free(buffer[i]);
     }

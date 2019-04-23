@@ -62,8 +62,8 @@ bool ue::init(all_args_t *args_) {
   args = args_;
 
   int nof_phy_threads = args->expert.phy.nof_phy_threads;
-  if (nof_phy_threads > 3) {
-    nof_phy_threads = 3;
+  if (nof_phy_threads > srsue::phy::MAX_WORKERS) {
+    nof_phy_threads = srsue::phy::MAX_WORKERS;
   }
 
   if (!args->log.filename.compare("stdout")) {
@@ -146,10 +146,6 @@ bool ue::init(all_args_t *args_) {
     nas_pcap.open(args->pcap.nas_filename.c_str());
     nas.start_pcap(&nas_pcap);
   }
-  if(args->trace.enable) {
-    phy.start_trace();
-    radio.start_trace();
-  }
 
   // populate EARFCN list
   std::vector<uint32_t> earfcn_list;
@@ -165,9 +161,13 @@ bool ue::init(all_args_t *args_) {
       earfcn_list.push_back(earfcn);
     }
   } else {
-    printf("Error: dl_earfcn list is empty\n");
+    rrc_log.error("Error: dl_earfcn list is empty\n");
+    rrc_log.console("Error: dl_earfcn list is empty\n");
     return false;
   }
+
+  // Consider Carrier Aggregation support if more than one
+  args->rrc.support_ca = (args->rf.nof_rf_channels * args->rf.nof_radios) > 1;
 
   // Init layers
 
@@ -180,65 +180,84 @@ bool ue::init(all_args_t *args_) {
 
   // PHY inits in background, start before radio
   args->expert.phy.nof_rx_ant = args->rf.nof_rx_ant;
-  phy.init(&radio, &mac, &rrc, phy_log, &args->expert.phy);
+  args->expert.phy.ue_category = args->rrc.ue_category;
+  phy.init(radios, &mac, &rrc, phy_log, &args->expert.phy);
+
+  // Calculate number of carriers available in all radios
+  args->expert.phy.nof_radios      = args->rf.nof_radios;
+  args->expert.phy.nof_rf_channels = args->rf.nof_rf_channels;
+  args->expert.phy.nof_carriers    = args->rf.nof_radios * args->rf.nof_rf_channels;
+
+  // Generate RF-Channel to Carrier map
+  for (uint32_t i = 0; i < args->expert.phy.nof_carriers; i++) {
+    carrier_map_t* m = &args->expert.phy.carrier_map[i];
+    m->radio_idx     = i / args->rf.nof_rf_channels;
+    m->channel_idx   = (i % args->rf.nof_rf_channels) * args->rf.nof_rx_ant;
+    phy_log[0]->debug("Mapping carrier %d to channel %d in radio %d\n", i, m->channel_idx, m->radio_idx);
+  }
 
   /* Start Radio */
   char *dev_name = NULL;
   if (args->rf.device_name.compare("auto")) {
     dev_name = (char*) args->rf.device_name.c_str();
   }
-  
-  char *dev_args = NULL;
-  if (args->rf.device_args.compare("auto")) {
-    dev_args = (char*) args->rf.device_args.c_str();
-  }
-  
-  printf("Opening RF device with %d RX antennas...\n", args->rf.nof_rx_ant);
-  if(!radio.init_multi(args->rf.nof_rx_ant, dev_args, dev_name)) {
-    printf("Failed to find device %s with args %s\n",
-           args->rf.device_name.c_str(), args->rf.device_args.c_str());
-    return false;
-  }    
-  
-  // Set RF options
-  if (args->rf.time_adv_nsamples.compare("auto")) {
-    int t = atoi(args->rf.time_adv_nsamples.c_str());
-    radio.set_tx_adv(abs(t));
-    radio.set_tx_adv_neg(t<0);
-  }
-  if (args->rf.burst_preamble.compare("auto")) {
-    radio.set_burst_preamble(atof(args->rf.burst_preamble.c_str()));    
-  }
-  if (args->rf.continuous_tx.compare("auto")) {
-    printf("set continuous %s\n", args->rf.continuous_tx.c_str());
-    radio.set_continuous_tx(args->rf.continuous_tx.compare("yes")?false:true);
+
+  char* dev_args[SRSLTE_MAX_RADIOS] = {NULL};
+  for (int i = 0; i < SRSLTE_MAX_RADIOS; i++) {
+    if (args->rf.device_args[0].compare("auto")) {
+      dev_args[i] = (char*)args->rf.device_args[i].c_str();
+    }
   }
 
-  // Set PHY options
+  phy_log[0]->console("Opening %d RF devices with %d RF channels...\n",
+                      args->rf.nof_radios,
+                      args->rf.nof_rf_channels * args->rf.nof_rx_ant);
+  for (uint32_t r = 0; r < args->rf.nof_radios; r++) {
+    if (!radios[r].init(phy_log[0], dev_args[r], dev_name, args->rf.nof_rf_channels * args->rf.nof_rx_ant)) {
+      phy_log[0]->console(
+          "Failed to find device %s with args %s\n", args->rf.device_name.c_str(), args->rf.device_args[0].c_str());
+      return false;
+    }
+
+    // Set RF options
+    if (args->rf.time_adv_nsamples.compare("auto")) {
+      int t = atoi(args->rf.time_adv_nsamples.c_str());
+      radios[r].set_tx_adv(abs(t));
+      radios[r].set_tx_adv_neg(t < 0);
+    }
+    if (args->rf.burst_preamble.compare("auto")) {
+      radios[r].set_burst_preamble(atof(args->rf.burst_preamble.c_str()));
+    }
+    if (args->rf.continuous_tx.compare("auto")) {
+      phy_log[0]->console("set continuous %s\n", args->rf.continuous_tx.c_str());
+      radios[r].set_continuous_tx(args->rf.continuous_tx.compare("yes") ? false : true);
+    }
+
+    // Set PHY options
+
+    if (args->rf.rx_gain < 0) {
+      radios[r].start_agc(false);
+    } else {
+      radios[r].set_rx_gain(args->rf.rx_gain);
+    }
+    if (args->rf.tx_gain > 0) {
+      radios[r].set_tx_gain(args->rf.tx_gain);
+    } else {
+      radios[r].set_tx_gain(args->rf.rx_gain);
+      phy_log[0]->console("\nWarning: TX gain was not set. Using open-loop power control (not working properly)\n\n");
+    }
+
+    radios[r].register_error_handler(rf_msg);
+    radios[r].set_freq_offset(args->rf.freq_offset);
+  }
+
   if (args->rf.tx_gain > 0) {
-    args->expert.phy.ul_pwr_ctrl_en = false; 
+    args->expert.phy.ul_pwr_ctrl_en = false;
   } else {
-    args->expert.phy.ul_pwr_ctrl_en = true; 
+    args->expert.phy.ul_pwr_ctrl_en = true;
   }
 
-  if (args->rf.rx_gain < 0) {
-    radio.start_agc(false);    
-  } else {
-    radio.set_rx_gain(args->rf.rx_gain);
-  }
-  if (args->rf.tx_gain > 0) {
-    radio.set_tx_gain(args->rf.tx_gain);    
-  } else {
-    radio.set_tx_gain(args->rf.rx_gain);
-    std::cout << std::endl << 
-                "Warning: TX gain was not set. " << 
-                "Using open-loop power control (not working properly)" << std::endl << std::endl; 
-  }
-
-  radio.register_error_handler(rf_msg);
-  radio.set_freq_offset(args->rf.freq_offset);
-
-  mac.init(&phy, &rlc, &rrc, &mac_log);
+  mac.init(&phy, &rlc, &rrc, &mac_log, args->expert.phy.nof_carriers);
   rlc.init(&pdcp, &rrc, this, &rlc_log, &mac, 0 /* RB_ID_SRB0 */);
   pdcp.init(&rlc, &rrc, &gw, &pdcp_log, 0 /* RB_ID_SRB0 */, SECURITY_DIRECTION_UPLINK);
   nas.init(usim, &rrc, &gw, &nas_log, args->nas);
@@ -246,11 +265,8 @@ bool ue::init(all_args_t *args_) {
   gw.set_netmask(args->expert.ip_netmask);
   gw.set_tundevname(args->expert.ip_devname);
 
-  args->rrc.ue_category = atoi(args->ue_category_str.c_str());
-
   // set args and initialize RRC
-  rrc.init(&phy, &mac, &rlc, &pdcp, &nas, usim, &gw, &mac, &rrc_log);
-  rrc.set_args(args->rrc);
+  rrc.init(&phy, &mac, &rlc, &pdcp, &nas, usim, &gw, &mac, &rrc_log, &args->rrc);
 
   phy.set_earfcn(earfcn_list);
 
@@ -258,7 +274,7 @@ bool ue::init(all_args_t *args_) {
     phy.force_freq(args->rf.dl_freq, args->rf.ul_freq);
   }
 
-  printf("Waiting PHY to initialize...\n");
+  phy_log[0]->console("Waiting PHY to initialize...\n");
   phy.wait_initialize();
 
   // Enable AGC once PHY is initialized
@@ -266,7 +282,7 @@ bool ue::init(all_args_t *args_) {
     phy.set_agc_enable(true);
   }
 
-  printf("...\n");
+  phy_log[0]->console("...\n");
 
   started = true;
   return true;
@@ -296,18 +312,16 @@ void ue::stop()
     // PHY must be stopped before radio otherwise it will lock on rf_recv()
     mac.stop();
     phy.stop();
-    radio.stop();
-    
+    for (uint32_t r = 0; r < args->rf.nof_radios; r++) {
+      radios[r].stop();
+    }
+
     usleep(1e5);
     if(args->pcap.enable) {
        mac_pcap.close();
     }
     if(args->pcap.nas_enable) {
        nas_pcap.close();
-    }
-    if(args->trace.enable) {
-      phy.write_trace(args->trace.phy_filename);
-      radio.write_trace(args->trace.radio_filename);
     }
     started = false;
   }
@@ -318,6 +332,9 @@ bool ue::switch_on() {
 }
 
 bool ue::switch_off() {
+  // stop UL data
+  gw.stop();
+
   // generate detach request
   nas.detach_request();
 

@@ -40,6 +40,8 @@
 #include <vector>
 #include <time.h>
 
+#include "srslte/srslte.h"
+
 namespace srslte {
   
 class timer_callback 
@@ -143,12 +145,12 @@ public:
       used_timers[i] = false;
       nof_used_timers--;
     } else {
-      fprintf(stderr, "Error releasing timer id=%d: nof_used_timers=%d, nof_timers=%d\n", i, nof_used_timers, nof_timers);
+      ERROR("Error releasing timer id=%d: nof_used_timers=%d, nof_timers=%d\n", i, nof_used_timers, nof_timers);
     }
   }
   uint32_t get_unique_id() {
     if (nof_used_timers >= nof_timers) {
-      fprintf(stderr, "Error getting unique timer id: no more timers available\n");
+      ERROR("Error getting unique timer id: no more timers available\n");
       return 0;
     } else {
       for (uint32_t i=0;i<nof_timers;i++) {
@@ -158,8 +160,9 @@ public:
           return i;
         }
       }
-      fprintf(stderr, "Error getting unique timer id: no more timers available but nof_used_timers=%d, nof_timers=%d\n",
-              nof_used_timers, nof_timers);
+      ERROR("Error getting unique timer id: no more timers available but nof_used_timers=%d, nof_timers=%d\n",
+            nof_used_timers,
+            nof_timers);
       return 0;
     }
   }

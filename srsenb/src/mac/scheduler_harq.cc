@@ -59,11 +59,6 @@ void harq_proc::set_max_retx(uint32_t max_retx_) {
   max_retx = max_retx_; 
 }
 
-uint32_t harq_proc::get_id()
-{
-  return id; 
-}
-
 void harq_proc::reset(uint32_t tb_idx)
 {
   active[tb_idx] = false;
@@ -76,22 +71,37 @@ void harq_proc::reset(uint32_t tb_idx)
   tx_cnt[tb_idx] = 0;
 }
 
-bool harq_proc::is_empty(uint32_t tb_idx)
+uint32_t harq_proc::get_id() const
+{
+  return id;
+}
+
+bool harq_proc::is_empty() const
+{
+  for (uint32_t i = 0; i < SRSLTE_MAX_TB; ++i) {
+    if (not is_empty(i)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool harq_proc::is_empty(uint32_t tb_idx) const
 {
   return !active[tb_idx] || (active[tb_idx] && ack[tb_idx] && ack_received[tb_idx]);
 }
 
-bool harq_proc::has_pending_retx_common(uint32_t tb_idx)
+bool harq_proc::has_pending_retx_common(uint32_t tb_idx) const
 {
   return !ack[tb_idx] && n_rtx[tb_idx] < max_retx;
 }
 
-uint32_t harq_proc::get_tti()
+uint32_t harq_proc::get_tti() const
 {
   return (uint32_t) tti;
 }
 
-bool harq_proc::get_ack(uint32_t tb_idx)
+bool harq_proc::get_ack(uint32_t tb_idx) const
 {
   return ack[tb_idx];
 }
@@ -100,8 +110,8 @@ void harq_proc::set_ack(uint32_t tb_idx, bool ack_)
 {
   ack[tb_idx] = ack_;
   ack_received[tb_idx] = true;
-  log_h->debug("ACK=%d received pid=%d, tb_idx=%d, n_rtx=%d, max_retx=%d\n", ack_, id, tb_idx, n_rtx[tb_idx], max_retx);
-  if (n_rtx[tb_idx] + 1 >= max_retx) {
+  log_h->info("ACK=%d received pid=%d, tb_idx=%d, n_rtx=%d, max_retx=%d\n", ack_, id, tb_idx, n_rtx[tb_idx], max_retx);
+  if (!ack_ && (n_rtx[tb_idx] + 1 >= max_retx)) {
     Warning("SCHED: discarting TB %d pid=%d, tti=%d, maximum number of retx exceeded (%d)\n", tb_idx, id, tti, max_retx);
     active[tb_idx] = false;
   }
@@ -123,7 +133,7 @@ void harq_proc::new_tx_common(uint32_t tb_idx, uint32_t tti_, int mcs, int tbs)
   }
 }
 
-void harq_proc::new_retx(uint32_t tb_idx, uint32_t tti_, int *mcs, int *tbs)
+void harq_proc::new_retx_common(uint32_t tb_idx, uint32_t tti_, int* mcs, int* tbs)
 {
   ack_received[tb_idx] = false;
   tti = tti_; 
@@ -136,24 +146,30 @@ void harq_proc::new_retx(uint32_t tb_idx, uint32_t tti_, int *mcs, int *tbs)
   }
 }
 
-uint32_t harq_proc::nof_tx(uint32_t tb_idx)
+uint32_t harq_proc::nof_tx(uint32_t tb_idx) const
 {
   return tx_cnt[tb_idx];
 }
 
-uint32_t harq_proc::nof_retx(uint32_t tb_idx)
+uint32_t harq_proc::nof_retx(uint32_t tb_idx) const
 {
   return n_rtx[tb_idx];
 }
 
-bool harq_proc::get_ndi(uint32_t tb_idx)
+bool harq_proc::get_ndi(uint32_t tb_idx) const
 {
   return ndi[tb_idx];
 }
 
-/****************************************************** 
+/******************************************************
  *                  UE::DL HARQ class                    *
  ******************************************************/
+
+dl_harq_proc::dl_harq_proc()
+{
+  n_cce   = 0;
+  rbgmask = 0;
+}
 
 void dl_harq_proc::new_tx(uint32_t tb_idx, uint32_t tti, int mcs, int tbs, uint32_t n_cce_)
 {
@@ -161,32 +177,51 @@ void dl_harq_proc::new_tx(uint32_t tb_idx, uint32_t tti, int mcs, int tbs, uint3
   new_tx_common(tb_idx, tti, mcs, tbs);
 }
 
+void dl_harq_proc::new_retx(uint32_t tb_idx, uint32_t tti_, int* mcs, int* tbs)
+{
+  new_retx_common(tb_idx, tti_, mcs, tbs);
+}
+
 uint32_t dl_harq_proc::get_n_cce()
 {
   return n_cce; 
 }
 
-uint32_t dl_harq_proc::get_rbgmask()
+rbgmask_t dl_harq_proc::get_rbgmask()
 {
   return rbgmask;
 }
 
-void dl_harq_proc::set_rbgmask(uint32_t new_mask)
+void dl_harq_proc::set_rbgmask(rbgmask_t new_mask)
 {
   rbgmask = new_mask;
 }
 
-bool dl_harq_proc::has_pending_retx(uint32_t tb_idx, uint32_t current_tti)
+bool dl_harq_proc::has_pending_retx(uint32_t tb_idx, uint32_t current_tti) const
 {
-  return srslte_tti_interval(current_tti, tti) >= (2*HARQ_DELAY_MS) && has_pending_retx_common(tb_idx);
+  uint32_t tti_diff = srslte_tti_interval(current_tti, tti);
+  // NOTE: tti may be ahead of current_tti due to thread flip
+  return tti_diff < 10240 / 2 and tti_diff >= (SRSLTE_FDD_NOF_HARQ) && !is_empty(tb_idx);
 }
 
-int dl_harq_proc::get_tbs(uint32_t tb_idx)
+int dl_harq_proc::get_tbs(uint32_t tb_idx) const
 {
   return last_tbs[tb_idx];
 }
 
+/******************************************************
+ *                  UE::UL RB MASK                    *
+ ******************************************************/
 
+bool ul_mask_t::any(ul_harq_proc::ul_alloc_t alloc) const noexcept
+{
+  return base_type::any(alloc.RB_start, alloc.RB_start + alloc.L);
+}
+
+void ul_mask_t::fill(srsenb::ul_harq_proc::ul_alloc_t alloc) noexcept
+{
+  base_type::fill(alloc.RB_start, alloc.RB_start + alloc.L, true);
+}
 
 /****************************************************** 
  *                  UE::UL HARQ class                    *
@@ -199,28 +234,58 @@ ul_harq_proc::ul_alloc_t ul_harq_proc::get_alloc()
 
 void ul_harq_proc::set_alloc(ul_harq_proc::ul_alloc_t alloc)
 {
+  if (not is_empty(0)) {
+    log_h->error("Trying to overwrite an on-going harq procedure\n");
+    return;
+  }
+  is_rar      = false; // can be set to true through set_rar_mcs()
   is_adaptive = false;
-  memcpy(&allocation, &alloc, sizeof(ul_alloc_t));
+  allocation  = alloc;
 }
 
-void ul_harq_proc::re_alloc(ul_harq_proc::ul_alloc_t alloc)
+void ul_harq_proc::set_realloc(ul_harq_proc::ul_alloc_t alloc)
 {
-  is_adaptive = true;
-  memcpy(&allocation, &alloc, sizeof(ul_alloc_t));
+  if (is_empty(0)) {
+    log_h->error("Trying to reallocate an empty harq procedure\n");
+    return;
+  }
+  if (alloc.L != allocation.L or alloc.RB_start != allocation.RB_start) {
+    is_adaptive = true;
+  }
+  allocation = alloc;
+}
+
+bool ul_harq_proc::has_pending_retx()
+{
+  return active[0] and has_pending_retx_common(0) and need_ack;
 }
 
 bool ul_harq_proc::is_adaptive_retx()
 {
-  return is_adaptive; 
+  return is_adaptive and has_pending_retx();
+}
+
+bool ul_harq_proc::is_rar_tx()
+{
+  return is_rar;
+}
+
+bool ul_harq_proc::is_new_tx()
+{
+  return active[0] and not has_pending_retx();
 }
 
 void ul_harq_proc::new_tx(uint32_t tti_, int mcs, int tbs)
 {  
   need_ack = true; 
   new_tx_common(0, tti_, mcs, tbs);
-  pending_data = tbs; 
+  pending_data = tbs;
 }
 
+void ul_harq_proc::new_retx(uint32_t tb_idx, uint32_t tti_, int* mcs, int* tbs)
+{
+  new_retx_common(tb_idx, tti_, mcs, tbs);
+}
 
 bool ul_harq_proc::has_pending_ack()
 {
@@ -253,8 +318,9 @@ uint32_t ul_harq_proc::get_pending_data()
 
 void ul_harq_proc::set_rar_mcs(uint32_t mcs)
 {
-  rar_mcs     = mcs; 
-  has_rar_mcs = true; 
+  rar_mcs     = mcs;
+  has_rar_mcs = true;
+  is_rar      = true;
 }
 
 bool ul_harq_proc::get_rar_mcs(int *mcs)
@@ -263,12 +329,11 @@ bool ul_harq_proc::get_rar_mcs(int *mcs)
     if (mcs) {
       *mcs = (int) rar_mcs; 
     }
-    has_rar_mcs = false; 
+    has_rar_mcs = false;
+    is_rar      = false;
     return true; 
   }
   return false; 
 }
-
-
 
 }

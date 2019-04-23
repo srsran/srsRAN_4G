@@ -34,12 +34,14 @@
 #include "srslte/srslte.h"
 
 srslte_cell_t cell = {
-  6,            // nof_prb
-  1,            // nof_ports
-  1,            // cell_id
-  SRSLTE_CP_NORM,       // cyclic prefix
-  SRSLTE_PHICH_R_1,          // PHICH resources      
-  SRSLTE_PHICH_NORM    // PHICH length
+    6,                 // nof_prb
+    1,                 // nof_ports
+    1,                 // cell_id
+    SRSLTE_CP_NORM,    // cyclic prefix
+    SRSLTE_PHICH_NORM, // PHICH length
+    SRSLTE_PHICH_R_1,  // PHICH resources
+    SRSLTE_FDD,
+
 };
 
 void usage(char *prog) {
@@ -73,43 +75,41 @@ void parse_args(int argc, char **argv) {
   }
 }
 
-
-int main(int argc, char **argv) {
-  srslte_pbch_t pbch;
+int main(int argc, char** argv)
+{
+  srslte_chest_dl_res_t chest_dl_res;
+  srslte_pbch_t         pbch;
   uint8_t bch_payload_tx[SRSLTE_BCH_PAYLOAD_LEN], bch_payload_rx[SRSLTE_BCH_PAYLOAD_LEN];
-  int i, j;
-  cf_t *ce[SRSLTE_MAX_PORTS];
-  int nof_re;
-  cf_t *slot1_symbols[SRSLTE_MAX_PORTS];
-  uint32_t nof_rx_ports; 
+  int                   i, j, k;
+  int                   nof_re;
+  cf_t*                 sf_symbols[SRSLTE_MAX_PORTS];
+  uint32_t              nof_rx_ports;
 
   parse_args(argc,argv);
 
-  nof_re = SRSLTE_SLOT_LEN_RE(cell.nof_prb, SRSLTE_CP_NORM); 
+  nof_re = SRSLTE_SF_LEN_RE(cell.nof_prb, SRSLTE_CP_NORM);
 
   /* init memory */
-  for (i=0;i<cell.nof_ports;i++) {
-    ce[i] = malloc(sizeof(cf_t) * nof_re);
-    if (!ce[i]) {
-      perror("malloc");
-      exit(-1);
+  srslte_chest_dl_res_init(&chest_dl_res, cell.nof_prb);
+  for (i = 0; i < cell.nof_ports; i++) {
+    for (j = 0; j < cell.nof_ports; j++) {
+      for (k = 0; k < nof_re; k++) {
+        chest_dl_res.ce[i][j][k] = 1;
+      }
     }
-    for (j=0;j<nof_re;j++) {
-      ce[i][j] = 1;
-    }
-    slot1_symbols[i] = malloc(sizeof(cf_t) * nof_re);
-    if (!slot1_symbols[i]) {
+    sf_symbols[i] = malloc(sizeof(cf_t) * nof_re);
+    if (!sf_symbols[i]) {
       perror("malloc");
       exit(-1);
     }
 
   }
   if (srslte_pbch_init(&pbch)) {
-    fprintf(stderr, "Error creating PBCH object\n");
+    ERROR("Error creating PBCH object\n");
     exit(-1);
   }
   if (srslte_pbch_set_cell(&pbch, cell)) {
-    fprintf(stderr, "Error creating PBCH object\n");
+    ERROR("Error creating PBCH object\n");
     exit(-1);
   }
 
@@ -118,17 +118,17 @@ int main(int argc, char **argv) {
     bch_payload_tx[i] = rand()%2;
   }
 
-  srslte_pbch_encode(&pbch, bch_payload_tx, slot1_symbols, 0);
+  srslte_pbch_encode(&pbch, bch_payload_tx, sf_symbols, 0);
 
   /* combine outputs */
   for (i=1;i<cell.nof_ports;i++) {
     for (j=0;j<nof_re;j++) {
-      slot1_symbols[0][j] += slot1_symbols[i][j];
+      sf_symbols[0][j] += sf_symbols[i][j];
     }
   }
   
   srslte_pbch_decode_reset(&pbch);
-  if (1 != srslte_pbch_decode(&pbch, slot1_symbols[0], ce, 0, bch_payload_rx, &nof_rx_ports, NULL)) {
+  if (1 != srslte_pbch_decode(&pbch, &chest_dl_res, sf_symbols, bch_payload_rx, &nof_rx_ports, NULL)) {
     printf("Error decoding\n");
     exit(-1);
   }
@@ -136,9 +136,11 @@ int main(int argc, char **argv) {
   srslte_pbch_free(&pbch);
 
   for (i=0;i<cell.nof_ports;i++) {
-    free(ce[i]);
-    free(slot1_symbols[i]);
+    free(sf_symbols[i]);
   }
+
+  srslte_chest_dl_res_free(&chest_dl_res);
+
   printf("Tx ports: %d - Rx ports: %d\n", cell.nof_ports, nof_rx_ports);
   printf("Tx payload: ");
   srslte_vec_fprint_hex(stdout, bch_payload_tx, SRSLTE_BCH_PAYLOAD_LEN);

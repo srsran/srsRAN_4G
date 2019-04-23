@@ -32,7 +32,6 @@
 #include <inttypes.h>
 #include <stdio.h>
 
-#include <srslte/config.h>
 #include "srslte/phy/utils/vector_simd.h"
 #include "srslte/phy/utils/simd.h"
 

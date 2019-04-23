@@ -24,21 +24,24 @@
  *
  */
 
+#include "srslte/srslte.h"
+#include <complex.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
 #include <unistd.h>
-#include <complex.h>
 
 #include "srslte/srslte.h"
 
 srslte_cell_t cell = {
-  100,            // nof_prb
-  SRSLTE_MAX_PORTS,    // nof_ports
-  1,         // cell_id
-  SRSLTE_CP_NORM,        // cyclic prefix
-  SRSLTE_PHICH_NORM,
-  SRSLTE_PHICH_R_1_6
+    100,              // nof_prb
+    SRSLTE_MAX_PORTS, // nof_ports
+    1,                // cell_id
+    SRSLTE_CP_NORM,   // cyclic prefix
+    SRSLTE_PHICH_NORM,
+    SRSLTE_PHICH_R_1_6, // PHICH length
+    SRSLTE_FDD,
+
 };
 
 void usage(char *prog) {
@@ -84,12 +87,12 @@ int main(int argc, char **argv) {
   parse_args(argc,argv);
 
   if (srslte_refsignal_ul_init(&refs, cell.nof_prb)) {
-    fprintf(stderr, "Error initializing UL reference signal\n");
+    ERROR("Error initializing UL reference signal\n");
     goto do_exit;
   }
 
   if (srslte_refsignal_ul_set_cell(&refs, cell)) {
-    fprintf(stderr, "Error initializing UL reference signal\n");
+    ERROR("Error initializing UL reference signal\n");
     goto do_exit;
   }
 
@@ -134,14 +137,17 @@ int main(int argc, char **argv) {
               gettimeofday(&t[1], NULL);
               pusch_cfg.group_hopping_en = group_hopping_en; 
               pusch_cfg.sequence_hopping_en = sequence_hopping_en;
-              srslte_refsignal_ul_set_cfg(&refs, &pusch_cfg, NULL, NULL);
-              srslte_refsignal_dmrs_pusch_gen(&refs, nof_prb, sf_idx, cshift_dmrs, signal);              
+
+              srslte_refsignal_dmrs_pusch_gen(&refs, &pusch_cfg, nof_prb, sf_idx, cshift_dmrs, signal);
               gettimeofday(&t[2], NULL);
               get_time_interval(t);
               printf("DMRS ExecTime: %ld us\n", t[0].tv_usec);
 
+              srslte_refsignal_srs_cfg_t srs_cfg;
+              ZERO_OBJECT(srs_cfg);
+
               gettimeofday(&t[1], NULL);
-              srslte_refsignal_srs_gen(&refs, sf_idx, signal);
+              srslte_refsignal_srs_gen(&refs, &srs_cfg, &pusch_cfg, sf_idx, signal);
               gettimeofday(&t[2], NULL);
               get_time_interval(t);
               printf("SRS ExecTime: %ld us\n", t[0].tv_usec);

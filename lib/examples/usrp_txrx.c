@@ -89,7 +89,7 @@ void parse_args(int argc, char **argv) {
     case 'p':
       nof_prb = atoi(argv[optind]);
       if (!srslte_nofprb_isvalid(nof_prb)) {
-        fprintf(stderr, "Invalid number of UL RB %d\n", nof_prb);
+        ERROR("Invalid number of UL RB %d\n", nof_prb);
         exit(-1);
       }
       break;
@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
   srslte_rf_t rf; 
   printf("Opening RF device...\n");
   if (srslte_rf_open(&rf, rf_args)) {
-    fprintf(stderr, "Error opening rf\n");
+    ERROR("Error opening rf\n");
     exit(-1);
   }
   srslte_rf_set_master_clock_rate(&rf, 30.72e6);        
@@ -159,9 +159,9 @@ int main(int argc, char **argv) {
   printf("Set TX/RX rate: %.2f MHz\n", (float) srate / 1000000);
   printf("Set RX gain:    %.1f dB\n", srslte_rf_set_rx_gain(&rf, rf_rx_gain));
   printf("Set TX gain:    %.1f dB\n", srslte_rf_set_tx_gain(&rf, srslte_rf_tx_gain));
-  printf("Set TX/RX freq: %.2f MHz\n", srslte_rf_set_rx_freq(&rf, rf_freq) / 1000000);
-  srslte_rf_set_tx_freq(&rf, rf_freq);
-  
+  printf("Set TX/RX freq: %.2f MHz\n", srslte_rf_set_rx_freq(&rf, 0, rf_freq) / 1000000);
+  srslte_rf_set_tx_freq(&rf, 0, rf_freq);
+
   sleep(1);
   
   if (input_filename) {

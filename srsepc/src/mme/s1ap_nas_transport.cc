@@ -87,7 +87,7 @@ void s1ap_nas_transport::init()
   m_nas_init.integ_algo   = m_s1ap->m_s1ap_args.integrity_algo;
   m_nas_init.cipher_algo  = m_s1ap->m_s1ap_args.encryption_algo;
 
-  //Init NAS interface
+  // Init NAS interface
   m_nas_if.s1ap = s1ap::get_instance();
   m_nas_if.gtpc = mme_gtpc::get_instance();
   m_nas_if.hss  = hss::get_instance();
@@ -132,7 +132,8 @@ bool s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUE
     case LIBLTE_MME_MSG_TYPE_DETACH_REQUEST:
       m_s1ap_log->console("Received Initial UE message -- Detach Request\n");
       m_s1ap_log->info("Received Initial UE message -- Detach Request\n");
-      err = nas::handle_detach_request(m_tmsi, enb_ue_s1ap_id, enb_sri, nas_msg, m_nas_init, m_nas_if, m_s1ap->m_nas_log);
+      err =
+          nas::handle_detach_request(m_tmsi, enb_ue_s1ap_id, enb_sri, nas_msg, m_nas_init, m_nas_if, m_s1ap->m_nas_log);
       break;
     case LIBLTE_MME_MSG_TYPE_TRACKING_AREA_UPDATE_REQUEST:
       m_s1ap_log->console("Received Initial UE message -- Tracking Area Update Request\n");

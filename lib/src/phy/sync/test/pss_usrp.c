@@ -37,17 +37,16 @@
 #include "srslte/srslte.h"
 #include "srslte/phy/rf/rf.h"
 
-
-#ifndef DISABLE_GRAPHICS
+#ifdef ENABLE_GUI
 void init_plots();
 void do_plots_pss(float *corr, float energy, uint32_t size);
 void do_plots_sss(float *corr_m0, float *corr_m1);
-#endif
+#endif /* ENABLE_GUI */
 
-
-bool disable_plots = false; 
-int cell_id = -1;
-char *rf_args="";
+bool        tdd_mode      = false;
+bool        disable_plots = false;
+int         cell_id       = -1;
+char*       rf_args       = "";
 float rf_gain=40.0, rf_freq=-1.0;
 int nof_frames = -1;
 uint32_t fft_size=64;
@@ -64,7 +63,8 @@ void usage(char *prog) {
   printf("\t-e Extended CP [Default Normal]\n");
   printf("\t-s symbol_sz [Default %d]\n", fft_size);
   printf("\t-t threshold [Default %.2f]\n", threshold);
-#ifndef DISABLE_GRAPHICS
+  printf("\t-T TDD mode [Default FDD]\n");
+#ifdef ENABLE_GUI
   printf("\t-d disable plots [Default enabled]\n");
 #else
   printf("\t plots are disabled. Graphics library not available\n");
@@ -74,44 +74,47 @@ void usage(char *prog) {
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "adgetvnsfil")) != -1) {
+  while ((opt = getopt(argc, argv, "adgetTvnsfil")) != -1) {
     switch (opt) {
-    case 'a':
-      rf_args = argv[optind];
-      break;
-    case 'g':
-      rf_gain = atof(argv[optind]);
-      break;
-    case 'f':
-      rf_freq = atof(argv[optind]);
-      break;
-    case 't':
-      threshold = atof(argv[optind]);
-      break;
-    case 'e':
-      cp = SRSLTE_CP_EXT;
-      break;
-    case 'i':
-      cell_id = atoi(argv[optind]);
-      break;
-    case 'l':
-      N_id_2_sync = atoi(argv[optind]);
-      break;
-    case 's':
-      fft_size = atoi(argv[optind]);
-      break;
-    case 'n':
-      nof_frames = atoi(argv[optind]);
-      break;
-    case 'd':
-      disable_plots = true;
-      break;
-    case 'v':
-      srslte_verbose++;
-      break;
-    default:
-      usage(argv[0]);
-      exit(-1);
+      case 'a':
+        rf_args = argv[optind];
+        break;
+      case 'g':
+        rf_gain = atof(argv[optind]);
+        break;
+      case 'f':
+        rf_freq = atof(argv[optind]);
+        break;
+      case 't':
+        threshold = atof(argv[optind]);
+        break;
+      case 'e':
+        cp = SRSLTE_CP_EXT;
+        break;
+      case 'i':
+        cell_id = atoi(argv[optind]);
+        break;
+      case 'T':
+        tdd_mode = true;
+        break;
+      case 'l':
+        N_id_2_sync = atoi(argv[optind]);
+        break;
+      case 's':
+        fft_size = atoi(argv[optind]);
+        break;
+      case 'n':
+        nof_frames = atoi(argv[optind]);
+        break;
+      case 'd':
+        disable_plots = true;
+        break;
+      case 'v':
+        srslte_verbose++;
+        break;
+      default:
+        usage(argv[0]);
+        exit(-1);
     }
   }
   if (cell_id < 0 || rf_freq < 0) {
@@ -144,21 +147,21 @@ int main(int argc, char **argv) {
   uint32_t N_id_2 = cell_id%3;
   uint32_t N_id_1 = cell_id/3;
 
-#ifndef DISABLE_GRAPHICS
+#ifdef ENABLE_GUI
   if (!disable_plots)
     init_plots();
-#endif
+#endif /* ENABLE_GUI */
 
-  float srate = 15000.0*fft_size; 
-  
+  float srate = 15000.0 * fft_size;
+
   flen = srate*5/1000;
 
   printf("Opening RF device...\n");
   if (srslte_rf_open(&rf, rf_args)) {
-    fprintf(stderr, "Error opening rf\n");
+    ERROR("Error opening rf\n");
     exit(-1);
   }
-  
+
   if (srate < 10e6) {
     srslte_rf_set_master_clock_rate(&rf, 4*srate);        
   } else {
@@ -167,9 +170,9 @@ int main(int argc, char **argv) {
 
   printf("Set RX rate: %.2f MHz\n", srslte_rf_set_rx_srate(&rf, srate) / 1000000);
   printf("Set RX gain: %.1f dB\n", srslte_rf_set_rx_gain(&rf, rf_gain));
-  printf("Set RX freq: %.2f MHz\n", srslte_rf_set_rx_freq(&rf, rf_freq) / 1000000);
+  printf("Set RX freq: %.2f MHz\n", srslte_rf_set_rx_freq(&rf, 0, rf_freq) / 1000000);
   srslte_rf_rx_wait_lo_locked(&rf);
-  
+
   buffer = malloc(sizeof(cf_t) * flen * 2);
   if (!buffer) {
     perror("malloc");
@@ -177,23 +180,23 @@ int main(int argc, char **argv) {
   }
     
   if (srslte_pss_init_fft(&pss, flen, fft_size)) {
-    fprintf(stderr, "Error initiating PSS\n");
+    ERROR("Error initiating PSS\n");
     exit(-1);
   }
 
   if (srslte_pss_set_N_id_2(&pss, N_id_2_sync)) {
-    fprintf(stderr, "Error setting N_id_2=%d\n",N_id_2_sync);
+    ERROR("Error setting N_id_2=%d\n", N_id_2_sync);
     exit(-1);
   }
-  
+
   srslte_cfo_init(&cfocorr, flen); 
   srslte_cfo_init(&cfocorr64, flen); 
  
   if (srslte_sss_init(&sss, fft_size)) {
-    fprintf(stderr, "Error initializing SSS object\n");
+    ERROR("Error initializing SSS object\n");
     exit(-1);
   }
-  
+
   srslte_sss_set_N_id_2(&sss, N_id_2);
 
   printf("N_id_2: %d\n", N_id_2);  
@@ -228,16 +231,16 @@ int main(int argc, char **argv) {
   while(frame_cnt < nof_frames || nof_frames == -1) {
     n = srslte_rf_recv(&rf, buffer, flen - peak_offset, 1);
     if (n < 0) {
-      fprintf(stderr, "Error receiving samples\n");
+      ERROR("Error receiving samples\n");
       exit(-1);
     }
-    
+
     peak_idx = srslte_pss_find_pss(&pss, buffer, &peak_value);
     if (peak_idx < 0) {
-      fprintf(stderr, "Error finding PSS peak\n");
+      ERROR("Error finding PSS peak\n");
       exit(-1);
     }
-    
+
     mean_peak = SRSLTE_VEC_CMA(peak_value, mean_peak, frame_cnt);
     
     if (peak_value >= threshold) {
@@ -254,12 +257,21 @@ int main(int argc, char **argv) {
 
         // Estimate channel
         if (srslte_pss_chest(&pss, &buffer[peak_idx-fft_size], ce)) {
-          fprintf(stderr, "Error computing channel estimation\n");
+          ERROR("Error computing channel estimation\n");
           exit(-1);
         }
 
         // Find SSS
-        int sss_idx = peak_idx-2*fft_size-(SRSLTE_CP_ISNORM(cp)?SRSLTE_CP_LEN(fft_size, SRSLTE_CP_NORM_LEN):SRSLTE_CP_LEN(fft_size, SRSLTE_CP_EXT_LEN));             
+        int sss_idx;
+        if (!tdd_mode) {
+          sss_idx = peak_idx - 2 * fft_size -
+                    (SRSLTE_CP_ISNORM(cp) ? SRSLTE_CP_LEN(fft_size, SRSLTE_CP_NORM_LEN)
+                                          : SRSLTE_CP_LEN(fft_size, SRSLTE_CP_EXT_LEN));
+        } else {
+          sss_idx = peak_idx - 4 * fft_size -
+                    3 * (SRSLTE_CP_ISNORM(cp) ? SRSLTE_CP_LEN(fft_size, SRSLTE_CP_NORM_LEN)
+                                              : SRSLTE_CP_LEN(fft_size, SRSLTE_CP_EXT_LEN));
+        }
         if (sss_idx >= 0 && sss_idx < flen-fft_size) {
 
           // Filter SSS
@@ -293,13 +305,12 @@ int main(int argc, char **argv) {
       } else {
         INFO("No space for CFO computation. Frame starts at \n");
       }
-      
-      if(srslte_sss_subframe(m0,m1) == 0)
-      {
-#ifndef DISABLE_GRAPHICS
-          if (!disable_plots)
-            do_plots_sss(sss.corr_output_m0, sss.corr_output_m1);
-#endif
+
+      if (srslte_sss_subframe(m0, m1) == 0) {
+#ifdef ENABLE_GUI
+        if (!disable_plots)
+          do_plots_sss(sss.corr_output_m0, sss.corr_output_m1);
+#endif /* ENABLE_GUI */
       }
       
     } else {
@@ -347,12 +358,12 @@ int main(int argc, char **argv) {
     if (SRSLTE_VERBOSE_ISINFO()) {
       printf("\n");
     }
-  
-#ifndef DISABLE_GRAPHICS
+
+#ifdef ENABLE_GUI
     if (!disable_plots) {
-      do_plots_pss(pss.conv_output_avg, pss.conv_output_avg[peak_idx], pss.fft_size+pss.frame_size-1);
+      do_plots_pss(pss.conv_output_avg, pss.conv_output_avg[peak_idx], pss.fft_size + pss.frame_size - 1);
     }
-#endif
+#endif /* ENABLE_GUI */
 
     last_peak = peak_idx;
 
@@ -370,12 +381,10 @@ int main(int argc, char **argv) {
 
 extern cf_t *tmp2;
 
-
 /**********************************************************************
  *  Plotting Functions
  ***********************************************************************/
-#ifndef DISABLE_GRAPHICS
-
+#ifdef ENABLE_GUI
 
 #include "srsgui/srsgui.h"
 plot_real_t pssout;
@@ -420,5 +429,4 @@ void do_plots_sss(float *corr_m0, float *corr_m1) {
   plot_real_setNewData(&psss1, corr_m0, SRSLTE_SSS_N);          
 }
 
-
-#endif
+#endif /* ENABLE_GUI */

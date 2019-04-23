@@ -143,14 +143,14 @@ bool mme_gtpc::send_s11_pdu(const srslte::gtpc_pdu& pdu)
   return true;
 }
 
-void mme_gtpc::handle_s11_pdu(srslte::byte_buffer_t *msg)
+void mme_gtpc::handle_s11_pdu(srslte::byte_buffer_t* msg)
 {
   m_mme_gtpc_log->debug("Received S11 message\n");
 
-  srslte::gtpc_pdu *pdu;
-  pdu = (srslte::gtpc_pdu *) msg->msg;
-  m_mme_gtpc_log->debug("MME Received GTP-C PDU. Message type %s\n",srslte::gtpc_msg_type_to_str(pdu->header.type));
-  switch(pdu->header.type){
+  srslte::gtpc_pdu* pdu;
+  pdu = (srslte::gtpc_pdu*)msg->msg;
+  m_mme_gtpc_log->debug("MME Received GTP-C PDU. Message type %s\n", srslte::gtpc_msg_type_to_str(pdu->header.type));
+  switch (pdu->header.type) {
     case srslte::GTPC_MSG_TYPE_CREATE_SESSION_RESPONSE:
       handle_create_session_response(pdu);
       break;
@@ -181,7 +181,7 @@ bool mme_gtpc::send_create_session_request(uint64_t imsi)
   // Setup GTP-C Header. FIXME: Length, sequence and other fields need to be added.
   cs_req_pdu.header.piggyback    = false;
   cs_req_pdu.header.teid_present = true;
-  cs_req_pdu.header.teid = 0; // Send create session request to the butler TEID
+  cs_req_pdu.header.teid         = 0; // Send create session request to the butler TEID
   cs_req_pdu.header.type = srslte::GTPC_MSG_TYPE_CREATE_SESSION_REQUEST;
 
   // Setup GTP-C Create Session Request IEs
@@ -397,7 +397,7 @@ bool mme_gtpc::send_delete_session_request(uint64_t imsi)
 
   // Send msg to SPGW
   send_s11_pdu(del_req_pdu);
-  
+
   // Delete GTP-C context
   std::map<uint32_t, uint64_t>::iterator it_imsi = m_mme_ctr_teid_to_imsi.find(mme_ctr_fteid.teid);
   if (it_imsi == m_mme_ctr_teid_to_imsi.end()) {

@@ -35,12 +35,14 @@
 char *input_file_name = NULL;
 
 srslte_cell_t cell = {
-  6,            // nof_prb
-  2,            // nof_ports
-  150,          // cell_id  
-  SRSLTE_CP_NORM,       // cyclic prefix
-  SRSLTE_PHICH_R_1,          // PHICH resources      
-  SRSLTE_PHICH_NORM    // PHICH length
+    6,                 // nof_prb
+    2,                 // nof_ports
+    150,               // cell_id
+    SRSLTE_CP_NORM,    // cyclic prefix
+    SRSLTE_PHICH_NORM, // PHICH length
+    SRSLTE_PHICH_R_1,  // PHICH resources
+    SRSLTE_FDD,
+
 };
 
 int nof_frames = 1; 
@@ -50,10 +52,11 @@ uint8_t bch_payload_file[SRSLTE_BCH_PAYLOAD_LEN] = {0, 1, 1, 0, 1, 0, 0, 0, 0, 0
 #define FLEN  (10*SRSLTE_SF_LEN(srslte_symbol_sz(cell.nof_prb)))
 
 srslte_filesource_t fsrc;
-cf_t *input_buffer, *fft_buffer, *ce[SRSLTE_MAX_PORTS];
+cf_t *                input_buffer, *fft_buffer[SRSLTE_MAX_CODEWORDS];
 srslte_pbch_t pbch;
 srslte_ofdm_t fft;
 srslte_chest_dl_t chest;
+srslte_chest_dl_res_t chest_res;
 
 void usage(char *prog) {
   printf("Usage: %s [vcoe] -i input_file\n", prog);
@@ -99,10 +102,9 @@ void parse_args(int argc, char **argv) {
 }
 
 int base_init() {
-  int i;
 
   if (srslte_filesource_init(&fsrc, input_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
-    fprintf(stderr, "Error opening file %s\n", input_file_name);
+    ERROR("Error opening file %s\n", input_file_name);
     exit(-1);
   }
 
@@ -112,45 +114,47 @@ int base_init() {
     exit(-1);
   }
 
-  fft_buffer = malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
-  if (!fft_buffer) {
+  fft_buffer[0] = malloc(SRSLTE_NOF_RE(cell) * sizeof(cf_t));
+  if (!fft_buffer[0]) {
     perror("malloc");
     return -1;
   }
 
-  for (i=0;i<cell.nof_ports;i++) {
-    ce[i] = malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
-    if (!ce[i]) {
-      perror("malloc");
-      return -1;
-    }
-  }
-  
   if (!srslte_cell_isvalid(&cell)) {
-    fprintf(stderr, "Invalid cell properties\n");
+    ERROR("Invalid cell properties\n");
     return -1;
   }
 
-  if (srslte_chest_dl_init(&chest, cell.nof_prb)) {
-    fprintf(stderr, "Error initializing equalizer\n");
+  if (srslte_chest_dl_init(&chest, cell.nof_prb, 1)) {
+    ERROR("Error initializing equalizer\n");
+    return -1;
+  }
+  if (srslte_chest_dl_res_init(&chest_res, cell.nof_prb)) {
+    ERROR("Error initializing equalizer\n");
     return -1;
   }
   if (srslte_chest_dl_set_cell(&chest, cell)) {
-    fprintf(stderr, "Error initializing equalizer\n");
+    ERROR("Error initializing equalizer\n");
     return -1;
   }
 
-  if (srslte_ofdm_init_(&fft, cell.cp, input_buffer, fft_buffer, srslte_symbol_sz_power2(cell.nof_prb), cell.nof_prb, SRSLTE_DFT_FORWARD)) {
-    fprintf(stderr, "Error initializing FFT\n");
+  if (srslte_ofdm_init_(&fft,
+                        cell.cp,
+                        input_buffer,
+                        fft_buffer[0],
+                        srslte_symbol_sz(cell.nof_prb),
+                        cell.nof_prb,
+                        SRSLTE_DFT_FORWARD)) {
+    ERROR("Error initializing FFT\n");
     return -1;
   }
 
   if (srslte_pbch_init(&pbch)) {
-    fprintf(stderr, "Error initiating PBCH\n");
+    ERROR("Error initiating PBCH\n");
     return -1;
   }
   if (srslte_pbch_set_cell(&pbch, cell)) {
-    fprintf(stderr, "Error initiating PBCH\n");
+    ERROR("Error initiating PBCH\n");
     return -1;
   }
 
@@ -159,17 +163,13 @@ int base_init() {
 }
 
 void base_free() {
-  int i;
-
   srslte_filesource_free(&fsrc);
 
   free(input_buffer);
-  free(fft_buffer);
+  free(fft_buffer[0]);
 
   srslte_filesource_free(&fsrc);
-  for (i=0;i<cell.nof_ports;i++) {
-    free(ce[i]);
-  }
+  srslte_chest_dl_res_free(&chest_res);
   srslte_chest_dl_free(&chest);
   srslte_ofdm_rx_free(&fft);
 
@@ -179,10 +179,9 @@ void base_free() {
 int main(int argc, char **argv) {
   uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
   int n;
-  uint32_t nof_tx_ports; 
-  int sfn_offset; 
-  cf_t *ce_slot1[SRSLTE_MAX_PORTS]; 
-  
+  uint32_t nof_tx_ports;
+  int      sfn_offset;
+
   if (argc < 3) {
     usage(argv[0]);
     exit(-1);
@@ -191,7 +190,7 @@ int main(int argc, char **argv) {
   parse_args(argc,argv);
 
   if (base_init()) {
-    fprintf(stderr, "Error initializing receiver\n");
+    ERROR("Error initializing receiver\n");
     exit(-1);
   }
 
@@ -205,28 +204,26 @@ int main(int argc, char **argv) {
       // process 1st subframe only
       srslte_ofdm_rx_sf(&fft);
 
+      srslte_dl_sf_cfg_t dl_sf;
+      ZERO_OBJECT(dl_sf);
+
       /* Get channel estimates for each port */
-      srslte_chest_dl_estimate(&chest, fft_buffer, ce, 0);
+      srslte_chest_dl_estimate(&chest, &dl_sf, fft_buffer, &chest_res);
 
       INFO("Decoding PBCH\n");
-      
-      for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
-        ce_slot1[i] = &ce[i][SRSLTE_SLOT_LEN_RE(cell.nof_prb, cell.cp)];
-      }
 
       srslte_pbch_decode_reset(&pbch);
-      n = srslte_pbch_decode(&pbch, &fft_buffer[SRSLTE_SLOT_LEN_RE(cell.nof_prb, cell.cp)], 
-                      ce_slot1, srslte_chest_dl_get_noise_estimate(&chest), 
-                      bch_payload, &nof_tx_ports, &sfn_offset);
+      n = srslte_pbch_decode(&pbch, &chest_res, fft_buffer, bch_payload, &nof_tx_ports, &sfn_offset);
+
       if (n == 1) {
         nof_decoded_mibs++;
       } else if (n < 0) {
-        fprintf(stderr, "Error decoding PBCH\n");
+        ERROR("Error decoding PBCH\n");
         exit(-1);
       }
       frame_cnt++;
     } else if (nread < 0) {
-      fprintf(stderr, "Error reading from file\n");
+      ERROR("Error reading from file\n");
       exit(-1);
     }
   } while(nread > 0 && frame_cnt < nof_frames);

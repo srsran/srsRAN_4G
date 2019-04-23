@@ -39,24 +39,41 @@
 #include "srslte/phy/fec/softbuffer.h"
 #include "srslte/phy/fec/cbsegm.h"
 
-/* 3GPP 36.213 Table 5.2-1: The cell-specific ratio rho_B / rho_A for 1, 2, or 4 cell specific antenna ports */
-static const float pdsch_cfg_cell_specific_ratio_table[2][4] =
-    { /* One antenna port         */ {1.0f / 1.0f, 4.0f / 5.0f, 3.0f / 5.0f, 2.0f / 5.0f},
-      /* Two or more antenna port */ {5.0f / 4.0f, 1.0f / 1.0f, 3.0f / 4.0f, 1.0f / 2.0f}
-    };
+typedef struct SRSLTE_API {
 
+  srslte_tx_scheme_t tx_scheme;
+  uint32_t           pmi;
+  bool               prb_idx[2][SRSLTE_MAX_PRB];
+  uint32_t           nof_prb;
+  uint32_t           nof_re;
+  uint32_t           nof_symb_slot[2];
+  srslte_ra_tb_t     tb[SRSLTE_MAX_CODEWORDS];
+  int                last_tbs[SRSLTE_MAX_CODEWORDS];
+  uint32_t           nof_tb;
+  uint32_t           nof_layers;
+} srslte_pdsch_grant_t;
 
 typedef struct SRSLTE_API {
-  srslte_cbsegm_t cb_segm[SRSLTE_MAX_CODEWORDS];
-  srslte_ra_dl_grant_t grant;
-  srslte_ra_nbits_t nbits[SRSLTE_MAX_CODEWORDS];
-  uint32_t rv[SRSLTE_MAX_CODEWORDS];
-  uint32_t sf_idx;
-  uint32_t nof_layers;
-  uint32_t codebook_idx;
-  srslte_mimo_type_t mimo_type;
-  bool tb_cw_swap;
+
+  srslte_pdsch_grant_t grant;
+
+  uint16_t              rnti;
+  uint32_t              max_nof_iterations;
+  srslte_mimo_decoder_t decoder_type;
+  float                 p_a;
+  uint32_t              p_b;
+  float                 rs_power;
+  bool                  power_scale;
+  bool                  csi_enable;
+
+  union {
+    srslte_softbuffer_tx_t* tx[SRSLTE_MAX_CODEWORDS];
+    srslte_softbuffer_rx_t* rx[SRSLTE_MAX_CODEWORDS];
+  } softbuffers;
+
+  bool     meas_time_en;
+  uint32_t meas_time_value;
+
 } srslte_pdsch_cfg_t;
 
 #endif // SRSLTE_PDSCH_CFG_H
-

@@ -131,7 +131,7 @@ int srslte_pss_init_fft_offset_decim(srslte_pss_t *q,
     }
       
     if (srslte_dft_plan(&q->dftp_input, fft_size, SRSLTE_DFT_FORWARD, SRSLTE_DFT_COMPLEX)) {
-      fprintf(stderr, "Error creating DFT plan \n");
+      ERROR("Error creating DFT plan \n");
       goto clean_and_exit;
     }
     srslte_dft_plan_set_mirror(&q->dftp_input, true);
@@ -139,7 +139,7 @@ int srslte_pss_init_fft_offset_decim(srslte_pss_t *q,
     srslte_dft_plan_set_norm(&q->dftp_input, false);
 
     if (srslte_dft_plan(&q->idftp_input, fft_size, SRSLTE_DFT_BACKWARD, SRSLTE_DFT_COMPLEX)) {
-      fprintf(stderr, "Error creating DFT plan \n");
+      ERROR("Error creating DFT plan \n");
       goto clean_and_exit;
     }
     srslte_dft_plan_set_mirror(&q->idftp_input, true);
@@ -150,7 +150,7 @@ int srslte_pss_init_fft_offset_decim(srslte_pss_t *q,
 
     q->tmp_input = srslte_vec_malloc((buffer_size + frame_size*(q->decimate - 1)) * sizeof(cf_t));
     if (!q->tmp_input) {
-      fprintf(stderr, "Error allocating memory\n");
+      ERROR("Error allocating memory\n");
       goto clean_and_exit;
     }
 
@@ -158,20 +158,20 @@ int srslte_pss_init_fft_offset_decim(srslte_pss_t *q,
 
     q->conv_output = srslte_vec_malloc(buffer_size * sizeof(cf_t));
     if (!q->conv_output) {
-      fprintf(stderr, "Error allocating memory\n");
+      ERROR("Error allocating memory\n");
       goto clean_and_exit;
     }
     bzero(q->conv_output, sizeof(cf_t) * buffer_size);
     q->conv_output_avg = srslte_vec_malloc(buffer_size * sizeof(float));
     if (!q->conv_output_avg) {
-      fprintf(stderr, "Error allocating memory\n");
+      ERROR("Error allocating memory\n");
       goto clean_and_exit;
     }
     bzero(q->conv_output_avg, sizeof(float) * buffer_size);
 #ifdef SRSLTE_PSS_ACCUMULATE_ABS
     q->conv_output_abs = srslte_vec_malloc(buffer_size * sizeof(float));
     if (!q->conv_output_abs) {
-      fprintf(stderr, "Error allocating memory\n");
+      ERROR("Error allocating memory\n");
       goto clean_and_exit;
     }
     bzero(q->conv_output_abs, sizeof(float) * buffer_size);
@@ -180,12 +180,12 @@ int srslte_pss_init_fft_offset_decim(srslte_pss_t *q,
     for (N_id_2=0;N_id_2<3;N_id_2++) {
       q->pss_signal_time[N_id_2] = srslte_vec_malloc(buffer_size * sizeof(cf_t));
       if (!q->pss_signal_time[N_id_2]) {
-        fprintf(stderr, "Error allocating memory\n");
+        ERROR("Error allocating memory\n");
         goto clean_and_exit;
       }
       /* The PSS is translated into the time domain for each N_id_2  */
       if (srslte_pss_init_N_id_2(q->pss_signal_freq[N_id_2], q->pss_signal_time[N_id_2], N_id_2, fft_size, offset)) {
-        fprintf(stderr, "Error initiating PSS detector for N_id_2=%d fft_size=%d\n", N_id_2, fft_size);
+        ERROR("Error initiating PSS detector for N_id_2=%d fft_size=%d\n", N_id_2, fft_size);
         goto clean_and_exit;
       }
       bzero(&q->pss_signal_time[N_id_2][q->fft_size], q->frame_size * sizeof(cf_t));
@@ -194,7 +194,7 @@ int srslte_pss_init_fft_offset_decim(srslte_pss_t *q,
 
 
     if (srslte_conv_fft_cc_init(&q->conv_fft, frame_size, fft_size)) {
-      fprintf(stderr, "Error initiating convolution FFT\n");
+      ERROR("Error initiating convolution FFT\n");
       goto clean_and_exit;
     }
     for(N_id_2=0; N_id_2<3; N_id_2++) {
@@ -232,7 +232,7 @@ int srslte_pss_resize(srslte_pss_t *q, uint32_t frame_size, uint32_t fft_size, i
     ret = SRSLTE_ERROR;
 
     if (fft_size > q->max_fft_size || frame_size > q->max_frame_size) {
-      fprintf(stderr, "Error in pss_config(): fft_size and frame_size must be lower than initialized\n");
+      ERROR("Error in pss_config(): fft_size and frame_size must be lower than initialized\n");
       return SRSLTE_ERROR;
     }
 
@@ -251,12 +251,12 @@ int srslte_pss_resize(srslte_pss_t *q, uint32_t frame_size, uint32_t fft_size, i
     buffer_size = fft_size + frame_size + 1;
 
     if (srslte_dft_replan(&q->dftp_input, fft_size)) {
-      fprintf(stderr, "Error creating DFT plan \n");
+      ERROR("Error creating DFT plan \n");
       return SRSLTE_ERROR;
     }
 
     if (srslte_dft_replan(&q->idftp_input, fft_size)) {
-      fprintf(stderr, "Error creating DFT plan \n");
+      ERROR("Error creating DFT plan \n");
       return SRSLTE_ERROR;
     }
 
@@ -273,7 +273,7 @@ int srslte_pss_resize(srslte_pss_t *q, uint32_t frame_size, uint32_t fft_size, i
     // Generate PSS sequences for this FFT size
     for (N_id_2=0;N_id_2<3;N_id_2++) {
       if (srslte_pss_init_N_id_2(q->pss_signal_freq[N_id_2], q->pss_signal_time[N_id_2], N_id_2, fft_size, offset)) {
-        fprintf(stderr, "Error initiating PSS detector for N_id_2=%d fft_size=%d\n", N_id_2, fft_size);
+        ERROR("Error initiating PSS detector for N_id_2=%d fft_size=%d\n", N_id_2, fft_size);
         return SRSLTE_ERROR;
       }
       bzero(&q->pss_signal_time[N_id_2][q->fft_size], q->frame_size * sizeof(cf_t));
@@ -281,7 +281,7 @@ int srslte_pss_resize(srslte_pss_t *q, uint32_t frame_size, uint32_t fft_size, i
 #ifdef CONVOLUTION_FFT
 
     if (srslte_conv_fft_cc_replan(&q->conv_fft, frame_size, fft_size)) {
-      fprintf(stderr, "Error initiating convolution FFT\n");
+      ERROR("Error initiating convolution FFT\n");
       return SRSLTE_ERROR;
     }
     for(int i =0; i< 3; i++) {
@@ -360,7 +360,7 @@ int srslte_pss_generate(cf_t *signal, uint32_t N_id_2) {
   int sign = -1;
 
   if (N_id_2 > 2) {
-    fprintf(stderr, "Invalid N_id_2 %d\n", N_id_2);
+    ERROR("Invalid N_id_2 %d\n", N_id_2);
     return -1;
   }
 
@@ -397,12 +397,11 @@ void srslte_pss_get_slot(cf_t *slot, cf_t *pss_signal, uint32_t nof_prb, srslte_
   memcpy(pss_signal, &slot[k], SRSLTE_PSS_LEN * sizeof(cf_t));
 }
 
-
-/** Sets the current N_id_2 value. Returns -1 on error, 0 otherwise
+/** Sets the current N_id_2 value. Returns -1 on ERROR(0 otherwise
  */
 int srslte_pss_set_N_id_2(srslte_pss_t *q, uint32_t N_id_2) {
   if (!srslte_N_id_2_isvalid((N_id_2))) {
-    fprintf(stderr, "Invalid N_id_2 %d\n", N_id_2);
+    ERROR("Invalid N_id_2 %d\n", N_id_2);
     return -1;
   } else {
     q->N_id_2 = N_id_2;
@@ -466,7 +465,7 @@ int srslte_pss_find_pss(srslte_pss_t *q, const cf_t *input, float *corr_peak_val
     uint32_t conv_output_len;
 
     if (!srslte_N_id_2_isvalid(q->N_id_2)) {
-      fprintf(stderr, "Error finding PSS peak, Must set N_id_2 first\n");
+      ERROR("Error finding PSS peak, Must set N_id_2 first\n");
       return SRSLTE_ERROR;
     }
 
@@ -552,7 +551,7 @@ int srslte_pss_chest(srslte_pss_t *q, const cf_t *input, cf_t ce[SRSLTE_PSS_LEN]
   {
 
     if (!srslte_N_id_2_isvalid(q->N_id_2)) {
-      fprintf(stderr, "Error finding PSS peak, Must set N_id_2 first\n");
+      ERROR("Error finding PSS peak, Must set N_id_2 first\n");
       return SRSLTE_ERROR;
     }
 
@@ -586,7 +585,7 @@ void srslte_pss_sic(srslte_pss_t *q, cf_t *input) {
     srslte_vec_sub_ccc(input, q->tmp_fft2, input, q->fft_size);
 
   } else {
-    fprintf(stderr, "Error calling srslte_pss_sic(): need to enable channel estimation on filtering\n");
+    ERROR("Error calling srslte_pss_sic(): need to enable channel estimation on filtering\n");
   }
 }
 

@@ -129,8 +129,7 @@ SRSLTE_API void srslte_rf_suppress_stdout(srslte_rf_t *h);
 SRSLTE_API void srslte_rf_register_error_handler(srslte_rf_t *h, 
                                                  srslte_rf_error_handler_t error_handler);
 
-SRSLTE_API double srslte_rf_set_rx_freq(srslte_rf_t *h, 
-                                 double freq);
+SRSLTE_API double srslte_rf_set_rx_freq(srslte_rf_t* h, uint32_t ch, double freq);
 
 SRSLTE_API int srslte_rf_recv(srslte_rf_t *h, 
                        void *data, 
@@ -157,12 +156,11 @@ SRSLTE_API double srslte_rf_set_tx_srate(srslte_rf_t *h,
 SRSLTE_API double srslte_rf_set_tx_gain(srslte_rf_t *h, 
                                  double gain);
 
-SRSLTE_API double srslte_rf_set_tx_freq(srslte_rf_t *h,
-                                 double freq);
+SRSLTE_API double srslte_rf_set_tx_freq(srslte_rf_t* h, uint32_t ch, double freq);
 
-SRSLTE_API void srslte_rf_get_time(srslte_rf_t *h, 
-                            time_t *secs, 
-                            double *frac_secs); 
+SRSLTE_API void srslte_rf_get_time(srslte_rf_t* h, time_t* secs, double* frac_secs);
+
+SRSLTE_API int srslte_rf_sync(srslte_rf_t* rf);
 
 SRSLTE_API int srslte_rf_send(srslte_rf_t *h, 
                        void *data, 

@@ -24,15 +24,16 @@
  *
  */
 
+#include "srslte/common/metrics_hub.h"
+#include "srslte/srslte.h"
+#include "srsue/hdr/metrics_csv.h"
+#include "srsue/hdr/metrics_stdout.h"
+#include "srsue/hdr/ue_metrics_interface.h"
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
 #include <unistd.h>
-#include "srsue/hdr/ue_metrics_interface.h"
-#include "srslte/common/metrics_hub.h"
-#include "srsue/hdr/metrics_stdout.h"
-#include "srsue/hdr/metrics_csv.h"
 
 using namespace srsue;
 
@@ -49,8 +50,15 @@ public:
     // fill dummy values
     bzero(&m, sizeof(ue_metrics_t));
     m.rf.rf_o = 10;
-    m.phy.dl.rsrp = -10.0;
-    m.phy.dl.pathloss = 74;
+    m.phy.nof_active_cc  = 2;
+    m.phy.dl[0].rsrp     = -10.0f;
+    m.phy.dl[0].pathloss = 74;
+    m.mac[0].rx_pkts     = 100;
+    m.mac[0].rx_errors   = 0;
+
+    m.mac[1].rx_pkts   = 100;
+    m.mac[1].rx_errors = 100;
+
     return true;
   }
 

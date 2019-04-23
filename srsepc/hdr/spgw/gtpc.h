@@ -47,7 +47,7 @@ public:
             const std::map<std::string, uint64_t>& ip_to_imsi);
   void stop();
 
-  srslte::error_t init_s11(spgw_args_t *args);
+  srslte::error_t init_s11(spgw_args_t* args);
   srslte::error_t init_ue_ip(spgw_args_t* args, const std::map<std::string, uint64_t>& ip_to_imsi);
 
   int       get_s11();

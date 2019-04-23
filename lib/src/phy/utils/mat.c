@@ -27,7 +27,6 @@
 #include <complex.h>
 #include <math.h>
 
-#include <srslte/config.h>
 #include "srslte/phy/utils/mat.h"
 
 

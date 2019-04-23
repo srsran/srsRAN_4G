@@ -157,8 +157,8 @@ void srslte_agc_process(srslte_agc_t *q, cf_t *signal, uint32_t len) {
         t = (float*) signal; 
         y = t[srslte_vec_max_fi(t, 2*len)];// take only positive max to avoid abs() (should be similar) 
         break;
-      default: 
-        fprintf(stderr, "Unsupported AGC mode\n");
+      default:
+        ERROR("Unsupported AGC mode\n");
         return; 
     }
     
@@ -173,8 +173,8 @@ void srslte_agc_process(srslte_agc_t *q, cf_t *signal, uint32_t len) {
           case SRSLTE_AGC_MODE_PEAK_AMPLITUDE:
             y = q->y_tmp[srslte_vec_max_fi(q->y_tmp, q->nof_frames)];
             break;
-          default: 
-            fprintf(stderr, "Unsupported AGC mode\n");
+          default:
+            ERROR("Unsupported AGC mode\n");
             return; 
         }
       }

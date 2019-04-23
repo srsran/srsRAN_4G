@@ -38,15 +38,14 @@
 
 #define MAX_LEN  70176
 
-
-uint32_t N_ifft_ul        = 1536;
+uint32_t nof_prb          = 50;
 uint32_t config_idx       = 3;
 uint32_t root_seq_idx     = 0;
 uint32_t zero_corr_zone   = 15;
 
 void usage(char *prog) {
   printf("Usage: %s\n", prog);
-  printf("\t-N Uplink IFFT size [Default %d]\n", N_ifft_ul);
+  printf("\t-n Uplink number of PRB [Default %d]\n", nof_prb);
   printf("\t-f Preamble format [Default 0]\n");
   printf("\t-r Root sequence index [Default 0]\n");
   printf("\t-z Zero correlation zone config [Default 1]\n");
@@ -54,49 +53,54 @@ void usage(char *prog) {
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "Nfrz")) != -1) {
+  while ((opt = getopt(argc, argv, "nfrz")) != -1) {
     switch (opt) {
-    case 'N':
-      N_ifft_ul = atoi(argv[optind]);
-      break;
-    case 'f':
-      config_idx = atoi(argv[optind]);
-      break;
-    case 'r':
-      root_seq_idx = atoi(argv[optind]);
-      break;
-    case 'z':
-      zero_corr_zone = atoi(argv[optind]);
-      break;
-    default:
-      usage(argv[0]);
-      exit(-1);
+      case 'n':
+        nof_prb = atoi(argv[optind]);
+        break;
+      case 'f':
+        config_idx = atoi(argv[optind]);
+        break;
+      case 'r':
+        root_seq_idx = atoi(argv[optind]);
+        break;
+      case 'z':
+        zero_corr_zone = atoi(argv[optind]);
+        break;
+      default:
+        usage(argv[0]);
+        exit(-1);
     }
   }
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv)
+{
   parse_args(argc, argv);
-
-  srslte_prach_t *p = (srslte_prach_t*)malloc(sizeof(srslte_prach_t));
+  srslte_prach_t prach;
 
   bool high_speed_flag      = false;
 
   cf_t preamble[MAX_LEN];
   memset(preamble, 0, sizeof(cf_t)*MAX_LEN);
 
-  srslte_prach_init(p, N_ifft_ul);
+  srslte_prach_cfg_t prach_cfg;
+  ZERO_OBJECT(prach_cfg);
+  prach_cfg.config_idx     = config_idx;
+  prach_cfg.hs_flag        = high_speed_flag;
+  prach_cfg.freq_offset    = 0;
+  prach_cfg.root_seq_idx   = root_seq_idx;
+  prach_cfg.zero_corr_zone = zero_corr_zone;
 
-  srslte_prach_set_cell( p,
-                         N_ifft_ul,
-                         config_idx,
-                         root_seq_idx,
-                         high_speed_flag,
-                         zero_corr_zone);
+  if (srslte_prach_init(&prach, srslte_symbol_sz(nof_prb))) {
+    return -1;
+  }
+  if (srslte_prach_set_cfg(&prach, &prach_cfg, nof_prb)) {
+    ERROR("Error initiating PRACH object\n");
+    return -1;
+  }
 
   uint32_t seq_index = 0;
-  uint32_t frequency_offset = 0;
-
   uint32_t indices[64];
   uint32_t n_indices = 0;
   for(int i=0;i<64;i++)
@@ -104,16 +108,13 @@ int main(int argc, char **argv) {
 
   for(seq_index=0;seq_index<64;seq_index++)
   {
-    srslte_prach_gen(p,
-              seq_index,
-              frequency_offset,
-              preamble);
+    srslte_prach_gen(&prach, seq_index, 0, preamble);
 
-    uint32_t prach_len = p->N_seq;
-    
+    uint32_t prach_len = prach.N_seq;
+
     struct timeval t[3];
     gettimeofday(&t[1], NULL);
-    srslte_prach_detect(p, frequency_offset, &preamble[p->N_cp], prach_len, indices, &n_indices);
+    srslte_prach_detect(&prach, 0, &preamble[prach.N_cp], prach_len, indices, &n_indices);
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
     printf("texec=%ld us\n", t[0].tv_usec);
@@ -121,8 +122,7 @@ int main(int argc, char **argv) {
       return -1;
   }
 
-  srslte_prach_free(p);
-  free(p);
+  srslte_prach_free(&prach);
   srslte_dft_exit();
 
   printf("Done\n");

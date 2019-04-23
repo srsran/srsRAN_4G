@@ -57,8 +57,8 @@ bool srslte_pcfich_exists(int nframe, int nslot) {
   return true;
 }
 
-/** Initializes the pcfich channel receiver. 
- * On error, returns -1 and frees the structrure 
+/** Initializes the pcfich channel receiver.
+ * On ERROR returns -1 and frees the structrure
  */
 int srslte_pcfich_init(srslte_pcfich_t *q, uint32_t nof_rx_antennas) {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
@@ -93,7 +93,7 @@ int srslte_pcfich_init(srslte_pcfich_t *q, uint32_t nof_rx_antennas) {
 }
 
 void srslte_pcfich_free(srslte_pcfich_t *q) {
-  for (int ns = 0; ns < SRSLTE_NSUBFRAMES_X_FRAME; ns++) {
+  for (int ns = 0; ns < SRSLTE_NOF_SF_X_FRAME; ns++) {
     srslte_sequence_free(&q->seq[ns]);
   }
   srslte_modem_table_free(&q->mod);
@@ -110,8 +110,8 @@ int srslte_pcfich_set_cell(srslte_pcfich_t *q, srslte_regs_t *regs, srslte_cell_
   {
     q->regs = regs;
     if (cell.id != q->cell.id || q->cell.nof_prb == 0) {
-      memcpy(&q->cell, &cell, sizeof(srslte_cell_t));
-      for (int nsf = 0; nsf < SRSLTE_NSUBFRAMES_X_FRAME; nsf++) {
+      q->cell = cell;
+      for (int nsf = 0; nsf < SRSLTE_NOF_SF_X_FRAME; nsf++) {
         if (srslte_sequence_pcfich(&q->seq[nsf], 2 * nsf, q->cell.id)) {
           return SRSLTE_ERROR;
         }
@@ -158,35 +158,23 @@ int srslte_pcfich_cfi_encode(uint32_t cfi, uint8_t bits[PCFICH_CFI_LEN]) {
   }
 }
 
-int srslte_pcfich_decode(srslte_pcfich_t *q, cf_t *sf_symbols, cf_t *ce[SRSLTE_MAX_PORTS], float noise_estimate,
-    uint32_t nsubframe, uint32_t *cfi, float *corr_result) 
-{
-  cf_t *_sf_symbols[SRSLTE_MAX_PORTS]; 
-  cf_t *_ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
-  
-  _sf_symbols[0] = sf_symbols; 
-  for (int i=0;i<q->cell.nof_ports;i++) {
-    _ce[i][0] = ce[i]; 
-  }
-  return srslte_pcfich_decode_multi(q, _sf_symbols, _ce, noise_estimate, nsubframe, cfi, corr_result);
-}
-
 /* Decodes the PCFICH channel and saves the CFI in the cfi pointer.
  *
  * Returns 1 if successfully decoded the CFI, 0 if not and -1 on error
  */
-int srslte_pcfich_decode_multi(srslte_pcfich_t *q, cf_t *sf_symbols[SRSLTE_MAX_PORTS], cf_t *ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], float noise_estimate,
-                               uint32_t nsubframe, uint32_t *cfi, float *corr_result) 
+int srslte_pcfich_decode(srslte_pcfich_t*       q,
+                         srslte_dl_sf_cfg_t*    sf,
+                         srslte_chest_dl_res_t* channel,
+                         cf_t*                  sf_symbols[SRSLTE_MAX_PORTS],
+                         float*                 corr_result)
 {
 
   /* Set pointers for layermapping & precoding */
-  int i;
-  cf_t *x[SRSLTE_MAX_LAYERS];
-  
-  if (q                 != NULL                 && 
-      sf_symbols      != NULL                 && 
-      nsubframe         <  SRSLTE_NSUBFRAMES_X_FRAME) 
-  {
+  int   i;
+  cf_t* x[SRSLTE_MAX_LAYERS];
+
+  if (q != NULL && sf_symbols != NULL) {
+    uint32_t sf_idx = sf->tti % 10;
 
     /* number of layers equals number of ports */
     for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
@@ -198,9 +186,8 @@ int srslte_pcfich_decode_multi(srslte_pcfich_t *q, cf_t *sf_symbols[SRSLTE_MAX_P
     
     /* extract symbols */
     for (int j=0;j<q->nof_rx_antennas;j++) {
-      if (q->nof_symbols
-          != srslte_regs_pcfich_get(q->regs, sf_symbols[j], q->symbols[j])) {
-        fprintf(stderr, "There was an error getting the PCFICH symbols\n");
+      if (q->nof_symbols != srslte_regs_pcfich_get(q->regs, sf_symbols[j], q->symbols[j])) {
+        ERROR("There was an error getting the PCFICH symbols\n");
         return SRSLTE_ERROR;
       }
 
@@ -208,8 +195,8 @@ int srslte_pcfich_decode_multi(srslte_pcfich_t *q, cf_t *sf_symbols[SRSLTE_MAX_P
 
       /* extract channel estimates */
       for (i = 0; i < q->cell.nof_ports; i++) {
-        if (q->nof_symbols != srslte_regs_pcfich_get(q->regs, ce[i][j], q->ce[i][j])) {
-          fprintf(stderr, "There was an error getting the PCFICH symbols\n");
+        if (q->nof_symbols != srslte_regs_pcfich_get(q->regs, channel->ce[i][j], q->ce[i][j])) {
+          ERROR("There was an error getting the PCFICH symbols\n");
           return SRSLTE_ERROR;
         }
         q_ce[i][j] = q->ce[i][j];
@@ -219,7 +206,8 @@ int srslte_pcfich_decode_multi(srslte_pcfich_t *q, cf_t *sf_symbols[SRSLTE_MAX_P
     /* in control channels, only diversity is supported */
     if (q->cell.nof_ports == 1) {
       /* no need for layer demapping */
-      srslte_predecoding_single_multi(q_symbols, q_ce[0], q->d, NULL, q->nof_rx_antennas, q->nof_symbols, 1.0f, noise_estimate);
+      srslte_predecoding_single_multi(
+          q_symbols, q_ce[0], q->d, NULL, q->nof_rx_antennas, q->nof_symbols, 1.0f, channel->noise_estimate);
     } else {
       srslte_predecoding_diversity_multi(q_symbols, q_ce, x, NULL, q->nof_rx_antennas, q->cell.nof_ports, q->nof_symbols, 1.0f);
       srslte_layerdemap_diversity(x, q->d, q->cell.nof_ports, q->nof_symbols / q->cell.nof_ports);
@@ -229,10 +217,10 @@ int srslte_pcfich_decode_multi(srslte_pcfich_t *q, cf_t *sf_symbols[SRSLTE_MAX_P
     srslte_demod_soft_demodulate(SRSLTE_MOD_QPSK, q->d, q->data_f, q->nof_symbols);
 
     /* Scramble with the sequence for slot nslot */
-    srslte_scrambling_f(&q->seq[nsubframe], q->data_f);
+    srslte_scrambling_f(&q->seq[sf_idx], q->data_f);
 
     /* decode CFI */
-    float corr = srslte_pcfich_cfi_decode(q, cfi);
+    float corr = srslte_pcfich_cfi_decode(q, &sf->cfi);
     if (corr_result) {
       *corr_result = corr;
     }
@@ -245,15 +233,13 @@ int srslte_pcfich_decode_multi(srslte_pcfich_t *q, cf_t *sf_symbols[SRSLTE_MAX_P
 
 /** Encodes CFI and maps symbols to the slot
  */
-int srslte_pcfich_encode(srslte_pcfich_t *q, uint32_t cfi, cf_t *slot_symbols[SRSLTE_MAX_PORTS],
-    uint32_t subframe) {
+int srslte_pcfich_encode(srslte_pcfich_t* q, srslte_dl_sf_cfg_t* sf, cf_t* slot_symbols[SRSLTE_MAX_PORTS])
+{
   int i;
 
-  if (q                 != NULL                 && 
-      cfi               <=  3                    &&
-      slot_symbols      != NULL                 && 
-      subframe         <  SRSLTE_NSUBFRAMES_X_FRAME) 
-  {
+  if (q != NULL && slot_symbols != NULL) {
+
+    uint32_t sf_idx = sf->tti % 10;
 
     /* Set pointers for layermapping & precoding */
     cf_t *x[SRSLTE_MAX_LAYERS];
@@ -268,10 +254,10 @@ int srslte_pcfich_encode(srslte_pcfich_t *q, uint32_t cfi, cf_t *slot_symbols[SR
     }
 
     /* pack CFI */
-    srslte_pcfich_cfi_encode(cfi, q->data);
+    srslte_pcfich_cfi_encode(sf->cfi, q->data);
 
     /* scramble for slot sequence nslot */
-    srslte_scrambling_b(&q->seq[subframe], q->data);
+    srslte_scrambling_b(&q->seq[sf_idx], q->data);
 
     srslte_mod_modulate(&q->mod, q->data, q->d, PCFICH_CFI_LEN);
 
@@ -286,7 +272,7 @@ int srslte_pcfich_encode(srslte_pcfich_t *q, uint32_t cfi, cf_t *slot_symbols[SR
     /* mapping to resource elements */
     for (i = 0; i < q->cell.nof_ports; i++) {
       if (srslte_regs_pcfich_put(q->regs, q->symbols[i], slot_symbols[i]) < 0) {
-        fprintf(stderr, "Error putting PCHICH resource elements\n");
+        ERROR("Error putting PCHICH resource elements\n");
         return SRSLTE_ERROR;
       }
     }

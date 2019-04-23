@@ -34,7 +34,10 @@
 #include <iostream>
 #include <math.h>
 #include <sstream>
+#include <string.h>
 #include <unistd.h>
+
+bool simulate_rlf = false;
 
 using namespace srslte;
 using namespace asn1::rrc;
@@ -63,6 +66,11 @@ rrc::rrc() :
   running = false;
   go_idle = false;
   go_rlf  = false;
+
+  ZERO_OBJECT(current_mac_cfg);
+  ZERO_OBJECT(previous_mac_cfg);
+  ZERO_OBJECT(current_phy_cfg);
+  ZERO_OBJECT(previous_phy_cfg);
 }
 
 rrc::~rrc()
@@ -88,7 +96,7 @@ void rrc::srslte_rrc_log(const char* str)
   if (rrc_log) {
     rrc_log->warning("[ASN]: %s\n", str);
   } else {
-    printf("[ASN]: %s\n", str);
+    rrc_log->console("[ASN]: %s\n", str);
   }
 }
 
@@ -107,9 +115,16 @@ void rrc::log_rrc_message(const std::string source, const direction_t dir, const
   }
 }
 
-void rrc::init(phy_interface_rrc* phy_, mac_interface_rrc* mac_, rlc_interface_rrc* rlc_, pdcp_interface_rrc* pdcp_,
-               nas_interface_rrc* nas_, usim_interface_rrc* usim_, gw_interface_rrc* gw_,
-               mac_interface_timers* mac_timers_, srslte::log* rrc_log_)
+void rrc::init(phy_interface_rrc*    phy_,
+               mac_interface_rrc*    mac_,
+               rlc_interface_rrc*    rlc_,
+               pdcp_interface_rrc*   pdcp_,
+               nas_interface_rrc*    nas_,
+               usim_interface_rrc*   usim_,
+               gw_interface_rrc*     gw_,
+               mac_interface_timers* mac_timers_,
+               srslte::log*          rrc_log_,
+               rrc_args_t*           args_)
 {
   pool = byte_buffer_pool::get_instance();
   phy = phy_;
@@ -123,17 +138,22 @@ void rrc::init(phy_interface_rrc* phy_, mac_interface_rrc* mac_, rlc_interface_r
 
   // Use MAC timers
   mac_timers = mac_timers_;
-  state = RRC_STATE_IDLE;
+  state            = RRC_STATE_IDLE;
   plmn_is_selected = false;
 
   security_is_activated = false;
 
   pthread_mutex_init(&mutex, NULL);
 
-  args.ue_category = SRSLTE_UE_CATEGORY;
-  args.supported_bands[0] = 7;
-  args.nof_supported_bands = 1;
-  args.feature_group = 0xe6041000;
+  if (args_) {
+    args = *args_;
+  } else {
+    args.ue_category_str     = SRSLTE_UE_CATEGORY_DEFAULT;
+    args.ue_category         = strtol(SRSLTE_UE_CATEGORY_DEFAULT, NULL, 10);
+    args.supported_bands[0]  = SRSLTE_RELEASE_DEFAULT;
+    args.nof_supported_bands = 1;
+    args.feature_group       = 0xe6041000;
+  }
 
   t300 = mac_timers->timer_get_unique_id();
   t301 = mac_timers->timer_get_unique_id();
@@ -214,16 +234,21 @@ void rrc::run_thread() {
   }
 }
 
-
 /*
  *
  * RRC State Machine
  *
  */
-void rrc::run_tti(uint32_t tti) {
+void rrc::run_tti(uint32_t tti)
+{
 
   if (!initiated) {
     return;
+  }
+
+  if (simulate_rlf) {
+    radio_link_failure();
+    simulate_rlf = false;
   }
 
   /* We can not block in this thread because it is called from
@@ -494,7 +519,7 @@ bool rrc::connection_request(asn1::rrc::establishment_cause_e cause, srslte::byt
   }
 
   if (!ret) {
-    rrc_log->warning("Could not estblish connection. Deallocating dedicatedInfoNAS PDU\n");
+    rrc_log->warning("Could not establish connection. Deallocating dedicatedInfoNAS PDU\n");
     pool->deallocate(this->dedicated_info_nas);
     this->dedicated_info_nas = NULL;
   }
@@ -534,10 +559,10 @@ bool rrc::configure_serving_cell() {
       rrc_log->info("Cell has SIB%d\n", required_sibs[i]+1);
       switch(required_sibs[i]) {
         case 1:
-          apply_sib2_configs(serving_cell->sib2ptr());
+          handle_sib2();
           break;
         case 12:
-          apply_sib13_configs(serving_cell->sib13ptr());
+          handle_sib13();
           break;
       }
     }
@@ -957,14 +982,15 @@ void rrc::set_serving_cell(uint32_t cell_idx) {
       rrc_log->error("Setting serving cell. Index %d is empty\n", cell_idx);
       return;
     }
-    neighbour_cells.erase(std::remove(neighbour_cells.begin(), neighbour_cells.end(), neighbour_cells[cell_idx]), neighbour_cells.end());
+    neighbour_cells.erase(std::remove(neighbour_cells.begin(), neighbour_cells.end(), neighbour_cells[cell_idx]),
+                          neighbour_cells.end());
 
     // Move serving cell to neighbours list
     if (serving_cell->is_valid()) {
       // Make sure it does not exist already
       int serving_idx = find_neighbour_cell(serving_cell->get_earfcn(), serving_cell->get_pci());
       if (serving_idx >= 0 && (uint32_t) serving_idx < neighbour_cells.size()) {
-        printf("Error serving cell is already in the neighbour list. Removing it\n");
+        rrc_log->error("Error serving cell is already in the neighbour list. Removing it\n");
         neighbour_cells.erase(std::remove(neighbour_cells.begin(), neighbour_cells.end(), neighbour_cells[serving_idx]), neighbour_cells.end());
       }
       // If not in the list, add it to the list of neighbours (sorted inside the function)
@@ -1200,10 +1226,9 @@ void rrc::radio_link_failure() {
 /* Reception of PUCCH/SRS release procedure (Section 5.3.13) */
 void rrc::release_pucch_srs() {
   // Apply default configuration for PUCCH (CQI and SR) and SRS (release)
-  set_phy_default_pucch_srs();
-
-  // Configure RX signals without pregeneration because default option is release
-  phy->configure_ul_params(true);
+  if (initiated) {
+    set_phy_default_pucch_srs();
+  }
 }
 
 void rrc::ra_problem() {
@@ -1536,7 +1561,13 @@ bool rrc::ho_prepare()
     phy->reset();
 
     mac->set_ho_rnti(mob_ctrl_info->new_ue_id.to_number(), mob_ctrl_info->target_pci);
-    apply_rr_config_common_dl(&mob_ctrl_info->rr_cfg_common);
+
+    // Apply common config, but do not send to lower layers if Dedicated is present (to avoid sending twice)
+    apply_rr_config_common(&mob_ctrl_info->rr_cfg_common, !mob_reconf_r8->rr_cfg_ded_present);
+
+    if (mob_reconf_r8->rr_cfg_ded_present) {
+      apply_rr_config_dedicated(&mob_reconf_r8->rr_cfg_ded);
+    }
 
     if (!phy->cell_select(&neighbour_cells[target_cell_idx]->phy_cell)) {
       rrc_log->error("Could not synchronize with target cell pci=%d. Trying to return to source PCI\n",
@@ -1594,11 +1625,6 @@ void rrc::ho_ra_completed(bool ra_successful) {
       }
 
       mac_timers->timer_get(t304)->stop();
-
-      apply_rr_config_common_ul(&mob_reconf_r8->mob_ctrl_info.rr_cfg_common);
-      if (mob_reconf_r8->rr_cfg_ded_present) {
-        apply_rr_config_dedicated(&mob_reconf_r8->rr_cfg_ded);
-      }
     }
     // T304 will expiry and send ho_failure
 
@@ -1641,6 +1667,24 @@ bool rrc::con_reconfig(asn1::rrc::rrc_conn_recfg_s* reconfig)
       return false;
     }
   }
+  if (reconfig_r8->non_crit_ext_present) {
+    rrc_conn_recfg_v890_ies_s* reconfig_r890 = &reconfig_r8->non_crit_ext;
+    if (reconfig_r890->non_crit_ext_present) {
+      rrc_conn_recfg_v920_ies_s* reconfig_r920 = &reconfig_r890->non_crit_ext;
+      if (reconfig_r920->non_crit_ext_present) {
+        rrc_conn_recfg_v1020_ies_s* reconfig_r1020 = &reconfig_r920->non_crit_ext;
+        if (reconfig_r1020->s_cell_to_add_mod_list_r10_present) {
+          for (uint32_t i = 0; i < reconfig_r1020->s_cell_to_add_mod_list_r10.size(); i++) {
+            phy->set_config_scell(&reconfig_r1020->s_cell_to_add_mod_list_r10[i]);
+          }
+        }
+
+        if (reconfig_r1020->s_cell_to_release_list_r10_present) {
+          rrc_log->console("s_cell_to_release_list_r10 not handled\n");
+        }
+      }
+    }
+  }
   if (reconfig_r8->meas_cfg_present) {
     if (!measurements.parse_meas_config(&reconfig_r8->meas_cfg)) {
       return false;
@@ -1675,7 +1719,11 @@ void rrc::con_reconfig_failed()
 {
   // Set previous PHY/MAC configuration
   phy->set_config(&previous_phy_cfg);
-  mac->set_config(&previous_mac_cfg);
+  mac->set_config(previous_mac_cfg);
+
+  // And restore current configs
+  current_mac_cfg = previous_mac_cfg;
+  current_phy_cfg = previous_phy_cfg;
 
   if (security_is_activated) {
     // Start the Reestablishment Procedure
@@ -1687,8 +1735,8 @@ void rrc::con_reconfig_failed()
 
 void rrc::handle_rrc_con_reconfig(uint32_t lcid, asn1::rrc::rrc_conn_recfg_s* reconfig)
 {
-  phy->get_config(&previous_phy_cfg);
-  mac->get_config(&previous_mac_cfg);
+  previous_phy_cfg = current_phy_cfg;
+  previous_mac_cfg = current_mac_cfg;
 
   asn1::rrc::rrc_conn_recfg_r8_ies_s* reconfig_r8 = &reconfig->crit_exts.c1().rrc_conn_recfg_r8();
   if (reconfig_r8->mob_ctrl_info_present) {
@@ -1753,14 +1801,16 @@ void rrc::stop_timers()
 *
 *
 *******************************************************************************/
-void rrc::write_pdu_bcch_bch(byte_buffer_t *pdu) {
+void rrc::write_pdu_bcch_bch(byte_buffer_t* pdu)
+{
   // Do we need to do something with BCH?
   rrc_log->info_hex(pdu->msg, pdu->N_bytes, "BCCH BCH message received.");
   pool->deallocate(pdu);
 }
 
 void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu) {
-  mac->clear_rntis();
+  // Stop BCCH search after successful reception of 1 BCCH block
+  mac->bcch_stop_rx();
 
   asn1::rrc::bcch_dl_sch_msg_s dlsch_msg;
   asn1::bit_ref                dlsch_bref(pdu->msg, pdu->N_bytes);
@@ -1833,8 +1883,42 @@ void rrc::handle_sib2()
 {
   rrc_log->info("SIB2 received\n");
 
-  apply_sib2_configs(serving_cell->sib2ptr());
+  sib_type2_s* sib2 = serving_cell->sib2ptr();
 
+  // Apply RACH and timeAlginmentTimer configuration
+  current_mac_cfg.set_rach_cfg_common(sib2->rr_cfg_common.rach_cfg_common);
+  current_mac_cfg.set_time_alignment(sib2->time_align_timer_common);
+  mac->set_config(current_mac_cfg);
+
+  // Set MBSFN configs
+  phy->set_config_mbsfn_sib2(sib2);
+
+  // Apply PHY RR Config Common
+  current_phy_cfg.common.pdsch_cnfg  = sib2->rr_cfg_common.pdsch_cfg_common;
+  current_phy_cfg.common.pusch_cnfg  = sib2->rr_cfg_common.pusch_cfg_common;
+  current_phy_cfg.common.pucch_cnfg  = sib2->rr_cfg_common.pucch_cfg_common;
+  current_phy_cfg.common.ul_pwr_ctrl = sib2->rr_cfg_common.ul_pwr_ctrl_common;
+  current_phy_cfg.common.prach_cnfg  = sib2->rr_cfg_common.prach_cfg;
+  current_phy_cfg.common.srs_ul_cnfg = sib2->rr_cfg_common.srs_ul_cfg_common;
+
+  phy->set_config(&current_phy_cfg);
+
+  log_rr_config_common();
+
+  mac_timers->timer_get(t300)->set(this, sib2->ue_timers_and_consts.t300.to_number());
+  mac_timers->timer_get(t301)->set(this, sib2->ue_timers_and_consts.t301.to_number());
+  mac_timers->timer_get(t310)->set(this, sib2->ue_timers_and_consts.t310.to_number());
+  mac_timers->timer_get(t311)->set(this, sib2->ue_timers_and_consts.t311.to_number());
+  N310 = sib2->ue_timers_and_consts.n310.to_number();
+  N311 = sib2->ue_timers_and_consts.n311.to_number();
+
+  rrc_log->info("Set Constants and Timers: N310=%d, N311=%d, t300=%d, t301=%d, t310=%d, t311=%d\n",
+                N310,
+                N311,
+                mac_timers->timer_get(t300)->get_timeout(),
+                mac_timers->timer_get(t301)->get_timeout(),
+                mac_timers->timer_get(t310)->get_timeout(),
+                mac_timers->timer_get(t311)->get_timeout());
 }
 
 void rrc::handle_sib3()
@@ -1850,18 +1934,22 @@ void rrc::handle_sib3()
   cell_resel_cfg.threshservinglow = sib3->thresh_serving_low_q_r9; // TODO: Check first if present
 
   // intraFreqCellReselectionInfo
-  cell_resel_cfg.Qrxlevmin = sib3->intra_freq_cell_resel_info.q_rx_lev_min;
+  cell_resel_cfg.Qrxlevmin = sib3->intra_freq_cell_resel_info.q_rx_lev_min * 2; // multiply by two
   if (sib3->intra_freq_cell_resel_info.s_intra_search_present) {
     cell_resel_cfg.s_intrasearchP = sib3->intra_freq_cell_resel_info.s_intra_search;
   } else {
-    cell_resel_cfg.s_intrasearchP  = INFINITY;
+    cell_resel_cfg.s_intrasearchP = INFINITY;
   }
 }
 
 void rrc::handle_sib13()
 {
   rrc_log->info("SIB13 received\n");
-  apply_sib13_configs(serving_cell->sib13ptr());
+
+  sib_type13_r9_s* sib13 = serving_cell->sib13ptr();
+
+  phy->set_config_mbsfn_sib13(sib13);
+  add_mrb(0, 0); // Add MRB0
 }
 
 /*******************************************************************************
@@ -1918,7 +2006,7 @@ void rrc::process_pcch(byte_buffer_t *pdu) {
     }
 
     if (paging->sys_info_mod_present) {
-      rrc_log->info("Received System Information notifcation update request.\n");
+      rrc_log->info("Received System Information notification update request.\n");
       // invalidate and then update all SIBs of serving cell
       serving_cell->reset_sibs();
       if (configure_serving_cell()) {
@@ -2027,7 +2115,10 @@ void rrc::write_pdu(uint32_t lcid, byte_buffer_t* pdu)
     // FIXME: We unpack and process this message twice to check if it's ConnectionSetup
     asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
     asn1::rrc::dl_ccch_msg_s dl_ccch_msg;
-    dl_ccch_msg.unpack(bref);
+    if (dl_ccch_msg.unpack(bref) != asn1::SRSASN_SUCCESS) {
+      rrc_log->error("Failed to unpack DL-CCCH message\n");
+      return;
+    }
     if (dl_ccch_msg.msg.c1().type() == dl_ccch_msg_type_c::c1_c_::types::rrc_conn_setup) {
       // Must enter CONNECT before stopping T300
       state = RRC_STATE_CONNECTED;
@@ -2066,7 +2157,11 @@ void rrc::parse_dl_ccch(byte_buffer_t* pdu)
 {
   asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
   asn1::rrc::dl_ccch_msg_s dl_ccch_msg;
-  dl_ccch_msg.unpack(bref);
+  if (dl_ccch_msg.unpack(bref) != asn1::SRSASN_SUCCESS) {
+    rrc_log->error("Failed to unpack DL-CCCH message\n");
+    pool->deallocate(pdu);
+    return;
+  }
   log_rrc_message(get_rb_name(RB_ID_SRB0).c_str(), Rx, pdu, dl_ccch_msg);
   pool->deallocate(pdu);
 
@@ -2114,7 +2209,10 @@ void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t* pdu)
 {
   asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
   asn1::rrc::dl_dcch_msg_s dl_dcch_msg;
-  dl_dcch_msg.unpack(bref);
+  if (dl_dcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS) {
+    rrc_log->error("Failed to unpack DL-DCCH message\n");
+    return;
+  }
   log_rrc_message(get_rb_name(lcid).c_str(), Rx, pdu, dl_dcch_msg);
   pool->deallocate(pdu);
 
@@ -2201,7 +2299,6 @@ void rrc::enable_capabilities()
   bool enable_ul_64 =
       args.ue_category >= 5 && serving_cell->sib2ptr()->rr_cfg_common.pusch_cfg_common.pusch_cfg_basic.enable64_qam;
   rrc_log->info("%s 64QAM PUSCH\n", enable_ul_64 ? "Enabling" : "Disabling");
-  phy->set_config_64qam_en(enable_ul_64);
 }
 
 void rrc::send_rrc_ue_cap_info()
@@ -2219,10 +2316,41 @@ void rrc::send_rrc_ue_cap_info()
   info->ue_cap_rat_container_list.resize(1);
   info->ue_cap_rat_container_list[0].rat_type = rat_type_e::eutra;
 
+  // Check UE config arguments bounds
+  if (args.release < SRSLTE_RELEASE_MIN || args.release > SRSLTE_RELEASE_MAX) {
+    uint32_t new_release = SRSLTE_MIN(SRSLTE_RELEASE_MAX, SRSLTE_MAX(SRSLTE_RELEASE_MIN, args.release));
+    rrc_log->error("Release is %d. It is out of bounds (%d ... %d), setting it to %d\n",
+                   args.release,
+                   SRSLTE_RELEASE_MIN,
+                   SRSLTE_RELEASE_MAX,
+                   new_release);
+    args.release = new_release;
+  }
+
+  args.ue_category = (uint32_t)strtol(args.ue_category_str.c_str(), NULL, 10);
+  if (args.ue_category < SRSLTE_UE_CATEGORY_MIN || args.ue_category > SRSLTE_UE_CATEGORY_MAX) {
+    uint32_t new_category = SRSLTE_MIN(SRSLTE_UE_CATEGORY_MAX, SRSLTE_MAX(SRSLTE_UE_CATEGORY_MIN, args.ue_category));
+    rrc_log->error("UE Category is %d. It is out of bounds (%d ... %d), setting it to %d\n",
+                   args.ue_category,
+                   SRSLTE_UE_CATEGORY_MIN,
+                   SRSLTE_UE_CATEGORY_MAX,
+                   new_category);
+    args.ue_category = new_category;
+  }
+
   ue_eutra_cap_s cap;
-  cap.access_stratum_release                            = access_stratum_release_e::rel8;
-  cap.ue_category                                       = (uint8_t)args.ue_category;
+  cap.access_stratum_release = (access_stratum_release_e::options)(args.release - SRSLTE_RELEASE_MIN);
+  cap.ue_category            = (uint8_t)SRSLTE_MAX(1, SRSLTE_MIN(5, args.ue_category));
   cap.pdcp_params.max_num_rohc_context_sessions_present = false;
+  cap.pdcp_params.supported_rohc_profiles.profile0x0001_r15 = false;
+  cap.pdcp_params.supported_rohc_profiles.profile0x0002_r15 = false;
+  cap.pdcp_params.supported_rohc_profiles.profile0x0003_r15 = false;
+  cap.pdcp_params.supported_rohc_profiles.profile0x0004_r15 = false;
+  cap.pdcp_params.supported_rohc_profiles.profile0x0006_r15 = false;
+  cap.pdcp_params.supported_rohc_profiles.profile0x0101_r15 = false;
+  cap.pdcp_params.supported_rohc_profiles.profile0x0102_r15 = false;
+  cap.pdcp_params.supported_rohc_profiles.profile0x0103_r15 = false;
+  cap.pdcp_params.supported_rohc_profiles.profile0x0104_r15 = false;
 
   cap.phy_layer_params.ue_specific_ref_sigs_supported = false;
   cap.phy_layer_params.ue_tx_ant_sel_supported        = false;
@@ -2239,6 +2367,77 @@ void rrc::send_rrc_ue_cap_info()
   cap.feature_group_inds_present = true;
   cap.feature_group_inds.from_number(args.feature_group);
 
+  if (args.release > 8) {
+    ue_eutra_cap_v920_ies_s cap_v920;
+
+    cap_v920.phy_layer_params_v920.enhanced_dual_layer_fdd_r9_present                        = false;
+    cap_v920.phy_layer_params_v920.enhanced_dual_layer_tdd_r9_present                        = false;
+    cap_v920.inter_rat_params_geran_v920.dtm_r9_present                                      = false;
+    cap_v920.inter_rat_params_geran_v920.e_redirection_geran_r9_present                      = false;
+    cap_v920.csg_proximity_ind_params_r9.inter_freq_proximity_ind_r9_present                 = false;
+    cap_v920.csg_proximity_ind_params_r9.intra_freq_proximity_ind_r9_present                 = false;
+    cap_v920.csg_proximity_ind_params_r9.utran_proximity_ind_r9_present                      = false;
+    cap_v920.neigh_cell_si_acquisition_params_r9.inter_freq_si_acquisition_for_ho_r9_present = false;
+    cap_v920.neigh_cell_si_acquisition_params_r9.intra_freq_si_acquisition_for_ho_r9_present = false;
+    cap_v920.neigh_cell_si_acquisition_params_r9.utran_si_acquisition_for_ho_r9_present      = false;
+    cap_v920.son_params_r9.rach_report_r9_present                                            = false;
+
+    cap.non_crit_ext_present = true;
+    cap.non_crit_ext         = cap_v920;
+  }
+
+  if (args.release > 9) {
+
+    phy_layer_params_v1020_s phy_layer_params_v1020;
+    phy_layer_params_v1020.two_ant_ports_for_pucch_r10_present             = false;
+    phy_layer_params_v1020.tm9_with_minus8_tx_fdd_r10_present              = false;
+    phy_layer_params_v1020.pmi_disabling_r10_present                       = false;
+    phy_layer_params_v1020.cross_carrier_sched_r10_present                 = args.support_ca;
+    phy_layer_params_v1020.simul_pucch_pusch_r10_present                   = false;
+    phy_layer_params_v1020.multi_cluster_pusch_within_cc_r10_present       = false;
+    phy_layer_params_v1020.non_contiguous_ul_ra_within_cc_list_r10_present = false;
+
+    band_combination_params_r10_l combination_params;
+    if (args.support_ca) {
+      for (uint32_t i = 0; i < args.nof_supported_bands; i++) {
+        ca_mimo_params_dl_r10_s ca_mimo_params_dl;
+        ca_mimo_params_dl.ca_bw_class_dl_r10                = ca_bw_class_r10_e::f;
+        ca_mimo_params_dl.supported_mimo_cap_dl_r10_present = false;
+
+        ca_mimo_params_ul_r10_s ca_mimo_params_ul;
+        ca_mimo_params_ul.ca_bw_class_ul_r10                = ca_bw_class_r10_e::f;
+        ca_mimo_params_ul.supported_mimo_cap_ul_r10_present = false;
+
+        band_params_r10_s band_params;
+        band_params.band_eutra_r10             = args.supported_bands[i];
+        band_params.band_params_dl_r10_present = true;
+        band_params.band_params_dl_r10.push_back(ca_mimo_params_dl);
+        band_params.band_params_ul_r10_present = true;
+        band_params.band_params_ul_r10.push_back(ca_mimo_params_ul);
+
+        combination_params.push_back(band_params);
+      }
+    }
+
+    rf_params_v1020_s rf_params;
+    rf_params.supported_band_combination_r10.push_back(combination_params);
+
+    ue_eutra_cap_v1020_ies_s cap_v1020;
+    cap_v1020.ue_category_v1020_present      = true;
+    cap_v1020.ue_category_v1020              = (uint8_t)SRSLTE_MAX(6, SRSLTE_MIN(8, args.ue_category));
+    cap_v1020.phy_layer_params_v1020_present = true;
+    cap_v1020.phy_layer_params_v1020         = phy_layer_params_v1020;
+    cap_v1020.rf_params_v1020_present        = args.support_ca;
+    cap_v1020.rf_params_v1020                = rf_params;
+
+    ue_eutra_cap_v940_ies_s cap_v940;
+    cap_v940.non_crit_ext_present = true;
+    cap_v940.non_crit_ext         = cap_v1020;
+
+    cap.non_crit_ext.non_crit_ext_present = true;
+    cap.non_crit_ext.non_crit_ext         = cap_v940;
+  }
+
   // Pack caps and copy to cap info
   uint8_t       buf[64];
   asn1::bit_ref bref(buf, sizeof(buf));
@@ -2252,162 +2451,152 @@ void rrc::send_rrc_ue_cap_info()
 }
 
 /*******************************************************************************
-*
-*
-*
-* PHY and MAC Radio Resource configuration
-*
-*
-*
-*******************************************************************************/
+ *
+ *
+ *
+ * PHY and MAC Radio Resource configuration
+ *
+ *
+ *
+ *******************************************************************************/
 
-void rrc::apply_rr_config_common_dl(rr_cfg_common_s* config)
+void rrc::log_rr_config_common()
 {
-  mac_interface_rrc::mac_cfg_t mac_cfg;
-  mac->get_config(&mac_cfg);
+  rrc_log->info("Set RACH ConfigCommon: NofPreambles=%d, ResponseWindow=%d, ContentionResolutionTimer=%d ms\n",
+                current_mac_cfg.get_rach_cfg().nof_preambles,
+                current_mac_cfg.get_rach_cfg().responseWindowSize,
+                current_mac_cfg.get_rach_cfg().contentionResolutionTimer);
+
+  rrc_log->info("Set PUSCH ConfigCommon: HopOffset=%d, RSGroup=%d, RSNcs=%d, N_sb=%d\n",
+                current_phy_cfg.common.pusch_cnfg.pusch_cfg_basic.pusch_hop_offset,
+                current_phy_cfg.common.pusch_cnfg.ul_ref_sigs_pusch.group_assign_pusch,
+                current_phy_cfg.common.pusch_cnfg.ul_ref_sigs_pusch.cyclic_shift,
+                current_phy_cfg.common.pusch_cnfg.pusch_cfg_basic.n_sb);
+
+  rrc_log->info("Set PUCCH ConfigCommon: DeltaShift=%d, CyclicShift=%d, N1=%d, NRB=%d\n",
+                current_phy_cfg.common.pucch_cnfg.delta_pucch_shift.to_number(),
+                current_phy_cfg.common.pucch_cnfg.n_cs_an,
+                current_phy_cfg.common.pucch_cnfg.n1_pucch_an,
+                current_phy_cfg.common.pucch_cnfg.n_rb_cqi);
+
+  rrc_log->info("Set PRACH ConfigCommon: SeqIdx=%d, HS=%s, FreqOffset=%d, ZC=%d, ConfigIndex=%d\n",
+                current_phy_cfg.common.prach_cnfg.root_seq_idx,
+                current_phy_cfg.common.prach_cnfg.prach_cfg_info.high_speed_flag ? "yes" : "no",
+                current_phy_cfg.common.prach_cnfg.prach_cfg_info.prach_freq_offset,
+                current_phy_cfg.common.prach_cnfg.prach_cfg_info.zero_correlation_zone_cfg,
+                current_phy_cfg.common.prach_cnfg.prach_cfg_info.prach_cfg_idx);
+
+  if (current_phy_cfg.common.srs_ul_cnfg.type() == setup_e::setup) {
+    rrc_log->info("Set SRS ConfigCommon: BW-Configuration=%d, SF-Configuration=%d, ACKNACK=%s\n",
+                  current_phy_cfg.common.srs_ul_cnfg.setup().srs_bw_cfg.to_number(),
+                  current_phy_cfg.common.srs_ul_cnfg.setup().srs_sf_cfg.to_number(),
+                  current_phy_cfg.common.srs_ul_cnfg.setup().ack_nack_srs_simul_tx ? "yes" : "no");
+  }
+}
+
+void rrc::apply_rr_config_common(rr_cfg_common_s* config, bool send_lower_layers)
+{
   if (config->rach_cfg_common_present) {
-    mac_cfg.rach                            = config->rach_cfg_common;
-    mac_cfg.ul_harq_params.max_harq_msg3_tx = config->rach_cfg_common.max_harq_msg3_tx;
+    current_mac_cfg.set_rach_cfg_common(config->rach_cfg_common);
   }
-  mac_cfg.prach_config_index = config->prach_cfg.root_seq_idx;
 
-  mac->set_config(&mac_cfg);
+  phy_interface_rrc::phy_cfg_common_t* common = &current_phy_cfg.common;
 
-  phy_interface_rrc::phy_cfg_t phy_cfg;
-  phy->get_config(&phy_cfg);
-  phy_interface_rrc::phy_cfg_common_t* common = &phy_cfg.common;
-
-  if (config->pdsch_cfg_common_present) {
-    common->pdsch_cnfg = config->pdsch_cfg_common;
-  }
-  common->prach_cnfg.root_seq_idx = config->prach_cfg.root_seq_idx;
   if (config->prach_cfg.prach_cfg_info_present) {
     common->prach_cnfg.prach_cfg_info = config->prach_cfg.prach_cfg_info;
   }
-
-  phy->set_config_common(common);
-}
-
-void rrc::apply_rr_config_common_ul(rr_cfg_common_s* config)
-{
-  phy_interface_rrc::phy_cfg_t phy_cfg;
-  phy->get_config(&phy_cfg);
-  phy_interface_rrc::phy_cfg_common_t* common = &phy_cfg.common;
-
+  common->prach_cnfg.root_seq_idx = config->prach_cfg.root_seq_idx;
+  if (config->pdsch_cfg_common_present) {
+    common->pdsch_cnfg = config->pdsch_cfg_common;
+  }
   common->pusch_cnfg = config->pusch_cfg_common;
+  if (config->phich_cfg_present) {
+    common->phich_cnfg = config->phich_cfg;
+  }
   if (config->pucch_cfg_common_present) {
     common->pucch_cnfg = config->pucch_cfg_common;
-  }
-  if (config->ul_pwr_ctrl_common_present) {
-    common->ul_pwr_ctrl = config->ul_pwr_ctrl_common;
   }
   if (config->srs_ul_cfg_common_present) {
     common->srs_ul_cnfg = config->srs_ul_cfg_common;
   }
-  phy->set_config_common(common);
-  phy->configure_ul_params();
+  if (config->ul_pwr_ctrl_common_present) {
+    common->ul_pwr_ctrl = config->ul_pwr_ctrl_common;
+  }
+  // TODO: p_max, antenna_info, tdd...
+
+  log_rr_config_common();
+
+  if (send_lower_layers) {
+    mac->set_config(current_mac_cfg);
+    phy->set_config(&current_phy_cfg);
+  }
 }
 
-void rrc::apply_sib2_configs(sib_type2_s* sib2)
+void rrc::log_phy_config_dedicated()
 {
+  if (!rrc_log) {
+    return;
+  }
+  phys_cfg_ded_s* current_cfg = &current_phy_cfg.dedicated;
 
-  // Apply RACH timeAlginmentTimer configuration
-  mac_interface_rrc::mac_cfg_t cfg;
-  mac->get_config(&cfg);
-
-  cfg.main.time_align_timer_ded       = sib2->time_align_timer_common;
-  cfg.rach                            = sib2->rr_cfg_common.rach_cfg_common;
-  cfg.prach_config_index              = sib2->rr_cfg_common.prach_cfg.root_seq_idx;
-  cfg.ul_harq_params.max_harq_msg3_tx = cfg.rach.max_harq_msg3_tx;
-  // Apply MBSFN configuration
-  //  cfg.mbsfn_subfr_cnfg_list_size = sib2->mbsfn_subfr_cnfg_list_size;
-  //  for(uint8_t i=0;i<sib2->mbsfn_subfr_cnfg_list_size;i++) {
-  //    memcpy(&cfg.mbsfn_subfr_cnfg_list[i], &sib2->mbsfn_subfr_cnfg_list[i],
-  //    sizeof(LIBLTE_RRC_MBSFN_SUBFRAME_CONFIG_STRUCT));
-  //  }
-
-  // Set MBSFN configs
-  phy->set_config_mbsfn_sib2(sib2);
-
-  mac->set_config(&cfg);
-
-  rrc_log->info("Set RACH ConfigCommon: NofPreambles=%d, ResponseWindow=%d, ContentionResolutionTimer=%d ms\n",
-                sib2->rr_cfg_common.rach_cfg_common.preamb_info.nof_ra_preambs.to_number(),
-                sib2->rr_cfg_common.rach_cfg_common.ra_supervision_info.ra_resp_win_size.to_number(),
-                sib2->rr_cfg_common.rach_cfg_common.ra_supervision_info.mac_contention_resolution_timer.to_number());
-
-  // Apply PHY RR Config Common
-  phy_interface_rrc::phy_cfg_common_t common;
-  common.pdsch_cnfg  = sib2->rr_cfg_common.pdsch_cfg_common;
-  common.pusch_cnfg  = sib2->rr_cfg_common.pusch_cfg_common;
-  common.pucch_cnfg  = sib2->rr_cfg_common.pucch_cfg_common;
-  common.ul_pwr_ctrl = sib2->rr_cfg_common.ul_pwr_ctrl_common;
-  common.prach_cnfg  = sib2->rr_cfg_common.prach_cfg;
-  common.srs_ul_cnfg = sib2->rr_cfg_common.srs_ul_cfg_common;
-  phy->set_config_common(&common);
-
-  phy->configure_ul_params();
-
-  rrc_log->info("Set PUSCH ConfigCommon: HopOffset=%d, RSGroup=%d, RSNcs=%d, N_sb=%d\n",
-                sib2->rr_cfg_common.pusch_cfg_common.pusch_cfg_basic.pusch_hop_offset,
-                sib2->rr_cfg_common.pusch_cfg_common.ul_ref_sigs_pusch.group_assign_pusch,
-                sib2->rr_cfg_common.pusch_cfg_common.ul_ref_sigs_pusch.cyclic_shift,
-                sib2->rr_cfg_common.pusch_cfg_common.pusch_cfg_basic.n_sb);
-
-  rrc_log->info("Set PUCCH ConfigCommon: DeltaShift=%d, CyclicShift=%d, N1=%d, NRB=%d\n",
-                sib2->rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number(),
-                sib2->rr_cfg_common.pucch_cfg_common.n_cs_an, sib2->rr_cfg_common.pucch_cfg_common.n1_pucch_an,
-                sib2->rr_cfg_common.pucch_cfg_common.n_rb_cqi);
-
-  rrc_log->info("Set PRACH ConfigCommon: SeqIdx=%d, HS=%s, FreqOffset=%d, ZC=%d, ConfigIndex=%d\n",
-                sib2->rr_cfg_common.prach_cfg.root_seq_idx,
-                sib2->rr_cfg_common.prach_cfg.prach_cfg_info.high_speed_flag ? "yes" : "no",
-                sib2->rr_cfg_common.prach_cfg.prach_cfg_info.prach_freq_offset,
-                sib2->rr_cfg_common.prach_cfg.prach_cfg_info.zero_correlation_zone_cfg,
-                sib2->rr_cfg_common.prach_cfg.prach_cfg_info.prach_cfg_idx);
-
-  if (sib2->rr_cfg_common.srs_ul_cfg_common.type() == setup_e::setup) {
-    rrc_log->info("Set SRS ConfigCommon: BW-Configuration=%d, SF-Configuration=%d, ACKNACK=%s\n",
-                  sib2->rr_cfg_common.srs_ul_cfg_common.setup().srs_bw_cfg.to_number(),
-                  sib2->rr_cfg_common.srs_ul_cfg_common.setup().srs_sf_cfg.to_number(),
-                  sib2->rr_cfg_common.srs_ul_cfg_common.setup().ack_nack_srs_simul_tx ? "yes" : "no");
+  if (current_cfg->pdsch_cfg_ded_present) {
+    rrc_log->info("Set PDSCH-Config=%s (present)\n", current_cfg->pdsch_cfg_ded.p_a.to_string().c_str());
   }
 
-  mac_timers->timer_get(t300)->set(this, sib2->ue_timers_and_consts.t300.to_number());
-  mac_timers->timer_get(t301)->set(this, sib2->ue_timers_and_consts.t301.to_number());
-  mac_timers->timer_get(t310)->set(this, sib2->ue_timers_and_consts.t310.to_number());
-  mac_timers->timer_get(t311)->set(this, sib2->ue_timers_and_consts.t311.to_number());
-  N310 = sib2->ue_timers_and_consts.n310.to_number();
-  N311 = sib2->ue_timers_and_consts.n311.to_number();
+  if (current_cfg->cqi_report_cfg_present) {
+    if (current_cfg->cqi_report_cfg.cqi_report_periodic_present and
+        current_cfg->cqi_report_cfg.cqi_report_periodic.type() == setup_e::setup) {
+      rrc_log->info(
+          "Set cqi-PUCCH-ResourceIndex=%d, cqi-pmi-ConfigIndex=%d, cqi-FormatIndicatorPeriodic=%s\n",
+          current_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pucch_res_idx,
+          current_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pmi_cfg_idx,
+          current_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_format_ind_periodic.type().to_string().c_str());
+    }
+    if (current_cfg->cqi_report_cfg.cqi_report_mode_aperiodic_present) {
+      rrc_log->info("Set cqi-ReportModeAperiodic=%s\n",
+                    current_cfg->cqi_report_cfg.cqi_report_mode_aperiodic.to_string().c_str());
+    }
+  }
 
-  rrc_log->info("Set Constants and Timers: N310=%d, N311=%d, t300=%d, t301=%d, t310=%d, t311=%d\n", N310, N311,
-                mac_timers->timer_get(t300)->get_timeout(), mac_timers->timer_get(t301)->get_timeout(),
-                mac_timers->timer_get(t310)->get_timeout(), mac_timers->timer_get(t311)->get_timeout());
-}
+  if (current_cfg->sched_request_cfg_present and current_cfg->sched_request_cfg.type() == setup_e::setup) {
+    rrc_log->info("Set PHY config ded: SR-n_pucch=%d, SR-ConfigIndex=%d, SR-TransMax=%d\n",
+                  current_cfg->sched_request_cfg.setup().sr_pucch_res_idx,
+                  current_cfg->sched_request_cfg.setup().sr_cfg_idx,
+                  current_cfg->sched_request_cfg.setup().dsr_trans_max.to_number());
+  }
 
-void rrc::apply_sib13_configs(sib_type13_r9_s* sib13)
-{
-  phy->set_config_mbsfn_sib13(sib13);
-  add_mrb(0, 0); // Add MRB0
+  if (current_cfg->srs_ul_cfg_ded_present and current_cfg->srs_ul_cfg_ded.type() == setup_e::setup) {
+    rrc_log->info("Set PHY config ded: SRS-ConfigIndex=%d, SRS-bw=%s, SRS-Nrcc=%d, SRS-hop=%s, SRS-Ncs=%s\n",
+                  current_cfg->srs_ul_cfg_ded.setup().srs_cfg_idx,
+                  current_cfg->srs_ul_cfg_ded.setup().srs_bw.to_string().c_str(),
+                  current_cfg->srs_ul_cfg_ded.setup().freq_domain_position,
+                  current_cfg->srs_ul_cfg_ded.setup().srs_hop_bw.to_string().c_str(),
+                  current_cfg->srs_ul_cfg_ded.setup().cyclic_shift.to_string().c_str());
+  }
 }
 
 // Go through all information elements and apply defaults (9.2.4) if not defined
 void rrc::apply_phy_config_dedicated(phys_cfg_ded_s* phy_cnfg, bool apply_defaults)
 {
   // Get current configuration
-  phys_cfg_ded_s*              current_cfg;
-  phy_interface_rrc::phy_cfg_t c;
-  phy->get_config(&c);
-  current_cfg = &c.dedicated;
+  phys_cfg_ded_s* current_cfg = &current_phy_cfg.dedicated;
 
-  current_cfg->pucch_cfg_ded_present = true;
   if (phy_cnfg->pucch_cfg_ded_present) {
+    current_cfg->pucch_cfg_ded_present = true;
     current_cfg->pucch_cfg_ded = phy_cnfg->pucch_cfg_ded;
   } else if (apply_defaults) {
     current_cfg->pucch_cfg_ded.tdd_ack_nack_feedback_mode_present = true;
     current_cfg->pucch_cfg_ded.tdd_ack_nack_feedback_mode = pucch_cfg_ded_s::tdd_ack_nack_feedback_mode_e_::bundling;
     current_cfg->pucch_cfg_ded.ack_nack_repeat.set(setup_e::release);
   }
+
+  if (phy_cnfg->pucch_cfg_ded_v1020_present) {
+    current_cfg->pucch_cfg_ded_v1020_present = true;
+    current_cfg->pucch_cfg_ded_v1020         = phy_cnfg->pucch_cfg_ded_v1020;
+  } else if (apply_defaults) {
+    current_cfg->pucch_cfg_ded_v1020_present = false;
+  }
+
   current_cfg->pusch_cfg_ded_present = true;
   if (phy_cnfg->pusch_cfg_ded_present) {
     current_cfg->pusch_cfg_ded = phy_cnfg->pusch_cfg_ded;
@@ -2465,27 +2654,14 @@ void rrc::apply_phy_config_dedicated(phys_cfg_ded_s* phy_cnfg, bool apply_defaul
   } else if (apply_defaults) {
     current_cfg->srs_ul_cfg_ded.set(setup_e::release);
   }
-  current_cfg->ant_info_present = true;
-  current_cfg->ant_info.set(phys_cfg_ded_s::ant_info_c_::types::explicit_value);
-  if (phy_cnfg->ant_info_present) {
-    if (phy_cnfg->ant_info.type() == phys_cfg_ded_s::ant_info_c_::types::explicit_value) {
-      if (phy_cnfg->ant_info.explicit_value().tx_mode != ant_info_ded_s::tx_mode_e_::tm1 and
-          phy_cnfg->ant_info.explicit_value().tx_mode != ant_info_ded_s::tx_mode_e_::tm2 and
-          phy_cnfg->ant_info.explicit_value().tx_mode != ant_info_ded_s::tx_mode_e_::tm3 and
-          phy_cnfg->ant_info.explicit_value().tx_mode != ant_info_ded_s::tx_mode_e_::tm4) {
-        rrc_log->error("Transmission mode TM%s not currently supported by srsUE\n",
-                       phy_cnfg->ant_info.explicit_value().tx_mode.to_string().c_str());
-      }
-      current_cfg->ant_info.explicit_value() = phy_cnfg->ant_info.explicit_value();
-    } else if (apply_defaults) {
-      current_cfg->ant_info.explicit_value().tx_mode                          = ant_info_ded_s::tx_mode_e_::tm2;
-      current_cfg->ant_info.explicit_value().codebook_subset_restrict_present = false;
-      current_cfg->ant_info.explicit_value().ue_tx_ant_sel.set(setup_e::release);
-    }
-  } else if (apply_defaults) {
+  if (apply_defaults) {
+    current_cfg->ant_info_present = true;
+    current_cfg->ant_info.set(phys_cfg_ded_s::ant_info_c_::types::explicit_value);
     current_cfg->ant_info.explicit_value().tx_mode                          = ant_info_ded_s::tx_mode_e_::tm2;
     current_cfg->ant_info.explicit_value().codebook_subset_restrict_present = false;
     current_cfg->ant_info.explicit_value().ue_tx_ant_sel.set(setup_e::release);
+  } else {
+    current_cfg->ant_info = phy_cnfg->ant_info;
   }
   if (phy_cnfg->sched_request_cfg_present and phy_cnfg->sched_request_cfg.type() == setup_e::setup) {
     current_cfg->sched_request_cfg_present = true;
@@ -2496,104 +2672,46 @@ void rrc::apply_phy_config_dedicated(phys_cfg_ded_s* phy_cnfg, bool apply_defaul
   current_cfg->pdsch_cfg_ded_present = true;
   if (phy_cnfg->pdsch_cfg_ded_present) {
     current_cfg->pdsch_cfg_ded = phy_cnfg->pdsch_cfg_ded;
-    rrc_log->info("Set PDSCH-Config=%s (present)\n", current_cfg->pdsch_cfg_ded.p_a.to_string().c_str());
   } else if (apply_defaults) {
     current_cfg->pdsch_cfg_ded.p_a = pdsch_cfg_ded_s::p_a_e_::db0;
-    rrc_log->info("Set PDSCH-Config=%s (default)\n", current_cfg->pdsch_cfg_ded.p_a.to_string().c_str());
   }
 
-  if (phy_cnfg->cqi_report_cfg_present) {
-    if (phy_cnfg->cqi_report_cfg.cqi_report_periodic_present and
-        phy_cnfg->cqi_report_cfg.cqi_report_periodic.type() == setup_e::setup) {
-      rrc_log->info(
-          "Set cqi-PUCCH-ResourceIndex=%d, cqi-pmi-ConfigIndex=%d, cqi-FormatIndicatorPeriodic=%s\n",
-          current_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pucch_res_idx,
-          current_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pmi_cfg_idx,
-          current_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_format_ind_periodic.type().to_string().c_str());
-    }
-    if (phy_cnfg->cqi_report_cfg.cqi_report_mode_aperiodic_present) {
-      rrc_log->info("Set cqi-ReportModeAperiodic=%s\n",
-                    current_cfg->cqi_report_cfg.cqi_report_mode_aperiodic.to_string().c_str());
-    }
+  log_phy_config_dedicated();
+
+  if (phy != nullptr) {
+    phy->set_config(&current_phy_cfg);
+  } else {
+    rrc_log->info("RRC not initialized. Skipping default PHY config.\n");
   }
-
-  if (current_cfg->sched_request_cfg_present and current_cfg->sched_request_cfg.type() == setup_e::setup) {
-    rrc_log->info("Set PHY config ded: SR-n_pucch=%d, SR-ConfigIndex=%d, SR-TransMax=%d\n",
-                  current_cfg->sched_request_cfg.setup().sr_pucch_res_idx,
-                  current_cfg->sched_request_cfg.setup().sr_cfg_idx,
-                  current_cfg->sched_request_cfg.setup().dsr_trans_max.to_number());
-  }
-
-  if (current_cfg->srs_ul_cfg_ded_present and current_cfg->srs_ul_cfg_ded.type() == setup_e::setup) {
-    rrc_log->info("Set PHY config ded: SRS-ConfigIndex=%d, SRS-bw=%s, SRS-Nrcc=%d, SRS-hop=%s, SRS-Ncs=%s\n",
-                  current_cfg->srs_ul_cfg_ded.setup().srs_cfg_idx,
-                  current_cfg->srs_ul_cfg_ded.setup().srs_bw.to_string().c_str(),
-                  current_cfg->srs_ul_cfg_ded.setup().freq_domain_position,
-                  current_cfg->srs_ul_cfg_ded.setup().srs_hop_bw.to_string().c_str(),
-                  current_cfg->srs_ul_cfg_ded.setup().cyclic_shift.to_string().c_str());
-  }
-
-  phy->set_config_dedicated(current_cfg);
-
-  // Apply changes to PHY
-  phy->configure_ul_params();
 }
 
-void rrc::apply_mac_config_dedicated(mac_main_cfg_s* mac_cnfg, bool apply_defaults)
+void rrc::log_mac_config_dedicated()
 {
-  // Set Default MAC main configuration (9.2.2)
-  mac_main_cfg_s default_cfg;
-  default_cfg.ul_sch_cfg_present            = true;
-  default_cfg.ul_sch_cfg.max_harq_tx        = mac_main_cfg_s::ul_sch_cfg_s_::max_harq_tx_e_::n5;
-  default_cfg.ul_sch_cfg.periodic_bsr_timer = periodic_bsr_timer_r12_e::infinity;
-  default_cfg.ul_sch_cfg.retx_bsr_timer     = retx_bsr_timer_r12_e::sf2560;
-  default_cfg.ul_sch_cfg.tti_bundling       = false;
-  default_cfg.drx_cfg.set(setup_e::release);
-  default_cfg.phr_cfg.set(setup_e::release);
-  default_cfg.time_align_timer_ded = time_align_timer_e::infinity;
-
-  if (!apply_defaults) {
-    if (mac_cnfg->ul_sch_cfg_present) {
-      if (mac_cnfg->ul_sch_cfg.max_harq_tx_present) {
-        default_cfg.ul_sch_cfg.max_harq_tx         = mac_cnfg->ul_sch_cfg.max_harq_tx;
-        default_cfg.ul_sch_cfg.max_harq_tx_present = true;
-      }
-      if (mac_cnfg->ul_sch_cfg.periodic_bsr_timer_present) {
-        default_cfg.ul_sch_cfg.periodic_bsr_timer         = mac_cnfg->ul_sch_cfg.periodic_bsr_timer;
-        default_cfg.ul_sch_cfg.periodic_bsr_timer_present = true;
-      }
-      default_cfg.ul_sch_cfg.retx_bsr_timer = mac_cnfg->ul_sch_cfg.retx_bsr_timer;
-      default_cfg.ul_sch_cfg.tti_bundling   = mac_cnfg->ul_sch_cfg.tti_bundling;
-    }
-    if (mac_cnfg->drx_cfg_present) {
-      default_cfg.drx_cfg         = mac_cnfg->drx_cfg;
-      default_cfg.drx_cfg_present = true;
-    }
-    if (mac_cnfg->phr_cfg_present) {
-      default_cfg.phr_cfg         = mac_cnfg->phr_cfg;
-      default_cfg.phr_cfg_present = true;
-    }
-    default_cfg.time_align_timer_ded = mac_cnfg->time_align_timer_ded;
-  }
-
-  // Setup MAC configuration
-  mac->set_config_main(&default_cfg);
-
-  // Update UL HARQ config
-  mac_interface_rrc::mac_cfg_t cfg;
-  mac->get_config(&cfg);
-  cfg.ul_harq_params.max_harq_tx = default_cfg.ul_sch_cfg.max_harq_tx.to_number();
-  mac->set_config(&cfg);
-
   rrc_log->info("Set MAC main config: harq-MaxReTX=%d, bsr-TimerReTX=%d, bsr-TimerPeriodic=%d\n",
-                default_cfg.ul_sch_cfg.max_harq_tx.to_number(), default_cfg.ul_sch_cfg.retx_bsr_timer.to_number(),
-                default_cfg.ul_sch_cfg.periodic_bsr_timer.to_number());
-  if (default_cfg.phr_cfg_present and default_cfg.phr_cfg.type() == setup_e::setup) {
+                current_mac_cfg.get_harq_cfg().max_harq_msg3_tx,
+                current_mac_cfg.get_bsr_cfg().retx_timer,
+                current_mac_cfg.get_bsr_cfg().periodic_timer);
+  if (current_mac_cfg.get_phr_cfg().enabled) {
     rrc_log->info("Set MAC PHR config: periodicPHR-Timer=%d, prohibitPHR-Timer=%d, dl-PathlossChange=%d\n",
-                  default_cfg.phr_cfg.setup().periodic_phr_timer.to_number(),
-                  default_cfg.phr_cfg.setup().prohibit_phr_timer.to_number(),
-                  default_cfg.phr_cfg.setup().dl_pathloss_change.to_number());
+                  current_mac_cfg.get_phr_cfg().periodic_timer,
+                  current_mac_cfg.get_phr_cfg().prohibit_timer,
+                  current_mac_cfg.get_phr_cfg().db_pathloss_change);
   }
+}
+
+void rrc::apply_mac_config_dedicated_default()
+{
+  rrc_log->info("Set MAC default configuration\n");
+  current_mac_cfg.set_defaults();
+  mac->set_config(current_mac_cfg);
+  log_mac_config_dedicated();
+}
+
+void rrc::apply_mac_config_dedicated_explicit(mac_main_cfg_s mac_cnfg)
+{
+  current_mac_cfg.set_mac_main_cfg(mac_cnfg);
+  mac->set_config(current_mac_cfg);
+  log_mac_config_dedicated();
 }
 
 bool rrc::apply_rr_config_dedicated(rr_cfg_ded_s* cnfg)
@@ -2602,13 +2720,20 @@ bool rrc::apply_rr_config_dedicated(rr_cfg_ded_s* cnfg)
     apply_phy_config_dedicated(&cnfg->phys_cfg_ded, false);
     // Apply SR configuration to MAC
     if (cnfg->phys_cfg_ded.sched_request_cfg_present) {
-      mac->set_config_sr(&cnfg->phys_cfg_ded.sched_request_cfg);
+      current_mac_cfg.set_sched_request_cfg(cnfg->phys_cfg_ded.sched_request_cfg);
     }
   }
 
   if (cnfg->mac_main_cfg_present) {
-    apply_mac_config_dedicated(&cnfg->mac_main_cfg.explicit_value(),
-                               cnfg->mac_main_cfg.type() == rr_cfg_ded_s::mac_main_cfg_c_::types::default_value);
+    if (cnfg->mac_main_cfg.type() == rr_cfg_ded_s::mac_main_cfg_c_::types::default_value) {
+      apply_mac_config_dedicated_default();
+    } else {
+      apply_mac_config_dedicated_explicit(cnfg->mac_main_cfg.explicit_value());
+    }
+  } else if (cnfg->phys_cfg_ded.sched_request_cfg_present) {
+    // If MAC-main not set but SR config is set, use directly mac->set_config to update confi
+    mac->set_config(current_mac_cfg);
+    log_mac_config_dedicated();
   }
 
   if (cnfg->sps_cfg_present) {
@@ -2662,6 +2787,19 @@ void rrc::handle_con_reest(rrc_conn_reest_s* setup)
 
   pdcp->reestablish();
   rlc->reestablish();
+
+  // Update RRC Integrity keys
+  int ncc = setup->crit_exts.c1().rrc_conn_reest_r8().next_hop_chaining_count;
+  usim->generate_as_keys_ho(serving_cell->get_pci(),
+                            phy->get_current_earfcn(),
+                            ncc,
+                            k_rrc_enc,
+                            k_rrc_int,
+                            k_up_enc,
+                            k_up_int,
+                            cipher_algo,
+                            integ_algo);
+  pdcp->config_security_all(k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo);
 
   // Apply the Radio Resource configuration
   apply_rr_config_dedicated(&setup->crit_exts.c1().rrc_conn_reest_r8().rr_cfg_ded);
@@ -2804,31 +2942,21 @@ void rrc::add_mrb(uint32_t lcid, uint32_t port)
 // PHY CONFIG DEDICATED Defaults (3GPP 36.331 v10 9.2.4)
 void rrc::set_phy_default_pucch_srs() {
 
-  phy_interface_rrc::phy_cfg_t current_cfg;
-  phy->get_config(&current_cfg);
-
   // Set defaults to CQI, SRS and SR
-  current_cfg.dedicated.cqi_report_cfg_present    = false;
-  current_cfg.dedicated.srs_ul_cfg_ded_present    = false;
-  current_cfg.dedicated.sched_request_cfg_present = false;
+  current_phy_cfg.dedicated.cqi_report_cfg_present    = false;
+  current_phy_cfg.dedicated.srs_ul_cfg_ded_present    = false;
+  current_phy_cfg.dedicated.sched_request_cfg_present = false;
 
-  apply_phy_config_dedicated(&current_cfg.dedicated, true);
-
-  // Release SR configuration from MAC
-  sched_request_cfg_c cfg;
-  mac->set_config_sr(&cfg);
+  apply_phy_config_dedicated(&current_phy_cfg.dedicated, true);
+  apply_mac_config_dedicated_default();
 }
 
 void rrc::set_phy_default() {
-  phys_cfg_ded_s defaults;
-  apply_phy_config_dedicated(&defaults, true);
+  apply_phy_config_dedicated(&current_phy_cfg.dedicated, true);
 }
 
 void rrc::set_mac_default() {
-  apply_mac_config_dedicated(NULL, true);
-  sched_request_cfg_c sr_cfg;
-  sr_cfg.set(setup_e::release);
-  mac->set_config_sr(&sr_cfg);
+  apply_mac_config_dedicated_default();
 }
 
 void rrc::set_rrc_default() {
@@ -3487,7 +3615,6 @@ void rrc::rrc_meas::update_phy()
   }
 }
 
-
 uint8_t rrc::rrc_meas::value_to_range(quantity_t quant, float value) {
   uint8_t range = 0;
   switch(quant) {
@@ -3510,7 +3637,7 @@ uint8_t rrc::rrc_meas::value_to_range(quantity_t quant, float value) {
       }
       break;
     case BOTH:
-      printf("Error quantity both not supported in value_to_range\n");
+      log_h->error("Error quantity both not supported in value_to_range\n");
       break;
   }
   return range;
@@ -3527,7 +3654,7 @@ float rrc::rrc_meas::range_to_value(quantity_t quant, uint8_t range)
       val = -19.5f + (float)range / 2;
       break;
     case BOTH:
-      printf("Error quantity both not supported in range_to_value\n");
+      log_h->error("Error quantity both not supported in range_to_value\n");
       break;
   }
   return val;

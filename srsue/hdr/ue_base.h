@@ -60,26 +60,22 @@ typedef struct {
   float         freq_offset;
   float         rx_gain;
   float         tx_gain;
-  uint32_t      nof_rx_ant;
+  uint32_t      nof_radios;
+  uint32_t      nof_rf_channels; // Number of RF channels per radio
+  uint32_t      nof_rx_ant;      // Number of RF channels for MIMO
   std::string   device_name;
-  std::string   device_args;
+  std::string   device_args[SRSLTE_MAX_RADIOS];
   std::string   time_adv_nsamples;
   std::string   burst_preamble;
   std::string   continuous_tx;
-}rf_args_t;
+} rf_args_t;
 
 typedef struct {
   bool          enable;
   std::string   filename;
   bool          nas_enable;
   std::string   nas_filename;
-}pcap_args_t;
-
-typedef struct {
-  bool          enable;
-  std::string   phy_filename;
-  std::string   radio_filename;
-}trace_args_t;
+} pcap_args_t;
 
 typedef struct {
   std::string   phy_level;
@@ -103,7 +99,7 @@ typedef struct {
   int           all_hex_limit;
   int           file_max_size;
   std::string   filename;
-}log_args_t;
+} log_args_t;
 
 typedef struct {
   bool          enable;
@@ -119,20 +115,18 @@ typedef struct {
   bool          metrics_csv_enable;
   std::string   metrics_csv_filename;
   int           mbms_service;
-}expert_args_t;
+} expert_args_t;
 
 typedef struct {
   rf_args_t     rf;
   pcap_args_t   pcap;
-  trace_args_t  trace;
   log_args_t    log;
   gui_args_t    gui;
   usim_args_t   usim;
   rrc_args_t    rrc;
-  std::string   ue_category_str;
   nas_args_t    nas;
   expert_args_t expert;
-}all_args_t;
+} all_args_t;
 
 typedef enum {
   LTE = 0,

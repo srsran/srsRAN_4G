@@ -28,10 +28,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <strings.h>
-#include <srslte/srslte.h>
 
-#include "srslte/phy/utils/vector.h"
 #include "srslte/phy/fec/turbodecoder.h"
+#include "srslte/phy/utils/vector.h"
+#include "srslte/srslte.h"
 
 #define debug_enabled 0
 
@@ -193,18 +193,18 @@ int srslte_tdec_init_manual(srslte_tdec_t * h, uint32_t max_long_cb, srslte_tdec
       h->dec8[0] = &sse8_win_impl;
       h->current_llr_type = SRSLTE_TDEC_8;
       break;
-#endif
+#endif /* LV_HAVE_SSE */
 #ifdef HAVE_NEON
     case SRSLTE_TDEC_NEON_WINDOW:
       h->dec16[0] = &arm16_win_impl;
       h->current_llr_type = SRSLTE_TDEC_16;
       break;
-#else
+#else  /* HAVE_NEON */
     case SRSLTE_TDEC_GENERIC:
       h->dec16[0] = &gen_impl;
       h->current_llr_type = SRSLTE_TDEC_16;
       break;
-#endif
+#endif /* HAVE_NEON */
 #ifdef LV_HAVE_AVX2
     case SRSLTE_TDEC_AVX_WINDOW:
       h->dec16[0] = &avx16_win_impl;
@@ -214,9 +214,9 @@ int srslte_tdec_init_manual(srslte_tdec_t * h, uint32_t max_long_cb, srslte_tdec
       h->dec8[0] = &avx8_win_impl;
       h->current_llr_type = SRSLTE_TDEC_8;
       break;
-#endif
+#endif /* LV_HAVE_AVX2 */
     default:
-      fprintf(stderr, "Error decoder %d not supported\n", dec_type);
+      ERROR("Error decoder %d not supported\n", dec_type);
       goto clean_and_exit;
   }
   
@@ -274,12 +274,12 @@ int srslte_tdec_init_manual(srslte_tdec_t * h, uint32_t max_long_cb, srslte_tdec
 #ifdef LV_HAVE_AVX2
     h->dec16[AUTO_16_AVXWIN] = &avx16_win_impl;
     h->dec8[AUTO_8_AVXWIN]  = &avx8_win_impl;
-#endif
-#else 
+#endif /* LV_HAVE_AVX2 */
+#else  /* HAVE_NEON | LV_HAVE_SSE */
     h->dec16[AUTO_16_SSE] = &gen_impl;
     h->dec16[AUTO_16_SSEWIN] = &gen_impl;
-#endif /* HAVE_NEON */
-    
+#endif /* HAVE_NEON | LV_HAVE_SSE */
+
     for (int td=0;td<SRSLTE_TDEC_NOF_AUTO_MODES_16;td++) {
       if (h->dec16[td]) {
         if ((h->nof_blocks16[td] = h->dec16[td]->tdec_init(&h->dec16_hdlr[td], h->max_long_cb))<0) {
@@ -420,7 +420,7 @@ static int tdec_sb_idx(uint32_t long_cb) {
     case 0:
       return AUTO_16_SSE;
   }
-  fprintf(stderr, "Error in tdec_sb_idx() invalid nof_sb=%d\n", nof_sb);
+  ERROR("Error in tdec_sb_idx() invalid nof_sb=%d\n", nof_sb);
   return 0;
 }
 
@@ -452,7 +452,7 @@ static int tdec_sb_idx_8(uint32_t long_cb) {
     case 0:
       return 10+AUTO_16_SSE;
   }
-  fprintf(stderr, "Error in tdec_sb_idx_8() invalid nof_sb=%d\n", nof_sb);
+  ERROR("Error in tdec_sb_idx_8() invalid nof_sb=%d\n", nof_sb);
   return 0;
 }
 
@@ -527,8 +527,7 @@ static void tdec_iteration_16(srslte_tdec_t * h, int16_t * input)
 int srslte_tdec_new_cb(srslte_tdec_t * h, uint32_t long_cb)
 {
   if (long_cb > h->max_long_cb) {
-    fprintf(stderr, "TDEC was initialized for max_long_cb=%d\n",
-            h->max_long_cb);
+    ERROR("TDEC was initialized for max_long_cb=%d\n", h->max_long_cb);
     return -1;
   }
 
@@ -536,7 +535,7 @@ int srslte_tdec_new_cb(srslte_tdec_t * h, uint32_t long_cb)
   h->current_long_cb = long_cb;
   h->current_cbidx   = srslte_cbsegm_cbindex(long_cb);
   if (h->current_cbidx < 0) {
-    fprintf(stderr, "Invalid CB length %d\n", long_cb);
+    ERROR("Invalid CB length %d\n", long_cb);
     return -1;
   }
   return 0;

@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
 
   fft_size = srslte_symbol_sz(nof_prb);
   if (fft_size < 0) {
-    fprintf(stderr, "Invalid nof_prb=%d\n", nof_prb);
+    ERROR("Invalid nof_prb=%d\n", nof_prb);
     exit(-1);
   }
 
@@ -110,12 +110,12 @@ int main(int argc, char **argv) {
   }
 
   if (srslte_ofdm_tx_init(&ifft, cp, buffer, fft_buffer, nof_prb)) {
-    fprintf(stderr, "Error creating iFFT object\n");
+    ERROR("Error creating iFFT object\n");
     exit(-1);
   }
 
   if (srslte_sync_init(&syncobj, FLEN, FLEN, fft_size)) {
-    fprintf(stderr, "Error initiating PSS/SSS\n");
+    ERROR("Error initiating PSS/SSS\n");
     return -1;
   }
   
@@ -158,7 +158,7 @@ int main(int argc, char **argv) {
       bzero(fft_buffer, sizeof(cf_t) * offset);
 
       if (srslte_sync_find(&syncobj, fft_buffer, 0, &find_idx) < 0) {
-        fprintf(stderr, "Error running srslte_sync_find\n");
+        ERROR("Error running srslte_sync_find\n");
         exit(-1);
       }
       find_sf = srslte_sync_get_sf_idx(&syncobj);

@@ -52,7 +52,9 @@ sib2 =
         };
         pdsch_cnfg = 
         {
-            p_b = 0; 
+            /* Warning: Currently disabled and forced to p_b=1 for TM2/3/4 and p_b=0 for TM1
+             */
+            p_b = 1;
             rs_power = 0;
         };
         pusch_cnfg = 

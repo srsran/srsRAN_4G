@@ -90,7 +90,7 @@ public:
 private:
   virtual ~ue();
 
-  srslte::radio_multi radio;
+  srslte::radio      radios[SRSLTE_MAX_RADIOS];
   srsue::phy         phy;
   srsue::mac         mac;
   srslte::mac_pcap   mac_pcap;

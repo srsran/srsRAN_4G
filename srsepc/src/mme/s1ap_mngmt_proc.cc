@@ -221,7 +221,7 @@ bool s1ap_mngmt_proc::pack_s1_setup_response(s1ap_args_t s1ap_args, srslte::byte
   memcpy(s1_resp->MMEname.buffer, s1ap_args.mme_name.c_str(), s1ap_args.mme_name.length());
 
   // Served GUMEIs
-  s1_resp->ServedGUMMEIs.len = 1; // TODO Only one served GUMMEI supported
+  s1_resp->ServedGUMMEIs.len                        = 1; // TODO Only one served GUMMEI supported
   LIBLTE_S1AP_SERVEDGUMMEISITEM_STRUCT* serv_gummei = &s1_resp->ServedGUMMEIs.buffer[0];
 
   serv_gummei->ext                   = false;
@@ -235,8 +235,8 @@ bool s1ap_mngmt_proc::pack_s1_setup_response(s1ap_args_t s1ap_args, srslte::byte
   serv_gummei->servedPLMNs.buffer[0].buffer[1] = ((uint8_t*)&plmn)[2];
   serv_gummei->servedPLMNs.buffer[0].buffer[2] = ((uint8_t*)&plmn)[3];
 
-  serv_gummei->servedGroupIDs.len = 1; // LIBLTE_S1AP_SERVEDGROUPIDS_STRUCT
-  uint16_t tmp                    = htons(s1ap_args.mme_group);
+  serv_gummei->servedGroupIDs.len                 = 1; // LIBLTE_S1AP_SERVEDGROUPIDS_STRUCT
+  uint16_t tmp                                    = htons(s1ap_args.mme_group);
   serv_gummei->servedGroupIDs.buffer[0].buffer[0] = ((uint8_t*)&tmp)[0];
   serv_gummei->servedGroupIDs.buffer[0].buffer[1] = ((uint8_t*)&tmp)[1];
 
@@ -244,7 +244,7 @@ bool s1ap_mngmt_proc::pack_s1_setup_response(s1ap_args_t s1ap_args, srslte::byte
   serv_gummei->servedMMECs.buffer[0].buffer[0] = s1ap_args.mme_code;
 
   s1_resp->RelativeMMECapacity.RelativeMMECapacity = 255;
-  s1_resp->MMERelaySupportIndicator_present = false;
+  s1_resp->MMERelaySupportIndicator_present        = false;
   s1_resp->CriticalityDiagnostics_present = false;
 
   liblte_s1ap_pack_s1ap_pdu(&pdu, (LIBLTE_BYTE_MSG_STRUCT*)msg);

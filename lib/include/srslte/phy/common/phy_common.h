@@ -42,13 +42,15 @@
 
 #include "srslte/config.h"
 
-#define SRSLTE_NSUBFRAMES_X_FRAME  10
-#define SRSLTE_NSLOTS_X_FRAME      (2*SRSLTE_NSUBFRAMES_X_FRAME)
+#define SRSLTE_NOF_SF_X_FRAME 10
+#define SRSLTE_NSLOTS_X_FRAME (2 * SRSLTE_NOF_SF_X_FRAME)
 
 #define SRSLTE_NSOFT_BITS  250368 // Soft buffer size for Category 1 UE
 
 #define SRSLTE_PC_MAX 23         // Maximum TX power for Category 1 UE (in dBm)
 
+#define SRSLTE_MAX_RADIOS 3   // Maximum number of supported RF devices
+#define SRSLTE_MAX_CARRIERS 5 // Maximum number of supported simultaneous carriers
 #define SRSLTE_MAX_PORTS     4
 #define SRSLTE_MAX_LAYERS    4
 #define SRSLTE_MAX_CODEWORDS 2
@@ -66,9 +68,8 @@
 #define SRSLTE_MAX_MBSFN_AREA_IDS 256
 #define SRSLTE_PMCH_RV            0
 
-typedef enum {SRSLTE_CP_NORM, SRSLTE_CP_EXT} srslte_cp_t;
-typedef enum {SRSLTE_SF_NORM, SRSLTE_SF_MBSFN} srslte_sf_t;
-
+typedef enum { SRSLTE_CP_NORM = 0, SRSLTE_CP_EXT } srslte_cp_t;
+typedef enum { SRSLTE_SF_NORM = 0, SRSLTE_SF_MBSFN } srslte_sf_t;
 
 #define SRSLTE_CRNTI_START  0x000B
 #define SRSLTE_CRNTI_END    0xFFF3
@@ -78,7 +79,14 @@ typedef enum {SRSLTE_SF_NORM, SRSLTE_SF_MBSFN} srslte_sf_t;
 #define SRSLTE_PRNTI        0xFFFE
 #define SRSLTE_MRNTI        0xFFFD
 
-#define SRSLTE_CELL_ID_UNKNOWN         1000
+#define SRSLTE_RNTI_ISRAR(rnti) (rnti >= SRSLTE_RARNTI_START && rnti <= SRSLTE_RARNTI_END)
+#define SRSLTE_RNTI_ISUSER(rnti) (rnti >= SRSLTE_CRNTI_START && rnti <= SRSLTE_CRNTI_END)
+#define SRSLTE_RNTI_ISSI(rnti) (rnti == SRSLTE_SIRNTI)
+#define SRSLTE_RNTI_ISPA(rnti) (rnti == SRSLTE_PRNTI)
+#define SRSLTE_RNTI_ISMBSFN(rnti) (rnti == SRSLTE_MRNTI)
+#define SRSLTE_RNTI_ISSIRAPA(rnti) (SRSLTE_RNTI_ISSI(rnti) || SRSLTE_RNTI_ISRAR(rnti) || SRSLTE_RNTI_ISPA(rnti))
+
+#define SRSLTE_CELL_ID_UNKNOWN 1000
 
 #define SRSLTE_MAX_NSYMB     7
 
@@ -105,15 +113,19 @@ typedef enum {SRSLTE_SF_NORM, SRSLTE_SF_MBSFN} srslte_sf_t;
 #define SRSLTE_CP_LEN_NORM(symbol, symbol_sz) (((symbol)==0)?SRSLTE_CP_LEN((symbol_sz),SRSLTE_CP_NORM_0_LEN):SRSLTE_CP_LEN((symbol_sz),SRSLTE_CP_NORM_LEN))
 #define SRSLTE_CP_LEN_EXT(symbol_sz)          (SRSLTE_CP_LEN((symbol_sz),SRSLTE_CP_EXT_LEN))
 
-#define SRSLTE_SLOT_LEN(symbol_sz)     (symbol_sz*15/2)
-#define SRSLTE_SF_LEN(symbol_sz)       (symbol_sz*15)
-#define SRSLTE_SF_LEN_MAX              (SRSLTE_SF_LEN(SRSLTE_SYMBOL_SZ_MAX))
+#define SRSLTE_CP_SZ(symbol_sz, cp)                                                                                    \
+  (SRSLTE_CP_LEN(symbol_sz, (SRSLTE_CP_ISNORM(cp) ? SRSLTE_CP_NORM_LEN : SRSLTE_CP_EXT_LEN)))
+#define SRSLTE_SYMBOL_SZ(symbol_sz, cp) (symbol_sz + SRSLTE_CP_SZ(symbol_sz, cp))
+#define SRSLTE_SLOT_LEN(symbol_sz) (symbol_sz * 15 / 2)
+#define SRSLTE_SF_LEN(symbol_sz) (symbol_sz * 15)
+#define SRSLTE_SF_LEN_MAX (SRSLTE_SF_LEN(SRSLTE_SYMBOL_SZ_MAX))
 
 #define SRSLTE_SLOT_LEN_PRB(nof_prb)   (SRSLTE_SLOT_LEN(srslte_symbol_sz(nof_prb)))
 #define SRSLTE_SF_LEN_PRB(nof_prb)     (SRSLTE_SF_LEN(srslte_symbol_sz(nof_prb)))
 
 #define SRSLTE_SLOT_LEN_RE(nof_prb, cp)        (nof_prb*SRSLTE_NRE*SRSLTE_CP_NSYMB(cp))
 #define SRSLTE_SF_LEN_RE(nof_prb, cp)          (2*SRSLTE_SLOT_LEN_RE(nof_prb, cp))
+#define SRSLTE_NOF_RE(cell) (2 * SRSLTE_SLOT_LEN_RE(cell.nof_prb, cell.cp))
 
 #define SRSLTE_TA_OFFSET      (10e-6)
 
@@ -133,76 +145,135 @@ typedef enum {SRSLTE_SF_NORM, SRSLTE_SF_MBSFN} srslte_sf_t;
         || l == 0 \
         || l == SRSLTE_CP_NSYMB(cp) - 3)
 
-
+#define SRSLTE_NOF_CTRL_SYMBOLS(cell, cfi) (cfi + (cell.nof_prb < 10 ? 1 : 0))
 
 #define SRSLTE_SYMBOL_HAS_REF_MBSFN(l, s) ((l == 2 && s == 0) || (l == 0 && s == 1) || (l == 4 && s == 1))
 
 #define SRSLTE_NON_MBSFN_REGION_GUARD_LENGTH(non_mbsfn_region,symbol_sz) ((non_mbsfn_region == 1)?(SRSLTE_CP_LEN_EXT(symbol_sz) - SRSLTE_CP_LEN_NORM(0, symbol_sz)):(2*SRSLTE_CP_LEN_EXT(symbol_sz) - SRSLTE_CP_LEN_NORM(0, symbol_sz)- SRSLTE_CP_LEN_NORM(1, symbol_sz)))
 
+#define SRSLTE_FDD_NOF_HARQ (TX_DELAY + FDD_HARQ_DELAY_MS)
+#define SRSLTE_MAX_HARQ_PROC 15
 
-
-#define SRSLTE_NOF_LTE_BANDS 38
+#define SRSLTE_NOF_LTE_BANDS 58
 
 #define SRSLTE_DEFAULT_MAX_FRAMES_PBCH      500
 #define SRSLTE_DEFAULT_MAX_FRAMES_PSS       10
 #define SRSLTE_DEFAULT_NOF_VALID_PSS_FRAMES 10
 
+#define ZERO_OBJECT(x) memset(&(x), 0x0, sizeof((x)))
 
 typedef enum SRSLTE_API { 
   SRSLTE_PHICH_NORM = 0, 
   SRSLTE_PHICH_EXT  
 } srslte_phich_length_t;
 
-typedef enum SRSLTE_API { 
-  SRSLTE_PHICH_R_1_6 = 0, 
-  SRSLTE_PHICH_R_1_2, 
-  SRSLTE_PHICH_R_1, 
+typedef enum SRSLTE_API {
+  SRSLTE_PHICH_R_1_6 = 0,
+  SRSLTE_PHICH_R_1_2,
+  SRSLTE_PHICH_R_1,
   SRSLTE_PHICH_R_2
-  
-} srslte_phich_resources_t;
+} srslte_phich_r_t;
 
-typedef enum {
-  SRSLTE_RNTI_USER = 0, /* Cell RNTI */
-  SRSLTE_RNTI_SI,       /* System Information RNTI */
-  SRSLTE_RNTI_RAR,      /* Random Access RNTI */
-  SRSLTE_RNTI_TEMP,     /* Temporary C-RNTI */
-  SRSLTE_RNTI_SPS,      /* Semi-Persistent Scheduling C-RNTI */
-  SRSLTE_RNTI_PCH,      /* Paging RNTI */
-  SRSLTE_RNTI_MBSFN,
-  SRSLTE_RNTI_NOF_TYPES
-} srslte_rnti_type_t;
+typedef enum SRSLTE_API { SRSLTE_FDD = 0, SRSLTE_TDD = 1 } srslte_frame_type_t;
 
 typedef struct SRSLTE_API {
-  uint32_t nof_prb;
-  uint32_t nof_ports; 
-  uint32_t id;
-  srslte_cp_t cp;
+  uint32_t sf_config;
+  uint32_t ss_config;
+  bool     configured;
+} srslte_tdd_config_t;
+
+typedef enum SRSLTE_API {
+  SRSLTE_TDD_SF_D = 0,
+  SRSLTE_TDD_SF_U = 1,
+  SRSLTE_TDD_SF_S = 2,
+} srslte_tdd_sf_t;
+
+typedef struct {
+  uint8_t mbsfn_area_id;
+  uint8_t non_mbsfn_region_length;
+  uint8_t mbsfn_mcs;
+  bool    enable;
+  bool    is_mcch;
+} srslte_mbsfn_cfg_t;
+
+// Common cell constant properties that require object reconfiguration
+typedef struct SRSLTE_API {
+  uint32_t              nof_prb;
+  uint32_t              nof_ports;
+  uint32_t              id;
+  srslte_cp_t           cp;
   srslte_phich_length_t phich_length;
-  srslte_phich_resources_t phich_resources;
-}srslte_cell_t;
+  srslte_phich_r_t      phich_resources;
+  srslte_frame_type_t   frame_type;
+} srslte_cell_t;
+
+// Common downlink properties that may change every subframe
+typedef struct SRSLTE_API {
+  srslte_tdd_config_t tdd_config;
+  uint32_t            tti;
+  uint32_t            cfi;
+  srslte_sf_t         sf_type;
+  uint32_t            non_mbsfn_region;
+} srslte_dl_sf_cfg_t;
+
+typedef struct SRSLTE_API {
+  srslte_tdd_config_t tdd_config;
+  uint32_t            tti;
+  bool                shortened;
+} srslte_ul_sf_cfg_t;
 
 typedef enum SRSLTE_API {
-  SRSLTE_MIMO_TYPE_SINGLE_ANTENNA,
-  SRSLTE_MIMO_TYPE_TX_DIVERSITY, 
-  SRSLTE_MIMO_TYPE_SPATIAL_MULTIPLEX, 
-  SRSLTE_MIMO_TYPE_CDD
-} srslte_mimo_type_t;
+  SRSLTE_TM1 = 0,
+  SRSLTE_TM2,
+  SRSLTE_TM3,
+  SRSLTE_TM4,
+  SRSLTE_TM5,
+  SRSLTE_TM6,
+  SRSLTE_TM7,
+  SRSLTE_TM8,
+  SRSLTE_TMINV // Invalid Transmission Mode
+} srslte_tm_t;
 
 typedef enum SRSLTE_API {
-  SRSLTE_MIMO_DECODER_ZF,
-  SRSLTE_MIMO_DECODER_MMSE
-} srslte_mimo_decoder_t;
+  SRSLTE_TXSCHEME_PORT0,
+  SRSLTE_TXSCHEME_DIVERSITY,
+  SRSLTE_TXSCHEME_SPATIALMUX,
+  SRSLTE_TXSCHEME_CDD
+} srslte_tx_scheme_t;
+
+typedef enum SRSLTE_API { SRSLTE_MIMO_DECODER_ZF, SRSLTE_MIMO_DECODER_MMSE } srslte_mimo_decoder_t;
 
 typedef enum SRSLTE_API {
   SRSLTE_MOD_BPSK = 0, 
   SRSLTE_MOD_QPSK, 
   SRSLTE_MOD_16QAM, 
   SRSLTE_MOD_64QAM,
-  SRSLTE_MOD_LAST
 } srslte_mod_t;
 
+typedef enum {
+  SRSLTE_DCI_FORMAT0 = 0,
+  SRSLTE_DCI_FORMAT1,
+  SRSLTE_DCI_FORMAT1A,
+  SRSLTE_DCI_FORMAT1C,
+  SRSLTE_DCI_FORMAT1B,
+  SRSLTE_DCI_FORMAT1D,
+  SRSLTE_DCI_FORMAT2,
+  SRSLTE_DCI_FORMAT2A,
+  SRSLTE_DCI_FORMAT2B,
+  // SRSLTE_DCI_FORMAT3,
+  // SRSLTE_DCI_FORMAT3A,
+  SRSLTE_DCI_NOF_FORMATS
+} srslte_dci_format_t;
+
+typedef enum {
+  SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_NORMAL = 0, /* No cell selection no pucch3 */
+  SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS,
+  SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3,
+  SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_ERROR,
+} srslte_ack_nack_feedback_mode_t;
+
 typedef struct SRSLTE_API {
-  int id;
+  int   id;
   float fd;
 } srslte_earfcn_t;
 
@@ -225,6 +296,18 @@ SRSLTE_API void srslte_cell_fprint(FILE *stream,
 SRSLTE_API bool srslte_cellid_isvalid(uint32_t cell_id);
 
 SRSLTE_API bool srslte_nofprb_isvalid(uint32_t nof_prb);
+
+SRSLTE_API srslte_tdd_sf_t srslte_sfidx_tdd_type(srslte_tdd_config_t tdd_config, uint32_t sf_idx);
+
+SRSLTE_API uint32_t srslte_tdd_nof_harq(srslte_tdd_config_t tdd_config);
+
+SRSLTE_API uint32_t srslte_sfidx_tdd_nof_up(srslte_tdd_config_t tdd_config);
+
+SRSLTE_API uint32_t srslte_sfidx_tdd_nof_gp(srslte_tdd_config_t tdd_config);
+
+SRSLTE_API uint32_t srslte_sfidx_tdd_nof_dw(srslte_tdd_config_t tdd_config);
+
+SRSLTE_API uint32_t srslte_sfidx_tdd_nof_dw_slot(srslte_tdd_config_t tdd_config, uint32_t slot, srslte_cp_t cp);
 
 SRSLTE_API bool srslte_sfidx_isvalid(uint32_t sf_idx);
 
@@ -274,11 +357,13 @@ SRSLTE_API char *srslte_mod_string(srslte_mod_t mod);
 
 SRSLTE_API uint32_t srslte_mod_bits_x_symbol(srslte_mod_t mod);
 
-SRSLTE_API int srslte_band_get_band(uint32_t dl_earfcn); 
+SRSLTE_API int srslte_band_get_band(uint32_t dl_earfcn);
+
+SRSLTE_API bool srslte_band_is_tdd(uint32_t band);
 
 SRSLTE_API float srslte_band_fd(uint32_t dl_earfcn);
 
-SRSLTE_API float srslte_band_fu(uint32_t ul_earfcn); 
+SRSLTE_API float srslte_band_fu(uint32_t ul_earfcn);
 
 SRSLTE_API uint32_t srslte_band_ul_earfcn(uint32_t dl_earfcn); 
 
@@ -296,13 +381,13 @@ SRSLTE_API int srslte_band_get_fd_region(enum band_geographical_area region,
                                          srslte_earfcn_t *earfcn, 
                                          uint32_t max_elems);
 
-SRSLTE_API int srslte_str2mimotype(char *mimo_type_str, 
-                                   srslte_mimo_type_t *type);
+SRSLTE_API int srslte_str2mimotype(char* mimo_type_str, srslte_tx_scheme_t* type);
 
-SRSLTE_API char *srslte_mimotype2str(srslte_mimo_type_t mimo_type);
+SRSLTE_API char* srslte_mimotype2str(srslte_tx_scheme_t mimo_type);
 
 /* Returns the interval tti1-tti2 mod 10240 */
-SRSLTE_API uint32_t srslte_tti_interval(uint32_t tti1,
-                                        uint32_t tti2); 
+SRSLTE_API uint32_t srslte_tti_interval(uint32_t tti1, uint32_t tti2);
+
+SRSLTE_API uint32_t srslte_print_check(char* s, size_t max_len, uint32_t cur_len, const char* format, ...);
 
 #endif // SRSLTE_PHY_COMMON_H

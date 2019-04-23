@@ -24,12 +24,12 @@
  *
  */
 
+#include "srslte/srslte.h"
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <assert.h>
 #include <unistd.h>
-#include <srslte/srslte.h>
 
 #include "srslte/phy/ue/ue_cell_search.h"
 
@@ -53,16 +53,19 @@ int srslte_ue_cellsearch_init(srslte_ue_cellsearch_t * q, uint32_t max_frames,
     cell.nof_prb = SRSLTE_CS_NOF_PRB; 
 
     if (srslte_ue_sync_init(&q->ue_sync, cell.nof_prb, true, recv_callback, stream_handler)) {
-      fprintf(stderr, "Error initiating ue_sync\n");
+      ERROR("Error initiating ue_sync\n");
       goto clean_exit; 
     }
 
     if (srslte_ue_sync_set_cell(&q->ue_sync, cell)) {
-      fprintf(stderr, "Error initiating ue_sync\n");
+      ERROR("Error initiating ue_sync\n");
       goto clean_exit;
     }
 
-    q->sf_buffer[0] = srslte_vec_malloc(3*sizeof(cf_t)*SRSLTE_SF_LEN_PRB(100));
+    for (int p = 0; p < SRSLTE_MAX_PORTS; p++) {
+      q->sf_buffer[p] = NULL;
+    }
+    q->sf_buffer[0]    = srslte_vec_malloc(3 * sizeof(cf_t) * SRSLTE_SF_LEN_PRB(100));
     q->nof_rx_antennas = 1; 
     
     q->candidates = calloc(sizeof(srslte_ue_cellsearch_result_t), max_frames);
@@ -94,10 +97,11 @@ clean_exit:
   return ret;
 }
 
-int srslte_ue_cellsearch_init_multi(srslte_ue_cellsearch_t * q, uint32_t max_frames, 
-                              int (recv_callback)(void*, cf_t*[SRSLTE_MAX_PORTS], uint32_t,srslte_timestamp_t*), 
-                              uint32_t nof_rx_antennas,
-                              void *stream_handler) 
+int srslte_ue_cellsearch_init_multi(srslte_ue_cellsearch_t* q,
+                                    uint32_t                max_frames,
+                                    int(recv_callback)(void*, cf_t * [SRSLTE_MAX_PORTS], uint32_t, srslte_timestamp_t*),
+                                    uint32_t nof_rx_antennas,
+                                    void*    stream_handler)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
@@ -116,15 +120,15 @@ int srslte_ue_cellsearch_init_multi(srslte_ue_cellsearch_t * q, uint32_t max_fra
       goto clean_exit; 
     }
     if (srslte_ue_sync_set_cell(&q->ue_sync, cell)) {
-      fprintf(stderr, "Error setting cell in ue_sync\n");
+      ERROR("Error setting cell in ue_sync\n");
       goto clean_exit;
     }
 
-    for (int i=0;i<nof_rx_antennas;i++) {
-      q->sf_buffer[i] = srslte_vec_malloc(3*sizeof(cf_t)*SRSLTE_SF_LEN_PRB(100));
+    for (int i = 0; i < nof_rx_antennas; i++) {
+      q->sf_buffer[i] = srslte_vec_malloc(3 * sizeof(cf_t) * SRSLTE_SF_LEN_PRB(100));
     }
-    q->nof_rx_antennas = nof_rx_antennas; 
-    
+    q->nof_rx_antennas = nof_rx_antennas;
+
     q->candidates = calloc(sizeof(srslte_ue_cellsearch_result_t), max_frames);
     if (!q->candidates) {
       perror("malloc");
@@ -156,7 +160,7 @@ clean_exit:
 
 void srslte_ue_cellsearch_free(srslte_ue_cellsearch_t * q)
 {
-  for (int i=0;i<q->nof_rx_antennas;i++) {
+  for (int i = 0; i < q->nof_rx_antennas; i++) {
     if (q->sf_buffer[i]) {
       free(q->sf_buffer[i]);
     }
@@ -213,14 +217,18 @@ static void get_cell(srslte_ue_cellsearch_t * q, uint32_t nof_detected_frames, s
     }
   }
   found_cell->cell_id = q->candidates[mode_pos].cell_id;
-  /* Now in all these cell IDs, find most frequent CP */
+  /* Now in all these cell IDs, find most frequent CP and duplex mode */
   uint32_t nof_normal = 0;
+  uint32_t nof_fdd    = 0;
   found_cell->peak = 0; 
   for (i=0;i<nof_detected_frames;i++) {
     if (q->candidates[i].cell_id == found_cell->cell_id) {
       if (SRSLTE_CP_ISNORM(q->candidates[i].cp)) {
         nof_normal++;
-      } 
+      }
+      if (q->candidates[i].frame_type == SRSLTE_FDD) {
+        nof_fdd++;
+      }
     }
     // average absolute peak value 
     found_cell->peak += q->candidates[i].peak; 
@@ -230,7 +238,12 @@ static void get_cell(srslte_ue_cellsearch_t * q, uint32_t nof_detected_frames, s
   if (nof_normal > q->mode_ntimes[mode_pos]/2) {
     found_cell->cp = SRSLTE_CP_NORM;
   } else {
-    found_cell->cp = SRSLTE_CP_EXT; 
+    found_cell->cp = SRSLTE_CP_EXT;
+  }
+  if (nof_fdd > q->mode_ntimes[mode_pos] / 2) {
+    found_cell->frame_type = SRSLTE_FDD;
+  } else {
+    found_cell->frame_type = SRSLTE_TDD;
   }
   found_cell->mode = (float) q->mode_ntimes[mode_pos]/nof_detected_frames;  
   
@@ -257,7 +270,7 @@ int srslte_ue_cellsearch_scan(srslte_ue_cellsearch_t * q,
   for (uint32_t N_id_2=0;N_id_2<3 && ret >= 0;N_id_2++) {
     ret = srslte_ue_cellsearch_scan_N_id_2(q, N_id_2, &found_cells[N_id_2]);
     if (ret < 0) {
-      fprintf(stderr, "Error searching cell\n");
+      ERROR("Error searching cell\n");
       return ret; 
     }
     nof_detected_cells += ret;
@@ -293,29 +306,33 @@ int srslte_ue_cellsearch_scan_N_id_2(srslte_ue_cellsearch_t * q,
     srslte_ue_sync_set_N_id_2(&q->ue_sync, N_id_2);
     srslte_ue_sync_reset(&q->ue_sync);
     srslte_ue_sync_cfo_reset(&q->ue_sync);
+    srslte_ue_sync_set_nof_find_frames(&q->ue_sync, q->max_frames);
 
     do {
-      
-      ret = srslte_ue_sync_zerocopy_multi(&q->ue_sync, q->sf_buffer);
+      ret = srslte_ue_sync_zerocopy(&q->ue_sync, q->sf_buffer);
       if (ret < 0) {
-        fprintf(stderr, "Error calling srslte_ue_sync_work()\n");       
+        ERROR("Error calling srslte_ue_sync_work()\n");
         return -1;
       } else if (ret == 1) {
-        /* This means a peak was found and ue_sync is now in tracking state */
-        ret = srslte_sync_get_cell_id(&q->ue_sync.strack);
-        if (ret >= 0) {          
+        /* This means a peak was found in find state */
+        ret = srslte_sync_get_cell_id(&q->ue_sync.sfind);
+        if (ret >= 0) {
           /* Save cell id, cp and peak */
-          q->candidates[nof_detected_frames].cell_id = (uint32_t) ret;
-          q->candidates[nof_detected_frames].cp = srslte_sync_get_cp(&q->ue_sync.strack);
-          q->candidates[nof_detected_frames].peak = q->ue_sync.strack.pss.peak_value;
-          q->candidates[nof_detected_frames].psr = srslte_sync_get_peak_value(&q->ue_sync.strack);
-          q->candidates[nof_detected_frames].cfo = srslte_ue_sync_get_cfo(&q->ue_sync);
-          DEBUG
-            ("CELL SEARCH: [%3d/%3d/%d]: Found peak PSR=%.3f, Cell_id: %d CP: %s\n",
-              nof_detected_frames, nof_scanned_frames, q->nof_valid_frames,
-              q->candidates[nof_detected_frames].psr, q->candidates[nof_detected_frames].cell_id,
-              srslte_cp_string(q->candidates[nof_detected_frames].cp));
-            
+          q->candidates[nof_detected_frames].cell_id    = (uint32_t)ret;
+          q->candidates[nof_detected_frames].cp         = srslte_sync_get_cp(&q->ue_sync.sfind);
+          q->candidates[nof_detected_frames].peak       = q->ue_sync.sfind.pss.peak_value;
+          q->candidates[nof_detected_frames].psr        = srslte_sync_get_peak_value(&q->ue_sync.sfind);
+          q->candidates[nof_detected_frames].cfo        = 15000 * srslte_sync_get_cfo(&q->ue_sync.sfind);
+          q->candidates[nof_detected_frames].frame_type = srslte_ue_sync_get_frame_type(&q->ue_sync);
+          DEBUG("CELL SEARCH: [%d/%d/%d]: Found peak PSR=%.3f, Cell_id: %d CP: %s, CFO=%.1f KHz\n",
+                nof_detected_frames,
+                nof_scanned_frames,
+                q->nof_valid_frames,
+                q->candidates[nof_detected_frames].psr,
+                q->candidates[nof_detected_frames].cell_id,
+                srslte_cp_string(q->candidates[nof_detected_frames].cp),
+                q->candidates[nof_detected_frames].cfo / 1000);
+
           nof_detected_frames++;           
         }
       } else if (ret == 0) {

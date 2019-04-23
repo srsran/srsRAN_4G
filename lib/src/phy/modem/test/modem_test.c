@@ -69,8 +69,9 @@ void parse_args(int argc, char **argv) {
         modulation = SRSLTE_MOD_64QAM;
         break;
       default:
-        fprintf(stderr, "Invalid modulation %d. Possible values: "
-            "(1: BPSK, 2: QPSK, 3: QAM16, 4: QAM64)\n", atoi(argv[optind]));
+        ERROR("Invalid modulation %d. Possible values: "
+              "(1: BPSK, 2: QPSK, 3: QAM16, 4: QAM64)\n",
+              atoi(argv[optind]));
         break;
       }
       break;
@@ -93,7 +94,7 @@ int main(int argc, char **argv) {
 
   /* initialize objects */
   if (srslte_modem_table_lte(&mod, modulation)) {
-    fprintf(stderr, "Error initializing modem table\n");
+    ERROR("Error initializing modem table\n");
     exit(-1);
   }
   
@@ -101,7 +102,7 @@ int main(int argc, char **argv) {
 
   /* check that num_bits is multiple of num_bits x symbol */
   if (num_bits % mod.nbits_x_symbol) {
-    fprintf(stderr, "Error num_bits must be multiple of %d\n", mod.nbits_x_symbol);
+    ERROR("Error num_bits must be multiple of %d\n", mod.nbits_x_symbol);
     exit(-1);
   }
 
@@ -192,7 +193,7 @@ int main(int argc, char **argv) {
   /* check errors */
   for (i=0;i<num_bits;i++) {
     if (input[i] != output[i]) {
-      fprintf(stderr, "Error in bit %d\n", i);
+      ERROR("Error in bit %d\n", i);
       exit(-1);
     }
   }

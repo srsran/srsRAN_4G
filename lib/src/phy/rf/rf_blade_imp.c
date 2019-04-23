@@ -87,12 +87,12 @@ int rf_blade_start_tx_stream(void *h)
                                 num_transfers,
                                 timeout_ms);
   if (status != 0) {
-    fprintf(stderr, "Failed to configure TX sync interface: %s\n", bladerf_strerror(status));
+    ERROR("Failed to configure TX sync interface: %s\n", bladerf_strerror(status));
     return status; 
   }
   status = bladerf_enable_module(handler->dev, BLADERF_MODULE_TX, true);
   if (status != 0) {
-    fprintf(stderr, "Failed to enable TX module: %s\n", bladerf_strerror(status));
+    ERROR("Failed to enable TX module: %s\n", bladerf_strerror(status));
     return status;
   }
   handler->tx_stream_enabled = true; 
@@ -116,7 +116,7 @@ int rf_blade_start_rx_stream(void *h, bool now)
                                 num_transfers,
                                 timeout_ms);
   if (status != 0) {
-    fprintf(stderr, "Failed to configure RX sync interface: %s\n", bladerf_strerror(status));
+    ERROR("Failed to configure RX sync interface: %s\n", bladerf_strerror(status));
     return status;
   }
   status = bladerf_sync_config(handler->dev,
@@ -127,17 +127,17 @@ int rf_blade_start_rx_stream(void *h, bool now)
                                 num_transfers,
                                 timeout_ms);
   if (status != 0) {
-    fprintf(stderr, "Failed to configure TX sync interface: %s\n", bladerf_strerror(status));
+    ERROR("Failed to configure TX sync interface: %s\n", bladerf_strerror(status));
     return status; 
   }
   status = bladerf_enable_module(handler->dev, BLADERF_MODULE_RX, true);
   if (status != 0) {
-    fprintf(stderr, "Failed to enable RX module: %s\n", bladerf_strerror(status));
+    ERROR("Failed to enable RX module: %s\n", bladerf_strerror(status));
     return status;
   }
   status = bladerf_enable_module(handler->dev, BLADERF_MODULE_TX, true);
   if (status != 0) {
-    fprintf(stderr, "Failed to enable TX module: %s\n", bladerf_strerror(status));
+    ERROR("Failed to enable TX module: %s\n", bladerf_strerror(status));
     return status;
   }
   handler->rx_stream_enabled = true; 
@@ -149,12 +149,12 @@ int rf_blade_stop_rx_stream(void *h)
   rf_blade_handler_t *handler = (rf_blade_handler_t*) h;
   int status = bladerf_enable_module(handler->dev, BLADERF_MODULE_RX, false);
   if (status != 0) {
-    fprintf(stderr, "Failed to enable RX module: %s\n", bladerf_strerror(status));
+    ERROR("Failed to enable RX module: %s\n", bladerf_strerror(status));
     return status;
   }
   status = bladerf_enable_module(handler->dev, BLADERF_MODULE_TX, false);
   if (status != 0) {
-    fprintf(stderr, "Failed to enable TX module: %s\n", bladerf_strerror(status));
+    ERROR("Failed to enable TX module: %s\n", bladerf_strerror(status));
     return status;
   }
   handler->rx_stream_enabled = false;
@@ -197,13 +197,13 @@ int rf_blade_open(char *args, void **h)
   printf("Opening bladeRF...\n");
   int status = bladerf_open(&handler->dev, args);
   if (status) {
-    fprintf(stderr, "Unable to open device: %s\n", bladerf_strerror(status));
+    ERROR("Unable to open device: %s\n", bladerf_strerror(status));
     return status;
   }
 
   status = bladerf_set_gain_mode(handler->dev, BLADERF_MODULE_RX, BLADERF_GAIN_MGC);
   if (status) {
-    fprintf(stderr, "Unable to open device: %s\n", bladerf_strerror(status));
+    ERROR("Unable to open device: %s\n", bladerf_strerror(status));
     return status;
   }
   
@@ -212,19 +212,19 @@ int rf_blade_open(char *args, void **h)
   /* Get Gain ranges and set Rx to maximum */
   status = bladerf_get_gain_range(handler->dev, BLADERF_MODULE_RX, &range_rx);
   if ((status != 0) | (range_rx == NULL)) {
-    fprintf(stderr, "Failed to get RX gain range: %s\n", bladerf_strerror(status));
+    ERROR("Failed to get RX gain range: %s\n", bladerf_strerror(status));
     return status;
   }
 
   bladerf_get_gain_range(handler->dev, BLADERF_MODULE_RX, &range_tx);
   if ((status != 0) | (range_tx == NULL)) {
-    fprintf(stderr, "Failed to get TX gain range: %s\n", bladerf_strerror(status));
+    ERROR("Failed to get TX gain range: %s\n", bladerf_strerror(status));
     return status;
   }
 
   status = bladerf_set_gain(handler->dev, BLADERF_MODULE_RX, (bladerf_gain) range_rx->max);
   if (status != 0) {
-    fprintf(stderr, "Failed to set RX LNA gain: %s\n", bladerf_strerror(status));
+    ERROR("Failed to set RX LNA gain: %s\n", bladerf_strerror(status));
     return status;
   }
   handler->rx_stream_enabled = false; 
@@ -266,19 +266,19 @@ double rf_blade_set_rx_srate(void *h, double freq)
   rf_blade_handler_t *handler = (rf_blade_handler_t*) h;
   int status = bladerf_set_sample_rate(handler->dev, BLADERF_MODULE_RX, (uint32_t) freq, &handler->rx_rate);
   if (status != 0) {
-    fprintf(stderr, "Failed to set samplerate = %u: %s\n", (uint32_t) freq, bladerf_strerror(status));
+    ERROR("Failed to set samplerate = %u: %s\n", (uint32_t)freq, bladerf_strerror(status));
     return -1;
   }
   if (handler->rx_rate < 2000000) { 
     status = bladerf_set_bandwidth(handler->dev, BLADERF_MODULE_RX, handler->rx_rate, &bw);
     if (status != 0) {
-      fprintf(stderr, "Failed to set bandwidth = %u: %s\n", handler->rx_rate, bladerf_strerror(status));
+      ERROR("Failed to set bandwidth = %u: %s\n", handler->rx_rate, bladerf_strerror(status));
       return -1;
     }
   } else {
     status = bladerf_set_bandwidth(handler->dev, BLADERF_MODULE_RX, (bladerf_bandwidth) (handler->rx_rate * 0.8), &bw);
     if (status != 0) {
-      fprintf(stderr, "Failed to set bandwidth = %u: %s\n", handler->rx_rate, bladerf_strerror(status));
+      ERROR("Failed to set bandwidth = %u: %s\n", handler->rx_rate, bladerf_strerror(status));
       return -1;
     }
   }
@@ -292,12 +292,12 @@ double rf_blade_set_tx_srate(void *h, double freq)
   rf_blade_handler_t *handler = (rf_blade_handler_t*) h;
   int status = bladerf_set_sample_rate(handler->dev, BLADERF_MODULE_TX, (uint32_t) freq, &handler->tx_rate);
   if (status != 0) {
-    fprintf(stderr, "Failed to set samplerate = %u: %s\n", (uint32_t) freq, bladerf_strerror(status));
+    ERROR("Failed to set samplerate = %u: %s\n", (uint32_t)freq, bladerf_strerror(status));
     return -1;
   }  
   status = bladerf_set_bandwidth(handler->dev, BLADERF_MODULE_TX, handler->tx_rate, &bw);
   if (status != 0) {
-    fprintf(stderr, "Failed to set bandwidth = %u: %s\n", handler->tx_rate, bladerf_strerror(status));
+    ERROR("Failed to set bandwidth = %u: %s\n", handler->tx_rate, bladerf_strerror(status));
     return -1;
   }
   return (double) handler->tx_rate;
@@ -309,7 +309,7 @@ double rf_blade_set_rx_gain(void *h, double gain)
   rf_blade_handler_t *handler = (rf_blade_handler_t*) h;
   status = bladerf_set_gain(handler->dev, BLADERF_MODULE_RX, (bladerf_gain) gain);
   if (status != 0) {
-    fprintf(stderr, "Failed to set RX gain: %s\n", bladerf_strerror(status));
+    ERROR("Failed to set RX gain: %s\n", bladerf_strerror(status));
     return -1;
   }
   return rf_blade_get_rx_gain(h);
@@ -321,7 +321,7 @@ double rf_blade_set_tx_gain(void *h, double gain)
   rf_blade_handler_t *handler = (rf_blade_handler_t*) h;
   status = bladerf_set_gain(handler->dev, BLADERF_MODULE_TX, (bladerf_gain) gain);
   if (status != 0) {
-    fprintf(stderr, "Failed to set TX gain: %s\n", bladerf_strerror(status));
+    ERROR("Failed to set TX gain: %s\n", bladerf_strerror(status));
     return -1;
   }
   return rf_blade_get_tx_gain(h);
@@ -334,8 +334,7 @@ double rf_blade_get_rx_gain(void *h)
   rf_blade_handler_t *handler = (rf_blade_handler_t*) h;
   status = bladerf_get_gain(handler->dev, BLADERF_MODULE_RX, &gain);
   if (status != 0) {
-    fprintf(stderr, "Failed to get RX gain: %s\n",
-            bladerf_strerror(status));
+    ERROR("Failed to get RX gain: %s\n", bladerf_strerror(status));
     return -1;
   }
   return gain;
@@ -348,8 +347,7 @@ double rf_blade_get_tx_gain(void *h)
   rf_blade_handler_t *handler = (rf_blade_handler_t*) h;
   status = bladerf_get_gain(handler->dev, BLADERF_MODULE_TX, &gain);
   if (status != 0) {
-    fprintf(stderr, "Failed to get TX gain: %s\n",
-            bladerf_strerror(status));
+    ERROR("Failed to get TX gain: %s\n", bladerf_strerror(status));
     return -1;
   }
   return gain;
@@ -368,14 +366,13 @@ srslte_rf_info_t *rf_blade_get_info(void *h)
   return info;
 }
 
-double rf_blade_set_rx_freq(void *h, double freq)
+double rf_blade_set_rx_freq(void* h, uint32_t ch, double freq)
 {
-  rf_blade_handler_t *handler = (rf_blade_handler_t*) h;
+  rf_blade_handler_t* handler = (rf_blade_handler_t*)h;
   bladerf_frequency f_int = (uint32_t) round(freq);
   int status = bladerf_set_frequency(handler->dev, BLADERF_MODULE_RX, f_int);
   if (status != 0) {
-    fprintf(stderr, "Failed to set samplerate = %u: %s\n",
-            (uint32_t) freq, bladerf_strerror(status));
+    ERROR("Failed to set samplerate = %u: %s\n", (uint32_t)freq, bladerf_strerror(status));
     return -1;
   }
   f_int=0;
@@ -385,17 +382,16 @@ double rf_blade_set_rx_freq(void *h, double freq)
   return freq;
 }
 
-double rf_blade_set_tx_freq(void *h, double freq)
+double rf_blade_set_tx_freq(void* h, uint32_t ch, double freq)
 {
   rf_blade_handler_t *handler = (rf_blade_handler_t*) h;
-  bladerf_frequency f_int = (uint32_t) round(freq);
+  bladerf_frequency   f_int   = (uint32_t)round(freq);
   int status = bladerf_set_frequency(handler->dev, BLADERF_MODULE_TX, f_int);
   if (status != 0) {
-    fprintf(stderr, "Failed to set samplerate = %u: %s\n",
-            (uint32_t) freq, bladerf_strerror(status));
+    ERROR("Failed to set samplerate = %u: %s\n", (uint32_t)freq, bladerf_strerror(status));
     return -1;
   }
-  
+
   f_int=0;
   bladerf_get_frequency(handler->dev, BLADERF_MODULE_TX, &f_int);
   printf("set TX frequency to %lu\n", f_int);
@@ -427,12 +423,10 @@ void rf_blade_get_time(void *h, time_t *secs, double *frac_secs)
   
   int status = bladerf_get_timestamp(handler->dev, BLADERF_RX, &meta.timestamp);
   if (status != 0) {
-      fprintf(stderr, "Failed to get current RX timestamp: %s\n",
-              bladerf_strerror(status));
+    ERROR("Failed to get current RX timestamp: %s\n", bladerf_strerror(status));
   }
   timestamp_to_secs(handler->rx_rate, meta.timestamp, secs, frac_secs);
 }
-
 
 int rf_blade_recv_with_time_multi(void *h,
                                   void **data,
@@ -459,25 +453,25 @@ int rf_blade_recv_with_time(void *h,
   meta.flags = BLADERF_META_FLAG_RX_NOW;
   
   if (2*nsamples > CONVERT_BUFFER_SIZE) {
-    fprintf(stderr, "RX failed: nsamples exceeds buffer size (%d>%d)\n", nsamples, CONVERT_BUFFER_SIZE);
+    ERROR("RX failed: nsamples exceeds buffer size (%d>%d)\n", nsamples, CONVERT_BUFFER_SIZE);
     return -1;
   }
   status = bladerf_sync_rx(handler->dev, handler->rx_buffer, nsamples, &meta, 2000);
   if (status) {
-    fprintf(stderr, "RX failed: %s\n\n", bladerf_strerror(status));
+    ERROR("RX failed: %s\n\n", bladerf_strerror(status));
     return -1;
   } else if (meta.status & BLADERF_META_STATUS_OVERRUN) {
     if (blade_error_handler) {
-      srslte_rf_error_t error; 
-      error.opt = meta.actual_count;
+      srslte_rf_error_t error;
+      error.opt  = meta.actual_count;
       error.type = SRSLTE_RF_ERROR_OVERFLOW;
       blade_error_handler(error);
     } else {
-      /*fprintf(stderr, "Overrun detected in scheduled RX. "
+      /*ERROR("Overrun detected in scheduled RX. "
             "%u valid samples were read.\n\n", meta.actual_count);*/
     }
   }
-  
+
   timestamp_to_secs(handler->rx_rate, meta.timestamp, secs, frac_secs);
   srslte_vec_convert_if(handler->rx_buffer, 2048, data, 2*nsamples);
   
@@ -517,12 +511,12 @@ int rf_blade_send_timed(void *h,
   }
   
   if (2*nsamples > CONVERT_BUFFER_SIZE) {
-    fprintf(stderr, "TX failed: nsamples exceeds buffer size (%d>%d)\n", nsamples, CONVERT_BUFFER_SIZE);
+    ERROR("TX failed: nsamples exceeds buffer size (%d>%d)\n", nsamples, CONVERT_BUFFER_SIZE);
     return -1;
   }
 
   srslte_vec_convert_fi(data, 2048, handler->tx_buffer, 2*nsamples);
-  
+
   memset(&meta, 0, sizeof(meta));
   if (is_start_of_burst) {
     if (has_time_spec) {
@@ -535,29 +529,28 @@ int rf_blade_send_timed(void *h,
   if (is_end_of_burst) {
     meta.flags |= BLADERF_META_FLAG_TX_BURST_END;
   }
-  srslte_rf_error_t error; 
+  srslte_rf_error_t error;
   bzero(&error, sizeof(srslte_rf_error_t));
-  
+
   status = bladerf_sync_tx(handler->dev, handler->tx_buffer, nsamples, &meta, 2000);
   if (status == BLADERF_ERR_TIME_PAST) {
     if (blade_error_handler) {
       error.type = SRSLTE_RF_ERROR_LATE;
       blade_error_handler(error);
     } else {
-      fprintf(stderr, "TX failed: %s\n", bladerf_strerror(status));      
+      ERROR("TX failed: %s\n", bladerf_strerror(status));
     }
   } else if (status) {
-    fprintf(stderr, "TX failed: %s\n", bladerf_strerror(status));
+    ERROR("TX failed: %s\n", bladerf_strerror(status));
     return status;
   } else if (meta.status == BLADERF_META_STATUS_UNDERRUN) {
     if (blade_error_handler) {
       error.type = SRSLTE_RF_ERROR_UNDERFLOW;
       blade_error_handler(error);
     } else {
-      fprintf(stderr, "TX warning: underflow detected.\n");
+      ERROR("TX warning: underflow detected.\n");
     }
   }
   
   return nsamples;
 }
-

@@ -74,7 +74,7 @@ cf_t zero_mem[64*1024];
 
 static void log_overflow(rf_uhd_handler_t *h) {  
   if (h->uhd_error_handler) {
-    srslte_rf_error_t error; 
+    srslte_rf_error_t error;
     bzero(&error, sizeof(srslte_rf_error_t));
     error.type = SRSLTE_RF_ERROR_OVERFLOW;
     h->uhd_error_handler(error);
@@ -94,7 +94,7 @@ static void log_late(rf_uhd_handler_t *h, bool is_rx) {
 #if HAVE_ASYNC_THREAD
 static void log_underflow(rf_uhd_handler_t *h) {  
   if (h->uhd_error_handler) {
-    srslte_rf_error_t error; 
+    srslte_rf_error_t error;
     bzero(&error, sizeof(srslte_rf_error_t));
     error.type = SRSLTE_RF_ERROR_UNDERFLOW;
     h->uhd_error_handler(error);
@@ -106,7 +106,7 @@ static void log_rx_error(rf_uhd_handler_t *h) {
   if (h->uhd_error_handler) {
     char error_string[512];
     uhd_usrp_last_error(h->usrp, error_string, 512);
-    fprintf(stderr, "USRP reported the following error: %s\n", error_string);
+    ERROR("USRP reported the following error: %s\n", error_string);
 
     srslte_rf_error_t error;
     bzero(&error, sizeof(srslte_rf_error_t));
@@ -135,7 +135,7 @@ static void* async_thread(void *h) {
         }
       }
     } else {
-      fprintf(stderr, "Error while receiving aync metadata: 0x%x\n", err);
+      ERROR("Error while receiving aync metadata: 0x%x\n", err);
       return NULL; 
     }
   }
@@ -380,7 +380,7 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
       REMOVE_SUBSTRING_WITHCOMAS(args, "otw_format=sc16");
       /* Do nothing */
     } else if (strstr(args, "otw_format=")) {
-      fprintf(stderr, "Wrong over the wire format. Valid formats: sc12, sc16\n");
+      ERROR("Wrong over the wire format. Valid formats: sc12, sc16\n");
       return -1;
     }
 
@@ -512,9 +512,11 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
     
     // Set external clock reference   
     if (clock_src == EXTERNAL) {
-      uhd_usrp_set_clock_source(handler->usrp, "external", 0);       
+      uhd_usrp_set_clock_source(handler->usrp, "external", 0);
+      uhd_usrp_set_time_source(handler->usrp, "external", 0);
     } else if (clock_src == GPSDO) {
       uhd_usrp_set_clock_source(handler->usrp, "gpsdo", 0);
+      uhd_usrp_set_time_source(handler->usrp, "gpsdo", 0);
     }
 
     handler->has_rssi = get_has_rssi(handler);
@@ -544,13 +546,13 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
     uhd_rx_streamer_make(&handler->rx_stream);
     error = uhd_usrp_get_rx_stream(handler->usrp, &stream_args, handler->rx_stream);
     if (error) {
-      fprintf(stderr, "Error opening RX stream: %d\n", error);
+      ERROR("Error opening RX stream: %d\n", error);
       return -1; 
     }
     uhd_tx_streamer_make(&handler->tx_stream);
     error = uhd_usrp_get_tx_stream(handler->usrp, &stream_args, handler->tx_stream);
     if (error) {
-      fprintf(stderr, "Error opening TX stream: %d\n", error);
+      ERROR("Error opening TX stream: %d\n", error);
       return -1; 
     }
     
@@ -725,7 +727,7 @@ srslte_rf_info_t *rf_uhd_get_info(void *h)
   return info;
 }
 
-double rf_uhd_set_rx_freq(void *h, double freq)
+double rf_uhd_set_rx_freq(void* h, uint32_t ch, double freq)
 {
   uhd_tune_request_t tune_request = {
       .target_freq = freq,
@@ -734,13 +736,17 @@ double rf_uhd_set_rx_freq(void *h, double freq)
   };
   uhd_tune_result_t tune_result;
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
-  for (int i=0;i<handler->nof_rx_channels;i++) {
-    uhd_usrp_set_rx_freq(handler->usrp, &tune_request, i, &tune_result);
+  if (ch < handler->nof_rx_channels) {
+    uhd_usrp_set_rx_freq(handler->usrp, &tune_request, ch, &tune_result);
+  } else {
+    for (int i = 0; i < handler->nof_rx_channels; i++) {
+      uhd_usrp_set_rx_freq(handler->usrp, &tune_request, i, &tune_result);
+    }
   }
   return freq;
 }
 
-double rf_uhd_set_tx_freq(void *h, double freq)
+double rf_uhd_set_tx_freq(void* h, uint32_t ch, double freq)
 {
   uhd_tune_request_t tune_request = {
       .target_freq = freq,
@@ -749,8 +755,12 @@ double rf_uhd_set_tx_freq(void *h, double freq)
   };
   uhd_tune_result_t tune_result;
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
-  for (int i=0;i<handler->nof_tx_channels;i++) {
-    uhd_usrp_set_tx_freq(handler->usrp, &tune_request, i, &tune_result);
+  if (ch < handler->nof_tx_channels) {
+    uhd_usrp_set_tx_freq(handler->usrp, &tune_request, ch, &tune_result);
+  } else {
+    for (int i = 0; i < handler->nof_tx_channels; i++) {
+      uhd_usrp_set_tx_freq(handler->usrp, &tune_request, i, &tune_result);
+    }
   }
   return freq;
 }
@@ -759,6 +769,14 @@ double rf_uhd_set_tx_freq(void *h, double freq)
 void rf_uhd_get_time(void *h, time_t *secs, double *frac_secs) {
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
   uhd_usrp_get_time_now(handler->usrp, 0, secs, frac_secs);
+}
+
+void rf_uhd_sync_pps(void* h)
+{
+  if (h) {
+    rf_uhd_handler_t* handler = (rf_uhd_handler_t*)h;
+    uhd_usrp_set_time_unknown_pps(handler->usrp, 0, 0);
+  }
 }
 
 int rf_uhd_recv_with_time(void *h,
@@ -798,7 +816,7 @@ int rf_uhd_recv_with_time_multi(void *h,
       uhd_error error = uhd_rx_streamer_recv(handler->rx_stream, buffs_ptr, 
                                              num_rx_samples, md, 1.0, false, &rxd_samples);
       if (error) {
-        fprintf(stderr, "Error receiving from UHD: %d\n", error);
+        ERROR("Error receiving from UHD: %d\n", error);
         log_rx_error(handler);
         return -1; 
       }
@@ -815,17 +833,18 @@ int rf_uhd_recv_with_time_multi(void *h,
       } else if (error_code == UHD_RX_METADATA_ERROR_CODE_LATE_COMMAND) {
         log_late(handler, true);
       } else if (error_code == UHD_RX_METADATA_ERROR_CODE_TIMEOUT) {
-        fprintf(stderr, "Error timed out while receiving samples from UHD.\n");
+        ERROR("Error timed out while receiving samples from UHD.\n");
         return -1;
-      } else if (error_code != UHD_RX_METADATA_ERROR_CODE_NONE ) {
-        fprintf(stderr, "Error code 0x%x was returned during streaming. Aborting.\n", error_code);
+      } else if (error_code != UHD_RX_METADATA_ERROR_CODE_NONE) {
+        ERROR("Error code 0x%x was returned during streaming. Aborting.\n", error_code);
+        INFO("Error code 0x%x was returned during streaming. Aborting.\n", error_code);
       }
     }
   } else {
     uhd_error error = uhd_rx_streamer_recv(handler->rx_stream, data, nsamples, md, 0.0, false, &rxd_samples);
     rxd_samples_total = rxd_samples;
     if (error) {
-      fprintf(stderr, "Error receiving from UHD: %d\n", error);
+      ERROR("Error receiving from UHD: %d\n", error);
       log_rx_error(handler);
       return -1;
     }
@@ -909,7 +928,7 @@ int rf_uhd_send_timed_multi(void *h,
       uhd_error error = uhd_tx_streamer_send(handler->tx_stream, buffs_ptr, 
                                              tx_samples, &handler->tx_md, 1.0, &txd_samples);
       if (error) {
-        fprintf(stderr, "Error sending to UHD: %d\n", error);
+        ERROR("Error sending to UHD: %d\n", error);
         goto unlock;
       }
       // Increase time spec 
@@ -931,7 +950,7 @@ int rf_uhd_send_timed_multi(void *h,
     uhd_tx_metadata_set_end(&handler->tx_md, is_end_of_burst);
     uhd_error error = uhd_tx_streamer_send(handler->tx_stream, buffs_ptr, nsamples, &handler->tx_md, 0.0, &txd_samples);
     if (error) {
-      fprintf(stderr, "Error sending to UHD: %d\n", error);
+      ERROR("Error sending to UHD: %d\n", error);
       goto unlock;
     }
 

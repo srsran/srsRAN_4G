@@ -132,8 +132,8 @@ void spgw::run_thread()
   size_t buf_len = SRSLTE_MAX_BUFFER_SIZE_BYTES - SRSLTE_BUFFER_HEADER_OFFSET;
 
   fd_set set;
-  int max_fd = std::max(s1u, sgi);
-  max_fd = std::max(max_fd, s11);
+  int    max_fd = std::max(s1u, sgi);
+  max_fd        = std::max(max_fd, s11);
   while (m_running) {
 
     s1u_msg->reset();

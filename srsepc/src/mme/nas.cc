@@ -301,7 +301,8 @@ bool nas::handle_imsi_attach_request_known_ue(nas*                              
   s1ap->delete_ue_ctx(nas_ctx->m_emm_ctx.imsi);
 
   // Handle new attach
-  err = nas::handle_imsi_attach_request_unknown_ue(enb_ue_s1ap_id, enb_sri, attach_req, pdn_con_req, args, itf, nas_log);
+  err =
+      nas::handle_imsi_attach_request_unknown_ue(enb_ue_s1ap_id, enb_sri, attach_req, pdn_con_req, args, itf, nas_log);
   return err;
 }
 

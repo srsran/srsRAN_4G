@@ -35,12 +35,14 @@
 char *input_file_name = NULL;
 
 srslte_cell_t cell = {
-  6,            // cell.cell.cell.nof_prb
-  1,            // cell.cell.nof_ports
-  0,            // cell.id
-  SRSLTE_CP_NORM,       // cyclic prefix
-  SRSLTE_PHICH_R_1,          // PHICH resources      
-  SRSLTE_PHICH_NORM    // PHICH length
+    6,                 // cell.cell.cell.nof_prb
+    1,                 // cell.cell.nof_ports
+    0,                 // cell.id
+    SRSLTE_CP_NORM,    // cyclic prefix
+    SRSLTE_PHICH_NORM, // PHICH length
+    SRSLTE_PHICH_R_1,  // PHICH resources
+    SRSLTE_FDD,
+
 };
 
 uint32_t cfi = 2;
@@ -51,10 +53,11 @@ int max_frames = 10;
 srslte_dci_format_t dci_format = SRSLTE_DCI_FORMAT1A;
 srslte_filesource_t fsrc;
 srslte_pdcch_t pdcch;
-cf_t *input_buffer, *fft_buffer, *ce[SRSLTE_MAX_PORTS];
+cf_t *                input_buffer, *fft_buffer[SRSLTE_MAX_CODEWORDS];
 srslte_regs_t regs;
 srslte_ofdm_t fft;
 srslte_chest_dl_t chest;
+srslte_chest_dl_res_t chest_res;
 
 void usage(char *prog) {
   printf("Usage: %s [vcfoe] -i input_file\n", prog);
@@ -97,7 +100,7 @@ void parse_args(int argc, char **argv) {
     case 'o':
       dci_format = srslte_dci_format_from_string(argv[optind]);
       if (dci_format == SRSLTE_DCI_NOF_FORMATS) {
-        fprintf(stderr, "Error unsupported format %s\n", argv[optind]);
+        ERROR("Error unsupported format %s\n", argv[optind]);
         exit(-1);
       }
       break;
@@ -119,14 +122,13 @@ void parse_args(int argc, char **argv) {
 }
 
 int base_init() {
-  int i;
 
   if (srslte_filesource_init(&fsrc, input_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
-    fprintf(stderr, "Error opening file %s\n", input_file_name);
+    ERROR("Error opening file %s\n", input_file_name);
     exit(-1);
   }
 
-  flen = 2 * (SRSLTE_SLOT_LEN(srslte_symbol_sz_power2(cell.nof_prb)));
+  flen = 2 * (SRSLTE_SLOT_LEN(srslte_symbol_sz(cell.nof_prb)));
 
   input_buffer = malloc(flen * sizeof(cf_t));
   if (!input_buffer) {
@@ -134,45 +136,47 @@ int base_init() {
     exit(-1);
   }
 
-  fft_buffer = malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
-  if (!fft_buffer) {
+  fft_buffer[0] = malloc(SRSLTE_NOF_RE(cell) * sizeof(cf_t));
+  if (!fft_buffer[0]) {
     perror("malloc");
     return -1;
   }
 
-  for (i=0;i<SRSLTE_MAX_PORTS;i++) {
-    ce[i] = malloc(SRSLTE_SF_LEN_RE(cell.nof_prb, cell.cp) * sizeof(cf_t));
-    if (!ce[i]) {
-      perror("malloc");
-      return -1;
-    }
+  if (srslte_chest_dl_init(&chest, cell.nof_prb, 1)) {
+    ERROR("Error initializing equalizer\n");
+    return -1;
   }
-
-  if (srslte_chest_dl_init(&chest, cell.nof_prb)) {
-    fprintf(stderr, "Error initializing equalizer\n");
+  if (srslte_chest_dl_res_init(&chest_res, cell.nof_prb)) {
+    ERROR("Error initializing equalizer\n");
     return -1;
   }
   if (srslte_chest_dl_set_cell(&chest, cell)) {
-    fprintf(stderr, "Error initializing equalizer\n");
+    ERROR("Error initializing equalizer\n");
     return -1;
   }
 
-  if (srslte_ofdm_init_(&fft, cell.cp, input_buffer, fft_buffer, srslte_symbol_sz_power2(cell.nof_prb), cell.nof_prb, SRSLTE_DFT_FORWARD)) {
-    fprintf(stderr, "Error initializing FFT\n");
+  if (srslte_ofdm_init_(&fft,
+                        cell.cp,
+                        input_buffer,
+                        fft_buffer[0],
+                        srslte_symbol_sz(cell.nof_prb),
+                        cell.nof_prb,
+                        SRSLTE_DFT_FORWARD)) {
+    ERROR("Error initializing FFT\n");
     return -1;
   }
 
   if (srslte_regs_init(&regs, cell)) {
-    fprintf(stderr, "Error initiating regs\n");
+    ERROR("Error initiating regs\n");
     return -1;
   }
 
   if (srslte_pdcch_init_ue(&pdcch, cell.nof_prb, 1)) {
-    fprintf(stderr, "Error creating PDCCH object\n");
+    ERROR("Error creating PDCCH object\n");
     exit(-1);
   }
   if (srslte_pdcch_set_cell(&pdcch, &regs, cell)) {
-    fprintf(stderr, "Error creating PDCCH object\n");
+    ERROR("Error creating PDCCH object\n");
     exit(-1);
   }
 
@@ -181,17 +185,15 @@ int base_init() {
 }
 
 void base_free() {
-  int i;
 
   srslte_filesource_free(&fsrc);
 
   free(input_buffer);
-  free(fft_buffer);
+  free(fft_buffer[0]);
 
   srslte_filesource_free(&fsrc);
-  for (i=0;i<SRSLTE_MAX_PORTS;i++) {
-    free(ce[i]);
-  }
+
+  srslte_chest_dl_res_free(&chest_res);
   srslte_chest_dl_free(&chest);
   srslte_ofdm_rx_free(&fft);
 
@@ -200,7 +202,6 @@ void base_free() {
 }
 
 int main(int argc, char **argv) {
-  srslte_ra_dl_dci_t ra_dl;
   int i;
   int frame_cnt;
   int ret;
@@ -216,7 +217,7 @@ int main(int argc, char **argv) {
   parse_args(argc,argv);
 
   if (base_init()) {
-    fprintf(stderr, "Error initializing memory\n");
+    ERROR("Error initializing memory\n");
     exit(-1);
   }
 
@@ -229,14 +230,16 @@ int main(int argc, char **argv) {
 
     srslte_ofdm_rx_sf(&fft);
 
+    srslte_dl_sf_cfg_t dl_sf;
+    ZERO_OBJECT(dl_sf);
+    dl_sf.tti = frame_cnt;
+    dl_sf.cfi = cfi;
+
     /* Get channel estimates for each port */
-    srslte_chest_dl_estimate(&chest, fft_buffer, ce, frame_cnt %10);
-    
-    uint16_t crc_rem = 0;
-    if (srslte_pdcch_extract_llr(&pdcch, fft_buffer, 
-                          ce, srslte_chest_dl_get_noise_estimate(&chest), 
-                          frame_cnt %10, cfi)) {
-      fprintf(stderr, "Error extracting LLRs\n");
+    srslte_chest_dl_estimate(&chest, &dl_sf, fft_buffer, &chest_res);
+
+    if (srslte_pdcch_extract_llr(&pdcch, &dl_sf, &chest_res, fft_buffer)) {
+      ERROR("Error extracting LLRs\n");
       return -1;
     }
     if (rnti == SRSLTE_SIRNTI) {
@@ -244,44 +247,36 @@ int main(int argc, char **argv) {
       nof_locations = srslte_pdcch_common_locations(&pdcch, locations, MAX_CANDIDATES, cfi);
     } else {
       INFO("Initializing user-specific search space for RNTI: 0x%x\n", rnti);
-      nof_locations = srslte_pdcch_ue_locations(&pdcch, locations, MAX_CANDIDATES, frame_cnt %10, cfi, rnti); 
+      nof_locations = srslte_pdcch_ue_locations(&pdcch, &dl_sf, locations, MAX_CANDIDATES, rnti);
     }
 
-    for (i=0;i<nof_locations && crc_rem != rnti;i++) {
-      if (srslte_pdcch_decode_msg(&pdcch, &dci_msg, &locations[i], dci_format, cfi, &crc_rem)) {
-        fprintf(stderr, "Error decoding DCI msg\n");
+    srslte_dci_cfg_t dci_cfg;
+    ZERO_OBJECT(dci_cfg);
+
+    ZERO_OBJECT(dci_msg);
+
+    for (i=0;i<nof_locations && dci_msg.rnti != rnti;i++) {
+      dci_msg.location = locations[i];
+      dci_msg.format   = dci_format;
+      if (srslte_pdcch_decode_msg(&pdcch, &dl_sf, &dci_cfg, &dci_msg)) {
+        ERROR("Error decoding DCI msg\n");
         return -1;
       }
     }
-    
-    if (crc_rem == rnti) {
-      srslte_dci_msg_type_t type;
-      if (srslte_dci_msg_get_type(&dci_msg, &type, cell.nof_prb, rnti)) {
-        fprintf(stderr, "Can't get DCI message type\n");
-        exit(-1);
-      }
-      printf("MSG %d: ",i);
-      srslte_dci_msg_type_fprint(stdout, type);
-      switch(type.type) {
-      case SRSLTE_DCI_MSG_TYPE_PDSCH_SCHED:
-        bzero(&ra_dl, sizeof(srslte_ra_dl_dci_t));
-        if (srslte_dci_msg_unpack_pdsch(&dci_msg, &ra_dl, cell.nof_prb, cell.nof_ports, rnti != SRSLTE_SIRNTI)) {
-          fprintf(stderr, "Can't unpack DCI message\n");
-        } else {
-          srslte_ra_pdsch_fprint(stdout, &ra_dl, cell.nof_prb);
-          if (ra_dl.alloc_type == SRSLTE_RA_ALLOC_TYPE2 && ra_dl.type2_alloc.mode == SRSLTE_RA_TYPE2_LOC
-              && ra_dl.type2_alloc.riv == 11 && ra_dl.rv_idx == 0
-              && ra_dl.harq_process == 0 && ra_dl.mcs_idx == 2) {
-            printf("This is the file signal.1.92M.amar.dat\n");
-            ret = 0;
-          }
-        }
-        break;
-      default:
-        fprintf(stderr, "Unsupported message type\n");
-        break;
-      }
 
+    if (dci_msg.rnti == rnti) {
+
+      srslte_dci_dl_t dci;
+      bzero(&dci, sizeof(srslte_dci_dl_t));
+      if (srslte_dci_msg_unpack_pdsch(&cell, &dl_sf, &dci_cfg, &dci_msg, &dci)) {
+        ERROR("Can't unpack DCI message\n");
+      } else {
+        if (dci.alloc_type == SRSLTE_RA_ALLOC_TYPE2 && dci.type2_alloc.mode == SRSLTE_RA_TYPE2_LOC &&
+            dci.type2_alloc.riv == 11 && dci.tb[0].rv == 0 && dci.pid == 0 && dci.tb[0].mcs_idx == 2) {
+          printf("This is the file signal.1.92M.amar.dat\n");
+          ret = 0;
+        }
+      }
     }
 
     frame_cnt++;

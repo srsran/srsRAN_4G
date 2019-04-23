@@ -35,12 +35,14 @@
 char *input_file_name = NULL;
 
 srslte_cell_t cell = {
-  6,            // nof_prb
-  1,            // nof_ports
-  0,            // cell_id
-  SRSLTE_CP_NORM,       // cyclic prefix
-  SRSLTE_PHICH_R_1,          // PHICH resources      
-  SRSLTE_PHICH_NORM    // PHICH length
+    6,                 // nof_prb
+    1,                 // nof_ports
+    0,                 // cell_id
+    SRSLTE_CP_NORM,    // cyclic prefix
+    SRSLTE_PHICH_NORM, // PHICH length
+    SRSLTE_PHICH_R_1,  // PHICH resources
+    SRSLTE_FDD,
+
 };
 
 int flen;
@@ -101,7 +103,7 @@ void parse_args(int argc, char **argv) {
     case 'o':
       dci_format = srslte_dci_format_from_string(argv[optind]);
       if (dci_format == SRSLTE_DCI_NOF_FORMATS) {
-        fprintf(stderr, "Error unsupported format %s\n", argv[optind]);
+        ERROR("Error unsupported format %s\n", argv[optind]);
         exit(-1);
       }
       break;
@@ -125,11 +127,11 @@ void parse_args(int argc, char **argv) {
 int base_init() {
 
   if (srslte_filesource_init(&fsrc, input_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
-    fprintf(stderr, "Error opening file %s\n", input_file_name);
+    ERROR("Error opening file %s\n", input_file_name);
     exit(-1);
   }
 
-  flen = SRSLTE_SF_LEN(srslte_symbol_sz_power2(cell.nof_prb));
+  flen = SRSLTE_SF_LEN(srslte_symbol_sz(cell.nof_prb));
 
   input_buffer[0] = malloc(flen * sizeof(cf_t));
   if (!input_buffer[0]) {
@@ -138,11 +140,11 @@ int base_init() {
   }
 
   if (srslte_ue_dl_init(&ue_dl, input_buffer, cell.nof_prb, 1)) {
-    fprintf(stderr, "Error initializing UE DL\n");
+    ERROR("Error initializing UE DL\n");
     return -1;
   }
   if (srslte_ue_dl_set_cell(&ue_dl, cell)) {
-    fprintf(stderr, "Error initializing UE DL\n");
+    ERROR("Error initializing UE DL\n");
     return -1;
   }
 
@@ -171,7 +173,7 @@ int main(int argc, char **argv) {
   parse_args(argc,argv);
 
   if (base_init()) {
-    fprintf(stderr, "Error initializing memory\n");
+    ERROR("Error initializing memory\n");
     exit(-1);
   }
 
@@ -181,17 +183,32 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
+  srslte_ue_dl_cfg_t ue_dl_cfg;
+  ZERO_OBJECT(ue_dl_cfg);
+
+  srslte_dl_sf_cfg_t dl_sf;
+  ZERO_OBJECT(dl_sf);
+
+  srslte_pdsch_cfg_t pdsch_cfg;
+  ZERO_OBJECT(pdsch_cfg);
+
+  srslte_softbuffer_rx_t softbuffer_rx;
+  srslte_softbuffer_rx_init(&softbuffer_rx, cell.nof_prb);
+  pdsch_cfg.softbuffers.rx[0] = &softbuffer_rx;
+  pdsch_cfg.rnti              = rnti;
+
   ret = -1;
   nof_frames = 0;
   do {
     srslte_filesource_read(&fsrc, input_buffer[0], flen);
     INFO("Reading %d samples sub-frame %d\n", flen, sf_idx);
 
-    ret = srslte_ue_dl_decode(&ue_dl, data, 0, sf_idx, acks);
+    dl_sf.tti = sf_idx;
+    ret       = srslte_ue_dl_find_and_decode(&ue_dl, &dl_sf, &ue_dl_cfg, &pdsch_cfg, data, acks);
     if(ret > 0) {
       printf("PDSCH Decoded OK!\n");       
     } else if (ret == 0) {
-      printf("No DCI grant found\n");
+      printf("No DCI dci found\n");
     } else if (ret < 0) {
       printf("Error decoding PDSCH\n");
     }

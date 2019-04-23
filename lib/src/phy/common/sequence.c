@@ -28,11 +28,11 @@
 #include <stdio.h>
 #include <strings.h>
 #include <pthread.h>
-#include <srslte/phy/common/sequence.h>
 
 #include "srslte/phy/common/sequence.h"
-#include "srslte/phy/utils/vector.h"
 #include "srslte/phy/utils/bit.h"
+#include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/vector.h"
 
 #define Nc 1600
 
@@ -54,14 +54,12 @@ int srslte_sequence_set_LTE_pr(srslte_sequence_t *q, uint32_t len, uint32_t seed
   int n;
 
   if (len > q->max_len) {
-    fprintf(stderr, "Error generating pseudo-random sequence: len %d exceeds maximum len %d\n",
-            len, MAX_SEQ_LEN);
+    ERROR("Error generating pseudo-random sequence: len %d exceeds maximum len %d\n", len, MAX_SEQ_LEN);
     return -1;
   }
 
   if (len > q->max_len) {
-    fprintf(stderr, "Error generating pseudo-random sequence: len %d is greater than allocated len %d\n",
-            len, q->max_len);
+    ERROR("Error generating pseudo-random sequence: len %d is greater than allocated len %d\n", len, q->max_len);
     return -1;
   }
   pthread_mutex_lock(&mutex);
@@ -90,8 +88,7 @@ int srslte_sequence_set_LTE_pr(srslte_sequence_t *q, uint32_t len, uint32_t seed
   uint32_t *x1, *x2;
 
   if (len > q->max_len) {
-    fprintf(stderr, "Error generating pseudo-random sequence: len %d is greater than allocated len %d\n",
-            len, q->max_len);
+    ERROR("Error generating pseudo-random sequence: len %d is greater than allocated len %d\n", len, q->max_len);
     return -1;
   }
 

@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/ringbuffer.h"
 #include "srslte/phy/utils/vector.h"
 
@@ -65,8 +66,8 @@ int srslte_ringbuffer_write(srslte_ringbuffer_t *q, void *p, int nof_bytes)
     return 0;
   }
   if (q->count + w_bytes > q->capacity) {
-    w_bytes = q->capacity - q->count; 
-    fprintf(stderr, "Buffer overrun: lost %d bytes\n", nof_bytes - w_bytes);
+    w_bytes = q->capacity - q->count;
+    ERROR("Buffer overrun: lost %d bytes\n", nof_bytes - w_bytes);
   }
   if (w_bytes > q->capacity - q->wpm) {
     int x = q->capacity - q->wpm; 

@@ -37,7 +37,7 @@
 #include "srslte/phy/utils/vector.h"
 #include "srslte/phy/utils/convolution.h"
 
-void srslte_chest_set_triangle_filter(float *fil, int filter_len) 
+uint32_t srslte_chest_set_triangle_filter(float* fil, int filter_len)
 {
   for (int i=0;i<filter_len/2;i++) {
     fil[i] = i+1;
@@ -52,6 +52,7 @@ void srslte_chest_set_triangle_filter(float *fil, int filter_len)
   for (int i=0;i<filter_len;i++) {
     fil[i]/=s;
   }
+  return filter_len;
 }
 
 /* Uses the difference between the averaged and non-averaged pilot estimates */
@@ -65,11 +66,32 @@ float srslte_chest_estimate_noise_pilots(cf_t *noisy, cf_t *noiseless, cf_t *noi
   return power; 
 }
 
-void srslte_chest_set_smooth_filter3_coeff(float *smooth_filter, float w)
+uint32_t srslte_chest_set_smooth_filter3_coeff(float* smooth_filter, float w)
 {
-  smooth_filter[0] = w; 
-  smooth_filter[2] = w; 
-  smooth_filter[1] = 1-2*w; 
+  smooth_filter[0] = w;
+  smooth_filter[2] = w;
+  smooth_filter[1] = 1 - 2 * w;
+  return 3;
+}
+
+uint32_t srslte_chest_set_smooth_filter_gauss(float* filter, uint32_t order, float std_dev)
+{
+  const uint32_t filterlen = order + 1;
+  const int      center    = (filterlen - 1) / 2;
+  float          norm_p    = 0.0f;
+
+  if (filterlen) {
+
+    for (int i = 0; i < filterlen; i++) {
+      filter[i] = expf(-powf(i - center, 2) / (2.0f * powf(std_dev, 2)));
+      norm_p += powf(filter[i], 2);
+    }
+
+    const float norm = srslte_vec_acc_ff(filter, filterlen);
+
+    srslte_vec_sc_prod_fff(filter, 1.0f / norm, filter, filterlen);
+  }
+  return filterlen;
 }
 
 void srslte_chest_average_pilots(cf_t *input, cf_t *output, float *filter, 

@@ -24,11 +24,11 @@
  *
  */
 
+#include "srslte/srslte.h"
 #include <complex.h>
 #include <math.h>
 #include <stdlib.h>
 #include <strings.h>
-#include <srslte/srslte.h>
 
 #include "srslte/phy/resampling/interp.h"
 #include "srslte/phy/utils/vector.h"
@@ -121,7 +121,7 @@ int srslte_interp_linear_vector_resize(srslte_interp_linsrslte_vec_t *q, uint32_
     q->vector_len = vector_len;
     return SRSLTE_SUCCESS;
   } else {
-    fprintf(stderr, "Error resizing interp_linear: vector_len must be lower or equal than initialized\n");
+    ERROR("Error resizing interp_linear: vector_len must be lower or equal than initialized\n");
     return SRSLTE_ERROR;
   }
 }
@@ -237,7 +237,7 @@ int srslte_interp_linear_resize(srslte_interp_lin_t *q, uint32_t vector_len, uin
     q->M = M;
     return SRSLTE_SUCCESS;
   } else {
-    fprintf(stderr, "Error resizing interp_linear: vector_len and M must be lower or equal than initialized\n");
+    ERROR("Error resizing interp_linear: vector_len and M must be lower or equal than initialized\n");
     return SRSLTE_ERROR;
   }
 }

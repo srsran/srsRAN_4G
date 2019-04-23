@@ -52,7 +52,7 @@ int srslte_dft_precoding_init(srslte_dft_precoding_t *q, uint32_t max_prb, bool 
       if(srslte_dft_precoding_valid_prb(i)) {
         DEBUG("Initiating DFT precoding plan for %d PRBs\n", i);
         if (srslte_dft_plan_c(&q->dft_plan[i], i*SRSLTE_NRE, is_tx?SRSLTE_DFT_FORWARD:SRSLTE_DFT_BACKWARD)) {
-          fprintf(stderr, "Error: Creating DFT plan %d\n",i);
+          ERROR("Error: Creating DFT plan %d\n", i);
           goto clean_exit;
         }
         srslte_dft_plan_set_norm(&q->dft_plan[i], true);
@@ -106,7 +106,7 @@ int srslte_dft_precoding(srslte_dft_precoding_t *q, cf_t *input, cf_t *output,
 {
   
   if (!srslte_dft_precoding_valid_prb(nof_prb) && nof_prb <= q->max_prb) {
-    fprintf(stderr, "Error invalid number of PRB (%d)\n", nof_prb);
+    ERROR("Error invalid number of PRB (%d)\n", nof_prb);
     return SRSLTE_ERROR; 
   }
 
