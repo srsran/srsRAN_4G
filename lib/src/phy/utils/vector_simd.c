@@ -1507,6 +1507,52 @@ void srslte_vec_interleave_add_simd(const cf_t *x, const cf_t *y, cf_t *z, const
   }
 }
 
+void srslte_vec_gen_sine_simd(cf_t amplitude, float freq, cf_t* z, int len)
+{
+  const float TWOPI = 2.0f * (float)M_PI;
+  cf_t        osc   = cexpf(_Complex_I * TWOPI * freq);
+  cf_t        phase = 1.0f;
+  int         i     = 0;
+
+#if SRSLTE_SIMD_CF_SIZE
+  __attribute__((aligned(64))) cf_t _phase[SRSLTE_SIMD_CF_SIZE];
+  _phase[0] = phase;
+
+  if (i < len - SRSLTE_SIMD_CF_SIZE + 1) {
+    for (int k = 1; k < SRSLTE_SIMD_CF_SIZE; k++) {
+      _phase[k] = _phase[k - 1] * osc;
+    }
+  }
+  simd_cf_t _simd_osc   = srslte_simd_cf_set1(cexpf(_Complex_I * TWOPI * freq * SRSLTE_SIMD_CF_SIZE));
+  simd_cf_t _simd_phase = srslte_simd_cfi_load(_phase);
+  simd_cf_t a           = srslte_simd_cf_set1(amplitude);
+
+  if (SRSLTE_IS_ALIGNED(z)) {
+    for (; i < len - SRSLTE_SIMD_CF_SIZE + 1; i += SRSLTE_SIMD_CF_SIZE) {
+      simd_cf_t r = srslte_simd_cf_prod(a, _simd_phase);
+      srslte_simd_cfi_store(&z[i], r);
+      _simd_phase = srslte_simd_cf_prod(_simd_phase, _simd_osc);
+    }
+  } else {
+    for (; i < len - SRSLTE_SIMD_CF_SIZE + 1; i += SRSLTE_SIMD_CF_SIZE) {
+      simd_cf_t r = srslte_simd_cf_prod(a, _simd_phase);
+      srslte_simd_cfi_storeu(&z[i], r);
+      _simd_phase = srslte_simd_cf_prod(_simd_phase, _simd_osc);
+    }
+  }
+
+  // Store pahse and get last phase
+  srslte_simd_cfi_store(_phase, _simd_phase);
+  phase = _phase[0];
+#endif /* SRSLTE_SIMD_CF_SIZE */
+
+  for (; i < len; i++) {
+    z[i] = amplitude * phase;
+
+    phase *= osc;
+  }
+}
+
 void srslte_vec_apply_cfo_simd(const cf_t *x, float cfo, cf_t *z, int len) {
   const float TWOPI = 2.0f * (float) M_PI;
   int i = 0;

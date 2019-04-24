@@ -135,6 +135,8 @@ SRSLTE_API void srslte_vec_interleave_simd(const cf_t *x, const cf_t *y, cf_t *z
 
 SRSLTE_API void srslte_vec_interleave_add_simd(const cf_t *x, const cf_t *y, cf_t *z, const int len);
 
+SRSLTE_API void srslte_vec_gen_sine_simd(cf_t amplitude, float freq, cf_t* z, int len);
+
 SRSLTE_API void srslte_vec_apply_cfo_simd(const cf_t *x, float cfo, cf_t *z, int len);
 
 SRSLTE_API float srslte_vec_estimate_frequency_simd(const cf_t* x, int len);

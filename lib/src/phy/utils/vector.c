@@ -464,6 +464,11 @@ void srslte_vec_interleave_add(const cf_t *x, const cf_t *y, cf_t *z, const int 
   srslte_vec_interleave_add_simd(x, y, z, len);
 }
 
+void srslte_vec_gen_sine(cf_t amplitude, float freq, cf_t* z, int len)
+{
+  srslte_vec_gen_sine_simd(amplitude, freq, z, len);
+}
+
 void srslte_vec_apply_cfo(const cf_t *x, float cfo, cf_t *z, int len) {
   srslte_vec_apply_cfo_simd(x, cfo, z, len);
 }
