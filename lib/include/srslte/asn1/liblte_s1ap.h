@@ -1352,7 +1352,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_enbname(
 #define LIBLTE_S1AP_ENCRYPTIONALGORITHMS_BIT_STRING_LEN 16
 typedef struct{
   bool     ext;
-  uint8_t  buffer[16];
+  uint8_t  buffer[LIBLTE_S1AP_ENCRYPTIONALGORITHMS_BIT_STRING_LEN];
 }LIBLTE_S1AP_ENCRYPTIONALGORITHMS_STRUCT;
 
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_encryptionalgorithms(
@@ -2775,7 +2775,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_handovertype(
 #define LIBLTE_S1AP_INTEGRITYPROTECTIONALGORITHMS_BIT_STRING_LEN 16
 typedef struct{
   bool     ext;
-  uint8_t  buffer[16];
+  uint8_t  buffer[LIBLTE_S1AP_INTEGRITYPROTECTIONALGORITHMS_BIT_STRING_LEN];
 }LIBLTE_S1AP_INTEGRITYPROTECTIONALGORITHMS_STRUCT;
 
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_integrityprotectionalgorithms(
