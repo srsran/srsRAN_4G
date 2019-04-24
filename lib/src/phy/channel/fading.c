@@ -72,7 +72,7 @@ static inline int parse_model(srslte_channel_fading_t* q, const char* str)
     if (strlen(str) > offset) {
       q->doppler = (float)strtod(&str[offset], NULL);
       if (isnan(q->doppler) || isinf(q->doppler)) {
-        ret = SRSLTE_ERROR;
+        q->doppler = 0.0f;
       }
     } else {
       ret = SRSLTE_ERROR;
@@ -94,14 +94,10 @@ generate_tap(float delay_ns, float power_db, float srate, float phase, cf_t* buf
   float O         = (delay_ns * 1e-9f * srate + path_delay) / (float)N;
   cf_t  a0        = amplitude * cexpf(-_Complex_I * phase) / N;
 
-  for (int n = 0; n < N; n++) {
-    buf[n] = a0;
-  }
-
-  srslte_vec_apply_cfo(buf, -O, buf, N);
+  srslte_vec_gen_sine(a0, -O, buf, N);
 }
 
-static void generate_taps(srslte_channel_fading_t* q, double time)
+static inline void generate_taps(srslte_channel_fading_t* q, double time)
 {
   // Initialise freq response
   bzero(q->h_freq, sizeof(cf_t) * q->N);
@@ -256,10 +252,10 @@ double srslte_channel_fading_execute(
   uint32_t counter = 0;
 
   if (q) {
-    // Generate taps
-    generate_taps(q, init_time);
-
     while (counter < nsamples) {
+      // Generate taps
+      generate_taps(q, init_time);
+
       // Do not process more than N / 4 samples
       uint32_t n = SRSLTE_MIN(q->N / 4, nsamples - counter);
 
