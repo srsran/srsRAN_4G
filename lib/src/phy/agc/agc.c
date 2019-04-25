@@ -142,10 +142,11 @@ void srslte_agc_process(srslte_agc_t *q, cf_t *signal, uint32_t len) {
       } else if (isinf(gain_db) || isnan(gain_db)) {
         gain_db = (q->min_gain + q->max_gain) / 2.0;
         INFO("Warning: AGC went to an unknown state. Setting Rx gain to %.2fdB\n", gain_db);
-      } else {
-        gain_uhd_db = q->set_gain_callback(q->uhd_handler, gain_db);
-        q->gain = pow(10, gain_uhd_db/10);
       }
+
+      // Set gain
+      gain_uhd_db = q->set_gain_callback(q->uhd_handler, gain_db);
+      q->gain = pow(10, gain_uhd_db / 10);
     }
     float *t; 
     switch(q->mode) {
