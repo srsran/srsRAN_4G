@@ -322,6 +322,9 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
     bzero(handler, sizeof(rf_uhd_handler_t));
     *h = handler; 
 
+    // Disable fast-path (U/L/O) messages
+    setenv("UHD_LOG_FASTPATH_DISABLE", "1", 0);
+
     /* Set priority to UHD threads */
     uhd_set_thread_priority(uhd_default_thread_priority, true);
 
