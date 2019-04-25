@@ -954,6 +954,8 @@ rrc::ue::ue()
   cqi_sched_sf_idx  = 0;
   cqi_sched_prb_idx = 0;
   rlf_cnt           = 0;
+  integ_algo        = srslte::INTEGRITY_ALGORITHM_ID_EIA0;
+  cipher_algo       = srslte::CIPHERING_ALGORITHM_ID_EEA0;
   nas_pending       = false;
   state             = RRC_STATE_IDLE;
   pool              = srslte::byte_buffer_pool::get_instance();
@@ -1900,7 +1902,8 @@ void rrc::ue::send_ue_cap_enquiry()
 
 /********************** HELPERS ***************************/
 
-bool rrc::ue::select_security_algorithms() {
+bool rrc::ue::select_security_algorithms()
+{
   // Each position in the bitmap represents an encryption algorithm:
   // “all bits equal to 0” – UE supports no other algorithm than EEA0,
   // “first bit” – 128-EEA1,
@@ -1913,24 +1916,16 @@ bool rrc::ue::select_security_algorithms() {
 
   bool enc_algo_found = false;
   bool integ_algo_found = false;
-  bool zero_vector = true;
+
   for (int i = 0; i < srslte::CIPHERING_ALGORITHM_ID_N_ITEMS; i++) {
     switch (parent->cfg.eea_preference_list[i]) {
     case srslte::CIPHERING_ALGORITHM_ID_EEA0:
       // “all bits equal to 0” – UE supports no other algorithm than EEA0,
-#if 0
-      zero_vector = true;
-      for (int j = 0; j < LIBLTE_S1AP_ENCRYPTIONALGORITHMS_BIT_STRING_LEN; j++) {
-        if (security_capabilities.encryptionAlgorithms.buffer[j]) {
-          zero_vector = false;
-        }
-      }
-#endif
-      if (zero_vector == true) {
-        cipher_algo = srslte::CIPHERING_ALGORITHM_ID_EEA0;
-        enc_algo_found = true;
-        break;
-      }
+      // specification does not cover the case in which EEA0 is supported with other algorithms
+      // just assume that EEA0 is always supported even this can not be explicity signaled by S1AP
+      cipher_algo    = srslte::CIPHERING_ALGORITHM_ID_EEA0;
+      enc_algo_found = true;
+      parent->rrc_log->info("Selected EEA0 as RRC encryption algorithm\n");
       break;
     case srslte::CIPHERING_ALGORITHM_ID_128_EEA1:
       // “first bit” – 128-EEA1,
@@ -1938,7 +1933,10 @@ bool rrc::ue::select_security_algorithms() {
               .buffer[srslte::CIPHERING_ALGORITHM_ID_128_EEA1 - 1]) {
         cipher_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA1;
         enc_algo_found = true;
+        parent->rrc_log->info("Selected EEA1 as RRC encryption algorithm\n");
         break;
+      } else {
+        parent->rrc_log->info("Failed to selected EEA1 as RRC encryption algorithm, due to unsupported algorithm\n");
       }
       break;
     case srslte::CIPHERING_ALGORITHM_ID_128_EEA2:
@@ -1947,7 +1945,10 @@ bool rrc::ue::select_security_algorithms() {
               .buffer[srslte::CIPHERING_ALGORITHM_ID_128_EEA2 - 1]) {
         cipher_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA2;
         enc_algo_found = true;
+        parent->rrc_log->info("Selected EEA2 as RRC encryption algorithm\n");
         break;
+      } else {
+        parent->rrc_log->info("Failed to selected EEA2 as RRC encryption algorithm, due to unsupported algorithm\n");
       }
       break;
     default:
@@ -1962,34 +1963,27 @@ bool rrc::ue::select_security_algorithms() {
   for (int i = 0; i < srslte::INTEGRITY_ALGORITHM_ID_N_ITEMS; i++) {
     switch (parent->cfg.eia_preference_list[i]) {
     case srslte::INTEGRITY_ALGORITHM_ID_EIA0:
-      // “all bits equal to 0” – UE supports no other algorithm than EEA0,
-      zero_vector = true;
-#if 0
-      for (int j = 0; j < LIBLTE_S1AP_INTEGRITYPROTECTIONALGORITHMS_BIT_STRING_LEN; j++) {
-        if (security_capabilities.integrityProtectionAlgorithms.buffer[j]) {
-          zero_vector = false;
-        }
-      }
-#endif
-      if (zero_vector == true) {
-        integ_algo = srslte::INTEGRITY_ALGORITHM_ID_EIA0;
-        integ_algo_found = true;
-      }
+      // Null integrity is not supported
+      parent->rrc_log->info("Skipping EIA0 as RRC integrity algorithm. Null integrity is not supported.\n");
       break;
     case srslte::INTEGRITY_ALGORITHM_ID_128_EIA1:
-      // “first bit” – 128-EEA1,
-      if (security_capabilities.encryptionAlgorithms
-              .buffer[srslte::INTEGRITY_ALGORITHM_ID_128_EIA1 - 1]) {
+      // “first bit” – 128-EIA1,
+      if (security_capabilities.integrityProtectionAlgorithms.buffer[srslte::INTEGRITY_ALGORITHM_ID_128_EIA1 - 1]) {
         integ_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA1;
         integ_algo_found = true;
+        parent->rrc_log->info("Selected EIA1 as RRC integrity algorithm.\n");
+      } else {
+        parent->rrc_log->info("Failed to selected EIA1 as RRC encryption algorithm, due to unsupported algorithm\n");
       }
       break;
     case srslte::INTEGRITY_ALGORITHM_ID_128_EIA2:
-      // “second bit” – 128-EEA2,
-      if (security_capabilities.encryptionAlgorithms
-              .buffer[srslte::INTEGRITY_ALGORITHM_ID_128_EIA2 - 1]) {
+      // “second bit” – 128-EIA2,
+      if (security_capabilities.integrityProtectionAlgorithms.buffer[srslte::INTEGRITY_ALGORITHM_ID_128_EIA2 - 1]) {
         integ_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA2;
         integ_algo_found = true;
+        parent->rrc_log->info("Selected EIA2 as RRC integrity algorithm.\n");
+      } else {
+        parent->rrc_log->info("Failed to selected EIA2 as RRC encryption algorithm, due to unsupported algorithm\n");
       }
       break;
     default:
@@ -2004,7 +1998,8 @@ bool rrc::ue::select_security_algorithms() {
 
   if (integ_algo_found == false || enc_algo_found == false) {
     // TODO: if no security algorithm found abort radio connection and issue
-    // cryption-and-or-integrity-protection-algorithms-not-supported message
+    // encryption-and-or-integrity-protection-algorithms-not-supported message
+    parent->rrc_log->error("Did not find a matching integrity or encryption algorithm with the UE\n");
     return false;
   }
   return true;
