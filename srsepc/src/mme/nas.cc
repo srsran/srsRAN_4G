@@ -28,9 +28,14 @@
 
 namespace srsepc {
 
-nas::nas()
+nas::nas(srslte::log* nas_log = nullptr) :
+  m_pool(srslte::byte_buffer_pool::get_instance()),
+  m_nas_log(nas_log),
+  m_gtpc(nullptr),
+  m_s1ap(nullptr),
+  m_hss(nullptr),
+  m_mme(nullptr)
 {
-  m_pool = srslte::byte_buffer_pool::get_instance();
 }
 
 void nas::init(nas_init_t args, nas_if_t itf, srslte::log* nas_log)
@@ -564,7 +569,7 @@ bool nas::handle_service_request(uint32_t                m_tmsi,
   if (imsi == 0) {
     nas_log->console("Could not find IMSI from M-TMSI. M-TMSI 0x%x\n", m_tmsi);
     nas_log->error("Could not find IMSI from M-TMSI. M-TMSI 0x%x\n", m_tmsi);
-    nas nas_tmp;
+    nas nas_tmp(nas_log);
     nas_tmp.m_ecm_ctx.enb_ue_s1ap_id = enb_ue_s1ap_id;
     nas_tmp.m_ecm_ctx.mme_ue_s1ap_id = s1ap->get_next_mme_ue_s1ap_id();
 
@@ -579,7 +584,7 @@ bool nas::handle_service_request(uint32_t                m_tmsi,
   if (nas_ctx == NULL || nas_ctx->m_emm_ctx.state != EMM_STATE_REGISTERED) {
     nas_log->console("UE is not EMM-Registered.\n");
     nas_log->error("UE is not EMM-Registered.\n");
-    nas nas_tmp;
+    nas nas_tmp(nas_log);
     nas_tmp.m_ecm_ctx.enb_ue_s1ap_id = enb_ue_s1ap_id;
     nas_tmp.m_ecm_ctx.mme_ue_s1ap_id = s1ap->get_next_mme_ue_s1ap_id();
 

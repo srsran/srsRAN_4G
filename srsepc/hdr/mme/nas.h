@@ -149,7 +149,7 @@ typedef struct {
 class nas
 {
 public:
-  nas();
+  nas(srslte::log* nas_log);
   void init(nas_init_t args, nas_if_t itf, srslte::log* nas_log);
 
   /***********************
