@@ -1402,7 +1402,7 @@ int cc_worker::read_ce_abs(float* ce_abs, uint32_t tx_antenna, uint32_t rx_anten
   bzero(ce_abs, sizeof(float) * sz);
   int g = (sz - 12 * cell.nof_prb) / 2;
   for (i = 0; i < 12 * cell.nof_prb; i++) {
-    ce_abs[g + i] = 20 * log10f(cabsf(ue_dl.chest_res.ce[tx_antenna][rx_antenna][i]));
+    ce_abs[g + i] = 20 * log10f(std::abs(std::complex<float>(ue_dl.chest_res.ce[tx_antenna][rx_antenna][i])));
     if (std::isinf(ce_abs[g + i])) {
       ce_abs[g + i] = -80;
     }
