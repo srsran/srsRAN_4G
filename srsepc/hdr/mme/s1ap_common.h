@@ -18,6 +18,7 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
+
 #ifndef SRSEPC_S1AP_COMMON_H
 #define SRSEPC_S1AP_COMMON_H
 
