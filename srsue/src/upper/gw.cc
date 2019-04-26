@@ -140,15 +140,20 @@ void gw::write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu)
 {
   gw_log->info_hex(pdu->msg, pdu->N_bytes, "RX PDU. Stack latency: %ld us\n", pdu->get_latency_us());
   dl_tput_bytes += pdu->N_bytes;
-  if(!if_up)
-  {
+  if (!if_up) {
     gw_log->warning("TUN/TAP not up - dropping gw RX message\n");
-  }else{
-    int n = write(tun_fd, pdu->msg, pdu->N_bytes); 
-    if(n > 0 && (pdu->N_bytes != (uint32_t)n))
-    {
-      gw_log->warning("DL TUN/TAP write failure. Wanted to write %d B but only wrote %d B.\n", pdu->N_bytes, n);
-    } 
+  } else {
+    // Only handle IPv4 and IPv6 packets
+    struct iphdr*   ip_pkt  = (struct iphdr*)pdu->msg;
+    struct ipv6hdr* ip6_pkt = (struct ipv6hdr*)pdu->msg;
+    if (ip_pkt->version == 4 || ip_pkt->version == 6) {
+      int n = write(tun_fd, pdu->msg, pdu->N_bytes);
+      if (n > 0 && (pdu->N_bytes != (uint32_t)n)) {
+        gw_log->warning("DL TUN/TAP write failure. Wanted to write %d B but only wrote %d B.\n", pdu->N_bytes, n);
+      }
+    } else {
+      gw_log->error("Unsupported IP version. Dropping packet with %d B\n", pdu->N_bytes);
+    }
   }
   pool->deallocate(pdu);
 }
