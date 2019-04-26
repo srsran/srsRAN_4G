@@ -37,7 +37,10 @@ pdcp_entity::pdcp_entity()
   sn_len_bytes = 0;
   do_integrity = false;
   do_encryption = false;
+  tx_count = 0;
   rx_count = 0;
+  rx_hfn = 0;
+  next_pdcp_rx_sn = 0;
   cipher_algo = CIPHERING_ALGORITHM_ID_EEA0;
   integ_algo = INTEGRITY_ALGORITHM_ID_EIA0;
   pthread_mutex_init(&mutex, NULL);
@@ -79,11 +82,13 @@ void pdcp_entity::reestablish()
   // For SRBs
   if (cfg.is_control) {
     tx_count = 0;
+    rx_hfn   = 0;
     rx_count = 0;
   } else {
     // Only reset counter in RLC-UM
     if (rlc->rb_is_um(lcid)) {
       tx_count = 0;
+      rx_hfn   = 0;
       rx_count = 0;
     }
   }
@@ -187,31 +192,38 @@ void pdcp_entity::write_pdu(unique_byte_buffer_t pdu)
 
   pthread_mutex_lock(&mutex);
 
-  // Handle DRB messages
   if (cfg.is_data) {
+    // Handle DRB messages
     uint32_t sn;
-    if (do_encryption) {
-      cipher_decrypt(&(pdu->msg[sn_len_bytes]),
-                     rx_count,
-                     pdu->N_bytes - sn_len_bytes,
-                     &(pdu->msg[sn_len_bytes]));
-      log->debug_hex(pdu->msg, pdu->N_bytes, "RX %s PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
-    }
-    if(12 == cfg.sn_len)
-    {
+    if (12 == cfg.sn_len) {
       pdcp_unpack_data_pdu_long_sn(pdu.get(), &sn);
     } else {
       pdcp_unpack_data_pdu_short_sn(pdu.get(), &sn);
     }
+
+    if (sn < next_pdcp_rx_sn) {
+      rx_hfn++;
+    }
+
+    uint32_t count = (rx_hfn << cfg.sn_len) | sn;
+    if (do_encryption) {
+      cipher_decrypt(pdu->msg,
+                     count,
+                     pdu->N_bytes,
+                     pdu->msg);
+      log->debug_hex(pdu->msg, pdu->N_bytes, "RX %s PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
+    }
+    next_pdcp_rx_sn = sn + 1;
+
     log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU SN: %d", rrc->get_rb_name(lcid).c_str(), sn);
     gw->write_pdu(lcid, std::move(pdu));
   } else {
     // Handle SRB messages
     if (cfg.is_control) {
-      uint32_t sn = 0;
+      uint32_t sn = *pdu->msg & 0x1F;
       if (do_encryption) {
-        cipher_decrypt(&(pdu->msg[sn_len_bytes]),
-                       rx_count,
+        cipher_decrypt(&pdu->msg[sn_len_bytes],
+                       sn,
                        pdu->N_bytes - sn_len_bytes,
                        &(pdu->msg[sn_len_bytes]));
         log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
@@ -219,7 +231,7 @@ void pdcp_entity::write_pdu(unique_byte_buffer_t pdu)
 
       if (do_integrity) {
         if (not integrity_verify(pdu->msg,
-                         rx_count,
+                         sn,
                          pdu->N_bytes - 4,
                          &(pdu->msg[pdu->N_bytes - 4]))) {
           log->error_hex(pdu->msg, pdu->N_bytes, "%s Dropping PDU", rrc->get_rb_name(lcid).c_str());
@@ -400,7 +412,7 @@ void pdcp_entity::cipher_decrypt(uint8_t  *ct,
   } else {
     k_enc = k_up_enc;
   }
-
+  log->info("Ciphering count %d \n", count);
   switch(cipher_algo)
   {
   case CIPHERING_ALGORITHM_ID_EEA0:

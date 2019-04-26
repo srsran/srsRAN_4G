@@ -107,6 +107,9 @@ private:
   uint8_t             k_rrc_int[32];
   uint8_t             k_up_enc[32];
   
+  uint32_t            rx_hfn;
+  uint32_t            next_pdcp_rx_sn;
+
   CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
   INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
 
