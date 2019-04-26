@@ -974,7 +974,8 @@ bool sched_ue::is_sr_triggered()
 void sched_ue::reset_timeout_dl_harq(uint32_t tti) {
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
     if (!(dl_harq[i].is_empty(0) && dl_harq[i].is_empty(1))) {
-      if (srslte_tti_interval(tti, dl_harq[i].get_tti()) > 50) {
+      uint32_t tti_diff = srslte_tti_interval(tti, dl_harq[i].get_tti());
+      if (tti_diff > 50 and tti_diff < 10240 / 2) {
         log_h->info("SCHED: pid=%d is old. tti_pid=%d, now is %d, resetting\n", i, dl_harq[i].get_tti(), tti);
         dl_harq[i].reset(0);
         dl_harq[i].reset(1);

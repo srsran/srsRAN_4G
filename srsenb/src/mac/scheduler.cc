@@ -744,7 +744,9 @@ int sched::dl_sched_data(dl_sched_data_t data[MAX_DATA_LIST])
   uint32_t pending_tti = tti_rx_ack % 10;
   if (cfg.cell.nof_prb == 6 and (srslte_prach_tti_opportunity_config_fdd(cfg.prach_config, tti_rx_ack, -1) or
                                  pending_msg3[pending_tti].enabled)) {
-    start_rbg = avail_rbg;
+    start_rbg = nof_rbg;
+    avail_rbg = 0;
+    log_h->debug("SCHED: Skip tti=%d, as it would cause a conflict between PUCCH and PRACH\n", current_tti);
   }
 
   typedef std::map<uint16_t, sched_ue>::iterator it_t;
@@ -761,9 +763,6 @@ int sched::dl_sched_data(dl_sched_data_t data[MAX_DATA_LIST])
   int nof_data_elems = 0;
   for (it_t iter = ue_db.begin(); iter != ue_db.end(); ++iter) {
     sched_ue* user = (sched_ue*)&iter->second;
-    /**
-     * Tests whether the RAR and Msg3 were scheduled within the expected windows
-     */
     uint16_t rnti  = (uint16_t) iter->first;
 
     dl_harq_proc*       h          = user->get_dl_alloc();
@@ -853,6 +852,11 @@ int sched::dl_sched(uint32_t tti, sched_interface::dl_sched_res_t* sched_result)
   uint32_t                tti_rx   = (tti + 10240 - TX_DELAY) % 10240;
   sched_vars::tti_vars_t* tti_vars = &sched_vars.new_tti(tti_rx);
 
+  bzero(sched_result, sizeof(sched_interface::dl_sched_res_t));
+
+  pthread_mutex_lock(&sched_mutex);
+  pthread_rwlock_rdlock(&rwlock);
+
   /* Initialize variables */
   current_tti    = tti;
   sfn            = tti / 10;
@@ -862,10 +866,6 @@ int sched::dl_sched(uint32_t tti, sched_interface::dl_sched_res_t* sched_result)
   current_cfi    = sched_cfg.nof_ctrl_symbols;
   bc_aggr_level  = 2;
   rar_aggr_level = 2;
-  bzero(sched_result, sizeof(sched_interface::dl_sched_res_t));
-
-  pthread_mutex_lock(&sched_mutex);
-  pthread_rwlock_rdlock(&rwlock);
 
   /* Schedule Broadcast data */
   sched_result->nof_bc_elems += dl_sched_bc(sched_result->bc);
@@ -922,6 +922,12 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
   uint32_t                tti_rx   = (tti + 10240 - 2 * FDD_HARQ_DELAY_MS) % 10240;
   sched_vars::tti_vars_t* tti_vars = &sched_vars.new_tti(tti_rx);
 
+  // current_cfi is set in dl_sched()
+  bzero(sched_result, sizeof(sched_interface::ul_sched_res_t));
+
+  pthread_mutex_lock(&sched_mutex);
+  pthread_rwlock_rdlock(&rwlock);
+
   /* Initialize variables */
   current_tti = tti; 
   sfn = tti/10;
@@ -932,12 +938,6 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
   }
   int nof_dci_elems   = 0;
   int nof_phich_elems = 0;
-
-  // current_cfi is set in dl_sched()
-  bzero(sched_result, sizeof(sched_interface::ul_sched_res_t));
-
-  pthread_mutex_lock(&sched_mutex);
-  pthread_rwlock_rdlock(&rwlock);
 
   // clear previous UL allocations
   for (it_t it = ue_db.begin(); it != ue_db.end(); ++it) {

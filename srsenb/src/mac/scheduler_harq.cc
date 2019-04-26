@@ -201,7 +201,7 @@ bool dl_harq_proc::has_pending_retx(uint32_t tb_idx, uint32_t current_tti) const
 {
   uint32_t tti_diff = srslte_tti_interval(current_tti, tti);
   // NOTE: tti may be ahead of current_tti due to thread flip
-  return tti_diff < 10240 / 2 and tti_diff >= (SRSLTE_FDD_NOF_HARQ) && !is_empty(tb_idx);
+  return (tti_diff < (10240 / 2)) and (tti_diff >= SRSLTE_FDD_NOF_HARQ) and !is_empty(tb_idx);
 }
 
 int dl_harq_proc::get_tbs(uint32_t tb_idx) const
