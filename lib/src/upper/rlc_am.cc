@@ -385,7 +385,8 @@ void rlc_am::rlc_am_tx::write_sdu(byte_buffer_t *sdu, bool blocking)
       if (tx_sdu_queue.try_write(sdu)) {
         log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", RB_NAME, sdu->N_bytes, tx_sdu_queue.size());
       } else {
-        log->debug_hex(sdu->msg, sdu->N_bytes, "[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)", RB_NAME, sdu->N_bytes, tx_sdu_queue.size());
+        log->info_hex(sdu->msg, sdu->N_bytes, "[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)", RB_NAME,
+                      sdu->N_bytes, tx_sdu_queue.size());
         pool->deallocate(sdu);
       }
     }
