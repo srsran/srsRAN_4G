@@ -22,6 +22,7 @@
 #include "srsenb/hdr/stack/upper/gtpu.h"
 #include <errno.h>
 #include <fcntl.h>
+#include <linux/ip.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -114,6 +115,13 @@ void gtpu::stop()
 void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 {
   gtpu_log->info_hex(pdu->msg, pdu->N_bytes, "TX PDU, RNTI: 0x%x, LCID: %d, n_bytes=%d", rnti, lcid, pdu->N_bytes);
+
+  // Check valid IP version
+  struct iphdr*   ip_pkt  = (struct iphdr*)pdu->msg;
+  if (ip_pkt->version != 4 && ip_pkt->version != 6) {
+    gtpu_log->error("Invalid IP version to TUN\n");
+  }
+
   gtpu_header_t header;
   header.flags        = GTPU_FLAGS_VERSION_V1 | GTPU_FLAGS_GTP_PROTOCOL;
   header.message_type = GTPU_MSG_DATA_PDU;
