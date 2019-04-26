@@ -1,5 +1,5 @@
 /*
- * \section LICENSE
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
