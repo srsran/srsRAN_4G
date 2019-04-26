@@ -94,26 +94,32 @@ private:
   srsue::rrc_interface_pdcp *rrc;
   srsue::gw_interface_pdcp  *gw;
 
-  bool                active;
-  uint32_t            lcid;
+  bool                 active;
+  uint32_t             lcid;
   srslte_pdcp_config_t cfg;
-  uint8_t             sn_len_bytes;
-  bool                do_integrity;
-  bool                do_encryption;
+  uint8_t              sn_len_bytes;
+  bool                 do_integrity;
+  bool                 do_encryption;
 
-  uint32_t            rx_count;
-  uint32_t            tx_count;
-  uint8_t             k_rrc_enc[32];
-  uint8_t             k_rrc_int[32];
-  uint8_t             k_up_enc[32];
-  
-  uint32_t            rx_hfn;
-  uint32_t            next_pdcp_rx_sn;
+  uint32_t rx_count;
+  uint32_t tx_count;
+  uint8_t  k_rrc_enc[32];
+  uint8_t  k_rrc_int[32];
+  uint8_t  k_up_enc[32];
+
+  uint32_t rx_hfn;
+  uint32_t next_pdcp_rx_sn;
+  uint32_t reordering_window;
 
   CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
   INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
 
+  uint32_t maximum_pdcp_sn;
+
   pthread_mutex_t mutex;
+
+  void handle_um_drb_pdu(srslte::byte_buffer_t *pdu);
+  void handle_am_drb_pdu(srslte::byte_buffer_t *pdu);
 
   void integrity_generate(uint8_t  *msg,
                           uint32_t  msg_len,
@@ -148,6 +154,4 @@ void pdcp_pack_data_pdu_long_sn(uint32_t sn, byte_buffer_t *sdu);
 void pdcp_unpack_data_pdu_long_sn(byte_buffer_t *sdu, uint32_t *sn);
 
 } // namespace srslte
-
-
 #endif // SRSLTE_PDCP_ENTITY_H

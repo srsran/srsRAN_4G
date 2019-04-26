@@ -74,6 +74,15 @@ void pdcp_entity::init(srsue::rlc_interface_pdcp      *rlc_,
 
   // set length of SN field in bytes
   sn_len_bytes = (cfg.sn_len == 5) ? 1 : 2;
+
+  if (cfg.is_control) {
+    reordering_window = 0;
+  } else if (cfg.is_data) {
+    reordering_window = 2048;
+  }
+
+  maximum_pdcp_sn = (1 << cfg.sn_len) - 1;
+  log->info("Init %s with bearer ID: %d\n", rrc->get_rb_name(lcid).c_str(), cfg.bearer_id);
 }
 
 // Reestablishment procedure: 36.323 5.2
@@ -196,29 +205,12 @@ void pdcp_entity::write_pdu(unique_byte_buffer_t pdu)
 
   if (cfg.is_data) {
     // Handle DRB messages
-    uint32_t sn;
-    if (12 == cfg.sn_len) {
-      pdcp_unpack_data_pdu_long_sn(pdu.get(), &sn);
+    if (rlc->rb_is_um(lcid)) {
+      handle_um_drb_pdu(pdu);
     } else {
-      pdcp_unpack_data_pdu_short_sn(pdu.get(), &sn);
+      handle_am_drb_pdu(pdu);
     }
-
-    if (sn < next_pdcp_rx_sn) {
-      rx_hfn++;
-    }
-
-    uint32_t count = (rx_hfn << cfg.sn_len) | sn;
-    if (do_encryption) {
-      cipher_decrypt(pdu->msg,
-                     count,
-                     pdu->N_bytes,
-                     pdu->msg);
-      log->debug_hex(pdu->msg, pdu->N_bytes, "RX %s PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
-    }
-    next_pdcp_rx_sn = sn + 1;
-
-    log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU SN: %d", rrc->get_rb_name(lcid).c_str(), sn);
-    gw->write_pdu(lcid, std::move(pdu));
+    gw->write_pdu(lcid, pdu);
   } else {
     // Handle SRB messages
     if (cfg.is_control) {
@@ -236,7 +228,7 @@ void pdcp_entity::write_pdu(unique_byte_buffer_t pdu)
                          sn,
                          pdu->N_bytes - 4,
                          &(pdu->msg[pdu->N_bytes - 4]))) {
-          log->error_hex(pdu->msg, pdu->N_bytes, "%s Dropping PDU", rrc->get_rb_name(lcid).c_str());
+         log->error_hex(pdu->msg, pdu->N_bytes, "%s Dropping PDU", rrc->get_rb_name(lcid).c_str());
           goto exit;
         }
       }
@@ -252,6 +244,50 @@ exit:
   pthread_mutex_unlock(&mutex);
 }
 
+/****************************************************************************
+ * Rx data/control handler functions
+ * Ref: 3GPP TS 36.323 v10.1.0 Section 5.1.2
+ ***************************************************************************/
+// DRBs mapped on RLC UM (5.1.2.1.3)
+void pdcp_entity::handle_um_drb_pdu(srslte::byte_buffer_t* pdu)
+{
+  uint32_t sn;
+  if (12 == cfg.sn_len) {
+    pdcp_unpack_data_pdu_long_sn(pdu, &sn);
+  } else {
+    pdcp_unpack_data_pdu_short_sn(pdu, &sn);
+  }
+
+  if (sn < next_pdcp_rx_sn) {
+    rx_hfn++;
+  }
+
+  uint32_t count = (rx_hfn << cfg.sn_len) | sn;
+  if (do_encryption) {
+    cipher_decrypt(pdu->msg, count, pdu->N_bytes, pdu->msg);
+    log->debug_hex(pdu->msg, pdu->N_bytes, "RX %s PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
+  }
+
+  next_pdcp_rx_sn = sn + 1;
+  if (next_pdcp_rx_sn > maximum_pdcp_sn) {
+    next_pdcp_rx_sn = 0;
+    rx_hfn++;
+  }
+
+  log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU SN: %d", rrc->get_rb_name(lcid).c_str(), sn);
+  return;
+}
+
+// DRBs mapped on RLC AM, without re-ordering (5.1.2.1.2)
+void pdcp_entity::handle_am_drb_pdu(srslte::byte_buffer_t* pdu)
+{
+  handle_um_drb_pdu(pdu); //FIXME!!!
+  return;
+}
+
+/****************************************************************************
+ * Security functions
+ ***************************************************************************/
 void pdcp_entity::integrity_generate( uint8_t  *msg,
                                       uint32_t  msg_len,
                                       uint8_t  *mac)
