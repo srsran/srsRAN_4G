@@ -37,6 +37,10 @@
 
 #define HAVE_ASYNC_THREAD 1
 
+#if UHD_VERSION < 3130000
+#define UHD_SUPPORTS_COMMAND_TIME
+#endif /* UHD_VERSION < 3140000 */
+
 typedef struct {
   char *devname; 
   uhd_usrp_handle usrp;
@@ -648,15 +652,23 @@ double rf_uhd_set_rx_srate(void *h, double freq)
 {
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
   if (handler->nof_rx_channels > 1) {
+#ifdef UHD_SUPPORTS_COMMAND_TIME
     time_t full;
     double frac;
     uhd_usrp_get_time_now(handler->usrp, 0, &full, &frac);
     frac += 0.100;
     if (frac >= 1.0) { full++; frac -= 1.0; };
     uhd_usrp_set_command_time(handler->usrp, full, frac, 0);
+#else  /* UHD_SUPPORTS_COMMAND_TIME */
+    rf_uhd_stop_rx_stream(handler);
+#endif /* UHD_SUPPORTS_COMMAND_TIME */
     for (int i=0;i<handler->nof_rx_channels;i++)
       uhd_usrp_set_rx_rate(handler->usrp, freq, i);
+#ifdef UHD_SUPPORTS_COMMAND_TIME
     usleep(100000);
+#else  /* UHD_SUPPORTS_COMMAND_TIME */
+    rf_uhd_start_rx_stream(handler, true);
+#endif /* UHD_SUPPORTS_COMMAND_TIME */
   } else {
     uhd_usrp_set_rx_rate(handler->usrp, freq, 0);
   }
