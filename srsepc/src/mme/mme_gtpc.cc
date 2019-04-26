@@ -258,7 +258,7 @@ bool mme_gtpc::handle_create_session_response(srslte::gtpc_pdu* cs_resp_pdu)
   m_mme_gtpc_log->info("MME GTPC Ctrl TEID %" PRIu64 ", IMSI %" PRIu64 "\n", cs_resp_pdu->header.teid, imsi);
 
   // Get S-GW Control F-TEID
-  srslte::gtp_fteid_t sgw_ctr_fteid;
+  srslte::gtp_fteid_t sgw_ctr_fteid = {};
   sgw_ctr_fteid.teid = cs_resp_pdu->header.teid;
   sgw_ctr_fteid.ipv4 = 0; // FIXME This is not used for now. In the future it will be obtained from the socket addr_info
 
