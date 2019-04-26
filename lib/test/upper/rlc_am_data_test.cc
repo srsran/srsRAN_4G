@@ -146,7 +146,8 @@ void test4()
     assert(b2.msg[i] == b1.msg[i]);
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv)
+{
   test1();
   test2();
   test3();

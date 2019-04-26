@@ -36,40 +36,39 @@ namespace srsenb {
  *
  *****************************************************************/
 
-void dl_metric_rr::sched_users(std::map<uint16_t, sched_ue>& ue_db,
-                               rbgmask_t*                    dl_mask,
-                               uint32_t                      nof_ctrl_symbols_,
-                               uint32_t                      tti)
+void dl_metric_rr::set_log(srslte::log* log_)
+{
+  log_h = log_;
+}
+
+void dl_metric_rr::sched_users(std::map<uint16_t, sched_ue>& ue_db, sched::dl_tti_sched_t* tti_sched)
 {
   typedef std::map<uint16_t, sched_ue>::iterator it_t;
 
-  current_tti = tti;
-  nof_ctrl_symbols = nof_ctrl_symbols_;
-  used_rbg         = dl_mask;
-  available_rbg    = (uint32_t)(used_rbg->size() - used_rbg->count()); // nof_rbg;
+  tti_alloc = tti_sched;
 
   if (ue_db.empty())
     return;
 
   // give priority in a time-domain RR basis
-  uint32_t priority_idx = current_tti % (uint32_t)ue_db.size();
+  uint32_t priority_idx = tti_alloc->get_tti_tx_dl() % (uint32_t)ue_db.size();
   it_t     iter         = ue_db.begin();
-  std::advance(iter,priority_idx);
+  std::advance(iter, priority_idx);
   for(uint32_t ue_count = 0 ; ue_count < ue_db.size() ; ++iter, ++ue_count) {
     if(iter==ue_db.end()) {
       iter = ue_db.begin(); // wrap around
     }
-    sched_ue *user = (sched_ue*) &iter->second;
-    user->set_dl_alloc(allocate_user(user));
+    sched_ue* user = &iter->second;
+    allocate_user(user);
   }
 }
 
 bool dl_metric_rr::find_allocation(uint32_t nof_rbg, rbgmask_t* rbgmask)
 {
-  *rbgmask = ~(*used_rbg);
+  *rbgmask = ~(tti_alloc->get_dl_mask());
 
   uint32_t i = 0;
-  for (; i < used_rbg->size() and nof_rbg > 0; ++i) {
+  for (; i < rbgmask->size() and nof_rbg > 0; ++i) {
     if (rbgmask->test(i)) {
       nof_rbg--;
     }
@@ -79,26 +78,16 @@ bool dl_metric_rr::find_allocation(uint32_t nof_rbg, rbgmask_t* rbgmask)
   return nof_rbg == 0;
 }
 
-void dl_metric_rr::update_allocation(rbgmask_t new_rbgmask)
-{
-  *used_rbg |= new_rbgmask;
-}
-
-/**
- * Checks if a mask can fit in the current RBG grid
- * @param mask
- * @return Returns true if all the mask entries set to true are empty
- */
-bool dl_metric_rr::allocation_is_valid(rbgmask_t mask)
-{
-  return (mask & (*used_rbg)).none();
-}
-
 dl_harq_proc* dl_metric_rr::allocate_user(sched_ue* user)
 {
+  if (tti_alloc->is_dl_alloc(user)) {
+    return nullptr;
+  }
   // FIXME: First do reTxs for all users. Only then do the rest.
-  dl_harq_proc *h = user->get_pending_dl_harq(current_tti);
-  uint32_t req_bytes = user->get_pending_dl_new_data_total(current_tti);
+  alloc_outcome_t code;
+  uint32_t        tti_dl    = tti_alloc->get_tti_tx_dl();
+  dl_harq_proc*   h         = user->get_pending_dl_harq(tti_dl);
+  uint32_t        req_bytes = user->get_pending_dl_new_data_total(tti_dl);
 
   // Schedule retx if we have space
 #if ASYNC_DL_SCHED
@@ -106,23 +95,28 @@ dl_harq_proc* dl_metric_rr::allocate_user(sched_ue* user)
 #else
   if (h && !h->is_empty()) {
 #endif
+    // Try to reuse the same mask
     rbgmask_t retx_mask = h->get_rbgmask();
-    uint32_t  nof_rbg   = retx_mask.count();
-    if (nof_rbg <= available_rbg) {
-      // Try to reuse the same mask
-      if (allocation_is_valid(retx_mask)) {
-        update_allocation(retx_mask);
-        return h;
-      }
+    code                = tti_alloc->alloc_dl_user(user, retx_mask, h->get_id());
+    if (code == alloc_outcome_t::SUCCESS) {
+      return h;
+    } else if (code == alloc_outcome_t::DCI_COLLISION) {
+      // No DCIs available for this user. Move to next
+      return NULL;
+    }
 
-      // If previous mask does not fit, find another with exact same number of rbgs
-      if (find_allocation(nof_rbg, &retx_mask)) {
-        update_allocation(retx_mask);
-        h->set_rbgmask(retx_mask);
+    // If previous mask does not fit, find another with exact same number of rbgs
+    size_t nof_rbg = retx_mask.count();
+    if (find_allocation(nof_rbg, &retx_mask)) {
+      code = tti_alloc->alloc_dl_user(user, retx_mask, h->get_id());
+      if (code == alloc_outcome_t::SUCCESS) {
         return h;
+      } else if (code == alloc_outcome_t::DCI_COLLISION) {
+        return NULL;
       }
     }
   }
+
   // If could not schedule the reTx, or there wasn't any pending retx, find an empty PID
 #if ASYNC_DL_SCHED
   h = user->get_empty_dl_harq();
@@ -132,13 +126,14 @@ dl_harq_proc* dl_metric_rr::allocate_user(sched_ue* user)
 #endif
     // Allocate resources based on pending data
     if (req_bytes) {
-      uint32_t pending_rbg = user->prb_to_rbg(user->get_required_prb_dl(req_bytes, nof_ctrl_symbols));
-      rbgmask_t newtx_mask(used_rbg->size());
+      uint32_t  pending_rbg = user->prb_to_rbg(user->get_required_prb_dl(req_bytes, tti_alloc->get_nof_ctrl_symbols()));
+      rbgmask_t newtx_mask(tti_alloc->get_dl_mask().size());
       find_allocation(pending_rbg, &newtx_mask);
       if (newtx_mask.any()) { // some empty spaces were found
-        update_allocation(newtx_mask);
-        h->set_rbgmask(newtx_mask);
-        return h;
+        code = tti_alloc->alloc_dl_user(user, newtx_mask, h->get_id());
+        if (code == alloc_outcome_t::SUCCESS) {
+          return h;
+        }
       }
     }
   }
@@ -152,12 +147,17 @@ dl_harq_proc* dl_metric_rr::allocate_user(sched_ue* user)
  *
  *****************************************************************/
 
-void ul_metric_rr::sched_users(std::map<uint16_t, sched_ue>& ue_db, ul_mask_t* start_mask, uint32_t tti)
+void ul_metric_rr::set_log(srslte::log* log_)
+{
+  log_h = log_;
+}
+
+void ul_metric_rr::sched_users(std::map<uint16_t, sched_ue>& ue_db, sched::ul_tti_sched_t* tti_sched)
 {
   typedef std::map<uint16_t, sched_ue>::iterator it_t;
 
-  current_tti = tti;
-  used_rb     = start_mask;
+  tti_alloc   = tti_sched;
+  current_tti = tti_alloc->get_tti_tx_ul();
 
   if(ue_db.size()==0)
       return;
@@ -172,10 +172,8 @@ void ul_metric_rr::sched_users(std::map<uint16_t, sched_ue>& ue_db, ul_mask_t* s
     if(iter==ue_db.end()) {
       iter = ue_db.begin(); // wrap around
     }
-    sched_ue *user = (sched_ue *) &iter->second;
-    if (user->get_ul_alloc() == NULL) { // can already be allocated for msg3
-      user->set_ul_alloc(allocate_user_retx_prbs(user));
-    }
+    sched_ue* user = &iter->second;
+    allocate_user_retx_prbs(user);
   }
 
   // give priority in a time-domain RR basis
@@ -185,19 +183,9 @@ void ul_metric_rr::sched_users(std::map<uint16_t, sched_ue>& ue_db, ul_mask_t* s
     if(iter==ue_db.end()) {
       iter = ue_db.begin(); // wrap around
     }
-    sched_ue *user = (sched_ue*) &iter->second;
-    if (user->get_ul_alloc() == NULL) {
-      user->set_ul_alloc(allocate_user_newtx_prbs(user));
-    }
+    sched_ue* user = &iter->second;
+    allocate_user_newtx_prbs(user);
   }
-}
-
-bool ul_metric_rr::allocation_is_valid(ul_harq_proc::ul_alloc_t alloc)
-{
-  if (alloc.RB_start + alloc.L > used_rb->size()) {
-    return false; 
-  }
-  return not used_rb->any(alloc);
 }
 
 /**
@@ -208,6 +196,7 @@ bool ul_metric_rr::allocation_is_valid(ul_harq_proc::ul_alloc_t alloc)
  */
 bool ul_metric_rr::find_allocation(uint32_t L, ul_harq_proc::ul_alloc_t* alloc)
 {
+  const prbmask_t* used_rb = &tti_alloc->get_ul_mask();
   bzero(alloc, sizeof(ul_harq_proc::ul_alloc_t));
   for (uint32_t n = 0; n < used_rb->size() && alloc->L < L; n++) {
     if (not used_rb->test(n) && alloc->L == 0) {
@@ -218,8 +207,8 @@ bool ul_metric_rr::find_allocation(uint32_t L, ul_harq_proc::ul_alloc_t* alloc)
     } else if (alloc->L > 0) {
       // avoid edges 
       if (n < 3) {
-        alloc->RB_start = 0; 
-        alloc->L = 0; 
+        alloc->RB_start = 0;
+        alloc->L        = 0;
       } else {
         break;
       }
@@ -236,38 +225,34 @@ bool ul_metric_rr::find_allocation(uint32_t L, ul_harq_proc::ul_alloc_t* alloc)
   return alloc->L == L; 
 }
 
-bool ul_metric_rr::update_allocation(ul_harq_proc::ul_alloc_t alloc)
-{
-  bool ret = false;
-  if(allocation_is_valid(alloc)) {
-    used_rb->fill(alloc);
-    return true;
-  }
-  return ret;
-}
-
 ul_harq_proc* ul_metric_rr::allocate_user_retx_prbs(sched_ue *user)
 {
-  ul_harq_proc *h = user->get_ul_harq(current_tti);
+  if (tti_alloc->is_ul_alloc(user)) {
+    return NULL;
+  }
+  alloc_outcome_t ret;
+  ul_harq_proc*   h = user->get_ul_harq(current_tti);
 
   // if there are procedures and we have space
   if (h->has_pending_retx()) {
     ul_harq_proc::ul_alloc_t alloc = h->get_alloc();
 
     // If can schedule the same mask, do it
-    if (update_allocation(alloc)) {
-      h->set_realloc(alloc);
+    ret = tti_alloc->alloc_ul_user(user, alloc);
+    if (ret == alloc_outcome_t::SUCCESS) {
       return h;
+    } else if (ret == alloc_outcome_t::DCI_COLLISION) {
+      log_h->warning("SCHED: Couldn't find space in PDCCH for UL tx of rnti=0x%x\n", user->get_rnti());
+      return NULL;
     }
 
-    // If not, try to find another mask in the current tti with the same number of PRBs
     if (find_allocation(alloc.L, &alloc)) {
-      if(not update_allocation(alloc)) {
-        printf("ERROR: Scheduler failed to allocate user\n");
-        return NULL;
+      ret = tti_alloc->alloc_ul_user(user, alloc);
+      if (ret == alloc_outcome_t::SUCCESS) {
+        return h;
+      } else if (ret == alloc_outcome_t::DCI_COLLISION) {
+        log_h->warning("SCHED: Couldn't find space in PDCCH for UL tx of rnti=0x%x\n", user->get_rnti());
       }
-      h->set_realloc(alloc);
-      return h;
     }
   }
   return NULL;
@@ -275,8 +260,11 @@ ul_harq_proc* ul_metric_rr::allocate_user_retx_prbs(sched_ue *user)
 
 ul_harq_proc* ul_metric_rr::allocate_user_newtx_prbs(sched_ue* user)
 {
-  uint32_t pending_data = user->get_pending_ul_new_data(current_tti);
-  ul_harq_proc *h = user->get_ul_harq(current_tti);
+  if (tti_alloc->is_ul_alloc(user)) {
+    return NULL;
+  }
+  uint32_t      pending_data = user->get_pending_ul_new_data(current_tti);
+  ul_harq_proc* h            = user->get_ul_harq(current_tti);
 
   // find an empty PID
   if (h->is_empty(0) and pending_data) {
@@ -285,12 +273,12 @@ ul_harq_proc* ul_metric_rr::allocate_user_newtx_prbs(sched_ue* user)
 
     find_allocation(pending_rb, &alloc);
     if (alloc.L > 0) { // at least one PRB was scheduled
-      if (not update_allocation(alloc)) {
-        printf("ERROR: Scheduler failed to allocate user\n");
-        return NULL;
+      alloc_outcome_t ret = tti_alloc->alloc_ul_user(user, alloc);
+      if (ret == alloc_outcome_t::SUCCESS) {
+        return h;
+      } else if (ret == alloc_outcome_t::DCI_COLLISION) {
+        log_h->warning("SCHED: Couldn't find space in PDCCH for UL tx of rnti=0x%x\n", user->get_rnti());
       }
-      h->set_alloc(alloc);
-      return h;
     }
   }
   return NULL;

@@ -52,7 +52,7 @@ public:
   
   srslte_softbuffer_tx_t* get_tx_softbuffer(uint32_t harq_process, uint32_t tb_idx);
   srslte_softbuffer_rx_t* get_rx_softbuffer(uint32_t tti);
-  
+
   bool     process_pdus();
   uint8_t* request_buffer(uint32_t tti, uint32_t len);
   void     process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channel_t channel);

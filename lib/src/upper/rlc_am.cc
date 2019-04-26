@@ -1297,7 +1297,7 @@ void rlc_am::rlc_am_rx::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes, rl
   }
   memcpy(pdu.buf->msg, payload, nof_bytes);
   pdu.buf->N_bytes  = nof_bytes;
-  pdu.header = header;
+  pdu.header        = header;
 
   rx_window[header.sn] = pdu;
 
@@ -1382,7 +1382,7 @@ void rlc_am::rlc_am_rx::handle_data_pdu_segment(uint8_t *payload, uint32_t nof_b
 
   memcpy(segment.buf->msg, payload, nof_bytes);
   segment.buf->N_bytes = nof_bytes;
-  segment.header = header;
+  segment.header       = header;
 
   // Check if we already have a segment from the same PDU
   it = rx_segments.find(header.sn);

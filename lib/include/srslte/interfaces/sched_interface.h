@@ -29,8 +29,11 @@ namespace srsenb {
 
 class sched_interface
 {
-public: 
- 
+public:
+  const static uint32_t max_cce = 128;
+  const static uint32_t max_prb = 100;
+  const static uint32_t max_rbg = 25;
+
   const static int MAX_SIB_PAYLOAD_LEN = 2048; 
   const static int MAX_SIBS            = 16;
   const static int MAX_LC              = 6; 

@@ -86,12 +86,9 @@ public:
   void set_max_mcs(int mcs_ul, int mcs_dl);
   void set_fixed_mcs(int mcs_ul, int mcs_dl);
 
-  void                set_dl_alloc(dl_harq_proc* alloc);
-  dl_harq_proc*       get_dl_alloc();
-  void                set_ul_alloc(ul_harq_proc* alloc);
-  ul_harq_proc*       get_ul_alloc();
-  dl_harq_proc*       find_dl_harq(uint32_t tti);
-  const dl_harq_proc* get_dl_harq(uint32_t idx) const;
+  dl_harq_proc* find_dl_harq(uint32_t tti);
+  dl_harq_proc* get_dl_harq(uint32_t idx);
+  uint16_t      get_rnti() const { return rnti; }
 
   /*******************************************************
    * Functions used by scheduler metric objects
@@ -108,7 +105,7 @@ public:
   uint32_t   get_pending_ul_old_data();
   uint32_t   get_pending_dl_new_data_total(uint32_t tti);
 
-  void          reset_timeout_dl_harq(uint32_t tti);
+  void          reset_pending_pids(uint32_t tti_rx);
   dl_harq_proc *get_pending_dl_harq(uint32_t tti);
   dl_harq_proc* get_empty_dl_harq();
   ul_harq_proc* get_ul_harq(uint32_t tti);
@@ -120,10 +117,18 @@ public:
   void       set_sr();
   void       unset_sr();
 
-  int        generate_format1(dl_harq_proc *h, sched_interface::dl_sched_data_t *data, uint32_t tti, uint32_t cfi);
-  int        generate_format2a(dl_harq_proc *h, sched_interface::dl_sched_data_t *data, uint32_t tti, uint32_t cfi);
-  int        generate_format2(dl_harq_proc *h, sched_interface::dl_sched_data_t *data, uint32_t tti, uint32_t cfi);
-  int        generate_format0(ul_harq_proc *h, sched_interface::ul_sched_data_t *data, uint32_t tti, bool cqi_request);
+  int generate_format1(
+      dl_harq_proc* h, sched_interface::dl_sched_data_t* data, uint32_t tti, uint32_t cfi, const rbgmask_t& user_mask);
+  int generate_format2a(
+      dl_harq_proc* h, sched_interface::dl_sched_data_t* data, uint32_t tti, uint32_t cfi, const rbgmask_t& user_mask);
+  int generate_format2(
+      dl_harq_proc* h, sched_interface::dl_sched_data_t* data, uint32_t tti, uint32_t cfi, const rbgmask_t& user_mask);
+  int generate_format0(sched_interface::ul_sched_data_t* data,
+                       uint32_t                          tti,
+                       ul_harq_proc::ul_alloc_t          alloc,
+                       bool                              needs_pdcch,
+                       srslte_dci_location_t             cce_range,
+                       int                               explicit_mcs = -1);
 
   srslte_dci_format_t get_dci_format();
   uint32_t         get_aggr_level(uint32_t nof_bits);
@@ -164,7 +169,8 @@ private:
 
   bool       needs_cqi_unlocked(uint32_t tti, bool will_send = false);
 
-  int        generate_format2a_unlocked(dl_harq_proc *h, sched_interface::dl_sched_data_t *data, uint32_t tti, uint32_t cfi);
+  int generate_format2a_unlocked(
+      dl_harq_proc* h, sched_interface::dl_sched_data_t* data, uint32_t tti, uint32_t cfi, const rbgmask_t& user_mask);
 
   bool is_first_dl_tx();
 
@@ -191,14 +197,15 @@ private:
   uint32_t ul_cqi; 
   uint32_t ul_cqi_tti; 
   uint16_t rnti; 
-  uint32_t max_mcs_dl; 
-  uint32_t max_mcs_ul; 
+  uint32_t max_mcs_dl;
+  uint32_t max_mcs_ul;
+  uint32_t max_msg3retx;
   int      fixed_mcs_ul; 
   int      fixed_mcs_dl;
   uint32_t P;
 
   int next_tpc_pusch;
-  int next_tpc_pucch; 
+  int next_tpc_pucch;
 
   // Allowed DCI locations per CFI and per subframe
   sched_dci_cce_t dci_locations[3][10];
@@ -210,8 +217,6 @@ private:
   bool phy_config_dedicated_enabled;
   asn1::rrc::phys_cfg_ded_s::ant_info_c_ dl_ant_info;
 
-  dl_harq_proc* next_dl_harq_proc;
-  ul_harq_proc* next_ul_harq_proc;
 };
 }
  

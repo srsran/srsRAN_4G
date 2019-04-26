@@ -43,7 +43,7 @@ class bounded_bitset
 public:
   constexpr bounded_bitset() : buffer(), cur_size(0) {}
 
-  constexpr bounded_bitset(size_t cur_size_) : buffer(), cur_size(cur_size_) {}
+  constexpr explicit bounded_bitset(size_t cur_size_) : buffer(), cur_size(cur_size_) {}
 
   constexpr size_t max_size() const noexcept { return N; }
 

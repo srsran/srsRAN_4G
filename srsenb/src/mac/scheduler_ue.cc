@@ -48,8 +48,6 @@ namespace srsenb {
  *******************************************************/
 
 sched_ue::sched_ue() :
-  next_dl_harq_proc(NULL),
-  next_ul_harq_proc(NULL),
   has_pucch(false),
   power_headroom(0),
   rnti(0),
@@ -94,6 +92,7 @@ void sched_ue::set_cfg(uint16_t                     rnti_,
 
   max_mcs_dl = 28;
   max_mcs_ul = 28;
+  max_msg3retx = cell_cfg->maxharq_msg3tx;
 
   cfg = *cfg_;
 
@@ -105,7 +104,6 @@ void sched_ue::set_cfg(uint16_t                     rnti_,
   for (int i = 0; i < SCHED_MAX_HARQ_PROC; i++) {
     dl_harq[i].config(i, cfg.maxharq_tx, log_h);
     ul_harq[i].config(i, cfg.maxharq_tx, log_h);
-    dl_harq[i].set_rbgmask(rbgmask_t((uint32_t)ceil((float)cell.nof_prb / P)));
   }
   
   // Generate allowed CCE locations   
@@ -437,7 +435,9 @@ void sched_ue::tpc_dec() {
  *******************************************************/
 
 // Generates a Format1 dci
-int sched_ue::generate_format1(dl_harq_proc* h, sched_interface::dl_sched_data_t* data, uint32_t tti, uint32_t cfi)
+// > return 0 if TBS<MIN_DATA_TBS
+int sched_ue::generate_format1(
+    dl_harq_proc* h, sched_interface::dl_sched_data_t* data, uint32_t tti, uint32_t cfi, const rbgmask_t& user_mask)
 {
   pthread_mutex_lock(&mutex);
 
@@ -447,7 +447,7 @@ int sched_ue::generate_format1(dl_harq_proc* h, sched_interface::dl_sched_data_t
   int tbs = 0;
 
   dci->alloc_type              = SRSLTE_RA_ALLOC_TYPE0;
-  dci->type0_alloc.rbg_bitmask = (uint32_t)h->get_rbgmask().to_uint64();
+  dci->type0_alloc.rbg_bitmask = (uint32_t)user_mask.to_uint64();
 
   // If this is the first transmission for this UE, make room for MAC Contention Resolution ID
   bool need_conres_ce = false;
@@ -456,9 +456,11 @@ int sched_ue::generate_format1(dl_harq_proc* h, sched_interface::dl_sched_data_t
   }
   if (h->is_empty(0)) {
 
+    // Get total available data to transmit (includes MAC header)
     uint32_t req_bytes = get_pending_dl_new_data_total_unlocked(tti);
 
-    uint32_t nof_prb = format1_count_prb((uint32_t)h->get_rbgmask().to_uint64(), cell.nof_prb);
+    uint32_t nof_prb = format1_count_prb((uint32_t)user_mask.to_uint64(), cell.nof_prb);
+
     // Calculate exact number of RE for this PRB allocation
     srslte_pdsch_grant_t grant = {};
     srslte_dl_sf_cfg_t   dl_sf = {};
@@ -467,14 +469,15 @@ int sched_ue::generate_format1(dl_harq_proc* h, sched_interface::dl_sched_data_t
     srslte_ra_dl_grant_to_grant_prb_allocation(dci, &grant, cell.nof_prb);
     uint32_t nof_re = srslte_ra_dl_grant_nof_re(&cell, &dl_sf, &grant);
 
+    int mcs0 = fixed_mcs_dl;
     if (need_conres_ce and cell.nof_prb < 10) { // SRB0 Tx. Use a higher MCS for the PRACH to fit in 6 PRBs
-      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(MCS_FIRST_DL, false), nof_prb) / 8;
-      mcs = MCS_FIRST_DL;
-    } else if (fixed_mcs_dl < 0) {
+      mcs0 = MCS_FIRST_DL;
+    }
+    if (mcs0 < 0) { // dynamic MCS
       tbs = alloc_tbs_dl(nof_prb, nof_re, req_bytes, &mcs);
     } else {
-      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_dl, false), nof_prb) / 8;
-      mcs = fixed_mcs_dl;
+      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs0, false), nof_prb) / 8;
+      mcs = mcs0;
     }
 
     if (tbs < MIN_DATA_TBS) {
@@ -482,7 +485,7 @@ int sched_ue::generate_format1(dl_harq_proc* h, sched_interface::dl_sched_data_t
       return 0;
     }
 
-    h->new_tx(0, tti, mcs, tbs, data->dci.location.ncce);
+    h->new_tx(user_mask, 0, tti, mcs, tbs, data->dci.location.ncce);
 
     // Allocate MAC ConRes CE
     if (need_conres_ce) {
@@ -503,7 +506,7 @@ int sched_ue::generate_format1(dl_harq_proc* h, sched_interface::dl_sched_data_t
 
     Debug("SCHED: Alloc format1 new mcs=%d, tbs=%d, nof_prb=%d, req_bytes=%d\n", mcs, tbs, nof_prb, req_bytes);
   } else {
-    h->new_retx(0, tti, &mcs, &tbs);
+    h->new_retx(user_mask, 0, tti, &mcs, &tbs, data->dci.location.ncce);
     Debug("SCHED: Alloc format1 previous mcs=%d, tbs=%d\n", mcs, tbs);
   }
 
@@ -526,31 +529,27 @@ int sched_ue::generate_format1(dl_harq_proc* h, sched_interface::dl_sched_data_t
 }
 
 // Generates a Format2a dci
-int sched_ue::generate_format2a(dl_harq_proc *h,
-                         sched_interface::dl_sched_data_t *data,
-                         uint32_t tti,
-                         uint32_t cfi)
+int sched_ue::generate_format2a(
+    dl_harq_proc* h, sched_interface::dl_sched_data_t* data, uint32_t tti, uint32_t cfi, const rbgmask_t& user_mask)
 {
   pthread_mutex_lock(&mutex);
-  int ret = generate_format2a_unlocked(h, data, tti, cfi);
+  int ret = generate_format2a_unlocked(h, data, tti, cfi, user_mask);
   pthread_mutex_unlock(&mutex);
   return ret;
 }
 
 // Generates a Format2a dci
-int sched_ue::generate_format2a_unlocked(dl_harq_proc*                     h,
-                                         sched_interface::dl_sched_data_t* data,
-                                         uint32_t                          tti,
-                                         uint32_t                          cfi)
+int sched_ue::generate_format2a_unlocked(
+    dl_harq_proc* h, sched_interface::dl_sched_data_t* data, uint32_t tti, uint32_t cfi, const rbgmask_t& user_mask)
 {
   bool tb_en[SRSLTE_MAX_TB] = {false};
 
   srslte_dci_dl_t* dci = &data->dci;
 
   dci->alloc_type              = SRSLTE_RA_ALLOC_TYPE0;
-  dci->type0_alloc.rbg_bitmask = (uint32_t)h->get_rbgmask().to_uint64();
+  dci->type0_alloc.rbg_bitmask = (uint32_t)user_mask.to_uint64();
 
-  uint32_t nof_prb = format1_count_prb((uint32_t)h->get_rbgmask().to_uint64(), cell.nof_prb);
+  uint32_t nof_prb = format1_count_prb((uint32_t)user_mask.to_uint64(), cell.nof_prb); // FIXME: format1???
 
   // Calculate exact number of RE for this PRB allocation
   srslte_pdsch_grant_t grant = {};
@@ -591,7 +590,7 @@ int sched_ue::generate_format2a_unlocked(dl_harq_proc*                     h,
     int tbs = 0;
 
     if (!h->is_empty(tb)) {
-      h->new_retx(tb, tti, &mcs, &tbs);
+      h->new_retx(user_mask, tb, tti, &mcs, &tbs, data->dci.location.ncce);
       Debug("SCHED: Alloc format2/2a previous mcs=%d, tbs=%d\n", mcs, tbs);
     } else if (tb_en[tb] && req_bytes && no_retx) {
       if (fixed_mcs_dl < 0) {
@@ -600,7 +599,7 @@ int sched_ue::generate_format2a_unlocked(dl_harq_proc*                     h,
         tbs = srslte_ra_tbs_from_idx((uint32_t)srslte_ra_tbs_idx_from_mcs((uint32_t)fixed_mcs_dl, false), nof_prb) / 8;
         mcs = fixed_mcs_dl;
       }
-      h->new_tx(tb, tti, mcs, tbs, data->dci.location.ncce);
+      h->new_tx(user_mask, tb, tti, mcs, tbs, data->dci.location.ncce);
 
       int rem_tbs = tbs;
       int x       = 0;
@@ -643,16 +642,14 @@ int sched_ue::generate_format2a_unlocked(dl_harq_proc*                     h,
 }
 
 // Generates a Format2 dci
-int sched_ue::generate_format2(dl_harq_proc *h,
-                         sched_interface::dl_sched_data_t *data,
-                         uint32_t tti,
-                         uint32_t cfi)
+int sched_ue::generate_format2(
+    dl_harq_proc* h, sched_interface::dl_sched_data_t* data, uint32_t tti, uint32_t cfi, const rbgmask_t& user_mask)
 {
 
   pthread_mutex_lock(&mutex);
 
   /* Call Format 2a (common) */
-  int ret = generate_format2a_unlocked(h, data, tti, cfi);
+  int ret = generate_format2a_unlocked(h, data, tti, cfi, user_mask);
 
   /* Compute precoding information */
   data->dci.format = SRSLTE_DCI_FORMAT2;
@@ -667,40 +664,49 @@ int sched_ue::generate_format2(dl_harq_proc *h,
   return ret;
 }
 
-int sched_ue::generate_format0(ul_harq_proc* h, sched_interface::ul_sched_data_t* data, uint32_t tti, bool cqi_request)
+int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
+                               uint32_t                          tti,
+                               ul_harq_proc::ul_alloc_t          alloc,
+                               bool                              needs_pdcch,
+                               srslte_dci_location_t             dci_pos,
+                               int                               explicit_mcs)
 {
   pthread_mutex_lock(&mutex);
 
+  ul_harq_proc*    h   = get_ul_harq(tti);
   srslte_dci_ul_t* dci = &data->dci;
 
-  int mcs = 0;
+  bool cqi_request = needs_cqi_unlocked(tti, true);
+
+  // Set DCI position
+  data->needs_pdcch = needs_pdcch;
+  dci->location     = dci_pos;
+
+  int mcs = (explicit_mcs >= 0) ? explicit_mcs : fixed_mcs_ul;
   int tbs = 0;
 
-  ul_harq_proc::ul_alloc_t allocation = h->get_alloc();
-  
-  bool is_newtx = true;
-  if (h->get_rar_mcs(&mcs)) {
-    tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs, true), allocation.L) / 8;
-    h->new_tx(tti, mcs, tbs); 
-  } else if (h->is_empty(0)) {
-    
-    uint32_t req_bytes = get_pending_ul_new_data_unlocked(tti);
+  bool is_newtx = h->is_empty(0);
+  if (is_newtx) {
+    uint32_t nof_retx;
 
-    uint32_t N_srs = 0; 
-    uint32_t nof_re = (2*(SRSLTE_CP_NSYMB(cell.cp)-1) - N_srs)*allocation.L*SRSLTE_NRE;
-    if (fixed_mcs_ul < 0) {
-      tbs = alloc_tbs_ul(allocation.L, nof_re, req_bytes, &mcs);
+    // If Msg3 set different nof retx
+    nof_retx = (data->needs_pdcch) ? get_max_retx() : max_msg3retx;
+
+    if (mcs >= 0) {
+      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs, true), alloc.L) / 8;
     } else {
-      tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_ul, true), allocation.L) / 8;
-      mcs = fixed_mcs_ul;
+      // dynamic mcs
+      uint32_t req_bytes = get_pending_ul_new_data_unlocked(tti);
+      uint32_t N_srs     = 0;
+      uint32_t nof_re    = (2 * (SRSLTE_CP_NSYMB(cell.cp) - 1) - N_srs) * alloc.L * SRSLTE_NRE;
+      tbs                = alloc_tbs_ul(alloc.L, nof_re, req_bytes, &mcs);
     }
-
-    h->new_tx(tti, mcs, tbs);
+    h->new_tx(tti, mcs, tbs, alloc, nof_retx);
 
   } else {
-    h->new_retx(0, tti, &mcs, NULL);
-    is_newtx = false;
-    tbs      = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs, true), allocation.L) / 8;
+    // retx
+    h->new_retx(0, tti, &mcs, NULL, alloc);
+    tbs      = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs, true), alloc.L) / 8;
   }
 
   data->tbs = tbs;
@@ -708,7 +714,7 @@ int sched_ue::generate_format0(ul_harq_proc* h, sched_interface::ul_sched_data_t
   if (tbs > 0) {
     dci->rnti            = rnti;
     dci->format          = SRSLTE_DCI_FORMAT0;
-    dci->type2_alloc.riv = srslte_ra_type2_to_riv(allocation.L, allocation.RB_start, cell.nof_prb);
+    dci->type2_alloc.riv = srslte_ra_type2_to_riv(alloc.L, alloc.RB_start, cell.nof_prb);
     dci->tb.rv           = sched::get_rvidx(h->nof_retx(0));
     if (!is_newtx && h->is_adaptive_retx()) {
       dci->tb.mcs_idx = 28 + dci->tb.rv;
@@ -966,12 +972,20 @@ bool sched_ue::is_sr_triggered()
   return sr; 
 }
 
-void sched_ue::reset_timeout_dl_harq(uint32_t tti) {
+void sched_ue::reset_pending_pids(uint32_t tti_rx)
+{
+  uint32_t tti_tx_dl = TTI_TX(tti_rx), tti_tx_ul = TTI_RX_ACK(tti_rx);
+
+  // UL harqs
+  get_ul_harq(tti_tx_ul)->reset_pending_data();
+
+  // DL harqs
   for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
-    if (!(dl_harq[i].is_empty(0) && dl_harq[i].is_empty(1))) {
-      uint32_t tti_diff = srslte_tti_interval(tti, dl_harq[i].get_tti());
+    dl_harq[i].reset_pending_data();
+    if (not dl_harq[i].is_empty()) {
+      uint32_t tti_diff = srslte_tti_interval(tti_tx_dl, dl_harq[i].get_tti());
       if (tti_diff > 50 and tti_diff < 10240 / 2) {
-        log_h->info("SCHED: pid=%d is old. tti_pid=%d, now is %d, resetting\n", i, dl_harq[i].get_tti(), tti);
+        log_h->info("SCHED: pid=%d is old. tti_pid=%d, now is %d, resetting\n", i, dl_harq[i].get_tti(), tti_tx_dl);
         dl_harq[i].reset(0);
         dl_harq[i].reset(1);
       }
@@ -1030,26 +1044,6 @@ ul_harq_proc* sched_ue::get_ul_harq(uint32_t tti)
   return &ul_harq[tti % SCHED_MAX_HARQ_PROC];
 }
 
-void sched_ue::set_dl_alloc(dl_harq_proc* alloc)
-{
-  next_dl_harq_proc = alloc;
-}
-
-dl_harq_proc* sched_ue::get_dl_alloc()
-{
-  return next_dl_harq_proc;
-}
-
-void sched_ue::set_ul_alloc(ul_harq_proc* alloc)
-{
-  next_ul_harq_proc = alloc;
-}
-
-ul_harq_proc* sched_ue::get_ul_alloc()
-{
-  return next_ul_harq_proc;
-}
-
 dl_harq_proc* sched_ue::find_dl_harq(uint32_t tti)
 {
   for (uint32_t i = 0; i < SCHED_MAX_HARQ_PROC; ++i) {
@@ -1060,7 +1054,7 @@ dl_harq_proc* sched_ue::find_dl_harq(uint32_t tti)
   return NULL;
 }
 
-const dl_harq_proc* sched_ue::get_dl_harq(uint32_t idx) const
+dl_harq_proc* sched_ue::get_dl_harq(uint32_t idx)
 {
   return &dl_harq[idx];
 }

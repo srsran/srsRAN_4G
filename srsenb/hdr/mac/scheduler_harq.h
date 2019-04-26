@@ -29,31 +29,55 @@
 
 namespace srsenb {
 
+// MASK used for CCE allocations
+typedef srslte::bounded_bitset<sched_interface::max_cce, true> pdcch_mask_t;
+
+// Range of RBGs
+class prb_range_t;
+struct rbg_range_t {
+  uint32_t rbg_start = 0, rbg_end = 0;
+  rbg_range_t() = default;
+  rbg_range_t(uint32_t s, uint32_t e) : rbg_start(s), rbg_end(e) {}
+  rbg_range_t(const prb_range_t& rbgs, uint32_t P);
+  uint32_t length() const { return rbg_end - rbg_start; }
+};
+
+// Range of PRBs
+struct prb_range_t {
+  uint32_t prb_start = 0, prb_end = 0;
+  prb_range_t() = default;
+  prb_range_t(uint32_t s, uint32_t e) : prb_start(s), prb_end(e) {}
+  prb_range_t(const rbg_range_t& rbgs, uint32_t P);
+  uint32_t           length() { return prb_end - prb_start; }
+  static prb_range_t riv_to_prbs(uint32_t riv, uint32_t nof_prbs, int nof_vrbs = -1);
+};
+
 class harq_proc 
 {
 public:
   void     config(uint32_t id, uint32_t max_retx, srslte::log* log_h);
-  void     set_max_retx(uint32_t max_retx); 
   void     reset(uint32_t tb_idx);
   uint32_t get_id() const;
   bool     is_empty() const;
   bool     is_empty(uint32_t tb_idx) const;
 
-  bool     get_ack(uint32_t tb_idx) const;
-  void     set_ack(uint32_t tb_idx, bool ack);
-
   uint32_t nof_tx(uint32_t tb_idx) const;
   uint32_t nof_retx(uint32_t tb_idx) const;
   uint32_t get_tti() const;
   bool     get_ndi(uint32_t tb_idx) const;
+  uint32_t max_nof_retx() const;
 
 protected:
 
   void     new_tx_common(uint32_t tb_idx, uint32_t tti, int mcs, int tbs);
   void     new_retx_common(uint32_t tb_idx, uint32_t tti, int* mcs, int* tbs);
   bool     has_pending_retx_common(uint32_t tb_idx) const;
+  void     set_ack_common(uint32_t tb_idx, bool ack);
+  void     reset_pending_data_common();
 
-  bool     ack[SRSLTE_MAX_TB];
+  enum ack_t { NULL_ACK, NACK, ACK };
+
+  ack_t    ack_state[SRSLTE_MAX_TB];
   bool     active[SRSLTE_MAX_TB];
   bool     ndi[SRSLTE_MAX_TB];
   uint32_t id;  
@@ -63,11 +87,8 @@ protected:
   int      tti;
   int      last_mcs[SRSLTE_MAX_TB];
   int      last_tbs[SRSLTE_MAX_TB];
-  
-  srslte::log* log_h;
 
-  private:
-    bool ack_received[SRSLTE_MAX_TB];
+  srslte::log* log_h;
 };
 
 typedef srslte::bounded_bitset<25, true> rbgmask_t;
@@ -76,13 +97,15 @@ class dl_harq_proc : public harq_proc
 {
 public:
   dl_harq_proc();
-  void      new_tx(uint32_t tb_idx, uint32_t tti, int mcs, int tbs, uint32_t n_cce);
-  void      new_retx(uint32_t tb_idx, uint32_t tti_, int* mcs, int* tbs);
-  rbgmask_t get_rbgmask();
-  void      set_rbgmask(rbgmask_t new_mask);
+  void      new_tx(const rbgmask_t& new_mask, uint32_t tb_idx, uint32_t tti, int mcs, int tbs, uint32_t n_cce_);
+  void      new_retx(const rbgmask_t& new_mask, uint32_t tb_idx, uint32_t tti_, int* mcs, int* tbs, uint32_t n_cce_);
+  void      set_ack(uint32_t tb_idx, bool ack);
+  rbgmask_t get_rbgmask() const;
   bool      has_pending_retx(uint32_t tb_idx, uint32_t tti) const;
   int       get_tbs(uint32_t tb_idx) const;
-  uint32_t get_n_cce();
+  uint32_t  get_n_cce() const;
+  void      reset_pending_data();
+
 private:
   rbgmask_t rbgmask;
   uint32_t  n_cce;
@@ -100,46 +123,31 @@ public:
       RB_start = start;
       L        = len;
     }
+    uint32_t RB_end() const { return RB_start + L; }
   };
 
-  void       new_tx(uint32_t tti, int mcs, int tbs);
-  void       new_retx(uint32_t tb_idx, uint32_t tti_, int* mcs, int* tbs);
+  void new_tx(uint32_t tti, int mcs, int tbs, ul_alloc_t alloc, uint32_t max_retx_);
+  void new_retx(uint32_t tb_idx, uint32_t tti_, int* mcs, int* tbs, ul_alloc_t alloc);
+  void set_ack(uint32_t tb_idx, bool ack);
 
-  ul_alloc_t get_alloc();
-  void       set_alloc(ul_alloc_t alloc);
-  void       set_realloc(ul_alloc_t alloc);
-  bool       has_pending_retx();
-  bool       is_adaptive_retx();
-  bool       is_rar_tx();
-  bool       is_new_tx();
+  ul_alloc_t get_alloc() const;
+  bool       has_pending_retx() const;
+  bool       is_adaptive_retx() const;
 
   void       reset_pending_data();
-  bool       has_pending_ack();
-  uint32_t   get_pending_data(); 
-  
-  void       set_rar_mcs(uint32_t mcs);
-  bool       get_rar_mcs(int* mcs);
+  bool       has_pending_ack() const;
+  bool       get_pending_ack() const;
+  uint32_t   get_pending_data() const;
 
 private:
   ul_alloc_t allocation;
-  bool need_ack;
   int  pending_data;
-  uint32_t rar_mcs;
-  bool has_rar_mcs;
   bool is_adaptive;
-  bool       is_rar;
+  ack_t      pending_ack;
 };
 
-class ul_mask_t : public srslte::bounded_bitset<100>
-{
-  typedef srslte::bounded_bitset<100> base_type;
+typedef srslte::bounded_bitset<100, true> prbmask_t;
 
-public:
-  using srslte::bounded_bitset<100>::any;
-  using srslte::bounded_bitset<100>::fill;
-  bool any(ul_harq_proc::ul_alloc_t alloc) const noexcept;
-  void fill(ul_harq_proc::ul_alloc_t alloc) noexcept;
-};
 } // namespace srsenb
 
 #endif // SRSENB_SCHEDULER_HARQ_H

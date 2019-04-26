@@ -25,40 +25,36 @@
 #include "scheduler.h"
 
 namespace srsenb {
-  
+
 class dl_metric_rr : public sched::metric_dl
 {
   const static int MAX_RBG = 25;
 
 public:
-  void sched_users(std::map<uint16_t, sched_ue>& ue_db, rbgmask_t* dl_mask, uint32_t nof_ctrl_symbols, uint32_t tti);
+  void set_log(srslte::log* log_) final;
+  void sched_users(std::map<uint16_t, sched_ue>& ue_db, sched::dl_tti_sched_t* tti_sched) final;
 
 private:
   bool          find_allocation(uint32_t nof_rbg, rbgmask_t* rbgmask);
-  void          update_allocation(rbgmask_t new_mask);
-  bool          allocation_is_valid(rbgmask_t mask);
   dl_harq_proc* allocate_user(sched_ue* user);
 
-  uint32_t current_tti;
-  //  rbgmask_t used_rbg_mask;
-  rbgmask_t* used_rbg;
-  uint32_t nof_ctrl_symbols;
-  uint32_t available_rbg;
+  srslte::log*           log_h     = nullptr;
+  sched::dl_tti_sched_t* tti_alloc = nullptr;
 };
 
 class ul_metric_rr : public sched::metric_ul
 {
 public:
-  void sched_users(std::map<uint16_t, sched_ue>& ue_db, ul_mask_t* start_mask, uint32_t tti);
+  void set_log(srslte::log* log_) final;
+  void sched_users(std::map<uint16_t, sched_ue>& ue_db, sched::ul_tti_sched_t* tti_sched) final;
 
 private:
   bool          find_allocation(uint32_t L, ul_harq_proc::ul_alloc_t* alloc);
-  bool          allocation_is_valid(ul_harq_proc::ul_alloc_t alloc);
-  bool          update_allocation(ul_harq_proc::ul_alloc_t alloc);
   ul_harq_proc* allocate_user_newtx_prbs(sched_ue* user);
   ul_harq_proc* allocate_user_retx_prbs(sched_ue *user);
 
-  ul_mask_t* used_rb;
+  srslte::log*           log_h     = nullptr;
+  sched::ul_tti_sched_t* tti_alloc = nullptr;
   uint32_t   current_tti;
 };
 
