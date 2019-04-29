@@ -45,8 +45,8 @@ public:
   // pdcp_interface_rrc
   void reset(uint16_t rnti);
   void add_user(uint16_t rnti);  
-  void rem_user(uint16_t rnti); 
-  void write_sdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t *sdu);
+  void rem_user(uint16_t rnti);
+  void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_pool_buffer sdu);
   void add_bearer(uint16_t rnti, uint32_t lcid, srslte::srslte_pdcp_config_t cnfg);
   void config_security(uint16_t rnti, 
                        uint32_t lcid,

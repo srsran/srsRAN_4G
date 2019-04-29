@@ -199,12 +199,11 @@ void rlc::empty_queue()
   PDCP interface
 *******************************************************************************/
 
-void rlc::write_sdu(uint32_t lcid, byte_buffer_t *sdu, bool blocking)
+void rlc::write_sdu(uint32_t lcid, unique_pool_buffer sdu, bool blocking)
 {
   // FIXME: rework build PDU logic to allow large SDUs (without concatenation)
   if (sdu->N_bytes > RLC_MAX_SDU_SIZE) {
     rlc_log->warning("Dropping too long SDU of size %d B (Max. size %d B).\n", sdu->N_bytes, RLC_MAX_SDU_SIZE);
-    pool->deallocate(sdu);
     return;
   }
 
@@ -213,19 +212,17 @@ void rlc::write_sdu(uint32_t lcid, byte_buffer_t *sdu, bool blocking)
     rlc_array.at(lcid)->write_sdu(sdu, blocking);
   } else {
     rlc_log->warning("RLC LCID %d doesn't exist. Deallocating SDU\n", lcid);
-    byte_buffer_pool::get_instance()->deallocate(sdu);
   }
   pthread_rwlock_unlock(&rwlock);
 }
 
-void rlc::write_sdu_mch(uint32_t lcid, byte_buffer_t *sdu)
+void rlc::write_sdu_mch(uint32_t lcid, unique_pool_buffer sdu)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid_mrb(lcid)) {
     rlc_array_mrb.at(lcid)->write_sdu(sdu, false); // write in non-blocking mode by default
   } else {
     rlc_log->warning("RLC LCID %d doesn't exist. Deallocating SDU\n", lcid);
-    byte_buffer_pool::get_instance()->deallocate(sdu);
   }
   pthread_rwlock_unlock(&rwlock);
 }

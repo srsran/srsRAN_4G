@@ -51,8 +51,8 @@ public:
   // RRC interface
   void reestablish();
   void reset();
-  void write_sdu(uint32_t lcid, byte_buffer_t *sdu, bool blocking = true);
-  void write_sdu_mch(uint32_t lcid, byte_buffer_t *sdu);
+  void     write_sdu(uint32_t lcid, unique_pool_buffer sdu, bool blocking = true);
+  void     write_sdu_mch(uint32_t lcid, unique_pool_buffer sdu);
   void add_bearer(uint32_t lcid, srslte_pdcp_config_t cnfg = srslte_pdcp_config_t());
   void add_bearer_mrb(uint32_t lcid, srslte_pdcp_config_t cnfg = srslte_pdcp_config_t());
   void del_bearer(uint32_t lcid);
@@ -74,11 +74,11 @@ public:
   uint32_t get_ul_count(uint32_t lcid);
 
   // RLC interface
-  void write_pdu(uint32_t lcid, byte_buffer_t *sdu);
-  void write_pdu_mch(uint32_t lcid, byte_buffer_t *sdu);
-  void write_pdu_bcch_bch(byte_buffer_t *sdu);
-  void write_pdu_bcch_dlsch(byte_buffer_t *sdu);
-  void write_pdu_pcch(byte_buffer_t *sdu);
+  void write_pdu(uint32_t lcid, unique_pool_buffer sdu);
+  void write_pdu_mch(uint32_t lcid, unique_pool_buffer sdu);
+  void write_pdu_bcch_bch(unique_pool_buffer sdu);
+  void write_pdu_bcch_dlsch(unique_pool_buffer sdu);
+  void write_pdu_pcch(unique_pool_buffer sdu);
 
 private:
   srsue::rlc_interface_pdcp *rlc;

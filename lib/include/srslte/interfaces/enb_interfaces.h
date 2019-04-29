@@ -199,7 +199,7 @@ public:
 class pdcp_interface_gtpu
 {
 public:
-  virtual void write_sdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t *sdu) = 0;
+  virtual void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_pool_buffer sdu) = 0;
 };
 
 // PDCP interface for RRC

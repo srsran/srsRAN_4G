@@ -117,23 +117,22 @@ bool pdcp::is_lcid_enabled(uint32_t lcid)
   return ret;
 }
 
-void pdcp::write_sdu(uint32_t lcid, byte_buffer_t *sdu, bool blocking)
+void pdcp::write_sdu(uint32_t lcid, unique_pool_buffer sdu, bool blocking)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
-    pdcp_array.at(lcid)->write_sdu(sdu, blocking);
+    pdcp_array.at(lcid)->write_sdu(std::move(sdu), blocking);
   } else {
     pdcp_log->warning("Writing sdu: lcid=%d. Deallocating sdu\n", lcid);
-    byte_buffer_pool::get_instance()->deallocate(sdu);
   }
   pthread_rwlock_unlock(&rwlock);
 }
 
-void pdcp::write_sdu_mch(uint32_t lcid, byte_buffer_t *sdu)
+void pdcp::write_sdu_mch(uint32_t lcid, unique_pool_buffer sdu)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (valid_mch_lcid(lcid)){
-    pdcp_array_mrb.at(lcid)->write_sdu(sdu, true);
+    pdcp_array_mrb.at(lcid)->write_sdu(std::move(sdu), true);
   }
   pthread_rwlock_unlock(&rwlock);
 }
@@ -277,39 +276,38 @@ uint32_t pdcp::get_ul_count(uint32_t lcid)
 /*******************************************************************************
   RLC interface
 *******************************************************************************/
-void pdcp::write_pdu(uint32_t lcid, byte_buffer_t *pdu)
+void pdcp::write_pdu(uint32_t lcid, unique_pool_buffer pdu)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
-    pdcp_array.at(lcid)->write_pdu(pdu);
+    pdcp_array.at(lcid)->write_pdu(std::move(pdu));
   } else {
     pdcp_log->warning("Writing pdu: lcid=%d. Deallocating pdu\n", lcid);
-    byte_buffer_pool::get_instance()->deallocate(pdu);
   }
   pthread_rwlock_unlock(&rwlock);
 }
 
-void pdcp::write_pdu_bcch_bch(byte_buffer_t *sdu)
+void pdcp::write_pdu_bcch_bch(unique_pool_buffer sdu)
 {
-  rrc->write_pdu_bcch_bch(sdu);
+  rrc->write_pdu_bcch_bch(std::move(sdu));
 }
 
-void pdcp::write_pdu_bcch_dlsch(byte_buffer_t *sdu)
+void pdcp::write_pdu_bcch_dlsch(unique_pool_buffer sdu)
 {
-  rrc->write_pdu_bcch_dlsch(sdu);
+  rrc->write_pdu_bcch_dlsch(std::move(sdu));
 }
 
-void pdcp::write_pdu_pcch(byte_buffer_t *sdu)
+void pdcp::write_pdu_pcch(unique_pool_buffer sdu)
 {
-  rrc->write_pdu_pcch(sdu);
+  rrc->write_pdu_pcch(std::move(sdu));
 }
 
-void pdcp::write_pdu_mch(uint32_t lcid, byte_buffer_t *sdu)
+void pdcp::write_pdu_mch(uint32_t lcid, unique_pool_buffer sdu)
 {
   if (0 == lcid) {
-    rrc->write_pdu_mch(lcid, sdu);
+    rrc->write_pdu_mch(lcid, std::move(sdu));
   } else {
-    gw->write_pdu_mch(lcid, sdu);
+    gw->write_pdu_mch(lcid, std::move(sdu));
   }
 }
 

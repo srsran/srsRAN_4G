@@ -266,6 +266,80 @@ private:
 #endif
 };
 
+class byte_buffer_pool;
+class byte_buffer_guard
+{
+public:
+  byte_buffer_guard(byte_buffer_pool* pool_) : pool(pool_) {}
+  byte_buffer_guard(byte_buffer_t* buf_, byte_buffer_pool* pool_) : buf(buf_), pool(pool_) {}
+  byte_buffer_guard(const byte_buffer_guard& other) = delete;
+  byte_buffer_guard& operator=(const byte_buffer_guard& other) = delete;
+  // move ctor
+  byte_buffer_guard(byte_buffer_guard&& other)
+  {
+    printf("In move ctor\n");
+    buf       = other.buf;
+    pool      = other.pool;
+    other.buf = nullptr;
+  }
+
+  byte_buffer_guard& operator=(byte_buffer_guard&& other) noexcept
+  {
+    printf("in copy move ctor\n");
+    if (this == &other) {
+      return *this;
+    }
+    this->buf  = other.buf;
+    this->pool = other.pool;
+    other.buf  = nullptr;
+    return *this;
+  }
+
+  ~byte_buffer_guard() { deallocate(); }
+
+  void set_pool(byte_buffer_pool* pool_)
+  {
+    deallocate();
+    pool = pool_;
+  }
+
+  // acquire already alloc buffer
+  void acquire(byte_buffer_t* buf_) { buf = buf_; }
+  // allocate buffer
+  //  bool allocate() {
+  //    deallocate();
+  //    buf = pool->allocate();
+  //    if(buf == nullptr) {
+  //      // allocation failed
+  //      pool = nullptr;
+  //      return false;
+  //    }
+  //    return true;
+  //  }
+  bool allocate();
+  void deallocate();
+
+  byte_buffer_t*       operator->() { return buf; }
+  const byte_buffer_t* operator->() const { return buf; }
+
+  byte_buffer_t*          get() { return buf; }
+  const byte_buffer_t*    get() const { return buf; }
+  const byte_buffer_pool* get_pool() const { return pool; }
+
+private:
+  byte_buffer_t*    buf = nullptr;
+  byte_buffer_pool* pool;
+
+  //  void deallocate() {
+  //    if (buf != nullptr) {
+  //      printf("called dealloc!\n");
+  //      pool->deallocate(buf);
+  //    }
+  //  }
+};
+
+typedef byte_buffer_guard unique_pool_buffer;
+
 } // namespace srslte
 
 #endif // SRSLTE_COMMON_H

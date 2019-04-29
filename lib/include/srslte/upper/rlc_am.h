@@ -81,7 +81,7 @@ public:
   uint32_t      get_bearer();
 
   // PDCP interface
-  void write_sdu(byte_buffer_t *sdu, bool blocking = true);
+  void write_sdu(unique_pool_buffer sdu, bool blocking = true);
 
   // MAC interface
   bool     has_data();
@@ -109,7 +109,7 @@ private:
     void reestablish();
     void stop();
 
-    void write_sdu(byte_buffer_t *sdu, bool blocking);
+    void write_sdu(unique_pool_buffer sdu, bool blocking);
     int read_pdu(uint8_t *payload, uint32_t nof_bytes);
 
     bool     has_data();

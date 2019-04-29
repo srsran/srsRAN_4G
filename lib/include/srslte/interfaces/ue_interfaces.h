@@ -114,8 +114,8 @@ public:
 class gw_interface_pdcp
 {
 public:
-  virtual void write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu) = 0;
-  virtual void write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *pdu) = 0;
+  virtual void write_pdu(uint32_t lcid, srslte::unique_pool_buffer pdu)     = 0;
+  virtual void write_pdu_mch(uint32_t lcid, srslte::unique_pool_buffer pdu) = 0;
 };
 
 // NAS interface for RRC
@@ -132,7 +132,7 @@ public:
   virtual void      set_barring(barring_t barring) = 0;
   virtual void      paging(asn1::rrc::s_tmsi_s* ue_identiy)              = 0;
   virtual bool      is_attached() = 0;
-  virtual void      write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu) = 0;
+  virtual void      write_pdu(uint32_t lcid, srslte::unique_pool_buffer pdu) = 0;
   virtual uint32_t  get_k_enb_count() = 0;
   virtual bool      get_k_asme(uint8_t *k_asme_, uint32_t n) = 0;
   virtual uint32_t  get_ipv4_addr() = 0;
@@ -189,7 +189,7 @@ public:
 
   const static int MAX_FOUND_PLMNS = 16;
 
-  virtual void write_sdu(srslte::byte_buffer_t *sdu) = 0;
+  virtual void     write_sdu(srslte::unique_pool_buffer sdu)                                                       = 0;
   virtual uint16_t get_mcc() = 0;
   virtual uint16_t get_mnc() = 0;
   virtual void enable_capabilities() = 0;
@@ -205,11 +205,11 @@ public:
 class rrc_interface_pdcp
 {
 public:
-  virtual void write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu) = 0;
-  virtual void write_pdu_bcch_bch(srslte::byte_buffer_t *pdu) = 0;
-  virtual void write_pdu_bcch_dlsch(srslte::byte_buffer_t *pdu) = 0;
-  virtual void write_pdu_pcch(srslte::byte_buffer_t *pdu) = 0;
-  virtual void write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *pdu) = 0;
+  virtual void        write_pdu(uint32_t lcid, srslte::unique_pool_buffer pdu)     = 0;
+  virtual void        write_pdu_bcch_bch(srslte::unique_pool_buffer pdu)           = 0;
+  virtual void        write_pdu_bcch_dlsch(srslte::unique_pool_buffer pdu)         = 0;
+  virtual void        write_pdu_pcch(srslte::unique_pool_buffer pdu)               = 0;
+  virtual void        write_pdu_mch(uint32_t lcid, srslte::unique_pool_buffer pdu) = 0;
   virtual std::string get_rb_name(uint32_t lcid) = 0;
 };
 
@@ -225,7 +225,7 @@ public:
 class pdcp_interface_gw
 {
 public:
-  virtual void write_sdu(uint32_t lcid, srslte::byte_buffer_t *sdu, bool blocking) = 0;
+  virtual void write_sdu(uint32_t lcid, srslte::unique_pool_buffer sdu, bool blocking) = 0;
   virtual bool is_lcid_enabled(uint32_t lcid) = 0;
 };
 
@@ -235,7 +235,7 @@ class pdcp_interface_rrc
 public:
   virtual void reestablish() = 0;
   virtual void reset() = 0;
-  virtual void write_sdu(uint32_t lcid, srslte::byte_buffer_t *sdu, bool blocking = true) = 0;
+  virtual void     write_sdu(uint32_t lcid, srslte::unique_pool_buffer sdu, bool blocking = true)                = 0;
   virtual void add_bearer(uint32_t lcid, srslte::srslte_pdcp_config_t cnfg = srslte::srslte_pdcp_config_t()) = 0;
   virtual void change_lcid(uint32_t old_lcid, uint32_t new_lcid) = 0;
   virtual void config_security(uint32_t lcid,
@@ -260,11 +260,11 @@ class pdcp_interface_rlc
 {
 public:
   /* RLC calls PDCP to push a PDCP PDU. */
-  virtual void write_pdu(uint32_t lcid, srslte::byte_buffer_t *sdu) = 0;
-  virtual void write_pdu_bcch_bch(srslte::byte_buffer_t *sdu) = 0;
-  virtual void write_pdu_bcch_dlsch(srslte::byte_buffer_t *sdu) = 0;
-  virtual void write_pdu_pcch(srslte::byte_buffer_t *sdu) = 0;
-  virtual void write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *sdu) = 0;
+  virtual void write_pdu(uint32_t lcid, srslte::unique_pool_buffer sdu)     = 0;
+  virtual void write_pdu_bcch_bch(srslte::unique_pool_buffer sdu)           = 0;
+  virtual void write_pdu_bcch_dlsch(srslte::unique_pool_buffer sdu)         = 0;
+  virtual void write_pdu_pcch(srslte::unique_pool_buffer sdu)               = 0;
+  virtual void write_pdu_mch(uint32_t lcid, srslte::unique_pool_buffer sdu) = 0;
 };
 
 // RLC interface for RRC
@@ -289,7 +289,7 @@ class rlc_interface_pdcp
 public:
   /* PDCP calls RLC to push an RLC SDU. SDU gets placed into the RLC buffer and MAC pulls
    * RLC PDUs according to TB size. */
-  virtual void write_sdu(uint32_t lcid,  srslte::byte_buffer_t *sdu, bool blocking = true) = 0;
+  virtual void write_sdu(uint32_t lcid, srslte::unique_pool_buffer sdu, bool blocking = true) = 0;
   virtual bool rb_is_um(uint32_t lcid) = 0;
 };
 

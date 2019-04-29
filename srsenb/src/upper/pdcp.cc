@@ -141,7 +141,7 @@ void pdcp::write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* sdu)
   pthread_rwlock_unlock(&rwlock);
 }
 
-void pdcp::write_sdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* sdu)
+void pdcp::write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_pool_buffer sdu)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti)) {
@@ -150,8 +150,6 @@ void pdcp::write_sdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* sdu)
     }else {
       users[rnti].pdcp->write_sdu_mch(lcid, sdu);
     }
-  } else {
-    pool->deallocate(sdu);
   }
   pthread_rwlock_unlock(&rwlock);
 }

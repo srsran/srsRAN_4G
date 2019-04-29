@@ -82,7 +82,7 @@ public:
   // RRC interface
   void     paging(asn1::rrc::s_tmsi_s* ue_identiy);
   void set_barring(barring_t barring);
-  void write_pdu(uint32_t lcid, byte_buffer_t *pdu);
+  void     write_pdu(uint32_t lcid, unique_pool_buffer pdu);
   uint32_t get_k_enb_count();
   bool is_attached();
   bool get_k_asme(uint8_t *k_asme_, uint32_t n);

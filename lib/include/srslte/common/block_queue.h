@@ -119,9 +119,7 @@ public:
     while (try_pop(item));
   }
 
-  myobj front() {
-    return q.front();
-  }
+  myobj& front() { return q.front(); }
 
   size_t size() {
     return q.size();

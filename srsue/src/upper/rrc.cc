@@ -51,7 +51,8 @@ rrc::rrc() :
   last_state(RRC_STATE_CONNECTED),
   drb_up(false),
   rlc_flush_timeout(2000),
-  rlc_flush_counter(0)
+  rlc_flush_counter(0),
+  dedicated_info_nas(NULL)
 {
   n310_cnt     = 0;
   n311_cnt     = 0;
@@ -96,7 +97,7 @@ void rrc::srslte_rrc_log(const char* str)
 }
 
 template <class T>
-void rrc::log_rrc_message(const std::string source, const direction_t dir, const byte_buffer_t* pdu, const T& msg)
+void rrc::log_rrc_message(const std::string source, const direction_t dir, const unique_pool_buffer& pdu, const T& msg)
 {
   if (rrc_log->get_level() == srslte::LOG_LEVEL_INFO) {
     rrc_log->info("%s - %s %s (%d B)\n", source.c_str(), (dir == Rx) ? "Rx" : "Tx",
@@ -157,7 +158,7 @@ void rrc::init(phy_interface_rrc*    phy_,
   t311 = mac_timers->timer_get_unique_id();
   t304 = mac_timers->timer_get_unique_id();
 
-  dedicated_info_nas     = NULL;
+  dedicated_info_nas.set_pool(pool);
   ue_identity_configured = false;
 
   transaction_id = 0;
@@ -218,10 +219,10 @@ void rrc::run_thread() {
     cmd_msg_t msg = cmd_q.wait_pop();
     switch(msg.command) {
       case cmd_msg_t::PDU:
-        process_pdu(msg.lcid, msg.pdu);
+        process_pdu(msg.lcid, std::move(msg.pdu));
         break;
       case cmd_msg_t::PCCH:
-        process_pcch(msg.pdu);
+        process_pcch(std::move(msg.pdu));
         break;
       case cmd_msg_t::STOP:
         return;
@@ -424,7 +425,7 @@ void rrc::plmn_select(asn1::rrc::plmn_id_s plmn_id)
  * it. Sends connectionRequest message and returns if message transmitted successfully.
  * It does not wait until completition of Connection Establishment procedure
  */
-bool rrc::connection_request(asn1::rrc::establishment_cause_e cause, srslte::byte_buffer_t* dedicated_info_nas)
+bool rrc::connection_request(asn1::rrc::establishment_cause_e cause, srslte::unique_pool_buffer dedicated_info_nas)
 {
 
   if (!plmn_is_selected) {
@@ -472,11 +473,10 @@ bool rrc::connection_request(asn1::rrc::establishment_cause_e cause, srslte::byt
       send_con_request(cause);
 
       // Save dedicatedInfoNAS SDU
-      if (this->dedicated_info_nas) {
+      if (this->dedicated_info_nas.get()) {
         rrc_log->warning("Received a new dedicatedInfoNAS SDU but there was one still in queue. Removing it\n");
-        pool->deallocate(this->dedicated_info_nas);
       }
-      this->dedicated_info_nas = dedicated_info_nas;
+      this->dedicated_info_nas = std::move(dedicated_info_nas);
 
       // Wait until t300 stops due to RRCConnectionSetup/Reject or expiry
       while (mac_timers->timer_get(t300)->is_running()) {
@@ -519,8 +519,7 @@ bool rrc::connection_request(asn1::rrc::establishment_cause_e cause, srslte::byt
 
   if (!ret) {
     rrc_log->warning("Could not establish connection. Deallocating dedicatedInfoNAS PDU\n");
-    pool->deallocate(this->dedicated_info_nas);
-    this->dedicated_info_nas = NULL;
+    this->dedicated_info_nas.deallocate();
   }
 
   pthread_mutex_unlock(&mutex);
@@ -1433,7 +1432,8 @@ void rrc::send_con_restablish_complete() {
   send_ul_dcch_msg(RB_ID_SRB1, ul_dcch_msg);
 }
 
-void rrc::send_con_setup_complete(byte_buffer_t *nas_msg) {
+void rrc::send_con_setup_complete(srslte::unique_pool_buffer nas_msg)
+{
   rrc_log->debug("Preparing RRC Connection Setup Complete\n");
 
   // Prepare ConnectionSetupComplete packet
@@ -1447,11 +1447,10 @@ void rrc::send_con_setup_complete(byte_buffer_t *nas_msg) {
   rrc_conn_setup_complete->ded_info_nas.resize(nas_msg->N_bytes);
   memcpy(rrc_conn_setup_complete->ded_info_nas.data(), nas_msg->msg, nas_msg->N_bytes); // TODO Check!
 
-  pool->deallocate(nas_msg);
   send_ul_dcch_msg(RB_ID_SRB1, ul_dcch_msg);
 }
 
-void rrc::send_ul_info_transfer(byte_buffer_t* nas_msg)
+void rrc::send_ul_info_transfer(unique_pool_buffer nas_msg)
 {
   uint32_t lcid = rlc->has_bearer(RB_ID_SRB2) ? RB_ID_SRB2 : RB_ID_SRB1;
 
@@ -1463,8 +1462,6 @@ void rrc::send_ul_info_transfer(byte_buffer_t* nas_msg)
   rrc_ul_info_transfer->ded_info_type.set_ded_info_nas();
   rrc_ul_info_transfer->ded_info_type.ded_info_nas().resize(nas_msg->N_bytes);
   memcpy(rrc_ul_info_transfer->ded_info_type.ded_info_nas().data(), nas_msg->msg, nas_msg->N_bytes); // TODO Check!
-
-  pool->deallocate(nas_msg);
 
   send_ul_dcch_msg(lcid, ul_dcch_msg);
 }
@@ -1662,13 +1659,13 @@ bool rrc::con_reconfig(asn1::rrc::rrc_conn_recfg_s* reconfig)
 
   send_rrc_con_reconfig_complete();
 
-  byte_buffer_t *nas_sdu;
+  unique_pool_buffer nas_sdu(pool);
   for (uint32_t i = 0; i < reconfig_r8->ded_info_nas_list.size(); i++) {
-    nas_sdu = pool_allocate;
-    if (nas_sdu) {
+    nas_sdu.allocate();
+    if (nas_sdu.get()) {
       memcpy(nas_sdu->msg, reconfig_r8->ded_info_nas_list[i].data(), reconfig_r8->ded_info_nas_list[i].size());
       nas_sdu->N_bytes = reconfig_r8->ded_info_nas_list[i].size();
-      nas->write_pdu(RB_ID_SRB1, nas_sdu);
+      nas->write_pdu(RB_ID_SRB1, std::move(nas_sdu));
     } else {
       rrc_log->error("Fatal Error: Couldn't allocate PDU in handle_rrc_con_reconfig().\n");
       return false;
@@ -1770,14 +1767,14 @@ void rrc::stop_timers()
 *
 *
 *******************************************************************************/
-void rrc::write_pdu_bcch_bch(byte_buffer_t* pdu)
+void rrc::write_pdu_bcch_bch(unique_pool_buffer pdu)
 {
   // Do we need to do something with BCH?
   rrc_log->info_hex(pdu->msg, pdu->N_bytes, "BCCH BCH message received.");
-  pool->deallocate(pdu);
 }
 
-void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu) {
+void rrc::write_pdu_bcch_dlsch(unique_pool_buffer pdu)
+{
   // Stop BCCH search after successful reception of 1 BCCH block
   mac->bcch_stop_rx();
 
@@ -1790,7 +1787,6 @@ void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu) {
   }
 
   log_rrc_message("BCCH", Rx, pdu, dlsch_msg);
-  pool->deallocate(pdu);
 
   if (dlsch_msg.msg.c1().type() == bcch_dl_sch_msg_type_c::c1_c_::types::sib_type1) {
     rrc_log->info("Processing SIB1 (1/1)\n");
@@ -1930,22 +1926,22 @@ void rrc::handle_sib13()
 *
 *
 *******************************************************************************/
-void rrc::write_pdu_pcch(byte_buffer_t* pdu)
+void rrc::write_pdu_pcch(unique_pool_buffer pdu)
 {
   cmd_msg_t msg;
-  msg.pdu = pdu;
+  msg.pdu     = std::move(pdu);
   msg.command = cmd_msg_t::PCCH;
   cmd_q.push(msg);
 }
 
-void rrc::process_pcch(byte_buffer_t* pdu)
+void rrc::process_pcch(unique_pool_buffer pdu)
 {
   if (pdu->N_bytes > 0 && pdu->N_bytes < SRSLTE_MAX_BUFFER_SIZE_BITS) {
     pcch_msg_s    pcch_msg;
     asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
     if (pcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or pcch_msg.msg.type().value != pcch_msg_type_c::types_opts::c1) {
       rrc_log->error("Failed to unpack PCCH message\n");
-      goto exit;
+      return;
     }
 
     log_rrc_message("PCCH", Rx, pdu, pcch_msg);
@@ -1957,7 +1953,7 @@ void rrc::process_pcch(byte_buffer_t* pdu)
 
     if (not ue_identity_configured) {
       rrc_log->warning("Received paging message but no ue-Identity is configured\n");
-      goto exit;
+      return;
     }
 
     s_tmsi_s* s_tmsi_paged;
@@ -1992,11 +1988,9 @@ void rrc::process_pcch(byte_buffer_t* pdu)
   } else {
     rrc_log->error_hex(pdu->buffer, pdu->N_bytes, "Dropping PCCH message with %d B\n", pdu->N_bytes);
   }
-exit:
-  pool->deallocate(pdu);
 }
 
-void rrc::write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *pdu)
+void rrc::write_pdu_mch(uint32_t lcid, srslte::unique_pool_buffer pdu)
 {
   if (pdu->N_bytes > 0 && pdu->N_bytes < SRSLTE_MAX_BUFFER_SIZE_BITS) {
     //TODO: handle MCCH notifications and update MCCH
@@ -2005,15 +1999,13 @@ void rrc::write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *pdu)
       if (serving_cell->mcch.unpack(bref) != asn1::SRSASN_SUCCESS or
           serving_cell->mcch.msg.type().value != mcch_msg_type_c::types_opts::c1) {
         rrc_log->error("Failed to unpack MCCH message\n");
-        goto exit;
+        return;
       }
       serving_cell->has_mcch = true;
       phy->set_config_mbsfn_mcch(&serving_cell->mcch);
       log_rrc_message("MCH", Rx, pdu, serving_cell->mcch);
     }
   }
-exit:
-  pool->deallocate(pdu);
 }
 
 
@@ -2032,8 +2024,8 @@ exit:
 void rrc::send_ul_ccch_msg(const asn1::rrc::ul_ccch_msg_s& msg)
 {
   // Reset and reuse sdu buffer if provided
-  byte_buffer_t *pdcp_buf = pool_allocate_blocking;
-  if (not pdcp_buf) {
+  unique_pool_buffer pdcp_buf(pool_allocate_blocking, pool);
+  if (not pdcp_buf.get()) {
     rrc_log->error("Fatal Error: Couldn't allocate PDU in byte_align_and_pack().\n");
     return;
   }
@@ -2058,14 +2050,14 @@ void rrc::send_ul_ccch_msg(const asn1::rrc::ul_ccch_msg_s& msg)
   uint32_t lcid = RB_ID_SRB0;
   log_rrc_message(get_rb_name(lcid).c_str(), Tx, pdcp_buf, msg);
 
-  pdcp->write_sdu(lcid, pdcp_buf);
+  pdcp->write_sdu(lcid, std::move(pdcp_buf));
 }
 
 void rrc::send_ul_dcch_msg(uint32_t lcid, const asn1::rrc::ul_dcch_msg_s& msg)
 {
   // Reset and reuse sdu buffer if provided
-  byte_buffer_t* pdcp_buf = pool_allocate_blocking;
-  if (not pdcp_buf) {
+  unique_pool_buffer pdcp_buf(pool_allocate_blocking, pool);
+  if (not pdcp_buf.get()) {
     rrc_log->error("Fatal Error: Couldn't allocate PDU in byte_align_and_pack().\n");
     return;
   }
@@ -2078,19 +2070,20 @@ void rrc::send_ul_dcch_msg(uint32_t lcid, const asn1::rrc::ul_dcch_msg_s& msg)
 
   log_rrc_message(get_rb_name(lcid).c_str(), Tx, pdcp_buf, msg);
 
-  pdcp->write_sdu(lcid, pdcp_buf);
+  pdcp->write_sdu(lcid, std::move(pdcp_buf));
 }
 
-void rrc::write_sdu(byte_buffer_t *sdu) {
+void rrc::write_sdu(srslte::unique_pool_buffer sdu)
+{
 
   if (state == RRC_STATE_IDLE) {
     rrc_log->warning("Received ULInformationTransfer SDU when in IDLE\n");
     return;
   }
-  send_ul_info_transfer(sdu);
+  send_ul_info_transfer(std::move(sdu));
 }
 
-void rrc::write_pdu(uint32_t lcid, byte_buffer_t* pdu)
+void rrc::write_pdu(uint32_t lcid, unique_pool_buffer pdu)
 {
   // If the message contains a ConnectionSetup, acknowledge the transmission to avoid blocking of paging procedure
   if (lcid == 0) {
@@ -2100,7 +2093,6 @@ void rrc::write_pdu(uint32_t lcid, byte_buffer_t* pdu)
     if (dl_ccch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or
         dl_ccch_msg.msg.type().value != dl_ccch_msg_type_c::types_opts::c1) {
       rrc_log->error("Failed to unpack DL-CCCH message\n");
-      pool->deallocate(pdu);
       return;
     }
     if (dl_ccch_msg.msg.c1().type() == dl_ccch_msg_type_c::c1_c_::types::rrc_conn_setup) {
@@ -2115,21 +2107,21 @@ void rrc::write_pdu(uint32_t lcid, byte_buffer_t* pdu)
 
   // add PDU to command queue
   cmd_msg_t msg;
-  msg.pdu = pdu;
+  msg.pdu     = std::move(pdu);
   msg.command = cmd_msg_t::PDU;
   msg.lcid    = (uint16_t)lcid;
   cmd_q.push(msg);
 }
 
-void rrc::process_pdu(uint32_t lcid, byte_buffer_t *pdu)
+void rrc::process_pdu(uint32_t lcid, srslte::unique_pool_buffer pdu)
 {
   switch (lcid) {
     case RB_ID_SRB0:
-      parse_dl_ccch(pdu);
+      parse_dl_ccch(std::move(pdu));
       break;
     case RB_ID_SRB1:
     case RB_ID_SRB2:
-      parse_dl_dcch(lcid, pdu);
+      parse_dl_dcch(lcid, std::move(pdu));
       break;
     default:
       rrc_log->error("RX PDU with invalid bearer id: %d", lcid);
@@ -2137,18 +2129,16 @@ void rrc::process_pdu(uint32_t lcid, byte_buffer_t *pdu)
   }
 }
 
-void rrc::parse_dl_ccch(byte_buffer_t* pdu)
+void rrc::parse_dl_ccch(unique_pool_buffer pdu)
 {
   asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
   asn1::rrc::dl_ccch_msg_s dl_ccch_msg;
   if (dl_ccch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or
       dl_ccch_msg.msg.type().value != dl_ccch_msg_type_c::types_opts::c1) {
     rrc_log->error("Failed to unpack DL-CCCH message\n");
-    pool->deallocate(pdu);
     return;
   }
   log_rrc_message(get_rb_name(RB_ID_SRB0).c_str(), Rx, pdu, dl_ccch_msg);
-  pool->deallocate(pdu);
 
   dl_ccch_msg_type_c::c1_c_* c1 = &dl_ccch_msg.msg.c1();
   switch (dl_ccch_msg.msg.c1().type().value) {
@@ -2190,31 +2180,29 @@ void rrc::parse_dl_ccch(byte_buffer_t* pdu)
   }
 }
 
-void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t* pdu)
+void rrc::parse_dl_dcch(uint32_t lcid, unique_pool_buffer pdu)
 {
   asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
   asn1::rrc::dl_dcch_msg_s dl_dcch_msg;
   if (dl_dcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or
       dl_dcch_msg.msg.type().value != dl_dcch_msg_type_c::types_opts::c1) {
     rrc_log->error("Failed to unpack DL-DCCH message\n");
-    pool->deallocate(pdu);
     return;
   }
   log_rrc_message(get_rb_name(lcid).c_str(), Rx, pdu, dl_dcch_msg);
-  pool->deallocate(pdu);
 
   dl_dcch_msg_type_c::c1_c_* c1 = &dl_dcch_msg.msg.c1();
   switch (dl_dcch_msg.msg.c1().type().value) {
     case dl_dcch_msg_type_c::c1_c_::types::dl_info_transfer:
-      pdu = pool_allocate_blocking;
-      if (!pdu) {
+      pdu = unique_pool_buffer(pool_allocate_blocking, pool);
+      if (!pdu.get()) {
         rrc_log->error("Fatal error: out of buffers in pool\n");
         return;
       }
       pdu->N_bytes = c1->dl_info_transfer().crit_exts.c1().dl_info_transfer_r8().ded_info_type.ded_info_nas().size();
       memcpy(pdu->msg, c1->dl_info_transfer().crit_exts.c1().dl_info_transfer_r8().ded_info_type.ded_info_nas().data(),
              pdu->N_bytes);
-      nas->write_pdu(lcid, pdu);
+      nas->write_pdu(lcid, std::move(pdu));
       break;
     case dl_dcch_msg_type_c::c1_c_::types::security_mode_cmd:
       transaction_id = c1->security_mode_cmd().rrc_transaction_id;
@@ -2825,9 +2813,8 @@ void rrc::handle_con_setup(rrc_conn_setup_s* setup)
 
   nas->set_barring(nas_interface_rrc::BARRING_NONE);
 
-  if (dedicated_info_nas) {
-    send_con_setup_complete(dedicated_info_nas);
-    dedicated_info_nas = NULL; // deallocated Inside!
+  if (dedicated_info_nas.get()) {
+    send_con_setup_complete(std::move(dedicated_info_nas));
   } else {
     rrc_log->error("Pending to transmit a ConnectionSetupComplete but no dedicatedInfoNAS was in queue\n");
   }

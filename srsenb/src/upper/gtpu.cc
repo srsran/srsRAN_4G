@@ -111,7 +111,7 @@ void gtpu::stop()
 }
 
 // gtpu_interface_pdcp
-void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* pdu)
+void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_pool_buffer pdu)
 {
   gtpu_log->info_hex(pdu->msg, pdu->N_bytes, "TX PDU, RNTI: 0x%x, LCID: %d, n_bytes=%d", rnti, lcid, pdu->N_bytes);
   gtpu_header_t header;
@@ -125,7 +125,7 @@ void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* pdu)
   servaddr.sin_addr.s_addr = htonl(rnti_bearers[rnti].spgw_addrs[lcid]);
   servaddr.sin_port        = htons(GTPU_PORT);
 
-  if(!gtpu_write_header(&header, pdu, gtpu_log)){
+  if (!gtpu_write_header(&header, pdu.get(), gtpu_log)) {
     gtpu_log->error("Error writing GTP-U Header. Flags 0x%x, Message Type 0x%x\n", header.flags, header.message_type);
     return;
   }
@@ -133,7 +133,6 @@ void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* pdu)
     perror("sendto");
   }
 
-  pool->deallocate(pdu);
 }
 
 /* Warning: This function is called before calling gtpu::init() during MCCH initialization.
@@ -192,9 +191,10 @@ void gtpu::rem_user(uint16_t rnti)
 
 void gtpu::run_thread()
 {
-  byte_buffer_t *pdu = pool_allocate;
+  unique_pool_buffer pdu(pool);
+  pdu.allocate();
 
-  if (!pdu) {
+  if (!pdu.get()) {
     gtpu_log->error("Fatal Error: Couldn't allocate buffer in gtpu::run_thread().\n");
     return;
   }
@@ -222,7 +222,7 @@ void gtpu::run_thread()
     pdu->N_bytes = (uint32_t) n;
 
     gtpu_header_t header;
-    if(!gtpu_read_header(pdu, &header,gtpu_log)){
+    if (!gtpu_read_header(pdu.get(), &header, gtpu_log)) {
       continue;
     }
 
@@ -255,15 +255,15 @@ void gtpu::run_thread()
 
         gtpu_log->info_hex(pdu->msg, pdu->N_bytes, "RX GTPU PDU rnti=0x%x, lcid=%d, n_bytes=%d", rnti, lcid, pdu->N_bytes);
 
-        pdcp->write_sdu(rnti, lcid, pdu);
+        pdcp->write_sdu(rnti, lcid, std::move(pdu));
 
         do {
-          pdu = pool_allocate;
-          if (!pdu) {
+          pdu.allocate();
+          if (!pdu.get()) {
             gtpu_log->console("GTPU Buffer pool empty. Trying again...\n");
             usleep(10000);
           }
-        } while(!pdu);
+        } while (!pdu.get());
         break;
     }
   }
@@ -275,7 +275,8 @@ void gtpu::echo_response(in_addr_t addr, in_port_t port, uint16_t seq)
   gtpu_log->info("TX GTPU Echo Response, Seq: %d\n", seq);
 
   gtpu_header_t header;
-  srslte::byte_buffer_t *pdu = pool_allocate;
+  unique_pool_buffer pdu(pool);
+  pdu.allocate();
 
   //header
   header.flags = GTPU_FLAGS_VERSION_V1 | GTPU_FLAGS_GTP_PROTOCOL | GTPU_FLAGS_SEQUENCE;
@@ -286,7 +287,7 @@ void gtpu::echo_response(in_addr_t addr, in_port_t port, uint16_t seq)
   header.n_pdu = 0;
   header.next_ext_hdr_type = 0;
 
-  gtpu_write_header(&header,pdu,gtpu_log);
+  gtpu_write_header(&header, pdu.get(), gtpu_log);
 
   struct sockaddr_in servaddr;
   servaddr.sin_family      = AF_INET;
@@ -294,7 +295,6 @@ void gtpu::echo_response(in_addr_t addr, in_port_t port, uint16_t seq)
   servaddr.sin_port        = port;
 
   sendto(fd, pdu->msg, 12, MSG_EOR, (struct sockaddr*)&servaddr, sizeof(struct sockaddr_in));
-  pool->deallocate(pdu);
 }
 
 /****************************************************************************
@@ -371,7 +371,7 @@ void gtpu::mch_thread::run_thread()
     return;
   }
 
-  byte_buffer_t *pdu;
+  unique_pool_buffer pdu(pool);
   int n;
   socklen_t addrlen;
   sockaddr_in src_addr;
@@ -385,7 +385,7 @@ void gtpu::mch_thread::run_thread()
   run_enable = true;
   running=true;
 
-  pdu = pool->allocate();
+  pdu.allocate();
 
   // Warning: Use mutex here if creating multiple services each with a different thread
   uint16_t lcid = lcid_counter;
@@ -402,15 +402,15 @@ void gtpu::mch_thread::run_thread()
     pdu->N_bytes = (uint32_t) n;
 
     gtpu_header_t header;
-    gtpu_read_header(pdu, &header, gtpu_log);
-    pdcp->write_sdu(SRSLTE_MRNTI, lcid, pdu);
+    gtpu_read_header(pdu.get(), &header, gtpu_log);
+    pdcp->write_sdu(SRSLTE_MRNTI, lcid, std::move(pdu));
     do {
-      pdu = pool_allocate;
-      if (!pdu) {
+      pdu.allocate();
+      if (!pdu.get()) {
         gtpu_log->console("GTPU Buffer pool empty. Trying again...\n");
         usleep(10000);
       }
-    } while(!pdu);
+    } while (!pdu.get());
   }
   running = false;
 }

@@ -53,7 +53,7 @@ public:
   void rem_user(uint16_t rnti);
 
   // gtpu_interface_pdcp
-  void write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t *pdu);
+  void write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_pool_buffer pdu);
 
 private:
   static const int THREAD_PRIO = 65;

@@ -112,7 +112,7 @@ bool pdcp_entity::is_active()
 }
 
 // GW/RRC interface
-void pdcp_entity::write_sdu(byte_buffer_t *sdu, bool blocking)
+void pdcp_entity::write_sdu(unique_pool_buffer sdu, bool blocking)
 {
   log->info_hex(sdu->msg, sdu->N_bytes,
         "TX %s SDU, SN: %d, do_integrity = %s, do_encryption = %s",
@@ -122,7 +122,7 @@ void pdcp_entity::write_sdu(byte_buffer_t *sdu, bool blocking)
   pthread_mutex_lock(&mutex);
 
   if (cfg.is_control) {
-    pdcp_pack_control_pdu(tx_count, sdu);
+    pdcp_pack_control_pdu(tx_count, sdu.get());
     if(do_integrity) {
       integrity_generate(sdu->msg,
                          sdu->N_bytes-4,
@@ -132,9 +132,9 @@ void pdcp_entity::write_sdu(byte_buffer_t *sdu, bool blocking)
 
   if (cfg.is_data) {
     if(12 == cfg.sn_len) {
-      pdcp_pack_data_pdu_long_sn(tx_count, sdu);
+      pdcp_pack_data_pdu_long_sn(tx_count, sdu.get());
     } else {
-      pdcp_pack_data_pdu_short_sn(tx_count, sdu);
+      pdcp_pack_data_pdu_short_sn(tx_count, sdu.get());
     }
   }
 
@@ -148,7 +148,7 @@ void pdcp_entity::write_sdu(byte_buffer_t *sdu, bool blocking)
 
   pthread_mutex_unlock(&mutex);
 
-  rlc->write_sdu(lcid, sdu, blocking);
+  rlc->write_sdu(lcid, std::move(sdu), blocking);
 }
 
 void pdcp_entity::config_security(uint8_t *k_rrc_enc_,
@@ -178,14 +178,13 @@ void pdcp_entity::enable_encryption()
 }
 
 // RLC interface
-void pdcp_entity::write_pdu(byte_buffer_t *pdu)
+void pdcp_entity::write_pdu(unique_pool_buffer pdu)
 {
   log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU, do_integrity = %s, do_encryption = %s",
                 rrc->get_rb_name(lcid).c_str(), (do_integrity) ? "true" : "false", (do_encryption) ? "true" : "false");
 
   // Sanity check
   if(pdu->N_bytes <= sn_len_bytes) {
-    pool->deallocate(pdu);
     return;
   }
 
@@ -203,12 +202,12 @@ void pdcp_entity::write_pdu(byte_buffer_t *pdu)
     }
     if(12 == cfg.sn_len)
     {
-      pdcp_unpack_data_pdu_long_sn(pdu, &sn);
+      pdcp_unpack_data_pdu_long_sn(pdu.get(), &sn);
     } else {
-      pdcp_unpack_data_pdu_short_sn(pdu, &sn);
+      pdcp_unpack_data_pdu_short_sn(pdu.get(), &sn);
     }
     log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU SN: %d", rrc->get_rb_name(lcid).c_str(), sn);
-    gw->write_pdu(lcid, pdu);
+    gw->write_pdu(lcid, std::move(pdu));
   } else {
     // Handle SRB messages
     if (cfg.is_control) {
@@ -231,11 +230,11 @@ void pdcp_entity::write_pdu(byte_buffer_t *pdu)
         }
       }
 
-      pdcp_unpack_control_pdu(pdu, &sn);
+      pdcp_unpack_control_pdu(pdu.get(), &sn);
       log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU SN: %d", rrc->get_rb_name(lcid).c_str(), sn);
     }
     // pass to RRC
-    rrc->write_pdu(lcid, pdu);
+    rrc->write_pdu(lcid, std::move(pdu));
   }
 exit:
   rx_count++;

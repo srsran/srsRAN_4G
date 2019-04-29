@@ -72,7 +72,7 @@ public:
   bool is_active();
 
   // RRC interface
-  void write_sdu(byte_buffer_t *sdu, bool blocking);
+  void     write_sdu(unique_pool_buffer sdu, bool blocking);
   void config_security(uint8_t *k_rrc_enc_,
                        uint8_t *k_rrc_int_,
                        uint8_t *k_up_enc_,
@@ -84,7 +84,7 @@ public:
   uint32_t get_ul_count();
 
   // RLC interface
-  void write_pdu(byte_buffer_t *pdu);
+  void write_pdu(unique_pool_buffer pdu);
 
 private:
   byte_buffer_pool        *pool;

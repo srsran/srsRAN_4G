@@ -222,6 +222,25 @@ private:
   buffer_pool<byte_buffer_t> *pool; 
 };
 
+inline bool byte_buffer_guard::allocate()
+{
+  deallocate();
+  buf = pool->allocate();
+  if (buf == nullptr) {
+    // allocation failed
+    pool = nullptr;
+    return false;
+  }
+  return true;
+}
+
+inline void byte_buffer_guard::deallocate()
+{
+  if (buf != nullptr) {
+    pool->deallocate(buf);
+    buf = nullptr;
+  }
+}
 
 } // namespace srsue
 
