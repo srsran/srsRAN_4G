@@ -526,7 +526,8 @@ void rrc::parse_ul_ccch(uint16_t rnti, byte_buffer_t *pdu)
   if (pdu) {
     ul_ccch_msg_s ul_ccch_msg;
     asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
-    if (ul_ccch_msg.unpack(bref) != asn1::SRSASN_SUCCESS) {
+    if (ul_ccch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or
+        ul_ccch_msg.msg.type().value != ul_ccch_msg_type_c::types_opts::c1) {
       rrc_log->error("Failed to unpack UL-CCCH message\n");
       goto exit;
     }
@@ -1047,7 +1048,8 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, byte_buffer_t *pdu)
 
   ul_dcch_msg_s ul_dcch_msg;
   asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
-  if (ul_dcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS) {
+  if (ul_dcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or
+      ul_dcch_msg.msg.type().value != ul_dcch_msg_type_c::types_opts::c1) {
     parent->rrc_log->error("Failed to unpack UL-DCCH message\n");
     pool->deallocate(pdu);
     return;

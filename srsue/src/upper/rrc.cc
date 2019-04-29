@@ -1810,7 +1810,7 @@ void rrc::write_pdu_bcch_dlsch(byte_buffer_t *pdu) {
   asn1::rrc::bcch_dl_sch_msg_s dlsch_msg;
   asn1::bit_ref                dlsch_bref(pdu->msg, pdu->N_bytes);
   asn1::SRSASN_CODE            err = dlsch_msg.unpack(dlsch_bref);
-  if (err != asn1::SRSASN_SUCCESS) {
+  if (err != asn1::SRSASN_SUCCESS or dlsch_msg.msg.type().value != bcch_dl_sch_msg_type_c::types_opts::c1) {
     rrc_log->error("Could not unpack BCCH DL-SCH message.\n");
     return;
   }
@@ -1969,7 +1969,7 @@ void rrc::process_pcch(byte_buffer_t* pdu)
   if (pdu->N_bytes > 0 && pdu->N_bytes < SRSLTE_MAX_BUFFER_SIZE_BITS) {
     pcch_msg_s    pcch_msg;
     asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
-    if (pcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS) {
+    if (pcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or pcch_msg.msg.type().value != pcch_msg_type_c::types_opts::c1) {
       rrc_log->error("Failed to unpack PCCH message\n");
       goto exit;
     }
@@ -2028,7 +2028,8 @@ void rrc::write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *pdu)
     //TODO: handle MCCH notifications and update MCCH
     if(0 == lcid && !serving_cell->has_mcch) {
       asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
-      if (serving_cell->mcch.unpack(bref) != asn1::SRSASN_SUCCESS) {
+      if (serving_cell->mcch.unpack(bref) != asn1::SRSASN_SUCCESS or
+          serving_cell->mcch.msg.type().value != mcch_msg_type_c::types_opts::c1) {
         rrc_log->error("Failed to unpack MCCH message\n");
         goto exit;
       }
@@ -2122,7 +2123,8 @@ void rrc::write_pdu(uint32_t lcid, byte_buffer_t* pdu)
     // FIXME: We unpack and process this message twice to check if it's ConnectionSetup
     asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
     asn1::rrc::dl_ccch_msg_s dl_ccch_msg;
-    if (dl_ccch_msg.unpack(bref) != asn1::SRSASN_SUCCESS) {
+    if (dl_ccch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or
+        dl_ccch_msg.msg.type().value != dl_ccch_msg_type_c::types_opts::c1) {
       rrc_log->error("Failed to unpack DL-CCCH message\n");
       pool->deallocate(pdu);
       return;
@@ -2165,7 +2167,8 @@ void rrc::parse_dl_ccch(byte_buffer_t* pdu)
 {
   asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
   asn1::rrc::dl_ccch_msg_s dl_ccch_msg;
-  if (dl_ccch_msg.unpack(bref) != asn1::SRSASN_SUCCESS) {
+  if (dl_ccch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or
+      dl_ccch_msg.msg.type().value != dl_ccch_msg_type_c::types_opts::c1) {
     rrc_log->error("Failed to unpack DL-CCCH message\n");
     pool->deallocate(pdu);
     return;
@@ -2217,7 +2220,8 @@ void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t* pdu)
 {
   asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
   asn1::rrc::dl_dcch_msg_s dl_dcch_msg;
-  if (dl_dcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS) {
+  if (dl_dcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or
+      dl_dcch_msg.msg.type().value != dl_dcch_msg_type_c::types_opts::c1) {
     rrc_log->error("Failed to unpack DL-DCCH message\n");
     pool->deallocate(pdu);
     return;
