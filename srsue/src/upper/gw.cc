@@ -24,14 +24,46 @@
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <arpa/inet.h>
 #include <linux/ip.h>
-#include <linux/ipv6.h>
 #include <linux/if_tun.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
+
+#ifdef USE_GLIBC_IPV6
+#include <linux/ipv6.h>
+#else
+// Some versions of glibc yield to a compile error with gcc
+// complaining about a redefinition of struct in6_pktinfo. See [1].
+// Since we only need two structs from that header we define them here and
+// just don't include the entire file. See [1] for more information.
+//
+// [1] https://patchwork.ozlabs.org/patch/425881/
+struct ipv6hdr {
+#if defined(__LITTLE_ENDIAN_BITFIELD)
+  __u8 priority : 4, version : 4;
+#elif defined(__BIG_ENDIAN_BITFIELD)
+  __u8 version : 4, priority : 4;
+#else
+#error "Please fix <asm/byteorder.h>"
+#endif
+  __u8 flow_lbl[3];
+
+  __be16 payload_len;
+  __u8   nexthdr;
+  __u8   hop_limit;
+
+  struct in6_addr saddr;
+  struct in6_addr daddr;
+};
+
+struct in6_ifreq {
+  struct in6_addr ifr6_addr;
+  __u32           ifr6_prefixlen;
+  int             ifr6_ifindex;
+};
+#endif
 
 namespace srsue {
 

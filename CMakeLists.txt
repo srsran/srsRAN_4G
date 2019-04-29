@@ -81,6 +81,7 @@ option(ENABLE_MSAN     "Enable clang memory sanitizer"            OFF)
 option(ENABLE_TIDY     "Enable clang tidy"                        OFF)
 
 option(USE_LTE_RATES   "Use standard LTE sampling rates"          OFF)
+option(USE_GLIBC_IPV6  "Use glibc's own ipv6.h"                   ON)
 
 set(GCC_ARCH native CACHE STRING "GCC compile for specific architecture.")
 
@@ -300,6 +301,11 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
     message(STATUS "Using standard LTE sampling rates")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DFORCE_STANDARD_RATE")
   endif (USE_LTE_RATES)
+
+  if (USE_GLIBC_IPV6)
+    message(STATUS "Using default glibc header for IPv6 support.")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_GLIBC_IPV6")
+  endif (USE_GLIBC_IPV6)
 
   find_package(SSE)
   if (HAVE_AVX2)
