@@ -702,18 +702,6 @@ int enb::parse_sibs(all_args_t* args, rrc_cfg_t* rrc_cfg, phy_cfg_t* phy_config_
     }
   }
 
-  // Resolve invalid prach offset
-  uint32_t prach_freq_offset = sib2->rr_cfg_common.prach_cfg.prach_cfg_info.prach_freq_offset;
-  if (prach_freq_offset + 6 > rrc_cfg->cell.nof_prb) {
-    fprintf(stderr,
-            "Warning: Invalid PRACH configuration - prach=(%d, %d) does not fit into the eNB PRBs=(0,%d)\n",
-            prach_freq_offset,
-            prach_freq_offset + 6,
-            rrc_cfg->cell.nof_prb);
-    fprintf(stderr, "Warning: Going to use default prach offset. Change sib.conf to suppress with warning.\n");
-    sib2->rr_cfg_common.prach_cfg.prach_cfg_info.prach_freq_offset = 0;
-  }
-
   // Copy PHY common configuration
   bzero(&phy_config_common->cell, sizeof(phy_config_common->cell));
   phy_config_common->prach_cnfg  = sib2->rr_cfg_common.prach_cfg;
