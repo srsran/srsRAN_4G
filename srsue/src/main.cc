@@ -536,6 +536,26 @@ int main(int argc, char* argv[])
     exit(1);
   }
 
+  if (args.expert.mbms_service > -1) {
+    if (!args.expert.phy.interpolate_subframe_enabled) {
+      fprintf(stderr, "interpolate_subframe_enabled = %d, While using MBMS, "
+                      "please set interpolate_subframe_enabled to true\n",
+              args.expert.phy.interpolate_subframe_enabled);
+      exit(1);
+    }
+    if (args.expert.phy.nof_phy_threads > 2) {
+      fprintf(stderr, "nof_phy_threads = %d, While using MBMS, please set "
+                      "number of phy threads to 1 or 2\n",
+              args.expert.phy.nof_phy_threads);
+      exit(1);
+    }
+    if ((0 == args.expert.phy.snr_estim_alg.find("refs"))) {
+      fprintf(stderr, "snr_estim_alg = refs, While using MBMS, please set "
+                      "algorithm to pss or empty \n");
+      exit(1);
+    }
+  }
+
   metricshub.init(ue, args.expert.metrics_period_secs);
   metricshub.add_listener(&metrics_screen);
   metrics_screen.set_ue_handle(ue);
