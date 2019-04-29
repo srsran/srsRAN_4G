@@ -115,7 +115,6 @@ void radio::stop()
 
 void radio::reset()
 {
-  log_h->console("Resetting Radio...\n");
   srslte_rf_stop_rx_stream(&rf_device);
   radio_is_streaming = false;
   usleep(100000);

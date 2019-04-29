@@ -659,15 +659,11 @@ double rf_uhd_set_rx_srate(void *h, double freq)
     frac += 0.100;
     if (frac >= 1.0) { full++; frac -= 1.0; };
     uhd_usrp_set_command_time(handler->usrp, full, frac, 0);
-#else  /* UHD_SUPPORTS_COMMAND_TIME */
-    rf_uhd_stop_rx_stream(handler);
 #endif /* UHD_SUPPORTS_COMMAND_TIME */
     for (int i=0;i<handler->nof_rx_channels;i++)
       uhd_usrp_set_rx_rate(handler->usrp, freq, i);
 #ifdef UHD_SUPPORTS_COMMAND_TIME
     usleep(100000);
-#else  /* UHD_SUPPORTS_COMMAND_TIME */
-    rf_uhd_start_rx_stream(handler, true);
 #endif /* UHD_SUPPORTS_COMMAND_TIME */
   } else {
     uhd_usrp_set_rx_rate(handler->usrp, freq, 0);
