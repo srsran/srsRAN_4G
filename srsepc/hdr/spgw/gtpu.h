@@ -56,8 +56,6 @@ public:
   virtual void send_all_queued_packets(srslte::gtp_fteid_t                 dw_user_fteid,
                                        std::queue<srslte::byte_buffer_t*>& pkt_queue);
 
-  std::string gtpu_ntoa(uint32_t addr);
-
   spgw*                m_spgw;
   gtpc_interface_gtpu* m_gtpc;
 
@@ -94,19 +92,6 @@ inline in_addr_t spgw::gtpu::get_s1u_addr()
   return m_s1u_addr.sin_addr.s_addr;
 }
 
-// Helper function to return a string from IPv4 address for easy printing
-inline std::string spgw::gtpu::gtpu_ntoa(uint32_t addr)
-{
-  char tmp_str[INET_ADDRSTRLEN + 1];
-  bzero(tmp_str, sizeof(tmp_str));
-  struct in_addr tmp_addr;
-  tmp_addr.s_addr     = addr;
-  const char* tmp_ptr = inet_ntop(AF_INET, &tmp_addr, tmp_str, INET_ADDRSTRLEN);
-  if (tmp_ptr == NULL) {
-    return std::string("Invalid IPv4 address");
-  }
-  return std::string(tmp_str);
-}
 
 } // namespace srsepc
 #endif // SRSEPC_GTPU_H

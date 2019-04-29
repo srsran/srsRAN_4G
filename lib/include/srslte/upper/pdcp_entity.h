@@ -110,6 +110,7 @@ private:
   uint32_t rx_hfn;
   uint32_t next_pdcp_rx_sn;
   uint32_t reordering_window;
+  uint32_t last_submitted_pdcp_rx_sn;
 
   CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
   INTEGRITY_ALGORITHM_ID_ENUM integ_algo;

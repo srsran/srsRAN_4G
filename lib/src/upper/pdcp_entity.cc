@@ -81,7 +81,11 @@ void pdcp_entity::init(srsue::rlc_interface_pdcp      *rlc_,
     reordering_window = 2048;
   }
 
+  rx_hfn          = 0;
+  next_pdcp_rx_sn = 0;
   maximum_pdcp_sn = (1 << cfg.sn_len) - 1;
+  printf("Maximum PDCP SN %d\n", maximum_pdcp_sn);
+  last_submitted_pdcp_rx_sn = maximum_pdcp_sn;
   log->info("Init %s with bearer ID: %d\n", rrc->get_rb_name(lcid).c_str(), cfg.bearer_id);
 }
 
@@ -281,9 +285,54 @@ void pdcp_entity::handle_um_drb_pdu(srslte::byte_buffer_t* pdu)
 // DRBs mapped on RLC AM, without re-ordering (5.1.2.1.2)
 void pdcp_entity::handle_am_drb_pdu(srslte::byte_buffer_t* pdu)
 {
-  handle_um_drb_pdu(pdu); //FIXME!!!
+  uint32_t sn, count;
+  pdcp_unpack_data_pdu_long_sn(pdu, &sn);
+
+  int32_t last_submit_diff_sn     = last_submitted_pdcp_rx_sn - sn;
+  int32_t sn_diff_last_submit     = sn - last_submitted_pdcp_rx_sn;
+  int32_t sn_diff_next_pdcp_rx_sn = sn - next_pdcp_rx_sn;
+
+  log->debug("HFN: %d, SN: %d, Last_Submitted_PDCP_RX_SN: %d, Next_PDCP_RX_SN %d\n",
+             rx_hfn,
+             sn,
+             last_submitted_pdcp_rx_sn,
+             next_pdcp_rx_sn);
+
+  if ((0 <= sn_diff_last_submit && sn_diff_last_submit > (int32_t)reordering_window) ||
+      (0 <= last_submit_diff_sn && last_submit_diff_sn > (int32_t)reordering_window)) {
+    log->debug("|SN - last_submitted_sn| is larger than re-ordering window.\n");
+    if (sn > next_pdcp_rx_sn) {
+      count = (rx_hfn - 1) << cfg.sn_len | sn;
+    } else {
+      count = rx_hfn << cfg.sn_len | sn;
+    }
+  } else if ((int32_t)(next_pdcp_rx_sn - sn) > (int32_t)reordering_window) {
+    log->debug("(Next_PDCP_RX_SN - SN) is larger than re-ordering window.\n");
+    rx_hfn++;
+    count = (rx_hfn << cfg.sn_len) | sn;
+    next_pdcp_rx_sn = sn + 1;
+  } else if (sn_diff_next_pdcp_rx_sn >= (int32_t)reordering_window) {
+    log->debug("(SN - Next_PDCP_RX_SN) is larger or equal than re-ordering window.\n");
+    count = ((rx_hfn - 1) << cfg.sn_len) | sn;
+  } else if (sn >= next_pdcp_rx_sn) {
+    log->debug("SN is larger or equal than Next_PDCP_RX_SN.\n");
+    count = (rx_hfn << cfg.sn_len) | sn;
+    next_pdcp_rx_sn = sn + 1;
+    if (next_pdcp_rx_sn > maximum_pdcp_sn) {
+      next_pdcp_rx_sn = 0;
+      rx_hfn++;
+    }
+  } else if (sn < next_pdcp_rx_sn) {
+    log->debug("SN is smaller than Next_PDCP_RX_SN.\n");
+    count = (rx_hfn << cfg.sn_len) | sn;
+  }
+
+  // FIXME Check if PDU is not due to re-establishment of lower layers?
+  cipher_decrypt(pdu->msg, count, pdu->N_bytes, pdu->msg);
+  log->debug_hex(pdu->msg, pdu->N_bytes, "RX %s PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
+  last_submitted_pdcp_rx_sn = sn; 
   return;
-}
+  }
 
 /****************************************************************************
  * Security functions

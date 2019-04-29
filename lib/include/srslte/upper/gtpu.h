@@ -79,6 +79,7 @@ typedef struct{
 
 bool gtpu_read_header(srslte::byte_buffer_t *pdu, gtpu_header_t *header, srslte::log *gtpu_log);
 bool gtpu_write_header(gtpu_header_t *header, srslte::byte_buffer_t *pdu, srslte::log *gtpu_log);
+std::string gtpu_ntoa(uint32_t addr);
 
 inline bool gtpu_supported_flags_check(gtpu_header_t *header, srslte::log *gtpu_log)
 {

@@ -28,7 +28,6 @@ namespace srslte {
  * Header pack/unpack helper functions
  * Ref: 3GPP TS 29.281 v10.1.0 Section 5
  ***************************************************************************/
-
 bool gtpu_write_header(gtpu_header_t *header, srslte::byte_buffer_t *pdu, srslte::log *gtpu_log)
 {
   //flags
@@ -139,6 +138,20 @@ bool gtpu_read_header(srslte::byte_buffer_t *pdu, gtpu_header_t *header, srslte:
   }
 
   return true;
+}
+
+// Helper function to return a string from IPv4 address for easy printing
+std::string gtpu_ntoa(uint32_t addr)
+{
+  char tmp_str[INET_ADDRSTRLEN + 1];
+  bzero(tmp_str, sizeof(tmp_str));
+  struct in_addr tmp_addr;
+  tmp_addr.s_addr     = addr;
+  const char* tmp_ptr = inet_ntop(AF_INET, &tmp_addr, tmp_str, INET_ADDRSTRLEN);
+  if (tmp_ptr == NULL) {
+    return std::string("Invalid IPv4 address");
+  }
+  return std::string(tmp_str);
 }
 
 } // namespace srslte
