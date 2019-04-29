@@ -457,6 +457,13 @@ void pdcp_entity::cipher_encrypt(uint8_t  *msg,
     k_enc = k_up_enc;
   }
 
+  log->debug("Cipher encript input:\n");
+  log->debug_hex(&k_enc[16], 16, "  K_enc");
+  log->debug("  Local count: %d\n", tx_count);
+  log->debug("  Bearer ID: %d\n", cfg.bearer_id);
+  log->debug("  Direction: %s\n", (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? "Downlink" : "Uplink");
+  log->debug("Encripting COUNT %d \n", tx_count);
+
   switch(cipher_algo)
   {
   case CIPHERING_ALGORITHM_ID_EEA0:
@@ -499,7 +506,7 @@ void pdcp_entity::cipher_decrypt(uint8_t  *ct,
   } else {
     k_enc = k_up_enc;
   }
-  log->info("Ciphering count %d \n", count);
+  log->info("Decripting COUNT %d \n", count);
   switch(cipher_algo)
   {
   case CIPHERING_ALGORITHM_ID_EEA0:
