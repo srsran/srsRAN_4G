@@ -158,23 +158,28 @@ bool enb::init(all_args_t *args_)
   uint32_t prach_freq_offset = rrc_cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.prach_cfg_info.prach_freq_offset;
 
   if (cell_cfg.nof_prb > 10) {
-    if (prach_freq_offset + 6 > cell_cfg.nof_prb - SRSLTE_MAX(rrc_cfg.cqi_cfg.nof_prb, rrc_cfg.sr_cfg.nof_prb)) {
-      fprintf(stderr, "Invalid PRACH configuration: frequency offset=%d outside bandwidth limits\n", prach_freq_offset);
-      return false;
-    }
-
-    if (prach_freq_offset < SRSLTE_MAX(rrc_cfg.cqi_cfg.nof_prb, rrc_cfg.sr_cfg.nof_prb)) {
-      fprintf(stderr, "Invalid PRACH configuration: frequency offset=%d lower than CQI offset: %d or SR offset: %d\n",
-              prach_freq_offset, rrc_cfg.cqi_cfg.nof_prb, rrc_cfg.sr_cfg.nof_prb);
+    uint32_t lower_bound = SRSLTE_MAX(rrc_cfg.sr_cfg.nof_prb, rrc_cfg.cqi_cfg.nof_prb);
+    uint32_t upper_bound = cell_cfg.nof_prb - lower_bound;
+    if (prach_freq_offset + 6 > upper_bound or prach_freq_offset < lower_bound) {
+      fprintf(stderr,
+              "ERROR: Invalid PRACH configuration - prach_freq_offset=%d collides with PUCCH.\n",
+              prach_freq_offset);
+      fprintf(stderr,
+              "       Consider changing \"prach_freq_offset\" in sib.conf to a value between %d and %d.\n",
+              lower_bound,
+              upper_bound);
       return false;
     }
   } else { // 6 PRB case
     if (prach_freq_offset + 6 > cell_cfg.nof_prb) {
       fprintf(stderr,
-              "Warning: Invalid PRACH configuration - prach=(%d, %d) does not fit into the eNB PRBs=(0,%d)\n",
+              "ERROR: Invalid PRACH configuration - prach=(%d, %d) does not fit into the eNB PRBs=(0, %d).\n",
               prach_freq_offset,
               prach_freq_offset + 6,
               cell_cfg.nof_prb);
+      fprintf(
+          stderr,
+          "       Consider changing the \"prach_freq_offset\" value to 0 in the sib.conf file when using 6 PRBs.\n");
       return false;
     }
   }
