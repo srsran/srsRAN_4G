@@ -766,24 +766,15 @@ static float get_rsrq(srslte_chest_dl_t* q)
   return n / q->nof_rx_antennas;
 }
 
-float srslte_chest_dl_get_rsrq_ant_port(srslte_chest_dl_t *q, uint32_t ant_idx, uint32_t port_idx) {
-  return q->cell.nof_prb*q->rsrp[ant_idx][port_idx] / q->rssi[ant_idx][port_idx];
-}
-
-float srslte_chest_dl_get_rsrp_ant_port(srslte_chest_dl_t* q, uint32_t ant_idx, uint32_t port)
-{
-  return q->rsrp[ant_idx][port];
-}
-
 static float get_rsrp_port(srslte_chest_dl_t* q, uint32_t port)
 {
   float sum = 0.0f;
-  for (int j = 0; j < q->cell.nof_ports; ++j) {
-    sum +=q->rsrp[port][j];
+  for (int j = 0; j < q->nof_rx_antennas; ++j) {
+    sum += q->rsrp[j][port];
   }
 
-  if (q->cell.nof_ports) {
-    sum /= q->cell.nof_ports;
+  if (q->nof_rx_antennas) {
+    sum /= q->nof_rx_antennas;
   }
 
   return sum;
@@ -855,6 +846,15 @@ static void fill_res(srslte_chest_dl_t* q, srslte_chest_dl_res_t* res)
 
   for (uint32_t port_id = 0; port_id < q->cell.nof_ports; port_id++) {
     res->rsrp_port_dbm[port_id] = dbm(get_rsrp_port(q, port_id));
+    for (uint32_t a = 0; a < q->nof_rx_antennas; a++) {
+      if (q->noise_estimate[a]) {
+        res->snr_ant_port_db[a][port_id] = db(q->rsrp[a][port_id] / q->noise_estimate[a][port_id]);
+      } else {
+        res->snr_ant_port_db[a][port_id] = 0.0;
+      }
+      res->rsrp_ant_port_dbm[a][port_id] = db(q->rsrp[a][port_id]);
+      res->rsrq_ant_port_db[a][port_id]  = db(q->cell.nof_prb * q->rsrp[a][port_id] / q->rssi[a][port_id]);
+    }
   }
 }
 

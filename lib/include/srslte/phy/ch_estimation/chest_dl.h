@@ -52,12 +52,15 @@ typedef struct SRSLTE_API {
   float    noise_estimate;
   float    noise_estimate_dbm;
   float    snr_db;
+  float    snr_ant_port_db[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
   float    rsrp;
   float    rsrp_dbm;
   float    rsrp_neigh_dbm;
   float    rsrp_port_dbm[SRSLTE_MAX_PORTS];
+  float    rsrp_ant_port_dbm[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
   float    rsrq;
   float    rsrq_db;
+  float    rsrq_ant_port_db[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
   float    rssi_dbm;
   float    cfo;
 } srslte_chest_dl_res_t;
@@ -148,9 +151,5 @@ SRSLTE_API int srslte_chest_dl_estimate_cfg(srslte_chest_dl_t*     q,
                                             srslte_chest_dl_cfg_t* cfg,
                                             cf_t*                  input[SRSLTE_MAX_PORTS],
                                             srslte_chest_dl_res_t* res);
-
-/* These functions are exceptions and return values from last call to chest_dl_estimate */
-SRSLTE_API float srslte_chest_dl_get_rsrq_ant_port(srslte_chest_dl_t* q, uint32_t ant_idx, uint32_t port_idx);
-SRSLTE_API float srslte_chest_dl_get_rsrp_ant_port(srslte_chest_dl_t* q, uint32_t ant_idx, uint32_t port);
 
 #endif // SRSLTE_CHEST_DL_H
