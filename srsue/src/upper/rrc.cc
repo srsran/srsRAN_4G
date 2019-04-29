@@ -1,19 +1,14 @@
-/**
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
- * \section COPYRIGHT
+ * This file is part of srsLTE.
  *
- * Copyright 2013-2015 Software Radio Systems Limited
- *
- * \section LICENSE
- *
- * This file is part of the srsUE library.
- *
- * srsUE is free software: you can redistribute it and/or modify
+ * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsUE is distributed in the hope that it will be useful,
+ * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -1961,20 +1956,25 @@ void rrc::handle_sib13()
 *
 *
 *******************************************************************************/
-void rrc::write_pdu_pcch(byte_buffer_t *pdu) {
+void rrc::write_pdu_pcch(byte_buffer_t* pdu)
+{
   cmd_msg_t msg;
   msg.pdu = pdu;
   msg.command = cmd_msg_t::PCCH;
   cmd_q.push(msg);
 }
 
-void rrc::process_pcch(byte_buffer_t *pdu) {
+void rrc::process_pcch(byte_buffer_t* pdu)
+{
   if (pdu->N_bytes > 0 && pdu->N_bytes < SRSLTE_MAX_BUFFER_SIZE_BITS) {
     pcch_msg_s    pcch_msg;
     asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
-    pcch_msg.unpack(bref);
+    if (pcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS) {
+      rrc_log->error("Failed to unpack PCCH message\n");
+      goto exit;
+    }
+
     log_rrc_message("PCCH", Rx, pdu, pcch_msg);
-    pool->deallocate(pdu);
 
     paging_s* paging = &pcch_msg.msg.c1().paging();
     if (paging->paging_record_list.size() > ASN1_RRC_MAX_PAGE_REC) {
@@ -1983,7 +1983,7 @@ void rrc::process_pcch(byte_buffer_t *pdu) {
 
     if (not ue_identity_configured) {
       rrc_log->warning("Received paging message but no ue-Identity is configured\n");
-      return;
+      goto exit;
     }
 
     s_tmsi_s* s_tmsi_paged;
@@ -2015,7 +2015,11 @@ void rrc::process_pcch(byte_buffer_t *pdu) {
         rrc_log->error("While obtaining SIBs of serving cell.\n");
       }
     }
+  } else {
+    rrc_log->error_hex(pdu->buffer, pdu->N_bytes, "Dropping PCCH message with %d B\n", pdu->N_bytes);
   }
+exit:
+  pool->deallocate(pdu);
 }
 
 void rrc::write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *pdu)
@@ -2024,14 +2028,17 @@ void rrc::write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *pdu)
     //TODO: handle MCCH notifications and update MCCH
     if(0 == lcid && !serving_cell->has_mcch) {
       asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
-      serving_cell->mcch.unpack(bref);
+      if (serving_cell->mcch.unpack(bref) != asn1::SRSASN_SUCCESS) {
+        rrc_log->error("Failed to unpack MCCH message\n");
+        goto exit;
+      }
       serving_cell->has_mcch = true;
       phy->set_config_mbsfn_mcch(&serving_cell->mcch);
       log_rrc_message("MCH", Rx, pdu, serving_cell->mcch);
     }
-
-    pool->deallocate(pdu);
   }
+exit:
+  pool->deallocate(pdu);
 }
 
 
@@ -2117,6 +2124,7 @@ void rrc::write_pdu(uint32_t lcid, byte_buffer_t* pdu)
     asn1::rrc::dl_ccch_msg_s dl_ccch_msg;
     if (dl_ccch_msg.unpack(bref) != asn1::SRSASN_SUCCESS) {
       rrc_log->error("Failed to unpack DL-CCCH message\n");
+      pool->deallocate(pdu);
       return;
     }
     if (dl_ccch_msg.msg.c1().type() == dl_ccch_msg_type_c::c1_c_::types::rrc_conn_setup) {
@@ -2211,6 +2219,7 @@ void rrc::parse_dl_dcch(uint32_t lcid, byte_buffer_t* pdu)
   asn1::rrc::dl_dcch_msg_s dl_dcch_msg;
   if (dl_dcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS) {
     rrc_log->error("Failed to unpack DL-DCCH message\n");
+    pool->deallocate(pdu);
     return;
   }
   log_rrc_message(get_rb_name(lcid).c_str(), Rx, pdu, dl_dcch_msg);

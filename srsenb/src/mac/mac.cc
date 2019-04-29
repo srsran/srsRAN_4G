@@ -1,19 +1,14 @@
-/**
- *
- * \section COPYRIGHT
- *
- * Copyright 2013-2017 Software Radio Systems Limited
- *
- * \section LICENSE
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
- * srsUE is free software: you can redistribute it and/or modify
+ * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsUE is distributed in the hope that it will be useful,
+ * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -668,14 +663,14 @@ void mac::build_mch_sched(uint32_t tbs)
 
   int last_mtch_stop = 0;
 
-  if(total_bytes_to_tx >= total_space_avail_bytes){
+  if (total_bytes_to_tx >= total_space_avail_bytes) {
     for(uint32_t i = 0; i < mch.num_mtch_sched;i++){
        double ratio =  mch.mtch_sched[i].lcid_buffer_size/total_bytes_to_tx;
        float assigned_sfs = floor(sfs_per_sched_period*ratio);
        mch.mtch_sched[i].stop = last_mtch_stop + (uint32_t)assigned_sfs;
        last_mtch_stop = mch.mtch_sched[i].stop;
     }
-  }else {
+  } else {
     for(uint32_t i = 0; i < mch.num_mtch_sched;i++){
       float assigned_sfs =  ceil(((float)mch.mtch_sched[i].lcid_buffer_size)/((float)bytes_per_sf));
       mch.mtch_sched[i].stop = last_mtch_stop + (uint32_t)assigned_sfs;
@@ -699,8 +694,10 @@ int mac::get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_t* dl_sched_res)
     build_mch_sched(mcs_data.tbs);
     mch.mcch_payload = mcch_payload_buffer;
     mch.current_sf_allocation_num = 1;
-    Info("MCH Sched Info: LCID: %d, Stop: %d, tti is %d \n", mch.mtch_sched[0].lcid, mch.mtch_sched[0].stop, tti);
-    phy_h->set_mch_period_stop(mch.mtch_sched[0].stop);
+    Info("MCH Sched Info: LCID: %d, Stop: %d, tti is %d \n",
+         mch.mtch_sched[0].lcid, mch.mtch_sched[mch.num_mtch_sched - 1].stop,
+         tti);
+    phy_h->set_mch_period_stop(mch.mtch_sched[mch.num_mtch_sched - 1].stop);
     for(uint32_t i = 0; i < mch.num_mtch_sched; i++) {
       mch.pdu[i].lcid = srslte::sch_subh::MCH_SCHED_INFO;
      // mch.mtch_sched[i].lcid = 1+i;

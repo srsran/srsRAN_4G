@@ -1,19 +1,14 @@
-/**
- *
- * \section COPYRIGHT
- *
- * Copyright 2013-2017 Software Radio Systems Limited
- *
- * \section LICENSE
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
- * srsUE is free software: you can redistribute it and/or modify
+ * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsUE is distributed in the hope that it will be useful,
+ * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -225,7 +220,7 @@ public:
     void handle_rrc_reconf_complete(asn1::rrc::rrc_conn_recfg_complete_s* msg, srslte::byte_buffer_t* pdu);
     void handle_security_mode_complete(asn1::rrc::security_mode_complete_s* msg);
     void handle_security_mode_failure(asn1::rrc::security_mode_fail_s* msg);
-    void handle_ue_cap_info(asn1::rrc::ue_cap_info_s* msg);
+    bool handle_ue_cap_info(asn1::rrc::ue_cap_info_s* msg);
 
     void set_bitrates(LIBLTE_S1AP_UEAGGREGATEMAXIMUMBITRATE_STRUCT *rates);
     void set_security_capabilities(LIBLTE_S1AP_UESECURITYCAPABILITIES_STRUCT *caps);

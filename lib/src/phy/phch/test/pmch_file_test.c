@@ -1,12 +1,7 @@
-/**
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
- * \section COPYRIGHT
- *
- * Copyright 2013-2015 Software Radio Systems Limited
- *
- * \section LICENSE
- *
- * This file is part of the srsLTE library.
+ * This file is part of srsLTE.
  *
  * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -164,7 +159,7 @@ int main(int argc, char **argv) {
     exit(-1);
   }
   parse_args(argc,argv);
-
+  srslte_use_standard_symbol_size(false);
   if (base_init()) {
     ERROR("Error initializing memory\n");
     exit(-1);
@@ -220,9 +215,9 @@ int main(int argc, char **argv) {
   srslte_pdsch_res_t pdsch_res;
   pdsch_res.payload = data;
   ret               = srslte_ue_dl_decode_pmch(&ue_dl, &dl_sf, &pmch_cfg, &pdsch_res);
-  if (ret >= 0) {
-    printf("PMCH Decoded OK!\n");       
-  }  else if (ret < 0) {
+  if (pdsch_res.crc == 1) {
+    printf("PMCH Decoded OK!\n");
+  } else if (pdsch_res.crc == 0) {
     printf("Error decoding PMCH\n");
   }
 

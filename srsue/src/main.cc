@@ -1,19 +1,14 @@
-/**
+/*
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
- * \section COPYRIGHT
+ * This file is part of srsLTE.
  *
- * Copyright 2013-2015 Software Radio Systems Limited
- *
- * \section LICENSE
- *
- * This file is part of the srsUE library.
- *
- * srsUE is free software: you can redistribute it and/or modify
+ * srsLTE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
  * published by the Free Software Foundation, either version 3 of
  * the License, or (at your option) any later version.
  *
- * srsUE is distributed in the hope that it will be useful,
+ * srsLTE is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU Affero General Public License for more details.
@@ -539,6 +534,26 @@ int main(int argc, char* argv[])
   cout << "---  Software Radio Systems " << srsue_instance_type_text[type] << " UE  ---" << endl << endl;
   if (!ue->init(&args)) {
     exit(1);
+  }
+
+  if (args.expert.mbms_service > -1) {
+    if (!args.expert.phy.interpolate_subframe_enabled) {
+      fprintf(stderr, "interpolate_subframe_enabled = %d, While using MBMS, "
+                      "please set interpolate_subframe_enabled to true\n",
+              args.expert.phy.interpolate_subframe_enabled);
+      exit(1);
+    }
+    if (args.expert.phy.nof_phy_threads > 2) {
+      fprintf(stderr, "nof_phy_threads = %d, While using MBMS, please set "
+                      "number of phy threads to 1 or 2\n",
+              args.expert.phy.nof_phy_threads);
+      exit(1);
+    }
+    if ((0 == args.expert.phy.snr_estim_alg.find("refs"))) {
+      fprintf(stderr, "snr_estim_alg = refs, While using MBMS, please set "
+                      "algorithm to pss or empty \n");
+      exit(1);
+    }
   }
 
   metricshub.init(ue, args.expert.metrics_period_secs);

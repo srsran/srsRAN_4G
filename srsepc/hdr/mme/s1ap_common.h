@@ -1,5 +1,5 @@
 /*
- * \section LICENSE
+ * Copyright 2013-2019 Software Radio Systems Limited
  *
  * This file is part of srsLTE.
  *
@@ -18,6 +18,7 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
+
 #ifndef SRSEPC_S1AP_COMMON_H
 #define SRSEPC_S1AP_COMMON_H
 
