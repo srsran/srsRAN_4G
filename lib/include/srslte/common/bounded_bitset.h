@@ -25,9 +25,14 @@
 #include <cstdint>
 #include <string>
 
-#define CEILFRAC(x, y) ((((x)-1) / (y)) + 1)
+#define CEILFRAC(x, y) (((x) > 0) ? ((((x)-1) / (y)) + 1) : 0)
 
 namespace srslte {
+
+constexpr uint32_t ceil_div(uint32_t x, uint32_t y)
+{
+  return (x > 0) ? (x - 1) / y + 1 : 0;
+}
 
 template <size_t N, bool reversed = false>
 class bounded_bitset
@@ -49,10 +54,12 @@ public:
     if (new_size > max_size()) {
       printf("ERROR: bitset resize out of bounds: %lu>=%lu\n", max_size(), new_size);
       return;
+    } else if (new_size == cur_size) {
+      return;
     }
     cur_size = new_size;
     sanitize_();
-    for (size_t i = nof_words_(); i < sizeof(buffer); ++i) {
+    for (size_t i = nof_words_(); i < max_nof_words_(); ++i) {
       get_word_(i) = static_cast<word_t>(0);
     }
   }
@@ -63,8 +70,7 @@ public:
       printf("ERROR: bitset out of bounds: %lu>=%lu\n", pos, size());
       return;
     }
-    pos = reversed ? size() - 1 - pos : pos;
-    get_word_(pos) |= maskbit(pos);
+    set_(pos);
   }
 
   void reset(size_t pos) noexcept
@@ -73,8 +79,7 @@ public:
       printf("ERROR: bitset out of bounds: %lu>=%lu\n", pos, size());
       return;
     }
-    pos = reversed ? size() - 1 - pos : pos;
-    get_word_(pos) &= ~(maskbit(pos));
+    reset_(pos);
   }
 
   void reset() noexcept
@@ -111,11 +116,11 @@ public:
     // NOTE: can be optimized
     if (value) {
       for (size_t i = startpos; i < endpos; ++i) {
-        set(i);
+        set_(i);
       }
     } else {
       for (size_t i = startpos; i < endpos; ++i) {
-        reset(i);
+        reset_(i);
       }
     }
     return *this;
@@ -176,7 +181,7 @@ public:
     return result;
   }
 
-  bool operator==(bounded_bitset<N, reversed>& other) const noexcept
+  bool operator==(const bounded_bitset<N, reversed>& other) const noexcept
   {
     if (size() != other.size()) {
       return false;
@@ -188,7 +193,7 @@ public:
     return true;
   }
 
-  bool operator!=(bounded_bitset<N, reversed>& other) const noexcept { return not(*this == other); }
+  bool operator!=(const bounded_bitset<N, reversed>& other) const noexcept { return not(*this == other); }
 
   bounded_bitset<N, reversed>& operator|=(const bounded_bitset<N, reversed>& other) noexcept
   {
@@ -253,7 +258,7 @@ public:
   std::string to_hex() const noexcept
   {
     size_t nof_digits = (size() - 1) / 4 + 1;
-    char   cstr[CEILFRAC(CEILFRAC(N, bits_per_word) * bits_per_word, 4) + 1];
+    char   cstr[ceil_div(ceil_div(N, bits_per_word) * bits_per_word, 4) + 1];
     size_t count = 0;
 
     for (int i = nof_words_() - 1; i >= 0; --i) {
@@ -271,8 +276,9 @@ private:
 
   void sanitize_()
   {
-    if (N % bits_per_word != 0) {
-      buffer[nof_words_() - 1] &= ~((~static_cast<word_t>(0)) << (size() % bits_per_word));
+    size_t n = size() % bits_per_word;
+    if (n != 0) {
+      buffer[nof_words_() - 1] &= ~((~static_cast<word_t>(0)) << n);
     }
   }
 
@@ -280,6 +286,18 @@ private:
   {
     pos = reversed ? size() - 1 - pos : pos;
     return ((get_word_(pos) & maskbit(pos)) != static_cast<word_t>(0));
+  }
+
+  void set_(size_t pos) noexcept
+  {
+    pos = reversed ? size() - 1 - pos : pos;
+    get_word_(pos) |= maskbit(pos);
+  }
+
+  void reset_(size_t pos) noexcept
+  {
+    pos = reversed ? size() - 1 - pos : pos;
+    get_word_(pos) &= ~(maskbit(pos));
   }
 
   size_t nof_words_() const noexcept { return size() > 0 ? (size() - 1) / bits_per_word + 1 : 0; }
@@ -291,6 +309,8 @@ private:
   size_t word_idx_(size_t pos) const { return pos / bits_per_word; }
 
   static word_t maskbit(size_t pos) { return (static_cast<word_t>(1)) << (pos % bits_per_word); }
+
+  static size_t max_nof_words_() { return (N - 1) / bits_per_word + 1; }
 };
 
 template <size_t N, bool reversed>
@@ -315,7 +335,6 @@ template <size_t N, bool reversed>
 inline bounded_bitset<N, reversed> fliplr(const bounded_bitset<N, reversed>& other) noexcept
 {
   bounded_bitset<N, reversed> ret(other.size());
-  ret.reset();
   for (uint32_t i = 0; i < ret.size(); ++i) {
     if (other.test(i)) {
       ret.set(ret.size() - 1 - i);

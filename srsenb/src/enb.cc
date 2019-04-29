@@ -171,8 +171,10 @@ bool enb::init(all_args_t *args_)
   } else { // 6 PRB case
     if (prach_freq_offset + 6 > cell_cfg.nof_prb) {
       fprintf(stderr,
-              "Invalid PRACH configuration: frequency interval=(%d, %d) does not fit into the eNB PRBs=(0,%d)\n",
-              prach_freq_offset, prach_freq_offset + 6, cell_cfg.nof_prb);
+              "Warning: Invalid PRACH configuration - prach=(%d, %d) does not fit into the eNB PRBs=(0,%d)\n",
+              prach_freq_offset,
+              prach_freq_offset + 6,
+              cell_cfg.nof_prb);
       return false;
     }
   }

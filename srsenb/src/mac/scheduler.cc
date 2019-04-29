@@ -125,9 +125,9 @@ int sched::cell_cfg(sched_interface::cell_cfg_t* cell_cfg)
   }
 
   P = srslte_ra_type0_P(cfg.cell.nof_prb);
-  si_n_rbg  = ceilf((float) 4/P);
-  rar_n_rbg = ceilf((float) 3/P);
-  nof_rbg = (uint32_t) ceil((float) cfg.cell.nof_prb/P);
+  si_n_rbg  = srslte::ceil_div(4, P);
+  rar_n_rbg = srslte::ceil_div(3, P);
+  nof_rbg   = srslte::ceil_div(cfg.cell.nof_prb, P);
   sched_vars.init(this);
 
   // Compute Common locations for DCI for each CFI
@@ -143,17 +143,6 @@ int sched::cell_cfg(sched_interface::cell_cfg_t* cell_cfg)
     }
   }  
   configured = true;
-
-  // PRACH has to fit within the PUSCH space
-  bool invalid_prach = cfg.cell.nof_prb == 6 and (cfg.prach_freq_offset + 6 > cfg.cell.nof_prb);
-  invalid_prach |= cfg.cell.nof_prb > 6 and ((cfg.prach_freq_offset + 6) > (cfg.cell.nof_prb - cfg.nrb_pucch) or
-                                             (int) cfg.prach_freq_offset < cfg.nrb_pucch);
-  if (invalid_prach) {
-    log_h->error("Invalid PRACH configuration: frequency offset=%d outside bandwidth limits\n", cfg.prach_freq_offset);
-    log_h->console("Invalid PRACH configuration: frequency offset=%d outside bandwidth limits\n",
-                   cfg.prach_freq_offset);
-    return -1;
-  }
 
   if (common_locations[sched_cfg.nof_ctrl_symbols - 1].nof_loc[2] == 0) {
     Error("SCHED: Current cfi=%d is not valid for broadcast (check scheduler.nof_ctrl_symbols in conf file).\n",
