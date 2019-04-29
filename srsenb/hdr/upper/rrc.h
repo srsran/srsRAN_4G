@@ -220,7 +220,7 @@ public:
     void handle_rrc_reconf_complete(asn1::rrc::rrc_conn_recfg_complete_s* msg, srslte::byte_buffer_t* pdu);
     void handle_security_mode_complete(asn1::rrc::security_mode_complete_s* msg);
     void handle_security_mode_failure(asn1::rrc::security_mode_fail_s* msg);
-    void handle_ue_cap_info(asn1::rrc::ue_cap_info_s* msg);
+    bool handle_ue_cap_info(asn1::rrc::ue_cap_info_s* msg);
 
     void set_bitrates(LIBLTE_S1AP_UEAGGREGATEMAXIMUMBITRATE_STRUCT *rates);
     void set_security_capabilities(LIBLTE_S1AP_UESECURITYCAPABILITIES_STRUCT *caps);

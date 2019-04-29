@@ -526,8 +526,10 @@ void rrc::parse_ul_ccch(uint16_t rnti, byte_buffer_t *pdu)
   if (pdu) {
     ul_ccch_msg_s ul_ccch_msg;
     asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
-
-    ul_ccch_msg.unpack(bref);
+    if (ul_ccch_msg.unpack(bref) != asn1::SRSASN_SUCCESS) {
+      rrc_log->error("Failed to unpack UL-CCCH message\n");
+      goto exit;
+    }
 
     log_rrc_message("SRB0", Rx, pdu, ul_ccch_msg);
 
@@ -580,6 +582,7 @@ void rrc::parse_ul_ccch(uint16_t rnti, byte_buffer_t *pdu)
         break;
     }
 
+  exit:
     pool->deallocate(pdu);
   }
 }
@@ -1044,7 +1047,11 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, byte_buffer_t *pdu)
 
   ul_dcch_msg_s ul_dcch_msg;
   asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
-  ul_dcch_msg.unpack(bref);
+  if (ul_dcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS) {
+    parent->rrc_log->error("Failed to unpack UL-DCCH message\n");
+    pool->deallocate(pdu);
+    return;
+  }
 
   parent->log_rrc_message(rb_id_text[lcid], Rx, pdu, ul_dcch_msg);
 
@@ -1090,9 +1097,13 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, byte_buffer_t *pdu)
       handle_security_mode_failure(&ul_dcch_msg.msg.c1().security_mode_fail());
       break;
     case ul_dcch_msg_type_c::c1_c_::types::ue_cap_info:
-      handle_ue_cap_info(&ul_dcch_msg.msg.c1().ue_cap_info());
-      send_connection_reconf(pdu);
-      state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
+      if (handle_ue_cap_info(&ul_dcch_msg.msg.c1().ue_cap_info())) {
+        send_connection_reconf(pdu);
+        state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
+      } else {
+        send_connection_reject();
+        state = RRC_STATE_IDLE;
+      }
       break;
     default:
       parent->rrc_log->error("Msg: %s not supported\n", ul_dcch_msg.msg.c1().type().to_string().c_str());
@@ -1169,7 +1180,7 @@ void rrc::ue::handle_security_mode_failure(security_mode_fail_s* msg)
   parent->rrc_log->info("SecurityModeFailure transaction ID: %d\n", msg->rrc_transaction_id);
 }
 
-void rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
+bool rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
 {
   parent->rrc_log->info("UECapabilityInformation transaction ID: %d\n", msg->rrc_transaction_id);
   ue_cap_info_r8_ies_s* msg_r8 = &msg->crit_exts.c1().ue_cap_info_r8();
@@ -1181,10 +1192,15 @@ void rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
     } else {
       asn1::bit_ref bref(msg_r8->ue_cap_rat_container_list[0].ue_cap_rat_container.data(),
                          msg_r8->ue_cap_rat_container_list[0].ue_cap_rat_container.size());
-      eutra_capabilities.unpack(bref);
+      if (eutra_capabilities.unpack(bref) != asn1::SRSASN_SUCCESS) {
+        parent->rrc_log->error("Failed to unpack EUTRA capabilities message\n");
+        return false;
+      }
       parent->rrc_log->info("UE rnti: 0x%x category: %d\n", rnti, eutra_capabilities.ue_category);
     }
   }
+
+  return true;
 
   // TODO: Add liblte_rrc support for unpacking UE cap info and repacking into
   //       inter-node UERadioAccessCapabilityInformation (36.331 v10.0.0 Section 10.2.2).
