@@ -106,6 +106,12 @@ void pdcp_entity::reestablish()
       rx_count        = 0;
       rx_hfn          = 0;
       next_pdcp_rx_sn = 0;
+    } else {
+      tx_count        = 0;
+      rx_count        = 0;
+      rx_hfn          = 0;
+      next_pdcp_rx_sn = 0;
+      last_submitted_pdcp_rx_sn = maximum_pdcp_sn;
     }
   }
 }
@@ -300,7 +306,7 @@ void pdcp_entity::handle_am_drb_pdu(srslte::byte_buffer_t* pdu)
              next_pdcp_rx_sn);
 
   if ((0 <= sn_diff_last_submit && sn_diff_last_submit > (int32_t)reordering_window) ||
-      (0 <= last_submit_diff_sn && last_submit_diff_sn > (int32_t)reordering_window)) {
+      (0 <= last_submit_diff_sn && last_submit_diff_sn < (int32_t)reordering_window)) {
     log->debug("|SN - last_submitted_sn| is larger than re-ordering window.\n");
     if (sn > next_pdcp_rx_sn) {
       count = (rx_hfn - 1) << cfg.sn_len | sn;
