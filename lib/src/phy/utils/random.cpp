@@ -20,6 +20,8 @@
  */
 
 #include "srslte/phy/utils/random.h"
+#include <complex>
+#include <math.h>
 #include <random>
 
 class random_wrap
@@ -53,12 +55,12 @@ public:
 
 extern "C" {
 
-srslte_random_t* srslte_random_init(uint32_t seed)
+srslte_random_t srslte_random_init(uint32_t seed)
 {
-  return (srslte_random_t*)(new random_wrap(seed));
+  return (srslte_random_t)(new random_wrap(seed));
 }
 
-int srslte_random_uniform_int_dist(srslte_random_t* q, int min, int max)
+int srslte_random_uniform_int_dist(srslte_random_t q, int min, int max)
 {
   int ret = 0;
 
@@ -70,19 +72,34 @@ int srslte_random_uniform_int_dist(srslte_random_t* q, int min, int max)
   return ret;
 }
 
-float srslte_random_uniform_real_dist(srslte_random_t* q, float min, float max)
+float srslte_random_uniform_real_dist(srslte_random_t q, float min, float max)
 {
   float ret = NAN;
 
   if (q) {
     auto* h = (random_wrap*)q;
-    ret     = h->uniform_real_dist(min, max);
+    while (isnan(ret)) {
+      ret = h->uniform_real_dist(min, max);
+    }
   }
 
   return ret;
 }
 
-float srslte_random_gauss_dist(srslte_random_t* q, float std_dev)
+cf_t srslte_random_uniform_complex_dist(srslte_random_t q, float min, float max)
+{
+  cf_t ret = NAN;
+
+  if (q) {
+    auto*               h = (random_wrap*)q;
+    std::complex<float> x = std::complex<float>(h->uniform_real_dist(min, max), h->uniform_real_dist(min, max));
+    ret                   = *((cf_t*)&x);
+  }
+
+  return ret;
+}
+
+float srslte_random_gauss_dist(srslte_random_t q, float std_dev)
 {
   float ret = NAN;
 
@@ -94,7 +111,7 @@ float srslte_random_gauss_dist(srslte_random_t* q, float std_dev)
   return ret;
 }
 
-void srslte_random_free(srslte_random_t* q)
+void srslte_random_free(srslte_random_t q)
 {
   if (q) {
     delete (random_wrap*)q;

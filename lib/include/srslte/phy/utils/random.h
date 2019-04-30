@@ -32,15 +32,15 @@ extern "C" {
 
 typedef void* srslte_random_t;
 
-SRSLTE_API srslte_random_t* srslte_random_init(uint32_t seed);
+SRSLTE_API srslte_random_t srslte_random_init(uint32_t seed);
 
-SRSLTE_API int srslte_random_uniform_int_dist(srslte_random_t* q, int min, int max);
+SRSLTE_API int srslte_random_uniform_int_dist(srslte_random_t q, int min, int max);
 
-SRSLTE_API float srslte_random_uniform_real_dist(srslte_random_t* q, float min, float max);
+SRSLTE_API float srslte_random_uniform_real_dist(srslte_random_t q, float min, float max);
 
-SRSLTE_API float srslte_random_gauss_dist(srslte_random_t* q, float std_dev);
+SRSLTE_API float srslte_random_gauss_dist(srslte_random_t q, float std_dev);
 
-SRSLTE_API void srslte_random_free(srslte_random_t* q);
+SRSLTE_API void srslte_random_free(srslte_random_t q);
 
 #ifdef __cplusplus
 }
