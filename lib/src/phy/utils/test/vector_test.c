@@ -20,19 +20,7 @@
  */
 
 #include "srslte/srslte.h"
-#include <complex.h>
-#include <math.h>
-#include <memory.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/time.h>
-#include <unistd.h>
-
-#include "srslte/phy/utils/mat.h"
-#include "srslte/phy/utils/simd.h"
-#include "srslte/phy/utils/vector.h"
-
+#include <srslte/phy/utils/random.h>
 
 bool zf_solver = false;
 bool mmse_solver = false;
@@ -43,29 +31,36 @@ bool verbose = false;
 #define MAX_FUNCTIONS (64)
 #define MAX_BLOCKS (16)
 
-#define RANDOM_F() (((float) rand()) / ((float) RAND_MAX) * 2.0f - 1.0f)
-#define RANDOM_S() ((int16_t)(rand() & 0x800F))
-#define RANDOM_B() ((int8_t)(rand() & 0x8008))
-#define RANDOM_CF() (RANDOM_F() + _Complex_I*RANDOM_F())
+static srslte_random_t random_h = NULL;
+#define RANDOM_F() srslte_random_uniform_real_dist(random_h, -1.0f, +1.0f)
+#define RANDOM_S() ((int16_t)srslte_random_uniform_int_dist(random_h, -255, +255))
+#define RANDOM_B() ((int8_t)srslte_random_uniform_int_dist(random_h, -127, +127))
+#define RANDOM_CF() srslte_random_uniform_complex_dist(random_h, -1.0f, +1.0f)
 
 #define TEST_CALL(TEST_CODE)   gettimeofday(&start, NULL);\
   for (int i = 0; i < NOF_REPETITIONS; i++){TEST_CODE;}\
   gettimeofday(&end, NULL); \
   *timing = elapsed_us(&start, &end);
 
-#define TEST(X, CODE) static bool test_##X (char *func_name, double *timing, uint32_t block_size) {\
-    struct timeval start, end;\
-    bzero(&start, sizeof(start));\
-    bzero(&end, sizeof(end));\
-    float mse = 0.0f;\
-    bool passed;\
-    strncpy(func_name, #X, 32);\
-    CODE;\
-    passed = (mse < MAX_MSE);\
-    printf("%32s (%5d) ... %7.1f MSamp/s ... %3s Passed (%.6f)\n", func_name, block_size, \
-    (double) block_size*NOF_REPETITIONS/ *timing, passed?"":"Not", mse);\
-    return passed;\
-}
+#define TEST(X, CODE)                                                                                                  \
+  static bool test_##X(char* func_name, double* timing, uint32_t block_size)                                           \
+  {                                                                                                                    \
+    struct timeval start, end;                                                                                         \
+    bzero(&start, sizeof(start));                                                                                      \
+    bzero(&end, sizeof(end));                                                                                          \
+    float mse    = 0.0f;                                                                                               \
+    bool  passed = false;                                                                                              \
+    strncpy(func_name, #X, 32);                                                                                        \
+    CODE;                                                                                                              \
+    passed = (mse < MAX_MSE);                                                                                          \
+    printf("%32s (%5d) ... %7.1f MSamp/s ... %3s Passed (%.6f)\n",                                                     \
+           func_name,                                                                                                  \
+           block_size,                                                                                                 \
+           (double)block_size* NOF_REPETITIONS / *timing,                                                              \
+           passed ? "" : "Not",                                                                                        \
+           mse);                                                                                                       \
+    return passed;                                                                                                     \
+  }
 
 #define MALLOC(TYPE, NAME) TYPE *NAME = srslte_vec_malloc(sizeof(TYPE)*block_size)
 
@@ -504,28 +499,31 @@ TEST(srslte_vec_convert_if,
   free(z);
 )
 
-TEST(srslte_vec_prod_fff,
-  MALLOC(float, x);
-  MALLOC(float, y);
-  MALLOC(float, z);
+TEST(
+    srslte_vec_prod_fff, MALLOC(float, x); MALLOC(float, y); MALLOC(float, z);
 
-  cf_t gold;
-  for (int i = 0; i < block_size; i++) {
-    x[i] = RANDOM_CF();
-    y[i] = RANDOM_CF();
-  }
+    float gold;
+    for (int i = 0; i < block_size; i++) {
+      x[i] = RANDOM_F();
+      y[i] = RANDOM_F();
+      if (isnan(x[i])) {
+        printf("RANDOM_F!! x=%f; y=%f\n", x[i], y[i]);
+      }
+    }
 
-  TEST_CALL(srslte_vec_prod_fff(x, y, z, block_size))
+    TEST_CALL(srslte_vec_prod_fff(x, y, z, block_size))
 
-  for (int i = 0; i < block_size; i++) {
-    gold = x[i] * y[i];
-    mse += cabsf(gold - z[i]);
-  }
+        for (int i = 0; i < block_size; i++) {
+          gold = x[i] * y[i];
+          if (isnan(gold)) {
+            printf("x=%f; y=%f\n", x[i], y[i]);
+          }
+          mse += fabsf(gold - z[i]);
+        }
 
-  free(x);
-  free(y);
-  free(z);
-)
+    free(x);
+    free(y);
+    free(z);)
 
 TEST(srslte_vec_prod_cfc,
   MALLOC(cf_t, x);
@@ -820,9 +818,9 @@ TEST(srslte_vec_estimate_frequency, MALLOC(cf_t, x); float freq_gold = 0.1f; flo
 
      for (int i = 0; i < block_size; i++) { x[i] = cexpf(-I * 2.0f * M_PI * (float)i * freq_gold); }
 
-     if (block_size > 6) {
-       TEST_CALL(freq = srslte_vec_estimate_frequency(x, block_size);)
-     } mse = cabsf(freq - freq_gold);
+     TEST_CALL(freq = srslte_vec_estimate_frequency(x, block_size);) if (block_size < 6) { mse = 0.0f; } else {
+       mse = fabsf(freq - freq_gold);
+     }
 
      free(x);)
 
@@ -888,6 +886,7 @@ int main(int argc, char **argv) {
   uint32_t func_count = 0;
   bool passed[MAX_FUNCTIONS][MAX_BLOCKS];
   bool all_passed = true;
+  random_h            = srslte_random_init(0x1234);
 
   for (uint32_t block_size = 1; block_size <= 1024*32; block_size *= 2) {
     func_count = 0;
@@ -1053,6 +1052,7 @@ int main(int argc, char **argv) {
   }
 
   if (f) fclose(f);
+  srslte_random_free(random_h);
 
   return (all_passed)?SRSLTE_SUCCESS:SRSLTE_ERROR;
 }

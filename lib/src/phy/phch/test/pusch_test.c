@@ -21,6 +21,7 @@
 
 #include "srslte/srslte.h"
 #include <srslte/phy/phch/pusch_cfg.h>
+#include <srslte/phy/utils/random.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -44,7 +45,7 @@ static srslte_uci_offset_cfg_t uci_cfg = {
     .I_offset_ack = 9,
 };
 
-static srslte_uci_data_t uci_data_tx;
+static srslte_uci_data_t uci_data_tx = {};
 
 uint32_t     L_rb          = 2;
 uint32_t tbs = 0;
@@ -147,7 +148,7 @@ void parse_args(int argc, char **argv) {
         riv = (int) strtol(argv[optind], NULL, 10);
         break;
       case 'L':
-        L_rb = (int)strtol(argv[optind], NULL, 10);
+        L_rb = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'F':
         freq_hop = (int) strtol(argv[optind], NULL, 10);
@@ -177,6 +178,7 @@ void parse_args(int argc, char **argv) {
 
 int main(int argc, char** argv)
 {
+  srslte_random_t        random_h = srslte_random_init(0);
   srslte_chest_ul_res_t  chest_res;
   srslte_pusch_t pusch_tx;
   srslte_pusch_t pusch_rx;
@@ -198,7 +200,6 @@ int main(int argc, char** argv)
   srslte_dci_ul_t dci;
   ZERO_OBJECT(dci);
 
-  srand(time(NULL));
   parse_args(argc, argv);
 
   dci.freq_hop_fl = freq_hop;
@@ -213,10 +214,7 @@ int main(int argc, char** argv)
   ZERO_OBJECT(ul_sf);
   ul_sf.tti = 0;
 
-  srslte_pusch_hopping_cfg_t ul_hopping;
-  ul_hopping.n_sb = 1;
-  ul_hopping.hopping_offset = 0;
-  ul_hopping.hop_mode = 1;
+  srslte_pusch_hopping_cfg_t ul_hopping = {.n_sb = 1, .hopping_offset = 0, .hop_mode = 1};
 
   if (srslte_ra_ul_dci_to_grant(&cell, &ul_sf, &ul_hopping, &dci, &cfg.grant)) {
     ERROR("Error computing resource allocation\n");
@@ -287,18 +285,18 @@ int main(int argc, char** argv)
     ret = SRSLTE_SUCCESS;
 
     /* Configure PUSCH */
-    ul_sf.tti      = n;
+    ul_sf.tti      = (uint32_t)n;
     cfg.uci_offset = uci_cfg;
 
     srslte_softbuffer_tx_reset(&softbuffer_tx);
     srslte_softbuffer_rx_reset(&softbuffer_rx);
 
     for (uint32_t i = 0; i < cfg.grant.tb.tbs / 8; i++) {
-      data[i] = (uint8_t) (random() & 0xff);
+      data[i] = (uint8_t)srslte_random_uniform_int_dist(random_h, 0, 255);
     }
 
     for (uint32_t a = 0; a < uci_data_tx.cfg.ack.nof_acks; a++) {
-      uci_data_tx.value.ack.ack_value[a] = (uint8_t)(random() & 0x1);
+      uci_data_tx.value.ack.ack_value[a] = (uint8_t)srslte_random_uniform_int_dist(random_h, 0, 1);
     }
 
     srslte_pusch_data_t pdata;
@@ -320,9 +318,9 @@ int main(int argc, char** argv)
       }
     }
 
-    srslte_pusch_res_t pusch_res;
-    pusch_res.data     = data_rx;
-    cfg.softbuffers.rx = &softbuffer_rx;
+    srslte_pusch_res_t pusch_res = {};
+    pusch_res.data               = data_rx;
+    cfg.softbuffers.rx           = &softbuffer_rx;
     memcpy(&cfg.uci_cfg, &uci_data_tx.cfg, sizeof(srslte_uci_cfg_t));
 
     gettimeofday(&t[1], NULL);
@@ -394,7 +392,7 @@ int main(int argc, char** argv)
     srslte_pusch_free(&pusch_rx);
     srslte_softbuffer_tx_free(&softbuffer_tx);
     srslte_softbuffer_rx_free(&softbuffer_rx);
-
+    srslte_random_free(random_h);
     if (sf_symbols) {
       free(sf_symbols);
   }

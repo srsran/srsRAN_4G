@@ -98,7 +98,7 @@ int srslte_layermap_type(cf_t*              d[SRSLTE_MAX_CODEWORDS],
   switch(type) {
     case SRSLTE_TXSCHEME_PORT0:
       if (nof_cw == 1 && nof_layers == 1) {
-        return srslte_layermap_single(x[0], d[0], nof_symbols[0]);
+        return srslte_layermap_single(d[0], x[0], nof_symbols[0]);
       } else {
         ERROR("Number of codewords and layers must be 1 for transmission on single antenna ports\n");
         return -1;

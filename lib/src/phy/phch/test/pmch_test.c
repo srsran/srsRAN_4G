@@ -19,11 +19,12 @@
  *
  */
 
+#include <srslte/phy/utils/random.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <sys/time.h>
+#include <unistd.h>
 
 #include "srslte/srslte.h"
 
@@ -128,12 +129,13 @@ int main(int argc, char **argv) {
   static uint8_t*         data_rx[SRSLTE_MAX_CODEWORDS] = {NULL};
   srslte_softbuffer_rx_t* softbuffers_rx[SRSLTE_MAX_CODEWORDS];
   srslte_softbuffer_tx_t* softbuffers_tx[SRSLTE_MAX_CODEWORDS];
+  srslte_random_t         random = srslte_random_init(0);
 #ifdef DO_OFDM
-  cf_t* tx_sf_symbols[SRSLTE_MAX_PORTS];
-  cf_t* rx_sf_symbols[SRSLTE_MAX_PORTS];
+  cf_t* tx_sf_symbols[SRSLTE_MAX_PORTS] = {};
+  cf_t* rx_sf_symbols[SRSLTE_MAX_PORTS] = {};
 #endif /* DO_OFDM */
-  cf_t* tx_slot_symbols[SRSLTE_MAX_PORTS];
-  cf_t* rx_slot_symbols[SRSLTE_MAX_PORTS];
+  cf_t* tx_slot_symbols[SRSLTE_MAX_PORTS] = {};
+  cf_t* rx_slot_symbols[SRSLTE_MAX_PORTS] = {};
 
   srslte_chest_dl_res_t chest_dl_res;
   srslte_pmch_t         pmch;
@@ -290,7 +292,7 @@ int main(int argc, char **argv) {
   for (int tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
     if (pmch_cfg.pdsch_cfg.grant.tb[tb].enabled) {
       for (int byte = 0; byte < pmch_cfg.pdsch_cfg.grant.tb[tb].tbs / 8; byte++) {
-        data_tx[tb][byte] = (uint8_t)(rand() % 256);
+        data_tx[tb][byte] = (uint8_t)srslte_random_uniform_int_dist(random, 0, 255);
       }
     }
   }
@@ -430,6 +432,7 @@ quit:
       free(rx_slot_symbols[i]);
     }
   }
+  srslte_random_free(random);
   if (ret) {
     printf("Error\n");
   } else {

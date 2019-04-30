@@ -19,14 +19,15 @@
  *
  */
 
+#include <math.h>
+#include <srslte/phy/utils/random.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <unistd.h>
-#include <math.h>
 #include <time.h>
-#include <stdbool.h>
+#include <unistd.h>
 
 #include "srslte/srslte.h"
 
@@ -72,6 +73,7 @@ void parse_args(int argc, char **argv) {
 }
 
 int main(int argc, char **argv) {
+  srslte_random_t    random = srslte_random_init(0);
   int i, j, num_errors, symbols_layer;
   cf_t *d[SRSLTE_MAX_CODEWORDS], *x[SRSLTE_MAX_LAYERS], *dp[SRSLTE_MAX_CODEWORDS];
   srslte_tx_scheme_t type;
@@ -118,7 +120,7 @@ int main(int argc, char **argv) {
   /* generate random data */
   for (i=0;i<nof_cw;i++) {
     for (j=0;j<nof_symb_cw[i];j++) {
-      d[i][j] = 100 * (rand()/RAND_MAX + I*rand()/RAND_MAX);
+      d[i][j] = srslte_random_uniform_complex_dist(random, -10, 10);
     }
   }
 
@@ -151,6 +153,8 @@ int main(int argc, char **argv) {
   for (i=0;i<nof_layers;i++) {
     free(x[i]);
   }
+
+  srslte_random_free(random);
 
   if (num_errors) {
     printf("%d Errors\n", num_errors);

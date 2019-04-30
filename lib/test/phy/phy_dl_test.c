@@ -19,6 +19,7 @@
  *
  */
 
+#include <srslte/phy/utils/random.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -67,7 +68,7 @@ void parse_extensive_param(char* param, char* arg)
 {
   int ext_code = SRSLTE_SUCCESS;
   if (!strcmp(param, "carrier-indicator")) {
-    cross_carrier_indicator = atoi(arg);
+    cross_carrier_indicator = (uint32_t)strtol(arg, NULL, 10);
   } else {
     ext_code = SRSLTE_ERROR;
   }
@@ -83,7 +84,7 @@ void parse_args(int argc, char **argv) {
   while ((opt = getopt(argc, argv, "cfapndvstm")) != -1) {
     switch (opt) {
       case 't':
-        transmission_mode = strtol(argv[optind], NULL, 10) - 1;
+        transmission_mode = (uint32_t)strtol(argv[optind], NULL, 10) - 1;
         if (transmission_mode == 0) {
           cell.nof_ports = 1;
           nof_rx_ant     = 1;
@@ -93,19 +94,19 @@ void parse_args(int argc, char **argv) {
         }
         break;
       case 'f':
-        cfi = (uint32_t) atoi(argv[optind]);
+        cfi = (uint32_t)(uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'm':
-        mcs = (uint32_t) atoi(argv[optind]);
+        mcs = (uint32_t)(uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'p':
-        cell.nof_prb = (uint32_t) atoi(argv[optind]);
+        cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'c':
-        cell.id = (uint32_t) atoi(argv[optind]);
+        cell.id = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 's':
-        nof_subframes = (uint32_t) atoi(argv[optind]);
+        nof_subframes = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'd':
         print_dci_table = true;
@@ -306,6 +307,7 @@ static int check_evm(srslte_ue_dl_cfg_t* ue_dl_cfg, int tb)
 }
 
 int main(int argc, char **argv) {
+  srslte_random_t         random      = srslte_random_init(0);
   struct timeval t[3] = {};
   size_t tx_nof_bits = 0, rx_nof_bits = 0;
   srslte_softbuffer_tx_t *softbuffer_tx[SRSLTE_MAX_TB] = {};
@@ -474,7 +476,7 @@ int main(int argc, char **argv) {
     dci.tb[1].rv      = 1;
   } else if (transmission_mode == SRSLTE_TM3) {
     dci.format = SRSLTE_DCI_FORMAT2A;
-    for (int i = 0; i < SRSLTE_MAX_TB; i++) {
+    for (uint32_t i = 0; i < SRSLTE_MAX_TB; i++) {
       dci.tb[i].mcs_idx = mcs;
       dci.tb[i].rv      = 0;
       dci.tb[i].ndi     = 0;
@@ -483,7 +485,7 @@ int main(int argc, char **argv) {
   } else if (transmission_mode == SRSLTE_TM4) {
     dci.format = SRSLTE_DCI_FORMAT2;
     dci.pinfo  = 0;
-    for (int i = 0; i < SRSLTE_MAX_TB; i++) {
+    for (uint32_t i = 0; i < SRSLTE_MAX_TB; i++) {
       dci.tb[i].mcs_idx = mcs;
       dci.tb[i].rv      = 0;
       dci.tb[i].ndi     = 0;
@@ -499,9 +501,9 @@ int main(int argc, char **argv) {
   INFO("--- Starting test ---\n");
   for (uint32_t sf_idx = 0; sf_idx < nof_subframes; sf_idx++) {
     /* Generate random data */
-    for (int t = 0; t < SRSLTE_MAX_TB; t++) {
+    for (int j = 0; j < SRSLTE_MAX_TB; j++) {
       for (int i = 0; i < MAX_DATABUFFER_SIZE; i++) {
-        data_tx[t][i] = (uint8_t)(rand() & 0xff);
+        data_tx[j][i] = (uint8_t)srslte_random_uniform_int_dist(random, 0, 255);
       }
     }
 
@@ -532,7 +534,7 @@ int main(int argc, char **argv) {
     }
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
-    pdsch_encode_us += t[0].tv_sec * 1e6 + t[0].tv_usec;
+    pdsch_encode_us += (size_t)(t[0].tv_sec * 1e6 + t[0].tv_usec);
 
     // MIMO perfect crossed channel
     if (transmission_mode > 1) {
@@ -572,6 +574,7 @@ int main(int argc, char **argv) {
     ue_dl_cfg.chest_cfg.interpolate_subframe = false;
     ue_dl_cfg.chest_cfg.cfo_estimate_enable  = false;
     ue_dl_cfg.chest_cfg.cfo_estimate_sf_mask = false;
+    ue_dl_cfg.chest_cfg.sync_error_enable    = false;
     ue_dl_cfg.dci_cfg                        = dci_cfg;
 
     srslte_pdsch_res_t pdsch_res[SRSLTE_MAX_CODEWORDS];
@@ -587,7 +590,7 @@ int main(int argc, char **argv) {
 
     gettimeofday(&t[2], NULL);
     get_time_interval(t);
-    pdsch_decode_us += t[0].tv_sec * 1e6 + t[0].tv_usec;
+    pdsch_decode_us += (size_t)(t[0].tv_sec * 1e6 + t[0].tv_usec);
 
     for (int i = 0; i < SRSLTE_MAX_TB; i++) {
       if (ue_dl_cfg.cfg.pdsch.grant.tb[i].enabled) {
@@ -601,10 +604,11 @@ int main(int argc, char **argv) {
           srslte_vec_fprint_byte(stdout, (uint8_t*)enb_dl.pdsch.e[i], ue_dl_cfg.cfg.pdsch.grant.tb[i].nof_bits / 8);
           srslte_vec_fprint_byte(stdout, (uint8_t*)ue_dl.pdsch.e[i], ue_dl_cfg.cfg.pdsch.grant.tb[i].nof_bits / 8);
           count_failures++;
-        } else if (!pdsch_res[i].crc || memcmp(data_tx[i], data_rx[i], ue_dl_cfg.cfg.pdsch.grant.tb[i].tbs / 8) != 0) {
+        } else if (!pdsch_res[i].crc ||
+                   memcmp(data_tx[i], data_rx[i], (uint32_t)ue_dl_cfg.cfg.pdsch.grant.tb[i].tbs / 8) != 0) {
           printf("UE Failed decoding tb %d in subframe %d. crc=%d; Bytes:\n", i, sf_idx, pdsch_res[i].crc);
-          srslte_vec_fprint_byte(stdout, data_tx[i], ue_dl_cfg.cfg.pdsch.grant.tb[i].tbs / 8);
-          srslte_vec_fprint_byte(stdout, data_rx[i], ue_dl_cfg.cfg.pdsch.grant.tb[i].tbs / 8);
+          srslte_vec_fprint_byte(stdout, data_tx[i], (uint32_t)ue_dl_cfg.cfg.pdsch.grant.tb[i].tbs / 8);
+          srslte_vec_fprint_byte(stdout, data_rx[i], (uint32_t)ue_dl_cfg.cfg.pdsch.grant.tb[i].tbs / 8);
           count_failures++;
         } else {
           // Decoded Ok
@@ -635,6 +639,7 @@ int main(int argc, char **argv) {
   quit:
   srslte_enb_dl_free(&enb_dl);
   srslte_ue_dl_free(&ue_dl);
+  srslte_random_free(random);
 
   for (
       int i = 0;

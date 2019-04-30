@@ -30,6 +30,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 
+#undef ENABLE_GUI /* Disable GUI by default */
 #ifdef ENABLE_GUI
 #include "srsgui/srsgui.h"
 static bool enable_gui = false;
