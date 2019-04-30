@@ -21,7 +21,6 @@
 
 #include "srslte/phy/utils/random.h"
 #include <complex>
-#include <math.h>
 #include <random>
 
 class random_wrap
@@ -78,7 +77,7 @@ float srslte_random_uniform_real_dist(srslte_random_t q, float min, float max)
 
   if (q) {
     auto* h = (random_wrap*)q;
-    while (isnan(ret)) {
+    while (std::isnan(ret)) {
       ret = h->uniform_real_dist(min, max);
     }
   }
