@@ -293,7 +293,7 @@ void pdcp_entity::handle_am_drb_pdu(srslte::byte_buffer_t* pdu)
   int32_t sn_diff_last_submit     = sn - last_submitted_pdcp_rx_sn;
   int32_t sn_diff_next_pdcp_rx_sn = sn - next_pdcp_rx_sn;
 
-  log->debug("HFN: %d, SN: %d, Last_Submitted_PDCP_RX_SN: %d, Next_PDCP_RX_SN %d\n",
+  log->debug("RX HFN: %d, SN: %d, Last_Submitted_PDCP_RX_SN: %d, Next_PDCP_RX_SN %d\n",
              rx_hfn,
              sn,
              last_submitted_pdcp_rx_sn,
@@ -461,6 +461,7 @@ void pdcp_entity::cipher_encrypt(uint8_t  *msg,
   log->debug("Cipher encript input:\n");
   log->debug_hex(&k_enc[16], 16, "  K_enc");
   log->debug("  Local count: %d\n", tx_count);
+  log->debug("  TX HFN: %d COUNT %d\n", (tx_count >> cfg.sn_len), (tx_count << (32-cfg.sn_len)) >> (32-cfg.sn_len));
   log->debug("  Bearer ID: %d\n", cfg.bearer_id);
   log->debug("  Direction: %s\n", (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? "Downlink" : "Uplink");
   log->debug("Encripting COUNT %d \n", tx_count);
