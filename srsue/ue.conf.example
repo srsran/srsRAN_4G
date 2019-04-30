@@ -172,10 +172,6 @@ enable = false
 # equalizer_mode:       Selects equalizer mode. Valid modes are: "mmse", "zf" or any 
 #                       non-negative real number to indicate a regularized zf coefficient.
 #                       Default is MMSE.
-# time_correct_period:  Period for sampling time offset correction. Default is 10 (ue_sync.c),
-#                       good for long channels. For best performance at highest SNR reduce it to 1.  
-# sfo_correct_disable:  Disables phase correction before channel estimation to compensate for 
-#                       sampling frequency offset. Default is enabled. 
 # sfo_ema:              EMA coefficient to average sample offsets used to compute SFO
 # sfo_correct_period:   Period in ms to correct sample time to adjust for SFO
 # sss_algorithm:        Selects the SSS estimation algorithm. Can choose between
@@ -238,8 +234,6 @@ enable = false
 #pdsch_max_its       = 8    # These are half iterations
 #nof_phy_threads     = 3
 #equalizer_mode      = mmse
-#time_correct_period = 5
-#sfo_correct_disable = false
 #sfo_ema             = 0.1
 #sfo_correct_period  = 10
 #sss_algorithm       = full
