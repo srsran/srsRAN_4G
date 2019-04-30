@@ -92,6 +92,7 @@ void pdcp_entity::init(srsue::rlc_interface_pdcp      *rlc_,
 // Reestablishment procedure: 36.323 5.2
 void pdcp_entity::reestablish()
 {
+  log->info("Re-establish %s with bearer ID: %d\n", rrc->get_rb_name(lcid).c_str(), cfg.bearer_id);
   // For SRBs
   if (cfg.is_control) {
     tx_count        = 0;
