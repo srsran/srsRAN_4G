@@ -282,7 +282,7 @@ bool async_scell_recv::set_scell_cell(uint32_t carrier_idx, srslte_cell_t* _cell
   }
 
   // Detect change in cell configuration
-  if (memcmp(&cell, &_cell, sizeof(srslte_cell_t)) != 0) {
+  if (memcmp(&cell, _cell, sizeof(srslte_cell_t)) != 0) {
 
     // Set sampling rate, if number of PRB changed
     if (cell.nof_prb != _cell->nof_prb && ret) {
