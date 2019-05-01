@@ -35,7 +35,7 @@ phr_proc::phr_proc()
 {
   initiated        = false;
   last_pathloss_db = 0;
-  ZERO_OBJECT(phr_cfg);
+  phr_cfg          = {};
 }
 
 void phr_proc::init(phy_interface_mac* phy_h_, srslte::log* log_h_, srslte::timers* timers_db_)
