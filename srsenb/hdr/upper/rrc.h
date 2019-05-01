@@ -153,7 +153,7 @@ public:
   void max_retx_attempted(uint16_t rnti);
   
   // rrc_interface_s1ap
-  void write_dl_info(uint16_t rnti, srslte::byte_buffer_t *sdu);
+  void write_dl_info(uint16_t rnti, srslte::unique_byte_buffer sdu);
   void release_complete(uint16_t rnti);
   bool setup_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT *msg);
   bool setup_ue_erabs(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPREQUEST_STRUCT *msg);
@@ -161,7 +161,7 @@ public:
   void add_paging_id(uint32_t ueid, LIBLTE_S1AP_UEPAGINGID_STRUCT UEPagingID);
   
   // rrc_interface_pdcp
-  void write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t *pdu);
+  void write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer pdu);
 
   void     parse_sibs();
   uint32_t get_nof_users();
@@ -207,17 +207,17 @@ public:
     void send_connection_reject();
     void send_connection_release();
     void send_connection_reest_rej();
-    void send_connection_reconf(srslte::byte_buffer_t *sdu);
+    void send_connection_reconf(srslte::unique_byte_buffer sdu);
     void send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT *e);
-    void send_connection_reconf_upd(srslte::byte_buffer_t *pdu);
+    void send_connection_reconf_upd(srslte::unique_byte_buffer pdu);
     void send_security_mode_command();
     void send_ue_cap_enquiry();
-    void parse_ul_dcch(uint32_t lcid, srslte::byte_buffer_t* pdu);
+    void parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer pdu);
 
     void handle_rrc_con_req(asn1::rrc::rrc_conn_request_s* msg);
     void handle_rrc_con_reest_req(asn1::rrc::rrc_conn_reest_request_r8_ies_s* msg);
-    void handle_rrc_con_setup_complete(asn1::rrc::rrc_conn_setup_complete_s* msg, srslte::byte_buffer_t* pdu);
-    void handle_rrc_reconf_complete(asn1::rrc::rrc_conn_recfg_complete_s* msg, srslte::byte_buffer_t* pdu);
+    void handle_rrc_con_setup_complete(asn1::rrc::rrc_conn_setup_complete_s* msg, srslte::unique_byte_buffer pdu);
+    void handle_rrc_reconf_complete(asn1::rrc::rrc_conn_recfg_complete_s* msg, srslte::unique_byte_buffer pdu);
     void handle_security_mode_complete(asn1::rrc::security_mode_complete_s* msg);
     void handle_security_mode_failure(asn1::rrc::security_mode_fail_s* msg);
     bool handle_ue_cap_info(asn1::rrc::ue_cap_info_s* msg);
@@ -246,7 +246,8 @@ public:
 
     bool select_security_algorithms();
     void send_dl_ccch(asn1::rrc::dl_ccch_msg_s* dl_ccch_msg);
-    void send_dl_dcch(asn1::rrc::dl_dcch_msg_s* dl_dcch_msg, srslte::byte_buffer_t* pdu = NULL);
+    void send_dl_dcch(asn1::rrc::dl_dcch_msg_s*  dl_dcch_msg,
+                      srslte::unique_byte_buffer pdu = srslte::unique_byte_buffer());
 
     uint16_t rnti;
     rrc*     parent;
@@ -315,7 +316,7 @@ private:
 
   activity_monitor act_monitor;
 
-  std::vector<srslte::byte_buffer_t*> sib_buffer;
+  std::vector<srslte::unique_byte_buffer> sib_buffer;
 
   // user connect notifier 
   connect_notifier *cnotifier; 
@@ -327,8 +328,8 @@ private:
   void     configure_mbsfn_sibs(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13);
 
   void config_mac();
-  void parse_ul_dcch(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t *pdu);
-  void parse_ul_ccch(uint16_t rnti, srslte::byte_buffer_t *pdu);
+  void                      parse_ul_dcch(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer pdu);
+  void                      parse_ul_ccch(uint16_t rnti, srslte::unique_byte_buffer pdu);
   void configure_security(uint16_t rnti,
                           uint32_t lcid,
                           uint8_t *k_rrc_enc,
@@ -351,9 +352,9 @@ private:
   srslte::log*        rrc_log;
 
   typedef struct{
-    uint16_t                rnti;
-    uint32_t                lcid;
-    srslte::byte_buffer_t*  pdu;
+    uint16_t                   rnti;
+    uint32_t                   lcid;
+    srslte::unique_byte_buffer pdu;
   }rrc_pdu;
 
   const static uint32_t LCID_EXIT     = 0xffff0000;

@@ -39,14 +39,14 @@ public:
   void stop(); 
   
   // pdcp_interface_rlc
-  void write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t *sdu);
-  void write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *sdu){}
-  
+  void write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer sdu);
+  void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer sdu) {}
+
   // pdcp_interface_rrc
   void reset(uint16_t rnti);
   void add_user(uint16_t rnti);  
   void rem_user(uint16_t rnti);
-  void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_pool_buffer sdu);
+  void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer sdu);
   void add_bearer(uint16_t rnti, uint32_t lcid, srslte::srslte_pdcp_config_t cnfg);
   void config_security(uint16_t rnti, 
                        uint32_t lcid,
@@ -65,7 +65,7 @@ private:
     uint16_t rnti; 
     srsenb::rlc_interface_pdcp *rlc; 
     // rlc_interface_pdcp
-    void write_sdu(uint32_t lcid, srslte::byte_buffer_t *sdu, bool blocking);
+    void write_sdu(uint32_t lcid, srslte::unique_byte_buffer sdu, bool blocking);
     bool rb_is_um(uint32_t lcid);
   };
   
@@ -75,8 +75,8 @@ private:
     uint16_t rnti; 
     srsenb::gtpu_interface_pdcp  *gtpu;
     // gw_interface_pdcp
-    void write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu);
-    void write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *sdu){}
+    void write_pdu(uint32_t lcid, srslte::unique_byte_buffer pdu);
+    void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer sdu) {}
   }; 
   
   class user_interface_rrc : public srsue::rrc_interface_pdcp
@@ -85,11 +85,11 @@ private:
     uint16_t rnti; 
     srsenb::rrc_interface_pdcp *rrc;
     // rrc_interface_pdcp
-    void write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu);
-    void write_pdu_bcch_bch(srslte::byte_buffer_t *pdu);
-    void write_pdu_bcch_dlsch(srslte::byte_buffer_t *pdu);
-    void write_pdu_pcch(srslte::byte_buffer_t *pdu);
-    void write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *pdu){}
+    void        write_pdu(uint32_t lcid, srslte::unique_byte_buffer pdu);
+    void        write_pdu_bcch_bch(srslte::unique_byte_buffer pdu);
+    void        write_pdu_bcch_dlsch(srslte::unique_byte_buffer pdu);
+    void        write_pdu_pcch(srslte::unique_byte_buffer pdu);
+    void        write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer pdu) {}
     std::string get_rb_name(uint32_t lcid);
   };
   

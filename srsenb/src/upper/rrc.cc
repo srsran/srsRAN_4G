@@ -86,7 +86,7 @@ void rrc::stop()
   if(running) {
     running = false;
     rrc_pdu p = {0, LCID_EXIT, NULL};
-    rx_pdu_queue.push(p);
+    rx_pdu_queue.push(std::move(p));
     wait_thread_finish();
   }
   act_monitor.stop();
@@ -136,19 +136,19 @@ void rrc::read_pdu_bcch_dlsch(uint32_t sib_index, uint8_t* payload)
 void rrc::rl_failure(uint16_t rnti)
 {
   rrc_pdu p = {rnti, LCID_RLF_USER, NULL};
-  rx_pdu_queue.push(p);
+  rx_pdu_queue.push(std::move(p));
 }
 
 void rrc::set_activity_user(uint16_t rnti)
 {
   rrc_pdu p = {rnti, LCID_ACT_USER, NULL};
-  rx_pdu_queue.push(p);
+  rx_pdu_queue.push(std::move(p));
 }
 
 void rrc::rem_user_thread(uint16_t rnti)
 {
   rrc_pdu p = {rnti, LCID_REM_USER, NULL};
-  rx_pdu_queue.push(p);
+  rx_pdu_queue.push(std::move(p));
 }
 
 uint32_t rrc::get_nof_users() {
@@ -223,7 +223,7 @@ void rrc::upd_user(uint16_t new_rnti, uint16_t old_rnti)
   pthread_mutex_lock(&user_mutex);
   if (users.count(old_rnti) == 1) {
     if (users[old_rnti].is_connected()) {
-      users[old_rnti].send_connection_reconf_upd(pool_allocate);
+      users[old_rnti].send_connection_reconf_upd(srslte::allocate_unique_buffer(*pool));
     } else {
       users[old_rnti].send_connection_release();
     }
@@ -236,16 +236,16 @@ void rrc::upd_user(uint16_t new_rnti, uint16_t old_rnti)
 /*******************************************************************************
   PDCP interface
 *******************************************************************************/
-void rrc::write_pdu(uint16_t rnti, uint32_t lcid, byte_buffer_t* pdu)
+void rrc::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer pdu)
 {
-  rrc_pdu p = {rnti, lcid, pdu};
-  rx_pdu_queue.push(p);
+  rrc_pdu p = {rnti, lcid, std::move(pdu)};
+  rx_pdu_queue.push(std::move(p));
 }
 
 /*******************************************************************************
   S1AP interface
 *******************************************************************************/
-void rrc::write_dl_info(uint16_t rnti, byte_buffer_t* sdu)
+void rrc::write_dl_info(uint16_t rnti, srslte::unique_byte_buffer sdu)
 {
   dl_dcch_msg_s dl_dcch_msg;
   dl_dcch_msg.msg.set_c1();
@@ -264,8 +264,8 @@ void rrc::write_dl_info(uint16_t rnti, byte_buffer_t* sdu)
            sdu->msg, sdu->N_bytes);
 
     sdu->reset();
-    
-    users[rnti].send_dl_dcch(&dl_dcch_msg, sdu);
+
+    users[rnti].send_dl_dcch(&dl_dcch_msg, std::move(sdu));
   } else {
     rrc_log->error("Rx SDU for unknown rnti=0x%x\n", rnti);
   }
@@ -275,7 +275,7 @@ void rrc::write_dl_info(uint16_t rnti, byte_buffer_t* sdu)
 
 void rrc::release_complete(uint16_t rnti) {
   rrc_pdu p = {rnti, LCID_REL_USER, NULL};
-  rx_pdu_queue.push(p);
+  rx_pdu_queue.push(std::move(p));
 }
 
 bool rrc::setup_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT *msg)
@@ -517,7 +517,7 @@ void rrc::read_pdu_pcch(uint8_t* payload, uint32_t buffer_size)
   from either a public function or the internal thread
 *******************************************************************************/
 
-void rrc::parse_ul_ccch(uint16_t rnti, byte_buffer_t *pdu)
+void rrc::parse_ul_ccch(uint16_t rnti, srslte::unique_byte_buffer pdu)
 {
   uint16_t old_rnti = 0; 
 
@@ -527,10 +527,10 @@ void rrc::parse_ul_ccch(uint16_t rnti, byte_buffer_t *pdu)
     if (ul_ccch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or
         ul_ccch_msg.msg.type().value != ul_ccch_msg_type_c::types_opts::c1) {
       rrc_log->error("Failed to unpack UL-CCCH message\n");
-      goto exit;
+      return;
     }
 
-    log_rrc_message("SRB0", Rx, pdu, ul_ccch_msg);
+    log_rrc_message("SRB0", Rx, pdu.get(), ul_ccch_msg);
 
     switch (ul_ccch_msg.msg.c1().type()) {
       case ul_ccch_msg_type_c::c1_c_::types::rrc_conn_request:
@@ -580,17 +580,14 @@ void rrc::parse_ul_ccch(uint16_t rnti, byte_buffer_t *pdu)
         rrc_log->error("UL CCCH message not recognised\n");
         break;
     }
-
-  exit:
-    pool->deallocate(pdu);
   }
 }
 
-void rrc::parse_ul_dcch(uint16_t rnti, uint32_t lcid, byte_buffer_t *pdu)
+void rrc::parse_ul_dcch(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer pdu)
 {
   if (pdu) {
     if (users.count(rnti)) {
-      users[rnti].parse_ul_dcch(lcid, pdu);
+      users[rnti].parse_ul_dcch(lcid, std::move(pdu));
     } else {
       rrc_log->error("Processing %s: Unknown rnti=0x%x\n", rb_id_text[lcid], rnti);
     }
@@ -729,15 +726,15 @@ uint32_t rrc::generate_sibs()
 
   // Pack payload for all messages
   for (uint32_t msg_index = 0; msg_index < nof_messages; msg_index++) {
-    srslte::byte_buffer_t* sib = pool_allocate;
+    srslte::unique_byte_buffer sib = srslte::allocate_unique_buffer(*pool);
     asn1::bit_ref          bref(sib->msg, sib->get_tailroom());
     asn1::bit_ref          bref0 = bref;
     msg[msg_index].pack(bref);
     sib->N_bytes = static_cast<uint32_t>((bref.distance(bref0) - 1) / 8 + 1);
-    sib_buffer.push_back(sib);
+    sib_buffer.push_back(std::move(sib));
 
     // Log SIBs in JSON format
-    log_rrc_message("SIB payload", Tx, sib_buffer[msg_index], msg[msg_index]);
+    log_rrc_message("SIB payload", Tx, sib_buffer[msg_index].get(), msg[msg_index]);
   }
 
   return nof_messages;
@@ -829,11 +826,11 @@ void rrc::run_thread()
       switch(p.lcid)
       {
         case RB_ID_SRB0:
-          parse_ul_ccch(p.rnti, p.pdu);
+          parse_ul_ccch(p.rnti, std::move(p.pdu));
           break;
         case RB_ID_SRB1:
         case RB_ID_SRB2:
-          parse_ul_dcch(p.rnti, p.lcid, p.pdu);
+          parse_ul_dcch(p.rnti, p.lcid, std::move(p.pdu));
           break;
         case LCID_REM_USER:
           rem_user(p.rnti);
@@ -1035,7 +1032,7 @@ bool rrc::ue::is_timeout()
   return false;       
 }
 
-void rrc::ue::parse_ul_dcch(uint32_t lcid, byte_buffer_t *pdu)
+void rrc::ue::parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer pdu)
 {
   set_activity();
 
@@ -1044,19 +1041,19 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, byte_buffer_t *pdu)
   if (ul_dcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or
       ul_dcch_msg.msg.type().value != ul_dcch_msg_type_c::types_opts::c1) {
     parent->rrc_log->error("Failed to unpack UL-DCCH message\n");
-    pool->deallocate(pdu);
     return;
   }
 
-  parent->log_rrc_message(rb_id_text[lcid], Rx, pdu, ul_dcch_msg);
+  parent->log_rrc_message(rb_id_text[lcid], Rx, pdu.get(), ul_dcch_msg);
 
-  pdu->reset();
+  // reuse PDU
+  pdu->reset(); // FIXME: name collision with byte_buffer reset
 
   transaction_id = 0;
 
   switch (ul_dcch_msg.msg.c1().type()) {
     case ul_dcch_msg_type_c::c1_c_::types::rrc_conn_setup_complete:
-      handle_rrc_con_setup_complete(&ul_dcch_msg.msg.c1().rrc_conn_setup_complete(), pdu);
+      handle_rrc_con_setup_complete(&ul_dcch_msg.msg.c1().rrc_conn_setup_complete(), std::move(pdu));
       break;
     case ul_dcch_msg_type_c::c1_c_::types::ul_info_transfer:
       pdu->N_bytes = ul_dcch_msg.msg.c1()
@@ -1073,10 +1070,10 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, byte_buffer_t *pdu)
                  .ded_info_type.ded_info_nas()
                  .data(),
              pdu->N_bytes);
-      parent->s1ap->write_pdu(rnti, pdu);
+      parent->s1ap->write_pdu(rnti, std::move(pdu));
       break;
     case ul_dcch_msg_type_c::c1_c_::types::rrc_conn_recfg_complete:
-      handle_rrc_reconf_complete(&ul_dcch_msg.msg.c1().rrc_conn_recfg_complete(), pdu);
+      handle_rrc_reconf_complete(&ul_dcch_msg.msg.c1().rrc_conn_recfg_complete(), std::move(pdu));
       parent->rrc_log->console("User 0x%x connected\n", rnti);
       state = RRC_STATE_REGISTERED;
       break;
@@ -1085,7 +1082,7 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, byte_buffer_t *pdu)
       // Skipping send_ue_cap_enquiry() procedure for now
       // state = RRC_STATE_WAIT_FOR_UE_CAP_INFO;
       notify_s1ap_ue_ctxt_setup_complete();
-      send_connection_reconf(pdu);
+      send_connection_reconf(std::move(pdu));
       state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
       break;
     case ul_dcch_msg_type_c::c1_c_::types::security_mode_fail:
@@ -1093,7 +1090,7 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, byte_buffer_t *pdu)
       break;
     case ul_dcch_msg_type_c::c1_c_::types::ue_cap_info:
       if (handle_ue_cap_info(&ul_dcch_msg.msg.c1().ue_cap_info())) {
-        send_connection_reconf(pdu);
+        send_connection_reconf(std::move(pdu));
         state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
       } else {
         send_connection_reject();
@@ -1133,7 +1130,7 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_r8_ies_s* msg)
   
 }
 
-void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srslte::byte_buffer_t* pdu)
+void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srslte::unique_byte_buffer pdu)
 {
   parent->rrc_log->info("RRCConnectionSetupComplete transaction ID: %d\n", msg->rrc_transaction_id);
   rrc_conn_setup_complete_r8_ies_s* msg_r8 = &msg->crit_exts.c1().rrc_conn_setup_complete_r8();
@@ -1148,15 +1145,15 @@ void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srsl
   parent->mac->phy_config_enabled(rnti, true);
 
   if(has_tmsi) {
-    parent->s1ap->initial_ue(rnti, (LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM)establishment_cause.value, pdu, m_tmsi,
-                             mmec);
+    parent->s1ap->initial_ue(
+        rnti, (LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM)establishment_cause.value, std::move(pdu), m_tmsi, mmec);
   } else {
-    parent->s1ap->initial_ue(rnti, (LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM)establishment_cause.value, pdu);
+    parent->s1ap->initial_ue(rnti, (LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM)establishment_cause.value, std::move(pdu));
   }
   state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
 }
 
-void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte::byte_buffer_t* pdu)
+void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte::unique_byte_buffer pdu)
 {
   parent->rrc_log->info("RRCReconfigurationComplete transaction ID: %d\n", msg->rrc_transaction_id);
 
@@ -1602,7 +1599,7 @@ int rrc::ue::get_drbid_config(drb_to_add_mod_s* drb, int drb_id)
   return 0; 
 }
 
-void rrc::ue::send_connection_reconf_upd(srslte::byte_buffer_t *pdu)
+void rrc::ue::send_connection_reconf_upd(srslte::unique_byte_buffer pdu)
 {
   dl_dcch_msg_s dl_dcch_msg;
   rrc_conn_recfg_s* rrc_conn_recfg   = &dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg();
@@ -1646,14 +1643,14 @@ void rrc::ue::send_connection_reconf_upd(srslte::byte_buffer_t *pdu)
   sr_get(&phy_cfg->sched_request_cfg.setup().sr_cfg_idx, &phy_cfg->sched_request_cfg.setup().sr_pucch_res_idx);
 
   pdu->reset();
-  
-  send_dl_dcch(&dl_dcch_msg, pdu);
-  
+
+  send_dl_dcch(&dl_dcch_msg, std::move(pdu));
+
   state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
 
 }
 
-void rrc::ue::send_connection_reconf(srslte::byte_buffer_t *pdu)
+void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer pdu)
 {
   dl_dcch_msg_s dl_dcch_msg;
   dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg().crit_exts.set_c1().set_rrc_conn_recfg_r8();
@@ -1781,14 +1778,14 @@ void rrc::ue::send_connection_reconf(srslte::byte_buffer_t *pdu)
   // Reuse same PDU
   pdu->reset();
 
-  send_dl_dcch(&dl_dcch_msg, pdu);
+  send_dl_dcch(&dl_dcch_msg, std::move(pdu));
 
   state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
 }
 
 void rrc::ue::send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT *e)
 {
-  srslte::byte_buffer_t *pdu = pool_allocate;
+  srslte::unique_byte_buffer pdu = srslte::allocate_unique_buffer(*pool);
 
   dl_dcch_msg_s dl_dcch_msg;
   dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg().crit_exts.set_c1().set_rrc_conn_recfg_r8();
@@ -1835,7 +1832,7 @@ void rrc::ue::send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBE
   conn_reconf->rr_cfg_ded.drb_to_add_mod_list_present = conn_reconf->rr_cfg_ded.drb_to_add_mod_list.size() > 0;
   conn_reconf->ded_info_nas_list_present              = conn_reconf->ded_info_nas_list.size() > 0;
 
-  send_dl_dcch(&dl_dcch_msg, pdu);
+  send_dl_dcch(&dl_dcch_msg, std::move(pdu));
 }
 
 void rrc::ue::send_security_mode_command()
@@ -1975,7 +1972,7 @@ bool rrc::ue::select_security_algorithms()
 void rrc::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
 {
   // Allocate a new PDU buffer, pack the message and send to PDCP
-  byte_buffer_t* pdu = pool_allocate_blocking;
+  srslte::unique_byte_buffer pdu = srslte::allocate_unique_buffer(*pool);
   if (pdu) {
     asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
     dl_ccch_msg->pack(bref);
@@ -1983,18 +1980,18 @@ void rrc::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
 
     char buf[32];
     sprintf(buf, "SRB0 - rnti=0x%x", rnti);
-    parent->log_rrc_message(buf, Tx, pdu, *dl_ccch_msg);
+    parent->log_rrc_message(buf, Tx, pdu.get(), *dl_ccch_msg);
 
-    parent->pdcp->write_sdu(rnti, RB_ID_SRB0, pdu);
+    parent->pdcp->write_sdu(rnti, RB_ID_SRB0, std::move(pdu));
   } else {
     parent->rrc_log->error("Allocating pdu\n");
   }
 }
 
-void rrc::ue::send_dl_dcch(dl_dcch_msg_s* dl_dcch_msg, byte_buffer_t* pdu)
+void rrc::ue::send_dl_dcch(dl_dcch_msg_s* dl_dcch_msg, srslte::unique_byte_buffer pdu)
 {  
   if (!pdu) {
-    pdu = pool_allocate_blocking;
+    pdu = srslte::allocate_unique_buffer(*pool);
   }
   if (pdu) {
     asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
@@ -2003,10 +2000,10 @@ void rrc::ue::send_dl_dcch(dl_dcch_msg_s* dl_dcch_msg, byte_buffer_t* pdu)
 
     char buf[32];
     sprintf(buf, "SRB1 - rnti=0x%x", rnti);
-    parent->log_rrc_message(buf, Tx, pdu, *dl_dcch_msg);
+    parent->log_rrc_message(buf, Tx, pdu.get(), *dl_dcch_msg);
 
-    parent->pdcp->write_sdu(rnti, RB_ID_SRB1, pdu);
-    
+    parent->pdcp->write_sdu(rnti, RB_ID_SRB1, std::move(pdu));
+
   } else {
     parent->rrc_log->error("Allocating pdu\n");
   }

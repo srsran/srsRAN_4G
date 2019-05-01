@@ -140,12 +140,12 @@ uint32_t rlc_um::get_bearer()
 /****************************************************************************
  * PDCP interface
  ***************************************************************************/
-void rlc_um::write_sdu(byte_buffer_t *sdu, bool blocking)
+void rlc_um::write_sdu(unique_byte_buffer sdu, bool blocking)
 {
   if (blocking) {
-    tx.write_sdu(sdu);
+    tx.write_sdu(std::move(sdu));
   } else {
-    tx.try_write_sdu(sdu);
+    tx.try_write_sdu(std::move(sdu));
   }
 }
 
@@ -213,7 +213,6 @@ std::string rlc_um::get_rb_name(srsue::rrc_interface_rlc *rrc, uint32_t lcid, bo
 rlc_um::rlc_um_tx::rlc_um_tx() :
   pool(byte_buffer_pool::get_instance()),
   log(NULL),
-  tx_sdu(NULL),
   vt_us(0),
   tx_enabled(false),
   num_tx_bytes(0)
@@ -272,16 +271,12 @@ void rlc_um::rlc_um_tx::empty_queue()
 
   // deallocate all SDUs in transmit queue
   while(tx_sdu_queue.size() > 0) {
-    byte_buffer_t *buf;
+    unique_byte_buffer buf;
     tx_sdu_queue.read(&buf);
-    pool->deallocate(buf);
   }
 
   // deallocate SDU that is currently processed
-  if(tx_sdu) {
-    pool->deallocate(tx_sdu);
-    tx_sdu = NULL;
-  }
+  tx_sdu.reset();
 
   pthread_mutex_unlock(&mutex);
 }
@@ -329,36 +324,38 @@ uint32_t rlc_um::rlc_um_tx::get_buffer_state()
   return n_bytes;
 }
 
-
-void rlc_um::rlc_um_tx::write_sdu(byte_buffer_t *sdu)
+void rlc_um::rlc_um_tx::write_sdu(unique_byte_buffer sdu)
 {
   if (!tx_enabled) {
-    byte_buffer_pool::get_instance()->deallocate(sdu);
     return;
   }
 
   if (sdu) {
-    tx_sdu_queue.write(sdu);
     log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", get_rb_name(), sdu->N_bytes, tx_sdu_queue.size());
+    tx_sdu_queue.write(std::move(sdu));
   } else {
     log->warning("NULL SDU pointer in write_sdu()\n");
   }
 }
 
-
-void rlc_um::rlc_um_tx::try_write_sdu(byte_buffer_t *sdu)
+void rlc_um::rlc_um_tx::try_write_sdu(unique_byte_buffer sdu)
 {
   if (!tx_enabled) {
-    byte_buffer_pool::get_instance()->deallocate(sdu);
+    sdu.reset();
     return;
   }
 
   if (sdu) {
-    if (tx_sdu_queue.try_write(sdu)) {
-      log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", get_rb_name(), sdu->N_bytes, tx_sdu_queue.size());
+    uint8_t* msg_ptr   = sdu->msg;
+    uint32_t nof_bytes = sdu->N_bytes;
+    if (tx_sdu_queue.try_write(std::move(sdu))) {
+      log->info_hex(
+          msg_ptr, nof_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", get_rb_name(), nof_bytes, tx_sdu_queue.size());
     } else {
-      log->info_hex(sdu->msg, sdu->N_bytes, "[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)", get_rb_name(), sdu->N_bytes, tx_sdu_queue.size());
-      pool->deallocate(sdu);
+#warning Find a more elegant solution - the msg was already deallocated at this point
+      log->info("[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)", get_rb_name(), nof_bytes, tx_sdu_queue.size());
+      //      log->info_hex(msg_ptr, nof_bytes, "[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)", get_rb_name(),
+      //      nof_bytes, tx_sdu_queue.size());
     }
   } else {
     log->warning("NULL SDU pointer in write_sdu()\n");
@@ -382,7 +379,7 @@ int rlc_um::rlc_um_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
     return 0;
   }
 
-  byte_buffer_t *pdu = pool_allocate;
+  unique_byte_buffer pdu = allocate_unique_buffer(*pool);
   if(!pdu || pdu->N_bytes != 0) {
     log->error("Failed to allocate PDU buffer\n");
     pthread_mutex_unlock(&mutex);
@@ -400,11 +397,10 @@ int rlc_um::rlc_um_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   uint8_t *pdu_ptr   = pdu->msg;
 
   int head_len  = rlc_um_packed_length(&header);
-  int pdu_space = SRSLTE_MIN(nof_bytes, pdu->get_tailroom());;
+  int pdu_space = SRSLTE_MIN(nof_bytes, pdu->get_tailroom());
 
   if(pdu_space <= head_len + 1)
   {
-    pool->deallocate(pdu);
     log->warning("%s Cannot build a PDU - %d bytes available, %d bytes required for header\n",
                  get_rb_name(), nof_bytes, head_len);
     pthread_mutex_unlock(&mutex);
@@ -428,8 +424,7 @@ int rlc_um::rlc_um_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
       log->debug("%s Complete SDU scheduled for tx. Stack latency: %ld us\n",
                  get_rb_name(), tx_sdu->get_latency_us());
 
-      pool->deallocate(tx_sdu);
-      tx_sdu = NULL;
+      tx_sdu.reset();
     }
     pdu_space -= SRSLTE_MIN(to_move, pdu->get_tailroom());
     header.fi |= RLC_FI_FIELD_NOT_START_ALIGNED; // First byte does not correspond to first byte of SDU
@@ -456,8 +451,7 @@ int rlc_um::rlc_um_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
       log->debug("%s Complete SDU scheduled for tx. Stack latency: %ld us\n",
                  get_rb_name(), tx_sdu->get_latency_us());
 
-      pool->deallocate(tx_sdu);
-      tx_sdu = NULL;
+      tx_sdu.reset();
     }
     pdu_space -= to_move;
   }
@@ -471,12 +465,11 @@ int rlc_um::rlc_um_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   vt_us = (vt_us + 1)%cfg.tx_mod;
 
   // Add header and TX
-  rlc_um_write_data_pdu_header(&header, pdu);
+  rlc_um_write_data_pdu_header(&header, pdu.get());
   memcpy(payload, pdu->msg, pdu->N_bytes);
   uint32_t ret = pdu->N_bytes;
 
   log->info_hex(payload, ret, "%s Tx PDU SN=%d (%d B)\n", get_rb_name(), header.sn, pdu->N_bytes);
-  pool->deallocate(pdu);
 
   debug_state();
 
@@ -509,7 +502,6 @@ rlc_um::rlc_um_rx::rlc_um_rx()
     ,log(NULL)
     ,pdcp(NULL)
     ,rrc(NULL)
-    ,rx_sdu(NULL)
     ,vr_ur(0)
     ,vr_ux (0)
     ,vr_uh(0)
@@ -582,16 +574,9 @@ void rlc_um::rlc_um_rx::reset()
   pdu_lost = false;
   rx_enabled = false;
 
-  if (rx_sdu) {
-    pool->deallocate(rx_sdu);
-    rx_sdu = NULL;
-  }
+  rx_sdu.reset();
 
   // Drop all messages in RX window
-  std::map<uint32_t, rlc_umd_pdu_t>::iterator it;
-  for(it = rx_window.begin(); it != rx_window.end(); it++) {
-    pool->deallocate(it->second.buf);
-  }
   rx_window.clear();
 }
 
@@ -630,7 +615,7 @@ void rlc_um::rlc_um_rx::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   }
 
   // Write to rx window
-  pdu.buf = pool_allocate;
+  pdu.buf = allocate_unique_buffer(*pool);
   if (!pdu.buf) {
     log->error("Discarting packet: no space in buffer pool\n");
     goto unlock_and_exit;
@@ -642,7 +627,7 @@ void rlc_um::rlc_um_rx::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   pdu.buf->msg += header_len;
   pdu.buf->N_bytes -= header_len;
   pdu.header = header;
-  rx_window[header.sn] = pdu;
+  rx_window[header.sn] = std::move(pdu);
 
   // Update vr_uh
   if(!inside_reordering_window(header.sn)) {
@@ -681,7 +666,7 @@ unlock_and_exit:
 void rlc_um::rlc_um_rx::reassemble_rx_sdus()
 {
   if(!rx_sdu) {
-    rx_sdu = pool_allocate;
+    rx_sdu = allocate_unique_buffer(*pool);
     if (!rx_sdu) {
       log->error("Fatal Error: Couldn't allocate buffer in rlc_um::reassemble_rx_sdus().\n");
       return;
@@ -724,11 +709,11 @@ void rlc_um::rlc_um_rx::reassemble_rx_sdus()
           log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU vr_ur=%d, i=%d (lower edge middle segments)", get_rb_name(), vr_ur, i);
           rx_sdu->set_timestamp();
           if(cfg.is_mrb){
-            pdcp->write_pdu_mch(lcid, rx_sdu);
+            pdcp->write_pdu_mch(lcid, std::move(rx_sdu));
           } else {
-            pdcp->write_pdu(lcid, rx_sdu);
+            pdcp->write_pdu(lcid, std::move(rx_sdu));
           }
-          rx_sdu = pool_allocate;
+          rx_sdu = allocate_unique_buffer(*pool);
           if (!rx_sdu) {
             log->error("Fatal Error: Couldn't allocate buffer in rlc_um::reassemble_rx_sdus().\n");
             return;
@@ -754,11 +739,11 @@ void rlc_um::rlc_um_rx::reassemble_rx_sdus()
             log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU vr_ur=%d (lower edge last segments)", get_rb_name(), vr_ur);
             rx_sdu->set_timestamp();
             if(cfg.is_mrb){
-              pdcp->write_pdu_mch(lcid, rx_sdu);
+              pdcp->write_pdu_mch(lcid, std::move(rx_sdu));
             } else {
-              pdcp->write_pdu(lcid, rx_sdu);
+              pdcp->write_pdu(lcid, std::move(rx_sdu));
             }
-            rx_sdu = pool_allocate;
+            rx_sdu = allocate_unique_buffer(*pool);
             if (!rx_sdu) {
               log->error("Fatal Error: Couldn't allocate buffer in rlc_um::reassemble_rx_sdus().\n");
               return;
@@ -769,7 +754,6 @@ void rlc_um::rlc_um_rx::reassemble_rx_sdus()
       }
 
       // Clean up rx_window
-      pool->deallocate(rx_window[vr_ur].buf);
       rx_window.erase(vr_ur);
     }
 
@@ -835,11 +819,11 @@ void rlc_um::rlc_um_rx::reassemble_rx_sdus()
         log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU vr_ur=%d, i=%d, (update vr_ur middle segments)", get_rb_name(), vr_ur, i);
         rx_sdu->set_timestamp();
         if(cfg.is_mrb){
-          pdcp->write_pdu_mch(lcid, rx_sdu);
+          pdcp->write_pdu_mch(lcid, std::move(rx_sdu));
         } else {
-          pdcp->write_pdu(lcid, rx_sdu);
+          pdcp->write_pdu(lcid, std::move(rx_sdu));
         }
-        rx_sdu = pool_allocate;
+        rx_sdu = allocate_unique_buffer(*pool);
         if (!rx_sdu) {
           log->error("Fatal Error: Couldn't allocate buffer in rlc_um::reassemble_rx_sdus().\n");
           return;
@@ -881,11 +865,11 @@ void rlc_um::rlc_um_rx::reassemble_rx_sdus()
         log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU vr_ur=%d (update vr_ur last segments)", get_rb_name(), vr_ur);
         rx_sdu->set_timestamp();
         if(cfg.is_mrb){
-          pdcp->write_pdu_mch(lcid, rx_sdu);
+          pdcp->write_pdu_mch(lcid, std::move(rx_sdu));
         } else {
-          pdcp->write_pdu(lcid, rx_sdu);
+          pdcp->write_pdu(lcid, std::move(rx_sdu));
         }
-        rx_sdu = pool_allocate;
+        rx_sdu = allocate_unique_buffer(*pool);
         if (!rx_sdu) {
           log->error("Fatal Error: Couldn't allocate buffer in rlc_um::reassemble_rx_sdus().\n");
           return;
@@ -896,7 +880,6 @@ void rlc_um::rlc_um_rx::reassemble_rx_sdus()
 
 clean_up_rx_window:
     // Clean up rx_window
-    pool->deallocate(rx_window[vr_ur].buf);
     rx_window.erase(vr_ur);
 
     vr_ur = (vr_ur + 1)%cfg.rx_mod;
@@ -1001,7 +984,7 @@ const char* rlc_um::rlc_um_rx::get_rb_name()
  * Ref: 3GPP TS 36.322 v10.0.0 Section 6.2.1
  ***************************************************************************/
 
-void rlc_um_read_data_pdu_header(byte_buffer_t *pdu, rlc_umd_sn_size_t sn_size, rlc_umd_pdu_header_t *header)
+void rlc_um_read_data_pdu_header(byte_buffer_t* pdu, rlc_umd_sn_size_t sn_size, rlc_umd_pdu_header_t* header)
 {
   rlc_um_read_data_pdu_header(pdu->msg, pdu->N_bytes, sn_size, header);
 }
@@ -1052,7 +1035,7 @@ void rlc_um_read_data_pdu_header(uint8_t *payload, uint32_t nof_bytes, rlc_umd_s
   }
 }
 
-void rlc_um_write_data_pdu_header(rlc_umd_pdu_header_t *header, byte_buffer_t *pdu)
+void rlc_um_write_data_pdu_header(rlc_umd_pdu_header_t* header, byte_buffer_t* pdu)
 {
   uint32_t i;
   uint8_t ext = (header->N_li > 0) ? 1 : 0;

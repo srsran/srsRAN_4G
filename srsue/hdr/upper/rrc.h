@@ -307,20 +307,19 @@ public:
 
   typedef enum { Rx = 0, Tx } direction_t;
   template <class T>
-  void
-  log_rrc_message(const std::string source, const direction_t dir, const srslte::unique_pool_buffer& pdu, const T& msg);
+  void log_rrc_message(const std::string source, const direction_t dir, const srslte::byte_buffer_t* pdu, const T& msg);
 
   void print_mbms();
   bool mbms_service_start(uint32_t serv, uint32_t port);
 
   // NAS interface
-  void     write_sdu(srslte::unique_pool_buffer sdu);
+  void     write_sdu(srslte::unique_byte_buffer sdu);
   void enable_capabilities();
   uint16_t get_mcc();
   uint16_t get_mnc();
   int plmn_search(found_plmn_t found_plmns[MAX_FOUND_PLMNS]);
   void     plmn_select(asn1::rrc::plmn_id_s plmn_id);
-  bool     connection_request(asn1::rrc::establishment_cause_e cause, srslte::unique_pool_buffer dedicated_info_nas);
+  bool     connection_request(asn1::rrc::establishment_cause_e cause, srslte::unique_byte_buffer dedicated_info_nas);
   void     set_ue_idenity(asn1::rrc::s_tmsi_s s_tmsi);
 
   // PHY interface
@@ -339,11 +338,11 @@ public:
   bool have_drb();
 
   // PDCP interface
-  void write_pdu(uint32_t lcid, srslte::unique_pool_buffer pdu);
-  void write_pdu_bcch_bch(srslte::unique_pool_buffer pdu);
-  void write_pdu_bcch_dlsch(srslte::unique_pool_buffer pdu);
-  void write_pdu_pcch(srslte::unique_pool_buffer pdu);
-  void write_pdu_mch(uint32_t lcid, srslte::unique_pool_buffer pdu);
+  void write_pdu(uint32_t lcid, srslte::unique_byte_buffer pdu);
+  void write_pdu_bcch_bch(srslte::unique_byte_buffer pdu);
+  void write_pdu_bcch_dlsch(srslte::unique_byte_buffer pdu);
+  void write_pdu_pcch(srslte::unique_byte_buffer pdu);
+  void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer pdu);
 
 private:
 
@@ -353,7 +352,7 @@ private:
       PCCH,
       STOP
     } command;
-    srslte::unique_pool_buffer pdu;
+    srslte::unique_byte_buffer pdu;
     uint16_t lcid;
   } cmd_msg_t;
 
@@ -361,7 +360,7 @@ private:
   srslte::block_queue<cmd_msg_t> cmd_q;
   void run_thread();
 
-  void process_pcch(srslte::unique_pool_buffer pdu);
+  void process_pcch(srslte::unique_byte_buffer pdu);
 
   srslte::byte_buffer_pool *pool;
   srslte::log *rrc_log;
@@ -373,7 +372,7 @@ private:
   usim_interface_rrc *usim;
   gw_interface_rrc    *gw;
 
-  srslte::unique_pool_buffer dedicated_info_nas;
+  srslte::unique_byte_buffer dedicated_info_nas;
 
   void send_ul_ccch_msg(const asn1::rrc::ul_ccch_msg_s& msg);
   void send_ul_dcch_msg(uint32_t lcid, const asn1::rrc::ul_dcch_msg_s& msg);
@@ -626,17 +625,17 @@ private:
   void send_con_request(asn1::rrc::establishment_cause_e cause);
   void send_con_restablish_request(asn1::rrc::reest_cause_e cause);
   void send_con_restablish_complete();
-  void send_con_setup_complete(srslte::unique_pool_buffer nas_msg);
-  void send_ul_info_transfer(srslte::unique_pool_buffer nas_msg);
+  void send_con_setup_complete(srslte::unique_byte_buffer nas_msg);
+  void send_ul_info_transfer(srslte::unique_byte_buffer nas_msg);
   void send_security_mode_complete();
   void send_rrc_con_reconfig_complete();
   void send_rrc_ue_cap_info();
 
   // Parsers
-  void process_pdu(uint32_t lcid, srslte::unique_pool_buffer pdu);
-  void parse_dl_ccch(srslte::unique_pool_buffer pdu);
-  void parse_dl_dcch(uint32_t lcid, srslte::unique_pool_buffer pdu);
-  void parse_dl_info_transfer(uint32_t lcid, srslte::unique_pool_buffer pdu);
+  void process_pdu(uint32_t lcid, srslte::unique_byte_buffer pdu);
+  void parse_dl_ccch(srslte::unique_byte_buffer pdu);
+  void parse_dl_dcch(uint32_t lcid, srslte::unique_byte_buffer pdu);
+  void parse_dl_info_transfer(uint32_t lcid, srslte::unique_byte_buffer pdu);
 
   // Helpers
   bool con_reconfig(asn1::rrc::rrc_conn_recfg_s* reconfig);

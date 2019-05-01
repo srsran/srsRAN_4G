@@ -199,7 +199,7 @@ void rlc::empty_queue()
   PDCP interface
 *******************************************************************************/
 
-void rlc::write_sdu(uint32_t lcid, unique_pool_buffer sdu, bool blocking)
+void rlc::write_sdu(uint32_t lcid, unique_byte_buffer sdu, bool blocking)
 {
   // FIXME: rework build PDU logic to allow large SDUs (without concatenation)
   if (sdu->N_bytes > RLC_MAX_SDU_SIZE) {
@@ -209,18 +209,18 @@ void rlc::write_sdu(uint32_t lcid, unique_pool_buffer sdu, bool blocking)
 
   pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
-    rlc_array.at(lcid)->write_sdu(sdu, blocking);
+    rlc_array.at(lcid)->write_sdu(std::move(sdu), blocking);
   } else {
     rlc_log->warning("RLC LCID %d doesn't exist. Deallocating SDU\n", lcid);
   }
   pthread_rwlock_unlock(&rwlock);
 }
 
-void rlc::write_sdu_mch(uint32_t lcid, unique_pool_buffer sdu)
+void rlc::write_sdu_mch(uint32_t lcid, unique_byte_buffer sdu)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid_mrb(lcid)) {
-    rlc_array_mrb.at(lcid)->write_sdu(sdu, false); // write in non-blocking mode by default
+    rlc_array_mrb.at(lcid)->write_sdu(std::move(sdu), false); // write in non-blocking mode by default
   } else {
     rlc_log->warning("RLC LCID %d doesn't exist. Deallocating SDU\n", lcid);
   }
@@ -331,12 +331,12 @@ void rlc::write_pdu(uint32_t lcid, uint8_t *payload, uint32_t nof_bytes)
 void rlc::write_pdu_bcch_bch(uint8_t *payload, uint32_t nof_bytes)
 {
   rlc_log->info_hex(payload, nof_bytes, "BCCH BCH message received.");
-  byte_buffer_t *buf = pool_allocate;
+  unique_byte_buffer buf = allocate_unique_buffer(*pool);
   if (buf != NULL) {
     memcpy(buf->msg, payload, nof_bytes);
     buf->N_bytes = nof_bytes;
     buf->set_timestamp();
-    pdcp->write_pdu_bcch_bch(buf);
+    pdcp->write_pdu_bcch_bch(std::move(buf));
   } else {
     rlc_log->error("Fatal error: Out of buffers from the pool in write_pdu_bcch_bch()\n");
   }
@@ -346,12 +346,12 @@ void rlc::write_pdu_bcch_bch(uint8_t *payload, uint32_t nof_bytes)
 void rlc::write_pdu_bcch_dlsch(uint8_t *payload, uint32_t nof_bytes)
 {
   rlc_log->info_hex(payload, nof_bytes, "BCCH TXSCH message received.");
-  byte_buffer_t *buf = pool_allocate;
+  unique_byte_buffer buf = allocate_unique_buffer(*pool);
   if (buf != NULL) {
     memcpy(buf->msg, payload, nof_bytes);
     buf->N_bytes = nof_bytes;
     buf->set_timestamp();
-    pdcp->write_pdu_bcch_dlsch(buf);
+    pdcp->write_pdu_bcch_dlsch(std::move(buf));
   } else {
     rlc_log->error("Fatal error: Out of buffers from the pool in write_pdu_bcch_dlsch()\n");
   }
@@ -361,12 +361,12 @@ void rlc::write_pdu_bcch_dlsch(uint8_t *payload, uint32_t nof_bytes)
 void rlc::write_pdu_pcch(uint8_t *payload, uint32_t nof_bytes)
 {
   rlc_log->info_hex(payload, nof_bytes, "PCCH message received.");
-  byte_buffer_t *buf = pool_allocate;
+  unique_byte_buffer buf = allocate_unique_buffer(*pool);
   if (buf != NULL) {
     memcpy(buf->msg, payload, nof_bytes);
     buf->N_bytes = nof_bytes;
     buf->set_timestamp();
-    pdcp->write_pdu_pcch(buf);
+    pdcp->write_pdu_pcch(std::move(buf));
   } else {
     rlc_log->error("Fatal error: Out of buffers from the pool in write_pdu_pcch()\n");
   }

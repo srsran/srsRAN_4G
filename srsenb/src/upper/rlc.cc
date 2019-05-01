@@ -177,18 +177,17 @@ void rlc::read_pdu_bcch_dlsch(uint32_t sib_index, uint8_t *payload)
   rrc->read_pdu_bcch_dlsch(sib_index, payload);
 }
 
-void rlc::write_sdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* sdu)
+void rlc::write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer sdu)
 {
-  
   uint32_t tx_queue;
 
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti)) {
     if(rnti != SRSLTE_MRNTI){
-      users[rnti].rlc->write_sdu(lcid, sdu, false);
+      users[rnti].rlc->write_sdu(lcid, std::move(sdu), false);
       tx_queue   = users[rnti].rlc->get_buffer_state(lcid);
     }else {
-      users[rnti].rlc->write_sdu_mch(lcid, sdu);
+      users[rnti].rlc->write_sdu_mch(lcid, std::move(sdu));
       tx_queue   = users[rnti].rlc->get_total_mch_buffer_state(lcid);
     }
     // In the eNodeB, there is no polling for buffer state from the scheduler, thus 
@@ -197,8 +196,6 @@ void rlc::write_sdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* sdu)
     uint32_t retx_queue = 0; 
     mac->rlc_buffer_state(rnti, lcid, tx_queue, retx_queue);
     log_h->info("Buffer state: rnti=0x%x, lcid=%d, tx_queue=%d\n", rnti, lcid, tx_queue);
-  } else {
-    pool->deallocate(sdu);
   }
   pthread_rwlock_unlock(&rwlock);
 }
@@ -218,22 +215,22 @@ void rlc::user_interface::max_retx_attempted()
   rrc->max_retx_attempted(rnti);
 }
 
-void rlc::user_interface::write_pdu(uint32_t lcid, srslte::byte_buffer_t* sdu)
+void rlc::user_interface::write_pdu(uint32_t lcid, srslte::unique_byte_buffer sdu)
 {
-  pdcp->write_pdu(rnti, lcid, sdu);
+  pdcp->write_pdu(rnti, lcid, std::move(sdu));
 }
 
-void rlc::user_interface::write_pdu_bcch_bch(srslte::byte_buffer_t* sdu)
-{
-  ERROR("Error: Received BCCH from ue=%d\n", rnti);
-}
-
-void rlc::user_interface::write_pdu_bcch_dlsch(srslte::byte_buffer_t* sdu)
+void rlc::user_interface::write_pdu_bcch_bch(srslte::unique_byte_buffer sdu)
 {
   ERROR("Error: Received BCCH from ue=%d\n", rnti);
 }
 
-void rlc::user_interface::write_pdu_pcch(srslte::byte_buffer_t* sdu)
+void rlc::user_interface::write_pdu_bcch_dlsch(srslte::unique_byte_buffer sdu)
+{
+  ERROR("Error: Received BCCH from ue=%d\n", rnti);
+}
+
+void rlc::user_interface::write_pdu_pcch(srslte::unique_byte_buffer sdu)
 {
   ERROR("Error: Received PCCH from ue=%d\n", rnti);
 }

@@ -130,60 +130,58 @@ void pdcp::enable_encryption(uint16_t rnti, uint32_t lcid)
   pthread_rwlock_unlock(&rwlock);
 }
 
-void pdcp::write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t* sdu)
+void pdcp::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer sdu)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti)) {
-    users[rnti].pdcp->write_pdu(lcid, sdu);
-  } else {
-    pool->deallocate(sdu);
+    users[rnti].pdcp->write_pdu(lcid, std::move(sdu));
   }
   pthread_rwlock_unlock(&rwlock);
 }
 
-void pdcp::write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_pool_buffer sdu)
+void pdcp::write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer sdu)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti)) {
     if(rnti != SRSLTE_MRNTI){
-      users[rnti].pdcp->write_sdu(lcid, sdu);
+      users[rnti].pdcp->write_sdu(lcid, std::move(sdu));
     }else {
-      users[rnti].pdcp->write_sdu_mch(lcid, sdu);
+      users[rnti].pdcp->write_sdu_mch(lcid, std::move(sdu));
     }
   }
   pthread_rwlock_unlock(&rwlock);
 }
 
-void pdcp::user_interface_gtpu::write_pdu(uint32_t lcid, srslte::byte_buffer_t *pdu)
+void pdcp::user_interface_gtpu::write_pdu(uint32_t lcid, srslte::unique_byte_buffer pdu)
 {
-  gtpu->write_pdu(rnti, lcid, pdu);
+  gtpu->write_pdu(rnti, lcid, std::move(pdu));
 }
 
-void pdcp::user_interface_rlc::write_sdu(uint32_t lcid, srslte::byte_buffer_t* sdu, bool blocking)
+void pdcp::user_interface_rlc::write_sdu(uint32_t lcid, srslte::unique_byte_buffer sdu, bool blocking)
 {
-  rlc->write_sdu(rnti, lcid, sdu);
+  rlc->write_sdu(rnti, lcid, std::move(sdu));
 }
 
 bool pdcp::user_interface_rlc::rb_is_um(uint32_t lcid) {
   return rlc->rb_is_um(rnti, lcid);
 }
 
-void pdcp::user_interface_rrc::write_pdu(uint32_t lcid, srslte::byte_buffer_t* pdu)
+void pdcp::user_interface_rrc::write_pdu(uint32_t lcid, srslte::unique_byte_buffer pdu)
 {
-  rrc->write_pdu(rnti, lcid, pdu);
+  rrc->write_pdu(rnti, lcid, std::move(pdu));
 }
 
-void pdcp::user_interface_rrc::write_pdu_bcch_bch(srslte::byte_buffer_t* pdu)
-{
-  ERROR("Error: Received BCCH from ue=%d\n", rnti);
-}
-
-void pdcp::user_interface_rrc::write_pdu_bcch_dlsch(srslte::byte_buffer_t* pdu)
+void pdcp::user_interface_rrc::write_pdu_bcch_bch(srslte::unique_byte_buffer pdu)
 {
   ERROR("Error: Received BCCH from ue=%d\n", rnti);
 }
 
-void pdcp::user_interface_rrc::write_pdu_pcch(srslte::byte_buffer_t* pdu)
+void pdcp::user_interface_rrc::write_pdu_bcch_dlsch(srslte::unique_byte_buffer pdu)
+{
+  ERROR("Error: Received BCCH from ue=%d\n", rnti);
+}
+
+void pdcp::user_interface_rrc::write_pdu_pcch(srslte::unique_byte_buffer pdu)
 {
   ERROR("Error: Received PCCH from ue=%d\n", rnti);
 }

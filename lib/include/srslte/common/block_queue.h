@@ -49,15 +49,16 @@ public:
   // Callback functions for mutexed operations inside pop/push methods
   class call_mutexed_itf {
   public:
-    virtual void popping(myobj obj) = 0;
-    virtual void pushing(myobj obj) = 0;
+    virtual void popping(const myobj& obj) = 0;
+    virtual void pushing(const myobj& obj) = 0;
   };
 
-  block_queue<myobj>(int capacity = -1) {
+  explicit block_queue<myobj>(int capacity_ = -1)
+  {
     pthread_mutex_init(&mutex, NULL);
     pthread_cond_init(&cv_empty, NULL);
     pthread_cond_init(&cv_full, NULL);
-    this->capacity = capacity;
+    capacity         = capacity_;
     mutexed_callback = NULL;
     enable = true;
     num_threads = 0;
@@ -93,9 +94,13 @@ public:
     push_(value, true);
   }
 
+  void push(myobj&& value) { push_(std::move(value), true); }
+
   bool try_push(const myobj& value) {
     return push_(value, false);
   }
+
+  bool try_push(myobj&& value) { return push_(std::move(value), false); }
 
   bool try_pop(myobj *value) {
     return pop_(value, false);
@@ -144,13 +149,13 @@ private:
       goto exit;
     }
     if (value) {
-      *value = q.front();
+      *value = std::move(q.front());
+    }
+    if (mutexed_callback) {
+      mutexed_callback->popping(*value); // FIXME: Value might be null!
     }
     q.pop();
     ret = true;
-    if (mutexed_callback) {
-      mutexed_callback->popping(*value);
-    }
     pthread_cond_signal(&cv_full);
   exit:
     num_threads--;
@@ -158,7 +163,9 @@ private:
     return ret;
   }
 
-  bool push_(const myobj& value, bool block) {
+  template <typename MyObj> // universal ref
+  bool push_(MyObj&& value, bool block)
+  {
     if (!enable) {
       return false;
     }
@@ -177,11 +184,11 @@ private:
         goto exit;
       }
     }
-    q.push(value);
-    ret = true;
     if (mutexed_callback) {
       mutexed_callback->pushing(value);
     }
+    q.push(std::forward<MyObj>(value));
+    ret = true;
     pthread_cond_signal(&cv_empty);
   exit:
     num_threads--;

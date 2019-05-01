@@ -112,7 +112,7 @@ bool pdcp_entity::is_active()
 }
 
 // GW/RRC interface
-void pdcp_entity::write_sdu(unique_pool_buffer sdu, bool blocking)
+void pdcp_entity::write_sdu(unique_byte_buffer sdu, bool blocking)
 {
   log->info_hex(sdu->msg, sdu->N_bytes,
         "TX %s SDU, SN: %d, do_integrity = %s, do_encryption = %s",
@@ -178,7 +178,7 @@ void pdcp_entity::enable_encryption()
 }
 
 // RLC interface
-void pdcp_entity::write_pdu(unique_pool_buffer pdu)
+void pdcp_entity::write_pdu(unique_byte_buffer pdu)
 {
   log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU, do_integrity = %s, do_encryption = %s",
                 rrc->get_rb_name(lcid).c_str(), (do_integrity) ? "true" : "false", (do_encryption) ? "true" : "false");

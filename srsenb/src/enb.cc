@@ -42,12 +42,12 @@ enb* enb::get_instance(void)
 void enb::cleanup(void)
 {
   srslte_dft_exit();
-  srslte::byte_buffer_pool::cleanup();
   pthread_mutex_lock(&enb_instance_mutex);
   if(NULL != instance) {
       delete instance;
       instance = NULL;
   }
+  srslte::byte_buffer_pool::cleanup(); // pool has to be cleaned after enb is deleted
   pthread_mutex_unlock(&enb_instance_mutex);
 }
 

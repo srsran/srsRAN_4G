@@ -87,7 +87,7 @@ void s1ap::get_metrics(s1ap_metrics_t &m)
 
 void s1ap::run_thread()
 {
-  srslte::byte_buffer_t *pdu = pool->allocate("s1ap::run_thread");
+  srslte::unique_byte_buffer pdu = srslte::allocate_unique_buffer(*pool, "s1ap::run_thread");
   if (!pdu) {
     s1ap_log->error("Fatal Error: Couldn't allocate buffer in s1ap::run_thread().\n");
     return;
@@ -131,7 +131,7 @@ void s1ap::run_thread()
     }
 
     s1ap_log->info_hex(pdu->msg, pdu->N_bytes, "Received S1AP PDU");
-    handle_s1ap_rx_pdu(pdu);
+    handle_s1ap_rx_pdu(pdu.get());
   }
 }
 
@@ -174,25 +174,29 @@ void s1ap::build_tai_cgi()
 /*******************************************************************************
 /* RRC interface
 ********************************************************************************/
-void s1ap::initial_ue(uint16_t rnti, LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause, srslte::byte_buffer_t *pdu)
+void s1ap::initial_ue(uint16_t rnti, LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause, srslte::unique_byte_buffer pdu)
 {
   ue_ctxt_map[rnti].eNB_UE_S1AP_ID = next_eNB_UE_S1AP_ID++;
   ue_ctxt_map[rnti].stream_id      = 1;
   ue_ctxt_map[rnti].release_requested = false;
   enbid_to_rnti_map[ue_ctxt_map[rnti].eNB_UE_S1AP_ID] = rnti;
-  send_initialuemessage(rnti, cause, pdu, false);
+  send_initialuemessage(rnti, cause, std::move(pdu), false);
 }
 
-void s1ap::initial_ue(uint16_t rnti, LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause, srslte::byte_buffer_t *pdu, uint32_t m_tmsi, uint8_t mmec)
+void s1ap::initial_ue(uint16_t                                 rnti,
+                      LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause,
+                      srslte::unique_byte_buffer               pdu,
+                      uint32_t                                 m_tmsi,
+                      uint8_t                                  mmec)
 {
   ue_ctxt_map[rnti].eNB_UE_S1AP_ID = next_eNB_UE_S1AP_ID++;
   ue_ctxt_map[rnti].stream_id      = 1;
   ue_ctxt_map[rnti].release_requested = false;
   enbid_to_rnti_map[ue_ctxt_map[rnti].eNB_UE_S1AP_ID] = rnti;
-  send_initialuemessage(rnti, cause, pdu, true, m_tmsi, mmec);
+  send_initialuemessage(rnti, cause, std::move(pdu), true, m_tmsi, mmec);
 }
 
-void s1ap::write_pdu(uint16_t rnti, srslte::byte_buffer_t *pdu)
+void s1ap::write_pdu(uint16_t rnti, srslte::unique_byte_buffer pdu)
 {
   s1ap_log->info_hex(pdu->msg, pdu->N_bytes, "Received RRC SDU");
 
@@ -201,7 +205,7 @@ void s1ap::write_pdu(uint16_t rnti, srslte::byte_buffer_t *pdu)
     return;
   }
 
-  send_ulnastransport(rnti, pdu);
+  send_ulnastransport(rnti, std::move(pdu));
 }
 
 bool s1ap::user_release(uint16_t rnti, LIBLTE_S1AP_CAUSERADIONETWORK_ENUM cause_radio)
@@ -382,7 +386,7 @@ bool s1ap::setup_s1()
 /* S1AP message handlers
 ********************************************************************************/
 
-bool s1ap::handle_s1ap_rx_pdu(srslte::byte_buffer_t *pdu)
+bool s1ap::handle_s1ap_rx_pdu(srslte::byte_buffer_t* pdu)
 {
   LIBLTE_S1AP_S1AP_PDU_STRUCT rx_pdu;
 
@@ -394,13 +398,10 @@ bool s1ap::handle_s1ap_rx_pdu(srslte::byte_buffer_t *pdu)
   switch(rx_pdu.choice_type) {
   case LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE:
     return handle_initiatingmessage(&rx_pdu.choice.initiatingMessage);
-    break;
   case LIBLTE_S1AP_S1AP_PDU_CHOICE_SUCCESSFULOUTCOME:
     return handle_successfuloutcome(&rx_pdu.choice.successfulOutcome);
-    break;
   case LIBLTE_S1AP_S1AP_PDU_CHOICE_UNSUCCESSFULOUTCOME:
     return handle_unsuccessfuloutcome(&rx_pdu.choice.unsuccessfulOutcome);
-    break;
   default:
     s1ap_log->error("Unhandled PDU type %d\n", rx_pdu.choice_type);
     return false;
@@ -478,11 +479,11 @@ bool s1ap::handle_dlnastransport(LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT
     s1ap_log->warning("Not handling SubscriberProfileIDforRFP\n");
   }
 
-  srslte::byte_buffer_t *pdu = pool_allocate;
+  srslte::unique_byte_buffer pdu = srslte::allocate_unique_buffer(*pool);
   if (pdu) {
     memcpy(pdu->msg, msg->NAS_PDU.buffer, msg->NAS_PDU.n_octets);
     pdu->N_bytes = msg->NAS_PDU.n_octets;
-    rrc->write_dl_info(rnti, pdu);
+    rrc->write_dl_info(rnti, std::move(pdu));
     return true;
   } else {
     s1ap_log->error("Fatal Error: Couldn't allocate buffer in s1ap::run_thread().\n");
@@ -617,7 +618,12 @@ bool s1ap::handle_s1setupfailure(LIBLTE_S1AP_MESSAGE_S1SETUPFAILURE_STRUCT *msg)
 /* S1AP message senders
 ********************************************************************************/
 
-bool s1ap::send_initialuemessage(uint16_t rnti, LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause, srslte::byte_buffer_t *pdu, bool has_tmsi, uint32_t m_tmsi, uint8_t mmec)
+bool s1ap::send_initialuemessage(uint16_t                                 rnti,
+                                 LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause,
+                                 srslte::unique_byte_buffer               pdu,
+                                 bool                                     has_tmsi,
+                                 uint32_t                                 m_tmsi,
+                                 uint8_t                                  mmec)
 {
   if(!mme_connected) {
     return false;
@@ -686,7 +692,7 @@ bool s1ap::send_initialuemessage(uint16_t rnti, LIBLTE_S1AP_RRC_ESTABLISHMENT_CA
   return true;
 }
 
-bool s1ap::send_ulnastransport(uint16_t rnti, srslte::byte_buffer_t *pdu)
+bool s1ap::send_ulnastransport(uint16_t rnti, srslte::unique_byte_buffer pdu)
 {
   if(!mme_connected) {
     return false;
@@ -819,7 +825,7 @@ bool s1ap::send_initial_ctxt_setup_response(uint16_t rnti, LIBLTE_S1AP_MESSAGE_I
   if(!mme_connected) {
     return false;
   }
-  srslte::byte_buffer_t *buf = pool_allocate;
+  srslte::unique_byte_buffer buf = srslte::allocate_unique_buffer(*pool);
   if (!buf) {
     s1ap_log->error("Fatal Error: Couldn't allocate buffer in s1ap::send_initial_ctxt_setup_response().\n");
     return false;
@@ -851,14 +857,12 @@ bool s1ap::send_initial_ctxt_setup_response(uint16_t rnti, LIBLTE_S1AP_MESSAGE_I
   res->MME_UE_S1AP_ID.MME_UE_S1AP_ID = ue_ctxt_map[rnti].MME_UE_S1AP_ID;
   res->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ue_ctxt_map[rnti].eNB_UE_S1AP_ID;
 
-  liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT*)buf);
+  liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT*)buf.get());
   s1ap_log->info_hex(buf->msg, buf->N_bytes, "Sending InitialContextSetupResponse for RNTI:0x%x", rnti);
 
   ssize_t n_sent = sctp_sendmsg(socket_fd, buf->msg, buf->N_bytes,
                                 (struct sockaddr*)&mme_addr, sizeof(struct sockaddr_in),
                                 htonl(PPID), 0, ue_ctxt_map[rnti].stream_id, 0, 0);
-
-  pool->deallocate(buf);
 
   if(n_sent == -1) {
     s1ap_log->error("Failed to send InitialContextSetupResponse for RNTI:0x%x\n", rnti);
@@ -873,7 +877,7 @@ bool s1ap::send_erab_setup_response(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETU
   if(!mme_connected) {
     return false;
   }
-  srslte::byte_buffer_t *buf = pool_allocate;
+  srslte::unique_byte_buffer buf = srslte::allocate_unique_buffer(*pool);
   if (!buf) {
     s1ap_log->error("Fatal Error: Couldn't allocate buffer in s1ap::send_erab_setup_response().\n");
     return false;
@@ -905,14 +909,12 @@ bool s1ap::send_erab_setup_response(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETU
   res->MME_UE_S1AP_ID.MME_UE_S1AP_ID = ue_ctxt_map[rnti].MME_UE_S1AP_ID;
   res->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ue_ctxt_map[rnti].eNB_UE_S1AP_ID;
 
-  liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT*)buf);
+  liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT*)buf.get());
   s1ap_log->info_hex(buf->msg, buf->N_bytes, "Sending E_RABSetupResponse for RNTI:0x%x", rnti);
 
   ssize_t n_sent = sctp_sendmsg(socket_fd, buf->msg, buf->N_bytes,
                                 (struct sockaddr*)&mme_addr, sizeof(struct sockaddr_in),
                                 htonl(PPID), 0, ue_ctxt_map[rnti].stream_id, 0, 0);
-
-  pool->deallocate(buf);
 
   if(n_sent == -1) {
     s1ap_log->error("Failed to send E_RABSetupResponse for RNTI:0x%x\n", rnti);
@@ -927,7 +929,7 @@ bool s1ap::send_initial_ctxt_setup_failure(uint16_t rnti)
   if(!mme_connected) {
     return false;
   }
-  srslte::byte_buffer_t *buf = pool_allocate;
+  srslte::unique_byte_buffer buf = srslte::allocate_unique_buffer(*pool);
   if (!buf) {
     s1ap_log->error("Fatal Error: Couldn't allocate buffer in s1ap::send_initial_ctxt_setup_failure().\n");
     return false;
@@ -953,14 +955,12 @@ bool s1ap::send_initial_ctxt_setup_failure(uint16_t rnti)
   fail->Cause.choice.radioNetwork.ext = false;
   fail->Cause.choice.radioNetwork.e   = LIBLTE_S1AP_CAUSERADIONETWORK_UNSPECIFIED;
 
-  liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT*)buf);
+  liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT*)buf.get());
   s1ap_log->info_hex(buf->msg, buf->N_bytes, "Sending InitialContextSetupFailure for RNTI:0x%x", rnti);
 
   ssize_t n_sent = sctp_sendmsg(socket_fd, buf->msg, buf->N_bytes,
                                 (struct sockaddr*)&mme_addr, sizeof(struct sockaddr_in),
                                 htonl(PPID), 0, ue_ctxt_map[rnti].stream_id, 0, 0);
-
-  pool->deallocate(buf);
 
   if(n_sent == -1) {
     s1ap_log->error("Failed to send UplinkNASTransport for RNTI:0x%x\n", rnti);

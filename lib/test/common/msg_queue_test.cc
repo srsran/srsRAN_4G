@@ -21,8 +21,9 @@
 
 #define NMSGS    1000000
 
-#include <stdio.h>
+#include "srslte/common/buffer_pool.h"
 #include "srslte/upper/rlc_tx_queue.h"
+#include <stdio.h>
 
 using namespace srslte;
 
@@ -32,12 +33,13 @@ typedef struct {
 
 void* write_thread(void *a) {
   args_t *args = (args_t*)a;
+  byte_buffer_pool* pool = byte_buffer_pool::get_instance();
   for(uint32_t i=0;i<NMSGS;i++)
   {
-    byte_buffer_t *b = new byte_buffer_t;
+    unique_byte_buffer b = srslte::allocate_unique_buffer(*pool, true);
     memcpy(b->msg, &i, 4);
     b->N_bytes = 4;
-    args->q->write(b);
+    args->q->write(std::move(b));
   }
   return NULL;
 }
@@ -45,7 +47,7 @@ void* write_thread(void *a) {
 int main(int argc, char **argv) {
   bool                 result;
   rlc_tx_queue         q;
-  byte_buffer_t       *b;
+  unique_byte_buffer   b;
   pthread_t            thread;
   args_t               args;
   u_int32_t            r;
@@ -59,7 +61,6 @@ int main(int argc, char **argv) {
   {
     q.read(&b);
     memcpy(&r, b->msg, 4);
-    delete b;
     if(r != i)
       result = false;
   }

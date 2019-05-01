@@ -146,7 +146,8 @@ public:
 private:
   void run_tti(rlc_interface_mac *tx_rlc, rlc_interface_mac *rx_rlc, bool is_dl)
   {
-    byte_buffer_t *pdu = byte_buffer_pool::get_instance()->allocate(__PRETTY_FUNCTION__);
+    byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
+    unique_byte_buffer pdu  = srslte::allocate_unique_buffer(*pool, __PRETTY_FUNCTION__, true);
     if (!pdu) {
       printf("Fatal Error: Could not allocate PDU in mac_reader::run_thread\n");
       exit(-1);
@@ -175,7 +176,6 @@ private:
         log.warning_hex(pdu->msg, pdu->N_bytes, "Dropping RLC PDU (%d B)\n", pdu->N_bytes);
       }
     }
-    byte_buffer_pool::get_instance()->deallocate(pdu);
   }
 
   void run_thread()
@@ -229,7 +229,7 @@ public:
   }
 
   // PDCP interface
-  void write_pdu(uint32_t rx_lcid, byte_buffer_t *sdu)
+  void write_pdu(uint32_t rx_lcid, unique_byte_buffer sdu)
   {
     assert(rx_lcid == lcid);
     if (sdu->N_bytes != args.sdu_size) {
@@ -237,14 +237,13 @@ public:
       exit(-1);
     }
 
-    byte_buffer_pool::get_instance()->deallocate(sdu);
     rx_pdus++;
   }
-  void write_pdu_bcch_bch(byte_buffer_t *sdu) {}
-  void write_pdu_bcch_dlsch(byte_buffer_t *sdu) {}
-  void write_pdu_pcch(byte_buffer_t *sdu) {}
-  void write_pdu_mch(uint32_t lcid, srslte::byte_buffer_t *sdu) {}
-  
+  void write_pdu_bcch_bch(unique_byte_buffer sdu) {}
+  void write_pdu_bcch_dlsch(unique_byte_buffer sdu) {}
+  void write_pdu_pcch(unique_byte_buffer sdu) {}
+  void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer sdu) {}
+
   // RRC interface
   void max_retx_attempted(){}
   std::string get_rb_name(uint32_t rx_lcid) { return std::string("DRB1"); }
@@ -254,8 +253,9 @@ public:
 private:
   void run_thread() {
     uint8_t sn = 0;
+    byte_buffer_pool* pool = byte_buffer_pool::get_instance();
     while(run_enable) {
-      byte_buffer_t *pdu = byte_buffer_pool::get_instance()->allocate("rlc_tester::run_thread");
+      unique_byte_buffer pdu = srslte::allocate_unique_buffer(*pool, "rlc_tester::run_thread", true);
       if (pdu == NULL) {
         printf("Error: Could not allocate PDU in rlc_tester::run_thread\n\n\n");
         // backoff for a bit
@@ -267,7 +267,7 @@ private:
       }
       sn++;
       pdu->N_bytes = args.sdu_size;
-      rlc->write_sdu(lcid, pdu);
+      rlc->write_sdu(lcid, std::move(pdu));
       if (args.sdu_gen_delay_usec > 0) {
         usleep(args.sdu_gen_delay_usec);
       }

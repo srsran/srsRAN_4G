@@ -179,7 +179,7 @@ class rlc_interface_pdcp
 public:
   /* PDCP calls RLC to push an RLC SDU. SDU gets placed into the RLC buffer and MAC pulls
    * RLC PDUs according to TB size. */
-  virtual void write_sdu(uint16_t rnti, uint32_t lcid,  srslte::byte_buffer_t *sdu) = 0;
+  virtual void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer sdu) = 0;
   virtual bool rb_is_um(uint16_t rnti, uint32_t lcid) = 0;
 };
 
@@ -199,7 +199,7 @@ public:
 class pdcp_interface_gtpu
 {
 public:
-  virtual void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_pool_buffer sdu) = 0;
+  virtual void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer sdu) = 0;
 };
 
 // PDCP interface for RRC
@@ -208,8 +208,8 @@ class pdcp_interface_rrc
 public:
   virtual void reset(uint16_t rnti) = 0;
   virtual void add_user(uint16_t rnti) = 0; 
-  virtual void rem_user(uint16_t rnti) = 0; 
-  virtual void write_sdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t *sdu) = 0;
+  virtual void rem_user(uint16_t rnti) = 0;
+  virtual void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer sdu)     = 0;
   virtual void add_bearer(uint16_t rnti, uint32_t lcid, srslte::srslte_pdcp_config_t cnfg) = 0;
   virtual void config_security(uint16_t rnti, 
                                uint32_t lcid,
@@ -227,7 +227,7 @@ class pdcp_interface_rlc
 {
 public:
   /* RLC calls PDCP to push a PDCP PDU. */
-  virtual void write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t *sdu) = 0;
+  virtual void write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer sdu) = 0;
 };
 
 // RRC interface for RLC
@@ -255,14 +255,14 @@ public:
 class rrc_interface_pdcp
 {
 public:
-  virtual void write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t *pdu) = 0;  
+  virtual void write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer pdu) = 0;
 };
 
 // RRC interface for S1AP
 class rrc_interface_s1ap
 {
 public:
-  virtual void write_dl_info(uint16_t rnti, srslte::byte_buffer_t *sdu) = 0;
+  virtual void write_dl_info(uint16_t rnti, srslte::unique_byte_buffer sdu)                             = 0;
   virtual void release_complete(uint16_t rnti) = 0;
   virtual bool setup_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT *msg) = 0;
   virtual bool setup_ue_erabs(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPREQUEST_STRUCT *msg) = 0;
@@ -274,7 +274,7 @@ public:
 class gtpu_interface_pdcp
 {
 public:
-  virtual void write_pdu(uint16_t rnti, uint32_t lcid, srslte::byte_buffer_t *pdu) = 0;
+  virtual void write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer pdu) = 0;
 };
 
 // GTPU interface for RRC
@@ -290,9 +290,14 @@ public:
 class s1ap_interface_rrc
 {
 public:
-  virtual void initial_ue(uint16_t rnti, LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause, srslte::byte_buffer_t *pdu) = 0;
-  virtual void initial_ue(uint16_t rnti, LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause, srslte::byte_buffer_t *pdu, uint32_t m_tmsi, uint8_t mmec) = 0;
-  virtual void write_pdu(uint16_t rnti, srslte::byte_buffer_t *pdu) = 0;
+  virtual void
+               initial_ue(uint16_t rnti, LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause, srslte::unique_byte_buffer pdu) = 0;
+  virtual void initial_ue(uint16_t                                 rnti,
+                          LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause,
+                          srslte::unique_byte_buffer               pdu,
+                          uint32_t                                 m_tmsi,
+                          uint8_t                                  mmec)                                                                           = 0;
+  virtual void write_pdu(uint16_t rnti, srslte::unique_byte_buffer pdu)                                           = 0;
   virtual bool user_exists(uint16_t rnti) = 0; 
   virtual bool user_release(uint16_t rnti, LIBLTE_S1AP_CAUSERADIONETWORK_ENUM cause_radio) = 0;
   virtual void ue_ctxt_setup_complete(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT *res) = 0;

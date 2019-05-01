@@ -39,7 +39,7 @@ namespace srslte {
 
 struct rlc_amd_rx_pdu_t{
   rlc_amd_pdu_header_t  header;
-  byte_buffer_t         *buf;
+  unique_byte_buffer    buf;
 };
 
 struct rlc_amd_rx_pdu_segments_t{
@@ -48,7 +48,7 @@ struct rlc_amd_rx_pdu_segments_t{
 
 struct rlc_amd_tx_pdu_t{
   rlc_amd_pdu_header_t  header;
-  byte_buffer_t        *buf;
+  unique_byte_buffer    buf;
   uint32_t              retx_count;
   bool                  is_acked;
 };
@@ -81,7 +81,7 @@ public:
   uint32_t      get_bearer();
 
   // PDCP interface
-  void write_sdu(unique_pool_buffer sdu, bool blocking = true);
+  void write_sdu(unique_byte_buffer sdu, bool blocking = true);
 
   // MAC interface
   bool     has_data();
@@ -109,7 +109,7 @@ private:
     void reestablish();
     void stop();
 
-    void write_sdu(unique_pool_buffer sdu, bool blocking);
+    void write_sdu(unique_byte_buffer sdu, bool blocking);
     int read_pdu(uint8_t *payload, uint32_t nof_bytes);
 
     bool     has_data();
@@ -155,8 +155,9 @@ private:
     srslte_rlc_am_config_t cfg;
 
     // TX SDU buffers
-    rlc_tx_queue   tx_sdu_queue;
-    byte_buffer_t *tx_sdu;;
+    rlc_tx_queue       tx_sdu_queue;
+    unique_byte_buffer tx_sdu;
+    ;
 
     bool           tx_enabled;
 
@@ -245,7 +246,7 @@ private:
     srslte_rlc_am_config_t cfg;
 
     // RX SDU buffers
-    byte_buffer_t *rx_sdu;
+    unique_byte_buffer rx_sdu;
 
     /****************************************************************************
      * State variables and counters

@@ -56,8 +56,8 @@ public:
   void get_metrics(rlc_metrics_t &m);
 
   // PDCP interface
-  void write_sdu(uint32_t lcid, unique_pool_buffer sdu, bool blocking = true);
-  void write_sdu_mch(uint32_t lcid, unique_pool_buffer sdu);
+  void write_sdu(uint32_t lcid, unique_byte_buffer sdu, bool blocking = true);
+  void write_sdu_mch(uint32_t lcid, unique_byte_buffer sdu);
   bool rb_is_um(uint32_t lcid);
 
   // MAC interface

@@ -63,9 +63,8 @@ bool rlc_tm::configure(srslte_rlc_config_t cnfg)
 void rlc_tm::empty_queue()
 {
   // Drop all messages in TX queue
-  byte_buffer_t *buf;
+  unique_byte_buffer buf;
   while (ul_queue.try_read(&buf)) {
-    pool->deallocate(buf);
   }
   ul_queue.reset();
 }
@@ -92,25 +91,34 @@ uint32_t rlc_tm::get_bearer()
 }
 
 // PDCP interface
-void rlc_tm::write_sdu(byte_buffer_t *sdu, bool blocking)
+void rlc_tm::write_sdu(unique_byte_buffer sdu, bool blocking)
 {
   if (!tx_enabled) {
-    byte_buffer_pool::get_instance()->deallocate(sdu);
     return;
   }
   if (sdu) {
     if (blocking) {
-      ul_queue.write(sdu);
       log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU, queue size=%d, bytes=%d",
                     rrc->get_rb_name(lcid).c_str(), ul_queue.size(), ul_queue.size_bytes());
+      ul_queue.write(std::move(sdu));
     } else {
-      if (ul_queue.try_write(sdu)) {
-        log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU, queue size=%d, bytes=%d",
-                      rrc->get_rb_name(lcid).c_str(), ul_queue.size(), ul_queue.size_bytes());
+      uint8_t* msg_ptr   = sdu->msg;
+      uint32_t nof_bytes = sdu->N_bytes;
+      if (ul_queue.try_write(std::move(sdu))) {
+        log->info_hex(msg_ptr,
+                      nof_bytes,
+                      "%s Tx SDU, queue size=%d, bytes=%d",
+                      rrc->get_rb_name(lcid).c_str(),
+                      ul_queue.size(),
+                      ul_queue.size_bytes());
       } else {
-        log->info_hex(sdu->msg, sdu->N_bytes, "[Dropped SDU] %s Tx SDU, queue size=%d, bytes=%d",
-                       rrc->get_rb_name(lcid).c_str(), ul_queue.size(), ul_queue.size_bytes());
-        pool->deallocate(sdu);
+#warning Find a more elegant solution - the msg was already deallocated at this point
+        log->info("[Dropped SDU] %s Tx SDU, queue size=%d, bytes=%d",
+                  rrc->get_rb_name(lcid).c_str(),
+                  ul_queue.size(),
+                  ul_queue.size());
+        //        log->info_hex(sdu->msg, sdu->N_bytes, "[Dropped SDU] %s Tx SDU, queue size=%d, bytes=%d",
+        //                       rrc->get_rb_name(lcid).c_str(), ul_queue.size(), ul_queue.size_bytes());
       }
     }
   } else {
@@ -152,13 +160,12 @@ int rlc_tm::read_pdu(uint8_t *payload, uint32_t nof_bytes)
     log->error("TX %s PDU size larger than MAC opportunity (%d > %d)\n", rrc->get_rb_name(lcid).c_str(), pdu_size, nof_bytes);
     return -1;
   }
-  byte_buffer_t *buf;
+  unique_byte_buffer buf;
   if (ul_queue.try_read(&buf)) {
     pdu_size = buf->N_bytes;
     memcpy(payload, buf->msg, buf->N_bytes);
     log->debug("%s Complete SDU scheduled for tx. Stack latency: %ld us\n",
                rrc->get_rb_name(lcid).c_str(), buf->get_latency_us());
-    pool->deallocate(buf);
     log->info_hex(payload, pdu_size, "TX %s, %s PDU, queue size=%d, bytes=%d",
                   rrc->get_rb_name(lcid).c_str(), rlc_mode_text[RLC_MODE_TM], ul_queue.size(), ul_queue.size_bytes());
 
@@ -176,13 +183,13 @@ int rlc_tm::read_pdu(uint8_t *payload, uint32_t nof_bytes)
 
 void rlc_tm::write_pdu(uint8_t *payload, uint32_t nof_bytes)
 {
-  byte_buffer_t *buf = pool_allocate;
+  unique_byte_buffer buf = allocate_unique_buffer(*pool);
   if (buf) {
     memcpy(buf->msg, payload, nof_bytes);
     buf->N_bytes = nof_bytes;
     buf->set_timestamp();
     num_rx_bytes += nof_bytes;
-    pdcp->write_pdu(lcid, buf);
+    pdcp->write_pdu(lcid, std::move(buf));
   } else {
     log->error("Fatal Error: Couldn't allocate buffer in rlc_tm::write_pdu().\n");
   }
