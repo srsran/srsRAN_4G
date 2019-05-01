@@ -95,13 +95,16 @@ void parse_args(int argc, char **argv) {
         file_pattern = argv[optind];
         break;
       case 'a':
-        strncpy(radios_args[0], argv[optind], 64);
+        strncpy(radios_args[0], argv[optind], 63);
+        radios_args[0][63] = '\0';
         break;
       case 'b':
-        strncpy(radios_args[1], argv[optind], 64);
+        strncpy(radios_args[1], argv[optind], 63);
+        radios_args[1][63] = '\0';
         break;
       case 'c':
-        strncpy(radios_args[2], argv[optind], 64);
+        strncpy(radios_args[2], argv[optind], 63);
+        radios_args[2][63] = '\0';
         break;
       case 'r':
         nof_radios = (uint32_t)atoi(argv[optind]);
