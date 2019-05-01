@@ -37,10 +37,22 @@
 
 #define ENABLE_AGC_DEFAULT
 
-#include "srslte/srslte.h"
+extern  "C" {
+#include "srslte/common/crash_handler.h"
 #include "srslte/phy/rf/rf.h"
 #include "srslte/phy/rf/rf_utils.h"
-#include "srslte/common/crash_handler.h"
+#include "srslte/srslte.h"
+}
+#include "srslte/asn1/rrc_asn1.h"
+#include "srslte/common/bcd_helpers.h"
+
+#define MHZ             1000000
+#define SAMP_FREQ       1920000
+#define FLEN            9600
+#define FLEN_PERIOD     0.005
+
+#define MAX_EARFCN 1000
+
 
 cell_search_cfg_t cell_detect_config = {
   SRSLTE_DEFAULT_MAX_FRAMES_PBCH,
