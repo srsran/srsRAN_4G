@@ -78,12 +78,13 @@ void parse_args(int argc, char **argv) {
 
 int main(int argc, char **argv) {
   srslte_chest_dl_t est;
-  cf_t *input = NULL, *ce = NULL, *h = NULL, *output = NULL;
+  cf_t *            input = NULL, *ce = NULL, *h = NULL, *output = NULL;
   int               i, j, num_re;
-  int ret = -1;
+  int               ret = -1;
   int               max_cid;
-  FILE *fmatlab = NULL;
-  
+  FILE*             fmatlab = NULL;
+  uint32_t          cid     = 0;
+
   parse_args(argc,argv);
 
   if (output_matlab) {
@@ -117,7 +118,6 @@ int main(int argc, char **argv) {
     goto do_exit;
   }
 
-  uint32_t cid = 0;
   if (cell.id == 1000) {
     cid     = 0;
     max_cid = 504;
@@ -228,8 +228,6 @@ int main(int argc, char **argv) {
     INFO("cid=%d\n", cid);
   }
   srslte_chest_dl_free(&est);
-
-
   ret = 0;
 
 do_exit:
