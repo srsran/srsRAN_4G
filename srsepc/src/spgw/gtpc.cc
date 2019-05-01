@@ -118,13 +118,13 @@ srslte::error_t spgw::gtpc::init_s11(spgw_args_t* args)
   // Set MME Address
   memset(&m_mme_addr, 0, sizeof(struct sockaddr_un));
   m_mme_addr.sun_family = AF_UNIX;
-  strncpy(m_mme_addr.sun_path, mme_addr_name, strlen(mme_addr_name));
+  snprintf(m_mme_addr.sun_path, sizeof(m_mme_addr.sun_path), "%s", mme_addr_name);
   m_mme_addr.sun_path[0] = '\0';
 
   // Set SPGW Address
   memset(&m_spgw_addr, 0, sizeof(struct sockaddr_un));
   m_spgw_addr.sun_family = AF_UNIX;
-  strncpy(m_spgw_addr.sun_path, spgw_addr_name, strlen(spgw_addr_name));
+  snprintf(m_spgw_addr.sun_path, sizeof(m_spgw_addr.sun_path), "%s", spgw_addr_name);
   m_spgw_addr.sun_path[0] = '\0';
 
   // Bind socket to address
