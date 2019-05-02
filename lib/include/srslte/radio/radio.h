@@ -69,6 +69,7 @@ class radio {
      tx_adv_negative    = false;
      tx_freq            = 0;
      rx_freq            = 0;
+     freq_offset        = 0;
      trace_enabled      = false;
      tti                = 0;
      agc_enabled        = false;
