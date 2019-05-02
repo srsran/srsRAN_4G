@@ -324,6 +324,10 @@ void rrc::run_tti(uint32_t tti)
       cell_clean_cnt = 0;
     }
     pthread_mutex_unlock(&mutex);
+
+    // allow other threads to ackquire mutex.
+    usleep(100);
+
   } // Skip TTI if mutex is locked
 }
 
