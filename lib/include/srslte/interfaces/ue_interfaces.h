@@ -491,7 +491,11 @@ public:
     bool enabled;
     int  dsr_transmax;
     sr_cfg_t() { reset(); }
-    void reset() { enabled = false; }
+    void reset()
+    {
+      enabled      = false;
+      dsr_transmax = 0;
+    }
   } sr_cfg_t;
 
   typedef struct rach_cfg_t {
@@ -507,7 +511,20 @@ public:
     uint32_t contentionResolutionTimer;
     uint32_t new_ra_msg_len;
     rach_cfg_t() { reset(); }
-    void reset() { enabled = false; }
+    void reset()
+    {
+      enabled                   = false;
+      nof_preambles             = 0;
+      nof_groupA_preambles      = 0;
+      messagePowerOffsetGroupB  = 0;
+      messageSizeGroupA         = 0;
+      responseWindowSize        = 0;
+      powerRampingStep          = 0;
+      preambleTransMax          = 0;
+      iniReceivedTargetPower    = 0;
+      contentionResolutionTimer = 0;
+      new_ra_msg_len            = 0;
+    }
   } rach_cfg_t;
 
   class mac_cfg_t
