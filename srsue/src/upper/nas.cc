@@ -264,9 +264,9 @@ bool nas::rrc_connect() {
   }
 
   if (state == EMM_STATE_REGISTERED) {
-    gen_service_request(dedicatedInfoNAS);
+    gen_service_request(dedicatedInfoNAS.get());
   } else {
-    gen_attach_request(dedicatedInfoNAS);
+    gen_attach_request(dedicatedInfoNAS.get());
   }
 
   // Provide UE-Identity to RRC if have one
@@ -352,9 +352,9 @@ void nas::write_pdu(uint32_t lcid, unique_byte_buffer pdu)
       break;
     case LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY:
     case LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED:
-      if((integrity_check(pdu))) {
+      if ((integrity_check(pdu.get()))) {
         if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED) {
-          cipher_decrypt(pdu);
+          cipher_decrypt(pdu.get());
         }
         break;
       } else {
@@ -506,7 +506,7 @@ void nas::integrity_generate(uint8_t *key_128,
 // This function depends to a valid k_nas_int.
 // This key is generated in the security mode command.
 
-bool nas::integrity_check(unique_byte_buffer& pdu)
+bool nas::integrity_check(byte_buffer_t* pdu)
 {
   if (!pdu) {
     nas_log->error("Invalid PDU\n");
@@ -543,7 +543,7 @@ bool nas::integrity_check(unique_byte_buffer& pdu)
   }
 }
 
-void nas::cipher_encrypt(unique_byte_buffer& pdu)
+void nas::cipher_encrypt(byte_buffer_t* pdu)
 {
   byte_buffer_t pdu_tmp;
   switch(ctxt.cipher_algo)
@@ -576,7 +576,7 @@ void nas::cipher_encrypt(unique_byte_buffer& pdu)
   }
 }
 
-void nas::cipher_decrypt(unique_byte_buffer& pdu)
+void nas::cipher_decrypt(byte_buffer_t* pdu)
 {
   byte_buffer_t tmp_pdu;
   switch(ctxt.cipher_algo)
@@ -846,7 +846,7 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer pdu)
       pcap->write_nas(pdu->msg, pdu->N_bytes);
     }
 
-    cipher_encrypt(pdu);
+    cipher_encrypt(pdu.get());
     integrity_generate(&k_nas_int[16],
                        ctxt.tx_count,
                        SECURITY_DIRECTION_UPLINK,
@@ -1022,7 +1022,7 @@ void nas::parse_security_mode_command(uint32_t lcid, unique_byte_buffer pdu)
   nas_log->debug("Generating integrity check. integ_algo:%d, count_dl:%d, lcid:%d\n",
                  ctxt.integ_algo, ctxt.rx_count, lcid);
 
-  if (integrity_check(pdu) != true) {
+  if (integrity_check(pdu.get()) != true) {
     nas_log->warning("Sending Security Mode Reject due to integrity check failure\n");
     send_security_mode_reject(LIBLTE_MME_EMM_CAUSE_MAC_FAILURE);
     return;
@@ -1053,7 +1053,7 @@ void nas::parse_security_mode_command(uint32_t lcid, unique_byte_buffer pdu)
   if(pcap != NULL) {
     pcap->write_nas(pdu->msg, pdu->N_bytes);
   }
-  cipher_encrypt(pdu);
+  cipher_encrypt(pdu.get());
   integrity_generate(&k_nas_int[16],
                      ctxt.tx_count,
                      SECURITY_DIRECTION_UPLINK,
@@ -1153,7 +1153,7 @@ void nas::parse_emm_status(uint32_t lcid, unique_byte_buffer pdu)
  * Senders
  ******************************************************************************/
 
-void nas::gen_attach_request(unique_byte_buffer& msg)
+void nas::gen_attach_request(byte_buffer_t* msg)
 {
   if (!msg) {
     nas_log->error("Fatal Error: Couldn't allocate PDU in gen_attach_request().\n");
@@ -1210,7 +1210,7 @@ void nas::gen_attach_request(unique_byte_buffer& msg)
                   "m_tmsi: %x, mcc: %x, mnc: %x, mme_group_id: %x, mme_code: %x\n",
                   ctxt.guti.m_tmsi, ctxt.guti.mcc, ctxt.guti.mnc, ctxt.guti.mme_group_id, ctxt.guti.mme_code);
     liblte_mme_pack_attach_request_msg(
-        &attach_req, LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY, ctxt.tx_count, (LIBLTE_BYTE_MSG_STRUCT*)msg.get());
+        &attach_req, LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY, ctxt.tx_count, (LIBLTE_BYTE_MSG_STRUCT*)msg);
 
     // Add MAC
     if (msg->N_bytes > 5) {
@@ -1229,7 +1229,7 @@ void nas::gen_attach_request(unique_byte_buffer& msg)
     attach_req.nas_ksi.nas_ksi       = 0;
     usim->get_imsi_vec(attach_req.eps_mobile_id.imsi, 15);
     nas_log->info("Requesting IMSI attach (IMSI=%s)\n", usim->get_imsi_str().c_str());
-    liblte_mme_pack_attach_request_msg(&attach_req, (LIBLTE_BYTE_MSG_STRUCT*)msg.get());
+    liblte_mme_pack_attach_request_msg(&attach_req, (LIBLTE_BYTE_MSG_STRUCT*)msg);
   }
 
   if(pcap != NULL) {
@@ -1242,7 +1242,7 @@ void nas::gen_attach_request(unique_byte_buffer& msg)
   }
 }
 
-void nas::gen_service_request(unique_byte_buffer& msg)
+void nas::gen_service_request(byte_buffer_t* msg)
 {
   if (!msg) {
     nas_log->error("Fatal Error: Couldn't allocate PDU in gen_service_request().\n");
@@ -1377,7 +1377,7 @@ void nas::send_detach_request(bool switch_off)
     // Add MAC
     if (pdu->N_bytes > 5) {
       if (rrc->is_connected()) {
-        cipher_encrypt(pdu);
+        cipher_encrypt(pdu.get());
       }
       integrity_generate(&k_nas_int[16],
                          ctxt.tx_count,
@@ -1432,7 +1432,7 @@ void nas::send_detach_accept()
 
   // Encrypt and add MAC
   if (pdu->N_bytes > 5) {
-    cipher_encrypt(pdu);
+    cipher_encrypt(pdu.get());
     integrity_generate(&k_nas_int[16],
                        ctxt.tx_count,
                        SECURITY_DIRECTION_UPLINK,
@@ -1470,7 +1470,7 @@ void nas::send_authentication_response(const uint8_t* res, const size_t res_len,
   }
 
   if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED && pdu->N_bytes > 5) {
-    cipher_encrypt(pdu);
+    cipher_encrypt(pdu.get());
     integrity_generate(&k_nas_int[16],
                        ctxt.tx_count,
                        SECURITY_DIRECTION_UPLINK,
@@ -1689,7 +1689,7 @@ void nas::send_esm_information_response(const uint8 proc_transaction_id) {
     pcap->write_nas(pdu->msg, pdu->N_bytes);
   }
 
-  cipher_encrypt(pdu);
+  cipher_encrypt(pdu.get());
   if (pdu->N_bytes > 5) {
     integrity_generate(&k_nas_int[16],
                        ctxt.tx_count,

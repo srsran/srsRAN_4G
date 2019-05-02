@@ -57,7 +57,7 @@ public:
 
   bool try_write(unique_byte_buffer msg) { return queue.try_push(std::move(msg)); }
 
-  void read(unique_byte_buffer* msg) { *msg = std::move(queue.wait_pop()); }
+  unique_byte_buffer read() { return queue.wait_pop(); }
 
   bool try_read(unique_byte_buffer* msg) { return queue.try_pop(msg); }
 
@@ -78,7 +78,7 @@ public:
   uint32_t size_tail_bytes()
   {
     if (!queue.empty()) {
-      unique_byte_buffer& m = queue.front();
+      const unique_byte_buffer& m = queue.front();
       if (m.get()) {
         return m->N_bytes;
       }

@@ -59,7 +59,7 @@ int main(int argc, char **argv) {
 
   for(uint32_t i=0;i<NMSGS;i++)
   {
-    q.read(&b);
+    b = q.read();
     memcpy(&r, b->msg, 4);
     if(r != i)
       result = false;

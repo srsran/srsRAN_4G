@@ -271,8 +271,7 @@ void rlc_um::rlc_um_tx::empty_queue()
 
   // deallocate all SDUs in transmit queue
   while(tx_sdu_queue.size() > 0) {
-    unique_byte_buffer buf;
-    tx_sdu_queue.read(&buf);
+    unique_byte_buffer buf = tx_sdu_queue.read();
   }
 
   // deallocate SDU that is currently processed
@@ -436,7 +435,7 @@ int rlc_um::rlc_um_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
     if(last_li > 0)
       header.li[header.N_li++] = last_li;
     head_len = rlc_um_packed_length(&header);
-    tx_sdu_queue.read(&tx_sdu);
+    tx_sdu         = tx_sdu_queue.read();
     uint32_t space = pdu_space-head_len;
     to_move = space >= tx_sdu->N_bytes ? tx_sdu->N_bytes : space;
     log->debug("%s adding new SDU segment - %d bytes of %d remaining\n",

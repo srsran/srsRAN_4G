@@ -270,8 +270,7 @@ void rlc_am::rlc_am_tx::empty_queue()
 
   // deallocate all SDUs in transmit queue
   while(tx_sdu_queue.size() > 0) {
-    unique_byte_buffer buf;
-    tx_sdu_queue.read(&buf);
+    unique_byte_buffer buf = tx_sdu_queue.read();
   }
 
   // deallocate SDU that is currently processed
@@ -862,7 +861,7 @@ int rlc_am::rlc_am_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
       header.N_li--;
       break;
     }
-    tx_sdu_queue.read(&tx_sdu);
+    tx_sdu  = tx_sdu_queue.read();
     to_move = ((pdu_space-head_len) >= tx_sdu->N_bytes) ? tx_sdu->N_bytes : pdu_space-head_len;
     memcpy(pdu_ptr, tx_sdu->msg, to_move);
     last_li          = to_move;

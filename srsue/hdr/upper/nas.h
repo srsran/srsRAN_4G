@@ -161,9 +161,9 @@ private:
                           uint8_t *msg,
                           uint32_t msg_len,
                           uint8_t *mac);
-  bool integrity_check(srslte::unique_byte_buffer& pdu);
-  void cipher_encrypt(srslte::unique_byte_buffer& pdu);
-  void cipher_decrypt(srslte::unique_byte_buffer& pdu);
+  bool integrity_check(srslte::byte_buffer_t* pdu);
+  void cipher_encrypt(srslte::byte_buffer_t* pdu);
+  void cipher_decrypt(srslte::byte_buffer_t* pdu);
   void set_k_enb_count(uint32_t count);
 
   bool check_cap_replay(LIBLTE_MME_UE_SECURITY_CAPABILITIES_STRUCT *caps);
@@ -184,8 +184,8 @@ private:
   void parse_emm_status(uint32_t lcid, srslte::unique_byte_buffer pdu);
 
   // Packet generators
-  void gen_attach_request(srslte::unique_byte_buffer& msg);
-  void gen_service_request(srslte::unique_byte_buffer& msg);
+  void gen_attach_request(srslte::byte_buffer_t* msg);
+  void gen_service_request(srslte::byte_buffer_t* msg);
 
   // Senders
   void send_identity_response(uint32_t lcid, uint8 id_type);
