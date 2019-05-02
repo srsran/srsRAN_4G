@@ -126,7 +126,6 @@ SRSASN_CODE bit_ref::pack(uint32_t val, uint32_t n_bits)
     val              = val & mask;
     uint8_t keepmask = ((uint8_t)-1) - (uint8_t)((1 << (8 - offset)) - 1);
     if ((uint32_t)(8 - offset) > n_bits) {
-      keepmask += (1u << (8u - offset - n_bits)) - 1;
       uint8_t bit = (uint8_t)(val << (8u - offset - n_bits));
       *ptr        = ((*ptr) & keepmask) + bit;
       offset += n_bits;
