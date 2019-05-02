@@ -654,7 +654,8 @@ private:
 
   void apply_rr_config_common(asn1::rrc::rr_cfg_common_s* config, bool send_lower_layers);
   bool apply_rr_config_dedicated(asn1::rrc::rr_cfg_ded_s* cnfg);
-  void apply_phy_config_dedicated(asn1::rrc::phys_cfg_ded_s* phy_cnfg, bool apply_defaults);
+  void apply_phy_config_dedicated(const asn1::rrc::phys_cfg_ded_s& phy_cnfg);
+
   void apply_mac_config_dedicated_default();
   void apply_mac_config_dedicated_explicit(asn1::rrc::mac_main_cfg_s mac_cfg);
 
@@ -673,6 +674,8 @@ private:
 
   // Helpers for setting default values
   void set_phy_default_pucch_srs();
+  void set_phy_config_common_default();
+  void set_phy_config_dedicated_default();
   void set_phy_default();
   void set_mac_default();
   void set_rrc_default();
