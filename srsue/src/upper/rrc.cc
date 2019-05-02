@@ -1347,7 +1347,7 @@ void rrc::send_con_restablish_request(asn1::rrc::reest_cause_e cause)
                 cellid, pci, crnti, N_bytes, N_bits);
 
   // Compute MAC-I
-  uint8_t mac_key[4];
+  uint8_t mac_key[4] = {};
   switch(integ_algo) {
     case INTEGRITY_ALGORITHM_ID_128_EIA1:
       security_128_eia1(&k_rrc_int[16],
