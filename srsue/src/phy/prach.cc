@@ -38,18 +38,7 @@ namespace srsue {
  
 
 prach::~prach() {
-  if (mem_initiated) {
-    for (int i=0;i<64;i++) {
-      if (buffer[i]) {
-        free(buffer[i]);
-      }
-    }
-    if (signal_buffer) {
-      free(signal_buffer);
-    }
-    srslte_cfo_free(&cfo_h);
-    srslte_prach_free(&prach_obj);
-  }
+  stop();
 }
 
 void prach::init(uint32_t max_prb, srslte::log* log_h_)
