@@ -1204,6 +1204,10 @@ int srslte_dci_msg_unpack_pdsch(
   dci->nof_bits = msg->nof_bits;
 #endif
 
+  // Set dwpts flag
+  dci->is_dwpts =
+      cell->frame_type == SRSLTE_TDD && srslte_sfidx_tdd_type(sf->tdd_config, sf->tti % 10) == SRSLTE_TDD_SF_S;
+
   switch (msg->format) {
     case SRSLTE_DCI_FORMAT1:
       return dci_format1_unpack(cell, sf, cfg, msg, dci);

@@ -270,7 +270,8 @@ int regs_phich_init(srslte_regs_t* h, uint32_t phich_mi, bool mbsfn_or_sf1_6_tdd
     ng = 0;
     break;
   }
-  h->ngroups_phich = (int)phich_mi * ceilf(ng * ((float)h->cell.nof_prb / 8));
+  h->ngroups_phich_m1 = (int)ceilf(ng * ((float)h->cell.nof_prb / 8));
+  h->ngroups_phich    = (int)phich_mi * h->ngroups_phich_m1;
   h->phich = malloc(sizeof(srslte_regs_ch_t) * h->ngroups_phich);
   if (!h->phich) {
     perror("malloc");
@@ -395,6 +396,11 @@ uint32_t srslte_regs_phich_nregs(srslte_regs_t *h) {
 
 uint32_t srslte_regs_phich_ngroups(srslte_regs_t *h) {
   return h->ngroups_phich;
+}
+
+uint32_t srslte_regs_phich_ngroups_m1(srslte_regs_t* h)
+{
+  return h->ngroups_phich_m1;
 }
 
 /**

@@ -59,6 +59,7 @@ typedef struct SRSLTE_API {
   srslte_cell_t cell;
   uint32_t max_ctrl_symbols;
   uint32_t ngroups_phich;
+  uint32_t      ngroups_phich_m1;
 
   srslte_phich_r_t      phich_res;
   srslte_phich_length_t phich_len;
@@ -107,6 +108,9 @@ SRSLTE_API int srslte_regs_phich_get(srslte_regs_t *h,
                                      uint32_t ngroup);
 
 SRSLTE_API uint32_t srslte_regs_phich_ngroups(srslte_regs_t *h);
+
+SRSLTE_API uint32_t srslte_regs_phich_ngroups_m1(srslte_regs_t* h);
+
 SRSLTE_API int srslte_regs_phich_reset(srslte_regs_t *h, 
                                        cf_t *slot_symbols);
 

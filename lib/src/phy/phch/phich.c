@@ -130,7 +130,7 @@ int srslte_phich_set_cell(srslte_phich_t *q, srslte_regs_t *regs, srslte_cell_t 
 /* Computes n_group and n_seq according to Section 9.1.2 in 36.213 */
 void srslte_phich_calc(srslte_phich_t* q, srslte_phich_grant_t* grant, srslte_phich_resource_t* n_phich)
 {
-  uint32_t Ngroups = srslte_phich_ngroups(q);
+  uint32_t Ngroups = srslte_regs_phich_ngroups_m1(q->regs);
   if (Ngroups) {
     if (n_phich) {
       n_phich->ngroup = (grant->n_prb_lowest + grant->n_dmrs) % Ngroups + grant->I_phich * Ngroups;
