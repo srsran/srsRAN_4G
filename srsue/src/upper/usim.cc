@@ -39,7 +39,11 @@ int usim::init(usim_args_t *args, srslte::log *usim_log_)
 
   const char *imsi_c = args->imsi.c_str();
   const char *imei_c = args->imei.c_str();
-  uint32_t    i;
+
+  auth_algo = auth_algo_milenage;
+  if ("xor" == args->algo) {
+    auth_algo = auth_algo_xor;
+  }
 
   if(32 == args->k.length()) {
     str_to_hex(args->k, k);
@@ -48,28 +52,28 @@ int usim::init(usim_args_t *args, srslte::log *usim_log_)
     usim_log->console("Invalid length for K: %zu should be %d\n", args->k.length(), 32);
   }
 
-  if(args->using_op) {
-    if(32 == args->op.length()) {
-      str_to_hex(args->op, op);
-      compute_opc(k,op,opc);
+  if (auth_algo == auth_algo_milenage) {
+    if (args->using_op) {
+      if (32 == args->op.length()) {
+        str_to_hex(args->op, op);
+        compute_opc(k, op, opc);
+      } else {
+        usim_log->error("Invalid length for OP: %zu should be %d\n", args->op.length(), 32);
+        usim_log->console("Invalid length for OP: %zu should be %d\n", args->op.length(), 32);
+      }
     } else {
-      usim_log->error("Invalid length for OP: %zu should be %d\n", args->op.length(), 32);
-      usim_log->console("Invalid length for OP: %zu should be %d\n", args->op.length(), 32);
-    }
-  }
-  else {
-    if(32 == args->opc.length()) {
-      str_to_hex(args->opc, opc);
-    } else {
-      usim_log->error("Invalid length for OPc: %zu should be %d\n", args->opc.length(), 32);
-      usim_log->console("Invalid length for OPc: %zu should be %d\n", args->opc.length(), 32);
+      if (32 == args->opc.length()) {
+        str_to_hex(args->opc, opc);
+      } else {
+        usim_log->error("Invalid length for OPc: %zu should be %d\n", args->opc.length(), 32);
+        usim_log->console("Invalid length for OPc: %zu should be %d\n", args->opc.length(), 32);
+      }
     }
   }
 
   if(15 == args->imsi.length()) {
     imsi = 0;
-    for(i=0; i<15; i++)
-    {
+    for (int i = 0; i < 15; i++) {
       imsi *= 10;
       imsi += imsi_c[i] - '0';
     }
@@ -80,8 +84,7 @@ int usim::init(usim_args_t *args, srslte::log *usim_log_)
 
   if(15 == args->imei.length()) {
     imei = 0;
-    for(i=0; i<15; i++)
-    {
+    for (int i = 0; i < 15; i++) {
       imei *= 10;
       imei += imei_c[i] - '0';
     }
@@ -90,10 +93,6 @@ int usim::init(usim_args_t *args, srslte::log *usim_log_)
     usim_log->console("Invalid length for IMEI: %zu should be %d\n", args->imei.length(), 15);
   }
 
-  auth_algo = auth_algo_milenage;
-  if("xor" == args->algo) {
-    auth_algo = auth_algo_xor;
-  }
   initiated = true;
 
   return SRSLTE_SUCCESS;
