@@ -1309,13 +1309,13 @@ void nas::gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg) {
 
   //Set PDN protocol type
   if (cfg.apn_protocol == "ipv4" || cfg.apn_protocol == ""){
-    nas_log->console("Setting PDN protocol to IPv4\n");
+    nas_log->debug("Requesting IPv4 PDN protocol\n");
     pdn_con_req.pdn_type = LIBLTE_MME_PDN_TYPE_IPV4;
   } else if (cfg.apn_protocol == "ipv6") {
-    nas_log->console("Setting PDN protocol to IPv6\n");
+    nas_log->debug("Requesting IPv6 PDN protocol\n");
     pdn_con_req.pdn_type = LIBLTE_MME_PDN_TYPE_IPV6;
   } else if (cfg.apn_protocol == "ipv4v6") {
-    nas_log->console("Setting PDN protocol to IPv4v6\n");
+    nas_log->debug("Requesting IPv4v6 PDN protocol\n");
     pdn_con_req.pdn_type = LIBLTE_MME_PDN_TYPE_IPV4V6;
   } else {
     nas_log->warning("Unsupported PDN prtocol. Defaulting to IPv4\n");
