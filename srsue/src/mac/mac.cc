@@ -90,7 +90,10 @@ void mac::stop()
   srslte_softbuffer_rx_free(&mch_softbuffer);
 
   pdu_process_thread.stop();
+
   running = false;
+  run_tti(0); // make sure it's not locked after last TTI
+
   wait_thread_finish();
 }
 
