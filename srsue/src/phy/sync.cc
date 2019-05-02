@@ -393,8 +393,6 @@ void sync::run_thread()
     // If not camping, clear SFN sync
     if (!phy_state.is_camping()) {
       force_camping_sfn_sync = false;
-    } else {
-      out_of_sync();
     }
 
     if (log_phy_lib_h) {
