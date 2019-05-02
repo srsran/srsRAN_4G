@@ -41,6 +41,7 @@ dl_harq_entity::dl_harq_entity() : proc(SRSLTE_MAX_HARQ_PROC)
   si_window_start      = 0;
   last_temporal_crnti  = 0;
   average_retx         = 0;
+  nof_pkts             = 0;
 }
 
 bool dl_harq_entity::init(srslte::log*                  log_h,
@@ -180,6 +181,7 @@ dl_harq_entity::dl_harq_process::dl_tb_process::dl_tb_process()
 {
   is_initiated = false;
   ack          = false;
+  n_retx       = 0;
   bzero(&cur_grant, sizeof(mac_interface_phy::mac_grant_dl_t));
   payload_buffer_ptr = NULL;
   pthread_mutex_init(&mutex, NULL);
