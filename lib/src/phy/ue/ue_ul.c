@@ -806,7 +806,7 @@ get_npucch(srslte_pucch_cfg_t* cfg, srslte_uci_cfg_t* uci_cfg, srslte_uci_value_
               uci_cfg->ack.ncce[0], cfg->N_pucch_1, cell->nof_prb, uci_cfg->ack.tdd_ack_M, uci_cfg->ack.tdd_ack_m);
         } else {
           if (uci_cfg->ack.tdd_ack_M <= 4) {
-            uint32_t n_pucch[4];
+            uint32_t n_pucch[4] = {};
             for (uint32_t i = 0; i < uci_cfg->ack.tdd_ack_M; i++) {
               n_pucch[i] =
                   n_pucch_i_tdd(uci_cfg->ack.ncce[i], cfg->N_pucch_1, cell->nof_prb, uci_cfg->ack.tdd_ack_M, i);
