@@ -29,9 +29,9 @@ add_test(chest_test_dl_cellid0 chest_test_dl -c 0)
 add_test(chest_test_dl_cellid1 chest_test_dl -c 1) 
 add_test(chest_test_dl_cellid2 chest_test_dl -c 2) 
 
-add_test(chest_test_dl_cellid0 chest_test_dl -c 0 -r 50) 
-add_test(chest_test_dl_cellid1 chest_test_dl -c 1 -r 50) 
-add_test(chest_test_dl_cellid2 chest_test_dl -c 2 -r 50) 
+add_test(chest_test_dl_cellid0_50prb chest_test_dl -c 0 -r 50)
+add_test(chest_test_dl_cellid1_50prb chest_test_dl -c 1 -r 50)
+add_test(chest_test_dl_cellid2_50prb chest_test_dl -c 2 -r 50)
 
 
 ########################################################################
@@ -46,9 +46,4 @@ target_link_libraries(refsignal_ul_test_all srslte_phy srslte_common)
 
 add_test(chest_test_ul_cellid0 chest_test_ul -c 0 -r 50) 
 add_test(chest_test_ul_cellid1 chest_test_ul -c 1 -r 50) 
-add_test(chest_test_ul_cellid1 chest_test_ul -c 2 -r 50) 
-
-
-
-
-
+add_test(chest_test_ul_cellid1 chest_test_ul -c 2 -r 50)
