@@ -100,7 +100,7 @@ public:
     return push_(value, false);
   }
 
-  bool try_push(myobj&& value) { return push_(std::move(value), false); }
+  std::pair<bool, myobj> try_push(myobj&& value) { return push_(std::move(value), false); }
 
   bool try_pop(myobj *value) {
     return pop_(value, false);
@@ -163,13 +163,8 @@ private:
     return ret;
   }
 
-  template <typename MyObj> // universal ref
-  bool push_(MyObj&& value, bool block)
+  bool check_queue_space_unlocked(bool block)
   {
-    if (!enable) {
-      return false;
-    }
-    pthread_mutex_lock(&mutex);
     num_threads++;
     bool ret = false;
     if (capacity > 0) {
@@ -178,20 +173,48 @@ private:
           pthread_cond_wait(&cv_full, &mutex);
         }
         if (!enable) {
-          goto exit;
+          return false;
         }
       } else if (q.size() >= (uint32_t) capacity) {
-        goto exit;
+        return false;
       }
     }
-    if (mutexed_callback) {
-      mutexed_callback->pushing(value);
-    }
-    q.push(std::forward<MyObj>(value));
-    ret = true;
-    pthread_cond_signal(&cv_empty);
-  exit:
     num_threads--;
+    return true;
+  }
+
+  std::pair<bool, myobj> push_(myobj&& value, bool block)
+  {
+    if (!enable) {
+      return std::make_pair(false, std::move(value));
+    }
+    pthread_mutex_lock(&mutex);
+    bool ret = check_queue_space_unlocked(block);
+    if (ret) {
+      if (mutexed_callback) {
+        mutexed_callback->pushing(value);
+      }
+      q.push(std::move(value));
+      pthread_cond_signal(&cv_empty);
+    }
+    pthread_mutex_unlock(&mutex);
+    return std::make_pair(ret, std::move(value));
+  }
+
+  bool push_(const myobj& value, bool block)
+  {
+    if (!enable) {
+      return false;
+    }
+    pthread_mutex_lock(&mutex);
+    bool ret = check_queue_space_unlocked(block);
+    if (ret) {
+      if (mutexed_callback) {
+        mutexed_callback->pushing(value);
+      }
+      q.push(value);
+      pthread_cond_signal(&cv_empty);
+    }
     pthread_mutex_unlock(&mutex);
     return ret;
   }

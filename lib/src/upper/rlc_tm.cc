@@ -104,7 +104,8 @@ void rlc_tm::write_sdu(unique_byte_buffer sdu, bool blocking)
     } else {
       uint8_t* msg_ptr   = sdu->msg;
       uint32_t nof_bytes = sdu->N_bytes;
-      if (ul_queue.try_write(std::move(sdu))) {
+      std::pair<bool, unique_byte_buffer> ret       = ul_queue.try_write(std::move(sdu));
+      if (ret.first) {
         log->info_hex(msg_ptr,
                       nof_bytes,
                       "%s Tx SDU, queue size=%d, bytes=%d",
@@ -112,13 +113,12 @@ void rlc_tm::write_sdu(unique_byte_buffer sdu, bool blocking)
                       ul_queue.size(),
                       ul_queue.size_bytes());
       } else {
-#warning Find a more elegant solution - the msg was already deallocated at this point
-        log->info("[Dropped SDU] %s Tx SDU, queue size=%d, bytes=%d",
-                  rrc->get_rb_name(lcid).c_str(),
-                  ul_queue.size(),
-                  ul_queue.size());
-        //        log->info_hex(sdu->msg, sdu->N_bytes, "[Dropped SDU] %s Tx SDU, queue size=%d, bytes=%d",
-        //                       rrc->get_rb_name(lcid).c_str(), ul_queue.size(), ul_queue.size_bytes());
+        log->info_hex(ret.second->msg,
+                      ret.second->N_bytes,
+                      "[Dropped SDU] %s Tx SDU, queue size=%d, bytes=%d",
+                      rrc->get_rb_name(lcid).c_str(),
+                      ul_queue.size(),
+                      ul_queue.size_bytes());
       }
     }
   } else {

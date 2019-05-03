@@ -347,14 +347,17 @@ void rlc_um::rlc_um_tx::try_write_sdu(unique_byte_buffer sdu)
   if (sdu) {
     uint8_t* msg_ptr   = sdu->msg;
     uint32_t nof_bytes = sdu->N_bytes;
-    if (tx_sdu_queue.try_write(std::move(sdu))) {
+    std::pair<bool, unique_byte_buffer> ret       = tx_sdu_queue.try_write(std::move(sdu));
+    if (ret.first) {
       log->info_hex(
           msg_ptr, nof_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", get_rb_name(), nof_bytes, tx_sdu_queue.size());
     } else {
-#warning Find a more elegant solution - the msg was already deallocated at this point
-      log->info("[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)", get_rb_name(), nof_bytes, tx_sdu_queue.size());
-      //      log->info_hex(msg_ptr, nof_bytes, "[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)", get_rb_name(),
-      //      nof_bytes, tx_sdu_queue.size());
+      log->info_hex(ret.second->msg,
+                    ret.second->N_bytes,
+                    "[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)",
+                    get_rb_name(),
+                    ret.second->N_bytes,
+                    tx_sdu_queue.size());
     }
   } else {
     log->warning("NULL SDU pointer in write_sdu()\n");

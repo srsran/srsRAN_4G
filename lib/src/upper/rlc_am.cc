@@ -367,14 +367,19 @@ void rlc_am::rlc_am_tx::write_sdu(unique_byte_buffer sdu, bool blocking)
       // non-blocking write
       uint8_t* msg_ptr   = sdu->msg;
       uint32_t nof_bytes = sdu->N_bytes;
-      if (tx_sdu_queue.try_write(std::move(sdu))) {
+      std::pair<bool, unique_byte_buffer> ret       = tx_sdu_queue.try_write(std::move(sdu));
+      if (ret.first) {
         log->info_hex(
             msg_ptr, nof_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", RB_NAME, nof_bytes, tx_sdu_queue.size());
       } else {
-#warning Find a more elegant solution - the msg was already deallocated at this point
+        // in case of fail, the try_write returns back the sdu
         log->info("[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)", RB_NAME, nof_bytes, tx_sdu_queue.size());
-        //        log->info_hex(msg_ptr, nof_bytes, "[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)", RB_NAME,
-        //                      nof_bytes, tx_sdu_queue.size());
+        log->info_hex(ret.second->msg,
+                      ret.second->N_bytes,
+                      "[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)",
+                      RB_NAME,
+                      ret.second->N_bytes,
+                      tx_sdu_queue.size());
       }
     }
   } else {

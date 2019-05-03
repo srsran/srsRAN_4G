@@ -55,7 +55,7 @@ public:
   }
   void write(unique_byte_buffer msg) { queue.push(std::move(msg)); }
 
-  bool try_write(unique_byte_buffer msg) { return queue.try_push(std::move(msg)); }
+  std::pair<bool, unique_byte_buffer> try_write(unique_byte_buffer&& msg) { return queue.try_push(std::move(msg)); }
 
   unique_byte_buffer read() { return queue.wait_pop(); }
 
