@@ -29,8 +29,17 @@
 #include "srslte/interfaces/ue_interfaces.h"
 
 namespace srsue {
-    
-demux::demux() : mac_msg(20), mch_mac_msg(20), pending_mac_msg(20), rlc(NULL)
+
+demux::demux() :
+  mac_msg(20),
+  mch_mac_msg(20),
+  pending_mac_msg(20),
+  rlc(NULL),
+  is_uecrid_successful(false),
+  phy_h(nullptr),
+  log_h(nullptr),
+  time_alignment_timer(nullptr),
+  mac(nullptr)
 {
 }
 

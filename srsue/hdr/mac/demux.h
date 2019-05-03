@@ -83,9 +83,9 @@ private:
   bool is_uecrid_successful;
 
   phy_interface_mac_common* phy_h;
-  srslte::log              *log_h;
-  srslte::timers::timer    *time_alignment_timer;
-  rlc_interface_mac        *rlc;
+  srslte::log*              log_h;
+  srslte::timers::timer*    time_alignment_timer;
+  rlc_interface_mac*        rlc;
   mac_interface_demux*      mac;
 
   // Buffer of PDUs
