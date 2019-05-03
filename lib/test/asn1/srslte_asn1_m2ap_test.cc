@@ -19,10 +19,11 @@
  *
  */
 
-#include <srslte/srslte.h>
-#include <iostream>
 #include "srslte/asn1/liblte_m2ap.h"
 #include "srslte/common/log_filter.h"
+#include <iostream>
+#include <memory>
+#include <srslte/srslte.h>
 
 #define TESTASSERT(cond)                                                                                               \
   {                                                                                                                    \
@@ -38,9 +39,9 @@ int m2_setup_request_test()
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(128);
 
-  LIBLTE_BYTE_MSG_STRUCT tst_msg;
-  LIBLTE_BYTE_MSG_STRUCT out_msg;
-  LIBLTE_M2AP_M2AP_PDU_STRUCT m2ap_pdu;
+  LIBLTE_BYTE_MSG_STRUCT                       tst_msg = {};
+  LIBLTE_BYTE_MSG_STRUCT                       out_msg = {};
+  std::unique_ptr<LIBLTE_M2AP_M2AP_PDU_STRUCT> m2ap_pdu(new LIBLTE_M2AP_M2AP_PDU_STRUCT);
 
   uint32_t m2ap_message_len = 59;
   uint8_t m2ap_message[]    = {0x00, 0x05, 0x00, 0x37, 0x00, 0x00, 0x03, 0x00, 0x0d, 0x00, 0x08, 0x00, 0x00, 0xf1, 0x10,
@@ -53,10 +54,10 @@ int m2_setup_request_test()
   memcpy(tst_msg.msg, m2ap_message, m2ap_message_len);
   log1.info_hex(tst_msg.msg, tst_msg.N_bytes, "M2 Setup Request original message\n");
 
-  liblte_m2ap_unpack_m2ap_pdu(&tst_msg, &m2ap_pdu);
-  TESTASSERT(m2ap_pdu.choice_type == LIBLTE_M2AP_M2AP_PDU_CHOICE_INITIATINGMESSAGE);
+  liblte_m2ap_unpack_m2ap_pdu(&tst_msg, m2ap_pdu.get());
+  TESTASSERT(m2ap_pdu->choice_type == LIBLTE_M2AP_M2AP_PDU_CHOICE_INITIATINGMESSAGE);
 
-  LIBLTE_M2AP_INITIATINGMESSAGE_STRUCT *in_msg = &m2ap_pdu.choice.initiatingMessage;
+  LIBLTE_M2AP_INITIATINGMESSAGE_STRUCT* in_msg = &m2ap_pdu->choice.initiatingMessage;
   TESTASSERT(in_msg->choice_type == LIBLTE_M2AP_INITIATINGMESSAGE_CHOICE_M2SETUPREQUEST);
 
   LIBLTE_M2AP_MESSAGE_M2SETUPREQUEST_STRUCT *m2_setup = &in_msg->choice.M2SetupRequest;
@@ -110,12 +111,13 @@ int m2_setup_request_test()
              (conf_item->mbmsServiceAreaList.buffer[1].buffer[1] == 2)); // Service Area 2
 
   /*M2AP Setup Request Pack Test*/
-  liblte_m2ap_pack_m2ap_pdu(&m2ap_pdu, &out_msg);
+  liblte_m2ap_pack_m2ap_pdu(m2ap_pdu.get(), &out_msg);
   log1.info_hex(out_msg.msg, out_msg.N_bytes, "M2 Setup Request Packed message\n");
 
   for (uint32_t i = 0; i < m2ap_message_len; i++) {
     TESTASSERT(tst_msg.msg[i] == out_msg.msg[i]);
   }
+
   printf("Test M2SetupRequest successfull\n");
 
   return 0;
@@ -127,9 +129,9 @@ int m2_setup_response_test()
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(128);
 
-  LIBLTE_BYTE_MSG_STRUCT tst_msg;
-  LIBLTE_BYTE_MSG_STRUCT out_msg;
-  LIBLTE_M2AP_M2AP_PDU_STRUCT m2ap_pdu;
+  LIBLTE_BYTE_MSG_STRUCT                       tst_msg = {};
+  LIBLTE_BYTE_MSG_STRUCT                       out_msg = {};
+  std::unique_ptr<LIBLTE_M2AP_M2AP_PDU_STRUCT> m2ap_pdu(new LIBLTE_M2AP_M2AP_PDU_STRUCT);
 
   uint32_t m2ap_message_len = 40;
   uint8_t m2ap_message[]    = {0x20, 0x05, 0x00, 0x24, 0x00, 0x00, 0x02, 0x00, 0x11, 0x00, 0x06, 0x00, 0x00, 0xf1,
@@ -140,11 +142,11 @@ int m2_setup_response_test()
   tst_msg.N_bytes = m2ap_message_len;
   memcpy(tst_msg.msg, m2ap_message, m2ap_message_len);
 
-  LIBLTE_ERROR_ENUM err = liblte_m2ap_unpack_m2ap_pdu(&tst_msg, &m2ap_pdu);
+  LIBLTE_ERROR_ENUM err = liblte_m2ap_unpack_m2ap_pdu(&tst_msg, m2ap_pdu.get());
   TESTASSERT(err == LIBLTE_SUCCESS);
-  TESTASSERT(m2ap_pdu.choice_type == LIBLTE_M2AP_M2AP_PDU_CHOICE_SUCCESSFULOUTCOME);
+  TESTASSERT(m2ap_pdu->choice_type == LIBLTE_M2AP_M2AP_PDU_CHOICE_SUCCESSFULOUTCOME);
 
-  LIBLTE_M2AP_SUCCESSFULOUTCOME_STRUCT *succ_out = &m2ap_pdu.choice.successfulOutcome;
+  LIBLTE_M2AP_SUCCESSFULOUTCOME_STRUCT* succ_out = &m2ap_pdu->choice.successfulOutcome;
   TESTASSERT(succ_out->choice_type == LIBLTE_M2AP_SUCCESSFULOUTCOME_CHOICE_M2SETUPRESPONSE);
 
   LIBLTE_M2AP_MESSAGE_M2SETUPRESPONSE_STRUCT *m2_setup = &succ_out->choice.M2SetupResponse;
@@ -217,7 +219,7 @@ int m2_setup_response_test()
   TESTASSERT(cell_info->cellReservationInfo.e == LIBLTE_M2AP_CELL_RESERVATION_INFO_NON_RESERVED_CELL);
 
   /*M2AP Setup Request Pack Test*/
-  err = liblte_m2ap_pack_m2ap_pdu(&m2ap_pdu, &out_msg);
+  err = liblte_m2ap_pack_m2ap_pdu(m2ap_pdu.get(), &out_msg);
   log1.info_hex(tst_msg.msg, tst_msg.N_bytes, "M2 Setup Request original message\n");
   log1.info_hex(out_msg.msg, out_msg.N_bytes, "M2 Setup Request Packed message\n");
 
@@ -236,9 +238,9 @@ int mbms_session_start_request_test()
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(128);
 
-  LIBLTE_BYTE_MSG_STRUCT tst_msg;
-  LIBLTE_BYTE_MSG_STRUCT out_msg;
-  LIBLTE_M2AP_M2AP_PDU_STRUCT m2ap_pdu;
+  LIBLTE_BYTE_MSG_STRUCT                       tst_msg = {};
+  LIBLTE_BYTE_MSG_STRUCT                       out_msg = {};
+  std::unique_ptr<LIBLTE_M2AP_M2AP_PDU_STRUCT> m2ap_pdu(new LIBLTE_M2AP_M2AP_PDU_STRUCT);
 
   uint32_t m2ap_message_len = 49;
   uint8_t m2ap_message[]    = {0x00, 0x00, 0x00, 0x2d, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00,
@@ -250,11 +252,11 @@ int mbms_session_start_request_test()
   memcpy(tst_msg.msg, m2ap_message, m2ap_message_len);
 
   /*M2AP MBMS Session Start Request Unpack Test*/
-  LIBLTE_ERROR_ENUM err = liblte_m2ap_unpack_m2ap_pdu(&tst_msg, &m2ap_pdu);
+  LIBLTE_ERROR_ENUM err = liblte_m2ap_unpack_m2ap_pdu(&tst_msg, m2ap_pdu.get());
   TESTASSERT(err == LIBLTE_SUCCESS);
-  TESTASSERT(m2ap_pdu.choice_type == LIBLTE_M2AP_M2AP_PDU_CHOICE_INITIATINGMESSAGE);
+  TESTASSERT(m2ap_pdu->choice_type == LIBLTE_M2AP_M2AP_PDU_CHOICE_INITIATINGMESSAGE);
 
-  LIBLTE_M2AP_INITIATINGMESSAGE_STRUCT *in_msg = &m2ap_pdu.choice.initiatingMessage;
+  LIBLTE_M2AP_INITIATINGMESSAGE_STRUCT* in_msg = &m2ap_pdu->choice.initiatingMessage;
   TESTASSERT(in_msg->choice_type == LIBLTE_M2AP_INITIATINGMESSAGE_CHOICE_MBMSSESSIONSTARTREQUEST);
 
   LIBLTE_M2AP_MESSAGE_MBMSSESSIONSTARTREQUEST_STRUCT *mbms_sess = &in_msg->choice.MbmsSessionStartRequest;
@@ -292,7 +294,7 @@ int mbms_session_start_request_test()
   TESTASSERT(ntohl(teid) == 0x00000001);
 
   /*M2AP Setup Request Pack Test*/
-  err = liblte_m2ap_pack_m2ap_pdu(&m2ap_pdu, &out_msg);
+  err = liblte_m2ap_pack_m2ap_pdu(m2ap_pdu.get(), &out_msg);
   log1.info_hex(tst_msg.msg, tst_msg.N_bytes, "MBMS Session Start Request original message\n");
   log1.info_hex(out_msg.msg, out_msg.N_bytes, "MBMS Session Start Request Packed message\n");
 
@@ -311,9 +313,9 @@ int mbms_session_start_response_test()
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(128);
 
-  LIBLTE_BYTE_MSG_STRUCT tst_msg;
-  LIBLTE_BYTE_MSG_STRUCT out_msg;
-  LIBLTE_M2AP_M2AP_PDU_STRUCT m2ap_pdu;
+  LIBLTE_BYTE_MSG_STRUCT                       tst_msg = {};
+  LIBLTE_BYTE_MSG_STRUCT                       out_msg = {};
+  std::unique_ptr<LIBLTE_M2AP_M2AP_PDU_STRUCT> m2ap_pdu(new LIBLTE_M2AP_M2AP_PDU_STRUCT);
 
   uint32_t m2ap_message_len = 19;
   uint8_t m2ap_message[]    = {0x20, 0x00, 0x00, 0x0f, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
@@ -324,11 +326,11 @@ int mbms_session_start_response_test()
   log1.info_hex(tst_msg.msg, tst_msg.N_bytes, "MBMS Session Start Response original message\n");
 
   /*M2AP MBMS Session Start Request Unpack Test*/
-  LIBLTE_ERROR_ENUM err = liblte_m2ap_unpack_m2ap_pdu(&tst_msg, &m2ap_pdu);
+  LIBLTE_ERROR_ENUM err = liblte_m2ap_unpack_m2ap_pdu(&tst_msg, m2ap_pdu.get());
   TESTASSERT(err == LIBLTE_SUCCESS);
-  TESTASSERT(m2ap_pdu.choice_type == LIBLTE_M2AP_M2AP_PDU_CHOICE_SUCCESSFULOUTCOME);
+  TESTASSERT(m2ap_pdu->choice_type == LIBLTE_M2AP_M2AP_PDU_CHOICE_SUCCESSFULOUTCOME);
 
-  LIBLTE_M2AP_SUCCESSFULOUTCOME_STRUCT *succ_msg = &m2ap_pdu.choice.successfulOutcome;
+  LIBLTE_M2AP_SUCCESSFULOUTCOME_STRUCT* succ_msg = &m2ap_pdu->choice.successfulOutcome;
   TESTASSERT(succ_msg->choice_type == LIBLTE_M2AP_SUCCESSFULOUTCOME_CHOICE_MBMSSESSIONSTARTRESPONSE);
 
   LIBLTE_M2AP_MESSAGE_MBMSSESSIONSTARTRESPONSE_STRUCT *mbms_sess = &succ_msg->choice.MbmsSessionStartResponse;
@@ -340,7 +342,7 @@ int mbms_session_start_response_test()
   TESTASSERT(mbms_sess->EnbMbmsM2apId.enb_mbms_m2ap_id == 0);
 
   /*M2AP Setup Request Pack Test*/
-  err = liblte_m2ap_pack_m2ap_pdu(&m2ap_pdu, &out_msg);
+  err = liblte_m2ap_pack_m2ap_pdu(m2ap_pdu.get(), &out_msg);
   log1.info_hex(tst_msg.msg, tst_msg.N_bytes, "MBMS Session Start Response original message\n");
   log1.info_hex(out_msg.msg, out_msg.N_bytes, "MBMS Session Start Response Packed message\n");
 
@@ -359,9 +361,9 @@ int mbms_scheduling_information_test()
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(128);
 
-  LIBLTE_BYTE_MSG_STRUCT tst_msg;
-  LIBLTE_BYTE_MSG_STRUCT out_msg;
-  LIBLTE_M2AP_M2AP_PDU_STRUCT m2ap_pdu;
+  LIBLTE_BYTE_MSG_STRUCT                       tst_msg = {};
+  LIBLTE_BYTE_MSG_STRUCT                       out_msg = {};
+  std::unique_ptr<LIBLTE_M2AP_M2AP_PDU_STRUCT> m2ap_pdu(new LIBLTE_M2AP_M2AP_PDU_STRUCT);
 
   uint32_t m2ap_message_len = 62;
   uint8_t m2ap_message[]    = {0x00, 0x02, 0x00, 0x3a, 0x00, 0x00, 0x02, 0x00, 0x19, 0x00, 0x01, 0x00, 0x00,
@@ -375,11 +377,11 @@ int mbms_scheduling_information_test()
   log1.info_hex(tst_msg.msg, tst_msg.N_bytes, "MBMS Scheduling Information message\n");
 
   /*M2AP MBMS Scheduling Information Unpack Test*/
-  LIBLTE_ERROR_ENUM err = liblte_m2ap_unpack_m2ap_pdu(&tst_msg, &m2ap_pdu);
+  LIBLTE_ERROR_ENUM err = liblte_m2ap_unpack_m2ap_pdu(&tst_msg, m2ap_pdu.get());
   TESTASSERT(err == LIBLTE_SUCCESS);
-  TESTASSERT(m2ap_pdu.choice_type == LIBLTE_M2AP_M2AP_PDU_CHOICE_INITIATINGMESSAGE);
+  TESTASSERT(m2ap_pdu->choice_type == LIBLTE_M2AP_M2AP_PDU_CHOICE_INITIATINGMESSAGE);
 
-  LIBLTE_M2AP_INITIATINGMESSAGE_STRUCT *in_msg = &m2ap_pdu.choice.initiatingMessage;
+  LIBLTE_M2AP_INITIATINGMESSAGE_STRUCT* in_msg = &m2ap_pdu->choice.initiatingMessage;
   TESTASSERT(in_msg->choice_type == LIBLTE_M2AP_INITIATINGMESSAGE_CHOICE_MBMSSCHEDULINGINFORMATION);
 
   LIBLTE_M2AP_MESSAGE_MBMSSCHEDULINGINFORMATION_STRUCT *sched_info = &in_msg->choice.MbmsSchedulingInformation;
@@ -447,7 +449,7 @@ int mbms_scheduling_information_test()
   TESTASSERT(area_conf->MBSFNAreaId.mbsfn_area_id == 1);
 
   /*M2AP Setup Request Pack Test*/
-  err = liblte_m2ap_pack_m2ap_pdu(&m2ap_pdu, &out_msg);
+  err = liblte_m2ap_pack_m2ap_pdu(m2ap_pdu.get(), &out_msg);
   log1.info_hex(out_msg.msg, out_msg.N_bytes, "MBMS Scheduling Information message\n");
 
   TESTASSERT(err == LIBLTE_SUCCESS);
@@ -465,9 +467,9 @@ int mbms_scheduling_information_response_test()
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(128);
 
-  LIBLTE_BYTE_MSG_STRUCT tst_msg;
-  LIBLTE_BYTE_MSG_STRUCT out_msg;
-  LIBLTE_M2AP_M2AP_PDU_STRUCT m2ap_pdu;
+  LIBLTE_BYTE_MSG_STRUCT                       tst_msg = {};
+  LIBLTE_BYTE_MSG_STRUCT                       out_msg = {};
+  std::unique_ptr<LIBLTE_M2AP_M2AP_PDU_STRUCT> m2ap_pdu(new LIBLTE_M2AP_M2AP_PDU_STRUCT);
 
   uint32_t m2ap_message_len = 7;
   uint8_t m2ap_message[]    = {0x20, 0x02, 0x00, 0x03, 0x00, 0x00, 0x00};
@@ -476,17 +478,17 @@ int mbms_scheduling_information_response_test()
   log1.info_hex(tst_msg.msg, tst_msg.N_bytes, "MBMS Scheduling Information Response message\n");
 
   /*M2AP MBMS Scheduling Information Unpack Test*/
-  LIBLTE_ERROR_ENUM err = liblte_m2ap_unpack_m2ap_pdu(&tst_msg, &m2ap_pdu);
+  LIBLTE_ERROR_ENUM err = liblte_m2ap_unpack_m2ap_pdu(&tst_msg, m2ap_pdu.get());
   TESTASSERT(err == LIBLTE_SUCCESS);
-  TESTASSERT(m2ap_pdu.choice_type == LIBLTE_M2AP_M2AP_PDU_CHOICE_SUCCESSFULOUTCOME);
+  TESTASSERT(m2ap_pdu->choice_type == LIBLTE_M2AP_M2AP_PDU_CHOICE_SUCCESSFULOUTCOME);
 
-  LIBLTE_M2AP_SUCCESSFULOUTCOME_STRUCT *succ_out = &m2ap_pdu.choice.successfulOutcome;
+  LIBLTE_M2AP_SUCCESSFULOUTCOME_STRUCT* succ_out = &m2ap_pdu->choice.successfulOutcome;
   TESTASSERT(succ_out->choice_type == LIBLTE_M2AP_SUCCESSFULOUTCOME_CHOICE_MBMSSCHEDULINGINFORMATIONRESPONSE);
 
   LIBLTE_M2AP_MESSAGE_MBMSSCHEDULINGINFORMATIONRESPONSE_STRUCT *sched_info = &succ_out->choice.MbmsSchedulingInformationResponse;
 
   /*M2AP Setup Request Pack Test*/
-  err = liblte_m2ap_pack_m2ap_pdu(&m2ap_pdu, &out_msg);
+  err = liblte_m2ap_pack_m2ap_pdu(m2ap_pdu.get(), &out_msg);
   log1.info_hex(out_msg.msg, out_msg.N_bytes, "MBMS Scheduling Information message\n");
 
   TESTASSERT(err == LIBLTE_SUCCESS);
@@ -497,6 +499,7 @@ int mbms_scheduling_information_response_test()
 
   return 0;
 }
+
 int main(int argc, char **argv)
 {
   if (m2_setup_request_test()) {

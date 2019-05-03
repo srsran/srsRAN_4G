@@ -3324,7 +3324,7 @@ LIBLTE_ERROR_ENUM liblte_m2ap_pack_m2setuprequest(
     liblte_value_2_bits(n_ie, ptr, 16);
 
     // Temp container for IEs
-    LIBLTE_BIT_MSG_STRUCT tmp_msg;
+    LIBLTE_BIT_MSG_STRUCT tmp_msg = {};
     uint8_t              *tmp_ptr;
 
     // ProtocolIE - Global_ENB_ID
