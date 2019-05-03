@@ -246,6 +246,11 @@ bool s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKN
                    msg_encrypted == true ? "yes" : "no");
 
   switch (msg_type) {
+    case LIBLTE_MME_MSG_TYPE_ATTACH_REQUEST:
+      m_s1ap_log->info("UL NAS: Attach Request\n");
+      m_s1ap_log->console("UL NAS: Attach Resquest\n");
+      nas_ctx->handle_attach_request(nas_msg);
+      break;
     case LIBLTE_MME_MSG_TYPE_IDENTITY_RESPONSE:
       m_s1ap_log->info("UL NAS: Received Identity Response\n");
       m_s1ap_log->console("UL NAS: Received Identity Response\n");

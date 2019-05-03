@@ -227,6 +227,7 @@ public:
                                                   srslte::log*            nas_log);
 
   /* Uplink NAS messages handling */
+  bool handle_attach_request(srslte::byte_buffer_t* nas_rx);
   bool handle_authentication_response(srslte::byte_buffer_t* nas_rx);
   bool handle_security_mode_complete(srslte::byte_buffer_t* nas_rx);
   bool handle_attach_complete(srslte::byte_buffer_t* nas_rx);
