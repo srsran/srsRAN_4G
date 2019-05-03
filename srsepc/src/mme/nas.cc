@@ -34,7 +34,13 @@ nas::nas(srslte::log* nas_log = nullptr) :
   m_gtpc(nullptr),
   m_s1ap(nullptr),
   m_hss(nullptr),
-  m_mme(nullptr)
+  m_mme(nullptr),
+  m_mcc(0),
+  m_mnc(0),
+  m_mme_group(0),
+  m_mme_code(0),
+  m_tac(0),
+  m_t3413(0)
 {
 }
 
