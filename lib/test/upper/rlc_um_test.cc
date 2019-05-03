@@ -364,11 +364,12 @@ void reassmble_test()
   // Read PDUs from RLC1 (use smaller grant for first PDU and large for the rest)
   const int max_n_pdus = 100;
   int n_pdus = 0;
-  byte_buffer_t pdu_bufs[max_n_pdus];
+  byte_buffer_t* pdu_bufs[max_n_pdus];
   for(int i=0;i<max_n_pdus;i++)
   {
-    len = rlc1.read_pdu(pdu_bufs[i].msg, (i == 0) ? sdu_len*3/4 : sdu_len*1.25);
-    pdu_bufs[i].N_bytes = len;
+    pdu_bufs[i]          = byte_buffer_pool::get_instance()->allocate();
+    len                  = rlc1.read_pdu(pdu_bufs[i]->msg, (i == 0) ? sdu_len * 3 / 4 : sdu_len * 1.25);
+    pdu_bufs[i]->N_bytes = len;
     if (len) {
       n_pdus++;
     } else {
@@ -391,8 +392,9 @@ void reassmble_test()
   // Read second batch of PDUs (use large grants)
   for(int i=n_pdus;i<max_n_pdus;i++)
   {
-    len = rlc1.read_pdu(pdu_bufs[i].msg, sdu_len*1.25);
-    pdu_bufs[i].N_bytes = len;
+    pdu_bufs[i]          = byte_buffer_pool::get_instance()->allocate();
+    len                  = rlc1.read_pdu(pdu_bufs[i]->msg, sdu_len * 1.25);
+    pdu_bufs[i]->N_bytes = len;
     if (len) {
       n_pdus++;
     } else {
@@ -407,7 +409,7 @@ void reassmble_test()
   for(int i=0;i<n_pdus;i++)
   {
     if (i!=0) {
-      rlc2.write_pdu(pdu_bufs[i].msg, pdu_bufs[i].N_bytes);
+      rlc2.write_pdu(pdu_bufs[i]->msg, pdu_bufs[i]->N_bytes);
     }
   }
 
@@ -475,11 +477,12 @@ void reassmble_test2()
 
   const int max_n_pdus = 100;
   int n_pdus = 0;
-  byte_buffer_t pdu_bufs[max_n_pdus];
+  byte_buffer_t* pdu_bufs[max_n_pdus];
   for(int i=0;i<max_n_pdus;i++)
   {
-    len = rlc1.read_pdu(pdu_bufs[i].msg, (i == 0) ? sdu_len*.75 : sdu_len*.25);
-    pdu_bufs[i].N_bytes = len;
+    pdu_bufs[i]          = byte_buffer_pool::get_instance()->allocate();
+    len                  = rlc1.read_pdu(pdu_bufs[i]->msg, (i == 0) ? sdu_len * .75 : sdu_len * .25);
+    pdu_bufs[i]->N_bytes = len;
     if (len) {
       n_pdus++;
     } else {
@@ -502,8 +505,9 @@ void reassmble_test2()
   // Read second batch of PDUs
   for(int i=n_pdus;i<max_n_pdus;i++)
   {
-    len = rlc1.read_pdu(pdu_bufs[i].msg, sdu_len*1.25);
-    pdu_bufs[i].N_bytes = len;
+    pdu_bufs[i]          = byte_buffer_pool::get_instance()->allocate();
+    len                  = rlc1.read_pdu(pdu_bufs[i]->msg, sdu_len * 1.25);
+    pdu_bufs[i]->N_bytes = len;
     if (len) {
       n_pdus++;
     } else {
@@ -516,7 +520,7 @@ void reassmble_test2()
   // Write all PDUs into RLC2 except first one
   for(int i=0;i<n_pdus;i++) {
     if (i!=0) {
-      rlc2.write_pdu(pdu_bufs[i].msg, pdu_bufs[i].N_bytes);
+      rlc2.write_pdu(pdu_bufs[i]->msg, pdu_bufs[i]->N_bytes);
     }
   }
 
