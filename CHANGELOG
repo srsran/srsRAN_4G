@@ -1,6 +1,16 @@
 Change Log for Releases
 ==============================
 
+## 19.03
+  * PHY library refactor
+  * TDD support for srsUE
+  * Carrier Aggregation support for srsUE
+  * Paging support for srsENB and srsEPC
+  * User-plane encryption for srsENB
+  * Channel simulator for EPA, EVA, and ETU 3GPP channels
+  * ZeroMQ-based fake RF driver for I/Q over IPC/network
+  * Many bug-fixes and improved stability and performance in all parts
+
 ## 18.12
   * Add new RRC ASN1 message pack/unpack library
   * Refactor EPC and add encryption support
