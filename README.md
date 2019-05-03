@@ -16,8 +16,7 @@ srsLTE is released under the AGPLv3 license and uses software from the OpenLTE p
 Common Features
 ---------------
 
- * LTE Release 8 compliant (with selected features of Release 9)
- * FDD configuration
+ * LTE Release 10 aligned
  * Tested bandwidths: 1.4, 3, 5, 10, 15 and 20 MHz
  * Transmission mode 1 (single antenna), 2 (transmit diversity), 3 (CCD) and 4 (closed-loop spatial multiplexing)
  * Frequency-based ZF and MMSE equalizer
@@ -28,10 +27,14 @@ Common Features
  * MAC layer wireshark packet capture
  * Command-line trace metrics
  * Detailed input configuration files
+ * Channel simulator for EPA, EVA, and ETU 3GPP channels
+ * ZeroMQ-based fake RF driver for I/Q over IPC/network  
 
 srsUE Features
 --------------
- 
+
+ * FDD and TDD configuration
+ * Carrier Aggregation support
  * Cell search and synchronization procedure for the UE
  * Soft USIM supporting Milenage and XOR authentication
  * Hard USIM support using PCSC framework
@@ -49,6 +52,7 @@ srsUE has been fully tested and validated with the following network equipment:
 srsENB Features
 ---------------
 
+ * FDD configuration
  * Round Robin MAC scheduler with FAPI-like C++ API
  * SR support
  * Periodic and Aperiodic CQI feedback support
@@ -56,6 +60,7 @@ srsENB Features
  * 150 Mbps DL in 20 MHz MIMO TM3/TM4 with commercial UEs
  * 75 Mbps DL in SISO configuration with commercial UEs
  * 50 Mbps UL in 20 MHz with commercial UEs
+ * User-plane encryption
 
 srsENB has been tested and validated with the following handsets:
  * LG Nexus 5 and 4
@@ -70,6 +75,7 @@ srsEPC Features
    * MME (Mobility Management Entity) with standard S1AP and GTP-U interface to eNB
    * S/P-GW with standard SGi exposed as virtual network interface (TUN device)
    * HSS (Home Subscriber Server) with configurable user database in CSV format
+ * Support for paging
 
 Hardware
 --------
@@ -121,6 +127,7 @@ Note that depending on your flavor and version of Linux, the actual package name
   * UHD:                 https://github.com/EttusResearch/uhd
   * SoapySDR:            https://github.com/pothosware/SoapySDR
   * BladeRF:             https://github.com/Nuand/bladeRF
+  * ZeroMQ:              https://github.com/zeromq
 
 Download and build srsLTE: 
 ```
