@@ -789,9 +789,9 @@ union alignment_t {
 };
 #define MAX2(a, b) ((a) > (b)) ? (a) : (b)
 template <class It>
-constexpr size_t max_size(It b, It e)
+constexpr size_t max_size(const It b, const It e)
 {
-  return (b != e) ? MAX2(max_size((b + 1), e), *b) : 0;
+  return ((b == e) ? 0 : ((b + 1 == e) ? *b : MAX2(max_size(b, b + (e - b) / 2), max_size(b + (e - b) / 2, e))));
 }
 constexpr size_t max_sizeof(const std::initializer_list<size_t>& l)
 {
