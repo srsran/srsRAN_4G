@@ -442,6 +442,29 @@ void parse_args(all_args_t* args, int argc, char* argv[])
       args->log.usim_hex_limit = args->log.all_hex_limit;
     }
   }
+
+  if (args->expert.mbms_service > -1) {
+    if (!args->expert.phy.interpolate_subframe_enabled) {
+      fprintf(stderr,
+              "interpolate_subframe_enabled = %d, While using MBMS, "
+              "please set interpolate_subframe_enabled to true\n",
+              args->expert.phy.interpolate_subframe_enabled);
+      exit(1);
+    }
+    if (args->expert.phy.nof_phy_threads > 2) {
+      fprintf(stderr,
+              "nof_phy_threads = %d, While using MBMS, please set "
+              "number of phy threads to 1 or 2\n",
+              args->expert.phy.nof_phy_threads);
+      exit(1);
+    }
+    if ((0 == args->expert.phy.snr_estim_alg.find("refs"))) {
+      fprintf(stderr,
+              "snr_estim_alg = refs, While using MBMS, please set "
+              "algorithm to pss or empty \n");
+      exit(1);
+    }
+  }
 }
 
 static int     sigcnt     = 0;
@@ -534,26 +557,6 @@ int main(int argc, char* argv[])
   cout << "---  Software Radio Systems " << srsue_instance_type_text[type] << " UE  ---" << endl << endl;
   if (!ue->init(&args)) {
     exit(1);
-  }
-
-  if (args.expert.mbms_service > -1) {
-    if (!args.expert.phy.interpolate_subframe_enabled) {
-      fprintf(stderr, "interpolate_subframe_enabled = %d, While using MBMS, "
-                      "please set interpolate_subframe_enabled to true\n",
-              args.expert.phy.interpolate_subframe_enabled);
-      exit(1);
-    }
-    if (args.expert.phy.nof_phy_threads > 2) {
-      fprintf(stderr, "nof_phy_threads = %d, While using MBMS, please set "
-                      "number of phy threads to 1 or 2\n",
-              args.expert.phy.nof_phy_threads);
-      exit(1);
-    }
-    if ((0 == args.expert.phy.snr_estim_alg.find("refs"))) {
-      fprintf(stderr, "snr_estim_alg = refs, While using MBMS, please set "
-                      "algorithm to pss or empty \n");
-      exit(1);
-    }
   }
 
   metricshub.init(ue, args.expert.metrics_period_secs);
