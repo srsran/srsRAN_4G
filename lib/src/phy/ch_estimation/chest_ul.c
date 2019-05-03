@@ -243,9 +243,15 @@ static void interpolate_pilots(srslte_chest_ul_t *q, cf_t *ce, uint32_t nrefs, u
   // Instead of a linear interpolation, we just copy the estimates to all symbols in that subframe
   for (int s = 0; s < 2; s++) {
     for (int i = 0; i < SRSLTE_CP_NSYMB(q->cell.cp); i++) {
-      memcpy(&ce[((i + s * SRSLTE_CP_NSYMB(q->cell.cp)) * q->cell.nof_prb + n_prb[s]) * SRSLTE_NRE],
-             &ce[(SRSLTE_REFSIGNAL_UL_L(s, q->cell.cp) * q->cell.nof_prb + n_prb[s]) * SRSLTE_NRE],
-             nrefs * sizeof(cf_t));
+      int src_symb = SRSLTE_REFSIGNAL_UL_L(s, q->cell.cp);
+      int dst_symb = i + s * SRSLTE_CP_NSYMB(q->cell.cp);
+
+      // skip the symbol with the estimates
+      if (dst_symb != src_symb) {
+        memcpy(&ce[(dst_symb * q->cell.nof_prb + n_prb[s]) * SRSLTE_NRE],
+               &ce[(src_symb * q->cell.nof_prb + n_prb[s]) * SRSLTE_NRE],
+               nrefs * sizeof(cf_t));
+      }
     }
   }
 #endif
