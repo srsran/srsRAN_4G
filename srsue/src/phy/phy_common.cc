@@ -803,7 +803,7 @@ bool phy_common::is_mch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti)
           pthread_mutex_unlock(&mtch_mutex);
 
           for (uint32_t i = 0; i < mcch->pmch_info_list_r9.size(); i++) {
-            if (sf_alloc_idx < mch_period_stop) {
+            if (sf_alloc_idx <= mch_period_stop) {
               // trigger conditional variable, has ot be untriggered by mtch stop location
               cfg->mbsfn_mcs = mcch->pmch_info_list_r9[i].pmch_cfg_r9.data_mcs_r9;
               cfg->enable    = true;

@@ -366,7 +366,7 @@ bool phy_common::is_mch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti)
           }
 
           for (uint32_t i = 0; i < area_r9->pmch_info_list_r9.size(); i++) {
-            if (sf_alloc_idx < mch_period_stop) {
+            if (sf_alloc_idx <= mch_period_stop) {
               cfg->mbsfn_mcs = mbsfn.mcch.msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[i].pmch_cfg_r9.data_mcs_r9;
               cfg->enable    = true;
             }
