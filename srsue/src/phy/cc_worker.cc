@@ -173,7 +173,7 @@ bool cc_worker::set_cell(srslte_cell_t cell)
     }
 
     if (cell.frame_type == SRSLTE_TDD && !ue_dl_cfg.chest_cfg.interpolate_subframe) {
-      ue_dl_cfg.chest_cfg.interpolate_subframe = true;
+      chest_default_cfg.interpolate_subframe = true;
       log_h->console("Enabling subframe interpolation for TDD cells (recommended setting)\n");
     }
 
