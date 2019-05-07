@@ -894,8 +894,8 @@ private:
       delete ptr;
     }
   }
-  T*        make_obj_() const { return (ptr == NULL) ? NULL : new T(*ptr); }
-  T*        ptr;
+  T* make_obj_() const { return (ptr == NULL) ? NULL : new T(*ptr); }
+  T* ptr;
 };
 
 template <class T>

@@ -532,6 +532,16 @@ struct plmn_id_info_r15_s {
       assert_choice_type("plmn-Index-r15", type_.to_string(), "plmn-Identity-5GC-r15");
       return c.get<uint8_t>();
     }
+    plmn_id_s& set_plmn_id_r15()
+    {
+      set(types::plmn_id_r15);
+      return c.get<plmn_id_s>();
+    }
+    uint8_t& set_plmn_idx_r15()
+    {
+      set(types::plmn_idx_r15);
+      return c.get<uint8_t>();
+    }
 
   private:
     types                              type_;
@@ -604,6 +614,16 @@ struct cell_id_minus5_gc_r15_c {
   const uint8_t& cell_id_idx_r15() const
   {
     assert_choice_type("cellId-Index-r15", type_.to_string(), "CellIdentity-5GC-r15");
+    return c.get<uint8_t>();
+  }
+  fixed_bitstring<28>& set_cell_id_r15()
+  {
+    set(types::cell_id_r15);
+    return c.get<fixed_bitstring<28> >();
+  }
+  uint8_t& set_cell_id_idx_r15()
+  {
+    set(types::cell_id_idx_r15);
     return c.get<uint8_t>();
   }
 
@@ -758,6 +778,11 @@ struct sl_tx_pwr_r14_c {
   const int8_t& tx_pwr_r14() const
   {
     assert_choice_type("txPower-r14", type_.to_string(), "SL-TxPower-r14");
+    return c;
+  }
+  int8_t& set_tx_pwr_r14()
+  {
+    set(types::tx_pwr_r14);
     return c;
   }
 
@@ -935,6 +960,11 @@ struct sib_type1_v1530_ies_s {
       assert_choice_type("crs-IntfMitigNumPRBs-r15", type_.to_string(), "crs-IntfMitigConfig-r15");
       return c;
     }
+    crs_intf_mitig_num_prbs_r15_e_& set_crs_intf_mitig_num_prbs_r15()
+    {
+      set(types::crs_intf_mitig_num_prbs_r15);
+      return c;
+    }
 
   private:
     types                          type_;
@@ -1089,6 +1119,16 @@ struct sl_offset_ind_r12_c {
   const uint16_t& large_r12() const
   {
     assert_choice_type("large-r12", type_.to_string(), "SL-OffsetIndicator-r12");
+    return c.get<uint16_t>();
+  }
+  uint16_t& set_small_r12()
+  {
+    set(types::small_r12);
+    return c.get<uint16_t>();
+  }
+  uint16_t& set_large_r12()
+  {
+    set(types::large_r12);
     return c.get<uint16_t>();
   }
 
@@ -1263,6 +1303,41 @@ struct sf_bitmap_sl_r12_c {
     assert_choice_type("bs42-r12", type_.to_string(), "SubframeBitmapSL-r12");
     return c.get<fixed_bitstring<42> >();
   }
+  fixed_bitstring<4>& set_bs4_r12()
+  {
+    set(types::bs4_r12);
+    return c.get<fixed_bitstring<4> >();
+  }
+  fixed_bitstring<8>& set_bs8_r12()
+  {
+    set(types::bs8_r12);
+    return c.get<fixed_bitstring<8> >();
+  }
+  fixed_bitstring<12>& set_bs12_r12()
+  {
+    set(types::bs12_r12);
+    return c.get<fixed_bitstring<12> >();
+  }
+  fixed_bitstring<16>& set_bs16_r12()
+  {
+    set(types::bs16_r12);
+    return c.get<fixed_bitstring<16> >();
+  }
+  fixed_bitstring<30>& set_bs30_r12()
+  {
+    set(types::bs30_r12);
+    return c.get<fixed_bitstring<30> >();
+  }
+  fixed_bitstring<40>& set_bs40_r12()
+  {
+    set(types::bs40_r12);
+    return c.get<fixed_bitstring<40> >();
+  }
+  fixed_bitstring<42>& set_bs42_r12()
+  {
+    set(types::bs42_r12);
+    return c.get<fixed_bitstring<42> >();
+  }
 
 private:
   types                                        type_;
@@ -1371,6 +1446,46 @@ struct sf_bitmap_sl_r14_c {
   const fixed_bitstring<100>& bs100_r14() const
   {
     assert_choice_type("bs100-r14", type_.to_string(), "SubframeBitmapSL-r14");
+    return c.get<fixed_bitstring<100> >();
+  }
+  fixed_bitstring<10>& set_bs10_r14()
+  {
+    set(types::bs10_r14);
+    return c.get<fixed_bitstring<10> >();
+  }
+  fixed_bitstring<16>& set_bs16_r14()
+  {
+    set(types::bs16_r14);
+    return c.get<fixed_bitstring<16> >();
+  }
+  fixed_bitstring<20>& set_bs20_r14()
+  {
+    set(types::bs20_r14);
+    return c.get<fixed_bitstring<20> >();
+  }
+  fixed_bitstring<30>& set_bs30_r14()
+  {
+    set(types::bs30_r14);
+    return c.get<fixed_bitstring<30> >();
+  }
+  fixed_bitstring<40>& set_bs40_r14()
+  {
+    set(types::bs40_r14);
+    return c.get<fixed_bitstring<40> >();
+  }
+  fixed_bitstring<50>& set_bs50_r14()
+  {
+    set(types::bs50_r14);
+    return c.get<fixed_bitstring<50> >();
+  }
+  fixed_bitstring<60>& set_bs60_r14()
+  {
+    set(types::bs60_r14);
+    return c.get<fixed_bitstring<60> >();
+  }
+  fixed_bitstring<100>& set_bs100_r14()
+  {
+    set(types::bs100_r14);
     return c.get<fixed_bitstring<100> >();
   }
 
@@ -1908,6 +2023,11 @@ struct sl_disc_res_pool_r12_s {
           assert_choice_type("rsrpBased-r12", type_.to_string(), "poolSelection-r12");
           return c;
         }
+        sl_pool_sel_cfg_r12_s& set_rsrp_based_r12()
+        {
+          set(types::rsrp_based_r12);
+          return c;
+        }
 
       private:
         types                 type_;
@@ -1967,6 +2087,11 @@ struct sl_disc_res_pool_r12_s {
       assert_choice_type("setup", type_.to_string(), "discPeriod-v1310");
       return c;
     }
+    setup_e_& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types    type_;
@@ -1995,6 +2120,11 @@ struct sl_disc_res_pool_r12_s {
     const setup_s_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "rxParamsAddNeighFreq-r13");
+      return c;
+    }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -2055,6 +2185,11 @@ struct sl_disc_res_pool_r12_s {
       assert_choice_type("setup", type_.to_string(), "txParamsAddNeighFreq-r13");
       return c;
     }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types    type_;
@@ -2088,6 +2223,11 @@ struct sl_disc_res_pool_r12_s {
     const setup_s_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "txParamsAddNeighFreq-v1370");
+      return c;
+    }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -2759,6 +2899,16 @@ struct plmn_id_info2_r12_c {
     assert_choice_type("plmnIdentity-r12", type_.to_string(), "PLMN-IdentityInfo2-r12");
     return c.get<plmn_id_s>();
   }
+  uint8_t& set_plmn_idx_r12()
+  {
+    set(types::plmn_idx_r12);
+    return c.get<uint8_t>();
+  }
+  plmn_id_s& set_plmn_id_r12()
+  {
+    set(types::plmn_id_r12);
+    return c.get<plmn_id_s>();
+  }
 
 private:
   types                              type_;
@@ -2974,6 +3124,11 @@ struct sl_disc_tx_res_inter_freq_r13_c {
     assert_choice_type("discTxPoolCommon-r13", type_.to_string(), "SL-DiscTxResourcesInterFreq-r13");
     return c;
   }
+  sl_disc_tx_pool_list_r12_l& set_disc_tx_pool_common_r13()
+  {
+    set(types::disc_tx_pool_common_r13);
+    return c;
+  }
 
 private:
   types                      type_;
@@ -3061,6 +3216,16 @@ struct sib_type1_v1320_ies_s {
         assert_choice_type("interval-TDD-r13", type_.to_string(), "interval-DLHoppingConfigCommonModeA-r13");
         return c.get<interv_tdd_r13_e_>();
       }
+      interv_fdd_r13_e_& set_interv_fdd_r13()
+      {
+        set(types::interv_fdd_r13);
+        return c.get<interv_fdd_r13_e_>();
+      }
+      interv_tdd_r13_e_& set_interv_tdd_r13()
+      {
+        set(types::interv_tdd_r13);
+        return c.get<interv_tdd_r13_e_>();
+      }
 
     private:
       types                                                                       type_;
@@ -3121,6 +3286,16 @@ struct sib_type1_v1320_ies_s {
       const interv_tdd_r13_e_& interv_tdd_r13() const
       {
         assert_choice_type("interval-TDD-r13", type_.to_string(), "interval-DLHoppingConfigCommonModeB-r13");
+        return c.get<interv_tdd_r13_e_>();
+      }
+      interv_fdd_r13_e_& set_interv_fdd_r13()
+      {
+        set(types::interv_fdd_r13);
+        return c.get<interv_fdd_r13_e_>();
+      }
+      interv_tdd_r13_e_& set_interv_tdd_r13()
+      {
+        set(types::interv_tdd_r13);
         return c.get<interv_tdd_r13_e_>();
       }
 
@@ -3230,6 +3405,16 @@ struct sys_time_info_cdma2000_s {
     const fixed_bitstring<49>& async_sys_time() const
     {
       assert_choice_type("asynchronousSystemTime", type_.to_string(), "cdma-SystemTime");
+      return c.get<fixed_bitstring<49> >();
+    }
+    fixed_bitstring<39>& set_sync_sys_time()
+    {
+      set(types::sync_sys_time);
+      return c.get<fixed_bitstring<39> >();
+    }
+    fixed_bitstring<49>& set_async_sys_time()
+    {
+      set(types::async_sys_time);
       return c.get<fixed_bitstring<49> >();
     }
 
@@ -3350,6 +3535,21 @@ struct carrier_freqs_geran_s {
     const dyn_octstring& variable_bit_map_of_arfcns() const
     {
       assert_choice_type("variableBitMapOfARFCNs", type_.to_string(), "followingARFCNs");
+      return c.get<dyn_octstring>();
+    }
+    explicit_list_of_arfcns_l& set_explicit_list_of_arfcns()
+    {
+      set(types::explicit_list_of_arfcns);
+      return c.get<explicit_list_of_arfcns_l>();
+    }
+    equally_spaced_arfcns_s_& set_equally_spaced_arfcns()
+    {
+      set(types::equally_spaced_arfcns);
+      return c.get<equally_spaced_arfcns_s_>();
+    }
+    dyn_octstring& set_variable_bit_map_of_arfcns()
+    {
+      set(types::variable_bit_map_of_arfcns);
       return c.get<dyn_octstring>();
     }
 
@@ -3619,6 +3819,36 @@ struct mtc_ssb_nr_r15_s {
       assert_choice_type("sf160-r15", type_.to_string(), "periodicityAndOffset-r15");
       return c.get<uint8_t>();
     }
+    uint8_t& set_sf5_r15()
+    {
+      set(types::sf5_r15);
+      return c.get<uint8_t>();
+    }
+    uint8_t& set_sf10_r15()
+    {
+      set(types::sf10_r15);
+      return c.get<uint8_t>();
+    }
+    uint8_t& set_sf20_r15()
+    {
+      set(types::sf20_r15);
+      return c.get<uint8_t>();
+    }
+    uint8_t& set_sf40_r15()
+    {
+      set(types::sf40_r15);
+      return c.get<uint8_t>();
+    }
+    uint8_t& set_sf80_r15()
+    {
+      set(types::sf80_r15);
+      return c.get<uint8_t>();
+    }
+    uint8_t& set_sf160_r15()
+    {
+      set(types::sf160_r15);
+      return c.get<uint8_t>();
+    }
 
   private:
     types              type_;
@@ -3764,6 +3994,11 @@ struct params_cdma2000_r11_s {
     const sys_time_info_cdma2000_s& explicit_value() const
     {
       assert_choice_type("explicitValue", type_.to_string(), "systemTimeInfo-r11");
+      return c;
+    }
+    sys_time_info_cdma2000_s& set_explicit_value()
+    {
+      set(types::explicit_value);
       return c;
     }
 
@@ -3989,6 +4224,16 @@ struct sl_inter_freq_info_v2x_r14_s {
     const uint16_t& add_spec_emission_v1440() const
     {
       assert_choice_type("additionalSpectrumEmission-v1440", type_.to_string(), "additionalSpectrumEmissionV2X-r14");
+      return c.get<uint16_t>();
+    }
+    uint8_t& set_add_spec_emission_r14()
+    {
+      set(types::add_spec_emission_r14);
+      return c.get<uint8_t>();
+    }
+    uint16_t& set_add_spec_emission_v1440()
+    {
+      set(types::add_spec_emission_v1440);
       return c.get<uint16_t>();
     }
 
@@ -4221,6 +4466,16 @@ struct sib_type1_v1310_ies_s {
       const fixed_bitstring<40>& sf_pattern40_r13() const
       {
         assert_choice_type("subframePattern40-r13", type_.to_string(), "fdd-DownlinkOrTddSubframeBitmapBR-r13");
+        return c.get<fixed_bitstring<40> >();
+      }
+      fixed_bitstring<10>& set_sf_pattern10_r13()
+      {
+        set(types::sf_pattern10_r13);
+        return c.get<fixed_bitstring<10> >();
+      }
+      fixed_bitstring<40>& set_sf_pattern40_r13()
+      {
+        set(types::sf_pattern40_r13);
         return c.get<fixed_bitstring<40> >();
       }
 
@@ -4796,6 +5051,16 @@ struct freq_hop_params_r13_s {
       assert_choice_type("interval-TDD-r13", type_.to_string(), "dummy2");
       return c.get<interv_tdd_r13_e_>();
     }
+    interv_fdd_r13_e_& set_interv_fdd_r13()
+    {
+      set(types::interv_fdd_r13);
+      return c.get<interv_fdd_r13_e_>();
+    }
+    interv_tdd_r13_e_& set_interv_tdd_r13()
+    {
+      set(types::interv_tdd_r13);
+      return c.get<interv_tdd_r13_e_>();
+    }
 
   private:
     types                                                                       type_;
@@ -4856,6 +5121,16 @@ struct freq_hop_params_r13_s {
     const interv_tdd_r13_e_& interv_tdd_r13() const
     {
       assert_choice_type("interval-TDD-r13", type_.to_string(), "dummy3");
+      return c.get<interv_tdd_r13_e_>();
+    }
+    interv_fdd_r13_e_& set_interv_fdd_r13()
+    {
+      set(types::interv_fdd_r13);
+      return c.get<interv_fdd_r13_e_>();
+    }
+    interv_tdd_r13_e_& set_interv_tdd_r13()
+    {
+      set(types::interv_tdd_r13);
       return c.get<interv_tdd_r13_e_>();
     }
 
@@ -4920,6 +5195,16 @@ struct freq_hop_params_r13_s {
       assert_choice_type("interval-TDD-r13", type_.to_string(), "interval-ULHoppingConfigCommonModeA-r13");
       return c.get<interv_tdd_r13_e_>();
     }
+    interv_fdd_r13_e_& set_interv_fdd_r13()
+    {
+      set(types::interv_fdd_r13);
+      return c.get<interv_fdd_r13_e_>();
+    }
+    interv_tdd_r13_e_& set_interv_tdd_r13()
+    {
+      set(types::interv_tdd_r13);
+      return c.get<interv_tdd_r13_e_>();
+    }
 
   private:
     types                                                                       type_;
@@ -4980,6 +5265,16 @@ struct freq_hop_params_r13_s {
     const interv_tdd_r13_e_& interv_tdd_r13() const
     {
       assert_choice_type("interval-TDD-r13", type_.to_string(), "interval-ULHoppingConfigCommonModeB-r13");
+      return c.get<interv_tdd_r13_e_>();
+    }
+    interv_fdd_r13_e_& set_interv_fdd_r13()
+    {
+      set(types::interv_fdd_r13);
+      return c.get<interv_fdd_r13_e_>();
+    }
+    interv_tdd_r13_e_& set_interv_tdd_r13()
+    {
+      set(types::interv_tdd_r13);
       return c.get<interv_tdd_r13_e_>();
     }
 
@@ -5400,6 +5695,16 @@ struct mbsfn_sf_cfg_s {
       assert_choice_type("fourFrames", type_.to_string(), "subframeAllocation");
       return c.get<fixed_bitstring<24> >();
     }
+    fixed_bitstring<6>& set_one_frame()
+    {
+      set(types::one_frame);
+      return c.get<fixed_bitstring<6> >();
+    }
+    fixed_bitstring<24>& set_four_frames()
+    {
+      set(types::four_frames);
+      return c.get<fixed_bitstring<24> >();
+    }
 
   private:
     types                                        type_;
@@ -5460,6 +5765,16 @@ struct mbsfn_sf_cfg_v1430_s {
     const fixed_bitstring<8>& four_frames_v1430() const
     {
       assert_choice_type("fourFrames-v1430", type_.to_string(), "subframeAllocation-v1430");
+      return c.get<fixed_bitstring<8> >();
+    }
+    fixed_bitstring<2>& set_one_frame_v1430()
+    {
+      set(types::one_frame_v1430);
+      return c.get<fixed_bitstring<2> >();
+    }
+    fixed_bitstring<8>& set_four_frames_v1430()
+    {
+      set(types::four_frames_v1430);
       return c.get<fixed_bitstring<8> >();
     }
 
@@ -5692,6 +6007,16 @@ struct prach_cfg_sib_v1310_s {
     const tdd_r13_e_& tdd_r13() const
     {
       assert_choice_type("tdd-r13", type_.to_string(), "mpdcch-startSF-CSS-RA-r13");
+      return c.get<tdd_r13_e_>();
+    }
+    fdd_r13_e_& set_fdd_r13()
+    {
+      set(types::fdd_r13);
+      return c.get<fdd_r13_e_>();
+    }
+    tdd_r13_e_& set_tdd_r13()
+    {
+      set(types::tdd_r13);
       return c.get<tdd_r13_e_>();
     }
 
@@ -6166,6 +6491,11 @@ struct sib8_per_plmn_r11_s {
       assert_choice_type("explicitValue", type_.to_string(), "parametersCDMA2000-r11");
       return c;
     }
+    params_cdma2000_r11_s& set_explicit_value()
+    {
+      set(types::explicit_value);
+      return c;
+    }
 
   private:
     types                 type_;
@@ -6366,6 +6696,11 @@ struct srs_ul_cfg_common_c {
     assert_choice_type("setup", type_.to_string(), "SoundingRS-UL-ConfigCommon");
     return c;
   }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
+    return c;
+  }
 
 private:
   types    type_;
@@ -6525,6 +6860,16 @@ struct uac_barr_per_plmn_r15_s {
     const uac_barr_per_cat_list_r15_l& uac_explicit_ac_barr_list_r15() const
     {
       assert_choice_type("uac-ExplicitAC-BarringList-r15", type_.to_string(), "uac-AC-BarringListType-r15");
+      return c.get<uac_barr_per_cat_list_r15_l>();
+    }
+    uac_implicit_ac_barr_list_r15_l_& set_uac_implicit_ac_barr_list_r15()
+    {
+      set(types::uac_implicit_ac_barr_list_r15);
+      return c.get<uac_implicit_ac_barr_list_r15_l_>();
+    }
+    uac_barr_per_cat_list_r15_l& set_uac_explicit_ac_barr_list_r15()
+    {
+      set(types::uac_explicit_ac_barr_list_r15);
       return c.get<uac_barr_per_cat_list_r15_l>();
     }
 
@@ -7371,6 +7716,86 @@ struct sc_mcch_sched_info_r14_s {
       assert_choice_type("sf8192", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint16_t>();
     }
+    uint8_t& set_sf10()
+    {
+      set(types::sf10);
+      return c.get<uint8_t>();
+    }
+    uint8_t& set_sf20()
+    {
+      set(types::sf20);
+      return c.get<uint8_t>();
+    }
+    uint8_t& set_sf32()
+    {
+      set(types::sf32);
+      return c.get<uint8_t>();
+    }
+    uint8_t& set_sf40()
+    {
+      set(types::sf40);
+      return c.get<uint8_t>();
+    }
+    uint8_t& set_sf64()
+    {
+      set(types::sf64);
+      return c.get<uint8_t>();
+    }
+    uint8_t& set_sf80()
+    {
+      set(types::sf80);
+      return c.get<uint8_t>();
+    }
+    uint8_t& set_sf128()
+    {
+      set(types::sf128);
+      return c.get<uint8_t>();
+    }
+    uint8_t& set_sf160()
+    {
+      set(types::sf160);
+      return c.get<uint8_t>();
+    }
+    uint8_t& set_sf256()
+    {
+      set(types::sf256);
+      return c.get<uint8_t>();
+    }
+    uint16_t& set_sf320()
+    {
+      set(types::sf320);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_sf512()
+    {
+      set(types::sf512);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_sf640()
+    {
+      set(types::sf640);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_sf1024()
+    {
+      set(types::sf1024);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_sf2048()
+    {
+      set(types::sf2048);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_sf4096()
+    {
+      set(types::sf4096);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_sf8192()
+    {
+      set(types::sf8192);
+      return c.get<uint16_t>();
+    }
 
   private:
     types              type_;
@@ -8013,6 +8438,16 @@ struct sib_type14_r11_s {
       assert_choice_type("eab-PerPLMN-List-r11", type_.to_string(), "eab-Param-r11");
       return c.get<eab_per_plmn_list_r11_l_>();
     }
+    eab_cfg_r11_s& set_eab_common_r11()
+    {
+      set(types::eab_common_r11);
+      return c.get<eab_cfg_r11_s>();
+    }
+    eab_per_plmn_list_r11_l_& set_eab_per_plmn_list_r11()
+    {
+      set(types::eab_per_plmn_list_r11);
+      return c.get<eab_per_plmn_list_r11_l_>();
+    }
 
   private:
     types                                                                          type_;
@@ -8397,6 +8832,16 @@ struct sib_type20_r13_s {
         assert_choice_type("tdd-r14", type_.to_string(), "mpdcch-StartSF-SC-MCCH-r14");
         return c.get<tdd_r14_e_>();
       }
+      fdd_r14_e_& set_fdd_r14()
+      {
+        set(types::fdd_r14);
+        return c.get<fdd_r14_e_>();
+      }
+      tdd_r14_e_& set_tdd_r14()
+      {
+        set(types::tdd_r14);
+        return c.get<tdd_r14_e_>();
+      }
 
     private:
       types                                                         type_;
@@ -8576,6 +9021,16 @@ struct sib_type25_r15_s {
     const individual_plmn_list_r15_l_& individual_plmn_list_r15() const
     {
       assert_choice_type("individualPLMNList-r15", type_.to_string(), "uac-AC1-SelectAssistInfo-r15");
+      return c.get<individual_plmn_list_r15_l_>();
+    }
+    uac_ac1_select_assist_info_r15_e& set_plmn_common_r15()
+    {
+      set(types::plmn_common_r15);
+      return c.get<uac_ac1_select_assist_info_r15_e>();
+    }
+    individual_plmn_list_r15_l_& set_individual_plmn_list_r15()
+    {
+      set(types::individual_plmn_list_r15);
       return c.get<individual_plmn_list_r15_l_>();
     }
 
@@ -9292,6 +9747,141 @@ struct pos_sys_info_r15_ies_s {
       assert_choice_type("posSib3-1-r15", type_.to_string(), "posSIB-TypeAndInfo-r15-item");
       return c.get<sib_pos_r15_s>();
     }
+    sib_pos_r15_s& set_pos_sib1_minus1_r15()
+    {
+      set(types::pos_sib1_minus1_r15);
+      return c.get<sib_pos_r15_s>();
+    }
+    sib_pos_r15_s& set_pos_sib1_minus2_r15()
+    {
+      set(types::pos_sib1_minus2_r15);
+      return c.get<sib_pos_r15_s>();
+    }
+    sib_pos_r15_s& set_pos_sib1_minus3_r15()
+    {
+      set(types::pos_sib1_minus3_r15);
+      return c.get<sib_pos_r15_s>();
+    }
+    sib_pos_r15_s& set_pos_sib1_minus4_r15()
+    {
+      set(types::pos_sib1_minus4_r15);
+      return c.get<sib_pos_r15_s>();
+    }
+    sib_pos_r15_s& set_pos_sib1_minus5_r15()
+    {
+      set(types::pos_sib1_minus5_r15);
+      return c.get<sib_pos_r15_s>();
+    }
+    sib_pos_r15_s& set_pos_sib1_minus6_r15()
+    {
+      set(types::pos_sib1_minus6_r15);
+      return c.get<sib_pos_r15_s>();
+    }
+    sib_pos_r15_s& set_pos_sib1_minus7_r15()
+    {
+      set(types::pos_sib1_minus7_r15);
+      return c.get<sib_pos_r15_s>();
+    }
+    sib_pos_r15_s& set_pos_sib2_minus1_r15()
+    {
+      set(types::pos_sib2_minus1_r15);
+      return c.get<sib_pos_r15_s>();
+    }
+    sib_pos_r15_s& set_pos_sib2_minus2_r15()
+    {
+      set(types::pos_sib2_minus2_r15);
+      return c.get<sib_pos_r15_s>();
+    }
+    sib_pos_r15_s& set_pos_sib2_minus3_r15()
+    {
+      set(types::pos_sib2_minus3_r15);
+      return c.get<sib_pos_r15_s>();
+    }
+    sib_pos_r15_s& set_pos_sib2_minus4_r15()
+    {
+      set(types::pos_sib2_minus4_r15);
+      return c.get<sib_pos_r15_s>();
+    }
+    sib_pos_r15_s& set_pos_sib2_minus5_r15()
+    {
+      set(types::pos_sib2_minus5_r15);
+      return c.get<sib_pos_r15_s>();
+    }
+    sib_pos_r15_s& set_pos_sib2_minus6_r15()
+    {
+      set(types::pos_sib2_minus6_r15);
+      return c.get<sib_pos_r15_s>();
+    }
+    sib_pos_r15_s& set_pos_sib2_minus7_r15()
+    {
+      set(types::pos_sib2_minus7_r15);
+      return c.get<sib_pos_r15_s>();
+    }
+    sib_pos_r15_s& set_pos_sib2_minus8_r15()
+    {
+      set(types::pos_sib2_minus8_r15);
+      return c.get<sib_pos_r15_s>();
+    }
+    sib_pos_r15_s& set_pos_sib2_minus9_r15()
+    {
+      set(types::pos_sib2_minus9_r15);
+      return c.get<sib_pos_r15_s>();
+    }
+    sib_pos_r15_s& set_pos_sib2_minus10_r15()
+    {
+      set(types::pos_sib2_minus10_r15);
+      return c.get<sib_pos_r15_s>();
+    }
+    sib_pos_r15_s& set_pos_sib2_minus11_r15()
+    {
+      set(types::pos_sib2_minus11_r15);
+      return c.get<sib_pos_r15_s>();
+    }
+    sib_pos_r15_s& set_pos_sib2_minus12_r15()
+    {
+      set(types::pos_sib2_minus12_r15);
+      return c.get<sib_pos_r15_s>();
+    }
+    sib_pos_r15_s& set_pos_sib2_minus13_r15()
+    {
+      set(types::pos_sib2_minus13_r15);
+      return c.get<sib_pos_r15_s>();
+    }
+    sib_pos_r15_s& set_pos_sib2_minus14_r15()
+    {
+      set(types::pos_sib2_minus14_r15);
+      return c.get<sib_pos_r15_s>();
+    }
+    sib_pos_r15_s& set_pos_sib2_minus15_r15()
+    {
+      set(types::pos_sib2_minus15_r15);
+      return c.get<sib_pos_r15_s>();
+    }
+    sib_pos_r15_s& set_pos_sib2_minus16_r15()
+    {
+      set(types::pos_sib2_minus16_r15);
+      return c.get<sib_pos_r15_s>();
+    }
+    sib_pos_r15_s& set_pos_sib2_minus17_r15()
+    {
+      set(types::pos_sib2_minus17_r15);
+      return c.get<sib_pos_r15_s>();
+    }
+    sib_pos_r15_s& set_pos_sib2_minus18_r15()
+    {
+      set(types::pos_sib2_minus18_r15);
+      return c.get<sib_pos_r15_s>();
+    }
+    sib_pos_r15_s& set_pos_sib2_minus19_r15()
+    {
+      set(types::pos_sib2_minus19_r15);
+      return c.get<sib_pos_r15_s>();
+    }
+    sib_pos_r15_s& set_pos_sib3_minus1_r15()
+    {
+      set(types::pos_sib3_minus1_r15);
+      return c.get<sib_pos_r15_s>();
+    }
 
   private:
     types                                  type_;
@@ -9593,6 +10183,121 @@ struct sib_info_item_c {
     assert_choice_type("sib26-v1530", type_.to_string(), "");
     return c.get<sib_type26_r15_s>();
   }
+  sib_type2_s& set_sib2()
+  {
+    set(types::sib2);
+    return c.get<sib_type2_s>();
+  }
+  sib_type3_s& set_sib3()
+  {
+    set(types::sib3);
+    return c.get<sib_type3_s>();
+  }
+  sib_type4_s& set_sib4()
+  {
+    set(types::sib4);
+    return c.get<sib_type4_s>();
+  }
+  sib_type5_s& set_sib5()
+  {
+    set(types::sib5);
+    return c.get<sib_type5_s>();
+  }
+  sib_type6_s& set_sib6()
+  {
+    set(types::sib6);
+    return c.get<sib_type6_s>();
+  }
+  sib_type7_s& set_sib7()
+  {
+    set(types::sib7);
+    return c.get<sib_type7_s>();
+  }
+  sib_type8_s& set_sib8()
+  {
+    set(types::sib8);
+    return c.get<sib_type8_s>();
+  }
+  sib_type9_s& set_sib9()
+  {
+    set(types::sib9);
+    return c.get<sib_type9_s>();
+  }
+  sib_type10_s& set_sib10()
+  {
+    set(types::sib10);
+    return c.get<sib_type10_s>();
+  }
+  sib_type11_s& set_sib11()
+  {
+    set(types::sib11);
+    return c.get<sib_type11_s>();
+  }
+  sib_type12_r9_s& set_sib12_v920()
+  {
+    set(types::sib12_v920);
+    return c.get<sib_type12_r9_s>();
+  }
+  sib_type13_r9_s& set_sib13_v920()
+  {
+    set(types::sib13_v920);
+    return c.get<sib_type13_r9_s>();
+  }
+  sib_type14_r11_s& set_sib14_v1130()
+  {
+    set(types::sib14_v1130);
+    return c.get<sib_type14_r11_s>();
+  }
+  sib_type15_r11_s& set_sib15_v1130()
+  {
+    set(types::sib15_v1130);
+    return c.get<sib_type15_r11_s>();
+  }
+  sib_type16_r11_s& set_sib16_v1130()
+  {
+    set(types::sib16_v1130);
+    return c.get<sib_type16_r11_s>();
+  }
+  sib_type17_r12_s& set_sib17_v1250()
+  {
+    set(types::sib17_v1250);
+    return c.get<sib_type17_r12_s>();
+  }
+  sib_type18_r12_s& set_sib18_v1250()
+  {
+    set(types::sib18_v1250);
+    return c.get<sib_type18_r12_s>();
+  }
+  sib_type19_r12_s& set_sib19_v1250()
+  {
+    set(types::sib19_v1250);
+    return c.get<sib_type19_r12_s>();
+  }
+  sib_type20_r13_s& set_sib20_v1310()
+  {
+    set(types::sib20_v1310);
+    return c.get<sib_type20_r13_s>();
+  }
+  sib_type21_r14_s& set_sib21_v1430()
+  {
+    set(types::sib21_v1430);
+    return c.get<sib_type21_r14_s>();
+  }
+  sib_type24_r15_s& set_sib24_v1530()
+  {
+    set(types::sib24_v1530);
+    return c.get<sib_type24_r15_s>();
+  }
+  sib_type25_r15_s& set_sib25_v1530()
+  {
+    set(types::sib25_v1530);
+    return c.get<sib_type25_r15_s>();
+  }
+  sib_type26_r15_s& set_sib26_v1530()
+  {
+    set(types::sib26_v1530);
+    return c.get<sib_type26_r15_s>();
+  }
 
 private:
   types type_;
@@ -9670,6 +10375,11 @@ struct sys_info_s {
         assert_choice_type("posSystemInformation-r15", type_.to_string(), "criticalExtensionsFuture-r15");
         return c.get<pos_sys_info_r15_ies_s>();
       }
+      pos_sys_info_r15_ies_s& set_pos_sys_info_r15()
+      {
+        set(types::pos_sys_info_r15);
+        return c.get<pos_sys_info_r15_ies_s>();
+      }
 
     private:
       types                                           type_;
@@ -9713,6 +10423,16 @@ struct sys_info_s {
     const crit_exts_future_r15_c_& crit_exts_future_r15() const
     {
       assert_choice_type("criticalExtensionsFuture-r15", type_.to_string(), "criticalExtensions");
+      return c.get<crit_exts_future_r15_c_>();
+    }
+    sys_info_r8_ies_s& set_sys_info_r8()
+    {
+      set(types::sys_info_r8);
+      return c.get<sys_info_r8_ies_s>();
+    }
+    crit_exts_future_r15_c_& set_crit_exts_future_r15()
+    {
+      set(types::crit_exts_future_r15);
       return c.get<crit_exts_future_r15_c_>();
     }
 
@@ -9836,6 +10556,16 @@ struct bcch_dl_sch_msg_type_c {
       assert_choice_type("systemInformationBlockType1", type_.to_string(), "c1");
       return c.get<sib_type1_s>();
     }
+    sys_info_s& set_sys_info()
+    {
+      set(types::sys_info);
+      return c.get<sys_info_s>();
+    }
+    sib_type1_s& set_sib_type1()
+    {
+      set(types::sib_type1);
+      return c.get<sib_type1_s>();
+    }
 
   private:
     types                                                          type_;
@@ -9871,6 +10601,11 @@ struct bcch_dl_sch_msg_type_c {
   const c1_c_& c1() const
   {
     assert_choice_type("c1", type_.to_string(), "BCCH-DL-SCH-MessageType");
+    return c.get<c1_c_>();
+  }
+  c1_c_& set_c1()
+  {
+    set(types::c1);
     return c.get<c1_c_>();
   }
 
@@ -9941,6 +10676,16 @@ struct bcch_dl_sch_msg_type_br_r13_c {
       assert_choice_type("systemInformationBlockType1-BR-r13", type_.to_string(), "c1");
       return c.get<sib_type1_br_r13_s>();
     }
+    sys_info_br_r13_s& set_sys_info_br_r13()
+    {
+      set(types::sys_info_br_r13);
+      return c.get<sys_info_br_r13_s>();
+    }
+    sib_type1_br_r13_s& set_sib_type1_br_r13()
+    {
+      set(types::sib_type1_br_r13);
+      return c.get<sib_type1_br_r13_s>();
+    }
 
   private:
     types                                                                        type_;
@@ -9976,6 +10721,11 @@ struct bcch_dl_sch_msg_type_br_r13_c {
   const c1_c_& c1() const
   {
     assert_choice_type("c1", type_.to_string(), "BCCH-DL-SCH-MessageType-BR-r13");
+    return c.get<c1_c_>();
+  }
+  c1_c_& set_c1()
+  {
+    set(types::c1);
     return c.get<c1_c_>();
   }
 
@@ -10155,6 +10905,16 @@ struct bcch_dl_sch_msg_type_mbms_r14_c {
       assert_choice_type("systemInformationBlockType1-MBMS-r14", type_.to_string(), "c1");
       return c.get<sib_type1_mbms_r14_s>();
     }
+    sys_info_mbms_r14_s& set_sys_info_mbms_r14()
+    {
+      set(types::sys_info_mbms_r14);
+      return c.get<sys_info_mbms_r14_s>();
+    }
+    sib_type1_mbms_r14_s& set_sib_type1_mbms_r14()
+    {
+      set(types::sib_type1_mbms_r14);
+      return c.get<sib_type1_mbms_r14_s>();
+    }
 
   private:
     types                                                                            type_;
@@ -10190,6 +10950,11 @@ struct bcch_dl_sch_msg_type_mbms_r14_c {
   const c1_c_& c1() const
   {
     assert_choice_type("c1", type_.to_string(), "BCCH-DL-SCH-MessageType-MBMS-r14");
+    return c.get<c1_c_>();
+  }
+  c1_c_& set_c1()
+  {
+    set(types::c1);
     return c.get<c1_c_>();
   }
 
@@ -10285,6 +11050,21 @@ struct p_c_and_cbsr_r13_s {
     const beamformed_kn_r13_s_& beamformed_kn_r13() const
     {
       assert_choice_type("beamformedKN-r13", type_.to_string(), "cbsr-Selection-r13");
+      return c.get<beamformed_kn_r13_s_>();
+    }
+    non_precoded_r13_s_& set_non_precoded_r13()
+    {
+      set(types::non_precoded_r13);
+      return c.get<non_precoded_r13_s_>();
+    }
+    beamformed_k1a_r13_s_& set_beamformed_k1a_r13()
+    {
+      set(types::beamformed_k1a_r13);
+      return c.get<beamformed_k1a_r13_s_>();
+    }
+    beamformed_kn_r13_s_& set_beamformed_kn_r13()
+    {
+      set(types::beamformed_kn_r13);
       return c.get<beamformed_kn_r13_s_>();
     }
 
@@ -10386,6 +11166,11 @@ struct csi_rs_cfg_nzp_r11_s {
         assert_choice_type("setup", type_.to_string(), "mbsfn-SubframeConfigList-r11");
         return c;
       }
+      setup_s_& set_setup()
+      {
+        set(types::setup);
+        return c;
+      }
 
     private:
       types    type_;
@@ -10421,6 +11206,11 @@ struct csi_rs_cfg_nzp_r11_s {
     const setup_s_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "mbsfn-SubframeConfigList-v1430");
+      return c;
+    }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -10560,6 +11350,11 @@ struct csi_rs_cfg_nzp_emimo_r13_c {
     assert_choice_type("setup", type_.to_string(), "CSI-RS-ConfigNZP-EMIMO-r13");
     return c;
   }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
+    return c;
+  }
 
 private:
   types    type_;
@@ -10656,6 +11451,11 @@ struct csi_rs_cfg_emimo2_r14_c {
   const csi_rs_cfg_beamformed_r14_s& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "CSI-RS-ConfigEMIMO2-r14");
+    return c;
+  }
+  csi_rs_cfg_beamformed_r14_s& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -10883,6 +11683,11 @@ struct cri_report_cfg_r13_c {
     assert_choice_type("setup", type_.to_string(), "CRI-ReportConfig-r13");
     return c;
   }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
+    return c;
+  }
 
 private:
   types    type_;
@@ -10916,6 +11721,11 @@ struct csi_rs_cfg_emimo_hybrid_r14_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "CSI-RS-ConfigEMIMO-Hybrid-r14");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -10965,6 +11775,16 @@ struct csi_rs_cfg_emimo_r13_c {
       assert_choice_type("beamformed-r13", type_.to_string(), "setup");
       return c.get<csi_rs_cfg_beamformed_r13_s>();
     }
+    csi_rs_cfg_non_precoded_r13_s& set_non_precoded_r13()
+    {
+      set(types::non_precoded_r13);
+      return c.get<csi_rs_cfg_non_precoded_r13_s>();
+    }
+    csi_rs_cfg_beamformed_r13_s& set_beamformed_r13()
+    {
+      set(types::beamformed_r13);
+      return c.get<csi_rs_cfg_beamformed_r13_s>();
+    }
 
   private:
     types                                                                                             type_;
@@ -10990,6 +11810,11 @@ struct csi_rs_cfg_emimo_r13_c {
   const setup_c_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "CSI-RS-ConfigEMIMO-r13");
+    return c;
+  }
+  setup_c_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -11039,6 +11864,16 @@ struct csi_rs_cfg_emimo_v1430_c {
       assert_choice_type("beamformed-v1430", type_.to_string(), "setup");
       return c.get<csi_rs_cfg_beamformed_v1430_s>();
     }
+    csi_rs_cfg_non_precoded_v1430_s& set_non_precoded_v1430()
+    {
+      set(types::non_precoded_v1430);
+      return c.get<csi_rs_cfg_non_precoded_v1430_s>();
+    }
+    csi_rs_cfg_beamformed_v1430_s& set_beamformed_v1430()
+    {
+      set(types::beamformed_v1430);
+      return c.get<csi_rs_cfg_beamformed_v1430_s>();
+    }
 
   private:
     types                                                                                                 type_;
@@ -11064,6 +11899,11 @@ struct csi_rs_cfg_emimo_v1430_c {
   const setup_c_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "CSI-RS-ConfigEMIMO-v1430");
+    return c;
+  }
+  setup_c_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -11113,6 +11953,16 @@ struct csi_rs_cfg_emimo_v1480_c {
       assert_choice_type("beamformed-v1480", type_.to_string(), "setup");
       return c.get<csi_rs_cfg_beamformed_v1430_s>();
     }
+    csi_rs_cfg_non_precoded_v1480_s& set_non_precoded_v1480()
+    {
+      set(types::non_precoded_v1480);
+      return c.get<csi_rs_cfg_non_precoded_v1480_s>();
+    }
+    csi_rs_cfg_beamformed_v1430_s& set_beamformed_v1480()
+    {
+      set(types::beamformed_v1480);
+      return c.get<csi_rs_cfg_beamformed_v1430_s>();
+    }
 
   private:
     types                                                                                                 type_;
@@ -11138,6 +11988,11 @@ struct csi_rs_cfg_emimo_v1480_c {
   const setup_c_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "CSI-RS-ConfigEMIMO-v1480");
+    return c;
+  }
+  setup_c_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -11186,6 +12041,11 @@ struct csi_rs_cfg_emimo_v1530_c {
   const setup_c_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "CSI-RS-ConfigEMIMO-v1530");
+    return c;
+  }
+  setup_c_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -11266,6 +12126,16 @@ struct cqi_report_periodic_proc_ext_r11_s {
       assert_choice_type("subbandCQI-r11", type_.to_string(), "cqi-FormatIndicatorPeriodic-r11");
       return c.get<subband_cqi_r11_s_>();
     }
+    wideband_cqi_r11_s_& set_wideband_cqi_r11()
+    {
+      set(types::wideband_cqi_r11);
+      return c.get<wideband_cqi_r11_s_>();
+    }
+    subband_cqi_r11_s_& set_subband_cqi_r11()
+    {
+      set(types::subband_cqi_r11);
+      return c.get<subband_cqi_r11_s_>();
+    }
 
   private:
     types                                                                          type_;
@@ -11298,6 +12168,11 @@ struct cqi_report_periodic_proc_ext_r11_s {
     const setup_s_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "csi-ConfigIndex-r11");
+      return c;
+    }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -11399,6 +12274,11 @@ struct csi_process_r11_s {
       assert_choice_type("setup", type_.to_string(), "csi-IM-ConfigIdList-r12");
       return c;
     }
+    setup_l_& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types    type_;
@@ -11423,6 +12303,11 @@ struct csi_process_r11_s {
     const cqi_report_aperiodic_proc_r11_s& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "cqi-ReportAperiodicProc2-r12");
+      return c;
+    }
+    cqi_report_aperiodic_proc_r11_s& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -11451,6 +12336,11 @@ struct csi_process_r11_s {
       assert_choice_type("setup", type_.to_string(), "cqi-ReportAperiodicProc-v1310");
       return c;
     }
+    cqi_report_aperiodic_proc_v1310_s& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types                             type_;
@@ -11475,6 +12365,11 @@ struct csi_process_r11_s {
     const cqi_report_aperiodic_proc_v1310_s& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "cqi-ReportAperiodicProc2-v1310");
+      return c;
+    }
+    cqi_report_aperiodic_proc_v1310_s& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -11905,6 +12800,11 @@ struct cqi_report_aperiodic_r10_c {
     assert_choice_type("setup", type_.to_string(), "CQI-ReportAperiodic-r10");
     return c;
   }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
+    return c;
+  }
 
 private:
   types    type_;
@@ -11951,6 +12851,11 @@ struct cqi_report_aperiodic_v1250_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "CQI-ReportAperiodic-v1250");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -12001,6 +12906,11 @@ struct cqi_report_aperiodic_v1310_c {
         assert_choice_type("setup", type_.to_string(), "aperiodicCSI-Trigger2-r13");
         return c;
       }
+      setup_s_& set_setup()
+      {
+        set(types::setup);
+        return c;
+      }
 
     private:
       types    type_;
@@ -12031,6 +12941,11 @@ struct cqi_report_aperiodic_v1310_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "CQI-ReportAperiodic-v1310");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -12110,6 +13025,21 @@ struct cqi_report_aperiodic_hybrid_r14_s {
     const three_bit_r14_s_& three_bit_r14() const
     {
       assert_choice_type("threeBit-r14", type_.to_string(), "triggers-r14");
+      return c.get<three_bit_r14_s_>();
+    }
+    one_bit_r14_s_& set_one_bit_r14()
+    {
+      set(types::one_bit_r14);
+      return c.get<one_bit_r14_s_>();
+    }
+    two_bit_r14_s_& set_two_bit_r14()
+    {
+      set(types::two_bit_r14);
+      return c.get<two_bit_r14_s_>();
+    }
+    three_bit_r14_s_& set_three_bit_r14()
+    {
+      set(types::three_bit_r14);
       return c.get<three_bit_r14_s_>();
     }
 
@@ -12246,6 +13176,16 @@ struct cqi_report_periodic_r10_c {
         assert_choice_type("subbandCQI-r10", type_.to_string(), "cqi-FormatIndicatorPeriodic-r10");
         return c.get<subband_cqi_r10_s_>();
       }
+      wideband_cqi_r10_s_& set_wideband_cqi_r10()
+      {
+        set(types::wideband_cqi_r10);
+        return c.get<wideband_cqi_r10_s_>();
+      }
+      subband_cqi_r10_s_& set_subband_cqi_r10()
+      {
+        set(types::subband_cqi_r10);
+        return c.get<subband_cqi_r10_s_>();
+      }
 
     private:
       types                                                                          type_;
@@ -12278,6 +13218,11 @@ struct cqi_report_periodic_r10_c {
       const setup_s_& setup() const
       {
         assert_choice_type("setup", type_.to_string(), "csi-ConfigIndex-r10");
+        return c;
+      }
+      setup_s_& set_setup()
+      {
+        set(types::setup);
         return c;
       }
 
@@ -12317,6 +13262,11 @@ struct cqi_report_periodic_r10_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "CQI-ReportPeriodic-r10");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -12452,6 +13402,21 @@ struct meas_sf_pattern_r10_c {
       assert_choice_type("subframeConfig6-r10", type_.to_string(), "subframePatternTDD-r10");
       return c.get<fixed_bitstring<60> >();
     }
+    fixed_bitstring<20>& set_sf_cfg1_minus5_r10()
+    {
+      set(types::sf_cfg1_minus5_r10);
+      return c.get<fixed_bitstring<20> >();
+    }
+    fixed_bitstring<70>& set_sf_cfg0_r10()
+    {
+      set(types::sf_cfg0_r10);
+      return c.get<fixed_bitstring<70> >();
+    }
+    fixed_bitstring<60>& set_sf_cfg6_r10()
+    {
+      set(types::sf_cfg6_r10);
+      return c.get<fixed_bitstring<60> >();
+    }
 
   private:
     types                                        type_;
@@ -12495,6 +13460,16 @@ struct meas_sf_pattern_r10_c {
   const sf_pattern_tdd_r10_c_& sf_pattern_tdd_r10() const
   {
     assert_choice_type("subframePatternTDD-r10", type_.to_string(), "MeasSubframePattern-r10");
+    return c.get<sf_pattern_tdd_r10_c_>();
+  }
+  fixed_bitstring<40>& set_sf_pattern_fdd_r10()
+  {
+    set(types::sf_pattern_fdd_r10);
+    return c.get<fixed_bitstring<40> >();
+  }
+  sf_pattern_tdd_r10_c_& set_sf_pattern_tdd_r10()
+  {
+    set(types::sf_pattern_tdd_r10);
     return c.get<sf_pattern_tdd_r10_c_>();
   }
 
@@ -12629,6 +13604,11 @@ struct spdcch_elems_r15_c {
     assert_choice_type("setup", type_.to_string(), "SPDCCH-Elements-r15");
     return c;
   }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
+    return c;
+  }
 
 private:
   types    type_;
@@ -12684,6 +13664,11 @@ struct spucch_elems_r15_c {
     assert_choice_type("setup", type_.to_string(), "SPUCCH-Elements-r15");
     return c;
   }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
+    return c;
+  }
 
 private:
   types    type_;
@@ -12728,6 +13713,16 @@ struct tpc_idx_c {
   const uint8_t& idx_of_format3_a() const
   {
     assert_choice_type("indexOfFormat3A", type_.to_string(), "TPC-Index");
+    return c.get<uint8_t>();
+  }
+  uint8_t& set_idx_of_format3()
+  {
+    set(types::idx_of_format3);
+    return c.get<uint8_t>();
+  }
+  uint8_t& set_idx_of_format3_a()
+  {
+    set(types::idx_of_format3_a);
     return c.get<uint8_t>();
   }
 
@@ -12795,6 +13790,11 @@ struct zero_tx_pwr_csi_rs_conf_r12_c {
     assert_choice_type("setup", type_.to_string(), "ZeroTxPowerCSI-RS-Conf-r12");
     return c;
   }
+  zero_tx_pwr_csi_rs_r12_s& set_setup()
+  {
+    set(types::setup);
+    return c;
+  }
 
 private:
   types                    type_;
@@ -12827,6 +13827,11 @@ struct cqi_report_cfg_r10_s {
     const setup_s_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "csi-SubframePatternConfig-r10");
+      return c;
+    }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -12888,6 +13893,11 @@ struct cqi_report_cfg_v1250_s {
     const setup_s_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "csi-SubframePatternConfig-r12");
+      return c;
+    }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -12999,6 +14009,11 @@ struct csi_rs_cfg_r10_s {
       assert_choice_type("setup", type_.to_string(), "csi-RS-r10");
       return c;
     }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types    type_;
@@ -13044,6 +14059,11 @@ struct csi_rs_cfg_v1250_s {
     const setup_s_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "ds-ZeroTxPowerCSI-RS-r12");
+      return c;
+    }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -13223,6 +14243,11 @@ struct epdcch_set_cfg_r11_s {
       assert_choice_type("setup", type_.to_string(), "csi-RS-ConfigZPId2-r12");
       return c;
     }
+    uint8_t& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types   type_;
@@ -13314,6 +14339,16 @@ struct epdcch_set_cfg_r11_s {
           assert_choice_type("tdd-r13", type_.to_string(), "mpdcch-StartSF-UESS-r13");
           return c.get<tdd_r13_e_>();
         }
+        fdd_r13_e_& set_fdd_r13()
+        {
+          set(types::fdd_r13);
+          return c.get<fdd_r13_e_>();
+        }
+        tdd_r13_e_& set_tdd_r13()
+        {
+          set(types::tdd_r13);
+          return c.get<tdd_r13_e_>();
+        }
 
       private:
         types                                                         type_;
@@ -13355,6 +14390,11 @@ struct epdcch_set_cfg_r11_s {
     const setup_s_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "mpdcch-config-r13");
+      return c;
+    }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -13441,6 +14481,16 @@ struct enable256_qam_r14_c {
       assert_choice_type("tpc-SubframeSet-NotConfigured-r14", type_.to_string(), "setup");
       return c.get<tpc_sf_set_not_cfgured_r14_s_>();
     }
+    tpc_sf_set_cfgured_r14_s_& set_tpc_sf_set_cfgured_r14()
+    {
+      set(types::tpc_sf_set_cfgured_r14);
+      return c.get<tpc_sf_set_cfgured_r14_s_>();
+    }
+    tpc_sf_set_not_cfgured_r14_s_& set_tpc_sf_set_not_cfgured_r14()
+    {
+      set(types::tpc_sf_set_not_cfgured_r14);
+      return c.get<tpc_sf_set_not_cfgured_r14_s_>();
+    }
 
   private:
     types                                                                                           type_;
@@ -13466,6 +14516,11 @@ struct enable256_qam_r14_c {
   const setup_c_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "Enable256QAM-r14");
+    return c;
+  }
+  setup_c_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -13554,6 +14609,11 @@ struct lc_ch_cfg_s {
       assert_choice_type("setup", type_.to_string(), "allowedTTI-Lengths-r15");
       return c;
     }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types    type_;
@@ -13586,6 +14646,11 @@ struct lc_ch_cfg_s {
       assert_choice_type("setup", type_.to_string(), "logicalChannelSR-Restriction-r15");
       return c;
     }
+    setup_e_& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types    type_;
@@ -13610,6 +14675,11 @@ struct lc_ch_cfg_s {
     const uint8_t& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "channellAccessPriority-r15");
+      return c;
+    }
+    uint8_t& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -13696,6 +14766,11 @@ struct pdsch_re_map_qcl_cfg_r11_s {
         assert_choice_type("setup", type_.to_string(), "mbsfn-SubframeConfigList-r11");
         return c;
       }
+      setup_s_& set_setup()
+      {
+        set(types::setup);
+        return c;
+      }
 
     private:
       types    type_;
@@ -13740,6 +14815,11 @@ struct pdsch_re_map_qcl_cfg_r11_s {
     const setup_s_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "mbsfn-SubframeConfigList-v1430");
+      return c;
+    }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -13796,6 +14876,11 @@ struct pdsch_re_map_qcl_cfg_r11_s {
     const setup_s_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "codewordOneConfig-v1530");
+      return c;
+    }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -13915,6 +15000,26 @@ struct rlc_cfg_r15_s {
       assert_choice_type("um-Uni-Directional-DL-r15", type_.to_string(), "mode-r15");
       return c.get<um_uni_dir_dl_r15_s_>();
     }
+    am_r15_s_& set_am_r15()
+    {
+      set(types::am_r15);
+      return c.get<am_r15_s_>();
+    }
+    um_bi_dir_r15_s_& set_um_bi_dir_r15()
+    {
+      set(types::um_bi_dir_r15);
+      return c.get<um_bi_dir_r15_s_>();
+    }
+    um_uni_dir_ul_r15_s_& set_um_uni_dir_ul_r15()
+    {
+      set(types::um_uni_dir_ul_r15);
+      return c.get<um_uni_dir_ul_r15_s_>();
+    }
+    um_uni_dir_dl_r15_s_& set_um_uni_dir_dl_r15()
+    {
+      set(types::um_uni_dir_dl_r15);
+      return c.get<um_uni_dir_dl_r15_s_>();
+    }
 
   private:
     types type_;
@@ -13990,6 +15095,11 @@ struct tpc_pdcch_cfg_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "TPC-PDCCH-Config");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -14204,6 +15314,71 @@ struct ant_info_ded_stti_r15_c {
         assert_choice_type("n8TxAntenna-tm9and10-r15", type_.to_string(), "codebookSubsetRestriction");
         return c.get<fixed_bitstring<109> >();
       }
+      fixed_bitstring<2>& set_n2_tx_ant_tm3_r15()
+      {
+        set(types::n2_tx_ant_tm3_r15);
+        return c.get<fixed_bitstring<2> >();
+      }
+      fixed_bitstring<4>& set_n4_tx_ant_tm3_r15()
+      {
+        set(types::n4_tx_ant_tm3_r15);
+        return c.get<fixed_bitstring<4> >();
+      }
+      fixed_bitstring<6>& set_n2_tx_ant_tm4_r15()
+      {
+        set(types::n2_tx_ant_tm4_r15);
+        return c.get<fixed_bitstring<6> >();
+      }
+      fixed_bitstring<64>& set_n4_tx_ant_tm4_r15()
+      {
+        set(types::n4_tx_ant_tm4_r15);
+        return c.get<fixed_bitstring<64> >();
+      }
+      fixed_bitstring<4>& set_n2_tx_ant_tm5_r15()
+      {
+        set(types::n2_tx_ant_tm5_r15);
+        return c.get<fixed_bitstring<4> >();
+      }
+      fixed_bitstring<16>& set_n4_tx_ant_tm5_r15()
+      {
+        set(types::n4_tx_ant_tm5_r15);
+        return c.get<fixed_bitstring<16> >();
+      }
+      fixed_bitstring<4>& set_n2_tx_ant_tm6_r15()
+      {
+        set(types::n2_tx_ant_tm6_r15);
+        return c.get<fixed_bitstring<4> >();
+      }
+      fixed_bitstring<16>& set_n4_tx_ant_tm6_r15()
+      {
+        set(types::n4_tx_ant_tm6_r15);
+        return c.get<fixed_bitstring<16> >();
+      }
+      fixed_bitstring<6>& set_n2_tx_ant_tm8_r15()
+      {
+        set(types::n2_tx_ant_tm8_r15);
+        return c.get<fixed_bitstring<6> >();
+      }
+      fixed_bitstring<64>& set_n4_tx_ant_tm8_r15()
+      {
+        set(types::n4_tx_ant_tm8_r15);
+        return c.get<fixed_bitstring<64> >();
+      }
+      fixed_bitstring<6>& set_n2_tx_ant_tm9and10_r15()
+      {
+        set(types::n2_tx_ant_tm9and10_r15);
+        return c.get<fixed_bitstring<6> >();
+      }
+      fixed_bitstring<96>& set_n4_tx_ant_tm9and10_r15()
+      {
+        set(types::n4_tx_ant_tm9and10_r15);
+        return c.get<fixed_bitstring<96> >();
+      }
+      fixed_bitstring<109>& set_n8_tx_ant_tm9and10_r15()
+      {
+        set(types::n8_tx_ant_tm9and10_r15);
+        return c.get<fixed_bitstring<109> >();
+      }
 
     private:
       types                                         type_;
@@ -14250,6 +15425,11 @@ struct ant_info_ded_stti_r15_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "AntennaInfoDedicatedSTTI-r15");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -14327,6 +15507,11 @@ struct cqi_report_cfg_r15_c {
     assert_choice_type("setup", type_.to_string(), "CQI-ReportConfig-r15");
     return c;
   }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
+    return c;
+  }
 
 private:
   types    type_;
@@ -14366,6 +15551,11 @@ struct cqi_report_periodic_c {
         assert_choice_type("subbandCQI", type_.to_string(), "cqi-FormatIndicatorPeriodic");
         return c;
       }
+      subband_cqi_s_& set_subband_cqi()
+      {
+        set(types::subband_cqi);
+        return c;
+      }
 
     private:
       types          type_;
@@ -14398,6 +15588,11 @@ struct cqi_report_periodic_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "CQI-ReportPeriodic");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -14506,6 +15701,11 @@ struct csi_rs_cfg_r15_c {
     assert_choice_type("setup", type_.to_string(), "CSI-RS-Config-r15");
     return c;
   }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
+    return c;
+  }
 
 private:
   types    type_;
@@ -14539,6 +15739,11 @@ struct csi_rs_cfg_zp_ap_list_r14_c {
   const setup_l_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "CSI-RS-ConfigZP-ApList-r14");
+    return c;
+  }
+  setup_l_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -14578,6 +15783,11 @@ struct dmrs_cfg_r11_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "DMRS-Config-r11");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -14703,6 +15913,11 @@ struct eimta_main_cfg_r12_c {
     assert_choice_type("setup", type_.to_string(), "EIMTA-MainConfig-r12");
     return c;
   }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
+    return c;
+  }
 
 private:
   types    type_;
@@ -14745,6 +15960,11 @@ struct eimta_main_cfg_serv_cell_r12_c {
         assert_choice_type("setup", type_.to_string(), "mbsfn-SubframeConfigList-v1250");
         return c;
       }
+      setup_s_& set_setup()
+      {
+        set(types::setup);
+        return c;
+      }
 
     private:
       types    type_;
@@ -14774,6 +15994,11 @@ struct eimta_main_cfg_serv_cell_r12_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "EIMTA-MainConfigServCell-r12");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -14932,6 +16157,11 @@ struct pdcp_cfg_s {
       assert_choice_type("rohc", type_.to_string(), "headerCompression");
       return c;
     }
+    rohc_s_& set_rohc()
+    {
+      set(types::rohc);
+      return c;
+    }
 
   private:
     types   type_;
@@ -15024,6 +16254,11 @@ struct pdcp_cfg_s {
     const setup_e_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "ul-DataSplitThreshold-r13");
+      return c;
+    }
+    setup_e_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -15142,6 +16377,11 @@ struct pdcp_cfg_s {
       assert_choice_type("setup", type_.to_string(), "statusFeedback-r13");
       return c;
     }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types    type_;
@@ -15200,6 +16440,11 @@ struct pdcp_cfg_s {
       assert_choice_type("setup", type_.to_string(), "ul-LWA-Config-r14");
       return c;
     }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types    type_;
@@ -15242,6 +16487,11 @@ struct pdcp_cfg_s {
     const rohc_r14_s_& rohc_r14() const
     {
       assert_choice_type("rohc-r14", type_.to_string(), "uplinkOnlyHeaderCompression-r14");
+      return c;
+    }
+    rohc_r14_s_& set_rohc_r14()
+    {
+      set(types::rohc_r14);
       return c;
     }
 
@@ -15302,6 +16552,11 @@ struct pdcp_cfg_s {
     const setup_s_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "pdcp-DuplicationConfig-r15");
+      return c;
+    }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -15403,6 +16658,11 @@ struct pucch_format3_conf_r13_s {
       assert_choice_type("setup", type_.to_string(), "twoAntennaPortActivatedPUCCH-Format3-r13");
       return c;
     }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types    type_;
@@ -15469,6 +16729,16 @@ struct rlc_bearer_cfg_r15_c {
         assert_choice_type("logicalChannelIdentityExt-r15", type_.to_string(), "logicalChannelIdentityConfig-r15");
         return c.get<uint8_t>();
       }
+      uint8_t& set_lc_ch_id_r15()
+      {
+        set(types::lc_ch_id_r15);
+        return c.get<uint8_t>();
+      }
+      uint8_t& set_lc_ch_id_ext_r15()
+      {
+        set(types::lc_ch_id_ext_r15);
+        return c.get<uint8_t>();
+      }
 
     private:
       types              type_;
@@ -15502,6 +16772,11 @@ struct rlc_bearer_cfg_r15_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "RLC-BearerConfig-r15");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -15588,6 +16863,26 @@ struct rlc_cfg_c {
     assert_choice_type("um-Uni-Directional-DL", type_.to_string(), "RLC-Config");
     return c.get<um_uni_dir_dl_s_>();
   }
+  am_s_& set_am()
+  {
+    set(types::am);
+    return c.get<am_s_>();
+  }
+  um_bi_dir_s_& set_um_bi_dir()
+  {
+    set(types::um_bi_dir);
+    return c.get<um_bi_dir_s_>();
+  }
+  um_uni_dir_ul_s_& set_um_uni_dir_ul()
+  {
+    set(types::um_uni_dir_ul);
+    return c.get<um_uni_dir_ul_s_>();
+  }
+  um_uni_dir_dl_s_& set_um_uni_dir_dl()
+  {
+    set(types::um_uni_dir_dl);
+    return c.get<um_uni_dir_dl_s_>();
+  }
 
 private:
   types type_;
@@ -15649,6 +16944,11 @@ struct rlc_cfg_v1430_c {
     assert_choice_type("setup", type_.to_string(), "RLC-Config-v1430");
     return c;
   }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
+    return c;
+  }
 
 private:
   types    type_;
@@ -15685,6 +16985,11 @@ struct rlc_cfg_v1530_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "RLC-Config-v1530");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -15741,6 +17046,11 @@ struct spdcch_cfg_r15_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "SPDCCH-Config-r15");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -15854,6 +17164,11 @@ struct sps_cfg_ul_c {
       const setup_s_& setup() const
       {
         assert_choice_type("setup", type_.to_string(), "p0-PersistentSubframeSet2-r12");
+        return c;
+      }
+      setup_s_& set_setup()
+      {
+        set(types::setup);
         return c;
       }
 
@@ -15971,6 +17286,11 @@ struct sps_cfg_ul_c {
     assert_choice_type("setup", type_.to_string(), "SPS-ConfigUL");
     return c;
   }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
+    return c;
+  }
 
 private:
   types    type_;
@@ -16043,6 +17363,11 @@ struct sps_cfg_ul_stti_r15_c {
       const setup_s_& setup() const
       {
         assert_choice_type("setup", type_.to_string(), "p0-PersistentSubframeSet2-r15");
+        return c;
+      }
+      setup_s_& set_setup()
+      {
+        set(types::setup);
         return c;
       }
 
@@ -16134,6 +17459,11 @@ struct sps_cfg_ul_stti_r15_c {
     assert_choice_type("setup", type_.to_string(), "SPS-ConfigUL-STTI-r15");
     return c;
   }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
+    return c;
+  }
 
 private:
   types    type_;
@@ -16174,6 +17504,11 @@ struct spucch_cfg_r15_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "SPUCCH-Config-r15");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -16359,6 +17694,11 @@ struct sched_request_cfg_v1530_c {
     assert_choice_type("setup", type_.to_string(), "SchedulingRequestConfig-v1530");
     return c;
   }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
+    return c;
+  }
 
 private:
   types    type_;
@@ -16440,6 +17780,11 @@ struct slot_or_subslot_pdsch_cfg_r15_c {
     assert_choice_type("setup", type_.to_string(), "SlotOrSubslotPDSCH-Config-r15");
     return c;
   }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
+    return c;
+  }
 
 private:
   types    type_;
@@ -16498,6 +17843,11 @@ struct slot_or_subslot_pusch_cfg_r15_c {
     assert_choice_type("setup", type_.to_string(), "SlotOrSubslotPUSCH-Config-r15");
     return c;
   }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
+    return c;
+  }
 
 private:
   types    type_;
@@ -16539,6 +17889,11 @@ struct tdd_pusch_up_pts_r14_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "TDD-PUSCH-UpPTS-r14");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -16680,6 +18035,46 @@ struct ant_info_ded_s {
       assert_choice_type("n4TxAntenna-tm6", type_.to_string(), "codebookSubsetRestriction");
       return c.get<fixed_bitstring<16> >();
     }
+    fixed_bitstring<2>& set_n2_tx_ant_tm3()
+    {
+      set(types::n2_tx_ant_tm3);
+      return c.get<fixed_bitstring<2> >();
+    }
+    fixed_bitstring<4>& set_n4_tx_ant_tm3()
+    {
+      set(types::n4_tx_ant_tm3);
+      return c.get<fixed_bitstring<4> >();
+    }
+    fixed_bitstring<6>& set_n2_tx_ant_tm4()
+    {
+      set(types::n2_tx_ant_tm4);
+      return c.get<fixed_bitstring<6> >();
+    }
+    fixed_bitstring<64>& set_n4_tx_ant_tm4()
+    {
+      set(types::n4_tx_ant_tm4);
+      return c.get<fixed_bitstring<64> >();
+    }
+    fixed_bitstring<4>& set_n2_tx_ant_tm5()
+    {
+      set(types::n2_tx_ant_tm5);
+      return c.get<fixed_bitstring<4> >();
+    }
+    fixed_bitstring<16>& set_n4_tx_ant_tm5()
+    {
+      set(types::n4_tx_ant_tm5);
+      return c.get<fixed_bitstring<16> >();
+    }
+    fixed_bitstring<4>& set_n2_tx_ant_tm6()
+    {
+      set(types::n2_tx_ant_tm6);
+      return c.get<fixed_bitstring<4> >();
+    }
+    fixed_bitstring<16>& set_n4_tx_ant_tm6()
+    {
+      set(types::n4_tx_ant_tm6);
+      return c.get<fixed_bitstring<16> >();
+    }
 
   private:
     types                                        type_;
@@ -16712,6 +18107,11 @@ struct ant_info_ded_s {
     const setup_e_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "ue-TransmitAntennaSelection");
+      return c;
+    }
+    setup_e_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -16785,6 +18185,11 @@ struct ant_info_ded_r10_s {
     const setup_e_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "ue-TransmitAntennaSelection");
+      return c;
+    }
+    setup_e_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -16870,6 +18275,11 @@ struct ant_info_ded_v1530_c {
       assert_choice_type("ue-TxAntennaSelection-SRS-2T4R-NrOfPairs-r15", type_.to_string(), "setup");
       return c;
     }
+    ue_tx_ant_sel_srs_minus2_t4_r_nr_of_pairs_r15_e_& set_ue_tx_ant_sel_srs_minus2_t4_r_nr_of_pairs_r15()
+    {
+      set(types::ue_tx_ant_sel_srs_minus2_t4_r_nr_of_pairs_r15);
+      return c;
+    }
 
   private:
     types                                            type_;
@@ -16893,6 +18303,11 @@ struct ant_info_ded_v1530_c {
   const setup_c_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "AntennaInfoDedicated-v1530");
+    return c;
+  }
+  setup_c_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -16942,6 +18357,16 @@ struct ant_info_ded_v920_s {
     const fixed_bitstring<32>& n4_tx_ant_tm8_r9() const
     {
       assert_choice_type("n4TxAntenna-tm8-r9", type_.to_string(), "codebookSubsetRestriction-v920");
+      return c.get<fixed_bitstring<32> >();
+    }
+    fixed_bitstring<6>& set_n2_tx_ant_tm8_r9()
+    {
+      set(types::n2_tx_ant_tm8_r9);
+      return c.get<fixed_bitstring<6> >();
+    }
+    fixed_bitstring<32>& set_n4_tx_ant_tm8_r9()
+    {
+      set(types::n4_tx_ant_tm8_r9);
       return c.get<fixed_bitstring<32> >();
     }
 
@@ -17480,6 +18905,86 @@ struct drx_cfg_c {
         assert_choice_type("sf2560", type_.to_string(), "longDRX-CycleStartOffset");
         return c.get<uint16_t>();
       }
+      uint8_t& set_sf10()
+      {
+        set(types::sf10);
+        return c.get<uint8_t>();
+      }
+      uint8_t& set_sf20()
+      {
+        set(types::sf20);
+        return c.get<uint8_t>();
+      }
+      uint8_t& set_sf32()
+      {
+        set(types::sf32);
+        return c.get<uint8_t>();
+      }
+      uint8_t& set_sf40()
+      {
+        set(types::sf40);
+        return c.get<uint8_t>();
+      }
+      uint8_t& set_sf64()
+      {
+        set(types::sf64);
+        return c.get<uint8_t>();
+      }
+      uint8_t& set_sf80()
+      {
+        set(types::sf80);
+        return c.get<uint8_t>();
+      }
+      uint8_t& set_sf128()
+      {
+        set(types::sf128);
+        return c.get<uint8_t>();
+      }
+      uint8_t& set_sf160()
+      {
+        set(types::sf160);
+        return c.get<uint8_t>();
+      }
+      uint8_t& set_sf256()
+      {
+        set(types::sf256);
+        return c.get<uint8_t>();
+      }
+      uint16_t& set_sf320()
+      {
+        set(types::sf320);
+        return c.get<uint16_t>();
+      }
+      uint16_t& set_sf512()
+      {
+        set(types::sf512);
+        return c.get<uint16_t>();
+      }
+      uint16_t& set_sf640()
+      {
+        set(types::sf640);
+        return c.get<uint16_t>();
+      }
+      uint16_t& set_sf1024()
+      {
+        set(types::sf1024);
+        return c.get<uint16_t>();
+      }
+      uint16_t& set_sf1280()
+      {
+        set(types::sf1280);
+        return c.get<uint16_t>();
+      }
+      uint16_t& set_sf2048()
+      {
+        set(types::sf2048);
+        return c.get<uint16_t>();
+      }
+      uint16_t& set_sf2560()
+      {
+        set(types::sf2560);
+        return c.get<uint16_t>();
+      }
 
     private:
       types              type_;
@@ -17546,6 +19051,11 @@ struct drx_cfg_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "DRX-Config");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -17707,6 +19217,16 @@ struct drx_cfg_v1130_s {
       assert_choice_type("sf70-v1130", type_.to_string(), "longDRX-CycleStartOffset-v1130");
       return c.get<uint8_t>();
     }
+    uint8_t& set_sf60_v1130()
+    {
+      set(types::sf60_v1130);
+      return c.get<uint8_t>();
+    }
+    uint8_t& set_sf70_v1130()
+    {
+      set(types::sf70_v1130);
+      return c.get<uint8_t>();
+    }
 
   private:
     types              type_;
@@ -17783,6 +19303,11 @@ struct epdcch_cfg_r11_s {
           assert_choice_type("setup", type_.to_string(), "subframePatternConfig-r11");
           return c;
         }
+        setup_s_& set_setup()
+        {
+          set(types::setup);
+          return c;
+        }
 
       private:
         types    type_;
@@ -17817,6 +19342,11 @@ struct epdcch_cfg_r11_s {
     const setup_s_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "config-r11");
+      return c;
+    }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -17954,6 +19484,11 @@ struct pdcch_candidate_reductions_r13_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "PDCCH-CandidateReductions-r13");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -18139,6 +19674,11 @@ struct pucch_cfg_ded_s {
       assert_choice_type("setup", type_.to_string(), "ackNackRepetition");
       return c;
     }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types    type_;
@@ -18199,6 +19739,11 @@ struct pucch_cfg_ded_r13_s {
       assert_choice_type("setup", type_.to_string(), "ackNackRepetition-r13");
       return c;
     }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types    type_;
@@ -18238,6 +19783,11 @@ struct pucch_cfg_ded_r13_s {
         const setup_s_& setup() const
         {
           assert_choice_type("setup", type_.to_string(), "twoAntennaPortActivatedPUCCH-Format3-r13");
+          return c;
+        }
+        setup_s_& set_setup()
+        {
+          set(types::setup);
           return c;
         }
 
@@ -18280,6 +19830,11 @@ struct pucch_cfg_ded_r13_s {
         const setup_s_& setup() const
         {
           assert_choice_type("setup", type_.to_string(), "n1PUCCH-AN-CS-r13");
+          return c;
+        }
+        setup_s_& set_setup()
+        {
+          set(types::setup);
           return c;
         }
 
@@ -18369,6 +19924,26 @@ struct pucch_cfg_ded_r13_s {
       assert_choice_type("format5-r13", type_.to_string(), "pucch-Format-r13");
       return c.get<format5_r13_s_>();
     }
+    format3_r13_s_& set_format3_r13()
+    {
+      set(types::format3_r13);
+      return c.get<format3_r13_s_>();
+    }
+    ch_sel_r13_s_& set_ch_sel_r13()
+    {
+      set(types::ch_sel_r13);
+      return c.get<ch_sel_r13_s_>();
+    }
+    format4_r13_s_& set_format4_r13()
+    {
+      set(types::format4_r13);
+      return c.get<format4_r13_s_>();
+    }
+    format5_r13_s_& set_format5_r13()
+    {
+      set(types::format5_r13);
+      return c.get<format5_r13_s_>();
+    }
 
   private:
     types type_;
@@ -18404,6 +19979,11 @@ struct pucch_cfg_ded_r13_s {
       assert_choice_type("setup", type_.to_string(), "nPUCCH-Param-r13");
       return c;
     }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types    type_;
@@ -18432,6 +20012,11 @@ struct pucch_cfg_ded_r13_s {
     const setup_s_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "nkaPUCCH-Param-r13");
+      return c;
+    }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -18529,6 +20114,16 @@ struct pucch_cfg_ded_r13_s {
         assert_choice_type("modeB", type_.to_string(), "setup");
         return c.get<mode_b_s_>();
       }
+      mode_a_s_& set_mode_a()
+      {
+        set(types::mode_a);
+        return c.get<mode_a_s_>();
+      }
+      mode_b_s_& set_mode_b()
+      {
+        set(types::mode_b);
+        return c.get<mode_b_s_>();
+      }
 
     private:
       types                                                       type_;
@@ -18554,6 +20149,11 @@ struct pucch_cfg_ded_r13_s {
     const setup_c_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "pucch-NumRepetitionCE-r13");
+      return c;
+    }
+    setup_c_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -18623,6 +20223,11 @@ struct pucch_cfg_ded_v1020_s {
           assert_choice_type("setup", type_.to_string(), "n1PUCCH-AN-CS-r10");
           return c;
         }
+        setup_s_& set_setup()
+        {
+          set(types::setup);
+          return c;
+        }
 
       private:
         types    type_;
@@ -18671,6 +20276,16 @@ struct pucch_cfg_ded_v1020_s {
     const ch_sel_r10_s_& ch_sel_r10() const
     {
       assert_choice_type("channelSelection-r10", type_.to_string(), "pucch-Format-r10");
+      return c.get<ch_sel_r10_s_>();
+    }
+    pucch_format3_conf_r13_s& set_format3_r10()
+    {
+      set(types::format3_r10);
+      return c.get<pucch_format3_conf_r13_s>();
+    }
+    ch_sel_r10_s_& set_ch_sel_r10()
+    {
+      set(types::ch_sel_r10);
       return c.get<ch_sel_r10_s_>();
     }
 
@@ -18724,6 +20339,11 @@ struct pucch_cfg_ded_v1130_s {
       assert_choice_type("setup", type_.to_string(), "n1PUCCH-AN-CS-v1130");
       return c;
     }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types    type_;
@@ -18753,6 +20373,11 @@ struct pucch_cfg_ded_v1130_s {
     const setup_s_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "nPUCCH-Param-r11");
+      return c;
+    }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -18798,6 +20423,11 @@ struct pucch_cfg_ded_v1250_s {
     const setup_s_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "nkaPUCCH-Param-r12");
+      return c;
+    }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -18885,6 +20515,11 @@ struct pusch_cfg_ded_r13_s {
       assert_choice_type("setup", type_.to_string(), "pusch-DMRS-r11");
       return c;
     }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types    type_;
@@ -18928,6 +20563,11 @@ struct pusch_cfg_ded_r13_s {
     const setup_s_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "uciOnPUSCH");
+      return c;
+    }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -19007,6 +20647,11 @@ struct pusch_cfg_ded_v1130_s {
       assert_choice_type("setup", type_.to_string(), "pusch-DMRS-r11");
       return c;
     }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types    type_;
@@ -19058,6 +20703,11 @@ struct pusch_cfg_ded_v1250_s {
     const setup_s_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "uciOnPUSCH");
+      return c;
+    }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -19120,6 +20770,11 @@ struct pusch_cfg_ded_v1530_s {
       assert_choice_type("setup", type_.to_string(), "ce-PUSCH-FlexibleStartPRB-AllocConfig-r15");
       return c;
     }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types    type_;
@@ -19151,6 +20806,11 @@ struct pusch_cfg_ded_v1530_s {
     const setup_s_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "ce-PUSCH-SubPRB-Config-r15");
+      return c;
+    }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -19228,6 +20888,16 @@ struct pusch_enhance_cfg_r14_c {
         assert_choice_type("interval-TDD-PUSCH-Enh-r14", type_.to_string(), "interval-ULHoppingPUSCH-Enh-r14");
         return c.get<interv_tdd_pusch_enh_r14_e_>();
       }
+      interv_fdd_pusch_enh_r14_e_& set_interv_fdd_pusch_enh_r14()
+      {
+        set(types::interv_fdd_pusch_enh_r14);
+        return c.get<interv_fdd_pusch_enh_r14_e_>();
+      }
+      interv_tdd_pusch_enh_r14_e_& set_interv_tdd_pusch_enh_r14()
+      {
+        set(types::interv_tdd_pusch_enh_r14);
+        return c.get<interv_tdd_pusch_enh_r14_e_>();
+      }
 
     private:
       types                                                                                           type_;
@@ -19260,6 +20930,11 @@ struct pusch_enhance_cfg_r14_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "PUSCH-EnhancementsConfig-r14");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -19360,6 +21035,11 @@ struct phys_cfg_ded_stti_r15_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "PhysicalConfigDedicatedSTTI-r15");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -19467,6 +21147,11 @@ struct sps_cfg_dl_c {
         assert_choice_type("setup", type_.to_string(), "twoAntennaPortActivated-r10");
         return c;
       }
+      setup_s_& set_setup()
+      {
+        set(types::setup);
+        return c;
+      }
 
     private:
       types    type_;
@@ -19506,6 +21191,11 @@ struct sps_cfg_dl_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "SPS-ConfigDL");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -19566,6 +21256,11 @@ struct srb_to_add_mod_s {
       assert_choice_type("explicitValue", type_.to_string(), "rlc-Config");
       return c;
     }
+    rlc_cfg_c& set_explicit_value()
+    {
+      set(types::explicit_value);
+      return c;
+    }
 
   private:
     types     type_;
@@ -19595,6 +21290,11 @@ struct srb_to_add_mod_s {
     const lc_ch_cfg_s& explicit_value() const
     {
       assert_choice_type("explicitValue", type_.to_string(), "logicalChannelConfig");
+      return c;
+    }
+    lc_ch_cfg_s& set_explicit_value()
+    {
+      set(types::explicit_value);
       return c;
     }
 
@@ -19658,6 +21358,11 @@ struct srs_tpc_pdcch_cfg_r14_c {
     assert_choice_type("setup", type_.to_string(), "SRS-TPC-PDCCH-Config-r14");
     return c;
   }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
+    return c;
+  }
 
 private:
   types    type_;
@@ -19705,6 +21410,11 @@ struct sched_request_cfg_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "SchedulingRequestConfig");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -19782,6 +21492,11 @@ struct srs_ul_cfg_ded_c {
     assert_choice_type("setup", type_.to_string(), "SoundingRS-UL-ConfigDedicated");
     return c;
   }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
+    return c;
+  }
 
 private:
   types    type_;
@@ -19847,6 +21562,11 @@ struct srs_ul_cfg_ded_v1310_c {
     assert_choice_type("setup", type_.to_string(), "SoundingRS-UL-ConfigDedicated-v1310");
     return c;
   }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
+    return c;
+  }
 
 private:
   types    type_;
@@ -19885,6 +21605,11 @@ struct srs_ul_cfg_ded_aperiodic_r10_c {
         assert_choice_type("setup", type_.to_string(), "srs-ActivateAp-r10");
         return c;
       }
+      setup_s_& set_setup()
+      {
+        set(types::setup);
+        return c;
+      }
 
     private:
       types    type_;
@@ -19916,6 +21641,11 @@ struct srs_ul_cfg_ded_aperiodic_r10_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "SoundingRS-UL-ConfigDedicatedAperiodic-r10");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -19956,6 +21686,11 @@ struct srs_ul_cfg_ded_aperiodic_v1310_c {
         assert_choice_type("setup", type_.to_string(), "srs-ActivateAp-v1310");
         return c;
       }
+      setup_s_& set_setup()
+      {
+        set(types::setup);
+        return c;
+      }
 
     private:
       types    type_;
@@ -19986,6 +21721,11 @@ struct srs_ul_cfg_ded_aperiodic_v1310_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "SoundingRS-UL-ConfigDedicatedAperiodic-v1310");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -20032,6 +21772,11 @@ struct srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_c {
         assert_choice_type("setup", type_.to_string(), "srs-ActivateAp-r13");
         return c;
       }
+      setup_s_& set_setup()
+      {
+        set(types::setup);
+        return c;
+      }
 
     private:
       types    type_;
@@ -20064,6 +21809,11 @@ struct srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "SoundingRS-UL-ConfigDedicatedAperiodicUpPTsExt-r13");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -20146,6 +21896,11 @@ struct srs_ul_cfg_ded_up_pts_ext_r13_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "SoundingRS-UL-ConfigDedicatedUpPTsExt-r13");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -20238,6 +21993,11 @@ struct ul_pwr_ctrl_ded_v1250_s {
     const setup_s_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "set2PowerControlParameter");
+      return c;
+    }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -20410,6 +22170,11 @@ struct mac_main_cfg_s {
       assert_choice_type("setup", type_.to_string(), "phr-Config");
       return c;
     }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types    type_;
@@ -20463,6 +22228,11 @@ struct mac_main_cfg_s {
       assert_choice_type("setup", type_.to_string(), "dualConnectivityPHR");
       return c;
     }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types    type_;
@@ -20500,6 +22270,11 @@ struct mac_main_cfg_s {
     const setup_s_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "logicalChannelSR-Config-r12");
+      return c;
+    }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -20549,6 +22324,16 @@ struct mac_main_cfg_s {
         assert_choice_type("sf10240", type_.to_string(), "setup");
         return c.get<uint8_t>();
       }
+      uint8_t& set_sf5120()
+      {
+        set(types::sf5120);
+        return c.get<uint8_t>();
+      }
+      uint8_t& set_sf10240()
+      {
+        set(types::sf10240);
+        return c.get<uint8_t>();
+      }
 
     private:
       types              type_;
@@ -20576,6 +22361,11 @@ struct mac_main_cfg_s {
       assert_choice_type("setup", type_.to_string(), "eDRX-Config-CycleStartOffset-r13");
       return c;
     }
+    setup_c_& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types    type_;
@@ -20600,6 +22390,11 @@ struct mac_main_cfg_s {
     const drx_cfg_r13_s& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "drx-Config-r13");
+      return c;
+    }
+    drx_cfg_r13_s& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -20633,6 +22428,11 @@ struct mac_main_cfg_s {
       assert_choice_type("setup", type_.to_string(), "skipUplinkTx-r14");
       return c;
     }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types    type_;
@@ -20661,6 +22461,11 @@ struct mac_main_cfg_s {
     const setup_s_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "dataInactivityTimerConfig-r14");
+      return c;
+    }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -20733,6 +22538,11 @@ struct mac_main_cfg_s {
       assert_choice_type("setup", type_.to_string(), "shortTTI-AndSPT-r15");
       return c;
     }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types    type_;
@@ -20799,6 +22609,11 @@ struct mac_main_cfg_s {
     const setup_s_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "dormantStateTimers-r15");
+      return c;
+    }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -20890,6 +22705,11 @@ struct meas_sf_pattern_pcell_r10_c {
     assert_choice_type("setup", type_.to_string(), "MeasSubframePatternPCell-r10");
     return c;
   }
+  meas_sf_pattern_r10_c& set_setup()
+  {
+    set(types::setup);
+    return c;
+  }
 
 private:
   types                 type_;
@@ -20927,6 +22747,11 @@ struct naics_assist_info_r12_c {
     assert_choice_type("setup", type_.to_string(), "NAICS-AssistanceInfo-r12");
     return c;
   }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
+    return c;
+  }
 
 private:
   types    type_;
@@ -20953,6 +22778,11 @@ struct neigh_cells_crs_info_r11_c {
   const crs_assist_info_list_r11_l& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "NeighCellsCRS-Info-r11");
+    return c;
+  }
+  crs_assist_info_list_r11_l& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -20983,6 +22813,11 @@ struct neigh_cells_crs_info_r13_c {
     assert_choice_type("setup", type_.to_string(), "NeighCellsCRS-Info-r13");
     return c;
   }
+  crs_assist_info_list_r13_l& set_setup()
+  {
+    set(types::setup);
+    return c;
+  }
 
 private:
   types                      type_;
@@ -21009,6 +22844,11 @@ struct neigh_cells_crs_info_r15_c {
   const crs_assist_info_list_r15_l& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "NeighCellsCRS-Info-r15");
+    return c;
+  }
+  crs_assist_info_list_r15_l& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -21045,6 +22885,11 @@ struct phys_cfg_ded_s {
       assert_choice_type("explicitValue", type_.to_string(), "antennaInfo");
       return c;
     }
+    ant_info_ded_s& set_explicit_value()
+    {
+      set(types::explicit_value);
+      return c;
+    }
 
   private:
     types          type_;
@@ -21076,6 +22921,11 @@ struct phys_cfg_ded_s {
       assert_choice_type("explicitValue-r10", type_.to_string(), "antennaInfo-r10");
       return c;
     }
+    ant_info_ded_r10_s& set_explicit_value_r10()
+    {
+      set(types::explicit_value_r10);
+      return c;
+    }
 
   private:
     types              type_;
@@ -21104,6 +22954,11 @@ struct phys_cfg_ded_s {
     const setup_s_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "additionalSpectrumEmissionCA-r10");
+      return c;
+    }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -21138,6 +22993,11 @@ struct phys_cfg_ded_s {
       assert_choice_type("setup", type_.to_string(), "ce-Mode-r13");
       return c;
     }
+    setup_e_& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types    type_;
@@ -21163,6 +23023,11 @@ struct phys_cfg_ded_s {
     const setup_l_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "typeA-SRS-TPC-PDCCH-Group-r14");
+      return c;
+    }
+    setup_l_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -21215,6 +23080,11 @@ struct phys_cfg_ded_s {
       assert_choice_type("setup", type_.to_string(), "must-Config-r14");
       return c;
     }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types    type_;
@@ -21264,6 +23134,16 @@ struct phys_cfg_ded_s {
         assert_choice_type("cfi-PatternConfig-r15", type_.to_string(), "setup");
         return c.get<cfi_pattern_cfg_r15_s>();
       }
+      cfi_cfg_r15_s& set_cfi_cfg_r15()
+      {
+        set(types::cfi_cfg_r15);
+        return c.get<cfi_cfg_r15_s>();
+      }
+      cfi_pattern_cfg_r15_s& set_cfi_pattern_cfg_r15()
+      {
+        set(types::cfi_pattern_cfg_r15);
+        return c.get<cfi_pattern_cfg_r15_s>();
+      }
 
     private:
       types                                                                       type_;
@@ -21289,6 +23169,11 @@ struct phys_cfg_ded_s {
     const setup_c_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "semiStaticCFI-Config-r15");
+      return c;
+    }
+    setup_c_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -21386,6 +23271,11 @@ struct phys_cfg_ded_s {
     const setup_s_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "blindPDSCH-Repetition-Config-r15");
+      return c;
+    }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -21633,6 +23523,11 @@ struct rlf_timers_and_consts_r13_c {
     assert_choice_type("setup", type_.to_string(), "RLF-TimersAndConstants-r13");
     return c;
   }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
+    return c;
+  }
 
 private:
   types    type_;
@@ -21710,6 +23605,11 @@ struct rlf_timers_and_consts_r9_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "RLF-TimersAndConstants-r9");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -21941,6 +23841,11 @@ struct rr_cfg_ded_s {
       assert_choice_type("explicitValue", type_.to_string(), "mac-MainConfig");
       return c;
     }
+    mac_main_cfg_s& set_explicit_value()
+    {
+      set(types::explicit_value);
+      return c;
+    }
 
   private:
     types          type_;
@@ -21983,6 +23888,11 @@ struct rr_cfg_ded_s {
         assert_choice_type("crs-IntfMitigNumPRBs-r15", type_.to_string(), "setup");
         return c;
       }
+      crs_intf_mitig_num_prbs_r15_e_& set_crs_intf_mitig_num_prbs_r15()
+      {
+        set(types::crs_intf_mitig_num_prbs_r15);
+        return c;
+      }
 
     private:
       types                          type_;
@@ -22006,6 +23916,11 @@ struct rr_cfg_ded_s {
     const setup_c_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "crs-IntfMitigConfig-r15");
+      return c;
+    }
+    setup_c_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -22161,6 +24076,36 @@ struct redirected_carrier_info_r15_ies_c {
     assert_choice_type("utra-TDD-r15", type_.to_string(), "RedirectedCarrierInfo-r15-IEs");
     return c.get<carrier_freq_list_utra_tdd_r10_l>();
   }
+  uint32_t& set_eutra_r15()
+  {
+    set(types::eutra_r15);
+    return c.get<uint32_t>();
+  }
+  carrier_freqs_geran_s& set_geran_r15()
+  {
+    set(types::geran_r15);
+    return c.get<carrier_freqs_geran_s>();
+  }
+  uint16_t& set_utra_fdd_r15()
+  {
+    set(types::utra_fdd_r15);
+    return c.get<uint16_t>();
+  }
+  carrier_freq_cdma2000_s& set_cdma2000_hrpd_r15()
+  {
+    set(types::cdma2000_hrpd_r15);
+    return c.get<carrier_freq_cdma2000_s>();
+  }
+  carrier_freq_cdma2000_s& set_cdma2000_minus1x_rtt_r15()
+  {
+    set(types::cdma2000_minus1x_rtt_r15);
+    return c.get<carrier_freq_cdma2000_s>();
+  }
+  carrier_freq_list_utra_tdd_r10_l& set_utra_tdd_r15()
+  {
+    set(types::utra_tdd_r15);
+    return c.get<carrier_freq_list_utra_tdd_r10_l>();
+  }
 
 private:
   types type_;
@@ -22282,6 +24227,11 @@ struct rrc_conn_reest_s {
         assert_choice_type("rrcConnectionReestablishment-r8", type_.to_string(), "c1");
         return c;
       }
+      rrc_conn_reest_r8_ies_s& set_rrc_conn_reest_r8()
+      {
+        set(types::rrc_conn_reest_r8);
+        return c;
+      }
 
     private:
       types                   type_;
@@ -22308,6 +24258,11 @@ struct rrc_conn_reest_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -22359,6 +24314,11 @@ struct rrc_conn_reest_reject_s {
       assert_choice_type("rrcConnectionReestablishmentReject-r8", type_.to_string(), "criticalExtensions");
       return c.get<rrc_conn_reest_reject_r8_ies_s>();
     }
+    rrc_conn_reest_reject_r8_ies_s& set_rrc_conn_reest_reject_r8()
+    {
+      set(types::rrc_conn_reest_reject_r8);
+      return c.get<rrc_conn_reest_reject_r8_ies_s>();
+    }
 
   private:
     types                                                   type_;
@@ -22405,6 +24365,11 @@ struct rrc_conn_reject_s {
         assert_choice_type("rrcConnectionReject-r8", type_.to_string(), "c1");
         return c;
       }
+      rrc_conn_reject_r8_ies_s& set_rrc_conn_reject_r8()
+      {
+        set(types::rrc_conn_reject_r8);
+        return c;
+      }
 
     private:
       types                    type_;
@@ -22431,6 +24396,11 @@ struct rrc_conn_reject_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -22479,6 +24449,11 @@ struct rrc_conn_setup_s {
         assert_choice_type("rrcConnectionSetup-r8", type_.to_string(), "c1");
         return c;
       }
+      rrc_conn_setup_r8_ies_s& set_rrc_conn_setup_r8()
+      {
+        set(types::rrc_conn_setup_r8);
+        return c;
+      }
 
     private:
       types                   type_;
@@ -22505,6 +24480,11 @@ struct rrc_conn_setup_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -22554,6 +24534,11 @@ struct rrc_early_data_complete_r15_s {
     const rrc_early_data_complete_r15_ies_s& rrc_early_data_complete_r15() const
     {
       assert_choice_type("rrcEarlyDataComplete-r15", type_.to_string(), "criticalExtensions");
+      return c.get<rrc_early_data_complete_r15_ies_s>();
+    }
+    rrc_early_data_complete_r15_ies_s& set_rrc_early_data_complete_r15()
+    {
+      set(types::rrc_early_data_complete_r15);
       return c.get<rrc_early_data_complete_r15_ies_s>();
     }
 
@@ -22634,6 +24619,26 @@ struct dl_ccch_msg_type_c {
       assert_choice_type("rrcConnectionSetup", type_.to_string(), "c1");
       return c.get<rrc_conn_setup_s>();
     }
+    rrc_conn_reest_s& set_rrc_conn_reest()
+    {
+      set(types::rrc_conn_reest);
+      return c.get<rrc_conn_reest_s>();
+    }
+    rrc_conn_reest_reject_s& set_rrc_conn_reest_reject()
+    {
+      set(types::rrc_conn_reest_reject);
+      return c.get<rrc_conn_reest_reject_s>();
+    }
+    rrc_conn_reject_s& set_rrc_conn_reject()
+    {
+      set(types::rrc_conn_reject);
+      return c.get<rrc_conn_reject_s>();
+    }
+    rrc_conn_setup_s& set_rrc_conn_setup()
+    {
+      set(types::rrc_conn_setup);
+      return c.get<rrc_conn_setup_s>();
+    }
 
   private:
     types type_;
@@ -22670,6 +24675,11 @@ struct dl_ccch_msg_type_c {
         assert_choice_type("rrcEarlyDataComplete-r15", type_.to_string(), "c2");
         return c;
       }
+      rrc_early_data_complete_r15_s& set_rrc_early_data_complete_r15()
+      {
+        set(types::rrc_early_data_complete_r15);
+        return c;
+      }
 
     private:
       types                         type_;
@@ -22703,6 +24713,11 @@ struct dl_ccch_msg_type_c {
     const c2_c_& c2() const
     {
       assert_choice_type("c2", type_.to_string(), "messageClassExtension");
+      return c.get<c2_c_>();
+    }
+    c2_c_& set_c2()
+    {
+      set(types::c2);
       return c.get<c2_c_>();
     }
 
@@ -22750,6 +24765,16 @@ struct dl_ccch_msg_type_c {
   const msg_class_ext_c_& msg_class_ext() const
   {
     assert_choice_type("messageClassExtension", type_.to_string(), "DL-CCCH-MessageType");
+    return c.get<msg_class_ext_c_>();
+  }
+  c1_c_& set_c1()
+  {
+    set(types::c1);
+    return c.get<c1_c_>();
+  }
+  msg_class_ext_c_& set_msg_class_ext()
+  {
+    set(types::msg_class_ext);
     return c.get<msg_class_ext_c_>();
   }
 
@@ -22809,6 +24834,11 @@ struct pdcch_candidate_reductions_laa_ul_r14_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "PDCCH-CandidateReductionsLAA-UL-r14");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -22914,6 +24944,11 @@ struct aul_cfg_r15_c {
     assert_choice_type("setup", type_.to_string(), "AUL-Config-r15");
     return c;
   }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
+    return c;
+  }
 
 private:
   types    type_;
@@ -22947,6 +24982,11 @@ struct cqi_report_periodic_scell_r15_c {
       const setup_s_& setup() const
       {
         assert_choice_type("setup", type_.to_string(), "csi-SubframePatternDormant-r15");
+        return c;
+      }
+      setup_s_& set_setup()
+      {
+        set(types::setup);
         return c;
       }
 
@@ -23021,6 +25061,16 @@ struct cqi_report_periodic_scell_r15_c {
         assert_choice_type("subbandCQI-r15", type_.to_string(), "cqi-FormatIndicatorDormant-r15");
         return c.get<subband_cqi_r15_s_>();
       }
+      wideband_cqi_r15_s_& set_wideband_cqi_r15()
+      {
+        set(types::wideband_cqi_r15);
+        return c.get<wideband_cqi_r15_s_>();
+      }
+      subband_cqi_r15_s_& set_subband_cqi_r15()
+      {
+        set(types::subband_cqi_r15);
+        return c.get<subband_cqi_r15_s_>();
+      }
 
     private:
       types                                                                          type_;
@@ -23056,6 +25106,11 @@ struct cqi_report_periodic_scell_r15_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "CQI-ReportPeriodicSCell-r15");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -23114,6 +25169,16 @@ struct lbt_cfg_r14_c {
   const int8_t& energy_detection_thres_offset_r14() const
   {
     assert_choice_type("energyDetectionThresholdOffset-r14", type_.to_string(), "LBT-Config-r14");
+    return c.get<int8_t>();
+  }
+  int8_t& set_max_energy_detection_thres_r14()
+  {
+    set(types::max_energy_detection_thres_r14);
+    return c.get<int8_t>();
+  }
+  int8_t& set_energy_detection_thres_offset_r14()
+  {
+    set(types::energy_detection_thres_offset_r14);
     return c.get<int8_t>();
   }
 
@@ -23203,6 +25268,11 @@ struct srs_ul_cfg_ded_aperiodic_v1430_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "SoundingRS-UL-ConfigDedicatedAperiodic-v1430");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -23320,6 +25390,16 @@ struct cqi_short_cfg_scell_r15_c {
         assert_choice_type("subbandCQI-Short-r15", type_.to_string(), "cqi-FormatIndicatorShort-r15");
         return c.get<subband_cqi_short_r15_s_>();
       }
+      wideband_cqi_short_r15_s_& set_wideband_cqi_short_r15()
+      {
+        set(types::wideband_cqi_short_r15);
+        return c.get<wideband_cqi_short_r15_s_>();
+      }
+      subband_cqi_short_r15_s_& set_subband_cqi_short_r15()
+      {
+        set(types::subband_cqi_short_r15);
+        return c.get<subband_cqi_short_r15_s_>();
+      }
 
     private:
       types                                                                                      type_;
@@ -23353,6 +25433,11 @@ struct cqi_short_cfg_scell_r15_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "CQI-ShortConfigSCell-r15");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -23409,6 +25494,16 @@ struct cross_carrier_sched_cfg_r10_s {
     const other_r10_s_& other_r10() const
     {
       assert_choice_type("other-r10", type_.to_string(), "schedulingCellInfo-r10");
+      return c.get<other_r10_s_>();
+    }
+    own_r10_s_& set_own_r10()
+    {
+      set(types::own_r10);
+      return c.get<own_r10_s_>();
+    }
+    other_r10_s_& set_other_r10()
+    {
+      set(types::other_r10);
       return c.get<other_r10_s_>();
     }
 
@@ -23477,6 +25572,16 @@ struct cross_carrier_sched_cfg_r13_s {
     const other_r13_s_& other_r13() const
     {
       assert_choice_type("other-r13", type_.to_string(), "schedulingCellInfo-r13");
+      return c.get<other_r13_s_>();
+    }
+    own_r13_s_& set_own_r13()
+    {
+      set(types::own_r13);
+      return c.get<own_r13_s_>();
+    }
+    other_r13_s_& set_other_r13()
+    {
+      set(types::other_r13);
       return c.get<other_r13_s_>();
     }
 
@@ -23694,6 +25799,11 @@ struct delta_flist_spucch_r15_c {
     assert_choice_type("setup", type_.to_string(), "DeltaFList-SPUCCH-r15");
     return c;
   }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
+    return c;
+  }
 
 private:
   types    type_;
@@ -23747,6 +25857,11 @@ struct laa_scell_cfg_v1430_s {
     const setup_s_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "crossCarrierSchedulingConfig-UL-r14");
+      return c;
+    }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -23831,6 +25946,11 @@ struct pucch_cfg_ded_v1370_s {
       assert_choice_type("setup", type_.to_string(), "pucch-Format-v1370");
       return c;
     }
+    pucch_format3_conf_r13_s& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types                    type_;
@@ -23897,6 +26017,11 @@ struct pusch_cfg_ded_scell_v1530_s {
       assert_choice_type("setup", type_.to_string(), "uci-OnPUSCH-r15");
       return c;
     }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types    type_;
@@ -23949,6 +26074,11 @@ struct sched_request_cfg_scell_r13_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "SchedulingRequestConfigSCell-r13");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -24011,6 +26141,11 @@ struct tpc_pdcch_cfg_scell_r13_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "TPC-PDCCH-ConfigSCell-r13");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -24214,6 +26349,11 @@ struct phys_cfg_ded_scell_r10_s {
       assert_choice_type("setup", type_.to_string(), "pucch-SCell");
       return c;
     }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types    type_;
@@ -24268,6 +26408,11 @@ struct phys_cfg_ded_scell_r10_s {
       assert_choice_type("setup", type_.to_string(), "must-Config-r14");
       return c;
     }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types    type_;
@@ -24313,6 +26458,16 @@ struct phys_cfg_ded_scell_r10_s {
         assert_choice_type("cfi-PatternConfig-r15", type_.to_string(), "setup");
         return c.get<cfi_pattern_cfg_r15_s>();
       }
+      cfi_cfg_r15_s& set_cfi_cfg_r15()
+      {
+        set(types::cfi_cfg_r15);
+        return c.get<cfi_cfg_r15_s>();
+      }
+      cfi_pattern_cfg_r15_s& set_cfi_pattern_cfg_r15()
+      {
+        set(types::cfi_pattern_cfg_r15);
+        return c.get<cfi_pattern_cfg_r15_s>();
+      }
 
     private:
       types                                                                       type_;
@@ -24338,6 +26493,11 @@ struct phys_cfg_ded_scell_r10_s {
     const setup_c_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "semiStaticCFI-Config-r15");
+      return c;
+    }
+    setup_c_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -24435,6 +26595,11 @@ struct phys_cfg_ded_scell_r10_s {
     const setup_s_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "blindPDSCH-Repetition-Config-r15");
+      return c;
+    }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -24602,6 +26767,11 @@ struct phys_cfg_ded_scell_v1370_s {
     const setup_s_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "pucch-SCell-v1370");
+      return c;
+    }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -25142,6 +27312,11 @@ struct drb_to_add_mod_scg_r12_s {
       assert_choice_type("scg-r12", type_.to_string(), "drb-Type-r12");
       return c;
     }
+    scg_r12_s_& set_scg_r12()
+    {
+      set(types::scg_r12);
+      return c;
+    }
 
   private:
     types      type_;
@@ -25230,6 +27405,16 @@ struct ip_address_r13_c {
   const fixed_bitstring<128>& ipv6_r13() const
   {
     assert_choice_type("ipv6-r13", type_.to_string(), "IP-Address-r13");
+    return c.get<fixed_bitstring<128> >();
+  }
+  fixed_bitstring<32>& set_ipv4_r13()
+  {
+    set(types::ipv4_r13);
+    return c.get<fixed_bitstring<32> >();
+  }
+  fixed_bitstring<128>& set_ipv6_r13()
+  {
+    set(types::ipv6_r13);
     return c.get<fixed_bitstring<128> >();
   }
 
@@ -25427,6 +27612,21 @@ struct security_cfg_ho_v1530_s {
     const epc_to_ngc_r15_s_& epc_to_ngc_r15() const
     {
       assert_choice_type("epc-ToNGC-r15", type_.to_string(), "handoverType-v1530");
+      return c.get<epc_to_ngc_r15_s_>();
+    }
+    intra5_gc_r15_s_& set_intra5_gc_r15()
+    {
+      set(types::intra5_gc_r15);
+      return c.get<intra5_gc_r15_s_>();
+    }
+    ngc_to_epc_r15_s_& set_ngc_to_epc_r15()
+    {
+      set(types::ngc_to_epc_r15);
+      return c.get<ngc_to_epc_r15_s_>();
+    }
+    epc_to_ngc_r15_s_& set_epc_to_ngc_r15()
+    {
+      set(types::epc_to_ngc_r15);
       return c.get<epc_to_ngc_r15_s_>();
     }
 
@@ -25657,6 +27857,16 @@ struct rach_skip_r14_s {
       assert_choice_type("scg-STAG-r14", type_.to_string(), "targetTA-r14");
       return c.get<uint8_t>();
     }
+    uint8_t& set_mcg_stag_r14()
+    {
+      set(types::mcg_stag_r14);
+      return c.get<uint8_t>();
+    }
+    uint8_t& set_scg_stag_r14()
+    {
+      set(types::scg_stag_r14);
+      return c.get<uint8_t>();
+    }
 
   private:
     types              type_;
@@ -25745,6 +27955,11 @@ struct rlf_timers_and_consts_scg_r12_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "RLF-TimersAndConstantsSCG-r12");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -25983,6 +28198,11 @@ struct sl_disc_tx_ref_carrier_ded_r13_c {
     assert_choice_type("sCell", type_.to_string(), "SL-DiscTxRefCarrierDedicated-r13");
     return c;
   }
+  uint8_t& set_s_cell()
+  {
+    set(types::s_cell);
+    return c;
+  }
 
 private:
   types   type_;
@@ -26030,6 +28250,16 @@ struct sl_disc_tx_res_r13_c {
       assert_choice_type("ue-Selected-r13", type_.to_string(), "setup");
       return c.get<sl_disc_tx_pool_ded_r13_s>();
     }
+    sl_disc_tx_cfg_sched_r13_s& set_sched_r13()
+    {
+      set(types::sched_r13);
+      return c.get<sl_disc_tx_cfg_sched_r13_s>();
+    }
+    sl_disc_tx_pool_ded_r13_s& set_ue_sel_r13()
+    {
+      set(types::ue_sel_r13);
+      return c.get<sl_disc_tx_pool_ded_r13_s>();
+    }
 
   private:
     types                                                                                        type_;
@@ -26055,6 +28285,11 @@ struct sl_disc_tx_res_r13_c {
   const setup_c_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "SL-DiscTxResource-r13");
+    return c;
+  }
+  setup_c_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -26339,6 +28574,11 @@ struct rclwi_cfg_r13_s {
       assert_choice_type("steerToWLAN-r13", type_.to_string(), "command");
       return c;
     }
+    steer_to_wlan_r13_s_& set_steer_to_wlan_r13()
+    {
+      set(types::steer_to_wlan_r13);
+      return c;
+    }
 
   private:
     types                type_;
@@ -26387,6 +28627,11 @@ struct rrc_conn_recfg_v1510_ies_s {
       assert_choice_type("setup", type_.to_string(), "nr-Config-r15");
       return c;
     }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types    type_;
@@ -26416,6 +28661,11 @@ struct rrc_conn_recfg_v1510_ies_s {
     const setup_s_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "tdm-PatternConfig-r15");
+      return c;
+    }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -26608,6 +28858,16 @@ struct sl_v2x_cfg_ded_r14_s {
         assert_choice_type("ue-Selected-r14", type_.to_string(), "setup");
         return c.get<ue_sel_r14_s_>();
       }
+      sched_r14_s_& set_sched_r14()
+      {
+        set(types::sched_r14);
+        return c.get<sched_r14_s_>();
+      }
+      ue_sel_r14_s_& set_ue_sel_r14()
+      {
+        set(types::ue_sel_r14);
+        return c.get<ue_sel_r14_s_>();
+      }
 
     private:
       types                                                              type_;
@@ -26633,6 +28893,11 @@ struct sl_v2x_cfg_ded_r14_s {
     const setup_c_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "commTxResources-r14");
+      return c;
+    }
+    setup_c_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -26692,6 +28957,16 @@ struct sl_v2x_cfg_ded_r14_s {
         assert_choice_type("ue-Selected-v1530", type_.to_string(), "setup");
         return c.get<ue_sel_v1530_s_>();
       }
+      sched_v1530_s_& set_sched_v1530()
+      {
+        set(types::sched_v1530);
+        return c.get<sched_v1530_s_>();
+      }
+      ue_sel_v1530_s_& set_ue_sel_v1530()
+      {
+        set(types::ue_sel_v1530);
+        return c.get<ue_sel_v1530_s_>();
+      }
 
     private:
       types                                                                  type_;
@@ -26717,6 +28992,11 @@ struct sl_v2x_cfg_ded_r14_s {
     const setup_c_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "commTxResources-v1530");
+      return c;
+    }
+    setup_c_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -26793,6 +29073,11 @@ struct lwa_cfg_r13_c {
     assert_choice_type("setup", type_.to_string(), "LWA-Configuration-r13");
     return c;
   }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
+    return c;
+  }
 
 private:
   types    type_;
@@ -26823,6 +29108,11 @@ struct lwip_cfg_r13_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "LWIP-Configuration-r13");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -26915,6 +29205,16 @@ struct ran_notif_area_info_r15_c {
     assert_choice_type("ran-AreaConfigList-r15", type_.to_string(), "RAN-NotificationAreaInfo-r15");
     return c.get<plmn_ran_area_cfg_list_r15_l>();
   }
+  plmn_ran_area_cell_list_r15_l& set_cell_list_r15()
+  {
+    set(types::cell_list_r15);
+    return c.get<plmn_ran_area_cell_list_r15_l>();
+  }
+  plmn_ran_area_cfg_list_r15_l& set_ran_area_cfg_list_r15()
+  {
+    set(types::ran_area_cfg_list_r15);
+    return c.get<plmn_ran_area_cfg_list_r15_l>();
+  }
 
 private:
   types                                                                                              type_;
@@ -26947,6 +29247,11 @@ struct rclwi_cfg_r13_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "RCLWI-Configuration-r13");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -27336,6 +29641,11 @@ struct scg_cfg_r12_c {
     assert_choice_type("setup", type_.to_string(), "SCG-Configuration-r12");
     return c;
   }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
+    return c;
+  }
 
 private:
   types    type_;
@@ -27367,6 +29677,11 @@ struct scg_cfg_v12f0_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "SCG-Configuration-v12f0");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -27437,6 +29752,16 @@ struct sl_comm_cfg_r12_s {
         assert_choice_type("ue-Selected-r12", type_.to_string(), "setup");
         return c.get<ue_sel_r12_s_>();
       }
+      sched_r12_s_& set_sched_r12()
+      {
+        set(types::sched_r12);
+        return c.get<sched_r12_s_>();
+      }
+      ue_sel_r12_s_& set_ue_sel_r12()
+      {
+        set(types::ue_sel_r12);
+        return c.get<ue_sel_r12_s_>();
+      }
 
     private:
       types                                                              type_;
@@ -27462,6 +29787,11 @@ struct sl_comm_cfg_r12_s {
     const setup_c_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "commTxResources-r12");
+      return c;
+    }
+    setup_c_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -27526,6 +29856,16 @@ struct sl_comm_cfg_r12_s {
         assert_choice_type("ue-Selected-v1310", type_.to_string(), "setup");
         return c.get<ue_sel_v1310_s_>();
       }
+      sched_v1310_s_& set_sched_v1310()
+      {
+        set(types::sched_v1310);
+        return c.get<sched_v1310_s_>();
+      }
+      ue_sel_v1310_s_& set_ue_sel_v1310()
+      {
+        set(types::ue_sel_v1310);
+        return c.get<ue_sel_v1310_s_>();
+      }
 
     private:
       types                                                                  type_;
@@ -27551,6 +29891,11 @@ struct sl_comm_cfg_r12_s {
     const setup_c_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "commTxResources-v1310");
+      return c;
+    }
+    setup_c_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -27640,6 +29985,16 @@ struct sl_disc_cfg_r12_s {
         assert_choice_type("ue-Selected-r12", type_.to_string(), "setup");
         return c.get<ue_sel_r12_s_>();
       }
+      sched_r12_s_& set_sched_r12()
+      {
+        set(types::sched_r12);
+        return c.get<sched_r12_s_>();
+      }
+      ue_sel_r12_s_& set_ue_sel_r12()
+      {
+        set(types::ue_sel_r12);
+        return c.get<ue_sel_r12_s_>();
+      }
 
     private:
       types                                                              type_;
@@ -27665,6 +30020,11 @@ struct sl_disc_cfg_r12_s {
     const setup_c_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "discTxResources-r12");
+      return c;
+    }
+    setup_c_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -27695,6 +30055,11 @@ struct sl_disc_cfg_r12_s {
     const setup_s_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "discTF-IndexList-v1260");
+      return c;
+    }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -27746,6 +30111,16 @@ struct sl_disc_cfg_r12_s {
         assert_choice_type("ue-Selected-r13", type_.to_string(), "setup");
         return c.get<ue_sel_r13_s_>();
       }
+      sl_disc_tx_cfg_sched_r13_s& set_sched_r13()
+      {
+        set(types::sched_r13);
+        return c.get<sl_disc_tx_cfg_sched_r13_s>();
+      }
+      ue_sel_r13_s_& set_ue_sel_r13()
+      {
+        set(types::ue_sel_r13);
+        return c.get<ue_sel_r13_s_>();
+      }
 
     private:
       types                                                                            type_;
@@ -27771,6 +30146,11 @@ struct sl_disc_cfg_r12_s {
     const setup_c_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "discTxResourcesPS-r13");
+      return c;
+    }
+    setup_c_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -27808,6 +30188,11 @@ struct sl_disc_cfg_r12_s {
       assert_choice_type("setup", type_.to_string(), "discTxInterFreqInfo-r13");
       return c;
     }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types    type_;
@@ -27832,6 +30217,11 @@ struct sl_disc_cfg_r12_s {
     const sl_gap_cfg_r13_s& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "discRxGapConfig-r13");
+      return c;
+    }
+    sl_gap_cfg_r13_s& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -27860,6 +30250,11 @@ struct sl_disc_cfg_r12_s {
       assert_choice_type("setup", type_.to_string(), "discTxGapConfig-r13");
       return c;
     }
+    sl_gap_cfg_r13_s& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types            type_;
@@ -27884,6 +30279,11 @@ struct sl_disc_cfg_r12_s {
     const sl_disc_sys_info_to_report_freq_list_r13_l& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "discSysInfoToReportConfig-r13");
+      return c;
+    }
+    sl_disc_sys_info_to_report_freq_list_r13_l& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -27993,6 +30393,11 @@ struct bt_name_list_cfg_r15_c {
   const bt_name_list_r15_l& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "BT-NameListConfig-r15");
+    return c;
+  }
+  bt_name_list_r15_l& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -28126,6 +30531,21 @@ struct meas_ds_cfg_r12_c {
         assert_choice_type("ms160-r12", type_.to_string(), "dmtc-PeriodOffset-r12");
         return c.get<uint8_t>();
       }
+      uint8_t& set_ms40_r12()
+      {
+        set(types::ms40_r12);
+        return c.get<uint8_t>();
+      }
+      uint8_t& set_ms80_r12()
+      {
+        set(types::ms80_r12);
+        return c.get<uint8_t>();
+      }
+      uint8_t& set_ms160_r12()
+      {
+        set(types::ms160_r12);
+        return c.get<uint8_t>();
+      }
 
     private:
       types              type_;
@@ -28172,6 +30592,16 @@ struct meas_ds_cfg_r12_c {
         assert_choice_type("durationTDD-r12", type_.to_string(), "ds-OccasionDuration-r12");
         return c.get<uint8_t>();
       }
+      uint8_t& set_dur_fdd_r12()
+      {
+        set(types::dur_fdd_r12);
+        return c.get<uint8_t>();
+      }
+      uint8_t& set_dur_tdd_r12()
+      {
+        set(types::dur_tdd_r12);
+        return c.get<uint8_t>();
+      }
 
     private:
       types              type_;
@@ -28208,6 +30638,11 @@ struct meas_ds_cfg_r12_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "MeasDS-Config-r12");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -28461,6 +30896,106 @@ struct meas_gap_cfg_c {
         assert_choice_type("gp11-r15", type_.to_string(), "gapOffset");
         return c.get<uint8_t>();
       }
+      uint8_t& set_gp0()
+      {
+        set(types::gp0);
+        return c.get<uint8_t>();
+      }
+      uint8_t& set_gp1()
+      {
+        set(types::gp1);
+        return c.get<uint8_t>();
+      }
+      uint8_t& set_gp2_r14()
+      {
+        set(types::gp2_r14);
+        return c.get<uint8_t>();
+      }
+      uint8_t& set_gp3_r14()
+      {
+        set(types::gp3_r14);
+        return c.get<uint8_t>();
+      }
+      uint8_t& set_gp_ncsg0_r14()
+      {
+        set(types::gp_ncsg0_r14);
+        return c.get<uint8_t>();
+      }
+      uint8_t& set_gp_ncsg1_r14()
+      {
+        set(types::gp_ncsg1_r14);
+        return c.get<uint8_t>();
+      }
+      uint8_t& set_gp_ncsg2_r14()
+      {
+        set(types::gp_ncsg2_r14);
+        return c.get<uint8_t>();
+      }
+      uint8_t& set_gp_ncsg3_r14()
+      {
+        set(types::gp_ncsg3_r14);
+        return c.get<uint8_t>();
+      }
+      uint16_t& set_gp_non_uniform1_r14()
+      {
+        set(types::gp_non_uniform1_r14);
+        return c.get<uint16_t>();
+      }
+      uint16_t& set_gp_non_uniform2_r14()
+      {
+        set(types::gp_non_uniform2_r14);
+        return c.get<uint16_t>();
+      }
+      uint16_t& set_gp_non_uniform3_r14()
+      {
+        set(types::gp_non_uniform3_r14);
+        return c.get<uint16_t>();
+      }
+      uint16_t& set_gp_non_uniform4_r14()
+      {
+        set(types::gp_non_uniform4_r14);
+        return c.get<uint16_t>();
+      }
+      uint8_t& set_gp4_r15()
+      {
+        set(types::gp4_r15);
+        return c.get<uint8_t>();
+      }
+      uint8_t& set_gp5_r15()
+      {
+        set(types::gp5_r15);
+        return c.get<uint8_t>();
+      }
+      uint8_t& set_gp6_r15()
+      {
+        set(types::gp6_r15);
+        return c.get<uint8_t>();
+      }
+      uint8_t& set_gp7_r15()
+      {
+        set(types::gp7_r15);
+        return c.get<uint8_t>();
+      }
+      uint8_t& set_gp8_r15()
+      {
+        set(types::gp8_r15);
+        return c.get<uint8_t>();
+      }
+      uint8_t& set_gp9_r15()
+      {
+        set(types::gp9_r15);
+        return c.get<uint8_t>();
+      }
+      uint8_t& set_gp10_r15()
+      {
+        set(types::gp10_r15);
+        return c.get<uint8_t>();
+      }
+      uint8_t& set_gp11_r15()
+      {
+        set(types::gp11_r15);
+        return c.get<uint8_t>();
+      }
 
     private:
       types              type_;
@@ -28490,6 +31025,11 @@ struct meas_gap_cfg_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "MeasGapConfig");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -28559,6 +31099,11 @@ struct meas_sf_pattern_cfg_neigh_r10_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "MeasSubframePatternConfigNeigh-r10");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -28655,6 +31200,11 @@ struct rmtc_cfg_r13_c {
     assert_choice_type("setup", type_.to_string(), "RMTC-Config-r13");
     return c;
   }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
+    return c;
+  }
 
 private:
   types    type_;
@@ -28697,6 +31247,11 @@ struct rrc_conn_recfg_v1250_ies_s {
     const setup_s_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "wlan-OffloadInfo-r12");
+      return c;
+    }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -28813,6 +31368,11 @@ struct rsrq_range_cfg_r12_c {
   const int8_t& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "RSRQ-RangeConfig-r12");
+    return c;
+  }
+  int8_t& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -28939,6 +31499,16 @@ struct thres_eutra_c {
     assert_choice_type("threshold-RSRQ", type_.to_string(), "ThresholdEUTRA");
     return c.get<uint8_t>();
   }
+  uint8_t& set_thres_rsrp()
+  {
+    set(types::thres_rsrp);
+    return c.get<uint8_t>();
+  }
+  uint8_t& set_thres_rsrq()
+  {
+    set(types::thres_rsrq);
+    return c.get<uint8_t>();
+  }
 
 private:
   types              type_;
@@ -28997,6 +31567,21 @@ struct thres_nr_r15_c {
     assert_choice_type("nr-SINR-r15", type_.to_string(), "ThresholdNR-r15");
     return c.get<uint8_t>();
   }
+  uint8_t& set_nr_rsrp_r15()
+  {
+    set(types::nr_rsrp_r15);
+    return c.get<uint8_t>();
+  }
+  uint8_t& set_nr_rsrq_r15()
+  {
+    set(types::nr_rsrq_r15);
+    return c.get<uint8_t>();
+  }
+  uint8_t& set_nr_sinr_r15()
+  {
+    set(types::nr_sinr_r15);
+    return c.get<uint8_t>();
+  }
 
 private:
   types              type_;
@@ -29045,6 +31630,16 @@ struct thres_utra_c {
   const uint8_t& utra_ec_n0() const
   {
     assert_choice_type("utra-EcN0", type_.to_string(), "ThresholdUTRA");
+    return c.get<uint8_t>();
+  }
+  int8_t& set_utra_rscp()
+  {
+    set(types::utra_rscp);
+    return c.get<int8_t>();
+  }
+  uint8_t& set_utra_ec_n0()
+  {
+    set(types::utra_ec_n0);
     return c.get<uint8_t>();
   }
 
@@ -29167,6 +31762,11 @@ struct ul_delay_cfg_r13_c {
     assert_choice_type("setup", type_.to_string(), "UL-DelayConfig-r13");
     return c;
   }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
+    return c;
+  }
 
 private:
   types    type_;
@@ -29229,6 +31829,11 @@ struct wlan_name_list_cfg_r15_c {
   const wlan_name_list_r15_l& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "WLAN-NameListConfig-r15");
+    return c;
+  }
+  wlan_name_list_r15_l& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -29348,6 +31953,11 @@ struct idc_cfg_r11_s {
       assert_choice_type("setup", type_.to_string(), "idc-Indication-MRDC-r15");
       return c;
     }
+    candidate_serving_freq_list_nr_r15_l& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types                                type_;
@@ -29454,6 +32064,11 @@ struct meas_obj_eutra_s {
     const setup_e_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "t312-r12");
+      return c;
+    }
+    setup_e_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -29580,6 +32195,11 @@ struct meas_obj_nr_r15_s {
       assert_choice_type("setup", type_.to_string(), "bandNR-r15");
       return c;
     }
+    uint16_t& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types    type_;
@@ -29661,6 +32281,16 @@ struct meas_obj_utra_s {
       assert_choice_type("cellsToAddModListUTRA-TDD", type_.to_string(), "cellsToAddModList");
       return c.get<cells_to_add_mod_list_utra_tdd_l>();
     }
+    cells_to_add_mod_list_utra_fdd_l& set_cells_to_add_mod_list_utra_fdd()
+    {
+      set(types::cells_to_add_mod_list_utra_fdd);
+      return c.get<cells_to_add_mod_list_utra_fdd_l>();
+    }
+    cells_to_add_mod_list_utra_tdd_l& set_cells_to_add_mod_list_utra_tdd()
+    {
+      set(types::cells_to_add_mod_list_utra_tdd);
+      return c.get<cells_to_add_mod_list_utra_tdd_l>();
+    }
 
   private:
     types                                                                                                     type_;
@@ -29705,6 +32335,16 @@ struct meas_obj_utra_s {
     const uint8_t& utra_tdd() const
     {
       assert_choice_type("utra-TDD", type_.to_string(), "cellForWhichToReportCGI");
+      return c.get<uint8_t>();
+    }
+    uint16_t& set_utra_fdd()
+    {
+      set(types::utra_fdd);
+      return c.get<uint16_t>();
+    }
+    uint8_t& set_utra_tdd()
+    {
+      set(types::utra_tdd);
       return c.get<uint8_t>();
     }
 
@@ -29781,6 +32421,16 @@ struct meas_obj_wlan_r13_s {
     const carrier_info_list_wlan_r13_l_& carrier_info_list_wlan_r13() const
     {
       assert_choice_type("carrierInfoListWLAN-r13", type_.to_string(), "carrierFreq-r13");
+      return c.get<carrier_info_list_wlan_r13_l_>();
+    }
+    band_ind_list_wlan_r13_l_& set_band_ind_list_wlan_r13()
+    {
+      set(types::band_ind_list_wlan_r13);
+      return c.get<band_ind_list_wlan_r13_l_>();
+    }
+    carrier_info_list_wlan_r13_l_& set_carrier_info_list_wlan_r13()
+    {
+      set(types::carrier_info_list_wlan_r13);
       return c.get<carrier_info_list_wlan_r13_l_>();
     }
 
@@ -29870,6 +32520,11 @@ struct pwr_pref_ind_cfg_r11_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "PowerPrefIndicationConfig-r11");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -30148,6 +32803,66 @@ struct eutra_event_s {
       assert_choice_type("eventH2-r15", type_.to_string(), "eventId");
       return c.get<event_h2_r15_s_>();
     }
+    event_a1_s_& set_event_a1()
+    {
+      set(types::event_a1);
+      return c.get<event_a1_s_>();
+    }
+    event_a2_s_& set_event_a2()
+    {
+      set(types::event_a2);
+      return c.get<event_a2_s_>();
+    }
+    event_a3_s_& set_event_a3()
+    {
+      set(types::event_a3);
+      return c.get<event_a3_s_>();
+    }
+    event_a4_s_& set_event_a4()
+    {
+      set(types::event_a4);
+      return c.get<event_a4_s_>();
+    }
+    event_a5_s_& set_event_a5()
+    {
+      set(types::event_a5);
+      return c.get<event_a5_s_>();
+    }
+    event_a6_r10_s_& set_event_a6_r10()
+    {
+      set(types::event_a6_r10);
+      return c.get<event_a6_r10_s_>();
+    }
+    event_c1_r12_s_& set_event_c1_r12()
+    {
+      set(types::event_c1_r12);
+      return c.get<event_c1_r12_s_>();
+    }
+    event_c2_r12_s_& set_event_c2_r12()
+    {
+      set(types::event_c2_r12);
+      return c.get<event_c2_r12_s_>();
+    }
+    event_v1_r14_s_& set_event_v1_r14()
+    {
+      set(types::event_v1_r14);
+      return c.get<event_v1_r14_s_>();
+    }
+    event_v2_r14_s_& set_event_v2_r14()
+    {
+      set(types::event_v2_r14);
+      return c.get<event_v2_r14_s_>();
+    }
+    event_h1_r15_s_& set_event_h1_r15()
+    {
+      set(types::event_h1_r15);
+      return c.get<event_h1_r15_s_>();
+    }
+    event_h2_r15_s_& set_event_h2_r15()
+    {
+      set(types::event_h2_r15);
+      return c.get<event_h2_r15_s_>();
+    }
 
   private:
     types type_;
@@ -30224,6 +32939,16 @@ struct report_cfg_eutra_s {
       assert_choice_type("periodical", type_.to_string(), "triggerType");
       return c.get<periodical_s_>();
     }
+    event_s_& set_event()
+    {
+      set(types::event);
+      return c.get<event_s_>();
+    }
+    periodical_s_& set_periodical()
+    {
+      set(types::periodical);
+      return c.get<periodical_s_>();
+    }
 
   private:
     types                                                          type_;
@@ -30272,6 +32997,11 @@ struct report_cfg_eutra_s {
       assert_choice_type("setup", type_.to_string(), "alternativeTimeToTrigger-r12");
       return c;
     }
+    time_to_trigger_e& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types             type_;
@@ -30312,6 +33042,11 @@ struct report_cfg_eutra_s {
     const setup_s_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "rs-sinr-Config-r13");
+      return c;
+    }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -30451,6 +33186,21 @@ struct report_cfg_inter_rat_s {
               assert_choice_type("b1-ThresholdCDMA2000", type_.to_string(), "b1-Threshold");
               return c.get<uint8_t>();
             }
+            thres_utra_c& set_b1_thres_utra()
+            {
+              set(types::b1_thres_utra);
+              return c.get<thres_utra_c>();
+            }
+            uint8_t& set_b1_thres_geran()
+            {
+              set(types::b1_thres_geran);
+              return c.get<uint8_t>();
+            }
+            uint8_t& set_b1_thres_cdma2000()
+            {
+              set(types::b1_thres_cdma2000);
+              return c.get<uint8_t>();
+            }
 
           private:
             types                                 type_;
@@ -30510,6 +33260,21 @@ struct report_cfg_inter_rat_s {
             const uint8_t& b2_thres2_cdma2000() const
             {
               assert_choice_type("b2-Threshold2CDMA2000", type_.to_string(), "b2-Threshold2");
+              return c.get<uint8_t>();
+            }
+            thres_utra_c& set_b2_thres2_utra()
+            {
+              set(types::b2_thres2_utra);
+              return c.get<thres_utra_c>();
+            }
+            uint8_t& set_b2_thres2_geran()
+            {
+              set(types::b2_thres2_geran);
+              return c.get<uint8_t>();
+            }
+            uint8_t& set_b2_thres2_cdma2000()
+            {
+              set(types::b2_thres2_cdma2000);
               return c.get<uint8_t>();
             }
 
@@ -30646,6 +33411,41 @@ struct report_cfg_inter_rat_s {
           assert_choice_type("eventB2-NR-r15", type_.to_string(), "eventId");
           return c.get<event_b2_nr_r15_s_>();
         }
+        event_b1_s_& set_event_b1()
+        {
+          set(types::event_b1);
+          return c.get<event_b1_s_>();
+        }
+        event_b2_s_& set_event_b2()
+        {
+          set(types::event_b2);
+          return c.get<event_b2_s_>();
+        }
+        event_w1_r13_s_& set_event_w1_r13()
+        {
+          set(types::event_w1_r13);
+          return c.get<event_w1_r13_s_>();
+        }
+        event_w2_r13_s_& set_event_w2_r13()
+        {
+          set(types::event_w2_r13);
+          return c.get<event_w2_r13_s_>();
+        }
+        event_w3_r13_s_& set_event_w3_r13()
+        {
+          set(types::event_w3_r13);
+          return c.get<event_w3_r13_s_>();
+        }
+        event_b1_nr_r15_s_& set_event_b1_nr_r15()
+        {
+          set(types::event_b1_nr_r15);
+          return c.get<event_b1_nr_r15_s_>();
+        }
+        event_b2_nr_r15_s_& set_event_b2_nr_r15()
+        {
+          set(types::event_b2_nr_r15);
+          return c.get<event_b2_nr_r15_s_>();
+        }
 
       private:
         types type_;
@@ -30711,6 +33511,16 @@ struct report_cfg_inter_rat_s {
       assert_choice_type("periodical", type_.to_string(), "triggerType");
       return c.get<periodical_s_>();
     }
+    event_s_& set_event()
+    {
+      set(types::event);
+      return c.get<event_s_>();
+    }
+    periodical_s_& set_periodical()
+    {
+      set(types::periodical);
+      return c.get<periodical_s_>();
+    }
 
   private:
     types                                                          type_;
@@ -30745,6 +33555,11 @@ struct report_cfg_inter_rat_s {
     const int8_t& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "b2-Threshold1-v1250");
+      return c;
+    }
+    int8_t& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -31057,6 +33872,36 @@ struct meas_obj_to_add_mod_s {
       assert_choice_type("measObjectNR-r15", type_.to_string(), "measObject");
       return c.get<meas_obj_nr_r15_s>();
     }
+    meas_obj_eutra_s& set_meas_obj_eutra()
+    {
+      set(types::meas_obj_eutra);
+      return c.get<meas_obj_eutra_s>();
+    }
+    meas_obj_utra_s& set_meas_obj_utra()
+    {
+      set(types::meas_obj_utra);
+      return c.get<meas_obj_utra_s>();
+    }
+    meas_obj_geran_s& set_meas_obj_geran()
+    {
+      set(types::meas_obj_geran);
+      return c.get<meas_obj_geran_s>();
+    }
+    meas_obj_cdma2000_s& set_meas_obj_cdma2000()
+    {
+      set(types::meas_obj_cdma2000);
+      return c.get<meas_obj_cdma2000_s>();
+    }
+    meas_obj_wlan_r13_s& set_meas_obj_wlan_r13()
+    {
+      set(types::meas_obj_wlan_r13);
+      return c.get<meas_obj_wlan_r13_s>();
+    }
+    meas_obj_nr_r15_s& set_meas_obj_nr_r15()
+    {
+      set(types::meas_obj_nr_r15);
+      return c.get<meas_obj_nr_r15_s>();
+    }
 
   private:
     types type_;
@@ -31181,6 +34026,36 @@ struct meas_obj_to_add_mod_ext_r13_s {
       assert_choice_type("measObjectNR-r15", type_.to_string(), "measObject-r13");
       return c.get<meas_obj_nr_r15_s>();
     }
+    meas_obj_eutra_s& set_meas_obj_eutra_r13()
+    {
+      set(types::meas_obj_eutra_r13);
+      return c.get<meas_obj_eutra_s>();
+    }
+    meas_obj_utra_s& set_meas_obj_utra_r13()
+    {
+      set(types::meas_obj_utra_r13);
+      return c.get<meas_obj_utra_s>();
+    }
+    meas_obj_geran_s& set_meas_obj_geran_r13()
+    {
+      set(types::meas_obj_geran_r13);
+      return c.get<meas_obj_geran_s>();
+    }
+    meas_obj_cdma2000_s& set_meas_obj_cdma2000_r13()
+    {
+      set(types::meas_obj_cdma2000_r13);
+      return c.get<meas_obj_cdma2000_s>();
+    }
+    meas_obj_wlan_r13_s& set_meas_obj_wlan_v1320()
+    {
+      set(types::meas_obj_wlan_v1320);
+      return c.get<meas_obj_wlan_r13_s>();
+    }
+    meas_obj_nr_r15_s& set_meas_obj_nr_r15()
+    {
+      set(types::meas_obj_nr_r15);
+      return c.get<meas_obj_nr_r15_s>();
+    }
 
   private:
     types type_;
@@ -31278,6 +34153,11 @@ struct other_cfg_r9_s {
       assert_choice_type("setup", type_.to_string(), "delayBudgetReportingConfig-r14");
       return c;
     }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types    type_;
@@ -31335,6 +34215,11 @@ struct other_cfg_r9_s {
     const setup_s_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "rlm-ReportConfig-r14");
+      return c;
+    }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -31395,6 +34280,11 @@ struct other_cfg_r9_s {
       assert_choice_type("setup", type_.to_string(), "overheatingAssistanceConfig-r14");
       return c;
     }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types    type_;
@@ -31431,6 +34321,11 @@ struct other_cfg_r9_s {
     const setup_s_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "measConfigAppLayer-r15");
+      return c;
+    }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -31538,6 +34433,16 @@ struct prach_cfg_v1310_s {
     const tdd_r13_e_& tdd_r13() const
     {
       assert_choice_type("tdd-r13", type_.to_string(), "mpdcch-startSF-CSS-RA-r13");
+      return c.get<tdd_r13_e_>();
+    }
+    fdd_r13_e_& set_fdd_r13()
+    {
+      set(types::fdd_r13);
+      return c.get<fdd_r13_e_>();
+    }
+    tdd_r13_e_& set_tdd_r13()
+    {
+      set(types::tdd_r13);
       return c.get<tdd_r13_e_>();
     }
 
@@ -31789,6 +34694,16 @@ struct report_cfg_to_add_mod_s {
     const report_cfg_inter_rat_s& report_cfg_inter_rat() const
     {
       assert_choice_type("reportConfigInterRAT", type_.to_string(), "reportConfig");
+      return c.get<report_cfg_inter_rat_s>();
+    }
+    report_cfg_eutra_s& set_report_cfg_eutra()
+    {
+      set(types::report_cfg_eutra);
+      return c.get<report_cfg_eutra_s>();
+    }
+    report_cfg_inter_rat_s& set_report_cfg_inter_rat()
+    {
+      set(types::report_cfg_inter_rat);
       return c.get<report_cfg_inter_rat_s>();
     }
 
@@ -32260,6 +35175,111 @@ struct meas_gap_cfg_dense_prs_r15_c {
         assert_choice_type("rstd20-r15", type_.to_string(), "gapOffsetDensePRS-r15");
         return c.get<uint16_t>();
       }
+      uint8_t& set_rstd0_r15()
+      {
+        set(types::rstd0_r15);
+        return c.get<uint8_t>();
+      }
+      uint8_t& set_rstd1_r15()
+      {
+        set(types::rstd1_r15);
+        return c.get<uint8_t>();
+      }
+      uint16_t& set_rstd2_r15()
+      {
+        set(types::rstd2_r15);
+        return c.get<uint16_t>();
+      }
+      uint16_t& set_rstd3_r15()
+      {
+        set(types::rstd3_r15);
+        return c.get<uint16_t>();
+      }
+      uint16_t& set_rstd4_r15()
+      {
+        set(types::rstd4_r15);
+        return c.get<uint16_t>();
+      }
+      uint8_t& set_rstd5_r15()
+      {
+        set(types::rstd5_r15);
+        return c.get<uint8_t>();
+      }
+      uint16_t& set_rstd6_r15()
+      {
+        set(types::rstd6_r15);
+        return c.get<uint16_t>();
+      }
+      uint16_t& set_rstd7_r15()
+      {
+        set(types::rstd7_r15);
+        return c.get<uint16_t>();
+      }
+      uint16_t& set_rstd8_r15()
+      {
+        set(types::rstd8_r15);
+        return c.get<uint16_t>();
+      }
+      uint16_t& set_rstd9_r15()
+      {
+        set(types::rstd9_r15);
+        return c.get<uint16_t>();
+      }
+      uint16_t& set_rstd10_r15()
+      {
+        set(types::rstd10_r15);
+        return c.get<uint16_t>();
+      }
+      uint16_t& set_rstd11_r15()
+      {
+        set(types::rstd11_r15);
+        return c.get<uint16_t>();
+      }
+      uint16_t& set_rstd12_r15()
+      {
+        set(types::rstd12_r15);
+        return c.get<uint16_t>();
+      }
+      uint16_t& set_rstd13_r15()
+      {
+        set(types::rstd13_r15);
+        return c.get<uint16_t>();
+      }
+      uint16_t& set_rstd14_r15()
+      {
+        set(types::rstd14_r15);
+        return c.get<uint16_t>();
+      }
+      uint16_t& set_rstd15_r15()
+      {
+        set(types::rstd15_r15);
+        return c.get<uint16_t>();
+      }
+      uint16_t& set_rstd16_r15()
+      {
+        set(types::rstd16_r15);
+        return c.get<uint16_t>();
+      }
+      uint16_t& set_rstd17_r15()
+      {
+        set(types::rstd17_r15);
+        return c.get<uint16_t>();
+      }
+      uint16_t& set_rstd18_r15()
+      {
+        set(types::rstd18_r15);
+        return c.get<uint16_t>();
+      }
+      uint16_t& set_rstd19_r15()
+      {
+        set(types::rstd19_r15);
+        return c.get<uint16_t>();
+      }
+      uint16_t& set_rstd20_r15()
+      {
+        set(types::rstd20_r15);
+        return c.get<uint16_t>();
+      }
 
     private:
       types              type_;
@@ -32289,6 +35309,11 @@ struct meas_gap_cfg_dense_prs_r15_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "MeasGapConfigDensePRS-r15");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -32324,6 +35349,11 @@ struct meas_gap_cfg_per_cc_list_r14_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "MeasGapConfigPerCC-List-r14");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -32366,6 +35396,11 @@ struct meas_gap_sharing_cfg_r14_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "MeasGapSharingConfig-r14");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -32596,6 +35631,26 @@ struct rrc_conn_release_v920_ies_s {
       assert_choice_type("utra-TDD-r10", type_.to_string(), "cellInfoList-r9");
       return c.get<cell_info_list_utra_tdd_r10_l>();
     }
+    cell_info_list_geran_r9_l& set_geran_r9()
+    {
+      set(types::geran_r9);
+      return c.get<cell_info_list_geran_r9_l>();
+    }
+    cell_info_list_utra_fdd_r9_l& set_utra_fdd_r9()
+    {
+      set(types::utra_fdd_r9);
+      return c.get<cell_info_list_utra_fdd_r9_l>();
+    }
+    cell_info_list_utra_tdd_r9_l& set_utra_tdd_r9()
+    {
+      set(types::utra_tdd_r9);
+      return c.get<cell_info_list_utra_tdd_r9_l>();
+    }
+    cell_info_list_utra_tdd_r10_l& set_utra_tdd_r10()
+    {
+      set(types::utra_tdd_r10);
+      return c.get<cell_info_list_utra_tdd_r10_l>();
+    }
 
   private:
     types type_;
@@ -32769,6 +35824,16 @@ struct si_or_psi_geran_c {
     assert_choice_type("psi", type_.to_string(), "SI-OrPSI-GERAN");
     return c.get<sys_info_list_geran_l>();
   }
+  sys_info_list_geran_l& set_si()
+  {
+    set(types::si);
+    return c.get<sys_info_list_geran_l>();
+  }
+  sys_info_list_geran_l& set_psi()
+  {
+    set(types::psi);
+    return c.get<sys_info_list_geran_l>();
+  }
 
 private:
   types                                          type_;
@@ -32847,6 +35912,16 @@ struct area_cfg_r10_c {
   const tac_list_r10_l& tac_list_r10() const
   {
     assert_choice_type("trackingAreaCodeList-r10", type_.to_string(), "AreaConfiguration-r10");
+    return c.get<tac_list_r10_l>();
+  }
+  cell_global_id_list_r10_l& set_cell_global_id_list_r10()
+  {
+    set(types::cell_global_id_list_r10);
+    return c.get<cell_global_id_list_r10_l>();
+  }
+  tac_list_r10_l& set_tac_list_r10()
+  {
+    set(types::tac_list_r10);
     return c.get<tac_list_r10_l>();
   }
 
@@ -33084,6 +36159,11 @@ struct meas_cfg_s {
       assert_choice_type("setup", type_.to_string(), "speedStatePars");
       return c;
     }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types    type_;
@@ -33110,6 +36190,11 @@ struct meas_cfg_s {
       assert_choice_type("setup", type_.to_string(), "measScaleFactor-r12");
       return c;
     }
+    meas_scale_factor_r12_e& set_setup()
+    {
+      set(types::setup);
+      return c;
+    }
 
   private:
     types                   type_;
@@ -33134,6 +36219,11 @@ struct meas_cfg_s {
     const uint8_t& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "heightThreshRef-r15");
+      return c;
+    }
+    uint8_t& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
@@ -33340,6 +36430,16 @@ struct rn_sf_cfg_r10_s {
       assert_choice_type("subframeConfigPatternTDD-r10", type_.to_string(), "subframeConfigPattern-r10");
       return c.get<uint8_t>();
     }
+    fixed_bitstring<8>& set_sf_cfg_pattern_fdd_r10()
+    {
+      set(types::sf_cfg_pattern_fdd_r10);
+      return c.get<fixed_bitstring<8> >();
+    }
+    uint8_t& set_sf_cfg_pattern_tdd_r10()
+    {
+      set(types::sf_cfg_pattern_tdd_r10);
+      return c.get<uint8_t>();
+    }
 
   private:
     types                                       type_;
@@ -33436,6 +36536,36 @@ struct rn_sf_cfg_r10_s {
           assert_choice_type("nrb100-r10", type_.to_string(), "type01-r10");
           return c.get<fixed_bitstring<25> >();
         }
+        fixed_bitstring<6>& set_nrb6_r10()
+        {
+          set(types::nrb6_r10);
+          return c.get<fixed_bitstring<6> >();
+        }
+        fixed_bitstring<8>& set_nrb15_r10()
+        {
+          set(types::nrb15_r10);
+          return c.get<fixed_bitstring<8> >();
+        }
+        fixed_bitstring<13>& set_nrb25_r10()
+        {
+          set(types::nrb25_r10);
+          return c.get<fixed_bitstring<13> >();
+        }
+        fixed_bitstring<17>& set_nrb50_r10()
+        {
+          set(types::nrb50_r10);
+          return c.get<fixed_bitstring<17> >();
+        }
+        fixed_bitstring<19>& set_nrb75_r10()
+        {
+          set(types::nrb75_r10);
+          return c.get<fixed_bitstring<19> >();
+        }
+        fixed_bitstring<25>& set_nrb100_r10()
+        {
+          set(types::nrb100_r10);
+          return c.get<fixed_bitstring<25> >();
+        }
 
       private:
         types                                        type_;
@@ -33524,6 +36654,36 @@ struct rn_sf_cfg_r10_s {
           assert_choice_type("nrb100-r10", type_.to_string(), "type2-r10");
           return c.get<fixed_bitstring<13> >();
         }
+        fixed_bitstring<5>& set_nrb6_r10()
+        {
+          set(types::nrb6_r10);
+          return c.get<fixed_bitstring<5> >();
+        }
+        fixed_bitstring<7>& set_nrb15_r10()
+        {
+          set(types::nrb15_r10);
+          return c.get<fixed_bitstring<7> >();
+        }
+        fixed_bitstring<9>& set_nrb25_r10()
+        {
+          set(types::nrb25_r10);
+          return c.get<fixed_bitstring<9> >();
+        }
+        fixed_bitstring<11>& set_nrb50_r10()
+        {
+          set(types::nrb50_r10);
+          return c.get<fixed_bitstring<11> >();
+        }
+        fixed_bitstring<12>& set_nrb75_r10()
+        {
+          set(types::nrb75_r10);
+          return c.get<fixed_bitstring<12> >();
+        }
+        fixed_bitstring<13>& set_nrb100_r10()
+        {
+          set(types::nrb100_r10);
+          return c.get<fixed_bitstring<13> >();
+        }
 
       private:
         types                                        type_;
@@ -33572,6 +36732,16 @@ struct rn_sf_cfg_r10_s {
         assert_choice_type("type2-r10", type_.to_string(), "resourceBlockAssignment-r10");
         return c.get<type2_r10_c_>();
       }
+      type01_r10_c_& set_type01_r10()
+      {
+        set(types::type01_r10);
+        return c.get<type01_r10_c_>();
+      }
+      type2_r10_c_& set_type2_r10()
+      {
+        set(types::type2_r10);
+        return c.get<type2_r10_c_>();
+      }
 
     private:
       types                                                              type_;
@@ -33612,6 +36782,11 @@ struct rn_sf_cfg_r10_s {
       const no_interleaving_r10_e_& no_interleaving_r10() const
       {
         assert_choice_type("noInterleaving-r10", type_.to_string(), "demodulationRS-r10");
+        return c.get<no_interleaving_r10_e_>();
+      }
+      no_interleaving_r10_e_& set_no_interleaving_r10()
+      {
+        set(types::no_interleaving_r10);
         return c.get<no_interleaving_r10_e_>();
       }
 
@@ -33675,6 +36850,16 @@ struct rn_sf_cfg_r10_s {
           assert_choice_type("fallbackForFormat3", type_.to_string(), "tdd");
           return c.get<fallback_for_format3_s_>();
         }
+        ch_sel_mux_bundling_s_& set_ch_sel_mux_bundling()
+        {
+          set(types::ch_sel_mux_bundling);
+          return c.get<ch_sel_mux_bundling_s_>();
+        }
+        fallback_for_format3_s_& set_fallback_for_format3()
+        {
+          set(types::fallback_for_format3);
+          return c.get<fallback_for_format3_s_>();
+        }
 
       private:
         types                                                                                  type_;
@@ -33724,6 +36909,16 @@ struct rn_sf_cfg_r10_s {
       const fdd_s_& fdd() const
       {
         assert_choice_type("fdd", type_.to_string(), "pucch-Config-r10");
+        return c.get<fdd_s_>();
+      }
+      tdd_c_& set_tdd()
+      {
+        set(types::tdd);
+        return c.get<tdd_c_>();
+      }
+      fdd_s_& set_fdd()
+      {
+        set(types::fdd);
         return c.get<fdd_s_>();
       }
 
@@ -33927,6 +37122,46 @@ struct redirected_carrier_info_c {
     assert_choice_type("nr-r15", type_.to_string(), "RedirectedCarrierInfo");
     return c.get<carrier_info_nr_r15_s>();
   }
+  uint16_t& set_eutra()
+  {
+    set(types::eutra);
+    return c.get<uint16_t>();
+  }
+  carrier_freqs_geran_s& set_geran()
+  {
+    set(types::geran);
+    return c.get<carrier_freqs_geran_s>();
+  }
+  uint16_t& set_utra_fdd()
+  {
+    set(types::utra_fdd);
+    return c.get<uint16_t>();
+  }
+  uint16_t& set_utra_tdd()
+  {
+    set(types::utra_tdd);
+    return c.get<uint16_t>();
+  }
+  carrier_freq_cdma2000_s& set_cdma2000_hrpd()
+  {
+    set(types::cdma2000_hrpd);
+    return c.get<carrier_freq_cdma2000_s>();
+  }
+  carrier_freq_cdma2000_s& set_cdma2000_minus1x_rtt()
+  {
+    set(types::cdma2000_minus1x_rtt);
+    return c.get<carrier_freq_cdma2000_s>();
+  }
+  carrier_freq_list_utra_tdd_r10_l& set_utra_tdd_r10()
+  {
+    set(types::utra_tdd_r10);
+    return c.get<carrier_freq_list_utra_tdd_r10_l>();
+  }
+  carrier_info_nr_r15_s& set_nr_r15()
+  {
+    set(types::nr_r15);
+    return c.get<carrier_info_nr_r15_s>();
+  }
 
 private:
   types type_;
@@ -33996,6 +37231,16 @@ struct security_cfg_ho_s {
     const inter_rat_s_& inter_rat() const
     {
       assert_choice_type("interRAT", type_.to_string(), "handoverType");
+      return c.get<inter_rat_s_>();
+    }
+    intra_lte_s_& set_intra_lte()
+    {
+      set(types::intra_lte);
+      return c.get<intra_lte_s_>();
+    }
+    inter_rat_s_& set_inter_rat()
+    {
+      set(types::inter_rat);
       return c.get<inter_rat_s_>();
     }
 
@@ -34164,6 +37409,21 @@ struct dl_info_transfer_r15_ies_s {
       assert_choice_type("dedicatedInfoCDMA2000-HRPD-r15", type_.to_string(), "dedicatedInfoType-r15");
       return c.get<dyn_octstring>();
     }
+    dyn_octstring& set_ded_info_nas_r15()
+    {
+      set(types::ded_info_nas_r15);
+      return c.get<dyn_octstring>();
+    }
+    dyn_octstring& set_ded_info_cdma2000_minus1_xrtt_r15()
+    {
+      set(types::ded_info_cdma2000_minus1_xrtt_r15);
+      return c.get<dyn_octstring>();
+    }
+    dyn_octstring& set_ded_info_cdma2000_hrpd_r15()
+    {
+      set(types::ded_info_cdma2000_hrpd_r15);
+      return c.get<dyn_octstring>();
+    }
 
   private:
     types                                  type_;
@@ -34235,6 +37495,21 @@ struct dl_info_transfer_r8_ies_s {
     const dyn_octstring& ded_info_cdma2000_hrpd() const
     {
       assert_choice_type("dedicatedInfoCDMA2000-HRPD", type_.to_string(), "dedicatedInfoType");
+      return c.get<dyn_octstring>();
+    }
+    dyn_octstring& set_ded_info_nas()
+    {
+      set(types::ded_info_nas);
+      return c.get<dyn_octstring>();
+    }
+    dyn_octstring& set_ded_info_cdma2000_minus1_xrtt()
+    {
+      set(types::ded_info_cdma2000_minus1_xrtt);
+      return c.get<dyn_octstring>();
+    }
+    dyn_octstring& set_ded_info_cdma2000_hrpd()
+    {
+      set(types::ded_info_cdma2000_hrpd);
       return c.get<dyn_octstring>();
     }
 
@@ -34334,6 +37609,16 @@ struct mob_from_eutra_cmd_r8_ies_s {
       assert_choice_type("cellChangeOrder", type_.to_string(), "purpose");
       return c.get<cell_change_order_s>();
     }
+    ho_s& set_ho()
+    {
+      set(types::ho);
+      return c.get<ho_s>();
+    }
+    cell_change_order_s& set_cell_change_order()
+    {
+      set(types::cell_change_order);
+      return c.get<cell_change_order_s>();
+    }
 
   private:
     types                                                            type_;
@@ -34403,6 +37688,21 @@ struct mob_from_eutra_cmd_r9_ies_s {
     const e_csfb_r9_s& e_csfb_r9() const
     {
       assert_choice_type("e-CSFB-r9", type_.to_string(), "purpose");
+      return c.get<e_csfb_r9_s>();
+    }
+    ho_s& set_ho()
+    {
+      set(types::ho);
+      return c.get<ho_s>();
+    }
+    cell_change_order_s& set_cell_change_order()
+    {
+      set(types::cell_change_order);
+      return c.get<cell_change_order_s>();
+    }
+    e_csfb_r9_s& set_e_csfb_r9()
+    {
+      set(types::e_csfb_r9);
       return c.get<e_csfb_r9_s>();
     }
 
@@ -34578,6 +37878,11 @@ struct csfb_params_resp_cdma2000_s {
       assert_choice_type("csfbParametersResponseCDMA2000-r8", type_.to_string(), "criticalExtensions");
       return c.get<csfb_params_resp_cdma2000_r8_ies_s>();
     }
+    csfb_params_resp_cdma2000_r8_ies_s& set_csfb_params_resp_cdma2000_r8()
+    {
+      set(types::csfb_params_resp_cdma2000_r8);
+      return c.get<csfb_params_resp_cdma2000_r8_ies_s>();
+    }
 
   private:
     types                                                       type_;
@@ -34625,6 +37930,11 @@ struct counter_check_s {
         assert_choice_type("counterCheck-r8", type_.to_string(), "c1");
         return c;
       }
+      counter_check_r8_ies_s& set_counter_check_r8()
+      {
+        set(types::counter_check_r8);
+        return c;
+      }
 
     private:
       types                  type_;
@@ -34651,6 +37961,11 @@ struct counter_check_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -34713,6 +38028,16 @@ struct dl_info_transfer_s {
         assert_choice_type("dlInformationTransfer-r15", type_.to_string(), "c1");
         return c.get<dl_info_transfer_r15_ies_s>();
       }
+      dl_info_transfer_r8_ies_s& set_dl_info_transfer_r8()
+      {
+        set(types::dl_info_transfer_r8);
+        return c.get<dl_info_transfer_r8_ies_s>();
+      }
+      dl_info_transfer_r15_ies_s& set_dl_info_transfer_r15()
+      {
+        set(types::dl_info_transfer_r15);
+        return c.get<dl_info_transfer_r15_ies_s>();
+      }
 
     private:
       types                                                                                        type_;
@@ -34741,6 +38066,11 @@ struct dl_info_transfer_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -34790,6 +38120,11 @@ struct ho_from_eutra_prep_request_s {
         assert_choice_type("handoverFromEUTRAPreparationRequest-r8", type_.to_string(), "c1");
         return c;
       }
+      ho_from_eutra_prep_request_r8_ies_s& set_ho_from_eutra_prep_request_r8()
+      {
+        set(types::ho_from_eutra_prep_request_r8);
+        return c;
+      }
 
     private:
       types                               type_;
@@ -34816,6 +38151,11 @@ struct ho_from_eutra_prep_request_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -34865,6 +38205,11 @@ struct logged_meas_cfg_r10_s {
         assert_choice_type("loggedMeasurementConfiguration-r10", type_.to_string(), "c1");
         return c;
       }
+      logged_meas_cfg_r10_ies_s& set_logged_meas_cfg_r10()
+      {
+        set(types::logged_meas_cfg_r10);
+        return c;
+      }
 
     private:
       types                     type_;
@@ -34891,6 +38236,11 @@ struct logged_meas_cfg_r10_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -34952,6 +38302,16 @@ struct mob_from_eutra_cmd_s {
         assert_choice_type("mobilityFromEUTRACommand-r9", type_.to_string(), "c1");
         return c.get<mob_from_eutra_cmd_r9_ies_s>();
       }
+      mob_from_eutra_cmd_r8_ies_s& set_mob_from_eutra_cmd_r8()
+      {
+        set(types::mob_from_eutra_cmd_r8);
+        return c.get<mob_from_eutra_cmd_r8_ies_s>();
+      }
+      mob_from_eutra_cmd_r9_ies_s& set_mob_from_eutra_cmd_r9()
+      {
+        set(types::mob_from_eutra_cmd_r9);
+        return c.get<mob_from_eutra_cmd_r9_ies_s>();
+      }
 
     private:
       types                                                                                           type_;
@@ -34980,6 +38340,11 @@ struct mob_from_eutra_cmd_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -35029,6 +38394,11 @@ struct rn_recfg_r10_s {
         assert_choice_type("rnReconfiguration-r10", type_.to_string(), "c1");
         return c;
       }
+      rn_recfg_r10_ies_s& set_rn_recfg_r10()
+      {
+        set(types::rn_recfg_r10);
+        return c;
+      }
 
     private:
       types              type_;
@@ -35055,6 +38425,11 @@ struct rn_recfg_r10_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -35104,6 +38479,11 @@ struct rrc_conn_recfg_s {
         assert_choice_type("rrcConnectionReconfiguration-r8", type_.to_string(), "c1");
         return c;
       }
+      rrc_conn_recfg_r8_ies_s& set_rrc_conn_recfg_r8()
+      {
+        set(types::rrc_conn_recfg_r8);
+        return c;
+      }
 
     private:
       types                   type_;
@@ -35130,6 +38510,11 @@ struct rrc_conn_recfg_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -35179,6 +38564,11 @@ struct rrc_conn_release_s {
         assert_choice_type("rrcConnectionRelease-r8", type_.to_string(), "c1");
         return c;
       }
+      rrc_conn_release_r8_ies_s& set_rrc_conn_release_r8()
+      {
+        set(types::rrc_conn_release_r8);
+        return c;
+      }
 
     private:
       types                     type_;
@@ -35205,6 +38595,11 @@ struct rrc_conn_release_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -35254,6 +38649,11 @@ struct rrc_conn_resume_r13_s {
         assert_choice_type("rrcConnectionResume-r13", type_.to_string(), "c1");
         return c;
       }
+      rrc_conn_resume_r13_ies_s& set_rrc_conn_resume_r13()
+      {
+        set(types::rrc_conn_resume_r13);
+        return c;
+      }
 
     private:
       types                     type_;
@@ -35280,6 +38680,11 @@ struct rrc_conn_resume_r13_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -35329,6 +38734,11 @@ struct security_mode_cmd_s {
         assert_choice_type("securityModeCommand-r8", type_.to_string(), "c1");
         return c;
       }
+      security_mode_cmd_r8_ies_s& set_security_mode_cmd_r8()
+      {
+        set(types::security_mode_cmd_r8);
+        return c;
+      }
 
     private:
       types                      type_;
@@ -35355,6 +38765,11 @@ struct security_mode_cmd_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -35404,6 +38819,11 @@ struct ue_cap_enquiry_s {
         assert_choice_type("ueCapabilityEnquiry-r8", type_.to_string(), "c1");
         return c;
       }
+      ue_cap_enquiry_r8_ies_s& set_ue_cap_enquiry_r8()
+      {
+        set(types::ue_cap_enquiry_r8);
+        return c;
+      }
 
     private:
       types                   type_;
@@ -35430,6 +38850,11 @@ struct ue_cap_enquiry_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -35479,6 +38904,11 @@ struct ue_info_request_r9_s {
         assert_choice_type("ueInformationRequest-r9", type_.to_string(), "c1");
         return c;
       }
+      ue_info_request_r9_ies_s& set_ue_info_request_r9()
+      {
+        set(types::ue_info_request_r9);
+        return c;
+      }
 
     private:
       types                    type_;
@@ -35505,6 +38935,11 @@ struct ue_info_request_r9_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -35696,6 +39131,71 @@ struct dl_dcch_msg_type_c {
       assert_choice_type("rrcConnectionResume-r13", type_.to_string(), "c1");
       return c.get<rrc_conn_resume_r13_s>();
     }
+    csfb_params_resp_cdma2000_s& set_csfb_params_resp_cdma2000()
+    {
+      set(types::csfb_params_resp_cdma2000);
+      return c.get<csfb_params_resp_cdma2000_s>();
+    }
+    dl_info_transfer_s& set_dl_info_transfer()
+    {
+      set(types::dl_info_transfer);
+      return c.get<dl_info_transfer_s>();
+    }
+    ho_from_eutra_prep_request_s& set_ho_from_eutra_prep_request()
+    {
+      set(types::ho_from_eutra_prep_request);
+      return c.get<ho_from_eutra_prep_request_s>();
+    }
+    mob_from_eutra_cmd_s& set_mob_from_eutra_cmd()
+    {
+      set(types::mob_from_eutra_cmd);
+      return c.get<mob_from_eutra_cmd_s>();
+    }
+    rrc_conn_recfg_s& set_rrc_conn_recfg()
+    {
+      set(types::rrc_conn_recfg);
+      return c.get<rrc_conn_recfg_s>();
+    }
+    rrc_conn_release_s& set_rrc_conn_release()
+    {
+      set(types::rrc_conn_release);
+      return c.get<rrc_conn_release_s>();
+    }
+    security_mode_cmd_s& set_security_mode_cmd()
+    {
+      set(types::security_mode_cmd);
+      return c.get<security_mode_cmd_s>();
+    }
+    ue_cap_enquiry_s& set_ue_cap_enquiry()
+    {
+      set(types::ue_cap_enquiry);
+      return c.get<ue_cap_enquiry_s>();
+    }
+    counter_check_s& set_counter_check()
+    {
+      set(types::counter_check);
+      return c.get<counter_check_s>();
+    }
+    ue_info_request_r9_s& set_ue_info_request_r9()
+    {
+      set(types::ue_info_request_r9);
+      return c.get<ue_info_request_r9_s>();
+    }
+    logged_meas_cfg_r10_s& set_logged_meas_cfg_r10()
+    {
+      set(types::logged_meas_cfg_r10);
+      return c.get<logged_meas_cfg_r10_s>();
+    }
+    rn_recfg_r10_s& set_rn_recfg_r10()
+    {
+      set(types::rn_recfg_r10);
+      return c.get<rn_recfg_r10_s>();
+    }
+    rrc_conn_resume_r13_s& set_rrc_conn_resume_r13()
+    {
+      set(types::rrc_conn_resume_r13);
+      return c.get<rrc_conn_resume_r13_s>();
+    }
 
   private:
     types type_;
@@ -35736,6 +39236,11 @@ struct dl_dcch_msg_type_c {
   const c1_c_& c1() const
   {
     assert_choice_type("c1", type_.to_string(), "DL-DCCH-MessageType");
+    return c.get<c1_c_>();
+  }
+  c1_c_& set_c1()
+  {
+    set(types::c1);
     return c.get<c1_c_>();
   }
 
@@ -35796,6 +39301,16 @@ struct tmgi_r9_s {
     const plmn_id_s& explicit_value_r9() const
     {
       assert_choice_type("explicitValue-r9", type_.to_string(), "plmn-Id-r9");
+      return c.get<plmn_id_s>();
+    }
+    uint8_t& set_plmn_idx_r9()
+    {
+      set(types::plmn_idx_r9);
+      return c.get<uint8_t>();
+    }
+    plmn_id_s& set_explicit_value_r9()
+    {
+      set(types::explicit_value_r9);
       return c.get<plmn_id_s>();
     }
 
@@ -35874,6 +39389,16 @@ struct pmch_cfg_r12_s {
     const uint8_t& higer_order_r12() const
     {
       assert_choice_type("higerOrder-r12", type_.to_string(), "dataMCS-r12");
+      return c.get<uint8_t>();
+    }
+    uint8_t& set_normal_r12()
+    {
+      set(types::normal_r12);
+      return c.get<uint8_t>();
+    }
+    uint8_t& set_higer_order_r12()
+    {
+      set(types::higer_order_r12);
       return c.get<uint8_t>();
     }
 
@@ -36147,6 +39672,11 @@ struct mcch_msg_type_c {
       assert_choice_type("c2", type_.to_string(), "later");
       return c.get<c2_c_>();
     }
+    c2_c_& set_c2()
+    {
+      set(types::c2);
+      return c.get<c2_c_>();
+    }
 
   private:
     types                          type_;
@@ -36192,6 +39722,16 @@ struct mcch_msg_type_c {
   const later_c_& later() const
   {
     assert_choice_type("later", type_.to_string(), "MCCH-MessageType");
+    return c.get<later_c_>();
+  }
+  c1_c_& set_c1()
+  {
+    set(types::c1);
+    return c.get<c1_c_>();
+  }
+  later_c_& set_later()
+  {
+    set(types::later);
     return c.get<later_c_>();
   }
 
@@ -36329,6 +39869,26 @@ struct paging_ue_id_c {
     assert_choice_type("i-RNTI-r15", type_.to_string(), "PagingUE-Identity");
     return c.get<fixed_bitstring<40> >();
   }
+  s_tmsi_s& set_s_tmsi()
+  {
+    set(types::s_tmsi);
+    return c.get<s_tmsi_s>();
+  }
+  imsi_l& set_imsi()
+  {
+    set(types::imsi);
+    return c.get<imsi_l>();
+  }
+  fixed_bitstring<48>& set_ng_minus5_g_s_tmsi_r15()
+  {
+    set(types::ng_minus5_g_s_tmsi_r15);
+    return c.get<fixed_bitstring<48> >();
+  }
+  fixed_bitstring<40>& set_i_rnti_r15()
+  {
+    set(types::i_rnti_r15);
+    return c.get<fixed_bitstring<40> >();
+  }
 
 private:
   types                                                                                        type_;
@@ -36454,6 +40014,11 @@ struct pcch_msg_type_c {
   const c1_c_& c1() const
   {
     assert_choice_type("c1", type_.to_string(), "PCCH-MessageType");
+    return c.get<c1_c_>();
+  }
+  c1_c_& set_c1()
+  {
+    set(types::c1);
     return c.get<c1_c_>();
   }
 
@@ -36721,6 +40286,86 @@ struct sc_mtch_sched_info_br_r14_s {
     const uint16_t& sf8192() const
     {
       assert_choice_type("sf8192", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
+      return c.get<uint16_t>();
+    }
+    uint8_t& set_sf10()
+    {
+      set(types::sf10);
+      return c.get<uint8_t>();
+    }
+    uint8_t& set_sf20()
+    {
+      set(types::sf20);
+      return c.get<uint8_t>();
+    }
+    uint8_t& set_sf32()
+    {
+      set(types::sf32);
+      return c.get<uint8_t>();
+    }
+    uint8_t& set_sf40()
+    {
+      set(types::sf40);
+      return c.get<uint8_t>();
+    }
+    uint8_t& set_sf64()
+    {
+      set(types::sf64);
+      return c.get<uint8_t>();
+    }
+    uint8_t& set_sf80()
+    {
+      set(types::sf80);
+      return c.get<uint8_t>();
+    }
+    uint8_t& set_sf128()
+    {
+      set(types::sf128);
+      return c.get<uint8_t>();
+    }
+    uint8_t& set_sf160()
+    {
+      set(types::sf160);
+      return c.get<uint8_t>();
+    }
+    uint8_t& set_sf256()
+    {
+      set(types::sf256);
+      return c.get<uint8_t>();
+    }
+    uint16_t& set_sf320()
+    {
+      set(types::sf320);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_sf512()
+    {
+      set(types::sf512);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_sf640()
+    {
+      set(types::sf640);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_sf1024()
+    {
+      set(types::sf1024);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_sf2048()
+    {
+      set(types::sf2048);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_sf4096()
+    {
+      set(types::sf4096);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_sf8192()
+    {
+      set(types::sf8192);
       return c.get<uint16_t>();
     }
 
@@ -36997,6 +40642,86 @@ struct sc_mtch_sched_info_r13_s {
       assert_choice_type("sf8192", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r13");
       return c.get<uint16_t>();
     }
+    uint8_t& set_sf10()
+    {
+      set(types::sf10);
+      return c.get<uint8_t>();
+    }
+    uint8_t& set_sf20()
+    {
+      set(types::sf20);
+      return c.get<uint8_t>();
+    }
+    uint8_t& set_sf32()
+    {
+      set(types::sf32);
+      return c.get<uint8_t>();
+    }
+    uint8_t& set_sf40()
+    {
+      set(types::sf40);
+      return c.get<uint8_t>();
+    }
+    uint8_t& set_sf64()
+    {
+      set(types::sf64);
+      return c.get<uint8_t>();
+    }
+    uint8_t& set_sf80()
+    {
+      set(types::sf80);
+      return c.get<uint8_t>();
+    }
+    uint8_t& set_sf128()
+    {
+      set(types::sf128);
+      return c.get<uint8_t>();
+    }
+    uint8_t& set_sf160()
+    {
+      set(types::sf160);
+      return c.get<uint8_t>();
+    }
+    uint8_t& set_sf256()
+    {
+      set(types::sf256);
+      return c.get<uint8_t>();
+    }
+    uint16_t& set_sf320()
+    {
+      set(types::sf320);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_sf512()
+    {
+      set(types::sf512);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_sf640()
+    {
+      set(types::sf640);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_sf1024()
+    {
+      set(types::sf1024);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_sf2048()
+    {
+      set(types::sf2048);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_sf4096()
+    {
+      set(types::sf4096);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_sf8192()
+    {
+      set(types::sf8192);
+      return c.get<uint16_t>();
+    }
 
   private:
     types              type_;
@@ -37095,6 +40820,16 @@ struct sc_mtch_info_br_r14_s {
     const tdd_r14_e_& tdd_r14() const
     {
       assert_choice_type("tdd-r14", type_.to_string(), "mpdcch-StartSF-SC-MTCH-r14");
+      return c.get<tdd_r14_e_>();
+    }
+    fdd_r14_e_& set_fdd_r14()
+    {
+      set(types::fdd_r14);
+      return c.get<fdd_r14_e_>();
+    }
+    tdd_r14_e_& set_tdd_r14()
+    {
+      set(types::tdd_r14);
       return c.get<tdd_r14_e_>();
     }
 
@@ -37317,6 +41052,11 @@ struct sc_mcch_msg_type_r13_c {
         assert_choice_type("scptmConfiguration-BR-r14", type_.to_string(), "c2");
         return c;
       }
+      scptm_cfg_br_r14_s& set_scptm_cfg_br_r14()
+      {
+        set(types::scptm_cfg_br_r14);
+        return c;
+      }
 
     private:
       types              type_;
@@ -37350,6 +41090,11 @@ struct sc_mcch_msg_type_r13_c {
     const c2_c_& c2() const
     {
       assert_choice_type("c2", type_.to_string(), "messageClassExtension");
+      return c.get<c2_c_>();
+    }
+    c2_c_& set_c2()
+    {
+      set(types::c2);
       return c.get<c2_c_>();
     }
 
@@ -37397,6 +41142,16 @@ struct sc_mcch_msg_type_r13_c {
   const msg_class_ext_c_& msg_class_ext() const
   {
     assert_choice_type("messageClassExtension", type_.to_string(), "SC-MCCH-MessageType-r13");
+    return c.get<msg_class_ext_c_>();
+  }
+  c1_c_& set_c1()
+  {
+    set(types::c1);
+    return c.get<c1_c_>();
+  }
+  msg_class_ext_c_& set_msg_class_ext()
+  {
+    set(types::msg_class_ext);
     return c.get<msg_class_ext_c_>();
   }
 
@@ -37474,6 +41229,16 @@ struct init_ue_id_c {
   const fixed_bitstring<40>& random_value() const
   {
     assert_choice_type("randomValue", type_.to_string(), "InitialUE-Identity");
+    return c.get<fixed_bitstring<40> >();
+  }
+  s_tmsi_s& set_s_tmsi()
+  {
+    set(types::s_tmsi);
+    return c.get<s_tmsi_s>();
+  }
+  fixed_bitstring<40>& set_random_value()
+  {
+    set(types::random_value);
     return c.get<fixed_bitstring<40> >();
   }
 
@@ -37608,6 +41373,16 @@ struct rrc_conn_resume_request_minus5_gc_r15_ies_s {
       assert_choice_type("shortI-RNTI-r15", type_.to_string(), "resumeIdentity-r15");
       return c.get<fixed_bitstring<24> >();
     }
+    fixed_bitstring<40>& set_full_i_rnti_r15()
+    {
+      set(types::full_i_rnti_r15);
+      return c.get<fixed_bitstring<40> >();
+    }
+    fixed_bitstring<24>& set_short_i_rnti_r15()
+    {
+      set(types::short_i_rnti_r15);
+      return c.get<fixed_bitstring<24> >();
+    }
 
   private:
     types                                        type_;
@@ -37667,6 +41442,16 @@ struct rrc_conn_resume_request_r13_ies_s {
     const fixed_bitstring<24>& truncated_resume_id_r13() const
     {
       assert_choice_type("truncatedResumeID-r13", type_.to_string(), "resumeIdentity-r13");
+      return c.get<fixed_bitstring<24> >();
+    }
+    fixed_bitstring<40>& set_resume_id_r13()
+    {
+      set(types::resume_id_r13);
+      return c.get<fixed_bitstring<40> >();
+    }
+    fixed_bitstring<24>& set_truncated_resume_id_r13()
+    {
+      set(types::truncated_resume_id_r13);
       return c.get<fixed_bitstring<24> >();
     }
 
@@ -37741,6 +41526,11 @@ struct rrc_conn_reest_request_s {
       assert_choice_type("rrcConnectionReestablishmentRequest-r8", type_.to_string(), "criticalExtensions");
       return c.get<rrc_conn_reest_request_r8_ies_s>();
     }
+    rrc_conn_reest_request_r8_ies_s& set_rrc_conn_reest_request_r8()
+    {
+      set(types::rrc_conn_reest_request_r8);
+      return c.get<rrc_conn_reest_request_r8_ies_s>();
+    }
 
   private:
     types                                                    type_;
@@ -37787,6 +41577,11 @@ struct rrc_conn_request_s {
     const rrc_conn_request_r8_ies_s& rrc_conn_request_r8() const
     {
       assert_choice_type("rrcConnectionRequest-r8", type_.to_string(), "criticalExtensions");
+      return c.get<rrc_conn_request_r8_ies_s>();
+    }
+    rrc_conn_request_r8_ies_s& set_rrc_conn_request_r8()
+    {
+      set(types::rrc_conn_request_r8);
       return c.get<rrc_conn_request_r8_ies_s>();
     }
 
@@ -37847,6 +41642,16 @@ struct rrc_conn_resume_request_r13_s {
       assert_choice_type("rrcConnectionResumeRequest-r15", type_.to_string(), "criticalExtensions");
       return c.get<rrc_conn_resume_request_minus5_gc_r15_ies_s>();
     }
+    rrc_conn_resume_request_r13_ies_s& set_rrc_conn_resume_request_r13()
+    {
+      set(types::rrc_conn_resume_request_r13);
+      return c.get<rrc_conn_resume_request_r13_ies_s>();
+    }
+    rrc_conn_resume_request_minus5_gc_r15_ies_s& set_rrc_conn_resume_request_r15()
+    {
+      set(types::rrc_conn_resume_request_r15);
+      return c.get<rrc_conn_resume_request_minus5_gc_r15_ies_s>();
+    }
 
   private:
     types type_;
@@ -37895,6 +41700,11 @@ struct rrc_early_data_request_r15_s {
     const rrc_early_data_request_r15_ies_s& rrc_early_data_request_r15() const
     {
       assert_choice_type("rrcEarlyDataRequest-r15", type_.to_string(), "criticalExtensions");
+      return c.get<rrc_early_data_request_r15_ies_s>();
+    }
+    rrc_early_data_request_r15_ies_s& set_rrc_early_data_request_r15()
+    {
+      set(types::rrc_early_data_request_r15);
       return c.get<rrc_early_data_request_r15_ies_s>();
     }
 
@@ -37955,6 +41765,16 @@ struct ul_ccch_msg_type_c {
       assert_choice_type("rrcConnectionRequest", type_.to_string(), "c1");
       return c.get<rrc_conn_request_s>();
     }
+    rrc_conn_reest_request_s& set_rrc_conn_reest_request()
+    {
+      set(types::rrc_conn_reest_request);
+      return c.get<rrc_conn_reest_request_s>();
+    }
+    rrc_conn_request_s& set_rrc_conn_request()
+    {
+      set(types::rrc_conn_request);
+      return c.get<rrc_conn_request_s>();
+    }
 
   private:
     types                                                                               type_;
@@ -38010,6 +41830,11 @@ struct ul_ccch_msg_type_c {
           assert_choice_type("rrcEarlyDataRequest-r15", type_.to_string(), "c3");
           return c;
         }
+        rrc_early_data_request_r15_s& set_rrc_early_data_request_r15()
+        {
+          set(types::rrc_early_data_request_r15);
+          return c;
+        }
 
       private:
         types                        type_;
@@ -38043,6 +41868,11 @@ struct ul_ccch_msg_type_c {
       const c3_c_& c3() const
       {
         assert_choice_type("c3", type_.to_string(), "messageClassExtensionFuture-r13");
+        return c.get<c3_c_>();
+      }
+      c3_c_& set_c3()
+      {
+        set(types::c3);
         return c.get<c3_c_>();
       }
 
@@ -38092,6 +41922,16 @@ struct ul_ccch_msg_type_c {
       assert_choice_type("messageClassExtensionFuture-r13", type_.to_string(), "messageClassExtension");
       return c.get<msg_class_ext_future_r13_c_>();
     }
+    c2_c_& set_c2()
+    {
+      set(types::c2);
+      return c.get<c2_c_>();
+    }
+    msg_class_ext_future_r13_c_& set_msg_class_ext_future_r13()
+    {
+      set(types::msg_class_ext_future_r13);
+      return c.get<msg_class_ext_future_r13_c_>();
+    }
 
   private:
     types                                                                     type_;
@@ -38137,6 +41977,16 @@ struct ul_ccch_msg_type_c {
   const msg_class_ext_c_& msg_class_ext() const
   {
     assert_choice_type("messageClassExtension", type_.to_string(), "UL-CCCH-MessageType");
+    return c.get<msg_class_ext_c_>();
+  }
+  c1_c_& set_c1()
+  {
+    set(types::c1);
+    return c.get<c1_c_>();
+  }
+  msg_class_ext_c_& set_msg_class_ext()
+  {
+    set(types::msg_class_ext);
     return c.get<msg_class_ext_c_>();
   }
 
@@ -38198,6 +42048,16 @@ struct cell_global_id_cdma2000_c {
   const fixed_bitstring<128>& cell_global_id_hrpd() const
   {
     assert_choice_type("cellGlobalIdHRPD", type_.to_string(), "CellGlobalIdCDMA2000");
+    return c.get<fixed_bitstring<128> >();
+  }
+  fixed_bitstring<47>& set_cell_global_id1_xrtt()
+  {
+    set(types::cell_global_id1_xrtt);
+    return c.get<fixed_bitstring<47> >();
+  }
+  fixed_bitstring<128>& set_cell_global_id_hrpd()
+  {
+    set(types::cell_global_id_hrpd);
     return c.get<fixed_bitstring<128> >();
   }
 
@@ -38431,6 +42291,16 @@ struct meas_result_utra_s {
       assert_choice_type("tdd", type_.to_string(), "physCellId");
       return c.get<uint8_t>();
     }
+    uint16_t& set_fdd()
+    {
+      set(types::fdd);
+      return c.get<uint16_t>();
+    }
+    uint8_t& set_tdd()
+    {
+      set(types::tdd);
+      return c.get<uint8_t>();
+    }
 
   private:
     types              type_;
@@ -38534,6 +42404,16 @@ struct s_nssai_r15_c {
   const fixed_bitstring<32>& sst_sd() const
   {
     assert_choice_type("sst-SD", type_.to_string(), "S-NSSAI-r15");
+    return c.get<fixed_bitstring<32> >();
+  }
+  fixed_bitstring<8>& set_sst()
+  {
+    set(types::sst);
+    return c.get<fixed_bitstring<8> >();
+  }
+  fixed_bitstring<32>& set_sst_sd()
+  {
+    set(types::sst_sd);
     return c.get<fixed_bitstring<32> >();
   }
 
@@ -38650,6 +42530,41 @@ struct location_info_r10_s {
       assert_choice_type("polygon-r11", type_.to_string(), "locationCoordinates-r10");
       return c.get<dyn_octstring>();
     }
+    dyn_octstring& set_ellipsoid_point_r10()
+    {
+      set(types::ellipsoid_point_r10);
+      return c.get<dyn_octstring>();
+    }
+    dyn_octstring& set_ellipsoid_point_with_altitude_r10()
+    {
+      set(types::ellipsoid_point_with_altitude_r10);
+      return c.get<dyn_octstring>();
+    }
+    dyn_octstring& set_ellipsoid_point_with_uncertainty_circle_r11()
+    {
+      set(types::ellipsoid_point_with_uncertainty_circle_r11);
+      return c.get<dyn_octstring>();
+    }
+    dyn_octstring& set_ellipsoid_point_with_uncertainty_ellipse_r11()
+    {
+      set(types::ellipsoid_point_with_uncertainty_ellipse_r11);
+      return c.get<dyn_octstring>();
+    }
+    dyn_octstring& set_ellipsoid_point_with_altitude_and_uncertainty_ellipsoid_r11()
+    {
+      set(types::ellipsoid_point_with_altitude_and_uncertainty_ellipsoid_r11);
+      return c.get<dyn_octstring>();
+    }
+    dyn_octstring& set_ellipsoid_arc_r11()
+    {
+      set(types::ellipsoid_arc_r11);
+      return c.get<dyn_octstring>();
+    }
+    dyn_octstring& set_polygon_r11()
+    {
+      set(types::polygon_r11);
+      return c.get<dyn_octstring>();
+    }
 
   private:
     types                                  type_;
@@ -38694,6 +42609,16 @@ struct location_info_r10_s {
     const dyn_octstring& vertical_velocity_and_uncertainty_r15() const
     {
       assert_choice_type("verticalVelocityAndUncertainty-r15", type_.to_string(), "verticalVelocityInfo-r15");
+      return c.get<dyn_octstring>();
+    }
+    dyn_octstring& set_vertical_velocity_r15()
+    {
+      set(types::vertical_velocity_r15);
+      return c.get<dyn_octstring>();
+    }
+    dyn_octstring& set_vertical_velocity_and_uncertainty_r15()
+    {
+      set(types::vertical_velocity_and_uncertainty_r15);
       return c.get<dyn_octstring>();
     }
 
@@ -38845,6 +42770,16 @@ struct rrc_conn_setup_complete_v1530_ies_s {
     const fixed_bitstring<8>& ng_minus5_g_s_tmsi_part2_r15() const
     {
       assert_choice_type("ng-5G-S-TMSI-Part2-r15", type_.to_string(), "ng-5G-S-TMSI-Bits-r15");
+      return c.get<fixed_bitstring<8> >();
+    }
+    fixed_bitstring<48>& set_ng_minus5_g_s_tmsi_r15()
+    {
+      set(types::ng_minus5_g_s_tmsi_r15);
+      return c.get<fixed_bitstring<48> >();
+    }
+    fixed_bitstring<8>& set_ng_minus5_g_s_tmsi_part2_r15()
+    {
+      set(types::ng_minus5_g_s_tmsi_part2_r15);
       return c.get<fixed_bitstring<8> >();
     }
 
@@ -39209,6 +43144,16 @@ struct visited_cell_info_r12_s {
     const pci_arfcn_r12_s_& pci_arfcn_r12() const
     {
       assert_choice_type("pci-arfcn-r12", type_.to_string(), "visitedCellId-r12");
+      return c.get<pci_arfcn_r12_s_>();
+    }
+    cell_global_id_eutra_s& set_cell_global_id_r12()
+    {
+      set(types::cell_global_id_r12);
+      return c.get<cell_global_id_eutra_s>();
+    }
+    pci_arfcn_r12_s_& set_pci_arfcn_r12()
+    {
+      set(types::pci_arfcn_r12);
       return c.get<pci_arfcn_r12_s_>();
     }
 
@@ -39827,6 +43772,21 @@ struct idc_sf_pattern_r11_c {
       assert_choice_type("subframeConfig6-r11", type_.to_string(), "subframePatternTDD-r11");
       return c.get<fixed_bitstring<60> >();
     }
+    fixed_bitstring<70>& set_sf_cfg0_r11()
+    {
+      set(types::sf_cfg0_r11);
+      return c.get<fixed_bitstring<70> >();
+    }
+    fixed_bitstring<10>& set_sf_cfg1_minus5_r11()
+    {
+      set(types::sf_cfg1_minus5_r11);
+      return c.get<fixed_bitstring<10> >();
+    }
+    fixed_bitstring<60>& set_sf_cfg6_r11()
+    {
+      set(types::sf_cfg6_r11);
+      return c.get<fixed_bitstring<60> >();
+    }
 
   private:
     types                                        type_;
@@ -39870,6 +43830,16 @@ struct idc_sf_pattern_r11_c {
   const sf_pattern_tdd_r11_c_& sf_pattern_tdd_r11() const
   {
     assert_choice_type("subframePatternTDD-r11", type_.to_string(), "IDC-SubframePattern-r11");
+    return c.get<sf_pattern_tdd_r11_c_>();
+  }
+  fixed_bitstring<4>& set_sf_pattern_fdd_r11()
+  {
+    set(types::sf_pattern_fdd_r11);
+    return c.get<fixed_bitstring<4> >();
+  }
+  sf_pattern_tdd_r11_c_& set_sf_pattern_tdd_r11()
+  {
+    set(types::sf_pattern_tdd_r11);
     return c.get<sf_pattern_tdd_r11_c_>();
   }
 
@@ -40650,6 +44620,16 @@ struct delay_budget_report_r14_c {
     assert_choice_type("type2", type_.to_string(), "DelayBudgetReport-r14");
     return c.get<type2_e_>();
   }
+  type1_e_& set_type1()
+  {
+    set(types::type1);
+    return c.get<type1_e_>();
+  }
+  type2_e_& set_type2()
+  {
+    set(types::type2);
+    return c.get<type2_e_>();
+  }
 
 private:
   types                                                     type_;
@@ -41075,6 +45055,111 @@ struct rstd_inter_freq_info_r10_s {
       assert_choice_type("rstd20-r15", type_.to_string(), "measPRS-Offset-r15");
       return c.get<uint16_t>();
     }
+    uint8_t& set_rstd0_r15()
+    {
+      set(types::rstd0_r15);
+      return c.get<uint8_t>();
+    }
+    uint8_t& set_rstd1_r15()
+    {
+      set(types::rstd1_r15);
+      return c.get<uint8_t>();
+    }
+    uint16_t& set_rstd2_r15()
+    {
+      set(types::rstd2_r15);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_rstd3_r15()
+    {
+      set(types::rstd3_r15);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_rstd4_r15()
+    {
+      set(types::rstd4_r15);
+      return c.get<uint16_t>();
+    }
+    uint8_t& set_rstd5_r15()
+    {
+      set(types::rstd5_r15);
+      return c.get<uint8_t>();
+    }
+    uint16_t& set_rstd6_r15()
+    {
+      set(types::rstd6_r15);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_rstd7_r15()
+    {
+      set(types::rstd7_r15);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_rstd8_r15()
+    {
+      set(types::rstd8_r15);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_rstd9_r15()
+    {
+      set(types::rstd9_r15);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_rstd10_r15()
+    {
+      set(types::rstd10_r15);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_rstd11_r15()
+    {
+      set(types::rstd11_r15);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_rstd12_r15()
+    {
+      set(types::rstd12_r15);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_rstd13_r15()
+    {
+      set(types::rstd13_r15);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_rstd14_r15()
+    {
+      set(types::rstd14_r15);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_rstd15_r15()
+    {
+      set(types::rstd15_r15);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_rstd16_r15()
+    {
+      set(types::rstd16_r15);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_rstd17_r15()
+    {
+      set(types::rstd17_r15);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_rstd18_r15()
+    {
+      set(types::rstd18_r15);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_rstd19_r15()
+    {
+      set(types::rstd19_r15);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_rstd20_r15()
+    {
+      set(types::rstd20_r15);
+      return c.get<uint16_t>();
+    }
 
   private:
     types              type_;
@@ -41458,6 +45543,31 @@ struct meas_results_s {
       assert_choice_type("measResultNeighCellListNR-r15", type_.to_string(), "measResultNeighCells");
       return c.get<meas_result_cell_list_nr_r15_l>();
     }
+    meas_result_list_eutra_l& set_meas_result_list_eutra()
+    {
+      set(types::meas_result_list_eutra);
+      return c.get<meas_result_list_eutra_l>();
+    }
+    meas_result_list_utra_l& set_meas_result_list_utra()
+    {
+      set(types::meas_result_list_utra);
+      return c.get<meas_result_list_utra_l>();
+    }
+    meas_result_list_geran_l& set_meas_result_list_geran()
+    {
+      set(types::meas_result_list_geran);
+      return c.get<meas_result_list_geran_l>();
+    }
+    meas_results_cdma2000_s& set_meas_results_cdma2000()
+    {
+      set(types::meas_results_cdma2000);
+      return c.get<meas_results_cdma2000_s>();
+    }
+    meas_result_cell_list_nr_r15_l& set_meas_result_neigh_cell_list_nr_r15()
+    {
+      set(types::meas_result_neigh_cell_list_nr_r15);
+      return c.get<meas_result_cell_list_nr_r15_l>();
+    }
 
   private:
     types type_;
@@ -41626,6 +45736,16 @@ struct rlf_report_r9_s {
       assert_choice_type("pci-arfcn-r10", type_.to_string(), "failedPCellId-r10");
       return c.get<pci_arfcn_r10_s_>();
     }
+    cell_global_id_eutra_s& set_cell_global_id_r10()
+    {
+      set(types::cell_global_id_r10);
+      return c.get<cell_global_id_eutra_s>();
+    }
+    pci_arfcn_r10_s_& set_pci_arfcn_r10()
+    {
+      set(types::pci_arfcn_r10);
+      return c.get<pci_arfcn_r10_s_>();
+    }
 
   private:
     types                                                                           type_;
@@ -41698,6 +45818,16 @@ struct rlf_report_r9_s {
         assert_choice_type("tdd-r11", type_.to_string(), "physCellId-r11");
         return c.get<uint8_t>();
       }
+      uint16_t& set_fdd_r11()
+      {
+        set(types::fdd_r11);
+        return c.get<uint16_t>();
+      }
+      uint8_t& set_tdd_r11()
+      {
+        set(types::tdd_r11);
+        return c.get<uint8_t>();
+      }
 
     private:
       types              type_;
@@ -41750,6 +45880,16 @@ struct rlf_report_r9_s {
       const uint8_t& tdd_r11() const
       {
         assert_choice_type("tdd-r11", type_.to_string(), "physCellId-r11");
+        return c.get<uint8_t>();
+      }
+      uint16_t& set_fdd_r11()
+      {
+        set(types::fdd_r11);
+        return c.get<uint16_t>();
+      }
+      uint8_t& set_tdd_r11()
+      {
+        set(types::tdd_r11);
         return c.get<uint8_t>();
       }
 
@@ -42049,6 +46189,16 @@ struct tdm_assist_info_r11_c {
     assert_choice_type("idc-SubframePatternList-r11", type_.to_string(), "TDM-AssistanceInfo-r11");
     return c.get<idc_sf_pattern_list_r11_l>();
   }
+  drx_assist_info_r11_s_& set_drx_assist_info_r11()
+  {
+    set(types::drx_assist_info_r11);
+    return c.get<drx_assist_info_r11_s_>();
+  }
+  idc_sf_pattern_list_r11_l& set_idc_sf_pattern_list_r11()
+  {
+    set(types::idc_sf_pattern_list_r11);
+    return c.get<idc_sf_pattern_list_r11_l>();
+  }
 
 private:
   types                                                                                    type_;
@@ -42292,6 +46442,11 @@ struct inter_freq_rstd_meas_ind_r10_ies_s {
       assert_choice_type("start", type_.to_string(), "rstd-InterFreqIndication-r10");
       return c;
     }
+    start_s_& set_start()
+    {
+      set(types::start);
+      return c;
+    }
 
   private:
     types    type_;
@@ -42436,6 +46591,21 @@ struct proximity_ind_r9_ies_s {
     const uint32_t& eutra2_v9e0() const
     {
       assert_choice_type("eutra2-v9e0", type_.to_string(), "carrierFreq-r9");
+      return c.get<uint32_t>();
+    }
+    uint16_t& set_eutra_r9()
+    {
+      set(types::eutra_r9);
+      return c.get<uint16_t>();
+    }
+    uint16_t& set_utra_r9()
+    {
+      set(types::utra_r9);
+      return c.get<uint16_t>();
+    }
+    uint32_t& set_eutra2_v9e0()
+    {
+      set(types::eutra2_v9e0);
       return c.get<uint32_t>();
     }
 
@@ -42740,6 +46910,21 @@ struct ul_info_transfer_r8_ies_s {
       assert_choice_type("dedicatedInfoCDMA2000-HRPD", type_.to_string(), "dedicatedInfoType");
       return c.get<dyn_octstring>();
     }
+    dyn_octstring& set_ded_info_nas()
+    {
+      set(types::ded_info_nas);
+      return c.get<dyn_octstring>();
+    }
+    dyn_octstring& set_ded_info_cdma2000_minus1_xrtt()
+    {
+      set(types::ded_info_cdma2000_minus1_xrtt);
+      return c.get<dyn_octstring>();
+    }
+    dyn_octstring& set_ded_info_cdma2000_hrpd()
+    {
+      set(types::ded_info_cdma2000_hrpd);
+      return c.get<dyn_octstring>();
+    }
 
   private:
     types                                  type_;
@@ -42822,6 +47007,11 @@ struct csfb_params_request_cdma2000_s {
       assert_choice_type("csfbParametersRequestCDMA2000-r8", type_.to_string(), "criticalExtensions");
       return c.get<csfb_params_request_cdma2000_r8_ies_s>();
     }
+    csfb_params_request_cdma2000_r8_ies_s& set_csfb_params_request_cdma2000_r8()
+    {
+      set(types::csfb_params_request_cdma2000_r8);
+      return c.get<csfb_params_request_cdma2000_r8_ies_s>();
+    }
 
   private:
     types                                                          type_;
@@ -42868,6 +47058,11 @@ struct counter_check_resp_s {
     const counter_check_resp_r8_ies_s& counter_check_resp_r8() const
     {
       assert_choice_type("counterCheckResponse-r8", type_.to_string(), "criticalExtensions");
+      return c.get<counter_check_resp_r8_ies_s>();
+    }
+    counter_check_resp_r8_ies_s& set_counter_check_resp_r8()
+    {
+      set(types::counter_check_resp_r8);
       return c.get<counter_check_resp_r8_ies_s>();
     }
 
@@ -42929,6 +47124,11 @@ struct in_dev_coex_ind_r11_s {
         assert_choice_type("inDeviceCoexIndication-r11", type_.to_string(), "c1");
         return c;
       }
+      in_dev_coex_ind_r11_ies_s& set_in_dev_coex_ind_r11()
+      {
+        set(types::in_dev_coex_ind_r11);
+        return c;
+      }
 
     private:
       types                     type_;
@@ -42955,6 +47155,11 @@ struct in_dev_coex_ind_r11_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -43003,6 +47208,11 @@ struct inter_freq_rstd_meas_ind_r10_s {
         assert_choice_type("interFreqRSTDMeasurementIndication-r10", type_.to_string(), "c1");
         return c;
       }
+      inter_freq_rstd_meas_ind_r10_ies_s& set_inter_freq_rstd_meas_ind_r10()
+      {
+        set(types::inter_freq_rstd_meas_ind_r10);
+        return c;
+      }
 
     private:
       types                              type_;
@@ -43029,6 +47239,11 @@ struct inter_freq_rstd_meas_ind_r10_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -43077,6 +47292,11 @@ struct mbms_count_resp_r10_s {
         assert_choice_type("countingResponse-r10", type_.to_string(), "c1");
         return c;
       }
+      mbms_count_resp_r10_ies_s& set_count_resp_r10()
+      {
+        set(types::count_resp_r10);
+        return c;
+      }
 
     private:
       types                     type_;
@@ -43103,6 +47323,11 @@ struct mbms_count_resp_r10_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -43151,6 +47376,11 @@ struct mbms_interest_ind_r11_s {
         assert_choice_type("interestIndication-r11", type_.to_string(), "c1");
         return c;
       }
+      mbms_interest_ind_r11_ies_s& set_interest_ind_r11()
+      {
+        set(types::interest_ind_r11);
+        return c;
+      }
 
     private:
       types                       type_;
@@ -43177,6 +47407,11 @@ struct mbms_interest_ind_r11_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -43227,6 +47462,11 @@ struct meas_report_app_layer_r15_s {
       assert_choice_type("measReportAppLayer-r15", type_.to_string(), "criticalExtensions");
       return c.get<meas_report_app_layer_r15_ies_s>();
     }
+    meas_report_app_layer_r15_ies_s& set_meas_report_app_layer_r15()
+    {
+      set(types::meas_report_app_layer_r15);
+      return c.get<meas_report_app_layer_r15_ies_s>();
+    }
 
   private:
     types                                                    type_;
@@ -43273,6 +47513,11 @@ struct meas_report_s {
         assert_choice_type("measurementReport-r8", type_.to_string(), "c1");
         return c;
       }
+      meas_report_r8_ies_s& set_meas_report_r8()
+      {
+        set(types::meas_report_r8);
+        return c;
+      }
 
     private:
       types                type_;
@@ -43299,6 +47544,11 @@ struct meas_report_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -43347,6 +47597,11 @@ struct proximity_ind_r9_s {
         assert_choice_type("proximityIndication-r9", type_.to_string(), "c1");
         return c;
       }
+      proximity_ind_r9_ies_s& set_proximity_ind_r9()
+      {
+        set(types::proximity_ind_r9);
+        return c;
+      }
 
     private:
       types                  type_;
@@ -43373,6 +47628,11 @@ struct proximity_ind_r9_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -43421,6 +47681,11 @@ struct rn_recfg_complete_r10_s {
         assert_choice_type("rnReconfigurationComplete-r10", type_.to_string(), "c1");
         return c;
       }
+      rn_recfg_complete_r10_ies_s& set_rn_recfg_complete_r10()
+      {
+        set(types::rn_recfg_complete_r10);
+        return c;
+      }
 
     private:
       types                       type_;
@@ -43447,6 +47712,11 @@ struct rn_recfg_complete_r10_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -43498,6 +47768,11 @@ struct rrc_conn_recfg_complete_s {
       assert_choice_type("rrcConnectionReconfigurationComplete-r8", type_.to_string(), "criticalExtensions");
       return c.get<rrc_conn_recfg_complete_r8_ies_s>();
     }
+    rrc_conn_recfg_complete_r8_ies_s& set_rrc_conn_recfg_complete_r8()
+    {
+      set(types::rrc_conn_recfg_complete_r8);
+      return c.get<rrc_conn_recfg_complete_r8_ies_s>();
+    }
 
   private:
     types                                                     type_;
@@ -43545,6 +47820,11 @@ struct rrc_conn_reest_complete_s {
     const rrc_conn_reest_complete_r8_ies_s& rrc_conn_reest_complete_r8() const
     {
       assert_choice_type("rrcConnectionReestablishmentComplete-r8", type_.to_string(), "criticalExtensions");
+      return c.get<rrc_conn_reest_complete_r8_ies_s>();
+    }
+    rrc_conn_reest_complete_r8_ies_s& set_rrc_conn_reest_complete_r8()
+    {
+      set(types::rrc_conn_reest_complete_r8);
       return c.get<rrc_conn_reest_complete_r8_ies_s>();
     }
 
@@ -43596,6 +47876,11 @@ struct rrc_conn_resume_complete_r13_s {
       assert_choice_type("rrcConnectionResumeComplete-r13", type_.to_string(), "criticalExtensions");
       return c.get<rrc_conn_resume_complete_r13_ies_s>();
     }
+    rrc_conn_resume_complete_r13_ies_s& set_rrc_conn_resume_complete_r13()
+    {
+      set(types::rrc_conn_resume_complete_r13);
+      return c.get<rrc_conn_resume_complete_r13_ies_s>();
+    }
 
   private:
     types                                                       type_;
@@ -43643,6 +47928,11 @@ struct rrc_conn_setup_complete_s {
         assert_choice_type("rrcConnectionSetupComplete-r8", type_.to_string(), "c1");
         return c;
       }
+      rrc_conn_setup_complete_r8_ies_s& set_rrc_conn_setup_complete_r8()
+      {
+        set(types::rrc_conn_setup_complete_r8);
+        return c;
+      }
 
     private:
       types                            type_;
@@ -43669,6 +47959,11 @@ struct rrc_conn_setup_complete_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -43718,6 +48013,11 @@ struct scg_fail_info_r12_s {
         assert_choice_type("scgFailureInformation-r12", type_.to_string(), "c1");
         return c;
       }
+      scg_fail_info_r12_ies_s& set_scg_fail_info_r12()
+      {
+        set(types::scg_fail_info_r12);
+        return c;
+      }
 
     private:
       types                   type_;
@@ -43744,6 +48044,11 @@ struct scg_fail_info_r12_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -43792,6 +48097,11 @@ struct scg_fail_info_nr_r15_s {
         assert_choice_type("scgFailureInformationNR-r15", type_.to_string(), "c1");
         return c;
       }
+      scg_fail_info_nr_r15_ies_s& set_scg_fail_info_nr_r15()
+      {
+        set(types::scg_fail_info_nr_r15);
+        return c;
+      }
 
     private:
       types                      type_;
@@ -43818,6 +48128,11 @@ struct scg_fail_info_nr_r15_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -43866,6 +48181,11 @@ struct security_mode_complete_s {
     const security_mode_complete_r8_ies_s& security_mode_complete_r8() const
     {
       assert_choice_type("securityModeComplete-r8", type_.to_string(), "criticalExtensions");
+      return c.get<security_mode_complete_r8_ies_s>();
+    }
+    security_mode_complete_r8_ies_s& set_security_mode_complete_r8()
+    {
+      set(types::security_mode_complete_r8);
       return c.get<security_mode_complete_r8_ies_s>();
     }
 
@@ -43917,6 +48237,11 @@ struct security_mode_fail_s {
       assert_choice_type("securityModeFailure-r8", type_.to_string(), "criticalExtensions");
       return c.get<security_mode_fail_r8_ies_s>();
     }
+    security_mode_fail_r8_ies_s& set_security_mode_fail_r8()
+    {
+      set(types::security_mode_fail_r8);
+      return c.get<security_mode_fail_r8_ies_s>();
+    }
 
   private:
     types                                                type_;
@@ -43964,6 +48289,11 @@ struct sidelink_ue_info_r12_s {
         assert_choice_type("sidelinkUEInformation-r12", type_.to_string(), "c1");
         return c;
       }
+      sidelink_ue_info_r12_ies_s& set_sidelink_ue_info_r12()
+      {
+        set(types::sidelink_ue_info_r12);
+        return c;
+      }
 
     private:
       types                      type_;
@@ -43990,6 +48320,11 @@ struct sidelink_ue_info_r12_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -44038,6 +48373,11 @@ struct ueassist_info_r11_s {
         assert_choice_type("ueAssistanceInformation-r11", type_.to_string(), "c1");
         return c;
       }
+      ueassist_info_r11_ies_s& set_ue_assist_info_r11()
+      {
+        set(types::ue_assist_info_r11);
+        return c;
+      }
 
     private:
       types                   type_;
@@ -44064,6 +48404,11 @@ struct ueassist_info_r11_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -44112,6 +48457,11 @@ struct ue_cap_info_s {
         assert_choice_type("ueCapabilityInformation-r8", type_.to_string(), "c1");
         return c;
       }
+      ue_cap_info_r8_ies_s& set_ue_cap_info_r8()
+      {
+        set(types::ue_cap_info_r8);
+        return c;
+      }
 
     private:
       types                type_;
@@ -44138,6 +48488,11 @@ struct ue_cap_info_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -44187,6 +48542,11 @@ struct ue_info_resp_r9_s {
         assert_choice_type("ueInformationResponse-r9", type_.to_string(), "c1");
         return c;
       }
+      ue_info_resp_r9_ies_s& set_ue_info_resp_r9()
+      {
+        set(types::ue_info_resp_r9);
+        return c;
+      }
 
     private:
       types                 type_;
@@ -44213,6 +48573,11 @@ struct ue_info_resp_r9_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -44262,6 +48627,11 @@ struct ul_ho_prep_transfer_s {
         assert_choice_type("ulHandoverPreparationTransfer-r8", type_.to_string(), "c1");
         return c;
       }
+      ul_ho_prep_transfer_r8_ies_s& set_ul_ho_prep_transfer_r8()
+      {
+        set(types::ul_ho_prep_transfer_r8);
+        return c;
+      }
 
     private:
       types                        type_;
@@ -44288,6 +48658,11 @@ struct ul_ho_prep_transfer_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -44336,6 +48711,11 @@ struct ul_info_transfer_s {
         assert_choice_type("ulInformationTransfer-r8", type_.to_string(), "c1");
         return c;
       }
+      ul_info_transfer_r8_ies_s& set_ul_info_transfer_r8()
+      {
+        set(types::ul_info_transfer_r8);
+        return c;
+      }
 
     private:
       types                     type_;
@@ -44362,6 +48742,11 @@ struct ul_info_transfer_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -44410,6 +48795,11 @@ struct ul_info_transfer_mrdc_r15_s {
         assert_choice_type("ulInformationTransferMRDC-r15", type_.to_string(), "c1");
         return c;
       }
+      ul_info_transfer_mrdc_r15_ies_s& set_ul_info_transfer_mrdc_r15()
+      {
+        set(types::ul_info_transfer_mrdc_r15);
+        return c;
+      }
 
     private:
       types                           type_;
@@ -44436,6 +48826,11 @@ struct ul_info_transfer_mrdc_r15_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -44484,6 +48879,11 @@ struct wlan_conn_status_report_r13_s {
         assert_choice_type("wlanConnectionStatusReport-r13", type_.to_string(), "c1");
         return c;
       }
+      wlan_conn_status_report_r13_ies_s& set_wlan_conn_status_report_r13()
+      {
+        set(types::wlan_conn_status_report_r13);
+        return c;
+      }
 
     private:
       types                             type_;
@@ -44510,6 +48910,11 @@ struct wlan_conn_status_report_r13_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -44730,6 +49135,86 @@ struct ul_dcch_msg_type_c {
       assert_choice_type("interFreqRSTDMeasurementIndication-r10", type_.to_string(), "c1");
       return c.get<inter_freq_rstd_meas_ind_r10_s>();
     }
+    csfb_params_request_cdma2000_s& set_csfb_params_request_cdma2000()
+    {
+      set(types::csfb_params_request_cdma2000);
+      return c.get<csfb_params_request_cdma2000_s>();
+    }
+    meas_report_s& set_meas_report()
+    {
+      set(types::meas_report);
+      return c.get<meas_report_s>();
+    }
+    rrc_conn_recfg_complete_s& set_rrc_conn_recfg_complete()
+    {
+      set(types::rrc_conn_recfg_complete);
+      return c.get<rrc_conn_recfg_complete_s>();
+    }
+    rrc_conn_reest_complete_s& set_rrc_conn_reest_complete()
+    {
+      set(types::rrc_conn_reest_complete);
+      return c.get<rrc_conn_reest_complete_s>();
+    }
+    rrc_conn_setup_complete_s& set_rrc_conn_setup_complete()
+    {
+      set(types::rrc_conn_setup_complete);
+      return c.get<rrc_conn_setup_complete_s>();
+    }
+    security_mode_complete_s& set_security_mode_complete()
+    {
+      set(types::security_mode_complete);
+      return c.get<security_mode_complete_s>();
+    }
+    security_mode_fail_s& set_security_mode_fail()
+    {
+      set(types::security_mode_fail);
+      return c.get<security_mode_fail_s>();
+    }
+    ue_cap_info_s& set_ue_cap_info()
+    {
+      set(types::ue_cap_info);
+      return c.get<ue_cap_info_s>();
+    }
+    ul_ho_prep_transfer_s& set_ul_ho_prep_transfer()
+    {
+      set(types::ul_ho_prep_transfer);
+      return c.get<ul_ho_prep_transfer_s>();
+    }
+    ul_info_transfer_s& set_ul_info_transfer()
+    {
+      set(types::ul_info_transfer);
+      return c.get<ul_info_transfer_s>();
+    }
+    counter_check_resp_s& set_counter_check_resp()
+    {
+      set(types::counter_check_resp);
+      return c.get<counter_check_resp_s>();
+    }
+    ue_info_resp_r9_s& set_ue_info_resp_r9()
+    {
+      set(types::ue_info_resp_r9);
+      return c.get<ue_info_resp_r9_s>();
+    }
+    proximity_ind_r9_s& set_proximity_ind_r9()
+    {
+      set(types::proximity_ind_r9);
+      return c.get<proximity_ind_r9_s>();
+    }
+    rn_recfg_complete_r10_s& set_rn_recfg_complete_r10()
+    {
+      set(types::rn_recfg_complete_r10);
+      return c.get<rn_recfg_complete_r10_s>();
+    }
+    mbms_count_resp_r10_s& set_mbms_count_resp_r10()
+    {
+      set(types::mbms_count_resp_r10);
+      return c.get<mbms_count_resp_r10_s>();
+    }
+    inter_freq_rstd_meas_ind_r10_s& set_inter_freq_rstd_meas_ind_r10()
+    {
+      set(types::inter_freq_rstd_meas_ind_r10);
+      return c.get<inter_freq_rstd_meas_ind_r10_s>();
+    }
 
   private:
     types type_;
@@ -44891,6 +49376,61 @@ struct ul_dcch_msg_type_c {
         assert_choice_type("failureInformation-r15", type_.to_string(), "c2");
         return c.get<fail_info_r15_s>();
       }
+      ueassist_info_r11_s& set_ue_assist_info_r11()
+      {
+        set(types::ue_assist_info_r11);
+        return c.get<ueassist_info_r11_s>();
+      }
+      in_dev_coex_ind_r11_s& set_in_dev_coex_ind_r11()
+      {
+        set(types::in_dev_coex_ind_r11);
+        return c.get<in_dev_coex_ind_r11_s>();
+      }
+      mbms_interest_ind_r11_s& set_mbms_interest_ind_r11()
+      {
+        set(types::mbms_interest_ind_r11);
+        return c.get<mbms_interest_ind_r11_s>();
+      }
+      scg_fail_info_r12_s& set_scg_fail_info_r12()
+      {
+        set(types::scg_fail_info_r12);
+        return c.get<scg_fail_info_r12_s>();
+      }
+      sidelink_ue_info_r12_s& set_sidelink_ue_info_r12()
+      {
+        set(types::sidelink_ue_info_r12);
+        return c.get<sidelink_ue_info_r12_s>();
+      }
+      wlan_conn_status_report_r13_s& set_wlan_conn_status_report_r13()
+      {
+        set(types::wlan_conn_status_report_r13);
+        return c.get<wlan_conn_status_report_r13_s>();
+      }
+      rrc_conn_resume_complete_r13_s& set_rrc_conn_resume_complete_r13()
+      {
+        set(types::rrc_conn_resume_complete_r13);
+        return c.get<rrc_conn_resume_complete_r13_s>();
+      }
+      ul_info_transfer_mrdc_r15_s& set_ul_info_transfer_mrdc_r15()
+      {
+        set(types::ul_info_transfer_mrdc_r15);
+        return c.get<ul_info_transfer_mrdc_r15_s>();
+      }
+      scg_fail_info_nr_r15_s& set_scg_fail_info_nr_r15()
+      {
+        set(types::scg_fail_info_nr_r15);
+        return c.get<scg_fail_info_nr_r15_s>();
+      }
+      meas_report_app_layer_r15_s& set_meas_report_app_layer_r15()
+      {
+        set(types::meas_report_app_layer_r15);
+        return c.get<meas_report_app_layer_r15_s>();
+      }
+      fail_info_r15_s& set_fail_info_r15()
+      {
+        set(types::fail_info_r15);
+        return c.get<fail_info_r15_s>();
+      }
 
     private:
       types type_;
@@ -44931,6 +49471,11 @@ struct ul_dcch_msg_type_c {
     const c2_c_& c2() const
     {
       assert_choice_type("c2", type_.to_string(), "messageClassExtension");
+      return c.get<c2_c_>();
+    }
+    c2_c_& set_c2()
+    {
+      set(types::c2);
       return c.get<c2_c_>();
     }
 
@@ -44978,6 +49523,16 @@ struct ul_dcch_msg_type_c {
   const msg_class_ext_c_& msg_class_ext() const
   {
     assert_choice_type("messageClassExtension", type_.to_string(), "UL-DCCH-MessageType");
+    return c.get<msg_class_ext_c_>();
+  }
+  c1_c_& set_c1()
+  {
+    set(types::c1);
+    return c.get<c1_c_>();
+  }
+  msg_class_ext_c_& set_msg_class_ext()
+  {
+    set(types::msg_class_ext);
     return c.get<msg_class_ext_c_>();
   }
 
@@ -45287,6 +49842,21 @@ struct band_combination_params_r13_s {
         assert_choice_type("fiveEntries-r13", type_.to_string(), "supportedCellGrouping-r13");
         return c.get<fixed_bitstring<15> >();
       }
+      fixed_bitstring<3>& set_three_entries_r13()
+      {
+        set(types::three_entries_r13);
+        return c.get<fixed_bitstring<3> >();
+      }
+      fixed_bitstring<7>& set_four_entries_r13()
+      {
+        set(types::four_entries_r13);
+        return c.get<fixed_bitstring<7> >();
+      }
+      fixed_bitstring<15>& set_five_entries_r13()
+      {
+        set(types::five_entries_r13);
+        return c.get<fixed_bitstring<15> >();
+      }
 
     private:
       types                                        type_;
@@ -45467,6 +50037,21 @@ struct band_combination_params_v1250_s {
       const fixed_bitstring<15>& five_entries_r12() const
       {
         assert_choice_type("fiveEntries-r12", type_.to_string(), "supportedCellGrouping-r12");
+        return c.get<fixed_bitstring<15> >();
+      }
+      fixed_bitstring<3>& set_three_entries_r12()
+      {
+        set(types::three_entries_r12);
+        return c.get<fixed_bitstring<3> >();
+      }
+      fixed_bitstring<7>& set_four_entries_r12()
+      {
+        set(types::four_entries_r12);
+        return c.get<fixed_bitstring<7> >();
+      }
+      fixed_bitstring<15>& set_five_entries_r12()
+      {
+        set(types::five_entries_r12);
         return c.get<fixed_bitstring<15> >();
       }
 
@@ -47873,6 +52458,11 @@ struct sps_cfg_dl_stti_r15_c {
         assert_choice_type("setup", type_.to_string(), "twoAntennaPortActivated-r15");
         return c;
       }
+      setup_s_& set_setup()
+      {
+        set(types::setup);
+        return c;
+      }
 
     private:
       types    type_;
@@ -47908,6 +52498,11 @@ struct sps_cfg_dl_stti_r15_c {
   const setup_s_& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "SPS-ConfigDL-STTI-r15");
+    return c;
+  }
+  setup_s_& set_setup()
+  {
+    set(types::setup);
     return c;
   }
 
@@ -48484,6 +53079,11 @@ struct mbms_params_v1470_s {
     const uint8_t& explicit_value() const
     {
       assert_choice_type("explicitValue", type_.to_string(), "mbms-MaxBW-r14");
+      return c;
+    }
+    uint8_t& set_explicit_value()
+    {
+      set(types::explicit_value);
       return c;
     }
 
@@ -50151,6 +54751,11 @@ struct scg_cfg_r12_s {
         assert_choice_type("scg-Config-r12", type_.to_string(), "c1");
         return c;
       }
+      scg_cfg_r12_ies_s& set_scg_cfg_r12()
+      {
+        set(types::scg_cfg_r12);
+        return c;
+      }
 
     private:
       types             type_;
@@ -50177,6 +54782,11 @@ struct scg_cfg_r12_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -50492,6 +55102,16 @@ struct cells_triggered_list_item_c_ {
       assert_choice_type("tdd", type_.to_string(), "physCellIdUTRA");
       return c.get<uint8_t>();
     }
+    uint16_t& set_fdd()
+    {
+      set(types::fdd);
+      return c.get<uint16_t>();
+    }
+    uint8_t& set_tdd()
+    {
+      set(types::tdd);
+      return c.get<uint8_t>();
+    }
 
   private:
     types              type_;
@@ -50591,6 +55211,36 @@ struct cells_triggered_list_item_c_ {
     assert_choice_type("physCellIdNR-r15", type_.to_string(), "CellsTriggeredList-item");
     return c.get<pci_nr_r15_s_>();
   }
+  uint16_t& set_pci_eutra()
+  {
+    set(types::pci_eutra);
+    return c.get<uint16_t>();
+  }
+  pci_utra_c_& set_pci_utra()
+  {
+    set(types::pci_utra);
+    return c.get<pci_utra_c_>();
+  }
+  pci_geran_s_& set_pci_geran()
+  {
+    set(types::pci_geran);
+    return c.get<pci_geran_s_>();
+  }
+  uint16_t& set_pci_cdma2000()
+  {
+    set(types::pci_cdma2000);
+    return c.get<uint16_t>();
+  }
+  wlan_ids_r12_s& set_wlan_ids_r13()
+  {
+    set(types::wlan_ids_r13);
+    return c.get<wlan_ids_r12_s>();
+  }
+  pci_nr_r15_s_& set_pci_nr_r15()
+  {
+    set(types::pci_nr_r15);
+    return c.get<pci_nr_r15_s_>();
+  }
 
 private:
   types type_;
@@ -50675,6 +55325,11 @@ struct ho_cmd_s {
         assert_choice_type("handoverCommand-r8", type_.to_string(), "c1");
         return c;
       }
+      ho_cmd_r8_ies_s& set_ho_cmd_r8()
+      {
+        set(types::ho_cmd_r8);
+        return c;
+      }
 
     private:
       types           type_;
@@ -50701,6 +55356,11 @@ struct ho_cmd_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -50997,6 +55657,11 @@ struct ho_prep_info_s {
         assert_choice_type("handoverPreparationInformation-r8", type_.to_string(), "c1");
         return c;
       }
+      ho_prep_info_r8_ies_s& set_ho_prep_info_r8()
+      {
+        set(types::ho_prep_info_r8);
+        return c;
+      }
 
     private:
       types                 type_;
@@ -51023,6 +55688,11 @@ struct ho_prep_info_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -51357,6 +56027,11 @@ struct scg_cfg_info_r12_s {
         assert_choice_type("scg-ConfigInfo-r12", type_.to_string(), "c1");
         return c;
       }
+      scg_cfg_info_r12_ies_s& set_scg_cfg_info_r12()
+      {
+        set(types::scg_cfg_info_r12);
+        return c;
+      }
 
     private:
       types                  type_;
@@ -51383,6 +56058,11 @@ struct scg_cfg_info_r12_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -51955,6 +56635,11 @@ struct ue_paging_coverage_info_s {
         assert_choice_type("uePagingCoverageInformation-r13", type_.to_string(), "c1");
         return c;
       }
+      ue_paging_coverage_info_r13_ies_s& set_ue_paging_coverage_info_r13()
+      {
+        set(types::ue_paging_coverage_info_r13);
+        return c;
+      }
 
     private:
       types                             type_;
@@ -51981,6 +56666,11 @@ struct ue_paging_coverage_info_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -52051,6 +56741,11 @@ struct ue_radio_access_cap_info_s {
         assert_choice_type("ueRadioAccessCapabilityInformation-r8", type_.to_string(), "c1");
         return c;
       }
+      ue_radio_access_cap_info_r8_ies_s& set_ue_radio_access_cap_info_r8()
+      {
+        set(types::ue_radio_access_cap_info_r8);
+        return c;
+      }
 
     private:
       types                             type_;
@@ -52077,6 +56772,11 @@ struct ue_radio_access_cap_info_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -52163,6 +56863,11 @@ struct ue_radio_paging_info_s {
         assert_choice_type("ueRadioPagingInformation-r12", type_.to_string(), "c1");
         return c;
       }
+      ue_radio_paging_info_r12_ies_s& set_ue_radio_paging_info_r12()
+      {
+        set(types::ue_radio_paging_info_r12);
+        return c;
+      }
 
     private:
       types                          type_;
@@ -52189,6 +56894,11 @@ struct ue_radio_paging_info_s {
     const c1_c_& c1() const
     {
       assert_choice_type("c1", type_.to_string(), "criticalExtensions");
+      return c.get<c1_c_>();
+    }
+    c1_c_& set_c1()
+    {
+      set(types::c1);
       return c.get<c1_c_>();
     }
 
@@ -52348,6 +57058,11 @@ struct var_meas_cfg_s {
     const setup_s_& setup() const
     {
       assert_choice_type("setup", type_.to_string(), "speedStatePars");
+      return c;
+    }
+    setup_s_& set_setup()
+    {
+      set(types::setup);
       return c;
     }
 
