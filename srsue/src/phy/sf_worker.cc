@@ -54,14 +54,17 @@ static int plot_worker_id = -1;
 
 namespace srsue {
 
-sf_worker::sf_worker(
-    uint32_t max_prb, phy_common* phy, srslte::log* log_h, srslte::log* log_phy_lib_h, chest_feedback_itf* chest_loop)
+sf_worker::sf_worker(uint32_t            max_prb,
+                     phy_common*         phy_,
+                     srslte::log*        log_h_,
+                     srslte::log*        log_phy_lib_h_,
+                     chest_feedback_itf* chest_loop_)
 {
   cell_initiated      = false;
-  this->phy           = phy;
-  this->log_h         = log_h;
-  this->log_phy_lib_h = log_phy_lib_h;
-  this->chest_loop    = chest_loop;
+  phy                 = phy_;
+  log_h               = log_h_;
+  log_phy_lib_h       = log_phy_lib_h_;
+  chest_loop          = chest_loop_;
 
   bzero(&tdd_config, sizeof(srslte_tdd_config_t));
 
@@ -184,7 +187,7 @@ void sf_worker::enable_pregen_signals(bool enabled)
   }
 }
 
-void sf_worker::set_pcell_config(srsue::phy_interface_rrc::phy_cfg_t* phy_cfg)
+void sf_worker::set_pcell_config(srsue::phy_interface_rrc_lte::phy_cfg_t* phy_cfg)
 {
   pthread_mutex_lock(&mutex);
   Info("Setting PCell configuration for cc_worker=%d, cc=%d\n", get_id(), 0);
@@ -328,12 +331,7 @@ void sf_worker::update_measurements()
     }
 
     if (!rssi_read_cnt) {
-      if (phy->get_radio()->has_rssi() && phy->args->rssi_sensor_enabled) {
-        phy->last_radio_rssi = phy->get_radio()->get_rssi();
-        phy->rx_gain_offset  = phy->avg_rssi_dbm - phy->last_radio_rssi + 30;
-      } else {
-        phy->rx_gain_offset = phy->get_radio()->get_rx_gain() + phy->args->rx_gain_offset;
-      }
+      phy->rx_gain_offset = phy->get_radio()->get_rx_gain() + phy->args->rx_gain_offset;
     }
     rssi_read_cnt++;
     if (rssi_read_cnt == 1000) {
@@ -348,7 +346,7 @@ void sf_worker::update_measurements()
 
   // Send PCell measurement
   if ((tti % phy->pcell_report_period) == phy->pcell_report_period - 1) {
-    phy->rrc->new_phy_meas(phy->avg_rsrp_dbm[0], phy->avg_rsrq_db, tti);
+    phy->stack->new_phy_meas(phy->avg_rsrp_dbm[0], phy->avg_rsrq_db, tti);
   }
 
   // Check in-sync / out-sync conditions

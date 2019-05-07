@@ -25,12 +25,12 @@
 #include "srslte/upper/pdcp.h"
 #include "srslte/upper/pdcp_entity.h"
 #include "srslte/upper/rlc.h"
-#include "srsue/hdr/mac/mac.h"
-#include "srsue/hdr/rrc/rrc.h"
-#include "srsue/hdr/upper/gw.h"
-#include "srsue/hdr/upper/nas.h"
-#include "srsue/hdr/upper/usim.h"
-#include "srsue/hdr/upper/usim_base.h"
+#include "srsue/hdr/stack/mac/mac.h"
+#include "srsue/hdr/stack/rrc/rrc.h"
+#include "srsue/hdr/stack/upper/gw.h"
+#include "srsue/hdr/stack/upper/nas.h"
+#include "srsue/hdr/stack/upper/usim.h"
+#include "srsue/hdr/stack/upper/usim_base.h"
 #include <assert.h>
 #include <iostream>
 
@@ -235,9 +235,9 @@ int mme_attach_request_test()
 
     nas.init(&usim, &rrc_dummy, &gw, &nas_log, nas_cfg);
 
-    srslte_gw_config_t gw_config(3);
-    gw.init(&pdcp_dummy, &nas, &gw_log, gw_config);
-    gw.set_tundevname("tun0");
+    gw_args_t gw_args;
+    gw_args.tun_dev_name = "tun0";
+    gw.init(&pdcp_dummy, &nas, &gw_log, gw_args);
 
     // trigger test
     nas.attach_request();

@@ -35,6 +35,7 @@
 #include "srslte/common/common.h"
 #include "srslte/common/interfaces_common.h"
 #include "srslte/common/security.h"
+#include "srslte/phy/rf/rf.h"
 #include "srslte/upper/rlc_interface.h"
 
 namespace srsue {
@@ -170,7 +171,7 @@ public:
 };
 
 // RRC interface for PHY
-class rrc_interface_phy
+class rrc_interface_phy_lte
 {
 public:
   virtual void in_sync() = 0;
@@ -348,7 +349,7 @@ public:
  *
  */
 /* Interface PHY -> MAC */
-class mac_interface_phy
+class mac_interface_phy_lte
 {
 public:
   typedef struct {
@@ -415,8 +416,8 @@ public:
   virtual void tb_decoded(uint32_t cc_idx, mac_grant_dl_t grant, bool ack[SRSLTE_MAX_CODEWORDS]) = 0;
 
   /* Indicate successful decoding of BCH TB through PBCH */
-  virtual void bch_decoded_ok(uint8_t *payload, uint32_t len) = 0;  
-  
+  virtual void bch_decoded_ok(uint8_t* payload, uint32_t len) = 0;
+
   /* Indicate successful decoding of MCH TB through PMCH */
   virtual void mch_decoded(uint32_t len, bool crc) = 0;
 
@@ -660,6 +661,23 @@ public:
   virtual void wait_uplink() = 0;
 };
 
+// RF/radio args
+typedef struct {
+  std::string type;
+  std::string log_level;
+
+  float       freq_offset;
+  float       rx_gain;
+  float       tx_gain;
+  uint32_t    nof_radios;
+  uint32_t    nof_rf_channels; // Number of RF channels per radio
+  uint32_t    nof_rx_ant;      // Number of RF channels for MIMO
+  std::string device_name;
+  std::string device_args[SRSLTE_MAX_RADIOS];
+  std::string time_adv_nsamples;
+  std::string burst_preamble;
+  std::string continuous_tx;
+} rf_args_t;
 
 /** PHY interface 
  *
@@ -671,9 +689,25 @@ typedef struct {
 } carrier_map_t;
 
 typedef struct {
+  std::string phy_level;
+  std::string phy_lib_level;
+  int         phy_hex_limit;
+} phy_log_args_t;
+
+typedef struct {
+  std::string    type;
+  phy_log_args_t log;
+
+  std::string           dl_earfcn;   // comma-separated list of EARFCNs
+  std::vector<uint32_t> earfcn_list; // vectorized version of dl_earfcn that gets populated during init
+
+  float                 dl_freq;
+  float                 ul_freq;
+
   bool ul_pwr_ctrl_en; 
   float prach_gain;
   int pdsch_max_its;
+  bool  attach_enable_64qam;
   int nof_phy_threads;
   
   int worker_cpu_mask;
@@ -682,7 +716,7 @@ typedef struct {
   uint32_t      ue_category;
   uint32_t      nof_carriers;
   uint32_t      nof_radios;
-  uint32_t nof_rx_ant;
+  uint32_t      nof_rx_ant;
   uint32_t      nof_rf_channels;
   carrier_map_t carrier_map[SRSLTE_MAX_CARRIERS];
   std::string   equalizer_mode;
@@ -709,13 +743,13 @@ typedef struct {
   uint32_t      estimator_fil_order;
   float         snr_to_cqi_offset;
   std::string sss_algorithm;
-  bool rssi_sensor_enabled;
   bool sic_pss_enabled;
   float rx_gain_offset;
   bool pdsch_csi_enabled;
   bool pdsch_8bit_decoder;
   uint32_t intra_freq_meas_len_ms;
   uint32_t intra_freq_meas_period_ms;
+  bool          pregenerate_signals;
 } phy_args_t; 
 
 
@@ -743,7 +777,7 @@ public:
 };
 
 /* Interface MAC -> PHY */
-class phy_interface_mac : public phy_interface_mac_common
+class phy_interface_mac_lte : public phy_interface_mac_common
 {
 public:
   typedef struct {
@@ -766,7 +800,7 @@ public:
   virtual void set_mch_period_stop(uint32_t stop) = 0;
 };
 
-class phy_interface_rrc
+class phy_interface_rrc_lte
 {
 public:
   struct phy_cfg_common_t {
@@ -827,8 +861,56 @@ public:
 
   virtual void reset() = 0;
 
+  virtual void enable_pregen_signals(bool enable) = 0;
 };
-  
+
+class radio_interface_phy
+{
+public:
+  // trx functions
+  virtual bool tx(cf_t* buffer[SRSLTE_MAX_PORTS], const uint32_t& nof_samples, const srslte_timestamp_t& tx_time) = 0;
+  virtual void tx_end()                                                                                           = 0;
+  virtual bool rx_now(cf_t* buffer[SRSLTE_MAX_PORTS], const uint32_t& nof_samples, srslte_timestamp_t* rxd_time)  = 0;
+
+  // setter
+  virtual void set_tx_freq(const uint32_t& radio_idx, const double& freq) = 0;
+  virtual void set_rx_freq(const uint32_t& radio_idx, const double& freq) = 0;
+
+  virtual double set_rx_gain_th(const float& gain)                         = 0;
+  virtual void   set_rx_gain(const uint32_t& radio_idx, const float& gain) = 0;
+  virtual void   set_master_clock_rate(const double& rate)                 = 0;
+  virtual void   set_tx_srate(const double& srate)                         = 0;
+  virtual void   set_rx_srate(const double& srate)                         = 0;
+  virtual float  set_tx_power(const float& power)                          = 0;
+
+  // getter
+  virtual float             get_rx_gain(const uint32_t& radio_idx = 0) = 0;
+  virtual double            get_freq_offset()                          = 0;
+  virtual double            get_tx_freq(const uint32_t& radio_idx = 0) = 0;
+  virtual double            get_rx_freq(const uint32_t& radio_idx = 0) = 0;
+  virtual float             get_max_tx_power()                         = 0;
+  virtual bool              is_continuous_tx()                         = 0;
+  virtual bool              is_init()                                  = 0;
+  virtual void              reset()                                    = 0;
+  virtual srslte_rf_info_t* get_info(const uint32_t& radio_idx = 0)    = 0;
+};
+
+class phy_interface_radio
+{
+public:
+  virtual void radio_overflow() = 0;
+  virtual void radio_failure()  = 0;
+};
+
+// Combined interface for PHY to access stack (MAC and RRC)
+class stack_interface_phy_lte : public mac_interface_phy_lte, public rrc_interface_phy_lte
+{
+};
+
+// Combined interface for stack (MAC and RRC) to access PHY
+class phy_interface_stack_lte : public phy_interface_mac_lte, public phy_interface_rrc_lte
+{
+};
 
 } // namespace srsue
 

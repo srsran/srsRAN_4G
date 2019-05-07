@@ -40,27 +40,24 @@ char *csv_file_name = NULL;
 class ue_dummy : public ue_metrics_interface
 {
 public:
-  bool get_metrics(ue_metrics_t &m)
+  bool get_metrics(ue_metrics_t* m)
   {
     // fill dummy values
-    bzero(&m, sizeof(ue_metrics_t));
-    m.rf.rf_o = 10;
-    m.phy.nof_active_cc  = 2;
-    m.phy.dl[0].rsrp     = -10.0f;
-    m.phy.dl[0].pathloss = 74;
-    m.mac[0].rx_pkts     = 100;
-    m.mac[0].rx_errors   = 0;
+    bzero(m, sizeof(ue_metrics_t));
+    m->rf.rf_o                = 10;
+    m->phy.nof_active_cc      = 2;
+    m->phy.dl[0].rsrp         = -10.0f;
+    m->phy.dl[0].pathloss     = 74;
+    m->stack.mac[0].rx_pkts   = 100;
+    m->stack.mac[0].rx_errors = 0;
 
-    m.mac[1].rx_pkts   = 100;
-    m.mac[1].rx_errors = 100;
+    m->stack.mac[1].rx_pkts   = 100;
+    m->stack.mac[1].rx_errors = 100;
 
     return true;
   }
 
-  bool is_attached()
-  {
-    return (rand() % 2 == 0);
-  }
+  bool is_rrc_connected() { return (rand() % 2 == 0); }
 };
 }
 

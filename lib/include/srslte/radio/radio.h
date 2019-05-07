@@ -98,6 +98,7 @@ class radio {
   void set_rx_gain(float gain);
   void set_tx_rx_gain_offset(float offset);
   double set_rx_gain_th(float gain);
+  void   set_master_clock_rate(double rate);
 
   void set_freq_offset(double freq);
   void set_tx_freq(uint32_t chan, double freq);
@@ -107,7 +108,6 @@ class radio {
   double get_tx_freq();
   double get_rx_freq();
 
-  void set_master_clock_rate(double rate);
   void set_tx_srate(double srate);
   void set_rx_srate(double srate);
 
@@ -129,51 +129,50 @@ class radio {
   void register_error_handler(srslte_rf_error_handler_t h);
 
  protected:
+   srslte_rf_t rf_device;
+   log_filter* log_h;
 
-  srslte_rf_t rf_device;
-  log_filter* log_h;
+   const static uint32_t burst_preamble_max_samples = 13824;
+   double                burst_preamble_sec; // Start of burst preamble time (off->on RF transition time)
+   srslte_timestamp_t    end_of_burst_time;
+   bool                  is_start_of_burst;
+   uint32_t              burst_preamble_samples;
+   double                burst_preamble_time_rounded; // preamble time rounded to sample time
+   cf_t*                 zeros;
+   double                master_clock_rate;
+   double                cur_tx_srate;
 
-  const static uint32_t burst_preamble_max_samples = 13824;
-  double burst_preamble_sec;// Start of burst preamble time (off->on RF transition time)
-  srslte_timestamp_t end_of_burst_time;
-  bool is_start_of_burst;
-  uint32_t burst_preamble_samples;
-  double burst_preamble_time_rounded; // preamble time rounded to sample time
-  cf_t *zeros;
-  double cur_tx_srate;
+   double tx_adv_sec;      // Transmission time advance to compensate for antenna->timestamp delay
+   int    tx_adv_nsamples; // Transmision time advance in number of samples
 
-  double tx_adv_sec; // Transmission time advance to compensate for antenna->timestamp delay
-  int tx_adv_nsamples; // Transmision time advance in number of samples
+   // Define default values for known radios
+   bool                    tx_adv_auto;
+   bool                    tx_adv_negative;
+   constexpr static double uhd_default_burst_preamble_sec = 600 * 1e-6;
+   constexpr static double uhd_default_tx_adv_samples     = 98;
+   constexpr static double uhd_default_tx_adv_offset_sec  = 4 * 1e-6;
 
-  // Define default values for known radios
-  bool tx_adv_auto;
-  bool tx_adv_negative;
-  constexpr static double uhd_default_burst_preamble_sec = 600 * 1e-6;
-  constexpr static double uhd_default_tx_adv_samples     = 98;
-  constexpr static double uhd_default_tx_adv_offset_sec  = 4 * 1e-6;
+   constexpr static double blade_default_burst_preamble_sec = 0.0;
+   constexpr static double blade_default_tx_adv_samples     = 27;
+   constexpr static double blade_default_tx_adv_offset_sec  = 1e-6;
 
-  constexpr static double blade_default_burst_preamble_sec = 0.0;
-  constexpr static double blade_default_tx_adv_samples     = 27;
-  constexpr static double blade_default_tx_adv_offset_sec  = 1e-6;
+   double tx_freq, rx_freq, freq_offset;
 
-  double tx_freq, rx_freq, freq_offset;
+   trace<uint32_t> tr_local_time;
+   trace<uint32_t> tr_usrp_time;
+   trace<uint32_t> tr_tx_time;
+   trace<uint32_t> tr_is_eob;
+   bool            trace_enabled;
+   uint32_t        tti;
+   bool            agc_enabled;
 
-  trace<uint32_t> tr_local_time;
-  trace<uint32_t> tr_usrp_time;
-  trace<uint32_t> tr_tx_time;
-  trace<uint32_t> tr_is_eob;
-  bool trace_enabled;
-  uint32_t tti;
-  bool agc_enabled;
+   bool continuous_tx;
+   bool is_initialized;
+   bool radio_is_streaming;
 
-  bool continuous_tx;
-  bool is_initialized;
-  bool radio_is_streaming;
-
-  uint32_t saved_nof_channels;
-  char saved_args[128];
-  char saved_devname[128];
-
+   uint32_t saved_nof_channels;
+   char     saved_args[128];
+   char     saved_devname[128];
 };
 
 } // namespace srslte

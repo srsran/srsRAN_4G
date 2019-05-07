@@ -18,10 +18,9 @@
 # and at http://www.gnu.org/licenses/.
 #
 
+add_subdirectory(radio)
 add_subdirectory(phy)
-add_subdirectory(mac)
-add_subdirectory(rrc)
-add_subdirectory(upper)
+add_subdirectory(stack)
 
 # Link libstdc++ and libgcc
 if(BUILD_STATIC)
@@ -32,15 +31,16 @@ if (RPATH)
   set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 endif (RPATH)
 
-add_executable(srsue main.cc ue_base.cc ue.cc metrics_stdout.cc metrics_csv.cc)
-target_link_libraries(srsue   srsue_mac
+add_executable(srsue main.cc ue.cc metrics_stdout.cc metrics_csv.cc)
+target_link_libraries(srsue   srsue_radio
                               srsue_phy
-                              srsue_rrc
+                              srsue_stack
                               srsue_upper
+                              srsue_mac
+                              srsue_rrc
                               srslte_common
                               srslte_phy
                               srslte_upper
-                              srslte_radio
                               rrc_asn1
                               ${CMAKE_THREAD_LIBS_INIT}
                               ${Boost_LIBRARIES})

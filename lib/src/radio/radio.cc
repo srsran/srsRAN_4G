@@ -485,8 +485,9 @@ void radio::register_error_handler(srslte_rf_error_handler_t h)
   srslte_rf_register_error_handler(&rf_device, h);
 }
 
-srslte_rf_info_t *radio::get_info() {
-    return srslte_rf_get_info(&rf_device);
+srslte_rf_info_t* radio::get_info()
+{
+  return srslte_rf_get_info(&rf_device);
 }
   
 }

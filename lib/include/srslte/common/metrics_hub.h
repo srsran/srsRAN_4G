@@ -39,7 +39,7 @@ template<typename metrics_t>
 class metrics_interface 
 {
 public:
-  virtual bool get_metrics(metrics_t &m) = 0; 
+  virtual bool get_metrics(metrics_t* m) = 0;
 }; 
 
 template<typename metrics_t>
@@ -84,7 +84,7 @@ private:
 
     if (m) {
       metrics_t metric;
-      m->get_metrics(metric);
+      m->get_metrics(&metric);
       for (uint32_t i=0;i<listeners.size();i++) {
         listeners[i]->set_metrics(metric, period_usec.count());
       }

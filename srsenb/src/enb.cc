@@ -342,18 +342,18 @@ void enb::print_pool() {
   srslte::byte_buffer_pool::get_instance()->print_all_buffers();
 }
 
-bool enb::get_metrics(enb_metrics_t &m)
+bool enb::get_metrics(enb_metrics_t* m)
 {
-  m.rf = rf_metrics;
+  m->rf = rf_metrics;
   bzero(&rf_metrics, sizeof(rf_metrics_t));
   rf_metrics.rf_error = false; // Reset error flag
 
-  phy.get_metrics(m.phy);
-  mac.get_metrics(m.mac);
-  rrc.get_metrics(m.rrc);
-  s1ap.get_metrics(m.s1ap);
+  phy.get_metrics(m->phy);
+  mac.get_metrics(m->mac);
+  rrc.get_metrics(m->rrc);
+  s1ap.get_metrics(m->s1ap);
 
-  m.running = started;  
+  m->running = started;
   return true;
 }
 

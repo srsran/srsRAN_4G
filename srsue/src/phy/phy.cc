@@ -46,9 +46,11 @@ phy::phy() : workers_pool(MAX_WORKERS), workers(0), common(MAX_WORKERS)
 {
   tdd_config   = {};
   prach_cfg    = {};
-  default_args = {};
+  args         = {};
   ZERO_OBJECT(scell_earfcn);
+  ZERO_OBJECT(scell_sync);
   n_ta = 0;
+  initiated = false;
 }
 
 static void srslte_phy_handler(phy_logger_level_t log_level, void *ctx, char *str) {
@@ -96,47 +98,74 @@ void phy::set_default_args(phy_args_t *args)
   args->estimator_fil_order  = 4;
 }
 
-bool phy::check_args(phy_args_t* args)
+bool phy::check_args(const phy_args_t& args)
 {
-  if (args->nof_phy_threads > MAX_WORKERS) {
+  if (args.nof_phy_threads > MAX_WORKERS) {
     log_h->console("Error in PHY args: nof_phy_threads must be 1, 2 or 3\n");
     return false; 
   }
-  if (args->snr_ema_coeff > 1.0) {
+  if (args.snr_ema_coeff > 1.0) {
     log_h->console("Error in PHY args: snr_ema_coeff must be 0<=w<=1\n");
     return false; 
   }
   return true; 
 }
 
-bool phy::init(srslte::radio*                   radio_handler,
-               mac_interface_phy*               mac,
-               rrc_interface_phy*               rrc,
-               std::vector<srslte::log_filter*> log_vec,
-               phy_args_t*                      phy_args)
+int phy::init(const phy_args_t&        args_,
+              srslte::logger*          logger_,
+              stack_interface_phy_lte* stack_,
+              radio_interface_phy*     radio_)
 {
+  stack         = stack_;
+  radio         = radio_;
 
+  init(args_, logger_);
+
+  return SRSLTE_SUCCESS;
+}
+
+int phy::init(const phy_args_t& args_, srslte::logger* logger_)
+{
   mlockall(MCL_CURRENT | MCL_FUTURE);
 
-  n_ta = 0;
-  this->log_vec       = log_vec;
-  this->log_h         = (srslte::log*) log_vec[0];
-  this->radio_handler = radio_handler;
-  this->mac           = mac;
-  this->rrc           = rrc;
- 
-  if (!phy_args) {
-    args = &default_args;
-    set_default_args(args);
-  } else {
-    args = phy_args;
+  args = args_;
+
+  logger = logger_;
+
+  set_earfcn(args.earfcn_list);
+
+  // Create array of pointers to phy_logs
+  for (int i = 0; i < args.nof_phy_threads; i++) {
+    srslte::log_filter* mylog = new srslte::log_filter;
+    char                tmp[16];
+    sprintf(tmp, "PHY%d", i);
+    mylog->init(tmp, logger, true);
+    mylog->set_level(args.log.phy_level);
+    mylog->set_hex_limit(args.log.phy_hex_limit);
+    log_vec.push_back(mylog);
   }
+
+  // Add PHY lib log
+  if (log_vec.at(0)->get_level_from_string(args.log.phy_lib_level) != srslte::LOG_LEVEL_NONE) {
+    srslte::log_filter* lib_log = new srslte::log_filter;
+    char                tmp[16];
+    sprintf(tmp, "PHY_LIB");
+    lib_log->init(tmp, logger, true);
+    lib_log->set_level(args.log.phy_lib_level);
+    lib_log->set_hex_limit(args.log.phy_hex_limit);
+    log_vec.push_back(lib_log);
+  } else {
+    log_vec.push_back(NULL);
+  }
+
+  // set default logger
+  log_h = log_vec.at(0);
 
   if (!check_args(args)) {
     return false;
   }
 
-  nof_workers = args->nof_phy_threads;
+  nof_workers = args.nof_phy_threads;
   if (log_vec[nof_workers]) {
     this->log_phy_lib_h = (srslte::log*)log_vec[0];
     srslte_phy_log_register_handler(this, srslte_phy_handler);
@@ -150,28 +179,27 @@ bool phy::init(srslte::radio*                   radio_handler,
 }
 
 // Initializes PHY in a thread
-void phy::run_thread() {
-
+void phy::run_thread()
+{
   prach_buffer.init(SRSLTE_MAX_PRB, log_h);
-  common.init(args, (srslte::log*)log_vec[0], radio_handler, rrc, mac);
+  common.init(&args, (srslte::log*)log_vec[0], radio, stack);
 
   // Add workers to workers pool and start threads
   for (uint32_t i=0;i<nof_workers;i++) {
     sf_worker* w =
         new sf_worker(SRSLTE_MAX_PRB, &common, (srslte::log*)log_vec[i], (srslte::log*)log_vec[nof_workers], &sfsync);
     workers.push_back(w);
-    workers_pool.init_worker(i, w, WORKERS_THREAD_PRIO, args->worker_cpu_mask);
+    workers_pool.init_worker(i, w, WORKERS_THREAD_PRIO, args.worker_cpu_mask);
   }
 
   // Load Asynchronous SCell objects
-  for (int i = 0; i < (int)args->nof_radios - 1; i++) {
-    scell_sync[i].init(&radio_handler[i + 1], &common, log_h);
+  for (int i = 0; i < (int)args.nof_radios - 1; i++) {
+    scell_sync[i].init(&radio[i + 1], &common, log_h);
   }
 
   // Warning this must be initialized after all workers have been added to the pool
-  sfsync.init(radio_handler,
-              mac,
-              rrc,
+  sfsync.init(radio,
+              stack,
               &prach_buffer,
               &workers_pool,
               &common,
@@ -179,7 +207,7 @@ void phy::run_thread() {
               log_phy_lib_h,
               scell_sync,
               SF_RECV_THREAD_PRIO,
-              args->sync_cpu_affinity);
+              args.sync_cpu_affinity);
 
   // Disable UL signal pregeneration until the attachment 
   enable_pregen_signals(false);
@@ -196,33 +224,30 @@ bool phy::is_initiated()
   return initiated;
 }
 
-void phy::set_agc_enable(bool enabled)
-{
-  sfsync.set_agc_enable(enabled);
-  for (int i = 0; i < (int)args->nof_radios - 1; i++) {
-    scell_sync[i].set_agc_enable(enabled);
-  }
-}
-
 void phy::stop()
 {
-  sfsync.stop();
-  for (uint32_t i = 0; i < args->nof_radios - 1; i++) {
-    scell_sync[i].stop();
-  }
+  if (initiated) {
+    sfsync.stop();
+    for (uint32_t i = 0; i < args.nof_radios - 1; i++) {
+      scell_sync[i].stop();
+    }
 
-  workers_pool.stop();
-  prach_buffer.stop();
-  for (uint32_t i = 0; i < nof_workers; i++) {
-    delete ((sf_worker*)workers[i]);
+    workers_pool.stop();
+    prach_buffer.stop();
+    for (uint32_t i = 0; i < nof_workers; i++) {
+      delete ((sf_worker*)workers[i]);
+    }
+
+    initiated = false;
   }
 }
 
-void phy::get_metrics(phy_metrics_t &m) {
-  common.get_dl_metrics(m.dl);
-  common.get_ul_metrics(m.ul);
-  common.get_sync_metrics(m.sync);
-  m.nof_active_cc = args->nof_carriers;
+void phy::get_metrics(phy_metrics_t* m)
+{
+  common.get_dl_metrics(m->dl);
+  common.get_ul_metrics(m->ul);
+  common.get_sync_metrics(m->sync);
+  m->nof_active_cc = args.nof_carriers;
 }
 
 void phy::set_timeadv_rar(uint32_t ta_cmd) {
@@ -286,7 +311,8 @@ bool phy::cell_select(phy_cell_t *cell) {
   return sfsync.cell_select(cell);
 }
 
-phy_interface_rrc::cell_search_ret_t  phy::cell_search(phy_cell_t *cell) {
+phy_interface_rrc_lte::cell_search_ret_t phy::cell_search(phy_cell_t* cell)
+{
   return sfsync.cell_search(cell);
 }
 
@@ -296,7 +322,7 @@ bool phy::cell_is_camping() {
 
 float phy::get_phr()
 {
-  float phr = radio_handler->get_max_tx_power() - common.cur_pusch_power;
+  float phr = radio->get_max_tx_power() - common.cur_pusch_power;
   return phr; 
 }
 
@@ -330,15 +356,21 @@ void phy::prach_send(uint32_t preamble_idx, int allowed_subframe, float target_p
   }
 }
 
-phy_interface_mac::prach_info_t phy::prach_get_info()
+phy_interface_mac_lte::prach_info_t phy::prach_get_info()
 {
   return prach_buffer.get_info();
 }
 
-// Handle the case of a radio overflow. Resynchronise inmediatly
+// Handle the case of a radio overflow. Resynchronise immediatly
 void phy::radio_overflow()
 {
   sfsync.radio_overflow();
+}
+
+void phy::radio_failure()
+{
+  // TODO: handle failure
+  Error("Radio failure.\n");
 }
 
 void phy::reset()
@@ -402,7 +434,7 @@ void phy::enable_pregen_signals(bool enable)
   }
 }
 
-void phy::set_config(phy_interface_rrc::phy_cfg_t* phy_cfg)
+void phy::set_config(phy_interface_rrc_lte::phy_cfg_t* phy_cfg)
 {
   if (is_initiated()) {
     for (uint32_t i = 0; i < nof_workers; i++) {
@@ -425,8 +457,8 @@ void phy::set_config_scell(asn1::rrc::scell_to_add_mod_r10_s* scell_config)
   uint32_t cc_idx = scell_config->s_cell_idx_r10;
 
   // Component carrier index zero should be reserved for PCell
-  if (cc_idx != 0 && cc_idx < args->nof_carriers) {
-    carrier_map_t* m      = &args->carrier_map[cc_idx];
+  if (cc_idx != 0 && cc_idx < args.nof_carriers) {
+    carrier_map_t* m      = &args.carrier_map[cc_idx];
     srslte_cell_t  cell   = {};
     uint32_t       earfcn = 0;
 
@@ -463,8 +495,8 @@ void phy::set_config_scell(asn1::rrc::scell_to_add_mod_r10_s* scell_config)
       if (scell_earfcn[cc_idx - 1] != earfcn) {
         float dl_freq = srslte_band_fd(earfcn) * 1e6f;
         float ul_freq = srslte_band_fu(srslte_band_ul_earfcn(earfcn)) * 1e6f;
-        radio_handler->set_rx_freq(m->channel_idx, dl_freq);
-        radio_handler->set_tx_freq(m->channel_idx, ul_freq);
+        radio->set_rx_freq(m->channel_idx, dl_freq);
+        radio->set_tx_freq(m->channel_idx, ul_freq);
       }
     }
 
@@ -520,7 +552,7 @@ void phy::set_config_mbsfn_sib13(sib_type13_r9_s* sib13)
 void phy::set_config_mbsfn_mcch(mcch_msg_s* mcch)
 {
   common.mbsfn_config.mcch = *mcch;
-  mac->set_mbsfn_config(
+  stack->set_mbsfn_config(
       common.mbsfn_config.mcch.msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[0].mbms_session_info_list_r9.size());
   common.set_mch_period_stop(
       common.mbsfn_config.mcch.msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[0].pmch_cfg_r9.sf_alloc_end_r9);

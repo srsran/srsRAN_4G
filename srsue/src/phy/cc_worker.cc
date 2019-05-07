@@ -136,7 +136,7 @@ void cc_worker::reset()
   bzero(&dl_metrics, sizeof(dl_metrics_t));
   bzero(&ul_metrics, sizeof(ul_metrics_t));
 
-  phy_interface_rrc::phy_cfg_t empty_cfg = {};
+  phy_interface_rrc_lte::phy_cfg_t empty_cfg = {};
   // defaults
   empty_cfg.common.pucch_cnfg.delta_pucch_shift.value = pucch_cfg_common_s::delta_pucch_shift_opts::ds1;
   empty_cfg.common.ul_pwr_ctrl.alpha.value            = alpha_r12_opts::al0;
@@ -267,7 +267,7 @@ bool cc_worker::work_dl_regular()
 {
   bool dl_ack[SRSLTE_MAX_CODEWORDS];
 
-  mac_interface_phy::tb_action_dl_t dl_action;
+  mac_interface_phy_lte::tb_action_dl_t dl_action;
 
   bool found_dl_grant = false;
 
@@ -333,16 +333,16 @@ bool cc_worker::work_dl_regular()
     ue_dl_cfg.cfg.pdsch.rnti = dci_dl.rnti;
 
     // Generate MAC grant
-    mac_interface_phy::mac_grant_dl_t mac_grant;
+    mac_interface_phy_lte::mac_grant_dl_t mac_grant;
     dl_phy_to_mac_grant(&ue_dl_cfg.cfg.pdsch.grant, &dci_dl, &mac_grant);
 
     // Save ACK resource configuration
     srslte_pdsch_ack_resource_t ack_resource = {dci_dl.dai, dci_dl.location.ncce};
 
     // Send grant to MAC and get action for this TB, then call tb_decoded to unlock MAC
-    phy->mac->new_grant_dl(cc_idx, mac_grant, &dl_action);
+    phy->stack->new_grant_dl(cc_idx, mac_grant, &dl_action);
     decode_pdsch(ack_resource, &dl_action, dl_ack);
-    phy->mac->tb_decoded(cc_idx, mac_grant, dl_ack);
+    phy->stack->tb_decoded(cc_idx, mac_grant, dl_ack);
   }
 
   /* Decode PHICH */
@@ -353,7 +353,7 @@ bool cc_worker::work_dl_regular()
 
 bool cc_worker::work_dl_mbsfn(srslte_mbsfn_cfg_t mbsfn_cfg)
 {
-  mac_interface_phy::tb_action_dl_t dl_action;
+  mac_interface_phy_lte::tb_action_dl_t dl_action;
 
   // Configure MBSFN settings
   srslte_ue_dl_set_mbsfn_area_id(&ue_dl, mbsfn_cfg.mbsfn_area_id);
@@ -378,12 +378,12 @@ bool cc_worker::work_dl_mbsfn(srslte_mbsfn_cfg_t mbsfn_cfg)
     srslte_ra_dl_compute_nof_re(&cell, &sf_cfg_dl, &pmch_cfg.pdsch_cfg.grant);
 
     // Send grant to MAC and get action for this TB, then call tb_decoded to unlock MAC
-    phy->mac->new_mch_dl(pmch_cfg.pdsch_cfg.grant, &dl_action);
+    phy->stack->new_mch_dl(pmch_cfg.pdsch_cfg.grant, &dl_action);
     bool mch_decoded = true;
     if (!decode_pmch(&dl_action, &mbsfn_cfg)) {
       mch_decoded = false;
     }
-    phy->mac->mch_decoded((uint32_t)pmch_cfg.pdsch_cfg.grant.tb[0].tbs / 8, mch_decoded);
+    phy->stack->mch_decoded((uint32_t)pmch_cfg.pdsch_cfg.grant.tb[0].tbs / 8, mch_decoded);
   } else if (mbsfn_cfg.is_mcch) {
     // release lock in phy_common
     phy->set_mch_period_stop(0);
@@ -395,9 +395,9 @@ bool cc_worker::work_dl_mbsfn(srslte_mbsfn_cfg_t mbsfn_cfg)
   return true;
 }
 
-void cc_worker::dl_phy_to_mac_grant(srslte_pdsch_grant_t*                     phy_grant,
-                                    srslte_dci_dl_t*                          dl_dci,
-                                    srsue::mac_interface_phy::mac_grant_dl_t* mac_grant)
+void cc_worker::dl_phy_to_mac_grant(srslte_pdsch_grant_t*                         phy_grant,
+                                    srslte_dci_dl_t*                              dl_dci,
+                                    srsue::mac_interface_phy_lte::mac_grant_dl_t* mac_grant)
 {
   /* Fill MAC dci structure */
   mac_grant->pid  = dl_dci->pid;
@@ -423,7 +423,7 @@ int cc_worker::decode_pdcch_dl()
   srslte_dci_dl_t dci[SRSLTE_MAX_CARRIERS];
   ZERO_OBJECT(dci);
 
-  uint16_t dl_rnti = phy->mac->get_dl_sched_rnti(CURRENT_TTI);
+  uint16_t dl_rnti = phy->stack->get_dl_sched_rnti(CURRENT_TTI);
   if (dl_rnti) {
 
     /* Blind search first without cross scheduling then with it if enabled */
@@ -455,9 +455,9 @@ int cc_worker::decode_pdcch_dl()
   return nof_grants;
 }
 
-int cc_worker::decode_pdsch(srslte_pdsch_ack_resource_t        ack_resource,
-                            mac_interface_phy::tb_action_dl_t* action,
-                            bool                               mac_acks[SRSLTE_MAX_CODEWORDS])
+int cc_worker::decode_pdsch(srslte_pdsch_ack_resource_t            ack_resource,
+                            mac_interface_phy_lte::tb_action_dl_t* action,
+                            bool                                   mac_acks[SRSLTE_MAX_CODEWORDS])
 {
 
   srslte_pdsch_res_t pdsch_dec[SRSLTE_MAX_CODEWORDS];
@@ -516,7 +516,7 @@ int cc_worker::decode_pdsch(srslte_pdsch_ack_resource_t        ack_resource,
   return SRSLTE_SUCCESS;
 }
 
-int cc_worker::decode_pmch(mac_interface_phy::tb_action_dl_t* action, srslte_mbsfn_cfg_t* mbsfn_cfg)
+int cc_worker::decode_pmch(mac_interface_phy_lte::tb_action_dl_t* action, srslte_mbsfn_cfg_t* mbsfn_cfg)
 {
   srslte_pdsch_res_t pmch_dec;
 
@@ -670,8 +670,8 @@ bool cc_worker::work_ul(srslte_uci_data_t* uci_data)
   bool signal_ready;
 
   srslte_dci_ul_t                   dci_ul       = {};
-  mac_interface_phy::mac_grant_ul_t ul_mac_grant = {};
-  mac_interface_phy::tb_action_ul_t ul_action    = {};
+  mac_interface_phy_lte::mac_grant_ul_t ul_mac_grant = {};
+  mac_interface_phy_lte::tb_action_ul_t ul_action    = {};
   uint32_t                          pid          = 0;
 
   bool ul_grant_available = phy->get_ul_pending_grant(&sf_cfg_ul, cc_idx, &pid, &dci_ul);
@@ -711,7 +711,7 @@ bool cc_worker::work_ul(srslte_uci_data_t* uci_data)
     // Fill MAC dci
     ul_phy_to_mac_grant(&ue_ul_cfg.ul_cfg.pusch.grant, &dci_ul, pid, ul_grant_available, &ul_mac_grant);
 
-    phy->mac->new_grant_ul(cc_idx, ul_mac_grant, &ul_action);
+    phy->stack->new_grant_ul(cc_idx, ul_mac_grant, &ul_action);
 
     // Calculate PUSCH Hopping procedure
     ue_ul_cfg.ul_cfg.hopping.current_tx_nb = ul_action.current_tx_nb;
@@ -722,7 +722,7 @@ bool cc_worker::work_ul(srslte_uci_data_t* uci_data)
   if (ul_grant_available || ul_mac_grant.phich_available) {
     ue_ul_cfg.ul_cfg.pusch.rnti = dci_ul.rnti;
   } else {
-    ue_ul_cfg.ul_cfg.pucch.rnti = phy->mac->get_ul_sched_rnti(CURRENT_TTI_TX);
+    ue_ul_cfg.ul_cfg.pucch.rnti = phy->stack->get_ul_sched_rnti(CURRENT_TTI_TX);
   }
 
   // PCell sends SR and ACK
@@ -753,14 +753,14 @@ bool cc_worker::work_ul(srslte_uci_data_t* uci_data)
   return signal_ready;
 }
 
-void cc_worker::ul_phy_to_mac_grant(srslte_pusch_grant_t*                     phy_grant,
-                                    srslte_dci_ul_t*                          dci_ul,
-                                    uint32_t                                  pid,
-                                    bool                                      ul_grant_available,
-                                    srsue::mac_interface_phy::mac_grant_ul_t* mac_grant)
+void cc_worker::ul_phy_to_mac_grant(srslte_pusch_grant_t*                         phy_grant,
+                                    srslte_dci_ul_t*                              dci_ul,
+                                    uint32_t                                      pid,
+                                    bool                                          ul_grant_available,
+                                    srsue::mac_interface_phy_lte::mac_grant_ul_t* mac_grant)
 {
   if (mac_grant->phich_available && !dci_ul->rnti) {
-    mac_grant->rnti = phy->mac->get_ul_sched_rnti(CURRENT_TTI);
+    mac_grant->rnti = phy->stack->get_ul_sched_rnti(CURRENT_TTI);
   } else {
     mac_grant->rnti = dci_ul->rnti;
   }
@@ -778,7 +778,7 @@ int cc_worker::decode_pdcch_ul()
   srslte_dci_ul_t dci[SRSLTE_MAX_CARRIERS];
   ZERO_OBJECT(dci);
 
-  uint16_t ul_rnti = phy->mac->get_ul_sched_rnti(CURRENT_TTI);
+  uint16_t ul_rnti = phy->stack->get_ul_sched_rnti(CURRENT_TTI);
 
   if (ul_rnti) {
     /* Blind search first without cross scheduling then with it if enabled */
@@ -810,7 +810,7 @@ int cc_worker::decode_pdcch_ul()
   return nof_grants;
 }
 
-bool cc_worker::encode_uplink(mac_interface_phy::tb_action_ul_t* action, srslte_uci_data_t* uci_data)
+bool cc_worker::encode_uplink(mac_interface_phy_lte::tb_action_ul_t* action, srslte_uci_data_t* uci_data)
 {
   srslte_pusch_data_t data = {};
   ue_ul_cfg.cc_idx         = cc_idx;
@@ -838,7 +838,7 @@ bool cc_worker::encode_uplink(mac_interface_phy::tb_action_ul_t* action, srslte_
   ue_ul_cfg.grant_available = action->tb.enabled;
 
   // Set UL RNTI
-  ue_ul_cfg.ul_cfg.pucch.rnti = phy->mac->get_ul_sched_rnti(CURRENT_TTI_TX);
+  ue_ul_cfg.ul_cfg.pucch.rnti = phy->stack->get_ul_sched_rnti(CURRENT_TTI_TX);
 
   // Encode signal
   int ret = srslte_ue_ul_encode(&ue_ul, &sf_cfg_ul, &ue_ul_cfg, &data);
@@ -1020,9 +1020,9 @@ void cc_worker::parse_antenna_info(phys_cfg_ded_s* dedicated)
   }
 }
 
-void cc_worker::parse_pucch_config(phy_interface_rrc::phy_cfg_t* phy_cfg)
+void cc_worker::parse_pucch_config(phy_interface_rrc_lte::phy_cfg_t* phy_cfg)
 {
-  phy_interface_rrc::phy_cfg_common_t* common    = &phy_cfg->common;
+  phy_interface_rrc_lte::phy_cfg_common_t* common    = &phy_cfg->common;
   phys_cfg_ded_s*                      dedicated = &phy_cfg->dedicated;
 
   /* PUCCH configuration */
@@ -1123,9 +1123,9 @@ void cc_worker::parse_pucch_config(phy_interface_rrc::phy_cfg_t* phy_cfg)
 
 /* Translates RRC structs into PHY structs
  */
-void cc_worker::set_pcell_config(phy_interface_rrc::phy_cfg_t* phy_cfg)
+void cc_worker::set_pcell_config(phy_interface_rrc_lte::phy_cfg_t* phy_cfg)
 {
-  phy_interface_rrc::phy_cfg_common_t* common    = &phy_cfg->common;
+  phy_interface_rrc_lte::phy_cfg_common_t* common    = &phy_cfg->common;
   phys_cfg_ded_s*                      dedicated = &phy_cfg->dedicated;
 
   // Configure PDSCH

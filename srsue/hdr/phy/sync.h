@@ -46,23 +46,22 @@ public:
   sync();
   ~sync();
 
-  void init(srslte::radio*       radio_handler,
-            mac_interface_phy*   mac,
-            rrc_interface_phy*   rrc,
-            prach*               prach_buffer,
-            srslte::thread_pool* _workers_pool,
-            phy_common*          _worker_com,
-            srslte::log*         _log_h,
-            srslte::log*         _log_phy_lib_h,
-            async_scell_recv*    scell_sync_,
-            uint32_t             prio,
-            int                  sync_cpu_affinity = -1);
+  void init(radio_interface_phy*     radio_,
+            stack_interface_phy_lte* _stack,
+            prach*                   prach_buffer,
+            srslte::thread_pool*     _workers_pool,
+            phy_common*              _worker_com,
+            srslte::log*             _log_h,
+            srslte::log*             _log_phy_lib_h,
+            async_scell_recv*        scell_sync_,
+            uint32_t                 prio,
+            int                      sync_cpu_affinity = -1);
   void stop();
   void radio_overflow();
 
   // RRC interface for controling the SYNC state
-  phy_interface_rrc::cell_search_ret_t cell_search(phy_interface_rrc::phy_cell_t *cell);
-  bool    cell_select(phy_interface_rrc::phy_cell_t *cell);
+  phy_interface_rrc_lte::cell_search_ret_t cell_search(phy_interface_rrc_lte::phy_cell_t* cell);
+  bool                                     cell_select(phy_interface_rrc_lte::phy_cell_t* cell);
   bool    cell_is_camping();
 
   // RRC interface for controlling the neighbour cell measurement
@@ -210,7 +209,7 @@ private:
   public:
     intra_measure();
     ~intra_measure();
-    void init(phy_common* common, rrc_interface_phy* rrc, srslte::log* log_h);
+    void init(phy_common* common, rrc_interface_phy_lte* rrc, srslte::log* log_h);
     void stop();
     void add_cell(int pci);
     void rem_cell(int pci);
@@ -223,7 +222,7 @@ private:
     const static int INTRA_FREQ_MEAS_PRIO      = DEFAULT_PRIORITY + 5;
 
     scell_recv         scell;
-    rrc_interface_phy*  rrc;
+    rrc_interface_phy_lte* rrc;
     srslte::log        *log_h;
     phy_common*         common;
     uint32_t           current_earfcn;
@@ -273,12 +272,11 @@ private:
   int                   next_offset;
 
   // Pointers to other classes
-  mac_interface_phy    *mac;
-  rrc_interface_phy    *rrc;
+  stack_interface_phy_lte* stack;
   srslte::log          *log_h;
   srslte::log*          log_phy_lib_h;
   srslte::thread_pool*  workers_pool;
-  srslte::radio*        radio_h;
+  radio_interface_phy*     radio_h;
   phy_common*           worker_com;
   prach                *prach_buffer;
   async_scell_recv*     scell_sync;

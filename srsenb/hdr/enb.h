@@ -166,7 +166,7 @@ public:
   void handle_rf_msg(srslte_rf_error_t error);
 
   // eNodeB metrics interface
-  bool get_metrics(enb_metrics_t &m);
+  bool get_metrics(enb_metrics_t* m);
 
   void pregenerate_signals(bool enable);
 

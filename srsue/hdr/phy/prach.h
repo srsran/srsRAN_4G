@@ -53,7 +53,7 @@ namespace srsue {
     bool           is_pending();
     cf_t*          generate(float cfo, uint32_t *nof_sf, float *target_power = NULL);
 
-    phy_interface_mac::prach_info_t get_info();
+    phy_interface_mac_lte::prach_info_t get_info();
 
   private:
     const static int MAX_LEN_SF = 3;

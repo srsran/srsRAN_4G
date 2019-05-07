@@ -30,6 +30,7 @@
 #ifndef SRSLTE_LOG_H
 #define SRSLTE_LOG_H
 
+#include <algorithm>
 #include <stdint.h>
 #include <string>
 
@@ -99,6 +100,27 @@ public:
   void set_level(LOG_LEVEL_ENUM l) {
     level = l;
   }
+
+  void set_level(std::string l) { set_level(get_level_from_string(l)); }
+
+  srslte::LOG_LEVEL_ENUM get_level_from_string(std::string l)
+  {
+    std::transform(l.begin(), l.end(), l.begin(), ::toupper);
+    if ("NONE" == l) {
+      return srslte::LOG_LEVEL_NONE;
+    } else if ("ERROR" == l) {
+      return srslte::LOG_LEVEL_ERROR;
+    } else if ("WARNING" == l) {
+      return srslte::LOG_LEVEL_WARNING;
+    } else if ("INFO" == l) {
+      return srslte::LOG_LEVEL_INFO;
+    } else if ("DEBUG" == l) {
+      return srslte::LOG_LEVEL_DEBUG;
+    } else {
+      return srslte::LOG_LEVEL_NONE;
+    }
+  }
+
   LOG_LEVEL_ENUM get_level() {
     return level;
   }

@@ -63,7 +63,7 @@ void metrics_stdout::set_metrics(ue_metrics_t &metrics, const uint32_t period_us
   if(!do_print || ue == NULL)
     return;
 
-  if (!ue->is_attached()) {
+  if (!ue->is_rrc_connected()) {
     cout << "--- disconnected ---" << endl;
     return;
   }
@@ -84,9 +84,9 @@ void metrics_stdout::set_metrics(ue_metrics_t &metrics, const uint32_t period_us
     cout << float_to_string(metrics.phy.dl[r].sinr, 2);
     cout << float_to_string(metrics.phy.dl[r].turbo_iters, 2);
 
-    cout << float_to_eng_string((float)metrics.mac[r].rx_brate / period_usec * 1e6, 2);
-    if (metrics.mac[r].rx_pkts > 0) {
-      cout << float_to_string((float)100 * metrics.mac[r].rx_errors / metrics.mac[r].rx_pkts, 1) << "%";
+    cout << float_to_eng_string((float)metrics.stack.mac[r].rx_brate / period_usec * 1e6, 2);
+    if (metrics.stack.mac[r].rx_pkts > 0) {
+      cout << float_to_string((float)100 * metrics.stack.mac[r].rx_errors / metrics.stack.mac[r].rx_pkts, 1) << "%";
     } else {
       cout << float_to_string(0, 1) << "%";
     }
@@ -94,10 +94,10 @@ void metrics_stdout::set_metrics(ue_metrics_t &metrics, const uint32_t period_us
     cout << float_to_string(metrics.phy.sync.ta_us, 2);
 
     cout << float_to_string(metrics.phy.ul[r].mcs, 2);
-    cout << float_to_eng_string((float)metrics.mac[r].ul_buffer, 2);
-    cout << float_to_eng_string((float)metrics.mac[r].tx_brate / period_usec * 1e6, 2);
-    if (metrics.mac[r].tx_pkts > 0) {
-      cout << float_to_string((float)100 * metrics.mac[r].tx_errors / metrics.mac[r].tx_pkts, 1) << "%";
+    cout << float_to_eng_string((float)metrics.stack.mac[r].ul_buffer, 2);
+    cout << float_to_eng_string((float)metrics.stack.mac[r].tx_brate / period_usec * 1e6, 2);
+    if (metrics.stack.mac[r].tx_pkts > 0) {
+      cout << float_to_string((float)100 * metrics.stack.mac[r].tx_errors / metrics.stack.mac[r].tx_pkts, 1) << "%";
     } else {
       cout << float_to_string(0, 1) << "%";
     }

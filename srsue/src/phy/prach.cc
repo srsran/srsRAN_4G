@@ -191,9 +191,9 @@ bool prach::is_ready_to_send(uint32_t current_tti_) {
   return false;
 }
 
-phy_interface_mac::prach_info_t prach::get_info()
+phy_interface_mac_lte::prach_info_t prach::get_info()
 {
-  phy_interface_mac::prach_info_t info = {};
+  phy_interface_mac_lte::prach_info_t info = {};
 
   info.preamble_format = prach_obj.config_idx / 16;
   if (transmitted_tti >= 0) {

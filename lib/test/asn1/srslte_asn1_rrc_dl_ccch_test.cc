@@ -19,7 +19,7 @@
  *
  */
 
-#include "../../../srsue/hdr/rrc/rrc.h"
+#include "../../../srsue/hdr/stack/rrc/rrc.h"
 #include "srslte/asn1/rrc_asn1.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/log_filter.h"

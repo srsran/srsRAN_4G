@@ -1,6 +1,19 @@
 #####################################################################
 #                   srsUE configuration file
 #####################################################################
+#
+# General UE configuration
+#
+# radio:  Type of radio object to be used (multi)
+# phy:    Type of L1 object to be used (lte_soft)
+# stack:  Type of L2/L3 stack to be used (lte)
+#####################################################################
+[ue]
+#radio = multi
+#phy = lte_soft
+#stack = lte
+
+#####################################################################
 # RF configuration
 #
 # dl_earfcn: Downlink EARFCN code.
@@ -75,7 +88,7 @@ nas_filename = /tmp/nas.pcap
 # configured.
 # Format: e.g. phy_hex_limit = 32
 #
-# Logging layers: phy, mac, rlc, pdcp, rrc, nas, gw, usim, all
+# Logging layers: rf, phy, mac, rlc, pdcp, rrc, nas, gw, usim, all
 # Logging levels: debug, info, warning, error, none
 #
 # filename: File path to use for log output. Can be set to stdout
@@ -153,16 +166,22 @@ imei = 353490069873319
 #eia = 1,2
 #eea = 0,1,2
 
+#####################################################################
+# GW configuration
+#
+# tun_dev_name:         Name of the tun_srsue device. Default: tun_srsue
+# tun_dev_netmask:      Netmask of the tun_srsue device. Default: 255.255.255.0
+#####################################################################
+[gw]
+#tun_dev_name         = tun_srsue
+#tun_dev_netmask      = 255.255.255.0
+
 [gui]
 enable = false
 
 #####################################################################
 # Expert configuration options
 #
-# ip_netmask:           Netmask of the tun_srsue device. Default: 255.255.255.0
-# ip_devname:           Nanme of the tun_srsue device. Default: tun_srsue
-# rssi_sensor_enabled:  Enable or disable RF frontend RSSI sensor. Required for RSRP metrics but
-#                       can cause UHD instability for long-duration testing. Default true.
 # rx_gain_offset:       RX Gain offset to add to rx_gain to calibrate RSRP readings
 # prach_gain:           PRACH gain (dB). If defined, forces a gain for the tranmsission of PRACH only.,
 #                       Default is to use tx_gain in [rf] section. 

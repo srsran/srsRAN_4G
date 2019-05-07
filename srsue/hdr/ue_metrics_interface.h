@@ -24,11 +24,11 @@
 
 #include <stdint.h>
 
-#include "srslte/common/metrics_hub.h"
-#include "upper/gw_metrics.h"
-#include "srslte/upper/rlc_metrics.h"
-#include "mac/mac_metrics.h"
 #include "phy/phy_metrics.h"
+#include "srslte/common/metrics_hub.h"
+#include "srslte/upper/rlc_metrics.h"
+#include "stack/mac/mac_metrics.h"
+#include "stack/upper/gw_metrics.h"
 
 namespace srsue {
 
@@ -37,22 +37,26 @@ typedef struct {
   uint32_t rf_u;
   uint32_t rf_l;
   bool     rf_error;
-}rf_metrics_t;
+} rf_metrics_t;
 
 typedef struct {
-  rf_metrics_t          rf;
-  phy_metrics_t         phy;
   mac_metrics_t         mac[SRSLTE_MAX_CARRIERS];
   srslte::rlc_metrics_t rlc;
   gw_metrics_t          gw;
-}ue_metrics_t;
+} stack_metrics_t;
+
+typedef struct {
+  rf_metrics_t    rf;
+  phy_metrics_t   phy;
+  stack_metrics_t stack;
+} ue_metrics_t;
 
 // UE interface
 class ue_metrics_interface : public srslte::metrics_interface<ue_metrics_t>
 {
 public:
-  virtual bool get_metrics(ue_metrics_t &m) = 0;
-  virtual bool is_attached() = 0;
+  virtual bool get_metrics(ue_metrics_t* m) = 0;
+  virtual bool is_rrc_connected()           = 0;
 };
 
 } // namespace srsue

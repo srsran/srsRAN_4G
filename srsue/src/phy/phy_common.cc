@@ -50,7 +50,7 @@ phy_common::phy_common(uint32_t max_workers) : tx_sem(max_workers)
   args              = NULL;
   log_h             = NULL;
   radio_h           = NULL;
-  mac               = NULL;
+  stack             = NULL;
   this->max_workers = max_workers;
   rx_gain_offset    = 0;
   // have_mtch_stop = false;
@@ -114,13 +114,14 @@ void phy_common::set_nof_workers(uint32_t nof_workers)
   this->nof_workers = nof_workers;
 }
 
-void phy_common::init(
-    phy_args_t* _args, srslte::log* _log, srslte::radio* _radio, rrc_interface_phy* _rrc, mac_interface_phy* _mac)
+void phy_common::init(phy_args_t*              _args,
+                      srslte::log*             _log,
+                      radio_interface_phy*     _radio,
+                      stack_interface_phy_lte* _stack)
 {
   log_h          = _log;
   radio_h        = _radio;
-  rrc            = _rrc;
-  mac            = _mac;
+  stack          = _stack;
   args           = _args;
   is_first_tx    = true;
   sr_last_tx_tti = -1;
@@ -128,7 +129,6 @@ void phy_common::init(
 
 void phy_common::set_ue_dl_cfg(srslte_ue_dl_cfg_t* ue_dl_cfg)
 {
-
   ue_dl_cfg->snr_to_cqi_offset = args->snr_to_cqi_offset;
 
   srslte_chest_dl_cfg_t* chest_cfg = &ue_dl_cfg->chest_cfg;
@@ -176,7 +176,7 @@ void phy_common::set_ue_ul_cfg(srslte_ue_ul_cfg_t* ue_ul_cfg)
   ue_ul_cfg->ul_cfg.pucch.ack_nack_feedback_mode = SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_NORMAL;
 }
 
-srslte::radio* phy_common::get_radio()
+radio_interface_phy* phy_common::get_radio()
 {
   return radio_h;
 }
@@ -564,7 +564,6 @@ void phy_common::worker_end(uint32_t           tti,
 
   // For each radio, transmit
   for (uint32_t i = 0; i < args->nof_radios; i++) {
-    radio_h[i].set_tti(tti);
     if (tx_enable && !srslte_timestamp_iszero(&tx_time[i])) {
       radio_h[i].tx(buffer[i], nof_samples[i], tx_time[i]);
       is_first_of_burst[i] = false;

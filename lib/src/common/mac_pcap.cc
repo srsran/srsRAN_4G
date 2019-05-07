@@ -24,8 +24,6 @@
 #include "srslte/common/pcap.h"
 #include "srslte/common/mac_pcap.h"
 
-
-
 namespace srslte {
  
 void mac_pcap::enable(bool en)
@@ -40,6 +38,7 @@ void mac_pcap::open(const char* filename, uint32_t ue_id)
 }
 void mac_pcap::close()
 {
+  enable_write = false;
   fprintf(stdout, "Saving MAC PCAP file\n");
   LTE_PCAP_Close(pcap_file);
 }

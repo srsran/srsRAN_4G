@@ -53,10 +53,9 @@ class phy_common
 public:
   /* Common variables used by all phy workers */
   phy_args_t*        args;
-  rrc_interface_phy* rrc;
-  mac_interface_phy* mac;
+  stack_interface_phy_lte* stack;
 
-  phy_interface_rrc::phy_cfg_mbsfn_t mbsfn_config;
+  phy_interface_rrc_lte::phy_cfg_mbsfn_t mbsfn_config;
 
   /* Power control variables */
   float pathloss[SRSLTE_MAX_CARRIERS];
@@ -68,7 +67,6 @@ public:
   float avg_rsrp_dbm[SRSLTE_MAX_CARRIERS];
   float avg_rsrq_db;
   float avg_rssi_dbm;
-  float last_radio_rssi;
   float rx_gain_offset;
   float avg_snr_db_cqi[SRSLTE_MAX_CARRIERS];
   float avg_snr_db_sync;
@@ -96,8 +94,7 @@ public:
 
   ~phy_common();
 
-  void
-  init(phy_args_t* args, srslte::log* _log, srslte::radio* _radio, rrc_interface_phy* rrc, mac_interface_phy* _mac);
+  void init(phy_args_t* args, srslte::log* _log, radio_interface_phy* _radio, stack_interface_phy_lte* _stack);
 
   uint32_t ul_pidof(uint32_t tti, srslte_tdd_config_t* tdd_config);
 
@@ -144,7 +141,7 @@ public:
   bool sr_enabled;
   int  sr_last_tx_tti;
 
-  srslte::radio* get_radio();
+  radio_interface_phy* get_radio();
 
   void     set_cell(const srslte_cell_t& c);
   uint32_t get_nof_prb();
@@ -177,7 +174,7 @@ private:
   uint32_t           max_workers;
 
   bool           is_first_of_burst[SRSLTE_MAX_RADIOS];
-  srslte::radio* radio_h;
+  radio_interface_phy* radio_h;
   float          cfo;
   srslte::log*   log_h;
 

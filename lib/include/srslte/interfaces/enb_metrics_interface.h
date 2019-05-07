@@ -24,14 +24,14 @@
 
 #include <stdint.h>
 
-#include "srslte/common/metrics_hub.h"
-#include "srsenb/hdr/upper/common_enb.h"
-#include "srsenb/hdr/upper/s1ap_metrics.h"
-#include "srsenb/hdr/upper/rrc_metrics.h"
-#include "srsue/hdr/upper/gw_metrics.h"
-#include "srslte/upper/rlc_metrics.h"
 #include "srsenb/hdr/mac/mac_metrics.h"
 #include "srsenb/hdr/phy/phy_metrics.h"
+#include "srsenb/hdr/upper/common_enb.h"
+#include "srsenb/hdr/upper/rrc_metrics.h"
+#include "srsenb/hdr/upper/s1ap_metrics.h"
+#include "srslte/common/metrics_hub.h"
+#include "srslte/upper/rlc_metrics.h"
+#include "srsue/hdr/stack/upper/gw_metrics.h"
 
 namespace srsenb {
   
@@ -55,7 +55,7 @@ typedef struct {
 class enb_metrics_interface : public srslte::metrics_interface<enb_metrics_t>
 {
 public:
-  virtual bool get_metrics(enb_metrics_t &m) = 0;
+  virtual bool get_metrics(enb_metrics_t* m) = 0;
 };
 
 } // namespace srsenb

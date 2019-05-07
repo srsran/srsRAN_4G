@@ -54,7 +54,6 @@ string config_file;
 
 void parse_args(all_args_t* args, int argc, char* argv[])
 {
-
   // Command line only options
   bpo::options_description general("General options");
 
@@ -66,10 +65,14 @@ void parse_args(all_args_t* args, int argc, char* argv[])
   bpo::options_description common("Configuration options");
   // clang-format off
   common.add_options()
-    ("rf.dl_earfcn", bpo::value<string>(&args->rf.dl_earfcn)->default_value("3400"), "Downlink EARFCN list")
+    ("ue.radio", bpo::value<string>(&args->rf.type)->default_value("multi"), "Type of the radio [multi]")
+    ("ue.phy", bpo::value<string>(&args->phy.type)->default_value("lte"), "Type of the PHY [lte]")
+    ("ue.stack", bpo::value<string>(&args->stack.type)->default_value("lte"), "Type of the upper stack [lte]")
+
+    ("rf.dl_earfcn", bpo::value<string>(&args->phy.dl_earfcn)->default_value("3400"), "Downlink EARFCN list")
     ("rf.freq_offset", bpo::value<float>(&args->rf.freq_offset)->default_value(0), "(optional) Frequency offset")
-    ("rf.dl_freq",     bpo::value<float>(&args->rf.dl_freq)->default_value(-1),      "Downlink Frequency (if positive overrides EARFCN)")
-    ("rf.ul_freq",     bpo::value<float>(&args->rf.ul_freq)->default_value(-1),      "Uplink Frequency (if positive overrides EARFCN)")
+    ("rf.dl_freq",     bpo::value<float>(&args->phy.dl_freq)->default_value(-1),      "Downlink Frequency (if positive overrides EARFCN)")
+    ("rf.ul_freq",     bpo::value<float>(&args->phy.ul_freq)->default_value(-1),      "Uplink Frequency (if positive overrides EARFCN)")
     ("rf.rx_gain", bpo::value<float>(&args->rf.rx_gain)->default_value(-1), "Front-end receiver gain")
     ("rf.tx_gain", bpo::value<float>(&args->rf.tx_gain)->default_value(-1), "Front-end transmitter gain")
     ("rf.nof_radios", bpo::value<uint32_t>(&args->rf.nof_radios)->default_value(1), "Number of available RF devices")
@@ -84,7 +87,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("rf.burst_preamble_us", bpo::value<string>(&args->rf.burst_preamble)->default_value("auto"), "Transmission time advance")
     ("rf.continuous_tx", bpo::value<string>(&args->rf.continuous_tx)->default_value("auto"), "Transmit samples continuously to the radio or on bursts (auto/yes/no). Default is auto (yes for UHD, no for rest)")
 
-    ("rrc.feature_group", bpo::value<uint32_t>(&args->rrc.feature_group)->default_value(0xe6041000), "Hex value of the featureGroupIndicators field in the"
+    ("rrc.feature_group", bpo::value<uint32_t>(&args->stack.rrc.feature_group)->default_value(0xe6041000), "Hex value of the featureGroupIndicators field in the"
                                                                                            "UECapabilityInformation message. Default 0xe6041000")
     ("rrc.ue_category",       bpo::value<string>(&args->stack.rrc.ue_category_str)->default_value(SRSLTE_UE_CATEGORY_DEFAULT),  "UE Category (1 to 10)")
     ("rrc.release",           bpo::value<uint32_t>(&args->stack.rrc.release)->default_value(SRSLTE_RELEASE_DEFAULT),  "UE Release (8 to 10)")
@@ -106,23 +109,24 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     
     ("gui.enable", bpo::value<bool>(&args->gui.enable)->default_value(false), "Enable GUI plots")
 
-    ("log.phy_level", bpo::value<string>(&args->log.phy_level), "PHY log level")
-    ("log.phy_lib_level", bpo::value<string>(&args->log.phy_lib_level), "PHY lib log level")
-    ("log.phy_hex_limit", bpo::value<int>(&args->log.phy_hex_limit), "PHY log hex dump limit")
-    ("log.mac_level", bpo::value<string>(&args->log.mac_level), "MAC log level")
-    ("log.mac_hex_limit", bpo::value<int>(&args->log.mac_hex_limit), "MAC log hex dump limit")
-    ("log.rlc_level", bpo::value<string>(&args->log.rlc_level), "RLC log level")
-    ("log.rlc_hex_limit", bpo::value<int>(&args->log.rlc_hex_limit), "RLC log hex dump limit")
-    ("log.pdcp_level", bpo::value<string>(&args->log.pdcp_level), "PDCP log level")
-    ("log.pdcp_hex_limit", bpo::value<int>(&args->log.pdcp_hex_limit), "PDCP log hex dump limit")
-    ("log.rrc_level", bpo::value<string>(&args->log.rrc_level), "RRC log level")
-    ("log.rrc_hex_limit", bpo::value<int>(&args->log.rrc_hex_limit), "RRC log hex dump limit")
-    ("log.gw_level", bpo::value<string>(&args->log.gw_level), "GW log level")
-    ("log.gw_hex_limit", bpo::value<int>(&args->log.gw_hex_limit), "GW log hex dump limit")
-    ("log.nas_level", bpo::value<string>(&args->log.nas_level), "NAS log level")
-    ("log.nas_hex_limit", bpo::value<int>(&args->log.nas_hex_limit), "NAS log hex dump limit")
-    ("log.usim_level", bpo::value<string>(&args->log.usim_level), "USIM log level")
-    ("log.usim_hex_limit", bpo::value<int>(&args->log.usim_hex_limit), "USIM log hex dump limit")
+    ("log.rf_level", bpo::value<string>(&args->rf.log_level)->default_value("error"), "RF log level")
+    ("log.phy_level", bpo::value<string>(&args->phy.log.phy_level), "PHY log level")
+    ("log.phy_lib_level", bpo::value<string>(&args->phy.log.phy_lib_level), "PHY lib log level")
+    ("log.phy_hex_limit", bpo::value<int>(&args->phy.log.phy_hex_limit), "PHY log hex dump limit")
+    ("log.mac_level", bpo::value<string>(&args->stack.log.mac_level), "MAC log level")
+    ("log.mac_hex_limit", bpo::value<int>(&args->stack.log.mac_hex_limit), "MAC log hex dump limit")
+    ("log.rlc_level", bpo::value<string>(&args->stack.log.rlc_level), "RLC log level")
+    ("log.rlc_hex_limit", bpo::value<int>(&args->stack.log.rlc_hex_limit), "RLC log hex dump limit")
+    ("log.pdcp_level", bpo::value<string>(&args->stack.log.pdcp_level), "PDCP log level")
+    ("log.pdcp_hex_limit", bpo::value<int>(&args->stack.log.pdcp_hex_limit), "PDCP log hex dump limit")
+    ("log.rrc_level", bpo::value<string>(&args->stack.log.rrc_level), "RRC log level")
+    ("log.rrc_hex_limit", bpo::value<int>(&args->stack.log.rrc_hex_limit), "RRC log hex dump limit")
+    ("log.gw_level", bpo::value<string>(&args->stack.log.gw_level), "GW log level")
+    ("log.gw_hex_limit", bpo::value<int>(&args->stack.log.gw_hex_limit), "GW log hex dump limit")
+    ("log.nas_level", bpo::value<string>(&args->stack.log.nas_level), "NAS log level")
+    ("log.nas_hex_limit", bpo::value<int>(&args->stack.log.nas_hex_limit), "NAS log hex dump limit")
+    ("log.usim_level", bpo::value<string>(&args->stack.log.usim_level), "USIM log level")
+    ("log.usim_hex_limit", bpo::value<int>(&args->stack.log.usim_hex_limit), "USIM log hex dump limit")
 
     ("log.all_level", bpo::value<string>(&args->log.all_level)->default_value("info"), "ALL log level")
     ("log.all_hex_limit", bpo::value<int>(&args->log.all_hex_limit)->default_value(32), "ALL log hex dump limit")
@@ -130,35 +134,26 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("log.filename", bpo::value<string>(&args->log.filename)->default_value("/tmp/ue.log"), "Log filename")
     ("log.file_max_size", bpo::value<int>(&args->log.file_max_size)->default_value(-1), "Maximum file size (in kilobytes). When passed, multiple files are created. Default -1 (single file)")
 
-    ("usim.mode", bpo::value<string>(&args->usim.mode)->default_value("soft"), "USIM mode (soft or pcsc)")
-    ("usim.algo", bpo::value<string>(&args->usim.algo), "USIM authentication algorithm")
-    ("usim.op", bpo::value<string>(&args->usim.op), "USIM operator code")
-    ("usim.opc", bpo::value<string>(&args->usim.opc), "USIM operator code (ciphered variant)")
-    ("usim.imsi", bpo::value<string>(&args->usim.imsi), "USIM IMSI")
-    ("usim.imei", bpo::value<string>(&args->usim.imei), "USIM IMEI")
-    ("usim.k", bpo::value<string>(&args->usim.k), "USIM K")
-    ("usim.pin", bpo::value<string>(&args->usim.pin), "PIN in case real SIM card is used")
-    ("usim.reader", bpo::value<string>(&args->usim.reader)->default_value(""), "Force specific PCSC reader. Default: Try all available readers.")
+    ("usim.mode", bpo::value<string>(&args->stack.usim.mode)->default_value("soft"), "USIM mode (soft or pcsc)")
+    ("usim.algo", bpo::value<string>(&args->stack.usim.algo), "USIM authentication algorithm")
+    ("usim.op", bpo::value<string>(&args->stack.usim.op), "USIM operator code")
+    ("usim.opc", bpo::value<string>(&args->stack.usim.opc), "USIM operator code (ciphered variant)")
+    ("usim.imsi", bpo::value<string>(&args->stack.usim.imsi), "USIM IMSI")
+    ("usim.imei", bpo::value<string>(&args->stack.usim.imei), "USIM IMEI")
+    ("usim.k", bpo::value<string>(&args->stack.usim.k), "USIM K")
+    ("usim.pin", bpo::value<string>(&args->stack.usim.pin), "PIN in case real SIM card is used")
+    ("usim.reader", bpo::value<string>(&args->stack.usim.reader)->default_value(""), "Force specific PCSC reader. Default: Try all available readers.")
+
+    ("gw.ip_devname", bpo::value<string>(&args->stack.gw.tun_dev_name)->default_value("tun_srsue"), "Name of the tun_srsue device")
+    ("gw.ip_netmask", bpo::value<string>(&args->stack.gw.tun_dev_netmask)->default_value("255.255.255.0"), "Netmask of the tun_srsue device")
 
     /* Expert section */
-    ("expert.ip_netmask",
-     bpo::value<string>(&args->expert.ip_netmask)->default_value("255.255.255.0"),
-     "Netmask of the tun_srsue device")
-
-    ("expert.ip_devname",
-     bpo::value<string>(&args->expert.ip_devname)->default_value("tun_srsue"),
-     "Name of the tun_srsue device")
-
-     ("expert.mbms_service",
-     bpo::value<int>(&args->expert.mbms_service)->default_value(-1),
-     "automatically starts an mbms service of the number given")
-
     ("expert.phy.worker_cpu_mask",
-     bpo::value<int>(&args->expert.phy.worker_cpu_mask)->default_value(-1),
+     bpo::value<int>(&args->phy.worker_cpu_mask)->default_value(-1),
      "cpu bit mask (eg 255 = 1111 1111)")
 
     ("expert.phy.sync_cpu_affinity",
-     bpo::value<int>(&args->expert.phy.sync_cpu_affinity)->default_value(-1),
+     bpo::value<int>(&args->phy.sync_cpu_affinity)->default_value(-1),
      "index of the core used by the sync thread")
 
     ("expert.metrics_period_secs",
@@ -174,113 +169,105 @@ void parse_args(all_args_t* args, int argc, char* argv[])
      "Metrics CSV filename")
 
     ("expert.pregenerate_signals",
-     bpo::value<bool>(&args->expert.pregenerate_signals)->default_value(false),
+     bpo::value<bool>(&args->phy.pregenerate_signals)->default_value(false),
      "Pregenerate uplink signals after attach. Improves CPU performance.")
 
-    ("expert.print_buffer_state",
-     bpo::value<bool>(&args->expert.print_buffer_state)->default_value(false),
-     "Prints on the console the buffer state every 10 seconds")
-
-    ("expert.rssi_sensor_enabled",
-     bpo::value<bool>(&args->expert.phy.rssi_sensor_enabled)->default_value(false),
-     "Enable or disable RF frontend RSSI sensor. In some USRP devices can cause segmentation fault")
-
     ("expert.rx_gain_offset",
-     bpo::value<float>(&args->expert.phy.rx_gain_offset)->default_value(62),
+     bpo::value<float>(&args->phy.rx_gain_offset)->default_value(62),
      "RX Gain offset to add to rx_gain to correct RSRP value")
 
       ("expert.prach_gain",
-     bpo::value<float>(&args->expert.phy.prach_gain)->default_value(-1.0),
+     bpo::value<float>(&args->phy.prach_gain)->default_value(-1.0),
      "Disable PRACH power control")
 
     ("expert.cqi_max",
-     bpo::value<int>(&args->expert.phy.cqi_max)->default_value(15),
+     bpo::value<int>(&args->phy.cqi_max)->default_value(15),
      "Upper bound on the maximum CQI to be reported. Default 15.")
 
     ("expert.cqi_fixed",
-     bpo::value<int>(&args->expert.phy.cqi_fixed)->default_value(-1),
+     bpo::value<int>(&args->phy.cqi_fixed)->default_value(-1),
      "Fixes the reported CQI to a constant value. Default disabled.")
 
     ("expert.sfo_correct_period",
-     bpo::value<uint32_t>(&args->expert.phy.sfo_correct_period)->default_value(DEFAULT_SAMPLE_OFFSET_CORRECT_PERIOD),
+     bpo::value<uint32_t>(&args->phy.sfo_correct_period)->default_value(DEFAULT_SAMPLE_OFFSET_CORRECT_PERIOD),
      "Period in ms to correct sample time")
 
     ("expert.sfo_emma",
-     bpo::value<float>(&args->expert.phy.sfo_ema)->default_value(DEFAULT_SFO_EMA_COEFF),
+     bpo::value<float>(&args->phy.sfo_ema)->default_value(DEFAULT_SFO_EMA_COEFF),
      "EMA coefficient to average sample offsets used to compute SFO")
 
     ("expert.snr_ema_coeff",
-     bpo::value<float>(&args->expert.phy.snr_ema_coeff)->default_value(0.1),
+     bpo::value<float>(&args->phy.snr_ema_coeff)->default_value(0.1),
      "Sets the SNR exponential moving average coefficient (Default 0.1)")
 
     ("expert.snr_estim_alg",
-     bpo::value<string>(&args->expert.phy.snr_estim_alg)->default_value("refs"),
+     bpo::value<string>(&args->phy.snr_estim_alg)->default_value("refs"),
      "Sets the noise estimation algorithm. (Default refs)")
 
     ("expert.pdsch_max_its",
-     bpo::value<int>(&args->expert.phy.pdsch_max_its)->default_value(8),
+     bpo::value<int>(&args->phy.pdsch_max_its)->default_value(8),
      "Maximum number of turbo decoder iterations")
 
     ("expert.nof_phy_threads",
-     bpo::value<int>(&args->expert.phy.nof_phy_threads)->default_value(3),
+     bpo::value<int>(&args->phy.nof_phy_threads)->default_value(3),
      "Number of PHY threads")
 
     ("expert.equalizer_mode",
-     bpo::value<string>(&args->expert.phy.equalizer_mode)->default_value("mmse"),
+     bpo::value<string>(&args->phy.equalizer_mode)->default_value("mmse"),
      "Equalizer mode")
 
     ("expert.intra_freq_meas_len_ms",
-       bpo::value<uint32_t>(&args->expert.phy.intra_freq_meas_len_ms)->default_value(20),
+       bpo::value<uint32_t>(&args->phy.intra_freq_meas_len_ms)->default_value(20),
        "Duration of the intra-frequency neighbour cell measurement in ms.")
 
     ("expert.intra_freq_meas_period_ms",
-       bpo::value<uint32_t>(&args->expert.phy.intra_freq_meas_period_ms)->default_value(200),
+       bpo::value<uint32_t>(&args->phy.intra_freq_meas_period_ms)->default_value(200),
        "Period of intra-frequency neighbour cell measurement in ms. Maximum as per 3GPP is 200 ms.")
 
     ("expert.cfo_is_doppler",
-       bpo::value<bool>(&args->expert.phy.cfo_is_doppler)->default_value(false),
+       bpo::value<bool>(&args->phy.cfo_is_doppler)->default_value(false),
        "Assume detected CFO is doppler and correct the UL in the same direction. If disabled, the CFO is assumed"
         "to be caused by the local oscillator and the UL correction is in the opposite direction. Default assumes oscillator.")
 
     ("expert.cfo_integer_enabled",
-     bpo::value<bool>(&args->expert.phy.cfo_integer_enabled)->default_value(false),
+     bpo::value<bool>(&args->phy.cfo_integer_enabled)->default_value(false),
      "Enables integer CFO estimation and correction.")
 
     ("expert.cfo_correct_tol_hz",
-     bpo::value<float>(&args->expert.phy.cfo_correct_tol_hz)->default_value(1.0),
+     bpo::value<float>(&args->phy.cfo_correct_tol_hz)->default_value(1.0),
      "Tolerance (in Hz) for digital CFO compensation (needs to be low if interpolate_subframe_enabled=true.")
 
     ("expert.cfo_pss_ema",
-     bpo::value<float>(&args->expert.phy.cfo_pss_ema)->default_value(DEFAULT_CFO_EMA_TRACK),
+     bpo::value<float>(&args->phy.cfo_pss_ema)->default_value(DEFAULT_CFO_EMA_TRACK),
      "CFO Exponential Moving Average coefficient for PSS estimation during TRACK.")
 
     ("expert.cfo_ref_mask",
-     bpo::value<uint32_t>(&args->expert.phy.cfo_ref_mask)->default_value(1023),
+     bpo::value<uint32_t>(&args->phy.cfo_ref_mask)->default_value(1023),
      "Bitmask for subframes on which to run RS estimation (set to 0 to disable, default all sf)")
 
     ("expert.cfo_loop_bw_pss",
-     bpo::value<float>(&args->expert.phy.cfo_loop_bw_pss)->default_value(DEFAULT_CFO_BW_PSS),
+     bpo::value<float>(&args->phy.cfo_loop_bw_pss)->default_value(DEFAULT_CFO_BW_PSS),
      "CFO feedback loop bandwidth for samples from PSS")
 
     ("expert.cfo_loop_bw_ref",
-     bpo::value<float>(&args->expert.phy.cfo_loop_bw_ref)->default_value(DEFAULT_CFO_BW_REF),
+     bpo::value<float>(&args->phy.cfo_loop_bw_ref)->default_value(DEFAULT_CFO_BW_REF),
      "CFO feedback loop bandwidth for samples from RS")
 
     ("expert.cfo_loop_pss_tol",
-     bpo::value<float>(&args->expert.phy.cfo_loop_pss_tol)->default_value(DEFAULT_CFO_PSS_MIN),
+     bpo::value<float>(&args->phy.cfo_loop_pss_tol)->default_value(DEFAULT_CFO_PSS_MIN),
      "Tolerance (in Hz) of the PSS estimation method. Below this value, PSS estimation does not feeds back the loop"
        "and RS estimations are used instead (when available)")
 
     ("expert.cfo_loop_ref_min",
-     bpo::value<float>(&args->expert.phy.cfo_loop_ref_min)->default_value(DEFAULT_CFO_REF_MIN),
+     bpo::value<float>(&args->phy.cfo_loop_ref_min)->default_value(DEFAULT_CFO_REF_MIN),
      "Tolerance (in Hz) of the RS estimation method. Below this value, RS estimation does not feeds back the loop")
 
     ("expert.cfo_loop_pss_conv",
-     bpo::value<uint32_t>(&args->expert.phy.cfo_loop_pss_conv)->default_value(DEFAULT_PSS_STABLE_TIMEOUT),
+     bpo::value<uint32_t>(&args->phy.cfo_loop_pss_conv)->default_value(DEFAULT_PSS_STABLE_TIMEOUT),
      "After the PSS estimation is below cfo_loop_pss_tol for cfo_loop_pss_timeout times consecutively, RS adjustments are allowed.")
 
     ("expert.sic_pss_enabled",
-     bpo::value<bool>(&args->expert.phy.sic_pss_enabled)->default_value(false),
+     bpo::value<bool>(&args->phy.sic_pss_enabled)->default_value(false),
      "Applies Successive Interference Cancellation to PSS signals when searching for neighbour cells. Must be disabled if cells have identical channel and timing.")
 
     ("phy.interpolate_subframe_enabled",
@@ -288,31 +275,31 @@ void parse_args(all_args_t* args, int argc, char* argv[])
      "Interpolates in the time domain the channel estimates within 1 subframe.")
 
     ("expert.estimator_fil_auto",
-     bpo::value<bool>(&args->expert.phy.estimator_fil_auto)->default_value(false),
+     bpo::value<bool>(&args->phy.estimator_fil_auto)->default_value(false),
      "The channel estimator smooths the channel estimate with an adaptative filter.")
 
     ("expert.estimator_fil_stddev",
-     bpo::value<float>(&args->expert.phy.estimator_fil_stddev)->default_value(1.0f),
+     bpo::value<float>(&args->phy.estimator_fil_stddev)->default_value(1.0f),
      "Sets the channel estimator smooth gaussian filter standard deviation.")
 
     ("expert.estimator_fil_order",
-     bpo::value<uint32_t>(&args->expert.phy.estimator_fil_order)->default_value(4),
+     bpo::value<uint32_t>(&args->phy.estimator_fil_order)->default_value(4),
      "Sets the channel estimator smooth gaussian filter order (even values perform better).")
 
     ("expert.snr_to_cqi_offset",
-     bpo::value<float>(&args->expert.phy.snr_to_cqi_offset)->default_value(0),
+     bpo::value<float>(&args->phy.snr_to_cqi_offset)->default_value(0),
      "Sets an offset in the SNR to CQI table. This is used to adjust the reported CQI.")
 
     ("expert.sss_algorithm",
-     bpo::value<string>(&args->expert.phy.sss_algorithm)->default_value("full"),
+     bpo::value<string>(&args->phy.sss_algorithm)->default_value("full"),
      "Selects the SSS estimation algorithm.")
 
     ("expert.pdsch_csi_enabled",
-     bpo::value<bool>(&args->expert.phy.pdsch_csi_enabled)->default_value(true),
+     bpo::value<bool>(&args->phy.pdsch_csi_enabled)->default_value(true),
      "Stores the Channel State Information and uses it for weightening the softbits. It is only used in TM1.")
 
     ("expert.pdsch_8bit_decoder",
-       bpo::value<bool>(&args->expert.phy.pdsch_8bit_decoder)->default_value(false),
+       bpo::value<bool>(&args->phy.pdsch_8bit_decoder)->default_value(false),
        "Use 8-bit for LLR representation and turbo decoder trellis computation (Experimental)");
 
   // Positional options - config file location
@@ -383,88 +370,68 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     cout << "Conflicting options OP and OPc. Please configure either one or the other." << endl;
     exit(1);
   } else {
-    args->usim.using_op = vm.count("usim.op");
+    args->stack.usim.using_op = vm.count("usim.op");
   }
 
   // Apply all_level to any unset layers
   if (vm.count("log.all_level")) {
     if (!vm.count("log.phy_level")) {
-      args->log.phy_level = args->log.all_level;
+      args->rf.log_level = args->log.all_level;
+    }
+    if (!vm.count("log.phy_level")) {
+      args->phy.log.phy_level = args->log.all_level;
     }
     if (!vm.count("log.phy_lib_level")) {
-      args->log.phy_lib_level = args->log.all_level;
+      args->phy.log.phy_lib_level = args->log.all_level;
     }
     if (!vm.count("log.mac_level")) {
-      args->log.mac_level = args->log.all_level;
+      args->stack.log.mac_level = args->log.all_level;
     }
     if (!vm.count("log.rlc_level")) {
-      args->log.rlc_level = args->log.all_level;
+      args->stack.log.rlc_level = args->log.all_level;
     }
     if (!vm.count("log.pdcp_level")) {
-      args->log.pdcp_level = args->log.all_level;
+      args->stack.log.pdcp_level = args->log.all_level;
     }
     if (!vm.count("log.rrc_level")) {
-      args->log.rrc_level = args->log.all_level;
+      args->stack.log.rrc_level = args->log.all_level;
     }
     if (!vm.count("log.nas_level")) {
-      args->log.nas_level = args->log.all_level;
+      args->stack.log.nas_level = args->log.all_level;
     }
     if (!vm.count("log.gw_level")) {
-      args->log.gw_level = args->log.all_level;
+      args->stack.log.gw_level = args->log.all_level;
     }
     if (!vm.count("log.usim_level")) {
-      args->log.usim_level = args->log.all_level;
+      args->stack.log.usim_level = args->log.all_level;
     }
   }
 
   // Apply all_hex_limit to any unset layers
   if (vm.count("log.all_hex_limit")) {
     if (!vm.count("log.phy_hex_limit")) {
-      args->log.phy_hex_limit = args->log.all_hex_limit;
+      args->phy.log.phy_hex_limit = args->log.all_hex_limit;
     }
     if (!vm.count("log.mac_hex_limit")) {
-      args->log.mac_hex_limit = args->log.all_hex_limit;
+      args->stack.log.mac_hex_limit = args->log.all_hex_limit;
     }
     if (!vm.count("log.rlc_hex_limit")) {
-      args->log.rlc_hex_limit = args->log.all_hex_limit;
+      args->stack.log.rlc_hex_limit = args->log.all_hex_limit;
     }
     if (!vm.count("log.pdcp_hex_limit")) {
-      args->log.pdcp_hex_limit = args->log.all_hex_limit;
+      args->stack.log.pdcp_hex_limit = args->log.all_hex_limit;
     }
     if (!vm.count("log.rrc_hex_limit")) {
-      args->log.rrc_hex_limit = args->log.all_hex_limit;
+      args->stack.log.rrc_hex_limit = args->log.all_hex_limit;
     }
     if (!vm.count("log.nas_hex_limit")) {
-      args->log.nas_hex_limit = args->log.all_hex_limit;
+      args->stack.log.nas_hex_limit = args->log.all_hex_limit;
     }
     if (!vm.count("log.gw_hex_limit")) {
-      args->log.gw_hex_limit = args->log.all_hex_limit;
+      args->stack.log.gw_hex_limit = args->log.all_hex_limit;
     }
     if (!vm.count("log.usim_hex_limit")) {
-      args->log.usim_hex_limit = args->log.all_hex_limit;
-    }
-  }
-
-  if (args->expert.mbms_service > -1) {
-    if (!args->expert.phy.interpolate_subframe_enabled) {
-      fprintf(stderr,
-              "interpolate_subframe_enabled = %d, While using MBMS, "
-              "please set interpolate_subframe_enabled to true\n",
-              args->expert.phy.interpolate_subframe_enabled);
-      exit(1);
-    }
-    if (args->expert.phy.nof_phy_threads > 2) {
-      fprintf(stderr,
-              "nof_phy_threads = %d, While using MBMS, please set "
-              "number of phy threads to 1 or 2\n",
-              args->expert.phy.nof_phy_threads);
-      exit(1);
-    }
-    if ((0 == args->expert.phy.snr_estim_alg.find("refs"))) {
-      fprintf(stderr,
-              "snr_estim_alg = refs, While using MBMS, please set "
-              "algorithm to pss or empty \n");
-      exit(1);
+      args->stack.log.usim_hex_limit = args->log.all_hex_limit;
     }
   }
 }
@@ -473,9 +440,6 @@ static int     sigcnt     = 0;
 static bool    running    = true;
 static bool    do_metrics = false;
 metrics_stdout metrics_screen;
-static bool    show_mbms          = false;
-static bool    mbms_service_start = false;
-uint32_t       serv, port;
 
 void sig_int_handler(int signo)
 {
@@ -512,26 +476,6 @@ void* input_loop(void* m)
         cout << "Receiving zeros for " << zero_tti << " ms" << endl;
       } else if (0 == key.compare("q")) {
         running = false;
-      } else if (0 == key.compare("mbms")) {
-        show_mbms = true;
-      } else if (key.find("mbms_service_start") != string::npos) {
-        char* dup = strdup(key.c_str());
-        strtok(dup, " ");
-        char* s = strtok(NULL, " ");
-        char* p = strtok(NULL, " ");
-        if (NULL == s) {
-          cout << "Usage: mbms_service_start <service_id> <port_number>" << endl;
-          goto free_mem;
-        }
-        serv = atoi(s);
-        if (NULL == p) {
-          cout << "Usage: mbms_service_start <service_id> <port_number>" << endl;
-          goto free_mem;
-        }
-        port               = atoi(p);
-        mbms_service_start = true;
-      free_mem:
-        free(dup);
       }
     }
   }
@@ -540,86 +484,55 @@ void* input_loop(void* m)
 
 int main(int argc, char* argv[])
 {
-  srslte::metrics_hub<ue_metrics_t> metricshub;
   signal(SIGINT, sig_int_handler);
   signal(SIGTERM, sig_int_handler);
-  all_args_t args;
-
   srslte_debug_handle_crash(argc, argv);
 
+  all_args_t args = {};
   parse_args(&args, argc, argv);
 
-  srsue_instance_type_t type = LTE;
-  ue_base*              ue   = ue_base::get_instance(type);
-  if (!ue) {
-    cout << "Error creating UE instance." << endl << endl;
-    exit(1);
+  // Create UE instance
+  srsue::ue ue;
+  if (ue.init(args)) {
+    ue.stop();
+    return SRSLTE_ERROR;
   }
 
-  cout << "---  Software Radio Systems " << srsue_instance_type_text[type] << " UE  ---" << endl << endl;
-  if (!ue->init(&args)) {
-    exit(1);
-  }
-
-  metricshub.init(ue, args.expert.metrics_period_secs);
+  srslte::metrics_hub<ue_metrics_t> metricshub;
+  metricshub.init(&ue, args.expert.metrics_period_secs);
   metricshub.add_listener(&metrics_screen);
-  metrics_screen.set_ue_handle(ue);
+  metrics_screen.set_ue_handle(&ue);
 
   metrics_csv metrics_file(args.expert.metrics_csv_filename);
   if (args.expert.metrics_csv_enable) {
     metricshub.add_listener(&metrics_file);
-    metrics_file.set_ue_handle(ue);
+    metrics_file.set_ue_handle(&ue);
   }
 
   pthread_t input;
   pthread_create(&input, NULL, &input_loop, &args);
 
   cout << "Attaching UE..." << endl;
-  while (!ue->switch_on() && running) {
+  while (!ue.switch_on() && running) {
     sleep(1);
   }
+
   if (running) {
-    if (args.expert.pregenerate_signals) {
-      cout << "Pre-generating signals..." << endl;
-      ue->pregenerate_signals(true);
-      cout << "Done pregenerating signals." << endl;
-    }
     if (args.gui.enable) {
-      ue->start_plot();
-    }
-    // Auto-start MBMS service by default
-    if (args.expert.mbms_service > -1) {
-      serv               = args.expert.mbms_service;
-      port               = 4321;
-      mbms_service_start = true;
+      ue.start_plot();
     }
   }
-  int cnt = 0;
+
   while (running) {
-    if (mbms_service_start) {
-      if (ue->mbms_service_start(serv, port)) {
-        mbms_service_start = false;
-      }
-    }
-    if (show_mbms) {
-      show_mbms = false;
-      ue->print_mbms();
-    }
-    if (args.expert.print_buffer_state) {
-      cnt++;
-      if (cnt == 10) {
-        cnt = 0;
-        ue->print_pool();
-      }
-    }
     sleep(1);
   }
-  ue->switch_off();
+
+  ue.switch_off();
   pthread_cancel(input);
   pthread_join(input, NULL);
   metricshub.stop();
-  ue->stop();
-  ue->cleanup();
+  ue.stop();
   cout << "---  exiting  ---" << endl;
-  exit(0);
+
+  return SRSLTE_SUCCESS;
 }

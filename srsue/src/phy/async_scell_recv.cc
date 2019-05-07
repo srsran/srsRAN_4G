@@ -80,7 +80,7 @@ static double callback_set_rx_gain(void* h, double gain)
   return ((async_scell_recv*)h)->set_rx_gain(gain);
 }
 
-void async_scell_recv::init(srslte::radio* _radio_handler, phy_common* _worker_com, srslte::log* _log_h)
+void async_scell_recv::init(radio_interface_phy* _radio_handler, phy_common* _worker_com, srslte::log* _log_h)
 {
   // Get handlers
   radio_h    = _radio_handler;
@@ -283,7 +283,6 @@ bool async_scell_recv::set_scell_cell(uint32_t carrier_idx, srslte_cell_t* _cell
 
   // Detect change in cell configuration
   if (memcmp(&cell, _cell, sizeof(srslte_cell_t)) != 0) {
-
     // Set sampling rate, if number of PRB changed
     if (cell.nof_prb != _cell->nof_prb && ret) {
       double srate = srslte_sampling_freq_hz(_cell->nof_prb);
@@ -298,7 +297,7 @@ bool async_scell_recv::set_scell_cell(uint32_t carrier_idx, srslte_cell_t* _cell
     }
 
     // Copy cell
-    memcpy(&cell, _cell, sizeof(srslte_cell_t));
+    cell          = *_cell;
     reset_ue_sync = true;
 
     // Set cell in ue sync

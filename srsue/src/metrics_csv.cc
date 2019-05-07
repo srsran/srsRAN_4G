@@ -87,7 +87,7 @@ void metrics_csv::set_metrics(ue_metrics_t &metrics, const uint32_t period_usec)
     // Sum DL rate for all CCs
     float rx_brate = 0;
     for (uint32_t r = 0; r < metrics.phy.nof_active_cc; r++) {
-      rx_brate += metrics.mac[r].rx_brate;
+      rx_brate += metrics.stack.mac[r].rx_brate;
     }
     file << float_to_string(rx_brate / period_usec * 1e6, 2);
 
@@ -95,8 +95,8 @@ void metrics_csv::set_metrics(ue_metrics_t &metrics, const uint32_t period_usec)
     int rx_pkts   = 0;
     int rx_errors = 0;
     for (uint32_t r = 0; r < metrics.phy.nof_active_cc; r++) {
-      rx_pkts += metrics.mac[r].rx_pkts;
-      rx_errors += metrics.mac[r].rx_errors;
+      rx_pkts += metrics.stack.mac[r].rx_pkts;
+      rx_errors += metrics.stack.mac[r].rx_errors;
     }
     if (rx_pkts > 0) {
       file << float_to_string((float)100 * rx_errors / rx_pkts, 1);
@@ -106,12 +106,12 @@ void metrics_csv::set_metrics(ue_metrics_t &metrics, const uint32_t period_usec)
 
     file << float_to_string(metrics.phy.sync.ta_us, 2);
     file << float_to_string(metrics.phy.ul[0].mcs, 2);
-    file << float_to_string((float)metrics.mac[0].ul_buffer, 2);
+    file << float_to_string((float)metrics.stack.mac[0].ul_buffer, 2);
 
     // Sum UL rate for all CCs
     float tx_brate = 0;
     for (uint32_t r = 0; r < metrics.phy.nof_active_cc; r++) {
-      tx_brate += metrics.mac[r].tx_brate;
+      tx_brate += metrics.stack.mac[r].tx_brate;
     }
     file << float_to_string(tx_brate / period_usec * 1e6, 2);
 
@@ -119,8 +119,8 @@ void metrics_csv::set_metrics(ue_metrics_t &metrics, const uint32_t period_usec)
     int tx_pkts   = 0;
     int tx_errors = 0;
     for (uint32_t r = 0; r < metrics.phy.nof_active_cc; r++) {
-      tx_pkts += metrics.mac[r].tx_pkts;
-      tx_errors += metrics.mac[r].tx_errors;
+      tx_pkts += metrics.stack.mac[r].tx_pkts;
+      tx_errors += metrics.stack.mac[r].tx_errors;
     }
     if (tx_pkts > 0) {
       file << float_to_string((float)100 * tx_errors / tx_pkts, 1);
@@ -131,7 +131,7 @@ void metrics_csv::set_metrics(ue_metrics_t &metrics, const uint32_t period_usec)
     file << float_to_string(metrics.rf.rf_o, 2);
     file << float_to_string(metrics.rf.rf_u, 2);
     file << float_to_string(metrics.rf.rf_l, 2);
-    file << (ue->is_attached() ? "1.0" : "0.0");
+    file << (ue->is_rrc_connected() ? "1.0" : "0.0");
     file << "\n";
 
     n_reports++;

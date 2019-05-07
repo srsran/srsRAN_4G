@@ -21,7 +21,7 @@
 
 #include "srslte/common/log_filter.h"
 #include "srslte/interfaces/ue_interfaces.h"
-#include "srsue/hdr/mac/mac.h"
+#include "srsue/hdr/stack/mac/mac.h"
 #include <assert.h>
 #include <iostream>
 
@@ -62,11 +62,11 @@ private:
   srslte::log_filter* log;
 };
 
-class phy_dummy : public phy_interface_mac
+class phy_dummy : public phy_interface_mac_lte
 {
 public:
   phy_dummy() : scell_cmd(0){};
-  // phy_interface_mac
+  // phy_interface_mac_lte
   void         configure_prach_params(){};
   virtual void prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm){};
   prach_info_t prach_get_info()
@@ -144,8 +144,8 @@ int mac_unpack_test()
   mac.init(&phy, &rlc, &rrc, &mac_log);
 
   // create dummy DL action and grant and push MAC PDU
-  mac_interface_phy::tb_action_dl_t dl_action;
-  mac_interface_phy::mac_grant_dl_t mac_grant;
+  mac_interface_phy_lte::tb_action_dl_t dl_action;
+  mac_interface_phy_lte::mac_grant_dl_t mac_grant;
   bzero(&dl_action, sizeof(dl_action));
   bzero(&mac_grant, sizeof(mac_grant));
   mac_grant.rnti      = 0xbeaf;

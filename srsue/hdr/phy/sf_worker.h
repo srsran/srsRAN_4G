@@ -56,7 +56,7 @@ public:
   void  set_cfo(float cfo);
 
   void set_tdd_config(srslte_tdd_config_t config);
-  void set_pcell_config(phy_interface_rrc::phy_cfg_t* phy_cfg);
+  void set_pcell_config(phy_interface_rrc_lte::phy_cfg_t* phy_cfg);
   void set_scell_config(uint32_t cc_idx, asn1::rrc::scell_to_add_mod_r10_s* scell_config);
   void set_crnti(uint16_t rnti);
   void enable_pregen_signals(bool enabled);
