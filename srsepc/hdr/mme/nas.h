@@ -149,8 +149,8 @@ typedef struct {
 class nas
 {
 public:
-  nas(srslte::log* nas_log);
-  void init(nas_init_t args, nas_if_t itf, srslte::log* nas_log);
+  nas(nas_init_t args, nas_if_t itf, srslte::log* nas_log);
+  void reset();
 
   /***********************
    * Initial UE messages *

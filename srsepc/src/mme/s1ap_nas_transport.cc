@@ -346,6 +346,11 @@ bool s1ap_nas_transport::send_downlink_nas_transport(uint32_t               enb_
                                                      srslte::byte_buffer_t* nas_msg,
                                                      struct sctp_sndrcvinfo enb_sri)
 {
+  m_s1ap_log->debug("Sending message to eNB with SCTP association %d. MME UE S1AP ID %d, eNB UE S1AP ID %d\n",
+                    enb_sri.sinfo_assoc_id,
+                    mme_ue_s1ap_id,
+                    enb_ue_s1ap_id);
+
   // Allocate Reply buffer
   srslte::byte_buffer_t* reply_msg = m_pool->allocate();
 
