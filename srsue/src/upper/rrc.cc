@@ -1291,17 +1291,14 @@ void rrc::send_con_request(asn1::rrc::establishment_cause_e cause)
 
   // Prepare ConnectionRequest packet
   ul_ccch_msg_s ul_ccch_msg;
-  ul_ccch_msg.msg.set(asn1::rrc::ul_ccch_msg_type_c::types::c1);
-  ul_ccch_msg.msg.c1().set(asn1::rrc::ul_ccch_msg_type_c::c1_c_::types::rrc_conn_request);
-  ul_ccch_msg.msg.c1().rrc_conn_request().crit_exts.set(
-      asn1::rrc::rrc_conn_request_s::crit_exts_c_::types::rrc_conn_request_r8);
-  rrc_conn_request_r8_ies_s* rrc_conn_req = &ul_ccch_msg.msg.c1().rrc_conn_request().crit_exts.rrc_conn_request_r8();
+  rrc_conn_request_r8_ies_s* rrc_conn_req =
+      &ul_ccch_msg.msg.set_c1().set_rrc_conn_request().crit_exts.set_rrc_conn_request_r8();
 
   if (ue_identity_configured) {
-    rrc_conn_req->ue_id.set(asn1::rrc::init_ue_id_c::types::s_tmsi);
+    rrc_conn_req->ue_id.set_s_tmsi();
     rrc_conn_req->ue_id.s_tmsi() = ue_identity;
   } else {
-    rrc_conn_req->ue_id.set(asn1::rrc::init_ue_id_c::types::random_value);
+    rrc_conn_req->ue_id.set_random_value();
     // TODO use proper RNG
     uint64_t random_id = 0;
     for (uint i = 0; i < 5; i++) { // fill random ID bytewise, 40 bits = 5 bytes
@@ -1377,12 +1374,8 @@ void rrc::send_con_restablish_request(asn1::rrc::reest_cause_e cause)
 
   // Prepare ConnectionRestalishmentRequest packet
   asn1::rrc::ul_ccch_msg_s ul_ccch_msg;
-  ul_ccch_msg.msg.set(asn1::rrc::ul_ccch_msg_type_c::types::c1);
-  ul_ccch_msg.msg.c1().set(asn1::rrc::ul_ccch_msg_type_c::c1_c_::types::rrc_conn_reest_request);
-  ul_ccch_msg.msg.c1().rrc_conn_reest_request().crit_exts.set(
-      asn1::rrc::rrc_conn_reest_request_s::crit_exts_c_::types::rrc_conn_reest_request_r8);
   rrc_conn_reest_request_r8_ies_s* rrc_conn_reest_req =
-      &ul_ccch_msg.msg.c1().rrc_conn_reest_request().crit_exts.rrc_conn_reest_request_r8();
+      &ul_ccch_msg.msg.set_c1().set_rrc_conn_reest_request().crit_exts.set_rrc_conn_reest_request_r8();
 
   rrc_conn_reest_req->ue_id.c_rnti.from_number(crnti);
   rrc_conn_reest_req->ue_id.pci = pci;
@@ -1434,11 +1427,7 @@ void rrc::send_con_restablish_complete() {
 
   // Prepare ConnectionSetupComplete packet
   asn1::rrc::ul_dcch_msg_s ul_dcch_msg;
-  ul_dcch_msg.msg.set(asn1::rrc::ul_dcch_msg_type_c::types::c1);
-  ul_dcch_msg.msg.c1().set(asn1::rrc::ul_dcch_msg_type_c::c1_c_::types::rrc_conn_reest_complete);
-  ul_dcch_msg.msg.c1().rrc_conn_reest_complete().crit_exts.set(
-      asn1::rrc::rrc_conn_reest_complete_s::crit_exts_c_::types::rrc_conn_reest_complete_r8);
-
+  ul_dcch_msg.msg.set_c1().set_rrc_conn_reest_complete().crit_exts.set_rrc_conn_reest_complete_r8();
   ul_dcch_msg.msg.c1().rrc_conn_reest_complete().rrc_transaction_id = transaction_id;
 
   send_ul_dcch_msg(RB_ID_SRB1, ul_dcch_msg);
@@ -1449,14 +1438,8 @@ void rrc::send_con_setup_complete(byte_buffer_t *nas_msg) {
 
   // Prepare ConnectionSetupComplete packet
   asn1::rrc::ul_dcch_msg_s ul_dcch_msg;
-  ul_dcch_msg.msg.set(asn1::rrc::ul_dcch_msg_type_c::types::c1);
-  ul_dcch_msg.msg.c1().set(asn1::rrc::ul_dcch_msg_type_c::c1_c_::types::rrc_conn_setup_complete);
-  ul_dcch_msg.msg.c1().rrc_conn_setup_complete().crit_exts.set(
-      asn1::rrc::rrc_conn_setup_complete_s::crit_exts_c_::types::c1);
-  ul_dcch_msg.msg.c1().rrc_conn_setup_complete().crit_exts.c1().set(
-      asn1::rrc::rrc_conn_setup_complete_s::crit_exts_c_::c1_c_::types::rrc_conn_setup_complete_r8);
   rrc_conn_setup_complete_r8_ies_s* rrc_conn_setup_complete =
-      &ul_dcch_msg.msg.c1().rrc_conn_setup_complete().crit_exts.c1().rrc_conn_setup_complete_r8();
+      &ul_dcch_msg.msg.set_c1().set_rrc_conn_setup_complete().crit_exts.set_c1().set_rrc_conn_setup_complete_r8();
 
   ul_dcch_msg.msg.c1().rrc_conn_setup_complete().rrc_transaction_id = transaction_id;
 
@@ -1474,15 +1457,10 @@ void rrc::send_ul_info_transfer(byte_buffer_t* nas_msg)
 
   // Prepare UL INFO packet
   asn1::rrc::ul_dcch_msg_s ul_dcch_msg;
-  ul_dcch_msg.msg.set(asn1::rrc::ul_dcch_msg_type_c::types::c1);
-  ul_dcch_msg.msg.c1().set(asn1::rrc::ul_dcch_msg_type_c::c1_c_::types::ul_info_transfer);
-  ul_dcch_msg.msg.c1().ul_info_transfer().crit_exts.set(asn1::rrc::ul_info_transfer_s::crit_exts_c_::types::c1);
-  ul_dcch_msg.msg.c1().ul_info_transfer().crit_exts.c1().set(
-      asn1::rrc::ul_info_transfer_s::crit_exts_c_::c1_c_::types::ul_info_transfer_r8);
   ul_info_transfer_r8_ies_s* rrc_ul_info_transfer =
-      &ul_dcch_msg.msg.c1().ul_info_transfer().crit_exts.c1().ul_info_transfer_r8();
+      &ul_dcch_msg.msg.set_c1().set_ul_info_transfer().crit_exts.set_c1().set_ul_info_transfer_r8();
 
-  rrc_ul_info_transfer->ded_info_type.set(asn1::rrc::ul_info_transfer_r8_ies_s::ded_info_type_c_::types::ded_info_nas);
+  rrc_ul_info_transfer->ded_info_type.set_ded_info_nas();
   rrc_ul_info_transfer->ded_info_type.ded_info_nas().resize(nas_msg->N_bytes);
   memcpy(rrc_ul_info_transfer->ded_info_type.ded_info_nas().data(), nas_msg->msg, nas_msg->N_bytes); // TODO Check!
 
@@ -1496,11 +1474,7 @@ void rrc::send_security_mode_complete() {
 
   // Prepare Security Mode Command Complete
   asn1::rrc::ul_dcch_msg_s ul_dcch_msg;
-  ul_dcch_msg.msg.set(asn1::rrc::ul_dcch_msg_type_c::types::c1);
-  ul_dcch_msg.msg.c1().set(asn1::rrc::ul_dcch_msg_type_c::c1_c_::types::security_mode_complete);
-  ul_dcch_msg.msg.c1().security_mode_complete().crit_exts.set(
-      asn1::rrc::security_mode_complete_s::crit_exts_c_::types::security_mode_complete_r8);
-
+  ul_dcch_msg.msg.set_c1().set_security_mode_complete().crit_exts.set_security_mode_complete_r8();
   ul_dcch_msg.msg.c1().security_mode_complete().rrc_transaction_id = transaction_id;
 
   send_ul_dcch_msg(RB_ID_SRB1, ul_dcch_msg);
@@ -1510,11 +1484,7 @@ void rrc::send_rrc_con_reconfig_complete() {
   rrc_log->debug("Preparing RRC Connection Reconfig Complete\n");
 
   asn1::rrc::ul_dcch_msg_s ul_dcch_msg;
-  ul_dcch_msg.msg.set(asn1::rrc::ul_dcch_msg_type_c::types::c1);
-  ul_dcch_msg.msg.c1().set(asn1::rrc::ul_dcch_msg_type_c::c1_c_::types::rrc_conn_recfg_complete);
-  ul_dcch_msg.msg.c1().rrc_conn_recfg_complete().crit_exts.set(
-      asn1::rrc::rrc_conn_recfg_complete_s::crit_exts_c_::types::rrc_conn_recfg_complete_r8);
-
+  ul_dcch_msg.msg.set_c1().set_rrc_conn_recfg_complete().crit_exts.set_rrc_conn_recfg_complete_r8();
   ul_dcch_msg.msg.c1().rrc_conn_recfg_complete().rrc_transaction_id = transaction_id;
 
   send_ul_dcch_msg(RB_ID_SRB1, ul_dcch_msg);
@@ -2323,13 +2293,9 @@ void rrc::send_rrc_ue_cap_info()
   rrc_log->debug("Preparing UE Capability Info\n");
 
   asn1::rrc::ul_dcch_msg_s ul_dcch_msg;
-  ul_dcch_msg.msg.set(ul_dcch_msg_type_c::types::c1);
-  ul_dcch_msg.msg.c1().set(ul_dcch_msg_type_c::c1_c_::types::ue_cap_info);
+  ue_cap_info_r8_ies_s*    info = &ul_dcch_msg.msg.set_c1().set_ue_cap_info().crit_exts.set_c1().set_ue_cap_info_r8();
   ul_dcch_msg.msg.c1().ue_cap_info().rrc_transaction_id = transaction_id;
 
-  ul_dcch_msg.msg.c1().ue_cap_info().crit_exts.set(ue_cap_info_s::crit_exts_c_::types::c1);
-  ul_dcch_msg.msg.c1().ue_cap_info().crit_exts.c1().set(ue_cap_info_s::crit_exts_c_::c1_c_::types::ue_cap_info_r8);
-  ue_cap_info_r8_ies_s* info = &ul_dcch_msg.msg.c1().ue_cap_info().crit_exts.c1().ue_cap_info_r8();
   info->ue_cap_rat_container_list.resize(1);
   info->ue_cap_rat_container_list[0].rat_type = rat_type_e::eutra;
 
@@ -2670,7 +2636,7 @@ void rrc::set_phy_config_dedicated_default()
   current_cfg->srs_ul_cfg_ded.set(setup_e::release);
 
   current_cfg->ant_info_present = true;
-  current_cfg->ant_info.set(phys_cfg_ded_s::ant_info_c_::types::explicit_value);
+  current_cfg->ant_info.set_explicit_value();
   current_cfg->ant_info.explicit_value().tx_mode                          = ant_info_ded_s::tx_mode_e_::tm1;
   current_cfg->ant_info.explicit_value().codebook_subset_restrict_present = false;
   current_cfg->ant_info.explicit_value().ue_tx_ant_sel.set(setup_e::release);
@@ -3214,10 +3180,7 @@ bool rrc::rrc_meas::find_earfcn_cell(uint32_t earfcn, uint32_t pci, meas_obj_t *
 void rrc::rrc_meas::generate_report(uint32_t meas_id)
 {
   asn1::rrc::ul_dcch_msg_s ul_dcch_msg;
-  ul_dcch_msg.msg.set(ul_dcch_msg_type_c::types::c1);
-  ul_dcch_msg.msg.c1().set(ul_dcch_msg_type_c::c1_c_::types::meas_report);
-  ul_dcch_msg.msg.c1().meas_report().crit_exts.set(meas_report_s::crit_exts_c_::types::c1);
-  ul_dcch_msg.msg.c1().meas_report().crit_exts.c1().set(meas_report_s::crit_exts_c_::c1_c_::types::meas_report_r8);
+  ul_dcch_msg.msg.set_c1().set_meas_report().crit_exts.set_c1().set_meas_report_r8();
   meas_results_s* report = &ul_dcch_msg.msg.c1().meas_report().crit_exts.c1().meas_report_r8().meas_results;
 
   meas_t       *m   = &active[meas_id];
@@ -3230,22 +3193,23 @@ void rrc::rrc_meas::generate_report(uint32_t meas_id)
   log_h->info("MEAS:  Generate report MeasId=%d, nof_reports_send=%d, Pcell rsrp=%f rsrq=%f\n",
               report->meas_id, m->nof_reports_sent, pcell_measurement.ms[RSRP], pcell_measurement.ms[RSRQ]);
 
-  report->meas_result_neigh_cells.set(meas_results_s::meas_result_neigh_cells_c_::types::meas_result_list_eutra);
-  meas_result_list_eutra_l& neigh_list = report->meas_result_neigh_cells.meas_result_list_eutra();
+  meas_result_list_eutra_l& neigh_list = report->meas_result_neigh_cells.set_meas_result_list_eutra();
   // TODO: report up to 8 best cells
-  for (std::map<uint32_t, meas_value_t>::iterator cell = m->cell_values.begin(); cell != m->cell_values.end(); ++cell)
-  {
-    if (cell->second.triggered and neigh_list.size() <= 8) {
+  for (const auto& cell : m->cell_values) {
+    if (cell.second.triggered and neigh_list.size() <= 8) {
       meas_result_eutra_s rc;
 
-      rc.pci                             = (uint16_t)cell->first;
+      rc.pci                             = (uint16_t)cell.first;
       rc.meas_result.rsrp_result_present = cfg->report_quantity == RSRP || cfg->report_quantity == BOTH;
       rc.meas_result.rsrq_result_present = cfg->report_quantity == RSRQ || cfg->report_quantity == BOTH;
-      rc.meas_result.rsrp_result         = value_to_range(RSRP, cell->second.ms[RSRP]);
-      rc.meas_result.rsrq_result         = value_to_range(RSRQ, cell->second.ms[RSRQ]);
+      rc.meas_result.rsrp_result         = value_to_range(RSRP, cell.second.ms[RSRP]);
+      rc.meas_result.rsrq_result         = value_to_range(RSRQ, cell.second.ms[RSRQ]);
 
-      log_h->info("MEAS:  Adding to report neighbour=%d, pci=%d, rsrp=%f, rsrq=%f\n", neigh_list.size(), rc.pci,
-                  cell->second.ms[RSRP], cell->second.ms[RSRQ]);
+      log_h->info("MEAS:  Adding to report neighbour=%d, pci=%d, rsrp=%f, rsrq=%f\n",
+                  neigh_list.size(),
+                  rc.pci,
+                  cell.second.ms[RSRP],
+                  cell.second.ms[RSRQ]);
 
       neigh_list.push_back(rc);
     }
@@ -3695,13 +3659,13 @@ bool rrc::rrc_meas::parse_meas_config(meas_cfg_s* cfg)
 void rrc::rrc_meas::update_phy()
 {
   phy->meas_reset();
-  for(std::map<uint32_t, meas_obj_t>::iterator iter=objects.begin(); iter!=objects.end(); ++iter) {
-    meas_obj_t o = iter->second;
+  for (const auto& obj : objects) {
+    meas_obj_t o = obj.second;
     // Instruct PHY to look for neighbour cells on this frequency
     phy->meas_start(o.earfcn);
-    for(std::map<uint32_t, meas_cell_t>::iterator iter=o.meas_cells.begin(); iter!=o.meas_cells.end(); ++iter) {
+    for (const auto& cell : o.meas_cells) {
       // Instruct PHY to look for cells IDs on this frequency
-      phy->meas_start(o.earfcn, iter->second.pci);
+      phy->meas_start(o.earfcn, cell.second.pci);
     }
   }
 }

@@ -608,18 +608,11 @@ int mbsfn_area_info_list_parser::parse(Setting& root)
 int enb::parse_sibs(all_args_t* args, rrc_cfg_t* rrc_cfg, phy_cfg_t* phy_config_common)
 {
   // FIXME: Leave 0 blank for now
-  rrc_cfg->sibs[1].set(asn1::rrc::sys_info_r8_ies_s::sib_type_and_info_item_c_::types::sib2);
-  rrc_cfg->sibs[2].set(asn1::rrc::sys_info_r8_ies_s::sib_type_and_info_item_c_::types::sib3);
-  rrc_cfg->sibs[3].set(asn1::rrc::sys_info_r8_ies_s::sib_type_and_info_item_c_::types::sib4);
-  rrc_cfg->sibs[8].set(asn1::rrc::sys_info_r8_ies_s::sib_type_and_info_item_c_::types::sib9);
-  rrc_cfg->sibs[12].set(
-      asn1::rrc::sys_info_r8_ies_s::sib_type_and_info_item_c_::types::sib13_v920); // TODO: Confirm it matches with old
-                                                                                   // LIBLTE_RRC_SYS_INFO_BLOCK_TYPE_13
-  sib_type2_s*     sib2  = &rrc_cfg->sibs[1].sib2();
-  sib_type3_s*     sib3  = &rrc_cfg->sibs[2].sib3();
-  sib_type4_s*     sib4  = &rrc_cfg->sibs[3].sib4();
-  sib_type9_s*     sib9  = &rrc_cfg->sibs[8].sib9();
-  sib_type13_r9_s* sib13 = &rrc_cfg->sibs[12].sib13_v920();
+  sib_type2_s*     sib2  = &rrc_cfg->sibs[1].set_sib2();
+  sib_type3_s*     sib3  = &rrc_cfg->sibs[2].set_sib3();
+  sib_type4_s*     sib4  = &rrc_cfg->sibs[3].set_sib4();
+  sib_type9_s*     sib9  = &rrc_cfg->sibs[8].set_sib9();
+  sib_type13_r9_s* sib13 = &rrc_cfg->sibs[12].set_sib13_v920();
 
   sib_type1_s* sib1 = &rrc_cfg->sib1;
   if (parse_sib1(args->enb_files.sib_config, sib1)) {
@@ -743,7 +736,7 @@ int enb::parse_rr(all_args_t* args, rrc_cfg_t* rrc_cfg)
 
   rrc_cfg->antenna_info.tx_mode = (ant_info_ded_s::tx_mode_e_::options)(args->enb.transmission_mode - 1);
 
-  rrc_cfg->antenna_info.ue_tx_ant_sel.set(ant_info_ded_s::ue_tx_ant_sel_c_::types::setup);
+  rrc_cfg->antenna_info.ue_tx_ant_sel.set_setup();
   switch (rrc_cfg->antenna_info.tx_mode) {
     case ant_info_ded_s::tx_mode_e_::tm1:
     case ant_info_ded_s::tx_mode_e_::tm2:
@@ -754,16 +747,14 @@ int enb::parse_rr(all_args_t* args, rrc_cfg_t* rrc_cfg)
       rrc_cfg->antenna_info.ue_tx_ant_sel.setup().value = ant_info_ded_s::ue_tx_ant_sel_c_::setup_e_::open_loop;
 
       rrc_cfg->antenna_info.codebook_subset_restrict_present = true;
-      rrc_cfg->antenna_info.codebook_subset_restrict.set(
-          ant_info_ded_s::codebook_subset_restrict_c_::types::n2_tx_ant_tm3);
+      rrc_cfg->antenna_info.codebook_subset_restrict.set_n2_tx_ant_tm3();
       rrc_cfg->antenna_info.codebook_subset_restrict.n2_tx_ant_tm3().from_number(0b11);
       break;
     case ant_info_ded_s::tx_mode_e_::tm4:
       rrc_cfg->antenna_info.ue_tx_ant_sel.setup().value = ant_info_ded_s::ue_tx_ant_sel_c_::setup_e_::closed_loop;
 
       rrc_cfg->antenna_info.codebook_subset_restrict_present = true;
-      rrc_cfg->antenna_info.codebook_subset_restrict.set(
-          ant_info_ded_s::codebook_subset_restrict_c_::types::n2_tx_ant_tm4);
+      rrc_cfg->antenna_info.codebook_subset_restrict.set_n2_tx_ant_tm4();
       rrc_cfg->antenna_info.codebook_subset_restrict.n2_tx_ant_tm4().from_number(0b111111);
       break;
     default:
@@ -849,7 +840,7 @@ int phr_cnfg_parser::parse(libconfig::Setting& root)
     phr_cfg->set(mac_main_cfg_s::phr_cfg_c_::types::release);
     return 0;
   }
-  phr_cfg->set(mac_main_cfg_s::phr_cfg_c_::types::setup);
+  phr_cfg->set_setup();
   mac_main_cfg_s::phr_cfg_c_::setup_s_& s = phr_cfg->setup();
 
   if (not parse_enum_by_str(s.dl_pathloss_change, "dl_pathloss_change", root["phr_cnfg"])) {
@@ -908,13 +899,13 @@ int field_qci::parse(libconfig::Setting& root)
     // Parse RLC section
     rlc_cfg_c* rlc_cfg = &cfg[qci].rlc_cfg;
     if (q["rlc_config"].exists("ul_am")) {
-      rlc_cfg->set(rlc_cfg_c::types::am);
+      rlc_cfg->set_am();
     } else if (q["rlc_config"].exists("ul_um") && q["rlc_config"].exists("dl_um")) {
-      rlc_cfg->set(rlc_cfg_c::types::um_bi_dir);
+      rlc_cfg->set_um_bi_dir();
     } else if (q["rlc_config"].exists("ul_um") && !q["rlc_config"].exists("dl_um")) {
-      rlc_cfg->set(rlc_cfg_c::types::um_uni_dir_ul);
+      rlc_cfg->set_um_uni_dir_ul();
     } else if (!q["rlc_config"].exists("ul_um") && q["rlc_config"].exists("dl_um")) {
-      rlc_cfg->set(rlc_cfg_c::types::um_uni_dir_dl);
+      rlc_cfg->set_um_uni_dir_dl();
     } else {
       fprintf(stderr, "Invalid combination of UL/DL UM/AM for qci=%d\n", qci);
       return -1;

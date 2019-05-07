@@ -248,19 +248,17 @@ void rrc::write_pdu(uint16_t rnti, uint32_t lcid, byte_buffer_t* pdu)
 void rrc::write_dl_info(uint16_t rnti, byte_buffer_t* sdu)
 {
   dl_dcch_msg_s dl_dcch_msg;
-  dl_dcch_msg.msg.set(dl_dcch_msg_type_c::types::c1);
+  dl_dcch_msg.msg.set_c1();
   dl_dcch_msg_type_c::c1_c_* msg_c1 = &dl_dcch_msg.msg.c1();
 
   pthread_mutex_lock(&user_mutex);
 
   if (users.count(rnti) == 1) {
-    msg_c1->set(dl_dcch_msg_type_c::c1_c_::types::dl_info_transfer);
+    dl_info_transfer_r8_ies_s* dl_info_r8 =
+        &msg_c1->set_dl_info_transfer().crit_exts.set_c1().set_dl_info_transfer_r8();
     //    msg_c1->dl_info_transfer().rrc_transaction_id = ;
-    msg_c1->dl_info_transfer().crit_exts.set(dl_info_transfer_s::crit_exts_c_::types::c1);
-    msg_c1->dl_info_transfer().crit_exts.c1().set(dl_info_transfer_s::crit_exts_c_::c1_c_::types::dl_info_transfer_r8);
-    dl_info_transfer_r8_ies_s* dl_info_r8 = &msg_c1->dl_info_transfer().crit_exts.c1().dl_info_transfer_r8();
     dl_info_r8->non_crit_ext_present      = false;
-    dl_info_r8->ded_info_type.set(dl_info_transfer_r8_ies_s::ded_info_type_c_::types::ded_info_nas);
+    dl_info_r8->ded_info_type.set_ded_info_nas();
     dl_info_r8->ded_info_type.ded_info_nas().resize(sdu->N_bytes);
     memcpy(msg_c1->dl_info_transfer().crit_exts.c1().dl_info_transfer_r8().ded_info_type.ded_info_nas().data(),
            sdu->msg, sdu->N_bytes);
@@ -426,7 +424,7 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t *payload_len)
   pthread_mutex_lock(&paging_mutex);
 
   asn1::rrc::pcch_msg_s pcch_msg;
-  pcch_msg.msg.set(pcch_msg_type_c::types::c1);
+  pcch_msg.msg.set_c1();
   paging_s* paging_rec = &pcch_msg.msg.c1().paging();
 
   // Default paging cycle, should get DRX from user
@@ -456,12 +454,12 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t *payload_len)
         paging_rec->paging_record_list_present = true;
         paging_record_s paging_elem;
         if (u.choice_type == LIBLTE_S1AP_UEPAGINGID_CHOICE_IMSI) {
-          paging_elem.ue_id.set(paging_ue_id_c::types::imsi);
+          paging_elem.ue_id.set_imsi();
           paging_elem.ue_id.imsi().resize(u.choice.iMSI.n_octets);
           memcpy(paging_elem.ue_id.imsi().data(), u.choice.iMSI.buffer, u.choice.iMSI.n_octets);
           rrc_log->console("Warning IMSI paging not tested\n");
         } else {
-          paging_elem.ue_id.set(paging_ue_id_c::types::s_tmsi);
+          paging_elem.ue_id.set_s_tmsi();
           paging_elem.ue_id.s_tmsi().mmec.from_number(u.choice.s_TMSI.mMEC.buffer[0]);
           uint32_t m_tmsi = 0;
           for (int i = 0; i < LIBLTE_S1AP_M_TMSI_OCTET_STRING_LEN; i++) {
@@ -706,17 +704,13 @@ uint32_t rrc::generate_sibs()
   asn1::dyn_array<bcch_dl_sch_msg_s> msg(nof_messages + 1);
 
   // Copy SIB1 to first SI message
-  msg[0].msg.set(bcch_dl_sch_msg_type_c::types::c1);
-  msg[0].msg.c1().set(bcch_dl_sch_msg_type_c::c1_c_::types::sib_type1);
-  msg[0].msg.c1().sib_type1() = cfg.sib1;
+  msg[0].msg.set_c1().set_sib_type1() = cfg.sib1;
 
   // Copy rest of SIBs
   for (uint32_t sched_info_elem = 0; sched_info_elem < nof_messages - 1; sched_info_elem++) {
     uint32_t msg_index = sched_info_elem + 1; // first msg is SIB1, therefore start with second
 
-    msg[msg_index].msg.set(bcch_dl_sch_msg_type_c::types::c1);
-    msg[msg_index].msg.c1().set(bcch_dl_sch_msg_type_c::c1_c_::types::sys_info);
-    msg[msg_index].msg.c1().sys_info().crit_exts.set(sys_info_s::crit_exts_c_::types::sys_info_r8);
+    msg[msg_index].msg.set_c1().set_sys_info().crit_exts.set_sys_info_r8();
     sys_info_r8_ies_s::sib_type_and_info_l_& sib_list =
         msg[msg_index].msg.c1().sys_info().crit_exts.sys_info_r8().sib_type_and_info;
 
@@ -752,15 +746,14 @@ uint32_t rrc::generate_sibs()
 void rrc::configure_mbsfn_sibs(sib_type2_s* sib2, sib_type13_r9_s* sib13)
 {
   // Temp assignment of MCCH, this will eventually come from a cfg file
-  mcch.msg.set(mcch_msg_type_c::types::c1);
+  mcch.msg.set_c1();
   mbsfn_area_cfg_r9_s& area_cfg_r9      = mcch.msg.c1().mbsfn_area_cfg_r9();
   area_cfg_r9.common_sf_alloc_period_r9 = mbsfn_area_cfg_r9_s::common_sf_alloc_period_r9_e_::rf64;
   area_cfg_r9.common_sf_alloc_r9.resize(1);
   mbsfn_sf_cfg_s* sf_alloc_item          = &area_cfg_r9.common_sf_alloc_r9[0];
   sf_alloc_item->radioframe_alloc_offset = 0;
   sf_alloc_item->radioframe_alloc_period = mbsfn_sf_cfg_s::radioframe_alloc_period_e_::n1;
-  sf_alloc_item->sf_alloc.set(mbsfn_sf_cfg_s::sf_alloc_c_::types::one_frame);
-  sf_alloc_item->sf_alloc.one_frame().from_number(32 + 31);
+  sf_alloc_item->sf_alloc.set_one_frame().from_number(32 + 31);
 
   area_cfg_r9.pmch_info_list_r9.resize(1);
   pmch_info_r9_s* pmch_item = &area_cfg_r9.pmch_info_list_r9[0];
@@ -769,7 +762,7 @@ void rrc::configure_mbsfn_sibs(sib_type2_s* sib2, sib_type13_r9_s* sib13)
   pmch_item->mbms_session_info_list_r9[0].lc_ch_id_r9           = 1;
   pmch_item->mbms_session_info_list_r9[0].session_id_r9_present = true;
   pmch_item->mbms_session_info_list_r9[0].session_id_r9[0]      = 0;
-  pmch_item->mbms_session_info_list_r9[0].tmgi_r9.plmn_id_r9.set(tmgi_r9_s::plmn_id_r9_c_::types::explicit_value_r9);
+  pmch_item->mbms_session_info_list_r9[0].tmgi_r9.plmn_id_r9.set_explicit_value_r9();
   pmch_item->mbms_session_info_list_r9[0].tmgi_r9.plmn_id_r9.explicit_value_r9().mcc_present = true;
   srslte::string_to_plmn_id(pmch_item->mbms_session_info_list_r9[0].tmgi_r9.plmn_id_r9.explicit_value_r9(), "00003");
   uint8_t byte[] = {0x0, 0x0, 0x0};
@@ -779,7 +772,7 @@ void rrc::configure_mbsfn_sibs(sib_type2_s* sib2, sib_type13_r9_s* sib13)
     pmch_item->mbms_session_info_list_r9[1].lc_ch_id_r9           = 2;
     pmch_item->mbms_session_info_list_r9[1].session_id_r9_present = true;
     pmch_item->mbms_session_info_list_r9[1].session_id_r9[0]      = 1;
-    pmch_item->mbms_session_info_list_r9[1].tmgi_r9.plmn_id_r9.set(tmgi_r9_s::plmn_id_r9_c_::types::explicit_value_r9);
+    pmch_item->mbms_session_info_list_r9[1].tmgi_r9.plmn_id_r9.set_explicit_value_r9();
     srslte::string_to_plmn_id(pmch_item->mbms_session_info_list_r9[1].tmgi_r9.plmn_id_r9.explicit_value_r9(), "00003");
     byte[2] = 1;
     memcpy(&pmch_item->mbms_session_info_list_r9[1].tmgi_r9.service_id_r9[0], &byte[0],
@@ -1388,10 +1381,7 @@ void rrc::ue::send_connection_reest_rej()
 {
   dl_ccch_msg_s dl_ccch_msg;
 
-  dl_ccch_msg.msg.set(dl_ccch_msg_type_c::types::c1);
-  dl_ccch_msg.msg.c1().set(dl_ccch_msg_type_c::c1_c_::types::rrc_conn_reest_reject);
-  dl_ccch_msg.msg.c1().rrc_conn_reest_reject().crit_exts.set(
-      rrc_conn_reest_reject_s::crit_exts_c_::types::rrc_conn_reest_reject_r8);
+  dl_ccch_msg.msg.set_c1().set_rrc_conn_reest_reject().crit_exts.set_rrc_conn_reest_reject_r8();
 
   send_dl_ccch(&dl_ccch_msg);
 }
@@ -1400,13 +1390,7 @@ void rrc::ue::send_connection_reject()
 {
   dl_ccch_msg_s dl_ccch_msg;
 
-  dl_ccch_msg.msg.set(dl_ccch_msg_type_c::types::c1);
-  dl_ccch_msg.msg.c1().set(dl_ccch_msg_type_c::c1_c_::types::rrc_conn_reject);
-
-  dl_ccch_msg.msg.c1().rrc_conn_reject().crit_exts.set(rrc_conn_reject_s::crit_exts_c_::types::c1);
-  dl_ccch_msg.msg.c1().rrc_conn_reject().crit_exts.c1().set(
-      rrc_conn_reject_s::crit_exts_c_::c1_c_::types::rrc_conn_reject_r8);
-  dl_ccch_msg.msg.c1().rrc_conn_reject().crit_exts.c1().rrc_conn_reject_r8().wait_time = 10;
+  dl_ccch_msg.msg.set_c1().set_rrc_conn_reject().crit_exts.set_c1().set_rrc_conn_reject_r8().wait_time = 10;
 
   send_dl_ccch(&dl_ccch_msg);
 }
@@ -1414,23 +1398,18 @@ void rrc::ue::send_connection_reject()
 void rrc::ue::send_connection_setup(bool is_setup)
 {
   dl_ccch_msg_s dl_ccch_msg;
-  dl_ccch_msg.msg.set(dl_ccch_msg_type_c::types::c1);
+  dl_ccch_msg.msg.set_c1();
 
   rr_cfg_ded_s* rr_cfg = NULL;
   if (is_setup) {
-    dl_ccch_msg.msg.c1().set(dl_ccch_msg_type_c::c1_c_::types::rrc_conn_setup);
+    dl_ccch_msg.msg.c1().set_rrc_conn_setup();
     dl_ccch_msg.msg.c1().rrc_conn_setup().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
-    dl_ccch_msg.msg.c1().rrc_conn_setup().crit_exts.set(rrc_conn_setup_s::crit_exts_c_::types::c1);
-    dl_ccch_msg.msg.c1().rrc_conn_setup().crit_exts.c1().set(
-        rrc_conn_setup_s::crit_exts_c_::c1_c_::types::rrc_conn_setup_r8);
-    dl_ccch_msg.msg.c1().rrc_conn_setup().crit_exts.c1().rrc_conn_setup_r8();
+    dl_ccch_msg.msg.c1().rrc_conn_setup().crit_exts.set_c1().set_rrc_conn_setup_r8();
     rr_cfg = &dl_ccch_msg.msg.c1().rrc_conn_setup().crit_exts.c1().rrc_conn_setup_r8().rr_cfg_ded;
   } else {
-    dl_ccch_msg.msg.c1().set(dl_ccch_msg_type_c::c1_c_::types::rrc_conn_reest);
+    dl_ccch_msg.msg.c1().set_rrc_conn_reest();
     dl_ccch_msg.msg.c1().rrc_conn_reest().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
-    dl_ccch_msg.msg.c1().rrc_conn_reest().crit_exts.set(rrc_conn_reest_s::crit_exts_c_::types::c1);
-    dl_ccch_msg.msg.c1().rrc_conn_reest().crit_exts.c1().set(
-        rrc_conn_reest_s::crit_exts_c_::c1_c_::types::rrc_conn_reest_r8);
+    dl_ccch_msg.msg.c1().rrc_conn_reest().crit_exts.set_c1().set_rrc_conn_reest_r8();
     rr_cfg = &dl_ccch_msg.msg.c1().rrc_conn_reest().crit_exts.c1().rrc_conn_reest_r8().rr_cfg_ded;
   }
 
@@ -1445,8 +1424,7 @@ void rrc::ue::send_connection_setup(bool is_setup)
 
   // mac-MainConfig
   rr_cfg->mac_main_cfg_present = true;
-  rr_cfg->mac_main_cfg.set(rr_cfg_ded_s::mac_main_cfg_c_::types::explicit_value);
-  mac_main_cfg_s* mac_cfg       = &rr_cfg->mac_main_cfg.explicit_value();
+  mac_main_cfg_s* mac_cfg       = &rr_cfg->mac_main_cfg.set_explicit_value();
   mac_cfg->ul_sch_cfg_present   = true;
   mac_cfg->ul_sch_cfg           = parent->cfg.mac_cnfg.ul_sch_cfg;
   mac_cfg->phr_cfg_present      = true;
@@ -1459,12 +1437,12 @@ void rrc::ue::send_connection_setup(bool is_setup)
   phy_cfg->pusch_cfg_ded_present     = true;
   phy_cfg->pusch_cfg_ded             = parent->cfg.pusch_cfg;
   phy_cfg->sched_request_cfg_present = true;
-  phy_cfg->sched_request_cfg.set(sched_request_cfg_c::types::setup);
+  phy_cfg->sched_request_cfg.set_setup();
   phy_cfg->sched_request_cfg.setup().dsr_trans_max = parent->cfg.sr_cfg.dsr_max;
 
   // set default antenna config
   phy_cfg->ant_info_present = true;
-  phy_cfg->ant_info.set(phys_cfg_ded_s::ant_info_c_::types::explicit_value);
+  phy_cfg->ant_info.set_explicit_value();
   if (parent->cfg.cell.nof_ports == 1) {
     phy_cfg->ant_info.explicit_value().tx_mode.value = ant_info_ded_s::tx_mode_e_::tm1;
   } else {
@@ -1503,7 +1481,7 @@ void rrc::ue::send_connection_setup(bool is_setup)
     phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic         = cqi_report_mode_aperiodic_e::rm30;
   } else {
     phy_cfg->cqi_report_cfg.cqi_report_periodic_present = true;
-    phy_cfg->cqi_report_cfg.cqi_report_periodic.set(setup_e::setup);
+    phy_cfg->cqi_report_cfg.cqi_report_periodic.set_setup();
     phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_format_ind_periodic.set(
         cqi_report_periodic_c::setup_s_::cqi_format_ind_periodic_c_::types::wideband_cqi);
     phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().simul_ack_nack_and_cqi = false;
@@ -1579,12 +1557,9 @@ void rrc::ue::send_connection_reest()
 void rrc::ue::send_connection_release()
 {
   dl_dcch_msg_s dl_dcch_msg;
-  dl_dcch_msg.msg.set(dl_dcch_msg_type_c::types::c1);
-  dl_dcch_msg.msg.c1().set(dl_dcch_msg_type_c::c1_c_::types::rrc_conn_release);
+  dl_dcch_msg.msg.set_c1().set_rrc_conn_release();
   dl_dcch_msg.msg.c1().rrc_conn_release().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
-  dl_dcch_msg.msg.c1().rrc_conn_release().crit_exts.set(rrc_conn_release_s::crit_exts_c_::types::c1);
-  dl_dcch_msg.msg.c1().rrc_conn_release().crit_exts.c1().set(
-      rrc_conn_release_s::crit_exts_c_::c1_c_::types::rrc_conn_release_r8);
+  dl_dcch_msg.msg.c1().rrc_conn_release().crit_exts.set_c1().set_rrc_conn_release_r8();
   dl_dcch_msg.msg.c1().rrc_conn_release().crit_exts.c1().rrc_conn_release_r8().release_cause = release_cause_e::other;
 
   send_dl_dcch(&dl_dcch_msg);
@@ -1630,12 +1605,9 @@ int rrc::ue::get_drbid_config(drb_to_add_mod_s* drb, int drb_id)
 void rrc::ue::send_connection_reconf_upd(srslte::byte_buffer_t *pdu)
 {
   dl_dcch_msg_s dl_dcch_msg;
-  dl_dcch_msg.msg.set(dl_dcch_msg_type_c::types::c1);
-  dl_dcch_msg.msg.c1().set(dl_dcch_msg_type_c::c1_c_::types::rrc_conn_recfg);
-  rrc_conn_recfg_s* rrc_conn_recfg   = &dl_dcch_msg.msg.c1().rrc_conn_recfg();
+  rrc_conn_recfg_s* rrc_conn_recfg   = &dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg();
   rrc_conn_recfg->rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
-  rrc_conn_recfg->crit_exts.set(rrc_conn_recfg_s::crit_exts_c_::types::c1);
-  rrc_conn_recfg->crit_exts.c1().set(rrc_conn_recfg_s::crit_exts_c_::c1_c_::types::rrc_conn_recfg_r8);
+  rrc_conn_recfg->crit_exts.set_c1().set_rrc_conn_recfg_r8();
 
   rrc_conn_recfg->crit_exts.c1().rrc_conn_recfg_r8().rr_cfg_ded_present = true;
   rr_cfg_ded_s* rr_cfg = &rrc_conn_recfg->crit_exts.c1().rrc_conn_recfg_r8().rr_cfg_ded;
@@ -1643,14 +1615,13 @@ void rrc::ue::send_connection_reconf_upd(srslte::byte_buffer_t *pdu)
   rr_cfg->phys_cfg_ded_present       = true;
   phys_cfg_ded_s* phy_cfg            = &rr_cfg->phys_cfg_ded;
   phy_cfg->sched_request_cfg_present = true;
-  phy_cfg->sched_request_cfg.set(sched_request_cfg_c::types::setup);
+  phy_cfg->sched_request_cfg.set_setup();
   phy_cfg->sched_request_cfg.setup().dsr_trans_max = parent->cfg.sr_cfg.dsr_max;
 
   phy_cfg->cqi_report_cfg_present = true;
   if (cqi_allocated) {
     phy_cfg->cqi_report_cfg.cqi_report_periodic_present = true;
-    phy_cfg->cqi_report_cfg.cqi_report_periodic.set(cqi_report_periodic_c::types::setup);
-    phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_format_ind_periodic.set(
+    phy_cfg->cqi_report_cfg.cqi_report_periodic.set_setup().cqi_format_ind_periodic.set(
         cqi_report_periodic_c::setup_s_::cqi_format_ind_periodic_c_::types::wideband_cqi);
     cqi_get(&phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pmi_cfg_idx,
             &phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pucch_res_idx);
@@ -1685,12 +1656,8 @@ void rrc::ue::send_connection_reconf_upd(srslte::byte_buffer_t *pdu)
 void rrc::ue::send_connection_reconf(srslte::byte_buffer_t *pdu)
 {
   dl_dcch_msg_s dl_dcch_msg;
-  dl_dcch_msg.msg.set(dl_dcch_msg_type_c::types::c1);
-  dl_dcch_msg.msg.c1().set(dl_dcch_msg_type_c::c1_c_::types::rrc_conn_recfg);
+  dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg().crit_exts.set_c1().set_rrc_conn_recfg_r8();
   dl_dcch_msg.msg.c1().rrc_conn_recfg().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
-  dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.set(rrc_conn_recfg_s::crit_exts_c_::types::c1);
-  dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().set(
-      rrc_conn_recfg_s::crit_exts_c_::c1_c_::types::rrc_conn_recfg_r8);
 
   rrc_conn_recfg_r8_ies_s* conn_reconf = &dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
   conn_reconf->rr_cfg_ded_present      = true;
@@ -1714,7 +1681,7 @@ void rrc::ue::send_connection_reconf(srslte::byte_buffer_t *pdu)
     }
   } else {
     phy_cfg->cqi_report_cfg.cqi_report_periodic_present = true;
-    phy_cfg->cqi_report_cfg.cqi_report_periodic.set(cqi_report_periodic_c::types::setup);
+    phy_cfg->cqi_report_cfg.cqi_report_periodic.set_setup();
     cqi_get(&phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pmi_cfg_idx,
             &phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pucch_res_idx);
     phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_format_ind_periodic.set(
@@ -1723,7 +1690,7 @@ void rrc::ue::send_connection_reconf(srslte::byte_buffer_t *pdu)
     if (phy_cfg->ant_info_present and
         ((phy_cfg->ant_info.explicit_value().tx_mode == ant_info_ded_s::tx_mode_e_::tm3) ||
          (phy_cfg->ant_info.explicit_value().tx_mode == ant_info_ded_s::tx_mode_e_::tm4))) {
-      phy_cfg->cqi_report_cfg.cqi_report_periodic.set(cqi_report_periodic_c::types::setup);
+      phy_cfg->cqi_report_cfg.cqi_report_periodic.set_setup();
       phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx_present = true;
       phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx         = 483;
       parent->rrc_log->console("\nWarning: Only 1 user is supported in TM3 and TM4\n\n");
@@ -1824,13 +1791,8 @@ void rrc::ue::send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBE
   srslte::byte_buffer_t *pdu = pool_allocate;
 
   dl_dcch_msg_s dl_dcch_msg;
-  dl_dcch_msg.msg.set(dl_dcch_msg_type_c::types::c1);
-  dl_dcch_msg.msg.c1().set(dl_dcch_msg_type_c::c1_c_::types::rrc_conn_recfg);
+  dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg().crit_exts.set_c1().set_rrc_conn_recfg_r8();
   dl_dcch_msg.msg.c1().rrc_conn_recfg().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
-
-  dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.set(rrc_conn_recfg_s::crit_exts_c_::types::c1);
-  dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().set(
-      rrc_conn_recfg_s::crit_exts_c_::c1_c_::types::rrc_conn_recfg_r8);
   rrc_conn_recfg_r8_ies_s* conn_reconf = &dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
 
   for(uint32_t i=0; i<e->len; i++) {
@@ -1879,15 +1841,11 @@ void rrc::ue::send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBE
 void rrc::ue::send_security_mode_command()
 {
   dl_dcch_msg_s dl_dcch_msg;
-  dl_dcch_msg.msg.set(dl_dcch_msg_type_c::types::c1);
-  dl_dcch_msg.msg.c1().set(dl_dcch_msg_type_c::c1_c_::types::security_mode_cmd);
-
-  security_mode_cmd_s* comm = &dl_dcch_msg.msg.c1().security_mode_cmd();
+  security_mode_cmd_s* comm = &dl_dcch_msg.msg.set_c1().set_security_mode_cmd();
   comm->rrc_transaction_id  = (uint8_t)((transaction_id++) % 4);
 
   // TODO: select these based on UE capabilities and preference order
-  comm->crit_exts.set(security_mode_cmd_s::crit_exts_c_::types::c1);
-  comm->crit_exts.c1().set(security_mode_cmd_s::crit_exts_c_::c1_c_::types::security_mode_cmd_r8);
+  comm->crit_exts.set_c1().set_security_mode_cmd_r8();
   comm->crit_exts.c1().security_mode_cmd_r8().security_cfg_smc.security_algorithm_cfg.ciphering_algorithm =
       (ciphering_algorithm_r12_e::options)cipher_algo;
   comm->crit_exts.c1().security_mode_cmd_r8().security_cfg_smc.security_algorithm_cfg.integrity_prot_algorithm =
@@ -1899,14 +1857,11 @@ void rrc::ue::send_security_mode_command()
 void rrc::ue::send_ue_cap_enquiry()
 {
   dl_dcch_msg_s dl_dcch_msg;
-  dl_dcch_msg.msg.set(dl_dcch_msg_type_c::types::c1);
-  dl_dcch_msg.msg.c1().set(dl_dcch_msg_type_c::c1_c_::types::ue_cap_enquiry);
+  dl_dcch_msg.msg.set_c1().set_ue_cap_enquiry().crit_exts.set_c1().set_ue_cap_enquiry_r8();
 
   ue_cap_enquiry_s* enq   = &dl_dcch_msg.msg.c1().ue_cap_enquiry();
   enq->rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
 
-  enq->crit_exts.set(ue_cap_enquiry_s::crit_exts_c_::types::c1);
-  enq->crit_exts.c1().set(ue_cap_enquiry_s::crit_exts_c_::c1_c_::types::ue_cap_enquiry_r8);
   enq->crit_exts.c1().ue_cap_enquiry_r8().ue_cap_request.resize(1);
   enq->crit_exts.c1().ue_cap_enquiry_r8().ue_cap_request[0].value = rat_type_e::eutra;
 
@@ -1968,7 +1923,7 @@ bool rrc::ue::select_security_algorithms()
       enc_algo_found = false;
       break;
     }
-    if (enc_algo_found == true) {
+    if (enc_algo_found) {
       break;
     }
   }
@@ -2004,12 +1959,12 @@ bool rrc::ue::select_security_algorithms()
       break;
     }
 
-    if (integ_algo_found == true) {
+    if (integ_algo_found) {
       break;
     }
   }
 
-  if (integ_algo_found == false || enc_algo_found == false) {
+  if (not integ_algo_found || not enc_algo_found) {
     // TODO: if no security algorithm found abort radio connection and issue
     // encryption-and-or-integrity-protection-algorithms-not-supported message
     parent->rrc_log->error("Did not find a matching integrity or encryption algorithm with the UE\n");
