@@ -56,7 +56,12 @@ void nas::reset()
   for (int i = 0; i < MAX_ERABS_PER_UE; ++i) {
     m_esm_ctx[i] = {};
   }
+
+  srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo  = m_sec_ctx.integ_algo;
+  srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo = m_sec_ctx.cipher_algo;
   m_sec_ctx = {};
+  m_sec_ctx.integ_algo  = integ_algo;
+  m_sec_ctx.cipher_algo = cipher_algo;
 }
 
 /**********************************
@@ -659,6 +664,7 @@ bool nas::handle_service_request(uint32_t                m_tmsi,
 
     // Reset and store context with new mme s1ap id
     nas_ctx->reset();
+    memcpy(&ecm_ctx->enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
     ecm_ctx->enb_ue_s1ap_id = enb_ue_s1ap_id;
     ecm_ctx->mme_ue_s1ap_id = s1ap->get_next_mme_ue_s1ap_id();
     s1ap->add_nas_ctx_to_mme_ue_s1ap_id_map(nas_ctx);
@@ -1645,6 +1651,9 @@ void nas::integrity_generate(srslte::byte_buffer_t* pdu, uint8_t* mac)
     default:
       break;
   }
+  m_nas_log->debug("Generating MAC with inputs: Algorithm %s, DL COUNT %d\n",
+                   srslte::integrity_algorithm_id_text[m_sec_ctx.integ_algo],
+                   m_sec_ctx.dl_nas_count);
 }
 
 void nas::cipher_decrypt(srslte::byte_buffer_t* pdu)
