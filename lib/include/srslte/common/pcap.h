@@ -77,6 +77,7 @@ typedef struct pcaprec_hdr_s {
 #define MAC_LTE_PREDFINED_DATA_TAG  0x05
 #define MAC_LTE_RETX_TAG            0x06
 #define MAC_LTE_CRC_STATUS_TAG      0x07
+#define MAC_LTE_NB_MODE_TAG         0x0F
 
 
 
@@ -92,6 +93,8 @@ typedef struct MAC_Context_Info_t {
 
     unsigned short sysFrameNumber;
     unsigned short subFrameNumber;
+
+    unsigned char  nbiotMode;
 } MAC_Context_Info_t;
 
 /* Context information for every NAS PDU that will be logged */
@@ -250,6 +253,10 @@ inline int LTE_PCAP_MAC_WritePDU(FILE *fd, MAC_Context_Info_t *context,
     /* CRC Status */
     context_header[offset++] = MAC_LTE_CRC_STATUS_TAG;
     context_header[offset++] = context->crcStatusOK;
+
+    /* NB-IoT mode tag */
+    context_header[offset++] = MAC_LTE_NB_MODE_TAG;
+    context_header[offset++] = context->nbiotMode;
 
     /* Data tag immediately preceding PDU */
     context_header[offset++] = MAC_LTE_PAYLOAD_TAG;
