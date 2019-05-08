@@ -53,6 +53,9 @@ int srslte_filesink_write(srslte_filesink_t *q, void *buffer, int nsamples) {
   int size;
 
   switch(q->type) {
+  case SRSLTE_TEXT:
+    fprintf(q->f, "%s",(char *)buffer);
+    break;
   case SRSLTE_FLOAT:
     for (i=0;i<nsamples;i++) {
       fprintf(q->f,"%g\n",fbuf[i]);

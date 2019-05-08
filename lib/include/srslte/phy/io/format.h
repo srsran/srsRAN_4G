@@ -22,7 +22,8 @@
 #ifndef SRSLTE_FORMAT_H
 #define SRSLTE_FORMAT_H
 
-typedef enum { 
+typedef enum {
+  SRSLTE_TEXT,
   SRSLTE_FLOAT, 
   SRSLTE_COMPLEX_FLOAT, 
   SRSLTE_COMPLEX_SHORT, 
