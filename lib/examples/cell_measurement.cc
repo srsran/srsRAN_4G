@@ -685,16 +685,13 @@ int main(int argc, char **argv) {
               if (srslte_verbose != SRSLTE_VERBOSE_NONE) {
                 printf("\n");
               }
-              if (srslte_rf_has_rssi(&rf)) {
-                printf("rrsi is %f", rssi);
-                tower.rssi = 10*log10(rssi*1000) - rx_gain_offset;
+              tower.rssi = 10 * log10(rssi * 1000) - rx_gain_offset;
+              if (tower.rssi > -200 && tower.rssi < 200) {
                 // If you know of a better way to test that it's a real number (not NaN or ∞,) I'd like to hear it.
-                if (tower.rssi > -200 && tower.rssi < 200) {
-                  tower.cfo = srslte_ue_sync_get_cfo(&ue_sync)/1000;
-                  std::thread thread_socket (write_sib1_data, tower);
-                  thread_socket.detach();
-                  exit_decode_loop = true;
-                }
+                tower.cfo = srslte_ue_sync_get_cfo(&ue_sync) / 1000;
+                std::thread thread_socket(write_sib1_data, tower);
+                thread_socket.detach();
+                exit_decode_loop = true;
               }
             }
           }
