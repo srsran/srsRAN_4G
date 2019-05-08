@@ -25,6 +25,7 @@
 #include <assert.h>
 #include <complex.h>
 
+#include "srslte/phy/common/phy_common.h"
 #include "srslte/phy/utils/cexptab.h"
 
 int srslte_cexptab_init(srslte_cexptab_t *h, uint32_t size) {
@@ -76,3 +77,16 @@ void srslte_cexptab_gen_direct(cf_t *x, float freq, uint32_t len) {
   }
 }
 
+void srslte_cexptab_gen_sf(cf_t* x, float freq, uint32_t fft_size)
+{
+  cf_t* ptr = x;
+  for (uint32_t n = 0; n < 2; n++) {
+    for (uint32_t i = 0; i < 7; i++) {
+      uint32_t cplen = SRSLTE_CP_LEN_NORM(i, fft_size);
+      for (uint32_t t = 0; t < fft_size + cplen; t++) {
+        ptr[t] = cexpf(I * 2 * M_PI * ((float)t - (float)cplen) * freq / fft_size);
+      }
+      ptr += fft_size + cplen;
+    }
+  }
+}

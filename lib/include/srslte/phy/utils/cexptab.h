@@ -53,4 +53,6 @@ SRSLTE_API void srslte_cexptab_gen_direct(cf_t *x,
                                           float freq, 
                                           uint32_t len);
 
+SRSLTE_API void srslte_cexptab_gen_sf(cf_t* x, float freq, uint32_t fft_size);
+
 #endif // SRSLTE_CEXPTAB_H
