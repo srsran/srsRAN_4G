@@ -37,6 +37,8 @@
 #include <thread>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <sstream>
+#include <vector>
 
 #define ENABLE_AGC_DEFAULT
 
@@ -85,12 +87,14 @@ typedef struct {
   int band;
   int earfcn_start;
   int earfcn_end;
+  std::string earfcn_list;
+  std::vector<uint32_t> earfcn_vector;
 }prog_args_t;
 
 void args_default(prog_args_t *args) {
   args->nof_subframes = -1; 
   args->force_N_id_2 = -1; // Pick the best
-
+  args->earfcn_list = "";
   args->rf_args = "";
   args->rf_freq = -1.0;
   args->band = -1;
@@ -106,6 +110,7 @@ void args_default(prog_args_t *args) {
 
 void usage(prog_args_t *args, char *prog) {
   printf("Usage: %s [agselnv] -b band\n", prog);
+  printf("\t-z earfcn_list comma separated list of EARFCNs [empty by default]\n");
   printf("\t-a RF args [Default %s]\n", args->rf_args);
   printf("\t-g RF RX gain [Default %.2f dB]\n", args->rf_gain);
   printf("\t-s earfcn_start [Default All]\n");
@@ -118,7 +123,7 @@ void usage(prog_args_t *args, char *prog) {
 int  parse_args(prog_args_t *args, int argc, char **argv) {
   int opt;
   args_default(args);
-  while ((opt = getopt(argc, argv, "aglnvfseb")) != -1) {
+  while ((opt = getopt(argc, argv, "aglnvfsebz")) != -1) {
     switch (opt) {
     case 'a':
       args->rf_args = argv[optind];
@@ -131,6 +136,21 @@ int  parse_args(prog_args_t *args, int argc, char **argv) {
       break;
     case 'n':
       args->nof_subframes = atoi(argv[optind]);
+      break;
+    case 'z':
+      args->earfcn_list = argv[optind];
+      if (args->earfcn_list != "") {
+        std::stringstream ss(args->earfcn_list);
+        while (ss.good()) {
+          std::string substr;
+          getline(ss, substr, ',');
+          const int earfcn = atoi(substr.c_str());
+          args->earfcn_vector.push_back(earfcn);
+        }
+      } else {
+        printf("Error: earfcn list is empty\n");
+        return false;
+      }
       break;
     case 'l':
       args->force_N_id_2 = atoi(argv[optind]);
@@ -152,7 +172,7 @@ int  parse_args(prog_args_t *args, int argc, char **argv) {
       return -1;
     }
   }
-  if (args->band < 0) {
+  if (args->earfcn_list == "") {
     usage(args, argv[0]);
     return -1;
   }
@@ -257,6 +277,13 @@ static int write_sib1_data(tower_info_t tower){
 
   }
 
+void get_fd_for_earfcn_vector(std::vector<uint32_t> earfcn_vector, srslte_earfcn_t *channels) {
+    for (int j=0;j<earfcn_vector.size();j++) {
+      channels[j].id = earfcn_vector[j];
+      channels[j].fd = srslte_band_fd(earfcn_vector[j]);
+    }
+  }
+
 int main(int argc, char **argv) {
   int ret; 
   cf_t *sf_buffer[SRSLTE_MAX_PORTS] = {NULL, NULL}; 
@@ -284,7 +311,7 @@ int main(int argc, char **argv) {
   srslte_ue_cellsearch_t        cs;
   srslte_ue_cellsearch_result_t found_cells[3];
   int32_t                           nof_freqs;
-  srslte_earfcn_t               channels[MAX_EARFCN];
+  srslte_earfcn_t               channels[prog_args.earfcn_list.size()];
   int32_t                      freq;
   uint32_t                      n_found_cells = 0;
 
@@ -326,7 +353,11 @@ int main(int argc, char **argv) {
   // Supress RF messages
   srslte_rf_suppress_stdout(&rf);
   
-  nof_freqs = srslte_band_get_fd_band(prog_args.band, channels, prog_args.earfcn_start, prog_args.earfcn_end, MAX_EARFCN);
+  nof_freqs = prog_args.earfcn_vector.size();
+
+  get_fd_for_earfcn_vector(prog_args.earfcn_vector, channels);
+
+  //srslte_band_get_fd_band(prog_args.band, channels, prog_args.earfcn_start, prog_args.earfcn_end, MAX_EARFCN);
   if (nof_freqs < 0) {
     fprintf(stderr, "Error getting EARFCN list\n");
     exit(-1);
@@ -356,6 +387,9 @@ int main(int argc, char **argv) {
   while (! go_exit) {
     /* set rf_freq */
     freq++;
+    if (freq == nof_freqs) {
+      freq = 0; //continue loop at the beginning
+    }
     float rx_freq = channels[freq].fd * MHZ;
     srslte_rf_set_rx_freq(&rf, (double) rx_freq);
     srslte_rf_rx_wait_lo_locked(&rf);
@@ -687,9 +721,9 @@ int main(int argc, char **argv) {
         }
       } // Decoding Loop
     } // if found cell 
-    if (freq == nof_freqs) {
-      freq = -1; //continue loop at the beginning
-    }
+    //if (freq == nof_freqs) {
+    //  freq = -1; //continue loop at the beginning
+    //}
   } // Search loop
 
   for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
