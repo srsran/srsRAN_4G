@@ -61,10 +61,14 @@ SRSLTE_API int srslte_conv_fft_cc_replan(srslte_conv_fft_cc_t *q,
 
 SRSLTE_API void srslte_conv_fft_cc_free(srslte_conv_fft_cc_t *q);
 
-SRSLTE_API uint32_t srslte_conv_fft_cc_run(srslte_conv_fft_cc_t *q,
-                                           const cf_t *input,
-                                           const cf_t *filter,
-                                           cf_t *output);
+SRSLTE_API uint32_t srslte_corr_fft_cc_run(srslte_conv_fft_cc_t* q, cf_t* input, cf_t* filter, cf_t* output);
+
+SRSLTE_API uint32_t srslte_corr_fft_cc_run_opt(srslte_conv_fft_cc_t* q, cf_t* input, cf_t* filter, cf_t* output);
+
+SRSLTE_API uint32_t srslte_conv_fft_cc_run(srslte_conv_fft_cc_t* q,
+                                           const cf_t*           input,
+                                           const cf_t*           filter,
+                                           cf_t*                 output);
 
 SRSLTE_API uint32_t srslte_conv_fft_cc_run_opt(srslte_conv_fft_cc_t *q,
                                                const cf_t *input,

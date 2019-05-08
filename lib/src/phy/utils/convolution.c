@@ -127,6 +127,20 @@ uint32_t srslte_conv_fft_cc_run(srslte_conv_fft_cc_t *q, const cf_t *input, cons
 
 }
 
+uint32_t srslte_corr_fft_cc_run_opt(srslte_conv_fft_cc_t* q, cf_t* input, cf_t* filter, cf_t* output)
+{
+  srslte_dft_run_c(&q->input_plan, input, q->input_fft);
+  srslte_vec_prod_conj_ccc(q->input_fft, q->filter_fft, q->output_fft, q->output_len);
+  srslte_dft_run_c(&q->output_plan, q->output_fft, output);
+  return (q->output_len - 1);
+}
+
+uint32_t srslte_corr_fft_cc_run(srslte_conv_fft_cc_t* q, cf_t* input, cf_t* filter, cf_t* output)
+{
+  srslte_dft_run_c(&q->filter_plan, filter, q->filter_fft);
+  return srslte_corr_fft_cc_run_opt(q, input, q->filter_fft, output);
+}
+
 uint32_t srslte_conv_cc(const cf_t *input, const cf_t *filter, cf_t *output, uint32_t input_len, uint32_t filter_len) {
   uint32_t i;
   uint32_t M = filter_len; 
