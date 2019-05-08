@@ -34,6 +34,9 @@
 #include <unistd.h>
 #include <assert.h>
 #include <signal.h>
+#include <thread>
+#include <sys/socket.h>
+#include <sys/un.h>
 
 #define ENABLE_AGC_DEFAULT
 
@@ -183,6 +186,76 @@ enum receiver_state { DECODE_MIB, DECODE_SIB, MEASURE} state;
 
 #define MAX_SINFO 10
 #define MAX_NEIGHBOUR_CELLS     128
+
+typedef struct {
+  uint16_t    mcc;
+  uint16_t    mnc;
+  uint16_t    tac;
+  uint32_t    cid;
+  uint16_t    phyid;
+  uint16_t    earfcn;
+  double      rssi;
+  double      frequency;
+  uint16_t    enodeb_id;
+  uint16_t    sector_id;
+  double      cfo;
+  std::string      raw_sib1;
+} tower_info_t;
+
+
+static int write_sib1_data(tower_info_t tower){
+      std::ostringstream os;
+      long seconds = (unsigned long)time(NULL);
+
+      os << tower.mcc << ","
+        << tower.mnc << ", "
+        << tower.tac << ","
+        << tower.cid << ","
+        << tower.phyid << ","
+        << tower.earfcn << ","
+        << tower.rssi << ","
+        << tower.frequency << ","
+        << tower.enodeb_id << ","
+        << tower.sector_id << ","
+        << tower.cfo << ","
+        << tower.raw_sib1 << ","
+        << seconds;
+      // https://stackoverflow.com/questions/1374468/stringstream-string-and-char-conversion-confusion
+
+      const std::string& tmp = os.str();
+      const char* packet = tmp.c_str();
+
+      printf("**** sending packet: <%s>\n", packet);
+
+      const char *socket_path = "/tmp/croc.sock";
+      struct sockaddr_un addr;
+      int fd;
+      if ( (fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
+        perror("socket error");
+        exit(-1);
+      }
+      memset(&addr, 0, sizeof(addr));
+      addr.sun_family = AF_UNIX;
+      if (*socket_path == '\0')
+      {
+        *addr.sun_path = '\0';
+        strncpy(addr.sun_path + 1, socket_path + 1, sizeof(addr.sun_path) - 2);
+      }
+      else
+      {
+        strncpy(addr.sun_path, socket_path, sizeof(addr.sun_path) - 1);
+      }
+
+      if (connect(fd, (struct sockaddr *)&addr, sizeof(addr)) == -1)
+      {
+        perror("connect error");
+        exit(-1);
+      }
+
+      ssize_t w = write(fd, packet, strlen(packet));
+      return (int)w;
+
+  }
 
 int main(int argc, char **argv) {
   int ret; 
@@ -430,29 +503,19 @@ int main(int argc, char **argv) {
       srslte_rf_start_rx_stream(&rf, false);
       
       float rx_gain_offset = 0;
-
-      typedef struct {
-        uint16_t    mcc;
-        uint16_t    mnc;
-        uint16_t    tac;
-        uint32_t    cid;
-        uint16_t    phyid;
-        uint16_t    earfcn;
-        uint16_t    rssi;
-        uint16_t    frequency;
-        uint16_t    enodeb_id;
-        uint16_t    sector_id;
-      } tower_info_t;
-
       printf("Begin SIB Decoding Loop");
 
       /* Main loop */
       bool exit_decode_loop = false;
       //state = DECODE_MIB;
+      tower_info_t tower;
+      tower.frequency = freq; 
+      tower.earfcn = channels[freq].id;
+      int mib_tries = 0;
+      state = DECODE_MIB;
       while ((sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1) && !go_exit && !exit_decode_loop) {
-        tower_info_t tower;
         
-        printf("calling zerocopy");
+        //printf("calling zerocopy");
 
         ret = srslte_ue_sync_zerocopy_multi(&ue_sync, sf_buffer);
         if (ret < 0) {
@@ -463,9 +526,15 @@ int main(int argc, char **argv) {
         if (ret == 1) {
           switch (state) {
             case DECODE_MIB:
-              printf("0");
+              //printf("0");
+              mib_tries++;
+              if(mib_tries > 20){
+                exit_decode_loop=true;
+                break;
+              }
               if (srslte_ue_sync_get_sfidx(&ue_sync) == 0) {
                 srslte_pbch_decode_reset(&ue_mib.pbch);
+                //printf("DECODING MIB*******************");
                 n = srslte_ue_mib_decode(&ue_mib, bch_payload, NULL, &sfn_offset);
                 if (n < 0) {
                   fprintf(stderr, "Error decoding UE MIB\n");
@@ -501,6 +570,12 @@ int main(int argc, char **argv) {
                   printf("Decoded SIB1. Payload: ");
                   srslte_vec_fprint_byte(stdout, data[0], n/8);;
                   asn1::rrc::bcch_dl_sch_msg_s dlsch_msg;
+                  std::ostringstream sib1;
+                  sib1 << std::hex;
+                  for (int i = 0; i < n/8; i++) {
+                    sib1 << (int)data[0][i] << " ";
+                  }
+                  tower.raw_sib1 = sib1.str();
 
                   asn1::bit_ref     bref(data[0], n / 8);
                   asn1::SRSASN_CODE unpackResult = dlsch_msg.unpack(bref);
@@ -524,17 +599,19 @@ int main(int argc, char **argv) {
                         // srslte::bytes_to_mnc(&plmn.mnc[0], &mnc, plmn.mnc.size());
                         tower.tac = (uint16_t) sib1->cell_access_related_info.tac.to_number();
                         tower.cid = (uint32_t) sib1->cell_access_related_info.cell_id.to_number();
+                        tower.enodeb_id = tower.cid >> 8;
+                        tower.sector_id = tower.cid & 255;
 
                         printf("MCC=%d, MNC=%d, PID=%d, TAC=%d, CID=%d\n", tower.mcc, tower.mnc, tower.phyid, tower.tac, tower.cid);
                         if ((tower.mnc != 0) && (tower.mcc != 0)) {
-                          //state = MEASURE;
-                          exit_decode_loop = true; 
+                          state = MEASURE;
+                          //exit_decode_loop = true; 
                         }
                       }
                     }
                   }
-                  //state = MEASURE;
-                  exit_decode_loop = true; 
+                  state = MEASURE;
+                  //exit_decode_loop = true; 
                 }
               }
             break;
@@ -579,7 +656,15 @@ int main(int argc, char **argv) {
                 printf("\n");
               }
               if (srslte_rf_has_rssi(&rf)) {
-                exit_decode_loop = true; 
+                printf("rrsi is %f", rssi);
+                tower.rssi = 10*log10(rssi*1000) - rx_gain_offset;
+                // If you know of a better way to test that it's a real number (not NaN or ∞,) I'd like to hear it. 
+                if (tower.rssi > -200 && tower.rssi < 200) {
+                  tower.cfo = srslte_ue_sync_get_cfo(&ue_sync)/1000;
+                  std::thread thread_socket (write_sib1_data, tower);
+                  thread_socket.detach();
+                  exit_decode_loop = true; 
+                }
               }
             }
           }
