@@ -305,6 +305,7 @@ void pdcp_entity::handle_am_drb_pdu(srslte::byte_buffer_t* pdu)
              last_submitted_pdcp_rx_sn,
              next_pdcp_rx_sn);
 
+  bool discard = false;
   if ((0 <= sn_diff_last_submit && sn_diff_last_submit > (int32_t)reordering_window) ||
       (0 <= last_submit_diff_sn && last_submit_diff_sn < (int32_t)reordering_window)) {
     log->debug("|SN - last_submitted_sn| is larger than re-ordering window.\n");
@@ -313,6 +314,7 @@ void pdcp_entity::handle_am_drb_pdu(srslte::byte_buffer_t* pdu)
     } else {
       count = rx_hfn << cfg.sn_len | sn;
     }
+    discard = true;
   } else if ((int32_t)(next_pdcp_rx_sn - sn) > (int32_t)reordering_window) {
     log->debug("(Next_PDCP_RX_SN - SN) is larger than re-ordering window.\n");
     rx_hfn++;
@@ -337,9 +339,12 @@ void pdcp_entity::handle_am_drb_pdu(srslte::byte_buffer_t* pdu)
   // FIXME Check if PDU is not due to re-establishment of lower layers?
   cipher_decrypt(pdu->msg, count, pdu->N_bytes, pdu->msg);
   log->debug_hex(pdu->msg, pdu->N_bytes, "RX %s PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
-  last_submitted_pdcp_rx_sn = sn; 
-  return;
+
+  if (!discard) {
+    last_submitted_pdcp_rx_sn = sn;
   }
+  return;
+}
 
 /****************************************************************************
  * Security functions
