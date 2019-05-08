@@ -169,7 +169,7 @@ uint32_t srslte_refsignal_cs_v(uint32_t port_id, uint32_t ref_symbol_idx)
 
 inline uint32_t srslte_refsignal_cs_nof_symbols(srslte_refsignal_t* q, srslte_dl_sf_cfg_t* sf, uint32_t port_id)
 {
-  if (q->cell.frame_type == SRSLTE_FDD || !sf->tdd_config.configured ||
+  if (q == NULL || sf == NULL || q->cell.frame_type == SRSLTE_FDD || !sf->tdd_config.configured ||
       srslte_sfidx_tdd_type(sf->tdd_config, sf->tti % 10) == SRSLTE_TDD_SF_D) {
     if (port_id < 2) {
       return 4;
