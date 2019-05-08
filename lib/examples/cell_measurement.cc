@@ -515,7 +515,6 @@ int main(int argc, char **argv) {
       state = DECODE_MIB;
       while ((sf_cnt < prog_args.nof_subframes || prog_args.nof_subframes == -1) && !go_exit && !exit_decode_loop) {
         
-        //printf("calling zerocopy");
 
         ret = srslte_ue_sync_zerocopy_multi(&ue_sync, sf_buffer);
         if (ret < 0) {
@@ -526,7 +525,6 @@ int main(int argc, char **argv) {
         if (ret == 1) {
           switch (state) {
             case DECODE_MIB:
-              //printf("0");
               mib_tries++;
               if(mib_tries > 20){
                 exit_decode_loop=true;
@@ -534,7 +532,6 @@ int main(int argc, char **argv) {
               }
               if (srslte_ue_sync_get_sfidx(&ue_sync) == 0) {
                 srslte_pbch_decode_reset(&ue_mib.pbch);
-                //printf("DECODING MIB*******************");
                 n = srslte_ue_mib_decode(&ue_mib, bch_payload, NULL, &sfn_offset);
                 if (n < 0) {
                   fprintf(stderr, "Error decoding UE MIB\n");
@@ -579,11 +576,9 @@ int main(int argc, char **argv) {
 
                   asn1::bit_ref     bref(data[0], n / 8);
                   asn1::SRSASN_CODE unpackResult = dlsch_msg.unpack(bref);
-                  //printf("unpackResult = %d\n", unpackResult);
 
                   if (unpackResult == asn1::SRSASN_SUCCESS) {
                     int msgTypeValue = dlsch_msg.msg.type().value;
-                    //printf("dlsch_msg.msg.type().value=%d\n", msgTypeValue);
                     if (msgTypeValue == 0) {
                       if (dlsch_msg.msg.c1().type().value == asn1::rrc::bcch_dl_sch_msg_type_c::c1_c_::types::sib_type1) {
                         //                                        printf("Accessing dlsch_msg.msg.c1().sib_type1()\n");
