@@ -37,6 +37,7 @@
 #include <thread>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <iomanip>
 
 #define ENABLE_AGC_DEFAULT
 
@@ -570,7 +571,7 @@ int main(int argc, char **argv) {
                   std::ostringstream sib1;
                   sib1 << std::hex;
                   for (int i = 0; i < n/8; i++) {
-                    sib1 << (int)data[0][i] << " ";
+                    sib1 << std::setfill('0') << std::setw(2) << (int)data[0][i];
                   }
                   tower.raw_sib1 = sib1.str();
 
