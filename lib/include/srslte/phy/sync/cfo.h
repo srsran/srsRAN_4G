@@ -62,4 +62,7 @@ SRSLTE_API void srslte_cfo_correct(srslte_cfo_t *h,
                                    cf_t *output,
                                    float freq);
 
+SRSLTE_API void
+srslte_cfo_correct_offset(srslte_cfo_t* h, const cf_t* input, cf_t* output, float freq, int cexp_offset, int nsamples);
+
 #endif // SRSLTE_CFO_H

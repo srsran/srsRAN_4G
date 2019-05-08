@@ -101,3 +101,19 @@ void srslte_cfo_correct(srslte_cfo_t *h, const cf_t *input, cf_t *output, float 
   srslte_vec_apply_cfo(input, freq, output, h->nsamples);
 #endif /* SRSLTE_CFO_USE_EXP_TABLE */
 }
+
+/* CFO correction which allows to specify the offset within the correction
+ * table to allow phase-continuity across multi-subframe transmissions (NB-IoT)
+ * Note that when correction table needs to be regenerated, the regeneration
+ * takes place for the maximum number of samples
+ */
+void srslte_cfo_correct_offset(
+    srslte_cfo_t* h, const cf_t* input, cf_t* output, float freq, int cexp_offset, int nsamples)
+{
+  if (fabs(h->last_freq - freq) > h->tol) {
+    h->last_freq = freq;
+    srslte_cexptab_gen(&h->tab, h->cur_cexp, h->last_freq, h->nsamples);
+    DEBUG("CFO generating new table for frequency %.4fe-6\n", freq * 1e6);
+  }
+  srslte_vec_prod_ccc(&h->cur_cexp[cexp_offset], input, output, nsamples);
+}
