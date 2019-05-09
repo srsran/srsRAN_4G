@@ -10,6 +10,6 @@ script:
  - mkdir build
  - cd build
  - cmake -DRF_FOUND=True ..
- - make
- - ctest -T memcheck
+ - make -j4
+ - ctest -T memcheck -j4
  - sudo make install
