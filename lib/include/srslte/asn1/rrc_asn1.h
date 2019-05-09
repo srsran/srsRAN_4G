@@ -3555,8 +3555,7 @@ struct carrier_freqs_geran_s {
 
   private:
     types type_;
-    choice_buffer_t<max_sizeof(
-        {sizeof(dyn_octstring), sizeof(equally_spaced_arfcns_s_), sizeof(explicit_list_of_arfcns_l)})>
+    choice_buffer_t<MAX4(sizeof(dyn_octstring), sizeof(equally_spaced_arfcns_s_), sizeof(explicit_list_of_arfcns_l), 0)>
         c;
 
     void destroy_();
@@ -10301,13 +10300,38 @@ struct sib_info_item_c {
 
 private:
   types type_;
-  choice_buffer_t<max_sizeof(
-      {sizeof(sib_type10_s),     sizeof(sib_type11_s),     sizeof(sib_type12_r9_s),  sizeof(sib_type13_r9_s),
-       sizeof(sib_type14_r11_s), sizeof(sib_type15_r11_s), sizeof(sib_type16_r11_s), sizeof(sib_type17_r12_s),
-       sizeof(sib_type18_r12_s), sizeof(sib_type19_r12_s), sizeof(sib_type20_r13_s), sizeof(sib_type21_r14_s),
-       sizeof(sib_type24_r15_s), sizeof(sib_type25_r15_s), sizeof(sib_type26_r15_s), sizeof(sib_type2_s),
-       sizeof(sib_type3_s),      sizeof(sib_type4_s),      sizeof(sib_type5_s),      sizeof(sib_type6_s),
-       sizeof(sib_type7_s),      sizeof(sib_type8_s),      sizeof(sib_type9_s)})>
+  choice_buffer_t<MAX32(sizeof(sib_type10_s),
+                        sizeof(sib_type11_s),
+                        sizeof(sib_type12_r9_s),
+                        sizeof(sib_type13_r9_s),
+                        sizeof(sib_type14_r11_s),
+                        sizeof(sib_type15_r11_s),
+                        sizeof(sib_type16_r11_s),
+                        sizeof(sib_type17_r12_s),
+                        sizeof(sib_type18_r12_s),
+                        sizeof(sib_type19_r12_s),
+                        sizeof(sib_type20_r13_s),
+                        sizeof(sib_type21_r14_s),
+                        sizeof(sib_type24_r15_s),
+                        sizeof(sib_type25_r15_s),
+                        sizeof(sib_type26_r15_s),
+                        sizeof(sib_type2_s),
+                        sizeof(sib_type3_s),
+                        sizeof(sib_type4_s),
+                        sizeof(sib_type5_s),
+                        sizeof(sib_type6_s),
+                        sizeof(sib_type7_s),
+                        sizeof(sib_type8_s),
+                        sizeof(sib_type9_s),
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0)>
       c;
 
   void destroy_();
@@ -11070,8 +11094,7 @@ struct p_c_and_cbsr_r13_s {
 
   private:
     types type_;
-    choice_buffer_t<max_sizeof(
-        {sizeof(beamformed_k1a_r13_s_), sizeof(beamformed_kn_r13_s_), sizeof(non_precoded_r13_s_)})>
+    choice_buffer_t<MAX4(sizeof(beamformed_k1a_r13_s_), sizeof(beamformed_kn_r13_s_), sizeof(non_precoded_r13_s_), 0)>
         c;
 
     void destroy_();
@@ -13044,8 +13067,8 @@ struct cqi_report_aperiodic_hybrid_r14_s {
     }
 
   private:
-    types                                                                                                   type_;
-    choice_buffer_t<max_sizeof({sizeof(one_bit_r14_s_), sizeof(three_bit_r14_s_), sizeof(two_bit_r14_s_)})> c;
+    types                                                                                              type_;
+    choice_buffer_t<MAX4(sizeof(one_bit_r14_s_), sizeof(three_bit_r14_s_), sizeof(two_bit_r14_s_), 0)> c;
 
     void destroy_();
   };
@@ -15023,8 +15046,8 @@ struct rlc_cfg_r15_s {
 
   private:
     types type_;
-    choice_buffer_t<max_sizeof(
-        {sizeof(am_r15_s_), sizeof(um_bi_dir_r15_s_), sizeof(um_uni_dir_dl_r15_s_), sizeof(um_uni_dir_ul_r15_s_)})>
+    choice_buffer_t<MAX4(
+        sizeof(am_r15_s_), sizeof(um_bi_dir_r15_s_), sizeof(um_uni_dir_dl_r15_s_), sizeof(um_uni_dir_ul_r15_s_))>
         c;
 
     void destroy_();
@@ -16885,9 +16908,8 @@ struct rlc_cfg_c {
   }
 
 private:
-  types type_;
-  choice_buffer_t<max_sizeof({sizeof(am_s_), sizeof(um_bi_dir_s_), sizeof(um_uni_dir_dl_s_), sizeof(um_uni_dir_ul_s_)})>
-      c;
+  types                                                                                                          type_;
+  choice_buffer_t<MAX4(sizeof(am_s_), sizeof(um_bi_dir_s_), sizeof(um_uni_dir_dl_s_), sizeof(um_uni_dir_ul_s_))> c;
 
   void destroy_();
 };
@@ -19947,8 +19969,7 @@ struct pucch_cfg_ded_r13_s {
 
   private:
     types type_;
-    choice_buffer_t<max_sizeof(
-        {sizeof(ch_sel_r13_s_), sizeof(format3_r13_s_), sizeof(format4_r13_s_), sizeof(format5_r13_s_)})>
+    choice_buffer_t<MAX4(sizeof(ch_sel_r13_s_), sizeof(format3_r13_s_), sizeof(format4_r13_s_), sizeof(format5_r13_s_))>
         c;
 
     void destroy_();
@@ -24109,8 +24130,8 @@ struct redirected_carrier_info_r15_ies_c {
 
 private:
   types type_;
-  choice_buffer_t<max_sizeof(
-      {sizeof(carrier_freq_cdma2000_s), sizeof(carrier_freq_list_utra_tdd_r10_l), sizeof(carrier_freqs_geran_s)})>
+  choice_buffer_t<MAX4(
+      sizeof(carrier_freq_cdma2000_s), sizeof(carrier_freq_list_utra_tdd_r10_l), sizeof(carrier_freqs_geran_s), 0)>
       c;
 
   void destroy_();
@@ -24642,8 +24663,8 @@ struct dl_ccch_msg_type_c {
 
   private:
     types type_;
-    choice_buffer_t<max_sizeof({sizeof(rrc_conn_reest_reject_s), sizeof(rrc_conn_reest_s), sizeof(rrc_conn_reject_s),
-                                sizeof(rrc_conn_setup_s)})>
+    choice_buffer_t<MAX4(
+        sizeof(rrc_conn_reest_reject_s), sizeof(rrc_conn_reest_s), sizeof(rrc_conn_reject_s), sizeof(rrc_conn_setup_s))>
         c;
 
     void destroy_();
@@ -27631,8 +27652,8 @@ struct security_cfg_ho_v1530_s {
     }
 
   private:
-    types                                                                                                         type_;
-    choice_buffer_t<max_sizeof({sizeof(epc_to_ngc_r15_s_), sizeof(intra5_gc_r15_s_), sizeof(ngc_to_epc_r15_s_)})> c;
+    types                                                                                                    type_;
+    choice_buffer_t<MAX4(sizeof(epc_to_ngc_r15_s_), sizeof(intra5_gc_r15_s_), sizeof(ngc_to_epc_r15_s_), 0)> c;
 
     void destroy_();
   };
@@ -32866,10 +32887,22 @@ struct eutra_event_s {
 
   private:
     types type_;
-    choice_buffer_t<max_sizeof({sizeof(event_a1_s_), sizeof(event_a2_s_), sizeof(event_a3_s_), sizeof(event_a4_s_),
-                                sizeof(event_a5_s_), sizeof(event_a6_r10_s_), sizeof(event_c1_r12_s_),
-                                sizeof(event_c2_r12_s_), sizeof(event_h1_r15_s_), sizeof(event_h2_r15_s_),
-                                sizeof(event_v1_r14_s_), sizeof(event_v2_r14_s_)})>
+    choice_buffer_t<MAX16(sizeof(event_a1_s_),
+                          sizeof(event_a2_s_),
+                          sizeof(event_a3_s_),
+                          sizeof(event_a4_s_),
+                          sizeof(event_a5_s_),
+                          sizeof(event_a6_r10_s_),
+                          sizeof(event_c1_r12_s_),
+                          sizeof(event_c2_r12_s_),
+                          sizeof(event_h1_r15_s_),
+                          sizeof(event_h2_r15_s_),
+                          sizeof(event_v1_r14_s_),
+                          sizeof(event_v2_r14_s_),
+                          0,
+                          0,
+                          0,
+                          0)>
         c;
 
     void destroy_();
@@ -33449,9 +33482,14 @@ struct report_cfg_inter_rat_s {
 
       private:
         types type_;
-        choice_buffer_t<max_sizeof({sizeof(event_b1_nr_r15_s_), sizeof(event_b1_s_), sizeof(event_b2_nr_r15_s_),
-                                    sizeof(event_b2_s_), sizeof(event_w1_r13_s_), sizeof(event_w2_r13_s_),
-                                    sizeof(event_w3_r13_s_)})>
+        choice_buffer_t<MAX8(sizeof(event_b1_nr_r15_s_),
+                             sizeof(event_b1_s_),
+                             sizeof(event_b2_nr_r15_s_),
+                             sizeof(event_b2_s_),
+                             sizeof(event_w1_r13_s_),
+                             sizeof(event_w2_r13_s_),
+                             sizeof(event_w3_r13_s_),
+                             0)>
             c;
 
         void destroy_();
@@ -33905,8 +33943,14 @@ struct meas_obj_to_add_mod_s {
 
   private:
     types type_;
-    choice_buffer_t<max_sizeof({sizeof(meas_obj_cdma2000_s), sizeof(meas_obj_eutra_s), sizeof(meas_obj_geran_s),
-                                sizeof(meas_obj_nr_r15_s), sizeof(meas_obj_utra_s), sizeof(meas_obj_wlan_r13_s)})>
+    choice_buffer_t<MAX8(sizeof(meas_obj_cdma2000_s),
+                         sizeof(meas_obj_eutra_s),
+                         sizeof(meas_obj_geran_s),
+                         sizeof(meas_obj_nr_r15_s),
+                         sizeof(meas_obj_utra_s),
+                         sizeof(meas_obj_wlan_r13_s),
+                         0,
+                         0)>
         c;
 
     void destroy_();
@@ -34059,8 +34103,14 @@ struct meas_obj_to_add_mod_ext_r13_s {
 
   private:
     types type_;
-    choice_buffer_t<max_sizeof({sizeof(meas_obj_cdma2000_s), sizeof(meas_obj_eutra_s), sizeof(meas_obj_geran_s),
-                                sizeof(meas_obj_nr_r15_s), sizeof(meas_obj_utra_s), sizeof(meas_obj_wlan_r13_s)})>
+    choice_buffer_t<MAX8(sizeof(meas_obj_cdma2000_s),
+                         sizeof(meas_obj_eutra_s),
+                         sizeof(meas_obj_geran_s),
+                         sizeof(meas_obj_nr_r15_s),
+                         sizeof(meas_obj_utra_s),
+                         sizeof(meas_obj_wlan_r13_s),
+                         0,
+                         0)>
         c;
 
     void destroy_();
@@ -35654,8 +35704,10 @@ struct rrc_conn_release_v920_ies_s {
 
   private:
     types type_;
-    choice_buffer_t<max_sizeof({sizeof(cell_info_list_geran_r9_l), sizeof(cell_info_list_utra_fdd_r9_l),
-                                sizeof(cell_info_list_utra_tdd_r10_l), sizeof(cell_info_list_utra_tdd_r9_l)})>
+    choice_buffer_t<MAX4(sizeof(cell_info_list_geran_r9_l),
+                         sizeof(cell_info_list_utra_fdd_r9_l),
+                         sizeof(cell_info_list_utra_tdd_r10_l),
+                         sizeof(cell_info_list_utra_tdd_r9_l))>
         c;
 
     void destroy_();
@@ -37165,8 +37217,10 @@ struct redirected_carrier_info_c {
 
 private:
   types type_;
-  choice_buffer_t<max_sizeof({sizeof(carrier_freq_cdma2000_s), sizeof(carrier_freq_list_utra_tdd_r10_l),
-                              sizeof(carrier_freqs_geran_s), sizeof(carrier_info_nr_r15_s)})>
+  choice_buffer_t<MAX4(sizeof(carrier_freq_cdma2000_s),
+                       sizeof(carrier_freq_list_utra_tdd_r10_l),
+                       sizeof(carrier_freqs_geran_s),
+                       sizeof(carrier_info_nr_r15_s))>
       c;
 
   void destroy_();
@@ -37707,8 +37761,8 @@ struct mob_from_eutra_cmd_r9_ies_s {
     }
 
   private:
-    types                                                                                         type_;
-    choice_buffer_t<max_sizeof({sizeof(cell_change_order_s), sizeof(e_csfb_r9_s), sizeof(ho_s)})> c;
+    types                                                                                    type_;
+    choice_buffer_t<MAX4(sizeof(cell_change_order_s), sizeof(e_csfb_r9_s), sizeof(ho_s), 0)> c;
 
     void destroy_();
   };
@@ -39199,11 +39253,22 @@ struct dl_dcch_msg_type_c {
 
   private:
     types type_;
-    choice_buffer_t<max_sizeof({sizeof(counter_check_s), sizeof(csfb_params_resp_cdma2000_s),
-                                sizeof(dl_info_transfer_s), sizeof(ho_from_eutra_prep_request_s),
-                                sizeof(logged_meas_cfg_r10_s), sizeof(mob_from_eutra_cmd_s), sizeof(rn_recfg_r10_s),
-                                sizeof(rrc_conn_recfg_s), sizeof(rrc_conn_release_s), sizeof(rrc_conn_resume_r13_s),
-                                sizeof(security_mode_cmd_s), sizeof(ue_cap_enquiry_s), sizeof(ue_info_request_r9_s)})>
+    choice_buffer_t<MAX16(sizeof(counter_check_s),
+                          sizeof(csfb_params_resp_cdma2000_s),
+                          sizeof(dl_info_transfer_s),
+                          sizeof(ho_from_eutra_prep_request_s),
+                          sizeof(logged_meas_cfg_r10_s),
+                          sizeof(mob_from_eutra_cmd_s),
+                          sizeof(rn_recfg_r10_s),
+                          sizeof(rrc_conn_recfg_s),
+                          sizeof(rrc_conn_release_s),
+                          sizeof(rrc_conn_resume_r13_s),
+                          sizeof(security_mode_cmd_s),
+                          sizeof(ue_cap_enquiry_s),
+                          sizeof(ue_info_request_r9_s),
+                          0,
+                          0,
+                          0)>
         c;
 
     void destroy_();
@@ -39891,8 +39956,8 @@ struct paging_ue_id_c {
   }
 
 private:
-  types                                                                                        type_;
-  choice_buffer_t<max_sizeof({sizeof(fixed_bitstring<48>), sizeof(imsi_l), sizeof(s_tmsi_s)})> c;
+  types                                                                                   type_;
+  choice_buffer_t<MAX4(sizeof(fixed_bitstring<48>), sizeof(imsi_l), sizeof(s_tmsi_s), 0)> c;
 
   void destroy_();
 };
@@ -45571,9 +45636,14 @@ struct meas_results_s {
 
   private:
     types type_;
-    choice_buffer_t<max_sizeof({sizeof(meas_result_cell_list_nr_r15_l), sizeof(meas_result_list_eutra_l),
-                                sizeof(meas_result_list_geran_l), sizeof(meas_result_list_utra_l),
-                                sizeof(meas_results_cdma2000_s)})>
+    choice_buffer_t<MAX8(sizeof(meas_result_cell_list_nr_r15_l),
+                         sizeof(meas_result_list_eutra_l),
+                         sizeof(meas_result_list_geran_l),
+                         sizeof(meas_result_list_utra_l),
+                         sizeof(meas_results_cdma2000_s),
+                         0,
+                         0,
+                         0)>
         c;
 
     void destroy_();
@@ -49218,12 +49288,22 @@ struct ul_dcch_msg_type_c {
 
   private:
     types type_;
-    choice_buffer_t<max_sizeof(
-        {sizeof(counter_check_resp_s), sizeof(csfb_params_request_cdma2000_s), sizeof(inter_freq_rstd_meas_ind_r10_s),
-         sizeof(mbms_count_resp_r10_s), sizeof(meas_report_s), sizeof(proximity_ind_r9_s),
-         sizeof(rn_recfg_complete_r10_s), sizeof(rrc_conn_recfg_complete_s), sizeof(rrc_conn_reest_complete_s),
-         sizeof(rrc_conn_setup_complete_s), sizeof(security_mode_complete_s), sizeof(security_mode_fail_s),
-         sizeof(ue_cap_info_s), sizeof(ue_info_resp_r9_s), sizeof(ul_ho_prep_transfer_s), sizeof(ul_info_transfer_s)})>
+    choice_buffer_t<MAX16(sizeof(counter_check_resp_s),
+                          sizeof(csfb_params_request_cdma2000_s),
+                          sizeof(inter_freq_rstd_meas_ind_r10_s),
+                          sizeof(mbms_count_resp_r10_s),
+                          sizeof(meas_report_s),
+                          sizeof(proximity_ind_r9_s),
+                          sizeof(rn_recfg_complete_r10_s),
+                          sizeof(rrc_conn_recfg_complete_s),
+                          sizeof(rrc_conn_reest_complete_s),
+                          sizeof(rrc_conn_setup_complete_s),
+                          sizeof(security_mode_complete_s),
+                          sizeof(security_mode_fail_s),
+                          sizeof(ue_cap_info_s),
+                          sizeof(ue_info_resp_r9_s),
+                          sizeof(ul_ho_prep_transfer_s),
+                          sizeof(ul_info_transfer_s))>
         c;
 
     void destroy_();
@@ -49434,11 +49514,22 @@ struct ul_dcch_msg_type_c {
 
     private:
       types type_;
-      choice_buffer_t<max_sizeof(
-          {sizeof(fail_info_r15_s), sizeof(in_dev_coex_ind_r11_s), sizeof(mbms_interest_ind_r11_s),
-           sizeof(meas_report_app_layer_r15_s), sizeof(rrc_conn_resume_complete_r13_s), sizeof(scg_fail_info_nr_r15_s),
-           sizeof(scg_fail_info_r12_s), sizeof(sidelink_ue_info_r12_s), sizeof(ueassist_info_r11_s),
-           sizeof(ul_info_transfer_mrdc_r15_s), sizeof(wlan_conn_status_report_r13_s)})>
+      choice_buffer_t<MAX16(sizeof(fail_info_r15_s),
+                            sizeof(in_dev_coex_ind_r11_s),
+                            sizeof(mbms_interest_ind_r11_s),
+                            sizeof(meas_report_app_layer_r15_s),
+                            sizeof(rrc_conn_resume_complete_r13_s),
+                            sizeof(scg_fail_info_nr_r15_s),
+                            sizeof(scg_fail_info_r12_s),
+                            sizeof(sidelink_ue_info_r12_s),
+                            sizeof(ueassist_info_r11_s),
+                            sizeof(ul_info_transfer_mrdc_r15_s),
+                            sizeof(wlan_conn_status_report_r13_s),
+                            0,
+                            0,
+                            0,
+                            0,
+                            0)>
           c;
 
       void destroy_();
@@ -55243,10 +55334,8 @@ struct cells_triggered_list_item_c_ {
   }
 
 private:
-  types type_;
-  choice_buffer_t<max_sizeof(
-      {sizeof(pci_geran_s_), sizeof(pci_nr_r15_s_), sizeof(pci_utra_c_), sizeof(wlan_ids_r12_s)})>
-      c;
+  types                                                                                                           type_;
+  choice_buffer_t<MAX4(sizeof(pci_geran_s_), sizeof(pci_nr_r15_s_), sizeof(pci_utra_c_), sizeof(wlan_ids_r12_s))> c;
 
   void destroy_();
 };

@@ -788,15 +788,15 @@ union alignment_t {
   uint32_t*   ptr;
 };
 #define MAX2(a, b) ((a) > (b)) ? (a) : (b)
-template <class It>
-constexpr size_t max_size(const It b, const It e)
-{
-  return ((b == e) ? 0 : ((b + 1 == e) ? *b : MAX2(max_size(b, b + (e - b) / 2), max_size(b + (e - b) / 2, e))));
-}
-constexpr size_t max_sizeof(const std::initializer_list<size_t>& l)
-{
-  return max_size(l.begin(), l.end());
-}
+#define MAX4(a, b, c, d) MAX2((MAX2(a, b)), MAX2(c, d))
+#define MAX8(a, b, c, d, e, f, g, h) MAX2((MAX4(a, b, c, d)), (MAX4(e, f, g, h)))
+#define MAX12(a, b, c, d, e, f, g, h, i, j, k, l) MAX2((MAX8(a, b, c, d, e, f, g, h)), (MAX4(i, j, k, l)))
+#define MAX16(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p)                                                          \
+  MAX2((MAX8(a, b, c, d, e, f, g, h)), (MAX8(i, j, k, l, m, n, o, p)))
+#define MAX32(                                                                                                         \
+    a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, a1, b1, c1, d1, e1, f1, g1, h1, i1, j1, k1, l1, m1, n1, o1, p1)    \
+  MAX2((MAX16(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p)),                                                        \
+       (MAX16(a1, b1, c1, d1, e1, f1, g1, h1, i1, j1, k1, l1, m1, n1, o1, p1)))
 
 template <size_t SIZE>
 class choice_buffer_t
