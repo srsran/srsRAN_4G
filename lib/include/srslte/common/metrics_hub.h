@@ -28,9 +28,10 @@
 #ifndef SRSLTE_METRICS_HUB_H
 #define SRSLTE_METRICS_HUB_H
 
-#include <vector>
 #include "srslte/common/threads.h"
 #include "srslte/srslte.h"
+#include <chrono>
+#include <vector>
 
 namespace srslte {
 
@@ -53,13 +54,7 @@ template<typename metrics_t>
 class metrics_hub : public periodic_thread
 {
 public:
-  metrics_hub()
-    :m(NULL)
-  {
-    for (int i = 0; i < 3; ++i) {
-      sleep_period_start[i] = (struct timeval){};
-    }
-  }
+  metrics_hub() : m(nullptr), sleep_start(std::chrono::steady_clock::now()) {}
   bool init(metrics_interface<metrics_t> *m_, float report_period_secs_=1.0) {
     m = m_;
     // Start with user-default priority
@@ -81,24 +76,25 @@ public:
   }
   
 private:
-  void run_period(){
+  void run_period()
+  {
     // get current time and check how long we slept
-    gettimeofday(&sleep_period_start[2], NULL);
-    get_time_interval(sleep_period_start);
-    uint32_t period = sleep_period_start[0].tv_sec*1e6 + sleep_period_start[0].tv_usec;
+    auto period_usec =
+        std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - sleep_start);
+
     if (m) {
       metrics_t metric;
       m->get_metrics(metric);
       for (uint32_t i=0;i<listeners.size();i++) {
-        listeners[i]->set_metrics(metric, period);
+        listeners[i]->set_metrics(metric, period_usec.count());
       }
     }
     // store start of sleep period
-    gettimeofday(&sleep_period_start[1], NULL);
+    sleep_start = std::chrono::steady_clock::now();
   }
   metrics_interface<metrics_t> *m;
   std::vector<metrics_listener<metrics_t>*> listeners;
-  struct timeval sleep_period_start[3];
+  std::chrono::steady_clock::time_point     sleep_start;
 };
 
 } // namespace srslte
