@@ -26,8 +26,9 @@ bool zf_solver = false;
 bool mmse_solver = false;
 bool verbose = false;
 
+static uint32_t nof_repetitions = 1;
+
 #define MAX_MSE (1e-3)
-#define NOF_REPETITIONS (1024)
 #define MAX_FUNCTIONS (64)
 #define MAX_BLOCKS (16)
 
@@ -37,9 +38,12 @@ static srslte_random_t random_h = NULL;
 #define RANDOM_B() ((int8_t)srslte_random_uniform_int_dist(random_h, -127, +127))
 #define RANDOM_CF() srslte_random_uniform_complex_dist(random_h, -1.0f, +1.0f)
 
-#define TEST_CALL(TEST_CODE)   gettimeofday(&start, NULL);\
-  for (int i = 0; i < NOF_REPETITIONS; i++){TEST_CODE;}\
-  gettimeofday(&end, NULL); \
+#define TEST_CALL(TEST_CODE)                                                                                           \
+  gettimeofday(&start, NULL);                                                                                          \
+  for (int i = 0; i < nof_repetitions; i++) {                                                                          \
+    TEST_CODE;                                                                                                         \
+  }                                                                                                                    \
+  gettimeofday(&end, NULL);                                                                                            \
   *timing = elapsed_us(&start, &end);
 
 #define TEST(X, CODE)                                                                                                  \
@@ -56,7 +60,7 @@ static srslte_random_t random_h = NULL;
     printf("%32s (%5d) ... %7.1f MSamp/s ... %3s Passed (%.6f)\n",                                                     \
            func_name,                                                                                                  \
            block_size,                                                                                                 \
-           (double)block_size* NOF_REPETITIONS / *timing,                                                              \
+           (double)block_size* nof_repetitions / *timing,                                                              \
            passed ? "" : "Not",                                                                                        \
            mse);                                                                                                       \
     return passed;                                                                                                     \
@@ -104,833 +108,701 @@ float squared_error (cf_t a, cf_t b) {
          free(z);
 )
 
-TEST(srslte_vec_acc_ff,
-     MALLOC(float, x);
-         float z;
+ TEST(srslte_vec_acc_ff, MALLOC(float, x); float z = 0;
 
-         cf_t gold = 0.0f;
-         for (int i = 0; i < block_size; i++) {
-           x[i] = RANDOM_F();
-         }
+      cf_t gold = 0.0f;
+      for (int i = 0; i < block_size; i++) { x[i] = RANDOM_F(); }
 
-         TEST_CALL(z = srslte_vec_acc_ff(x, block_size))
+      TEST_CALL(z = srslte_vec_acc_ff(x, block_size))
 
-         for (int i = 0; i < block_size; i++) {
-           gold += x[i];
-         }
+          for (int i = 0; i < block_size; i++) { gold += x[i]; }
 
-         mse += fabs(gold - z) / gold;
+      mse += fabs(gold - z) / gold;
 
-         free(x);
-)
+      free(x);)
 
-TEST(srslte_vec_dot_prod_sss,
-     MALLOC(int16_t, x);
-         MALLOC(int16_t, y);
-         int16_t z;
+ TEST(
+     srslte_vec_dot_prod_sss, MALLOC(int16_t, x); MALLOC(int16_t, y); int16_t z = 0;
 
-         int16_t gold = 0.0f;
-         for (int i = 0; i < block_size; i++) {
-           x[i] = RANDOM_S();
-           y[i] = RANDOM_S();
-         }
+     int16_t gold = 0.0f;
+     for (int i = 0; i < block_size; i++) {
+       x[i] = RANDOM_S();
+       y[i] = RANDOM_S();
+     }
 
-         TEST_CALL(z = srslte_vec_dot_prod_sss(x, y, block_size))
+     TEST_CALL(z = srslte_vec_dot_prod_sss(x, y, block_size))
 
-         for (int i = 0; i < block_size; i++) {
-           gold += x[i] * y[i];
-         }
+         for (int i = 0; i < block_size; i++) { gold += x[i] * y[i]; }
 
-         mse = (gold - z) / abs(gold);
+     mse = (gold - z) / abs(gold);
 
-         free(x);
-         free(y);
-)
+     free(x);
+     free(y);)
 
-TEST(srslte_vec_sum_sss,
-     MALLOC(int16_t, x);
-         MALLOC(int16_t, y);
-         MALLOC(int16_t, z);
+ TEST(
+     srslte_vec_sum_sss, MALLOC(int16_t, x); MALLOC(int16_t, y); MALLOC(int16_t, z);
 
-         int16_t gold = 0;
-         for (int i = 0; i < block_size; i++) {
-           x[i] = RANDOM_S();
-           y[i] = RANDOM_S();
-         }
+     int16_t gold = 0;
+     for (int i = 0; i < block_size; i++) {
+       x[i] = RANDOM_S();
+       y[i] = RANDOM_S();
+     }
 
-         TEST_CALL(srslte_vec_sum_sss(x, y, z, block_size))
+     TEST_CALL(srslte_vec_sum_sss(x, y, z, block_size))
 
          for (int i = 0; i < block_size; i++) {
            gold = x[i] + y[i];
            mse += abs(gold - z[i]);
          }
 
-         free(x);
-         free(y);
-         free(z);
-)
+     free(x);
+     free(y);
+     free(z);)
 
-TEST(srslte_vec_sub_sss,
-     MALLOC(int16_t, x);
-         MALLOC(int16_t, y);
-         MALLOC(int16_t, z);
+ TEST(
+     srslte_vec_sub_sss, MALLOC(int16_t, x); MALLOC(int16_t, y); MALLOC(int16_t, z);
 
-         int16_t gold = 0.0f;
-         for (int i = 0; i < block_size; i++) {
-           x[i] = RANDOM_S();
-           y[i] = RANDOM_S();
-         }
+     int16_t gold = 0.0f;
+     for (int i = 0; i < block_size; i++) {
+       x[i] = RANDOM_S();
+       y[i] = RANDOM_S();
+     }
 
-         TEST_CALL(srslte_vec_sub_sss(x, y, z, block_size))
+     TEST_CALL(srslte_vec_sub_sss(x, y, z, block_size))
 
          for (int i = 0; i < block_size; i++) {
            gold = x[i] - y[i];
            mse += abs(gold - z[i]);
          }
 
-         free(x);
-         free(y);
-         free(z);
-)
+     free(x);
+     free(y);
+     free(z);)
 
-TEST(srslte_vec_prod_sss,
-     MALLOC(int16_t, x);
-         MALLOC(int16_t, y);
-         MALLOC(int16_t, z);
+ TEST(
+     srslte_vec_prod_sss, MALLOC(int16_t, x); MALLOC(int16_t, y); MALLOC(int16_t, z);
 
-         int16_t gold = 0.0f;
-         for (int i = 0; i < block_size; i++) {
-           x[i] = RANDOM_S();
-           y[i] = RANDOM_S();
-         }
+     int16_t gold = 0.0f;
+     for (int i = 0; i < block_size; i++) {
+       x[i] = RANDOM_S();
+       y[i] = RANDOM_S();
+     }
 
-         TEST_CALL(srslte_vec_prod_sss(x, y, z, block_size))
+     TEST_CALL(srslte_vec_prod_sss(x, y, z, block_size))
 
          for (int i = 0; i < block_size; i++) {
            gold = x[i] * y[i];
            mse += abs(gold - z[i]);
          }
 
-         free(x);
-         free(y);
-         free(z);
-)
+     free(x);
+     free(y);
+     free(z);)
 
-TEST(srslte_vec_neg_sss,
-     MALLOC(int16_t, x);
-         MALLOC(int16_t, y);
-         MALLOC(int16_t, z);
+ TEST(
+     srslte_vec_neg_sss, MALLOC(int16_t, x); MALLOC(int16_t, y); MALLOC(int16_t, z);
 
-         int16_t gold = 0.0f;
-         for (int i = 0; i < block_size; i++) {
-           x[i] = RANDOM_S();
-           do { y[i] = RANDOM_S(); } while (!y[i]);
-         }
+     int16_t gold = 0.0f;
+     for (int i = 0; i < block_size; i++) {
+       x[i] = RANDOM_S();
+       do {
+         y[i] = RANDOM_S();
+       } while (!y[i]);
+     }
 
-         TEST_CALL(srslte_vec_neg_sss(x, y, z, block_size))
+     TEST_CALL(srslte_vec_neg_sss(x, y, z, block_size))
 
          for (int i = 0; i < block_size; i++) {
            gold = y[i] < 0 ? -x[i] : x[i];
            mse += abs(gold - z[i]);
          }
 
-         free(x);
-         free(y);
-         free(z);
-)
+     free(x);
+     free(y);
+     free(z);)
 
-TEST(srslte_vec_acc_cc,
-     MALLOC(cf_t, x);
-         cf_t z;
+ TEST(srslte_vec_acc_cc, MALLOC(cf_t, x); cf_t z = 0.0f;
 
-         cf_t gold = 0.0f;
-         for (int i = 0; i < block_size; i++) {
-           x[i] = RANDOM_F();
-         }
+      cf_t gold = 0.0f;
+      for (int i = 0; i < block_size; i++) { x[i] = RANDOM_F(); }
 
-         TEST_CALL(z = srslte_vec_acc_cc(x, block_size))
+      TEST_CALL(z = srslte_vec_acc_cc(x, block_size))
 
-         for (int i = 0; i < block_size; i++) {
-           gold += x[i];
-         }
+          for (int i = 0; i < block_size; i++) { gold += x[i]; }
 
-         mse += cabsf(gold - z)/cabsf(gold);
+      mse += cabsf(gold - z) / cabsf(gold);
 
-         free(x);
-)
+      free(x);)
 
+ TEST(
+     srslte_vec_sum_fff, MALLOC(float, x); MALLOC(float, y); MALLOC(float, z);
 
-TEST(srslte_vec_sum_fff,
-     MALLOC(float, x);
-         MALLOC(float, y);
-         MALLOC(float, z);
-
-         cf_t gold = 0.0f;
-         for (int i = 0; i < block_size; i++) {
-         x[i] = RANDOM_F();
-         y[i] = RANDOM_F();
+     cf_t gold = 0.0f;
+     for (int i = 0; i < block_size; i++) {
+       x[i] = RANDOM_F();
+       y[i] = RANDOM_F();
      }
 
-         TEST_CALL(srslte_vec_sum_fff(x, y, z, block_size))
+     TEST_CALL(srslte_vec_sum_fff(x, y, z, block_size))
 
          for (int i = 0; i < block_size; i++) {
-         gold = x[i] + y[i];
-         mse += cabsf(gold - z[i]);
+           gold = x[i] + y[i];
+           mse += cabsf(gold - z[i]);
+         }
+
+     free(x);
+     free(y);
+     free(z);)
+
+ TEST(
+     srslte_vec_sub_fff, MALLOC(float, x); MALLOC(float, y); MALLOC(float, z);
+
+     cf_t gold = 0.0f;
+     for (int i = 0; i < block_size; i++) {
+       x[i] = RANDOM_F();
+       y[i] = RANDOM_F();
      }
 
-         free(x);
-         free(y);
-         free(z);
-)
+     TEST_CALL(srslte_vec_sub_fff(x, y, z, block_size))
 
-TEST(srslte_vec_sub_fff,
-     MALLOC(float, x);
-         MALLOC(float, y);
-         MALLOC(float, z);
-
-         cf_t gold = 0.0f;
          for (int i = 0; i < block_size; i++) {
-         x[i] = RANDOM_F();
-         y[i] = RANDOM_F();
+           gold = x[i] - y[i];
+           mse += cabsf(gold - z[i]);
+         }
+
+     free(x);
+     free(y);
+     free(z);)
+
+ TEST(
+     srslte_vec_dot_prod_ccc, MALLOC(cf_t, x); MALLOC(cf_t, y); cf_t z = 0.0f;
+
+     cf_t gold = 0.0f;
+     for (int i = 0; i < block_size; i++) {
+       x[i] = RANDOM_CF();
+       y[i] = RANDOM_CF();
      }
 
-         TEST_CALL(srslte_vec_sub_fff(x, y, z, block_size))
+     TEST_CALL(z = srslte_vec_dot_prod_ccc(x, y, block_size))
 
-         for (int i = 0; i < block_size; i++) {
-         gold = x[i] - y[i];
-         mse += cabsf(gold - z[i]);
+         for (int i = 0; i < block_size; i++) { gold += x[i] * y[i]; }
+
+     mse = cabsf(gold - z) / cabsf(gold);
+
+     free(x);
+     free(y);)
+
+ TEST(
+     srslte_vec_dot_prod_conj_ccc, MALLOC(cf_t, x); MALLOC(cf_t, y); cf_t z = 0.0f;
+
+     cf_t gold = 0.0f;
+     for (int i = 0; i < block_size; i++) {
+       x[i] = RANDOM_CF();
+       y[i] = RANDOM_CF();
      }
 
-         free(x);
-         free(y);
-         free(z);
-)
+     TEST_CALL(z = srslte_vec_dot_prod_conj_ccc(x, y, block_size))
 
-TEST(srslte_vec_dot_prod_ccc,
-     MALLOC(cf_t, x);
-         MALLOC(cf_t, y);
-         cf_t z;
+         for (int i = 0; i < block_size; i++) { gold += x[i] * conjf(y[i]); }
 
-         cf_t gold = 0.0f;
-         for (int i = 0; i < block_size; i++) {
-           x[i] = RANDOM_CF();
-           y[i] = RANDOM_CF();
-         }
+     mse = cabsf(gold - z) / cabsf(gold);
 
-         TEST_CALL(z = srslte_vec_dot_prod_ccc(x, y, block_size))
+     free(x);
+     free(y);)
 
-         for (int i = 0; i < block_size; i++) {
-           gold += x[i] * y[i];
-         }
+ TEST(
+     srslte_vec_prod_ccc, MALLOC(cf_t, x); MALLOC(cf_t, y); MALLOC(cf_t, z);
 
-         mse = cabsf(gold - z) / cabsf(gold);
+     cf_t gold;
+     for (int i = 0; i < block_size; i++) {
+       x[i] = RANDOM_CF();
+       y[i] = RANDOM_CF();
+     }
 
-         free(x);
-         free(y);
-)
-
-TEST(srslte_vec_dot_prod_conj_ccc,
-     MALLOC(cf_t, x);
-         MALLOC(cf_t, y);
-         cf_t z;
-
-         cf_t gold = 0.0f;
-         for (int i = 0; i < block_size; i++) {
-           x[i] = RANDOM_CF();
-           y[i] = RANDOM_CF();
-         }
-
-         TEST_CALL(z = srslte_vec_dot_prod_conj_ccc(x, y, block_size))
+     TEST_CALL(srslte_vec_prod_ccc(x, y, z, block_size))
 
          for (int i = 0; i < block_size; i++) {
-           gold += x[i] * conjf(y[i]);
+           gold = x[i] * y[i];
+           mse += cabsf(gold - z[i]);
          }
 
-         mse = cabsf(gold - z) / cabsf(gold);
+     free(x);
+     free(y);
+     free(z);)
 
-         free(x);
-         free(y);
-)
-
-TEST(srslte_vec_prod_ccc,
-  MALLOC(cf_t, x);
-  MALLOC(cf_t, y);
-  MALLOC(cf_t, z);
-
-  cf_t gold;
-  for (int i = 0; i < block_size; i++) {
-    x[i] = RANDOM_CF();
-    y[i] = RANDOM_CF();
-  }
-
-  TEST_CALL(srslte_vec_prod_ccc(x, y, z, block_size))
-
-  for (int i = 0; i < block_size; i++) {
-    gold = x[i] * y[i];
-    mse += cabsf(gold - z[i]);
-  }
-
-  free(x);
-  free(y);
-  free(z);
-)
-
-TEST(srslte_vec_prod_ccc_split,
-     MALLOC(float, x_re);
-     MALLOC(float, x_im);
-     MALLOC(float, y_re);
-     MALLOC(float, y_im);
+ TEST(
+     srslte_vec_prod_ccc_split, MALLOC(float, x_re); MALLOC(float, x_im); MALLOC(float, y_re); MALLOC(float, y_im);
      MALLOC(float, z_re);
      MALLOC(float, z_im);
 
-         cf_t gold;
-         for (int i = 0; i < block_size; i++) {
-           x_re[i] = RANDOM_F();
-           x_im[i] = RANDOM_F();
-           y_re[i] = RANDOM_F();
-           y_im[i] = RANDOM_F();
-         }
+     cf_t gold;
+     for (int i = 0; i < block_size; i++) {
+       x_re[i] = RANDOM_F();
+       x_im[i] = RANDOM_F();
+       y_re[i] = RANDOM_F();
+       y_im[i] = RANDOM_F();
+     }
 
-         TEST_CALL(srslte_vec_prod_ccc_split(x_re, x_im, y_re, y_im, z_re, z_im, block_size))
+     TEST_CALL(srslte_vec_prod_ccc_split(x_re, x_im, y_re, y_im, z_re, z_im, block_size))
 
          for (int i = 0; i < block_size; i++) {
            gold = (x_re[i] + I * x_im[i]) * (y_re[i] + I * y_im[i]);
            mse += cabsf(gold - (z_re[i] + I*z_im[i]));
          }
 
-         free(x_re);
-         free(x_im);
-         free(y_re);
-         free(y_im);
-         free(z_re);
-         free(z_im);
-)
+     free(x_re);
+     free(x_im);
+     free(y_re);
+     free(y_im);
+     free(z_re);
+     free(z_im);)
+
+ TEST(
+     srslte_vec_prod_conj_ccc, MALLOC(cf_t, x); MALLOC(cf_t, y); MALLOC(cf_t, z);
 
-TEST(srslte_vec_prod_conj_ccc,
-  MALLOC(cf_t, x);
-  MALLOC(cf_t, y);
-  MALLOC(cf_t, z);
-
-  cf_t gold;
-  for (int i = 0; i < block_size; i++) {
-    x[i] = RANDOM_CF();
-    y[i] = RANDOM_CF();
-  }
-
-  TEST_CALL(srslte_vec_prod_conj_ccc(x, y, z, block_size))
-
-  for (int i = 0; i < block_size; i++) {
-    gold = x[i] * conjf(y[i]);
-    mse += cabsf(gold - z[i]);
-  }
-
-  free(x);
-  free(y);
-  free(z);
-)
-
-TEST(srslte_vec_sc_prod_ccc,
-  MALLOC(cf_t, x);
-  MALLOC(cf_t, z);
-  cf_t y = RANDOM_CF();
-
-  cf_t gold;
-  for (int i = 0; i < block_size; i++) {
-    x[i] = RANDOM_CF();
-  }
-
-  TEST_CALL(srslte_vec_sc_prod_ccc(x, y, z, block_size))
-
-  for (int i = 0; i < block_size; i++) {
-    gold = x[i] * y;
-    mse += cabsf(gold - z[i]);
-  }
-
-  free(x);
-  free(z);
-)
-
-TEST(srslte_vec_convert_fi,
-  MALLOC(float, x);
-  MALLOC(short, z);
-      float scale = 1000.0f;
-
-  short gold;
-  for (int i = 0; i < block_size; i++) {
-    x[i] = (float) RANDOM_F();
-  }
-
-  TEST_CALL(srslte_vec_convert_fi(x, scale, z, block_size))
-
-  for (int i = 0; i < block_size; i++) {
-    gold = (short) ((x[i] * scale));
-    double err = cabsf((float)gold - (float) z[i]);
-    if (err > mse) {
-      mse = err;
-    }
-  }
-
-  free(x);
-  free(z);
-)
-
-TEST(srslte_vec_convert_if,
-  MALLOC(int16_t, x);
-  MALLOC(float, z);
-      float scale = 1000.0f;
-
-  float gold;
-  float k = 1.0f/scale;
-  for (int i = 0; i < block_size; i++) {
-    x[i] = (int16_t) RANDOM_S();
-  }
-
-  TEST_CALL(srslte_vec_convert_if(x, scale, z, block_size))
-
-  for (int i = 0; i < block_size; i++) {
-    gold = ((float)x[i]) * k;
-    double err = cabsf((float)gold - (float) z[i]);
-    if (err > mse) {
-      mse = err;
-    }
-  }
-
-  free(x);
-  free(z);
-)
-
-TEST(
-    srslte_vec_prod_fff, MALLOC(float, x); MALLOC(float, y); MALLOC(float, z);
-
-    float gold;
-    for (int i = 0; i < block_size; i++) {
-      x[i] = RANDOM_F();
-      y[i] = RANDOM_F();
-      if (isnan(x[i])) {
-        printf("RANDOM_F!! x=%f; y=%f\n", x[i], y[i]);
-      }
-    }
-
-    TEST_CALL(srslte_vec_prod_fff(x, y, z, block_size))
-
-        for (int i = 0; i < block_size; i++) {
-          gold = x[i] * y[i];
-          if (isnan(gold)) {
-            printf("x=%f; y=%f\n", x[i], y[i]);
-          }
-          mse += fabsf(gold - z[i]);
-        }
-
-    free(x);
-    free(y);
-    free(z);)
-
-TEST(srslte_vec_prod_cfc,
-  MALLOC(cf_t, x);
-  MALLOC(float, y);
-  MALLOC(cf_t, z);
-
-  cf_t gold;
-  for (int i = 0; i < block_size; i++) {
-    x[i] = RANDOM_CF();
-    y[i] = RANDOM_F();
-  }
-
-  TEST_CALL(srslte_vec_prod_cfc(x, y, z, block_size))
-
-  for (int i = 0; i < block_size; i++) {
-    gold = x[i] * y[i];
-    mse += cabsf(gold - z[i]);
-  }
-
-  free(x);
-  free(y);
-  free(z);
-)
-
-TEST(srslte_vec_sc_prod_fff,
-  MALLOC(float, x);
-  MALLOC(float, z);
-  float y = RANDOM_F();
-
-  float gold;
-  for (int i = 0; i < block_size; i++) {
-    x[i] = RANDOM_CF();
-  }
-
-  TEST_CALL(srslte_vec_sc_prod_fff(x, y, z, block_size))
-
-  for (int i = 0; i < block_size; i++) {
-    gold = x[i] * y;
-    mse += cabsf(gold - z[i]);
-  }
-
-  free(x);
-  free(z);
-)
-
-TEST(srslte_vec_abs_cf,
-  MALLOC(cf_t, x);
-  MALLOC(float, z);
-  float gold;
-
-  for (int i = 0; i < block_size; i++) {
-    x[i] = RANDOM_CF();
-  }
-  x[0] = 0.0f;
-
-  TEST_CALL(srslte_vec_abs_cf(x, z, block_size))
-
-  for (int i = 0; i < block_size; i++) {
-    gold = sqrtf(crealf(x[i]) * crealf(x[i]) + cimagf(x[i])*cimagf(x[i]));
-    mse += cabsf(gold - z[i])/block_size;
-  }
-
-  free(x);
-  free(z);
-)
-
-TEST(srslte_vec_abs_square_cf,
-  MALLOC(cf_t, x);
-  MALLOC(float, z);
-  float gold;
-
-  for (int i = 0; i < block_size; i++) {
-    x[i] = RANDOM_CF();
-  }
-
-  TEST_CALL(srslte_vec_abs_square_cf(x, z, block_size))
-
-  for (int i = 0; i < block_size; i++) {
-    gold = crealf(x[i]) * crealf(x[i]) + cimagf(x[i])*cimagf(x[i]);
-    mse += cabsf(gold - z[i]);
-  }
-
-  free(x);
-  free(z);
-)
-
-TEST(srslte_vec_sc_prod_cfc,
-  MALLOC(cf_t, x);
-  MALLOC(cf_t, z);
-  cf_t gold;
-  float h = RANDOM_F();
-
-  for (int i = 0; i < block_size; i++) {
-    x[i] = RANDOM_CF();
-  }
-
-  TEST_CALL(srslte_vec_sc_prod_cfc(x, h, z, block_size))
-
-  for (int i = 0; i < block_size; i++) {
-    gold = x[i] * h;
-    mse += cabsf(gold - z[i]);
-  }
-
-  free(x);
-  free(z);
-)
-
-TEST(srslte_vec_div_ccc,
-     MALLOC(cf_t, x);
-         MALLOC(cf_t, y);
-         MALLOC(cf_t, z);
-
-         cf_t gold;
-         for (int i = 0; i < block_size; i++) {
-           x[i] = RANDOM_CF();
-           y[i] = RANDOM_CF();
-         }
-
-         TEST_CALL(srslte_vec_div_ccc(x, y, z, block_size))
-
-         for (int i = 0; i < block_size; i++) {
-           gold = x[i] / y[i];
-           mse += cabsf(gold - z[i]) / cabsf(gold);
-         }
-         mse /= block_size;
-
-         free(x);
-         free(y);
-         free(z);
-)
-
-
-TEST(srslte_vec_div_cfc,
-     MALLOC(cf_t, x);
-         MALLOC(float, y);
-         MALLOC(cf_t, z);
-
-         cf_t gold;
-         for (int i = 0; i < block_size; i++) {
-           x[i] = RANDOM_CF();
-           y[i] = RANDOM_F() + 0.0001f;
-         }
-
-         TEST_CALL(srslte_vec_div_cfc(x, y, z, block_size))
-
-         for (int i = 0; i < block_size; i++) {
-           gold = x[i] / y[i];
-           mse += cabsf(gold - z[i]) / cabsf(gold);
-         }
-         mse /= block_size;
-
-         free(x);
-         free(y);
-         free(z);
-)
-
-
-TEST(srslte_vec_div_fff,
-     MALLOC(float, x);
-         MALLOC(float, y);
-         MALLOC(float, z);
-
-         cf_t gold;
-         for (int i = 0; i < block_size; i++) {
-           x[i] = RANDOM_F();
-           y[i] = RANDOM_F() + 0.0001f;
-         }
-
-         TEST_CALL(srslte_vec_div_fff(x, y, z, block_size))
-
-         for (int i = 0; i < block_size; i++) {
-           gold = x[i] / y[i];
-           mse += cabsf(gold - z[i]) / cabsf(gold);
-         }
-         mse /= block_size;
-
-         free(x);
-         free(y);
-         free(z);
-)
-
-TEST(srslte_vec_max_fi,
-     MALLOC(float, x);
-
-         for (int i = 0; i < block_size; i++) {
-           x[i] = RANDOM_F();
-         }
-
-         uint32_t max_index = 0;
-         TEST_CALL(max_index = srslte_vec_max_fi(x, block_size);)
-
-         float gold_value = -INFINITY;
-         uint32_t gold_index = 0;
-         for (int i = 0; i < block_size; i++) {
-           if (gold_value < x[i]) {
-             gold_value = x[i];
-             gold_index = i;
-           }
-         }
-         mse = (gold_index != max_index) ? 1:0;
-
-         free(x);
-)
-
-TEST(srslte_vec_max_abs_fi,
-     MALLOC(float, x);
-
-         for (int i = 0; i < block_size; i++) {
-           x[i] = RANDOM_F();
-         }
-
-         uint32_t max_index = 0;
-         TEST_CALL(max_index = srslte_vec_max_abs_fi(x, block_size);)
-
-         float gold_value = -INFINITY;
-         uint32_t gold_index = 0;
-         for (int i = 0; i < block_size; i++) {
-           if (gold_value < fabsf(x[i])) {
-             gold_value = fabsf(x[i]);
-             gold_index = i;
-           }
-         }
-         mse = (gold_index != max_index) ? 1:0;
-
-         free(x);
-)
-
-TEST(srslte_vec_max_abs_ci,
-     MALLOC(cf_t, x);
-
-         for (int i = 0; i < block_size; i++) {
-           x[i] = RANDOM_CF();
-         }
-
-         uint32_t max_index = 0;
-         TEST_CALL(max_index = srslte_vec_max_abs_ci(x, block_size);)
-
-         float gold_value = -INFINITY;
-         uint32_t gold_index = 0;
-         for (int i = 0; i < block_size; i++) {
-           cf_t a = x[i];
-           float abs2 = __real__ a * __real__ a + __imag__ a * __imag__ a;
-           if (abs2 > gold_value) {
-             gold_value = abs2;
-             gold_index = (uint32_t)i;
-           }
-         }
-         mse = (gold_index != max_index) ? 1:0;
-
-         free(x);
-)
-
-TEST(srslte_vec_apply_cfo,
-     MALLOC(cf_t, x);
-     MALLOC(cf_t, z);
-
-     const float cfo = 0.1f;
      cf_t gold;
      for (int i = 0; i < block_size; i++) {
        x[i] = RANDOM_CF();
+       y[i] = RANDOM_CF();
      }
 
-     TEST_CALL(srslte_vec_apply_cfo(x, cfo, z, block_size))
+     TEST_CALL(srslte_vec_prod_conj_ccc(x, y, z, block_size))
 
          for (int i = 0; i < block_size; i++) {
-           gold = x[i] * cexpf(_Complex_I * 2.0f * (float) M_PI * i * cfo);
-           mse += cabsf(gold - z[i]) / cabsf(gold);
+           gold = x[i] * conjf(y[i]);
+           mse += cabsf(gold - z[i]);
          }
-         mse /= block_size;
 
-         free(x);
-         free(z);
-)
+     free(x);
+     free(y);
+     free(z);)
 
-TEST(
-    srslte_vec_gen_sine, MALLOC(cf_t, z);
+ TEST(srslte_vec_sc_prod_ccc, MALLOC(cf_t, x); MALLOC(cf_t, z); cf_t y = RANDOM_CF();
 
-    const float freq = 0.1f;
-    cf_t        gold;
-    cf_t        x = RANDOM_CF();
+      cf_t gold;
+      for (int i = 0; i < block_size; i++) { x[i] = RANDOM_CF(); }
 
-    TEST_CALL(srslte_vec_gen_sine(x, freq, z, block_size))
+      TEST_CALL(srslte_vec_sc_prod_ccc(x, y, z, block_size))
 
-        for (int i = 0; i < block_size; i++) {
-          gold = x * cexpf(_Complex_I * 2.0f * (float)M_PI * i * freq);
-          mse += cabsf(gold - z[i]) / cabsf(gold);
-        } mse /= block_size;
+          for (int i = 0; i < block_size; i++) {
+            gold = x[i] * y;
+            mse += cabsf(gold - z[i]);
+          }
 
-    free(z);)
+      free(x);
+      free(z);)
 
-TEST(srslte_vec_estimate_frequency, MALLOC(cf_t, x); float freq_gold = 0.1f; float freq = 0.1f;
+ TEST(srslte_vec_convert_fi, MALLOC(float, x); MALLOC(short, z); float scale = 1000.0f;
 
-     for (int i = 0; i < block_size; i++) { x[i] = cexpf(-I * 2.0f * M_PI * (float)i * freq_gold); }
+      short gold;
+      for (int i = 0; i < block_size; i++) { x[i] = (float)RANDOM_F(); }
 
-     TEST_CALL(freq = srslte_vec_estimate_frequency(x, block_size);) if (block_size < 6) { mse = 0.0f; } else {
-       mse = fabsf(freq - freq_gold);
+      TEST_CALL(srslte_vec_convert_fi(x, scale, z, block_size))
+
+          for (int i = 0; i < block_size; i++) {
+            gold       = (short)((x[i] * scale));
+            double err = cabsf((float)gold - (float)z[i]);
+            if (err > mse) {
+              mse = err;
+            }
+          }
+
+      free(x);
+      free(z);)
+
+ TEST(srslte_vec_convert_if, MALLOC(int16_t, x); MALLOC(float, z); float scale = 1000.0f;
+
+      float gold;
+      float k = 1.0f / scale;
+      for (int i = 0; i < block_size; i++) { x[i] = (int16_t)RANDOM_S(); }
+
+      TEST_CALL(srslte_vec_convert_if(x, scale, z, block_size))
+
+          for (int i = 0; i < block_size; i++) {
+            gold       = ((float)x[i]) * k;
+            double err = cabsf((float)gold - (float)z[i]);
+            if (err > mse) {
+              mse = err;
+            }
+          }
+
+      free(x);
+      free(z);)
+
+ TEST(
+     srslte_vec_prod_fff, MALLOC(float, x); MALLOC(float, y); MALLOC(float, z);
+
+     float gold;
+     for (int i = 0; i < block_size; i++) {
+       x[i] = RANDOM_F();
+       y[i] = RANDOM_F();
+       if (isnan(x[i])) {
+         printf("RANDOM_F!! x=%f; y=%f\n", x[i], y[i]);
+       }
      }
+
+     TEST_CALL(srslte_vec_prod_fff(x, y, z, block_size))
+
+         for (int i = 0; i < block_size; i++) {
+           gold = x[i] * y[i];
+           if (isnan(gold)) {
+             printf("x=%f; y=%f\n", x[i], y[i]);
+           }
+           mse += fabsf(gold - z[i]);
+         }
+
+     free(x);
+     free(y);
+     free(z);)
+
+ TEST(
+     srslte_vec_prod_cfc, MALLOC(cf_t, x); MALLOC(float, y); MALLOC(cf_t, z);
+
+     cf_t gold;
+     for (int i = 0; i < block_size; i++) {
+       x[i] = RANDOM_CF();
+       y[i] = RANDOM_F();
+     }
+
+     TEST_CALL(srslte_vec_prod_cfc(x, y, z, block_size))
+
+         for (int i = 0; i < block_size; i++) {
+           gold = x[i] * y[i];
+           mse += cabsf(gold - z[i]);
+         }
+
+     free(x);
+     free(y);
+     free(z);)
+
+ TEST(srslte_vec_sc_prod_fff, MALLOC(float, x); MALLOC(float, z); float y = RANDOM_F();
+
+      float gold;
+      for (int i = 0; i < block_size; i++) { x[i] = RANDOM_CF(); }
+
+      TEST_CALL(srslte_vec_sc_prod_fff(x, y, z, block_size))
+
+          for (int i = 0; i < block_size; i++) {
+            gold = x[i] * y;
+            mse += cabsf(gold - z[i]);
+          }
+
+      free(x);
+      free(z);)
+
+ TEST(
+     srslte_vec_abs_cf, MALLOC(cf_t, x); MALLOC(float, z); float gold;
+
+     for (int i = 0; i < block_size; i++) { x[i] = RANDOM_CF(); } x[0] = 0.0f;
+
+     TEST_CALL(srslte_vec_abs_cf(x, z, block_size))
+
+         for (int i = 0; i < block_size; i++) {
+           gold = sqrtf(crealf(x[i]) * crealf(x[i]) + cimagf(x[i]) * cimagf(x[i]));
+           mse += cabsf(gold - z[i]) / block_size;
+         }
+
+     free(x);
+     free(z);)
+
+ TEST(srslte_vec_abs_square_cf, MALLOC(cf_t, x); MALLOC(float, z); float gold;
+
+      for (int i = 0; i < block_size; i++) { x[i] = RANDOM_CF(); }
+
+      TEST_CALL(srslte_vec_abs_square_cf(x, z, block_size))
+
+          for (int i = 0; i < block_size; i++) {
+            gold = crealf(x[i]) * crealf(x[i]) + cimagf(x[i]) * cimagf(x[i]);
+            mse += cabsf(gold - z[i]);
+          }
+
+      free(x);
+      free(z);)
+
+ TEST(srslte_vec_sc_prod_cfc, MALLOC(cf_t, x); MALLOC(cf_t, z); cf_t gold; float h = RANDOM_F();
+
+      for (int i = 0; i < block_size; i++) { x[i] = RANDOM_CF(); }
+
+      TEST_CALL(srslte_vec_sc_prod_cfc(x, h, z, block_size))
+
+          for (int i = 0; i < block_size; i++) {
+            gold = x[i] * h;
+            mse += cabsf(gold - z[i]);
+          }
+
+      free(x);
+      free(z);)
+
+ TEST(
+     srslte_vec_div_ccc, MALLOC(cf_t, x); MALLOC(cf_t, y); MALLOC(cf_t, z);
+
+     cf_t gold;
+     for (int i = 0; i < block_size; i++) {
+       x[i] = RANDOM_CF();
+       y[i] = RANDOM_CF();
+     }
+
+     TEST_CALL(srslte_vec_div_ccc(x, y, z, block_size))
+
+         for (int i = 0; i < block_size; i++) {
+           gold = x[i] / y[i];
+           mse += cabsf(gold - z[i]) / cabsf(gold);
+         } mse /= block_size;
+
+     free(x);
+     free(y);
+     free(z);)
+
+ TEST(
+     srslte_vec_div_cfc, MALLOC(cf_t, x); MALLOC(float, y); MALLOC(cf_t, z);
+
+     cf_t gold;
+     for (int i = 0; i < block_size; i++) {
+       x[i] = RANDOM_CF();
+       y[i] = RANDOM_F() + 0.0001f;
+     }
+
+     TEST_CALL(srslte_vec_div_cfc(x, y, z, block_size))
+
+         for (int i = 0; i < block_size; i++) {
+           gold = x[i] / y[i];
+           mse += cabsf(gold - z[i]) / cabsf(gold);
+         } mse /= block_size;
+
+     free(x);
+     free(y);
+     free(z);)
+
+ TEST(
+     srslte_vec_div_fff, MALLOC(float, x); MALLOC(float, y); MALLOC(float, z);
+
+     cf_t gold;
+     for (int i = 0; i < block_size; i++) {
+       x[i] = RANDOM_F();
+       y[i] = RANDOM_F() + 0.0001f;
+     }
+
+     TEST_CALL(srslte_vec_div_fff(x, y, z, block_size))
+
+         for (int i = 0; i < block_size; i++) {
+           gold = x[i] / y[i];
+           mse += cabsf(gold - z[i]) / cabsf(gold);
+         } mse /= block_size;
+
+     free(x);
+     free(y);
+     free(z);)
+
+ TEST(
+     srslte_vec_max_fi, MALLOC(float, x);
+
+     for (int i = 0; i < block_size; i++) { x[i] = RANDOM_F(); }
+
+     uint32_t max_index = 0;
+     TEST_CALL(max_index = srslte_vec_max_fi(x, block_size);)
+
+         float gold_value = -INFINITY;
+     uint32_t  gold_index = 0;
+     for (int i = 0; i < block_size; i++) {
+       if (gold_value < x[i]) {
+         gold_value = x[i];
+         gold_index = i;
+       }
+     } mse = (gold_index != max_index) ? 1 : 0;
 
      free(x);)
 
-TEST(srslte_cfo_correct,
-     srslte_cfo_t srslte_cfo;
-     bzero(&srslte_cfo, sizeof(srslte_cfo));
-     MALLOC(cf_t, x);
-     MALLOC(cf_t, z);
+ TEST(
+     srslte_vec_max_abs_fi, MALLOC(float, x);
 
-     const float cfo = 0.1f;
-     cf_t gold;
+     for (int i = 0; i < block_size; i++) { x[i] = RANDOM_F(); }
+
+     uint32_t max_index = 0;
+     TEST_CALL(max_index = srslte_vec_max_abs_fi(x, block_size);)
+
+         float gold_value = -INFINITY;
+     uint32_t  gold_index = 0;
      for (int i = 0; i < block_size; i++) {
-       x[i] = RANDOM_CF();
-     }
+       if (gold_value < fabsf(x[i])) {
+         gold_value = fabsf(x[i]);
+         gold_index = i;
+       }
+     } mse = (gold_index != max_index) ? 1 : 0;
 
-     srslte_cfo_init(&srslte_cfo, block_size);
+     free(x);)
 
-     TEST_CALL(srslte_cfo_correct(&srslte_cfo, x, z, cfo))
+ TEST(
+     srslte_vec_max_abs_ci, MALLOC(cf_t, x);
+
+     for (int i = 0; i < block_size; i++) { x[i] = RANDOM_CF(); }
+
+     uint32_t max_index = 0;
+     TEST_CALL(max_index = srslte_vec_max_abs_ci(x, block_size);)
+
+         float gold_value = -INFINITY;
+     uint32_t  gold_index = 0;
+     for (int i = 0; i < block_size; i++) {
+       cf_t  a    = x[i];
+       float abs2 = __real__ a * __real__ a + __imag__ a * __imag__ a;
+       if (abs2 > gold_value) {
+         gold_value = abs2;
+         gold_index = (uint32_t)i;
+       }
+     } mse = (gold_index != max_index) ? 1 : 0;
+
+     free(x);)
+
+ TEST(srslte_vec_apply_cfo, MALLOC(cf_t, x); MALLOC(cf_t, z);
+
+      const float cfo = 0.1f;
+      cf_t        gold;
+      for (int i = 0; i < block_size; i++) { x[i] = RANDOM_CF(); }
+
+      TEST_CALL(srslte_vec_apply_cfo(x, cfo, z, block_size))
+
+          for (int i = 0; i < block_size; i++) {
+            gold = x[i] * cexpf(_Complex_I * 2.0f * (float)M_PI * i * cfo);
+            mse += cabsf(gold - z[i]) / cabsf(gold);
+          } mse /= block_size;
+
+      free(x);
+      free(z);)
+
+ TEST(
+     srslte_vec_gen_sine, MALLOC(cf_t, z);
+
+     const float freq = 0.1f;
+     cf_t        gold;
+     cf_t        x = RANDOM_CF();
+
+     TEST_CALL(srslte_vec_gen_sine(x, freq, z, block_size))
 
          for (int i = 0; i < block_size; i++) {
-           gold = x[i] * cexpf(_Complex_I * 2.0f * (float) M_PI * i * cfo);
+           gold = x * cexpf(_Complex_I * 2.0f * (float)M_PI * i * freq);
            mse += cabsf(gold - z[i]) / cabsf(gold);
-         }
-         mse /= block_size;
+         } mse /= block_size;
 
-         free(x);
-         free(z);
-         srslte_cfo_free(&srslte_cfo);
-)
+     free(z);)
 
-TEST(srslte_cfo_correct_change,
-     srslte_cfo_t srslte_cfo;
-     bzero(&srslte_cfo, sizeof(srslte_cfo));
-     MALLOC(cf_t, x);
-     MALLOC(cf_t, z);
+ TEST(srslte_vec_estimate_frequency, MALLOC(cf_t, x); float freq_gold = 0.1f; float freq = 0.1f;
 
-     float cfo = 0.1f;
-     cf_t gold;
-     for (int i = 0; i < block_size; i++) {
-       x[i] = RANDOM_CF();
-     }
+      for (int i = 0; i < block_size; i++) { x[i] = cexpf(-I * 2.0f * M_PI * (float)i * freq_gold); }
 
-     srslte_cfo_init(&srslte_cfo, block_size);
+      TEST_CALL(freq = srslte_vec_estimate_frequency(x, block_size);) if (block_size < 6) { mse = 0.0f; } else {
+        mse = fabsf(freq - freq_gold);
+      }
 
-     TEST_CALL(cfo = (i%2)?0.1:-0.1; srslte_cfo_correct(&srslte_cfo, x, z, cfo))
+      free(x);)
 
-         for (int i = 0; i < block_size; i++) {
-           gold = x[i] * cexpf(_Complex_I * 2.0f * (float) M_PI * i * cfo);
-           mse += cabsf(gold - z[i]) / cabsf(gold);
-         }
-         mse /= block_size;
+ TEST(srslte_cfo_correct, srslte_cfo_t srslte_cfo; bzero(&srslte_cfo, sizeof(srslte_cfo)); MALLOC(cf_t, x);
+      MALLOC(cf_t, z);
 
-         free(x);
-         free(z);
-         srslte_cfo_free(&srslte_cfo);
-)
+      const float cfo = 0.1f;
+      cf_t        gold;
+      for (int i = 0; i < block_size; i++) { x[i] = RANDOM_CF(); }
 
-int main(int argc, char **argv) {
-  char func_names[MAX_FUNCTIONS][32];
-  double timmings[MAX_FUNCTIONS][MAX_BLOCKS];
-  uint32_t sizes[32];
-  uint32_t size_count = 0;
-  uint32_t func_count = 0;
-  bool passed[MAX_FUNCTIONS][MAX_BLOCKS];
-  bool all_passed = true;
-  random_h            = srslte_random_init(0x1234);
+      srslte_cfo_init(&srslte_cfo, block_size);
 
-  for (uint32_t block_size = 1; block_size <= 1024*32; block_size *= 2) {
-    func_count = 0;
+      TEST_CALL(srslte_cfo_correct(&srslte_cfo, x, z, cfo))
 
+          for (int i = 0; i < block_size; i++) {
+            gold = x[i] * cexpf(_Complex_I * 2.0f * (float)M_PI * i * cfo);
+            mse += cabsf(gold - z[i]) / cabsf(gold);
+          } mse /= block_size;
 
-    passed[func_count][size_count] = test_srslte_vec_xor_bbb(func_names[func_count], &timmings[func_count][size_count], block_size);
-    func_count++;
+      free(x);
+      free(z);
+      srslte_cfo_free(&srslte_cfo);)
 
+ TEST(srslte_cfo_correct_change, srslte_cfo_t srslte_cfo; bzero(&srslte_cfo, sizeof(srslte_cfo)); MALLOC(cf_t, x);
+      MALLOC(cf_t, z);
 
-    passed[func_count][size_count] = test_srslte_vec_acc_ff(func_names[func_count], &timmings[func_count][size_count], block_size);
-    func_count++;
+      float cfo = 0.1f;
+      cf_t  gold;
+      for (int i = 0; i < block_size; i++) { x[i] = RANDOM_CF(); }
 
-    passed[func_count][size_count] = test_srslte_vec_dot_prod_sss(func_names[func_count], &timmings[func_count][size_count], block_size);
-    func_count++;
+      srslte_cfo_init(&srslte_cfo, block_size);
 
-    passed[func_count][size_count] = test_srslte_vec_sum_sss(func_names[func_count], &timmings[func_count][size_count], block_size);
-    func_count++;
+      TEST_CALL(cfo = (i % 2) ? 0.1 : -0.1; srslte_cfo_correct(&srslte_cfo, x, z, cfo))
 
-    passed[func_count][size_count] = test_srslte_vec_sub_sss(func_names[func_count], &timmings[func_count][size_count], block_size);
-    func_count++;
+          for (int i = 0; i < block_size; i++) {
+            gold = x[i] * cexpf(_Complex_I * 2.0f * (float)M_PI * i * cfo);
+            mse += cabsf(gold - z[i]) / cabsf(gold);
+          } mse /= block_size;
 
-    passed[func_count][size_count] = test_srslte_vec_prod_sss(func_names[func_count], &timmings[func_count][size_count], block_size);
-    func_count++;
+      free(x);
+      free(z);
+      srslte_cfo_free(&srslte_cfo);)
 
-    passed[func_count][size_count] = test_srslte_vec_neg_sss(func_names[func_count], &timmings[func_count][size_count], block_size);
-    func_count++;
+ int main(int argc, char** argv)
+ {
+   char     func_names[MAX_FUNCTIONS][32];
+   double   timmings[MAX_FUNCTIONS][MAX_BLOCKS];
+   uint32_t sizes[32];
+   uint32_t size_count = 0;
+   uint32_t func_count = 0;
+   bool     passed[MAX_FUNCTIONS][MAX_BLOCKS];
+   bool     all_passed = true;
+   random_h            = srslte_random_init(0x1234);
 
-    passed[func_count][size_count] = test_srslte_vec_acc_cc(func_names[func_count], &timmings[func_count][size_count], block_size);
-    func_count++;
+   if (argc > 1) {
+     nof_repetitions = (uint32_t)strtol(argv[1], NULL, 10);
+   }
 
-    passed[func_count][size_count] = test_srslte_vec_sum_fff(func_names[func_count], &timmings[func_count][size_count], block_size);
-    func_count++;
+   for (uint32_t block_size = 1; block_size <= 1024 * 32; block_size *= 2) {
+     func_count = 0;
 
-    passed[func_count][size_count] = test_srslte_vec_sub_fff(func_names[func_count], &timmings[func_count][size_count], block_size);
-    func_count++;
+     passed[func_count][size_count] =
+         test_srslte_vec_xor_bbb(func_names[func_count], &timmings[func_count][size_count], block_size);
+     func_count++;
 
-    passed[func_count][size_count] = test_srslte_vec_dot_prod_ccc(func_names[func_count], &timmings[func_count][size_count], block_size);
-    func_count++;
+     passed[func_count][size_count] =
+         test_srslte_vec_acc_ff(func_names[func_count], &timmings[func_count][size_count], block_size);
+     func_count++;
 
-    passed[func_count][size_count] = test_srslte_vec_dot_prod_conj_ccc(func_names[func_count], &timmings[func_count][size_count], block_size);
-    func_count++;
+     passed[func_count][size_count] =
+         test_srslte_vec_dot_prod_sss(func_names[func_count], &timmings[func_count][size_count], block_size);
+     func_count++;
 
-    passed[func_count][size_count] = test_srslte_vec_convert_fi(func_names[func_count], &timmings[func_count][size_count], block_size);
-    func_count++;
+     passed[func_count][size_count] =
+         test_srslte_vec_sum_sss(func_names[func_count], &timmings[func_count][size_count], block_size);
+     func_count++;
+
+     passed[func_count][size_count] =
+         test_srslte_vec_sub_sss(func_names[func_count], &timmings[func_count][size_count], block_size);
+     func_count++;
+
+     passed[func_count][size_count] =
+         test_srslte_vec_prod_sss(func_names[func_count], &timmings[func_count][size_count], block_size);
+     func_count++;
+
+     passed[func_count][size_count] =
+         test_srslte_vec_neg_sss(func_names[func_count], &timmings[func_count][size_count], block_size);
+     func_count++;
+
+     passed[func_count][size_count] =
+         test_srslte_vec_acc_cc(func_names[func_count], &timmings[func_count][size_count], block_size);
+     func_count++;
+
+     passed[func_count][size_count] =
+         test_srslte_vec_sum_fff(func_names[func_count], &timmings[func_count][size_count], block_size);
+     func_count++;
+
+     passed[func_count][size_count] =
+         test_srslte_vec_sub_fff(func_names[func_count], &timmings[func_count][size_count], block_size);
+     func_count++;
+
+     passed[func_count][size_count] =
+         test_srslte_vec_dot_prod_ccc(func_names[func_count], &timmings[func_count][size_count], block_size);
+     func_count++;
+
+     passed[func_count][size_count] =
+         test_srslte_vec_dot_prod_conj_ccc(func_names[func_count], &timmings[func_count][size_count], block_size);
+     func_count++;
+
+     passed[func_count][size_count] =
+         test_srslte_vec_convert_fi(func_names[func_count], &timmings[func_count][size_count], block_size);
+     func_count++;
 
      passed[func_count][size_count] = test_srslte_vec_convert_if(func_names[func_count], &timmings[func_count][size_count], block_size);
     func_count++;
@@ -1042,8 +914,11 @@ int main(int argc, char **argv) {
     if (f) fprintf(f, "%s\t", func_names[i]);
 
     for (int j = 0; j < size_count; j++) {
-      printf(" %s%7.1f\x1b[0m", (passed[i][j])?"":"\x1B[31m", (double) NOF_REPETITIONS*(double)sizes[j]/timmings[i][j]);
-      if (f) fprintf(f, "%.1f\t", (double) NOF_REPETITIONS*(double)sizes[j]/timmings[i][j]);
+      printf(" %s%7.1f\x1b[0m",
+             (passed[i][j]) ? "" : "\x1B[31m",
+             (double)nof_repetitions * (double)sizes[j] / timmings[i][j]);
+      if (f)
+        fprintf(f, "%.1f\t", (double)nof_repetitions * (double)sizes[j] / timmings[i][j]);
 
       all_passed &= passed[i][j];
     }
