@@ -96,6 +96,7 @@ int main(int argc, char** argv)
   uint64_t       time_usec     = 0;
 
   parse_args(argc, argv);
+  srslte_dft_load();
 
   srslte_dft_plan_t ifft;
   srslte_dft_plan_c(&ifft, srate / 1000, SRSLTE_DFT_BACKWARD);
