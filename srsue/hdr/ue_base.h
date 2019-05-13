@@ -30,7 +30,6 @@
 #include <stdarg.h>
 #include <string>
 #include <pthread.h>
-#include "srslte/radio/radio_multi.h"
 #include "phy/phy.h"
 #include "upper/usim.h"
 #include "upper/rrc.h"

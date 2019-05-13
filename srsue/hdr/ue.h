@@ -33,7 +33,6 @@
 #include <pthread.h>
 
 #include "ue_base.h"
-#include "srslte/radio/radio_multi.h"
 #include "phy/phy.h"
 #include "mac/mac.h"
 #include "srslte/upper/rlc.h"

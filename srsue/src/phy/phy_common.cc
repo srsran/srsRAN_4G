@@ -22,7 +22,6 @@
 #include <sstream>
 #include <string.h>
 
-#include "srslte/radio/radio_multi.h"
 #include "srslte/srslte.h"
 #include "srsue/hdr/phy/phy_common.h"
 

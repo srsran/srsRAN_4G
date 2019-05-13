@@ -30,17 +30,6 @@
 #ifndef SRSLTE_RADIO_H
 #define SRSLTE_RADIO_H
 
-typedef struct {
-  float tx_corr_dc_gain;
-  float tx_corr_dc_phase;
-  float tx_corr_iq_i;
-  float tx_corr_iq_q;
-  float rx_corr_dc_gain;
-  float rx_corr_dc_phase;
-  float rx_corr_iq_i;
-  float rx_corr_iq_q;
-} rf_cal_t;
-
 namespace srslte {
 
 /* Interface to the RF frontend. 

@@ -34,7 +34,6 @@
 #include "srslte/common/threads.h"
 #include "srslte/common/tti_sync_cv.h"
 #include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/radio/radio_multi.h"
 #include "srslte/srslte.h"
 
 namespace srsue {

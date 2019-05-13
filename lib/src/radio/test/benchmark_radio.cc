@@ -21,8 +21,8 @@
 
 #include <unistd.h>
 
+#include "srslte/radio/radio.h"
 #include "srslte/srslte.h"
-#include "srslte/radio/radio_multi.h"
 
 using namespace srslte;
 

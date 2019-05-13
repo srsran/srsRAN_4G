@@ -28,7 +28,7 @@
 #include "srslte/common/gen_mch_tables.h"
 #include "srslte/common/log.h"
 #include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/radio/radio_multi.h"
+#include "srslte/radio/radio.h"
 #include "srslte/srslte.h"
 #include <pthread.h>
 #include <semaphore.h>
