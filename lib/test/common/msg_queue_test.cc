@@ -36,7 +36,7 @@ void* write_thread(void *a) {
   byte_buffer_pool* pool = byte_buffer_pool::get_instance();
   for(uint32_t i=0;i<NMSGS;i++)
   {
-    unique_byte_buffer b = srslte::allocate_unique_buffer(*pool, true);
+    unique_byte_buffer_t b = srslte::allocate_unique_buffer(*pool, true);
     memcpy(b->msg, &i, 4);
     b->N_bytes = 4;
     args->q->write(std::move(b));
@@ -47,7 +47,7 @@ void* write_thread(void *a) {
 int main(int argc, char **argv) {
   bool                 result;
   rlc_tx_queue         q;
-  unique_byte_buffer   b;
+  unique_byte_buffer_t b;
   pthread_t            thread;
   args_t               args;
   u_int32_t            r;

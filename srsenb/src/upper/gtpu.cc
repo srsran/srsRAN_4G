@@ -111,7 +111,7 @@ void gtpu::stop()
 }
 
 // gtpu_interface_pdcp
-void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer pdu)
+void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 {
   gtpu_log->info_hex(pdu->msg, pdu->N_bytes, "TX PDU, RNTI: 0x%x, LCID: %d, n_bytes=%d", rnti, lcid, pdu->N_bytes);
   gtpu_header_t header;
@@ -191,7 +191,7 @@ void gtpu::rem_user(uint16_t rnti)
 
 void gtpu::run_thread()
 {
-  unique_byte_buffer pdu = allocate_unique_buffer(*pool);
+  unique_byte_buffer_t pdu = allocate_unique_buffer(*pool);
 
   if (!pdu.get()) {
     gtpu_log->error("Fatal Error: Couldn't allocate buffer in gtpu::run_thread().\n");
@@ -274,7 +274,7 @@ void gtpu::echo_response(in_addr_t addr, in_port_t port, uint16_t seq)
   gtpu_log->info("TX GTPU Echo Response, Seq: %d\n", seq);
 
   gtpu_header_t header;
-  unique_byte_buffer pdu = allocate_unique_buffer(*pool);
+  unique_byte_buffer_t pdu = allocate_unique_buffer(*pool);
 
   //header
   header.flags = GTPU_FLAGS_VERSION_V1 | GTPU_FLAGS_GTP_PROTOCOL | GTPU_FLAGS_SEQUENCE;
@@ -369,7 +369,7 @@ void gtpu::mch_thread::run_thread()
     return;
   }
 
-  unique_byte_buffer pdu = allocate_unique_buffer(*pool);
+  unique_byte_buffer_t pdu = allocate_unique_buffer(*pool);
   int n;
   socklen_t addrlen;
   sockaddr_in src_addr;

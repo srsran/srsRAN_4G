@@ -68,7 +68,7 @@ public:
   }
 
   // PDCP interface
-  void write_pdu(uint32_t lcid, unique_byte_buffer sdu)
+  void write_pdu(uint32_t lcid, unique_byte_buffer_t sdu)
   {
     if (lcid != 3 && sdu->N_bytes != expected_sdu_len) {
       printf("Received PDU with size %d, expected %d. Exiting.\n", sdu->N_bytes, expected_sdu_len);
@@ -76,10 +76,10 @@ public:
     }
     sdus[n_sdus++] = std::move(sdu);
   }
-  void write_pdu_bcch_bch(unique_byte_buffer sdu) {}
-  void write_pdu_bcch_dlsch(unique_byte_buffer sdu) {}
-  void write_pdu_pcch(unique_byte_buffer sdu) {}
-  void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer sdu)
+  void write_pdu_bcch_bch(unique_byte_buffer_t sdu) {}
+  void write_pdu_bcch_dlsch(unique_byte_buffer_t sdu) {}
+  void write_pdu_pcch(unique_byte_buffer_t sdu) {}
+  void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu)
   {
     sdus[n_sdus++] = std::move(sdu);
   }
@@ -89,7 +89,7 @@ public:
   std::string get_rb_name(uint32_t lcid) { return std::string(""); }
   void set_expected_sdu_len(uint32_t len) { expected_sdu_len = len; }
 
-  unique_byte_buffer sdus[MAX_NBUFS];
+  unique_byte_buffer_t sdus[MAX_NBUFS];
   int n_sdus;
   uint32_t expected_sdu_len;
 };
@@ -129,7 +129,7 @@ int basic_test()
 
   // Push 5 SDUs into RLC1
   byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
-  unique_byte_buffer sdu_bufs[NBUFS];
+  unique_byte_buffer_t sdu_bufs[NBUFS];
   for(int i=0;i<NBUFS;i++)
   {
     sdu_bufs[i]          = srslte::allocate_unique_buffer(*pool, true);
@@ -203,7 +203,7 @@ int loss_test()
 
   // Push 5 SDUs into RLC1
   byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
-  unique_byte_buffer sdu_bufs[NBUFS];
+  unique_byte_buffer_t sdu_bufs[NBUFS];
   for(int i=0;i<NBUFS;i++)
   {
     sdu_bufs[i]          = srslte::allocate_unique_buffer(*pool, true);
@@ -269,7 +269,7 @@ int basic_mbsfn_test()
 
   // Push 5 SDUs into RLC1
   byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
-  unique_byte_buffer sdu_bufs[NBUFS * 2];
+  unique_byte_buffer_t sdu_bufs[NBUFS * 2];
   for(int i=0;i<NBUFS;i++)
   {
     sdu_bufs[i]          = srslte::allocate_unique_buffer(*pool, true);
@@ -360,7 +360,7 @@ int reassmble_test()
   const int n_sdu_first_batch = 17;
 
   byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
-  unique_byte_buffer sdu_bufs[n_sdus];
+  unique_byte_buffer_t sdu_bufs[n_sdus];
   for(int i=0;i<n_sdu_first_batch;i++) {
     sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
     for (int k = 0; k < sdu_len; ++k) {
@@ -478,7 +478,7 @@ int reassmble_test2()
 
   const int n_sdu_first_batch = 17;
   byte_buffer_pool*  pool              = byte_buffer_pool::get_instance();
-  unique_byte_buffer sdu_bufs[n_sdus];
+  unique_byte_buffer_t sdu_bufs[n_sdus];
   for(int i=0;i<n_sdu_first_batch;i++) {
     sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
     for (int k = 0; k < sdu_len; ++k) {

@@ -70,13 +70,13 @@ namespace srslte {
 class pdcp_dummy : public rrc_interface_pdcp, public pdcp_interface_gw
 {
 public:
-  void        write_pdu(uint32_t lcid, unique_byte_buffer pdu) {}
-  void        write_pdu_bcch_bch(unique_byte_buffer pdu) {}
-  void        write_pdu_bcch_dlsch(unique_byte_buffer pdu) {}
-  void        write_pdu_pcch(unique_byte_buffer pdu) {}
-  void        write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer sdu) {}
+  void        write_pdu(uint32_t lcid, unique_byte_buffer_t pdu) {}
+  void        write_pdu_bcch_bch(unique_byte_buffer_t pdu) {}
+  void        write_pdu_bcch_dlsch(unique_byte_buffer_t pdu) {}
+  void        write_pdu_pcch(unique_byte_buffer_t pdu) {}
+  void        write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu) {}
   std::string get_rb_name(uint32_t lcid) { return std::string("lcid"); }
-  void        write_sdu(uint32_t lcid, srslte::unique_byte_buffer sdu, bool blocking) {}
+  void        write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking) {}
   bool is_lcid_enabled(uint32_t lcid) { return false; }
 };
 
@@ -89,7 +89,7 @@ public:
     mnc_to_bytes(mnc, plmns.plmn_id.mnc);
     plmns.tac = 0xffff;
   }
-  void write_sdu(unique_byte_buffer sdu)
+  void write_sdu(unique_byte_buffer_t sdu)
   {
     last_sdu_len = sdu->N_bytes;
     //printf("NAS generated SDU (len=%d):\n", sdu->N_bytes);
@@ -105,7 +105,7 @@ public:
   };
   void plmn_select(plmn_id_s plmn_id){};
   void set_ue_idenity(s_tmsi_s s_tmsi) {}
-  bool connection_request(establishment_cause_e cause, srslte::unique_byte_buffer sdu)
+  bool connection_request(establishment_cause_e cause, srslte::unique_byte_buffer_t sdu)
   {
     printf("NAS generated SDU (len=%d):\n", sdu->N_bytes);
     last_sdu_len = sdu->N_bytes;
@@ -126,8 +126,8 @@ private:
 class gw_dummy : public gw_interface_nas, public gw_interface_pdcp
 {
   error_t setup_if_addr(uint8_t pdn_type, uint32_t ip_addr, uint8_t *ipv6_if_id, char *err_str) { return ERROR_NONE; }
-  void    write_pdu(uint32_t lcid, unique_byte_buffer pdu) {}
-  void    write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer sdu) {}
+  void    write_pdu(uint32_t lcid, unique_byte_buffer_t pdu) {}
+  void    write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu) {}
 };
 
 }
@@ -171,7 +171,7 @@ int security_command_test()
 
     // push auth request PDU to NAS to generate security context
     byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
-    unique_byte_buffer tmp  = srslte::allocate_unique_buffer(*pool, true);
+    unique_byte_buffer_t tmp  = srslte::allocate_unique_buffer(*pool, true);
     memcpy(tmp->msg, auth_request_pdu, sizeof(auth_request_pdu));
     tmp->N_bytes = sizeof(auth_request_pdu);
     nas.write_pdu(LCID, std::move(tmp));
@@ -250,7 +250,7 @@ int mme_attach_request_test()
 
     // finally push attach accept
     byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
-    unique_byte_buffer tmp  = srslte::allocate_unique_buffer(*pool, true);
+    unique_byte_buffer_t tmp  = srslte::allocate_unique_buffer(*pool, true);
     memcpy(tmp->msg, attach_accept_pdu, sizeof(attach_accept_pdu));
     tmp->N_bytes = sizeof(attach_accept_pdu);
     nas.write_pdu(LCID, std::move(tmp));
@@ -311,7 +311,7 @@ int esm_info_request_test()
     nas.init(&usim, &rrc_dummy, &gw, &nas_log, cfg);
 
     // push ESM info request PDU to NAS to generate response
-    unique_byte_buffer tmp = srslte::allocate_unique_buffer(*pool, true);
+    unique_byte_buffer_t tmp = srslte::allocate_unique_buffer(*pool, true);
     memcpy(tmp->msg, esm_info_req_pdu, sizeof(esm_info_req_pdu));
     tmp->N_bytes = sizeof(esm_info_req_pdu);
     nas.write_pdu(LCID, std::move(tmp));

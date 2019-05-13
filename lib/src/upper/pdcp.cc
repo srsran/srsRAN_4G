@@ -117,7 +117,7 @@ bool pdcp::is_lcid_enabled(uint32_t lcid)
   return ret;
 }
 
-void pdcp::write_sdu(uint32_t lcid, unique_byte_buffer sdu, bool blocking)
+void pdcp::write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, bool blocking)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
@@ -128,7 +128,7 @@ void pdcp::write_sdu(uint32_t lcid, unique_byte_buffer sdu, bool blocking)
   pthread_rwlock_unlock(&rwlock);
 }
 
-void pdcp::write_sdu_mch(uint32_t lcid, unique_byte_buffer sdu)
+void pdcp::write_sdu_mch(uint32_t lcid, unique_byte_buffer_t sdu)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (valid_mch_lcid(lcid)){
@@ -276,7 +276,7 @@ uint32_t pdcp::get_ul_count(uint32_t lcid)
 /*******************************************************************************
   RLC interface
 *******************************************************************************/
-void pdcp::write_pdu(uint32_t lcid, unique_byte_buffer pdu)
+void pdcp::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
@@ -287,22 +287,22 @@ void pdcp::write_pdu(uint32_t lcid, unique_byte_buffer pdu)
   pthread_rwlock_unlock(&rwlock);
 }
 
-void pdcp::write_pdu_bcch_bch(unique_byte_buffer sdu)
+void pdcp::write_pdu_bcch_bch(unique_byte_buffer_t sdu)
 {
   rrc->write_pdu_bcch_bch(std::move(sdu));
 }
 
-void pdcp::write_pdu_bcch_dlsch(unique_byte_buffer sdu)
+void pdcp::write_pdu_bcch_dlsch(unique_byte_buffer_t sdu)
 {
   rrc->write_pdu_bcch_dlsch(std::move(sdu));
 }
 
-void pdcp::write_pdu_pcch(unique_byte_buffer sdu)
+void pdcp::write_pdu_pcch(unique_byte_buffer_t sdu)
 {
   rrc->write_pdu_pcch(std::move(sdu));
 }
 
-void pdcp::write_pdu_mch(uint32_t lcid, unique_byte_buffer sdu)
+void pdcp::write_pdu_mch(uint32_t lcid, unique_byte_buffer_t sdu)
 {
   if (0 == lcid) {
     rrc->write_pdu_mch(lcid, std::move(sdu));

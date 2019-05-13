@@ -55,7 +55,7 @@ public:
   void add_bearer_mrb(uint16_t rnti, uint32_t lcid);
 
   // rlc_interface_pdcp
-  void        write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer sdu);
+  void        write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu);
   bool rb_is_um(uint16_t rnti, uint32_t lcid);
   std::string get_rb_name(uint32_t lcid);
   
@@ -72,11 +72,11 @@ private:
                          public srsue::ue_interface
   {
   public:
-    void        write_pdu(uint32_t lcid, srslte::unique_byte_buffer sdu);
-    void        write_pdu_bcch_bch(srslte::unique_byte_buffer sdu);
-    void        write_pdu_bcch_dlsch(srslte::unique_byte_buffer sdu);
-    void        write_pdu_pcch(srslte::unique_byte_buffer sdu);
-    void        write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer sdu) {}
+    void        write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu);
+    void        write_pdu_bcch_bch(srslte::unique_byte_buffer_t sdu);
+    void        write_pdu_bcch_dlsch(srslte::unique_byte_buffer_t sdu);
+    void        write_pdu_pcch(srslte::unique_byte_buffer_t sdu);
+    void        write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu) {}
     void max_retx_attempted(); 
     std::string get_rb_name(uint32_t lcid);
     uint16_t rnti; 

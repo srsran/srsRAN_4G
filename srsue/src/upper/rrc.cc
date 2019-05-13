@@ -423,7 +423,7 @@ void rrc::plmn_select(asn1::rrc::plmn_id_s plmn_id)
  * it. Sends connectionRequest message and returns if message transmitted successfully.
  * It does not wait until completition of Connection Establishment procedure
  */
-bool rrc::connection_request(asn1::rrc::establishment_cause_e cause, srslte::unique_byte_buffer dedicated_info_nas)
+bool rrc::connection_request(asn1::rrc::establishment_cause_e cause, srslte::unique_byte_buffer_t dedicated_info_nas)
 {
 
   if (!plmn_is_selected) {
@@ -1430,7 +1430,7 @@ void rrc::send_con_restablish_complete() {
   send_ul_dcch_msg(RB_ID_SRB1, ul_dcch_msg);
 }
 
-void rrc::send_con_setup_complete(srslte::unique_byte_buffer nas_msg)
+void rrc::send_con_setup_complete(srslte::unique_byte_buffer_t nas_msg)
 {
   rrc_log->debug("Preparing RRC Connection Setup Complete\n");
 
@@ -1448,7 +1448,7 @@ void rrc::send_con_setup_complete(srslte::unique_byte_buffer nas_msg)
   send_ul_dcch_msg(RB_ID_SRB1, ul_dcch_msg);
 }
 
-void rrc::send_ul_info_transfer(unique_byte_buffer nas_msg)
+void rrc::send_ul_info_transfer(unique_byte_buffer_t nas_msg)
 {
   uint32_t lcid = rlc->has_bearer(RB_ID_SRB2) ? RB_ID_SRB2 : RB_ID_SRB1;
 
@@ -1657,7 +1657,7 @@ bool rrc::con_reconfig(asn1::rrc::rrc_conn_recfg_s* reconfig)
 
   send_rrc_con_reconfig_complete();
 
-  unique_byte_buffer nas_sdu;
+  unique_byte_buffer_t nas_sdu;
   for (uint32_t i = 0; i < reconfig_r8->ded_info_nas_list.size(); i++) {
     nas_sdu = srslte::allocate_unique_buffer(*pool);
     if (nas_sdu.get()) {
@@ -1765,13 +1765,13 @@ void rrc::stop_timers()
 *
 *
 *******************************************************************************/
-void rrc::write_pdu_bcch_bch(unique_byte_buffer pdu)
+void rrc::write_pdu_bcch_bch(unique_byte_buffer_t pdu)
 {
   // Do we need to do something with BCH?
   rrc_log->info_hex(pdu->msg, pdu->N_bytes, "BCCH BCH message received.");
 }
 
-void rrc::write_pdu_bcch_dlsch(unique_byte_buffer pdu)
+void rrc::write_pdu_bcch_dlsch(unique_byte_buffer_t pdu)
 {
   // Stop BCCH search after successful reception of 1 BCCH block
   mac->bcch_stop_rx();
@@ -1924,7 +1924,7 @@ void rrc::handle_sib13()
 *
 *
 *******************************************************************************/
-void rrc::write_pdu_pcch(unique_byte_buffer pdu)
+void rrc::write_pdu_pcch(unique_byte_buffer_t pdu)
 {
   cmd_msg_t msg;
   msg.pdu     = std::move(pdu);
@@ -1932,7 +1932,7 @@ void rrc::write_pdu_pcch(unique_byte_buffer pdu)
   cmd_q.push(std::move(msg));
 }
 
-void rrc::process_pcch(unique_byte_buffer pdu)
+void rrc::process_pcch(unique_byte_buffer_t pdu)
 {
   if (pdu->N_bytes > 0 && pdu->N_bytes < SRSLTE_MAX_BUFFER_SIZE_BITS) {
     pcch_msg_s    pcch_msg;
@@ -1988,7 +1988,7 @@ void rrc::process_pcch(unique_byte_buffer pdu)
   }
 }
 
-void rrc::write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer pdu)
+void rrc::write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 {
   if (pdu->N_bytes > 0 && pdu->N_bytes < SRSLTE_MAX_BUFFER_SIZE_BITS) {
     //TODO: handle MCCH notifications and update MCCH
@@ -2022,7 +2022,7 @@ void rrc::write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer pdu)
 void rrc::send_ul_ccch_msg(const asn1::rrc::ul_ccch_msg_s& msg)
 {
   // Reset and reuse sdu buffer if provided
-  unique_byte_buffer pdcp_buf = srslte::allocate_unique_buffer(*pool, true);
+  unique_byte_buffer_t pdcp_buf = srslte::allocate_unique_buffer(*pool, true);
   if (not pdcp_buf.get()) {
     rrc_log->error("Fatal Error: Couldn't allocate PDU in byte_align_and_pack().\n");
     return;
@@ -2054,7 +2054,7 @@ void rrc::send_ul_ccch_msg(const asn1::rrc::ul_ccch_msg_s& msg)
 void rrc::send_ul_dcch_msg(uint32_t lcid, const asn1::rrc::ul_dcch_msg_s& msg)
 {
   // Reset and reuse sdu buffer if provided
-  unique_byte_buffer pdcp_buf = srslte::allocate_unique_buffer(*pool, true);
+  unique_byte_buffer_t pdcp_buf = srslte::allocate_unique_buffer(*pool, true);
   if (not pdcp_buf.get()) {
     rrc_log->error("Fatal Error: Couldn't allocate PDU in byte_align_and_pack().\n");
     return;
@@ -2071,7 +2071,7 @@ void rrc::send_ul_dcch_msg(uint32_t lcid, const asn1::rrc::ul_dcch_msg_s& msg)
   pdcp->write_sdu(lcid, std::move(pdcp_buf));
 }
 
-void rrc::write_sdu(srslte::unique_byte_buffer sdu)
+void rrc::write_sdu(srslte::unique_byte_buffer_t sdu)
 {
 
   if (state == RRC_STATE_IDLE) {
@@ -2081,7 +2081,7 @@ void rrc::write_sdu(srslte::unique_byte_buffer sdu)
   send_ul_info_transfer(std::move(sdu));
 }
 
-void rrc::write_pdu(uint32_t lcid, unique_byte_buffer pdu)
+void rrc::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
 {
   // If the message contains a ConnectionSetup, acknowledge the transmission to avoid blocking of paging procedure
   if (lcid == 0) {
@@ -2111,7 +2111,7 @@ void rrc::write_pdu(uint32_t lcid, unique_byte_buffer pdu)
   cmd_q.push(std::move(msg));
 }
 
-void rrc::process_pdu(uint32_t lcid, srslte::unique_byte_buffer pdu)
+void rrc::process_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 {
   switch (lcid) {
     case RB_ID_SRB0:
@@ -2127,7 +2127,7 @@ void rrc::process_pdu(uint32_t lcid, srslte::unique_byte_buffer pdu)
   }
 }
 
-void rrc::parse_dl_ccch(unique_byte_buffer pdu)
+void rrc::parse_dl_ccch(unique_byte_buffer_t pdu)
 {
   asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
   asn1::rrc::dl_ccch_msg_s dl_ccch_msg;
@@ -2178,7 +2178,7 @@ void rrc::parse_dl_ccch(unique_byte_buffer pdu)
   }
 }
 
-void rrc::parse_dl_dcch(uint32_t lcid, unique_byte_buffer pdu)
+void rrc::parse_dl_dcch(uint32_t lcid, unique_byte_buffer_t pdu)
 {
   asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
   asn1::rrc::dl_dcch_msg_s dl_dcch_msg;

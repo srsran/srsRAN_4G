@@ -49,8 +49,8 @@ public:
   void set_tundevname(const std::string & devname);
 
   // PDCP interface
-  void write_pdu(uint32_t lcid, srslte::unique_byte_buffer pdu);
-  void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer pdu);
+  void write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
+  void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
 
   // NAS interface
   srslte::error_t setup_if_addr(uint8_t pdn_type, uint32_t ip_addr, uint8_t* ipv6_if_addr, char *err_str);

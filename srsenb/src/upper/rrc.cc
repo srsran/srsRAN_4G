@@ -236,7 +236,7 @@ void rrc::upd_user(uint16_t new_rnti, uint16_t old_rnti)
 /*******************************************************************************
   PDCP interface
 *******************************************************************************/
-void rrc::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer pdu)
+void rrc::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 {
   rrc_pdu p = {rnti, lcid, std::move(pdu)};
   rx_pdu_queue.push(std::move(p));
@@ -245,7 +245,7 @@ void rrc::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer pdu
 /*******************************************************************************
   S1AP interface
 *******************************************************************************/
-void rrc::write_dl_info(uint16_t rnti, srslte::unique_byte_buffer sdu)
+void rrc::write_dl_info(uint16_t rnti, srslte::unique_byte_buffer_t sdu)
 {
   dl_dcch_msg_s dl_dcch_msg;
   dl_dcch_msg.msg.set_c1();
@@ -517,7 +517,7 @@ void rrc::read_pdu_pcch(uint8_t* payload, uint32_t buffer_size)
   from either a public function or the internal thread
 *******************************************************************************/
 
-void rrc::parse_ul_ccch(uint16_t rnti, srslte::unique_byte_buffer pdu)
+void rrc::parse_ul_ccch(uint16_t rnti, srslte::unique_byte_buffer_t pdu)
 {
   uint16_t old_rnti = 0; 
 
@@ -583,7 +583,7 @@ void rrc::parse_ul_ccch(uint16_t rnti, srslte::unique_byte_buffer pdu)
   }
 }
 
-void rrc::parse_ul_dcch(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer pdu)
+void rrc::parse_ul_dcch(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 {
   if (pdu) {
     if (users.count(rnti)) {
@@ -726,7 +726,7 @@ uint32_t rrc::generate_sibs()
 
   // Pack payload for all messages
   for (uint32_t msg_index = 0; msg_index < nof_messages; msg_index++) {
-    srslte::unique_byte_buffer sib = srslte::allocate_unique_buffer(*pool);
+    srslte::unique_byte_buffer_t sib = srslte::allocate_unique_buffer(*pool);
     asn1::bit_ref          bref(sib->msg, sib->get_tailroom());
     asn1::bit_ref          bref0 = bref;
     msg[msg_index].pack(bref);
@@ -1032,7 +1032,7 @@ bool rrc::ue::is_timeout()
   return false;       
 }
 
-void rrc::ue::parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer pdu)
+void rrc::ue::parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 {
   set_activity();
 
@@ -1130,7 +1130,7 @@ void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_r8_ies_s* msg)
   
 }
 
-void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srslte::unique_byte_buffer pdu)
+void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srslte::unique_byte_buffer_t pdu)
 {
   parent->rrc_log->info("RRCConnectionSetupComplete transaction ID: %d\n", msg->rrc_transaction_id);
   rrc_conn_setup_complete_r8_ies_s* msg_r8 = &msg->crit_exts.c1().rrc_conn_setup_complete_r8();
@@ -1153,7 +1153,7 @@ void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srsl
   state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
 }
 
-void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte::unique_byte_buffer pdu)
+void rrc::ue::handle_rrc_reconf_complete(rrc_conn_recfg_complete_s* msg, srslte::unique_byte_buffer_t pdu)
 {
   parent->rrc_log->info("RRCReconfigurationComplete transaction ID: %d\n", msg->rrc_transaction_id);
 
@@ -1599,7 +1599,7 @@ int rrc::ue::get_drbid_config(drb_to_add_mod_s* drb, int drb_id)
   return 0; 
 }
 
-void rrc::ue::send_connection_reconf_upd(srslte::unique_byte_buffer pdu)
+void rrc::ue::send_connection_reconf_upd(srslte::unique_byte_buffer_t pdu)
 {
   dl_dcch_msg_s dl_dcch_msg;
   rrc_conn_recfg_s* rrc_conn_recfg   = &dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg();
@@ -1650,7 +1650,7 @@ void rrc::ue::send_connection_reconf_upd(srslte::unique_byte_buffer pdu)
 
 }
 
-void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer pdu)
+void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
 {
   dl_dcch_msg_s dl_dcch_msg;
   dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg().crit_exts.set_c1().set_rrc_conn_recfg_r8();
@@ -1785,7 +1785,7 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer pdu)
 
 void rrc::ue::send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT *e)
 {
-  srslte::unique_byte_buffer pdu = srslte::allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool);
 
   dl_dcch_msg_s dl_dcch_msg;
   dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg().crit_exts.set_c1().set_rrc_conn_recfg_r8();
@@ -1972,7 +1972,7 @@ bool rrc::ue::select_security_algorithms()
 void rrc::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
 {
   // Allocate a new PDU buffer, pack the message and send to PDCP
-  srslte::unique_byte_buffer pdu = srslte::allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool);
   if (pdu) {
     asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
     dl_ccch_msg->pack(bref);
@@ -1988,7 +1988,7 @@ void rrc::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
   }
 }
 
-void rrc::ue::send_dl_dcch(dl_dcch_msg_s* dl_dcch_msg, srslte::unique_byte_buffer pdu)
+void rrc::ue::send_dl_dcch(dl_dcch_msg_s* dl_dcch_msg, srslte::unique_byte_buffer_t pdu)
 {  
   if (!pdu) {
     pdu = srslte::allocate_unique_buffer(*pool);

@@ -161,7 +161,7 @@ public:
   virtual void reset_metrics() = 0;
 
   // PDCP interface
-  virtual void write_sdu(unique_byte_buffer sdu, bool blocking) = 0;
+  virtual void write_sdu(unique_byte_buffer_t sdu, bool blocking) = 0;
 
   // MAC interface
   virtual bool     has_data() = 0;

@@ -50,7 +50,7 @@ public:
   virtual bool is_active() = 0;
 
   // RRC interface
-  virtual void     write_sdu(unique_byte_buffer sdu, bool blocking) = 0;
+  virtual void     write_sdu(unique_byte_buffer_t sdu, bool blocking) = 0;
   virtual void config_security(uint8_t *k_rrc_enc_,
                        uint8_t *k_rrc_int_,
                        uint8_t *k_up_enc_,
@@ -62,7 +62,7 @@ public:
   virtual uint32_t get_ul_count() = 0;
 
   // RLC interface
-  virtual void write_pdu(unique_byte_buffer pdu) = 0;
+  virtual void write_pdu(unique_byte_buffer_t pdu) = 0;
 };
 
 } // namespace srslte

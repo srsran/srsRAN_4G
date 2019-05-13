@@ -68,13 +68,13 @@ public:
   void run_thread();
 
   // RRC interface
-  void initial_ue(uint16_t rnti, LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause, srslte::unique_byte_buffer pdu);
+  void initial_ue(uint16_t rnti, LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause, srslte::unique_byte_buffer_t pdu);
   void initial_ue(uint16_t                                 rnti,
                   LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause,
-                  srslte::unique_byte_buffer               pdu,
+                  srslte::unique_byte_buffer_t             pdu,
                   uint32_t                                 m_tmsi,
                   uint8_t                                  mmec);
-  void write_pdu(uint16_t rnti, srslte::unique_byte_buffer pdu);
+  void write_pdu(uint16_t rnti, srslte::unique_byte_buffer_t pdu);
   bool user_exists(uint16_t rnti); 
   bool user_release(uint16_t rnti, LIBLTE_S1AP_CAUSERADIONETWORK_ENUM cause_radio);
   void ue_ctxt_setup_complete(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT *res);
@@ -131,11 +131,11 @@ private:
 
   bool send_initialuemessage(uint16_t                                 rnti,
                              LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause,
-                             srslte::unique_byte_buffer               pdu,
+                             srslte::unique_byte_buffer_t             pdu,
                              bool                                     has_tmsi,
                              uint32_t                                 m_tmsi = 0,
                              uint8_t                                  mmec   = 0);
-  bool send_ulnastransport(uint16_t rnti, srslte::unique_byte_buffer pdu);
+  bool send_ulnastransport(uint16_t rnti, srslte::unique_byte_buffer_t pdu);
   bool send_uectxtreleaserequest(uint16_t rnti, LIBLTE_S1AP_CAUSE_STRUCT *cause);
   bool send_uectxtreleasecomplete(uint16_t rnti, uint32_t mme_ue_id, uint32_t enb_ue_id);
   bool send_initial_ctxt_setup_response(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT *res_);

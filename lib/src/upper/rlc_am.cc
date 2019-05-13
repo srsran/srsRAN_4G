@@ -128,7 +128,7 @@ void rlc_am::reset_metrics()
  * PDCP interface
  ***************************************************************************/
 
-void rlc_am::write_sdu(unique_byte_buffer sdu, bool blocking)
+void rlc_am::write_sdu(unique_byte_buffer_t sdu, bool blocking)
 {
   tx.write_sdu(std::move(sdu), blocking);
 }
@@ -270,7 +270,7 @@ void rlc_am::rlc_am_tx::empty_queue()
 
   // deallocate all SDUs in transmit queue
   while(tx_sdu_queue.size() > 0) {
-    unique_byte_buffer buf = tx_sdu_queue.read();
+    unique_byte_buffer_t buf = tx_sdu_queue.read();
   }
 
   // deallocate SDU that is currently processed
@@ -352,7 +352,7 @@ uint32_t rlc_am::rlc_am_tx::get_buffer_state()
   return n_bytes;
 }
 
-void rlc_am::rlc_am_tx::write_sdu(unique_byte_buffer sdu, bool blocking)
+void rlc_am::rlc_am_tx::write_sdu(unique_byte_buffer_t sdu, bool blocking)
 {
   if (!tx_enabled) {
     return;
@@ -367,7 +367,7 @@ void rlc_am::rlc_am_tx::write_sdu(unique_byte_buffer sdu, bool blocking)
       // non-blocking write
       uint8_t* msg_ptr   = sdu->msg;
       uint32_t nof_bytes = sdu->N_bytes;
-      std::pair<bool, unique_byte_buffer> ret       = tx_sdu_queue.try_write(std::move(sdu));
+      std::pair<bool, unique_byte_buffer_t> ret       = tx_sdu_queue.try_write(std::move(sdu));
       if (ret.first) {
         log->info_hex(
             msg_ptr, nof_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", RB_NAME, nof_bytes, tx_sdu_queue.size());
@@ -783,7 +783,7 @@ int rlc_am::rlc_am_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
     return 0;
   }
 
-  unique_byte_buffer pdu = srslte::allocate_unique_buffer(*pool, true);
+  unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
   if (pdu == NULL) {
 #ifdef RLC_AM_BUFFER_DEBUG
     log->console("Fatal Error: Could not allocate PDU in build_data_pdu()\n");
@@ -1739,7 +1739,7 @@ bool rlc_am::rlc_am_rx::add_segment_and_check(rlc_amd_rx_pdu_segments_t *pdu, rl
   log->debug("Finished header reconstruction of %zd segments\n", pdu->segments.size());
 
   // Copy data
-  unique_byte_buffer full_pdu = srslte::allocate_unique_buffer(*pool, true);
+  unique_byte_buffer_t full_pdu = srslte::allocate_unique_buffer(*pool, true);
   if (full_pdu == NULL) {
 #ifdef RLC_AM_BUFFER_DEBUG
     log->console("Fatal Error: Could not allocate PDU in add_segment_and_check()\n");

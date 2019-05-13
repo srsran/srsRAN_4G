@@ -199,7 +199,7 @@ void rlc::empty_queue()
   PDCP interface
 *******************************************************************************/
 
-void rlc::write_sdu(uint32_t lcid, unique_byte_buffer sdu, bool blocking)
+void rlc::write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, bool blocking)
 {
   // FIXME: rework build PDU logic to allow large SDUs (without concatenation)
   if (sdu->N_bytes > RLC_MAX_SDU_SIZE) {
@@ -216,7 +216,7 @@ void rlc::write_sdu(uint32_t lcid, unique_byte_buffer sdu, bool blocking)
   pthread_rwlock_unlock(&rwlock);
 }
 
-void rlc::write_sdu_mch(uint32_t lcid, unique_byte_buffer sdu)
+void rlc::write_sdu_mch(uint32_t lcid, unique_byte_buffer_t sdu)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid_mrb(lcid)) {
@@ -331,7 +331,7 @@ void rlc::write_pdu(uint32_t lcid, uint8_t *payload, uint32_t nof_bytes)
 void rlc::write_pdu_bcch_bch(uint8_t *payload, uint32_t nof_bytes)
 {
   rlc_log->info_hex(payload, nof_bytes, "BCCH BCH message received.");
-  unique_byte_buffer buf = allocate_unique_buffer(*pool);
+  unique_byte_buffer_t buf = allocate_unique_buffer(*pool);
   if (buf != NULL) {
     memcpy(buf->msg, payload, nof_bytes);
     buf->N_bytes = nof_bytes;
@@ -346,7 +346,7 @@ void rlc::write_pdu_bcch_bch(uint8_t *payload, uint32_t nof_bytes)
 void rlc::write_pdu_bcch_dlsch(uint8_t *payload, uint32_t nof_bytes)
 {
   rlc_log->info_hex(payload, nof_bytes, "BCCH TXSCH message received.");
-  unique_byte_buffer buf = allocate_unique_buffer(*pool);
+  unique_byte_buffer_t buf = allocate_unique_buffer(*pool);
   if (buf != NULL) {
     memcpy(buf->msg, payload, nof_bytes);
     buf->N_bytes = nof_bytes;
@@ -361,7 +361,7 @@ void rlc::write_pdu_bcch_dlsch(uint8_t *payload, uint32_t nof_bytes)
 void rlc::write_pdu_pcch(uint8_t *payload, uint32_t nof_bytes)
 {
   rlc_log->info_hex(payload, nof_bytes, "PCCH message received.");
-  unique_byte_buffer buf = allocate_unique_buffer(*pool);
+  unique_byte_buffer_t buf = allocate_unique_buffer(*pool);
   if (buf != NULL) {
     memcpy(buf->msg, payload, nof_bytes);
     buf->N_bytes = nof_bytes;

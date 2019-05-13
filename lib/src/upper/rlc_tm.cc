@@ -63,7 +63,7 @@ bool rlc_tm::configure(srslte_rlc_config_t cnfg)
 void rlc_tm::empty_queue()
 {
   // Drop all messages in TX queue
-  unique_byte_buffer buf;
+  unique_byte_buffer_t buf;
   while (ul_queue.try_read(&buf)) {
   }
   ul_queue.reset();
@@ -91,7 +91,7 @@ uint32_t rlc_tm::get_bearer()
 }
 
 // PDCP interface
-void rlc_tm::write_sdu(unique_byte_buffer sdu, bool blocking)
+void rlc_tm::write_sdu(unique_byte_buffer_t sdu, bool blocking)
 {
   if (!tx_enabled) {
     return;
@@ -104,7 +104,7 @@ void rlc_tm::write_sdu(unique_byte_buffer sdu, bool blocking)
     } else {
       uint8_t* msg_ptr   = sdu->msg;
       uint32_t nof_bytes = sdu->N_bytes;
-      std::pair<bool, unique_byte_buffer> ret       = ul_queue.try_write(std::move(sdu));
+      std::pair<bool, unique_byte_buffer_t> ret       = ul_queue.try_write(std::move(sdu));
       if (ret.first) {
         log->info_hex(msg_ptr,
                       nof_bytes,
@@ -160,7 +160,7 @@ int rlc_tm::read_pdu(uint8_t *payload, uint32_t nof_bytes)
     log->error("TX %s PDU size larger than MAC opportunity (%d > %d)\n", rrc->get_rb_name(lcid).c_str(), pdu_size, nof_bytes);
     return -1;
   }
-  unique_byte_buffer buf;
+  unique_byte_buffer_t buf;
   if (ul_queue.try_read(&buf)) {
     pdu_size = buf->N_bytes;
     memcpy(payload, buf->msg, buf->N_bytes);
@@ -183,7 +183,7 @@ int rlc_tm::read_pdu(uint8_t *payload, uint32_t nof_bytes)
 
 void rlc_tm::write_pdu(uint8_t *payload, uint32_t nof_bytes)
 {
-  unique_byte_buffer buf = allocate_unique_buffer(*pool);
+  unique_byte_buffer_t buf = allocate_unique_buffer(*pool);
   if (buf) {
     memcpy(buf->msg, payload, nof_bytes);
     buf->N_bytes = nof_bytes;

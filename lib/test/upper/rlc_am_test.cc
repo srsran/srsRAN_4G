@@ -67,21 +67,21 @@ public:
   }
 
   // PDCP interface
-  void write_pdu(uint32_t lcid, unique_byte_buffer sdu)
+  void write_pdu(uint32_t lcid, unique_byte_buffer_t sdu)
   {
     assert(lcid == 1);
     sdus[n_sdus++] = std::move(sdu);
   }
-  void write_pdu_bcch_bch(unique_byte_buffer sdu) {}
-  void write_pdu_bcch_dlsch(unique_byte_buffer sdu) {}
-  void write_pdu_pcch(unique_byte_buffer sdu) {}
-  void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer pdu) {}
+  void write_pdu_bcch_bch(unique_byte_buffer_t sdu) {}
+  void write_pdu_bcch_dlsch(unique_byte_buffer_t sdu) {}
+  void write_pdu_pcch(unique_byte_buffer_t sdu) {}
+  void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
 
   // RRC interface
   void max_retx_attempted(){}
   std::string get_rb_name(uint32_t lcid) { return std::string(""); }
 
-  unique_byte_buffer sdus[10];
+  unique_byte_buffer_t sdus[10];
   int n_sdus;
   rlc_pcap *pcap;
 };
@@ -108,7 +108,7 @@ private:
     running = true;
     while(running) {
       byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
-      unique_byte_buffer pdu  = srslte::allocate_unique_buffer(*pool, "rlc_tester::run_thread", true);
+      unique_byte_buffer_t pdu  = srslte::allocate_unique_buffer(*pool, "rlc_tester::run_thread", true);
       if (!pdu) {
         printf("Error: Could not allocate PDU in rlc_tester::run_thread\n\n\n");
         // backoff for a bit
@@ -170,7 +170,7 @@ bool basic_test()
 
   // Push 5 SDUs into RLC1
   byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
-  unique_byte_buffer sdu_bufs[NBUFS];
+  unique_byte_buffer_t sdu_bufs[NBUFS];
   for(int i=0;i<NBUFS;i++)
   {
     sdu_bufs[i]          = srslte::allocate_unique_buffer(*pool, true);
@@ -267,7 +267,7 @@ bool concat_test()
 
   // Push 5 SDUs into RLC1
   byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
-  unique_byte_buffer sdu_bufs[NBUFS];
+  unique_byte_buffer_t sdu_bufs[NBUFS];
   for(int i=0;i<NBUFS;i++)
   {
     sdu_bufs[i]          = srslte::allocate_unique_buffer(*pool, true);
@@ -349,7 +349,7 @@ bool segment_test(bool in_seq_rx)
 
   // Push 5 SDUs into RLC1
   byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
-  unique_byte_buffer sdu_bufs[NBUFS];
+  unique_byte_buffer_t sdu_bufs[NBUFS];
   for(int i=0;i<NBUFS;i++)
   {
     sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
@@ -459,7 +459,7 @@ bool retx_test()
 
   // Push 5 SDUs into RLC1
   byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
-  unique_byte_buffer sdu_bufs[NBUFS];
+  unique_byte_buffer_t sdu_bufs[NBUFS];
   for(int i=0;i<NBUFS;i++)
   {
     sdu_bufs[i]          = srslte::allocate_unique_buffer(*pool, true);
@@ -568,7 +568,7 @@ bool resegment_test_1()
 
   // Push 5 SDUs into RLC1
   byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
-  unique_byte_buffer sdu_bufs[NBUFS];
+  unique_byte_buffer_t sdu_bufs[NBUFS];
   for(int i=0;i<NBUFS;i++)
   {
     sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
@@ -690,7 +690,7 @@ bool resegment_test_2()
 
   // Push 5 SDUs into RLC1
   byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
-  unique_byte_buffer sdu_bufs[NBUFS];
+  unique_byte_buffer_t sdu_bufs[NBUFS];
   for(int i=0;i<NBUFS;i++)
   {
     sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
@@ -809,7 +809,7 @@ bool resegment_test_3()
 
   // Push 5 SDUs into RLC1
   byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
-  unique_byte_buffer sdu_bufs[NBUFS];
+  unique_byte_buffer_t sdu_bufs[NBUFS];
   for(int i=0;i<NBUFS;i++)
   {
     sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
@@ -923,7 +923,7 @@ bool resegment_test_4()
 
   // Push 5 SDUs into RLC1
   byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
-  unique_byte_buffer sdu_bufs[NBUFS];
+  unique_byte_buffer_t sdu_bufs[NBUFS];
   for(int i=0;i<NBUFS;i++)
   {
     sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
@@ -1037,7 +1037,7 @@ bool resegment_test_5()
 
   // Push 5 SDUs into RLC1
   byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
-  unique_byte_buffer sdu_bufs[NBUFS];
+  unique_byte_buffer_t sdu_bufs[NBUFS];
   for(int i=0;i<NBUFS;i++)
   {
     sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
@@ -1153,7 +1153,7 @@ bool resegment_test_6()
 
   // Push SDUs into RLC1
   byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
-  unique_byte_buffer sdu_bufs[9];
+  unique_byte_buffer_t sdu_bufs[9];
   for(int i=0;i<3;i++)
   {
     sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
@@ -1304,7 +1304,7 @@ bool resegment_test_7()
 
   // Push 2 SDUs into RLC1
   byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
-  unique_byte_buffer sdu_bufs[N_SDU_BUFS];
+  unique_byte_buffer_t sdu_bufs[N_SDU_BUFS];
   for(uint32_t i=0;i<N_SDU_BUFS;i++)
   {
     sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
@@ -1493,7 +1493,7 @@ bool resegment_test_8()
 
   // Push 2 SDUs into RLC1
   byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
-  unique_byte_buffer sdu_bufs[N_SDU_BUFS];
+  unique_byte_buffer_t sdu_bufs[N_SDU_BUFS];
   for(uint32_t i=0;i<N_SDU_BUFS;i++)
   {
     sdu_bufs[i] = srslte::allocate_unique_buffer(*pool, true);
@@ -1649,7 +1649,7 @@ bool reset_test()
 
   // Push 1 SDU of size 10 into RLC1
   byte_buffer_pool*  pool    = byte_buffer_pool::get_instance();
-  unique_byte_buffer sdu_buf = srslte::allocate_unique_buffer(*pool, true);
+  unique_byte_buffer_t sdu_buf = srslte::allocate_unique_buffer(*pool, true);
   sdu_buf->msg[0]            = 1; // Write the index into the buffer
   sdu_buf->N_bytes           = 100;
   rlc1.write_sdu(std::move(sdu_buf));

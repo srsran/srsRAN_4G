@@ -87,7 +87,7 @@ void s1ap::get_metrics(s1ap_metrics_t &m)
 
 void s1ap::run_thread()
 {
-  srslte::unique_byte_buffer pdu = srslte::allocate_unique_buffer(*pool, "s1ap::run_thread");
+  srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, "s1ap::run_thread");
   if (!pdu) {
     s1ap_log->error("Fatal Error: Couldn't allocate buffer in s1ap::run_thread().\n");
     return;
@@ -174,7 +174,7 @@ void s1ap::build_tai_cgi()
 /*******************************************************************************
 /* RRC interface
 ********************************************************************************/
-void s1ap::initial_ue(uint16_t rnti, LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause, srslte::unique_byte_buffer pdu)
+void s1ap::initial_ue(uint16_t rnti, LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause, srslte::unique_byte_buffer_t pdu)
 {
   ue_ctxt_map[rnti].eNB_UE_S1AP_ID = next_eNB_UE_S1AP_ID++;
   ue_ctxt_map[rnti].stream_id      = 1;
@@ -185,7 +185,7 @@ void s1ap::initial_ue(uint16_t rnti, LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM ca
 
 void s1ap::initial_ue(uint16_t                                 rnti,
                       LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause,
-                      srslte::unique_byte_buffer               pdu,
+                      srslte::unique_byte_buffer_t             pdu,
                       uint32_t                                 m_tmsi,
                       uint8_t                                  mmec)
 {
@@ -196,7 +196,7 @@ void s1ap::initial_ue(uint16_t                                 rnti,
   send_initialuemessage(rnti, cause, std::move(pdu), true, m_tmsi, mmec);
 }
 
-void s1ap::write_pdu(uint16_t rnti, srslte::unique_byte_buffer pdu)
+void s1ap::write_pdu(uint16_t rnti, srslte::unique_byte_buffer_t pdu)
 {
   s1ap_log->info_hex(pdu->msg, pdu->N_bytes, "Received RRC SDU");
 
@@ -479,7 +479,7 @@ bool s1ap::handle_dlnastransport(LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT
     s1ap_log->warning("Not handling SubscriberProfileIDforRFP\n");
   }
 
-  srslte::unique_byte_buffer pdu = srslte::allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool);
   if (pdu) {
     memcpy(pdu->msg, msg->NAS_PDU.buffer, msg->NAS_PDU.n_octets);
     pdu->N_bytes = msg->NAS_PDU.n_octets;
@@ -620,7 +620,7 @@ bool s1ap::handle_s1setupfailure(LIBLTE_S1AP_MESSAGE_S1SETUPFAILURE_STRUCT *msg)
 
 bool s1ap::send_initialuemessage(uint16_t                                 rnti,
                                  LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause,
-                                 srslte::unique_byte_buffer               pdu,
+                                 srslte::unique_byte_buffer_t             pdu,
                                  bool                                     has_tmsi,
                                  uint32_t                                 m_tmsi,
                                  uint8_t                                  mmec)
@@ -692,7 +692,7 @@ bool s1ap::send_initialuemessage(uint16_t                                 rnti,
   return true;
 }
 
-bool s1ap::send_ulnastransport(uint16_t rnti, srslte::unique_byte_buffer pdu)
+bool s1ap::send_ulnastransport(uint16_t rnti, srslte::unique_byte_buffer_t pdu)
 {
   if(!mme_connected) {
     return false;
@@ -825,7 +825,7 @@ bool s1ap::send_initial_ctxt_setup_response(uint16_t rnti, LIBLTE_S1AP_MESSAGE_I
   if(!mme_connected) {
     return false;
   }
-  srslte::unique_byte_buffer buf = srslte::allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t buf = srslte::allocate_unique_buffer(*pool);
   if (!buf) {
     s1ap_log->error("Fatal Error: Couldn't allocate buffer in s1ap::send_initial_ctxt_setup_response().\n");
     return false;
@@ -877,7 +877,7 @@ bool s1ap::send_erab_setup_response(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETU
   if(!mme_connected) {
     return false;
   }
-  srslte::unique_byte_buffer buf = srslte::allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t buf = srslte::allocate_unique_buffer(*pool);
   if (!buf) {
     s1ap_log->error("Fatal Error: Couldn't allocate buffer in s1ap::send_erab_setup_response().\n");
     return false;
@@ -929,7 +929,7 @@ bool s1ap::send_initial_ctxt_setup_failure(uint16_t rnti)
   if(!mme_connected) {
     return false;
   }
-  srslte::unique_byte_buffer buf = srslte::allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t buf = srslte::allocate_unique_buffer(*pool);
   if (!buf) {
     s1ap_log->error("Fatal Error: Couldn't allocate buffer in s1ap::send_initial_ctxt_setup_failure().\n");
     return false;

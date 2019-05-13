@@ -277,7 +277,7 @@ public:
   byte_buffer_pool* pool;
 };
 
-typedef std::unique_ptr<byte_buffer_t, byte_buffer_deleter> unique_byte_buffer;
+typedef std::unique_ptr<byte_buffer_t, byte_buffer_deleter> unique_byte_buffer_t;
 
 } // namespace srslte
 

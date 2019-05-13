@@ -36,7 +36,7 @@ namespace srslte {
 
 struct rlc_umd_pdu_t{
   rlc_umd_pdu_header_t  header;
-  unique_byte_buffer    buf;
+  unique_byte_buffer_t  buf;
 };
 
 class rlc_um
@@ -60,7 +60,7 @@ public:
   uint32_t      get_bearer();
 
   // PDCP interface
-  void write_sdu(unique_byte_buffer sdu, bool blocking = true);
+  void write_sdu(unique_byte_buffer_t sdu, bool blocking = true);
 
   // MAC interface
   bool     has_data();
@@ -87,8 +87,8 @@ private:
     void stop();
     void reestablish();
     void empty_queue();
-    void     write_sdu(unique_byte_buffer sdu);
-    void     try_write_sdu(unique_byte_buffer sdu);
+    void     write_sdu(unique_byte_buffer_t sdu);
+    void     try_write_sdu(unique_byte_buffer_t sdu);
     uint32_t get_num_tx_bytes();
     void reset_metrics();
     bool has_data();
@@ -107,7 +107,7 @@ private:
 
     // TX SDU buffers
     rlc_tx_queue            tx_sdu_queue;
-    unique_byte_buffer      tx_sdu;
+    unique_byte_buffer_t    tx_sdu;
 
     /****************************************************************************
      * State variables and counters
@@ -168,7 +168,7 @@ private:
     std::map<uint32_t, rlc_umd_pdu_t>   rx_window;
 
     // RX SDU buffers
-    unique_byte_buffer                  rx_sdu;
+    unique_byte_buffer_t                rx_sdu;
     uint32_t                            vr_ur_in_rx_sdu;
 
     // Rx state variables and counter

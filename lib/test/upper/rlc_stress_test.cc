@@ -147,7 +147,7 @@ private:
   void run_tti(rlc_interface_mac *tx_rlc, rlc_interface_mac *rx_rlc, bool is_dl)
   {
     byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
-    unique_byte_buffer pdu  = srslte::allocate_unique_buffer(*pool, __PRETTY_FUNCTION__, true);
+    unique_byte_buffer_t pdu  = srslte::allocate_unique_buffer(*pool, __PRETTY_FUNCTION__, true);
     if (!pdu) {
       printf("Fatal Error: Could not allocate PDU in mac_reader::run_thread\n");
       exit(-1);
@@ -229,7 +229,7 @@ public:
   }
 
   // PDCP interface
-  void write_pdu(uint32_t rx_lcid, unique_byte_buffer sdu)
+  void write_pdu(uint32_t rx_lcid, unique_byte_buffer_t sdu)
   {
     assert(rx_lcid == lcid);
     if (sdu->N_bytes != args.sdu_size) {
@@ -239,10 +239,10 @@ public:
 
     rx_pdus++;
   }
-  void write_pdu_bcch_bch(unique_byte_buffer sdu) {}
-  void write_pdu_bcch_dlsch(unique_byte_buffer sdu) {}
-  void write_pdu_pcch(unique_byte_buffer sdu) {}
-  void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer sdu) {}
+  void write_pdu_bcch_bch(unique_byte_buffer_t sdu) {}
+  void write_pdu_bcch_dlsch(unique_byte_buffer_t sdu) {}
+  void write_pdu_pcch(unique_byte_buffer_t sdu) {}
+  void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu) {}
 
   // RRC interface
   void max_retx_attempted(){}
@@ -255,7 +255,7 @@ private:
     uint8_t sn = 0;
     byte_buffer_pool* pool = byte_buffer_pool::get_instance();
     while(run_enable) {
-      unique_byte_buffer pdu = srslte::allocate_unique_buffer(*pool, "rlc_tester::run_thread", true);
+      unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, "rlc_tester::run_thread", true);
       if (pdu == NULL) {
         printf("Error: Could not allocate PDU in rlc_tester::run_thread\n\n\n");
         // backoff for a bit

@@ -177,7 +177,7 @@ void rlc::read_pdu_bcch_dlsch(uint32_t sib_index, uint8_t *payload)
   rrc->read_pdu_bcch_dlsch(sib_index, payload);
 }
 
-void rlc::write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer sdu)
+void rlc::write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu)
 {
   uint32_t tx_queue;
 
@@ -215,22 +215,22 @@ void rlc::user_interface::max_retx_attempted()
   rrc->max_retx_attempted(rnti);
 }
 
-void rlc::user_interface::write_pdu(uint32_t lcid, srslte::unique_byte_buffer sdu)
+void rlc::user_interface::write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu)
 {
   pdcp->write_pdu(rnti, lcid, std::move(sdu));
 }
 
-void rlc::user_interface::write_pdu_bcch_bch(srslte::unique_byte_buffer sdu)
+void rlc::user_interface::write_pdu_bcch_bch(srslte::unique_byte_buffer_t sdu)
 {
   ERROR("Error: Received BCCH from ue=%d\n", rnti);
 }
 
-void rlc::user_interface::write_pdu_bcch_dlsch(srslte::unique_byte_buffer sdu)
+void rlc::user_interface::write_pdu_bcch_dlsch(srslte::unique_byte_buffer_t sdu)
 {
   ERROR("Error: Received BCCH from ue=%d\n", rnti);
 }
 
-void rlc::user_interface::write_pdu_pcch(srslte::unique_byte_buffer sdu)
+void rlc::user_interface::write_pdu_pcch(srslte::unique_byte_buffer_t sdu)
 {
   ERROR("Error: Received PCCH from ue=%d\n", rnti);
 }

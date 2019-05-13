@@ -140,7 +140,7 @@ uint32_t rlc_um::get_bearer()
 /****************************************************************************
  * PDCP interface
  ***************************************************************************/
-void rlc_um::write_sdu(unique_byte_buffer sdu, bool blocking)
+void rlc_um::write_sdu(unique_byte_buffer_t sdu, bool blocking)
 {
   if (blocking) {
     tx.write_sdu(std::move(sdu));
@@ -271,7 +271,7 @@ void rlc_um::rlc_um_tx::empty_queue()
 
   // deallocate all SDUs in transmit queue
   while(tx_sdu_queue.size() > 0) {
-    unique_byte_buffer buf = tx_sdu_queue.read();
+    unique_byte_buffer_t buf = tx_sdu_queue.read();
   }
 
   // deallocate SDU that is currently processed
@@ -323,7 +323,7 @@ uint32_t rlc_um::rlc_um_tx::get_buffer_state()
   return n_bytes;
 }
 
-void rlc_um::rlc_um_tx::write_sdu(unique_byte_buffer sdu)
+void rlc_um::rlc_um_tx::write_sdu(unique_byte_buffer_t sdu)
 {
   if (!tx_enabled) {
     return;
@@ -337,7 +337,7 @@ void rlc_um::rlc_um_tx::write_sdu(unique_byte_buffer sdu)
   }
 }
 
-void rlc_um::rlc_um_tx::try_write_sdu(unique_byte_buffer sdu)
+void rlc_um::rlc_um_tx::try_write_sdu(unique_byte_buffer_t sdu)
 {
   if (!tx_enabled) {
     sdu.reset();
@@ -347,7 +347,7 @@ void rlc_um::rlc_um_tx::try_write_sdu(unique_byte_buffer sdu)
   if (sdu) {
     uint8_t* msg_ptr   = sdu->msg;
     uint32_t nof_bytes = sdu->N_bytes;
-    std::pair<bool, unique_byte_buffer> ret       = tx_sdu_queue.try_write(std::move(sdu));
+    std::pair<bool, unique_byte_buffer_t> ret       = tx_sdu_queue.try_write(std::move(sdu));
     if (ret.first) {
       log->info_hex(
           msg_ptr, nof_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", get_rb_name(), nof_bytes, tx_sdu_queue.size());
@@ -381,7 +381,7 @@ int rlc_um::rlc_um_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
     return 0;
   }
 
-  unique_byte_buffer pdu = allocate_unique_buffer(*pool);
+  unique_byte_buffer_t pdu = allocate_unique_buffer(*pool);
   if(!pdu || pdu->N_bytes != 0) {
     log->error("Failed to allocate PDU buffer\n");
     pthread_mutex_unlock(&mutex);

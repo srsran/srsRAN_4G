@@ -82,7 +82,7 @@ public:
   // RRC interface
   void     paging(asn1::rrc::s_tmsi_s* ue_identiy);
   void set_barring(barring_t barring);
-  void     write_pdu(uint32_t lcid, srslte::unique_byte_buffer pdu);
+  void     write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
   uint32_t get_k_enb_count();
   bool is_attached();
   bool get_k_asme(uint8_t *k_asme_, uint32_t n);
@@ -171,17 +171,17 @@ private:
   void select_plmn();
 
   // Parsers
-  void parse_attach_accept(uint32_t lcid, srslte::unique_byte_buffer pdu);
-  void parse_attach_reject(uint32_t lcid, srslte::unique_byte_buffer pdu);
-  void parse_authentication_request(uint32_t lcid, srslte::unique_byte_buffer pdu, const uint8_t sec_hdr_type);
-  void parse_authentication_reject(uint32_t lcid, srslte::unique_byte_buffer pdu);
-  void parse_identity_request(uint32_t lcid, srslte::unique_byte_buffer pdu);
-  void parse_security_mode_command(uint32_t lcid, srslte::unique_byte_buffer pdu);
-  void parse_service_reject(uint32_t lcid, srslte::unique_byte_buffer pdu);
-  void parse_esm_information_request(uint32_t lcid, srslte::unique_byte_buffer pdu);
-  void parse_emm_information(uint32_t lcid, srslte::unique_byte_buffer pdu);
-  void parse_detach_request(uint32_t lcid, srslte::unique_byte_buffer pdu);
-  void parse_emm_status(uint32_t lcid, srslte::unique_byte_buffer pdu);
+  void parse_attach_accept(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
+  void parse_attach_reject(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
+  void parse_authentication_request(uint32_t lcid, srslte::unique_byte_buffer_t pdu, const uint8_t sec_hdr_type);
+  void parse_authentication_reject(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
+  void parse_identity_request(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
+  void parse_security_mode_command(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
+  void parse_service_reject(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
+  void parse_esm_information_request(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
+  void parse_emm_information(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
+  void parse_detach_request(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
+  void parse_emm_status(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
 
   // Packet generators
   void gen_attach_request(srslte::byte_buffer_t* msg);

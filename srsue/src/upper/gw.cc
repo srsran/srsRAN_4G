@@ -162,7 +162,7 @@ void gw::set_tundevname(const std::string & devname)
 /*******************************************************************************
   PDCP interface
 *******************************************************************************/
-void gw::write_pdu(uint32_t lcid, srslte::unique_byte_buffer pdu)
+void gw::write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 {
   gw_log->info_hex(pdu->msg, pdu->N_bytes, "RX PDU. Stack latency: %ld us\n", pdu->get_latency_us());
   dl_tput_bytes += pdu->N_bytes;
@@ -183,7 +183,7 @@ void gw::write_pdu(uint32_t lcid, srslte::unique_byte_buffer pdu)
   }
 }
 
-void gw::write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer pdu)
+void gw::write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 {
   if(pdu->N_bytes>2)
   {
@@ -251,7 +251,7 @@ void gw::run_thread()
   uint32 idx = 0;
   int32  N_bytes = 0;
 
-  srslte::unique_byte_buffer pdu = srslte::allocate_unique_buffer(*pool, true);
+  srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
   if (!pdu) {
     gw_log->error("Fatal Error: Couldn't allocate PDU in run_thread().\n");
     return;
