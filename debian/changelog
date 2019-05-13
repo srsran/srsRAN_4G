@@ -1,3 +1,9 @@
+srslte (19.03-0ubuntu1) bionic; urgency=medium
+
+  * Update to srsLTE 19.03
+
+ -- srsLTE Packagers <packagers@softwareradiosystems.com>  Mon, 13 May 2019 16:50:00 +0200
+
 srslte (18.12-0ubuntu1) bionic; urgency=medium
 
   * Update to srsLTE 18.12
