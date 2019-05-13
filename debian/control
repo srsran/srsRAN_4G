@@ -27,8 +27,8 @@ Section: libdevel
 Depends: ${shlibs:Depends},
          ${misc:Depends},
          srslte-core:any (= ${binary:Version})
-Breaks: srslte (<= 18.09-0ubuntu1)
-Replaces: srslte (<= 18.09-0ubuntu1)
+Breaks: srslte (<= 18.12-0ubuntu1)
+Replaces: srslte (<= 18.12-0ubuntu1)
 Description: Static libraries and headers for srslte
  This software allows you to run a full end-to-end, open-source LTE system.
  It contains a UE, eNB and EPC implementation.
@@ -53,8 +53,8 @@ Architecture: any
 Depends: ${shlibs:Depends},
          ${misc:Depends},
          srslte-core (= ${binary:Version})
-Breaks: srslte (<= 18.09-0ubuntu1)
-Replaces: srslte (<= 18.09-0ubuntu1)
+Breaks: srslte (<= 18.12-0ubuntu1)
+Replaces: srslte (<= 18.12-0ubuntu1)
 Description: Complete SDR LTE eNodeB application
  This software allows you to run a full end-to-end, open-source LTE system.
  It contains a UE, eNB and EPC implementation.
@@ -68,8 +68,8 @@ Depends: ${shlibs:Depends},
          ${misc:Depends},
          srslte-core (= ${binary:Version})
 Recommends: srsenb
-Breaks: srslte (<= 18.09-0ubuntu1)
-Replaces: srslte (<= 18.09-0ubuntu1)
+Breaks: srslte (<= 18.12-0ubuntu1)
+Replaces: srslte (<= 18.12-0ubuntu1)
 Description: Light-weight LTE core network implementation
  This software allows you to run a full end-to-end, open-source LTE system.
  It contains a UE, eNB and EPC implementation.
@@ -81,8 +81,8 @@ Architecture: any
 Multi-Arch: allowed
 Depends: ${shlibs:Depends},
          ${misc:Depends}
-Breaks: srslte (<= 18.09-0ubuntu1)
-Replaces: srslte (<= 18.09-0ubuntu1)
+Breaks: srslte (<= 18.12-0ubuntu1)
+Replaces: srslte (<= 18.12-0ubuntu1)
 Description: Common files for srsLTE
  This software allows you to run a full end-to-end, open-source LTE system.
  It contains a UE, eNB and EPC implementation.
@@ -94,8 +94,8 @@ Architecture: any
 Depends: ${shlibs:Depends},
          ${misc:Depends},
          srslte-core (= ${binary:Version})
-Breaks: srslte (<= 18.09-0ubuntu1)
-Replaces: srslte (<= 18.09-0ubuntu1)
+Breaks: srslte (<= 18.12-0ubuntu1)
+Replaces: srslte (<= 18.12-0ubuntu1)
 Description: User Equipment implementation for LTE
  This software enables using a software defined radio as the user equipment
  connecting to an LTE network.

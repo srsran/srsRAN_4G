@@ -37,17 +37,19 @@ template<class SubH>
 class pdu
 {
 public:
-  
-  pdu(uint32_t max_subheaders_) : subheaders(max_subheaders_) {
-    max_subheaders = max_subheaders_; 
-    nof_subheaders = 0; 
-    cur_idx        = -1; 
-    pdu_len        = 0; 
-    rem_len        = 0;   
-    last_sdu_idx   = -1;
-    pdu_is_ul      = false; 
-    buffer_tx      = NULL; 
-    total_sdu_len  = 0; 
+  pdu(uint32_t max_subheaders_) :
+    max_subheaders(max_subheaders_),
+    subheaders(max_subheaders_),
+    nof_subheaders(0),
+    cur_idx(-1),
+    pdu_len(0),
+    rem_len(0),
+    last_sdu_idx(-1),
+    pdu_is_ul(false),
+    buffer_tx(nullptr),
+    sdu_offset_start(0),
+    total_sdu_len(0)
+  {
   }
   
   void fprint(FILE *stream) {

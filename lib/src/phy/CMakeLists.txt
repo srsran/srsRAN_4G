@@ -34,44 +34,25 @@ add_subdirectory(modem)
 add_subdirectory(resampling)
 add_subdirectory(scrambling)
 add_subdirectory(ue)
-if(ENABLE_SRSENB)
-    add_subdirectory(enb)
-    set(srslte_srcs     $<TARGET_OBJECTS:srslte_agc>
-            $<TARGET_OBJECTS:srslte_ch_estimation>
-            $<TARGET_OBJECTS:srslte_phy_common>
-            $<TARGET_OBJECTS:srslte_fec>
-            $<TARGET_OBJECTS:srslte_mimo>
-            $<TARGET_OBJECTS:srslte_phch>
-            $<TARGET_OBJECTS:srslte_sync>
-            $<TARGET_OBJECTS:srslte_utils>
-            $<TARGET_OBJECTS:srslte_channel>
-            $<TARGET_OBJECTS:srslte_dft>
-            $<TARGET_OBJECTS:srslte_io>
-            $<TARGET_OBJECTS:srslte_modem>
-            $<TARGET_OBJECTS:srslte_resampling>
-            $<TARGET_OBJECTS:srslte_scrambling>
-            $<TARGET_OBJECTS:srslte_ue>
-            $<TARGET_OBJECTS:srslte_enb>
-            )
-else(ENABLE_SRSENB)
-    set(srslte_srcs     $<TARGET_OBJECTS:srslte_agc>
-            $<TARGET_OBJECTS:srslte_ch_estimation>
-            $<TARGET_OBJECTS:srslte_phy_common>
-            $<TARGET_OBJECTS:srslte_fec>
-            $<TARGET_OBJECTS:srslte_mimo>
-            $<TARGET_OBJECTS:srslte_phch>
-            $<TARGET_OBJECTS:srslte_sync>
-            $<TARGET_OBJECTS:srslte_utils>
-            $<TARGET_OBJECTS:srslte_channel>
-            $<TARGET_OBJECTS:srslte_dft>
-            $<TARGET_OBJECTS:srslte_io>
-            $<TARGET_OBJECTS:srslte_modem>
-            $<TARGET_OBJECTS:srslte_resampling>
-            $<TARGET_OBJECTS:srslte_scrambling>
-            $<TARGET_OBJECTS:srslte_ue>
-            )
+add_subdirectory(enb)
+set(srslte_srcs     $<TARGET_OBJECTS:srslte_agc>
+        $<TARGET_OBJECTS:srslte_ch_estimation>
+        $<TARGET_OBJECTS:srslte_phy_common>
+        $<TARGET_OBJECTS:srslte_fec>
+        $<TARGET_OBJECTS:srslte_mimo>
+        $<TARGET_OBJECTS:srslte_phch>
+        $<TARGET_OBJECTS:srslte_sync>
+        $<TARGET_OBJECTS:srslte_utils>
+        $<TARGET_OBJECTS:srslte_channel>
+        $<TARGET_OBJECTS:srslte_dft>
+        $<TARGET_OBJECTS:srslte_io>
+        $<TARGET_OBJECTS:srslte_modem>
+        $<TARGET_OBJECTS:srslte_resampling>
+        $<TARGET_OBJECTS:srslte_scrambling>
+        $<TARGET_OBJECTS:srslte_ue>
+        $<TARGET_OBJECTS:srslte_enb>
+        )
 
-endif(ENABLE_SRSENB)
 
 
 add_library(srslte_phy STATIC ${srslte_srcs})

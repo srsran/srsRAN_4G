@@ -405,6 +405,11 @@ static void MAKE_FUNC(beta)(MAKE_TYPE * s, llr_t *input, llr_t *app, llr_t *pari
   simd_type_t *parityPtr;
   simd_type_t *betaPtr   = (simd_type_t*) s->beta;
 
+  // Inititialize old state
+  for (int i = 0; i < 8; i++) {
+    old[i] = simd_set1(0);
+  }
+
   uint32_t loop_len;
   for (int j=0;j<2;j++) {
 
@@ -725,7 +730,9 @@ void MAKE_FUNC(extract_input)(llr_t *input, llr_t *systematic, llr_t *app2, llr_
   simd_type_t *parity0Ptr = (simd_type_t*) parity_0;
   simd_type_t *parity1Ptr = (simd_type_t*) parity_1;
 
-  simd_type_t syst, parity0, parity1;
+  simd_type_t syst    = simd_set1(0);
+  simd_type_t parity0 = simd_set1(0);
+  simd_type_t parity1 = simd_set1(0);
 
   for (int i=0;i<long_sb;i++) {
     INSERT8_INPUT(syst,    0, 0);

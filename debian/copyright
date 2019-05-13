@@ -2,11 +2,11 @@ Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: srsLTE
 Upstream-Contact: srsLTE packaging team <support@softwareradiosystems.com>
 License: AGPL-3+
-Copyright: 2013-2018, Software Radio Systems Limited.
+Copyright: 2013-2019, Software Radio Systems Limited.
 Source: https://www.github.com/srsLTE
 
 Files: *
-Copyright: 2013-2018, Software Radio Systems Limited.
+Copyright: 2013-2019, Software Radio Systems Limited.
 License: AGPL-3+
 
 Files: lib/src/phy/fec/viterbi37_port.c
