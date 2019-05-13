@@ -140,6 +140,8 @@ int main(int argc, char **argv) {
   
   parse_args(argc,argv);
 
+  srslte_dft_load();
+
   if (test_cqi_only) {
     return test_uci_cqi_pucch();
   }

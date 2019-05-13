@@ -86,6 +86,8 @@ int main(int argc, char **argv) {
   
   parse_args(argc, argv);
 
+  srslte_dft_load();
+
   fft_size = srslte_symbol_sz(nof_prb);
   if (fft_size < 0) {
     ERROR("Invalid nof_prb=%d\n", nof_prb);

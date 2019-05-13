@@ -182,6 +182,8 @@ int main(int argc, char **argv) {
 
   parse_args(argc, argv);
 
+  srslte_dft_load();
+
   if (tm == SRSLTE_TM1) {
     cell.nof_ports = 1;
     mcs[1]         = 0;

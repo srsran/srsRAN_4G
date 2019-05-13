@@ -80,6 +80,8 @@ int main(int argc, char **argv) {
 
   parse_args(argc, argv);
 
+  srslte_dft_load();
+
   if (nof_prb == -1) {
     n_prb = 6;
     max_prb = 100;

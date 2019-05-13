@@ -71,6 +71,9 @@ void parse_args(int argc, char **argv) {
 int main(int argc, char** argv)
 {
   parse_args(argc, argv);
+
+  srslte_dft_load();
+
   srslte_prach_t prach;
 
   bool high_speed_flag      = false;
