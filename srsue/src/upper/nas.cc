@@ -836,7 +836,7 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
     liblte_mme_pack_activate_default_eps_bearer_context_accept_msg(&act_def_eps_bearer_context_accept,
                                                                    &attach_complete.esm_msg);
 
-    pdu->reset();
+    pdu->clear();
     liblte_mme_pack_attach_complete_msg(&attach_complete,
                                         LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED,
                                         ctxt.tx_count,
@@ -1044,7 +1044,7 @@ void nas::parse_security_mode_command(uint32_t lcid, unique_byte_buffer_t pdu)
   }
 
   // Send response
-  pdu->reset();
+  pdu->clear();
   liblte_mme_pack_security_mode_complete_msg(
       &sec_mode_comp,
       LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED_WITH_NEW_EPS_SECURITY_CONTEXT,

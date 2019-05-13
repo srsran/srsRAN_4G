@@ -683,7 +683,7 @@ void rlc_um::rlc_um_rx::reassemble_rx_sdus()
     if(rx_window.end() == rx_window.find(vr_ur))
     {
       log->debug("SN=%d not in rx_window. Reset received SDU\n", vr_ur);
-      rx_sdu->reset();
+      rx_sdu->clear();
     }else{
       // Handle any SDU segments
       for(uint32_t i=0; i<rx_window[vr_ur].header.N_li; i++)
@@ -696,7 +696,7 @@ void rlc_um::rlc_um_rx::reassemble_rx_sdus()
           // Advance data pointers and continue with next segment
           rx_window[vr_ur].buf->msg += len;
           rx_window[vr_ur].buf->N_bytes -= len;
-          rx_sdu->reset();
+          rx_sdu->clear();
           break;
         }
 
@@ -706,7 +706,7 @@ void rlc_um::rlc_um_rx::reassemble_rx_sdus()
         rx_window[vr_ur].buf->N_bytes -= len;
         if((pdu_lost && !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) || (vr_ur != ((vr_ur_in_rx_sdu+1)%cfg.rx_mod))) {
           log->warning("Dropping remainder of lost PDU (lower edge middle segments, vr_ur=%d, vr_ur_in_rx_sdu=%d)\n", vr_ur, vr_ur_in_rx_sdu);
-          rx_sdu->reset();
+          rx_sdu->clear();
         } else {
           log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU vr_ur=%d, i=%d (lower edge middle segments)", get_rb_name(), vr_ur, i);
           rx_sdu->set_timestamp();
@@ -736,7 +736,7 @@ void rlc_um::rlc_um_rx::reassemble_rx_sdus()
         {
           if(pdu_lost && !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) {
             log->warning("Dropping remainder of lost PDU (lower edge last segments)\n");
-            rx_sdu->reset();
+            rx_sdu->clear();
           } else {
             log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU vr_ur=%d (lower edge last segments)", get_rb_name(), vr_ur);
             rx_sdu->set_timestamp();
@@ -769,7 +769,7 @@ void rlc_um::rlc_um_rx::reassemble_rx_sdus()
     if (not pdu_belongs_to_rx_sdu()) {
       log->warning("PDU SN=%d lost, stop reassambling SDU (vr_ur_in_rx_sdu=%d)\n", vr_ur_in_rx_sdu+1, vr_ur_in_rx_sdu);
       pdu_lost = false; // Reset flag to not prevent reassembling of further segments
-      rx_sdu->reset();
+      rx_sdu->clear();
     }
 
     // Handle any SDU segments
@@ -788,7 +788,7 @@ void rlc_um::rlc_um_rx::reassemble_rx_sdus()
         // Advance data pointers and continue with next segment
         rx_window[vr_ur].buf->msg += len;
         rx_window[vr_ur].buf->N_bytes -= len;
-        rx_sdu->reset();
+        rx_sdu->clear();
 
         // Reset flag, it is safe to process all remaining segments of this PDU
         pdu_lost = false;
@@ -798,7 +798,7 @@ void rlc_um::rlc_um_rx::reassemble_rx_sdus()
       // Check available space in SDU
       if ((uint32_t)len > rx_sdu->get_tailroom()) {
         log->error("Dropping PDU %d due to buffer mis-alignment (current segment len %d B, received %d B)\n", vr_ur, rx_sdu->N_bytes, len);
-        rx_sdu->reset();
+        rx_sdu->clear();
         goto clean_up_rx_window;
       }
 
@@ -842,7 +842,7 @@ void rlc_um::rlc_um_rx::reassemble_rx_sdus()
     // Handle last segment
     if (rx_sdu->N_bytes == 0 && rx_window[vr_ur].header.N_li == 0 && !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) {
       log->warning("Dropping PDU %d due to lost start segment\n", vr_ur);
-      rx_sdu->reset();
+      rx_sdu->clear();
       goto clean_up_rx_window;
     }
 
@@ -862,7 +862,7 @@ void rlc_um::rlc_um_rx::reassemble_rx_sdus()
     if(rlc_um_end_aligned(rx_window[vr_ur].header.fi)) {
       if(pdu_lost && !rlc_um_start_aligned(rx_window[vr_ur].header.fi)) {
         log->warning("Dropping remainder of lost PDU (update vr_ur last segments)\n");
-        rx_sdu->reset();
+        rx_sdu->clear();
       } else {
         log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU vr_ur=%d (update vr_ur last segments)", get_rb_name(), vr_ur);
         rx_sdu->set_timestamp();
@@ -945,7 +945,7 @@ void rlc_um::rlc_um_rx::timer_expired(uint32_t timeout_id)
 
     pdu_lost = true;
     if (rx_sdu != NULL) {
-      rx_sdu->reset();
+      rx_sdu->clear();
     }
 
     while(RX_MOD_BASE(vr_ur) < RX_MOD_BASE(vr_ux)) {

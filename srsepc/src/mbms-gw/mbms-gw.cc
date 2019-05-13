@@ -263,7 +263,7 @@ mbms_gw::run_thread()
   uint8_t seq = 0;
   while(m_running)
   {
-    msg->reset();
+    msg->clear();
     int n;
     do{
       n = read(m_sgi_mb_if, msg->msg, SRSLTE_MAX_BUFFER_SIZE_BYTES);

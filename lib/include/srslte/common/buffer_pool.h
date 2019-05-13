@@ -198,7 +198,7 @@ public:
     if(!b) {
       return;
     }
-    b->reset();
+    b->clear();
     if (!pool->deallocate(b)) {
       if (log) {
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED

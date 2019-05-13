@@ -45,8 +45,8 @@ int main(int argc, char **argv) {
   for(uint32_t i=0;i<b2.N_bytes;i++)
     assert(b2.msg[i] == b1.msg[i]);
 
-  b1.reset();
-  b2.reset();
+  b1.clear();
+  b2.clear();
 
   memcpy(b1.msg, &pdu2[0], PDU2_LEN);
   b1.N_bytes = PDU2_LEN;

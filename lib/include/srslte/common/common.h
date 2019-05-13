@@ -153,7 +153,7 @@ public:
       memcpy(msg, buf.msg, N_bytes);
       return *this;
     }
-    void reset()
+    void clear()
     {
       msg       = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
       N_bytes   = 0;
@@ -229,7 +229,7 @@ struct bit_buffer_t{
       memcpy(msg, buf.msg, N_bits);
       return *this;
     }
-    void reset()
+    void clear()
     {
       msg       = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
       N_bits    = 0;

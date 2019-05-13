@@ -124,7 +124,7 @@ void mme::run_thread()
   int s11   = m_mme_gtpc->get_s11();
 
   while (m_running) {
-    pdu->reset();
+    pdu->clear();
     int max_fd = std::max(s1mme, s11);
 
     FD_ZERO(&m_set);

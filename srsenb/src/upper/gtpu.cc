@@ -206,7 +206,7 @@ void gtpu::run_thread()
   running=true;
   while(run_enable) {
 
-    pdu->reset();
+    pdu->clear();
     gtpu_log->debug("Waiting for read...\n");
     int n = 0;
     do{
@@ -389,7 +389,7 @@ void gtpu::mch_thread::run_thread()
 
   while(run_enable) {
 
-    pdu->reset();
+    pdu->clear();
     do{
       n =  recvfrom(m1u_sd, pdu->msg, SRSENB_MAX_BUFFER_SIZE_BYTES - SRSENB_BUFFER_HEADER_OFFSET, 0, (struct sockaddr *) &src_addr, &addrlen);
     } while (n == -1 && errno == EAGAIN);

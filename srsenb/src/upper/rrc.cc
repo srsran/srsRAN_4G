@@ -263,7 +263,7 @@ void rrc::write_dl_info(uint16_t rnti, srslte::unique_byte_buffer_t sdu)
     memcpy(msg_c1->dl_info_transfer().crit_exts.c1().dl_info_transfer_r8().ded_info_type.ded_info_nas().data(),
            sdu->msg, sdu->N_bytes);
 
-    sdu->reset();
+    sdu->clear();
 
     users[rnti].send_dl_dcch(&dl_dcch_msg, std::move(sdu));
   } else {
@@ -483,7 +483,7 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t *payload_len)
   pthread_mutex_unlock(&paging_mutex);
 
   if (paging_rec->paging_record_list.size() > 0) {
-    byte_buf_paging.reset();
+    byte_buf_paging.clear();
     asn1::bit_ref bref(byte_buf_paging.msg, byte_buf_paging.get_tailroom());
     pcch_msg.pack(bref);
     byte_buf_paging.N_bytes = (uint32_t)bref.distance_bytes();
@@ -1047,7 +1047,7 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
   parent->log_rrc_message(rb_id_text[lcid], Rx, pdu.get(), ul_dcch_msg);
 
   // reuse PDU
-  pdu->reset(); // FIXME: name collision with byte_buffer reset
+  pdu->clear(); // FIXME: name collision with byte_buffer reset
 
   transaction_id = 0;
 
@@ -1642,7 +1642,7 @@ void rrc::ue::send_connection_reconf_upd(srslte::unique_byte_buffer_t pdu)
 
   sr_get(&phy_cfg->sched_request_cfg.setup().sr_cfg_idx, &phy_cfg->sched_request_cfg.setup().sr_pucch_res_idx);
 
-  pdu->reset();
+  pdu->clear();
 
   send_dl_dcch(&dl_dcch_msg, std::move(pdu));
 
@@ -1776,7 +1776,7 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   }
 
   // Reuse same PDU
-  pdu->reset();
+  pdu->clear();
 
   send_dl_dcch(&dl_dcch_msg, std::move(pdu));
 

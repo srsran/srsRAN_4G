@@ -131,8 +131,8 @@ void spgw::run_thread()
   max_fd        = std::max(max_fd, s11);
   while (m_running) {
 
-    s1u_msg->reset();
-    s11_msg->reset();
+    s1u_msg->clear();
+    s11_msg->clear();
 
     FD_ZERO(&set);
     FD_SET(s1u, &set);

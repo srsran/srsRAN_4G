@@ -111,7 +111,7 @@ void s1ap::run_thread()
 
   // S1AP rx loop
   while(running) {
-    pdu->reset();
+    pdu->clear();
     pdu->N_bytes = recv(socket_fd, pdu->msg, sz, 0);
 
     if(pdu->N_bytes <= 0) {
