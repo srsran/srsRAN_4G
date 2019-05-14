@@ -1,3 +1,9 @@
+srslte (19.03-0ubuntu1~srslte1~16.04) xenial; urgency=medium
+
+  * Update to srsLTE 19.03 (Ubuntu Xenial)
+
+ -- Pedro Alvarez <pedro@softwareradiosystems.com>  Tue, 14 May 2019 17:27:03 +0000
+
 srslte (19.03-0ubuntu1~srslte1~19.04) disco; urgency=medium
 
   * Update to srsLTE 19.03 (Ubuntu Disco)
