@@ -174,7 +174,6 @@ void srslte_agc_process(srslte_agc_t *q, cf_t *signal, uint32_t len) {
       }
     }
     
-    double gg = 1.0;
     if (q->isfirst) {
       q->y_out = y; 
       q->isfirst = false; 
@@ -182,10 +181,9 @@ void srslte_agc_process(srslte_agc_t *q, cf_t *signal, uint32_t len) {
       if (q->frame_cnt == 0) {
         q->y_out = (1-q->bandwidth) * q->y_out + q->bandwidth * y;
         if (!q->lock) {
-          gg = expf(-0.5*q->bandwidth*logf(q->y_out/q->target));
-          q->gain *= gg; 
-        }          
-        INFO("AGC gain: %.2f (%.2f) y_out=%.3f, y=%.3f target=%.1f gg=%.2f\n", gain_db, gain_uhd_db, q->y_out, y, q->target, gg);
+          q->gain *= q->target / q->y_out;
+        }
+        INFO("AGC gain: %.2f (%.2f) y_out=%.3f, y=%.3f target=%.1f\n", gain_db, gain_uhd_db, q->y_out, y, q->target);
       }
     }
   }
