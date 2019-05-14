@@ -1,8 +1,8 @@
-srslte (19.03-0ubuntu1) bionic; urgency=medium
+srslte (19.03-0ubuntu1~srslte1~18.04) bionic; urgency=medium
 
-  * Update to srsLTE 19.03
+  * Update to srsLTE 19.03 (Ubuntu Bionic)
 
- -- srsLTE Packagers <packagers@softwareradiosystems.com>  Mon, 13 May 2019 16:50:00 +0200
+ -- Pedro Alvarez <pedro@softwareradiosystems.com>  Tue, 14 May 2019 17:27:03 +0000
 
 srslte (18.12-0ubuntu1) bionic; urgency=medium
 
