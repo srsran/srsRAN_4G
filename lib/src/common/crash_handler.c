@@ -21,31 +21,22 @@
 
 #include <pthread.h>
 #include <stdio.h>
-#include <execinfo.h>
 #include <signal.h>
 #include <stdlib.h>
 
-#include "srslte/version.h"
+#include "srslte/common/backtrace.h"
 #include "srslte/common/crash_handler.h"
+#include "srslte/version.h"
 
 const static char crash_file_name[] = "./srsLTE.backtrace.crash";
 static int bt_argc;
 static char **bt_argv;
 
 static void crash_handler(int sig) {
-  void *array[128];
-  int size;
-
-
-  /* Get all stack traces */
-  size = backtrace(array, 128);
-
   FILE *f = fopen(crash_file_name, "a");
   if (!f) {
     printf("srsLTE crashed... we could not save backtrace in '%s'...\n", crash_file_name);
   } else {
-    char **symbols = backtrace_symbols(array, size);
-
     time_t lnTime;
     struct tm *stTime;
     char strdate[32];
@@ -61,9 +52,7 @@ static void crash_handler(int sig) {
     }
     fprintf(f, "' version=%s signal=%d date='%s' ---\n", SRSLTE_VERSION_STRING, sig, strdate);
 
-    for (int i = 0; i < size; i++) {
-      fprintf(f, "\t%s\n", symbols[i]);
-    }
+    srslte_backtrace_print(f);
     fprintf(f, "\n");
 
     printf("srsLTE crashed... backtrace saved in '%s'...\n", crash_file_name);
