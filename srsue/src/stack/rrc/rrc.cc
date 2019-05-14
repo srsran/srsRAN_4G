@@ -2741,7 +2741,7 @@ void rrc::log_mac_config_dedicated()
 void rrc::apply_mac_config_dedicated_default()
 {
   rrc_log->info("Set MAC default configuration\n");
-  current_mac_cfg.set_defaults();
+  current_mac_cfg.set_mac_main_cfg_default();
   mac->set_config(current_mac_cfg);
   log_mac_config_dedicated();
 }

@@ -533,7 +533,7 @@ public:
   {
   public:
     // Default constructor with default values as in 36.331 9.2.2
-    mac_cfg_t() { time_alignment_timer = -1; }
+    mac_cfg_t() { set_defaults(); }
 
     void set_defaults()
     {
@@ -541,6 +541,15 @@ public:
       phr_cfg.reset();
       sr_cfg.reset();
       rach_cfg.reset();
+      harq_cfg.reset();
+      time_alignment_timer = -1;
+    }
+
+    void set_mac_main_cfg_default()
+    {
+      bsr_cfg.reset();
+      phr_cfg.reset();
+      sr_cfg.reset();
       harq_cfg.reset();
       time_alignment_timer = -1;
     }
