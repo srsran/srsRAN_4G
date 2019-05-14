@@ -2737,6 +2737,7 @@ void rrc::log_mac_config_dedicated()
   }
 }
 
+// 3GPP 36.331 v10 9.2.2 Default MAC main configuration
 void rrc::apply_mac_config_dedicated_default()
 {
   rrc_log->info("Set MAC default configuration\n");
@@ -2986,7 +2987,6 @@ void rrc::set_phy_default_pucch_srs()
   current_phy_cfg.dedicated.sched_request_cfg_present = false;
 
   set_phy_config_dedicated_default();
-  apply_mac_config_dedicated_default();
 }
 
 void rrc::set_phy_default()
