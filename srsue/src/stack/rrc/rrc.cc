@@ -1366,7 +1366,7 @@ void rrc::send_con_restablish_request(asn1::rrc::reest_cause_e cause)
   mac_timers->timer_get(t311)->run();
 
   phy->reset();
-  set_phy_default();
+  set_phy_config_dedicated_default();
   mac->reset();
   set_mac_default();
 
