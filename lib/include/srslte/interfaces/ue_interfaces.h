@@ -537,12 +537,8 @@ public:
 
     void set_defaults()
     {
-      bsr_cfg.reset();
-      phr_cfg.reset();
-      sr_cfg.reset();
       rach_cfg.reset();
-      harq_cfg.reset();
-      time_alignment_timer = -1;
+      set_mac_main_cfg_default();
     }
 
     void set_mac_main_cfg_default()
