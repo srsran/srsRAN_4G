@@ -24,7 +24,6 @@
 #include "srslte/common/log_filter.h"
 #include "srslte/common/trace.h"
 #include "srslte/phy/rf/rf.h"
-#include "srslte/radio/radio_sync.h"
 #include "srslte/srslte.h"
 
 #ifndef SRSLTE_RADIO_H
@@ -43,7 +42,6 @@ class radio {
      zeros = (cf_t*)srslte_vec_malloc(burst_preamble_max_samples * sizeof(cf_t));
      bzero(zeros, burst_preamble_max_samples * sizeof(cf_t));
 
-     sync  = NULL;
      log_h = NULL;
 
      burst_preamble_sec          = 0;
@@ -75,11 +73,7 @@ class radio {
     }
   }
 
-  bool init(log_filter* _log_h,
-            char*       args         = NULL,
-            char*       devname      = NULL,
-            uint32_t    nof_channels = 1,
-            bool        enable_synch = false);
+  bool init(log_filter* _log_h, char* args = NULL, char* devname = NULL, uint32_t nof_channels = 1);
   void stop();
   void reset();
   bool start_agc(bool tx_gain_same_rx = false);
@@ -137,7 +131,6 @@ class radio {
  protected:
 
   srslte_rf_t rf_device;
-  radio_sync* sync;
   log_filter* log_h;
 
   const static uint32_t burst_preamble_max_samples = 13824;

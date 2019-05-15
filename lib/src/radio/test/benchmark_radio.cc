@@ -21,8 +21,19 @@
 
 #include <unistd.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include "srslte/phy/common/timestamp.h"
+
+#ifdef __cplusplus
+}
+//#undef I // Fix complex.h #define I nastiness when using C++
+#endif
+
+#include "srslte/phy/utils/debug.h"
 #include "srslte/radio/radio.h"
-#include "srslte/srslte.h"
 
 using namespace srslte;
 
@@ -41,7 +52,6 @@ bool        measure_delay       = false;
 bool        capture             = false;
 bool        agc_enable          = true;
 float       rf_gain             = -1.0;
-static bool synchronised_radios = true;
 
 #ifdef ENABLE_GUI
 #include "srsgui/srsgui.h"
@@ -69,7 +79,6 @@ void usage(char* prog)
   printf("\t-r number of radios 1-%d [Default %d]\n", SRSLTE_MAX_RADIOS, nof_radios);
   printf("\t-p number of ports 1-%d [Default %d]\n", SRSLTE_MAX_PORTS, nof_ports);
   printf("\t-s sampling rate [Default %.0f]\n", srate);
-  printf("\t-S synchronized radios [Default %s]\n", synchronised_radios ? "enabled" : "false");
   printf("\t-t duration in seconds [Default %.3f]\n", duration);
   printf("\t-m measure delay [Default %s]\n", (measure_delay) ? "enabled" : "disabled");
   printf("\t-x enable transmit [Default %s]\n", (tx_enable) ? "enabled" : "disabled");
@@ -114,9 +123,6 @@ void parse_args(int argc, char **argv) {
         break;
       case 's':
         srate = atof(argv[optind]);
-        break;
-      case 'S':
-        synchronised_radios ^= true;
         break;
       case 't':
         duration = atof(argv[optind]);
@@ -258,11 +264,11 @@ int main(int argc, char** argv)
   uint32_t nof_frames  = (uint32_t)ceil(nof_samples / frame_size);
 
   /* Instanciate and allocate memory */
-  printf("Instanciating objects and allocating memory...\n");
+  printf("Instantiating objects and allocating memory...\n");
   for (uint32_t r = 0; r < nof_radios; r++) {
     radio_h[r] = new radio();
     if (!radio_h[r]) {
-      fprintf(stderr, "Error: Calling radio_multi constructor\n");
+      fprintf(stderr, "Error: Calling radio constructor\n");
       goto clean_exit;
     }
 
@@ -291,7 +297,7 @@ int main(int argc, char** argv)
   /* Initialise instances */
   printf("Initialising instances...\n");
   for (uint32_t r = 0; r < nof_radios; r++) {
-    if (!radio_h[r]->init(&log_h, radios_args[r], NULL, nof_ports, synchronised_radios)) {
+    if (!radio_h[r]->init(&log_h, radios_args[r], NULL, nof_ports)) {
       fprintf(stderr, "Error: Calling radio_multi constructor\n");
       goto clean_exit;
     }
@@ -364,10 +370,6 @@ int main(int argc, char** argv)
       radio_h[r]->rx_now(buffers[r], frame_size, &ts_rx[r]);
     }
 
-    for (uint32_t r = 0; r < nof_radios; r++) {
-      radio_h[r]->synch_wait();
-    }
-
     // run agc
     if (agc_enable) {
       for (uint32_t r = 0; r < nof_radios; r++) {
@@ -381,10 +383,6 @@ int main(int argc, char** argv)
         srslte_timestamp_copy(&ts_tx, &ts_rx[r]);
         srslte_timestamp_add(&ts_tx, 0, 0.004);
         radio_h[r]->tx_single(buffers[r][0], frame_size, ts_tx);
-      }
-
-      for (uint32_t r = 0; r < nof_radios; r++) {
-        radio_h[r]->synch_wait();
       }
     }
 

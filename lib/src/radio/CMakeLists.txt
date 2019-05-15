@@ -19,7 +19,7 @@
 #
 
 if(RF_FOUND)
-  add_library(srslte_radio STATIC radio.cc radio_sync.cc)
+  add_library(srslte_radio STATIC radio.cc)
   target_link_libraries(srslte_radio srslte_rf)
   install(TARGETS srslte_radio DESTINATION ${LIBRARY_DIR})
 endif(RF_FOUND)

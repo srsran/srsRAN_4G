@@ -32,7 +32,7 @@ uint32_t zero_tti = 0;
 
 namespace srslte {
 
-bool radio::init(log_filter* _log_h, char* args, char* devname, uint32_t nof_channels, bool enable_synch)
+bool radio::init(log_filter* _log_h, char* args, char* devname, uint32_t nof_channels)
 {
   if (srslte_rf_open_devname(&rf_device, devname, args, nof_channels)) {
     ERROR("Error opening RF device\n");
@@ -71,19 +71,6 @@ bool radio::init(log_filter* _log_h, char* args, char* devname, uint32_t nof_cha
   }
   saved_nof_channels = nof_channels;
 
-  if (enable_synch) {
-    sync = new radio_sync();
-    if (sync) {
-      if (!sync->init(&rf_device)) {
-        ERROR("Error: initiating radio synchronization.\n");
-        return false;
-      }
-    } else {
-      ERROR("Error: creating radio synchronization.\n");
-      return false;
-    }
-  }
-
   is_initialized = true;
   return true;
 }
@@ -100,11 +87,6 @@ void radio::stop()
   }
   if (is_initialized) {
     srslte_rf_close(&rf_device);
-  }
-
-  if (sync) {
-    delete sync;
-    sync = NULL;
   }
 }
 
@@ -166,10 +148,7 @@ bool radio::rx_at(cf_t* buffer, uint32_t nof_samples, srslte_timestamp_t rx_time
 bool radio::rx_now(cf_t* buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t* rxd_time)
 {
   bool ret = true;
-  if (sync) {
-    sync->issue_rx(buffer, nof_samples, rxd_time, !radio_is_streaming);
-    radio_is_streaming = true;
-  } else {
+
     if (!radio_is_streaming) {
       srslte_rf_start_rx_stream(&rf_device, false);
       radio_is_streaming = true;
@@ -183,7 +162,6 @@ bool radio::rx_now(cf_t* buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_
     } else {
       ret = false;
     }
-  }
 
   if (zero_tti) {
     bzero(buffer[0], sizeof(cf_t) * nof_samples);
@@ -196,26 +174,9 @@ bool radio::rx_now(cf_t* buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_
   return ret;
 }
 
-void radio::get_time(srslte_timestamp_t *now) {
-  srslte_rf_get_time(&rf_device, &now->full_secs, &now->frac_secs);  
-}
-
-int radio::synch_wait()
+void radio::get_time(srslte_timestamp_t* now)
 {
-  int ret = SRSLTE_ERROR;
-
-  if (sync) {
-    ret = sync->wait();
-  }
-
-  return ret;
-}
-
-void radio::synch_issue()
-{
-  if (sync) {
-    sync->issue_sync();
-  }
+  srslte_rf_get_time(&rf_device, &now->full_secs, &now->frac_secs);
 }
 
 // TODO: Use Calibrated values for this 
