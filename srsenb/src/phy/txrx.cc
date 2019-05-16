@@ -82,20 +82,6 @@ void txrx::run_thread()
   uint32_t sf_len = SRSLTE_SF_LEN_PRB(worker_com->cell.nof_prb);
   
   float samp_rate = srslte_sampling_freq_hz(worker_com->cell.nof_prb);
-#if 0
-  if (30720%((int) samp_rate/1000) == 0) {
-    radio_h->set_master_clock_rate(30.72e6);        
-  } else {
-    radio_h->set_master_clock_rate(23.04e6);        
-  }
-#else
-  if (samp_rate < 10e6) {
-    radio_h->set_master_clock_rate(4 * samp_rate);
-  } else {
-    radio_h->set_master_clock_rate(samp_rate);
-  }
-#endif
-  
   log_h->console("Setting Sampling frequency %.2f MHz\n", (float) samp_rate/1000000);
 
   // Configure radio 

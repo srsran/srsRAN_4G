@@ -42,51 +42,66 @@ class ue_radio : public ue_radio_base, public radio_interface_phy
 {
 public:
   ue_radio();
-  ~ue_radio();
+  ~ue_radio() override;
 
-  std::string get_type();
+  std::string get_type() override;
 
-  int init(const rf_args_t& args_, srslte::logger* logger_);
+  int init(const rf_args_t& args_, srslte::logger* logger_) override;
   int init(const rf_args_t& args_, srslte::logger* logger_, phy_interface_radio* phy_);
 
-  void stop();
+  void stop() override;
 
   static void rf_msg(srslte_rf_error_t error);
   void        handle_rf_msg(srslte_rf_error_t error);
 
-  bool get_metrics(rf_metrics_t* metrics);
+  bool get_metrics(rf_metrics_t* metrics) override;
 
   // radio_interface_phy
-  bool is_init() { return radios.at(0)->is_init(); }
-  void reset() { return radios.at(0)->reset(); }
-  bool is_continuous_tx() { return radios.at(0)->is_continuous_tx(); }
-  bool tx(cf_t* buffer[SRSLTE_MAX_PORTS], const uint32_t& nof_samples, const srslte_timestamp_t& tx_time)
+  bool is_init() override { return radios.at(0)->is_init(); }
+  void reset() override { return radios.at(0)->reset(); }
+  bool is_continuous_tx() override { return radios.at(0)->is_continuous_tx(); }
+  bool tx(const uint32_t&           radio_idx,
+          cf_t*                     buffer[SRSLTE_MAX_PORTS],
+          const uint32_t&           nof_samples,
+          const srslte_timestamp_t& tx_time) override
   {
-    for (auto& radio : radios) {
-      radio->tx(buffer, nof_samples, tx_time);
-    }
-    return true;
+    return radios.at(radio_idx)->tx(buffer, nof_samples, tx_time);
   }
-  void tx_end() { return radios.at(0)->tx_end(); }
+  void tx_end() override { return radios.at(0)->tx_end(); }
 
-  bool rx_now(cf_t* buffer[SRSLTE_MAX_PORTS], const uint32_t& nof_samples, srslte_timestamp_t* rxd_time)
+  bool rx_now(const uint32_t&     radio_idx,
+              cf_t*               buffer[SRSLTE_MAX_PORTS],
+              const uint32_t&     nof_samples,
+              srslte_timestamp_t* rxd_time) override
   {
-    return radios.at(0)->rx_now(buffer, nof_samples, rxd_time);
+    return radios.at(radio_idx)->rx_now(buffer, nof_samples, rxd_time);
   }
-  void   set_rx_gain(const uint32_t& radio_idx, const float& gain) { radios.at(radio_idx)->set_rx_gain(gain); }
-  double set_rx_gain_th(const float& gain) { return radios.at(0)->set_rx_gain_th(gain); }
-  float  get_rx_gain(const uint32_t& radio_idx) { return radios.at(radio_idx)->get_rx_gain(); }
-  void   set_tx_freq(const uint32_t& radio_idx, const double& freq) { radios.at(radio_idx)->set_tx_freq(0, freq); }
-  void   set_rx_freq(const uint32_t& radio_idx, const double& freq) { radios.at(radio_idx)->set_rx_freq(0, freq); }
-  double get_freq_offset() { return radios.at(0)->get_freq_offset(); }
-  double get_tx_freq(const uint32_t& radio_idx) { return radios.at(radio_idx)->get_tx_freq(); }
-  double get_rx_freq(const uint32_t& radio_idx) { return radios.at(radio_idx)->get_rx_freq(); }
-  float  get_max_tx_power() { return radios.at(0)->get_max_tx_power(); }
-  void   set_master_clock_rate(const double& rate) { radios.at(0)->set_master_clock_rate(rate); }
-  void   set_tx_srate(const double& srate) { radios.at(0)->set_tx_srate(srate); }
-  void   set_rx_srate(const double& srate) { radios.at(0)->set_rx_srate(srate); }
-  float  set_tx_power(const float& power) { return radios.at(0)->set_tx_power(power); }
-  srslte_rf_info_t* get_info(const uint32_t& radio_idx) { return radios.at(radio_idx)->get_info(); }
+  void   set_rx_gain(const uint32_t& radio_idx, const float& gain) override { radios.at(radio_idx)->set_rx_gain(gain); }
+  double set_rx_gain_th(const float& gain) override { return radios.at(0)->set_rx_gain_th(gain); }
+  float  get_rx_gain(const uint32_t& radio_idx) override { return radios.at(radio_idx)->get_rx_gain(); }
+  void   set_tx_freq(const uint32_t& radio_idx, const uint32_t& channel_idx, const double& freq) override
+  {
+    radios.at(radio_idx)->set_tx_freq(channel_idx, freq);
+  }
+  void set_rx_freq(const uint32_t& radio_idx, const uint32_t& channel_idx, const double& freq) override
+  {
+    radios.at(radio_idx)->set_rx_freq(channel_idx, freq);
+  }
+  double get_freq_offset() override { return radios.at(0)->get_freq_offset(); }
+  double get_tx_freq(const uint32_t& radio_idx) override { return radios.at(radio_idx)->get_tx_freq(); }
+  double get_rx_freq(const uint32_t& radio_idx) override { return radios.at(radio_idx)->get_rx_freq(); }
+  float  get_max_tx_power() override { return args.tx_max_power; }
+  float  get_tx_gain_offset() override { return args.tx_gain_offset; }
+  float  get_rx_gain_offset() override { return args.rx_gain_offset; }
+  void   set_tx_srate(const uint32_t& radio_idx, const double& srate) override
+  {
+    radios.at(radio_idx)->set_tx_srate(srate);
+  }
+  void set_rx_srate(const uint32_t& radio_idx, const double& srate) override
+  {
+    radios.at(radio_idx)->set_rx_srate(srate);
+  }
+  srslte_rf_info_t* get_info(const uint32_t& radio_idx) override { return radios.at(radio_idx)->get_info(); }
 
 private:
   srsue::rf_args_t args;

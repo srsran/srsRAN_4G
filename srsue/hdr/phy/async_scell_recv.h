@@ -34,9 +34,17 @@
 #include "srslte/radio/radio.h"
 #include "srslte/srslte.h"
 
+#include <cassert>
+#include <cstdio>
+#include <fstream>
+#include <functional>
+#include <iostream>
+#include <memory>
+#include <vector>
+
 namespace srsue {
 
-class async_scell_recv : public thread
+class async_scell_recv : private thread
 {
 public:
   async_scell_recv();
@@ -75,14 +83,16 @@ private:
     {
       tti = 0;
       bzero(&timestamp, sizeof(timestamp));
-      bzero(buffer, sizeof(buffer));
+      for (cf_t*& b : buffer) {
+        b = nullptr;
+      }
     }
 
     ~phch_scell_recv_buffer()
     {
-      for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
-        if (buffer[i]) {
-          free(buffer[i]);
+      for (cf_t*& b : buffer) {
+        if (b) {
+          free(b);
         }
       }
     }
@@ -115,7 +125,6 @@ private:
   void                  reset();
   void                  radio_error();
   void                  set_ue_sync_opts(srslte_ue_sync_t* q, float cfo);
-  void                  run_thread();
 
   void state_decode_mib();
   void state_write_buffer();
@@ -130,6 +139,7 @@ private:
   bool running;
 
   uint32_t tti;
+  uint32_t radio_idx;
 
   // Pointers to other classes
   srslte::log*   log_h;
@@ -168,7 +178,13 @@ private:
 
   float dl_freq;
   float ul_freq;
+
+protected:
+  void run_thread() override;
 };
+
+typedef std::unique_ptr<async_scell_recv> async_scell_recv_ptr;
+typedef std::vector<async_scell_recv_ptr> async_scell_recv_vector;
 
 } // namespace srsue
 

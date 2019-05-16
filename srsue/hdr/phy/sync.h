@@ -53,7 +53,7 @@ public:
             phy_common*              _worker_com,
             srslte::log*             _log_h,
             srslte::log*             _log_phy_lib_h,
-            async_scell_recv*        scell_sync_,
+            async_scell_recv_vector* scell_sync_,
             uint32_t                 prio,
             int                      sync_cpu_affinity = -1);
   void stop();
@@ -273,13 +273,13 @@ private:
 
   // Pointers to other classes
   stack_interface_phy_lte* stack;
-  srslte::log          *log_h;
-  srslte::log*          log_phy_lib_h;
-  srslte::thread_pool*  workers_pool;
+  srslte::log*             log_h;
+  srslte::log*             log_phy_lib_h;
+  srslte::thread_pool*     workers_pool;
   radio_interface_phy*     radio_h;
-  phy_common*           worker_com;
-  prach                *prach_buffer;
-  async_scell_recv*     scell_sync;
+  phy_common*              worker_com;
+  prach*                   prach_buffer;
+  async_scell_recv_vector* scell_sync;
 
   // Object for synchronization of the primary cell
   srslte_ue_sync_t ue_sync;

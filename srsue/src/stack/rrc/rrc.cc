@@ -1617,14 +1617,28 @@ bool rrc::con_reconfig(asn1::rrc::rrc_conn_recfg_s* reconfig)
       rrc_conn_recfg_v920_ies_s* reconfig_r920 = &reconfig_r890->non_crit_ext;
       if (reconfig_r920->non_crit_ext_present) {
         rrc_conn_recfg_v1020_ies_s* reconfig_r1020 = &reconfig_r920->non_crit_ext;
+
+        // Handle Add/Modify SCell list
         if (reconfig_r1020->s_cell_to_add_mod_list_r10_present) {
           for (uint32_t i = 0; i < reconfig_r1020->s_cell_to_add_mod_list_r10.size(); i++) {
-            phy->set_config_scell(&reconfig_r1020->s_cell_to_add_mod_list_r10[i]);
+            auto scell_config = &reconfig_r1020->s_cell_to_add_mod_list_r10[i];
+            // Call mac reconfiguration
+            mac->reconfiguration(scell_config->s_cell_idx_r10, true);
+
+            // Call phy reconfiguration
+            phy->set_config_scell(scell_config);
           }
         }
 
+        // Handle Remove SCell list
         if (reconfig_r1020->s_cell_to_release_list_r10_present) {
-          rrc_log->console("s_cell_to_release_list_r10 not handled\n");
+          for (uint32_t i = 0; i < reconfig_r1020->s_cell_to_release_list_r10.size(); i++) {
+            // Call mac reconfiguration
+            mac->reconfiguration(reconfig_r1020->s_cell_to_release_list_r10[i], false);
+
+            // Call phy reconfiguration
+            // TODO: Implement phy layer cell removal
+          }
         }
       }
     }

@@ -49,6 +49,7 @@ class radio {
      burst_preamble_samples      = 0;
      burst_preamble_time_rounded = 0;
 
+     master_clock_rate  = 0;
      cur_tx_srate       = 0;
      tx_adv_sec         = 0;
      tx_adv_nsamples    = 0;

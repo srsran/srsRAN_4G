@@ -49,11 +49,7 @@ class mac : public mac_interface_phy_lte,
 {
 public:
   mac();
-  bool init(phy_interface_mac_lte* phy,
-            rlc_interface_mac* rlc,
-            rrc_interface_mac* rrc,
-            srslte::log*       log_h,
-            uint32_t           nof_carriers = 1);
+  bool init(phy_interface_mac_lte* phy, rlc_interface_mac* rlc, rrc_interface_mac* rrc, srslte::log* log_h);
   void stop();
 
   void get_metrics(mac_metrics_t m[SRSLTE_MAX_CARRIERS]);
@@ -81,7 +77,7 @@ public:
   void pcch_start_rx(); 
   void setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority, int PBR_x_tti, uint32_t BSD);
   void mch_start_rx(uint32_t lcid);
-  void reconfiguration();
+  void reconfiguration(const uint32_t& cc_idx, const bool& enable);
   void reset();
   void wait_uplink();
 
@@ -140,8 +136,9 @@ private:
   demux         demux_unit;
 
   /* DL/UL HARQ */
-  std::vector<dl_harq_entity> dl_harq;
-  std::vector<ul_harq_entity> ul_harq;
+  dl_harq_entity_vector dl_harq;
+  ul_harq_entity_vector ul_harq;
+  ul_harq_cfg_t         ul_harq_cfg;
 
   /* MAC Uplink-related Procedures */
   ra_proc       ra_procedure;

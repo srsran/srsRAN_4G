@@ -179,20 +179,6 @@ void radio::get_time(srslte_timestamp_t* now)
   srslte_rf_get_time(&rf_device, &now->full_secs, &now->frac_secs);
 }
 
-// TODO: Use Calibrated values for this 
-float radio::set_tx_power(float power)
-{
-  if (power > 10) {
-    power = 10; 
-  }
-  if (power < -50) {
-    power = -50; 
-  }
-  float gain = power + 74;
-  srslte_rf_set_tx_gain(&rf_device, gain);
-  return gain; 
-}
-
 float radio::get_max_tx_power()
 {
   return 40;
@@ -304,13 +290,21 @@ double radio::set_rx_gain_th(float gain)
 
 void radio::set_master_clock_rate(double rate)
 {
-  srslte_rf_stop_rx_stream(&rf_device);
-  srslte_rf_set_master_clock_rate(&rf_device, rate);
-  srslte_rf_start_rx_stream(&rf_device, false);
+  if (rate != master_clock_rate) {
+    srslte_rf_stop_rx_stream(&rf_device);
+    srslte_rf_set_master_clock_rate(&rf_device, rate);
+    srslte_rf_start_rx_stream(&rf_device, false);
+    master_clock_rate = rate;
+  }
 }
 
 void radio::set_rx_srate(double srate)
 {
+  if (srate < 10e6) {
+    set_master_clock_rate(4 * srate);
+  } else {
+    set_master_clock_rate(srate);
+  }
   srslte_rf_set_rx_srate(&rf_device, srate);
 }
 
@@ -351,6 +345,11 @@ float radio::get_rx_gain()
 
 void radio::set_tx_srate(double srate)
 {
+  if (srate < 10e6) {
+    set_master_clock_rate(4 * srate);
+  } else {
+    set_master_clock_rate(srate);
+  }
   cur_tx_srate = srslte_rf_set_tx_srate(&rf_device, srate);
   burst_preamble_samples = (uint32_t) (cur_tx_srate * burst_preamble_sec);
   if (burst_preamble_samples > burst_preamble_max_samples) {

@@ -37,24 +37,24 @@ using namespace asn1::rrc;
 
 namespace srsue {
 
-mac::mac() :
-  timers(64),
-  pdu_process_thread(&demux_unit),
-  mch_msg(10),
-  dl_harq(SRSLTE_MAX_CARRIERS),
-  ul_harq(SRSLTE_MAX_CARRIERS),
-  running(false),
-  pcap(NULL)
+mac::mac() : timers(64), pdu_process_thread(&demux_unit), mch_msg(10), running(false), pcap(nullptr)
 {
+  // Create PCell HARQ entities
+  auto ul = ul_harq_entity_ptr(new ul_harq_entity());
+  auto dl = dl_harq_entity_ptr(new dl_harq_entity());
+
+  ul_harq.clear();
+  dl_harq.clear();
+
+  ul_harq.push_back(std::move(ul));
+  dl_harq.push_back(std::move(dl));
+
+  // Keep initialising members
   bzero(&metrics, sizeof(mac_metrics_t));
   clear_rntis();
 }
 
-bool mac::init(phy_interface_mac_lte* phy,
-               rlc_interface_mac*     rlc,
-               rrc_interface_mac*     rrc,
-               srslte::log*           log_h_,
-               uint32_t               nof_carriers)
+bool mac::init(phy_interface_mac_lte* phy, rlc_interface_mac* rlc, rrc_interface_mac* rrc, srslte::log* log_h_)
 {
   phy_h = phy;
   rlc_h = rlc;
@@ -75,10 +75,9 @@ bool mac::init(phy_interface_mac_lte* phy,
       phy_h, rrc, log_h, &uernti, timers.get(timer_alignment), timers.get(contention_resolution_timer), &mux_unit);
   sr_procedure.init(phy_h, rrc, log_h);
 
-  for (uint32_t r = 0; r < nof_carriers; r++) {
-    ul_harq[r].init(log_h, &uernti, &ra_procedure, &mux_unit);
-    dl_harq[r].init(log_h, &uernti, timers.get(timer_alignment), &demux_unit);
-  }
+  // Create UL/DL unique HARQ pointers
+  ul_harq.at(0)->init(log_h, &uernti, &ra_procedure, &mux_unit);
+  dl_harq.at(0)->init(log_h, &uernti, timers.get(timer_alignment), &demux_unit);
 
   reset();
 
@@ -103,19 +102,32 @@ void mac::stop()
 void mac::start_pcap(srslte::mac_pcap* pcap_)
 {
   pcap = pcap_;
-  for (uint32_t r = 0; r < dl_harq.size(); r++) {
-    dl_harq[r].start_pcap(pcap);
+  for (auto& r : dl_harq) {
+    r->start_pcap(pcap);
   }
-  for (uint32_t r = 0; r < ul_harq.size(); r++) {
-    ul_harq[r].start_pcap(pcap);
+  for (auto& r : ul_harq) {
+    r->start_pcap(pcap);
   }
   ra_procedure.start_pcap(pcap);
 }
 
 // Implement Section 5.8
-void mac::reconfiguration()
+void mac::reconfiguration(const uint32_t& cc_idx, const bool& enable)
 {
-
+  if (cc_idx < SRSLTE_MAX_CARRIERS) {
+    // Create as many HARQ entities as carriers required
+    while (ul_harq.size() < cc_idx + 1) {
+      auto ul = ul_harq_entity_ptr(new ul_harq_entity());
+      ul->init(log_h, &uernti, &ra_procedure, &mux_unit);
+      ul->set_config(ul_harq_cfg);
+      ul_harq.push_back(std::move(ul));
+    }
+    while (dl_harq.size() < cc_idx + 1) {
+      auto dl = dl_harq_entity_ptr(new dl_harq_entity());
+      dl->init(log_h, &uernti, timers.get(timer_alignment), &demux_unit);
+      dl_harq.push_back(std::move(dl));
+    }
+  }
 }
 
 void mac::wait_uplink() {
@@ -138,11 +150,11 @@ void mac::reset()
 
   timer_alignment_expire();
 
-  for (uint32_t r = 0; r < dl_harq.size(); r++) {
-    dl_harq[r].reset();
+  for (auto& r : dl_harq) {
+    r->reset();
   }
-  for (uint32_t r = 0; r < ul_harq.size(); r++) {
-    ul_harq[r].reset();
+  for (auto& r : ul_harq) {
+    r->reset();
   }
 
   mux_unit.msg3_flush();
@@ -210,9 +222,7 @@ void mac::run_thread()
 void mac::bcch_start_rx(int si_window_start, int si_window_length)
 {
   if (si_window_length >= 0 && si_window_start >= 0) {
-    for (uint32_t r = 0; r < dl_harq.size(); r++) {
-      dl_harq[r].set_si_window_start(si_window_start);
-    }
+    dl_harq.at(0)->set_si_window_start(si_window_start);
     this->si_window_length = si_window_length;
     this->si_window_start  = si_window_start;
   } else {
@@ -383,7 +393,7 @@ void mac::tb_decoded(uint32_t cc_idx, mac_grant_dl_t grant, bool ack[SRSLTE_MAX_
     }
   } else {
 
-    dl_harq[cc_idx].tb_decoded(grant, ack);
+    dl_harq.at(cc_idx)->tb_decoded(grant, ack);
     pdu_process_thread.notify();
 
     for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
@@ -423,7 +433,7 @@ void mac::new_grant_dl(uint32_t                               cc_idx,
     if (grant.rnti == uernti.crnti && ra_procedure.is_contention_resolution()) {
       ra_procedure.pdcch_to_crnti(false);
     }
-    dl_harq[cc_idx].new_grant_dl(grant, action);
+    dl_harq.at(cc_idx)->new_grant_dl(grant, action);
   } else {
     /* Discard */
     Info("Discarding dci in CC %d, RNTI=0x%x\n", cc_idx, grant.rnti);
@@ -438,8 +448,8 @@ uint32_t mac::get_current_tti()
 void mac::reset_harq(uint32_t cc_idx)
 {
   if (cc_idx < dl_harq.size()) {
-    dl_harq[cc_idx].reset();
-    ul_harq[cc_idx].reset();
+    dl_harq.at(cc_idx)->reset();
+    ul_harq.at(cc_idx)->reset();
   }
 }
 
@@ -457,14 +467,14 @@ void mac::new_grant_ul(uint32_t                               cc_idx,
     is_first_ul_grant = false;
     phr_procedure.start_timer();
   }
-  ul_harq[cc_idx].new_grant_ul(grant, action);
+  ul_harq.at(cc_idx)->new_grant_ul(grant, action);
   metrics[cc_idx].tx_pkts++;
 
   if (grant.phich_available) {
     if (!grant.hi_value) {
       metrics[cc_idx].tx_errors++;
     } else {
-      metrics[cc_idx].tx_brate += ul_harq[cc_idx].get_current_tbs(grant.pid) * 8;
+      metrics[cc_idx].tx_brate += ul_harq.at(cc_idx)->get_current_tbs(grant.pid) * 8;
     }
   }
 }
@@ -503,11 +513,11 @@ void mac::timer_expired(uint32_t timer_id)
 void mac::timer_alignment_expire()
 {
   rrc_h->release_pucch_srs();
-  for (uint32_t r = 0; r < dl_harq.size(); r++) {
-    dl_harq[r].reset();
+  for (auto& r : dl_harq) {
+    r->reset();
   }
-  for (uint32_t r = 0; r < ul_harq.size(); r++) {
-    ul_harq[r].reset();
+  for (auto& r : ul_harq) {
+    r->reset();
   }
 }
 
@@ -539,8 +549,11 @@ void mac::set_config(mac_cfg_t& mac_cfg)
   phr_procedure.set_config(mac_cfg.get_phr_cfg());
   sr_procedure.set_config(mac_cfg.get_sr_cfg());
   ra_procedure.set_config(mac_cfg.get_rach_cfg());
-  for (uint32_t i = 0; i < ul_harq.size(); i++) {
-    ul_harq[i].set_config(mac_cfg.get_harq_cfg());
+  ul_harq_cfg = mac_cfg.get_harq_cfg();
+  for (auto& i : ul_harq) {
+    if (i != nullptr) {
+      i->set_config(ul_harq_cfg);
+    }
   }
   setup_timers(mac_cfg.get_time_alignment_timer());
 }
@@ -572,7 +585,7 @@ void mac::get_metrics(mac_metrics_t m[SRSLTE_MAX_CARRIERS])
   int   dl_avg_ret_count = 0;
   int   ul_avg_ret_count = 0;
 
-  for (uint32_t r = 0; r < SRSLTE_MAX_CARRIERS; r++) {
+  for (uint32_t r = 0; r < dl_harq.size(); r++) {
     tx_pkts += metrics[r].tx_pkts;
     tx_errors += metrics[r].tx_errors;
     tx_brate += metrics[r].tx_brate;
@@ -582,7 +595,7 @@ void mac::get_metrics(mac_metrics_t m[SRSLTE_MAX_CARRIERS])
     ul_buffer += metrics[r].ul_buffer;
 
     if (metrics[r].rx_pkts) {
-      dl_avg_ret += dl_harq[r].get_average_retx();
+      dl_avg_ret += dl_harq.at(r)->get_average_retx();
       dl_avg_ret_count++;
     }
   }
@@ -595,7 +608,7 @@ void mac::get_metrics(mac_metrics_t m[SRSLTE_MAX_CARRIERS])
        rx_pkts ? ((float)100 * rx_errors / rx_pkts) : 0.0f,
        dl_avg_ret,
        tx_pkts ? ((float)100 * tx_errors / tx_pkts) : 0.0f,
-       ul_harq[0].get_average_retx());
+       ul_harq.at(0)->get_average_retx());
 
   metrics[0].ul_buffer = (int)bsr_procedure.get_buffer_state();
   memcpy(m, metrics, sizeof(mac_metrics_t) * SRSLTE_MAX_CARRIERS);

@@ -131,6 +131,9 @@ private:
   uint64_t         nof_pkts; 
 };
 
+typedef std::unique_ptr<dl_harq_entity> dl_harq_entity_ptr;
+typedef std::vector<dl_harq_entity_ptr> dl_harq_entity_vector;
+
 } // namespace srsue
 
 #endif // SRSUE_DL_HARQ_H

@@ -41,8 +41,6 @@ public:
   ue_radio_base(){};
   virtual ~ue_radio_base(){};
 
-  static std::shared_ptr<ue_radio_base> get_instance(const std::string& type);
-
   virtual std::string get_type() = 0;
 
   virtual int  init(const srsue::rf_args_t& args_, srslte::logger* logger_) = 0;

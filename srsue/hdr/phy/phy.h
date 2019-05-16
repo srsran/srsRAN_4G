@@ -157,7 +157,7 @@ private:
   std::vector<sf_worker*> workers;
   phy_common              common;
   sync                    sfsync;
-  async_scell_recv        scell_sync[SRSLTE_MAX_RADIOS - 1];
+  async_scell_recv_vector scell_sync;
   uint32_t                scell_earfcn[SRSLTE_MAX_CARRIERS - 1];
   prach                   prach_buffer;
 

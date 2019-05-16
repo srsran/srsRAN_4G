@@ -95,7 +95,6 @@ private:
   void     set_uci_periodic_cqi(srslte_uci_data_t* uci_data);
   void     set_uci_aperiodic_cqi(srslte_uci_data_t* uci_data);
   void     set_uci_ack(srslte_uci_data_t* uci_data, bool is_grant_available, uint32_t dai_ul, bool is_pusch_available);
-  float    set_power(float tx_power);
   uint32_t get_wideband_cqi();
   srslte_cqi_report_mode_t aperiodic_mode(asn1::rrc::cqi_report_mode_aperiodic_e mode);
   void                     parse_antenna_info(asn1::rrc::phys_cfg_ded_s* dedicated);

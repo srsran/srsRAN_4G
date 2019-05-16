@@ -115,6 +115,7 @@ cc_worker::cc_worker(uint32_t cc_idx, uint32_t max_prb, srsue::phy_common* phy, 
     ue_dl.pdsch.llr_is_8bit        = true;
     ue_dl.pdsch.dl_sch.llr_is_8bit = true;
   }
+  pregen_enabled = false;
 }
 
 cc_worker::~cc_worker()
@@ -940,21 +941,6 @@ void cc_worker::set_uci_ack(srslte_uci_data_t* uci_data,
 
   // Generate ACK/NACK bits
   srslte_ue_dl_gen_ack(&ue_dl, &sf_cfg_dl, &ack_info, uci_data);
-}
-
-float cc_worker::set_power(float tx_power)
-{
-  float gain = 0;
-  /* Check if UL power control is enabled */
-  if (phy->args->ul_pwr_ctrl_en) {
-    /* Adjust maximum power if it changes significantly */
-    if (tx_power < phy->cur_radio_power - 5 || tx_power > phy->cur_radio_power + 5) {
-      phy->cur_radio_power = tx_power;
-      float radio_tx_power = phy->cur_radio_power;
-      gain                 = phy->get_radio()->set_tx_power(radio_tx_power);
-    }
-  }
-  return gain;
 }
 
 /************

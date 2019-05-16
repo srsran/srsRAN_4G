@@ -331,7 +331,7 @@ void sf_worker::update_measurements()
     }
 
     if (!rssi_read_cnt) {
-      phy->rx_gain_offset = phy->get_radio()->get_rx_gain() + phy->args->rx_gain_offset;
+      phy->rx_gain_offset = phy->get_radio()->get_rx_gain(0) + phy->args->rx_gain_offset;
     }
     rssi_read_cnt++;
     if (rssi_read_cnt == 1000) {

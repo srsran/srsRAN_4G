@@ -315,13 +315,6 @@ int main(int argc, char** argv)
       radio_h[r]->set_rx_gain(rf_gain);
     }
 
-    // Set radio
-    if (srate < 10e6) {
-      radio_h[r]->set_master_clock_rate(4 * srate);
-    } else {
-      radio_h[r]->set_master_clock_rate(srate);
-    }
-
     // Set Rx/Tx sampling rate
     radio_h[r]->set_rx_srate(srate);
     if (tx_enable) {

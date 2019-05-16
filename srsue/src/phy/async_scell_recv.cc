@@ -45,7 +45,7 @@
 
 namespace srsue {
 
-async_scell_recv::async_scell_recv()
+async_scell_recv::async_scell_recv() : thread()
 {
   initiated        = false;
   buffer_write_idx = 0;
@@ -55,6 +55,7 @@ async_scell_recv::async_scell_recv()
   bzero(&cell, sizeof(srslte_cell_t));
   bzero(sf_buffer, sizeof(sf_buffer));
   running = false;
+  radio_idx = 1;
 }
 
 async_scell_recv::~async_scell_recv()
@@ -63,9 +64,9 @@ async_scell_recv::~async_scell_recv()
     srslte_ue_sync_free(&ue_sync);
   }
 
-  for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
-    if (sf_buffer[i]) {
-      free(sf_buffer[i]);
+  for (auto& b : sf_buffer) {
+    if (b) {
+      free(b);
     }
   }
 }
@@ -113,7 +114,7 @@ void async_scell_recv::init(radio_interface_phy* _radio_handler, phy_common* _wo
     return;
   }
 
-  if (pthread_cond_init(&cvar_buffer, NULL)) {
+  if (pthread_cond_init(&cvar_buffer, nullptr)) {
     fprintf(stderr, "Initiating condition var\n");
     return;
   }
@@ -164,9 +165,9 @@ void async_scell_recv::set_agc_enable(bool enable)
   do_agc = enable;
   if (do_agc) {
     if (radio_h) {
-      srslte_rf_info_t* rf_info = radio_h->get_info();
+      srslte_rf_info_t* rf_info = radio_h->get_info(radio_idx);
       srslte_ue_sync_start_agc(
-          &ue_sync, callback_set_rx_gain, rf_info->min_rx_gain, rf_info->max_rx_gain, radio_h->get_rx_gain());
+          &ue_sync, callback_set_rx_gain, rf_info->min_rx_gain, rf_info->max_rx_gain, radio_h->get_rx_gain(radio_idx));
     } else {
       fprintf(stderr, "Error setting Secondary cell AGC: PHY not initiated\n");
     }
@@ -185,7 +186,7 @@ int async_scell_recv::radio_recv_fnc(cf_t* data[SRSLTE_MAX_PORTS], uint32_t nsam
   int ret = 0;
 
   if (running) {
-    if (radio_h->rx_now(data, nsamples, rx_time)) {
+    if (radio_h->rx_now(radio_idx, data, nsamples, rx_time)) {
       log_h->debug("SYNC:  received %d samples from radio\n", nsamples);
       ret = nsamples;
     } else {
@@ -264,18 +265,17 @@ bool async_scell_recv::set_scell_cell(uint32_t carrier_idx, srslte_cell_t* _cell
   // Get transceiver mapping
   carrier_map_t* m           = &worker_com->args->carrier_map[carrier_idx];
   uint32_t       channel_idx = m->channel_idx;
+  radio_idx                  = m->radio_idx;
 
   // Set radio frequency if frequency changed
-  if (current_earfcn[channel_idx] != dl_earfcn && ret) {
+  if (current_earfcn[channel_idx] != dl_earfcn) {
     dl_freq = srslte_band_fd(dl_earfcn) * 1e6f;
     ul_freq = srslte_band_fu(srslte_band_ul_earfcn(dl_earfcn)) * 1e6f;
-    radio_h->set_rx_freq(channel_idx, dl_freq);
-    radio_h->set_tx_freq(channel_idx, ul_freq);
-    Info("Setting DL: %.1f MHz; UL %.1fMHz; Radio/Chan: %d/%d\n",
-         dl_freq / 1e6,
-         ul_freq / 1e6,
-         m->radio_idx,
-         m->channel_idx);
+    for (uint32_t p = 0; p < worker_com->args->nof_rx_ant; p++) {
+      radio_h->set_rx_freq(m->radio_idx, m->channel_idx + p, dl_freq);
+      radio_h->set_tx_freq(m->radio_idx, m->channel_idx + p, ul_freq);
+    }
+    Info("Setting DL: %.1f MHz; UL %.1fMHz; Radio/Chan: %d/%d\n", dl_freq / 1e6, ul_freq / 1e6, radio_idx, channel_idx);
     ul_dl_factor                = ul_freq / dl_freq;
     current_earfcn[channel_idx] = dl_earfcn;
     reset_ue_sync               = true;
@@ -284,15 +284,10 @@ bool async_scell_recv::set_scell_cell(uint32_t carrier_idx, srslte_cell_t* _cell
   // Detect change in cell configuration
   if (memcmp(&cell, _cell, sizeof(srslte_cell_t)) != 0) {
     // Set sampling rate, if number of PRB changed
-    if (cell.nof_prb != _cell->nof_prb && ret) {
+    if (cell.nof_prb != _cell->nof_prb) {
       double srate = srslte_sampling_freq_hz(_cell->nof_prb);
-      if (srate < 10e6) {
-        radio_h->set_master_clock_rate(4 * srate);
-      } else {
-        radio_h->set_master_clock_rate(srate);
-      }
-      radio_h->set_rx_srate(srate);
-      radio_h->set_tx_srate(srate);
+      radio_h->set_rx_srate(radio_idx, srate);
+      radio_h->set_tx_srate(radio_idx, srate);
       Info("Setting SRate to %.2f MHz\n", srate / 1e6);
     }
 
@@ -344,7 +339,7 @@ void async_scell_recv::state_decode_mib()
 
   if (sfidx == 0) {
     // Run only for sub-frame index 0
-    int n = srslte_ue_mib_decode(&ue_mib, bch_payload, NULL, &sfn_offset);
+    int n = srslte_ue_mib_decode(&ue_mib, bch_payload, nullptr, &sfn_offset);
 
     if (n < SRSLTE_SUCCESS) {
       // Error decoding MIB, log error
@@ -502,10 +497,10 @@ bool async_scell_recv::tti_align(uint32_t tti)
     bool timedout = false;
 
     while (!ret && !timedout && buffer_write_idx == buffer_read_idx && running) {
-      struct timespec timeToWait;
-      struct timeval  now;
+      struct timespec timeToWait = {};
+      struct timeval  now        = {};
 
-      gettimeofday(&now, NULL);
+      gettimeofday(&now, nullptr);
       timeToWait.tv_sec  = now.tv_sec;
       timeToWait.tv_nsec = (now.tv_usec + 1000UL) * 1000UL;
 

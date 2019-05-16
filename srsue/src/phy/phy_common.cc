@@ -565,16 +565,16 @@ void phy_common::worker_end(uint32_t           tti,
   // For each radio, transmit
   for (uint32_t i = 0; i < args->nof_radios; i++) {
     if (tx_enable && !srslte_timestamp_iszero(&tx_time[i])) {
-      radio_h[i].tx(buffer[i], nof_samples[i], tx_time[i]);
+      radio_h->tx(i, buffer[i], nof_samples[i], tx_time[i]);
       is_first_of_burst[i] = false;
     } else {
-      if (radio_h[i].is_continuous_tx()) {
+      if (radio_h->is_continuous_tx()) {
         if (!is_first_of_burst[i]) {
-          radio_h[i].tx(zeros_multi, nof_samples[i], tx_time[i]);
+          radio_h->tx(i, zeros_multi, nof_samples[i], tx_time[i]);
         }
       } else {
         if (!is_first_of_burst[i]) {
-          radio_h[i].tx_end();
+          radio_h->tx_end();
           is_first_of_burst[i] = true;
         }
       }

@@ -71,14 +71,14 @@ int ue_radio::init(const rf_args_t& args_, srslte::logger* logger_)
   }
 
   // Init and start Radio
-  char* dev_name = NULL;
-  if (args.device_name.compare("auto")) {
+  char* dev_name = nullptr;
+  if (args.device_name != "auto") {
     dev_name = (char*)args.device_name.c_str();
   }
 
-  char* dev_args[SRSLTE_MAX_RADIOS] = {NULL};
+  char* dev_args[SRSLTE_MAX_RADIOS] = {nullptr};
   for (int i = 0; i < SRSLTE_MAX_RADIOS; i++) {
-    if (args.device_args[0].compare("auto")) {
+    if (args.device_args[i] != "auto") {
       dev_args[i] = (char*)args.device_args[i].c_str();
     }
   }
@@ -93,17 +93,16 @@ int ue_radio::init(const rf_args_t& args_, srslte::logger* logger_)
     }
 
     // Set RF options
-    if (args.time_adv_nsamples.compare("auto")) {
-      int t = atoi(args.time_adv_nsamples.c_str());
+    if (args.time_adv_nsamples == "auto") {
+      int t = (int)strtol(args.time_adv_nsamples.c_str(), nullptr, 10);
       radio->set_tx_adv(abs(t));
       radio->set_tx_adv_neg(t < 0);
     }
-    if (args.burst_preamble.compare("auto")) {
-      radio->set_burst_preamble(atof(args.burst_preamble.c_str()));
+    if (args.burst_preamble == "auto") {
+      radio->set_burst_preamble(strtof(args.burst_preamble.c_str(), nullptr));
     }
-    if (args.continuous_tx.compare("auto")) {
-      log.console("set continuous %s\n", args.continuous_tx.c_str());
-      radio->set_continuous_tx(args.continuous_tx.compare("yes") ? false : true);
+    if (args.continuous_tx == "auto") {
+      radio->set_continuous_tx(!(args.continuous_tx == "yes"));
     }
 
     // Set PHY options

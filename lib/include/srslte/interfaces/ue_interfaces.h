@@ -656,7 +656,7 @@ public:
   virtual void start_noncont_ho(uint32_t preamble_index, uint32_t prach_mask) = 0;
   virtual void start_cont_ho() = 0;
 
-  virtual void reconfiguration() = 0;
+  virtual void reconfiguration(const uint32_t& cc_idx, const bool& enable) = 0;
   virtual void reset() = 0;
   virtual void wait_uplink() = 0;
 };
@@ -669,6 +669,9 @@ typedef struct {
   float       freq_offset;
   float       rx_gain;
   float       tx_gain;
+  float       tx_max_power;
+  float       tx_gain_offset;
+  float       rx_gain_offset;
   uint32_t    nof_radios;
   uint32_t    nof_rf_channels; // Number of RF channels per radio
   uint32_t    nof_rx_ant;      // Number of RF channels for MIMO
@@ -868,31 +871,37 @@ class radio_interface_phy
 {
 public:
   // trx functions
-  virtual bool tx(cf_t* buffer[SRSLTE_MAX_PORTS], const uint32_t& nof_samples, const srslte_timestamp_t& tx_time) = 0;
+  virtual bool tx(const uint32_t&           radio_idx,
+                  cf_t*                     buffer[SRSLTE_MAX_PORTS],
+                  const uint32_t&           nof_samples,
+                  const srslte_timestamp_t& tx_time)                                                              = 0;
   virtual void tx_end()                                                                                           = 0;
-  virtual bool rx_now(cf_t* buffer[SRSLTE_MAX_PORTS], const uint32_t& nof_samples, srslte_timestamp_t* rxd_time)  = 0;
+  virtual bool rx_now(const uint32_t&     radio_idx,
+                      cf_t*               buffer[SRSLTE_MAX_PORTS],
+                      const uint32_t&     nof_samples,
+                      srslte_timestamp_t* rxd_time)                                                               = 0;
 
   // setter
-  virtual void set_tx_freq(const uint32_t& radio_idx, const double& freq) = 0;
-  virtual void set_rx_freq(const uint32_t& radio_idx, const double& freq) = 0;
+  virtual void set_tx_freq(const uint32_t& radio_idx, const uint32_t& channel_idx, const double& freq) = 0;
+  virtual void set_rx_freq(const uint32_t& radio_idx, const uint32_t& channel_idx, const double& freq) = 0;
 
-  virtual double set_rx_gain_th(const float& gain)                         = 0;
-  virtual void   set_rx_gain(const uint32_t& radio_idx, const float& gain) = 0;
-  virtual void   set_master_clock_rate(const double& rate)                 = 0;
-  virtual void   set_tx_srate(const double& srate)                         = 0;
-  virtual void   set_rx_srate(const double& srate)                         = 0;
-  virtual float  set_tx_power(const float& power)                          = 0;
+  virtual double set_rx_gain_th(const float& gain)                            = 0;
+  virtual void   set_rx_gain(const uint32_t& radio_idx, const float& gain)    = 0;
+  virtual void   set_tx_srate(const uint32_t& radio_idx, const double& srate) = 0;
+  virtual void   set_rx_srate(const uint32_t& radio_idx, const double& srate) = 0;
 
   // getter
-  virtual float             get_rx_gain(const uint32_t& radio_idx = 0) = 0;
-  virtual double            get_freq_offset()                          = 0;
-  virtual double            get_tx_freq(const uint32_t& radio_idx = 0) = 0;
-  virtual double            get_rx_freq(const uint32_t& radio_idx = 0) = 0;
-  virtual float             get_max_tx_power()                         = 0;
-  virtual bool              is_continuous_tx()                         = 0;
-  virtual bool              is_init()                                  = 0;
-  virtual void              reset()                                    = 0;
-  virtual srslte_rf_info_t* get_info(const uint32_t& radio_idx = 0)    = 0;
+  virtual float             get_rx_gain(const uint32_t& radio_idx) = 0;
+  virtual double            get_freq_offset()                      = 0;
+  virtual double            get_tx_freq(const uint32_t& radio_idx) = 0;
+  virtual double            get_rx_freq(const uint32_t& radio_idx) = 0;
+  virtual float             get_max_tx_power()                     = 0;
+  virtual float             get_tx_gain_offset()                   = 0;
+  virtual float             get_rx_gain_offset()                   = 0;
+  virtual bool              is_continuous_tx()                     = 0;
+  virtual bool              is_init()                              = 0;
+  virtual void              reset()                                = 0;
+  virtual srslte_rf_info_t* get_info(const uint32_t& radio_idx)    = 0;
 };
 
 class phy_interface_radio

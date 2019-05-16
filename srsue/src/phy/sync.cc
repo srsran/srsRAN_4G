@@ -66,7 +66,7 @@ void sync::init(radio_interface_phy*     _radio,
                 phy_common*              _worker_com,
                 srslte::log*             _log_h,
                 srslte::log*             _log_phy_lib_h,
-                async_scell_recv*        scell_sync_,
+                async_scell_recv_vector* scell_sync_,
                 uint32_t                 prio,
                 int                      sync_cpu_affinity)
 {
@@ -476,8 +476,8 @@ void sync::run_thread()
                 srslte_timestamp_init(&tx_time, 0, 0);
 
                 // Request TTI aligment
-                if (scell_sync[i].tti_align(tti)) {
-                  scell_sync[i].read_sf(buffer[i + 1], &tx_time);
+                if (scell_sync->at(i)->tti_align(tti)) {
+                  scell_sync->at(i)->read_sf(buffer[i + 1], &tx_time);
                   srslte_timestamp_add(&tx_time, 0, TX_DELAY * 1e-3 - time_adv_sec);
                 } else {
                   // Failed, keep default Timestamp
@@ -572,7 +572,7 @@ void sync::run_thread()
           }
           Debug("Discarting %d samples\n", nsamples);
           srslte_timestamp_t rx_time;
-          if (!radio_h->rx_now(dummy_buffer, nsamples, &rx_time)) {
+          if (!radio_h->rx_now(0, dummy_buffer, nsamples, &rx_time)) {
             log_h->console("SYNC:  Receiving from radio while in IDLE_RX\n");
           }
           // If radio is in locked state returns inmidiatetly. In that case, do a 1 ms sleep
@@ -699,12 +699,9 @@ void sync::set_agc_enable(bool enable)
   do_agc = enable;
   if (do_agc) {
     if (running && radio_h) {
-      srslte_rf_info_t *rf_info = radio_h->get_info();
-      srslte_ue_sync_start_agc(&ue_sync,
-                               callback_set_rx_gain,
-                               rf_info->min_rx_gain,
-                               rf_info->max_rx_gain,
-                               radio_h->get_rx_gain());
+      srslte_rf_info_t* rf_info = radio_h->get_info(0);
+      srslte_ue_sync_start_agc(
+          &ue_sync, callback_set_rx_gain, rf_info->min_rx_gain, rf_info->max_rx_gain, radio_h->get_rx_gain(0));
       search_p.set_agc_enable(true);
     } else {
       ERROR("Error setting AGC: PHY not initiatec\n");
@@ -852,11 +849,11 @@ bool sync::set_frequency()
 
     carrier_map_t* m = &worker_com->args->carrier_map[0];
     for (uint32_t i = 0; i < worker_com->args->nof_rx_ant; i++) {
-      radio_h->set_rx_freq(m->channel_idx + i, set_dl_freq);
-      radio_h->set_tx_freq(m->channel_idx + i, set_ul_freq);
+      radio_h->set_rx_freq(m->radio_idx, m->channel_idx + i, set_dl_freq);
+      radio_h->set_tx_freq(m->radio_idx, m->channel_idx + i, set_ul_freq);
     }
 
-    ul_dl_factor = (float)(radio_h->get_tx_freq() / radio_h->get_rx_freq());
+    ul_dl_factor = (float)(radio_h->get_tx_freq(m->radio_idx) / radio_h->get_rx_freq(m->radio_idx));
 
     srslte_ue_sync_reset(&ue_sync);
 
@@ -875,23 +872,9 @@ void sync::set_sampling_rate()
     current_srate = new_srate;
     Info("SYNC:  Setting sampling rate %.2f MHz\n", current_srate/1000000);
 
-#if 0
-    if (((int) current_srate / 1000) % 3072 == 0) {
-      radio_h->set_master_clock_rate(30.72e6);
-    } else {
-      radio_h->set_master_clock_rate(23.04e6);
-    }
-#else
-    if (current_srate < 10e6) {
-      radio_h->set_master_clock_rate(4 * current_srate);
-    } else {
-      radio_h->set_master_clock_rate(current_srate);
-    }
-#endif
-
     srate_mode = SRATE_CAMP;
-    radio_h->set_rx_srate(current_srate);
-    radio_h->set_tx_srate(current_srate);
+    radio_h->set_rx_srate(0, current_srate);
+    radio_h->set_tx_srate(0, current_srate);
   } else {
     Error("Error setting sampling rate for cell with %d PRBs\n", cell.nof_prb);
   }
@@ -914,7 +897,7 @@ void sync::get_current_cell(srslte_cell_t* cell, uint32_t* earfcn)
 
 int sync::radio_recv_fnc(cf_t* data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t* rx_time)
 {
-  if (radio_h->rx_now(data, nsamples, rx_time)) {
+  if (radio_h->rx_now(0, data, nsamples, rx_time)) {
     int offset = nsamples - current_sflen;
     if (abs(offset) < 10 && offset != 0) {
       next_offset += offset;
@@ -987,12 +970,12 @@ float sync::search::get_last_cfo()
 void sync::search::set_agc_enable(bool enable)
 {
   if (enable) {
-    srslte_rf_info_t *rf_info = p->radio_h->get_info();
+    srslte_rf_info_t* rf_info = p->radio_h->get_info(0);
     srslte_ue_sync_start_agc(&ue_mib_sync.ue_sync,
                              callback_set_rx_gain,
                              rf_info->min_rx_gain,
                              rf_info->max_rx_gain,
-                             p->radio_h->get_rx_gain());
+                             p->radio_h->get_rx_gain(0));
   } else {
     ERROR("Error stop AGC not implemented\n");
   }
@@ -1014,8 +997,8 @@ sync::search::ret_code sync::search::run(srslte_cell_t* cell)
 
   if (p->srate_mode != SRATE_FIND) {
     p->srate_mode = SRATE_FIND;
-    p->radio_h->set_rx_srate(1.92e6);
-    p->radio_h->set_tx_srate(1.92e6);
+    p->radio_h->set_rx_srate(0, 1.92e6);
+    p->radio_h->set_tx_srate(0, 1.92e6);
     Info("SYNC:  Setting Cell Search sampling rate\n");
   }
 

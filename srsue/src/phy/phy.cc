@@ -42,13 +42,12 @@ using namespace asn1::rrc;
 
 namespace srsue {
 
-phy::phy() : workers_pool(MAX_WORKERS), workers(0), common(MAX_WORKERS)
+phy::phy() : workers_pool(MAX_WORKERS), workers(0), common(MAX_WORKERS), scell_sync()
 {
   tdd_config   = {};
   prach_cfg    = {};
   args         = {};
   ZERO_OBJECT(scell_earfcn);
-  ZERO_OBJECT(scell_sync);
   n_ta = 0;
   initiated = false;
 }
@@ -194,7 +193,9 @@ void phy::run_thread()
 
   // Load Asynchronous SCell objects
   for (int i = 0; i < (int)args.nof_radios - 1; i++) {
-    scell_sync[i].init(&radio[i + 1], &common, log_h);
+    auto t = async_scell_recv_ptr(new async_scell_recv());
+    t->init(radio, &common, log_h);
+    scell_sync.push_back(std::move(t));
   }
 
   // Warning this must be initialized after all workers have been added to the pool
@@ -205,7 +206,7 @@ void phy::run_thread()
               &common,
               log_h,
               log_phy_lib_h,
-              scell_sync,
+              &scell_sync,
               SF_RECV_THREAD_PRIO,
               args.sync_cpu_affinity);
 
@@ -229,7 +230,7 @@ void phy::stop()
   if (initiated) {
     sfsync.stop();
     for (uint32_t i = 0; i < args.nof_radios - 1; i++) {
-      scell_sync[i].stop();
+      scell_sync.at(i)->stop();
     }
 
     workers_pool.stop();
@@ -489,14 +490,16 @@ void phy::set_config_scell(asn1::rrc::scell_to_add_mod_r10_s* scell_config)
 
     // If SCell does not share synchronism with PCell ...
     if (m->radio_idx > 0) {
-      scell_sync[m->radio_idx - 1].set_scell_cell(cc_idx, &cell, earfcn);
+      scell_sync.at(m->radio_idx - 1)->set_scell_cell(cc_idx, &cell, earfcn);
     } else {
       // Change frequency only if the earfcn was modified
       if (scell_earfcn[cc_idx - 1] != earfcn) {
         float dl_freq = srslte_band_fd(earfcn) * 1e6f;
         float ul_freq = srslte_band_fu(srslte_band_ul_earfcn(earfcn)) * 1e6f;
-        radio->set_rx_freq(m->channel_idx, dl_freq);
-        radio->set_tx_freq(m->channel_idx, ul_freq);
+        for (uint32_t p = 0; p < common.args->nof_rx_ant; p++) {
+          radio->set_rx_freq(m->radio_idx, m->channel_idx + p, dl_freq);
+          radio->set_tx_freq(m->radio_idx, m->channel_idx + p, ul_freq);
+        }
       }
     }
 
