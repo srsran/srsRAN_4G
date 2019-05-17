@@ -79,7 +79,7 @@ void metrics_csv::set_metrics(ue_metrics_t &metrics, const uint32_t period_usec)
     // Print PHY metrics for first CC
     file << float_to_string(metrics.phy.dl[0].rsrp, 2);
     file << float_to_string(metrics.phy.dl[0].pathloss, 2);
-    file << float_to_string(metrics.phy.sync.cfo, 2);
+    file << float_to_string(metrics.phy.sync[0].cfo, 2);
     file << float_to_string(metrics.phy.dl[0].mcs, 2);
     file << float_to_string(metrics.phy.dl[0].sinr, 2);
     file << float_to_string(metrics.phy.dl[0].turbo_iters, 2);
@@ -104,7 +104,7 @@ void metrics_csv::set_metrics(ue_metrics_t &metrics, const uint32_t period_usec)
       file << float_to_string(0, 2);
     }
 
-    file << float_to_string(metrics.phy.sync.ta_us, 2);
+    file << float_to_string(metrics.phy.sync[0].ta_us, 2);
     file << float_to_string(metrics.phy.ul[0].mcs, 2);
     file << float_to_string((float)metrics.stack.mac[0].ul_buffer, 2);
 

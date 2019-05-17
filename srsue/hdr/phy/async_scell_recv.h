@@ -58,6 +58,8 @@ public:
   void out_of_sync();
   void set_cfo(float cfo);
 
+  float get_tx_cfo();
+
   // From UE configuration
   void                 set_agc_enable(bool enable);
   bool                 set_scell_cell(uint32_t carrier_idx, srslte_cell_t* _cell, uint32_t dl_earfcn);
@@ -68,7 +70,7 @@ public:
   double           set_rx_gain(double gain);
   int              radio_recv_fnc(cf_t* data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t* rx_time);
   bool             tti_align(uint32_t tti);
-  void             read_sf(cf_t** dst, srslte_timestamp_t* timestamp);
+  void             read_sf(cf_t** dst, srslte_timestamp_t* timestamp, int* next_offset);
 
 private:
   class phch_scell_recv_buffer
@@ -76,12 +78,14 @@ private:
   private:
     uint32_t           tti;
     srslte_timestamp_t timestamp;
+    int                next_offset;
     cf_t*              buffer[SRSLTE_MAX_PORTS];
 
   public:
     phch_scell_recv_buffer()
     {
       tti = 0;
+      next_offset = 0;
       bzero(&timestamp, sizeof(timestamp));
       for (cf_t*& b : buffer) {
         b = nullptr;
@@ -108,9 +112,10 @@ private:
       }
     }
 
-    void set_sf(uint32_t _tti, srslte_timestamp_t* _timestamp)
+    void set_sf(uint32_t _tti, srslte_timestamp_t* _timestamp, const int& _next_offset)
     {
       tti = _tti;
+      next_offset = _next_offset;
       srslte_timestamp_copy(&timestamp, _timestamp);
     }
 
@@ -119,6 +124,11 @@ private:
     cf_t** get_buffer_ptr() { return buffer; }
 
     void get_timestamp(srslte_timestamp_t* _timestamp) { srslte_timestamp_copy(_timestamp, &timestamp); }
+    void get_next_offset(int* _next_offset)
+    {
+      if (_next_offset)
+        *_next_offset = next_offset;
+    }
   };
 
   static const uint32_t ASYNC_NOF_BUFFERS = SRSLTE_NOF_SF_X_FRAME;
@@ -165,6 +175,8 @@ private:
   uint32_t in_sync_cnt;
 
   cf_t* sf_buffer[SRSLTE_MAX_PORTS];
+  uint32_t current_sflen;
+  int      next_radio_offset;
 
   const static uint32_t NOF_OUT_OF_SYNC_SF = 200;
   const static uint32_t NOF_IN_SYNC_SF     = 100;

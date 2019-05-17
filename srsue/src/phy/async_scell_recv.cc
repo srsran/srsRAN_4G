@@ -56,6 +56,8 @@ async_scell_recv::async_scell_recv() : thread()
   bzero(sf_buffer, sizeof(sf_buffer));
   running = false;
   radio_idx = 1;
+  current_sflen     = 0;
+  next_radio_offset = 0;
 }
 
 async_scell_recv::~async_scell_recv()
@@ -160,6 +162,25 @@ void async_scell_recv::set_cfo(float cfo)
   srslte_ue_sync_set_cfo_ref(&ue_sync, cfo);
 }
 
+float async_scell_recv::get_tx_cfo()
+{
+  float cfo = srslte_ue_sync_get_cfo(&ue_sync);
+
+  float ret = cfo * ul_dl_factor;
+
+  if (worker_com->args->cfo_is_doppler) {
+    ret *= -1;
+  } else {
+    /* Compensates the radio frequency offset applied equally to DL and UL. Does not work in doppler mode */
+    if (radio_h->get_freq_offset() != 0.0f) {
+      const float offset_hz = (float)radio_h->get_freq_offset() * (1.0f - ul_dl_factor);
+      ret                   = cfo - offset_hz;
+    }
+  }
+
+  return ret / 15000;
+}
+
 void async_scell_recv::set_agc_enable(bool enable)
 {
   do_agc = enable;
@@ -187,6 +208,13 @@ int async_scell_recv::radio_recv_fnc(cf_t* data[SRSLTE_MAX_PORTS], uint32_t nsam
 
   if (running) {
     if (radio_h->rx_now(radio_idx, data, nsamples, rx_time)) {
+      int offset = nsamples - current_sflen;
+      if (abs(offset) < 10 && offset != 0) {
+        next_radio_offset += offset;
+      } else if (nsamples < 10) {
+        next_radio_offset += nsamples;
+      }
+
       log_h->debug("SYNC:  received %d samples from radio\n", nsamples);
       ret = nsamples;
     } else {
@@ -288,6 +316,8 @@ bool async_scell_recv::set_scell_cell(uint32_t carrier_idx, srslte_cell_t* _cell
       double srate = srslte_sampling_freq_hz(_cell->nof_prb);
       radio_h->set_rx_srate(radio_idx, srate);
       radio_h->set_tx_srate(radio_idx, srate);
+      current_sflen = (uint32_t)SRSLTE_SF_LEN_PRB(_cell->nof_prb);
+
       Info("Setting SRate to %.2f MHz\n", srate / 1e6);
     }
 
@@ -385,7 +415,8 @@ void async_scell_recv::state_write_buffer()
     srslte_ue_sync_get_last_timestamp(&ue_sync, &rx_time);
 
     // Extract essential information
-    buffer->set_sf(tti, &rx_time);
+    buffer->set_sf(tti, &rx_time, next_radio_offset);
+    next_radio_offset = 0;
 
     // Increment write index
     buffer_write_idx = (buffer_write_idx + 1) % ASYNC_NOF_BUFFERS;
@@ -446,6 +477,17 @@ void async_scell_recv::run_thread()
         case SYNCH_IDLE:
           state_synch_idle();
           break;
+      }
+
+      // Load metrics
+      sync_metrics_t metrics = {};
+      metrics.sfo            = srslte_ue_sync_get_sfo(&ue_sync);
+      metrics.cfo            = srslte_ue_sync_get_cfo(&ue_sync);
+      metrics.ta_us          = NAN;
+      for (uint32_t i = 0; i < worker_com->args->nof_carriers; i++) {
+        if (worker_com->args->carrier_map[i].radio_idx == radio_idx) {
+          worker_com->set_sync_metrics(i, metrics);
+        }
       }
 
       // Increment tti
@@ -533,7 +575,7 @@ bool async_scell_recv::tti_align(uint32_t tti)
   return ret;
 }
 
-void async_scell_recv::read_sf(cf_t** dst, srslte_timestamp_t* timestamp)
+void async_scell_recv::read_sf(cf_t** dst, srslte_timestamp_t* timestamp, int* next_offset)
 {
   pthread_mutex_lock(&mutex_buffer);
 
@@ -567,6 +609,7 @@ void async_scell_recv::read_sf(cf_t** dst, srslte_timestamp_t* timestamp)
   }
 
   buffer->get_timestamp(timestamp);
+  buffer->get_next_offset(next_offset);
 
   // Increment read index
   buffer_read_idx = (buffer_read_idx + 1) % ASYNC_NOF_BUFFERS;

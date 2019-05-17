@@ -147,6 +147,7 @@ void sync::reset()
   tx_worker_cnt = 0;
   time_adv_sec = 0;
   next_offset  = 0;
+  ZERO_OBJECT(next_radio_offset);
   srate_mode = SRATE_NONE;
   current_earfcn = -1;
   sfn_p.reset();
@@ -477,20 +478,24 @@ void sync::run_thread()
 
                 // Request TTI aligment
                 if (scell_sync->at(i)->tti_align(tti)) {
-                  scell_sync->at(i)->read_sf(buffer[i + 1], &tx_time);
+                  scell_sync->at(i)->read_sf(buffer[i + 1], &tx_time, &next_radio_offset[i + 1]);
                   srslte_timestamp_add(&tx_time, 0, TX_DELAY * 1e-3 - time_adv_sec);
                 } else {
                   // Failed, keep default Timestamp
                   // Error("SCell asynchronous failed to synchronise (%d)\n", i);
                 }
 
-                worker->set_tx_time(i + 1, tx_time, next_offset);
+                worker->set_tx_time(i + 1, tx_time, next_radio_offset[i + 1] + next_offset);
               }
 
               metrics.sfo = srslte_ue_sync_get_sfo(&ue_sync);
               metrics.cfo = srslte_ue_sync_get_cfo(&ue_sync);
-              metrics.ta_us = time_adv_sec*1e6;
-              worker_com->set_sync_metrics(metrics);
+              metrics.ta_us = time_adv_sec * 1e6f;
+              for (uint32_t i = 0; i < worker_com->args->nof_carriers; i++) {
+                if (worker_com->args->carrier_map[i].radio_idx == 0) {
+                  worker_com->set_sync_metrics(i, metrics);
+                }
+              }
 
               // Check if we need to TX a PRACH
               if (prach_buffer->is_ready_to_send(tti)) {
@@ -511,10 +516,31 @@ void sync::run_thread()
               }
 
               worker->set_prach(prach_ptr?&prach_ptr[prach_sf_cnt*SRSLTE_SF_LEN_PRB(cell.nof_prb)]:NULL, prach_power);
-              worker->set_cfo(get_tx_cfo());
+
+              // Set CFO for all Carriers
+              for (uint32_t cc = 0; cc < worker_com->args->nof_carriers; cc++) {
+                float cfo;
+
+                // Get radio index for the given carrier
+                uint32_t radio_idx = worker_com->args->carrier_map[cc].radio_idx;
+
+                if (radio_idx == 0) {
+                  // Use local CFO
+                  cfo = get_tx_cfo();
+                } else {
+                  // Request CFO in the asynchronous receiver
+                  cfo = scell_sync->at(radio_idx - 1)->get_tx_cfo();
+                }
+
+                worker->set_cfo(cc, cfo);
+              }
+
               worker->set_tti(tti, tx_worker_cnt);
-              worker->set_tx_time(0, tx_time, next_offset);
+              worker->set_tx_time(0, tx_time, next_radio_offset[0] + next_offset);
               next_offset  = 0;
+              ZERO_OBJECT(next_radio_offset);
+
+              // Process time aligment command
               if (next_time_adv_sec != time_adv_sec) {
                 time_adv_sec = next_time_adv_sec;
               }
@@ -867,7 +893,7 @@ bool sync::set_frequency()
 void sync::set_sampling_rate()
 {
   float new_srate = (float)srslte_sampling_freq_hz(cell.nof_prb);
-  current_sflen = SRSLTE_SF_LEN_PRB(cell.nof_prb);
+  current_sflen   = (uint32_t)SRSLTE_SF_LEN_PRB(cell.nof_prb);
   if (current_srate != new_srate || srate_mode != SRATE_CAMP) {
     current_srate = new_srate;
     Info("SYNC:  Setting sampling rate %.2f MHz\n", current_srate/1000000);
@@ -900,9 +926,9 @@ int sync::radio_recv_fnc(cf_t* data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte
   if (radio_h->rx_now(0, data, nsamples, rx_time)) {
     int offset = nsamples - current_sflen;
     if (abs(offset) < 10 && offset != 0) {
-      next_offset += offset;
+      next_radio_offset[0] = offset;
     } else if (nsamples < 10) {
-      next_offset += nsamples;
+      next_radio_offset[0] = nsamples;
     }
 
     log_h->debug("SYNC:  received %d samples from radio\n", nsamples);

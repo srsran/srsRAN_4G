@@ -158,11 +158,9 @@ void sf_worker::set_prach(cf_t* prach_ptr, float prach_power)
   this->prach_power = prach_power;
 }
 
-void sf_worker::set_cfo(float cfo)
+void sf_worker::set_cfo(const uint32_t& cc_idx, float cfo)
 {
-  for (uint32_t cc_idx = 0; cc_idx < cc_workers.size(); cc_idx++) {
-    cc_workers[cc_idx]->set_cfo(cfo);
-  }
+  cc_workers[cc_idx]->set_cfo(cfo);
 }
 
 void sf_worker::set_crnti(uint16_t rnti)
@@ -402,9 +400,9 @@ float sf_worker::get_sync_error()
 
 float sf_worker::get_cfo()
 {
-  sync_metrics_t sync_metrics = {};
+  sync_metrics_t sync_metrics[SRSLTE_MAX_CARRIERS] = {};
   phy->get_sync_metrics(sync_metrics);
-  return sync_metrics.cfo;
+  return sync_metrics[0].cfo;
 }
 } // namespace srsue
 

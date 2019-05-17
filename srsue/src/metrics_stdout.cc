@@ -79,7 +79,7 @@ void metrics_stdout::set_metrics(ue_metrics_t &metrics, const uint32_t period_us
     cout << " " << r;
     cout << float_to_string(metrics.phy.dl[r].rsrp, 2);
     cout << float_to_string(metrics.phy.dl[r].pathloss, 2);
-    cout << float_to_eng_string(metrics.phy.sync.cfo, 2);
+    cout << float_to_eng_string(metrics.phy.sync[r].cfo, 2);
     cout << float_to_string(metrics.phy.dl[r].mcs, 2);
     cout << float_to_string(metrics.phy.dl[r].sinr, 2);
     cout << float_to_string(metrics.phy.dl[r].turbo_iters, 2);
@@ -91,7 +91,7 @@ void metrics_stdout::set_metrics(ue_metrics_t &metrics, const uint32_t period_us
       cout << float_to_string(0, 1) << "%";
     }
 
-    cout << float_to_string(metrics.phy.sync.ta_us, 2);
+    cout << float_to_string(metrics.phy.sync[r].ta_us, 2);
 
     cout << float_to_string(metrics.phy.ul[r].mcs, 2);
     cout << float_to_eng_string((float)metrics.stack.mac[r].ul_buffer, 2);

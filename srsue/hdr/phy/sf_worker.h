@@ -53,7 +53,7 @@ public:
   void  set_tti(uint32_t tti, uint32_t tx_worker_cnt);
   void  set_tx_time(uint32_t radio_idx, srslte_timestamp_t tx_time, int next_offset);
   void  set_prach(cf_t* prach_ptr, float prach_power);
-  void  set_cfo(float cfo);
+  void  set_cfo(const uint32_t& cc_idx, float cfo);
 
   void set_tdd_config(srslte_tdd_config_t config);
   void set_pcell_config(phy_interface_rrc_lte::phy_cfg_t* phy_cfg);

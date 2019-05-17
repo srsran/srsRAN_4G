@@ -269,7 +269,8 @@ private:
   intra_measure         intra_freq_meas;
 
   uint32_t              current_sflen;
-  int                   next_offset;
+  int                   next_offset;                          // Sample offset triggered by Time aligment commands
+  int                   next_radio_offset[SRSLTE_MAX_RADIOS]; // Sample offset triggered by SFO compensation
 
   // Pointers to other classes
   stack_interface_phy_lte* stack;

@@ -150,8 +150,8 @@ public:
   void get_dl_metrics(dl_metrics_t m[SRSLTE_MAX_CARRIERS]);
   void set_ul_metrics(const ul_metrics_t m, uint32_t cc_idx);
   void get_ul_metrics(ul_metrics_t m[SRSLTE_MAX_CARRIERS]);
-  void set_sync_metrics(const sync_metrics_t& m);
-  void get_sync_metrics(sync_metrics_t& m);
+  void set_sync_metrics(const uint32_t& cc_idx, const sync_metrics_t& m);
+  void get_sync_metrics(sync_metrics_t m[SRSLTE_MAX_CARRIERS]);
 
   void reset();
 
@@ -223,7 +223,7 @@ private:
   ul_metrics_t   ul_metrics[SRSLTE_MAX_CARRIERS];
   uint32_t       ul_metrics_count;
   bool           ul_metrics_read;
-  sync_metrics_t sync_metrics;
+  sync_metrics_t sync_metrics[SRSLTE_MAX_CARRIERS];
   uint32_t       sync_metrics_count;
   bool           sync_metrics_read;
 

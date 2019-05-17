@@ -68,7 +68,7 @@ phy_common::phy_common(uint32_t max_workers) : tx_sem(max_workers)
   bzero(&ul_metrics, sizeof(ul_metrics_t) * SRSLTE_MAX_CARRIERS);
   ul_metrics_read  = true;
   ul_metrics_count = 0;
-  bzero(&sync_metrics, sizeof(sync_metrics_t));
+  ZERO_OBJECT(sync_metrics);
   sync_metrics_read  = true;
   sync_metrics_count = 0;
 
@@ -643,23 +643,26 @@ void phy_common::get_ul_metrics(ul_metrics_t m[SRSLTE_MAX_RADIOS])
   ul_metrics_read = true;
 }
 
-void phy_common::set_sync_metrics(const sync_metrics_t& m)
+void phy_common::set_sync_metrics(const uint32_t& cc_idx, const sync_metrics_t& m)
 {
-
   if (sync_metrics_read) {
-    sync_metrics       = m;
+    sync_metrics[cc_idx] = m;
     sync_metrics_count = 1;
-    sync_metrics_read  = false;
+    if (cc_idx == 0)
+      sync_metrics_read = false;
   } else {
-    sync_metrics_count++;
-    sync_metrics.cfo = sync_metrics.cfo + (m.cfo - sync_metrics.cfo) / sync_metrics_count;
-    sync_metrics.sfo = sync_metrics.sfo + (m.sfo - sync_metrics.sfo) / sync_metrics_count;
+    if (cc_idx == 0)
+      sync_metrics_count++;
+    sync_metrics[cc_idx].cfo = sync_metrics[cc_idx].cfo + (m.cfo - sync_metrics[cc_idx].cfo) / sync_metrics_count;
+    sync_metrics[cc_idx].sfo = sync_metrics[cc_idx].sfo + (m.sfo - sync_metrics[cc_idx].sfo) / sync_metrics_count;
   }
 }
 
-void phy_common::get_sync_metrics(sync_metrics_t& m)
+void phy_common::get_sync_metrics(sync_metrics_t m[SRSLTE_MAX_CARRIERS])
 {
-  m                 = sync_metrics;
+  for (uint32_t i = 0; i < args->nof_carriers; i++) {
+    m[i] = sync_metrics[i];
+  }
   sync_metrics_read = true;
 }
 

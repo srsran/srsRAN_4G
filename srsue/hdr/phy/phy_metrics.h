@@ -55,7 +55,7 @@ struct ul_metrics_t
 
 struct phy_metrics_t
 {
-  sync_metrics_t sync;
+  sync_metrics_t sync[SRSLTE_MAX_CARRIERS];
   dl_metrics_t   dl[SRSLTE_MAX_CARRIERS];
   ul_metrics_t   ul[SRSLTE_MAX_CARRIERS];
   uint32_t       nof_active_cc;
