@@ -60,7 +60,8 @@ rrc::rrc() :
   initiated = false;
   running = false;
   go_idle = false;
-  go_rlf  = false;
+  reest_cause = asn1::rrc::reest_cause_e::nulltype;
+  reest_rnti  = 0;
 
   current_mac_cfg  = {};
   previous_mac_cfg = {};
@@ -285,6 +286,57 @@ void rrc::run_tti(uint32_t tti)
             con_reconfig_failed();
           }
         }
+
+        // Performing reestablishment cell selection
+        if (reest_cause != asn1::rrc::reest_cause_e::nulltype) {
+          if (mac_timers->timer_get(t311)->is_running()) {
+            if (serving_cell->in_sync) {
+              if (cell_selection_criteria(serving_cell->get_rsrp())) {
+                // Perform cell selection in accordance to 36.304
+                if (phy->cell_select(&serving_cell->phy_cell)) {
+
+                  if (mac_timers->timer_get(t311)->is_running()) {
+                    // Actions following cell reselection while T311 is running 5.3.7.3
+                    rrc_log->info(
+                        "Cell Selection finished. Initiating transmission of RRC Connection Reestablishment Request\n");
+                    mac_timers->timer_get(t301)->reset();
+                    mac_timers->timer_get(t301)->run();
+                    mac_timers->timer_get(t311)->stop();
+                    send_con_restablish_request();
+                  } else {
+                    rrc_log->info("T311 expired while selecting cell. Going to IDLE\n");
+                    go_idle = true;
+                  }
+                } else {
+                  rrc_log->warning("Could not re-synchronize with cell.\n");
+                  go_idle = true;
+                }
+              } else {
+                go_idle = false;
+
+              } /* else {
+               switch (cell_selection()) {
+                 case rrc::CHANGED_CELL:
+                   // New cell has been selected, start receiving PCCH
+                   mac->pcch_start_rx();
+                   break;
+                 case rrc::NO_CELL:
+                   rrc_log->warning("Could not find any cell to camp on\n");
+                   break;
+                 case rrc::SAME_CELL:
+                   if (!phy->cell_is_camping()) {
+                     rrc_log->warning("Did not reselect cell but serving cell is out-of-sync.\n");
+                     serving_cell->in_sync = false;
+                   }
+                   break;
+               }
+             }*/
+            }
+          } else if (mac_timers->timer_get(t311)->is_expired()) {
+            go_idle = true;
+          }
+        }
+
         measurements.run_tti(tti);
         if (go_idle) {
           // wait for max. 2s for RLC on SRB1 to be flushed
@@ -294,11 +346,6 @@ void rrc::run_tti(uint32_t tti)
           } else {
             rrc_log->debug("Postponing transition to RRC IDLE (%d ms < %d ms)\n", rlc_flush_counter, rlc_flush_timeout);
           }
-        }
-        if (go_rlf) {
-          go_rlf = false;
-          // Initiate connection re-establishment procedure after RLF
-          send_con_restablish_request(asn1::rrc::reest_cause_e::other_fail);
         }
         break;
       default:break;
@@ -1195,7 +1242,7 @@ void rrc::radio_link_failure() {
   rrc_log->warning("Detected Radio-Link Failure\n");
   rrc_log->console("Warning: Detected Radio-Link Failure\n");
   if (state == RRC_STATE_CONNECTED) {
-    go_rlf = true;
+    init_con_restablish_request(asn1::rrc::reest_cause_e::other_fail);
   }
 }
 
@@ -1288,22 +1335,24 @@ void rrc::send_con_request(asn1::rrc::establishment_cause_e cause)
   send_ul_ccch_msg(ul_ccch_msg);
 }
 
-/* RRC connection re-establishment procedure (5.3.7) */
-void rrc::send_con_restablish_request(asn1::rrc::reest_cause_e cause)
+/* RRC connection re-establishment procedure (5.3.7.4) */
+void rrc::send_con_restablish_request()
 {
   uint16_t crnti;
   uint16_t pci;
   uint32_t cellid;
 
+  // Clean reestablishment type
+  asn1::rrc::reest_cause_e cause = reest_cause;
+  reest_cause                    = asn1::rrc::reest_cause_e::nulltype;
+
   if (cause == asn1::rrc::reest_cause_e::ho_fail) {
     crnti  = ho_src_rnti;
-    pci    = ho_src_cell.get_pci();
+    pci    = (uint16_t)ho_src_cell.get_pci();
     cellid = ho_src_cell.get_cell_id();
   } else {
-    mac_interface_rrc::ue_rnti_t uernti;
-    mac->get_rntis(&uernti);
-    crnti  = uernti.crnti;
-    pci    = serving_cell->get_pci();
+    crnti  = reest_rnti;
+    pci    = (uint16_t)serving_cell->get_pci();
     cellid = serving_cell->get_cell_id();
   }
 
@@ -1359,42 +1408,8 @@ void rrc::send_con_restablish_request(asn1::rrc::reest_cause_e cause)
   rrc_conn_reest_req->ue_id.short_mac_i.from_number(mac_key[2] << 8 | mac_key[3]);
   rrc_conn_reest_req->reest_cause = cause;
 
-  rrc_log->info("Initiating RRC Connection Reestablishment Procedure\n");
   rrc_log->console("RRC Connection Reestablishment\n");
-  mac_timers->timer_get(t310)->stop();
-  mac_timers->timer_get(t311)->reset();
-  mac_timers->timer_get(t311)->run();
-
-  phy->reset();
-  set_phy_config_dedicated_default();
-  mac->reset();
-  set_mac_default();
-
-  // Perform cell selection in accordance to 36.304
-  if (cell_selection_criteria(serving_cell->get_rsrp()) && serving_cell->in_sync) {
-    if (phy->cell_select(&serving_cell->phy_cell)) {
-
-      if (mac_timers->timer_get(t311)->is_running()) {
-        // Actions following cell reselection while T311 is running 5.3.7.3
-        rrc_log->info("Cell Selection finished. Initiating transmission of RRC Connection Reestablishment Request\n");
-
-        mac_timers->timer_get(t301)->reset();
-        mac_timers->timer_get(t301)->run();
-        mac_timers->timer_get(t311)->stop();
-        send_ul_ccch_msg(ul_ccch_msg);
-      } else {
-        rrc_log->info("T311 expired while selecting cell. Going to IDLE\n");
-        go_idle = true;
-      }
-    } else {
-      rrc_log->warning("Could not re-synchronize with cell.\n");
-      go_idle = true;
-    }
-  } else {
-    rrc_log->info("Selected cell no longer suitable for camping (in_sync=%s). Going to IDLE\n",
-                  serving_cell->in_sync ? "yes" : "no");
-    go_idle = true;
-  }
+  send_ul_ccch_msg(ul_ccch_msg);
 }
 
 void rrc::send_con_restablish_complete() {
@@ -1669,7 +1684,7 @@ bool rrc::con_reconfig(asn1::rrc::rrc_conn_recfg_s* reconfig)
 // HO failure from T304 expiry 5.3.5.6
 void rrc::ho_failed()
 {
-  send_con_restablish_request(asn1::rrc::reest_cause_e::ho_fail);
+  init_con_restablish_request(asn1::rrc::reest_cause_e::ho_fail);
 }
 
 // Reconfiguration failure or Section 5.3.5.5
@@ -1685,7 +1700,7 @@ void rrc::con_reconfig_failed()
 
   if (security_is_activated) {
     // Start the Reestablishment Procedure
-    send_con_restablish_request(asn1::rrc::reest_cause_e::recfg_fail);
+    init_con_restablish_request(asn1::rrc::reest_cause_e::recfg_fail);
   } else {
     go_idle = true;
   }
@@ -1748,6 +1763,48 @@ void rrc::stop_timers()
   mac_timers->timer_get(t310)->stop();
   mac_timers->timer_get(t311)->stop();
   mac_timers->timer_get(t304)->stop();
+}
+
+void rrc::init_con_restablish_request(asn1::rrc::reest_cause_e cause)
+{
+  // Save reestablishment cause
+  reest_cause = cause;
+
+  // Save Current RNTI before MAC Reset
+  mac_interface_rrc::ue_rnti_t uernti;
+  mac->get_rntis(&uernti);
+  reest_rnti = uernti.crnti;
+
+  // initiation of reestablishment procedure as indicates in 3GPP 36.331 Section 5.3.7.2
+  rrc_log->info("Initiating RRC Connection Reestablishment Procedure\n");
+  rrc_log->console("Initiating RRC Connection Reestablishment Procedure (crnti=x%04x, t311=%d)\n",
+                   reest_rnti,
+                   mac_timers->timer_get(t311)->get_timeout());
+
+  // stop timer T310, if running;
+  mac_timers->timer_get(t310)->stop();
+
+  // start timer T311;
+  mac_timers->timer_get(t311)->reset();
+  mac_timers->timer_get(t311)->run();
+
+  // suspend all RBs except SRB0;
+  // rlc->reset();
+
+  // reset MAC;
+  mac->reset();
+
+  // apply the default physical channel configuration as specified in 9.2.4;
+  set_phy_default_pucch_srs();
+
+  // apply the default semi-persistent scheduling configuration as specified in 9.2.3;
+  // N.A.
+
+  // apply the default MAC main configuration as specified in 9.2.2;
+  apply_mac_config_dedicated_default();
+
+  // perform cell selection in accordance with the cell selection process as specified in TS 36.304 [4];
+  // ... this happens in rrc::run_tti()
 }
 
 /*******************************************************************************

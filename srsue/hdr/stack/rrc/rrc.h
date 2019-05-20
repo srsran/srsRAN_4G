@@ -471,7 +471,8 @@ private:
   bool initiated;
   bool ho_start;
   bool go_idle;
-  bool go_rlf;
+  asn1::rrc::reest_cause_e reest_cause;
+  uint16_t                 reest_rnti;
 
   uint32_t rlc_flush_counter;
   uint32_t rlc_flush_timeout;
@@ -625,7 +626,7 @@ private:
 
   // Senders
   void send_con_request(asn1::rrc::establishment_cause_e cause);
-  void send_con_restablish_request(asn1::rrc::reest_cause_e cause);
+  void send_con_restablish_request();
   void send_con_restablish_complete();
   void send_con_setup_complete(srslte::unique_byte_buffer_t nas_msg);
   void send_ul_info_transfer(srslte::unique_byte_buffer_t nas_msg);
@@ -649,6 +650,7 @@ private:
   void radio_link_failure();
   void leave_connected();
   void stop_timers();
+  void init_con_restablish_request(asn1::rrc::reest_cause_e cause);
 
   void log_rr_config_common();
   void log_phy_config_dedicated();
