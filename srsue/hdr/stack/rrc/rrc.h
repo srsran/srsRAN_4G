@@ -471,8 +471,8 @@ private:
   bool initiated;
   bool ho_start;
   bool go_idle;
-  asn1::rrc::reest_cause_e reest_cause;
-  uint16_t                 reest_rnti;
+  asn1::rrc::reest_cause_e m_reest_cause;
+  uint16_t                 m_reest_rnti;
 
   uint32_t rlc_flush_counter;
   uint32_t rlc_flush_timeout;
@@ -651,6 +651,7 @@ private:
   void leave_connected();
   void stop_timers();
   void init_con_restablish_request(asn1::rrc::reest_cause_e cause);
+  void proc_con_restablish_request();
 
   void log_rr_config_common();
   void log_phy_config_dedicated();

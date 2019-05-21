@@ -60,8 +60,8 @@ rrc::rrc() :
   initiated = false;
   running = false;
   go_idle = false;
-  reest_cause = asn1::rrc::reest_cause_e::nulltype;
-  reest_rnti  = 0;
+  m_reest_cause = asn1::rrc::reest_cause_e::nulltype;
+  m_reest_rnti  = 0;
 
   current_mac_cfg  = {};
   previous_mac_cfg = {};
@@ -288,53 +288,8 @@ void rrc::run_tti(uint32_t tti)
         }
 
         // Performing reestablishment cell selection
-        if (reest_cause != asn1::rrc::reest_cause_e::nulltype) {
-          if (mac_timers->timer_get(t311)->is_running()) {
-            if (serving_cell->in_sync) {
-              if (cell_selection_criteria(serving_cell->get_rsrp())) {
-                // Perform cell selection in accordance to 36.304
-                if (phy->cell_select(&serving_cell->phy_cell)) {
-
-                  if (mac_timers->timer_get(t311)->is_running()) {
-                    // Actions following cell reselection while T311 is running 5.3.7.3
-                    rrc_log->info(
-                        "Cell Selection finished. Initiating transmission of RRC Connection Reestablishment Request\n");
-                    mac_timers->timer_get(t301)->reset();
-                    mac_timers->timer_get(t301)->run();
-                    mac_timers->timer_get(t311)->stop();
-                    send_con_restablish_request();
-                  } else {
-                    rrc_log->info("T311 expired while selecting cell. Going to IDLE\n");
-                    go_idle = true;
-                  }
-                } else {
-                  rrc_log->warning("Could not re-synchronize with cell.\n");
-                  go_idle = true;
-                }
-              } else {
-                go_idle = false;
-
-              } /* else {
-               switch (cell_selection()) {
-                 case rrc::CHANGED_CELL:
-                   // New cell has been selected, start receiving PCCH
-                   mac->pcch_start_rx();
-                   break;
-                 case rrc::NO_CELL:
-                   rrc_log->warning("Could not find any cell to camp on\n");
-                   break;
-                 case rrc::SAME_CELL:
-                   if (!phy->cell_is_camping()) {
-                     rrc_log->warning("Did not reselect cell but serving cell is out-of-sync.\n");
-                     serving_cell->in_sync = false;
-                   }
-                   break;
-               }
-             }*/
-            }
-          } else if (mac_timers->timer_get(t311)->is_expired()) {
-            go_idle = true;
-          }
+        if (m_reest_cause != asn1::rrc::reest_cause_e::nulltype) {
+          proc_con_restablish_request();
         }
 
         measurements.run_tti(tti);
@@ -1343,16 +1298,16 @@ void rrc::send_con_restablish_request()
   uint32_t cellid;
 
   // Clean reestablishment type
-  asn1::rrc::reest_cause_e cause = reest_cause;
-  reest_cause                    = asn1::rrc::reest_cause_e::nulltype;
+  asn1::rrc::reest_cause_e cause = m_reest_cause;
+  m_reest_cause                  = asn1::rrc::reest_cause_e::nulltype;
 
   if (cause == asn1::rrc::reest_cause_e::ho_fail) {
     crnti  = ho_src_rnti;
-    pci    = (uint16_t)ho_src_cell.get_pci();
+    pci    = ho_src_cell.get_pci();
     cellid = ho_src_cell.get_cell_id();
   } else {
-    crnti  = reest_rnti;
-    pci    = (uint16_t)serving_cell->get_pci();
+    crnti  = m_reest_rnti;
+    pci    = serving_cell->get_pci();
     cellid = serving_cell->get_cell_id();
   }
 
@@ -1768,17 +1723,17 @@ void rrc::stop_timers()
 void rrc::init_con_restablish_request(asn1::rrc::reest_cause_e cause)
 {
   // Save reestablishment cause
-  reest_cause = cause;
+  m_reest_cause = cause;
 
   // Save Current RNTI before MAC Reset
   mac_interface_rrc::ue_rnti_t uernti;
   mac->get_rntis(&uernti);
-  reest_rnti = uernti.crnti;
+  m_reest_rnti = uernti.crnti;
 
   // initiation of reestablishment procedure as indicates in 3GPP 36.331 Section 5.3.7.2
   rrc_log->info("Initiating RRC Connection Reestablishment Procedure\n");
   rrc_log->console("Initiating RRC Connection Reestablishment Procedure (crnti=x%04x, t311=%d)\n",
-                   reest_rnti,
+                   m_reest_rnti,
                    mac_timers->timer_get(t311)->get_timeout());
 
   // stop timer T310, if running;
@@ -1805,6 +1760,43 @@ void rrc::init_con_restablish_request(asn1::rrc::reest_cause_e cause)
 
   // perform cell selection in accordance with the cell selection process as specified in TS 36.304 [4];
   // ... this happens in rrc::run_tti()
+}
+
+void rrc::proc_con_restablish_request()
+{
+  if (mac_timers->timer_get(t311)->is_running()) {
+    if (serving_cell->in_sync) {
+      if (cell_selection_criteria(serving_cell->get_rsrp())) {
+        // Perform cell selection in accordance to 36.304
+        if (phy->cell_select(&serving_cell->phy_cell)) {
+
+          if (mac_timers->timer_get(t311)->is_running()) {
+            // Actions following cell reselection while T311 is running 5.3.7.3
+            rrc_log->info(
+                "Cell Selection finished. Initiating transmission of RRC Connection Reestablishment Request\n");
+            mac_timers->timer_get(t301)->reset();
+            mac_timers->timer_get(t301)->run();
+            mac_timers->timer_get(t311)->stop();
+            send_con_restablish_request();
+          } else {
+            rrc_log->info("T311 expired while selecting cell. Going to IDLE\n");
+            go_idle = true;
+          }
+        } else {
+          rrc_log->warning("Could not re-synchronize with cell.\n");
+          go_idle = true;
+        }
+      } else {
+        go_idle = false;
+      }
+    }
+  } else if (mac_timers->timer_get(t311)->is_expired()) {
+    go_idle = true;
+  }
+
+  if (go_idle) {
+    m_reest_cause = asn1::rrc::reest_cause_e::nulltype;
+  }
 }
 
 /*******************************************************************************
