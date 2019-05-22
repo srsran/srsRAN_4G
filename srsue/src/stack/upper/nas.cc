@@ -406,11 +406,17 @@ void nas::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
     case LIBLTE_MME_MSG_TYPE_EMM_INFORMATION:
       parse_emm_information(lcid, std::move(pdu));
       break;
+    case LIBLTE_MME_MSG_TYPE_EMM_STATUS:
+      parse_emm_status(lcid, std::move(pdu));
+      break;
     case LIBLTE_MME_MSG_TYPE_DETACH_REQUEST:
       parse_detach_request(lcid, std::move(pdu));
       break;
-    case LIBLTE_MME_MSG_TYPE_EMM_STATUS:
-      parse_emm_status(lcid, std::move(pdu));
+    case LIBLTE_MME_MSG_TYPE_ACTIVATE_DEDICATED_EPS_BEARER_CONTEXT_REQUEST:
+      parse_activate_dedicated_eps_bearer_context_request(lcid, std::move(pdu));
+      break;
+    case LIBLTE_MME_MSG_TYPE_ACTIVATE_TEST_MODE:
+      parse_activate_test_mode(lcid, std::move(pdu), sec_hdr_type);
       break;
     default:
       nas_log->error("Not handling NAS message with MSG_TYPE=%02X\n", msg_type);
@@ -955,8 +961,8 @@ void nas::parse_security_mode_command(uint32_t lcid, unique_byte_buffer_t pdu)
   // TODO: check nonce (not sent by Amari)
 
   // Check capabilities replay
-  if(!check_cap_replay(&sec_mode_cmd.ue_security_cap)) {
-    nas_log->warning("Sending Security Mode Reject due to security capabilities mismatch\n");
+  if (!check_cap_replay(&sec_mode_cmd.ue_security_cap)) {
+    nas_log->warning("Sending Security Mode Reject due to security capabilities replay mismatch\n");
     send_security_mode_reject(LIBLTE_MME_EMM_CAUSE_UE_SECURITY_CAPABILITIES_MISMATCH);
     return;
   }
@@ -1087,6 +1093,27 @@ void nas::parse_detach_request(uint32_t lcid, unique_byte_buffer_t pdu)
   } else {
     nas_log->warning("Received detach request in invalid state (state=%d)\n", state);
   }
+}
+
+void nas::parse_activate_dedicated_eps_bearer_context_request(uint32_t lcid, unique_byte_buffer_t pdu)
+{
+  nas_log->info("Received Activate Dedicated EPS bearer context request\n");
+
+  LIBLTE_MME_ACTIVATE_DEDICATED_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT request;
+  liblte_mme_unpack_activate_dedicated_eps_bearer_context_request_msg((LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), &request);
+
+  ctxt.rx_count++;
+
+  send_activate_dedicated_eps_bearer_context_accept();
+}
+
+void nas::parse_activate_test_mode(uint32_t lcid, unique_byte_buffer_t pdu, const uint8_t sec_hdr_type)
+{
+  nas_log->info("Received Activate test mode\n");
+
+  ctxt.rx_count++;
+
+  send_activate_test_mode_complete(sec_hdr_type);
 }
 
 void nas::parse_emm_status(uint32_t lcid, unique_byte_buffer_t pdu)
@@ -1708,6 +1735,49 @@ void nas::send_esm_information_response(const uint8 proc_transaction_id) {
   chap_id++;
 }
 
+void nas::send_activate_dedicated_eps_bearer_context_accept()
+{
+  unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
+
+  LIBLTE_MME_ACTIVATE_DEDICATED_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT accept = {};
+  if (liblte_mme_pack_activate_dedicated_eps_bearer_context_accept_msg(
+          &accept,
+          LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED,
+          ctxt.tx_count,
+          (LIBLTE_BYTE_MSG_STRUCT*)pdu.get())) {
+    nas_log->error("Error packing Activate Dedicated EPS Bearer context accept.\n");
+    return;
+  }
+
+  if (pcap != NULL) {
+    pcap->write_nas(pdu->msg, pdu->N_bytes);
+  }
+
+  nas_log->info_hex(pdu->msg, pdu->N_bytes, "Sending Activate Dedicated EPS Bearer context accept\n");
+  rrc->write_sdu(std::move(pdu));
+
+  ctxt.tx_count++;
+}
+
+void nas::send_activate_test_mode_complete(const uint8_t sec_hdr_type)
+{
+  unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
+
+  if (liblte_mme_pack_activate_test_mode_complete_msg(
+          (LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), sec_hdr_type, ctxt.tx_count)) {
+    nas_log->error("Error packing activate test mode complete.\n");
+    return;
+  }
+
+  if (pcap != NULL) {
+    pcap->write_nas(pdu->msg, pdu->N_bytes);
+  }
+
+  nas_log->info_hex(pdu->msg, pdu->N_bytes, "Sending Activate test mode complete\n");
+  rrc->write_sdu(std::move(pdu));
+
+  ctxt.tx_count++;
+}
 
 /*******************************************************************************
  * Security context persistence file

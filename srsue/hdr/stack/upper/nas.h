@@ -182,6 +182,8 @@ private:
   void parse_emm_information(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
   void parse_detach_request(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
   void parse_emm_status(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
+  void parse_activate_dedicated_eps_bearer_context_request(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
+  void parse_activate_test_mode(uint32_t lcid, srslte::unique_byte_buffer_t pdu, const uint8_t sec_hdr_type);
 
   // Packet generators
   void gen_attach_request(srslte::byte_buffer_t* msg);
@@ -198,6 +200,8 @@ private:
   void send_security_mode_reject(uint8_t cause);
   void send_detach_request(bool switch_off);
   void send_detach_accept();
+  void send_activate_dedicated_eps_bearer_context_accept();
+  void send_activate_test_mode_complete(const uint8_t sec_hdr_type);
 
   // security context persistence file
   bool read_ctxt_file(nas_sec_ctxt *ctxt);
