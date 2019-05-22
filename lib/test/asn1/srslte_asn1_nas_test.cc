@@ -110,7 +110,6 @@ int nas_dedicated_eps_bearer_context_setup_request_test()
   TESTASSERT(ded_bearer_req.packet_flow_id == 77); // Test flow id
 
   // NAS Activate Dedicated EPS Bearer Context Setup Request Pack Test (TODO)
-
   printf("Test NAS Activate Dedicated EPS Bearer Context Request successfull\n");
   return 0;
 }
