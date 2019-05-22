@@ -491,9 +491,21 @@ int main(int argc, char* argv[])
   all_args_t args = {};
   parse_args(&args, argc, argv);
 
+  srslte::logger_stdout logger_stdout;
+  srslte::logger_file   logger_file;
+
+  // Setup logging
+  srslte::logger* logger = nullptr;
+  if (!args.log.filename.compare("stdout")) {
+    logger = &logger_stdout;
+  } else {
+    logger_file.init(args.log.filename, args.log.file_max_size);
+    logger = &logger_file;
+  }
+
   // Create UE instance
   srsue::ue ue;
-  if (ue.init(args)) {
+  if (ue.init(args, logger)) {
     ue.stop();
     return SRSLTE_ERROR;
   }

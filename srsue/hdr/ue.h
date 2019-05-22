@@ -94,7 +94,7 @@ public:
   ue();
   ~ue();
 
-  int  init(const all_args_t& args_);
+  int  init(const all_args_t& args_, srslte::logger* logger_);
   void stop();
   bool switch_on();
   bool switch_off();
@@ -113,13 +113,11 @@ private:
   std::unique_ptr<ue_stack_base> stack;
 
   // Generic logger members
-  srslte::logger_stdout logger_stdout;
-  srslte::logger_file   logger_file;
-  srslte::logger        *logger;
+  srslte::logger*        logger = nullptr;
   srslte::log_filter     log; // Own logger for UE
 
   all_args_t                args;
-  srslte::byte_buffer_pool* pool;
+  srslte::byte_buffer_pool* pool = nullptr;
 
   // Helper functions
   int parse_args(const all_args_t& args); // parse and validate arguments

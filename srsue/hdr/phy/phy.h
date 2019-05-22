@@ -33,14 +33,14 @@
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/radio/radio.h"
 #include "srslte/srslte.h"
-#include "srsue/hdr/phy/ue_phy_base.h"
+#include "srsue/hdr/phy/ue_lte_phy_base.h"
 #include "sync.h"
 
 namespace srsue {
 
 typedef _Complex float cf_t;
 
-class phy : public ue_phy_base, public phy_interface_stack_lte, public phy_interface_radio, public thread
+class phy : public ue_lte_phy_base, public thread
 {
 public:
   phy();

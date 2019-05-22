@@ -20,31 +20,30 @@
  */
 
 /******************************************************************************
- * File:        ue_phy_base.h
- * Description: Base class for all UE PHYs.
+ * File:        ue_lte_phy_base.h
+ * Description: Base class for UE LTE PHYs.
  *****************************************************************************/
 
-#ifndef SRSUE_UE_PHY_BASE_H
-#define SRSUE_UE_PHY_BASE_H
+#ifndef SRSUE_UE_LTE_PHY_BASE_H
+#define SRSUE_UE_LTE_PHY_BASE_H
 
-#include "srslte/common/logger.h"
-#include "srslte/interfaces/ue_interfaces.h"
-#include "srsue/hdr/phy/phy_metrics.h"
-#include <memory>
-#include <vector>
+#include "srsue/hdr/phy/ue_phy_base.h"
 
 namespace srsue {
 
-class ue_phy_base
+class ue_lte_phy_base : public ue_phy_base, public phy_interface_stack_lte, public phy_interface_radio
 {
 public:
-  ue_phy_base(){};
-  virtual ~ue_phy_base(){};
+  ue_lte_phy_base(){};
+  virtual ~ue_lte_phy_base(){};
 
   virtual std::string get_type() = 0;
 
-  virtual int init(const phy_args_t& args_, srslte::logger* logger_) = 0;
-
+  virtual int  init(const phy_args_t& args_, srslte::logger* logger_) = 0;
+  virtual int  init(const phy_args_t&        args_,
+                    srslte::logger*          logger_,
+                    stack_interface_phy_lte* stack_,
+                    radio_interface_phy*     radio_)                      = 0;
   virtual void stop()                                                 = 0;
 
   virtual void set_earfcn(std::vector<uint32_t> earfcns) = 0;
@@ -58,4 +57,4 @@ public:
 
 } // namespace srsue
 
-#endif // SRSUE_UE_PHY_BASE_H
+#endif // SRSUE_UE_LTE_PHY_BASE_H

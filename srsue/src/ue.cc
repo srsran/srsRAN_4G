@@ -55,21 +55,15 @@ ue::~ue()
   srslte_dft_exit();
 }
 
-int ue::init(const all_args_t& args_)
+int ue::init(const all_args_t& args_, srslte::logger* logger_)
 {
-  // Setup logging
-  if (!args_.log.filename.compare("stdout")) {
-    logger = &logger_stdout;
-  } else {
-    logger_file.init(args_.log.filename, args_.log.file_max_size);
-    logger_file.log("\n\n");
-    logger_file.log(get_build_string().c_str());
-    logger = &logger_file;
-  }
+  logger = logger_;
 
   // Init UE log
   log.init("UE  ", logger);
   log.set_level(srslte::LOG_LEVEL_INFO);
+  log.info("\n\n");
+  log.info("%s\n", get_build_string().c_str());
 
   // Validate arguments
   if (parse_args(args_)) {
