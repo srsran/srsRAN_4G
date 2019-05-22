@@ -2525,6 +2525,10 @@ const char* liblte_nas_sec_hdr_type_to_string(int code);
 #define LIBLTE_MME_MSG_TYPE_CS_SERVICE_NOTIFICATION                                       0x64
 #define LIBLTE_MME_MSG_TYPE_DOWNLINK_GENERIC_NAS_TRANSPORT                                0x68
 #define LIBLTE_MME_MSG_TYPE_UPLINK_GENERIC_NAS_TRANSPORT                                  0x69
+#define LIBLTE_MME_MSG_TYPE_ACTIVATE_TEST_MODE                                            0x84
+#define LIBLTE_MME_MSG_TYPE_ACTIVATE_TEST_MODE_COMPLETE                                   0x85
+#define LIBLTE_MME_MSG_TYPE_DEACTIVATE TEST MODE                                          0x86
+#define LIBLTE_MME_MSG_TYPE_DEACTIVATE_TEST_MODE_COMPLETE                                 0x87
 #define LIBLTE_MME_MSG_TYPE_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST                   0xC1
 #define LIBLTE_MME_MSG_TYPE_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_ACCEPT                    0xC2
 #define LIBLTE_MME_MSG_TYPE_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REJECT                    0xC3
@@ -2548,6 +2552,9 @@ const char* liblte_nas_sec_hdr_type_to_string(int code);
 #define LIBLTE_MME_MSG_TYPE_ESM_INFORMATION_RESPONSE                                      0xDA
 #define LIBLTE_MME_MSG_TYPE_NOTIFICATION                                                  0xDB
 #define LIBLTE_MME_MSG_TYPE_ESM_STATUS                                                    0xE8
+#define LIBLTE_MME_MSG_TYPE_TEST_MODE_PROTOCOL_DISCRIMINATOR                              0xF
+#define LIBLTE_MME_MSG_TYPE_TEST_MODE_SKIP_INDICATOR                                      0x0
+
 const char* liblte_nas_msg_type_to_string(int code);
 
 // Enums
@@ -3427,6 +3434,8 @@ typedef struct{
 }LIBLTE_MME_ACTIVATE_DEDICATED_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT;
 // Functions
 LIBLTE_ERROR_ENUM liblte_mme_pack_activate_dedicated_eps_bearer_context_accept_msg(LIBLTE_MME_ACTIVATE_DEDICATED_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT *act_ded_eps_bearer_context_accept,
+                                                                                   uint8                                                              sec_hdr_type,
+                                                                                   uint32                                                             count,
                                                                                    LIBLTE_BYTE_MSG_STRUCT                                             *msg);
 LIBLTE_ERROR_ENUM liblte_mme_unpack_activate_dedicated_eps_bearer_context_accept_msg(LIBLTE_BYTE_MSG_STRUCT                                             *msg,
                                                                                      LIBLTE_MME_ACTIVATE_DEDICATED_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT *act_ded_eps_bearer_context_accept);
@@ -4049,5 +4058,22 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_pdn_disconnect_request_msg(LIBLTE_MME_PDN_DISC
                                                              LIBLTE_BYTE_MSG_STRUCT                       *msg);
 LIBLTE_ERROR_ENUM liblte_mme_unpack_pdn_disconnect_request_msg(LIBLTE_BYTE_MSG_STRUCT                       *msg,
                                                                LIBLTE_MME_PDN_DISCONNECT_REQUEST_MSG_STRUCT *pdn_discon_req);
+
+/*********************************************************************
+    Message Name: ACTIVATE TEST MODE COMPLETE
+
+    Description: Sent by the UE to the network in response to an
+                 ATTACH ACCEPT message.
+
+    Document Reference: 36.509 v8.7.0 Section 6.6
+*********************************************************************/
+// Defines
+// Enums
+// Structs
+// Functions
+LIBLTE_ERROR_ENUM liblte_mme_pack_activate_test_mode_complete_msg(LIBLTE_BYTE_MSG_STRUCT *msg,
+                                                                  uint8                   sec_hdr_type,
+                                                                  uint32                  count);
+
 
 #endif // SRSLTE_LIBLTE_MME_H

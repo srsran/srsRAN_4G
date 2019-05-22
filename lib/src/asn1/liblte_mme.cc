@@ -8547,6 +8547,8 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_uplink_generic_nas_transport_msg(LIBLTE_BYTE
     Document Reference: 24.301 v10.2.0 Section 8.3.1
 *********************************************************************/
 LIBLTE_ERROR_ENUM liblte_mme_pack_activate_dedicated_eps_bearer_context_accept_msg(LIBLTE_MME_ACTIVATE_DEDICATED_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT *act_ded_eps_bearer_context_accept,
+                                                                                   uint8                                                              sec_hdr_type,
+                                                                                   uint32                                                             count,
                                                                                    LIBLTE_BYTE_MSG_STRUCT                                             *msg)
 {
     LIBLTE_ERROR_ENUM  err     = LIBLTE_ERROR_INVALID_INPUTS;
@@ -8555,6 +8557,20 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_activate_dedicated_eps_bearer_context_accept_m
     if(act_ded_eps_bearer_context_accept != NULL &&
        msg                               != NULL)
     {
+        if(LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS != sec_hdr_type)
+        {
+          // Protocol Discriminator and Security Header Type
+          *msg_ptr = (sec_hdr_type << 4) | (LIBLTE_MME_PD_EPS_MOBILITY_MANAGEMENT);
+          msg_ptr++;
+
+          // MAC will be filled in later
+          msg_ptr += 4;
+
+          // Sequence Number
+          *msg_ptr = count & 0xFF;
+          msg_ptr++;
+        }
+
         // Protocol Discriminator and EPS Bearer ID
         *msg_ptr = (act_ded_eps_bearer_context_accept->eps_bearer_id << 4) | (LIBLTE_MME_PD_EPS_SESSION_MANAGEMENT);
         msg_ptr++;
@@ -11200,6 +11216,47 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_pdn_disconnect_request_msg(LIBLTE_BYTE_MSG_S
         }else{
             pdn_discon_req->protocol_cnfg_opts_present = false;
         }
+
+        err = LIBLTE_SUCCESS;
+    }
+
+    return(err);
+}
+
+
+LIBLTE_ERROR_ENUM liblte_mme_pack_activate_test_mode_complete_msg(LIBLTE_BYTE_MSG_STRUCT *msg,
+                                                                  uint8                   sec_hdr_type,
+                                                                  uint32                  count)
+{
+    LIBLTE_ERROR_ENUM  err     = LIBLTE_ERROR_INVALID_INPUTS;
+    uint8             *msg_ptr = msg->msg;
+
+    if(msg         != NULL)
+    {
+        if(LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS != sec_hdr_type)
+        {
+            // Protocol Discriminator and Security Header Type
+            *msg_ptr = (sec_hdr_type << 4) | (LIBLTE_MME_PD_EPS_MOBILITY_MANAGEMENT);
+            msg_ptr++;
+
+            // MAC will be filled in later
+            msg_ptr += 4;
+
+            // Sequence Number
+            *msg_ptr = count & 0xFF;
+            msg_ptr++;
+        }
+
+        // Protocol Discriminator and skip indicator (always 0x0F)
+        *msg_ptr = (LIBLTE_MME_MSG_TYPE_TEST_MODE_SKIP_INDICATOR << 4) | (LIBLTE_MME_MSG_TYPE_TEST_MODE_PROTOCOL_DISCRIMINATOR);
+        msg_ptr++;
+
+        // Message Type
+        *msg_ptr = LIBLTE_MME_MSG_TYPE_ACTIVATE_TEST_MODE_COMPLETE;
+        msg_ptr++;
+
+        // Fill in the number of bytes used
+        msg->N_bytes = msg_ptr - msg->msg;
 
         err = LIBLTE_SUCCESS;
     }
