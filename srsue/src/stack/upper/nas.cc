@@ -279,6 +279,10 @@ bool nas::rrc_connect() {
 
   // Set establishment cause
   establishment_cause_e establish_cause = establishment_cause_e::mo_sig;
+  if (state == EMM_STATE_REGISTERED) {
+    // FIXME: only need to use MT_ACCESS for establishment after paging
+    establish_cause = establishment_cause_e::mt_access;
+  }
 
   if (rrc->connection_request(establish_cause, std::move(dedicatedInfoNAS))) {
     nas_log->info("Connection established correctly. Waiting for Attach\n");
