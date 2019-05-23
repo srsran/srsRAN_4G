@@ -67,23 +67,15 @@ void pdcp_entity::init(srsue::rlc_interface_pdcp      *rlc_,
   do_integrity  = false;
   do_encryption = false;
 
-  cfg.sn_len    = 0;
-  sn_len_bytes  = 0;
+  cfg = cfg_;
 
-  if (cfg.is_control) {
-    cfg.sn_len   = 5;
-    sn_len_bytes = 1;
-  }
-  if (cfg.is_data) {
-    cfg.sn_len   = 12;
-    sn_len_bytes = 2;
-  }
-
-  log->info("Init %s with bearer ID: %d\n", rrc->get_rb_name(lcid).c_str(), cfg.bearer_id);
+  // set length of SN field in bytes
+  sn_len_bytes = (cfg.sn_len == 5) ? 1 : 2;
 }
 
 // Reestablishment procedure: 36.323 5.2
-void pdcp_entity::reestablish() {
+void pdcp_entity::reestablish()
+{
   // For SRBs
   if (cfg.is_control) {
     tx_count = 0;

@@ -146,7 +146,11 @@ void pdcp::add_bearer(uint32_t lcid, srslte_pdcp_config_t cfg)
       goto unlock_and_exit;
     }
     pdcp_array.at(lcid)->init(rlc, rrc, gw, pdcp_log, lcid, cfg);
-    pdcp_log->info("Added bearer %s\n", rrc->get_rb_name(lcid).c_str());
+    pdcp_log->info("Add %s (lcid=%d, bearer_id=%d, sn_len=%dbits)\n",
+                   rrc->get_rb_name(lcid).c_str(),
+                   lcid,
+                   cfg.bearer_id,
+                   cfg.sn_len);
   } else {
     pdcp_log->warning("Bearer %s already configured. Reconfiguration not supported\n", rrc->get_rb_name(lcid).c_str());
   }
@@ -163,7 +167,11 @@ void pdcp::add_bearer_mrb(uint32_t lcid, srslte_pdcp_config_t cfg)
       goto unlock_and_exit;
     }
     pdcp_array_mrb.at(lcid)->init(rlc, rrc, gw, pdcp_log, lcid, cfg);
-    pdcp_log->info("Added bearer %s\n", rrc->get_rb_name(lcid).c_str());
+    pdcp_log->info("Add %s (lcid=%d, bearer_id=%d, sn_len=%dbits)\n",
+                   rrc->get_rb_name(lcid).c_str(),
+                   lcid,
+                   cfg.bearer_id,
+                   cfg.sn_len);
   } else {
     pdcp_log->warning("Bearer %s already configured. Reconfiguration not supported\n", rrc->get_rb_name(lcid).c_str());
   }

@@ -2980,7 +2980,6 @@ void rrc::add_srb(srb_to_add_mod_s* srb_cnfg)
 
 void rrc::add_drb(drb_to_add_mod_s* drb_cnfg)
 {
-
   if (!drb_cnfg->pdcp_cfg_present || !drb_cnfg->rlc_cfg_present || !drb_cnfg->lc_ch_cfg_present) {
     rrc_log->error("Cannot add DRB - incomplete configuration\n");
     return;
@@ -2994,7 +2993,7 @@ void rrc::add_drb(drb_to_add_mod_s* drb_cnfg)
   }
 
   // Setup PDCP
-  srslte_pdcp_config_t pdcp_cfg;
+  srslte_pdcp_config_t pdcp_cfg = {};
   pdcp_cfg.is_data = true;
   pdcp_cfg.bearer_id = drb_cnfg->drb_id;
   if (drb_cnfg->pdcp_cfg.rlc_um_present) {
