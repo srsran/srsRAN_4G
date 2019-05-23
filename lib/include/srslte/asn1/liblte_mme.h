@@ -3733,8 +3733,11 @@ typedef struct{
     bool                                      protocol_cnfg_opts_present;
 }LIBLTE_MME_DEACTIVATE_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT;
 // Functions
-LIBLTE_ERROR_ENUM liblte_mme_pack_deactivate_eps_bearer_context_accept_msg(LIBLTE_MME_DEACTIVATE_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT *deact_eps_bearer_context_accept,
-                                                                           LIBLTE_BYTE_MSG_STRUCT                                     *msg);
+LIBLTE_ERROR_ENUM liblte_mme_pack_deactivate_eps_bearer_context_accept_msg(
+    LIBLTE_MME_DEACTIVATE_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT* deact_eps_bearer_context_accept,
+    uint8                                                       sec_hdr_type,
+    uint32                                                      count,
+    LIBLTE_BYTE_MSG_STRUCT*                                     msg);
 LIBLTE_ERROR_ENUM liblte_mme_unpack_deactivate_eps_bearer_context_accept_msg(LIBLTE_BYTE_MSG_STRUCT                                     *msg,
                                                                              LIBLTE_MME_DEACTIVATE_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT *deact_eps_bearer_context_accept);
 

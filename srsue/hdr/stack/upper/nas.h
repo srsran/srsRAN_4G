@@ -183,6 +183,7 @@ private:
   void parse_detach_request(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
   void parse_emm_status(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
   void parse_activate_dedicated_eps_bearer_context_request(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
+  void parse_deactivate_eps_bearer_context_request(srslte::unique_byte_buffer_t pdu);
   void parse_activate_test_mode(uint32_t lcid, srslte::unique_byte_buffer_t pdu, const uint8_t sec_hdr_type);
 
   // Packet generators
@@ -202,6 +203,7 @@ private:
   void send_detach_accept();
   void send_activate_dedicated_eps_bearer_context_accept(const uint8_t& proc_transaction_id,
                                                          const uint8_t& eps_bearer_id);
+  void send_deactivate_eps_bearer_context_accept(const uint8_t& proc_transaction_id, const uint8_t& eps_bearer_id);
   void send_activate_test_mode_complete(const uint8_t sec_hdr_type);
 
   // security context persistence file

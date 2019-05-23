@@ -9810,42 +9810,55 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_bearer_resource_modification_request_msg(LIB
 
     Document Reference: 24.301 v10.2.0 Section 8.3.11
 *********************************************************************/
-LIBLTE_ERROR_ENUM liblte_mme_pack_deactivate_eps_bearer_context_accept_msg(LIBLTE_MME_DEACTIVATE_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT *deact_eps_bearer_context_accept,
-                                                                           LIBLTE_BYTE_MSG_STRUCT                                     *msg)
+LIBLTE_ERROR_ENUM liblte_mme_pack_deactivate_eps_bearer_context_accept_msg(
+    LIBLTE_MME_DEACTIVATE_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT* deact_eps_bearer_context_accept,
+    uint8                                                       sec_hdr_type,
+    uint32                                                      count,
+    LIBLTE_BYTE_MSG_STRUCT*                                     msg)
 {
-    LIBLTE_ERROR_ENUM  err     = LIBLTE_ERROR_INVALID_INPUTS;
-    uint8             *msg_ptr = msg->msg;
+  LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
+  uint8*            msg_ptr = msg->msg;
 
-    if(deact_eps_bearer_context_accept != NULL &&
-       msg                             != NULL)
-    {
-        // Protocol Discriminator and EPS Bearer ID
-        *msg_ptr = (deact_eps_bearer_context_accept->eps_bearer_id << 4) | (LIBLTE_MME_PD_EPS_SESSION_MANAGEMENT);
-        msg_ptr++;
+  if (deact_eps_bearer_context_accept != NULL && msg != NULL) {
+    if (LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS != sec_hdr_type) {
+      // Protocol Discriminator and Security Header Type
+      *msg_ptr = (sec_hdr_type << 4) | (LIBLTE_MME_PD_EPS_MOBILITY_MANAGEMENT);
+      msg_ptr++;
 
-        // Procedure Transaction ID
-        *msg_ptr = deact_eps_bearer_context_accept->proc_transaction_id;
-        msg_ptr++;
+      // MAC will be filled in later
+      msg_ptr += 4;
 
-        // Message Type
-        *msg_ptr = LIBLTE_MME_MSG_TYPE_DEACTIVATE_EPS_BEARER_CONTEXT_ACCEPT;
-        msg_ptr++;
-
-        // Protocol Configuration Options
-        if(deact_eps_bearer_context_accept->protocol_cnfg_opts_present)
-        {
-            *msg_ptr = LIBLTE_MME_PROTOCOL_CONFIGURATION_OPTIONS_IEI;
-            msg_ptr++;
-            liblte_mme_pack_protocol_config_options_ie(&deact_eps_bearer_context_accept->protocol_cnfg_opts, &msg_ptr);
-        }
-
-        // Fill in the number of bytes used
-        msg->N_bytes = msg_ptr - msg->msg;
-
-        err = LIBLTE_SUCCESS;
+      // Sequence Number
+      *msg_ptr = count & 0xFF;
+      msg_ptr++;
     }
 
-    return(err);
+    // Protocol Discriminator and EPS Bearer ID
+    *msg_ptr = (deact_eps_bearer_context_accept->eps_bearer_id << 4) | (LIBLTE_MME_PD_EPS_SESSION_MANAGEMENT);
+    msg_ptr++;
+
+    // Procedure Transaction ID
+    *msg_ptr = deact_eps_bearer_context_accept->proc_transaction_id;
+    msg_ptr++;
+
+    // Message Type
+    *msg_ptr = LIBLTE_MME_MSG_TYPE_DEACTIVATE_EPS_BEARER_CONTEXT_ACCEPT;
+    msg_ptr++;
+
+    // Protocol Configuration Options
+    if (deact_eps_bearer_context_accept->protocol_cnfg_opts_present) {
+      *msg_ptr = LIBLTE_MME_PROTOCOL_CONFIGURATION_OPTIONS_IEI;
+      msg_ptr++;
+      liblte_mme_pack_protocol_config_options_ie(&deact_eps_bearer_context_accept->protocol_cnfg_opts, &msg_ptr);
+    }
+
+    // Fill in the number of bytes used
+    msg->N_bytes = msg_ptr - msg->msg;
+
+    err = LIBLTE_SUCCESS;
+  }
+
+  return (err);
 }
 LIBLTE_ERROR_ENUM liblte_mme_unpack_deactivate_eps_bearer_context_accept_msg(LIBLTE_BYTE_MSG_STRUCT                                     *msg,
                                                                              LIBLTE_MME_DEACTIVATE_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT *deact_eps_bearer_context_accept)

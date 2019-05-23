@@ -419,6 +419,9 @@ void nas::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
     case LIBLTE_MME_MSG_TYPE_ACTIVATE_DEDICATED_EPS_BEARER_CONTEXT_REQUEST:
       parse_activate_dedicated_eps_bearer_context_request(lcid, std::move(pdu));
       break;
+    case LIBLTE_MME_MSG_TYPE_DEACTIVATE_EPS_BEARER_CONTEXT_REQUEST:
+      parse_deactivate_eps_bearer_context_request(std::move(pdu));
+      break;
     case LIBLTE_MME_MSG_TYPE_ACTIVATE_TEST_MODE:
       parse_activate_test_mode(lcid, std::move(pdu), sec_hdr_type);
       break;
@@ -1115,6 +1118,24 @@ void nas::parse_activate_dedicated_eps_bearer_context_request(uint32_t lcid, uni
   send_activate_dedicated_eps_bearer_context_accept(request.proc_transaction_id, request.eps_bearer_id);
 }
 
+void nas::parse_deactivate_eps_bearer_context_request(unique_byte_buffer_t pdu)
+{
+  LIBLTE_MME_DEACTIVATE_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT request;
+
+  liblte_mme_unpack_deactivate_eps_bearer_context_request_msg((LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), &request);
+
+  nas_log->info("Received Deactivate EPS bearer context request (eps_bearer_id=%d, proc_id=%d)\n",
+                request.eps_bearer_id,
+                request.proc_transaction_id);
+
+  ctxt.rx_count++;
+
+  // fixme: add proper checks before sending accepts
+
+  send_deactivate_eps_bearer_context_accept(request.proc_transaction_id, request.eps_bearer_id);
+}
+
+
 void nas::parse_activate_test_mode(uint32_t lcid, unique_byte_buffer_t pdu, const uint8_t sec_hdr_type)
 {
   nas_log->info("Received Activate test mode\n");
@@ -1778,6 +1799,46 @@ void nas::send_activate_dedicated_eps_bearer_context_accept(const uint8_t& proc_
   nas_log->info_hex(pdu->msg,
                     pdu->N_bytes,
                     "Sending Activate Dedicated EPS Bearer context accept (eps_bearer_id=%d, proc_id=%d)\n",
+                    accept.eps_bearer_id,
+                    accept.proc_transaction_id);
+  rrc->write_sdu(std::move(pdu));
+
+  ctxt.tx_count++;
+}
+
+void nas::send_deactivate_eps_bearer_context_accept(const uint8_t& proc_transaction_id, const uint8_t& eps_bearer_id)
+{
+  unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
+
+  LIBLTE_MME_DEACTIVATE_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT accept = {};
+
+  accept.eps_bearer_id       = eps_bearer_id;
+  accept.proc_transaction_id = proc_transaction_id;
+
+  if (liblte_mme_pack_deactivate_eps_bearer_context_accept_msg(&accept,
+                                                               LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED,
+                                                               ctxt.tx_count,
+                                                               (LIBLTE_BYTE_MSG_STRUCT*)pdu.get())) {
+    nas_log->error("Error packing Aeactivate EPS Bearer context accept.\n");
+    return;
+  }
+
+  if (pcap != NULL) {
+    pcap->write_nas(pdu->msg, pdu->N_bytes);
+  }
+
+  cipher_encrypt(pdu.get());
+  if (pdu->N_bytes > 5) {
+    integrity_generate(
+        &k_nas_int[16], ctxt.tx_count, SECURITY_DIRECTION_UPLINK, &pdu->msg[5], pdu->N_bytes - 5, &pdu->msg[1]);
+  } else {
+    nas_log->error("Invalid PDU size %d\n", pdu->N_bytes);
+    return;
+  }
+
+  nas_log->info_hex(pdu->msg,
+                    pdu->N_bytes,
+                    "Sending Deactivate EPS Bearer context accept (eps_bearer_id=%d, proc_id=%d)\n",
                     accept.eps_bearer_id,
                     accept.proc_transaction_id);
   rrc->write_sdu(std::move(pdu));
