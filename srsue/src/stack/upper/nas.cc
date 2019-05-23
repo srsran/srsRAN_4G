@@ -1101,14 +1101,18 @@ void nas::parse_detach_request(uint32_t lcid, unique_byte_buffer_t pdu)
 
 void nas::parse_activate_dedicated_eps_bearer_context_request(uint32_t lcid, unique_byte_buffer_t pdu)
 {
-  nas_log->info("Received Activate Dedicated EPS bearer context request\n");
-
   LIBLTE_MME_ACTIVATE_DEDICATED_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT request;
   liblte_mme_unpack_activate_dedicated_eps_bearer_context_request_msg((LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), &request);
 
+  nas_log->info(
+      "Received Activate Dedicated EPS bearer context request (eps_bearer_id=%d, linked_bearer_id=%d, proc_id=%d)\n",
+      request.eps_bearer_id,
+      request.linked_eps_bearer_id,
+      request.proc_transaction_id);
+
   ctxt.rx_count++;
 
-  send_activate_dedicated_eps_bearer_context_accept();
+  send_activate_dedicated_eps_bearer_context_accept(request.proc_transaction_id, request.eps_bearer_id);
 }
 
 void nas::parse_activate_test_mode(uint32_t lcid, unique_byte_buffer_t pdu, const uint8_t sec_hdr_type)
@@ -1739,11 +1743,16 @@ void nas::send_esm_information_response(const uint8 proc_transaction_id) {
   chap_id++;
 }
 
-void nas::send_activate_dedicated_eps_bearer_context_accept()
+void nas::send_activate_dedicated_eps_bearer_context_accept(const uint8_t& proc_transaction_id,
+                                                            const uint8_t& eps_bearer_id)
 {
   unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
 
   LIBLTE_MME_ACTIVATE_DEDICATED_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT accept = {};
+
+  accept.eps_bearer_id       = eps_bearer_id;
+  accept.proc_transaction_id = proc_transaction_id;
+
   if (liblte_mme_pack_activate_dedicated_eps_bearer_context_accept_msg(
           &accept,
           LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED,
@@ -1757,7 +1766,20 @@ void nas::send_activate_dedicated_eps_bearer_context_accept()
     pcap->write_nas(pdu->msg, pdu->N_bytes);
   }
 
-  nas_log->info_hex(pdu->msg, pdu->N_bytes, "Sending Activate Dedicated EPS Bearer context accept\n");
+  cipher_encrypt(pdu.get());
+  if (pdu->N_bytes > 5) {
+    integrity_generate(
+        &k_nas_int[16], ctxt.tx_count, SECURITY_DIRECTION_UPLINK, &pdu->msg[5], pdu->N_bytes - 5, &pdu->msg[1]);
+  } else {
+    nas_log->error("Invalid PDU size %d\n", pdu->N_bytes);
+    return;
+  }
+
+  nas_log->info_hex(pdu->msg,
+                    pdu->N_bytes,
+                    "Sending Activate Dedicated EPS Bearer context accept (eps_bearer_id=%d, proc_id=%d)\n",
+                    accept.eps_bearer_id,
+                    accept.proc_transaction_id);
   rrc->write_sdu(std::move(pdu));
 
   ctxt.tx_count++;

@@ -200,7 +200,8 @@ private:
   void send_security_mode_reject(uint8_t cause);
   void send_detach_request(bool switch_off);
   void send_detach_accept();
-  void send_activate_dedicated_eps_bearer_context_accept();
+  void send_activate_dedicated_eps_bearer_context_accept(const uint8_t& proc_transaction_id,
+                                                         const uint8_t& eps_bearer_id);
   void send_activate_test_mode_complete(const uint8_t sec_hdr_type);
 
   // security context persistence file
