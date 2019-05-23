@@ -71,11 +71,28 @@ inline void assert_choice_type(const std::string& access_type, const std::string
   }
 }
 
+inline const char* convert_enum_idx(const char* array[], uint32_t nof_types, uint32_t enum_val, const char* enum_type)
+{
+  if (enum_val >= nof_types) {
+    if (enum_val == nof_types) {
+      rrc_log_print(LOG_LEVEL_ERROR, "The enum of type %s was not initialized.\n", enum_type);
+    } else {
+      rrc_log_print(LOG_LEVEL_ERROR, "The enum value=%d of type %s is not valid.\n", enum_val, enum_type);
+    }
+    return "";
+  }
+  return array[enum_val];
+}
+
 template <class ItemType>
 ItemType convert_enum_idx(ItemType* array, uint32_t nof_types, uint32_t enum_val, const char* enum_type)
 {
   if (enum_val >= nof_types) {
-    rrc_log_print(LOG_LEVEL_ERROR, "The provided enum value=%d of type %s cannot be converted.\n", enum_val, enum_type);
+    if (enum_val == nof_types) {
+      rrc_log_print(LOG_LEVEL_ERROR, "The enum of type %s was not initialized.\n", enum_type);
+    } else {
+      rrc_log_print(LOG_LEVEL_ERROR, "The enum value=%d of type %s is not valid.\n", enum_val, enum_type);
+    }
     return 0;
   }
   return array[enum_val];
