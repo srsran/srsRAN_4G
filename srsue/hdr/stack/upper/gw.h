@@ -58,7 +58,8 @@ public:
   void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
 
   // NAS interface
-  int setup_if_addr(uint32_t lcid, uint8_t pdn_type, uint32_t ip_addr, uint8_t* ipv6_if_addr, char *err_str);
+  int setup_if_addr(uint32_t lcid, uint8_t pdn_type, uint32_t ip_addr, uint8_t* ipv6_if_addr, char* err_str);
+  int apply_traffic_flow_template(const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft);
 
   // RRC interface
   void add_mch_port(uint32_t lcid, uint32_t port);

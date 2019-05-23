@@ -97,7 +97,8 @@ public:
 class gw_interface_nas
 {
 public:
-  virtual int setup_if_addr(uint32_t lcid, uint8_t pdn_type, uint32_t ip_addr, uint8_t *ipv6_if_id, char *err_str) = 0;
+  virtual int setup_if_addr(uint32_t lcid, uint8_t pdn_type, uint32_t ip_addr, uint8_t* ipv6_if_id, char* err_str) = 0;
+  virtual int apply_traffic_flow_template(const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft)                      = 0;
 };
 
 // GW interface for RRC
@@ -186,18 +187,18 @@ public:
 
   const static int MAX_FOUND_PLMNS = 16;
 
-  virtual void        write_sdu(srslte::unique_byte_buffer_t sdu)            = 0;
-  virtual uint16_t get_mcc() = 0;
-  virtual uint16_t get_mnc() = 0;
-  virtual void enable_capabilities() = 0;
-  virtual int plmn_search(found_plmn_t found_plmns[MAX_FOUND_PLMNS]) = 0;
-  virtual void     plmn_select(asn1::rrc::plmn_id_s plmn_id)                                                       = 0;
+  virtual void        write_sdu(srslte::unique_byte_buffer_t sdu)                       = 0;
+  virtual uint16_t    get_mcc()                                                         = 0;
+  virtual uint16_t    get_mnc()                                                         = 0;
+  virtual void        enable_capabilities()                                             = 0;
+  virtual int         plmn_search(found_plmn_t found_plmns[MAX_FOUND_PLMNS])            = 0;
+  virtual void        plmn_select(asn1::rrc::plmn_id_s plmn_id)                         = 0;
   virtual bool        connection_request(asn1::rrc::establishment_cause_e cause,
                                          srslte::unique_byte_buffer_t     dedicatedInfoNAS) = 0;
-  virtual void set_ue_idenity(asn1::rrc::s_tmsi_s s_tmsi)                                                          = 0;
-  virtual bool is_connected() = 0;
-  virtual std::string get_rb_name(uint32_t lcid) = 0;
-  virtual uint32_t    get_lcid_for_eps_bearer(const uint32_t& eps_bearer_id) = 0;
+  virtual void        set_ue_idenity(asn1::rrc::s_tmsi_s s_tmsi)                        = 0;
+  virtual bool        is_connected()                                                    = 0;
+  virtual std::string get_rb_name(uint32_t lcid)                                        = 0;
+  virtual uint32_t    get_lcid_for_eps_bearer(const uint32_t& eps_bearer_id)            = 0;
 };
 
 // RRC interface for PDCP

@@ -220,7 +220,11 @@ int gw::setup_if_addr(uint32_t lcid, uint8_t pdn_type, uint32_t ip_addr, uint8_t
 }
 
 
-
+int gw::apply_traffic_flow_template(const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft)
+{
+  int err;
+  return SRSLTE_SUCCESS;
+}
 /*******************************************************************************
   RRC interface
 *******************************************************************************/

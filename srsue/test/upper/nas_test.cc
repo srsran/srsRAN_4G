@@ -143,8 +143,9 @@ class gw_dummy : public gw_interface_nas, public gw_interface_pdcp
   {
     return SRSLTE_SUCCESS;
   }
-  void write_pdu(uint32_t lcid, unique_byte_buffer_t pdu) {}
-  void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu) {}
+  int     apply_traffic_flow_template(const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft) { return SRSLTE_SUCCESS; }
+  void    write_pdu(uint32_t lcid, unique_byte_buffer_t pdu) {}
+  void    write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu) {}
 };
 
 }
