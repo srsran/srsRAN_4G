@@ -523,13 +523,12 @@ bool nas::integrity_check(byte_buffer_t* pdu)
 {
   if (!pdu) {
     nas_log->error("Invalid PDU\n");
-    return NULL;
+    return false;
   }
+
   if (pdu->N_bytes > 5) {
     uint8_t exp_mac[4] = {0};
     uint8_t *mac = &pdu->msg[1];
-    int i;
-
     integrity_generate(&k_nas_int[16],
                        ctxt.rx_count,
                        SECURITY_DIRECTION_DOWNLINK,
@@ -538,7 +537,7 @@ bool nas::integrity_check(byte_buffer_t* pdu)
                        &exp_mac[0]);
 
     // Check if expected mac equals the sent mac
-    for(i=0; i<4; i++){
+    for (int i = 0; i < 4; i++) {
       if(exp_mac[i] != mac[i]){
         nas_log->warning("Integrity check failure. Local: count=%d, [%02x %02x %02x %02x], "
                              "Received: count=%d, [%02x %02x %02x %02x]\n",
