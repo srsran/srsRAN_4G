@@ -4875,9 +4875,9 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_traffic_flow_template_ie(uint8              
             }
         }
 
+        tft->parameter_list_size = 0;
         if(param_list_present)
         {
-            tft->parameter_list_size = 0;
             while(idx < (*ie_ptr)[0])
             {
                 tft->parameter_list[tft->parameter_list_size].id = (*ie_ptr)[idx];
