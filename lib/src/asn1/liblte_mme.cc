@@ -4686,7 +4686,7 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_radio_priority_ie(uint8   radio_prio,
 
     if(ie_ptr != NULL)
     {
-        (*ie_ptr)[0] |= radio_prio << bit_offset;
+        (*ie_ptr)[0] = radio_prio << bit_offset;
 
         err = LIBLTE_SUCCESS;
     }
@@ -4702,8 +4702,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_radio_priority_ie(uint8 **ie_ptr,
     if(ie_ptr     != NULL &&
        radio_prio != NULL)
     {
-        *radio_prio |= ((*ie_ptr)[0] >> bit_offset) & 0x07;
-
+        *radio_prio = ((*ie_ptr)[0] >> bit_offset) & 0x07;
         err = LIBLTE_SUCCESS;
     }
 
@@ -4948,12 +4947,17 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_transaction_identifier_ie(uint8             
     if(ie_ptr   != NULL &&
        trans_id != NULL)
     {
+        uint8_t len = (*ie_ptr)[0];
         trans_id->ti_flag = (*ie_ptr)[1] >> 7;
         trans_id->tio     = ((*ie_ptr)[1] >> 4) & 0x07;
-        if(LIBLTE_MME_TI_VALUE_IS_GIVEN_BY_TIE == trans_id->tio)
-        {
-            trans_id->tie = (*ie_ptr)[2] & 0x7F;
+        if (len > 2 || len == 0){
+          return err;
         }
+
+        if (2 == len) {
+          trans_id->tie = (*ie_ptr)[2] & 0x7F;
+        }
+
         *ie_ptr += (*ie_ptr)[0] + 1;
 
         err = LIBLTE_SUCCESS;
