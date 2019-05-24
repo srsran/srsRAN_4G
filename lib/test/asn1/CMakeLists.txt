@@ -45,3 +45,7 @@ add_test(srslte_asn1_rrc_dl_dcch_test srslte_asn1_rrc_dl_dcch_test)
 add_executable(srslte_asn1_m2ap_test srslte_asn1_m2ap_test.cc)
 target_link_libraries(srslte_asn1_m2ap_test srslte_common srslte_phy srslte_asn1)
 add_test(srslte_asn1_m2ap_test srslte_asn1_m2ap_test)
+
+add_executable(srslte_asn1_nas_test srslte_asn1_nas_test.cc)
+target_link_libraries(srslte_asn1_nas_test srslte_common srslte_phy srslte_asn1)
+add_test(srslte_asn1_nas_test srslte_asn1_nas_test)
