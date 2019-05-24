@@ -9967,6 +9967,15 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_deactivate_eps_bearer_context_request_msg(LI
     if(msg                          != NULL &&
        deact_eps_bearer_context_req != NULL)
     {
+        // Security Header Type
+        uint8_t sec_hdr_type = (msg->msg[0] & 0xF0) >> 4;
+        if(LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS == sec_hdr_type)
+        {
+            msg_ptr++;
+        }else{
+            msg_ptr += 6;
+        }
+
         // EPS Bearer ID
         deact_eps_bearer_context_req->eps_bearer_id = (*msg_ptr >> 4);
         msg_ptr++;
