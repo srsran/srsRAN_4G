@@ -173,9 +173,11 @@ private:
           pthread_cond_wait(&cv_full, &mutex);
         }
         if (!enable) {
+          num_threads--;
           return false;
         }
       } else if (q.size() >= (uint32_t) capacity) {
+        num_threads--;
         return false;
       }
     }
