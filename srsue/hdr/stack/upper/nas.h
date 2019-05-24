@@ -22,46 +22,19 @@
 #ifndef SRSUE_NAS_H
 #define SRSUE_NAS_H
 
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/log.h"
-#include "srslte/common/common.h"
-#include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/common/security.h"
 #include "srslte/asn1/liblte_mme.h"
+#include "srslte/common/buffer_pool.h"
+#include "srslte/common/common.h"
+#include "srslte/common/log.h"
 #include "srslte/common/nas_pcap.h"
+#include "srslte/common/security.h"
+#include "srslte/interfaces/ue_interfaces.h"
+#include "srsue/hdr/stack/upper/nas_common.h"
+#include "srsue/hdr/stack/upper/nas_metrics.h"
 
 using srslte::byte_buffer_t;
 
 namespace srsue {
-
-class nas_args_t
-{
-public:
-  nas_args_t() : force_imsi_attach(false) {}
-
-  std::string apn_name;
-  std::string apn_protocol;
-  std::string apn_user;
-  std::string apn_pass;
-  bool        force_imsi_attach;
-  std::string eia;
-  std::string eea;
-};
-
-// EMM states (3GPP 24.302 v10.0.0)
-typedef enum {
-  EMM_STATE_NULL = 0,
-  EMM_STATE_DEREGISTERED,
-  EMM_STATE_REGISTERED,
-  EMM_STATE_DEREGISTERED_INITIATED,
-  EMM_STATE_TAU_INITIATED,
-  EMM_STATE_N_ITEMS,
-} emm_state_t;
-static const char emm_state_text[EMM_STATE_N_ITEMS][100] = {"NULL",
-                                                            "DEREGISTERED",
-                                                            "REGISTERED",
-                                                            "DEREGISTERED INITIATED",
-                                                            "TRACKING AREA UPDATE INITIATED"};
 
 class nas
   : public nas_interface_rrc,
