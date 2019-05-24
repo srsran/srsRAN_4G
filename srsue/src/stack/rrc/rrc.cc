@@ -634,12 +634,18 @@ void rrc::out_of_sync()
   // CAUTION: We do not lock in this function since they are called from real-time threads
 
   serving_cell->in_sync = false;
-  rrc_log->info("Received out-of-sync while in state %s. n310=%d, t311=%s, t310=%s\n",
-                rrc_state_text[state], n310_cnt,
-                mac_timers->timer_get(t311)->is_running()?"running":"stop",
-                mac_timers->timer_get(t310)->is_running()?"running":"stop");
+
+  // upon receiving N310 consecutive "out-of-sync" indications for the PCell from lower layers while neither T300,
+  //   T301, T304 nor T311 is running:
   if (state == RRC_STATE_CONNECTED) {
-    if (!mac_timers->timer_get(t311)->is_running() && !mac_timers->timer_get(t310)->is_running()) {
+    if (!mac_timers->timer_get(t300)->is_running() && !mac_timers->timer_get(t301)->is_running() &&
+        !mac_timers->timer_get(t304)->is_running() && !mac_timers->timer_get(t310)->is_running() &&
+        !mac_timers->timer_get(t311)->is_running()) {
+      rrc_log->info("Received out-of-sync while in state %s. n310=%d, t311=%s, t310=%s\n",
+                    rrc_state_text[state],
+                    n310_cnt,
+                    mac_timers->timer_get(t311)->is_running() ? "running" : "stop",
+                    mac_timers->timer_get(t310)->is_running() ? "running" : "stop");
       n310_cnt++;
       if (n310_cnt == N310) {
         rrc_log->info("Detected %d out-of-sync from PHY. Trying to resync. Starting T310 timer %d ms\n",
@@ -1690,6 +1696,7 @@ void rrc::leave_connected()
 {
   rrc_log->console("RRC IDLE\n");
   rrc_log->info("Leaving RRC_CONNECTED state\n");
+  m_reest_cause         = asn1::rrc::reest_cause_e::nulltype;
   state = RRC_STATE_IDLE;
   rlc_flush_counter     = 0;
   drb_up = false;
@@ -1720,82 +1727,106 @@ void rrc::stop_timers()
   mac_timers->timer_get(t304)->stop();
 }
 
+/* Implementation of procedure in 3GPP 36.331 Section 5.3.7.2: Initiation
+ *
+ * This procedure shall be only initiated when:
+ *   - upon detecting radio link failure, in accordance with 5.3.11; or
+ *   - upon handover failure, in accordance with 5.3.5.6; or
+ *   - upon mobility from E-UTRA failure, in accordance with 5.4.3.5; or
+ *   - upon integrity check failure indication from lower layers; or
+ *   - upon an RRC connection reconfiguration failure, in accordance with 5.3.5.5;
+ *
+ *   The parameter cause shall indicate the cause of the reestablishment according to the sections mentioned adobe.
+ */
 void rrc::init_con_restablish_request(asn1::rrc::reest_cause_e cause)
 {
-  // Save reestablishment cause
-  m_reest_cause = cause;
-
   // Save Current RNTI before MAC Reset
   mac_interface_rrc::ue_rnti_t uernti;
   mac->get_rntis(&uernti);
-  m_reest_rnti = uernti.crnti;
 
-  // initiation of reestablishment procedure as indicates in 3GPP 36.331 Section 5.3.7.2
-  rrc_log->info("Initiating RRC Connection Reestablishment Procedure\n");
-  rrc_log->console("Initiating RRC Connection Reestablishment Procedure (crnti=x%04x, t311=%d)\n",
-                   m_reest_rnti,
-                   mac_timers->timer_get(t311)->get_timeout());
+  // If security is activated, RRC connected and C-RNTI available
+  if (security_is_activated && state == RRC_STATE_CONNECTED && uernti.crnti != 0) {
+    // Save reestablishment cause and current C-RNTI
+    m_reest_rnti  = uernti.crnti;
+    m_reest_cause = cause;
 
-  // stop timer T310, if running;
-  mac_timers->timer_get(t310)->stop();
+    // initiation of reestablishment procedure as indicates in 3GPP 36.331 Section 5.3.7.2
+    rrc_log->info("Initiating RRC Connection Reestablishment Procedure\n");
+    rrc_log->console("Initiating RRC Connection Reestablishment Procedure\n");
 
-  // start timer T311;
-  mac_timers->timer_get(t311)->reset();
-  mac_timers->timer_get(t311)->run();
+    // stop timer T310, if running;
+    mac_timers->timer_get(t310)->stop();
 
-  // suspend all RBs except SRB0;
-  // rlc->reset();
+    // start timer T311;
+    mac_timers->timer_get(t311)->reset();
+    mac_timers->timer_get(t311)->run();
 
-  // reset MAC;
-  mac->reset();
+    // suspend all RBs except SRB0;
+    // rlc->reestablish();
+    // pdcp->reset();
 
-  // apply the default physical channel configuration as specified in 9.2.4;
-  set_phy_default_pucch_srs();
+    // reset MAC;
+    mac->reset();
 
-  // apply the default semi-persistent scheduling configuration as specified in 9.2.3;
-  // N.A.
+    // apply the default physical channel configuration as specified in 9.2.4;
+    set_phy_default_pucch_srs();
 
-  // apply the default MAC main configuration as specified in 9.2.2;
-  apply_mac_config_dedicated_default();
+    // apply the default semi-persistent scheduling configuration as specified in 9.2.3;
+    // N.A.
 
-  // perform cell selection in accordance with the cell selection process as specified in TS 36.304 [4];
-  // ... this happens in rrc::run_tti()
-}
+    // apply the default MAC main configuration as specified in 9.2.2;
+    apply_mac_config_dedicated_default();
 
-void rrc::proc_con_restablish_request()
-{
-  if (mac_timers->timer_get(t311)->is_running()) {
-    if (serving_cell->in_sync) {
-      if (cell_selection_criteria(serving_cell->get_rsrp())) {
-        // Perform cell selection in accordance to 36.304
-        if (phy->cell_select(&serving_cell->phy_cell)) {
-
-          if (mac_timers->timer_get(t311)->is_running()) {
-            // Actions following cell reselection while T311 is running 5.3.7.3
-            rrc_log->info(
-                "Cell Selection finished. Initiating transmission of RRC Connection Reestablishment Request\n");
-            mac_timers->timer_get(t301)->reset();
-            mac_timers->timer_get(t301)->run();
-            mac_timers->timer_get(t311)->stop();
-            send_con_restablish_request();
-          } else {
-            rrc_log->info("T311 expired while selecting cell. Going to IDLE\n");
-            go_idle = true;
-          }
-        } else {
-          rrc_log->warning("Could not re-synchronize with cell.\n");
-          go_idle = true;
-        }
-      } else {
-        go_idle = false;
-      }
-    }
-  } else if (mac_timers->timer_get(t311)->is_expired()) {
+    // perform cell selection in accordance with the cell selection process as specified in TS 36.304 [4];
+    // ... this happens in rrc::run_tti()
+  } else {
+    // 3GPP 36.331 Section 5.3.7.1
+    // If AS security has not been activated, the UE does not initiate the procedure but instead
+    // moves to RRC_IDLE directly
     go_idle = true;
   }
+}
 
-  if (go_idle) {
-    m_reest_cause = asn1::rrc::reest_cause_e::nulltype;
+/* Implementation of procedure in 3GPP 36.331 Section 5.3.7.3: Actions following cell selection while T311 is running
+ */
+void rrc::proc_con_restablish_request()
+{
+  // Check timer...
+  if (mac_timers->timer_get(t311)->is_running()) {
+    // Check for synchronism
+    if (serving_cell->in_sync) {
+      // Perform cell selection in accordance to 36.304
+      if (cell_selection_criteria(serving_cell->get_rsrp())) {
+        // Actions following cell reselection while T311 is running 5.3.7.3
+        // Upon selecting a suitable E-UTRA cell, the UE shall:
+        rrc_log->info("Cell Selection criteria passed after %dms. Sending RRC Connection Reestablishment Request\n",
+                      mac_timers->timer_get(t311)->value());
+
+        // stop timer T311;
+        mac_timers->timer_get(t301)->reset();
+
+        // start timer T301;
+        mac_timers->timer_get(t301)->run();
+
+        // apply the timeAlignmentTimerCommon included in SystemInformationBlockType2;
+        mac_timers->timer_get(t311)->stop();
+
+        // initiate transmission of the RRCConnectionReestablishmentRequest message in accordance with 5.3.7.4;
+        send_con_restablish_request();
+      } else {
+        // Upon selecting an inter-RAT cell
+        rrc_log->warning("Reestablishment Cell Selection criteria failed.\n");
+        rrc_log->console("Reestablishment Cell Selection criteria failed. in_sync=%d\n", serving_cell->in_sync);
+        leave_connected();
+      }
+    } else {
+      // No synchronized, do nothing
+    }
+  } else {
+    // t311 expired or stopped
+    rrc_log->info("T311 expired while selecting cell. Going to IDLE\n");
+    rrc_log->console("T311 expired while selecting cell. Going to IDLE\n");
+    leave_connected();
   }
 }
 

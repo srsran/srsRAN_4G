@@ -420,6 +420,7 @@ void sync::run_thread()
          */
         switch(sfn_p.run_subframe(&cell, &tti)) {
           case sfn_sync::SFN_FOUND:
+            stack->in_sync();
             phy_state.state_exit();
             break;
           case sfn_sync::IDLE:
