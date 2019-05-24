@@ -39,6 +39,14 @@ using namespace asn1::rrc;
 
 #define LCID 1
 
+#define TESTASSERT(cond)                                                                                               \
+  {                                                                                                                    \
+    if (!(cond)) {                                                                                                     \
+      std::cout << "[" << __FUNCTION__ << "][Line " << __LINE__ << "]: FAIL at " << (#cond) << std::endl;              \
+      return -1;                                                                                                       \
+    }                                                                                                                  \
+  }
+
 uint8_t auth_request_pdu[] = { 0x07, 0x52, 0x01, 0x0c, 0x63, 0xa8, 0x54, 0x13, 0xe6, 0xa4,
                                0xce, 0xd9, 0x86, 0xfb, 0xe5, 0xce, 0x9b, 0x62, 0x5e, 0x10,
                                0x67, 0x57, 0xb3, 0xc2, 0xb9, 0x70, 0x90, 0x01, 0x0c, 0x72,
@@ -57,6 +65,12 @@ uint8_t attach_accept_pdu[] = { 0x27, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0x42, 
                                 0x35, 0x16, 0x6d, 0xbc, 0x64, 0x01, 0x00 };
 
 uint8_t esm_info_req_pdu[] = { 0x27, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x5a, 0xd9 };
+
+uint8_t activate_dedicated_eps_bearer_pdu[] = {0x27, 0x00, 0x00, 0x00, 0x00, 0x00, 0x62, 0x00, 0xc5, 0x05,
+                                               0x01, 0x01, 0x07, 0x21, 0x31, 0x00, 0x03, 0x40, 0x08, 0xae,
+                                               0x5d, 0x02, 0x00, 0xc2, 0x81, 0x34, 0x01, 0x4d};
+
+uint8_t deactivate_eps_bearer_pdu[] = {0x27, 0x00, 0x00, 0x00, 0x00, 0x00, 0x62, 0x00, 0xcd, 0x24};
 
 uint16 mcc = 61441;
 uint16 mnc = 65281;
@@ -254,6 +268,10 @@ int mme_attach_request_test()
     tmp->N_bytes = sizeof(attach_accept_pdu);
     nas.write_pdu(LCID, std::move(tmp));
 
+    nas_metrics_t metrics;
+    nas.get_metrics(&metrics);
+    TESTASSERT(metrics.nof_active_eps_bearer == 1);
+
     // check length of generated NAS SDU (attach complete)
     if (rrc_dummy.get_last_sdu_len() > 3) {
       ret = SRSLTE_SUCCESS;
@@ -265,8 +283,6 @@ int mme_attach_request_test()
 
   return ret;
 }
-
-
 
 int esm_info_request_test()
 {
@@ -326,6 +342,88 @@ int esm_info_request_test()
   return ret;
 }
 
+int dedicated_eps_bearer_test()
+{
+  srslte::log_filter nas_log("NAS");
+  srslte::log_filter rrc_log("RRC");
+  srslte::log_filter mac_log("MAC");
+  srslte::log_filter usim_log("USIM");
+
+  nas_log.set_level(srslte::LOG_LEVEL_DEBUG);
+  rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
+  nas_log.set_hex_limit(100000);
+  rrc_log.set_hex_limit(100000);
+
+  rrc_dummy rrc_dummy;
+  gw_dummy  gw;
+
+  usim_args_t args;
+  args.algo = "xor";
+  args.imei = "353490069873319";
+  args.imsi = "001010123456789";
+  args.k    = "00112233445566778899aabbccddeeff";
+  args.op   = "63BFA50EE6523365FF14C1F45F88737D";
+
+  // init USIM
+  srsue::usim usim;
+  usim.init(&args, &usim_log);
+
+  srslte::byte_buffer_pool* pool = byte_buffer_pool::get_instance();
+
+  srsue::nas nas;
+  nas_args_t cfg        = {};
+  cfg.force_imsi_attach = true; // make sure we get a fresh security context
+  nas.init(&usim, &rrc_dummy, &gw, &nas_log, cfg);
+
+  // push dedicated EPS bearer PDU to NAS
+  unique_byte_buffer_t tmp = srslte::allocate_unique_buffer(*pool, true);
+  memcpy(tmp->msg, activate_dedicated_eps_bearer_pdu, sizeof(activate_dedicated_eps_bearer_pdu));
+  tmp->N_bytes = sizeof(activate_dedicated_eps_bearer_pdu);
+  nas.write_pdu(LCID, std::move(tmp));
+
+  // This should fail since no default bearer has been created yet
+  nas_metrics_t metrics;
+  nas.get_metrics(&metrics);
+  TESTASSERT(metrics.nof_active_eps_bearer == 0);
+
+  // add default EPS beaerer
+  unique_byte_buffer_t attach_with_default_bearer = srslte::allocate_unique_buffer(*pool, true);
+  memcpy(attach_with_default_bearer->msg, attach_accept_pdu, sizeof(attach_accept_pdu));
+  attach_with_default_bearer->N_bytes = sizeof(attach_accept_pdu);
+  nas.write_pdu(LCID, std::move(attach_with_default_bearer));
+
+  // This should fail since no default bearer has been created yet
+  nas.get_metrics(&metrics);
+  TESTASSERT(metrics.nof_active_eps_bearer == 1);
+
+  // push dedicated bearer activation and check that it was added
+  tmp = srslte::allocate_unique_buffer(*pool, true);
+  memcpy(tmp->msg, activate_dedicated_eps_bearer_pdu, sizeof(activate_dedicated_eps_bearer_pdu));
+  tmp->N_bytes = sizeof(activate_dedicated_eps_bearer_pdu);
+  nas.write_pdu(LCID, std::move(tmp));
+  nas.get_metrics(&metrics);
+  TESTASSERT(metrics.nof_active_eps_bearer == 2);
+
+  // tear-down dedicated bearer
+  tmp = srslte::allocate_unique_buffer(*pool, true);
+  memcpy(tmp->msg, deactivate_eps_bearer_pdu, sizeof(deactivate_eps_bearer_pdu));
+  tmp->N_bytes = sizeof(deactivate_eps_bearer_pdu);
+  nas.write_pdu(LCID, std::move(tmp));
+  nas.get_metrics(&metrics);
+  TESTASSERT(metrics.nof_active_eps_bearer == 1);
+
+  // try to tear-down dedicated bearer again
+  tmp = srslte::allocate_unique_buffer(*pool, true);
+  memcpy(tmp->msg, deactivate_eps_bearer_pdu, sizeof(deactivate_eps_bearer_pdu));
+  tmp->N_bytes = sizeof(deactivate_eps_bearer_pdu);
+  nas.write_pdu(LCID, std::move(tmp));
+  nas.get_metrics(&metrics);
+  TESTASSERT(metrics.nof_active_eps_bearer == 1);
+
+  pool->cleanup();
+
+  return SRSLTE_SUCCESS;
+}
 
 int main(int argc, char **argv)
 {
@@ -341,6 +439,11 @@ int main(int argc, char **argv)
 
   if (esm_info_request_test()) {
     printf("ESM info request test failed.\n");
+    return -1;
+  }
+
+  if (dedicated_eps_bearer_test()) {
+    printf("Dedicated EPS bearer test failed.\n");
     return -1;
   }
 
