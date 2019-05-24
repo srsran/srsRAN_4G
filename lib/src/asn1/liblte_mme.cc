@@ -8829,6 +8829,15 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_activate_dedicated_eps_bearer_context_reques
     if(msg                            != NULL &&
        act_ded_eps_bearer_context_req != NULL)
     {
+        // Security Header Type
+        uint8_t sec_hdr_type = (msg->msg[0] & 0xF0) >> 4;
+        if(LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS == sec_hdr_type)
+        {
+            msg_ptr++;
+        }else{
+            msg_ptr += 6;
+        }
+
         // EPS Bearer ID
         act_ded_eps_bearer_context_req->eps_bearer_id = (*msg_ptr >> 4);
         msg_ptr++;
@@ -9211,6 +9220,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_activate_default_eps_bearer_context_request_
     if(msg                            != NULL &&
        act_def_eps_bearer_context_req != NULL)
     {
+
         // EPS Bearer ID
         act_def_eps_bearer_context_req->eps_bearer_id = (*msg_ptr >> 4);
         msg_ptr++;
