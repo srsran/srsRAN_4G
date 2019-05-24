@@ -29,6 +29,7 @@
 #include "srslte/upper/rlc_metrics.h"
 #include "stack/mac/mac_metrics.h"
 #include "stack/upper/gw_metrics.h"
+#include "stack/upper/nas_metrics.h"
 
 namespace srsue {
 
@@ -43,6 +44,7 @@ typedef struct {
   mac_metrics_t         mac[SRSLTE_MAX_CARRIERS];
   srslte::rlc_metrics_t rlc;
   gw_metrics_t          gw;
+  nas_metrics_t         nas;
 } stack_metrics_t;
 
 typedef struct {

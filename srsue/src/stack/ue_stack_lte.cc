@@ -174,6 +174,7 @@ bool ue_stack_lte::get_metrics(stack_metrics_t* metrics)
       mac.get_metrics(metrics->mac);
       rlc.get_metrics(metrics->rlc);
       gw.get_metrics(metrics->gw);
+      nas.get_metrics(&metrics->nas);
       return true;
     }
   }

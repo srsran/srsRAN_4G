@@ -46,8 +46,7 @@ namespace srsue {
  *   NAS
  ********************************************************************/
 
-nas::nas()
-  : state(EMM_STATE_DEREGISTERED), have_guti(false), have_ctxt(false), auth_request(false), ip_addr(0), eps_bearer_id(0)
+nas::nas() : state(EMM_STATE_DEREGISTERED), have_guti(false), have_ctxt(false), auth_request(false), ip_addr(0)
 {
   ctxt.rx_count = 0;
   ctxt.tx_count = 0;
@@ -125,6 +124,14 @@ void nas::init(
 void nas::stop() {
   running = false;
   write_ctxt_file(ctxt);
+}
+
+void nas::get_metrics(nas_metrics_t* m)
+{
+  nas_metrics_t metrics         = {};
+  metrics.state                 = state;
+  metrics.nof_active_eps_bearer = eps_bearer.size();
+  *m                            = metrics;
 }
 
 emm_state_t nas::get_state() {
@@ -639,7 +646,6 @@ bool nas::check_cap_replay(LIBLTE_MME_UE_SECURITY_CAPABILITIES_STRUCT *caps)
 
 void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
 {
-
   if (!pdu) {
     nas_log->error("Invalid PDU\n");
     return;
@@ -650,11 +656,9 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
     return;
   }
 
-  LIBLTE_MME_ATTACH_ACCEPT_MSG_STRUCT                               attach_accept                  = {};
-  LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT act_def_eps_bearer_context_req = {};
-
   nas_log->info("Received Attach Accept\n");
 
+  LIBLTE_MME_ATTACH_ACCEPT_MSG_STRUCT attach_accept = {};
   liblte_mme_unpack_attach_accept_msg((LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), &attach_accept);
 
   if (attach_accept.eps_attach_result == LIBLTE_MME_EPS_ATTACH_RESULT_EPS_ONLY) {
@@ -680,6 +684,7 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
     if (attach_accept.eps_network_feature_support_present) {}
     if (attach_accept.additional_update_result_present) {}
 
+    LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT act_def_eps_bearer_context_req = {};
     liblte_mme_unpack_activate_default_eps_bearer_context_request_msg(&attach_accept.esm_msg,
                                                                       &act_def_eps_bearer_context_req);
 
@@ -793,7 +798,7 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
       nas_log->error("PDN type not IPv4, IPv6 nor IPv4v6\n");
       return;
     }
-    eps_bearer_id = act_def_eps_bearer_context_req.eps_bearer_id;
+
     if (act_def_eps_bearer_context_req.transaction_id_present) {
       transaction_id = act_def_eps_bearer_context_req.proc_transaction_id;
     }
@@ -831,10 +836,18 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
 
     // FIXME: Setup the default EPS bearer context
 
+    eps_bearer_t bearer  = {};
+    bearer.type          = DEFAULT_EPS_BEARER;
+    bearer.eps_bearer_id = act_def_eps_bearer_context_req.eps_bearer_id;
+    if (not eps_bearer.insert(eps_bearer_map_pair_t(bearer.eps_bearer_id, bearer)).second) {
+      nas_log->error("Error adding EPS bearer.\n");
+      return;
+    }
+
     state = EMM_STATE_REGISTERED;
 
     // send attach complete
-    send_attach_complete(transaction_id, eps_bearer_id);
+    send_attach_complete(transaction_id, bearer.eps_bearer_id);
   } else {
     nas_log->info("Not handling attach type %u\n", attach_accept.eps_attach_result);
     state = EMM_STATE_DEREGISTERED;
@@ -1114,6 +1127,22 @@ void nas::parse_activate_dedicated_eps_bearer_context_request(uint32_t lcid, uni
 
   ctxt.rx_count++;
 
+  // check the a linked default bearer exists
+  if (eps_bearer.find(request.linked_eps_bearer_id) == eps_bearer.end()) {
+    nas_log->error("No linked default EPS bearer found (%d).\n", request.linked_eps_bearer_id);
+    return;
+  }
+
+  // create new bearer
+  eps_bearer_t bearer         = {};
+  bearer.type                 = DEDICATED_EPS_BEARER;
+  bearer.eps_bearer_id        = request.eps_bearer_id;
+  bearer.linked_eps_bearer_id = request.linked_eps_bearer_id;
+  if (not eps_bearer.insert(eps_bearer_map_pair_t(bearer.eps_bearer_id, bearer)).second) {
+    nas_log->error("Error adding EPS bearer.\n");
+    return;
+  }
+
   send_activate_dedicated_eps_bearer_context_accept(request.proc_transaction_id, request.eps_bearer_id);
 }
 
@@ -1123,13 +1152,25 @@ void nas::parse_deactivate_eps_bearer_context_request(unique_byte_buffer_t pdu)
 
   liblte_mme_unpack_deactivate_eps_bearer_context_request_msg((LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), &request);
 
-  nas_log->info("Received Deactivate EPS bearer context request (eps_bearer_id=%d, proc_id=%d)\n",
+  nas_log->info("Received Deactivate EPS bearer context request (eps_bearer_id=%d, proc_id=%d, cause=0x%X)\n",
                 request.eps_bearer_id,
-                request.proc_transaction_id);
+                request.proc_transaction_id,
+                request.esm_cause);
 
   ctxt.rx_count++;
 
-  // fixme: add proper checks before sending accepts
+  // check if bearer exists
+  if (eps_bearer.find(request.eps_bearer_id) == eps_bearer.end()) {
+    nas_log->error("EPS bearer doesn't exist (eps_bearer_id=%d)\n", request.eps_bearer_id);
+    // fixme: send proper response
+    return;
+  }
+
+  // remove bearer
+  eps_bearer_map_t::iterator it = eps_bearer.find(request.eps_bearer_id);
+  eps_bearer.erase(it);
+
+  nas_log->info("Removed EPS bearer context (eps_bearer_id=%d)\n", request.eps_bearer_id);
 
   send_deactivate_eps_bearer_context_accept(request.proc_transaction_id, request.eps_bearer_id);
 }

@@ -50,6 +50,7 @@ public:
             nas_args_t          args_);
   void stop();
 
+  void        get_metrics(nas_metrics_t* m);
   emm_state_t get_state();
 
   // RRC interface
@@ -102,6 +103,18 @@ private:
     LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT guti;
   };
 
+  typedef enum { DEFAULT_EPS_BEARER = 0, DEDICATED_EPS_BEARER } eps_bearer_type_t;
+
+  typedef struct {
+    eps_bearer_type_t type;
+    uint8_t           eps_bearer_id;
+    uint8_t           linked_eps_bearer_id;
+  } eps_bearer_t;
+
+  typedef std::map<uint8_t, eps_bearer_t>  eps_bearer_map_t;
+  typedef std::pair<uint8_t, eps_bearer_t> eps_bearer_map_pair_t;
+  eps_bearer_map_t                         eps_bearer;
+
   bool have_guti;
   bool have_ctxt;
   nas_sec_ctxt ctxt;
@@ -109,7 +122,6 @@ private:
 
   uint32_t ip_addr;
   uint8_t ipv6_if_id[8];
-  uint8_t eps_bearer_id;
 
   uint8_t chap_id;
 
