@@ -22,6 +22,8 @@
 #ifndef SRSLTE_BUILD_INFO_H_IN
 #define SRSLTE_BUILD_INFO_H_IN
 
+#include "srslte/config.h"
+
 # ifdef __cplusplus
 extern "C" {
 # endif
