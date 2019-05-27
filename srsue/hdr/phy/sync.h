@@ -24,6 +24,7 @@
 
 #include <map>
 #include <pthread.h>
+#include <srslte/phy/channel/channel.h>
 
 #include "async_scell_recv.h"
 #include "phy_common.h"
@@ -281,6 +282,7 @@ private:
   phy_common*              worker_com;
   prach*                   prach_buffer;
   async_scell_recv_vector* scell_sync;
+  srslte::channel*         channel_emulator = nullptr;
 
   // Object for synchronization of the primary cell
   srslte_ue_sync_t ue_sync;

@@ -147,6 +147,13 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("gw.ip_devname", bpo::value<string>(&args->stack.gw.tun_dev_name)->default_value("tun_srsue"), "Name of the tun_srsue device")
     ("gw.ip_netmask", bpo::value<string>(&args->stack.gw.tun_dev_netmask)->default_value("255.255.255.0"), "Netmask of the tun_srsue device")
 
+    /* Channel emulator section */
+    ("channel.dl.enable", bpo::value<bool>(&args->phy.dl_channel_args.enable)->default_value(false), "Enable/Disable internal Downlink channel emulator")
+    ("channel.dl.fading_model", bpo::value<std::string>(&args->phy.dl_channel_args.fading_model)->default_value("none"), "Fading model (none, EPA5, EVA70, ETU300, etc)")
+    ("channel.dl.delay_period", bpo::value<uint32_t >(&args->phy.dl_channel_args.delay_period_s)->default_value(3600), "Delay period in seconds (integer)")
+    ("channel.dl.delay_maximum_us", bpo::value<float >(&args->phy.dl_channel_args.delay_max_us)->default_value(100.0f), "Maximum delay in microseconds")
+    ("channel.dl.delay_minimum_us", bpo::value<float >(&args->phy.dl_channel_args.delay_min_us)->default_value(0.0f), "Maximum delay in microseconds")
+
     /* Expert section */
     ("expert.phy.worker_cpu_mask",
      bpo::value<int>(&args->phy.worker_cpu_mask)->default_value(-1),

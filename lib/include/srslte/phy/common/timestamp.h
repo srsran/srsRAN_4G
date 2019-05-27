@@ -42,24 +42,21 @@ typedef struct SRSLTE_API{
   double frac_secs;
 }srslte_timestamp_t;
 
-SRSLTE_API int srslte_timestamp_init(srslte_timestamp_t *t, 
-                                     time_t full_secs, 
-                                     double frac_secs);
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+SRSLTE_API int srslte_timestamp_init(srslte_timestamp_t* t, time_t full_secs, double frac_secs);
 
 SRSLTE_API void srslte_timestamp_init_uint64(srslte_timestamp_t* ts_time, uint64_t ts_count, double base_srate);
 
-SRSLTE_API int srslte_timestamp_copy(srslte_timestamp_t *dest, 
-                                     srslte_timestamp_t *src);
+SRSLTE_API int srslte_timestamp_copy(srslte_timestamp_t* dest, srslte_timestamp_t* src);
 
 SRSLTE_API int srslte_timestamp_compare(srslte_timestamp_t* a, srslte_timestamp_t* b);
 
-SRSLTE_API int srslte_timestamp_add(srslte_timestamp_t *t, 
-                                    time_t full_secs, 
-                                    double frac_secs);
+SRSLTE_API int srslte_timestamp_add(srslte_timestamp_t* t, time_t full_secs, double frac_secs);
 
-SRSLTE_API int srslte_timestamp_sub(srslte_timestamp_t *t, 
-                                    time_t full_secs, 
-                                    double frac_secs);
+SRSLTE_API int srslte_timestamp_sub(srslte_timestamp_t* t, time_t full_secs, double frac_secs);
 
 SRSLTE_API double srslte_timestamp_real(srslte_timestamp_t *t);
 
@@ -68,5 +65,9 @@ SRSLTE_API bool srslte_timestamp_iszero(const srslte_timestamp_t* t);
 SRSLTE_API uint32_t srslte_timestamp_uint32(srslte_timestamp_t *t);
 
 SRSLTE_API uint64_t srslte_timestamp_uint64(const srslte_timestamp_t* t, double srate);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // SRSLTE_TIMESTAMP_H

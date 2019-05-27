@@ -35,6 +35,7 @@
 #include "srslte/common/common.h"
 #include "srslte/common/interfaces_common.h"
 #include "srslte/common/security.h"
+#include "srslte/phy/channel/channel.h"
 #include "srslte/phy/rf/rf.h"
 #include "srslte/upper/rlc_interface.h"
 
@@ -758,6 +759,7 @@ typedef struct {
   uint32_t intra_freq_meas_len_ms;
   uint32_t intra_freq_meas_period_ms;
   bool          pregenerate_signals;
+  srslte::channel::args_t dl_channel_args;
 } phy_args_t; 
 
 

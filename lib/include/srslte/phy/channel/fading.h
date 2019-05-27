@@ -58,11 +58,19 @@ typedef struct {
   cf_t* state; // Length fft_size/2
 } srslte_channel_fading_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 SRSLTE_API int srslte_channel_fading_init(srslte_channel_fading_t* q, double srate, const char* model, uint32_t seed);
 
 SRSLTE_API void srslte_channel_fading_free(srslte_channel_fading_t* q);
 
 SRSLTE_API double srslte_channel_fading_execute(
     srslte_channel_fading_t* q, const cf_t* in, cf_t* out, uint32_t nof_samples, double init_time);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // SRSLTE_FADING_H

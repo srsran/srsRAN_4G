@@ -30,37 +30,39 @@
 typedef struct {
   uint8_t *buffer;
   bool active;
-  int capacity; 
-  int count; 
-  int wpm; 
-  int rpm; 
-  pthread_mutex_t mutex; 
-  pthread_cond_t  cvar; 
-} srslte_ringbuffer_t; 
+  int             capacity;
+  int             count;
+  int             wpm;
+  int             rpm;
+  pthread_mutex_t mutex;
+  pthread_cond_t  cvar;
+} srslte_ringbuffer_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-SRSLTE_API int  srslte_ringbuffer_init(srslte_ringbuffer_t *q,
-                                       int capacity);
+SRSLTE_API int srslte_ringbuffer_init(srslte_ringbuffer_t* q, int capacity);
 
 SRSLTE_API void srslte_ringbuffer_free(srslte_ringbuffer_t *q);
 
 SRSLTE_API void srslte_ringbuffer_reset(srslte_ringbuffer_t *q);
 
-SRSLTE_API int  srslte_ringbuffer_status(srslte_ringbuffer_t *q);
+SRSLTE_API int srslte_ringbuffer_status(srslte_ringbuffer_t* q);
 
 SRSLTE_API int srslte_ringbuffer_space(srslte_ringbuffer_t *q);
 
-SRSLTE_API int  srslte_ringbuffer_write(srslte_ringbuffer_t *q,
-                                       void *ptr,
-                                       int nof_bytes);
+SRSLTE_API int srslte_ringbuffer_write(srslte_ringbuffer_t* q, void* ptr, int nof_bytes);
 
-SRSLTE_API int  srslte_ringbuffer_read(srslte_ringbuffer_t *q,
-                                       void *ptr,
-                                       int nof_bytes);
+SRSLTE_API int srslte_ringbuffer_read(srslte_ringbuffer_t* q, void* ptr, int nof_bytes);
 
 SRSLTE_API int srslte_ringbuffer_read_timed(srslte_ringbuffer_t* q, void* p, int nof_bytes, uint32_t timeout_ms);
 
 SRSLTE_API void srslte_ringbuffer_stop(srslte_ringbuffer_t *q);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // SRSLTE_RINGBUFFER_H
 

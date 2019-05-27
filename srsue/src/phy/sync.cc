@@ -21,6 +21,7 @@
 
 #include "srsue/hdr/phy/sync.h"
 #include "srslte/common/log.h"
+#include "srslte/phy/channel/channel.h"
 #include "srslte/srslte.h"
 #include "srsue/hdr/phy/sf_worker.h"
 #include <algorithm>
@@ -91,6 +92,11 @@ void sync::init(radio_interface_phy*     _radio,
     return;
   }
 
+  if (worker_com->args->dl_channel_args.enable) {
+    channel_emulator = new srslte::channel(worker_com->args->dl_channel_args,
+                                           worker_com->args->nof_rx_ant * worker_com->args->nof_rx_ant);
+  }
+
   nof_workers = workers_pool->get_nof_workers();
   worker_com->set_nof_workers(nof_workers);
 
@@ -128,6 +134,11 @@ sync::~sync()
     }
     pthread_mutex_destroy(&rrc_mutex);
     srslte_ue_sync_free(&ue_sync);
+
+    // Destroy channel emulator if created
+    if (channel_emulator) {
+      delete channel_emulator;
+    }
   }
 }
 
@@ -925,6 +936,11 @@ void sync::get_current_cell(srslte_cell_t* cell, uint32_t* earfcn)
 int sync::radio_recv_fnc(cf_t* data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t* rx_time)
 {
   if (radio_h->rx_now(0, data, nsamples, rx_time)) {
+    if (channel_emulator && rx_time) {
+      channel_emulator->set_srate(current_srate);
+      channel_emulator->run(data, data, nsamples, *rx_time);
+    }
+
     int offset = nsamples - current_sflen;
     if (abs(offset) < 10 && offset != 0) {
       next_radio_offset[0] = offset;

@@ -18,7 +18,7 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-file(GLOB SOURCES "*.c")
+file(GLOB SOURCES "*.c" "*.cc")
 add_library(srslte_channel OBJECT ${SOURCES})
 
 add_subdirectory(test)
