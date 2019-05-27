@@ -188,6 +188,7 @@ private:
   void gen_service_request(srslte::byte_buffer_t* msg);
 
   // Senders
+  void send_attach_complete(const uint8_t& transaction_id, const uint8_t& eps_bearer_id);
   void send_identity_response(uint32_t lcid, uint8 id_type);
   void send_service_request();
   void send_esm_information_response(const uint8 proc_transaction_id);

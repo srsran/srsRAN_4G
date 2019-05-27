@@ -638,14 +638,8 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
     return;
   }
 
-  LIBLTE_MME_ATTACH_ACCEPT_MSG_STRUCT attach_accept;
-  ZERO_OBJECT(attach_accept);
-  LIBLTE_MME_ATTACH_COMPLETE_MSG_STRUCT attach_complete;
-  ZERO_OBJECT(attach_complete);
-  LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT act_def_eps_bearer_context_req;
-  ZERO_OBJECT(act_def_eps_bearer_context_req);
-  LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT act_def_eps_bearer_context_accept;
-  ZERO_OBJECT(act_def_eps_bearer_context_accept);
+  LIBLTE_MME_ATTACH_ACCEPT_MSG_STRUCT                               attach_accept                  = {};
+  LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT act_def_eps_bearer_context_req = {};
 
   nas_log->info("Received Attach Accept\n");
 
@@ -827,43 +821,14 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
 
     state = EMM_STATE_REGISTERED;
 
-    ctxt.rx_count++;
-
-    // Send EPS bearer context accept and attach complete
-    act_def_eps_bearer_context_accept.eps_bearer_id = eps_bearer_id;
-    act_def_eps_bearer_context_accept.proc_transaction_id = transaction_id;
-    act_def_eps_bearer_context_accept.protocol_cnfg_opts_present = false;
-    liblte_mme_pack_activate_default_eps_bearer_context_accept_msg(&act_def_eps_bearer_context_accept,
-                                                                   &attach_complete.esm_msg);
-
-    pdu->clear();
-    liblte_mme_pack_attach_complete_msg(&attach_complete,
-                                        LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED,
-                                        ctxt.tx_count,
-                                        (LIBLTE_BYTE_MSG_STRUCT*)pdu.get());
-    // Write NAS pcap
-    if (pcap != NULL) {
-      pcap->write_nas(pdu->msg, pdu->N_bytes);
-    }
-
-    cipher_encrypt(pdu.get());
-    integrity_generate(&k_nas_int[16],
-                       ctxt.tx_count,
-                       SECURITY_DIRECTION_UPLINK,
-                       &pdu->msg[5],
-                       pdu->N_bytes - 5,
-                       &pdu->msg[1]);
-
-    // Instruct RRC to enable capabilities
-    rrc->enable_capabilities();
-
-    nas_log->info("Sending Attach Complete\n");
-    rrc->write_sdu(std::move(pdu));
-    ctxt.tx_count++;
+    // send attach complete
+    send_attach_complete(transaction_id, eps_bearer_id);
   } else {
     nas_log->info("Not handling attach type %u\n", attach_accept.eps_attach_result);
     state = EMM_STATE_DEREGISTERED;
   }
+
+  ctxt.rx_count++;
 }
 
 void nas::parse_attach_reject(uint32_t lcid, unique_byte_buffer_t pdu)
@@ -1409,6 +1374,40 @@ void nas::send_detach_request(bool switch_off)
   } else {
     rrc->connection_request(establishment_cause_e::mo_sig, std::move(pdu));
   }
+}
+
+void nas::send_attach_complete(const uint8_t& transaction_id, const uint8_t& eps_bearer_id)
+{
+  // Send EPS bearer context accept and attach complete
+  LIBLTE_MME_ATTACH_COMPLETE_MSG_STRUCT                            attach_complete                   = {};
+  LIBLTE_MME_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT act_def_eps_bearer_context_accept = {};
+  act_def_eps_bearer_context_accept.eps_bearer_id                                                    = eps_bearer_id;
+  act_def_eps_bearer_context_accept.proc_transaction_id                                              = transaction_id;
+  act_def_eps_bearer_context_accept.protocol_cnfg_opts_present                                       = false;
+  liblte_mme_pack_activate_default_eps_bearer_context_accept_msg(&act_def_eps_bearer_context_accept,
+                                                                 &attach_complete.esm_msg);
+
+  // Pack entire message
+  unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
+  liblte_mme_pack_attach_complete_msg(&attach_complete,
+                                      LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED,
+                                      ctxt.tx_count,
+                                      (LIBLTE_BYTE_MSG_STRUCT*)pdu.get());
+  // Write NAS pcap
+  if (pcap != NULL) {
+    pcap->write_nas(pdu->msg, pdu->N_bytes);
+  }
+
+  cipher_encrypt(pdu.get());
+  integrity_generate(
+      &k_nas_int[16], ctxt.tx_count, SECURITY_DIRECTION_UPLINK, &pdu->msg[5], pdu->N_bytes - 5, &pdu->msg[1]);
+
+  // Instruct RRC to enable capabilities
+  rrc->enable_capabilities();
+
+  nas_log->info("Sending Attach Complete\n");
+  rrc->write_sdu(std::move(pdu));
+  ctxt.tx_count++;
 }
 
 void nas::send_detach_accept()
