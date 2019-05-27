@@ -36,7 +36,7 @@ using namespace srslte;
 
 namespace srsue {
 
-ue::ue() : logger(NULL)
+ue::ue() : logger(nullptr)
 {
   // print build info
   std::cout << std::endl << get_build_string() << std::endl;
@@ -174,11 +174,11 @@ int ue::parse_args(const all_args_t& args_)
   // populate EARFCN list
   if (!args.phy.dl_earfcn.empty()) {
     std::stringstream ss(args.phy.dl_earfcn);
-    int               idx = 0;
+    uint32_t          idx = 0;
     while (ss.good()) {
       std::string substr;
       getline(ss, substr, ',');
-      const int earfcn                    = atoi(substr.c_str());
+      auto earfcn                         = (uint32_t)strtoul(substr.c_str(), nullptr, 10);
       args.stack.rrc.supported_bands[idx] = srslte_band_get_band(earfcn);
       args.stack.rrc.nof_supported_bands  = ++idx;
       args.phy.earfcn_list.push_back(earfcn);
@@ -190,7 +190,7 @@ int ue::parse_args(const all_args_t& args_)
   }
 
   // Set UE category
-  args.stack.rrc.ue_category = atoi(args.stack.rrc.ue_category_str.c_str());
+  args.stack.rrc.ue_category = (uint32_t)strtoul(args.stack.rrc.ue_category_str.c_str(), nullptr, 10);
 
   // Consider Carrier Aggregation support if more than one
   args.stack.rrc.support_ca = (args.rf.nof_rf_channels * args.rf.nof_radios) > 1;

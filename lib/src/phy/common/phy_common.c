@@ -462,7 +462,7 @@ uint32_t srslte_re_x_prb(uint32_t ns, uint32_t symbol, uint32_t nof_ports, uint3
 
 
 struct lte_band {
-  uint32_t band;
+  uint8_t                     band;
   float fd_low_mhz;
   uint32_t dl_earfcn_offset;
   uint32_t ul_earfcn_offset;
@@ -596,7 +596,7 @@ bool srslte_band_is_tdd(uint32_t band)
   return lte_bands[i].ul_earfcn_offset == 0;
 }
 
-int srslte_band_get_band(uint32_t dl_earfcn)
+uint8_t srslte_band_get_band(uint32_t dl_earfcn)
 {
   uint32_t i = SRSLTE_NOF_LTE_BANDS - 1;
   if (dl_earfcn > lte_bands[i].dl_earfcn_offset) {
