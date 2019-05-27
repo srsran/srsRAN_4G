@@ -26,7 +26,6 @@
 #include "sf_worker.h"
 #include "srslte/common/log.h"
 #include "srslte/common/log_filter.h"
-#include "srslte/common/task_dispatcher.h"
 #include "srslte/common/trace.h"
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
