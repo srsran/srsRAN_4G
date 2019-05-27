@@ -27,25 +27,25 @@
 
 namespace srsenb {
 
-enb*          enb::instance = NULL;
+enb*            enb::instance      = nullptr;
 pthread_mutex_t enb_instance_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-enb* enb::get_instance(void)
+enb* enb::get_instance()
 {
   pthread_mutex_lock(&enb_instance_mutex);
-  if(NULL == instance) {
+  if (nullptr == instance) {
     instance = new enb();
   }
   pthread_mutex_unlock(&enb_instance_mutex);
   return(instance);
 }
-void enb::cleanup(void)
+void enb::cleanup()
 {
   srslte_dft_exit();
   pthread_mutex_lock(&enb_instance_mutex);
-  if(NULL != instance) {
-      delete instance;
-      instance = NULL;
+  if (nullptr != instance) {
+    delete instance;
+    instance = nullptr;
   }
   srslte::byte_buffer_pool::cleanup(); // pool has to be cleaned after enb is deleted
   pthread_mutex_unlock(&enb_instance_mutex);
@@ -58,16 +58,16 @@ enb::enb() : started(false) {
   srslte_dft_load();
   pool = srslte::byte_buffer_pool::get_instance(ENB_POOL_SIZE);
 
-  logger = NULL;
-  args = NULL;
+  logger = nullptr;
+  args   = nullptr;
 
   bzero(&rf_metrics, sizeof(rf_metrics));
 }
 
 enb::~enb()
 {
-  for (uint32_t i = 0; i < phy_log.size(); i++) {
-    delete (phy_log[i]);
+  for (auto& i : phy_log) {
+    delete i;
   }
 }
 
@@ -75,7 +75,7 @@ bool enb::init(all_args_t *args_)
 {
   args = args_;
 
-  if (!args->log.filename.compare("stdout")) {
+  if (args->log.filename == "stdout") {
     logger = &logger_stdout;
   } else {
     logger_file.init(args->log.filename, args->log.file_max_size);
@@ -88,7 +88,7 @@ bool enb::init(all_args_t *args_)
   
   // Create array of pointers to phy_logs 
   for (int i=0;i<args->expert.phy.nof_phy_threads;i++) {
-    srslte::log_filter *mylog = new srslte::log_filter;
+    auto* mylog = new srslte::log_filter;
     char tmp[16];
     sprintf(tmp, "PHY%d",i);
     mylog->init(tmp, logger, true);
@@ -150,9 +150,9 @@ bool enb::init(all_args_t *args_)
   }
 
   if (args->enb.transmission_mode == 1) {
-    phy_cfg.pdsch_cnfg.p_b = 0.0;
+    phy_cfg.pdsch_cnfg.p_b = 0; // Default TM1
   } else {
-    phy_cfg.pdsch_cnfg.p_b = 1.0;
+    phy_cfg.pdsch_cnfg.p_b = 1; // Default TM2,3,4
   }
 
   uint32_t prach_freq_offset = rrc_cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.prach_cfg_info.prach_freq_offset;
@@ -200,17 +200,15 @@ bool enb::init(all_args_t *args_)
   boost::split(eea_pref_list, args->expert.eea_pref_list,
                boost::is_any_of(","));
   int i = 0;
-  for (std::vector<std::string>::iterator it = eea_pref_list.begin();
-       it != eea_pref_list.end() && i < srslte::CIPHERING_ALGORITHM_ID_N_ITEMS;
-       it++) {
+  for (auto it = eea_pref_list.begin(); it != eea_pref_list.end() && i < srslte::CIPHERING_ALGORITHM_ID_N_ITEMS; it++) {
     boost::trim_left(*it);
-    if ((*it).compare("EEA0") == 0) {
+    if ((*it) == "EEA0") {
       rrc_cfg.eea_preference_list[i] = srslte::CIPHERING_ALGORITHM_ID_EEA0;
       i++;
-    } else if ((*it).compare("EEA1") == 0) {
+    } else if ((*it) == "EEA1") {
       rrc_cfg.eea_preference_list[i] = srslte::CIPHERING_ALGORITHM_ID_128_EEA1;
       i++;
-    } else if ((*it).compare("EEA2") == 0) {
+    } else if ((*it) == "EEA2") {
       rrc_cfg.eea_preference_list[i] = srslte::CIPHERING_ALGORITHM_ID_128_EEA2;
       i++;
     } else {
@@ -225,17 +223,15 @@ bool enb::init(all_args_t *args_)
   boost::split(eia_pref_list, args->expert.eia_pref_list,
                boost::is_any_of(","));
   i = 0;
-  for (std::vector<std::string>::iterator it = eia_pref_list.begin();
-       it != eia_pref_list.end() && i < srslte::INTEGRITY_ALGORITHM_ID_N_ITEMS;
-       it++) {
+  for (auto it = eia_pref_list.begin(); it != eia_pref_list.end() && i < srslte::INTEGRITY_ALGORITHM_ID_N_ITEMS; it++) {
     boost::trim_left(*it);
-    if ((*it).compare("EIA0") == 0) {
+    if ((*it) == "EIA0") {
       rrc_cfg.eia_preference_list[i] = srslte::INTEGRITY_ALGORITHM_ID_EIA0;
       i++;
-    } else if ((*it).compare("EIA1") == 0) {
+    } else if ((*it) == "EIA1") {
       rrc_cfg.eia_preference_list[i] = srslte::INTEGRITY_ALGORITHM_ID_128_EIA1;
       i++;
-    } else if ((*it).compare("EIA2") == 0) {
+    } else if ((*it) == "EIA2") {
       rrc_cfg.eia_preference_list[i] = srslte::INTEGRITY_ALGORITHM_ID_128_EIA2;
       i++;
     } else {
@@ -259,13 +255,13 @@ bool enb::init(all_args_t *args_)
   // Init layers
   
   /* Start Radio */
-  char *dev_name = NULL;
-  if (args->rf.device_name.compare("auto")) {
+  char* dev_name = nullptr;
+  if (args->rf.device_name != "auto") {
     dev_name = (char*) args->rf.device_name.c_str();
   }
-  
-  char *dev_args = NULL;
-  if (args->rf.device_args.compare("auto")) {
+
+  char* dev_args = nullptr;
+  if (args->rf.device_args != "auto") {
     dev_args = (char*) args->rf.device_args.c_str();
   }
 
@@ -276,11 +272,11 @@ bool enb::init(all_args_t *args_)
   }    
   
   // Set RF options
-  if (args->rf.time_adv_nsamples.compare("auto")) {
-    radio.set_tx_adv(atoi(args->rf.time_adv_nsamples.c_str()));
-  }  
-  if (args->rf.burst_preamble.compare("auto")) {
-    radio.set_burst_preamble(atof(args->rf.burst_preamble.c_str()));    
+  if (args->rf.time_adv_nsamples != "auto") {
+    radio.set_tx_adv((int)strtol(args->rf.time_adv_nsamples.c_str(), nullptr, 10));
+  }
+  if (args->rf.burst_preamble != "auto") {
+    radio.set_burst_preamble(strtof(args->rf.burst_preamble.c_str(), nullptr));
   }
 
   radio.set_rx_gain(args->rf.rx_gain);
@@ -303,11 +299,6 @@ bool enb::init(all_args_t *args_)
 
   started = true;
   return true;
-}
-
-void enb::pregenerate_signals(bool enable)
-{
-  //phy.enable_pregen_signals(enable);
 }
 
 void enb::stop()

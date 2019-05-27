@@ -168,8 +168,6 @@ public:
   // eNodeB metrics interface
   bool get_metrics(enb_metrics_t* m);
 
-  void pregenerate_signals(bool enable);
-
 
 private:
   static enb *instance;
