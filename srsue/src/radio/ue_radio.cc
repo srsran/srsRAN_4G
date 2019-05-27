@@ -93,15 +93,15 @@ int ue_radio::init(const rf_args_t& args_, srslte::logger* logger_)
     }
 
     // Set RF options
-    if (args.time_adv_nsamples == "auto") {
+    if (args.time_adv_nsamples != "auto") {
       int t = (int)strtol(args.time_adv_nsamples.c_str(), nullptr, 10);
       radio->set_tx_adv(abs(t));
       radio->set_tx_adv_neg(t < 0);
     }
-    if (args.burst_preamble == "auto") {
+    if (args.burst_preamble != "auto") {
       radio->set_burst_preamble(strtof(args.burst_preamble.c_str(), nullptr));
     }
-    if (args.continuous_tx == "auto") {
+    if (args.continuous_tx != "auto") {
       radio->set_continuous_tx(!(args.continuous_tx == "yes"));
     }
 
