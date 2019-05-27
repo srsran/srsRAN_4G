@@ -196,7 +196,7 @@ private:
   /* Class to run upper-layer timers with normal priority */
   class timer_thread : public thread {
   public:
-    timer_thread(srslte::timers *t) : ttisync(10240),timers(t),running(false) {start();}
+    timer_thread(srslte::timers* t) : ttisync(10240), timers(t), running(false), thread("MAC_TIMER") { start(); }
     void tti_clock();
     void stop();
   private:

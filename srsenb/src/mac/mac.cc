@@ -901,7 +901,8 @@ void mac::timer_thread::tti_clock()
  * DEMUX unit
  *
  *******************************************************/
-mac::pdu_process::pdu_process(pdu_process_handler *h) : running(false) {
+mac::pdu_process::pdu_process(pdu_process_handler* h) : running(false), thread("MAC_PDU_PROCESS")
+{
   handler = h;
   pthread_mutex_init(&mutex, NULL);
   pthread_cond_init(&cvar, NULL);

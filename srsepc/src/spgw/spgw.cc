@@ -31,7 +31,7 @@ namespace srsepc {
 spgw*           spgw::m_instance    = NULL;
 pthread_mutex_t spgw_instance_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-spgw::spgw() : m_running(false)
+spgw::spgw() : m_running(false), thread("SPGW")
 {
   m_gtpc = new spgw::gtpc;
   m_gtpu = new spgw::gtpu;

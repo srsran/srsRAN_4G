@@ -33,8 +33,16 @@ namespace srsenb {
 class prach_worker : thread
 {
 public:
-  prach_worker() : initiated(false), prach_nof_det(0), max_prach_offset_us(0), buffer_pool(8),
-                   running(false), nof_sf(0), sf_cnt(0) {
+  prach_worker() :
+    initiated(false),
+    prach_nof_det(0),
+    max_prach_offset_us(0),
+    buffer_pool(8),
+    running(false),
+    nof_sf(0),
+    sf_cnt(0),
+    thread("PRACH_WORKER")
+  {
     log_h = NULL;
     mac = NULL;
     bzero(&prach, sizeof(srslte_prach_t));

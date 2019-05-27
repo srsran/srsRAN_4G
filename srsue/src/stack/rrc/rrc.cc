@@ -51,7 +51,8 @@ rrc::rrc() :
   last_state(RRC_STATE_CONNECTED),
   drb_up(false),
   rlc_flush_timeout(2000),
-  rlc_flush_counter(0)
+  rlc_flush_counter(0),
+  thread("RRC")
 {
   n310_cnt     = 0;
   n311_cnt     = 0;

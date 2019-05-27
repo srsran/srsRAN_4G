@@ -42,7 +42,7 @@ double callback_set_rx_gain(void *h, double gain) {
   return ((sync*)h)->set_rx_gain(gain);
 }
 
-sync::sync()
+sync::sync() : thread("SYNC")
 {
   cellsearch_earfcn_index = 0;
   current_sflen           = 0;
@@ -1665,7 +1665,7 @@ int sync::meas_stop(uint32_t earfcn, int pci)
   return -1;
 }
 
-sync::intra_measure::intra_measure() : scell()
+sync::intra_measure::intra_measure() : scell(), thread("SYNC_INTRA_MEASURE")
 {
 
   rrc = NULL;

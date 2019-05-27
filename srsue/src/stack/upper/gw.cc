@@ -69,8 +69,7 @@ namespace srsue {
 
 #define DRB1_LCID 3
 
-gw::gw()
-  :if_up(false)
+gw::gw() : if_up(false), thread("GW")
 {
   current_ip_addr = 0;
 }

@@ -42,7 +42,7 @@ using namespace asn1::rrc;
 
 namespace srsue {
 
-phy::phy() : workers_pool(MAX_WORKERS), workers(0), common(MAX_WORKERS), scell_sync()
+phy::phy() : workers_pool(MAX_WORKERS), workers(0), common(MAX_WORKERS), scell_sync(), thread("PHY")
 {
   tdd_config   = {};
   prach_cfg    = {};

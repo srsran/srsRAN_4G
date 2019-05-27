@@ -30,12 +30,13 @@
 
 namespace srslte {
 
-thread_pool::worker::worker() : my_id(0), running(false), my_parent(NULL) {}
+thread_pool::worker::worker() : my_id(0), running(false), my_parent(NULL), thread("THREAD_POOL_WORKER") {}
 
 void thread_pool::worker::setup(uint32_t id, thread_pool *parent, uint32_t prio, uint32_t mask)
 {
   my_id = id; 
   my_parent = parent;
+
   if(mask == 255)
   {
     start(prio);
@@ -49,6 +50,7 @@ void thread_pool::worker::setup(uint32_t id, thread_pool *parent, uint32_t prio,
 
 void thread_pool::worker::run_thread()
 {
+  set_name(std::string("WORKER") + std::to_string(my_id));
   running = true;   
   while(running)  {
     wait_to_start();

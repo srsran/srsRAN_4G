@@ -61,6 +61,8 @@ class s1ap
     ,public thread
 {
 public:
+  s1ap();
+  ~s1ap();
   bool init(s1ap_args_t args_, rrc_interface_s1ap *rrc_, srslte::log *s1ap_log_);
   void stop();
   void get_metrics(s1ap_metrics_t &m);

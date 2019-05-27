@@ -28,7 +28,7 @@
 using namespace srslte;
 namespace srsenb {
 
-gtpu::gtpu():mchthread()
+gtpu::gtpu() : mchthread(), thread("GTPU")
 {
   pdcp          = NULL;
   gtpu_log      = NULL;

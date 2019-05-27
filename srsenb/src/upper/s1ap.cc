@@ -38,6 +38,17 @@ using srslte::uint32_to_uint8;
 
 namespace srsenb{
 
+s1ap::s1ap() :
+  thread("S1AP"),
+  rrc(nullptr),
+  s1ap_log(nullptr),
+  pool(nullptr),
+  mme_connected(false),
+  running(false),
+  next_eNB_UE_S1AP_ID(1),
+  next_ue_stream_id(1){};
+s1ap::~s1ap(){};
+
 bool s1ap::init(s1ap_args_t args_, rrc_interface_s1ap *rrc_, srslte::log *s1ap_log_)
 {
   rrc = rrc_;

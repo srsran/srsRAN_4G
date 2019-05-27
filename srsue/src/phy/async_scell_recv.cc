@@ -45,7 +45,7 @@
 
 namespace srsue {
 
-async_scell_recv::async_scell_recv() : thread()
+async_scell_recv::async_scell_recv() : thread("ASYNC_SCELL_RECV")
 {
   initiated        = false;
   buffer_write_idx = 0;

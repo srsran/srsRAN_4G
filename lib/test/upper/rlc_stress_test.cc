@@ -109,15 +109,20 @@ class mac_dummy
     ,public thread
 {
 public:
-  mac_dummy(rlc_interface_mac *rlc1_, rlc_interface_mac *rlc2_, stress_test_args_t args_, uint32_t lcid_, rlc_pcap* pcap_ = NULL)
-    :timers(8)
-    ,run_enable(true)
-    ,rlc1(rlc1_)
-    ,rlc2(rlc2_)
-    ,args(args_)
-    ,pcap(pcap_)
-    ,lcid(lcid_)
-    ,log("MAC  ")
+  mac_dummy(rlc_interface_mac* rlc1_,
+            rlc_interface_mac* rlc2_,
+            stress_test_args_t args_,
+            uint32_t           lcid_,
+            rlc_pcap*          pcap_ = NULL) :
+    timers(8),
+    run_enable(true),
+    rlc1(rlc1_),
+    rlc2(rlc2_),
+    args(args_),
+    pcap(pcap_),
+    lcid(lcid_),
+    log("MAC  "),
+    thread("MAC_DUMMY")
   {
     log.set_level(static_cast<LOG_LEVEL_ENUM>(args.log_level));
     log.set_hex_limit(LOG_HEX_LIMIT);
@@ -209,14 +214,15 @@ class rlc_tester
     ,public thread
 {
 public:
-  rlc_tester(rlc_interface_pdcp *rlc_, std::string name_, stress_test_args_t args_, uint32_t lcid_)
-    :log("Testr")
-    ,rlc(rlc_)
-    ,run_enable(true)
-    ,rx_pdus()
-    ,name(name_)
-    ,args(args_)
-    ,lcid(lcid_)
+  rlc_tester(rlc_interface_pdcp* rlc_, std::string name_, stress_test_args_t args_, uint32_t lcid_) :
+    log("Testr"),
+    rlc(rlc_),
+    run_enable(true),
+    rx_pdus(),
+    name(name_),
+    args(args_),
+    lcid(lcid_),
+    thread("RLC_TESTER")
   {
     log.set_level(srslte::LOG_LEVEL_ERROR);
     log.set_hex_limit(LOG_HEX_LIMIT);

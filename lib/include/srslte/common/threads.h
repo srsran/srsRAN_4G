@@ -39,28 +39,32 @@
   void threads_print_self();
 
 #ifdef __cplusplus
-}
-  
+  }
+
+#include <string>
+
 #ifndef SRSLTE_THREADS_H
 #define SRSLTE_THREADS_H  
   
 class thread
 {
 public:
-  thread() {
-    _thread = 0;
-  }
+  thread(const std::string& name_) : _thread(0), name(name_) {}
   bool start(int prio = -1) {
     return threads_new_rt_prio(&_thread, thread_function_entry, this, prio);    
   }
   bool start_cpu(int prio, int cpu) {
     return threads_new_rt_cpu(&_thread, thread_function_entry, this, cpu, prio);    
   }
-   bool start_cpu_mask(int prio, int mask){
-     return threads_new_rt_mask(&_thread, thread_function_entry, this, mask, prio);
-}
-  void print_priority() {
-    threads_print_self();
+  bool start_cpu_mask(int prio, int mask)
+  {
+    return threads_new_rt_mask(&_thread, thread_function_entry, this, mask, prio);
+  }
+  void print_priority() { threads_print_self(); }
+  void set_name(const std::string& name_)
+  {
+    name = name_;
+    pthread_setname_np(pthread_self(), name.c_str());
   }
   void wait_thread_finish() {
     pthread_join(_thread, NULL);
@@ -68,16 +72,25 @@ public:
   void thread_cancel() {
     pthread_cancel(_thread);
   }
+
 protected:
-  virtual void run_thread() = 0; 
+  virtual void run_thread() = 0;
+
 private:
-  static void *thread_function_entry(void *_this)  { ((thread*) _this)->run_thread(); return NULL; }
-  pthread_t _thread;
+  static void* thread_function_entry(void* _this)
+  {
+    pthread_setname_np(pthread_self(), ((thread*)_this)->name.c_str());
+    ((thread*)_this)->run_thread();
+    return NULL;
+  }
+  pthread_t   _thread;
+  std::string name;
 };
 
 class periodic_thread : public thread 
 {
 public:
+  periodic_thread(const std::string name_) : thread(name_) {}
   void start_periodic(int period_us_, int priority = -1) {
     run_enable = true;
     period_us = period_us_; 
@@ -157,4 +170,3 @@ private:
 #endif // SRSLTE_THREADS_H
 
 #endif // __cplusplus
-

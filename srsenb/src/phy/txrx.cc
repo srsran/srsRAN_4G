@@ -37,7 +37,8 @@ using namespace std;
 
 namespace srsenb {
 
-txrx::txrx() : tx_worker_cnt(0), nof_workers(0), tti(0) {
+txrx::txrx() : tx_worker_cnt(0), nof_workers(0), tti(0), thread("TXRX")
+{
   running = false;   
   radio_h = NULL; 
   log_h   = NULL; 

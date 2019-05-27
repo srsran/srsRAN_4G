@@ -106,8 +106,8 @@ class rrc : public rrc_interface_pdcp,
             public thread
 {
 public:
-
-  rrc() : act_monitor(this), cnotifier(NULL), running(false), nof_si_messages(0) {
+  rrc() : act_monitor(this), cnotifier(NULL), running(false), nof_si_messages(0), thread("RRC")
+  {
     users.clear();
     pending_paging.clear();
 

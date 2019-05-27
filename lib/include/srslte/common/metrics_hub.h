@@ -54,8 +54,9 @@ template<typename metrics_t>
 class metrics_hub : public periodic_thread
 {
 public:
-  metrics_hub() : m(nullptr), sleep_start(std::chrono::steady_clock::now()) {}
-  bool init(metrics_interface<metrics_t> *m_, float report_period_secs_=1.0) {
+  metrics_hub() : m(nullptr), sleep_start(std::chrono::steady_clock::now()), periodic_thread("METRICS_HUB") {}
+  bool init(metrics_interface<metrics_t>* m_, float report_period_secs_ = 1.0)
+  {
     m = m_;
     // Start with user-default priority
     start_periodic(report_period_secs_*1e6, -2);

@@ -865,7 +865,7 @@ void rrc::run_thread()
   Activity monitor class
 *******************************************************************************/
 
-rrc::activity_monitor::activity_monitor(rrc* parent_)
+rrc::activity_monitor::activity_monitor(rrc* parent_) : thread("RRC_ACTIVITY_MONITOR")
 {
   running = true;
   parent = parent_;

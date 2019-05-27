@@ -39,9 +39,7 @@ pthread_mutex_t mbms_gw_instance_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 const uint16_t MBMS_GW_BUFFER_SIZE = 2500;
 
-mbms_gw::mbms_gw():
-  m_running(false),
-  m_sgi_mb_up(false)
+mbms_gw::mbms_gw() : m_running(false), m_sgi_mb_up(false), thread("MBMS_GW")
 {
   return;
 }

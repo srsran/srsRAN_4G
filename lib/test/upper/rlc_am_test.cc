@@ -89,7 +89,7 @@ public:
 class ul_writer : public thread
 {
 public:
-  ul_writer(rlc_am* rlc_) : rlc(rlc_), running(false) {}
+  ul_writer(rlc_am* rlc_) : rlc(rlc_), running(false), thread("UL_WRITER") {}
   ~ul_writer() { stop(); }
   void stop()
   {

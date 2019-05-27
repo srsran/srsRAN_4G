@@ -27,12 +27,11 @@ using namespace std;
 
 namespace srslte{
 
-logger_file::logger_file()
-  :logfile(NULL)
-  ,is_running(false)
-  ,cur_length(0)
-  ,max_length(0)
-{}
+logger_file::logger_file() : logfile(NULL), is_running(false), cur_length(0), max_length(0), thread("LOGGER_FILE")
+{
+  pthread_mutex_init(&mutex, NULL);
+  pthread_cond_init(&not_empty, NULL);
+}
 
 logger_file::~logger_file() {
   if(is_running) {
@@ -46,9 +45,9 @@ logger_file::~logger_file() {
     if (logfile) {
       fclose(logfile);
     }
-    pthread_mutex_destroy(&mutex);
-    pthread_cond_destroy(&not_empty);
   }
+  pthread_mutex_destroy(&mutex);
+  pthread_cond_destroy(&not_empty);
 }
 
 void logger_file::init(std::string file, int max_length_) {

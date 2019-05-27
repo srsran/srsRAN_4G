@@ -37,7 +37,7 @@ using namespace asn1::rrc;
 
 namespace srsue {
 
-mac::mac() : timers(64), pdu_process_thread(&demux_unit), mch_msg(10), running(false), pcap(nullptr)
+mac::mac() : timers(64), pdu_process_thread(&demux_unit), mch_msg(10), running(false), pcap(nullptr), thread("MAC")
 {
   // Create PCell HARQ entities
   auto ul = ul_harq_entity_ptr(new ul_harq_entity());
@@ -646,7 +646,7 @@ uint32_t mac::timer_get_unique_id()
  * DEMUX unit
  *
  *******************************************************/
-mac::pdu_process::pdu_process(demux *demux_unit_)
+mac::pdu_process::pdu_process(demux* demux_unit_) : thread("MAC_PDU_PROCESS")
 {
   demux_unit = demux_unit_;
   pthread_mutex_init(&mutex, NULL);
