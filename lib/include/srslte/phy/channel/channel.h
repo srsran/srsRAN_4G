@@ -24,6 +24,7 @@
 
 #include "delay.h"
 #include "fading.h"
+#include "rlf.h"
 #include <srslte/config.h>
 #include <srslte/srslte.h>
 #include <string>
@@ -46,6 +47,11 @@ public:
     float    delay_min_us   = 10;
     float    delay_max_us   = 100;
     uint32_t delay_period_s = 3600;
+
+    // RLF options
+    bool     rlf_enable   = false;
+    uint32_t rlf_t_on_ms  = 10000;
+    uint32_t rlf_t_off_ms = 2000;
   } args_t;
 
   channel(const args_t& channel_args, uint32_t _nof_ports);
@@ -56,6 +62,7 @@ public:
 private:
   srslte_channel_fading_t* fading[SRSLTE_MAX_PORTS];
   srslte_channel_delay_t*  delay[SRSLTE_MAX_PORTS];
+  srslte_channel_rlf_t*    rlf; // RLF has no buffers / no multiple instance is required
   cf_t*                    buffer_in     = nullptr;
   cf_t*                    buffer_out    = nullptr;
   uint32_t                 nof_ports     = 0;

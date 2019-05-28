@@ -193,6 +193,11 @@ enable = false
 # dl.delay.period:      Delay period in seconds (integer).
 # dl.delay.maximum_us:  Maximum delay in microseconds
 # dl.delay.minumum_us:  Minimum delay in microseconds
+#
+# -- Radio-Link Failure (RLF) Emulator
+# dl.rlf.enable:        Enable/disable RLF simulator
+# dl.rlf.t_on_ms:       Time for On state of the channel (ms)
+# dl.rlf.t_off_ms:      Time for Off state of the channel (ms)
 #####################################################################
 [channel]
 #dl.enable           = false
@@ -202,6 +207,9 @@ enable = false
 #dl.delay.period     = 3600
 #dl.delay.maximum_us = 100
 #dl.delay.minimum_us = 10
+#dl.rlf.enable       = false
+#dl.rlf.t_on_ms      = 10000
+#dl.rlf.t_off_ms     = 2000
 
 #####################################################################
 # Expert configuration options

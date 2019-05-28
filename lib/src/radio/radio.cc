@@ -28,8 +28,6 @@ extern "C" {
 #include <string.h>
 #include <unistd.h>
 
-uint32_t zero_tti = 0;
-
 namespace srslte {
 
 bool radio::init(log_filter* _log_h, char* args, char* devname, uint32_t nof_channels)
@@ -149,26 +147,18 @@ bool radio::rx_now(cf_t* buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_
 {
   bool ret = true;
 
-    if (!radio_is_streaming) {
-      srslte_rf_start_rx_stream(&rf_device, false);
-      radio_is_streaming = true;
-    }
+  if (!radio_is_streaming) {
+    srslte_rf_start_rx_stream(&rf_device, false);
+    radio_is_streaming = true;
+  }
 
-    time_t* full_secs = rxd_time ? &rxd_time->full_secs : NULL;
-    double* frac_secs = rxd_time ? &rxd_time->frac_secs : NULL;
+  time_t* full_secs = rxd_time ? &rxd_time->full_secs : NULL;
+  double* frac_secs = rxd_time ? &rxd_time->frac_secs : NULL;
 
-    if (srslte_rf_recv_with_time_multi(&rf_device, (void**)buffer, nof_samples, true, full_secs, frac_secs) > 0) {
-      ret = true;
-    } else {
-      ret = false;
-    }
-
-  if (zero_tti) {
-    bzero(buffer[0], sizeof(cf_t) * nof_samples);
-    zero_tti--;
-    if (!zero_tti) {
-      printf("-- end of zeros\n");
-    }
+  if (srslte_rf_recv_with_time_multi(&rf_device, (void**)buffer, nof_samples, true, full_secs, frac_secs) > 0) {
+    ret = true;
+  } else {
+    ret = false;
   }
 
   return ret;

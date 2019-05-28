@@ -62,6 +62,11 @@ channel::channel(const channel::args_t& channel_args, uint32_t _nof_ports)
     }
   }
 
+  if (channel_args.rlf_enable && ret == SRSLTE_SUCCESS) {
+    rlf = (srslte_channel_rlf_t*)calloc(sizeof(srslte_channel_rlf_t), 1);
+    srslte_channel_rlf_init(rlf, channel_args.rlf_t_on_ms, channel_args.rlf_t_off_ms);
+  }
+
   if (ret != SRSLTE_SUCCESS) {
     fprintf(stderr, "Error: Creating channel\n\n");
   }
@@ -75,6 +80,11 @@ channel::~channel()
 
   if (buffer_out) {
     free(buffer_out);
+  }
+
+  if (rlf) {
+    srslte_channel_rlf_free(rlf);
+    free(rlf);
   }
 
   for (uint32_t i = 0; i < nof_ports; i++) {
@@ -104,6 +114,11 @@ void channel::run(cf_t* in[SRSLTE_MAX_PORTS], cf_t* out[SRSLTE_MAX_PORTS], uint3
 
     if (delay[i]) {
       srslte_channel_delay_execute(delay[i], buffer_in, buffer_out, len, &t);
+      memcpy(buffer_in, buffer_out, sizeof(cf_t) * len);
+    }
+
+    if (rlf) {
+      srslte_channel_rlf_execute(rlf, buffer_in, buffer_out, len, &t);
       memcpy(buffer_in, buffer_out, sizeof(cf_t) * len);
     }
 

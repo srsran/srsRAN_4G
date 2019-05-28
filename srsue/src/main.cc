@@ -40,7 +40,6 @@
 #include "srslte/common/metrics_hub.h"
 #include "srslte/version.h"
 
-extern uint32_t zero_tti;
 extern bool     simulate_rlf;
 
 using namespace std;
@@ -151,10 +150,13 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("channel.dl.enable", bpo::value<bool>(&args->phy.dl_channel_args.enable)->default_value(false), "Enable/Disable internal Downlink channel emulator")
     ("channel.dl.fading.enable", bpo::value<bool>(&args->phy.dl_channel_args.fading_enable)->default_value(false), "Enable/Disable Fading model")
     ("channel.dl.fading.model", bpo::value<std::string>(&args->phy.dl_channel_args.fading_model)->default_value("none"), "Fading model + maximum doppler (E.g. none, epa5, eva70, etu300, etc)")
-    ("channel.dl.delay.enable", bpo::value<bool >(&args->phy.dl_channel_args.delay_enable)->default_value(false), "Enable/Disable Delay simulator")
-    ("channel.dl.delay.period", bpo::value<uint32_t >(&args->phy.dl_channel_args.delay_period_s)->default_value(3600), "Delay period in seconds (integer)")
-    ("channel.dl.delay.maximum_us", bpo::value<float >(&args->phy.dl_channel_args.delay_max_us)->default_value(100.0f), "Maximum delay in microseconds")
-    ("channel.dl.delay.minimum_us", bpo::value<float >(&args->phy.dl_channel_args.delay_min_us)->default_value(10.0f), "Minimum delay in microseconds")
+    ("channel.dl.delay.enable", bpo::value<bool>(&args->phy.dl_channel_args.delay_enable)->default_value(false), "Enable/Disable Delay simulator")
+    ("channel.dl.delay.period", bpo::value<uint32_t>(&args->phy.dl_channel_args.delay_period_s)->default_value(3600), "Delay period in seconds (integer)")
+    ("channel.dl.delay.maximum_us", bpo::value<float>(&args->phy.dl_channel_args.delay_max_us)->default_value(100.0f), "Maximum delay in microseconds")
+    ("channel.dl.delay.minimum_us", bpo::value<float>(&args->phy.dl_channel_args.delay_min_us)->default_value(10.0f), "Minimum delay in microseconds")
+    ("channel.dl.rlf.enable", bpo::value<bool>(&args->phy.dl_channel_args.rlf_enable)->default_value(false), "Enable/Disable Radio-Link Failure simulator")
+    ("channel.dl.rlf.t_on_ms", bpo::value<uint32_t >(&args->phy.dl_channel_args.rlf_t_on_ms)->default_value(10000), "Time for On state of the channel (ms)")
+    ("channel.dl.rlf.t_off_ms", bpo::value<uint32_t >(&args->phy.dl_channel_args.rlf_t_off_ms)->default_value(2000), "Time for Off state of the channel (ms)")
 
     /* Expert section */
     ("expert.phy.worker_cpu_mask",
@@ -480,9 +482,6 @@ void* input_loop(void* m)
       } else if (0 == key.compare("rlf")) {
         simulate_rlf = true;
         cout << "Sending Radio Link Failure" << endl;
-      } else if (0 == key.find("zeros ")) {
-        zero_tti = std::stoi(key.substr(6));
-        cout << "Receiving zeros for " << zero_tti << " ms" << endl;
       } else if (0 == key.compare("q")) {
         running = false;
       }
