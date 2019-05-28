@@ -187,7 +187,7 @@ enable = false
 # dl.fading.enable:     Enable/disable fading simulator
 # dl.fading.model:      Fading model + maximum doppler (E.g. none, epa5, eva70, etu300, etc)
 #
-# -- Delay Emulator     delay(t) = delay_min + (delay_max - delay_min) * sin(2pi*t/period) / 2
+# -- Delay Emulator     delay(t) = delay_min + (delay_max - delay_min) * (1 + sin(2pi*t/period)) / 2
 #                       Maximum speed [m/s]: (delay_max - delay_min) * pi * 300 / period
 # dl.delay.enable:      Enable/disable delay simulator
 # dl.delay.period:      Delay period in seconds (integer).
