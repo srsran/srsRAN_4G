@@ -46,7 +46,7 @@ int srslte_channel_delay_init(
     srslte_channel_delay_t* q, float delay_min_us, float delay_max_us, uint32_t period_s, uint32_t srate_max_hz)
 {
   // Calculate buffer size
-  uint32_t buff_size = (uint32_t)ceilf(delay_max_us * (float)srate_max_hz);
+  uint32_t buff_size = (uint32_t)ceilf(delay_max_us * (float)srate_max_hz / 1e6f);
 
   // Create ring buffer
   int ret = srslte_ringbuffer_init(&q->rb, sizeof(cf_t) * buff_size);

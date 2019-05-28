@@ -282,7 +282,7 @@ private:
   phy_common*              worker_com;
   prach*                   prach_buffer;
   async_scell_recv_vector* scell_sync;
-  srslte::channel*         channel_emulator = nullptr;
+  srslte::channel_ptr      channel_emulator = nullptr;
 
   // Object for synchronization of the primary cell
   srslte_ue_sync_t ue_sync;

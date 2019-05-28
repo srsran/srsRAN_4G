@@ -93,8 +93,8 @@ void sync::init(radio_interface_phy*     _radio,
   }
 
   if (worker_com->args->dl_channel_args.enable) {
-    channel_emulator = new srslte::channel(worker_com->args->dl_channel_args,
-                                           worker_com->args->nof_rx_ant * worker_com->args->nof_rx_ant);
+    channel_emulator = srslte::channel_ptr(new srslte::channel(
+        worker_com->args->dl_channel_args, worker_com->args->nof_rx_ant * worker_com->args->nof_rx_ant));
   }
 
   nof_workers = workers_pool->get_nof_workers();
@@ -134,11 +134,6 @@ sync::~sync()
     }
     pthread_mutex_destroy(&rrc_mutex);
     srslte_ue_sync_free(&ue_sync);
-
-    // Destroy channel emulator if created
-    if (channel_emulator) {
-      delete channel_emulator;
-    }
   }
 }
 

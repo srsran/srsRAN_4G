@@ -40,6 +40,9 @@ SRSLTE_API float srslte_random_uniform_real_dist(srslte_random_t q, float min, f
 
 SRSLTE_API cf_t srslte_random_uniform_complex_dist(srslte_random_t q, float min, float max);
 
+SRSLTE_API void
+srslte_random_uniform_complex_dist_vector(srslte_random_t q, cf_t* vector, uint32_t nsamples, float min, float max);
+
 SRSLTE_API float srslte_random_gauss_dist(srslte_random_t q, float std_dev);
 
 SRSLTE_API void srslte_random_free(srslte_random_t q);

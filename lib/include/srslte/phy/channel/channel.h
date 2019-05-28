@@ -25,6 +25,7 @@
 #include "delay.h"
 #include "fading.h"
 #include "rlf.h"
+#include <memory>
 #include <srslte/config.h>
 #include <srslte/srslte.h>
 #include <string>
@@ -69,6 +70,8 @@ private:
   uint32_t                 current_srate = 0;
   args_t                   args;
 };
+
+typedef std::unique_ptr<channel> channel_ptr;
 
 } // namespace srslte
 
