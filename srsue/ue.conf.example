@@ -184,19 +184,24 @@ enable = false
 # dl.enable:            Enable/Disable internal Downlink channel emulator
 #
 # -- Fading emulator
-# dl.fading_model:      Fading model (none, EPA5, EVA70, ETU300, etc)
+# dl.fading.enable:     Enable/disable fading simulator
+# dl.fading.model:      Fading model + maximum doppler (E.g. none, epa5, eva70, etu300, etc)
 #
-# -- Delay Emulator: d(t) = d_min + (d_max - d_min) * sin(2pi*t/period) / 2
-# dl.delay_period:      Delay period in seconds (integer).
-# dl.delay_maximum_us:  Maximum delay in microseconds
-# dl.delay_minumum_us:  Minimum delay in microseconds
+# -- Delay Emulator     delay(t) = delay_min + (delay_max - delay_min) * sin(2pi*t/period) / 2
+#                       Maximum speed [m/s]: (delay_max - delay_min) * pi * 300 / period
+# dl.delay.enable:      Enable/disable delay simulator
+# dl.delay.period:      Delay period in seconds (integer).
+# dl.delay.maximum_us:  Maximum delay in microseconds
+# dl.delay.minumum_us:  Minimum delay in microseconds
 #####################################################################
 [channel]
-#dl.enable = false
-#dl.fading_model = none
-#dl.delay_period = 3600
-#dl.delay_maximum_us = 100
-#dl.delay_minimum_us = 10
+#dl.enable           = false
+#dl.fading.enable    = false
+#dl.fading.model     = none
+#dl.delay.enable     = false
+#dl.delay.period     = 3600
+#dl.delay.maximum_us = 100
+#dl.delay.minimum_us = 10
 
 #####################################################################
 # Expert configuration options

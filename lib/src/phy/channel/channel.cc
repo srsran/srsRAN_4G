@@ -44,7 +44,8 @@ channel::channel(const channel::args_t& channel_args, uint32_t _nof_ports)
   nof_ports = _nof_ports;
   for (uint32_t i = 0; i < nof_ports; i++) {
     // Create fading channel
-    if (!channel_args.fading_model.empty() && channel_args.fading_model != "none" && ret == SRSLTE_SUCCESS) {
+    if (channel_args.fading_enable && !channel_args.fading_model.empty() && channel_args.fading_model != "none" &&
+        ret == SRSLTE_SUCCESS) {
       fading[i] = (srslte_channel_fading_t*)calloc(sizeof(srslte_channel_fading_t), 1);
       ret       = srslte_channel_fading_init(fading[i], srate_max, channel_args.fading_model.c_str(), 0x1234 * i);
     } else {
@@ -52,7 +53,7 @@ channel::channel(const channel::args_t& channel_args, uint32_t _nof_ports)
     }
 
     // Create delay
-    if (channel_args.delay_period_s && ret == SRSLTE_SUCCESS) {
+    if (channel_args.delay_enable && ret == SRSLTE_SUCCESS) {
       delay[i] = (srslte_channel_delay_t*)calloc(sizeof(srslte_channel_delay_t), 1);
       ret      = srslte_channel_delay_init(
           delay[i], channel_args.delay_min_us, channel_args.delay_max_us, channel_args.delay_period_s, srate_max);

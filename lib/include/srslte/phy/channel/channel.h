@@ -38,12 +38,14 @@ public:
     bool enable = false;
 
     // Fading options
-    std::string fading_model = "";
+    bool        fading_enable = false;
+    std::string fading_model  = "none";
 
     // Delay options
-    float    delay_min_us   = 0;
-    float    delay_max_us   = 0;
-    uint32_t delay_period_s = 0;
+    bool     delay_enable   = false;
+    float    delay_min_us   = 10;
+    float    delay_max_us   = 100;
+    uint32_t delay_period_s = 3600;
   } args_t;
 
   channel(const args_t& channel_args, uint32_t _nof_ports);

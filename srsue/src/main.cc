@@ -149,10 +149,12 @@ void parse_args(all_args_t* args, int argc, char* argv[])
 
     /* Channel emulator section */
     ("channel.dl.enable", bpo::value<bool>(&args->phy.dl_channel_args.enable)->default_value(false), "Enable/Disable internal Downlink channel emulator")
-    ("channel.dl.fading_model", bpo::value<std::string>(&args->phy.dl_channel_args.fading_model)->default_value("none"), "Fading model (none, EPA5, EVA70, ETU300, etc)")
-    ("channel.dl.delay_period", bpo::value<uint32_t >(&args->phy.dl_channel_args.delay_period_s)->default_value(3600), "Delay period in seconds (integer)")
-    ("channel.dl.delay_maximum_us", bpo::value<float >(&args->phy.dl_channel_args.delay_max_us)->default_value(100.0f), "Maximum delay in microseconds")
-    ("channel.dl.delay_minimum_us", bpo::value<float >(&args->phy.dl_channel_args.delay_min_us)->default_value(0.0f), "Maximum delay in microseconds")
+    ("channel.dl.fading.enable", bpo::value<bool>(&args->phy.dl_channel_args.fading_enable)->default_value(false), "Enable/Disable Fading model")
+    ("channel.dl.fading.model", bpo::value<std::string>(&args->phy.dl_channel_args.fading_model)->default_value("none"), "Fading model + maximum doppler (E.g. none, epa5, eva70, etu300, etc)")
+    ("channel.dl.delay.enable", bpo::value<bool >(&args->phy.dl_channel_args.delay_enable)->default_value(false), "Enable/Disable Delay simulator")
+    ("channel.dl.delay.period", bpo::value<uint32_t >(&args->phy.dl_channel_args.delay_period_s)->default_value(3600), "Delay period in seconds (integer)")
+    ("channel.dl.delay.maximum_us", bpo::value<float >(&args->phy.dl_channel_args.delay_max_us)->default_value(100.0f), "Maximum delay in microseconds")
+    ("channel.dl.delay.minimum_us", bpo::value<float >(&args->phy.dl_channel_args.delay_min_us)->default_value(10.0f), "Minimum delay in microseconds")
 
     /* Expert section */
     ("expert.phy.worker_cpu_mask",
