@@ -30,6 +30,7 @@
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/threads.h"
 #include "gw_metrics.h"
+#include "tft_packet_filter.h"
 
 namespace srsue {
 
