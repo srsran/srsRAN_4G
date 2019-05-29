@@ -223,10 +223,22 @@ int gw::setup_if_addr(uint32_t lcid, uint8_t pdn_type, uint32_t ip_addr, uint8_t
 int gw::apply_traffic_flow_template(const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft)
 {
   int err;
-  printf("Wazaaa\n");
   switch (tft->tft_op_code) {
+    case LIBLTE_MME_TFT_OPERATION_CODE_CREATE_NEW_TFT:
+      gw_log->console("Adding new TFT\n");
+      for (int i = 0; i < tft->packet_filter_list_size; i++) {
+        gw_log->console("New packet filter for TFT\n");
+        tft_packet_filter_t filter(tft->packet_filter_list[i]);
+        auto it = tft_filter_map.insert(std::make_pair(filter.eval_precedence, filter));
+        if(it.second == false){
+          gw_log->error("Error inserting TFT Packet Filter\n");
+          return SRSLTE_ERROR_CANT_START;
+        }
+      }
+      break;
     default:
       gw_log->error("Unhandled TFT OP code\n");
+      return SRSLTE_ERROR_CANT_START;
   }
   return SRSLTE_SUCCESS;
 }
@@ -318,6 +330,9 @@ void gw::run_thread()
         break;
       }
 
+      // Check to which LCID to send the packet
+      uint8_t lcid = check_tft_filter_match(pdu);
+
       // Send PDU directly to PDCP
       if (pdcp->is_lcid_enabled(default_lcid)) {
         pdu->set_timestamp();
@@ -340,6 +355,18 @@ void gw::run_thread()
     running = false;
     gw_log->info("GW IP receiver thread exiting.\n");
   }
+}
+
+uint8_t gw::check_tft_filter_match(const srslte::unique_byte_buffer_t& pdu) {
+  
+  uint8_t lcid = DRB1_LCID;
+  if(!tft_filter_map.empty()){
+    for (std::pair<const uint16_t, tft_packet_filter_t>& filter_pair : tft_filter_map) {
+      bool match = filter_pair.second.match(pdu);
+      gw_log->console("Found filter match\n");
+    }
+  }
+  return lcid;
 }
 
 /**************************/

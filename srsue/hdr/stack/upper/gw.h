@@ -103,6 +103,11 @@ private:
   struct   sockaddr_in mbsfn_sock_addr;     // Target address
   uint32_t mbsfn_ports[SRSLTE_N_MCH_LCIDS]; // Target ports for MBSFN data
 
+  // TFT
+  typedef std::map<uint16_t, tft_packet_filter_t> tft_filter_map_t;
+  tft_filter_map_t tft_filter_map; 
+ 
+  uint8_t check_tft_filter_match(const srslte::unique_byte_buffer_t& pdu);
 };
 
 } // namespace srsue
