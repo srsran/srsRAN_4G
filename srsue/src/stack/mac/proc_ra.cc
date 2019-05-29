@@ -326,7 +326,7 @@ void ra_proc::tb_decoded_ok() {
   current_ta = 0; 
   
   while(rar_pdu_msg.next()) {
-    if (rar_pdu_msg.get()->get_rapid() == sel_preamble) {
+    if (rar_pdu_msg.get()->has_rapid() && rar_pdu_msg.get()->get_rapid() == sel_preamble) {
 
       rar_received = true; 
       process_timeadv_cmd(rar_pdu_msg.get()->get_ta_cmd());
@@ -377,7 +377,9 @@ void ra_proc::tb_decoded_ok() {
         contention_resolution_timer->run();
       }
     } else {
-      rInfo("Found RAR for preamble %d\n", rar_pdu_msg.get()->get_rapid());
+      if (rar_pdu_msg.get()->has_rapid()) {
+        rInfo("Found RAR for preamble %d\n", rar_pdu_msg.get()->get_rapid());
+      }
     }
   }
 }
