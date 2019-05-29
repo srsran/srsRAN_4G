@@ -73,7 +73,7 @@ struct tft_packet_filter_t {
   uint32_t type_of_service;
   uint32_t flow_label;
 
-  tft_packet_filter_t(const LIBLTE_MME_PACKET_FILTER_STRUCT* tft);
+  tft_packet_filter_t(const LIBLTE_MME_PACKET_FILTER_STRUCT& tft);
 };
 
 
