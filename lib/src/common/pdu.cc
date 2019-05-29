@@ -826,15 +826,12 @@ uint8_t sch_subh::phr_report_table(float phr_value)
 void rar_pdu::fprint(FILE* stream)
 {
   fprintf(stream, "MAC PDU for RAR. ");
-  if (has_backoff_indicator) {
-    fprintf(stream, "Backoff Indicator %d. ", backoff_indicator);
-  }
   pdu::fprint(stream);  
 } 
 
 rar_pdu::rar_pdu(uint32_t max_rars_) : pdu(max_rars_)
 {
-  backoff_indicator = 0; 
+  backoff_indicator     = 0;
   has_backoff_indicator = false; 
 }
 
@@ -861,7 +858,7 @@ bool rar_pdu::write_packet(uint8_t* ptr)
   if (has_backoff_indicator) {
     *(ptr) = backoff_indicator&0xf;
     if (nof_subheaders > 0) {
-      *(ptr) = 1<<7;
+      *(ptr) |= 1 << 7;
     }
     ptr++;
   }
@@ -882,7 +879,12 @@ bool rar_pdu::write_packet(uint8_t* ptr)
 
 void rar_subh::fprint(FILE* stream)
 {
-  fprintf(stream, "RAPID: %d, Temp C-RNTI: %d, TA: %d, UL Grant: ", preamble, temp_rnti, ta);
+  if (type == RAPID) {
+    fprintf(stream, "RAPID: %d, Temp C-RNTI: %d, TA: %d, UL Grant: ", preamble, temp_rnti, ta);
+  } else {
+    fprintf(stream, "Backoff Indicator %d. ", ((rar_pdu*)parent)->get_backoff());
+  }
+
   srslte_vec_fprint_hex(stream, grant, 20);
 }
 
@@ -896,6 +898,11 @@ void rar_subh::init()
 uint32_t rar_subh::get_rapid()
 {
   return preamble; 
+}
+
+bool rar_subh::has_rapid()
+{
+  return (type == RAPID);
 }
 
 void rar_subh::get_sched_grant(uint8_t grant_[RAR_GRANT_LEN])
@@ -954,23 +961,25 @@ void rar_subh::write_payload(uint8_t** ptr)
 
 void rar_subh::read_payload(uint8_t** ptr)
 {
-  ta = ((uint32_t) *(*ptr + 0)&0x7f)<<4 | (*(*ptr + 1)&0xf0)>>4;
-  grant[0] = *(*ptr + 1)&0x8?1:0;
-  grant[1] = *(*ptr + 1)&0x4?1:0;
-  grant[2] = *(*ptr + 1)&0x2?1:0;
-  grant[3] = *(*ptr + 1)&0x1?1:0;
-  uint8_t *x = &grant[4];
-  srslte_bit_unpack(*(*ptr+2), &x, 8);
-  srslte_bit_unpack(*(*ptr+3), &x, 8);
-  temp_rnti = ((uint16_t) *(*ptr + 4))<<8 | *(*ptr + 5);    
-  *ptr += 6;
+  if (type == RAPID) {
+    ta         = ((uint32_t) * (*ptr + 0) & 0x7f) << 4 | (*(*ptr + 1) & 0xf0) >> 4;
+    grant[0]   = *(*ptr + 1) & 0x8 ? 1 : 0;
+    grant[1]   = *(*ptr + 1) & 0x4 ? 1 : 0;
+    grant[2]   = *(*ptr + 1) & 0x2 ? 1 : 0;
+    grant[3]   = *(*ptr + 1) & 0x1 ? 1 : 0;
+    uint8_t* x = &grant[4];
+    srslte_bit_unpack(*(*ptr + 2), &x, 8);
+    srslte_bit_unpack(*(*ptr + 3), &x, 8);
+    temp_rnti = ((uint16_t) * (*ptr + 4)) << 8 | *(*ptr + 5);
+    *ptr += 6;
+  }
 }
 
 bool rar_subh::read_subheader(uint8_t** ptr)
 {
   bool e_bit = *(*ptr) & 0x80?true:false;
-  bool type  = *(*ptr) & 0x40?true:false;
-  if (type) {
+  type       = *(*ptr) & 0x40 ? RAPID : BACKOFF;
+  if (type == RAPID) {
     preamble = *(*ptr) & 0x3f;
   } else {
     ((rar_pdu*)parent)->set_backoff(*(*ptr) & 0xf);

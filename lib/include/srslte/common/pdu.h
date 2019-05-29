@@ -338,12 +338,15 @@ public:
 class rar_subh : public subh<rar_subh>
 {
 public:
+  typedef enum { BACKOFF = 0, RAPID } rar_subh_type_t;
+
   rar_subh() {
     bzero(&grant, sizeof(grant));
     ta        = 0;
     temp_rnti = 0;
     preamble  = 0;
     parent    = NULL;
+    type      = BACKOFF;
   }
 
   static const uint32_t RAR_GRANT_LEN = 20; 
@@ -351,6 +354,7 @@ public:
   // Reading functions
   bool     read_subheader(uint8_t** ptr);
   void     read_payload(uint8_t** ptr);
+  bool     has_rapid();
   uint32_t get_rapid();
   uint32_t get_ta_cmd();
   uint16_t get_temp_crnti();
@@ -372,6 +376,7 @@ private:
   uint32_t ta; 
   uint16_t temp_rnti; 
   uint32_t preamble;
+  rar_subh_type_t type;
 };
 
 class rar_pdu : public pdu<rar_subh>
@@ -389,8 +394,7 @@ public:
 
 private:
   bool       has_backoff_indicator;
-  uint8_t    backoff_indicator; 
-
+  uint8_t    backoff_indicator;
 };
 
 class mch_subh : public sch_subh
