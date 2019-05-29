@@ -430,61 +430,6 @@ int dedicated_eps_bearer_test()
   return SRSLTE_SUCCESS;
 }
 
-int activate_dedicated_eps_bearer_context_request_test()
-{
-  int ret = SRSLTE_ERROR;
-  srslte::log_filter nas_log("NAS");
-  srslte::log_filter rrc_log("RRC");
-  srslte::log_filter mac_log("MAC");
-  srslte::log_filter usim_log("USIM");
-
-  nas_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  rrc_log.set_level(srslte::LOG_LEVEL_DEBUG);
-  nas_log.set_hex_limit(100000);
-  rrc_log.set_hex_limit(100000);
-
-  rrc_dummy rrc_dummy;
-  gw_dummy gw;
-
-  usim_args_t args;
-  args.algo = "xor";
-  args.imei = "353490069873319";
-  args.imsi = "001010123456789";
-  args.k = "00112233445566778899aabbccddeeff";
-  args.op = "63BFA50EE6523365FF14C1F45F88737D";
-
-  // init USIM
-  srsue::usim usim;
-  bool    net_valid;
-  uint8_t res[16];
-  usim.init(&args, &usim_log);
-
-  srslte::byte_buffer_pool *pool;
-  pool = byte_buffer_pool::get_instance();
-
-  {
-    srsue::nas nas;
-    nas_args_t cfg;
-    cfg.apn_name          = "srslte";
-    nas.init(&usim, &rrc_dummy, &gw, &nas_log, cfg);
-
-    // push ESM info request PDU to NAS to generate response
-    unique_byte_buffer_t tmp = srslte::allocate_unique_buffer(*pool, true);
-    memcpy(tmp->msg, act_ded_bearer_req_pdu, sizeof(act_ded_bearer_req_pdu));
-    tmp->N_bytes = sizeof(act_ded_bearer_req_pdu);
-    nas.write_pdu(LCID, std::move(tmp));
-
-    // check length of generated NAS SDU
-    if (rrc_dummy.get_last_sdu_len() > 3) {
-      ret = SRSLTE_SUCCESS;
-    }
-  }
-
-  pool->cleanup();
-
-  return ret;
-}
-
 int main(int argc, char **argv)
 {
 
