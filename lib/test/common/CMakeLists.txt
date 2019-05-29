@@ -52,3 +52,7 @@ add_executable(timeout_test timeout_test.cc)
 target_link_libraries(timeout_test srslte_phy ${CMAKE_THREAD_LIBS_INIT})
 
 add_executable(bcd_helpers_test bcd_helpers_test.cc)
+
+add_executable(pdu_test pdu_test.cc)
+target_link_libraries(pdu_test srslte_phy srslte_common ${CMAKE_THREAD_LIBS_INIT})
+add_test(pdu_test pdu_test)
