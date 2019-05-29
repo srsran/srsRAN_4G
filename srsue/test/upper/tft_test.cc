@@ -61,6 +61,15 @@ int tft_filter_test()
   memcpy(tst_msg->msg, nas_message, nas_message_len);
   log1.info_hex(tst_msg->msg, tst_msg->N_bytes, "NAS Activate Dedicated EPS Bearer Context Request original message\n");
 
+  // Test message type and protocol discriminator
+  uint8_t pd, msg_type;
+  liblte_mme_parse_msg_header((LIBLTE_BYTE_MSG_STRUCT*)tst_msg.get(), &pd, &msg_type);
+  TESTASSERT(msg_type == LIBLTE_MME_MSG_TYPE_ACTIVATE_DEDICATED_EPS_BEARER_CONTEXT_REQUEST);
+
+  // Unpack message
+  err = liblte_mme_unpack_activate_dedicated_eps_bearer_context_request_msg((LIBLTE_BYTE_MSG_STRUCT*)tst_msg.get(),
+                                                                            &ded_bearer_req);
+  TESTASSERT(err == LIBLTE_SUCCESS);
   // Traffic flow template
   TESTASSERT(ded_bearer_req.tft.tft_op_code == LIBLTE_MME_TFT_OPERATION_CODE_CREATE_NEW_TFT);
   TESTASSERT(ded_bearer_req.tft.parameter_list_size == 0);
@@ -73,6 +82,10 @@ int tft_filter_test()
              LIBLTE_MME_TFT_PACKET_FILTER_COMPONENT_TYPE_ID_SINGLE_LOCAL_PORT_TYPE);
  
   srsue::tft_packet_filter_t filter(ded_bearer_req.tft.packet_filter_list[0]);
+
+  // Check filter
+  TESTASSERT(filter.active_filters == SINGLE_LOCAL_PORT_FLAG);
+  TESTASSERT(filter.single_local_port == ntohs(2222));
 
   printf("Test NAS Activate Dedicated EPS Bearer Context Request successfull\n");
   return 0;

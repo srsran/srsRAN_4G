@@ -30,18 +30,21 @@ tft_packet_filter_t::tft_packet_filter_t(const LIBLTE_MME_PACKET_FILTER_STRUCT& 
 {
   int idx = 0;
   while (idx < tft.filter_size) {
-    switch (tft.filter[idx] & 0x0F) {
+    switch (tft.filter[idx]) {
       case IPV4_REMOTE_ADDR_TYPE:
+        idx++;
         active_filters = IPV4_REMOTE_ADDR_FLAG;
         memcpy(&ipv4_remote_addr, &tft.filter[idx], 4);
         idx += 4;
         break;
       case IPV4_LOCAL_ADDR_TYPE:
+        idx++;
         active_filters = IPV4_LOCAL_ADDR_FLAG;
         memcpy(&ipv4_local_addr, &tft.filter[idx], 4);
         idx += 4;
         break;
       case IPV6_REMOTE_ADDR_TYPE:
+        idx++;
         active_filters = IPV6_REMOTE_ADDR_FLAG;
         memcpy(&ipv4_local_addr, &tft.filter[idx], 16);
         idx += 16;
@@ -53,6 +56,7 @@ tft_packet_filter_t::tft_packet_filter_t(const LIBLTE_MME_PACKET_FILTER_STRUCT& 
       case PROTOCOL_ID_TYPE:
         break;
       case SINGLE_LOCAL_PORT_TYPE:
+        idx++;
         active_filters = SINGLE_LOCAL_PORT_FLAG;
         memcpy(&single_local_port, &tft.filter[idx], 2);
         idx += 2;
