@@ -23,6 +23,7 @@
 #define SRSUE_PACKET_FILTER_H
 
 #include "srslte/asn1/liblte_mme.h"
+#include "srslte/common/buffer_pool.h"
 
 namespace srsue {
 
@@ -54,8 +55,19 @@ const uint8_t SECURITY_PARAMETER_INDEX_TYPE = 0b01100000;
 const uint8_t TYPE_OF_SERVICE_TYPE          = 0b01110000;
 const uint8_t FLOW_LABEL_TYPE               = 0b10000000;
 
+// Helper const
+const uint8_t IPV4_ADDR_SIZE = 4;
+const uint8_t IPV6_ADDR_SIZE = 16;
+const uint8_t UDP_PROTOCOL   = 0x11;
+const uint8_t TCP_PROTOCOL   = 0x06;
+
 // TS 24.008 Table 10.5.162
-struct tft_packet_filter_t {
+class tft_packet_filter_t
+{
+public:
+  tft_packet_filter_t(const LIBLTE_MME_PACKET_FILTER_STRUCT& tft);
+  bool    match(const srslte::unique_byte_buffer_t& pdu);
+
   uint8_t  id;
   uint8_t  eval_precedence;
   uint16_t active_filters;
@@ -71,11 +83,14 @@ struct tft_packet_filter_t {
   uint16_t remote_port_range[2];
   uint32_t security_parameter_index;
   uint32_t type_of_service;
-  uint32_t flow_label;
+  uint8_t flow_label[3];
 
-  tft_packet_filter_t(const LIBLTE_MME_PACKET_FILTER_STRUCT& tft);
+  bool match_ip(const srslte::unique_byte_buffer_t& pdu);
+  bool match_protocol(const srslte::unique_byte_buffer_t& pdu);
+  bool match_type_of_service(const srslte::unique_byte_buffer_t& pdu);
+  bool match_flow_label(const srslte::unique_byte_buffer_t& pdu);
+  bool match_port(const srslte::unique_byte_buffer_t& pdu);
 };
-
 
 } // namespace srsue
 

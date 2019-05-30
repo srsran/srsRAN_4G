@@ -359,7 +359,7 @@ void gw::run_thread()
 
 uint8_t gw::check_tft_filter_match(const srslte::unique_byte_buffer_t& pdu) {
   
-  uint8_t lcid = DRB1_LCID;
+  uint8_t lcid = default_lcid;
   if(!tft_filter_map.empty()){
     for (std::pair<const uint16_t, tft_packet_filter_t>& filter_pair : tft_filter_map) {
       bool match = filter_pair.second.match(pdu);

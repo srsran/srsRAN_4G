@@ -20,6 +20,8 @@
  */
 
 #include "srsue/hdr/stack/upper/tft_packet_filter.h"
+#include <linux/ip.h>
+#include <linux/ipv6.h>
 
 namespace srsue {
 
@@ -31,6 +33,7 @@ tft_packet_filter_t::tft_packet_filter_t(const LIBLTE_MME_PACKET_FILTER_STRUCT& 
   int idx = 0;
   while (idx < tft.filter_size) {
     switch (tft.filter[idx]) {
+      // IPv4
       case IPV4_REMOTE_ADDR_TYPE:
         idx++;
         active_filters = IPV4_REMOTE_ADDR_FLAG;
@@ -43,18 +46,14 @@ tft_packet_filter_t::tft_packet_filter_t(const LIBLTE_MME_PACKET_FILTER_STRUCT& 
         memcpy(&ipv4_local_addr, &tft.filter[idx], 4);
         idx += 4;
         break;
+      //IPv6
       case IPV6_REMOTE_ADDR_TYPE:
-        idx++;
-        active_filters = IPV6_REMOTE_ADDR_FLAG;
-        memcpy(&ipv4_local_addr, &tft.filter[idx], 16);
-        idx += 16;
         break;
       case IPV6_REMOTE_ADDR_LENGTH_TYPE:
         break;
       case IPV6_LOCAL_ADDR_LENGTH_TYPE:
         break;
-      case PROTOCOL_ID_TYPE:
-        break;
+      // Ports
       case SINGLE_LOCAL_PORT_TYPE:
         idx++;
         active_filters = SINGLE_LOCAL_PORT_FLAG;
@@ -67,11 +66,17 @@ tft_packet_filter_t::tft_packet_filter_t(const LIBLTE_MME_PACKET_FILTER_STRUCT& 
         break;
       case REMOTE_PORT_RANGE_TYPE:
         break;
-      case SECURITY_PARAMETER_INDEX_TYPE:
+      // Protocol/Next Header
+      case PROTOCOL_ID_TYPE:
         break;
+      // Type of service/Traffic class
       case TYPE_OF_SERVICE_TYPE:
         break;
+      //Flow label
       case FLOW_LABEL_TYPE:
+        break;
+      // IPsec security parameter
+      case SECURITY_PARAMETER_INDEX_TYPE:
         break;
       default:
         return;
@@ -79,4 +84,117 @@ tft_packet_filter_t::tft_packet_filter_t(const LIBLTE_MME_PACKET_FILTER_STRUCT& 
   }
 }
 
+bool tft_packet_filter_t::match(const srslte::unique_byte_buffer_t& pdu)
+{
+  bool            match   = true;
+  struct iphdr*   ip_pkt  = (struct iphdr*)pdu->msg;
+  struct ipv6hdr* ip6_pkt = (struct ipv6hdr*)pdu->msg;
+
+  // Match IP Header to active filters
+  if (!match_ip(pdu)) {
+    return false;
+  }
+
+  // Check Protocol ID/Next Header Field
+  if (!match_protocol(pdu)) {
+    return false;
+  }
+
+  return true;
+}
+
+bool tft_packet_filter_t::match_ip(const srslte::unique_byte_buffer_t& pdu)
+{
+  struct iphdr*   ip_pkt  = (struct iphdr*)pdu->msg;
+  struct ipv6hdr* ip6_pkt = (struct ipv6hdr*)pdu->msg;
+
+  if (ip_pkt->version == 4) {
+    // Check match on IPv4 packet
+    if (active_filters & IPV4_REMOTE_ADDR_TYPE) {
+      if (memcmp(&ipv4_remote_addr, &ip_pkt->daddr, IPV4_ADDR_SIZE) != 0) {
+        return false;
+      }
+    }
+    if (active_filters & IPV4_LOCAL_ADDR_TYPE) {
+      if (memcmp(&ipv4_local_addr, &ip_pkt->saddr, IPV4_ADDR_SIZE) != 0) {
+        return false;
+      }
+    }
+  } else if (ip_pkt->version == 6) {
+    // Check match on IPv6 (TODO)
+  } else {
+    // Error
+    return false;
+  }
+  return true;
+}
+
+bool tft_packet_filter_t::match_protocol(const srslte::unique_byte_buffer_t& pdu)
+{
+  struct iphdr*   ip_pkt  = (struct iphdr*)pdu->msg;
+  struct ipv6hdr* ip6_pkt = (struct ipv6hdr*)pdu->msg;
+
+  if (active_filters & PROTOCOL_ID_TYPE) {
+    if (ip_pkt->version == 4) {
+      // Check match on IPv4 packet
+      if (ip_pkt->protocol != protocol_id) {
+        return false;
+      }
+    } else if (ip_pkt->version == 6) {
+      // Check match on IPv6 (TODO)
+      if (ip6_pkt->nexthdr != protocol_id) {
+        return false;
+      }
+    } else {
+      // Error
+      return false;
+    }
+  }
+  return true;
+}
+
+bool tft_packet_filter_t::match_type_of_service(const srslte::unique_byte_buffer_t& pdu)
+{
+  struct iphdr* ip_pkt = (struct iphdr*)pdu->msg;
+
+  if (ip_pkt->version == 4 && (active_filters & TYPE_OF_SERVICE_FLAG)) {
+    // Check match on IPv4 packet
+    if (ip_pkt->tos != type_of_service) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool tft_packet_filter_t::match_flow_label(const srslte::unique_byte_buffer_t& pdu)
+{
+  struct ipv6hdr* ip6_pkt = (struct ipv6hdr*)pdu->msg;
+
+  if (ip6_pkt->version == 6 && (active_filters & FLOW_LABEL_FLAG)) {
+    // Check match on IPv4 packet
+    if (memcmp(ip6_pkt->flow_lbl, flow_label, 3) != 0) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool tft_packet_filter_t::match_port(const srslte::unique_byte_buffer_t& pdu)
+{
+  struct iphdr*   ip_pkt  = (struct iphdr*)pdu->msg;
+  struct ipv6hdr* ip6_pkt = (struct ipv6hdr*)pdu->msg;
+
+  if (ip_pkt->version == 4) {
+    switch (ip_pkt->protocol) {
+      case UDP_PROTOCOL:
+        printf("UDP protocol");
+      case TCP_PROTOCOL:
+        printf("TCP protocol");
+      default:
+        printf("Unhandled protocol");
+        return false;
+    }
+  }
+  return true;
+}
 } // namespace srsue
