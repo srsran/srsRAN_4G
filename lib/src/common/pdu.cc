@@ -101,7 +101,7 @@ uint8_t* sch_pdu::write_packet(srslte::log* log_h)
     rem_len--;
     // Add the header for the last SDU
     if (!ce_only) {
-      rem_len -= (subheaders[last_sdu_idx].get_header_size(false) - 1); // Becuase we were assuming it was the one
+      rem_len -= (subheaders[last_sdu_idx].get_header_size(false) - 1); // Because we were assuming it was the one
     }
   } else if (rem_len > 0) {
     onetwo_padding = rem_len;
@@ -869,6 +869,8 @@ void rar_pdu::set_backoff(uint8_t bi)
 // Section 6.1.5
 bool rar_pdu::write_packet(uint8_t* ptr)
 {
+  uint8_t* init_ptr = ptr;
+
   // Write Backoff Indicator, if any
   if (has_backoff_indicator) {
     *(ptr) = backoff_indicator & 0xf;
@@ -886,8 +888,9 @@ bool rar_pdu::write_packet(uint8_t* ptr)
   for (int i = 0; i < nof_subheaders; i++) {
     subheaders[i].write_payload(&ptr);
   }
+
   // Set padding to zeros (if any)
-  bzero(ptr, rem_len * sizeof(uint8_t));
+  bzero(ptr, (rem_len - (ptr - init_ptr)) * sizeof(uint8_t));
 
   return true;
 }
