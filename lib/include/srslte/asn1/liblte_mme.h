@@ -2527,7 +2527,7 @@ const char* liblte_nas_sec_hdr_type_to_string(int code);
 #define LIBLTE_MME_MSG_TYPE_UPLINK_GENERIC_NAS_TRANSPORT                                  0x69
 #define LIBLTE_MME_MSG_TYPE_ACTIVATE_TEST_MODE                                            0x84
 #define LIBLTE_MME_MSG_TYPE_ACTIVATE_TEST_MODE_COMPLETE                                   0x85
-#define LIBLTE_MME_MSG_TYPE_DEACTIVATE TEST MODE                                          0x86
+#define LIBLTE_MME_MSG_TYPE_DEACTIVATE_TEST MODE                                          0x86
 #define LIBLTE_MME_MSG_TYPE_DEACTIVATE_TEST_MODE_COMPLETE                                 0x87
 #define LIBLTE_MME_MSG_TYPE_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_REQUEST                   0xC1
 #define LIBLTE_MME_MSG_TYPE_ACTIVATE_DEFAULT_EPS_BEARER_CONTEXT_ACCEPT                    0xC2
@@ -4066,7 +4066,7 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_pdn_disconnect_request_msg(LIBLTE_BYTE_MSG_S
     Message Name: ACTIVATE TEST MODE COMPLETE
 
     Description: Sent by the UE to the network in response to an
-                 ATTACH ACCEPT message.
+                 ACTIVATE TEST MODE  message.
 
     Document Reference: 36.509 v8.7.0 Section 6.6
 *********************************************************************/
