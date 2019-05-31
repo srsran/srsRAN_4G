@@ -61,14 +61,14 @@ public:
   void run(cf_t* in[SRSLTE_MAX_PORTS], cf_t* out[SRSLTE_MAX_PORTS], uint32_t len, const srslte_timestamp_t& t);
 
 private:
-  srslte_channel_fading_t* fading[SRSLTE_MAX_PORTS];
-  srslte_channel_delay_t*  delay[SRSLTE_MAX_PORTS];
-  srslte_channel_rlf_t*    rlf; // RLF has no buffers / no multiple instance is required
-  cf_t*                    buffer_in     = nullptr;
-  cf_t*                    buffer_out    = nullptr;
-  uint32_t                 nof_ports     = 0;
-  uint32_t                 current_srate = 0;
-  args_t                   args;
+  srslte_channel_fading_t* fading[SRSLTE_MAX_PORTS] = {};
+  srslte_channel_delay_t*  delay[SRSLTE_MAX_PORTS]  = {};
+  srslte_channel_rlf_t*    rlf                      = nullptr; // RLF has no buffers / no multiple instance is required
+  cf_t*                    buffer_in                = nullptr;
+  cf_t*                    buffer_out               = nullptr;
+  uint32_t                 nof_ports                = 0;
+  uint32_t                 current_srate            = 0;
+  args_t                   args                     = {};
 };
 
 typedef std::unique_ptr<channel> channel_ptr;
