@@ -22,6 +22,7 @@
 #include "srsue/hdr/stack/upper/tft_packet_filter.h"
 #include <linux/ip.h>
 #include <linux/ipv6.h>
+#include <linux/udp.h>
 
 namespace srsue {
 
@@ -97,6 +98,11 @@ bool tft_packet_filter_t::match(const srslte::unique_byte_buffer_t& pdu)
 
   // Check Protocol ID/Next Header Field
   if (!match_protocol(pdu)) {
+    return false;
+  }
+
+  // Check Ports/Port Range
+  if (!match_port(pdu)) {
     return false;
   }
 
@@ -183,15 +189,29 @@ bool tft_packet_filter_t::match_port(const srslte::unique_byte_buffer_t& pdu)
 {
   struct iphdr*   ip_pkt  = (struct iphdr*)pdu->msg;
   struct ipv6hdr* ip6_pkt = (struct ipv6hdr*)pdu->msg;
+  struct udphdr* udp_pkt;
+
+  // LOCAL_PORT_RANGE_FLAG
+  // SINGLE_REMOTE_PORT_FLAG
+  // REMOTE_PORT_RANGE_FLAG
 
   if (ip_pkt->version == 4) {
     switch (ip_pkt->protocol) {
       case UDP_PROTOCOL:
-        printf("UDP protocol");
+        printf("UDP protocol\n");
+        udp_pkt = (struct udphdr*)&pdu->msg[ip_pkt->ihl * 4];
+        printf("%d\n", ntohs(udp_pkt->source));
+        if (active_filters & SINGLE_LOCAL_PORT_FLAG) {
+          if (udp_pkt->source != single_local_port) {
+            return false;
+          }
+        }
+        break;
       case TCP_PROTOCOL:
-        printf("TCP protocol");
+        printf("TCP protocol\n");
+        break;
       default:
-        printf("Unhandled protocol");
+        printf("Unhandled protocol\n");
         return false;
     }
   }
