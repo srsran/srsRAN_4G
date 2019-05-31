@@ -361,7 +361,12 @@ void rlc_am::rlc_am_tx::write_sdu(unique_byte_buffer_t sdu, bool blocking)
   if (sdu.get() != NULL) {
     if (blocking) {
       // block on write to queue
-      log->info_hex(sdu->msg, sdu->N_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", RB_NAME, sdu->N_bytes, tx_sdu_queue.size());
+      log->info_hex(sdu->msg,
+                    sdu->N_bytes,
+                    "%s Tx SDU (%d B, tx_sdu_queue_len=%d)\n",
+                    RB_NAME,
+                    sdu->N_bytes,
+                    tx_sdu_queue.size());
       tx_sdu_queue.write(std::move(sdu));
     } else {
       // non-blocking write
@@ -370,13 +375,12 @@ void rlc_am::rlc_am_tx::write_sdu(unique_byte_buffer_t sdu, bool blocking)
       std::pair<bool, unique_byte_buffer_t> ret       = tx_sdu_queue.try_write(std::move(sdu));
       if (ret.first) {
         log->info_hex(
-            msg_ptr, nof_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)", RB_NAME, nof_bytes, tx_sdu_queue.size());
+            msg_ptr, nof_bytes, "%s Tx SDU (%d B, tx_sdu_queue_len=%d)\n", RB_NAME, nof_bytes, tx_sdu_queue.size());
       } else {
         // in case of fail, the try_write returns back the sdu
-        log->info("[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)", RB_NAME, nof_bytes, tx_sdu_queue.size());
         log->info_hex(ret.second->msg,
                       ret.second->N_bytes,
-                      "[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)",
+                      "[Dropped SDU] %s Tx SDU (%d B, tx_sdu_queue_len=%d)\n",
                       RB_NAME,
                       ret.second->N_bytes,
                       tx_sdu_queue.size());
@@ -402,7 +406,7 @@ int rlc_am::rlc_am_tx::read_pdu(uint8_t *payload, uint32_t nof_bytes)
   }
 
   // Tx STATUS if requested
-  if(do_status() && not status_prohibited) {
+  if (do_status() && not status_prohibited) {
     pdu_size = build_status_pdu(payload, nof_bytes);
     goto unlock_and_exit;
   }
