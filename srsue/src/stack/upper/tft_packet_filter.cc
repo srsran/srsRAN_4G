@@ -33,19 +33,19 @@ tft_packet_filter_t::tft_packet_filter_t(const LIBLTE_MME_PACKET_FILTER_STRUCT& 
 {
   int idx = 0;
   while (idx < tft.filter_size) {
-    switch (tft.filter[idx]) {
+    uint8_t filter_type = tft.filter[idx];  
+    idx++;
+    switch (filter_type) {
       // IPv4
       case IPV4_REMOTE_ADDR_TYPE:
-        idx++;
         active_filters = IPV4_REMOTE_ADDR_FLAG;
-        memcpy(&ipv4_remote_addr, &tft.filter[idx], 4);
-        idx += 4;
+        memcpy(&ipv4_remote_addr, &tft.filter[idx], IPV4_ADDR_SIZE);
+        idx += IPV4_ADDR_SIZE;
         break;
       case IPV4_LOCAL_ADDR_TYPE:
-        idx++;
         active_filters = IPV4_LOCAL_ADDR_FLAG;
-        memcpy(&ipv4_local_addr, &tft.filter[idx], 4);
-        idx += 4;
+        memcpy(&ipv4_local_addr, &tft.filter[idx], IPV4_ADDR_SIZE);
+        idx += IPV4_ADDR_SIZE;
         break;
       //IPv6
       case IPV6_REMOTE_ADDR_TYPE:
@@ -56,14 +56,16 @@ tft_packet_filter_t::tft_packet_filter_t(const LIBLTE_MME_PACKET_FILTER_STRUCT& 
         break;
       // Ports
       case SINGLE_LOCAL_PORT_TYPE:
-        idx++;
         active_filters = SINGLE_LOCAL_PORT_FLAG;
         memcpy(&single_local_port, &tft.filter[idx], 2);
         idx += 2;
         break;
-      case LOCAL_PORT_RANGE_TYPE:
-        break;
       case SINGLE_REMOTE_PORT_TYPE:
+        active_filters = SINGLE_REMOTE_PORT_FLAG;
+        memcpy(&single_remote_port, &tft.filter[idx], 2);
+        idx += 2;
+        break;
+      case LOCAL_PORT_RANGE_TYPE:
         break;
       case REMOTE_PORT_RANGE_TYPE:
         break;
@@ -201,8 +203,14 @@ bool tft_packet_filter_t::match_port(const srslte::unique_byte_buffer_t& pdu)
         printf("UDP protocol\n");
         udp_pkt = (struct udphdr*)&pdu->msg[ip_pkt->ihl * 4];
         printf("%d\n", ntohs(udp_pkt->source));
+        printf("%d\n", ntohs(udp_pkt->dest));
         if (active_filters & SINGLE_LOCAL_PORT_FLAG) {
           if (udp_pkt->source != single_local_port) {
+            return false;
+          }
+        }
+        if (active_filters & SINGLE_REMOTE_PORT_FLAG) {
+          if (udp_pkt->dest != single_remote_port) {
             return false;
           }
         }
