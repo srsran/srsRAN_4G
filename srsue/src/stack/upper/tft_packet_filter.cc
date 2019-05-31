@@ -37,14 +37,14 @@ tft_packet_filter_t::tft_packet_filter_t(const LIBLTE_MME_PACKET_FILTER_STRUCT& 
     idx++;
     switch (filter_type) {
       // IPv4
-      case IPV4_REMOTE_ADDR_TYPE:
-        active_filters = IPV4_REMOTE_ADDR_FLAG;
-        memcpy(&ipv4_remote_addr, &tft.filter[idx], IPV4_ADDR_SIZE);
-        idx += IPV4_ADDR_SIZE;
-        break;
       case IPV4_LOCAL_ADDR_TYPE:
         active_filters = IPV4_LOCAL_ADDR_FLAG;
         memcpy(&ipv4_local_addr, &tft.filter[idx], IPV4_ADDR_SIZE);
+        idx += IPV4_ADDR_SIZE;
+        break;
+      case IPV4_REMOTE_ADDR_TYPE:
+        active_filters = IPV4_REMOTE_ADDR_FLAG;
+        memcpy(&ipv4_remote_addr, &tft.filter[idx], IPV4_ADDR_SIZE);
         idx += IPV4_ADDR_SIZE;
         break;
       //IPv6
@@ -118,13 +118,13 @@ bool tft_packet_filter_t::match_ip(const srslte::unique_byte_buffer_t& pdu)
 
   if (ip_pkt->version == 4) {
     // Check match on IPv4 packet
-    if (active_filters & IPV4_REMOTE_ADDR_TYPE) {
-      if (memcmp(&ipv4_remote_addr, &ip_pkt->daddr, IPV4_ADDR_SIZE) != 0) {
+    if (active_filters & IPV4_LOCAL_ADDR_FLAG) {
+      if (memcmp(&ipv4_local_addr, &ip_pkt->saddr, IPV4_ADDR_SIZE) != 0) {
         return false;
       }
     }
-    if (active_filters & IPV4_LOCAL_ADDR_TYPE) {
-      if (memcmp(&ipv4_local_addr, &ip_pkt->saddr, IPV4_ADDR_SIZE) != 0) {
+    if (active_filters & IPV4_REMOTE_ADDR_FLAG) {
+      if (memcmp(&ipv4_remote_addr, &ip_pkt->daddr, IPV4_ADDR_SIZE) != 0) {
         return false;
       }
     }
