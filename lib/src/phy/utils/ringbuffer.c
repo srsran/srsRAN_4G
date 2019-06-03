@@ -188,3 +188,36 @@ void srslte_ringbuffer_stop(srslte_ringbuffer_t *q) {
   pthread_mutex_unlock(&q->mutex);
 }
 
+// Converts SC16 to cf_t
+int srslte_ringbuffer_read_convert_conj(srslte_ringbuffer_t* q, cf_t* dst_ptr, float norm, int nof_samples)
+{
+  uint32_t nof_bytes = nof_samples * 4;
+
+  pthread_mutex_lock(&q->mutex);
+  while (q->count < nof_bytes && q->active) {
+    pthread_cond_wait(&q->cvar, &q->mutex);
+  }
+  if (!q->active) {
+    pthread_mutex_unlock(&q->mutex);
+    return 0;
+  }
+
+  int16_t* src = (int16_t*)&q->buffer[q->rpm];
+  float*   dst = (float*)dst_ptr;
+
+  if (nof_bytes + q->rpm > q->capacity) {
+    int x = (q->capacity - q->rpm);
+    srslte_vec_convert_if(src, norm, dst, x / 2);
+    srslte_vec_convert_if((int16_t*)q->buffer, norm, &dst[x], 2 * nof_samples - x / 2);
+  } else {
+    srslte_vec_convert_if(src, norm, dst, 2 * nof_samples);
+  }
+  srslte_vec_conj_cc(dst_ptr, dst_ptr, nof_samples);
+  q->rpm += nof_bytes;
+  if (q->rpm >= q->capacity) {
+    q->rpm -= q->capacity;
+  }
+  q->count -= nof_bytes;
+  pthread_mutex_unlock(&q->mutex);
+  return nof_samples;
+}
