@@ -3863,6 +3863,8 @@ typedef struct{
 }LIBLTE_MME_MODIFY_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT;
 // Functions
 LIBLTE_ERROR_ENUM liblte_mme_pack_modify_eps_bearer_context_accept_msg(LIBLTE_MME_MODIFY_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT *mod_eps_bearer_context_accept,
+                                                                       uint8                                                   sec_hdr_type,
+                                                                       uint32                                                  count,
                                                                        LIBLTE_BYTE_MSG_STRUCT                                 *msg);
 LIBLTE_ERROR_ENUM liblte_mme_unpack_modify_eps_bearer_context_accept_msg(LIBLTE_BYTE_MSG_STRUCT                                 *msg,
                                                                          LIBLTE_MME_MODIFY_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT *mod_eps_bearer_context_accept);

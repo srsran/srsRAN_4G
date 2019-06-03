@@ -10394,6 +10394,8 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_esm_status_msg(LIBLTE_BYTE_MSG_STRUCT       
     Document Reference: 24.301 v10.2.0 Section 8.3.16
 *********************************************************************/
 LIBLTE_ERROR_ENUM liblte_mme_pack_modify_eps_bearer_context_accept_msg(LIBLTE_MME_MODIFY_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT *mod_eps_bearer_context_accept,
+                                                                       uint8                                                   sec_hdr_type,
+                                                                       uint32                                                  count,
                                                                        LIBLTE_BYTE_MSG_STRUCT                                 *msg)
 {
     LIBLTE_ERROR_ENUM  err     = LIBLTE_ERROR_INVALID_INPUTS;
@@ -10402,6 +10404,19 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_modify_eps_bearer_context_accept_msg(LIBLTE_MM
     if(mod_eps_bearer_context_accept != NULL &&
        msg                           != NULL)
     {
+        if (LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS != sec_hdr_type) {
+            // Protocol Discriminator and Security Header Type
+            *msg_ptr = (sec_hdr_type << 4) | (LIBLTE_MME_PD_EPS_MOBILITY_MANAGEMENT);
+            msg_ptr++;
+
+            // MAC will be filled in later
+            msg_ptr += 4;
+
+            // Sequence Number
+            *msg_ptr = count & 0xFF;
+            msg_ptr++;
+        }
+
         // Protocol Discriminator and EPS Bearer ID
         *msg_ptr = (mod_eps_bearer_context_accept->eps_bearer_id << 4) | (LIBLTE_MME_PD_EPS_SESSION_MANAGEMENT);
         msg_ptr++;
@@ -10663,6 +10678,15 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_modify_eps_bearer_context_request_msg(LIBLTE
     if(msg                        != NULL &&
        mod_eps_bearer_context_req != NULL)
     {
+        // Security Header Type
+        uint8_t sec_hdr_type = (msg->msg[0] & 0xF0) >> 4;
+        if(LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS == sec_hdr_type)
+        {
+            msg_ptr++;
+        }else{
+            msg_ptr += 6;
+        }
+        
         // EPS Bearer ID
         mod_eps_bearer_context_req->eps_bearer_id = (*msg_ptr >> 4);
         msg_ptr++;
