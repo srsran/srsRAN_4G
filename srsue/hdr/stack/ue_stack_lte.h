@@ -114,7 +114,7 @@ private:
   srsue::rrc        rrc;
   srsue::nas        nas;
   srsue::gw         gw;
-  srsue::usim_base* usim;
+  std::unique_ptr<usim_base> usim;
 
   srslte::logger* logger;
 
