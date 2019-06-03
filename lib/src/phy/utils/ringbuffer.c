@@ -221,3 +221,30 @@ int srslte_ringbuffer_read_convert_conj(srslte_ringbuffer_t* q, cf_t* dst_ptr, f
   pthread_mutex_unlock(&q->mutex);
   return nof_samples;
 }
+
+/* For this function, the ring buffer capacity must be multiple of block size */
+int srslte_ringbuffer_read_block(srslte_ringbuffer_t* q, void** p, int nof_bytes)
+{
+  int ret = nof_bytes;
+  pthread_mutex_lock(&q->mutex);
+
+  /* Wait until enough data is in the buffer */
+  while (q->count < nof_bytes && q->active) {
+    pthread_cond_wait(&q->cvar, &q->mutex);
+  }
+
+  if (!q->active) {
+    ret = 0;
+  } else {
+    *p = &q->buffer[q->rpm];
+
+    q->count -= nof_bytes;
+    q->rpm += nof_bytes;
+
+    if (q->rpm >= q->capacity) {
+      q->rpm -= q->capacity;
+    }
+  }
+  pthread_mutex_unlock(&q->mutex);
+  return ret;
+}

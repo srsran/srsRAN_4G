@@ -60,6 +60,8 @@ SRSLTE_API int srslte_ringbuffer_read_timed(srslte_ringbuffer_t* q, void* p, int
 
 SRSLTE_API int srslte_ringbuffer_read_convert_conj(srslte_ringbuffer_t* q, cf_t* dst_ptr, float norm, int nof_samples);
 
+SRSLTE_API int srslte_ringbuffer_read_block(srslte_ringbuffer_t* q, void** p, int nof_bytes);
+
 SRSLTE_API void srslte_ringbuffer_stop(srslte_ringbuffer_t *q);
 
 #ifdef __cplusplus
