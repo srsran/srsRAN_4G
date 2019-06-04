@@ -74,6 +74,9 @@ tft_packet_filter_t::tft_packet_filter_t(const LIBLTE_MME_PACKET_FILTER_STRUCT& 
         break;
       // Type of service/Traffic class
       case TYPE_OF_SERVICE_TYPE:
+        active_filters = TYPE_OF_SERVICE_FLAG;
+        memcpy(&type_of_service, &tft.filter[idx], 1);
+        idx += 1; 
         break;
       //Flow label
       case FLOW_LABEL_TYPE:
@@ -105,6 +108,11 @@ bool tft_packet_filter_t::match(const srslte::unique_byte_buffer_t& pdu)
 
   // Check Ports/Port Range
   if (!match_port(pdu)) {
+    return false;
+  }
+
+  // Check Type of Service/Traffic class
+  if (!match_type_of_service(pdu)) {
     return false;
   }
 
@@ -165,6 +173,7 @@ bool tft_packet_filter_t::match_type_of_service(const srslte::unique_byte_buffer
 {
   struct iphdr* ip_pkt = (struct iphdr*)pdu->msg;
 
+  printf("tos %d %d\n", ip_pkt->tos, type_of_service);
   if (ip_pkt->version == 4 && (active_filters & TYPE_OF_SERVICE_FLAG)) {
     // Check match on IPv4 packet
     if (ip_pkt->tos != type_of_service) {

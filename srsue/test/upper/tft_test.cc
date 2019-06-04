@@ -43,11 +43,12 @@ using namespace srslte;
 // Protocol UDP
 // Source port 2222, Destination port 2001
 uint8_t ip_tst_message1[] = {
-    0x45, 0x00, 0x00, 0x5c, 0x22, 0xa1, 0x40, 0x00, 0x40, 0x11, 0x19, 0xee, 0x7f, 0x00, 0x00, 0x01, 0x7f, 0x00, 0x00,
-    0x01, 0x08, 0xae, 0x07, 0xd1, 0x00, 0x48, 0xfe, 0x5b, 0xd8, 0xf8, 0xd5, 0x4d, 0x9a, 0x9d, 0x26, 0xc7, 0xbd, 0xb4,
-    0xcc, 0x90, 0xe0, 0x21, 0x0b, 0x07, 0x74, 0x00, 0xcb, 0x2b, 0xf8, 0x09, 0xa1, 0x55, 0xa8, 0xf8, 0xfc, 0x93, 0xee,
-    0x4c, 0x67, 0x60, 0xb6, 0xa0, 0x1c, 0x79, 0x29, 0x45, 0x59, 0x96, 0xe6, 0x9b, 0x70, 0xc7, 0x34, 0xb0, 0x2f, 0xf5,
-    0x0e, 0x0f, 0xcb, 0x45, 0xf1, 0xae, 0x97, 0x46, 0x0c, 0xbe, 0x9f, 0xd7, 0xfa, 0xe5, 0xec, 0x99};
+    0x45, 0x04, 0x00, 0x5c, 0xb5, 0x8e, 0x40, 0x00, 0x40, 0x11, 0x86, 0xfb, 0x7f, 0x00, 0x00, 0x01, 0x7f, 0x00, 0x00,
+    0x02, 0x08, 0xae, 0x07, 0xd1, 0x00, 0x48, 0xfe, 0x5c, 0xaf, 0xed, 0x69, 0x5a, 0x77, 0x80, 0x6e, 0x2f, 0x5e, 0xf3,
+    0x76, 0x17, 0x05, 0xe4, 0x2b, 0xca, 0xb2, 0xd2, 0xcb, 0xa5, 0x58, 0x06, 0xc5, 0x02, 0x8d, 0xf1, 0x7a, 0x3d, 0x4f,
+    0x14, 0x34, 0x58, 0x92, 0x37, 0x7c, 0x95, 0x53, 0x18, 0xa3, 0xff, 0x08, 0x1b, 0x07, 0x99, 0x94, 0xe2, 0x10, 0x0d,
+    0x3d, 0x25, 0x20, 0x13, 0x95, 0x84, 0x53, 0x4b, 0x6a, 0x92, 0x64, 0x5a, 0xce, 0xbb, 0x6c, 0x3a,
+};
 uint32_t ip_message_len1 = sizeof(ip_tst_message1);
 
 // IP test message 2
@@ -186,7 +187,7 @@ int tft_filter_test_ipv4_local_addr()
 
   // Set IP test message
   ip_msg2->N_bytes = ip_message_len2;
-  memcpy(ip_msg2->msg, ip_tst_message2, ip_message_len1);
+  memcpy(ip_msg2->msg, ip_tst_message2, ip_message_len2);
   log1.info_hex(ip_msg2->msg, ip_msg2->N_bytes, "IP test message\n");
 
   // Packet filter
@@ -207,6 +208,104 @@ int tft_filter_test_ipv4_local_addr()
   printf("Test TFT packet filter local IPv4 address successfull\n");
   return 0;
 }
+
+int tft_filter_test_ipv4_remote_addr()
+{
+  srslte::log_filter log1("TFT");
+  log1.set_level(srslte::LOG_LEVEL_DEBUG);
+  log1.set_hex_limit(128);
+
+  srslte::byte_buffer_pool *pool = srslte::byte_buffer_pool::get_instance();
+  srslte::unique_byte_buffer_t ip_msg1, ip_msg2;
+  ip_msg1 = allocate_unique_buffer(*pool);
+  ip_msg2 = allocate_unique_buffer(*pool);
+
+  // Filter length: 5 bytes
+  // Filter type:   IPv4 local address
+  // Remote address: 127.0.0.2
+  uint8_t filter_message[5];
+  uint8_t filter_size = 5;
+  filter_message[0] = IPV4_REMOTE_ADDR_TYPE;
+  inet_pton(AF_INET, "127.0.0.2", &filter_message[1]);
+
+  // Set IP test message
+  ip_msg1->N_bytes = ip_message_len1;
+  memcpy(ip_msg1->msg, ip_tst_message1, ip_message_len1);
+  log1.info_hex(ip_msg1->msg, ip_msg1->N_bytes, "IP test message\n");
+
+
+  // Set IP test message
+  ip_msg2->N_bytes = ip_message_len2;
+  memcpy(ip_msg2->msg, ip_tst_message2, ip_message_len2);
+  log1.info_hex(ip_msg2->msg, ip_msg2->N_bytes, "IP test message\n");
+
+  // Packet filter
+  LIBLTE_MME_PACKET_FILTER_STRUCT packet_filter;
+
+  packet_filter.dir = LIBLTE_MME_TFT_PACKET_FILTER_DIRECTION_BIDIRECTIONAL;
+  packet_filter.id = 1;
+  packet_filter.eval_precedence = 0;
+  packet_filter.filter_size = filter_size;
+  memcpy(packet_filter.filter, filter_message, filter_size);
+ 
+  srsue::tft_packet_filter_t filter(packet_filter);
+
+  // Check filter
+  TESTASSERT(filter.match(ip_msg1));
+  TESTASSERT(!filter.match(ip_msg2));
+
+  printf("Test TFT packet filter remote IPv4 address successfull\n");
+  return 0;
+}
+
+int tft_filter_test_ipv4_tos()
+{
+  srslte::log_filter log1("TFT");
+  log1.set_level(srslte::LOG_LEVEL_DEBUG);
+  log1.set_hex_limit(128);
+
+  srslte::byte_buffer_pool *pool = srslte::byte_buffer_pool::get_instance();
+  srslte::unique_byte_buffer_t ip_msg1, ip_msg2;
+  ip_msg1 = allocate_unique_buffer(*pool);
+  ip_msg2 = allocate_unique_buffer(*pool);
+
+  // Filter length: 2 bytes
+  // Filter type:   Type of service
+  // ToS:           4
+  uint8_t filter_message[2];
+  uint8_t filter_size = 2;
+  filter_message[0] = TYPE_OF_SERVICE_TYPE;
+  filter_message[1] = 4;
+
+  // Set IP test message
+  ip_msg1->N_bytes = ip_message_len1;
+  memcpy(ip_msg1->msg, ip_tst_message1, ip_message_len1);
+  log1.info_hex(ip_msg1->msg, ip_msg1->N_bytes, "IP test message\n");
+
+  // Set IP test message
+  ip_msg2->N_bytes = ip_message_len2;
+  memcpy(ip_msg2->msg, ip_tst_message2, ip_message_len2);
+  log1.info_hex(ip_msg2->msg, ip_msg2->N_bytes, "IP test message\n");
+
+  // Packet filter
+  LIBLTE_MME_PACKET_FILTER_STRUCT packet_filter;
+
+  packet_filter.dir = LIBLTE_MME_TFT_PACKET_FILTER_DIRECTION_BIDIRECTIONAL;
+  packet_filter.id = 1;
+  packet_filter.eval_precedence = 0;
+  packet_filter.filter_size = filter_size;
+  memcpy(packet_filter.filter, filter_message, filter_size);
+ 
+  srsue::tft_packet_filter_t filter(packet_filter);
+
+  // Check filter
+  TESTASSERT(filter.match(ip_msg1));
+  TESTASSERT(!filter.match(ip_msg2));
+
+  printf("Test TFT packet filter type of service successfull\n");
+  return 0;
+}
+
 int main(int argc, char **argv)
 {
   srslte::byte_buffer_pool::get_instance();
@@ -217,6 +316,12 @@ int main(int argc, char **argv)
     return -1;
   }
   if (tft_filter_test_ipv4_local_addr()) {
+    return -1;
+  }
+  if (tft_filter_test_ipv4_remote_addr()) {
+    return -1;
+  }
+  if (tft_filter_test_ipv4_tos()) {
     return -1;
   }
   srslte::byte_buffer_pool::cleanup();
