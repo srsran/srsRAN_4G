@@ -98,7 +98,8 @@ class gw_interface_nas
 {
 public:
   virtual int setup_if_addr(uint32_t lcid, uint8_t pdn_type, uint32_t ip_addr, uint8_t* ipv6_if_id, char* err_str) = 0;
-  virtual int apply_traffic_flow_template(const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft)                      = 0;
+  virtual int apply_traffic_flow_template(uint8_t                                        eps_bearer_id,
+                                          const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft)                      = 0;
 };
 
 // GW interface for RRC

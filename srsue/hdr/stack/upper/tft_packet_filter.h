@@ -65,9 +65,10 @@ const uint8_t TCP_PROTOCOL   = 0x06;
 class tft_packet_filter_t
 {
 public:
-  tft_packet_filter_t(const LIBLTE_MME_PACKET_FILTER_STRUCT& tft);
+  tft_packet_filter_t(uint8_t eps_bearer_id, const LIBLTE_MME_PACKET_FILTER_STRUCT& tft);
   bool    match(const srslte::unique_byte_buffer_t& pdu);
 
+  uint8_t  eps_bearer_id;
   uint8_t  id;
   uint8_t  eval_precedence;
   uint16_t active_filters;
@@ -82,8 +83,9 @@ public:
   uint16_t single_remote_port;
   uint16_t remote_port_range[2];
   uint32_t security_parameter_index;
-  uint32_t type_of_service;
-  uint8_t flow_label[3];
+  uint8_t  type_of_service;
+  uint8_t  type_of_service_mask;
+  uint8_t  flow_label[3];
 
   bool match_ip(const srslte::unique_byte_buffer_t& pdu);
   bool match_protocol(const srslte::unique_byte_buffer_t& pdu);

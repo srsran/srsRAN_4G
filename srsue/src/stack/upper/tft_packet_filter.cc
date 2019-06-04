@@ -26,7 +26,8 @@
 
 namespace srsue {
 
-tft_packet_filter_t::tft_packet_filter_t(const LIBLTE_MME_PACKET_FILTER_STRUCT& tft) :
+tft_packet_filter_t::tft_packet_filter_t(uint8_t eps_bearer_id, const LIBLTE_MME_PACKET_FILTER_STRUCT& tft) :
+  eps_bearer_id(eps_bearer_id),
   id(tft.id),
   eval_precedence(tft.eval_precedence),
   active_filters(0)
@@ -77,6 +78,8 @@ tft_packet_filter_t::tft_packet_filter_t(const LIBLTE_MME_PACKET_FILTER_STRUCT& 
         active_filters = TYPE_OF_SERVICE_FLAG;
         memcpy(&type_of_service, &tft.filter[idx], 1);
         idx += 1; 
+        memcpy(&type_of_service_mask, &tft.filter[idx], 1);
+        idx += 1; 
         break;
       //Flow label
       case FLOW_LABEL_TYPE:
@@ -113,6 +116,7 @@ bool tft_packet_filter_t::match(const srslte::unique_byte_buffer_t& pdu)
 
   // Check Type of Service/Traffic class
   if (!match_type_of_service(pdu)) {
+    printf("still not matching\n");
     return false;
   }
 
@@ -177,8 +181,12 @@ bool tft_packet_filter_t::match_type_of_service(const srslte::unique_byte_buffer
   if (ip_pkt->version == 4 && (active_filters & TYPE_OF_SERVICE_FLAG)) {
     // Check match on IPv4 packet
     if (ip_pkt->tos != type_of_service) {
+      printf("not matching!\n");
       return false;
     }
+  } else if (ip_pkt->version == 6 && (active_filters & TYPE_OF_SERVICE_FLAG)) {
+    // IPv6 traffic class not supported yet
+    return false;
   }
   return true;
 }
@@ -202,17 +210,10 @@ bool tft_packet_filter_t::match_port(const srslte::unique_byte_buffer_t& pdu)
   struct ipv6hdr* ip6_pkt = (struct ipv6hdr*)pdu->msg;
   struct udphdr* udp_pkt;
 
-  // LOCAL_PORT_RANGE_FLAG
-  // SINGLE_REMOTE_PORT_FLAG
-  // REMOTE_PORT_RANGE_FLAG
-
   if (ip_pkt->version == 4) {
     switch (ip_pkt->protocol) {
       case UDP_PROTOCOL:
-        printf("UDP protocol\n");
         udp_pkt = (struct udphdr*)&pdu->msg[ip_pkt->ihl * 4];
-        printf("%d\n", ntohs(udp_pkt->source));
-        printf("%d\n", ntohs(udp_pkt->dest));
         if (active_filters & SINGLE_LOCAL_PORT_FLAG) {
           if (udp_pkt->source != single_local_port) {
             return false;
@@ -225,10 +226,8 @@ bool tft_packet_filter_t::match_port(const srslte::unique_byte_buffer_t& pdu)
         }
         break;
       case TCP_PROTOCOL:
-        printf("TCP protocol\n");
-        break;
+        return false;
       default:
-        printf("Unhandled protocol\n");
         return false;
     }
   }
