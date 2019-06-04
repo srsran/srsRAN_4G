@@ -18,8 +18,6 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-find_package(SRSGUI)
-
 ########################################################################
 # PROGRAM TO DEBUG PSS FROM USRP  
 ########################################################################
@@ -31,7 +29,6 @@ if(UHD_FOUND)
   add_executable(pss_usrp pss_usrp.c)
   target_link_libraries(pss_usrp srslte_phy srslte_rf)
 endif(UHD_FOUND)
-
 
 if(SRSGUI_FOUND)
   include_directories(${SRSGUI_INCLUDE_DIRS})

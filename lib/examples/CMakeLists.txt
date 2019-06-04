@@ -46,8 +46,6 @@ else(RF_FOUND)
   target_link_libraries(pdsch_enodeb srslte_common srslte_phy pthread)
 endif(RF_FOUND)
 
-find_package(SRSGUI)
-
 if(SRSGUI_FOUND)
   include_directories(${SRSGUI_INCLUDE_DIRS})
   target_link_libraries(pdsch_ue ${SRSGUI_LIBRARIES})
