@@ -116,7 +116,6 @@ bool tft_packet_filter_t::match(const srslte::unique_byte_buffer_t& pdu)
 
   // Check Type of Service/Traffic class
   if (!match_type_of_service(pdu)) {
-    printf("still not matching\n");
     return false;
   }
 
@@ -177,11 +176,9 @@ bool tft_packet_filter_t::match_type_of_service(const srslte::unique_byte_buffer
 {
   struct iphdr* ip_pkt = (struct iphdr*)pdu->msg;
 
-  printf("tos %d %d\n", ip_pkt->tos, type_of_service);
   if (ip_pkt->version == 4 && (active_filters & TYPE_OF_SERVICE_FLAG)) {
     // Check match on IPv4 packet
     if (ip_pkt->tos != type_of_service) {
-      printf("not matching!\n");
       return false;
     }
   } else if (ip_pkt->version == 6 && (active_filters & TYPE_OF_SERVICE_FLAG)) {
