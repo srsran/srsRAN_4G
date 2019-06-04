@@ -1133,12 +1133,14 @@ void nas::parse_activate_dedicated_eps_bearer_context_request(uint32_t lcid, uni
 {
   LIBLTE_MME_ACTIVATE_DEDICATED_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT request;
   liblte_mme_unpack_activate_dedicated_eps_bearer_context_request_msg((LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), &request);
+
   nas_log->info(
       "Received Activate Dedicated EPS bearer context request (eps_bearer_id=%d, linked_bearer_id=%d, proc_id=%d)\n",
       request.eps_bearer_id,
       request.linked_eps_bearer_id,
       request.proc_transaction_id);
 
+  ctxt.rx_count++;
   LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft = &request.tft;
   nas_log->info("Traffic Flow Template: TFT OP code 0x%x, Filter list size %d, Parameter list size %d\n",
                 tft->tft_op_code,
