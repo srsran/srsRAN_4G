@@ -54,28 +54,44 @@ void rlc_um::init(srslte::log                  *log_,
   log = log_;
 }
 
+bool rlc_um::resume()
+{
+  if (not has_configuration) {
+    log->error("Error resuming bearer: no previous configuration found\n");
+    return false;
+  }
+
+  if (not rx.configure(cfg, rb_name)) {
+    return false;
+  }
+
+  if (not tx.configure(cfg, rb_name)) {
+    return false;
+  }
+
+  return true;
+}
 
 bool rlc_um::configure(srslte_rlc_config_t cnfg_)
 {
   // determine bearer name and configure Rx/Tx objects
   rb_name = get_rb_name(rrc, lcid, cnfg_.um.is_mrb);
 
-  if (not rx.configure(cnfg_, rb_name)) {
-    return false;
-  }
-
-  if (not tx.configure(cnfg_, rb_name)) {
-    return false;
-  }
-
   // store config
-  cfg = cnfg_.um;
+  cfg               = cnfg_;
+  has_configuration = true;
 
-  log->warning("%s configured in %s: t_reordering=%d ms, rx_sn_field_length=%u bits, tx_sn_field_length=%u bits\n",
-               rb_name.c_str(), rlc_mode_text[cnfg_.rlc_mode], cfg.t_reordering,
-               rlc_umd_sn_size_num[cfg.rx_sn_field_length], rlc_umd_sn_size_num[cfg.rx_sn_field_length]);
-
-  return true;
+  if (resume()) {
+    log->info("%s configured in %s: t_reordering=%d ms, rx_sn_field_length=%u bits, tx_sn_field_length=%u bits\n",
+              rb_name.c_str(),
+              rlc_mode_text[cnfg_.rlc_mode],
+              cfg.um.t_reordering,
+              rlc_umd_sn_size_num[cfg.um.rx_sn_field_length],
+              rlc_umd_sn_size_num[cfg.um.rx_sn_field_length]);
+    return true;
+  } else {
+    return false;
+  }
 }
 
 
@@ -109,7 +125,7 @@ void rlc_um::empty_queue() {
 
 bool rlc_um::is_mrb()
 {
-  return cfg.is_mrb;
+  return cfg.um.is_mrb;
 }
 
 

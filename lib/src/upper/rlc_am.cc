@@ -32,7 +32,17 @@
 
 namespace srslte {
 
-rlc_am::rlc_am() : tx(this), rx(this), log(NULL), rrc(NULL), pdcp(NULL), mac_timers(NULL), lcid(0), rb_name(""), cfg()
+rlc_am::rlc_am() :
+  tx(this),
+  rx(this),
+  log(NULL),
+  rrc(NULL),
+  pdcp(NULL),
+  mac_timers(NULL),
+  lcid(0),
+  rb_name(""),
+  cfg(),
+  has_configuration(false)
 {
 }
 
@@ -56,28 +66,47 @@ void rlc_am::init(srslte::log                  *log_,
   tx.init();
 }
 
+bool rlc_am::resume()
+{
+  if (not has_configuration) {
+    log->error("Error resuming bearer: no previous configuration found\n");
+    return false;
+  }
+
+  if (not rx.configure(cfg.am)) {
+    return false;
+  }
+
+  if (not tx.configure(cfg)) {
+    return false;
+  }
+
+  return true;
+}
+
 bool rlc_am::configure(srslte_rlc_config_t cfg_)
 {
   // determine bearer name and configure Rx/Tx objects
   rb_name = rrc->get_rb_name(lcid);
 
-  if (not rx.configure(cfg_.am)) {
-    return false;
-  }
-
-  if (not tx.configure(cfg_)) {
-    return false;
-  }
-
   // store config
-  cfg = cfg_.am;
+  cfg               = cfg_;
+  has_configuration = true;
 
-  log->warning("%s configured: t_poll_retx=%d, poll_pdu=%d, poll_byte=%d, max_retx_thresh=%d, "
-                   "t_reordering=%d, t_status_prohibit=%d\n",
-               rb_name.c_str(), cfg.t_poll_retx, cfg.poll_pdu, cfg.poll_byte, cfg.max_retx_thresh,
-               cfg.t_reordering, cfg.t_status_prohibit);
-
-  return true;
+  if (resume()) {
+    log->info("%s configured: t_poll_retx=%d, poll_pdu=%d, poll_byte=%d, max_retx_thresh=%d, "
+              "t_reordering=%d, t_status_prohibit=%d\n",
+              rb_name.c_str(),
+              cfg.am.t_poll_retx,
+              cfg.am.poll_pdu,
+              cfg.am.poll_byte,
+              cfg.am.max_retx_thresh,
+              cfg.am.t_reordering,
+              cfg.am.t_status_prohibit);
+    return true;
+  } else {
+    return false;
+  }
 }
 
 void rlc_am::empty_queue()
@@ -88,12 +117,14 @@ void rlc_am::empty_queue()
 
 void rlc_am::reestablish()
 {
+  log->debug("Reestablished bearer %s\n", rb_name.c_str());
   tx.reestablish(); // calls stop and enables tx again
   rx.reestablish(); // calls only stop
 }
 
 void rlc_am::stop()
 {
+  log->debug("Stopped bearer %s\n", rb_name.c_str());
   tx.stop();
   rx.stop();
 }

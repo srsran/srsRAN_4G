@@ -60,6 +60,11 @@ bool rlc_tm::configure(srslte_rlc_config_t cnfg)
   return true;
 }
 
+bool rlc_tm::resume()
+{
+  return true;
+}
+
 void rlc_tm::empty_queue()
 {
   // Drop all messages in TX queue

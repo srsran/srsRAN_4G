@@ -149,6 +149,7 @@ public:
                     srsue::rrc_interface_rlc          *rrc_,
                     srslte::mac_interface_timers      *mac_timers_) = 0;
   virtual bool configure(srslte_rlc_config_t cnfg) = 0;
+  virtual bool resume()                                             = 0;
   virtual void stop() = 0;
   virtual void reestablish() = 0;
   virtual void empty_queue() = 0; 

@@ -129,6 +129,30 @@ private:
   bool running;
 };
 
+void basic_test_tx(rlc_am* rlc, byte_buffer_t pdu_bufs[NBUFS])
+{
+
+  // Push 5 SDUs into RLC1
+  byte_buffer_pool*    pool = byte_buffer_pool::get_instance();
+  unique_byte_buffer_t sdu_bufs[NBUFS];
+  for (int i = 0; i < NBUFS; i++) {
+    sdu_bufs[i]          = srslte::allocate_unique_buffer(*pool, true);
+    sdu_bufs[i]->msg[0]  = i; // Write the index into the buffer
+    sdu_bufs[i]->N_bytes = 1; // Give each buffer a size of 1 byte
+    rlc->write_sdu(std::move(sdu_bufs[i]));
+  }
+
+  assert(14 == rlc->get_buffer_state());
+
+  // Read 5 PDUs from RLC1 (1 byte each)
+  for (int i = 0; i < NBUFS; i++) {
+    uint32_t len        = rlc->read_pdu(pdu_bufs[i].msg, 4); // 3 bytes for header + payload
+    pdu_bufs[i].N_bytes = len;
+  }
+
+  assert(0 == rlc->get_buffer_state());
+}
+
 bool basic_test()
 {
   srslte::log_filter log1("RLC_AM_1");
@@ -139,6 +163,7 @@ bool basic_test()
   log2.set_hex_limit(-1);
   rlc_am_tester     tester;
   mac_dummy_timers  timers;
+  byte_buffer_t     pdu_bufs[NBUFS];
 
   rlc_am rlc1;
   rlc_am rlc2;
@@ -168,28 +193,7 @@ bool basic_test()
     return -1;
   }
 
-  // Push 5 SDUs into RLC1
-  byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
-  unique_byte_buffer_t sdu_bufs[NBUFS];
-  for(int i=0;i<NBUFS;i++)
-  {
-    sdu_bufs[i]          = srslte::allocate_unique_buffer(*pool, true);
-    sdu_bufs[i]->msg[0]  = i; // Write the index into the buffer
-    sdu_bufs[i]->N_bytes = 1; // Give each buffer a size of 1 byte
-    rlc1.write_sdu(std::move(sdu_bufs[i]));
-  }
-
-  assert(14 == rlc1.get_buffer_state());
-
-  // Read 5 PDUs from RLC1 (1 byte each)
-  byte_buffer_t pdu_bufs[NBUFS];
-  for(int i=0;i<NBUFS;i++)
-  {
-    len = rlc1.read_pdu(pdu_bufs[i].msg, 4); // 3 bytes for header + payload
-    pdu_bufs[i].N_bytes = len;
-  }
-
-  assert(0 == rlc1.get_buffer_state());
+  basic_test_tx(&rlc1, pdu_bufs);
 
   // Write 5 PDUs into RLC2
   for(int i=0;i<NBUFS;i++)
@@ -1677,6 +1681,67 @@ bool reset_test()
   return 0;
 }
 
+bool resume_test()
+{
+  srslte::log_filter log1("RLC_AM_1");
+  srslte::log_filter log2("RLC_AM_2");
+  log1.set_level(srslte::LOG_LEVEL_DEBUG);
+  log2.set_level(srslte::LOG_LEVEL_DEBUG);
+  log1.set_hex_limit(-1);
+  log2.set_hex_limit(-1);
+  rlc_am_tester    tester;
+  mac_dummy_timers timers;
+
+  rlc_am rlc1;
+  int    len;
+
+  log1.set_level(srslte::LOG_LEVEL_DEBUG);
+
+  rlc1.init(&log1, 1, &tester, &tester, &timers);
+
+  rlc_cfg_c cnfg;
+  cnfg.set(rlc_cfg_c::types::am);
+  cnfg.am().dl_am_rlc.t_reordering      = t_reordering_e::ms5;
+  cnfg.am().dl_am_rlc.t_status_prohibit = t_status_prohibit_e::ms5;
+  cnfg.am().ul_am_rlc.max_retx_thres    = ul_am_rlc_s::max_retx_thres_e_::t4;
+  cnfg.am().ul_am_rlc.poll_byte         = poll_byte_e::kb25;
+  cnfg.am().ul_am_rlc.poll_pdu          = poll_pdu_e::p4;
+  cnfg.am().ul_am_rlc.t_poll_retx       = t_poll_retx_e::ms5;
+
+  if (not rlc1.configure(&cnfg)) {
+    return -1;
+  }
+
+  // Push 1 SDU of size 10 into RLC1
+  byte_buffer_pool*    pool    = byte_buffer_pool::get_instance();
+  unique_byte_buffer_t sdu_buf = srslte::allocate_unique_buffer(*pool, true);
+  sdu_buf->msg[0]              = 1; // Write the index into the buffer
+  sdu_buf->N_bytes             = 100;
+  rlc1.write_sdu(std::move(sdu_buf));
+
+  // read 1 PDU from RLC1 and force segmentation
+  byte_buffer_t pdu_bufs;
+  len              = rlc1.read_pdu(pdu_bufs.msg, 4);
+  pdu_bufs.N_bytes = len;
+
+  // reestablish RLC1
+  rlc1.reestablish();
+
+  // resume RLC1
+  rlc1.resume();
+
+  // Buffer should be zero
+  if (0 != rlc1.get_buffer_state()) {
+    return -1;
+  }
+
+  // Do basic test
+  byte_buffer_t pdu_bufs_tx[NBUFS];
+  basic_test_tx(&rlc1, pdu_bufs_tx);
+
+  return 0;
+}
+
 bool stop_test()
 {
   srslte::log_filter log1("RLC_AM_1");
@@ -1805,6 +1870,12 @@ int main(int argc, char **argv)
   
   if (stop_test()) {
     printf("stop_test failed\n");
+    exit(-1);
+  };
+  byte_buffer_pool::get_instance()->cleanup();
+
+  if (resume_test()) {
+    printf("resume_test failed\n");
     exit(-1);
   };
   byte_buffer_pool::get_instance()->cleanup();

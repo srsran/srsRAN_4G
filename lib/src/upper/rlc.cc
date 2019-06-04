@@ -563,6 +563,26 @@ exit:
   pthread_rwlock_unlock(&rwlock);
 }
 
+void rlc::resume_bearer(uint32_t lcid)
+{
+  pthread_rwlock_wrlock(&rwlock);
+
+  if (not valid_lcid(lcid)) {
+
+    // Need to call init again because timers have been destroyed
+    rlc_array.at(lcid)->init(rlc_log, lcid, pdcp, rrc, mac_timers);
+
+    if (rlc_array.at(lcid)->resume()) {
+      rlc_log->info("Resumed radio bearer %s\n", rrc->get_rb_name(lcid).c_str());
+    } else {
+      rlc_log->error("Error resuming RLC entity\n.");
+    }
+  } else {
+    rlc_log->error("Resuming bearer: bearer %s not configured.\n", rrc->get_rb_name(lcid).c_str());
+  }
+
+  pthread_rwlock_unlock(&rwlock);
+}
 
 bool rlc::has_bearer(uint32_t lcid)
 {

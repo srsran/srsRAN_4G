@@ -51,6 +51,7 @@ public:
             srsue::rrc_interface_rlc  *rrc_,
             mac_interface_timers      *mac_timers_);
   bool configure(srslte_rlc_config_t cnfg);
+  bool resume();
   void reestablish();
   void stop();
   void empty_queue();
@@ -209,7 +210,8 @@ private:
   srsue::rrc_interface_rlc  *rrc;
   srslte::log               *log;
   uint32_t                  lcid;
-  srslte_rlc_um_config_t    cfg;
+  srslte_rlc_config_t        cfg;
+  bool                       has_configuration;
   std::string               rb_name;
   byte_buffer_pool          *pool;
 
