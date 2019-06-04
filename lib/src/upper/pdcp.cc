@@ -88,6 +88,15 @@ void pdcp::reestablish() {
   pthread_rwlock_unlock(&rwlock);
 }
 
+void pdcp::reestablish(uint32_t lcid)
+{
+  pthread_rwlock_rdlock(&rwlock);
+  if (valid_lcid(lcid)) {
+    pdcp_array.at(lcid)->reestablish();
+  }
+  pthread_rwlock_unlock(&rwlock);
+}
+
 void pdcp::reset()
 {
   // destroy all bearers

@@ -50,6 +50,7 @@ public:
 
   // RRC interface
   void reestablish();
+  void     reestablish(uint32_t lcid);
   void reset();
   void     write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, bool blocking = true);
   void     write_sdu_mch(uint32_t lcid, unique_byte_buffer_t sdu);

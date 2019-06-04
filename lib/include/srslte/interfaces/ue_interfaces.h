@@ -239,6 +239,7 @@ class pdcp_interface_rrc
 {
 public:
   virtual void reestablish() = 0;
+  virtual void     reestablish(uint32_t lcid)                                                                    = 0;
   virtual void reset() = 0;
   virtual void     write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking = true)              = 0;
   virtual void add_bearer(uint32_t lcid, srslte::srslte_pdcp_config_t cnfg = srslte::srslte_pdcp_config_t()) = 0;
