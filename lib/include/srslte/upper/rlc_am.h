@@ -137,9 +137,6 @@ private:
     int  required_buffer_size(rlc_amd_retx_t retx);
     void retransmit_random_pdu();
 
-    // Timer checks
-    bool status_prohibited;
-
     // Helpers
     bool poll_required();
     bool do_status();

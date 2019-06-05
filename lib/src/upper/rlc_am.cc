@@ -74,10 +74,12 @@ bool rlc_am::resume()
   }
 
   if (not rx.configure(cfg.am)) {
+    log->error("Error resuming bearer (RX)\n");
     return false;
   }
 
   if (not tx.configure(cfg)) {
+    log->error("Error resuming bearer (TX)\n");
     return false;
   }
 
@@ -201,7 +203,6 @@ rlc_am::rlc_am_tx::rlc_am_tx(rlc_am* parent_) :
   vt_a(0),
   vt_ms(RLC_AM_WINDOW_SIZE),
   vt_s(0),
-  status_prohibited(false),
   poll_sn(0),
   num_tx_bytes(0),
   pdu_without_poll(0),
@@ -240,6 +241,7 @@ bool rlc_am::rlc_am_tx::configure(srslte_rlc_config_t cfg_)
 
   // check timers
   if (poll_retx_timer == NULL or status_prohibit_timer == NULL) {
+    log->error("Configuring RLC AM TX: timers not configured\n");
     return false;
   }
 
@@ -324,10 +326,10 @@ bool rlc_am::rlc_am_tx::do_status()
 // Function is supposed to return as fast as possible
 bool rlc_am::rlc_am_tx::has_data()
 {
-  return (((do_status() && not status_prohibited)) ||        // if we have a status PDU to transmit
-           (not retx_queue.empty()) ||                       // if we have a retransmission
-           (tx_sdu != NULL) ||                               // if we are currently transmitting a SDU
-           (not tx_sdu_queue.is_empty()));                   // or if there is a SDU queued up for transmission
+  return (((do_status() && not status_prohibit_timer->is_running())) || // if we have a status PDU to transmit
+          (not retx_queue.empty()) ||                                   // if we have a retransmission
+          (tx_sdu != NULL) ||                                           // if we are currently transmitting a SDU
+          (not tx_sdu_queue.is_empty())); // or if there is a SDU queued up for transmission
 }
 
 uint32_t rlc_am::rlc_am_tx::get_buffer_state()
@@ -336,8 +338,14 @@ uint32_t rlc_am::rlc_am_tx::get_buffer_state()
   uint32_t n_bytes = 0;
   uint32_t n_sdus  = 0;
 
+  log->debug("%s Buffer state - do_status=%d, status_prohibit=%d, timer=%s\n",
+             RB_NAME,
+             do_status(),
+             status_prohibit_timer->is_running(),
+             status_prohibit_timer ? "yes" : "no");
+
   // Bytes needed for status report
-  if(do_status() && not status_prohibited) {
+  if (do_status() && not status_prohibit_timer->is_running()) {
     n_bytes += parent->rx.get_status_pdu_length();
     log->debug("%s Buffer state - total status report: %d bytes\n", RB_NAME, n_bytes);
   }
@@ -437,7 +445,7 @@ int rlc_am::rlc_am_tx::read_pdu(uint8_t *payload, uint32_t nof_bytes)
   }
 
   // Tx STATUS if requested
-  if (do_status() && not status_prohibited) {
+  if (do_status() && not status_prohibit_timer->is_running()) {
     pdu_size = build_status_pdu(payload, nof_bytes);
     goto unlock_and_exit;
   }
@@ -475,9 +483,6 @@ void rlc_am::rlc_am_tx::timer_expired(uint32_t timeout_id)
     if ((retx_queue.empty() && tx_sdu_queue.size() == 0) || tx_window.size() >= RLC_AM_WINDOW_SIZE) {
       retransmit_random_pdu();
     }
-  } else
-  if (status_prohibit_timer != NULL && status_prohibit_timer_id == timeout_id) {
-    status_prohibited = false;
   }
   pthread_mutex_unlock(&mutex);
 }
@@ -564,8 +569,6 @@ int rlc_am::rlc_am_tx::build_status_pdu(uint8_t *payload, uint32_t nof_bytes)
     parent->rx.reset_status();
 
     if (cfg.t_status_prohibit > 0 && status_prohibit_timer != NULL) {
-      status_prohibited = true;
-
       // re-arm timer
       status_prohibit_timer->reset();
       status_prohibit_timer->run();
@@ -1207,6 +1210,7 @@ bool rlc_am::rlc_am_rx::configure(srslte_rlc_am_config_t cfg_)
 
   // check timers
   if (reordering_timer == NULL) {
+    log->error("Configuring RLC AM TX: timers not configured\n");
     return false;
   }
 
