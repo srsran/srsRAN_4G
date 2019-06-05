@@ -583,7 +583,8 @@ void phy_common::worker_end(uint32_t           tti,
         if (!is_first_of_burst[i]) {
 
           if (ul_channel && !srslte_timestamp_iszero(&tx_time[i])) {
-            ul_channel->run(buffer[i], buffer[i], nof_samples[i], tx_time[i]);
+            bzero(zeros_multi[0], sizeof(cf_t) * nof_samples[i]);
+            ul_channel->run(zeros_multi, zeros_multi, nof_samples[i], tx_time[i]);
           }
 
           radio_h->tx(i, zeros_multi, nof_samples[i], tx_time[i]);
