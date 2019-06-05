@@ -48,7 +48,6 @@ public:
   virtual void stop()                                                 = 0;
 
   virtual void set_earfcn(std::vector<uint32_t> earfcns) = 0;
-  virtual void force_freq(float dl_freq, float ul_freq)  = 0;
 
   virtual void wait_initialize() = 0;
   virtual void start_plot()      = 0;

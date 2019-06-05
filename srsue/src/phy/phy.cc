@@ -133,6 +133,11 @@ int phy::init(const phy_args_t& args_, srslte::logger* logger_)
 
   set_earfcn(args.earfcn_list);
 
+  // Force frequency if given as argument
+  if (args.dl_freq > 0 && args.ul_freq > 0) {
+    sfsync.force_freq(args.dl_freq, args.ul_freq);
+  }
+
   // Create array of pointers to phy_logs
   for (int i = 0; i < args.nof_phy_threads; i++) {
     srslte::log_filter* mylog = new srslte::log_filter;
@@ -404,11 +409,6 @@ int phy::sr_last_tx_tti()
 void phy::set_earfcn(vector< uint32_t > earfcns)
 {
   sfsync.set_earfcn(earfcns);
-}
-
-void phy::force_freq(float dl_freq, float ul_freq)
-{
-  sfsync.force_freq(dl_freq, ul_freq);
 }
 
 void phy::set_rar_grant(uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN], uint16_t rnti)

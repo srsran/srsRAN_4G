@@ -65,7 +65,6 @@ public:
   void enable_pregen_signals(bool enable); 
 
   void set_earfcn(std::vector<uint32_t> earfcns);
-  void force_freq(float dl_freq, float ul_freq);
 
   void radio_overflow();
   void radio_failure();
