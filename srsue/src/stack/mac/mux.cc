@@ -170,6 +170,9 @@ uint8_t* mux::pdu_get(uint8_t* payload, uint32_t pdu_sz, uint32_t pid)
       }
     }
   } else {
+    if (pending_crnti_ce) {
+      Warning("Pending C-RNTI CE was not inserted because message was for CCCH\n");
+    }
     is_rar = true;
   }
   pending_crnti_ce = 0; 

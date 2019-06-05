@@ -284,6 +284,7 @@ public:
   virtual void add_bearer(uint32_t lcid, srslte::srslte_rlc_config_t cnfg) = 0;
   virtual void add_bearer_mrb(uint32_t lcid) = 0;
   virtual void del_bearer(uint32_t lcid) = 0;
+  virtual void resume_bearer(uint32_t lcid)                                = 0;
   virtual void change_lcid(uint32_t old_lcid, uint32_t new_lcid) = 0;
   virtual bool has_bearer(uint32_t lcid) = 0;
   virtual bool has_data(const uint32_t lcid)                               = 0;

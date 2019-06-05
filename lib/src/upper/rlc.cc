@@ -567,7 +567,7 @@ void rlc::resume_bearer(uint32_t lcid)
 {
   pthread_rwlock_wrlock(&rwlock);
 
-  if (not valid_lcid(lcid)) {
+  if (valid_lcid(lcid)) {
 
     // Need to call init again because timers have been destroyed
     rlc_array.at(lcid)->init(rlc_log, lcid, pdcp, rrc, mac_timers);

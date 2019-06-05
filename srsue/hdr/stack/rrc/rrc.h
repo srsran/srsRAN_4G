@@ -473,6 +473,7 @@ private:
   bool go_idle;
   asn1::rrc::reest_cause_e m_reest_cause;
   uint16_t                 m_reest_rnti;
+  bool                     reestablishment_successful;
 
   uint32_t rlc_flush_counter;
   uint32_t rlc_flush_timeout;

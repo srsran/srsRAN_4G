@@ -63,6 +63,7 @@ rrc::rrc() :
   go_idle = false;
   m_reest_cause = asn1::rrc::reest_cause_e::nulltype;
   m_reest_rnti  = 0;
+  reestablishment_successful = false;
 
   current_mac_cfg  = {};
   previous_mac_cfg = {};
@@ -1307,6 +1308,7 @@ void rrc::send_con_restablish_request()
   // Clean reestablishment type
   asn1::rrc::reest_cause_e cause = m_reest_cause;
   m_reest_cause                  = asn1::rrc::reest_cause_e::nulltype;
+  reestablishment_successful     = false;
 
   if (cause == asn1::rrc::reest_cause_e::ho_fail) {
     crnti  = ho_src_rnti;
@@ -1583,6 +1585,20 @@ bool rrc::con_reconfig_ho(asn1::rrc::rrc_conn_recfg_s* reconfig)
 bool rrc::con_reconfig(asn1::rrc::rrc_conn_recfg_s* reconfig)
 {
   asn1::rrc::rrc_conn_recfg_r8_ies_s* reconfig_r8 = &reconfig->crit_exts.c1().rrc_conn_recfg_r8();
+
+  // If this is the first con_reconfig after a reestablishment
+  if (reestablishment_successful) {
+    // Reestablish PDCP and RLC for SRB2 and all DRB
+    // FIXME: Which is the maximum LCID?
+    for (int i = 2; i < SRSLTE_N_RADIO_BEARERS; i++) {
+      if (rlc->has_bearer(i)) {
+        pdcp->reestablish(i);
+        rlc->reestablish(i);
+      }
+    }
+  }
+
+  // Apply RR config as in 5.3.10
   if (reconfig_r8->rr_cfg_ded_present) {
     if (!apply_rr_config_dedicated(&reconfig_r8->rr_cfg_ded)) {
       return false;
@@ -1620,6 +1636,17 @@ bool rrc::con_reconfig(asn1::rrc::rrc_conn_recfg_s* reconfig)
       }
     }
   }
+
+  // If first message after reestablishment, resume SRB2 and all DRB
+  if (reestablishment_successful) {
+    reestablishment_successful = false;
+    for (int i = 2; i < SRSLTE_N_RADIO_BEARERS; i++) {
+      if (rlc->has_bearer(i)) {
+        rlc->resume_bearer(i);
+      }
+    }
+  }
+
   if (reconfig_r8->meas_cfg_present) {
     if (!measurements.parse_meas_config(&reconfig_r8->meas_cfg)) {
       return false;
@@ -1762,9 +1789,8 @@ void rrc::init_con_restablish_request(asn1::rrc::reest_cause_e cause)
     mac_timers->timer_get(t311)->reset();
     mac_timers->timer_get(t311)->run();
 
-    // suspend all RBs except SRB0;
-    // rlc->reestablish();
-    // pdcp->reset();
+    // TODO: suspend all RBs except SRB0;
+    // is this that RLC tx queue stops accepting SDUs?
 
     // reset MAC;
     mac->reset();
@@ -2589,7 +2615,7 @@ void rrc::log_phy_config_dedicated()
   phys_cfg_ded_s* current_cfg = &current_phy_cfg.dedicated;
 
   if (current_cfg->pdsch_cfg_ded_present) {
-    rrc_log->info("Set PDSCH-Config=%s (present)\n", current_cfg->pdsch_cfg_ded.p_a.to_string().c_str());
+    rrc_log->info("Set PDSCH-Config p_a=%s\n", current_cfg->pdsch_cfg_ded.p_a.to_string().c_str());
   }
 
   if (current_cfg->cqi_report_cfg_present) {
@@ -2904,8 +2930,9 @@ void rrc::handle_con_reest(rrc_conn_reest_s* setup)
 
   mac_timers->timer_get(t301)->stop();
 
-  pdcp->reestablish();
-  rlc->reestablish();
+  // Reestablish PDCP and RLC for SRB1
+  pdcp->reestablish(1);
+  rlc->reestablish(1);
 
   // Update RRC Integrity keys
   int ncc = setup->crit_exts.c1().rrc_conn_reest_r8().next_hop_chaining_count;
@@ -2923,8 +2950,13 @@ void rrc::handle_con_reest(rrc_conn_reest_s* setup)
   // Apply the Radio Resource configuration
   apply_rr_config_dedicated(&setup->crit_exts.c1().rrc_conn_reest_r8().rr_cfg_ded);
 
+  // Resume SRB1 (if already configured in rr_config, this function does nothing)
+  rlc->resume_bearer(0);
+
   // Send ConnectionSetupComplete message
   send_con_restablish_complete();
+
+  reestablishment_successful = true;
 }
 
 void rrc::add_srb(srb_to_add_mod_s* srb_cnfg)
@@ -3077,6 +3109,7 @@ void rrc::set_phy_default_pucch_srs()
   current_phy_cfg.dedicated.srs_ul_cfg_ded_present    = false;
   current_phy_cfg.dedicated.sched_request_cfg_present = false;
 
+  rrc_log->info("Setting default PHY config dedicated\n");
   set_phy_config_dedicated_default();
 }
 
