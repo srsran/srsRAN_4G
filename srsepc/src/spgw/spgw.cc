@@ -71,27 +71,27 @@ int spgw::init(spgw_args_t*                           args,
                srslte::log_filter*                    spgw_log,
                const std::map<std::string, uint64_t>& ip_to_imsi)
 {
-  srslte::error_t err;
+  int err;
   m_pool = srslte::byte_buffer_pool::get_instance();
 
   // Init log
   m_spgw_log = spgw_log;
 
   // Init GTP-U
-  if (m_gtpu->init(args, this, m_gtpc, gtpu_log) != 0) {
+  if (m_gtpu->init(args, this, m_gtpc, gtpu_log) != SRSLTE_SUCCESS) {
     m_spgw_log->console("Could not initialize the SPGW's GTP-U.\n");
-    return -1;
+    return SRSLTE_ERROR_CANT_START;
   }
 
   // Init GTP-C
-  if (m_gtpc->init(args, this, m_gtpu, gtpc_log, ip_to_imsi) != 0) {
+  if (m_gtpc->init(args, this, m_gtpu, gtpc_log, ip_to_imsi) != SRSLTE_SUCCESS) {
     m_spgw_log->console("Could not initialize the S1-U interface.\n");
-    return -1;
+    return SRSLTE_ERROR_CANT_START;
   }
 
   m_spgw_log->info("SP-GW Initialized.\n");
   m_spgw_log->console("SP-GW Initialized.\n");
-  return 0;
+  return SRSLTE_SUCCESS;
 }
 
 void spgw::stop()

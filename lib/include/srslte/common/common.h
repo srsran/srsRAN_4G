@@ -86,22 +86,6 @@
 
 namespace srslte {
 
-typedef enum{
-  ERROR_NONE = 0,
-  ERROR_INVALID_PARAMS,
-  ERROR_INVALID_COMMAND,
-  ERROR_OUT_OF_BOUNDS,
-  ERROR_CANT_START,
-  ERROR_ALREADY_STARTED,
-  ERROR_N_ITEMS,
-}error_t;
-static const char error_text[ERROR_N_ITEMS][20] = { "None",
-                                                    "Invalid parameters",
-                                                    "Invalid command",
-                                                    "Out of bounds",
-                                                    "Can't start",
-                                                    "Already started"};
-
 //#define ENABLE_TIMESTAMP
 
 /******************************************************************************

@@ -78,8 +78,8 @@ private:
   virtual ~mbms_gw();
   static mbms_gw *m_instance;
 
-  srslte::error_t init_sgi_mb_if(mbms_gw_args_t *args);
-  srslte::error_t init_m1_u(mbms_gw_args_t *args);
+  int init_sgi_mb_if(mbms_gw_args_t *args);
+  int init_m1_u(mbms_gw_args_t *args);
   void handle_sgi_md_pdu(srslte::byte_buffer_t *msg);
   uint16_t in_cksum(uint16_t *iphdr, int count);
 

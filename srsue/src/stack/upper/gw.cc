@@ -196,19 +196,18 @@ void gw::write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 /*******************************************************************************
   NAS interface
 *******************************************************************************/
-srslte::error_t
-gw::setup_if_addr(uint32_t lcid, uint8_t pdn_type, uint32_t ip_addr, uint8_t* ipv6_if_addr, char* err_str)
+int gw::setup_if_addr(uint32_t lcid, uint8_t pdn_type, uint32_t ip_addr, uint8_t* ipv6_if_addr, char* err_str)
 {
-  srslte::error_t err;
+  int err;
   if(pdn_type == LIBLTE_MME_PDN_TYPE_IPV4 || pdn_type == LIBLTE_MME_PDN_TYPE_IPV4V6 ){
     err = setup_if_addr4(ip_addr, err_str);
-    if(err!= srslte::ERROR_NONE){
+    if(err!= SRSLTE_SUCCESS){
       return err;
     }
   }
   if(pdn_type == LIBLTE_MME_PDN_TYPE_IPV6 || pdn_type == LIBLTE_MME_PDN_TYPE_IPV4V6 ){
     err = setup_if_addr6(ipv6_if_addr, err_str);
-    if(err!= srslte::ERROR_NONE){
+    if(err!= SRSLTE_SUCCESS){
       return err;
     }
   }
@@ -217,7 +216,7 @@ gw::setup_if_addr(uint32_t lcid, uint8_t pdn_type, uint32_t ip_addr, uint8_t* ip
 
   // Setup a thread to receive packets from the TUN device
   start(GW_THREAD_PRIO);
-  return srslte::ERROR_NONE;
+  return SRSLTE_SUCCESS;
 }
 
 
@@ -333,10 +332,10 @@ void gw::run_thread()
 /**************************/
 /* TUN Interface Helpers  */
 /**************************/
-srslte::error_t gw::init_if(char *err_str)
+int gw::init_if(char *err_str)
 {
   if (if_up) {
-    return (srslte::ERROR_ALREADY_STARTED);
+    return SRSLTE_ERROR_ALREADY_STARTED;
   }
 
   // Construct the TUN device
@@ -345,7 +344,7 @@ srslte::error_t gw::init_if(char *err_str)
   if (0 > tun_fd) {
     err_str = strerror(errno);
     gw_log->debug("Failed to open TUN device: %s\n", err_str);
-    return (srslte::ERROR_CANT_START);
+    return SRSLTE_ERROR_CANT_START;
   }
 
   memset(&ifr, 0, sizeof(ifr));
@@ -357,7 +356,7 @@ srslte::error_t gw::init_if(char *err_str)
     err_str = strerror(errno);
     gw_log->debug("Failed to set TUN device name: %s\n", err_str);
     close(tun_fd);
-    return (srslte::ERROR_CANT_START);
+    return SRSLTE_ERROR_CANT_START;
   }
 
   // Bring up the interface
@@ -366,14 +365,14 @@ srslte::error_t gw::init_if(char *err_str)
     err_str = strerror(errno);
     gw_log->debug("Failed to bring up socket: %s\n", err_str);
     close(tun_fd);
-    return (srslte::ERROR_CANT_START);
+    return SRSLTE_ERROR_CANT_START;
   }
   ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
   if (0 > ioctl(sock, SIOCSIFFLAGS, &ifr)) {
     err_str = strerror(errno);
     gw_log->debug("Failed to set socket flags: %s\n", err_str);
     close(tun_fd);
-    return (srslte::ERROR_CANT_START);
+    return SRSLTE_ERROR_CANT_START;
   }
 
   // Delete link-local IPv6 address.
@@ -387,16 +386,16 @@ srslte::error_t gw::init_if(char *err_str)
   }
   if_up = true;
 
-  return(srslte::ERROR_NONE);
+  return SRSLTE_SUCCESS;
 }
 
-srslte::error_t gw::setup_if_addr4(uint32_t ip_addr, char *err_str)
+int gw::setup_if_addr4(uint32_t ip_addr, char *err_str)
 {
   if (ip_addr != current_ip_addr) {
     if (!if_up) {
       if (init_if(err_str)) {
         gw_log->error("init_if failed\n");
-        return (srslte::ERROR_CANT_START);
+        return SRSLTE_ERROR_CANT_START;
       }
     }
 
@@ -408,7 +407,7 @@ srslte::error_t gw::setup_if_addr4(uint32_t ip_addr, char *err_str)
       err_str = strerror(errno);
       gw_log->debug("Failed to set socket address: %s\n", err_str);
       close(tun_fd);
-      return (srslte::ERROR_CANT_START);
+      return SRSLTE_ERROR_CANT_START;
     }
     ifr.ifr_netmask.sa_family = AF_INET;
     ((struct sockaddr_in*)&ifr.ifr_netmask)->sin_addr.s_addr = inet_addr(args.tun_dev_netmask.c_str());
@@ -416,14 +415,14 @@ srslte::error_t gw::setup_if_addr4(uint32_t ip_addr, char *err_str)
       err_str = strerror(errno);
       gw_log->debug("Failed to set socket netmask: %s\n", err_str);
       close(tun_fd);
-      return (srslte::ERROR_CANT_START);
+      return SRSLTE_ERROR_CANT_START;
     }
     current_ip_addr = ip_addr;
   }
-  return(srslte::ERROR_NONE);
+  return SRSLTE_SUCCESS;
 }
 
-srslte::error_t gw::setup_if_addr6(uint8_t *ipv6_if_id, char *err_str)
+int gw::setup_if_addr6(uint8_t *ipv6_if_id, char *err_str)
 {
   struct sockaddr_in6 sai;
   struct in6_ifreq ifr6;
@@ -440,7 +439,7 @@ srslte::error_t gw::setup_if_addr6(uint8_t *ipv6_if_id, char *err_str)
     if (!if_up) {
       if( init_if(err_str) ) {
         gw_log->error("init_if failed\n");
-        return(srslte::ERROR_CANT_START);
+        return SRSLTE_ERROR_CANT_START;
       }
     }
 
@@ -450,13 +449,13 @@ srslte::error_t gw::setup_if_addr6(uint8_t *ipv6_if_id, char *err_str)
 
     if(inet_pton(AF_INET6, "fe80::", (void *)&sai.sin6_addr) <= 0) {
       gw_log->error("Bad address\n");
-      return srslte::ERROR_CANT_START;
+      return SRSLTE_ERROR_CANT_START;
     }
 
     memcpy(&sai.sin6_addr.s6_addr[8], ipv6_if_id, 8);
     if (ioctl(sock, SIOGIFINDEX, &ifr) < 0) {
       perror("SIOGIFINDEX");
-      return srslte::ERROR_CANT_START;
+      return SRSLTE_ERROR_CANT_START;
     }
     ifr6.ifr6_ifindex = ifr.ifr_ifindex;
     ifr6.ifr6_prefixlen = 64;
@@ -466,7 +465,7 @@ srslte::error_t gw::setup_if_addr6(uint8_t *ipv6_if_id, char *err_str)
     if (ioctl(sock, SIOCSIFADDR, &ifr6) < 0) {
       err_str = strerror(errno);
       gw_log->error("Could not set IPv6 Link local address. Error %s\n", err_str);
-      return srslte::ERROR_CANT_START;
+      return SRSLTE_ERROR_CANT_START;
     }
 
     for (int i=0; i<8; i++){
@@ -474,7 +473,7 @@ srslte::error_t gw::setup_if_addr6(uint8_t *ipv6_if_id, char *err_str)
     }
   }
 
-  return(srslte::ERROR_NONE);
+  return SRSLTE_SUCCESS;
 }
 
 bool gw::find_ipv6_addr(struct in6_addr *in6_out)

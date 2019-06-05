@@ -58,8 +58,7 @@ public:
   void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
 
   // NAS interface
-  srslte::error_t
-  setup_if_addr(uint32_t lcid, uint8_t pdn_type, uint32_t ip_addr, uint8_t* ipv6_if_addr, char* err_str);
+  int setup_if_addr(uint32_t lcid, uint8_t pdn_type, uint32_t ip_addr, uint8_t* ipv6_if_addr, char *err_str);
 
   // RRC interface
   void add_mch_port(uint32_t lcid, uint32_t port);
@@ -90,12 +89,12 @@ private:
   long                dl_tput_bytes;
   struct timeval      metrics_time[3];
 
-  void                run_thread();
-  srslte::error_t     init_if(char *err_str);
-  srslte::error_t setup_if_addr4(uint32_t ip_addr, char *err_str);
-  srslte::error_t setup_if_addr6(uint8_t *ipv6_if_id, char *err_str);
-  bool find_ipv6_addr(struct in6_addr *in6_out);
-  void del_ipv6_addr(struct in6_addr *in6p);
+  void run_thread();
+  int  init_if(char* err_str);
+  int  setup_if_addr4(uint32_t ip_addr, char* err_str);
+  int  setup_if_addr6(uint8_t* ipv6_if_id, char* err_str);
+  bool find_ipv6_addr(struct in6_addr* in6_out);
+  void del_ipv6_addr(struct in6_addr* in6p);
 
   // MBSFN
   int      mbsfn_sock_fd;                   // Sink UDP socket file descriptor

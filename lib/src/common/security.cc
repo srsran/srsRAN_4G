@@ -147,7 +147,7 @@ uint8_t security_128_eia1( uint8_t  *key,
   for(i=0; i<4; i++) {
     mac[i] = m_ptr[i];
   }
-  return ERROR_NONE;
+  return SRSLTE_SUCCESS;
 }
 
 uint8_t security_128_eia2( uint8_t  *key,

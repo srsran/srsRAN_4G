@@ -55,7 +55,7 @@ int spgw::gtpc::init(spgw_args_t*                           args,
                      srslte::log_filter*                    gtpc_log,
                      const std::map<std::string, uint64_t>& ip_to_imsi)
 {
-  srslte::error_t err;
+  int err;
   m_pool = srslte::byte_buffer_pool::get_instance();
 
   // Init log
@@ -67,16 +67,16 @@ int spgw::gtpc::init(spgw_args_t*                           args,
 
   // Init S11 interface
   err = init_s11(args);
-  if (err != srslte::ERROR_NONE) {
+  if (err != SRSLTE_SUCCESS) {
     m_gtpc_log->console("Could not initialize the S11 interface.\n");
-    return -1;
+    return err;
   }
 
   // Init IP pool
   err = init_ue_ip(args, ip_to_imsi);
-  if (err != srslte::ERROR_NONE) {
+  if (err != SRSLTE_SUCCESS) {
     m_gtpc_log->console("Could not initialize the IP pool.\n");
-    return -1;
+    return err;
   }
 
   // Limit paging queue
@@ -99,7 +99,7 @@ void spgw::gtpc::stop()
   return;
 }
 
-srslte::error_t spgw::gtpc::init_s11(spgw_args_t* args)
+int spgw::gtpc::init_s11(spgw_args_t* args)
 {
   socklen_t sock_len;
   char      spgw_addr_name[] = "@spgw_s11";
@@ -112,7 +112,7 @@ srslte::error_t spgw::gtpc::init_s11(spgw_args_t* args)
   m_s11 = socket(AF_UNIX, SOCK_DGRAM, 0);
   if (m_s11 < 0) {
     m_gtpc_log->error("Error opening UNIX socket. Error %s\n", strerror(errno));
-    return srslte::ERROR_CANT_START;
+    return SRSLTE_ERROR_CANT_START;
   }
 
   // Set MME Address
@@ -130,9 +130,9 @@ srslte::error_t spgw::gtpc::init_s11(spgw_args_t* args)
   // Bind socket to address
   if (bind(m_s11, (const struct sockaddr*)&m_spgw_addr, sizeof(m_spgw_addr)) == -1) {
     m_gtpc_log->error("Error binding UNIX socket. Error %s\n", strerror(errno));
-    return srslte::ERROR_CANT_START;
+    return SRSLTE_ERROR_CANT_START;
   }
-  return srslte::ERROR_NONE;
+  return SRSLTE_SUCCESS;
 }
 
 bool spgw::gtpc::send_s11_pdu(const srslte::gtpc_pdu& pdu)
@@ -537,7 +537,7 @@ bool spgw::gtpc::free_all_queued_packets(spgw_tunnel_ctx_t* tunnel_ctx)
   return true;
 }
 
-srslte::error_t spgw::gtpc::init_ue_ip(spgw_args_t* args, const std::map<std::string, uint64_t>& ip_to_imsi)
+int spgw::gtpc::init_ue_ip(spgw_args_t* args, const std::map<std::string, uint64_t>& ip_to_imsi)
 {
   std::map<std::string, uint64_t>::const_iterator iter = ip_to_imsi.find(args->sgi_if_addr);
 
@@ -545,7 +545,7 @@ srslte::error_t spgw::gtpc::init_ue_ip(spgw_args_t* args, const std::map<std::st
   if (iter != ip_to_imsi.end()) {
     m_gtpc_log->error("SPGW: static ip addr %s for imsi %015" PRIu64 ", is reserved for the epc tun interface\n",
                       iter->first.c_str(), iter->second);
-    return srslte::ERROR_OUT_OF_BOUNDS;
+    return SRSLTE_ERROR_OUT_OF_BOUNDS;
   }
 
   // load our imsi to ip lookup table
@@ -554,7 +554,7 @@ srslte::error_t spgw::gtpc::init_ue_ip(spgw_args_t* args, const std::map<std::st
     in_addr.s_addr = inet_addr(iter->first.c_str());
     if (!m_imsi_to_ip.insert(std::make_pair(iter->second, in_addr)).second) {
       m_gtpc_log->error("SPGW: duplicate imsi %015" PRIu64 " for static ip address %s.\n", iter->second, iter->first.c_str());
-      return srslte::ERROR_OUT_OF_BOUNDS;
+      return SRSLTE_ERROR_OUT_OF_BOUNDS;
     }
   }
 
@@ -573,7 +573,7 @@ srslte::error_t spgw::gtpc::init_ue_ip(spgw_args_t* args, const std::map<std::st
       m_gtpc_log->debug("SPGW: init_ue_ip ue ip addr %s is added to pool\n", inet_ntoa(ue_addr));
     }
   }
-  return srslte::ERROR_NONE;
+  return SRSLTE_SUCCESS;
 }
 
 in_addr_t spgw::gtpc::get_new_ue_ipv4(uint64_t imsi)

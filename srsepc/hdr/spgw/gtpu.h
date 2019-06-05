@@ -39,10 +39,10 @@ public:
   int  init(spgw_args_t* args, spgw* spgw, gtpc_interface_gtpu* gtpc, srslte::log_filter* gtpu_log);
   void stop();
 
-  srslte::error_t init_sgi(spgw_args_t* args);
-  srslte::error_t init_s1u(spgw_args_t* args);
-  int             get_sgi();
-  int             get_s1u();
+  int init_sgi(spgw_args_t* args);
+  int init_s1u(spgw_args_t* args);
+  int get_sgi();
+  int get_s1u();
 
   void handle_sgi_pdu(srslte::byte_buffer_t* msg);
   void handle_s1u_pdu(srslte::byte_buffer_t* msg);

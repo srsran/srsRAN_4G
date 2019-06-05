@@ -54,12 +54,15 @@
 #define STRING2(x) #x
 #define STRING(x) STRING2(x)
 
-
 // Common error codes
-#define SRSLTE_SUCCESS                0
-#define SRSLTE_ERROR                  -1
-#define SRSLTE_ERROR_INVALID_INPUTS   -2
+#define SRSLTE_SUCCESS 0
+#define SRSLTE_ERROR -1
+#define SRSLTE_ERROR_INVALID_INPUTS -2
 #define SRSLTE_ERROR_TIMEOUT -3
+#define SRSLTE_ERROR_INVALID_COMMAND -4
+#define SRSLTE_ERROR_OUT_OF_BOUNDS -5
+#define SRSLTE_ERROR_CANT_START -6
+#define SRSLTE_ERROR_ALREADY_STARTED -7
 
 // cf_t definition
 typedef _Complex float cf_t;

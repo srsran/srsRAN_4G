@@ -54,7 +54,7 @@ spgw::gtpu::~gtpu()
 
 int spgw::gtpu::init(spgw_args_t* args, spgw* spgw, gtpc_interface_gtpu* gtpc, srslte::log_filter* gtpu_log)
 {
-  srslte::error_t err;
+  int err;
 
   // Init log
   m_gtpu_log = gtpu_log;
@@ -65,21 +65,21 @@ int spgw::gtpu::init(spgw_args_t* args, spgw* spgw, gtpc_interface_gtpu* gtpc, s
 
   // Init SGi interface
   err = init_sgi(args);
-  if (err != srslte::ERROR_NONE) {
+  if (err != SRSLTE_SUCCESS) {
     m_gtpu_log->console("Could not initialize the SGi interface.\n");
-    return -1;
+    return err;
   }
 
   // Init S1-U
   err = init_s1u(args);
-  if (err != srslte::ERROR_NONE) {
+  if (err != SRSLTE_SUCCESS) {
     m_gtpu_log->console("Could not initialize the S1-U interface.\n");
-    return -1;
+    return err;
   }
 
   m_gtpu_log->info("SPGW GTP-U Initialized.\n");
   m_gtpu_log->console("SPGW GTP-U Initialized.\n");
-  return 0;
+  return SRSLTE_SUCCESS;
 }
 
 void spgw::gtpu::stop()
@@ -94,13 +94,13 @@ void spgw::gtpu::stop()
   }
 }
 
-srslte::error_t spgw::gtpu::init_sgi(spgw_args_t* args)
+int spgw::gtpu::init_sgi(spgw_args_t* args)
 {
   struct ifreq ifr;
   int          sgi_sock;
 
   if (m_sgi_up) {
-    return (srslte::ERROR_ALREADY_STARTED);
+    return SRSLTE_ERROR_ALREADY_STARTED;
   }
 
   // Construct the TUN device
@@ -108,7 +108,7 @@ srslte::error_t spgw::gtpu::init_sgi(spgw_args_t* args)
   m_gtpu_log->info("TUN file descriptor = %d\n", m_sgi);
   if (m_sgi < 0) {
     m_gtpu_log->error("Failed to open TUN device: %s\n", strerror(errno));
-    return (srslte::ERROR_CANT_START);
+    return SRSLTE_ERROR_CANT_START;
   }
 
   memset(&ifr, 0, sizeof(ifr));
@@ -120,7 +120,7 @@ srslte::error_t spgw::gtpu::init_sgi(spgw_args_t* args)
   if (ioctl(m_sgi, TUNSETIFF, &ifr) < 0) {
     m_gtpu_log->error("Failed to set TUN device name: %s\n", strerror(errno));
     close(m_sgi);
-    return (srslte::ERROR_CANT_START);
+    return SRSLTE_ERROR_CANT_START;
   }
 
   // Bring up the interface
@@ -128,7 +128,7 @@ srslte::error_t spgw::gtpu::init_sgi(spgw_args_t* args)
   if (ioctl(sgi_sock, SIOCGIFFLAGS, &ifr) < 0) {
     m_gtpu_log->error("Failed to bring up socket: %s\n", strerror(errno));
     close(m_sgi);
-    return (srslte::ERROR_CANT_START);
+    return SRSLTE_ERROR_CANT_START;
   }
 
   ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
@@ -136,7 +136,7 @@ srslte::error_t spgw::gtpu::init_sgi(spgw_args_t* args)
     m_gtpu_log->error("Failed to set socket flags: %s\n", strerror(errno));
     close(sgi_sock);
     close(m_sgi);
-    return (srslte::ERROR_CANT_START);
+    return SRSLTE_ERROR_CANT_START;
   }
 
   // Set IP of the interface
@@ -150,7 +150,7 @@ srslte::error_t spgw::gtpu::init_sgi(spgw_args_t* args)
                       strerror(errno));
     close(m_sgi);
     close(sgi_sock);
-    return srslte::ERROR_CANT_START;
+    return SRSLTE_ERROR_CANT_START;
   }
 
   ifr.ifr_netmask.sa_family                                = AF_INET;
@@ -159,22 +159,22 @@ srslte::error_t spgw::gtpu::init_sgi(spgw_args_t* args)
     m_gtpu_log->error("Failed to set TUN interface Netmask. Error: %s\n", strerror(errno));
     close(m_sgi);
     close(sgi_sock);
-    return srslte::ERROR_CANT_START;
+    return SRSLTE_ERROR_CANT_START;
   }
 
   close(sgi_sock);
   m_sgi_up = true;
   m_gtpu_log->info("Initialized SGi interface\n");
-  return (srslte::ERROR_NONE);
+  return SRSLTE_SUCCESS;
 }
 
-srslte::error_t spgw::gtpu::init_s1u(spgw_args_t* args)
+int spgw::gtpu::init_s1u(spgw_args_t* args)
 {
   // Open S1-U socket
   m_s1u = socket(AF_INET, SOCK_DGRAM, 0);
   if (m_s1u == -1) {
     m_gtpu_log->error("Failed to open socket: %s\n", strerror(errno));
-    return srslte::ERROR_CANT_START;
+    return SRSLTE_ERROR_CANT_START;
   }
   m_s1u_up = true;
 
@@ -185,13 +185,13 @@ srslte::error_t spgw::gtpu::init_s1u(spgw_args_t* args)
 
   if (bind(m_s1u, (struct sockaddr*)&m_s1u_addr, sizeof(struct sockaddr_in))) {
     m_gtpu_log->error("Failed to bind socket: %s\n", strerror(errno));
-    return srslte::ERROR_CANT_START;
+    return SRSLTE_ERROR_CANT_START;
   }
   m_gtpu_log->info("S1-U socket = %d\n", m_s1u);
   m_gtpu_log->info("S1-U IP = %s, Port = %d \n", inet_ntoa(m_s1u_addr.sin_addr), ntohs(m_s1u_addr.sin_port));
 
   m_gtpu_log->info("Initialized S1-U interface\n");
-  return srslte::ERROR_NONE;
+  return SRSLTE_SUCCESS;
 }
 
 void spgw::gtpu::handle_sgi_pdu(srslte::byte_buffer_t* msg)
