@@ -24,6 +24,7 @@
 
 #include "srslte/asn1/liblte_mme.h"
 #include "srslte/common/buffer_pool.h"
+#include "srslte/common/log.h"
 
 namespace srsue {
 
@@ -65,7 +66,7 @@ const uint8_t TCP_PROTOCOL   = 0x06;
 class tft_packet_filter_t
 {
 public:
-  tft_packet_filter_t(uint8_t eps_bearer_id, const LIBLTE_MME_PACKET_FILTER_STRUCT& tft);
+  tft_packet_filter_t(uint8_t eps_bearer_id, const LIBLTE_MME_PACKET_FILTER_STRUCT& tft, srslte::log* log);
   bool    match(const srslte::unique_byte_buffer_t& pdu);
 
   uint8_t  eps_bearer_id;
@@ -86,6 +87,8 @@ public:
   uint8_t  type_of_service;
   uint8_t  type_of_service_mask;
   uint8_t  flow_label[3];
+
+  srslte::log* log;
 
   bool match_ip(const srslte::unique_byte_buffer_t& pdu);
   bool match_protocol(const srslte::unique_byte_buffer_t& pdu);

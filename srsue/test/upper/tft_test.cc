@@ -104,7 +104,7 @@ int tft_filter_test_single_local_port()
   packet_filter.filter_size = 3;
   memcpy(packet_filter.filter, filter_message, 3);
  
-  srsue::tft_packet_filter_t filter(EPS_BEARER_ID, packet_filter);
+  srsue::tft_packet_filter_t filter(EPS_BEARER_ID, packet_filter, &log1);
 
   // Check filter
   TESTASSERT(filter.match(ip_msg1));
@@ -152,7 +152,7 @@ int tft_filter_test_single_remote_port()
   packet_filter.filter_size = 3;
   memcpy(packet_filter.filter, filter_message, 3);
  
-  srsue::tft_packet_filter_t filter(EPS_BEARER_ID, packet_filter);
+  srsue::tft_packet_filter_t filter(EPS_BEARER_ID, packet_filter, &log1);
 
   // Check filter
   TESTASSERT(filter.match(ip_msg1));
@@ -201,7 +201,7 @@ int tft_filter_test_ipv4_local_addr()
   packet_filter.filter_size = filter_size;
   memcpy(packet_filter.filter, filter_message, filter_size);
  
-  srsue::tft_packet_filter_t filter(EPS_BEARER_ID, packet_filter);
+  srsue::tft_packet_filter_t filter(EPS_BEARER_ID, packet_filter, &log1);
 
   // Check filter
   TESTASSERT(filter.match(ip_msg1));
@@ -250,7 +250,7 @@ int tft_filter_test_ipv4_remote_addr()
   packet_filter.filter_size = filter_size;
   memcpy(packet_filter.filter, filter_message, filter_size);
  
-  srsue::tft_packet_filter_t filter(EPS_BEARER_ID, packet_filter);
+  srsue::tft_packet_filter_t filter(EPS_BEARER_ID, packet_filter, &log1);
 
   // Check filter
   TESTASSERT(filter.match(ip_msg1));
@@ -298,7 +298,7 @@ int tft_filter_test_ipv4_tos()
   packet_filter.filter_size = filter_size;
   memcpy(packet_filter.filter, filter_message, filter_size);
  
-  srsue::tft_packet_filter_t filter(EPS_BEARER_ID, packet_filter);
+  srsue::tft_packet_filter_t filter(EPS_BEARER_ID, packet_filter, &log1);
 
   // Check filter
   TESTASSERT(filter.match(ip_msg1));

@@ -227,7 +227,7 @@ int gw::apply_traffic_flow_template(uint8_t erab_id, const LIBLTE_MME_TRAFFIC_FL
       gw_log->console("Adding new TFT\n");
       for (int i = 0; i < tft->packet_filter_list_size; i++) {
         gw_log->console("New packet filter for TFT\n");
-        tft_packet_filter_t filter(erab_id, tft->packet_filter_list[i]);
+        tft_packet_filter_t filter(erab_id, tft->packet_filter_list[i], gw_log);
         auto                it = tft_filter_map.insert(std::make_pair(filter.eval_precedence, filter));
         if (it.second == false) {
           gw_log->error("Error inserting TFT Packet Filter\n");
