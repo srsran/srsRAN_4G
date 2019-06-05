@@ -435,7 +435,6 @@ int dedicated_eps_bearer_test()
 
 int main(int argc, char **argv)
 {
-
   if (security_command_test()) {
     printf("Security command test failed.\n");
     return -1;

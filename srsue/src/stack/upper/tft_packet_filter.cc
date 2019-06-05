@@ -95,9 +95,6 @@ tft_packet_filter_t::tft_packet_filter_t(uint8_t eps_bearer_id, const LIBLTE_MME
 
 bool tft_packet_filter_t::match(const srslte::unique_byte_buffer_t& pdu)
 {
-  bool            match   = true;
-  struct iphdr*   ip_pkt  = (struct iphdr*)pdu->msg;
-  struct ipv6hdr* ip6_pkt = (struct ipv6hdr*)pdu->msg;
 
   // Match IP Header to active filters
   if (!match_ip(pdu)) {
