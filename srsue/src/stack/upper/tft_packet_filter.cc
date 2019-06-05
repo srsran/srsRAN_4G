@@ -93,12 +93,25 @@ tft_packet_filter_t::tft_packet_filter_t(uint8_t eps_bearer_id, const LIBLTE_MME
   }
 }
 
+/*
+ * Implements packet matching against the packet filter componenets as specified in TS 24.008, section 10.5.6.12.
+ *
+ * This function will only return true if all the active filter components match (logical AND).
+ * It will return false as soon as any of the filter components does not match.
+ *
+ * Note: 'active_filters' is a bitmask; bits set to '1' represent active filter components.
+ */
 bool tft_packet_filter_t::match(const srslte::unique_byte_buffer_t& pdu)
 {
-  uint16_t ip_flags = IPV4_REMOTE_ADDR_TYPE | IPV4_LOCAL_ADDR_TYPE | IPV6_REMOTE_ADDR_TYPE |
-                     IPV6_REMOTE_ADDR_LENGTH_TYPE | IPV6_LOCAL_ADDR_LENGTH_TYPE;
+  uint16_t ip_flags = IPV4_REMOTE_ADDR_FLAG | IPV4_LOCAL_ADDR_FLAG | IPV6_REMOTE_ADDR_FLAG |
+                      IPV6_REMOTE_ADDR_LENGTH_FLAG | IPV6_LOCAL_ADDR_LENGTH_FLAG;
   uint16_t port_flags =
       SINGLE_LOCAL_PORT_FLAG | LOCAL_PORT_RANGE_FLAG | SINGLE_REMOTE_PORT_FLAG | REMOTE_PORT_RANGE_FLAG;
+
+  // Check if there is any active filter
+  if (active_filters == 0) {
+    return false;
+  }
 
   // Match IP Header to active filters
   if ((active_filters & ip_flags) != 0 && !match_ip(pdu)) {
