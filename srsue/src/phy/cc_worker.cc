@@ -1365,14 +1365,12 @@ void cc_worker::set_scell_config(asn1::rrc::scell_to_add_mod_r10_s* phy_cfg)
           // Sounding reference signals
           if (ul_cfg->srs_ul_cfg_ded_r10.type() == setup_e::setup) {
             srs_ul_cfg_ded_c::setup_s_* srs_ul_cfg_ded_r10 = &ul_cfg->srs_ul_cfg_ded_r10.setup();
-            ue_ul_cfg.ul_cfg.srs.bw_cfg                    = srs_ul_cfg_ded_r10->srs_bw.to_number();
             ue_ul_cfg.ul_cfg.srs.I_srs                     = srs_ul_cfg_ded_r10->srs_cfg_idx;
             ue_ul_cfg.ul_cfg.srs.B                         = srs_ul_cfg_ded_r10->srs_bw;
             ue_ul_cfg.ul_cfg.srs.b_hop                     = srs_ul_cfg_ded_r10->srs_hop_bw;
             ue_ul_cfg.ul_cfg.srs.n_rrc                     = srs_ul_cfg_ded_r10->freq_domain_position;
             ue_ul_cfg.ul_cfg.srs.k_tc                      = srs_ul_cfg_ded_r10->tx_comb;
             ue_ul_cfg.ul_cfg.srs.n_srs                     = srs_ul_cfg_ded_r10->cyclic_shift;
-            ue_ul_cfg.ul_cfg.srs.bw_cfg                    = 0;
           } else {
             ue_ul_cfg.ul_cfg.srs.configured = false;
           }
