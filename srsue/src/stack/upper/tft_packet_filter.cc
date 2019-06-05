@@ -95,24 +95,28 @@ tft_packet_filter_t::tft_packet_filter_t(uint8_t eps_bearer_id, const LIBLTE_MME
 
 bool tft_packet_filter_t::match(const srslte::unique_byte_buffer_t& pdu)
 {
+  uint16_t ip_flags = IPV4_REMOTE_ADDR_TYPE | IPV4_LOCAL_ADDR_TYPE | IPV6_REMOTE_ADDR_TYPE |
+                     IPV6_REMOTE_ADDR_LENGTH_TYPE | IPV6_LOCAL_ADDR_LENGTH_TYPE;
+  uint16_t port_flags =
+      SINGLE_LOCAL_PORT_FLAG | LOCAL_PORT_RANGE_FLAG | SINGLE_REMOTE_PORT_FLAG | REMOTE_PORT_RANGE_FLAG;
 
   // Match IP Header to active filters
-  if (!match_ip(pdu)) {
+  if ((active_filters & ip_flags) != 0 && !match_ip(pdu)) {
     return false;
   }
 
   // Check Protocol ID/Next Header Field
-  if (!match_protocol(pdu)) {
+  if ((active_filters & PROTOCOL_ID_FLAG) != 0 && !match_protocol(pdu)) {
     return false;
   }
 
   // Check Ports/Port Range
-  if (!match_port(pdu)) {
+  if ((active_filters & port_flags) != 0 && !match_port(pdu)) {
     return false;
   }
 
   // Check Type of Service/Traffic class
-  if (!match_type_of_service(pdu)) {
+  if ((active_filters & TYPE_OF_SERVICE_FLAG) != 0 && !match_type_of_service(pdu)) {
     return false;
   }
 
@@ -150,21 +154,19 @@ bool tft_packet_filter_t::match_protocol(const srslte::unique_byte_buffer_t& pdu
   struct iphdr*   ip_pkt  = (struct iphdr*)pdu->msg;
   struct ipv6hdr* ip6_pkt = (struct ipv6hdr*)pdu->msg;
 
-  if (active_filters & PROTOCOL_ID_TYPE) {
-    if (ip_pkt->version == 4) {
-      // Check match on IPv4 packet
-      if (ip_pkt->protocol != protocol_id) {
-        return false;
-      }
-    } else if (ip_pkt->version == 6) {
-      // Check match on IPv6 (TODO)
-      if (ip6_pkt->nexthdr != protocol_id) {
-        return false;
-      }
-    } else {
-      // Error
+  if (ip_pkt->version == 4) {
+    // Check match on IPv4 packet
+    if (ip_pkt->protocol != protocol_id) {
       return false;
     }
+  } else if (ip_pkt->version == 6) {
+    // Check match on IPv6 (TODO)
+    if (ip6_pkt->nexthdr != protocol_id) {
+      return false;
+    }
+  } else {
+    // Error
+    return false;
   }
   return true;
 }
@@ -173,12 +175,12 @@ bool tft_packet_filter_t::match_type_of_service(const srslte::unique_byte_buffer
 {
   struct iphdr* ip_pkt = (struct iphdr*)pdu->msg;
 
-  if (ip_pkt->version == 4 && (active_filters & TYPE_OF_SERVICE_FLAG)) {
+  if (ip_pkt->version == 4) {
     // Check match on IPv4 packet
     if (ip_pkt->tos != type_of_service) {
       return false;
     }
-  } else if (ip_pkt->version == 6 && (active_filters & TYPE_OF_SERVICE_FLAG)) {
+  } else if (ip_pkt->version == 6) {
     // IPv6 traffic class not supported yet
     return false;
   }
