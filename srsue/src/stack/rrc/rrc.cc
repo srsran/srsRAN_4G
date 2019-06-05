@@ -2951,7 +2951,7 @@ void rrc::handle_con_reest(rrc_conn_reest_s* setup)
   apply_rr_config_dedicated(&setup->crit_exts.c1().rrc_conn_reest_r8().rr_cfg_ded);
 
   // Resume SRB1 (if already configured in rr_config, this function does nothing)
-  rlc->resume_bearer(0);
+  rlc->resume_bearer(1);
 
   // Send ConnectionSetupComplete message
   send_con_restablish_complete();
