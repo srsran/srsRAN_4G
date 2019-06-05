@@ -130,6 +130,7 @@ public:
   uint16_t get_mcc() { return mcc; }
   uint16_t get_mnc() { return mnc; }
   void enable_capabilities() {}
+  uint32_t get_lcid_for_eps_bearer(const uint32_t& eps_bearer_id) { return 0; }
 
 private:
   uint32_t last_sdu_len;
@@ -138,7 +139,10 @@ private:
 
 class gw_dummy : public gw_interface_nas, public gw_interface_pdcp
 {
-  error_t setup_if_addr(uint8_t pdn_type, uint32_t ip_addr, uint8_t *ipv6_if_id, char *err_str) { return ERROR_NONE; }
+  error_t setup_if_addr(uint32_t lcid, uint8_t pdn_type, uint32_t ip_addr, uint8_t* ipv6_if_id, char* err_str)
+  {
+    return ERROR_NONE;
+  }
   void    write_pdu(uint32_t lcid, unique_byte_buffer_t pdu) {}
   void    write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu) {}
 };

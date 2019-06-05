@@ -3049,6 +3049,17 @@ void rrc::release_drb(uint32_t drb_id)
   }
 }
 
+uint32_t rrc::get_lcid_for_eps_bearer(const uint32_t& eps_bearer_id)
+{
+  // check if this bearer id exists and return it's LCID
+  for (auto& drb : drbs) {
+    if (drb.second.eps_bearer_id == eps_bearer_id) {
+      return drb.first;
+    }
+  }
+  return 0;
+}
+
 void rrc::add_mrb(uint32_t lcid, uint32_t port)
 {
   gw->add_mch_port(lcid, port);

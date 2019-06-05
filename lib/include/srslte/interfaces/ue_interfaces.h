@@ -102,7 +102,8 @@ public:
 class gw_interface_nas
 {
 public:
-  virtual srslte::error_t setup_if_addr(uint8_t pdn_type, uint32_t ip_addr, uint8_t *ipv6_if_id, char *err_str) = 0;
+  virtual srslte::error_t
+  setup_if_addr(uint32_t lcid, uint8_t pdn_type, uint32_t ip_addr, uint8_t* ipv6_if_id, char* err_str) = 0;
 };
 
 // GW interface for RRC
@@ -202,6 +203,7 @@ public:
   virtual void set_ue_idenity(asn1::rrc::s_tmsi_s s_tmsi)                                                          = 0;
   virtual bool is_connected() = 0;
   virtual std::string get_rb_name(uint32_t lcid) = 0;
+  virtual uint32_t    get_lcid_for_eps_bearer(const uint32_t& eps_bearer_id) = 0;
 };
 
 // RRC interface for PDCP

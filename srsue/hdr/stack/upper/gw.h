@@ -58,7 +58,8 @@ public:
   void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
 
   // NAS interface
-  srslte::error_t setup_if_addr(uint8_t pdn_type, uint32_t ip_addr, uint8_t* ipv6_if_addr, char *err_str);
+  srslte::error_t
+  setup_if_addr(uint32_t lcid, uint8_t pdn_type, uint32_t ip_addr, uint8_t* ipv6_if_addr, char* err_str);
 
   // RRC interface
   void add_mch_port(uint32_t lcid, uint32_t port);
@@ -80,6 +81,7 @@ private:
   struct ifreq        ifr;
   int32_t             sock;
   bool                if_up;
+  uint32_t            default_lcid = 0;
 
   uint32_t            current_ip_addr;
   uint8_t             current_if_id[8];

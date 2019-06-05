@@ -67,9 +67,7 @@ struct in6_ifreq {
 
 namespace srsue {
 
-#define DRB1_LCID 3
-
-gw::gw() : if_up(false), thread("GW")
+gw::gw() : if_up(false), default_lcid(0), thread("GW")
 {
   current_ip_addr = 0;
 }
@@ -198,7 +196,8 @@ void gw::write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 /*******************************************************************************
   NAS interface
 *******************************************************************************/
-srslte::error_t gw::setup_if_addr(uint8_t pdn_type, uint32_t ip_addr, uint8_t *ipv6_if_addr, char *err_str)
+srslte::error_t
+gw::setup_if_addr(uint32_t lcid, uint8_t pdn_type, uint32_t ip_addr, uint8_t* ipv6_if_addr, char* err_str)
 {
   srslte::error_t err;
   if(pdn_type == LIBLTE_MME_PDN_TYPE_IPV4 || pdn_type == LIBLTE_MME_PDN_TYPE_IPV4V6 ){
@@ -213,7 +212,9 @@ srslte::error_t gw::setup_if_addr(uint8_t pdn_type, uint32_t ip_addr, uint8_t *i
       return err;
     }
   }
-  
+
+  default_lcid = lcid;
+
   // Setup a thread to receive packets from the TUN device
   start(GW_THREAD_PRIO);
   return srslte::ERROR_NONE;
@@ -280,10 +281,10 @@ void gw::run_thread()
         if (pkt_len == pdu->N_bytes) {
           gw_log->info_hex(pdu->msg, pdu->N_bytes, "TX PDU");
 
-          while (run_enable && !pdcp->is_lcid_enabled(DRB1_LCID) && attach_wait < ATTACH_WAIT_TOUT) {
+          while (run_enable && !pdcp->is_lcid_enabled(default_lcid) && attach_wait < ATTACH_WAIT_TOUT) {
             if (!attach_wait) {
               gw_log->info(
-                  "LCID=%d not active, requesting NAS attach (%d/%d)\n", DRB1_LCID, attach_wait, ATTACH_WAIT_TOUT);
+                  "LCID=%d not active, requesting NAS attach (%d/%d)\n", default_lcid, attach_wait, ATTACH_WAIT_TOUT);
               if (!nas->attach_request()) {
                 gw_log->warning("Could not re-establish the connection\n");
               }
@@ -299,10 +300,10 @@ void gw::run_thread()
           }
 
           // Send PDU directly to PDCP
-          if (pdcp->is_lcid_enabled(DRB1_LCID)) {
+          if (pdcp->is_lcid_enabled(default_lcid)) {
             pdu->set_timestamp();
             ul_tput_bytes += pdu->N_bytes;
-            pdcp->write_sdu(DRB1_LCID, std::move(pdu), false);
+            pdcp->write_sdu(default_lcid, std::move(pdu), false);
             do {
               pdu = srslte::allocate_unique_buffer(*pool);
               if (!pdu) {
