@@ -210,6 +210,16 @@ enable = false
 #dl.rlf.enable       = false
 #dl.rlf.t_on_ms      = 10000
 #dl.rlf.t_off_ms     = 2000
+#ul.enable           = false
+#ul.fading.enable    = false
+#ul.fading.model     = none
+#ul.delay.enable     = false
+#ul.delay.period     = 3600
+#ul.delay.maximum_us = 100
+#ul.delay.minimum_us = 10
+#ul.rlf.enable       = false
+#ul.rlf.t_on_ms      = 10000
+#ul.rlf.t_off_ms     = 2000
 
 #####################################################################
 # Expert configuration options

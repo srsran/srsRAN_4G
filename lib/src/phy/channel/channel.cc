@@ -123,7 +123,7 @@ void channel::run(cf_t* in[SRSLTE_MAX_PORTS], cf_t* out[SRSLTE_MAX_PORTS], uint3
     }
 
     // Copy output buffer
-    memcpy(out[i], buffer_out, sizeof(cf_t) * len);
+    memcpy(out[i], buffer_in, sizeof(cf_t) * len);
   }
 }
 

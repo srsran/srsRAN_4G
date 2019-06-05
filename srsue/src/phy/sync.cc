@@ -93,8 +93,7 @@ void sync::init(radio_interface_phy*      _radio,
   }
 
   if (worker_com->args->dl_channel_args.enable) {
-    channel_emulator = srslte::channel_ptr(new srslte::channel(
-        worker_com->args->dl_channel_args, worker_com->args->nof_rx_ant * worker_com->args->nof_rx_ant));
+    channel_emulator = srslte::channel_ptr(new srslte::channel(worker_com->args->dl_channel_args, nof_rf_channels));
   }
 
   nof_workers = workers_pool->get_nof_workers();

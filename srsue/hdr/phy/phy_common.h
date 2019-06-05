@@ -177,6 +177,7 @@ private:
   radio_interface_phy* radio_h;
   float          cfo;
   srslte::log*   log_h;
+  srslte::channel_ptr  ul_channel = nullptr;
 
   int rar_grant_tti;
 

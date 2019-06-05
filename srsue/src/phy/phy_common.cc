@@ -125,6 +125,12 @@ void phy_common::init(phy_args_t*              _args,
   args           = _args;
   is_first_tx    = true;
   sr_last_tx_tti = -1;
+
+  // Instantiate UL channel emulator
+  if (args->ul_channel_args.enable) {
+    ul_channel =
+        srslte::channel_ptr(new srslte::channel(args->ul_channel_args, args->nof_rf_channels * args->nof_rx_ant));
+  }
 }
 
 void phy_common::set_ue_dl_cfg(srslte_ue_dl_cfg_t* ue_dl_cfg)
@@ -565,11 +571,21 @@ void phy_common::worker_end(uint32_t           tti,
   // For each radio, transmit
   for (uint32_t i = 0; i < args->nof_radios; i++) {
     if (tx_enable && !srslte_timestamp_iszero(&tx_time[i])) {
+
+      if (ul_channel) {
+        ul_channel->run(buffer[i], buffer[i], nof_samples[i], tx_time[i]);
+      }
+
       radio_h->tx(i, buffer[i], nof_samples[i], tx_time[i]);
       is_first_of_burst[i] = false;
     } else {
       if (radio_h->is_continuous_tx()) {
         if (!is_first_of_burst[i]) {
+
+          if (ul_channel && !srslte_timestamp_iszero(&tx_time[i])) {
+            ul_channel->run(buffer[i], buffer[i], nof_samples[i], tx_time[i]);
+          }
+
           radio_h->tx(i, zeros_multi, nof_samples[i], tx_time[i]);
         }
       } else {
@@ -588,6 +604,10 @@ void phy_common::worker_end(uint32_t           tti,
 void phy_common::set_cell(const srslte_cell_t& c)
 {
   cell = c;
+
+  if (ul_channel) {
+    ul_channel->set_srate((uint32_t)srslte_sampling_freq_hz(cell.nof_prb));
+  }
 }
 
 uint32_t phy_common::get_nof_prb()
