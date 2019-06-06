@@ -219,15 +219,16 @@ int gw::setup_if_addr(uint32_t lcid, uint8_t pdn_type, uint32_t ip_addr, uint8_t
   return SRSLTE_SUCCESS;
 }
 
-int gw::apply_traffic_flow_template(uint8_t erab_id, const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft)
+int gw::apply_traffic_flow_template(const uint8_t&                                 erab_id,
+                                    const uint8_t&                                 lcid,
+                                    const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft)
 {
-  int err;
   switch (tft->tft_op_code) {
     case LIBLTE_MME_TFT_OPERATION_CODE_CREATE_NEW_TFT:
       gw_log->console("Adding new TFT\n");
       for (int i = 0; i < tft->packet_filter_list_size; i++) {
         gw_log->console("New packet filter for TFT\n");
-        tft_packet_filter_t filter(erab_id, tft->packet_filter_list[i], gw_log);
+        tft_packet_filter_t filter(erab_id, lcid, tft->packet_filter_list[i], gw_log);
         auto                it = tft_filter_map.insert(std::make_pair(filter.eval_precedence, filter));
         if (it.second == false) {
           gw_log->error("Error inserting TFT Packet Filter\n");
@@ -241,6 +242,7 @@ int gw::apply_traffic_flow_template(uint8_t erab_id, const LIBLTE_MME_TRAFFIC_FL
   }
   return SRSLTE_SUCCESS;
 }
+
 /*******************************************************************************
   RRC interface
 *******************************************************************************/
@@ -357,7 +359,7 @@ uint8_t gw::check_tft_filter_match(const srslte::unique_byte_buffer_t& pdu) {
     for (std::pair<const uint16_t, tft_packet_filter_t>& filter_pair : tft_filter_map) {
       bool match = filter_pair.second.match(pdu);
       if (match) {
-        lcid = filter_pair.second.eps_bearer_id - 2; 
+        lcid = filter_pair.second.lcid;
         gw_log->console("Found filter match -- EPS bearer Id %d, LCID %d\n", filter_pair.second.eps_bearer_id, lcid);
         break;
       }

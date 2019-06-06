@@ -60,7 +60,9 @@ public:
 
   // NAS interface
   int setup_if_addr(uint32_t lcid, uint8_t pdn_type, uint32_t ip_addr, uint8_t* ipv6_if_addr, char* err_str);
-  int apply_traffic_flow_template(uint8_t eps_bearer_id, const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft);
+  int apply_traffic_flow_template(const uint8_t&                                 eps_bearer_id,
+                                  const uint8_t&                                 lcid,
+                                  const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft);
 
   // RRC interface
   void add_mch_port(uint32_t lcid, uint32_t port);

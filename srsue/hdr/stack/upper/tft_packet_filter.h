@@ -66,10 +66,14 @@ const uint8_t TCP_PROTOCOL   = 0x06;
 class tft_packet_filter_t
 {
 public:
-  tft_packet_filter_t(uint8_t eps_bearer_id, const LIBLTE_MME_PACKET_FILTER_STRUCT& tft, srslte::log* log);
+  tft_packet_filter_t(uint8_t                                eps_bearer_id_,
+                      uint8_t                                lcid_,
+                      const LIBLTE_MME_PACKET_FILTER_STRUCT& tft_,
+                      srslte::log*                           log_);
   bool    match(const srslte::unique_byte_buffer_t& pdu);
 
   uint8_t  eps_bearer_id;
+  uint8_t  lcid;
   uint8_t  id;
   uint8_t  eval_precedence;
   uint16_t active_filters;

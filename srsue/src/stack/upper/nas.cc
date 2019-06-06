@@ -1164,7 +1164,7 @@ void nas::parse_activate_dedicated_eps_bearer_context_request(uint32_t lcid, uni
   }
 
   // apply packet filters to GW
-  gw->apply_traffic_flow_template(request.eps_bearer_id, tft);
+  gw->apply_traffic_flow_template(request.eps_bearer_id, rrc->get_lcid_for_eps_bearer(request.eps_bearer_id), tft);
 
   send_activate_dedicated_eps_bearer_context_accept(request.proc_transaction_id, request.eps_bearer_id);
 }

@@ -26,14 +26,16 @@
 
 namespace srsue {
 
-tft_packet_filter_t::tft_packet_filter_t(uint8_t                                eps_bearer_id,
+tft_packet_filter_t::tft_packet_filter_t(uint8_t                                eps_bearer_id_,
+                                         uint8_t                                lcid_,
                                          const LIBLTE_MME_PACKET_FILTER_STRUCT& tft,
-                                         srslte::log*                           log) :
-  eps_bearer_id(eps_bearer_id),
+                                         srslte::log*                           log_) :
+  eps_bearer_id(eps_bearer_id_),
+  lcid(lcid_),
   id(tft.id),
   eval_precedence(tft.eval_precedence),
   active_filters(0),
-  log(log)
+  log(log_)
 {
   int idx = 0;
   while (idx < tft.filter_size) {

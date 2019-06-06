@@ -143,7 +143,9 @@ class gw_dummy : public gw_interface_nas, public gw_interface_pdcp
   {
     return SRSLTE_SUCCESS;
   }
-  int apply_traffic_flow_template(uint8_t eps_bearer_id, const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft)
+  int apply_traffic_flow_template(const uint8_t&                                 eps_bearer_id,
+                                  const uint8_t&                                 lcid,
+                                  const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft)
   {
     return SRSLTE_SUCCESS;
   }
