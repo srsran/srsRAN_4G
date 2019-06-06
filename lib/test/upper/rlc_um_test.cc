@@ -104,17 +104,10 @@ int basic_test()
   log2.set_hex_limit(-1);
   rlc_um_tester    tester;
   mac_dummy_timers timers;
+  int              len = 0;
 
-  rlc_um rlc1;
-  rlc_um rlc2;
-
-  int len;
-
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
-
-  rlc1.init(&log1, 3, &tester, &tester, &timers);
-  rlc2.init(&log2, 3, &tester, &tester, &timers);
+  rlc_um rlc1(&log1, 3, &tester, &tester, &timers);
+  rlc_um rlc2(&log2, 3, &tester, &tester, &timers);
 
   rlc_cfg_c cnfg;
   cnfg.set(rlc_cfg_c::types::um_bi_dir);
@@ -178,17 +171,10 @@ int loss_test()
   log2.set_hex_limit(-1);
   rlc_um_tester    tester;
   mac_dummy_timers timers;
+  int              len = 0;
 
-  rlc_um rlc1;
-  rlc_um rlc2;
-
-  int len;
-
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
-
-  rlc1.init(&log1, 3, &tester, &tester, &timers);
-  rlc2.init(&log2, 3, &tester, &tester, &timers);
+  rlc_um rlc1(&log1, 3, &tester, &tester, &timers);
+  rlc_um rlc2(&log2, 3, &tester, &tester, &timers);
 
   rlc_cfg_c cnfg;
   cnfg.set(rlc_cfg_c::types::um_bi_dir);
@@ -250,17 +236,10 @@ int basic_mbsfn_test()
   log2.set_hex_limit(-1);
   rlc_um_tester    tester;
   mac_dummy_timers timers;
+  int              len = 0;
 
-  rlc_um rlc1;
-  rlc_um rlc2;
-
-  int len;
-
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
-
-  rlc1.init(&log1, 3, &tester, &tester, &timers);
-  rlc2.init(&log2, 3, &tester, &tester, &timers);
+  rlc_um rlc1(&log1, 3, &tester, &tester, &timers);
+  rlc_um rlc2(&log2, 3, &tester, &tester, &timers);
 
   rlc1.configure(srslte_rlc_config_t::mch_config());
   rlc2.configure(srslte_rlc_config_t::mch_config());
@@ -329,17 +308,10 @@ int reassmble_test()
   log2.set_hex_limit(-1);
   rlc_um_tester    tester;
   mac_dummy_timers timers;
+  int              len = 0;
 
-  rlc_um rlc1;
-  rlc_um rlc2;
-
-  int len;
-
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
-
-  rlc1.init(&log1, 3, &tester, &tester, &timers);
-  rlc2.init(&log2, 3, &tester, &tester, &timers);
+  rlc_um rlc1(&log1, 3, &tester, &tester, &timers);
+  rlc_um rlc2(&log2, 3, &tester, &tester, &timers);
 
   rlc_cfg_c cnfg;
   cnfg.set(rlc_cfg_c::types::um_bi_dir);
@@ -449,17 +421,10 @@ int reassmble_test2()
   log2.set_hex_limit(-1);
   rlc_um_tester    tester;
   mac_dummy_timers timers;
+  int              len = 0;
 
-  rlc_um rlc1;
-  rlc_um rlc2;
-
-  int len;
-
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
-
-  rlc1.init(&log1, 3, &tester, &tester, &timers);
-  rlc2.init(&log2, 3, &tester, &tester, &timers);
+  rlc_um rlc1(&log1, 3, &tester, &tester, &timers);
+  rlc_um rlc2(&log2, 3, &tester, &tester, &timers);
 
   rlc_cfg_c cnfg;
   cnfg.set(rlc_cfg_c::types::um_bi_dir);

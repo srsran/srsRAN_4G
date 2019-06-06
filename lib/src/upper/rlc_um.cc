@@ -22,7 +22,6 @@
 #include "srslte/upper/rlc_um.h"
 #include <sstream>
 #include <srslte/upper/rlc_interface.h>
-#include <srslte/upper/rlc_common.h>
 
 #define RX_MOD_BASE(x) (((x)-vr_uh-cfg.rx_window_size)%cfg.rx_mod)
 
@@ -30,7 +29,17 @@ using namespace asn1::rrc;
 
 namespace srslte {
 
-rlc_um::rlc_um() : lcid(0), tx(), pool(byte_buffer_pool::get_instance()), rrc(NULL), log(NULL)
+rlc_um::rlc_um(srslte::log*               log_,
+               uint32_t                   lcid_,
+               srsue::pdcp_interface_rlc* pdcp_,
+               srsue::rrc_interface_rlc*  rrc_,
+               mac_interface_timers*      mac_timers_) :
+  lcid(lcid_),
+  pool(byte_buffer_pool::get_instance()),
+  rrc(rrc_),
+  log(log_),
+  tx(log_),
+  rx(log_, lcid_, pdcp_, rrc_, mac_timers_)
 {
   bzero(&cfg, sizeof(srslte_rlc_um_config_t));
 }
@@ -39,19 +48,6 @@ rlc_um::rlc_um() : lcid(0), tx(), pool(byte_buffer_pool::get_instance()), rrc(NU
 rlc_um::~rlc_um()
 {
   stop();
-}
-
-void rlc_um::init(srslte::log                  *log_,
-                  uint32_t                      lcid_,
-                  srsue::pdcp_interface_rlc    *pdcp_,
-                  srsue::rrc_interface_rlc     *rrc_,
-                  srslte::mac_interface_timers *mac_timers_)
-{
-  tx.init(log_);
-  rx.init(log_, lcid_, pdcp_, rrc_, mac_timers_);
-  lcid = lcid_;
-  rrc = rrc_; // needed to determine bearer name during configuration
-  log = log_;
 }
 
 bool rlc_um::resume()
@@ -226,9 +222,9 @@ std::string rlc_um::get_rb_name(srsue::rrc_interface_rlc *rrc, uint32_t lcid, bo
  * Tx subclass implementation
  ***************************************************************************/
 
-rlc_um::rlc_um_tx::rlc_um_tx() :
+rlc_um::rlc_um_tx::rlc_um_tx(srslte::log* log_) :
   pool(byte_buffer_pool::get_instance()),
-  log(NULL),
+  log(log_),
   vt_us(0),
   tx_enabled(false),
   num_tx_bytes(0)
@@ -240,12 +236,6 @@ rlc_um::rlc_um_tx::rlc_um_tx() :
 rlc_um::rlc_um_tx::~rlc_um_tx()
 {
   pthread_mutex_destroy(&mutex);
-}
-
-
-void rlc_um::rlc_um_tx::init(srslte::log *log_)
-{
-  log = log_;
 }
 
 
@@ -513,42 +503,40 @@ void rlc_um::rlc_um_tx::debug_state()
  * Rx subclass implementation
  ***************************************************************************/
 
-rlc_um::rlc_um_rx::rlc_um_rx()
-    :reordering_timer(NULL)
-    ,reordering_timer_id(0)
-    ,pool(byte_buffer_pool::get_instance())
-    ,log(NULL)
-    ,pdcp(NULL)
-    ,rrc(NULL)
-    ,vr_ur(0)
-    ,vr_ux (0)
-    ,vr_uh(0)
-    ,vr_ur_in_rx_sdu(0)
-    ,pdu_lost(false)
-    ,mac_timers(NULL)
-    ,lcid(0)
-    ,num_rx_bytes(0)
-    ,rx_enabled(false)
+rlc_um::rlc_um_rx::rlc_um_rx(srslte::log*                  log_,
+                             uint32_t                      lcid_,
+                             srsue::pdcp_interface_rlc*    pdcp_,
+                             srsue::rrc_interface_rlc*     rrc_,
+                             srslte::mac_interface_timers* mac_timers_) :
+  reordering_timer(nullptr),
+  reordering_timer_id(0),
+  pool(byte_buffer_pool::get_instance()),
+  log(log_),
+  pdcp(pdcp_),
+  rrc(rrc_),
+  vr_ur(0),
+  vr_ux(0),
+  vr_uh(0),
+  vr_ur_in_rx_sdu(0),
+  pdu_lost(false),
+  mac_timers(mac_timers_),
+  lcid(lcid_),
+  num_rx_bytes(0),
+  rx_enabled(false)
 {
+  reordering_timer_id = mac_timers->timer_get_unique_id();
+  reordering_timer    = mac_timers->timer_get(reordering_timer_id);
+
   pthread_mutex_init(&mutex, NULL);
 }
 
 
 rlc_um::rlc_um_rx::~rlc_um_rx()
 {
+  reordering_timer->stop();
+  mac_timers->timer_release_id(reordering_timer_id);
+
   pthread_mutex_destroy(&mutex);
-}
-
-
-void rlc_um::rlc_um_rx::init(srslte::log *log_, uint32_t lcid_, srsue::pdcp_interface_rlc *pdcp_, srsue::rrc_interface_rlc *rrc_, srslte::mac_interface_timers *mac_timers_)
-{
-  log                   = log_;
-  lcid                  = lcid_;
-  pdcp                  = pdcp_;
-  rrc                   = rrc_;
-  mac_timers            = mac_timers_;
-  reordering_timer_id   = mac_timers->timer_get_unique_id();
-  reordering_timer      = mac_timers->timer_get(reordering_timer_id);
 }
 
 
@@ -575,11 +563,7 @@ void rlc_um::rlc_um_rx::stop()
 
   reset();
 
-  if (mac_timers != NULL && reordering_timer != NULL) {
-    reordering_timer->stop();
-    mac_timers->timer_release_id(reordering_timer_id);
-    reordering_timer = NULL;
-  }
+  reordering_timer->stop();
 
   pthread_mutex_unlock(&mutex);
 }

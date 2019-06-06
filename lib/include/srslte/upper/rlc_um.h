@@ -43,13 +43,12 @@ class rlc_um
     :public rlc_common
 {
 public:
-  rlc_um();
+  rlc_um(srslte::log*               log_,
+         uint32_t                   lcid_,
+         srsue::pdcp_interface_rlc* pdcp_,
+         srsue::rrc_interface_rlc*  rrc_,
+         mac_interface_timers*      mac_timers_);
   ~rlc_um();
-  void init(log                       *rlc_entity_log_,
-            uint32_t                   lcid_,
-            srsue::pdcp_interface_rlc *pdcp_,
-            srsue::rrc_interface_rlc  *rrc_,
-            mac_interface_timers      *mac_timers_);
   bool configure(srslte_rlc_config_t cnfg);
   bool resume();
   void reestablish();
@@ -80,9 +79,8 @@ private:
   class rlc_um_tx
   {
   public:
-    rlc_um_tx();
+    rlc_um_tx(srslte::log* log_);
     ~rlc_um_tx();
-    void init(srslte::log *log_);
     bool configure(srslte_rlc_config_t cfg, std::string rb_name);
     int  build_data_pdu(uint8_t *payload, uint32_t nof_bytes);
     void stop();
@@ -131,13 +129,12 @@ private:
   // Receiver sub-class
   class rlc_um_rx : public timer_callback {
   public:
-    rlc_um_rx();
+    rlc_um_rx(srslte::log*                  log_,
+              uint32_t                      lcid_,
+              srsue::pdcp_interface_rlc*    pdcp_,
+              srsue::rrc_interface_rlc*     rrc_,
+              srslte::mac_interface_timers* mac_timers_);
     ~rlc_um_rx();
-    void init(srslte::log *log_,
-              uint32_t lcid_,
-              srsue::pdcp_interface_rlc *pdcp_,
-              srsue::rrc_interface_rlc *rrc_,
-              srslte::mac_interface_timers *mac_timers_);
     void stop();
     void reestablish();
     bool configure(srslte_rlc_config_t cfg, std::string rb_name);
@@ -202,10 +199,6 @@ private:
     const char* get_rb_name();
   };
 
-  // Rx and Tx objects
-  rlc_um_tx           tx;
-  rlc_um_rx           rx;
-
   // Common variables needed by parent class
   srsue::rrc_interface_rlc  *rrc;
   srslte::log               *log;
@@ -216,6 +209,10 @@ private:
   byte_buffer_pool          *pool;
 
   std::string               get_rb_name(srsue::rrc_interface_rlc *rrc, uint32_t lcid, bool is_mrb);
+
+  // Rx and Tx objects
+  rlc_um_tx tx;
+  rlc_um_rx rx;
 };
 
 /****************************************************************************

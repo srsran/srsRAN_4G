@@ -423,13 +423,13 @@ void rlc::add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg)
     switch(cnfg.rlc_mode)
     {
       case RLC_MODE_TM:
-        rlc_entity = new rlc_tm();
+        rlc_entity = new rlc_tm(rlc_log, lcid, pdcp, rrc, mac_timers);
         break;
       case RLC_MODE_AM:
-        rlc_entity = new rlc_am();
+        rlc_entity = new rlc_am(rlc_log, lcid, pdcp, rrc, mac_timers);
         break;
       case RLC_MODE_UM:
-        rlc_entity = new rlc_um();
+        rlc_entity = new rlc_um(rlc_log, lcid, pdcp, rrc, mac_timers);
         break;
       default:
         rlc_log->error("Cannot add RLC entity - invalid mode\n");
@@ -437,8 +437,6 @@ void rlc::add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg)
     }
 
     // configure and add to array
-    rlc_entity->init(rlc_log, lcid, pdcp, rrc, mac_timers);
-
     if (cnfg.rlc_mode != RLC_MODE_TM) {
       if (rlc_entity->configure(cnfg) == false) {
         rlc_log->error("Error configuring RLC entity\n.");
@@ -472,9 +470,8 @@ void rlc::add_bearer_mrb(uint32_t lcid)
   rlc_common *rlc_entity = NULL;
 
   if (not valid_lcid_mrb(lcid)) {
-    rlc_entity = new rlc_um();
+    rlc_entity = new rlc_um(rlc_log, lcid, pdcp, rrc, mac_timers);
     // configure and add to array
-    rlc_entity->init(rlc_log, lcid, pdcp, rrc, mac_timers);
     if (not rlc_entity->configure(srslte_rlc_config_t::mch_config())) {
       rlc_log->error("Error configuring RLC entity\n.");
       goto delete_and_exit;
@@ -568,10 +565,6 @@ void rlc::resume_bearer(uint32_t lcid)
   pthread_rwlock_wrlock(&rwlock);
 
   if (valid_lcid(lcid)) {
-
-    // Need to call init again because timers have been destroyed
-    rlc_array.at(lcid)->init(rlc_log, lcid, pdcp, rrc, mac_timers);
-
     if (rlc_array.at(lcid)->resume()) {
       rlc_log->info("Resumed radio bearer %s\n", rrc->get_rb_name(lcid).c_str());
     } else {

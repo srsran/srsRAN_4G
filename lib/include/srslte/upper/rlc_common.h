@@ -143,11 +143,6 @@ public:
   const static int RLC_BUFFER_NOF_PDU = 128;
 
   virtual ~rlc_common() {}
-  virtual void init(srslte::log                       *rlc_entity_log_,
-                    uint32_t                           lcid_,
-                    srsue::pdcp_interface_rlc         *pdcp_,
-                    srsue::rrc_interface_rlc          *rrc_,
-                    srslte::mac_interface_timers      *mac_timers_) = 0;
   virtual bool configure(srslte_rlc_config_t cnfg) = 0;
   virtual bool resume()                                             = 0;
   virtual void stop() = 0;

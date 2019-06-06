@@ -64,22 +64,21 @@ struct rlc_amd_retx_t{
 class rlc_am : public rlc_common
 {
 public:
-  rlc_am();
+  rlc_am(srslte::log*                  log_,
+         uint32_t                      lcid_,
+         srsue::pdcp_interface_rlc*    pdcp_,
+         srsue::rrc_interface_rlc*     rrc_,
+         srslte::mac_interface_timers* mac_timers_);
   ~rlc_am();
-  void init(log                   *log_,
-            uint32_t              lcid_,
-            srsue::pdcp_interface_rlc   *pdcp_,
-            srsue::rrc_interface_rlc    *rrc_,
-            mac_interface_timers *mac_timers_);
   bool resume();
   bool configure(srslte_rlc_config_t cfg_);
   void reestablish();
   void stop();
 
-  void empty_queue(); 
-  
-  rlc_mode_t    get_mode();
-  uint32_t      get_bearer();
+  void empty_queue();
+
+  rlc_mode_t get_mode();
+  uint32_t   get_bearer();
 
   // PDCP interface
   void write_sdu(unique_byte_buffer_t sdu, bool blocking = true);
@@ -103,7 +102,6 @@ private:
     rlc_am_tx(rlc_am* parent_);
     ~rlc_am_tx();
 
-    void init();
     bool configure(srslte_rlc_config_t cfg_);
 
     void empty_queue();
@@ -205,7 +203,6 @@ private:
     rlc_am_rx(rlc_am* parent_);
     ~rlc_am_rx();
 
-    void init();
     bool configure(srslte_rlc_am_config_t cfg_);
     void reestablish();
     void stop();
@@ -280,10 +277,6 @@ private:
     uint32_t               reordering_timer_id;
   };
 
-  // Rx and Tx objects
-  rlc_am_tx           tx;
-  rlc_am_rx           rx;
-
   // Common variables needed/provided by parent class
   srsue::rrc_interface_rlc  *rrc;
   srslte::log               *log;
@@ -295,6 +288,10 @@ private:
   std::string               rb_name;
 
   static const int poll_periodicity = 8; // After how many data PDUs a status PDU shall be requested
+
+  // Rx and Tx objects
+  rlc_am_tx tx;
+  rlc_am_rx rx;
 };
 
 /****************************************************************************

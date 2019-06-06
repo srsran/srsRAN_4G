@@ -161,20 +161,13 @@ bool basic_test()
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
   log2.set_hex_limit(-1);
+
   rlc_am_tester     tester;
   mac_dummy_timers  timers;
   byte_buffer_t     pdu_bufs[NBUFS];
 
-  rlc_am rlc1;
-  rlc_am rlc2;
-
-  int len;
-
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
-
-  rlc1.init(&log1, 1, &tester, &tester, &timers);
-  rlc2.init(&log2, 1, &tester, &tester, &timers);
+  rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
+  rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
 
   rlc_cfg_c cnfg;
   cnfg.set(rlc_cfg_c::types::am);
@@ -205,7 +198,7 @@ bool basic_test()
 
   // Read status PDU from RLC2
   byte_buffer_t status_buf;
-  len = rlc2.read_pdu(status_buf.msg, 2);
+  int           len  = rlc2.read_pdu(status_buf.msg, 2);
   status_buf.N_bytes = len;
 
   assert(0 == rlc2.get_buffer_state());
@@ -241,16 +234,8 @@ bool concat_test()
   rlc_am_tester     tester;
   mac_dummy_timers  timers;
 
-  rlc_am rlc1;
-  rlc_am rlc2;
-
-  int len;
-
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
-
-  rlc1.init(&log1, 1, &tester, &tester, &timers);
-  rlc2.init(&log2, 1, &tester, &tester, &timers);
+  rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
+  rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
 
   rlc_cfg_c cnfg;
   cnfg.set(rlc_cfg_c::types::am);
@@ -284,7 +269,7 @@ bool concat_test()
 
   // Read 1 PDUs from RLC1 containing all 5 SDUs
   byte_buffer_t pdu_buf;
-  len = rlc1.read_pdu(pdu_buf.msg, 13); // 8 bytes for header + payload
+  int           len = rlc1.read_pdu(pdu_buf.msg, 13); // 8 bytes for header + payload
   pdu_buf.N_bytes = len;
 
   assert(0 == rlc1.get_buffer_state());
@@ -322,17 +307,10 @@ bool segment_test(bool in_seq_rx)
   log2.set_hex_limit(-1);
   rlc_am_tester     tester;
   mac_dummy_timers  timers;
+  int               len = 0;
 
-  rlc_am rlc1;
-  rlc_am rlc2;
-
-  int len;
-
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
-
-  rlc1.init(&log1, 1, &tester, &tester, &timers);
-  rlc2.init(&log2, 1, &tester, &tester, &timers);
+  rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
+  rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
 
   rlc_cfg_c cnfg;
   cnfg.set(rlc_cfg_c::types::am);
@@ -432,17 +410,10 @@ bool retx_test()
   log2.set_hex_limit(-1);
   rlc_am_tester     tester;
   mac_dummy_timers  timers;
+  int               len = 0;
 
-  rlc_am rlc1;
-  rlc_am rlc2;
-
-  int len;
-
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
-
-  rlc1.init(&log1, 1, &tester, &tester, &timers);
-  rlc2.init(&log2, 1, &tester, &tester, &timers);
+  rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
+  rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
 
   rlc_cfg_c cnfg;
   cnfg.set(rlc_cfg_c::types::am);
@@ -541,17 +512,10 @@ bool resegment_test_1()
   log2.set_hex_limit(-1);
   rlc_am_tester     tester;
   mac_dummy_timers  timers;
+  int               len = 0;
 
-  rlc_am rlc1;
-  rlc_am rlc2;
-
-  int len;
-
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
-
-  rlc1.init(&log1, 1, &tester, &tester, &timers);
-  rlc2.init(&log2, 1, &tester, &tester, &timers);
+  rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
+  rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
 
   rlc_cfg_c cnfg;
   cnfg.set(rlc_cfg_c::types::am);
@@ -663,17 +627,10 @@ bool resegment_test_2()
   log2.set_hex_limit(-1);
   rlc_am_tester     tester;
   mac_dummy_timers  timers;
+  int               len = 0;
 
-  rlc_am rlc1;
-  rlc_am rlc2;
-
-  int len;
-
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
-
-  rlc1.init(&log1, 1, &tester, &tester, &timers);
-  rlc2.init(&log2, 1, &tester, &tester, &timers);
+  rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
+  rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
 
   rlc_cfg_c cnfg;
   cnfg.set(rlc_cfg_c::types::am);
@@ -783,16 +740,8 @@ bool resegment_test_3()
   rlc_am_tester     tester;
   mac_dummy_timers  timers;
 
-  rlc_am rlc1;
-  rlc_am rlc2;
-
-  int len;
-
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
-
-  rlc1.init(&log1, 1, &tester, &tester, &timers);
-  rlc2.init(&log2, 1, &tester, &tester, &timers);
+  rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
+  rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
 
   rlc_cfg_c cnfg;
   cnfg.set(rlc_cfg_c::types::am);
@@ -897,16 +846,8 @@ bool resegment_test_4()
   rlc_am_tester     tester;
   mac_dummy_timers  timers;
 
-  rlc_am rlc1;
-  rlc_am rlc2;
-
-  int len;
-
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
-
-  rlc1.init(&log1, 1, &tester, &tester, &timers);
-  rlc2.init(&log2, 1, &tester, &tester, &timers);
+  rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
+  rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
 
   rlc_cfg_c cnfg;
   cnfg.set(rlc_cfg_c::types::am);
@@ -1013,14 +954,8 @@ bool resegment_test_5()
   rlc_am_tester     tester;
   mac_dummy_timers  timers;
 
-  rlc_am rlc1;
-  rlc_am rlc2;
-
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
-
-  rlc1.init(&log1, 1, &tester, &tester, &timers);
-  rlc2.init(&log2, 1, &tester, &tester, &timers);
+  rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
+  rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
 
   rlc_cfg_c cnfg;
   cnfg.set(rlc_cfg_c::types::am);
@@ -1126,17 +1061,10 @@ bool resegment_test_6()
   log2.set_hex_limit(-1);
   rlc_am_tester     tester;
   mac_dummy_timers  timers;
+  int               len = 0;
 
-  rlc_am rlc1;
-  rlc_am rlc2;
-
-  int len;
-
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
-
-  rlc1.init(&log1, 1, &tester, &tester, &timers);
-  rlc2.init(&log2, 1, &tester, &tester, &timers);
+  rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
+  rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
 
   rlc_cfg_c cnfg;
   cnfg.set(rlc_cfg_c::types::am);
@@ -1280,14 +1208,8 @@ bool resegment_test_7()
 #endif
   mac_dummy_timers  timers;
 
-  rlc_am rlc1;
-  rlc_am rlc2;
-
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
-
-  rlc1.init(&log1, 1, &tester, &tester, &timers);
-  rlc2.init(&log2, 1, &tester, &tester, &timers);
+  rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
+  rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
 
   rlc_cfg_c cnfg;
   cnfg.set(rlc_cfg_c::types::am);
@@ -1468,15 +1390,8 @@ bool resegment_test_8()
 #endif
   mac_dummy_timers  timers;
 
-  rlc_am rlc1;
-  rlc_am rlc2;
-
-
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
-
-  rlc1.init(&log1, 1, &tester, &tester, &timers);
-  rlc2.init(&log2, 1, &tester, &tester, &timers);
+  rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
+  rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
 
   rlc_cfg_c cnfg;
   cnfg.set(rlc_cfg_c::types::am);
@@ -1623,20 +1538,13 @@ bool resegment_test_8()
 bool reset_test()
 {
   srslte::log_filter log1("RLC_AM_1");
-  srslte::log_filter log2("RLC_AM_2");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
-  log2.set_hex_limit(-1);
   rlc_am_tester     tester;
   mac_dummy_timers  timers;
+  int               len = 0;
 
-  rlc_am rlc1;
-  int len;
-
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-
-  rlc1.init(&log1, 1, &tester, &tester, &timers);
+  rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
 
   rlc_cfg_c cnfg;
   cnfg.set(rlc_cfg_c::types::am);
@@ -1684,20 +1592,13 @@ bool reset_test()
 bool resume_test()
 {
   srslte::log_filter log1("RLC_AM_1");
-  srslte::log_filter log2("RLC_AM_2");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
-  log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
-  log2.set_hex_limit(-1);
   rlc_am_tester    tester;
   mac_dummy_timers timers;
+  int              len = 0;
 
-  rlc_am rlc1;
-  int    len;
-
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-
-  rlc1.init(&log1, 1, &tester, &tester, &timers);
+  rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
 
   rlc_cfg_c cnfg;
   cnfg.set(rlc_cfg_c::types::am);
@@ -1750,11 +1651,7 @@ bool stop_test()
   rlc_am_tester     tester;
   mac_dummy_timers  timers;
 
-  rlc_am rlc1;
-
-  log1.set_level(srslte::LOG_LEVEL_DEBUG);
-
-  rlc1.init(&log1, 1, &tester, &tester, &timers);
+  rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
 
   rlc_cfg_c cnfg;
   cnfg.set(rlc_cfg_c::types::am);

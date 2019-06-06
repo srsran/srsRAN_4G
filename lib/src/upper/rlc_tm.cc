@@ -23,13 +23,18 @@
 
 namespace srslte {
 
-rlc_tm::rlc_tm(uint32_t queue_len) :
-  ul_queue(queue_len),
-  tx_enabled(false),
-  log(NULL),
-  pdcp(NULL),
-  rrc(NULL),
-  lcid(0),
+rlc_tm::rlc_tm(srslte::log*                  log_,
+               uint32_t                      lcid_,
+               srsue::pdcp_interface_rlc*    pdcp_,
+               srsue::rrc_interface_rlc*     rrc_,
+               srslte::mac_interface_timers* mac_timers_,
+               uint32_t                      queue_len_) :
+  ul_queue(queue_len_),
+  tx_enabled(true),
+  log(log_),
+  pdcp(pdcp_),
+  rrc(rrc_),
+  lcid(lcid_),
   num_tx_bytes(0),
   num_rx_bytes(0)
 {
@@ -39,19 +44,6 @@ rlc_tm::rlc_tm(uint32_t queue_len) :
 // Warning: must call stop() to properly deallocate all buffers
 rlc_tm::~rlc_tm() {
   pool = NULL;
-}
-
-void rlc_tm::init(srslte::log               *log_,
-                  uint32_t                   lcid_,
-                  srsue::pdcp_interface_rlc *pdcp_,
-                  srsue::rrc_interface_rlc  *rrc_, 
-                  mac_interface_timers      *mac_timers)
-{
-  log  = log_;
-  lcid = lcid_;
-  pdcp = pdcp_;
-  rrc  = rrc_;
-  tx_enabled = true;
 }
 
 bool rlc_tm::configure(srslte_rlc_config_t cnfg)
