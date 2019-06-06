@@ -714,15 +714,15 @@ typedef struct {
   std::string           dl_earfcn;   // comma-separated list of EARFCNs
   std::vector<uint32_t> earfcn_list; // vectorized version of dl_earfcn that gets populated during init
 
-  float                 dl_freq;
-  float                 ul_freq;
+  float dl_freq;
+  float ul_freq;
 
-  bool ul_pwr_ctrl_en; 
+  bool  ul_pwr_ctrl_en;
   float prach_gain;
-  int pdsch_max_its;
+  int   pdsch_max_its;
   bool  attach_enable_64qam;
-  int nof_phy_threads;
-  
+  int   nof_phy_threads;
+
   int worker_cpu_mask;
   int sync_cpu_affinity;
 
@@ -736,37 +736,37 @@ typedef struct {
   int           cqi_max;
   int           cqi_fixed;
   float         snr_ema_coeff;
-  std::string snr_estim_alg;
-  bool                    agc_enable;
-  bool cfo_is_doppler;
-  bool cfo_integer_enabled; 
-  float cfo_correct_tol_hz;
-  float cfo_pss_ema;
-  float cfo_ref_ema;
-  float cfo_loop_bw_pss;
-  float cfo_loop_bw_ref;
+  std::string   snr_estim_alg;
+  bool          agc_enable;
+  bool          cfo_is_doppler;
+  bool          cfo_integer_enabled;
+  float         cfo_correct_tol_hz;
+  float         cfo_pss_ema;
+  float         cfo_ref_ema;
+  float         cfo_loop_bw_pss;
+  float         cfo_loop_bw_ref;
   float         cfo_loop_ref_min;
   float         cfo_loop_pss_tol;
   float         sfo_ema;
   uint32_t      sfo_correct_period;
-  uint32_t cfo_loop_pss_conv;
+  uint32_t      cfo_loop_pss_conv;
   uint32_t      cfo_ref_mask;
   bool          interpolate_subframe_enabled;
-  bool estimator_fil_auto;
+  bool          estimator_fil_auto;
   float         estimator_fil_stddev;
   uint32_t      estimator_fil_order;
   float         snr_to_cqi_offset;
-  std::string sss_algorithm;
-  bool sic_pss_enabled;
-  float rx_gain_offset;
-  bool pdsch_csi_enabled;
-  bool pdsch_8bit_decoder;
-  uint32_t intra_freq_meas_len_ms;
-  uint32_t intra_freq_meas_period_ms;
+  std::string   sss_algorithm;
+  bool          sic_pss_enabled;
+  float         rx_gain_offset;
+  bool          pdsch_csi_enabled;
+  bool          pdsch_8bit_decoder;
+  uint32_t      intra_freq_meas_len_ms;
+  uint32_t      intra_freq_meas_period_ms;
   bool          pregenerate_signals;
-  srslte::channel::args_t dl_channel_args;
-} phy_args_t; 
 
+  srslte::channel::args_t dl_channel_args;
+} phy_args_t;
 
 /* RAT agnostic Interface MAC -> PHY */
 class phy_interface_mac_common
