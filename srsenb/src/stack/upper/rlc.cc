@@ -19,8 +19,8 @@
  *
  */
 
-#include "srsenb/hdr/upper/rlc.h"
-#include "srsenb/hdr/upper/common_enb.h"
+#include "srsenb/hdr/stack/upper/rlc.h"
+#include "srsenb/hdr/stack/upper/common_enb.h"
 
 namespace srsenb {
   
@@ -41,8 +41,8 @@ void rlc::init(pdcp_interface_rlc* pdcp_, rrc_interface_rlc* rrc_, mac_interface
 void rlc::stop()
 {
   pthread_rwlock_wrlock(&rwlock);
-  for(std::map<uint32_t, user_interface>::iterator iter=users.begin(); iter!=users.end(); ++iter) {
-    clear_user(&iter->second);
+  for (auto& user : users) {
+    user.second.rlc->stop();
   }
   users.clear();
   pthread_rwlock_unlock(&rwlock);
@@ -52,30 +52,23 @@ void rlc::stop()
 void rlc::add_user(uint16_t rnti)
 {
   pthread_rwlock_rdlock(&rwlock);
-  if (users.count(rnti) == 0) {    
-    srslte::rlc *obj = new srslte::rlc;     
-    obj->init(&users[rnti], &users[rnti], &users[rnti], log_h, mac_timers, RB_ID_SRB0);
+  if (users.count(rnti) == 0) {
+    std::unique_ptr<srslte::rlc> obj(new srslte::rlc);
+    obj->init(&users[rnti], &users[rnti], log_h, mac_timers, RB_ID_SRB0);
     users[rnti].rnti   = rnti; 
     users[rnti].pdcp   = pdcp; 
-    users[rnti].rrc    = rrc; 
-    users[rnti].rlc    = obj;
+    users[rnti].rrc    = rrc;
+    users[rnti].rlc    = std::move(obj);
     users[rnti].parent = this; 
   }
   pthread_rwlock_unlock(&rwlock);
 }
 
-// Private unlocked deallocation of user
-void rlc::clear_user(user_interface *ue)
-{
-  ue->rlc->stop();
-  delete ue->rlc;
-  ue->rlc = NULL;
-}
 void rlc::rem_user(uint16_t rnti)
 {
   pthread_rwlock_wrlock(&rwlock);
   if (users.count(rnti)) {
-    clear_user(&users[rnti]);
+    users[rnti].rlc->stop();
     users.erase(rnti);
   } else {
     log_h->error("Removing rnti=0x%x. Already removed\n", rnti);

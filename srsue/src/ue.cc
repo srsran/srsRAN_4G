@@ -73,7 +73,7 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
 
   // Instantiate layers and stack together our UE
   if (args.stack.type == "lte") {
-    std::unique_ptr<ue_stack_lte> lte_stack = std::unique_ptr<ue_stack_lte>(new ue_stack_lte());
+    std::unique_ptr<ue_stack_lte> lte_stack(new ue_stack_lte());
     if (!lte_stack) {
       log.console("Error creating LTE stack instance.\n");
       return SRSLTE_ERROR;

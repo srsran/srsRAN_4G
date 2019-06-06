@@ -47,8 +47,7 @@ public:
   virtual ~rlc();
   void init(srsue::pdcp_interface_rlc* pdcp_,
             srsue::rrc_interface_rlc*  rrc_,
-            srsue::ue_interface*       ue_,
-            srslte::log*               log_,
+            log*                       rlc_log_,
             mac_interface_timers*      mac_timers_,
             uint32_t                   lcid_);
   void stop();
@@ -95,7 +94,6 @@ private:
   srsue::pdcp_interface_rlc   *pdcp;
   srsue::rrc_interface_rlc    *rrc;
   srslte::mac_interface_timers *mac_timers; 
-  srsue::ue_interface         *ue;
 
   typedef std::map<uint16_t, rlc_common*> rlc_map_t;
   typedef std::pair<uint16_t, rlc_common*> rlc_map_pair_t;

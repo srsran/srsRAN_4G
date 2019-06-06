@@ -30,7 +30,7 @@
 #include <iostream>
 #include "srsenb/hdr/parser.h"
 
-#include "srsenb/hdr/upper/rrc.h"
+#include "srsenb/hdr/stack/rrc/rrc.h"
 #include "srslte/asn1/asn1_utils.h"
 
 namespace srsenb {

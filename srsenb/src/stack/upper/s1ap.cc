@@ -19,8 +19,8 @@
  *
  */
 
-#include "srsenb/hdr/upper/s1ap.h"
-#include "srsenb/hdr/upper/common_enb.h"
+#include "srsenb/hdr/stack/upper/s1ap.h"
+#include "srsenb/hdr/stack/upper/common_enb.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/int_helpers.h"
 

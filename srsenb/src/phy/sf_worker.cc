@@ -362,9 +362,9 @@ void sf_worker::work_imp()
   srslte_mbsfn_cfg_t mbsfn_cfg;
   srslte_sf_t        sf_type = phy->is_mbsfn_sf(&mbsfn_cfg, tti_tx_dl) ? SRSLTE_SF_MBSFN : SRSLTE_SF_NORM;
 
-  mac_interface_phy::ul_sched_t* ul_grants = phy->ul_grants;
-  mac_interface_phy::dl_sched_t* dl_grants = phy->dl_grants;
-  mac_interface_phy*             mac       = phy->mac;
+  stack_interface_phy_lte::ul_sched_t* ul_grants = phy->ul_grants;
+  stack_interface_phy_lte::dl_sched_t* dl_grants = phy->dl_grants;
+  stack_interface_phy_lte*             stack     = phy->stack;
 
   log_h->step(tti_rx);
 
@@ -391,13 +391,13 @@ void sf_worker::work_imp()
   // Get DL scheduling for the TX TTI from MAC
 
   if (sf_type == SRSLTE_SF_NORM) {
-    if (mac->get_dl_sched(tti_tx_dl, &dl_grants[t_tx_dl]) < 0) {
+    if (stack->get_dl_sched(tti_tx_dl, &dl_grants[t_tx_dl]) < 0) {
       Error("Getting DL scheduling from MAC\n");
       goto unlock;
     }
   } else {
     dl_grants[t_tx_dl].cfi = mbsfn_cfg.non_mbsfn_region_length;
-    if (mac->get_mch_sched(tti_tx_dl, mbsfn_cfg.is_mcch, &dl_grants[t_tx_dl])) {
+    if (stack->get_mch_sched(tti_tx_dl, mbsfn_cfg.is_mcch, &dl_grants[t_tx_dl])) {
       Error("Getting MCH packets from MAC\n");
       goto unlock;
     }
@@ -409,7 +409,7 @@ void sf_worker::work_imp()
   }
 
   // Get UL scheduling for the TX TTI from MAC
-  if (mac->get_ul_sched(tti_tx_ul, &ul_grants[t_tx_ul]) < 0) {
+  if (stack->get_ul_sched(tti_tx_ul, &ul_grants[t_tx_ul]) < 0) {
     Error("Getting UL scheduling from MAC\n");
     goto unlock;
   }
@@ -513,7 +513,7 @@ void sf_worker::send_uci_data(uint16_t rnti, srslte_uci_cfg_t* uci_cfg, srslte_u
 {
   // Notify SR
   if (uci_cfg->is_scheduling_request_tti && uci_value->scheduling_request) {
-    phy->mac->sr_detected(tti_rx, rnti);
+    phy->stack->sr_detected(tti_rx, rnti);
   }
 
   /* If only one ACK is required, it can be for TB0 or TB1 */
@@ -522,7 +522,7 @@ void sf_worker::send_uci_data(uint16_t rnti, srslte_uci_cfg_t* uci_cfg, srslte_u
     if (uci_cfg->ack.pending_tb[tb]) {
       bool ack   = uci_value->ack.ack_value[ack_idx];
       bool valid = uci_value->ack.valid;
-      phy->mac->ack_info(tti_rx, rnti, tb, ack && valid);
+      phy->stack->ack_info(tti_rx, rnti, tb, ack && valid);
       ack_idx++;
     }
   }
@@ -545,10 +545,10 @@ void sf_worker::send_uci_data(uint16_t rnti, srslte_uci_cfg_t* uci_cfg, srslte_u
           cqi_value = uci_value->cqi.subband_ue.wideband_cqi;
           break;
       }
-      phy->mac->cqi_info(tti_rx, rnti, cqi_value);
+      phy->stack->cqi_info(tti_rx, rnti, cqi_value);
     }
     if (uci_cfg->cqi.ri_len) {
-      phy->mac->ri_info(tti_rx, rnti, uci_value->ri);
+      phy->stack->ri_info(tti_rx, rnti, uci_value->ri);
       phy->ue_db_set_ri(rnti, uci_value->ri);
     }
     if (uci_cfg->cqi.pmi_present) {
@@ -564,12 +564,12 @@ void sf_worker::send_uci_data(uint16_t rnti, srslte_uci_cfg_t* uci_cfg, srslte_u
           Error("CQI type=%d not implemented for PMI\n", uci_cfg->cqi.type);
           break;
       }
-      phy->mac->pmi_info(tti_rx, rnti, pmi_value);
+      phy->stack->pmi_info(tti_rx, rnti, pmi_value);
     }
   }
 }
 
-int sf_worker::decode_pusch(mac_interface_phy::ul_sched_grant_t* grants, uint32_t nof_pusch)
+int sf_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, uint32_t nof_pusch)
 {
   srslte_pusch_res_t pusch_res;
 
@@ -614,20 +614,20 @@ int sf_worker::decode_pusch(mac_interface_phy::ul_sched_grant_t* grants, uint32_
 
       // Notify MAC of RL status
       if (snr_db >= PUSCH_RL_SNR_DB_TH) {
-        phy->mac->snr_info(tti_rx, rnti, snr_db);
+        phy->stack->snr_info(tti_rx, rnti, snr_db);
 
         if (grants[i].dci.tb.rv == 0) {
           if (!pusch_res.crc) {
             Debug("PUSCH: Radio-Link failure snr=%.1f dB\n", snr_db);
-            phy->mac->rl_failure(rnti);
+            phy->stack->rl_failure(rnti);
           } else {
-            phy->mac->rl_ok(rnti);
+            phy->stack->rl_ok(rnti);
           }
         }
       }
 
       // Notify MAC new received data and HARQ Indication value
-      phy->mac->crc_info(tti_rx, rnti, grant->tb.tbs / 8, pusch_res.crc);
+      phy->stack->crc_info(tti_rx, rnti, grant->tb.tbs / 8, pusch_res.crc);
 
       // Send UCI data to MAC
       send_uci_data(rnti, &ue_db[rnti]->ul_cfg.pusch.uci_cfg, &pusch_res.uci);
@@ -666,9 +666,9 @@ int sf_worker::decode_pucch()
         if (!ue_db[rnti]->ul_cfg.pucch.uci_cfg.is_scheduling_request_tti) {
           if (pucch_res.correlation < PUCCH_RL_CORR_TH) {
             Debug("PUCCH: Radio-Link failure corr=%.1f\n", pucch_res.correlation);
-            phy->mac->rl_failure(rnti);
+            phy->stack->rl_failure(rnti);
           } else {
-            phy->mac->rl_ok(rnti);
+            phy->stack->rl_ok(rnti);
           }
         }
 
@@ -685,7 +685,7 @@ int sf_worker::decode_pucch()
   return 0;
 }
 
-int sf_worker::encode_phich(mac_interface_phy::ul_sched_ack_t* acks, uint32_t nof_acks)
+int sf_worker::encode_phich(stack_interface_phy_lte::ul_sched_ack_t* acks, uint32_t nof_acks)
 {
   for (uint32_t i = 0; i < nof_acks; i++) {
     if (acks[i].rnti && ue_db.count(acks[i].rnti)) {
@@ -702,7 +702,7 @@ int sf_worker::encode_phich(mac_interface_phy::ul_sched_ack_t* acks, uint32_t no
   return SRSLTE_SUCCESS;
 }
 
-int sf_worker::encode_pdcch_ul(mac_interface_phy::ul_sched_grant_t* grants, uint32_t nof_grants)
+int sf_worker::encode_pdcch_ul(stack_interface_phy_lte::ul_sched_grant_t* grants, uint32_t nof_grants)
 {
   for (uint32_t i = 0; i < nof_grants; i++) {
     if (grants[i].needs_pdcch) {
@@ -720,7 +720,7 @@ int sf_worker::encode_pdcch_ul(mac_interface_phy::ul_sched_grant_t* grants, uint
   return SRSLTE_SUCCESS;
 }
 
-int sf_worker::encode_pdcch_dl(mac_interface_phy::dl_sched_grant_t* grants, uint32_t nof_grants)
+int sf_worker::encode_pdcch_dl(stack_interface_phy_lte::dl_sched_grant_t* grants, uint32_t nof_grants)
 {
   for (uint32_t i = 0; i < nof_grants; i++) {
     uint16_t rnti = grants[i].dci.rnti;
@@ -741,7 +741,7 @@ int sf_worker::encode_pdcch_dl(mac_interface_phy::dl_sched_grant_t* grants, uint
   return 0;
 }
 
-int sf_worker::encode_pmch(mac_interface_phy::dl_sched_grant_t* grant, srslte_mbsfn_cfg_t* mbsfn_cfg)
+int sf_worker::encode_pmch(stack_interface_phy_lte::dl_sched_grant_t* grant, srslte_mbsfn_cfg_t* mbsfn_cfg)
 {
   srslte_pmch_cfg_t      pmch_cfg;
   ZERO_OBJECT(pmch_cfg);
@@ -765,7 +765,7 @@ int sf_worker::encode_pmch(mac_interface_phy::dl_sched_grant_t* grant, srslte_mb
   return SRSLTE_SUCCESS;
 }
 
-int sf_worker::encode_pdsch(mac_interface_phy::dl_sched_grant_t* grants, uint32_t nof_grants)
+int sf_worker::encode_pdsch(stack_interface_phy_lte::dl_sched_grant_t* grants, uint32_t nof_grants)
 {
 
   /* Scales the Resources Elements affected by the power allocation (p_b) */

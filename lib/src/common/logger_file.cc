@@ -80,7 +80,10 @@ void logger_file::run_thread() {
     pthread_mutex_lock(&mutex);
     while(buffer.empty()) {
       pthread_cond_wait(&not_empty, &mutex);
-      if(!is_running) return; // Thread done. Messages in buffer will be handled in flush.
+      if (!is_running) {
+        pthread_mutex_unlock(&mutex);
+        return; // Thread done. Messages in buffer will be handled in flush.
+      }
     }
     str_ptr s = buffer.front();
     int n = 0;

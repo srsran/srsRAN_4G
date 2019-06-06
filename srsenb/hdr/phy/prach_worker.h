@@ -44,7 +44,7 @@ public:
     thread("PRACH_WORKER")
   {
     log_h = NULL;
-    mac = NULL;
+    stack = NULL;
     bzero(&prach, sizeof(srslte_prach_t));
     bzero(&prach_indices, sizeof(prach_indices));
     bzero(&prach_offsets, sizeof(prach_offsets));
@@ -52,8 +52,12 @@ public:
     bzero(&cell, sizeof(cell));
     bzero(&prach_cfg, sizeof(prach_cfg));
   }
-  
-  int  init(srslte_cell_t *cell, srslte_prach_cfg_t *prach_cfg, mac_interface_phy *mac, srslte::log *log_h, int priority);
+
+  int  init(srslte_cell_t*           cell,
+            srslte_prach_cfg_t*      prach_cfg,
+            stack_interface_phy_lte* mac,
+            srslte::log*             log_h,
+            int                      priority);
   int  new_tti(uint32_t tti, cf_t *buffer);
   void set_max_prach_offset_us(float delay_us);
   void stop();
@@ -93,7 +97,7 @@ private:
   sf_buffer* current_buffer;
 
   srslte::log* log_h;
-  mac_interface_phy *mac;
+  stack_interface_phy_lte* stack;
   float max_prach_offset_us;
   bool initiated;
   bool running;

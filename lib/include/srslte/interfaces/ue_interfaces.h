@@ -47,11 +47,6 @@ typedef enum {
   AUTH_SYNCH_FAILURE
 } auth_result_t;
 
-// UE interface
-class ue_interface
-{
-};
-
 // USIM interface for NAS
 class usim_interface_nas
 {

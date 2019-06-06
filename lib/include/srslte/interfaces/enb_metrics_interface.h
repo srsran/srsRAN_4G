@@ -24,11 +24,11 @@
 
 #include <stdint.h>
 
-#include "srsenb/hdr/mac/mac_metrics.h"
 #include "srsenb/hdr/phy/phy_metrics.h"
-#include "srsenb/hdr/upper/common_enb.h"
-#include "srsenb/hdr/upper/rrc_metrics.h"
-#include "srsenb/hdr/upper/s1ap_metrics.h"
+#include "srsenb/hdr/stack/mac/mac_metrics.h"
+#include "srsenb/hdr/stack/rrc/rrc_metrics.h"
+#include "srsenb/hdr/stack/upper/common_enb.h"
+#include "srsenb/hdr/stack/upper/s1ap_metrics.h"
 #include "srslte/common/metrics_hub.h"
 #include "srslte/upper/rlc_metrics.h"
 #include "srsue/hdr/stack/upper/gw_metrics.h"
@@ -42,12 +42,16 @@ typedef struct {
   bool     rf_error;
 }rf_metrics_t;
 
+struct stack_metrics_t {
+  mac_metrics_t  mac[ENB_METRICS_MAX_USERS];
+  rrc_metrics_t  rrc;
+  s1ap_metrics_t s1ap;
+};
+
 typedef struct {
   rf_metrics_t    rf;
   phy_metrics_t   phy[ENB_METRICS_MAX_USERS];
-  mac_metrics_t   mac[ENB_METRICS_MAX_USERS];
-  rrc_metrics_t   rrc; 
-  s1ap_metrics_t  s1ap;
+  stack_metrics_t stack;
   bool            running;
 }enb_metrics_t;
 

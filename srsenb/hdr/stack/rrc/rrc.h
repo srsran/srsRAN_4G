@@ -22,8 +22,8 @@
 #ifndef SRSENB_RRC_H
 #define SRSENB_RRC_H
 
-#include "common_enb.h"
 #include "rrc_metrics.h"
+#include "srsenb/hdr/stack/upper/common_enb.h"
 #include "srslte/asn1/rrc_asn1.h"
 #include "srslte/common/block_queue.h"
 #include "srslte/common/buffer_pool.h"
@@ -127,16 +127,16 @@ public:
     bzero(&cfg.qci_cfg, sizeof(cfg.qci_cfg));
     bzero(&cfg.cell, sizeof(cfg.cell));
   }
-  
-  void init(rrc_cfg_t *cfg,
-            phy_interface_rrc *phy, 
-            mac_interface_rrc *mac, 
-            rlc_interface_rrc *rlc, 
-            pdcp_interface_rrc *pdcp,
-            s1ap_interface_rrc *s1ap,
-            gtpu_interface_rrc *gtpu,
-            srslte::log *log_rrc);
-  
+
+  void init(rrc_cfg_t*               cfg,
+            phy_interface_stack_lte* phy,
+            mac_interface_rrc*       mac,
+            rlc_interface_rrc*       rlc,
+            pdcp_interface_rrc*      pdcp,
+            s1ap_interface_rrc*      s1ap,
+            gtpu_interface_rrc*      gtpu,
+            srslte::log*             log_rrc);
+
   void stop(); 
   void get_metrics(rrc_metrics_t &m);
   
@@ -343,7 +343,7 @@ private:
   srslte::byte_buffer_pool* pool;
   srslte::byte_buffer_t     byte_buf_paging;
 
-  phy_interface_rrc*  phy;
+  phy_interface_stack_lte* phy;
   mac_interface_rrc*  mac;
   rlc_interface_rrc*  rlc;
   pdcp_interface_rrc* pdcp;

@@ -19,35 +19,28 @@
  *
  */
 
-#ifndef SRSENB_RRC_METRICS_H
-#define SRSENB_RRC_METRICS_H
+#ifndef SRSLTE_ENB_STACK_BASE_H
+#define SRSLTE_ENB_STACK_BASE_H
 
-#include "common_enb.h"
+#include <string>
 
 namespace srsenb {
 
-typedef enum{
-  RRC_STATE_IDLE = 0,
-  RRC_STATE_WAIT_FOR_CON_SETUP_COMPLETE,
-  RRC_STATE_WAIT_FOR_SECURITY_MODE_COMPLETE,
-  RRC_STATE_WAIT_FOR_UE_CAP_INFO,
-  RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE,
-  RRC_STATE_REGISTERED,
-  RRC_STATE_RELEASE_REQUEST,
-  RRC_STATE_N_ITEMS,
-}rrc_state_t;
+struct stack_metrics_t;
 
-struct rrc_ue_metrics_t
+class enb_stack_base
 {
-  rrc_state_t state;
-};
+public:
+  virtual ~enb_stack_base() = default;
 
-struct rrc_metrics_t
-{
-  uint16_t n_ues;
-  rrc_ue_metrics_t ues[ENB_METRICS_MAX_USERS];
+  virtual std::string get_type() = 0;
+
+  virtual void stop() = 0;
+
+  // eNB metrics interface
+  virtual bool get_metrics(stack_metrics_t* metrics) = 0;
 };
 
 } // namespace srsenb
 
-#endif // SRSENB_RRC_METRICS_H
+#endif // SRSLTE_ENB_STACK_BASE_H

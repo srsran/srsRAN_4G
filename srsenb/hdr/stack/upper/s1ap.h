@@ -37,18 +37,6 @@
 namespace srsenb {
 
 typedef struct {
-  uint32_t      enb_id;     // 20-bit id (lsb bits)
-  uint8_t       cell_id;    // 8-bit cell id
-  uint16_t      tac;        // 16-bit tac
-  uint16_t      mcc;        // BCD-coded with 0xF filler
-  uint16_t      mnc;        // BCD-coded with 0xF filler
-  std::string   mme_addr;
-  std::string   gtp_bind_addr;
-  std::string   s1c_bind_addr;
-  std::string   enb_name;
-}s1ap_args_t;
-
-typedef struct {
   uint32_t  rnti;
   uint32_t  eNB_UE_S1AP_ID;
   uint32_t  MME_UE_S1AP_ID;

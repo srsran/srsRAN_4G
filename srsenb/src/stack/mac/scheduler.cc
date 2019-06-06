@@ -19,12 +19,12 @@
  *
  */
 
-#include <srsenb/hdr/mac/scheduler_ue.h>
+#include <srsenb/hdr/stack/mac/scheduler_ue.h>
 #include <string.h>
 
-#include "srslte/srslte.h"
+#include "srsenb/hdr/stack/mac/scheduler.h"
 #include "srslte/common/pdu.h"
-#include "srsenb/hdr/mac/scheduler.h"
+#include "srslte/srslte.h"
 
 #define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)

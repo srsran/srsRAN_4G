@@ -42,7 +42,7 @@ phy_common::phy_common(uint32_t max_workers) : tx_sem(max_workers)
   this->nof_workers          = nof_workers;
   params.max_prach_offset_us = 20;
   radio                      = NULL;
-  mac                        = NULL;
+  stack                      = NULL;
   is_first_tx                = false;
   is_first_of_burst          = false;
   have_mtch_stop             = false;
@@ -71,14 +71,14 @@ void phy_common::set_nof_workers(uint32_t nof_workers)
 
 void phy_common::reset()
 {
-  bzero(ul_grants, sizeof(mac_interface_phy::ul_sched_t)*TTIMOD_SZ);
-  bzero(dl_grants, sizeof(mac_interface_phy::dl_sched_t)*TTIMOD_SZ);
+  bzero(ul_grants, sizeof(stack_interface_phy_lte::ul_sched_t) * TTIMOD_SZ);
+  bzero(dl_grants, sizeof(stack_interface_phy_lte::dl_sched_t) * TTIMOD_SZ);
 }
 
-bool phy_common::init(srslte_cell_t* cell_, srslte::radio* radio_h_, mac_interface_phy* mac_)
+bool phy_common::init(srslte_cell_t* cell_, srslte::radio* radio_h_, stack_interface_phy_lte* stack_)
 {
   radio = radio_h_;
-  mac   = mac_;
+  stack = stack_;
   memcpy(&cell, cell_, sizeof(srslte_cell_t));
 
   pthread_mutex_init(&user_mutex, NULL);
@@ -129,7 +129,7 @@ void phy_common::worker_end(uint32_t           tti,
   sem_post(&tx_sem[(tti+1)%nof_workers]);
 
   // Trigger MAC clock
-  mac->tti_clock();
+  stack->tti_clock();
 }
 
 void phy_common::ue_db_clear(uint32_t tti)
@@ -246,7 +246,7 @@ void phy_common::set_mch_period_stop(uint32_t stop)
   pthread_mutex_unlock(&mtch_mutex);
 }
 
-void phy_common::configure_mbsfn(phy_interface_rrc::phy_cfg_mbsfn_t* cfg)
+void phy_common::configure_mbsfn(phy_interface_stack_lte::phy_cfg_mbsfn_t* cfg)
 {
   mbsfn = *cfg;
 

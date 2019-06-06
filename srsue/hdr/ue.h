@@ -35,7 +35,6 @@
 #include "phy/ue_phy_base.h"
 #include "radio/ue_radio_base.h"
 #include "stack/ue_stack_base.h"
-#include "ue_stack_interface.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/logger_file.h"
@@ -88,7 +87,7 @@ typedef struct {
   Main UE class
 *******************************************************************************/
 
-class ue : public ue_interface, public ue_metrics_interface
+class ue : public ue_metrics_interface
 {
 public:
   ue();

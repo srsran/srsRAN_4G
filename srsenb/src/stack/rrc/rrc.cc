@@ -19,7 +19,7 @@
  *
  */
 
-#include "srsenb/hdr/upper/rrc.h"
+#include "srsenb/hdr/stack/rrc/rrc.h"
 #include "srslte/asn1/asn1_utils.h"
 #include "srslte/asn1/liblte_mme.h"
 #include "srslte/common/bcd_helpers.h"
@@ -35,15 +35,15 @@ using srslte::uint8_to_uint32;
 using namespace asn1::rrc;
 
 namespace srsenb {
-  
-void rrc::init(rrc_cfg_t *cfg_,
-               phy_interface_rrc* phy_, 
-               mac_interface_rrc* mac_, 
-               rlc_interface_rrc* rlc_, 
-               pdcp_interface_rrc* pdcp_, 
-               s1ap_interface_rrc *s1ap_,
-               gtpu_interface_rrc* gtpu_,
-               srslte::log* log_rrc)
+
+void rrc::init(rrc_cfg_t*               cfg_,
+               phy_interface_stack_lte* phy_,
+               mac_interface_rrc*       mac_,
+               rlc_interface_rrc*       rlc_,
+               pdcp_interface_rrc*      pdcp_,
+               s1ap_interface_rrc*      s1ap_,
+               gtpu_interface_rrc*      gtpu_,
+               srslte::log*             log_rrc)
 {
   phy     = phy_; 
   mac     = mac_; 

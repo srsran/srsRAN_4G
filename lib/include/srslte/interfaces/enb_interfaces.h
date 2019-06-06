@@ -37,7 +37,7 @@
 namespace srsenb {
 
 /* Interface PHY -> MAC */
-class mac_interface_phy
+class mac_interface_phy_lte
 {
 public:
   const static int MAX_GRANTS = 64;
@@ -98,7 +98,7 @@ public:
 };
 
 /* Interface MAC -> PHY */
-class phy_interface_mac
+class phy_interface_mac_lte
 {
 public:
   
@@ -109,7 +109,7 @@ public:
 };
 
 /* Interface RRC -> PHY */
-class phy_interface_rrc
+class phy_interface_rrc_lte
 {
 public:
   struct phy_cfg_mbsfn_t {
@@ -305,6 +305,32 @@ public:
   virtual bool is_mme_connected() = 0;
 };
 
+// Combined interface for PHY to access stack (MAC and RRC)
+class stack_interface_phy_lte : public mac_interface_phy_lte
+{
+};
+
+// Combined interface for stack (MAC and RRC) to access PHY
+class phy_interface_stack_lte : public phy_interface_mac_lte, public phy_interface_rrc_lte
+{
+};
+
+typedef struct {
+  uint32_t    enb_id;  // 20-bit id (lsb bits)
+  uint8_t     cell_id; // 8-bit cell id
+  uint16_t    tac;     // 16-bit tac
+  uint16_t    mcc;     // BCD-coded with 0xF filler
+  uint16_t    mnc;     // BCD-coded with 0xF filler
+  std::string mme_addr;
+  std::string gtp_bind_addr;
+  std::string s1c_bind_addr;
+  std::string enb_name;
+} s1ap_args_t;
+
+typedef struct {
+  sched_interface::sched_args_t sched;
+  int                           link_failure_nof_err;
+} mac_args_t;
 }
 
 #endif // SRSLTE_ENB_INTERFACES_H

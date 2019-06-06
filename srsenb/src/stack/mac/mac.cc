@@ -30,8 +30,8 @@
 #include <unistd.h>
 #include <srslte/interfaces/sched_interface.h>
 
+#include "srsenb/hdr/stack/mac/mac.h"
 #include "srslte/common/log.h"
-#include "srsenb/hdr/mac/mac.h"
 
 //#define WRITE_SIB_PCAP
 using namespace asn1::rrc;
@@ -66,20 +66,25 @@ mac::~mac()
   pthread_rwlock_unlock(&rwlock);
   pthread_rwlock_destroy(&rwlock);
 }
-  
-bool mac::init(mac_args_t *args_, srslte_cell_t *cell_, phy_interface_mac *phy, rlc_interface_mac *rlc, rrc_interface_mac *rrc, srslte::log *log_h_)
-{
-  started = false; 
 
-  if (cell_ && phy && rlc && log_h_ && args_) {
+bool mac::init(const mac_args_t&        args_,
+               srslte_cell_t*           cell_,
+               phy_interface_stack_lte* phy,
+               rlc_interface_mac*       rlc,
+               rrc_interface_mac*       rrc,
+               srslte::log*             log_h_)
+{
+  started = false;
+
+  if (cell_ && phy && rlc && log_h_) {
     phy_h = phy;
     rlc_h = rlc; 
     rrc_h = rrc; 
-    log_h = log_h_; 
-        
-    memcpy(&args, args_, sizeof(mac_args_t));
-    memcpy(&cell, cell_, sizeof(srslte_cell_t));
-    
+    log_h = log_h_;
+
+    args = args_;
+    cell = *cell_;
+
     scheduler.init(rrc, log_h);
     // Set default scheduler (RR)
     scheduler.set_metric(&sched_metric_dl_rr, &sched_metric_ul_rr);

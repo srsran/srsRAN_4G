@@ -19,8 +19,8 @@
  *
  */
 
-#include "srsenb/hdr/mac/scheduler_grid.h"
-#include "srsenb/hdr/mac/scheduler.h"
+#include "srsenb/hdr/stack/mac/scheduler_grid.h"
+#include "srsenb/hdr/stack/mac/scheduler.h"
 #include <srslte/interfaces/sched_interface.h>
 
 namespace srsenb {

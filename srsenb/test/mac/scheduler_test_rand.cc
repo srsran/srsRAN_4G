@@ -19,18 +19,17 @@
  *
  */
 
+#include "srsenb/hdr/stack/mac/scheduler.h"
+#include "srsenb/hdr/stack/mac/scheduler_ue.h"
 #include <algorithm>
 #include <cstdlib>
 #include <random>
 #include <set>
-#include <srsenb/hdr/mac/scheduler.h>
-#include <srsenb/hdr/mac/scheduler_ue.h>
-#include <srslte/interfaces/sched_interface.h>
 #include <srslte/srslte.h>
 #include <unistd.h>
 
-#include "srsenb/hdr/mac/mac.h"
 #include "srsenb/hdr/phy/phy.h"
+#include "srsenb/hdr/stack/mac/mac.h"
 
 #include "srslte/common/log_filter.h"
 #include "srslte/interfaces/enb_interfaces.h"

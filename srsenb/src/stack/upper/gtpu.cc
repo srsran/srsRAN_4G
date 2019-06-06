@@ -19,11 +19,11 @@
  *
  */
 #include "srslte/upper/gtpu.h"
-#include "srsenb/hdr/upper/gtpu.h"
-#include <unistd.h>
-#include <sys/socket.h>
-#include <fcntl.h>
+#include "srsenb/hdr/stack/upper/gtpu.h"
 #include <errno.h>
+#include <fcntl.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
 using namespace srslte;
 namespace srsenb {

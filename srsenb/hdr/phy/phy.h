@@ -43,14 +43,21 @@ typedef struct {
   asn1::rrc::srs_ul_cfg_common_c srs_ul_cnfg;
 } phy_cfg_t;
 
-class phy : public phy_interface_mac,
-            public phy_interface_rrc
+class phy : public phy_interface_stack_lte
 {
 public:
 
   phy();
-  bool init(phy_args_t *args, phy_cfg_t *common_cfg, srslte::radio *radio_handler, mac_interface_phy *mac, srslte::log_filter* log_h);
-  bool init(phy_args_t *args, phy_cfg_t *common_cfg, srslte::radio *radio_handler, mac_interface_phy *mac, std::vector<srslte::log_filter *> log_vec);
+  bool init(phy_args_t*              args,
+            phy_cfg_t*               common_cfg,
+            srslte::radio*           radio_handler,
+            stack_interface_phy_lte* stack,
+            srslte::log_filter*      log_h);
+  bool init(phy_args_t*                      args,
+            phy_cfg_t*                       common_cfg,
+            srslte::radio*                   radio_handler,
+            stack_interface_phy_lte*         stack,
+            std::vector<srslte::log_filter*> log_vec);
   void stop();
   
   /* MAC->PHY interface */

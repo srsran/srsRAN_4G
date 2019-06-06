@@ -24,10 +24,14 @@
 
 namespace srsenb {
 
-int prach_worker::init(srslte_cell_t *cell_, srslte_prach_cfg_t *prach_cfg_, mac_interface_phy* mac_, srslte::log* log_h_, int priority)
+int prach_worker::init(srslte_cell_t*           cell_,
+                       srslte_prach_cfg_t*      prach_cfg_,
+                       stack_interface_phy_lte* stack_,
+                       srslte::log*             log_h_,
+                       int                      priority)
 {
-  log_h = log_h_; 
-  mac   = mac_; 
+  log_h = log_h_;
+  stack = stack_;
   memcpy(&prach_cfg, prach_cfg_, sizeof(srslte_prach_cfg_t));
   memcpy(&cell, cell_, sizeof(srslte_cell_t));
 
@@ -127,7 +131,7 @@ int prach_worker::run_tti(sf_buffer *b)
             i, prach_nof_det, prach_indices[i], prach_offsets[i]*1e6, prach_p2avg[i], max_prach_offset_us);
         
         if (prach_offsets[i]*1e6 < max_prach_offset_us) {
-          mac->rach_detected(b->tti, prach_indices[i], (uint32_t) (prach_offsets[i]*1e6));
+          stack->rach_detected(b->tti, prach_indices[i], (uint32_t)(prach_offsets[i] * 1e6));
         }
       }
     }

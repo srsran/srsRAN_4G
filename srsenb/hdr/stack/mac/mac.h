@@ -44,29 +44,28 @@ public:
   virtual bool process_pdus() = 0; 
 };
 
-typedef struct {
-  sched_interface::sched_args_t sched; 
-  int link_failure_nof_err; 
-} mac_args_t; 
-
-class mac
-    :public mac_interface_phy, 
-     public mac_interface_rlc, 
-     public mac_interface_rrc,     
-     public srslte::mac_interface_timers, 
-     public pdu_process_handler
+class mac : public mac_interface_phy_lte,
+            public mac_interface_rlc,
+            public mac_interface_rrc,
+            public srslte::mac_interface_timers,
+            public pdu_process_handler
 {
 public:
   mac();
   ~mac();
-  bool init(mac_args_t *args, srslte_cell_t *cell, phy_interface_mac *phy, rlc_interface_mac *rlc, rrc_interface_mac *rrc, srslte::log *log_h);
+  bool init(const mac_args_t&        args_,
+            srslte_cell_t*           cell,
+            phy_interface_stack_lte* phy,
+            rlc_interface_mac*       rlc,
+            rrc_interface_mac*       rrc,
+            srslte::log*             log_h);
   void stop();
   
   void start_pcap(srslte::mac_pcap* pcap_);
   
-  /******** Interface from PHY (PHY -> MAC) ****************/ 
-  int sr_detected(uint32_t tti, uint16_t rnti); 
-  int rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv);
+  /******** Interface from PHY (PHY -> MAC) ****************/
+  int sr_detected(uint32_t tti, uint16_t rnti) final;
+  int rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv) final;
 
   int set_dl_ant_info(uint16_t rnti, asn1::rrc::phys_cfg_ded_s::ant_info_c_* dl_ant_info);
 
@@ -124,12 +123,12 @@ private:
   // We use a rwlock in MAC to allow multiple workers to access MAC simultaneously. No conflicts will happen since access for different TTIs
   pthread_rwlock_t rwlock;
   
-  // Interaction with PHY 
-  phy_interface_mac    *phy_h; 
-  rlc_interface_mac    *rlc_h;
-  rrc_interface_mac    *rrc_h;
-  srslte::log          *log_h;
-  
+  // Interaction with PHY
+  phy_interface_stack_lte* phy_h;
+  rlc_interface_mac*       rlc_h;
+  rrc_interface_mac*       rrc_h;
+  srslte::log*             log_h;
+
   srslte_cell_t cell; 
   mac_args_t    args; 
   

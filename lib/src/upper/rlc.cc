@@ -35,7 +35,6 @@ rlc::rlc()
   pdcp = NULL;
   rrc = NULL;
   mac_timers = NULL;
-  ue = NULL;
   bzero(metrics_time, sizeof(metrics_time));
   pthread_rwlock_init(&rwlock, NULL);
 }
@@ -60,14 +59,12 @@ rlc::~rlc()
 
 void rlc::init(srsue::pdcp_interface_rlc* pdcp_,
                srsue::rrc_interface_rlc*  rrc_,
-               srsue::ue_interface*       ue_,
                log*                       rlc_log_,
                mac_interface_timers*      mac_timers_,
                uint32_t                   lcid_)
 {
   pdcp    = pdcp_;
   rrc     = rrc_;
-  ue      = ue_;
   rlc_log = rlc_log_;
   mac_timers = mac_timers_;
   default_lcid = lcid_;

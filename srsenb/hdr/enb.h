@@ -33,24 +33,20 @@
 #include <pthread.h>
 
 #include "phy/phy.h"
-#include "mac/mac.h"
-#include "upper/rrc.h"
-#include "upper/gtpu.h"
-#include "upper/s1ap.h"
-#include "upper/rlc.h"
-#include "upper/pdcp.h"
+#include "srsenb/hdr/stack/rrc/rrc.h"
 
 #include "srslte/radio/radio.h"
 
-#include "srslte/common/security.h"
+#include "srsenb/hdr/stack/enb_stack_base.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/buffer_pool.h"
-#include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/common/logger_file.h"
 #include "srslte/common/log_filter.h"
+#include "srslte/common/logger_file.h"
 #include "srslte/common/mac_pcap.h"
-#include "srslte/interfaces/sched_interface.h"
+#include "srslte/common/security.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
+#include "srslte/interfaces/sched_interface.h"
+#include "srslte/interfaces/ue_interfaces.h"
 
 namespace srsenb {
 
@@ -58,32 +54,32 @@ namespace srsenb {
   eNodeB Parameters
 *******************************************************************************/
 
-typedef struct {
-  s1ap_args_t s1ap; 
-  uint32_t    n_prb; 
-  uint32_t    pci; 
+struct enb_args_t {
+  s1ap_args_t s1ap;
+  uint32_t    n_prb;
+  uint32_t    pci;
   uint32_t    nof_ports;
   uint32_t    transmission_mode;
   float       p_a;
-}enb_args_t;
+};
 
-typedef struct {
+struct enb_files_t {
   std::string sib_config;
-  std::string rr_config; 
-  std::string drb_config; 
-} enb_files_t; 
+  std::string rr_config;
+  std::string drb_config;
+};
 
 typedef struct {
   uint32_t      dl_earfcn;
-  uint32_t      ul_earfcn; 
-  float         dl_freq; 
-  float         ul_freq; 
+  uint32_t      ul_earfcn;
+  float         dl_freq;
+  float         ul_freq;
   float         rx_gain;
   float         tx_gain;
-  std::string   device_name; 
-  std::string   device_args; 
-  std::string   time_adv_nsamples; 
-  std::string   burst_preamble; 
+  std::string   device_name;
+  std::string   device_args;
+  std::string   time_adv_nsamples;
+  std::string   burst_preamble;
 }rf_args_t;
 
 typedef struct {
@@ -92,32 +88,32 @@ typedef struct {
 }pcap_args_t;
 
 typedef struct {
-  std::string   phy_level;
-  std::string   phy_lib_level;
-  std::string   mac_level;
-  std::string   rlc_level;
-  std::string   pdcp_level;
-  std::string   rrc_level;
-  std::string   gtpu_level;
-  std::string   s1ap_level;
-  std::string   all_level;
-  int           phy_hex_limit;
-  int           mac_hex_limit;
-  int           rlc_hex_limit;
-  int           pdcp_hex_limit;
-  int           rrc_hex_limit;
-  int           gtpu_hex_limit;
-  int           s1ap_hex_limit;
-  int           all_hex_limit;
-  int           file_max_size;
-  std::string   filename;
+  std::string phy_level;
+  std::string phy_lib_level;
+  std::string mac_level;
+  std::string rlc_level;
+  std::string pdcp_level;
+  std::string rrc_level;
+  std::string gtpu_level;
+  std::string s1ap_level;
+  std::string all_level;
+  int         phy_hex_limit;
+  int         mac_hex_limit;
+  int         rlc_hex_limit;
+  int         pdcp_hex_limit;
+  int         rrc_hex_limit;
+  int         gtpu_hex_limit;
+  int         s1ap_hex_limit;
+  int         all_hex_limit;
+  int         file_max_size;
+  std::string filename;
 }log_args_t;
 
-typedef struct {
-  bool          enable;
-}gui_args_t;
+struct gui_args_t {
+  bool enable;
+};
 
-typedef struct {
+struct expert_args_t {
   phy_args_t  phy;
   mac_args_t  mac;
   uint32_t    rrc_inactivity_timer;
@@ -130,24 +126,24 @@ typedef struct {
   std::string m1u_if_addr;
   std::string eia_pref_list;
   std::string eea_pref_list;
-}expert_args_t;
+};
 
-typedef struct { 
+struct all_args_t {
   enb_args_t    enb;
-  enb_files_t   enb_files; 
+  enb_files_t   enb_files;
   rf_args_t     rf;
   pcap_args_t   pcap;
   log_args_t    log;
   gui_args_t    gui;
   expert_args_t expert;
-}all_args_t;
+};
 
 /*******************************************************************************
   Main eNB class
 *******************************************************************************/
 
-class enb
-    :public enb_metrics_interface {
+class enb : public enb_metrics_interface
+{
 public:
   static enb *get_instance(void);
 
@@ -178,15 +174,9 @@ private:
 
   virtual ~enb();
 
+  std::unique_ptr<enb_stack_base> stack;
   srslte::radio radio;
   srsenb::phy phy;
-  srsenb::mac mac;
-  srslte::mac_pcap mac_pcap;
-  srsenb::rlc rlc;
-  srsenb::pdcp pdcp;
-  srsenb::rrc rrc;
-  srsenb::gtpu gtpu;
-  srsenb::s1ap s1ap;
 
   srslte::logger_stdout logger_stdout;
   srslte::logger_file   logger_file;
@@ -194,12 +184,6 @@ private:
 
   srslte::log_filter  rf_log;
   std::vector<srslte::log_filter*>  phy_log;
-  srslte::log_filter  mac_log;
-  srslte::log_filter  rlc_log;
-  srslte::log_filter  pdcp_log;
-  srslte::log_filter  rrc_log;
-  srslte::log_filter  gtpu_log;
-  srslte::log_filter  s1ap_log;
   srslte::log_filter  pool_log;
 
   srslte::byte_buffer_pool *pool;
@@ -218,8 +202,8 @@ private:
   int  parse_sib9(std::string filename, asn1::rrc::sib_type9_s* data);
   int  parse_sib13(std::string filename, asn1::rrc::sib_type13_r9_s* data);
   int  parse_sibs(all_args_t* args, rrc_cfg_t* rrc_cfg, phy_cfg_t* phy_config_common);
-  int parse_rr(all_args_t *args, rrc_cfg_t *rrc_cfg);
-  int parse_drb(all_args_t *args, rrc_cfg_t *rrc_cfg);
+  int  parse_rr(all_args_t* args, rrc_cfg_t* rrc_cfg);
+  int  parse_drb(all_args_t* args, rrc_cfg_t* rrc_cfg);
   bool sib_is_present(const asn1::rrc::sched_info_list_l& l, asn1::rrc::sib_type_e sib_num);
   int  parse_cell_cfg(all_args_t* args, srslte_cell_t* cell);
 

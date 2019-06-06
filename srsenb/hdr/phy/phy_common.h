@@ -54,7 +54,7 @@ public:
 
   void set_nof_workers(uint32_t nof_workers);
 
-  bool init(srslte_cell_t *cell, srslte::radio *radio_handler, mac_interface_phy *mac);  
+  bool init(srslte_cell_t* cell, srslte::radio* radio_handler, stack_interface_phy_lte* mac);
   void reset(); 
   void stop();
   
@@ -71,12 +71,12 @@ public:
   srslte_dl_cfg_t dl_cfg_com;
 
   srslte::radio     *radio;
-  mac_interface_phy *mac; 
-  
-  // Common objects for schedulign grants 
-  mac_interface_phy::ul_sched_t ul_grants[TTIMOD_SZ];
-  mac_interface_phy::dl_sched_t dl_grants[TTIMOD_SZ];
-  
+  stack_interface_phy_lte* stack;
+
+  // Common objects for schedulign grants
+  stack_interface_phy_lte::ul_sched_t ul_grants[TTIMOD_SZ];
+  stack_interface_phy_lte::dl_sched_t dl_grants[TTIMOD_SZ];
+
   // Map of pending ACKs for each user 
   typedef struct {
     bool is_pending[TTIMOD_SZ][SRSLTE_MAX_TB];
@@ -103,7 +103,7 @@ public:
   void           ue_db_set_last_ul_tb(uint16_t rnti, uint32_t pid, srslte_ra_tb_t tb);
   srslte_ra_tb_t ue_db_get_last_ul_tb(uint16_t rnti, uint32_t pid);
 
-  void configure_mbsfn(phy_interface_rrc::phy_cfg_mbsfn_t *cfg);
+  void configure_mbsfn(phy_interface_stack_lte::phy_cfg_mbsfn_t* cfg);
   void build_mch_table();
   void build_mcch_table();
   bool is_mbsfn_sf(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti);
@@ -122,7 +122,7 @@ private:
   bool                                have_mtch_stop;
   pthread_mutex_t                     mtch_mutex;
   pthread_cond_t                      mtch_cvar;
-  phy_interface_rrc::phy_cfg_mbsfn_t  mbsfn;
+  phy_interface_stack_lte::phy_cfg_mbsfn_t mbsfn;
   bool sib13_configured;
   bool mcch_configured;
   uint8_t mch_table[40];

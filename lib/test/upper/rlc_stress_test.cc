@@ -343,10 +343,9 @@ void stress_test(stress_test_args_t args)
   rlc_tester tester1(&rlc1, "tester1", args, lcid);
   rlc_tester tester2(&rlc2, "tester2", args, lcid);
   mac_dummy     mac(&rlc1, &rlc2, args, lcid, &stack, &pcap);
-  ue_interface  ue;
 
-  rlc1.init(&tester1, &tester1, &ue, &log1, &stack, 0);
-  rlc2.init(&tester2, &tester2, &ue, &log2, &stack, 0);
+  rlc1.init(&tester1, &tester1, &log1, &stack, 0);
+  rlc2.init(&tester2, &tester2, &log2, &stack, 0);
 
   // only add AM and UM bearers
   if (args.mode != "TM") {

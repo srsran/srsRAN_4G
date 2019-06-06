@@ -19,7 +19,7 @@
  *
  */
 
-#include "srsenb/hdr/upper/common_enb.h"
+#include "srsenb/hdr/stack/upper/common_enb.h"
 #include "srslte/asn1/rrc_asn1.h"
 #include "srslte/common/bcd_helpers.h"
 #include <iostream>

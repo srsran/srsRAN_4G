@@ -23,7 +23,7 @@
 #define SRSLTE_SCHEDULER_GRID_H
 
 #include "lib/include/srslte/interfaces/sched_interface.h"
-#include "srsenb/hdr/mac/scheduler_ue.h"
+#include "scheduler_ue.h"
 #include "srslte/common/bounded_bitset.h"
 #include "srslte/common/log.h"
 #include <vector>

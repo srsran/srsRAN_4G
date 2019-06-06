@@ -73,13 +73,13 @@ void metrics_csv::set_metrics(enb_metrics_t &metrics, const uint32_t period_usec
     file << (metrics_report_period*n_reports) << ";";
 
     // UEs
-    file << (metrics.rrc.n_ues) << ";";
+    file << (metrics.stack.rrc.n_ues) << ";";
 
     // Sum up rates for all UEs
     float dl_rate_sum = 0.0, ul_rate_sum = 0.0;
-    for (int i = 0; i < metrics.rrc.n_ues; i++) {
-      dl_rate_sum += metrics.mac[i].tx_brate;
-      ul_rate_sum += metrics.mac[i].rx_brate;
+    for (int i = 0; i < metrics.stack.rrc.n_ues; i++) {
+      dl_rate_sum += metrics.stack.mac[i].tx_brate;
+      ul_rate_sum += metrics.stack.mac[i].rx_brate;
     }
 
     // DL rate

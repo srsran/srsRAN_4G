@@ -98,11 +98,11 @@ void phy::parse_config(phy_cfg_t* cfg)
   workers_common.dl_cfg_com.pdsch.meas_time_en = true;
 }
 
-bool phy::init(phy_args_t *args, 
-               phy_cfg_t *cfg, 
-               srslte::radio* radio_handler_, 
-               mac_interface_phy *mac,
-               srslte::log_filter* log_h)
+bool phy::init(phy_args_t*              args,
+               phy_cfg_t*               cfg,
+               srslte::radio*           radio_handler_,
+               stack_interface_phy_lte* stack_,
+               srslte::log_filter*      log_h)
 {
 
   std::vector<srslte::log_filter*> log_vec;
@@ -110,14 +110,14 @@ bool phy::init(phy_args_t *args,
   for (int i=0;i<args->nof_phy_threads;i++) {
     log_vec.push_back(log_h);
   }
-  init(args, cfg, radio_handler_, mac, log_vec);
+  init(args, cfg, radio_handler_, stack_, log_vec);
   return true; 
 }
 
-bool phy::init(phy_args_t *args, 
-               phy_cfg_t *cfg, 
-               srslte::radio* radio_handler_, 
-               mac_interface_phy *mac, 
+bool phy::init(phy_args_t*                      args,
+               phy_cfg_t*                       cfg,
+               srslte::radio*                   radio_handler_,
+               stack_interface_phy_lte*         stack_,
                std::vector<srslte::log_filter*> log_vec)
 {
 
@@ -126,10 +126,10 @@ bool phy::init(phy_args_t *args,
   radio_handler = radio_handler_;
   nof_workers = args->nof_phy_threads; 
   this->log_h = (srslte::log*)log_vec[0];
-  workers_common.params = *args; 
+  workers_common.params = *args;
 
-  workers_common.init(&cfg->cell, radio_handler, mac);
-  
+  workers_common.init(&cfg->cell, radio_handler, stack_);
+
   parse_config(cfg);
   
   // Add workers to workers pool and start threads
@@ -137,8 +137,8 @@ bool phy::init(phy_args_t *args,
     workers[i].init(&workers_common, (srslte::log*) log_vec[i]);
     workers_pool.init_worker(i, &workers[i], WORKERS_THREAD_PRIO);    
   }
-  
-  prach.init(&cfg->cell, &prach_cfg, mac, (srslte::log*) log_vec[0], PRACH_WORKER_THREAD_PRIO);
+
+  prach.init(&cfg->cell, &prach_cfg, stack_, (srslte::log*)log_vec[0], PRACH_WORKER_THREAD_PRIO);
   prach.set_max_prach_offset_us(args->max_prach_offset_us);
   
   // Warning this must be initialized after all workers have been added to the pool

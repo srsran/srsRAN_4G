@@ -65,11 +65,8 @@ public:
   void write_pdu(uint16_t rnti, uint32_t lcid, uint8_t *payload, uint32_t nof_bytes);
   void read_pdu_pcch(uint8_t *payload, uint32_t buffer_size); 
   
-private: 
-  
-  class user_interface : public srsue::pdcp_interface_rlc, 
-                         public srsue::rrc_interface_rlc, 
-                         public srsue::ue_interface
+private:
+  class user_interface : public srsue::pdcp_interface_rlc, public srsue::rrc_interface_rlc
   {
   public:
     void        write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu);
@@ -81,13 +78,11 @@ private:
     std::string get_rb_name(uint32_t lcid);
     uint16_t rnti; 
 
-    srsenb::pdcp_interface_rlc *pdcp; 
-    srsenb::rrc_interface_rlc  *rrc;
-    srslte::rlc                *rlc; 
-    srsenb::rlc                *parent; 
+    srsenb::pdcp_interface_rlc   *pdcp;
+    srsenb::rrc_interface_rlc    *rrc;
+    std::unique_ptr<srslte::rlc> rlc;
+    srsenb::rlc                  *parent;
   };
-
-  void clear_user(user_interface *ue);
 
   pthread_rwlock_t rwlock;
 

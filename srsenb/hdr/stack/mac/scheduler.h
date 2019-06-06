@@ -22,9 +22,9 @@
 #ifndef SRSENB_SCHEDULER_H
 #define SRSENB_SCHEDULER_H
 
+#include "scheduler_grid.h"
 #include "scheduler_harq.h"
 #include "scheduler_ue.h"
-#include "srsenb/hdr/mac/scheduler_grid.h"
 #include "srslte/common/log.h"
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/sched_interface.h"

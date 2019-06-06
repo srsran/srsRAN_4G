@@ -19,9 +19,10 @@
  *
  */
 
-#include <boost/algorithm/string.hpp>
 #include "srsenb/hdr/enb.h"
+#include "srsenb/hdr/stack/enb_stack_lte.h"
 #include "srslte/build_info.h"
+#include <boost/algorithm/string.hpp>
 #include <iostream>
 #include <sstream>
 
@@ -94,12 +95,6 @@ bool enb::init(all_args_t *args_)
     mylog->init(tmp, logger, true);
     phy_log.push_back(mylog);
   }
-  mac_log.init("MAC ", logger, true);
-  rlc_log.init("RLC ", logger);
-  pdcp_log.init("PDCP", logger);
-  rrc_log.init("RRC ", logger);
-  gtpu_log.init("GTPU", logger);
-  s1ap_log.init("S1AP", logger);
 
   pool_log.init("POOL", logger);
   pool_log.set_level(srslte::LOG_LEVEL_ERROR);
@@ -110,22 +105,10 @@ bool enb::init(all_args_t *args_)
   for (int i=0;i<args->expert.phy.nof_phy_threads;i++) {
     ((srslte::log_filter*) phy_log[i])->set_level(level(args->log.phy_level));
   }
-  mac_log.set_level(level(args->log.mac_level));
-  rlc_log.set_level(level(args->log.rlc_level));
-  pdcp_log.set_level(level(args->log.pdcp_level));
-  rrc_log.set_level(level(args->log.rrc_level));
-  gtpu_log.set_level(level(args->log.gtpu_level));
-  s1ap_log.set_level(level(args->log.s1ap_level));
 
   for (int i=0;i<args->expert.phy.nof_phy_threads;i++) {
     ((srslte::log_filter*) phy_log[i])->set_hex_limit(args->log.phy_hex_limit);
   }
-  mac_log.set_hex_limit(args->log.mac_hex_limit);
-  rlc_log.set_hex_limit(args->log.rlc_hex_limit);
-  pdcp_log.set_hex_limit(args->log.pdcp_hex_limit);
-  rrc_log.set_hex_limit(args->log.rrc_hex_limit);
-  gtpu_log.set_hex_limit(args->log.gtpu_hex_limit);
-  s1ap_log.set_hex_limit(args->log.s1ap_hex_limit);
 
   // Parse config files
   srslte_cell_t cell_cfg;
@@ -155,44 +138,16 @@ bool enb::init(all_args_t *args_)
     phy_cfg.pdsch_cnfg.p_b = 1; // Default TM2,3,4
   }
 
-  uint32_t prach_freq_offset = rrc_cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.prach_cfg_info.prach_freq_offset;
-
-  if (cell_cfg.nof_prb > 10) {
-    uint32_t lower_bound = SRSLTE_MAX(rrc_cfg.sr_cfg.nof_prb, rrc_cfg.cqi_cfg.nof_prb);
-    uint32_t upper_bound = cell_cfg.nof_prb - lower_bound;
-    if (prach_freq_offset + 6 > upper_bound or prach_freq_offset < lower_bound) {
-      fprintf(stderr,
-              "ERROR: Invalid PRACH configuration - prach_freq_offset=%d collides with PUCCH.\n",
-              prach_freq_offset);
-      fprintf(stderr,
-              "       Consider changing \"prach_freq_offset\" in sib.conf to a value between %d and %d.\n",
-              lower_bound,
-              upper_bound);
-      return false;
-    }
-  } else { // 6 PRB case
-    if (prach_freq_offset + 6 > cell_cfg.nof_prb) {
-      fprintf(stderr,
-              "ERROR: Invalid PRACH configuration - prach=(%d, %d) does not fit into the eNB PRBs=(0, %d).\n",
-              prach_freq_offset,
-              prach_freq_offset + 6,
-              cell_cfg.nof_prb);
-      fprintf(
-          stderr,
-          "       Consider changing the \"prach_freq_offset\" value to 0 in the sib.conf file when using 6 PRBs.\n");
-      return false;
-    }
-  }
-
   rrc_cfg.inactivity_timeout_ms = args->expert.rrc_inactivity_timer;
   rrc_cfg.enable_mbsfn          = args->expert.enable_mbsfn;
 
   // Check number of control symbols
   if (cell_cfg.nof_prb < 50 && args->expert.mac.sched.nof_ctrl_symbols != 3) {
     args->expert.mac.sched.nof_ctrl_symbols = 3;
-    mac_log.info("Setting number of control symbols to %d for %d PRB cell.\n",
-                 args->expert.mac.sched.nof_ctrl_symbols,
-                 cell_cfg.nof_prb);
+    fprintf(stdout,
+            "Setting number of control symbols to %d for %d PRB cell.\n",
+            args->expert.mac.sched.nof_ctrl_symbols,
+            cell_cfg.nof_prb);
   }
 
   // Parse EEA preference list
@@ -245,13 +200,6 @@ bool enb::init(all_args_t *args_)
   memcpy(&rrc_cfg.cell, &cell_cfg, sizeof(srslte_cell_t));
   memcpy(&phy_cfg.cell, &cell_cfg, sizeof(srslte_cell_t));
 
-  // Set up pcap and trace
-  if(args->pcap.enable)
-  {
-    mac_pcap.open(args->pcap.filename.c_str());
-    mac.start_pcap(&mac_pcap);
-  }
-
   // Init layers
   
   /* Start Radio */
@@ -269,8 +217,8 @@ bool enb::init(all_args_t *args_)
     phy_log[0]->console(
         "Failed to find device %s with args %s\n", args->rf.device_name.c_str(), args->rf.device_args.c_str());
     return false;
-  }    
-  
+  }
+
   // Set RF options
   if (args->rf.time_adv_nsamples != "auto") {
     radio.set_tx_adv((int)strtol(args->rf.time_adv_nsamples.c_str(), nullptr, 10));
@@ -288,14 +236,23 @@ bool enb::init(all_args_t *args_)
 
   radio.register_error_handler(rf_msg);
 
-  // Init all layers   
-  phy.init(&args->expert.phy, &phy_cfg, &radio, &mac, phy_log);
-  mac.init(&args->expert.mac, &cell_cfg, &phy, &rlc, &rrc, &mac_log);
-  rlc.init(&pdcp, &rrc, &mac, &mac, &rlc_log);
-  pdcp.init(&rlc, &rrc, &gtpu, &pdcp_log);
-  rrc.init(&rrc_cfg, &phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, &rrc_log);
-  s1ap.init(args->enb.s1ap, &rrc, &s1ap_log);
-  gtpu.init(args->enb.s1ap.gtp_bind_addr, args->enb.s1ap.mme_addr, args->expert.m1u_multiaddr, args->expert.m1u_if_addr, &pdcp, &gtpu_log, args->expert.enable_mbsfn);
+  // Setup Stack Args
+  enb_stack_lte::args_t stack_args;
+  stack_args.enb                  = args->enb;
+  stack_args.expert.mac           = args->expert.mac;
+  stack_args.expert.enable_mbsfn  = args->expert.enable_mbsfn;
+  stack_args.expert.m1u_if_addr   = args->expert.m1u_if_addr;
+  stack_args.expert.m1u_multiaddr = args->expert.m1u_multiaddr;
+  stack_args.log                  = args->log;
+  stack_args.pcap                 = args->pcap;
+
+  // Init all layers
+  std::unique_ptr<enb_stack_lte> lte_stack(new enb_stack_lte());
+  phy.init(&args->expert.phy, &phy_cfg, &radio, lte_stack.get(), phy_log);
+  if (lte_stack->init(stack_args, rrc_cfg, logger, &phy) != SRSLTE_SUCCESS) {
+    return false;
+  }
+  stack = std::move(lte_stack);
 
   started = true;
   return true;
@@ -305,21 +262,8 @@ void enb::stop()
 {
   if(started)
   {
-    s1ap.stop();
-    gtpu.stop();
     phy.stop();
-    mac.stop();
-    usleep(50000);
-
-    rlc.stop();
-    pdcp.stop();
-    rrc.stop();
-
-    usleep(10000);
-    if(args->pcap.enable)
-    {
-       mac_pcap.close();
-    }
+    stack->stop();
     radio.stop();
     started = false;
   }
@@ -340,9 +284,7 @@ bool enb::get_metrics(enb_metrics_t* m)
   rf_metrics.rf_error = false; // Reset error flag
 
   phy.get_metrics(m->phy);
-  mac.get_metrics(m->mac);
-  rrc.get_metrics(m->rrc);
-  s1ap.get_metrics(m->s1ap);
+  stack->get_metrics(&m->stack);
 
   m->running = started;
   return true;

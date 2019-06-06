@@ -63,12 +63,12 @@ private:
 
   void work_imp();
 
-  int encode_pdsch(mac_interface_phy::dl_sched_grant_t* grants, uint32_t nof_grants);
-  int encode_pmch(mac_interface_phy::dl_sched_grant_t* grant, srslte_mbsfn_cfg_t* mbsfn_cfg);
-  int decode_pusch(mac_interface_phy::ul_sched_grant_t* grants, uint32_t nof_pusch);
-  int encode_phich(mac_interface_phy::ul_sched_ack_t* acks, uint32_t nof_acks);
-  int encode_pdcch_dl(mac_interface_phy::dl_sched_grant_t* grants, uint32_t nof_grants);
-  int encode_pdcch_ul(mac_interface_phy::ul_sched_grant_t* grants, uint32_t nof_grants);
+  int encode_pdsch(stack_interface_phy_lte::dl_sched_grant_t* grants, uint32_t nof_grants);
+  int encode_pmch(stack_interface_phy_lte::dl_sched_grant_t* grant, srslte_mbsfn_cfg_t* mbsfn_cfg);
+  int decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, uint32_t nof_pusch);
+  int encode_phich(stack_interface_phy_lte::ul_sched_ack_t* acks, uint32_t nof_acks);
+  int encode_pdcch_dl(stack_interface_phy_lte::dl_sched_grant_t* grants, uint32_t nof_grants);
+  int encode_pdcch_ul(stack_interface_phy_lte::ul_sched_grant_t* grants, uint32_t nof_grants);
   int decode_pucch();
 
   void send_uci_data(uint16_t rnti, srslte_uci_cfg_t* uci_cfg, srslte_uci_value_t* uci_value);

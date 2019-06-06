@@ -22,8 +22,8 @@
 #include <iostream>
 #include <string.h>
 
+#include "srsenb/hdr/stack/mac/ue.h"
 #include "srslte/interfaces/enb_interfaces.h"
-#include "srsenb/hdr/mac/ue.h"
 
 #define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
