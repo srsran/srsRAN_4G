@@ -113,6 +113,10 @@ void sync::init(radio_interface_phy*     _radio,
 
   reset();
   running = true;
+
+  // Enable AGC
+  set_agc_enable(worker_com->args->agc_enable);
+
   // Start main thread
   if (sync_cpu_affinity < 0) {
     start(prio);

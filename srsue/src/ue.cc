@@ -152,6 +152,7 @@ int ue::parse_args(const all_args_t& args_)
   // replicate some RF parameter to make them available to PHY
   args.phy.nof_rx_ant  = args.rf.nof_rx_ant;
   args.phy.ue_category = args.stack.rrc.ue_category;
+  args.phy.agc_enable  = args.rf.rx_gain < 0.0f;
 
   // Calculate number of carriers available in all radios
   args.phy.nof_radios      = args.rf.nof_radios;
