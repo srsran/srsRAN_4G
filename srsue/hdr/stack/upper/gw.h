@@ -22,15 +22,16 @@
 #ifndef SRSUE_GW_H
 #define SRSUE_GW_H
 
-#include <net/if.h>
+#include "gw_metrics.h"
 #include "srslte/common/buffer_pool.h"
-#include "srslte/common/log.h"
 #include "srslte/common/common.h"
 #include "srslte/common/interfaces_common.h"
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/common/log.h"
 #include "srslte/common/threads.h"
-#include "gw_metrics.h"
+#include "srslte/interfaces/ue_interfaces.h"
 #include "tft_packet_filter.h"
+#include <mutex>
+#include <net/if.h>
 
 namespace srsue {
 
@@ -106,9 +107,10 @@ private:
   uint32_t mbsfn_ports[SRSLTE_N_MCH_LCIDS]; // Target ports for MBSFN data
 
   // TFT
+  std::mutex                                      tft_mutex;
   typedef std::map<uint16_t, tft_packet_filter_t> tft_filter_map_t;
-  tft_filter_map_t tft_filter_map; 
- 
+  tft_filter_map_t                                tft_filter_map;
+
   uint8_t check_tft_filter_match(const srslte::unique_byte_buffer_t& pdu);
 };
 

@@ -223,6 +223,8 @@ int gw::apply_traffic_flow_template(const uint8_t&                              
                                     const uint8_t&                                 lcid,
                                     const LIBLTE_MME_TRAFFIC_FLOW_TEMPLATE_STRUCT* tft)
 {
+  int err = SRSLTE_SUCCESS;
+  tft_mutex.lock();
   switch (tft->tft_op_code) {
     case LIBLTE_MME_TFT_OPERATION_CODE_CREATE_NEW_TFT:
       for (int i = 0; i < tft->packet_filter_list_size; i++) {
@@ -231,15 +233,17 @@ int gw::apply_traffic_flow_template(const uint8_t&                              
         auto                it = tft_filter_map.insert(std::make_pair(filter.eval_precedence, filter));
         if (it.second == false) {
           gw_log->error("Error inserting TFT Packet Filter\n");
-          return SRSLTE_ERROR_CANT_START;
+          err = SRSLTE_ERROR_CANT_START;
+          break;
         }
       }
       break;
     default:
       gw_log->error("Unhandled TFT OP code\n");
-      return SRSLTE_ERROR_CANT_START;
+      err = SRSLTE_ERROR_CANT_START;
   }
-  return SRSLTE_SUCCESS;
+  tft_mutex.unlock();
+  return err;
 }
 
 /*******************************************************************************
@@ -354,16 +358,16 @@ void gw::run_thread()
 uint8_t gw::check_tft_filter_match(const srslte::unique_byte_buffer_t& pdu) {
   
   uint8_t lcid = default_lcid;
-  if(!tft_filter_map.empty()){
-    for (std::pair<const uint16_t, tft_packet_filter_t>& filter_pair : tft_filter_map) {
-      bool match = filter_pair.second.match(pdu);
-      if (match) {
-        lcid = filter_pair.second.lcid;
-        gw_log->info("Found filter match -- EPS bearer Id %d, LCID %d\n", filter_pair.second.eps_bearer_id, lcid);
-        break;
-      }
+  tft_mutex.lock();
+  for (std::pair<const uint16_t, tft_packet_filter_t>& filter_pair : tft_filter_map) {
+    bool match = filter_pair.second.match(pdu);
+    if (match) {
+      lcid = filter_pair.second.lcid;
+      gw_log->info("Found filter match -- EPS bearer Id %d, LCID %d\n", filter_pair.second.eps_bearer_id, lcid);
+      break;
     }
   }
+  tft_mutex.unlock();
   return lcid;
 }
 
