@@ -198,7 +198,7 @@ void phy::run_thread()
 
   // Load Asynchronous SCell objects
   for (int i = 0; i < (int)args.nof_radios - 1; i++) {
-    auto t = async_scell_recv_ptr(new async_scell_recv());
+    auto t = scell::async_recv_ptr(new scell::async_scell_recv());
     t->init(radio, &common, log_h);
     scell_sync.push_back(std::move(t));
   }

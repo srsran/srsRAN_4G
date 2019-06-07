@@ -18,7 +18,7 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-file(GLOB SOURCES "*.cc")
+file(GLOB_RECURSE SOURCES "*.cc")
 add_library(srsue_phy STATIC ${SOURCES})
 
 if(ENABLE_GUI AND SRSGUI_FOUND)

@@ -26,7 +26,6 @@
 #include <pthread.h>
 #include <srslte/phy/channel/channel.h>
 
-#include "async_scell_recv.h"
 #include "phy_common.h"
 #include "prach.h"
 #include "sf_worker.h"
@@ -36,6 +35,9 @@
 #include "srslte/common/tti_sync_cv.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/srslte.h"
+#include "srsue/hdr/phy/scell/async_scell_recv.h"
+
+#include <srsue/hdr/phy/scell/intra_measure.h>
 
 namespace srsue {
     
@@ -47,16 +49,16 @@ public:
   sync();
   ~sync();
 
-  void init(radio_interface_phy*     radio_,
-            stack_interface_phy_lte* _stack,
-            prach*                   prach_buffer,
-            srslte::thread_pool*     _workers_pool,
-            phy_common*              _worker_com,
-            srslte::log*             _log_h,
-            srslte::log*             _log_phy_lib_h,
-            async_scell_recv_vector* scell_sync_,
-            uint32_t                 prio,
-            int                      sync_cpu_affinity = -1);
+  void init(radio_interface_phy*      radio_,
+            stack_interface_phy_lte*  _stack,
+            prach*                    prach_buffer,
+            srslte::thread_pool*      _workers_pool,
+            phy_common*               _worker_com,
+            srslte::log*              _log_h,
+            srslte::log*              _log_phy_lib_h,
+            scell::async_recv_vector* scell_sync_,
+            uint32_t                  prio,
+            int                       sync_cpu_affinity = -1);
   void stop();
   void radio_overflow();
 
@@ -138,115 +140,9 @@ private:
     srslte_ue_mib_t   ue_mib;
   };
 
-  // Class to perform cell measurements
-  class measure {
-
-    // TODO: This class could early stop once the variance between the last N measurements is below 3GPP requirements
-
-  public:
-    typedef enum {IDLE, MEASURE_OK, ERROR} ret_code;
-
-    ~measure();
-    void      init(cf_t*        buffer[SRSLTE_MAX_PORTS],
-                   srslte::log* log_h,
-                   uint32_t     nof_rx_antennas,
-                   phy_common*  worker_com,
-                   uint32_t     nof_subframes = RSRP_MEASURE_NOF_FRAMES);
-    void      reset();
-    void      set_cell(srslte_cell_t cell);
-    ret_code  run_subframe(uint32_t sf_idx);
-    ret_code  run_multiple_subframes(cf_t *buffer, uint32_t offset, uint32_t sf_idx, uint32_t nof_sf);
-    float     rssi();
-    float     rsrp();
-    float     rsrq();
-    float     snr();
-    uint32_t  frame_st_idx();
-    void      set_rx_gain_offset(float rx_gain_offset);
-  private:
-    srslte::log*       log_h;
-    srslte_ue_dl_t    ue_dl;
-    srslte_ue_dl_cfg_t ue_dl_cfg;
-    cf_t              *buffer[SRSLTE_MAX_PORTS];
-    uint32_t cnt;
-    uint32_t nof_subframes;
-    uint32_t current_prb;
-    float rx_gain_offset;
-    float mean_rsrp, mean_rsrq, mean_snr, mean_rssi;
-    uint32_t final_offset;
-    const static int RSRP_MEASURE_NOF_FRAMES = 5;
-  };
-
-  // Class to receive secondary cell
-  class scell_recv {
-  public:
-    const static int MAX_CELLS = 8;
-    typedef struct {
-      uint32_t pci;
-      float    rsrp;
-      float    rsrq;
-      uint32_t offset;
-    } cell_info_t;
-    void init(srslte::log* log_h, bool sic_pss_enabled, uint32_t max_sf_window, phy_common* worker_com);
-    void deinit();
-    void reset();
-    int find_cells(cf_t *input_buffer, float rx_gain_offset, srslte_cell_t current_cell, uint32_t nof_sf, cell_info_t found_cells[MAX_CELLS]);
-  private:
-
-    cf_t               *sf_buffer[SRSLTE_MAX_PORTS];
-    srslte::log        *log_h;
-    srslte_sync_t       sync_find;
-
-    bool       sic_pss_enabled;
-    uint32_t   current_fft_sz;
-    measure    measure_p;
-  };
-
   /* TODO: Intra-freq measurements can be improved by capturing 200 ms length signal and run cell search +
    * measurements offline using sync object and finding multiple cells for each N_id_2
    */
-
-  // Class to perform intra-frequency measurements
-  class intra_measure : public thread {
-  public:
-    intra_measure();
-    ~intra_measure();
-    void init(phy_common* common, rrc_interface_phy_lte* rrc, srslte::log* log_h);
-    void stop();
-    void add_cell(int pci);
-    void rem_cell(int pci);
-    void set_primay_cell(uint32_t earfcn, srslte_cell_t cell);
-    void clear_cells();
-    int  get_offset(uint32_t pci);
-    void write(uint32_t tti, cf_t *data, uint32_t nsamples);
-  private:
-    void run_thread();
-    const static int INTRA_FREQ_MEAS_PRIO      = DEFAULT_PRIORITY + 5;
-
-    scell_recv         scell;
-    rrc_interface_phy_lte* rrc;
-    srslte::log        *log_h;
-    phy_common*         common;
-    uint32_t           current_earfcn;
-    uint32_t           current_sflen;
-    srslte_cell_t      primary_cell;
-    std::vector<int> active_pci;
-
-    srslte::tti_sync_cv tti_sync;
-
-    cf_t               *search_buffer;
-
-    scell_recv::cell_info_t info[scell_recv::MAX_CELLS];
-
-    bool                running;
-    bool                receive_enabled;
-    bool                receiving;
-    uint32_t            measure_tti;
-    uint32_t            receive_cnt;
-    srslte_ringbuffer_t ring_buffer;
-  };
-
-  // 36.133 9.1.2.1 for band 7
-  constexpr static float ABSOLUTE_RSRP_THRESHOLD_DBM = -125;
 
   std::vector<uint32_t> earfcn;
 
@@ -267,22 +163,22 @@ private:
   // Objects for internal use
   search                search_p;
   sfn_sync              sfn_p;
-  intra_measure         intra_freq_meas;
+  scell::intra_measure  intra_freq_meas;
 
   uint32_t              current_sflen;
   int                   next_offset;                          // Sample offset triggered by Time aligment commands
   int                   next_radio_offset[SRSLTE_MAX_RADIOS]; // Sample offset triggered by SFO compensation
 
   // Pointers to other classes
-  stack_interface_phy_lte* stack;
-  srslte::log*             log_h;
-  srslte::log*             log_phy_lib_h;
-  srslte::thread_pool*     workers_pool;
-  radio_interface_phy*     radio_h;
-  phy_common*              worker_com;
-  prach*                   prach_buffer;
-  async_scell_recv_vector* scell_sync;
-  srslte::channel_ptr      channel_emulator = nullptr;
+  stack_interface_phy_lte*  stack;
+  srslte::log*              log_h;
+  srslte::log*              log_phy_lib_h;
+  srslte::thread_pool*      workers_pool;
+  radio_interface_phy*      radio_h;
+  phy_common*               worker_com;
+  prach*                    prach_buffer;
+  scell::async_recv_vector* scell_sync;
+  srslte::channel_ptr       channel_emulator = nullptr;
 
   // Object for synchronization of the primary cell
   srslte_ue_sync_t ue_sync;

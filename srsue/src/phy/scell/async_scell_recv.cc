@@ -19,7 +19,7 @@
  *
  */
 
-#include "srsue/hdr/phy/async_scell_recv.h"
+#include "srsue/hdr/phy/scell/async_scell_recv.h"
 #include "srsue/hdr/phy/phy_common.h"
 #include <srslte/interfaces/ue_interfaces.h>
 #include <srslte/phy/ch_estimation/chest_dl.h>
@@ -44,6 +44,7 @@
 #endif
 
 namespace srsue {
+namespace scell {
 
 async_scell_recv::async_scell_recv() : thread("ASYNC_SCELL_RECV")
 {
@@ -617,4 +618,5 @@ void async_scell_recv::read_sf(cf_t** dst, srslte_timestamp_t* timestamp, int* n
   pthread_mutex_unlock(&mutex_buffer);
 }
 
+} // namespace scell
 } // namespace srsue

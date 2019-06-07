@@ -24,8 +24,6 @@
 
 #include <pthread.h>
 
-#include "prach.h"
-#include "phy_common.h"
 #include "srslte/common/log.h"
 #include "srslte/common/thread_pool.h"
 #include "srslte/common/threads.h"
@@ -33,6 +31,8 @@
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/radio/radio.h"
 #include "srslte/srslte.h"
+#include "srsue/hdr/phy/phy_common.h"
+#include "srsue/hdr/phy/prach.h"
 
 #include <cassert>
 #include <cstdio>
@@ -43,6 +43,7 @@
 #include <vector>
 
 namespace srsue {
+namespace scell {
 
 class async_scell_recv : private thread
 {
@@ -195,9 +196,10 @@ protected:
   void run_thread() override;
 };
 
-typedef std::unique_ptr<async_scell_recv> async_scell_recv_ptr;
-typedef std::vector<async_scell_recv_ptr> async_scell_recv_vector;
+typedef std::unique_ptr<async_scell_recv> async_recv_ptr;
+typedef std::vector<async_recv_ptr>       async_recv_vector;
 
+} // namespace scell
 } // namespace srsue
 
 #endif // SRSUE_ASYNCH_SCELL_RECV_H

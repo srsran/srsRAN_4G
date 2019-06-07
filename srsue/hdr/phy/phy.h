@@ -22,7 +22,6 @@
 #ifndef SRSUE_PHY_H
 #define SRSUE_PHY_H
 
-#include "async_scell_recv.h"
 #include "phy_common.h"
 #include "phy_metrics.h"
 #include "prach.h"
@@ -32,6 +31,7 @@
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/radio/radio.h"
 #include "srslte/srslte.h"
+#include "srsue/hdr/phy/scell/async_scell_recv.h"
 #include "srsue/hdr/phy/ue_lte_phy_base.h"
 #include "sync.h"
 
@@ -151,13 +151,13 @@ private:
   srslte::log              *log_phy_lib_h;
   srsue::stack_interface_phy_lte* stack;
 
-  srslte::thread_pool     workers_pool;
-  std::vector<sf_worker*> workers;
-  phy_common              common;
-  sync                    sfsync;
-  async_scell_recv_vector scell_sync;
-  uint32_t                scell_earfcn[SRSLTE_MAX_CARRIERS - 1];
-  prach                   prach_buffer;
+  srslte::thread_pool      workers_pool;
+  std::vector<sf_worker*>  workers;
+  phy_common               common;
+  sync                     sfsync;
+  scell::async_recv_vector scell_sync;
+  uint32_t                 scell_earfcn[SRSLTE_MAX_CARRIERS - 1];
+  prach                    prach_buffer;
 
   srslte_prach_cfg_t  prach_cfg;
   srslte_tdd_config_t tdd_config;
