@@ -22,10 +22,9 @@
 #ifndef SRSUE_SCELL_RECV_H
 #define SRSUE_SCELL_RECV_H
 
-#include <srslte/common/tti_sync_cv.h>
 #include <srslte/srslte.h>
 
-#include <srsue/hdr/phy/scell/measure.h>
+#include "measure.h"
 
 namespace srsue {
 namespace scell {

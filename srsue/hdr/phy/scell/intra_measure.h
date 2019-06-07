@@ -23,9 +23,10 @@
 
 #include <srslte/common/log.h>
 #include <srslte/common/threads.h>
+#include <srslte/common/tti_sync_cv.h>
 #include <srslte/srslte.h>
 
-#include <srsue/hdr/phy/scell/scell_recv.h>
+#include "scell_recv.h"
 
 namespace srsue {
 namespace scell {

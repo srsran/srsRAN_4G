@@ -22,25 +22,12 @@
 #ifndef SRSUE_ASYNCH_SCELL_RECV_H
 #define SRSUE_ASYNCH_SCELL_RECV_H
 
-#include <pthread.h>
+#include <srslte/common/log.h>
+#include <srslte/common/threads.h>
+#include <srslte/radio/radio.h>
+#include <srslte/srslte.h>
 
-#include "srslte/common/log.h"
-#include "srslte/common/thread_pool.h"
-#include "srslte/common/threads.h"
-#include "srslte/common/tti_sync_cv.h"
-#include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/radio/radio.h"
-#include "srslte/srslte.h"
 #include "srsue/hdr/phy/phy_common.h"
-#include "srsue/hdr/phy/prach.h"
-
-#include <cassert>
-#include <cstdio>
-#include <fstream>
-#include <functional>
-#include <iostream>
-#include <memory>
-#include <vector>
 
 namespace srsue {
 namespace scell {
