@@ -27,6 +27,7 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <math.h>
+#include <complex.h>
 
 #include "srslte/phy/phch/regs.h"
 #include "srslte/phy/phch/phich.h"
