@@ -35,6 +35,9 @@ target_link_libraries(rlc_stress_test srslte_upper srslte_phy srslte_common rrc_
 add_test(rlc_am_stress_test rlc_stress_test --mode=AM --loglevel 1 --sdu_gen_delay 250)
 add_test(rlc_um_stress_test rlc_stress_test --mode=UM --loglevel 1)
 add_test(rlc_tm_stress_test rlc_stress_test --mode=TM --loglevel 1 --random_opp=false)
+set_tests_properties(rlc_am_stress_test PROPERTIES TIMEOUT 3000)
+set_tests_properties(rlc_um_stress_test PROPERTIES TIMEOUT 3000)
+set_tests_properties(rlc_tm_stress_test PROPERTIES TIMEOUT 3000)
 
 add_executable(rlc_um_data_test rlc_um_data_test.cc)
 target_link_libraries(rlc_um_data_test srslte_upper srslte_phy srslte_common)
