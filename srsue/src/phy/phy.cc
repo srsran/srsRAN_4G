@@ -42,15 +42,6 @@ using namespace asn1::rrc;
 
 namespace srsue {
 
-phy::phy() : workers_pool(MAX_WORKERS), workers(0), common(MAX_WORKERS), scell_sync(), thread("PHY")
-{
-  tdd_config   = {};
-  prach_cfg    = {};
-  args         = {};
-  ZERO_OBJECT(scell_earfcn);
-  n_ta = 0;
-  initiated = false;
-}
 
 static void srslte_phy_handler(phy_logger_level_t log_level, void *ctx, char *str) {
   phy *r = (phy *) ctx;
@@ -140,7 +131,7 @@ int phy::init(const phy_args_t& args_, srslte::logger* logger_)
 
   // Create array of pointers to phy_logs
   for (int i = 0; i < args.nof_phy_threads; i++) {
-    srslte::log_filter* mylog = new srslte::log_filter;
+    auto*               mylog = new srslte::log_filter;
     char                tmp[16];
     sprintf(tmp, "PHY%d", i);
     mylog->init(tmp, logger, true);
@@ -151,7 +142,7 @@ int phy::init(const phy_args_t& args_, srslte::logger* logger_)
 
   // Add PHY lib log
   if (log_vec.at(0)->get_level_from_string(args.log.phy_lib_level) != srslte::LOG_LEVEL_NONE) {
-    srslte::log_filter* lib_log = new srslte::log_filter;
+    auto*               lib_log = new srslte::log_filter;
     char                tmp[16];
     sprintf(tmp, "PHY_LIB");
     lib_log->init(tmp, logger, true);
@@ -159,7 +150,7 @@ int phy::init(const phy_args_t& args_, srslte::logger* logger_)
     lib_log->set_hex_limit(args.log.phy_hex_limit);
     log_vec.push_back(lib_log);
   } else {
-    log_vec.push_back(NULL);
+    log_vec.push_back(nullptr);
   }
 
   // set default logger
@@ -174,7 +165,7 @@ int phy::init(const phy_args_t& args_, srslte::logger* logger_)
     this->log_phy_lib_h = (srslte::log*)log_vec[0];
     srslte_phy_log_register_handler(this, srslte_phy_handler);
   } else {
-    this->log_phy_lib_h = NULL;
+    this->log_phy_lib_h = nullptr;
   }
 
   initiated = false;
@@ -190,10 +181,10 @@ void phy::run_thread()
 
   // Add workers to workers pool and start threads
   for (uint32_t i=0;i<nof_workers;i++) {
-    sf_worker* w =
-        new sf_worker(SRSLTE_MAX_PRB, &common, (srslte::log*)log_vec[i], (srslte::log*)log_vec[nof_workers], &sfsync);
-    workers.push_back(w);
-    workers_pool.init_worker(i, w, WORKERS_THREAD_PRIO, args.worker_cpu_mask);
+    auto w = std::unique_ptr<sf_worker>(
+        new sf_worker(SRSLTE_MAX_PRB, &common, (srslte::log*)log_vec[i], (srslte::log*)log_vec[nof_workers], &sfsync));
+    workers.push_back(std::move(w));
+    workers_pool.init_worker(i, w.get(), WORKERS_THREAD_PRIO, args.worker_cpu_mask);
   }
 
   // Load Asynchronous SCell objects
@@ -240,9 +231,6 @@ void phy::stop()
 
     workers_pool.stop();
     prach_buffer.stop();
-    for (uint32_t i = 0; i < nof_workers; i++) {
-      delete ((sf_worker*)workers[i]);
-    }
 
     initiated = false;
   }
@@ -350,7 +338,7 @@ uint32_t phy::get_current_pci() {
 
 uint32_t phy::get_current_earfcn() {
   uint32_t earfcn;
-  sfsync.get_current_cell(NULL, &earfcn);
+  sfsync.get_current_cell(nullptr, &earfcn);
   return earfcn;
 }
 
