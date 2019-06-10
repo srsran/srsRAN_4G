@@ -352,10 +352,10 @@ void gw::run_thread()
   gw_log->info("GW IP receiver thread exiting.\n");
 }
 
-uint8_t gw::check_tft_filter_match(const srslte::unique_byte_buffer_t& pdu) {
-  
+uint8_t gw::check_tft_filter_match(const srslte::unique_byte_buffer_t& pdu)
+{
+  std::lock_guard<std::mutex> lock(tft_mutex);
   uint8_t lcid = default_lcid;
-  tft_mutex.lock();
   for (std::pair<const uint16_t, tft_packet_filter_t>& filter_pair : tft_filter_map) {
     bool match = filter_pair.second.match(pdu);
     if (match) {
@@ -364,7 +364,6 @@ uint8_t gw::check_tft_filter_match(const srslte::unique_byte_buffer_t& pdu) {
       break;
     }
   }
-  tft_mutex.unlock();
   return lcid;
 }
 
