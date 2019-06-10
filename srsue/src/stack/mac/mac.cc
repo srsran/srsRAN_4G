@@ -651,44 +651,45 @@ uint32_t mac::timer_get_unique_id()
  * DEMUX unit
  *
  *******************************************************/
-mac::pdu_process::pdu_process(demux* demux_unit_) : thread("MAC_PDU_PROCESS")
+mac::pdu_process::pdu_process(demux* demux_unit_) : thread("MAC_PDU_PROCESS"), demux_unit(demux_unit_)
 {
-  demux_unit = demux_unit_;
-  pthread_mutex_init(&mutex, NULL);
-  pthread_cond_init(&cvar, NULL);
-  have_data = false; 
-  start(MAC_PDU_THREAD_PRIO);  
+  running = true;
+  start(MAC_PDU_THREAD_PRIO);
+}
+
+mac::pdu_process::~pdu_process()
+{
+  if (running) {
+    stop();
+  }
 }
 
 void mac::pdu_process::stop()
 {
-  pthread_mutex_lock(&mutex);
-  running = false; 
-  pthread_cond_signal(&cvar);
-  pthread_mutex_unlock(&mutex);
-  
+  mutex.lock();
+  running = false;
+  cvar.notify_all();
+  mutex.unlock();
+
   wait_thread_finish();
 }
 
 void mac::pdu_process::notify()
 {
-  pthread_mutex_lock(&mutex);
-  have_data = true; 
-  pthread_cond_signal(&cvar);
-  pthread_mutex_unlock(&mutex);
+  std::unique_lock<std::mutex> ul(mutex);
+  have_data = true;
+  cvar.notify_all();
 }
 
 void mac::pdu_process::run_thread()
 {
-  running = true; 
   while(running) {
     have_data = demux_unit->process_pdus();
     if (!have_data) {
-      pthread_mutex_lock(&mutex);
+      std::unique_lock<std::mutex> ul(mutex);
       while(!have_data && running) {
-        pthread_cond_wait(&cvar, &mutex);
+        cvar.wait(ul);
       }
-      pthread_mutex_unlock(&mutex);
     }
   }
 }

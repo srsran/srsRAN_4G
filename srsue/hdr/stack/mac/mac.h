@@ -37,6 +37,8 @@
 #include "srslte/common/tti_sync_cv.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "ul_harq.h"
+#include <condition_variable>
+#include <mutex>
 
 namespace srsue {
 
@@ -168,24 +170,25 @@ private:
   srslte::timers  timers;
 
   // pointer to MAC PCAP object
-  srslte::mac_pcap* pcap;
-  bool              is_first_ul_grant;
+  srslte::mac_pcap* pcap              = nullptr;
+  bool              is_first_ul_grant = false;
 
-  mac_metrics_t metrics[SRSLTE_MAX_CARRIERS];
+  mac_metrics_t metrics[SRSLTE_MAX_CARRIERS] = {};
 
   /* Class to process MAC PDUs from DEMUX unit */
   class pdu_process : public thread {
-  public: 
-    pdu_process(demux *demux_unit);
+  public:
+    explicit pdu_process(demux* demux_unit);
+    ~pdu_process();
     void notify();
     void stop();
   private:
-    void run_thread();
-    bool running; 
-    bool have_data; 
-    pthread_mutex_t mutex;
-    pthread_cond_t  cvar;
-    demux* demux_unit;
+    void                    run_thread() final;
+    bool                    running   = false;
+    bool                    have_data = false;
+    std::mutex              mutex;
+    std::condition_variable cvar;
+    demux*                  demux_unit = nullptr;
   };
   pdu_process pdu_process_thread;
 };
