@@ -20,6 +20,7 @@
  */
 #include <execinfo.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 void srslte_backtrace_print(FILE* f)
 {
@@ -35,5 +36,6 @@ void srslte_backtrace_print(FILE* f)
     for (int i = 1; i < size; i++) {
       fprintf(f, "\t%s\n", symbols[i]);
     }
+    free(symbols);
   }
 }
