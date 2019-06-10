@@ -42,7 +42,7 @@ typedef _Complex float cf_t;
 class phy : public ue_lte_phy_base, public thread
 {
 public:
-  phy() : workers_pool(MAX_WORKERS), common(MAX_WORKERS), scell_sync(), thread("PHY"){};
+  phy() : workers_pool(MAX_WORKERS), common(MAX_WORKERS), thread("PHY"){};
   ~phy() override = default;
 
   // Init defined in base class

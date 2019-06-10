@@ -42,24 +42,6 @@ double callback_set_rx_gain(void *h, double gain) {
   return ((sync*)h)->set_rx_gain(gain);
 }
 
-sync::sync() : thread("SYNC")
-{
-  cellsearch_earfcn_index = 0;
-  current_sflen           = 0;
-  next_offset             = 0;
-  current_earfcn          = 0;
-  current_srate           = 0;
-  next_time_adv_sec       = 0;
-  time_adv_sec            = 0;
-  tti                     = 0;
-  dl_freq = -1;
-  ul_freq = -1;
-  bzero(&cell, sizeof(srslte_cell_t));
-  bzero(&metrics, sizeof(sync_metrics_t));
-  running = false;
-  worker_com = NULL;
-}
-
 void sync::init(radio_interface_phy*      _radio,
                 stack_interface_phy_lte*  _stack,
                 prach*                    _prach_buffer,
@@ -108,8 +90,6 @@ void sync::init(radio_interface_phy*      _radio,
   // Start intra-frequency measurement
   intra_freq_meas.init(worker_com, stack, log_h);
 
-  pthread_mutex_init(&rrc_mutex, NULL);
-
   reset();
   running = true;
 
@@ -135,7 +115,6 @@ sync::~sync()
         }
       }
     }
-    pthread_mutex_destroy(&rrc_mutex);
     srslte_ue_sync_free(&ue_sync);
   }
 }
@@ -210,7 +189,7 @@ phy_interface_rrc_lte::cell_search_ret_t sync::cell_search(phy_interface_rrc_lte
   ret.found     = phy_interface_rrc_lte::cell_search_ret_t::ERROR;
   ret.last_freq = phy_interface_rrc_lte::cell_search_ret_t::NO_MORE_FREQS;
 
-  pthread_mutex_lock(&rrc_mutex);
+  rrc_mutex.lock();
 
   // Move state to IDLE
   Info("Cell Search: Start EARFCN index=%u/%zd\n", cellsearch_earfcn_index, earfcn.size());
@@ -275,7 +254,7 @@ phy_interface_rrc_lte::cell_search_ret_t sync::cell_search(phy_interface_rrc_lte
     ret.last_freq = phy_interface_rrc_lte::cell_search_ret_t::MORE_FREQS;
   }
 
-  pthread_mutex_unlock(&rrc_mutex);
+  rrc_mutex.unlock();
   return ret;
 }
 
@@ -284,7 +263,7 @@ phy_interface_rrc_lte::cell_search_ret_t sync::cell_search(phy_interface_rrc_lte
  */
 bool sync::cell_select(phy_interface_rrc_lte::phy_cell_t* new_cell)
 {
-  pthread_mutex_lock(&rrc_mutex);
+  std::unique_lock<std::mutex> ul(rrc_mutex);
 
   bool ret = false;
   int cnt = 0;
@@ -295,7 +274,7 @@ bool sync::cell_select(phy_interface_rrc_lte::phy_cell_t* new_cell)
   } else {
     if (!srslte_cell_isvalid(&cell)) {
       log_h->error("Cell Select: Invalid cell. ID=%d, PRB=%d, ports=%d\n", cell.id, cell.nof_prb, cell.nof_ports);
-      goto unlock;
+      return ret;
     }
     Info("Cell Select: Starting cell selection for PCI=%d, EARFCN=%d\n", new_cell->cell.id, new_cell->earfcn);
   }
@@ -322,7 +301,7 @@ bool sync::cell_select(phy_interface_rrc_lte::phy_cell_t* new_cell)
       cell = new_cell->cell;
       if (!set_cell()) {
         Error("Cell Select: Reconfiguring cell\n");
-        goto unlock;
+        return ret;
       }
     }
 
@@ -331,7 +310,7 @@ bool sync::cell_select(phy_interface_rrc_lte::phy_cell_t* new_cell)
       Info("Cell Select: Setting new frequency EARFCN=%d\n", new_cell->earfcn);
       if (set_frequency()) {
         Error("Cell Select: Setting new frequency EARFCN=%d\n", new_cell->earfcn);
-        goto unlock;
+        return ret;
       }
       current_earfcn = new_cell->earfcn;
     }
@@ -352,8 +331,6 @@ bool sync::cell_select(phy_interface_rrc_lte::phy_cell_t* new_cell)
     Info("Cell Select: Could not synchronize SFN\n");
   }
 
-unlock:
-  pthread_mutex_unlock(&rrc_mutex);
   return ret;
 }
 
@@ -629,7 +606,7 @@ void sync::run_thread()
     /* Radio overflow detected. If CAMPING, go through SFN sync again and when
      * SFN is found again go back to camping
      */
-    if (!pthread_mutex_trylock(&rrc_mutex)) {
+    if (!rrc_mutex.try_lock()) {
       if (radio_is_overflow) {
         // If we are coming back from an overflow
         if (radio_overflow_return) {
@@ -656,7 +633,7 @@ void sync::run_thread()
           // If overflow occurs in any other state, it does not harm
         }
       }
-      pthread_mutex_unlock(&rrc_mutex);
+      rrc_mutex.unlock();
     }
 
     // Increase TTI counter
@@ -732,8 +709,7 @@ void sync::set_cfo(float cfo)
 
 void sync::set_agc_enable(bool enable)
 {
-  do_agc = enable;
-  if (do_agc) {
+  if (enable) {
     if (running && radio_h) {
       srslte_rf_info_t* rf_info = radio_h->get_info(0);
       srslte_ue_sync_start_agc(
