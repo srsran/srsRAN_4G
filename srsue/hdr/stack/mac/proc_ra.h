@@ -22,6 +22,7 @@
 #ifndef SRSUE_PROC_RA_H
 #define SRSUE_PROC_RA_H
 
+#include <mutex>
 #include <stdint.h>
 
 #include "srslte/common/log.h"
@@ -182,7 +183,7 @@ private:
   uint64_t    transmitted_contention_id;
   uint16_t    transmitted_crnti;
 
-  pthread_mutex_t mutex;
+  std::mutex mutex;
 
   enum { PDCCH_CRNTI_NOT_RECEIVED = 0, PDCCH_CRNTI_UL_GRANT, PDCCH_CRNTI_DL_GRANT } pdcch_to_crnti_received;
 

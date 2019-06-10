@@ -63,13 +63,10 @@ void ra_proc::init(phy_interface_mac_lte*        phy_h_,
   
   srslte_softbuffer_rx_init(&softbuffer_rar, 10);
 
-  pthread_mutex_init(&mutex, NULL);
-
   reset();
 }
 
 ra_proc::~ra_proc() {
-  pthread_mutex_destroy(&mutex);
   srslte_softbuffer_rx_free(&softbuffer_rar);
 }
 
@@ -88,16 +85,15 @@ void ra_proc::start_pcap(srslte::mac_pcap* pcap_)
 
 void ra_proc::set_config(srsue::mac_interface_rrc::rach_cfg_t& rach_cfg)
 {
-  pthread_mutex_lock(&mutex);
+  std::unique_lock<std::mutex> ul(mutex);
   new_cfg = rach_cfg;
-  pthread_mutex_unlock(&mutex);
 }
 
 void ra_proc::read_params()
 {
-  pthread_mutex_lock(&mutex);
+  mutex.lock();
   rach_cfg = new_cfg;
-  pthread_mutex_unlock(&mutex);
+  mutex.unlock();
 
   // Read initialization parameters   
   if (noncontention_enabled) {
