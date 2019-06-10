@@ -21,6 +21,7 @@
 
 #include <stdlib.h>
 #include <strings.h>
+#include <complex.h>
 
 #include "srslte/phy/modem/demod_soft.h"
 #include "srslte/phy/utils/bit.h"

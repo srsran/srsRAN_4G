@@ -31,7 +31,7 @@
 #ifndef SRSLTE_MOD_H
 #define SRSLTE_MOD_H
 
-#include <complex.h>
+//#include <complex.h>
 #include <stdint.h>
 
 #include "srslte/config.h"

@@ -32,7 +32,7 @@
 #define SRSLTE_MODEM_TABLE_H
 
 #include <stdbool.h>
-#include <complex.h>
+//#include <complex.h>
 #include <stdint.h>
 
 #include "srslte/phy/common/phy_common.h"
