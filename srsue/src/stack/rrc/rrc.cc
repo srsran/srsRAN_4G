@@ -2519,6 +2519,57 @@ void rrc::send_rrc_ue_cap_info()
     cap.non_crit_ext.non_crit_ext         = cap_v940;
   }
 
+  if (args.release > 10) {
+    ue_eutra_cap_v11a0_ies_s cap_v11a0;
+
+    ue_eutra_cap_v1180_ies_s cap_v1180;
+    cap_v11a0.non_crit_ext_present = true;
+    cap_v1180.non_crit_ext         = cap_v11a0;
+
+    ue_eutra_cap_v1170_ies_s cap_v1170;
+    cap_v1170.non_crit_ext_present = true;
+    cap_v1170.non_crit_ext         = cap_v1180;
+
+    ue_eutra_cap_v1130_ies_s cap_v1130;
+    cap_v1130.non_crit_ext_present = true;
+    cap_v1130.non_crit_ext         = cap_v1170;
+
+    ue_eutra_cap_v1090_ies_s cap_v1090;
+    cap_v1090.non_crit_ext_present = true;
+    cap_v1090.non_crit_ext         = cap_v1130;
+
+    ue_eutra_cap_v1060_ies_s cap_v1060;
+    cap_v1060.non_crit_ext_present = true;
+    cap_v1060.non_crit_ext         = cap_v1090;
+
+    cap.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present = true;
+    cap.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext         = cap_v1060;
+  }
+
+  if (args.release > 11) {
+    supported_band_list_eutra_v1250_l supported_band_list_eutra_v1250;
+    for (uint32_t i = 0; i < args.nof_supported_bands; i++) {
+      supported_band_eutra_v1250_s supported_band_eutra_v1250;
+      supported_band_eutra_v1250.dl_minus256_qam_r12_present = false; // 256-QAM support
+      supported_band_eutra_v1250.ul_minus64_qam_r12_present  = true;  // 64-QAM support
+
+      supported_band_list_eutra_v1250.push_back(supported_band_eutra_v1250);
+    }
+
+    rf_params_v1250_s rf_params_v1250;
+    rf_params_v1250.supported_band_list_eutra_v1250_present = true;
+    rf_params_v1250.supported_band_list_eutra_v1250         = supported_band_list_eutra_v1250;
+
+    ue_eutra_cap_v1250_ies_s cap_v1250;
+    cap_v1250.rf_params_v1250_present = true;
+    cap_v1250.rf_params_v1250         = rf_params_v1250;
+
+    cap.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
+        .non_crit_ext.non_crit_ext_present = true;
+    cap.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
+        .non_crit_ext.non_crit_ext = cap_v1250;
+  }
+
   // Pack caps and copy to cap info
   uint8_t       buf[64];
   asn1::bit_ref bref(buf, sizeof(buf));
