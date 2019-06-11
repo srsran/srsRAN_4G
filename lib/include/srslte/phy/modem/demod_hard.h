@@ -31,7 +31,6 @@
 #ifndef SRSLTE_DEMOD_HARD_H
 #define SRSLTE_DEMOD_HARD_H
 
-//#include <complex.h>
 #include <stdint.h>
 
 #include "srslte/config.h"
