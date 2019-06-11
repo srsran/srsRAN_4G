@@ -1273,6 +1273,7 @@ void cc_worker::set_scell_config(asn1::rrc::scell_to_add_mod_r10_s* phy_cfg)
               ? ue_ul_cfg.ul_cfg.hopping.SRSLTE_PUSCH_HOP_MODE_INTRA_SF
               : ue_ul_cfg.ul_cfg.hopping.SRSLTE_PUSCH_HOP_MODE_INTER_SF;
       ue_ul_cfg.ul_cfg.hopping.hopping_offset = pusch_cfg_common->pusch_cfg_basic.pusch_hop_offset;
+      ue_ul_cfg.ul_cfg.pusch.enable_64qam     = pusch_cfg_common->pusch_cfg_basic.enable64_qam;
     }
   }
 
