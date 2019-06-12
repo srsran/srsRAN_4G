@@ -116,9 +116,6 @@ void nas::init(
     have_ctxt = true;
   }
 
-  // set seed for rand (used in CHAP auth)
-  srand(time(NULL));
-
   running = true;
 }
 

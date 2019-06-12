@@ -177,8 +177,13 @@ void rrc::init(phy_interface_rrc*    phy_,
   set_mac_default();
 
   measurements.init(this);
-  // set seed for rand (used in attach)
-  srand(time(NULL));
+
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  rrc_log->info("using srand seed of %ld\n", tv.tv_usec);
+
+  // set seed (used in CHAP auth and attach)
+  srand(tv.tv_usec);
 
   running = true;
   start();
