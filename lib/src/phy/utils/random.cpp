@@ -100,7 +100,7 @@ cf_t srslte_random_uniform_complex_dist(srslte_random_t q, float min, float max)
 
 void srslte_random_uniform_complex_dist_vector(srslte_random_t q, cf_t* vector, uint32_t nsamples, float min, float max)
 {
-  for (int i = 0; i < nsamples; i++) {
+  for (uint32_t i = 0; i < nsamples; i++) {
     vector[i] = srslte_random_uniform_complex_dist(q, min, max);
   }
 }
