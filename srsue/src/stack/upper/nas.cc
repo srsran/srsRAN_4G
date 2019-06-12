@@ -119,9 +119,6 @@ void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_
     have_ctxt = true;
   }
 
-  // set seed for rand (used in CHAP auth)
-  srand(time(NULL));
-
   running = true;
 }
 
