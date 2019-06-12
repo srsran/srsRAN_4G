@@ -94,15 +94,15 @@ private:
     uint32_t get_buffer_state();
 
   private:
-    byte_buffer_pool        *pool;
-    srslte::log             *log;
+    byte_buffer_pool*       pool = nullptr;
+    srslte::log*            log  = nullptr;
     std::string             rb_name;
 
     /****************************************************************************
      * Configurable parameters
      * Ref: 3GPP TS 36.322 v10.0.0 Section 7
      ***************************************************************************/
-    srslte_rlc_um_config_t  cfg;
+    srslte_rlc_um_config_t cfg = {};
 
     // TX SDU buffers
     rlc_tx_queue            tx_sdu_queue;
@@ -112,14 +112,14 @@ private:
      * State variables and counters
      * Ref: 3GPP TS 36.322 v10.0.0 Section 7
      ***************************************************************************/
-    uint32_t                vt_us;    // Send state. SN to be assigned for next PDU.
+    uint32_t vt_us = 0; // Send state. SN to be assigned for next PDU.
 
     // Mutexes
     pthread_mutex_t         mutex;
 
-    bool                    tx_enabled;
+    bool tx_enabled = false;
 
-    uint32_t                num_tx_bytes;
+    uint32_t num_tx_bytes = 0;
 
     // helper functions
     void debug_state();
@@ -151,48 +151,48 @@ private:
   private:
     void reset();
 
-    byte_buffer_pool                    *pool;
-    srslte::log                         *log;
-    mac_interface_timers                *mac_timers;
+    byte_buffer_pool*                   pool       = nullptr;
+    srslte::log*                        log        = nullptr;
+    mac_interface_timers*               mac_timers = nullptr;
     std::string                         rb_name;
 
     /****************************************************************************
      * Configurable parameters
      * Ref: 3GPP TS 36.322 v10.0.0 Section 7
      ***************************************************************************/
-    srslte_rlc_um_config_t              cfg;
+    srslte_rlc_um_config_t cfg = {};
 
     // Rx window
     std::map<uint32_t, rlc_umd_pdu_t>   rx_window;
 
     // RX SDU buffers
     unique_byte_buffer_t                rx_sdu;
-    uint32_t                            vr_ur_in_rx_sdu;
+    uint32_t                            vr_ur_in_rx_sdu = 0;
 
     // Rx state variables and counter
-    uint32_t                            vr_ur;  // Receive state. SN of earliest PDU still considered for reordering.
-    uint32_t                            vr_ux;  // t_reordering state. SN following PDU which triggered t_reordering.
-    uint32_t                            vr_uh;  // Highest rx state. SN following PDU with highest SN among rxed PDUs.
-    bool                                pdu_lost;
+    uint32_t vr_ur    = 0; // Receive state. SN of earliest PDU still considered for reordering.
+    uint32_t vr_ux    = 0; // t_reordering state. SN following PDU which triggered t_reordering.
+    uint32_t vr_uh    = 0; // Highest rx state. SN following PDU with highest SN among rxed PDUs.
+    bool     pdu_lost = false;
 
-    uint32_t                            num_rx_bytes;
+    uint32_t num_rx_bytes = 0;
 
     // Upper layer handles and variables
-    srsue::pdcp_interface_rlc           *pdcp;
-    srsue::rrc_interface_rlc            *rrc;
-    uint32_t                            lcid;
+    srsue::pdcp_interface_rlc* pdcp = nullptr;
+    srsue::rrc_interface_rlc*  rrc  = nullptr;
+    uint32_t                   lcid = 0;
 
     // Mutexes
     pthread_mutex_t                     mutex;
 
-    bool                                rx_enabled;
+    bool rx_enabled = false;
 
     /****************************************************************************
      * Timers
      * Ref: 3GPP TS 36.322 v10.0.0 Section 7
      ***************************************************************************/
-    srslte::timers::timer *reordering_timer;
-    uint32_t               reordering_timer_id;
+    srslte::timers::timer* reordering_timer    = nullptr;
+    uint32_t               reordering_timer_id = 0;
 
     // helper functions
     void debug_state();
@@ -200,13 +200,13 @@ private:
   };
 
   // Common variables needed by parent class
-  srsue::rrc_interface_rlc  *rrc;
-  srslte::log               *log;
-  uint32_t                  lcid;
-  srslte_rlc_config_t        cfg;
-  bool                       has_configuration;
+  srsue::rrc_interface_rlc* rrc               = nullptr;
+  srslte::log*              log               = nullptr;
+  uint32_t                  lcid              = 0;
+  srslte_rlc_config_t       cfg               = {};
+  bool                      has_configuration = false;
   std::string               rb_name;
-  byte_buffer_pool          *pool;
+  byte_buffer_pool*         pool = nullptr;
 
   std::string               get_rb_name(srsue::rrc_interface_rlc *rrc, uint32_t lcid, bool is_mrb);
 

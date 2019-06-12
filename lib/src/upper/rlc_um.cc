@@ -41,7 +41,6 @@ rlc_um::rlc_um(srslte::log*               log_,
   tx(log_),
   rx(log_, lcid_, pdcp_, rrc_, mac_timers_)
 {
-  bzero(&cfg, sizeof(srslte_rlc_um_config_t));
 }
 
 // Warning: must call stop() to properly deallocate all buffers
@@ -222,12 +221,7 @@ std::string rlc_um::get_rb_name(srsue::rrc_interface_rlc *rrc, uint32_t lcid, bo
  * Tx subclass implementation
  ***************************************************************************/
 
-rlc_um::rlc_um_tx::rlc_um_tx(srslte::log* log_) :
-  pool(byte_buffer_pool::get_instance()),
-  log(log_),
-  vt_us(0),
-  tx_enabled(false),
-  num_tx_bytes(0)
+rlc_um::rlc_um_tx::rlc_um_tx(srslte::log* log_) : pool(byte_buffer_pool::get_instance()), log(log_)
 {
   pthread_mutex_init(&mutex, NULL);
 }
@@ -508,21 +502,12 @@ rlc_um::rlc_um_rx::rlc_um_rx(srslte::log*                  log_,
                              srsue::pdcp_interface_rlc*    pdcp_,
                              srsue::rrc_interface_rlc*     rrc_,
                              srslte::mac_interface_timers* mac_timers_) :
-  reordering_timer(nullptr),
-  reordering_timer_id(0),
   pool(byte_buffer_pool::get_instance()),
   log(log_),
   pdcp(pdcp_),
   rrc(rrc_),
-  vr_ur(0),
-  vr_ux(0),
-  vr_uh(0),
-  vr_ur_in_rx_sdu(0),
-  pdu_lost(false),
   mac_timers(mac_timers_),
-  lcid(lcid_),
-  num_rx_bytes(0),
-  rx_enabled(false)
+  lcid(lcid_)
 {
   reordering_timer_id = mac_timers->timer_get_unique_id();
   reordering_timer    = mac_timers->timer_get(reordering_timer_id);

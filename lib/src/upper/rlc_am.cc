@@ -42,8 +42,6 @@ rlc_am::rlc_am(srslte::log*                  log_,
   pdcp(pdcp_),
   mac_timers(mac_timers_),
   lcid(lcid_),
-  cfg(),
-  has_configuration(false),
   tx(this),
   rx(this)
 {
@@ -183,22 +181,8 @@ void rlc_am::write_pdu(uint8_t *payload, uint32_t nof_bytes)
 
 rlc_am::rlc_am_tx::rlc_am_tx(rlc_am* parent_) :
   parent(parent_),
-  poll_retx_timer(nullptr),
-  poll_retx_timer_id(0),
-  status_prohibit_timer(nullptr),
-  status_prohibit_timer_id(0),
-  vt_a(0),
-  vt_ms(RLC_AM_WINDOW_SIZE),
-  vt_s(0),
-  poll_sn(0),
-  num_tx_bytes(0),
-  pdu_without_poll(0),
-  byte_without_poll(0),
   log(parent_->log),
-  cfg(),
-  tx_status(),
-  pool(byte_buffer_pool::get_instance()),
-  tx_enabled(false)
+  pool(byte_buffer_pool::get_instance())
 {
   poll_retx_timer_id = parent->mac_timers->timer_get_unique_id();
   poll_retx_timer    = parent->mac_timers->timer_get(poll_retx_timer_id);
@@ -1155,18 +1139,7 @@ bool rlc_am::rlc_am_tx::retx_queue_has_sn(uint32_t sn)
 rlc_am::rlc_am_rx::rlc_am_rx(rlc_am* parent_) :
   parent(parent_),
   pool(byte_buffer_pool::get_instance()),
-  log(parent_->log),
-  cfg(),
-  reordering_timer(nullptr),
-  reordering_timer_id(0),
-  vr_r(0),
-  vr_mr(RLC_AM_WINDOW_SIZE),
-  vr_x(0),
-  vr_ms(0),
-  vr_h(0),
-  num_rx_bytes(0),
-  poll_received(false),
-  do_status(false)
+  log(parent_->log)
 {
   reordering_timer_id = parent->mac_timers->timer_get_unique_id();
   reordering_timer    = parent->mac_timers->timer_get(reordering_timer_id);

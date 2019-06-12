@@ -30,13 +30,10 @@ rlc_tm::rlc_tm(srslte::log*                  log_,
                srslte::mac_interface_timers* mac_timers_,
                uint32_t                      queue_len_) :
   ul_queue(queue_len_),
-  tx_enabled(true),
   log(log_),
   pdcp(pdcp_),
   rrc(rrc_),
-  lcid(lcid_),
-  num_tx_bytes(0),
-  num_rx_bytes(0)
+  lcid(lcid_)
 {
   pool = byte_buffer_pool::get_instance();
 }

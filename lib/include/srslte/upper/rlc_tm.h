@@ -64,17 +64,16 @@ public:
   void     write_pdu(uint8_t *payload, uint32_t nof_bytes);
 
 private:
+  byte_buffer_pool*          pool = nullptr;
+  srslte::log*               log  = nullptr;
+  uint32_t                   lcid = 0;
+  srsue::pdcp_interface_rlc* pdcp = nullptr;
+  srsue::rrc_interface_rlc*  rrc  = nullptr;
 
-  byte_buffer_pool          *pool;
-  srslte::log               *log;
-  uint32_t                   lcid;
-  srsue::pdcp_interface_rlc *pdcp;
-  srsue::rrc_interface_rlc  *rrc;
+  bool tx_enabled = true;
 
-  bool tx_enabled;
-
-  uint32_t num_tx_bytes;
-  uint32_t num_rx_bytes;
+  uint32_t num_tx_bytes = 0;
+  uint32_t num_rx_bytes = 0;
 
   // Thread-safe queues for MAC messages
   rlc_tx_queue    ul_queue;
