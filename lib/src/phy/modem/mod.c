@@ -119,6 +119,13 @@ void mod_64qam_bytes(srslte_modem_table_t* q, uint8_t *bits, cf_t* symbols, uint
   }
 }
 
+void mod_256qam_bytes(srslte_modem_table_t* q, uint8_t* bits, cf_t* symbols, uint32_t nbits)
+{
+  for (int i = 0; i < nbits / 8; i++) {
+    symbols[i] = q->symbol_table[bits[i]];
+  }
+}
+
 /* Assumes packet bits as input */
 int srslte_mod_modulate_bytes(srslte_modem_table_t* q, uint8_t *bits, cf_t* symbols, uint32_t nbits) 
 {
@@ -143,7 +150,10 @@ int srslte_mod_modulate_bytes(srslte_modem_table_t* q, uint8_t *bits, cf_t* symb
       break;
     case 6:
       mod_64qam_bytes(q, bits, symbols, nbits);
-      break;      
+      break;
+    case 8:
+      mod_256qam_bytes(q, bits, symbols, nbits);
+      break;
     default:
       ERROR("srslte_mod_modulate_bytes() accepts QPSK/16QAM/64QAM modulations only\n");
       return -1; 

@@ -239,10 +239,11 @@ typedef enum SRSLTE_API {
 typedef enum SRSLTE_API { SRSLTE_MIMO_DECODER_ZF, SRSLTE_MIMO_DECODER_MMSE } srslte_mimo_decoder_t;
 
 typedef enum SRSLTE_API {
-  SRSLTE_MOD_BPSK = 0, 
-  SRSLTE_MOD_QPSK, 
-  SRSLTE_MOD_16QAM, 
+  SRSLTE_MOD_BPSK = 0,
+  SRSLTE_MOD_QPSK,
+  SRSLTE_MOD_16QAM,
   SRSLTE_MOD_64QAM,
+  SRSLTE_MOD_256QAM,
 } srslte_mod_t;
 
 typedef enum {

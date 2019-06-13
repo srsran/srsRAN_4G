@@ -52,3 +52,5 @@ void set_QPSKtable(cf_t* table);
 void set_16QAMtable(cf_t* table);
 
 void set_64QAMtable(cf_t* table);
+
+void set_256QAMtable(cf_t* table);

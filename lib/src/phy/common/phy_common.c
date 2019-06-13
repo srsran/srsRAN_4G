@@ -208,6 +208,8 @@ srslte_mod_t srslte_str2mod (char * mod_str) {
     return SRSLTE_MOD_16QAM;
   } else if (!strcmp(mod_str, "64QAM")) {
     return SRSLTE_MOD_64QAM;
+  } else if (!strcmp(mod_str, "256QAM")) {
+    return SRSLTE_MOD_256QAM;
   } else {
     return (srslte_mod_t) SRSLTE_ERROR_INVALID_INPUTS;
   }
@@ -224,6 +226,8 @@ char *srslte_mod_string(srslte_mod_t mod) {
     return "16QAM";
   case SRSLTE_MOD_64QAM:
     return "64QAM";
+  case SRSLTE_MOD_256QAM:
+    return "256QAM";
   default:
     return "N/A";
   } 
@@ -239,6 +243,8 @@ uint32_t srslte_mod_bits_x_symbol(srslte_mod_t mod) {
     return 4;
   case SRSLTE_MOD_64QAM:
     return 6;
+  case SRSLTE_MOD_256QAM:
+    return 8;
   default:
     return 0;
   }   

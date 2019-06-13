@@ -63,6 +63,9 @@ void parse_args(int argc, char **argv) {
       case 6:
         modulation = SRSLTE_MOD_64QAM;
         break;
+      case 8:
+        modulation = SRSLTE_MOD_256QAM;
+        break;
       default:
         ERROR("Invalid modulation %d. Possible values: "
               "(1: BPSK, 2: QPSK, 3: QAM16, 4: QAM64)\n",

@@ -27,6 +27,13 @@
 #define QAM64_THRESHOLD_1  2/sqrt(42)
 #define QAM64_THRESHOLD_2  4/sqrt(42)
 #define QAM64_THRESHOLD_3  6/sqrt(42)
+#define QAM256_THRESHOLD_1 2 / sqrt(170)
+#define QAM256_THRESHOLD_2 4 / sqrt(170)
+#define QAM256_THRESHOLD_3 6 / sqrt(170)
+#define QAM256_THRESHOLD_4 8 / sqrt(170)
+#define QAM256_THRESHOLD_5 10 / sqrt(170)
+#define QAM256_THRESHOLD_6 12 / sqrt(170)
+#define QAM256_THRESHOLD_7 14 / sqrt(170)
 
 void hard_bpsk_demod(const cf_t* in, 
                      uint8_t* out, 
@@ -43,3 +50,5 @@ void hard_qam16_demod(const cf_t* in,
 void hard_qam64_demod(const cf_t* in, 
                                  uint8_t* out, 
                                  uint32_t N);
+
+void hard_qam256_demod(const cf_t* in, uint8_t* out, uint32_t N);

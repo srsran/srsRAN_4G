@@ -53,6 +53,9 @@ void srslte_modem_table_free(srslte_modem_table_t* q) {
   if (q->symbol_table_16qam) {
     free(q->symbol_table_16qam);
   }
+  if (q->symbol_table_256qam) {
+    free(q->symbol_table_256qam);
+  }
   bzero(q, sizeof(srslte_modem_table_t));
 }
 void srslte_modem_table_reset(srslte_modem_table_t* q) {
@@ -108,6 +111,14 @@ int srslte_modem_table_lte(srslte_modem_table_t* q, srslte_mod_t modulation) {
     }
     set_64QAMtable(q->symbol_table);
     break;
+  case SRSLTE_MOD_256QAM:
+    q->nbits_x_symbol = 8;
+    q->nsymbols       = 256;
+    if (table_create(q)) {
+      return SRSLTE_ERROR;
+    }
+    set_256QAMtable(q->symbol_table);
+    break;
   }
   return SRSLTE_SUCCESS;
 }
@@ -146,6 +157,9 @@ void srslte_modem_table_bytes(srslte_modem_table_t* q) {
       break;
     case 6:
       q->byte_tables_init = true; 
+      break;
+    case 8:
+      q->byte_tables_init = true;
       break;
   }
 }
