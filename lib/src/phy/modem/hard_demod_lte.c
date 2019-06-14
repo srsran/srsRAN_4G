@@ -200,10 +200,7 @@ inline void hard_qam64_demod(const cf_t* in, uint8_t* out, uint32_t N)
 
 inline void hard_qam256_demod(const cf_t* in, uint8_t* out, uint32_t N)
 {
-  uint32_t s;
-
-  for (s = 0; s < N; s++) {
-
+  for (uint32_t s = 0; s < N; s++) {
     if (__real__ in[s] > 0) {
       out[8 * s] = 0x0;
     } else {
