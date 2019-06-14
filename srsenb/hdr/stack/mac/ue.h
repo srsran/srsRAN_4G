@@ -107,9 +107,8 @@ private:
   uint8_t* pending_buffers[NOF_RX_HARQ_PROCESSES];
 
   // For DL there are two buffers, one for each Transport block
-  const static int payload_buffer_len = 128*1024; 
-  uint8_t          tx_payload_buffer[SRSLTE_MAX_TB][payload_buffer_len];
-  
+  srslte::byte_buffer_t tx_payload_buffer[SRSLTE_MAX_TB];
+
   // For UL there are multiple buffers per PID and are managed by pdu_queue
   srslte::pdu_queue pdus; 
   srslte::sch_pdu mac_msg_dl, mac_msg_ul;

@@ -49,9 +49,20 @@ mac::mac() : timers(64), pdu_process_thread(&demux_unit), mch_msg(10), pcap(null
   ul_harq.push_back(std::move(ul));
   dl_harq.push_back(std::move(dl));
 
+  srslte_softbuffer_rx_init(&pch_softbuffer, 100);
+  srslte_softbuffer_rx_init(&mch_softbuffer, 100);
+
   // Keep initialising members
   bzero(&metrics, sizeof(mac_metrics_t));
   clear_rntis();
+}
+
+mac::~mac()
+{
+  stop();
+
+  srslte_softbuffer_rx_free(&pch_softbuffer);
+  srslte_softbuffer_rx_free(&mch_softbuffer);
 }
 
 bool mac::init(phy_interface_mac_lte* phy, rlc_interface_mac* rlc, rrc_interface_mac* rrc, srslte::log* log_h_)
@@ -60,9 +71,6 @@ bool mac::init(phy_interface_mac_lte* phy, rlc_interface_mac* rlc, rrc_interface
   rlc_h = rlc;
   rrc_h = rrc;
   log_h = log_h_;
-
-  srslte_softbuffer_rx_init(&pch_softbuffer, 100);
-  srslte_softbuffer_rx_init(&mch_softbuffer, 100);
 
   timer_alignment                      = timers.get_unique_id();
   uint32_t contention_resolution_timer = timers.get_unique_id();
@@ -86,9 +94,6 @@ bool mac::init(phy_interface_mac_lte* phy, rlc_interface_mac* rlc, rrc_interface
 
 void mac::stop()
 {
-  srslte_softbuffer_rx_free(&pch_softbuffer);
-  srslte_softbuffer_rx_free(&mch_softbuffer);
-
   pdu_process_thread.stop();
 
   run_tti(0); // make sure it's not locked after last TTI
@@ -165,9 +170,21 @@ void mac::reset()
   bsr_procedure.reset();
   phr_procedure.reset();
 
-  // Setup default LCID 0 and LCID1
-  setup_lcid(0, 0, 99, -1, -1);
-  setup_lcid(1, 0, 98, -1, -1);
+  // Setup default LCID 0 with highest priority
+  logical_channel_config_t config = {};
+  config.lcid                     = 0;
+  config.lcg                      = 0;
+  config.PBR                      = -1;
+  config.BSD                      = 50;
+  config.priority                 = 0;
+  setup_lcid(config);
+
+  // and LCID 1 with lower priority
+  config.lcid     = 1;
+  config.priority = 1;
+  setup_lcid(config);
+
+  mux_unit.print_logical_channel_state("After MAC reset:");
   is_first_ul_grant = true;
 
   clear_rntis();
@@ -547,10 +564,25 @@ void mac::set_config(mac_cfg_t& mac_cfg)
 
 void mac::setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority, int PBR_x_tti, uint32_t BSD)
 {
+  logical_channel_config_t config = {};
+  config.lcid                     = lcid;
+  config.lcg                      = lcg;
+  config.priority                 = priority;
+  config.PBR                      = PBR_x_tti;
+  config.BSD                      = BSD;
+  setup_lcid(config);
+}
+
+void mac::setup_lcid(const logical_channel_config_t& config)
+{
   Info("Logical Channel Setup: LCID=%d, LCG=%d, priority=%d, PBR=%d, BSd=%d\n",
-       lcid, lcg, priority, PBR_x_tti, BSD);
-  mux_unit.set_priority(lcid, priority, PBR_x_tti, BSD);
-  bsr_procedure.setup_lcid(lcid, lcg, priority);
+       config.lcid,
+       config.lcg,
+       config.priority,
+       config.PBR,
+       config.BSD);
+  mux_unit.setup_lcid(config);
+  bsr_procedure.setup_lcid(config.lcid, config.lcg, config.priority);
 }
 
 void mac::mch_start_rx(uint32_t lcid)
@@ -648,12 +680,14 @@ mac::pdu_process::~pdu_process()
 
 void mac::pdu_process::stop()
 {
-  mutex.lock();
-  running = false;
-  cvar.notify_all();
-  mutex.unlock();
-
-  wait_thread_finish();
+  if (running) {
+    {
+      std::lock_guard<std::mutex> ul(mutex);
+      running = false;
+      cvar.notify_all();
+    }
+    wait_thread_finish();
+  }
 }
 
 void mac::pdu_process::notify()

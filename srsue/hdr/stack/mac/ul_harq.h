@@ -36,6 +36,8 @@
 #include "srslte/interfaces/ue_interfaces.h"
 #include "ul_sps.h"
 
+using namespace srslte;
+
 namespace srsue {
 
 class ul_harq_entity {
@@ -93,7 +95,7 @@ private:
     srslte_softbuffer_tx_t softbuffer;
 
     const static int payload_buffer_len = 128 * 1024;
-    uint8_t*         payload_buffer;
+    std::unique_ptr<byte_buffer_t> payload_buffer     = nullptr;
     uint8_t*         pdu_ptr;
 
     void generate_tx(mac_interface_phy_lte::tb_action_ul_t* action);

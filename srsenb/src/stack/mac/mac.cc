@@ -747,10 +747,11 @@ int mac::get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_t* dl_sched_res)
 
 uint8_t* mac::assemble_rar(sched_interface::dl_sched_rar_grant_t* grants, uint32_t nof_grants, int rar_idx, uint32_t pdu_len)
 {
-  uint8_t grant_buffer[64];
+  uint8_t grant_buffer[64] = {};
   if (pdu_len < rar_payload_len) {
     srslte::rar_pdu *pdu = &rar_pdu_msg[rar_idx];
-    pdu->init_tx(rar_payload[rar_idx], pdu_len);
+    rar_payload[rar_idx].clear();
+    pdu->init_tx(&rar_payload[rar_idx], pdu_len);
     for (uint32_t i = 0; i < nof_grants; i++) {
       srslte_dci_rar_pack(&grants[i].grant, grant_buffer);
       if (pdu->new_subh()) {
@@ -763,8 +764,8 @@ uint8_t* mac::assemble_rar(sched_interface::dl_sched_rar_grant_t* grants, uint32
         bzero(&pending_rars[idx], sizeof(pending_rar_t));
       }
     }
-    pdu->write_packet(rar_payload[rar_idx]);
-    return rar_payload[rar_idx];
+    pdu->write_packet(rar_payload[rar_idx].msg);
+    return rar_payload[rar_idx].msg;
   } else {
     Error("Assembling RAR: pdu_len > rar_payload_len (%d>%d)\n", pdu_len, rar_payload_len);
     return NULL;

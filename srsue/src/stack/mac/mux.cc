@@ -42,7 +42,7 @@ mux::mux() : pdu_msg(MAX_NOF_SUBHEADERS)
   rlc   = NULL; 
   bsr_procedure = NULL; 
   phr_procedure = NULL;
-  msg3_buff_start_pdu = NULL;
+  //  msg3_buff_start_pdu = NULL;
 
   msg3_flush();
 }
@@ -58,8 +58,8 @@ void mux::init(rlc_interface_mac *rlc_, srslte::log *log_h_, bsr_interface_mux *
 
 void mux::reset()
 {
-  for (uint32_t i=0;i<lch.size();i++) {
-    lch[i].Bj = 0;
+  for (uint32_t i = 0; i < logical_channels.size(); i++) {
+    logical_channels[i].Bj = 0;
   }
   msg3_pending = false;
   pending_crnti_ce = 0;
@@ -67,63 +67,78 @@ void mux::reset()
 
 bool mux::is_pending_any_sdu()
 {
-  for (uint32_t i=0;i<lch.size();i++) {
-    if (rlc->has_data(lch[i].id)) {
+  for (uint32_t i = 0; i < logical_channels.size(); i++) {
+    if (rlc->has_data(logical_channels[i].lcid)) {
       return true; 
     }
   }
   return false; 
 }
 
-bool mux::is_pending_sdu(uint32_t lch_id) {
-  return rlc->has_data(lch_id);
-}
-
-int mux::find_lchid(uint32_t lcid) 
+bool mux::has_logical_channel(const uint32_t& lcid)
 {
-  for (uint32_t i=0;i<lch.size();i++) {
-    if(lch[i].id == lcid) {
-      return i;
+  for (auto& channel : logical_channels) {
+    if (channel.lcid == lcid) {
+      return true;
     }
   }
-  return -1; 
+  return false;
 }
 
-bool sortPriority(lchid_t u1, lchid_t u2) {
-  return u1.priority < u2.priority; 
-}
-
-void mux::clear_lch(uint32_t lch_id)
+bool priority_compare(const logical_channel_config_t& u1, const logical_channel_config_t& u2)
 {
-  int pos = find_lchid(lch_id);
-  if (pos >= 0) {
-    lch.erase(lch.begin()+pos);
-  } else {
-    Error("Deleting logical channel id %d. Does not exist\n", lch_id);
-  }
+  return u1.priority <= u2.priority;
 }
 
-void mux::set_priority(uint32_t lch_id, uint32_t new_priority, int set_PBR, uint32_t set_BSD)
+void mux::setup_lcid(const logical_channel_config_t& config)
 {
-  int pos = find_lchid(lch_id);
-    
-  // Create new channel if it does not exist
-  if (pos < 0) {
-    lchid_t ch; 
-    ch.id       = lch_id; 
-    ch.priority = new_priority; 
-    ch.BSD      = set_BSD; 
-    ch.PBR      = set_PBR; 
-    ch.Bj       = 0; 
-    lch.push_back(ch);
+  if (has_logical_channel(config.lcid)) {
+    // update settings
+    for (auto& channel : logical_channels) {
+      if (channel.lcid == config.lcid) {
+        channel = config;
+        break;
+      }
+    }
+    // warn user if there is another LCID with same prio
+    for (auto& channel : logical_channels) {
+      if (channel.priority == config.priority) {
+        log_h->warning("LCID %d and %d have same priority.\n", channel.lcid, config.lcid);
+      }
+    }
   } else {
-    lch[pos].priority = new_priority; 
-    lch[pos].PBR      = set_PBR; 
-    lch[pos].BSD      = set_BSD;     
+    // add new entry
+    logical_channels.push_back(config);
   }
-  
+
   // sort according to priority (increasing is lower priority)
-  std::sort(lch.begin(), lch.end(), sortPriority); 
+  std::sort(logical_channels.begin(), logical_channels.end(), priority_compare);
+}
+
+void mux::print_logical_channel_state(const std::string& info)
+{
+  std::string logline = info;
+
+  for (auto& channel : logical_channels) {
+    logline += "\n";
+    logline += "- lcid=";
+    logline += std::to_string(channel.lcid);
+    logline += ", lcg=";
+    logline += std::to_string(channel.lcg);
+    logline += ", prio=";
+    logline += std::to_string(channel.priority);
+    logline += ", Bj=";
+    logline += std::to_string(channel.Bj);
+    logline += ", PBR=";
+    logline += std::to_string(channel.PBR);
+    logline += ", BSD=";
+    logline += std::to_string(channel.BSD);
+    logline += ", buffer_len=";
+    logline += std::to_string(channel.buffer_len);
+    logline += ", sched_len=";
+    logline += std::to_string(channel.sched_len);
+  }
+  log_h->debug("%s\n", logline.c_str());
 }
 
 srslte::sch_subh::cetype bsr_format_convert(bsr_proc::bsr_format_t format) {
@@ -139,28 +154,30 @@ srslte::sch_subh::cetype bsr_format_convert(bsr_proc::bsr_format_t format) {
 }
 
 // Multiplexing and logical channel priorization as defined in Section 5.4.3
-uint8_t* mux::pdu_get(uint8_t* payload, uint32_t pdu_sz, uint32_t pid)
+uint8_t* mux::pdu_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
 {
   pthread_mutex_lock(&mutex);
-    
-  // Update Bj
-  for (uint32_t i=0;i<lch.size();i++) {
-    // Add PRB unless it's infinity 
-    if (lch[i].PBR >= 0) {
-      lch[i].Bj += lch[i].PBR;
+
+  // Reset sched_len and update Bj
+  for (auto& channel : logical_channels) {
+    // Add PRB unless it's infinity
+    if (channel.PBR >= 0) {
+      channel.Bj += channel.PBR;
     }
-    if (lch[i].Bj >= (int)lch[i].BSD) {
-      lch[i].Bj = lch[i].BSD*lch[i].PBR; 
-    }    
+    if (channel.Bj >= (int)channel.BSD) {
+      channel.Bj = channel.BSD * channel.PBR;
+    }
+    channel.sched_len = 0;
   }
   
   // Logical Channel Procedure
   bool is_rar = false;
 
+  payload->clear();
   pdu_msg.init_tx(payload, pdu_sz, true);
 
   // MAC control element for C-RNTI or data from UL-CCCH
-  if (!allocate_sdu(0, &pdu_msg, -1)) {
+  if (!allocate_sdu(0, &pdu_msg, pdu_sz)) {
     if (pending_crnti_ce) {
       is_rar = true;
       if (pdu_msg.new_subh()) {
@@ -175,8 +192,10 @@ uint8_t* mux::pdu_get(uint8_t* payload, uint32_t pdu_sz, uint32_t pid)
     }
     is_rar = true;
   }
-  pending_crnti_ce = 0; 
-  
+  pending_crnti_ce = 0;
+
+  print_logical_channel_state("after CCCH scheduling");
+
   bsr_proc::bsr_t bsr; 
   bool regular_bsr = bsr_procedure->need_to_send_bsr_on_ul_grant(pdu_msg.rem_size(), &bsr);
 
@@ -197,43 +216,44 @@ uint8_t* mux::pdu_get(uint8_t* payload, uint32_t pdu_sz, uint32_t pid)
     }
   }
 
+  // FIXME: IMHO, it should not matter if this is a RAR UL or a normal UL, we fill the grant
   if (!is_rar) {
     // Update buffer states for all logical channels
-    int sdu_space = pdu_msg.get_sdu_space();
-    for (uint32_t i=0;i<lch.size();i++) {
-      lch[i].buffer_len = rlc->get_buffer_state(lch[i].id);
-      lch[i].sched_len  = 0;
+    for (auto& channel : logical_channels) {
+      channel.buffer_len = rlc->get_buffer_state(channel.lcid);
     }
+
+    int sdu_space = pdu_msg.get_sdu_space();
 
     // data from any Logical Channel, except data from UL-CCCH;
     // first only those with positive Bj
-    for (uint32_t i=0;i<lch.size();i++) {
-      if (lch[i].id != 0) {
-        if (sched_sdu(&lch[i], &sdu_space, (lch[i].PBR<0)?-1:lch[i].Bj) && lch[i].PBR >= 0) {
-          lch[i].Bj -= lch[i].sched_len;
+    for (auto& channel : logical_channels) {
+      // FIXME: IMHO we should not care if we read from UL-CCCH, the specs say "except" but CCCH has always
+      // higher priority, so if there is data, it should be allocated
+      if (channel.lcid != 0) {
+        int max_sdu_sz = (channel.PBR < 0) ? -1 : channel.Bj; // this can be zero if no PBR has been allocated
+        if (max_sdu_sz != 0) {
+          if (sched_sdu(&channel, &sdu_space, max_sdu_sz)) {
+            channel.Bj -= channel.sched_len;
+          }
         }
       }
     }
+
+    print_logical_channel_state("First round of allocation:");
 
     // If resources remain, allocate regardless of their Bj value
-    for (uint32_t i=0;i<lch.size();i++) {
-      if (lch[i].id != 0) {
-        sched_sdu(&lch[i], &sdu_space, -1);
+    for (auto& channel : logical_channels) {
+      if (channel.lcid != 0) {
+        sched_sdu(&channel, &sdu_space, -1);
       }
     }
 
-    // Maximize the dci utilization
-    if (lch.size() > 0) {
-      for (int i=(int)lch.size()-1;i>=0;i--) {
-        if (lch[i].sched_len > 0) {
-          lch[i].sched_len = -1;
-          break;
-        }
-      }
-    }
-    for (uint32_t i=0;i<lch.size();i++) {
-      if (lch[i].sched_len != 0) {
-        allocate_sdu(lch[i].id, &pdu_msg, lch[i].sched_len);
+    print_logical_channel_state("Second round of allocation:");
+
+    for (auto& channel : logical_channels) {
+      if (channel.sched_len != 0) {
+        allocate_sdu(channel.lcid, &pdu_msg, channel.sched_len);
       }
     }
   }
@@ -261,9 +281,8 @@ void mux::append_crnti_ce_next_tx(uint16_t crnti) {
   pending_crnti_ce = crnti; 
 }
 
-bool mux::sched_sdu(lchid_t *ch, int *sdu_space, int max_sdu_sz) 
+bool mux::sched_sdu(logical_channel_config_t* ch, int* sdu_space, int max_sdu_sz)
 {
- 
   if (*sdu_space > 0) {
     // Get n-th pending SDU pointer and length
     int sched_len = ch->buffer_len;     
@@ -273,13 +292,22 @@ bool mux::sched_sdu(lchid_t *ch, int *sdu_space, int max_sdu_sz)
       }
       if (sched_len > *sdu_space) {
         sched_len = *sdu_space;
-      }        
+      }
 
       log_h->debug("SDU:   scheduled lcid=%d, rlc_buffer=%d, allocated=%d/%d\n",
-                   ch->id, ch->buffer_len, sched_len, sdu_space?*sdu_space:0);
-      
-      *sdu_space     -= sched_len; 
-      ch->buffer_len -= sched_len; 
+                   ch->lcid,
+                   ch->buffer_len,
+                   sched_len,
+                   sdu_space ? *sdu_space : 0);
+
+      *sdu_space     -= sched_len;
+      ch->buffer_len -= sched_len;
+
+      if (ch->sched_len == 0) {
+        // account for header for the first time
+        *sdu_space -= sch_pdu::size_header_sdu(sched_len);
+      }
+
       ch->sched_len  += sched_len; 
       return true; 
     }
@@ -289,33 +317,46 @@ bool mux::sched_sdu(lchid_t *ch, int *sdu_space, int max_sdu_sz)
 
 bool mux::allocate_sdu(uint32_t lcid, srslte::sch_pdu* pdu_msg, int max_sdu_sz) 
 {
-  // Get n-th pending SDU pointer and length
   bool sdu_added = false;
+  int  sdu_space = max_sdu_sz;
   int sdu_len = rlc->get_buffer_state(lcid);
 
-  while (sdu_len > 0) { // there is pending SDU to allocate
+  while (sdu_len > 0 && sdu_space >= MIN_RLC_SDU_LEN) { // there is pending SDU to allocate
     int buffer_state = sdu_len; 
     if (sdu_len > max_sdu_sz && max_sdu_sz >= 0) {
       sdu_len = max_sdu_sz;
     }
-    int sdu_space = pdu_msg->get_sdu_space();
     if (sdu_len > sdu_space || max_sdu_sz < 0) {
       sdu_len = sdu_space;
     }
-    if (sdu_len > MIN_RLC_SDU_LEN) {
+    if (sdu_len >= MIN_RLC_SDU_LEN) {
       if (pdu_msg->new_subh()) { // there is space for a new subheader
         sdu_len = pdu_msg->get()->set_sdu(lcid, sdu_len, rlc);
         if (sdu_len > 0) { // new SDU could be added
           Debug("SDU:   allocated lcid=%d, rlc_buffer=%d, allocated=%d/%d, max_sdu_sz=%d, remaining=%d\n",
                  lcid, buffer_state, sdu_len, sdu_space, max_sdu_sz, pdu_msg->rem_size());
-          sdu_len = rlc->get_buffer_state(lcid);
+          sdu_space -= sdu_len;
           sdu_added = true;
+
+          sdu_len = rlc->get_buffer_state(lcid);
         } else {
           Warning("SDU:   rlc_buffer=%d, allocated=%d/%d, remaining=%d\n", 
                buffer_state, sdu_len, sdu_space, pdu_msg->rem_size());
           pdu_msg->del_subh();
         }
-      } 
+      } else {
+        Warning("SDU:   rlc_buffer=%d, allocated=%d/%d, remaining=%d\n",
+                buffer_state,
+                sdu_len,
+                sdu_space,
+                pdu_msg->rem_size());
+      }
+    } else {
+      Warning("SDU:   rlc_buffer=%d, allocated=%d/%d, remaining=%d\n",
+              buffer_state,
+              sdu_len,
+              sdu_space,
+              pdu_msg->rem_size());
     }
   }
   return sdu_added;
@@ -328,8 +369,6 @@ void mux::msg3_flush()
   }
   msg3_has_been_transmitted = false;
   msg3_pending = false;
-  bzero(msg3_buff, sizeof(MSG3_BUFF_SZ));
-  msg3_buff_start_pdu = NULL;
 }
 
 bool mux::msg3_is_transmitted()
@@ -346,26 +385,14 @@ bool mux::msg3_is_pending() {
 }
 
 /* Returns a pointer to the Msg3 buffer */
-uint8_t* mux::msg3_get(uint8_t *payload, uint32_t pdu_sz)
+uint8_t* mux::msg3_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
 {
-  if (pdu_sz < MSG3_BUFF_SZ - 32) {
-    if (!msg3_buff_start_pdu) {
-      msg3_buff_start_pdu = pdu_get(msg3_buff, pdu_sz, 0);
-      if (!msg3_buff_start_pdu) {
-        Error("Moving PDU from Mux unit to Msg3 buffer\n");
-        return NULL;
-      }
-      msg3_has_been_transmitted = true;
-      msg3_pending = false;
-    }
-  } else {
-    Error("Msg3 size (%d) is longer than internal msg3_buff size=%d, (see mux.h)\n", pdu_sz, MSG3_BUFF_SZ-32);
-    return NULL;
+  if (pdu_get(payload, pdu_sz) != nullptr) {
+    msg3_pending              = false;
+    msg3_has_been_transmitted = true;
+    return payload->msg;
   }
-  memcpy(payload, msg3_buff_start_pdu, sizeof(uint8_t)*pdu_sz);
-  msg3_has_been_transmitted = true;
-  return payload;
+  return nullptr;
 }
 
-  
 }

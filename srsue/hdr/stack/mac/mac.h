@@ -50,6 +50,7 @@ class mac : public mac_interface_phy_lte,
 {
 public:
   mac();
+  ~mac();
   bool init(phy_interface_mac_lte* phy, rlc_interface_mac* rlc, rrc_interface_mac* rrc, srslte::log* log_h);
   void stop();
 
@@ -75,8 +76,9 @@ public:
   /******** Interface from RRC (RRC -> MAC) ****************/
   void bcch_start_rx(int si_window_start, int si_window_length);
   void bcch_stop_rx();
-  void pcch_start_rx(); 
+  void pcch_start_rx();
   void setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority, int PBR_x_tti, uint32_t BSD);
+  void setup_lcid(const logical_channel_config_t& config);
   void mch_start_rx(uint32_t lcid);
   void reconfiguration(const uint32_t& cc_idx, const bool& enable);
   void reset();

@@ -148,9 +148,6 @@ ul_harq_entity::ul_harq_process::ul_harq_process()
 ul_harq_entity::ul_harq_process::~ul_harq_process()
 {
   if (is_initiated) {
-    if (payload_buffer) {
-      free(payload_buffer);
-    }
     srslte_softbuffer_tx_free(&softbuffer);
   }
 }
@@ -167,12 +164,12 @@ bool ul_harq_entity::ul_harq_process::init(uint32_t pid, ul_harq_entity* parent)
   is_initiated = true;
   this->pid    = pid;
 
-  payload_buffer = (uint8_t*)srslte_vec_malloc(payload_buffer_len * sizeof(uint8_t));
+  payload_buffer = std::unique_ptr<byte_buffer_t>(new byte_buffer_t);
   if (!payload_buffer) {
     Error("Allocating memory\n");
     return false;
   }
-  pdu_ptr = payload_buffer;
+  pdu_ptr = payload_buffer->msg;
   return true;
 }
 
@@ -182,6 +179,7 @@ void ul_harq_entity::ul_harq_process::reset()
   current_irv         = 0;
   is_grant_configured = false;
   bzero(&cur_grant, sizeof(mac_interface_phy_lte::mac_grant_ul_t));
+  payload_buffer->clear();
 }
 
 void ul_harq_entity::ul_harq_process::reset_ndi()
@@ -256,7 +254,7 @@ void ul_harq_entity::ul_harq_process::new_grant_ul(mac_interface_phy_lte::mac_gr
       if (grant_is_rar()) {
         if (harq_entity->mux_unit->msg3_is_pending()) {
           Debug("Getting Msg3 buffer payload, dci size=%d bytes\n", grant.tb.tbs);
-          pdu_ptr = harq_entity->mux_unit->msg3_get(payload_buffer, grant.tb.tbs);
+          pdu_ptr = harq_entity->mux_unit->msg3_get(payload_buffer.get(), grant.tb.tbs);
           if (pdu_ptr) {
             generate_new_tx(grant, action);
           } else {
@@ -268,7 +266,7 @@ void ul_harq_entity::ul_harq_process::new_grant_ul(mac_interface_phy_lte::mac_gr
         // Normal UL dci
       } else {
         // Request a MAC PDU from the Multiplexing & Assemble Unit
-        pdu_ptr = harq_entity->mux_unit->pdu_get(payload_buffer, grant.tb.tbs, pid);
+        pdu_ptr = harq_entity->mux_unit->pdu_get(payload_buffer.get(), grant.tb.tbs);
         if (pdu_ptr) {
           generate_new_tx(grant, action);
         } else {

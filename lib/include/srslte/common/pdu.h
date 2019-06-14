@@ -47,7 +47,6 @@ public:
     last_sdu_idx(-1),
     pdu_is_ul(false),
     buffer_tx(nullptr),
-    sdu_offset_start(0),
     total_sdu_len(0)
   {
   }
@@ -71,9 +70,9 @@ public:
 
   void init_rx(uint32_t pdu_len_bytes, bool is_ulsch = false) { init_(NULL, pdu_len_bytes, is_ulsch); }
 
-  void init_tx(uint8_t* payload, uint32_t pdu_len_bytes, bool is_ulsch = false)
+  void init_tx(byte_buffer_t* buffer, uint32_t pdu_len_bytes, bool is_ulsch = false)
   {
-    init_(payload, pdu_len_bytes, is_ulsch);
+    init_(buffer, pdu_len_bytes, is_ulsch);
   }
 
   uint32_t nof_subh() { return nof_subheaders; }
@@ -82,10 +81,9 @@ public:
   {
     if (nof_subheaders < (int)max_subheaders - 1 && rem_len > 0) {
       nof_subheaders++;
-      next();
-      return true;
+      return next();
     } else {
-      return false;
+      return -1;
     }
   }
 
@@ -120,9 +118,13 @@ public:
 
   bool is_ul() { return pdu_is_ul; }
 
-  uint8_t* get_current_sdu_ptr() { return &buffer_tx[total_sdu_len + sdu_offset_start]; }
+  uint8_t* get_current_sdu_ptr() { return (buffer_tx->msg + total_sdu_len); }
 
-  void add_sdu(uint32_t sdu_sz) { total_sdu_len += sdu_sz; }
+  void add_sdu(uint32_t sdu_sz)
+  {
+    buffer_tx->N_bytes += sdu_sz;
+    total_sdu_len += sdu_sz;
+  }
 
   // Section 6.1.2
   void parse_packet(uint8_t* ptr)
@@ -150,20 +152,18 @@ protected:
   int               nof_subheaders;
   uint32_t          max_subheaders;
   bool              pdu_is_ul;
-  uint8_t*          buffer_tx;
+  byte_buffer_t*    buffer_tx = nullptr;
   uint32_t          total_sdu_len;
-  uint32_t          sdu_offset_start;
   int               last_sdu_idx;
 
   /* Prepares the PDU for parsing or writing by setting the number of subheaders to 0 and the pdu length */
-  virtual void init_(uint8_t* buffer_tx_ptr, uint32_t pdu_len_bytes, bool is_ulsch)
+  virtual void init_(byte_buffer_t* buffer_tx_, uint32_t pdu_len_bytes, bool is_ulsch)
   {
     nof_subheaders   = 0;
     pdu_len          = pdu_len_bytes;
     rem_len          = pdu_len;
     pdu_is_ul        = is_ulsch;
-    buffer_tx        = buffer_tx_ptr;
-    sdu_offset_start = max_subheaders * 2 + 13; // Assuming worst-case 2 bytes per sdu subheader + all possible CE
+    buffer_tx        = buffer_tx_;
     total_sdu_len    = 0;
     last_sdu_idx     = -1;
     reset();
@@ -198,18 +198,7 @@ private:
 class sch_subh : public subh<sch_subh>
 {
 public:
-  sch_subh(subh_type type_ = SCH_SUBH_TYPE)
-  {
-    lcid             = 0;
-    nof_bytes        = 0;
-    payload          = NULL;
-    nof_mch_sched_ce = 0;
-    cur_mch_sched_ce = 0;
-    F_bit            = false;
-    type             = type_;
-    parent           = NULL;
-    bzero(&w_payload_ce, sizeof(w_payload_ce));
-  }
+  sch_subh(subh_type type_ = SCH_SUBH_TYPE) : type(type_) {}
 
   virtual ~sch_subh() {}
 
@@ -288,14 +277,14 @@ public:
 
 protected:
   static const int MAX_CE_PAYLOAD_LEN = 8;
-  uint32_t         lcid;
-  int              nof_bytes;
-  uint8_t*         payload;
-  uint8_t          w_payload_ce[64];
-  uint8_t          nof_mch_sched_ce;
-  uint8_t          cur_mch_sched_ce;
-  bool             F_bit;
-  subh_type        type;
+  uint32_t         lcid               = 0;
+  int              nof_bytes          = 0;
+  uint8_t*         payload            = nullptr;
+  uint8_t          w_payload_ce[64]   = {};
+  uint8_t          nof_mch_sched_ce   = 0;
+  uint8_t          cur_mch_sched_ce   = 0;
+  bool             F_bit              = false;
+  subh_type        type               = SCH_SUBH_TYPE;
 
 private:
   uint32_t       sizeof_ce(uint32_t lcid, bool is_ul);
@@ -401,20 +390,17 @@ public:
 
 private:
   /* Prepares the PDU for parsing or writing by setting the number of subheaders to 0 and the pdu length */
-  virtual void init_(uint8_t* buffer_tx_ptr, uint32_t pdu_len_bytes, bool is_ulsch)
+  virtual void init_(byte_buffer_t* buffer_tx_, uint32_t pdu_len_bytes, bool is_ulsch)
   {
     nof_subheaders   = 0;
     pdu_len          = pdu_len_bytes;
     rem_len          = pdu_len;
     pdu_is_ul        = is_ulsch;
-    buffer_tx        = buffer_tx_ptr;
-    sdu_offset_start = max_subheaders * 2 + 13; // Assuming worst-case 2 bytes per sdu subheader + all possible CE
+    buffer_tx        = buffer_tx_;
     total_sdu_len    = 0;
     last_sdu_idx     = -1;
     reset();
     for (uint32_t i = 0; i < max_subheaders; i++) {
-      mch_subh mch_subh1;
-      subheaders[i]        = mch_subh1;
       subheaders[i].parent = this;
       subheaders[i].init();
     }

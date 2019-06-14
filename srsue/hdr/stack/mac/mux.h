@@ -26,24 +26,26 @@
 
 #include <vector>
 
-#include "srslte/common/log.h"
-#include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/common/pdu.h"
 #include "proc_bsr.h"
 #include "proc_phr.h"
+#include "srslte/common/common.h"
+#include "srslte/common/log.h"
+#include "srslte/common/pdu.h"
+#include "srslte/interfaces/ue_interfaces.h"
 
 /* Logical Channel Multiplexing and Prioritization + Msg3 Buffer */   
 
 
 typedef struct {
-  uint32_t      id;
-  int           Bj;
-  int           PBR; // -1 sets to infinity
-  uint32_t      BSD;
-  uint32_t      priority;    
-  int           sched_len;
-  int           buffer_len; 
-} lchid_t; 
+  uint8_t  lcid;
+  uint8_t  lcg;
+  int      Bj;
+  int      PBR; // -1 sets to infinity
+  uint32_t BSD;
+  uint32_t priority;
+  int      sched_len;
+  int      buffer_len;
+} logical_channel_config_t;
 
 namespace srsue {
   
@@ -57,30 +59,31 @@ public:
   bool     is_pending_any_sdu();
   bool     is_pending_sdu(uint32_t lcid);
 
-  uint8_t* pdu_get(uint8_t* payload, uint32_t pdu_sz, uint32_t pid);
-  uint8_t* msg3_get(uint8_t* payload, uint32_t pdu_sz);
-  
+  uint8_t* pdu_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz);
+  uint8_t* msg3_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz);
+
   void     msg3_flush();
   bool     msg3_is_transmitted();
 
   void     msg3_prepare();
   bool     msg3_is_pending();
-  
-  void     append_crnti_ce_next_tx(uint16_t crnti); 
-  
-  void     set_priority(uint32_t lcid, uint32_t priority, int PBR_x_tti, uint32_t BSD);
-  void     clear_lch(uint32_t lch_id);
 
-private:  
-  int      find_lchid(uint32_t lch_id);
+  void append_crnti_ce_next_tx(uint16_t crnti);
+
+  void setup_lcid(const logical_channel_config_t& config);
+
+  void print_logical_channel_state(const std::string& info);
+
+private:
+  bool     has_logical_channel(const uint32_t& lcid);
   bool     pdu_move_to_msg3(uint32_t pdu_sz);
   bool     allocate_sdu(uint32_t lcid, srslte::sch_pdu *pdu, int max_sdu_sz);
-  bool     sched_sdu(lchid_t *ch, int *sdu_space, int max_sdu_sz);
-  
-  const static int MIN_RLC_SDU_LEN = 0; 
+  bool     sched_sdu(logical_channel_config_t* ch, int* sdu_space, int max_sdu_sz);
+
+  const static int MIN_RLC_SDU_LEN    = 2;
   const static int MAX_NOF_SUBHEADERS = 20;
 
-  std::vector<lchid_t> lch;
+  std::vector<logical_channel_config_t> logical_channels;
 
   // Mutex for exclusive access
   pthread_mutex_t mutex; 
@@ -92,9 +95,7 @@ private:
   uint16_t           pending_crnti_ce;
 
   /* Msg3 Buffer */
-  static const uint32_t MSG3_BUFF_SZ = 1024;
-  uint8_t               msg3_buff[MSG3_BUFF_SZ];
-  uint8_t              *msg3_buff_start_pdu;
+  srslte::byte_buffer_t msg_buff;
 
   /* PDU Buffer */
   srslte::sch_pdu    pdu_msg; 
