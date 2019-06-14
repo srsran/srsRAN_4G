@@ -125,6 +125,11 @@ void mac::reconfiguration(const uint32_t& cc_idx, const bool& enable)
     while (dl_harq.size() < cc_idx + 1) {
       auto dl = dl_harq_entity_ptr(new dl_harq_entity());
       dl->init(log_h, &uernti, timers.get(timer_alignment), &demux_unit);
+
+      if (pcap) {
+        dl->start_pcap(pcap);
+      }
+
       dl_harq.push_back(std::move(dl));
     }
   }
