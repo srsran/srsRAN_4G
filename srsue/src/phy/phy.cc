@@ -183,8 +183,8 @@ void phy::run_thread()
   for (uint32_t i=0;i<nof_workers;i++) {
     auto w = std::unique_ptr<sf_worker>(
         new sf_worker(SRSLTE_MAX_PRB, &common, (srslte::log*)log_vec[i], (srslte::log*)log_vec[nof_workers], &sfsync));
-    workers.push_back(std::move(w));
     workers_pool.init_worker(i, w.get(), WORKERS_THREAD_PRIO, args.worker_cpu_mask);
+    workers.push_back(std::move(w));
   }
 
   // Load Asynchronous SCell objects
