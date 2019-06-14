@@ -107,36 +107,36 @@ public:
 
 
 private:
-  srslte::log *log;
+  srslte::log* log = nullptr;
 
   // User data
-  uint8_t     amf[2];  // 3GPP 33.102 v10.0.0 Annex H
-  uint8_t     op[16];
-  uint64_t    imsi;
-  uint64_t    imei;
-  uint8_t     k[16];
+  uint8_t  amf[2] = {}; // 3GPP 33.102 v10.0.0 Annex H
+  uint8_t  op[16] = {};
+  uint64_t imsi   = 0;
+  uint64_t imei   = 0;
+  uint8_t  k[16]  = {};
 
   std::string imsi_str;
   std::string imei_str;
 
-  uint32_t    mnc_length;
+  uint32_t mnc_length = 0;
 
   // Security variables
-  uint8_t     rand[AKA_RAND_LEN];
-  uint8_t     ck[CK_LEN];
-  uint8_t     ik[IK_LEN];
-  uint8_t     ak[AK_LEN];
-  uint8_t     mac[MAC_LEN];
-  uint8_t     autn[AKA_AUTN_LEN];
-  uint8_t     k_asme[KEY_LEN];
-  uint8_t     nh[KEY_LEN];
-  uint8_t     k_enb[KEY_LEN];
-  uint8_t     k_enb_star[KEY_LEN];
-  uint8_t     auts[AKA_AUTS_LEN];
+  uint8_t rand[AKA_RAND_LEN]  = {};
+  uint8_t ck[CK_LEN]          = {};
+  uint8_t ik[IK_LEN]          = {};
+  uint8_t ak[AK_LEN]          = {};
+  uint8_t mac[MAC_LEN]        = {};
+  uint8_t autn[AKA_AUTN_LEN]  = {};
+  uint8_t k_asme[KEY_LEN]     = {};
+  uint8_t nh[KEY_LEN]         = {};
+  uint8_t k_enb[KEY_LEN]      = {};
+  uint8_t k_enb_star[KEY_LEN] = {};
+  uint8_t auts[AKA_AUTS_LEN]  = {};
 
-  uint32_t    current_ncc;
+  uint32_t current_ncc = 0;
 
-  bool initiated;
+  bool initiated = false;
 
   // Smartcard sub-class which is a port of the PC/SC smartcard implementation
   // of WPA Supplicant written by Jouni Malinen <j@w1.fi> and licensed under BSD

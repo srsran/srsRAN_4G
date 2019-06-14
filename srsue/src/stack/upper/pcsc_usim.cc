@@ -25,14 +25,14 @@
 #include "srsue/hdr/stack/upper/pcsc_usim.h"
 #include "string.h"
 
-#define CHECK_SIM_PIN 1
+#define CHECK_SIM_PIN 0
 
 using namespace srslte;
 using namespace asn1::rrc;
 
 namespace srsue {
 
-pcsc_usim::pcsc_usim() : initiated(false)
+pcsc_usim::pcsc_usim()
 {
   bzero(ck, CK_LEN);
   bzero(ik, IK_LEN);
@@ -41,7 +41,10 @@ pcsc_usim::pcsc_usim() : initiated(false)
 
 pcsc_usim::~pcsc_usim()
 {
-  sc.deinit();
+  if (initiated) {
+    sc.deinit();
+    initiated = false;
+  }
 }
 
 int pcsc_usim::init(usim_args_t *args, srslte::log *log_)
@@ -407,7 +410,7 @@ int pcsc_usim::scard::init(usim_args_t *args, srslte::log *log_)
     return ret_value;
   }
 
-  unsigned long len;
+  unsigned long len = 0;
   ret = SCardListReaders(scard_context, NULL, NULL, &len);
   if (ret != SCARD_S_SUCCESS) {
     log->error("SCardListReaders(): %s\n", pcsc_stringify_error(ret));
