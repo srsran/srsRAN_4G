@@ -725,7 +725,6 @@ typedef struct {
   int worker_cpu_mask;
   int sync_cpu_affinity;
 
-  uint32_t      ue_category;
   uint32_t      nof_carriers;
   uint32_t      nof_radios;
   uint32_t      nof_rx_ant;
@@ -828,6 +827,7 @@ public:
     asn1::rrc::ul_pwr_ctrl_common_s ul_pwr_ctrl;
     asn1::rrc::tdd_cfg_s            tdd_cnfg;
     asn1::rrc::srs_ant_port_e       ant_info;
+    bool                            rrc_enable_64qam;
   };
 
   struct phy_cfg_mbsfn_t {

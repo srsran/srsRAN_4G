@@ -1131,7 +1131,7 @@ void cc_worker::set_pcell_config(phy_interface_rrc_lte::phy_cfg_t* phy_cfg)
 
   // Configure PUSCH
   ue_ul_cfg.ul_cfg.pusch.enable_64qam =
-      phy->args->ue_category >= 5 && phy_cfg->common.pusch_cnfg.pusch_cfg_basic.enable64_qam;
+      phy_cfg->common.pusch_cnfg.pusch_cfg_basic.enable64_qam && phy_cfg->common.rrc_enable_64qam;
 
   /* PUSCH DMRS signal configuration */
   bzero(&ue_ul_cfg.ul_cfg.dmrs, sizeof(srslte_refsignal_dmrs_pusch_cfg_t));

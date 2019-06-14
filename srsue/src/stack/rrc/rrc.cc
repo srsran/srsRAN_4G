@@ -1972,6 +1972,12 @@ void rrc::handle_sib2()
   current_phy_cfg.common.prach_cnfg  = sib2->rr_cfg_common.prach_cfg;
   current_phy_cfg.common.srs_ul_cnfg = sib2->rr_cfg_common.srs_ul_cfg_common;
 
+  // Filter here 64-QAM Enable
+  if (args.ue_category == 5 || (sib2->rr_cfg_common.pusch_cfg_common_v1270_present && args.release > 11)) {
+    // ASN1 Generator simplifies enable64QAM-v1270 because it is an enumeration that is always true
+    current_phy_cfg.common.rrc_enable_64qam = true;
+  }
+
   phy->set_config(&current_phy_cfg);
 
   log_rr_config_common();
@@ -2523,7 +2529,7 @@ void rrc::send_rrc_ue_cap_info()
     ue_eutra_cap_v11a0_ies_s cap_v11a0;
 
     ue_eutra_cap_v1180_ies_s cap_v1180;
-    cap_v11a0.non_crit_ext_present = true;
+    cap_v1180.non_crit_ext_present = true;
     cap_v1180.non_crit_ext         = cap_v11a0;
 
     ue_eutra_cap_v1170_ies_s cap_v1170;
@@ -2551,7 +2557,7 @@ void rrc::send_rrc_ue_cap_info()
     for (uint32_t i = 0; i < args.nof_supported_bands; i++) {
       supported_band_eutra_v1250_s supported_band_eutra_v1250;
       supported_band_eutra_v1250.dl_minus256_qam_r12_present = false; // 256-QAM support
-      supported_band_eutra_v1250.ul_minus64_qam_r12_present  = true;  // 64-QAM support
+      supported_band_eutra_v1250.ul_minus64_qam_r12_present  = (args.ue_category >= 5); // 64-QAM support
 
       supported_band_list_eutra_v1250.push_back(supported_band_eutra_v1250);
     }
@@ -2561,6 +2567,10 @@ void rrc::send_rrc_ue_cap_info()
     rf_params_v1250.supported_band_list_eutra_v1250         = supported_band_list_eutra_v1250;
 
     ue_eutra_cap_v1250_ies_s cap_v1250;
+    cap_v1250.ue_category_dl_r12_present = true;
+    cap_v1250.ue_category_dl_r12         = 13;
+    cap_v1250.ue_category_ul_r12_present = true;
+    cap_v1250.ue_category_ul_r12         = 5;
     cap_v1250.rf_params_v1250_present = true;
     cap_v1250.rf_params_v1250         = rf_params_v1250;
 
