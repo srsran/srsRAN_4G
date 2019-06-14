@@ -106,19 +106,8 @@ private:
   bool                running;
   srsue::stack_args_t args;
 
-  srsue::mac        mac;
-  srslte::mac_pcap  mac_pcap;
-  srslte::nas_pcap  nas_pcap;
-  srslte::rlc       rlc;
-  srslte::pdcp      pdcp;
-  srsue::rrc        rrc;
-  srsue::nas        nas;
-  srsue::gw         gw;
-  std::unique_ptr<usim_base> usim;
-
+  // logging
   srslte::logger* logger;
-
-  // Radio and PHY log are in ue.cc
   srslte::log_filter mac_log;
   srslte::log_filter rlc_log;
   srslte::log_filter pdcp_log;
@@ -127,6 +116,17 @@ private:
   srslte::log_filter gw_log;
   srslte::log_filter usim_log;
   srslte::log_filter pool_log;
+
+  // stack components
+  srsue::mac                 mac;
+  srslte::mac_pcap           mac_pcap;
+  srslte::nas_pcap           nas_pcap;
+  srslte::rlc                rlc;
+  srslte::pdcp               pdcp;
+  srsue::rrc                 rrc;
+  srsue::nas                 nas;
+  srsue::gw                  gw;
+  std::unique_ptr<usim_base> usim;
 
   // RAT-specific interfaces
   phy_interface_stack_lte* phy;
