@@ -32,6 +32,7 @@
 #include "srslte/common/log.h"
 #include "srslte/common/pdu.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include <mutex>
 
 /* Logical Channel Multiplexing and Prioritization + Msg3 Buffer */   
 
@@ -39,8 +40,9 @@
 typedef struct {
   uint8_t  lcid;
   uint8_t  lcg;
-  int      Bj;
-  int      PBR; // -1 sets to infinity
+  int32_t  Bj;
+  int32_t  PBR; // in kByte/s, -1 sets to infinity
+  uint32_t bucket_size;
   uint32_t BSD;
   uint32_t priority;
   int      sched_len;
@@ -53,8 +55,11 @@ class mux
 {
 public:
   mux();
+  ~mux(){};
   void     reset();
   void     init(rlc_interface_mac *rlc, srslte::log *log_h, bsr_interface_mux *bsr_procedure, phr_proc *phr_procedure_);
+
+  void step(const uint32_t tti);
 
   bool     is_pending_any_sdu();
   bool     is_pending_sdu(uint32_t lcid);
@@ -86,21 +91,21 @@ private:
   std::vector<logical_channel_config_t> logical_channels;
 
   // Mutex for exclusive access
-  pthread_mutex_t mutex; 
+  std::mutex mutex;
 
-  srslte::log       *log_h;
-  rlc_interface_mac *rlc; 
-  bsr_interface_mux *bsr_procedure;
-  phr_proc          *phr_procedure;
-  uint16_t           pending_crnti_ce;
+  srslte::log*       log_h            = nullptr;
+  rlc_interface_mac* rlc              = nullptr;
+  bsr_interface_mux* bsr_procedure    = nullptr;
+  phr_proc*          phr_procedure    = nullptr;
+  uint16_t           pending_crnti_ce = 0;
 
   /* Msg3 Buffer */
   srslte::byte_buffer_t msg_buff;
 
   /* PDU Buffer */
-  srslte::sch_pdu    pdu_msg; 
-  bool msg3_has_been_transmitted;
-  bool msg3_pending;
+  srslte::sch_pdu pdu_msg;
+  bool            msg3_has_been_transmitted = false;
+  bool            msg3_pending              = false;
 };
 
 } // namespace srsue

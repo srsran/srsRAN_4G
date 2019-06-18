@@ -34,16 +34,6 @@ namespace srsue {
 
 mux::mux() : pdu_msg(MAX_NOF_SUBHEADERS)
 {
-  pthread_mutex_init(&mutex, NULL);
-  
-  pending_crnti_ce = 0;
-
-  log_h = NULL; 
-  rlc   = NULL; 
-  bsr_procedure = NULL; 
-  phr_procedure = NULL;
-  //  msg3_buff_start_pdu = NULL;
-
   msg3_flush();
 }
 
@@ -63,6 +53,21 @@ void mux::reset()
   }
   msg3_pending = false;
   pending_crnti_ce = 0;
+}
+
+void mux::step(const uint32_t tti)
+{
+  std::lock_guard<std::mutex> lock(mutex);
+
+  // update Bj according to 36.321 Sec 5.4.3.1
+  for (auto& channel : logical_channels) {
+    // Add PRB unless it's infinity
+    if (channel.PBR >= 0) {
+      channel.Bj += channel.PBR; // PBR is in kByte/s, conversion in Byte and ms not needed
+    }
+    channel.Bj = SRSLTE_MIN((uint32_t)channel.Bj, channel.bucket_size);
+    Debug("Update Bj: lcid=%d, Bj=%d\n", channel.lcid, channel.Bj);
+  }
 }
 
 bool mux::is_pending_any_sdu()
@@ -156,17 +161,10 @@ srslte::sch_subh::cetype bsr_format_convert(bsr_proc::bsr_format_t format) {
 // Multiplexing and logical channel priorization as defined in Section 5.4.3
 uint8_t* mux::pdu_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
 {
-  pthread_mutex_lock(&mutex);
+  std::lock_guard<std::mutex> lock(mutex);
 
   // Reset sched_len and update Bj
   for (auto& channel : logical_channels) {
-    // Add PRB unless it's infinity
-    if (channel.PBR >= 0) {
-      channel.Bj += channel.PBR;
-    }
-    if (channel.Bj >= (int)channel.BSD) {
-      channel.Bj = channel.BSD * channel.PBR;
-    }
     channel.sched_len = 0;
   }
   
@@ -271,8 +269,6 @@ uint8_t* mux::pdu_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
 
   /* Generate MAC PDU and save to buffer */
   uint8_t *ret = pdu_msg.write_packet(log_h);   
-
-  pthread_mutex_unlock(&mutex);
 
   return ret; 
 }

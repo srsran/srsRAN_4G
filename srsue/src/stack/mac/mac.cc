@@ -198,6 +198,7 @@ void mac::run_tti(const uint32_t tti)
 
   // Step all procedures
   Debug("Running MAC tti=%d\n", tti);
+  mux_unit.step(tti);
   bsr_procedure.step(tti);
   phr_procedure.step(tti);
 
@@ -570,17 +571,19 @@ void mac::setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority, int PBR_x_t
   config.priority                 = priority;
   config.PBR                      = PBR_x_tti;
   config.BSD                      = BSD;
+  config.bucket_size              = config.PBR * config.BSD;
   setup_lcid(config);
 }
 
 void mac::setup_lcid(const logical_channel_config_t& config)
 {
-  Info("Logical Channel Setup: LCID=%d, LCG=%d, priority=%d, PBR=%d, BSd=%d\n",
+  Info("Logical Channel Setup: LCID=%d, LCG=%d, priority=%d, PBR=%d, BSD=%dms, bucket_size=%d\n",
        config.lcid,
        config.lcg,
        config.priority,
        config.PBR,
-       config.BSD);
+       config.BSD,
+       config.bucket_size);
   mux_unit.setup_lcid(config);
   bsr_procedure.setup_lcid(config.lcid, config.lcg, config.priority);
 }
