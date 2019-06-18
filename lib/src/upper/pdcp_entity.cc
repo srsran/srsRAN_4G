@@ -221,7 +221,7 @@ void pdcp_entity::write_pdu(unique_byte_buffer_t pdu)
     } else {
       handle_am_drb_pdu(pdu);
     }
-    gw->write_pdu(lcid, pdu);
+    gw->write_pdu(lcid, std::move(pdu));
   } else {
     // Handle SRB messages
     if (cfg.is_control) {
@@ -260,13 +260,13 @@ exit:
  * Ref: 3GPP TS 36.323 v10.1.0 Section 5.1.2
  ***************************************************************************/
 // DRBs mapped on RLC UM (5.1.2.1.3)
-void pdcp_entity::handle_um_drb_pdu(srslte::byte_buffer_t* pdu)
+void pdcp_entity::handle_um_drb_pdu(const srslte::unique_byte_buffer_t &pdu)
 {
   uint32_t sn;
   if (12 == cfg.sn_len) {
-    pdcp_unpack_data_pdu_long_sn(pdu, &sn);
+    pdcp_unpack_data_pdu_long_sn(pdu.get(), &sn);
   } else {
-    pdcp_unpack_data_pdu_short_sn(pdu, &sn);
+    pdcp_unpack_data_pdu_short_sn(pdu.get(), &sn);
   }
 
   if (sn < next_pdcp_rx_sn) {
@@ -290,10 +290,10 @@ void pdcp_entity::handle_um_drb_pdu(srslte::byte_buffer_t* pdu)
 }
 
 // DRBs mapped on RLC AM, without re-ordering (5.1.2.1.2)
-void pdcp_entity::handle_am_drb_pdu(srslte::byte_buffer_t* pdu)
+void pdcp_entity::handle_am_drb_pdu(const srslte::unique_byte_buffer_t &pdu)
 {
   uint32_t sn, count;
-  pdcp_unpack_data_pdu_long_sn(pdu, &sn);
+  pdcp_unpack_data_pdu_long_sn(pdu.get(), &sn);
 
   int32_t last_submit_diff_sn     = last_submitted_pdcp_rx_sn - sn;
   int32_t sn_diff_last_submit     = sn - last_submitted_pdcp_rx_sn;

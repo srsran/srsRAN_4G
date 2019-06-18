@@ -119,8 +119,8 @@ private:
 
   pthread_mutex_t mutex;
 
-  void handle_um_drb_pdu(srslte::byte_buffer_t *pdu);
-  void handle_am_drb_pdu(srslte::byte_buffer_t *pdu);
+  void handle_um_drb_pdu(const srslte::unique_byte_buffer_t& pdu);
+  void handle_am_drb_pdu(const srslte::unique_byte_buffer_t& pdu);
 
   void integrity_generate(uint8_t  *msg,
                           uint32_t  msg_len,
