@@ -107,13 +107,12 @@ void bsr_proc::timer_expired(uint32_t timer_id) {
     // retxBSR-Timer
   } else if (timer_id == timer_retx_id) {
     // Enable reTx of SR only if periodic timer is not infinity
-    if (bsr_cfg.periodic_timer >= 0) {
-      // Triger Regular BSR if UE has available data for transmission on any channel
-      if (check_any_channel()) {
-        set_trigger(REGULAR);
-        Debug("BSR:   Triggering BSR reTX\n");
-        sr_is_sent = false;
-      }
+    Debug("BSR:   Timer BSR reTX expired, periodic=%d, channel=%d\n", bsr_cfg.periodic_timer, check_any_channel());
+    // Triger Regular BSR if UE has available data for transmission on any channel
+    if (check_any_channel()) {
+      set_trigger(REGULAR);
+      Debug("BSR:   Triggering BSR reTX\n");
+      sr_is_sent = false;
     }
   }
   pthread_mutex_unlock(&mutex);
