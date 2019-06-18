@@ -212,20 +212,19 @@ private:
      * and returns the current state
      */
     state_t run_state() {
-      std::unique_lock<std::mutex> ul(inside);
+      std::lock_guard<std::mutex> lg(inside);
       cur_state = next_state;
       if (state_setting) {
         state_setting = false;
         state_running = true;
       }
       cvar.notify_all();
-      inside.unlock();
       return cur_state;
     }
 
     // Called by the main thread at the end of each state to indicate it has finished.
     void state_exit(bool exit_ok = true) {
-      std::unique_lock<std::mutex> ul(inside);
+      std::lock_guard<std::mutex> lg(inside);
       if (cur_state == SFN_SYNC && exit_ok == true) {
         next_state = CAMPING;
       } else {
@@ -235,7 +234,7 @@ private:
       cvar.notify_all();
     }
     void force_sfn_sync() {
-      std::unique_lock<std::mutex> ul(inside);
+      std::lock_guard<std::mutex> lg(inside);
       next_state = SFN_SYNC;
     }
 
@@ -245,23 +244,20 @@ private:
      * These functions are mutexed and only 1 can be called at a time
      */
     void go_idle() {
-      outside.lock();
+      std::lock_guard<std::mutex> lg(outside);
       go_state(IDLE);
-      outside.unlock();
     }
     void run_cell_search() {
-      outside.lock();
+      std::lock_guard<std::mutex> lg(outside);
       go_state(CELL_SEARCH);
       wait_state_run();
       wait_state_next();
-      outside.unlock();
     }
     void run_sfn_sync() {
-      outside.lock();
+      std::lock_guard<std::mutex> lg(outside);
       go_state(SFN_SYNC);
       wait_state_run();
       wait_state_next();
-      outside.unlock();
     }
 
 
