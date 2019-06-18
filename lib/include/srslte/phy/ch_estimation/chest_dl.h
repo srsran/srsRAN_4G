@@ -55,7 +55,7 @@ typedef struct SRSLTE_API {
   float    snr_ant_port_db[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
   float    rsrp;
   float    rsrp_dbm;
-  float    rsrp_neigh_dbm;
+  float    rsrp_neigh;
   float    rsrp_port_dbm[SRSLTE_MAX_PORTS];
   float    rsrp_ant_port_dbm[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
   float    rsrq;

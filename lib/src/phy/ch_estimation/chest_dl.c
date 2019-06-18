@@ -851,7 +851,7 @@ static void fill_res(srslte_chest_dl_t* q, srslte_chest_dl_res_t* res)
   res->cfo                = q->cfo;
   res->rsrp               = get_rsrp(q);
   res->rsrp_dbm           = dbm(res->rsrp);
-  res->rsrp_neigh_dbm     = dbm(get_rsrp_neighbour(q));
+  res->rsrp_neigh         = get_rsrp_neighbour(q);
   res->rsrq               = get_rsrq(q);
   res->rsrq_db            = db(res->rsrq);
   res->snr_db             = db(get_snr(q));

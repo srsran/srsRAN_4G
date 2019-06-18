@@ -54,6 +54,7 @@ void measure::init(cf_t*        buffer[SRSLTE_MAX_PORTS],
     return;
   }
   worker_com->set_ue_dl_cfg(&ue_dl_cfg);
+  ue_dl_cfg.chest_cfg.rsrp_neighbour = true;
   reset();
 }
 
@@ -192,7 +193,7 @@ measure::ret_code measure::run_subframe(uint32_t sf_idx)
     return ERROR;
   }
 
-  float rsrp = ue_dl.chest_res.rsrp;
+  float rsrp = ue_dl.chest_res.rsrp_neigh;
   float rsrq = ue_dl.chest_res.rsrq;
   float snr  = ue_dl.chest_res.snr_db;
   float rssi = srslte_vec_avg_power_cf(buffer[0], (uint32_t)SRSLTE_SF_LEN_PRB(current_prb));
