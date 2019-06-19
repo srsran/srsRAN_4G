@@ -24,25 +24,23 @@
 
 namespace srslte {
 
-pdcp_entity::pdcp_entity()
-  :active(false)
-  ,tx_count(0)
+pdcp_entity::pdcp_entity() : active(false), tx_count(0)
 {
-  pool = byte_buffer_pool::get_instance();
-  log = NULL;
-  rlc = NULL;
-  rrc = NULL;
-  gw = NULL;
-  lcid = 0;
-  sn_len_bytes = 0;
-  do_integrity = false;
-  do_encryption = false;
-  tx_count = 0;
-  rx_count = 0;
-  rx_hfn = 0;
+  pool            = byte_buffer_pool::get_instance();
+  log             = NULL;
+  rlc             = NULL;
+  rrc             = NULL;
+  gw              = NULL;
+  lcid            = 0;
+  sn_len_bytes    = 0;
+  do_integrity    = false;
+  do_encryption   = false;
+  tx_count        = 0;
+  rx_count        = 0;
+  rx_hfn          = 0;
   next_pdcp_rx_sn = 0;
-  cipher_algo = CIPHERING_ALGORITHM_ID_EEA0;
-  integ_algo = INTEGRITY_ALGORITHM_ID_EIA0;
+  cipher_algo     = CIPHERING_ALGORITHM_ID_EEA0;
+  integ_algo      = INTEGRITY_ALGORITHM_ID_EIA0;
   pthread_mutex_init(&mutex, NULL);
 }
 
@@ -81,12 +79,16 @@ void pdcp_entity::init(srsue::rlc_interface_pdcp      *rlc_,
     reordering_window = 2048;
   }
 
-  rx_hfn          = 0;
-  next_pdcp_rx_sn = 0;
-  maximum_pdcp_sn = (1 << cfg.sn_len) - 1;
+  rx_hfn                    = 0;
+  next_pdcp_rx_sn           = 0;
+  maximum_pdcp_sn           = (1 << cfg.sn_len) - 1;
   last_submitted_pdcp_rx_sn = maximum_pdcp_sn;
   log->info("Init %s with bearer ID: %d\n", rrc->get_rb_name(lcid).c_str(), cfg.bearer_id);
-  log->info("SN len bits: %d, SN len bytes: %d, reordering window: %d, Maximum SN %d\n", cfg.sn_len, sn_len_bytes, reordering_window, maximum_pdcp_sn);
+  log->info("SN len bits: %d, SN len bytes: %d, reordering window: %d, Maximum SN %d\n",
+            cfg.sn_len,
+            sn_len_bytes,
+            reordering_window,
+            maximum_pdcp_sn);
 }
 
 // Reestablishment procedure: 36.323 5.2
@@ -227,19 +229,13 @@ void pdcp_entity::write_pdu(unique_byte_buffer_t pdu)
     if (cfg.is_control) {
       uint32_t sn = *pdu->msg & 0x1F;
       if (do_encryption) {
-        cipher_decrypt(&pdu->msg[sn_len_bytes],
-                       sn,
-                       pdu->N_bytes - sn_len_bytes,
-                       &(pdu->msg[sn_len_bytes]));
+        cipher_decrypt(&pdu->msg[sn_len_bytes], sn, pdu->N_bytes - sn_len_bytes, &(pdu->msg[sn_len_bytes]));
         log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
       }
 
       if (do_integrity) {
-        if (not integrity_verify(pdu->msg,
-                         sn,
-                         pdu->N_bytes - 4,
-                         &(pdu->msg[pdu->N_bytes - 4]))) {
-         log->error_hex(pdu->msg, pdu->N_bytes, "%s Dropping PDU", rrc->get_rb_name(lcid).c_str());
+        if (not integrity_verify(pdu->msg, sn, pdu->N_bytes - 4, &(pdu->msg[pdu->N_bytes - 4]))) {
+          log->error_hex(pdu->msg, pdu->N_bytes, "%s Dropping PDU", rrc->get_rb_name(lcid).c_str());
           goto exit;
         }
       }
