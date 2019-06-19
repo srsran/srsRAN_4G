@@ -2971,9 +2971,11 @@ void rrc::add_srb(srb_to_add_mod_s* srb_cnfg)
   // Setup PDCP
   srslte_pdcp_config_t pdcp_cfg;
   pdcp_cfg.is_control = true;
-  pdcp_cfg.bearer_id = srb_cnfg->srb_id;
+  pdcp_cfg.is_data    = false;
+  pdcp_cfg.sn_len     = 5;
+  pdcp_cfg.bearer_id  = srb_cnfg->srb_id;
   pdcp->add_bearer(srb_cnfg->srb_id, pdcp_cfg);
-  if(RB_ID_SRB2 == srb_cnfg->srb_id) {
+  if (RB_ID_SRB2 == srb_cnfg->srb_id) {
     pdcp->config_security(srb_cnfg->srb_id, k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo);
     pdcp->enable_integrity(srb_cnfg->srb_id);
     pdcp->enable_encryption(srb_cnfg->srb_id);
