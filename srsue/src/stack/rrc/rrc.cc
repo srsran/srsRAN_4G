@@ -591,7 +591,7 @@ void rrc::new_phy_meas(float rsrp, float rsrq, uint32_t tti, int earfcn_i, int p
   }
   phy_meas_t new_meas = {rsrp, rsrq, tti, earfcn, pci};
   phy_meas_q.push(new_meas);
-  rrc_log->info("MEAS:  New measurement pci=%d, rsrp=%.1f dBm.\n", pci, rsrp);
+  rrc_log->info("MEAS:  New measurement pci=%d (%s), rsrp=%.1f dBm.\n", pci, pci_i < 0 ? "serving" : "neighbour", rsrp);
 }
 
 /* Processes all pending PHY measurements in queue. Must be called from a mutexed function
@@ -1778,10 +1778,27 @@ void rrc::init_con_restablish_request(asn1::rrc::reest_cause_e cause)
     // Save reestablishment cause and current C-RNTI
     m_reest_rnti  = uernti.crnti;
     m_reest_cause = cause;
+    reestablishment_started = false;
 
     // initiation of reestablishment procedure as indicates in 3GPP 36.331 Section 5.3.7.2
     rrc_log->info("Initiating RRC Connection Reestablishment Procedure\n");
-    rrc_log->console("Initiating RRC Connection Reestablishment Procedure\n");
+  } else {
+    // 3GPP 36.331 Section 5.3.7.1
+    // If AS security has not been activated, the UE does not initiate the procedure but instead
+    // moves to RRC_IDLE directly
+    go_idle = true;
+  }
+}
+
+/* Implementation of procedure in 3GPP 36.331 Section 5.3.7.3: Actions following cell selection while T311 is running
+ */
+void rrc::proc_con_restablish_request()
+{
+  if (!reestablishment_started) {
+
+    reestablishment_started = true;
+
+    rrc_log->info("Resetting timers and MAC in RRC Connection Reestablishment Procedure\n");
 
     // stop timer T310, if running;
     mac_timers->timer_get(t310)->stop();
@@ -1807,18 +1824,8 @@ void rrc::init_con_restablish_request(asn1::rrc::reest_cause_e cause)
 
     // perform cell selection in accordance with the cell selection process as specified in TS 36.304 [4];
     // ... this happens in rrc::run_tti()
-  } else {
-    // 3GPP 36.331 Section 5.3.7.1
-    // If AS security has not been activated, the UE does not initiate the procedure but instead
-    // moves to RRC_IDLE directly
-    go_idle = true;
   }
-}
 
-/* Implementation of procedure in 3GPP 36.331 Section 5.3.7.3: Actions following cell selection while T311 is running
- */
-void rrc::proc_con_restablish_request()
-{
   // Check timer...
   if (mac_timers->timer_get(t311)->is_running()) {
     // Check for synchronism
