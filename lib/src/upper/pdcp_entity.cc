@@ -84,9 +84,9 @@ void pdcp_entity::init(srsue::rlc_interface_pdcp      *rlc_,
   rx_hfn          = 0;
   next_pdcp_rx_sn = 0;
   maximum_pdcp_sn = (1 << cfg.sn_len) - 1;
-  printf("Maximum PDCP SN %d\n", maximum_pdcp_sn);
   last_submitted_pdcp_rx_sn = maximum_pdcp_sn;
   log->info("Init %s with bearer ID: %d\n", rrc->get_rb_name(lcid).c_str(), cfg.bearer_id);
+  log->info("SN len bits: %d, SN len bytes: %d, reordering window: %d, Maximum SN %d\n", cfg.sn_len, sn_len_bytes, reordering_window, maximum_pdcp_sn);
 }
 
 // Reestablishment procedure: 36.323 5.2

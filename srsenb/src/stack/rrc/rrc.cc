@@ -191,11 +191,12 @@ void rrc::add_user(uint16_t rnti)
     rrc_log->error("Adding user rnti=0x%x (already exists)\n", rnti);
   }
 
-  if(rnti == SRSLTE_MRNTI){
+  if (rnti == SRSLTE_MRNTI) {
     srslte::srslte_pdcp_config_t cfg;
-    cfg.is_control = false;
-    cfg.is_data = true;
-    cfg.direction = SECURITY_DIRECTION_DOWNLINK;
+    cfg.is_control   = false;
+    cfg.is_data      = true;
+    cfg.sn_len       = 12;
+    cfg.direction    = SECURITY_DIRECTION_DOWNLINK;
     uint32_t teid_in = 1;
 
     for (uint32_t i = 0; i < mcch.msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[0].mbms_session_info_list_r9.size();
@@ -1529,7 +1530,9 @@ void rrc::ue::send_connection_setup(bool is_setup)
   srslte::srslte_pdcp_config_t pdcp_cnfg;
   pdcp_cnfg.bearer_id  = 1;
   pdcp_cnfg.is_control = true;
-  pdcp_cnfg.direction = SECURITY_DIRECTION_DOWNLINK;
+  pdcp_cnfg.is_data    = false;
+  pdcp_cnfg.sn_len     = 5;
+  pdcp_cnfg.direction  = SECURITY_DIRECTION_DOWNLINK;
   parent->pdcp->add_bearer(rnti, 1, pdcp_cnfg);
 
   // Configure PHY layer
@@ -1736,9 +1739,10 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   // Configure SRB2 in PDCP
   srslte::srslte_pdcp_config_t pdcp_cnfg;
   pdcp_cnfg.bearer_id  = 2;
-  pdcp_cnfg.direction = SECURITY_DIRECTION_DOWNLINK;
+  pdcp_cnfg.direction  = SECURITY_DIRECTION_DOWNLINK;
   pdcp_cnfg.is_control = true;
-  pdcp_cnfg.is_data = false;
+  pdcp_cnfg.is_data    = false;
+  pdcp_cnfg.sn_len     = 5;
   parent->pdcp->add_bearer(rnti, 2, pdcp_cnfg);
   parent->pdcp->config_security(rnti, 2, k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo);
   parent->pdcp->enable_integrity(rnti, 2);
@@ -1749,8 +1753,9 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
 
   // Configure DRB1 in PDCP
   pdcp_cnfg.is_control = false;
-  pdcp_cnfg.is_data = true;
-  pdcp_cnfg.bearer_id = 1; // TODO: Review all ID mapping LCID DRB ERAB EPSBID Mapping 
+  pdcp_cnfg.is_data    = true;
+  pdcp_cnfg.sn_len     = 12;
+  pdcp_cnfg.bearer_id  = 1; // TODO: Review all ID mapping LCID DRB ERAB EPSBID Mapping
   if (conn_reconf->rr_cfg_ded.drb_to_add_mod_list[0].pdcp_cfg.rlc_um_present) {
     if (conn_reconf->rr_cfg_ded.drb_to_add_mod_list[0].pdcp_cfg.rlc_um.pdcp_sn_size.value ==
         pdcp_cfg_s::rlc_um_s_::pdcp_sn_size_e_::len7bits) {
@@ -1812,11 +1817,14 @@ void rrc::ue::send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBE
 
     // Configure DRB in RLC
     parent->rlc->add_bearer(rnti, lcid, &drb_item.rlc_cfg);
+
     // Configure DRB in PDCP
     srslte::srslte_pdcp_config_t pdcp_config;
-    pdcp_config.bearer_id = drb_item.drb_id - 1; // TODO: Review all ID mapping LCID DRB ERAB EPSBID Mapping
-    pdcp_config.is_data = true;
-    pdcp_config.direction = SECURITY_DIRECTION_DOWNLINK;
+    pdcp_config.bearer_id  = drb_item.drb_id - 1; // TODO: Review all ID mapping LCID DRB ERAB EPSBID Mapping
+    pdcp_config.is_control = false;
+    pdcp_config.is_data    = true;
+    pdcp_config.sn_len     = 12;
+    pdcp_config.direction  = SECURITY_DIRECTION_DOWNLINK;
     parent->pdcp->add_bearer(rnti, lcid, pdcp_config);
 
     // DRB has already been configured in GTPU through bearer setup
