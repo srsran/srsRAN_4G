@@ -81,9 +81,6 @@ void bsr_proc::set_config(srsue::mac_interface_rrc::bsr_cfg_t& bsr_cfg)
 
   this->bsr_cfg = bsr_cfg;
 
-  timers_db->get(timer_periodic_id)->stop();
-  timers_db->get(timer_retx_id)->stop();
-
   if (bsr_cfg.periodic_timer > 0) {
     timers_db->get(timer_periodic_id)->set(this, bsr_cfg.periodic_timer);
     Info("BSR:   Configured timer periodic %d ms\n", bsr_cfg.periodic_timer);
@@ -249,6 +246,13 @@ bool bsr_proc::generate_bsr(bsr_t* bsr, uint32_t nof_padding_bytes)
        bsr_type_tostring(triggered_bsr_type), bsr_format_tostring(bsr->format),
        bsr->buff_size[0], bsr->buff_size[1], bsr->buff_size[2], bsr->buff_size[3]);
 
+  // Restart or Start Periodic timer every time a BSR is generated and transmitted in an UL grant
+  if (timers_db->get(timer_periodic_id)->get_timeout() && bsr->format != TRUNC_BSR) {
+    timers_db->get(timer_periodic_id)->reset();
+    timers_db->get(timer_periodic_id)->run();
+    Debug("BSR:   Started periodicBSR-Timer\n");
+  }
+
   return ret;
 }
 
@@ -342,16 +346,12 @@ bool bsr_proc::need_to_send_bsr_on_ul_grant(uint32_t grant_size, bsr_t* bsr)
       Debug("BSR:   Including Regular BSR: grant_size=%d, total_data=%d, bsr_sz=%d\n", grant_size, total_data, bsr_sz);
       ret = true;
     }
-    // Restart or Start Periodic timer
-    if (timers_db->get(timer_periodic_id)->get_timeout() && bsr->format != TRUNC_BSR) {
-      timers_db->get(timer_periodic_id)->reset();
-      timers_db->get(timer_periodic_id)->run();
-      Debug("BSR:   Started periodicBSR-Timer\n");
-    }
   }
+
   // Cancel all triggered BSR and SR
   set_trigger(NONE);
   reset_sr = true;
+
   // Restart or Start ReTX timer upon indication of a grant
   if (timers_db->get(timer_retx_id)->get_timeout()) {
     timers_db->get(timer_retx_id)->reset();
@@ -373,12 +373,6 @@ bool bsr_proc::generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t* bsr)
     triggered_bsr_type = PADDING;
     generate_bsr(bsr, nof_padding_bytes);
     ret = true;
-
-    if (timers_db->get(timer_periodic_id)->get_timeout() && bsr->format != TRUNC_BSR) {
-      timers_db->get(timer_periodic_id)->reset();
-      timers_db->get(timer_periodic_id)->run();
-      Debug("BSR:   Started periodicBSR-Timer\n");
-    }
   }
 
   pthread_mutex_unlock(&mutex);
