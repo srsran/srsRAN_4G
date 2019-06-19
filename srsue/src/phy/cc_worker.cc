@@ -619,7 +619,7 @@ void cc_worker::update_measurements()
 
   // Serving cell RSRP measurements are averaged over DEFAULT_MEAS_PERIOD_MS then sent to RRC
   if (std::isnormal(rsrp_dbm)) {
-    if (!(CURRENT_TTI % phy->pcell_report_period) || !phy->avg_rsrp_dbm) {
+    if (!(CURRENT_TTI % phy->pcell_report_period) || !phy->avg_rsrp_dbm[cc_idx]) {
       phy->avg_rsrp_dbm[cc_idx] = rsrp_dbm;
     } else {
       phy->avg_rsrp_dbm[cc_idx] =
