@@ -79,6 +79,7 @@ typedef struct {
 
   phy_args_t   phy;
   stack_args_t stack;
+  gw_args_t    gw;
 
   expert_args_t expert;
 } all_args_t;
@@ -110,6 +111,7 @@ private:
   std::unique_ptr<ue_radio_base> radio;
   std::unique_ptr<ue_phy_base>   phy;
   std::unique_ptr<ue_stack_base> stack;
+  std::unique_ptr<gw>            gw_inst;
 
   // Generic logger members
   srslte::logger*        logger = nullptr;

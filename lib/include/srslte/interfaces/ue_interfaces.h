@@ -223,13 +223,6 @@ public:
   virtual std::string get_rb_name(uint32_t lcid) = 0;
 };
 
-// PDCP interface for GW
-class pdcp_interface_gw
-{
-public:
-  virtual void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking) = 0;
-  virtual bool is_lcid_enabled(uint32_t lcid) = 0;
-};
 
 // PDCP interface for RRC
 class pdcp_interface_rrc
@@ -268,6 +261,13 @@ public:
   virtual void write_pdu_bcch_dlsch(srslte::unique_byte_buffer_t sdu)         = 0;
   virtual void write_pdu_pcch(srslte::unique_byte_buffer_t sdu)               = 0;
   virtual void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu) = 0;
+};
+
+class pdcp_interface_gw
+{
+public:
+  virtual void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking) = 0;
+  virtual bool is_lcid_enabled(uint32_t lcid)                                            = 0;
 };
 
 // RLC interface for RRC
@@ -919,6 +919,17 @@ class phy_interface_radio
 public:
   virtual void radio_overflow() = 0;
   virtual void radio_failure()  = 0;
+};
+
+// STACK interface for GW
+class stack_interface_gw : public pdcp_interface_gw
+{
+public:
+  virtual bool switch_on() = 0;
+};
+
+class gw_interface_stack : public gw_interface_nas, public gw_interface_rrc, public gw_interface_pdcp
+{
 };
 
 // Combined interface for PHY to access stack (MAC and RRC)

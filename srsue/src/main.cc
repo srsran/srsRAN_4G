@@ -120,8 +120,8 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("log.pdcp_hex_limit", bpo::value<int>(&args->stack.log.pdcp_hex_limit), "PDCP log hex dump limit")
     ("log.rrc_level", bpo::value<string>(&args->stack.log.rrc_level), "RRC log level")
     ("log.rrc_hex_limit", bpo::value<int>(&args->stack.log.rrc_hex_limit), "RRC log hex dump limit")
-    ("log.gw_level", bpo::value<string>(&args->stack.log.gw_level), "GW log level")
-    ("log.gw_hex_limit", bpo::value<int>(&args->stack.log.gw_hex_limit), "GW log hex dump limit")
+    ("log.gw_level", bpo::value<string>(&args->gw.log.gw_level), "GW log level")
+    ("log.gw_hex_limit", bpo::value<int>(&args->gw.log.gw_hex_limit), "GW log hex dump limit")
     ("log.nas_level", bpo::value<string>(&args->stack.log.nas_level), "NAS log level")
     ("log.nas_hex_limit", bpo::value<int>(&args->stack.log.nas_hex_limit), "NAS log hex dump limit")
     ("log.usim_level", bpo::value<string>(&args->stack.log.usim_level), "USIM log level")
@@ -143,8 +143,8 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("usim.pin", bpo::value<string>(&args->stack.usim.pin), "PIN in case real SIM card is used")
     ("usim.reader", bpo::value<string>(&args->stack.usim.reader)->default_value(""), "Force specific PCSC reader. Default: Try all available readers.")
 
-    ("gw.ip_devname", bpo::value<string>(&args->stack.gw.tun_dev_name)->default_value("tun_srsue"), "Name of the tun_srsue device")
-    ("gw.ip_netmask", bpo::value<string>(&args->stack.gw.tun_dev_netmask)->default_value("255.255.255.0"), "Netmask of the tun_srsue device")
+    ("gw.ip_devname", bpo::value<string>(&args->gw.tun_dev_name)->default_value("tun_srsue"), "Name of the tun_srsue device")
+    ("gw.ip_netmask", bpo::value<string>(&args->gw.tun_dev_netmask)->default_value("255.255.255.0"), "Netmask of the tun_srsue device")
 
     /* Downlink Channel emulator section */
     ("channel.dl.enable", bpo::value<bool>(&args->phy.dl_channel_args.enable)->default_value(false), "Enable/Disable internal Downlink channel emulator")
@@ -423,7 +423,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
       args->stack.log.nas_level = args->log.all_level;
     }
     if (!vm.count("log.gw_level")) {
-      args->stack.log.gw_level = args->log.all_level;
+      args->gw.log.gw_level = args->log.all_level;
     }
     if (!vm.count("log.usim_level")) {
       args->stack.log.usim_level = args->log.all_level;
@@ -451,7 +451,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
       args->stack.log.nas_hex_limit = args->log.all_hex_limit;
     }
     if (!vm.count("log.gw_hex_limit")) {
-      args->stack.log.gw_hex_limit = args->log.all_hex_limit;
+      args->gw.log.gw_hex_limit = args->log.all_hex_limit;
     }
     if (!vm.count("log.usim_hex_limit")) {
       args->stack.log.usim_hex_limit = args->log.all_hex_limit;

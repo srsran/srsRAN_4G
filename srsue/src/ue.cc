@@ -79,6 +79,12 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
       return SRSLTE_ERROR;
     }
 
+    std::unique_ptr<gw> gw_ptr(new gw());
+    if (!gw_ptr) {
+      log.console("Error creating a GW instance.\n");
+      return SRSLTE_ERROR;
+    }
+
     std::unique_ptr<srsue::phy> lte_phy = std::unique_ptr<srsue::phy>(new srsue::phy());
     if (!lte_phy) {
       log.console("Error creating LTE PHY instance.\n");
@@ -102,13 +108,19 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
       return SRSLTE_ERROR;
     }
 
-    if (lte_stack->init(args.stack, logger, lte_phy.get())) {
+    if (lte_stack->init(args.stack, logger, lte_phy.get(), gw_ptr.get())) {
       log.console("Error initializing stack.\n");
+      return SRSLTE_ERROR;
+    }
+
+    if (gw_ptr->init(args.gw, logger, lte_stack.get())) {
+      log.console("Error initializing GW.\n");
       return SRSLTE_ERROR;
     }
 
     // move ownership
     stack = std::move(lte_stack);
+    gw_inst = std::move(gw_ptr);
     phy   = std::move(lte_phy);
     radio = std::move(lte_radio);
   } else {
@@ -206,6 +218,10 @@ void ue::stop()
     stack->stop();
   }
 
+  if (gw_inst) {
+    gw_inst->stop();
+  }
+
   if (phy) {
     phy->stop();
   }
@@ -239,6 +255,7 @@ bool ue::get_metrics(ue_metrics_t* m)
   phy->get_metrics(&m->phy);
   radio->get_metrics(&m->rf);
   stack->get_metrics(&m->stack);
+  gw_inst->get_metrics(m->stack.gw);
   return true;
 }
 

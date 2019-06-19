@@ -35,7 +35,6 @@
 #include "srslte/radio/radio.h"
 #include "srslte/upper/pdcp.h"
 #include "srslte/upper/rlc.h"
-#include "upper/gw.h"
 #include "upper/nas.h"
 #include "upper/usim.h"
 
@@ -48,7 +47,7 @@
 
 namespace srsue {
 
-class ue_stack_lte : public ue_stack_base, public stack_interface_phy_lte
+class ue_stack_lte final : public ue_stack_base, public stack_interface_phy_lte, public stack_interface_gw
 {
 public:
   ue_stack_lte();
@@ -57,8 +56,8 @@ public:
   std::string get_type();
 
   int  init(const stack_args_t& args_, srslte::logger* logger_);
-  int  init(const stack_args_t& args_, srslte::logger* logger_, phy_interface_stack_lte* phy_);
-  bool switch_on();
+  int  init(const stack_args_t& args_, srslte::logger* logger_, phy_interface_stack_lte* phy_, gw_interface_stack* gw_);
+  bool switch_on() final;
   bool switch_off();
   void stop();
 
@@ -102,20 +101,17 @@ public:
 
   void run_tti(const uint32_t tti) { mac.run_tti(tti); }
 
+  // Interface for GW
+  void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking) final
+  {
+    pdcp.write_sdu(lcid, std::move(sdu), blocking);
+  }
+
+  bool is_lcid_enabled(uint32_t lcid) final { return pdcp.is_lcid_enabled(lcid); }
+
 private:
   bool                running;
   srsue::stack_args_t args;
-
-  // logging
-  srslte::logger* logger;
-  srslte::log_filter mac_log;
-  srslte::log_filter rlc_log;
-  srslte::log_filter pdcp_log;
-  srslte::log_filter rrc_log;
-  srslte::log_filter nas_log;
-  srslte::log_filter gw_log;
-  srslte::log_filter usim_log;
-  srslte::log_filter pool_log;
 
   // stack components
   srsue::mac                 mac;
@@ -125,11 +121,22 @@ private:
   srslte::pdcp               pdcp;
   srsue::rrc                 rrc;
   srsue::nas                 nas;
-  srsue::gw                  gw;
   std::unique_ptr<usim_base> usim;
+
+  srslte::logger* logger;
+
+  // Radio and PHY log are in ue.cc
+  srslte::log_filter mac_log;
+  srslte::log_filter rlc_log;
+  srslte::log_filter pdcp_log;
+  srslte::log_filter rrc_log;
+  srslte::log_filter nas_log;
+  srslte::log_filter usim_log;
+  srslte::log_filter pool_log;
 
   // RAT-specific interfaces
   phy_interface_stack_lte* phy;
+  gw_interface_stack*      gw;
 };
 
 } // namespace srsue

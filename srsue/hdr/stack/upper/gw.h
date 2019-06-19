@@ -27,6 +27,7 @@
 #include "srslte/common/common.h"
 #include "srslte/common/interfaces_common.h"
 #include "srslte/common/log.h"
+#include "srslte/common/log_filter.h"
 #include "srslte/common/threads.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "tft_packet_filter.h"
@@ -35,22 +36,20 @@
 
 namespace srsue {
 
-class gw_args_t
-{
-public:
+struct gw_args_t {
+  struct log_args_t {
+    std::string gw_level;
+    int         gw_hex_limit;
+  } log;
   std::string tun_dev_name;
   std::string tun_dev_netmask;
 };
 
-class gw
-    :public gw_interface_pdcp
-    ,public gw_interface_nas
-    ,public gw_interface_rrc
-    ,public thread
+class gw : public gw_interface_stack, public thread
 {
 public:
   gw();
-  void init(pdcp_interface_gw* pdcp_, nas_interface_gw* nas_, srslte::log* gw_log_, gw_args_t);
+  int  init(const gw_args_t& args_, srslte::logger* logger_, stack_interface_gw* stack);
   void stop();
 
   void get_metrics(gw_metrics_t &m);
@@ -71,11 +70,9 @@ public:
 private:
   static const int GW_THREAD_PRIO = 7;
 
-  pdcp_interface_gw  *pdcp;
-  nas_interface_gw   *nas;
-
+  stack_interface_gw*         stack;
   srslte::byte_buffer_pool   *pool;
-  srslte::log                *gw_log;
+  srslte::logger*             logger;
 
   gw_args_t args;
 
@@ -86,6 +83,8 @@ private:
   int32_t             sock;
   bool                if_up;
   uint32_t            default_lcid = 0;
+
+  srslte::log_filter log;
 
   uint32_t            current_ip_addr;
   uint8_t             current_if_id[8];

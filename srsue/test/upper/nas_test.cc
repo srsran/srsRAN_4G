@@ -137,6 +137,22 @@ private:
   found_plmn_t plmns;
 };
 
+class stack_dummy : public stack_interface_gw
+{
+public:
+  stack_dummy(pdcp_interface_gw* pdcp_, srsue::nas* nas_) : pdcp(pdcp_), nas(nas_) {}
+  bool switch_on() final { return nas->attach_request(); }
+  void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking)
+  {
+    pdcp->write_sdu(lcid, std::move(sdu), blocking);
+  }
+  bool is_lcid_enabled(uint32_t lcid) { return pdcp->is_lcid_enabled(lcid); }
+
+  pdcp_interface_gw* pdcp    = nullptr;
+  srsue::nas*        nas     = nullptr;
+  bool               running = false;
+};
+
 class gw_dummy : public gw_interface_nas, public gw_interface_pdcp
 {
   int setup_if_addr(uint32_t lcid, uint8_t pdn_type, uint32_t ip_addr, uint8_t* ipv6_if_id, char* err_str)
@@ -256,15 +272,20 @@ int mme_attach_request_test()
     nas_cfg.apn_name          = "test123";
     srsue::nas nas;
     srsue::gw  gw;
+    stack_dummy stack(&pdcp_dummy, &nas);
 
     nas.init(&usim, &rrc_dummy, &gw, &nas_log, nas_cfg);
 
     gw_args_t gw_args;
     gw_args.tun_dev_name = "tun0";
-    gw.init(&pdcp_dummy, &nas, &gw_log, gw_args);
+    gw_args.log.gw_level     = "debug";
+    gw_args.log.gw_hex_limit = 100000;
+    srslte::logger_stdout def_logstdout;
+    srslte::logger*       logger = &def_logstdout;
+    gw.init(gw_args, logger, &stack);
 
     // trigger test
-    nas.attach_request();
+    stack.switch_on();
 
     // this will time out in the first place
 
