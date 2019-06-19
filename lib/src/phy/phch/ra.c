@@ -129,6 +129,15 @@ static int srslte_ra_dl_tbs_idx_from_mcs(uint32_t mcs)
   }
 }
 
+static int srslte_ra_dl_tbs_idx_from_mcs2(uint32_t mcs)
+{
+  if (mcs < 28) {
+    return dl_mcs_tbs_idx_table2[mcs];
+  } else {
+    return SRSLTE_ERROR;
+  }
+}
+
 static int srslte_ra_ul_tbs_idx_from_mcs(uint32_t mcs)
 {
   if (mcs < 29) {
@@ -151,7 +160,20 @@ srslte_mod_t srslte_ra_dl_mod_from_mcs(uint32_t mcs)
     return SRSLTE_MOD_16QAM;
   } else {
     return SRSLTE_MOD_64QAM;
-  } 
+  }
+}
+
+srslte_mod_t srslte_ra_dl_mod_from_mcs2(uint32_t mcs)
+{
+  if (mcs <= 4 || mcs == 28) {
+    return SRSLTE_MOD_QPSK;
+  } else if (mcs <= 10 || mcs == 29) {
+    return SRSLTE_MOD_16QAM;
+  } else if (mcs <= 19 || mcs == 30) {
+    return SRSLTE_MOD_64QAM;
+  } else {
+    return SRSLTE_MOD_256QAM;
+  }
 }
 
 srslte_mod_t srslte_ra_ul_mod_from_mcs(uint32_t mcs)
@@ -178,6 +200,16 @@ static int srslte_ra_dl_mcs_from_tbs_idx(uint32_t tbs_idx)
   return SRSLTE_ERROR;
 }
 
+static int srslte_ra_dl_mcs_from_tbs_idx2(uint32_t tbs_idx)
+{
+  for (int i = 0; i < 28; i++) {
+    if (tbs_idx == dl_mcs_tbs_idx_table2[i]) {
+      return i;
+    }
+  }
+  return SRSLTE_ERROR;
+}
+
 static int srslte_ra_ul_mcs_from_tbs_idx(uint32_t tbs_idx)
 {
   for (int i = 0; i < 29; i++) {
@@ -196,7 +228,7 @@ int srslte_ra_mcs_from_tbs_idx(uint32_t tbs_idx, bool is_ul)
 /* Table 7.1.7.2.1-1: Transport block size table on 36.213 */
 int srslte_ra_tbs_from_idx(uint32_t tbs_idx, uint32_t n_prb)
 {
-  if (tbs_idx < 27 && n_prb > 0 && n_prb <= SRSLTE_MAX_PRB) {
+  if (tbs_idx < 34 && n_prb > 0 && n_prb <= SRSLTE_MAX_PRB) {
     return tbs_table[tbs_idx][n_prb - 1];
   } else {
     return SRSLTE_ERROR;

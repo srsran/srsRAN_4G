@@ -72,8 +72,8 @@ typedef struct SRSLTE_API {
   float *csi[SRSLTE_MAX_CODEWORDS];             /* Channel Strengh Indicator */
 
   /* tx & rx objects */
-  srslte_modem_table_t mod[4];
-  
+  srslte_modem_table_t mod[5];
+
   // This is to generate the scrambling seq for multiple CRNTIs
   srslte_pdsch_user_t **users;
 

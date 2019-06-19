@@ -651,7 +651,7 @@ int srslte_ue_dl_dci_to_pdsch_grant(srslte_ue_dl_t*       q,
                                     srslte_dci_dl_t*      dci,
                                     srslte_pdsch_grant_t* grant)
 {
-  return srslte_ra_dl_dci_to_grant(&q->cell, sf, cfg->cfg.tm, dci, grant);
+  return srslte_ra_dl_dci_to_grant(&q->cell, sf, cfg->cfg.tm, cfg->pdsch_use_tbs_index_alt, dci, grant);
 }
 
 int srslte_ue_dl_decode_pdsch(srslte_ue_dl_t*     q,

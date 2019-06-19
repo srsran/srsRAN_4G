@@ -121,6 +121,7 @@ typedef struct SRSLTE_API {
   srslte_dci_cfg_t      dci_cfg;
   uint32_t              last_ri;
   float                 snr_to_cqi_offset;
+  bool                  pdsch_use_tbs_index_alt;
 } srslte_ue_dl_cfg_t;
 
 typedef struct {

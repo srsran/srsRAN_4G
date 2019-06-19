@@ -53,7 +53,7 @@ static bool        enable_coworker              = false;
 static uint32_t    pmi                          = 0;
 static char*       input_file                   = NULL;
 static int         M                            = 1;
-
+static bool        enable_256qam                = false;
 static bool use_8_bit = false;
 
 void usage(char *prog) {
@@ -76,11 +76,12 @@ void usage(char *prog) {
   printf("\t-w Swap Transport Blocks\n");
   printf("\t-j Enable PDSCH decoder coworker\n");
   printf("\t-v [set srslte_verbose to debug, default none]\n");
+  printf("\t-q Enable/Disable 256QAM modulation (default %s)\n", enable_256qam ? "enabled" : "disabled");
 }
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "fmMcsbrtRFpnawvXxj")) != -1) {
+  while ((opt = getopt(argc, argv, "fmMcsbrtRFpnqawvXxj")) != -1) {
     switch(opt) {
     case 'f':
       input_file = argv[optind];
@@ -136,11 +137,49 @@ void parse_args(int argc, char **argv) {
     case 'v':
       srslte_verbose++;
       break;
+    case 'q':
+      enable_256qam ^= true;
+      break;
     default:
       usage(argv[0]);
       exit(-1);
     }
   }
+}
+
+static int check_softbits(
+    srslte_pdsch_t* pdsch_enb, srslte_pdsch_t* pdsch_ue, srslte_pdsch_cfg_t* pdsch_cfg, uint32_t sf_idx, int tb)
+{
+  int ret = SRSLTE_SUCCESS;
+
+  // Generate sequence
+  srslte_sequence_pdsch(&pdsch_ue->tmp_seq,
+                        rnti,
+                        pdsch_cfg->grant.tb[tb].cw_idx,
+                        2 * (sf_idx % 10),
+                        cell.id,
+                        pdsch_cfg->grant.tb[tb].nof_bits);
+
+  // Scramble
+  if (pdsch_ue->llr_is_8bit) {
+    srslte_scrambling_sb_offset(&pdsch_ue->tmp_seq, pdsch_ue->e[tb], 0, pdsch_cfg->grant.tb[tb].nof_bits);
+  } else {
+    srslte_scrambling_s_offset(&pdsch_ue->tmp_seq, pdsch_ue->e[tb], 0, pdsch_cfg->grant.tb[tb].nof_bits);
+  }
+  int16_t* rx       = pdsch_ue->e[tb];
+  uint8_t* rx_bytes = pdsch_ue->e[tb];
+  for (int i = 0, k = 0; i < pdsch_cfg->grant.tb[tb].nof_bits / 8; i++) {
+    uint8_t w = 0;
+    for (int j = 0; j < 8; j++, k++) {
+      w |= (rx[k] > 0) ? (1 << (7 - j)) : 0;
+    }
+    rx_bytes[i] = w;
+  }
+  if (memcmp(pdsch_ue->e[tb], pdsch_enb->e[tb], pdsch_cfg->grant.tb[tb].nof_bits / 8) != 0) {
+    ret = SRSLTE_ERROR;
+  }
+
+  return ret;
 }
 
 int main(int argc, char **argv) {
@@ -235,7 +274,7 @@ int main(int argc, char **argv) {
   pdsch_cfg.p_b         = (tm > SRSLTE_TM1) ? 1 : 0; // 0 dB
 
   /* Generate dci from DCI */
-  if (srslte_ra_dl_dci_to_grant(&cell, &dl_sf, tm, &dci, &pdsch_cfg.grant)) {
+  if (srslte_ra_dl_dci_to_grant(&cell, &dl_sf, tm, enable_256qam, &dci, &pdsch_cfg.grant)) {
     ERROR("Error computing resource allocation\n");
     return ret;
   }
@@ -470,17 +509,24 @@ int main(int argc, char **argv) {
   /* Check Tx and Rx bytes */
   for (int tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
     if (pdsch_cfg.grant.tb[tb].enabled) {
-      for (int byte = 0; byte < pdsch_cfg.grant.tb[tb].tbs / 8; byte++) {
-        if (data_tx[tb][byte] != data_rx[tb][byte]) {
-          ERROR("Found BYTE (%d) error in TB %d (%02X != %02X), quiting...",
-                byte,
-                tb,
-                data_tx[tb][byte],
-                data_rx[tb][byte]);
-          // printf("Tx: "); srslte_vec_fprint_byte(stdout, data_tx[tb], dci.mcs[tb].tbs / 8);
-          // printf("Rx: "); srslte_vec_fprint_byte(stdout, data_rx[tb], dci.mcs[tb].tbs / 8);
-          ret = SRSLTE_ERROR;
-          goto quit;
+      if (check_softbits(&pdsch_tx, &pdsch_rx, &pdsch_cfg, subframe, tb)) {
+        printf("TB%d: The received softbits in subframe %d DO NOT match the encoded bits (crc=%d)\n",
+               tb,
+               subframe,
+               pdsch_res[tb].crc);
+        srslte_vec_fprint_byte(stdout, (uint8_t*)pdsch_tx.e[tb], pdsch_cfg.grant.tb[tb].nof_bits / 8);
+        srslte_vec_fprint_byte(stdout, (uint8_t*)pdsch_rx.e[tb], pdsch_cfg.grant.tb[tb].nof_bits / 8);
+      } else {
+        for (int byte = 0; byte < pdsch_cfg.grant.tb[tb].tbs / 8; byte++) {
+          if (data_tx[tb][byte] != data_rx[tb][byte]) {
+            ERROR("Found BYTE (%d) error in TB %d (%02X != %02X), quitting...",
+                  byte,
+                  tb,
+                  data_tx[tb][byte],
+                  data_rx[tb][byte]);
+            ret = SRSLTE_ERROR;
+            goto quit;
+          }
         }
       }
     }
