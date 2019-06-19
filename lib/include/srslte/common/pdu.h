@@ -79,11 +79,11 @@ public:
 
   bool new_subh()
   {
-    if (nof_subheaders < (int)max_subheaders - 1 && rem_len > 0) {
+    if (nof_subheaders < (int)max_subheaders - 1 && rem_len > 0 && buffer_tx->get_headroom() > 1) {
       nof_subheaders++;
       return next();
     } else {
-      return -1;
+      return false;
     }
   }
 
@@ -112,7 +112,7 @@ public:
     if (cur_idx >= 0) {
       return &subheaders[cur_idx];
     } else {
-      return NULL;
+      return nullptr;
     }
   }
 
