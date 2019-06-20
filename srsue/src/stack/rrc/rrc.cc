@@ -2153,7 +2153,7 @@ void rrc::send_ul_ccch_msg(const asn1::rrc::ul_ccch_msg_s& msg)
   uint32_t lcid = RB_ID_SRB0;
   log_rrc_message(get_rb_name(lcid).c_str(), Tx, pdcp_buf.get(), msg);
 
-  pdcp->write_sdu(lcid, std::move(pdcp_buf));
+  rlc->write_sdu(lcid, std::move(pdcp_buf));
 }
 
 void rrc::send_ul_dcch_msg(uint32_t lcid, const asn1::rrc::ul_dcch_msg_s& msg)

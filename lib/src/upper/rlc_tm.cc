@@ -183,7 +183,11 @@ void rlc_tm::write_pdu(uint8_t *payload, uint32_t nof_bytes)
     buf->N_bytes = nof_bytes;
     buf->set_timestamp();
     num_rx_bytes += nof_bytes;
-    pdcp->write_pdu(lcid, std::move(buf));
+    if (rrc->get_rb_name(lcid) == "SRB0") {
+      rrc->write_pdu(lcid, std::move(buf));
+    } else {
+      pdcp->write_pdu(lcid, std::move(buf));
+    }
   } else {
     log->error("Fatal Error: Couldn't allocate buffer in rlc_tm::write_pdu().\n");
   }

@@ -220,6 +220,7 @@ class rrc_interface_rlc
 public:
   virtual void max_retx_attempted() = 0;
   virtual std::string get_rb_name(uint32_t lcid) = 0;
+  virtual void        write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu) = 0;
 };
 
 
@@ -284,6 +285,7 @@ public:
   virtual void change_lcid(uint32_t old_lcid, uint32_t new_lcid) = 0;
   virtual bool has_bearer(uint32_t lcid) = 0;
   virtual bool has_data(const uint32_t lcid)                               = 0;
+  virtual void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking = true) = 0;
 };
 
 // RLC interface for PDCP
