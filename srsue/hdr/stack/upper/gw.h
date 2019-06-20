@@ -70,9 +70,9 @@ public:
 private:
   static const int GW_THREAD_PRIO = 7;
 
-  stack_interface_gw*         stack;
-  srslte::byte_buffer_pool   *pool;
-  srslte::logger*             logger;
+  stack_interface_gw*       stack;
+  srslte::byte_buffer_pool* pool;
+  srslte::logger*           logger;
 
   gw_args_t args;
 

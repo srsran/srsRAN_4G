@@ -43,13 +43,13 @@ typedef struct {
 typedef struct {
   mac_metrics_t         mac[SRSLTE_MAX_CARRIERS];
   srslte::rlc_metrics_t rlc;
-  gw_metrics_t          gw;
   nas_metrics_t         nas;
 } stack_metrics_t;
 
 typedef struct {
   rf_metrics_t    rf;
   phy_metrics_t   phy;
+  gw_metrics_t    gw;
   stack_metrics_t stack;
 } ue_metrics_t;
 
