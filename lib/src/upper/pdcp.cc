@@ -29,7 +29,6 @@ pdcp::pdcp()
   rrc = NULL;
   gw = NULL;
   pdcp_log = NULL;
-  default_lcid = 0;
   pthread_rwlock_init(&rwlock, NULL);
 }
 
@@ -57,27 +56,10 @@ void pdcp::init(srsue::rlc_interface_pdcp *rlc_, srsue::rrc_interface_pdcp *rrc_
   rrc          = rrc_;
   gw           = gw_;
   pdcp_log     = pdcp_log_;
-  default_lcid = lcid_;
-
-  // Default config
-  default_cnfg.is_control = false;
-  default_cnfg.is_data = false;
-  default_cnfg.direction = direction_;
-
-  // create default PDCP entity for SRB0
-  add_bearer(0, default_cnfg);
 }
 
 void pdcp::stop()
 {
-  // destroy default entity
-  pthread_rwlock_wrlock(&rwlock);
-  if (valid_lcid(0)) {
-    pdcp_map_t::iterator it = pdcp_array.find(0);
-    delete(it->second);
-    pdcp_array.erase(it);
-  }
-  pthread_rwlock_unlock(&rwlock);
 }
 
 void pdcp::reestablish() {
@@ -107,9 +89,6 @@ void pdcp::reset()
     pdcp_array.erase(it++);
   }
   pthread_rwlock_unlock(&rwlock);
-
-  // add default SRB0 again
-  add_bearer(0, default_cnfg);
 }
 
 /*******************************************************************************

@@ -93,10 +93,6 @@ private:
   pdcp_map_t  pdcp_array, pdcp_array_mrb;
   pthread_rwlock_t rwlock;
 
-  // default PDCP entity that is maintained active by PDCP instance
-  srslte_pdcp_config_t default_cnfg;
-  uint32_t             default_lcid;
-
   bool valid_lcid(uint32_t lcid);
   bool valid_mch_lcid(uint32_t lcid);
 };
