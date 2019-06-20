@@ -43,7 +43,7 @@ class phy : public ue_lte_phy_base, public thread
 {
 public:
   phy() : workers_pool(MAX_WORKERS), common(MAX_WORKERS), thread("PHY"){};
-  ~phy() override = default;
+  ~phy() { stop(); }
 
   // Init defined in base class
   int init(const phy_args_t& args_, srslte::logger* logger_) final;
