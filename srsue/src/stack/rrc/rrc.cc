@@ -3054,12 +3054,6 @@ void rrc::add_drb(drb_to_add_mod_s* drb_cnfg)
     }
     priority             = drb_cnfg->lc_ch_cfg.ul_specific_params.prio;
     prioritized_bit_rate = drb_cnfg->lc_ch_cfg.ul_specific_params.prioritised_bit_rate.to_number();
-
-    if (prioritized_bit_rate > 0) {
-      rrc_log->warning("PBR>0 currently not supported. Setting it to Inifinty\n");
-      prioritized_bit_rate = -1;
-    }
-
     bucket_size_duration = drb_cnfg->lc_ch_cfg.ul_specific_params.bucket_size_dur.to_number();
   }
   mac->setup_lcid(lcid, log_chan_group, priority, prioritized_bit_rate, bucket_size_duration);
