@@ -231,11 +231,16 @@ void ue::stop()
   }
 }
 
-bool ue::switch_on() {
+bool ue::switch_on()
+{
   return stack->switch_on();
 }
 
-bool ue::switch_off() {
+bool ue::switch_off()
+{
+  if (gw_inst) {
+    gw_inst->stop();
+  }
   return stack->switch_off();
 }
 
