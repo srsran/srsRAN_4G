@@ -232,6 +232,10 @@ bool nas::detach_request() {
   return false;
 }
 
+void nas::leave_connected() {
+  eps_bearer.clear();
+  return;
+}
 
 bool nas::is_attached() {
   return state == EMM_STATE_REGISTERED;
@@ -702,6 +706,7 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
       nas_log->warning("EMM Cause: %d\n", attach_accept.emm_cause );
     }
     if (LIBLTE_MME_PDN_TYPE_IPV4 == act_def_eps_bearer_context_req.pdn_addr.pdn_type) {
+      ip_addr = 0;
       ip_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[0] << 24;
       ip_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[1] << 16;
       ip_addr |= act_def_eps_bearer_context_req.pdn_addr.addr[2] << 8;
@@ -1077,7 +1082,7 @@ void nas::parse_service_reject(uint32_t lcid, unique_byte_buffer_t pdu)
   LIBLTE_MME_SERVICE_REJECT_MSG_STRUCT service_reject;
   if (liblte_mme_unpack_service_reject_msg((LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), &service_reject)) {
     nas_log->error("Error unpacking service reject.\n");
-    goto exit;
+    return;
   }
 
   nas_log->console("Received service reject with EMM cause=0x%x.\n", service_reject.emm_cause);
@@ -1088,8 +1093,18 @@ void nas::parse_service_reject(uint32_t lcid, unique_byte_buffer_t pdu)
 
   // FIXME: handle NAS backoff-timers correctly
 
-exit:
-  ctxt.rx_count++;
+  // Mark state as EMM-DEREGISTERED
+  state = EMM_STATE_DEREGISTERED;
+
+  // Reset security context
+  ctxt      = {};
+  have_ctxt = false;
+  have_guti = false;
+
+  // Send attach request after receiving service reject 
+  pdu->clear(); 
+  gen_attach_request(pdu.get());
+  rrc->write_sdu(std::move(pdu));
 }
 
 void nas::parse_esm_information_request(uint32_t lcid, unique_byte_buffer_t pdu)

@@ -390,8 +390,8 @@ int gw::init_if(char* err_str)
 
   // Delete link-local IPv6 address.
   struct in6_addr in6p;
-  char addr_str[INET6_ADDRSTRLEN];
-  if(find_ipv6_addr(&in6p)){
+  char            addr_str[INET6_ADDRSTRLEN];
+  if (find_ipv6_addr(&in6p)) {
     log.debug("Found link-local IPv6 address: %s\n", inet_ntop(AF_INET6, &in6p, addr_str, INET6_ADDRSTRLEN));
     del_ipv6_addr(&in6p);
   } else {

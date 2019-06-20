@@ -1730,6 +1730,7 @@ void rrc::leave_connected()
   drb_up = false;
   security_is_activated = false;
   measurements.reset();
+  nas->leave_connected();
   pdcp->reset();
   rlc->reset();
   phy->reset();

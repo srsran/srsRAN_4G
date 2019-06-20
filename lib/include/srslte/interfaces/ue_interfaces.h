@@ -129,14 +129,15 @@ public:
     BARRING_MT,
     BARRING_ALL
   } barring_t;
-  virtual void      set_barring(barring_t barring) = 0;
-  virtual void      paging(asn1::rrc::s_tmsi_s* ue_identiy)              = 0;
-  virtual bool      is_attached() = 0;
-  virtual void      write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu) = 0;
-  virtual uint32_t  get_k_enb_count() = 0;
-  virtual bool      get_k_asme(uint8_t *k_asme_, uint32_t n) = 0;
-  virtual uint32_t  get_ipv4_addr() = 0;
-  virtual bool      get_ipv6_addr(uint8_t *ipv6_addr) = 0;
+  virtual void     leave_connected()                                          = 0;
+  virtual void     set_barring(barring_t barring)                             = 0;
+  virtual void     paging(asn1::rrc::s_tmsi_s* ue_identiy)                    = 0;
+  virtual bool     is_attached()                                              = 0;
+  virtual void     write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu) = 0;
+  virtual uint32_t get_k_enb_count()                                          = 0;
+  virtual bool     get_k_asme(uint8_t* k_asme_, uint32_t n)                   = 0;
+  virtual uint32_t get_ipv4_addr()                                            = 0;
+  virtual bool     get_ipv6_addr(uint8_t* ipv6_addr)                          = 0;
 };
 
 // NAS interface for UE
