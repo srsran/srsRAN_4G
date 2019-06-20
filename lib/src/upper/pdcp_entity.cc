@@ -172,11 +172,16 @@ void pdcp_entity::enable_encryption()
 // RLC interface
 void pdcp_entity::write_pdu(unique_byte_buffer_t pdu)
 {
-  log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU, do_integrity = %s, do_encryption = %s",
-                rrc->get_rb_name(lcid).c_str(), (do_integrity) ? "true" : "false", (do_encryption) ? "true" : "false");
+  log->info_hex(pdu->msg,
+                pdu->N_bytes,
+                "RX %s PDU (%d B), do_integrity = %s, do_encryption = %s",
+                rrc->get_rb_name(lcid).c_str(),
+                pdu->N_bytes,
+                (do_integrity) ? "true" : "false",
+                (do_encryption) ? "true" : "false");
 
   // Sanity check
-  if(pdu->N_bytes <= sn_len_bytes) {
+  if (pdu->N_bytes <= sn_len_bytes) {
     return;
   }
 
