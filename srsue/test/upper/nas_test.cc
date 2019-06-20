@@ -277,7 +277,7 @@ int mme_attach_request_test()
     nas.init(&usim, &rrc_dummy, &gw, &nas_log, nas_cfg);
 
     gw_args_t gw_args;
-    gw_args.tun_dev_name = "tun0";
+    gw_args.tun_dev_name     = "tun0";
     gw_args.log.gw_level     = "debug";
     gw_args.log.gw_hex_limit = 100000;
     srslte::logger_stdout def_logstdout;

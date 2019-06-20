@@ -119,10 +119,10 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
     }
 
     // move ownership
-    stack = std::move(lte_stack);
+    stack   = std::move(lte_stack);
     gw_inst = std::move(gw_ptr);
-    phy   = std::move(lte_phy);
-    radio = std::move(lte_radio);
+    phy     = std::move(lte_phy);
+    radio   = std::move(lte_radio);
   } else {
     log.console("Invalid stack type %s. Supported values are [lte].\n", args.stack.type.c_str());
     return SRSLTE_ERROR;
