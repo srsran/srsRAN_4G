@@ -166,7 +166,6 @@ class rrc_interface_mac : public rrc_interface_mac_common
 public:
   virtual void ho_ra_completed(bool ra_successful) = 0;
   virtual void release_pucch_srs() = 0;
-  virtual void run_tti(uint32_t tti) = 0;
 };
 
 // RRC interface for PHY

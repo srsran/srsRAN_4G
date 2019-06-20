@@ -26,7 +26,7 @@ using namespace srslte;
 
 namespace srsue {
 
-ue_stack_lte::ue_stack_lte() : running(false), args(), logger(nullptr), usim(nullptr), phy(nullptr) {}
+ue_stack_lte::ue_stack_lte() : running(false), args(), logger(nullptr), usim(nullptr), phy(nullptr), thread("STACK") {}
 
 ue_stack_lte::~ue_stack_lte()
 {
@@ -108,11 +108,21 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   rrc.init(phy, &mac, &rlc, &pdcp, &nas, usim.get(), gw, &mac, &rrc_log, args.rrc);
 
   running = true;
+  start(STACK_MAIN_THREAD_PRIO);
 
   return SRSLTE_SUCCESS;
 }
 
 void ue_stack_lte::stop()
+{
+  if (running) {
+    pending_tasks.push([this]() { stop_(); });
+
+    wait_thread_finish();
+  }
+}
+
+void ue_stack_lte::stop_()
 {
   if (running) {
     usim->stop();
@@ -140,7 +150,7 @@ void ue_stack_lte::stop()
 bool ue_stack_lte::switch_on()
 {
   if (running) {
-    return nas.attach_request();
+    nas.attach_request();
   }
 
   return false;
@@ -148,8 +158,10 @@ bool ue_stack_lte::switch_on()
 
 bool ue_stack_lte::switch_off()
 {
-  // generate detach request
-  nas.detach_request();
+  pending_tasks.push([this]() {
+    // generate detach request
+    nas.detach_request();
+  });
 
   // wait for max. 5s for it to be sent (according to TS 24.301 Sec 25.5.2.2)
   const uint32_t RB_ID_SRB1 = 1;
@@ -182,6 +194,36 @@ bool ue_stack_lte::get_metrics(stack_metrics_t* metrics)
 bool ue_stack_lte::is_rrc_connected()
 {
   return rrc.is_connected();
+}
+
+void ue_stack_lte::run_thread()
+{
+  while (running) {
+    // FIXME: For now it is a single queue
+    std::function<void()> func = pending_tasks.wait_pop();
+    func();
+  }
+}
+
+void ue_stack_lte::in_sync()
+{
+  pending_tasks.push([this]() { rrc.in_sync(); });
+}
+
+void ue_stack_lte::out_of_sync()
+{
+  pending_tasks.push([this]() { rrc.out_of_sync(); });
+}
+
+void ue_stack_lte::run_tti(uint32_t tti)
+{
+  pending_tasks.push([this, tti]() { run_tti_(tti); });
+}
+
+void ue_stack_lte::run_tti_(uint32_t tti)
+{
+  mac.run_tti(tti);
+  rrc.run_tti(tti);
 }
 
 } // namespace srsue

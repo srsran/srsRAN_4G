@@ -26,6 +26,7 @@
 #ifndef SRSUE_UE_STACK_LTE_H
 #define SRSUE_UE_STACK_LTE_H
 
+#include <functional>
 #include <pthread.h>
 #include <stdarg.h>
 #include <string>
@@ -47,7 +48,10 @@
 
 namespace srsue {
 
-class ue_stack_lte final : public ue_stack_base, public stack_interface_phy_lte, public stack_interface_gw
+class ue_stack_lte final : public ue_stack_base,
+                           public stack_interface_phy_lte,
+                           public stack_interface_gw,
+                           public thread
 {
 public:
   ue_stack_lte();
@@ -65,8 +69,8 @@ public:
   bool is_rrc_connected();
 
   // RRC interface for PHY
-  void in_sync() { rrc.in_sync(); };
-  void out_of_sync() { rrc.out_of_sync(); };
+  void in_sync() final;
+  void out_of_sync() final;
   void new_phy_meas(float rsrp, float rsrq, uint32_t tti, int earfcn = -1, int pci = -1)
   {
     rrc.new_phy_meas(rsrp, rsrq, tti, earfcn, pci);
@@ -99,7 +103,7 @@ public:
 
   void set_mbsfn_config(uint32_t nof_mbsfn_services) { mac.set_mbsfn_config(nof_mbsfn_services); }
 
-  void run_tti(const uint32_t tti) { mac.run_tti(tti); }
+  void run_tti(uint32_t tti) final;
 
   // Interface for GW
   void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking) final
@@ -110,6 +114,10 @@ public:
   bool is_lcid_enabled(uint32_t lcid) final { return pdcp.is_lcid_enabled(lcid); }
 
 private:
+  void run_thread() final;
+  void run_tti_(uint32_t tti);
+  void stop_();
+
   bool                running;
   srsue::stack_args_t args;
 
@@ -137,6 +145,10 @@ private:
   // RAT-specific interfaces
   phy_interface_stack_lte* phy;
   gw_interface_stack*      gw;
+
+  // Thread
+  static const int                            STACK_MAIN_THREAD_PRIO = -1; // Use default high-priority below UHD
+  srslte::block_queue<std::function<void()> > pending_tasks;
 };
 
 } // namespace srsue

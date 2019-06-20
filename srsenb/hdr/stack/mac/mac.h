@@ -62,7 +62,7 @@ public:
   void stop();
   
   void start_pcap(srslte::mac_pcap* pcap_);
-  
+
   /******** Interface from PHY (PHY -> MAC) ****************/
   int sr_detected(uint32_t tti, uint16_t rnti) final;
   int rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv) final;
@@ -122,7 +122,7 @@ private:
 
   // We use a rwlock in MAC to allow multiple workers to access MAC simultaneously. No conflicts will happen since access for different TTIs
   pthread_rwlock_t rwlock;
-  
+
   // Interaction with PHY
   phy_interface_stack_lte* phy_h;
   rlc_interface_mac*       rlc_h;

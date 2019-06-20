@@ -46,7 +46,6 @@ class mac : public mac_interface_phy_lte,
             public mac_interface_rrc,
             public srslte::timer_callback,
             public srslte::mac_interface_timers,
-            public thread,
             public mac_interface_demux
 {
 public:
@@ -110,7 +109,6 @@ public:
   uint32_t               timer_get_unique_id();
 
 private:
-  void run_thread();
   void clear_rntis();
 
   bool is_in_window(uint32_t tti, int* start, int* len);
@@ -158,10 +156,6 @@ private:
   srslte_softbuffer_rx_t mch_softbuffer;
   uint8_t                mch_payload_buffer[mch_payload_buffer_sz];
   srslte::mch_pdu        mch_msg;
-
-  // MAC thread
-  srslte::block_queue<uint16_t> tti_sync;
-  bool                          running;
 
   /* Functions for MAC Timers */
   uint32_t        timer_alignment;

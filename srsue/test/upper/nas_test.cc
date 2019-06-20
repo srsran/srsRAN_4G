@@ -137,17 +137,30 @@ private:
   found_plmn_t plmns;
 };
 
-class stack_dummy : public stack_interface_gw
+class stack_dummy : public stack_interface_gw, public thread
 {
 public:
-  stack_dummy(pdcp_interface_gw* pdcp_, srsue::nas* nas_) : pdcp(pdcp_), nas(nas_) {}
+  stack_dummy(pdcp_interface_gw* pdcp_, srsue::nas* nas_) : pdcp(pdcp_), nas(nas_), thread("DUMMY STACK") {}
+  void init() { start(-1); }
   bool switch_on() final { return nas->attach_request(); }
   void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking)
   {
     pdcp->write_sdu(lcid, std::move(sdu), blocking);
   }
   bool is_lcid_enabled(uint32_t lcid) { return pdcp->is_lcid_enabled(lcid); }
-
+  void run_thread()
+  {
+    running          = true;
+    uint32_t counter = 0;
+    //    while (running) {
+    //      nas->run_tti(counter++);
+    //    }
+  }
+  void stop()
+  {
+    running = false;
+    wait_thread_finish();
+  }
   pdcp_interface_gw* pdcp    = nullptr;
   srsue::nas*        nas     = nullptr;
   bool               running = false;
@@ -284,8 +297,10 @@ int mme_attach_request_test()
     srslte::logger*       logger = &def_logstdout;
     gw.init(gw_args, logger, &stack);
 
+    stack.init();
     // trigger test
     stack.switch_on();
+    stack.stop();
 
     // this will time out in the first place
 

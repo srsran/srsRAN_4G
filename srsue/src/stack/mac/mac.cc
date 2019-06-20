@@ -37,7 +37,7 @@ using namespace asn1::rrc;
 
 namespace srsue {
 
-mac::mac() : timers(64), pdu_process_thread(&demux_unit), mch_msg(10), running(false), pcap(nullptr), thread("MAC")
+mac::mac() : timers(64), pdu_process_thread(&demux_unit), mch_msg(10), pcap(nullptr)
 {
   // Create PCell HARQ entities
   auto ul = ul_harq_entity_ptr(new ul_harq_entity());
@@ -81,8 +81,6 @@ bool mac::init(phy_interface_mac_lte* phy, rlc_interface_mac* rlc, rrc_interface
 
   reset();
 
-  start(MAC_MAIN_THREAD_PRIO);
-
   return true;
 }
 
@@ -93,10 +91,7 @@ void mac::stop()
 
   pdu_process_thread.stop();
 
-  running = false;
   run_tti(0); // make sure it's not locked after last TTI
-
-  wait_thread_finish();
 }
 
 void mac::start_pcap(srslte::mac_pcap* pcap_)
@@ -178,50 +173,37 @@ void mac::reset()
   clear_rntis();
 }
 
-void mac::run_tti(const uint32_t tti_)
+void mac::run_tti(const uint32_t tti)
 {
-  tti_sync.push(tti_);
-}
+  log_h->step(tti);
 
-void mac::run_thread()
-{
-  running = true;
+  /* Warning: Here order of invocation of procedures is important!! */
 
-  while (running) {
-    // Wait for next TTI
-    uint32_t tti = tti_sync.wait_pop();
+  // Step all procedures
+  Debug("Running MAC tti=%d\n", tti);
+  bsr_procedure.step(tti);
+  phr_procedure.step(tti);
 
-    log_h->step(tti);
-
-    /* Warning: Here order of invocation of procedures is important!! */
-
-    // Step all procedures
-    Debug("Running MAC tti=%d\n", tti);
-    bsr_procedure.step(tti);
-    phr_procedure.step(tti);
-
-    // Check if BSR procedure need to start SR
-    if (bsr_procedure.need_to_send_sr(tti)) {
-      Debug("Starting SR procedure by BSR request, PHY TTI=%d\n", tti);
-      sr_procedure.start();
-    }
-    if (bsr_procedure.need_to_reset_sr()) {
-      Debug("Resetting SR procedure by BSR request\n");
-      sr_procedure.reset();
-    }
-    sr_procedure.step(tti);
-
-    // Check SR if we need to start RA
-    if (sr_procedure.need_random_access()) {
-      ra_procedure.start_mac_order();
-    }
-
-    ra_procedure.step(tti);
-    ra_window_start = 0;
-    ra_procedure.is_rar_window(&ra_window_start, &ra_window_length);
-    timers.step_all();
-    rrc_h->run_tti(tti);
+  // Check if BSR procedure need to start SR
+  if (bsr_procedure.need_to_send_sr(tti)) {
+    Debug("Starting SR procedure by BSR request, PHY TTI=%d\n", tti);
+    sr_procedure.start();
   }
+  if (bsr_procedure.need_to_reset_sr()) {
+    Debug("Resetting SR procedure by BSR request\n");
+    sr_procedure.reset();
+  }
+  sr_procedure.step(tti);
+
+  // Check SR if we need to start RA
+  if (sr_procedure.need_random_access()) {
+    ra_procedure.start_mac_order();
+  }
+
+  ra_procedure.step(tti);
+  ra_window_start = 0;
+  ra_procedure.is_rar_window(&ra_window_start, &ra_window_length);
+  timers.step_all();
 }
 
 void mac::bcch_start_rx(int si_window_start, int si_window_length)
