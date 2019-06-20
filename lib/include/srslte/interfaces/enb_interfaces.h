@@ -193,6 +193,7 @@ public:
   virtual void add_bearer(uint16_t rnti, uint32_t lcid) = 0;
   virtual void add_bearer(uint16_t rnti, uint32_t lcid, srslte::srslte_rlc_config_t cnfg) = 0;
   virtual void add_bearer_mrb(uint16_t rnti, uint32_t lcid) = 0;
+  virtual void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu)  = 0;
 };
 
 // PDCP interface for GTPU
@@ -237,6 +238,7 @@ public:
   virtual void read_pdu_bcch_dlsch(uint32_t sib_index, uint8_t *payload) = 0;
   virtual void read_pdu_pcch(uint8_t *payload, uint32_t payload_size) = 0; 
   virtual void max_retx_attempted(uint16_t rnti) = 0;
+  virtual void write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu) = 0;
 };
 
 // RRC interface for MAC

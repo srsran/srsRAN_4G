@@ -1978,11 +1978,10 @@ void rrc::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
     dl_ccch_msg->pack(bref);
     pdu->N_bytes = 1u + (uint32_t)bref.distance_bytes(pdu->msg);
 
-    char buf[32];
+    char buf[32] = {};
     sprintf(buf, "SRB0 - rnti=0x%x", rnti);
     parent->log_rrc_message(buf, Tx, pdu.get(), *dl_ccch_msg);
-
-    parent->pdcp->write_sdu(rnti, RB_ID_SRB0, std::move(pdu));
+    parent->rlc->write_sdu(rnti, RB_ID_SRB0, std::move(pdu));
   } else {
     parent->rrc_log->error("Allocating pdu\n");
   }
@@ -1998,12 +1997,10 @@ void rrc::ue::send_dl_dcch(dl_dcch_msg_s* dl_dcch_msg, srslte::unique_byte_buffe
     dl_dcch_msg->pack(bref);
     pdu->N_bytes = 1u + (uint32_t)bref.distance_bytes(pdu->msg);
 
-    char buf[32];
+    char buf[32] = {};
     sprintf(buf, "SRB1 - rnti=0x%x", rnti);
     parent->log_rrc_message(buf, Tx, pdu.get(), *dl_dcch_msg);
-
     parent->pdcp->write_sdu(rnti, RB_ID_SRB1, std::move(pdu));
-
   } else {
     parent->rrc_log->error("Allocating pdu\n");
   }

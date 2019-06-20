@@ -52,7 +52,7 @@ void pdcp::add_user(uint16_t rnti)
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti) == 0) {
     srslte::pdcp *obj = new srslte::pdcp;
-    obj->init(&users[rnti].rlc_itf, &users[rnti].rrc_itf, &users[rnti].gtpu_itf, log_h, RB_ID_SRB0, SECURITY_DIRECTION_DOWNLINK);
+    obj->init(&users[rnti].rlc_itf, &users[rnti].rrc_itf, &users[rnti].gtpu_itf, log_h);
     users[rnti].rlc_itf.rnti  = rnti;
     users[rnti].gtpu_itf.rnti = rnti;
     users[rnti].rrc_itf.rnti  = rnti;

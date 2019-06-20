@@ -37,12 +37,8 @@ class pdcp
 public:
   pdcp();
   virtual ~pdcp();
-  void init(srsue::rlc_interface_pdcp *rlc_,
-            srsue::rrc_interface_pdcp *rrc_,
-            srsue::gw_interface_pdcp *gw_,
-            log *pdcp_log_,
-            uint32_t lcid_,
-            uint8_t direction_);
+  void
+       init(srsue::rlc_interface_pdcp* rlc_, srsue::rrc_interface_pdcp* rrc_, srsue::gw_interface_pdcp* gw_, log* pdcp_log_);
   void stop();
 
   // GW interface
@@ -82,14 +78,14 @@ public:
   void write_pdu_pcch(unique_byte_buffer_t sdu);
 
 private:
-  srsue::rlc_interface_pdcp *rlc;
-  srsue::rrc_interface_pdcp *rrc;
-  srsue::gw_interface_pdcp  *gw;
+  srsue::rlc_interface_pdcp* rlc = nullptr;
+  srsue::rrc_interface_pdcp* rrc = nullptr;
+  srsue::gw_interface_pdcp*  gw  = nullptr;
 
   typedef std::map<uint16_t, pdcp_entity_interface*> pdcp_map_t;
   typedef std::pair<uint16_t, pdcp_entity_interface*> pdcp_map_pair_t;
 
-  log         *pdcp_log;
+  log*             pdcp_log = nullptr;
   pdcp_map_t  pdcp_array, pdcp_array_mrb;
   pthread_rwlock_t rwlock;
 

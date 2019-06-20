@@ -103,7 +103,7 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
 
   mac.init(phy, &rlc, &rrc, &mac_log);
   rlc.init(&pdcp, &rrc, &rlc_log, &mac, 0 /* RB_ID_SRB0 */);
-  pdcp.init(&rlc, &rrc, gw, &pdcp_log, 0 /* RB_ID_SRB0 */, SECURITY_DIRECTION_UPLINK);
+  pdcp.init(&rlc, &rrc, gw, &pdcp_log);
   nas.init(usim.get(), &rrc, gw, &nas_log, args.nas);
   rrc.init(phy, &mac, &rlc, &pdcp, &nas, usim.get(), gw, &mac, &rrc_log, args.rrc);
 

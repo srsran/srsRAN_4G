@@ -210,7 +210,11 @@ void rlc::user_interface::max_retx_attempted()
 
 void rlc::user_interface::write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu)
 {
-  pdcp->write_pdu(rnti, lcid, std::move(sdu));
+  if (lcid == RB_ID_SRB0) {
+    rrc->write_pdu(rnti, lcid, std::move(sdu));
+  } else {
+    pdcp->write_pdu(rnti, lcid, std::move(sdu));
+  }
 }
 
 void rlc::user_interface::write_pdu_bcch_bch(srslte::unique_byte_buffer_t sdu)
