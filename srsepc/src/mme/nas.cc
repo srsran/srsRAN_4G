@@ -789,7 +789,6 @@ bool nas::handle_attach_request(srslte::byte_buffer_t* nas_rx)
   LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT           attach_req;
   LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT pdn_con_req;
 
-  printf("%p\n",this);
   // Get NAS Attach Request and PDN connectivity request messages
   LIBLTE_ERROR_ENUM err = liblte_mme_unpack_attach_request_msg((LIBLTE_BYTE_MSG_STRUCT*)nas_rx, &attach_req);
   if (err != LIBLTE_SUCCESS) {
@@ -803,20 +802,15 @@ bool nas::handle_attach_request(srslte::byte_buffer_t* nas_rx)
     return false;
   }
 
-  printf("testts %d\n", m_ecm_ctx.mme_ue_s1ap_id);
   // Get UE IMSI
   if (attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_IMSI) {
     for (int i = 0; i <= 14; i++) {
       imsi += attach_req.eps_mobile_id.imsi[i] * std::pow(10, 14 - i);
     }
-    printf("testts %" PRIu64 "\n", imsi);
-    printf("nas_log %p\n", m_nas_log);
-    printf("testts %" PRIu64 "\n", imsi);
     m_nas_log->console("Attach request -- IMSI: %015" PRIu64 "\n", imsi);
     m_nas_log->info("Attach request -- IMSI: %015" PRIu64 "\n", imsi);
   } else if (attach_req.eps_mobile_id.type_of_id == LIBLTE_MME_EPS_MOBILE_ID_TYPE_GUTI) {
     m_tmsi = attach_req.eps_mobile_id.guti.m_tmsi;
-    printf("testts %d\n", m_tmsi);
     imsi   = m_s1ap->find_imsi_from_m_tmsi(m_tmsi);
     m_nas_log->console("Attach request -- M-TMSI: 0x%x\n", m_tmsi);
     m_nas_log->info("Attach request -- M-TMSI: 0x%x\n", m_tmsi);
@@ -825,11 +819,9 @@ bool nas::handle_attach_request(srslte::byte_buffer_t* nas_rx)
     return false;
   }
 
-  printf("testts2\n");
-
   // Is UE known?
   if (m_emm_ctx.imsi == 0) {
-    printf("Attach request from Unkonwn UE\n");
+    m_nas_log->info("Attach request from Unkonwn UE\n");
     // Get IMSI
     uint64_t imsi = 0;
     for (int i = 0; i <= 14; i++) {
