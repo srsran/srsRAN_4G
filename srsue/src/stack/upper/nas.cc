@@ -36,7 +36,175 @@
 
 using namespace srslte;
 
+#define Error(fmt, ...) nas_ptr->nas_log->error("%s - " fmt, name(), ##__VA_ARGS__)
+#define Warning(fmt, ...) nas_ptr->nas_log->warning("%s - " fmt, name(), ##__VA_ARGS__)
+#define Info(fmt, ...) nas_ptr->nas_log->info("%s - " fmt, name(), ##__VA_ARGS__)
+
 namespace srsue {
+
+using srslte::proc_outcome_t;
+
+proc_outcome_t nas::plmn_search_proc::init(nas* nas_ptr_)
+{
+  nas_ptr = nas_ptr_;
+
+  // start RRC
+  state = state_t::plmn_search;
+  if (not nas_ptr->rrc->plmn_search()) {
+    Error("Error while searching for PLMNs\n");
+    return proc_outcome_t::error;
+  }
+
+  Info("Starting...\n");
+  return proc_outcome_t::yield;
+}
+
+proc_outcome_t nas::plmn_search_proc::step()
+{
+  if (state == state_t::rrc_connect) {
+    if (nas_ptr->rrc_connector.run()) {
+      return proc_outcome_t::yield;
+    }
+    rrc_connect_proc ret = nas_ptr->rrc_connector.pop();
+    if (ret.is_success()) {
+      return proc_outcome_t::success;
+    }
+    return proc_outcome_t::error;
+  }
+  return proc_outcome_t::yield;
+}
+
+proc_outcome_t nas::plmn_search_proc::trigger_event(const plmn_search_complete_t& t)
+{
+  if (state != state_t::plmn_search) {
+    Warning("PLMN Search Complete was received but PLMN Search is not running.\n");
+    return proc_outcome_t::yield; // ignore
+  }
+
+  // check whether the state hasn't changed
+  if (nas_ptr->state != EMM_STATE_DEREGISTERED or nas_ptr->plmn_is_selected) {
+    Error("Error while searching for PLMNs\n");
+    return proc_outcome_t::error;
+  }
+
+  if (t.nof_plmns < 0) {
+    Error("Error while searching for PLMNs\n");
+    return proc_outcome_t::error;
+  } else if (t.nof_plmns == 0) {
+    Warning("Did not find any PLMN in the set of frequencies.\n");
+    return proc_outcome_t::error;
+  }
+
+  // Save PLMNs
+  nas_ptr->known_plmns.clear();
+  for (int i = 0; i < t.nof_plmns; i++) {
+    nas_ptr->known_plmns.push_back(t.found_plmns[i].plmn_id);
+    nas_ptr->nas_log->info(
+        "Found PLMN:  Id=%s, TAC=%d\n", t.found_plmns[i].plmn_id.to_string().c_str(), t.found_plmns[i].tac);
+    nas_ptr->nas_log->console(
+        "Found PLMN:  Id=%s, TAC=%d\n", t.found_plmns[i].plmn_id.to_string().c_str(), t.found_plmns[i].tac);
+  }
+  nas_ptr->select_plmn();
+
+  // Select PLMN in request establishment of RRC connection
+  if (not nas_ptr->plmn_is_selected) {
+    Error("PLMN is not selected because no suitable PLMN was found\n");
+    return proc_outcome_t::error;
+  }
+
+  nas_ptr->rrc->plmn_select(nas_ptr->current_plmn);
+
+  if (not nas_ptr->rrc_connector.launch(nas_ptr)) {
+    Error("Unable to initiate RRC connection.\n");
+    return proc_outcome_t::error;
+  }
+
+  state = state_t::rrc_connect;
+  return proc_outcome_t::yield;
+}
+
+proc_outcome_t nas::rrc_connect_proc::init(nas* nas_ptr_)
+{
+  nas_ptr = nas_ptr_;
+
+  if (nas_ptr->rrc->is_connected()) {
+    Info("Stopping. Reason: Already connected\n");
+    return proc_outcome_t::success;
+  }
+
+  // Generate service request or attach request message
+  unique_byte_buffer_t dedicatedInfoNAS = srslte::allocate_unique_buffer(*nas_ptr->pool, true);
+  if (!dedicatedInfoNAS) {
+    Error("Fatal Error: Couldn't allocate PDU.\n");
+    return proc_outcome_t::error;
+  }
+
+  if (nas_ptr->state == EMM_STATE_REGISTERED) {
+    nas_ptr->gen_service_request(dedicatedInfoNAS.get());
+  } else {
+    nas_ptr->gen_attach_request(dedicatedInfoNAS.get());
+  }
+
+  // Provide UE-Identity to RRC if have one
+  if (nas_ptr->have_guti) {
+    srslte::s_tmsi_t s_tmsi;
+    s_tmsi.mmec   = nas_ptr->ctxt.guti.mme_code;
+    s_tmsi.m_tmsi = nas_ptr->ctxt.guti.m_tmsi;
+    nas_ptr->rrc->set_ue_identity(s_tmsi);
+  }
+
+  establishment_cause_t establish_cause = establishment_cause_t::mo_sig;
+  if (nas_ptr->state == EMM_STATE_REGISTERED) {
+    // FIXME: only need to use MT_ACCESS for establishment after paging
+    establish_cause = establishment_cause_t::mt_access;
+  }
+
+  state = state_t::conn_req;
+  if (not nas_ptr->start_connection_request(establish_cause, std::move(dedicatedInfoNAS))) {
+    return proc_outcome_t::error;
+  }
+
+  Info("Starting...\n");
+  return proc_outcome_t::yield;
+}
+
+proc_outcome_t nas::rrc_connect_proc::step()
+{
+  if (state == state_t::conn_req) {
+    if (nas_ptr->conn_req_proc.run()) {
+      return proc_outcome_t::yield;
+    }
+    query_proc_t<bool> ret = nas_ptr->conn_req_proc.pop();
+    if (not ret.result()) {
+      Error("Could not establish RRC connection\n");
+      return proc_outcome_t::error;
+    }
+    Info("Connection established correctly. Waiting for Attach\n");
+    wait_timeout = 0;
+    // Wait until attachment. If doing a service request is already attached
+    state = state_t::wait_attach;
+    return proc_outcome_t::repeat;
+  } else if (state == state_t::wait_attach) {
+    wait_timeout++;
+    // Wait until attachment. If doing a service request is already attached
+    if (wait_timeout >= 5000 or nas_ptr->state == EMM_STATE_REGISTERED or not nas_ptr->running or
+        not nas_ptr->rrc->is_connected()) {
+      if (nas_ptr->state == EMM_STATE_REGISTERED) {
+        Info("EMM Registered correctly\n");
+        return proc_outcome_t::success;
+      } else if (nas_ptr->state == EMM_STATE_DEREGISTERED) {
+        Error("Timeout or received attach reject while trying to attach\n");
+        nas_ptr->nas_log->console("Failed to Attach\n");
+      } else if (!nas_ptr->rrc->is_connected()) {
+        Error("Was disconnected while attaching\n");
+      } else {
+        Error("Timed out while trying to attach\n");
+      }
+      return proc_outcome_t::error;
+    }
+  }
+  return proc_outcome_t::yield;
+}
 
 /*********************************************************************
  *   NAS
@@ -113,6 +281,11 @@ emm_state_t nas::get_state() {
   return state;
 }
 
+void nas::run_tti(uint32_t tti)
+{
+  callbacks.run();
+}
+
 /*******************************************************************************
  * UE interface
  ******************************************************************************/
@@ -121,9 +294,8 @@ emm_state_t nas::get_state() {
  * The function returns true if the UE could attach correctly or false in case of error or timeout during attachment.
  *
  */
-bool nas::attach_request() {
-  rrc_interface_nas::found_plmn_t found_plmns[rrc_interface_nas::MAX_FOUND_PLMNS];
-  int nof_plmns = 0;
+void nas::start_attach_request(srslte::proc_state_t* result)
+{
 
   nas_log->info("Attach Request\n");
   switch (state) {
@@ -132,57 +304,59 @@ bool nas::attach_request() {
       // Search PLMN is not selected
       if (!plmn_is_selected) {
         nas_log->info("No PLMN selected. Starting PLMN Search...\n");
-        nof_plmns = rrc->plmn_search(found_plmns);
-        if (nof_plmns > 0) {
-          // Save PLMNs
-          known_plmns.clear();
-          for (int i=0;i<nof_plmns;i++) {
-            known_plmns.push_back(found_plmns[i].plmn_id);
-            nas_log->info(
-                "Found PLMN:  Id=%s, TAC=%d\n", found_plmns[i].plmn_id.to_string().c_str(), found_plmns[i].tac);
-            nas_log->console(
-                "Found PLMN:  Id=%s, TAC=%d\n", found_plmns[i].plmn_id.to_string().c_str(), found_plmns[i].tac);
+        if (not plmn_searcher.launch(this)) {
+          *result = proc_state_t::error;
+          return;
+        }
+        callbacks.defer_task([this, result]() {
+          if (plmn_searcher.run()) {
+            return proc_outcome_t::yield;
           }
-          select_plmn();
-        } else if (nof_plmns == 0) {
-          nas_log->warning("Did not find any PLMN in the set of frequencies\n");
-          return false;
-        } else if (nof_plmns < 0) {
-          nas_log->error("Error while searching for PLMNs\n");
-          return false;
-        }
-      }
-      // Select PLMN in request establishment of RRC connection
-      if (plmn_is_selected) {
-        rrc->plmn_select(current_plmn);
-        if (rrc_connect()) {
-          nas_log->info("NAS attached successfully.\n");
-          return true;
-        } else {
-          nas_log->error("Could not attach in attach request\n");
-        }
+          plmn_search_proc p = plmn_searcher.pop();
+          nas_log->info("Attach Request from PLMN Search %s\n", p.is_success() ? "finished successfully" : "failed");
+          *result = p.is_success() ? proc_state_t::success : proc_state_t::error;
+          return proc_outcome_t::success;
+        });
       } else {
-        nas_log->error("PLMN is not selected because no suitable PLMN was found\n");
+        *result = proc_state_t::error;
       }
       break;
     case EMM_STATE_REGISTERED:
       if (rrc->is_connected()) {
         nas_log->info("NAS is already registered and RRC connected\n");
-        return true;
+        *result = proc_state_t::success;
       } else {
         nas_log->info("NAS is already registered but RRC disconnected. Connecting now...\n");
-        if (rrc_connect()) {
-          nas_log->info("NAS attached successfully.\n");
-          return true;
-        } else {
-          nas_log->error("Could not attach from attach_request\n");
+        if (not rrc_connector.launch(this)) {
+          nas_log->error("Cannot initiate concurrent rrc connection procedures\n");
+          *result = proc_state_t::error;
+          return;
         }
+        callbacks.defer_task([this, result]() {
+          if (rrc_connector.run()) {
+            return proc_outcome_t::yield;
+          }
+          rrc_connect_proc proc = rrc_connector.pop();
+          if (proc.is_success()) {
+            nas_log->info("NAS attached successfully.\n");
+          } else {
+            nas_log->error("Could not attach from attach_request\n");
+          }
+          *result = proc.is_success() ? proc_state_t::success : proc_state_t::error;
+          return proc_outcome_t::success;
+        });
       }
       break;
     default:
       nas_log->info("Attach request ignored. State = %s\n", emm_state_text[state]);
+      *result = proc_state_t::error;
   }
-  return false;
+}
+
+void nas::plmn_search_completed(rrc_interface_nas::found_plmn_t found_plmns[rrc_interface_nas::MAX_FOUND_PLMNS],
+                                int                             nof_plmns)
+{
+  plmn_searcher.trigger_event(plmn_search_proc::plmn_search_complete_t(found_plmns, nof_plmns));
 }
 
 bool nas::detach_request() {
@@ -220,11 +394,24 @@ void nas::paging(s_tmsi_t* ue_identity)
 {
   if (state == EMM_STATE_REGISTERED) {
     nas_log->info("Received paging: requesting RRC connection establishment\n");
-    if (rrc_connect()) {
-      nas_log->info("Attached successfully\n");
-    } else {
-      nas_log->error("Could not attach from paging\n");
+    if (rrc_connector.is_active()) {
+      nas_log->error("Cannot initiate concurrent RRC connection establishment procedures\n");
+      return;
     }
+    if (not rrc_connector.launch(this)) {
+      nas_log->error("Could not launch RRC Connect()\n");
+      return;
+    }
+    // once completed, call paging complete
+    callbacks.defer_task([this]() {
+      if (rrc_connector.run()) {
+        return proc_outcome_t::yield;
+      }
+      bool success = rrc_connector.pop().is_success();
+      rrc->paging_completed(success);
+      return proc_outcome_t::success;
+    });
+
   } else {
     nas_log->warning("Received paging while in state %s\n", emm_state_text[state]);
   }
@@ -234,66 +421,25 @@ void nas::set_barring(barring_t barring) {
   current_barring = barring;
 }
 
-/* Internal function that requests RRC connection, waits for positive or negative response and returns true/false
- */
-bool nas::rrc_connect() {
-  if (rrc->is_connected()) {
-    nas_log->info("Already connected\n");
-    return true;
-  }
-
-  // Generate service request or attach request message
-  unique_byte_buffer_t dedicatedInfoNAS = srslte::allocate_unique_buffer(*pool, true);
-  if (!dedicatedInfoNAS) {
-    nas_log->error("Fatal Error: Couldn't allocate PDU in rrc_connect().\n");
+bool nas::start_connection_request(srslte::establishment_cause_t establish_cause,
+                                   srslte::unique_byte_buffer_t  ded_info_nas)
+{
+  if (not conn_req_proc.launch()) {
+    nas_log->error("Failed to initiate a connection request procedure\n");
     return false;
   }
-
-  if (state == EMM_STATE_REGISTERED) {
-    gen_service_request(dedicatedInfoNAS.get());
-  } else {
-    gen_attach_request(dedicatedInfoNAS.get());
+  if (not rrc->connection_request(establish_cause, std::move(ded_info_nas))) {
+    nas_log->error("Failed to initiate a connection request procedure\n");
+    conn_req_proc.pop();
+    return false;
   }
+  return true;
+}
 
-  // Provide UE-Identity to RRC if have one
-  if (have_guti) {
-    s_tmsi_t s_tmsi;
-    s_tmsi.m_tmsi = ctxt.guti.m_tmsi;
-    s_tmsi.mmec   = ctxt.guti.mme_code;
-    rrc->set_ue_identity(s_tmsi);
-  }
-
-  // Set establishment cause
-  srslte::establishment_cause_t establish_cause = srslte::establishment_cause_t::mo_sig;
-  if (state == EMM_STATE_REGISTERED) {
-    // FIXME: only need to use MT_ACCESS for establishment after paging
-    establish_cause = establishment_cause_t::mt_access;
-  }
-
-  if (rrc->connection_request(establish_cause, std::move(dedicatedInfoNAS))) {
-    nas_log->info("Connection established correctly. Waiting for Attach\n");
-
-    // Wait until attachment. If doing a service request is already attached
-    uint32_t tout = 0;
-    while (tout < 5000 && state != EMM_STATE_REGISTERED && running && rrc->is_connected()) {
-      usleep(1000);
-      tout++;
-    }
-    if (state == EMM_STATE_REGISTERED) {
-      nas_log->info("EMM Registered correctly\n");
-      return true;
-    } else if (state == EMM_STATE_DEREGISTERED) {
-      nas_log->error("Timeout or received attach reject while trying to attach\n");
-      nas_log->console("Failed to Attach\n");
-    } else if (!rrc->is_connected()) {
-      nas_log->error("Was disconnected while attaching\n");
-    } else {
-      nas_log->error("Timed out while trying to attach\n");
-    }
-  } else {
-    nas_log->error("Could not establish RRC connection\n");
-  }
-  return false;
+bool nas::connection_request_completed(bool outcome)
+{
+  conn_req_proc.trigger_event(outcome);
+  return conn_req_proc.is_active();
 }
 
 void nas::select_plmn() {
@@ -311,7 +457,7 @@ void nas::select_plmn() {
   }
 
   // If not, select the first available PLMN
-  if (known_plmns.size() > 0) {
+  if (not known_plmns.empty()) {
     nas_log->info("Could not find Home PLMN Id=%s, trying to connect to PLMN Id=%s\n",
                   home_plmn.to_string().c_str(),
                   known_plmns[0].to_string().c_str());
@@ -359,7 +505,7 @@ void nas::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
   }
 
   // Write NAS pcap
-  if(pcap != NULL) {
+  if (pcap != nullptr) {
     pcap->write_nas(pdu->msg, pdu->N_bytes);
   }
 
@@ -424,7 +570,6 @@ void nas::set_k_enb_count(uint32_t count) {
   // UL count for RRC key derivation depends on UL Count of the Attach Request or Service Request.
   // On the case of an Authentication Request, the UL count used to generate K_enb must be reset to zero.
   ctxt.k_enb_count = count;
-  return;
 }
 
 uint32_t nas::get_k_enb_count() {
@@ -436,7 +581,7 @@ bool nas::get_k_asme(uint8_t *k_asme_, uint32_t n) {
     nas_log->error("K_asme requested before security context established\n");
     return false;
   }
-  if(NULL == k_asme_ || n < 32) {
+  if (nullptr == k_asme_ || n < 32) {
     nas_log->error("Invalid parameters to get_k_asme");
     return false;
   }
@@ -1007,7 +1152,7 @@ void nas::parse_security_mode_command(uint32_t lcid, unique_byte_buffer_t pdu)
   nas_log->debug("Generating integrity check. integ_algo:%d, count_dl:%d, lcid:%d\n",
                  ctxt.integ_algo, ctxt.rx_count, lcid);
 
-  if (integrity_check(pdu.get()) != true) {
+  if (not integrity_check(pdu.get())) {
     nas_log->warning("Sending Security Mode Reject due to integrity check failure\n");
     send_security_mode_reject(LIBLTE_MME_EMM_CAUSE_MAC_FAILURE);
     return;
@@ -1516,7 +1661,9 @@ void nas::send_detach_request(bool switch_off)
   if (rrc->is_connected()) {
     rrc->write_sdu(std::move(pdu));
   } else {
-    rrc->connection_request(establishment_cause_t::mo_sig, std::move(pdu));
+    if (not start_connection_request(establishment_cause_t::mo_sig, std::move(pdu))) {
+      nas_log->info("Failed to initiate RRC Connection Request\n");
+    }
   }
 }
 

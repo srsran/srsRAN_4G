@@ -36,6 +36,7 @@
 #include "srslte/common/common.h"
 #include "srslte/common/interfaces_common.h"
 #include "srslte/common/security.h"
+#include "srslte/common/stack_procedure.h"
 #include "srslte/phy/channel/channel.h"
 #include "srslte/phy/rf/rf.h"
 
@@ -118,43 +119,6 @@ public:
   virtual void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu) = 0;
 };
 
-// NAS interface for RRC
-class nas_interface_rrc
-{
-public:
-  typedef enum {
-    BARRING_NONE = 0,
-    BARRING_MO_DATA,
-    BARRING_MO_SIGNALLING,
-    BARRING_MT,
-    BARRING_ALL
-  } barring_t;
-  virtual void     leave_connected()                                          = 0;
-  virtual void     set_barring(barring_t barring)                             = 0;
-  virtual void     paging(srslte::s_tmsi_t* ue_identity)                      = 0;
-  virtual bool     is_attached()                                              = 0;
-  virtual void     write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu) = 0;
-  virtual uint32_t get_k_enb_count()                                          = 0;
-  virtual bool     get_k_asme(uint8_t* k_asme_, uint32_t n)                   = 0;
-  virtual uint32_t get_ipv4_addr()                                            = 0;
-  virtual bool     get_ipv6_addr(uint8_t* ipv6_addr)                          = 0;
-};
-
-// NAS interface for UE
-class nas_interface_ue
-{
-public:
-  virtual bool attach_request() = 0;
-  virtual bool detach_request() = 0;
-};
-
-// NAS interface for UE
-class nas_interface_gw
-{
-public:
-  virtual bool attach_request() = 0;
-};
-
 // RRC interface for MAC
 class rrc_interface_mac_common
 {
@@ -189,18 +153,19 @@ public:
 
   const static int MAX_FOUND_PLMNS = 16;
 
-  virtual void        write_sdu(srslte::unique_byte_buffer_t sdu)                       = 0;
-  virtual uint16_t    get_mcc()                                                         = 0;
-  virtual uint16_t    get_mnc()                                                         = 0;
-  virtual void        enable_capabilities()                                             = 0;
-  virtual int         plmn_search(found_plmn_t found_plmns[MAX_FOUND_PLMNS])            = 0;
-  virtual void        plmn_select(srslte::plmn_id_t plmn_id)                            = 0;
+  virtual void        write_sdu(srslte::unique_byte_buffer_t sdu)                           = 0;
+  virtual uint16_t    get_mcc()                                                             = 0;
+  virtual uint16_t    get_mnc()                                                             = 0;
+  virtual void        enable_capabilities()                                                 = 0;
+  virtual bool        plmn_search()                                                         = 0;
+  virtual void        plmn_select(srslte::plmn_id_t plmn_id)                                = 0;
   virtual bool        connection_request(srslte::establishment_cause_t cause,
-                                         srslte::unique_byte_buffer_t  dedicatedInfoNAS) = 0;
-  virtual void        set_ue_identity(srslte::s_tmsi_t s_tmsi)                          = 0;
-  virtual bool        is_connected()                                                    = 0;
-  virtual std::string get_rb_name(uint32_t lcid)                                        = 0;
-  virtual uint32_t    get_lcid_for_eps_bearer(const uint32_t& eps_bearer_id)            = 0;
+                                         srslte::unique_byte_buffer_t     dedicatedInfoNAS) = 0;
+  virtual void        set_ue_identity(srslte::s_tmsi_t s_tmsi)                              = 0;
+  virtual bool        is_connected()                                                        = 0;
+  virtual void        paging_completed(bool outcome)                                        = 0;
+  virtual std::string get_rb_name(uint32_t lcid)                                            = 0;
+  virtual uint32_t    get_lcid_for_eps_bearer(const uint32_t& eps_bearer_id)                = 0;
 };
 
 // RRC interface for PDCP
@@ -222,6 +187,34 @@ public:
   virtual void        max_retx_attempted()                                       = 0;
   virtual std::string get_rb_name(uint32_t lcid)                                 = 0;
   virtual void        write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu) = 0;
+};
+
+// NAS interface for RRC
+class nas_interface_rrc
+{
+public:
+  typedef enum { BARRING_NONE = 0, BARRING_MO_DATA, BARRING_MO_SIGNALLING, BARRING_MT, BARRING_ALL } barring_t;
+  virtual void     leave_connected()                                                                          = 0;
+  virtual void     set_barring(barring_t barring)                             = 0;
+  virtual void     paging(srslte::s_tmsi_t* ue_identity)                      = 0;
+  virtual bool     is_attached()                                              = 0;
+  virtual void     write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu) = 0;
+  virtual uint32_t get_k_enb_count()                                          = 0;
+  virtual bool     get_k_asme(uint8_t* k_asme_, uint32_t n)                   = 0;
+  virtual uint32_t get_ipv4_addr()                                            = 0;
+  virtual bool     get_ipv6_addr(uint8_t* ipv6_addr)                          = 0;
+  virtual void plmn_search_completed(rrc_interface_nas::found_plmn_t found_plmns[rrc_interface_nas::MAX_FOUND_PLMNS],
+                                     int                             nof_plmns)                                                           = 0;
+  virtual bool connection_request_completed(bool outcome)                     = 0;
+  virtual void run_tti(uint32_t tti)                                          = 0;
+};
+
+// NAS interface for UE
+class nas_interface_ue
+{
+public:
+  virtual void start_attach_request(srslte::proc_state_t* proc_result) = 0;
+  virtual bool detach_request()                                        = 0;
 };
 
 // PDCP interface for RRC

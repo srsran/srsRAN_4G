@@ -124,6 +124,7 @@ struct plmn_id_t {
 struct s_tmsi_t {
   uint8_t  mmec   = 0;
   uint32_t m_tmsi = 0;
+  bool     operator==(const s_tmsi_t& other) const { return mmec == other.mmec and m_tmsi == other.m_tmsi; }
 };
 
 /***************************

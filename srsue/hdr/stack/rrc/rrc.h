@@ -33,6 +33,7 @@
 #include "srslte/common/common.h"
 #include "srslte/common/log.h"
 #include "srslte/common/security.h"
+#include "srslte/common/stack_procedure.h"
 #include "srslte/common/threads.h"
 #include "srslte/interfaces/ue_interfaces.h"
 
@@ -282,8 +283,7 @@ class rrc : public rrc_interface_nas,
             public rrc_interface_mac,
             public rrc_interface_pdcp,
             public rrc_interface_rlc,
-            public srslte::timer_callback,
-            public thread
+            public srslte::timer_callback
 {
 public:
   rrc(srslte::log* rrc_log_);
@@ -319,10 +319,11 @@ public:
   void enable_capabilities();
   uint16_t get_mcc();
   uint16_t get_mnc();
-  int plmn_search(found_plmn_t found_plmns[MAX_FOUND_PLMNS]);
+  bool     plmn_search() final;
   void     plmn_select(srslte::plmn_id_t plmn_id);
   bool     connection_request(srslte::establishment_cause_t cause, srslte::unique_byte_buffer_t dedicated_info_nas);
   void     set_ue_identity(srslte::s_tmsi_t s_tmsi);
+  void     paging_completed(bool outcome) final;
 
   // PHY interface
   void in_sync();
@@ -349,14 +350,13 @@ public:
 private:
 
   typedef struct {
-    enum { PDU, PCCH, STOP, MBMS_START } command;
+    enum { PDU, PCCH, PDU_MCH, RLF, PDU_BCCH_DLSCH, STOP } command;
     srslte::unique_byte_buffer_t pdu;
     uint16_t lcid;
   } cmd_msg_t;
 
   bool                           running = false;
   srslte::block_queue<cmd_msg_t> cmd_q;
-  void run_thread();
 
   void process_pcch(srslte::unique_byte_buffer_t pdu);
 
@@ -376,8 +376,6 @@ private:
   void send_ul_dcch_msg(uint32_t lcid, const asn1::rrc::ul_dcch_msg_s& msg);
 
   srslte::bit_buffer_t          bit_buf;
-
-  pthread_mutex_t mutex;
 
   rrc_state_t         state, last_state = RRC_STATE_IDLE;
   uint8_t             transaction_id = 0;
@@ -458,22 +456,11 @@ private:
   std::vector<cell_t*>::iterator delete_neighbour(std::vector<cell_t*>::iterator it);
   void delete_neighbour(uint32_t cell_idx);
 
-  bool               configure_serving_cell();
-
-  bool               si_acquire(uint32_t index);
-  uint32_t           sib_start_tti(uint32_t tti, uint32_t period, uint32_t offset, uint32_t sf);
-  const static int SIB_SEARCH_TIMEOUT_MS = 1000;
-
-  bool                     initiated                  = false;
-  bool                     ho_start                   = false;
-  bool                     go_idle                    = false;
+  bool initiated                                      = false;
   asn1::rrc::reest_cause_e m_reest_cause              = {};
   uint16_t                 m_reest_rnti               = 0;
-  bool                     reestablishment_started    = false;
+  bool                     reestablishment_started                        = false;
   bool                     reestablishment_successful = false;
-
-  uint32_t rlc_flush_counter = 0;
-  uint32_t rlc_flush_timeout = 0;
 
   // Measurements sub-class
   class rrc_meas {
@@ -602,20 +589,38 @@ private:
   float         get_srxlev(float Qrxlevmeas);
   float         get_squal(float Qqualmeas);
 
-  typedef enum {
-    CHANGED_CELL = 0,
-    SAME_CELL    = 1,
-    NO_CELL      = 2
-  } cs_ret_t;
+  /********************
+   *  RRC Procedures
+   *******************/
 
-  cs_ret_t      cell_selection();
-  bool          cell_selection_criteria(float rsrp, float rsrq = 0);
-  void          cell_reselection(float rsrp, float rsrq);
+  enum class cs_result_t { changed_cell, same_cell, no_cell };
 
-  phy_interface_rrc_lte::cell_search_ret_t cell_search();
+  // RRC procedures (fwd declared)
+  class cell_search_proc;
+  class si_acquire_proc;
+  class serving_cell_config_proc;
+  class cell_selection_proc;
+  class connection_request_proc;
+  class plmn_search_proc;
+  class process_pcch_proc;
+  class go_idle_proc;
+  srslte::proc_t<cell_search_proc>         cell_searcher;
+  srslte::proc_t<si_acquire_proc>          si_acquirer;
+  srslte::proc_t<serving_cell_config_proc> serv_cell_cfg;
+  srslte::proc_t<cell_selection_proc>      cell_selector;
+  srslte::proc_t<go_idle_proc>             idle_setter;
+  srslte::proc_t<process_pcch_proc>        pcch_processor;
+  srslte::proc_t<connection_request_proc>  conn_req_proc;
+  srslte::proc_t<plmn_search_proc>         plmn_searcher;
 
-  srslte::plmn_id_t selected_plmn_id = {};
-  bool              plmn_is_selected = false;
+  srslte::callback_list_t callback_list;
+
+  bool cell_selection_criteria(float rsrp, float rsrq = 0);
+  void cell_reselection(float rsrp, float rsrq);
+
+  std::vector<uint32_t> ue_required_sibs;
+  srslte::plmn_id_t     selected_plmn_id = {};
+  bool                  plmn_is_selected = false;
 
   bool security_is_activated = false;
 
@@ -623,7 +628,7 @@ private:
   void max_retx_attempted();
 
   // Senders
-  void send_con_request(asn1::rrc::establishment_cause_e cause);
+  void send_con_request(srslte::establishment_cause_t cause);
   void send_con_restablish_request();
   void send_con_restablish_complete();
   void send_con_setup_complete(srslte::unique_byte_buffer_t nas_msg);
@@ -636,6 +641,8 @@ private:
   void parse_dl_ccch(srslte::unique_byte_buffer_t pdu);
   void parse_dl_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
   void parse_dl_info_transfer(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
+  void parse_pdu_bcch_dlsch(srslte::unique_byte_buffer_t pdu);
+  void parse_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
 
   // Helpers
   bool con_reconfig(asn1::rrc::rrc_conn_recfg_s* reconfig);
@@ -643,12 +650,15 @@ private:
   bool con_reconfig_ho(asn1::rrc::rrc_conn_recfg_s* reconfig);
   bool ho_prepare();
   void ho_failed();
+  void start_ho();
+  void start_go_idle();
   void rrc_connection_release();
   void radio_link_failure();
   void leave_connected();
   void stop_timers();
   void init_con_restablish_request(asn1::rrc::reest_cause_e cause);
   void proc_con_restablish_request();
+  void start_cell_reselection();
 
   void log_rr_config_common();
   void log_phy_config_dedicated();

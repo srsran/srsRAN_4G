@@ -157,7 +157,12 @@ void ue_stack_lte::stop_impl()
 bool ue_stack_lte::switch_on()
 {
   if (running) {
-    return nas.attach_request();
+    proc_state_t proc_result = proc_state_t::on_going;
+    pending_tasks.push([this, &proc_result]() { nas.start_attach_request(&proc_result); });
+    while (proc_result == proc_state_t::on_going) {
+      usleep(1000);
+    }
+    return proc_result == proc_state_t::success;
   }
 
   return false;
@@ -221,6 +226,7 @@ void ue_stack_lte::run_tti_impl(uint32_t tti)
 {
   mac.run_tti(tti);
   rrc.run_tti(tti);
+  nas.run_tti(tti);
 }
 
 } // namespace srsue

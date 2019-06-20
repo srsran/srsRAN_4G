@@ -100,6 +100,7 @@ public:
     plmns.plmn_id.from_number(mcc, mnc);
     plmns.tac = 0xffff;
   }
+  void init(nas* nas_) { nas_ptr = nas_; }
   void write_sdu(unique_byte_buffer_t sdu)
   {
     last_sdu_len = sdu->N_bytes;
@@ -110,10 +111,11 @@ public:
   uint32_t get_last_sdu_len() { return last_sdu_len; }
   void reset() { last_sdu_len = 0; }
 
-  int plmn_search(srsue::rrc_interface_nas::found_plmn_t* found) {
-    memcpy(found, &plmns, sizeof(found_plmn_t));
-    return 1;
-  };
+  bool plmn_search()
+  {
+    nas_ptr->plmn_search_completed(&plmns, 1);
+    return true;
+  }
   void plmn_select(srslte::plmn_id_t plmn_id){};
   void set_ue_identity(srslte::s_tmsi_t s_tmsi) {}
   bool connection_request(srslte::establishment_cause_t cause, srslte::unique_byte_buffer_t sdu)
@@ -121,6 +123,7 @@ public:
     printf("NAS generated SDU (len=%d):\n", sdu->N_bytes);
     last_sdu_len = sdu->N_bytes;
     srslte_vec_fprint_byte(stdout, sdu->msg, sdu->N_bytes);
+    nas_ptr->connection_request_completed(true);
     return true;
   }
   bool is_connected() {return false;}
@@ -129,8 +132,10 @@ public:
   uint16_t get_mnc() { return mnc; }
   void enable_capabilities() {}
   uint32_t get_lcid_for_eps_bearer(const uint32_t& eps_bearer_id) { return 0; }
+  void     paging_completed(bool outcome) {}
 
 private:
+  nas*         nas_ptr;
   uint32_t last_sdu_len;
   found_plmn_t plmns;
 };
@@ -140,13 +145,28 @@ class stack_dummy : public stack_interface_gw, public thread
 public:
   stack_dummy(pdcp_interface_gw* pdcp_, srsue::nas* nas_) : pdcp(pdcp_), nas(nas_), thread("DUMMY STACK") {}
   void init() { start(-1); }
-  bool switch_on() final { return nas->attach_request(); }
+  bool switch_on() final
+  {
+    proc_state_t proc_result = proc_state_t::on_going;
+    nas->start_attach_request(&proc_result);
+    while (proc_result == proc_state_t::on_going) {
+      usleep(1000);
+    }
+    return proc_result == proc_state_t::success;
+  }
   void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking)
   {
     pdcp->write_sdu(lcid, std::move(sdu), blocking);
   }
   bool is_lcid_enabled(uint32_t lcid) { return pdcp->is_lcid_enabled(lcid); }
-  void run_thread() { running = true; }
+  void run_thread()
+  {
+    running          = true;
+    uint32_t counter = 0;
+    while (running) {
+      nas->run_tti(counter++);
+    }
+  }
   void stop()
   {
     running = false;
@@ -211,6 +231,7 @@ int security_command_test()
     cfg.eia = "1,2";
     cfg.eea = "0,1,2";
     nas.init(&usim, &rrc_dummy, &gw, cfg);
+    rrc_dummy.init(&nas);
 
     // push auth request PDU to NAS to generate security context
     byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
@@ -279,6 +300,7 @@ int mme_attach_request_test()
     stack_dummy stack(&pdcp_dummy, &nas);
 
     nas.init(&usim, &rrc_dummy, &gw, nas_cfg);
+    rrc_dummy.init(&nas);
 
     gw_args_t gw_args;
     gw_args.tun_dev_name     = "tun0";

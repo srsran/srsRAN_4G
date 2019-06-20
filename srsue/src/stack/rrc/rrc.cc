@@ -23,6 +23,7 @@
 #include "srslte/asn1/rrc_asn1.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/security.h"
+#include "srsue/hdr/stack/rrc/rrc_procedures.h"
 #include <cstdlib>
 #include <ctime>
 #include <inttypes.h> // for printing uint64_t
@@ -46,14 +47,11 @@ const static uint32_t required_sibs[NOF_REQUIRED_SIBS] = {0,1,2,12}; // SIB1, SI
   Base functions 
 *******************************************************************************/
 
-rrc::rrc(srslte::log* log_) :
-  rrc_log(log_),
+rrc::rrc(srslte::log* rrc_log_) :
   state(RRC_STATE_IDLE),
   last_state(RRC_STATE_CONNECTED),
   drb_up(false),
-  rlc_flush_timeout(2000),
-  rlc_flush_counter(0),
-  thread("RRC")
+  rrc_log(rrc_log_)
 {
   n310_cnt     = 0;
   n311_cnt     = 0;
@@ -61,7 +59,6 @@ rrc::rrc(srslte::log* log_) :
   neighbour_cells.reserve(NOF_NEIGHBOUR_CELLS);
   initiated = false;
   running = false;
-  go_idle = false;
   m_reest_cause = asn1::rrc::reest_cause_e::nulltype;
   m_reest_rnti  = 0;
   reestablishment_successful = false;
@@ -142,7 +139,6 @@ void rrc::init(phy_interface_rrc_lte* phy_,
 
   security_is_activated = false;
 
-  pthread_mutex_init(&mutex, NULL);
 
   t300 = mac_timers->timer_get_unique_id();
   t301 = mac_timers->timer_get_unique_id();
@@ -160,8 +156,6 @@ void rrc::init(phy_interface_rrc_lte* phy_,
 
   cell_clean_cnt = 0;
 
-  ho_start = false;
-
   pending_mob_reconf = false;
 
   // Set default values for all layers
@@ -178,8 +172,10 @@ void rrc::init(phy_interface_rrc_lte* phy_,
   // set seed (used in CHAP auth and attach)
   srand(tv.tv_usec);
 
+  // initiate unique procedures
+  ue_required_sibs.assign(&required_sibs[0], &required_sibs[NOF_REQUIRED_SIBS]);
+
   running = true;
-  start();
   initiated = true;
 }
 
@@ -189,7 +185,6 @@ void rrc::stop() {
   cmd_msg_t msg;
   msg.command = cmd_msg_t::STOP;
   cmd_q.push(std::move(msg));
-  wait_thread_finish();
 }
 
 void rrc::get_metrics(rrc_metrics_t& m)
@@ -201,30 +196,8 @@ bool rrc::is_connected() {
   return (RRC_STATE_CONNECTED == state);
 }
 
-/*
- * Low priority thread to run functions that can not be executed from main thread
- */
-void rrc::run_thread() {
-  while(running) {
-    cmd_msg_t msg = cmd_q.wait_pop();
-    switch(msg.command) {
-      case cmd_msg_t::PDU:
-        process_pdu(msg.lcid, std::move(msg.pdu));
-        break;
-      case cmd_msg_t::PCCH:
-        process_pcch(std::move(msg.pdu));
-        break;
-      case cmd_msg_t::MBMS_START:
-        if (args.mbms_service_id >= 0) {
-          rrc_log->info("Attempting to auto-start MBMS service %d\n",
-                        args.mbms_service_id);
-          mbms_service_start(args.mbms_service_id, args.mbms_service_port);
-        }
-        break;
-      case cmd_msg_t::STOP:
-        return;
-    }
-  }
+bool rrc::have_drb() {
+  return drb_up;
 }
 
 /*
@@ -234,7 +207,6 @@ void rrc::run_thread() {
  */
 void rrc::run_tti(uint32_t tti)
 {
-
   if (!initiated) {
     return;
   }
@@ -244,90 +216,75 @@ void rrc::run_tti(uint32_t tti)
     simulate_rlf = false;
   }
 
-  /* We can not block in this thread because it is called from
-   * the MAC TTI timer and needs to return immediatly to perform other
-   * tasks. Therefore in this function we use trylock() instead of lock() and
-   * skip function if currently locked, since none of the functions here is urgent
-   */
-  if (!pthread_mutex_trylock(&mutex)) {
+  // Process pending PHY measurements in IDLE/CONNECTED
+  process_phy_meas();
 
-    // Process pending PHY measurements in IDLE/CONNECTED
-    process_phy_meas();
+  // Process on-going callbacks, and clear finished callbacks
+  callback_list.run();
 
-    // Log state changes
-    if (state != last_state) {
-      rrc_log->debug("State %s\n", rrc_state_text[state]);
-      last_state = state;
+  // Log state changes
+  if (state != last_state) {
+    rrc_log->debug("State %s\n", rrc_state_text[state]);
+    last_state = state;
+  }
+
+  // Run state machine
+  switch (state) {
+    case RRC_STATE_IDLE:
+
+      /* CAUTION: The execution of cell_search() and cell_selection() take more than 1 ms
+       * and will slow down MAC TTI ticks. This has no major effect at the moment because
+       * the UE is in IDLE but we could consider splitting MAC and RRC threads to avoid this
+       */
+
+      // If attached but not camping on the cell, perform cell reselection
+      if (nas->is_attached()) {
+        start_cell_reselection();
+      }
+      break;
+    case RRC_STATE_CONNECTED:
+      // Performing reestablishment cell selection
+      if (m_reest_cause != asn1::rrc::reest_cause_e::nulltype) {
+        proc_con_restablish_request();
+      }
+      measurements.run_tti(tti);
+      break;
+    default:
+      break;
+  }
+
+  // Handle Received Messages
+  if (running) {
+    cmd_msg_t msg;
+    if (cmd_q.try_pop(&msg)) {
+      switch (msg.command) {
+        case cmd_msg_t::PDU:
+          process_pdu(msg.lcid, std::move(msg.pdu));
+          break;
+        case cmd_msg_t::PCCH:
+          process_pcch(std::move(msg.pdu));
+          break;
+        case cmd_msg_t::PDU_MCH:
+          parse_pdu_mch(msg.lcid, std::move(msg.pdu));
+          break;
+        case cmd_msg_t::RLF:
+          radio_link_failure();
+          break;
+        case cmd_msg_t::PDU_BCCH_DLSCH:
+          parse_pdu_bcch_dlsch(std::move(msg.pdu));
+          break;
+        case cmd_msg_t::STOP:
+          return;
+      }
     }
+  }
 
-    // Run state machine
-    switch (state) {
-      case RRC_STATE_IDLE:
-
-        /* CAUTION: The execution of cell_search() and cell_selection() take more than 1 ms
-         * and will slow down MAC TTI ticks. This has no major effect at the moment because
-         * the UE is in IDLE but we could consider splitting MAC and RRC threads to avoid this
-         */
-
-        // If attached but not camping on the cell, perform cell reselection
-        if (nas->is_attached()) {
-          rrc_log->debug("Running cell selection and reselection in IDLE\n");
-          switch(cell_selection()) {
-            case rrc::CHANGED_CELL:
-              // New cell has been selected, start receiving PCCH
-              mac->pcch_start_rx();
-              break;
-            case rrc::NO_CELL:
-              rrc_log->warning("Could not find any cell to camp on\n");
-              break;
-            case rrc::SAME_CELL:
-              if (!phy->cell_is_camping()) {
-                rrc_log->warning("Did not reselect cell but serving cell is out-of-sync.\n");
-                serving_cell->in_sync = false;
-              }
-              break;
-          }
-        }
-        break;
-      case RRC_STATE_CONNECTED:
-        if (ho_start) {
-          ho_start = false;
-          if (!ho_prepare()) {
-            con_reconfig_failed();
-          }
-        }
-
-        // Performing reestablishment cell selection
-        if (m_reest_cause != asn1::rrc::reest_cause_e::nulltype) {
-          proc_con_restablish_request();
-        }
-
-        measurements.run_tti(tti);
-        if (go_idle) {
-          // wait for max. 2s for RLC on SRB1 to be flushed
-          if (not rlc->has_data(RB_ID_SRB1) || ++rlc_flush_counter > rlc_flush_timeout) {
-            go_idle = false;
-            leave_connected();
-          } else {
-            rrc_log->debug("Postponing transition to RRC IDLE (%d ms < %d ms)\n", rlc_flush_counter, rlc_flush_timeout);
-          }
-        }
-        break;
-      default:break;
-    }
-
-    // Clean old neighbours
-    cell_clean_cnt++;
-    if (cell_clean_cnt == 1000) {
-      clean_neighbours();
-      cell_clean_cnt = 0;
-    }
-    pthread_mutex_unlock(&mutex);
-
-    // allow other threads to ackquire mutex.
-    usleep(100);
-
-  } // Skip TTI if mutex is locked
+  // Clean old neighbours
+  cell_clean_cnt++;
+  if (cell_clean_cnt == 1000) {
+    clean_neighbours();
+    cell_clean_cnt = 0;
+  }
 }
 
 
@@ -363,45 +320,14 @@ uint16_t rrc::get_mnc() {
  *
  * This function is thread-safe with connection_request()
  */
-int rrc::plmn_search(found_plmn_t found_plmns[MAX_FOUND_PLMNS])
+bool rrc::plmn_search()
 {
-  // Mutex with connect
-  pthread_mutex_lock(&mutex);
-
-  rrc_log->info("Starting PLMN search\n");
-  uint32_t nof_plmns = 0;
-  phy_interface_rrc_lte::cell_search_ret_t ret;
-  do {
-    ret = cell_search();
-    if (ret.found == phy_interface_rrc_lte::cell_search_ret_t::CELL_FOUND) {
-      if (serving_cell->has_sib1()) {
-        // Save PLMN and TAC to NAS
-        for (uint32_t i = 0; i < serving_cell->nof_plmns(); i++) {
-          if (nof_plmns < MAX_FOUND_PLMNS) {
-            found_plmns[nof_plmns].plmn_id = serving_cell->get_plmn(i);
-            found_plmns[nof_plmns].tac = serving_cell->get_tac();
-            nof_plmns++;
-          } else {
-            rrc_log->error("No more space for plmns (%d)\n", nof_plmns);
-          }
-        }
-      } else {
-        rrc_log->error("SIB1 not acquired\n");
-      }
-    }
-  } while (ret.last_freq == phy_interface_rrc_lte::cell_search_ret_t::MORE_FREQS &&
-           ret.found != phy_interface_rrc_lte::cell_search_ret_t::ERROR);
-
-  // Process all pending measurements before returning
-  process_phy_meas();
-
-  pthread_mutex_unlock(&mutex);
-
-  if (ret.found == phy_interface_rrc_lte::cell_search_ret_t::ERROR) {
-    return -1; 
-  } else {
-    return nof_plmns;
+  if (not plmn_searcher.launch(this)) {
+    rrc_log->error("Unable to initiate PLMN search\n");
+    return false;
   }
+  callback_list.defer_proc(plmn_searcher);
+  return true;
 }
 
 /* This is the NAS interface. When NAS requests to select a PLMN we have to
@@ -425,104 +351,12 @@ void rrc::plmn_select(srslte::plmn_id_t plmn_id)
  */
 bool rrc::connection_request(srslte::establishment_cause_t cause, srslte::unique_byte_buffer_t dedicated_info_nas)
 {
-
-  if (!plmn_is_selected) {
-    rrc_log->error("Trying to connect but PLMN not selected.\n");
+  if (not conn_req_proc.launch(this, cause, std::move(dedicated_info_nas))) {
+    rrc_log->error("Failed to initiate connection request procedure\n");
     return false;
   }
-
-  if (state != RRC_STATE_IDLE) {
-    rrc_log->warning("Requested RRC connection establishment while not in IDLE\n");
-    return false;
-  }
-
-  if (mac_timers->timer_get(t302)->is_running()) {
-    rrc_log->info("Requested RRC connection establishment while T302 is running\n");
-    nas->set_barring(nas_interface_rrc::BARRING_MO_DATA);
-    return false;
-  }
-
-  bool ret = false;
-
-  pthread_mutex_lock(&mutex);
-
-  rrc_log->info("Initiation of Connection establishment procedure\n");
-
-  // Perform cell selection & reselection for the selected PLMN
-  cs_ret_t cs_ret = cell_selection();
-
-  // .. and SI acquisition
-  if (phy->cell_is_camping()) {
-
-    // Set default configurations
-    set_phy_default();
-    set_mac_default();
-
-    // CCCH configuration applied already at start
-    // timeAlignmentCommon applied in configure_serving_cell
-
-    rrc_log->info("Configuring serving cell...\n");
-    if (configure_serving_cell()) {
-
-      mac_timers->timer_get(t300)->reset();
-      mac_timers->timer_get(t300)->run();
-
-      // Send connectionRequest message to lower layers
-      establishment_cause_e asn1cause((establishment_cause_e::options)cause);
-      send_con_request(asn1cause);
-
-      // Save dedicatedInfoNAS SDU
-      if (this->dedicated_info_nas.get()) {
-        rrc_log->warning("Received a new dedicatedInfoNAS SDU but there was one still in queue. Removing it\n");
-      }
-      this->dedicated_info_nas = std::move(dedicated_info_nas);
-
-      // Wait until t300 stops due to RRCConnectionSetup/Reject or expiry
-      while (mac_timers->timer_get(t300)->is_running()) {
-        usleep(1000);
-      }
-
-      if (state == RRC_STATE_CONNECTED) {
-        // Received ConnectionSetup
-        ret = true;
-      } else if (mac_timers->timer_get(t300)->is_expired()) {
-        // T300 is expired: 5.3.3.6
-        rrc_log->info("Timer T300 expired: ConnectionRequest timed out\n");
-        mac->reset();
-        set_mac_default();
-        rlc->reestablish();
-      } else {
-        // T300 is stopped but RRC not Connected is because received Reject: Section 5.3.3.8
-        rrc_log->info("Timer T300 stopped: Received ConnectionReject\n");
-        mac->reset();
-        set_mac_default();
-      }
-
-    } else {
-      rrc_log->error("Configuring serving cell\n");
-    }
-  } else {
-    switch(cs_ret) {
-      case SAME_CELL:
-        rrc_log->warning("Did not reselect cell but serving cell is out-of-sync.\n");
-        serving_cell->in_sync = false;
-      break;
-      case CHANGED_CELL:
-        rrc_log->warning("Selected a new cell but could not camp on. Setting out-of-sync.\n");
-        serving_cell->in_sync = false;
-        break;
-      default:
-        rrc_log->warning("Could not find any suitable cell to connect\n");
-    }
-  }
-
-  if (!ret) {
-    rrc_log->warning("Could not establish connection. Deallocating dedicatedInfoNAS PDU\n");
-    this->dedicated_info_nas.reset();
-  }
-
-  pthread_mutex_unlock(&mutex);
-  return ret;
+  callback_list.defer_proc(conn_req_proc);
+  return true;
 }
 
 void rrc::set_ue_identity(srslte::s_tmsi_t s_tmsi)
@@ -532,45 +366,6 @@ void rrc::set_ue_identity(srslte::s_tmsi_t s_tmsi)
   rrc_log->info(
       "Set ue-Identity to 0x%" PRIu64 ":0x%" PRIu64 "\n", (uint64_t)ue_identity.mmec, (uint64_t)ue_identity.m_tmsi);
 }
-
-/* Retrieves all required SIB or configures them if already retrieved before
- */
-bool rrc::configure_serving_cell() {
-
-  if (!phy->cell_is_camping()) {
-    rrc_log->error("Trying to configure Cell while not camping on it\n");
-    return false;
-  }
-  serving_cell->has_mcch = false;
-  // Obtain the SIBs if not available or apply the configuration if available
-  for (uint32_t i = 0; i < NOF_REQUIRED_SIBS; i++) {
-    if (!serving_cell->has_sib(required_sibs[i])) {
-      rrc_log->info("Cell has no SIB%d. Obtaining SIB%d\n", required_sibs[i]+1, required_sibs[i]+1);
-      if (!si_acquire(required_sibs[i])) {
-        rrc_log->info("Timeout while acquiring SIB%d\n", required_sibs[i]+1);
-        if (required_sibs[i] < 2) {
-          return false;
-        }
-      }
-    } else {
-      rrc_log->info("Cell has SIB%d\n", required_sibs[i]+1);
-      switch(required_sibs[i]) {
-        case 1:
-          handle_sib2();
-          break;
-        case 12:
-          handle_sib13();
-          break;
-      }
-    }
-  }
-  return true;
-}
-
-
-
-
-
 
 /*******************************************************************************
 *
@@ -676,9 +471,7 @@ void rrc::out_of_sync()
 // Recovery of physical layer problems (5.3.11.2)
 void rrc::in_sync()
 {
-
   // CAUTION: We do not lock in this function since they are called from real-time threads
-
   serving_cell->in_sync = true;
   if (mac_timers->timer_get(t310)->is_running()) {
     n311_cnt++;
@@ -704,123 +497,6 @@ void rrc::in_sync()
 
 
 
-
-/*******************************************************************************
-*
-*
-*
-* System Information Acquisition procedure
-*
-*
-*
-*******************************************************************************/
-
-
-// Determine SI messages scheduling as in 36.331 5.2.3 Acquisition of an SI message
-uint32_t rrc::sib_start_tti(uint32_t tti, uint32_t period, uint32_t offset, uint32_t sf) {
-  return (period*10*(1+tti/(period*10))+(offset*10)+sf)%10240; // the 1 means next opportunity
-}
-
-/* Implemnets the SI acquisition procedure
- * Configures the MAC/PHY scheduling to retrieve SI messages. The function is blocking and will not
- * return until SIB is correctly received or timeout
- */
-bool rrc::si_acquire(uint32_t sib_index)
-{
-  uint32_t tti = 0;
-  uint32_t si_win_start=0, si_win_len=0;
-  uint16_t period = 0;
-  uint32_t sched_index = 0;
-  uint32_t x, sf, offset;
-
-  uint32_t last_win_start = 0;
-  uint32_t timeout = 0;
-
-  while(timeout < SIB_SEARCH_TIMEOUT_MS && !serving_cell->has_sib(sib_index)) {
-
-    bool instruct_phy = false;
-
-    if (sib_index == 0) {
-
-      // Instruct MAC to look for SIB1
-      tti = mac->get_current_tti();
-      si_win_start = sib_start_tti(tti, 2, 0, 5);
-      if (last_win_start == 0 ||
-          (srslte_tti_interval(tti, last_win_start) >= 20 && srslte_tti_interval(tti, last_win_start) < 1000)) {
-
-        last_win_start = si_win_start;
-        si_win_len = 1;
-        instruct_phy = true;
-      }
-      period = 20;
-      sched_index = 0;
-    } else {
-      // Instruct MAC to look for SIB2..13
-      if (serving_cell->has_sib1()) {
-
-        asn1::rrc::sib_type1_s* sib1 = serving_cell->sib1ptr();
-
-        // SIB2 scheduling
-        if (sib_index == 1) {
-          period      = sib1->sched_info_list[0].si_periodicity.to_number();
-          sched_index = 0;
-        } else {
-          // SIB3+ scheduling Section 5.2.3
-          if (sib_index >= 2) {
-            bool found = false;
-            for (uint32_t i = 0; i < sib1->sched_info_list.size() && !found; i++) {
-              for (uint32_t j = 0; j < sib1->sched_info_list[i].sib_map_info.size() && !found; j++) {
-                if (sib1->sched_info_list[i].sib_map_info[j].to_number() == sib_index + 1) {
-                  period      = sib1->sched_info_list[i].si_periodicity.to_number();
-                  sched_index = i;
-                  found       = true;
-                }
-              }
-            }
-            if (!found) {
-              rrc_log->info("Could not find SIB%d scheduling in SIB1\n", sib_index+1);
-              return false;
-            }
-          }
-        }
-        si_win_len = sib1->si_win_len.to_number();
-        x          = sched_index * si_win_len;
-        sf         = x % 10;
-        offset     = x / 10;
-
-        tti          = mac->get_current_tti();
-        si_win_start = sib_start_tti(tti, period, offset, sf);
-
-        if (last_win_start == 0 || (srslte_tti_interval(tti, last_win_start) > period * 5 &&
-                                    srslte_tti_interval(tti, last_win_start) < 1000)) {
-          last_win_start = si_win_start;
-          instruct_phy   = true;
-        }
-      } else {
-        rrc_log->error("Trying to receive SIB%d but SIB1 not received\n", sib_index + 1);
-      }
-    }
-
-    // Instruct MAC to decode SIB
-    if (instruct_phy && !serving_cell->has_sib(sib_index)) {
-      mac->bcch_start_rx(si_win_start, si_win_len);
-      rrc_log->info("Instructed MAC to search for SIB%d, win_start=%d, win_len=%d, period=%d, sched_index=%d\n",
-                    sib_index+1, si_win_start, si_win_len, period, sched_index);
-    }
-    usleep(1000);
-    timeout++;
-  }
-  return serving_cell->has_sib(sib_index);
-}
-
-
-
-
-
-
-
-
-
 /*******************************************************************************
 *
 *
@@ -831,113 +507,10 @@ bool rrc::si_acquire(uint32_t sib_index)
 *
 *******************************************************************************/
 
-/* Searches for a cell in the current frequency and retrieves SIB1 if not retrieved yet
- */
-phy_interface_rrc_lte::cell_search_ret_t rrc::cell_search()
-{
-  phy_interface_rrc_lte::phy_cell_t new_cell;
-
-  phy_interface_rrc_lte::cell_search_ret_t ret = phy->cell_search(&new_cell);
-
-  switch(ret.found) {
-    case phy_interface_rrc_lte::cell_search_ret_t::CELL_FOUND:
-      rrc_log->info("Cell found in this frequency. Setting new serving cell...\n");
-
-      // Create cell with NaN RSRP. Will be updated by new_phy_meas() during SIB search.
-      if (!add_neighbour_cell(new_cell, NAN)) {
-        rrc_log->info("No more space for neighbour cells\n");
-        break;
-      }
-      set_serving_cell(new_cell);
-
-      if (phy->cell_is_camping()) {
-        if (!serving_cell->has_sib1()) {
-          rrc_log->info("Cell has no SIB1. Obtaining SIB1\n");
-          if (!si_acquire(0)) {
-            rrc_log->error("Timeout while acquiring SIB1\n");
-          }
-        } else {
-          rrc_log->info("Cell has SIB1\n");
-        }
-      } else {
-        rrc_log->warning("Could not camp on found cell. Trying next one...\n");
-      }
-      break;
-    case phy_interface_rrc_lte::cell_search_ret_t::CELL_NOT_FOUND:
-      rrc_log->info("No cells found.\n");
-      break;
-    case phy_interface_rrc_lte::cell_search_ret_t::ERROR:
-      rrc_log->error("In cell search. Finishing PLMN search\n");
-      break;
-  }
-  return ret;
-}
-
-/* Cell selection procedure 36.304 5.2.3
- * Select the best cell to camp on among the list of known cells
- */
-rrc::cs_ret_t rrc::cell_selection()
-{
-  // Neighbour cells are sorted in descending order of RSRP
-  for (uint32_t i = 0; i < neighbour_cells.size(); i++) {
-    if (/*TODO: CHECK that PLMN matches. Currently we don't receive SIB1 of neighbour cells
-         * neighbour_cells[i]->plmn_equals(selected_plmn_id) && */
-        neighbour_cells[i]->in_sync) // matches S criteria
-    {
-      // If currently connected, verify cell selection criteria
-      if (!serving_cell->in_sync ||
-          (cell_selection_criteria(neighbour_cells[i]->get_rsrp())  &&
-              neighbour_cells[i]->get_rsrp() > serving_cell->get_rsrp() + 5))
-      {
-        // Try to select Cell
-        set_serving_cell(i);
-        rrc_log->info("Selected cell idx=%d, PCI=%d, EARFCN=%d\n",
-                      i, serving_cell->get_pci(), serving_cell->get_earfcn());
-        rrc_log->console("Selected cell PCI=%d, EARFCN=%d\n",
-                         serving_cell->get_pci(), serving_cell->get_earfcn());
-
-        if (phy->cell_select(&serving_cell->phy_cell)) {
-          if (configure_serving_cell()) {
-            rrc_log->info("Selected and configured cell successfully\n");
-            return CHANGED_CELL;
-          } else {
-            rrc_log->error("While configuring serving cell\n");
-          }
-        } else {
-          serving_cell->in_sync = false;
-          rrc_log->warning("Could not camp on selected cell\n");
-        }
-      }
-    }
-  }
-  if (serving_cell->in_sync) {
-    if (!phy->cell_is_camping()) {
-      rrc_log->info("Serving cell is in-sync but not camping. Selecting it...\n");
-      if (phy->cell_select(&serving_cell->phy_cell)) {
-        rrc_log->info("Selected serving cell OK.\n");
-      } else {
-        serving_cell->in_sync = false;
-        rrc_log->error("Could not camp on serving cell.\n");
-      }
-    }
-    return SAME_CELL;
-  }
-  // If can not find any suitable cell, search again
-  rrc_log->info("Cell selection and reselection in IDLE did not find any suitable cell. Searching again\n");
-  // If can not camp on any cell, search again for new cells
-  phy_interface_rrc_lte::cell_search_ret_t ret = cell_search();
-
-  return (ret.found == phy_interface_rrc_lte::cell_search_ret_t::CELL_FOUND) ? CHANGED_CELL : NO_CELL;
-}
-
 // Cell selection criteria Section 5.2.3.2 of 36.304
 bool rrc::cell_selection_criteria(float rsrp, float rsrq)
 {
-  if (get_srxlev(rsrp) > 0 || !serving_cell->has_sib3()) {
-    return true;
-  } else {
-    return false;
-  }
+  return (get_srxlev(rsrp) > 0 || !serving_cell->has_sib3());
 }
 
 float rrc::get_srxlev(float Qrxlevmeas) {
@@ -1250,7 +823,9 @@ void rrc::ra_problem() {
 void rrc::max_retx_attempted() {
   //TODO: Handle the radio link failure
   rrc_log->warning("Max RLC reTx attempted\n");
-  radio_link_failure();
+  cmd_msg_t msg;
+  msg.command = cmd_msg_t::RLF;
+  cmd_q.push(std::move(msg));
 }
 
 void rrc::timer_expired(uint32_t timeout_id) {
@@ -1259,13 +834,13 @@ void rrc::timer_expired(uint32_t timeout_id) {
     radio_link_failure();
   } else if (timeout_id == t311) {
     rrc_log->info("Timer T311 expired: Going to RRC IDLE\n");
-    go_idle = true;
+    start_go_idle();
   } else if (timeout_id == t301) {
     if (state == RRC_STATE_IDLE) {
       rrc_log->info("Timer T301 expired: Already in IDLE.\n");
     } else {
       rrc_log->info("Timer T301 expired: Going to RRC IDLE\n");
-      go_idle = true;
+      start_go_idle();
     }
   } else if (timeout_id == t302) {
     rrc_log->info("Timer T302 expired. Informing NAS about barrier alleviation\n");
@@ -1298,7 +873,7 @@ void rrc::timer_expired(uint32_t timeout_id) {
 *
 *******************************************************************************/
 
-void rrc::send_con_request(asn1::rrc::establishment_cause_e cause)
+void rrc::send_con_request(srslte::establishment_cause_t cause)
 {
   rrc_log->debug("Preparing RRC Connection Request\n");
 
@@ -1319,7 +894,7 @@ void rrc::send_con_request(asn1::rrc::establishment_cause_e cause)
     }
     rrc_conn_req->ue_id.random_value().from_number(random_id);
   }
-  rrc_conn_req->establishment_cause = cause;
+  rrc_conn_req->establishment_cause = (asn1::rrc::establishment_cause_opts::options)cause;
 
   send_ul_ccch_msg(ul_ccch_msg);
 }
@@ -1562,8 +1137,8 @@ bool rrc::ho_prepare()
   return true;
 }
 
-void rrc::ho_ra_completed(bool ra_successful) {
-
+void rrc::ho_ra_completed(bool ra_successful)
+{
   if (pending_mob_reconf) {
     asn1::rrc::rrc_conn_recfg_r8_ies_s* mob_reconf_r8 = &mob_reconf.crit_exts.c1().rrc_conn_recfg_r8();
     if (ra_successful) {
@@ -1603,8 +1178,32 @@ bool rrc::con_reconfig_ho(asn1::rrc::rrc_conn_recfg_s* reconfig)
   mob_reconf         = *reconfig;
   pending_mob_reconf = true;
 
-  ho_start = true;
+  start_ho();
   return true;
+}
+
+void rrc::start_ho()
+{
+  callback_list.defer_task([this]() {
+    if (state != RRC_STATE_CONNECTED) {
+      rrc_log->info("HO interrupted, since RRC is no longer in connected state\n");
+      return srslte::proc_outcome_t::success;
+    }
+    if (not ho_prepare()) {
+      con_reconfig_failed();
+      return srslte::proc_outcome_t::error;
+    }
+    return srslte::proc_outcome_t::success;
+  });
+}
+
+void rrc::start_go_idle()
+{
+  if (not idle_setter.launch(this)) {
+    rrc_log->info("Failed to set RRC to IDLE\n");
+    return;
+  }
+  callback_list.defer_proc(idle_setter);
 }
 
 // Handle RRC Reconfiguration without MobilityInformation Section 5.3.5.3
@@ -1687,7 +1286,7 @@ void rrc::con_reconfig_failed()
     // Start the Reestablishment Procedure
     init_con_restablish_request(asn1::rrc::reest_cause_e::recfg_fail);
   } else {
-    go_idle = true;
+    start_go_idle();
   }
 }
 
@@ -1712,7 +1311,7 @@ void rrc::handle_rrc_con_reconfig(uint32_t lcid, asn1::rrc::rrc_conn_recfg_s* re
 void rrc::rrc_connection_release() {
   // Save idleModeMobilityControlInfo, etc.
   rrc_log->console("Received RRC Connection Release\n");
-  go_idle = true;
+  start_go_idle();
 }
 
 /* Actions upon leaving RRC_CONNECTED 5.3.12 */
@@ -1722,7 +1321,6 @@ void rrc::leave_connected()
   rrc_log->info("Leaving RRC_CONNECTED state\n");
   m_reest_cause         = asn1::rrc::reest_cause_e::nulltype;
   state = RRC_STATE_IDLE;
-  rlc_flush_counter     = 0;
   drb_up = false;
   security_is_activated = false;
   measurements.reset();
@@ -1782,7 +1380,7 @@ void rrc::init_con_restablish_request(asn1::rrc::reest_cause_e cause)
     // 3GPP 36.331 Section 5.3.7.1
     // If AS security has not been activated, the UE does not initiate the procedure but instead
     // moves to RRC_IDLE directly
-    go_idle = true;
+    start_go_idle();
   }
 }
 
@@ -1865,6 +1463,49 @@ void rrc::proc_con_restablish_request()
   }
 }
 
+void rrc::start_cell_reselection()
+{
+  if (neighbour_cells.empty() and serving_cell->in_sync and phy->cell_is_camping()) {
+    // don't bother with cell selection if there are no neighbours and we are already camping
+    return;
+  }
+
+  if (not cell_selector.launch(this)) {
+    rrc_log->error("Failed to initiate a Cell Selection procedure...\n");
+    return;
+  }
+
+  rrc_log->info("Cell Reselection - Starting...");
+  callback_list.defer_task([this]() {
+    if (cell_selector.run()) {
+      return srslte::proc_outcome_t::yield;
+    }
+    cell_selection_proc ret = cell_selector.pop();
+    if (ret.is_error()) {
+      rrc_log->error("Cell Reselection - Error while selecting a cell\n");
+      return srslte::proc_outcome_t::error;
+    } else {
+      switch (ret.get_cs_result()) {
+        case cs_result_t::changed_cell:
+          // New cell has been selected, start receiving PCCH
+          mac->pcch_start_rx();
+          break;
+        case cs_result_t::no_cell:
+          rrc_log->warning("Could not find any cell to camp on\n");
+          break;
+        case cs_result_t::same_cell:
+          if (!phy->cell_is_camping()) {
+            rrc_log->warning("Did not reselect cell but serving cell is out-of-sync.\n");
+            serving_cell->in_sync = false;
+          }
+          break;
+      }
+    }
+    rrc_log->info("Cell Reselection - Finished successfully");
+    return srslte::proc_outcome_t::success;
+  });
+}
+
 /*******************************************************************************
 *
 *
@@ -1881,6 +1522,14 @@ void rrc::write_pdu_bcch_bch(unique_byte_buffer_t pdu)
 }
 
 void rrc::write_pdu_bcch_dlsch(unique_byte_buffer_t pdu)
+{
+  cmd_msg_t msg;
+  msg.command = cmd_msg_t::PDU_BCCH_DLSCH;
+  msg.pdu     = std::move(pdu);
+  cmd_q.push(std::move(msg));
+}
+
+void rrc::parse_pdu_bcch_dlsch(unique_byte_buffer_t pdu)
 {
   // Stop BCCH search after successful reception of 1 BCCH block
   mac->bcch_stop_rx();
@@ -2059,81 +1708,76 @@ void rrc::write_pdu_pcch(unique_byte_buffer_t pdu)
   cmd_q.push(std::move(msg));
 }
 
+void rrc::paging_completed(bool outcome)
+{
+  pcch_processor.trigger_event(process_pcch_proc::paging_complete{outcome});
+}
+
 void rrc::process_pcch(unique_byte_buffer_t pdu)
 {
-  if (pdu->N_bytes > 0 && pdu->N_bytes < SRSLTE_MAX_BUFFER_SIZE_BYTES) {
-    pcch_msg_s    pcch_msg;
-    asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
-    if (pcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or pcch_msg.msg.type().value != pcch_msg_type_c::types_opts::c1) {
-      rrc_log->error("Failed to unpack PCCH message\n");
-      return;
-    }
-
-    log_rrc_message("PCCH", Rx, pdu.get(), pcch_msg);
-
-    paging_s* paging = &pcch_msg.msg.c1().paging();
-    if (paging->paging_record_list.size() > ASN1_RRC_MAX_PAGE_REC) {
-      paging->paging_record_list.resize(ASN1_RRC_MAX_PAGE_REC);
-    }
-
-    if (not ue_identity_configured) {
-      rrc_log->warning("Received paging message but no ue-Identity is configured\n");
-      return;
-    }
-
-    for (uint32_t i = 0; i < paging->paging_record_list.size(); i++) {
-      s_tmsi_t s_tmsi_paged = make_s_tmsi_t(paging->paging_record_list[i].ue_id.s_tmsi());
-      rrc_log->info("Received paging (%d/%d) for UE %" PRIu64 ":%" PRIu64 "\n",
-                    i + 1,
-                    paging->paging_record_list.size(),
-                    (uint64_t)s_tmsi_paged.mmec,
-                    (uint64_t)s_tmsi_paged.m_tmsi);
-      if (ue_identity.mmec == s_tmsi_paged.mmec && ue_identity.m_tmsi == s_tmsi_paged.m_tmsi) {
-        if (RRC_STATE_IDLE == state) {
-          rrc_log->info("S-TMSI match in paging message\n");
-          rrc_log->console("S-TMSI match in paging message\n");
-          nas->paging(&s_tmsi_paged);
-        } else {
-          rrc_log->warning("Received paging while in CONNECT\n");
-        }
-      } else {
-        rrc_log->info("Received paging for unknown identity\n");
-      }
-    }
-
-    if (paging->sys_info_mod_present) {
-      rrc_log->info("Received System Information notification update request.\n");
-      // invalidate and then update all SIBs of serving cell
-      serving_cell->reset_sibs();
-      if (configure_serving_cell()) {
-        rrc_log->info("All SIBs of serving cell obtained successfully\n");
-      } else {
-        rrc_log->error("While obtaining SIBs of serving cell.\n");
-      }
-    }
-  } else {
+  if (pdu->N_bytes <= 0 or pdu->N_bytes >= SRSLTE_MAX_BUFFER_SIZE_BITS) {
     rrc_log->error_hex(pdu->buffer, pdu->N_bytes, "Dropping PCCH message with %d B\n", pdu->N_bytes);
+    return;
   }
+
+  pcch_msg_s    pcch_msg;
+  asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
+  if (pcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or pcch_msg.msg.type().value != pcch_msg_type_c::types_opts::c1) {
+    rrc_log->error("Failed to unpack PCCH message\n");
+    return;
+  }
+
+  log_rrc_message("PCCH", Rx, pdu.get(), pcch_msg);
+
+  if (not ue_identity_configured) {
+    rrc_log->warning("Received paging message but no ue-Identity is configured\n");
+    return;
+  }
+
+  paging_s* paging = &pcch_msg.msg.c1().paging();
+  if (paging->paging_record_list.size() > ASN1_RRC_MAX_PAGE_REC) {
+    paging->paging_record_list.resize(ASN1_RRC_MAX_PAGE_REC);
+  }
+
+  if (not pcch_processor.launch(this, *paging)) {
+    rrc_log->error("Failed to launch process PCCH procedure\n");
+    return;
+  }
+
+  // we do not care about the outcome
+  callback_list.defer_proc(pcch_processor);
 }
 
 void rrc::write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 {
-  if (pdu->N_bytes > 0 && pdu->N_bytes < SRSLTE_MAX_BUFFER_SIZE_BYTES) {
-    //TODO: handle MCCH notifications and update MCCH
-    if (0 == lcid && !serving_cell->has_mcch) {
-      asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
-      if (serving_cell->mcch.unpack(bref) != asn1::SRSASN_SUCCESS or
-          serving_cell->mcch.msg.type().value != mcch_msg_type_c::types_opts::c1) {
-        rrc_log->error("Failed to unpack MCCH message\n");
-        return;
-      }
-      serving_cell->has_mcch = true;
-      phy->set_config_mbsfn_mcch(&serving_cell->mcch);
-      log_rrc_message("MCH", Rx, pdu.get(), serving_cell->mcch);
-      cmd_msg_t msg;
-      msg.command = cmd_msg_t::MBMS_START;
-      cmd_q.push(std::move(msg));
-    }
+  if (pdu->N_bytes <= 0 or pdu->N_bytes >= SRSLTE_MAX_BUFFER_SIZE_BITS) {
+    return;
+  }
+  // TODO: handle MCCH notifications and update MCCH
+  if (0 != lcid or serving_cell->has_mcch) {
+    return;
+  }
+  cmd_msg_t msg;
+  msg.command = cmd_msg_t::PDU_MCH;
+  msg.pdu     = std::move(pdu);
+  msg.lcid    = lcid;
+  cmd_q.push(std::move(msg));
+}
+
+void rrc::parse_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
+{
+  asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
+  if (serving_cell->mcch.unpack(bref) != asn1::SRSASN_SUCCESS or
+      serving_cell->mcch.msg.type().value != mcch_msg_type_c::types_opts::c1) {
+    rrc_log->error("Failed to unpack MCCH message\n");
+    return;
+  }
+  serving_cell->has_mcch = true;
+  phy->set_config_mbsfn_mcch(&serving_cell->mcch);
+  log_rrc_message("MCH", Rx, pdu.get(), serving_cell->mcch);
+  if (args.mbms_service_id >= 0) {
+    rrc_log->info("Attempting to auto-start MBMS service %d\n", args.mbms_service_id);
+    mbms_service_start(args.mbms_service_id, args.mbms_service_port);
   }
 }
 
@@ -2212,26 +1856,6 @@ void rrc::write_sdu(srslte::unique_byte_buffer_t sdu)
 
 void rrc::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
 {
-  // If the message contains a ConnectionSetup, acknowledge the transmission to avoid blocking of paging procedure
-  if (lcid == 0) {
-    // FIXME: We unpack and process this message twice to check if it's ConnectionSetup
-    asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
-    asn1::rrc::dl_ccch_msg_s dl_ccch_msg;
-    if (dl_ccch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or
-        dl_ccch_msg.msg.type().value != dl_ccch_msg_type_c::types_opts::c1) {
-      rrc_log->error("Failed to unpack DL-CCCH message\n");
-      return;
-    }
-    if (dl_ccch_msg.msg.c1().type() == dl_ccch_msg_type_c::c1_c_::types::rrc_conn_setup) {
-      // Must enter CONNECT before stopping T300
-      state = RRC_STATE_CONNECTED;
-
-      mac_timers->timer_get(t300)->stop();
-      mac_timers->timer_get(t302)->stop();
-      rrc_log->console("RRC Connected\n");
-    }
-  }
-
   // add PDU to command queue
   cmd_msg_t msg;
   msg.pdu     = std::move(pdu);
@@ -2284,7 +1908,7 @@ void rrc::parse_dl_ccch(unique_byte_buffer_t pdu)
       } else {
         // Perform the actions upon expiry of T302 if wait time is zero
         nas->set_barring(nas_interface_rrc::BARRING_NONE);
-        go_idle = true;
+        start_go_idle();
       }
     } break;
     case dl_ccch_msg_type_c::c1_c_::types::rrc_conn_setup:
@@ -2299,7 +1923,7 @@ void rrc::parse_dl_ccch(unique_byte_buffer_t pdu)
       /* Reception of RRCConnectionReestablishmentReject 5.3.7.8 */
     case dl_ccch_msg_type_c::c1_c_::types::rrc_conn_reest_reject:
       rrc_log->console("Reestablishment Reject\n");
-      go_idle = true;
+      start_go_idle();
       break;
     default:
       rrc_log->error("The provided DL-CCCH message type is not recognized\n");
@@ -3095,6 +2719,12 @@ void rrc::apply_scell_config(asn1::rrc::rrc_conn_recfg_r8_ies_s* reconfig_r8)
 
 void rrc::handle_con_setup(rrc_conn_setup_s* setup)
 {
+  // Must enter CONNECT before stopping T300
+  state = RRC_STATE_CONNECTED;
+  mac_timers->timer_get(t300)->stop();
+  mac_timers->timer_get(t302)->stop();
+  rrc_log->console("RRC Connected\n");
+
   // Apply the Radio Resource configuration
   apply_rr_config_dedicated(&setup->crit_exts.c1().rrc_conn_setup_r8().rr_cfg_ded);
 
