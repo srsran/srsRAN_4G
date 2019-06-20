@@ -1150,7 +1150,18 @@ void nas::parse_activate_dedicated_eps_bearer_context_request(uint32_t lcid, uni
   // check the a linked default bearer exists
   if (eps_bearer.find(request.linked_eps_bearer_id) == eps_bearer.end()) {
     nas_log->error("No linked default EPS bearer found (%d).\n", request.linked_eps_bearer_id);
+    // FIXME: send reject according to 24.301 Sec 6.4.2.5 paragraph c
     return;
+  }
+
+  // check if the dedicated EPS bearer already exists
+  if (eps_bearer.find(request.eps_bearer_id) != eps_bearer.end()) {
+    // according to 24.301 Sec 6.4.2.5 paragraph b) the existing bearer shall be deactived before proceeding
+    nas_log->error("EPS bearer already exists (%d). Removing it.\n", request.eps_bearer_id);
+
+    // remove bearer
+    eps_bearer_map_t::iterator it = eps_bearer.find(request.eps_bearer_id);
+    eps_bearer.erase(it);
   }
 
   // create new bearer
