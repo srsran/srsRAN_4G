@@ -475,6 +475,10 @@ int cc_worker::decode_pdsch(srslte_pdsch_ack_resource_t            ack_resource,
       // Prepare I/O based on action
       pdsch_dec[tb].payload                  = action->tb[tb].payload;
       ue_dl_cfg.cfg.pdsch.softbuffers.rx[tb] = action->tb[tb].softbuffer.rx;
+
+      // Use RV from higher layers
+      ue_dl_cfg.cfg.pdsch.grant.tb[tb].rv = action->tb[tb].rv;
+
     } else {
       // If this TB is duplicate, indicate PDSCH to skip it
       ue_dl_cfg.cfg.pdsch.grant.tb[tb].enabled = false;
