@@ -117,18 +117,18 @@ void gtpu::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t 
   gtpu_log->info_hex(pdu->msg, pdu->N_bytes, "TX PDU, RNTI: 0x%x, LCID: %d, n_bytes=%d", rnti, lcid, pdu->N_bytes);
 
   // Check valid IP version
-  struct iphdr*   ip_pkt  = (struct iphdr*)pdu->msg;
+  struct iphdr* ip_pkt = (struct iphdr*)pdu->msg;
   if (ip_pkt->version != 4 && ip_pkt->version != 6) {
     gtpu_log->error("Invalid IP version to SPGW\n");
+    return;
   } else if (ip_pkt->version == 4) {
-    if(ntohs(ip_pkt->tot_len) != pdu->N_bytes){
+    if (ntohs(ip_pkt->tot_len) != pdu->N_bytes) {
       gtpu_log->error("IP Len and PDU N_bytes mismatch\n");
     }
     gtpu_log->debug("S1-U PDU -- IP version %d, Total length %d\n", ip_pkt->version, ntohs(ip_pkt->tot_len));
     gtpu_log->debug("S1-U PDU -- IP src addr %s\n", srslte::gtpu_ntoa(ip_pkt->saddr).c_str());
     gtpu_log->debug("S1-U PDU -- IP dst addr %s\n", srslte::gtpu_ntoa(ip_pkt->daddr).c_str());
   }
-
 
   gtpu_header_t header;
   header.flags        = GTPU_FLAGS_VERSION_V1 | GTPU_FLAGS_GTP_PROTOCOL;

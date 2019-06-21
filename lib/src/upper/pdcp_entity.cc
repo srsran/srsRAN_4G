@@ -24,24 +24,9 @@
 
 namespace srslte {
 
-pdcp_entity::pdcp_entity() : active(false), tx_count(0)
+pdcp_entity::pdcp_entity()
 {
-  pool            = byte_buffer_pool::get_instance();
-  log             = NULL;
-  rlc             = NULL;
-  rrc             = NULL;
-  gw              = NULL;
-  lcid            = 0;
-  sn_len_bytes    = 0;
-  do_integrity    = false;
-  do_encryption   = false;
-  tx_count        = 0;
-  rx_count        = 0;
-  rx_hfn          = 0;
-  next_pdcp_rx_sn = 0;
-  cipher_algo     = CIPHERING_ALGORITHM_ID_EEA0;
-  integ_algo      = INTEGRITY_ALGORITHM_ID_EIA0;
-  pthread_mutex_init(&mutex, NULL);
+  pthread_mutex_init(&mutex, nullptr);
 }
 
 pdcp_entity::~pdcp_entity()
@@ -49,12 +34,12 @@ pdcp_entity::~pdcp_entity()
   pthread_mutex_destroy(&mutex);
 }
 
-void pdcp_entity::init(srsue::rlc_interface_pdcp      *rlc_,
-                       srsue::rrc_interface_pdcp      *rrc_,
-                       srsue::gw_interface_pdcp       *gw_,
-                       srslte::log                    *log_,
-                       uint32_t                       lcid_,
-                       srslte_pdcp_config_t           cfg_)
+void pdcp_entity::init(srsue::rlc_interface_pdcp* rlc_,
+                       srsue::rrc_interface_pdcp* rrc_,
+                       srsue::gw_interface_pdcp*  gw_,
+                       srslte::log*               log_,
+                       uint32_t                   lcid_,
+                       srslte_pdcp_config_t       cfg_)
 {
   rlc           = rlc_;
   rrc           = rrc_;
@@ -465,13 +450,12 @@ void pdcp_entity::cipher_encrypt(uint8_t  *msg,
     k_enc = k_up_enc;
   }
 
-  log->debug("Cipher encript input:\n");
+  log->debug("Cipher encrypt input:\n");
   log->debug_hex(&k_enc[16], 16, "  K_enc");
   log->debug("  Local count: %d\n", tx_count);
   log->debug("  TX HFN: %d COUNT %d\n", (tx_count >> cfg.sn_len), (tx_count << (32-cfg.sn_len)) >> (32-cfg.sn_len));
   log->debug("  Bearer ID: %d\n", cfg.bearer_id);
   log->debug("  Direction: %s\n", (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? "Downlink" : "Uplink");
-  log->debug("Encripting COUNT %d \n", tx_count);
 
   switch(cipher_algo)
   {
@@ -515,7 +499,7 @@ void pdcp_entity::cipher_decrypt(uint8_t  *ct,
   } else {
     k_enc = k_up_enc;
   }
-  log->info("Decripting COUNT %d \n", count);
+
   switch(cipher_algo)
   {
   case CIPHERING_ALGORITHM_ID_EEA0:
