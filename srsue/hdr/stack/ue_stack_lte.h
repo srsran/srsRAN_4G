@@ -115,8 +115,8 @@ public:
 
 private:
   void run_thread() final;
-  void run_tti_(uint32_t tti);
-  void stop_();
+  void run_tti_impl(uint32_t tti);
+  void stop_impl();
 
   bool                running;
   srsue::stack_args_t args;

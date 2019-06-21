@@ -116,34 +116,28 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
 void ue_stack_lte::stop()
 {
   if (running) {
-    pending_tasks.push([this]() { stop_(); });
+    pending_tasks.push([this]() { stop_impl(); });
+    running = false;
 
     wait_thread_finish();
   }
 }
 
-void ue_stack_lte::stop_()
+void ue_stack_lte::stop_impl()
 {
-  if (running) {
-    usim->stop();
-    nas.stop();
-    rrc.stop();
+  usim->stop();
+  nas.stop();
+  rrc.stop();
 
-    // Caution here order of stop is very important to avoid locks
+  rlc.stop();
+  pdcp.stop();
+  mac.stop();
 
-    // Stop RLC and PDCP before GW to avoid locking on queue
-    rlc.stop();
-    pdcp.stop();
-    mac.stop();
-
-    if (args.pcap.enable) {
-      mac_pcap.close();
-    }
-    if (args.pcap.nas_enable) {
-      nas_pcap.close();
-    }
-
-    running = false;
+  if (args.pcap.enable) {
+    mac_pcap.close();
+  }
+  if (args.pcap.nas_enable) {
+    nas_pcap.close();
   }
 }
 
@@ -217,10 +211,10 @@ void ue_stack_lte::out_of_sync()
 
 void ue_stack_lte::run_tti(uint32_t tti)
 {
-  pending_tasks.push([this, tti]() { run_tti_(tti); });
+  pending_tasks.push([this, tti]() { run_tti_impl(tti); });
 }
 
-void ue_stack_lte::run_tti_(uint32_t tti)
+void ue_stack_lte::run_tti_impl(uint32_t tti)
 {
   mac.run_tti(tti);
   rrc.run_tti(tti);
