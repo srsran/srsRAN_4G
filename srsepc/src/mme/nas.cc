@@ -784,10 +784,10 @@ bool nas::handle_tracking_area_update_request(uint32_t                m_tmsi,
  ***************************************/
 bool nas::handle_attach_request(srslte::byte_buffer_t* nas_rx)
 {
-  uint32_t                                       m_tmsi = 0;
-  uint64_t                                       imsi   = 0;
-  LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT           attach_req;
-  LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT pdn_con_req;
+  uint32_t                                       m_tmsi      = 0;
+  uint64_t                                       imsi        = 0;
+  LIBLTE_MME_ATTACH_REQUEST_MSG_STRUCT           attach_req  = {};
+  LIBLTE_MME_PDN_CONNECTIVITY_REQUEST_MSG_STRUCT pdn_con_req = {};
 
   // Get NAS Attach Request and PDN connectivity request messages
   LIBLTE_ERROR_ENUM err = liblte_mme_unpack_attach_request_msg((LIBLTE_BYTE_MSG_STRUCT*)nas_rx, &attach_req);
