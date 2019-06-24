@@ -195,6 +195,7 @@ int s1ap::enb_listen()
 
 bool s1ap::s1ap_tx_pdu(srslte::byte_buffer_t* pdu, struct sctp_sndrcvinfo* enb_sri)
 {
+  m_s1ap_log->debug("Tx S1AP PDU. %d\n", enb_sri->sinfo_assoc_id);
   ssize_t n_sent = sctp_send(m_s1mme, pdu->msg, pdu->N_bytes, enb_sri, 0);
   if (n_sent == -1) {
     m_s1ap_log->console("Failed to send S1AP PDU.\n");
