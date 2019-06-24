@@ -353,7 +353,7 @@ bool s1ap::add_nas_ctx_to_imsi_map(nas* nas_ctx)
 {
   std::map<uint64_t, nas*>::iterator ctx_it = m_imsi_to_nas_ctx.find(nas_ctx->m_emm_ctx.imsi);
   if (ctx_it != m_imsi_to_nas_ctx.end()) {
-    m_s1ap_log->error("UE Context already exists. IMSI %015" PRIu64 "", nas_ctx->m_emm_ctx.imsi);
+    m_s1ap_log->error("UE Context already exists. IMSI %015" PRIu64 "\n", nas_ctx->m_emm_ctx.imsi);
     return false;
   }
   if (nas_ctx->m_ecm_ctx.mme_ue_s1ap_id != 0) {
@@ -371,12 +371,12 @@ bool s1ap::add_nas_ctx_to_imsi_map(nas* nas_ctx)
 bool s1ap::add_nas_ctx_to_mme_ue_s1ap_id_map(nas* nas_ctx)
 {
   if (nas_ctx->m_ecm_ctx.mme_ue_s1ap_id == 0) {
-    m_s1ap_log->error("Could not add UE context to MME UE S1AP map. MME UE S1AP ID 0 is not valid.");
+    m_s1ap_log->error("Could not add UE context to MME UE S1AP map. MME UE S1AP ID 0 is not valid.\n");
     return false;
   }
   std::map<uint32_t, nas*>::iterator ctx_it = m_mme_ue_s1ap_id_to_nas_ctx.find(nas_ctx->m_ecm_ctx.mme_ue_s1ap_id);
   if (ctx_it != m_mme_ue_s1ap_id_to_nas_ctx.end()) {
-    m_s1ap_log->error("UE Context already exists. MME UE S1AP Id %015" PRIu64 "", nas_ctx->m_emm_ctx.imsi);
+    m_s1ap_log->error("UE Context already exists. MME UE S1AP Id %015" PRIu64 "\n", nas_ctx->m_emm_ctx.imsi);
     return false;
   }
   if (nas_ctx->m_emm_ctx.imsi != 0) {
@@ -395,12 +395,12 @@ bool s1ap::add_ue_to_enb_set(int32_t enb_assoc, uint32_t mme_ue_s1ap_id)
 {
   std::map<int32_t, std::set<uint32_t> >::iterator ues_in_enb = m_enb_assoc_to_ue_ids.find(enb_assoc);
   if (ues_in_enb == m_enb_assoc_to_ue_ids.end()) {
-    m_s1ap_log->error("Could not find eNB from eNB SCTP association %d", enb_assoc);
+    m_s1ap_log->error("Could not find eNB from eNB SCTP association %d\n", enb_assoc);
     return false;
   }
   std::set<uint32_t>::iterator ue_id = ues_in_enb->second.find(mme_ue_s1ap_id);
   if (ue_id != ues_in_enb->second.end()) {
-    m_s1ap_log->error("UE with MME UE S1AP Id already exists %d", mme_ue_s1ap_id);
+    m_s1ap_log->error("UE with MME UE S1AP Id already exists %d\n", mme_ue_s1ap_id);
     return false;
   }
   ues_in_enb->second.insert(mme_ue_s1ap_id);

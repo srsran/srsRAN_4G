@@ -1098,6 +1098,13 @@ bool nas::handle_identity_response(srslte::byte_buffer_t* nas_rx)
   // Identity reponse from unknown GUTI atach. Assigning new eKSI.
   m_sec_ctx.eksi = 0;
 
+  // Make sure UE context was not previously stored in IMSI map
+  nas* nas_ctx = m_s1ap->find_nas_ctx_from_imsi(imsi);
+  if (nas_ctx != nullptr) {
+    m_nas_log->warning("UE context already exists.\n");
+    m_s1ap->delete_ue_ctx(imsi);
+  }
+
   // Store UE context im IMSI map
   m_s1ap->add_nas_ctx_to_imsi_map(this);
 
