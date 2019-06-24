@@ -23,14 +23,25 @@
 #define SRSLTE_RLC_METRICS_H
 
 #include "srslte/common/common.h"
+#include "srslte/common/queue_metrics.h"
+#include "srslte/upper/rlc_interface.h"
 
 namespace srslte {
+
+struct rlc_queue_metrics_t { 
+ queue_metrics_t qmetrics;
+ rlc_mode_t      mode;
+};
+
 
 struct rlc_metrics_t
 {
   float dl_tput_mbps[SRSLTE_N_RADIO_BEARERS];
   float ul_tput_mbps[SRSLTE_N_RADIO_BEARERS];
   float dl_tput_mrb_mbps[SRSLTE_N_MCH_LCIDS];
+
+  rlc_queue_metrics_t metrics[SRSLTE_N_MCH_LCIDS];
+  rlc_queue_metrics_t mrb_metrics[SRSLTE_N_MCH_LCIDS];
 };
 
 } // namespace srslte

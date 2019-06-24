@@ -39,6 +39,8 @@
 #include <unistd.h>
 #include <strings.h>
 
+#include "srslte/common/queue_metrics.h"
+
 namespace srslte {
 
 template<typename myobj>
@@ -61,6 +63,7 @@ public:
     mutexed_callback = NULL;
     enable = true;
     num_threads = 0;
+    qmetrics.capacity = capacity;
   }
   ~block_queue() {
     // Unlock threads waiting at push or pop
@@ -86,7 +89,10 @@ public:
     mutexed_callback = itf;
   }
   void resize(int new_capacity) {
+    pthread_mutex_lock(&mutex);
     capacity = new_capacity;
+    qmetrics.capacity = capacity;
+    pthread_mutex_unlock(&mutex);
   }
 
   void push(const myobj& value) {
@@ -116,7 +122,9 @@ public:
 
   void clear() { // remove all items
     myobj *item = NULL;
-    while (try_pop(item));
+    while (try_pop(item)) {
+      ++qmetrics.num_cleared;
+    }
   }
 
   myobj front() {
@@ -124,31 +132,50 @@ public:
   }
 
   size_t size() {
-    return q.size();
+    pthread_mutex_lock(&mutex);
+    size_t result = q.size();
+    pthread_mutex_unlock(&mutex);
+    return result;
   }
 
+  queue_metrics_t get_qmetrics(bool bReset = false) {
+    pthread_mutex_lock(&mutex);
+    const queue_metrics_t result = qmetrics;
+    if(bReset) {
+      qmetrics.reset();
+    }
+    pthread_mutex_unlock(&mutex);
+    return result;
+  }
+   
 private:
 
   bool pop_(myobj *value, bool block) {
     if (!enable) {
+      ++qmetrics.num_pop_fail;
       return false;
     }
     pthread_mutex_lock(&mutex);
     num_threads++;
     bool ret = false;
     if (q.empty() && !block) {
+      ++qmetrics.num_pop_fail;
       goto exit;
     }
     while (q.empty() && enable) {
       pthread_cond_wait(&cv_empty, &mutex);
     }
     if (!enable) {
+      ++qmetrics.num_pop_fail;
       goto exit;
     }
     if (value) {
       *value = q.front();
     }
     q.pop();
+    ++qmetrics.num_pop;
+    qmetrics.currsize = q.size();
+
     ret = true;
     if (mutexed_callback) {
       mutexed_callback->popping(*value);
@@ -162,6 +189,7 @@ private:
 
   bool push_(const myobj& value, bool block) {
     if (!enable) {
+      ++qmetrics.num_push_fail;
       return false;
     }
     pthread_mutex_lock(&mutex);
@@ -173,13 +201,19 @@ private:
           pthread_cond_wait(&cv_full, &mutex);
         }
         if (!enable) {
+          ++qmetrics.num_push_fail;
           goto exit;
         }
       } else if (q.size() >= (uint32_t) capacity) {
+        ++qmetrics.num_push_fail;
         goto exit;
       }
     }
     q.push(value);
+    ++qmetrics.num_push;
+    qmetrics.currsize = q.size();
+    qmetrics.highwater = std::max(qmetrics.highwater, q.size());
+
     ret = true;
     if (mutexed_callback) {
       mutexed_callback->pushing(value);
@@ -199,6 +233,7 @@ private:
   int capacity;
   bool enable;
   uint32_t num_threads;
+  queue_metrics_t qmetrics;
 };
 
 }

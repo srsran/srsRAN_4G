@@ -188,4 +188,9 @@ void rlc_tm::write_pdu(uint8_t *payload, uint32_t nof_bytes)
   }
 }
 
+queue_metrics_t rlc_tm::get_qmetrics(bool bReset)
+{
+  return ul_queue.get_qmetrics(bReset);
+}
+
 } // namespace srsue

@@ -189,6 +189,10 @@ void rlc_um::reset_metrics()
   rx.reset_metrics();
 }
 
+queue_metrics_t rlc_um::get_qmetrics(bool bReset)
+{
+  return tx.get_qmetrics(bReset);
+}
 
 /****************************************************************************
  * Helper functions
@@ -496,6 +500,12 @@ const char* rlc_um::rlc_um_tx::get_rb_name()
 void rlc_um::rlc_um_tx::debug_state()
 {
   log->debug("%s vt_us = %d\n", get_rb_name(), vt_us);
+}
+
+
+queue_metrics_t rlc_um::rlc_um_tx::get_qmetrics(bool bReset)
+{
+  return tx_sdu_queue.get_qmetrics(bReset);
 }
 
 /****************************************************************************

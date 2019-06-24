@@ -124,6 +124,11 @@ void rlc_am::reset_metrics()
   rx.reset_metrics();
 }
 
+queue_metrics_t rlc_am::get_qmetrics(bool bReset)
+{
+  return tx.get_qmetrics(bReset);
+}
+
 /****************************************************************************
  * PDCP interface
  ***************************************************************************/
@@ -1134,7 +1139,10 @@ bool rlc_am::rlc_am_tx::retx_queue_has_sn(uint32_t sn)
   return false;
 }
 
-
+queue_metrics_t rlc_am::rlc_am_tx::get_qmetrics(bool bReset)
+{
+  return tx_sdu_queue.get_qmetrics(bReset);
+}
 
 /****************************************************************************
  * Rx subclass implementation

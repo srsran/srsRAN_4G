@@ -352,6 +352,7 @@ bool enb::get_metrics(enb_metrics_t &m)
   mac.get_metrics(m.mac);
   rrc.get_metrics(m.rrc);
   s1ap.get_metrics(m.s1ap);
+  rlc.get_metrics(m.rlc);
 
   m.running = started;  
   return true;

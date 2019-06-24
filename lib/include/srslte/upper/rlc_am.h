@@ -93,6 +93,7 @@ public:
   uint32_t get_num_rx_bytes();
   void reset_metrics();
 
+  queue_metrics_t get_qmetrics(bool bReset);
 private:
 
   // Transmitter sub-class
@@ -123,6 +124,7 @@ private:
     // Interface for Rx subclass
     void handle_control_pdu(uint8_t *payload, uint32_t nof_bytes);
 
+    queue_metrics_t get_qmetrics(bool bReset);
   private:
 
     int  build_status_pdu(uint8_t *payload, uint32_t nof_bytes);

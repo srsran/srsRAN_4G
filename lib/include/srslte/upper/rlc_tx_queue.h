@@ -109,6 +109,9 @@ public:
     return queue.empty();
   }
 
+  queue_metrics_t get_qmetrics(bool bReset = false) {
+    return queue.get_qmetrics(bReset);
+  }
 private:
 
   block_queue<byte_buffer_t*> queue;
