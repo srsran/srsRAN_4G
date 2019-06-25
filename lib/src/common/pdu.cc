@@ -165,7 +165,7 @@ uint8_t* sch_pdu::write_packet(srslte::log* log_h)
 
   // Set padding to zeros (if any)
   if (num_padding > 0) {
-    bzero(&buffer_tx->msg[total_header_size + total_sdu_len], num_padding * sizeof(uint8_t));
+    bzero(&buffer_tx->msg[buffer_tx->N_bytes], num_padding * sizeof(uint8_t));
     buffer_tx->N_bytes += num_padding;
   }
 
@@ -176,19 +176,17 @@ uint8_t* sch_pdu::write_packet(srslte::log* log_h)
 
   /* Sanity check and print if error */
   if (log_h) {
-    log_h->debug(
-        "Wrote PDU: pdu_len=%d, header_and_ce=%d (%d+%d), nof_subh=%d, last_sdu=%d, sdu_len=%d, onepad=%d, multi=%d\n",
-        pdu_len,
-        header_sz + ce_payload_sz,
-        header_sz,
-        ce_payload_sz,
-        nof_subheaders,
-        last_sdu_idx,
-        total_sdu_len,
-        onetwo_padding,
-        num_padding);
+    log_h->debug("Wrote PDU: pdu_len=%d, header_and_ce=%d (%d+%d), nof_subh=%d, last_sdu=%d, onepad=%d, multi=%d\n",
+                 pdu_len,
+                 header_sz + ce_payload_sz,
+                 header_sz,
+                 ce_payload_sz,
+                 nof_subheaders,
+                 last_sdu_idx,
+                 onetwo_padding,
+                 num_padding);
   } else {
-    printf("Wrote PDU: pdu_len=%d, header_and_ce=%d (%d+%d), nof_subh=%d, last_sdu=%d, sdu_len=%d, onepad=%d, "
+    printf("Wrote PDU: pdu_len=%d, header_and_ce=%d (%d+%d), nof_subh=%d, last_sdu=%d, onepad=%d, "
            "multi=%d\n",
            pdu_len,
            header_sz + ce_payload_sz,
@@ -196,18 +194,17 @@ uint8_t* sch_pdu::write_packet(srslte::log* log_h)
            ce_payload_sz,
            nof_subheaders,
            last_sdu_idx,
-           total_sdu_len,
            onetwo_padding,
            num_padding);
   }
 
-  if (total_header_size + total_sdu_len + num_padding != pdu_len) {
+  if (buffer_tx->N_bytes != pdu_len) {
     if (log_h) {
       log_h->console("\n------------------------------\n");
       for (int i = 0; i < nof_subheaders; i++) {
         log_h->console("SUBH %d is_sdu=%d, payload=%d\n", i, subheaders[i].is_sdu(), subheaders[i].get_payload_size());
       }
-      log_h->console("Wrote PDU: pdu_len=%d, header_and_ce=%d (%d+%d), nof_subh=%d, last_sdu=%d, sdu_len=%d, "
+      log_h->console("Wrote PDU: pdu_len=%d, header_and_ce=%d (%d+%d), nof_subh=%d, last_sdu=%d, "
                      "onepad=%d, multi=%d\n",
                      pdu_len,
                      header_sz + ce_payload_sz,
@@ -215,13 +212,12 @@ uint8_t* sch_pdu::write_packet(srslte::log* log_h)
                      ce_payload_sz,
                      nof_subheaders,
                      last_sdu_idx,
-                     total_sdu_len,
                      onetwo_padding,
                      num_padding);
-      ERROR("Expected PDU len %d bytes but wrote %d\n", pdu_len, rem_len + header_sz + ce_payload_sz + total_sdu_len);
+      ERROR("Expected PDU len %d bytes but wrote %d\n", pdu_len, buffer_tx->N_bytes);
       log_h->console("------------------------------\n");
 
-      log_h->error("Wrote PDU: pdu_len=%d, header_and_ce=%d (%d+%d), nof_subh=%d, last_sdu=%d, sdu_len=%d, onepad=%d, "
+      log_h->error("Wrote PDU: pdu_len=%d, header_and_ce=%d (%d+%d), nof_subh=%d, last_sdu=%d, onepad=%d, "
                    "multi=%d\n",
                    pdu_len,
                    header_sz + ce_payload_sz,
@@ -229,7 +225,6 @@ uint8_t* sch_pdu::write_packet(srslte::log* log_h)
                    ce_payload_sz,
                    nof_subheaders,
                    last_sdu_idx,
-                   total_sdu_len,
                    onetwo_padding,
                    num_padding);
     }

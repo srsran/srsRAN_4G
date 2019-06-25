@@ -46,8 +46,7 @@ public:
     rem_len(0),
     last_sdu_idx(-1),
     pdu_is_ul(false),
-    buffer_tx(nullptr),
-    total_sdu_len(0)
+    buffer_tx(nullptr)
   {
   }
 
@@ -118,12 +117,11 @@ public:
 
   bool is_ul() { return pdu_is_ul; }
 
-  uint8_t* get_current_sdu_ptr() { return (buffer_tx->msg + total_sdu_len); }
+  uint8_t* get_current_sdu_ptr() { return &buffer_tx->msg[buffer_tx->N_bytes]; }
 
   void add_sdu(uint32_t sdu_sz)
   {
     buffer_tx->N_bytes += sdu_sz;
-    total_sdu_len += sdu_sz;
   }
 
   // Section 6.1.2
@@ -153,7 +151,6 @@ protected:
   uint32_t          max_subheaders;
   bool              pdu_is_ul;
   byte_buffer_t*    buffer_tx = nullptr;
-  uint32_t          total_sdu_len;
   int               last_sdu_idx;
 
   /* Prepares the PDU for parsing or writing by setting the number of subheaders to 0 and the pdu length */
@@ -164,7 +161,6 @@ protected:
     rem_len          = pdu_len;
     pdu_is_ul        = is_ulsch;
     buffer_tx        = buffer_tx_;
-    total_sdu_len    = 0;
     last_sdu_idx     = -1;
     reset();
     for (uint32_t i = 0; i < max_subheaders; i++) {
@@ -397,7 +393,6 @@ private:
     rem_len          = pdu_len;
     pdu_is_ul        = is_ulsch;
     buffer_tx        = buffer_tx_;
-    total_sdu_len    = 0;
     last_sdu_idx     = -1;
     reset();
     for (uint32_t i = 0; i < max_subheaders; i++) {
