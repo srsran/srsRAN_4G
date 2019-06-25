@@ -48,8 +48,8 @@ void mux::init(rlc_interface_mac *rlc_, srslte::log *log_h_, bsr_interface_mux *
 
 void mux::reset()
 {
-  for (uint32_t i = 0; i < logical_channels.size(); i++) {
-    logical_channels[i].Bj = 0;
+  for (auto& channel : logical_channels) {
+    channel.Bj = 0;
   }
   msg3_pending = false;
   pending_crnti_ce = 0;
@@ -72,9 +72,9 @@ void mux::step(const uint32_t tti)
 
 bool mux::is_pending_any_sdu()
 {
-  for (uint32_t i = 0; i < logical_channels.size(); i++) {
-    if (rlc->has_data(logical_channels[i].lcid)) {
-      return true; 
+  for (auto& channel : logical_channels) {
+    if (rlc->has_data(channel.lcid)) {
+      return true;
     }
   }
   return false; 
@@ -214,50 +214,43 @@ uint8_t* mux::pdu_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
     }
   }
 
-  // FIXME: IMHO, it should not matter if this is a RAR UL or a normal UL, we fill the grant
-  if (!is_rar) {
-    // Update buffer states for all logical channels
-    for (auto& channel : logical_channels) {
-      channel.buffer_len = rlc->get_buffer_state(channel.lcid);
-    }
+  // Update buffer states for all logical channels
+  for (auto& channel : logical_channels) {
+    channel.buffer_len = rlc->get_buffer_state(channel.lcid);
+  }
 
-    int sdu_space = pdu_msg.get_sdu_space();
+  int sdu_space = pdu_msg.get_sdu_space();
 
-    // data from any Logical Channel, except data from UL-CCCH;
-    // first only those with positive Bj
-    for (auto& channel : logical_channels) {
-      // FIXME: IMHO we should not care if we read from UL-CCCH, the specs say "except" but CCCH has always
-      // higher priority, so if there is data, it should be allocated
-      if (channel.lcid != 0) {
-        int max_sdu_sz = (channel.PBR < 0) ? -1 : channel.Bj; // this can be zero if no PBR has been allocated
-        if (max_sdu_sz != 0) {
-          if (sched_sdu(&channel, &sdu_space, max_sdu_sz)) {
-            channel.Bj -= channel.sched_len;
-          }
-        }
-      }
-    }
-
-    print_logical_channel_state("First round of allocation:");
-
-    // If resources remain, allocate regardless of their Bj value
-    for (auto& channel : logical_channels) {
-      if (channel.lcid != 0) {
-        sched_sdu(&channel, &sdu_space, -1);
-      }
-    }
-
-    print_logical_channel_state("Second round of allocation:");
-
-    for (auto& channel : logical_channels) {
-      if (channel.sched_len != 0) {
-        allocate_sdu(channel.lcid, &pdu_msg, channel.sched_len);
+  // data from any Logical Channel, except data from UL-CCCH;
+  // first only those with positive Bj
+  for (auto& channel : logical_channels) {
+    int max_sdu_sz = (channel.PBR < 0) ? -1 : channel.Bj; // this can be zero if no PBR has been allocated
+    if (max_sdu_sz != 0) {
+      if (sched_sdu(&channel, &sdu_space, max_sdu_sz)) {
+        channel.Bj -= channel.sched_len;
       }
     }
   }
 
+  print_logical_channel_state("First round of allocation:");
+
+  // If resources remain, allocate regardless of their Bj value
+  for (auto& channel : logical_channels) {
+    if (channel.lcid != 0) {
+      sched_sdu(&channel, &sdu_space, -1);
+    }
+  }
+
+  print_logical_channel_state("Second round of allocation:");
+
+  for (auto& channel : logical_channels) {
+    if (channel.sched_len != 0) {
+      allocate_sdu(channel.lcid, &pdu_msg, channel.sched_len);
+    }
+  }
+
   if (!regular_bsr) {
-    // Insert Padding BSR if not inserted Regular/Periodic BSR 
+    // Insert Padding BSR if not inserted Regular/Periodic BSR
     if (bsr_procedure->generate_padding_bsr(pdu_msg.rem_size(), &bsr)) {
       if (pdu_msg.new_subh()) {
         pdu_msg.get()->set_bsr(bsr.buff_size, bsr_format_convert(bsr.format));
