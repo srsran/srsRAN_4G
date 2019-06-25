@@ -369,8 +369,9 @@ bool bsr_proc::generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t* bsr)
 
   pthread_mutex_lock(&mutex);
 
-  if (triggered_bsr_type != NONE && nof_padding_bytes >= 2) {
-
+  if (triggered_bsr_type == NONE && nof_padding_bytes >= 2) {
+    // generate padding BSR
+    triggered_bsr_type = PADDING;
     generate_bsr(bsr, nof_padding_bytes);
     ret = true;
 
