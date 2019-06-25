@@ -445,7 +445,7 @@ void rlc::add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg)
       rlc_log->error("Error inserting RLC entity in to array\n.");
       goto delete_and_exit;
     }
-    rlc_log->warning("Added radio bearer %s in %s\n", rrc->get_rb_name(lcid).c_str(), rlc_mode_text[cnfg.rlc_mode]);
+    rlc_log->info("Added radio bearer %s in %s\n", rrc->get_rb_name(lcid).c_str(), rlc_mode_text[cnfg.rlc_mode]);
     goto unlock_and_exit;
   } else {
     rlc_log->warning("Bearer %s already created.\n", rrc->get_rb_name(lcid).c_str());

@@ -542,8 +542,7 @@ int rlc_am::rlc_am_tx::build_status_pdu(uint8_t *payload, uint32_t nof_bytes)
     debug_state();
     pdu_len = rlc_am_write_status_pdu(&tx_status, payload);
   } else{
-    log->warning("%s Cannot tx status PDU - %d bytes available, %d bytes required\n",
-                 RB_NAME, nof_bytes, pdu_len);
+    log->info("%s Cannot tx status PDU - %d bytes available, %d bytes required\n", RB_NAME, nof_bytes, pdu_len);
     pdu_len = 0;
   }
 
@@ -672,8 +671,10 @@ int rlc_am::rlc_am_tx::build_segment(uint8_t *payload, uint32_t nof_bytes, rlc_a
   }
 
   if (nof_bytes <= head_len) {
-    log->warning("%s Cannot build a PDU segment - %d bytes available, %d bytes required for header\n",
-                 RB_NAME, nof_bytes, head_len);
+    log->info("%s Cannot build a PDU segment - %d bytes available, %d bytes required for header\n",
+              RB_NAME,
+              nof_bytes,
+              head_len);
     return 0;
   }
 
@@ -823,10 +824,9 @@ int rlc_am::rlc_am_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   uint32_t pdu_space = SRSLTE_MIN(nof_bytes, pdu->get_tailroom());
   uint8_t *pdu_ptr   = pdu->msg;
 
-  if(pdu_space <= head_len + 1)
-  {
-    log->warning("%s Cannot build a PDU - %d bytes available, %d bytes required for header\n",
-                 RB_NAME, nof_bytes, head_len);
+  if (pdu_space <= head_len + 1) {
+    log->info(
+        "%s Cannot build a PDU - %d bytes available, %d bytes required for header\n", RB_NAME, nof_bytes, head_len);
     return 0;
   }
 
