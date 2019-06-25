@@ -85,7 +85,6 @@ private:
   bool     allocate_sdu(uint32_t lcid, srslte::sch_pdu *pdu, int max_sdu_sz);
   bool     sched_sdu(logical_channel_config_t* ch, int* sdu_space, int max_sdu_sz);
 
-  const static int MIN_RLC_SDU_LEN    = 2;
   const static int MAX_NOF_SUBHEADERS = 20;
 
   std::vector<logical_channel_config_t> logical_channels;

@@ -169,15 +169,12 @@ uint8_t* mux::pdu_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
   }
   
   // Logical Channel Procedure
-  bool is_rar = false;
-
   payload->clear();
   pdu_msg.init_tx(payload, pdu_sz, true);
 
   // MAC control element for C-RNTI or data from UL-CCCH
   if (!allocate_sdu(0, &pdu_msg, pdu_sz)) {
     if (pending_crnti_ce) {
-      is_rar = true;
       if (pdu_msg.new_subh()) {
         if (!pdu_msg.get()->set_c_rnti(pending_crnti_ce)) {
           Warning("Pending C-RNTI CE could not be inserted in MAC PDU\n");
@@ -188,7 +185,6 @@ uint8_t* mux::pdu_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
     if (pending_crnti_ce) {
       Warning("Pending C-RNTI CE was not inserted because message was for CCCH\n");
     }
-    is_rar = true;
   }
   pending_crnti_ce = 0;
 
@@ -308,45 +304,44 @@ bool mux::allocate_sdu(uint32_t lcid, srslte::sch_pdu* pdu_msg, int max_sdu_sz)
 {
   bool sdu_added = false;
   int  sdu_space = max_sdu_sz;
-  int sdu_len = rlc->get_buffer_state(lcid);
+  int  buffer_state = rlc->get_buffer_state(lcid);
 
-  while (sdu_len > 0 && sdu_space >= MIN_RLC_SDU_LEN) { // there is pending SDU to allocate
-    int buffer_state = sdu_len; 
-    if (sdu_len > max_sdu_sz && max_sdu_sz >= 0) {
-      sdu_len = max_sdu_sz;
-    }
-    if (sdu_len > sdu_space || max_sdu_sz < 0) {
-      sdu_len = sdu_space;
-    }
-    if (sdu_len >= MIN_RLC_SDU_LEN) {
-      if (pdu_msg->new_subh()) { // there is space for a new subheader
-        sdu_len = pdu_msg->get()->set_sdu(lcid, sdu_len, rlc);
-        if (sdu_len > 0) { // new SDU could be added
-          Debug("SDU:   allocated lcid=%d, rlc_buffer=%d, allocated=%d/%d, max_sdu_sz=%d, remaining=%d\n",
-                 lcid, buffer_state, sdu_len, sdu_space, max_sdu_sz, pdu_msg->rem_size());
-          sdu_space -= sdu_len;
-          sdu_added = true;
+  while (buffer_state > 0 && sdu_space > 0) { // there is pending SDU to allocate
+    int requested_sdu_len = SRSLTE_MIN(buffer_state, max_sdu_sz);
 
-          sdu_len = rlc->get_buffer_state(lcid);
-        } else {
-          Warning("SDU:   rlc_buffer=%d, allocated=%d/%d, remaining=%d\n", 
-               buffer_state, sdu_len, sdu_space, pdu_msg->rem_size());
-          pdu_msg->del_subh();
-        }
+    if (pdu_msg->new_subh()) { // there is space for a new subheader
+      int sdu_len = pdu_msg->get()->set_sdu(lcid, requested_sdu_len, rlc);
+      if (sdu_len > 0) { // new SDU could be added
+        Debug("SDU:   allocated lcid=%d, rlc_buffer=%d, request_sdu_len=%d, allocated=%d/%d, max_sdu_sz=%d, "
+              "remaining=%d\n",
+              lcid,
+              buffer_state,
+              requested_sdu_len,
+              sdu_len,
+              sdu_space,
+              max_sdu_sz,
+              pdu_msg->rem_size());
+        sdu_space -= sdu_len;
+        sdu_added = true;
+
+        buffer_state = rlc->get_buffer_state(lcid);
       } else {
-        Warning("Couldn't add new MAC subheader (rlc_buffer=%d, allocated=%d/%d, remaining=%d)\n",
+        Warning("SDU:   rlc_buffer=%d, requested_sdu_len=%d, allocated=%d/%d, remaining=%d\n",
                 buffer_state,
+                requested_sdu_len,
                 sdu_len,
                 sdu_space,
                 pdu_msg->rem_size());
+        pdu_msg->del_subh();
       }
     } else {
-      Warning("Remaining SDU len too low (%d<%d) max_sdu_sz=%d, sdu_space=%d, remaining=%d\n",
-              sdu_len,
-              MIN_RLC_SDU_LEN,
-              max_sdu_sz,
-              sdu_space,
-              pdu_msg->rem_size());
+      Debug("Couldn't add new MAC subheader (rlc_buffer=%d, requested_sdu_len=%d, sdu_space=%d, remaining=%d)\n",
+            buffer_state,
+            requested_sdu_len,
+            sdu_space,
+            pdu_msg->rem_size());
+      // prevent endless loop
+      break;
     }
   }
   return sdu_added;
