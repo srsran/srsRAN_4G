@@ -70,11 +70,6 @@ uint8_t* sch_pdu::write_packet()
 /* Writes the MAC PDU in the packet, including the MAC headers and CE payload. Section 6.1.2 */
 uint8_t* sch_pdu::write_packet(srslte::log* log_h)
 {
-  if (nof_subheaders <= 0 && nof_subheaders < (int)max_subheaders) {
-    log_h->error("Trying to write packet with invalid number of subheaders (nof_subheaders=%d).\n", nof_subheaders);
-    return nullptr;
-  }
-
   // set padding to remaining length in PDU
   uint32_t num_padding = rem_len;
 
@@ -128,9 +123,9 @@ uint8_t* sch_pdu::write_packet(srslte::log* log_h)
   uint8_t* ptr = buffer_tx->msg;
 
   // Add single/two byte padding first
-  sch_subh padding;
-  padding.set_padding();
   for (uint32_t i = 0; i < onetwo_padding; i++) {
+    sch_subh padding;
+    padding.set_padding();
     padding.write_subheader(&ptr, false);
   }
 
@@ -172,6 +167,11 @@ uint8_t* sch_pdu::write_packet(srslte::log* log_h)
   if (num_padding > 0) {
     bzero(&buffer_tx->msg[total_header_size + total_sdu_len], num_padding * sizeof(uint8_t));
     buffer_tx->N_bytes += num_padding;
+  }
+
+  // Print warning if we have padding only
+  if (nof_subheaders <= 0 && nof_subheaders < (int)max_subheaders) {
+    log_h->warning("Writing MAC PDU with padding only (%d B)\n", pdu_len);
   }
 
   /* Sanity check and print if error */
