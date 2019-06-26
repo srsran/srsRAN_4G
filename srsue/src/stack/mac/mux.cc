@@ -107,7 +107,7 @@ void mux::setup_lcid(const logical_channel_config_t& config)
     }
     // warn user if there is another LCID with same prio
     for (auto& channel : logical_channels) {
-      if (channel.priority == config.priority) {
+      if (channel.priority == config.priority && channel.lcid != config.lcid) {
         log_h->warning("LCID %d and %d have same priority.\n", channel.lcid, config.lcid);
       }
     }
