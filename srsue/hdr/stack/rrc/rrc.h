@@ -42,6 +42,8 @@
 typedef struct {
   std::string ue_category_str;
   uint32_t    ue_category;
+  int         ue_category_ul;
+  int         ue_category_dl;
   uint32_t    release;
   uint32_t    feature_group;
   uint8_t     supported_bands[SRSLTE_RRC_N_BANDS];

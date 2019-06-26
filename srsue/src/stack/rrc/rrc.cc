@@ -1972,10 +1972,22 @@ void rrc::handle_sib2()
   current_phy_cfg.common.prach_cnfg  = sib2->rr_cfg_common.prach_cfg;
   current_phy_cfg.common.srs_ul_cnfg = sib2->rr_cfg_common.srs_ul_cfg_common;
 
-  // Filter here 64-QAM Enable
-  if (args.ue_category == 5 || (sib2->rr_cfg_common.pusch_cfg_common_v1270_present && args.release > 11)) {
-    // ASN1 Generator simplifies enable64QAM-v1270 because it is an enumeration that is always true
-    current_phy_cfg.common.rrc_enable_64qam = true;
+  // According to 3GPP 36.331 v12 UE-EUTRA-Capability field descriptions
+  // Allow 64QAM for:
+  //   ue-Category 5 and 8 when enable64QAM (without suffix)
+  //   ue-CategoryUL 5 and 13 when enable64QAM (with suffix)
+  // enable64QAM-v1270 shall be ignored if enable64QAM (without suffix) is false
+  if (args.ue_category == 5 || (args.release >= 10 && args.ue_category == 8)) {
+    current_phy_cfg.common.rrc_enable_64qam = sib2->rr_cfg_common.pusch_cfg_common.pusch_cfg_basic.enable64_qam;
+  } else if (args.release >= 12 && sib2->rr_cfg_common.pusch_cfg_common.pusch_cfg_basic.enable64_qam) {
+    if (args.ue_category_ul == 5 || args.ue_category_ul == 13) {
+      // ASN1 Generator simplifies enable64QAM-v1270 because it is an enumeration that is always true
+      current_phy_cfg.common.rrc_enable_64qam = sib2->rr_cfg_common.pusch_cfg_common_v1270_present;
+    } else {
+      current_phy_cfg.common.rrc_enable_64qam = false;
+    }
+  } else {
+    current_phy_cfg.common.rrc_enable_64qam = false;
   }
 
   phy->set_config(&current_phy_cfg);
@@ -2427,7 +2439,7 @@ void rrc::send_rrc_ue_cap_info()
 
   ue_eutra_cap_s cap;
   cap.access_stratum_release = (access_stratum_release_e::options)(args.release - SRSLTE_RELEASE_MIN);
-  cap.ue_category            = (uint8_t)SRSLTE_MAX(1, SRSLTE_MIN(5, args.ue_category));
+  cap.ue_category            = (uint8_t)((args.ue_category < 1 || args.ue_category > 5) ? 4 : args.ue_category);
   cap.pdcp_params.max_num_rohc_context_sessions_present = false;
   cap.pdcp_params.supported_rohc_profiles.profile0x0001_r15 = false;
   cap.pdcp_params.supported_rohc_profiles.profile0x0002_r15 = false;
@@ -2510,8 +2522,12 @@ void rrc::send_rrc_ue_cap_info()
     rf_params.supported_band_combination_r10.push_back(combination_params);
 
     ue_eutra_cap_v1020_ies_s cap_v1020;
-    cap_v1020.ue_category_v1020_present      = true;
-    cap_v1020.ue_category_v1020              = (uint8_t)SRSLTE_MAX(6, SRSLTE_MIN(8, args.ue_category));
+    if (args.ue_category >= 6 && args.ue_category <= 8) {
+      cap_v1020.ue_category_v1020_present = true;
+      cap_v1020.ue_category_v1020         = (uint8_t)args.ue_category;
+    } else {
+      // Do not populate UE category for this release if the category is out of range
+    }
     cap_v1020.phy_layer_params_v1020_present = true;
     cap_v1020.phy_layer_params_v1020         = phy_layer_params_v1020;
     cap_v1020.rf_params_v1020_present        = args.support_ca;
@@ -2527,6 +2543,12 @@ void rrc::send_rrc_ue_cap_info()
 
   if (args.release > 10) {
     ue_eutra_cap_v11a0_ies_s cap_v11a0;
+    if (args.ue_category >= 11 && args.ue_category <= 12) {
+      cap_v11a0.ue_category_v11a0         = (uint8_t)args.ue_category;
+      cap_v11a0.ue_category_v11a0_present = true;
+    } else {
+      // Do not populate UE category for this release if the category is out of range
+    }
 
     ue_eutra_cap_v1180_ies_s cap_v1180;
     cap_v1180.non_crit_ext_present = true;
@@ -2535,6 +2557,12 @@ void rrc::send_rrc_ue_cap_info()
     ue_eutra_cap_v1170_ies_s cap_v1170;
     cap_v1170.non_crit_ext_present = true;
     cap_v1170.non_crit_ext         = cap_v1180;
+    if (args.ue_category >= 9 && args.ue_category <= 10) {
+      cap_v1170.ue_category_v1170         = (uint8_t)args.ue_category;
+      cap_v1170.ue_category_v1170_present = true;
+    } else {
+      // Do not populate UE category for this release if the category is out of range
+    }
 
     ue_eutra_cap_v1130_ies_s cap_v1130;
     cap_v1130.non_crit_ext_present = true;
@@ -2556,8 +2584,12 @@ void rrc::send_rrc_ue_cap_info()
     supported_band_list_eutra_v1250_l supported_band_list_eutra_v1250;
     for (uint32_t i = 0; i < args.nof_supported_bands; i++) {
       supported_band_eutra_v1250_s supported_band_eutra_v1250;
-      supported_band_eutra_v1250.dl_minus256_qam_r12_present = false; // 256-QAM support
-      supported_band_eutra_v1250.ul_minus64_qam_r12_present  = (args.ue_category >= 5); // 64-QAM support
+      // According to 3GPP 36.306 v12 Table 4.1A-1, 256QAM is supported for ue_category_dl 11-16
+      supported_band_eutra_v1250.dl_minus256_qam_r12_present = false;
+
+      // According to 3GPP 36.331 v12 UE-EUTRA-Capability field descriptions
+      // This field is only present when the field ue-CategoryUL is considered to 5 or 13.
+      supported_band_eutra_v1250.ul_minus64_qam_r12_present = true;
 
       supported_band_list_eutra_v1250.push_back(supported_band_eutra_v1250);
     }
@@ -2567,10 +2599,21 @@ void rrc::send_rrc_ue_cap_info()
     rf_params_v1250.supported_band_list_eutra_v1250         = supported_band_list_eutra_v1250;
 
     ue_eutra_cap_v1250_ies_s cap_v1250;
-    cap_v1250.ue_category_dl_r12_present = true;
-    cap_v1250.ue_category_dl_r12         = 13;
-    cap_v1250.ue_category_ul_r12_present = true;
-    cap_v1250.ue_category_ul_r12         = 5;
+
+    // Optional UE Category UL/DL
+    // Warning: Make sure the UE Category UL/DL matches with 3GPP 36.306 Table 4.1A-6
+    if (args.ue_category_dl >= 0) {
+      cap_v1250.ue_category_dl_r12_present = true;
+      cap_v1250.ue_category_dl_r12         = (uint8_t)args.ue_category_dl;
+    } else {
+      // Do not populate UE category for this release if the category is not available
+    }
+    if (args.ue_category_ul >= 0) {
+      cap_v1250.ue_category_ul_r12_present = true;
+      cap_v1250.ue_category_ul_r12         = (uint8_t)args.ue_category_ul;
+    } else {
+      // Do not populate UE category for this release if the category is not available
+    }
     cap_v1250.rf_params_v1250_present = true;
     cap_v1250.rf_params_v1250         = rf_params_v1250;
 
