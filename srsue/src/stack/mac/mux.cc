@@ -326,13 +326,15 @@ bool mux::allocate_sdu(uint32_t lcid, srslte::sch_pdu* pdu_msg, int max_sdu_sz)
 
         buffer_state = rlc->get_buffer_state(lcid);
       } else {
-        Warning("SDU:   rlc_buffer=%d, requested_sdu_len=%d, allocated=%d/%d, remaining=%d\n",
+        Warning("Couldn't allocate new SDU (rlc_buffer=%d, requested_sdu_len=%d, allocated=%d/%d, remaining=%d)\n",
                 buffer_state,
                 requested_sdu_len,
                 sdu_len,
                 sdu_space,
                 pdu_msg->rem_size());
         pdu_msg->del_subh();
+        // prevent endless loop
+        break;
       }
     } else {
       Debug("Couldn't add new MAC subheader (rlc_buffer=%d, requested_sdu_len=%d, sdu_space=%d, remaining=%d)\n",

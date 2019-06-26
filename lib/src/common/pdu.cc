@@ -126,7 +126,7 @@ uint8_t* sch_pdu::write_packet(srslte::log* log_h)
   for (uint32_t i = 0; i < onetwo_padding; i++) {
     sch_subh padding;
     padding.set_padding();
-    padding.write_subheader(&ptr, false);
+    padding.write_subheader(&ptr, pdu_len > onetwo_padding ? false : true);
   }
 
   // Then write subheaders for MAC CE

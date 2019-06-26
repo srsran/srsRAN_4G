@@ -101,7 +101,7 @@ public:
     if (nof_subheaders > 0) {
       nof_subheaders--;
     }
-    if (cur_idx > 0) {
+    if (cur_idx >= 0) {
       cur_idx--;
     }
   }
