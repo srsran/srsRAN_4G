@@ -1536,5 +1536,9 @@ uint32_t srslte_dci_ul_info(srslte_dci_ul_t* dci_ul, char* info_str, uint32_t le
 
   n = srslte_print_check(info_str, len, n, ", tpc_pusch=%d, dmrs_cs=%d", dci_ul->tpc_pusch, dci_ul->n_dmrs);
 
+  if (dci_ul->cqi_request) {
+    n = srslte_print_check(info_str, len, n, ", cqi_request");
+  }
+
   return n;
 }
