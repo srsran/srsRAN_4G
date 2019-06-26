@@ -2983,9 +2983,9 @@ void rrc::add_srb(srb_to_add_mod_s* srb_cnfg)
 
   // Setup MAC
   uint8_t log_chan_group = 0;
-  uint8_t priority = 1;
-  int prioritized_bit_rate = -1;
-  int bucket_size_duration = -1;
+  uint8_t priority             = 1;
+  int     prioritized_bit_rate = 0;  // minumum PBR
+  int bucket_size_duration = 50; // minimum BSD
 
   if (srb_cnfg->lc_ch_cfg_present) {
     if (srb_cnfg->lc_ch_cfg.type() == srb_to_add_mod_s::lc_ch_cfg_c_::types::default_value) {
