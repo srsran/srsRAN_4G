@@ -49,6 +49,8 @@ ue::ue() : logger(nullptr)
 
 ue::~ue()
 {
+  // destruct stack components before cleaning buffer pool
+  stack.reset();
   byte_buffer_pool::cleanup();
 
   // save FFTW wisdom
