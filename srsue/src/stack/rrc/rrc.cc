@@ -2990,15 +2990,30 @@ void rrc::add_srb(srb_to_add_mod_s* srb_cnfg)
   }
 
   // Setup MAC
-  uint8_t log_chan_group = 0;
-  uint8_t priority             = 1;
-  int     prioritized_bit_rate = 0;  // minumum PBR
-  int bucket_size_duration = 50; // minimum BSD
+  uint8_t log_chan_group       = 0;
+  uint8_t priority             = 0;
+  int     prioritized_bit_rate = 0;
+  int     bucket_size_duration = 0;
 
+  // TODO: Move this configuration to mac_interface_rrc
   if (srb_cnfg->lc_ch_cfg_present) {
     if (srb_cnfg->lc_ch_cfg.type() == srb_to_add_mod_s::lc_ch_cfg_c_::types::default_value) {
-      if (RB_ID_SRB2 == srb_cnfg->srb_id)
-        priority = 3;
+      // Set default SRB values as defined in Table 9.2.1
+      switch (srb_cnfg->srb_id) {
+        case RB_ID_SRB0:
+          rrc_log->error("Setting SRB0: Should not be set by RRC\n");
+          break;
+        case RB_ID_SRB1:
+          priority             = 1;
+          prioritized_bit_rate = -1;
+          bucket_size_duration = 0;
+          break;
+        case RB_ID_SRB2:
+          priority             = 3;
+          prioritized_bit_rate = -1;
+          bucket_size_duration = 0;
+          break;
+      }
     } else {
       if (srb_cnfg->lc_ch_cfg.explicit_value().lc_ch_sr_mask_r9_present) {
         //TODO
