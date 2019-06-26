@@ -307,12 +307,12 @@ bool mux::allocate_sdu(uint32_t lcid, srslte::sch_pdu* pdu_msg, int max_sdu_sz)
   int  buffer_state = rlc->get_buffer_state(lcid);
 
   while (buffer_state > 0 && sdu_space > 0) { // there is pending SDU to allocate
-    int requested_sdu_len = SRSLTE_MIN(buffer_state, max_sdu_sz);
+    int requested_sdu_len = SRSLTE_MIN(buffer_state, sdu_space);
 
     if (pdu_msg->new_subh()) { // there is space for a new subheader
       int sdu_len = pdu_msg->get()->set_sdu(lcid, requested_sdu_len, rlc);
       if (sdu_len > 0) { // new SDU could be added
-        Debug("SDU:   allocated lcid=%d, rlc_buffer=%d, request_sdu_len=%d, allocated=%d/%d, max_sdu_sz=%d, "
+        Debug("SDU:   allocated lcid=%d, buffer_state=%d, request_sdu_len=%d, allocated=%d/%d, max_sdu_sz=%d, "
               "remaining=%d\n",
               lcid,
               buffer_state,
@@ -326,18 +326,20 @@ bool mux::allocate_sdu(uint32_t lcid, srslte::sch_pdu* pdu_msg, int max_sdu_sz)
 
         buffer_state = rlc->get_buffer_state(lcid);
       } else {
-        Warning("Couldn't allocate new SDU (rlc_buffer=%d, requested_sdu_len=%d, allocated=%d/%d, remaining=%d)\n",
-                buffer_state,
-                requested_sdu_len,
-                sdu_len,
-                sdu_space,
-                pdu_msg->rem_size());
+        Debug("Couldn't allocate new SDU (buffer_state=%d, requested_sdu_len=%d, sdu_len=%d, sdu_space=%d, "
+              "remaining=%d, get_sdu_space=%d)\n",
+              buffer_state,
+              requested_sdu_len,
+              sdu_len,
+              sdu_space,
+              pdu_msg->rem_size(),
+              pdu_msg->get_sdu_space());
         pdu_msg->del_subh();
         // prevent endless loop
         break;
       }
     } else {
-      Debug("Couldn't add new MAC subheader (rlc_buffer=%d, requested_sdu_len=%d, sdu_space=%d, remaining=%d)\n",
+      Debug("Couldn't add new MAC subheader (buffer_state=%d, requested_sdu_len=%d, sdu_space=%d, remaining=%d)\n",
             buffer_state,
             requested_sdu_len,
             sdu_space,
