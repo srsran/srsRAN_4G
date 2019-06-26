@@ -62,8 +62,7 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
   // Init UE log
   log.init("UE  ", logger);
   log.set_level(srslte::LOG_LEVEL_INFO);
-  log.info("\n\n");
-  log.info("%s\n", get_build_string().c_str());
+  log.info("%s", get_build_string().c_str());
 
   // Validate arguments
   if (parse_args(args_)) {
