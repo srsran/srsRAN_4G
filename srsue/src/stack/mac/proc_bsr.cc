@@ -320,34 +320,43 @@ char* bsr_proc::bsr_format_tostring(bsr_format_t format) {
 
 bool bsr_proc::need_to_send_bsr_on_ul_grant(uint32_t grant_size, bsr_t* bsr)
 {
-  bool ret = false;
+  bool bsr_included = false;
 
   pthread_mutex_lock(&mutex);
 
   uint32_t bsr_sz = 0;
   if (triggered_bsr_type == PERIODIC || triggered_bsr_type == REGULAR) {
-    /* Check if dci + MAC SDU headers is enough to accomodate all pending data */
-    int total_data = 0;
+
+    generate_bsr(bsr, 0);
+
+    // Only include BSR if it can fit into the remaining grant
+    bsr_sz = bsr->format == LONG_BSR ? 3 : 1;
+    if (bsr_sz > grant_size) {
+      Debug("Grant is not enough to accommodate the BSR MAC CE\n");
+    } else {
+      Debug("BSR:   Including Regular BSR: grant_size=%d, bsr_sz=%d\n", grant_size, bsr_sz);
+      bsr_included = true;
+    }
+  }
+
+  // All triggered BSRs shall be cancelled in case the UL grant can accommodate all pending data available for
+  // transmission but is not sufficient to additionally accommodate the BSR MAC control element plus its subheader. All
+  // triggered BSRs shall be cancelled when a BSR is included in a MAC PDU for transmission
+  int total_data = 0;
+  if (!bsr_included) {
     for (int i = 0; i < NOF_LCG; i++) {
       for (std::map<uint32_t, lcid_t>::iterator iter = lcgs[i].begin(); iter != lcgs[i].end(); ++iter) {
         total_data += srslte::sch_pdu::size_header_sdu(iter->second.old_buffer) + iter->second.old_buffer;
       }
     }
     total_data--; // Because last SDU has no size header
-
-    // Only include BSR if it can fit into the remaining grant
-    generate_bsr(bsr, 0);
-    bsr_sz = bsr->format == LONG_BSR ? 3 : 1;
-    if (bsr_sz > grant_size) {
-      Debug("Grant is not enough to accommodate the BSR MAC CE\n");
-    } else {
-      Debug("BSR:   Including Regular BSR: grant_size=%d, total_data=%d, bsr_sz=%d\n", grant_size, total_data, bsr_sz);
-      ret = true;
-    }
+  }
+  // If all data fits in the grant or BSR has been included, cancel the trigger
+  if (total_data < (int)grant_size || bsr_included) {
+    set_trigger(NONE);
   }
 
-  // Cancel all triggered BSR and SR
-  set_trigger(NONE);
+  // Cancel SR if an Uplink grant is received
   reset_sr = true;
 
   // Restart or Start ReTX timer upon indication of a grant
@@ -357,7 +366,7 @@ bool bsr_proc::need_to_send_bsr_on_ul_grant(uint32_t grant_size, bsr_t* bsr)
     Debug("BSR:   Started retxBSR-Timer\n");
   }
   pthread_mutex_unlock(&mutex);
-  return ret;
+  return bsr_included;
 }
 
 bool bsr_proc::generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t* bsr)
@@ -366,7 +375,8 @@ bool bsr_proc::generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t* bsr)
 
   pthread_mutex_lock(&mutex);
 
-  if (triggered_bsr_type == NONE && nof_padding_bytes >= 2) {
+  // This function is called by MUX only if Regular BSR has not been triggered before
+  if (nof_padding_bytes >= 2) {
     // generate padding BSR
     triggered_bsr_type = PADDING;
     generate_bsr(bsr, nof_padding_bytes);
