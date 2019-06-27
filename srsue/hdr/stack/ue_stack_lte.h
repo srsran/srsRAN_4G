@@ -122,7 +122,7 @@ private:
   srsue::stack_args_t args;
 
   // UE stack logging
-  srslte::logger*    logger;
+  srslte::logger*    logger = nullptr;
   srslte::log_filter mac_log;
   srslte::log_filter rlc_log;
   srslte::log_filter pdcp_log;
@@ -142,8 +142,8 @@ private:
   std::unique_ptr<usim_base> usim;
 
   // RAT-specific interfaces
-  phy_interface_stack_lte* phy;
-  gw_interface_stack*      gw;
+  phy_interface_stack_lte* phy = nullptr;
+  gw_interface_stack*      gw  = nullptr;
 
   // Thread
   static const int                            STACK_MAIN_THREAD_PRIO = -1; // Use default high-priority below UHD

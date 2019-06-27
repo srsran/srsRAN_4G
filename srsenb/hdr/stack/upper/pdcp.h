@@ -34,8 +34,9 @@ class pdcp :  public pdcp_interface_rlc,
               public pdcp_interface_rrc
 {
 public:
+  pdcp(srslte::log* pdcp_log_);
   virtual ~pdcp() {};
-  void init(rlc_interface_pdcp *rlc_, rrc_interface_pdcp *rrc_, gtpu_interface_pdcp *gtpu_, srslte::log *pdcp_log_);
+  void init(rlc_interface_pdcp* rlc_, rrc_interface_pdcp* rrc_, gtpu_interface_pdcp* gtpu_);
   void stop(); 
   
   // pdcp_interface_rlc

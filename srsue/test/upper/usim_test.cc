@@ -63,7 +63,6 @@ uint16 mnc = 93;
 int main(int argc, char **argv)
 {
   srslte::log_filter usim_log("USIM");
-  bool    net_valid;
   uint8_t res[16];
   int res_len;
   uint8_t k_asme[32];
@@ -76,8 +75,8 @@ int main(int argc, char **argv)
   args.using_op = true;
   args.op = "11111111111111111111111111111111";
 
-  srsue::usim usim;
-  usim.init(&args, &usim_log);
+  srsue::usim usim(&usim_log);
+  usim.init(&args);
 
   assert(usim.generate_authentication_response(rand_enb, autn_enb, mcc, mnc, res, &res_len, k_asme) == AUTH_OK);
 }

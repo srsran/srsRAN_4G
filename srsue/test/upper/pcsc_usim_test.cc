@@ -47,8 +47,8 @@ int main(int argc, char **argv)
   args.pin = "6129";
   args.imei = "353490069873319";
 
-  srsue::pcsc_usim usim;
-  if (usim.init(&args, &usim_log)) {
+  srsue::pcsc_usim usim(&usim_log);
+  if (usim.init(&args)) {
     printf("Error initializing PC/SC USIM.\n");
     return SRSLTE_ERROR;
   };

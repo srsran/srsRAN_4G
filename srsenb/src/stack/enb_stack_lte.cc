@@ -28,7 +28,7 @@ using namespace srslte;
 
 namespace srsenb {
 
-enb_stack_lte::enb_stack_lte() : args(), started(false), logger(nullptr), phy(nullptr) {}
+enb_stack_lte::enb_stack_lte() : args(), started(false), logger(nullptr), phy(nullptr), pdcp(&pdcp_log) {}
 
 enb_stack_lte::~enb_stack_lte()
 {
@@ -120,7 +120,7 @@ int enb_stack_lte::init(const args_t& args_, const rrc_cfg_t& rrc_cfg_, srslte::
   // Init all layers
   mac.init(args.expert.mac, &cell_cfg, phy, &rlc, &rrc, &mac_log);
   rlc.init(&pdcp, &rrc, &mac, &mac, &rlc_log);
-  pdcp.init(&rlc, &rrc, &gtpu, &pdcp_log);
+  pdcp.init(&rlc, &rrc, &gtpu);
   rrc.init(&rrc_cfg, phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, &rrc_log);
   s1ap.init(args.enb.s1ap, &rrc, &s1ap_log);
   gtpu.init(args.enb.s1ap.gtp_bind_addr,

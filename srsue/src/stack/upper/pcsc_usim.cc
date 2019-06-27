@@ -32,7 +32,7 @@ using namespace asn1::rrc;
 
 namespace srsue {
 
-pcsc_usim::pcsc_usim()
+pcsc_usim::pcsc_usim(srslte::log* log_) : log(log_)
 {
   bzero(ck, CK_LEN);
   bzero(ik, IK_LEN);
@@ -47,12 +47,11 @@ pcsc_usim::~pcsc_usim()
   }
 }
 
-int pcsc_usim::init(usim_args_t *args, srslte::log *log_)
+int pcsc_usim::init(usim_args_t* args)
 {
   int ret = SRSLTE_ERROR;
-  log = log_;
 
-  if (sc.init(args, log_) != SRSLTE_SUCCESS) {
+  if (sc.init(args, log) != SRSLTE_SUCCESS) {
     return ret;
   }
 

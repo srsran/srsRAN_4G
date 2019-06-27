@@ -28,16 +28,16 @@
 
 namespace srsue {
 
-std::unique_ptr<usim_base> usim_base::get_instance(usim_args_t* args)
+std::unique_ptr<usim_base> usim_base::get_instance(usim_args_t* args, srslte::log* log_)
 {
 #if HAVE_PCSC
   if (args->mode == "pcsc") {
-    return std::unique_ptr<usim_base>(new pcsc_usim());
+    return std::unique_ptr<usim_base>(new pcsc_usim(log_));
   }
 #endif
 
   // default to soft USIM
-  return std::unique_ptr<usim_base>(new usim());
+  return std::unique_ptr<usim_base>(new usim(log_));
 }
 
 usim_base::usim_base() {

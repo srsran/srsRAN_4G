@@ -28,12 +28,10 @@ using namespace asn1::rrc;
 
 namespace srsue{
 
-usim::usim() : initiated(false)
-{}
+usim::usim(srslte::log* log_) : usim_log(log_), initiated(false) {}
 
-int usim::init(usim_args_t *args, srslte::log *usim_log_)
+int usim::init(usim_args_t* args)
 {
-  usim_log = usim_log_;
   imsi_str = args->imsi;
   imei_str = args->imei;
 

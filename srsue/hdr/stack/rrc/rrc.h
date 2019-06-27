@@ -285,7 +285,7 @@ class rrc : public rrc_interface_nas,
             public thread
 {
 public:
-  rrc();
+  rrc(srslte::log* rrc_log_);
   ~rrc();
 
   void init(phy_interface_rrc_lte*        phy_,
@@ -296,7 +296,6 @@ public:
             usim_interface_rrc*           usim_,
             gw_interface_rrc*             gw_,
             srslte::mac_interface_timers* mac_timers_,
-            srslte::log*                  rrc_log_,
             const rrc_args_t&             args_);
 
   void stop();

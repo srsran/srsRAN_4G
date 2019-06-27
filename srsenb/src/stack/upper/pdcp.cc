@@ -23,13 +23,14 @@
 #include "srsenb/hdr/stack/upper/common_enb.h"
 
 namespace srsenb {
-  
-void pdcp::init(rlc_interface_pdcp* rlc_, rrc_interface_pdcp* rrc_, gtpu_interface_pdcp* gtpu_, srslte::log* pdcp_log_)
+
+pdcp::pdcp(srslte::log* log_) : log_h(log_) {}
+
+void pdcp::init(rlc_interface_pdcp* rlc_, rrc_interface_pdcp* rrc_, gtpu_interface_pdcp* gtpu_)
 {
   rlc   = rlc_; 
   rrc   = rrc_; 
   gtpu  = gtpu_;
-  log_h = pdcp_log_;
   
   pool = srslte::byte_buffer_pool::get_instance();
 
@@ -51,8 +52,8 @@ void pdcp::add_user(uint16_t rnti)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti) == 0) {
-    srslte::pdcp *obj = new srslte::pdcp;
-    obj->init(&users[rnti].rlc_itf, &users[rnti].rrc_itf, &users[rnti].gtpu_itf, log_h);
+    srslte::pdcp* obj = new srslte::pdcp(log_h);
+    obj->init(&users[rnti].rlc_itf, &users[rnti].rrc_itf, &users[rnti].gtpu_itf);
     users[rnti].rlc_itf.rnti  = rnti;
     users[rnti].gtpu_itf.rnti = rnti;
     users[rnti].rrc_itf.rnti  = rnti;

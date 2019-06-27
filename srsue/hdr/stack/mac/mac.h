@@ -49,9 +49,9 @@ class mac : public mac_interface_phy_lte,
             public mac_interface_demux
 {
 public:
-  mac();
+  mac(srslte::log* log_);
   ~mac();
-  bool init(phy_interface_mac_lte* phy, rlc_interface_mac* rlc, rrc_interface_mac* rrc, srslte::log* log_h);
+  bool init(phy_interface_mac_lte* phy, rlc_interface_mac* rlc, rrc_interface_mac* rrc);
   void stop();
 
   void get_metrics(mac_metrics_t m[SRSLTE_MAX_CARRIERS]);

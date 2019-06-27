@@ -58,9 +58,9 @@ class usim_base
 public:
   usim_base();
   virtual ~usim_base();
-  static std::unique_ptr<usim_base> get_instance(usim_args_t* args);
+  static std::unique_ptr<usim_base> get_instance(usim_args_t* args, srslte::log* log_);
 
-  virtual int init(usim_args_t *args, srslte::log *usim_log_) = 0;
+  virtual int  init(usim_args_t* args) = 0;
   virtual void stop() = 0;
 
   // NAS interface

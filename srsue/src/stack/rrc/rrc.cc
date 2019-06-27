@@ -46,7 +46,8 @@ const static uint32_t required_sibs[NOF_REQUIRED_SIBS] = {0,1,2,12}; // SIB1, SI
   Base functions 
 *******************************************************************************/
 
-rrc::rrc() :
+rrc::rrc(srslte::log* log_) :
+  rrc_log(log_),
   state(RRC_STATE_IDLE),
   last_state(RRC_STATE_CONNECTED),
   drb_up(false),
@@ -121,7 +122,6 @@ void rrc::init(phy_interface_rrc_lte* phy_,
                usim_interface_rrc*    usim_,
                gw_interface_rrc*      gw_,
                mac_interface_timers*  mac_timers_,
-               srslte::log*           rrc_log_,
                const rrc_args_t&      args_)
 {
   pool = byte_buffer_pool::get_instance();
@@ -132,7 +132,6 @@ void rrc::init(phy_interface_rrc_lte* phy_,
   nas = nas_;
   usim = usim_;
   gw = gw_;
-  rrc_log = rrc_log_;
 
   args = args_;
 

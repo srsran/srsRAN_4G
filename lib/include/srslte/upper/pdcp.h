@@ -35,10 +35,9 @@ class pdcp
     ,public srsue::pdcp_interface_rrc
 {
 public:
-  pdcp();
+  pdcp(log* log_);
   virtual ~pdcp();
-  void
-       init(srsue::rlc_interface_pdcp* rlc_, srsue::rrc_interface_pdcp* rrc_, srsue::gw_interface_pdcp* gw_, log* pdcp_log_);
+  void init(srsue::rlc_interface_pdcp* rlc_, srsue::rrc_interface_pdcp* rrc_, srsue::gw_interface_pdcp* gw_);
   void stop();
 
   // GW interface

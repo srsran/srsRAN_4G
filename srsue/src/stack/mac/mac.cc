@@ -37,7 +37,7 @@ using namespace asn1::rrc;
 
 namespace srsue {
 
-mac::mac() : timers(64), pdu_process_thread(&demux_unit), mch_msg(10), pcap(nullptr)
+mac::mac(srslte::log* log_) : timers(64), pdu_process_thread(&demux_unit), mch_msg(10), pcap(nullptr), log_h(log_)
 {
   // Create PCell HARQ entities
   auto ul = ul_harq_entity_ptr(new ul_harq_entity());
@@ -65,12 +65,11 @@ mac::~mac()
   srslte_softbuffer_rx_free(&mch_softbuffer);
 }
 
-bool mac::init(phy_interface_mac_lte* phy, rlc_interface_mac* rlc, rrc_interface_mac* rrc, srslte::log* log_h_)
+bool mac::init(phy_interface_mac_lte* phy, rlc_interface_mac* rlc, rrc_interface_mac* rrc)
 {
   phy_h = phy;
   rlc_h = rlc;
   rrc_h = rrc;
-  log_h = log_h_;
 
   timer_alignment                      = timers.get_unique_id();
   uint32_t contention_resolution_timer = timers.get_unique_id();

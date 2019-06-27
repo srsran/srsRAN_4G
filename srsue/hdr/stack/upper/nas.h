@@ -42,11 +42,10 @@ class nas
     public nas_interface_gw
 {
 public:
-  nas();
+  nas(srslte::log* log_);
   void init(usim_interface_nas* usim_,
             rrc_interface_nas*  rrc_,
             gw_interface_nas*   gw_,
-            srslte::log*        nas_log_,
             nas_args_t          args_);
   void stop();
 

@@ -53,8 +53,8 @@ void rlc::add_user(uint16_t rnti)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti) == 0) {
-    std::unique_ptr<srslte::rlc> obj(new srslte::rlc);
-    obj->init(&users[rnti], &users[rnti], log_h, mac_timers, RB_ID_SRB0);
+    std::unique_ptr<srslte::rlc> obj(new srslte::rlc(log_h));
+    obj->init(&users[rnti], &users[rnti], mac_timers, RB_ID_SRB0);
     users[rnti].rnti   = rnti; 
     users[rnti].pdcp   = pdcp; 
     users[rnti].rrc    = rrc;

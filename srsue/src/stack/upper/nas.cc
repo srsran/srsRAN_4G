@@ -46,7 +46,13 @@ namespace srsue {
  *   NAS
  ********************************************************************/
 
-nas::nas() : state(EMM_STATE_DEREGISTERED), have_guti(false), have_ctxt(false), auth_request(false), ip_addr(0)
+nas::nas(srslte::log* log_) :
+  nas_log(log_),
+  state(EMM_STATE_DEREGISTERED),
+  have_guti(false),
+  have_ctxt(false),
+  auth_request(false),
+  ip_addr(0)
 {
   ctxt.rx_count = 0;
   ctxt.tx_count = 0;
@@ -59,14 +65,12 @@ nas::nas() : state(EMM_STATE_DEREGISTERED), have_guti(false), have_ctxt(false), 
   bzero(eea_caps, sizeof(eea_caps));
 }
 
-void nas::init(
-    usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_nas* gw_, srslte::log* nas_log_, nas_args_t cfg_)
+void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_nas* gw_, nas_args_t cfg_)
 {
   pool = byte_buffer_pool::get_instance();
   usim = usim_;
   rrc = rrc_;
   gw = gw_;
-  nas_log = nas_log_;
   state = EMM_STATE_DEREGISTERED;
 
   if (!usim->get_home_plmn_id(&home_plmn)) {

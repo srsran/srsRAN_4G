@@ -43,11 +43,10 @@ class rlc
     ,public srsue::rlc_interface_rrc
 {
 public:
-  rlc();
+  rlc(log* rlc_log_);
   virtual ~rlc();
   void init(srsue::pdcp_interface_rlc* pdcp_,
             srsue::rrc_interface_rlc*  rrc_,
-            log*                       rlc_log_,
             mac_interface_timers*      mac_timers_,
             uint32_t                   lcid_);
   void stop();
@@ -87,13 +86,13 @@ public:
   bool has_bearer(uint32_t lcid);
 
 private:
-  void reset_metrics(); 
-  
-  byte_buffer_pool            *pool;
-  srslte::log                 *rlc_log;
-  srsue::pdcp_interface_rlc   *pdcp;
-  srsue::rrc_interface_rlc    *rrc;
-  srslte::mac_interface_timers *mac_timers; 
+  void reset_metrics();
+
+  byte_buffer_pool*             pool       = nullptr;
+  srslte::log*                  rlc_log    = nullptr;
+  srsue::pdcp_interface_rlc*    pdcp       = nullptr;
+  srsue::rrc_interface_rlc*     rrc        = nullptr;
+  srslte::mac_interface_timers* mac_timers = nullptr;
 
   typedef std::map<uint16_t, rlc_common*> rlc_map_t;
   typedef std::pair<uint16_t, rlc_common*> rlc_map_pair_t;
@@ -101,10 +100,10 @@ private:
   rlc_map_t rlc_array, rlc_array_mrb;
   pthread_rwlock_t rwlock;
 
-  uint32_t                     default_lcid;
+  uint32_t default_lcid = 0;
 
   // Timer needed for metrics calculation
-  struct timeval      metrics_time[3];
+  struct timeval metrics_time[3] = {};
 
   bool valid_lcid(uint32_t lcid);
   bool valid_lcid_mrb(uint32_t lcid);

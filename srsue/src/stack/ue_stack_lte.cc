@@ -26,7 +26,20 @@ using namespace srslte;
 
 namespace srsue {
 
-ue_stack_lte::ue_stack_lte() : running(false), args(), logger(nullptr), usim(nullptr), phy(nullptr), thread("STACK") {}
+ue_stack_lte::ue_stack_lte() :
+  running(false),
+  args(),
+  logger(nullptr),
+  usim(nullptr),
+  phy(nullptr),
+  rlc(&rlc_log),
+  mac(&mac_log),
+  rrc(&rrc_log),
+  pdcp(&pdcp_log),
+  nas(&nas_log),
+  thread("STACK")
+{
+}
 
 ue_stack_lte::~ue_stack_lte()
 {
@@ -95,17 +108,17 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   }
 
   // Init USIM first to allow early exit in case reader couldn't be found
-  usim = usim_base::get_instance(&args.usim);
-  if (usim->init(&args.usim, &usim_log)) {
+  usim = usim_base::get_instance(&args.usim, &usim_log);
+  if (usim->init(&args.usim)) {
     usim_log.console("Failed to initialize USIM.\n");
     return SRSLTE_ERROR;
   }
 
-  mac.init(phy, &rlc, &rrc, &mac_log);
-  rlc.init(&pdcp, &rrc, &rlc_log, &mac, 0 /* RB_ID_SRB0 */);
-  pdcp.init(&rlc, &rrc, gw, &pdcp_log);
-  nas.init(usim.get(), &rrc, gw, &nas_log, args.nas);
-  rrc.init(phy, &mac, &rlc, &pdcp, &nas, usim.get(), gw, &mac, &rrc_log, args.rrc);
+  mac.init(phy, &rlc, &rrc);
+  rlc.init(&pdcp, &rrc, &mac, 0 /* RB_ID_SRB0 */);
+  pdcp.init(&rlc, &rrc, gw);
+  nas.init(usim.get(), &rrc, gw, args.nas);
+  rrc.init(phy, &mac, &rlc, &pdcp, &nas, usim.get(), gw, &mac, args.rrc);
 
   running = true;
   start(STACK_MAIN_THREAD_PRIO);

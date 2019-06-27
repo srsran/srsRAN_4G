@@ -162,8 +162,8 @@ int mac_unpack_test()
   rrc_dummy rrc;
 
   // the actual MAC
-  mac mac;
-  mac.init(&phy, &rlc, &rrc, &mac_log);
+  mac mac(&mac_log);
+  mac.init(&phy, &rlc, &rrc);
 
   // create dummy DL action and grant and push MAC PDU
   mac_interface_phy_lte::tb_action_dl_t dl_action;
@@ -216,8 +216,8 @@ int mac_ul_sch_pdu_test1()
   rrc_dummy rrc;
 
   // the actual MAC
-  mac mac;
-  mac.init(&phy, &rlc, &rrc, &mac_log);
+  mac mac(&mac_log);
+  mac.init(&phy, &rlc, &rrc);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
@@ -282,8 +282,8 @@ int mac_ul_logical_channel_prioritization_test1()
   rrc_dummy rrc;
 
   // the actual MAC
-  mac mac;
-  mac.init(&phy, &rlc, &rrc, &mac_log);
+  mac mac(&mac_log);
+  mac.init(&phy, &rlc, &rrc);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
@@ -393,8 +393,8 @@ int mac_ul_logical_channel_prioritization_test2()
   rrc_dummy rrc;
 
   // the actual MAC
-  mac mac;
-  mac.init(&phy, &rlc, &rrc, &mac_log);
+  mac mac(&mac_log);
+  mac.init(&phy, &rlc, &rrc);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
@@ -491,8 +491,8 @@ int mac_ul_logical_channel_prioritization_test3()
   rrc_dummy rrc;
 
   // the actual MAC
-  mac mac;
-  mac.init(&phy, &rlc, &rrc, &mac_log);
+  mac mac(&mac_log);
+  mac.init(&phy, &rlc, &rrc);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
@@ -577,8 +577,8 @@ int mac_ul_sch_pdu_with_short_bsr_test()
   rrc_dummy rrc;
 
   // the actual MAC
-  mac mac;
-  mac.init(&phy, &rlc, &rrc, &mac_log);
+  mac mac(&mac_log);
+  mac.init(&phy, &rlc, &rrc);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
@@ -663,8 +663,8 @@ int mac_ul_sch_pdu_with_padding_bsr_test()
   rrc_dummy rrc;
 
   // the actual MAC
-  mac mac;
-  mac.init(&phy, &rlc, &rrc, &mac_log);
+  mac mac(&mac_log);
+  mac.init(&phy, &rlc, &rrc);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
@@ -718,8 +718,8 @@ int mac_ul_sch_pdu_one_byte_test()
   rrc_dummy rrc;
 
   // the actual MAC
-  mac mac;
-  mac.init(&phy, &rlc, &rrc, &mac_log);
+  mac mac(&mac_log);
+  mac.init(&phy, &rlc, &rrc);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
@@ -776,8 +776,8 @@ int mac_ul_sch_pdu_two_byte_test()
   rrc_dummy rrc;
 
   // the actual MAC
-  mac mac;
-  mac.init(&phy, &rlc, &rrc, &mac_log);
+  mac mac(&mac_log);
+  mac.init(&phy, &rlc, &rrc);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
@@ -834,8 +834,8 @@ int mac_ul_sch_pdu_three_byte_test()
   rrc_dummy rrc;
 
   // the actual MAC
-  mac mac;
-  mac.init(&phy, &rlc, &rrc, &mac_log);
+  mac mac(&mac_log);
+  mac.init(&phy, &rlc, &rrc);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 

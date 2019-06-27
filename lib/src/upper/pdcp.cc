@@ -23,7 +23,7 @@
 
 namespace srslte {
 
-pdcp::pdcp()
+pdcp::pdcp(srslte::log* log_) : pdcp_log(log_)
 {
   pthread_rwlock_init(&rwlock, NULL);
 }
@@ -46,15 +46,11 @@ pdcp::~pdcp()
   pthread_rwlock_destroy(&rwlock);
 }
 
-void pdcp::init(srsue::rlc_interface_pdcp* rlc_,
-                srsue::rrc_interface_pdcp* rrc_,
-                srsue::gw_interface_pdcp*  gw_,
-                log*                       pdcp_log_)
+void pdcp::init(srsue::rlc_interface_pdcp* rlc_, srsue::rrc_interface_pdcp* rrc_, srsue::gw_interface_pdcp* gw_)
 {
   rlc          = rlc_;
   rrc          = rrc_;
   gw           = gw_;
-  pdcp_log     = pdcp_log_;
 }
 
 void pdcp::stop()

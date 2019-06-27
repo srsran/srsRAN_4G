@@ -35,8 +35,8 @@ class usim
     :public usim_base
 {
 public:
-  usim();
-  int init(usim_args_t *args, srslte::log *usim_log_);
+  usim(srslte::log* log_);
+  int  init(usim_args_t* args);
   void stop();
 
   // NAS interface
