@@ -152,16 +152,15 @@ bool ue_stack_lte::switch_on()
 
 bool ue_stack_lte::switch_off()
 {
-  pending_tasks.push([this]() {
-    // generate detach request
-    nas.detach_request();
-  });
+  // generate detach request
+  nas.detach_request();
 
   // wait for max. 5s for it to be sent (according to TS 24.301 Sec 25.5.2.2)
   const uint32_t RB_ID_SRB1 = 1;
-  int            cnt = 0, timeout = 5;
+  int            cnt = 0, timeout = 5000;
+
   while (rlc.has_data(RB_ID_SRB1) && ++cnt <= timeout) {
-    sleep(1);
+    usleep(1000);
   }
   bool detach_sent = true;
   if (rlc.has_data(RB_ID_SRB1)) {
