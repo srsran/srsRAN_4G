@@ -144,7 +144,7 @@ void ue_stack_lte::stop_impl()
 bool ue_stack_lte::switch_on()
 {
   if (running) {
-    nas.attach_request();
+    return nas.attach_request();
   }
 
   return false;
