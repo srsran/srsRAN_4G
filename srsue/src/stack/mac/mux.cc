@@ -188,8 +188,6 @@ uint8_t* mux::pdu_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
   }
   pending_crnti_ce = 0;
 
-  print_logical_channel_state("after CCCH scheduling");
-
   bsr_proc::bsr_t bsr; 
   bool regular_bsr = bsr_procedure->need_to_send_bsr_on_ul_grant(pdu_msg.rem_size(), &bsr);
 

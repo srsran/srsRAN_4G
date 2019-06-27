@@ -335,12 +335,10 @@ bool bsr_proc::need_to_send_bsr_on_ul_grant(uint32_t grant_size, bsr_t* bsr)
     }
     total_data--; // Because last SDU has no size header
 
-    /* All triggered BSRs shall be cancelled in case the UL dci can accommodate all pending data available for
-       transmission but is not sufficient to additionally accommodate the BSR MAC control element plus its subheader.
-     */
+    // Only include BSR if it can fit into the remaining grant
     generate_bsr(bsr, 0);
-    bsr_sz = bsr->format==LONG_BSR?3:1;
-    if (total_data <= (int)grant_size && total_data + 1 + bsr_sz > grant_size) {
+    bsr_sz = bsr->format == LONG_BSR ? 3 : 1;
+    if (bsr_sz > grant_size) {
       Debug("Grant is not enough to accommodate the BSR MAC CE\n");
     } else {
       Debug("BSR:   Including Regular BSR: grant_size=%d, total_data=%d, bsr_sz=%d\n", grant_size, total_data, bsr_sz);

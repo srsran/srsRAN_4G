@@ -873,6 +873,86 @@ int mac_ul_sch_pdu_three_byte_test()
   return SRSLTE_SUCCESS;
 }
 
+// UL-SCH with Trucated BSR and 6 B Msg3
+int mac_ul_sch_pdu_msg3_test()
+{
+  const uint8_t tv[] = {0x3c, 0x00, 0xd0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+  srslte::log_filter mac_log("MAC");
+  mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
+  mac_log.set_hex_limit(100000);
+
+  srslte::log_filter rlc_log("RLC");
+  rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
+  rlc_log.set_hex_limit(100000);
+
+  // dummy layers
+  phy_dummy phy;
+  rlc_dummy rlc(&rlc_log);
+  rrc_dummy rrc;
+
+  // the actual MAC
+  mac mac(&mac_log);
+  mac.init(&phy, &rlc, &rrc);
+  const uint16_t crnti = 0x1001;
+  mac.set_ho_rnti(crnti, 0);
+
+  // generate config for LCIDs in different LCGs than CCCH
+  std::vector<logical_channel_config_t> lcids;
+  logical_channel_config_t              config = {};
+  // The config of DRB1
+  config.lcid     = 3;
+  config.lcg      = 3;
+  config.PBR      = 8;
+  config.BSD      = 100; // 100ms
+  config.priority = 15;
+  lcids.push_back(config);
+
+  // setup LCIDs in MAC
+  for (auto& channel : lcids) {
+    mac.setup_lcid(channel.lcid, channel.lcg, channel.priority, channel.PBR, channel.BSD);
+  }
+
+  // write dummy data
+  rlc.write_sdu(0, 6);   // UL-CCCH with Msg3
+  rlc.write_sdu(3, 100); // DRB data on other LCG
+
+  // generate TTI
+  uint32 tti = 0;
+  mac.run_tti(tti++);
+  usleep(100);
+
+  // create UL action and grant and push MAC PDU
+  {
+    mac_interface_phy_lte::tb_action_ul_t ul_action = {};
+    mac_interface_phy_lte::mac_grant_ul_t mac_grant = {};
+
+    mac_grant.rnti           = crnti; // make sure MAC picks it up as valid UL grant
+    mac_grant.tb.ndi_present = true;
+    mac_grant.tb.ndi         = true;
+    mac_grant.tb.tbs         = 9; // give room for MAC subheader, SDU and one padding byte
+    int cc_idx               = 0;
+
+    // Send grant to MAC and get action for this TB, then call tb_decoded to unlock MAC
+    mac.new_grant_ul(cc_idx, mac_grant, &ul_action);
+
+    // print generated PDU
+    mac_log.info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
+#if HAVE_PCAP
+    pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1);
+#endif
+
+    TESTASSERT(memcmp(ul_action.tb.payload, tv, sizeof(tv)) == 0);
+  }
+
+  // make sure MAC PDU thread picks up before stopping
+  sleep(1);
+  mac.run_tti(0);
+  mac.stop();
+
+  return SRSLTE_SUCCESS;
+}
+
 int main(int argc, char** argv)
 {
 #if HAVE_PCAP
@@ -927,6 +1007,11 @@ int main(int argc, char** argv)
 
   if (mac_ul_sch_pdu_three_byte_test()) {
     printf("mac_ul_sch_pdu_three_byte_test() test failed.\n");
+    return -1;
+  }
+
+  if (mac_ul_sch_pdu_msg3_test()) {
+    printf("mac_ul_sch_pdu_msg3_test() test failed.\n");
     return -1;
   }
 
