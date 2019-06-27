@@ -130,14 +130,14 @@ void ue_stack_lte::stop()
 {
   if (running) {
     pending_tasks.push([this]() { stop_impl(); });
-    running = false;
-
     wait_thread_finish();
   }
 }
 
 void ue_stack_lte::stop_impl()
 {
+  running = false;
+
   usim->stop();
   nas.stop();
   rrc.stop();

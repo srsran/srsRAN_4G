@@ -88,14 +88,18 @@ bool mac::init(phy_interface_mac_lte* phy, rlc_interface_mac* rlc, rrc_interface
 
   reset();
 
+  initialized = true;
+
   return true;
 }
 
 void mac::stop()
 {
-  pdu_process_thread.stop();
-
-  run_tti(0); // make sure it's not locked after last TTI
+  if (initialized) {
+    pdu_process_thread.stop();
+    run_tti(0); // make sure it's not locked after last TTI
+    initialized = false;
+  }
 }
 
 void mac::start_pcap(srslte::mac_pcap* pcap_)

@@ -171,6 +171,8 @@ private:
 
   mac_metrics_t metrics[SRSLTE_MAX_CARRIERS] = {};
 
+  bool initialized = false;
+
   /* Class to process MAC PDUs from DEMUX unit */
   class pdu_process : public thread {
   public:
