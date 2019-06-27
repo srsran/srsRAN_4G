@@ -212,32 +212,32 @@ inline void hard_qam256_demod(const cf_t* in, uint8_t* out, uint32_t N)
       out[8 * s + 4] = 0x1;
       out[8 * s + 6] = 0x1;
     } else if ((__real__ in[s] > QAM256_THRESHOLD_6) || (__real__ in[s] < -QAM256_THRESHOLD_6)) {
-      out[6 * s + 2] = 0x1;
-      out[6 * s + 4] = 0x1;
+      out[8 * s + 2] = 0x1;
+      out[8 * s + 4] = 0x1;
       out[8 * s + 6] = 0x0;
     } else if ((__real__ in[s] > QAM256_THRESHOLD_5) || (__real__ in[s] < -QAM256_THRESHOLD_5)) {
-      out[6 * s + 2] = 0x1;
-      out[6 * s + 4] = 0x0;
+      out[8 * s + 2] = 0x1;
+      out[8 * s + 4] = 0x0;
       out[8 * s + 6] = 0x0;
     } else if ((__real__ in[s] > QAM256_THRESHOLD_4) || (__real__ in[s] < -QAM256_THRESHOLD_4)) {
-      out[6 * s + 2] = 0x1;
-      out[6 * s + 4] = 0x0;
+      out[8 * s + 2] = 0x1;
+      out[8 * s + 4] = 0x0;
       out[8 * s + 6] = 0x1;
     } else if ((__real__ in[s] > QAM256_THRESHOLD_3) || (__real__ in[s] < -QAM256_THRESHOLD_3)) {
-      out[6 * s + 2] = 0x0;
-      out[6 * s + 4] = 0x0;
+      out[8 * s + 2] = 0x0;
+      out[8 * s + 4] = 0x0;
       out[8 * s + 6] = 0x1;
     } else if ((__real__ in[s] > QAM256_THRESHOLD_2) || (__real__ in[s] < -QAM256_THRESHOLD_2)) {
-      out[6 * s + 2] = 0x0;
-      out[6 * s + 4] = 0x1;
+      out[8 * s + 2] = 0x0;
+      out[8 * s + 4] = 0x1;
       out[8 * s + 6] = 0x1;
     } else if ((__real__ in[s] > QAM256_THRESHOLD_1) || (__real__ in[s] < -QAM256_THRESHOLD_1)) {
-      out[6 * s + 2] = 0x0;
-      out[6 * s + 4] = 0x1;
+      out[8 * s + 2] = 0x0;
+      out[8 * s + 4] = 0x1;
       out[8 * s + 6] = 0x0;
     } else {
-      out[6 * s + 2] = 0x0;
-      out[6 * s + 4] = 0x0;
+      out[8 * s + 2] = 0x0;
+      out[8 * s + 4] = 0x0;
       out[8 * s + 6] = 0x0;
     }
 
@@ -252,32 +252,32 @@ inline void hard_qam256_demod(const cf_t* in, uint8_t* out, uint32_t N)
       out[8 * s + 5] = 0x1;
       out[8 * s + 7] = 0x1;
     } else if ((__imag__ in[s] > QAM256_THRESHOLD_6) || (__imag__ in[s] < -QAM256_THRESHOLD_6)) {
-      out[6 * s + 3] = 0x1;
-      out[6 * s + 5] = 0x1;
+      out[8 * s + 3] = 0x1;
+      out[8 * s + 5] = 0x1;
       out[8 * s + 7] = 0x0;
     } else if ((__imag__ in[s] > QAM256_THRESHOLD_5) || (__imag__ in[s] < -QAM256_THRESHOLD_5)) {
-      out[6 * s + 3] = 0x1;
-      out[6 * s + 5] = 0x0;
+      out[8 * s + 3] = 0x1;
+      out[8 * s + 5] = 0x0;
       out[8 * s + 7] = 0x0;
     } else if ((__imag__ in[s] > QAM256_THRESHOLD_4) || (__imag__ in[s] < -QAM256_THRESHOLD_4)) {
-      out[6 * s + 3] = 0x1;
-      out[6 * s + 5] = 0x0;
+      out[8 * s + 3] = 0x1;
+      out[8 * s + 5] = 0x0;
       out[8 * s + 7] = 0x1;
     } else if ((__imag__ in[s] > QAM256_THRESHOLD_3) || (__imag__ in[s] < -QAM256_THRESHOLD_3)) {
-      out[6 * s + 3] = 0x0;
-      out[6 * s + 5] = 0x0;
+      out[8 * s + 3] = 0x0;
+      out[8 * s + 5] = 0x0;
       out[8 * s + 7] = 0x1;
     } else if ((__imag__ in[s] > QAM256_THRESHOLD_2) || (__imag__ in[s] < -QAM256_THRESHOLD_2)) {
-      out[6 * s + 3] = 0x0;
-      out[6 * s + 5] = 0x1;
+      out[8 * s + 3] = 0x0;
+      out[8 * s + 5] = 0x1;
       out[8 * s + 7] = 0x1;
     } else if ((__imag__ in[s] > QAM256_THRESHOLD_1) || (__imag__ in[s] < -QAM256_THRESHOLD_1)) {
-      out[6 * s + 3] = 0x0;
-      out[6 * s + 5] = 0x1;
+      out[8 * s + 3] = 0x0;
+      out[8 * s + 5] = 0x1;
       out[8 * s + 7] = 0x0;
     } else {
-      out[6 * s + 3] = 0x0;
-      out[6 * s + 5] = 0x0;
+      out[8 * s + 3] = 0x0;
+      out[8 * s + 5] = 0x0;
       out[8 * s + 7] = 0x0;
     }
   }

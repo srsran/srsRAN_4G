@@ -79,6 +79,7 @@ int mbsfn_area_id = -1;
 char *rf_args = "";
 char *rf_dev = "";
 float rf_amp = 0.8, rf_gain = 60.0, rf_freq = 2400000000;
+static bool enable_256qam = false;
 
 float output_file_snr = +INFINITY;
 
@@ -145,13 +146,14 @@ void usage(char *prog) {
   printf("\t-u listen TCP/UDP port for input data (if mbsfn is active then the stream is over mbsfn only) (-1 is random) [Default %d]\n", net_port);
   printf("\t-v [set srslte_verbose to debug, default none]\n");
   printf("\t-s output file SNR [Default %f]\n", output_file_snr);
+  printf("\t-q Enable/Disable 256QAM modulation (default %s)\n", enable_256qam ? "enabled" : "disabled");
   printf("\n");
   printf("\t*: See 3GPP 36.212 Table  5.3.3.1.5-4 for more information\n");
 }
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "IadglfmoncpvutxbwMsB")) != -1) {
+  while ((opt = getopt(argc, argv, "IadglfmoncpqvutxbwMsB")) != -1) {
 
     switch (opt) {
     case 'I':
@@ -207,6 +209,9 @@ void parse_args(int argc, char **argv) {
       break;
     case 'B':
       mbsfn_sf_mask = atoi(argv[optind]);
+      break;
+    case 'q':
+      enable_256qam ^= true;
       break;
     default:
       usage(argv[0]);
@@ -920,7 +925,7 @@ int main(int argc, char **argv) {
           }
 
           /* Configure pdsch_cfg parameters */
-          if (srslte_ra_dl_dci_to_grant(&cell, &dl_sf, transmission_mode, &dci_dl, &pdsch_cfg.grant)) {
+          if (srslte_ra_dl_dci_to_grant(&cell, &dl_sf, transmission_mode, enable_256qam, &dci_dl, &pdsch_cfg.grant)) {
             ERROR("Error configuring PDSCH\n");
             exit(-1);
           }
@@ -955,7 +960,7 @@ int main(int argc, char **argv) {
           dci_dl.format                  = SRSLTE_DCI_FORMAT1;
 
           /* Configure pdsch_cfg parameters */
-          if (srslte_ra_dl_dci_to_grant(&cell, &dl_sf, SRSLTE_TM1, &dci_dl, &pmch_cfg.pdsch_cfg.grant)) {
+          if (srslte_ra_dl_dci_to_grant(&cell, &dl_sf, SRSLTE_TM1, enable_256qam, &dci_dl, &pmch_cfg.pdsch_cfg.grant)) {
             ERROR("Error configuring PDSCH\n");
             exit(-1);
           }

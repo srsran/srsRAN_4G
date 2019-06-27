@@ -210,7 +210,7 @@ int main(int argc, char **argv) {
   dci.type0_alloc.rbg_bitmask = 0xffffffff;
   dci.tb[0].mcs_idx           = 2;
   SRSLTE_DCI_TB_DISABLE(dci.tb[1]);
-  srslte_ra_dl_dci_to_grant(&cell, &dl_sf, SRSLTE_TM1, &dci, &pmch_cfg.pdsch_cfg.grant);
+  srslte_ra_dl_dci_to_grant(&cell, &dl_sf, SRSLTE_TM1, false, &dci, &pmch_cfg.pdsch_cfg.grant);
 
   srslte_pdsch_res_t pdsch_res;
   pdsch_res.payload = data;

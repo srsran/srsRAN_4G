@@ -37,14 +37,15 @@ srslte_cell_t cell = {
     .phich_length = SRSLTE_PHICH_NORM
 };
 
-uint32_t transmission_mode = 1;
-uint32_t cfi               = 1;
-uint32_t nof_rx_ant = 1;
-uint32_t nof_subframes     = 0;
-uint16_t rnti = 0x1234;
-bool print_dci_table;
-uint32_t mcs                     = 20;
-int      cross_carrier_indicator = -1;
+static uint32_t transmission_mode = 1;
+static uint32_t cfi               = 1;
+static uint32_t nof_rx_ant        = 1;
+static uint32_t nof_subframes     = 0;
+static uint16_t rnti              = 0x1234;
+static bool     print_dci_table;
+static uint32_t mcs                     = 20;
+static int      cross_carrier_indicator = -1;
+static bool     enable_256qam           = false;
 
 void usage(char *prog) {
   printf("Usage: %s [cfpndvs]\n", prog);
@@ -62,6 +63,7 @@ void usage(char *prog) {
     printf("\t\t-a carrier-indicator [Default none]\n");
   }
   printf("\t-v [set srslte_verbose to debug, default none]\n");
+  printf("\t-q Enable/Disable 256QAM modulation (default %s)\n", enable_256qam ? "enabled" : "disabled");
 }
 
 void parse_extensive_param(char* param, char* arg)
@@ -81,7 +83,17 @@ void parse_extensive_param(char* param, char* arg)
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "cfapndvstm")) != -1) {
+
+  // Load default transmission mode to avoid wrong number of ports/antennas
+  if (transmission_mode == 0) {
+    cell.nof_ports = 1;
+    nof_rx_ant     = 1;
+  } else if (transmission_mode < 4) {
+    cell.nof_ports = 2;
+    nof_rx_ant     = 2;
+  }
+
+  while ((opt = getopt(argc, argv, "cfapndvqstm")) != -1) {
     switch (opt) {
       case 't':
         transmission_mode = (uint32_t)strtol(argv[optind], NULL, 10) - 1;
@@ -118,6 +130,9 @@ void parse_args(int argc, char **argv) {
       case 'v':
         srslte_verbose++;
         break;
+      case 'q':
+        enable_256qam ^= true;
+        break;
       default:
         usage(argv[0]);
         exit(-1);
@@ -145,7 +160,7 @@ int work_enb(srslte_enb_dl_t*         enb_dl,
 
   // Create pdsch config
   srslte_pdsch_cfg_t pdsch_cfg;
-  if (srslte_ra_dl_dci_to_grant(&cell, dl_sf, transmission_mode, dci, &pdsch_cfg.grant)) {
+  if (srslte_ra_dl_dci_to_grant(&cell, dl_sf, transmission_mode, enable_256qam, dci, &pdsch_cfg.grant)) {
     ERROR("Computing DL grant sf_idx=%d\n", dl_sf->tti);
     goto quit;
   }
@@ -211,7 +226,8 @@ int work_ue(srslte_ue_dl_t*     ue_dl,
   srslte_dci_dl_info(&dci_dl[0], str, 512);
   INFO("UE PDCCH: rnti=0x%x, %s\n", rnti, str);
 
-  if (srslte_ra_dl_dci_to_grant(&cell, sf_cfg_dl, transmission_mode, &dci_dl[0], &ue_dl_cfg->cfg.pdsch.grant)) {
+  if (srslte_ra_dl_dci_to_grant(
+          &cell, sf_cfg_dl, transmission_mode, enable_256qam, &dci_dl[0], &ue_dl_cfg->cfg.pdsch.grant)) {
     ERROR("Computing DL grant sf_idx=%d\n", sf_idx);
     return -1;
   }
@@ -255,10 +271,8 @@ uint32_t prbset_to_bitmask() {
   return reverse(mask) >> (32 - nb);
 }
 
-static srslte_enb_dl_t enb_dl;
-static srslte_ue_dl_t  ue_dl;
-
-static int check_softbits(srslte_ue_dl_cfg_t* ue_dl_cfg, uint32_t sf_idx, int tb)
+static int
+check_softbits(srslte_enb_dl_t enb_dl, srslte_ue_dl_t ue_dl, srslte_ue_dl_cfg_t* ue_dl_cfg, uint32_t sf_idx, int tb)
 {
   int ret = SRSLTE_SUCCESS;
 
@@ -292,11 +306,12 @@ static int check_softbits(srslte_ue_dl_cfg_t* ue_dl_cfg, uint32_t sf_idx, int tb
   return ret;
 }
 
-static int check_evm(srslte_ue_dl_cfg_t* ue_dl_cfg, int tb)
+static int check_evm(srslte_enb_dl_t enb_dl, srslte_ue_dl_t ue_dl, srslte_ue_dl_cfg_t* ue_dl_cfg, int tb)
 {
   int ret = SRSLTE_SUCCESS;
   srslte_vec_sub_ccc(enb_dl.pdsch.d[tb], ue_dl.pdsch.d[tb], enb_dl.pdsch.d[tb], ue_dl_cfg->cfg.pdsch.grant.nof_re);
-  float evm = srslte_vec_avg_power_cf(enb_dl.pdsch.d[tb], ue_dl_cfg->cfg.pdsch.grant.nof_re);
+  uint32_t evm_max_i = srslte_vec_max_abs_ci(enb_dl.pdsch.d[tb], ue_dl_cfg->cfg.pdsch.grant.nof_re);
+  float    evm       = cabsf(enb_dl.pdsch.d[tb][evm_max_i]);
 
   if (evm > 0.1f) {
     printf("TB%d Constellation EVM (%.3f) is too high\n", tb, evm);
@@ -307,6 +322,8 @@ static int check_evm(srslte_ue_dl_cfg_t* ue_dl_cfg, int tb)
 }
 
 int main(int argc, char **argv) {
+  srslte_enb_dl_t*        enb_dl      = srslte_vec_malloc(sizeof(srslte_enb_dl_t));
+  srslte_ue_dl_t*         ue_dl       = srslte_vec_malloc(sizeof(srslte_ue_dl_t));
   srslte_random_t         random      = srslte_random_init(0);
   struct timeval t[3] = {};
   size_t tx_nof_bits = 0, rx_nof_bits = 0;
@@ -374,17 +391,17 @@ int main(int argc, char **argv) {
   /*
    * Initialise eNb
    */
-  if (srslte_enb_dl_init(&enb_dl, signal_buffer, cell.nof_prb)) {
+  if (srslte_enb_dl_init(enb_dl, signal_buffer, cell.nof_prb)) {
     ERROR("Error initiating eNb downlink\n");
     goto quit;
   }
 
-  if (srslte_enb_dl_set_cell(&enb_dl, cell)) {
+  if (srslte_enb_dl_set_cell(enb_dl, cell)) {
     ERROR("Error setting eNb DL cell\n");
     goto quit;
   }
 
-  if (srslte_enb_dl_add_rnti(&enb_dl, rnti)) {
+  if (srslte_enb_dl_add_rnti(enb_dl, rnti)) {
     ERROR("Error adding RNTI\n");
     goto quit;
   }
@@ -392,17 +409,17 @@ int main(int argc, char **argv) {
   /*
    * Initialise UE
    */
-  if (srslte_ue_dl_init(&ue_dl, signal_buffer, cell.nof_prb, nof_rx_ant)) {
+  if (srslte_ue_dl_init(ue_dl, signal_buffer, cell.nof_prb, nof_rx_ant)) {
     ERROR("Error initiating UE downlink\n");
     goto quit;
   }
 
-  if (srslte_ue_dl_set_cell(&ue_dl, cell)) {
+  if (srslte_ue_dl_set_cell(ue_dl, cell)) {
     ERROR("Error setting UE downlink cell\n");
     goto quit;
   }
 
-  srslte_ue_dl_set_rnti(&ue_dl, rnti);
+  srslte_ue_dl_set_rnti(ue_dl, rnti);
 
   /*
    * Create PDCCH Allocations
@@ -417,7 +434,7 @@ int main(int argc, char **argv) {
     sf_cfg_dl.cfi     = cfi;
     sf_cfg_dl.sf_type = SRSLTE_SF_NORM;
 
-    nof_locations[i] = srslte_pdcch_ue_locations(&enb_dl.pdcch, &sf_cfg_dl, dci_locations[i], MAX_CANDIDATES_UE, rnti);
+    nof_locations[i] = srslte_pdcch_ue_locations(&enb_dl->pdcch, &sf_cfg_dl, dci_locations[i], MAX_CANDIDATES_UE, rnti);
     location_counter += nof_locations[i];
   }
 
@@ -529,7 +546,7 @@ int main(int argc, char **argv) {
     INFO("--- Process eNb ---\n");
 
     gettimeofday(&t[1], NULL);
-    if (work_enb(&enb_dl, &sf_cfg_dl, &dci_cfg, &dci, softbuffer_tx, data_tx)) {
+    if (work_enb(enb_dl, &sf_cfg_dl, &dci_cfg, &dci, softbuffer_tx, data_tx)) {
       goto quit;
     }
     gettimeofday(&t[2], NULL);
@@ -576,6 +593,7 @@ int main(int argc, char **argv) {
     ue_dl_cfg.chest_cfg.cfo_estimate_sf_mask = false;
     ue_dl_cfg.chest_cfg.sync_error_enable    = false;
     ue_dl_cfg.dci_cfg                        = dci_cfg;
+    ue_dl_cfg.pdsch_use_tbs_index_alt        = enable_256qam;
 
     srslte_pdsch_res_t pdsch_res[SRSLTE_MAX_CODEWORDS];
     for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
@@ -584,7 +602,7 @@ int main(int argc, char **argv) {
       pdsch_res[i].crc                      = false;
       ue_dl_cfg.cfg.pdsch.softbuffers.rx[i] = softbuffer_rx[i];
     }
-    if (work_ue(&ue_dl, &sf_cfg_dl, &ue_dl_cfg, dci_dl, sf_idx, pdsch_res)) {
+    if (work_ue(ue_dl, &sf_cfg_dl, &ue_dl_cfg, dci_dl, sf_idx, pdsch_res)) {
       goto quit;
     }
 
@@ -594,15 +612,15 @@ int main(int argc, char **argv) {
 
     for (int i = 0; i < SRSLTE_MAX_TB; i++) {
       if (ue_dl_cfg.cfg.pdsch.grant.tb[i].enabled) {
-        if (check_evm(&ue_dl_cfg, i)) {
+        if (check_evm(*enb_dl, *ue_dl, &ue_dl_cfg, i)) {
           count_failures++;
-        } else if (check_softbits(&ue_dl_cfg, sf_idx, i) != SRSLTE_SUCCESS) {
+        } else if (check_softbits(*enb_dl, *ue_dl, &ue_dl_cfg, sf_idx, i) != SRSLTE_SUCCESS) {
           printf("TB%d: The received softbits in subframe %d DO NOT match the encoded bits (crc=%d)\n",
                  i,
                  sf_idx,
                  pdsch_res[i].crc);
-          srslte_vec_fprint_byte(stdout, (uint8_t*)enb_dl.pdsch.e[i], ue_dl_cfg.cfg.pdsch.grant.tb[i].nof_bits / 8);
-          srslte_vec_fprint_byte(stdout, (uint8_t*)ue_dl.pdsch.e[i], ue_dl_cfg.cfg.pdsch.grant.tb[i].nof_bits / 8);
+          srslte_vec_fprint_byte(stdout, (uint8_t*)enb_dl->pdsch.e[i], ue_dl_cfg.cfg.pdsch.grant.tb[i].nof_bits / 8);
+          srslte_vec_fprint_byte(stdout, (uint8_t*)ue_dl->pdsch.e[i], ue_dl_cfg.cfg.pdsch.grant.tb[i].nof_bits / 8);
           count_failures++;
         } else if (!pdsch_res[i].crc ||
                    memcmp(data_tx[i], data_rx[i], (uint32_t)ue_dl_cfg.cfg.pdsch.grant.tb[i].tbs / 8) != 0) {
@@ -637,18 +655,14 @@ int main(int argc, char **argv) {
   printf("BLER: %5.1f%%\n", (float) count_failures / (float) count_tbs * 100.0f);
 
   quit:
-  srslte_enb_dl_free(&enb_dl);
-  srslte_ue_dl_free(&ue_dl);
-  srslte_random_free(random);
+    srslte_enb_dl_free(enb_dl);
+    srslte_ue_dl_free(ue_dl);
+    srslte_random_free(random);
 
-  for (
-      int i = 0;
-      i < cell.
-          nof_ports;
-      i++) {
-    if (signal_buffer[i]) {
-      free(signal_buffer[i]);
-    }
+    for (int i = 0; i < cell.nof_ports; i++) {
+      if (signal_buffer[i]) {
+        free(signal_buffer[i]);
+      }
   }
 
   for (

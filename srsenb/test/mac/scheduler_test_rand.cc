@@ -772,8 +772,8 @@ void sched_tester::test_collisions()
   for (uint32_t i = 0; i < tti_data.sched_result_dl.nof_data_elems; ++i) {
     alloc_mask.reset();
     srslte_pdsch_grant_t grant;
-    CondError(srslte_ra_dl_dci_to_grant(&cfg.cell, &dl_sf, SRSLTE_TM1, &tti_data.sched_result_dl.data[i].dci, &grant) ==
-                  SRSLTE_ERROR,
+    CondError(srslte_ra_dl_dci_to_grant(
+                  &cfg.cell, &dl_sf, SRSLTE_TM1, false, &tti_data.sched_result_dl.data[i].dci, &grant) == SRSLTE_ERROR,
               "Failed to decode PDSCH grant\n");
     for (uint32_t i = 0; i < alloc_mask.size(); ++i) {
       if (grant.prb_idx[0][i]) {
@@ -792,8 +792,8 @@ void sched_tester::test_collisions()
   }
   for (uint32_t i = 0; i < tti_data.sched_result_dl.nof_bc_elems; ++i) {
     srslte_pdsch_grant_t grant;
-    CondError(srslte_ra_dl_dci_to_grant(&cfg.cell, &dl_sf, SRSLTE_TM1, &tti_data.sched_result_dl.bc[i].dci, &grant) ==
-                  SRSLTE_ERROR,
+    CondError(srslte_ra_dl_dci_to_grant(
+                  &cfg.cell, &dl_sf, SRSLTE_TM1, false, &tti_data.sched_result_dl.bc[i].dci, &grant) == SRSLTE_ERROR,
               "Failed to decode PDSCH grant\n");
     alloc_mask.reset();
     for (uint32_t i = 0; i < alloc_mask.size(); ++i) {
@@ -811,8 +811,8 @@ void sched_tester::test_collisions()
   for (uint32_t i = 0; i < tti_data.sched_result_dl.nof_rar_elems; ++i) {
     alloc_mask.reset();
     srslte_pdsch_grant_t grant;
-    CondError(srslte_ra_dl_dci_to_grant(&cfg.cell, &dl_sf, SRSLTE_TM1, &tti_data.sched_result_dl.rar[i].dci, &grant) ==
-                  SRSLTE_ERROR,
+    CondError(srslte_ra_dl_dci_to_grant(
+                  &cfg.cell, &dl_sf, SRSLTE_TM1, false, &tti_data.sched_result_dl.rar[i].dci, &grant) == SRSLTE_ERROR,
               "Failed to decode PDSCH grant\n");
     for (uint32_t i = 0; i < alloc_mask.size(); ++i) {
       if (grant.prb_idx[0][i]) {

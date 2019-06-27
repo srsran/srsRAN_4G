@@ -129,15 +129,6 @@ static int srslte_ra_dl_tbs_idx_from_mcs(uint32_t mcs)
   }
 }
 
-static int srslte_ra_dl_tbs_idx_from_mcs2(uint32_t mcs)
-{
-  if (mcs < 28) {
-    return dl_mcs_tbs_idx_table2[mcs];
-  } else {
-    return SRSLTE_ERROR;
-  }
-}
-
 static int srslte_ra_ul_tbs_idx_from_mcs(uint32_t mcs)
 {
   if (mcs < 29) {
@@ -163,19 +154,6 @@ srslte_mod_t srslte_ra_dl_mod_from_mcs(uint32_t mcs)
   }
 }
 
-srslte_mod_t srslte_ra_dl_mod_from_mcs2(uint32_t mcs)
-{
-  if (mcs <= 4 || mcs == 28) {
-    return SRSLTE_MOD_QPSK;
-  } else if (mcs <= 10 || mcs == 29) {
-    return SRSLTE_MOD_16QAM;
-  } else if (mcs <= 19 || mcs == 30) {
-    return SRSLTE_MOD_64QAM;
-  } else {
-    return SRSLTE_MOD_256QAM;
-  }
-}
-
 srslte_mod_t srslte_ra_ul_mod_from_mcs(uint32_t mcs)
 {
   /* Table 8.6.1-1 on 36.213 */
@@ -194,16 +172,6 @@ static int srslte_ra_dl_mcs_from_tbs_idx(uint32_t tbs_idx)
 {
   for (int i = 0; i < 29; i++) {
     if (tbs_idx == dl_mcs_tbs_idx_table[i]) {
-      return i;
-    }
-  }
-  return SRSLTE_ERROR;
-}
-
-static int srslte_ra_dl_mcs_from_tbs_idx2(uint32_t tbs_idx)
-{
-  for (int i = 0; i < 28; i++) {
-    if (tbs_idx == dl_mcs_tbs_idx_table2[i]) {
       return i;
     }
   }

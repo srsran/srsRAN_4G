@@ -23,17 +23,17 @@
 /* Assume perfect amplitude and phase alignment.
  *  Check threshold values for real case
  *  or implement dynamic threshold adjustent as a function of received symbol amplitudes */
-#define QAM16_THRESHOLD    2/sqrt(10)
-#define QAM64_THRESHOLD_1  2/sqrt(42)
-#define QAM64_THRESHOLD_2  4/sqrt(42)
-#define QAM64_THRESHOLD_3  6/sqrt(42)
-#define QAM256_THRESHOLD_1 2 / sqrt(170)
-#define QAM256_THRESHOLD_2 4 / sqrt(170)
-#define QAM256_THRESHOLD_3 6 / sqrt(170)
-#define QAM256_THRESHOLD_4 8 / sqrt(170)
-#define QAM256_THRESHOLD_5 10 / sqrt(170)
-#define QAM256_THRESHOLD_6 12 / sqrt(170)
-#define QAM256_THRESHOLD_7 14 / sqrt(170)
+#define QAM16_THRESHOLD (2 / sqrtf(10))
+#define QAM64_THRESHOLD_1 (2 / sqrtf(42))
+#define QAM64_THRESHOLD_2 (4 / sqrtf(42))
+#define QAM64_THRESHOLD_3 (6 / sqrtf(42))
+#define QAM256_THRESHOLD_1 (2 / sqrtf(170))
+#define QAM256_THRESHOLD_2 (4 / sqrtf(170))
+#define QAM256_THRESHOLD_3 (6 / sqrtf(170))
+#define QAM256_THRESHOLD_4 (8 / sqrtf(170))
+#define QAM256_THRESHOLD_5 (10 / sqrtf(170))
+#define QAM256_THRESHOLD_6 (12 / sqrtf(170))
+#define QAM256_THRESHOLD_7 (14 / sqrtf(170))
 
 void hard_bpsk_demod(const cf_t* in, 
                      uint8_t* out, 

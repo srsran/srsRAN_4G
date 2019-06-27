@@ -246,7 +246,7 @@ int main(int argc, char **argv) {
   dci.type0_alloc.rbg_bitmask = 0xffffffff;
   dci.tb[0].mcs_idx           = mcs_idx;
   SRSLTE_DCI_TB_DISABLE(dci.tb[1]);
-  srslte_ra_dl_dci_to_grant(&cell, &dl_sf, SRSLTE_TM1, &dci, &pmch_cfg.pdsch_cfg.grant);
+  srslte_ra_dl_dci_to_grant(&cell, &dl_sf, SRSLTE_TM1, false, &dci, &pmch_cfg.pdsch_cfg.grant);
 
   for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
     if (pmch_cfg.pdsch_cfg.grant.tb[i].enabled) {
