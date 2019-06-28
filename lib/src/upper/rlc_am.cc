@@ -792,12 +792,9 @@ int rlc_am::rlc_am_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   if (pdu == NULL) {
 #ifdef RLC_AM_BUFFER_DEBUG
     log->console("Fatal Error: Could not allocate PDU in build_data_pdu()\n");
-    log->console("tx_window size: %d PDUs\n", tx_window.size());
-    log->console("vt_a = %d, vt_ms = %d, vt_s = %d, poll_sn = %d "
-                 "vr_r = %d, vr_mr = %d, vr_x = %d, vr_ms = %d, vr_h = %d\n",
-                 vt_a, vt_ms, vt_s, poll_sn,
-                 vr_r, vr_mr, vr_x, vr_ms, vr_h);
-    log->console("retx_queue size: %d PDUs\n", retx_queue.size());
+    log->console("tx_window size: %zd PDUs\n", tx_window.size());
+    log->console("vt_a = %d, vt_ms = %d, vt_s = %d, poll_sn = %d\n", vt_a, vt_ms, vt_s, poll_sn);
+    log->console("retx_queue size: %zd PDUs\n", retx_queue.size());
     std::map<uint32_t, rlc_amd_tx_pdu_t>::iterator txit;
     for(txit = tx_window.begin(); txit != tx_window.end(); txit++) {
       log->console("tx_window - SN: %d\n", txit->first);
@@ -1218,6 +1215,18 @@ void rlc_am::rlc_am_rx::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes, rl
                 nof_bytes);
   log->debug("%s\n", rlc_amd_pdu_header_to_string(header).c_str());
 
+  // sanity check for segments not exceeding PDU length
+  if (header.N_li > 0) {
+    uint32_t segments_len = 0;
+    for (uint32_t i = 0; i < header.N_li; i++) {
+      segments_len += header.li[i];
+      if (segments_len > nof_bytes) {
+        log->info("Dropping corrupted PDU (segments_len=%d > pdu_len=%d)\n", segments_len, nof_bytes);
+        return;
+      }
+    }
+  }
+
   if(!inside_rx_window(header.sn)) {
     if(header.p) {
       log->info("%s Status packet requested through polling bit\n", RB_NAME);
@@ -1343,6 +1352,11 @@ void rlc_am::rlc_am_rx::handle_data_pdu_segment(uint8_t *payload, uint32_t nof_b
 #endif
   }
 
+  if (segment.buf->get_tailroom() < nof_bytes) {
+    log->info("Dropping corrupted segment SN=%d, not enough space to fit %d B\n", header.sn, nof_bytes);
+    return;
+  }
+
   memcpy(segment.buf->msg, payload, nof_bytes);
   segment.buf->N_bytes = nof_bytes;
   segment.header       = header;
@@ -1428,16 +1442,24 @@ void rlc_am::rlc_am_rx::reassemble_rx_sdus()
 
       if (rx_sdu->get_tailroom() >= len) {
         if ((rx_window[vr_r].buf->msg - rx_window[vr_r].buf->buffer) + len < SRSLTE_MAX_BUFFER_SIZE_BYTES) {
+          if (rx_window[vr_r].buf->N_bytes < len) {
+            log->error("Dropping corrupted SN=%d\n", vr_r);
+            rx_sdu.reset();
+            goto exit;
+          }
+
           memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_r].buf->msg, len);
           rx_sdu->N_bytes += len;
+
           rx_window[vr_r].buf->msg += len;
           rx_window[vr_r].buf->N_bytes -= len;
+
           log->info_hex(rx_sdu->msg, rx_sdu->N_bytes, "%s Rx SDU (%d B)", RB_NAME, rx_sdu->N_bytes);
           rx_sdu->set_timestamp();
           parent->pdcp->write_pdu(parent->lcid, std::move(rx_sdu));
 
           rx_sdu = allocate_unique_buffer(*pool, true);
-          if (rx_sdu == NULL) {
+          if (rx_sdu == nullptr) {
 #ifdef RLC_AM_BUFFER_DEBUG
             log->console("Fatal Error: Could not allocate PDU in reassemble_rx_sdus() (2)\n");
           exit(-1);
@@ -1465,9 +1487,12 @@ void rlc_am::rlc_am_rx::reassemble_rx_sdus()
       memcpy(&rx_sdu->msg[rx_sdu->N_bytes], rx_window[vr_r].buf->msg, len);
       rx_sdu->N_bytes += rx_window[vr_r].buf->N_bytes;
     } else {
-      log->error("Cannot fit RLC PDU in SDU buffer, dropping both. Erasing SN=%d.\n", vr_r);
+      printf("Cannot fit RLC PDU in SDU buffer (tailroom=%d, len=%d), dropping both. Erasing SN=%d.\n",
+             rx_sdu->get_tailroom(),
+             len,
+             vr_r);
       rx_sdu.reset();
-      rx_window.erase(vr_r);
+      goto exit;
     }
 
     if (rlc_am_end_aligned(rx_window[vr_r].header.fi)) {
@@ -1531,7 +1556,7 @@ void rlc_am::rlc_am_rx::reset_metrics()
   pthread_mutex_unlock(&mutex);
 }
 
-void rlc_am::rlc_am_rx::write_pdu(uint8_t *payload, uint32_t nof_bytes)
+void rlc_am::rlc_am_rx::write_pdu(uint8_t* payload, const uint32_t nof_bytes)
 {
   if (nof_bytes < 1) return;
 
@@ -1543,12 +1568,18 @@ void rlc_am::rlc_am_rx::write_pdu(uint8_t *payload, uint32_t nof_bytes)
     pthread_mutex_unlock(&mutex);
     parent->tx.handle_control_pdu(payload, nof_bytes);
   } else {
-    rlc_amd_pdu_header_t header;
-    rlc_am_read_data_pdu_header(&payload, &nof_bytes, &header);
+    rlc_amd_pdu_header_t header      = {};
+    uint32_t             payload_len = nof_bytes;
+    rlc_am_read_data_pdu_header(&payload, &payload_len, &header);
+    if (payload_len > nof_bytes) {
+      log->info("Dropping corrupted PDU (%d B). Remaining length after header %d B.\n", nof_bytes, payload_len);
+      pthread_mutex_unlock(&mutex);
+      return;
+    }
     if (header.rf) {
-      handle_data_pdu_segment(payload, nof_bytes, header);
+      handle_data_pdu_segment(payload, payload_len, header);
     } else{
-      handle_data_pdu(payload, nof_bytes, header);
+      handle_data_pdu(payload, payload_len, header);
     }
     pthread_mutex_unlock(&mutex);
   }
