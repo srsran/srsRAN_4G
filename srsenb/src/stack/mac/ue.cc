@@ -33,36 +33,41 @@
 
 namespace srsenb {
 
-ue::ue() :
-  mac_msg_dl(20),
-  mch_mac_msg_dl(10),
-  mac_msg_ul(20),
-  conres_id_available(false),
-  dl_ri_counter(0),
-  dl_pmi_counter(0),
-  conres_id(0),
-  last_tti(0),
+ue::ue(uint16_t           rnti_,
+       uint32_t           nof_prb,
+       sched_interface*   sched_,
+       rrc_interface_mac* rrc_,
+       rlc_interface_mac* rlc_,
+       srslte::log*       log_) :
+  rnti(rnti_),
+  sched(sched_),
+  rrc(rrc_),
+  rlc(rlc_),
+  log_h(log_),
+  mac_msg_dl(20, log_h),
+  mch_mac_msg_dl(10, log_h),
+  mac_msg_ul(20, log_h),
   pdus(128)
 {
-  rrc            = NULL;
-  sched          = NULL;
-  rlc            = NULL;
-  log_h          = NULL;
-  rnti           = 0;
-  pcap           = NULL;
-  nof_failures   = 0;
-  phr_counter    = 0;
-  dl_cqi_counter = 0;
-  is_phy_added   = false;
-  for (int i = 0; i < NOF_RX_HARQ_PROCESSES; i++) {
-    pending_buffers[i] = NULL;
-  }
-
   bzero(&metrics, sizeof(mac_metrics_t));
   bzero(&mutex, sizeof(pthread_mutex_t));
   bzero(softbuffer_tx, sizeof(softbuffer_tx));
   bzero(softbuffer_rx, sizeof(softbuffer_rx));
   pthread_mutex_init(&mutex, NULL);
+
+  pdus.init(this, log_h);
+
+  for (int i = 0; i < NOF_RX_HARQ_PROCESSES; i++) {
+    srslte_softbuffer_rx_init(&softbuffer_rx[i], nof_prb);
+  }
+  for (int i = 0; i < NOF_TX_HARQ_PROCESSES; i++) {
+    srslte_softbuffer_tx_init(&softbuffer_tx[i], nof_prb);
+  }
+  // don't need to reset because just initiated the buffers
+
+  // Set LCID group for SRB0 and SRB1
+  set_lcg(0, 0);
+  set_lcg(1, 0);
 }
 
 ue::~ue()
@@ -74,34 +79,6 @@ ue::~ue()
     srslte_softbuffer_tx_free(&softbuffer_tx[i]);
   }
   pthread_mutex_destroy(&mutex);
-}
-
-void ue::config(uint16_t rnti_, uint32_t nof_prb, sched_interface *sched_, rrc_interface_mac *rrc_, rlc_interface_mac *rlc_, srslte::log *log_h_)
-{
-  rnti  = rnti_; 
-  rlc   = rlc_; 
-  rrc   = rrc_;
-  log_h = log_h_;
-  sched = sched_;
-  pdus.init(this, log_h);
-
-  for (int i = 0; i < NOF_RX_HARQ_PROCESSES; i++) {
-    srslte_softbuffer_rx_init(&softbuffer_rx[i], nof_prb);
-  }
-  for (int i = 0; i < NOF_TX_HARQ_PROCESSES; i++) {
-    srslte_softbuffer_tx_init(&softbuffer_tx[i], nof_prb);
-  }
-  // don't need to reset because just initiated the buffers
-  bzero(&metrics, sizeof(mac_metrics_t));
-  nof_failures = 0;
-
-  for (int i = 0; i < NOF_RX_HARQ_PROCESSES; i++) {
-    pending_buffers[i] = NULL; 
-  }
-
-  // Set LCID group for SRB0 and SRB1
-  set_lcg(0, 0);
-  set_lcg(1, 0);
 }
 
 void ue::reset()

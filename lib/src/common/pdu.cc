@@ -57,7 +57,13 @@ void sch_pdu::parse_packet(uint8_t* ptr)
     if (n_sub >= 0) {
       subheaders[nof_subheaders - 1].set_payload_size(n_sub);
     } else {
-      ERROR("Reading MAC PDU: negative payload for last subheader\n");
+      ERROR("Corrupted MAC PDU (read_len=%d, pdu_len=%d)\n", read_len, pdu_len);
+      if (log) {
+        log->info_hex(ptr, pdu_len, "Corrupted MAC PDU (read_len=%d, pdu_len=%d)\n", read_len, pdu_len);
+      }
+
+      // reset PDU
+      init_(buffer_tx, pdu_len, pdu_is_ul);
     }
   }
 }
@@ -828,7 +834,7 @@ void rar_pdu::fprint(FILE* stream)
   pdu::fprint(stream);
 }
 
-rar_pdu::rar_pdu(uint32_t max_rars_) : pdu(max_rars_)
+rar_pdu::rar_pdu(uint32_t max_rars_, srslte::log* log_) : pdu(max_rars_, log_)
 {
   backoff_indicator     = 0;
   has_backoff_indicator = false;

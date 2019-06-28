@@ -32,14 +32,13 @@
 
 namespace srsue {
 
-mux::mux() : pdu_msg(MAX_NOF_SUBHEADERS)
+mux::mux(srslte::log* log_) : pdu_msg(MAX_NOF_SUBHEADERS, log_), log_h(log_)
 {
   msg3_flush();
 }
 
-void mux::init(rlc_interface_mac *rlc_, srslte::log *log_h_, bsr_interface_mux *bsr_procedure_, phr_proc *phr_procedure_)
+void mux::init(rlc_interface_mac* rlc_, bsr_interface_mux* bsr_procedure_, phr_proc* phr_procedure_)
 {
-  log_h      = log_h_;
   rlc        = rlc_;
   bsr_procedure = bsr_procedure_;
   phr_procedure = phr_procedure_;

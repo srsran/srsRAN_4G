@@ -30,30 +30,28 @@
 
 namespace srsue {
 
-demux::demux() :
-  mac_msg(20),
-  mch_mac_msg(20),
-  pending_mac_msg(20),
+demux::demux(srslte::log* log_) :
+  mac_msg(20, log_),
+  mch_mac_msg(20, log_),
+  pending_mac_msg(20, log_),
   rlc(NULL),
+  log_h(log_),
   is_uecrid_successful(false),
   phy_h(nullptr),
-  log_h(nullptr),
   time_alignment_timer(nullptr),
   mac(nullptr)
 {
 }
 
-void demux::init(phy_interface_mac_common* phy_h,
-                 rlc_interface_mac*        rlc,
-                 mac_interface_demux*      mac,
-                 srslte::log*              log_h,
-                 srslte::timers::timer*    time_alignment_timer)
+void demux::init(phy_interface_mac_common* phy_,
+                 rlc_interface_mac*        rlc_,
+                 mac_interface_demux*      mac_,
+                 srslte::timers::timer*    time_alignment_timer_)
 {
-  this->phy_h                = phy_h;
-  this->log_h                = log_h;
-  this->rlc                  = rlc;
-  this->mac                  = mac;
-  this->time_alignment_timer = time_alignment_timer;
+  phy_h                = phy_;
+  rlc                  = rlc_;
+  mac                  = mac_;
+  time_alignment_timer = time_alignment_timer_;
   pdus.init(this, log_h);
   bzero(&mch_lcids, SRSLTE_N_MCH_LCIDS);
 }
@@ -177,7 +175,7 @@ void demux::process_pdu(uint8_t* mac_pdu, uint32_t nof_bytes, srslte::pdu_queue:
 
 void demux::process_sch_pdu_rt(uint8_t* buff, uint32_t nof_bytes)
 {
-  srslte::sch_pdu mac_msg_rt(20);
+  srslte::sch_pdu mac_msg_rt(20, log_h);
 
   mac_msg_rt.init_rx(nof_bytes);
   mac_msg_rt.parse_packet(buff);

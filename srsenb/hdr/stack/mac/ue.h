@@ -37,12 +37,18 @@ class ue : public srslte::read_pdu_interface,
            public srslte::pdu_queue::process_callback
 {
 public:
-  ue();
+  ue(uint16_t           rnti,
+     uint32_t           nof_prb,
+     sched_interface*   sched,
+     rrc_interface_mac* rrc_,
+     rlc_interface_mac* rlc,
+     srslte::log*       log_);
   virtual ~ue();
 
   void     reset();
   
   void     start_pcap(srslte::mac_pcap* pcap_);
+
   void     set_tti(uint32_t tti); 
   
   void     config(uint16_t rnti, uint32_t nof_prb, sched_interface *sched, rrc_interface_mac *rrc_, rlc_interface_mac *rlc, srslte::log *log_h);
@@ -76,8 +82,7 @@ public:
   void metrics_dl_pmi(uint32_t dl_cqi);
   void metrics_dl_cqi(uint32_t dl_cqi);
 
-
-  bool is_phy_added;
+  bool is_phy_added = false;
   int  read_pdu(uint32_t lcid, uint8_t *payload, uint32_t requested_bytes); 
 private: 
     
@@ -87,28 +92,28 @@ private:
 
   std::vector<uint32_t> lc_groups[4];
 
-  uint32_t phr_counter;
-  uint32_t dl_cqi_counter;
-  uint32_t dl_ri_counter;
-  uint32_t dl_pmi_counter;
+  uint32_t      phr_counter    = 0;
+  uint32_t      dl_cqi_counter = 0;
+  uint32_t      dl_ri_counter  = 0;
+  uint32_t      dl_pmi_counter = 0;
   mac_metrics_t metrics;
-  
-  srslte::mac_pcap* pcap;
-  
-  uint64_t conres_id;
-  
-  uint16_t rnti; 
-  
-  uint32_t last_tti; 
-  
-  uint32_t nof_failures;
+
+  srslte::mac_pcap* pcap = nullptr;
+
+  uint64_t conres_id = 0;
+
+  uint16_t rnti = 0;
+
+  uint32_t last_tti = 0;
+
+  uint32_t nof_failures = 0;
 
   const static int       NOF_RX_HARQ_PROCESSES = SRSLTE_FDD_NOF_HARQ;
   const static int       NOF_TX_HARQ_PROCESSES = SRSLTE_FDD_NOF_HARQ * SRSLTE_MAX_TB;
   srslte_softbuffer_tx_t softbuffer_tx[NOF_TX_HARQ_PROCESSES];
   srslte_softbuffer_rx_t softbuffer_rx[NOF_RX_HARQ_PROCESSES];
 
-  uint8_t* pending_buffers[NOF_RX_HARQ_PROCESSES];
+  uint8_t* pending_buffers[NOF_RX_HARQ_PROCESSES] = {nullptr};
 
   // For DL there are two buffers, one for each Transport block
   srslte::byte_buffer_t tx_payload_buffer[SRSLTE_FDD_NOF_HARQ][SRSLTE_MAX_TB];
@@ -117,14 +122,14 @@ private:
   srslte::pdu_queue pdus; 
   srslte::sch_pdu mac_msg_dl, mac_msg_ul;
   srslte::mch_pdu mch_mac_msg_dl;
-  
-  rlc_interface_mac *rlc; 
-  rrc_interface_mac* rrc;
-  srslte::log *log_h;
-  sched_interface* sched;
-  
-  bool conres_id_available;
-  
+
+  rlc_interface_mac* rlc   = nullptr;
+  rrc_interface_mac* rrc   = nullptr;
+  srslte::log*       log_h = nullptr;
+  sched_interface*   sched = nullptr;
+
+  bool conres_id_available = false;
+
   // Mutexes
   pthread_mutex_t mutex;
   

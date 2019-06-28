@@ -43,11 +43,10 @@ public:
 class demux : public srslte::pdu_queue::process_callback
 {
 public:
-  demux();
+  demux(srslte::log* log_);
   void init(phy_interface_mac_common* phy_h_,
             rlc_interface_mac*        rlc,
             mac_interface_demux*      mac,
-            srslte::log*              log_h_,
             srslte::timers::timer*    time_alignment_timer);
 
   bool     process_pdus();
@@ -82,11 +81,11 @@ private:
 
   bool is_uecrid_successful;
 
-  phy_interface_mac_common* phy_h;
-  srslte::log*              log_h;
-  srslte::timers::timer*    time_alignment_timer;
-  rlc_interface_mac*        rlc;
-  mac_interface_demux*      mac;
+  phy_interface_mac_common* phy_h                = nullptr;
+  srslte::log*              log_h                = nullptr;
+  srslte::timers::timer*    time_alignment_timer = nullptr;
+  rlc_interface_mac*        rlc                  = nullptr;
+  mac_interface_demux*      mac                  = nullptr;
 
   // Buffer of PDUs
   srslte::pdu_queue pdus; 

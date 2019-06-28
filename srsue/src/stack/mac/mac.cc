@@ -37,7 +37,14 @@ using namespace asn1::rrc;
 
 namespace srsue {
 
-mac::mac(srslte::log* log_) : timers(64), pdu_process_thread(&demux_unit), mch_msg(10), pcap(nullptr), log_h(log_)
+mac::mac(srslte::log* log_) :
+  timers(64),
+  pdu_process_thread(&demux_unit),
+  mch_msg(10, log_),
+  mux_unit(log_),
+  demux_unit(log_),
+  pcap(nullptr),
+  log_h(log_)
 {
   // Create PCell HARQ entities
   auto ul = ul_harq_entity_ptr(new ul_harq_entity());
@@ -76,8 +83,8 @@ bool mac::init(phy_interface_mac_lte* phy, rlc_interface_mac* rlc, rrc_interface
 
   bsr_procedure.init(rlc_h, log_h, &timers);
   phr_procedure.init(phy_h, log_h, &timers);
-  mux_unit.init(rlc_h, log_h, &bsr_procedure, &phr_procedure);
-  demux_unit.init(phy_h, rlc_h, this, log_h, timers.get(timer_alignment));
+  mux_unit.init(rlc_h, &bsr_procedure, &phr_procedure);
+  demux_unit.init(phy_h, rlc_h, this, timers.get(timer_alignment));
   ra_procedure.init(
       phy_h, rrc, log_h, &uernti, timers.get(timer_alignment), timers.get(contention_resolution_timer), &mux_unit);
   sr_procedure.init(phy_h, rrc, log_h);

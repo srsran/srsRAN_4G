@@ -193,7 +193,7 @@ int mac_sch_pdu_pack_test1()
   rlc.write_sdu(2, sdu_len);
 
   const uint32_t  pdu_size = 25;
-  srslte::sch_pdu pdu(10);
+  srslte::sch_pdu pdu(10, &mac_log);
 
   byte_buffer_t buffer;
   pdu.init_tx(&buffer, pdu_size, true);
@@ -256,7 +256,7 @@ int mac_sch_pdu_pack_test2()
 
   const uint32_t pdu_size = 21;
 
-  srslte::sch_pdu pdu(10);
+  srslte::sch_pdu pdu(10, &mac_log);
 
   byte_buffer_t buffer;
   pdu.init_tx(&buffer, pdu_size, true);
@@ -323,7 +323,7 @@ int mac_sch_pdu_pack_test3()
   rlc.write_sdu(2, 130);
 
   const uint32_t  pdu_size = 150;
-  srslte::sch_pdu pdu(10);
+  srslte::sch_pdu pdu(10, &mac_log);
 
   byte_buffer_t buffer;
   pdu.init_tx(&buffer, pdu_size, true);
@@ -377,7 +377,7 @@ int mac_sch_pdu_pack_test4()
   mac_log.set_hex_limit(100000);
 
   const uint32_t  pdu_size = 10;
-  srslte::sch_pdu pdu(10);
+  srslte::sch_pdu pdu(10, &mac_log);
 
   byte_buffer_t buffer;
   pdu.init_tx(&buffer, pdu_size, true);
@@ -430,7 +430,7 @@ int mac_sch_pdu_pack_error_test()
   rlc.write_sdu(1, 8);
 
   const uint32_t  pdu_size = 150;
-  srslte::sch_pdu pdu(10);
+  srslte::sch_pdu pdu(10, &mac_log);
 
   byte_buffer_t buffer;
   pdu.init_tx(&buffer, pdu_size, true);

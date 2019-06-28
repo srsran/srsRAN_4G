@@ -481,8 +481,7 @@ int mac::rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv)
   pthread_rwlock_rdlock(&rwlock);
 
   // Create new UE
-  ue_db[last_rnti] = new ue;
-  ue_db[last_rnti]->config(last_rnti, cell.nof_prb, &scheduler, rrc_h, rlc_h, log_h);
+  ue_db[last_rnti] = new ue(last_rnti, cell.nof_prb, &scheduler, rrc_h, rlc_h, log_h);
 
   // Set PCAP if available
   if (pcap) {
@@ -985,8 +984,7 @@ void mac::write_mcch(sib_type2_s* sib2, sib_type13_r9_s* sib13, mcch_msg_s* mcch
   mcch->pack(bref);
   current_mcch_length = bref.distance_bytes(&mcch_payload_buffer[1]);
   current_mcch_length =  current_mcch_length + rlc_header_len;
-  ue_db[SRSLTE_MRNTI] = new ue;
-  ue_db[SRSLTE_MRNTI]->config(SRSLTE_MRNTI, cell.nof_prb, &scheduler, rrc_h, rlc_h, log_h);
+  ue_db[SRSLTE_MRNTI] = new ue(SRSLTE_MRNTI, cell.nof_prb, &scheduler, rrc_h, rlc_h, log_h);
 
   rrc_h->add_user(SRSLTE_MRNTI);
 }

@@ -37,9 +37,10 @@ template <class SubH>
 class pdu
 {
 public:
-  pdu(uint32_t max_subheaders_) :
+  pdu(uint32_t max_subheaders_, srslte::log* log_) :
     max_subheaders(max_subheaders_),
     subheaders(max_subheaders_),
+    log(log_),
     nof_subheaders(0),
     cur_idx(-1),
     pdu_len(0),
@@ -152,6 +153,7 @@ protected:
   bool              pdu_is_ul;
   byte_buffer_t*    buffer_tx = nullptr;
   int               last_sdu_idx;
+  srslte::log*      log = nullptr;
 
   /* Prepares the PDU for parsing or writing by setting the number of subheaders to 0 and the pdu length */
   virtual void init_(byte_buffer_t* buffer_tx_, uint32_t pdu_len_bytes, bool is_ulsch)
@@ -291,11 +293,11 @@ private:
 class sch_pdu : public pdu<sch_subh>
 {
 public:
-  sch_pdu(uint32_t max_subh) : pdu(max_subh) {}
+  sch_pdu(uint32_t max_subh, srslte::log* log) : pdu(max_subh, log) {}
 
   void     parse_packet(uint8_t* ptr);
   uint8_t* write_packet();
-  uint8_t* write_packet(srslte::log* log_h);
+  uint8_t* write_packet(srslte::log* log);
   bool     has_space_ce(uint32_t nbytes, bool var_len = false);
   bool     has_space_sdu(uint32_t nbytes);
   int      get_pdu_len();
@@ -356,7 +358,7 @@ private:
 class rar_pdu : public pdu<rar_subh>
 {
 public:
-  rar_pdu(uint32_t max_rars = 16);
+  rar_pdu(uint32_t max_rars = 16, srslte::log* log_ = nullptr);
 
   void    set_backoff(uint8_t bi);
   bool    has_backoff();
@@ -382,7 +384,7 @@ public:
 class mch_pdu : public sch_pdu
 {
 public:
-  mch_pdu(uint32_t max_subh) : sch_pdu(max_subh) {}
+  mch_pdu(uint32_t max_subh, srslte::log* log) : sch_pdu(max_subh, log) {}
 
 private:
   /* Prepares the PDU for parsing or writing by setting the number of subheaders to 0 and the pdu length */
