@@ -40,7 +40,7 @@ struct rlc_metrics_t
   float ul_tput_mbps[SRSLTE_N_RADIO_BEARERS];
   float dl_tput_mrb_mbps[SRSLTE_N_MCH_LCIDS];
 
-  rlc_queue_metrics_t metrics[SRSLTE_N_MCH_LCIDS];
+  rlc_queue_metrics_t metrics[SRSLTE_N_RADIO_BEARERS];
   rlc_queue_metrics_t mrb_metrics[SRSLTE_N_MCH_LCIDS];
 };
 
