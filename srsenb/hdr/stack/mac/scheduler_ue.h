@@ -28,6 +28,7 @@
 
 #include "scheduler_harq.h"
 #include "srslte/asn1/rrc_asn1.h"
+#include <mutex>
 
 namespace srsenb {
 
@@ -54,7 +55,6 @@ public:
    * 
    ************************************************************/
   sched_ue();
-  ~sched_ue();
   void reset();
   void phy_config_enabled(uint32_t tti, bool enabled);
   void set_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg, sched_interface::cell_cfg_t *cell_cfg, 
@@ -178,8 +178,8 @@ private:
   srslte_cell_t cell; 
   srslte::log* log_h;
 
-  pthread_mutex_t mutex;
-  
+  std::mutex mutex;
+
   /* Buffer states */
   bool sr; 
   int buf_mac;

@@ -582,7 +582,6 @@ sched::sched() : bc_aggr_level(0), rar_aggr_level(0), P(0), si_n_rbg(0), rar_n_r
   }
 
   pthread_rwlock_init(&rwlock, NULL);
-  pthread_mutex_init(&sched_mutex, NULL);
 
   reset();
 }
@@ -593,7 +592,6 @@ sched::~sched()
   pthread_rwlock_wrlock(&rwlock);
   pthread_rwlock_unlock(&rwlock);
   pthread_rwlock_destroy(&rwlock);
-  pthread_mutex_destroy(&sched_mutex);
 }
 
 void sched::init(rrc_interface_mac* rrc_, srslte::log* log)
@@ -1045,7 +1043,8 @@ sched::tti_sched_t* sched::new_tti(uint32_t tti_rx)
     uint32_t start_cfi = sched_cfg.nof_ctrl_symbols - ((cfg.cell.nof_prb >= 10) ? 0 : 1);
     tti_sched->new_tti(tti_rx, start_cfi);
 
-    pthread_mutex_lock(&sched_mutex); // Protects access to pending_rar[], pending_msg3[], pending_sibs[], rlc buffers
+    // Protects access to pending_rar[], pending_msg3[], pending_sibs[], rlc buffers
+    std::lock_guard<std::mutex> lock(sched_mutex);
     pthread_rwlock_rdlock(&rwlock);
 
     /* Schedule PHICH */
@@ -1066,7 +1065,6 @@ sched::tti_sched_t* sched::new_tti(uint32_t tti_rx)
     }
 
     pthread_rwlock_unlock(&rwlock);
-    pthread_mutex_unlock(&sched_mutex);
   }
 
   return tti_sched;

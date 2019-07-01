@@ -29,6 +29,7 @@
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/sched_interface.h"
 #include <map>
+#include <mutex>
 #include <pthread.h>
 
 namespace srsenb {
@@ -157,7 +158,7 @@ protected:
   rrc_interface_mac *rrc;
 
   pthread_rwlock_t rwlock;
-  pthread_mutex_t sched_mutex;
+  std::mutex       sched_mutex;
 
   cell_cfg_t cfg;
   sched_args_t sched_cfg; 
