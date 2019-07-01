@@ -123,9 +123,8 @@ void s1ap::run_thread()
   // S1AP rx loop
   while(running) {
     pdu->clear();
-    pdu->N_bytes = recv(socket_fd, pdu->msg, sz, 0);
-
-    if(pdu->N_bytes <= 0) {
+    ssize_t n_recv = recv(socket_fd, pdu->msg, sz, 0);
+    if (n_recv <= 0) {
       mme_connected = false;
       do {
         s1ap_log->error("Disconnected - attempting reconnection in 10 seconds\n");
@@ -140,6 +139,8 @@ void s1ap::run_thread()
         return;
       }
     }
+
+    pdu->N_bytes = static_cast<uint32_t>(n_recv);
 
     s1ap_log->info_hex(pdu->msg, pdu->N_bytes, "Received S1AP PDU");
     handle_s1ap_rx_pdu(pdu.get());

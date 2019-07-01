@@ -711,6 +711,10 @@ dyn_octstring& dyn_octstring::from_string(const std::string& hexstr)
 SRSASN_CODE pack_common_bitstring(bit_ref& bref, const uint8_t* buf, uint32_t nbits)
 {
   uint32_t n_octs = (uint32_t)ceilf(nbits / 8.0f);
+  if (n_octs == 0) {
+    srsasn_log_print(LOG_LEVEL_ERROR, "Invalid number of octets (%d)\n", n_octs);
+    return SRSASN_ERROR_DECODE_FAIL;
+  }
   uint32_t offset = ((nbits - 1) % 8) + 1;
   HANDLE_CODE(bref.pack(buf[n_octs - 1], offset));
   for (uint32_t i = 1; i < n_octs; ++i) {
@@ -722,6 +726,10 @@ SRSASN_CODE pack_common_bitstring(bit_ref& bref, const uint8_t* buf, uint32_t nb
 SRSASN_CODE unpack_common_bitstring(uint8_t* buf, bit_ref& bref, uint32_t nbits)
 {
   uint32_t n_octs = (uint32_t)ceilf(nbits / 8.0f);
+  if (n_octs == 0) {
+    srsasn_log_print(LOG_LEVEL_ERROR, "Invalid number of octets (%d)\n", n_octs);
+    return SRSASN_ERROR_DECODE_FAIL;
+  }
   uint32_t offset = ((nbits - 1) % 8) + 1;
   HANDLE_CODE(bref.unpack(buf[n_octs - 1], offset));
   for (uint32_t i = 1; i < n_octs; ++i) {
@@ -948,6 +956,11 @@ SRSASN_CODE ext_groups_header::pack_nof_groups(bit_ref& bref) const
 
 SRSASN_CODE ext_groups_header::pack_group_flags(bit_ref& bref) const
 {
+  if (nof_groups > groups.size()) {
+    srsasn_log_print(LOG_LEVEL_ERROR, "Exceeded maximum number of groups (%d>%d)\n", nof_groups, groups.size());
+    return SRSASN_ERROR_ENCODE_FAIL;
+  }
+
   // NOTE: nof_groups is cached
   for (uint32_t i = 0; i < nof_groups; ++i) {
     HANDLE_CODE(bref.pack(groups[i], 1));
@@ -974,6 +987,10 @@ SRSASN_CODE ext_groups_header::unpack_nof_groups(bit_ref& bref)
 
 SRSASN_CODE ext_groups_header::unpack_group_flags(bit_ref& bref)
 {
+  if (nof_groups > groups.size()) {
+    srsasn_log_print(LOG_LEVEL_ERROR, "Exceeded maximum number of groups (%d>%d)\n", nof_groups, groups.size());
+    return SRSASN_ERROR_DECODE_FAIL;
+  }
   for (uint32_t i = 0; i < nof_groups; ++i) {
     HANDLE_CODE(bref.unpack(groups[i], 1));
   }

@@ -1697,7 +1697,8 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_esm_message_container_ie(LIBLTE_BYTE_MSG_STRUC
     uint32            i;
 
     if(esm_msg != NULL &&
-       ie_ptr  != NULL)
+       ie_ptr  != NULL &&
+       esm_msg->N_bytes <= LIBLTE_MAX_MSG_SIZE_BYTES)
     {
         (*ie_ptr)[0] = esm_msg->N_bytes >> 8;
         (*ie_ptr)[1] = esm_msg->N_bytes & 0xFF;
@@ -1723,6 +1724,11 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_esm_message_container_ie(uint8              
     {
         esm_msg->N_bytes  = (*ie_ptr)[0] << 8;
         esm_msg->N_bytes |= (*ie_ptr)[1];
+
+        if(esm_msg->N_bytes > LIBLTE_MAX_MSG_SIZE_BYTES ) {
+          return err;
+        }
+
         for(i=0; i<esm_msg->N_bytes; i++)
         {
             esm_msg->msg[i]  = (*ie_ptr)[2+i];
@@ -3406,6 +3412,11 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_emergency_number_list_ie(LIBLTE_MME_EMERGENCY_
             {
                 (*ie_ptr)[length++] = (emerg_num_list->emerg_num[i].N_emerg_num_digits/2) + 1;
                 (*ie_ptr)[length++] = emerg_num_list->emerg_num[i].emerg_service_cat;
+
+                if (emerg_num_list->emerg_num[i].N_emerg_num_digits / 2 > LIBLTE_MME_EMERGENCY_NUMBER_MAX_NUM_DIGITS) {
+                  return err;
+                }
+
                 for(j=0; j<emerg_num_list->emerg_num[i].N_emerg_num_digits/2; j++)
                 {
                     (*ie_ptr)[length]    = emerg_num_list->emerg_num[i].emerg_num[j*2+0];
@@ -3449,6 +3460,11 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_emergency_number_list_ie(uint8              
         {
             idx                                               = emerg_num_list->N_emerg_nums;
             emerg_num_list->emerg_num[idx].N_emerg_num_digits = ((*ie_ptr)[length++] - 1) * 2;
+            if (emerg_num_list->emerg_num[idx].N_emerg_num_digits >
+              LIBLTE_MME_EMERGENCY_NUMBER_MAX_NUM_DIGITS) {
+              return err;
+            }
+
             emerg_num_list->emerg_num[idx].emerg_service_cat  = (LIBLTE_MME_EMERGENCY_SERVICE_CATEGORY_ENUM)((*ie_ptr)[length++] & 0x1F);
             for(i=0; i<emerg_num_list->emerg_num[idx].N_emerg_num_digits/2; i++)
             {
@@ -3629,7 +3645,8 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_generic_message_container_ie(LIBLTE_BYTE_MSG_S
     uint32            i;
 
     if(msg    != NULL &&
-       ie_ptr != NULL)
+       ie_ptr != NULL &&
+       msg->N_bytes <= LIBLTE_MAX_MSG_SIZE_BYTES)
     {
         (*ie_ptr)[0] = msg->N_bytes >> 8;
         (*ie_ptr)[1] = msg->N_bytes & 0xFF;
@@ -3655,6 +3672,11 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_generic_message_container_ie(uint8          
     {
         msg->N_bytes  = (*ie_ptr)[0] << 8;
         msg->N_bytes |= (*ie_ptr)[1];
+
+        if(msg->N_bytes > LIBLTE_MAX_MSG_SIZE_BYTES){
+          return err;
+        }
+
         for(i=0; i<msg->N_bytes; i++)
         {
             msg->msg[i] = (*ie_ptr)[2+i];
