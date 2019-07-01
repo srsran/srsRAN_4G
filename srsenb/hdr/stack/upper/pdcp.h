@@ -45,19 +45,20 @@ public:
 
   // pdcp_interface_rrc
   void reset(uint16_t rnti);
-  void add_user(uint16_t rnti);  
+  void add_user(uint16_t rnti);
   void rem_user(uint16_t rnti);
   void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu);
-  void add_bearer(uint16_t rnti, uint32_t lcid, srslte::srslte_pdcp_config_t cnfg);
-  void config_security(uint16_t rnti, 
-                       uint32_t lcid,
-                       uint8_t *k_rrc_enc_,
-                       uint8_t *k_rrc_int_,
-                       uint8_t *k_up_enc_,
+  void add_bearer(uint16_t rnti, uint32_t lcid, srslte::srslte_pdcp_config_lte_t cnfg);
+  void config_security(uint16_t                            rnti,
+                       uint32_t                            lcid,
+                       uint8_t*                            k_rrc_enc_,
+                       uint8_t*                            k_rrc_int_,
+                       uint8_t*                            k_up_enc_,
                        srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
                        srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_);
   void enable_integrity(uint16_t rnti, uint32_t lcid);
   void enable_encryption(uint16_t rnti, uint32_t lcid);
+
 private: 
   
   class user_interface_rlc : public srsue::rlc_interface_pdcp

@@ -25,7 +25,7 @@
 #include "srslte/common/log.h"
 #include "srslte/common/common.h"
 #include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/upper/pdcp_entity.h"
+#include "srslte/upper/pdcp_entity_lte.h"
 
 namespace srslte {
 
@@ -45,29 +45,27 @@ public:
 
   // RRC interface
   void reestablish();
-  void     reestablish(uint32_t lcid);
+  void reestablish(uint32_t lcid);
   void reset();
-  void     write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, bool blocking = true);
-  void     write_sdu_mch(uint32_t lcid, unique_byte_buffer_t sdu);
-  void add_bearer(uint32_t lcid, srslte_pdcp_config_t cnfg = srslte_pdcp_config_t());
-  void add_bearer_mrb(uint32_t lcid, srslte_pdcp_config_t cnfg = srslte_pdcp_config_t());
+  void write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, bool blocking = true);
+  void write_sdu_mch(uint32_t lcid, unique_byte_buffer_t sdu);
+  void add_bearer(uint32_t lcid, srslte_pdcp_config_lte_t cnfg = srslte_pdcp_config_lte_t());
+  void add_bearer_mrb(uint32_t lcid, srslte_pdcp_config_lte_t cnfg = srslte_pdcp_config_lte_t());
   void del_bearer(uint32_t lcid);
   void change_lcid(uint32_t old_lcid, uint32_t new_lcid);
-  void config_security(uint32_t lcid,
-                       uint8_t *k_rrc_enc,
-                       uint8_t *k_rrc_int,
-                       uint8_t *k_up_enc,
+  void config_security(uint32_t                    lcid,
+                       uint8_t*                    k_rrc_enc,
+                       uint8_t*                    k_rrc_int,
+                       uint8_t*                    k_up_enc,
                        CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                        INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
-  void config_security_all(uint8_t *k_rrc_enc,
-                           uint8_t *k_rrc_int,
-                           uint8_t *k_up_enc,
+  void config_security_all(uint8_t*                    k_rrc_enc,
+                           uint8_t*                    k_rrc_int,
+                           uint8_t*                    k_up_enc,
                            CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                            INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
   void enable_integrity(uint32_t lcid);
   void enable_encryption(uint32_t lcid);
-  uint32_t get_dl_count(uint32_t lcid);
-  uint32_t get_ul_count(uint32_t lcid);
 
   // RLC interface
   void write_pdu(uint32_t lcid, unique_byte_buffer_t sdu);
@@ -81,11 +79,11 @@ private:
   srsue::rrc_interface_pdcp* rrc = nullptr;
   srsue::gw_interface_pdcp*  gw  = nullptr;
 
-  typedef std::map<uint16_t, pdcp_entity_interface*> pdcp_map_t;
-  typedef std::pair<uint16_t, pdcp_entity_interface*> pdcp_map_pair_t;
+  typedef std::map<uint16_t, pdcp_entity_lte*> pdcp_map_t;
+  typedef std::pair<uint16_t, pdcp_entity_lte*> pdcp_map_pair_t;
 
   log*             pdcp_log = nullptr;
-  pdcp_map_t  pdcp_array, pdcp_array_mrb;
+  pdcp_map_t       pdcp_array, pdcp_array_mrb;
   pthread_rwlock_t rwlock;
 
   bool valid_lcid(uint32_t lcid);

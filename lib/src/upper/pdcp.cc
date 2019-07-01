@@ -120,11 +120,11 @@ void pdcp::write_sdu_mch(uint32_t lcid, unique_byte_buffer_t sdu)
   pthread_rwlock_unlock(&rwlock);
 }
 
-void pdcp::add_bearer(uint32_t lcid, srslte_pdcp_config_t cfg)
+void pdcp::add_bearer(uint32_t lcid, srslte_pdcp_config_lte_t cfg)
 {
   pthread_rwlock_wrlock(&rwlock);
   if (not valid_lcid(lcid)) {
-    if (not pdcp_array.insert(pdcp_map_pair_t(lcid, new pdcp_entity())).second) {
+    if (not pdcp_array.insert(pdcp_map_pair_t(lcid, new pdcp_entity_lte())).second) {
       pdcp_log->error("Error inserting PDCP entity in to array\n.");
       goto unlock_and_exit;
     }
@@ -141,11 +141,11 @@ unlock_and_exit:
   pthread_rwlock_unlock(&rwlock);
 }
 
-void pdcp::add_bearer_mrb(uint32_t lcid, srslte_pdcp_config_t cfg)
+void pdcp::add_bearer_mrb(uint32_t lcid, srslte_pdcp_config_lte_t cfg)
 {
   pthread_rwlock_wrlock(&rwlock);
   if (not valid_mch_lcid(lcid)) {
-    if (not pdcp_array_mrb.insert(pdcp_map_pair_t(lcid, new pdcp_entity())).second) {
+    if (not pdcp_array_mrb.insert(pdcp_map_pair_t(lcid, new pdcp_entity_lte())).second) {
       pdcp_log->error("Error inserting PDCP entity in to array\n.");
       goto unlock_and_exit;
     }
@@ -184,7 +184,7 @@ void pdcp::change_lcid(uint32_t old_lcid, uint32_t new_lcid)
   if (valid_lcid(old_lcid) && not valid_lcid(new_lcid)) {
     // insert old PDCP entity into new LCID
     pdcp_map_t::iterator it = pdcp_array.find(old_lcid);
-    pdcp_entity_interface *pdcp_entity = it->second;
+    pdcp_entity_lte *pdcp_entity = it->second;
     if (not pdcp_array.insert(pdcp_map_pair_t(new_lcid, pdcp_entity)).second) {
       pdcp_log->error("Error inserting PDCP entity into array\n.");
       goto exit;
@@ -208,7 +208,7 @@ void pdcp::config_security(uint32_t lcid,
 {
   pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
-    pdcp_array.at(lcid)->config_security(k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo);
+    pdcp_array.at(lcid)->config_security(k_rrc_enc, k_rrc_int, k_up_enc, nullptr, cipher_algo, integ_algo);
   }
   pthread_rwlock_unlock(&rwlock);
 }
@@ -218,7 +218,7 @@ void pdcp::config_security_all(uint8_t* k_rrc_enc, uint8_t* k_rrc_int, uint8_t* 
 {
   pthread_rwlock_rdlock(&rwlock);
   for (pdcp_map_t::iterator it = pdcp_array.begin(); it != pdcp_array.end(); ++it) {
-    it->second->config_security(k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo);
+    it->second->config_security(k_rrc_enc, k_rrc_int, k_up_enc, nullptr, cipher_algo, integ_algo);
   }
   pthread_rwlock_unlock(&rwlock);
 }
@@ -240,29 +240,6 @@ void pdcp::enable_encryption(uint32_t lcid)
   }
   pthread_rwlock_unlock(&rwlock);
 }
-
-uint32_t pdcp::get_dl_count(uint32_t lcid)
-{
-  int ret = 0;
-  pthread_rwlock_rdlock(&rwlock);
-  if (valid_lcid(lcid)) {
-    ret = pdcp_array.at(lcid)->get_dl_count();
-  }
-  pthread_rwlock_unlock(&rwlock);
-  return ret;
-}
-
-uint32_t pdcp::get_ul_count(uint32_t lcid)
-{
-  int ret = 0;
-  pthread_rwlock_rdlock(&rwlock);
-  if (valid_lcid(lcid)) {
-    ret = pdcp_array.at(lcid)->get_ul_count();
-  }
-  pthread_rwlock_unlock(&rwlock);
-  return ret;
-}
-
 
 /*******************************************************************************
   RLC interface

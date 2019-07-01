@@ -19,37 +19,29 @@
  *
  */
 
-#include "srslte/upper/pdcp_entity.h"
+#include "srslte/upper/pdcp_entity_nr.h"
 #include "srslte/common/security.h"
 
 namespace srslte {
 
-pdcp_entity::pdcp_entity()
-{
-  pthread_mutex_init(&mutex, nullptr);
-}
+pdcp_entity::pdcp_entity() {}
 
-pdcp_entity::~pdcp_entity()
-{
-  pthread_mutex_destroy(&mutex);
-}
+pdcp_entity::~pdcp_entity() {}
 
-void pdcp_entity::init(srsue::rlc_interface_pdcp* rlc_,
-                       srsue::rrc_interface_pdcp* rrc_,
-                       srsue::gw_interface_pdcp*  gw_,
-                       srslte::log*               log_,
-                       uint32_t                   lcid_,
-                       srslte_pdcp_config_t       cfg_)
+void pdcp_entity_nr::init(srsue::rlc_interface_pdcp*  rlc_,
+                          srsue::rrc_interface_pdcp*  rrc_,
+                          srsue::sdap_interface_pdcp* sdap_,
+                          srslte::log*                log_,
+                          uint32_t                    lcid_,
+                          srslte_pdcp_nr_config_t     cfg_)
 {
   rlc           = rlc_;
   rrc           = rrc_;
-  gw            = gw_;
+  sdap          = sdap_;
   log           = log_;
   lcid          = lcid_;
   cfg           = cfg_;
   active        = true;
-  tx_count      = 0;
-  rx_count      = 0;
   do_integrity  = false;
   do_encryption = false;
 
@@ -117,7 +109,7 @@ bool pdcp_entity::is_active()
   return active;
 }
 
-// GW/RRC interface
+// SDAP/RRC interface
 void pdcp_entity::write_sdu(unique_byte_buffer_t sdu, bool blocking)
 {
   log->info_hex(sdu->msg, sdu->N_bytes,
@@ -552,7 +544,7 @@ uint32_t pdcp_entity::get_ul_count()
 
 /****************************************************************************
  * Pack/Unpack helper functions
- * Ref: 3GPP TS 36.323 v10.1.0
+ * Ref: 3GPP TS 38.323 v15.2.0
  ***************************************************************************/
 
 void pdcp_pack_control_pdu(uint32_t sn, byte_buffer_t *sdu)
@@ -562,7 +554,7 @@ void pdcp_pack_control_pdu(uint32_t sn, byte_buffer_t *sdu)
   sdu->N_bytes++;
   *sdu->msg = sn & 0x1F;
 
-  // Add MAC
+  // Pack FMC
   sdu->msg[sdu->N_bytes++] = (PDCP_CONTROL_MAC_I >> 24) & 0xFF;
   sdu->msg[sdu->N_bytes++] = (PDCP_CONTROL_MAC_I >> 16) & 0xFF;
   sdu->msg[sdu->N_bytes++] = (PDCP_CONTROL_MAC_I >>  8) & 0xFF;

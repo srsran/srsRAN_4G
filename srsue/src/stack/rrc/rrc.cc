@@ -3145,7 +3145,7 @@ void rrc::handle_con_reest(rrc_conn_reest_s* setup)
 void rrc::add_srb(srb_to_add_mod_s* srb_cnfg)
 {
   // Setup PDCP
-  srslte_pdcp_config_t pdcp_cfg;
+  srslte_pdcp_config_lte_t pdcp_cfg;
   pdcp_cfg.is_control = true;
   pdcp_cfg.is_data    = false;
   pdcp_cfg.sn_len     = 5;
@@ -3222,7 +3222,7 @@ void rrc::add_drb(drb_to_add_mod_s* drb_cnfg)
   }
 
   // Setup PDCP
-  srslte_pdcp_config_t pdcp_cfg = {};
+  srslte_pdcp_config_lte_t pdcp_cfg = {};
   pdcp_cfg.is_data = true;
   pdcp_cfg.bearer_id = drb_cnfg->drb_id;
   if (drb_cnfg->pdcp_cfg.rlc_um_present) {
