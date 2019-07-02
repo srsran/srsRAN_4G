@@ -137,8 +137,9 @@ public:
   int dl_sched(uint32_t tti, dl_sched_res_t* sched_result) final;
   int ul_sched(uint32_t tti, ul_sched_res_t* sched_result) final;
 
-  /* Custom TPC functions 
+  /* Custom functions
    */
+  void set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs) final;
   void tpc_inc(uint16_t rnti); 
   void tpc_dec(uint16_t rnti);
 
@@ -284,6 +285,7 @@ protected:
   const static uint32_t nof_sched_ttis = 10;
   tti_sched_t           tti_scheds[nof_sched_ttis];
   tti_sched_t*          get_tti_sched(uint32_t tti_rx) { return &tti_scheds[tti_rx % nof_sched_ttis]; }
+  std::vector<uint8_t>  tti_dl_mask;
 
   tti_sched_t* new_tti(uint32_t tti_rx);
   void         generate_phich(tti_sched_t* tti_sched);

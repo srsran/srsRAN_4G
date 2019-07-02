@@ -264,10 +264,12 @@ void phy_common::build_mch_table()
   ZERO_OBJECT(mcch_table);
 
   // 40 element table represents 4 frames (40 subframes)
+  uint32_t nof_sfs = 10;
   if (mbsfn.mbsfn_subfr_cnfg.sf_alloc.type().value == mbsfn_sf_cfg_s::sf_alloc_c_::types::one_frame) {
     generate_mch_table(&mch_table[0], (uint32_t)mbsfn.mbsfn_subfr_cnfg.sf_alloc.one_frame().to_number(), 1);
   } else {
     generate_mch_table(&mch_table[0], (uint32_t)mbsfn.mbsfn_subfr_cnfg.sf_alloc.four_frames().to_number(), 4);
+    nof_sfs = 40;
   }
   // Debug
   std::stringstream ss;
@@ -275,6 +277,8 @@ void phy_common::build_mch_table()
   for(uint32_t j=0; j<40; j++) {
     ss << (int) mch_table[j] << "|";
   }
+
+  stack->set_sched_dl_tti_mask(mch_table, nof_sfs);
 }
 
 void phy_common::build_mcch_table()

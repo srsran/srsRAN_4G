@@ -244,8 +244,10 @@ public:
   
   /* Run Scheduler for this tti */
   virtual int dl_sched(uint32_t tti, dl_sched_res_t *sched_result) = 0; 
-  virtual int ul_sched(uint32_t tti, ul_sched_res_t *sched_result) = 0; 
-    
+  virtual int ul_sched(uint32_t tti, ul_sched_res_t *sched_result) = 0;
+
+  /* Custom */
+  virtual void set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs) = 0;
 };
 
 }

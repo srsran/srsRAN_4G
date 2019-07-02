@@ -79,6 +79,10 @@ public:
     return mac.get_mch_sched(tti, is_mcch, dl_sched_res);
   }
   int get_ul_sched(uint32_t tti, ul_sched_t* ul_sched_res) final { return mac.get_ul_sched(tti, ul_sched_res); }
+  void set_sched_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs) final
+  {
+    mac.set_sched_dl_tti_mask(tti_mask, nof_sfs);
+  }
   // Radio-Link status
   void rl_failure(uint16_t rnti) final { mac.rl_failure(rnti); }
   void rl_ok(uint16_t rnti) final { mac.rl_ok(rnti); }

@@ -89,7 +89,8 @@ public:
   virtual int get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res) = 0;
   virtual int get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_t* dl_sched_res) = 0;
   virtual int get_ul_sched(uint32_t tti, ul_sched_t *ul_sched_res) = 0;
-  
+  virtual void set_sched_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs)          = 0;
+
   // Radio-Link status 
   virtual void rl_failure(uint16_t rnti) = 0;
   virtual void rl_ok(uint16_t rnti) = 0;

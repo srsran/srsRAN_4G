@@ -576,6 +576,7 @@ sched::sched() : bc_aggr_level(0), rar_aggr_level(0), P(0), si_n_rbg(0), rar_n_r
   bzero(&sched_cfg, sizeof(sched_cfg));
   bzero(&common_locations, sizeof(common_locations));
   bzero(&pdsch_re, sizeof(pdsch_re));
+  tti_dl_mask.resize(10, 1);
 
   for (int i = 0; i < 3; i++) {
     bzero(rar_locations[i], sizeof(sched_ue::sched_dci_cce_t) * 10);
@@ -1006,6 +1007,11 @@ int sched::ul_sr_info(uint32_t tti, uint16_t rnti)
   return ret;
 }
 
+void sched::set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs)
+{
+  tti_dl_mask.assign(tti_mask, tti_mask + nof_sfs);
+}
+
 void sched::tpc_inc(uint16_t rnti)
 {
   pthread_rwlock_rdlock(&rwlock);
@@ -1051,7 +1057,9 @@ sched::tti_sched_t* sched::new_tti(uint32_t tti_rx)
     generate_phich(tti_sched);
 
     /* Schedule DL */
-    generate_dl_sched(tti_sched);
+    if (tti_dl_mask[tti_rx % tti_dl_mask.size()] > 0) {
+      generate_dl_sched(tti_sched);
+    }
 
     /* Schedule UL */
     generate_ul_sched(tti_sched);
