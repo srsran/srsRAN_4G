@@ -90,7 +90,8 @@ protected:
   bool     do_integrity  = false;
   bool     do_encryption = false;
 
-private:
+  std::mutex mutex;
+
   uint8_t k_rrc_enc[32] = {};
   uint8_t k_rrc_int[32] = {};
   uint8_t k_up_enc[32]  = {};
@@ -99,7 +100,6 @@ private:
   CIPHERING_ALGORITHM_ID_ENUM cipher_algo = CIPHERING_ALGORITHM_ID_EEA0;
   INTEGRITY_ALGORITHM_ID_ENUM integ_algo  = INTEGRITY_ALGORITHM_ID_EIA0;
 
-  std::mutex mutex;
 
   void integrity_generate(
       uint8_t* msg, uint32_t msg_len, uint32_t count, uint32_t bearer_id, uint32_t direction, uint8_t* mac);

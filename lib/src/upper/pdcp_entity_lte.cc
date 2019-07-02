@@ -114,34 +114,36 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, bool blocking)
         rrc->get_rb_name(lcid).c_str(), tx_count,
         (do_integrity) ? "true" : "false", (do_encryption) ? "true" : "false");
 
-  pthread_mutex_lock(&mutex);
+  mutex.lock();
 
   if (cfg.is_control) {
     pdcp_pack_control_pdu(tx_count, sdu.get());
-    if(do_integrity) {
-      integrity_generate(sdu->msg,
-                         sdu->N_bytes-4,
-                         &sdu->msg[sdu->N_bytes-4]);
+    if (do_integrity) {
+      integrity_generate(
+          sdu->msg, sdu->N_bytes - 4, tx_count, cfg.bearer_id, cfg.direction, &sdu->msg[sdu->N_bytes - 4]);
     }
   }
 
   if (cfg.is_data) {
-    if(12 == cfg.sn_len) {
+    if (12 == cfg.sn_len) {
       pdcp_pack_data_pdu_long_sn(tx_count, sdu.get());
     } else {
       pdcp_pack_data_pdu_short_sn(tx_count, sdu.get());
     }
   }
 
-  if(do_encryption) {
+  if (do_encryption) {
     cipher_encrypt(&sdu->msg[sn_len_bytes],
-                   sdu->N_bytes-sn_len_bytes,
+                   sdu->N_bytes - sn_len_bytes,
+                   tx_count,
+                   cfg.bearer_id,
+                   cfg.direction,
                    &sdu->msg[sn_len_bytes]);
     log->info_hex(sdu->msg, sdu->N_bytes, "TX %s SDU (encrypted)", rrc->get_rb_name(lcid).c_str());
   }
   tx_count++;
 
-  pthread_mutex_unlock(&mutex);
+  mutex.unlock();
 
   rlc->write_sdu(lcid, std::move(sdu), blocking);
 }
@@ -162,7 +164,7 @@ void pdcp_entity_lte::write_pdu(unique_byte_buffer_t pdu)
     return;
   }
 
-  pthread_mutex_lock(&mutex);
+  mutex.lock();
 
   if (cfg.is_data) {
     // Handle DRB messages
@@ -177,12 +179,18 @@ void pdcp_entity_lte::write_pdu(unique_byte_buffer_t pdu)
     if (cfg.is_control) {
       uint32_t sn = *pdu->msg & 0x1F;
       if (do_encryption) {
-        cipher_decrypt(&pdu->msg[sn_len_bytes], sn, pdu->N_bytes - sn_len_bytes, &(pdu->msg[sn_len_bytes]));
+        cipher_decrypt(&pdu->msg[sn_len_bytes],
+                       pdu->N_bytes - sn_len_bytes,
+                       sn,
+                       cfg.bearer_id,
+                       cfg.direction,
+                       &(pdu->msg[sn_len_bytes]));
         log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
       }
 
       if (do_integrity) {
-        if (not integrity_verify(pdu->msg, sn, pdu->N_bytes - 4, &(pdu->msg[pdu->N_bytes - 4]))) {
+        if (not integrity_verify(
+                pdu->msg, pdu->N_bytes - 4, sn, cfg.bearer_id, cfg.direction, &(pdu->msg[pdu->N_bytes - 4]))) {
           log->error_hex(pdu->msg, pdu->N_bytes, "%s Dropping PDU", rrc->get_rb_name(lcid).c_str());
           goto exit;
         }
@@ -196,7 +204,7 @@ void pdcp_entity_lte::write_pdu(unique_byte_buffer_t pdu)
   }
 exit:
   rx_count++;
-  pthread_mutex_unlock(&mutex);
+  mutex.unlock();
 }
 
 /****************************************************************************

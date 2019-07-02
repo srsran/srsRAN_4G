@@ -24,9 +24,9 @@
 
 namespace srslte {
 
-pdcp_entity::pdcp_entity() {}
+pdcp_entity_nr::pdcp_entity_nr() {}
 
-pdcp_entity::~pdcp_entity() {}
+pdcp_entity_nr::~pdcp_entity_nr() {}
 
 void pdcp_entity_nr::init(srsue::rlc_interface_pdcp*  rlc_,
                           srsue::rrc_interface_pdcp*  rrc_,
@@ -69,7 +69,7 @@ void pdcp_entity_nr::init(srsue::rlc_interface_pdcp*  rlc_,
 }
 
 // Reestablishment procedure: 36.323 5.2
-void pdcp_entity::reestablish()
+void pdcp_entity_nr::reestablish()
 {
   log->info("Re-establish %s with bearer ID: %d\n", rrc->get_rb_name(lcid).c_str(), cfg.bearer_id);
   // For SRBs
@@ -96,7 +96,7 @@ void pdcp_entity::reestablish()
 }
 
 // Used to stop/pause the entity (called on RRC conn release)
-void pdcp_entity::reset()
+void pdcp_entity_nr::reset()
 {
   active = false;
   if (log) {
@@ -104,13 +104,8 @@ void pdcp_entity::reset()
   }
 }
 
-bool pdcp_entity::is_active()
-{
-  return active;
-}
-
 // SDAP/RRC interface
-void pdcp_entity::write_sdu(unique_byte_buffer_t sdu, bool blocking)
+void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, bool blocking)
 {
   log->info_hex(sdu->msg, sdu->N_bytes,
         "TX %s SDU, SN: %d, do_integrity = %s, do_encryption = %s",
@@ -149,34 +144,8 @@ void pdcp_entity::write_sdu(unique_byte_buffer_t sdu, bool blocking)
   rlc->write_sdu(lcid, std::move(sdu), blocking);
 }
 
-void pdcp_entity::config_security(uint8_t *k_rrc_enc_,
-                                  uint8_t *k_rrc_int_,
-                                  uint8_t *k_up_enc_,
-                                  CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
-                                  INTEGRITY_ALGORITHM_ID_ENUM integ_algo_)
-{
-  for(int i=0; i<32; i++)
-  {
-    k_rrc_enc[i] = k_rrc_enc_[i];
-    k_rrc_int[i] = k_rrc_int_[i];
-    k_up_enc[i] = k_up_enc_[i];
-  }
-  cipher_algo = cipher_algo_;
-  integ_algo  = integ_algo_;
-}
-
-void pdcp_entity::enable_integrity()
-{
-  do_integrity = true;
-}
-
-void pdcp_entity::enable_encryption()
-{
-  do_encryption = true;
-}
-
 // RLC interface
-void pdcp_entity::write_pdu(unique_byte_buffer_t pdu)
+void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
 {
   log->info_hex(pdu->msg,
                 pdu->N_bytes,
@@ -242,7 +211,7 @@ exit:
  * Ref: 3GPP TS 36.323 v10.1.0 Section 5.1.2
  ***************************************************************************/
 // DRBs mapped on RLC UM (5.1.2.1.3)
-void pdcp_entity::handle_um_drb_pdu(const srslte::unique_byte_buffer_t &pdu)
+void pdcp_entity_nr::handle_um_drb_pdu(const srslte::unique_byte_buffer_t &pdu)
 {
   uint32_t sn;
   if (12 == cfg.sn_len) {
@@ -272,7 +241,7 @@ void pdcp_entity::handle_um_drb_pdu(const srslte::unique_byte_buffer_t &pdu)
 }
 
 // DRBs mapped on RLC AM, without re-ordering (5.1.2.1.2)
-void pdcp_entity::handle_am_drb_pdu(const srslte::unique_byte_buffer_t &pdu)
+void pdcp_entity_nr::handle_am_drb_pdu(const srslte::unique_byte_buffer_t &pdu)
 {
   uint32_t sn, count;
   pdcp_unpack_data_pdu_long_sn(pdu.get(), &sn);
@@ -331,206 +300,6 @@ void pdcp_entity::handle_am_drb_pdu(const srslte::unique_byte_buffer_t &pdu)
 /****************************************************************************
  * Security functions
  ***************************************************************************/
-void pdcp_entity::integrity_generate( uint8_t  *msg,
-                                      uint32_t  msg_len,
-                                      uint8_t  *mac)
-{
-  switch(integ_algo)
-  {
-  case INTEGRITY_ALGORITHM_ID_EIA0:
-    break;
-  case INTEGRITY_ALGORITHM_ID_128_EIA1:
-    security_128_eia1(&k_rrc_int[16],
-                      tx_count,
-                      cfg.bearer_id - 1,
-                      cfg.direction,
-                      msg,
-                      msg_len,
-                      mac);
-    break;
-  case INTEGRITY_ALGORITHM_ID_128_EIA2:
-    security_128_eia2(&k_rrc_int[16],
-                      tx_count,
-                      cfg.bearer_id - 1,
-                      cfg.direction,
-                      msg,
-                      msg_len,
-                      mac);
-    break;
-  default:
-    break;
-  }
-
-  log->debug("Integrity gen input:\n");
-  log->debug_hex(&k_rrc_int[16], 16, "  K_rrc_int");
-  log->debug("  Local count: %d\n", tx_count);
-  log->debug("  Bearer ID: %d\n", cfg.bearer_id);
-  log->debug("  Direction: %s\n", (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? "Downlink" : "Uplink");
-  log->debug_hex(msg, msg_len, "  Message");
-  log->debug_hex(mac,     4, "MAC (generated)");
-}
-
-bool pdcp_entity::integrity_verify(uint8_t  *msg,
-                                   uint32_t  count,
-                                   uint32_t  msg_len,
-                                   uint8_t  *mac)
-{
-  uint8_t mac_exp[4] = {0x00};
-  uint8_t i = 0;
-  bool isValid = true;
-
-  switch(integ_algo)
-  {
-  case INTEGRITY_ALGORITHM_ID_EIA0:
-    break;
-  case INTEGRITY_ALGORITHM_ID_128_EIA1:
-    security_128_eia1(&k_rrc_int[16],
-                      count,
-                      cfg.bearer_id - 1,
-                      (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? (SECURITY_DIRECTION_UPLINK) : (SECURITY_DIRECTION_DOWNLINK),
-                      msg,
-                      msg_len,
-                      mac_exp);
-    break;
-  case INTEGRITY_ALGORITHM_ID_128_EIA2:
-    security_128_eia2(&k_rrc_int[16],
-                      count,
-                      cfg.bearer_id - 1,
-                      (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? (SECURITY_DIRECTION_UPLINK) : (SECURITY_DIRECTION_DOWNLINK),
-                      msg,
-                      msg_len,
-                      mac_exp);
-    break;
-  default:
-    break;
-  }
-
-  log->debug("Integrity check input:\n");
-  log->debug_hex(&k_rrc_int[16], 16, "  K_rrc_int");
-  log->debug("  Local count: %d\n", count);
-  log->debug("  Bearer ID: %d\n", cfg.bearer_id);
-  log->debug("  Direction: %s\n", (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? "Uplink" : "Downlink");
-  log->debug_hex(msg, msg_len, "  Message");
-
-  switch(integ_algo)
-  {
-  case INTEGRITY_ALGORITHM_ID_EIA0:
-    break;
-  case INTEGRITY_ALGORITHM_ID_128_EIA1: // Intentional fall-through
-  case INTEGRITY_ALGORITHM_ID_128_EIA2:
-    for(i=0; i<4; i++){
-      if(mac[i] != mac_exp[i]){
-        log->error_hex(mac_exp, 4, "MAC mismatch (expected)");
-        log->error_hex(mac,     4, "MAC mismatch (found)");
-        isValid = false;
-        break;
-      }
-    }
-    if (isValid){
-      log->info_hex(mac_exp, 4, "MAC match");
-    }
-    break;
-  default:
-    break;
-  }
-
-  return isValid;
-}
-
-void pdcp_entity::cipher_encrypt(uint8_t  *msg,
-                                 uint32_t  msg_len,
-                                 uint8_t  *ct)
-{
-  byte_buffer_t ct_tmp;
-  uint8_t *k_enc;
-
-  // If control plane use RRC encrytion key. If data use user plane key
-  if (cfg.is_control) {
-    k_enc = k_rrc_enc;
-  } else {
-    k_enc = k_up_enc;
-  }
-
-  log->debug("Cipher encrypt input:\n");
-  log->debug_hex(&k_enc[16], 16, "  K_enc");
-  log->debug("  Local count: %d\n", tx_count);
-  log->debug("  TX HFN: %d COUNT %d\n", (tx_count >> cfg.sn_len), (tx_count << (32-cfg.sn_len)) >> (32-cfg.sn_len));
-  log->debug("  Bearer ID: %d\n", cfg.bearer_id);
-  log->debug("  Direction: %s\n", (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? "Downlink" : "Uplink");
-
-  switch(cipher_algo)
-  {
-  case CIPHERING_ALGORITHM_ID_EEA0:
-    break;
-  case CIPHERING_ALGORITHM_ID_128_EEA1:
-    security_128_eea1(&(k_enc[16]),
-                      tx_count,
-                      cfg.bearer_id - 1,
-                      cfg.direction,
-                      msg,
-                      msg_len,
-                      ct_tmp.msg);
-    memcpy(ct, ct_tmp.msg, msg_len);
-    break;
-  case CIPHERING_ALGORITHM_ID_128_EEA2:
-    security_128_eea2(&(k_enc[16]),
-                      tx_count,
-                      cfg.bearer_id - 1,
-                      cfg.direction,
-                      msg,
-                      msg_len,
-                      ct_tmp.msg);
-    memcpy(ct, ct_tmp.msg, msg_len);
-    break;
-  default:
-    break;
-  }
-}
-
-void pdcp_entity::cipher_decrypt(uint8_t  *ct,
-                                 uint32_t  count,
-                                 uint32_t  ct_len,
-                                 uint8_t  *msg)
-{
-  byte_buffer_t msg_tmp;
-  uint8_t *k_enc;
-  // If control plane use RRC encrytion key. If data use user plane key
-  if (cfg.is_control) {
-    k_enc = k_rrc_enc;
-  } else {
-    k_enc = k_up_enc;
-  }
-
-  switch(cipher_algo)
-  {
-  case CIPHERING_ALGORITHM_ID_EEA0:
-    break;
-  case CIPHERING_ALGORITHM_ID_128_EEA1:
-    security_128_eea1(&(k_enc[16]),
-                      count,
-                      cfg.bearer_id - 1,
-                      (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? (SECURITY_DIRECTION_UPLINK) : (SECURITY_DIRECTION_DOWNLINK),
-                      ct,
-                      ct_len,
-                      msg_tmp.msg);
-    memcpy(msg, msg_tmp.msg, ct_len);
-    break;
-  case CIPHERING_ALGORITHM_ID_128_EEA2:
-    security_128_eea2(&(k_enc[16]),
-                      count,
-                      cfg.bearer_id - 1,
-                      (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? (SECURITY_DIRECTION_UPLINK) : (SECURITY_DIRECTION_DOWNLINK),
-                      ct,
-                      ct_len,
-                      msg_tmp.msg);
-    memcpy(msg, msg_tmp.msg, ct_len);
-    break;
-  default:
-    break;
-  }
-}
-
-
 uint32_t pdcp_entity::get_dl_count()
 {
   return rx_count;
@@ -546,7 +315,6 @@ uint32_t pdcp_entity::get_ul_count()
  * Pack/Unpack helper functions
  * Ref: 3GPP TS 38.323 v15.2.0
  ***************************************************************************/
-
 void pdcp_pack_control_pdu(uint32_t sn, byte_buffer_t *sdu)
 {
   // Make room and add header
