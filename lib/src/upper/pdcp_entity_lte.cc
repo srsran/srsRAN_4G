@@ -227,7 +227,7 @@ void pdcp_entity_lte::handle_um_drb_pdu(const srslte::unique_byte_buffer_t &pdu)
 
   uint32_t count = (rx_hfn << cfg.sn_len) | sn;
   if (do_encryption) {
-    cipher_decrypt(pdu->msg, count, pdu->N_bytes, pdu->msg);
+    cipher_decrypt(pdu->msg, pdu->N_bytes, count, cfg.bearer_id, cfg.direction, pdu->msg);
     log->debug_hex(pdu->msg, pdu->N_bytes, "RX %s PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
   }
 
@@ -289,7 +289,7 @@ void pdcp_entity_lte::handle_am_drb_pdu(const srslte::unique_byte_buffer_t &pdu)
   }
 
   // FIXME Check if PDU is not due to re-establishment of lower layers?
-  cipher_decrypt(pdu->msg, count, pdu->N_bytes, pdu->msg);
+  cipher_decrypt(pdu->msg, pdu->N_bytes, count, cfg.bearer_id, cfg.direction, pdu->msg);
   log->debug_hex(pdu->msg, pdu->N_bytes, "RX %s PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
 
   if (!discard) {

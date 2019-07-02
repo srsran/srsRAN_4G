@@ -28,7 +28,7 @@
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/security.h"
 #include "srslte/common/threads.h"
-#include "pdcp_entity_base.h"
+#include "srslte/upper/pdcp_entity_base.h"
 
 
 namespace srslte {
@@ -57,8 +57,6 @@ public:
             srslte_pdcp_config_lte_t   cfg_);
   void reset();
   void reestablish();
-
-  bool is_active();
 
   // GW/RRC interface
   void write_sdu(unique_byte_buffer_t sdu, bool blocking);

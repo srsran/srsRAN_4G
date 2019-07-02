@@ -23,7 +23,7 @@
 #include "srslte/common/log_filter.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/upper/pdcp.h"
-#include "srslte/upper/pdcp_entity.h"
+#include "srslte/upper/pdcp_entity_lte.h"
 #include "srslte/upper/rlc.h"
 #include "srsue/hdr/stack/mac/mac.h"
 #include "srsue/hdr/stack/rrc/rrc.h"
@@ -90,7 +90,7 @@ public:
   void        write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu) {}
   std::string get_rb_name(uint32_t lcid) { return std::string("lcid"); }
   void        write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking) {}
-  bool is_lcid_enabled(uint32_t lcid) { return false; }
+  bool        is_lcid_enabled(uint32_t lcid) { return false; }
 };
 
 class rrc_dummy : public rrc_interface_nas

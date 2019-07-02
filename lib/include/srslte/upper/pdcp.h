@@ -29,10 +29,7 @@
 
 namespace srslte {
 
-class pdcp
-    :public srsue::pdcp_interface_gw
-    ,public srsue::pdcp_interface_rlc
-    ,public srsue::pdcp_interface_rrc
+class pdcp : public srsue::pdcp_interface_gw, public srsue::pdcp_interface_rlc, public srsue::pdcp_interface_rrc
 {
 public:
   pdcp(log* log_);

@@ -92,6 +92,32 @@ public:
   // bool do_rohc;
 };
 
+class srslte_pdcp_config_nr_t
+{
+public:
+  srslte_pdcp_config_nr_t(uint8_t bearer_id_  = 0,
+                          bool    is_control_ = false,
+                          bool    is_data_    = false,
+                          uint8_t direction_  = SECURITY_DIRECTION_UPLINK,
+                          uint8_t sn_len_     = 12) :
+    bearer_id(bearer_id_),
+    direction(direction_),
+    is_control(is_control_),
+    is_data(is_data_),
+    sn_len(sn_len_)
+  {
+  }
+
+  uint32_t bearer_id;
+  uint8_t  direction;
+  bool     is_control;
+  bool     is_data;
+  uint8_t  sn_len;
+
+  // TODO: Support the following configurations
+  // bool do_rohc;
+};
+
 class mac_interface_timers
 {
 public: 

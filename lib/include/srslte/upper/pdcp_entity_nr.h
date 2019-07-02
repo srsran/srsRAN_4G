@@ -30,7 +30,6 @@
 #include "srslte/common/threads.h"
 #include "pdcp_entity_base.h"
 
-
 namespace srslte {
 
 /****************************************************************************
@@ -72,6 +71,8 @@ private:
   srsue::rlc_interface_pdcp* rlc = nullptr;
   srsue::rrc_interface_pdcp* rrc = nullptr;
   srsue::gw_interface_pdcp*  gw  = nullptr;
+
+  srslte_pdcp_config_nr_t cfg;
 
   uint32_t rx_count      = 0;
   uint32_t tx_count      = 0;
