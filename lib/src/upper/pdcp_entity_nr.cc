@@ -46,6 +46,7 @@ void pdcp_entity_nr::init(srsue::rlc_interface_pdcp*  rlc_,
   do_encryption = false;
 
   // TODO
+  sn_len_bytes = (int)cfg.sn_len % 8;
 }
 
 // Reestablishment procedure: 36.323 5.2
@@ -68,8 +69,8 @@ void pdcp_entity_nr::reset()
 void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, bool blocking)
 {
   log->info_hex(sdu->msg, sdu->N_bytes,
-        "TX %s SDU, SN: %d, do_integrity = %s, do_encryption = %s",
-        rrc->get_rb_name(lcid).c_str(), tx_count,
+        "TX %s SDU, do_integrity = %s, do_encryption = %s",
+        rrc->get_rb_name(lcid).c_str(),
         (do_integrity) ? "true" : "false", (do_encryption) ? "true" : "false");
 
   // TODO
@@ -85,6 +86,11 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
                 pdu->N_bytes,
                 (do_integrity) ? "true" : "false",
                 (do_encryption) ? "true" : "false");
+
+  // Sanity check
+  if (pdu->N_bytes <= sn_len_bytes) {
+    return;
+  }
 
   // TODO
 }

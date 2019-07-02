@@ -74,31 +74,22 @@ private:
 
   srslte_pdcp_config_nr_t cfg;
 
-  uint32_t rx_count      = 0;
-  uint32_t tx_count      = 0;
+  uint16_t sn_len_bytes = 0;
 
-  uint32_t rx_hfn                    = 0;
-  uint32_t next_pdcp_rx_sn           = 0;
-  uint32_t reordering_window         = 0;
-  uint32_t last_submitted_pdcp_rx_sn = 0;
-  uint32_t maximum_pdcp_sn           = 0;
-
-  void handle_um_drb_pdu(const srslte::unique_byte_buffer_t& pdu);
-  void handle_am_drb_pdu(const srslte::unique_byte_buffer_t& pdu);
+  // State variables: 3GPP TS 38.323 v15.2.0, section 7.1
+  uint32_t tx_next = 0;
+  uint32_t rx_next = 0;
+  uint32_t rx_deliv = 0; 
+  uint32_t rx_reord = 0; 
+ 
+  // Constants: 3GPP TS 38.323 v15.2.0, section 7.2
+  uint32_t window_size = 0;
 };
 
 /****************************************************************************
  * Pack/Unpack helper functions
- * Ref: 3GPP TS 36.323 v10.1.0
+ * Ref: 3GPP TS 38.323 v15.2.0
  ***************************************************************************/
-
-void pdcp_pack_control_pdu(uint32_t sn, byte_buffer_t *sdu);
-void pdcp_unpack_control_pdu(byte_buffer_t *sdu, uint32_t *sn);
-
-void pdcp_pack_data_pdu_short_sn(uint32_t sn, byte_buffer_t *sdu);
-void pdcp_unpack_data_pdu_short_sn(byte_buffer_t *sdu, uint32_t *sn);
-void pdcp_pack_data_pdu_long_sn(uint32_t sn, byte_buffer_t *sdu);
-void pdcp_unpack_data_pdu_long_sn(byte_buffer_t *sdu, uint32_t *sn);
 
 } // namespace srslte
 #endif // SRSLTE_PDCP_ENTITY_NR_H
