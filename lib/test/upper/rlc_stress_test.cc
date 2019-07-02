@@ -19,19 +19,20 @@
  *
  */
 
-#include <iostream>
-#include <cstdlib>
-#include <pthread.h>
+#include "srslte/common/crash_handler.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/logger_stdout.h"
-#include "srslte/common/threads.h"
 #include "srslte/common/rlc_pcap.h"
+#include "srslte/common/threads.h"
 #include "srslte/upper/rlc.h"
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <cassert>
+#include <cstdlib>
+#include <iostream>
+#include <pthread.h>
+#include <random>
 #include <srslte/upper/rlc_interface.h>
-#include "srslte/common/crash_handler.h"
 
 #define LOG_HEX_LIMIT (-1)
 
@@ -44,7 +45,8 @@ typedef struct {
   std::string mode;
   uint32_t    sdu_size;
   uint32_t    test_duration_sec;
-  float       error_rate;
+  float       pdu_drop_rate;
+  float       pdu_cut_rate;
   uint32_t    sdu_gen_delay_usec;
   uint32_t    pdu_tx_delay_usec;
   bool        reestablish;
@@ -54,6 +56,7 @@ typedef struct {
   uint32_t    avg_opp_size;
   bool        random_opp;
   bool        zero_seed;
+  bool        pedantic_sdu_check;
 } stress_test_args_t;
 
 void parse_args(stress_test_args_t *args, int argc, char *argv[]) {
@@ -65,6 +68,8 @@ void parse_args(stress_test_args_t *args, int argc, char *argv[]) {
   ("help,h", "Produce help message")
   ("version,v", "Print version information and exit");
 
+  // clang-format off
+
   // Command line or config file options
   bpo::options_description common("Configuration options");
   common.add_options()
@@ -75,12 +80,15 @@ void parse_args(stress_test_args_t *args, int argc, char *argv[]) {
   ("random_opp",    bpo::value<bool>(&args->random_opp)->default_value(true), "Whether to generate random MAC opportunities")
   ("sdu_gen_delay", bpo::value<uint32_t>(&args->sdu_gen_delay_usec)->default_value(0), "SDU generation delay (usec)")
   ("pdu_tx_delay",  bpo::value<uint32_t>(&args->pdu_tx_delay_usec)->default_value(0), "Delay in MAC for transfering PDU from tx'ing RLC to rx'ing RLC (usec)")
-  ("error_rate",    bpo::value<float>(&args->error_rate)->default_value(0.1), "Rate at which RLC PDUs are dropped")
+  ("pdu_drop_rate", bpo::value<float>(&args->pdu_drop_rate)->default_value(0.1), "Rate at which RLC PDUs are dropped")
+  ("pdu_cut_rate",  bpo::value<float>(&args->pdu_cut_rate)->default_value(0.0), "Rate at which RLC PDUs are chopped in length")
   ("reestablish",   bpo::value<bool>(&args->reestablish)->default_value(false), "Mimic RLC reestablish during execution")
   ("loglevel",      bpo::value<uint32_t>(&args->log_level)->default_value(srslte::LOG_LEVEL_DEBUG), "Log level (1=Error,2=Warning,3=Info,4=Debug)")
   ("singletx",      bpo::value<bool>(&args->single_tx)->default_value(false), "If set to true, only one node is generating data")
   ("pcap",          bpo::value<bool>(&args->write_pcap)->default_value(false), "Whether to write all RLC PDU to PCAP file")
-  ("zeroseed",      bpo::value<bool>(&args->zero_seed)->default_value(false), "Whether to initialize random seed to zero");
+  ("zeroseed",      bpo::value<bool>(&args->zero_seed)->default_value(false), "Whether to initialize random seed to zero")
+  ("pedantic",      bpo::value<bool>(&args->pedantic_sdu_check)->default_value(false), "Whether to check SDU length and exit on error");
+  // clang-format on
 
   // these options are allowed on the command line
   bpo::options_description cmdline_options;
@@ -136,7 +144,8 @@ public:
     lcid(lcid_),
     stack(stack_),
     log("MAC  "),
-    thread("MAC_DUMMY")
+    thread("MAC_DUMMY"),
+    real_dist(0.0, 1.0)
   {
     log.set_level(static_cast<LOG_LEVEL_ENUM>(args.log_level));
     log.set_hex_limit(LOG_HEX_LIMIT);
@@ -160,7 +169,7 @@ private:
 
     float factor = 1.0;
     if (args.random_opp) {
-      factor = 0.5 + static_cast<float>(rand())/RAND_MAX;
+      factor = 0.5 + real_dist(mt19937);
     }
     int opp_size = args.avg_opp_size * factor;
     uint32_t buf_state = tx_rlc->get_buffer_state(lcid);
@@ -170,12 +179,18 @@ private:
       if (args.pdu_tx_delay_usec > 0) {
         usleep(args.pdu_tx_delay_usec);
       }
-      if(((float)rand()/RAND_MAX > args.error_rate) && read>0) {
-        rx_rlc->write_pdu(lcid, pdu->msg, pdu->N_bytes);
+      if ((real_dist(mt19937) > args.pdu_drop_rate) && read > 0) {
+        uint32_t pdu_len = pdu->N_bytes;
+        if ((real_dist(mt19937) > 0.1) && args.pdu_cut_rate) {
+          int cut_pdu_len = pdu_len * real_dist(mt19937);
+          log.info("Cutting MAC PDU len (%d B > %d B)\n", pdu_len, cut_pdu_len);
+          pdu_len = cut_pdu_len;
+        }
+        rx_rlc->write_pdu(lcid, pdu->msg, pdu_len);
         if (is_dl) {
-          pcap->write_dl_am_ccch(pdu->msg, pdu->N_bytes);
+          pcap->write_dl_am_ccch(pdu->msg, pdu_len);
         } else {
-          pcap->write_ul_am_ccch(pdu->msg, pdu->N_bytes);
+          pcap->write_ul_am_ccch(pdu->msg, pdu_len);
         }
       } else {
         log.warning_hex(pdu->msg, pdu->N_bytes, "Dropping RLC PDU (%d B)\n", pdu->N_bytes);
@@ -206,6 +221,9 @@ private:
   uint32_t lcid;
   srslte::log_filter log;
   stack_dummy*       stack = nullptr;
+
+  std::mt19937                          mt19937;
+  std::uniform_real_distribution<float> real_dist;
 };
 
 
@@ -241,7 +259,9 @@ public:
     assert(rx_lcid == lcid);
     if (sdu->N_bytes != args.sdu_size) {
       log.error_hex(sdu->msg, sdu->N_bytes, "Received SDU with size %d, expected %d.\n", sdu->N_bytes, args.sdu_size);
-      exit(-1);
+      if (args.pedantic_sdu_check) {
+        exit(-1);
+      }
     }
 
     rx_pdus++;
