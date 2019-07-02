@@ -35,12 +35,13 @@ void pdcp_entity_base::config_security(uint8_t*                    k_rrc_enc_,
                                        CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
                                        INTEGRITY_ALGORITHM_ID_ENUM integ_algo_)
 {
+
   // TODO add mutex
   for (int i = 0; i < 32; i++) {
     k_rrc_enc[i] = k_rrc_enc_[i];
     k_rrc_int[i] = k_rrc_int_[i];
     k_up_enc[i]  = k_up_enc_[i];
-    if (k_up_int != nullptr) {
+    if (k_up_int_ != nullptr) {
       k_up_int[i] = k_up_int_[i];
     }
   }

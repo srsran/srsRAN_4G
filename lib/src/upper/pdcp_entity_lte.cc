@@ -51,6 +51,8 @@ void pdcp_entity_lte::init(srsue::rlc_interface_pdcp* rlc_,
 
   // set length of SN field in bytes
   sn_len_bytes = (cfg.sn_len == 5) ? 1 : 2;
+  
+  rb_is_control = cfg.is_control;
 
   if (cfg.is_control) {
     reordering_window = 0;

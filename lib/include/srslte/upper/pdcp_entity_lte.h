@@ -72,11 +72,11 @@ private:
   srsue::rrc_interface_pdcp* rrc = nullptr;
   srsue::gw_interface_pdcp*  gw  = nullptr;
 
-  srslte_pdcp_config_lte_t cfg           = {};
-  uint8_t                  sn_len_bytes  = 0;
+  srslte_pdcp_config_lte_t cfg          = {};
+  uint8_t                  sn_len_bytes = 0;
 
-  uint32_t rx_count      = 0;
-  uint32_t tx_count      = 0;
+  uint32_t rx_count = 0;
+  uint32_t tx_count = 0;
 
   uint32_t rx_hfn                    = 0;
   uint32_t next_pdcp_rx_sn           = 0;
