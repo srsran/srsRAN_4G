@@ -473,6 +473,30 @@ int mac_sch_pdu_pack_error_test()
   return SRSLTE_SUCCESS;
 }
 
+// Parsing a corrupted MAC PDU and making sure the PDU is reset and not further processed
+int mac_sch_pdu_unpack_test1()
+{
+  static uint8_t tv[] = {0x3f, 0x3f, 0x21, 0x3f, 0x03, 0x00, 0x04, 0x00, 0x04};
+
+  srslte::log_filter mac_log("MAC");
+  mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
+  mac_log.set_hex_limit(100000);
+
+  srslte::sch_pdu pdu(10, &mac_log);
+  pdu.init_rx(sizeof(tv), false);
+  pdu.parse_packet(tv);
+
+  // make sure this PDU is reset and will not be further processed
+  TESTASSERT(pdu.nof_subh() == 0);
+  TESTASSERT(pdu.next() == false);
+
+#if HAVE_PCAP
+  pcap_handle->write_ul_crnti(tv, sizeof(tv), 0x1001, true, 1);
+#endif
+
+  return SRSLTE_SUCCESS;
+}
+
 int main(int argc, char** argv)
 {
 #if HAVE_PCAP
@@ -522,6 +546,11 @@ int main(int argc, char** argv)
 
   if (mac_sch_pdu_pack_error_test()) {
     fprintf(stderr, "mac_sch_pdu_pack_error_test failed.\n");
+    return SRSLTE_ERROR;
+  }
+
+  if (mac_sch_pdu_unpack_test1()) {
+    fprintf(stderr, "mac_sch_pdu_unpack_test1 failed.\n");
     return SRSLTE_ERROR;
   }
 
