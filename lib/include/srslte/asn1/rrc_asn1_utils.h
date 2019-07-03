@@ -30,30 +30,37 @@ namespace rrc {
 
 struct plmn_id_s;
 struct s_tmsi_s;
+struct rlc_cfg_c;
 
 } // namespace rrc
 } // namespace asn1
 
 namespace srslte {
 
+bool plmn_is_valid(const asn1::rrc::plmn_id_s& asn1_type);
+
 struct plmn_id_t {
   uint8_t mcc[3];
   uint8_t mnc[3];
   uint8_t nof_mnc_digits;
 
-  plmn_id_t() : mcc(), mnc(), nof_mnc_digits(0) {}
-  int         from_asn1(const asn1::rrc::plmn_id_s* asn1_type);
-  void        to_asn1(asn1::rrc::plmn_id_s* asn1_type) const;
-  void        from_number(uint16_t mcc_num, uint16_t mnc_num);
+  plmn_id_t() : mcc(), mnc(), nof_mnc_digits(2) {}
+  explicit plmn_id_t(const asn1::rrc::plmn_id_s& asn1_type);
+  void        reset();
+  int         from_asn1(const asn1::rrc::plmn_id_s& asn1_type);
+  int         to_asn1(asn1::rrc::plmn_id_s* asn1_type) const;
+  int         from_number(uint16_t mcc_num, uint16_t mnc_num);
   int         from_string(const std::string& plmn_str);
   std::string to_string() const;
 };
 
 struct s_tmsi_t {
-  uint8_t  mmec;
-  uint32_t m_tmsi;
+  uint8_t  mmec   = 0;
+  uint32_t m_tmsi = 0;
 
-  void from_asn1(const asn1::rrc::s_tmsi_s* asn1_type);
+  s_tmsi_t() = default;
+  explicit s_tmsi_t(const asn1::rrc::s_tmsi_s& asn1_type);
+  void from_asn1(const asn1::rrc::s_tmsi_s& asn1_type);
   void to_asn1(asn1::rrc::s_tmsi_s* asn1_type) const;
 };
 
@@ -70,6 +77,8 @@ enum class establishment_cause_t {
 };
 std::string to_string(const establishment_cause_t& cause);
 
+class srslte_rlc_config_t;
+void convert_from_asn1(srslte_rlc_config_t* out, const asn1::rrc::rlc_cfg_c& asn1_type);
 }
 
 #endif // SRSLTE_RRC_ASN1_UTILS_H

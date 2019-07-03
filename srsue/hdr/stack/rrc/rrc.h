@@ -104,8 +104,7 @@ class cell_t
   srslte::plmn_id_t get_plmn(uint32_t idx)
   {
     if (idx < sib1.cell_access_related_info.plmn_id_list.size() && has_valid_sib1) {
-      srslte::plmn_id_t ret;
-      ret.from_asn1(&sib1.cell_access_related_info.plmn_id_list[idx].plmn_id);
+      srslte::plmn_id_t ret(sib1.cell_access_related_info.plmn_id_list[idx].plmn_id);
       return ret;
     } else {
       return {};

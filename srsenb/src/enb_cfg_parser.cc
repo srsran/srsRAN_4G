@@ -635,10 +635,12 @@ int enb::parse_sibs(all_args_t* args, rrc_cfg_t* rrc_cfg, phy_cfg_t* phy_config_
     return -1;
   }
   cell_access->plmn_id_list.resize(1);
-  if (not srslte::string_to_plmn_id(cell_access->plmn_id_list[0].plmn_id, mcc_str + mnc_str)) {
+  srslte::plmn_id_t plmn;
+  if (plmn.from_string(mcc_str + mnc_str) == SRSLTE_ERROR) {
     ERROR("Could not convert %s to a plmn_id\n", (mcc_str + mnc_str).c_str());
     return -1;
   }
+  plmn.to_asn1(&cell_access->plmn_id_list[0].plmn_id);
   cell_access->plmn_id_list[0].cell_reserved_for_oper = plmn_id_info_s::cell_reserved_for_oper_e_::not_reserved;
   sib1->cell_sel_info.q_rx_lev_min_offset             = 0;
 

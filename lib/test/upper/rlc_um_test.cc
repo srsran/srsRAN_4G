@@ -109,14 +109,17 @@ int basic_test()
   rlc_um rlc1(&log1, 3, &tester, &tester, &timers);
   rlc_um rlc2(&log2, 3, &tester, &tester, &timers);
 
-  rlc_cfg_c cnfg;
-  cnfg.set(rlc_cfg_c::types::um_bi_dir);
-  cnfg.um_bi_dir().dl_um_rlc.t_reordering = t_reordering_e::ms5;
-  cnfg.um_bi_dir().dl_um_rlc.sn_field_len = sn_field_len_e::size10;
-  cnfg.um_bi_dir().ul_um_rlc.sn_field_len = sn_field_len_e::size10;
+  srslte_rlc_config_t cnfg;
+  cnfg.rlc_mode              = RLC_MODE_UM;
+  cnfg.um.t_reordering       = 5;
+  cnfg.um.rx_sn_field_length = RLC_UMD_SN_SIZE_10_BITS;
+  cnfg.um.rx_window_size     = 512;
+  cnfg.um.rx_mod             = 1024;
+  cnfg.um.tx_sn_field_length = RLC_UMD_SN_SIZE_10_BITS;
+  cnfg.um.tx_mod             = 1024;
 
-  TESTASSERT(rlc1.configure(&cnfg) == true);
-  TESTASSERT(rlc2.configure(&cnfg) == true);
+  TESTASSERT(rlc1.configure(cnfg) == true);
+  TESTASSERT(rlc2.configure(cnfg) == true);
 
   tester.set_expected_sdu_len(1);
 
@@ -176,14 +179,17 @@ int loss_test()
   rlc_um rlc1(&log1, 3, &tester, &tester, &timers);
   rlc_um rlc2(&log2, 3, &tester, &tester, &timers);
 
-  rlc_cfg_c cnfg;
-  cnfg.set(rlc_cfg_c::types::um_bi_dir);
-  cnfg.um_bi_dir().dl_um_rlc.t_reordering = t_reordering_e::ms5;
-  cnfg.um_bi_dir().dl_um_rlc.sn_field_len = sn_field_len_e::size10;
-  cnfg.um_bi_dir().ul_um_rlc.sn_field_len = sn_field_len_e::size10;
+  srslte_rlc_config_t cnfg;
+  cnfg.rlc_mode              = RLC_MODE_UM;
+  cnfg.um.t_reordering       = 5;
+  cnfg.um.rx_sn_field_length = RLC_UMD_SN_SIZE_10_BITS;
+  cnfg.um.rx_window_size     = 512;
+  cnfg.um.rx_mod             = 1024;
+  cnfg.um.tx_sn_field_length = RLC_UMD_SN_SIZE_10_BITS;
+  cnfg.um.tx_mod             = 1024;
 
-  rlc1.configure(&cnfg);
-  rlc2.configure(&cnfg);
+  rlc1.configure(cnfg);
+  rlc2.configure(cnfg);
 
   tester.set_expected_sdu_len(1);
 
@@ -313,14 +319,17 @@ int reassmble_test()
   rlc_um rlc1(&log1, 3, &tester, &tester, &timers);
   rlc_um rlc2(&log2, 3, &tester, &tester, &timers);
 
-  rlc_cfg_c cnfg;
-  cnfg.set(rlc_cfg_c::types::um_bi_dir);
-  cnfg.um_bi_dir().dl_um_rlc.t_reordering = t_reordering_e::ms5;
-  cnfg.um_bi_dir().dl_um_rlc.sn_field_len = sn_field_len_e::size5;
-  cnfg.um_bi_dir().ul_um_rlc.sn_field_len = sn_field_len_e::size5;
+  srslte_rlc_config_t cnfg;
+  cnfg.rlc_mode              = RLC_MODE_UM;
+  cnfg.um.t_reordering       = 5;
+  cnfg.um.rx_sn_field_length = RLC_UMD_SN_SIZE_5_BITS;
+  cnfg.um.rx_window_size     = 16;
+  cnfg.um.rx_mod             = 32;
+  cnfg.um.tx_sn_field_length = RLC_UMD_SN_SIZE_5_BITS;
+  cnfg.um.tx_mod             = 32;
 
-  rlc1.configure(&cnfg);
-  rlc2.configure(&cnfg);
+  rlc1.configure(cnfg);
+  rlc2.configure(cnfg);
 
   // Push SDUs into RLC1
   const int n_sdus = 25;
@@ -426,14 +435,17 @@ int reassmble_test2()
   rlc_um rlc1(&log1, 3, &tester, &tester, &timers);
   rlc_um rlc2(&log2, 3, &tester, &tester, &timers);
 
-  rlc_cfg_c cnfg;
-  cnfg.set(rlc_cfg_c::types::um_bi_dir);
-  cnfg.um_bi_dir().dl_um_rlc.t_reordering = t_reordering_e::ms5;
-  cnfg.um_bi_dir().dl_um_rlc.sn_field_len = sn_field_len_e::size5;
-  cnfg.um_bi_dir().ul_um_rlc.sn_field_len = sn_field_len_e::size5;
+  srslte_rlc_config_t cnfg;
+  cnfg.rlc_mode              = RLC_MODE_UM;
+  cnfg.um.t_reordering       = 5;
+  cnfg.um.rx_sn_field_length = RLC_UMD_SN_SIZE_5_BITS;
+  cnfg.um.rx_window_size     = 16;
+  cnfg.um.rx_mod             = 32;
+  cnfg.um.tx_sn_field_length = RLC_UMD_SN_SIZE_5_BITS;
+  cnfg.um.tx_mod             = 32;
 
-  rlc1.configure(&cnfg);
-  rlc2.configure(&cnfg);
+  rlc1.configure(cnfg);
+  rlc2.configure(cnfg);
 
   // Push SDUs into RLC1
   const int n_sdus = 25;

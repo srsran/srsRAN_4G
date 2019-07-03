@@ -22,6 +22,7 @@
 #include "srsenb/hdr/stack/rrc/rrc.h"
 #include "srslte/asn1/asn1_utils.h"
 #include "srslte/asn1/liblte_mme.h"
+#include "srslte/asn1/rrc_asn1_utils.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/int_helpers.h"
 #include "srslte/interfaces/sched_interface.h"
@@ -761,8 +762,9 @@ void rrc::configure_mbsfn_sibs(sib_type2_s* sib2, sib_type13_r9_s* sib13)
   pmch_item->mbms_session_info_list_r9[0].session_id_r9_present = true;
   pmch_item->mbms_session_info_list_r9[0].session_id_r9[0]      = 0;
   pmch_item->mbms_session_info_list_r9[0].tmgi_r9.plmn_id_r9.set_explicit_value_r9();
-  pmch_item->mbms_session_info_list_r9[0].tmgi_r9.plmn_id_r9.explicit_value_r9().mcc_present = true;
-  srslte::string_to_plmn_id(pmch_item->mbms_session_info_list_r9[0].tmgi_r9.plmn_id_r9.explicit_value_r9(), "00003");
+  srslte::plmn_id_t plmn_obj;
+  plmn_obj.from_string("00003");
+  plmn_obj.to_asn1(&pmch_item->mbms_session_info_list_r9[0].tmgi_r9.plmn_id_r9.explicit_value_r9());
   uint8_t byte[] = {0x0, 0x0, 0x0};
   memcpy(&pmch_item->mbms_session_info_list_r9[0].tmgi_r9.service_id_r9[0], &byte[0], 3);
 
@@ -770,8 +772,8 @@ void rrc::configure_mbsfn_sibs(sib_type2_s* sib2, sib_type13_r9_s* sib13)
     pmch_item->mbms_session_info_list_r9[1].lc_ch_id_r9           = 2;
     pmch_item->mbms_session_info_list_r9[1].session_id_r9_present = true;
     pmch_item->mbms_session_info_list_r9[1].session_id_r9[0]      = 1;
-    pmch_item->mbms_session_info_list_r9[1].tmgi_r9.plmn_id_r9.set_explicit_value_r9();
-    srslte::string_to_plmn_id(pmch_item->mbms_session_info_list_r9[1].tmgi_r9.plmn_id_r9.explicit_value_r9(), "00003");
+    pmch_item->mbms_session_info_list_r9[1].tmgi_r9.plmn_id_r9.set_explicit_value_r9() =
+        pmch_item->mbms_session_info_list_r9[0].tmgi_r9.plmn_id_r9.explicit_value_r9();
     byte[2] = 1;
     memcpy(&pmch_item->mbms_session_info_list_r9[1].tmgi_r9.service_id_r9[0], &byte[0],
            3); // FIXME: Check if service is set to 1
@@ -1749,7 +1751,9 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   parent->pdcp->enable_encryption(rnti, 2);
 
   // Configure DRB1 in RLC
-  parent->rlc->add_bearer(rnti, 3, &conn_reconf->rr_cfg_ded.drb_to_add_mod_list[0].rlc_cfg);
+  srslte::srslte_rlc_config_t rlc_cfg;
+  srslte::convert_from_asn1(&rlc_cfg, conn_reconf->rr_cfg_ded.drb_to_add_mod_list[0].rlc_cfg);
+  parent->rlc->add_bearer(rnti, 3, rlc_cfg);
 
   // Configure DRB1 in PDCP
   pdcp_cnfg.is_control = false;
@@ -1816,7 +1820,9 @@ void rrc::ue::send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBE
     parent->mac->bearer_ue_cfg(rnti, lcid, &bearer_cfg);
 
     // Configure DRB in RLC
-    parent->rlc->add_bearer(rnti, lcid, &drb_item.rlc_cfg);
+    srslte::srslte_rlc_config_t rlc_cfg;
+    srslte::convert_from_asn1(&rlc_cfg, drb_item.rlc_cfg);
+    parent->rlc->add_bearer(rnti, lcid, rlc_cfg);
 
     // Configure DRB in PDCP
     srslte::srslte_pdcp_config_t pdcp_config;

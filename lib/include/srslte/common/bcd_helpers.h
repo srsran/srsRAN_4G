@@ -26,8 +26,6 @@
 #include <stdint.h>
 #include <string>
 
-#include "srslte/asn1/rrc_asn1.h"
-
 namespace srslte {
 
 /******************************************************************************
@@ -89,7 +87,7 @@ inline bool mcc_to_bytes(uint16_t mcc, uint8_t* bytes)
   return true;
 }
 
-inline std::string mcc_bytes_to_string(asn1::rrc::mcc_l mcc_bytes)
+inline std::string mcc_bytes_to_string(uint8_t* mcc_bytes)
 {
   std::string mcc_str;
   uint16_t    mcc;
@@ -200,45 +198,21 @@ bool mnc_to_bytes(uint16_t mnc, Vec& vec)
   return ret;
 }
 
-inline std::string mnc_bytes_to_string(asn1::rrc::mnc_l mnc_bytes)
+inline std::string mnc_bytes_to_string(uint8_t* mnc_bytes, uint32_t nof_bytes)
 {
   std::string mnc_str;
   uint16_t    mnc;
-  bytes_to_mnc(&mnc_bytes[0], &mnc, mnc_bytes.size());
+  bytes_to_mnc(&mnc_bytes[0], &mnc, nof_bytes);
   if (!mnc_to_string(mnc, &mnc_str)) {
     mnc_str = "000";
   }
   return mnc_str;
 }
 
-inline std::string plmn_id_to_string(asn1::rrc::plmn_id_s plmn_id)
+template <class Vec>
+std::string mnc_bytes_to_string(Vec mnc_bytes)
 {
-  std::string mcc_str, mnc_str;
-  uint16_t    mnc, mcc;
-  bytes_to_mnc(&plmn_id.mnc[0], &mnc, plmn_id.mnc.size());
-  bytes_to_mcc(&plmn_id.mcc[0], &mcc);
-  mnc_to_string(mnc, &mnc_str);
-  mcc_to_string(mcc, &mcc_str);
-  return mcc_str + mnc_str;
-}
-
-inline bool string_to_plmn_id(asn1::rrc::plmn_id_s& plmn, std::string mccmnc_str)
-{
-  if (mccmnc_str.size() < 5 or mccmnc_str.size() > 6) {
-    return false;
-  }
-  uint16_t mnc, mcc;
-  if (not string_to_mcc(std::string(mccmnc_str.begin(), mccmnc_str.begin() + 3), &mcc)) {
-    return false;
-  }
-  if (not string_to_mnc(std::string(mccmnc_str.begin() + 3, mccmnc_str.end()), &mnc)) {
-    return false;
-  }
-  plmn.mcc_present = true;
-  if (not mcc_to_bytes(mcc, &plmn.mcc[0])) {
-    return false;
-  }
-  return mnc_to_bytes(mnc, plmn.mnc);
+  return mnc_bytes_to_string(&mnc_bytes[0], mnc_bytes.size());
 }
 
 /******************************************************************************

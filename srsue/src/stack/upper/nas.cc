@@ -20,7 +20,6 @@
  */
 
 #include "srsue/hdr/stack/upper/nas.h"
-#include "srslte/asn1/rrc_asn1.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/security.h"
 #include <fstream>
@@ -31,16 +30,13 @@
 #include <unistd.h>
 
 #include "srslte/asn1/liblte_mme.h"
-#include "srslte/asn1/rrc_asn1.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/security.h"
 #include "srsue/hdr/stack/upper/nas.h"
 
 using namespace srslte;
-using namespace asn1::rrc;
 
 namespace srsue {
-
 
 /*********************************************************************
  *   NAS

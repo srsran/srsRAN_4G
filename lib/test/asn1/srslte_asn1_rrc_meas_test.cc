@@ -20,6 +20,7 @@
  */
 
 #include "srslte/asn1/rrc_asn1.h"
+#include "srslte/asn1/rrc_asn1_utils.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/log_filter.h"
 #include <iostream>
@@ -75,8 +76,8 @@ int basic_test()
   TESTASSERT(meas_list[0].cgi_info_present);
   TESTASSERT(meas_list[0].cgi_info.plmn_id_list_present);
   TESTASSERT(meas_list[0].cgi_info.cell_global_id.plmn_id.mcc_present);
-  std::string mccmnc_str = srslte::plmn_id_to_string(meas_list[0].cgi_info.cell_global_id.plmn_id);
-  TESTASSERT(mccmnc_str == "89878");
+  srslte::plmn_id_t plmn(meas_list[0].cgi_info.cell_global_id.plmn_id);
+  TESTASSERT(plmn.to_string() == "89878");
   TESTASSERT(meas_list[0].cgi_info.cell_global_id.cell_id.to_number() == 0x1084104);
   TESTASSERT(meas_list[0].cgi_info.tac.to_number() == 0x1042);
   TESTASSERT(meas_list[0].cgi_info.plmn_id_list.size() == 1);

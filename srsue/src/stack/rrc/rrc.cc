@@ -1156,7 +1156,7 @@ std::string rrc::print_mbms()
         ss << ", Session ID: " << sess->session_id_r9.to_string();
       }
       if (sess->tmgi_r9.plmn_id_r9.type() == tmgi_r9_s::plmn_id_r9_c_::types::explicit_value_r9) {
-        ss << ", MCC: " << mcc_bytes_to_string(sess->tmgi_r9.plmn_id_r9.explicit_value_r9().mcc);
+        ss << ", MCC: " << mcc_bytes_to_string(&sess->tmgi_r9.plmn_id_r9.explicit_value_r9().mcc[0]);
         ss << ", MNC: " << mnc_bytes_to_string(sess->tmgi_r9.plmn_id_r9.explicit_value_r9().mnc);
       } else {
         ss << ", PLMN index: " << sess->tmgi_r9.plmn_id_r9.plmn_idx_r9();
@@ -2087,8 +2087,7 @@ void rrc::process_pcch(unique_byte_buffer_t pdu)
     }
 
     for (uint32_t i = 0; i < paging->paging_record_list.size(); i++) {
-      s_tmsi_t s_tmsi_paged;
-      s_tmsi_paged.from_asn1(&paging->paging_record_list[i].ue_id.s_tmsi());
+      s_tmsi_t s_tmsi_paged(paging->paging_record_list[i].ue_id.s_tmsi());
       rrc_log->info("Received paging (%d/%d) for UE %" PRIu64 ":%" PRIu64 "\n",
                     i + 1,
                     paging->paging_record_list.size(),
@@ -3098,7 +3097,9 @@ void rrc::add_srb(srb_to_add_mod_s* srb_cnfg)
     if (srb_cnfg->rlc_cfg.type() == srb_to_add_mod_s::rlc_cfg_c_::types::default_value) {
       rlc->add_bearer(srb_cnfg->srb_id);
     }else{
-      rlc->add_bearer(srb_cnfg->srb_id, srslte_rlc_config_t(&srb_cnfg->rlc_cfg.explicit_value()));
+      srslte_rlc_config_t rlc_cfg;
+      srslte::convert_from_asn1(&rlc_cfg, srb_cnfg->rlc_cfg.explicit_value());
+      rlc->add_bearer(srb_cnfg->srb_id, rlc_cfg);
     }
   }
 
@@ -3175,7 +3176,9 @@ void rrc::add_drb(drb_to_add_mod_s* drb_cnfg)
   pdcp->enable_encryption(lcid);
 
   // Setup RLC
-  rlc->add_bearer(lcid, srslte_rlc_config_t(&drb_cnfg->rlc_cfg));
+  srslte_rlc_config_t rlc_cfg;
+  srslte::convert_from_asn1(&rlc_cfg, drb_cnfg->rlc_cfg);
+  rlc->add_bearer(lcid, rlc_cfg);
 
   // Setup MAC
   uint8_t log_chan_group = 0;
