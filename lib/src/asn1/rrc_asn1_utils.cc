@@ -110,6 +110,12 @@ std::string plmn_id_t::to_string() const
   return mcc_str + mnc_str;
 }
 
+bool plmn_id_t::operator==(const plmn_id_t& other)
+{
+  return std::equal(&mcc[0], &mcc[3], &other.mcc[0]) and nof_mnc_digits == other.nof_mnc_digits and
+         std::equal(&mnc[0], &mnc[nof_mnc_digits], &other.mnc[0]);
+}
+
 s_tmsi_t::s_tmsi_t(const asn1::rrc::s_tmsi_s& asn1_type)
 {
   from_asn1(asn1_type);

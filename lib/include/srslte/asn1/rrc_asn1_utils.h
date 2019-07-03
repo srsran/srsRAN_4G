@@ -52,6 +52,7 @@ struct plmn_id_t {
   int         from_number(uint16_t mcc_num, uint16_t mnc_num);
   int         from_string(const std::string& plmn_str);
   std::string to_string() const;
+  bool        operator==(const plmn_id_t& other);
 };
 
 struct s_tmsi_t {
