@@ -69,7 +69,7 @@ public:
 
   virtual bool get_imsi_vec(uint8_t* imsi_, uint32_t n) = 0;
   virtual bool get_imei_vec(uint8_t* imei_, uint32_t n) = 0;
-  virtual bool get_home_plmn_id(asn1::rrc::plmn_id_s* home_plmn_id) = 0;
+  virtual bool get_home_plmn_id(srslte::plmn_id_t* home_plmn_id) = 0;
 
   virtual auth_result_t generate_authentication_response(uint8_t  *rand,
                                                          uint8_t  *autn_enb,

@@ -403,12 +403,12 @@ int rrc::plmn_search(found_plmn_t found_plmns[MAX_FOUND_PLMNS])
 /* This is the NAS interface. When NAS requests to select a PLMN we have to
  * connect to either register or because there is pending higher layer traffic.
  */
-void rrc::plmn_select(asn1::rrc::plmn_id_s plmn_id)
+void rrc::plmn_select(srslte::plmn_id_t plmn_id)
 {
   plmn_is_selected = true;
   selected_plmn_id = plmn_id;
 
-  rrc_log->info("PLMN Selected %s\n", plmn_id_to_string(plmn_id).c_str());
+  rrc_log->info("PLMN Selected %s\n", plmn_id.to_string().c_str());
 }
 
 /* 5.3.3.2 Initiation of RRC Connection Establishment procedure
@@ -419,7 +419,7 @@ void rrc::plmn_select(asn1::rrc::plmn_id_s plmn_id)
  * it. Sends connectionRequest message and returns if message transmitted successfully.
  * It does not wait until completition of Connection Establishment procedure
  */
-bool rrc::connection_request(asn1::rrc::establishment_cause_e cause, srslte::unique_byte_buffer_t dedicated_info_nas)
+bool rrc::connection_request(srslte::establishment_cause_t cause, srslte::unique_byte_buffer_t dedicated_info_nas)
 {
 
   if (!plmn_is_selected) {
@@ -464,7 +464,8 @@ bool rrc::connection_request(asn1::rrc::establishment_cause_e cause, srslte::uni
       mac_timers->timer_get(t300)->run();
 
       // Send connectionRequest message to lower layers
-      send_con_request(cause);
+      establishment_cause_e asn1cause((establishment_cause_e::options)cause);
+      send_con_request(asn1cause);
 
       // Save dedicatedInfoNAS SDU
       if (this->dedicated_info_nas.get()) {
@@ -520,12 +521,12 @@ bool rrc::connection_request(asn1::rrc::establishment_cause_e cause, srslte::uni
   return ret;
 }
 
-void rrc::set_ue_idenity(asn1::rrc::s_tmsi_s s_tmsi)
+void rrc::set_ue_identity(srslte::s_tmsi_t s_tmsi)
 {
   ue_identity_configured = true;
   ue_identity            = s_tmsi;
-  rrc_log->info("Set ue-Identity to 0x%" PRIu64 ":0x%" PRIu64 "\n", ue_identity.mmec.to_number(),
-                ue_identity.m_tmsi.to_number());
+  rrc_log->info(
+      "Set ue-Identity to 0x%" PRIu64 ":0x%" PRIu64 "\n", (uint64_t)ue_identity.mmec, (uint64_t)ue_identity.m_tmsi);
 }
 
 /* Retrieves all required SIB or configures them if already retrieved before
@@ -1287,7 +1288,7 @@ void rrc::send_con_request(asn1::rrc::establishment_cause_e cause)
 
   if (ue_identity_configured) {
     rrc_conn_req->ue_id.set_s_tmsi();
-    rrc_conn_req->ue_id.s_tmsi() = ue_identity;
+    ue_identity.to_asn1(&rrc_conn_req->ue_id.s_tmsi());
   } else {
     rrc_conn_req->ue_id.set_random_value();
     // TODO use proper RNG
@@ -2085,17 +2086,19 @@ void rrc::process_pcch(unique_byte_buffer_t pdu)
       return;
     }
 
-    s_tmsi_s* s_tmsi_paged;
     for (uint32_t i = 0; i < paging->paging_record_list.size(); i++) {
-      s_tmsi_paged = &paging->paging_record_list[i].ue_id.s_tmsi();
-      rrc_log->info("Received paging (%d/%d) for UE %" PRIu64 ":%" PRIu64 "\n", i + 1,
-                    paging->paging_record_list.size(), paging->paging_record_list[i].ue_id.s_tmsi().mmec.to_number(),
-                    paging->paging_record_list[i].ue_id.s_tmsi().m_tmsi.to_number());
-      if (ue_identity.mmec == s_tmsi_paged->mmec && ue_identity.m_tmsi == s_tmsi_paged->m_tmsi) {
+      s_tmsi_t s_tmsi_paged;
+      s_tmsi_paged.from_asn1(&paging->paging_record_list[i].ue_id.s_tmsi());
+      rrc_log->info("Received paging (%d/%d) for UE %" PRIu64 ":%" PRIu64 "\n",
+                    i + 1,
+                    paging->paging_record_list.size(),
+                    (uint64_t)s_tmsi_paged.mmec,
+                    (uint64_t)s_tmsi_paged.m_tmsi);
+      if (ue_identity.mmec == s_tmsi_paged.mmec && ue_identity.m_tmsi == s_tmsi_paged.m_tmsi) {
         if (RRC_STATE_IDLE == state) {
           rrc_log->info("S-TMSI match in paging message\n");
           rrc_log->console("S-TMSI match in paging message\n");
-          nas->paging(s_tmsi_paged);
+          nas->paging(&s_tmsi_paged);
         } else {
           rrc_log->warning("Received paging while in CONNECT\n");
         }

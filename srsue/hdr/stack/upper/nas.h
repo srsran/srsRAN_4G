@@ -54,7 +54,7 @@ public:
 
   // RRC interface
   void     leave_connected();
-  void     paging(asn1::rrc::s_tmsi_s* ue_identiy);
+  void     paging(srslte::s_tmsi_t* ue_identity);
   void     set_barring(barring_t barring);
   void     write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
   uint32_t get_k_enb_count();
@@ -84,10 +84,10 @@ private:
   nas_interface_rrc::barring_t current_barring;
 
   bool                 plmn_is_selected;
-  asn1::rrc::plmn_id_s current_plmn;
-  asn1::rrc::plmn_id_s home_plmn;
+  srslte::plmn_id_t    current_plmn;
+  srslte::plmn_id_t    home_plmn;
 
-  std::vector<asn1::rrc::plmn_id_s> known_plmns;
+  std::vector<srslte::plmn_id_t> known_plmns;
 
   LIBLTE_MME_EMM_INFORMATION_MSG_STRUCT emm_info;
 

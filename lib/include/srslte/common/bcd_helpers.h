@@ -69,7 +69,7 @@ inline bool mcc_to_string(uint16_t mcc, std::string *str)
  * MCC 001 results in 0xF001
  *****************************************************************************/
 
-inline bool bytes_to_mcc(uint8_t* bytes, uint16_t* mcc)
+inline bool bytes_to_mcc(const uint8_t* bytes, uint16_t* mcc)
 {
   *mcc = 0xF000;
   *mcc |= (((uint16_t)bytes[0]) << 8u);
@@ -153,7 +153,7 @@ inline bool mnc_to_string(uint16_t mnc, std::string *str)
  * MNC 001 results in 0xF001
  * MNC 01 results in 0xFF01
  *****************************************************************************/
-inline bool bytes_to_mnc(uint8_t* bytes, uint16_t* mnc, uint8_t len)
+inline bool bytes_to_mnc(const uint8_t* bytes, uint16_t* mnc, uint8_t len)
 {
   if (len != 3 && len != 2) {
     *mnc = 0;

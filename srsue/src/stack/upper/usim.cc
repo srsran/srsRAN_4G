@@ -153,7 +153,7 @@ bool usim::get_imei_vec(uint8_t* imei_, uint32_t n)
   return true;
 }
 
-bool usim::get_home_plmn_id(plmn_id_s* home_plmn_id)
+bool usim::get_home_plmn_id(srslte::plmn_id_t* home_plmn_id)
 {
   if (!initiated) {
     ERROR("USIM not initiated!\n");
@@ -185,10 +185,9 @@ bool usim::get_home_plmn_id(plmn_id_s* home_plmn_id)
     mnc_str << (int) imsi_vec[i];
   }
 
-  string_to_plmn_id(*home_plmn_id, mcc_str.str() + mnc_str.str());
+  home_plmn_id->from_string(mcc_str.str() + mnc_str.str());
 
-  usim_log->info("Read Home PLMN Id=%s\n",
-                 plmn_id_to_string(*home_plmn_id).c_str());
+  usim_log->info("Read Home PLMN Id=%s\n", home_plmn_id->to_string().c_str());
 
   return true;
 }

@@ -32,6 +32,7 @@ add_library(rrc_asn1 STATIC
         rrc_asn1.cc
         rrc_asn1_enum.cc
         asn1_utils.cc
+        rrc_asn1_utils.cc
         )
 # Compile RRC ASN1 optimized for size
 target_compile_options(rrc_asn1 PRIVATE "-Os")

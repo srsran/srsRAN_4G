@@ -32,6 +32,7 @@
 
 #include "srslte/asn1/liblte_mme.h"
 #include "srslte/asn1/rrc_asn1.h"
+#include "srslte/asn1/rrc_asn1_utils.h"
 #include "srslte/common/common.h"
 #include "srslte/common/interfaces_common.h"
 #include "srslte/common/security.h"
@@ -55,7 +56,7 @@ public:
   virtual std::string get_imei_str() = 0;
   virtual bool get_imsi_vec(uint8_t* imsi_, uint32_t n) = 0;
   virtual bool get_imei_vec(uint8_t* imei_, uint32_t n) = 0;
-  virtual bool          get_home_plmn_id(asn1::rrc::plmn_id_s* home_plmn_id)              = 0;
+  virtual bool          get_home_plmn_id(srslte::plmn_id_t* home_plmn_id)                 = 0;
   virtual auth_result_t generate_authentication_response(uint8_t  *rand,
                                                 uint8_t  *autn_enb,
                                                 uint16_t  mcc,
@@ -131,7 +132,7 @@ public:
   } barring_t;
   virtual void     leave_connected()                                          = 0;
   virtual void     set_barring(barring_t barring)                             = 0;
-  virtual void     paging(asn1::rrc::s_tmsi_s* ue_identiy)                    = 0;
+  virtual void     paging(srslte::s_tmsi_t* ue_identity)                      = 0;
   virtual bool     is_attached()                                              = 0;
   virtual void     write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu) = 0;
   virtual uint32_t get_k_enb_count()                                          = 0;
@@ -183,7 +184,7 @@ class rrc_interface_nas
 {
 public:
   typedef struct {
-    asn1::rrc::plmn_id_s plmn_id;
+    srslte::plmn_id_t    plmn_id;
     uint16_t             tac;
   } found_plmn_t;
 
@@ -194,10 +195,10 @@ public:
   virtual uint16_t    get_mnc()                                                         = 0;
   virtual void        enable_capabilities()                                             = 0;
   virtual int         plmn_search(found_plmn_t found_plmns[MAX_FOUND_PLMNS])            = 0;
-  virtual void        plmn_select(asn1::rrc::plmn_id_s plmn_id)                         = 0;
-  virtual bool        connection_request(asn1::rrc::establishment_cause_e cause,
-                                         srslte::unique_byte_buffer_t     dedicatedInfoNAS) = 0;
-  virtual void        set_ue_idenity(asn1::rrc::s_tmsi_s s_tmsi)                        = 0;
+  virtual void        plmn_select(srslte::plmn_id_t plmn_id)                            = 0;
+  virtual bool        connection_request(srslte::establishment_cause_t cause,
+                                         srslte::unique_byte_buffer_t  dedicatedInfoNAS) = 0;
+  virtual void        set_ue_identity(srslte::s_tmsi_t s_tmsi)                          = 0;
   virtual bool        is_connected()                                                    = 0;
   virtual std::string get_rb_name(uint32_t lcid)                                        = 0;
   virtual uint32_t    get_lcid_for_eps_bearer(const uint32_t& eps_bearer_id)            = 0;

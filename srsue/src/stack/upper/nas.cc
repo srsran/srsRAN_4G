@@ -75,11 +75,7 @@ void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_
 
   if (!usim->get_home_plmn_id(&home_plmn)) {
     nas_log->error("Getting Home PLMN Id from USIM. Defaulting to 001-01\n");
-    uint16_t mcc          = 61441; // This is 001
-    uint16_t mnc          = 65281; // This is 01
-    home_plmn.mcc_present = true;
-    srslte::mcc_to_bytes(mcc, &home_plmn.mcc[0]);
-    srslte::mnc_to_bytes(mnc, home_plmn.mnc);
+    home_plmn.from_number(61441, 65281); // This is 001 01
   }
 
   // parse and sanity check EIA list
@@ -164,10 +160,10 @@ bool nas::attach_request() {
           known_plmns.clear();
           for (int i=0;i<nof_plmns;i++) {
             known_plmns.push_back(found_plmns[i].plmn_id);
-            nas_log->info("Found PLMN:  Id=%s, TAC=%d\n", plmn_id_to_string(found_plmns[i].plmn_id).c_str(),
-                          found_plmns[i].tac);
-            nas_log->console("Found PLMN:  Id=%s, TAC=%d\n", plmn_id_to_string(found_plmns[i].plmn_id).c_str(),
-                             found_plmns[i].tac);
+            nas_log->info(
+                "Found PLMN:  Id=%s, TAC=%d\n", found_plmns[i].plmn_id.to_string().c_str(), found_plmns[i].tac);
+            nas_log->console(
+                "Found PLMN:  Id=%s, TAC=%d\n", found_plmns[i].plmn_id.to_string().c_str(), found_plmns[i].tac);
           }
           select_plmn();
         } else if (nof_plmns == 0) {
@@ -242,7 +238,7 @@ bool nas::is_attached() {
   return state == EMM_STATE_REGISTERED;
 }
 
-void nas::paging(s_tmsi_s* ue_identiy)
+void nas::paging(s_tmsi_t* ue_identity)
 {
   if (state == EMM_STATE_REGISTERED) {
     nas_log->info("Received paging: requesting RRC connection establishment\n");
@@ -283,17 +279,17 @@ bool nas::rrc_connect() {
 
   // Provide UE-Identity to RRC if have one
   if (have_guti) {
-    s_tmsi_s s_tmsi;
-    s_tmsi.mmec.from_number(ctxt.guti.mme_code);
-    s_tmsi.m_tmsi.from_number(ctxt.guti.m_tmsi);
-    rrc->set_ue_idenity(s_tmsi);
+    s_tmsi_t s_tmsi;
+    s_tmsi.m_tmsi = ctxt.guti.m_tmsi;
+    s_tmsi.mmec   = ctxt.guti.mme_code;
+    rrc->set_ue_identity(s_tmsi);
   }
 
   // Set establishment cause
-  establishment_cause_e establish_cause = establishment_cause_e::mo_sig;
+  srslte::establishment_cause_t establish_cause = srslte::establishment_cause_t::mo_sig;
   if (state == EMM_STATE_REGISTERED) {
     // FIXME: only need to use MT_ACCESS for establishment after paging
-    establish_cause = establishment_cause_e::mt_access;
+    establish_cause = establishment_cause_t::mt_access;
   }
 
   if (rrc->connection_request(establish_cause, std::move(dedicatedInfoNAS))) {
@@ -329,7 +325,7 @@ void nas::select_plmn() {
   // First find if Home PLMN is available
   for (uint32_t i=0;i<known_plmns.size();i++) {
     if (known_plmns[i].mcc == home_plmn.mcc && known_plmns[i].mnc == home_plmn.mnc) {
-      nas_log->info("Selecting Home PLMN Id=%s\n", plmn_id_to_string(known_plmns[i]).c_str());
+      nas_log->info("Selecting Home PLMN Id=%s\n", known_plmns[i].to_string().c_str());
       plmn_is_selected = true;
       current_plmn = known_plmns[i];
       return;
@@ -339,12 +335,12 @@ void nas::select_plmn() {
   // If not, select the first available PLMN
   if (known_plmns.size() > 0) {
     nas_log->info("Could not find Home PLMN Id=%s, trying to connect to PLMN Id=%s\n",
-                  plmn_id_to_string(home_plmn).c_str(),
-                  plmn_id_to_string(known_plmns[0]).c_str());
+                  home_plmn.to_string().c_str(),
+                  known_plmns[0].to_string().c_str());
 
     nas_log->console("Could not find Home PLMN Id=%s, trying to connect to PLMN Id=%s\n",
-                     plmn_id_to_string(home_plmn).c_str(),
-                     plmn_id_to_string(known_plmns[0]).c_str());
+                     home_plmn.to_string().c_str(),
+                     known_plmns[0].to_string().c_str());
     plmn_is_selected = true;
     current_plmn = known_plmns[0];
   }
@@ -676,10 +672,10 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
       memcpy(&ctxt.guti, &attach_accept.guti.guti, sizeof(LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT));
       have_guti = true;
       // Update RRC UE-Idenity
-      s_tmsi_s s_tmsi;
-      s_tmsi.mmec.from_number(ctxt.guti.mme_code);
-      s_tmsi.m_tmsi.from_number(ctxt.guti.m_tmsi);
-      rrc->set_ue_idenity(s_tmsi);
+      s_tmsi_t s_tmsi;
+      s_tmsi.mmec   = ctxt.guti.mme_code;
+      s_tmsi.m_tmsi = ctxt.guti.m_tmsi;
+      rrc->set_ue_identity(s_tmsi);
     }
     if (attach_accept.lai_present) {}
     if (attach_accept.ms_id_present) {}
@@ -1542,7 +1538,7 @@ void nas::send_detach_request(bool switch_off)
   if (rrc->is_connected()) {
     rrc->write_sdu(std::move(pdu));
   } else {
-    rrc->connection_request(establishment_cause_e::mo_sig, std::move(pdu));
+    rrc->connection_request(establishment_cause_t::mo_sig, std::move(pdu));
   }
 }
 

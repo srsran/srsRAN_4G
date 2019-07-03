@@ -101,15 +101,14 @@ class cell_t
     }
   }
 
-  asn1::rrc::plmn_id_s get_plmn(uint32_t idx)
+  srslte::plmn_id_t get_plmn(uint32_t idx)
   {
     if (idx < sib1.cell_access_related_info.plmn_id_list.size() && has_valid_sib1) {
-      return sib1.cell_access_related_info.plmn_id_list[idx].plmn_id;
+      srslte::plmn_id_t ret;
+      ret.from_asn1(&sib1.cell_access_related_info.plmn_id_list[idx].plmn_id);
+      return ret;
     } else {
-      asn1::rrc::plmn_id_s null;
-      bzero(&null.mcc[0], sizeof(null.mcc));
-      bzero(&null.mnc[0], sizeof(null.mnc));
-      return null;
+      return {};
     }
   }
 
@@ -321,9 +320,9 @@ public:
   uint16_t get_mcc();
   uint16_t get_mnc();
   int plmn_search(found_plmn_t found_plmns[MAX_FOUND_PLMNS]);
-  void     plmn_select(asn1::rrc::plmn_id_s plmn_id);
-  bool     connection_request(asn1::rrc::establishment_cause_e cause, srslte::unique_byte_buffer_t dedicated_info_nas);
-  void     set_ue_idenity(asn1::rrc::s_tmsi_s s_tmsi);
+  void     plmn_select(srslte::plmn_id_t plmn_id);
+  bool     connection_request(srslte::establishment_cause_t cause, srslte::unique_byte_buffer_t dedicated_info_nas);
+  void     set_ue_identity(srslte::s_tmsi_t s_tmsi);
 
   // PHY interface
   void in_sync();
@@ -386,7 +385,7 @@ private:
 
   rrc_state_t         state, last_state;
   uint8_t transaction_id;
-  asn1::rrc::s_tmsi_s ue_identity;
+  srslte::s_tmsi_t    ue_identity;
   bool                ue_identity_configured;
 
   bool drb_up;
@@ -619,7 +618,7 @@ private:
 
   phy_interface_rrc_lte::cell_search_ret_t cell_search();
 
-  asn1::rrc::plmn_id_s selected_plmn_id;
+  srslte::plmn_id_t selected_plmn_id;
   bool plmn_is_selected;
 
   bool security_is_activated;

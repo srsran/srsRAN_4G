@@ -97,9 +97,7 @@ class rrc_dummy : public rrc_interface_nas
 {
 public:
   rrc_dummy() : last_sdu_len(0) {
-    plmns.plmn_id.mcc_present = true;
-    mcc_to_bytes(mcc, plmns.plmn_id.mcc.data());
-    mnc_to_bytes(mnc, plmns.plmn_id.mnc);
+    plmns.plmn_id.from_number(mcc, mnc);
     plmns.tac = 0xffff;
   }
   void write_sdu(unique_byte_buffer_t sdu)
@@ -116,9 +114,9 @@ public:
     memcpy(found, &plmns, sizeof(found_plmn_t));
     return 1;
   };
-  void plmn_select(plmn_id_s plmn_id){};
-  void set_ue_idenity(s_tmsi_s s_tmsi) {}
-  bool connection_request(establishment_cause_e cause, srslte::unique_byte_buffer_t sdu)
+  void plmn_select(srslte::plmn_id_t plmn_id){};
+  void set_ue_identity(srslte::s_tmsi_t s_tmsi) {}
+  bool connection_request(srslte::establishment_cause_t cause, srslte::unique_byte_buffer_t sdu)
   {
     printf("NAS generated SDU (len=%d):\n", sdu->N_bytes);
     last_sdu_len = sdu->N_bytes;

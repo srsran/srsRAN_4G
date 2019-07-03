@@ -19,7 +19,7 @@
 #
 
 add_executable(usim_test usim_test.cc)
-target_link_libraries(usim_test srsue_upper srslte_upper srslte_phy)
+target_link_libraries(usim_test srsue_upper srslte_upper srslte_phy rrc_asn1)
 add_test(usim_test usim_test)
 
 if(HAVE_PCSC)
