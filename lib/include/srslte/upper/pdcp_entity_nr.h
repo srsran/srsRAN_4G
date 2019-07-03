@@ -77,19 +77,14 @@ private:
   uint16_t sn_len_bytes = 0;
 
   // State variables: 3GPP TS 38.323 v15.2.0, section 7.1
-  uint32_t tx_next = 0;
-  uint32_t rx_next = 0;
-  uint32_t rx_deliv = 0; 
-  uint32_t rx_reord = 0; 
- 
+  uint32_t tx_next  = 0; // COUNT value of next SDU to be transmitted.
+  uint32_t rx_next  = 0; // COUNT value of next SDU expected to be received.
+  uint32_t rx_deliv = 0; // COUNT value of first SDU not delivered to upper layers, but still waited for.
+  uint32_t rx_reord = 0; // COUNT value following the COUNT value of PDCP Data PDU which triggered t-Reordering.
+
   // Constants: 3GPP TS 38.323 v15.2.0, section 7.2
   uint32_t window_size = 0;
 };
-
-/****************************************************************************
- * Pack/Unpack helper functions
- * Ref: 3GPP TS 38.323 v15.2.0
- ***************************************************************************/
 
 } // namespace srslte
 #endif // SRSLTE_PDCP_ENTITY_NR_H

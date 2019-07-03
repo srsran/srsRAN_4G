@@ -115,11 +115,26 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   cipher_decript(pdu);
 
   // Check valid rcvd_count
-  if (rcvd_count < rx_deliv /*|| received_before (TODO)*/) {
+  if (rcvd_count < rx_deliv /*|| check_received_before() TODO*/) {
     return; // Invalid count, drop.
   }
 
-  //
-  if(rcvd_count >= rx_next)
+  // Store PDU in reception buffer
+  // TODO
+
+  // Update RX_NEXT
+  if(rcvd_count >= rx_next){
+    rx_next = rcvd_count + 1;
+  }
   
+  // Deliver to upper layers (TODO support in order delivery)
+  if (is_control()) {
+    rrc->write_pdu(pdu);
+  } else {
+    gw->write_pdu(pdu);
+  }
+  
+  // Not clear how to update RX_DELIV without reception buffer (TODO) 
+
+  // TODO handle reordering timers
 }
