@@ -80,6 +80,11 @@ public:
   // RLC interface
   void write_pdu(unique_byte_buffer_t pdu);
 
+  // COUNT, HFN and SN helpers
+  uint32_t HFN(uint32_t count);
+  uint32_t SN(uint32_t count);
+  uint32_t COUNT(uint32_t hfn, uint32_t sn);
+ 
 protected:
   byte_buffer_pool* pool = byte_buffer_pool::get_instance();
   srslte::log*      log  = nullptr;
@@ -89,6 +94,9 @@ protected:
   bool     rb_is_control = false;
   bool     do_integrity  = false;
   bool     do_encryption = false;
+
+  uint8_t sn_len       = 0;
+  uint8_t sn_len_bytes = 0;
 
   std::mutex mutex;
 
@@ -110,5 +118,20 @@ protected:
   void
   cipher_decrypt(uint8_t* ct, uint32_t ct_len, uint32_t count, uint32_t bearer_id, uint32_t direction, uint8_t* msg);
 };
+
+inline uint32_t pdcp_entity_base::HFN(uint32_t count)
+{
+  return (count >> sn_len);
+}
+
+inline uint32_t pdcp_entity_base::SN(uint32_t count)
+{
+  return count & (0xFFFFFFFF >> sn_len);
+}
+
+inline uint32_t pdcp_entity_base::COUNT(uint32_t hfn, uint32_t sn)
+{
+  return (hfn << sn_len) | sn;
+}
 } // namespace srslte
 #endif // SRSLTE_PDCP_ENTITY_BASE_H

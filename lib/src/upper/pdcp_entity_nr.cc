@@ -74,6 +74,7 @@ void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, bool blocking)
         (do_integrity) ? "true" : "false", (do_encryption) ? "true" : "false");
 
   // TODO
+  
 }
 
 // RLC interface
@@ -92,7 +93,33 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
     return;
   }
 
-  // TODO
-}
+  // Calculate RCVD_COUNT
+  uint32_t rcvd_sn = get_rcvd_sn(pdu);
+  uint32_t rcvd_hfn, rcvd_count;
+  if (rcvd_sn < SN(rx_deliv) - window_size) {
+    rcvd_hfn = HFN(rx_deliv) + 1;
+  } else if (rcvd_sn >= SN(rx_deliv) + window_size) {
+    rcvd_hfn = HFN(rx_deliv) - 1;
+  } else {
+    rcvd_hfn = HFN(rx_deliv);
+  }
+  rcvd_count = COUNT(rcvd_hfn, rcvd_sn);
 
+  // Integrity check
+  bool is_valid = integrity_check(pdu);
+  if (!is_valid) {
+    return; // Invalid packet, drop.
+  }
+
+  // Decripting
+  cipher_decript(pdu);
+
+  // Check valid rcvd_count
+  if (rcvd_count < rx_deliv /*|| received_before (TODO)*/) {
+    return; // Invalid count, drop.
+  }
+
+  //
+  if(rcvd_count >= rx_next)
+  
 }
