@@ -409,14 +409,17 @@ void ue::allocate_ce(srslte::sch_pdu *pdu, uint32_t lcid)
   }
 }
 
-uint8_t* ue::generate_pdu(uint32_t tb_idx, sched_interface::dl_sched_pdu_t pdu[sched_interface::MAX_RLC_PDU_LIST],
-                      uint32_t nof_pdu_elems, uint32_t grant_size)
+uint8_t* ue::generate_pdu(uint32_t                        harq_pid,
+                          uint32_t                        tb_idx,
+                          sched_interface::dl_sched_pdu_t pdu[sched_interface::MAX_RLC_PDU_LIST],
+                          uint32_t                        nof_pdu_elems,
+                          uint32_t                        grant_size)
 {
   uint8_t *ret = NULL; 
   pthread_mutex_lock(&mutex);
   if (rlc) {
-    tx_payload_buffer->clear();
-    mac_msg_dl.init_tx(&tx_payload_buffer[tb_idx], grant_size, false);
+    tx_payload_buffer[harq_pid][tb_idx].clear();
+    mac_msg_dl.init_tx(&tx_payload_buffer[harq_pid][tb_idx], grant_size, false);
     for (uint32_t i=0;i<nof_pdu_elems;i++) {
       if (pdu[i].lcid <= srslte::sch_subh::PHR_REPORT) {
         allocate_sdu(&mac_msg_dl, pdu[i].lcid, pdu[i].nbytes);
@@ -435,12 +438,15 @@ uint8_t* ue::generate_pdu(uint32_t tb_idx, sched_interface::dl_sched_pdu_t pdu[s
   return ret; 
 }
 
-uint8_t* ue::generate_mch_pdu(sched_interface::dl_pdu_mch_t sched, uint32_t nof_pdu_elems , uint32_t grant_size)
+uint8_t* ue::generate_mch_pdu(uint32_t                      harq_pid,
+                              sched_interface::dl_pdu_mch_t sched,
+                              uint32_t                      nof_pdu_elems,
+                              uint32_t                      grant_size)
 {
   uint8_t *ret = NULL; 
   pthread_mutex_lock(&mutex);
-  tx_payload_buffer->clear();
-  mch_mac_msg_dl.init_tx(&tx_payload_buffer[0], grant_size);
+  tx_payload_buffer[harq_pid][0].clear();
+  mch_mac_msg_dl.init_tx(&tx_payload_buffer[harq_pid][0], grant_size);
 
   for (uint32_t i = 0; i < nof_pdu_elems; i++) {
     if (sched.pdu[i].lcid == srslte::mch_subh::MCH_SCHED_INFO) {

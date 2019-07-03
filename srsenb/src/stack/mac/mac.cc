@@ -570,8 +570,11 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
 
         if (sched_result.data[i].nof_pdu_elems[tb] > 0) {
           /* Get PDU if it's a new transmission */
-          dl_sched_res->pdsch[n].data[tb] = ue_db[rnti]->generate_pdu(
-              tb, sched_result.data[i].pdu[tb], sched_result.data[i].nof_pdu_elems[tb], sched_result.data[i].tbs[tb]);
+          dl_sched_res->pdsch[n].data[tb] = ue_db[rnti]->generate_pdu(sched_result.data[i].dci.pid,
+                                                                      tb,
+                                                                      sched_result.data[i].pdu[tb],
+                                                                      sched_result.data[i].nof_pdu_elems[tb],
+                                                                      sched_result.data[i].tbs[tb]);
 
           if (!dl_sched_res->pdsch[n].data[tb]) {
             Error("Error! PDU was not generated (rnti=0x%04x, tb=%d)\n", rnti, tb);
@@ -711,7 +714,10 @@ int mac::get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_t* dl_sched_res)
     mch.pdu[mch.num_mtch_sched].lcid = 0;
     mch.pdu[mch.num_mtch_sched].nbytes = current_mcch_length;
     dl_sched_res->pdsch[0].dci.rnti    = SRSLTE_MRNTI;
-    dl_sched_res->pdsch[0].data[0] = ue_db[SRSLTE_MRNTI]->generate_mch_pdu(mch, mch.num_mtch_sched + 1, mcs.tbs / 8);
+
+    // we use TTI % HARQ to make sure we use different buffers for consecutive TTIs to avoid races between PHY workers
+    dl_sched_res->pdsch[0].data[0] =
+        ue_db[SRSLTE_MRNTI]->generate_mch_pdu(tti % SRSLTE_FDD_NOF_HARQ, mch, mch.num_mtch_sched + 1, mcs.tbs / 8);
 
   } else {
     uint32_t current_lcid = 1;
@@ -733,7 +739,8 @@ int mac::get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_t* dl_sched_res)
       mch.mtch_sched[0].mtch_payload  = mtch_payload_buffer;
       dl_sched_res->pdsch[0].dci.rnti = SRSLTE_MRNTI;
       if (bytes_received) {
-        dl_sched_res->pdsch[0].data[0] = ue_db[SRSLTE_MRNTI]->generate_mch_pdu(mch, 1, mcs_data.tbs / 8);
+        dl_sched_res->pdsch[0].data[0] =
+            ue_db[SRSLTE_MRNTI]->generate_mch_pdu(tti % SRSLTE_FDD_NOF_HARQ, mch, 1, mcs_data.tbs / 8);
       }
     } else {
       dl_sched_res->pdsch[0].dci.rnti = 0;
