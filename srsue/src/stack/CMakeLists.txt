@@ -25,7 +25,6 @@ add_subdirectory(upper)
 set(SOURCES ue_stack_lte.cc)
 
 add_library(srsue_stack STATIC ${SOURCES})
-target_link_libraries(srsue_stack)
 
 install(TARGETS srsue_stack DESTINATION ${LIBRARY_DIR})
 

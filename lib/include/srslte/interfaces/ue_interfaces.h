@@ -30,15 +30,14 @@
 
 #include <string>
 
+#include "rrc_interface_types.h"
 #include "srslte/asn1/liblte_mme.h"
 #include "srslte/asn1/rrc_asn1.h"
-#include "srslte/asn1/rrc_asn1_utils.h"
 #include "srslte/common/common.h"
 #include "srslte/common/interfaces_common.h"
 #include "srslte/common/security.h"
 #include "srslte/phy/channel/channel.h"
 #include "srslte/phy/rf/rf.h"
-#include "srslte/upper/rlc_interface.h"
 
 namespace srsue {
 
@@ -279,8 +278,7 @@ public:
   virtual void reset() = 0;
   virtual void reestablish() = 0;
   virtual void reestablish(uint32_t lcid) = 0;
-  virtual void add_bearer(uint32_t lcid) = 0;
-  virtual void add_bearer(uint32_t lcid, srslte::srslte_rlc_config_t cnfg) = 0;
+  virtual void add_bearer(uint32_t lcid, srslte::rlc_config_t cnfg)                             = 0;
   virtual void add_bearer_mrb(uint32_t lcid) = 0;
   virtual void del_bearer(uint32_t lcid) = 0;
   virtual void resume_bearer(uint32_t lcid)                                = 0;

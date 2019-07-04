@@ -71,7 +71,7 @@ public:
          srslte::mac_interface_timers* mac_timers_);
   ~rlc_am();
   bool resume();
-  bool configure(srslte_rlc_config_t cfg_);
+  bool configure(rlc_config_t cfg_);
   void reestablish();
   void stop();
 
@@ -102,7 +102,7 @@ private:
     rlc_am_tx(rlc_am* parent_);
     ~rlc_am_tx();
 
-    bool configure(srslte_rlc_config_t cfg_);
+    bool configure(rlc_config_t cfg_);
 
     void empty_queue();
     void reestablish();
@@ -148,7 +148,7 @@ private:
      * Ref: 3GPP TS 36.322 v10.0.0 Section 7
      ***************************************************************************/
 
-    srslte_rlc_am_config_t cfg = {};
+    rlc_am_config_t cfg = {};
 
     // TX SDU buffers
     rlc_tx_queue       tx_sdu_queue;
@@ -202,7 +202,7 @@ private:
     rlc_am_rx(rlc_am* parent_);
     ~rlc_am_rx();
 
-    bool configure(srslte_rlc_am_config_t cfg_);
+    bool configure(rlc_am_config_t cfg_);
     void reestablish();
     void stop();
 
@@ -237,7 +237,7 @@ private:
      * Configurable parameters
      * Ref: 3GPP TS 36.322 v10.0.0 Section 7
      ***************************************************************************/
-    srslte_rlc_am_config_t cfg = {};
+    rlc_am_config_t cfg = {};
 
     // RX SDU buffers
     unique_byte_buffer_t rx_sdu;
@@ -282,7 +282,7 @@ private:
   srsue::pdcp_interface_rlc* pdcp              = nullptr;
   mac_interface_timers*      mac_timers        = nullptr;
   uint32_t                   lcid              = 0;
-  srslte_rlc_config_t        cfg               = {};
+  rlc_config_t               cfg               = {};
   bool                       has_configuration = false;
   std::string               rb_name;
 

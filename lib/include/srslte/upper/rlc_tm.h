@@ -41,7 +41,7 @@ public:
          srslte::mac_interface_timers* mac_timers_,
          uint32_t                      queue_len = 16);
   ~rlc_tm();
-  bool configure(srslte_rlc_config_t cnfg);
+  bool configure(rlc_config_t cnfg);
   bool resume();
   void stop();
   void reestablish();

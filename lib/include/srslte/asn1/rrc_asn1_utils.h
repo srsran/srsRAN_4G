@@ -22,64 +22,36 @@
 #ifndef SRSLTE_RRC_ASN1_UTILS_H
 #define SRSLTE_RRC_ASN1_UTILS_H
 
-#include <string>
+#include "srslte/interfaces/rrc_interface_types.h"
 
-// fwd decls
+/************************
+ * Forward declarations
+ ***********************/
 namespace asn1 {
 namespace rrc {
 
 struct plmn_id_s;
 struct s_tmsi_s;
 struct rlc_cfg_c;
+struct srb_to_add_mod_s;
 
 } // namespace rrc
 } // namespace asn1
 
+/************************
+ *  Conversion Helpers
+ ***********************/
 namespace srslte {
 
-bool plmn_is_valid(const asn1::rrc::plmn_id_s& asn1_type);
+plmn_id_t make_plmn_id_t(const asn1::rrc::plmn_id_s& asn1_type);
+void      to_asn1(asn1::rrc::plmn_id_s* asn1_type, const plmn_id_t& cfg);
 
-struct plmn_id_t {
-  uint8_t mcc[3];
-  uint8_t mnc[3];
-  uint8_t nof_mnc_digits;
+s_tmsi_t make_s_tmsi_t(const asn1::rrc::s_tmsi_s& asn1_type);
+void     to_asn1(asn1::rrc::s_tmsi_s* asn1_type, const s_tmsi_t& cfg);
 
-  plmn_id_t() : mcc(), mnc(), nof_mnc_digits(2) {}
-  explicit plmn_id_t(const asn1::rrc::plmn_id_s& asn1_type);
-  void        reset();
-  int         from_asn1(const asn1::rrc::plmn_id_s& asn1_type);
-  int         to_asn1(asn1::rrc::plmn_id_s* asn1_type) const;
-  int         from_number(uint16_t mcc_num, uint16_t mnc_num);
-  int         from_string(const std::string& plmn_str);
-  std::string to_string() const;
-  bool        operator==(const plmn_id_t& other);
-};
-
-struct s_tmsi_t {
-  uint8_t  mmec   = 0;
-  uint32_t m_tmsi = 0;
-
-  s_tmsi_t() = default;
-  explicit s_tmsi_t(const asn1::rrc::s_tmsi_s& asn1_type);
-  void from_asn1(const asn1::rrc::s_tmsi_s& asn1_type);
-  void to_asn1(asn1::rrc::s_tmsi_s* asn1_type) const;
-};
-
-enum class establishment_cause_t {
-  emergency,
-  high_prio_access,
-  mt_access,
-  mo_sig,
-  mo_data,
-  delay_tolerant_access_v1020,
-  mo_voice_call_v1280,
-  spare1,
-  nulltype
-};
-std::string to_string(const establishment_cause_t& cause);
-
-class srslte_rlc_config_t;
-void convert_from_asn1(srslte_rlc_config_t* out, const asn1::rrc::rlc_cfg_c& asn1_type);
+rlc_config_t make_rlc_config_t(const asn1::rrc::rlc_cfg_c& asn1_type);
+rlc_config_t make_rlc_config_t(const asn1::rrc::srb_to_add_mod_s& asn1_type);
+void         to_asn1(asn1::rrc::rlc_cfg_c* asn1_type, const rlc_config_t& cfg);
 }
 
 #endif // SRSLTE_RRC_ASN1_UTILS_H

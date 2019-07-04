@@ -71,7 +71,7 @@ bool rlc_am::resume()
   return true;
 }
 
-bool rlc_am::configure(srslte_rlc_config_t cfg_)
+bool rlc_am::configure(rlc_config_t cfg_)
 {
   // determine bearer name and configure Rx/Tx objects
   rb_name = rrc->get_rb_name(lcid);
@@ -118,7 +118,7 @@ void rlc_am::stop()
 
 rlc_mode_t rlc_am::get_mode()
 {
-  return RLC_MODE_AM;
+  return rlc_mode_t::am;
 }
 
 uint32_t rlc_am::get_bearer()
@@ -204,7 +204,7 @@ rlc_am::rlc_am_tx::~rlc_am_tx()
   pthread_mutex_destroy(&mutex);
 }
 
-bool rlc_am::rlc_am_tx::configure(srslte_rlc_config_t cfg_)
+bool rlc_am::rlc_am_tx::configure(rlc_config_t cfg_)
 {
   // TODO: add config checks
   cfg = cfg_.am;
@@ -1152,7 +1152,7 @@ rlc_am::rlc_am_rx::~rlc_am_rx()
   pthread_mutex_destroy(&mutex);
 }
 
-bool rlc_am::rlc_am_rx::configure(srslte_rlc_am_config_t cfg_)
+bool rlc_am::rlc_am_rx::configure(rlc_am_config_t cfg_)
 {
   // TODO: add config checks
   cfg = cfg_;

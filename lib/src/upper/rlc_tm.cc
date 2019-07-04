@@ -43,7 +43,7 @@ rlc_tm::~rlc_tm() {
   pool = NULL;
 }
 
-bool rlc_tm::configure(srslte_rlc_config_t cnfg)
+bool rlc_tm::configure(rlc_config_t cnfg)
 {
   log->error("Attempted to configure TM RLC entity\n");
   return true;
@@ -76,7 +76,7 @@ void rlc_tm::stop()
 
 rlc_mode_t rlc_tm::get_mode()
 {
-  return RLC_MODE_TM;
+  return rlc_mode_t::tm;
 }
 
 uint32_t rlc_tm::get_bearer()
@@ -160,8 +160,13 @@ int rlc_tm::read_pdu(uint8_t *payload, uint32_t nof_bytes)
     memcpy(payload, buf->msg, buf->N_bytes);
     log->debug("%s Complete SDU scheduled for tx. Stack latency: %ld us\n",
                rrc->get_rb_name(lcid).c_str(), buf->get_latency_us());
-    log->info_hex(payload, pdu_size, "TX %s, %s PDU, queue size=%d, bytes=%d",
-                  rrc->get_rb_name(lcid).c_str(), rlc_mode_text[RLC_MODE_TM], ul_queue.size(), ul_queue.size_bytes());
+    log->info_hex(payload,
+                  pdu_size,
+                  "TX %s, %s PDU, queue size=%d, bytes=%d",
+                  rrc->get_rb_name(lcid).c_str(),
+                  srslte::to_string(rlc_mode_t::tm).c_str(),
+                  ul_queue.size(),
+                  ul_queue.size_bytes());
 
     num_tx_bytes += pdu_size;
     return pdu_size;

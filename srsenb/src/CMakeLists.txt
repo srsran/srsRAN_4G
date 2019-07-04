@@ -44,7 +44,7 @@ target_link_libraries(srsenb  srsenb_phy
                               srslte_upper
                               srslte_radio
                               rrc_asn1
-                              ${CMAKE_THREAD_LIBS_INIT} 
+                              ${CMAKE_THREAD_LIBS_INIT}
                               ${Boost_LIBRARIES} 
                               ${SEC_LIBRARIES}
                               ${LIBCONFIGPP_LIBRARIES}

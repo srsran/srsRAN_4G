@@ -25,6 +25,7 @@
 #include "pthread.h"
 
 #include "rrc_common.h"
+#include "srslte/asn1/rrc_asn1_utils.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/block_queue.h"
 #include "srslte/common/buffer_pool.h"
@@ -104,8 +105,7 @@ class cell_t
   srslte::plmn_id_t get_plmn(uint32_t idx)
   {
     if (idx < sib1.cell_access_related_info.plmn_id_list.size() && has_valid_sib1) {
-      srslte::plmn_id_t ret(sib1.cell_access_related_info.plmn_id_list[idx].plmn_id);
-      return ret;
+      return srslte::make_plmn_id_t(sib1.cell_access_related_info.plmn_id_list[idx].plmn_id);
     } else {
       return {};
     }

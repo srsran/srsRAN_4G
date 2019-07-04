@@ -22,8 +22,6 @@
 #ifndef SRSLTE_RLC_COMMON_H
 #define SRSLTE_RLC_COMMON_H
 
-#include "srslte/upper/rlc_interface.h"
-
 namespace srslte {
 
 /****************************************************************************
@@ -143,7 +141,7 @@ public:
   const static int RLC_BUFFER_NOF_PDU = 128;
 
   virtual ~rlc_common() {}
-  virtual bool configure(srslte_rlc_config_t cnfg) = 0;
+  virtual bool configure(rlc_config_t cnfg)                         = 0;
   virtual bool resume()                                             = 0;
   virtual void stop() = 0;
   virtual void reestablish() = 0;

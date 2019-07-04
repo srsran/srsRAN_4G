@@ -109,13 +109,13 @@ int basic_test()
   rlc_um rlc1(&log1, 3, &tester, &tester, &timers);
   rlc_um rlc2(&log2, 3, &tester, &tester, &timers);
 
-  srslte_rlc_config_t cnfg;
-  cnfg.rlc_mode              = RLC_MODE_UM;
+  rlc_config_t cnfg;
+  cnfg.rlc_mode              = rlc_mode_t::um;
   cnfg.um.t_reordering       = 5;
-  cnfg.um.rx_sn_field_length = RLC_UMD_SN_SIZE_10_BITS;
+  cnfg.um.rx_sn_field_length = rlc_umd_sn_size_t::size10bits;
   cnfg.um.rx_window_size     = 512;
   cnfg.um.rx_mod             = 1024;
-  cnfg.um.tx_sn_field_length = RLC_UMD_SN_SIZE_10_BITS;
+  cnfg.um.tx_sn_field_length = rlc_umd_sn_size_t::size10bits;
   cnfg.um.tx_mod             = 1024;
 
   TESTASSERT(rlc1.configure(cnfg) == true);
@@ -179,13 +179,13 @@ int loss_test()
   rlc_um rlc1(&log1, 3, &tester, &tester, &timers);
   rlc_um rlc2(&log2, 3, &tester, &tester, &timers);
 
-  srslte_rlc_config_t cnfg;
-  cnfg.rlc_mode              = RLC_MODE_UM;
+  rlc_config_t cnfg;
+  cnfg.rlc_mode              = rlc_mode_t::um;
   cnfg.um.t_reordering       = 5;
-  cnfg.um.rx_sn_field_length = RLC_UMD_SN_SIZE_10_BITS;
+  cnfg.um.rx_sn_field_length = rlc_umd_sn_size_t::size10bits;
   cnfg.um.rx_window_size     = 512;
   cnfg.um.rx_mod             = 1024;
-  cnfg.um.tx_sn_field_length = RLC_UMD_SN_SIZE_10_BITS;
+  cnfg.um.tx_sn_field_length = rlc_umd_sn_size_t::size10bits;
   cnfg.um.tx_mod             = 1024;
 
   rlc1.configure(cnfg);
@@ -247,8 +247,8 @@ int basic_mbsfn_test()
   rlc_um rlc1(&log1, 3, &tester, &tester, &timers);
   rlc_um rlc2(&log2, 3, &tester, &tester, &timers);
 
-  rlc1.configure(srslte_rlc_config_t::mch_config());
-  rlc2.configure(srslte_rlc_config_t::mch_config());
+  rlc1.configure(rlc_config_t::mch_config());
+  rlc2.configure(rlc_config_t::mch_config());
 
   tester.set_expected_sdu_len(1);
 
@@ -319,13 +319,13 @@ int reassmble_test()
   rlc_um rlc1(&log1, 3, &tester, &tester, &timers);
   rlc_um rlc2(&log2, 3, &tester, &tester, &timers);
 
-  srslte_rlc_config_t cnfg;
-  cnfg.rlc_mode              = RLC_MODE_UM;
+  rlc_config_t cnfg;
+  cnfg.rlc_mode              = rlc_mode_t::um;
   cnfg.um.t_reordering       = 5;
-  cnfg.um.rx_sn_field_length = RLC_UMD_SN_SIZE_5_BITS;
+  cnfg.um.rx_sn_field_length = rlc_umd_sn_size_t::size5bits;
   cnfg.um.rx_window_size     = 16;
   cnfg.um.rx_mod             = 32;
-  cnfg.um.tx_sn_field_length = RLC_UMD_SN_SIZE_5_BITS;
+  cnfg.um.tx_sn_field_length = rlc_umd_sn_size_t::size5bits;
   cnfg.um.tx_mod             = 32;
 
   rlc1.configure(cnfg);
@@ -435,13 +435,13 @@ int reassmble_test2()
   rlc_um rlc1(&log1, 3, &tester, &tester, &timers);
   rlc_um rlc2(&log2, 3, &tester, &tester, &timers);
 
-  srslte_rlc_config_t cnfg;
-  cnfg.rlc_mode              = RLC_MODE_UM;
+  rlc_config_t cnfg;
+  cnfg.rlc_mode              = rlc_mode_t::um;
   cnfg.um.t_reordering       = 5;
-  cnfg.um.rx_sn_field_length = RLC_UMD_SN_SIZE_5_BITS;
+  cnfg.um.rx_sn_field_length = rlc_umd_sn_size_t::size5bits;
   cnfg.um.rx_window_size     = 16;
   cnfg.um.rx_mod             = 32;
-  cnfg.um.tx_sn_field_length = RLC_UMD_SN_SIZE_5_BITS;
+  cnfg.um.tx_sn_field_length = rlc_umd_sn_size_t::size5bits;
   cnfg.um.tx_mod             = 32;
 
   rlc1.configure(cnfg);

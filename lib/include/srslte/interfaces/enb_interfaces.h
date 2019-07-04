@@ -26,8 +26,8 @@
 #include "srslte/common/common.h"
 #include "srslte/common/interfaces_common.h"
 #include "srslte/common/security.h"
+#include "srslte/interfaces/rrc_interface_types.h"
 #include "srslte/interfaces/sched_interface.h"
-#include "srslte/upper/rlc_interface.h"
 
 #include <vector>
 
@@ -189,9 +189,8 @@ class rlc_interface_rrc
 public:
   virtual void clear_buffer(uint16_t rnti) = 0;
   virtual void add_user(uint16_t rnti) = 0; 
-  virtual void rem_user(uint16_t rnti) = 0; 
-  virtual void add_bearer(uint16_t rnti, uint32_t lcid) = 0;
-  virtual void add_bearer(uint16_t rnti, uint32_t lcid, srslte::srslte_rlc_config_t cnfg) = 0;
+  virtual void rem_user(uint16_t rnti) = 0;
+  virtual void add_bearer(uint16_t rnti, uint32_t lcid, srslte::rlc_config_t cnfg)        = 0;
   virtual void add_bearer_mrb(uint16_t rnti, uint32_t lcid) = 0;
   virtual void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu)  = 0;
 };

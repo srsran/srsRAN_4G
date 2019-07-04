@@ -65,7 +65,7 @@ void rlc::init(srsue::pdcp_interface_rlc* pdcp_,
   reset_metrics();
 
   // create default RLC_TM bearer for SRB0
-  add_bearer(default_lcid, srslte_rlc_config_t());
+  add_bearer(default_lcid, rlc_config_t());
 }
 
 void rlc::reset_metrics() 
@@ -171,7 +171,7 @@ void rlc::reset()
   pthread_rwlock_unlock(&rwlock);
 
   // Add SRB0 again
-  add_bearer(default_lcid, srslte_rlc_config_t());
+  add_bearer(default_lcid, rlc_config_t());
 }
 
 void rlc::empty_queue()
@@ -223,7 +223,7 @@ bool rlc::rb_is_um(uint32_t lcid)
 
   pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
-    ret = rlc_array.at(lcid)->get_mode() == RLC_MODE_UM;
+    ret = rlc_array.at(lcid)->get_mode() == rlc_mode_t::um;
   } else {
     rlc_log->warning("LCID %d doesn't exist.\n", lcid);
   }
@@ -374,34 +374,7 @@ void rlc::write_pdu_mch(uint32_t lcid, uint8_t *payload, uint32_t nof_bytes)
   RRC interface
 *******************************************************************************/
 
-// FIXME: Remove function to forbid implicit configuration
-void rlc::add_bearer(uint32_t lcid)
-{
-  if (lcid > 2) {
-    rlc_log->error("Radio bearer %s does not support default RLC configuration.\n", rrc->get_rb_name(lcid).c_str());
-    return;
-  }
-
-  // No config provided - use defaults for SRB0, SRB1, and SRB2
-  if (lcid == 0) {
-    // SRB0 is TM
-    add_bearer(lcid, srslte_rlc_config_t());
-  } else {
-    // SRB1 and SRB2 are AM
-    srslte_rlc_config_t rlc_cfg;
-    rlc_cfg.rlc_mode             = RLC_MODE_AM;
-    rlc_cfg.am.t_poll_retx       = 45;
-    rlc_cfg.am.poll_pdu          = -1;
-    rlc_cfg.am.poll_byte         = -1;
-    rlc_cfg.am.max_retx_thresh   = 4;
-    rlc_cfg.am.t_reordering      = 35;
-    rlc_cfg.am.t_status_prohibit = 0;
-    add_bearer(lcid, rlc_cfg);
-  }
-}
-
-
-void rlc::add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg)
+void rlc::add_bearer(uint32_t lcid, rlc_config_t cnfg)
 {
   pthread_rwlock_wrlock(&rwlock);
 
@@ -410,13 +383,13 @@ void rlc::add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg)
   if (not valid_lcid(lcid)) {
     switch(cnfg.rlc_mode)
     {
-      case RLC_MODE_TM:
+      case rlc_mode_t::tm:
         rlc_entity = new rlc_tm(rlc_log, lcid, pdcp, rrc, mac_timers);
         break;
-      case RLC_MODE_AM:
+      case rlc_mode_t::am:
         rlc_entity = new rlc_am(rlc_log, lcid, pdcp, rrc, mac_timers);
         break;
-      case RLC_MODE_UM:
+      case rlc_mode_t::um:
         rlc_entity = new rlc_um(rlc_log, lcid, pdcp, rrc, mac_timers);
         break;
       default:
@@ -425,8 +398,8 @@ void rlc::add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg)
     }
 
     // configure and add to array
-    if (cnfg.rlc_mode != RLC_MODE_TM) {
-      if (rlc_entity->configure(cnfg) == false) {
+    if (cnfg.rlc_mode != rlc_mode_t::tm) {
+      if (not rlc_entity->configure(cnfg)) {
         rlc_log->error("Error configuring RLC entity\n.");
         goto delete_and_exit;
       }
@@ -436,7 +409,7 @@ void rlc::add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg)
       rlc_log->error("Error inserting RLC entity in to array\n.");
       goto delete_and_exit;
     }
-    rlc_log->info("Added radio bearer %s in %s\n", rrc->get_rb_name(lcid).c_str(), rlc_mode_text[cnfg.rlc_mode]);
+    rlc_log->info("Added radio bearer %s in %s\n", rrc->get_rb_name(lcid).c_str(), to_string(cnfg.rlc_mode).c_str());
     goto unlock_and_exit;
   } else {
     rlc_log->warning("Bearer %s already created.\n", rrc->get_rb_name(lcid).c_str());
@@ -460,7 +433,7 @@ void rlc::add_bearer_mrb(uint32_t lcid)
   if (not valid_lcid_mrb(lcid)) {
     rlc_entity = new rlc_um(rlc_log, lcid, pdcp, rrc, mac_timers);
     // configure and add to array
-    if (not rlc_entity->configure(srslte_rlc_config_t::mch_config())) {
+    if (not rlc_entity->configure(rlc_config_t::mch_config())) {
       rlc_log->error("Error configuring RLC entity\n.");
       goto delete_and_exit;
     }

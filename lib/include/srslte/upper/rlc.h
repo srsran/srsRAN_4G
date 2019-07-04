@@ -76,8 +76,7 @@ public:
   void reestablish(uint32_t lcid);
   void reset();
   void empty_queue();
-  void add_bearer(uint32_t lcid);
-  void add_bearer(uint32_t lcid, srslte_rlc_config_t cnfg);
+  void add_bearer(uint32_t lcid, rlc_config_t cnfg);
   void add_bearer_mrb(uint32_t lcid);
   void del_bearer(uint32_t lcid);
   void del_bearer_mrb(uint32_t lcid);

@@ -764,7 +764,7 @@ void rrc::configure_mbsfn_sibs(sib_type2_s* sib2, sib_type13_r9_s* sib13)
   pmch_item->mbms_session_info_list_r9[0].tmgi_r9.plmn_id_r9.set_explicit_value_r9();
   srslte::plmn_id_t plmn_obj;
   plmn_obj.from_string("00003");
-  plmn_obj.to_asn1(&pmch_item->mbms_session_info_list_r9[0].tmgi_r9.plmn_id_r9.explicit_value_r9());
+  srslte::to_asn1(&pmch_item->mbms_session_info_list_r9[0].tmgi_r9.plmn_id_r9.explicit_value_r9(), plmn_obj);
   uint8_t byte[] = {0x0, 0x0, 0x0};
   memcpy(&pmch_item->mbms_session_info_list_r9[0].tmgi_r9.service_id_r9[0], &byte[0], 3);
 
@@ -1526,7 +1526,7 @@ void rrc::ue::send_connection_setup(bool is_setup)
   parent->mac->ue_cfg(rnti, &sched_cfg);
     
   // Configure SRB1 in RLC
-  parent->rlc->add_bearer(rnti, 1);
+  parent->rlc->add_bearer(rnti, 1, srslte::rlc_config_t::srb_config(1));
 
   // Configure SRB1 in PDCP
   srslte::srslte_pdcp_config_t pdcp_cnfg;
@@ -1736,7 +1736,7 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   parent->mac->bearer_ue_cfg(rnti, 3, &bearer_cfg);
   
   // Configure SRB2 in RLC and PDCP
-  parent->rlc->add_bearer(rnti, 2);
+  parent->rlc->add_bearer(rnti, 2, srslte::rlc_config_t::srb_config(2));
 
   // Configure SRB2 in PDCP
   srslte::srslte_pdcp_config_t pdcp_cnfg;
@@ -1751,9 +1751,7 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   parent->pdcp->enable_encryption(rnti, 2);
 
   // Configure DRB1 in RLC
-  srslte::srslte_rlc_config_t rlc_cfg;
-  srslte::convert_from_asn1(&rlc_cfg, conn_reconf->rr_cfg_ded.drb_to_add_mod_list[0].rlc_cfg);
-  parent->rlc->add_bearer(rnti, 3, rlc_cfg);
+  parent->rlc->add_bearer(rnti, 3, srslte::make_rlc_config_t(conn_reconf->rr_cfg_ded.drb_to_add_mod_list[0].rlc_cfg));
 
   // Configure DRB1 in PDCP
   pdcp_cnfg.is_control = false;
@@ -1820,9 +1818,7 @@ void rrc::ue::send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBE
     parent->mac->bearer_ue_cfg(rnti, lcid, &bearer_cfg);
 
     // Configure DRB in RLC
-    srslte::srslte_rlc_config_t rlc_cfg;
-    srslte::convert_from_asn1(&rlc_cfg, drb_item.rlc_cfg);
-    parent->rlc->add_bearer(rnti, lcid, rlc_cfg);
+    parent->rlc->add_bearer(rnti, lcid, srslte::make_rlc_config_t(drb_item.rlc_cfg));
 
     // Configure DRB in PDCP
     srslte::srslte_pdcp_config_t pdcp_config;

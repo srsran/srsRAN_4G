@@ -23,6 +23,7 @@
 #include "srslte/asn1/rrc_asn1.h"
 #include "srslte/asn1/rrc_asn1_utils.h"
 #include "srslte/common/bcd_helpers.h"
+#include "srslte/interfaces/rrc_interface_types.h"
 #include <iostream>
 
 using namespace asn1::rrc;
@@ -63,7 +64,7 @@ int rrc_plmn_test()
   TESTASSERT(plmn_in.mnc == plmn_out.mnc);
 
   // Test plmn --> string
-  srslte::plmn_id_t srsplmn_out(plmn_out);
+  srslte::plmn_id_t srsplmn_out = srslte::make_plmn_id_t(plmn_out);
   TESTASSERT(srsplmn_out.to_string() == "12345");
 
   asn1::bit_ref bref_in(&byte_buf[0], sizeof(byte_buf));

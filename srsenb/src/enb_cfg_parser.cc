@@ -23,6 +23,7 @@
 #include "srslte/srslte.h"
 
 #include "enb_cfg_parser.h"
+#include "srslte/asn1/rrc_asn1_utils.h"
 
 using namespace asn1::rrc;
 
@@ -640,7 +641,7 @@ int enb::parse_sibs(all_args_t* args, rrc_cfg_t* rrc_cfg, phy_cfg_t* phy_config_
     ERROR("Could not convert %s to a plmn_id\n", (mcc_str + mnc_str).c_str());
     return -1;
   }
-  plmn.to_asn1(&cell_access->plmn_id_list[0].plmn_id);
+  srslte::to_asn1(&cell_access->plmn_id_list[0].plmn_id, plmn);
   cell_access->plmn_id_list[0].cell_reserved_for_oper = plmn_id_info_s::cell_reserved_for_oper_e_::not_reserved;
   sib1->cell_sel_info.q_rx_lev_min_offset             = 0;
 

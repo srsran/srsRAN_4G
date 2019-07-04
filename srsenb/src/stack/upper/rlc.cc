@@ -89,16 +89,7 @@ void rlc::clear_buffer(uint16_t rnti)
   pthread_rwlock_unlock(&rwlock);
 }
 
-void rlc::add_bearer(uint16_t rnti, uint32_t lcid)
-{
-  pthread_rwlock_rdlock(&rwlock);
-  if (users.count(rnti)) {
-    users[rnti].rlc->add_bearer(lcid);
-  }
-  pthread_rwlock_unlock(&rwlock);
-}
-
-void rlc::add_bearer(uint16_t rnti, uint32_t lcid, srslte::srslte_rlc_config_t cnfg)
+void rlc::add_bearer(uint16_t rnti, uint32_t lcid, srslte::rlc_config_t cnfg)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti)) {

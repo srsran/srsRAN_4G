@@ -21,7 +21,6 @@
 
 #include "srslte/upper/rlc_um.h"
 #include <sstream>
-#include <srslte/upper/rlc_interface.h>
 
 #define RX_MOD_BASE(x) (((x)-vr_uh-cfg.rx_window_size)%cfg.rx_mod)
 
@@ -67,7 +66,7 @@ bool rlc_um::resume()
   return true;
 }
 
-bool rlc_um::configure(srslte_rlc_config_t cnfg_)
+bool rlc_um::configure(rlc_config_t cnfg_)
 {
   // determine bearer name and configure Rx/Tx objects
   rb_name = get_rb_name(rrc, lcid, cnfg_.um.is_mrb);
@@ -79,18 +78,17 @@ bool rlc_um::configure(srslte_rlc_config_t cnfg_)
   if (resume()) {
     log->info("%s configured in %s: t_reordering=%d ms, rx_sn_field_length=%u bits, tx_sn_field_length=%u bits\n",
               rb_name.c_str(),
-              rlc_mode_text[cnfg_.rlc_mode],
+              srslte::to_string(cnfg_.rlc_mode).c_str(),
               cfg.um.t_reordering,
-              rlc_umd_sn_size_num[cfg.um.rx_sn_field_length],
-              rlc_umd_sn_size_num[cfg.um.rx_sn_field_length]);
+              srslte::to_number(cfg.um.rx_sn_field_length),
+              srslte::to_number(cfg.um.tx_sn_field_length));
     return true;
   } else {
     return false;
   }
 }
 
-
-bool rlc_um::rlc_um_rx::configure(srslte_rlc_config_t cnfg_, std::string rb_name_)
+bool rlc_um::rlc_um_rx::configure(rlc_config_t cnfg_, std::string rb_name_)
 {
   cfg = cnfg_.um;
 
@@ -140,7 +138,7 @@ void rlc_um::stop()
 
 rlc_mode_t rlc_um::get_mode()
 {
-  return RLC_MODE_UM;
+  return rlc_mode_t::um;
 }
 
 uint32_t rlc_um::get_bearer()
@@ -232,8 +230,7 @@ rlc_um::rlc_um_tx::~rlc_um_tx()
   pthread_mutex_destroy(&mutex);
 }
 
-
-bool rlc_um::rlc_um_tx::configure(srslte_rlc_config_t cnfg_, std::string rb_name_)
+bool rlc_um::rlc_um_tx::configure(rlc_config_t cnfg_, std::string rb_name_)
 {
   cfg = cnfg_.um;
 
@@ -981,8 +978,7 @@ void rlc_um_read_data_pdu_header(uint8_t *payload, uint32_t nof_bytes, rlc_umd_s
   uint8_t  ext;
   uint8_t *ptr = payload;
   // Fixed part
-  if(RLC_UMD_SN_SIZE_5_BITS == sn_size)
-  {
+  if (sn_size == rlc_umd_sn_size_t::size5bits) {
     header->fi = (rlc_fi_field_t)((*ptr >> 6) & 0x03);  // 2 bits FI
     ext        =                 ((*ptr >> 5) & 0x01);  // 1 bit EXT
     header->sn =                 *ptr & 0x1F;           // 5 bits SN
@@ -1032,8 +1028,7 @@ void rlc_um_write_data_pdu_header(rlc_umd_pdu_header_t* header, byte_buffer_t* p
   uint8_t *ptr = pdu->msg;
 
   // Fixed part
-  if(RLC_UMD_SN_SIZE_5_BITS == header->sn_size)
-  {
+  if (header->sn_size == rlc_umd_sn_size_t::size5bits) {
     *ptr  = (header->fi & 0x03) << 6;   // 2 bits FI
     *ptr |= (ext        & 0x01) << 5;   // 1 bit EXT
     *ptr |= header->sn  & 0x1F;         // 5 bits SN
@@ -1078,8 +1073,7 @@ void rlc_um_write_data_pdu_header(rlc_umd_pdu_header_t* header, byte_buffer_t* p
 uint32_t rlc_um_packed_length(rlc_umd_pdu_header_t *header)
 {
   uint32_t len = 0;
-  if(RLC_UMD_SN_SIZE_5_BITS == header->sn_size)
-  {
+  if (header->sn_size == rlc_umd_sn_size_t::size5bits) {
     len += 1; // Fixed part is 1 byte
   }else{
     len += 2; // Fixed part is 2 bytes

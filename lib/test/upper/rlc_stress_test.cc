@@ -32,7 +32,6 @@
 #include <iostream>
 #include <pthread.h>
 #include <random>
-#include <srslte/upper/rlc_interface.h>
 
 #define LOG_HEX_LIMIT (-1)
 
@@ -328,10 +327,10 @@ void stress_test(stress_test_args_t args)
     pcap.open("rlc_stress_test.pcap", 0);
   }
 
-  srslte_rlc_config_t cnfg_;
+  rlc_config_t cnfg_;
   if (args.mode == "AM") {
     // config RLC AM bearer
-    cnfg_.rlc_mode = RLC_MODE_AM;
+    cnfg_.rlc_mode             = rlc_mode_t::am;
     cnfg_.am.max_retx_thresh = 4;
     cnfg_.am.poll_byte = 25*1000;
     cnfg_.am.poll_pdu = 4;
@@ -340,12 +339,12 @@ void stress_test(stress_test_args_t args)
     cnfg_.am.t_status_prohibit = 5;
   } else if (args.mode == "UM") {
     // config UM bearer
-    cnfg_.rlc_mode = RLC_MODE_UM;
+    cnfg_.rlc_mode              = rlc_mode_t::um;
     cnfg_.um.t_reordering = 5;
     cnfg_.um.rx_mod = 32;
-    cnfg_.um.rx_sn_field_length = RLC_UMD_SN_SIZE_5_BITS;
+    cnfg_.um.rx_sn_field_length = rlc_umd_sn_size_t::size5bits;
     cnfg_.um.rx_window_size = 16;
-    cnfg_.um.tx_sn_field_length = RLC_UMD_SN_SIZE_5_BITS;
+    cnfg_.um.tx_sn_field_length = rlc_umd_sn_size_t::size5bits;
     cnfg_.um.tx_mod = 32;
   } else if (args.mode == "TM") {
     // use default LCID in TM

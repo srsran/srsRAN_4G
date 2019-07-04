@@ -49,7 +49,7 @@ public:
          srsue::rrc_interface_rlc*  rrc_,
          mac_interface_timers*      mac_timers_);
   ~rlc_um();
-  bool configure(srslte_rlc_config_t cnfg);
+  bool configure(rlc_config_t cnfg);
   bool resume();
   void reestablish();
   void stop();
@@ -81,7 +81,7 @@ private:
   public:
     rlc_um_tx(srslte::log* log_);
     ~rlc_um_tx();
-    bool configure(srslte_rlc_config_t cfg, std::string rb_name);
+    bool     configure(rlc_config_t cfg, std::string rb_name);
     int  build_data_pdu(uint8_t *payload, uint32_t nof_bytes);
     void stop();
     void reestablish();
@@ -102,7 +102,7 @@ private:
      * Configurable parameters
      * Ref: 3GPP TS 36.322 v10.0.0 Section 7
      ***************************************************************************/
-    srslte_rlc_um_config_t cfg = {};
+    rlc_um_config_t cfg = {};
 
     // TX SDU buffers
     rlc_tx_queue            tx_sdu_queue;
@@ -137,7 +137,7 @@ private:
     ~rlc_um_rx();
     void stop();
     void reestablish();
-    bool configure(srslte_rlc_config_t cfg, std::string rb_name);
+    bool     configure(rlc_config_t cfg, std::string rb_name);
     void handle_data_pdu(uint8_t *payload, uint32_t nof_bytes);
     void reassemble_rx_sdus();
     bool pdu_belongs_to_rx_sdu();
@@ -160,7 +160,7 @@ private:
      * Configurable parameters
      * Ref: 3GPP TS 36.322 v10.0.0 Section 7
      ***************************************************************************/
-    srslte_rlc_um_config_t cfg = {};
+    rlc_um_config_t cfg = {};
 
     // Rx window
     std::map<uint32_t, rlc_umd_pdu_t>   rx_window;
@@ -203,7 +203,7 @@ private:
   srsue::rrc_interface_rlc* rrc               = nullptr;
   srslte::log*              log               = nullptr;
   uint32_t                  lcid              = 0;
-  srslte_rlc_config_t       cfg               = {};
+  rlc_config_t              cfg               = {};
   bool                      has_configuration = false;
   std::string               rb_name;
   byte_buffer_pool*         pool = nullptr;

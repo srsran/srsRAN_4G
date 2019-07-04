@@ -1288,7 +1288,7 @@ void rrc::send_con_request(asn1::rrc::establishment_cause_e cause)
 
   if (ue_identity_configured) {
     rrc_conn_req->ue_id.set_s_tmsi();
-    ue_identity.to_asn1(&rrc_conn_req->ue_id.s_tmsi());
+    srslte::to_asn1(&rrc_conn_req->ue_id.s_tmsi(), ue_identity);
   } else {
     rrc_conn_req->ue_id.set_random_value();
     // TODO use proper RNG
@@ -2087,7 +2087,7 @@ void rrc::process_pcch(unique_byte_buffer_t pdu)
     }
 
     for (uint32_t i = 0; i < paging->paging_record_list.size(); i++) {
-      s_tmsi_t s_tmsi_paged(paging->paging_record_list[i].ue_id.s_tmsi());
+      s_tmsi_t s_tmsi_paged = make_s_tmsi_t(paging->paging_record_list[i].ue_id.s_tmsi());
       rrc_log->info("Received paging (%d/%d) for UE %" PRIu64 ":%" PRIu64 "\n",
                     i + 1,
                     paging->paging_record_list.size(),
@@ -3094,13 +3094,7 @@ void rrc::add_srb(srb_to_add_mod_s* srb_cnfg)
 
   // Setup RLC
   if (srb_cnfg->rlc_cfg_present) {
-    if (srb_cnfg->rlc_cfg.type() == srb_to_add_mod_s::rlc_cfg_c_::types::default_value) {
-      rlc->add_bearer(srb_cnfg->srb_id);
-    }else{
-      srslte_rlc_config_t rlc_cfg;
-      srslte::convert_from_asn1(&rlc_cfg, srb_cnfg->rlc_cfg.explicit_value());
-      rlc->add_bearer(srb_cnfg->srb_id, rlc_cfg);
-    }
+    rlc->add_bearer(srb_cnfg->srb_id, make_rlc_config_t(*srb_cnfg));
   }
 
   // Setup MAC
@@ -3176,9 +3170,7 @@ void rrc::add_drb(drb_to_add_mod_s* drb_cnfg)
   pdcp->enable_encryption(lcid);
 
   // Setup RLC
-  srslte_rlc_config_t rlc_cfg;
-  srslte::convert_from_asn1(&rlc_cfg, drb_cnfg->rlc_cfg);
-  rlc->add_bearer(lcid, rlc_cfg);
+  rlc->add_bearer(lcid, make_rlc_config_t(drb_cnfg->rlc_cfg));
 
   // Setup MAC
   uint8_t log_chan_group = 0;

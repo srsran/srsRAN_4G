@@ -129,10 +129,10 @@ private:
   bool running;
 };
 
-srslte_rlc_config_t default_rlc_cnfg()
+rlc_config_t default_rlc_cnfg()
 {
-  srslte_rlc_config_t rlc_cnfg;
-  rlc_cnfg.rlc_mode             = RLC_MODE_AM;
+  rlc_config_t rlc_cnfg;
+  rlc_cnfg.rlc_mode             = rlc_mode_t::am;
   rlc_cnfg.am.t_reordering      = 5;
   rlc_cnfg.am.t_status_prohibit = 5;
   rlc_cnfg.am.max_retx_thresh   = 4;
