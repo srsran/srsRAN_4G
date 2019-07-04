@@ -686,6 +686,12 @@ int main(int argc, char **argv) {
       free(data_rx[i]);
     }
   }
+  if (enb_dl) {
+    free(enb_dl);
+  }
+  if (ue_dl) {
+    free(ue_dl);
+  }
 
   if (ret) {
     printf("Error\n");

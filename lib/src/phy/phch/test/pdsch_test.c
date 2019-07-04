@@ -152,33 +152,32 @@ static int check_softbits(
 {
   int ret = SRSLTE_SUCCESS;
 
-  // Generate sequence
-  srslte_sequence_pdsch(&pdsch_ue->tmp_seq,
-                        rnti,
-                        pdsch_cfg->grant.tb[tb].cw_idx,
-                        2 * (sf_idx % 10),
-                        cell.id,
-                        pdsch_cfg->grant.tb[tb].nof_bits);
+  if (!pdsch_ue->llr_is_8bit && !tb_cw_swap) {
 
-  // Scramble
-  if (pdsch_ue->llr_is_8bit) {
-    srslte_scrambling_sb_offset(&pdsch_ue->tmp_seq, pdsch_ue->e[tb], 0, pdsch_cfg->grant.tb[tb].nof_bits);
-  } else {
+    // Generate sequence
+    srslte_sequence_pdsch(&pdsch_ue->tmp_seq,
+                          rnti,
+                          pdsch_cfg->grant.tb[tb].cw_idx,
+                          2 * (sf_idx % 10),
+                          cell.id,
+                          pdsch_cfg->grant.tb[tb].nof_bits);
+
+    // Scramble
     srslte_scrambling_s_offset(&pdsch_ue->tmp_seq, pdsch_ue->e[tb], 0, pdsch_cfg->grant.tb[tb].nof_bits);
-  }
-  int16_t* rx       = pdsch_ue->e[tb];
-  uint8_t* rx_bytes = pdsch_ue->e[tb];
-  for (int i = 0, k = 0; i < pdsch_cfg->grant.tb[tb].nof_bits / 8; i++) {
-    uint8_t w = 0;
-    for (int j = 0; j < 8; j++, k++) {
-      w |= (rx[k] > 0) ? (1 << (7 - j)) : 0;
-    }
-    rx_bytes[i] = w;
-  }
-  if (memcmp(pdsch_ue->e[tb], pdsch_enb->e[tb], pdsch_cfg->grant.tb[tb].nof_bits / 8) != 0) {
-    ret = SRSLTE_ERROR;
-  }
 
+    int16_t* rx       = pdsch_ue->e[tb];
+    uint8_t* rx_bytes = pdsch_ue->e[tb];
+    for (int i = 0, k = 0; i < pdsch_cfg->grant.tb[tb].nof_bits / 8; i++) {
+      uint8_t w = 0;
+      for (int j = 0; j < 8; j++, k++) {
+        w |= (rx[k] > 0) ? (1 << (7 - j)) : 0;
+      }
+      rx_bytes[i] = w;
+    }
+    if (memcmp(pdsch_ue->e[tb], pdsch_enb->e[tb], pdsch_cfg->grant.tb[tb].nof_bits / 8) != 0) {
+      ret = SRSLTE_ERROR;
+    }
+  }
   return ret;
 }
 
@@ -514,8 +513,6 @@ int main(int argc, char **argv) {
                tb,
                subframe,
                pdsch_res[tb].crc);
-        srslte_vec_fprint_byte(stdout, (uint8_t*)pdsch_tx.e[tb], pdsch_cfg.grant.tb[tb].nof_bits / 8);
-        srslte_vec_fprint_byte(stdout, (uint8_t*)pdsch_rx.e[tb], pdsch_cfg.grant.tb[tb].nof_bits / 8);
       } else {
         for (int byte = 0; byte < pdsch_cfg.grant.tb[tb].tbs / 8; byte++) {
           if (data_tx[tb][byte] != data_rx[tb][byte]) {

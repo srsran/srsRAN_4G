@@ -67,7 +67,7 @@ option(ENABLE_SRSENB   "Build srsENB application"                 ON)
 option(ENABLE_SRSEPC   "Build srsEPC application"                 ON)
 option(DISABLE_SIMD    "disable simd instructions"                OFF)
 
-option(ENABLE_GUI      "Enable GUI (using srsGUI)"                ON)
+option(ENABLE_GUI      "Enable GUI (using srsGUI)"                OFF)
 option(ENABLE_UHD      "Enable UHD"                               ON)
 option(ENABLE_BLADERF  "Enable BladeRF"                           ON)
 option(ENABLE_SOAPYSDR "Enable SoapySDR"                          ON)
