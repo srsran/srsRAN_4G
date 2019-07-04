@@ -51,6 +51,10 @@ add_executable(rlc_common_test rlc_common_test.cc)
 target_link_libraries(rlc_common_test srslte_upper srslte_phy)
 add_test(rlc_common_test rlc_common_test)
 
+add_executable(pdcp_nr_test pdcp_nr_test.cc)
+target_link_libraries(pdcp_nr_test srslte_upper srslte_common)
+add_test(pdcp_nr_test pdcp_nr_test)
+
 ########################################################################
 # Option to run command after build (useful for remote builds)
 ########################################################################

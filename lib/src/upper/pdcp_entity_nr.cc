@@ -78,10 +78,10 @@ void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, bool blocking)
 
   // Integrity protection and ciphering
   integrity_generate(sdu->msg, sdu->N_bytes - 4, tx_next, &sdu->msg[sdu->N_bytes - 4]);
-  ciphering_generate(sdu->msg, sdu->N_bytes - 4, tx_next, &sdu->msg[sdu->N_bytes - 4]);
+  cipher_encrypt(sdu->msg, sdu->N_bytes - 4, tx_next, &sdu->msg[sdu->N_bytes - 4]);
 
   // Write PDCP header info
-  write_header(pdu, tx_next);
+  //write_header(pdu, tx_next);
   
   // Write to lower layers
   rlc->write_sdu(lcid, std::move(sdu), blocking);
