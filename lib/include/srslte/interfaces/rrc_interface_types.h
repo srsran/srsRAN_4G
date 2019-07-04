@@ -256,6 +256,40 @@ public:
     rlc_cfg.am.t_status_prohibit = 0;
     return rlc_cfg;
   }
+  static rlc_config_t default_rlc_um_config(uint32_t sn_size = 10)
+  {
+    rlc_config_t cnfg;
+    cnfg.rlc_mode        = rlc_mode_t::um;
+    cnfg.um.t_reordering = 5;
+    if (sn_size == 10) {
+      cnfg.um.rx_sn_field_length = rlc_umd_sn_size_t::size10bits;
+      cnfg.um.rx_window_size     = 512;
+      cnfg.um.rx_mod             = 1024;
+      cnfg.um.tx_sn_field_length = rlc_umd_sn_size_t::size10bits;
+      cnfg.um.tx_mod             = 1024;
+    } else if (sn_size == 5) {
+      cnfg.um.rx_sn_field_length = rlc_umd_sn_size_t::size5bits;
+      cnfg.um.rx_window_size     = 16;
+      cnfg.um.rx_mod             = 32;
+      cnfg.um.tx_sn_field_length = rlc_umd_sn_size_t::size5bits;
+      cnfg.um.tx_mod             = 32;
+    } else {
+      return {};
+    }
+    return cnfg;
+  }
+  static rlc_config_t default_rlc_am_config()
+  {
+    rlc_config_t rlc_cnfg;
+    rlc_cnfg.rlc_mode             = rlc_mode_t::am;
+    rlc_cnfg.am.t_reordering      = 5;
+    rlc_cnfg.am.t_status_prohibit = 5;
+    rlc_cnfg.am.max_retx_thresh   = 4;
+    rlc_cnfg.am.poll_byte         = 25;
+    rlc_cnfg.am.poll_pdu          = 4;
+    rlc_cnfg.am.t_poll_retx       = 5;
+    return rlc_cnfg;
+  }
 };
 } // namespace srslte
 

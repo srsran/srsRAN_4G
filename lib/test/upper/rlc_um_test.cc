@@ -94,28 +94,6 @@ public:
   uint32_t expected_sdu_len;
 };
 
-srslte::rlc_config_t make_rlc_cnfg_default(uint32_t sn)
-{
-  rlc_config_t cnfg;
-  cnfg.rlc_mode        = rlc_mode_t::um;
-  cnfg.um.t_reordering = 5;
-  if (sn == 10) {
-    cnfg.um.rx_sn_field_length = rlc_umd_sn_size_t::size10bits;
-    cnfg.um.rx_window_size     = 512;
-    cnfg.um.rx_mod             = 1024;
-    cnfg.um.tx_sn_field_length = rlc_umd_sn_size_t::size10bits;
-    cnfg.um.tx_mod             = 1024;
-  } else if (sn == 5) {
-    cnfg.um.rx_sn_field_length = rlc_umd_sn_size_t::size5bits;
-    cnfg.um.rx_window_size     = 16;
-    cnfg.um.rx_mod             = 32;
-    cnfg.um.tx_sn_field_length = rlc_umd_sn_size_t::size5bits;
-    cnfg.um.tx_mod             = 32;
-  } else {
-    printf("NOT supported\n");
-  }
-  return cnfg;
-}
 
 int basic_test()
 {
@@ -132,7 +110,7 @@ int basic_test()
   rlc_um rlc1(&log1, 3, &tester, &tester, &timers);
   rlc_um rlc2(&log2, 3, &tester, &tester, &timers);
 
-  rlc_config_t cnfg          = make_rlc_cnfg_default(10);
+  rlc_config_t cnfg          = rlc_config_t::default_rlc_um_config(10);
   cnfg.rlc_mode              = rlc_mode_t::um;
   cnfg.um.t_reordering       = 5;
   cnfg.um.rx_sn_field_length = rlc_umd_sn_size_t::size10bits;
@@ -202,7 +180,7 @@ int loss_test()
   rlc_um rlc1(&log1, 3, &tester, &tester, &timers);
   rlc_um rlc2(&log2, 3, &tester, &tester, &timers);
 
-  rlc_config_t cnfg = make_rlc_cnfg_default(10);
+  rlc_config_t cnfg = rlc_config_t::default_rlc_um_config(10);
 
   rlc1.configure(cnfg);
   rlc2.configure(cnfg);
@@ -335,7 +313,7 @@ int reassmble_test()
   rlc_um rlc1(&log1, 3, &tester, &tester, &timers);
   rlc_um rlc2(&log2, 3, &tester, &tester, &timers);
 
-  rlc_config_t cnfg = make_rlc_cnfg_default(5);
+  rlc_config_t cnfg = rlc_config_t::default_rlc_um_config(5);
 
   rlc1.configure(cnfg);
   rlc2.configure(cnfg);
@@ -444,7 +422,7 @@ int reassmble_test2()
   rlc_um rlc1(&log1, 3, &tester, &tester, &timers);
   rlc_um rlc2(&log2, 3, &tester, &tester, &timers);
 
-  rlc_config_t cnfg = make_rlc_cnfg_default(5);
+  rlc_config_t cnfg = rlc_config_t::default_rlc_um_config(5);
 
   rlc1.configure(cnfg);
   rlc2.configure(cnfg);

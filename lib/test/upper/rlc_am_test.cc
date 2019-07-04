@@ -129,19 +129,6 @@ private:
   bool running;
 };
 
-rlc_config_t default_rlc_cnfg()
-{
-  rlc_config_t rlc_cnfg;
-  rlc_cnfg.rlc_mode             = rlc_mode_t::am;
-  rlc_cnfg.am.t_reordering      = 5;
-  rlc_cnfg.am.t_status_prohibit = 5;
-  rlc_cnfg.am.max_retx_thresh   = 4;
-  rlc_cnfg.am.poll_byte         = 25;
-  rlc_cnfg.am.poll_pdu          = 4;
-  rlc_cnfg.am.t_poll_retx       = 5;
-  return rlc_cnfg;
-}
-
 void basic_test_tx(rlc_am* rlc, byte_buffer_t pdu_bufs[NBUFS])
 {
 
@@ -182,11 +169,11 @@ bool basic_test()
   rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
   rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
 
-  if (not rlc1.configure(default_rlc_cnfg())) {
+  if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
 
-  if (not rlc2.configure(default_rlc_cnfg())) {
+  if (not rlc2.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
 
@@ -241,11 +228,11 @@ bool concat_test()
   rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
   rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
 
-  if (not rlc1.configure(default_rlc_cnfg())) {
+  if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
 
-  if (not rlc2.configure(default_rlc_cnfg())) {
+  if (not rlc2.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
 
@@ -307,11 +294,11 @@ bool segment_test(bool in_seq_rx)
   rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
   rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
 
-  if (not rlc1.configure(default_rlc_cnfg())) {
+  if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
 
-  if (not rlc2.configure(default_rlc_cnfg())) {
+  if (not rlc2.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
 
@@ -401,11 +388,11 @@ bool retx_test()
   rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
   rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
 
-  if (not rlc1.configure(default_rlc_cnfg())) {
+  if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
 
-  if (not rlc2.configure(default_rlc_cnfg())) {
+  if (not rlc2.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
 
@@ -494,11 +481,11 @@ bool resegment_test_1()
   rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
   rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
 
-  if (not rlc1.configure(default_rlc_cnfg())) {
+  if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
 
-  if (not rlc2.configure(default_rlc_cnfg())) {
+  if (not rlc2.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
 
@@ -600,11 +587,11 @@ bool resegment_test_2()
   rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
   rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
 
-  if (not rlc1.configure(default_rlc_cnfg())) {
+  if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
 
-  if (not rlc2.configure(default_rlc_cnfg())) {
+  if (not rlc2.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
 
@@ -702,11 +689,11 @@ bool resegment_test_3()
   rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
   rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
 
-  if (not rlc1.configure(default_rlc_cnfg())) {
+  if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
 
-  if (not rlc2.configure(default_rlc_cnfg())) {
+  if (not rlc2.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
 
@@ -799,11 +786,11 @@ bool resegment_test_4()
   rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
   rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
 
-  if (not rlc1.configure(default_rlc_cnfg())) {
+  if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
 
-  if (not rlc2.configure(default_rlc_cnfg())) {
+  if (not rlc2.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
 
@@ -898,11 +885,11 @@ bool resegment_test_5()
   rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
   rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
 
-  if (not rlc1.configure(default_rlc_cnfg())) {
+  if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
 
-  if (not rlc2.configure(default_rlc_cnfg())) {
+  if (not rlc2.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
 
@@ -998,11 +985,11 @@ bool resegment_test_6()
   rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
   rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
 
-  if (not rlc1.configure(default_rlc_cnfg())) {
+  if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
 
-  if (not rlc2.configure(default_rlc_cnfg())) {
+  if (not rlc2.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
 
@@ -1134,11 +1121,11 @@ bool resegment_test_7()
   rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
   rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
 
-  if (not rlc1.configure(default_rlc_cnfg())) {
+  if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
 
-  if (not rlc2.configure(default_rlc_cnfg())) {
+  if (not rlc2.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
 
@@ -1307,11 +1294,11 @@ bool resegment_test_8()
   rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
   rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
 
-  if (not rlc1.configure(default_rlc_cnfg())) {
+  if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
 
-  if (not rlc2.configure(default_rlc_cnfg())) {
+  if (not rlc2.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
 
@@ -1451,7 +1438,7 @@ bool reset_test()
 
   rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
 
-  if (not rlc1.configure(default_rlc_cnfg())) {
+  if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
 
@@ -1496,7 +1483,7 @@ bool resume_test()
 
   rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
 
-  if (not rlc1.configure(default_rlc_cnfg())) {
+  if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
 
@@ -1540,7 +1527,7 @@ bool stop_test()
 
   rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
 
-  if (not rlc1.configure(default_rlc_cnfg())) {
+  if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
 
