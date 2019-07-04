@@ -73,7 +73,13 @@ void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, bool blocking)
         rrc->get_rb_name(lcid).c_str(),
         (do_integrity) ? "true" : "false", (do_encryption) ? "true" : "false");
 
-  // TODO
+  // Start discard timer TODO
+
+  //
+  uint32_t count = tx_next;
+
+  //integrity_generate(sdu);
+
   
 }
 
@@ -106,13 +112,14 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   rcvd_count = COUNT(rcvd_hfn, rcvd_sn);
 
   // Integrity check
-  bool is_valid = integrity_check(pdu);
+  uint8_t mac[4];
+  bool is_valid = integrity_verify(pdu->msg, pdu->N_bytes, rcvd_count, mac);
   if (!is_valid) {
     return; // Invalid packet, drop.
   }
 
   // Decripting
-  cipher_decript(pdu);
+  cipher_decrypt(pdu->msg, pdu->N_bytes, rcvd_count, pdu->msg);
 
   // Check valid rcvd_count
   if (rcvd_count < rx_deliv /*|| check_received_before() TODO*/) {
@@ -129,12 +136,27 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   
   // Deliver to upper layers (TODO support in order delivery)
   if (is_control()) {
-    rrc->write_pdu(pdu);
+    rrc->write_pdu(lcid, std::move(pdu));
   } else {
-    gw->write_pdu(pdu);
+    gw->write_pdu(lcid, std::move(pdu));
   }
   
   // Not clear how to update RX_DELIV without reception buffer (TODO) 
 
   // TODO handle reordering timers
 }
+
+uint32_t pdcp_entity_nr::get_rcvd_sn(const unique_byte_buffer_t& pdu)
+{
+  uint32_t rcvd_sn = 0;
+  switch (sn_len) {
+    case PDCP_SN_LEN_12:
+      pdu->msg;
+    case PDCP_SN_LEN_18:
+      pdu->msg;
+    default:
+      log->error("Cannot extract RCVD_SN, invalid SN length configured: %d\n", (int)sn_len);
+  }
+  return rcvd_sn;
+}
+} // namespace srslte

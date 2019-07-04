@@ -53,8 +53,7 @@ void pdcp_entity_base::config_security(uint8_t*                    k_rrc_enc_,
 /****************************************************************************
  * Security functions
  ***************************************************************************/
-void pdcp_entity_base::integrity_generate(
-    uint8_t* msg, uint32_t msg_len, uint32_t count, uint32_t bearer_id, uint32_t direction, uint8_t* mac)
+void pdcp_entity_base::integrity_generate(uint8_t* msg, uint32_t msg_len, uint32_t count, uint8_t* mac)
 {
   uint8_t *k_int;
 
@@ -99,8 +98,7 @@ void pdcp_entity_base::integrity_generate(
   log->debug_hex(msg, msg_len, "  Message");
 }
 
-bool pdcp_entity_base::integrity_verify(
-    uint8_t* msg, uint32_t msg_len, uint32_t count, uint32_t bearer_id, uint32_t direction, uint8_t* mac)
+bool pdcp_entity_base::integrity_verify(uint8_t* msg, uint32_t msg_len, uint32_t count, uint8_t* mac)
 {
   uint8_t mac_exp[4] = {};
   bool is_valid = true;
@@ -163,8 +161,7 @@ bool pdcp_entity_base::integrity_verify(
   return is_valid;
 }
 
-void pdcp_entity_base::cipher_encrypt(
-    uint8_t* msg, uint32_t msg_len, uint32_t count, uint32_t bearer_id, uint32_t direction, uint8_t* ct)
+void pdcp_entity_base::cipher_encrypt(uint8_t* msg, uint32_t msg_len, uint32_t count, uint8_t* ct)
 {
   byte_buffer_t ct_tmp;
   uint8_t *k_enc;
@@ -197,8 +194,7 @@ void pdcp_entity_base::cipher_encrypt(
   }
 }
 
-void pdcp_entity_base::cipher_decrypt(
-    uint8_t* ct, uint32_t ct_len, uint32_t count, uint32_t bearer_id, uint32_t direction, uint8_t* msg)
+void pdcp_entity_base::cipher_decrypt(uint8_t* ct, uint32_t ct_len, uint32_t count, uint8_t* msg)
 {
   byte_buffer_t msg_tmp;
   uint8_t *k_enc;

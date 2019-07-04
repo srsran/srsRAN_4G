@@ -87,13 +87,15 @@ public:
  
 protected:
   byte_buffer_pool* pool = byte_buffer_pool::get_instance();
-  srslte::log*      log  = nullptr;
+  srslte::log*      log  = nullptr;  
 
   bool     active        = false;
   uint32_t lcid          = 0;
   bool     rb_is_control = false;
   bool     do_integrity  = false;
   bool     do_encryption = false;
+  uint32_t bearer_id     = 0; 
+  uint32_t direction     = 0; 
 
   uint8_t sn_len       = 0;
   uint8_t sn_len_bytes = 0;
@@ -108,15 +110,10 @@ protected:
   CIPHERING_ALGORITHM_ID_ENUM cipher_algo = CIPHERING_ALGORITHM_ID_EEA0;
   INTEGRITY_ALGORITHM_ID_ENUM integ_algo  = INTEGRITY_ALGORITHM_ID_EIA0;
 
-
-  void integrity_generate(
-      uint8_t* msg, uint32_t msg_len, uint32_t count, uint32_t bearer_id, uint32_t direction, uint8_t* mac);
-  bool integrity_verify(
-      uint8_t* msg, uint32_t msg_len, uint32_t count, uint32_t bearer_id, uint32_t direction, uint8_t* mac);
-  void
-  cipher_encrypt(uint8_t* msg, uint32_t msg_len, uint32_t count, uint32_t bearer_id, uint32_t direction, uint8_t* ct);
-  void
-  cipher_decrypt(uint8_t* ct, uint32_t ct_len, uint32_t count, uint32_t bearer_id, uint32_t direction, uint8_t* msg);
+  void integrity_generate(uint8_t* msg, uint32_t msg_len, uint32_t count, uint8_t* mac);
+  bool integrity_verify(uint8_t* msg, uint32_t msg_len, uint32_t count, uint8_t* mac);
+  void cipher_encrypt(uint8_t* msg, uint32_t msg_len, uint32_t count, uint8_t* ct);
+  void cipher_decrypt(uint8_t* ct, uint32_t ct_len, uint32_t count, uint8_t* msg);
 };
 
 inline uint32_t pdcp_entity_base::HFN(uint32_t count)

@@ -72,7 +72,7 @@ private:
   srsue::rrc_interface_pdcp* rrc = nullptr;
   srsue::gw_interface_pdcp*  gw  = nullptr;
 
-  srslte_pdcp_config_nr_t cfg;
+  srslte_pdcp_config_nr_t cfg = {0, false, false, 0, PDCP_SN_LEN_12};
 
   uint16_t sn_len_bytes = 0;
 
@@ -84,6 +84,9 @@ private:
 
   // Constants: 3GPP TS 38.323 v15.2.0, section 7.2
   uint32_t window_size = 0;
+
+  // Packing/Unpacking Helper functions
+  uint32_t get_rcvd_sn(const unique_byte_buffer_t& pdu);
 };
 
 } // namespace srslte
