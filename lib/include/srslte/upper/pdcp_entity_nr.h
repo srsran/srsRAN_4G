@@ -33,8 +33,8 @@
 namespace srslte {
 
 /****************************************************************************
- * PDCP Entity interface
- * Common interface for all PDCP entities
+ * NR PDCP Entity
+ * PDCP entity for 5G NR
  ***************************************************************************/
 class pdcp_entity_nr : public pdcp_entity_base
 {

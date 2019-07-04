@@ -74,13 +74,17 @@ void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, bool blocking)
         (do_integrity) ? "true" : "false", (do_encryption) ? "true" : "false");
 
   // Start discard timer TODO
+  // Perform header compression TODO
 
-  //
-  uint32_t count = tx_next;
+  // Integrity protection and ciphering
+  integrity_generate(sdu->msg, sdu->N_bytes - 4, tx_next, &sdu->msg[sdu->N_bytes - 4]);
+  ciphering_generate(sdu->msg, sdu->N_bytes - 4, tx_next, &sdu->msg[sdu->N_bytes - 4]);
 
-  //integrity_generate(sdu);
-
+  // Write PDCP header info
+  write_header(pdu, tx_next);
   
+  // Write to lower layers
+  rlc->write_sdu(lcid, std::move(sdu), blocking);
 }
 
 // RLC interface
