@@ -320,8 +320,8 @@ public:
 
   enumerated() { EnumType::value = EnumType::nulltype; }
   enumerated(typename EnumType::options o) { EnumType::value = o; }
-  SRSASN_CODE pack(bit_ref& bref) const { return pack_enum(bref, EnumType::value); }
-  SRSASN_CODE unpack(bit_ref& bref) { return unpack_enum(EnumType::value, bref); }
+  SRSASN_CODE pack(bit_ref& bref) const { return pack_enum(bref, *this); }
+  SRSASN_CODE unpack(bit_ref& bref) { return unpack_enum(*this, bref); }
   EnumType&   operator=(EnumType v)
   {
     EnumType::value = v;
@@ -346,6 +346,17 @@ struct UnalignedIntegerPacker {
   IntType     ub;
   SRSASN_CODE pack(bit_ref& bref, IntType n) const;
   SRSASN_CODE unpack(IntType& n, bit_ref& bref) const;
+};
+
+template <class IntType, IntType lb, IntType ub>
+struct unaligned_integer {
+  IntType                               value;
+  const UnalignedIntegerPacker<IntType> packer;
+  unaligned_integer() : packer(lb, ub) {}
+  unaligned_integer(IntType value_) : value(value_), packer(lb, ub) {}
+              operator IntType() { return value; }
+  SRSASN_CODE pack(bit_ref& bref) const { return packer.pack(bref, value); }
+  SRSASN_CODE unpack(bit_ref& bref) { return packer.unpack(value, bref); }
 };
 
 template <class IntType>
@@ -578,8 +589,8 @@ public:
   fixed_bitstring(const std::string& s)
   {
     if (s.size() != N) {
-      srsasn_log_print(LOG_LEVEL_ERROR, "The provided string size=%d does not match the bit string size=%d\n", s.size(),
-                       N);
+      srsasn_log_print(
+          LOG_LEVEL_ERROR, "The provided string size=%d does not match the bit string size=%d\n", s.size(), N);
     }
     memset(&octets_[0], 0, nof_octets());
     for (uint32_t i = 0; i < N; ++i)
@@ -772,6 +783,15 @@ struct SeqOfPacker {
   InnerPacker packer;
   uint32_t    lb;
   uint32_t    ub;
+};
+
+template <class ItemType, uint32_t lb, uint32_t ub>
+struct dyn_seq_of : public dyn_array<ItemType> {
+  SeqOfPacker<Packer> packer;
+  dyn_seq_of() : packer(lb, ub, Packer()) {}
+  dyn_seq_of(const dyn_array<ItemType>& other) : dyn_array<ItemType>(other), packer(lb, ub, Packer()) {}
+  SRSASN_CODE pack(bit_ref& bref) const { return packer.pack(bref, *this); }
+  SRSASN_CODE unpack(bit_ref& bref) { return packer.unpack(*this, bref); }
 };
 
 /*********************

@@ -252,8 +252,8 @@ SRSASN_CODE pack_enum(bit_ref& bref, uint32_t enum_val, uint32_t nbits, uint32_t
 SRSASN_CODE pack_enum(bit_ref& bref, uint32_t e, uint32_t nof_types, uint32_t nof_exts, bool has_ext)
 {
   if (e >= nof_types) {
-    srsasn_log_print(LOG_LEVEL_ERROR, "The provided enum is not within the range of possible values (%d>=%d)\n", e,
-                     nof_types);
+    srsasn_log_print(
+        LOG_LEVEL_ERROR, "The provided enum is not within the range of possible values (%d>=%d)\n", e, nof_types);
     return SRSASN_ERROR_ENCODE_FAIL;
   }
   SRSASN_CODE ret;
@@ -288,8 +288,8 @@ ValOrError unpack_enum(uint32_t nof_types, uint32_t nof_exts, bool has_ext, bit_
     ret.code          = bref.unpack(ret.val, nof_bits);
   }
   if (ret.val >= nof_types) {
-    srsasn_log_print(LOG_LEVEL_ERROR, "The provided enum is not within the range of possible values (%d>=%d)\n",
-                     ret.val, nof_types);
+    srsasn_log_print(
+        LOG_LEVEL_ERROR, "The provided enum is not within the range of possible values (%d>=%d)\n", ret.val, nof_types);
     ret.code = SRSASN_ERROR_DECODE_FAIL;
   }
   return ret;
@@ -710,11 +710,11 @@ dyn_octstring& dyn_octstring::from_string(const std::string& hexstr)
 
 SRSASN_CODE pack_common_bitstring(bit_ref& bref, const uint8_t* buf, uint32_t nbits)
 {
-  uint32_t n_octs = (uint32_t)ceilf(nbits / 8.0f);
-  if (n_octs == 0) {
-    srsasn_log_print(LOG_LEVEL_ERROR, "Invalid number of octets (%d)\n", n_octs);
-    return SRSASN_ERROR_DECODE_FAIL;
+  if (nbits == 0) {
+    srsasn_log_print(LOG_LEVEL_ERROR, "Invalid bitstring size=%d\n", nbits);
+    return SRSASN_ERROR_ENCODE_FAIL;
   }
+  uint32_t n_octs = (uint32_t)ceilf(nbits / 8.0f);
   uint32_t offset = ((nbits - 1) % 8) + 1;
   HANDLE_CODE(bref.pack(buf[n_octs - 1], offset));
   for (uint32_t i = 1; i < n_octs; ++i) {
@@ -725,11 +725,11 @@ SRSASN_CODE pack_common_bitstring(bit_ref& bref, const uint8_t* buf, uint32_t nb
 
 SRSASN_CODE unpack_common_bitstring(uint8_t* buf, bit_ref& bref, uint32_t nbits)
 {
-  uint32_t n_octs = (uint32_t)ceilf(nbits / 8.0f);
-  if (n_octs == 0) {
-    srsasn_log_print(LOG_LEVEL_ERROR, "Invalid number of octets (%d)\n", n_octs);
+  if (nbits == 0) {
+    srsasn_log_print(LOG_LEVEL_ERROR, "Invalid bitstring size=%d\n", nbits);
     return SRSASN_ERROR_DECODE_FAIL;
   }
+  uint32_t n_octs = (uint32_t)ceilf(nbits / 8.0f);
   uint32_t offset = ((nbits - 1) % 8) + 1;
   HANDLE_CODE(bref.unpack(buf[n_octs - 1], offset));
   for (uint32_t i = 1; i < n_octs; ++i) {
@@ -858,8 +858,8 @@ SRSASN_CODE dyn_bitstring::pack(bit_ref& bref, uint32_t lb, uint32_t ub) const
   }
   if (ub > 0) {
     if (ub < len) {
-      srsasn_log_print(LOG_LEVEL_ERROR, "asn1 error: dynamic bitstring length=%d is higher than set upper bound=%d\n",
-                       len, ub);
+      srsasn_log_print(
+          LOG_LEVEL_ERROR, "asn1 error: dynamic bitstring length=%d is higher than set upper bound=%d\n", len, ub);
       return SRSASN_ERROR_ENCODE_FAIL;
     }
     uint32_t len_bits = ceilf(log2(ub - lb));
@@ -960,8 +960,6 @@ SRSASN_CODE ext_groups_header::pack_group_flags(bit_ref& bref) const
     srsasn_log_print(LOG_LEVEL_ERROR, "Exceeded maximum number of groups (%d>%d)\n", nof_groups, groups.size());
     return SRSASN_ERROR_ENCODE_FAIL;
   }
-
-  // NOTE: nof_groups is cached
   for (uint32_t i = 0; i < nof_groups; ++i) {
     HANDLE_CODE(bref.pack(groups[i], 1));
   }
@@ -1024,8 +1022,10 @@ varlength_field_pack_guard::~varlength_field_pack_guard()
   // check how many bytes were written in total
   uint32_t nof_bytes = bref_tracker->distance(bref0) / (uint32_t)8;
   if (nof_bytes > sizeof(buffer)) {
-    srsasn_log_print(LOG_LEVEL_ERROR, "The packed variable sized field is too long for the reserved buffer (%d > %d)\n",
-                     nof_bytes, sizeof(buffer));
+    srsasn_log_print(LOG_LEVEL_ERROR,
+                     "The packed variable sized field is too long for the reserved buffer (%d > %d)\n",
+                     nof_bytes,
+                     sizeof(buffer));
   }
 
   // go back in time to pack length

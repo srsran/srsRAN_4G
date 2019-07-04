@@ -62,12 +62,15 @@ inline void assert_choice_type(uint32_t val, uint32_t choice_id)
   }
 }
 
-inline void assert_choice_type(const std::string& access_type, const std::string& current_type,
-                               const std::string& choice_type)
+inline void
+assert_choice_type(const std::string& access_type, const std::string& current_type, const std::string& choice_type)
 {
   if (access_type != current_type) {
-    rrc_log_print(LOG_LEVEL_ERROR, "Invalid field access for choice type \"%s\" (\"%s\"!=\"%s\")\n",
-                  choice_type.c_str(), access_type.c_str(), current_type.c_str());
+    rrc_log_print(LOG_LEVEL_ERROR,
+                  "Invalid field access for choice type \"%s\" (\"%s\"!=\"%s\")\n",
+                  choice_type.c_str(),
+                  access_type.c_str(),
+                  current_type.c_str());
   }
 }
 
@@ -91,7 +94,8 @@ ItemType convert_enum_idx(ItemType* array, uint32_t nof_types, uint32_t enum_val
     if (enum_val == nof_types) {
       rrc_log_print(LOG_LEVEL_ERROR, "The enum of type %s was not initialized.\n", enum_type);
     } else {
-      rrc_log_print(LOG_LEVEL_ERROR, "The enum value=%d of type %s is not valid.\n", enum_val, enum_type);
+      rrc_log_print(
+          LOG_LEVEL_ERROR, "The provided enum value=%d of type %s cannot be converted.\n", enum_val, enum_type);
     }
     return 0;
   }
@@ -42562,8 +42566,8 @@ struct location_info_r10_s {
     }
     dyn_octstring& ellipsoid_point_with_altitude_and_uncertainty_ellipsoid_r11()
     {
-      assert_choice_type("ellipsoidPointWithAltitudeAndUncertaintyEllipsoid-r11", type_.to_string(),
-                         "locationCoordinates-r10");
+      assert_choice_type(
+          "ellipsoidPointWithAltitudeAndUncertaintyEllipsoid-r11", type_.to_string(), "locationCoordinates-r10");
       return c.get<dyn_octstring>();
     }
     dyn_octstring& ellipsoid_arc_r11()
@@ -42598,8 +42602,8 @@ struct location_info_r10_s {
     }
     const dyn_octstring& ellipsoid_point_with_altitude_and_uncertainty_ellipsoid_r11() const
     {
-      assert_choice_type("ellipsoidPointWithAltitudeAndUncertaintyEllipsoid-r11", type_.to_string(),
-                         "locationCoordinates-r10");
+      assert_choice_type(
+          "ellipsoidPointWithAltitudeAndUncertaintyEllipsoid-r11", type_.to_string(), "locationCoordinates-r10");
       return c.get<dyn_octstring>();
     }
     const dyn_octstring& ellipsoid_arc_r11() const
