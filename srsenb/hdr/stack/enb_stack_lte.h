@@ -45,26 +45,12 @@ namespace srsenb {
 class enb_stack_lte final : public enb_stack_base, public stack_interface_phy_lte
 {
 public:
-  struct args_t {
-    struct stack_expert_args_t {
-      mac_args_t  mac;
-      bool        enable_mbsfn;
-      std::string m1u_multiaddr;
-      std::string m1u_if_addr;
-    };
-
-    enb_args_t          enb;
-    pcap_args_t         pcap;
-    log_args_t          log;
-    stack_expert_args_t expert;
-  };
-
-  enb_stack_lte();
+  enb_stack_lte(srslte::logger* logger_);
   ~enb_stack_lte() final;
 
   // eNB stack base interface
-  int  init(const args_t& args_, const rrc_cfg_t& rrc_cfg_, srslte::logger* logger_, phy_interface_stack_lte* phy_);
-  int  init(const args_t& args_, const rrc_cfg_t& rrc_cfg_, srslte::logger* logger_);
+  int         init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_, phy_interface_stack_lte* phy_);
+  int         init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_);
   void stop() final;
   std::string get_type() final;
   bool        get_metrics(stack_metrics_t* metrics) final;
@@ -99,9 +85,9 @@ public:
   void tti_clock() final { mac.tti_clock(); }
 
 private:
-  args_t    args;
-  rrc_cfg_t rrc_cfg;
-  bool      started;
+  stack_args_t args    = {};
+  rrc_cfg_t    rrc_cfg = {};
+  bool         started = false;
 
   srsenb::mac      mac;
   srslte::mac_pcap mac_pcap;
@@ -111,7 +97,7 @@ private:
   srsenb::gtpu     gtpu;
   srsenb::s1ap     s1ap;
 
-  srslte::logger* logger;
+  srslte::logger* logger = nullptr;
 
   // Radio and PHY log are in enb.cc
   srslte::log_filter mac_log;
@@ -122,7 +108,7 @@ private:
   srslte::log_filter gtpu_log;
 
   // RAT-specific interfaces
-  phy_interface_stack_lte* phy;
+  phy_interface_stack_lte* phy = nullptr;
 };
 
 } // namespace srsenb

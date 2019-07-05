@@ -53,11 +53,11 @@ public:
     bzero(&prach_cfg, sizeof(prach_cfg));
   }
 
-  int  init(srslte_cell_t*           cell,
-            srslte_prach_cfg_t*      prach_cfg,
-            stack_interface_phy_lte* mac,
-            srslte::log*             log_h,
-            int                      priority);
+  int  init(const srslte_cell_t&      cell_,
+            const srslte_prach_cfg_t& prach_cfg_,
+            stack_interface_phy_lte*  mac,
+            srslte::log*              log_h,
+            int                       priority);
   int  new_tti(uint32_t tti, cf_t *buffer);
   void set_max_prach_offset_us(float delay_us);
   void stop();

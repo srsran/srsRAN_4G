@@ -21,9 +21,9 @@
 
 #include "srsue/hdr/ue.h"
 #include "srslte/build_info.h"
+#include "srslte/radio/radio_multi.h"
 #include "srslte/srslte.h"
 #include "srsue/hdr/phy/phy.h"
-#include "srsue/hdr/radio/ue_radio.h"
 #include "srsue/hdr/stack/ue_stack_lte.h"
 #include <algorithm>
 #include <iostream>
@@ -92,14 +92,14 @@ int ue::init(const all_args_t& args_, srslte::logger* logger_)
       return SRSLTE_ERROR;
     }
 
-    std::unique_ptr<ue_radio> lte_radio = std::unique_ptr<ue_radio>(new ue_radio());
+    std::unique_ptr<radio_multi> lte_radio = std::unique_ptr<radio_multi>(new radio_multi(logger));
     if (!lte_radio) {
       log.console("Error creating radio multi instance.\n");
       return SRSLTE_ERROR;
     }
 
     // init layers
-    if (lte_radio->init(args.rf, logger, lte_phy.get())) {
+    if (lte_radio->init(args.rf, lte_phy.get())) {
       log.console("Error initializing radio.\n");
       return SRSLTE_ERROR;
     }

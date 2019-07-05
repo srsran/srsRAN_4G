@@ -18,7 +18,6 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-add_subdirectory(radio)
 add_subdirectory(phy)
 add_subdirectory(stack)
 
@@ -32,14 +31,14 @@ if (RPATH)
 endif (RPATH)
 
 add_executable(srsue main.cc ue.cc metrics_stdout.cc metrics_csv.cc)
-target_link_libraries(srsue   srsue_radio
-                              srsue_phy
+target_link_libraries(srsue   srsue_phy
                               srsue_stack
                               srsue_upper
                               srsue_mac
                               srsue_rrc
                               srslte_common
                               srslte_phy
+                              srslte_radio
                               srslte_upper
                               rrc_asn1
                               ${CMAKE_THREAD_LIBS_INIT}

@@ -19,47 +19,34 @@
  *
  */
 
-#include "srsue/hdr/radio/ue_radio.h"
+#include "srslte/radio/radio_multi.h"
 #include <mutex>
 
-using namespace srslte;
+namespace srslte {
 
-namespace srsue {
+std::mutex          radio_instance_mutex;
+static radio_multi* instance;
 
-std::mutex             instance_mutex;
-static ue_radio*       instance;
-
-ue_radio::ue_radio() : args(), logger(nullptr), running(false), phy(nullptr), rf_metrics(), radios()
+radio_multi::radio_multi(srslte::logger* logger_) : logger(logger_), radio_base(logger_)
 {
-  std::lock_guard<std::mutex> lock(instance_mutex);
+  std::lock_guard<std::mutex> lock(radio_instance_mutex);
   instance = this;
 }
 
-ue_radio::~ue_radio()
+radio_multi::~radio_multi()
 {
   stop();
 }
 
-std::string ue_radio::get_type()
+std::string radio_multi::get_type()
 {
-  return "radio";
+  return "radio_multi";
 }
 
-int ue_radio::init(const rf_args_t& args_, srslte::logger* logger_, phy_interface_radio* phy_)
-{
-  if (init(args_, logger_)) {
-    return SRSLTE_ERROR;
-  }
-
-  phy = phy_;
-
-  return SRSLTE_SUCCESS;
-}
-
-int ue_radio::init(const rf_args_t& args_, srslte::logger* logger_)
+int radio_multi::init(const rf_args_t& args_, phy_interface_radio* phy_)
 {
   args   = args_;
-  logger = logger_;
+  phy    = phy_;
 
   // Init log
   log.init("RF  ", logger);
@@ -130,10 +117,10 @@ int ue_radio::init(const rf_args_t& args_, srslte::logger* logger_)
   return SRSLTE_SUCCESS;
 }
 
-void ue_radio::stop()
+void radio_multi::stop()
 {
   if (running) {
-    std::lock_guard<std::mutex> lock(instance_mutex);
+    std::lock_guard<std::mutex> lock(radio_instance_mutex);
     instance = nullptr;
 
     for (auto& radio : radios) {
@@ -144,22 +131,22 @@ void ue_radio::stop()
   }
 }
 
-bool ue_radio::get_metrics(rf_metrics_t* metrics)
+bool radio_multi::get_metrics(rf_metrics_t* metrics)
 {
   *metrics = rf_metrics;
   rf_metrics = {};
   return true;
 }
 
-void ue_radio::rf_msg(srslte_rf_error_t error)
+void radio_multi::rf_msg(srslte_rf_error_t error)
 {
-  std::lock_guard<std::mutex> lock(instance_mutex);
+  std::lock_guard<std::mutex> lock(radio_instance_mutex);
   if (instance) {
     instance->handle_rf_msg(error);
   }
 }
 
-void ue_radio::handle_rf_msg(srslte_rf_error_t error)
+void radio_multi::handle_rf_msg(srslte_rf_error_t error)
 {
   if (error.type == srslte_rf_error_t::SRSLTE_RF_ERROR_OVERFLOW) {
     rf_metrics.rf_o++;
@@ -188,4 +175,4 @@ void ue_radio::handle_rf_msg(srslte_rf_error_t error)
   }
 }
 
-} // namespace srsue
+} // namespace srslte

@@ -27,6 +27,7 @@
 #include "phy_metrics.h"
 #include "srslte/common/gen_mch_tables.h"
 #include "srslte/common/log.h"
+#include "srslte/interfaces/common_interfaces.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/radio/radio.h"
 #include "srslte/srslte.h"
@@ -94,7 +95,7 @@ public:
 
   ~phy_common();
 
-  void init(phy_args_t* args, srslte::log* _log, radio_interface_phy* _radio, stack_interface_phy_lte* _stack);
+  void init(phy_args_t* args, srslte::log* _log, srslte::radio_interface_phy* _radio, stack_interface_phy_lte* _stack);
 
   uint32_t ul_pidof(uint32_t tti, srslte_tdd_config_t* tdd_config);
 
@@ -141,7 +142,7 @@ public:
   bool sr_enabled;
   int  sr_last_tx_tti;
 
-  radio_interface_phy* get_radio();
+  srslte::radio_interface_phy* get_radio();
 
   void     set_cell(const srslte_cell_t& c);
   uint32_t get_nof_prb();
@@ -174,7 +175,7 @@ private:
   uint32_t           max_workers;
 
   bool           is_first_of_burst[SRSLTE_MAX_RADIOS];
-  radio_interface_phy* radio_h;
+  srslte::radio_interface_phy* radio_h;
   float          cfo;
   srslte::log*   log_h;
   srslte::channel_ptr  ul_channel = nullptr;

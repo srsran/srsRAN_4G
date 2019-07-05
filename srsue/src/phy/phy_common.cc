@@ -114,10 +114,10 @@ void phy_common::set_nof_workers(uint32_t nof_workers)
   this->nof_workers = nof_workers;
 }
 
-void phy_common::init(phy_args_t*              _args,
-                      srslte::log*             _log,
-                      radio_interface_phy*     _radio,
-                      stack_interface_phy_lte* _stack)
+void phy_common::init(phy_args_t*                  _args,
+                      srslte::log*                 _log,
+                      srslte::radio_interface_phy* _radio,
+                      stack_interface_phy_lte*     _stack)
 {
   log_h          = _log;
   radio_h        = _radio;
@@ -182,7 +182,7 @@ void phy_common::set_ue_ul_cfg(srslte_ue_ul_cfg_t* ue_ul_cfg)
   ue_ul_cfg->ul_cfg.pucch.ack_nack_feedback_mode = SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_NORMAL;
 }
 
-radio_interface_phy* phy_common::get_radio()
+srslte::radio_interface_phy* phy_common::get_radio()
 {
   return radio_h;
 }

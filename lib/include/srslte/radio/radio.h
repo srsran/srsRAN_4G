@@ -121,8 +121,6 @@ class radio {
   float get_rssi();
   bool has_rssi();
 
-  void set_tti(uint32_t tti);
-
   bool is_first_of_burst();
 
   bool is_init();

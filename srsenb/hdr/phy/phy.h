@@ -24,9 +24,11 @@
 
 #include "phy_common.h"
 #include "sf_worker.h"
+#include "srsenb/hdr/phy/enb_lte_phy_base.h"
 #include "srslte/common/log.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/trace.h"
+#include "srslte/interfaces/common_interfaces.h"
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
 #include "srslte/radio/radio.h"
@@ -43,23 +45,20 @@ typedef struct {
   asn1::rrc::srs_ul_cfg_common_c srs_ul_cnfg;
 } phy_cfg_t;
 
-class phy : public phy_interface_stack_lte
+class phy : public enb_lte_phy_base
 {
 public:
+  phy(srslte::logger* logger_);
+  ~phy();
 
-  phy();
-  bool init(phy_args_t*              args,
-            phy_cfg_t*               common_cfg,
-            srslte::radio*           radio_handler,
-            stack_interface_phy_lte* stack,
-            srslte::log_filter*      log_h);
-  bool init(phy_args_t*                      args,
-            phy_cfg_t*                       common_cfg,
-            srslte::radio*                   radio_handler,
-            stack_interface_phy_lte*         stack,
-            std::vector<srslte::log_filter*> log_vec);
+  int  init(const phy_args_t&            args,
+            const phy_cfg_t&             cfg,
+            srslte::radio_interface_phy* radio_,
+            stack_interface_phy_lte*     stack_);
   void stop();
-  
+
+  std::string get_type() { return "lte"; };
+
   /* MAC->PHY interface */
   int  add_rnti(uint16_t rnti, bool is_temporal = false);
   void rem_rnti(uint16_t rnti);
@@ -75,30 +74,38 @@ public:
   void set_config_dedicated(uint16_t rnti, asn1::rrc::phys_cfg_ded_s* dedicated);
 
   void get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS]);
-  
+
+  void radio_overflow(){};
+  void radio_failure(){};
+
 private:
-  phy_rrc_cfg_t phy_rrc_config;
-  uint32_t nof_workers; 
-  
+  phy_rrc_cfg_t phy_rrc_config = {};
+  uint32_t      nof_workers    = 0;
+
   const static int MAX_WORKERS         = 4;
   const static int DEFAULT_WORKERS     = 2;
   
   const static int PRACH_WORKER_THREAD_PRIO = 3;
   const static int SF_RECV_THREAD_PRIO = 1;
   const static int WORKERS_THREAD_PRIO = 2;
-  
-  srslte::radio         *radio_handler;
-  srslte::log              *log_h;
+
+  srslte::radio_interface_phy* radio = nullptr;
+
+  srslte::logger*                                   logger = nullptr;
+  std::vector<std::unique_ptr<srslte::log_filter> > log_vec;
+  srslte::log*                                      log_h = nullptr;
+
   srslte::thread_pool      workers_pool;
   std::vector<sf_worker>    workers;
   phy_common                workers_common;
-  prach_worker             prach; 
-  txrx                     tx_rx; 
-  
-  srslte_prach_cfg_t prach_cfg; 
-  
-  void parse_config(phy_cfg_t* cfg);
-  
+  prach_worker             prach;
+  txrx                      tx_rx;
+
+  bool initialized = false;
+
+  srslte_prach_cfg_t prach_cfg = {};
+
+  void parse_config(const phy_cfg_t& cfg);
 };
 
 } // namespace srsenb

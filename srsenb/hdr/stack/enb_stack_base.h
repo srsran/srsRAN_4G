@@ -26,6 +26,41 @@
 
 namespace srsenb {
 
+typedef struct {
+  bool        enable;
+  std::string filename;
+} pcap_args_t;
+
+typedef struct {
+  bool        enable_mbsfn;
+  std::string m1u_multiaddr;
+  std::string m1u_if_addr;
+} stack_expert_args_t;
+
+typedef struct {
+  std::string mac_level;
+  std::string rlc_level;
+  std::string pdcp_level;
+  std::string rrc_level;
+  std::string gtpu_level;
+  std::string s1ap_level;
+
+  int mac_hex_limit;
+  int rlc_hex_limit;
+  int pdcp_hex_limit;
+  int rrc_hex_limit;
+  int gtpu_hex_limit;
+  int s1ap_hex_limit;
+} stack_log_args_t;
+
+typedef struct {
+  mac_args_t          mac;
+  s1ap_args_t         s1ap;
+  pcap_args_t         pcap;
+  stack_log_args_t    log;
+  stack_expert_args_t expert;
+} stack_args_t;
+
 struct stack_metrics_t;
 
 class enb_stack_base

@@ -18,10 +18,6 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-set(SOURCES ue_radio.cc)
-
-add_library(srsue_radio STATIC ${SOURCES})
-
-target_link_libraries(srsue_radio srslte_radio)
-
-install(TARGETS srsue_radio DESTINATION ${LIBRARY_DIR})
+file(GLOB SOURCES "*.cc")
+add_library(srsenb_radio STATIC ${SOURCES})
+install(TARGETS srsenb_radio DESTINATION ${LIBRARY_DIR})

@@ -42,16 +42,16 @@ double callback_set_rx_gain(void *h, double gain) {
   return ((sync*)h)->set_rx_gain(gain);
 }
 
-void sync::init(radio_interface_phy*      _radio,
-                stack_interface_phy_lte*  _stack,
-                prach*                    _prach_buffer,
-                srslte::thread_pool*      _workers_pool,
-                phy_common*               _worker_com,
-                srslte::log*              _log_h,
-                srslte::log*              _log_phy_lib_h,
-                scell::async_recv_vector* scell_sync_,
-                uint32_t                  prio,
-                int                       sync_cpu_affinity)
+void sync::init(srslte::radio_interface_phy* _radio,
+                stack_interface_phy_lte*     _stack,
+                prach*                       _prach_buffer,
+                srslte::thread_pool*         _workers_pool,
+                phy_common*                  _worker_com,
+                srslte::log*                 _log_h,
+                srslte::log*                 _log_phy_lib_h,
+                scell::async_recv_vector*    scell_sync_,
+                uint32_t                     prio,
+                int                          sync_cpu_affinity)
 {
   radio_h         = _radio;
   log_h           = _log_h;

@@ -26,6 +26,7 @@
 
 #include "phy/phy_metrics.h"
 #include "srslte/common/metrics_hub.h"
+#include "srslte/radio/radio_metrics.h"
 #include "srslte/upper/rlc_metrics.h"
 #include "stack/mac/mac_metrics.h"
 #include "stack/upper/gw_metrics.h"
@@ -34,20 +35,13 @@
 namespace srsue {
 
 typedef struct {
-  uint32_t rf_o;
-  uint32_t rf_u;
-  uint32_t rf_l;
-  bool     rf_error;
-} rf_metrics_t;
-
-typedef struct {
   mac_metrics_t         mac[SRSLTE_MAX_CARRIERS];
   srslte::rlc_metrics_t rlc;
   nas_metrics_t         nas;
 } stack_metrics_t;
 
 typedef struct {
-  rf_metrics_t    rf;
+  srslte::rf_metrics_t rf;
   phy_metrics_t   phy;
   gw_metrics_t    gw;
   stack_metrics_t stack;

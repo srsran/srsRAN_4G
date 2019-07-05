@@ -63,7 +63,7 @@ mac::mac() : timers_db(128), timers_thread(&timers_db), tti(0), last_rnti(0),
 
 mac::~mac()
 {
-  pthread_rwlock_unlock(&rwlock);
+  stop();
   pthread_rwlock_destroy(&rwlock);
 }
 
@@ -113,18 +113,20 @@ bool mac::init(const mac_args_t&        args_,
 void mac::stop()
 {
   pthread_rwlock_wrlock(&rwlock);
-
-  for (uint32_t i=0;i<ue_db.size();i++) {
-    delete ue_db[i];
+  if (started) {
+    for (uint32_t i = 0; i < ue_db.size(); i++) {
+      delete ue_db[i];
+    }
+    for (int i = 0; i < NOF_BCCH_DLSCH_MSG; i++) {
+      srslte_softbuffer_tx_free(&bcch_softbuffer_tx[i]);
+    }
+    srslte_softbuffer_tx_free(&pcch_softbuffer_tx);
+    srslte_softbuffer_tx_free(&rar_softbuffer_tx);
+    started = false;
+    timers_thread.stop();
+    pdu_process_thread.stop();
   }
-  for (int i=0;i<NOF_BCCH_DLSCH_MSG;i++) {
-    srslte_softbuffer_tx_free(&bcch_softbuffer_tx[i]);
-  }
-  srslte_softbuffer_tx_free(&pcch_softbuffer_tx);
-  srslte_softbuffer_tx_free(&rar_softbuffer_tx);
-  started = false;
-  timers_thread.stop();
-  pdu_process_thread.stop();
+  pthread_rwlock_unlock(&rwlock);
 }
 
 // Implement Section 5.9

@@ -28,17 +28,17 @@
 #ifndef SRSUE_UE_H
 #define SRSUE_UE_H
 
+#include <pthread.h>
 #include <stdarg.h>
 #include <string>
-#include <pthread.h>
 
 #include "phy/ue_phy_base.h"
-#include "radio/ue_radio_base.h"
-#include "stack/ue_stack_base.h"
 #include "srslte/common/buffer_pool.h"
-#include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/common/logger_file.h"
 #include "srslte/common/log_filter.h"
+#include "srslte/common/logger_file.h"
+#include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/radio/radio_base.h"
+#include "stack/ue_stack_base.h"
 
 #include "ue_metrics_interface.h"
 
@@ -72,10 +72,10 @@ typedef struct {
 } expert_args_t;
 
 typedef struct {
-  rf_args_t    rf;
-  trace_args_t trace;
-  log_args_t   log;
-  gui_args_t   gui;
+  srslte::rf_args_t rf;
+  trace_args_t      trace;
+  log_args_t        log;
+  gui_args_t        gui;
 
   phy_args_t   phy;
   stack_args_t stack;
@@ -109,13 +109,13 @@ public:
 private:
   // UE consists of a radio, a PHY and a stack element
   std::unique_ptr<ue_phy_base>   phy;
-  std::unique_ptr<ue_radio_base> radio;
+  std::unique_ptr<srslte::radio_base> radio;
   std::unique_ptr<ue_stack_base> stack;
   std::unique_ptr<gw>            gw_inst;
 
   // Generic logger members
-  srslte::logger*        logger = nullptr;
-  srslte::log_filter     log; // Own logger for UE
+  srslte::logger*    logger = nullptr;
+  srslte::log_filter log; // Own logger for UE
 
   all_args_t                args;
   srslte::byte_buffer_pool* pool = nullptr;
@@ -131,4 +131,3 @@ private:
 } // namespace srsue
 
 #endif // SRSUE_UE_H
-  

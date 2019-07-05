@@ -20,39 +20,34 @@
  */
 
 /******************************************************************************
- * File:        ue_phy_base.h
- * Description: Base class for all UE PHYs.
+ * File:        radio_base.h
+ * Description: Base class for all eNB/UE radios.
  *****************************************************************************/
 
-#ifndef SRSUE_UE_PHY_BASE_H
-#define SRSUE_UE_PHY_BASE_H
+#ifndef SRSLTE_RADIO_BASE_H
+#define SRSLTE_RADIO_BASE_H
 
+#include "srslte/common/interfaces_common.h"
 #include "srslte/common/logger.h"
-#include "srslte/interfaces/ue_interfaces.h"
-#include "srsue/hdr/phy/phy_metrics.h"
+#include "srslte/interfaces/common_interfaces.h"
+#include "srslte/radio/radio_metrics.h"
 
-namespace srsue {
+namespace srslte {
 
-class ue_phy_base
+class radio_base
 {
 public:
-  ue_phy_base(){};
-  virtual ~ue_phy_base(){};
+  radio_base(srslte::logger* logger_){};
+  virtual ~radio_base(){};
 
   virtual std::string get_type() = 0;
 
-  virtual int init(const phy_args_t& args_, srslte::logger* logger_) = 0;
+  virtual int  init(const rf_args_t& args_, phy_interface_radio* phy_) = 0;
+  virtual void stop()                                                = 0;
 
-  virtual void stop()                                                 = 0;
-
-  virtual void set_earfcn(std::vector<uint32_t> earfcns) = 0;
-
-  virtual void wait_initialize() = 0;
-  virtual void start_plot()      = 0;
-
-  virtual void get_metrics(phy_metrics_t* m) = 0;
+  virtual bool get_metrics(rf_metrics_t* metrics) = 0;
 };
 
-} // namespace srsue
+} // namespace srslte
 
-#endif // SRSUE_UE_PHY_BASE_H
+#endif // SRSLTE_RADIO_BASE_H

@@ -20,39 +20,33 @@
  */
 
 /******************************************************************************
- * File:        ue_phy_base.h
- * Description: Base class for all UE PHYs.
+ * File:        enb_lte_phy_base.h
+ * Description: Base class for eNB LTE PHYs.
  *****************************************************************************/
 
-#ifndef SRSUE_UE_PHY_BASE_H
-#define SRSUE_UE_PHY_BASE_H
+#ifndef SRSENB_LTE_PHY_BASE_H
+#define SRSENB_LTE_PHY_BASE_H
 
-#include "srslte/common/logger.h"
-#include "srslte/interfaces/ue_interfaces.h"
-#include "srsue/hdr/phy/phy_metrics.h"
+#include "srsenb/hdr/phy/enb_phy_base.h"
+#include "srslte/interfaces/common_interfaces.h"
 
-namespace srsue {
+namespace srsenb {
 
-class ue_phy_base
+class enb_lte_phy_base : public enb_phy_base, public phy_interface_stack_lte, public srslte::phy_interface_radio
 {
 public:
-  ue_phy_base(){};
-  virtual ~ue_phy_base(){};
+  enb_lte_phy_base(){};
+  virtual ~enb_lte_phy_base(){};
 
   virtual std::string get_type() = 0;
 
-  virtual int init(const phy_args_t& args_, srslte::logger* logger_) = 0;
+  virtual void stop() = 0;
 
-  virtual void stop()                                                 = 0;
-
-  virtual void set_earfcn(std::vector<uint32_t> earfcns) = 0;
-
-  virtual void wait_initialize() = 0;
-  virtual void start_plot()      = 0;
+  virtual void start_plot() = 0;
 
   virtual void get_metrics(phy_metrics_t* m) = 0;
 };
 
-} // namespace srsue
+} // namespace srsenb
 
-#endif // SRSUE_UE_PHY_BASE_H
+#endif // SRSENB_LTE_PHY_BASE_H

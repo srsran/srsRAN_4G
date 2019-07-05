@@ -79,7 +79,6 @@ void s1ap::stop()
   if(close(socket_fd) == -1) {
     s1ap_log->error("Failed to close SCTP socket\n");
   }
-  return;
 }
 
 void s1ap::get_metrics(s1ap_metrics_t &m)
@@ -145,6 +144,7 @@ void s1ap::run_thread()
     s1ap_log->info_hex(pdu->msg, pdu->N_bytes, "Received S1AP PDU");
     handle_s1ap_rx_pdu(pdu.get());
   }
+  printf("%s ended\n", __PRETTY_FUNCTION__);
 }
 
 // Generate common S1AP protocol IEs from config args

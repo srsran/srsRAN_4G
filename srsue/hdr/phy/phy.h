@@ -22,13 +22,14 @@
 #ifndef SRSUE_PHY_H
 #define SRSUE_PHY_H
 
-#include "scell/async_scell_recv.h"
 #include "phy_common.h"
 #include "phy_metrics.h"
 #include "prach.h"
+#include "scell/async_scell_recv.h"
 #include "sf_worker.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/trace.h"
+#include "srslte/interfaces/common_interfaces.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/radio/radio.h"
 #include "srslte/srslte.h"
@@ -49,10 +50,10 @@ public:
   int init(const phy_args_t& args_, srslte::logger* logger_) final;
 
   // Init for LTE PHYs
-  int init(const phy_args_t&        args_,
-           srslte::logger*          logger_,
-           stack_interface_phy_lte* stack_,
-           radio_interface_phy*     radio_) final;
+  int init(const phy_args_t&            args_,
+           srslte::logger*              logger_,
+           stack_interface_phy_lte*     stack_,
+           srslte::radio_interface_phy* radio_) final;
 
   void stop() final;
 
@@ -142,7 +143,7 @@ private:
   const static int SF_RECV_THREAD_PRIO = 1;
   const static int WORKERS_THREAD_PRIO = 2;
 
-  radio_interface_phy*                              radio = nullptr;
+  srslte::radio_interface_phy*                              radio = nullptr;
   std::vector<std::unique_ptr<srslte::log_filter> > log_vec;
   srslte::logger*                                   logger = nullptr;
 

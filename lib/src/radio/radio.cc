@@ -255,10 +255,6 @@ void radio::tx_end()
   }
 }
 
-void radio::set_tti(uint32_t tti_) {
-  tti = tti_; 
-}
-
 void radio::set_freq_offset(double freq) {
   freq_offset = freq;
 }

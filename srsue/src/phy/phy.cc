@@ -101,10 +101,10 @@ bool phy::check_args(const phy_args_t& args)
   return true; 
 }
 
-int phy::init(const phy_args_t&        args_,
-              srslte::logger*          logger_,
-              stack_interface_phy_lte* stack_,
-              radio_interface_phy*     radio_)
+int phy::init(const phy_args_t&            args_,
+              srslte::logger*              logger_,
+              stack_interface_phy_lte*     stack_,
+              srslte::radio_interface_phy* radio_)
 {
   stack         = stack_;
   radio         = radio_;

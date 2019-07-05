@@ -31,7 +31,7 @@
 
 namespace srsue {
 
-class ue_lte_phy_base : public ue_phy_base, public phy_interface_stack_lte, public phy_interface_radio
+class ue_lte_phy_base : public ue_phy_base, public phy_interface_stack_lte, public srslte::phy_interface_radio
 {
 public:
   ue_lte_phy_base(){};
@@ -40,10 +40,10 @@ public:
   virtual std::string get_type() = 0;
 
   virtual int  init(const phy_args_t& args_, srslte::logger* logger_) = 0;
-  virtual int  init(const phy_args_t&        args_,
-                    srslte::logger*          logger_,
-                    stack_interface_phy_lte* stack_,
-                    radio_interface_phy*     radio_)                      = 0;
+  virtual int  init(const phy_args_t&            args_,
+                    srslte::logger*              logger_,
+                    stack_interface_phy_lte*     stack_,
+                    srslte::radio_interface_phy* radio_)              = 0;
   virtual void stop()                                                 = 0;
 
   virtual void set_earfcn(std::vector<uint32_t> earfcns) = 0;

@@ -30,17 +30,11 @@
 #include "srsenb/hdr/stack/upper/common_enb.h"
 #include "srsenb/hdr/stack/upper/s1ap_metrics.h"
 #include "srslte/common/metrics_hub.h"
+#include "srslte/radio/radio_metrics.h"
 #include "srslte/upper/rlc_metrics.h"
 #include "srsue/hdr/stack/upper/gw_metrics.h"
 
 namespace srsenb {
-  
-typedef struct {
-  uint32_t rf_o;
-  uint32_t rf_u;
-  uint32_t rf_l;
-  bool     rf_error;
-}rf_metrics_t;
 
 struct stack_metrics_t {
   mac_metrics_t  mac[ENB_METRICS_MAX_USERS];
@@ -49,7 +43,7 @@ struct stack_metrics_t {
 };
 
 typedef struct {
-  rf_metrics_t    rf;
+  srslte::rf_metrics_t rf;
   phy_metrics_t   phy[ENB_METRICS_MAX_USERS];
   stack_metrics_t stack;
   bool            running;

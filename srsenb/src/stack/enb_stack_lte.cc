@@ -28,7 +28,7 @@ using namespace srslte;
 
 namespace srsenb {
 
-enb_stack_lte::enb_stack_lte() : args(), started(false), logger(nullptr), phy(nullptr), pdcp(&pdcp_log) {}
+enb_stack_lte::enb_stack_lte(srslte::logger* logger_) : logger(logger_), pdcp(&pdcp_log) {}
 
 enb_stack_lte::~enb_stack_lte()
 {
@@ -40,23 +40,19 @@ std::string enb_stack_lte::get_type()
   return "lte";
 }
 
-int enb_stack_lte::init(const args_t&            args_,
-                        const rrc_cfg_t&         rrc_cfg_,
-                        srslte::logger*          logger_,
-                        phy_interface_stack_lte* phy_)
+int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_, phy_interface_stack_lte* phy_)
 {
   phy = phy_;
-  if (init(args_, rrc_cfg_, logger_)) {
+  if (init(args_, rrc_cfg_)) {
     return SRSLTE_ERROR;
   }
   return SRSLTE_SUCCESS;
 }
 
-int enb_stack_lte::init(const args_t& args_, const rrc_cfg_t& rrc_cfg_, srslte::logger* logger_)
+int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
 {
   args    = args_;
   rrc_cfg = rrc_cfg_;
-  logger  = logger_;
 
   // setup logging for each layer
   mac_log.init("MAC ", logger, true);
@@ -101,7 +97,7 @@ int enb_stack_lte::init(const args_t& args_, const rrc_cfg_t& rrc_cfg_, srslte::
               "       Consider changing \"prach_freq_offset\" in sib.conf to a value between %d and %d.\n",
               lower_bound,
               upper_bound);
-      return false;
+      return SRSLTE_ERROR;
     }
   } else { // 6 PRB case
     if (prach_freq_offset + 6 > cell_cfg.nof_prb) {
@@ -113,18 +109,18 @@ int enb_stack_lte::init(const args_t& args_, const rrc_cfg_t& rrc_cfg_, srslte::
       fprintf(
           stderr,
           "       Consider changing the \"prach_freq_offset\" value to 0 in the sib.conf file when using 6 PRBs.\n");
-      return false;
+      return SRSLTE_ERROR;
     }
   }
 
   // Init all layers
-  mac.init(args.expert.mac, &cell_cfg, phy, &rlc, &rrc, &mac_log);
+  mac.init(args.mac, &cell_cfg, phy, &rlc, &rrc, &mac_log);
   rlc.init(&pdcp, &rrc, &mac, &mac, &rlc_log);
   pdcp.init(&rlc, &rrc, &gtpu);
   rrc.init(&rrc_cfg, phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, &rrc_log);
-  s1ap.init(args.enb.s1ap, &rrc, &s1ap_log);
-  gtpu.init(args.enb.s1ap.gtp_bind_addr,
-            args.enb.s1ap.mme_addr,
+  s1ap.init(args.s1ap, &rrc, &s1ap_log);
+  gtpu.init(args.s1ap.gtp_bind_addr,
+            args.s1ap.mme_addr,
             args.expert.m1u_multiaddr,
             args.expert.m1u_if_addr,
             &pdcp,
@@ -132,6 +128,7 @@ int enb_stack_lte::init(const args_t& args_, const rrc_cfg_t& rrc_cfg_, srslte::
             args.expert.enable_mbsfn);
 
   started = true;
+
   return SRSLTE_SUCCESS;
 }
 

@@ -20,37 +20,32 @@
  */
 
 /******************************************************************************
- * File:        ue_radio_base.h
- * Description: Base class for all UE Radios.
+ * File:        enb_phy_base.h
+ * Description: Base class for all eNB PHYs.
  *****************************************************************************/
 
-#ifndef SRSUE_UE_RADIO_BASE_H
-#define SRSUE_UE_RADIO_BASE_H
+#ifndef SRSENB_PHY_BASE_H
+#define SRSENB_PHY_BASE_H
 
-#include "srslte/common/logger.h"
-#include "srslte/interfaces/ue_interfaces.h"
-#include "srsue/hdr/ue_metrics_interface.h"
-#include <memory>
-#include <vector>
+#include "srsue/hdr/phy/phy_metrics.h"
 
-namespace srsue {
+namespace srsenb {
 
-class ue_radio_base
+class enb_phy_base
 {
 public:
-  ue_radio_base(){};
-  virtual ~ue_radio_base(){};
+  enb_phy_base(){};
+  virtual ~enb_phy_base(){};
 
   virtual std::string get_type() = 0;
 
-  virtual int  init(const srsue::rf_args_t& args_, srslte::logger* logger_) = 0;
-  virtual void stop()                                                = 0;
+  virtual void stop() = 0;
 
-  virtual bool get_metrics(rf_metrics_t* metrics) = 0;
+  virtual void start_plot() = 0;
 
-private:
+  virtual void get_metrics(phy_metrics_t* m) = 0;
 };
 
-} // namespace srsue
+} // namespace srsenb
 
-#endif // SRSUE_UE_RADIO_BASE_H
+#endif // SRSENB_PHY_BASE_H

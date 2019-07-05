@@ -35,11 +35,15 @@
 #include "phy/phy.h"
 #include "srsenb/hdr/stack/rrc/rrc.h"
 
-#include "srslte/radio/radio.h"
+#include "srslte/radio/radio_base.h"
 
+#include "srsenb/hdr/phy/enb_phy_base.h"
 #include "srsenb/hdr/stack/enb_stack_base.h"
+#include "srsenb/hdr/stack/enb_stack_lte.h"
+
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/buffer_pool.h"
+#include "srslte/common/interfaces_common.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/logger_file.h"
 #include "srslte/common/mac_pcap.h"
@@ -55,7 +59,8 @@ namespace srsenb {
 *******************************************************************************/
 
 struct enb_args_t {
-  s1ap_args_t s1ap;
+  uint32_t    dl_earfcn;
+  uint32_t    ul_earfcn;
   uint32_t    n_prb;
   uint32_t    pci;
   uint32_t    nof_ports;
@@ -70,40 +75,12 @@ struct enb_files_t {
 };
 
 typedef struct {
-  uint32_t      dl_earfcn;
-  uint32_t      ul_earfcn;
-  float         dl_freq;
-  float         ul_freq;
-  float         rx_gain;
-  float         tx_gain;
-  std::string   device_name;
-  std::string   device_args;
-  std::string   time_adv_nsamples;
-  std::string   burst_preamble;
-}rf_args_t;
-
-typedef struct {
-  bool          enable;
-  std::string   filename;
-}pcap_args_t;
-
-typedef struct {
   std::string phy_level;
   std::string phy_lib_level;
-  std::string mac_level;
-  std::string rlc_level;
-  std::string pdcp_level;
-  std::string rrc_level;
-  std::string gtpu_level;
-  std::string s1ap_level;
+
   std::string all_level;
   int         phy_hex_limit;
-  int         mac_hex_limit;
-  int         rlc_hex_limit;
-  int         pdcp_hex_limit;
-  int         rrc_hex_limit;
-  int         gtpu_hex_limit;
-  int         s1ap_hex_limit;
+
   int         all_hex_limit;
   int         file_max_size;
   std::string filename;
@@ -115,7 +92,6 @@ struct gui_args_t {
 
 struct expert_args_t {
   phy_args_t  phy;
-  mac_args_t  mac;
   uint32_t    rrc_inactivity_timer;
   float       metrics_period_secs;
   bool        metrics_csv_enable;
@@ -131,11 +107,12 @@ struct expert_args_t {
 struct all_args_t {
   enb_args_t    enb;
   enb_files_t   enb_files;
-  rf_args_t     rf;
+  srslte::rf_args_t rf;
   pcap_args_t   pcap;
   log_args_t    log;
   gui_args_t    gui;
   expert_args_t expert;
+  stack_args_t      stack;
 };
 
 /*******************************************************************************
@@ -149,7 +126,7 @@ public:
 
   static void cleanup(void);
 
-  bool init(all_args_t *args_);
+  int init(const all_args_t& args_);
 
   void stop();
 
@@ -174,23 +151,29 @@ private:
 
   virtual ~enb();
 
-  std::unique_ptr<enb_stack_base> stack;
-  srslte::radio radio;
-  srsenb::phy phy;
+  int parse_args(const all_args_t& args_);
+
+  // eNB components
+  std::unique_ptr<enb_stack_base>     stack = nullptr;
+  std::unique_ptr<srslte::radio_base> radio = nullptr;
+  std::unique_ptr<enb_phy_base>       phy   = nullptr;
 
   srslte::logger_stdout logger_stdout;
   srslte::logger_file   logger_file;
-  srslte::logger        *logger;
+  srslte::logger*       logger = nullptr;
+  srslte::log_filter    log; // Own logger for eNB
 
   srslte::log_filter  rf_log;
   std::vector<srslte::log_filter*>  phy_log;
   srslte::log_filter  pool_log;
 
-  srslte::byte_buffer_pool *pool;
+  srslte::byte_buffer_pool* pool = nullptr;
 
-  all_args_t       *args;
-  bool              started;
-  rf_metrics_t      rf_metrics;
+  all_args_t args    = {};
+  bool       started = false;
+
+  phy_cfg_t phy_cfg = {};
+  rrc_cfg_t rrc_cfg = {};
 
   srslte::LOG_LEVEL_ENUM level(std::string l);
 

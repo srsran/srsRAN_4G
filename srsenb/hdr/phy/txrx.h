@@ -37,19 +37,18 @@ class txrx : public thread
 {
 public:
   txrx();
-  bool init(srslte::radio*       radio_handler,
-            srslte::thread_pool* _workers_pool,
-            phy_common*          worker_com,
-            prach_worker*        prach,
-            srslte::log*         log_h,
-            uint32_t             prio);
+  bool init(srslte::radio_interface_phy* radio_handler,
+            srslte::thread_pool*         _workers_pool,
+            phy_common*                  worker_com,
+            prach_worker*                prach,
+            srslte::log*                 log_h,
+            uint32_t                     prio);
   void stop();
     
 private:
-    
-  void run_thread(); 
-  
-  srslte::radio        *radio_h;
+  void run_thread();
+
+  srslte::radio_interface_phy* radio_h;
   srslte::log          *log_h;
   srslte::thread_pool  *workers_pool;
   prach_worker*         prach;

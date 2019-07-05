@@ -87,16 +87,16 @@ private:
   // consts
   srslte::log*               log_h            = nullptr;
   sched_ue::sched_dci_cce_t* common_locations = nullptr;
-  sched_ue::sched_dci_cce_t* rar_locations[10];
-  uint32_t                   cce_size_array[nof_cfis];
+  sched_ue::sched_dci_cce_t* rar_locations[10]        = {nullptr};
+  uint32_t                   cce_size_array[nof_cfis] = {0};
 
   // tti vars
-  uint32_t                 tti_rx;
-  uint32_t                 sf_idx;
-  uint32_t                 current_cfix;
-  size_t                   prev_start, prev_end;
+  uint32_t                 tti_rx       = 0;
+  uint32_t                 sf_idx       = 0;
+  uint32_t                 current_cfix = 0;
+  size_t                   prev_start, prev_end = 0;
   std::vector<tree_node_t> dci_alloc_tree;
-  size_t                   nof_dci_allocs;
+  size_t                   nof_dci_allocs = 0;
 };
 
 class tti_grid_t
@@ -130,21 +130,21 @@ private:
   // consts
   srslte::log*                 log_h    = nullptr;
   sched_interface::cell_cfg_t* cell_cfg = nullptr;
-  uint32_t                     nof_prbs;
-  uint32_t                     nof_rbgs;
-  uint32_t                     si_n_rbg, rar_n_rbg;
+  uint32_t                     nof_prbs = 0;
+  uint32_t                     nof_rbgs = 0;
+  uint32_t                     si_n_rbg, rar_n_rbg = 0;
 
   // tti const
   uint32_t tti_rx = 10241;
   // derived
-  uint32_t     tti_tx_dl, tti_tx_ul;
-  uint32_t     sfn;
-  pdcch_grid_t pdcch_alloc;
+  uint32_t     tti_tx_dl, tti_tx_ul = 0;
+  uint32_t     sfn         = 0;
+  pdcch_grid_t pdcch_alloc = {};
 
   // internal state
   uint32_t  avail_rbg = 0;
-  rbgmask_t dl_mask;
-  prbmask_t ul_mask;
+  rbgmask_t dl_mask   = {};
+  prbmask_t ul_mask   = {};
 };
 
 } // namespace srsenb

@@ -28,6 +28,35 @@
 
 namespace srslte {
 
+typedef struct {
+  std::string phy_level;
+  std::string phy_lib_level;
+  int         phy_hex_limit;
+} phy_log_args_t;
+
+// RF/radio args
+typedef struct {
+  std::string type;
+  std::string log_level;
+  float       dl_freq;
+  float       ul_freq;
+  float       freq_offset;
+  float       rx_gain;
+  float       tx_gain;
+  float       tx_max_power;
+  float       tx_gain_offset;
+  float       rx_gain_offset;
+  uint32_t    nof_radios;
+  uint32_t    nof_rf_channels; // Number of RF channels per radio
+  uint32_t    nof_rx_ant;      // Number of RF channels for MIMO
+  uint32_t    nof_tx_ports;    // Number of Tx ports for MIMO
+  std::string device_name;
+  std::string device_args[SRSLTE_MAX_RADIOS];
+  std::string time_adv_nsamples;
+  std::string burst_preamble;
+  std::string continuous_tx;
+} rf_args_t;
+
 class srslte_gw_config_t
 {
 public:

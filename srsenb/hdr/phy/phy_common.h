@@ -22,20 +22,25 @@
 #ifndef SRSENB_PHCH_COMMON_H
 #define SRSENB_PHCH_COMMON_H
 
-#include <map>
-#include <semaphore.h>
+#include "srslte/common/gen_mch_tables.h"
+#include "srslte/common/interfaces_common.h"
+#include "srslte/common/log.h"
+#include "srslte/common/thread_pool.h"
+#include "srslte/common/threads.h"
+#include "srslte/interfaces/common_interfaces.h"
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
-#include "srslte/common/gen_mch_tables.h"
-#include "srslte/common/log.h"
-#include "srslte/common/threads.h"
-#include "srslte/common/thread_pool.h"
 #include "srslte/radio/radio.h"
+#include <map>
+#include <semaphore.h>
 #include <string.h>
 
 namespace srsenb {
 
 typedef struct {
+  std::string            type;
+  srslte::phy_log_args_t log;
+
   float max_prach_offset_us; 
   int pusch_max_its;
   bool pusch_8bit_decoder;
@@ -54,7 +59,7 @@ public:
 
   void set_nof_workers(uint32_t nof_workers);
 
-  bool init(srslte_cell_t* cell, srslte::radio* radio_handler, stack_interface_phy_lte* mac);
+  bool init(const srslte_cell_t& cell_, srslte::radio_interface_phy* radio_handler, stack_interface_phy_lte* mac);
   void reset(); 
   void stop();
   
@@ -70,7 +75,7 @@ public:
   // Physical Downlink Config common
   srslte_dl_cfg_t dl_cfg_com;
 
-  srslte::radio     *radio;
+  srslte::radio_interface_phy* radio;
   stack_interface_phy_lte* stack;
 
   // Common objects for schedulign grants

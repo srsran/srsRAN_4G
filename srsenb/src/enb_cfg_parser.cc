@@ -19,10 +19,10 @@
  *
  */
 
-#include "srsenb/hdr/cfg_parser.h"
-#include "srslte/srslte.h"
-
 #include "enb_cfg_parser.h"
+#include "srsenb/hdr/cfg_parser.h"
+#include "srslte/phy/common/phy_common.h"
+#include "srslte/srslte.h"
 #include "srslte/asn1/rrc_asn1_utils.h"
 
 using namespace asn1::rrc;
@@ -31,10 +31,11 @@ namespace srsenb {
 
 int enb::parse_cell_cfg(all_args_t* args, srslte_cell_t* cell)
 {
-  cell->id        = args->enb.pci;
-  cell->cp        = SRSLTE_CP_NORM;
-  cell->nof_ports = args->enb.nof_ports;
-  cell->nof_prb   = args->enb.n_prb;
+  cell->frame_type = SRSLTE_FDD;
+  cell->id         = args->enb.pci;
+  cell->cp         = SRSLTE_CP_NORM;
+  cell->nof_ports  = args->enb.nof_ports;
+  cell->nof_prb    = args->enb.n_prb;
 
   phich_cfg_s phichcfg;
 
@@ -49,7 +50,7 @@ int enb::parse_cell_cfg(all_args_t* args, srslte_cell_t* cell)
   cell->phich_resources = (srslte_phich_r_t)(int)phichcfg.phich_res;
 
   if (!srslte_cell_isvalid(cell)) {
-    fprintf(stderr, "Invalid cell parameters: nof_prb=%d, cell_id=%d\n", args->enb.n_prb, args->enb.s1ap.cell_id);
+    fprintf(stderr, "Invalid cell parameters: nof_prb=%d, cell_id=%d\n", args->enb.n_prb, args->stack.s1ap.cell_id);
     return -1;
   }
 
@@ -622,17 +623,17 @@ int enb::parse_sibs(all_args_t* args, rrc_cfg_t* rrc_cfg, phy_cfg_t* phy_config_
 
   // Fill rest of data from enb config
   sib_type1_s::cell_access_related_info_s_* cell_access = &sib1->cell_access_related_info;
-  cell_access->cell_id.from_number((args->enb.s1ap.enb_id << 8u) + args->enb.s1ap.cell_id);
-  cell_access->tac.from_number(args->enb.s1ap.tac);
-  sib1->freq_band_ind = (uint8_t)srslte_band_get_band(args->rf.dl_earfcn);
+  cell_access->cell_id.from_number((args->stack.s1ap.enb_id << 8u) + args->stack.s1ap.cell_id);
+  cell_access->tac.from_number(args->stack.s1ap.tac);
+  sib1->freq_band_ind = (uint8_t)srslte_band_get_band(args->enb.dl_earfcn);
   std::string mnc_str;
-  if (not srslte::mnc_to_string(args->enb.s1ap.mnc, &mnc_str)) {
-    ERROR("The provided mnc=%d is not valid", args->enb.s1ap.mnc);
+  if (not srslte::mnc_to_string(args->stack.s1ap.mnc, &mnc_str)) {
+    ERROR("The provided mnc=%d is not valid", args->stack.s1ap.mnc);
     return -1;
   }
   std::string mcc_str;
-  if (not srslte::mcc_to_string(args->enb.s1ap.mcc, &mcc_str)) {
-    ERROR("The provided mnc=%d is not valid", args->enb.s1ap.mcc);
+  if (not srslte::mcc_to_string(args->stack.s1ap.mcc, &mcc_str)) {
+    ERROR("The provided mnc=%d is not valid", args->stack.s1ap.mcc);
     return -1;
   }
   cell_access->plmn_id_list.resize(1);
@@ -656,7 +657,7 @@ int enb::parse_sibs(all_args_t* args, rrc_cfg_t* rrc_cfg, phy_cfg_t* phy_config_
     asn1::number_to_enum(sib2->freq_info.ul_bw, args->enb.n_prb);
   }
   if (sib2->freq_info.ul_carrier_freq_present) {
-    sib2->freq_info.ul_carrier_freq = (uint16_t)args->rf.ul_earfcn;
+    sib2->freq_info.ul_carrier_freq = (uint16_t)args->enb.ul_earfcn;
   }
 
   // Update MBSFN list counter. Only 1 supported

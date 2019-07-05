@@ -55,8 +55,8 @@ async_scell_recv::async_scell_recv() : thread("ASYNC_SCELL_RECV")
   ul_freq          = -1;
   bzero(&cell, sizeof(srslte_cell_t));
   bzero(sf_buffer, sizeof(sf_buffer));
-  running = false;
-  radio_idx = 1;
+  running           = false;
+  radio_idx         = 1;
   current_sflen     = 0;
   next_radio_offset = 0;
 }
@@ -84,7 +84,7 @@ static double callback_set_rx_gain(void* h, double gain)
   return ((async_scell_recv*)h)->set_rx_gain(gain);
 }
 
-void async_scell_recv::init(radio_interface_phy* _radio_handler, phy_common* _worker_com, srslte::log* _log_h)
+void async_scell_recv::init(srslte::radio_interface_phy* _radio_handler, phy_common* _worker_com, srslte::log* _log_h)
 {
   // Get handlers
   radio_h    = _radio_handler;

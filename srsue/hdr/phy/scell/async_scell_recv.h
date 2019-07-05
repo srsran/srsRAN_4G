@@ -38,7 +38,7 @@ public:
   async_scell_recv();
   ~async_scell_recv();
 
-  void init(radio_interface_phy* _radio_handler, phy_common* _worker_com, srslte::log* _log_h);
+  void init(srslte::radio_interface_phy* _radio_handler, phy_common* _worker_com, srslte::log* _log_h);
   void stop();
 
   // from chest_feedback_itf
@@ -141,7 +141,7 @@ private:
 
   // Pointers to other classes
   srslte::log*   log_h;
-  radio_interface_phy* radio_h;
+  srslte::radio_interface_phy* radio_h;
   phy_common*    worker_com;
 
   // pthread objects

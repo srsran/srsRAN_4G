@@ -1,3 +1,4 @@
+
 /*
  * Copyright 2013-2019 Software Radio Systems Limited
  *
@@ -20,39 +21,29 @@
  */
 
 /******************************************************************************
- * File:        ue_phy_base.h
- * Description: Base class for all UE PHYs.
+ * File:        enb_radio_multi.h
+ * Description: Header-only class for eNB to set DL/UL freq during init
  *****************************************************************************/
 
-#ifndef SRSUE_UE_PHY_BASE_H
-#define SRSUE_UE_PHY_BASE_H
+#ifndef SRSENB_RADIO_MULTI_H
+#define SRSENB_RADIO_MULTI_H
 
 #include "srslte/common/logger.h"
-#include "srslte/interfaces/ue_interfaces.h"
-#include "srsue/hdr/phy/phy_metrics.h"
+#include "srslte/interfaces/common_interfaces.h"
+#include "srslte/phy/rf/rf.h"
+#include "srslte/radio/radio_base.h"
+#include "srslte/radio/radio_metrics.h"
+#include "srslte/radio/radio_multi.h"
 
-namespace srsue {
+namespace srsenb {
 
-class ue_phy_base
+class enb_radio_multi : public srslte::radio_multi
 {
 public:
-  ue_phy_base(){};
-  virtual ~ue_phy_base(){};
-
-  virtual std::string get_type() = 0;
-
-  virtual int init(const phy_args_t& args_, srslte::logger* logger_) = 0;
-
-  virtual void stop()                                                 = 0;
-
-  virtual void set_earfcn(std::vector<uint32_t> earfcns) = 0;
-
-  virtual void wait_initialize() = 0;
-  virtual void start_plot()      = 0;
-
-  virtual void get_metrics(phy_metrics_t* m) = 0;
+  enb_radio_multi(srslte::logger* logger_);
+  ~enb_radio_multi() override;
+  int init(const srslte::rf_args_t& args_, srslte::phy_interface_radio* phy_);
 };
+} // namespace srsenb
 
-} // namespace srsue
-
-#endif // SRSUE_UE_PHY_BASE_H
+#endif // SRSENB_RADIO_MULTI_H

@@ -24,16 +24,16 @@
 
 namespace srsenb {
 
-int prach_worker::init(srslte_cell_t*           cell_,
-                       srslte_prach_cfg_t*      prach_cfg_,
-                       stack_interface_phy_lte* stack_,
-                       srslte::log*             log_h_,
-                       int                      priority)
+int prach_worker::init(const srslte_cell_t&      cell_,
+                       const srslte_prach_cfg_t& prach_cfg_,
+                       stack_interface_phy_lte*  stack_,
+                       srslte::log*              log_h_,
+                       int                       priority)
 {
   log_h = log_h_;
   stack = stack_;
-  memcpy(&prach_cfg, prach_cfg_, sizeof(srslte_prach_cfg_t));
-  memcpy(&cell, cell_, sizeof(srslte_cell_t));
+  prach_cfg = prach_cfg_;
+  cell      = cell_;
 
   max_prach_offset_us = 50;
 

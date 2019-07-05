@@ -41,121 +41,137 @@ using namespace asn1::rrc;
 
 namespace srsenb {
 
-phy::phy() : workers_pool(MAX_WORKERS), 
-             workers(MAX_WORKERS), 
-             workers_common(MAX_WORKERS),
-             nof_workers(0)
+phy::phy(srslte::logger* logger_) :
+  logger(logger_),
+  workers_pool(MAX_WORKERS),
+  workers(MAX_WORKERS),
+  workers_common(MAX_WORKERS),
+  nof_workers(0)
 {
-  radio_handler = NULL;
-  bzero(&prach_cfg, sizeof(prach_cfg));
 }
 
-void phy::parse_config(phy_cfg_t* cfg)
+phy::~phy()
 {
-  
+  stop();
+}
+
+void phy::parse_config(const phy_cfg_t& cfg)
+{
   // PRACH configuration
   ZERO_OBJECT(prach_cfg);
-  prach_cfg.config_idx     = cfg->prach_cnfg.prach_cfg_info.prach_cfg_idx;
-  prach_cfg.hs_flag        = cfg->prach_cnfg.prach_cfg_info.high_speed_flag;
-  prach_cfg.root_seq_idx   = cfg->prach_cnfg.root_seq_idx;
-  prach_cfg.zero_corr_zone = cfg->prach_cnfg.prach_cfg_info.zero_correlation_zone_cfg;
-  prach_cfg.freq_offset    = cfg->prach_cnfg.prach_cfg_info.prach_freq_offset;
+  prach_cfg.config_idx     = cfg.prach_cnfg.prach_cfg_info.prach_cfg_idx;
+  prach_cfg.hs_flag        = cfg.prach_cnfg.prach_cfg_info.high_speed_flag;
+  prach_cfg.root_seq_idx   = cfg.prach_cnfg.root_seq_idx;
+  prach_cfg.zero_corr_zone = cfg.prach_cnfg.prach_cfg_info.zero_correlation_zone_cfg;
+  prach_cfg.freq_offset    = cfg.prach_cnfg.prach_cfg_info.prach_freq_offset;
 
   // Uplink Physical common configuration
   ZERO_OBJECT(workers_common.ul_cfg_com);
 
   // DMRS
-  workers_common.ul_cfg_com.dmrs.cyclic_shift        = cfg->pusch_cnfg.ul_ref_sigs_pusch.cyclic_shift;
-  workers_common.ul_cfg_com.dmrs.delta_ss            = cfg->pusch_cnfg.ul_ref_sigs_pusch.group_assign_pusch;
-  workers_common.ul_cfg_com.dmrs.group_hopping_en    = cfg->pusch_cnfg.ul_ref_sigs_pusch.group_hop_enabled;
-  workers_common.ul_cfg_com.dmrs.sequence_hopping_en = cfg->pusch_cnfg.ul_ref_sigs_pusch.seq_hop_enabled;
+  workers_common.ul_cfg_com.dmrs.cyclic_shift        = cfg.pusch_cnfg.ul_ref_sigs_pusch.cyclic_shift;
+  workers_common.ul_cfg_com.dmrs.delta_ss            = cfg.pusch_cnfg.ul_ref_sigs_pusch.group_assign_pusch;
+  workers_common.ul_cfg_com.dmrs.group_hopping_en    = cfg.pusch_cnfg.ul_ref_sigs_pusch.group_hop_enabled;
+  workers_common.ul_cfg_com.dmrs.sequence_hopping_en = cfg.pusch_cnfg.ul_ref_sigs_pusch.seq_hop_enabled;
 
   // Hopping
   workers_common.ul_cfg_com.hopping.hop_mode =
-      cfg->pusch_cnfg.pusch_cfg_basic.hop_mode ==
+      cfg.pusch_cnfg.pusch_cfg_basic.hop_mode ==
               asn1::rrc::pusch_cfg_common_s::pusch_cfg_basic_s_::hop_mode_e_::intra_and_inter_sub_frame
           ? srslte_pusch_hopping_cfg_t::SRSLTE_PUSCH_HOP_MODE_INTRA_SF
           : srslte_pusch_hopping_cfg_t::SRSLTE_PUSCH_HOP_MODE_INTER_SF;
   ;
-  workers_common.ul_cfg_com.hopping.n_sb             = cfg->pusch_cnfg.pusch_cfg_basic.n_sb;
-  workers_common.ul_cfg_com.hopping.hopping_offset   = cfg->pusch_cnfg.pusch_cfg_basic.pusch_hop_offset;
+  workers_common.ul_cfg_com.hopping.n_sb             = cfg.pusch_cnfg.pusch_cfg_basic.n_sb;
+  workers_common.ul_cfg_com.hopping.hopping_offset   = cfg.pusch_cnfg.pusch_cfg_basic.pusch_hop_offset;
   workers_common.ul_cfg_com.pusch.max_nof_iterations = workers_common.params.pusch_max_its;
   workers_common.ul_cfg_com.pusch.csi_enable         = false;
   workers_common.ul_cfg_com.pusch.meas_time_en       = true;
 
   // PUCCH
-  workers_common.ul_cfg_com.pucch.delta_pucch_shift = cfg->pucch_cnfg.delta_pucch_shift.to_number();
-  workers_common.ul_cfg_com.pucch.N_cs              = cfg->pucch_cnfg.n_cs_an;
-  workers_common.ul_cfg_com.pucch.n_rb_2            = cfg->pucch_cnfg.n_rb_cqi;
-  workers_common.ul_cfg_com.pucch.N_pucch_1         = cfg->pucch_cnfg.n1_pucch_an;
+  workers_common.ul_cfg_com.pucch.delta_pucch_shift = cfg.pucch_cnfg.delta_pucch_shift.to_number();
+  workers_common.ul_cfg_com.pucch.N_cs              = cfg.pucch_cnfg.n_cs_an;
+  workers_common.ul_cfg_com.pucch.n_rb_2            = cfg.pucch_cnfg.n_rb_cqi;
+  workers_common.ul_cfg_com.pucch.N_pucch_1         = cfg.pucch_cnfg.n1_pucch_an;
   workers_common.ul_cfg_com.pucch.threshold_format1 = 0.8;
 
   // PDSCH configuration
   ZERO_OBJECT(workers_common.dl_cfg_com);
   workers_common.dl_cfg_com.tm                 = SRSLTE_TM1;
-  workers_common.dl_cfg_com.pdsch.rs_power     = cfg->pdsch_cnfg.ref_sig_pwr;
-  workers_common.dl_cfg_com.pdsch.p_b          = cfg->pdsch_cnfg.p_b;
+  workers_common.dl_cfg_com.pdsch.rs_power     = cfg.pdsch_cnfg.ref_sig_pwr;
+  workers_common.dl_cfg_com.pdsch.p_b          = cfg.pdsch_cnfg.p_b;
   workers_common.dl_cfg_com.pdsch.meas_time_en = true;
 }
 
-bool phy::init(phy_args_t*              args,
-               phy_cfg_t*               cfg,
-               srslte::radio*           radio_handler_,
-               stack_interface_phy_lte* stack_,
-               srslte::log_filter*      log_h)
+int phy::init(const phy_args_t&            args,
+              const phy_cfg_t&             cfg,
+              srslte::radio_interface_phy* radio_,
+              stack_interface_phy_lte*     stack_)
 {
-
-  std::vector<srslte::log_filter*> log_vec;
-  this->log_h = log_h;
-  for (int i=0;i<args->nof_phy_threads;i++) {
-    log_vec.push_back(log_h);
-  }
-  init(args, cfg, radio_handler_, stack_, log_vec);
-  return true; 
-}
-
-bool phy::init(phy_args_t*                      args,
-               phy_cfg_t*                       cfg,
-               srslte::radio*                   radio_handler_,
-               stack_interface_phy_lte*         stack_,
-               std::vector<srslte::log_filter*> log_vec)
-{
-
   mlockall(MCL_CURRENT | MCL_FUTURE);
-  
-  radio_handler = radio_handler_;
-  nof_workers = args->nof_phy_threads; 
-  this->log_h = (srslte::log*)log_vec[0];
-  workers_common.params = *args;
 
-  workers_common.init(&cfg->cell, radio_handler, stack_);
+  // Create array of pointers to phy_logs
+  for (int i = 0; i < args.nof_phy_threads; i++) {
+    auto mylog   = std::unique_ptr<srslte::log_filter>(new srslte::log_filter);
+    char tmp[16] = {};
+    sprintf(tmp, "PHY%d", i);
+    mylog->init(tmp, logger, true);
+    mylog->set_level(args.log.phy_level);
+    mylog->set_hex_limit(args.log.phy_hex_limit);
+    log_vec.push_back(std::move(mylog));
+  }
+
+  // Add PHY lib log
+  if (log_vec.at(0)->get_level_from_string(args.log.phy_lib_level) != srslte::LOG_LEVEL_NONE) {
+    auto lib_log = std::unique_ptr<srslte::log_filter>(new srslte::log_filter);
+    char tmp[16] = {};
+    sprintf(tmp, "PHY_LIB");
+    lib_log->init(tmp, logger, true);
+    lib_log->set_level(args.log.phy_lib_level);
+    lib_log->set_hex_limit(args.log.phy_hex_limit);
+    log_vec.push_back(std::move(lib_log));
+  } else {
+    log_vec.push_back(nullptr);
+  }
+
+  radio       = radio_;
+  nof_workers = args.nof_phy_threads;
+
+  workers_common.params = args;
+
+  workers_common.init(cfg.cell, radio, stack_);
 
   parse_config(cfg);
   
   // Add workers to workers pool and start threads
   for (uint32_t i=0;i<nof_workers;i++) {
-    workers[i].init(&workers_common, (srslte::log*) log_vec[i]);
+    workers[i].init(&workers_common, log_vec.at(i).get());
     workers_pool.init_worker(i, &workers[i], WORKERS_THREAD_PRIO);    
   }
 
-  prach.init(&cfg->cell, &prach_cfg, stack_, (srslte::log*)log_vec[0], PRACH_WORKER_THREAD_PRIO);
-  prach.set_max_prach_offset_us(args->max_prach_offset_us);
-  
+  prach.init(cfg.cell, prach_cfg, stack_, log_vec.at(0).get(), PRACH_WORKER_THREAD_PRIO);
+  prach.set_max_prach_offset_us(args.max_prach_offset_us);
+
   // Warning this must be initialized after all workers have been added to the pool
-  tx_rx.init(radio_handler, &workers_pool, &workers_common, &prach, (srslte::log*) log_vec[0], SF_RECV_THREAD_PRIO);
-    
-  return true; 
+  tx_rx.init(radio, &workers_pool, &workers_common, &prach, log_vec.at(0).get(), SF_RECV_THREAD_PRIO);
+
+  initialized = true;
+
+  return SRSLTE_SUCCESS;
 }
 
 void phy::stop()
-{  
-  tx_rx.stop();  
-  for (uint32_t i=0;i<nof_workers;i++) {
-    workers[i].stop();
+{
+  if (initialized) {
+    tx_rx.stop();
+    for (uint32_t i = 0; i < nof_workers; i++) {
+      workers[i].stop();
+    }
+    workers_common.stop();
+    workers_pool.stop();
+    prach.stop();
+
+    initialized = false;
   }
-  workers_common.stop();
-  workers_pool.stop();
-  prach.stop();
 }
 
 uint32_t phy::tti_to_SFN(uint32_t tti) {

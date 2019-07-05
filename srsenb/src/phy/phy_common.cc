@@ -75,11 +75,13 @@ void phy_common::reset()
   bzero(dl_grants, sizeof(stack_interface_phy_lte::dl_sched_t) * TTIMOD_SZ);
 }
 
-bool phy_common::init(srslte_cell_t* cell_, srslte::radio* radio_h_, stack_interface_phy_lte* stack_)
+bool phy_common::init(const srslte_cell_t&         cell_,
+                      srslte::radio_interface_phy* radio_h_,
+                      stack_interface_phy_lte*     stack_)
 {
   radio = radio_h_;
   stack = stack_;
-  memcpy(&cell, cell_, sizeof(srslte_cell_t));
+  cell  = cell_;
 
   pthread_mutex_init(&user_mutex, NULL);
   pthread_mutex_init(&mtch_mutex, NULL);
@@ -122,8 +124,8 @@ void phy_common::worker_end(uint32_t           tti,
   // Wait for the green light to transmit in the current TTI
   sem_wait(&tx_sem[tti%nof_workers]);
 
-  radio->set_tti(tti);
-  radio->tx(buffer, nof_samples, tx_time);
+  // always transmit on single radio
+  radio->tx(0, buffer, nof_samples, tx_time);
 
   // Allow next TTI to transmit
   sem_post(&tx_sem[(tti+1)%nof_workers]);

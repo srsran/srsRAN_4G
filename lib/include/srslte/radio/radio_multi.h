@@ -20,34 +20,31 @@
  */
 
 /******************************************************************************
- * File:        ue_radio_multi.h
- * Description: UE radio module using the srslte_radio_multi() object.
+ * File:        radio_multi.h
+ * Description: Class for using multiple srslte::radio's for both eNB/UE
  *****************************************************************************/
 
-#ifndef SRSUE_UE_RADIO_MULTI_H
-#define SRSUE_UE_RADIO_MULTI_H
+#ifndef SRSLTE_RADIO_MULTI_H
+#define SRSLTE_RADIO_MULTI_H
 
-#include "srslte/common/log_filter.h"
+#include "srslte/common/logger.h"
+#include "srslte/interfaces/common_interfaces.h"
+#include "srslte/phy/rf/rf.h"
 #include "srslte/radio/radio.h"
-#include "srsue/hdr/radio/ue_radio_base.h"
-#include "srsue/hdr/ue_metrics_interface.h"
+#include "srslte/radio/radio_base.h"
+#include "srslte/radio/radio_metrics.h"
 
-namespace srsue {
+namespace srslte {
 
-/*******************************************************************************
-  Main UE stack class
-*******************************************************************************/
-
-class ue_radio : public ue_radio_base, public radio_interface_phy
+class radio_multi : public radio_base, public radio_interface_phy
 {
 public:
-  ue_radio();
-  ~ue_radio() override;
+  radio_multi(srslte::logger* logger_);
+  ~radio_multi() override;
 
   std::string get_type() override;
 
-  int init(const rf_args_t& args_, srslte::logger* logger_) override;
-  int init(const rf_args_t& args_, srslte::logger* logger_, phy_interface_radio* phy_);
+  int init(const rf_args_t& args_, phy_interface_radio* phy_);
 
   void stop() override;
 
@@ -103,19 +100,18 @@ public:
   }
   srslte_rf_info_t* get_info(const uint32_t& radio_idx) override { return radios.at(radio_idx)->get_info(); }
 
-private:
-  srsue::rf_args_t args;
+protected:
+  rf_args_t args = {};
 
-  std::vector<std::unique_ptr<srslte::radio> > radios;
+  std::vector<std::unique_ptr<radio> > radios;
 
-  srslte::logger*    logger;
+  srslte::logger*    logger = nullptr;
   srslte::log_filter log;
-  bool               running;
+  bool               running = false;
 
-  rf_metrics_t rf_metrics;
-  phy_interface_radio* phy;
+  srslte::rf_metrics_t rf_metrics = {};
+  phy_interface_radio* phy        = nullptr;
 };
+} // namespace srslte
 
-} // namespace srsue
-
-#endif // SRSUE_UE_RADIO_MULTI_H
+#endif // SRSLTE_RADIO_MULTI_H

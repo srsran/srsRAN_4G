@@ -669,27 +669,6 @@ public:
   virtual void wait_uplink() = 0;
 };
 
-// RF/radio args
-typedef struct {
-  std::string type;
-  std::string log_level;
-
-  float       freq_offset;
-  float       rx_gain;
-  float       tx_gain;
-  float       tx_max_power;
-  float       tx_gain_offset;
-  float       rx_gain_offset;
-  uint32_t    nof_radios;
-  uint32_t    nof_rf_channels; // Number of RF channels per radio
-  uint32_t    nof_rx_ant;      // Number of RF channels for MIMO
-  std::string device_name;
-  std::string device_args[SRSLTE_MAX_RADIOS];
-  std::string time_adv_nsamples;
-  std::string burst_preamble;
-  std::string continuous_tx;
-} rf_args_t;
-
 /** PHY interface 
  *
  */
@@ -700,14 +679,8 @@ typedef struct {
 } carrier_map_t;
 
 typedef struct {
-  std::string phy_level;
-  std::string phy_lib_level;
-  int         phy_hex_limit;
-} phy_log_args_t;
-
-typedef struct {
   std::string    type;
-  phy_log_args_t log;
+  srslte::phy_log_args_t log;
 
   std::string           dl_earfcn;   // comma-separated list of EARFCNs
   std::vector<uint32_t> earfcn_list; // vectorized version of dl_earfcn that gets populated during init
@@ -876,50 +849,6 @@ public:
   virtual void reset() = 0;
 
   virtual void enable_pregen_signals(bool enable) = 0;
-};
-
-class radio_interface_phy
-{
-public:
-  // trx functions
-  virtual bool tx(const uint32_t&           radio_idx,
-                  cf_t*                     buffer[SRSLTE_MAX_PORTS],
-                  const uint32_t&           nof_samples,
-                  const srslte_timestamp_t& tx_time)                                                              = 0;
-  virtual void tx_end()                                                                                           = 0;
-  virtual bool rx_now(const uint32_t&     radio_idx,
-                      cf_t*               buffer[SRSLTE_MAX_PORTS],
-                      const uint32_t&     nof_samples,
-                      srslte_timestamp_t* rxd_time)                                                               = 0;
-
-  // setter
-  virtual void set_tx_freq(const uint32_t& radio_idx, const uint32_t& channel_idx, const double& freq) = 0;
-  virtual void set_rx_freq(const uint32_t& radio_idx, const uint32_t& channel_idx, const double& freq) = 0;
-
-  virtual double set_rx_gain_th(const float& gain)                            = 0;
-  virtual void   set_rx_gain(const uint32_t& radio_idx, const float& gain)    = 0;
-  virtual void   set_tx_srate(const uint32_t& radio_idx, const double& srate) = 0;
-  virtual void   set_rx_srate(const uint32_t& radio_idx, const double& srate) = 0;
-
-  // getter
-  virtual float             get_rx_gain(const uint32_t& radio_idx) = 0;
-  virtual double            get_freq_offset()                      = 0;
-  virtual double            get_tx_freq(const uint32_t& radio_idx) = 0;
-  virtual double            get_rx_freq(const uint32_t& radio_idx) = 0;
-  virtual float             get_max_tx_power()                     = 0;
-  virtual float             get_tx_gain_offset()                   = 0;
-  virtual float             get_rx_gain_offset()                   = 0;
-  virtual bool              is_continuous_tx()                     = 0;
-  virtual bool              is_init()                              = 0;
-  virtual void              reset()                                = 0;
-  virtual srslte_rf_info_t* get_info(const uint32_t& radio_idx)    = 0;
-};
-
-class phy_interface_radio
-{
-public:
-  virtual void radio_overflow() = 0;
-  virtual void radio_failure()  = 0;
 };
 
 // STACK interface for GW
