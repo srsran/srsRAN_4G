@@ -19,7 +19,9 @@
  *
  */
 
+#include "srslte/common/buffer_pool.h"
 #include "srslte/common/log_filter.h"
+#include "srslte/common/security.h"
 #include "srslte/upper/pdcp_entity_nr.h"
 #include <iostream>
 
@@ -45,58 +47,91 @@ uint32_t SDU1_LEN = 2;
 class rlc_dummy : public srsue::rlc_interface_pdcp
 {
 public:
-  rlc_dummy(srslte::log_filter* log_) : log(log_) {}
+  rlc_dummy(srslte::log* log_) : log(log_) {}
 
 private:
-  srslte::log_filter* log;
+  srslte::log* log;
+
+  void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking = true) {}
+  bool rb_is_um(uint32_t lcid) { return false; }
 };
 
 class rrc_dummy : public srsue::rrc_interface_pdcp
 {
 public:
-  rrc_dummy(srslte::log_filter* log_) : log(log_) {}
+  rrc_dummy(srslte::log* log_) : log(log_) {}
+
+  void write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
+  void write_pdu_bcch_bch(srslte::unique_byte_buffer_t pdu) {}
+  void write_pdu_bcch_dlsch(srslte::unique_byte_buffer_t pdu) {}
+  void write_pdu_pcch(srslte::unique_byte_buffer_t pdu) {}
+  void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
+
+  std::string get_rb_name(uint32_t lcid) { return "None"; }
 
 private:
-  srslte::log_filter* log;
+  srslte::log* log;
 };
 
 class gw_dummy : public srsue::gw_interface_pdcp
 {
 public:
-  gw_dummy(srslte::log_filter* log_) : log(log_) {}
+  gw_dummy(srslte::log* log_) : log(log_) {}
+
+  void write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
+  void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
 
 private:
-  srslte::log_filter* log;
+  srslte::log* log;
 };
-
-// Setup all tests
-int run_all_tests()
-{
-  srslte::log_filter log("PDCP NR Test");
-  log.set_level(srslte::LOG_LEVEL_DEBUG);
-  log.set_hex_limit(128);
-  TESTASSERT(test_tx_basic(&log));
-}
 
 /*
  * Test 1: PDCP Entity TX
+ * Configure PDCP entity with EIA2 and EEA2
+ * TX_NEXT initially at 0.
+ * Input: {0x18, 0xE2}
+ * Output: PDCP Header {0x80,0x00}, Ciphered Text {}, MAC-I {}
  */
-bool test_tx_basic(srslte::log_filter* log)
+bool test_tx_basic(srslte::byte_buffer_pool* pool, srslte::log* log)
 {
   srslte::pdcp_entity_nr pdcp;
   srslte::srslte_pdcp_config_nr_t cfg = {0, false, true, SECURITY_DIRECTION_UPLINK, srslte::PDCP_SN_LEN_12};
 
-  rlc_dummy rlc;
-  rrc_dummy rrc;
-  gw_dummy gw;
+  rlc_dummy rlc(log);
+  rrc_dummy rrc(log);
+  gw_dummy gw(log);
 
-  pdcp.init(rlc, rrc, gw, log, 0, cfg);
+  pdcp.init(&rlc, &rrc, &gw, log, 0, cfg);
+  pdcp.config_security(k_enc, k_int, k_enc, k_int, srslte::CIPHERING_ALGORITHM_ID_128_EEA2, srslte::INTEGRITY_ALGORITHM_ID_128_EIA2);
+  pdcp.enable_integrity();
+  pdcp.enable_encryption();
 
+  uint8_t mac_exp[4];
+  srslte::unique_byte_buffer_t msg = allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t ct  = allocate_unique_buffer(*pool);
+  memcpy(msg->msg, sdu1, SDU1_LEN);
+  msg->N_bytes = SDU1_LEN;
+
+  srslte::security_128_eia2(&k_int[16], 0, 0, SECURITY_DIRECTION_UPLINK, msg->msg, msg->N_bytes, mac_exp);
+  srslte::security_128_eea2(&k_enc[16], 0, 0, SECURITY_DIRECTION_UPLINK, msg->msg, msg->N_bytes, ct->msg);
   return true;
 }
 
+// Setup all tests
+int run_all_tests(srslte::byte_buffer_pool* pool)
+{
+  // Setup log
+  srslte::log_filter log("PDCP NR Test");
+  log.set_level(srslte::LOG_LEVEL_DEBUG);
+  log.set_hex_limit(128);
+
+  TESTASSERT(test_tx_basic(pool, &log));
+  return 0;
+}
+
+
 int main(int argc, char** argv)
 {
-  run_all_tests();
-  srslte::pool::cleanup();
+  run_all_tests(srslte::byte_buffer_pool::get_instance());
+  srslte::byte_buffer_pool::cleanup();
 }

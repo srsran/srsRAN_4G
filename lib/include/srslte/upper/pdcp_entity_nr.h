@@ -52,14 +52,6 @@ public:
 
   // RRC interface
   void write_sdu(unique_byte_buffer_t sdu, bool blocking);
-  void config_security(uint8_t*                    k_rrc_enc_,
-                       uint8_t*                    k_rrc_int_,
-                       uint8_t*                    k_up_enc_,
-                       uint8_t*                    k_up_int_,
-                       CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
-                       INTEGRITY_ALGORITHM_ID_ENUM integ_algo_);
-  void enable_integrity();
-  void enable_encryption();
 
   uint32_t get_dl_count();
   uint32_t get_ul_count();

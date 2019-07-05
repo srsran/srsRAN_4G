@@ -212,18 +212,17 @@ public:
   virtual void        write_pdu_bcch_dlsch(srslte::unique_byte_buffer_t pdu)         = 0;
   virtual void        write_pdu_pcch(srslte::unique_byte_buffer_t pdu)               = 0;
   virtual void        write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu) = 0;
-  virtual std::string get_rb_name(uint32_t lcid) = 0;
+  virtual std::string get_rb_name(uint32_t lcid)                                     = 0;
 };
 
 // RRC interface for RLC
 class rrc_interface_rlc
 {
 public:
-  virtual void max_retx_attempted() = 0;
-  virtual std::string get_rb_name(uint32_t lcid) = 0;
+  virtual void        max_retx_attempted()                                       = 0;
+  virtual std::string get_rb_name(uint32_t lcid)                                 = 0;
   virtual void        write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu) = 0;
 };
-
 
 // PDCP interface for RRC
 class pdcp_interface_rrc
