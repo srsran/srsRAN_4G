@@ -49,10 +49,14 @@ class rlc_dummy : public srsue::rlc_interface_pdcp
 public:
   rlc_dummy(srslte::log* log_) : log(log_) {}
 
+  void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking = true)
+  {
+    log->info_hex(sdu->msg, sdu->N_bytes, "RLC SDU");
+  }
+
 private:
   srslte::log* log;
 
-  void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking = true) {}
   bool rb_is_um(uint32_t lcid) { return false; }
 };
 
@@ -108,12 +112,18 @@ bool test_tx_basic(srslte::byte_buffer_pool* pool, srslte::log* log)
 
   uint8_t mac_exp[4];
   srslte::unique_byte_buffer_t msg = allocate_unique_buffer(*pool);
-  srslte::unique_byte_buffer_t ct  = allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t ct_exp  = allocate_unique_buffer(*pool);
   memcpy(msg->msg, sdu1, SDU1_LEN);
   msg->N_bytes = SDU1_LEN;
+  ct_exp->N_bytes = SDU1_LEN;
 
   srslte::security_128_eia2(&k_int[16], 0, 0, SECURITY_DIRECTION_UPLINK, msg->msg, msg->N_bytes, mac_exp);
-  srslte::security_128_eea2(&k_enc[16], 0, 0, SECURITY_DIRECTION_UPLINK, msg->msg, msg->N_bytes, ct->msg);
+  srslte::security_128_eea2(&k_enc[16], 0, 0, SECURITY_DIRECTION_UPLINK, msg->msg, msg->N_bytes, ct_exp->msg);
+
+  log->info_hex(mac_exp, 4, "MAC-I:");
+  log->info_hex(ct_exp->msg, ct_exp->N_bytes, "Cipher text:");
+
+  pdcp.write_sdu(std::move(msg), true);
   return true;
 }
 
