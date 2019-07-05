@@ -76,12 +76,15 @@ void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, bool blocking)
   // Start discard timer TODO
   // Perform header compression TODO
 
-  // Integrity protection and ciphering
-  integrity_generate(sdu->msg, sdu->N_bytes - 4, tx_next, &sdu->msg[sdu->N_bytes - 4]);
-  cipher_encrypt(sdu->msg, sdu->N_bytes - 4, tx_next, &sdu->msg[sdu->N_bytes - 4]);
+  // Integrity protection
+  uint8_t mac[4]; 
+  integrity_generate(sdu->msg, sdu->N_bytes, tx_next, mac);
+
+  // Ciphering
+  cipher_encrypt(sdu->msg, sdu->N_bytes, tx_next, sdu->msg);
 
   // Write PDCP header info
-  //write_header(pdu, tx_next);
+  write_header(pdu, tx_next);
   
   // Write to lower layers
   rlc->write_sdu(lcid, std::move(sdu), blocking);
@@ -162,5 +165,26 @@ uint32_t pdcp_entity_nr::get_rcvd_sn(const unique_byte_buffer_t& pdu)
       log->error("Cannot extract RCVD_SN, invalid SN length configured: %d\n", (int)sn_len);
   }
   return rcvd_sn;
+}
+
+void pdcp_entity_nr::write_data_header(const srslte::unique_byte_buffer_t& msg, uint32_t sn)
+{
+
+  switch (sn_len) {
+    case PDCP_SN_LEN_12:
+      sdu->msg -= 2;
+      sdu->N_bytes += 2;
+      srslte::uint16_to_uint8_t(0x3F & sn);
+      if (is_data()) {
+        pdu->msg[0] = 0x80; // On DRB Data PDUs we must set the D flag.
+      }
+      break;
+    case PDCP_SN_LEN_18:
+      sdu->msg -= 3;
+      sdu->N_bytes += 3;
+      pdu->msg[0] = 0x80; // Data PDU and SN 18, D flag present
+      *sdu->msg = sn & 0x3F;
+      break;
+  }
 }
 } // namespace srslte
