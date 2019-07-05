@@ -24,7 +24,7 @@
 
 #include "phy_common.h"
 #include "sf_worker.h"
-#include "srsenb/hdr/phy/enb_lte_phy_base.h"
+#include "srsenb/hdr/phy/enb_phy_base.h"
 #include "srslte/common/log.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/trace.h"
@@ -45,7 +45,7 @@ typedef struct {
   asn1::rrc::srs_ul_cfg_common_c srs_ul_cnfg;
 } phy_cfg_t;
 
-class phy : public enb_lte_phy_base
+class phy : public enb_phy_base, public phy_interface_stack_lte, public srslte::phy_interface_radio
 {
 public:
   phy(srslte::logger* logger_);
