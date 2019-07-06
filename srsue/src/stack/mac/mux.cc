@@ -355,6 +355,7 @@ void mux::msg3_flush()
   if (log_h) {
     Debug("Msg3 buffer flushed\n");
   }
+  msg3_buff.clear();
   msg3_has_been_transmitted = false;
   msg3_pending = false;
 }
@@ -365,6 +366,7 @@ bool mux::msg3_is_transmitted()
 }
 
 void mux::msg3_prepare() {
+  msg3_has_been_transmitted = false;
   msg3_pending = true;
 }
 
@@ -372,15 +374,29 @@ bool mux::msg3_is_pending() {
   return msg3_pending;
 }
 
+bool mux::msg3_is_empty()
+{
+  return msg3_buff.N_bytes == 0;
+}
+
 /* Returns a pointer to the Msg3 buffer */
 uint8_t* mux::msg3_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
 {
-  if (pdu_get(payload, pdu_sz) != nullptr) {
-    msg3_pending              = false;
+  if (pdu_sz < msg3_buff.get_tailroom()) {
+    if (msg3_is_empty()) {
+      if (!pdu_get(&msg3_buff, pdu_sz)) {
+        Error("Moving PDU from Mux unit to Msg3 buffer\n");
+        return NULL;
+      }
+      msg3_pending = false;
+    }
+    *payload                  = msg3_buff;
     msg3_has_been_transmitted = true;
     return payload->msg;
+  } else {
+    Error("Msg3 size exceeds buffer\n");
+    return NULL;
   }
-  return nullptr;
 }
 
 }

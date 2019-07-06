@@ -44,24 +44,21 @@ public:
     bzero(&softbuffer_rar, sizeof(srslte_softbuffer_rx_t));
     pcap = NULL;
     backoff_interval_start    = 0;
-    backoff_inteval           = 0;
+    backoff_interval          = 0;
     received_target_power_dbm = 0;
     ra_rnti                   = 0;
     current_ta                = 0;
     state                     = IDLE;
     last_msg3_group           = RA_GROUP_A;
     msg3_transmitted          = false;
-    first_rar_received        = false;
     phy_h                     = NULL;
     log_h                     = NULL;
     mux_unit                  = NULL;
     rrc                       = NULL;
     transmitted_contention_id = 0;
     transmitted_crnti         = 0;
-    pdcch_to_crnti_received   = PDCCH_CRNTI_NOT_RECEIVED;
     started_by_pdcch          = false;
     rar_grant_nbytes          = 0;
-    msg3_flushed              = false;
 
     noncontention_enabled     = false;
     next_preamble_idx         = 0;
@@ -89,11 +86,11 @@ public:
   void start_mac_order(uint32_t msg_len_bits = 56, bool is_ho = false);
   void step(uint32_t tti);
 
-  bool is_rar_window(int* rar_window_start, int* rar_window_length);
+  bool update_rar_window(int* rar_window_start, int* rar_window_length);
   bool is_contention_resolution();
   void harq_retx();
   void harq_max_retx();
-  void pdcch_to_crnti(bool contains_uplink_grant);
+  void pdcch_to_crnti(bool is_new_uplink_transmission);
   void timer_expired(uint32_t timer_id);
   void new_grant_dl(mac_interface_phy_lte::mac_grant_dl_t grant, mac_interface_phy_lte::tb_action_dl_t* action);
   void tb_decoded_ok();
@@ -103,16 +100,18 @@ public:
   void start_pcap(srslte::mac_pcap* pcap);
 
 private:
+  void state_pdcch_setup();
+  void state_response_reception(uint32_t tti);
+  void state_backoff_wait(uint32_t tti);
+  void state_contention_resolution();
+  void state_completition();
+
   void process_timeadv_cmd(uint32_t ta_cmd);
-  void step_initialization();
-  void step_resource_selection();
-  void step_preamble_transmission();
-  void step_pdcch_setup();
-  void step_response_reception(uint32_t tti);
-  void step_response_error(uint32_t tti);
-  void step_backoff_wait(uint32_t tti);
-  void step_contention_resolution();
-  void step_completition();
+  void initialization();
+  void resource_selection();
+  void preamble_transmission();
+  void response_error();
+  void complete();
 
   //  Buffer to receive RAR PDU
   static const uint32_t MAX_RAR_PDU_LEN = 2048;
@@ -136,34 +135,21 @@ private:
   uint32_t backoff_param_ms;
   uint32_t sel_maskIndex;
   uint32_t sel_preamble;
-  uint32_t backoff_interval_start;
-  uint32_t backoff_inteval;
+  int      backoff_interval_start;
+  uint32_t backoff_interval;
   int      received_target_power_dbm;
   uint32_t ra_rnti;
+  uint32_t ra_tti;
   uint32_t current_ta;
 
   srslte_softbuffer_rx_t softbuffer_rar;
 
-  enum {
-    IDLE = 0,
-    INITIALIZATION,           // Section 5.1.1
-    RESOURCE_SELECTION,       // Section 5.1.2
-    PREAMBLE_TRANSMISSION,    // Section 5.1.3
-    PDCCH_SETUP,
-    RESPONSE_RECEPTION,       // Section 5.1.4
-    RESPONSE_ERROR,
-    BACKOFF_WAIT,
-    CONTENTION_RESOLUTION,    // Section 5.1.5
-    COMPLETION,               // Section 5.1.6
-    COMPLETION_DONE,
-    RA_PROBLEM                // Section 5.1.5 last part
-  } state;
+  enum { IDLE = 0, PDCCH_SETUP, RESPONSE_RECEPTION, BACKOFF_WAIT, CONTENTION_RESOLUTION, COMPLETITION } state;
 
   typedef enum { RA_GROUP_A, RA_GROUP_B } ra_group_t;
 
   ra_group_t last_msg3_group;
   bool       msg3_transmitted;
-  bool       first_rar_received;
 
   uint32_t rar_window_st;
 
@@ -185,12 +171,9 @@ private:
 
   std::mutex mutex;
 
-  enum { PDCCH_CRNTI_NOT_RECEIVED = 0, PDCCH_CRNTI_UL_GRANT, PDCCH_CRNTI_DL_GRANT } pdcch_to_crnti_received;
-
   bool ra_is_ho;
   bool started_by_pdcch;
   uint32_t rar_grant_nbytes;
-  bool msg3_flushed;
   bool rar_received;
 };
 

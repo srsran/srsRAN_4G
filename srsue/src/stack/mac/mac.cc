@@ -121,6 +121,7 @@ void mac::start_pcap(srslte::mac_pcap* pcap_)
   ra_procedure.start_pcap(pcap);
 }
 
+// FIXME: Change the function name and implement reconfiguration as in specs
 // Implement Section 5.8
 void mac::reconfiguration(const uint32_t& cc_idx, const bool& enable)
 {
@@ -229,8 +230,9 @@ void mac::run_tti(const uint32_t tti)
   }
 
   ra_procedure.step(tti);
-  ra_window_start = 0;
-  ra_procedure.is_rar_window(&ra_window_start, &ra_window_length);
+  ra_window_start  = -1;
+  ra_window_length = -1;
+  ra_procedure.update_rar_window(&ra_window_start, &ra_window_length);
   timers.step_all();
 }
 
@@ -261,7 +263,8 @@ void mac::clear_rntis()
 {
   p_window_start  = 0;
   si_window_start = 0;
-  ra_window_start = 0;
+  ra_window_start  = -1;
+  ra_window_length = -1;
   bzero(&uernti, sizeof(ue_rnti_t));
 }
 

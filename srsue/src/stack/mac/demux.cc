@@ -104,12 +104,13 @@ void demux::push_pdu_temp_crnti(uint8_t *buff, uint32_t nof_bytes)
         is_uecrid_successful = mac->contention_resolution_id_rcv(pending_mac_msg.get()->get_con_res_id());
       }
     }
-    
     pending_mac_msg.reset();
-    
-    Debug("Saved MAC PDU with Temporal C-RNTI in buffer\n");
-    
-    pdus.push(buff, nof_bytes, srslte::pdu_queue::DCH);
+    if (is_uecrid_successful) {
+      Debug("Saved MAC PDU with Temporal C-RNTI in buffer\n");
+      pdus.push(buff, nof_bytes, srslte::pdu_queue::DCH);
+    } else {
+      pdus.deallocate(buff);
+    }
   } else {
     Warning("Trying to push PDU with payload size zero\n");
   }

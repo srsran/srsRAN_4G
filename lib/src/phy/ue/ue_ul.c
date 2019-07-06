@@ -996,9 +996,6 @@ int srslte_ue_ul_encode(srslte_ue_ul_t* q, srslte_ul_sf_cfg_t* sf, srslte_ue_ul_
              cfg->cc_idx == 0) { // Send PUCCH over PCell only
     if (!cfg->ul_cfg.pucch.rnti) {
       cfg->ul_cfg.pucch.rnti = q->current_rnti;
-      if (!q->current_rnti) {
-        printf("PUCCH: Warning PUCCH rnti or current_rnti are not set\n");
-      }
     }
     ret = pucch_encode(q, sf, cfg, &data->uci) ? -1 : 1;
   } else if (srs_tx_enabled(&cfg->ul_cfg.srs, sf->tti)) {

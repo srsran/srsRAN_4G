@@ -378,8 +378,9 @@ bool bsr_proc::generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t* bsr)
   // This function is called by MUX only if Regular BSR has not been triggered before
   if (nof_padding_bytes >= 2) {
     // generate padding BSR
-    triggered_bsr_type = PADDING;
+    set_trigger(PADDING);
     generate_bsr(bsr, nof_padding_bytes);
+    set_trigger(NONE);
     ret = true;
   }
 

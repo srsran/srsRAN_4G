@@ -387,6 +387,7 @@ void phy::sr_send()
 {
   common.sr_enabled     = true;
   common.sr_last_tx_tti = -1;
+  Debug("sr_send(): sr_enabled=%d, last_tx_tti=%d\n", common.sr_enabled, common.sr_last_tx_tti);
 }
 
 int phy::sr_last_tx_tti()

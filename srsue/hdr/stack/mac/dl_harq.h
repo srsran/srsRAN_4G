@@ -62,6 +62,7 @@ private:
     dl_harq_process();
     bool init(int pid, dl_harq_entity* parent);
     void reset(void);
+    void reset_ndi();
 
     void new_grant_dl(mac_interface_phy_lte::mac_grant_dl_t grant, mac_interface_phy_lte::tb_action_dl_t* action);
     void tb_decoded(mac_interface_phy_lte::mac_grant_dl_t grant, bool ack[SRSLTE_MAX_CODEWORDS]);
@@ -78,6 +79,7 @@ private:
 
       bool init(int pid, dl_harq_entity* parent, uint32_t tb_idx);
       void reset(bool lock = true);
+      void reset_ndi();
 
       void new_grant_dl(mac_interface_phy_lte::mac_grant_dl_t grant, mac_interface_phy_lte::tb_action_dl_t* action);
       void tb_decoded(mac_interface_phy_lte::mac_grant_dl_t grant, bool* ack_ptr);

@@ -199,10 +199,6 @@ void ul_harq_entity::ul_harq_process::new_grant_ul(mac_interface_phy_lte::mac_gr
       harq_feedback = grant.hi_value;
     }
 
-    if (grant.rnti == harq_entity->rntis->crnti && harq_entity->ra_procedure->is_contention_resolution()) {
-      harq_entity->ra_procedure->pdcch_to_crnti(true);
-    }
-
     // Get maximum retransmissions
     uint32_t max_retx;
     if (grant_is_rar()) {
@@ -218,7 +214,7 @@ void ul_harq_entity::ul_harq_process::new_grant_ul(mac_interface_phy_lte::mac_gr
         harq_entity->ra_procedure->harq_max_retx();
       }
       reset();
-    } else if (grant_is_rar()) {
+    } else if (grant_is_rar() && current_tx_nb) {
       harq_entity->ra_procedure->harq_retx();
     }
   }
@@ -243,6 +239,10 @@ void ul_harq_entity::ul_harq_process::new_grant_ul(mac_interface_phy_lte::mac_gr
     {
       // New transmission
       reset();
+
+      if (grant.rnti == harq_entity->rntis->crnti && harq_entity->ra_procedure->is_contention_resolution()) {
+        harq_entity->ra_procedure->pdcch_to_crnti(true);
+      }
 
       // Check buffer size
       if (grant.tb.tbs > payload_buffer_len) {

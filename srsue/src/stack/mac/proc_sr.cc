@@ -49,7 +49,8 @@ void sr_proc::reset()
 
 bool sr_proc::need_tx(uint32_t tti) 
 {
-  int last_tx_tti = phy_h->sr_last_tx_tti(); 
+  int last_tx_tti = phy_h->sr_last_tx_tti();
+  Info("SR:    need_tx(): last_tx_tti=%d, tti=%d\n", last_tx_tti, tti);
   if (last_tx_tti >= 0)  {
     if (tti > (uint32_t)last_tx_tti) {
       if (tti - last_tx_tti > 8) {

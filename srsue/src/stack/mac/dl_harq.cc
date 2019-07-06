@@ -81,14 +81,11 @@ void dl_harq_entity::new_grant_dl(mac_interface_phy_lte::mac_grant_dl_t  grant,
       }
       proc_ptr = &proc[grant.pid];
     }
+    // Consider the NDI to have been toggled
     if (grant.rnti == rntis->temp_rnti && last_temporal_crnti != rntis->temp_rnti) {
-      grant.tb[0].ndi     = true;
       last_temporal_crnti = rntis->temp_rnti;
-      Info("Set NDI=1 for Temp-RNTI DL dci\n");
-    }
-    if (grant.rnti == rntis->crnti && proc_ptr->is_sps()) {
-      grant.tb[0].ndi = true;
-      Info("Set NDI=1 for C-RNTI DL dci\n");
+      proc_ptr->reset_ndi();
+      Info("Considering NDI in pid=%d to be toggled for first Temporal C-RNTI\n", grant.pid);
     }
     proc_ptr->new_grant_dl(grant, action);
   } else {
@@ -149,6 +146,13 @@ void dl_harq_entity::dl_harq_process::reset(void)
 {
   for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
     subproc[tb].reset();
+  }
+}
+
+void dl_harq_entity::dl_harq_process::reset_ndi()
+{
+  for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
+    subproc[tb].reset_ndi();
   }
 }
 
@@ -243,6 +247,11 @@ void dl_harq_entity::dl_harq_process::dl_tb_process::reset(bool lock)
   if (lock) {
     pthread_mutex_unlock(&mutex);
   }
+}
+
+void dl_harq_entity::dl_harq_process::dl_tb_process::reset_ndi()
+{
+  is_first_tb = true;
 }
 
 void dl_harq_entity::dl_harq_process::dl_tb_process::new_grant_dl(mac_interface_phy_lte::mac_grant_dl_t  grant,
