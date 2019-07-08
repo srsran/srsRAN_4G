@@ -78,6 +78,8 @@ private:
   uint32_t window_size = 0;
 
   // Packing/Unpacking Helper functions
+  void     write_data_header(const unique_byte_buffer_t& sdu, uint32_t sn);
+  void     append_mac(const unique_byte_buffer_t& sdu, uint8_t* mac);
   uint32_t get_rcvd_sn(const unique_byte_buffer_t& pdu);
 };
 

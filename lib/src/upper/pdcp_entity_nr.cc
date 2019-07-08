@@ -21,6 +21,7 @@
 
 #include "srslte/upper/pdcp_entity_nr.h"
 #include "srslte/common/security.h"
+#include "srslte/common/int_helpers.h"
 
 namespace srslte {
 
@@ -45,8 +46,8 @@ void pdcp_entity_nr::init(srsue::rlc_interface_pdcp*  rlc_,
   do_integrity  = false;
   do_encryption = false;
 
-  // TODO
-  sn_len_bytes = (int)cfg.sn_len % 8;
+  // SN length in bytes
+  sn_len_bytes = ceil((float)cfg.sn_len / 8);
 }
 
 // Reestablishment procedure: 36.323 5.2
@@ -84,7 +85,10 @@ void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, bool blocking)
   cipher_encrypt(sdu->msg, sdu->N_bytes, tx_next, sdu->msg);
 
   // Write PDCP header info
-  write_header(pdu, tx_next);
+  write_data_header(sdu, tx_next);
+
+  // Append MAC-I
+  append_mac(sdu, mac);
   
   // Write to lower layers
   rlc->write_sdu(lcid, std::move(sdu), blocking);
@@ -167,24 +171,44 @@ uint32_t pdcp_entity_nr::get_rcvd_sn(const unique_byte_buffer_t& pdu)
   return rcvd_sn;
 }
 
-void pdcp_entity_nr::write_data_header(const srslte::unique_byte_buffer_t& msg, uint32_t sn)
+void pdcp_entity_nr::write_data_header(const srslte::unique_byte_buffer_t& sdu, uint32_t count)
 {
+  // Check enough space for header
+  if (sn_len_bytes > sdu->get_headroom()) {
+    log->error("Not enough space to add header\n");
+    return;
+  }
+  sdu->msg -= sn_len_bytes;
+  sdu->N_bytes += sn_len_bytes;
 
   switch (sn_len) {
     case PDCP_SN_LEN_12:
-      sdu->msg -= 2;
-      sdu->N_bytes += 2;
-      srslte::uint16_to_uint8_t(0x3F & sn);
+      log->console("wazapp\n");
+      srslte::uint16_to_uint8(0x3F & count, sdu->msg);
       if (is_data()) {
-        pdu->msg[0] = 0x80; // On DRB Data PDUs we must set the D flag.
+        sdu->msg[0] |= 0x80; // On DRB Data PDUs we must set the D flag.
       }
       break;
     case PDCP_SN_LEN_18:
-      sdu->msg -= 3;
-      sdu->N_bytes += 3;
-      pdu->msg[0] = 0x80; // Data PDU and SN 18, D flag present
-      *sdu->msg = sn & 0x3F;
+      sdu->msg[0] = 0x80; // Data PDU and SN 18, D flag present
+      *sdu->msg = count & 0x3F;
       break;
+    default:
+      log->error("Invalid SN length configuration: %d bits\n", sn_len);
   }
 }
+
+void pdcp_entity_nr::append_mac(const unique_byte_buffer_t &sdu, uint8_t* mac)
+{
+
+  // Check enough space for MAC
+  if (sdu->N_bytes + 4 > sdu->get_tailroom()) {
+    log->error("Not enough space to add MAC-I\n");
+    return;
+  }
+  // Append MAC
+  memcpy(&sdu->msg[sdu->N_bytes], mac, 4);
+  sdu->N_bytes += 4;
+}
+
 } // namespace srslte
