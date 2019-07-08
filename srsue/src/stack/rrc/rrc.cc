@@ -2590,7 +2590,7 @@ void rrc::send_rrc_ue_cap_info()
     for (uint32_t i = 0; i < args.nof_supported_bands; i++) {
       supported_band_eutra_v1250_s supported_band_eutra_v1250;
       // According to 3GPP 36.306 v12 Table 4.1A-1, 256QAM is supported for ue_category_dl 11-16
-      supported_band_eutra_v1250.dl_minus256_qam_r12_present = false;
+      supported_band_eutra_v1250.dl_minus256_qam_r12_present = true;
 
       // According to 3GPP 36.331 v12 UE-EUTRA-Capability field descriptions
       // This field is only present when the field ue-CategoryUL is considered to 5 or 13.
@@ -2869,6 +2869,11 @@ void rrc::apply_phy_config_dedicated(const phys_cfg_ded_s& phy_cnfg)
   if (phy_cnfg.pucch_cfg_ded_present) {
     current_cfg->pucch_cfg_ded_present = true;
     current_cfg->pucch_cfg_ded         = phy_cnfg.pucch_cfg_ded;
+  }
+
+  if (phy_cnfg.cqi_report_cfg_pcell_v1250_present) {
+    current_cfg->cqi_report_cfg_pcell_v1250_present = true;
+    current_cfg->cqi_report_cfg_pcell_v1250         = phy_cnfg.cqi_report_cfg_pcell_v1250;
   }
 
   if (phy_cnfg.pucch_cfg_ded_v1020_present) {
