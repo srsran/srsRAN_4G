@@ -56,7 +56,7 @@ void pdcp_entity_base::integrity_generate(uint8_t* msg, uint32_t msg_len, uint32
   uint8_t *k_int;
 
   // If control plane use RRC integrity key. If data use user plane key
-  if (is_control()) {
+  if (is_srb()) {
     k_int = k_rrc_int;
   } else {
     k_int = k_up_int;
@@ -69,8 +69,8 @@ void pdcp_entity_base::integrity_generate(uint8_t* msg, uint32_t msg_len, uint32
   case INTEGRITY_ALGORITHM_ID_128_EIA1:
     security_128_eia1(&k_int[16],
                       count,
-                      bearer_id - 1,
-                      direction,
+                      cfg.bearer_id - 1,
+                      cfg.direction,
                       msg,
                       msg_len,
                       mac);
@@ -78,8 +78,8 @@ void pdcp_entity_base::integrity_generate(uint8_t* msg, uint32_t msg_len, uint32
   case INTEGRITY_ALGORITHM_ID_128_EIA2:
     security_128_eia2(&k_int[16],
                       count,
-                      bearer_id - 1,
-                      direction,
+                      cfg.bearer_id - 1,
+                      cfg.direction,
                       msg,
                       msg_len,
                       mac);
@@ -90,8 +90,8 @@ void pdcp_entity_base::integrity_generate(uint8_t* msg, uint32_t msg_len, uint32
 
   log->debug("Integrity gen input: COUNT %d, Bearer ID %d, Direction %s\n",
              count,
-             bearer_id,
-             (direction == SECURITY_DIRECTION_DOWNLINK ? "Downlink" : "Uplink"));
+             cfg.bearer_id,
+             (cfg.direction == SECURITY_DIRECTION_DOWNLINK ? "Downlink" : "Uplink"));
   log->debug_hex(mac, 4, "MAC (generated)");
   log->debug_hex(msg, msg_len, "  Message");
 }
@@ -103,7 +103,7 @@ bool pdcp_entity_base::integrity_verify(uint8_t* msg, uint32_t msg_len, uint32_t
   uint8_t *k_int;
 
   // If control plane use RRC integrity key. If data use user plane key
-  if (is_control()) {
+  if (is_srb()) {
     k_int = k_rrc_int;
   } else {
     k_int = k_up_int;
@@ -115,9 +115,9 @@ bool pdcp_entity_base::integrity_verify(uint8_t* msg, uint32_t msg_len, uint32_t
     case INTEGRITY_ALGORITHM_ID_128_EIA1:
       security_128_eia1(&k_int[16],
                         count,
-                        bearer_id - 1,
-                        (direction == SECURITY_DIRECTION_DOWNLINK) ? (SECURITY_DIRECTION_UPLINK)
-                                                                   : (SECURITY_DIRECTION_DOWNLINK),
+                        cfg.bearer_id - 1,
+                        (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? (SECURITY_DIRECTION_UPLINK)
+                                                                       : (SECURITY_DIRECTION_DOWNLINK),
                         msg,
                         msg_len,
                         mac_exp);
@@ -125,9 +125,9 @@ bool pdcp_entity_base::integrity_verify(uint8_t* msg, uint32_t msg_len, uint32_t
     case INTEGRITY_ALGORITHM_ID_128_EIA2:
       security_128_eia2(&k_int[16],
                         count,
-                        bearer_id - 1,
-                        (direction == SECURITY_DIRECTION_DOWNLINK) ? (SECURITY_DIRECTION_UPLINK)
-                                                                   : (SECURITY_DIRECTION_DOWNLINK),
+                        cfg.bearer_id - 1,
+                        (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? (SECURITY_DIRECTION_UPLINK)
+                                                                       : (SECURITY_DIRECTION_DOWNLINK),
                         msg,
                         msg_len,
                         mac_exp);
@@ -138,8 +138,8 @@ bool pdcp_entity_base::integrity_verify(uint8_t* msg, uint32_t msg_len, uint32_t
 
   log->debug("Integrity check input: COUNT %d, Bearer ID %d, Direction %s\n",
              count,
-             bearer_id,
-             (direction == SECURITY_DIRECTION_DOWNLINK ? "Downlink" : "Uplink"));
+             cfg.bearer_id,
+             (cfg.direction == SECURITY_DIRECTION_DOWNLINK ? "Downlink" : "Uplink"));
   log->debug_hex(msg, msg_len, "  Message");
 
   if (integ_algo != INTEGRITY_ALGORITHM_ID_EIA0) {
@@ -165,7 +165,7 @@ void pdcp_entity_base::cipher_encrypt(uint8_t* msg, uint32_t msg_len, uint32_t c
   uint8_t *k_enc;
 
   // If control plane use RRC encrytion key. If data use user plane key
-  if (is_control()) {
+  if (is_srb()) {
     k_enc = k_rrc_enc;
   } else {
     k_enc = k_up_enc;
@@ -173,18 +173,18 @@ void pdcp_entity_base::cipher_encrypt(uint8_t* msg, uint32_t msg_len, uint32_t c
 
   log->debug("Cipher encrypt input: COUNT: %d, Bearer ID: %d, Direction %s\n",
              count,
-             bearer_id,
-             (direction == SECURITY_DIRECTION_DOWNLINK) ? "Downlink" : "Uplink");
+             cfg.bearer_id,
+             (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? "Downlink" : "Uplink");
 
   switch (cipher_algo) {
     case CIPHERING_ALGORITHM_ID_EEA0:
       break;
     case CIPHERING_ALGORITHM_ID_128_EEA1:
-      security_128_eea1(&(k_enc[16]), count, bearer_id - 1, direction, msg, msg_len, ct_tmp.msg);
+      security_128_eea1(&(k_enc[16]), count, cfg.bearer_id - 1, cfg.direction, msg, msg_len, ct_tmp.msg);
       memcpy(ct, ct_tmp.msg, msg_len);
       break;
     case CIPHERING_ALGORITHM_ID_128_EEA2:
-      security_128_eea2(&(k_enc[16]), count, bearer_id - 1, direction, msg, msg_len, ct_tmp.msg);
+      security_128_eea2(&(k_enc[16]), count, cfg.bearer_id - 1, cfg.direction, msg, msg_len, ct_tmp.msg);
       memcpy(ct, ct_tmp.msg, msg_len);
       break;
     default:
@@ -197,7 +197,7 @@ void pdcp_entity_base::cipher_decrypt(uint8_t* ct, uint32_t ct_len, uint32_t cou
   byte_buffer_t msg_tmp;
   uint8_t *k_enc;
   // If control plane use RRC encrytion key. If data use user plane key
-  if (is_control()) {
+  if (is_srb()) {
     k_enc = k_rrc_enc;
   } else {
     k_enc = k_up_enc;
@@ -205,8 +205,8 @@ void pdcp_entity_base::cipher_decrypt(uint8_t* ct, uint32_t ct_len, uint32_t cou
 
   log->debug("Cipher decript input: COUNT: %d, Bearer ID: %d, Direction %s\n",
              count,
-             bearer_id,
-             (direction == SECURITY_DIRECTION_DOWNLINK) ? "Downlink" : "Uplink");
+             cfg.bearer_id,
+             (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? "Downlink" : "Uplink");
 
   switch(cipher_algo)
   {
@@ -215,8 +215,9 @@ void pdcp_entity_base::cipher_decrypt(uint8_t* ct, uint32_t ct_len, uint32_t cou
   case CIPHERING_ALGORITHM_ID_128_EEA1:
     security_128_eea1(&(k_enc[16]),
                       count,
-                      bearer_id - 1,
-                      (direction == SECURITY_DIRECTION_DOWNLINK) ? (SECURITY_DIRECTION_UPLINK) : (SECURITY_DIRECTION_DOWNLINK),
+                      cfg.bearer_id - 1,
+                      (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? (SECURITY_DIRECTION_UPLINK)
+                                                                     : (SECURITY_DIRECTION_DOWNLINK),
                       ct,
                       ct_len,
                       msg_tmp.msg);
@@ -225,8 +226,9 @@ void pdcp_entity_base::cipher_decrypt(uint8_t* ct, uint32_t ct_len, uint32_t cou
   case CIPHERING_ALGORITHM_ID_128_EEA2:
     security_128_eea2(&(k_enc[16]),
                       count,
-                      bearer_id - 1,
-                      (direction == SECURITY_DIRECTION_DOWNLINK) ? (SECURITY_DIRECTION_UPLINK) : (SECURITY_DIRECTION_DOWNLINK),
+                      cfg.bearer_id - 1,
+                      (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? (SECURITY_DIRECTION_UPLINK)
+                                                                     : (SECURITY_DIRECTION_DOWNLINK),
                       ct,
                       ct_len,
                       msg_tmp.msg);

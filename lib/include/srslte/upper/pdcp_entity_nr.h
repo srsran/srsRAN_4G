@@ -64,8 +64,6 @@ private:
   srsue::rrc_interface_pdcp* rrc = nullptr;
   srsue::gw_interface_pdcp*  gw  = nullptr;
 
-  srslte_pdcp_config_t cfg = {0, false, false, 0, PDCP_SN_LEN_12};
-
   uint16_t sn_len_bytes = 0;
 
   // State variables: 3GPP TS 38.323 v15.2.0, section 7.1

@@ -60,8 +60,8 @@ public:
   virtual void reestablish() = 0;
 
   bool is_active() { return active; }
-  bool is_control() { return rb_is_control; }
-  bool is_data() { return !rb_is_control; }
+  bool is_srb() { return cfg.rb_type == PDCP_RB_IS_SRB; }
+  bool is_drb() { return cfg.rb_type == PDCP_RB_IS_DRB; }
 
   // RRC interface
   void enable_integrity() { do_integrity = true; }
@@ -86,19 +86,14 @@ public:
   uint32_t COUNT(uint32_t hfn, uint32_t sn);
  
 protected:
-  byte_buffer_pool* pool = byte_buffer_pool::get_instance();
   srslte::log*      log  = nullptr;  
 
   bool     active        = false;
   uint32_t lcid          = 0;
-  bool     rb_is_control = false;
   bool     do_integrity  = false;
   bool     do_encryption = false;
-  uint32_t bearer_id     = 0; 
-  uint32_t direction     = 0; 
 
-  uint8_t sn_len       = 0;
-  uint8_t sn_len_bytes = 0;
+  srslte_pdcp_config_t cfg = {1, PDCP_RB_IS_DRB, SECURITY_DIRECTION_UPLINK, PDCP_SN_LEN_12};
 
   std::mutex mutex;
 
@@ -118,17 +113,17 @@ protected:
 
 inline uint32_t pdcp_entity_base::HFN(uint32_t count)
 {
-  return (count >> sn_len);
+  return (count >> cfg.sn_len);
 }
 
 inline uint32_t pdcp_entity_base::SN(uint32_t count)
 {
-  return count & (0xFFFFFFFF >> sn_len);
+  return count & (0xFFFFFFFF >> cfg.sn_len);
 }
 
 inline uint32_t pdcp_entity_base::COUNT(uint32_t hfn, uint32_t sn)
 {
-  return (hfn << sn_len) | sn;
+  return (hfn << cfg.sn_len) | sn;
 }
 } // namespace srslte
 #endif // SRSLTE_PDCP_ENTITY_BASE_H

@@ -72,8 +72,6 @@ private:
   srsue::rrc_interface_pdcp* rrc = nullptr;
   srsue::gw_interface_pdcp*  gw  = nullptr;
 
-  srslte_pdcp_config_t cfg = {0, SECURITY_DIRECTION_UPLINK, false, false, 0};
-
   uint32_t rx_count = 0;
   uint32_t tx_count = 0;
 

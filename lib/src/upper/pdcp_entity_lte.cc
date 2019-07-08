@@ -47,16 +47,9 @@ void pdcp_entity_lte::init(srsue::rlc_interface_pdcp* rlc_,
   do_integrity  = false;
   do_encryption = false;
 
-  cfg = cfg_;
-
-  // set length of SN field in bytes
-  sn_len_bytes = (cfg.sn_len == 5) ? 1 : 2;
-  
-  rb_is_control = cfg.is_control;
-
-  if (cfg.is_control) {
+  if (is_srb()) {
     reordering_window = 0;
-  } else if (cfg.is_data) {
+  } else if (is_drb()) {
     reordering_window = 2048;
   }
 
@@ -67,7 +60,7 @@ void pdcp_entity_lte::init(srsue::rlc_interface_pdcp* rlc_,
   log->info("Init %s with bearer ID: %d\n", rrc->get_rb_name(lcid).c_str(), cfg.bearer_id);
   log->info("SN len bits: %d, SN len bytes: %d, reordering window: %d, Maximum SN %d\n",
             cfg.sn_len,
-            sn_len_bytes,
+            cfg.hdr_len_bytes,
             reordering_window,
             maximum_pdcp_sn);
 }
@@ -77,7 +70,7 @@ void pdcp_entity_lte::reestablish()
 {
   log->info("Re-establish %s with bearer ID: %d\n", rrc->get_rb_name(lcid).c_str(), cfg.bearer_id);
   // For SRBs
-  if (cfg.is_control) {
+  if (is_srb()) {
     tx_count        = 0;
     rx_count        = 0;
     rx_hfn          = 0;
@@ -118,7 +111,7 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, bool blocking)
 
   mutex.lock();
 
-  if (cfg.is_control) {
+  if (is_srb()) {
     pdcp_pack_control_pdu(tx_count, sdu.get());
     if (do_integrity) {
       integrity_generate(
@@ -126,7 +119,7 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, bool blocking)
     }
   }
 
-  if (cfg.is_data) {
+  if (is_drb()) {
     if (12 == cfg.sn_len) {
       pdcp_pack_data_pdu_long_sn(tx_count, sdu.get());
     } else {
@@ -135,7 +128,8 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, bool blocking)
   }
 
   if (do_encryption) {
-    cipher_encrypt(&sdu->msg[sn_len_bytes], sdu->N_bytes - sn_len_bytes, tx_count, &sdu->msg[sn_len_bytes]);
+    cipher_encrypt(
+        &sdu->msg[cfg.hdr_len_bytes], sdu->N_bytes - cfg.hdr_len_bytes, tx_count, &sdu->msg[cfg.hdr_len_bytes]);
     log->info_hex(sdu->msg, sdu->N_bytes, "TX %s SDU (encrypted)", rrc->get_rb_name(lcid).c_str());
   }
   tx_count++;
@@ -157,13 +151,13 @@ void pdcp_entity_lte::write_pdu(unique_byte_buffer_t pdu)
                 (do_encryption) ? "true" : "false");
 
   // Sanity check
-  if (pdu->N_bytes <= sn_len_bytes) {
+  if (pdu->N_bytes <= cfg.hdr_len_bytes) {
     return;
   }
 
   mutex.lock();
 
-  if (cfg.is_data) {
+  if (is_drb()) {
     // Handle DRB messages
     if (rlc->rb_is_um(lcid)) {
       handle_um_drb_pdu(pdu);
@@ -173,10 +167,11 @@ void pdcp_entity_lte::write_pdu(unique_byte_buffer_t pdu)
     gw->write_pdu(lcid, std::move(pdu));
   } else {
     // Handle SRB messages
-    if (cfg.is_control) {
+    if (is_srb()) {
       uint32_t sn = *pdu->msg & 0x1F;
       if (do_encryption) {
-        cipher_decrypt(&pdu->msg[sn_len_bytes], pdu->N_bytes - sn_len_bytes, sn, &(pdu->msg[sn_len_bytes]));
+        cipher_decrypt(
+            &pdu->msg[cfg.hdr_len_bytes], pdu->N_bytes - cfg.hdr_len_bytes, sn, &(pdu->msg[cfg.hdr_len_bytes]));
         log->info_hex(pdu->msg, pdu->N_bytes, "RX %s PDU (decrypted)", rrc->get_rb_name(lcid).c_str());
       }
 

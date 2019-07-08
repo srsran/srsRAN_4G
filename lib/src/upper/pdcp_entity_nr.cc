@@ -45,16 +45,13 @@ void pdcp_entity_nr::init(srsue::rlc_interface_pdcp* rlc_,
   active        = true;
   do_integrity  = false;
   do_encryption = false;
-
-  // SN length in bytes
-  sn_len_bytes = ceil((float)cfg.sn_len / 8);
 }
 
-// Reestablishment procedure: 36.323 5.2
+// Reestablishment procedure: 38.323 5.2
 void pdcp_entity_nr::reestablish()
 {
   log->info("Re-establish %s with bearer ID: %d\n", rrc->get_rb_name(lcid).c_str(), cfg.bearer_id);
-  // For TODO
+  // TODO
 }
 
 // Used to stop/pause the entity (called on RRC conn release)
@@ -146,7 +143,7 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   }
   
   // Deliver to upper layers (TODO support in order delivery)
-  if (is_control()) {
+  if (is_srb()) {
     rrc->write_pdu(lcid, std::move(pdu));
   } else {
     gw->write_pdu(lcid, std::move(pdu));
@@ -160,13 +157,15 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
 uint32_t pdcp_entity_nr::get_rcvd_sn(const unique_byte_buffer_t& pdu)
 {
   uint32_t rcvd_sn = 0;
-  switch (sn_len) {
+  switch (cfg.sn_len) {
     case PDCP_SN_LEN_12:
       pdu->msg;
+      break;
     case PDCP_SN_LEN_18:
       pdu->msg;
+      break;
     default:
-      log->error("Cannot extract RCVD_SN, invalid SN length configured: %d\n", (int)sn_len);
+      log->error("Cannot extract RCVD_SN, invalid SN length configured: %d\n", cfg.sn_len);
   }
   return rcvd_sn;
 }
@@ -181,11 +180,11 @@ void pdcp_entity_nr::write_data_header(const srslte::unique_byte_buffer_t& sdu, 
   sdu->msg -= sn_len_bytes;
   sdu->N_bytes += sn_len_bytes;
 
-  switch (sn_len) {
+  switch (cfg.sn_len) {
     case PDCP_SN_LEN_12:
       log->console("wazapp\n");
       srslte::uint16_to_uint8(0x3F & count, sdu->msg);
-      if (is_data()) {
+      if (is_drb()) {
         sdu->msg[0] |= 0x80; // On DRB Data PDUs we must set the D flag.
       }
       break;
@@ -194,7 +193,7 @@ void pdcp_entity_nr::write_data_header(const srslte::unique_byte_buffer_t& sdu, 
       *sdu->msg = count & 0x3F;
       break;
     default:
-      log->error("Invalid SN length configuration: %d bits\n", sn_len);
+      log->error("Invalid SN length configuration: %d bits\n", cfg.sn_len);
   }
 }
 
