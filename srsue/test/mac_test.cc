@@ -31,7 +31,7 @@
 using namespace srsue;
 using namespace srslte;
 
-#define HAVE_PCAP 1
+#define HAVE_PCAP 0
 
 static std::unique_ptr<srslte::mac_pcap> pcap_handle = nullptr;
 
@@ -206,8 +206,7 @@ public:
   {
 
     // Generate RAR to MAC
-    uint8_t grant[SRSLTE_RAR_GRANT_LEN] = {};
-    memset(grant, 1, SRSLTE_RAR_GRANT_LEN);
+    uint8_t grant[SRSLTE_RAR_GRANT_LEN] = {1};
 
     uint32_t rar_timeadv = 16;
 
@@ -1302,9 +1301,8 @@ int mac_random_access_test()
   uint32 tti = 0;
 
   // Structure that defines the test to be executed
-  struct ra_test my_test;
+  struct ra_test my_test           = {};
   uint32_t       test_id = 1;
-  ZERO_OBJECT(my_test);
   my_test.temp_rnti                = 100;
   my_test.assume_prach_transmitted = -1;
 

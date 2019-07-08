@@ -395,7 +395,7 @@ uint8_t* mux::msg3_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
     return payload->msg;
   } else {
     Error("Msg3 size exceeds buffer\n");
-    return NULL;
+    return nullptr;
   }
 }
 

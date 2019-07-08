@@ -488,7 +488,7 @@ bool ra_proc::is_contention_resolution()
 /* Perform the actions upon completition of the RA procedure as defined in 5.1.6 */
 void ra_proc::complete()
 {
-  /* Start looking for PDCCH CRNTI */
+  // Start looking for PDCCH CRNTI
   if (!transmitted_crnti) {
     rntis->crnti = rntis->temp_rnti;
   }
