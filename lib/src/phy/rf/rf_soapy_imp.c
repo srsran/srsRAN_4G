@@ -289,10 +289,11 @@ float rf_soapy_get_rssi(void *h)
 int rf_soapy_open_multi(char* args, void** h, uint32_t num_requested_channels)
 {
   size_t length;
-  const SoapySDRKwargs *soapy_args = SoapySDRDevice_enumerate(NULL, &length);
+  SoapySDRKwargs* soapy_args = SoapySDRDevice_enumerate(NULL, &length);
 
   if (length == 0) {
     printf("No Soapy devices found.\n");
+    SoapySDRKwargsList_clear(soapy_args, length);
     return SRSLTE_ERROR;
   }
   char* devname = DEVNAME_NONE;
@@ -314,6 +315,7 @@ int rf_soapy_open_multi(char* args, void** h, uint32_t num_requested_channels)
     printf("Failed to create Soapy object\n");
     return SRSLTE_ERROR;
   }
+  SoapySDRKwargsList_clear(soapy_args, length);
 
   // create handler
   rf_soapy_handler_t *handler = (rf_soapy_handler_t*) malloc(sizeof(rf_soapy_handler_t));
