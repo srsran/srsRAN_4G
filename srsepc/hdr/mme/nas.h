@@ -259,29 +259,29 @@ public:
   bool expire_timer(enum nas_timer_type type);
 
   /* UE Context */
-  emm_ctx_t m_emm_ctx;
-  ecm_ctx_t m_ecm_ctx;
-  esm_ctx_t m_esm_ctx[MAX_ERABS_PER_UE];
-  sec_ctx_t m_sec_ctx;
+  emm_ctx_t m_emm_ctx                   = {};
+  ecm_ctx_t m_ecm_ctx                   = {};
+  esm_ctx_t m_esm_ctx[MAX_ERABS_PER_UE] = {};
+  sec_ctx_t m_sec_ctx                   = {};
 
 private:
-  srslte::byte_buffer_pool* m_pool;
-  srslte::log*              m_nas_log;
-  gtpc_interface_nas*       m_gtpc;
-  s1ap_interface_nas*       m_s1ap;
-  hss_interface_nas*        m_hss;
-  mme_interface_nas*        m_mme;
+  srslte::byte_buffer_pool* m_pool    = nullptr;
+  srslte::log*              m_nas_log = nullptr;
+  gtpc_interface_nas*       m_gtpc    = nullptr;
+  s1ap_interface_nas*       m_s1ap    = nullptr;
+  hss_interface_nas*        m_hss     = nullptr;
+  mme_interface_nas*        m_mme     = nullptr;
 
-  uint16_t    m_mcc;
-  uint16_t    m_mnc;
-  uint16_t    m_mme_group;
-  uint16_t    m_mme_code;
-  uint16_t    m_tac;
+  uint16_t    m_mcc       = 0;
+  uint16_t    m_mnc       = 0;
+  uint16_t    m_mme_group = 0;
+  uint16_t    m_mme_code  = 0;
+  uint16_t    m_tac       = 0;
   std::string m_apn;
   std::string m_dns;
 
   // Timers timeout values
-  uint16_t    m_t3413;
+  uint16_t m_t3413 = 0;
 
   // Timer functions
   bool start_t3413();

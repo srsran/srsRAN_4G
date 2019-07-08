@@ -43,10 +43,7 @@ class nas
 {
 public:
   nas(srslte::log* log_);
-  void init(usim_interface_nas* usim_,
-            rrc_interface_nas*  rrc_,
-            gw_interface_nas*   gw_,
-            nas_args_t          args_);
+  void init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_nas* gw_, const nas_args_t& args_);
   void stop();
 
   void        get_metrics(nas_metrics_t* m);
@@ -71,19 +68,19 @@ public:
   void start_pcap(srslte::nas_pcap *pcap_);
 
 private:
-  srslte::byte_buffer_pool *pool;
-  srslte::log *nas_log;
-  rrc_interface_nas *rrc;
-  usim_interface_nas *usim;
-  gw_interface_nas *gw;
+  srslte::byte_buffer_pool* pool    = nullptr;
+  srslte::log*              nas_log = nullptr;
+  rrc_interface_nas*        rrc     = nullptr;
+  usim_interface_nas*       usim    = nullptr;
+  gw_interface_nas*         gw      = nullptr;
 
-  nas_args_t cfg;
+  nas_args_t cfg = {};
 
-  emm_state_t state;
+  emm_state_t state = EMM_STATE_DEREGISTERED;
 
-  nas_interface_rrc::barring_t current_barring;
+  nas_interface_rrc::barring_t current_barring = BARRING_NONE;
 
-  bool                 plmn_is_selected;
+  bool                 plmn_is_selected = false;
   srslte::plmn_id_t    current_plmn;
   srslte::plmn_id_t    home_plmn;
 
@@ -115,28 +112,28 @@ private:
   typedef std::pair<uint8_t, eps_bearer_t> eps_bearer_map_pair_t;
   eps_bearer_map_t                         eps_bearer;
 
-  bool have_guti;
-  bool have_ctxt;
-  nas_sec_ctxt ctxt;
-  bool auth_request;
+  bool         have_guti    = false;
+  bool         have_ctxt    = false;
+  nas_sec_ctxt ctxt         = {};
+  bool         auth_request = false;
 
-  uint32_t ip_addr;
-  uint8_t ipv6_if_id[8];
+  uint32_t ip_addr       = 0;
+  uint8_t  ipv6_if_id[8] = {};
 
-  uint8_t chap_id;
+  uint8_t chap_id = 0;
 
-  uint8_t transaction_id;
+  uint8_t transaction_id = 0;
 
   // Security
-  bool    eia_caps[8];
-  bool    eea_caps[8];
-  uint8_t k_nas_enc[32];
-  uint8_t k_nas_int[32];
+  bool    eia_caps[8]   = {};
+  bool    eea_caps[8]   = {};
+  uint8_t k_nas_enc[32] = {};
+  uint8_t k_nas_int[32] = {};
 
   // PCAP
-  srslte::nas_pcap *pcap = NULL;
+  srslte::nas_pcap* pcap = nullptr;
 
-  bool running;
+  bool running = false;
 
   bool rrc_connect();
 

@@ -24,15 +24,13 @@
 
 namespace srsenb {
 
-pdcp::pdcp(srslte::log* log_) : log_h(log_) {}
+pdcp::pdcp(srslte::log* log_) : log_h(log_), pool(srslte::byte_buffer_pool::get_instance()) {}
 
 void pdcp::init(rlc_interface_pdcp* rlc_, rrc_interface_pdcp* rrc_, gtpu_interface_pdcp* gtpu_)
 {
   rlc   = rlc_; 
   rrc   = rrc_; 
   gtpu  = gtpu_;
-  
-  pool = srslte::byte_buffer_pool::get_instance();
 
   pthread_rwlock_init(&rwlock, NULL);
 }

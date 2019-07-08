@@ -160,7 +160,7 @@ private:
   srslte::mch_pdu        mch_msg;
 
   /* Functions for MAC Timers */
-  uint32_t        timer_alignment;
+  uint32_t        timer_alignment = 0;
   void            setup_timers(int time_alignment_timer);
   void            timer_alignment_expire();
   srslte::timers  timers;

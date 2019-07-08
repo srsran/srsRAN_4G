@@ -42,28 +42,10 @@ namespace srsue {
  *   NAS
  ********************************************************************/
 
-nas::nas(srslte::log* log_) :
-  nas_log(log_),
-  state(EMM_STATE_DEREGISTERED),
-  have_guti(false),
-  have_ctxt(false),
-  auth_request(false),
-  ip_addr(0)
-{
-  ctxt.rx_count = 0;
-  ctxt.tx_count = 0;
-  ctxt.cipher_algo = CIPHERING_ALGORITHM_ID_EEA0;
-  ctxt.integ_algo = INTEGRITY_ALGORITHM_ID_EIA0;
-  plmn_is_selected = false;
-  chap_id = 0;
-  memset(ipv6_if_id, 0, sizeof(ipv6_if_id));
-  bzero(eia_caps, sizeof(eia_caps));
-  bzero(eea_caps, sizeof(eea_caps));
-}
+nas::nas(srslte::log* log_) : nas_log(log_), pool(byte_buffer_pool::get_instance()) {}
 
-void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_nas* gw_, nas_args_t cfg_)
+void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_nas* gw_, const nas_args_t& cfg_)
 {
-  pool = byte_buffer_pool::get_instance();
   usim = usim_;
   rrc = rrc_;
   gw = gw_;

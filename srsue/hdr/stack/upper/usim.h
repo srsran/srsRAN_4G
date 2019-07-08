@@ -99,38 +99,37 @@ private:
                                  uint8_t  *k_asme);
   void str_to_hex(std::string str, uint8_t *hex);
 
-  srslte::log *usim_log;
+  srslte::log* usim_log = nullptr;
 
   // User data
-  auth_algo_t auth_algo;
-  uint8_t     amf[2];  // 3GPP 33.102 v10.0.0 Annex H
-  uint8_t     op[16];
-  uint8_t     opc[16];
-  uint64_t    imsi;
-  uint64_t    imei;
-  uint8_t     k[16];
+  auth_algo_t auth_algo = auth_algo_milenage;
+  uint8_t     amf[2]    = {}; // 3GPP 33.102 v10.0.0 Annex H
+  uint8_t     op[16]    = {};
+  uint8_t     opc[16]   = {};
+  uint64_t    imsi      = 0;
+  uint64_t    imei      = 0;
+  uint8_t     k[16]     = {};
 
   std::string imsi_str;
   std::string imei_str;
 
   // Security variables
-  uint8_t     rand[16];
-  uint8_t     ck[16];
-  uint8_t     ik[16];
-  uint8_t     ak[6];
-  uint8_t     mac[8];
-  uint8_t     autn[16];
-  uint8_t     k_asme[32];
-  uint8_t     nh[32];
-  uint8_t     k_enb_initial[32];
-  uint8_t     k_enb[32];
-  uint8_t     k_enb_star[32];
+  uint8_t rand[16]          = {};
+  uint8_t ck[16]            = {};
+  uint8_t ik[16]            = {};
+  uint8_t ak[6]             = {};
+  uint8_t mac[8]            = {};
+  uint8_t autn[16]          = {};
+  uint8_t k_asme[32]        = {};
+  uint8_t nh[32]            = {};
+  uint8_t k_enb_initial[32] = {};
+  uint8_t k_enb[32]         = {};
+  uint8_t k_enb_star[32]    = {};
 
-  uint32_t    current_ncc;
-  bool        is_first_ncc;
+  uint32_t current_ncc  = 0;
+  bool     is_first_ncc = false;
 
-  bool initiated;
-
+  bool initiated = false;
 };
 
 } // namespace srsue

@@ -357,21 +357,21 @@ private:
     uint16_t lcid;
   } cmd_msg_t;
 
-  bool running;
+  bool                           running = false;
   srslte::block_queue<cmd_msg_t> cmd_q;
   void run_thread();
 
   void process_pcch(srslte::unique_byte_buffer_t pdu);
 
-  srslte::byte_buffer_pool *pool;
-  srslte::log *rrc_log;
-  phy_interface_rrc_lte*    phy;
-  mac_interface_rrc *mac;
-  rlc_interface_rrc *rlc;
-  pdcp_interface_rrc *pdcp;
-  nas_interface_rrc *nas;
-  usim_interface_rrc *usim;
-  gw_interface_rrc    *gw;
+  srslte::byte_buffer_pool* pool    = nullptr;
+  srslte::log*              rrc_log = nullptr;
+  phy_interface_rrc_lte*    phy     = nullptr;
+  mac_interface_rrc*        mac     = nullptr;
+  rlc_interface_rrc*        rlc     = nullptr;
+  pdcp_interface_rrc*       pdcp    = nullptr;
+  nas_interface_rrc*        nas     = nullptr;
+  usim_interface_rrc*       usim    = nullptr;
+  gw_interface_rrc*         gw      = nullptr;
 
   srslte::unique_byte_buffer_t dedicated_info_nas;
 
@@ -382,40 +382,40 @@ private:
 
   pthread_mutex_t mutex;
 
-  rrc_state_t         state, last_state;
-  uint8_t transaction_id;
+  rrc_state_t         state, last_state = RRC_STATE_IDLE;
+  uint8_t             transaction_id = 0;
   srslte::s_tmsi_t    ue_identity;
-  bool                ue_identity_configured;
+  bool                ue_identity_configured = false;
 
-  bool drb_up;
+  bool drb_up = false;
 
-  rrc_args_t args;
+  rrc_args_t args = {};
 
-  uint32_t cell_clean_cnt;
+  uint32_t cell_clean_cnt = 0;
 
-  uint16_t ho_src_rnti;
-  cell_t   ho_src_cell;
-  phy_interface_rrc_lte::phy_cfg_t current_phy_cfg, previous_phy_cfg;
-  mac_interface_rrc::mac_cfg_t current_mac_cfg, previous_mac_cfg;
-  bool pending_mob_reconf;
-  asn1::rrc::rrc_conn_recfg_s  mob_reconf;
+  uint16_t                         ho_src_rnti = 0;
+  cell_t                           ho_src_cell = {};
+  phy_interface_rrc_lte::phy_cfg_t current_phy_cfg, previous_phy_cfg = {};
+  mac_interface_rrc::mac_cfg_t     current_mac_cfg, previous_mac_cfg = {};
+  bool                             pending_mob_reconf = false;
+  asn1::rrc::rrc_conn_recfg_s      mob_reconf         = {};
 
-  uint8_t k_rrc_enc[32];
-  uint8_t k_rrc_int[32];
-  uint8_t k_up_enc[32];
-  uint8_t k_up_int[32];   // Not used: only for relay nodes (3GPP 33.401 Annex A.7)
+  uint8_t k_rrc_enc[32] = {};
+  uint8_t k_rrc_int[32] = {};
+  uint8_t k_up_enc[32]  = {};
+  uint8_t k_up_int[32]  = {}; // Not used: only for relay nodes (3GPP 33.401 Annex A.7)
 
-  srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo;
-  srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo;
+  srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo = srslte::CIPHERING_ALGORITHM_ID_EEA0;
+  srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo  = srslte::INTEGRITY_ALGORITHM_ID_EIA0;
 
   std::map<uint32_t, asn1::rrc::srb_to_add_mod_s> srbs;
   std::map<uint32_t, asn1::rrc::drb_to_add_mod_s> drbs;
 
   // RRC constants and timers
-  srslte::mac_interface_timers *mac_timers;
-  uint32_t n310_cnt, N310;
-  uint32_t n311_cnt, N311;
-  uint32_t t300, t301, t302, t310, t311, t304;
+  srslte::mac_interface_timers* mac_timers = nullptr;
+  uint32_t                      n310_cnt, N310 = 0;
+  uint32_t                      n311_cnt, N311 = 0;
+  uint32_t                      t300, t301, t302, t310, t311, t304 = 0;
 
   // Radio bearers
   typedef enum{
@@ -448,7 +448,7 @@ private:
   const static int NEIGHBOUR_TIMEOUT   = 5;
   const static int NOF_NEIGHBOUR_CELLS = 8;
   std::vector<cell_t*> neighbour_cells;
-  cell_t *serving_cell;
+  cell_t*              serving_cell = nullptr;
   void set_serving_cell(uint32_t cell_idx);
   void                 set_serving_cell(phy_interface_rrc_lte::phy_cell_t phy_cell);
 
@@ -467,16 +467,16 @@ private:
   uint32_t           sib_start_tti(uint32_t tti, uint32_t period, uint32_t offset, uint32_t sf);
   const static int SIB_SEARCH_TIMEOUT_MS = 1000;
 
-  bool initiated;
-  bool ho_start;
-  bool go_idle;
-  asn1::rrc::reest_cause_e m_reest_cause;
-  uint16_t                 m_reest_rnti;
+  bool                     initiated                  = false;
+  bool                     ho_start                   = false;
+  bool                     go_idle                    = false;
+  asn1::rrc::reest_cause_e m_reest_cause              = {};
+  uint16_t                 m_reest_rnti               = 0;
   bool                     reestablishment_started    = false;
   bool                     reestablishment_successful = false;
 
-  uint32_t rlc_flush_counter;
-  uint32_t rlc_flush_timeout;
+  uint32_t rlc_flush_counter = 0;
+  uint32_t rlc_flush_timeout = 0;
 
   // Measurements sub-class
   class rrc_meas {
@@ -539,18 +539,18 @@ private:
     std::map<uint32_t, report_cfg_t>  reports_cfg;
     std::map<uint32_t, meas_t>        active;
 
-    rrc               *parent;
-    srslte::log       *log_h;
-    phy_interface_rrc_lte*        phy;
-    srslte::mac_interface_timers *mac_timers;
+    rrc*                          parent     = nullptr;
+    srslte::log*                  log_h      = nullptr;
+    phy_interface_rrc_lte*        phy        = nullptr;
+    srslte::mac_interface_timers* mac_timers = nullptr;
 
-    uint32_t filter_k_rsrp, filter_k_rsrq;
-    float    filter_a[NOF_MEASUREMENTS];
+    uint32_t filter_k_rsrp, filter_k_rsrq = 0;
+    float    filter_a[NOF_MEASUREMENTS] = {};
 
-    meas_value_t pcell_measurement;
+    meas_value_t pcell_measurement = {};
 
-    bool  s_measure_enabled;
-    float s_measure_value;
+    bool  s_measure_enabled = false;
+    float s_measure_value   = 0.0;
 
     void stop_reports(meas_t *m);
     void stop_reports_object(uint32_t object_id);
@@ -600,7 +600,7 @@ private:
     float threshservinglow;
   } cell_resel_cfg_t;
 
-  cell_resel_cfg_t cell_resel_cfg;
+  cell_resel_cfg_t cell_resel_cfg = {};
 
   float         get_srxlev(float Qrxlevmeas);
   float         get_squal(float Qqualmeas);
@@ -617,10 +617,10 @@ private:
 
   phy_interface_rrc_lte::cell_search_ret_t cell_search();
 
-  srslte::plmn_id_t selected_plmn_id;
-  bool plmn_is_selected;
+  srslte::plmn_id_t selected_plmn_id = {};
+  bool              plmn_is_selected = false;
 
-  bool security_is_activated;
+  bool security_is_activated = false;
 
   // RLC interface
   void max_retx_attempted();

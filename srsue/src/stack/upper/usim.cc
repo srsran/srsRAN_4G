@@ -28,7 +28,7 @@ using namespace asn1::rrc;
 
 namespace srsue{
 
-usim::usim(srslte::log* log_) : usim_log(log_), initiated(false) {}
+usim::usim(srslte::log* log_) : usim_log(log_) {}
 
 int usim::init(usim_args_t* args)
 {

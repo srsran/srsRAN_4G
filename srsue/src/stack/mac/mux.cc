@@ -47,6 +47,8 @@ void mux::init(rlc_interface_mac* rlc_, bsr_interface_mux* bsr_procedure_, phr_p
 
 void mux::reset()
 {
+  std::lock_guard<std::mutex> lock(mutex);
+
   for (auto& channel : logical_channels) {
     channel.Bj = 0;
   }
@@ -265,7 +267,7 @@ void mux::append_crnti_ce_next_tx(uint16_t crnti) {
 
 bool mux::sched_sdu(logical_channel_config_t* ch, int* sdu_space, int max_sdu_sz)
 {
-  if (*sdu_space > 0) {
+  if (sdu_space != nullptr && *sdu_space > 0) {
     // Get n-th pending SDU pointer and length
     int sched_len = ch->buffer_len;     
     if (sched_len > 0) { // there is pending SDU to allocate
