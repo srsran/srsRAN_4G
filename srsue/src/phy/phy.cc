@@ -137,7 +137,7 @@ int phy::init(const phy_args_t& args_, srslte::logger* logger_)
     mylog->init(tmp, logger, true);
     mylog->set_level(args.log.phy_level);
     mylog->set_hex_limit(args.log.phy_hex_limit);
-    log_vec.push_back(mylog);
+    log_vec.push_back(std::move(std::unique_ptr<srslte::log_filter>(mylog)));
   }
 
   // Add PHY lib log
@@ -148,13 +148,13 @@ int phy::init(const phy_args_t& args_, srslte::logger* logger_)
     lib_log->init(tmp, logger, true);
     lib_log->set_level(args.log.phy_lib_level);
     lib_log->set_hex_limit(args.log.phy_hex_limit);
-    log_vec.push_back(lib_log);
+    log_vec.push_back(std::move(std::unique_ptr<srslte::log_filter>(lib_log)));
   } else {
     log_vec.push_back(nullptr);
   }
 
   // set default logger
-  log_h = log_vec.at(0);
+  log_h = log_vec.at(0).get();
 
   if (!check_args(args)) {
     return false;
@@ -162,7 +162,7 @@ int phy::init(const phy_args_t& args_, srslte::logger* logger_)
 
   nof_workers = args.nof_phy_threads;
   if (log_vec[nof_workers]) {
-    this->log_phy_lib_h = (srslte::log*)log_vec[0];
+    this->log_phy_lib_h = (srslte::log*)log_vec[0].get();
     srslte_phy_log_register_handler(this, srslte_phy_handler);
   } else {
     this->log_phy_lib_h = nullptr;
@@ -177,12 +177,12 @@ int phy::init(const phy_args_t& args_, srslte::logger* logger_)
 void phy::run_thread()
 {
   prach_buffer.init(SRSLTE_MAX_PRB, log_h);
-  common.init(&args, (srslte::log*)log_vec[0], radio, stack);
+  common.init(&args, (srslte::log*)log_vec[0].get(), radio, stack);
 
   // Add workers to workers pool and start threads
   for (uint32_t i=0;i<nof_workers;i++) {
-    auto w = std::unique_ptr<sf_worker>(
-        new sf_worker(SRSLTE_MAX_PRB, &common, (srslte::log*)log_vec[i], (srslte::log*)log_vec[nof_workers], &sfsync));
+    auto w = std::unique_ptr<sf_worker>(new sf_worker(
+        SRSLTE_MAX_PRB, &common, (srslte::log*)log_vec[i].get(), (srslte::log*)log_vec[nof_workers].get(), &sfsync));
     workers_pool.init_worker(i, w.get(), WORKERS_THREAD_PRIO, args.worker_cpu_mask);
     workers.push_back(std::move(w));
   }

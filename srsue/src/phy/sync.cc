@@ -106,17 +106,14 @@ void sync::init(radio_interface_phy*      _radio,
 
 sync::~sync()
 {
-  if (running) {
-    uint32_t nof_rf_channels = worker_com->args->nof_rf_channels * worker_com->args->nof_rx_ant;
-    for (uint32_t r = 0; r < worker_com->args->nof_radios; r++) {
-      for (uint32_t p = 0; p < nof_rf_channels; p++) {
-        if (sf_buffer[r][p]) {
-          free(sf_buffer[r][p]);
-        }
+  for (uint32_t r = 0; r < SRSLTE_MAX_RADIOS; r++) {
+    for (uint32_t p = 0; p < SRSLTE_MAX_PORTS; p++) {
+      if (sf_buffer[r][p]) {
+        free(sf_buffer[r][p]);
       }
     }
-    srslte_ue_sync_free(&ue_sync);
   }
+  srslte_ue_sync_free(&ue_sync);
 }
 
 void sync::stop()
