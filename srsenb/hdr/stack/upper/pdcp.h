@@ -48,7 +48,7 @@ public:
   void add_user(uint16_t rnti);
   void rem_user(uint16_t rnti);
   void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu);
-  void add_bearer(uint16_t rnti, uint32_t lcid, srslte::srslte_pdcp_config_lte_t cnfg);
+  void add_bearer(uint16_t rnti, uint32_t lcid, srslte::srslte_pdcp_config_t cnfg);
   void config_security(uint16_t                            rnti,
                        uint32_t                            lcid,
                        uint8_t*                            k_rrc_enc_,

@@ -46,7 +46,7 @@ public:
             srsue::gw_interface_pdcp*  gw_,
             srslte::log*               log_,
             uint32_t                   lcid_,
-            srslte_pdcp_config_nr_t    cfg_);
+            srslte_pdcp_config_t       cfg_);
   void reset();
   void reestablish();
 
@@ -64,7 +64,7 @@ private:
   srsue::rrc_interface_pdcp* rrc = nullptr;
   srsue::gw_interface_pdcp*  gw  = nullptr;
 
-  srslte_pdcp_config_nr_t cfg = {0, false, false, 0, PDCP_SN_LEN_12};
+  srslte_pdcp_config_t cfg = {0, false, false, 0, PDCP_SN_LEN_12};
 
   uint16_t sn_len_bytes = 0;
 

@@ -82,7 +82,7 @@ void pdcp::rem_user(uint16_t rnti)
   pthread_rwlock_unlock(&rwlock);
 }
 
-void pdcp::add_bearer(uint16_t rnti, uint32_t lcid, srslte::srslte_pdcp_config_lte_t cfg)
+void pdcp::add_bearer(uint16_t rnti, uint32_t lcid, srslte::srslte_pdcp_config_t cfg)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti)) {

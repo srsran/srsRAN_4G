@@ -29,12 +29,12 @@ pdcp_entity_nr::pdcp_entity_nr() {}
 
 pdcp_entity_nr::~pdcp_entity_nr() {}
 
-void pdcp_entity_nr::init(srsue::rlc_interface_pdcp*  rlc_,
-                          srsue::rrc_interface_pdcp*  rrc_,
-                          srsue::gw_interface_pdcp*   gw_,
-                          srslte::log*                log_,
-                          uint32_t                    lcid_,
-                          srslte_pdcp_config_nr_t     cfg_)
+void pdcp_entity_nr::init(srsue::rlc_interface_pdcp* rlc_,
+                          srsue::rrc_interface_pdcp* rrc_,
+                          srsue::gw_interface_pdcp*  gw_,
+                          srslte::log*               log_,
+                          uint32_t                   lcid_,
+                          srslte_pdcp_config_t       cfg_)
 {
   rlc           = rlc_;
   rrc           = rrc_;
@@ -190,7 +190,7 @@ void pdcp_entity_nr::write_data_header(const srslte::unique_byte_buffer_t& sdu, 
       }
       break;
     case PDCP_SN_LEN_18:
-      sdu->msg[0] = 0x80; // Data PDU and SN 18, D flag present
+      sdu->msg[0] = 0x80; // Data PDU and SN 18 implies DRB, D flag must be present
       *sdu->msg = count & 0x3F;
       break;
     default:

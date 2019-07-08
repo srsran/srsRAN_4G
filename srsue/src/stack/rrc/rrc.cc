@@ -3145,11 +3145,11 @@ void rrc::handle_con_reest(rrc_conn_reest_s* setup)
 void rrc::add_srb(srb_to_add_mod_s* srb_cnfg)
 {
   // Setup PDCP
-  srslte_pdcp_config_lte_t pdcp_cfg;
-  pdcp_cfg.is_control = true;
-  pdcp_cfg.is_data    = false;
-  pdcp_cfg.sn_len     = 5;
-  pdcp_cfg.bearer_id  = srb_cnfg->srb_id;
+  srslte_pdcp_config_t pdcp_cfg = {.bearer_id  = srb_cnfg->srb_id,
+                                   .is_control = true,
+                                   .is_data    = false,
+                                   .direction  = SECURITY_DIRECTION_DOWNLINK,
+                                   .sn_len     = PDCP_SN_LEN_5};
   pdcp->add_bearer(srb_cnfg->srb_id, pdcp_cfg);
   if (RB_ID_SRB2 == srb_cnfg->srb_id) {
     pdcp->config_security(srb_cnfg->srb_id, k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo);
@@ -3222,9 +3222,11 @@ void rrc::add_drb(drb_to_add_mod_s* drb_cnfg)
   }
 
   // Setup PDCP
-  srslte_pdcp_config_lte_t pdcp_cfg = {};
-  pdcp_cfg.is_data = true;
-  pdcp_cfg.bearer_id = drb_cnfg->drb_id;
+  srslte_pdcp_config_t pdcp_cfg = {.bearer_id  = drb_cnfg->drb_id,
+                                   .is_control = true,
+                                   .is_data    = false,
+                                   .direction  = SECURITY_DIRECTION_DOWNLINK,
+                                   .sn_len     = PDCP_SN_LEN_12};
   if (drb_cnfg->pdcp_cfg.rlc_um_present) {
     if (drb_cnfg->pdcp_cfg.rlc_um.pdcp_sn_size == pdcp_cfg_s::rlc_um_s_::pdcp_sn_size_e_::len7bits) {
       pdcp_cfg.sn_len = 7;

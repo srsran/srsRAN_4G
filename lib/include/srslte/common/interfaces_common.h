@@ -67,45 +67,25 @@ public:
   uint32_t lcid;
 };
 
-class srslte_pdcp_config_lte_t
-{
-public:
-  srslte_pdcp_config_lte_t(uint8_t bearer_id_  = 0,
-                           bool    is_control_ = false,
-                           bool    is_data_    = false,
-                           uint8_t direction_  = SECURITY_DIRECTION_UPLINK) :
-    bearer_id(bearer_id_),
-    direction(direction_),
-    is_control(is_control_),
-    is_data(is_data_),
-    sn_len(12)
-  {
-  }
-
-  uint32_t bearer_id;
-  uint8_t  direction;
-  bool     is_control;
-  bool     is_data;
-  uint8_t  sn_len;
-
-  // TODO: Support the following configurations
-  // bool do_rohc;
-};
-
 const uint8_t PDCP_SN_LEN_5  = 5;
 const uint8_t PDCP_SN_LEN_12 = 12;
 const uint8_t PDCP_SN_LEN_18 = 18;
 
-class srslte_pdcp_config_nr_t
+class srslte_pdcp_config_t
 {
 public:
-  srslte_pdcp_config_nr_t(uint8_t bearer_id_, bool is_control_, bool is_data_, uint8_t direction_, uint8_t sn_len_) :
+  srslte_pdcp_config_t(uint8_t bearer_id_, 
+                       bool    is_control_,
+                       bool    is_data_   ,
+                       uint8_t direction_ ,
+                       uint8_t sn_len_) :
     bearer_id(bearer_id_),
     direction(direction_),
     is_control(is_control_),
     is_data(is_data_),
     sn_len(sn_len_)
   {
+    hdr_len_bytes = ceil((float)sn_len / 8);
   }
 
   uint32_t bearer_id;
@@ -113,6 +93,10 @@ public:
   bool     is_control;
   bool     is_data;
   uint8_t  sn_len;
+  uint8_t  hdr_len_bytes;
+
+  // TODO: Support the following configurations
+  // bool do_rohc;
 };
 
 class mac_interface_timers

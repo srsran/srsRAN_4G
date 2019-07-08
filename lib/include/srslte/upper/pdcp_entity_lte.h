@@ -54,7 +54,7 @@ public:
             srsue::gw_interface_pdcp*  gw_,
             srslte::log*               log_,
             uint32_t                   lcid_,
-            srslte_pdcp_config_lte_t   cfg_);
+            srslte_pdcp_config_t       cfg_);
   void reset();
   void reestablish();
 
@@ -72,8 +72,7 @@ private:
   srsue::rrc_interface_pdcp* rrc = nullptr;
   srsue::gw_interface_pdcp*  gw  = nullptr;
 
-  srslte_pdcp_config_lte_t cfg          = {};
-  uint8_t                  sn_len_bytes = 0;
+  srslte_pdcp_config_t cfg = {0, SECURITY_DIRECTION_UPLINK, false, false, 0};
 
   uint32_t rx_count = 0;
   uint32_t tx_count = 0;
