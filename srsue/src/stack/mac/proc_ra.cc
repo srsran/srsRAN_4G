@@ -80,7 +80,6 @@ ra_proc::~ra_proc() {
 
 void ra_proc::reset() {
   state = IDLE;
-  msg3_transmitted = false;
   started_by_pdcch = false;
   contention_resolution_timer->stop();
   contention_resolution_timer->reset();
@@ -264,7 +263,7 @@ void ra_proc::resource_selection()
     sel_preamble = (uint32_t) preambleIndex;
   } else {
     // Preamble is chosen by MAC UE
-    if (!msg3_transmitted) {
+    if (!mux_unit->msg3_is_transmitted()) {
       if (nof_groupB_preambles &&
           new_ra_msg_len > rach_cfg.messageSizeGroupA) { // Check also pathloss (Pcmax,deltaPreamble and powerOffset)
         sel_group = RA_GROUP_B; 
@@ -496,7 +495,6 @@ void ra_proc::complete()
 
   mux_unit->msg3_flush();
 
-  msg3_transmitted = false;
   if (ra_is_ho) {
     rrc->ho_ra_completed(true);
   }

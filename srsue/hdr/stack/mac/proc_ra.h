@@ -50,7 +50,6 @@ public:
     current_ta                = 0;
     state                     = IDLE;
     last_msg3_group           = RA_GROUP_A;
-    msg3_transmitted          = false;
     phy_h                     = NULL;
     log_h                     = NULL;
     mux_unit                  = NULL;
@@ -149,7 +148,6 @@ private:
   typedef enum { RA_GROUP_A, RA_GROUP_B } ra_group_t;
 
   ra_group_t last_msg3_group;
-  bool       msg3_transmitted;
 
   uint32_t rar_window_st;
 
