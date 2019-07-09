@@ -28,8 +28,6 @@
 #define DEVNAME_ZMQ "ZeroMQ"
 #define PARAM_LEN (128)
 #define PARAM_LEN_SHORT (PARAM_LEN / 2)
-#define ZMQ_MAX_RX_BYTES                                                                                               \
-  (5 * SRSLTE_SF_LEN_MAX * sizeof(cf_t)) // Five subframes at max LTE rate using default FFT-length
 
 SRSLTE_API int rf_zmq_open(char* args, void** handler);
 

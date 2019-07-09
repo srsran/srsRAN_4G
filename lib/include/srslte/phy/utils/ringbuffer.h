@@ -35,7 +35,8 @@ typedef struct {
   int             wpm;
   int             rpm;
   pthread_mutex_t mutex;
-  pthread_cond_t  cvar;
+  pthread_cond_t  write_cvar;
+  pthread_cond_t  read_cvar;
 } srslte_ringbuffer_t;
 
 #ifdef __cplusplus
@@ -53,6 +54,8 @@ SRSLTE_API int srslte_ringbuffer_status(srslte_ringbuffer_t* q);
 SRSLTE_API int srslte_ringbuffer_space(srslte_ringbuffer_t *q);
 
 SRSLTE_API int srslte_ringbuffer_write(srslte_ringbuffer_t* q, void* ptr, int nof_bytes);
+
+SRSLTE_API int srslte_ringbuffer_write_timed(srslte_ringbuffer_t* q, void* ptr, int nof_bytes, uint32_t timeout_ms);
 
 SRSLTE_API int srslte_ringbuffer_read(srslte_ringbuffer_t* q, void* ptr, int nof_bytes);
 
