@@ -432,11 +432,12 @@ bool retx_test()
     timers.step_all();
   }
 
-  assert(4 == rlc2.get_buffer_state());
+  uint32_t buffer_state = rlc2.get_buffer_state();
+  assert(4 == buffer_state);
 
   // Read status PDU from RLC2
   byte_buffer_t status_buf;
-  len = rlc2.read_pdu(status_buf.msg, 10); // 10 bytes is enough to hold the status
+  len                = rlc2.read_pdu(status_buf.msg, buffer_state); // provide exactly the reported buffer state
   status_buf.N_bytes = len;
 
   // Write status PDU to RLC1
