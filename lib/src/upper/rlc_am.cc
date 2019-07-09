@@ -1590,7 +1590,7 @@ void rlc_am::rlc_am_rx::timer_expired(uint32_t timeout_id)
   pthread_mutex_lock(&mutex);
   if (reordering_timer != NULL && reordering_timer_id == timeout_id) {
     reordering_timer->reset();
-    log->debug("%s reordering timeout expiry - updating vr_ms\n", RB_NAME);
+    log->debug("%s reordering timeout expiry - updating vr_ms (was %d)\n", RB_NAME, vr_ms);
 
     // 36.322 v10 Section 5.1.3.2.4
     vr_ms = vr_x;
@@ -1624,14 +1624,15 @@ int rlc_am::rlc_am_rx::get_status_pdu(rlc_status_pdu_t* status, const uint32_t m
 
   // We don't use segment NACKs - just NACK the full PDU
   uint32_t i = vr_r;
-  while (RX_MOD_BASE(i) < RX_MOD_BASE(vr_ms) && status->N_nack < RLC_AM_WINDOW_SIZE && rlc_am_packed_length(status) <= max_pdu_size-2) {
+  while (RX_MOD_BASE(i) < RX_MOD_BASE(vr_ms) && status->N_nack < RLC_AM_WINDOW_SIZE) {
     status->ack_sn = i;
-    if(rx_window.find(i) == rx_window.end()) {
+    if (rx_window.find(i) == rx_window.end()) {
       status->nacks[status->N_nack].nack_sn = i;
       status->N_nack++;
     }
-    i = (i + 1)%MOD;
+    i = (i + 1) % MOD;
   }
+
   pthread_mutex_unlock(&mutex);
   return rlc_am_packed_length(status);
 }
@@ -1640,7 +1641,8 @@ int rlc_am::rlc_am_rx::get_status_pdu(rlc_status_pdu_t* status, const uint32_t m
 int rlc_am::rlc_am_rx::get_status_pdu_length()
 {
   pthread_mutex_lock(&mutex);
-  rlc_status_pdu_t status;
+  rlc_status_pdu_t status = {};
+  status.ack_sn           = vr_ms;
   uint32_t i = vr_r;
   while (RX_MOD_BASE(i) < RX_MOD_BASE(vr_ms) && status.N_nack < RLC_AM_WINDOW_SIZE) {
     if(rx_window.find(i) == rx_window.end()) {
@@ -2034,10 +2036,8 @@ uint32_t rlc_am_packed_length(rlc_amd_pdu_header_t *header)
 
 uint32_t rlc_am_packed_length(rlc_status_pdu_t *status)
 {
-  uint32_t i;
   uint32_t len_bits = 15;                 // Fixed part is 15 bits
-  for(i=0;i<status->N_nack;i++)
-  {
+  for (uint32_t i = 0; i < status->N_nack; i++) {
     if(status->nacks[i].has_so) {
       len_bits += 42;      // 10 bits SN, 2 bits ext, 15 bits so_start, 15 bits so_end
     }else{
