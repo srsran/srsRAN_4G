@@ -42,7 +42,6 @@ public:
          uint32_t                      queue_len = 16);
   ~rlc_tm();
   bool configure(rlc_config_t cnfg);
-  bool resume();
   void stop();
   void reestablish();
   void empty_queue(); 

@@ -48,12 +48,13 @@ rlc_um::~rlc_um()
   stop();
 }
 
-bool rlc_um::resume()
+bool rlc_um::configure(rlc_config_t cnfg_)
 {
-  if (not has_configuration) {
-    log->error("Error resuming bearer: no previous configuration found\n");
-    return false;
-  }
+  // determine bearer name and configure Rx/Tx objects
+  rb_name = get_rb_name(rrc, lcid, cnfg_.um.is_mrb);
+
+  // store config
+  cfg = cnfg_;
 
   if (not rx.configure(cfg, rb_name)) {
     return false;
@@ -63,29 +64,13 @@ bool rlc_um::resume()
     return false;
   }
 
+  log->info("%s configured in %s: t_reordering=%d ms, rx_sn_field_length=%u bits, tx_sn_field_length=%u bits\n",
+            rb_name.c_str(),
+            srslte::to_string(cnfg_.rlc_mode).c_str(),
+            cfg.um.t_reordering,
+            srslte::to_number(cfg.um.rx_sn_field_length),
+            srslte::to_number(cfg.um.tx_sn_field_length));
   return true;
-}
-
-bool rlc_um::configure(rlc_config_t cnfg_)
-{
-  // determine bearer name and configure Rx/Tx objects
-  rb_name = get_rb_name(rrc, lcid, cnfg_.um.is_mrb);
-
-  // store config
-  cfg               = cnfg_;
-  has_configuration = true;
-
-  if (resume()) {
-    log->info("%s configured in %s: t_reordering=%d ms, rx_sn_field_length=%u bits, tx_sn_field_length=%u bits\n",
-              rb_name.c_str(),
-              srslte::to_string(cnfg_.rlc_mode).c_str(),
-              cfg.um.t_reordering,
-              srslte::to_number(cfg.um.rx_sn_field_length),
-              srslte::to_number(cfg.um.tx_sn_field_length));
-    return true;
-  } else {
-    return false;
-  }
 }
 
 bool rlc_um::rlc_um_rx::configure(rlc_config_t cnfg_, std::string rb_name_)

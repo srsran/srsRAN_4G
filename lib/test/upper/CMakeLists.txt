@@ -47,6 +47,10 @@ add_executable(rlc_um_test rlc_um_test.cc)
 target_link_libraries(rlc_um_test srslte_upper srslte_phy)
 add_test(rlc_um_test rlc_um_test)
 
+add_executable(rlc_common_test rlc_common_test.cc)
+target_link_libraries(rlc_common_test srslte_upper srslte_phy)
+add_test(rlc_common_test rlc_common_test)
+
 ########################################################################
 # Option to run command after build (useful for remote builds)
 ########################################################################

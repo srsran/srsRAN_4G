@@ -22,6 +22,8 @@
 #ifndef SRSLTE_RLC_COMMON_H
 #define SRSLTE_RLC_COMMON_H
 
+#include "srslte/common/block_queue.h"
+
 namespace srslte {
 
 /****************************************************************************
@@ -141,11 +143,43 @@ public:
   const static int RLC_BUFFER_NOF_PDU = 128;
 
   virtual ~rlc_common() {}
-  virtual bool configure(rlc_config_t cnfg)                         = 0;
-  virtual bool resume()                                             = 0;
-  virtual void stop() = 0;
-  virtual void reestablish() = 0;
-  virtual void empty_queue() = 0; 
+  virtual bool configure(rlc_config_t cnfg) = 0;
+  virtual void stop()                       = 0;
+  virtual void reestablish()                = 0;
+  virtual void empty_queue()                = 0;
+
+  bool suspend()
+  {
+    if (is_suspended) {
+      return false;
+    }
+    is_suspended = true;
+    return true;
+  }
+
+  // Pops all PDUs from queue and calls write_pdu() method for the bearer type
+  bool resume()
+  {
+    if (!is_suspended) {
+      return false;
+    }
+    pdu_t p;
+    // Do not block
+    while (rx_pdu_resume_queue.try_pop(&p)) {
+      write_pdu(p.payload, p.nof_bytes);
+    }
+    is_suspended = false;
+    return true;
+  }
+
+  void write_pdu_s(uint8_t* payload, uint32_t nof_bytes)
+  {
+    if (is_suspended) {
+      queue_pdu(payload, nof_bytes);
+    } else {
+      write_pdu(payload, nof_bytes);
+    }
+  }
 
   virtual rlc_mode_t    get_mode() = 0;
   virtual uint32_t      get_bearer() = 0;
@@ -162,6 +196,27 @@ public:
   virtual uint32_t get_buffer_state() = 0;
   virtual int      read_pdu(uint8_t *payload, uint32_t nof_bytes) = 0;
   virtual void     write_pdu(uint8_t *payload, uint32_t nof_bytes) = 0;
+
+private:
+  bool is_suspended = false;
+
+  // Enqueues the PDU in the resume queue
+  void queue_pdu(uint8_t* payload, uint32_t nof_bytes)
+  {
+    pdu_t p = {payload, nof_bytes};
+    // Do not block ever
+    if (!rx_pdu_resume_queue.try_push(p)) {
+      fprintf(stderr, "Error dropping PDUs while bearer suspended. Queue should be unbounded\n");
+      return;
+    }
+  }
+
+  typedef struct {
+    uint8_t* payload;
+    uint32_t nof_bytes;
+  } pdu_t;
+
+  block_queue<pdu_t> rx_pdu_resume_queue;
 };
 
 } // namespace srslte

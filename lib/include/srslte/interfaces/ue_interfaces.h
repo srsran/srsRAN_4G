@@ -275,15 +275,16 @@ public:
 class rlc_interface_rrc
 {
 public:
-  virtual void reset() = 0;
-  virtual void reestablish() = 0;
-  virtual void reestablish(uint32_t lcid) = 0;
+  virtual void reset()                                                                          = 0;
+  virtual void reestablish()                                                                    = 0;
+  virtual void reestablish(uint32_t lcid)                                                       = 0;
   virtual void add_bearer(uint32_t lcid, srslte::rlc_config_t cnfg)                             = 0;
-  virtual void add_bearer_mrb(uint32_t lcid) = 0;
-  virtual void del_bearer(uint32_t lcid) = 0;
+  virtual void add_bearer_mrb(uint32_t lcid)                                                    = 0;
+  virtual void del_bearer(uint32_t lcid)                                                        = 0;
+  virtual void suspend_bearer(uint32_t lcid)                                                    = 0;
   virtual void resume_bearer(uint32_t lcid)                                = 0;
-  virtual void change_lcid(uint32_t old_lcid, uint32_t new_lcid) = 0;
-  virtual bool has_bearer(uint32_t lcid) = 0;
+  virtual void change_lcid(uint32_t old_lcid, uint32_t new_lcid)                                = 0;
+  virtual bool has_bearer(uint32_t lcid)                                                        = 0;
   virtual bool has_data(const uint32_t lcid)                               = 0;
   virtual void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking = true) = 0;
 };

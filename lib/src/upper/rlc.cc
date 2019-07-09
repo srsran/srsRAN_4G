@@ -143,6 +143,7 @@ void rlc::reestablish(uint32_t lcid)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
+    rlc_log->info("Reestablishing LCID %d\n", lcid);
     rlc_array.at(lcid)->reestablish();
   } else {
     rlc_log->warning("RLC LCID %d doesn't exist. Deallocating SDU\n", lcid);
@@ -309,7 +310,7 @@ void rlc::write_pdu(uint32_t lcid, uint8_t *payload, uint32_t nof_bytes)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (valid_lcid(lcid)) {
-    rlc_array.at(lcid)->write_pdu(payload, nof_bytes);
+    rlc_array.at(lcid)->write_pdu_s(payload, nof_bytes);
   } else {
     rlc_log->warning("LCID %d doesn't exist. Dropping PDU.\n", lcid);
   }
@@ -381,8 +382,7 @@ void rlc::add_bearer(uint32_t lcid, rlc_config_t cnfg)
   rlc_common *rlc_entity = NULL;
 
   if (not valid_lcid(lcid)) {
-    switch(cnfg.rlc_mode)
-    {
+    switch (cnfg.rlc_mode) {
       case rlc_mode_t::tm:
         rlc_entity = new rlc_tm(rlc_log, lcid, pdcp, rrc, mac_timers);
         break;
@@ -397,23 +397,23 @@ void rlc::add_bearer(uint32_t lcid, rlc_config_t cnfg)
         goto unlock_and_exit;
     }
 
-    // configure and add to array
-    if (cnfg.rlc_mode != rlc_mode_t::tm) {
-      if (not rlc_entity->configure(cnfg)) {
-        rlc_log->error("Error configuring RLC entity\n.");
-        goto delete_and_exit;
-      }
-    }
-
     if (not rlc_array.insert(rlc_map_pair_t(lcid, rlc_entity)).second) {
       rlc_log->error("Error inserting RLC entity in to array\n.");
       goto delete_and_exit;
     }
     rlc_log->info("Added radio bearer %s in %s\n", rrc->get_rb_name(lcid).c_str(), to_string(cnfg.rlc_mode).c_str());
-    goto unlock_and_exit;
-  } else {
-    rlc_log->warning("Bearer %s already created.\n", rrc->get_rb_name(lcid).c_str());
+    rlc_entity = NULL;
   }
+
+  // configure and add to array
+  if (cnfg.rlc_mode != rlc_mode_t::tm) {
+    if (not rlc_array.at(lcid)->configure(cnfg)) {
+      rlc_log->error("Error configuring RLC entity\n.");
+      goto delete_and_exit;
+    }
+  }
+
+  rlc_log->info("Configured radio bearer %s in %s\n", rrc->get_rb_name(lcid).c_str(), to_string(cnfg.rlc_mode).c_str());
 
 delete_and_exit:
   if (rlc_entity) {
@@ -521,15 +521,33 @@ exit:
   pthread_rwlock_unlock(&rwlock);
 }
 
-void rlc::resume_bearer(uint32_t lcid)
+void rlc::suspend_bearer(uint32_t lcid)
 {
   pthread_rwlock_wrlock(&rwlock);
 
   if (valid_lcid(lcid)) {
+    if (rlc_array.at(lcid)->suspend()) {
+      rlc_log->info("Suspended radio bearer %s\n", rrc->get_rb_name(lcid).c_str());
+    } else {
+      rlc_log->error("Error suspending RLC entity: bearer already suspended\n.");
+    }
+  } else {
+    rlc_log->error("Suspending bearer: bearer %s not configured.\n", rrc->get_rb_name(lcid).c_str());
+  }
+
+  pthread_rwlock_unlock(&rwlock);
+}
+
+void rlc::resume_bearer(uint32_t lcid)
+{
+  pthread_rwlock_wrlock(&rwlock);
+
+  rlc_log->info("Resuming radio bearer %s\n", rrc->get_rb_name(lcid).c_str());
+  if (valid_lcid(lcid)) {
     if (rlc_array.at(lcid)->resume()) {
       rlc_log->info("Resumed radio bearer %s\n", rrc->get_rb_name(lcid).c_str());
     } else {
-      rlc_log->error("Error resuming RLC entity\n.");
+      rlc_log->error("Error resuming RLC entity: bearer not suspended\n.");
     }
   } else {
     rlc_log->error("Resuming bearer: bearer %s not configured.\n", rrc->get_rb_name(lcid).c_str());

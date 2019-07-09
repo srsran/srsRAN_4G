@@ -1812,8 +1812,12 @@ void rrc::proc_con_restablish_request()
     mac_timers->timer_get(t311)->reset();
     mac_timers->timer_get(t311)->run();
 
-    // TODO: suspend all RBs except SRB0;
-    // is this that RLC tx queue stops accepting SDUs?
+    // Suspend all RB except SRB0
+    for (int i = 1; i < SRSLTE_N_RADIO_BEARERS; i++) {
+      if (rlc->has_bearer(i)) {
+        rlc->suspend_bearer(i);
+      }
+    }
 
     // reset MAC;
     mac->reset();
@@ -3068,7 +3072,7 @@ void rrc::handle_con_reest(rrc_conn_reest_s* setup)
   // Apply the Radio Resource configuration
   apply_rr_config_dedicated(&setup->crit_exts.c1().rrc_conn_reest_r8().rr_cfg_ded);
 
-  // Resume SRB1 (if already configured in rr_config, this function does nothing)
+  // Resume SRB1
   rlc->resume_bearer(1);
 
   // Send ConnectionSetupComplete message

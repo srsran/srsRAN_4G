@@ -50,7 +50,6 @@ public:
          mac_interface_timers*      mac_timers_);
   ~rlc_um();
   bool configure(rlc_config_t cnfg);
-  bool resume();
   void reestablish();
   void stop();
   void empty_queue();
@@ -204,7 +203,6 @@ private:
   srslte::log*              log               = nullptr;
   uint32_t                  lcid              = 0;
   rlc_config_t              cfg               = {};
-  bool                      has_configuration = false;
   std::string               rb_name;
   byte_buffer_pool*         pool = nullptr;
 

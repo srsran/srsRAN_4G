@@ -51,12 +51,14 @@ rlc_am::~rlc_am()
 {
 }
 
-bool rlc_am::resume()
+// Applies new configuration. Must be just reestablished or initiated
+bool rlc_am::configure(rlc_config_t cfg_)
 {
-  if (not has_configuration) {
-    log->error("Error resuming bearer: no previous configuration found\n");
-    return false;
-  }
+  // determine bearer name and configure Rx/Tx objects
+  rb_name = rrc->get_rb_name(lcid);
+
+  // store config
+  cfg = cfg_;
 
   if (not rx.configure(cfg.am)) {
     log->error("Error resuming bearer (RX)\n");
@@ -68,32 +70,16 @@ bool rlc_am::resume()
     return false;
   }
 
+  log->info("%s configured: t_poll_retx=%d, poll_pdu=%d, poll_byte=%d, max_retx_thresh=%d, "
+            "t_reordering=%d, t_status_prohibit=%d\n",
+            rb_name.c_str(),
+            cfg.am.t_poll_retx,
+            cfg.am.poll_pdu,
+            cfg.am.poll_byte,
+            cfg.am.max_retx_thresh,
+            cfg.am.t_reordering,
+            cfg.am.t_status_prohibit);
   return true;
-}
-
-bool rlc_am::configure(rlc_config_t cfg_)
-{
-  // determine bearer name and configure Rx/Tx objects
-  rb_name = rrc->get_rb_name(lcid);
-
-  // store config
-  cfg               = cfg_;
-  has_configuration = true;
-
-  if (resume()) {
-    log->info("%s configured: t_poll_retx=%d, poll_pdu=%d, poll_byte=%d, max_retx_thresh=%d, "
-              "t_reordering=%d, t_status_prohibit=%d\n",
-              rb_name.c_str(),
-              cfg.am.t_poll_retx,
-              cfg.am.poll_pdu,
-              cfg.am.poll_byte,
-              cfg.am.max_retx_thresh,
-              cfg.am.t_reordering,
-              cfg.am.t_status_prohibit);
-    return true;
-  } else {
-    return false;
-  }
 }
 
 void rlc_am::empty_queue()

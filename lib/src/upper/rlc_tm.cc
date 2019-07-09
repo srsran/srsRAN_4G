@@ -49,11 +49,6 @@ bool rlc_tm::configure(rlc_config_t cnfg)
   return true;
 }
 
-bool rlc_tm::resume()
-{
-  return true;
-}
-
 void rlc_tm::empty_queue()
 {
   // Drop all messages in TX queue

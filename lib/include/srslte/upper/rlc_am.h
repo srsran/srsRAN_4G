@@ -70,7 +70,6 @@ public:
          srsue::rrc_interface_rlc*     rrc_,
          srslte::mac_interface_timers* mac_timers_);
   ~rlc_am();
-  bool resume();
   bool configure(rlc_config_t cfg_);
   void reestablish();
   void stop();
@@ -283,7 +282,6 @@ private:
   mac_interface_timers*      mac_timers        = nullptr;
   uint32_t                   lcid              = 0;
   rlc_config_t               cfg               = {};
-  bool                       has_configuration = false;
   std::string               rb_name;
 
   static const int poll_periodicity = 8; // After how many data PDUs a status PDU shall be requested

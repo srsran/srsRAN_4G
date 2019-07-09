@@ -80,6 +80,7 @@ public:
   void add_bearer_mrb(uint32_t lcid);
   void del_bearer(uint32_t lcid);
   void del_bearer_mrb(uint32_t lcid);
+  void suspend_bearer(uint32_t lcid);
   void resume_bearer(uint32_t lcid);
   void change_lcid(uint32_t old_lcid, uint32_t new_lcid);
   bool has_bearer(uint32_t lcid);
