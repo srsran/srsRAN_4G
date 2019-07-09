@@ -258,6 +258,9 @@ typedef enum {
   SRSLTE_DCI_FORMAT2B,
   // SRSLTE_DCI_FORMAT3,
   // SRSLTE_DCI_FORMAT3A,
+  SRSLTE_DCI_FORMATN0,
+  SRSLTE_DCI_FORMATN1,
+  SRSLTE_DCI_FORMATN2,
   SRSLTE_DCI_NOF_FORMATS
 } srslte_dci_format_t;
 
@@ -282,6 +285,43 @@ enum band_geographical_area {
   SRSLTE_BAND_GEO_AREA_CALA, 
   SRSLTE_BAND_GEO_AREA_NA
 };
+
+// NB-IoT specific structs
+typedef enum {
+  SRSLTE_NBIOT_MODE_INBAND_SAME_PCI = 0,
+  SRSLTE_NBIOT_MODE_INBAND_DIFFERENT_PCI,
+  SRSLTE_NBIOT_MODE_GUARDBAND,
+  SRSLTE_NBIOT_MODE_STANDALONE,
+  SRSLTE_NBIOT_MODE_N_ITEMS,
+} srslte_nbiot_mode_t;
+
+typedef struct SRSLTE_API {
+  srslte_cell_t       base;      // the umbrella or super cell
+  uint32_t            nbiot_prb; // the index of the NB-IoT PRB within the cell
+  uint32_t            n_id_ncell;
+  uint32_t            nof_ports; // The number of antenna ports for NB-IoT
+  bool                is_r14;    // Whether the cell is a R14 cell
+  srslte_nbiot_mode_t mode;
+} srslte_nbiot_cell_t;
+
+#define SRSLTE_NBIOT_MAX_PORTS 2
+#define SRSLTE_NBIOT_MAX_CODEWORDS SRSLTE_MAX_CODEWORDS
+
+#define SRSLTE_SF_LEN_PRB_NBIOT (SRSLTE_SF_LEN_PRB(1))
+
+#define SRSLTE_SF_LEN_RE_NBIOT (SRSLTE_SF_LEN_RE(1, SRSLTE_CP_NORM))
+
+#define SRSLTE_NBIOT_FFT_SIZE 128
+#define SRSLTE_NBIOT_FREQ_SHIFT_FACTOR ((float)-0.5)
+#define SRSLTE_NBIOT_NUM_RX_ANTENNAS 1
+#define SRSLTE_NBIOT_MAX_PRB 1
+
+#define SRSLTE_NBIOT_DEFAULT_NUM_PRB_BASECELL 1
+#define SRSLTE_NBIOT_DEFAULT_PRB_OFFSET 0
+
+#define SRSLTE_DEFAULT_MAX_FRAMES_NPBCH 500
+#define SRSLTE_DEFAULT_MAX_FRAMES_NPSS 20
+#define SRSLTE_DEFAULT_NOF_VALID_NPSS_FRAMES 20
 
 SRSLTE_API bool srslte_cell_isvalid(srslte_cell_t *cell);
 
@@ -385,5 +425,11 @@ SRSLTE_API char* srslte_mimotype2str(srslte_tx_scheme_t mimo_type);
 SRSLTE_API uint32_t srslte_tti_interval(uint32_t tti1, uint32_t tti2);
 
 SRSLTE_API uint32_t srslte_print_check(char* s, size_t max_len, uint32_t cur_len, const char* format, ...);
+
+SRSLTE_API bool  srslte_nbiot_cell_isvalid(srslte_nbiot_cell_t* cell);
+SRSLTE_API bool  srslte_nbiot_portid_isvalid(uint32_t port_id);
+SRSLTE_API float srslte_band_fu_nbiot(uint32_t ul_earfcn, const float m_ul);
+
+SRSLTE_API char* srslte_nbiot_mode_string(srslte_nbiot_mode_t mode);
 
 #endif // SRSLTE_PHY_COMMON_H
