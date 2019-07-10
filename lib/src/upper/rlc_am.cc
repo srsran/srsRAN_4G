@@ -1304,16 +1304,24 @@ void rlc_am::rlc_am_rx::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes, rl
   if (reordering_timer != NULL) {
     if (reordering_timer->is_running()) {
       if(vr_x == vr_r || (!inside_rx_window(vr_x) && vr_x != vr_mr)) {
+        log->debug("Stopping reordering timer.\n");
         reordering_timer->stop();
+      } else {
+        log->debug("Leave reordering timer running.\n");
       }
+      debug_state();
     }
 
     if (not reordering_timer->is_running()) {
       if(RX_MOD_BASE(vr_h) > RX_MOD_BASE(vr_r)) {
+        log->debug("Starting reordering timer.\n");
         reordering_timer->reset();
         reordering_timer->run();
         vr_x = vr_h;
+      } else {
+        log->debug("Leave reordering timer stopped.\n");
       }
+      debug_state();
     }
   }
 
