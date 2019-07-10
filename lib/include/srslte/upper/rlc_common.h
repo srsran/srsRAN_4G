@@ -23,6 +23,7 @@
 #define SRSLTE_RLC_COMMON_H
 
 #include "srslte/common/block_queue.h"
+#include <stdlib.h>
 
 namespace srslte {
 
@@ -167,6 +168,7 @@ public:
     // Do not block
     while (rx_pdu_resume_queue.try_pop(&p)) {
       write_pdu(p.payload, p.nof_bytes);
+      free(p.payload);
     }
     is_suspended = false;
     return true;
@@ -203,7 +205,11 @@ private:
   // Enqueues the PDU in the resume queue
   void queue_pdu(uint8_t* payload, uint32_t nof_bytes)
   {
-    pdu_t p = {payload, nof_bytes};
+    pdu_t p     = {};
+    p.nof_bytes = nof_bytes;
+    p.payload   = (uint8_t*)malloc(nof_bytes);
+    memcpy(p.payload, payload, nof_bytes);
+
     // Do not block ever
     if (!rx_pdu_resume_queue.try_push(p)) {
       fprintf(stderr, "Error dropping PDUs while bearer suspended. Queue should be unbounded\n");
