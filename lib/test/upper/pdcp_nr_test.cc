@@ -43,6 +43,10 @@ uint8_t k_enc[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0
 uint8_t  sdu1[]   = {0x18, 0xE2};
 uint32_t SDU1_LEN = 2;
 
+// Test PDUs for rx
+uint8_t  pdu1[]   = {0x80, 0x00, 0x8f, 0xe3, 0xe0, 0xdf, 0x82, 0x92};
+uint32_t PDU1_LEN = 8;
+
 // fake classes
 class rlc_dummy : public srsue::rlc_interface_pdcp
 {
@@ -52,10 +56,13 @@ public:
   void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking = true)
   {
     log->info_hex(sdu->msg, sdu->N_bytes, "RLC SDU");
+    last_pdcp_pdu(std::move(sdu));
   }
 
 private:
   srslte::log* log;
+  srslte::unique_byte_buffer_t last_pdcp_pdu;
+  srslte::unique_byte_buffer_t get_last_pdcp_pdu() { return last_pdcp_pdu; }
 
   bool rb_is_um(uint32_t lcid) { return false; }
 };
@@ -94,9 +101,54 @@ private:
  * Configure PDCP entity with EIA2 and EEA2
  * TX_NEXT initially at 0.
  * Input: {0x18, 0xE2}
- * Output: PDCP Header {0x80,0x00}, Ciphered Text {}, MAC-I {}
+ * Output: PDCP Header {0x80,0x00}, Ciphered Text {0x8f, 0xe3}, MAC-I {0xe0, 0xdf, 0x82, 0x92}
  */
 bool test_tx_basic(srslte::byte_buffer_pool* pool, srslte::log* log)
+{
+  srslte::pdcp_entity_nr pdcp;
+  srslte::srslte_pdcp_config_t cfg = {1, srslte::PDCP_RB_IS_DRB, SECURITY_DIRECTION_UPLINK, srslte::PDCP_SN_LEN_12};
+
+  rlc_dummy rlc(log);
+  rrc_dummy rrc(log);
+  gw_dummy gw(log);
+
+  pdcp.init(&rlc, &rrc, &gw, log, 0, cfg);
+  pdcp.config_security(k_enc, k_int, k_enc, k_int, srslte::CIPHERING_ALGORITHM_ID_128_EEA2, srslte::INTEGRITY_ALGORITHM_ID_128_EIA2);
+  pdcp.enable_integrity();
+  pdcp.enable_encryption();
+
+  // Test SDU
+  srslte::unique_byte_buffer_t sdu = allocate_unique_buffer(*pool);
+  memcpy(msg->msg, sdu1, SDU1_LEN);
+  msg->N_bytes = SDU1_LEN;
+
+  // Expected PDCP PDU
+  srslte::unique_byte_buffer_t pdu_exp = allocate_unique_buffer(*pool);
+  memcpy(pdu_exp->msg, pdu_exp, PDU1_LEN);
+  msg->N_bytes = PDU1_LEN;
+
+  // Actual PDCP PDU
+  srslte::unique_byte_buffer_t pdu_act = allocate_unique_buffer(*pool);
+
+  // Run test
+  pdcp.write_sdu(std::move(sdu), true);
+  rlc.get_last_pdcp_pdu(pdu);
+
+  TESTASSERT(pdu->N_Bytes == PDU1_LEN);
+  for (int i = 0; i < PDU1_LEN; ++i) {
+    TESTASSERT(pdu->msg[i] == PDU1_LEN);
+  }
+  return true;
+}
+
+/*
+ * Test 2: PDCP Entity RX
+ * Configure PDCP entity with EIA2 and EEA2
+ * TX_NEXT initially at 0.
+ * Input: {0x80, 0x00, 0x8f, 0xe3, 0xe0, 0xdf 0x82, 0x92}
+ * Output: {0x18, 0xE2}
+ */
+bool test_rx_basic(srslte::byte_buffer_pool* pool, srslte::log* log)
 {
   srslte::pdcp_entity_nr pdcp;
   srslte::srslte_pdcp_config_t cfg = {1, srslte::PDCP_RB_IS_DRB, SECURITY_DIRECTION_UPLINK, srslte::PDCP_SN_LEN_12};
@@ -123,10 +175,10 @@ bool test_tx_basic(srslte::byte_buffer_pool* pool, srslte::log* log)
   log->info_hex(mac_exp, 4, "MAC-I:");
   log->info_hex(ct_exp->msg, ct_exp->N_bytes, "Cipher text:");
 
-  pdcp.write_sdu(std::move(msg), true);
+  pdcp.write_pdu(std::move(msg), true);
+
   return true;
 }
-
 // Setup all tests
 int run_all_tests(srslte::byte_buffer_pool* pool)
 {
