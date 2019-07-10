@@ -103,7 +103,7 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
                 (do_encryption) ? "true" : "false");
 
   // Sanity check
-  if (pdu->N_bytes <= sn_len_bytes) {
+  if (pdu->N_bytes <= cfg.hdr_len_bytes) {
     return;
   }
 
@@ -173,12 +173,12 @@ uint32_t pdcp_entity_nr::get_rcvd_sn(const unique_byte_buffer_t& pdu)
 void pdcp_entity_nr::write_data_header(const srslte::unique_byte_buffer_t& sdu, uint32_t count)
 {
   // Check enough space for header
-  if (sn_len_bytes > sdu->get_headroom()) {
+  if (cfg.hdr_len_bytes > sdu->get_headroom()) {
     log->error("Not enough space to add header\n");
     return;
   }
-  sdu->msg -= sn_len_bytes;
-  sdu->N_bytes += sn_len_bytes;
+  sdu->msg -= cfg.hdr_len_bytes;
+  sdu->N_bytes += cfg.hdr_len_bytes;
 
   switch (cfg.sn_len) {
     case PDCP_SN_LEN_12:

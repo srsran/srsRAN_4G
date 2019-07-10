@@ -64,8 +64,6 @@ private:
   srsue::rrc_interface_pdcp* rrc = nullptr;
   srsue::gw_interface_pdcp*  gw  = nullptr;
 
-  uint16_t sn_len_bytes = 0;
-
   // State variables: 3GPP TS 38.323 v15.2.0, section 7.1
   uint32_t tx_next  = 0; // COUNT value of next SDU to be transmitted.
   uint32_t rx_next  = 0; // COUNT value of next SDU expected to be received.
