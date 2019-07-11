@@ -1,17 +1,6 @@
 #####################################################################
 #                   srsUE configuration file
 #####################################################################
-#
-# General UE configuration
-#
-# radio:  Type of radio object to be used (multi)
-# phy:    Type of L1 object to be used (lte_soft)
-# stack:  Type of L2/L3 stack to be used (lte)
-#####################################################################
-[ue]
-#radio = multi
-#phy = lte_soft
-#stack = lte
 
 #####################################################################
 # RF configuration
