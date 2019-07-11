@@ -436,11 +436,11 @@ void bsr_proc::setup_lcid(uint32_t lcid, uint32_t new_lcg, uint32_t priority)
 
 uint32_t bsr_proc::find_max_priority_lcg()
 {
-  int32_t  max_prio = 0;
+  int32_t  max_prio = 99;
   uint32_t max_idx  = 0;
   for (int i = 0; i < NOF_LCG; i++) {
     for (std::map<uint32_t, lcid_t>::iterator iter = lcgs[i].begin(); iter != lcgs[i].end(); ++iter) {
-      if (iter->second.priority > max_prio) {
+      if (iter->second.priority < max_prio) {
         max_prio = iter->second.priority;
         max_idx  = i;
       }
