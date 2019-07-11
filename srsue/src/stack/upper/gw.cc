@@ -41,7 +41,7 @@ gw::gw() : if_up(false), default_lcid(0), thread("GW")
 
 int gw::init(const gw_args_t& args_, srslte::logger* logger_, stack_interface_gw* stack_)
 {
-  pool    = srslte::byte_buffer_pool::get_instance();
+  pool       = srslte::byte_buffer_pool::get_instance();
   stack      = stack_;
   logger     = logger_;
   args       = args_;
@@ -127,6 +127,9 @@ void gw::write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
   dl_tput_bytes += pdu->N_bytes;
   if (!if_up) {
     log.warning("TUN/TAP not up - dropping gw RX message\n");
+  } else if (pdu->N_bytes < 20) {
+    // Packet not large enough to hold IPv4 Header
+    log.warning("Packet to small to hold IPv4 header. Dropping packet with %d B\n", pdu->N_bytes);
   } else {
     // Only handle IPv4 and IPv6 packets
     struct iphdr*   ip_pkt  = (struct iphdr*)pdu->msg;

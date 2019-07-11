@@ -199,9 +199,17 @@ void pdcp_entity::write_pdu(unique_byte_buffer_t pdu)
     return;
   }
 
+
   pthread_mutex_lock(&mutex);
 
   if (cfg.is_data) {
+
+    // Check PDCP control messages
+    if ((pdu->msg[0] & 0x80) == 0) {
+      log->debug("Unhandled PDCP Control PDU\n");
+      goto exit; // TODO handle PDCP control PDUs
+    }
+
     // Handle DRB messages
     if (rlc->rb_is_um(lcid)) {
       handle_um_drb_pdu(pdu);
