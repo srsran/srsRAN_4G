@@ -408,7 +408,7 @@ bool bsr_proc::need_to_send_sr(uint32_t tti) {
   if (!sr_is_sent && triggered_bsr_type == REGULAR) {
     reset_sr   = false;
     sr_is_sent = true;
-    Info("BSR:   Need to send sr: sr_is_sent=true, reset_sr=false, tti=%d, trigger_tti=%d\n", tti, trigger_tti);
+    Debug("BSR:   Need to send sr: sr_is_sent=true, reset_sr=false, tti=%d, trigger_tti=%d\n", tti, trigger_tti);
     ret = true;
   }
   pthread_mutex_unlock(&mutex);
