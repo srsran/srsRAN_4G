@@ -211,7 +211,7 @@ enable = false
 #ul.rlf.t_off_ms     = 2000
 
 #####################################################################
-# Expert configuration options
+# PHY configuration options
 #
 # rx_gain_offset:       RX Gain offset to add to rx_gain to calibrate RSRP readings
 # prach_gain:           PRACH gain (dB). If defined, forces a gain for the tranmsission of PRACH only.,
@@ -247,29 +247,6 @@ enable = false
 #                       Must be disabled if cells have identical channel and timing, for instance if generated from
 #                       the same source.
 #
-# metrics_csv_enable:   Write UE metrics to CSV file.
-#
-# metrics_period_secs:  Sets the period at which metrics are requested from the UE. 
-#
-# metrics_csv_filename: File path to use for CSV metrics.
-#
-# cfo_integer_enabled:  Enables integer CFO estimation and correction. This needs improvement
-#                       and may lead to incorrect synchronization. Use with caution.
-# cfo_correct_tol_hz:   Tolerance (in Hz) for digial CFO compensation. Lower tolerance means that
-#                       a new table will be generated more often.
-#
-# cfo_is_doppler:        Assume detected CFO is doppler and correct the UL in the same direction. If disabled, the CFO is assumed
-#                        to be caused by the local oscillator and the UL correction is in the opposite direction. Default assumes oscillator.
-# cfo_pss_ema:           CFO Exponential Moving Average coefficient for PSS estimation during TRACK.
-# cfo_ref_ema:           CFO Exponential Moving Average coefficient for RS estimation after PSS acquisition
-# cfo_ref_mask:          Bitmask for subframes on which to run RS estimation (set to 0 to disable, default sf=[1, 5])
-# cfo_loop_bw:           CFO feedback loop bandwidth for samples from PSS or RS
-# cfo_loop_pss_tol:      Tolerance (in Hz) of the PSS estimation method. Below this value, PSS estimation does not feeds back the loop
-#                        and RS estimations are used instead (when available)
-# cfo_loop_ref_min:      Tolerance (in Hz) of the RS estimation method. Below this value, RS estimation does not feeds back the loop
-# cfo_loop_pss_timeout:  After the PSS estimation is below cfo_loop_pss_tol for cfo_loop_pss_timeout times consecutively,
-#                        RS adjustments are allowed.
-#
 # pdsch_csi_enabled:     Stores the Channel State Information and uses it for weightening the softbits. It is only
 #                        used in TM1. It is True by default.
 #
@@ -277,7 +254,7 @@ enable = false
 # force_ul_amplitude:    Forces the peak amplitude in the PUCCH, PUSCH and SRS (set 0.0 to 1.0, set to 0 or negative for disabling)
 #
 #####################################################################
-[expert]
+[phy]
 #rx_gain_offset      = 62
 #prach_gain          = 30
 #cqi_max             = 15
@@ -297,21 +274,20 @@ enable = false
 #interpolate_subframe_enabled = false
 #sic_pss_enabled     = true
 #pregenerate_signals = false
-#metrics_csv_enable  = false
-#metrics_period_secs = 1
-#metrics_csv_filename = /tmp/ue_metrics.csv
 #pdsch_csi_enabled  = true
 #pdsch_8bit_decoder = false
 #force_ul_amplitude = 0
 
-# CFO related values
-#cfo_is_doppler      = false
-#cfo_integer_enabled = false
-#cfo_correct_tol_hz  = 1.0
-#cfo_pss_ema         = 0.05
-#cfo_ref_mask        = 1023
-#cfo_loop_bw_pss     = 0.05
-#cfo_loop_bw_ref     = 0.01
-#cfo_loop_pss_tol    = 400
-#cfo_loop_ref_min    = 0
-#cfo_loop_pss_conv   = 20
+#####################################################################
+# General configuration options
+#
+# metrics_csv_enable:   Write UE metrics to CSV file.
+#
+# metrics_period_secs:  Sets the period at which metrics are requested from the UE.
+#
+# metrics_csv_filename: File path to use for CSV metrics.
+#
+#####################################################################
+#metrics_csv_enable  = false
+#metrics_period_secs = 1
+#metrics_csv_filename = /tmp/ue_metrics.csv

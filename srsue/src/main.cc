@@ -172,126 +172,114 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     ("channel.ul.rlf.t_on_ms", bpo::value<uint32_t >(&args->phy.ul_channel_args.rlf_t_on_ms)->default_value(10000), "Time for On state of the channel (ms)")
     ("channel.ul.rlf.t_off_ms", bpo::value<uint32_t >(&args->phy.ul_channel_args.rlf_t_off_ms)->default_value(2000), "Time for Off state of the channel (ms)")
 
-    /* Expert section */
-    ("expert.phy.worker_cpu_mask",
+    /* PHY section */
+    ("phy.worker_cpu_mask",
      bpo::value<int>(&args->phy.worker_cpu_mask)->default_value(-1),
      "cpu bit mask (eg 255 = 1111 1111)")
 
-    ("expert.phy.sync_cpu_affinity",
+    ("phy.sync_cpu_affinity",
      bpo::value<int>(&args->phy.sync_cpu_affinity)->default_value(-1),
      "index of the core used by the sync thread")
 
-    ("expert.metrics_period_secs",
-     bpo::value<float>(&args->expert.metrics_period_secs)->default_value(1.0),
-     "Periodicity for metrics in seconds")
-
-    ("expert.metrics_csv_enable",
-     bpo::value<bool>(&args->expert.metrics_csv_enable)->default_value(false),
-     "Write UE metrics to CSV file")
-
-    ("expert.metrics_csv_filename",
-     bpo::value<string>(&args->expert.metrics_csv_filename)->default_value("/tmp/ue_metrics.csv"),
-     "Metrics CSV filename")
-
-    ("expert.pregenerate_signals",
+    ("phy.pregenerate_signals",
      bpo::value<bool>(&args->phy.pregenerate_signals)->default_value(false),
      "Pregenerate uplink signals after attach. Improves CPU performance.")
 
-    ("expert.rx_gain_offset",
+    ("phy.rx_gain_offset",
      bpo::value<float>(&args->phy.rx_gain_offset)->default_value(62),
      "RX Gain offset to add to rx_gain to correct RSRP value")
 
-      ("expert.prach_gain",
+    ("phy.prach_gain",
      bpo::value<float>(&args->phy.prach_gain)->default_value(-1.0),
      "Disable PRACH power control")
 
-    ("expert.cqi_max",
+    ("phy.cqi_max",
      bpo::value<int>(&args->phy.cqi_max)->default_value(15),
      "Upper bound on the maximum CQI to be reported. Default 15.")
 
-    ("expert.cqi_fixed",
+    ("phy.cqi_fixed",
      bpo::value<int>(&args->phy.cqi_fixed)->default_value(-1),
      "Fixes the reported CQI to a constant value. Default disabled.")
 
-    ("expert.sfo_correct_period",
+    ("phy.sfo_correct_period",
      bpo::value<uint32_t>(&args->phy.sfo_correct_period)->default_value(DEFAULT_SAMPLE_OFFSET_CORRECT_PERIOD),
      "Period in ms to correct sample time")
 
-    ("expert.sfo_emma",
+    ("phy.sfo_emma",
      bpo::value<float>(&args->phy.sfo_ema)->default_value(DEFAULT_SFO_EMA_COEFF),
      "EMA coefficient to average sample offsets used to compute SFO")
 
-    ("expert.snr_ema_coeff",
+    ("phy.snr_ema_coeff",
      bpo::value<float>(&args->phy.snr_ema_coeff)->default_value(0.1),
      "Sets the SNR exponential moving average coefficient (Default 0.1)")
 
-    ("expert.snr_estim_alg",
+    ("phy.snr_estim_alg",
      bpo::value<string>(&args->phy.snr_estim_alg)->default_value("refs"),
      "Sets the noise estimation algorithm. (Default refs)")
 
-    ("expert.pdsch_max_its",
+    ("phy.pdsch_max_its",
      bpo::value<int>(&args->phy.pdsch_max_its)->default_value(8),
      "Maximum number of turbo decoder iterations")
 
-    ("expert.nof_phy_threads",
+    ("phy.nof_phy_threads",
      bpo::value<int>(&args->phy.nof_phy_threads)->default_value(3),
      "Number of PHY threads")
 
-    ("expert.equalizer_mode",
+    ("phy.equalizer_mode",
      bpo::value<string>(&args->phy.equalizer_mode)->default_value("mmse"),
      "Equalizer mode")
 
-    ("expert.intra_freq_meas_len_ms",
+    ("phy.intra_freq_meas_len_ms",
        bpo::value<uint32_t>(&args->phy.intra_freq_meas_len_ms)->default_value(20),
        "Duration of the intra-frequency neighbour cell measurement in ms.")
 
-    ("expert.intra_freq_meas_period_ms",
+    ("phy.intra_freq_meas_period_ms",
        bpo::value<uint32_t>(&args->phy.intra_freq_meas_period_ms)->default_value(200),
        "Period of intra-frequency neighbour cell measurement in ms. Maximum as per 3GPP is 200 ms.")
 
-    ("expert.cfo_is_doppler",
+    ("phy.cfo_is_doppler",
        bpo::value<bool>(&args->phy.cfo_is_doppler)->default_value(false),
        "Assume detected CFO is doppler and correct the UL in the same direction. If disabled, the CFO is assumed"
-        "to be caused by the local oscillator and the UL correction is in the opposite direction. Default assumes oscillator.")
+       "to be caused by the local oscillator and the UL correction is in the opposite direction. Default assumes oscillator.")
 
-    ("expert.cfo_integer_enabled",
+    ("phy.cfo_integer_enabled",
      bpo::value<bool>(&args->phy.cfo_integer_enabled)->default_value(false),
      "Enables integer CFO estimation and correction.")
 
-    ("expert.cfo_correct_tol_hz",
+    ("phy.cfo_correct_tol_hz",
      bpo::value<float>(&args->phy.cfo_correct_tol_hz)->default_value(1.0),
      "Tolerance (in Hz) for digital CFO compensation (needs to be low if interpolate_subframe_enabled=true.")
 
-    ("expert.cfo_pss_ema",
+    ("phy.cfo_pss_ema",
      bpo::value<float>(&args->phy.cfo_pss_ema)->default_value(DEFAULT_CFO_EMA_TRACK),
      "CFO Exponential Moving Average coefficient for PSS estimation during TRACK.")
 
-    ("expert.cfo_ref_mask",
+    ("phy.cfo_ref_mask",
      bpo::value<uint32_t>(&args->phy.cfo_ref_mask)->default_value(1023),
      "Bitmask for subframes on which to run RS estimation (set to 0 to disable, default all sf)")
 
-    ("expert.cfo_loop_bw_pss",
+    ("phy.cfo_loop_bw_pss",
      bpo::value<float>(&args->phy.cfo_loop_bw_pss)->default_value(DEFAULT_CFO_BW_PSS),
      "CFO feedback loop bandwidth for samples from PSS")
 
-    ("expert.cfo_loop_bw_ref",
+    ("phy.cfo_loop_bw_ref",
      bpo::value<float>(&args->phy.cfo_loop_bw_ref)->default_value(DEFAULT_CFO_BW_REF),
      "CFO feedback loop bandwidth for samples from RS")
 
-    ("expert.cfo_loop_pss_tol",
+    ("phy.cfo_loop_pss_tol",
      bpo::value<float>(&args->phy.cfo_loop_pss_tol)->default_value(DEFAULT_CFO_PSS_MIN),
      "Tolerance (in Hz) of the PSS estimation method. Below this value, PSS estimation does not feeds back the loop"
-       "and RS estimations are used instead (when available)")
+     "and RS estimations are used instead (when available)")
 
-    ("expert.cfo_loop_ref_min",
+    ("phy.cfo_loop_ref_min",
      bpo::value<float>(&args->phy.cfo_loop_ref_min)->default_value(DEFAULT_CFO_REF_MIN),
      "Tolerance (in Hz) of the RS estimation method. Below this value, RS estimation does not feeds back the loop")
 
-    ("expert.cfo_loop_pss_conv",
+    ("phy.cfo_loop_pss_conv",
      bpo::value<uint32_t>(&args->phy.cfo_loop_pss_conv)->default_value(DEFAULT_PSS_STABLE_TIMEOUT),
      "After the PSS estimation is below cfo_loop_pss_tol for cfo_loop_pss_timeout times consecutively, RS adjustments are allowed.")
 
-    ("expert.sic_pss_enabled",
+    ("phy.sic_pss_enabled",
      bpo::value<bool>(&args->phy.sic_pss_enabled)->default_value(false),
      "Applies Successive Interference Cancellation to PSS signals when searching for neighbour cells. Must be disabled if cells have identical channel and timing.")
 
@@ -299,38 +287,51 @@ void parse_args(all_args_t* args, int argc, char* argv[])
      bpo::value<bool>(&args->phy.interpolate_subframe_enabled)->default_value(false),
      "Interpolates in the time domain the channel estimates within 1 subframe.")
 
-    ("expert.estimator_fil_auto",
+    ("phy.estimator_fil_auto",
      bpo::value<bool>(&args->phy.estimator_fil_auto)->default_value(false),
      "The channel estimator smooths the channel estimate with an adaptative filter.")
 
-    ("expert.estimator_fil_stddev",
+    ("phy.estimator_fil_stddev",
      bpo::value<float>(&args->phy.estimator_fil_stddev)->default_value(1.0f),
      "Sets the channel estimator smooth gaussian filter standard deviation.")
 
-    ("expert.estimator_fil_order",
+    ("phy.estimator_fil_order",
      bpo::value<uint32_t>(&args->phy.estimator_fil_order)->default_value(4),
      "Sets the channel estimator smooth gaussian filter order (even values perform better).")
 
-    ("expert.snr_to_cqi_offset",
+    ("phy.snr_to_cqi_offset",
      bpo::value<float>(&args->phy.snr_to_cqi_offset)->default_value(0),
      "Sets an offset in the SNR to CQI table. This is used to adjust the reported CQI.")
 
-    ("expert.sss_algorithm",
+    ("phy.sss_algorithm",
      bpo::value<string>(&args->phy.sss_algorithm)->default_value("full"),
      "Selects the SSS estimation algorithm.")
 
-    ("expert.pdsch_csi_enabled",
+    ("phy.pdsch_csi_enabled",
      bpo::value<bool>(&args->phy.pdsch_csi_enabled)->default_value(true),
      "Stores the Channel State Information and uses it for weightening the softbits. It is only used in TM1.")
 
-    ("expert.pdsch_8bit_decoder",
+    ("phy.pdsch_8bit_decoder",
        bpo::value<bool>(&args->phy.pdsch_8bit_decoder)->default_value(false),
        "Use 8-bit for LLR representation and turbo decoder trellis computation (Experimental)")
 
-    ("expert.force_ul_amplitude",
+    ("phy.force_ul_amplitude",
        bpo::value<float>(&args->phy.force_ul_amplitude)->default_value(0.0),
-       "Forces the peak amplitude in the PUCCH, PUSCH and SRS (set 0.0 to 1.0, set to 0 or negative for disabling)");
+       "Forces the peak amplitude in the PUCCH, PUSCH and SRS (set 0.0 to 1.0, set to 0 or negative for disabling)")
 
+    /* general options */
+    ("general.metrics_period_secs",
+       bpo::value<float>(&args->general.metrics_period_secs)->default_value(1.0),
+      "Periodicity for metrics in seconds")
+
+    ("general.metrics_csv_enable",
+       bpo::value<bool>(&args->general.metrics_csv_enable)->default_value(false),
+       "Write UE metrics to CSV file")
+
+    ("general.metrics_csv_filename",
+       bpo::value<string>(&args->general.metrics_csv_filename)->default_value("/tmp/ue_metrics.csv"),
+       "Metrics CSV filename");
+    
   // Positional options - config file location
   bpo::options_description position("Positional options");
   position.add_options()
@@ -537,12 +538,12 @@ int main(int argc, char* argv[])
   }
 
   srslte::metrics_hub<ue_metrics_t> metricshub;
-  metricshub.init(&ue, args.expert.metrics_period_secs);
+  metricshub.init(&ue, args.general.metrics_period_secs);
   metricshub.add_listener(&metrics_screen);
   metrics_screen.set_ue_handle(&ue);
 
-  metrics_csv metrics_file(args.expert.metrics_csv_filename);
-  if (args.expert.metrics_csv_enable) {
+  metrics_csv metrics_file(args.general.metrics_csv_filename);
+  if (args.general.metrics_csv_enable) {
     metricshub.add_listener(&metrics_file);
     metrics_file.set_ue_handle(&ue);
   }

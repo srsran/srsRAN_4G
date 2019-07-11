@@ -69,7 +69,7 @@ typedef struct {
   float       metrics_period_secs;
   bool        metrics_csv_enable;
   std::string metrics_csv_filename;
-} expert_args_t;
+} general_args_t;
 
 typedef struct {
   srslte::rf_args_t rf;
@@ -81,7 +81,7 @@ typedef struct {
   stack_args_t stack;
   gw_args_t    gw;
 
-  expert_args_t expert;
+  general_args_t general;
 } all_args_t;
 
 /*******************************************************************************
