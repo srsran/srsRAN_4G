@@ -195,7 +195,8 @@ void pdcp_entity::write_pdu(unique_byte_buffer_t pdu)
                 (do_encryption) ? "true" : "false");
 
   // Sanity check
-  if (pdu->N_bytes <= sn_len_bytes) {
+  if (pdu->N_bytes < sn_len_bytes) {
+    log->debug("Ignoring PDCP PDU: size=%d, sn_len_bytes=%d\n", pdu->N_bytes, sn_len_bytes);
     return;
   }
 
