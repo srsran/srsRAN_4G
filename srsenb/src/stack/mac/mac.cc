@@ -532,11 +532,11 @@ int mac::rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv)
 
 int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
 {
-  log_h->step(tti);
-
   if (!started) {
     return 0;
   }
+
+  log_h->step(tti);
 
   if (!dl_sched_res) {
     return SRSLTE_ERROR_INVALID_INPUTS;

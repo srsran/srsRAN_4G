@@ -34,7 +34,11 @@ namespace srslte {
 
   tti_sync_cv::~tti_sync_cv()
   {
+    // Wake up any thread waiting on cond before destroying it
+    pthread_mutex_lock(&mutex);
+    pthread_cond_signal(&cond);
     pthread_cond_destroy(&cond);
+    pthread_mutex_unlock(&mutex);
     pthread_mutex_destroy(&mutex);
   }
 
