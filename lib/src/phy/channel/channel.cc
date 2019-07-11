@@ -102,28 +102,42 @@ channel::~channel()
 
 void channel::run(cf_t* in[SRSLTE_MAX_PORTS], cf_t* out[SRSLTE_MAX_PORTS], uint32_t len, const srslte_timestamp_t& t)
 {
+  // check input pointers
+  if (in != nullptr && out != nullptr) {
+    if (current_srate) {
+      for (uint32_t i = 0; i < nof_ports; i++) {
+        // Check buffers are not null
+        if (in[i] != nullptr && out[i] != nullptr) {
+          // Copy input buffer
+          memcpy(buffer_in, in[i], sizeof(cf_t) * len);
 
-  for (uint32_t i = 0; i < nof_ports; i++) {
-    // Copy input buffer
-    memcpy(buffer_in, in[i], sizeof(cf_t) * len);
+          if (fading[i]) {
+            srslte_channel_fading_execute(fading[i], buffer_in, buffer_out, len, t.full_secs + t.frac_secs);
+            memcpy(buffer_in, buffer_out, sizeof(cf_t) * len);
+          }
 
-    if (fading[i]) {
-      srslte_channel_fading_execute(fading[i], buffer_in, buffer_out, len, t.full_secs + t.frac_secs);
-      memcpy(buffer_in, buffer_out, sizeof(cf_t) * len);
+          if (delay[i]) {
+            srslte_channel_delay_execute(delay[i], buffer_in, buffer_out, len, &t);
+            memcpy(buffer_in, buffer_out, sizeof(cf_t) * len);
+          }
+
+          if (rlf) {
+            srslte_channel_rlf_execute(rlf, buffer_in, buffer_out, len, &t);
+            memcpy(buffer_in, buffer_out, sizeof(cf_t) * len);
+          }
+
+          // Copy output buffer
+          memcpy(out[i], buffer_in, sizeof(cf_t) * len);
+        }
+      }
+    } else {
+      for (uint32_t i = 0; i < nof_ports; i++) {
+        // Check buffers are not null
+        if (in[i] != nullptr && out[i] != nullptr && in[i] != out[i]) {
+          memcpy(out[i], in[i], sizeof(cf_t) * len);
+        }
+      }
     }
-
-    if (delay[i]) {
-      srslte_channel_delay_execute(delay[i], buffer_in, buffer_out, len, &t);
-      memcpy(buffer_in, buffer_out, sizeof(cf_t) * len);
-    }
-
-    if (rlf) {
-      srslte_channel_rlf_execute(rlf, buffer_in, buffer_out, len, &t);
-      memcpy(buffer_in, buffer_out, sizeof(cf_t) * len);
-    }
-
-    // Copy output buffer
-    memcpy(out[i], buffer_in, sizeof(cf_t) * len);
   }
 }
 
