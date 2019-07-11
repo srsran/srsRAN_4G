@@ -144,11 +144,11 @@ Install srsLTE:
 
 ```
 sudo make install
-sudo srslte_install_configs.sh
+srslte_install_configs.sh user
 ```
 
 This installs srsLTE and also copies the default srsLTE config files to
-the user's home directory (~/.srs).
+the user's home directory (~/.config/srslte).
 
 
 Execution Instructions
@@ -160,7 +160,7 @@ if needed, to meet the system configuration.
 On many systems they should work out of the box.
 
 By default, all applications will search for config files in the user's home
-directory (~/.srs) upon startup.
+directory (~/.config/srslte) upon startup.
 
 Note that you have to execute the applications with root privileges to enable
 real-time thread priorities and to permit creation of virtual network interfaces.
@@ -169,7 +169,7 @@ srsENB and srsEPC can run on the same machine as a network-in-the-box configurat
 srsUE needs to run on a separate machine.
 
 If you have installed the software suite using ```sudo make install``` and
-have installed the example config files using ```sudo srslte_install_configs.sh```,
+have installed the example config files using ```srslte_install_configs.sh user```,
 you may just start all applications with their default parameters.
 
 ### srsEPC
