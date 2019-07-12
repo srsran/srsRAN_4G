@@ -29,6 +29,7 @@
 #include "srslte/radio/radio_metrics.h"
 #include "srslte/upper/rlc_metrics.h"
 #include "stack/mac/mac_metrics.h"
+#include "stack/rrc/rrc_metrics.h"
 #include "stack/upper/gw_metrics.h"
 #include "stack/upper/nas_metrics.h"
 
@@ -38,6 +39,7 @@ typedef struct {
   mac_metrics_t         mac[SRSLTE_MAX_CARRIERS];
   srslte::rlc_metrics_t rlc;
   nas_metrics_t         nas;
+  rrc_metrics_t         rrc;
 } stack_metrics_t;
 
 typedef struct {
@@ -52,7 +54,6 @@ class ue_metrics_interface : public srslte::metrics_interface<ue_metrics_t>
 {
 public:
   virtual bool get_metrics(ue_metrics_t* m) = 0;
-  virtual bool is_rrc_connected()           = 0;
 };
 
 } // namespace srsue

@@ -244,11 +244,6 @@ bool ue::switch_off()
   return stack->switch_off();
 }
 
-bool ue::is_rrc_connected()
-{
-  return stack->is_rrc_connected();
-}
-
 void ue::start_plot()
 {
   phy->start_plot();

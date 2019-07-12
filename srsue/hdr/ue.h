@@ -98,7 +98,6 @@ public:
   void stop();
   bool switch_on();
   bool switch_off();
-  bool is_rrc_connected();
   void start_plot();
 
   // UE metrics interface

@@ -25,6 +25,7 @@
 #include "pthread.h"
 
 #include "rrc_common.h"
+#include "rrc_metrics.h"
 #include "srslte/asn1/rrc_asn1_utils.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/block_queue.h"
@@ -300,7 +301,7 @@ public:
 
   void stop();
 
-  rrc_state_t get_state();
+  void get_metrics(rrc_metrics_t& m);
 
   // Timeout callback interface
   void timer_expired(uint32_t timeout_id);

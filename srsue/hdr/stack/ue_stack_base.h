@@ -79,7 +79,6 @@ public:
   virtual void stop()             = 0;
   virtual bool switch_on()        = 0;
   virtual bool switch_off()       = 0;
-  virtual bool is_rrc_connected() = 0;
 
   // UE metrics interface
   virtual bool get_metrics(stack_metrics_t* metrics) = 0;

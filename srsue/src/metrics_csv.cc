@@ -131,7 +131,7 @@ void metrics_csv::set_metrics(ue_metrics_t &metrics, const uint32_t period_usec)
     file << float_to_string(metrics.rf.rf_o, 2);
     file << float_to_string(metrics.rf.rf_u, 2);
     file << float_to_string(metrics.rf.rf_l, 2);
-    file << (ue->is_rrc_connected() ? "1.0" : "0.0");
+    file << (metrics.stack.rrc.state == RRC_STATE_CONNECTED ? "1.0" : "0.0");
     file << "\n";
 
     n_reports++;

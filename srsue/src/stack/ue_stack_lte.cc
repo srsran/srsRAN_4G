@@ -186,20 +186,11 @@ bool ue_stack_lte::switch_off()
 
 bool ue_stack_lte::get_metrics(stack_metrics_t* metrics)
 {
-  if (EMM_STATE_REGISTERED == nas.get_state()) {
-    if (RRC_STATE_CONNECTED == rrc.get_state()) {
-      mac.get_metrics(metrics->mac);
-      rlc.get_metrics(metrics->rlc);
-      nas.get_metrics(&metrics->nas);
-      return true;
-    }
-  }
-  return false;
-}
-
-bool ue_stack_lte::is_rrc_connected()
-{
-  return rrc.is_connected();
+  mac.get_metrics(metrics->mac);
+  rlc.get_metrics(metrics->rlc);
+  nas.get_metrics(&metrics->nas);
+  rrc.get_metrics(metrics->rrc);
+  return (metrics->nas.state == EMM_STATE_REGISTERED && metrics->rrc.state == RRC_STATE_CONNECTED);
 }
 
 void ue_stack_lte::run_thread()

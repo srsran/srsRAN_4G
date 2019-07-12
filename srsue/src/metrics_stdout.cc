@@ -63,7 +63,7 @@ void metrics_stdout::set_metrics(ue_metrics_t &metrics, const uint32_t period_us
   if(!do_print || ue == NULL)
     return;
 
-  if (!ue->is_rrc_connected()) {
+  if (metrics.stack.rrc.state != RRC_STATE_CONNECTED) {
     cout << "--- disconnected ---" << endl;
     return;
   }

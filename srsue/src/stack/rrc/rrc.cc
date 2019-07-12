@@ -192,16 +192,13 @@ void rrc::stop() {
   wait_thread_finish();
 }
 
-rrc_state_t rrc::get_state() {
-  return state;
+void rrc::get_metrics(rrc_metrics_t& m)
+{
+  m.state = state;
 }
 
 bool rrc::is_connected() {
   return (RRC_STATE_CONNECTED == state);
-}
-
-bool rrc::have_drb() {
-  return drb_up;
 }
 
 /*
