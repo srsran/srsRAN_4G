@@ -1623,6 +1623,27 @@ bool rrc::con_reconfig(asn1::rrc::rrc_conn_recfg_s* reconfig)
         if (reconfig_r1020->s_cell_to_add_mod_list_r10_present) {
           for (uint32_t i = 0; i < reconfig_r1020->s_cell_to_add_mod_list_r10.size(); i++) {
             auto scell_config = &reconfig_r1020->s_cell_to_add_mod_list_r10[i];
+
+            // Limit enable64_qam, if the ue does not
+            // since the phy does not have information about the RRC category and release, the RRC shall limit the
+            if (scell_config->rr_cfg_common_scell_r10_present) {
+              // enable64_qam
+              auto rr_cfg_common_scell = &scell_config->rr_cfg_common_scell_r10;
+              if (rr_cfg_common_scell->ul_cfg_r10_present) {
+                auto ul_cfg           = &rr_cfg_common_scell->ul_cfg_r10;
+                auto pusch_cfg_common = &ul_cfg->pusch_cfg_common_r10;
+
+                // According to 3GPP 36.331 v12 UE-EUTRA-Capability field descriptions
+                // Allow 64QAM for:
+                //   ue-Category 5 and 8 when enable64QAM (without suffix)
+                if (pusch_cfg_common->pusch_cfg_basic.enable64_qam) {
+                  if (args.ue_category != 5 && args.ue_category != 8 && args.ue_category != 13) {
+                    pusch_cfg_common->pusch_cfg_basic.enable64_qam = false;
+                  }
+                }
+              }
+            }
+
             // Call mac reconfiguration
             mac->reconfiguration(scell_config->s_cell_idx_r10, true);
 
