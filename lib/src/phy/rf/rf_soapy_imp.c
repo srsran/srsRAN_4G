@@ -219,8 +219,11 @@ int rf_soapy_start_rx_stream(void *h, bool now)
 {
   rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
   if(handler->rx_stream_active == false){
-    if(SoapySDRDevice_activateStream(handler->device, handler->rxStream, SOAPY_SDR_HAS_TIME | SOAPY_SDR_END_BURST, 0, 0) != 0)
+    if (SoapySDRDevice_activateStream(handler->device, handler->rxStream, 0, 0, 0) != 0) {
+      printf("Error starting Rx streaming.\n");
       return SRSLTE_ERROR;
+    }
+
     handler->rx_stream_active = true;
   }
   return SRSLTE_SUCCESS;
