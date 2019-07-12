@@ -615,7 +615,7 @@ static void csi_correction(srslte_pdsch_t *q, srslte_pdsch_cfg_t *cfg, uint32_t 
   } else {
     int i = 0;
 
-#ifndef LV_HAVE_SSE
+#ifdef LV_HAVE_SSE
     __m128 _csi_scale = _mm_set1_ps(INT16_MAX / csi_max);
     __m64* _e         = (__m64*)e;
 
@@ -666,7 +666,8 @@ static void csi_correction(srslte_pdsch_t *q, srslte_pdsch_cfg_t *cfg, uint32_t 
           _csi = _mm_mul_ps(_csi, _csi_scale);
 
           _e[0] = _mm_mulhi_pi16(_e[0], _mm_cvtps_pi16(_csi));
-          _e += 1;
+          _e[1] = _mm_mulhi_pi16(_e[1], _mm_cvtps_pi16(_csi));
+          _e += 2;
         }
         break;
     }

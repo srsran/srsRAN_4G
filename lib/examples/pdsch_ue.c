@@ -81,12 +81,12 @@ typedef struct {
   int cpu_affinity;
   bool disable_plots;
   bool disable_plots_except_constellation;
-  bool disable_cfo; 
-  uint32_t time_offset; 
+  bool     disable_cfo;
+  uint32_t time_offset;
   int force_N_id_2;
   uint16_t rnti;
   char *input_file_name;
-  int file_offset_time; 
+  int      file_offset_time;
   float file_offset_freq;
   uint32_t file_nof_prb;
   uint32_t file_nof_ports;
@@ -94,13 +94,13 @@ typedef struct {
   bool enable_cfo_ref;
   bool average_subframe;
   char *rf_dev;
-  char *rf_args; 
-  uint32_t rf_nof_rx_ant; 
-  double rf_freq; 
+  char*    rf_args;
+  uint32_t rf_nof_rx_ant;
+  double   rf_freq;
   float rf_gain;
-  int net_port; 
-  char *net_address; 
-  int net_port_signal; 
+  int      net_port;
+  char*    net_address;
+  int      net_port_signal;
   char *net_address_signal;
   int decimate;
   int32_t mbsfn_area_id;
@@ -116,25 +116,25 @@ void args_default(prog_args_t* args)
 {
   args->disable_plots                      = false;
   args->disable_plots_except_constellation = false;
-  args->nof_subframes = -1;
-  args->rnti = SRSLTE_SIRNTI;
-  args->force_N_id_2 = -1; // Pick the best
+  args->nof_subframes                      = -1;
+  args->rnti                               = SRSLTE_SIRNTI;
+  args->force_N_id_2                       = -1; // Pick the best
   args->tdd_special_sf                     = -1;
   args->sf_config                          = -1;
-  args->input_file_name = NULL;
+  args->input_file_name                    = NULL;
   args->disable_cfo                        = false;
   args->time_offset                        = 0;
   args->file_nof_prb                       = 25;
   args->file_nof_ports                     = 1;
   args->file_cell_id                       = 0;
   args->file_offset_time                   = 0;
-  args->file_offset_freq = 0;
-  args->rf_dev = "";
-  args->rf_args = "";
-  args->rf_freq = -1.0;
-  args->rf_nof_rx_ant = 1;
-  args->enable_cfo_ref = false;
-  args->average_subframe = false;
+  args->file_offset_freq                   = 0;
+  args->rf_dev                             = "";
+  args->rf_args                            = "";
+  args->rf_freq                            = -1.0;
+  args->rf_nof_rx_ant                      = 1;
+  args->enable_cfo_ref                     = false;
+  args->average_subframe                   = false;
   args->enable_256qam                      = false;
 #ifdef ENABLE_AGC_DEFAULT
   args->rf_gain = -1.0;
