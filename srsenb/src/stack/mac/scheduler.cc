@@ -576,7 +576,7 @@ sched::sched() : bc_aggr_level(0), rar_aggr_level(0), P(0), si_n_rbg(0), rar_n_r
   bzero(&sched_cfg, sizeof(sched_cfg));
   bzero(&common_locations, sizeof(common_locations));
   bzero(&pdsch_re, sizeof(pdsch_re));
-  tti_dl_mask.resize(10, 1);
+  tti_dl_mask.resize(10, 0);
 
   for (int i = 0; i < 3; i++) {
     bzero(rar_locations[i], sizeof(sched_ue::sched_dci_cce_t) * 10);
@@ -1057,7 +1057,7 @@ sched::tti_sched_t* sched::new_tti(uint32_t tti_rx)
     generate_phich(tti_sched);
 
     /* Schedule DL */
-    if (tti_dl_mask[tti_rx % tti_dl_mask.size()] > 0) {
+    if (tti_dl_mask[tti_sched->get_tti_tx_dl() % tti_dl_mask.size()] == 0) {
       generate_dl_sched(tti_sched);
     }
 

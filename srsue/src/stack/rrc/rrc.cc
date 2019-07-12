@@ -214,6 +214,13 @@ void rrc::run_thread() {
       case cmd_msg_t::PCCH:
         process_pcch(std::move(msg.pdu));
         break;
+      case cmd_msg_t::MBMS_START:
+        if (args.mbms_service_id >= 0) {
+          rrc_log->info("Attempting to auto-start MBMS service %d\n",
+                        args.mbms_service_id);
+          mbms_service_start(args.mbms_service_id, args.mbms_service_port);
+        }
+        break;
       case cmd_msg_t::STOP:
         return;
     }
@@ -2116,11 +2123,9 @@ void rrc::write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
       serving_cell->has_mcch = true;
       phy->set_config_mbsfn_mcch(&serving_cell->mcch);
       log_rrc_message("MCH", Rx, pdu.get(), serving_cell->mcch);
-
-      if (args.mbms_service_id >= 0) {
-        rrc_log->info("Attempting to auto-start MBMS service %d\n", args.mbms_service_id);
-        mbms_service_start(args.mbms_service_id, args.mbms_service_port);
-      }
+      cmd_msg_t msg;
+      msg.command = cmd_msg_t::MBMS_START;
+      cmd_q.push(std::move(msg));
     }
   }
 }

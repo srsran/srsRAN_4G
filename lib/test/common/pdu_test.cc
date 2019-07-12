@@ -516,6 +516,59 @@ int mac_sch_pdu_pack_error_test()
   return SRSLTE_SUCCESS;
 }
 
+int mac_mch_pdu_pack_test1() {
+  static uint8_t tv[] = {0x3e, 0x02, 0x20, 0x05, 0x21, 0x0a, 0x1f, 0x0f,
+                         0xff, 0x01, 0x02, 0x03, 0x04, 0x05, 0x02, 0x04,
+                         0x06, 0x08, 0x0a, 0x0c, 0x0e, 0x10, 0x12, 0x14,
+                         0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+  srslte::log_filter mac_log("MAC");
+  mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
+  mac_log.set_hex_limit(100000);
+
+  const uint32_t pdu_size = 30;
+  srslte::mch_pdu mch_pdu(10, &mac_log);
+  byte_buffer_t buffer;
+  mch_pdu.init_tx(&buffer, pdu_size, true);
+
+  TESTASSERT(mch_pdu.rem_size() == pdu_size);
+  TESTASSERT(mch_pdu.get_pdu_len() == pdu_size);
+  TESTASSERT(mch_pdu.get_sdu_space() == pdu_size - 1);
+  TESTASSERT(mch_pdu.get_current_sdu_ptr() == buffer.msg);
+  // Add first subheader and SDU
+  TESTASSERT(mch_pdu.new_subh());
+  TESTASSERT(mch_pdu.get()->set_next_mch_sched_info(1, 0));
+
+  // Add second SCH
+  TESTASSERT(mch_pdu.new_subh());
+  uint8_t sdu[5] = {1, 2, 3, 4, 5};
+  TESTASSERT(mch_pdu.get()->set_sdu(0, 5, sdu) == 5);
+
+  TESTASSERT(mch_pdu.new_subh());
+  uint8_t sdu1[10] = {2, 4, 6, 8, 10, 12, 14, 16, 18, 20};
+  mch_pdu.get()->set_sdu(1, 10, sdu1);
+
+  // write PDU
+  TESTASSERT(mch_pdu.write_packet(&mac_log) == buffer.msg);
+
+  // log
+  mac_log.info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n",
+                   buffer.N_bytes);
+
+#if HAVE_PCAP
+  pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1);
+#endif
+
+  // compare with TV
+  TESTASSERT(memcmp(buffer.msg, tv, sizeof(buffer.N_bytes)) == 0);
+
+#if HAVE_PCAP
+  pcap_handle->write_ul_crnti(tv, sizeof(tv), 0x1001, true, 1);
+#endif
+
+  return SRSLTE_SUCCESS;
+}
+
 // Parsing a corrupted MAC PDU and making sure the PDU is reset and not further processed
 int mac_sch_pdu_unpack_test1()
 {
@@ -594,6 +647,11 @@ int main(int argc, char** argv)
 
   if (mac_sch_pdu_pack_error_test()) {
     fprintf(stderr, "mac_sch_pdu_pack_error_test failed.\n");
+    return SRSLTE_ERROR;
+  }
+  
+  if (mac_mch_pdu_pack_test1()) {
+    fprintf(stderr, "mac_mch_pdu_pack_test1 failed.\n");
     return SRSLTE_ERROR;
   }
 

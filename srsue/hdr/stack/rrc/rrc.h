@@ -349,11 +349,7 @@ public:
 private:
 
   typedef struct {
-    enum {
-      PDU,
-      PCCH,
-      STOP
-    } command;
+    enum { PDU, PCCH, STOP, MBMS_START } command;
     srslte::unique_byte_buffer_t pdu;
     uint16_t lcid;
   } cmd_msg_t;

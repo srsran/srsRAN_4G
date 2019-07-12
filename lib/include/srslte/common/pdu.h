@@ -398,6 +398,8 @@ private:
     last_sdu_idx     = -1;
     reset();
     for (uint32_t i = 0; i < max_subheaders; i++) {
+      mch_subh subh;
+      subheaders[i] = subh;
       subheaders[i].parent = this;
       subheaders[i].init();
     }
