@@ -1230,6 +1230,14 @@ void cc_worker::set_pcell_config(phy_interface_rrc_lte::phy_cfg_t* phy_cfg)
     ue_dl_cfg.cfg.cqi_report.aperiodic_configured = true;
     ue_dl_cfg.cfg.cqi_report.aperiodic_mode       = aperiodic_mode(dedicated->cqi_report_cfg.cqi_report_mode_aperiodic);
   }
+  if (dedicated->cqi_report_cfg_pcell_v1250_present) {
+    auto cqi_report_cfg_pcell_v1250 = dedicated->cqi_report_cfg_pcell_v1250.get();
+    if (cqi_report_cfg_pcell_v1250->alt_cqi_table_r12_present) {
+      ue_dl_cfg.pdsch_use_tbs_index_alt = true;
+    }
+  } else {
+    ue_dl_cfg.pdsch_use_tbs_index_alt = false;
+  }
 
   if (pregen_enabled) {
     Info("Pre-generating UL signals...\n");

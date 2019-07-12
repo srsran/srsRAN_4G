@@ -39,7 +39,7 @@ srslte_mod_t modulation = SRSLTE_MOD_BPSK;
 void usage(char *prog) {
   printf("Usage: %s [nmse]\n", prog);
   printf("\t-n num_bits [Default %d]\n", num_bits);
-  printf("\t-m modulation (1: BPSK, 2: QPSK, 3: QAM16, 4: QAM64) [Default BPSK]\n");  
+  printf("\t-m modulation (1: BPSK, 2: QPSK, 4: QAM16, 6: QAM64, 8: QAM256) [Default BPSK]\n");
 }
 
 void parse_args(int argc, char **argv) {
@@ -68,7 +68,7 @@ void parse_args(int argc, char **argv) {
         break;
       default:
         ERROR("Invalid modulation %d. Possible values: "
-              "(1: BPSK, 2: QPSK, 3: QAM16, 4: QAM64)\n",
+              "(1: BPSK, 2: QPSK, 4: QAM16, 6: QAM64, 8: QAM256)\n",
               atoi(argv[optind]));
         break;
       }

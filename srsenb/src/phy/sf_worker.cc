@@ -779,7 +779,7 @@ int sf_worker::encode_pdsch(stack_interface_phy_lte::dl_sched_grant_t* grants, u
 
       // Compute DL grant
       if (srslte_ra_dl_dci_to_grant(
-              &phy->cell, &dl_sf, ue_db[rnti]->dl_cfg.tm, &grants[i].dci, &ue_db[rnti]->dl_cfg.pdsch.grant)) {
+              &phy->cell, &dl_sf, ue_db[rnti]->dl_cfg.tm, false, &grants[i].dci, &ue_db[rnti]->dl_cfg.pdsch.grant)) {
         Error("Computing DL grant\n");
       }
 

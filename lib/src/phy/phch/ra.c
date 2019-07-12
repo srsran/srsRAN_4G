@@ -151,7 +151,7 @@ srslte_mod_t srslte_ra_dl_mod_from_mcs(uint32_t mcs)
     return SRSLTE_MOD_16QAM;
   } else {
     return SRSLTE_MOD_64QAM;
-  } 
+  }
 }
 
 srslte_mod_t srslte_ra_ul_mod_from_mcs(uint32_t mcs)
@@ -196,7 +196,7 @@ int srslte_ra_mcs_from_tbs_idx(uint32_t tbs_idx, bool is_ul)
 /* Table 7.1.7.2.1-1: Transport block size table on 36.213 */
 int srslte_ra_tbs_from_idx(uint32_t tbs_idx, uint32_t n_prb)
 {
-  if (tbs_idx < 27 && n_prb > 0 && n_prb <= SRSLTE_MAX_PRB) {
+  if (tbs_idx < 34 && n_prb > 0 && n_prb <= SRSLTE_MAX_PRB) {
     return tbs_table[tbs_idx][n_prb - 1];
   } else {
     return SRSLTE_ERROR;

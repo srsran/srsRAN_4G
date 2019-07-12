@@ -46,8 +46,8 @@ const static float pdsch_cfg_cell_specific_ratio_table[2][4] = {
     /* One antenna port         */ {1.0f / 1.0f, 4.0f / 5.0f, 3.0f / 5.0f, 2.0f / 5.0f},
     /* Two or more antenna port */ {5.0f / 4.0f, 1.0f / 1.0f, 3.0f / 4.0f, 1.0f / 2.0f}};
 
-const static srslte_mod_t modulations[4] =
-    { SRSLTE_MOD_BPSK, SRSLTE_MOD_QPSK, SRSLTE_MOD_16QAM, SRSLTE_MOD_64QAM };
+const static srslte_mod_t modulations[5] = {
+    SRSLTE_MOD_BPSK, SRSLTE_MOD_QPSK, SRSLTE_MOD_16QAM, SRSLTE_MOD_64QAM, SRSLTE_MOD_256QAM};
 
 typedef struct {
   /* Thread identifier: they must set before thread creation */
@@ -247,7 +247,7 @@ static int pdsch_init(srslte_pdsch_t *q, uint32_t max_prb, bool is_ue, uint32_t 
 
     INFO("Init PDSCH: %d PRBs, max_symbols: %d\n", max_prb, q->max_re);
 
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 5; i++) {
       if (srslte_modem_table_lte(&q->mod[i], modulations[i])) {
         goto clean;
       }
@@ -261,7 +261,7 @@ static int pdsch_init(srslte_pdsch_t *q, uint32_t max_prb, bool is_ue, uint32_t 
 
     for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
       // Allocate int16_t for reception (LLRs)
-      q->e[i] = srslte_vec_malloc(sizeof(int16_t) * q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_64QAM));
+      q->e[i] = srslte_vec_malloc(sizeof(int16_t) * q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_256QAM));
       if (!q->e[i]) {
         goto clean;
       }
@@ -297,7 +297,7 @@ static int pdsch_init(srslte_pdsch_t *q, uint32_t max_prb, bool is_ue, uint32_t 
       goto clean;
     }
 
-    if (srslte_sequence_init(&q->tmp_seq, q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_64QAM))) {
+    if (srslte_sequence_init(&q->tmp_seq, q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_256QAM))) {
       goto clean;
     }
 
@@ -439,7 +439,7 @@ void srslte_pdsch_free(srslte_pdsch_t *q) {
 
   srslte_sequence_free(&q->tmp_seq);
 
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < 5; i++) {
     srslte_modem_table_free(&q->mod[i]);
   }
 
@@ -485,7 +485,7 @@ int srslte_pdsch_set_rnti(srslte_pdsch_t *q, uint16_t rnti) {
                                   j,
                                   2 * i,
                                   q->cell.id,
-                                  q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_64QAM))) {
+                                  q->max_re * srslte_mod_bits_x_symbol(SRSLTE_MOD_256QAM))) {
           ERROR("Error initializing PDSCH scrambling sequence\n");
           srslte_pdsch_free_rnti(q, rnti);
           return SRSLTE_ERROR;
@@ -589,6 +589,9 @@ static void csi_correction(srslte_pdsch_t *q, srslte_pdsch_cfg_t *cfg, uint32_t 
     case SRSLTE_MOD_64QAM:
       qm = 6;
       break;
+    case SRSLTE_MOD_256QAM:
+      qm = 8;
+      break;
     default:
       ERROR("No modulation");
   }
@@ -655,6 +658,17 @@ static void csi_correction(srslte_pdsch_t *q, srslte_pdsch_cfg_t *cfg, uint32_t 
         }
         break;
       case SRSLTE_MOD_BPSK:
+        break;
+      case SRSLTE_MOD_256QAM:
+        for (; i < cfg->grant.tb[tb_idx].nof_bits - 7; i += 8) {
+          __m128 _csi = _mm_set1_ps(*(csi_v++));
+
+          _csi = _mm_mul_ps(_csi, _csi_scale);
+
+          _e[0] = _mm_mulhi_pi16(_e[0], _mm_cvtps_pi16(_csi));
+          _e[1] = _mm_mulhi_pi16(_e[1], _mm_cvtps_pi16(_csi));
+          _e += 2;
+        }
         break;
     }
 

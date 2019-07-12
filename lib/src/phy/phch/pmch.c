@@ -397,8 +397,10 @@ void srslte_configure_pmch(srslte_pmch_cfg_t* pmch_cfg, srslte_cell_t* cell, srs
   pmch_cfg->pdsch_cfg.grant.tb[0].enabled = mbsfn_cfg->enable;
   pmch_cfg->pdsch_cfg.grant.tb[0].rv      = SRSLTE_PMCH_RV;
   pmch_cfg->pdsch_cfg.grant.last_tbs[0] = 0;
-  srslte_dl_fill_ra_mcs(
-      &pmch_cfg->pdsch_cfg.grant.tb[0], pmch_cfg->pdsch_cfg.grant.last_tbs[0], pmch_cfg->pdsch_cfg.grant.nof_prb);
+  srslte_dl_fill_ra_mcs(&pmch_cfg->pdsch_cfg.grant.tb[0],
+                        pmch_cfg->pdsch_cfg.grant.last_tbs[0],
+                        pmch_cfg->pdsch_cfg.grant.nof_prb,
+                        false);
   pmch_cfg->pdsch_cfg.grant.nof_tb      = 1;
   pmch_cfg->pdsch_cfg.grant.nof_layers  = 1;
   for (int i = 0; i < 2; i++) {

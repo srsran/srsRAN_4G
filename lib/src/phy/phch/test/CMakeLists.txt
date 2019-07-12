@@ -123,6 +123,14 @@ add_test(pdsch_test_cdd_50  pdsch_test -x 3 -a 2 -t 0 -n 50)
 add_test(pdsch_test_cdd_75  pdsch_test -x 3 -a 2 -t 0 -n 75)
 add_test(pdsch_test_cdd_100 pdsch_test -x 3 -a 2 -t 0 -n 100)
 
+# PDSCH test for CDD transmision mode (2 codeword) and 256QAM
+add_test(pdsch_test_cdd_6   pdsch_test -x 3 -a 2 -t 0 -m 27 -M 27 -n 6 -q)
+add_test(pdsch_test_cdd_12  pdsch_test -x 3 -a 2 -t 0 -m 27 -M 27 -n 12 -q)
+add_test(pdsch_test_cdd_25  pdsch_test -x 3 -a 2 -t 0 -m 27 -M 27 -n 25 -q)
+add_test(pdsch_test_cdd_50  pdsch_test -x 3 -a 2 -t 0 -m 27 -M 27 -n 50 -q)
+add_test(pdsch_test_cdd_75  pdsch_test -x 3 -a 2 -t 0 -m 27 -M 27 -n 75 -q)
+add_test(pdsch_test_cdd_100 pdsch_test -x 3 -a 2 -t 0 -m 27 -M 27 -n 100 -q)
+
 # PDSCH test for Spatial Multiplex transmision mode with PMI = 0 (1 codeword)
 add_test(pdsch_test_multiplex1cw_p0_6   pdsch_test -x 4 -a 2 -p 0 -n 6)
 add_test(pdsch_test_multiplex1cw_p0_12  pdsch_test -x 4 -a 2 -p 0 -n 12)

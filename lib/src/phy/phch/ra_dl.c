@@ -26,6 +26,7 @@
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 #include "srslte/srslte.h"
+#include "tbs_tables.h"
 #include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -316,27 +317,46 @@ int srslte_ra_dl_grant_to_grant_prb_allocation(srslte_dci_dl_t* dci, srslte_pdsc
   return SRSLTE_SUCCESS;
 }
 
-int srslte_dl_fill_ra_mcs(srslte_ra_tb_t* tb, int last_tbs, uint32_t nprb)
+int srslte_dl_fill_ra_mcs(srslte_ra_tb_t* tb, int last_tbs, uint32_t nprb, bool pdsch_use_tbs_index_alt)
 {
   int i_tbs = 0;
-  if (tb->mcs_idx < 10) {
-    tb->mod = SRSLTE_MOD_QPSK;
-    i_tbs   = tb->mcs_idx;
-  } else if (tb->mcs_idx < 17) {
-    tb->mod = SRSLTE_MOD_16QAM;
-    i_tbs   = tb->mcs_idx - 1;
-  } else if (tb->mcs_idx < 29) {
-    tb->mod = SRSLTE_MOD_64QAM;
-    i_tbs   = tb->mcs_idx - 2;
-  } else if (tb->mcs_idx == 29) {
-    tb->mod = SRSLTE_MOD_QPSK;
-    i_tbs   = -1;
-  } else if (tb->mcs_idx == 30) {
-    tb->mod = SRSLTE_MOD_16QAM;
-    i_tbs   = -1;
-  } else if (tb->mcs_idx == 31) {
-    tb->mod = SRSLTE_MOD_64QAM;
-    i_tbs   = -1;
+  if (!pdsch_use_tbs_index_alt) {
+    // Implements 3GPP 36.211 Table  3.56.35-431
+    if (tb->mcs_idx < 10) {
+      tb->mod = SRSLTE_MOD_QPSK;
+      i_tbs   = tb->mcs_idx;
+    } else if (tb->mcs_idx < 17) {
+      tb->mod = SRSLTE_MOD_16QAM;
+      i_tbs   = tb->mcs_idx - 1;
+    } else if (tb->mcs_idx < 29) {
+      tb->mod = SRSLTE_MOD_64QAM;
+      i_tbs   = tb->mcs_idx - 2;
+    } else if (tb->mcs_idx == 29) {
+      tb->mod = SRSLTE_MOD_QPSK;
+      i_tbs   = -1;
+    } else if (tb->mcs_idx == 30) {
+      tb->mod = SRSLTE_MOD_16QAM;
+      i_tbs   = -1;
+    } else if (tb->mcs_idx == 31) {
+      tb->mod = SRSLTE_MOD_64QAM;
+      i_tbs   = -1;
+    }
+  } else {
+    if (tb->mcs_idx < 28) {
+      i_tbs = dl_mcs_tbs_idx_table2[tb->mcs_idx];
+    } else {
+      i_tbs = SRSLTE_ERROR;
+    }
+
+    if (tb->mcs_idx < 5 || tb->mcs_idx == 28) {
+      tb->mod = SRSLTE_MOD_QPSK;
+    } else if (tb->mcs_idx < 11 || tb->mcs_idx == 29) {
+      tb->mod = SRSLTE_MOD_16QAM;
+    } else if (tb->mcs_idx < 20 || tb->mcs_idx == 30) {
+      tb->mod = SRSLTE_MOD_64QAM;
+    } else {
+      tb->mod = SRSLTE_MOD_256QAM;
+    }
   }
 
   // If i_tbs = -1, TBS is determined from the latest PDCCH for this TB (7.1.7.2 36.213)
@@ -353,7 +373,7 @@ int srslte_dl_fill_ra_mcs(srslte_ra_tb_t* tb, int last_tbs, uint32_t nprb)
 
 /* Modulation order and transport block size determination 7.1.7 in 36.213
  * */
-static int dl_dci_compute_tb(srslte_dci_dl_t* dci, srslte_pdsch_grant_t* grant)
+static int dl_dci_compute_tb(bool pdsch_use_tbs_index_alt, srslte_dci_dl_t* dci, srslte_pdsch_grant_t* grant)
 {
   uint32_t n_prb = 0;
   int      tbs   = -1;
@@ -408,7 +428,7 @@ static int dl_dci_compute_tb(srslte_dci_dl_t* dci, srslte_pdsch_grant_t* grant)
     }
     for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
       if (grant->tb[i].enabled) {
-        grant->tb[i].tbs = srslte_dl_fill_ra_mcs(&grant->tb[i], grant->last_tbs[i], n_prb);
+        grant->tb[i].tbs = srslte_dl_fill_ra_mcs(&grant->tb[i], grant->last_tbs[i], n_prb, pdsch_use_tbs_index_alt);
         if (grant->tb[i].tbs < 0) {
           ERROR("Computing TBS from MCS=%d, n_prb=%d\n", grant->tb[i].mcs_idx, n_prb);
           return SRSLTE_ERROR;
@@ -606,8 +626,12 @@ static int config_mimo(srslte_cell_t* cell, srslte_tm_t tm, srslte_dci_dl_t* dci
  **********/
 
 /** Compute the DL grant parameters  */
-int srslte_ra_dl_dci_to_grant(
-    srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_tm_t tm, srslte_dci_dl_t* dci, srslte_pdsch_grant_t* grant)
+int srslte_ra_dl_dci_to_grant(srslte_cell_t*        cell,
+                              srslte_dl_sf_cfg_t*   sf,
+                              srslte_tm_t           tm,
+                              bool                  pdsch_use_tbs_index_alt,
+                              srslte_dci_dl_t*      dci,
+                              srslte_pdsch_grant_t* grant)
 {
   bzero(grant, sizeof(srslte_pdsch_grant_t));
 
@@ -615,7 +639,7 @@ int srslte_ra_dl_dci_to_grant(
   int ret = srslte_ra_dl_grant_to_grant_prb_allocation(dci, grant, cell->nof_prb);
   if (ret == SRSLTE_SUCCESS) {
     // Compute MCS
-    ret = dl_dci_compute_tb(dci, grant);
+    ret = dl_dci_compute_tb(pdsch_use_tbs_index_alt, dci, grant);
     if (ret == SRSLTE_SUCCESS) {
       // Compute number of RE and number of ack_value in grant
       srslte_ra_dl_compute_nof_re(cell, sf, grant);

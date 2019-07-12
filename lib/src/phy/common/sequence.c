@@ -31,7 +31,7 @@
 
 #define Nc 1600
 
-#define MAX_SEQ_LEN  (128*1024)
+#define MAX_SEQ_LEN (256 * 1024)
 
 #define static_memory
 

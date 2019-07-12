@@ -37,14 +37,15 @@ srslte_cell_t cell = {
     .phich_length = SRSLTE_PHICH_NORM
 };
 
-uint32_t transmission_mode = 1;
-uint32_t cfi               = 1;
-uint32_t nof_rx_ant = 1;
-uint32_t nof_subframes     = 0;
-uint16_t rnti = 0x1234;
-bool print_dci_table;
-uint32_t mcs                     = 20;
-int      cross_carrier_indicator = -1;
+static uint32_t transmission_mode = 1;
+static uint32_t cfi               = 1;
+static uint32_t nof_rx_ant        = 1;
+static uint32_t nof_subframes     = 0;
+static uint16_t rnti              = 0x1234;
+static bool     print_dci_table;
+static uint32_t mcs                     = 20;
+static int      cross_carrier_indicator = -1;
+static bool     enable_256qam           = false;
 
 void usage(char *prog) {
   printf("Usage: %s [cfpndvs]\n", prog);
@@ -62,6 +63,7 @@ void usage(char *prog) {
     printf("\t\t-a carrier-indicator [Default none]\n");
   }
   printf("\t-v [set srslte_verbose to debug, default none]\n");
+  printf("\t-q Enable/Disable 256QAM modulation (default %s)\n", enable_256qam ? "enabled" : "disabled");
 }
 
 void parse_extensive_param(char* param, char* arg)
@@ -81,7 +83,17 @@ void parse_extensive_param(char* param, char* arg)
 
 void parse_args(int argc, char **argv) {
   int opt;
-  while ((opt = getopt(argc, argv, "cfapndvstm")) != -1) {
+
+  // Load default transmission mode to avoid wrong number of ports/antennas
+  if (transmission_mode == 0) {
+    cell.nof_ports = 1;
+    nof_rx_ant     = 1;
+  } else if (transmission_mode < 4) {
+    cell.nof_ports = 2;
+    nof_rx_ant     = 2;
+  }
+
+  while ((opt = getopt(argc, argv, "cfapndvqstm")) != -1) {
     switch (opt) {
       case 't':
         transmission_mode = (uint32_t)strtol(argv[optind], NULL, 10) - 1;
@@ -118,6 +130,9 @@ void parse_args(int argc, char **argv) {
       case 'v':
         srslte_verbose++;
         break;
+      case 'q':
+        enable_256qam = (enable_256qam) ? false : true;
+        break;
       default:
         usage(argv[0]);
         exit(-1);
@@ -145,7 +160,7 @@ int work_enb(srslte_enb_dl_t*         enb_dl,
 
   // Create pdsch config
   srslte_pdsch_cfg_t pdsch_cfg;
-  if (srslte_ra_dl_dci_to_grant(&cell, dl_sf, transmission_mode, dci, &pdsch_cfg.grant)) {
+  if (srslte_ra_dl_dci_to_grant(&cell, dl_sf, transmission_mode, enable_256qam, dci, &pdsch_cfg.grant)) {
     ERROR("Computing DL grant sf_idx=%d\n", dl_sf->tti);
     goto quit;
   }
@@ -211,7 +226,8 @@ int work_ue(srslte_ue_dl_t*     ue_dl,
   srslte_dci_dl_info(&dci_dl[0], str, 512);
   INFO("UE PDCCH: rnti=0x%x, %s\n", rnti, str);
 
-  if (srslte_ra_dl_dci_to_grant(&cell, sf_cfg_dl, transmission_mode, &dci_dl[0], &ue_dl_cfg->cfg.pdsch.grant)) {
+  if (srslte_ra_dl_dci_to_grant(
+          &cell, sf_cfg_dl, transmission_mode, enable_256qam, &dci_dl[0], &ue_dl_cfg->cfg.pdsch.grant)) {
     ERROR("Computing DL grant sf_idx=%d\n", sf_idx);
     return -1;
   }
@@ -236,34 +252,31 @@ int work_ue(srslte_ue_dl_t*     ue_dl,
 
 unsigned int
 reverse(register unsigned int x) {
-  x = (((x & 0xaaaaaaaa) >> 1) | ((x & 0x55555555) << 1));
-  x = (((x & 0xcccccccc) >> 2) | ((x & 0x33333333) << 2));
-  x = (((x & 0xf0f0f0f0) >> 4) | ((x & 0x0f0f0f0f) << 4));
-  x = (((x & 0xff00ff00) >> 8) | ((x & 0x00ff00ff) << 8));
-  return ((x >> 16) | (x << 16));
-
+  x = (((x & (uint32_t)0xaaaaaaaa) >> (uint32_t)1) | ((x & (uint32_t)0x55555555) << (uint32_t)1));
+  x = (((x & (uint32_t)0xcccccccc) >> (uint32_t)2) | ((x & (uint32_t)0x33333333) << (uint32_t)2));
+  x = (((x & (uint32_t)0xf0f0f0f0) >> (uint32_t)4) | ((x & (uint32_t)0x0f0f0f0f) << (uint32_t)4));
+  x = (((x & (uint32_t)0xff00ff00) >> (uint32_t)8) | ((x & (uint32_t)0x00ff00ff) << (uint32_t)8));
+  return ((x >> (uint32_t)16) | (x << (uint32_t)16));
 }
 
 uint32_t prbset_to_bitmask() {
   uint32_t mask = 0;
-  int      nb   = (int)ceilf((float)cell.nof_prb / srslte_ra_type0_P(cell.nof_prb));
-  for (int i = 0; i < nb; i++) {
+  uint32_t nb   = (uint32_t)ceilf((float)cell.nof_prb / srslte_ra_type0_P(cell.nof_prb));
+  for (uint32_t i = 0; i < nb; i++) {
     if (i >= prbset_orig && i < prbset_orig + prbset_num) {
-      mask = mask | (0x1 << i);
+      mask = mask | ((uint32_t)0x1 << i);
     }
   }
-  return reverse(mask) >> (32 - nb);
+  return reverse(mask) >> (uint32_t)(32 - nb);
 }
 
-static srslte_enb_dl_t enb_dl;
-static srslte_ue_dl_t  ue_dl;
-
-static int check_softbits(srslte_ue_dl_cfg_t* ue_dl_cfg, uint32_t sf_idx, int tb)
+static int
+check_softbits(srslte_enb_dl_t* enb_dl, srslte_ue_dl_t* ue_dl, srslte_ue_dl_cfg_t* ue_dl_cfg, uint32_t sf_idx, int tb)
 {
   int ret = SRSLTE_SUCCESS;
 
   // Generate sequence
-  srslte_sequence_pdsch(&ue_dl.pdsch.tmp_seq,
+  srslte_sequence_pdsch(&ue_dl->pdsch.tmp_seq,
                         rnti,
                         ue_dl_cfg->cfg.pdsch.grant.tb[tb].cw_idx,
                         2 * (sf_idx % 10),
@@ -271,32 +284,35 @@ static int check_softbits(srslte_ue_dl_cfg_t* ue_dl_cfg, uint32_t sf_idx, int tb
                         ue_dl_cfg->cfg.pdsch.grant.tb[tb].nof_bits);
 
   // Scramble
-  if (ue_dl.pdsch.llr_is_8bit) {
-    srslte_scrambling_sb_offset(&ue_dl.pdsch.tmp_seq, ue_dl.pdsch.e[tb], 0, ue_dl_cfg->cfg.pdsch.grant.tb[tb].nof_bits);
+  if (ue_dl->pdsch.llr_is_8bit) {
+    srslte_scrambling_sb_offset(
+        &ue_dl->pdsch.tmp_seq, ue_dl->pdsch.e[tb], 0, ue_dl_cfg->cfg.pdsch.grant.tb[tb].nof_bits);
   } else {
-    srslte_scrambling_s_offset(&ue_dl.pdsch.tmp_seq, ue_dl.pdsch.e[tb], 0, ue_dl_cfg->cfg.pdsch.grant.tb[tb].nof_bits);
+    srslte_scrambling_s_offset(
+        &ue_dl->pdsch.tmp_seq, ue_dl->pdsch.e[tb], 0, ue_dl_cfg->cfg.pdsch.grant.tb[tb].nof_bits);
   }
-  int16_t* rx       = ue_dl.pdsch.e[tb];
-  uint8_t* rx_bytes = ue_dl.pdsch.e[tb];
+  int16_t* rx       = ue_dl->pdsch.e[tb];
+  uint8_t* rx_bytes = ue_dl->pdsch.e[tb];
   for (int i = 0, k = 0; i < ue_dl_cfg->cfg.pdsch.grant.tb[tb].nof_bits / 8; i++) {
     uint8_t w = 0;
     for (int j = 0; j < 8; j++, k++) {
-      w |= (rx[k] > 0) ? (1 << (7 - j)) : 0;
+      w |= (rx[k] > 0) ? ((uint32_t)1 << (uint32_t)(7 - j)) : 0;
     }
     rx_bytes[i] = w;
   }
-  if (memcmp(ue_dl.pdsch.e[tb], enb_dl.pdsch.e[tb], ue_dl_cfg->cfg.pdsch.grant.tb[tb].nof_bits / 8) != 0) {
+  if (memcmp(ue_dl->pdsch.e[tb], enb_dl->pdsch.e[tb], ue_dl_cfg->cfg.pdsch.grant.tb[tb].nof_bits / 8) != 0) {
     ret = SRSLTE_ERROR;
   }
 
   return ret;
 }
 
-static int check_evm(srslte_ue_dl_cfg_t* ue_dl_cfg, int tb)
+static int check_evm(srslte_enb_dl_t* enb_dl, srslte_ue_dl_t* ue_dl, srslte_ue_dl_cfg_t* ue_dl_cfg, int tb)
 {
   int ret = SRSLTE_SUCCESS;
-  srslte_vec_sub_ccc(enb_dl.pdsch.d[tb], ue_dl.pdsch.d[tb], enb_dl.pdsch.d[tb], ue_dl_cfg->cfg.pdsch.grant.nof_re);
-  float evm = srslte_vec_avg_power_cf(enb_dl.pdsch.d[tb], ue_dl_cfg->cfg.pdsch.grant.nof_re);
+  srslte_vec_sub_ccc(enb_dl->pdsch.d[tb], ue_dl->pdsch.d[tb], enb_dl->pdsch.d[tb], ue_dl_cfg->cfg.pdsch.grant.nof_re);
+  uint32_t evm_max_i = srslte_vec_max_abs_ci(enb_dl->pdsch.d[tb], ue_dl_cfg->cfg.pdsch.grant.nof_re);
+  float    evm       = cabsf(enb_dl->pdsch.d[tb][evm_max_i]);
 
   if (evm > 0.1f) {
     printf("TB%d Constellation EVM (%.3f) is too high\n", tb, evm);
@@ -307,6 +323,8 @@ static int check_evm(srslte_ue_dl_cfg_t* ue_dl_cfg, int tb)
 }
 
 int main(int argc, char **argv) {
+  srslte_enb_dl_t*        enb_dl      = srslte_vec_malloc(sizeof(srslte_enb_dl_t));
+  srslte_ue_dl_t*         ue_dl       = srslte_vec_malloc(sizeof(srslte_ue_dl_t));
   srslte_random_t         random      = srslte_random_init(0);
   struct timeval t[3] = {};
   size_t tx_nof_bits = 0, rx_nof_bits = 0;
@@ -374,17 +392,17 @@ int main(int argc, char **argv) {
   /*
    * Initialise eNb
    */
-  if (srslte_enb_dl_init(&enb_dl, signal_buffer, cell.nof_prb)) {
+  if (srslte_enb_dl_init(enb_dl, signal_buffer, cell.nof_prb)) {
     ERROR("Error initiating eNb downlink\n");
     goto quit;
   }
 
-  if (srslte_enb_dl_set_cell(&enb_dl, cell)) {
+  if (srslte_enb_dl_set_cell(enb_dl, cell)) {
     ERROR("Error setting eNb DL cell\n");
     goto quit;
   }
 
-  if (srslte_enb_dl_add_rnti(&enb_dl, rnti)) {
+  if (srslte_enb_dl_add_rnti(enb_dl, rnti)) {
     ERROR("Error adding RNTI\n");
     goto quit;
   }
@@ -392,17 +410,17 @@ int main(int argc, char **argv) {
   /*
    * Initialise UE
    */
-  if (srslte_ue_dl_init(&ue_dl, signal_buffer, cell.nof_prb, nof_rx_ant)) {
+  if (srslte_ue_dl_init(ue_dl, signal_buffer, cell.nof_prb, nof_rx_ant)) {
     ERROR("Error initiating UE downlink\n");
     goto quit;
   }
 
-  if (srslte_ue_dl_set_cell(&ue_dl, cell)) {
+  if (srslte_ue_dl_set_cell(ue_dl, cell)) {
     ERROR("Error setting UE downlink cell\n");
     goto quit;
   }
 
-  srslte_ue_dl_set_rnti(&ue_dl, rnti);
+  srslte_ue_dl_set_rnti(ue_dl, rnti);
 
   /*
    * Create PDCCH Allocations
@@ -417,7 +435,7 @@ int main(int argc, char **argv) {
     sf_cfg_dl.cfi     = cfi;
     sf_cfg_dl.sf_type = SRSLTE_SF_NORM;
 
-    nof_locations[i] = srslte_pdcch_ue_locations(&enb_dl.pdcch, &sf_cfg_dl, dci_locations[i], MAX_CANDIDATES_UE, rnti);
+    nof_locations[i] = srslte_pdcch_ue_locations(&enb_dl->pdcch, &sf_cfg_dl, dci_locations[i], MAX_CANDIDATES_UE, rnti);
     location_counter += nof_locations[i];
   }
 
@@ -529,7 +547,7 @@ int main(int argc, char **argv) {
     INFO("--- Process eNb ---\n");
 
     gettimeofday(&t[1], NULL);
-    if (work_enb(&enb_dl, &sf_cfg_dl, &dci_cfg, &dci, softbuffer_tx, data_tx)) {
+    if (work_enb(enb_dl, &sf_cfg_dl, &dci_cfg, &dci, softbuffer_tx, data_tx)) {
       goto quit;
     }
     gettimeofday(&t[2], NULL);
@@ -576,6 +594,7 @@ int main(int argc, char **argv) {
     ue_dl_cfg.chest_cfg.cfo_estimate_sf_mask = false;
     ue_dl_cfg.chest_cfg.sync_error_enable    = false;
     ue_dl_cfg.dci_cfg                        = dci_cfg;
+    ue_dl_cfg.pdsch_use_tbs_index_alt        = enable_256qam;
 
     srslte_pdsch_res_t pdsch_res[SRSLTE_MAX_CODEWORDS];
     for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
@@ -584,7 +603,7 @@ int main(int argc, char **argv) {
       pdsch_res[i].crc                      = false;
       ue_dl_cfg.cfg.pdsch.softbuffers.rx[i] = softbuffer_rx[i];
     }
-    if (work_ue(&ue_dl, &sf_cfg_dl, &ue_dl_cfg, dci_dl, sf_idx, pdsch_res)) {
+    if (work_ue(ue_dl, &sf_cfg_dl, &ue_dl_cfg, dci_dl, sf_idx, pdsch_res)) {
       goto quit;
     }
 
@@ -594,15 +613,15 @@ int main(int argc, char **argv) {
 
     for (int i = 0; i < SRSLTE_MAX_TB; i++) {
       if (ue_dl_cfg.cfg.pdsch.grant.tb[i].enabled) {
-        if (check_evm(&ue_dl_cfg, i)) {
+        if (check_evm(enb_dl, ue_dl, &ue_dl_cfg, i)) {
           count_failures++;
-        } else if (check_softbits(&ue_dl_cfg, sf_idx, i) != SRSLTE_SUCCESS) {
+        } else if (check_softbits(enb_dl, ue_dl, &ue_dl_cfg, sf_idx, i) != SRSLTE_SUCCESS) {
           printf("TB%d: The received softbits in subframe %d DO NOT match the encoded bits (crc=%d)\n",
                  i,
                  sf_idx,
                  pdsch_res[i].crc);
-          srslte_vec_fprint_byte(stdout, (uint8_t*)enb_dl.pdsch.e[i], ue_dl_cfg.cfg.pdsch.grant.tb[i].nof_bits / 8);
-          srslte_vec_fprint_byte(stdout, (uint8_t*)ue_dl.pdsch.e[i], ue_dl_cfg.cfg.pdsch.grant.tb[i].nof_bits / 8);
+          srslte_vec_fprint_byte(stdout, (uint8_t*)enb_dl->pdsch.e[i], ue_dl_cfg.cfg.pdsch.grant.tb[i].nof_bits / 8);
+          srslte_vec_fprint_byte(stdout, (uint8_t*)ue_dl->pdsch.e[i], ue_dl_cfg.cfg.pdsch.grant.tb[i].nof_bits / 8);
           count_failures++;
         } else if (!pdsch_res[i].crc ||
                    memcmp(data_tx[i], data_rx[i], (uint32_t)ue_dl_cfg.cfg.pdsch.grant.tb[i].tbs / 8) != 0) {
@@ -637,18 +656,14 @@ int main(int argc, char **argv) {
   printf("BLER: %5.1f%%\n", (float) count_failures / (float) count_tbs * 100.0f);
 
   quit:
-  srslte_enb_dl_free(&enb_dl);
-  srslte_ue_dl_free(&ue_dl);
-  srslte_random_free(random);
+    srslte_enb_dl_free(enb_dl);
+    srslte_ue_dl_free(ue_dl);
+    srslte_random_free(random);
 
-  for (
-      int i = 0;
-      i < cell.
-          nof_ports;
-      i++) {
-    if (signal_buffer[i]) {
-      free(signal_buffer[i]);
-    }
+    for (int i = 0; i < cell.nof_ports; i++) {
+      if (signal_buffer[i]) {
+        free(signal_buffer[i]);
+      }
   }
 
   for (
@@ -671,6 +686,12 @@ int main(int argc, char **argv) {
     if (data_rx[i]) {
       free(data_rx[i]);
     }
+  }
+  if (enb_dl) {
+    free(enb_dl);
+  }
+  if (ue_dl) {
+    free(ue_dl);
   }
 
   if (ret) {

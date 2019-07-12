@@ -103,6 +103,8 @@ SRSLTE_API int srslte_ra_tbs_idx_from_mcs(uint32_t mcs, bool is_ul);
 
 SRSLTE_API srslte_mod_t srslte_ra_dl_mod_from_mcs(uint32_t mcs);
 
+SRSLTE_API srslte_mod_t srslte_ra_dl_mod_from_mcs2(uint32_t mcs);
+
 SRSLTE_API srslte_mod_t srslte_ra_ul_mod_from_mcs(uint32_t mcs);
 
 SRSLTE_API int srslte_ra_mcs_from_tbs_idx(uint32_t tbs_idx, bool is_ul);

@@ -81,12 +81,12 @@ typedef struct {
   int cpu_affinity;
   bool disable_plots;
   bool disable_plots_except_constellation;
-  bool disable_cfo; 
-  uint32_t time_offset; 
+  bool     disable_cfo;
+  uint32_t time_offset;
   int force_N_id_2;
   uint16_t rnti;
   char *input_file_name;
-  int file_offset_time; 
+  int      file_offset_time;
   float file_offset_freq;
   uint32_t file_nof_prb;
   uint32_t file_nof_ports;
@@ -94,13 +94,13 @@ typedef struct {
   bool enable_cfo_ref;
   bool average_subframe;
   char *rf_dev;
-  char *rf_args; 
-  uint32_t rf_nof_rx_ant; 
-  double rf_freq; 
+  char*    rf_args;
+  uint32_t rf_nof_rx_ant;
+  double   rf_freq;
   float rf_gain;
-  int net_port; 
-  char *net_address; 
-  int net_port_signal; 
+  int      net_port;
+  char*    net_address;
+  int      net_port_signal;
   char *net_address_signal;
   int decimate;
   int32_t mbsfn_area_id;
@@ -109,31 +109,33 @@ typedef struct {
   int      tdd_special_sf;
   int      sf_config;
   int verbose;
+  bool     enable_256qam;
 }prog_args_t;
 
 void args_default(prog_args_t* args)
 {
   args->disable_plots                      = false;
   args->disable_plots_except_constellation = false;
-  args->nof_subframes = -1;
-  args->rnti = SRSLTE_SIRNTI;
-  args->force_N_id_2 = -1; // Pick the best
+  args->nof_subframes                      = -1;
+  args->rnti                               = SRSLTE_SIRNTI;
+  args->force_N_id_2                       = -1; // Pick the best
   args->tdd_special_sf                     = -1;
   args->sf_config                          = -1;
-  args->input_file_name = NULL;
+  args->input_file_name                    = NULL;
   args->disable_cfo                        = false;
   args->time_offset                        = 0;
   args->file_nof_prb                       = 25;
   args->file_nof_ports                     = 1;
   args->file_cell_id                       = 0;
   args->file_offset_time                   = 0;
-  args->file_offset_freq = 0;
-  args->rf_dev = "";
-  args->rf_args = "";
-  args->rf_freq = -1.0;
-  args->rf_nof_rx_ant = 1;
-  args->enable_cfo_ref = false;
-  args->average_subframe = false;
+  args->file_offset_freq                   = 0;
+  args->rf_dev                             = "";
+  args->rf_args                            = "";
+  args->rf_freq                            = -1.0;
+  args->rf_nof_rx_ant                      = 1;
+  args->enable_cfo_ref                     = false;
+  args->average_subframe                   = false;
+  args->enable_256qam                      = false;
 #ifdef ENABLE_AGC_DEFAULT
   args->rf_gain = -1.0;
 #else
@@ -192,6 +194,7 @@ void usage(prog_args_t *args, char *prog) {
   printf("\t-U remote TCP address to send data [Default %s]\n", args->net_address);
   printf("\t-M MBSFN area id [Default %d]\n", args->mbsfn_area_id);
   printf("\t-N Non-MBSFN region [Default %d]\n", args->non_mbsfn_region);
+  printf("\t-q Enable/Disable 256QAM modulation (default %s)\n", args->enable_256qam ? "enabled" : "disabled");
   printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
@@ -199,7 +202,7 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
   int opt;
   args_default(args);
 
-  while ((opt = getopt(argc, argv, "adAogliIpPcOCtdDFRnvrfuUsSZyWMNBTG")) != -1) {
+  while ((opt = getopt(argc, argv, "adAogliIpPcOCtdDFRqnvrfuUsSZyWMNBTG")) != -1) {
     switch (opt) {
     case 'i':
       args->input_file_name = argv[optind];
@@ -301,6 +304,9 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
     case 'B':
       args->mbsfn_sf_mask = atoi(argv[optind]);
       break;
+    case 'q':
+      args->enable_256qam ^= true;
+      break;
     default:
       usage(args, argv[0]);
       exit(-1);
@@ -393,7 +399,7 @@ int main(int argc, char **argv) {
 #endif /* ENABLE_GUI */
 
   for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
-    data[i] = srslte_vec_malloc(sizeof(uint8_t) * 1500 * 8);
+    data[i] = srslte_vec_malloc(sizeof(uint8_t) * 2000 * 8);
     if (!data[i]) {
       ERROR("Allocating data");
       go_exit = true;
@@ -783,6 +789,7 @@ int main(int argc, char **argv) {
               dl_sf.tti        = tti;
               dl_sf.sf_type    = sf_type;
               ue_dl_cfg.cfg.tm = (srslte_tm_t)tm;
+              ue_dl_cfg.pdsch_use_tbs_index_alt = prog_args.enable_256qam;
 
               if ((ue_dl_cfg.cfg.tm == SRSLTE_TM1 && cell.nof_ports == 1) ||
                   (ue_dl_cfg.cfg.tm > SRSLTE_TM1 && cell.nof_ports > 1)) {
