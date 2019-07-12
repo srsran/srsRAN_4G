@@ -630,7 +630,7 @@ int rf_uhd_close(void *h)
 
 void rf_uhd_set_master_clock_rate(void *h, double rate) {
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
-  if (rate != handler->current_master_clock) {
+  if (fmod(handler->current_master_clock, rate)) {
     if (handler->dynamic_rate) {
       uhd_usrp_set_master_clock_rate(handler->usrp, rate, 0);
     }
