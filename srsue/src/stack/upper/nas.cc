@@ -302,7 +302,7 @@ void nas::select_plmn() {
 
   // First find if Home PLMN is available
   for (uint32_t i=0;i<known_plmns.size();i++) {
-    if (known_plmns[i].mcc == home_plmn.mcc && known_plmns[i].mnc == home_plmn.mnc) {
+    if (known_plmns[i] == home_plmn) {
       nas_log->info("Selecting Home PLMN Id=%s\n", known_plmns[i].to_string().c_str());
       plmn_is_selected = true;
       current_plmn = known_plmns[i];
