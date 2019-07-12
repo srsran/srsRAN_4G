@@ -734,6 +734,7 @@ typedef struct {
   uint32_t      intra_freq_meas_len_ms;
   uint32_t      intra_freq_meas_period_ms;
   bool          pregenerate_signals;
+  float         force_ul_amplitude;
 
   srslte::channel::args_t dl_channel_args;
   srslte::channel::args_t ul_channel_args;

@@ -325,7 +325,11 @@ void parse_args(all_args_t* args, int argc, char* argv[])
 
     ("expert.pdsch_8bit_decoder",
        bpo::value<bool>(&args->phy.pdsch_8bit_decoder)->default_value(false),
-       "Use 8-bit for LLR representation and turbo decoder trellis computation (Experimental)");
+       "Use 8-bit for LLR representation and turbo decoder trellis computation (Experimental)")
+
+    ("expert.force_ul_amplitude",
+       bpo::value<float>(&args->phy.force_ul_amplitude)->default_value(0.0),
+       "Forces the peak amplitude in the PUCCH, PUSCH and SRS (set 0.0 to 1.0, set to 0 or negative for disabling)");
 
   // Positional options - config file location
   bpo::options_description position("Positional options");

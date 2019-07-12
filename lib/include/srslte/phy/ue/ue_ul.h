@@ -80,6 +80,7 @@ typedef struct SRSLTE_API {
   uint32_t        cc_idx;
 
   bool  normalize_en;
+  float force_peak_amplitude;
   bool  cfo_en;
   float cfo_tol;
   float cfo_value;

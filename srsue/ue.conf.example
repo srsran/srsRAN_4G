@@ -285,6 +285,7 @@ enable = false
 #                        used in TM1. It is True by default.
 #
 # pdsch_8bit_decoder:    Use 8-bit for LLR representation and turbo decoder trellis computation (Experimental)
+# force_ul_amplitude:    Forces the peak amplitude in the PUCCH, PUSCH and SRS (set 0.0 to 1.0, set to 0 or negative for disabling)
 #
 #####################################################################
 [expert]
@@ -312,6 +313,7 @@ enable = false
 #metrics_csv_filename = /tmp/ue_metrics.csv
 #pdsch_csi_enabled  = true
 #pdsch_8bit_decoder = false
+#force_ul_amplitude = 0
 
 # CFO related values
 #cfo_is_doppler      = false

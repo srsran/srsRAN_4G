@@ -178,7 +178,12 @@ void phy_common::set_ue_ul_cfg(srslte_ue_ul_cfg_t* ue_ul_cfg)
   // Setup uplink configuration
   bzero(ue_ul_cfg, sizeof(srslte_ue_ul_cfg_t));
   ue_ul_cfg->cfo_en                              = true;
-  ue_ul_cfg->normalize_en                        = true;
+  if (args->force_ul_amplitude > 0.0f) {
+    ue_ul_cfg->force_peak_amplitude = args->force_ul_amplitude;
+    ue_ul_cfg->normalize_en         = false;
+  } else {
+    ue_ul_cfg->normalize_en = true;
+  }
   ue_ul_cfg->ul_cfg.pucch.ack_nack_feedback_mode = SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_NORMAL;
 }
 
