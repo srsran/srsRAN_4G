@@ -131,7 +131,7 @@ void parse_args(int argc, char **argv) {
         srslte_verbose++;
         break;
       case 'q':
-        enable_256qam ^= true;
+        enable_256qam = (enable_256qam) ? false : true;
         break;
       default:
         usage(argv[0]);
@@ -252,32 +252,31 @@ int work_ue(srslte_ue_dl_t*     ue_dl,
 
 unsigned int
 reverse(register unsigned int x) {
-  x = (((x & 0xaaaaaaaa) >> 1) | ((x & 0x55555555) << 1));
-  x = (((x & 0xcccccccc) >> 2) | ((x & 0x33333333) << 2));
-  x = (((x & 0xf0f0f0f0) >> 4) | ((x & 0x0f0f0f0f) << 4));
-  x = (((x & 0xff00ff00) >> 8) | ((x & 0x00ff00ff) << 8));
-  return ((x >> 16) | (x << 16));
-
+  x = (((x & (uint32_t)0xaaaaaaaa) >> (uint32_t)1) | ((x & (uint32_t)0x55555555) << (uint32_t)1));
+  x = (((x & (uint32_t)0xcccccccc) >> (uint32_t)2) | ((x & (uint32_t)0x33333333) << (uint32_t)2));
+  x = (((x & (uint32_t)0xf0f0f0f0) >> (uint32_t)4) | ((x & (uint32_t)0x0f0f0f0f) << (uint32_t)4));
+  x = (((x & (uint32_t)0xff00ff00) >> (uint32_t)8) | ((x & (uint32_t)0x00ff00ff) << (uint32_t)8));
+  return ((x >> (uint32_t)16) | (x << (uint32_t)16));
 }
 
 uint32_t prbset_to_bitmask() {
   uint32_t mask = 0;
-  int      nb   = (int)ceilf((float)cell.nof_prb / srslte_ra_type0_P(cell.nof_prb));
-  for (int i = 0; i < nb; i++) {
+  uint32_t nb   = (uint32_t)ceilf((float)cell.nof_prb / srslte_ra_type0_P(cell.nof_prb));
+  for (uint32_t i = 0; i < nb; i++) {
     if (i >= prbset_orig && i < prbset_orig + prbset_num) {
-      mask = mask | (0x1 << i);
+      mask = mask | ((uint32_t)0x1 << i);
     }
   }
-  return reverse(mask) >> (32 - nb);
+  return reverse(mask) >> (uint32_t)(32 - nb);
 }
 
 static int
-check_softbits(srslte_enb_dl_t enb_dl, srslte_ue_dl_t ue_dl, srslte_ue_dl_cfg_t* ue_dl_cfg, uint32_t sf_idx, int tb)
+check_softbits(srslte_enb_dl_t* enb_dl, srslte_ue_dl_t* ue_dl, srslte_ue_dl_cfg_t* ue_dl_cfg, uint32_t sf_idx, int tb)
 {
   int ret = SRSLTE_SUCCESS;
 
   // Generate sequence
-  srslte_sequence_pdsch(&ue_dl.pdsch.tmp_seq,
+  srslte_sequence_pdsch(&ue_dl->pdsch.tmp_seq,
                         rnti,
                         ue_dl_cfg->cfg.pdsch.grant.tb[tb].cw_idx,
                         2 * (sf_idx % 10),
@@ -285,33 +284,35 @@ check_softbits(srslte_enb_dl_t enb_dl, srslte_ue_dl_t ue_dl, srslte_ue_dl_cfg_t*
                         ue_dl_cfg->cfg.pdsch.grant.tb[tb].nof_bits);
 
   // Scramble
-  if (ue_dl.pdsch.llr_is_8bit) {
-    srslte_scrambling_sb_offset(&ue_dl.pdsch.tmp_seq, ue_dl.pdsch.e[tb], 0, ue_dl_cfg->cfg.pdsch.grant.tb[tb].nof_bits);
+  if (ue_dl->pdsch.llr_is_8bit) {
+    srslte_scrambling_sb_offset(
+        &ue_dl->pdsch.tmp_seq, ue_dl->pdsch.e[tb], 0, ue_dl_cfg->cfg.pdsch.grant.tb[tb].nof_bits);
   } else {
-    srslte_scrambling_s_offset(&ue_dl.pdsch.tmp_seq, ue_dl.pdsch.e[tb], 0, ue_dl_cfg->cfg.pdsch.grant.tb[tb].nof_bits);
+    srslte_scrambling_s_offset(
+        &ue_dl->pdsch.tmp_seq, ue_dl->pdsch.e[tb], 0, ue_dl_cfg->cfg.pdsch.grant.tb[tb].nof_bits);
   }
-  int16_t* rx       = ue_dl.pdsch.e[tb];
-  uint8_t* rx_bytes = ue_dl.pdsch.e[tb];
+  int16_t* rx       = ue_dl->pdsch.e[tb];
+  uint8_t* rx_bytes = ue_dl->pdsch.e[tb];
   for (int i = 0, k = 0; i < ue_dl_cfg->cfg.pdsch.grant.tb[tb].nof_bits / 8; i++) {
     uint8_t w = 0;
     for (int j = 0; j < 8; j++, k++) {
-      w |= (rx[k] > 0) ? (1 << (7 - j)) : 0;
+      w |= (rx[k] > 0) ? ((uint32_t)1 << (uint32_t)(7 - j)) : 0;
     }
     rx_bytes[i] = w;
   }
-  if (memcmp(ue_dl.pdsch.e[tb], enb_dl.pdsch.e[tb], ue_dl_cfg->cfg.pdsch.grant.tb[tb].nof_bits / 8) != 0) {
+  if (memcmp(ue_dl->pdsch.e[tb], enb_dl->pdsch.e[tb], ue_dl_cfg->cfg.pdsch.grant.tb[tb].nof_bits / 8) != 0) {
     ret = SRSLTE_ERROR;
   }
 
   return ret;
 }
 
-static int check_evm(srslte_enb_dl_t enb_dl, srslte_ue_dl_t ue_dl, srslte_ue_dl_cfg_t* ue_dl_cfg, int tb)
+static int check_evm(srslte_enb_dl_t* enb_dl, srslte_ue_dl_t* ue_dl, srslte_ue_dl_cfg_t* ue_dl_cfg, int tb)
 {
   int ret = SRSLTE_SUCCESS;
-  srslte_vec_sub_ccc(enb_dl.pdsch.d[tb], ue_dl.pdsch.d[tb], enb_dl.pdsch.d[tb], ue_dl_cfg->cfg.pdsch.grant.nof_re);
-  uint32_t evm_max_i = srslte_vec_max_abs_ci(enb_dl.pdsch.d[tb], ue_dl_cfg->cfg.pdsch.grant.nof_re);
-  float    evm       = cabsf(enb_dl.pdsch.d[tb][evm_max_i]);
+  srslte_vec_sub_ccc(enb_dl->pdsch.d[tb], ue_dl->pdsch.d[tb], enb_dl->pdsch.d[tb], ue_dl_cfg->cfg.pdsch.grant.nof_re);
+  uint32_t evm_max_i = srslte_vec_max_abs_ci(enb_dl->pdsch.d[tb], ue_dl_cfg->cfg.pdsch.grant.nof_re);
+  float    evm       = cabsf(enb_dl->pdsch.d[tb][evm_max_i]);
 
   if (evm > 0.1f) {
     printf("TB%d Constellation EVM (%.3f) is too high\n", tb, evm);
@@ -612,9 +613,9 @@ int main(int argc, char **argv) {
 
     for (int i = 0; i < SRSLTE_MAX_TB; i++) {
       if (ue_dl_cfg.cfg.pdsch.grant.tb[i].enabled) {
-        if (check_evm(*enb_dl, *ue_dl, &ue_dl_cfg, i)) {
+        if (check_evm(enb_dl, ue_dl, &ue_dl_cfg, i)) {
           count_failures++;
-        } else if (check_softbits(*enb_dl, *ue_dl, &ue_dl_cfg, sf_idx, i) != SRSLTE_SUCCESS) {
+        } else if (check_softbits(enb_dl, ue_dl, &ue_dl_cfg, sf_idx, i) != SRSLTE_SUCCESS) {
           printf("TB%d: The received softbits in subframe %d DO NOT match the encoded bits (crc=%d)\n",
                  i,
                  sf_idx,
