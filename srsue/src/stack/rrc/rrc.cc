@@ -997,6 +997,9 @@ void rrc::set_serving_cell(uint32_t cell_idx) {
       if (!add_neighbour_cell(serving_cell)) {
         rrc_log->info("Serving cell not added to list of neighbours. Worse than current neighbours\n");
       }
+    } else {
+      // Do not leak it if we are not adding to neighbour list
+      delete serving_cell;
     }
 
     // Set new serving cell
