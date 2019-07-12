@@ -249,25 +249,33 @@ static void apply_cfo(srslte_ue_ul_t* q, srslte_ue_ul_cfg_t* cfg)
 static void apply_norm(srslte_ue_ul_t* q, srslte_ue_ul_cfg_t* cfg, float norm_factor)
 {
   uint32_t sf_len = SRSLTE_SF_LEN_PRB(q->cell.nof_prb);
+  float*   buf                  = NULL;
+  float    force_peak_amplitude = cfg->force_peak_amplitude > 0 ? cfg->force_peak_amplitude : 1.0f;
 
-  if (cfg->normalize_en) {
-    norm_factor = limit_norm_factor(q, norm_factor, q->out_buffer);
-    srslte_vec_sc_prod_cfc(q->out_buffer, norm_factor, q->out_buffer, sf_len);
-  } else if (cfg->force_peak_amplitude > 0.0f) {
-    // Typecast buffer
-    float* buf = (float*)q->out_buffer;
+  switch (cfg->normalize_mode) {
+    case SRSLTE_UE_UL_NORMALIZE_MODE_AUTO:
+    default:
+      // Automatic normalization (default)
+      norm_factor = limit_norm_factor(q, norm_factor, q->out_buffer);
+      srslte_vec_sc_prod_cfc(q->out_buffer, norm_factor, q->out_buffer, sf_len);
+      break;
+    case SRSLTE_UE_UL_NORMALIZE_MODE_FORCE_AMPLITUDE:
+      // Force amplitude
+      // Typecast buffer
+      buf = (float*)q->out_buffer;
 
-    // Get index of maximum absolute sample
-    uint32_t idx = srslte_vec_max_abs_fi(buf, sf_len * 2);
+      // Get index of maximum absolute sample
+      uint32_t idx = srslte_vec_max_abs_fi(buf, sf_len * 2);
 
-    // Get maximum value
-    float scale = fabsf(buf[idx]);
+      // Get maximum value
+      float scale = fabsf(buf[idx]);
 
-    // Avoid zero division
-    if (scale != 0.0f && scale != INFINITY) {
-      // Apply maximum peak amplitude
-      srslte_vec_sc_prod_cfc(q->out_buffer, cfg->force_peak_amplitude / scale, q->out_buffer, sf_len);
-    }
+      // Avoid zero division
+      if (scale != 0.0f && scale != INFINITY) {
+        // Apply maximum peak amplitude
+        srslte_vec_sc_prod_cfc(q->out_buffer, force_peak_amplitude / scale, q->out_buffer, sf_len);
+      }
+      break;
   }
 }
 

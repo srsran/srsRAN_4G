@@ -73,13 +73,18 @@ typedef struct SRSLTE_API {
   srslte_refsignal_srs_cfg_t        srs;
 } srslte_ul_cfg_t;
 
+typedef enum {
+  SRSLTE_UE_UL_NORMALIZE_MODE_AUTO = 0,
+  SRSLTE_UE_UL_NORMALIZE_MODE_FORCE_AMPLITUDE
+} srslte_ue_ul_normalize_mode_t;
+
 typedef struct SRSLTE_API {
 
   srslte_ul_cfg_t ul_cfg;
   bool            grant_available;
   uint32_t        cc_idx;
 
-  bool  normalize_en;
+  srslte_ue_ul_normalize_mode_t normalize_mode;
   float force_peak_amplitude;
   bool  cfo_en;
   float cfo_tol;
