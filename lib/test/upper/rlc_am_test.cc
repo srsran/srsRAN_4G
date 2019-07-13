@@ -1642,7 +1642,7 @@ bool status_pdu_test()
   // Write status PDU to RLC1
   rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);
 
-  // to retransmission of remaining PDUs
+  // retransmission of remaining PDUs
   for (int i = 0; i < 3; i++) {
     retx.clear();
     len          = rlc1.read_pdu(retx.msg, 3);
@@ -1652,7 +1652,7 @@ bool status_pdu_test()
     rlc2.write_pdu(retx.msg, retx.N_bytes);
   }
 
-  assert(tester.n_sdus == 5);
+  assert(tester.n_sdus == NBUFS);
   for (int i = 0; i < tester.n_sdus; i++) {
     if (tester.sdus[i]->N_bytes != 1)
       return -1;

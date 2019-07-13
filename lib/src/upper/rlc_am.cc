@@ -1614,15 +1614,27 @@ int rlc_am::rlc_am_rx::get_status_pdu(rlc_status_pdu_t* status, const uint32_t m
 {
   pthread_mutex_lock(&mutex);
   status->N_nack = 0;
-  status->ack_sn = vr_ms;
+  status->ack_sn = vr_r; // start with lower edge of the rx window
 
   // We don't use segment NACKs - just NACK the full PDU
   uint32_t i = vr_r;
   while (RX_MOD_BASE(i) < RX_MOD_BASE(vr_ms) && status->N_nack < RLC_AM_WINDOW_SIZE) {
-    status->ack_sn = i;
     if (rx_window.find(i) == rx_window.end()) {
       status->nacks[status->N_nack].nack_sn = i;
       status->N_nack++;
+    } else {
+      // only update ACK_SN if this SN has been received
+      status->ack_sn = i;
+    }
+
+    // make sure we don't exceed grant size
+    if (rlc_am_packed_length(status) > max_pdu_size) {
+      log->debug("Status PDU too big (%d > %d)\n", rlc_am_packed_length(status), max_pdu_size);
+      if (status->N_nack >= 1) {
+        log->debug("Removing last NACK SN=%d\n", status->nacks[status->N_nack].nack_sn);
+        status->N_nack--;
+      }
+      break;
     }
     i = (i + 1) % MOD;
   }
