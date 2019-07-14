@@ -1497,7 +1497,7 @@ int main(int argc, char** argv)
   }
 
   if (mac_random_access_test()) {
-    printf("mac_ul_sch_pdu_msg3_test() test failed.\n");
+    printf("mac_random_access_test() test failed.\n");
     return -1;
   }
 
