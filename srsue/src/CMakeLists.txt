@@ -49,6 +49,19 @@ if (RPATH)
 endif (RPATH)
 
 ########################################################################
+# UE initialization test
+########################################################################
+
+# Make sure srsue returns 0 and it does not leak
+add_test(srsue_version srsue --version)
+add_test(srsue_help srsue --help)
+
+# Checks that ue.conf.example is valid and it does not leak memory if RF fails
+if (ZEROMQ_FOUND)
+  add_test(ue_rf_failure srsue ${CMAKE_SOURCE_DIR}/srsue/ue.conf.example --rf.device_name=zmq)
+endif(ZEROMQ_FOUND)
+
+########################################################################
 # Option to run command after build (useful for remote builds)
 ########################################################################
 if (NOT ${BUILDUE_CMD} STREQUAL "")

@@ -47,11 +47,20 @@ using namespace srsue;
 namespace bpo = boost::program_options;
 
 /**********************************************************************
+ *  Local static variables
+ ***********************************************************************/
+
+static int             sigcnt         = 0;
+static bool            running        = true;
+static bool            do_metrics     = false;
+static metrics_stdout* metrics_screen = nullptr;
+
+/**********************************************************************
  *  Program arguments processing
  ***********************************************************************/
 string config_file;
 
-void parse_args(all_args_t* args, int argc, char* argv[])
+static int parse_args(all_args_t* args, int argc, char* argv[])
 {
   // Command line only options
   bpo::options_description general("General options");
@@ -352,13 +361,15 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     bpo::notify(vm);
   } catch(bpo::error &e) {
     cerr<< e.what() << endl;
-    exit(1);
+    running = false;
+    return SRSLTE_ERROR;
   }
   // help option was given - print usage and exit
   if (vm.count("help")) {
     cout << "Usage: " << argv[0] << " [OPTIONS] config_file" << endl << endl;
     cout << common << endl << general << endl;
-    exit(0);
+    running = false;
+    return SRSLTE_SUCCESS;
   }
 
   // print version number and exit
@@ -367,7 +378,8 @@ void parse_args(all_args_t* args, int argc, char* argv[])
          srslte_get_version_major() << "." <<
          srslte_get_version_minor() << "." <<
          srslte_get_version_patch() << endl;
-    exit(0);
+    running = false;
+    return SRSLTE_SUCCESS;
   }
 
   // if no config file given, check users home path
@@ -375,7 +387,8 @@ void parse_args(all_args_t* args, int argc, char* argv[])
 
     if (!config_exists(config_file, "ue.conf")) {
       cout << "Failed to read UE configuration file " << config_file << " - exiting" << endl;
-      exit(1);
+      running = false;
+      return SRSLTE_ERROR;
     }
   }
 
@@ -383,7 +396,8 @@ void parse_args(all_args_t* args, int argc, char* argv[])
   ifstream conf(config_file.c_str(), ios::in);
   if (conf.fail()) {
     cout << "Failed to read configuration file " << config_file << " - exiting" << endl;
-    exit(1);
+    running = false;
+    return SRSLTE_ERROR;
   }
 
   // parse config file and handle errors gracefully
@@ -392,13 +406,15 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     bpo::notify(vm);
   } catch (const boost::program_options::error& e) {
     cerr << e.what() << endl;
-    exit(1);
+    running = false;
+    return SRSLTE_ERROR;
   }
 
   // Check conflicting OP/OPc options and which is being used
   if (vm.count("usim.op") && !vm["usim.op"].defaulted() && vm.count("usim.opc") && !vm["usim.opc"].defaulted()) {
     cout << "Conflicting options OP and OPc. Please configure either one or the other." << endl;
-    exit(1);
+    running = false;
+    return SRSLTE_ERROR;
   } else {
     args->stack.usim.using_op = vm.count("usim.op");
   }
@@ -464,14 +480,11 @@ void parse_args(all_args_t* args, int argc, char* argv[])
       args->stack.log.usim_hex_limit = args->log.all_hex_limit;
     }
   }
+
+  return SRSLTE_SUCCESS;
 }
 
-static int     sigcnt     = 0;
-static bool    running    = true;
-static bool    do_metrics = false;
-metrics_stdout metrics_screen;
-
-void sig_int_handler(int signo)
+static void sig_int_handler(int)
 {
   sigcnt++;
   running = false;
@@ -481,7 +494,7 @@ void sig_int_handler(int signo)
   }
 }
 
-void* input_loop(void* m)
+static void* input_loop(void*)
 {
   string key;
   while (running) {
@@ -490,23 +503,25 @@ void* input_loop(void* m)
       cout << "Closing stdin thread." << endl;
       break;
     } else {
-      if (0 == key.compare("t")) {
+      if (key == "t") {
         do_metrics = !do_metrics;
         if (do_metrics) {
           cout << "Enter t to stop trace." << endl;
         } else {
           cout << "Enter t to restart trace." << endl;
         }
-        metrics_screen.toggle_print(do_metrics);
-      } else if (0 == key.compare("rlf")) {
+        if (metrics_screen) {
+          metrics_screen->toggle_print(do_metrics);
+        }
+      } else if (key == "rlf") {
         simulate_rlf = true;
         cout << "Sending Radio Link Failure" << endl;
-      } else if (0 == key.compare("q")) {
+      } else if (key == "q") {
         running = false;
       }
     }
   }
-  return NULL;
+  return nullptr;
 }
 
 int main(int argc, char* argv[])
@@ -516,14 +531,17 @@ int main(int argc, char* argv[])
   srslte_debug_handle_crash(argc, argv);
 
   all_args_t args = {};
-  parse_args(&args, argc, argv);
+  int        ret  = parse_args(&args, argc, argv);
+  if (!running) {
+    return ret;
+  }
 
   srslte::logger_stdout logger_stdout;
   srslte::logger_file   logger_file;
 
   // Setup logging
   srslte::logger* logger = nullptr;
-  if (!args.log.filename.compare("stdout")) {
+  if (args.log.filename == "stdout") {
     logger = &logger_stdout;
   } else {
     logger_file.init(args.log.filename, args.log.file_max_size);
@@ -534,13 +552,16 @@ int main(int argc, char* argv[])
   srsue::ue ue;
   if (ue.init(args, logger)) {
     ue.stop();
-    return SRSLTE_ERROR;
+    return SRSLTE_SUCCESS;
   }
 
   srslte::metrics_hub<ue_metrics_t> metricshub;
+  metrics_stdout                    _metrics_screen;
+
+  metrics_screen = &_metrics_screen;
   metricshub.init(&ue, args.general.metrics_period_secs);
-  metricshub.add_listener(&metrics_screen);
-  metrics_screen.set_ue_handle(&ue);
+  metricshub.add_listener(metrics_screen);
+  metrics_screen->set_ue_handle(&ue);
 
   metrics_csv metrics_file(args.general.metrics_csv_filename);
   if (args.general.metrics_csv_enable) {
@@ -549,7 +570,7 @@ int main(int argc, char* argv[])
   }
 
   pthread_t input;
-  pthread_create(&input, NULL, &input_loop, &args);
+  pthread_create(&input, nullptr, &input_loop, &args);
 
   cout << "Attaching UE..." << endl;
   while (!ue.switch_on() && running) {
@@ -568,7 +589,7 @@ int main(int argc, char* argv[])
 
   ue.switch_off();
   pthread_cancel(input);
-  pthread_join(input, NULL);
+  pthread_join(input, nullptr);
   metricshub.stop();
   ue.stop();
   cout << "---  exiting  ---" << endl;
