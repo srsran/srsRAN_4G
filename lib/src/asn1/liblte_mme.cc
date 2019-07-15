@@ -2631,14 +2631,8 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_ue_network_capability_ie(LIBLTE_MME_UE_NETWORK
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
   if (ue_network_cap != NULL && ie_ptr != NULL) {
-    if (ue_network_cap->uea_present && (ue_network_cap->ucs2_present || ue_network_cap->uia_present) &&
-        (ue_network_cap->lpp_present || ue_network_cap->lcs_present || ue_network_cap->onexsrvcc_present ||
-         ue_network_cap->nf_present)) {
-      **ie_ptr = 5;
-    } else if (ue_network_cap->uea_present && (ue_network_cap->ucs2_present || ue_network_cap->uia_present)) {
-      **ie_ptr = 4;
-    } else if (ue_network_cap->uea_present) {
-      **ie_ptr = 3;
+    if (ue_network_cap->dc_nr_present) {
+      **ie_ptr = 7;
     } else {
       **ie_ptr = 2;
     }
@@ -2661,34 +2655,16 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_ue_network_capability_ie(LIBLTE_MME_UE_NETWORK
     **ie_ptr |= ue_network_cap->eia[6] << 1;
     **ie_ptr |= ue_network_cap->eia[7];
     *ie_ptr += 1;
-    if (ue_network_cap->uea_present) {
-      **ie_ptr = ue_network_cap->uea[0] << 7;
-      **ie_ptr |= ue_network_cap->uea[1] << 6;
-      **ie_ptr |= ue_network_cap->uea[2] << 5;
-      **ie_ptr |= ue_network_cap->uea[3] << 4;
-      **ie_ptr |= ue_network_cap->uea[4] << 3;
-      **ie_ptr |= ue_network_cap->uea[5] << 2;
-      **ie_ptr |= ue_network_cap->uea[6] << 1;
-      **ie_ptr |= ue_network_cap->uea[7];
-      *ie_ptr += 1;
-    }
-    if (ue_network_cap->ucs2_present || ue_network_cap->uia_present) {
-      **ie_ptr = ue_network_cap->ucs2 << 7;
-      **ie_ptr |= ue_network_cap->uia[1] << 6;
-      **ie_ptr |= ue_network_cap->uia[2] << 5;
-      **ie_ptr |= ue_network_cap->uia[3] << 4;
-      **ie_ptr |= ue_network_cap->uia[4] << 3;
-      **ie_ptr |= ue_network_cap->uia[5] << 2;
-      **ie_ptr |= ue_network_cap->uia[6] << 1;
-      **ie_ptr |= ue_network_cap->uia[7];
-      *ie_ptr += 1;
-    }
-    if (ue_network_cap->lpp_present || ue_network_cap->lcs_present || ue_network_cap->onexsrvcc_present ||
-        ue_network_cap->nf_present) {
-      **ie_ptr = ue_network_cap->lpp << 3;
-      **ie_ptr |= ue_network_cap->lcs << 2;
-      **ie_ptr |= ue_network_cap->onexsrvcc << 1;
-      **ie_ptr |= ue_network_cap->nf;
+
+    if (ue_network_cap->dc_nr_present) {
+      // skip empty caps
+      for (int i = 0; i < 4; i++) {
+        **ie_ptr = 0;
+        *ie_ptr += 1;
+      }
+
+      // set dcnr bit
+      **ie_ptr = ue_network_cap->dc_nr << 4;
       *ie_ptr += 1;
     }
 

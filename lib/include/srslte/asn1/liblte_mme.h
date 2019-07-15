@@ -1340,6 +1340,8 @@ typedef struct {
   bool onexsrvcc_present;
   bool nf;
   bool nf_present;
+  bool dc_nr;
+  bool dc_nr_present;
 } LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT;
 // Functions
 LIBLTE_ERROR_ENUM liblte_mme_pack_ue_network_capability_ie(LIBLTE_MME_UE_NETWORK_CAPABILITY_STRUCT* ue_network_cap,
