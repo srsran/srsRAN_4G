@@ -23,13 +23,14 @@
 #define SRSLTE_RLC_UM_H
 
 #include "srslte/common/buffer_pool.h"
-#include "srslte/common/log.h"
 #include "srslte/common/common.h"
+#include "srslte/common/log.h"
 #include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/upper/rlc_tx_queue.h"
 #include "srslte/upper/rlc_common.h"
-#include <pthread.h>
+#include "srslte/upper/rlc_tx_queue.h"
 #include <map>
+#include <mutex>
+#include <pthread.h>
 #include <queue>
 
 namespace srslte {
@@ -38,6 +39,11 @@ struct rlc_umd_pdu_t{
   rlc_umd_pdu_header_t  header;
   unique_byte_buffer_t  buf;
 };
+
+typedef struct {
+  rlc_um_nr_pdu_header_t  header;
+  unique_byte_buffer_t    buf;
+} rlc_umd_pdu_nr_t;
 
 class rlc_um
     :public rlc_common
@@ -73,14 +79,13 @@ public:
   void reset_metrics();
 
 private:
-
-  // Transmitter sub-class
-  class rlc_um_tx
+  // Transmitter sub-class base
+  class rlc_um_tx_base
   {
   public:
-    rlc_um_tx(srslte::log* log_);
-    ~rlc_um_tx();
-    bool     configure(rlc_config_t cfg, std::string rb_name);
+    rlc_um_tx_base(srslte::log* log_);
+    virtual ~rlc_um_tx_base();
+    virtual bool configure(rlc_config_t cfg, std::string rb_name) = 0;
     int  build_data_pdu(uint8_t *payload, uint32_t nof_bytes);
     void stop();
     void reestablish();
@@ -92,7 +97,7 @@ private:
     bool has_data();
     uint32_t get_buffer_state();
 
-  private:
+  protected:
     byte_buffer_pool*       pool = nullptr;
     srslte::log*            log  = nullptr;
     std::string             rb_name;
@@ -101,28 +106,58 @@ private:
      * Configurable parameters
      * Ref: 3GPP TS 36.322 v10.0.0 Section 7
      ***************************************************************************/
-    rlc_um_config_t cfg = {};
+    rlc_config_t cfg = {};
 
     // TX SDU buffers
     rlc_tx_queue            tx_sdu_queue;
     unique_byte_buffer_t    tx_sdu;
 
+    // Mutexes
+    std::mutex mutex;
+
+    bool tx_enabled = false;
+
+    uint32_t num_tx_bytes = 0;
+
+    virtual int build_data_pdu(unique_byte_buffer_t pdu, uint8_t* payload, uint32_t nof_bytes) = 0;
+
+    // helper functions
+    virtual void debug_state() = 0;
+    const char*  get_rb_name();
+  };
+
+  // Transmitter sub-class for LTE
+  class rlc_um_tx : public rlc_um_tx_base
+  {
+  public:
+    rlc_um_tx(srslte::log* log_);
+
+    bool configure(rlc_config_t cfg, std::string rb_name);
+    int  build_data_pdu(unique_byte_buffer_t pdu, uint8_t* payload, uint32_t nof_bytes);
+
+  private:
     /****************************************************************************
      * State variables and counters
      * Ref: 3GPP TS 36.322 v10.0.0 Section 7
      ***************************************************************************/
     uint32_t vt_us = 0; // Send state. SN to be assigned for next PDU.
 
-    // Mutexes
-    pthread_mutex_t         mutex;
-
-    bool tx_enabled = false;
-
-    uint32_t num_tx_bytes = 0;
-
-    // helper functions
     void debug_state();
-    const char* get_rb_name();
+  };
+
+  // Transmitter sub-class for NR
+  class rlc_um_tx_nr : public rlc_um_tx_base
+  {
+  public:
+    rlc_um_tx_nr(srslte::log* log_);
+
+    bool configure(rlc_config_t cfg, std::string rb_name);
+    int  build_data_pdu(unique_byte_buffer_t pdu, uint8_t* payload, uint32_t nof_bytes);
+
+  private:
+    uint32_t TX_Next = 0; // send state as defined in TS 38.322 v15.3 Section 7
+
+    void debug_state();
   };
 
   // Receiver sub-class
@@ -159,7 +194,7 @@ private:
      * Configurable parameters
      * Ref: 3GPP TS 36.322 v10.0.0 Section 7
      ***************************************************************************/
-    rlc_um_config_t cfg = {};
+    rlc_config_t cfg = {};
 
     // Rx window
     std::map<uint32_t, rlc_umd_pdu_t>   rx_window;
@@ -182,7 +217,7 @@ private:
     uint32_t                   lcid = 0;
 
     // Mutexes
-    pthread_mutex_t                     mutex;
+    std::mutex mutex;
 
     bool rx_enabled = false;
 
@@ -209,7 +244,7 @@ private:
   std::string               get_rb_name(srsue::rrc_interface_rlc *rrc, uint32_t lcid, bool is_mrb);
 
   // Rx and Tx objects
-  rlc_um_tx tx;
+  std::unique_ptr<rlc_um_tx_base> tx;
   rlc_um_rx rx;
 };
 
@@ -224,6 +259,23 @@ void rlc_um_write_data_pdu_header(rlc_umd_pdu_header_t* header, byte_buffer_t* p
 uint32_t    rlc_um_packed_length(rlc_umd_pdu_header_t *header);
 bool        rlc_um_start_aligned(uint8_t fi);
 bool        rlc_um_end_aligned(uint8_t fi);
+
+/****************************************************************************
+ * Header pack/unpack helper functions for NR
+ * Ref: 3GPP TS 38.322 v15.3.0 Section 6.2.2.3
+ ***************************************************************************/
+uint32_t rlc_um_nr_read_data_pdu_header(const byte_buffer_t*      pdu,
+                                        const rlc_um_nr_sn_size_t sn_size,
+                                        rlc_um_nr_pdu_header_t*   header);
+
+uint32_t rlc_um_nr_read_data_pdu_header(const uint8_t*            payload,
+                                        const uint32_t            nof_bytes,
+                                        const rlc_um_nr_sn_size_t sn_size,
+                                        rlc_um_nr_pdu_header_t*   header);
+
+uint32_t rlc_um_nr_write_data_pdu_header(const rlc_um_nr_pdu_header_t& header, byte_buffer_t* pdu);
+
+uint32_t rlc_um_nr_packed_length(const rlc_um_nr_pdu_header_t& header);
 
 } // namespace srslte
 

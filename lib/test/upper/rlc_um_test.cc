@@ -19,9 +19,10 @@
  *
  */
 
-#include <iostream>
+#include "rlc_test_common.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/upper/rlc_um.h"
+#include <iostream>
 
 #define TESTASSERT(cond)                                                                                               \
   {                                                                                                                    \
@@ -37,43 +38,6 @@
 using namespace srslte;
 using namespace srsue;
 using namespace asn1::rrc;
-
-class rlc_um_tester : public pdcp_interface_rlc, public rrc_interface_rlc
-{
-public:
-  rlc_um_tester(){
-    bzero(sdus, sizeof(sdus));
-    n_sdus = 0;
-    expected_sdu_len = 0;
-  }
-
-  // PDCP interface
-  void write_pdu(uint32_t lcid, unique_byte_buffer_t sdu)
-  {
-    if (lcid != 3 && sdu->N_bytes != expected_sdu_len) {
-      printf("Received PDU with size %d, expected %d. Exiting.\n", sdu->N_bytes, expected_sdu_len);
-      exit(-1);
-    }
-    sdus[n_sdus++] = std::move(sdu);
-  }
-  void write_pdu_bcch_bch(unique_byte_buffer_t sdu) {}
-  void write_pdu_bcch_dlsch(unique_byte_buffer_t sdu) {}
-  void write_pdu_pcch(unique_byte_buffer_t sdu) {}
-  void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu)
-  {
-    sdus[n_sdus++] = std::move(sdu);
-  }
-  
-  // RRC interface
-  void max_retx_attempted(){}
-  std::string get_rb_name(uint32_t lcid) { return std::string(""); }
-  void set_expected_sdu_len(uint32_t len) { expected_sdu_len = len; }
-
-  unique_byte_buffer_t sdus[MAX_NBUFS];
-  int n_sdus;
-  uint32_t expected_sdu_len;
-};
-
 
 int basic_test()
 {
@@ -135,10 +99,9 @@ int basic_test()
 
   TESTASSERT(0 == rlc2.get_buffer_state());
 
-  TESTASSERT(NBUFS == tester.n_sdus);
-  for(int i=0; i<tester.n_sdus; i++)
-  {
-    TESTASSERT(tester.sdus[i]->N_bytes == 1);
+  TESTASSERT(NBUFS == tester.get_num_sdus());
+  for (uint32_t i = 0; i < tester.sdus.size(); i++) {
+    TESTASSERT(tester.sdus.at(i)->N_bytes == 1);
     TESTASSERT(*(tester.sdus[i]->msg) == i);
   }
 
@@ -201,7 +164,7 @@ int loss_test()
   while (!timers.get(1)->is_expired())
     timers.get(1)->step();
 
-  TESTASSERT(NBUFS - 1 == tester.n_sdus);
+  TESTASSERT(NBUFS - 1 == tester.sdus.size());
 
   return 0;
 }
@@ -257,9 +220,8 @@ int basic_mbsfn_test()
 
   TESTASSERT(0 == rlc2.get_buffer_state());
 
-  TESTASSERT(NBUFS == tester.n_sdus);
-  for(int i=0; i<tester.n_sdus; i++)
-  {
+  TESTASSERT(NBUFS == tester.sdus.size());
+  for (uint32_t i = 0; i < tester.sdus.size(); i++) {
     TESTASSERT(tester.sdus[i]->N_bytes == 1);
     TESTASSERT(*(tester.sdus[i]->msg) == i);
   }
@@ -372,8 +334,8 @@ int reassmble_test()
   }
 
   // We should have received one SDU less than we tx'ed
-  TESTASSERT(tester.n_sdus == n_sdus - 1);
-  for (int i = 0; i < tester.n_sdus; ++i) {
+  TESTASSERT(tester.sdus.size() == n_sdus - 1);
+  for (uint32_t i = 0; i < tester.sdus.size(); ++i) {
     TESTASSERT(tester.sdus[i]->N_bytes == sdu_len);
   }
 
@@ -476,8 +438,8 @@ int reassmble_test2()
   }
 
   // We should have received one SDU less than we tx'ed
-  TESTASSERT(tester.n_sdus == n_sdus - 1);
-  for (int i = 0; i < tester.n_sdus; ++i) {
+  TESTASSERT(tester.sdus.size() == n_sdus - 1);
+  for (uint32_t i = 0; i < tester.sdus.size(); ++i) {
     TESTASSERT(tester.sdus[i]->N_bytes == sdu_len);
   }
 

@@ -51,6 +51,14 @@ add_executable(rlc_common_test rlc_common_test.cc)
 target_link_libraries(rlc_common_test srslte_upper srslte_phy)
 add_test(rlc_common_test rlc_common_test)
 
+add_executable(rlc_um_nr_pdu_test rlc_um_nr_pdu_test.cc)
+target_link_libraries(rlc_um_nr_pdu_test srslte_upper srslte_phy)
+add_test(rlc_um_nr_pdu_test rlc_um_nr_pdu_test)
+
+add_executable(rlc_um_nr_test rlc_um_nr_test.cc)
+target_link_libraries(rlc_um_nr_test srslte_upper srslte_phy)
+add_test(rlc_um_nr_test rlc_um_nr_test)
+
 add_executable(pdcp_nr_test pdcp_nr_test.cc)
 target_link_libraries(pdcp_nr_test srslte_upper srslte_common)
 add_test(pdcp_nr_test pdcp_nr_test)
