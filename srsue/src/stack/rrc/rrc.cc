@@ -2091,7 +2091,7 @@ void rrc::write_pdu_pcch(unique_byte_buffer_t pdu)
 
 void rrc::process_pcch(unique_byte_buffer_t pdu)
 {
-  if (pdu->N_bytes > 0 && pdu->N_bytes < SRSLTE_MAX_BUFFER_SIZE_BITS) {
+  if (pdu->N_bytes > 0 && pdu->N_bytes < SRSLTE_MAX_BUFFER_SIZE_BYTES) {
     pcch_msg_s    pcch_msg;
     asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
     if (pcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or pcch_msg.msg.type().value != pcch_msg_type_c::types_opts::c1) {
@@ -2148,7 +2148,7 @@ void rrc::process_pcch(unique_byte_buffer_t pdu)
 
 void rrc::write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 {
-  if (pdu->N_bytes > 0 && pdu->N_bytes < SRSLTE_MAX_BUFFER_SIZE_BITS) {
+  if (pdu->N_bytes > 0 && pdu->N_bytes < SRSLTE_MAX_BUFFER_SIZE_BYTES) {
     //TODO: handle MCCH notifications and update MCCH
     if (0 == lcid && !serving_cell->has_mcch) {
       asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
