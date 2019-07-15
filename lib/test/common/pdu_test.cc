@@ -413,6 +413,49 @@ int mac_sch_pdu_pack_test4()
   return SRSLTE_SUCCESS;
 }
 
+// Test for max. TBS MAC PDU
+int mac_sch_pdu_pack_test5()
+{
+  rlc_dummy rlc;
+
+  srslte::log_filter mac_log("MAC");
+  mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
+  mac_log.set_hex_limit(32);
+
+  // write big SDU
+  rlc.write_sdu(2, 20000);
+
+  const uint32_t  pdu_size = SRSLTE_MAX_TBSIZE_BITS / 8; // Max. DL allocation for a single TB using 256 QAM
+  srslte::sch_pdu pdu(10, &mac_log);
+
+  byte_buffer_t buffer;
+  pdu.init_tx(&buffer, pdu_size, true);
+
+  TESTASSERT(pdu.rem_size() == pdu_size);
+  TESTASSERT(pdu.get_pdu_len() == pdu_size);
+  TESTASSERT(pdu.get_sdu_space() == pdu_size - 1);
+  TESTASSERT(pdu.get_current_sdu_ptr() == buffer.msg);
+
+  // Try to add SDU
+  TESTASSERT(pdu.new_subh());
+  TESTASSERT(pdu.get()->set_sdu(2, pdu_size - 1, &rlc) != 0);
+
+  // write PDU
+  pdu.write_packet(&mac_log);
+
+  // make sure full PDU has been written
+  TESTASSERT(buffer.N_bytes == pdu_size);
+
+  // log
+  mac_log.info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
+
+#if HAVE_PCAP
+  pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1);
+#endif
+
+  return SRSLTE_SUCCESS;
+}
+
 // Test for checking error cases
 int mac_sch_pdu_pack_error_test()
 {
@@ -541,6 +584,11 @@ int main(int argc, char** argv)
 
   if (mac_sch_pdu_pack_test4()) {
     fprintf(stderr, "mac_sch_pdu_pack_test4 failed.\n");
+    return SRSLTE_ERROR;
+  }
+
+  if (mac_sch_pdu_pack_test5()) {
+    fprintf(stderr, "mac_sch_pdu_pack_test5 failed.\n");
     return SRSLTE_ERROR;
   }
 
