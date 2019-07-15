@@ -94,7 +94,7 @@ private:
   uint32_t                 tti_rx       = 0;
   uint32_t                 sf_idx       = 0;
   uint32_t                 current_cfix = 0;
-  size_t                   prev_start, prev_end = 0;
+  size_t                   prev_start = 0, prev_end = 0;
   std::vector<tree_node_t> dci_alloc_tree;
   size_t                   nof_dci_allocs = 0;
 };
@@ -137,7 +137,7 @@ private:
   // tti const
   uint32_t tti_rx = 10241;
   // derived
-  uint32_t     tti_tx_dl, tti_tx_ul = 0;
+  uint32_t     tti_tx_dl = 0, tti_tx_ul = 0;
   uint32_t     sfn         = 0;
   pdcch_grid_t pdcch_alloc = {};
 
