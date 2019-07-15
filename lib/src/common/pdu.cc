@@ -660,8 +660,9 @@ int sch_subh::set_sdu(uint32_t lcid_, uint32_t requested_bytes_, read_pdu_interf
       }
     }
 
-    ((sch_pdu*)parent)->add_sdu(nof_bytes);
     ((sch_pdu*)parent)->update_space_sdu(nof_bytes);
+    ((sch_pdu*)parent)->add_sdu(nof_bytes);
+
     return nof_bytes;
   } else {
     return SRSLTE_ERROR;
