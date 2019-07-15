@@ -293,6 +293,7 @@ enable = false
 # metrics_csv_filename: File path to use for CSV metrics.
 #
 #####################################################################
+[general]
 #metrics_csv_enable  = false
 #metrics_period_secs = 1
 #metrics_csv_filename = /tmp/ue_metrics.csv
