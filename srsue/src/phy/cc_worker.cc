@@ -1391,6 +1391,16 @@ void cc_worker::set_scell_config(asn1::rrc::scell_to_add_mod_r10_s* phy_cfg)
           }
         }
       }
+
+      if (phys_cfg_ded_scell_r10->cqi_report_cfg_scell_v1250_present) {
+        auto cqi_report_cfg_scell = phys_cfg_ded_scell_r10->cqi_report_cfg_scell_v1250.get();
+
+        // Enable/disable PDSCH 256QAM
+        ue_dl_cfg.pdsch_use_tbs_index_alt = cqi_report_cfg_scell->alt_cqi_table_r12_present;
+      } else {
+        // Assume there is no PDSCH 256QAM
+        ue_dl_cfg.pdsch_use_tbs_index_alt = false;
+      }
     }
   }
 }
