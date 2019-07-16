@@ -53,16 +53,17 @@ class rlc_dummy : public srsue::rlc_interface_pdcp
 public:
   rlc_dummy(srslte::log* log_) : log(log_) {}
 
+  const srslte::unique_byte_buffer_t& get_last_pdcp_pdu() { return last_pdcp_pdu; }
   void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking = true)
   {
     log->info_hex(sdu->msg, sdu->N_bytes, "RLC SDU");
-    last_pdcp_pdu(std::move(sdu));
+    last_pdcp_pdu.swap(sdu);
   }
+
 
 private:
   srslte::log* log;
   srslte::unique_byte_buffer_t last_pdcp_pdu;
-  srslte::unique_byte_buffer_t get_last_pdcp_pdu() { return last_pdcp_pdu; }
 
   bool rb_is_um(uint32_t lcid) { return false; }
 };
@@ -103,7 +104,7 @@ private:
  * Input: {0x18, 0xE2}
  * Output: PDCP Header {0x80,0x00}, Ciphered Text {0x8f, 0xe3}, MAC-I {0xe0, 0xdf, 0x82, 0x92}
  */
-bool test_tx_basic(srslte::byte_buffer_pool* pool, srslte::log* log)
+int test_tx_basic(srslte::byte_buffer_pool* pool, srslte::log* log)
 {
   srslte::pdcp_entity_nr pdcp;
   srslte::srslte_pdcp_config_t cfg = {1, srslte::PDCP_RB_IS_DRB, SECURITY_DIRECTION_UPLINK, srslte::PDCP_SN_LEN_12};
@@ -119,26 +120,23 @@ bool test_tx_basic(srslte::byte_buffer_pool* pool, srslte::log* log)
 
   // Test SDU
   srslte::unique_byte_buffer_t sdu = allocate_unique_buffer(*pool);
-  memcpy(msg->msg, sdu1, SDU1_LEN);
-  msg->N_bytes = SDU1_LEN;
+  memcpy(sdu->msg, sdu1, SDU1_LEN);
+  sdu->N_bytes = SDU1_LEN;
 
   // Expected PDCP PDU
   srslte::unique_byte_buffer_t pdu_exp = allocate_unique_buffer(*pool);
-  memcpy(pdu_exp->msg, pdu_exp, PDU1_LEN);
-  msg->N_bytes = PDU1_LEN;
-
-  // Actual PDCP PDU
-  srslte::unique_byte_buffer_t pdu_act = allocate_unique_buffer(*pool);
+  memcpy(pdu_exp->msg, pdu1, PDU1_LEN);
+  pdu_exp->N_bytes = PDU1_LEN;
 
   // Run test
   pdcp.write_sdu(std::move(sdu), true);
-  rlc.get_last_pdcp_pdu(pdu);
+  const srslte::unique_byte_buffer_t& pdu_act = rlc.get_last_pdcp_pdu();
 
-  TESTASSERT(pdu->N_Bytes == PDU1_LEN);
-  for (int i = 0; i < PDU1_LEN; ++i) {
-    TESTASSERT(pdu->msg[i] == PDU1_LEN);
+  TESTASSERT(pdu_act->N_bytes == pdu_exp->N_bytes);
+  for (uint32_t i = 0; i < pdu_exp->N_bytes; ++i) {
+    TESTASSERT(pdu_act->msg[i] == pdu_exp->msg[i]);
   }
-  return true;
+  return 0;
 }
 
 /*
@@ -163,22 +161,16 @@ bool test_rx_basic(srslte::byte_buffer_pool* pool, srslte::log* log)
   pdcp.enable_encryption();
 
   uint8_t mac_exp[4];
-  srslte::unique_byte_buffer_t msg = allocate_unique_buffer(*pool);
-  srslte::unique_byte_buffer_t ct_exp  = allocate_unique_buffer(*pool);
-  memcpy(msg->msg, sdu1, SDU1_LEN);
-  msg->N_bytes = SDU1_LEN;
-  ct_exp->N_bytes = SDU1_LEN;
+  srslte::unique_byte_buffer_t pdu     = allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t sdu_exp = allocate_unique_buffer(*pool);
+  memcpy(pdu->msg, pdu1, PDU1_LEN);
+  pdu->N_bytes = PDU1_LEN;
+  sdu_exp->N_bytes = SDU1_LEN;
 
-  srslte::security_128_eia2(&k_int[16], 0, 0, SECURITY_DIRECTION_UPLINK, msg->msg, msg->N_bytes, mac_exp);
-  srslte::security_128_eea2(&k_enc[16], 0, 0, SECURITY_DIRECTION_UPLINK, msg->msg, msg->N_bytes, ct_exp->msg);
-
-  log->info_hex(mac_exp, 4, "MAC-I:");
-  log->info_hex(ct_exp->msg, ct_exp->N_bytes, "Cipher text:");
-
-  pdcp.write_pdu(std::move(msg), true);
-
-  return true;
+  pdcp.write_pdu(std::move(pdu));
+  return 0;
 }
+
 // Setup all tests
 int run_all_tests(srslte::byte_buffer_pool* pool)
 {
@@ -187,7 +179,8 @@ int run_all_tests(srslte::byte_buffer_pool* pool)
   log.set_level(srslte::LOG_LEVEL_DEBUG);
   log.set_hex_limit(128);
 
-  TESTASSERT(test_tx_basic(pool, &log));
+  TESTASSERT(test_tx_basic(pool, &log) == 0);
+  TESTASSERT(test_rx_basic(pool, &log) == 0);
   return 0;
 }
 

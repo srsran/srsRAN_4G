@@ -182,7 +182,6 @@ void pdcp_entity_nr::write_data_header(const srslte::unique_byte_buffer_t& sdu, 
 
   switch (cfg.sn_len) {
     case PDCP_SN_LEN_12:
-      log->console("wazapp\n");
       srslte::uint16_to_uint8(0x3F & count, sdu->msg);
       if (is_drb()) {
         sdu->msg[0] |= 0x80; // On DRB Data PDUs we must set the D flag.
