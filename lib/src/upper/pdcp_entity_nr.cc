@@ -45,6 +45,8 @@ void pdcp_entity_nr::init(srsue::rlc_interface_pdcp* rlc_,
   active        = true;
   do_integrity  = false;
   do_encryption = false;
+
+  window_size = 1 << (cfg.sn_len - 1);
 }
 
 // Reestablishment procedure: 38.323 5.2
@@ -107,17 +109,26 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
     return;
   }
 
+  // Extract RCVD_SN from header
+  uint32_t rcvd_sn;
+  read_data_header(pdu, &rcvd_sn);
+
   // Calculate RCVD_COUNT
-  uint32_t rcvd_sn = get_rcvd_sn(pdu);
+  printf("%d\n", rcvd_sn);
   uint32_t rcvd_hfn, rcvd_count;
-  if (rcvd_sn < SN(rx_deliv) - window_size) {
+  if ((int64_t)rcvd_sn < (int64_t)SN(rx_deliv) - (int64_t)window_size) {
+    printf("rcvd_sn %d < SN(rx_deliv) %d(%d) - window_size %d\n", rcvd_sn, SN(rx_deliv), rx_deliv, window_size);
     rcvd_hfn = HFN(rx_deliv) + 1;
   } else if (rcvd_sn >= SN(rx_deliv) + window_size) {
+    printf("rcvd_sn %d >= SN(rx_deliv) %d(%d) + window_size %d\n", rcvd_sn, SN(rx_deliv), rx_deliv, window_size);
     rcvd_hfn = HFN(rx_deliv) - 1;
   } else {
     rcvd_hfn = HFN(rx_deliv);
   }
   rcvd_count = COUNT(rcvd_hfn, rcvd_sn);
+
+  // Decripting
+  cipher_decrypt(pdu->msg, pdu->N_bytes - 4, rcvd_count, pdu->msg);
 
   // Integrity check
   uint8_t mac[4];
@@ -126,8 +137,6 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
     return; // Invalid packet, drop.
   }
 
-  // Decripting
-  cipher_decrypt(pdu->msg, pdu->N_bytes, rcvd_count, pdu->msg);
 
   // Check valid rcvd_count
   if (rcvd_count < rx_deliv /*|| check_received_before() TODO*/) {
@@ -154,20 +163,23 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   // TODO handle reordering timers
 }
 
-uint32_t pdcp_entity_nr::get_rcvd_sn(const unique_byte_buffer_t& pdu)
+void pdcp_entity_nr::read_data_header(const unique_byte_buffer_t& pdu, uint32_t *rcvd_sn)
 {
-  uint32_t rcvd_sn = 0;
+  uint16_t rcvd_sn_16 = 0;
   switch (cfg.sn_len) {
     case PDCP_SN_LEN_12:
-      pdu->msg;
+      srslte::uint8_to_uint16(pdu->msg, &rcvd_sn_16);
+      (*rcvd_sn) = 0x0FFF & rcvd_sn_16;
       break;
     case PDCP_SN_LEN_18:
-      pdu->msg;
+      // srslte::uint8_to_uint24((uint16_t*)sdu->msg, rcvd_sn);
       break;
     default:
       log->error("Cannot extract RCVD_SN, invalid SN length configured: %d\n", cfg.sn_len);
   }
-  return rcvd_sn;
+  pdu->msg += cfg.hdr_len_bytes;
+  pdu->N_bytes -= cfg.hdr_len_bytes;
+  return;
 }
 
 void pdcp_entity_nr::write_data_header(const srslte::unique_byte_buffer_t& sdu, uint32_t count)

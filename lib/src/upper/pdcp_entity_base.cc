@@ -92,8 +92,8 @@ void pdcp_entity_base::integrity_generate(uint8_t* msg, uint32_t msg_len, uint32
              count,
              cfg.bearer_id,
              (cfg.direction == SECURITY_DIRECTION_DOWNLINK ? "Downlink" : "Uplink"));
+  log->debug_hex(msg, msg_len, "Integrity gen input msg:");
   log->debug_hex(mac, 4, "MAC (generated)");
-  log->debug_hex(msg, msg_len, "  Message");
 }
 
 bool pdcp_entity_base::integrity_verify(uint8_t* msg, uint32_t msg_len, uint32_t count, uint8_t* mac)
@@ -140,7 +140,7 @@ bool pdcp_entity_base::integrity_verify(uint8_t* msg, uint32_t msg_len, uint32_t
              count,
              cfg.bearer_id,
              (cfg.direction == SECURITY_DIRECTION_DOWNLINK ? "Downlink" : "Uplink"));
-  log->debug_hex(msg, msg_len, "  Message");
+  log->debug_hex(msg, msg_len, "Integrity check input msg:");
 
   if (integ_algo != INTEGRITY_ALGORITHM_ID_EIA0) {
     for (uint8_t i = 0; i < 4; i++) {
@@ -175,6 +175,7 @@ void pdcp_entity_base::cipher_encrypt(uint8_t* msg, uint32_t msg_len, uint32_t c
              count,
              cfg.bearer_id,
              (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? "Downlink" : "Uplink");
+  log->debug_hex(msg, msg_len, "Cipher encrypt input msg");
 
   switch (cipher_algo) {
     case CIPHERING_ALGORITHM_ID_EEA0:
@@ -190,12 +191,14 @@ void pdcp_entity_base::cipher_encrypt(uint8_t* msg, uint32_t msg_len, uint32_t c
     default:
       break;
   }
+  log->debug_hex(ct, msg_len, "Cipher encrypt output msg");
 }
 
 void pdcp_entity_base::cipher_decrypt(uint8_t* ct, uint32_t ct_len, uint32_t count, uint8_t* msg)
 {
   byte_buffer_t msg_tmp;
   uint8_t *k_enc;
+
   // If control plane use RRC encrytion key. If data use user plane key
   if (is_srb()) {
     k_enc = k_rrc_enc;
@@ -203,10 +206,11 @@ void pdcp_entity_base::cipher_decrypt(uint8_t* ct, uint32_t ct_len, uint32_t cou
     k_enc = k_up_enc;
   }
 
-  log->debug("Cipher decript input: COUNT: %d, Bearer ID: %d, Direction %s\n",
+  log->debug("Cipher decrypt input: COUNT: %d, Bearer ID: %d, Direction %s\n",
              count,
              cfg.bearer_id,
              (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? "Downlink" : "Uplink");
+  log->debug_hex(ct, ct_len, "Cipher decrypt input msg");
 
   switch(cipher_algo)
   {
@@ -237,6 +241,7 @@ void pdcp_entity_base::cipher_decrypt(uint8_t* ct, uint32_t ct_len, uint32_t cou
   default:
     break;
   }
+  log->debug_hex(msg, ct_len,"Cipher decrypt output msg");
 }
 
 }
