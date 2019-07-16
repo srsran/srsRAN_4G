@@ -413,51 +413,66 @@ void demod_64qam_lte_b(const cf_t *symbols, int8_t *llr, int nsymbols)
 void demod_256qam_lte(const cf_t* symbols, float* llr, int nsymbols)
 {
   for (int i = 0; i < nsymbols; i++) {
-    float real = crealf(symbols[i]);
-    float imag = cimagf(symbols[i]);
-
-    llr[8 * i + 0] = -real;
-    llr[8 * i + 1] = -imag;
-    llr[8 * i + 2] = fabsf(real) - 8 / sqrt(170);
-    llr[8 * i + 3] = fabsf(imag) - 8 / sqrt(170);
-    llr[8 * i + 4] = fabsf(llr[8 * i + 2]) - 4 / sqrt(170);
-    llr[8 * i + 5] = fabsf(llr[8 * i + 3]) - 4 / sqrt(170);
-    llr[8 * i + 6] = fabsf(llr[8 * i + 4]) - 2 / sqrt(170);
-    llr[8 * i + 7] = fabsf(llr[8 * i + 5]) - 2 / sqrt(170);
+    float real = -__real__ symbols[i];
+    float imag = -__imag__ symbols[i];
+    *(llr++)   = real;
+    *(llr++)   = imag;
+    real       = fabsf(real) - 8.0f / sqrtf(170.0f);
+    imag       = fabsf(imag) - 8.0f / sqrtf(170.0f);
+    *(llr++)   = real;
+    *(llr++)   = imag;
+    real       = fabsf(real) - 4.0f / sqrtf(170.0f);
+    imag       = fabsf(imag) - 4.0f / sqrtf(170.0f);
+    *(llr++)   = real;
+    *(llr++)   = imag;
+    real       = fabsf(real) - 2.0f / sqrtf(170.0f);
+    imag       = fabsf(imag) - 2.0f / sqrtf(170.0f);
+    *(llr++)   = real;
+    *(llr++)   = imag;
   }
 }
 
 void demod_256qam_lte_b(const cf_t* symbols, int8_t* llr, int nsymbols)
 {
   for (int i = 0; i < nsymbols; i++) {
-    float real = SCALE_BYTE_CONV_QAM256 * crealf(symbols[i]);
-    float imag = SCALE_BYTE_CONV_QAM256 * cimagf(symbols[i]);
-
-    llr[8 * i + 0] = -real;
-    llr[8 * i + 1] = -imag;
-    llr[8 * i + 2] = fabsf(real) - SCALE_BYTE_CONV_QAM256 * 8 / sqrt(170);
-    llr[8 * i + 3] = fabsf(imag) - SCALE_BYTE_CONV_QAM256 * 8 / sqrt(170);
-    llr[8 * i + 4] = fabsf(llr[8 * i + 2]) - SCALE_BYTE_CONV_QAM256 * 4 / sqrt(170);
-    llr[8 * i + 5] = fabsf(llr[8 * i + 3]) - SCALE_BYTE_CONV_QAM256 * 4 / sqrt(170);
-    llr[8 * i + 6] = fabsf(llr[8 * i + 4]) - SCALE_BYTE_CONV_QAM256 * 2 / sqrt(170);
-    llr[8 * i + 7] = fabsf(llr[8 * i + 5]) - SCALE_BYTE_CONV_QAM256 * 2 / sqrt(170);
+    float real = -__real__ symbols[i];
+    float imag = -__imag__ symbols[i];
+    *(llr++)   = SCALE_BYTE_CONV_QAM256 * real;
+    *(llr++)   = SCALE_BYTE_CONV_QAM256 * imag;
+    real       = fabsf(real) - 8.0f / sqrtf(170.0f);
+    imag       = fabsf(imag) - 8.0f / sqrtf(170.0f);
+    *(llr++)   = SCALE_BYTE_CONV_QAM256 * real;
+    *(llr++)   = SCALE_BYTE_CONV_QAM256 * imag;
+    real       = fabsf(real) - 4.0f / sqrtf(170.0f);
+    imag       = fabsf(imag) - 4.0f / sqrtf(170.0f);
+    *(llr++)   = SCALE_BYTE_CONV_QAM256 * real;
+    *(llr++)   = SCALE_BYTE_CONV_QAM256 * imag;
+    real       = fabsf(real) - 2.0f / sqrtf(170.0f);
+    imag       = fabsf(imag) - 2.0f / sqrtf(170.0f);
+    *(llr++)   = SCALE_BYTE_CONV_QAM256 * real;
+    *(llr++)   = SCALE_BYTE_CONV_QAM256 * imag;
   }
 }
 
 void demod_256qam_lte_s(const cf_t* symbols, short* llr, int nsymbols)
 {
   for (int i = 0; i < nsymbols; i++) {
-    float real = SCALE_SHORT_CONV_QAM256 * crealf(symbols[i]);
-    float imag = SCALE_SHORT_CONV_QAM256 * cimagf(symbols[i]);
-
-    llr[8 * i + 0] = -real;
-    llr[8 * i + 1] = -imag;
-    llr[8 * i + 2] = fabsf(real) - SCALE_SHORT_CONV_QAM256 * 8 / sqrt(170);
-    llr[8 * i + 3] = fabsf(imag) - SCALE_SHORT_CONV_QAM256 * 8 / sqrt(170);
-    llr[8 * i + 4] = fabsf(llr[8 * i + 2]) - SCALE_SHORT_CONV_QAM256 * 4 / sqrt(170);
-    llr[8 * i + 5] = fabsf(llr[8 * i + 3]) - SCALE_SHORT_CONV_QAM256 * 4 / sqrt(170);
-    llr[8 * i + 6] = fabsf(llr[8 * i + 4]) - SCALE_SHORT_CONV_QAM256 * 2 / sqrt(170);
-    llr[8 * i + 7] = fabsf(llr[8 * i + 5]) - SCALE_SHORT_CONV_QAM256 * 2 / sqrt(170);
+    float real = -__real__ symbols[i];
+    float imag = -__imag__ symbols[i];
+    *(llr++)   = SCALE_SHORT_CONV_QAM256 * real;
+    *(llr++)   = SCALE_SHORT_CONV_QAM256 * imag;
+    real       = fabsf(real) - 8.0f / sqrtf(170.0f);
+    imag       = fabsf(imag) - 8.0f / sqrtf(170.0f);
+    *(llr++)   = SCALE_SHORT_CONV_QAM256 * real;
+    *(llr++)   = SCALE_SHORT_CONV_QAM256 * imag;
+    real       = fabsf(real) - 4.0f / sqrtf(170.0f);
+    imag       = fabsf(imag) - 4.0f / sqrtf(170.0f);
+    *(llr++)   = SCALE_SHORT_CONV_QAM256 * real;
+    *(llr++)   = SCALE_SHORT_CONV_QAM256 * imag;
+    real       = fabsf(real) - 2.0f / sqrtf(170.0f);
+    imag       = fabsf(imag) - 2.0f / sqrtf(170.0f);
+    *(llr++)   = SCALE_SHORT_CONV_QAM256 * real;
+    *(llr++)   = SCALE_SHORT_CONV_QAM256 * imag;
   }
 }
 

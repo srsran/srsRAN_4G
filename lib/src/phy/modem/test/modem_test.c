@@ -82,11 +82,12 @@ void parse_args(int argc, char **argv) {
 
 
 int main(int argc, char **argv) {
+  int                  ret = SRSLTE_SUCCESS;
   int i;
   srslte_modem_table_t mod;
   uint8_t *input, *input_bytes, *output;
   cf_t *symbols, *symbols_bytes;
-  float *llr, *llr2;
+  float*               llr;
 
   parse_args(argc, argv);
 
@@ -137,12 +138,6 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  llr2 = srslte_vec_malloc(sizeof(float) * num_bits);
-  if (!llr2) {
-    perror("malloc");
-    exit(-1);
-  }
-
   /* generate random data */
   for (i=0;i<num_bits;i++) {
     input[i] = rand()%2;
@@ -177,26 +172,27 @@ int main(int argc, char **argv) {
       exit(-1);
     }
   }
-  printf("Symbols OK\n");  
+
+  bzero(llr, sizeof(float) * num_bits / mod.nbits_x_symbol);
+
+  printf("Symbols OK\n");
   /* demodulate */
   gettimeofday(&x, NULL);
   srslte_demod_soft_demodulate(modulation, symbols, llr, num_bits / mod.nbits_x_symbol);
   gettimeofday(&y, NULL);
-  
   printf("\nElapsed time [us]: %ld\n", y.tv_usec - x.tv_usec);
   for (i=0;i<num_bits;i++) {
     output[i] = llr[i]>=0 ? 1 : 0;
   }
 
   /* check errors */
-  for (i=0;i<num_bits;i++) {
+  for (i = 0; i < num_bits && ret == SRSLTE_SUCCESS; i++) {
     if (input[i] != output[i]) {
       ERROR("Error in bit %d\n", i);
-      exit(-1);
+      ret = SRSLTE_ERROR;
     }
   }
 
-  free(llr2);
   free(llr);
   free(symbols);
   free(symbols_bytes);
@@ -206,6 +202,5 @@ int main(int argc, char **argv) {
 
   srslte_modem_table_free(&mod);
 
-  printf("Ok\n");
-  exit(0);
+  exit(ret);
 }
