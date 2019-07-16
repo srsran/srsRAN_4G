@@ -102,9 +102,9 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
 
     ("gui.enable",        bpo::value<bool>(&args->gui.enable)->default_value(false),          "Enable GUI plots")
 
-    ("log.phy_level",     bpo::value<string>(&args->log.phy_level),   "PHY log level")
-    ("log.phy_hex_limit", bpo::value<int>(&args->log.phy_hex_limit),  "PHY log hex dump limit")
-    ("log.phy_lib_level", bpo::value<string>(&args->log.phy_lib_level)->default_value("none"), "PHY lib log level")
+    ("log.phy_level",     bpo::value<string>(&args->phy.log.phy_level),   "PHY log level")
+    ("log.phy_hex_limit", bpo::value<int>(&args->phy.log.phy_hex_limit),  "PHY log hex dump limit")
+    ("log.phy_lib_level", bpo::value<string>(&args->phy.log.phy_lib_level)->default_value("none"), "PHY lib log level")
     ("log.mac_level",     bpo::value<string>(&args->stack.log.mac_level),   "MAC log level")
     ("log.mac_hex_limit", bpo::value<int>(&args->stack.log.mac_hex_limit),  "MAC log hex dump limit")
     ("log.rlc_level",     bpo::value<string>(&args->stack.log.rlc_level),   "RLC log level")
@@ -132,25 +132,25 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
     ("scheduler.nof_ctrl_symbols", bpo::value<int>(&args->stack.mac.sched.nof_ctrl_symbols)->default_value(3), "Number of control symbols")
 
     /* Expert section */
-    ("expert.metrics_period_secs", bpo::value<float>(&args->expert.metrics_period_secs)->default_value(1.0), "Periodicity for metrics in seconds")
-    ("expert.metrics_csv_enable",  bpo::value<bool>(&args->expert.metrics_csv_enable)->default_value(false), "Write metrics to CSV file")
-    ("expert.metrics_csv_filename", bpo::value<string>(&args->expert.metrics_csv_filename)->default_value("/tmp/enb_metrics.csv"), "Metrics CSV filename")
-    ("expert.pregenerate_signals", bpo::value<bool>(&args->expert.phy.pregenerate_signals)->default_value(false), "Pregenerate uplink signals after attach. Improves CPU performance.")
-    ("expert.pusch_max_its", bpo::value<int>(&args->expert.phy.pusch_max_its)->default_value(8), "Maximum number of turbo decoder iterations")
-    ("expert.pusch_8bit_decoder", bpo::value<bool>(&args->expert.phy.pusch_8bit_decoder)->default_value(false), "Use 8-bit for LLR representation and turbo decoder trellis computation (Experimental)")
-    ("expert.tx_amplitude", bpo::value<float>(&args->expert.phy.tx_amplitude)->default_value(0.6), "Transmit amplitude factor")
-    ("expert.nof_phy_threads", bpo::value<int>(&args->expert.phy.nof_phy_threads)->default_value(3), "Number of PHY threads")
+    ("expert.metrics_period_secs", bpo::value<float>(&args->general.metrics_period_secs)->default_value(1.0), "Periodicity for metrics in seconds")
+    ("expert.metrics_csv_enable",  bpo::value<bool>(&args->general.metrics_csv_enable)->default_value(false), "Write metrics to CSV file")
+    ("expert.metrics_csv_filename", bpo::value<string>(&args->general.metrics_csv_filename)->default_value("/tmp/enb_metrics.csv"), "Metrics CSV filename")
+    ("expert.pregenerate_signals", bpo::value<bool>(&args->phy.pregenerate_signals)->default_value(false), "Pregenerate uplink signals after attach. Improves CPU performance.")
+    ("expert.pusch_max_its", bpo::value<int>(&args->phy.pusch_max_its)->default_value(8), "Maximum number of turbo decoder iterations")
+    ("expert.pusch_8bit_decoder", bpo::value<bool>(&args->phy.pusch_8bit_decoder)->default_value(false), "Use 8-bit for LLR representation and turbo decoder trellis computation (Experimental)")
+    ("expert.tx_amplitude", bpo::value<float>(&args->phy.tx_amplitude)->default_value(0.6), "Transmit amplitude factor")
+    ("expert.nof_phy_threads", bpo::value<int>(&args->phy.nof_phy_threads)->default_value(3), "Number of PHY threads")
     ("expert.link_failure_nof_err", bpo::value<int>(&args->stack.mac.link_failure_nof_err)->default_value(100), "Number of PUSCH failures after which a radio-link failure is triggered")
-    ("expert.max_prach_offset_us", bpo::value<float>(&args->expert.phy.max_prach_offset_us)->default_value(30), "Maximum allowed RACH offset (in us)")
-    ("expert.equalizer_mode", bpo::value<string>(&args->expert.phy.equalizer_mode)->default_value("mmse"), "Equalizer mode")
-    ("expert.estimator_fil_w", bpo::value<float>(&args->expert.phy.estimator_fil_w)->default_value(0.1), "Chooses the coefficients for the 3-tap channel estimator centered filter.")
-    ("expert.rrc_inactivity_timer", bpo::value<uint32_t>(&args->expert.rrc_inactivity_timer)->default_value(60000), "Inactivity timer in ms")
-    ("expert.enable_mbsfn", bpo::value<bool>(&args->expert.enable_mbsfn)->default_value(false), "Enables MBMS in the eNB")
-    ("expert.print_buffer_state", bpo::value<bool>(&args->expert.print_buffer_state)->default_value(false), "Prints on the console the buffer state every 10 seconds")
-    ("expert.m1u_multiaddr", bpo::value<string>(&args->expert.m1u_multiaddr)->default_value("239.255.0.1"), "M1-U Multicast address the eNB joins.")
-    ("expert.m1u_if_addr", bpo::value<string>(&args->expert.m1u_if_addr)->default_value("127.0.1.201"), "IP address of the interface the eNB will listen for M1-U traffic.")
-    ("expert.eea_pref_list", bpo::value<string>(&args->expert.eea_pref_list)->default_value("EEA0, EEA2, EEA1"), "Ordered preference list for the selection of encryption algorithm (EEA) (default: EEA0, EEA2, EEA1).")
-    ("expert.eia_pref_list", bpo::value<string>(&args->expert.eia_pref_list)->default_value("EIA2, EIA1, EIA0"), "Ordered preference list for the selection of integrity algorithm (EIA) (default: EIA2, EIA1, EIA0).")
+    ("expert.max_prach_offset_us", bpo::value<float>(&args->phy.max_prach_offset_us)->default_value(30), "Maximum allowed RACH offset (in us)")
+    ("expert.equalizer_mode", bpo::value<string>(&args->phy.equalizer_mode)->default_value("mmse"), "Equalizer mode")
+    ("expert.estimator_fil_w", bpo::value<float>(&args->phy.estimator_fil_w)->default_value(0.1), "Chooses the coefficients for the 3-tap channel estimator centered filter.")
+    ("expert.rrc_inactivity_timer", bpo::value<uint32_t>(&args->general.rrc_inactivity_timer)->default_value(60000), "Inactivity timer in ms")
+    ("expert.enable_mbsfn", bpo::value<bool>(&args->general.enable_mbsfn)->default_value(false), "Enables MBMS in the eNB")
+    ("expert.print_buffer_state", bpo::value<bool>(&args->general.print_buffer_state)->default_value(false), "Prints on the console the buffer state every 10 seconds")
+    ("expert.m1u_multiaddr", bpo::value<string>(&args->general.m1u_multiaddr)->default_value("239.255.0.1"), "M1-U Multicast address the eNB joins.")
+    ("expert.m1u_if_addr", bpo::value<string>(&args->general.m1u_if_addr)->default_value("127.0.1.201"), "IP address of the interface the eNB will listen for M1-U traffic.")
+    ("expert.eea_pref_list", bpo::value<string>(&args->general.eea_pref_list)->default_value("EEA0, EEA2, EEA1"), "Ordered preference list for the selection of encryption algorithm (EEA) (default: EEA0, EEA2, EEA1).")
+    ("expert.eia_pref_list", bpo::value<string>(&args->general.eia_pref_list)->default_value("EIA2, EIA1, EIA0"), "Ordered preference list for the selection of integrity algorithm (EIA) (default: EIA2, EIA1, EIA0).")
   ;
 
   // Positional options - config file location
@@ -261,7 +261,7 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
       exit(1);
     }
   }
-  if (args->expert.enable_mbsfn) {
+  if (args->general.enable_mbsfn) {
     if (args->stack.mac.sched.nof_ctrl_symbols == 3) {
       fprintf(stderr,
               "nof_ctrl_symbols = %d, While using MBMS, please set number of control symbols to either 1 or 2, "
@@ -274,10 +274,10 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
   // Apply all_level to any unset layers
   if (vm.count("log.all_level")) {
     if(!vm.count("log.phy_level")) {
-      args->log.phy_level = args->log.all_level;
+      args->phy.log.phy_level = args->log.all_level;
     }
     if (!vm.count("log.phy_lib_level")) {
-      args->log.phy_lib_level = args->log.all_level;
+      args->phy.log.phy_lib_level = args->log.all_level;
     }
     if(!vm.count("log.mac_level")) {
       args->stack.log.mac_level = args->log.all_level;
@@ -399,12 +399,12 @@ int main(int argc, char *argv[])
     return SRSLTE_ERROR;
   }
 
-  metricshub.init(enb, args.expert.metrics_period_secs);
+  metricshub.init(enb, args.general.metrics_period_secs);
   metricshub.add_listener(&metrics_screen);
   metrics_screen.set_handle(enb);
 
-  srsenb::metrics_csv metrics_file(args.expert.metrics_csv_filename);
-  if (args.expert.metrics_csv_enable) {
+  srsenb::metrics_csv metrics_file(args.general.metrics_csv_filename);
+  if (args.general.metrics_csv_enable) {
     metricshub.add_listener(&metrics_file);
     metrics_file.set_handle(enb);
   }
@@ -421,7 +421,7 @@ int main(int argc, char *argv[])
   }
   int cnt=0;
   while (running) {
-    if (args.expert.print_buffer_state) {
+    if (args.general.print_buffer_state) {
       cnt++;
       if (cnt==1000) {
         cnt=0;

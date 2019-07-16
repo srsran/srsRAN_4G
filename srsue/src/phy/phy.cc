@@ -102,25 +102,22 @@ bool phy::check_args(const phy_args_t& args)
 }
 
 int phy::init(const phy_args_t&            args_,
-              srslte::logger*              logger_,
               stack_interface_phy_lte*     stack_,
               srslte::radio_interface_phy* radio_)
 {
   stack         = stack_;
   radio         = radio_;
 
-  init(args_, logger_);
+  init(args_);
 
   return SRSLTE_SUCCESS;
 }
 
-int phy::init(const phy_args_t& args_, srslte::logger* logger_)
+int phy::init(const phy_args_t& args_)
 {
   mlockall(MCL_CURRENT | MCL_FUTURE);
 
   args = args_;
-
-  logger = logger_;
 
   set_earfcn(args.earfcn_list);
 

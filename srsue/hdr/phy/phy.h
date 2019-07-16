@@ -43,15 +43,14 @@ typedef _Complex float cf_t;
 class phy : public ue_lte_phy_base, public thread
 {
 public:
-  phy() : workers_pool(MAX_WORKERS), common(MAX_WORKERS), thread("PHY"){};
+  phy(srslte::logger* logger_) : logger(logger_), workers_pool(MAX_WORKERS), common(MAX_WORKERS), thread("PHY"){};
   ~phy() { stop(); }
 
   // Init defined in base class
-  int init(const phy_args_t& args_, srslte::logger* logger_) final;
+  int init(const phy_args_t& args_) final;
 
   // Init for LTE PHYs
   int init(const phy_args_t&            args_,
-           srslte::logger*              logger_,
            stack_interface_phy_lte*     stack_,
            srslte::radio_interface_phy* radio_) final;
 

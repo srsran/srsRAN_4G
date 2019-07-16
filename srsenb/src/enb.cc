@@ -63,9 +63,7 @@ enb::enb() : started(false), pool(srslte::byte_buffer_pool::get_instance(ENB_POO
 
 enb::~enb()
 {
-  for (auto& i : phy_log) {
-    delete i;
-  }
+
 }
 
 int enb::init(const all_args_t& args_)
@@ -89,17 +87,6 @@ int enb::init(const all_args_t& args_)
     logger_file.log("\n\n");
     logger_file.log(get_build_string().c_str());
     logger = &logger_file;
-  }
-
-  // Create array of pointers to phy_logs
-  for (int i = 0; i < args.expert.phy.nof_phy_threads; i++) {
-    auto* mylog = new srslte::log_filter;
-    char tmp[16];
-    sprintf(tmp, "PHY%d",i);
-    mylog->init(tmp, logger, true);
-    mylog->set_level(level(args.log.phy_level));
-    mylog->set_hex_limit(args.log.phy_hex_limit);
-    phy_log.push_back(mylog);
   }
 
   pool_log.init("POOL", logger);
@@ -131,7 +118,7 @@ int enb::init(const all_args_t& args_)
     return SRSLTE_ERROR;
   }
 
-  if (lte_phy->init(args.expert.phy, phy_cfg, lte_radio.get(), lte_stack.get())) {
+  if (lte_phy->init(args.phy, phy_cfg, lte_radio.get(), lte_stack.get())) {
     log.console("Error initializing PHY.\n");
     return SRSLTE_ERROR;
   }
@@ -204,8 +191,8 @@ int enb::parse_args(const all_args_t& args_)
     phy_cfg.pdsch_cnfg.p_b = 1; // Default TM2,3,4
   }
 
-  rrc_cfg.inactivity_timeout_ms = args.expert.rrc_inactivity_timer;
-  rrc_cfg.enable_mbsfn          = args.expert.enable_mbsfn;
+  rrc_cfg.inactivity_timeout_ms = args.general.rrc_inactivity_timer;
+  rrc_cfg.enable_mbsfn          = args.general.enable_mbsfn;
 
   // Check number of control symbols
   if (cell_cfg.nof_prb < 50 && args.stack.mac.sched.nof_ctrl_symbols != 3) {
@@ -218,7 +205,7 @@ int enb::parse_args(const all_args_t& args_)
 
   // Parse EEA preference list
   std::vector<std::string> eea_pref_list;
-  boost::split(eea_pref_list, args.expert.eea_pref_list, boost::is_any_of(","));
+  boost::split(eea_pref_list, args.general.eea_pref_list, boost::is_any_of(","));
   int i = 0;
   for (auto it = eea_pref_list.begin(); it != eea_pref_list.end() && i < srslte::CIPHERING_ALGORITHM_ID_N_ITEMS; it++) {
     boost::trim_left(*it);
@@ -232,14 +219,14 @@ int enb::parse_args(const all_args_t& args_)
       rrc_cfg.eea_preference_list[i] = srslte::CIPHERING_ALGORITHM_ID_128_EEA2;
       i++;
     } else {
-      fprintf(stderr, "Failed to parse EEA prefence list %s \n", args.expert.eea_pref_list.c_str());
+      fprintf(stderr, "Failed to parse EEA prefence list %s \n", args.general.eea_pref_list.c_str());
       return SRSLTE_ERROR;
     }
   }
 
   // Parse EIA preference list
   std::vector<std::string> eia_pref_list;
-  boost::split(eia_pref_list, args.expert.eia_pref_list, boost::is_any_of(","));
+  boost::split(eia_pref_list, args.general.eia_pref_list, boost::is_any_of(","));
   i = 0;
   for (auto it = eia_pref_list.begin(); it != eia_pref_list.end() && i < srslte::INTEGRITY_ALGORITHM_ID_N_ITEMS; it++) {
     boost::trim_left(*it);
@@ -253,7 +240,7 @@ int enb::parse_args(const all_args_t& args_)
       rrc_cfg.eia_preference_list[i] = srslte::INTEGRITY_ALGORITHM_ID_128_EIA2;
       i++;
     } else {
-      fprintf(stderr, "Failed to parse EIA prefence list %s \n", args.expert.eia_pref_list.c_str());
+      fprintf(stderr, "Failed to parse EIA prefence list %s \n", args.general.eia_pref_list.c_str());
       return SRSLTE_ERROR;
     }
   }

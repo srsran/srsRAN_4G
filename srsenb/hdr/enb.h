@@ -74,24 +74,20 @@ struct enb_files_t {
   std::string drb_config;
 };
 
-typedef struct {
-  std::string phy_level;
-  std::string phy_lib_level;
-
+struct log_args_t {
   std::string all_level;
   int         phy_hex_limit;
 
   int         all_hex_limit;
   int         file_max_size;
   std::string filename;
-}log_args_t;
+};
 
 struct gui_args_t {
   bool enable;
 };
 
-struct expert_args_t {
-  phy_args_t  phy;
+struct general_args_t {
   uint32_t    rrc_inactivity_timer;
   float       metrics_period_secs;
   bool        metrics_csv_enable;
@@ -105,13 +101,14 @@ struct expert_args_t {
 };
 
 struct all_args_t {
-  enb_args_t    enb;
-  enb_files_t   enb_files;
+  enb_args_t        enb;
+  enb_files_t       enb_files;
   srslte::rf_args_t rf;
-  pcap_args_t   pcap;
-  log_args_t    log;
-  gui_args_t    gui;
-  expert_args_t expert;
+  pcap_args_t       pcap;
+  log_args_t        log;
+  gui_args_t        gui;
+  general_args_t    general;
+  phy_args_t        phy;
   stack_args_t      stack;
 };
 
@@ -163,8 +160,6 @@ private:
   srslte::logger*       logger = nullptr;
   srslte::log_filter    log; // Own logger for eNB
 
-  srslte::log_filter  rf_log;
-  std::vector<srslte::log_filter*>  phy_log;
   srslte::log_filter  pool_log;
 
   srslte::byte_buffer_pool* pool = nullptr;

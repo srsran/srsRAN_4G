@@ -41,14 +41,14 @@ typedef struct {
   std::string            type;
   srslte::phy_log_args_t log;
 
-  float max_prach_offset_us; 
-  int pusch_max_its;
-  bool pusch_8bit_decoder;
-  float tx_amplitude; 
-  int nof_phy_threads;  
-  std::string equalizer_mode; 
-  float estimator_fil_w;   
-  bool       pregenerate_signals;
+  float       max_prach_offset_us;
+  int         pusch_max_its;
+  bool        pusch_8bit_decoder;
+  float       tx_amplitude;
+  int         nof_phy_threads;
+  std::string equalizer_mode;
+  float       estimator_fil_w;
+  bool        pregenerate_signals;
 } phy_args_t;
 
 class phy_common

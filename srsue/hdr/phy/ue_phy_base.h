@@ -41,7 +41,7 @@ public:
 
   virtual std::string get_type() = 0;
 
-  virtual int init(const phy_args_t& args_, srslte::logger* logger_) = 0;
+  virtual int init(const phy_args_t& args_) = 0;
 
   virtual void stop()                                                 = 0;
 
