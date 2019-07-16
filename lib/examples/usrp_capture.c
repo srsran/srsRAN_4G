@@ -141,7 +141,7 @@ int main(int argc, char **argv) {
     }
     srate = srslte_rf_set_rx_srate(&rf, rf_rate);
     if (srate != rf_rate) {
-      ERROR("Errror setting samplign frequency %.2f MHz\n", rf_rate * 1e-6);
+      ERROR("Error setting samplign frequency %.2f MHz\n", rf_rate * 1e-6);
       exit(-1);
     }
   }

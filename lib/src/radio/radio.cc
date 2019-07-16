@@ -286,11 +286,7 @@ void radio::set_master_clock_rate(double rate)
 
 void radio::set_rx_srate(double srate)
 {
-  if (srate < 10e6) {
-    set_master_clock_rate(4 * srate);
-  } else {
-    set_master_clock_rate(srate);
-  }
+  set_master_clock_rate(srate);
   srslte_rf_set_rx_srate(&rf_device, srate);
 }
 
@@ -331,11 +327,7 @@ float radio::get_rx_gain()
 
 void radio::set_tx_srate(double srate)
 {
-  if (srate < 10e6) {
-    set_master_clock_rate(4 * srate);
-  } else {
-    set_master_clock_rate(srate);
-  }
+  set_master_clock_rate(srate);
   cur_tx_srate = srslte_rf_set_tx_srate(&rf_device, srate);
   burst_preamble_samples = (uint32_t) (cur_tx_srate * burst_preamble_sec);
   if (burst_preamble_samples > burst_preamble_max_samples) {
@@ -354,16 +346,16 @@ void radio::set_tx_srate(double srate)
       double srate_khz = round(cur_tx_srate/1e3);
       if (srate_khz == 1.92e3) {
         // 6 PRB
-        nsamples = 94;
+        nsamples = 57;
       } else if (srate_khz == 3.84e3) {
         // 15 PRB
-        nsamples = 94;
+        nsamples = 60;
       } else if (srate_khz == 5.76e3) {
         // 25 PRB
         nsamples = 92;
       } else if (srate_khz == 11.52e3) {
         // 50 PRB
-        nsamples = 167;
+        nsamples = 120;
       } else if (srate_khz == 15.36e3) {
         // 75 PRB
         nsamples = 160;

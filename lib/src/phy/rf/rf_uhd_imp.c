@@ -413,8 +413,8 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
     if (args[0]=='\0') {
       if (find_string(devices_str, "type=b200") && !strstr(args, "recv_frame_size")) {
         // If B200 is available, use it
-        args = "type=b200,master_clock_rate=30.72e6";
-        handler->current_master_clock = 30720000;
+        args                          = "type=b200,master_clock_rate=23.04e6";
+        handler->current_master_clock = 23040000;
         handler->devname = DEVNAME_B200;
       } else if (find_string(devices_str, "type=x300")) {
         // Else if X300 is available, set master clock rate now (can't be changed later)
@@ -454,9 +454,9 @@ int rf_uhd_open_multi(char *args, void **h, uint32_t nof_channels)
         args = args2;
         handler->devname = DEVNAME_E3X0;
       } else {
-        snprintf(args2, sizeof(args2), "%s,master_clock_rate=30.72e6", args);
+        snprintf(args2, sizeof(args2), "%s,master_clock_rate=23.04e6", args);
         args = args2;
-        handler->current_master_clock = 30720000;
+        handler->current_master_clock = 23040000;
         handler->devname = DEVNAME_B200;
       }
     }
@@ -655,8 +655,9 @@ double rf_uhd_set_rx_srate(void *h, double freq)
     if (frac >= 1.0) { full++; frac -= 1.0; };
     uhd_usrp_set_command_time(handler->usrp, full, frac, 0);
 #endif /* UHD_SUPPORTS_COMMAND_TIME */
-    for (int i=0;i<handler->nof_rx_channels;i++)
+    for (int i = 0; i < handler->nof_rx_channels; i++) {
       uhd_usrp_set_rx_rate(handler->usrp, freq, i);
+    }
 #ifdef UHD_SUPPORTS_COMMAND_TIME
     usleep(100000);
 #endif /* UHD_SUPPORTS_COMMAND_TIME */
@@ -670,15 +671,20 @@ double rf_uhd_set_tx_srate(void *h, double freq)
 {
   rf_uhd_handler_t *handler = (rf_uhd_handler_t*) h;
   if (handler->nof_tx_channels > 1) {
+#ifdef UHD_SUPPORTS_COMMAND_TIME
     time_t full;
     double frac;
     uhd_usrp_get_time_now(handler->usrp, 0, &full, &frac);
     frac += 0.100;
     if (frac >= 1.0) { full++; frac -= 1.0; };
     uhd_usrp_set_command_time(handler->usrp, full, frac, 0);
-    for (int i=0;i<handler->nof_tx_channels;i++)
+#endif /* UHD_SUPPORTS_COMMAND_TIME */
+    for (int i = 0; i < handler->nof_tx_channels; i++) {
       uhd_usrp_set_tx_rate(handler->usrp, freq, i);
+    }
+#ifdef UHD_SUPPORTS_COMMAND_TIME
     usleep(100000);
+#endif /* UHD_SUPPORTS_COMMAND_TIME */
   } else {
     uhd_usrp_set_tx_rate(handler->usrp, freq, 0);
   }
