@@ -263,7 +263,9 @@ int enb::parse_args(const all_args_t& args_)
   phy_cfg.cell = cell_cfg;
 
   // Patch certain args that are not exposed yet
-  args.rf.nof_radios = args.rf.nof_rf_channels = args.rf.nof_rx_ant = 1;
+  args.rf.nof_radios      = 1;
+  args.rf.nof_rf_channels = 1;
+  args.rf.nof_rx_ant      = args.enb.nof_ports;
 
   return SRSLTE_SUCCESS;
 }
