@@ -120,12 +120,12 @@ int radio_multi::init(const rf_args_t& args_, phy_interface_radio* phy_)
 void radio_multi::stop()
 {
   if (running) {
-    std::lock_guard<std::mutex> lock(radio_instance_mutex);
-    instance = nullptr;
-
     for (auto& radio : radios) {
       radio->stop();
     }
+
+    std::lock_guard<std::mutex> lock(radio_instance_mutex);
+    instance = nullptr;
 
     running = false;
   }
