@@ -45,6 +45,15 @@ void pdcp_entity_base::config_security(uint8_t*                    k_rrc_enc_,
   }
   cipher_algo = cipher_algo_;
   integ_algo  = integ_algo_;
+
+  log->info("Configuring security with %s and %s\n",
+            integrity_algorithm_id_text[integ_algo],
+            ciphering_algorithm_id_text[cipher_algo]);
+
+  log->debug_hex(k_rrc_enc, 32,"K_rrc_enc");
+  log->debug_hex(k_up_enc, 32,"K_up_enc");
+  log->debug_hex(k_rrc_int, 32,"K_rrc_int");
+  log->debug_hex(k_up_int, 32,"K_up_int");
 }
 
 
@@ -70,7 +79,7 @@ void pdcp_entity_base::integrity_generate(uint8_t* msg, uint32_t msg_len, uint32
     security_128_eia1(&k_int[16],
                       count,
                       cfg.bearer_id - 1,
-                      cfg.direction,
+                      cfg.tx_direction,
                       msg,
                       msg_len,
                       mac);
@@ -79,7 +88,7 @@ void pdcp_entity_base::integrity_generate(uint8_t* msg, uint32_t msg_len, uint32
     security_128_eia2(&k_int[16],
                       count,
                       cfg.bearer_id - 1,
-                      cfg.direction,
+                      cfg.tx_direction,
                       msg,
                       msg_len,
                       mac);
@@ -91,7 +100,7 @@ void pdcp_entity_base::integrity_generate(uint8_t* msg, uint32_t msg_len, uint32
   log->debug("Integrity gen input: COUNT %d, Bearer ID %d, Direction %s\n",
              count,
              cfg.bearer_id,
-             (cfg.direction == SECURITY_DIRECTION_DOWNLINK ? "Downlink" : "Uplink"));
+             (cfg.tx_direction == SECURITY_DIRECTION_DOWNLINK ? "Downlink" : "Uplink"));
   log->debug_hex(msg, msg_len, "Integrity gen input msg:");
   log->debug_hex(mac, 4, "MAC (generated)");
 }
@@ -113,24 +122,10 @@ bool pdcp_entity_base::integrity_verify(uint8_t* msg, uint32_t msg_len, uint32_t
     case INTEGRITY_ALGORITHM_ID_EIA0:
       break;
     case INTEGRITY_ALGORITHM_ID_128_EIA1:
-      security_128_eia1(&k_int[16],
-                        count,
-                        cfg.bearer_id - 1,
-                        (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? (SECURITY_DIRECTION_UPLINK)
-                                                                       : (SECURITY_DIRECTION_DOWNLINK),
-                        msg,
-                        msg_len,
-                        mac_exp);
+      security_128_eia1(&k_int[16], count, cfg.bearer_id - 1, cfg.rx_direction, msg, msg_len, mac_exp);
       break;
     case INTEGRITY_ALGORITHM_ID_128_EIA2:
-      security_128_eia2(&k_int[16],
-                        count,
-                        cfg.bearer_id - 1,
-                        (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? (SECURITY_DIRECTION_UPLINK)
-                                                                       : (SECURITY_DIRECTION_DOWNLINK),
-                        msg,
-                        msg_len,
-                        mac_exp);
+      security_128_eia2(&k_int[16], count, cfg.bearer_id - 1, cfg.rx_direction, msg, msg_len, mac_exp);
       break;
     default:
       break;
@@ -139,7 +134,7 @@ bool pdcp_entity_base::integrity_verify(uint8_t* msg, uint32_t msg_len, uint32_t
   log->debug("Integrity check input: COUNT %d, Bearer ID %d, Direction %s\n",
              count,
              cfg.bearer_id,
-             (cfg.direction == SECURITY_DIRECTION_DOWNLINK ? "Downlink" : "Uplink"));
+             cfg.rx_direction == SECURITY_DIRECTION_DOWNLINK ? "Downlink" : "Uplink");
   log->debug_hex(msg, msg_len, "Integrity check input msg:");
 
   if (integ_algo != INTEGRITY_ALGORITHM_ID_EIA0) {
@@ -174,18 +169,18 @@ void pdcp_entity_base::cipher_encrypt(uint8_t* msg, uint32_t msg_len, uint32_t c
   log->debug("Cipher encrypt input: COUNT: %d, Bearer ID: %d, Direction %s\n",
              count,
              cfg.bearer_id,
-             (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? "Downlink" : "Uplink");
+             cfg.tx_direction == SECURITY_DIRECTION_DOWNLINK ? "Downlink" : "Uplink");
   log->debug_hex(msg, msg_len, "Cipher encrypt input msg");
 
   switch (cipher_algo) {
     case CIPHERING_ALGORITHM_ID_EEA0:
       break;
     case CIPHERING_ALGORITHM_ID_128_EEA1:
-      security_128_eea1(&(k_enc[16]), count, cfg.bearer_id - 1, cfg.direction, msg, msg_len, ct_tmp.msg);
+      security_128_eea1(&(k_enc[16]), count, cfg.bearer_id - 1, cfg.tx_direction, msg, msg_len, ct_tmp.msg);
       memcpy(ct, ct_tmp.msg, msg_len);
       break;
     case CIPHERING_ALGORITHM_ID_128_EEA2:
-      security_128_eea2(&(k_enc[16]), count, cfg.bearer_id - 1, cfg.direction, msg, msg_len, ct_tmp.msg);
+      security_128_eea2(&(k_enc[16]), count, cfg.bearer_id - 1, cfg.tx_direction, msg, msg_len, ct_tmp.msg);
       memcpy(ct, ct_tmp.msg, msg_len);
       break;
     default:
@@ -209,7 +204,7 @@ void pdcp_entity_base::cipher_decrypt(uint8_t* ct, uint32_t ct_len, uint32_t cou
   log->debug("Cipher decrypt input: COUNT: %d, Bearer ID: %d, Direction %s\n",
              count,
              cfg.bearer_id,
-             (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? "Downlink" : "Uplink");
+             (cfg.rx_direction == SECURITY_DIRECTION_DOWNLINK) ? "Downlink" : "Uplink");
   log->debug_hex(ct, ct_len, "Cipher decrypt input msg");
 
   switch(cipher_algo)
@@ -217,25 +212,11 @@ void pdcp_entity_base::cipher_decrypt(uint8_t* ct, uint32_t ct_len, uint32_t cou
   case CIPHERING_ALGORITHM_ID_EEA0:
     break;
   case CIPHERING_ALGORITHM_ID_128_EEA1:
-    security_128_eea1(&(k_enc[16]),
-                      count,
-                      cfg.bearer_id - 1,
-                      (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? (SECURITY_DIRECTION_UPLINK)
-                                                                     : (SECURITY_DIRECTION_DOWNLINK),
-                      ct,
-                      ct_len,
-                      msg_tmp.msg);
+    security_128_eea1(&k_enc[16], count, cfg.bearer_id - 1, cfg.rx_direction, ct, ct_len, msg_tmp.msg);
     memcpy(msg, msg_tmp.msg, ct_len);
     break;
   case CIPHERING_ALGORITHM_ID_128_EEA2:
-    security_128_eea2(&(k_enc[16]),
-                      count,
-                      cfg.bearer_id - 1,
-                      (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? (SECURITY_DIRECTION_UPLINK)
-                                                                     : (SECURITY_DIRECTION_DOWNLINK),
-                      ct,
-                      ct_len,
-                      msg_tmp.msg);
+    security_128_eea2(&k_enc[16], count, cfg.bearer_id - 1, cfg.rx_direction, ct, ct_len, msg_tmp.msg);
     memcpy(msg, msg_tmp.msg, ct_len);
     break;
   default:

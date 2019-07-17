@@ -77,10 +77,12 @@ typedef enum { PDCP_RB_IS_SRB, PDCP_RB_IS_DRB } pdcp_rb_type_t;
 class srslte_pdcp_config_t
 {
 public:
-  srslte_pdcp_config_t(uint8_t bearer_id_, pdcp_rb_type_t rb_type_, uint8_t direction_, uint8_t sn_len_) :
+  srslte_pdcp_config_t(
+      uint8_t bearer_id_, pdcp_rb_type_t rb_type_, uint8_t tx_direction_, uint8_t rx_direction_, uint8_t sn_len_) :
     bearer_id(bearer_id_),
     rb_type(rb_type_),
-    direction(direction_),
+    tx_direction(tx_direction_),
+    rx_direction(rx_direction_),
     sn_len(sn_len_)
   {
     hdr_len_bytes = ceil((float)sn_len / 8);
@@ -88,7 +90,8 @@ public:
 
   uint8_t       bearer_id;
   pdcp_rb_type_t rb_type;
-  uint8_t        direction;
+  uint8_t        tx_direction;
+  uint8_t        rx_direction;
   uint8_t        sn_len;
   uint8_t        hdr_len_bytes;
 

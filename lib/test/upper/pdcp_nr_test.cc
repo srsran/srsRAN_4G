@@ -107,7 +107,7 @@ private:
 int test_tx_basic(srslte::byte_buffer_pool* pool, srslte::log* log)
 {
   srslte::pdcp_entity_nr pdcp;
-  srslte::srslte_pdcp_config_t cfg = {1, srslte::PDCP_RB_IS_DRB, SECURITY_DIRECTION_UPLINK, srslte::PDCP_SN_LEN_12};
+  srslte::srslte_pdcp_config_t cfg = {1, srslte::PDCP_RB_IS_DRB, SECURITY_DIRECTION_UPLINK, SECURITY_DIRECTION_DOWNLINK, srslte::PDCP_SN_LEN_12};
 
   rlc_dummy rlc(log);
   rrc_dummy rrc(log);
@@ -149,11 +149,11 @@ int test_tx_basic(srslte::byte_buffer_pool* pool, srslte::log* log)
 bool test_rx_basic(srslte::byte_buffer_pool* pool, srslte::log* log)
 {
   srslte::pdcp_entity_nr pdcp;
-  srslte::srslte_pdcp_config_t cfg = {1, srslte::PDCP_RB_IS_DRB, SECURITY_DIRECTION_UPLINK, srslte::PDCP_SN_LEN_12};
+  srslte::srslte_pdcp_config_t cfg = {1, srslte::PDCP_RB_IS_DRB, SECURITY_DIRECTION_DOWNLINK, SECURITY_DIRECTION_UPLINK, srslte::PDCP_SN_LEN_12};
 
   rlc_dummy rlc(log);
   rrc_dummy rrc(log);
-  gw_dummy gw(log);
+  gw_dummy  gw(log);
 
   pdcp.init(&rlc, &rrc, &gw, log, 0, cfg);
   pdcp.config_security(k_enc, k_int, k_enc, k_int, srslte::CIPHERING_ALGORITHM_ID_128_EEA2, srslte::INTEGRITY_ALGORITHM_ID_128_EIA2);
