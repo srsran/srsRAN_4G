@@ -3386,7 +3386,6 @@ void rrc::rrc_meas::new_phy_meas(uint32_t earfcn, uint32_t pci, float rsrp, floa
           }
           // Update or add cell
           L3_filter(&m->cell_values[pci], values);
-          return;
         }
       }
     }
