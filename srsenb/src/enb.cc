@@ -187,8 +187,10 @@ int enb::parse_args(const all_args_t& args_)
 
   if (args.enb.transmission_mode == 1) {
     phy_cfg.pdsch_cnfg.p_b = 0; // Default TM1
+    rrc_cfg.sibs[1].sib2().rr_cfg_common.pdsch_cfg_common.p_b = 0;
   } else {
     phy_cfg.pdsch_cnfg.p_b = 1; // Default TM2,3,4
+    rrc_cfg.sibs[1].sib2().rr_cfg_common.pdsch_cfg_common.p_b = 1;
   }
 
   rrc_cfg.inactivity_timeout_ms = args.general.rrc_inactivity_timer;
