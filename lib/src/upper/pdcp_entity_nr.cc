@@ -169,6 +169,13 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
 
 void pdcp_entity_nr::read_data_header(const unique_byte_buffer_t& pdu, uint32_t *rcvd_sn)
 {
+  // Check PDU is long enough to extract header
+  if(pdu->N_bytes <= cfg.hdr_len_bytes){
+    log->error("PDU too small to extract header\n");
+    return;
+  }
+
+  // Extract RCVD_SN
   uint16_t rcvd_sn_16 = 0;
   switch (cfg.sn_len) {
     case PDCP_SN_LEN_12:
@@ -181,6 +188,8 @@ void pdcp_entity_nr::read_data_header(const unique_byte_buffer_t& pdu, uint32_t 
     default:
       log->error("Cannot extract RCVD_SN, invalid SN length configured: %d\n", cfg.sn_len);
   }
+
+  // Discard header
   pdu->msg += cfg.hdr_len_bytes;
   pdu->N_bytes -= cfg.hdr_len_bytes;
   return;
@@ -188,7 +197,7 @@ void pdcp_entity_nr::read_data_header(const unique_byte_buffer_t& pdu, uint32_t 
 
 void pdcp_entity_nr::write_data_header(const srslte::unique_byte_buffer_t& sdu, uint32_t count)
 {
-  // Check enough space for header
+  // Add room for header
   if (cfg.hdr_len_bytes > sdu->get_headroom()) {
     log->error("Not enough space to add header\n");
     return;
@@ -196,6 +205,7 @@ void pdcp_entity_nr::write_data_header(const srslte::unique_byte_buffer_t& sdu, 
   sdu->msg -= cfg.hdr_len_bytes;
   sdu->N_bytes += cfg.hdr_len_bytes;
 
+  // Add SN
   switch (cfg.sn_len) {
     case PDCP_SN_LEN_12:
       srslte::uint16_to_uint8(0x0FFF & count, sdu->msg);
@@ -212,27 +222,27 @@ void pdcp_entity_nr::write_data_header(const srslte::unique_byte_buffer_t& sdu, 
   }
 }
 
-void pdcp_entity_nr::extract_mac(const unique_byte_buffer_t &sdu, uint8_t* mac)
+void pdcp_entity_nr::extract_mac(const unique_byte_buffer_t &pdu, uint8_t* mac)
 {
-
   // Check enough space for MAC
-  if (sdu->N_bytes < 4) {
+  if (pdu->N_bytes < 4) {
     log->error("PDU too small to extract MAC-I\n");
     return;
   }
+
   // Extract MAC
-  memcpy(mac, &sdu->msg[sdu->N_bytes - 4], 4);
-  sdu->N_bytes -= 4;
+  memcpy(mac, &pdu->msg[pdu->N_bytes - 4], 4);
+  pdu->N_bytes -= 4;
 }
 
 void pdcp_entity_nr::append_mac(const unique_byte_buffer_t &sdu, uint8_t* mac)
 {
-
   // Check enough space for MAC
   if (sdu->N_bytes + 4 > sdu->get_tailroom()) {
     log->error("Not enough space to add MAC-I\n");
     return;
   }
+
   // Append MAC
   memcpy(&sdu->msg[sdu->N_bytes], mac, 4);
   sdu->N_bytes += 4;

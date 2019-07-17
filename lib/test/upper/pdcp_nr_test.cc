@@ -47,7 +47,12 @@ uint32_t SDU1_LEN = 2;
 uint8_t  pdu1[]   = {0x80, 0x00, 0x8f, 0xe3, 0xe0, 0xdf, 0x82, 0x92};
 uint32_t PDU1_LEN = 8;
 
-// fake classes
+uint8_t  pdu2[]   = {0x88, 0x00, 0x8d, 0x2c, 0x47, 0x5e, 0xb1, 0x5b};
+uint32_t PDU2_LEN = 8;
+
+uint8_t  pdu3[]   = {0x80, 0x00, 0x97, 0xbe, 0xa3, 0x32, 0xfa, 0x61};
+uint32_t PDU3_LEN = 8;
+// dummy classes
 class rlc_dummy : public srsue::rlc_interface_pdcp
 {
 public:
@@ -205,7 +210,7 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
    * PDCP entity configured with EIA2 and EEA2
    * TX_NEXT = 0.
    * Input: {0x18, 0xE2}
-   * Output: PDCP Header {0x80,0x00}, Ciphered Text {0x8f, 0xe3}, MAC-I {0xe0, 0xdf, 0x82, 0x92}
+   * Output: PDCP Header {0x80, 0x00}, Ciphered Text {0x8f, 0xe3}, MAC-I {0xe0, 0xdf, 0x82, 0x92}
    */
   srslte::unique_byte_buffer_t pdu_exp_sn0 = allocate_unique_buffer(*pool);
   memcpy(pdu_exp_sn0->msg, pdu1, PDU1_LEN);
@@ -217,23 +222,31 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
    * PDCP entity configured with EIA2 and EEA2
    * TX_NEXT = 2048.
    * Input: {0x18, 0xE2}
-   * Output: PDCP Header {0x80,0x00}, Ciphered Text {0x8f, 0xe3}, MAC-I {0xe0, 0xdf, 0x82, 0x92}
+   * Output: PDCP Header {0x88, 0x00}, Ciphered Text {0x8d, 0x2c}, MAC-I {0x47, 0x5e, 0xb1, 0x5b}
    */
   srslte::unique_byte_buffer_t pdu_exp_sn2048 = allocate_unique_buffer(*pool);
-  memcpy(pdu_exp_sn2048->msg, pdu1, PDU1_LEN);
-  pdu_exp_sn2048->N_bytes = PDU1_LEN;
-  //TESTASSERT(test_tx(2049, std::move(pdu_exp_sn2048), pool, log) == 0);
+  memcpy(pdu_exp_sn2048->msg, pdu2, PDU2_LEN);
+  pdu_exp_sn2048->N_bytes = PDU2_LEN;
+  TESTASSERT(test_tx(2049, std::move(pdu_exp_sn2048), pool, log) == 0);
 
   /*
    * TX Test 3: PDCP Entity with SN LEN = 12
    * PDCP entity configured with EIA2 and EEA2
    * TX_NEXT = 4096.
    * Input: {0x18, 0xE2}
-   * Output: PDCP Header {0x80,0x00}, Ciphered Text {0x8f, 0xe3}, MAC-I {0xe0, 0xdf, 0x82, 0x92}
+   * Output: PDCP Header {0x80,0x00}, Ciphered Text {0x97, 0xbe}, MAC-I {0xa3, 0x32, 0xfa, 0x61}
    */
+  srslte::unique_byte_buffer_t ct_tmp = allocate_unique_buffer(*pool);
+  srslte::security_128_eea2(&(k_enc[16]), 4096, 0, SECURITY_DIRECTION_UPLINK, sdu1, SDU1_LEN, ct_tmp->msg);
+  log->debug_hex(ct_tmp->msg, SDU1_LEN, "CT");
+
+  uint8_t mac[4];
+  srslte::security_128_eia2(&(k_int[16]), 4096, 0, SECURITY_DIRECTION_UPLINK, sdu1, SDU1_LEN, mac);
+  log->debug_hex(mac, 4, "MAC");
+
   srslte::unique_byte_buffer_t pdu_exp_sn4096 = allocate_unique_buffer(*pool);
-  memcpy(pdu_exp_sn4096->msg, pdu1, PDU1_LEN);
-  pdu_exp_sn4096->N_bytes = PDU1_LEN;
+  memcpy(pdu_exp_sn4096->msg, pdu3, PDU3_LEN);
+  pdu_exp_sn4096->N_bytes = PDU3_LEN;
   TESTASSERT(test_tx(4097, std::move(pdu_exp_sn4096), pool, log) == 0);
   return 0;
 }
