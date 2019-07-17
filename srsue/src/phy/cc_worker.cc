@@ -1216,8 +1216,8 @@ void cc_worker::set_pcell_config(phy_interface_rrc_lte::phy_cfg_t* phy_cfg)
           dedicated->cqi_report_cfg.cqi_report_periodic.setup().cqi_format_ind_periodic.subband_cqi().k;
     }
     if (dedicated->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx_present) {
-      if (cell.nof_ports > 1) {
-        log_h->error("Warning: Received Rank Indication report configuration but only 1 antenna is available\n");
+      if (cell.nof_ports == 1) {
+        log_h->warning("Received Rank Indication report configuration but only 1 antenna is available\n");
       }
       ue_dl_cfg.cfg.cqi_report.ri_idx         = dedicated->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx;
       ue_dl_cfg.cfg.cqi_report.ri_idx_present = true;
