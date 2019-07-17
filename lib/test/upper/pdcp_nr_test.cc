@@ -53,13 +53,17 @@ class rlc_dummy : public srsue::rlc_interface_pdcp
 public:
   rlc_dummy(srslte::log* log_) : log(log_) {}
 
-  const srslte::unique_byte_buffer_t& get_last_pdcp_pdu() { return last_pdcp_pdu; }
+  void get_last_sdu(const srslte::unique_byte_buffer_t& pdu)
+  {
+    memcpy(pdu->msg, last_pdcp_pdu->msg, last_pdcp_pdu->N_bytes);
+    pdu->N_bytes = last_pdcp_pdu->N_bytes;
+    return;
+  }
   void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking = true)
   {
     log->info_hex(sdu->msg, sdu->N_bytes, "RLC SDU");
     last_pdcp_pdu.swap(sdu);
   }
-
 
 private:
   srslte::log* log;
@@ -90,11 +94,25 @@ class gw_dummy : public srsue::gw_interface_pdcp
 public:
   gw_dummy(srslte::log* log_) : log(log_) {}
 
-  void write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
   void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
+  uint32_t rx_count = 0;
+
+  void get_last_pdu(const srslte::unique_byte_buffer_t& pdu)
+  {
+    memcpy(pdu->msg, last_pdu->msg, last_pdu->N_bytes);
+    pdu->N_bytes = last_pdu->N_bytes;
+    return;
+  }
+  void write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
+  {
+    log->info_hex(pdu->msg, pdu->N_bytes, "GW PDU");
+    rx_count++;
+    last_pdu.swap(pdu);
+  }
 
 private:
   srslte::log* log;
+  srslte::unique_byte_buffer_t last_pdu;
 };
 
 /*
@@ -130,7 +148,8 @@ int test_tx_basic(srslte::byte_buffer_pool* pool, srslte::log* log)
 
   // Run test
   pdcp.write_sdu(std::move(sdu), true);
-  const srslte::unique_byte_buffer_t& pdu_act = rlc.get_last_pdcp_pdu();
+  srslte::unique_byte_buffer_t pdu_act = allocate_unique_buffer(*pool);
+  rlc.get_last_sdu(pdu_act);
 
   TESTASSERT(pdu_act->N_bytes == pdu_exp->N_bytes);
   for (uint32_t i = 0; i < pdu_exp->N_bytes; ++i) {
@@ -165,9 +184,23 @@ bool test_rx_basic(srslte::byte_buffer_pool* pool, srslte::log* log)
   srslte::unique_byte_buffer_t sdu_exp = allocate_unique_buffer(*pool);
   memcpy(pdu->msg, pdu1, PDU1_LEN);
   pdu->N_bytes = PDU1_LEN;
+  memcpy(sdu_exp->msg, sdu1, PDU1_LEN);
   sdu_exp->N_bytes = SDU1_LEN;
 
+
+  // Run test
   pdcp.write_pdu(std::move(pdu));
+  
+  // Check integrity check OK
+  TESTASSERT(gw.rx_count == 1); 
+
+  // Check decrypting OK
+  srslte::unique_byte_buffer_t sdu_act = allocate_unique_buffer(*pool);
+  gw.get_last_pdu(sdu_act);
+  TESTASSERT(sdu_act->N_bytes == sdu_exp->N_bytes);
+  for (uint32_t i = 0; i < sdu_exp->N_bytes; ++i) {
+    TESTASSERT(sdu_act->msg[i] == sdu_exp->msg[i]);
+  }
   return 0;
 }
 

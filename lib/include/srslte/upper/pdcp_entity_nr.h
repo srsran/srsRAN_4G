@@ -76,6 +76,7 @@ private:
   // Packing/Unpacking Helper functions
   void read_data_header(const unique_byte_buffer_t& sdu, uint32_t* rcvd_sn);
   void write_data_header(const unique_byte_buffer_t& sdu, uint32_t sn);
+  void extract_mac(const unique_byte_buffer_t &sdu, uint8_t* mac);
   void append_mac(const unique_byte_buffer_t& sdu, uint8_t* mac);
 };
 

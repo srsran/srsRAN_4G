@@ -113,14 +113,16 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   uint32_t rcvd_sn;
   read_data_header(pdu, &rcvd_sn);
 
+  // Extract MAC
+  uint8_t mac[4];
+  extract_mac(pdu, mac);
+
   // Calculate RCVD_COUNT
   printf("%d\n", rcvd_sn);
   uint32_t rcvd_hfn, rcvd_count;
   if ((int64_t)rcvd_sn < (int64_t)SN(rx_deliv) - (int64_t)window_size) {
-    printf("rcvd_sn %d < SN(rx_deliv) %d(%d) - window_size %d\n", rcvd_sn, SN(rx_deliv), rx_deliv, window_size);
     rcvd_hfn = HFN(rx_deliv) + 1;
   } else if (rcvd_sn >= SN(rx_deliv) + window_size) {
-    printf("rcvd_sn %d >= SN(rx_deliv) %d(%d) + window_size %d\n", rcvd_sn, SN(rx_deliv), rx_deliv, window_size);
     rcvd_hfn = HFN(rx_deliv) - 1;
   } else {
     rcvd_hfn = HFN(rx_deliv);
@@ -128,15 +130,13 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   rcvd_count = COUNT(rcvd_hfn, rcvd_sn);
 
   // Decripting
-  cipher_decrypt(pdu->msg, pdu->N_bytes - 4, rcvd_count, pdu->msg);
+  cipher_decrypt(pdu->msg, pdu->N_bytes, rcvd_count, pdu->msg);
 
   // Integrity check
-  uint8_t mac[4];
   bool is_valid = integrity_verify(pdu->msg, pdu->N_bytes, rcvd_count, mac);
   if (!is_valid) {
     return; // Invalid packet, drop.
   }
-
 
   // Check valid rcvd_count
   if (rcvd_count < rx_deliv /*|| check_received_before() TODO*/) {
@@ -206,6 +206,19 @@ void pdcp_entity_nr::write_data_header(const srslte::unique_byte_buffer_t& sdu, 
     default:
       log->error("Invalid SN length configuration: %d bits\n", cfg.sn_len);
   }
+}
+
+void pdcp_entity_nr::extract_mac(const unique_byte_buffer_t &sdu, uint8_t* mac)
+{
+
+  // Check enough space for MAC
+  if (sdu->N_bytes < 4) {
+    log->error("PDU too small to extract MAC-I\n");
+    return;
+  }
+  // Extract MAC
+  memcpy(mac, &sdu->msg[sdu->N_bytes - 4], 4);
+  sdu->N_bytes -= 4;
 }
 
 void pdcp_entity_nr::append_mac(const unique_byte_buffer_t &sdu, uint8_t* mac)
