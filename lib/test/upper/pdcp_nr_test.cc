@@ -115,14 +115,7 @@ private:
   srslte::unique_byte_buffer_t last_pdu;
 };
 
-/*
- * Test 1: PDCP Entity TX
- * Configure PDCP entity with EIA2 and EEA2
- * TX_NEXT initially at 0.
- * Input: {0x18, 0xE2}
- * Output: PDCP Header {0x80,0x00}, Ciphered Text {0x8f, 0xe3}, MAC-I {0xe0, 0xdf, 0x82, 0x92}
- */
-int test_tx_basic(srslte::byte_buffer_pool* pool, srslte::log* log)
+int test_tx(uint32_t n_packets, srslte::unique_byte_buffer_t pdu_exp, srslte::byte_buffer_pool* pool, srslte::log* log)
 {
   srslte::pdcp_entity_nr pdcp;
   srslte::srslte_pdcp_config_t cfg = {1, srslte::PDCP_RB_IS_DRB, SECURITY_DIRECTION_UPLINK, SECURITY_DIRECTION_DOWNLINK, srslte::PDCP_SN_LEN_12};
@@ -141,13 +134,15 @@ int test_tx_basic(srslte::byte_buffer_pool* pool, srslte::log* log)
   memcpy(sdu->msg, sdu1, SDU1_LEN);
   sdu->N_bytes = SDU1_LEN;
 
-  // Expected PDCP PDU
-  srslte::unique_byte_buffer_t pdu_exp = allocate_unique_buffer(*pool);
-  memcpy(pdu_exp->msg, pdu1, PDU1_LEN);
-  pdu_exp->N_bytes = PDU1_LEN;
 
   // Run test
-  pdcp.write_sdu(std::move(sdu), true);
+  for (uint32_t i = 0; i < n_packets; ++i) {
+    // Test SDU
+    srslte::unique_byte_buffer_t sdu = allocate_unique_buffer(*pool);
+    memcpy(sdu->msg, sdu1, SDU1_LEN);
+    sdu->N_bytes = SDU1_LEN;
+    pdcp.write_sdu(std::move(sdu), true);
+  }
   srslte::unique_byte_buffer_t pdu_act = allocate_unique_buffer(*pool);
   rlc.get_last_sdu(pdu_act);
 
@@ -157,7 +152,6 @@ int test_tx_basic(srslte::byte_buffer_pool* pool, srslte::log* log)
   }
   return 0;
 }
-
 /*
  * Test 2: PDCP Entity RX
  * Configure PDCP entity with EIA2 and EEA2
@@ -204,6 +198,45 @@ bool test_rx_basic(srslte::byte_buffer_pool* pool, srslte::log* log)
   return 0;
 }
 
+int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
+{
+  /*
+   * TX Test 1: PDCP Entity with SN LEN = 12
+   * PDCP entity configured with EIA2 and EEA2
+   * TX_NEXT = 0.
+   * Input: {0x18, 0xE2}
+   * Output: PDCP Header {0x80,0x00}, Ciphered Text {0x8f, 0xe3}, MAC-I {0xe0, 0xdf, 0x82, 0x92}
+   */
+  srslte::unique_byte_buffer_t pdu_exp_sn0 = allocate_unique_buffer(*pool);
+  memcpy(pdu_exp_sn0->msg, pdu1, PDU1_LEN);
+  pdu_exp_sn0->N_bytes = PDU1_LEN;
+  TESTASSERT(test_tx(1, std::move(pdu_exp_sn0), pool, log) == 0);
+
+  /*
+   * TX Test 2: PDCP Entity with SN LEN = 12
+   * PDCP entity configured with EIA2 and EEA2
+   * TX_NEXT = 2048.
+   * Input: {0x18, 0xE2}
+   * Output: PDCP Header {0x80,0x00}, Ciphered Text {0x8f, 0xe3}, MAC-I {0xe0, 0xdf, 0x82, 0x92}
+   */
+  srslte::unique_byte_buffer_t pdu_exp_sn2048 = allocate_unique_buffer(*pool);
+  memcpy(pdu_exp_sn2048->msg, pdu1, PDU1_LEN);
+  pdu_exp_sn2048->N_bytes = PDU1_LEN;
+  //TESTASSERT(test_tx(2049, std::move(pdu_exp_sn2048), pool, log) == 0);
+
+  /*
+   * TX Test 3: PDCP Entity with SN LEN = 12
+   * PDCP entity configured with EIA2 and EEA2
+   * TX_NEXT = 4096.
+   * Input: {0x18, 0xE2}
+   * Output: PDCP Header {0x80,0x00}, Ciphered Text {0x8f, 0xe3}, MAC-I {0xe0, 0xdf, 0x82, 0x92}
+   */
+  srslte::unique_byte_buffer_t pdu_exp_sn4096 = allocate_unique_buffer(*pool);
+  memcpy(pdu_exp_sn4096->msg, pdu1, PDU1_LEN);
+  pdu_exp_sn4096->N_bytes = PDU1_LEN;
+  TESTASSERT(test_tx(4097, std::move(pdu_exp_sn4096), pool, log) == 0);
+  return 0;
+}
 // Setup all tests
 int run_all_tests(srslte::byte_buffer_pool* pool)
 {
@@ -212,7 +245,7 @@ int run_all_tests(srslte::byte_buffer_pool* pool)
   log.set_level(srslte::LOG_LEVEL_DEBUG);
   log.set_hex_limit(128);
 
-  TESTASSERT(test_tx_basic(pool, &log) == 0);
+  TESTASSERT(test_tx_all(pool, &log) == 0);
   TESTASSERT(test_rx_basic(pool, &log) == 0);
   return 0;
 }

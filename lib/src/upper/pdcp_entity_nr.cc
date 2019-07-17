@@ -89,6 +89,10 @@ void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, bool blocking)
   // Append MAC-I
   append_mac(sdu, mac);
   
+  // Increment TX_NEXT
+  tx_next++;
+
+  // Check if PDCP is associated with more than on RLC entity TODO
   // Write to lower layers
   rlc->write_sdu(lcid, std::move(sdu), blocking);
 }
@@ -194,14 +198,14 @@ void pdcp_entity_nr::write_data_header(const srslte::unique_byte_buffer_t& sdu, 
 
   switch (cfg.sn_len) {
     case PDCP_SN_LEN_12:
-      srslte::uint16_to_uint8(0x3F & count, sdu->msg);
+      srslte::uint16_to_uint8(0x0FFF & count, sdu->msg);
       if (is_drb()) {
         sdu->msg[0] |= 0x80; // On DRB Data PDUs we must set the D flag.
       }
       break;
     case PDCP_SN_LEN_18:
       sdu->msg[0] = 0x80; // Data PDU and SN 18 implies DRB, D flag must be present
-      *sdu->msg = count & 0x3F;
+      *sdu->msg = count & 0x0FFF;
       break;
     default:
       log->error("Invalid SN length configuration: %d bits\n", cfg.sn_len);
