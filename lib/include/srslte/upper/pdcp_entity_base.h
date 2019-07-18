@@ -119,7 +119,7 @@ inline uint32_t pdcp_entity_base::HFN(uint32_t count)
 
 inline uint32_t pdcp_entity_base::SN(uint32_t count)
 {
-  return count & (0xFFFFFFFF >> cfg.sn_len);
+  return count & (0xFFFFFFFF >> (32 -cfg.sn_len));
 }
 
 inline uint32_t pdcp_entity_base::COUNT(uint32_t hfn, uint32_t sn)

@@ -120,6 +120,9 @@ private:
   srslte::unique_byte_buffer_t last_pdu;
 };
 
+/*
+ * Genric function to test transmission of in-sequence packets
+ */
 int test_tx(uint32_t n_packets, srslte::unique_byte_buffer_t pdu_exp, srslte::byte_buffer_pool* pool, srslte::log* log)
 {
   srslte::pdcp_entity_nr pdcp;
@@ -139,7 +142,6 @@ int test_tx(uint32_t n_packets, srslte::unique_byte_buffer_t pdu_exp, srslte::by
   memcpy(sdu->msg, sdu1, SDU1_LEN);
   sdu->N_bytes = SDU1_LEN;
 
-
   // Run test
   for (uint32_t i = 0; i < n_packets; ++i) {
     // Test SDU
@@ -157,52 +159,11 @@ int test_tx(uint32_t n_packets, srslte::unique_byte_buffer_t pdu_exp, srslte::by
   }
   return 0;
 }
+
 /*
- * Test 2: PDCP Entity RX
- * Configure PDCP entity with EIA2 and EEA2
- * TX_NEXT initially at 0.
- * Input: {0x80, 0x00, 0x8f, 0xe3, 0xe0, 0xdf 0x82, 0x92}
- * Output: {0x18, 0xE2}
+ * TX Test: PDCP Entity with SN LEN = 12 and 18. Tested COUNT = 0, 2048 and 4096
+ * PDCP entity configured with EIA2 and EEA2
  */
-bool test_rx_basic(srslte::byte_buffer_pool* pool, srslte::log* log)
-{
-  srslte::pdcp_entity_nr pdcp;
-  srslte::srslte_pdcp_config_t cfg = {1, srslte::PDCP_RB_IS_DRB, SECURITY_DIRECTION_DOWNLINK, SECURITY_DIRECTION_UPLINK, srslte::PDCP_SN_LEN_12};
-
-  rlc_dummy rlc(log);
-  rrc_dummy rrc(log);
-  gw_dummy  gw(log);
-
-  pdcp.init(&rlc, &rrc, &gw, log, 0, cfg);
-  pdcp.config_security(k_enc, k_int, k_enc, k_int, srslte::CIPHERING_ALGORITHM_ID_128_EEA2, srslte::INTEGRITY_ALGORITHM_ID_128_EIA2);
-  pdcp.enable_integrity();
-  pdcp.enable_encryption();
-
-  uint8_t mac_exp[4];
-  srslte::unique_byte_buffer_t pdu     = allocate_unique_buffer(*pool);
-  srslte::unique_byte_buffer_t sdu_exp = allocate_unique_buffer(*pool);
-  memcpy(pdu->msg, pdu1, PDU1_LEN);
-  pdu->N_bytes = PDU1_LEN;
-  memcpy(sdu_exp->msg, sdu1, PDU1_LEN);
-  sdu_exp->N_bytes = SDU1_LEN;
-
-
-  // Run test
-  pdcp.write_pdu(std::move(pdu));
-  
-  // Check integrity check OK
-  TESTASSERT(gw.rx_count == 1); 
-
-  // Check decrypting OK
-  srslte::unique_byte_buffer_t sdu_act = allocate_unique_buffer(*pool);
-  gw.get_last_pdu(sdu_act);
-  TESTASSERT(sdu_act->N_bytes == sdu_exp->N_bytes);
-  for (uint32_t i = 0; i < sdu_exp->N_bytes; ++i) {
-    TESTASSERT(sdu_act->msg[i] == sdu_exp->msg[i]);
-  }
-  return 0;
-}
-
 int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
 {
   /*
@@ -236,20 +197,73 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
    * Input: {0x18, 0xE2}
    * Output: PDCP Header {0x80,0x00}, Ciphered Text {0x97, 0xbe}, MAC-I {0xa3, 0x32, 0xfa, 0x61}
    */
-  srslte::unique_byte_buffer_t ct_tmp = allocate_unique_buffer(*pool);
-  srslte::security_128_eea2(&(k_enc[16]), 4096, 0, SECURITY_DIRECTION_UPLINK, sdu1, SDU1_LEN, ct_tmp->msg);
-  log->debug_hex(ct_tmp->msg, SDU1_LEN, "CT");
-
-  uint8_t mac[4];
-  srslte::security_128_eia2(&(k_int[16]), 4096, 0, SECURITY_DIRECTION_UPLINK, sdu1, SDU1_LEN, mac);
-  log->debug_hex(mac, 4, "MAC");
-
   srslte::unique_byte_buffer_t pdu_exp_sn4096 = allocate_unique_buffer(*pool);
   memcpy(pdu_exp_sn4096->msg, pdu3, PDU3_LEN);
   pdu_exp_sn4096->N_bytes = PDU3_LEN;
   TESTASSERT(test_tx(4097, std::move(pdu_exp_sn4096), pool, log) == 0);
   return 0;
 }
+
+/*
+ * RX Test: PDCP Entity with SN LEN = 12 and 18. Tested 4097 packets received without losses.
+ * PDCP entity configured with EIA2 and EEA2
+ */
+int test_rx_in_sequence(uint32_t n_packets, srslte::byte_buffer_pool* pool, srslte::log* log)
+{
+  srslte::pdcp_entity_nr       pdcp_tx;
+  srslte::pdcp_entity_nr       pdcp_rx;
+  srslte::srslte_pdcp_config_t cfg_tx = {
+      1, srslte::PDCP_RB_IS_DRB, SECURITY_DIRECTION_UPLINK, SECURITY_DIRECTION_DOWNLINK, srslte::PDCP_SN_LEN_12};
+  srslte::srslte_pdcp_config_t cfg_rx = {
+      1, srslte::PDCP_RB_IS_DRB, SECURITY_DIRECTION_DOWNLINK, SECURITY_DIRECTION_UPLINK, srslte::PDCP_SN_LEN_12};
+
+  rlc_dummy rlc_tx(log);
+  rrc_dummy rrc_tx(log);
+  gw_dummy  gw_tx(log);
+
+  rlc_dummy rlc_rx(log);
+  rrc_dummy rrc_rx(log);
+  gw_dummy  gw_rx(log);
+
+  pdcp_tx.init(&rlc_tx, &rrc_tx, &gw_tx, log, 0, cfg_tx);
+  pdcp_tx.config_security(
+      k_enc, k_int, k_enc, k_int, srslte::CIPHERING_ALGORITHM_ID_128_EEA2, srslte::INTEGRITY_ALGORITHM_ID_128_EIA2);
+  pdcp_tx.enable_integrity();
+  pdcp_tx.enable_encryption();
+
+  pdcp_rx.init(&rlc_rx, &rrc_rx, &gw_rx, log, 0, cfg_rx);
+  pdcp_rx.config_security(
+      k_enc, k_int, k_enc, k_int, srslte::CIPHERING_ALGORITHM_ID_128_EEA2, srslte::INTEGRITY_ALGORITHM_ID_128_EIA2);
+  pdcp_rx.enable_integrity();
+  pdcp_rx.enable_encryption();
+
+  srslte::unique_byte_buffer_t sdu_act = allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t sdu_exp = allocate_unique_buffer(*pool);
+  memcpy(sdu_exp->msg, sdu1, SDU1_LEN);
+  sdu_exp->N_bytes = SDU1_LEN;
+
+  // Generate test message and
+  // decript and check matching SDUs
+  for (uint32_t i = 0; i < n_packets; ++i) {
+    srslte::unique_byte_buffer_t sdu = allocate_unique_buffer(*pool);
+    srslte::unique_byte_buffer_t pdu = allocate_unique_buffer(*pool);
+    memcpy(sdu->msg, sdu_exp->msg, SDU1_LEN);
+    sdu->N_bytes = SDU1_LEN;
+
+    // Generate encripted and integrity protected PDU
+    pdcp_tx.write_sdu(std::move(sdu), true);
+    rlc_tx.get_last_sdu(pdu);
+    pdcp_rx.write_pdu(std::move(pdu));
+    gw_rx.get_last_pdu(sdu_act);
+
+    TESTASSERT(sdu_exp->N_bytes == sdu_act->N_bytes);
+    for (uint32_t j = 0; j < sdu_act->N_bytes; ++j) {
+      TESTASSERT(sdu_exp->msg[j] == sdu_act->msg[j]);
+    }
+  }
+  return 0;
+}
+
 // Setup all tests
 int run_all_tests(srslte::byte_buffer_pool* pool)
 {
@@ -259,7 +273,7 @@ int run_all_tests(srslte::byte_buffer_pool* pool)
   log.set_hex_limit(128);
 
   TESTASSERT(test_tx_all(pool, &log) == 0);
-  TESTASSERT(test_rx_basic(pool, &log) == 0);
+  TESTASSERT(test_rx_in_sequence(4097, pool, &log) == 0);
   return 0;
 }
 
@@ -269,3 +283,13 @@ int main(int argc, char** argv)
   run_all_tests(srslte::byte_buffer_pool::get_instance());
   srslte::byte_buffer_pool::cleanup();
 }
+	
+/*
+  srslte::unique_byte_buffer_t ct_tmp = allocate_unique_buffer(*pool);
+  srslte::security_128_eea2(&(k_enc[16]), 4096, 0, SECURITY_DIRECTION_UPLINK, sdu1, SDU1_LEN, ct_tmp->msg);
+  log->debug_hex(ct_tmp->msg, SDU1_LEN, "CT");
+
+  uint8_t mac[4];
+  srslte::security_128_eia2(&(k_int[16]), 4096, 0, SECURITY_DIRECTION_UPLINK, sdu1, SDU1_LEN, mac);
+  log->debug_hex(mac, 4, "MAC");
+*/

@@ -122,7 +122,6 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   extract_mac(pdu, mac);
 
   // Calculate RCVD_COUNT
-  printf("%d\n", rcvd_sn);
   uint32_t rcvd_hfn, rcvd_count;
   if ((int64_t)rcvd_sn < (int64_t)SN(rx_deliv) - (int64_t)window_size) {
     rcvd_hfn = HFN(rx_deliv) + 1;
@@ -143,25 +142,33 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   }
 
   // Check valid rcvd_count
-  if (rcvd_count < rx_deliv /*|| check_received_before() TODO*/) {
+  if (rcvd_count < rx_deliv) {
     return; // Invalid count, drop.
   }
 
-  // Store PDU in reception buffer
-  // TODO
+  // TODO check if PDU has been received
+  // TODO Store PDU in reception buffer
 
   // Update RX_NEXT
   if(rcvd_count >= rx_next){
     rx_next = rcvd_count + 1;
   }
-  
-  // Deliver to upper layers (TODO support in order delivery)
-  if (is_srb()) {
-    rrc->write_pdu(lcid, std::move(pdu));
-  } else {
-    gw->write_pdu(lcid, std::move(pdu));
+ 
+  // TODO if out-of-order configured, submit to upper layer
+
+  if (rcvd_count == rx_deliv) {
+    // Deliver to upper layers (TODO queueing needs to be implemented)
+    if (is_srb()) {
+      rrc->write_pdu(lcid, std::move(pdu));
+    } else {
+      gw->write_pdu(lcid, std::move(pdu));
+    }
+	
+    // Update RX_DELIV
+    rx_deliv = rcvd_count + 1; // TODO needs to be corrected when queueing is implemented
+    printf("New RX_deliv %d, rcvd_count %d\n", rx_deliv, rcvd_count);
   }
-  
+
   // Not clear how to update RX_DELIV without reception buffer (TODO) 
 
   // TODO handle reordering timers
