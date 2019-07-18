@@ -339,12 +339,25 @@ void sf_worker::update_measurements()
 
   // Run measurements in all carriers
   for (uint32_t cc_idx = 0; cc_idx < cc_workers.size(); cc_idx++) {
+    // Update measurement of the Component Carrier
     cc_workers[cc_idx]->update_measurements();
-  }
 
-  // Send PCell measurement
-  if ((tti % phy->pcell_report_period) == phy->pcell_report_period - 1) {
-    phy->stack->new_phy_meas(phy->avg_rsrp_dbm[0], phy->avg_rsrq_db, tti);
+    // Send measurements
+    if ((tti % phy->pcell_report_period) == phy->pcell_report_period - 1) {
+      if (cc_idx == 0) {
+        // Send report for PCell
+        phy->stack->new_phy_meas(phy->avg_rsrp_dbm[0], phy->avg_rsrq_db, tti);
+      } else {
+        // Send report for SCell (if it they are enabled)
+        if (phy->scell_enable[cc_idx]) {
+          phy->stack->new_phy_meas(phy->avg_rsrp_dbm[cc_idx],
+                                   phy->avg_rsrq_db,
+                                   tti,
+                                   phy->scell_earfcn[cc_idx - 1],
+                                   phy->scell_pci[cc_idx - 1]);
+        }
+      }
+    }
   }
 
   // Check in-sync / out-sync conditions

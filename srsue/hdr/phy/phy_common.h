@@ -78,7 +78,11 @@ public:
   uint32_t pcell_report_period;
   bool     pcell_first_measurement;
 
-  /* SCell enable for Activation / Deactivation */
+  // SCell EARFCN and PCI list
+  uint32_t scell_earfcn[SRSLTE_MAX_CARRIERS - 1] = {};
+  uint32_t scell_pci[SRSLTE_MAX_CARRIERS - 1]    = {};
+
+  // SCell enable for Activation / Deactivation
   bool scell_configured[SRSLTE_MAX_CARRIERS];
   bool scell_enable[SRSLTE_MAX_CARRIERS]; /* Entry index 0 is reserved, do NOT use it for PCell */
   bool multiple_csi_request_enabled;      /* True means cross scheduling enabled */

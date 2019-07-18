@@ -593,7 +593,11 @@ void rrc::new_phy_meas(float rsrp, float rsrq, uint32_t tti, int earfcn_i, int p
   }
   phy_meas_t new_meas = {rsrp, rsrq, tti, earfcn, pci};
   phy_meas_q.push(new_meas);
-  rrc_log->info("MEAS:  New measurement pci=%d (%s), rsrp=%.1f dBm.\n", pci, pci_i < 0 ? "serving" : "neighbour", rsrp);
+  rrc_log->info("MEAS:  New measurement earfcn=%d, pci=%d (%s), rsrp=%.1f dBm.\n",
+                earfcn_i,
+                pci,
+                pci_i < 0 ? "serving" : "neighbour",
+                rsrp);
 }
 
 /* Processes all pending PHY measurements in queue. Must be called from a mutexed function
@@ -1497,6 +1501,9 @@ bool rrc::ho_prepare()
       apply_rr_config_dedicated(&mob_reconf_r8->rr_cfg_ded);
     }
 
+    // Extract and apply scell config if any
+    apply_scell_config(mob_reconf_r8);
+
     if (!phy->cell_select(&neighbour_cells[target_cell_idx]->phy_cell)) {
       rrc_log->error("Could not synchronize with target cell pci=%d. Trying to return to source PCI\n",
                      neighbour_cells[target_cell_idx]->get_pci());
@@ -1609,59 +1616,8 @@ bool rrc::con_reconfig(asn1::rrc::rrc_conn_recfg_s* reconfig)
       return false;
     }
   }
-  if (reconfig_r8->non_crit_ext_present) {
-    rrc_conn_recfg_v890_ies_s* reconfig_r890 = &reconfig_r8->non_crit_ext;
-    if (reconfig_r890->non_crit_ext_present) {
-      rrc_conn_recfg_v920_ies_s* reconfig_r920 = &reconfig_r890->non_crit_ext;
-      if (reconfig_r920->non_crit_ext_present) {
-        rrc_conn_recfg_v1020_ies_s* reconfig_r1020 = &reconfig_r920->non_crit_ext;
 
-        // Handle Add/Modify SCell list
-        if (reconfig_r1020->s_cell_to_add_mod_list_r10_present) {
-          for (uint32_t i = 0; i < reconfig_r1020->s_cell_to_add_mod_list_r10.size(); i++) {
-            auto scell_config = &reconfig_r1020->s_cell_to_add_mod_list_r10[i];
-
-            // Limit enable64_qam, if the ue does not
-            // since the phy does not have information about the RRC category and release, the RRC shall limit the
-            if (scell_config->rr_cfg_common_scell_r10_present) {
-              // enable64_qam
-              auto rr_cfg_common_scell = &scell_config->rr_cfg_common_scell_r10;
-              if (rr_cfg_common_scell->ul_cfg_r10_present) {
-                auto ul_cfg           = &rr_cfg_common_scell->ul_cfg_r10;
-                auto pusch_cfg_common = &ul_cfg->pusch_cfg_common_r10;
-
-                // According to 3GPP 36.331 v12 UE-EUTRA-Capability field descriptions
-                // Allow 64QAM for:
-                //   ue-Category 5 and 8 when enable64QAM (without suffix)
-                if (pusch_cfg_common->pusch_cfg_basic.enable64_qam) {
-                  if (args.ue_category != 5 && args.ue_category != 8 && args.ue_category != 13) {
-                    pusch_cfg_common->pusch_cfg_basic.enable64_qam = false;
-                  }
-                }
-              }
-            }
-
-            // Call mac reconfiguration
-            mac->reconfiguration(scell_config->s_cell_idx_r10, true);
-
-            // Call phy reconfiguration
-            phy->set_config_scell(scell_config);
-          }
-        }
-
-        // Handle Remove SCell list
-        if (reconfig_r1020->s_cell_to_release_list_r10_present) {
-          for (uint32_t i = 0; i < reconfig_r1020->s_cell_to_release_list_r10.size(); i++) {
-            // Call mac reconfiguration
-            mac->reconfiguration(reconfig_r1020->s_cell_to_release_list_r10[i], false);
-
-            // Call phy reconfiguration
-            // TODO: Implement phy layer cell removal
-          }
-        }
-      }
-    }
-  }
+  apply_scell_config(reconfig_r8);
 
   // If first message after reestablishment, resume SRB2 and all DRB
   if (reestablishment_successful) {
@@ -3056,6 +3012,66 @@ bool rrc::apply_rr_config_dedicated(rr_cfg_ded_s* cnfg)
     add_drb(&cnfg->drb_to_add_mod_list[i]);
   }
   return true;
+}
+
+/*
+ * Extracts and applies SCell configuration from an ASN.1 reconfiguration struct
+ */
+void rrc::apply_scell_config(asn1::rrc::rrc_conn_recfg_r8_ies_s* reconfig_r8)
+{
+  if (reconfig_r8->non_crit_ext_present) {
+    auto reconfig_r890 = &reconfig_r8->non_crit_ext;
+    if (reconfig_r890->non_crit_ext_present) {
+      rrc_conn_recfg_v920_ies_s* reconfig_r920 = &reconfig_r890->non_crit_ext;
+      if (reconfig_r920->non_crit_ext_present) {
+        rrc_conn_recfg_v1020_ies_s* reconfig_r1020 = &reconfig_r920->non_crit_ext;
+
+        // Handle Add/Modify SCell list
+        if (reconfig_r1020->s_cell_to_add_mod_list_r10_present) {
+          for (uint32_t i = 0; i < reconfig_r1020->s_cell_to_add_mod_list_r10.size(); i++) {
+            auto scell_config = &reconfig_r1020->s_cell_to_add_mod_list_r10[i];
+
+            // Limit enable64_qam, if the ue does not
+            // since the phy does not have information about the RRC category and release, the RRC shall limit the
+            if (scell_config->rr_cfg_common_scell_r10_present) {
+              // enable64_qam
+              auto rr_cfg_common_scell = &scell_config->rr_cfg_common_scell_r10;
+              if (rr_cfg_common_scell->ul_cfg_r10_present) {
+                auto ul_cfg           = &rr_cfg_common_scell->ul_cfg_r10;
+                auto pusch_cfg_common = &ul_cfg->pusch_cfg_common_r10;
+
+                // According to 3GPP 36.331 v12 UE-EUTRA-Capability field descriptions
+                // Allow 64QAM for:
+                //   ue-Category 5 and 8 when enable64QAM (without suffix)
+                if (pusch_cfg_common->pusch_cfg_basic.enable64_qam) {
+                  if (args.ue_category != 5 && args.ue_category != 8 && args.ue_category != 13) {
+                    pusch_cfg_common->pusch_cfg_basic.enable64_qam = false;
+                  }
+                }
+              }
+            }
+
+            // Call mac reconfiguration
+            mac->reconfiguration(scell_config->s_cell_idx_r10, true);
+
+            // Call phy reconfiguration
+            phy->set_config_scell(scell_config);
+          }
+        }
+
+        // Handle Remove SCell list
+        if (reconfig_r1020->s_cell_to_release_list_r10_present) {
+          for (uint32_t i = 0; i < reconfig_r1020->s_cell_to_release_list_r10.size(); i++) {
+            // Call mac reconfiguration
+            mac->reconfiguration(reconfig_r1020->s_cell_to_release_list_r10[i], false);
+
+            // Call phy reconfiguration
+            // TODO: Implement phy layer cell removal
+          }
+        }
+      }
+    }
+  }
 }
 
 void rrc::handle_con_setup(rrc_conn_setup_s* setup)

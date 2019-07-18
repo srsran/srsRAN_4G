@@ -896,7 +896,7 @@ bool phy_common::is_mbsfn_sf(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti)
 
 void phy_common::enable_scell(uint32_t cc_idx, bool enable)
 {
-  if (cc_idx < SRSLTE_MAX_RADIOS) {
+  if (cc_idx < SRSLTE_MAX_CARRIERS) {
     scell_enable[cc_idx] = enable;
   }
 }

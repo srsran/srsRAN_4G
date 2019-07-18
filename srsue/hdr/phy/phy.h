@@ -155,7 +155,6 @@ private:
   phy_common               common;
   sync                     sfsync;
   scell::async_recv_vector scell_sync;
-  uint32_t                                 scell_earfcn[SRSLTE_MAX_CARRIERS - 1] = {};
   prach                   prach_buffer;
 
   srslte_prach_cfg_t  prach_cfg  = {};
