@@ -74,8 +74,6 @@ rx_gain = 40
 
 # For best performance in 2x2 MIMO and >= 15 MHz use the following device_args settings:
 #     USRP B210: pass num_recv_frames=64,num_send_frames=64
-#     USRP X310:
-#     USRP N310:
 
 #device_args = auto
 #time_adv_nsamples = auto
