@@ -304,12 +304,12 @@ bool sync::cell_select(phy_interface_rrc_lte::phy_cell_t* new_cell)
 
     /* Select new frequency if necessary */
     if ((int) new_cell->earfcn != current_earfcn) {
+      current_earfcn = new_cell->earfcn;
       Info("Cell Select: Setting new frequency EARFCN=%d\n", new_cell->earfcn);
-      if (set_frequency()) {
+      if (!set_frequency()) {
         Error("Cell Select: Setting new frequency EARFCN=%d\n", new_cell->earfcn);
         return ret;
       }
-      current_earfcn = new_cell->earfcn;
     }
   }
 
