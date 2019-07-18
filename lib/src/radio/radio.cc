@@ -395,17 +395,17 @@ void radio::set_tx_srate(double srate)
     } else if(!strcmp(srslte_rf_name(&rf_device), "lime")) {
       double srate_khz = round(cur_tx_srate/1e3);
       if (srate_khz == 1.92e3) {
-        nsamples = 76;
+        nsamples = 28;
       } else if (srate_khz == 3.84e3) {
-        nsamples = 76;
+        nsamples = 51;
       } else if (srate_khz == 5.76e3) {
-        nsamples = 76;
+        nsamples = 74;
       } else if (srate_khz == 11.52e3) {
-        nsamples = 76;
+        nsamples = 78;
       } else if (srate_khz == 15.36e3) {
-        nsamples = 76;
+        nsamples = 86;
       } else if (srate_khz == 23.04e3) {
-        nsamples = 76;
+        nsamples = 102;
       } else {
         /* Interpolate from known values */
         log_h->console(
