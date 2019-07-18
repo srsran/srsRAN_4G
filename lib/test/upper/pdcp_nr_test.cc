@@ -283,13 +283,3 @@ int main(int argc, char** argv)
   run_all_tests(srslte::byte_buffer_pool::get_instance());
   srslte::byte_buffer_pool::cleanup();
 }
-	
-/*
-  srslte::unique_byte_buffer_t ct_tmp = allocate_unique_buffer(*pool);
-  srslte::security_128_eea2(&(k_enc[16]), 4096, 0, SECURITY_DIRECTION_UPLINK, sdu1, SDU1_LEN, ct_tmp->msg);
-  log->debug_hex(ct_tmp->msg, SDU1_LEN, "CT");
-
-  uint8_t mac[4];
-  srslte::security_128_eia2(&(k_int[16]), 4096, 0, SECURITY_DIRECTION_UPLINK, sdu1, SDU1_LEN, mac);
-  log->debug_hex(mac, 4, "MAC");
-*/
