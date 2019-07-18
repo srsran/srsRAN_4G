@@ -52,9 +52,11 @@ endif (RPATH)
 # UE initialization test
 ########################################################################
 
+if(NOT SRSGUI_FOUND)
 # Make sure srsue returns 0 and it does not leak
 add_test(srsue_version srsue --version)
 add_test(srsue_help srsue --help)
+endif(NOT SRSGUI_FOUND)
 
 # Checks that ue.conf.example is valid and it does not leak memory if RF fails
 if (ZEROMQ_FOUND)
