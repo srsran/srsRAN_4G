@@ -184,12 +184,12 @@ bool pcsc_usim::get_home_plmn_id(srslte::plmn_id_t* home_plmn_id)
     plmn_str << (int)imsi_vec[i];
   }
 
-  if (not home_plmn_id->from_string(plmn_str.str())) {
+  if (home_plmn_id->from_string(plmn_str.str())) {
     log->error("Error reading home PLMN from SIM.\n");
     return false;
   }
 
-  log->info("Read Home PLMN Id=%s\n", plmn_str.str().c_str());
+  log->info("Read Home PLMN Id=%s\n", home_plmn_id->to_string().c_str());
 
   return true;
 }

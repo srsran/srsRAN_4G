@@ -55,6 +55,15 @@ int main(int argc, char **argv)
 
   std::string imsi = usim.get_imsi_str();
   cout << "IMSI: " << imsi << endl;
+
+  srslte::plmn_id_t home_plmn_id = {};
+  if (usim.get_home_plmn_id(&home_plmn_id) == false) {
+    printf("Error reading home PLMN\n");
+    return SRSLTE_ERROR;
+  }
+
+  cout << "Home PLMN: " << home_plmn_id.to_string() << endl;
+
   auth_result_t result = usim.generate_authentication_response(rand_enb, autn_enb, mcc, mnc, res, &res_len, k_asme);
 
   return SRSLTE_SUCCESS;
