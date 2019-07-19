@@ -1194,7 +1194,7 @@ bool rrc::mbms_service_start(uint32_t serv, uint32_t port)
     for (uint32_t j = 0; j < pmch->mbms_session_info_list_r9.size(); j++) {
       mbms_session_info_r9_s* sess = &pmch->mbms_session_info_list_r9[j];
       if (serv == sess->tmgi_r9.service_id_r9.to_number()) {
-        rrc_log->console("MBMS service started. Service id:%d, port: %d\n", serv, port);
+        rrc_log->console("MBMS service started. Service id=%d, port=%d, lcid=%d\n", serv, port, sess->lc_ch_id_r9);
         ret = true;
         add_mrb(sess->lc_ch_id_r9, port);
       }

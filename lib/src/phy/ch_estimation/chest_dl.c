@@ -246,10 +246,10 @@ int srslte_chest_dl_set_mbsfn_area_id(srslte_chest_dl_t* q, uint16_t mbsfn_area_
   if (mbsfn_area_id < SRSLTE_MAX_MBSFN_AREA_IDS) {
     if (!q->mbsfn_refs[mbsfn_area_id]) {
       q->mbsfn_refs[mbsfn_area_id] = calloc(1, sizeof(srslte_refsignal_t));
-        if(srslte_refsignal_mbsfn_init(q->mbsfn_refs[mbsfn_area_id], q->cell.nof_prb)) {
-          return SRSLTE_ERROR;
-        }
-      if(srslte_refsignal_mbsfn_set_cell(q->mbsfn_refs[mbsfn_area_id], q->cell, mbsfn_area_id)) {
+      if (srslte_refsignal_mbsfn_init(q->mbsfn_refs[mbsfn_area_id], q->cell.nof_prb)) {
+        return SRSLTE_ERROR;
+      }
+      if (srslte_refsignal_mbsfn_set_cell(q->mbsfn_refs[mbsfn_area_id], q->cell, mbsfn_area_id)) {
         return SRSLTE_ERROR;
       }
     }
