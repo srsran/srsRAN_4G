@@ -121,11 +121,11 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   s1ap.init(args.s1ap, &rrc, &s1ap_log);
   gtpu.init(args.s1ap.gtp_bind_addr,
             args.s1ap.mme_addr,
-            args.expert.m1u_multiaddr,
-            args.expert.m1u_if_addr,
+            args.embms.m1u_multiaddr,
+            args.embms.m1u_if_addr,
             &pdcp,
             &gtpu_log,
-            args.expert.enable_mbsfn);
+            args.embms.enable);
 
   started = true;
 

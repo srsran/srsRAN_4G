@@ -264,12 +264,15 @@ void phy_common::build_mch_table()
   ZERO_OBJECT(mcch_table);
 
   // 40 element table represents 4 frames (40 subframes)
-  uint32_t nof_sfs = 10;
+  uint32_t nof_sfs = 0;
   if (mbsfn.mbsfn_subfr_cnfg.sf_alloc.type().value == mbsfn_sf_cfg_s::sf_alloc_c_::types::one_frame) {
     generate_mch_table(&mch_table[0], (uint32_t)mbsfn.mbsfn_subfr_cnfg.sf_alloc.one_frame().to_number(), 1);
-  } else {
+    nof_sfs = 10;
+  } else if (mbsfn.mbsfn_subfr_cnfg.sf_alloc.type().value == mbsfn_sf_cfg_s::sf_alloc_c_::types::four_frames) {
     generate_mch_table(&mch_table[0], (uint32_t)mbsfn.mbsfn_subfr_cnfg.sf_alloc.four_frames().to_number(), 4);
     nof_sfs = 40;
+  } else {
+    fprintf(stderr, "No valid SF alloc\n");
   }
   // Debug
   std::stringstream ss;

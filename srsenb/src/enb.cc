@@ -194,7 +194,7 @@ int enb::parse_args(const all_args_t& args_)
   }
 
   rrc_cfg.inactivity_timeout_ms = args.general.rrc_inactivity_timer;
-  rrc_cfg.enable_mbsfn          = args.general.enable_mbsfn;
+  rrc_cfg.enable_mbsfn          = args.stack.embms.enable;
 
   // Check number of control symbols
   if (cell_cfg.nof_prb < 50 && args.stack.mac.sched.nof_ctrl_symbols != 3) {

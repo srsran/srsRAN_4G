@@ -145,13 +145,15 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
     ("expert.equalizer_mode", bpo::value<string>(&args->phy.equalizer_mode)->default_value("mmse"), "Equalizer mode")
     ("expert.estimator_fil_w", bpo::value<float>(&args->phy.estimator_fil_w)->default_value(0.1), "Chooses the coefficients for the 3-tap channel estimator centered filter.")
     ("expert.rrc_inactivity_timer", bpo::value<uint32_t>(&args->general.rrc_inactivity_timer)->default_value(60000), "Inactivity timer in ms")
-    ("expert.enable_mbsfn", bpo::value<bool>(&args->general.enable_mbsfn)->default_value(false), "Enables MBMS in the eNB")
     ("expert.print_buffer_state", bpo::value<bool>(&args->general.print_buffer_state)->default_value(false), "Prints on the console the buffer state every 10 seconds")
-    ("expert.m1u_multiaddr", bpo::value<string>(&args->general.m1u_multiaddr)->default_value("239.255.0.1"), "M1-U Multicast address the eNB joins.")
-    ("expert.m1u_if_addr", bpo::value<string>(&args->general.m1u_if_addr)->default_value("127.0.1.201"), "IP address of the interface the eNB will listen for M1-U traffic.")
     ("expert.eea_pref_list", bpo::value<string>(&args->general.eea_pref_list)->default_value("EEA0, EEA2, EEA1"), "Ordered preference list for the selection of encryption algorithm (EEA) (default: EEA0, EEA2, EEA1).")
     ("expert.eia_pref_list", bpo::value<string>(&args->general.eia_pref_list)->default_value("EIA2, EIA1, EIA0"), "Ordered preference list for the selection of integrity algorithm (EIA) (default: EIA2, EIA1, EIA0).")
-  ;
+
+    // eMBMS section
+    ("embms.enable", bpo::value<bool>(&args->stack.embms.enable)->default_value(false), "Enables MBMS in the eNB")
+    ("embms.m1u_multiaddr", bpo::value<string>(&args->stack.embms.m1u_multiaddr)->default_value("239.255.0.1"), "M1-U Multicast address the eNB joins.")
+    ("embms.m1u_if_addr", bpo::value<string>(&args->stack.embms.m1u_if_addr)->default_value("127.0.1.201"), "IP address of the interface the eNB will listen for M1-U traffic.")
+    ;
 
   // Positional options - config file location
   bpo::options_description position("Positional options");
@@ -261,7 +263,7 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
       exit(1);
     }
   }
-  if (args->general.enable_mbsfn) {
+  if (args->stack.embms.enable) {
     if (args->stack.mac.sched.nof_ctrl_symbols == 3) {
       fprintf(stderr,
               "nof_ctrl_symbols = %d, While using MBMS, please set number of control symbols to either 1 or 2, "

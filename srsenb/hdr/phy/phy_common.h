@@ -130,10 +130,10 @@ private:
   phy_interface_stack_lte::phy_cfg_mbsfn_t mbsfn;
   bool sib13_configured;
   bool mcch_configured;
-  uint8_t mch_table[40];
-  uint8_t mcch_table[10];
+  uint8_t                                  mch_table[40]  = {};
+  uint8_t                                  mcch_table[10] = {};
   uint32_t                            mch_period_stop;
-  uint8_t mch_sf_idx_lut[10];
+  uint8_t                                  mch_sf_idx_lut[10] = {};
   bool    is_mch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti);
   bool    is_mcch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti);
 

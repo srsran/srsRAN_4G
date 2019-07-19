@@ -264,6 +264,9 @@ void phy::configure_mbsfn(sib_type2_s* sib2, sib_type13_r9_s* sib13, mcch_msg_s 
       }
       phy_rrc_config.mbsfn.mbsfn_subfr_cnfg = sib2->mbsfn_sf_cfg_list[0];
     }
+  } else {
+    fprintf(stderr, "SIB2 has no MBSFN subframe config specified\n");
+    return;
   }
 
   phy_rrc_config.mbsfn.mbsfn_notification_cnfg = sib13->notif_cfg_r9;

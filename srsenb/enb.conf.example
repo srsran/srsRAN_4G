@@ -143,6 +143,18 @@ pusch_max_mcs    = 16
 nof_ctrl_symbols = 3
 
 #####################################################################
+# eMBMS configuration options
+#
+# enable:               Enable MBMS transmission in the eNB
+# m1u_multiaddr:        Multicast addres the M1-U socket will register to
+# m1u_if_addr:          Address of the inteferface the M1-U interface will listen for multicast packets.
+#
+#####################################################################
+#enable = false
+#m1u_multiaddr = 239.255.0.1
+#m1u_if_addr = 127.0.1.201
+
+#####################################################################
 # Expert configuration options
 #
 # pusch_max_its:        Maximum number of turbo decoder iterations (Default 4)
@@ -156,10 +168,7 @@ nof_ctrl_symbols = 3
 # link_failure_nof_err: Number of PUSCH failures after which a radio-link failure is triggered. 
 #                       a link failure is when SNR<0 and CRC=KO
 # max_prach_offset_us:  Maximum allowed RACH offset (in us)
-# enable_mbsfn:         Enable MBMS transmission in the eNB
-# m1u_multiaddr:        Multicast addres the M1-U socket will register to
-# m1u_if_addr:          Address of the inteferface the M1-U interface will listen for multicast packets.
-# eea_pref_list:        Ordered preference list for the selection of encryption algorithm (EEA) (default: EEA0, EEA2, EEA1). 
+# eea_pref_list:        Ordered preference list for the selection of encryption algorithm (EEA) (default: EEA0, EEA2, EEA1).
 # eia_pref_list:        Ordered preference list for the selection of integrity algorithm (EIA) (default: EIA2, EIA1, EIA0).
 #
 #####################################################################
@@ -175,8 +184,5 @@ nof_ctrl_symbols = 3
 #link_failure_nof_err = 50
 #rrc_inactivity_timer = 60000
 #max_prach_offset_us  = 30
-#enable_mbsfn = false
-#m1u_multiaddr = 239.255.0.1
-#m1u_if_addr = 127.0.1.201 
 #eea_pref_list = EEA0, EEA2, EEA1
 #eia_pref_list = EIA2, EIA1, EIA0

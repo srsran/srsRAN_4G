@@ -32,10 +32,10 @@ typedef struct {
 } pcap_args_t;
 
 typedef struct {
-  bool        enable_mbsfn;
+  bool        enable;
   std::string m1u_multiaddr;
   std::string m1u_if_addr;
-} stack_expert_args_t;
+} embms_args_t;
 
 typedef struct {
   std::string mac_level;
@@ -58,7 +58,7 @@ typedef struct {
   s1ap_args_t         s1ap;
   pcap_args_t         pcap;
   stack_log_args_t    log;
-  stack_expert_args_t expert;
+  embms_args_t        embms;
 } stack_args_t;
 
 struct stack_metrics_t;

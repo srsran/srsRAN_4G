@@ -672,7 +672,7 @@ void mac::build_mch_sched(uint32_t tbs)
 
   int last_mtch_stop = 0;
 
-  if (total_bytes_to_tx >= total_space_avail_bytes) {
+  if (total_bytes_to_tx > 0 && total_bytes_to_tx >= total_space_avail_bytes) {
     for(uint32_t i = 0; i < mch.num_mtch_sched;i++){
        double ratio =  mch.mtch_sched[i].lcid_buffer_size/total_bytes_to_tx;
        float assigned_sfs = floor(sfs_per_sched_period*ratio);
@@ -690,16 +690,14 @@ void mac::build_mch_sched(uint32_t tbs)
 
 int mac::get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_t* dl_sched_res)
 {
-
   log_h->step(tti);
-  srslte_ra_tb_t mcs;
-  srslte_ra_tb_t mcs_data;
-  mcs.mcs_idx      = this->sib13.mbsfn_area_info_list_r9[0].mcch_cfg_r9.sig_mcs_r9;
+  srslte_ra_tb_t mcs      = {};
+  srslte_ra_tb_t mcs_data = {};
+  mcs.mcs_idx             = this->sib13.mbsfn_area_info_list_r9[0].mcch_cfg_r9.sig_mcs_r9.to_number();
   mcs_data.mcs_idx = this->mcch.msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[0].pmch_cfg_r9.data_mcs_r9;
   srslte_dl_fill_ra_mcs(&mcs, 0, this->cell_config.cell.nof_prb, false);
   srslte_dl_fill_ra_mcs(&mcs_data, 0, this->cell_config.cell.nof_prb, false);
   if (is_mcch) {
-
     build_mch_sched(mcs_data.tbs);
     mch.mcch_payload = mcch_payload_buffer;
     mch.current_sf_allocation_num = 1;

@@ -661,7 +661,7 @@ int enb::parse_sibs(all_args_t* args, rrc_cfg_t* rrc_cfg, phy_cfg_t* phy_config_
   }
 
   // Update MBSFN list counter. Only 1 supported
-  if (not args->general.enable_mbsfn) {
+  if (not args->stack.embms.enable) {
     sib2->mbsfn_sf_cfg_list_present = false;
     sib2->mbsfn_sf_cfg_list.resize(0);
   } else {

@@ -92,10 +92,7 @@ struct general_args_t {
   float       metrics_period_secs;
   bool        metrics_csv_enable;
   std::string metrics_csv_filename;
-  bool        enable_mbsfn;
   bool        print_buffer_state;
-  std::string m1u_multiaddr;
-  std::string m1u_if_addr;
   std::string eia_pref_list;
   std::string eea_pref_list;
 };
