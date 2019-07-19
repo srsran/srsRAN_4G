@@ -52,6 +52,16 @@ uint32_t PDU2_LEN = 8;
 
 uint8_t  pdu3[]   = {0x80, 0x00, 0x97, 0xbe, 0xa3, 0x32, 0xfa, 0x61};
 uint32_t PDU3_LEN = 8;
+
+uint8_t  pdu4[]   = {0x80, 0x00, 0x00, 0x8f, 0xe3, 0xe0, 0xdf, 0x82, 0x92};
+uint32_t PDU4_LEN = 9;
+
+uint8_t  pdu5[]   = {0x80, 0x08, 0x00, 0x8d, 0x2c, 0x47, 0x5e, 0xb1, 0x5b};
+uint32_t PDU5_LEN = 9;
+
+uint8_t  pdu6[]   = {0x80, 0x00, 0x00, 0x97, 0xbe, 0xa3, 0x32, 0xfa, 0x61};
+uint32_t PDU6_LEN = 9;
+
 // dummy classes
 class rlc_dummy : public srsue::rlc_interface_pdcp
 {
@@ -173,10 +183,10 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
    * Input: {0x18, 0xE2}
    * Output: PDCP Header {0x80, 0x00}, Ciphered Text {0x8f, 0xe3}, MAC-I {0xe0, 0xdf, 0x82, 0x92}
    */
-  srslte::unique_byte_buffer_t pdu_exp_sn0 = allocate_unique_buffer(*pool);
-  memcpy(pdu_exp_sn0->msg, pdu1, PDU1_LEN);
-  pdu_exp_sn0->N_bytes = PDU1_LEN;
-  TESTASSERT(test_tx(1, srslte::PDCP_SN_LEN_12, std::move(pdu_exp_sn0), pool, log) == 0);
+  srslte::unique_byte_buffer_t pdu_exp_sn0_len12 = allocate_unique_buffer(*pool);
+  memcpy(pdu_exp_sn0_len12->msg, pdu1, PDU1_LEN);
+  pdu_exp_sn0_len12->N_bytes = PDU1_LEN;
+  TESTASSERT(test_tx(1, srslte::PDCP_SN_LEN_12, std::move(pdu_exp_sn0_len12), pool, log) == 0);
 
   /*
    * TX Test 2: PDCP Entity with SN LEN = 12
@@ -185,10 +195,10 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
    * Input: {0x18, 0xE2}
    * Output: PDCP Header {0x88, 0x00}, Ciphered Text {0x8d, 0x2c}, MAC-I {0x47, 0x5e, 0xb1, 0x5b}
    */
-  srslte::unique_byte_buffer_t pdu_exp_sn2048 = allocate_unique_buffer(*pool);
-  memcpy(pdu_exp_sn2048->msg, pdu2, PDU2_LEN);
-  pdu_exp_sn2048->N_bytes = PDU2_LEN;
-  TESTASSERT(test_tx(2049, srslte::PDCP_SN_LEN_12, std::move(pdu_exp_sn2048), pool, log) == 0);
+  srslte::unique_byte_buffer_t pdu_exp_sn2048_len12 = allocate_unique_buffer(*pool);
+  memcpy(pdu_exp_sn2048_len12->msg, pdu2, PDU2_LEN);
+  pdu_exp_sn2048_len12->N_bytes = PDU2_LEN;
+  TESTASSERT(test_tx(2049, srslte::PDCP_SN_LEN_12, std::move(pdu_exp_sn2048_len12), pool, log) == 0);
 
   /*
    * TX Test 3: PDCP Entity with SN LEN = 12
@@ -197,46 +207,46 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
    * Input: {0x18, 0xE2}
    * Output: PDCP Header {0x80,0x00}, Ciphered Text {0x97, 0xbe}, MAC-I {0xa3, 0x32, 0xfa, 0x61}
    */
-  srslte::unique_byte_buffer_t pdu_exp_sn4096 = allocate_unique_buffer(*pool);
-  memcpy(pdu_exp_sn4096->msg, pdu3, PDU3_LEN);
-  pdu_exp_sn4096->N_bytes = PDU3_LEN;
-  TESTASSERT(test_tx(4097, srslte::PDCP_SN_LEN_12, std::move(pdu_exp_sn4096), pool, log) == 0);
+  srslte::unique_byte_buffer_t pdu_exp_sn4096_len12 = allocate_unique_buffer(*pool);
+  memcpy(pdu_exp_sn4096_len12->msg, pdu3, PDU3_LEN);
+  pdu_exp_sn4096_len12->N_bytes = PDU3_LEN;
+  TESTASSERT(test_tx(4097, srslte::PDCP_SN_LEN_12, std::move(pdu_exp_sn4096_len12), pool, log) == 0);
 
   /*
-   * TX Test 1: PDCP Entity with SN LEN = 12
+   * TX Test 4: PDCP Entity with SN LEN = 18
    * PDCP entity configured with EIA2 and EEA2
    * TX_NEXT = 0.
    * Input: {0x18, 0xE2}
-   * Output: PDCP Header {0x80, 0x00}, Ciphered Text {0x8f, 0xe3}, MAC-I {0xe0, 0xdf, 0x82, 0x92}
+   * Output: PDCP Header {0x80, 0x80, 0x00}, Ciphered Text {0x8f, 0xe3}, MAC-I {0xe0, 0xdf, 0x82, 0x92}
    */
-  srslte::unique_byte_buffer_t pdu_exp_sn0 = allocate_unique_buffer(*pool);
-  memcpy(pdu_exp_sn0->msg, pdu1, PDU1_LEN);
-  pdu_exp_sn0->N_bytes = PDU1_LEN;
-  TESTASSERT(test_tx(1, srslte::PDCP_SN_LEN_12, std::move(pdu_exp_sn0), pool, log) == 0);
+  srslte::unique_byte_buffer_t pdu_exp_sn0_len18 = allocate_unique_buffer(*pool);
+  memcpy(pdu_exp_sn0_len18->msg, pdu4, PDU4_LEN);
+  pdu_exp_sn0_len18->N_bytes = PDU4_LEN;
+  TESTASSERT(test_tx(1, srslte::PDCP_SN_LEN_18, std::move(pdu_exp_sn0_len18), pool, log) == 0);
 
   /*
-   * TX Test 2: PDCP Entity with SN LEN = 12
+   * TX Test 5: PDCP Entity with SN LEN = 18
    * PDCP entity configured with EIA2 and EEA2
    * TX_NEXT = 2048.
    * Input: {0x18, 0xE2}
    * Output: PDCP Header {0x88, 0x00}, Ciphered Text {0x8d, 0x2c}, MAC-I {0x47, 0x5e, 0xb1, 0x5b}
    */
-  srslte::unique_byte_buffer_t pdu_exp_sn2048 = allocate_unique_buffer(*pool);
-  memcpy(pdu_exp_sn2048->msg, pdu2, PDU2_LEN);
-  pdu_exp_sn2048->N_bytes = PDU2_LEN;
-  TESTASSERT(test_tx(2049, srslte::PDCP_SN_LEN_12, std::move(pdu_exp_sn2048), pool, log) == 0);
+  srslte::unique_byte_buffer_t pdu_exp_sn2048_len18 = allocate_unique_buffer(*pool);
+  memcpy(pdu_exp_sn2048_len18->msg, pdu5, PDU5_LEN);
+  pdu_exp_sn2048_len18->N_bytes = PDU5_LEN;
+  TESTASSERT(test_tx(2049, srslte::PDCP_SN_LEN_18, std::move(pdu_exp_sn2048_len18), pool, log) == 0);
 
   /*
-   * TX Test 3: PDCP Entity with SN LEN = 12
+   * TX Test 6: PDCP Entity with SN LEN = 18
    * PDCP entity configured with EIA2 and EEA2
    * TX_NEXT = 4096.
    * Input: {0x18, 0xE2}
    * Output: PDCP Header {0x80,0x00}, Ciphered Text {0x97, 0xbe}, MAC-I {0xa3, 0x32, 0xfa, 0x61}
    */
-  srslte::unique_byte_buffer_t pdu_exp_sn4096 = allocate_unique_buffer(*pool);
-  memcpy(pdu_exp_sn4096->msg, pdu3, PDU3_LEN);
-  pdu_exp_sn4096->N_bytes = PDU3_LEN;
-  TESTASSERT(test_tx(4097, srslte::PDCP_SN_LEN_12, std::move(pdu_exp_sn4096), pool, log) == 0);
+  srslte::unique_byte_buffer_t pdu_exp_sn4096_len18 = allocate_unique_buffer(*pool);
+  memcpy(pdu_exp_sn4096_len18->msg, pdu6, PDU6_LEN);
+  pdu_exp_sn4096_len18->N_bytes = PDU6_LEN;
+  TESTASSERT(test_tx(4097, srslte::PDCP_SN_LEN_18, std::move(pdu_exp_sn4096_len18), pool, log) == 0);
   return 0;
 }
 

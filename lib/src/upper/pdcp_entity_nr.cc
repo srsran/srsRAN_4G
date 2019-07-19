@@ -215,14 +215,14 @@ void pdcp_entity_nr::write_data_header(const srslte::unique_byte_buffer_t& sdu, 
   // Add SN
   switch (cfg.sn_len) {
     case PDCP_SN_LEN_12:
-      srslte::uint16_to_uint8(0x0FFF & count, sdu->msg);
+      srslte::uint16_to_uint8(SN(count), sdu->msg);
       if (is_drb()) {
-        sdu->msg[0] |= 0x80; // On DRB Data PDUs we must set the D flag.
+        sdu->msg[0] |= 0x80; // On Data PDUs for DRBs we must set the D flag.
       }
       break;
     case PDCP_SN_LEN_18:
-      sdu->msg[0] = 0x80; // Data PDU and SN 18 implies DRB, D flag must be present
-      *sdu->msg = count & 0x0FFF;
+      srslte::uint24_to_uint8(SN(count), sdu->msg);
+      sdu->msg[0] = 0x80; // Data PDU and SN LEN 18 implies DRB, D flag must be present
       break;
     default:
       log->error("Invalid SN length configuration: %d bits\n", cfg.sn_len);
