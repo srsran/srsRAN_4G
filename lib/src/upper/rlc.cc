@@ -441,10 +441,10 @@ void rlc::add_bearer_mrb(uint32_t lcid)
       rlc_log->error("Error inserting RLC entity in to array\n.");
       goto delete_and_exit;
     }
-    rlc_log->warning("Added radio bearer %s with mode RLC_UM\n", rrc->get_rb_name(lcid).c_str());
+    rlc_log->warning("Added bearer MRB%d with mode RLC_UM\n", lcid);
     goto unlock_and_exit;
   } else {
-    rlc_log->warning("Bearer %s already created.\n", rrc->get_rb_name(lcid).c_str());
+    rlc_log->warning("Bearer MRB%d already created.\n", lcid);
   }
 
 delete_and_exit:
