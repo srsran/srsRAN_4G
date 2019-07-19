@@ -694,7 +694,7 @@ bool cc_worker::work_ul(srslte_uci_data_t* uci_data)
     set_uci_aperiodic_cqi(uci_data);
   } else {
     /* Check PCell and enabled secondary cells */
-    if (cc_idx == 0 || phy->scell_enable[cc_idx]) {
+    if (cc_idx == 0 || phy->scell_cfg[cc_idx].enabled) {
       set_uci_periodic_cqi(uci_data);
     }
   }
@@ -918,7 +918,7 @@ void cc_worker::set_uci_ack(srslte_uci_data_t* uci_data,
 
   // Only PCell generates ACK for all SCell
   for (uint32_t cc_idx = 0; cc_idx < phy->args->nof_carriers; cc_idx++) {
-    if (cc_idx == 0 || phy->scell_configured[cc_idx]) {
+    if (cc_idx == 0 || phy->scell_cfg[cc_idx].configured) {
       phy->get_dl_pending_ack(&sf_cfg_ul, cc_idx, &ack_info.cc[cc_idx]);
       nof_configured_carriers++;
     }

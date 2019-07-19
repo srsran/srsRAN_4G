@@ -479,7 +479,7 @@ void phy::set_config_scell(asn1::rrc::scell_to_add_mod_r10_s* scell_config)
       scell_sync.at(m->radio_idx - 1)->set_scell_cell(cc_idx, &cell, earfcn);
     } else {
       // Change frequency only if the earfcn was modified
-      if (common.scell_earfcn[cc_idx - 1] != earfcn) {
+      if (common.scell_cfg[cc_idx].earfcn != earfcn) {
         float dl_freq = srslte_band_fd(earfcn) * 1e6f;
         float ul_freq = srslte_band_fu(srslte_band_ul_earfcn(earfcn)) * 1e6f;
         for (uint32_t p = 0; p < common.args->nof_rx_ant; p++) {
@@ -490,11 +490,10 @@ void phy::set_config_scell(asn1::rrc::scell_to_add_mod_r10_s* scell_config)
     }
 
     // Store SCell earfcn and pci
-    common.scell_earfcn[cc_idx - 1] = earfcn;
-    common.scell_pci[cc_idx - 1]    = cell.id;
-
-    // Set SCell as configured
-    common.scell_configured[cc_idx] = true;
+    common.scell_cfg[cc_idx].earfcn     = earfcn;
+    common.scell_cfg[cc_idx].pci        = cell.id;
+    common.scell_cfg[cc_idx].configured = true;
+    common.scell_cfg[cc_idx].enabled    = false;
   } else {
     log_h->console("Received SCell configuration for index %d but there are not enough CC workers available\n",
                    scell_config->s_cell_idx_r10);

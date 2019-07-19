@@ -78,13 +78,15 @@ public:
   uint32_t pcell_report_period;
   bool     pcell_first_measurement;
 
-  // SCell EARFCN and PCI list
-  uint32_t scell_earfcn[SRSLTE_MAX_CARRIERS - 1] = {};
-  uint32_t scell_pci[SRSLTE_MAX_CARRIERS - 1]    = {};
+  // SCell EARFCN, PCI, configured and enabled list
+  typedef struct {
+    uint32_t earfcn     = 0;
+    uint32_t pci        = 0;
+    bool     configured = false;
+    bool     enabled    = false;
+  } scell_cfg_t;
+  scell_cfg_t scell_cfg[SRSLTE_MAX_CARRIERS];
 
-  // SCell enable for Activation / Deactivation
-  bool scell_configured[SRSLTE_MAX_CARRIERS];
-  bool scell_enable[SRSLTE_MAX_CARRIERS]; /* Entry index 0 is reserved, do NOT use it for PCell */
   bool multiple_csi_request_enabled;      /* True means cross scheduling enabled */
   bool cif_enabled;                       /* True means cross scheduling enabled */
   bool srs_request_enabled;

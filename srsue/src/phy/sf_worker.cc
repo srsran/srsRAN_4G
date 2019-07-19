@@ -228,7 +228,7 @@ void sf_worker::work_imp()
       if (carrier_idx == 0 && phy->is_mbsfn_sf(&mbsfn_cfg, tti)) {
         cc_workers[0]->work_dl_mbsfn(mbsfn_cfg); // Don't do chest_ok in mbsfn since it trigger measurements
       } else {
-        if ((carrier_idx == 0) || phy->scell_enable[carrier_idx]) {
+        if ((carrier_idx == 0) || phy->scell_cfg[carrier_idx].enabled) {
           rx_signal_ok = cc_workers[carrier_idx]->work_dl_regular();
         }
       }
@@ -348,13 +348,13 @@ void sf_worker::update_measurements()
         // Send report for PCell
         phy->stack->new_phy_meas(phy->avg_rsrp_dbm[0], phy->avg_rsrq_db, tti);
       } else {
-        // Send report for SCell (if it they are enabled)
-        if (phy->scell_enable[cc_idx]) {
+        // Send report for SCell (if enabled)
+        if (phy->scell_cfg[cc_idx].enabled) {
           phy->stack->new_phy_meas(phy->avg_rsrp_dbm[cc_idx],
                                    phy->avg_rsrq_db,
                                    tti,
-                                   phy->scell_earfcn[cc_idx - 1],
-                                   phy->scell_pci[cc_idx - 1]);
+                                   phy->scell_cfg[cc_idx].earfcn,
+                                   phy->scell_cfg[cc_idx].pci);
         }
       }
     }

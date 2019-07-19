@@ -706,6 +706,7 @@ void phy_common::reset()
   ZERO_OBJECT(avg_snr_db_cqi);
   ZERO_OBJECT(avg_rsrp);
   ZERO_OBJECT(avg_rsrp_dbm);
+  ZERO_OBJECT(scell_cfg);
   avg_rsrq_db = 0;
 
   pcell_report_period = 20;
@@ -714,8 +715,6 @@ void phy_common::reset()
     is_first_of_burst[i] = true;
   }
 
-  ZERO_OBJECT(scell_configured);
-  ZERO_OBJECT(scell_enable);
   multiple_csi_request_enabled = false;
   cif_enabled                  = false;
   srs_request_enabled          = false;
@@ -897,7 +896,7 @@ bool phy_common::is_mbsfn_sf(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti)
 void phy_common::enable_scell(uint32_t cc_idx, bool enable)
 {
   if (cc_idx < SRSLTE_MAX_CARRIERS) {
-    scell_enable[cc_idx] = enable;
+    scell_cfg[cc_idx].enabled = enable;
   }
 }
 
