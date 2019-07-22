@@ -1533,7 +1533,7 @@ void rrc::ue::send_connection_setup(bool is_setup)
 
   // Configure SRB1 in PDCP
   srslte::srslte_pdcp_config_t pdcp_cnfg{.bearer_id    = 1,
-                                         .rb_type      = srslte::PDCP_RB_IS_DRB,
+                                         .rb_type      = srslte::PDCP_RB_IS_SRB,
                                          .tx_direction = SECURITY_DIRECTION_DOWNLINK,
                                          .rx_direction = SECURITY_DIRECTION_UPLINK,
                                          .sn_len       = srslte::PDCP_SN_LEN_5};
