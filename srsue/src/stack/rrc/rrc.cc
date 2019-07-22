@@ -1074,9 +1074,19 @@ void rrc::sort_neighbour_cells()
   if (neighbour_cells.size() > 0) {
     char ordered[512];
     int n=0;
-    n += snprintf(ordered, 512, "[pci=%d, rsrp=%.2f", neighbour_cells[0]->phy_cell.cell.id, neighbour_cells[0]->get_rsrp());
+    n += snprintf(ordered,
+                  512,
+                  "[earfcn=%d, pci=%d, rsrp=%.2f",
+                  neighbour_cells[0]->get_earfcn(),
+                  neighbour_cells[0]->phy_cell.cell.id,
+                  neighbour_cells[0]->get_rsrp());
     for (uint32_t i=1;i<neighbour_cells.size();i++) {
-      n += snprintf(&ordered[n], 512-n, " | pci=%d, rsrp=%.2f", neighbour_cells[i]->get_pci(), neighbour_cells[i]->get_rsrp());
+      n += snprintf(&ordered[n],
+                    512 - n,
+                    " | earfcn=%d, pci=%d, rsrp=%.2f",
+                    neighbour_cells[i]->get_earfcn(),
+                    neighbour_cells[i]->get_pci(),
+                    neighbour_cells[i]->get_rsrp());
     }
     rrc_log->info("Neighbours: %s]\n", ordered);
   } else {
@@ -1467,7 +1477,9 @@ bool rrc::ho_prepare()
     asn1::rrc::mob_ctrl_info_s*         mob_ctrl_info = &mob_reconf_r8->mob_ctrl_info;
     rrc_log->info("Processing HO command to target PCell=%d\n", mob_ctrl_info->target_pci);
 
-    int target_cell_idx = find_neighbour_cell(serving_cell->get_earfcn(), mob_ctrl_info->target_pci);
+    uint32_t target_earfcn = (mob_ctrl_info->carrier_freq_present) ? mob_ctrl_info->carrier_freq.dl_carrier_freq
+                                                                   : serving_cell->get_earfcn();
+    int target_cell_idx = find_neighbour_cell(target_earfcn, mob_ctrl_info->target_pci);
     if (target_cell_idx < 0) {
       rrc_log->console("Received HO command to unknown PCI=%d\n", mob_ctrl_info->target_pci);
       rrc_log->error("Could not find target cell earfcn=%d, pci=%d\n", serving_cell->get_earfcn(),
@@ -1478,11 +1490,6 @@ bool rrc::ho_prepare()
     // Section 5.3.5.4
     mac_timers->timer_get(t310)->stop();
     mac_timers->timer_get(t304)->set(this, mob_ctrl_info->t304.to_number());
-    if (mob_ctrl_info->carrier_freq_present &&
-        mob_ctrl_info->carrier_freq.dl_carrier_freq != serving_cell->get_earfcn()) {
-      rrc_log->error("Received mobilityControlInfo for inter-frequency handover\n");
-      return false;
-    }
 
     // Save serving cell and current configuration
     ho_src_cell = *serving_cell;
@@ -1508,9 +1515,6 @@ bool rrc::ho_prepare()
       apply_rr_config_dedicated(&mob_reconf_r8->rr_cfg_ded);
     }
 
-    // Extract and apply scell config if any
-    apply_scell_config(mob_reconf_r8);
-
     if (!phy->cell_select(&neighbour_cells[target_cell_idx]->phy_cell)) {
       rrc_log->error("Could not synchronize with target cell pci=%d. Trying to return to source PCI\n",
                      neighbour_cells[target_cell_idx]->get_pci());
@@ -1518,6 +1522,9 @@ bool rrc::ho_prepare()
     }
 
     set_serving_cell(target_cell_idx);
+
+    // Extract and apply scell config if any
+    apply_scell_config(mob_reconf_r8);
 
     if (mob_ctrl_info->rach_cfg_ded_present) {
       rrc_log->info("Starting non-contention based RA with preamble_idx=%d, mask_idx=%d\n",
