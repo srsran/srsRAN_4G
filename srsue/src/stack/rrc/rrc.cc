@@ -2203,7 +2203,6 @@ void rrc::send_ul_dcch_msg(uint32_t lcid, const asn1::rrc::ul_dcch_msg_s& msg)
 
 void rrc::write_sdu(srslte::unique_byte_buffer_t sdu)
 {
-
   if (state == RRC_STATE_IDLE) {
     rrc_log->warning("Received ULInformationTransfer SDU when in IDLE\n");
     return;
@@ -2372,12 +2371,7 @@ void rrc::parse_dl_dcch(uint32_t lcid, unique_byte_buffer_t pdu)
       break;
     case dl_dcch_msg_type_c::c1_c_::types::ue_cap_enquiry:
       transaction_id = c1->ue_cap_enquiry().rrc_transaction_id;
-      for (uint32_t i = 0; i < c1->ue_cap_enquiry().crit_exts.c1().ue_cap_enquiry_r8().ue_cap_request.size(); i++) {
-        if (c1->ue_cap_enquiry().crit_exts.c1().ue_cap_enquiry_r8().ue_cap_request[i] == rat_type_e::eutra) {
-          send_rrc_ue_cap_info();
-          break;
-        }
-      }
+      handle_ue_capability_enquiry(c1->ue_cap_enquiry());
       break;
     case dl_dcch_msg_type_c::c1_c_::types::rrc_conn_release:
       rrc_connection_release();
@@ -2404,7 +2398,7 @@ void rrc::enable_capabilities()
   rrc_log->info("%s 64QAM PUSCH\n", enable_ul_64 ? "Enabling" : "Disabling");
 }
 
-void rrc::send_rrc_ue_cap_info()
+void rrc::handle_ue_capability_enquiry(const asn1::rrc::ue_cap_enquiry_s& enquiry)
 {
   rrc_log->debug("Preparing UE Capability Info\n");
 
@@ -2412,225 +2406,238 @@ void rrc::send_rrc_ue_cap_info()
   ue_cap_info_r8_ies_s*    info = &ul_dcch_msg.msg.set_c1().set_ue_cap_info().crit_exts.set_c1().set_ue_cap_info_r8();
   ul_dcch_msg.msg.c1().ue_cap_info().rrc_transaction_id = transaction_id;
 
-  info->ue_cap_rat_container_list.resize(1);
-  info->ue_cap_rat_container_list[0].rat_type = rat_type_e::eutra;
+  // resize container to fit all requested RATs
+  info->ue_cap_rat_container_list.resize(enquiry.crit_exts.c1().ue_cap_enquiry_r8().ue_cap_request.size());
+  uint32_t rat_idx = 0;
 
-  // Check UE config arguments bounds
-  if (args.release < SRSLTE_RELEASE_MIN || args.release > SRSLTE_RELEASE_MAX) {
-    uint32_t new_release = SRSLTE_MIN(SRSLTE_RELEASE_MAX, SRSLTE_MAX(SRSLTE_RELEASE_MIN, args.release));
-    rrc_log->error("Release is %d. It is out of bounds (%d ... %d), setting it to %d\n",
-                   args.release,
-                   SRSLTE_RELEASE_MIN,
-                   SRSLTE_RELEASE_MAX,
-                   new_release);
-    args.release = new_release;
-  }
+  for (uint32_t i = 0; i < enquiry.crit_exts.c1().ue_cap_enquiry_r8().ue_cap_request.size(); i++) {
+    if (enquiry.crit_exts.c1().ue_cap_enquiry_r8().ue_cap_request[i] == rat_type_e::eutra) {
+      // adding EUTRA caps
+      info->ue_cap_rat_container_list[0].rat_type = rat_type_e::eutra;
 
-  args.ue_category = (uint32_t)strtol(args.ue_category_str.c_str(), NULL, 10);
-  if (args.ue_category < SRSLTE_UE_CATEGORY_MIN || args.ue_category > SRSLTE_UE_CATEGORY_MAX) {
-    uint32_t new_category = SRSLTE_MIN(SRSLTE_UE_CATEGORY_MAX, SRSLTE_MAX(SRSLTE_UE_CATEGORY_MIN, args.ue_category));
-    rrc_log->error("UE Category is %d. It is out of bounds (%d ... %d), setting it to %d\n",
-                   args.ue_category,
-                   SRSLTE_UE_CATEGORY_MIN,
-                   SRSLTE_UE_CATEGORY_MAX,
-                   new_category);
-    args.ue_category = new_category;
-  }
-
-  ue_eutra_cap_s cap;
-  cap.access_stratum_release = (access_stratum_release_e::options)(args.release - SRSLTE_RELEASE_MIN);
-  cap.ue_category            = (uint8_t)((args.ue_category < 1 || args.ue_category > 5) ? 4 : args.ue_category);
-  cap.pdcp_params.max_num_rohc_context_sessions_present = false;
-  cap.pdcp_params.supported_rohc_profiles.profile0x0001_r15 = false;
-  cap.pdcp_params.supported_rohc_profiles.profile0x0002_r15 = false;
-  cap.pdcp_params.supported_rohc_profiles.profile0x0003_r15 = false;
-  cap.pdcp_params.supported_rohc_profiles.profile0x0004_r15 = false;
-  cap.pdcp_params.supported_rohc_profiles.profile0x0006_r15 = false;
-  cap.pdcp_params.supported_rohc_profiles.profile0x0101_r15 = false;
-  cap.pdcp_params.supported_rohc_profiles.profile0x0102_r15 = false;
-  cap.pdcp_params.supported_rohc_profiles.profile0x0103_r15 = false;
-  cap.pdcp_params.supported_rohc_profiles.profile0x0104_r15 = false;
-
-  cap.phy_layer_params.ue_specific_ref_sigs_supported = false;
-  cap.phy_layer_params.ue_tx_ant_sel_supported        = false;
-
-  cap.rf_params.supported_band_list_eutra.resize(args.nof_supported_bands);
-  cap.meas_params.band_list_eutra.resize(args.nof_supported_bands);
-  for (uint32_t i = 0; i < args.nof_supported_bands; i++) {
-    cap.rf_params.supported_band_list_eutra[i].band_eutra  = args.supported_bands[i];
-    cap.rf_params.supported_band_list_eutra[i].half_duplex = false;
-    cap.meas_params.band_list_eutra[i].inter_freq_band_list.resize(1);
-    cap.meas_params.band_list_eutra[i].inter_freq_band_list[0].inter_freq_need_for_gaps = true;
-  }
-
-  cap.feature_group_inds_present = true;
-  cap.feature_group_inds.from_number(args.feature_group);
-
-  if (args.release > 8) {
-    ue_eutra_cap_v920_ies_s cap_v920;
-
-    cap_v920.phy_layer_params_v920.enhanced_dual_layer_fdd_r9_present                        = false;
-    cap_v920.phy_layer_params_v920.enhanced_dual_layer_tdd_r9_present                        = false;
-    cap_v920.inter_rat_params_geran_v920.dtm_r9_present                                      = false;
-    cap_v920.inter_rat_params_geran_v920.e_redirection_geran_r9_present                      = false;
-    cap_v920.csg_proximity_ind_params_r9.inter_freq_proximity_ind_r9_present                 = false;
-    cap_v920.csg_proximity_ind_params_r9.intra_freq_proximity_ind_r9_present                 = false;
-    cap_v920.csg_proximity_ind_params_r9.utran_proximity_ind_r9_present                      = false;
-    cap_v920.neigh_cell_si_acquisition_params_r9.inter_freq_si_acquisition_for_ho_r9_present = false;
-    cap_v920.neigh_cell_si_acquisition_params_r9.intra_freq_si_acquisition_for_ho_r9_present = false;
-    cap_v920.neigh_cell_si_acquisition_params_r9.utran_si_acquisition_for_ho_r9_present      = false;
-    cap_v920.son_params_r9.rach_report_r9_present                                            = false;
-
-    cap.non_crit_ext_present = true;
-    cap.non_crit_ext         = cap_v920;
-  }
-
-  if (args.release > 9) {
-
-    phy_layer_params_v1020_s phy_layer_params_v1020;
-    phy_layer_params_v1020.two_ant_ports_for_pucch_r10_present             = false;
-    phy_layer_params_v1020.tm9_with_minus8_tx_fdd_r10_present              = false;
-    phy_layer_params_v1020.pmi_disabling_r10_present                       = false;
-    phy_layer_params_v1020.cross_carrier_sched_r10_present                 = args.support_ca;
-    phy_layer_params_v1020.simul_pucch_pusch_r10_present                   = false;
-    phy_layer_params_v1020.multi_cluster_pusch_within_cc_r10_present       = false;
-    phy_layer_params_v1020.non_contiguous_ul_ra_within_cc_list_r10_present = false;
-
-    band_combination_params_r10_l combination_params;
-    if (args.support_ca) {
-      for (uint32_t i = 0; i < args.nof_supported_bands; i++) {
-        ca_mimo_params_dl_r10_s ca_mimo_params_dl;
-        ca_mimo_params_dl.ca_bw_class_dl_r10                = ca_bw_class_r10_e::f;
-        ca_mimo_params_dl.supported_mimo_cap_dl_r10_present = false;
-
-        ca_mimo_params_ul_r10_s ca_mimo_params_ul;
-        ca_mimo_params_ul.ca_bw_class_ul_r10                = ca_bw_class_r10_e::f;
-        ca_mimo_params_ul.supported_mimo_cap_ul_r10_present = false;
-
-        band_params_r10_s band_params;
-        band_params.band_eutra_r10             = args.supported_bands[i];
-        band_params.band_params_dl_r10_present = true;
-        band_params.band_params_dl_r10.push_back(ca_mimo_params_dl);
-        band_params.band_params_ul_r10_present = true;
-        band_params.band_params_ul_r10.push_back(ca_mimo_params_ul);
-
-        combination_params.push_back(band_params);
+      // Check UE config arguments bounds
+      if (args.release < SRSLTE_RELEASE_MIN || args.release > SRSLTE_RELEASE_MAX) {
+        uint32_t new_release = SRSLTE_MIN(SRSLTE_RELEASE_MAX, SRSLTE_MAX(SRSLTE_RELEASE_MIN, args.release));
+        rrc_log->error("Release is %d. It is out of bounds (%d ... %d), setting it to %d\n",
+                       args.release,
+                       SRSLTE_RELEASE_MIN,
+                       SRSLTE_RELEASE_MAX,
+                       new_release);
+        args.release = new_release;
       }
+
+      args.ue_category = (uint32_t)strtol(args.ue_category_str.c_str(), NULL, 10);
+      if (args.ue_category < SRSLTE_UE_CATEGORY_MIN || args.ue_category > SRSLTE_UE_CATEGORY_MAX) {
+        uint32_t new_category =
+            SRSLTE_MIN(SRSLTE_UE_CATEGORY_MAX, SRSLTE_MAX(SRSLTE_UE_CATEGORY_MIN, args.ue_category));
+        rrc_log->error("UE Category is %d. It is out of bounds (%d ... %d), setting it to %d\n",
+                       args.ue_category,
+                       SRSLTE_UE_CATEGORY_MIN,
+                       SRSLTE_UE_CATEGORY_MAX,
+                       new_category);
+        args.ue_category = new_category;
+      }
+
+      ue_eutra_cap_s cap;
+      cap.access_stratum_release = (access_stratum_release_e::options)(args.release - SRSLTE_RELEASE_MIN);
+      cap.ue_category            = (uint8_t)((args.ue_category < 1 || args.ue_category > 5) ? 4 : args.ue_category);
+      cap.pdcp_params.max_num_rohc_context_sessions_present     = false;
+      cap.pdcp_params.supported_rohc_profiles.profile0x0001_r15 = false;
+      cap.pdcp_params.supported_rohc_profiles.profile0x0002_r15 = false;
+      cap.pdcp_params.supported_rohc_profiles.profile0x0003_r15 = false;
+      cap.pdcp_params.supported_rohc_profiles.profile0x0004_r15 = false;
+      cap.pdcp_params.supported_rohc_profiles.profile0x0006_r15 = false;
+      cap.pdcp_params.supported_rohc_profiles.profile0x0101_r15 = false;
+      cap.pdcp_params.supported_rohc_profiles.profile0x0102_r15 = false;
+      cap.pdcp_params.supported_rohc_profiles.profile0x0103_r15 = false;
+      cap.pdcp_params.supported_rohc_profiles.profile0x0104_r15 = false;
+
+      cap.phy_layer_params.ue_specific_ref_sigs_supported = false;
+      cap.phy_layer_params.ue_tx_ant_sel_supported        = false;
+
+      cap.rf_params.supported_band_list_eutra.resize(args.nof_supported_bands);
+      cap.meas_params.band_list_eutra.resize(args.nof_supported_bands);
+      for (uint32_t i = 0; i < args.nof_supported_bands; i++) {
+        cap.rf_params.supported_band_list_eutra[i].band_eutra  = args.supported_bands[i];
+        cap.rf_params.supported_band_list_eutra[i].half_duplex = false;
+        cap.meas_params.band_list_eutra[i].inter_freq_band_list.resize(1);
+        cap.meas_params.band_list_eutra[i].inter_freq_band_list[0].inter_freq_need_for_gaps = true;
+      }
+
+      cap.feature_group_inds_present = true;
+      cap.feature_group_inds.from_number(args.feature_group);
+
+      if (args.release > 8) {
+        ue_eutra_cap_v920_ies_s cap_v920;
+
+        cap_v920.phy_layer_params_v920.enhanced_dual_layer_fdd_r9_present                        = false;
+        cap_v920.phy_layer_params_v920.enhanced_dual_layer_tdd_r9_present                        = false;
+        cap_v920.inter_rat_params_geran_v920.dtm_r9_present                                      = false;
+        cap_v920.inter_rat_params_geran_v920.e_redirection_geran_r9_present                      = false;
+        cap_v920.csg_proximity_ind_params_r9.inter_freq_proximity_ind_r9_present                 = false;
+        cap_v920.csg_proximity_ind_params_r9.intra_freq_proximity_ind_r9_present                 = false;
+        cap_v920.csg_proximity_ind_params_r9.utran_proximity_ind_r9_present                      = false;
+        cap_v920.neigh_cell_si_acquisition_params_r9.inter_freq_si_acquisition_for_ho_r9_present = false;
+        cap_v920.neigh_cell_si_acquisition_params_r9.intra_freq_si_acquisition_for_ho_r9_present = false;
+        cap_v920.neigh_cell_si_acquisition_params_r9.utran_si_acquisition_for_ho_r9_present      = false;
+        cap_v920.son_params_r9.rach_report_r9_present                                            = false;
+
+        cap.non_crit_ext_present = true;
+        cap.non_crit_ext         = cap_v920;
+      }
+
+      if (args.release > 9) {
+
+        phy_layer_params_v1020_s phy_layer_params_v1020;
+        phy_layer_params_v1020.two_ant_ports_for_pucch_r10_present             = false;
+        phy_layer_params_v1020.tm9_with_minus8_tx_fdd_r10_present              = false;
+        phy_layer_params_v1020.pmi_disabling_r10_present                       = false;
+        phy_layer_params_v1020.cross_carrier_sched_r10_present                 = args.support_ca;
+        phy_layer_params_v1020.simul_pucch_pusch_r10_present                   = false;
+        phy_layer_params_v1020.multi_cluster_pusch_within_cc_r10_present       = false;
+        phy_layer_params_v1020.non_contiguous_ul_ra_within_cc_list_r10_present = false;
+
+        band_combination_params_r10_l combination_params;
+        if (args.support_ca) {
+          for (uint32_t i = 0; i < args.nof_supported_bands; i++) {
+            ca_mimo_params_dl_r10_s ca_mimo_params_dl;
+            ca_mimo_params_dl.ca_bw_class_dl_r10                = ca_bw_class_r10_e::f;
+            ca_mimo_params_dl.supported_mimo_cap_dl_r10_present = false;
+
+            ca_mimo_params_ul_r10_s ca_mimo_params_ul;
+            ca_mimo_params_ul.ca_bw_class_ul_r10                = ca_bw_class_r10_e::f;
+            ca_mimo_params_ul.supported_mimo_cap_ul_r10_present = false;
+
+            band_params_r10_s band_params;
+            band_params.band_eutra_r10             = args.supported_bands[i];
+            band_params.band_params_dl_r10_present = true;
+            band_params.band_params_dl_r10.push_back(ca_mimo_params_dl);
+            band_params.band_params_ul_r10_present = true;
+            band_params.band_params_ul_r10.push_back(ca_mimo_params_ul);
+
+            combination_params.push_back(band_params);
+          }
+        }
+
+        rf_params_v1020_s rf_params;
+        rf_params.supported_band_combination_r10.push_back(combination_params);
+
+        ue_eutra_cap_v1020_ies_s cap_v1020;
+        if (args.ue_category >= 6 && args.ue_category <= 8) {
+          cap_v1020.ue_category_v1020_present = true;
+          cap_v1020.ue_category_v1020         = (uint8_t)args.ue_category;
+        } else {
+          // Do not populate UE category for this release if the category is out of range
+        }
+        cap_v1020.phy_layer_params_v1020_present = true;
+        cap_v1020.phy_layer_params_v1020         = phy_layer_params_v1020;
+        cap_v1020.rf_params_v1020_present        = args.support_ca;
+        cap_v1020.rf_params_v1020                = rf_params;
+
+        ue_eutra_cap_v940_ies_s cap_v940;
+        cap_v940.non_crit_ext_present = true;
+        cap_v940.non_crit_ext         = cap_v1020;
+
+        cap.non_crit_ext.non_crit_ext_present = true;
+        cap.non_crit_ext.non_crit_ext         = cap_v940;
+      }
+
+      if (args.release > 10) {
+        ue_eutra_cap_v11a0_ies_s cap_v11a0;
+        if (args.ue_category >= 11 && args.ue_category <= 12) {
+          cap_v11a0.ue_category_v11a0         = (uint8_t)args.ue_category;
+          cap_v11a0.ue_category_v11a0_present = true;
+        } else {
+          // Do not populate UE category for this release if the category is out of range
+        }
+
+        ue_eutra_cap_v1180_ies_s cap_v1180;
+        cap_v1180.non_crit_ext_present = true;
+        cap_v1180.non_crit_ext         = cap_v11a0;
+
+        ue_eutra_cap_v1170_ies_s cap_v1170;
+        cap_v1170.non_crit_ext_present = true;
+        cap_v1170.non_crit_ext         = cap_v1180;
+        if (args.ue_category >= 9 && args.ue_category <= 10) {
+          cap_v1170.ue_category_v1170         = (uint8_t)args.ue_category;
+          cap_v1170.ue_category_v1170_present = true;
+        } else {
+          // Do not populate UE category for this release if the category is out of range
+        }
+
+        ue_eutra_cap_v1130_ies_s cap_v1130;
+        cap_v1130.non_crit_ext_present = true;
+        cap_v1130.non_crit_ext         = cap_v1170;
+
+        ue_eutra_cap_v1090_ies_s cap_v1090;
+        cap_v1090.non_crit_ext_present = true;
+        cap_v1090.non_crit_ext         = cap_v1130;
+
+        ue_eutra_cap_v1060_ies_s cap_v1060;
+        cap_v1060.non_crit_ext_present = true;
+        cap_v1060.non_crit_ext         = cap_v1090;
+
+        cap.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present = true;
+        cap.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext         = cap_v1060;
+      }
+
+      if (args.release > 11) {
+        supported_band_list_eutra_v1250_l supported_band_list_eutra_v1250;
+        for (uint32_t i = 0; i < args.nof_supported_bands; i++) {
+          supported_band_eutra_v1250_s supported_band_eutra_v1250;
+          // According to 3GPP 36.306 v12 Table 4.1A-1, 256QAM is supported for ue_category_dl 11-16
+          supported_band_eutra_v1250.dl_minus256_qam_r12_present = true;
+
+          // According to 3GPP 36.331 v12 UE-EUTRA-Capability field descriptions
+          // This field is only present when the field ue-CategoryUL is considered to 5 or 13.
+          supported_band_eutra_v1250.ul_minus64_qam_r12_present = true;
+
+          supported_band_list_eutra_v1250.push_back(supported_band_eutra_v1250);
+        }
+
+        rf_params_v1250_s rf_params_v1250;
+        rf_params_v1250.supported_band_list_eutra_v1250_present = true;
+        rf_params_v1250.supported_band_list_eutra_v1250         = supported_band_list_eutra_v1250;
+
+        ue_eutra_cap_v1250_ies_s cap_v1250;
+
+        // Optional UE Category UL/DL
+        // Warning: Make sure the UE Category UL/DL matches with 3GPP 36.306 Table 4.1A-6
+        if (args.ue_category_dl >= 0) {
+          cap_v1250.ue_category_dl_r12_present = true;
+          cap_v1250.ue_category_dl_r12         = (uint8_t)args.ue_category_dl;
+        } else {
+          // Do not populate UE category for this release if the category is not available
+        }
+        if (args.ue_category_ul >= 0) {
+          cap_v1250.ue_category_ul_r12_present = true;
+          cap_v1250.ue_category_ul_r12         = (uint8_t)args.ue_category_ul;
+        } else {
+          // Do not populate UE category for this release if the category is not available
+        }
+        cap_v1250.rf_params_v1250_present = true;
+        cap_v1250.rf_params_v1250         = rf_params_v1250;
+
+        cap.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
+            .non_crit_ext.non_crit_ext_present = true;
+        cap.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
+            .non_crit_ext.non_crit_ext = cap_v1250;
+      }
+
+      // Pack caps and copy to cap info
+      uint8_t       buf[64] = {};
+      asn1::bit_ref bref(buf, sizeof(buf));
+      cap.pack(bref);
+      bref.align_bytes_zero();
+      uint32_t cap_len = (uint32_t)bref.distance_bytes(buf);
+      info->ue_cap_rat_container_list[rat_idx].ue_cap_rat_container.resize(cap_len);
+      memcpy(info->ue_cap_rat_container_list[rat_idx].ue_cap_rat_container.data(), buf, cap_len);
+      rat_idx++;
     }
-
-    rf_params_v1020_s rf_params;
-    rf_params.supported_band_combination_r10.push_back(combination_params);
-
-    ue_eutra_cap_v1020_ies_s cap_v1020;
-    if (args.ue_category >= 6 && args.ue_category <= 8) {
-      cap_v1020.ue_category_v1020_present = true;
-      cap_v1020.ue_category_v1020         = (uint8_t)args.ue_category;
-    } else {
-      // Do not populate UE category for this release if the category is out of range
-    }
-    cap_v1020.phy_layer_params_v1020_present = true;
-    cap_v1020.phy_layer_params_v1020         = phy_layer_params_v1020;
-    cap_v1020.rf_params_v1020_present        = args.support_ca;
-    cap_v1020.rf_params_v1020                = rf_params;
-
-    ue_eutra_cap_v940_ies_s cap_v940;
-    cap_v940.non_crit_ext_present = true;
-    cap_v940.non_crit_ext         = cap_v1020;
-
-    cap.non_crit_ext.non_crit_ext_present = true;
-    cap.non_crit_ext.non_crit_ext         = cap_v940;
   }
 
-  if (args.release > 10) {
-    ue_eutra_cap_v11a0_ies_s cap_v11a0;
-    if (args.ue_category >= 11 && args.ue_category <= 12) {
-      cap_v11a0.ue_category_v11a0         = (uint8_t)args.ue_category;
-      cap_v11a0.ue_category_v11a0_present = true;
-    } else {
-      // Do not populate UE category for this release if the category is out of range
-    }
-
-    ue_eutra_cap_v1180_ies_s cap_v1180;
-    cap_v1180.non_crit_ext_present = true;
-    cap_v1180.non_crit_ext         = cap_v11a0;
-
-    ue_eutra_cap_v1170_ies_s cap_v1170;
-    cap_v1170.non_crit_ext_present = true;
-    cap_v1170.non_crit_ext         = cap_v1180;
-    if (args.ue_category >= 9 && args.ue_category <= 10) {
-      cap_v1170.ue_category_v1170         = (uint8_t)args.ue_category;
-      cap_v1170.ue_category_v1170_present = true;
-    } else {
-      // Do not populate UE category for this release if the category is out of range
-    }
-
-    ue_eutra_cap_v1130_ies_s cap_v1130;
-    cap_v1130.non_crit_ext_present = true;
-    cap_v1130.non_crit_ext         = cap_v1170;
-
-    ue_eutra_cap_v1090_ies_s cap_v1090;
-    cap_v1090.non_crit_ext_present = true;
-    cap_v1090.non_crit_ext         = cap_v1130;
-
-    ue_eutra_cap_v1060_ies_s cap_v1060;
-    cap_v1060.non_crit_ext_present = true;
-    cap_v1060.non_crit_ext         = cap_v1090;
-
-    cap.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present = true;
-    cap.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext         = cap_v1060;
-  }
-
-  if (args.release > 11) {
-    supported_band_list_eutra_v1250_l supported_band_list_eutra_v1250;
-    for (uint32_t i = 0; i < args.nof_supported_bands; i++) {
-      supported_band_eutra_v1250_s supported_band_eutra_v1250;
-      // According to 3GPP 36.306 v12 Table 4.1A-1, 256QAM is supported for ue_category_dl 11-16
-      supported_band_eutra_v1250.dl_minus256_qam_r12_present = true;
-
-      // According to 3GPP 36.331 v12 UE-EUTRA-Capability field descriptions
-      // This field is only present when the field ue-CategoryUL is considered to 5 or 13.
-      supported_band_eutra_v1250.ul_minus64_qam_r12_present = true;
-
-      supported_band_list_eutra_v1250.push_back(supported_band_eutra_v1250);
-    }
-
-    rf_params_v1250_s rf_params_v1250;
-    rf_params_v1250.supported_band_list_eutra_v1250_present = true;
-    rf_params_v1250.supported_band_list_eutra_v1250         = supported_band_list_eutra_v1250;
-
-    ue_eutra_cap_v1250_ies_s cap_v1250;
-
-    // Optional UE Category UL/DL
-    // Warning: Make sure the UE Category UL/DL matches with 3GPP 36.306 Table 4.1A-6
-    if (args.ue_category_dl >= 0) {
-      cap_v1250.ue_category_dl_r12_present = true;
-      cap_v1250.ue_category_dl_r12         = (uint8_t)args.ue_category_dl;
-    } else {
-      // Do not populate UE category for this release if the category is not available
-    }
-    if (args.ue_category_ul >= 0) {
-      cap_v1250.ue_category_ul_r12_present = true;
-      cap_v1250.ue_category_ul_r12         = (uint8_t)args.ue_category_ul;
-    } else {
-      // Do not populate UE category for this release if the category is not available
-    }
-    cap_v1250.rf_params_v1250_present = true;
-    cap_v1250.rf_params_v1250         = rf_params_v1250;
-
-    cap.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
-        .non_crit_ext.non_crit_ext_present = true;
-    cap.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
-        .non_crit_ext.non_crit_ext = cap_v1250;
-  }
-
-  // Pack caps and copy to cap info
-  uint8_t       buf[64];
-  asn1::bit_ref bref(buf, sizeof(buf));
-  cap.pack(bref);
-  bref.align_bytes_zero();
-  uint32_t cap_len = (uint32_t)bref.distance_bytes(buf);
-  info->ue_cap_rat_container_list[0].ue_cap_rat_container.resize(cap_len);
-  memcpy(info->ue_cap_rat_container_list[0].ue_cap_rat_container.data(), buf, cap_len);
+  // resize container back to the actually filled items
+  info->ue_cap_rat_container_list.resize(rat_idx);
 
   send_ul_dcch_msg(RB_ID_SRB1, ul_dcch_msg);
 }

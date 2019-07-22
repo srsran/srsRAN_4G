@@ -630,7 +630,6 @@ private:
   void send_ul_info_transfer(srslte::unique_byte_buffer_t nas_msg);
   void send_security_mode_complete();
   void send_rrc_con_reconfig_complete();
-  void send_rrc_ue_cap_info();
 
   // Parsers
   void process_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
@@ -671,6 +670,7 @@ private:
   void handle_con_setup(asn1::rrc::rrc_conn_setup_s* setup);
   void handle_con_reest(asn1::rrc::rrc_conn_reest_s* setup);
   void handle_rrc_con_reconfig(uint32_t lcid, asn1::rrc::rrc_conn_recfg_s* reconfig);
+  void handle_ue_capability_enquiry(const asn1::rrc::ue_cap_enquiry_s& enquiry);
   void add_srb(asn1::rrc::srb_to_add_mod_s* srb_cnfg);
   void add_drb(asn1::rrc::drb_to_add_mod_s* drb_cnfg);
   void release_drb(uint32_t drb_id);
