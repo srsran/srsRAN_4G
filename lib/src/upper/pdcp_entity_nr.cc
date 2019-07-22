@@ -187,10 +187,11 @@ void pdcp_entity_nr::read_data_header(const unique_byte_buffer_t& pdu, uint32_t 
   switch (cfg.sn_len) {
     case PDCP_SN_LEN_12:
       srslte::uint8_to_uint16(pdu->msg, &rcvd_sn_16);
-      (*rcvd_sn) = 0x0FFF & rcvd_sn_16;
+      (*rcvd_sn) = SN(rcvd_sn_16);
       break;
     case PDCP_SN_LEN_18:
-      // srslte::uint8_to_uint24((uint16_t*)sdu->msg, rcvd_sn);
+      srslte::uint8_to_uint24(pdu->msg, rcvd_sn);
+      (*rcvd_sn) = SN(*rcvd_sn);
       break;
     default:
       log->error("Cannot extract RCVD_SN, invalid SN length configured: %d\n", cfg.sn_len);
