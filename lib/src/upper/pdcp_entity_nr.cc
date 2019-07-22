@@ -222,7 +222,7 @@ void pdcp_entity_nr::write_data_header(const srslte::unique_byte_buffer_t& sdu, 
       break;
     case PDCP_SN_LEN_18:
       srslte::uint24_to_uint8(SN(count), sdu->msg);
-      sdu->msg[0] = 0x80; // Data PDU and SN LEN 18 implies DRB, D flag must be present
+      sdu->msg[0] |= 0x80; // Data PDU and SN LEN 18 implies DRB, D flag must be present
       break;
     default:
       log->error("Invalid SN length configuration: %d bits\n", cfg.sn_len);
