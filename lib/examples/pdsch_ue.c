@@ -51,7 +51,7 @@ cell_search_cfg_t cell_detect_config = {.max_frames_pbch      = SRSLTE_DEFAULT_M
                                         .force_tdd            = false};
 
 #else
-#warning Compiling pdsch_ue with no RF support
+#pragma message "Compiling pdsch_ue with no RF support"
 #endif
 
 //#define STDOUT_COMPACT

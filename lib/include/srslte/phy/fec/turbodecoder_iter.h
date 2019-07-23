@@ -43,8 +43,8 @@
   #define input_is_interleaved (h->current_dec > 0)
 #define type_name _16bit
   #else
-  #warning "Unsupported LLR mode"
-  #endif
+#pragma message "Unsupported LLR mode"
+#endif
 #endif
 
 #define debug_enabled_iter 0

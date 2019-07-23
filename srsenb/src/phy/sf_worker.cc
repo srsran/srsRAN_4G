@@ -58,7 +58,7 @@ pthread_t  plot_thread;
 sem_t      plot_sem;
 static int plot_worker_id = -1;
 #else
-#warning Compiling without srsGUI support
+#pragma message "Compiling without srsGUI support"
 #endif
 /*********************************************/
 

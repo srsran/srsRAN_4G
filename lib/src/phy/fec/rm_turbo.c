@@ -33,7 +33,7 @@
 #include "srslte/phy/utils/vector.h"
 
 #ifdef DEBUG_MODE
-#warning FIXME: Disabling SSE/AVX turbo rate matching 
+#pragma message "FIXME: Disabling SSE/AVX turbo rate matching"
 #undef LV_HAVE_SSE
 #undef LV_HAVE_AVX
 #endif

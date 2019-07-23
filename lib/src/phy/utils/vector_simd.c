@@ -485,7 +485,7 @@ void srslte_vec_convert_fb_simd(const float *x, int8_t *z, const float scale, co
 #endif
 
 #ifdef HAVE_NEON
-#warning srslte_vec_convert_fb_simd not implemented in neon
+#pragma message "srslte_vec_convert_fb_simd not implemented in neon"
 #endif /* HAVE_NEON */
 
   for(; i < len; i++){

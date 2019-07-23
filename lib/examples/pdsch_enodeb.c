@@ -41,7 +41,7 @@
 #include "srslte/phy/common/phy_common.h"
 srslte_rf_t rf;
 #else
-#warning Compiling pdsch_ue with no RF support
+#pragma message "Compiling pdsch_ue with no RF support"
 #endif
 
 char *output_file_name = NULL;
