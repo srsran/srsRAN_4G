@@ -39,6 +39,7 @@ srsUE Features
  * Soft USIM supporting Milenage and XOR authentication
  * Hard USIM support using PCSC framework
  * Virtual network interface *tun_srsue* created upon network attach
+ * QoS support
  * 150 Mbps DL in 20 MHz MIMO TM3/TM4 configuration in i7 Quad-Core CPU.
  * 75 Mbps DL in 20 MHz SISO configuration in i7 Quad-Core CPU.
  * 36 Mbps DL in 10 MHz SISO configuration in i5 Dual-Core CPU.

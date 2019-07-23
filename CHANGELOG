@@ -1,6 +1,13 @@
 Change Log for Releases
 ==============================
 
+## 19.06
+  * Add QAM256 support in srsUE
+  * Add QoS support in srsUE
+  * Add UL channel emulator
+  * Refactor UE and eNB architecture
+  * Many bug-fixes and improved stability and performance in all parts
+
 ## 19.03
   * PHY library refactor
   * TDD support for srsUE
