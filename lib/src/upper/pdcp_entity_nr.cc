@@ -116,8 +116,7 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   }
 
   // Extract RCVD_SN from header
-  uint32_t rcvd_sn;
-  read_data_header(pdu, &rcvd_sn);
+  uint32_t rcvd_sn = read_data_header(pdu);
 
   // Extract MAC
   uint8_t mac[4];
@@ -176,24 +175,26 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   // TODO handle reordering timers
 }
 
-void pdcp_entity_nr::read_data_header(const unique_byte_buffer_t& pdu, uint32_t* rcvd_sn)
+uint32_t pdcp_entity_nr::read_data_header(const unique_byte_buffer_t& pdu)
 {
   // Check PDU is long enough to extract header
   if (pdu->N_bytes <= cfg.hdr_len_bytes) {
     log->error("PDU too small to extract header\n");
-    return;
+    return 0;
   }
 
   // Extract RCVD_SN
   uint16_t rcvd_sn_16 = 0;
+  uint32_t rcvd_sn_32 = 0;
   switch (cfg.sn_len) {
     case PDCP_SN_LEN_12:
       srslte::uint8_to_uint16(pdu->msg, &rcvd_sn_16);
-      (*rcvd_sn) = SN(rcvd_sn_16);
+      rcvd_sn_32 = SN(rcvd_sn_16);
       break;
     case PDCP_SN_LEN_18:
-      srslte::uint8_to_uint24(pdu->msg, rcvd_sn);
-      (*rcvd_sn) = SN(*rcvd_sn);
+      srslte::uint8_to_uint24(pdu->msg, &rcvd_sn_32);
+      rcvd_sn_32 = SN(rcvd_sn_32);
+      break;
       break;
     default:
       log->error("Cannot extract RCVD_SN, invalid SN length configured: %d\n", cfg.sn_len);
@@ -202,7 +203,7 @@ void pdcp_entity_nr::read_data_header(const unique_byte_buffer_t& pdu, uint32_t*
   // Discard header
   pdu->msg += cfg.hdr_len_bytes;
   pdu->N_bytes -= cfg.hdr_len_bytes;
-  return;
+  return rcvd_sn_32;
 }
 
 void pdcp_entity_nr::write_data_header(const srslte::unique_byte_buffer_t& sdu, uint32_t count)
