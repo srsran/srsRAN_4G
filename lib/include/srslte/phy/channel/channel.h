@@ -25,6 +25,7 @@
 #include "delay.h"
 #include "fading.h"
 #include "rlf.h"
+#include "hst.h"
 #include <memory>
 #include <srslte/config.h>
 #include <srslte/srslte.h>
@@ -42,6 +43,12 @@ public:
     // Fading options
     bool        fading_enable = false;
     std::string fading_model  = "none";
+
+    // High Speed Train options
+    bool  hst_enable      = false;
+    float hst_fd_hz       = 750.0f;
+    float hst_period_s    = 7.2f;
+    float hst_init_time_s = 7.2f;
 
     // Delay options
     bool     delay_enable   = false;
@@ -63,6 +70,7 @@ public:
 private:
   srslte_channel_fading_t* fading[SRSLTE_MAX_PORTS] = {};
   srslte_channel_delay_t*  delay[SRSLTE_MAX_PORTS]  = {};
+  srslte_channel_hst_t*    hst                      = nullptr; // HST has no buffers / no multiple instance is required
   srslte_channel_rlf_t*    rlf                      = nullptr; // RLF has no buffers / no multiple instance is required
   cf_t*                    buffer_in                = nullptr;
   cf_t*                    buffer_out               = nullptr;

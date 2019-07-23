@@ -62,6 +62,13 @@ channel::channel(const channel::args_t& channel_args, uint32_t _nof_ports)
     }
   }
 
+  // Create high speed train
+  if (channel_args.hst_enable && ret == SRSLTE_SUCCESS) {
+    hst = (srslte_channel_hst_t*)calloc(sizeof(srslte_channel_hst_t), 1);
+    srslte_channel_hst_init(hst, channel_args.hst_fd_hz, channel_args.hst_period_s, channel_args.hst_init_time_s);
+  }
+
+  // Create Radio Link Failure simulator
   if (channel_args.rlf_enable && ret == SRSLTE_SUCCESS) {
     rlf = (srslte_channel_rlf_t*)calloc(sizeof(srslte_channel_rlf_t), 1);
     srslte_channel_rlf_init(rlf, channel_args.rlf_t_on_ms, channel_args.rlf_t_off_ms);
@@ -80,6 +87,11 @@ channel::~channel()
 
   if (buffer_out) {
     free(buffer_out);
+  }
+
+  if (hst) {
+    srslte_channel_hst_free(hst);
+    free(hst);
   }
 
   if (rlf) {
@@ -121,6 +133,11 @@ void channel::run(cf_t* in[SRSLTE_MAX_PORTS], cf_t* out[SRSLTE_MAX_PORTS], uint3
             memcpy(buffer_in, buffer_out, sizeof(cf_t) * len);
           }
 
+          if (hst) {
+            srslte_channel_hst_execute(hst, buffer_in, buffer_out, len, &t);
+            memcpy(buffer_in, buffer_out, sizeof(cf_t) * len);
+          }
+
           if (rlf) {
             srslte_channel_rlf_execute(rlf, buffer_in, buffer_out, len, &t);
             memcpy(buffer_in, buffer_out, sizeof(cf_t) * len);
@@ -155,6 +172,10 @@ void channel::set_srate(uint32_t srate)
         srslte_channel_delay_update_srate(delay[i], srate);
       }
       current_srate = srate;
+    }
+
+    if (hst) {
+      srslte_channel_hst_update_srate(hst, srate);
     }
   }
 }
