@@ -77,8 +77,11 @@ typedef enum { PDCP_RB_IS_SRB, PDCP_RB_IS_DRB } pdcp_rb_type_t;
 class srslte_pdcp_config_t
 {
 public:
-  srslte_pdcp_config_t(
-      uint8_t bearer_id_, pdcp_rb_type_t rb_type_, uint8_t tx_direction_, uint8_t rx_direction_, uint8_t sn_len_) :
+  srslte_pdcp_config_t(uint8_t              bearer_id_,
+                       pdcp_rb_type_t       rb_type_,
+                       security_direction_t tx_direction_,
+                       security_direction_t rx_direction_,
+                       uint8_t              sn_len_) :
     bearer_id(bearer_id_),
     rb_type(rb_type_),
     tx_direction(tx_direction_),
@@ -88,12 +91,12 @@ public:
     hdr_len_bytes = ceil((float)sn_len / 8);
   }
 
-  uint8_t        bearer_id;
-  pdcp_rb_type_t rb_type;
-  uint8_t        tx_direction;
-  uint8_t        rx_direction;
-  uint8_t        sn_len;
-  uint8_t        hdr_len_bytes;
+  uint8_t              bearer_id;
+  pdcp_rb_type_t       rb_type;
+  security_direction_t tx_direction;
+  security_direction_t rx_direction;
+  uint8_t              sn_len;
+  uint8_t              hdr_len_bytes;
 
   // TODO: Support the following configurations
   // bool do_rohc;

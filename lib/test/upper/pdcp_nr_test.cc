@@ -141,7 +141,7 @@ int test_tx(uint32_t                     n_packets,
 {
   srslte::pdcp_entity_nr       pdcp;
   srslte::srslte_pdcp_config_t cfg = {
-      1, srslte::PDCP_RB_IS_DRB, SECURITY_DIRECTION_UPLINK, SECURITY_DIRECTION_DOWNLINK, pdcp_sn_len};
+      1, srslte::PDCP_RB_IS_DRB, srslte::SECURITY_DIRECTION_UPLINK, srslte::SECURITY_DIRECTION_DOWNLINK, pdcp_sn_len};
 
   rlc_dummy rlc(log);
   rrc_dummy rrc(log);
@@ -265,9 +265,9 @@ int test_rx_in_sequence(uint32_t n_packets, uint8_t pdcp_sn_len, srslte::byte_bu
   srslte::pdcp_entity_nr       pdcp_tx;
   srslte::pdcp_entity_nr       pdcp_rx;
   srslte::srslte_pdcp_config_t cfg_tx = {
-      1, srslte::PDCP_RB_IS_DRB, SECURITY_DIRECTION_UPLINK, SECURITY_DIRECTION_DOWNLINK, pdcp_sn_len};
+      1, srslte::PDCP_RB_IS_DRB, srslte::SECURITY_DIRECTION_UPLINK, srslte::SECURITY_DIRECTION_DOWNLINK, pdcp_sn_len};
   srslte::srslte_pdcp_config_t cfg_rx = {
-      1, srslte::PDCP_RB_IS_DRB, SECURITY_DIRECTION_DOWNLINK, SECURITY_DIRECTION_UPLINK, pdcp_sn_len};
+      1, srslte::PDCP_RB_IS_DRB, srslte::SECURITY_DIRECTION_DOWNLINK, srslte::SECURITY_DIRECTION_UPLINK, pdcp_sn_len};
 
   rlc_dummy rlc_tx(log);
   rrc_dummy rrc_tx(log);
