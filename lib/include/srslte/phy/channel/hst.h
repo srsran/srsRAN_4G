@@ -29,10 +29,10 @@ typedef struct {
   uint32_t srate_hz; // Sampling rate
 
   // Model Parameters
-  float fd_hz; // Maximum Doppler Frequency
-  float ds_m; // eNb distance [m]
-  float dmin_m; // eNb Rail-track distance [m]
-  float period_s; // 2 * Ds / speed [s]
+  float fd_hz;       // Maximum Doppler Frequency
+  float ds_m;        // eNb distance [m]
+  float dmin_m;      // eNb Rail-track distance [m]
+  float period_s;    // 2 * Ds / speed [s]
   float init_time_s; // Time offset [s]
 
   // State
@@ -43,20 +43,17 @@ typedef struct {
 extern "C" {
 #endif
 
-SRSLTE_API int srslte_channel_hst_init(srslte_channel_hst_t *q, float fd_hz, float period_d, float init_time_s);
+SRSLTE_API int srslte_channel_hst_init(srslte_channel_hst_t* q, float fd_hz, float period_d, float init_time_s);
 
-SRSLTE_API void srslte_channel_hst_update_srate(srslte_channel_hst_t *q, uint32_t srate);
+SRSLTE_API void srslte_channel_hst_update_srate(srslte_channel_hst_t* q, uint32_t srate);
 
-SRSLTE_API void srslte_channel_hst_execute(srslte_channel_hst_t *q,
-                                           cf_t *in,
-                                           cf_t *out,
-                                           uint32_t len,
-                                           const srslte_timestamp_t *ts);
+SRSLTE_API void
+srslte_channel_hst_execute(srslte_channel_hst_t* q, cf_t* in, cf_t* out, uint32_t len, const srslte_timestamp_t* ts);
 
-SRSLTE_API void srslte_channel_hst_free(srslte_channel_hst_t *q);
+SRSLTE_API void srslte_channel_hst_free(srslte_channel_hst_t* q);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif //SRSLTE_HST_H_
+#endif // SRSLTE_HST_H_

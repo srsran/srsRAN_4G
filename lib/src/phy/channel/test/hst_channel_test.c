@@ -26,9 +26,9 @@
 
 static srslte_channel_hst_t hst = {};
 
-static float fd_hz            = 750;
-static float period_s         = 7.2;
-static float init_time_s      = 0;
+static float    fd_hz            = 750;
+static float    period_s         = 7.2;
+static float    init_time_s      = 0;
 static uint32_t srate_hz         = 1920000;
 static uint32_t sim_time_periods = 1;
 
@@ -111,8 +111,9 @@ int main(int argc, char** argv)
       srslte_timestamp_add(&ts, 0, 0.001);
 
       float ideal_freq = hst.fs_hz;
-      float meas_freq = srslte_vec_estimate_frequency(output_buffer, size) * srate_hz;
-      if (fabsf(ideal_freq- meas_freq) > 0.5f) {
+      float meas_freq  = srslte_vec_estimate_frequency(output_buffer, size) * srate_hz;
+      //      printf("[%03d.%03d] fs = [%6.1f | %6.1f] Hz\n", i, j, ideal_freq, meas_freq);
+      if (fabsf(ideal_freq - meas_freq) > 0.5f) {
         printf("Error [%03d.%03d] fs = [%6.1f | %6.1f] Hz\n", i, j, ideal_freq, meas_freq);
         return SRSLTE_ERROR;
       }

@@ -24,8 +24,8 @@
 
 #include "delay.h"
 #include "fading.h"
-#include "rlf.h"
 #include "hst.h"
+#include "rlf.h"
 #include <memory>
 #include <srslte/config.h>
 #include <srslte/srslte.h>
