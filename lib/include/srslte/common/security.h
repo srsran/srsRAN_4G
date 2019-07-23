@@ -38,6 +38,7 @@ typedef enum {
   CIPHERING_ALGORITHM_ID_N_ITEMS,
 } CIPHERING_ALGORITHM_ID_ENUM;
 static const char ciphering_algorithm_id_text[CIPHERING_ALGORITHM_ID_N_ITEMS][20] = {"EEA0", "128-EEA1", "128-EEA2"};
+
 typedef enum {
   INTEGRITY_ALGORITHM_ID_EIA0 = 0,
   INTEGRITY_ALGORITHM_ID_128_EIA1,

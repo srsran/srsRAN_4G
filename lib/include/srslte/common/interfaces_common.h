@@ -91,12 +91,12 @@ public:
     hdr_len_bytes = ceil((float)sn_len / 8);
   }
 
-  uint8_t              bearer_id;
-  pdcp_rb_type_t       rb_type;
-  security_direction_t tx_direction;
-  security_direction_t rx_direction;
-  uint8_t              sn_len;
-  uint8_t              hdr_len_bytes;
+  uint8_t              bearer_id     = 1;
+  pdcp_rb_type_t       rb_type       = PDCP_RB_IS_DRB;
+  security_direction_t tx_direction  = SECURITY_DIRECTION_DOWNLINK;
+  security_direction_t rx_direction  = SECURITY_DIRECTION_UPLINK;
+  uint8_t              sn_len        = PDCP_SN_LEN_12;
+  uint8_t              hdr_len_bytes = 2;
 
   // TODO: Support the following configurations
   // bool do_rohc;
