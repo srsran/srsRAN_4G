@@ -172,7 +172,7 @@ protected:
   }
 };
 
-typedef enum { SCH_SUBH_TYPE = 0, MCH_SUBH_TYPE = 1, RAR_SUBH_TYPE = 2 } subh_type;
+typedef enum { SCH_SUBH_TYPE = 0, MCH_SUBH_TYPE = 1 } subh_type;
 
 template <class SubH>
 class subh
@@ -267,6 +267,7 @@ public:
   bool set_phr(float phr);
   void set_padding();
   void set_padding(uint32_t padding_len);
+  void set_type(subh_type type_);
 
   void init();
   void fprint(FILE* stream);
@@ -372,15 +373,6 @@ private:
   uint8_t backoff_indicator;
 };
 
-class mch_subh : public sch_subh
-{
-public:
-  mch_subh() : sch_subh(MCH_SUBH_TYPE) {}
-
-  // Size of MAC CEs
-  const static int MAC_CE_CONTRES_LEN = 6;
-};
-
 class mch_pdu : public sch_pdu
 {
 public:
@@ -398,8 +390,7 @@ private:
     last_sdu_idx     = -1;
     reset();
     for (uint32_t i = 0; i < max_subheaders; i++) {
-      mch_subh subh;
-      subheaders[i] = subh;
+      subheaders[i].set_type(MCH_SUBH_TYPE);
       subheaders[i].parent = this;
       subheaders[i].init();
     }

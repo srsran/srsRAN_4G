@@ -426,13 +426,13 @@ uint8_t* ue::generate_mch_pdu(uint32_t                      harq_pid,
   mch_mac_msg_dl.init_tx(&tx_payload_buffer[harq_pid][0], grant_size);
 
   for (uint32_t i = 0; i < nof_pdu_elems; i++) {
-    if (sched.pdu[i].lcid == srslte::mch_subh::MCH_SCHED_INFO) {
+    if (sched.pdu[i].lcid == srslte::sch_subh::MCH_SCHED_INFO) {
       mch_mac_msg_dl.new_subh();
       mch_mac_msg_dl.get()->set_next_mch_sched_info(sched.mtch_sched[i].lcid, sched.mtch_sched[i].stop);
     } else if (sched.pdu[i].lcid == 0) {
       mch_mac_msg_dl.new_subh();
       mch_mac_msg_dl.get()->set_sdu(0, sched.pdu[i].nbytes, sched.mcch_payload);
-    } else if (sched.pdu[i].lcid <= srslte::mch_subh::MTCH_MAX_LCID) {
+    } else if (sched.pdu[i].lcid <= srslte::sch_subh::MTCH_MAX_LCID) {
       mch_mac_msg_dl.new_subh();
       mch_mac_msg_dl.get()->set_sdu(sched.pdu[i].lcid, sched.pdu[i].nbytes, sched.mtch_sched[i].mtch_payload);
     }

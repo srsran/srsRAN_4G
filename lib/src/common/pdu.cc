@@ -476,7 +476,7 @@ bool sch_subh::get_next_mch_sched_info(uint8_t* lcid_, uint16_t* mtch_stop)
       mtch_stop_ce = ((uint16_t)(payload[cur_mch_sched_ce * 2] & 0x07)) << 8;
       mtch_stop_ce += payload[cur_mch_sched_ce * 2 + 1];
       cur_mch_sched_ce++;
-      *mtch_stop = (mtch_stop_ce == srslte::mch_subh::MTCH_STOP_EMPTY) ? (0) : (mtch_stop_ce);
+      *mtch_stop = (mtch_stop_ce == sch_subh::MTCH_STOP_EMPTY) ? (0) : (mtch_stop_ce);
       return true;
     }
   }
@@ -534,6 +534,11 @@ void sch_subh::set_padding(uint32_t padding_len)
   lcid      = PADDING;
   nof_bytes = padding_len;
 }
+
+void sch_subh::set_type(subh_type type_)
+{
+  type = type_;
+};
 
 void sch_subh::set_padding()
 {
@@ -625,7 +630,7 @@ bool sch_subh::set_ta_cmd(uint8_t ta_cmd)
 bool sch_subh::set_next_mch_sched_info(uint8_t lcid_, uint16_t mtch_stop)
 {
   if (((sch_pdu*)parent)->has_space_ce(2, true)) {
-    uint16_t mtch_stop_ce                  = (mtch_stop) ? (mtch_stop) : (srslte::mch_subh::MTCH_STOP_EMPTY);
+    uint16_t mtch_stop_ce                  = (mtch_stop) ? (mtch_stop) : (sch_subh::MTCH_STOP_EMPTY);
     w_payload_ce[nof_mch_sched_ce * 2]     = (lcid_ & 0x1F) << 3 | (uint8_t)((mtch_stop_ce & 0x0700) >> 8);
     w_payload_ce[nof_mch_sched_ce * 2 + 1] = (uint8_t)(mtch_stop_ce & 0xff);
     nof_mch_sched_ce++;

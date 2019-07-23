@@ -231,13 +231,13 @@ void demux::process_sch_pdu(srslte::sch_pdu *pdu_msg)
 void demux::process_mch_pdu(srslte::mch_pdu *mch_msg){
     //disgarding headers that have already been processed
   while(mch_msg->next()){
-    
-    if(srslte::mch_subh::MCH_SCHED_INFO == mch_msg->get()->ce_type()){
-       uint16_t stop;
-       uint8_t  lcid;
-       if(mch_msg->get()->get_next_mch_sched_info(&lcid, &stop)) {
-         Info("MCH Sched Info: LCID: %d, Stop: %d, tti is %d \n", lcid, stop, phy_h->get_current_tti());
-       }
+
+    if (srslte::sch_subh::MCH_SCHED_INFO == mch_msg->get()->ce_type()) {
+      uint16_t stop;
+      uint8_t  lcid;
+      if (mch_msg->get()->get_next_mch_sched_info(&lcid, &stop)) {
+        Info("MCH Sched Info: LCID: %d, Stop: %d, tti is %d \n", lcid, stop, phy_h->get_current_tti());
+      }
     }
     if(mch_msg->get()->is_sdu()) {
       uint32_t lcid = mch_msg->get()->get_sdu_lcid();
