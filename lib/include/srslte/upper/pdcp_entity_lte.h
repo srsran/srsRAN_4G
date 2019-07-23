@@ -89,13 +89,13 @@ private:
  * Ref: 3GPP TS 36.323 v10.1.0
  ***************************************************************************/
 
-void pdcp_pack_control_pdu(uint32_t sn, byte_buffer_t *sdu);
-void pdcp_unpack_control_pdu(byte_buffer_t *sdu, uint32_t *sn);
+void pdcp_pack_control_pdu(uint32_t sn, byte_buffer_t* sdu);
+void pdcp_unpack_control_pdu(byte_buffer_t* sdu, uint32_t* sn);
 
-void pdcp_pack_data_pdu_short_sn(uint32_t sn, byte_buffer_t *sdu);
-void pdcp_unpack_data_pdu_short_sn(byte_buffer_t *sdu, uint32_t *sn);
-void pdcp_pack_data_pdu_long_sn(uint32_t sn, byte_buffer_t *sdu);
-void pdcp_unpack_data_pdu_long_sn(byte_buffer_t *sdu, uint32_t *sn);
+void pdcp_pack_data_pdu_short_sn(uint32_t sn, byte_buffer_t* sdu);
+void pdcp_unpack_data_pdu_short_sn(byte_buffer_t* sdu, uint32_t* sn);
+void pdcp_pack_data_pdu_long_sn(uint32_t sn, byte_buffer_t* sdu);
+void pdcp_unpack_data_pdu_long_sn(byte_buffer_t* sdu, uint32_t* sn);
 
 } // namespace srslte
 #endif // SRSLTE_PDCP_ENTITY_LTE_H

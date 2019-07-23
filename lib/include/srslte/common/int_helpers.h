@@ -63,6 +63,6 @@ inline void uint24_to_uint8(uint32_t i, uint8_t* buf)
   buf[1] = (i >> 8) & 0xFF;
   buf[2] = i & 0xFF;
 }
-}; //namespace
 
+} // namespace srslte
 #endif // SRSLTE_INT_HELPERS_H

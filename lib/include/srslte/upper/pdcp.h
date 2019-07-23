@@ -88,6 +88,4 @@ private:
 };
 
 } // namespace srslte
-
-
 #endif // SRSLTE_PDCP_H
