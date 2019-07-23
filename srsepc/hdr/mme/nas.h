@@ -247,6 +247,7 @@ public:
   bool pack_identity_request(srslte::byte_buffer_t* nas_buffer);
   bool pack_emm_information(srslte::byte_buffer_t* nas_buffer);
   bool pack_service_reject(srslte::byte_buffer_t* nas_buffer, uint8_t emm_cause);
+  bool pack_tracking_area_update_reject(srslte::byte_buffer_t* nas_buffer, uint8_t emm_cause);
   bool pack_attach_accept(srslte::byte_buffer_t* nas_buffer);
 
   /* Security functions */
