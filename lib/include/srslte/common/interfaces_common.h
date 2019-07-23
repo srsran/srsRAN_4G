@@ -88,7 +88,7 @@ public:
     hdr_len_bytes = ceil((float)sn_len / 8);
   }
 
-  uint8_t       bearer_id;
+  uint8_t        bearer_id;
   pdcp_rb_type_t rb_type;
   uint8_t        tx_direction;
   uint8_t        rx_direction;

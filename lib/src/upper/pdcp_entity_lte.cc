@@ -33,7 +33,7 @@ void pdcp_entity_lte::init(srsue::rlc_interface_pdcp* rlc_,
                            srsue::gw_interface_pdcp*  gw_,
                            srslte::log*               log_,
                            uint32_t                   lcid_,
-                           srslte_pdcp_config_t   cfg_)
+                           srslte_pdcp_config_t       cfg_)
 {
   rlc           = rlc_;
   rrc           = rrc_;
@@ -83,10 +83,10 @@ void pdcp_entity_lte::reestablish()
       rx_hfn          = 0;
       next_pdcp_rx_sn = 0;
     } else {
-      tx_count        = 0;
-      rx_count        = 0;
-      rx_hfn          = 0;
-      next_pdcp_rx_sn = 0;
+      tx_count                  = 0;
+      rx_count                  = 0;
+      rx_hfn                    = 0;
+      next_pdcp_rx_sn           = 0;
       last_submitted_pdcp_rx_sn = maximum_pdcp_sn;
     }
   }
@@ -104,18 +104,20 @@ void pdcp_entity_lte::reset()
 // GW/RRC interface
 void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, bool blocking)
 {
-  log->info_hex(sdu->msg, sdu->N_bytes,
-        "TX %s SDU, SN: %d, do_integrity = %s, do_encryption = %s",
-        rrc->get_rb_name(lcid).c_str(), tx_count,
-        (do_integrity) ? "true" : "false", (do_encryption) ? "true" : "false");
+  log->info_hex(sdu->msg,
+                sdu->N_bytes,
+                "TX %s SDU, SN: %d, do_integrity = %s, do_encryption = %s",
+                rrc->get_rb_name(lcid).c_str(),
+                tx_count,
+                (do_integrity) ? "true" : "false",
+                (do_encryption) ? "true" : "false");
 
   mutex.lock();
 
   if (is_srb()) {
     pdcp_pack_control_pdu(tx_count, sdu.get());
     if (do_integrity) {
-      integrity_generate(
-          sdu->msg, sdu->N_bytes - 4, tx_count, &sdu->msg[sdu->N_bytes - 4]);
+      integrity_generate(sdu->msg, sdu->N_bytes - 4, tx_count, &sdu->msg[sdu->N_bytes - 4]);
     }
   }
 
@@ -176,8 +178,7 @@ void pdcp_entity_lte::write_pdu(unique_byte_buffer_t pdu)
       }
 
       if (do_integrity) {
-        if (not integrity_verify(
-                pdu->msg, pdu->N_bytes - 4, sn, &(pdu->msg[pdu->N_bytes - 4]))) {
+        if (not integrity_verify(pdu->msg, pdu->N_bytes - 4, sn, &(pdu->msg[pdu->N_bytes - 4]))) {
           log->error_hex(pdu->msg, pdu->N_bytes, "%s Dropping PDU", rrc->get_rb_name(lcid).c_str());
           goto exit;
         }
@@ -199,7 +200,7 @@ exit:
  * Ref: 3GPP TS 36.323 v10.1.0 Section 5.1.2
  ***************************************************************************/
 // DRBs mapped on RLC UM (5.1.2.1.3)
-void pdcp_entity_lte::handle_um_drb_pdu(const srslte::unique_byte_buffer_t &pdu)
+void pdcp_entity_lte::handle_um_drb_pdu(const srslte::unique_byte_buffer_t& pdu)
 {
   uint32_t sn;
   if (12 == cfg.sn_len) {
@@ -229,7 +230,7 @@ void pdcp_entity_lte::handle_um_drb_pdu(const srslte::unique_byte_buffer_t &pdu)
 }
 
 // DRBs mapped on RLC AM, without re-ordering (5.1.2.1.2)
-void pdcp_entity_lte::handle_am_drb_pdu(const srslte::unique_byte_buffer_t &pdu)
+void pdcp_entity_lte::handle_am_drb_pdu(const srslte::unique_byte_buffer_t& pdu)
 {
   uint32_t sn, count;
   pdcp_unpack_data_pdu_long_sn(pdu.get(), &sn);
@@ -257,14 +258,14 @@ void pdcp_entity_lte::handle_am_drb_pdu(const srslte::unique_byte_buffer_t &pdu)
   } else if ((int32_t)(next_pdcp_rx_sn - sn) > (int32_t)reordering_window) {
     log->debug("(Next_PDCP_RX_SN - SN) is larger than re-ordering window.\n");
     rx_hfn++;
-    count = (rx_hfn << cfg.sn_len) | sn;
+    count           = (rx_hfn << cfg.sn_len) | sn;
     next_pdcp_rx_sn = sn + 1;
   } else if (sn_diff_next_pdcp_rx_sn >= (int32_t)reordering_window) {
     log->debug("(SN - Next_PDCP_RX_SN) is larger or equal than re-ordering window.\n");
     count = ((rx_hfn - 1) << cfg.sn_len) | sn;
   } else if (sn >= next_pdcp_rx_sn) {
     log->debug("SN is larger or equal than Next_PDCP_RX_SN.\n");
-    count = (rx_hfn << cfg.sn_len) | sn;
+    count           = (rx_hfn << cfg.sn_len) | sn;
     next_pdcp_rx_sn = sn + 1;
     if (next_pdcp_rx_sn > maximum_pdcp_sn) {
       next_pdcp_rx_sn = 0;
@@ -293,7 +294,6 @@ uint32_t pdcp_entity_lte::get_dl_count()
   return rx_count;
 }
 
-
 uint32_t pdcp_entity_lte::get_ul_count()
 {
   return tx_count;
@@ -303,8 +303,7 @@ uint32_t pdcp_entity_lte::get_ul_count()
  * Pack/Unpack helper functions
  * Ref: 3GPP TS 36.323 v10.1.0
  ***************************************************************************/
-
-void pdcp_pack_control_pdu(uint32_t sn, byte_buffer_t *sdu)
+void pdcp_pack_control_pdu(uint32_t sn, byte_buffer_t* sdu)
 {
   // Make room and add header
   sdu->msg--;
@@ -314,12 +313,11 @@ void pdcp_pack_control_pdu(uint32_t sn, byte_buffer_t *sdu)
   // Add MAC
   sdu->msg[sdu->N_bytes++] = (PDCP_CONTROL_MAC_I >> 24) & 0xFF;
   sdu->msg[sdu->N_bytes++] = (PDCP_CONTROL_MAC_I >> 16) & 0xFF;
-  sdu->msg[sdu->N_bytes++] = (PDCP_CONTROL_MAC_I >>  8) & 0xFF;
-  sdu->msg[sdu->N_bytes++] =  PDCP_CONTROL_MAC_I        & 0xFF;
-
+  sdu->msg[sdu->N_bytes++] = (PDCP_CONTROL_MAC_I >> 8) & 0xFF;
+  sdu->msg[sdu->N_bytes++] = PDCP_CONTROL_MAC_I & 0xFF;
 }
 
-void pdcp_unpack_control_pdu(byte_buffer_t *pdu, uint32_t *sn)
+void pdcp_unpack_control_pdu(byte_buffer_t* pdu, uint32_t* sn)
 {
   // Strip header
   *sn = *pdu->msg & 0x1F;
@@ -332,7 +330,7 @@ void pdcp_unpack_control_pdu(byte_buffer_t *pdu, uint32_t *sn)
   // TODO: integrity check MAC
 }
 
-void pdcp_pack_data_pdu_short_sn(uint32_t sn, byte_buffer_t *sdu)
+void pdcp_pack_data_pdu_short_sn(uint32_t sn, byte_buffer_t* sdu)
 {
   // Make room and add header
   sdu->msg--;
@@ -340,30 +338,29 @@ void pdcp_pack_data_pdu_short_sn(uint32_t sn, byte_buffer_t *sdu)
   sdu->msg[0] = (PDCP_D_C_DATA_PDU << 7) | (sn & 0x7F);
 }
 
-void pdcp_unpack_data_pdu_short_sn(byte_buffer_t *sdu, uint32_t *sn)
+void pdcp_unpack_data_pdu_short_sn(byte_buffer_t* sdu, uint32_t* sn)
 {
   // Strip header
-  *sn  = sdu->msg[0] & 0x7F;
+  *sn = sdu->msg[0] & 0x7F;
   sdu->msg++;
   sdu->N_bytes--;
 }
 
-void pdcp_pack_data_pdu_long_sn(uint32_t sn, byte_buffer_t *sdu)
+void pdcp_pack_data_pdu_long_sn(uint32_t sn, byte_buffer_t* sdu)
 {
   // Make room and add header
-  sdu->msg     -= 2;
+  sdu->msg -= 2;
   sdu->N_bytes += 2;
   sdu->msg[0] = (PDCP_D_C_DATA_PDU << 7) | ((sn >> 8) & 0x0F);
   sdu->msg[1] = sn & 0xFF;
 }
 
-void pdcp_unpack_data_pdu_long_sn(byte_buffer_t *sdu, uint32_t *sn)
+void pdcp_unpack_data_pdu_long_sn(byte_buffer_t* sdu, uint32_t* sn)
 {
   // Strip header
-  *sn  = (sdu->msg[0] & 0x0F) << 8;
+  *sn = (sdu->msg[0] & 0x0F) << 8;
   *sn |= sdu->msg[1];
-  sdu->msg     += 2;
+  sdu->msg += 2;
   sdu->N_bytes -= 2;
 }
-
-}
+} // namespace srslte

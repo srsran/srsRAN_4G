@@ -22,13 +22,13 @@
 #ifndef SRSLTE_PDCP_ENTITY_NR_H
 #define SRSLTE_PDCP_ENTITY_NR_H
 
+#include "pdcp_entity_base.h"
 #include "srslte/common/buffer_pool.h"
-#include "srslte/common/log.h"
 #include "srslte/common/common.h"
 #include "srslte/common/interfaces_common.h"
+#include "srslte/common/log.h"
 #include "srslte/common/security.h"
 #include "srslte/common/threads.h"
-#include "pdcp_entity_base.h"
 
 namespace srslte {
 
@@ -76,7 +76,7 @@ private:
   // Packing/Unpacking Helper functions
   void read_data_header(const unique_byte_buffer_t& sdu, uint32_t* rcvd_sn);
   void write_data_header(const unique_byte_buffer_t& sdu, uint32_t sn);
-  void extract_mac(const unique_byte_buffer_t &sdu, uint8_t* mac);
+  void extract_mac(const unique_byte_buffer_t& sdu, uint8_t* mac);
   void append_mac(const unique_byte_buffer_t& sdu, uint8_t* mac);
 };
 

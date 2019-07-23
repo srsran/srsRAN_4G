@@ -84,9 +84,9 @@ public:
   uint32_t HFN(uint32_t count);
   uint32_t SN(uint32_t count);
   uint32_t COUNT(uint32_t hfn, uint32_t sn);
- 
+
 protected:
-  srslte::log*      log  = nullptr;  
+  srslte::log* log = nullptr;
 
   bool     active        = false;
   uint32_t lcid          = 0;
@@ -119,7 +119,7 @@ inline uint32_t pdcp_entity_base::HFN(uint32_t count)
 
 inline uint32_t pdcp_entity_base::SN(uint32_t count)
 {
-  return count & (0xFFFFFFFF >> (32 -cfg.sn_len));
+  return count & (0xFFFFFFFF >> (32 - cfg.sn_len));
 }
 
 inline uint32_t pdcp_entity_base::COUNT(uint32_t hfn, uint32_t sn)

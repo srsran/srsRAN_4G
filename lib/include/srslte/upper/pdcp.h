@@ -22,8 +22,8 @@
 #ifndef SRSLTE_PDCP_H
 #define SRSLTE_PDCP_H
 
-#include "srslte/common/log.h"
 #include "srslte/common/common.h"
+#include "srslte/common/log.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/upper/pdcp_entity_lte.h"
 
@@ -76,7 +76,7 @@ private:
   srsue::rrc_interface_pdcp* rrc = nullptr;
   srsue::gw_interface_pdcp*  gw  = nullptr;
 
-  typedef std::map<uint16_t, pdcp_entity_lte*> pdcp_map_t;
+  typedef std::map<uint16_t, pdcp_entity_lte*>  pdcp_map_t;
   typedef std::pair<uint16_t, pdcp_entity_lte*> pdcp_map_pair_t;
 
   log*             pdcp_log = nullptr;

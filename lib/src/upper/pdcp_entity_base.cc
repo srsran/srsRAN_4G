@@ -50,19 +50,18 @@ void pdcp_entity_base::config_security(uint8_t*                    k_rrc_enc_,
             integrity_algorithm_id_text[integ_algo],
             ciphering_algorithm_id_text[cipher_algo]);
 
-  log->debug_hex(k_rrc_enc, 32,"K_rrc_enc");
-  log->debug_hex(k_up_enc, 32,"K_up_enc");
-  log->debug_hex(k_rrc_int, 32,"K_rrc_int");
-  log->debug_hex(k_up_int, 32,"K_up_int");
+  log->debug_hex(k_rrc_enc, 32, "K_rrc_enc");
+  log->debug_hex(k_up_enc, 32, "K_up_enc");
+  log->debug_hex(k_rrc_int, 32, "K_rrc_int");
+  log->debug_hex(k_up_int, 32, "K_up_int");
 }
-
 
 /****************************************************************************
  * Security functions
  ***************************************************************************/
 void pdcp_entity_base::integrity_generate(uint8_t* msg, uint32_t msg_len, uint32_t count, uint8_t* mac)
 {
-  uint8_t *k_int;
+  uint8_t* k_int;
 
   // If control plane use RRC integrity key. If data use user plane key
   if (is_srb()) {
@@ -71,30 +70,17 @@ void pdcp_entity_base::integrity_generate(uint8_t* msg, uint32_t msg_len, uint32
     k_int = k_up_int;
   }
 
-  switch(integ_algo)
-  {
-  case INTEGRITY_ALGORITHM_ID_EIA0:
-    break;
-  case INTEGRITY_ALGORITHM_ID_128_EIA1:
-    security_128_eia1(&k_int[16],
-                      count,
-                      cfg.bearer_id - 1,
-                      cfg.tx_direction,
-                      msg,
-                      msg_len,
-                      mac);
-    break;
-  case INTEGRITY_ALGORITHM_ID_128_EIA2:
-    security_128_eia2(&k_int[16],
-                      count,
-                      cfg.bearer_id - 1,
-                      cfg.tx_direction,
-                      msg,
-                      msg_len,
-                      mac);
-    break;
-  default:
-    break;
+  switch (integ_algo) {
+    case INTEGRITY_ALGORITHM_ID_EIA0:
+      break;
+    case INTEGRITY_ALGORITHM_ID_128_EIA1:
+      security_128_eia1(&k_int[16], count, cfg.bearer_id - 1, cfg.tx_direction, msg, msg_len, mac);
+      break;
+    case INTEGRITY_ALGORITHM_ID_128_EIA2:
+      security_128_eia2(&k_int[16], count, cfg.bearer_id - 1, cfg.tx_direction, msg, msg_len, mac);
+      break;
+    default:
+      break;
   }
 
   log->debug("Integrity gen input: COUNT %d, Bearer ID %d, Direction %s\n",
@@ -107,9 +93,9 @@ void pdcp_entity_base::integrity_generate(uint8_t* msg, uint32_t msg_len, uint32
 
 bool pdcp_entity_base::integrity_verify(uint8_t* msg, uint32_t msg_len, uint32_t count, uint8_t* mac)
 {
-  uint8_t mac_exp[4] = {};
-  bool is_valid = true;
-  uint8_t *k_int;
+  uint8_t  mac_exp[4] = {};
+  bool     is_valid   = true;
+  uint8_t* k_int;
 
   // If control plane use RRC integrity key. If data use user plane key
   if (is_srb()) {
@@ -157,7 +143,7 @@ bool pdcp_entity_base::integrity_verify(uint8_t* msg, uint32_t msg_len, uint32_t
 void pdcp_entity_base::cipher_encrypt(uint8_t* msg, uint32_t msg_len, uint32_t count, uint8_t* ct)
 {
   byte_buffer_t ct_tmp;
-  uint8_t *k_enc;
+  uint8_t*      k_enc;
 
   // If control plane use RRC encrytion key. If data use user plane key
   if (is_srb()) {
@@ -192,7 +178,7 @@ void pdcp_entity_base::cipher_encrypt(uint8_t* msg, uint32_t msg_len, uint32_t c
 void pdcp_entity_base::cipher_decrypt(uint8_t* ct, uint32_t ct_len, uint32_t count, uint8_t* msg)
 {
   byte_buffer_t msg_tmp;
-  uint8_t *k_enc;
+  uint8_t*      k_enc;
 
   // If control plane use RRC encrytion key. If data use user plane key
   if (is_srb()) {
@@ -207,22 +193,20 @@ void pdcp_entity_base::cipher_decrypt(uint8_t* ct, uint32_t ct_len, uint32_t cou
              (cfg.rx_direction == SECURITY_DIRECTION_DOWNLINK) ? "Downlink" : "Uplink");
   log->debug_hex(ct, ct_len, "Cipher decrypt input msg");
 
-  switch(cipher_algo)
-  {
-  case CIPHERING_ALGORITHM_ID_EEA0:
-    break;
-  case CIPHERING_ALGORITHM_ID_128_EEA1:
-    security_128_eea1(&k_enc[16], count, cfg.bearer_id - 1, cfg.rx_direction, ct, ct_len, msg_tmp.msg);
-    memcpy(msg, msg_tmp.msg, ct_len);
-    break;
-  case CIPHERING_ALGORITHM_ID_128_EEA2:
-    security_128_eea2(&k_enc[16], count, cfg.bearer_id - 1, cfg.rx_direction, ct, ct_len, msg_tmp.msg);
-    memcpy(msg, msg_tmp.msg, ct_len);
-    break;
-  default:
-    break;
+  switch (cipher_algo) {
+    case CIPHERING_ALGORITHM_ID_EEA0:
+      break;
+    case CIPHERING_ALGORITHM_ID_128_EEA1:
+      security_128_eea1(&k_enc[16], count, cfg.bearer_id - 1, cfg.rx_direction, ct, ct_len, msg_tmp.msg);
+      memcpy(msg, msg_tmp.msg, ct_len);
+      break;
+    case CIPHERING_ALGORITHM_ID_128_EEA2:
+      security_128_eea2(&k_enc[16], count, cfg.bearer_id - 1, cfg.rx_direction, ct, ct_len, msg_tmp.msg);
+      memcpy(msg, msg_tmp.msg, ct_len);
+      break;
+    default:
+      break;
   }
-  log->debug_hex(msg, ct_len,"Cipher decrypt output msg");
+  log->debug_hex(msg, ct_len, "Cipher decrypt output msg");
 }
-
-}
+} // namespace srslte

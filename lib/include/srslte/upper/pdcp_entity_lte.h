@@ -23,13 +23,12 @@
 #define SRSLTE_PDCP_ENTITY_LTE_H
 
 #include "srslte/common/buffer_pool.h"
-#include "srslte/common/log.h"
 #include "srslte/common/common.h"
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/common/log.h"
 #include "srslte/common/security.h"
 #include "srslte/common/threads.h"
+#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/upper/pdcp_entity_base.h"
-
 
 namespace srslte {
 
@@ -41,10 +40,10 @@ namespace srslte {
 #define PDCP_CONTROL_MAC_I 0x00000000
 
 /****************************************************************************
- * LTE PDCP Entity 
+ * LTE PDCP Entity
  * Class for LTE PDCP entities
  ***************************************************************************/
-class pdcp_entity_lte final: public pdcp_entity_base
+class pdcp_entity_lte final : public pdcp_entity_base
 {
 public:
   pdcp_entity_lte();

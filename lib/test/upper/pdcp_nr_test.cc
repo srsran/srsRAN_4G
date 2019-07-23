@@ -81,7 +81,7 @@ public:
   }
 
 private:
-  srslte::log* log;
+  srslte::log*                 log;
   srslte::unique_byte_buffer_t last_pdcp_pdu;
 
   bool rb_is_um(uint32_t lcid) { return false; }
@@ -109,7 +109,7 @@ class gw_dummy : public srsue::gw_interface_pdcp
 public:
   gw_dummy(srslte::log* log_) : log(log_) {}
 
-  void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
+  void     write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
   uint32_t rx_count = 0;
 
   void get_last_pdu(const srslte::unique_byte_buffer_t& pdu)
@@ -126,24 +126,30 @@ public:
   }
 
 private:
-  srslte::log* log;
+  srslte::log*                 log;
   srslte::unique_byte_buffer_t last_pdu;
 };
 
 /*
  * Genric function to test transmission of in-sequence packets
  */
-int test_tx(uint32_t n_packets, uint8_t pdcp_sn_len, srslte::unique_byte_buffer_t pdu_exp, srslte::byte_buffer_pool* pool, srslte::log* log)
+int test_tx(uint32_t                     n_packets,
+            uint8_t                      pdcp_sn_len,
+            srslte::unique_byte_buffer_t pdu_exp,
+            srslte::byte_buffer_pool*    pool,
+            srslte::log*                 log)
 {
-  srslte::pdcp_entity_nr pdcp;
-  srslte::srslte_pdcp_config_t cfg = {1, srslte::PDCP_RB_IS_DRB, SECURITY_DIRECTION_UPLINK, SECURITY_DIRECTION_DOWNLINK, pdcp_sn_len};
+  srslte::pdcp_entity_nr       pdcp;
+  srslte::srslte_pdcp_config_t cfg = {
+      1, srslte::PDCP_RB_IS_DRB, SECURITY_DIRECTION_UPLINK, SECURITY_DIRECTION_DOWNLINK, pdcp_sn_len};
 
   rlc_dummy rlc(log);
   rrc_dummy rrc(log);
-  gw_dummy gw(log);
+  gw_dummy  gw(log);
 
   pdcp.init(&rlc, &rrc, &gw, log, 0, cfg);
-  pdcp.config_security(k_enc, k_int, k_enc, k_int, srslte::CIPHERING_ALGORITHM_ID_128_EEA2, srslte::INTEGRITY_ALGORITHM_ID_128_EIA2);
+  pdcp.config_security(
+      k_enc, k_int, k_enc, k_int, srslte::CIPHERING_ALGORITHM_ID_128_EEA2, srslte::INTEGRITY_ALGORITHM_ID_128_EIA2);
   pdcp.enable_integrity();
   pdcp.enable_encryption();
 
@@ -186,7 +192,7 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
   srslte::unique_byte_buffer_t pdu_exp_sn0_len12 = allocate_unique_buffer(*pool);
   memcpy(pdu_exp_sn0_len12->msg, pdu1, PDU1_LEN);
   pdu_exp_sn0_len12->N_bytes = PDU1_LEN;
-  //TESTASSERT(test_tx(1, srslte::PDCP_SN_LEN_12, std::move(pdu_exp_sn0_len12), pool, log) == 0);
+  TESTASSERT(test_tx(1, srslte::PDCP_SN_LEN_12, std::move(pdu_exp_sn0_len12), pool, log) == 0);
 
   /*
    * TX Test 2: PDCP Entity with SN LEN = 12
@@ -198,7 +204,7 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
   srslte::unique_byte_buffer_t pdu_exp_sn2048_len12 = allocate_unique_buffer(*pool);
   memcpy(pdu_exp_sn2048_len12->msg, pdu2, PDU2_LEN);
   pdu_exp_sn2048_len12->N_bytes = PDU2_LEN;
-  //TESTASSERT(test_tx(2049, srslte::PDCP_SN_LEN_12, std::move(pdu_exp_sn2048_len12), pool, log) == 0);
+  TESTASSERT(test_tx(2049, srslte::PDCP_SN_LEN_12, std::move(pdu_exp_sn2048_len12), pool, log) == 0);
 
   /*
    * TX Test 3: PDCP Entity with SN LEN = 12
@@ -210,7 +216,7 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
   srslte::unique_byte_buffer_t pdu_exp_sn4096_len12 = allocate_unique_buffer(*pool);
   memcpy(pdu_exp_sn4096_len12->msg, pdu3, PDU3_LEN);
   pdu_exp_sn4096_len12->N_bytes = PDU3_LEN;
-  //TESTASSERT(test_tx(4097, srslte::PDCP_SN_LEN_12, std::move(pdu_exp_sn4096_len12), pool, log) == 0);
+  TESTASSERT(test_tx(4097, srslte::PDCP_SN_LEN_12, std::move(pdu_exp_sn4096_len12), pool, log) == 0);
 
   /*
    * TX Test 4: PDCP Entity with SN LEN = 18
@@ -323,7 +329,6 @@ int run_all_tests(srslte::byte_buffer_pool* pool)
   TESTASSERT(test_rx_in_sequence(262145, srslte::PDCP_SN_LEN_18, pool, &log) == 0);
   return 0;
 }
-
 
 int main(int argc, char** argv)
 {

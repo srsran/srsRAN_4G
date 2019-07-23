@@ -20,8 +20,8 @@
  */
 
 #include "srslte/upper/pdcp_entity_nr.h"
-#include "srslte/common/security.h"
 #include "srslte/common/int_helpers.h"
+#include "srslte/common/security.h"
 
 namespace srslte {
 
@@ -68,16 +68,18 @@ void pdcp_entity_nr::reset()
 // SDAP/RRC interface
 void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, bool blocking)
 {
-  log->info_hex(sdu->msg, sdu->N_bytes,
-        "TX %s SDU, do_integrity = %s, do_encryption = %s",
-        rrc->get_rb_name(lcid).c_str(),
-        (do_integrity) ? "true" : "false", (do_encryption) ? "true" : "false");
+  log->info_hex(sdu->msg,
+                sdu->N_bytes,
+                "TX %s SDU, do_integrity = %s, do_encryption = %s",
+                rrc->get_rb_name(lcid).c_str(),
+                (do_integrity) ? "true" : "false",
+                (do_encryption) ? "true" : "false");
 
   // Start discard timer TODO
   // Perform header compression TODO
 
   // Integrity protection
-  uint8_t mac[4]; 
+  uint8_t mac[4];
   integrity_generate(sdu->msg, sdu->N_bytes, tx_next, mac);
 
   // Ciphering
@@ -88,7 +90,7 @@ void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, bool blocking)
 
   // Append MAC-I
   append_mac(sdu, mac);
-  
+
   // Increment TX_NEXT
   tx_next++;
 
@@ -150,10 +152,10 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   // TODO Store PDU in reception buffer
 
   // Update RX_NEXT
-  if(rcvd_count >= rx_next){
+  if (rcvd_count >= rx_next) {
     rx_next = rcvd_count + 1;
   }
- 
+
   // TODO if out-of-order configured, submit to upper layer
 
   if (rcvd_count == rx_deliv) {
@@ -163,21 +165,21 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
     } else {
       gw->write_pdu(lcid, std::move(pdu));
     }
-	
+
     // Update RX_DELIV
     rx_deliv = rcvd_count + 1; // TODO needs to be corrected when queueing is implemented
     printf("New RX_deliv %d, rcvd_count %d\n", rx_deliv, rcvd_count);
   }
 
-  // Not clear how to update RX_DELIV without reception buffer (TODO) 
+  // Not clear how to update RX_DELIV without reception buffer (TODO)
 
   // TODO handle reordering timers
 }
 
-void pdcp_entity_nr::read_data_header(const unique_byte_buffer_t& pdu, uint32_t *rcvd_sn)
+void pdcp_entity_nr::read_data_header(const unique_byte_buffer_t& pdu, uint32_t* rcvd_sn)
 {
   // Check PDU is long enough to extract header
-  if(pdu->N_bytes <= cfg.hdr_len_bytes){
+  if (pdu->N_bytes <= cfg.hdr_len_bytes) {
     log->error("PDU too small to extract header\n");
     return;
   }
@@ -230,7 +232,7 @@ void pdcp_entity_nr::write_data_header(const srslte::unique_byte_buffer_t& sdu, 
   }
 }
 
-void pdcp_entity_nr::extract_mac(const unique_byte_buffer_t &pdu, uint8_t* mac)
+void pdcp_entity_nr::extract_mac(const unique_byte_buffer_t& pdu, uint8_t* mac)
 {
   // Check enough space for MAC
   if (pdu->N_bytes < 4) {
@@ -243,7 +245,7 @@ void pdcp_entity_nr::extract_mac(const unique_byte_buffer_t &pdu, uint8_t* mac)
   pdu->N_bytes -= 4;
 }
 
-void pdcp_entity_nr::append_mac(const unique_byte_buffer_t &sdu, uint8_t* mac)
+void pdcp_entity_nr::append_mac(const unique_byte_buffer_t& sdu, uint8_t* mac)
 {
   // Check enough space for MAC
   if (sdu->N_bytes + 4 > sdu->get_tailroom()) {
@@ -255,5 +257,4 @@ void pdcp_entity_nr::append_mac(const unique_byte_buffer_t &sdu, uint8_t* mac)
   memcpy(&sdu->msg[sdu->N_bytes], mac, 4);
   sdu->N_bytes += 4;
 }
-
 } // namespace srslte
