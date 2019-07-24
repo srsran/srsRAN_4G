@@ -112,31 +112,31 @@ void pdcp_entity_lte::write_sdu(unique_byte_buffer_t sdu, bool blocking)
                 (do_integrity) ? "true" : "false",
                 (do_encryption) ? "true" : "false");
 
-  mutex.lock();
+  {
+    std::unique_lock<std::mutex> lock(mutex);
 
-  if (is_srb()) {
-    pdcp_pack_control_pdu(tx_count, sdu.get());
-    if (do_integrity) {
-      integrity_generate(sdu->msg, sdu->N_bytes - 4, tx_count, &sdu->msg[sdu->N_bytes - 4]);
+    if (is_srb()) {
+      pdcp_pack_control_pdu(tx_count, sdu.get());
+      if (do_integrity) {
+        integrity_generate(sdu->msg, sdu->N_bytes - 4, tx_count, &sdu->msg[sdu->N_bytes - 4]);
+      }
     }
-  }
 
-  if (is_drb()) {
-    if (12 == cfg.sn_len) {
-      pdcp_pack_data_pdu_long_sn(tx_count, sdu.get());
-    } else {
-      pdcp_pack_data_pdu_short_sn(tx_count, sdu.get());
+    if (is_drb()) {
+      if (12 == cfg.sn_len) {
+        pdcp_pack_data_pdu_long_sn(tx_count, sdu.get());
+      } else {
+        pdcp_pack_data_pdu_short_sn(tx_count, sdu.get());
+      }
     }
-  }
 
-  if (do_encryption) {
-    cipher_encrypt(
-        &sdu->msg[cfg.hdr_len_bytes], sdu->N_bytes - cfg.hdr_len_bytes, tx_count, &sdu->msg[cfg.hdr_len_bytes]);
-    log->info_hex(sdu->msg, sdu->N_bytes, "TX %s SDU (encrypted)", rrc->get_rb_name(lcid).c_str());
+    if (do_encryption) {
+      cipher_encrypt(
+          &sdu->msg[cfg.hdr_len_bytes], sdu->N_bytes - cfg.hdr_len_bytes, tx_count, &sdu->msg[cfg.hdr_len_bytes]);
+      log->info_hex(sdu->msg, sdu->N_bytes, "TX %s SDU (encrypted)", rrc->get_rb_name(lcid).c_str());
+    }
+    tx_count++;
   }
-  tx_count++;
-
-  mutex.unlock();
 
   rlc->write_sdu(lcid, std::move(sdu), blocking);
 }
@@ -157,8 +157,7 @@ void pdcp_entity_lte::write_pdu(unique_byte_buffer_t pdu)
     return;
   }
 
-  mutex.lock();
-
+  std::unique_lock<std::mutex> lock(mutex);
   if (is_drb()) {
     // Handle DRB messages
     if (rlc->rb_is_um(lcid)) {
@@ -192,7 +191,6 @@ void pdcp_entity_lte::write_pdu(unique_byte_buffer_t pdu)
   }
 exit:
   rx_count++;
-  mutex.unlock();
 }
 
 /****************************************************************************

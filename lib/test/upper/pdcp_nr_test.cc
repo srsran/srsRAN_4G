@@ -260,7 +260,7 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
  * RX Test: PDCP Entity with SN LEN = 12 and 18. Tested 4097 packets received without losses.
  * PDCP entity configured with EIA2 and EEA2
  */
-int test_rx_in_sequence(uint32_t n_packets, uint8_t pdcp_sn_len, srslte::byte_buffer_pool* pool, srslte::log* log)
+int test_rx_in_sequence(uint64_t n_packets, uint8_t pdcp_sn_len, srslte::byte_buffer_pool* pool, srslte::log* log)
 {
   srslte::pdcp_entity_nr       pdcp_tx;
   srslte::pdcp_entity_nr       pdcp_rx;
@@ -296,7 +296,7 @@ int test_rx_in_sequence(uint32_t n_packets, uint8_t pdcp_sn_len, srslte::byte_bu
 
   // Generate test message and
   // decript and check matching SDUs
-  for (uint32_t i = 0; i < n_packets; ++i) {
+  for (uint64_t i = 0; i < n_packets; ++i) {
     srslte::unique_byte_buffer_t sdu = allocate_unique_buffer(*pool);
     srslte::unique_byte_buffer_t pdu = allocate_unique_buffer(*pool);
     memcpy(sdu->msg, sdu_exp->msg, SDU1_LEN);
@@ -326,6 +326,7 @@ int run_all_tests(srslte::byte_buffer_pool* pool)
 
   TESTASSERT(test_tx_all(pool, &log) == 0);
   TESTASSERT(test_rx_in_sequence(4097, srslte::PDCP_SN_LEN_12, pool, &log) == 0);
+  // TESTASSERT(test_rx_in_sequence(4294967297, srslte::PDCP_SN_LEN_12, pool, &log) == 0);
   TESTASSERT(test_rx_in_sequence(262145, srslte::PDCP_SN_LEN_18, pool, &log) == 0);
   return 0;
 }
