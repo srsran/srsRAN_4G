@@ -40,6 +40,8 @@ namespace srslte {
 #define PDCP_PDU_TYPE_PDCP_STATUS_REPORT 0x0
 #define PDCP_PDU_TYPE_INTERSPERSED_ROHC_FEEDBACK_PACKET 0x1
 
+#define PDCP_MAX_SDU_SIZE 9000
+
 typedef enum {
   PDCP_D_C_CONTROL_PDU = 0,
   PDCP_D_C_DATA_PDU,
@@ -110,6 +112,7 @@ protected:
   bool integrity_verify(uint8_t* msg, uint32_t msg_len, uint32_t count, uint8_t* mac);
   void cipher_encrypt(uint8_t* msg, uint32_t msg_len, uint32_t count, uint8_t* ct);
   void cipher_decrypt(uint8_t* ct, uint32_t ct_len, uint32_t count, uint8_t* msg);
+
 };
 
 inline uint32_t pdcp_entity_base::HFN(uint32_t count)

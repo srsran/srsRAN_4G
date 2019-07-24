@@ -142,8 +142,8 @@ bool pdcp_entity_base::integrity_verify(uint8_t* msg, uint32_t msg_len, uint32_t
 
 void pdcp_entity_base::cipher_encrypt(uint8_t* msg, uint32_t msg_len, uint32_t count, uint8_t* ct)
 {
-  byte_buffer_t ct_tmp;
-  uint8_t*      k_enc;
+  uint8_t* k_enc;
+  uint8_t  ct_tmp[PDCP_MAX_SDU_SIZE];
 
   // If control plane use RRC encrytion key. If data use user plane key
   if (is_srb()) {
@@ -162,12 +162,12 @@ void pdcp_entity_base::cipher_encrypt(uint8_t* msg, uint32_t msg_len, uint32_t c
     case CIPHERING_ALGORITHM_ID_EEA0:
       break;
     case CIPHERING_ALGORITHM_ID_128_EEA1:
-      security_128_eea1(&(k_enc[16]), count, cfg.bearer_id - 1, cfg.tx_direction, msg, msg_len, ct_tmp.msg);
-      memcpy(ct, ct_tmp.msg, msg_len);
+      security_128_eea1(&(k_enc[16]), count, cfg.bearer_id - 1, cfg.tx_direction, msg, msg_len, ct_tmp);
+      memcpy(ct, ct_tmp, msg_len);
       break;
     case CIPHERING_ALGORITHM_ID_128_EEA2:
-      security_128_eea2(&(k_enc[16]), count, cfg.bearer_id - 1, cfg.tx_direction, msg, msg_len, ct_tmp.msg);
-      memcpy(ct, ct_tmp.msg, msg_len);
+      security_128_eea2(&(k_enc[16]), count, cfg.bearer_id - 1, cfg.tx_direction, msg, msg_len, ct_tmp);
+      memcpy(ct, ct_tmp, msg_len);
       break;
     default:
       break;
@@ -177,8 +177,8 @@ void pdcp_entity_base::cipher_encrypt(uint8_t* msg, uint32_t msg_len, uint32_t c
 
 void pdcp_entity_base::cipher_decrypt(uint8_t* ct, uint32_t ct_len, uint32_t count, uint8_t* msg)
 {
-  byte_buffer_t msg_tmp;
-  uint8_t*      k_enc;
+  uint8_t* k_enc;
+  uint8_t  msg_tmp[PDCP_MAX_SDU_SIZE];
 
   // If control plane use RRC encrytion key. If data use user plane key
   if (is_srb()) {
@@ -197,12 +197,12 @@ void pdcp_entity_base::cipher_decrypt(uint8_t* ct, uint32_t ct_len, uint32_t cou
     case CIPHERING_ALGORITHM_ID_EEA0:
       break;
     case CIPHERING_ALGORITHM_ID_128_EEA1:
-      security_128_eea1(&k_enc[16], count, cfg.bearer_id - 1, cfg.rx_direction, ct, ct_len, msg_tmp.msg);
-      memcpy(msg, msg_tmp.msg, ct_len);
+      security_128_eea1(&k_enc[16], count, cfg.bearer_id - 1, cfg.rx_direction, ct, ct_len, msg_tmp);
+      memcpy(msg, msg_tmp, ct_len);
       break;
     case CIPHERING_ALGORITHM_ID_128_EEA2:
-      security_128_eea2(&k_enc[16], count, cfg.bearer_id - 1, cfg.rx_direction, ct, ct_len, msg_tmp.msg);
-      memcpy(msg, msg_tmp.msg, ct_len);
+      security_128_eea2(&k_enc[16], count, cfg.bearer_id - 1, cfg.rx_direction, ct, ct_len, msg_tmp);
+      memcpy(msg, msg_tmp, ct_len);
       break;
     default:
       break;
