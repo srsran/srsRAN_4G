@@ -1373,7 +1373,7 @@ char* srslte_dci_format_string_short(srslte_dci_format_t format) {
   }
 }
 
-char* ra_type_string(srslte_ra_type_t alloc_type)
+static char* ra_type_string(srslte_ra_type_t alloc_type)
 {
   switch (alloc_type) {
     case SRSLTE_RA_ALLOC_TYPE0:
@@ -1384,6 +1384,22 @@ char* ra_type_string(srslte_ra_type_t alloc_type)
       return "Type 2";
     default:
       return "N/A";
+  }
+}
+
+static char* freq_hop_fl_string(int freq_hop)
+{
+  switch (freq_hop) {
+    case -1:
+      return "n/a";
+    case 0:
+      return "1/4";
+    case 1:
+      return "-1/4";
+    case 2:
+      return "1/2";
+    case 3:
+      return "type2";
   }
 }
 
@@ -1490,9 +1506,6 @@ uint32_t srslte_dci_dl_info(srslte_dci_dl_t* dci_dl, char* info_str, uint32_t le
   n = srslte_print_check(info_str, len, n, ", mcs={", 0);
   n = print_multi(info_str, n, len, dci_dl, 0);
   n = srslte_print_check(info_str, len, n, "}", 0);
-  n = srslte_print_check(info_str, len, n, ", rv={", 0);
-  n = print_multi(info_str, n, len, dci_dl, 1);
-  n = srslte_print_check(info_str, len, n, "}", 0);
   n = srslte_print_check(info_str, len, n, ", ndi={", 0);
   n = print_multi(info_str, n, len, dci_dl, 2);
   n = srslte_print_check(info_str, len, n, "}", 0);
@@ -1519,25 +1532,23 @@ uint32_t srslte_dci_ul_info(srslte_dci_ul_t* dci_ul, char* info_str, uint32_t le
 {
   uint32_t n = 0;
 
-  n = srslte_print_check(info_str, len, 0, "f=0, cce=%2d, L=%d", dci_ul->location.ncce, dci_ul->location.L);
-
-  n = srslte_print_check(info_str, len, n, ", riv=%d", dci_ul->type2_alloc.riv);
-
-  n = srslte_print_check(
-      info_str, len, n, ", mcs=%d, rv=%d, ndi=%d", dci_ul->tb.mcs_idx, dci_ul->tb.rv, dci_ul->tb.ndi);
+  n = srslte_print_check(info_str,
+                         len,
+                         0,
+                         "f=0, cce=%2d, L=%d, riv=%d, mcs=%d, rv=%d, ndi=%d, f_h=%s, cqi=%s, tpc_pusch=%d, dmrs_cs=%d",
+                         dci_ul->location.ncce,
+                         dci_ul->location.L,
+                         dci_ul->type2_alloc.riv,
+                         dci_ul->tb.mcs_idx,
+                         dci_ul->tb.rv,
+                         dci_ul->tb.ndi,
+                         freq_hop_fl_string(dci_ul->freq_hop_fl),
+                         dci_ul->cqi_request ? "yes" : "no",
+                         dci_ul->tpc_pusch,
+                         dci_ul->n_dmrs);
 
   if (dci_ul->is_tdd) {
-    n = srslte_print_check(info_str, len, n, ", ul_idx=%d", dci_ul->ul_idx);
-  }
-
-  if (dci_ul->is_tdd) {
-    n = srslte_print_check(info_str, len, n, ", dai=%d", dci_ul->dai);
-  }
-
-  n = srslte_print_check(info_str, len, n, ", tpc_pusch=%d, dmrs_cs=%d", dci_ul->tpc_pusch, dci_ul->n_dmrs);
-
-  if (dci_ul->cqi_request) {
-    n = srslte_print_check(info_str, len, n, ", cqi_request");
+    n = srslte_print_check(info_str, len, n, ", ul_idx=%d, dai=%d", dci_ul->ul_idx, dci_ul->dai);
   }
 
   return n;
