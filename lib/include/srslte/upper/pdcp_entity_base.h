@@ -40,6 +40,8 @@ namespace srslte {
 #define PDCP_PDU_TYPE_PDCP_STATUS_REPORT 0x0
 #define PDCP_PDU_TYPE_INTERSPERSED_ROHC_FEEDBACK_PACKET 0x1
 
+// Maximum supported PDCP SDU size is 9000 bytes.
+// See TS 38.323 v15.2.0, section 4.3.1
 #define PDCP_MAX_SDU_SIZE 9000
 
 typedef enum {
