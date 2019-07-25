@@ -28,10 +28,8 @@
 #define SRSENB_PDCP_H
 
 namespace srsenb {
-  
-class pdcp :  public pdcp_interface_rlc, 
-              public pdcp_interface_gtpu,
-              public pdcp_interface_rrc
+
+class pdcp : public pdcp_interface_rlc, public pdcp_interface_gtpu, public pdcp_interface_rrc
 {
 public:
   pdcp(srslte::log* pdcp_log_);
@@ -48,7 +46,7 @@ public:
   void add_user(uint16_t rnti);
   void rem_user(uint16_t rnti);
   void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu);
-  void add_bearer(uint16_t rnti, uint32_t lcid, srslte::srslte_pdcp_config_t cnfg);
+  void add_bearer(uint16_t rnti, uint32_t lcid, srslte::pdcp_config_t cnfg);
   void config_security(uint16_t                            rnti,
                        uint32_t                            lcid,
                        uint8_t*                            k_rrc_enc_,

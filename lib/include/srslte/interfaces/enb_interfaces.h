@@ -211,7 +211,7 @@ public:
   virtual void add_user(uint16_t rnti)                                                     = 0;
   virtual void rem_user(uint16_t rnti)                                                     = 0;
   virtual void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu)   = 0;
-  virtual void add_bearer(uint16_t rnti, uint32_t lcid, srslte::srslte_pdcp_config_t cnfg) = 0;
+  virtual void add_bearer(uint16_t rnti, uint32_t lcid, srslte::pdcp_config_t cnfg)        = 0;
   virtual void config_security(uint16_t                            rnti,
                                uint32_t                            lcid,
                                uint8_t*                            k_rrc_enc_,

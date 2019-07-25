@@ -46,7 +46,7 @@ public:
             srsue::gw_interface_pdcp*  gw_,
             srslte::log*               log_,
             uint32_t                   lcid_,
-            srslte_pdcp_config_t       cfg_);
+            pdcp_config_t              cfg_);
   void reset();
   void reestablish();
 

@@ -33,7 +33,7 @@
     }                                                                                                                  \
   }
 
-// Encription and Integrity Keys
+// Encryption and Integrity Keys
 uint8_t k_int[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15,
                    0x16, 0x17, 0x18, 0x19, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x30, 0x31};
 uint8_t k_enc[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15,
@@ -139,8 +139,8 @@ int test_tx(uint32_t                     n_packets,
             srslte::byte_buffer_pool*    pool,
             srslte::log*                 log)
 {
-  srslte::pdcp_entity_nr       pdcp;
-  srslte::srslte_pdcp_config_t cfg = {
+  srslte::pdcp_entity_nr pdcp;
+  srslte::pdcp_config_t  cfg = {
       1, srslte::PDCP_RB_IS_DRB, srslte::SECURITY_DIRECTION_UPLINK, srslte::SECURITY_DIRECTION_DOWNLINK, pdcp_sn_len};
 
   rlc_dummy rlc(log);
@@ -262,11 +262,11 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
  */
 int test_rx_in_sequence(uint64_t n_packets, uint8_t pdcp_sn_len, srslte::byte_buffer_pool* pool, srslte::log* log)
 {
-  srslte::pdcp_entity_nr       pdcp_tx;
-  srslte::pdcp_entity_nr       pdcp_rx;
-  srslte::srslte_pdcp_config_t cfg_tx = {
+  srslte::pdcp_entity_nr pdcp_tx;
+  srslte::pdcp_entity_nr pdcp_rx;
+  srslte::pdcp_config_t  cfg_tx = {
       1, srslte::PDCP_RB_IS_DRB, srslte::SECURITY_DIRECTION_UPLINK, srslte::SECURITY_DIRECTION_DOWNLINK, pdcp_sn_len};
-  srslte::srslte_pdcp_config_t cfg_rx = {
+  srslte::pdcp_config_t cfg_rx = {
       1, srslte::PDCP_RB_IS_DRB, srslte::SECURITY_DIRECTION_DOWNLINK, srslte::SECURITY_DIRECTION_UPLINK, pdcp_sn_len};
 
   rlc_dummy rlc_tx(log);

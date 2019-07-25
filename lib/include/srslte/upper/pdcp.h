@@ -46,8 +46,8 @@ public:
   void reset();
   void write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, bool blocking = true);
   void write_sdu_mch(uint32_t lcid, unique_byte_buffer_t sdu);
-  void add_bearer(uint32_t lcid, srslte_pdcp_config_t cnfg);
-  void add_bearer_mrb(uint32_t lcid, srslte_pdcp_config_t cnfg);
+  void add_bearer(uint32_t lcid, pdcp_config_t cnfg);
+  void add_bearer_mrb(uint32_t lcid, pdcp_config_t cnfg);
   void del_bearer(uint32_t lcid);
   void change_lcid(uint32_t old_lcid, uint32_t new_lcid);
   void config_security(uint32_t                    lcid,

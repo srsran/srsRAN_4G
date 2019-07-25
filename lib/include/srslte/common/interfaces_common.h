@@ -74,14 +74,14 @@ const uint8_t PDCP_SN_LEN_18 = 18;
 
 typedef enum { PDCP_RB_IS_SRB, PDCP_RB_IS_DRB } pdcp_rb_type_t;
 
-class srslte_pdcp_config_t
+class pdcp_config_t
 {
 public:
-  srslte_pdcp_config_t(uint8_t              bearer_id_,
-                       pdcp_rb_type_t       rb_type_,
-                       security_direction_t tx_direction_,
-                       security_direction_t rx_direction_,
-                       uint8_t              sn_len_) :
+  pdcp_config_t(uint8_t              bearer_id_,
+                pdcp_rb_type_t       rb_type_,
+                security_direction_t tx_direction_,
+                security_direction_t rx_direction_,
+                uint8_t              sn_len_) :
     bearer_id(bearer_id_),
     rb_type(rb_type_),
     tx_direction(tx_direction_),

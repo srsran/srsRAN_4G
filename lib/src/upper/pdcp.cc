@@ -120,7 +120,7 @@ void pdcp::write_sdu_mch(uint32_t lcid, unique_byte_buffer_t sdu)
   pthread_rwlock_unlock(&rwlock);
 }
 
-void pdcp::add_bearer(uint32_t lcid, srslte_pdcp_config_t cfg)
+void pdcp::add_bearer(uint32_t lcid, pdcp_config_t cfg)
 {
   pthread_rwlock_wrlock(&rwlock);
   if (not valid_lcid(lcid)) {
@@ -141,7 +141,7 @@ unlock_and_exit:
   pthread_rwlock_unlock(&rwlock);
 }
 
-void pdcp::add_bearer_mrb(uint32_t lcid, srslte_pdcp_config_t cfg)
+void pdcp::add_bearer_mrb(uint32_t lcid, pdcp_config_t cfg)
 {
   pthread_rwlock_wrlock(&rwlock);
   if (not valid_mch_lcid(lcid)) {

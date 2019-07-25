@@ -232,7 +232,7 @@ public:
   virtual void reestablish(uint32_t lcid)                                                       = 0;
   virtual void reset()                                                                          = 0;
   virtual void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking = true) = 0;
-  virtual void add_bearer(uint32_t lcid, srslte::srslte_pdcp_config_t cnfg)                     = 0;
+  virtual void add_bearer(uint32_t lcid, srslte::pdcp_config_t cnfg)                            = 0;
   virtual void change_lcid(uint32_t old_lcid, uint32_t new_lcid)                                = 0;
   virtual void config_security(uint32_t                            lcid,
                                uint8_t*                            k_rrc_enc_,
