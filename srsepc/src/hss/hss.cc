@@ -110,7 +110,7 @@ bool hss::read_db_file(std::string db_filename)
 
   std::string line;
   while (std::getline(m_db_file, line)) {
-    if (line[0] != '#') {
+    if (line[0] != '#' && line.length() > 0) {
       uint                     column_size = 10;
       std::vector<std::string> split       = split_string(line, ',');
       if (split.size() != column_size) {
