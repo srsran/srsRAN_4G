@@ -1677,12 +1677,12 @@ void nas::integrity_generate(srslte::byte_buffer_t* pdu, uint8_t* mac)
       break;
     case srslte::INTEGRITY_ALGORITHM_ID_128_EIA3:
       srslte::security_128_eia3(&m_sec_ctx.k_nas_int[16],
-                        m_sec_ctx.dl_nas_count,
-                        0,            // Bearer always 0 for NAS
-                        SECURITY_DIRECTION_DOWNLINK,
-                        &pdu->msg[5],
-                        pdu->N_bytes - 5,
-                        mac);
+                                m_sec_ctx.dl_nas_count,
+                                0, // Bearer always 0 for NAS
+                                srslte::SECURITY_DIRECTION_DOWNLINK,
+                                &pdu->msg[5],
+                                pdu->N_bytes - 5,
+                                mac);
       break;
     default:
       break;
