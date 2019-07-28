@@ -339,43 +339,22 @@ void pdcp_entity::handle_am_drb_pdu(const srslte::unique_byte_buffer_t &pdu)
 /****************************************************************************
  * Security functions
  ***************************************************************************/
-void pdcp_entity::integrity_generate( uint8_t  *msg,
-                                      uint32_t  msg_len,
-                                      uint8_t  *mac)
+void pdcp_entity::integrity_generate(uint8_t* msg, uint32_t msg_len, uint8_t* mac)
 {
-  switch(integ_algo)
-  {
-  case INTEGRITY_ALGORITHM_ID_EIA0:
-    break;
-  case INTEGRITY_ALGORITHM_ID_128_EIA1:
-    security_128_eia1(&k_rrc_int[16],
-                      tx_count,
-                      cfg.bearer_id - 1,
-                      cfg.direction,
-                      msg,
-                      msg_len,
-                      mac);
-    break;
-  case INTEGRITY_ALGORITHM_ID_128_EIA2:
-    security_128_eia2(&k_rrc_int[16],
-                      tx_count,
-                      cfg.bearer_id - 1,
-                      cfg.direction,
-                      msg,
-                      msg_len,
-                      mac);
-    break;
+  switch (integ_algo) {
+    case INTEGRITY_ALGORITHM_ID_EIA0:
+      break;
+    case INTEGRITY_ALGORITHM_ID_128_EIA1:
+      security_128_eia1(&k_rrc_int[16], tx_count, cfg.bearer_id - 1, cfg.direction, msg, msg_len, mac);
+      break;
+    case INTEGRITY_ALGORITHM_ID_128_EIA2:
+      security_128_eia2(&k_rrc_int[16], tx_count, cfg.bearer_id - 1, cfg.direction, msg, msg_len, mac);
+      break;
     case INTEGRITY_ALGORITHM_ID_128_EIA3:
-    security_128_eia3(&k_int[16],
-                      tx_count,
-                      cfg.bearer_id - 1,
-                      cfg.direction,
-                      msg,
-                      msg_len,
-                      mac);
-    break;
-  default:
-    break;
+      security_128_eia3(&k_rrc_int[16], tx_count, cfg.bearer_id - 1, cfg.direction, msg, msg_len, mac);
+      break;
+    default:
+      break;
   }
 
   log->debug("Integrity gen input:\n");
@@ -384,51 +363,50 @@ void pdcp_entity::integrity_generate( uint8_t  *msg,
   log->debug("  Bearer ID: %d\n", cfg.bearer_id);
   log->debug("  Direction: %s\n", (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? "Downlink" : "Uplink");
   log->debug_hex(msg, msg_len, "  Message");
-  log->debug_hex(mac,     4, "MAC (generated)");
+  log->debug_hex(mac, 4, "MAC (generated)");
 }
 
-bool pdcp_entity::integrity_verify(uint8_t  *msg,
-                                   uint32_t  count,
-                                   uint32_t  msg_len,
-                                   uint8_t  *mac)
+bool pdcp_entity::integrity_verify(uint8_t* msg, uint32_t count, uint32_t msg_len, uint8_t* mac)
 {
   uint8_t mac_exp[4] = {0x00};
-  uint8_t i = 0;
-  bool isValid = true;
+  uint8_t i          = 0;
+  bool    isValid    = true;
 
-  switch(integ_algo)
-  {
-  case INTEGRITY_ALGORITHM_ID_EIA0:
-    break;
-  case INTEGRITY_ALGORITHM_ID_128_EIA1:
-    security_128_eia1(&k_rrc_int[16],
-                      count,
-                      cfg.bearer_id - 1,
-                      (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? (SECURITY_DIRECTION_UPLINK) : (SECURITY_DIRECTION_DOWNLINK),
-                      msg,
-                      msg_len,
-                      mac_exp);
-    break;
-  case INTEGRITY_ALGORITHM_ID_128_EIA2:
-    security_128_eia2(&k_rrc_int[16],
-                      count,
-                      cfg.bearer_id - 1,
-                      (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? (SECURITY_DIRECTION_UPLINK) : (SECURITY_DIRECTION_DOWNLINK),
-                      msg,
-                      msg_len,
-                      mac_exp);
-    break;
-  case INTEGRITY_ALGORITHM_ID_128_EIA3:
-    security_128_eia3(&k_int[16],
-                      count,
-                      cfg.bearer_id - 1,
-                      (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? (SECURITY_DIRECTION_UPLINK) : (SECURITY_DIRECTION_DOWNLINK),
-                      msg,
-                      msg_len,
-                      mac_exp);
-    break;
-  default:
-    break;
+  switch (integ_algo) {
+    case INTEGRITY_ALGORITHM_ID_EIA0:
+      break;
+    case INTEGRITY_ALGORITHM_ID_128_EIA1:
+      security_128_eia1(&k_rrc_int[16],
+                        count,
+                        cfg.bearer_id - 1,
+                        (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? (SECURITY_DIRECTION_UPLINK)
+                                                                       : (SECURITY_DIRECTION_DOWNLINK),
+                        msg,
+                        msg_len,
+                        mac_exp);
+      break;
+    case INTEGRITY_ALGORITHM_ID_128_EIA2:
+      security_128_eia2(&k_rrc_int[16],
+                        count,
+                        cfg.bearer_id - 1,
+                        (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? (SECURITY_DIRECTION_UPLINK)
+                                                                       : (SECURITY_DIRECTION_DOWNLINK),
+                        msg,
+                        msg_len,
+                        mac_exp);
+      break;
+    case INTEGRITY_ALGORITHM_ID_128_EIA3:
+      security_128_eia3(&k_rrc_int[16],
+                        count,
+                        cfg.bearer_id - 1,
+                        (cfg.direction == SECURITY_DIRECTION_DOWNLINK) ? (SECURITY_DIRECTION_UPLINK)
+                                                                       : (SECURITY_DIRECTION_DOWNLINK),
+                        msg,
+                        msg_len,
+                        mac_exp);
+      break;
+    default:
+      break;
   }
 
   log->debug("Integrity check input:\n");
