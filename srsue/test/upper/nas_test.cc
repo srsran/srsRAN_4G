@@ -208,8 +208,8 @@ int security_command_test()
   {
     srsue::nas nas(&nas_log);
     nas_args_t cfg;
-    cfg.eia = "1,2";
-    cfg.eea = "0,1,2";
+    cfg.eia = "1,2,3";
+    cfg.eea = "0,1,2,3";
     nas.init(&usim, &rrc_dummy, &gw, cfg);
 
     // push auth request PDU to NAS to generate security context

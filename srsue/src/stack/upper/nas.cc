@@ -62,7 +62,7 @@ void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_
     nas_log->error("Empty EIA list. Select at least one EIA algorithm.\n");
   }
   for (std::vector<uint8_t>::const_iterator it = cap_list.begin(); it != cap_list.end(); ++it) {
-    if (*it != 0 && *it < 3) {
+    if (*it != 0 && *it < 4) {
       eia_caps[*it] = true;
     } else {
       nas_log->error("EIA%d is not a valid EIA algorithm.\n", *it);
@@ -75,7 +75,7 @@ void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_
     nas_log->error("Empty EEA list. Select at least one EEA algorithm.\n");
   }
   for (std::vector<uint8_t>::const_iterator it = cap_list.begin(); it != cap_list.end(); ++it) {
-    if (*it < 3) {
+    if (*it < 4) {
       eea_caps[*it] = true;
     } else {
       nas_log->error("EEA%d is not a valid EEA algorithm.\n", *it);
