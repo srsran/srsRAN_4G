@@ -35,7 +35,7 @@
 
 #define MAX_TIME_OFFSET 128
 
-#define TRACK_MAX_LOST 20
+#define TRACK_MAX_LOST 10
 #define TRACK_FRAME_SIZE 32
 #define FIND_NOF_AVG_FRAMES     4
 
@@ -635,7 +635,8 @@ static int track_peak_ok(srslte_ue_sync_t* q, uint32_t track_idx)
   
   q->peak_idx = q->sf_len/2 + q->last_sample_offset;  
   q->frame_ok_cnt++;
-  
+  q->frame_no_cnt = 0;
+
   return 1;
 }
 

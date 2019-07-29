@@ -46,7 +46,7 @@ bool srslte_cellid_isvalid(uint32_t cell_id) {
 }
 
 bool srslte_nofprb_isvalid(uint32_t nof_prb) {
-  if (nof_prb >= 6 && nof_prb <= SRSLTE_MAX_PRB) {
+  if (nof_prb >= 6 && nof_prb <= 100) {
     return true;
   } else {
     return false;
