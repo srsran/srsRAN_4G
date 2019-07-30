@@ -864,7 +864,7 @@ static void fill_res(srslte_chest_dl_t* q, srslte_chest_dl_res_t* res)
       } else {
         res->snr_ant_port_db[a][port_id] = 0.0;
       }
-      res->rsrp_ant_port_dbm[a][port_id] = db(q->rsrp[a][port_id]);
+      res->rsrp_ant_port_dbm[a][port_id] = dbm(q->rsrp[a][port_id]);
       res->rsrq_ant_port_db[a][port_id]  = db(q->cell.nof_prb * q->rsrp[a][port_id] / q->rssi[a][port_id]);
     }
   }
