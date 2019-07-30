@@ -501,7 +501,23 @@ static int dci_format0_unpack(
   }
 
   // CQI request
-  dci->cqi_request = *y++ ? true : false;
+  if (cfg->multiple_csi_request_enabled) {
+    dci->multiple_csi_request_present = true;
+    dci->multiple_csi_request = srslte_bit_pack(&y, 2);
+  } else {
+    dci->cqi_request = *y++ ? true : false;
+  }
+
+  // SRS request
+  if (cfg->srs_request_enabled) {
+    dci->srs_request_present = true;
+    dci->srs_request = *y++ ? true : false;
+  }
+
+  if (cfg->ra_format_enabled) {
+    dci->ra_type_present = true;
+    dci->ra_type = *y++ ? true : false;
+  }
 
   return SRSLTE_SUCCESS;
 }
@@ -1390,8 +1406,6 @@ static char* ra_type_string(srslte_ra_type_t alloc_type)
 static char* freq_hop_fl_string(int freq_hop)
 {
   switch (freq_hop) {
-    case -1:
-      return "n/a";
     case 0:
       return "1/4";
     case 1:
@@ -1401,6 +1415,7 @@ static char* freq_hop_fl_string(int freq_hop)
     case 3:
       return "type2";
   }
+  return "n/a";
 }
 
 void srslte_dci_dl_fprint(FILE* f, srslte_dci_dl_t* dci, uint32_t nof_prb)
@@ -1532,10 +1547,16 @@ uint32_t srslte_dci_ul_info(srslte_dci_ul_t* dci_ul, char* info_str, uint32_t le
 {
   uint32_t n = 0;
 
+  n = srslte_print_check(info_str, len, n, "f=0, ");
+
+  if (dci_ul->cif_present) {
+    n = srslte_print_check(info_str, len, n, "cif=%d, ", dci_ul->cif);
+  }
+
   n = srslte_print_check(info_str,
                          len,
-                         0,
-                         "f=0, cce=%2d, L=%d, riv=%d, mcs=%d, rv=%d, ndi=%d, f_h=%s, cqi=%s, tpc_pusch=%d, dmrs_cs=%d",
+                         n,
+                         "cce=%2d, L=%d, riv=%d, mcs=%d, rv=%d, ndi=%d, f_h=%s, cqi=%s, tpc_pusch=%d, dmrs_cs=%d",
                          dci_ul->location.ncce,
                          dci_ul->location.L,
                          dci_ul->type2_alloc.riv,
@@ -1546,6 +1567,16 @@ uint32_t srslte_dci_ul_info(srslte_dci_ul_t* dci_ul, char* info_str, uint32_t le
                          dci_ul->cqi_request ? "yes" : "no",
                          dci_ul->tpc_pusch,
                          dci_ul->n_dmrs);
+
+  if (dci_ul->multiple_csi_request_present) {
+    n = srslte_print_check(info_str, len, n, ", csi=%d", dci_ul->multiple_csi_request);
+  }
+  if (dci_ul->srs_request_present) {
+    n = srslte_print_check(info_str, len, n, ", srs_request=%s", dci_ul->srs_request?"yes":"no");
+  }
+  if (dci_ul->ra_type_present) {
+    n = srslte_print_check(info_str, len, n, ", ra_type=%s", dci_ul->ra_type?"yes":"no");
+  }
 
   if (dci_ul->is_tdd) {
     n = srslte_print_check(info_str, len, n, ", ul_idx=%d, dai=%d", dci_ul->ul_idx, dci_ul->dai);
