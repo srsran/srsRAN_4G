@@ -398,7 +398,7 @@ int srslte_ue_sync_set_cell(srslte_ue_sync_t *q, srslte_cell_t cell)
       srslte_sync_set_threshold(&q->sfind,  3.0);
 
       srslte_sync_set_em_alpha(&q->strack,  0.0);
-      srslte_sync_set_threshold(&q->strack, 1.2);
+      srslte_sync_set_threshold(&q->strack, 1.5);
     }
 
     // When cell is unknown, do CP CFO correction
