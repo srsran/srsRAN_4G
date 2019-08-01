@@ -183,45 +183,80 @@ enable = false
 
 #####################################################################
 # Channel emulator options:
-# dl.enable:            Enable/Disable internal Downlink channel emulator
+# enable:            Enable/Disable internal Downlink/Uplink channel emulator
 #
 # -- Fading emulator
-# dl.fading.enable:     Enable/disable fading simulator
-# dl.fading.model:      Fading model + maximum doppler (E.g. none, epa5, eva70, etu300, etc)
+# fading.enable:     Enable/disable fading simulator
+# fading.model:      Fading model + maximum doppler (E.g. none, epa5, eva70, etu300, etc)
 #
 # -- Delay Emulator     delay(t) = delay_min + (delay_max - delay_min) * (1 + sin(2pi*t/period)) / 2
 #                       Maximum speed [m/s]: (delay_max - delay_min) * pi * 300 / period
-# dl.delay.enable:      Enable/disable delay simulator
-# dl.delay.period:      Delay period in seconds (integer).
-# dl.delay.maximum_us:  Maximum delay in microseconds
-# dl.delay.minumum_us:  Minimum delay in microseconds
+# delay.enable:      Enable/disable delay simulator
+# delay.period_s:    Delay period in seconds.
+# delay.init_time_s: Delay initial time in seconds.
+# delay.maximum_us:  Maximum delay in microseconds
+# delay.minumum_us:  Minimum delay in microseconds
 #
 # -- Radio-Link Failure (RLF) Emulator
-# dl.rlf.enable:        Enable/disable RLF simulator
-# dl.rlf.t_on_ms:       Time for On state of the channel (ms)
-# dl.rlf.t_off_ms:      Time for Off state of the channel (ms)
+# rlf.enable:        Enable/disable RLF simulator
+# rlf.t_on_ms:       Time for On state of the channel (ms)
+# rlf.t_off_ms:      Time for Off state of the channel (ms)
+#
+# -- High Speed Train Doppler model simulator
+# hst.enable:        Enable/Disable HST simulator
+# hst.period_s:      HST simulation period in seconds
+# hst.fd_hz:         Doppler frequency in Hz
+# hst.init_time_s:   Initial time in seconds
 #####################################################################
-[channel]
-#dl.enable           = false
-#dl.fading.enable    = false
-#dl.fading.model     = none
-#dl.delay.enable     = false
-#dl.delay.period     = 3600
-#dl.delay.maximum_us = 100
-#dl.delay.minimum_us = 10
-#dl.rlf.enable       = false
-#dl.rlf.t_on_ms      = 10000
-#dl.rlf.t_off_ms     = 2000
-#ul.enable           = false
-#ul.fading.enable    = false
-#ul.fading.model     = none
-#ul.delay.enable     = false
-#ul.delay.period     = 3600
-#ul.delay.maximum_us = 100
-#ul.delay.minimum_us = 10
-#ul.rlf.enable       = false
-#ul.rlf.t_on_ms      = 10000
-#ul.rlf.t_off_ms     = 2000
+[channel.dl]
+#enable        = false
+
+[channel.dl.fading]
+#enable        = false
+#model         = none
+
+[channel.dl.delay]
+#enable        = false
+#period_s      = 3600
+#init_time_s   = 0
+#maximum_us    = 100
+#minimum_us    = 10
+
+[channel.dl.rlf]
+#enable        = false
+#t_on_ms       = 10000
+#t_off_ms      = 2000
+
+[channel.dl.hst]
+#enable        = false
+#period_s      = 7.2
+#fd_hz         = 750.0
+#init_time_s   = 0.0
+
+[channel.ul]
+#enable        = false
+
+[channel.ul.fading]
+#enable        = false
+#model         = none
+
+[channel.ul.delay]
+#enable        = false
+#period_s      = 3600
+#init_time_s   = 0
+#maximum_us    = 100
+#minimum_us    = 10
+
+[channel.ul.rlf]
+#enable        = false
+#t_on_ms       = 10000
+#t_off_ms      = 2000
+
+[channel.ul.hst]
+#enable        = false
+#period_s      = 7.2
+#fd_hz         = -750.0
+#init_time_s   = 0.0
 
 #####################################################################
 # PHY configuration options

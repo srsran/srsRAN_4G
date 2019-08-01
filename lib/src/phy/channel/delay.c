@@ -23,18 +23,27 @@
 #include <srslte/phy/channel/delay.h>
 #include <srslte/srslte.h>
 
-static inline double caulculate_delay_us(srslte_channel_delay_t* q, const srslte_timestamp_t* ts)
+static inline double calculate_delay_us(srslte_channel_delay_t* q, const srslte_timestamp_t* ts)
 {
-  uint32_t mod_secs = (uint32_t)(ts->full_secs % q->period_s);
-  double   arg      = 2.0 * M_PI * ((double)mod_secs + ts->frac_secs) / (double)q->period_s;
+  // Convert period from seconds to samples
+  uint64_t period_nsamples = (uint64_t)roundf(q->period_s * q->srate_hz);
+
+  // Convert timestamp to samples
+  uint64_t ts_nsamples = srslte_timestamp_uint64(ts, q->srate_hz) + (uint64_t)q->init_time_s * q->srate_hz;
+
+  // Calculate time modulus in period
+  uint64_t mod_t_nsamples = ts_nsamples - period_nsamples * (ts_nsamples / period_nsamples);
+  double   t              = (double)mod_t_nsamples / (double)q->srate_hz;
+
+  double   arg      = 2.0 * M_PI * t / (double)q->period_s;
   double   delay_us = q->delay_min_us + (q->delay_max_us - q->delay_min_us) * (1.0 + sin(arg)) / 2.0;
 
   return delay_us;
 }
 
-static inline uint32_t caulculate_delay_nsamples(srslte_channel_delay_t* q, double delay_us)
+static inline uint32_t calculate_delay_nsamples(srslte_channel_delay_t* q)
 {
-  return (uint32_t)round(delay_us * (double)q->srate_hz / 1e6);
+  return (uint32_t)round(q->delay_us * (double)q->srate_hz / 1e6);
 }
 
 static inline uint32_t ringbuffer_available_nsamples(srslte_channel_delay_t* q)
@@ -42,8 +51,12 @@ static inline uint32_t ringbuffer_available_nsamples(srslte_channel_delay_t* q)
   return srslte_ringbuffer_status(&q->rb) / sizeof(cf_t);
 }
 
-int srslte_channel_delay_init(
-    srslte_channel_delay_t* q, float delay_min_us, float delay_max_us, uint32_t period_s, uint32_t srate_max_hz)
+int srslte_channel_delay_init(srslte_channel_delay_t* q,
+                              float                   delay_min_us,
+                              float                   delay_max_us,
+                              float                   period_s,
+                              float                   init_time_s,
+                              uint32_t                srate_max_hz)
 {
   // Calculate buffer size
   uint32_t buff_size = (uint32_t)ceilf(delay_max_us * (float)srate_max_hz / 1e6f);
@@ -63,6 +76,7 @@ int srslte_channel_delay_init(
   q->srate_max_hz = srate_max_hz;
   q->srate_hz     = srate_max_hz;
   q->period_s     = period_s;
+  q->init_time_s  = init_time_s;
 
   return ret;
 }
@@ -85,18 +99,18 @@ void srslte_channel_delay_free(srslte_channel_delay_t* q)
 void srslte_channel_delay_execute(
     srslte_channel_delay_t* q, const cf_t* in, cf_t* out, uint32_t len, const srslte_timestamp_t* ts)
 {
-  double   delay_us           = caulculate_delay_us(q, ts);
-  uint32_t delay_nsamples     = caulculate_delay_nsamples(q, delay_us);
+  q->delay_us                 = calculate_delay_us(q, ts);
+  q->delay_nsamples           = calculate_delay_nsamples(q);
   uint32_t available_nsamples = ringbuffer_available_nsamples(q);
-  uint32_t read_nsamples      = SRSLTE_MIN(delay_nsamples, len);
+  uint32_t read_nsamples      = SRSLTE_MIN(q->delay_nsamples, len);
   uint32_t copy_nsamples      = (len > read_nsamples) ? (len - read_nsamples) : 0;
 
-  if (available_nsamples < delay_nsamples) {
-    uint32_t nzeros = delay_nsamples - available_nsamples;
+  if (available_nsamples < q->delay_nsamples) {
+    uint32_t nzeros = q->delay_nsamples - available_nsamples;
     bzero(q->zero_buffer, sizeof(cf_t) * nzeros);
     srslte_ringbuffer_write(&q->rb, q->zero_buffer, sizeof(cf_t) * nzeros);
-  } else if (available_nsamples > delay_nsamples) {
-    srslte_ringbuffer_read(&q->rb, q->zero_buffer, sizeof(cf_t) * (available_nsamples - delay_nsamples));
+  } else if (available_nsamples > q->delay_nsamples) {
+    srslte_ringbuffer_read(&q->rb, q->zero_buffer, sizeof(cf_t) * (available_nsamples - q->delay_nsamples));
   }
 
   // Read buffered samples

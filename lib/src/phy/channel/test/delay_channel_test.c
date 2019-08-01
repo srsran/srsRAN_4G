@@ -29,7 +29,8 @@ static srslte_channel_delay_t delay = {};
 
 static uint32_t delay_min_us     = 10;
 static uint32_t delay_max_us     = 3333;
-static uint32_t delay_period_s   = 1;
+static float    delay_period_s    = 1;
+static float    delay_init_time_s = 0;
 static uint32_t srate_hz         = 1920000;
 static uint32_t sim_time_periods = 1;
 
@@ -40,7 +41,7 @@ static void usage(char* prog)
   printf("Usage: %s [mMtsT]\n", prog);
   printf("\t-m Minimum delay in microseconds [Default %d]\n", delay_min_us);
   printf("\t-M Maximum delay in microseconds [Default %d]\n", delay_max_us);
-  printf("\t-t Delay period in seconds: [Default %d]\n", delay_period_s);
+  printf("\t-t Delay period in seconds: [Default %.1f]\n", delay_period_s);
   printf("\t-s Sampling rate in Hz: [Default %d]\n", srate_hz);
   printf("\t-T Simulation Time in periods: [Default %d]\n", sim_time_periods);
 }
@@ -98,7 +99,7 @@ int main(int argc, char** argv)
 
   // Initialise delay channel
   if (ret == SRSLTE_SUCCESS) {
-    ret = srslte_channel_delay_init(&delay, delay_min_us, delay_max_us, delay_period_s, srate_hz);
+    ret = srslte_channel_delay_init(&delay, delay_min_us, delay_max_us, delay_period_s, delay_init_time_s, srate_hz);
   }
 
   // Run actual test
@@ -131,7 +132,7 @@ int main(int argc, char** argv)
   double   elapsed_us  = t[0].tv_sec * 1e6 + t[0].tv_usec;
 
   // Print result and exit
-  printf("Test delay_min_us=%d; delay_max_us=%d; delay_period_s=%d; srate_hz=%d; periods=%d; %s ... %.1f MSps\n",
+  printf("Test delay_min_us=%d; delay_max_us=%d; delay_period_s=%.1f; srate_hz=%d; periods=%d; %s ... %.1f MSps\n",
          delay_min_us,
          delay_max_us,
          delay_period_s,
