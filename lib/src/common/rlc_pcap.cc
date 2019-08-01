@@ -32,8 +32,8 @@ void rlc_pcap::enable(bool en)
 }
 void rlc_pcap::open(const char* filename, uint32_t ue_id)
 {
-  fprintf(stdout, "Opening RLC PCAP with DLT=%d\n", RLC_LTE_DLT);
-  pcap_file = LTE_PCAP_Open(RLC_LTE_DLT, filename);
+  fprintf(stdout, "Opening RLC PCAP with DLT=%d\n", UDP_DLT);
+  pcap_file    = LTE_PCAP_Open(UDP_DLT, filename);
   this->ue_id = ue_id;
   enable_write = true;
 }
