@@ -65,4 +65,8 @@ add_executable(pdu_test pdu_test.cc)
 target_link_libraries(pdu_test srslte_phy srslte_common ${CMAKE_THREAD_LIBS_INIT})
 add_test(pdu_test pdu_test)
 
+add_executable(mac_nr_pdu_test mac_nr_pdu_test.cc)
+target_link_libraries(mac_nr_pdu_test srslte_phy srslte_common ${CMAKE_THREAD_LIBS_INIT})
+add_test(mac_nr_pdu_test mac_nr_pdu_test)
+
 add_executable(stack_procedure_test stack_procedure_test.cc)
