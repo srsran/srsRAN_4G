@@ -129,6 +129,97 @@ int field_intra_black_cell_list::parse(libconfig::Setting& root)
   return 0;
 }
 
+int field_carrier_freqs_info_list::parse(libconfig::Setting& root)
+{
+  data->carrier_freqs_info_list.resize((uint32_t)root.getLength());
+  data->carrier_freqs_info_list_present = data->carrier_freqs_info_list.size() > 0;
+  if (data->carrier_freqs_info_list.size() > ASN1_RRC_MAX_GNFG) {
+    ERROR("CarrierFreqsInfoGERAN cannot have more than %d entries\n", ASN1_RRC_MAX_GNFG);
+    return -1;
+  }
+  for (uint32_t i = 0; i < data->carrier_freqs_info_list.size(); i++) {
+
+    int cell_resel_prio;
+    if (root[i].lookupValue("cell_resel_prio", cell_resel_prio)) {
+      data->carrier_freqs_info_list[i].common_info.cell_resel_prio_present = true;
+      data->carrier_freqs_info_list[i].common_info.cell_resel_prio = cell_resel_prio;
+    }
+
+    int p_max_geran;
+    if (root[i].lookupValue("p_max_geran", p_max_geran)) {
+      data->carrier_freqs_info_list[i].common_info.p_max_geran_present = true;
+      data->carrier_freqs_info_list[i].common_info.p_max_geran = p_max_geran;
+    }
+
+    field_asn1_bitstring_number<asn1::fixed_bitstring<8>, uint8_t> ncc_permitted("ncc_permitted",
+                                    &data->carrier_freqs_info_list[i].common_info.ncc_permitted);
+    if (ncc_permitted.parse(root[i])) {
+      ERROR("Error parsing `ncc_permitted` in carrier_freqs_info_lsit=%d\n", i);
+      return -1;
+    }
+
+    int q_rx_lev_min = 0;
+    if (!root[i].lookupValue("q_rx_lev_min", q_rx_lev_min)) {
+      ERROR("Missing field `q_rx_lev_min` in carrier_freqs_info_list=%d\n", i);
+      return -1;
+    }
+    data->carrier_freqs_info_list[i].common_info.q_rx_lev_min = q_rx_lev_min;
+
+    int thresh_x_high = 0;
+    if (!root[i].lookupValue("thresh_x_high", thresh_x_high)) {
+      ERROR("Missing field `thresh_x_high` in carrier_freqs_info_list=%d\n", i);
+      return -1;
+    }
+    data->carrier_freqs_info_list[i].common_info.thresh_x_high = thresh_x_high;
+
+    int thresh_x_low = 0;
+    if (!root[i].lookupValue("thresh_x_low", thresh_x_low)) {
+      ERROR("Missing field `thresh_x_low` in carrier_freqs_info_list=%d\n", i);
+      return -1;
+    }
+    data->carrier_freqs_info_list[i].common_info.thresh_x_low = thresh_x_low;
+
+    int start_arfcn = 0;
+    if (root[i].lookupValue("start_arfcn", start_arfcn)) {
+      data->carrier_freqs_info_list[i].carrier_freqs.start_arfcn = start_arfcn;
+    }
+
+    field_asn1_enum_str<asn1::rrc::band_ind_geran_e> band_ind("band_ind",
+                                        &data->carrier_freqs_info_list[i].carrier_freqs.band_ind);
+    if (band_ind.parse(root[i])) {
+      ERROR("Error parsing `band_ind` in carrier_freqs_info_list=%d\n", i);
+      return -1;
+    }
+
+    data->carrier_freqs_info_list[i].carrier_freqs.following_arfcns.set_explicit_list_of_arfcns();
+
+    explicit_list_of_arfcns_l &exp_l =
+	      data->carrier_freqs_info_list[i].carrier_freqs.following_arfcns.explicit_list_of_arfcns();
+    if (root[i].exists("explicit_list_of_arfcns")) {
+      exp_l.resize((uint32_t)root[i]["explicit_list_of_arfcns"].getLength());
+      if (exp_l.size() < 31) { /* SEQUENCE (SIZE (0..31)) OF ARFCN-ValueGERAN */
+        for (uint32_t j = 0; j < exp_l.size(); j++) {
+          int arfcn = root[i]["explicit_list_of_arfcns"][j];
+	  if (arfcn >= 0 && arfcn <= 1024) {
+            exp_l[j] = (short unsigned int)arfcn;
+          } else {
+            fprintf(stderr, "Invalid ARFCN %d in for carrier_freqs_info_list=%d explicit_list_of_arfcns\n", i, j);
+            return -1;
+          }
+        }
+      } else {
+        fprintf(stderr, "Number of ARFCN in explicit_list_of_arfcns exceeds maximum (%d)\n", 31);
+        return -1;
+      }
+    } else {
+      exp_l.resize(0);
+    }
+
+  }
+  return 0;
+}
+
+
 int enb::parse_sib1(std::string filename, sib_type1_s* data)
 {
   parser::section sib1("sib1");
@@ -483,6 +574,24 @@ int enb::parse_sib4(std::string filename, sib_type4_s* data)
   return parser::parse_section(filename, &sib4);
 }
 
+int enb::parse_sib7(std::string filename, sib_type7_s* data)
+{
+  parser::section sib7("sib7");
+
+  sib7.add_field(new parser::field<uint8>("t_resel_geran", &data->t_resel_geran));
+  // TODO: t_resel_geran_sf
+
+  data->carrier_freqs_info_list_present = true;
+  parser::section geran_neigh("carrier_freqs_info_list");
+  sib7.add_subsection(&geran_neigh);
+
+  bool dummy_bool = false;
+  geran_neigh.set_optional(&dummy_bool);
+  geran_neigh.add_field(new field_carrier_freqs_info_list(data));
+
+  return parser::parse_section(filename, &sib7);
+}
+
 int enb::parse_sib9(std::string filename, sib_type9_s* data)
 {
   parser::section sib9("sib9");
@@ -613,6 +722,7 @@ int enb::parse_sibs(all_args_t* args, rrc_cfg_t* rrc_cfg, phy_cfg_t* phy_config_
   sib_type2_s*     sib2  = &rrc_cfg->sibs[1].set_sib2();
   sib_type3_s*     sib3  = &rrc_cfg->sibs[2].set_sib3();
   sib_type4_s*     sib4  = &rrc_cfg->sibs[3].set_sib4();
+  sib_type7_s*     sib7  = &rrc_cfg->sibs[6].set_sib7();
   sib_type9_s*     sib9  = &rrc_cfg->sibs[8].set_sib9();
   sib_type13_r9_s* sib13 = &rrc_cfg->sibs[12].set_sib13_v920();
 
@@ -682,6 +792,13 @@ int enb::parse_sibs(all_args_t* args, rrc_cfg_t* rrc_cfg, phy_cfg_t* phy_config_
   // Generate SIB4 if defined in mapping info
   if (sib_is_present(sib1->sched_info_list, sib_type_e::sib_type4)) {
     if (parse_sib4(args->enb_files.sib_config, sib4)) {
+      return -1;
+    }
+  }
+
+  // Generate SIB7 if defined in mapping info
+  if (sib_is_present(sib1->sched_info_list, sib_type_e::sib_type7)) {
+    if (parse_sib7(args->enb_files.sib_config, sib7)) {
       return -1;
     }
   }
