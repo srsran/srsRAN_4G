@@ -79,6 +79,20 @@ private:
   asn1::rrc::sib_type4_s* data;
 };
 
+class field_carrier_freqs_info_list : public parser::field_itf
+{
+public:
+  field_carrier_freqs_info_list(asn1::rrc::sib_type7_s* data_) { data = data_; }
+  ~field_carrier_freqs_info_list(){}
+  int parse(Setting &root);
+  const char* get_name() {
+    return "carrier_freqs_info_list";
+  }
+
+private:
+  asn1::rrc::sib_type7_s* data;
+};
+
 class field_sf_mapping : public parser::field_itf
 {
 public:
