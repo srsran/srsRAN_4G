@@ -292,9 +292,6 @@ bool rrc::setup_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRE
     return false;
   }
 
-  if(msg->CSFallbackIndicator_present) {
-    rrc_log->warning("Not handling CSFallbackIndicator\n");
-  }
   if(msg->AdditionalCSFallbackIndicator_present) {
     rrc_log->warning("Not handling AdditionalCSFallbackIndicator\n");
   }
@@ -343,6 +340,14 @@ bool rrc::setup_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRE
   liblte_pack(msg->SecurityKey.buffer, LIBLTE_S1AP_SECURITYKEY_BIT_STRING_LEN, key);
   users[rnti].set_security_key(key, LIBLTE_S1AP_SECURITYKEY_BIT_STRING_LEN/8);
 
+  // CSFB
+  if (msg->CSFallbackIndicator_present) {
+    if (msg->CSFallbackIndicator.e == LIBLTE_S1AP_CSFALLBACKINDICATOR_CS_FALLBACK_REQUIRED ||
+        msg->CSFallbackIndicator.e == LIBLTE_S1AP_CSFALLBACKINDICATOR_CS_FALLBACK_HIGH_PRIORITY) {
+      users[rnti].is_csfb = true;
+    }
+  }
+
   // Send RRC security mode command
   users[rnti].send_security_mode_command();
 
@@ -353,6 +358,75 @@ bool rrc::setup_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRE
 
   return true;
 }
+
+bool rrc::modify_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_UECONTEXTMODIFICATIONREQUEST_STRUCT *msg)
+{
+  bool err = false;
+  pthread_mutex_lock(&user_mutex);
+
+  rrc_log->info("Modifying context for 0x%x\n", rnti);
+
+  if (users.count(rnti) == 0) {
+    rrc_log->warning("Unrecognised rnti: 0x%x\n", rnti);
+    pthread_mutex_unlock(&user_mutex);
+    return false;
+  }
+
+  if (msg->CSFallbackIndicator_present) {
+    if (msg->CSFallbackIndicator.e == LIBLTE_S1AP_CSFALLBACKINDICATOR_CS_FALLBACK_REQUIRED ||
+        msg->CSFallbackIndicator.e == LIBLTE_S1AP_CSFALLBACKINDICATOR_CS_FALLBACK_HIGH_PRIORITY) {
+      /* Remember that we are in a CSFB right now */
+      users[rnti].is_csfb = true;
+    }
+  }
+
+  if (msg->AdditionalCSFallbackIndicator_present) {
+    rrc_log->warning("Not handling AdditionalCSFallbackIndicator\n");
+    err = true;
+  }
+  if (msg->CSGMembershipStatus_present) {
+    rrc_log->warning("Not handling CSGMembershipStatus\n");
+    err = true;
+  }
+  if (msg->RegisteredLAI_present) {
+    rrc_log->warning("Not handling RegisteredLAI\n");
+    err = true;
+  }
+  if (msg->SubscriberProfileIDforRFP_present) {
+    rrc_log->warning("Not handling SubscriberProfileIDforRFP\n");
+    err = true;
+  }
+
+  if (err) {
+    // maybe pass a cause value?
+    return false;
+  }
+
+  // UEAggregateMaximumBitrate
+  if (msg->uEaggregateMaximumBitrate_present) {
+    users[rnti].set_bitrates(&msg->uEaggregateMaximumBitrate);
+  }
+
+  // UESecurityCapabilities
+  if (msg->UESecurityCapabilities_present) {
+    users[rnti].set_security_capabilities(&msg->UESecurityCapabilities);
+  }
+
+  // SecurityKey
+  if (msg->SecurityKey_present) {
+    uint8_t key[32];
+    liblte_pack(msg->SecurityKey.buffer, LIBLTE_S1AP_SECURITYKEY_BIT_STRING_LEN, key);
+    users[rnti].set_security_key(key, LIBLTE_S1AP_SECURITYKEY_BIT_STRING_LEN / 8);
+
+    // Send RRC security mode command ??
+    users[rnti].send_security_mode_command();
+  }
+
+  pthread_mutex_unlock(&user_mutex);
+
+  return true;
+}
+
 
 bool rrc::setup_ue_erabs(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPREQUEST_STRUCT *msg)
 {
@@ -739,6 +813,10 @@ uint32_t rrc::generate_sibs()
     log_rrc_message("SIB payload", Tx, sib_buffer[msg_index].get(), msg[msg_index]);
   }
 
+  if (cfg.sibs[6].type() == asn1::rrc::sys_info_r8_ies_s::sib_type_and_info_item_c_::types::sib7) {
+    sib7 = cfg.sibs[6].sib7();
+  }
+
   return nof_messages;
 }
 
@@ -949,6 +1027,7 @@ rrc::ue::ue()
   integ_algo        = srslte::INTEGRITY_ALGORITHM_ID_EIA0;
   cipher_algo       = srslte::CIPHERING_ALGORITHM_ID_EEA0;
   nas_pending       = false;
+  is_csfb           = false;
   state             = RRC_STATE_IDLE;
   pool              = srslte::byte_buffer_pool::get_instance();
 }
@@ -1563,6 +1642,12 @@ void rrc::ue::send_connection_release()
   dl_dcch_msg.msg.c1().rrc_conn_release().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
   dl_dcch_msg.msg.c1().rrc_conn_release().crit_exts.set_c1().set_rrc_conn_release_r8();
   dl_dcch_msg.msg.c1().rrc_conn_release().crit_exts.c1().rrc_conn_release_r8().release_cause = release_cause_e::other;
+  if (is_csfb) {
+    rrc_conn_release_r8_ies_s& rel_ies = dl_dcch_msg.msg.c1().rrc_conn_release().crit_exts.c1().rrc_conn_release_r8();
+    rel_ies.redirected_carrier_info_present = true;
+    rel_ies.redirected_carrier_info.set_geran();
+    rel_ies.redirected_carrier_info.geran() = parent->sib7.carrier_freqs_info_list[0].carrier_freqs;
+  }
 
   send_dl_dcch(&dl_dcch_msg);
 }
