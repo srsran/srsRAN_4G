@@ -118,6 +118,7 @@ private:
   bool handle_uectxtreleasecommand(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASECOMMAND_STRUCT *msg);
   bool handle_s1setupfailure(LIBLTE_S1AP_MESSAGE_S1SETUPFAILURE_STRUCT *msg);
   bool handle_erabsetuprequest(LIBLTE_S1AP_MESSAGE_E_RABSETUPREQUEST_STRUCT *msg);
+  bool handle_uecontextmodifyrequest(LIBLTE_S1AP_MESSAGE_UECONTEXTMODIFICATIONREQUEST_STRUCT *msg);
 
   bool send_initialuemessage(uint16_t                                 rnti,
                              LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause,
@@ -132,6 +133,8 @@ private:
   bool send_initial_ctxt_setup_failure(uint16_t rnti);
   bool send_erab_setup_response(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPRESPONSE_STRUCT *res_);
   //bool send_ue_capabilities(uint16_t rnti, LIBLTE_RRC_UE_EUTRA_CAPABILITY_STRUCT *caps)
+  bool send_uectxmodifyresp(uint16_t rnti);
+  bool send_uectxmodifyfailure(uint16_t rnti, LIBLTE_S1AP_CAUSE_STRUCT *cause);
 
   bool        find_mme_ue_id(uint32_t mme_ue_id, uint16_t *rnti, uint32_t *enb_ue_id);
   std::string get_cause(LIBLTE_S1AP_CAUSE_STRUCT *c);

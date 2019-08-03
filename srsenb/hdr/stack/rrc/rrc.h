@@ -156,6 +156,7 @@ public:
   void write_dl_info(uint16_t rnti, srslte::unique_byte_buffer_t sdu);
   void release_complete(uint16_t rnti);
   bool setup_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT *msg);
+  bool modify_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_UECONTEXTMODIFICATIONREQUEST_STRUCT *msg);
   bool setup_ue_erabs(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPREQUEST_STRUCT *msg);
   bool release_erabs(uint32_t rnti);
   void add_paging_id(uint32_t ueid, LIBLTE_S1AP_UEPAGINGID_STRUCT UEPagingID);
@@ -253,6 +254,8 @@ public:
     rrc*     parent;
 
     bool connect_notified;
+
+    bool is_csfb;
 
   private:
     srslte::byte_buffer_pool  *pool;
@@ -378,6 +381,7 @@ private:
   rrc_cfg_t              cfg;
   uint32_t               nof_si_messages;
   asn1::rrc::sib_type2_s sib2;
+  asn1::rrc::sib_type7_s sib7;
 
   void run_thread();
   void rem_user_thread(uint16_t rnti);
