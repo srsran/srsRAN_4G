@@ -630,7 +630,7 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
       dl_sched_res->pdsch[n].data[0]          = assemble_si(sched_result.bc[i].index);
 #ifdef WRITE_SIB_PCAP
       if (pcap) {
-        pcap->write_dl_sirnti(dl_sched_res->sched_grants[n].data[0], sched_result.bc[i].tbs, true, tti);
+        pcap->write_dl_sirnti(dl_sched_res->pdsch[n].data[0], sched_result.bc[i].tbs, true, tti);
       }
 #endif
     } else {
