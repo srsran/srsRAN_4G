@@ -101,7 +101,6 @@ struct all_args_t {
   enb_args_t        enb;
   enb_files_t       enb_files;
   srslte::rf_args_t rf;
-  pcap_args_t       pcap;
   log_args_t        log;
   gui_args_t        gui;
   general_args_t    general;
