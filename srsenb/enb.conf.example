@@ -89,6 +89,11 @@ rx_gain = 40
 # add an entry with DLT=147, Payload Protocol=mac-lte-framed.
 # For more information see: https://wiki.wireshark.org/MAC-LTE
 #
+# Please note that this setting will by default only capture MAC
+# frames on dedicated channels, and not SIB.  You have to build with
+# WRITE_SIB_PCAP enabled in srsenb/src/stack/mac/mac.cc if you want
+# SIB to be part of the MAC pcap file.
+#
 # enable:   Enable MAC layer packet captures (true/false)
 # filename: File path to use for packet captures
 #####################################################################
