@@ -97,8 +97,8 @@ void parse_args(all_args_t *args, int argc, char* argv[]) {
     ("rf.time_adv_nsamples", bpo::value<string>(&args->rf.time_adv_nsamples)->default_value("auto"), "Transmission time advance")
     ("rf.burst_preamble_us", bpo::value<string>(&args->rf.burst_preamble)->default_value("auto"),    "Transmission time advance")
 
-    ("pcap.enable",       bpo::value<bool>(&args->pcap.enable)->default_value(false),         "Enable MAC packet captures for wireshark")
-    ("pcap.filename",     bpo::value<string>(&args->pcap.filename)->default_value("ue.pcap"), "MAC layer capture filename")
+    ("pcap.enable",       bpo::value<bool>(&args->stack.pcap.enable)->default_value(false),         "Enable MAC packet captures for wireshark")
+    ("pcap.filename",     bpo::value<string>(&args->stack.pcap.filename)->default_value("ue.pcap"), "MAC layer capture filename")
 
     ("gui.enable",        bpo::value<bool>(&args->gui.enable)->default_value(false),          "Enable GUI plots")
 
