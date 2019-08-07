@@ -100,7 +100,7 @@ SRSLTE_API void srslte_sync_nbiot_set_cfo_enable(srslte_sync_nbiot_t* q, bool en
 
 SRSLTE_API void srslte_sync_nbiot_set_cfo_cand_test_enable(srslte_sync_nbiot_t* q, bool enable);
 
-SRSLTE_API int srslte_sync_nbiot_set_cfo_cand(srslte_sync_nbiot_t* q, float* cand, const int num);
+SRSLTE_API int srslte_sync_nbiot_set_cfo_cand(srslte_sync_nbiot_t* q, const float* cand, const int num);
 
 SRSLTE_API void srslte_sync_nbiot_set_cfo_tol(srslte_sync_nbiot_t* q, float tol);
 

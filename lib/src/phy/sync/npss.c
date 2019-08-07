@@ -51,7 +51,9 @@ int srslte_npss_synch_init(srslte_npss_synch_t* q, uint32_t frame_size, uint32_t
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q != NULL) {
-    bzero(q, sizeof(srslte_npss_synch_t));
+    ret = SRSLTE_ERROR;
+
+    memset(q, 0, sizeof(srslte_npss_synch_t));
 
     q->fft_size = q->max_fft_size = fft_size;
     q->frame_size = q->max_frame_size = frame_size;
@@ -64,27 +66,27 @@ int srslte_npss_synch_init(srslte_npss_synch_t* q, uint32_t frame_size, uint32_t
       PRINT_ERR("Error allocating memory\n");
       goto clean_and_exit;
     }
-    bzero(q->tmp_input, buffer_size * sizeof(cf_t));
+    memset(q->tmp_input, 0, buffer_size * sizeof(cf_t));
 
     q->conv_output = srslte_vec_malloc(buffer_size * sizeof(cf_t));
     if (!q->conv_output) {
       fprintf(stderr, "Error allocating memory\n");
       goto clean_and_exit;
     }
-    bzero(q->conv_output, sizeof(cf_t) * buffer_size);
+    memset(q->conv_output, 0, sizeof(cf_t) * buffer_size);
     q->conv_output_avg = srslte_vec_malloc(buffer_size * sizeof(float));
     if (!q->conv_output_avg) {
       fprintf(stderr, "Error allocating memory\n");
       goto clean_and_exit;
     }
-    bzero(q->conv_output_avg, sizeof(float) * buffer_size);
+    memset(q->conv_output_avg, 0, sizeof(float) * buffer_size);
 #ifdef SRSLTE_NPSS_ACCUMULATE_ABS
     q->conv_output_abs = srslte_vec_malloc(buffer_size * sizeof(float));
     if (!q->conv_output_abs) {
       fprintf(stderr, "Error allocating memory\n");
       goto clean_and_exit;
     }
-    bzero(q->conv_output_abs, sizeof(float) * buffer_size);
+    memset(q->conv_output_abs, 0, sizeof(float) * buffer_size);
 #endif
 
     q->npss_signal_time = srslte_vec_malloc(buffer_size * sizeof(cf_t));
@@ -92,7 +94,7 @@ int srslte_npss_synch_init(srslte_npss_synch_t* q, uint32_t frame_size, uint32_t
       fprintf(stderr, "Error allocating memory\n");
       goto clean_and_exit;
     }
-    bzero(q->npss_signal_time, sizeof(cf_t) * buffer_size);
+    memset(q->npss_signal_time, 0, sizeof(cf_t) * buffer_size);
 
     // The NPSS is translated into the time domain
     if (srslte_npss_corr_init(q->npss_signal_time, fft_size, q->frame_size)) {
@@ -137,16 +139,15 @@ int srslte_npss_synch_resize(srslte_npss_synch_t* q, uint32_t frame_size, uint32
     q->frame_size = frame_size;
 
     uint32_t buffer_size = SRSLTE_NPSS_CORR_FILTER_LEN + frame_size + 1;
-    bzero(q->tmp_input, buffer_size * sizeof(cf_t));
-    bzero(q->conv_output, sizeof(cf_t) * buffer_size);
-    bzero(q->conv_output_avg, sizeof(float) * buffer_size);
+    memset(q->tmp_input, 0, buffer_size * sizeof(cf_t));
+    memset(q->conv_output, 0, sizeof(cf_t) * buffer_size);
+    memset(q->conv_output_avg, 0, sizeof(float) * buffer_size);
 
 #ifdef SRSLTE_NPSS_ACCUMULATE_ABS
-    bzero(q->conv_output_abs, sizeof(float) * buffer_size);
+    memset(q->conv_output_abs, 0, sizeof(float) * buffer_size);
 #endif
 
     // Re-generate NPSS sequences for this FFT size
-    // bzero(q->npss_signal_time, sizeof(cf_t) * buffer_size);
     if (srslte_npss_corr_init(q->npss_signal_time, fft_size, q->frame_size)) {
       fprintf(stderr, "Error initiating NPSS detector for fft_size=%d\n", fft_size);
       return SRSLTE_ERROR;
@@ -166,11 +167,11 @@ int srslte_npss_synch_resize(srslte_npss_synch_t* q, uint32_t frame_size, uint32
   return ret;
 }
 
-int srslte_npss_corr_init(cf_t* npss_signal_time, uint32_t fft_size, uint32_t frame_size)
+int srslte_npss_corr_init(cf_t* npss_signal_time, const uint32_t fft_size, const uint32_t frame_size)
 {
   srslte_dft_plan_t plan;
   _Complex float    npss_signal_pad[fft_size];
-  _Complex float    npss_signal[SRSLTE_NPSS_TOT_LEN];
+  _Complex float    npss_signal[SRSLTE_NPSS_TOT_LEN] = {};
 
   // generate correlation sequence
   srslte_npss_generate(npss_signal);
@@ -179,8 +180,8 @@ int srslte_npss_corr_init(cf_t* npss_signal_time, uint32_t fft_size, uint32_t fr
 #endif
 
   // zero buffers
-  bzero(npss_signal_time, (fft_size + frame_size) * sizeof(cf_t));
-  bzero(npss_signal_pad, fft_size * sizeof(cf_t));
+  memset(npss_signal_time, 0, (fft_size + frame_size) * sizeof(cf_t));
+  memset(npss_signal_pad, 0, fft_size * sizeof(cf_t));
 
   // construct dft plan and convert signal into the time domain
   if (srslte_dft_plan(&plan, fft_size, SRSLTE_DFT_BACKWARD, SRSLTE_DFT_COMPLEX)) {
@@ -195,7 +196,7 @@ int srslte_npss_corr_init(cf_t* npss_signal_time, uint32_t fft_size, uint32_t fr
   int   output_len = 0;
   for (int i = 0; i < SRSLTE_NPSS_NUM_OFDM_SYMS; i++) {
     // zero buffer, copy NPSS symbol to appr. pos and transform to time-domain
-    bzero(npss_signal_pad, fft_size * sizeof(cf_t));
+    memset(npss_signal_pad, 0, fft_size * sizeof(cf_t));
 
     // 5th NPSS symbol has CP length of 10 symbols
     int cp_len = (i != 4) ? SRSLTE_CP_LEN_NORM(1, SRSLTE_NBIOT_FFT_SIZE) : SRSLTE_CP_LEN_NORM(0, SRSLTE_NBIOT_FFT_SIZE);
@@ -384,7 +385,7 @@ void srslte_npss_synch_reset(srslte_npss_synch_t* q)
 {
   if (q->conv_output_avg) {
     uint32_t buffer_size = SRSLTE_NPSS_CORR_FILTER_LEN + q->max_frame_size + 1;
-    bzero(q->conv_output_avg, sizeof(float) * buffer_size);
+    memset(q->conv_output_avg, 0, sizeof(float) * buffer_size);
   }
 }
 
@@ -412,7 +413,7 @@ int srslte_npss_generate(cf_t* signal)
       __real__ signal[l * SRSLTE_NPSS_LEN + n] = cosf(arg);
       __imag__ signal[l * SRSLTE_NPSS_LEN + n] = sinf(arg);
 
-      signal[l * SRSLTE_NPSS_LEN + n] *= (float)factor_lut[l];
+      signal[l * SRSLTE_NPSS_LEN + n] *= factor_lut[l];
     }
   }
 
@@ -425,7 +426,7 @@ void srslte_npss_put_subframe(
     srslte_npss_synch_t* q, cf_t* npss_signal, cf_t* sf, const uint32_t nof_prb, const uint32_t nbiot_prb_offset)
 {
   // skip first 3 OFDM symbols over all PRBs completely
-  int k = 3 * nof_prb * SRSLTE_NRE + nbiot_prb_offset * SRSLTE_NRE;
+  uint32_t k = 3 * nof_prb * SRSLTE_NRE + nbiot_prb_offset * SRSLTE_NRE;
 
   // put NPSS in each of the 11 symbols of the subframe
   for (int l = 0; l < SRSLTE_CP_NORM_SF_NSYMB - 3; l++) {

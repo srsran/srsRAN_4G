@@ -30,7 +30,6 @@
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 
-#define MEANPEAK_EMA_ALPHA 0.1
 #define CFO_EMA_ALPHA 0.1
 #define CP_EMA_ALPHA 0.1
 #define DEFAULT_CFO_TOL 50.0 // Hz
@@ -43,64 +42,68 @@ int srslte_sync_nbiot_init(srslte_sync_nbiot_t* q, uint32_t frame_size, uint32_t
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
-  q->n_id_ncell            = SRSLTE_CELL_ID_UNKNOWN;
-  q->mean_cfo              = 0;
-  q->cfo_ema_alpha         = CFO_EMA_ALPHA;
-  q->fft_size              = fft_size;
-  q->frame_size            = frame_size;
-  q->max_frame_size        = frame_size;
-  q->max_offset            = max_offset;
-  q->threshold             = 5.0;
-  q->enable_cfo_estimation = true;
+  if (q != NULL) {
+    ret = SRSLTE_ERROR;
 
-  if (srslte_cfo_init(&q->cfocorr, q->frame_size)) {
-    fprintf(stderr, "Error initiating CFO\n");
-    goto clean_exit;
+    q->n_id_ncell            = SRSLTE_CELL_ID_UNKNOWN;
+    q->mean_cfo              = 0;
+    q->cfo_ema_alpha         = CFO_EMA_ALPHA;
+    q->fft_size              = fft_size;
+    q->frame_size            = frame_size;
+    q->max_frame_size        = frame_size;
+    q->max_offset            = max_offset;
+    q->threshold             = 5.0;
+    q->enable_cfo_estimation = true;
+
+    if (srslte_cfo_init(&q->cfocorr, q->frame_size)) {
+      fprintf(stderr, "Error initiating CFO\n");
+      goto clean_exit;
+    }
+
+    // Set default CFO tolerance
+    srslte_sync_nbiot_set_cfo_tol(q, DEFAULT_CFO_TOL);
+
+    // initialize shift buffer for CFO estimation
+    q->shift_buffer = srslte_vec_malloc(SRSLTE_SF_LEN(q->fft_size) * sizeof(cf_t));
+    if (!q->shift_buffer) {
+      perror("malloc");
+      goto clean_exit;
+    }
+    srslte_cexptab_gen_sf(q->shift_buffer, -SRSLTE_NBIOT_FREQ_SHIFT_FACTOR, q->fft_size);
+
+    // allocate memory for early CFO estimation
+    q->cfo_output = srslte_vec_malloc(10 * SRSLTE_SF_LEN(q->fft_size) * sizeof(cf_t));
+    if (!q->cfo_output) {
+      perror("malloc");
+      goto clean_exit;
+    }
+
+    // configure CP
+    q->cp     = SRSLTE_CP_NORM;
+    q->cp_len = SRSLTE_CP_LEN_NORM(1, q->fft_size);
+    if (q->frame_size < q->fft_size) {
+      q->nof_symbols = 1;
+    } else {
+      q->nof_symbols = q->frame_size / (q->fft_size + q->cp_len) - 1;
+    }
+
+    if (srslte_npss_synch_init(&q->npss, frame_size, fft_size)) {
+      fprintf(stderr, "Error initializing NPSS object\n");
+      return SRSLTE_ERROR;
+    }
+
+    if (srslte_nsss_synch_init(&q->nsss, SRSLTE_NSSS_NUM_SF_DETECT * SRSLTE_SF_LEN_PRB_NBIOT, fft_size)) {
+      fprintf(stderr, "Error initializing NSSS object\n");
+      exit(-1);
+    }
+
+    if (srslte_cp_synch_init(&q->cp_synch, fft_size)) {
+      fprintf(stderr, "Error initiating CFO\n");
+      goto clean_exit;
+    }
+
+    ret = SRSLTE_SUCCESS;
   }
-
-  // Set default CFO tolerance
-  srslte_sync_nbiot_set_cfo_tol(q, DEFAULT_CFO_TOL);
-
-  // initialize shift buffer for CFO estimation
-  q->shift_buffer = srslte_vec_malloc(SRSLTE_SF_LEN(q->fft_size) * sizeof(cf_t));
-  if (!q->shift_buffer) {
-    perror("malloc");
-    goto clean_exit;
-  }
-  srslte_cexptab_gen_sf(q->shift_buffer, -SRSLTE_NBIOT_FREQ_SHIFT_FACTOR, q->fft_size);
-
-  // allocate memory for early CFO estimation
-  q->cfo_output = srslte_vec_malloc(10 * SRSLTE_SF_LEN(q->fft_size) * sizeof(cf_t));
-  if (!q->cfo_output) {
-    perror("malloc");
-    goto clean_exit;
-  }
-
-  // configure CP
-  q->cp     = SRSLTE_CP_NORM;
-  q->cp_len = SRSLTE_CP_LEN_NORM(1, q->fft_size);
-  if (q->frame_size < q->fft_size) {
-    q->nof_symbols = 1;
-  } else {
-    q->nof_symbols = q->frame_size / (q->fft_size + q->cp_len) - 1;
-  }
-
-  if (srslte_npss_synch_init(&q->npss, frame_size, fft_size)) {
-    fprintf(stderr, "Error initializing NPSS object\n");
-    return SRSLTE_ERROR;
-  }
-
-  if (srslte_nsss_synch_init(&q->nsss, SRSLTE_NSSS_NUM_SF_DETECT * SRSLTE_SF_LEN_PRB_NBIOT, fft_size)) {
-    fprintf(stderr, "Error initializing NSSS object\n");
-    exit(-1);
-  }
-
-  if (srslte_cp_synch_init(&q->cp_synch, fft_size)) {
-    fprintf(stderr, "Error initiating CFO\n");
-    goto clean_exit;
-  }
-
-  ret = SRSLTE_SUCCESS;
 
 clean_exit:
   if (ret == SRSLTE_ERROR) {
@@ -134,7 +137,7 @@ int srslte_sync_nbiot_resize(srslte_sync_nbiot_t* q, uint32_t frame_size, uint32
 
     if (frame_size > q->max_frame_size) {
       fprintf(stderr, "Error in srslte_sync_nbiot_resize(): frame_size must be lower than initialized\n");
-      return SRSLTE_ERROR;
+      return ret;
     }
     q->mean_cfo             = 0;
     q->cfo_i                = 0;
@@ -147,21 +150,21 @@ int srslte_sync_nbiot_resize(srslte_sync_nbiot_t* q, uint32_t frame_size, uint32
 
     if (srslte_npss_synch_resize(&q->npss, max_offset, fft_size)) {
       fprintf(stderr, "Error resizing PSS object\n");
-      return SRSLTE_ERROR;
+      return ret;
     }
     if (srslte_nsss_synch_resize(&q->nsss, fft_size)) {
       fprintf(stderr, "Error resizing SSS object\n");
-      return SRSLTE_ERROR;
+      return ret;
     }
 
     if (srslte_cp_synch_resize(&q->cp_synch, fft_size)) {
       fprintf(stderr, "Error resizing CFO\n");
-      return SRSLTE_ERROR;
+      return ret;
     }
 
     if (srslte_cfo_resize(&q->cfocorr, q->frame_size)) {
       fprintf(stderr, "Error resizing CFO\n");
-      return SRSLTE_ERROR;
+      return ret;
     }
 
     // Update CFO tolerance
@@ -186,7 +189,7 @@ int srslte_sync_nbiot_resize(srslte_sync_nbiot_t* q, uint32_t frame_size, uint32
 srslte_sync_find_ret_t
 srslte_sync_nbiot_find(srslte_sync_nbiot_t* q, cf_t* input, uint32_t find_offset, uint32_t* peak_position)
 {
-  srslte_sync_find_ret_t ret = SRSLTE_SYNC_ERROR;
+  srslte_sync_find_ret_t ret = SRSLTE_SYNC_NOFOUND;
 
   int peak_pos = 0;
   if (peak_position) {
@@ -215,8 +218,6 @@ srslte_sync_nbiot_find(srslte_sync_nbiot_t* q, cf_t* input, uint32_t find_offset
   /* If peak is over threshold return success */
   if (q->peak_value >= q->threshold) {
     ret = SRSLTE_SYNC_FOUND;
-  } else {
-    ret = SRSLTE_SYNC_NOFOUND;
   }
 
   // estimate CFO after NPSS has been detected
@@ -278,7 +279,7 @@ void srslte_sync_nbiot_set_cfo_cand_test_enable(srslte_sync_nbiot_t* q, bool ena
   q->enable_cfo_cand_test = enable;
 }
 
-int srslte_sync_nbiot_set_cfo_cand(srslte_sync_nbiot_t* q, float* cand, const int num)
+int srslte_sync_nbiot_set_cfo_cand(srslte_sync_nbiot_t* q, const float* cand, const int num)
 {
   if (num > MAX_NUM_CFO_CANDITATES) {
     printf("Too many candidates, maximum is %d.\n", MAX_NUM_CFO_CANDITATES);
