@@ -78,7 +78,6 @@ private:
   rlc_tx_queue    ul_queue;
 };
 
-} // namespace srsue
-
+} // namespace srslte
 
 #endif // SRSLTE_RLC_TM_H

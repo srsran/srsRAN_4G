@@ -1077,4 +1077,4 @@ bool rlc_um_end_aligned(uint8_t fi)
   return (fi == RLC_FI_FIELD_START_AND_END_ALIGNED || fi == RLC_FI_FIELD_NOT_START_ALIGNED);
 }
 
-} // namespace srsue
+} // namespace srslte

@@ -109,7 +109,6 @@ private:
   bool valid_lcid_mrb(uint32_t lcid);
 };
 
-} // namespace srsue
-
+} // namespace srslte
 
 #endif // SRSLTE_RLC_H

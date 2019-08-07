@@ -121,4 +121,4 @@ void logger_file::flush() {
   }
 }
 
-} // namespace srsue
+} // namespace srslte

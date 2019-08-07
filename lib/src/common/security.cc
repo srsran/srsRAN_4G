@@ -290,5 +290,4 @@ uint8_t security_milenage_f5_star( uint8_t *k,
                                           ak);
 }
 
-
-} // namespace srsue
+} // namespace srslte

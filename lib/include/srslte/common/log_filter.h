@@ -94,6 +94,6 @@ protected:
   std::string hex_string(const uint8_t *hex, int size);
 };
 
-} // namespace srsue
+} // namespace srslte
 
 #endif // SRSLTE_LOG_FILTER_H

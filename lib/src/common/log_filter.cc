@@ -297,4 +297,4 @@ std::string log_filter::hex_string(const uint8_t *hex, int size)
   return ss.str();
 }
 
-} // namespace srsue
+} // namespace srslte

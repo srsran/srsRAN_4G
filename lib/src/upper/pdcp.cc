@@ -314,4 +314,4 @@ bool pdcp::valid_mch_lcid(uint32_t lcid)
   return true;
 }
 
-} // namespace srsue
+} // namespace srslte

@@ -193,4 +193,4 @@ void rlc_tm::write_pdu(uint8_t *payload, uint32_t nof_bytes)
   }
 }
 
-} // namespace srsue
+} // namespace srslte

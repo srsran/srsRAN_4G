@@ -35,7 +35,6 @@
 #define NBUFS 5
 
 using namespace srslte;
-using namespace srsue;
 using namespace asn1::rrc;
 
 class mac_dummy_timers : public srslte::mac_interface_timers
@@ -50,7 +49,7 @@ private:
   srslte::timers::timer t;
 };
 
-class rlc_tester : public pdcp_interface_rlc, public rrc_interface_rlc
+class rlc_tester : public srsue::pdcp_interface_rlc, public srsue::rrc_interface_rlc
 {
 public:
   rlc_tester()

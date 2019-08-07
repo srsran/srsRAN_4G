@@ -225,7 +225,6 @@ uint32_t    rlc_um_packed_length(rlc_umd_pdu_header_t *header);
 bool        rlc_um_start_aligned(uint8_t fi);
 bool        rlc_um_end_aligned(uint8_t fi);
 
-} // namespace srsue
-
+} // namespace srslte
 
 #endif // SRSLTE_RLC_UM_H

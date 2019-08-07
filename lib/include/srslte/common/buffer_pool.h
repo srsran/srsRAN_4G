@@ -242,6 +242,6 @@ allocate_unique_buffer(byte_buffer_pool& pool, const char* debug_name, bool bloc
   return std::move(unique_byte_buffer_t(pool.allocate(debug_name, blocking), byte_buffer_deleter(&pool)));
 }
 
-} // namespace srsue
+} // namespace srslte
 
 #endif // SRSLTE_BUFFER_POOL_H

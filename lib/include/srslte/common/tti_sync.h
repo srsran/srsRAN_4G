@@ -68,8 +68,8 @@ class tti_sync
     uint32_t modulus; 
     uint32_t producer_cntr;
     uint32_t consumer_cntr;
-}; 
+};
 
-} // namespace srsue
+} // namespace srslte
 
 #endif // SRSLTE_TTI_SYNC_H
