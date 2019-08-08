@@ -99,7 +99,6 @@ void test_set_3()
   liblte_security_128_eia3(key, count, bearer, direction, msg, len_bits, mac);
   int i;
 
-  
   bool failed = false;
   for (i = 0; i < 4; i++) {
     if (mac[i] != expected_mac[i]) {

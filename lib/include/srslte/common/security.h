@@ -103,90 +103,40 @@ uint8_t security_generate_k_up( uint8_t                       *k_enb,
 /******************************************************************************
  * Integrity Protection
  *****************************************************************************/
-uint8_t security_128_eia1( uint8_t  *key,
-                           uint32_t  count,
-                           uint32_t   bearer,
-                           uint8_t   direction,
-                           uint8_t  *msg,
-                           uint32_t  msg_len,
-                           uint8_t  *mac);
+uint8_t security_128_eia1(
+    uint8_t* key, uint32_t count, uint32_t bearer, uint8_t direction, uint8_t* msg, uint32_t msg_len, uint8_t* mac);
 
-uint8_t security_128_eia2( uint8_t  *key,
-                           uint32_t  count,
-                           uint32_t   bearer,
-                           uint8_t   direction,
-                           uint8_t  *msg,
-                           uint32_t  msg_len,
-                           uint8_t  *mac);
+uint8_t security_128_eia2(
+    uint8_t* key, uint32_t count, uint32_t bearer, uint8_t direction, uint8_t* msg, uint32_t msg_len, uint8_t* mac);
 
-uint8_t security_128_eia3( uint8_t  *key,
-                           uint32_t  count,
-                           uint32_t   bearer,
-                           uint8_t   direction,
-                           uint8_t  *msg,
-                           uint32_t  msg_len,
-                           uint8_t  *mac);
+uint8_t security_128_eia3(
+    uint8_t* key, uint32_t count, uint32_t bearer, uint8_t direction, uint8_t* msg, uint32_t msg_len, uint8_t* mac);
 
-uint8_t security_md5(const uint8_t *input,
-                     size_t         len,
-                     uint8_t       *output);
-
+uint8_t security_md5(const uint8_t* input, size_t len, uint8_t* output);
 
 /******************************************************************************
  * Encryption / Decryption
  *****************************************************************************/
-uint8_t security_128_eea1( uint8_t  *key,
-                           uint32_t  count,
-                           uint8_t   bearer,
-                           uint8_t   direction,
-                           uint8_t  *msg,
-                           uint32_t  msg_len,
-                           uint8_t  *msg_out);
+uint8_t security_128_eea1(
+    uint8_t* key, uint32_t count, uint8_t bearer, uint8_t direction, uint8_t* msg, uint32_t msg_len, uint8_t* msg_out);
 
-uint8_t security_128_eea2(uint8_t  *key,
-                           uint32_t  count,
-                           uint8_t   bearer,
-                           uint8_t   direction,
-                           uint8_t  *msg,
-                           uint32_t  msg_len,
-                           uint8_t  *msg_out);
+uint8_t security_128_eea2(
+    uint8_t* key, uint32_t count, uint8_t bearer, uint8_t direction, uint8_t* msg, uint32_t msg_len, uint8_t* msg_out);
 
-uint8_t security_128_eea3(uint8_t  *key,
-                           uint32_t  count,
-                           uint8_t   bearer,
-                           uint8_t   direction,
-                           uint8_t  *msg,
-                           uint32_t  msg_len,
-                           uint8_t  *msg_out);
+uint8_t security_128_eea3(
+    uint8_t* key, uint32_t count, uint8_t bearer, uint8_t direction, uint8_t* msg, uint32_t msg_len, uint8_t* msg_out);
 
 /******************************************************************************
  * Authentication
  *****************************************************************************/
-uint8_t compute_opc( uint8_t *k,
-                       uint8_t *op,
-                       uint8_t *opc);
+uint8_t compute_opc(uint8_t* k, uint8_t* op, uint8_t* opc);
 
-uint8_t security_milenage_f1( uint8_t *k,
-                              uint8_t *op,
-                              uint8_t *rand,
-                              uint8_t *sqn,
-                              uint8_t *amf,
-                              uint8_t *mac_a);
+uint8_t security_milenage_f1(uint8_t* k, uint8_t* op, uint8_t* rand, uint8_t* sqn, uint8_t* amf, uint8_t* mac_a);
 
-uint8_t security_milenage_f1_star( uint8_t *k,
-                                   uint8_t *op,
-                                   uint8_t *rand,
-                                   uint8_t *sqn,
-                                   uint8_t *amf,
-                                   uint8_t *mac_s);
+uint8_t security_milenage_f1_star(uint8_t* k, uint8_t* op, uint8_t* rand, uint8_t* sqn, uint8_t* amf, uint8_t* mac_s);
 
-uint8_t security_milenage_f2345( uint8_t *k,
-                                 uint8_t *op,
-                                 uint8_t *rand,
-                                 uint8_t *res,
-                                 uint8_t *ck,
-                                 uint8_t *ik,
-                                 uint8_t *ak);
+uint8_t
+security_milenage_f2345(uint8_t* k, uint8_t* op, uint8_t* rand, uint8_t* res, uint8_t* ck, uint8_t* ik, uint8_t* ak);
 
 uint8_t security_milenage_f5_star( uint8_t *k,
                                    uint8_t *op,

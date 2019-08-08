@@ -2,17 +2,13 @@
 
 #include "srslte/common/zuc.h"
 
-/* ——————————————————————- */
-/* the state registers of LFSR */
-
-
-#define MAKEU32(a, b, c, d) (((u32)(a) << 24) | ((u32)(b) << 16) | ((u32)(c) << 8) | ((u32)(d))) 
+#define MAKEU32(a, b, c, d) (((u32)(a) << 24) | ((u32)(b) << 16) | ((u32)(c) << 8) | ((u32)(d)))
 #define MulByPow2(x, k) ((((x) << k) | ((x) >> (31 - k))) & 0x7FFFFFFF)
-#define MAKEU31(a, b, c) (((u32)(a) << 23) | ((u32)(b) << 8) | (u32)(c)) 
+#define MAKEU31(a, b, c) (((u32)(a) << 23) | ((u32)(b) << 8) | (u32)(c))
 #define ROT(a, k) (((a) << k) | ((a) >> (32 - k)))
 
 /* the s-boxes */
-u8  S0[256] = {
+u8 S0[256] = {
     0x3e, 0x72, 0x5b, 0x47, 0xca, 0xe0, 0x00, 0x33, 0x04, 0xd1, 0x54, 0x98, 0x09, 0xb9, 0x6d, 0xcb, 0x7b, 0x1b, 0xf9,
     0x32, 0xaf, 0x9d, 0x6a, 0xa5, 0xb8, 0x2d, 0xfc, 0x1d, 0x08, 0x53, 0x03, 0x90, 0x4d, 0x4e, 0x84, 0x99, 0xe4, 0xce,
     0xd9, 0x91, 0xdd, 0xb6, 0x85, 0x48, 0x8b, 0x29, 0x6e, 0xac, 0xcd, 0xc1, 0xf8, 0x1e, 0x73, 0x43, 0x69, 0xc6, 0xb5,
@@ -27,6 +23,7 @@ u8  S0[256] = {
     0xfa, 0x36, 0xd2, 0x50, 0x68, 0x9e, 0x62, 0x71, 0x15, 0x3d, 0xd6, 0x40, 0xc4, 0xe2, 0x0f, 0x8e, 0x83, 0x77, 0x6b,
     0x25, 0x05, 0x3f, 0x0c, 0x30, 0xea, 0x70, 0xb7, 0xa1, 0xe8, 0xa9, 0x65, 0x8d, 0x27, 0x1a, 0xdb, 0x81, 0xb3, 0xa0,
     0xf4, 0x45, 0x7a, 0x19, 0xdf, 0xee, 0x78, 0x34, 0x60};
+
 u8 S1[256] = {
     0x55, 0xc2, 0x63, 0x71, 0x3b, 0xc8, 0x47, 0x86, 0x9f, 0x3c, 0xda, 0x5b, 0x29, 0xaa, 0xfd, 0x77, 0x8c, 0xc5, 0x94,
     0x0c, 0xa6, 0x1a, 0x13, 0x00, 0xe3, 0xa8, 0x16, 0x72, 0x40, 0xf9, 0xf8, 0x42, 0x44, 0x26, 0x68, 0x96, 0x81, 0xd9,
@@ -41,14 +38,28 @@ u8 S1[256] = {
     0xc3, 0xde, 0xa3, 0xef, 0xea, 0x51, 0xe6, 0x6b, 0x18, 0xec, 0x1b, 0x2c, 0x80, 0xf7, 0x74, 0xe7, 0xff, 0x21, 0x5a,
     0x6a, 0x54, 0x1e, 0x41, 0x31, 0x92, 0x35, 0xc4, 0x33, 0x07, 0x0a, 0xba, 0x7e, 0x0e, 0x34, 0x88, 0xb1, 0x98, 0x7c,
     0xf3, 0x3d, 0x60, 0x6c, 0x7b, 0xca, 0xd3, 0x1f, 0x32, 0x65, 0x04, 0x28, 0x64, 0xbe, 0x85, 0x9b, 0x2f, 0x59, 0x8a,
-    0xd7, 0xb0, 0x25, 0xac, 0xaf, 0x12, 0x03, 0xe2, 0xf2}; /* the constants D */
+    0xd7, 0xb0, 0x25, 0xac, 0xaf, 0x12, 0x03, 0xe2, 0xf2};
 
-u32 EK_d[16] = {0x44D7, 0x26BC, 0x626B, 0x135E, 0x5789, 0x35E2, 0x7135, 0x09AF,
-                0x4D78, 0x2F13, 0x6BC4, 0x1AF1, 0x5E26, 0x3C4D, 0x789A, 0x47AC};
+/* the constants D */
+u32 EK_d[16] = {0x44D7,
+                0x26BC,
+                0x626B,
+                0x135E,
+                0x5789,
+                0x35E2,
+                0x7135,
+                0x09AF,
+                0x4D78,
+                0x2F13,
+                0x6BC4,
+                0x1AF1,
+                0x5E26,
+                0x3C4D,
+                0x789A,
+                0x47AC};
 
 /* ——————————————————————- */
 /* c = a + b mod (2^31 – 1) */
-
 u32 AddM(u32 a, u32 b)
 {
   u32 c = a + b;
@@ -56,21 +67,23 @@ u32 AddM(u32 a, u32 b)
 }
 
 /* LFSR with initialization mode */
-void LFSRWithInitialisationMode(zuc_state_t * state, u32 u)
+void LFSRWithInitialisationMode(zuc_state_t* state, u32 u)
 {
   u32 f, v;
-  f        = state->LFSR_S0;
-  v        = MulByPow2(state->LFSR_S0, 8);
-  f        = AddM(f, v);
-  v        = MulByPow2(state->LFSR_S4, 20);
-  f        = AddM(f, v);
-  v        = MulByPow2(state->LFSR_S10, 21);
-  f        = AddM(f, v);
-  v        = MulByPow2(state->LFSR_S13, 17);
-  f        = AddM(f, v);
-  v        = MulByPow2(state->LFSR_S15, 15);
-  f        = AddM(f, v);
-  f        = AddM(f, u); /* update the state */
+  f = state->LFSR_S0;
+  v = MulByPow2(state->LFSR_S0, 8);
+  f = AddM(f, v);
+  v = MulByPow2(state->LFSR_S4, 20);
+  f = AddM(f, v);
+  v = MulByPow2(state->LFSR_S10, 21);
+  f = AddM(f, v);
+  v = MulByPow2(state->LFSR_S13, 17);
+  f = AddM(f, v);
+  v = MulByPow2(state->LFSR_S15, 15);
+  f = AddM(f, v);
+  f = AddM(f, u);
+
+  /* update the state */
   state->LFSR_S0  = state->LFSR_S1;
   state->LFSR_S1  = state->LFSR_S2;
   state->LFSR_S2  = state->LFSR_S3;
@@ -87,22 +100,25 @@ void LFSRWithInitialisationMode(zuc_state_t * state, u32 u)
   state->LFSR_S13 = state->LFSR_S14;
   state->LFSR_S14 = state->LFSR_S15;
   state->LFSR_S15 = f;
-} /* LFSR with work mode */
+}
 
-void LFSRWithWorkMode(zuc_state_t *state)
+/* LFSR with work mode */
+void LFSRWithWorkMode(zuc_state_t* state)
 {
   u32 f, v;
-  f        = state->LFSR_S0;
-  v        = MulByPow2(state->LFSR_S0, 8);
-  f        = AddM(f, v);
-  v        = MulByPow2(state->LFSR_S4, 20);
-  f        = AddM(f, v);
-  v        = MulByPow2(state->LFSR_S10, 21);
-  f        = AddM(f, v);
-  v        = MulByPow2(state->LFSR_S13, 17);
-  f        = AddM(f, v);
-  v        = MulByPow2(state->LFSR_S15, 15);
-  f        = AddM(f, v); /* update the state */
+  f = state->LFSR_S0;
+  v = MulByPow2(state->LFSR_S0, 8);
+  f = AddM(f, v);
+  v = MulByPow2(state->LFSR_S4, 20);
+  f = AddM(f, v);
+  v = MulByPow2(state->LFSR_S10, 21);
+  f = AddM(f, v);
+  v = MulByPow2(state->LFSR_S13, 17);
+  f = AddM(f, v);
+  v = MulByPow2(state->LFSR_S15, 15);
+  f = AddM(f, v);
+
+  /* update the state */
   state->LFSR_S0  = state->LFSR_S1;
   state->LFSR_S1  = state->LFSR_S2;
   state->LFSR_S2  = state->LFSR_S3;
@@ -122,7 +138,7 @@ void LFSRWithWorkMode(zuc_state_t *state)
 }
 
 /* BitReorganization */
-void BitReorganization(zuc_state_t *state)
+void BitReorganization(zuc_state_t* state)
 {
   state->BRC_X0 = ((state->LFSR_S15 & 0x7FFF8000) << 1) | (state->LFSR_S14 & 0xFFFF);
   state->BRC_X1 = ((state->LFSR_S11 & 0xFFFF) << 16) | (state->LFSR_S9 >> 15);
@@ -134,22 +150,24 @@ void BitReorganization(zuc_state_t *state)
 u32 L1(u32 X)
 {
   return (X ^ ROT(X, 2) ^ ROT(X, 10) ^ ROT(X, 18) ^ ROT(X, 24));
-} /* L2 */
+}
 
+/* L2 */
 u32 L2(u32 X)
 {
   return (X ^ ROT(X, 8) ^ ROT(X, 14) ^ ROT(X, 22) ^ ROT(X, 30));
 }
 
 /* F */
-u32 F(zuc_state_t *state)
+u32 F(zuc_state_t* state)
 {
   u32 W, W1, W2, u, v;
-  W    = (state->BRC_X0 ^ state->F_R1) + state->F_R2;
-  W1   = state->F_R1 + state->BRC_X1;
-  W2   = state->F_R2 ^ state->BRC_X2;
-  u    = L1((W1 << 16) | (W2 >> 16));
-  v    = L2((W2 << 16) | (W1 >> 16));
+  W  = (state->BRC_X0 ^ state->F_R1) + state->F_R2;
+  W1 = state->F_R1 + state->BRC_X1;
+  W2 = state->F_R2 ^ state->BRC_X2;
+  u  = L1((W1 << 16) | (W2 >> 16));
+  v  = L2((W2 << 16) | (W1 >> 16));
+
   state->F_R1 = MAKEU32(S0[u >> 24], S1[(u >> 16) & 0xFF], S0[(u >> 8) & 0xFF], S1[u & 0xFF]);
   state->F_R2 = MAKEU32(S0[v >> 24], S1[(v >> 16) & 0xFF], S0[(v >> 8) & 0xFF], S1[v & 0xFF]);
   return W;
@@ -157,10 +175,11 @@ u32 F(zuc_state_t *state)
 
 /* initialize */
 
-void zuc_initialize(zuc_state_t *state, u8* k, u8* iv)
+void zuc_initialize(zuc_state_t* state, u8* k, u8* iv)
 {
   u32 w, nCount;
-   /* expand key */
+
+  /* expand key */
   state->LFSR_S0  = MAKEU31(k[0], EK_d[0], iv[0]);
   state->LFSR_S1  = MAKEU31(k[1], EK_d[1], iv[1]);
   state->LFSR_S2  = MAKEU31(k[2], EK_d[2], iv[2]);
@@ -176,11 +195,12 @@ void zuc_initialize(zuc_state_t *state, u8* k, u8* iv)
   state->LFSR_S12 = MAKEU31(k[12], EK_d[12], iv[12]);
   state->LFSR_S13 = MAKEU31(k[13], EK_d[13], iv[13]);
   state->LFSR_S14 = MAKEU31(k[14], EK_d[14], iv[14]);
-  state->LFSR_S15 = MAKEU31(k[15], EK_d[15], iv[15]); 
+  state->LFSR_S15 = MAKEU31(k[15], EK_d[15], iv[15]);
+
   /* set F_R1 and F_R2 to zero */
-  state->F_R1     = 0;
-  state->F_R2     = 0;
-  nCount   = 32;
+  state->F_R1 = 0;
+  state->F_R2 = 0;
+  nCount      = 32;
   while (nCount > 0) {
     BitReorganization(state);
     w = F(state);
@@ -189,7 +209,7 @@ void zuc_initialize(zuc_state_t *state, u8* k, u8* iv)
   }
 }
 
-void zuc_generate_keystream(zuc_state_t *state, int key_stream_len, u32* p_keystream)
+void zuc_generate_keystream(zuc_state_t* state, int key_stream_len, u32* p_keystream)
 {
   int i;
   {

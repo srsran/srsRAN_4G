@@ -949,18 +949,18 @@ void rrc::send_con_restablish_request()
       break;
     case INTEGRITY_ALGORITHM_ID_128_EIA2:
       security_128_eia2(&k_rrc_int[16],
-                        0xffffffff,    // 32-bit all to ones
-                        0x1f,          // 5-bit all to ones
-                        1,             // 1-bit to one
+                        0xffffffff, // 32-bit all to ones
+                        0x1f,       // 5-bit all to ones
+                        1,          // 1-bit to one
                         varShortMAC_packed,
                         N_bytes,
                         mac_key);
       break;
     case INTEGRITY_ALGORITHM_ID_128_EIA3:
       security_128_eia3(&k_rrc_int[16],
-                        0xffffffff,    // 32-bit all to ones
-                        0x1f,          // 5-bit all to ones
-                        1,             // 1-bit to one
+                        0xffffffff, // 32-bit all to ones
+                        0x1f,       // 5-bit all to ones
+                        1,          // 1-bit to one
                         varShortMAC_packed,
                         N_bytes,
                         mac_key);

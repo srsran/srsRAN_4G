@@ -639,7 +639,7 @@ void nas::integrity_generate(uint8_t *key_128,
     case INTEGRITY_ALGORITHM_ID_128_EIA2:
       security_128_eia2(key_128,
                         count,
-                        0,            // Bearer always 0 for NAS
+                        0, // Bearer always 0 for NAS
                         direction,
                         msg,
                         msg_len,
@@ -648,7 +648,7 @@ void nas::integrity_generate(uint8_t *key_128,
     case INTEGRITY_ALGORITHM_ID_128_EIA3:
       security_128_eia3(key_128,
                         count,
-                        0,            // Bearer always 0 for NAS
+                        0, // Bearer always 0 for NAS
                         direction,
                         msg,
                         msg_len,
@@ -713,31 +713,31 @@ void nas::cipher_encrypt(byte_buffer_t* pdu)
                         &pdu->msg[6],
                         pdu->N_bytes-6,
                         &pdu_tmp.msg[6]);
-      memcpy(&pdu->msg[6], &pdu_tmp.msg[6], pdu->N_bytes-6);
+      memcpy(&pdu->msg[6], &pdu_tmp.msg[6], pdu->N_bytes - 6);
       break;
   case CIPHERING_ALGORITHM_ID_128_EEA2:
-      security_128_eea2(&k_nas_enc[16],
-                        pdu->msg[5],
-                        0,            // Bearer always 0 for NAS
-                        SECURITY_DIRECTION_UPLINK,
-                        &pdu->msg[6],
-                        pdu->N_bytes-6,
-                        &pdu_tmp.msg[6]);
-      memcpy(&pdu->msg[6], &pdu_tmp.msg[6], pdu->N_bytes-6);
-      break;
+    security_128_eea2(&k_nas_enc[16],
+                      pdu->msg[5],
+                      0, // Bearer always 0 for NAS
+                      SECURITY_DIRECTION_UPLINK,
+                      &pdu->msg[6],
+                      pdu->N_bytes - 6,
+                      &pdu_tmp.msg[6]);
+    memcpy(&pdu->msg[6], &pdu_tmp.msg[6], pdu->N_bytes - 6);
+    break;
   case CIPHERING_ALGORITHM_ID_128_EEA3:
-      security_128_eea3(&k_nas_enc[16],
-                        pdu->msg[5],
-                        0,            // Bearer always 0 for NAS
-                        SECURITY_DIRECTION_UPLINK,
-                        &pdu->msg[6],
-                        pdu->N_bytes-6,
-                        &pdu_tmp.msg[6]);
-      memcpy(&pdu->msg[6], &pdu_tmp.msg[6], pdu->N_bytes-6);
-      break;
+    security_128_eea3(&k_nas_enc[16],
+                      pdu->msg[5],
+                      0, // Bearer always 0 for NAS
+                      SECURITY_DIRECTION_UPLINK,
+                      &pdu->msg[6],
+                      pdu->N_bytes - 6,
+                      &pdu_tmp.msg[6]);
+    memcpy(&pdu->msg[6], &pdu_tmp.msg[6], pdu->N_bytes - 6);
+    break;
   default:
-      nas_log->error("Ciphering algorithm not known\n");
-      break;
+    nas_log->error("Ciphering algorithm not known\n");
+    break;
   }
 }
 
@@ -759,30 +759,30 @@ void nas::cipher_decrypt(byte_buffer_t* pdu)
       memcpy(&pdu->msg[6], &tmp_pdu.msg[6], pdu->N_bytes-6);
       break;
   case CIPHERING_ALGORITHM_ID_128_EEA2:
-      security_128_eea2(&k_nas_enc[16],
-                        pdu->msg[5],
-                        0,            // Bearer always 0 for NAS
-                        SECURITY_DIRECTION_DOWNLINK,
-                        &pdu->msg[6],
-                        pdu->N_bytes-6,
-                        &tmp_pdu.msg[6]);
-      nas_log->debug_hex(tmp_pdu.msg, pdu->N_bytes, "Decrypted");
-      memcpy(&pdu->msg[6], &tmp_pdu.msg[6], pdu->N_bytes-6);
-      break;
+    security_128_eea2(&k_nas_enc[16],
+                      pdu->msg[5],
+                      0, // Bearer always 0 for NAS
+                      SECURITY_DIRECTION_DOWNLINK,
+                      &pdu->msg[6],
+                      pdu->N_bytes - 6,
+                      &tmp_pdu.msg[6]);
+    nas_log->debug_hex(tmp_pdu.msg, pdu->N_bytes, "Decrypted");
+    memcpy(&pdu->msg[6], &tmp_pdu.msg[6], pdu->N_bytes - 6);
+    break;
   case CIPHERING_ALGORITHM_ID_128_EEA3:
-      security_128_eea3(&k_nas_enc[16],
-                        pdu->msg[5],
-                        0,            // Bearer always 0 for NAS
-                        SECURITY_DIRECTION_DOWNLINK,
-                        &pdu->msg[6],
-                        pdu->N_bytes-6,
-                        &tmp_pdu.msg[6]);
-      nas_log->debug_hex(tmp_pdu.msg, pdu->N_bytes, "Decrypted");
-      memcpy(&pdu->msg[6], &tmp_pdu.msg[6], pdu->N_bytes-6);
-      break;
-    default:
-      nas_log->error("Ciphering algorithms not known\n");
-      break;
+    security_128_eea3(&k_nas_enc[16],
+                      pdu->msg[5],
+                      0, // Bearer always 0 for NAS
+                      SECURITY_DIRECTION_DOWNLINK,
+                      &pdu->msg[6],
+                      pdu->N_bytes - 6,
+                      &tmp_pdu.msg[6]);
+    nas_log->debug_hex(tmp_pdu.msg, pdu->N_bytes, "Decrypted");
+    memcpy(&pdu->msg[6], &tmp_pdu.msg[6], pdu->N_bytes - 6);
+    break;
+  default:
+    nas_log->error("Ciphering algorithms not known\n");
+    break;
   }
 }
 
