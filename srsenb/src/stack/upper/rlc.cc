@@ -110,6 +110,17 @@ void rlc::add_bearer_mrb(uint16_t rnti, uint32_t lcid)
   pthread_rwlock_unlock(&rwlock);
 }
 
+bool rlc::has_bearer(uint16_t rnti, uint32_t lcid)
+{
+  pthread_rwlock_rdlock(&rwlock);
+  bool result = false;
+  if (users.count(rnti)) {
+    result = users[rnti].rlc->has_bearer(lcid);
+  }
+  pthread_rwlock_unlock(&rwlock);
+  return result;
+}
+
 void rlc::read_pdu_pcch(uint8_t* payload, uint32_t buffer_size)
 {
   rrc->read_pdu_pcch(payload, buffer_size);

@@ -2094,10 +2094,15 @@ void rrc::ue::send_dl_dcch(dl_dcch_msg_s* dl_dcch_msg, srslte::unique_byte_buffe
     dl_dcch_msg->pack(bref);
     pdu->N_bytes = 1u + (uint32_t)bref.distance_bytes(pdu->msg);
 
+    // send on SRB2 if user is fully registered (after RRC reconfig complete)
+    uint32_t lcid =
+        parent->rlc->has_bearer(rnti, RB_ID_SRB2) && state == RRC_STATE_REGISTERED ? RB_ID_SRB2 : RB_ID_SRB1;
+
     char buf[32] = {};
-    sprintf(buf, "SRB1 - rnti=0x%x", rnti);
+    sprintf(buf, "SRB%d - rnti=0x%x", lcid, rnti);
     parent->log_rrc_message(buf, Tx, pdu.get(), *dl_dcch_msg);
-    parent->pdcp->write_sdu(rnti, RB_ID_SRB1, std::move(pdu));
+
+    parent->pdcp->write_sdu(rnti, lcid, std::move(pdu));
   } else {
     parent->rrc_log->error("Allocating pdu\n");
   }

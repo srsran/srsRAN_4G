@@ -194,6 +194,7 @@ public:
   virtual void add_bearer(uint16_t rnti, uint32_t lcid, srslte::rlc_config_t cnfg)        = 0;
   virtual void add_bearer_mrb(uint16_t rnti, uint32_t lcid) = 0;
   virtual void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu)  = 0;
+  virtual bool has_bearer(uint16_t rnti, uint32_t lcid)                                   = 0;
 };
 
 // PDCP interface for GTPU
