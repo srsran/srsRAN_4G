@@ -2013,6 +2013,18 @@ bool rrc::ue::select_security_algorithms()
         parent->rrc_log->info("Failed to selected EEA2 as RRC encryption algorithm, due to unsupported algorithm\n");
       }
       break;
+    case srslte::CIPHERING_ALGORITHM_ID_128_EEA3:
+      // “third bit” – 128-EEA3,
+      if (security_capabilities.encryptionAlgorithms
+              .buffer[srslte::CIPHERING_ALGORITHM_ID_128_EEA3 - 1]) {
+        cipher_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA3;
+        enc_algo_found = true;
+        parent->rrc_log->info("Selected EEA3 as RRC encryption algorithm\n");
+        break;
+      } else {
+        parent->rrc_log->info("Failed to selected EEA2 as RRC encryption algorithm, due to unsupported algorithm\n");
+      }
+      break;
     default:
       enc_algo_found = false;
       break;
@@ -2046,6 +2058,16 @@ bool rrc::ue::select_security_algorithms()
         parent->rrc_log->info("Selected EIA2 as RRC integrity algorithm.\n");
       } else {
         parent->rrc_log->info("Failed to selected EIA2 as RRC encryption algorithm, due to unsupported algorithm\n");
+      }
+      break;
+    case srslte::INTEGRITY_ALGORITHM_ID_128_EIA3:
+      // “third bit” – 128-EIA3,
+      if (security_capabilities.integrityProtectionAlgorithms.buffer[srslte::INTEGRITY_ALGORITHM_ID_128_EIA3 - 1]) {
+        integ_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA3;
+        integ_algo_found = true;
+        parent->rrc_log->info("Selected EIA3 as RRC integrity algorithm.\n");
+      } else {
+        parent->rrc_log->info("Failed to selected EIA3 as RRC encryption algorithm, due to unsupported algorithm\n");
       }
       break;
     default:
