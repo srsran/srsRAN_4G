@@ -164,12 +164,12 @@ imei = 353490069873319
 #####################################################################
 # GW configuration
 #
-# tun_dev_name:         Name of the tun_srsue device. Default: tun_srsue
-# tun_dev_netmask:      Netmask of the tun_srsue device. Default: 255.255.255.0
+# ip_devname:           Name of the tun_srsue device. Default: tun_srsue
+# ip_netmask:           Netmask of the tun_srsue device. Default: 255.255.255.0
 #####################################################################
 [gw]
-#tun_dev_name         = tun_srsue
-#tun_dev_netmask      = 255.255.255.0
+#ip_devname           = tun_srsue
+#ip_netmas            = 255.255.255.0
 
 #####################################################################
 # GUI configuration
