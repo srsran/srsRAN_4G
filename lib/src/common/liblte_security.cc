@@ -832,7 +832,6 @@ LIBLTE_ERROR_ENUM liblte_security_128_eia3(uint8* key, uint32 count, uint8 beare
     uint8_t iv[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
     
     uint32 *ks;
-    int32 i;
     uint32 msg_len_block_8, msg_len_block_32, m;
     
     if(key != NULL &&
@@ -874,7 +873,7 @@ LIBLTE_ERROR_ENUM liblte_security_128_eia3(uint8* key, uint32 count, uint8 beare
         zuc_generate_keystream(&zuc_state, L, ks);
 
         uint32_t T = 0;
-        for (i = 0; i < msg_len; i++) {
+        for (uint32_t i = 0; i < msg_len; i++) {
           if (GET_BIT(msg, i)) {
             T ^= GET_WORD(ks, i);
           }
