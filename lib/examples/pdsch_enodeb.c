@@ -917,8 +917,8 @@ int main(int argc, char **argv) {
           /* Encode PDCCH */
           INFO("Putting DCI to location: n=%d, L=%d\n", locations[sf_idx][0].ncce, locations[sf_idx][0].L);
 
-          dci_msg.location = locations[sf_idx][0];
           srslte_dci_msg_pack_pdsch(&cell, &dl_sf, NULL, &dci_dl, &dci_msg);
+          dci_msg.location = locations[sf_idx][0];
           if (srslte_pdcch_encode(&pdcch, &dl_sf, &dci_msg, sf_symbols)) {
             ERROR("Error encoding DCI message\n");
             exit(-1);
