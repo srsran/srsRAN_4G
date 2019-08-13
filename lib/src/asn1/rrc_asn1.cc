@@ -1366,7 +1366,7 @@ SRSASN_CODE sl_pssch_tx_cfg_r14_s::pack(bit_ref& bref) const
   HANDLE_CODE(params_below_thres_r14.pack(bref));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= params_above_thres_v1530.is_present();
     group_flags[0] |= params_below_thres_v1530.is_present();
     group_flags.pack(bref);
@@ -1399,7 +1399,7 @@ SRSASN_CODE sl_pssch_tx_cfg_r14_s::unpack(bit_ref& bref)
   HANDLE_CODE(params_below_thres_r14.unpack(bref));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -2173,7 +2173,7 @@ SRSASN_CODE sl_comm_res_pool_v2x_r14_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= sl_min_t2_value_list_r15.is_present();
     group_flags[0] |= cbr_pssch_tx_cfg_list_v1530.is_present();
     group_flags.pack(bref);
@@ -2252,7 +2252,7 @@ SRSASN_CODE sl_comm_res_pool_v2x_r14_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -2404,7 +2404,7 @@ SRSASN_CODE sl_sync_cfg_nfreq_r13_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= sync_offset_ind_v1430_present;
     group_flags[0] |= gnss_sync_r14_present;
     group_flags[1] |= sync_offset_ind2_r14_present;
@@ -2467,7 +2467,7 @@ SRSASN_CODE sl_sync_cfg_nfreq_r13_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(3);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -2882,7 +2882,7 @@ SRSASN_CODE sl_disc_res_pool_r12_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= disc_period_v1310.is_present();
     group_flags[0] |= rx_params_add_neigh_freq_r13.is_present();
     group_flags[0] |= tx_params_add_neigh_freq_r13.is_present();
@@ -2944,7 +2944,7 @@ SRSASN_CODE sl_disc_res_pool_r12_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -4673,7 +4673,7 @@ SRSASN_CODE rach_ce_level_info_r13_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_enum(bref, rar_hop_cfg_r13));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= edt_params_r15.is_present();
     group_flags.pack(bref);
 
@@ -4704,7 +4704,7 @@ SRSASN_CODE rach_ce_level_info_r13_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_enum(rar_hop_cfg_r13, bref));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -6544,7 +6544,7 @@ SRSASN_CODE sl_inter_freq_info_v2x_r14_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= add_spec_emission_v2x_r14.is_present();
     group_flags[1] |= v2x_freq_sel_cfg_list_r15.is_present();
     group_flags.pack(bref);
@@ -6595,7 +6595,7 @@ SRSASN_CODE sl_inter_freq_info_v2x_r14_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -6876,7 +6876,7 @@ SRSASN_CODE sl_sync_cfg_r12_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= sync_tx_periodic_r13_present;
     group_flags[1] |= sync_offset_ind_v1430_present;
     group_flags[1] |= gnss_sync_r14_present;
@@ -6942,7 +6942,7 @@ SRSASN_CODE sl_sync_cfg_r12_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(4);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -8100,7 +8100,7 @@ SRSASN_CODE carrier_freq_utra_fdd_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_unalign_integer(bref, q_qual_min, (int8_t)-24, (int8_t)0));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= thresh_x_q_r9.is_present();
     group_flags.pack(bref);
 
@@ -8132,7 +8132,7 @@ SRSASN_CODE carrier_freq_utra_fdd_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_unalign_integer(q_qual_min, bref, (int8_t)-24, (int8_t)0));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -9013,7 +9013,7 @@ SRSASN_CODE inter_freq_carrier_freq_info_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= q_qual_min_r9_present;
     group_flags[0] |= thresh_x_q_r9.is_present();
     group_flags[1] |= q_qual_min_wb_r11_present;
@@ -9081,7 +9081,7 @@ SRSASN_CODE inter_freq_carrier_freq_info_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -9703,7 +9703,7 @@ SRSASN_CODE mbsfn_area_info_r9_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_enum(bref, mcch_cfg_r9.sig_mcs_r9));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= mcch_cfg_r14.is_present();
     group_flags[0] |= subcarrier_spacing_mbms_r14_present;
     group_flags.pack(bref);
@@ -9743,7 +9743,7 @@ SRSASN_CODE mbsfn_area_info_r9_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_enum(mcch_cfg_r9.sig_mcs_r9, bref));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -10719,7 +10719,7 @@ SRSASN_CODE rach_cfg_common_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_unalign_integer(bref, max_harq_msg3_tx, (uint8_t)1, (uint8_t)8));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= preamb_trans_max_ce_r13_present;
     group_flags[0] |= rach_ce_level_info_list_r13.is_present();
     group_flags[1] |= edt_small_tbs_subset_r15_present;
@@ -10763,7 +10763,7 @@ SRSASN_CODE rach_cfg_common_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_unalign_integer(max_harq_msg3_tx, bref, (uint8_t)1, (uint8_t)8));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -11212,7 +11212,7 @@ SRSASN_CODE sl_comm_res_pool_r12_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= prio_list_r13.is_present();
     group_flags.pack(bref);
 
@@ -11259,7 +11259,7 @@ SRSASN_CODE sl_comm_res_pool_r12_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -12608,7 +12608,7 @@ SRSASN_CODE rr_cfg_common_sib_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_enum(bref, ul_cp_len));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= ul_pwr_ctrl_common_v1020.is_present();
     group_flags[1] |= rach_cfg_common_v1250.is_present();
     group_flags[2] |= pusch_cfg_common_v1270.is_present();
@@ -12738,7 +12738,7 @@ SRSASN_CODE rr_cfg_common_sib_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_enum(ul_cp_len, bref));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(6);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -14045,7 +14045,7 @@ SRSASN_CODE ue_timers_and_consts_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_enum(bref, n311));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= t300_v1310_present;
     group_flags[0] |= t301_v1310_present;
     group_flags[1] |= t310_v1330_present;
@@ -14094,7 +14094,7 @@ SRSASN_CODE ue_timers_and_consts_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_enum(n311, bref));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(3);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -14541,7 +14541,7 @@ SRSASN_CODE sib_type12_r9_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= warning_area_coordinates_segment_r15_present;
     group_flags.pack(bref);
 
@@ -14575,7 +14575,7 @@ SRSASN_CODE sib_type12_r9_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -14624,7 +14624,7 @@ SRSASN_CODE sib_type13_r9_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= notif_cfg_v1430.is_present();
     group_flags.pack(bref);
 
@@ -14651,7 +14651,7 @@ SRSASN_CODE sib_type13_r9_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -14704,7 +14704,7 @@ SRSASN_CODE sib_type14_r11_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= eab_per_rsrp_r15_present;
     group_flags.pack(bref);
 
@@ -14733,7 +14733,7 @@ SRSASN_CODE sib_type14_r11_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -14907,7 +14907,7 @@ SRSASN_CODE sib_type15_r11_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= mbms_sai_inter_freq_list_v1140.is_present();
     group_flags[1] |= mbms_intra_freq_carrier_type_r14.is_present();
     group_flags[1] |= mbms_inter_freq_carrier_type_list_r14.is_present();
@@ -14954,7 +14954,7 @@ SRSASN_CODE sib_type15_r11_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -15056,7 +15056,7 @@ SRSASN_CODE sib_type16_r11_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= time_ref_info_r15.is_present();
     group_flags.pack(bref);
 
@@ -15097,7 +15097,7 @@ SRSASN_CODE sib_type16_r11_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -15217,7 +15217,7 @@ SRSASN_CODE sib_type18_r12_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= comm_tx_pool_normal_common_ext_r13.is_present();
     group_flags[0] |= comm_tx_res_uc_req_allowed_r13_present;
     group_flags[0] |= comm_tx_allow_relay_common_r13_present;
@@ -15262,7 +15262,7 @@ SRSASN_CODE sib_type18_r12_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -15367,7 +15367,7 @@ SRSASN_CODE sib_type19_r12_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= disc_cfg_v1310.is_present();
     group_flags[0] |= disc_cfg_relay_r13.is_present();
     group_flags[0] |= disc_cfg_ps_minus13.is_present();
@@ -15432,7 +15432,7 @@ SRSASN_CODE sib_type19_r12_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -15594,7 +15594,7 @@ SRSASN_CODE sib_type2_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_enum(bref, time_align_timer_common));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= late_non_crit_ext_present;
     group_flags[1] |= ssac_barr_for_mmtel_voice_r9.is_present();
     group_flags[1] |= ssac_barr_for_mmtel_video_r9.is_present();
@@ -15757,7 +15757,7 @@ SRSASN_CODE sib_type2_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_enum(time_align_timer_common, bref));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(11);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -16046,7 +16046,7 @@ SRSASN_CODE sib_type20_r13_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= br_bcch_cfg_r14.is_present();
     group_flags[0] |= sc_mcch_sched_info_r14.is_present();
     group_flags[0] |= pdsch_max_num_repeat_cemode_a_sc_mtch_r14_present;
@@ -16110,7 +16110,7 @@ SRSASN_CODE sib_type20_r13_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -16755,7 +16755,7 @@ SRSASN_CODE sib_type3_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= late_non_crit_ext_present;
     group_flags[1] |= s_intra_search_v920.is_present();
     group_flags[1] |= s_non_intra_search_v920.is_present();
@@ -16918,7 +16918,7 @@ SRSASN_CODE sib_type3_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(9);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -17184,7 +17184,7 @@ SRSASN_CODE sib_type4_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= late_non_crit_ext_present;
     group_flags[1] |= intra_freq_neigh_hsdn_cell_list_r15.is_present();
     group_flags.pack(bref);
@@ -17223,7 +17223,7 @@ SRSASN_CODE sib_type4_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -17287,7 +17287,7 @@ SRSASN_CODE sib_type5_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_dyn_seq_of(bref, inter_freq_carrier_freq_list, 1, 8));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= late_non_crit_ext_present;
     group_flags[1] |= inter_freq_carrier_freq_list_v1250.is_present();
     group_flags[1] |= inter_freq_carrier_freq_list_ext_r12.is_present();
@@ -17393,7 +17393,7 @@ SRSASN_CODE sib_type5_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_dyn_seq_of(inter_freq_carrier_freq_list, bref, 1, 8));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(8);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -17615,7 +17615,7 @@ SRSASN_CODE sib_type6_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= late_non_crit_ext_present;
     group_flags[1] |= carrier_freq_list_utra_fdd_v1250.is_present();
     group_flags[1] |= carrier_freq_list_utra_tdd_v1250.is_present();
@@ -17670,7 +17670,7 @@ SRSASN_CODE sib_type6_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -17875,7 +17875,7 @@ SRSASN_CODE sib_type8_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= late_non_crit_ext_present;
     group_flags[1] |= csfb_support_for_dual_rx_ues_r9_present;
     group_flags[1] |= cell_resel_params_hrpd_v920.is_present();
@@ -17968,7 +17968,7 @@ SRSASN_CODE sib_type8_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(4);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -21139,7 +21139,7 @@ SRSASN_CODE csi_rs_cfg_nzp_r11_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= csi_rs_cfg_nzp_id_v1310_present;
     group_flags[1] |= tx_comb_r14_present;
     group_flags[1] |= freq_density_r14_present;
@@ -21197,7 +21197,7 @@ SRSASN_CODE csi_rs_cfg_nzp_r11_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(3);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -21393,7 +21393,7 @@ SRSASN_CODE nzp_res_cfg_r13_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_unalign_integer(bref, res_cfg_r13, (uint8_t)0, (uint8_t)31));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= tx_comb_r14_present;
     group_flags[0] |= freq_density_r14_present;
     group_flags.pack(bref);
@@ -21419,7 +21419,7 @@ SRSASN_CODE nzp_res_cfg_r13_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_unalign_integer(res_cfg_r13, bref, (uint8_t)0, (uint8_t)31));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -23010,7 +23010,7 @@ SRSASN_CODE cqi_report_periodic_proc_ext_r11_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= cri_report_cfg_r13.is_present();
     group_flags[1] |= periodicity_factor_wb_r13_present;
     group_flags.pack(bref);
@@ -23051,7 +23051,7 @@ SRSASN_CODE cqi_report_periodic_proc_ext_r11_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -23312,7 +23312,7 @@ SRSASN_CODE csi_im_cfg_r11_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_unalign_integer(bref, sf_cfg_r11, (uint8_t)0, (uint8_t)154));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= interference_meas_restrict_r13_present;
     group_flags.pack(bref);
 
@@ -23335,7 +23335,7 @@ SRSASN_CODE csi_im_cfg_r11_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_unalign_integer(sf_cfg_r11, bref, (uint8_t)0, (uint8_t)154));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -23372,7 +23372,7 @@ SRSASN_CODE csi_im_cfg_ext_r12_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_unalign_integer(bref, sf_cfg_r12, (uint8_t)0, (uint8_t)154));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= interference_meas_restrict_r13_present;
     group_flags[0] |= csi_im_cfg_id_v1310_present;
     group_flags.pack(bref);
@@ -23400,7 +23400,7 @@ SRSASN_CODE csi_im_cfg_ext_r12_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_unalign_integer(sf_cfg_r12, bref, (uint8_t)0, (uint8_t)154));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -23458,7 +23458,7 @@ SRSASN_CODE csi_process_r11_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= alternative_codebook_enabled_for4_tx_proc_r12_present;
     group_flags[0] |= csi_im_cfg_id_list_r12.is_present();
     group_flags[0] |= cqi_report_aperiodic_proc2_r12.is_present();
@@ -23563,7 +23563,7 @@ SRSASN_CODE csi_process_r11_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(5);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -26788,7 +26788,7 @@ SRSASN_CODE epdcch_set_cfg_r11_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= csi_rs_cfg_zp_id2_r12.is_present();
     group_flags[1] |= num_prb_pairs_v1310.is_present();
     group_flags[1] |= mpdcch_cfg_r13.is_present();
@@ -26833,7 +26833,7 @@ SRSASN_CODE epdcch_set_cfg_r11_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -27338,7 +27338,7 @@ SRSASN_CODE lc_ch_cfg_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= lc_ch_sr_mask_r9_present;
     group_flags[1] |= lc_ch_sr_prohibit_r12_present;
     group_flags[2] |= laa_ul_allowed_r14_present;
@@ -27413,7 +27413,7 @@ SRSASN_CODE lc_ch_cfg_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(4);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -27698,7 +27698,7 @@ SRSASN_CODE pdsch_re_map_qcl_cfg_r11_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= mbsfn_sf_cfg_list_v1430.is_present();
     group_flags[1] |= codeword_one_cfg_v1530.is_present();
     group_flags.pack(bref);
@@ -27744,7 +27744,7 @@ SRSASN_CODE pdsch_re_map_qcl_cfg_r11_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -29091,7 +29091,7 @@ SRSASN_CODE crs_assist_info_r11_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_dyn_seq_of(bref, mbsfn_sf_cfg_list_r11, 1, 8));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= mbsfn_sf_cfg_list_v1430.is_present();
     group_flags.pack(bref);
 
@@ -29114,7 +29114,7 @@ SRSASN_CODE crs_assist_info_r11_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_dyn_seq_of(mbsfn_sf_cfg_list_r11, bref, 1, 8));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -29165,7 +29165,7 @@ SRSASN_CODE crs_assist_info_r13_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= mbsfn_sf_cfg_list_v1430.is_present();
     group_flags.pack(bref);
 
@@ -29192,7 +29192,7 @@ SRSASN_CODE crs_assist_info_r13_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -29851,7 +29851,7 @@ SRSASN_CODE pdcp_cfg_s::pack(bit_ref& bref) const
   HANDLE_CODE(hdr_compress.pack(bref));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= rn_integrity_protection_r10_present;
     group_flags[1] |= pdcp_sn_size_v1130_present;
     group_flags[2] |= ul_data_split_drb_via_scg_r12_present;
@@ -29951,7 +29951,7 @@ SRSASN_CODE pdcp_cfg_s::unpack(bit_ref& bref)
   HANDLE_CODE(hdr_compress.unpack(bref));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(6);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -31415,7 +31415,7 @@ SRSASN_CODE sps_cfg_ul_c::setup_s_::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= p0_persistent_sf_set2_r12.is_present();
     group_flags[1] |= nof_conf_ul_sps_processes_r13_present;
     group_flags[2] |= fixed_rv_non_adaptive_r14_present;
@@ -31503,7 +31503,7 @@ SRSASN_CODE sps_cfg_ul_c::setup_s_::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(4);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -33859,7 +33859,7 @@ SRSASN_CODE drb_to_add_mod_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= drb_type_change_r12_present;
     group_flags[0] |= rlc_cfg_v1250.is_present();
     group_flags[1] |= rlc_cfg_v1310.is_present();
@@ -33974,7 +33974,7 @@ SRSASN_CODE drb_to_add_mod_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(5);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -38311,7 +38311,7 @@ SRSASN_CODE sps_cfg_dl_c::setup_s_::pack(bit_ref& bref) const
   HANDLE_CODE(pack_dyn_seq_of(bref, n1_pucch_an_persistent_list, 1, 4, UnalignedIntegerPacker<uint16_t>(0, 2047)));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= two_ant_port_activ_r10.is_present();
     group_flags.pack(bref);
 
@@ -38334,7 +38334,7 @@ SRSASN_CODE sps_cfg_dl_c::setup_s_::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_dyn_seq_of(n1_pucch_an_persistent_list, bref, 1, 4, UnalignedIntegerPacker<uint16_t>(0, 2047)));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -38445,7 +38445,7 @@ SRSASN_CODE srb_to_add_mod_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= pdcp_ver_change_r15_present;
     group_flags[0] |= rlc_cfg_v1530.is_present();
     group_flags[0] |= rlc_bearer_cfg_dupl_r15.is_present();
@@ -38487,7 +38487,7 @@ SRSASN_CODE srb_to_add_mod_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -39864,7 +39864,7 @@ SRSASN_CODE mac_main_cfg_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= sr_prohibit_timer_r9_present;
     group_flags[1] |= mac_main_cfg_v1020.is_present();
     group_flags[2] |= stag_to_release_list_r11.is_present();
@@ -40026,7 +40026,7 @@ SRSASN_CODE mac_main_cfg_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(9);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -41296,7 +41296,7 @@ SRSASN_CODE phys_cfg_ded_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= cqi_report_cfg_v920.is_present();
     group_flags[0] |= ant_info_v920.is_present();
     group_flags[1] |= ant_info_r10.is_present();
@@ -41757,7 +41757,7 @@ SRSASN_CODE phys_cfg_ded_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(11);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -43316,7 +43316,7 @@ SRSASN_CODE rlf_timers_and_consts_r13_c::setup_s_::pack(bit_ref& bref) const
   HANDLE_CODE(pack_enum(bref, t301_v1310));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= t310_v1330_present;
     group_flags.pack(bref);
 
@@ -43337,7 +43337,7 @@ SRSASN_CODE rlf_timers_and_consts_r13_c::setup_s_::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_enum(t301_v1310, bref));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -43768,7 +43768,7 @@ SRSASN_CODE idle_mode_mob_ctrl_info_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= freq_prio_list_ext_eutra_r12.is_present();
     group_flags[1] |= freq_prio_list_eutra_v1310.is_present();
     group_flags[1] |= freq_prio_list_ext_eutra_v1310.is_present();
@@ -43840,7 +43840,7 @@ SRSASN_CODE idle_mode_mob_ctrl_info_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(3);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -44171,7 +44171,7 @@ SRSASN_CODE rr_cfg_ded_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= rlf_timers_and_consts_r9.is_present();
     group_flags[1] |= meas_sf_pattern_pcell_r10.is_present();
     group_flags[2] |= neigh_cells_crs_info_r11.is_present();
@@ -44310,7 +44310,7 @@ SRSASN_CODE rr_cfg_ded_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(7);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -48996,7 +48996,7 @@ SRSASN_CODE phys_cfg_ded_scell_r10_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= csi_rs_cfg_nzp_to_release_list_r11.is_present();
     group_flags[0] |= csi_rs_cfg_nzp_to_add_mod_list_r11.is_present();
     group_flags[0] |= csi_rs_cfg_zp_to_release_list_r11.is_present();
@@ -49370,7 +49370,7 @@ SRSASN_CODE phys_cfg_ded_scell_r10_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(8);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -50927,7 +50927,7 @@ SRSASN_CODE rr_cfg_common_scell_r10_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= ul_carrier_freq_v1090_present;
     group_flags[1] |= rach_cfg_common_scell_r11.is_present();
     group_flags[1] |= prach_cfg_scell_r11.is_present();
@@ -51101,7 +51101,7 @@ SRSASN_CODE rr_cfg_common_scell_r10_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(7);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -51394,7 +51394,7 @@ SRSASN_CODE rr_cfg_ded_scell_r10_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= mac_main_cfg_scell_r11.is_present();
     group_flags[1] |= naics_info_r12.is_present();
     group_flags[2] |= neigh_cells_crs_info_scell_r13.is_present();
@@ -51465,7 +51465,7 @@ SRSASN_CODE rr_cfg_ded_scell_r10_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(5);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -51906,7 +51906,7 @@ SRSASN_CODE drb_to_add_mod_scg_r12_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= rlc_cfg_v1430.is_present();
     group_flags[1] |= lc_ch_id_scg_r15_present;
     group_flags[1] |= rlc_cfg_v1530.is_present();
@@ -51967,7 +51967,7 @@ SRSASN_CODE drb_to_add_mod_scg_r12_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -53312,7 +53312,7 @@ SRSASN_CODE rr_cfg_common_ps_cell_r12_s::pack(bit_ref& bref) const
   HANDLE_CODE(ul_pwr_ctrl_common_ps_cell_r12.pack(bref));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= ul_pwr_ctrl_common_ps_cell_v1310.is_present();
     group_flags[1] |= ul_pwr_ctrl_common_ps_cell_v1530.is_present();
     group_flags.pack(bref);
@@ -53345,7 +53345,7 @@ SRSASN_CODE rr_cfg_common_ps_cell_r12_s::unpack(bit_ref& bref)
   HANDLE_CODE(ul_pwr_ctrl_common_ps_cell_r12.unpack(bref));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -53456,7 +53456,7 @@ SRSASN_CODE rr_cfg_ded_ps_cell_r12_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= neigh_cells_crs_info_ps_cell_r13.is_present();
     group_flags[1] |= sps_cfg_v1430.is_present();
     group_flags[2] |= sps_cfg_v1530.is_present();
@@ -53517,7 +53517,7 @@ SRSASN_CODE rr_cfg_ded_ps_cell_r12_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(3);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -53654,7 +53654,7 @@ SRSASN_CODE scell_to_add_mod_r10_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= dl_carrier_freq_v1090_present;
     group_flags[1] |= ant_info_ded_scell_v10i0.is_present();
     group_flags[2] |= srs_switch_from_serv_cell_idx_r14_present;
@@ -53716,7 +53716,7 @@ SRSASN_CODE scell_to_add_mod_r10_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(4);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -53866,7 +53866,7 @@ SRSASN_CODE scell_to_add_mod_ext_v1430_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= s_cell_state_r15_present;
     group_flags.pack(bref);
 
@@ -53891,7 +53891,7 @@ SRSASN_CODE scell_to_add_mod_ext_v1430_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -54180,7 +54180,7 @@ SRSASN_CODE tunnel_cfg_lwip_r13_s::pack(bit_ref& bref) const
   HANDLE_CODE(ike_id_r13.pack(bref));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= lwip_counter_r13_present;
     group_flags.pack(bref);
 
@@ -54202,7 +54202,7 @@ SRSASN_CODE tunnel_cfg_lwip_r13_s::unpack(bit_ref& bref)
   HANDLE_CODE(ike_id_r13.unpack(bref));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -54251,7 +54251,7 @@ SRSASN_CODE wlan_mob_cfg_r13_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= wlan_suspend_cfg_r14.is_present();
     group_flags.pack(bref);
 
@@ -54285,7 +54285,7 @@ SRSASN_CODE wlan_mob_cfg_r13_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -54348,7 +54348,7 @@ SRSASN_CODE lwa_cfg_r13_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= wt_mac_address_r14_present;
     group_flags.pack(bref);
 
@@ -54377,7 +54377,7 @@ SRSASN_CODE lwa_cfg_r13_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -54474,7 +54474,7 @@ SRSASN_CODE mob_ctrl_info_scg_r12_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= make_before_break_scg_r14_present;
     group_flags[0] |= rach_skip_scg_r14.is_present();
     group_flags.pack(bref);
@@ -54510,7 +54510,7 @@ SRSASN_CODE mob_ctrl_info_scg_r12_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -54574,7 +54574,7 @@ SRSASN_CODE ps_cell_to_add_mod_r12_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= ant_info_ded_ps_cell_v1280.is_present();
     group_flags[1] |= s_cell_idx_r13_present;
     group_flags[2] |= rr_cfg_ded_ps_cell_v1370.is_present();
@@ -54627,7 +54627,7 @@ SRSASN_CODE ps_cell_to_add_mod_r12_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(3);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -55079,7 +55079,7 @@ SRSASN_CODE rr_cfg_ded_scg_r12_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= drb_to_add_mod_list_scg_r15.is_present();
     group_flags.pack(bref);
 
@@ -55112,7 +55112,7 @@ SRSASN_CODE rr_cfg_ded_scg_r12_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -55346,7 +55346,7 @@ SRSASN_CODE sl_v2x_cfg_ded_r14_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= comm_tx_res_v1530.is_present();
     group_flags[0] |= v2x_packet_dupl_cfg_r15.is_present();
     group_flags[0] |= sync_freq_list_r15.is_present();
@@ -55399,7 +55399,7 @@ SRSASN_CODE sl_v2x_cfg_ded_r14_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -56547,7 +56547,7 @@ SRSASN_CODE scg_cfg_part_scg_r12_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= s_cell_to_release_list_scg_ext_r13.is_present();
     group_flags[0] |= s_cell_to_add_mod_list_scg_ext_r13.is_present();
     group_flags[1] |= s_cell_to_add_mod_list_scg_ext_v1370.is_present();
@@ -56627,7 +56627,7 @@ SRSASN_CODE scg_cfg_part_scg_r12_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(4);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -57518,7 +57518,7 @@ SRSASN_CODE sl_comm_cfg_r12_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= comm_tx_res_v1310.is_present();
     group_flags[0] |= comm_tx_allow_relay_ded_r13_present;
     group_flags.pack(bref);
@@ -57548,7 +57548,7 @@ SRSASN_CODE sl_comm_cfg_r12_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -58083,7 +58083,7 @@ SRSASN_CODE sl_disc_cfg_r12_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= disc_tf_idx_list_v1260.is_present();
     group_flags[1] |= disc_tx_res_ps_r13.is_present();
     group_flags[1] |= disc_tx_inter_freq_info_r13.is_present();
@@ -58142,7 +58142,7 @@ SRSASN_CODE sl_disc_cfg_r12_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -61413,7 +61413,7 @@ SRSASN_CODE idc_cfg_r11_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= idc_ind_ul_ca_r11_present;
     group_flags[1] |= idc_hardware_sharing_ind_r13_present;
     group_flags[2] |= idc_ind_mrdc_r15.is_present();
@@ -61452,7 +61452,7 @@ SRSASN_CODE idc_cfg_r11_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(3);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -61768,7 +61768,7 @@ SRSASN_CODE meas_obj_eutra_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= meas_cycle_scell_r10_present;
     group_flags[0] |= meas_sf_pattern_cfg_neigh_r10.is_present();
     group_flags[1] |= wideband_rsrq_meas_r11_present;
@@ -61913,7 +61913,7 @@ SRSASN_CODE meas_obj_eutra_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(6);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -62321,7 +62321,7 @@ SRSASN_CODE meas_obj_nr_r15_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= cell_for_which_to_report_cgi_r15_present;
     group_flags[0] |= derive_ssb_idx_from_cell_r15_present;
     group_flags[0] |= ss_rssi_meas_r15.is_present();
@@ -62385,7 +62385,7 @@ SRSASN_CODE meas_obj_nr_r15_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -62547,7 +62547,7 @@ SRSASN_CODE meas_obj_utra_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= csg_allowed_report_cells_v930.is_present();
     group_flags[1] |= reduced_meas_performance_r12_present;
     group_flags.pack(bref);
@@ -62594,7 +62594,7 @@ SRSASN_CODE meas_obj_utra_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -63778,7 +63778,7 @@ SRSASN_CODE report_cfg_eutra_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_enum(bref, report_amount));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= si_request_for_ho_r9_present;
     group_flags[0] |= ue_rx_tx_time_diff_periodical_r9_present;
     group_flags[1] |= include_location_info_r10_present;
@@ -63939,7 +63939,7 @@ SRSASN_CODE report_cfg_eutra_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_enum(report_amount, bref));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(8);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -64444,7 +64444,7 @@ SRSASN_CODE report_cfg_inter_rat_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_enum(bref, report_amount));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= si_request_for_ho_r9_present;
     group_flags[1] |= report_quant_utra_fdd_r10_present;
     group_flags[2] |= include_location_info_r11_present;
@@ -64536,7 +64536,7 @@ SRSASN_CODE report_cfg_inter_rat_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_enum(report_amount, bref));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(7);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -66319,7 +66319,7 @@ SRSASN_CODE other_cfg_r9_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= idc_cfg_r11.is_present();
     group_flags[0] |= pwr_pref_ind_cfg_r11.is_present();
     group_flags[0] |= obtain_location_cfg_r11.is_present();
@@ -66411,7 +66411,7 @@ SRSASN_CODE other_cfg_r9_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(4);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -68676,7 +68676,7 @@ SRSASN_CODE quant_cfg_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= quant_cfg_utra_v1020.is_present();
     group_flags[1] |= quant_cfg_eutra_v1250.is_present();
     group_flags[2] |= quant_cfg_eutra_v1310.is_present();
@@ -68745,7 +68745,7 @@ SRSASN_CODE quant_cfg_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(4);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -69316,7 +69316,7 @@ SRSASN_CODE rr_cfg_common_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_enum(bref, ul_cp_len));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= ul_pwr_ctrl_common_v1020.is_present();
     group_flags[1] |= tdd_cfg_v1130.is_present();
     group_flags[2] |= pusch_cfg_common_v1270.is_present();
@@ -69475,7 +69475,7 @@ SRSASN_CODE rr_cfg_common_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_enum(ul_cp_len, bref));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(7);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -70493,7 +70493,7 @@ SRSASN_CODE meas_cfg_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= meas_obj_to_add_mod_list_v9e0.is_present();
     group_flags[1] |= allow_interruptions_r11_present;
     group_flags[2] |= meas_scale_factor_r12.is_present();
@@ -70659,7 +70659,7 @@ SRSASN_CODE meas_cfg_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(7);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -71121,7 +71121,7 @@ SRSASN_CODE mob_ctrl_info_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= carrier_freq_v9e0.is_present();
     group_flags[1] |= drb_continue_rohc_r11_present;
     group_flags[2] |= mob_ctrl_info_v2x_r14.is_present();
@@ -71205,7 +71205,7 @@ SRSASN_CODE mob_ctrl_info_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(4);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -77949,7 +77949,7 @@ SRSASN_CODE pmch_cfg_r12_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_enum(bref, mch_sched_period_r12));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= mch_sched_period_v1430_present;
     group_flags.pack(bref);
 
@@ -77972,7 +77972,7 @@ SRSASN_CODE pmch_cfg_r12_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_enum(mch_sched_period_r12, bref));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -80264,7 +80264,7 @@ SRSASN_CODE sc_mtch_info_r13_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= p_a_r13_present;
     group_flags.pack(bref);
 
@@ -80295,7 +80295,7 @@ SRSASN_CODE sc_mtch_info_r13_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -82863,7 +82863,7 @@ SRSASN_CODE meas_result_eutra_s::meas_result_s_::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= add_si_info_r9.is_present();
     group_flags[1] |= primary_plmn_suitable_r12_present;
     group_flags[1] |= meas_result_v1250_present;
@@ -82944,7 +82944,7 @@ SRSASN_CODE meas_result_eutra_s::meas_result_s_::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(5);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -83285,7 +83285,7 @@ SRSASN_CODE meas_result_utra_s::meas_result_s_::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= add_si_info_r9.is_present();
     group_flags[1] |= primary_plmn_suitable_r12_present;
     group_flags.pack(bref);
@@ -83320,7 +83320,7 @@ SRSASN_CODE meas_result_utra_s::meas_result_s_::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -83530,7 +83530,7 @@ SRSASN_CODE location_info_r10_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= vertical_velocity_info_r15.is_present();
     group_flags.pack(bref);
 
@@ -83560,7 +83560,7 @@ SRSASN_CODE location_info_r10_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -85491,7 +85491,7 @@ SRSASN_CODE log_meas_info_r10_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= meas_result_list_eutra_v1090.is_present();
     group_flags[1] |= meas_result_list_mbsfn_r12.is_present();
     group_flags[1] |= meas_result_serv_cell_v1250_present;
@@ -85593,7 +85593,7 @@ SRSASN_CODE log_meas_info_r10_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(5);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -85808,7 +85808,7 @@ SRSASN_CODE meas_result_cell_nr_r15_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= cgi_info_r15.is_present();
     group_flags.pack(bref);
 
@@ -85835,7 +85835,7 @@ SRSASN_CODE meas_result_cell_nr_r15_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -86208,7 +86208,7 @@ SRSASN_CODE conn_est_fail_report_r11_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= meas_result_failed_cell_v1250_present;
     group_flags[0] |= failed_cell_rsrq_type_r12.is_present();
     group_flags[0] |= meas_result_list_eutra_v1250.is_present();
@@ -86299,7 +86299,7 @@ SRSASN_CODE conn_est_fail_report_r11_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(3);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -87077,7 +87077,7 @@ SRSASN_CODE log_meas_report_r10_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_dyn_seq_of(bref, log_meas_info_list_r10, 1, 520));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= log_meas_available_bt_r15_present;
     group_flags[0] |= log_meas_available_wlan_r15_present;
     group_flags.pack(bref);
@@ -87103,7 +87103,7 @@ SRSASN_CODE log_meas_report_r10_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_dyn_seq_of(log_meas_info_list_r10, bref, 1, 520));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -87323,7 +87323,7 @@ SRSASN_CODE meas_result_serv_freq_r10_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= meas_result_scell_v1250_present;
     group_flags[0] |= meas_result_best_neigh_cell_v1250_present;
     group_flags[1] |= meas_result_scell_v1310.is_present();
@@ -87378,7 +87378,7 @@ SRSASN_CODE meas_result_serv_freq_r10_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -87486,7 +87486,7 @@ SRSASN_CODE meas_result_serv_freq_r13_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= meas_result_best_neigh_cell_v1360.is_present();
     group_flags.pack(bref);
 
@@ -87531,7 +87531,7 @@ SRSASN_CODE meas_result_serv_freq_r13_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -88004,7 +88004,7 @@ SRSASN_CODE sl_disc_sys_info_report_r13_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= freq_info_v1370.is_present();
     group_flags.pack(bref);
 
@@ -88094,7 +88094,7 @@ SRSASN_CODE sl_disc_sys_info_report_r13_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -88396,7 +88396,7 @@ SRSASN_CODE ue_radio_paging_info_r12_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= ue_category_dl_v1310_present;
     group_flags[0] |= ce_mode_a_r13_present;
     group_flags[0] |= ce_mode_b_r13_present;
@@ -88440,7 +88440,7 @@ SRSASN_CODE ue_radio_paging_info_r12_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -89162,7 +89162,7 @@ SRSASN_CODE rstd_inter_freq_info_r10_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_unalign_integer(bref, meas_prs_offset_r10, (uint8_t)0, (uint8_t)39));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= carrier_freq_v1090_present;
     group_flags[1] |= meas_prs_offset_r15.is_present();
     group_flags.pack(bref);
@@ -89193,7 +89193,7 @@ SRSASN_CODE rstd_inter_freq_info_r10_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_unalign_integer(meas_prs_offset_r10, bref, (uint8_t)0, (uint8_t)39));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -90087,7 +90087,7 @@ SRSASN_CODE fail_report_scg_r12_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= fail_type_v1290_present;
     group_flags[1] |= meas_result_serv_freq_list_ext_r13.is_present();
     group_flags.pack(bref);
@@ -90123,7 +90123,7 @@ SRSASN_CODE fail_report_scg_r12_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -90307,7 +90307,7 @@ SRSASN_CODE meas_results_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= meas_result_for_ecid_r9.is_present();
     group_flags[1] |= location_info_r10.is_present();
     group_flags[1] |= meas_result_serv_freq_list_r10.is_present();
@@ -90463,7 +90463,7 @@ SRSASN_CODE meas_results_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(8);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -91059,7 +91059,7 @@ SRSASN_CODE rlf_report_r9_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= location_info_r10.is_present();
     group_flags[0] |= failed_pcell_id_r10.is_present();
     group_flags[0] |= reest_cell_id_r10.is_present();
@@ -91219,7 +91219,7 @@ SRSASN_CODE rlf_report_r9_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(7);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -112100,7 +112100,7 @@ SRSASN_CODE ue_eutra_cap_add_xdd_mode_v1060_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= otdoa_positioning_capabilities_r10.is_present();
     group_flags.pack(bref);
 
@@ -112137,7 +112137,7 @@ SRSASN_CODE ue_eutra_cap_add_xdd_mode_v1060_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -113315,7 +113315,7 @@ SRSASN_CODE as_cfg_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_unalign_integer(bref, source_dl_carrier_freq, (uint16_t)0, (uint16_t)65535));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= source_sib_type1_ext_present;
     group_flags[0] |= source_other_cfg_r9.is_present();
     group_flags[1] |= source_scell_cfg_list_r10.is_present();
@@ -113373,7 +113373,7 @@ SRSASN_CODE as_cfg_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_unalign_integer(source_dl_carrier_freq, bref, (uint16_t)0, (uint16_t)65535));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(4);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -113790,7 +113790,7 @@ SRSASN_CODE as_context_v1130_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= sidelink_ue_info_r12_present;
     group_flags[1] |= source_context_en_dc_r15_present;
     group_flags.pack(bref);
@@ -113832,7 +113832,7 @@ SRSASN_CODE as_context_v1130_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -113924,7 +113924,7 @@ SRSASN_CODE candidate_cell_info_r10_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= dl_carrier_freq_v1090_present;
     group_flags[1] |= rsrq_result_v1250_present;
     group_flags[2] |= rs_sinr_result_r13_present;
@@ -113973,7 +113973,7 @@ SRSASN_CODE candidate_cell_info_r10_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(3);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -114046,7 +114046,7 @@ SRSASN_CODE cell_to_add_mod_r12_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= s_cell_idx_r13_present;
     group_flags[0] |= meas_result_cell_to_add_v1310.is_present();
     group_flags.pack(bref);
@@ -114084,7 +114084,7 @@ SRSASN_CODE cell_to_add_mod_r12_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -115163,7 +115163,7 @@ SRSASN_CODE rrm_cfg_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= candidate_cell_info_list_r10.is_present();
     group_flags[1] |= candidate_cell_info_list_nr_r15.is_present();
     group_flags.pack(bref);
@@ -115197,7 +115197,7 @@ SRSASN_CODE rrm_cfg_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -115703,7 +115703,7 @@ SRSASN_CODE meas_result_serv_cell_scg_r12_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_unalign_integer(bref, meas_result_scell_r12.rsrq_result_scell_r12, (uint8_t)0, (uint8_t)34));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= serv_cell_id_r13_present;
     group_flags[0] |= meas_result_scell_v1310.is_present();
     group_flags.pack(bref);
@@ -115732,7 +115732,7 @@ SRSASN_CODE meas_result_serv_cell_scg_r12_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_unalign_integer(meas_result_scell_r12.rsrq_result_scell_r12, bref, (uint8_t)0, (uint8_t)34));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -116672,7 +116672,7 @@ SRSASN_CODE sl_precfg_comm_pool_r12_s::pack(bit_ref& bref) const
   HANDLE_CODE(trpt_subset_r12.pack(bref));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= prio_list_r13.is_present();
     group_flags.pack(bref);
 
@@ -116701,7 +116701,7 @@ SRSASN_CODE sl_precfg_comm_pool_r12_s::unpack(bit_ref& bref)
   HANDLE_CODE(trpt_subset_r12.unpack(bref));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -116817,7 +116817,7 @@ SRSASN_CODE sl_precfg_general_r12_s::pack(bit_ref& bref) const
   HANDLE_CODE(reserved_r12.pack(bref));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= add_spec_emission_v1440_present;
     group_flags.pack(bref);
 
@@ -116850,7 +116850,7 @@ SRSASN_CODE sl_precfg_general_r12_s::unpack(bit_ref& bref)
   HANDLE_CODE(reserved_r12.unpack(bref));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -116927,7 +116927,7 @@ SRSASN_CODE sl_precfg_sync_r12_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_enum(bref, sync_ref_diff_hyst_r12));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= sync_tx_periodic_r13_present;
     group_flags.pack(bref);
 
@@ -116952,7 +116952,7 @@ SRSASN_CODE sl_precfg_sync_r12_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_enum(sync_ref_diff_hyst_r12, bref));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -117027,7 +117027,7 @@ SRSASN_CODE sl_v2x_precfg_comm_pool_r14_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= sl_min_t2_value_list_r15.is_present();
     group_flags[0] |= cbr_pssch_tx_cfg_list_v1530.is_present();
     group_flags.pack(bref);
@@ -117091,7 +117091,7 @@ SRSASN_CODE sl_v2x_precfg_comm_pool_r14_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -117225,7 +117225,7 @@ SRSASN_CODE sl_precfg_v2x_sync_r14_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_enum(bref, sync_ref_diff_hyst_r14));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= slss_tx_disabled_r15_present;
     group_flags.pack(bref);
 
@@ -117248,7 +117248,7 @@ SRSASN_CODE sl_precfg_v2x_sync_r14_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_enum(sync_ref_diff_hyst_r14, bref));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -117286,7 +117286,7 @@ SRSASN_CODE sl_precfg_r12_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_dyn_seq_of(bref, precfg_comm_r12, 1, 4));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= precfg_comm_v1310.is_present();
     group_flags[0] |= precfg_disc_r13.is_present();
     group_flags[0] |= precfg_relay_r13.is_present();
@@ -117327,7 +117327,7 @@ SRSASN_CODE sl_precfg_r12_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_dyn_seq_of(precfg_comm_r12, bref, 1, 4));
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -117450,7 +117450,7 @@ SRSASN_CODE sl_v2x_precfg_freq_info_r14_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= v2x_freq_sel_cfg_list_r15.is_present();
     group_flags.pack(bref);
 
@@ -117496,7 +117496,7 @@ SRSASN_CODE sl_v2x_precfg_freq_info_r14_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
@@ -117579,7 +117579,7 @@ SRSASN_CODE sl_v2x_precfg_r14_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= v2x_packet_dupl_cfg_r15.is_present();
     group_flags[0] |= sync_freq_list_r15.is_present();
     group_flags[0] |= slss_tx_multi_freq_r15_present;
@@ -117622,7 +117622,7 @@ SRSASN_CODE sl_v2x_precfg_r14_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags;
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {

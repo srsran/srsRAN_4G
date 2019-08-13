@@ -907,13 +907,7 @@ void log_invalid_choice_id(uint32_t val, const char* choice_type)
       ext group
 *********************/
 
-ext_groups_header::ext_groups_header()
-{
-  groups.resize(20);
-  std::fill(groups.data(), groups.data() + groups.size(), false);
-}
-
-bool& ext_groups_header::operator[](uint32_t idx)
+bool& ext_groups_packer_guard::operator[](uint32_t idx)
 {
   if (idx >= groups.size()) {
     uint32_t prev_size = groups.size();
@@ -923,7 +917,7 @@ bool& ext_groups_header::operator[](uint32_t idx)
   return groups[idx];
 }
 
-SRSASN_CODE ext_groups_header::pack(bit_ref& bref) const
+SRSASN_CODE ext_groups_packer_guard::pack(asn1::bit_ref& bref) const
 {
   // pack number of groups
   int32_t i = groups.size() - 1;
@@ -942,16 +936,49 @@ SRSASN_CODE ext_groups_header::pack(bit_ref& bref) const
   return SRSASN_SUCCESS;
 }
 
-SRSASN_CODE ext_groups_header::unpack(bit_ref& bref)
+ext_groups_unpacker_guard::ext_groups_unpacker_guard(uint32_t nof_supported_groups_) :
+  nof_supported_groups(nof_supported_groups_)
 {
+  resize(nof_supported_groups);
+}
+
+bool& ext_groups_unpacker_guard::operator[](uint32_t idx)
+{
+  if (idx >= groups.size()) {
+    // only resizes for unknown extensions
+    resize(idx + 1);
+  }
+  return groups[idx];
+}
+
+void ext_groups_unpacker_guard::resize(uint32_t new_size)
+{
+  // always grows
+  uint32_t prev_size = groups.size();
+  groups.resize(std::max(new_size, nof_supported_groups));
+  std::fill(&groups[prev_size], &groups[groups.size()], false);
+}
+
+ext_groups_unpacker_guard::~ext_groups_unpacker_guard()
+{
+  uint32_t remaining = nof_unpacked_groups - std::min(nof_unpacked_groups, nof_supported_groups);
+
+  // consume all unknown extensions
+  while (remaining-- > 0) {
+    varlength_field_unpack_guard scope(*bref_tracker);
+  }
+}
+
+SRSASN_CODE ext_groups_unpacker_guard::unpack(bit_ref& bref)
+{
+  bref_tracker = &bref;
   // unpack nof of ext groups
-  uint32_t nof_groups;
-  HANDLE_CODE(unpack_norm_small_integer(nof_groups, bref));
-  nof_groups += 1;
-  groups.resize(nof_groups);
+  HANDLE_CODE(unpack_norm_small_integer(nof_unpacked_groups, bref));
+  nof_unpacked_groups += 1;
+  resize(nof_unpacked_groups);
 
   // unpack each group presence flag
-  for (uint32_t i = 0; i < nof_groups; ++i) {
+  for (uint32_t i = 0; i < nof_unpacked_groups; ++i) {
     HANDLE_CODE(bref.unpack(groups[i], 1));
   }
   return SRSASN_SUCCESS;

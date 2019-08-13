@@ -922,17 +922,31 @@ copy_ptr<T> make_copy_ptr(const T& t)
       ext group
 *********************/
 
-class ext_groups_header
+class ext_groups_packer_guard
 {
 public:
-  ext_groups_header();
-  bool& operator[](uint32_t idx);
-
+  bool&       operator[](uint32_t idx);
   SRSASN_CODE pack(bit_ref& bref) const;
+
+private:
+  bounded_array<bool, 20> groups;
+};
+
+class ext_groups_unpacker_guard
+{
+public:
+  explicit ext_groups_unpacker_guard(uint32_t nof_supported_groups_);
+  ~ext_groups_unpacker_guard();
+
+  void        resize(uint32_t new_size);
+  bool&       operator[](uint32_t idx);
   SRSASN_CODE unpack(bit_ref& bref);
 
 private:
   bounded_array<bool, 20> groups;
+  const uint32_t          nof_supported_groups;
+  uint32_t                nof_unpacked_groups = 0;
+  bit_ref*                bref_tracker        = nullptr;
 };
 
 /*********************
