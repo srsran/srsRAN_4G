@@ -565,9 +565,8 @@ public:
           phr_cfg.db_pathloss_change = cfg.phr_cfg.setup().dl_pathloss_change.to_number();
         }
       }
-      if (cfg.mac_main_cfg_v1020_present) {
-        typedef asn1::rrc::mac_main_cfg_s::mac_main_cfg_v1020_s_ mac_main_cfg_v1020_t;
-        mac_main_cfg_v1020_t*                                    mac_main_cfg_v1020 = cfg.mac_main_cfg_v1020.get();
+      if (cfg.mac_main_cfg_v1020.is_present()) {
+        asn1::rrc::mac_main_cfg_s::mac_main_cfg_v1020_s_* mac_main_cfg_v1020 = cfg.mac_main_cfg_v1020.get();
         phr_cfg.extended = mac_main_cfg_v1020->extended_phr_r10_present;
       }
       if (cfg.ul_sch_cfg_present) {

@@ -1632,7 +1632,7 @@ void rrc::handle_sib2()
   } else if (args.release >= 12 && sib2->rr_cfg_common.pusch_cfg_common.pusch_cfg_basic.enable64_qam) {
     if (args.ue_category_ul == 5 || args.ue_category_ul == 13) {
       // ASN1 Generator simplifies enable64QAM-v1270 because it is an enumeration that is always true
-      current_phy_cfg.common.rrc_enable_64qam = sib2->rr_cfg_common.pusch_cfg_common_v1270_present;
+      current_phy_cfg.common.rrc_enable_64qam = sib2->rr_cfg_common.pusch_cfg_common_v1270.is_present();
     } else {
       current_phy_cfg.common.rrc_enable_64qam = false;
     }
@@ -2497,15 +2497,8 @@ void rrc::apply_phy_config_dedicated(const phys_cfg_ded_s& phy_cnfg)
     current_cfg->pucch_cfg_ded         = phy_cnfg.pucch_cfg_ded;
   }
 
-  if (phy_cnfg.cqi_report_cfg_pcell_v1250_present) {
-    current_cfg->cqi_report_cfg_pcell_v1250_present = true;
-    current_cfg->cqi_report_cfg_pcell_v1250         = phy_cnfg.cqi_report_cfg_pcell_v1250;
-  }
-
-  if (phy_cnfg.pucch_cfg_ded_v1020_present) {
-    current_cfg->pucch_cfg_ded_v1020_present = true;
-    current_cfg->pucch_cfg_ded_v1020         = phy_cnfg.pucch_cfg_ded_v1020;
-  }
+  current_cfg->cqi_report_cfg_pcell_v1250 = phy_cnfg.cqi_report_cfg_pcell_v1250;
+  current_cfg->pucch_cfg_ded_v1020        = phy_cnfg.pucch_cfg_ded_v1020;
 
   if (phy_cnfg.pusch_cfg_ded_present) {
     current_cfg->pusch_cfg_ded_present = true;
@@ -2632,7 +2625,7 @@ bool rrc::apply_rr_config_dedicated(rr_cfg_ded_s* cnfg)
   if (cnfg->sps_cfg_present) {
     //TODO
   }
-  if (cnfg->rlf_timers_and_consts_r9_present and cnfg->rlf_timers_and_consts_r9->type() == setup_e::setup) {
+  if (cnfg->rlf_timers_and_consts_r9.is_present() and cnfg->rlf_timers_and_consts_r9->type() == setup_e::setup) {
     mac_timers->timer_get(t301)->set(this, cnfg->rlf_timers_and_consts_r9->setup().t301_r9.to_number());
     mac_timers->timer_get(t310)->set(this, cnfg->rlf_timers_and_consts_r9->setup().t310_r9.to_number());
     mac_timers->timer_get(t311)->set(this, cnfg->rlf_timers_and_consts_r9->setup().t311_r9.to_number());

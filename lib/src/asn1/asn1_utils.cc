@@ -83,16 +83,6 @@ void log_error_code(SRSASN_CODE code, const char* filename, int line)
        bit_ref
 *********************/
 
-bit_ref::bit_ref() : ptr(NULL), offset(0), start_ptr(NULL), max_ptr(NULL) {}
-
-bit_ref::bit_ref(uint8_t* start_ptr_, uint32_t max_size_) :
-  ptr(start_ptr_),
-  offset(0),
-  start_ptr(start_ptr_),
-  max_ptr(max_size_ + start_ptr_)
-{
-}
-
 int bit_ref::distance(const bit_ref& other) const
 {
   return ((int)offset - (int)other.offset) + 8 * ((int)(ptr - other.ptr));
@@ -370,10 +360,6 @@ template SRSASN_CODE unpack_unalign_integer<uint16_t>(uint16_t& n, bit_ref& bref
 template SRSASN_CODE unpack_unalign_integer<uint32_t>(uint32_t& n, bit_ref& bref, uint32_t lb, uint32_t ub);
 template SRSASN_CODE unpack_unalign_integer<uint64_t>(uint64_t& n, bit_ref& bref, uint64_t lb, uint64_t ub);
 
-template <class IntType>
-UnalignedIntegerPacker<IntType>::UnalignedIntegerPacker(IntType lb_, IntType ub_) : lb(lb_), ub(ub_)
-{
-}
 template <class IntType>
 SRSASN_CODE UnalignedIntegerPacker<IntType>::pack(bit_ref& bref, IntType n) const
 {
@@ -921,84 +907,54 @@ void log_invalid_choice_id(uint32_t val, const char* choice_type)
       ext group
 *********************/
 
-ext_groups_header::ext_groups_header(uint32_t max_nof_groups, uint32_t nof_nogroups_) : nof_nogroups(nof_nogroups_)
+ext_groups_header::ext_groups_header()
 {
-  if (max_nof_groups > 20) {
-    srsasn_log_print(LOG_LEVEL_ERROR, "increase the size of ext group packer/unpacker\n");
-  }
-  groups.resize(max_nof_groups);
-  for (uint32_t i = 0; i < groups.size(); ++i) {
-    groups[i] = false;
-  }
-  nof_groups = groups.size() + 1; // unset
+  groups.resize(20);
+  std::fill(groups.data(), groups.data() + groups.size(), false);
 }
 
 bool& ext_groups_header::operator[](uint32_t idx)
 {
+  if (idx >= groups.size()) {
+    uint32_t prev_size = groups.size();
+    groups.resize(idx + 1);
+    std::fill(&groups[prev_size], &groups[groups.size()], false);
+  }
   return groups[idx];
-}
-
-SRSASN_CODE ext_groups_header::pack_nof_groups(bit_ref& bref) const
-{
-  nof_groups = 0;
-  for (uint32_t i = 0; i < groups.size(); ++i) {
-    if (groups[i]) {
-      nof_groups = i + 1;
-    }
-  }
-  if (nof_groups > groups.size()) {
-    srsasn_log_print(LOG_LEVEL_ERROR, "Exceeded maximum number of groups (%d>%d)\n", nof_groups, groups.size());
-    return SRSASN_ERROR_ENCODE_FAIL;
-  }
-  HANDLE_CODE(pack_norm_small_integer(bref, nof_groups + nof_nogroups - 1));
-  return SRSASN_SUCCESS;
-}
-
-SRSASN_CODE ext_groups_header::pack_group_flags(bit_ref& bref) const
-{
-  if (nof_groups > groups.size()) {
-    srsasn_log_print(LOG_LEVEL_ERROR, "Exceeded maximum number of groups (%d>%d)\n", nof_groups, groups.size());
-    return SRSASN_ERROR_ENCODE_FAIL;
-  }
-  for (uint32_t i = 0; i < nof_groups; ++i) {
-    HANDLE_CODE(bref.pack(groups[i], 1));
-  }
-  return SRSASN_SUCCESS;
 }
 
 SRSASN_CODE ext_groups_header::pack(bit_ref& bref) const
 {
-  HANDLE_CODE(pack_nof_groups(bref));
-  return pack_group_flags(bref);
-}
-
-SRSASN_CODE ext_groups_header::unpack_nof_groups(bit_ref& bref)
-{
-  HANDLE_CODE(unpack_norm_small_integer(nof_groups, bref));
-  nof_groups += 1 - nof_nogroups;
-  if (nof_groups > groups.size()) {
-    srsasn_log_print(LOG_LEVEL_ERROR, "Exceeded maximum number of groups (%d>%d)\n", nof_groups, groups.size());
-    return SRSASN_ERROR_DECODE_FAIL;
+  // pack number of groups
+  int32_t i = groups.size() - 1;
+  for (; i >= 0; --i) {
+    if (groups[i]) {
+      break;
+    }
   }
-  return SRSASN_SUCCESS;
-}
+  uint32_t nof_groups = (uint32_t)i + 1u;
+  HANDLE_CODE(pack_norm_small_integer(bref, nof_groups - 1));
 
-SRSASN_CODE ext_groups_header::unpack_group_flags(bit_ref& bref)
-{
-  if (nof_groups > groups.size()) {
-    srsasn_log_print(LOG_LEVEL_ERROR, "Exceeded maximum number of groups (%d>%d)\n", nof_groups, groups.size());
-    return SRSASN_ERROR_DECODE_FAIL;
-  }
-  for (uint32_t i = 0; i < nof_groups; ++i) {
-    HANDLE_CODE(bref.unpack(groups[i], 1));
+  // pack each group presence flag
+  for (uint32_t j = 0; j < nof_groups; ++j) {
+    HANDLE_CODE(bref.pack(groups[j], 1));
   }
   return SRSASN_SUCCESS;
 }
 
 SRSASN_CODE ext_groups_header::unpack(bit_ref& bref)
 {
-  HANDLE_CODE(unpack_nof_groups(bref));
-  return unpack_group_flags(bref);
+  // unpack nof of ext groups
+  uint32_t nof_groups;
+  HANDLE_CODE(unpack_norm_small_integer(nof_groups, bref));
+  nof_groups += 1;
+  groups.resize(nof_groups);
+
+  // unpack each group presence flag
+  for (uint32_t i = 0; i < nof_groups; ++i) {
+    HANDLE_CODE(bref.unpack(groups[i], 1));
+  }
+  return SRSASN_SUCCESS;
 }
 
 /*********************

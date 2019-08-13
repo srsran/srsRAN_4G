@@ -1546,7 +1546,7 @@ void rrc::ue::send_connection_setup(bool is_setup)
 
   rr_cfg->drb_to_add_mod_list_present      = false;
   rr_cfg->drb_to_release_list_present      = false;
-  rr_cfg->rlf_timers_and_consts_r9_present = false;
+  rr_cfg->rlf_timers_and_consts_r9.set_present(false);
   rr_cfg->sps_cfg_present                  = false;
   //  rr_cfg->rlf_timers_and_constants_present = false;
 

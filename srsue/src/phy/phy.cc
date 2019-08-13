@@ -461,7 +461,7 @@ void phy::set_config_scell(asn1::rrc::scell_to_add_mod_r10_s* scell_config)
     // Parse radio resource
     if (scell_config->rr_cfg_common_scell_r10_present) {
       rr_cfg_common_scell_r10_s* rr_cfg = &scell_config->rr_cfg_common_scell_r10;
-      cell.frame_type                   = (rr_cfg->tdd_cfg_v1130_present) ? SRSLTE_TDD : SRSLTE_FDD;
+      cell.frame_type                   = (rr_cfg->tdd_cfg_v1130.is_present()) ? SRSLTE_TDD : SRSLTE_FDD;
       cell.nof_prb                      = rr_cfg->non_ul_cfg_r10.dl_bw_r10.to_number();
       cell.nof_ports                    = rr_cfg->non_ul_cfg_r10.ant_info_common_r10.ant_ports_count.to_number();
       cell.phich_length                 = (srslte_phich_length_t)rr_cfg->non_ul_cfg_r10.phich_cfg_r10.phich_dur.value;

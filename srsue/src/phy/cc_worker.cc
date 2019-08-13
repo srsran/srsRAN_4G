@@ -979,7 +979,7 @@ srslte_cqi_report_mode_t cc_worker::aperiodic_mode(cqi_report_mode_aperiodic_e m
 
 void cc_worker::parse_antenna_info(phys_cfg_ded_s* dedicated)
 {
-  if (dedicated->ant_info_r10_present) {
+  if (dedicated->ant_info_r10.is_present()) {
     // Parse Release 10
     ant_info_ded_r10_s::tx_mode_r10_e_::options tx_mode =
         dedicated->ant_info_r10->explicit_value_r10().tx_mode_r10.value;
@@ -1057,7 +1057,7 @@ void cc_worker::parse_pucch_config(phy_interface_rrc_lte::phy_cfg_t* phy_cfg)
     ue_ul_cfg.ul_cfg.pucch.tdd_ack_bundle = false;
   }
 
-  if (dedicated->pucch_cfg_ded_v1020_present) {
+  if (dedicated->pucch_cfg_ded_v1020.is_present()) {
     pucch_cfg_ded_v1020_s* pucch_cfg_ded = dedicated->pucch_cfg_ded_v1020.get();
 
     if (pucch_cfg_ded->pucch_format_r10_present) {
@@ -1230,7 +1230,7 @@ void cc_worker::set_pcell_config(phy_interface_rrc_lte::phy_cfg_t* phy_cfg)
     ue_dl_cfg.cfg.cqi_report.aperiodic_configured = true;
     ue_dl_cfg.cfg.cqi_report.aperiodic_mode       = aperiodic_mode(dedicated->cqi_report_cfg.cqi_report_mode_aperiodic);
   }
-  if (dedicated->cqi_report_cfg_pcell_v1250_present) {
+  if (dedicated->cqi_report_cfg_pcell_v1250.is_present()) {
     auto cqi_report_cfg_pcell_v1250 = dedicated->cqi_report_cfg_pcell_v1250.get();
     if (cqi_report_cfg_pcell_v1250->alt_cqi_table_r12_present) {
       ue_dl_cfg.pdsch_use_tbs_index_alt = true;
@@ -1392,7 +1392,7 @@ void cc_worker::set_scell_config(asn1::rrc::scell_to_add_mod_r10_s* phy_cfg)
         }
       }
 
-      if (phys_cfg_ded_scell_r10->cqi_report_cfg_scell_v1250_present) {
+      if (phys_cfg_ded_scell_r10->cqi_report_cfg_scell_v1250.is_present()) {
         auto cqi_report_cfg_scell = phys_cfg_ded_scell_r10->cqi_report_cfg_scell_v1250.get();
 
         // Enable/disable PDSCH 256QAM
