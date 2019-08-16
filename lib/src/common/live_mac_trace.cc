@@ -166,39 +166,13 @@ void live_mac_trace::send_mac_datagram(uint8_t* pdu, uint32_t pdu_len_bytes, MAC
   memcpy(udp_datagram.msg + offset, MAC_LTE_START_STRING, strlen(MAC_LTE_START_STRING));
   offset += strlen(MAC_LTE_START_STRING);
   
-  /*****************************************************************/
-  /* Context information (same as written by UDP heuristic clients */
-  udp_datagram.msg[offset++] = context->radioType;
-  udp_datagram.msg[offset++] = context->direction;
-  udp_datagram.msg[offset++] = context->rntiType;
-
-  /* RNTI */
-  udp_datagram.msg[offset++] = MAC_LTE_RNTI_TAG;
-  tmp16 = htons(context->rnti);
-  memcpy(udp_datagram.msg + offset, &tmp16, 2);
-  offset += 2;
-
-  /* UEId */
-  udp_datagram.msg[offset++] = MAC_LTE_UEID_TAG;
-  tmp16 = htons(context->ueid);
-  memcpy(udp_datagram.msg + offset, &tmp16, 2);
-  offset += 2;
-
-  /* Subframe Number and System Frame Number */
-  /* SFN is stored in 12 MSB and SF in 4 LSB */
-
-  udp_datagram.msg[offset++] = MAC_LTE_FRAME_SUBFRAME_TAG;
-  tmp16 = (context->sysFrameNumber << 4) | context->subFrameNumber;
-  tmp16 = htons(tmp16);
-  memcpy(udp_datagram.msg + offset, &tmp16, 2);
-  offset += 2;
-
-  /* CRC Status */
-  udp_datagram.msg[offset++] = MAC_LTE_CRC_STATUS_TAG;
-  udp_datagram.msg[offset++] = context->crcStatusOK;
-
-  /* Data tag immediately preceding PDU */
-  udp_datagram.msg[offset++] = MAC_LTE_PAYLOAD_TAG;
+  int ret = lte_pcap_mac_pack_context_to_buffer(context, udp_datagram.msg + offset, udp_datagram.N_bytes - offset);
+  
+  if(ret < 0){
+    printf("Error: Packing went wrong\n");
+  }
+  
+  offset += ret;
 
   /* Write PDU data into buffer */
   if (pdu != NULL) {

@@ -168,6 +168,8 @@ typedef struct S1AP_Context_Info_s {
   // No Context yet
 } S1AP_Context_Info_t;
 
+
+#define PCAP_CONTEXT_HEADER_MAX 256
 /**************************************************************************
  * API functions for opening/closing LTE PCAP files                       *
  **************************************************************************/
@@ -204,6 +206,58 @@ inline void LTE_PCAP_Close(FILE *fd)
     fclose(fd);
 }
 
+/**************************************************************************
+ * API functions for pack MAC-LTE context to a buffer                      *
+ **************************************************************************/
+
+inline int lte_pcap_mac_pack_context_to_buffer(MAC_Context_Info_t *context, uint8_t *pdu, unsigned int length){
+
+    int offset = 0;
+    uint16_t tmp16;
+
+    if (pdu == NULL || length < PCAP_CONTEXT_HEADER_MAX) {
+        printf("Error: Can't write to empty file handle\n");
+        return -1;
+    }
+
+    /*****************************************************************/
+    /* Context information (same as written by UDP heuristic clients */
+    pdu[offset++] = context->radioType;
+    pdu[offset++] = context->direction;
+    pdu[offset++] = context->rntiType;
+
+    /* RNTI */
+    pdu[offset++] = MAC_LTE_RNTI_TAG;
+    tmp16 = htons(context->rnti);
+    memcpy(pdu+offset, &tmp16, 2);
+    offset += 2;
+
+    /* UEId */
+    pdu[offset++] = MAC_LTE_UEID_TAG;
+    tmp16 = htons(context->ueid);
+    memcpy(pdu+offset, &tmp16, 2);
+    offset += 2;
+
+    /* Subframe Number and System Frame Number */
+    /* SFN is stored in 12 MSB and SF in 4 LSB */
+    pdu[offset++] = MAC_LTE_FRAME_SUBFRAME_TAG;
+    tmp16 = (context->sysFrameNumber << 4) | context->subFrameNumber;
+    tmp16 = htons(tmp16);
+    memcpy(pdu+offset, &tmp16, 2);
+    offset += 2;
+
+    /* CRC Status */
+    pdu[offset++] = MAC_LTE_CRC_STATUS_TAG;
+    pdu[offset++] = context->crcStatusOK;
+
+    /* NB-IoT mode tag */
+    pdu[offset++] = MAC_LTE_NB_MODE_TAG;
+    pdu[offset++] = context->nbiotMode;
+
+    /* Data tag immediately preceding PDU */
+    pdu[offset++] = MAC_LTE_PAYLOAD_TAG;
+    return offset;
+}
 
 /**************************************************************************
  * API functions for writing MAC-LTE PCAP files                           *
@@ -214,7 +268,7 @@ inline int LTE_PCAP_MAC_WritePDU(FILE *fd, MAC_Context_Info_t *context,
                                  const unsigned char *PDU, unsigned int length)
 {
     pcaprec_hdr_t packet_header;
-    char context_header[256];
+    uint8_t context_header[PCAP_CONTEXT_HEADER_MAX];
     int offset = 0;
     uint16_t tmp16;
 
@@ -224,43 +278,7 @@ inline int LTE_PCAP_MAC_WritePDU(FILE *fd, MAC_Context_Info_t *context,
         return 0;
     }
 
-    /*****************************************************************/
-    /* Context information (same as written by UDP heuristic clients */
-    context_header[offset++] = context->radioType;
-    context_header[offset++] = context->direction;
-    context_header[offset++] = context->rntiType;
-
-    /* RNTI */
-    context_header[offset++] = MAC_LTE_RNTI_TAG;
-    tmp16 = htons(context->rnti);
-    memcpy(context_header+offset, &tmp16, 2);
-    offset += 2;
-
-    /* UEId */
-    context_header[offset++] = MAC_LTE_UEID_TAG;
-    tmp16 = htons(context->ueid);
-    memcpy(context_header+offset, &tmp16, 2);
-    offset += 2;
-
-    /* Subframe Number and System Frame Number */
-    /* SFN is stored in 12 MSB and SF in 4 LSB */
-    context_header[offset++] = MAC_LTE_FRAME_SUBFRAME_TAG;
-    tmp16 = (context->sysFrameNumber << 4) | context->subFrameNumber;
-    tmp16 = htons(tmp16);
-    memcpy(context_header+offset, &tmp16, 2);
-    offset += 2;
-
-    /* CRC Status */
-    context_header[offset++] = MAC_LTE_CRC_STATUS_TAG;
-    context_header[offset++] = context->crcStatusOK;
-
-    /* NB-IoT mode tag */
-    context_header[offset++] = MAC_LTE_NB_MODE_TAG;
-    context_header[offset++] = context->nbiotMode;
-
-    /* Data tag immediately preceding PDU */
-    context_header[offset++] = MAC_LTE_PAYLOAD_TAG;
-
+    lte_pcap_mac_pack_context_to_buffer(context, context_header, PCAP_CONTEXT_HEADER_MAX);
 
     /****************************************************************/
     /* PCAP Header                                                  */
@@ -325,7 +343,7 @@ inline int LTE_PCAP_RLC_WritePDU(FILE *fd, RLC_Context_Info_t *context,
                                  const unsigned char *PDU, unsigned int length)
 {
     pcaprec_hdr_t packet_header;
-    char context_header[256];
+    char context_header[PCAP_CONTEXT_HEADER_MAX];
     int offset = 0;
     uint16_t tmp16;
 
@@ -436,5 +454,8 @@ inline int LTE_PCAP_S1AP_WritePDU(FILE *fd, S1AP_Context_Info_t *context,
 
     return 1;
 }
+
+
+
 
 #endif // SRSLTE_PCAP_H
