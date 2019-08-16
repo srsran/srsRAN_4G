@@ -672,7 +672,7 @@ static int dci_format1As_pack(
 
   srslte_bit_unpack(dci->pid, &y, HARQ_PID_LEN);
 
-  if (SRSLTE_RNTI_ISUSER(dci->rnti)) {
+  if (!SRSLTE_RNTI_ISUSER(dci->rnti)) {
     if (nof_prb >= 50 && dci->type2_alloc.mode == SRSLTE_RA_TYPE2_DIST) {
       *y++ = dci->type2_alloc.n_gap;
     } else {
