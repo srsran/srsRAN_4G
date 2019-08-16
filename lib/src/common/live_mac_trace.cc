@@ -202,7 +202,7 @@ void live_mac_trace::send_mac_datagram(uint8_t* pdu, uint32_t pdu_len_bytes, MAC
   bytes_sent = sendto(socket_d, udp_datagram.msg, offset, 0, (const struct sockaddr *) &client_addr, sizeof(client_addr));
 
   if (bytes_sent != offset) {
-    printf("Failed to sent MAC UDP Frame (expected %d bytes, sent %d, (errno %d))\n", offset, bytes_sent, errno);
+    printf("Failed to sent MAC UDP Frame (expected %d bytes, sent %zu, (errno %d))\n", offset, bytes_sent, errno);
   }
   bzero(udp_datagram.msg, offset);
   udp_datagram.clear();
