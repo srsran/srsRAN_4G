@@ -45,6 +45,9 @@ uint8_t pdu[] = {0x23, 0x38, 0x1f, 0xa0, 0x45, 0x80, 0x74, 0x21, 0xb1, 0xc4, 0xd
 class test_thread : public thread
 {
 public:
+  test_thread(): thread("TEST_THREAD"){
+  }
+
   void init(char * client_ip_addr_, uint16_t client_udp_port_){
     // Creating socket file descriptor 
     if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) { 
@@ -104,8 +107,8 @@ int main(int argc, char **argv) {
   live_mac_trace mac_trace;
   mac_trace.init(server_ip_addr, server_udp_port, client_ip_addr, client_udp_port);
 
-  test_thread test_threat_a;
-  test_threat_a.init(client_ip_addr, client_udp_port);
+  test_thread test_thread_a;
+  test_thread_a.init(client_ip_addr, client_udp_port);
   mac_trace.write_dl_crnti(pdu, sizeof(pdu), 60128, true, 2133);
-  test_threat_a.stop();
+  test_thread_a.stop();
 }
