@@ -278,7 +278,7 @@ inline int LTE_PCAP_MAC_WritePDU(FILE *fd, MAC_Context_Info_t *context,
         return 0;
     }
 
-    lte_pcap_mac_pack_context_to_buffer(context, context_header, PCAP_CONTEXT_HEADER_MAX);
+    offset = lte_pcap_mac_pack_context_to_buffer(context, context_header, PCAP_CONTEXT_HEADER_MAX);
 
     /****************************************************************/
     /* PCAP Header                                                  */
