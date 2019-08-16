@@ -99,9 +99,9 @@ void ue::start_pcap(srslte::mac_pcap* pcap_)
   pcap = pcap_; 
 }
 
-void ue::start_trace(srslte::live_mac_trace* mac_trace_)
+void ue::start_trace_udp(trace_interface_mac * trace_udp_)
 {
-  mac_trace = mac_trace_;
+  trace_udp = trace_udp_;
 }
 
 uint32_t ue::rl_failure()
@@ -172,8 +172,8 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channe
     pcap->write_ul_crnti(pdu, nof_bytes, rnti, true, last_tti);
   }
 
-  if (mac_trace) {
-    mac_trace->write_ul_crnti(pdu, nof_bytes, rnti, true, last_tti);
+  if (trace_udp) {
+    trace_udp->write_ul_crnti(pdu, nof_bytes, rnti, true, last_tti);
   }
 
   pdus.deallocate(pdu);

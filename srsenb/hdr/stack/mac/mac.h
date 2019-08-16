@@ -63,7 +63,7 @@ public:
   void stop();
   
   void start_pcap(srslte::mac_pcap* pcap_);
-  void start_trace(srslte::live_mac_trace * mac_trace_);
+  void start_trace_udp(trace_interface_mac* trace_udp_);
 
   /******** Interface from PHY (PHY -> MAC) ****************/
   int sr_detected(uint32_t tti, uint16_t rnti) final;
@@ -198,7 +198,7 @@ private:
   srslte::mac_pcap* pcap;
 
   // pointer to MAC over UDP object
-  srslte::live_mac_trace* mac_trace;
+  trace_interface_mac* trace_udp;
   
 
   /* Class to run upper-layer timers with normal priority */

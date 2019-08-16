@@ -49,7 +49,7 @@ public:
   void     reset();
   
   void     start_pcap(srslte::mac_pcap* pcap_);
-  void     start_trace(srslte::live_mac_trace * mac_trace_);
+  void     start_trace_udp(trace_interface_mac * trace_udp_);
   
   void     set_tti(uint32_t tti); 
   
@@ -101,7 +101,7 @@ private:
   mac_metrics_t metrics;
 
   srslte::mac_pcap* pcap = nullptr;
-  srslte::live_mac_trace* mac_trace = nullptr;
+  trace_interface_mac* trace_udp = nullptr;
 
   uint64_t conres_id = 0;
 

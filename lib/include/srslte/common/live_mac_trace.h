@@ -29,15 +29,16 @@
 #define SRSLTE_LIVE_MAC_TRACE_H
 
 
-#include "srslte/common/pcap.h"
 #include "srslte/srslte.h"
+#include "srslte/common/pcap.h"
 #include "srslte/common/threads.h"
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/block_queue.h"
+#include "srslte/interfaces/enb_interfaces.h"
 
 namespace srslte {
 
-class live_mac_trace : thread{
+class live_mac_trace : public thread, public srsenb::trace_interface_mac{
 public:
   live_mac_trace();
   void init(const char * server_ip_addr_, uint16_t server_udp_port_, const char * client_ip_addr_, uint16_t client_udp_port_);
@@ -59,7 +60,7 @@ private:
   bool running;
   byte_buffer_t udp_datagram;
 
-  uint16_t ueid;
+  uint16_t ue_id;
   uint16_t udp_port;
 
   typedef struct{

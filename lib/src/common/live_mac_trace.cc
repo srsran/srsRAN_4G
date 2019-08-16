@@ -35,8 +35,9 @@ live_mac_trace::live_mac_trace() : thread("MAC_LIVE_THREAD")
   pool = byte_buffer_pool::get_instance();
 }
 
+
 void live_mac_trace::init(const char * server_ip_addr_, uint16_t server_udp_port_, const char * client_ip_addr_, uint16_t client_udp_port_){
-  ueid = 0;
+  ue_id = 0;
   socket_d = -1;
   socket_d = socket(AF_INET, SOCK_DGRAM, 0);
   if(socket_d < 0) {
@@ -63,6 +64,8 @@ void live_mac_trace::init(const char * server_ip_addr_, uint16_t server_udp_port
   start();
 }
 
+
+
 void live_mac_trace::run_thread(){
   running = true;
  
@@ -74,6 +77,11 @@ void live_mac_trace::run_thread(){
     }
   }
 }
+
+void live_mac_trace::set_ue_id(uint16_t ue_id) {
+  this->ue_id = ue_id;
+}
+
 
 void live_mac_trace::stop(){
   running = false;
@@ -133,7 +141,7 @@ void live_mac_trace::pack_and_queue(uint8_t* pdu, uint32_t pdu_len_bytes, uint32
   mac_trace_pdu.context.direction = direction;
   mac_trace_pdu.context.rntiType = rnti_type;
   mac_trace_pdu.context.rnti = rnti;
-  mac_trace_pdu.context.ueid = ueid;
+  mac_trace_pdu.context.ueid = ue_id;
   mac_trace_pdu.context.isRetx = reTX;
   mac_trace_pdu.context.crcStatusOK = crc_ok;
   mac_trace_pdu.context.sysFrameNumber = (uint16_t)(tti/10);

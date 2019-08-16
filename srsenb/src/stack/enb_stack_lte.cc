@@ -85,8 +85,8 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
 
   // Set up pcap and trace
   if (args.trace.enable) {
-    live_mac_trace.init(args.trace.src_ip.c_str(), args.trace.src_port, args.trace.dst_ip.c_str(), args.trace.dst_port);
-    mac.start_trace(&live_mac_trace);
+    mac_trace_udp.init(args.trace.src_ip.c_str(), args.trace.src_port, args.trace.dst_ip.c_str(), args.trace.dst_port);
+    mac.start_trace_udp(&mac_trace_udp);
   }
 
 

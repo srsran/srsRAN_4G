@@ -308,6 +308,23 @@ public:
   virtual bool is_mme_connected() = 0;
 };
 
+// Trace interface for MAC (pcap or live trace)
+class trace_interface_mac
+{
+public:
+  virtual void set_ue_id(uint16_t ue_id) = 0;
+
+  virtual void write_ul_crnti(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t crnti, uint32_t reTX, uint32_t tti) = 0;
+  virtual void write_dl_crnti(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t crnti, bool crc_ok, uint32_t tti)   = 0;
+  virtual void write_dl_ranti(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t ranti, bool crc_ok, uint32_t tti)   = 0;
+
+  // SI and BCH only for DL
+  virtual void write_dl_sirnti(uint8_t* pdu, uint32_t pdu_len_bytes, bool crc_ok, uint32_t tti) = 0;
+  virtual void write_dl_bch(uint8_t* pdu, uint32_t pdu_len_bytes, bool crc_ok, uint32_t tti)    = 0;
+  virtual void write_dl_pch(uint8_t* pdu, uint32_t pdu_len_bytes, bool crc_ok, uint32_t tti)    = 0;
+  virtual void write_dl_mch(uint8_t* pdu, uint32_t pdu_len_bytes, bool crc_ok, uint32_t tti)    = 0;
+};
+
 // Combined interface for PHY to access stack (MAC and RRC)
 class stack_interface_phy_lte : public mac_interface_phy_lte
 {
@@ -334,6 +351,9 @@ typedef struct {
   sched_interface::sched_args_t sched;
   int                           link_failure_nof_err;
 } mac_args_t;
+
+
+
 }
 
 #endif // SRSLTE_ENB_INTERFACES_H

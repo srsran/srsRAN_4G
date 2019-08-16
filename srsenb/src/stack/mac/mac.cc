@@ -42,13 +42,13 @@ mac::mac() : timers_db(128), timers_thread(&timers_db), tti(0), last_rnti(0),
              rar_pdu_msg(sched_interface::MAX_RAR_LIST), rar_payload(),
              pdu_process_thread(this)
 {
-  started = false;  
-  pcap = NULL;
-  mac_trace = NULL;
-  phy_h = NULL;
-  rlc_h = NULL;
-  rrc_h = NULL;
-  log_h = NULL;
+  started   = false;
+  pcap      = NULL;
+  trace_udp = NULL;
+  phy_h     = NULL;
+  rlc_h     = NULL;
+  rrc_h     = NULL;
+  log_h     = NULL;
 
   bzero(&locations, sizeof(locations));
   bzero(&cell, sizeof(cell));
@@ -155,13 +155,13 @@ void mac::start_pcap(srslte::mac_pcap* pcap_)
 }
 
 
-void mac::start_trace(srslte::live_mac_trace* mac_trace_)
+void mac::start_trace_udp(trace_interface_mac* trace_udp_)
 {
-  mac_trace = mac_trace_;
+  trace_udp = trace_udp_;
   // Set mac trace in all UEs for UL messages
   for(std::map<uint16_t, ue*>::iterator iter=ue_db.begin(); iter!=ue_db.end(); ++iter) {
     ue *u = iter->second;
-    u->start_trace(mac_trace);
+    u->start_trace_udp(trace_udp);
   }
 }
 
@@ -502,8 +502,8 @@ int mac::rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv)
     ue_db[last_rnti]->start_pcap(pcap);
   }
 
-  if (mac_trace) {
-    ue_db[last_rnti]->start_trace(mac_trace);
+  if (trace_udp) {
+    ue_db[last_rnti]->start_trace_udp(trace_udp);
   }
 
   pthread_rwlock_unlock(&rwlock);
@@ -601,8 +601,8 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
             pcap->write_dl_crnti(dl_sched_res->pdsch[n].data[tb], sched_result.data[i].tbs[tb], rnti, true, tti);
           }
 
-          if (mac_trace) {
-            mac_trace->write_dl_crnti(dl_sched_res->pdsch[n].data[tb], sched_result.data[i].tbs[tb], rnti, true, tti);
+          if (trace_udp) {
+            trace_udp->write_dl_crnti(dl_sched_res->pdsch[n].data[tb], sched_result.data[i].tbs[tb], rnti, true, tti);
           } 
 
         } else {
@@ -636,8 +636,8 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
           dl_sched_res->pdsch[n].data[0], sched_result.rar[i].tbs, dl_sched_res->pdsch[n].dci.rnti, true, tti);
     }
 
-    if (mac_trace) {
-      mac_trace->write_dl_ranti(dl_sched_res->pdsch[n].data[0], sched_result.rar[i].tbs, dl_sched_res->pdsch[n].dci.rnti, true, tti);
+    if (trace_udp) {
+      trace_udp->write_dl_ranti(dl_sched_res->pdsch[n].data[0], sched_result.rar[i].tbs, dl_sched_res->pdsch[n].dci.rnti, true, tti);
     }
     n++;
   }
@@ -655,8 +655,8 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
       if (pcap) {
         pcap->write_dl_sirnti(dl_sched_res->pdsch[n].data[0], sched_result.bc[i].tbs, true, tti);
       }
-      if (mac_trace) {
-        mac_trace->write_dl_sirnti(dl_sched_res->sched_grants[n].data[0], sched_result.bc[i].tbs, true, tti);
+      if (trace_udp) {
+        trace_udp->write_dl_sirnti(dl_sched_res->pdsch[n].data[0], sched_result.bc[i].tbs, true, tti);
       }
 #endif
     } else {
@@ -668,8 +668,8 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
         pcap->write_dl_pch(dl_sched_res->pdsch[n].data[0], sched_result.bc[i].tbs, true, tti);
       }
 
-      if (mac_trace) {
-        mac_trace->write_dl_pch(dl_sched_res->pdsch[n].data[0], sched_result.bc[i].tbs, true, tti);
+      if (trace_udp) {
+        trace_udp->write_dl_pch(dl_sched_res->pdsch[n].data[0], sched_result.bc[i].tbs, true, tti);
       }
     }
 
