@@ -233,21 +233,21 @@ int main(int argc, char **argv) {
         int sss_idx = peak_idx-2*fft_size-(SRSLTE_CP_ISNORM(cp)?SRSLTE_CP_LEN(fft_size, SRSLTE_CP_NORM_LEN):SRSLTE_CP_LEN(fft_size, SRSLTE_CP_EXT_LEN));             
         if (sss_idx >= 0 && sss_idx < flen-fft_size) {
           srslte_sss_m0m1_partial(&sss, &buffer[sss_idx], 3, NULL, &m0, &m0_value, &m1, &m1_value);
-          if (srslte_sss_N_id_1(&sss, m0, m1) != N_id_1) {
+          if (srslte_sss_N_id_1(&sss, m0, m1, m1_value + m0_value) != N_id_1) {
             sss_error2++;            
           }
           INFO("sf_idx = %d\n", srslte_sss_subframe(m0, m1));
-          INFO("Partial N_id_1: %d\n", srslte_sss_N_id_1(&sss, m0, m1));
+          INFO("Partial N_id_1: %d\n", srslte_sss_N_id_1(&sss, m0, m1, m1_value + m0_value));
           srslte_sss_m0m1_diff(&sss, &buffer[sss_idx], &m0, &m0_value, &m1, &m1_value);
-          if (srslte_sss_N_id_1(&sss, m0, m1) != N_id_1) {
+          if (srslte_sss_N_id_1(&sss, m0, m1, m1_value + m0_value) != N_id_1) {
             sss_error3++;            
           }
-          INFO("Diff N_id_1: %d\n", srslte_sss_N_id_1(&sss, m0, m1));
+          INFO("Diff N_id_1: %d\n", srslte_sss_N_id_1(&sss, m0, m1, m1_value + m0_value));
           srslte_sss_m0m1_partial(&sss, &buffer[sss_idx], 1, NULL, &m0, &m0_value, &m1, &m1_value);
-          if (srslte_sss_N_id_1(&sss, m0, m1) != N_id_1) {
+          if (srslte_sss_N_id_1(&sss, m0, m1, m1_value + m0_value) != N_id_1) {
             sss_error1++;     
           }
-          INFO("Full N_id_1: %d\n", srslte_sss_N_id_1(&sss, m0, m1));
+          INFO("Full N_id_1: %d\n", srslte_sss_N_id_1(&sss, m0, m1, m1_value + m0_value));
         }
         
         // Estimate CP 

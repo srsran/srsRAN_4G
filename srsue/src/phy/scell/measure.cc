@@ -70,6 +70,7 @@ void measure::reset()
   mean_rsrq = 0;
   mean_snr  = 0;
   mean_rssi = 0;
+  mean_cfo  = 0;
 }
 
 void measure::set_cell(srslte_cell_t cell)
@@ -99,6 +100,11 @@ float measure::rsrq()
 float measure::snr()
 {
   return mean_snr;
+}
+
+float measure::cfo()
+{
+  return mean_cfo;
 }
 
 uint32_t measure::frame_st_idx()
@@ -196,6 +202,7 @@ measure::ret_code measure::run_subframe(uint32_t sf_idx)
   float rsrp = ue_dl.chest_res.rsrp_neigh;
   float rsrq = ue_dl.chest_res.rsrq;
   float snr  = ue_dl.chest_res.snr_db;
+  float cfo  = ue_dl.chest_res.cfo;
   float rssi = srslte_vec_avg_power_cf(buffer[0], (uint32_t)SRSLTE_SF_LEN_PRB(current_prb));
 
   if (cnt == 0) {
@@ -203,11 +210,13 @@ measure::ret_code measure::run_subframe(uint32_t sf_idx)
     mean_rsrq = rsrq;
     mean_snr  = snr;
     mean_rssi = rssi;
+    mean_cfo  = cfo;
   } else {
     mean_rsrp = SRSLTE_VEC_CMA(rsrp, mean_rsrp, cnt);
     mean_rsrq = SRSLTE_VEC_CMA(rsrq, mean_rsrq, cnt);
     mean_snr  = SRSLTE_VEC_CMA(snr, mean_snr, cnt);
     mean_rssi = SRSLTE_VEC_CMA(rssi, mean_rssi, cnt);
+    mean_cfo  = SRSLTE_VEC_CMA(cfo, mean_cfo, cnt);
   }
   cnt++;
 

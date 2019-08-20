@@ -271,6 +271,11 @@ bool srslte_sync_sss_detected(srslte_sync_t* q)
   return q->sss_detected;
 }
 
+float srslte_sync_sss_correlation_peak(srslte_sync_t* q)
+{
+  return q->sss_corr;
+}
+
 bool srslte_sync_sss_available(srslte_sync_t* q)
 {
   return q->sss_available;
@@ -544,11 +549,12 @@ static bool sync_sss_symbol(srslte_sync_t* q, const cf_t* input, uint32_t* sf_id
 
     *corr   = q->m0_value + q->m1_value;
     *sf_idx = srslte_sss_subframe(q->m0, q->m1);
-    ret     = srslte_sss_N_id_1(&q->sss, q->m0, q->m1);
+    ret     = srslte_sss_N_id_1(&q->sss, q->m0, q->m1, *corr);
     if (ret >= 0) {
       *N_id_1 = (uint32_t)ret;
-      INFO("SSS detected N_id_1=%d, sf_idx=%d, %s CP\n",
+      INFO("SSS detected N_id_1=%d (corr=%7.1f), sf_idx=%d, %s CP\n",
            *N_id_1,
+           *corr,
            *sf_idx,
            SRSLTE_CP_ISNORM(q->cp) ? "Normal" : "Extended");
       return true;
@@ -741,6 +747,7 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, const cf_t *input, uin
           }
 
           q->sss_available = true;
+          q->sss_detected  = false;
           for (uint32_t f = 0; f < nof_frame_type_trials; f++) {
             if (frame_type_trials[f] == SRSLTE_FDD) {
               sss_idx = (int)find_offset + peak_pos - 2 * SRSLTE_SYMBOL_SZ(q->fft_size, q->cp) +
@@ -766,7 +773,9 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, const cf_t *input, uin
                 }
                 sss_ptr = q->sss_filt;
               }
-              q->sss_detected = sync_sss_symbol(q, sss_ptr, &sf_idx[f], &N_id_1[f], &sss_corr[f]);
+
+              // Consider SSS detected if at least one trial found the SSS
+              q->sss_detected |= sync_sss_symbol(q, sss_ptr, &sf_idx[f], &N_id_1[f], &sss_corr[f]);
             } else {
               q->sss_available = false;
             }
@@ -777,10 +786,12 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, const cf_t *input, uin
               q->frame_type = SRSLTE_FDD;
               q->sf_idx     = sf_idx[0];
               q->N_id_1     = N_id_1[0];
+              q->sss_corr   = sss_corr[0];
             } else {
               q->frame_type = SRSLTE_TDD;
               q->sf_idx     = sf_idx[1] + 1;
               q->N_id_1     = N_id_1[1];
+              q->sss_corr   = sss_corr[1];
             }
             DEBUG("SYNC: Detected SSS %s, corr=%.2f/%.2f\n",
                   q->frame_type == SRSLTE_FDD ? "FDD" : "TDD",
@@ -793,6 +804,7 @@ srslte_sync_find_ret_t srslte_sync_find(srslte_sync_t *q, const cf_t *input, uin
               q->sf_idx = sf_idx[0] + 1;
             }
             q->N_id_1 = N_id_1[0];
+            q->sss_corr = sss_corr[0];
           }
         }
 

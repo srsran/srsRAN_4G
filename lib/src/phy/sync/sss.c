@@ -133,16 +133,22 @@ uint32_t srslte_sss_subframe(uint32_t m0, uint32_t m1) {
 }
 
 /** Returns the N_id_1 value based on the m0 and m1 values */
-int srslte_sss_N_id_1(srslte_sss_t *q, uint32_t m0, uint32_t m1) {
-  int N_id_1 = -1; 
-  if (m1 > m0) {
-    if (m0 < 30 && m1 - 1 < 30) {
-      N_id_1 = q->N_id_1_table[m0][m1 - 1];
+int srslte_sss_N_id_1(srslte_sss_t* q, uint32_t m0, uint32_t m1, float corr)
+{
+  int N_id_1 = SRSLTE_ERROR;
+
+  // Check threshold, consider not found (error) if the correlation is not above the threshold
+  if (corr > q->corr_peak_threshold) {
+    if (m1 > m0) {
+      if (m0 < 30 && m1 - 1 < 30) {
+        N_id_1 = q->N_id_1_table[m0][m1 - 1];
+      }
+    } else {
+      if (m1 < 30 && m0 - 1 < 30) {
+        N_id_1 = q->N_id_1_table[m1][m0 - 1];
+      }
     }
-  } else {
-    if (m1 < 30 && m0 - 1 < 30) {
-      N_id_1 = q->N_id_1_table[m1][m0 - 1];
-    }
-  } 
+  }
+
   return N_id_1;
 }

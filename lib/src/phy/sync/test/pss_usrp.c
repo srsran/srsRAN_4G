@@ -265,20 +265,20 @@ int main(int argc, char **argv) {
           // Filter SSS
           srslte_pss_filter(&pss, &buffer[sss_idx], &buffer[sss_idx]);
 
-          INFO("Full N_id_1: %d\n", srslte_sss_N_id_1(&sss, m0, m1));
+          INFO("Full N_id_1: %d\n", srslte_sss_N_id_1(&sss, m0, m1, m1_value + m0_value));
           srslte_sss_m0m1_partial(&sss, &buffer[sss_idx], 1, ce, &m0, &m0_value, &m1, &m1_value);
-          if (srslte_sss_N_id_1(&sss, m0, m1) != N_id_1) {
+          if (srslte_sss_N_id_1(&sss, m0, m1, m1_value + m0_value) != N_id_1) {
             sss_error2++;            
           }
-          INFO("Partial N_id_1: %d\n", srslte_sss_N_id_1(&sss, m0, m1));
+          INFO("Partial N_id_1: %d\n", srslte_sss_N_id_1(&sss, m0, m1, m1_value + m0_value));
           srslte_sss_m0m1_diff_coh(&sss, &buffer[sss_idx], ce, &m0, &m0_value, &m1, &m1_value);
-          if (srslte_sss_N_id_1(&sss, m0, m1) != N_id_1) {
+          if (srslte_sss_N_id_1(&sss, m0, m1, m1_value + m0_value) != N_id_1) {
             sss_error3++;            
           }
-          INFO("Diff N_id_1: %d\n", srslte_sss_N_id_1(&sss, m0, m1));
+          INFO("Diff N_id_1: %d\n", srslte_sss_N_id_1(&sss, m0, m1, m1_value + m0_value));
         }
         srslte_sss_m0m1_partial(&sss, &buffer[sss_idx], 1, NULL, &m0, &m0_value, &m1, &m1_value);
-        if (srslte_sss_N_id_1(&sss, m0, m1) != N_id_1) {
+        if (srslte_sss_N_id_1(&sss, m0, m1, m1_value + m0_value) != N_id_1) {
           sss_error1++;     
         }
       

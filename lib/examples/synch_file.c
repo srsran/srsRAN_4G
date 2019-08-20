@@ -220,10 +220,15 @@ int main(int argc, char **argv) {
 
         cfo[frame_cnt] = srslte_pss_cfo_compute(&pss[N_id_2], &input[peak_pos[N_id_2]-128]);
         printf("\t%d\t%d\t%d\t%d\t%.3f\t\t%3d\t%d\t%d\t%.3f\n",
-            frame_cnt,N_id_2, srslte_sss_N_id_1(&sss[N_id_2], m0, m1),
-            srslte_sss_subframe(m0, m1), peak_value[N_id_2],
-            peak_pos[N_id_2], m0, m1,
-            cfo[frame_cnt]);
+               frame_cnt,
+               N_id_2,
+               srslte_sss_N_id_1(&sss[N_id_2], m0, m1, m1_value + m0_value),
+               srslte_sss_subframe(m0, m1),
+               peak_value[N_id_2],
+               peak_pos[N_id_2],
+               m0,
+               m1,
+               cfo[frame_cnt]);
       }
     }
     gettimeofday(&tdata[2], NULL);
