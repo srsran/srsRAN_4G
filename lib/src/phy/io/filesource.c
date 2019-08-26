@@ -45,7 +45,7 @@ void srslte_filesource_free(srslte_filesource_t *q) {
 }
 
 void srslte_filesource_seek(srslte_filesource_t *q, int pos) {
-  if (!fseek(q->f, pos, SEEK_SET)){
+  if (fseek(q->f, pos, SEEK_SET) != 0){
     perror("srslte_filesource_seek");
   }
 }
