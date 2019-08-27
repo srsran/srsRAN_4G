@@ -22,9 +22,7 @@
 #ifndef SRSLTE_DELAY_H
 #define SRSLTE_DELAY_H
 
-#include <srslte/config.h>
-#include <srslte/phy/common/timestamp.h>
-#include <srslte/phy/utils/ringbuffer.h>
+#include <srslte/srslte.h>
 
 typedef struct {
   float    delay_min_us;

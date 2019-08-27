@@ -28,8 +28,6 @@
 #include "rlf.h"
 #include <memory>
 #include <srslte/common/log_filter.h>
-#include <srslte/config.h>
-#include <srslte/srslte.h>
 #include <string>
 
 namespace srslte {
