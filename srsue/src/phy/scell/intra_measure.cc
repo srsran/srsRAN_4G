@@ -72,6 +72,9 @@ void intra_measure::init(phy_common* common, rrc_interface_phy_lte* rrc, srslte:
   this->common    = common;
   receive_enabled = false;
 
+  // Initialise Reference signal measurement
+  srslte_refsignal_dl_sync_init(&refsignal_dl_sync);
+
   // Start scell
   scell.init(log_h, common->args->sic_pss_enabled, common->args->intra_freq_meas_len_ms, common);
 
@@ -93,6 +96,7 @@ void intra_measure::stop()
   srslte_ringbuffer_stop(&ring_buffer);
   tti_sync.increase();
   wait_thread_finish();
+  srslte_refsignal_dl_sync_free(&refsignal_dl_sync);
 }
 
 void intra_measure::set_primay_cell(uint32_t earfcn, srslte_cell_t cell)
@@ -187,10 +191,71 @@ void intra_measure::run_thread()
           search_buffer, common->rx_gain_offset, primary_cell, common->args->intra_freq_meas_len_ms, info);
       receiving = false;
 
+      // Look for other cells not found automatically
+      // Using Cell Reference signal synchronization for all known active PCI
+      for (auto q : active_pci) {
+        srslte_cell_t cell = primary_cell;
+        cell.id            = q;
+
+        srslte_refsignal_dl_sync_set_cell(&refsignal_dl_sync, cell);
+        srslte_refsignal_dl_sync_run(
+            &refsignal_dl_sync, search_buffer, common->args->intra_freq_meas_len_ms * current_sflen);
+
+        if (refsignal_dl_sync.found) {
+          Info("INTRA: Found neighbour cell: PCI=%03d, RSRP=%5.1f dBm, RSRQ=%5.1f, peak_idx=%5d, CFO=%+.1fHz\n",
+               cell.id,
+               refsignal_dl_sync.rsrp_dBfs,
+               refsignal_dl_sync.rsrq_dB,
+               refsignal_dl_sync.peak_index,
+               refsignal_dl_sync.cfo_Hz);
+
+          bool     found              = false;
+          float    weakest_rsrp_value = +INFINITY;
+          uint32_t weakest_rsrp_index = 0;
+
+          // Try to find PCI in info list
+          for (int i = 0; i < found_cells && !found; i++) {
+            // Finds cell, update
+            if (info[i].pci == cell.id) {
+              info[i].rsrp   = refsignal_dl_sync.rsrp_dBfs;
+              info[i].rsrq   = refsignal_dl_sync.rsrq_dB;
+              info[i].offset = refsignal_dl_sync.peak_index;
+              found          = true;
+            } else if (weakest_rsrp_value > info[i].rsrp) {
+              // Update weakest
+              weakest_rsrp_value = info[i].rsrp;
+              weakest_rsrp_index = i;
+            }
+          }
+
+          if (!found) {
+            // If number of cells exceeds
+            if (found_cells >= scell_recv::MAX_CELLS) {
+              // overwrite weakest cell if stronger
+              if (refsignal_dl_sync.rsrp_dBfs > weakest_rsrp_value) {
+                info[weakest_rsrp_index].pci    = cell.id;
+                info[weakest_rsrp_index].rsrp   = refsignal_dl_sync.rsrp_dBfs;
+                info[weakest_rsrp_index].rsrq   = refsignal_dl_sync.rsrq_dB;
+                info[weakest_rsrp_index].offset = refsignal_dl_sync.peak_index;
+              } else {
+                // Ignore measurement
+              }
+            } else {
+              // Otherwise append cell
+              info[found_cells].pci    = cell.id;
+              info[found_cells].rsrp   = refsignal_dl_sync.rsrp_dBfs;
+              info[found_cells].rsrq   = refsignal_dl_sync.rsrq_dB;
+              info[found_cells].offset = refsignal_dl_sync.peak_index;
+              found_cells++;
+            }
+          }
+        }
+      }
+
+      // Send measurements to RRC
       for (int i = 0; i < found_cells; i++) {
         rrc->new_phy_meas(info[i].rsrp, info[i].rsrq, measure_tti, current_earfcn, info[i].pci);
       }
-      // Look for other cells not found automatically
     }
   }
 }

@@ -21,6 +21,7 @@
 
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
+#include <c++/7/bits/basic_string.h>
 #include <iostream>
 #include <map>
 #include <memory>
@@ -31,16 +32,18 @@
 #include <vector>
 
 // Common execution parameters
-static uint32_t      duration_execution_s;
-static srslte_cell_t cell_base = {.nof_prb         = 6,
+static uint32_t          duration_execution_s;
+static srslte_cell_t     cell_base = {.nof_prb         = 6,
                                   .nof_ports       = 1,
                                   .id              = 0,
                                   .cp              = SRSLTE_CP_NORM,
                                   .phich_length    = SRSLTE_PHICH_NORM,
                                   .phich_resources = SRSLTE_PHICH_R_1_6,
                                   .frame_type      = SRSLTE_FDD};
-static std::string   intra_meas_log_level;
-static int           phy_lib_log_level;
+static std::string       intra_meas_log_level;
+static std::string       cell_list;
+static int               phy_lib_log_level;
+static srsue::phy_args_t phy_args;
 
 // On the Fly parameters
 static int         earfcn_dl;
@@ -141,7 +144,7 @@ public:
            const srslte_timestamp_t& ts)
   {
 
-    int      ret    = SRSLTE_ERROR;
+    int      ret    = SRSLTE_SUCCESS;
     uint32_t sf_len = SRSLTE_SF_LEN_PRB(enb_dl.cell.nof_prb);
 
     srslte_enb_dl_put_base(&enb_dl, dl_sf);
@@ -150,14 +153,14 @@ public:
     if (dci && dci_cfg && softbuffer_tx && data_tx) {
       if (srslte_enb_dl_put_pdcch_dl(&enb_dl, dci_cfg, dci)) {
         ERROR("Error putting PDCCH sf_idx=%d\n", dl_sf->tti);
-        goto quit;
+        ret = SRSLTE_ERROR;
       }
 
       // Create pdsch config
       srslte_pdsch_cfg_t pdsch_cfg;
       if (srslte_ra_dl_dci_to_grant(&enb_dl.cell, dl_sf, serving_cell_pdsch_tm, false, dci, &pdsch_cfg.grant)) {
         ERROR("Computing DL grant sf_idx=%d\n", dl_sf->tti);
-        goto quit;
+        ret = SRSLTE_ERROR;
       }
       char str[512];
       srslte_dci_dl_info(dci, str, 512);
@@ -176,7 +179,7 @@ public:
 
       if (srslte_enb_dl_put_pdsch(&enb_dl, &pdsch_cfg, data_tx) < 0) {
         ERROR("Error putting PDSCH sf_idx=%d\n", dl_sf->tti);
-        goto quit;
+        ret = SRSLTE_ERROR;
       }
       srslte_pdsch_tx_info(&pdsch_cfg, str, 512);
       INFO("eNb PDSCH: rnti=0x%x, %s\n", serving_cell_pdsch_rnti, str);
@@ -187,22 +190,26 @@ public:
     // Apply channel
     channel->run(signal_buffer, signal_buffer, sf_len, ts);
 
-    // Add to baseband
+    // Combine Tx ports
     for (uint32_t i = 1; i < enb_dl.cell.nof_ports; i++) {
       srslte_vec_sum_ccc(signal_buffer[0], signal_buffer[i], signal_buffer[0], sf_len);
     }
-    if (enb_dl.cell.id != cell_base.id) {
-      srslte_vec_sc_prod_cfc(
-          signal_buffer[0],
-          powf(10.0f, (-ncell_attenuation_dB + (enb_dl.cell.id == cell_id_start + cell_id_step ? 3 : 0)) / 20.0f),
-          signal_buffer[0],
-          sf_len);
+
+    // Undo srslte_enb_dl_gen_signal scaling
+    float scale = sqrt(cell_base.nof_prb) / 0.05f / enb_dl.ifft->symbol_sz;
+
+    // Apply Neighbour cell attenuation
+    if (enb_dl.cell.id != cell_id_start) {
+      float scale_dB = -ncell_attenuation_dB;
+      scale *= powf(10.0f, scale_dB / 20.0f);
     }
+
+    // Scale signal
+    srslte_vec_sc_prod_cfc(signal_buffer[0], scale, signal_buffer[0], sf_len);
+
+    // Add signal to baseband buffer
     srslte_vec_sum_ccc(signal_buffer[0], baseband_buffer, baseband_buffer, sf_len);
 
-    ret = SRSLTE_SUCCESS;
-
-  quit:
     return ret;
   }
 
@@ -223,8 +230,12 @@ class dummy_rrc : public srsue::rrc_interface_phy_lte
 {
 public:
   typedef struct {
-    float    rsrp;
-    float    rsrq;
+    float    rsrp_avg;
+    float    rsrp_min;
+    float    rsrp_max;
+    float    rsrq_avg;
+    float    rsrq_min;
+    float    rsrq_max;
     uint32_t count;
   } cell_meas_t;
 
@@ -235,12 +246,21 @@ public:
   void new_phy_meas(float rsrp, float rsrq, uint32_t tti, int earfcn, int pci) override
   {
     if (!cells.count(pci)) {
-      cells[pci].rsrp  = rsrp;
-      cells[pci].rsrq  = rsrq;
+      cells[pci].rsrp_min = rsrp;
+      cells[pci].rsrp_max = rsrp;
+      cells[pci].rsrp_avg = rsrp;
+      cells[pci].rsrq_min = rsrq;
+      cells[pci].rsrq_max = rsrq;
+      cells[pci].rsrq_avg = rsrq;
       cells[pci].count = 1;
     } else {
-      cells[pci].rsrp = (rsrp + cells[pci].rsrp * cells[pci].count) / (cells[pci].count + 1);
-      cells[pci].rsrq = (rsrq + cells[pci].rsrq * cells[pci].count) / (cells[pci].count + 1);
+      cells[pci].rsrp_min = SRSLTE_MIN(cells[pci].rsrp_min, rsrp);
+      cells[pci].rsrp_max = SRSLTE_MAX(cells[pci].rsrp_max, rsrp);
+      cells[pci].rsrp_avg = (rsrp + cells[pci].rsrp_avg * cells[pci].count) / (cells[pci].count + 1);
+
+      cells[pci].rsrq_min = SRSLTE_MIN(cells[pci].rsrq_min, rsrq);
+      cells[pci].rsrq_max = SRSLTE_MAX(cells[pci].rsrq_max, rsrq);
+      cells[pci].rsrq_avg = (rsrq + cells[pci].rsrq_avg * cells[pci].count) / (cells[pci].count + 1);
       cells[pci].count++;
     }
   }
@@ -257,11 +277,16 @@ public:
         }
       }
 
-      printf("  pci=%03d; count=%3d; false=%s; rsrp=%+.1f\n",
+      printf("  pci=%03d; count=%3d; false=%s; rsrp=%+.1f|%+.1f|%+.1fdBfs;  rsrq=%+.1f|%+.1f|%+.1fdB;\n",
              e.first,
              e.second.count,
              false_alarm ? "y" : "n",
-             e.second.rsrp);
+             e.second.rsrp_min,
+             e.second.rsrp_avg,
+             e.second.rsrp_max,
+             e.second.rsrq_min,
+             e.second.rsrq_avg,
+             e.second.rsrq_max);
     }
   }
 };
@@ -280,39 +305,44 @@ int parse_args(int argc, char** argv)
 
   // clang-format off
   common.add_options()
-      ("duration",             bpo::value<uint32_t >(&duration_execution_s)->default_value(300),         "Duration of the execution in seconds")
-      ("cell.nof_prb",              bpo::value<uint32_t >(&cell_base.nof_prb)->default_value(6),             "Cell Number of PRB")
-      ("intra_meas_log_level", bpo::value<std::string>(&intra_meas_log_level)->default_value("none"),  "Intra measurement log level (none, warning, info, debug)")
-      ("phy_lib_log_level",    bpo::value<int>(&phy_lib_log_level)->default_value(SRSLTE_VERBOSE_NONE), "Phy lib log level (0: none, 1: info, 2: debug)")
+      ("duration",                  bpo::value<uint32_t>(&duration_execution_s)->default_value(60),                "Duration of the execution in seconds")
+      ("cell.nof_prb",              bpo::value<uint32_t>(&cell_base.nof_prb)->default_value(100),                  "Cell Number of PRB")
+      ("intra_meas_log_level",      bpo::value<std::string>(&intra_meas_log_level)->default_value("none"),         "Intra measurement log level (none, warning, info, debug)")
+      ("intra_freq_meas_len_ms",    bpo::value<uint32_t>(&phy_args.intra_freq_meas_len_ms)->default_value(20),     "Intra measurement measurement length")
+      ("intra_freq_meas_period_ms", bpo::value<uint32_t>(&phy_args.intra_freq_meas_period_ms)->default_value(200), "Intra measurement measurement period")
+      ("phy_lib_log_level",         bpo::value<int>(&phy_lib_log_level)->default_value(SRSLTE_VERBOSE_NONE),       "Phy lib log level (0: none, 1: info, 2: debug)")
+      ("cell_list",                 bpo::value<std::string>(&cell_list)->default_value("10,17,24,31,38,45,52"),    "Comma separated neighbour PCI cell list")
       ;
 
   over_the_air.add_options()
-      ("rf.dl_earfcn",   bpo::value<int>(&earfcn_dl)->default_value(-1),                     "DL EARFCN (setting this param enables over-the-air execution)")
-      ("rf.device_name", bpo::value<std::string>(&radio_device_name)->default_value("auto"), "RF Device Name")
-      ("rf.device_args", bpo::value<std::string>(&radio_device_args)->default_value("auto"), "RF Device arguments")
-      ("rf.log_level",   bpo::value<std::string>(&radio_log_level)->default_value("info"),   "RF Log level (none, warning, info, debug)")
-      ("rf.rx_gain",     bpo::value<float>(&rx_gain)->default_value(30.0f),                  "RF Receiver gain in dB")
-      ("radio_log_level",           bpo::value<std::string>(&radio_log_level)->default_value("info"), "RF Log level")
+      ("rf.dl_earfcn",              bpo::value<int>(&earfcn_dl)->default_value(-1),                                "DL EARFCN (setting this param enables over-the-air execution)")
+      ("rf.device_name",            bpo::value<std::string>(&radio_device_name)->default_value("auto"),            "RF Device Name")
+      ("rf.device_args",            bpo::value<std::string>(&radio_device_args)->default_value("auto"),            "RF Device arguments")
+      ("rf.log_level",              bpo::value<std::string>(&radio_log_level)->default_value("info"),              "RF Log level (none, warning, info, debug)")
+      ("rf.rx_gain",                bpo::value<float>(&rx_gain)->default_value(30.0f),                             "RF Receiver gain in dB")
+      ("radio_log_level",           bpo::value<std::string>(&radio_log_level)->default_value("info"),              "RF Log level")
       ;
 
   simulation.add_options()
-      ("nof_enb",                   bpo::value<uint32_t >(&nof_enb)->default_value(3), "Number of eNb")
-      ("cell_id_start",             bpo::value<uint16_t>(&cell_id_start)->default_value(10), "Cell id start")
-      ("cell_id_step",              bpo::value<uint16_t>(&cell_id_step)->default_value(7), "Cell id step")
-      ("cell_cfi",                  bpo::value<uint32_t >(&cfi)->default_value(1), "Cell CFI")
-      ("channel_period_s",          bpo::value<float>(&channel_period_s)->default_value(16.8), "Channel period for HST and delay")
-      ("ncell_attenuation",         bpo::value<float>(&ncell_attenuation_dB)->default_value(3.0f), "Neighbour cell attenuation relative to serving cell in dB")
-      ("channel.hst.fd",            bpo::value<float>(&channel_hst_fd_hz)->default_value(750.0f), "Channel High Speed Train doppler in Hz. Set to 0 for disabling")
-      ("channel.delay_max",         bpo::value<float>(&channel_delay_max_us)->default_value(4.7f), "Maximum simulated delay in microseconds. Set to 0 for disabling")
-      ("channel.log_level",         bpo::value<std::string>(&channel_log_level)->default_value("info"), "Channel simulator logging level")
-      ("serving_cell_pdsch_enable", bpo::value<bool>(&serving_cell_pdsch_enable)->default_value(true), "Enable simulated PDSCH in serving cell")
-      ("serving_cell_pdsch_rnti",   bpo::value<uint16_t >(&serving_cell_pdsch_rnti)->default_value(0x1234), "Simulated PDSCH RNTI")
-      ("serving_cell_pdsch_tm",     bpo::value<int>((int*) &serving_cell_pdsch_tm)->default_value(SRSLTE_TM1), "Simulated Transmission mode 0: TM1, 1: TM2, 2: TM3, 3: TM4")
-      ("serving_cell_pdsch_mcs",    bpo::value<uint16_t >(&serving_cell_pdsch_mcs)->default_value(20), "Simulated PDSCH MCS")
+      ("nof_enb",                   bpo::value<uint32_t >(&nof_enb)->default_value(4),                             "Number of eNb")
+      ("cell_id_start",             bpo::value<uint16_t>(&cell_id_start)->default_value(10),                       "Cell id start")
+      ("cell_id_step",              bpo::value<uint16_t>(&cell_id_step)->default_value(7),                         "Cell id step")
+      ("cell_cfi",                  bpo::value<uint32_t >(&cfi)->default_value(1),                                 "Cell CFI")
+      ("channel_period_s",          bpo::value<float>(&channel_period_s)->default_value(16.8),                     "Channel period for HST and delay")
+      ("ncell_attenuation",         bpo::value<float>(&ncell_attenuation_dB)->default_value(3.0f),                 "Neighbour cell attenuation relative to serving cell in dB")
+      ("channel.hst.fd",            bpo::value<float>(&channel_hst_fd_hz)->default_value(750.0f),                  "Channel High Speed Train doppler in Hz. Set to 0 for disabling")
+      ("channel.delay_max",         bpo::value<float>(&channel_delay_max_us)->default_value(4.7f),                 "Maximum simulated delay in microseconds. Set to 0 for disabling")
+      ("channel.log_level",         bpo::value<std::string>(&channel_log_level)->default_value("info"),            "Channel simulator logging level")
+      ("serving_cell_pdsch_enable", bpo::value<bool>(&serving_cell_pdsch_enable)->default_value(true),             "Enable simulated PDSCH in serving cell")
+      ("serving_cell_pdsch_rnti",   bpo::value<uint16_t >(&serving_cell_pdsch_rnti)->default_value(0x1234),        "Simulated PDSCH RNTI")
+      ("serving_cell_pdsch_tm",     bpo::value<int>((int*) &serving_cell_pdsch_tm)->default_value(SRSLTE_TM1),     "Simulated Transmission mode 0: TM1, 1: TM2, 2: TM3, 3: TM4")
+      ("serving_cell_pdsch_mcs",    bpo::value<uint16_t >(&serving_cell_pdsch_mcs)->default_value(20),             "Simulated PDSCH MCS")
+      ;
+
+  options.add(common).add(over_the_air).add(simulation).add_options()
+      ("help",                      "Show this message")
       ;
   // clang-format on
-
-  options.add(common).add(over_the_air).add(simulation).add_options()("help", "Show this message");
 
   bpo::variables_map vm;
   try {
@@ -340,6 +370,8 @@ int main(int argc, char** argv)
     return SRSLTE_ERROR;
   }
 
+  srslte_dft_load();
+
   // Common for simulation and over-the-air
   auto                        baseband_buffer = (cf_t*)srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_MAX);
   srslte_timestamp_t          ts              = {};
@@ -347,7 +379,6 @@ int main(int argc, char** argv)
   srslte::log_filter          logger("intra_measure");
   dummy_rrc                   rrc;
   srsue::phy_common           common(1);
-  srsue::phy_args_t           phy_args;
 
   // Simulation only
   std::vector<std::unique_ptr<test_enb> > test_enb_v;
@@ -364,8 +395,6 @@ int main(int argc, char** argv)
   phy_args.estimator_fil_order          = 4;
   phy_args.estimator_fil_stddev         = 1.0f;
   phy_args.sic_pss_enabled              = false;
-  phy_args.intra_freq_meas_len_ms       = 20;
-  phy_args.intra_freq_meas_period_ms    = 200;
   phy_args.interpolate_subframe_enabled = false;
   phy_args.nof_rx_ant                   = 1;
   phy_args.cfo_is_doppler               = true;
@@ -418,7 +447,6 @@ int main(int argc, char** argv)
 
   intra_measure.init(&common, &rrc, &logger);
   intra_measure.set_primay_cell(serving_cell_id, cell_base);
-  intra_measure.add_cell(serving_cell_id);
 
   if (earfcn_dl >= 0) {
     // Create radio log
@@ -457,10 +485,40 @@ int main(int argc, char** argv)
       channel_args.delay_period_s    = (uint32)channel_period_s;
       channel_args.delay_init_time_s = (enb_idx * channel_period_s) / nof_enb;
       test_enb_v.push_back(std::unique_ptr<test_enb>(new test_enb(cell, channel_args)));
+
+      // Add cell to known cells
+      if (cell_list.empty()) {
+        intra_measure.add_cell(cell.id);
+      }
     }
   }
 
-  // Run Programm
+  // Parse cell list
+  if (cell_list == "all") {
+    // Add all possible cells
+    for (int i = 0; i < 504; i++) {
+      intra_measure.add_cell(i);
+    }
+  } else if (cell_list == "none") {
+    // Do nothing
+  } else if (!cell_list.empty()) {
+    // Remove spaces from neightbour cell list
+    std::size_t p1 = cell_list.find(' ');
+    while (p1 != std::string::npos) {
+      cell_list.erase(p1);
+      p1 = cell_list.find(' ');
+    }
+
+    // Add cell to known cells
+    std::stringstream ss(cell_list);
+    while (ss.good()) {
+      std::string substr;
+      getline(ss, substr, ',');
+      intra_measure.add_cell((uint32_t)strtoul(substr.c_str(), nullptr, 10));
+    }
+  }
+
+  // Run loop
   for (uint32_t sf_idx = 0; sf_idx < duration_execution_s * 1000; sf_idx++) {
     srslte_dl_sf_cfg_t sf_cfg_dl = {};
     sf_cfg_dl.tti                = sf_idx % 10240;
@@ -553,7 +611,7 @@ int main(int argc, char** argv)
 
     srslte_timestamp_add(&ts, 0, 0.001f);
 
-    intra_measure.write(sf_idx % 10240, baseband_buffer, SRSLTE_SF_LEN_PRB(cell_base.nof_prb));
+    intra_measure.write(sf_idx, baseband_buffer, SRSLTE_SF_LEN_PRB(cell_base.nof_prb));
     if (sf_idx % 1000 == 0) {
       printf("Done %.1f%%\n", (double)sf_idx * 100.0 / ((double)duration_execution_s * 1000.0));
     }
@@ -566,4 +624,5 @@ int main(int argc, char** argv)
   if (baseband_buffer) {
     free(baseband_buffer);
   }
+  srslte_dft_exit();
 }

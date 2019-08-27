@@ -71,6 +71,8 @@ private:
   uint32_t            measure_tti;
   uint32_t            receive_cnt;
   srslte_ringbuffer_t ring_buffer;
+
+  srslte_refsignal_dl_sync_t refsignal_dl_sync;
 };
 
 } // namespace scell

@@ -114,12 +114,13 @@ extern "C" {
 
 #include "srslte/phy/scrambling/scrambling.h"
 
+#include "srslte/phy/sync/cfo.h"
+#include "srslte/phy/sync/cp.h"
 #include "srslte/phy/sync/pss.h"
+#include "srslte/phy/sync/refsignal_dl_sync.h"
 #include "srslte/phy/sync/sfo.h"
 #include "srslte/phy/sync/sss.h"
 #include "srslte/phy/sync/sync.h"
-#include "srslte/phy/sync/cfo.h"
-#include "srslte/phy/sync/cp.h"
 
 #ifdef __cplusplus
 }
