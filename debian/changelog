@@ -1,3 +1,9 @@
+srslte (19.06-0ubuntu1~srslte1~16.04) xenial; urgency=medium
+
+  * Update to srsLTE 19.06 (Ubuntu Xenial)
+
+ -- Pedro Alvarez <pedro@softwareradiosystems.com>  Thu, 29 August 2019 15:00:03 +0000
+
 srslte (19.03-0ubuntu1~srslte1~16.04) xenial; urgency=medium
 
   * Update to srsLTE 19.03 (Ubuntu Xenial)
