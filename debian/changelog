@@ -1,3 +1,9 @@
+srslte (19.06-0ubuntu1~srslte1~18.10) cosmic; urgency=medium
+
+  * Update to srsLTE 19.06 (Ubuntu Cosmic)
+
+ -- Pedro Alvarez <pedro@softwareradiosystems.com>  Fri, 30 August 2019 10:40:03 +0000
+
 srslte (19.06-0ubuntu1~srslte1~18.04) bionic; urgency=medium
 
   * Update to srsLTE 19.06 (Ubuntu Bionic)
