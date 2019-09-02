@@ -26,8 +26,8 @@ using namespace asn1;
 using namespace asn1::rrc;
 
 /*******************************************************************************
-/*                               Helper Functions
-/******************************************************************************/
+ *                               Helper Functions
+ ******************************************************************************/
 
 #define rrc_asn1_warn_assert(cond, file, line)                                                                         \
   if ((cond)) {                                                                                                        \
@@ -40,8 +40,8 @@ static void log_invalid_choice_id(uint32_t val, const char* choice_type)
 }
 
 /*******************************************************************************
-/*                                Struct Methods
-/******************************************************************************/
+ *                                Struct Methods
+ ******************************************************************************/
 
 // PHICH-Config ::= SEQUENCE
 SRSASN_CODE phich_cfg_s::pack(bit_ref& bref) const

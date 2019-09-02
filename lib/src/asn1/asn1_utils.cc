@@ -961,11 +961,11 @@ void ext_groups_unpacker_guard::resize(uint32_t new_size)
 
 ext_groups_unpacker_guard::~ext_groups_unpacker_guard()
 {
-  uint32_t remaining = nof_unpacked_groups - std::min(nof_unpacked_groups, nof_supported_groups);
-
-  // consume all unknown extensions
-  while (remaining-- > 0) {
-    varlength_field_unpack_guard scope(*bref_tracker);
+  // consume all the unknown extensions
+  for (uint32_t i = nof_supported_groups; i < nof_unpacked_groups; ++i) {
+    if (groups[i]) {
+      varlength_field_unpack_guard scope(*bref_tracker);
+    }
   }
 }
 
