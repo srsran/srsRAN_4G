@@ -54,6 +54,9 @@ public:
   uint32_t get_buffer_state(const uint32_t lcid) { return ul_queues[lcid]; }
   int      read_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
   {
+    if (!read_enable) {
+      return 0;
+    }
     uint32_t len = SRSLTE_MIN(ul_queues[lcid], nof_bytes);
 
     // set payload bytes to LCID so we can check later if the scheduling was correct
@@ -77,7 +80,10 @@ public:
   void     write_pdu_mch(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes){};
   uint32_t get_received_bytes() { return received_bytes; }
 
+  void disable_read() { read_enable = false; }
+
 private:
+  bool                read_enable = true;
   uint32_t            received_bytes;
   srslte::log_filter* log;
   // UL queues where key is LCID and value the queue length
@@ -840,8 +846,6 @@ int mac_ul_sch_pdu_with_short_bsr_test()
 // PDU with only padding BSR (long BSR) and the rest padding
 int mac_ul_sch_pdu_with_padding_bsr_test()
 {
-  const uint8_t tv[] = {0x3e, 0x1f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-
   srslte::log_filter mac_log("MAC");
   mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
   mac_log.set_hex_limit(100000);
@@ -863,6 +867,9 @@ int mac_ul_sch_pdu_with_padding_bsr_test()
 
   // create UL action and grant and push MAC PDU
   {
+
+    const uint8_t tv[] = {0x3e, 0x1f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
     mac_interface_phy_lte::tb_action_ul_t ul_action = {};
     mac_interface_phy_lte::mac_grant_ul_t mac_grant = {};
 
@@ -871,6 +878,41 @@ int mac_ul_sch_pdu_with_padding_bsr_test()
     mac_grant.tb.ndi         = true;
     mac_grant.tb.tbs         = 10; // give enough room for Padding BSR
     int cc_idx               = 0;
+
+    // Send grant to MAC and get action for this TB, then call tb_decoded to unlock MAC
+    mac.new_grant_ul(cc_idx, mac_grant, &ul_action);
+
+    // print generated PDU
+    mac_log.info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
+#if HAVE_PCAP
+    pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1);
+#endif
+
+    TESTASSERT(memcmp(ul_action.tb.payload, tv, sizeof(tv)) == 0);
+  }
+
+  // create UL action and grant and push MAC PDU
+  {
+
+    const uint8_t tv[] = {0x1c, 0x42};
+
+    mac_interface_phy_lte::tb_action_ul_t ul_action = {};
+    mac_interface_phy_lte::mac_grant_ul_t mac_grant = {};
+
+    mac_grant.rnti           = crnti; // make sure MAC picks it up as valid UL grant
+    mac_grant.tb.ndi_present = true;
+    mac_grant.tb.ndi         = true;
+    mac_grant.pid            = 2;
+    mac_grant.tb.tbs         = 2; // give enough room for Padding BSR
+    int cc_idx               = 0;
+
+    // Add data to multiple LCID
+    mac.setup_lcid(1, 1, 1, -1, 0);
+    mac.setup_lcid(2, 2, 2, -1, 0);
+    rlc.disable_read();
+    rlc.write_sdu(1, 10);
+    rlc.write_sdu(2, 100);
+    mac.run_tti(1);
 
     // Send grant to MAC and get action for this TB, then call tb_decoded to unlock MAC
     mac.new_grant_ul(cc_idx, mac_grant, &ul_action);

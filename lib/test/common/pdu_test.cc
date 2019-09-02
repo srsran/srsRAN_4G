@@ -456,6 +456,47 @@ int mac_sch_pdu_pack_test5()
   return SRSLTE_SUCCESS;
 }
 
+// Test for BSR CE
+int mac_sch_pdu_pack_test6()
+{
+  srslte::log_filter mac_log("MAC");
+  mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
+  mac_log.set_hex_limit(32);
+
+  const uint32_t  pdu_size = 8;
+  srslte::sch_pdu pdu(10, &mac_log);
+
+  uint8_t tv[pdu_size] = {0x3e, 0x1f, 0x01, 0xfa, 0x7f, 0x00, 0x00, 0x00};
+
+  byte_buffer_t buffer;
+  pdu.init_tx(&buffer, pdu_size, true);
+
+  TESTASSERT(pdu.rem_size() == pdu_size);
+  TESTASSERT(pdu.get_pdu_len() == pdu_size);
+  TESTASSERT(pdu.get_sdu_space() == pdu_size - 1);
+  TESTASSERT(pdu.get_current_sdu_ptr() == buffer.msg);
+
+  // Try to Long BSR CE
+  uint32_t buff_size[4] = {0, 1000, 5000, 19200000};
+  TESTASSERT(pdu.new_subh());
+  TESTASSERT(pdu.get()->set_bsr(buff_size, srslte::sch_subh::LONG_BSR));
+
+  // write PDU
+  pdu.write_packet(&mac_log);
+
+  // compare with tv
+  TESTASSERT(memcmp(buffer.msg, tv, sizeof(buffer.N_bytes)) == 0);
+
+  // log
+  mac_log.info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
+
+#if HAVE_PCAP
+  pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1);
+#endif
+
+  return SRSLTE_SUCCESS;
+}
+
 // Test for checking error cases
 int mac_sch_pdu_pack_error_test()
 {
@@ -642,6 +683,11 @@ int main(int argc, char** argv)
 
   if (mac_sch_pdu_pack_test5()) {
     fprintf(stderr, "mac_sch_pdu_pack_test5 failed.\n");
+    return SRSLTE_ERROR;
+  }
+
+  if (mac_sch_pdu_pack_test6()) {
+    fprintf(stderr, "mac_sch_pdu_pack_test6 failed.\n");
     return SRSLTE_ERROR;
   }
 

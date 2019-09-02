@@ -74,7 +74,7 @@ private:
 
   std::map<uint32_t, lcid_t> lcgs[NOF_LCG]; // groups LCID in LCG
 
-  uint32_t find_max_priority_lcg();
+  uint32_t find_max_priority_lcg_with_data();
   typedef enum {NONE, REGULAR, PADDING, PERIODIC} triggered_bsr_type_t;
   triggered_bsr_type_t triggered_bsr_type; 
   
