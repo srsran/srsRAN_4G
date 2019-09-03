@@ -96,8 +96,11 @@ bool priority_compare(const logical_channel_config_t& u1, const logical_channel_
   return u1.priority <= u2.priority;
 }
 
+// This is called by RRC (stack thread) during bearer addition
 void mux::setup_lcid(const logical_channel_config_t& config)
 {
+  std::lock_guard<std::mutex> lock(mutex);
+
   if (has_logical_channel(config.lcid)) {
     // update settings
     for (auto& channel : logical_channels) {
@@ -121,6 +124,7 @@ void mux::setup_lcid(const logical_channel_config_t& config)
   std::sort(logical_channels.begin(), logical_channels.end(), priority_compare);
 }
 
+// mutex should be hold by caller
 void mux::print_logical_channel_state(const std::string& info)
 {
   std::string logline = info;
@@ -261,8 +265,9 @@ uint8_t* mux::pdu_get(srslte::byte_buffer_t* payload, uint32_t pdu_sz)
   return ret; 
 }
 
-void mux::append_crnti_ce_next_tx(uint16_t crnti) {
-  pending_crnti_ce = crnti; 
+void mux::append_crnti_ce_next_tx(uint16_t crnti)
+{
+  pending_crnti_ce = crnti;
 }
 
 bool mux::sched_sdu(logical_channel_config_t* ch, int* sdu_space, int max_sdu_sz)
