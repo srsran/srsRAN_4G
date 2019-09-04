@@ -121,6 +121,9 @@ private:
   bool                running;
   srsue::stack_args_t args;
 
+  // timers
+  srslte::timers timers;
+
   // UE stack logging
   srslte::logger*    logger = nullptr;
   srslte::log_filter mac_log;

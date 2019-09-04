@@ -27,6 +27,7 @@ using namespace srslte;
 namespace srsue {
 
 ue_stack_lte::ue_stack_lte() :
+  timers(64),
   running(false),
   args(),
   logger(nullptr),
@@ -114,11 +115,11 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
     return SRSLTE_ERROR;
   }
 
-  mac.init(phy, &rlc, &rrc);
-  rlc.init(&pdcp, &rrc, &mac, 0 /* RB_ID_SRB0 */);
+  mac.init(phy, &rlc, &rrc, &timers);
+  rlc.init(&pdcp, &rrc, &timers, 0 /* RB_ID_SRB0 */);
   pdcp.init(&rlc, &rrc, gw);
   nas.init(usim.get(), &rrc, gw, args.nas);
-  rrc.init(phy, &mac, &rlc, &pdcp, &nas, usim.get(), gw, &mac, args.rrc);
+  rrc.init(phy, &mac, &rlc, &pdcp, &nas, usim.get(), gw, &timers, args.rrc);
 
   running = true;
   start(STACK_MAIN_THREAD_PRIO);
@@ -227,6 +228,7 @@ void ue_stack_lte::run_tti_impl(uint32_t tti)
   mac.run_tti(tti);
   rrc.run_tti(tti);
   nas.run_tti(tti);
+  timers.step_all();
 }
 
 } // namespace srsue

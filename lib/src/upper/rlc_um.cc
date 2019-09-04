@@ -32,13 +32,13 @@ rlc_um::rlc_um(srslte::log*               log_,
                uint32_t                   lcid_,
                srsue::pdcp_interface_rlc* pdcp_,
                srsue::rrc_interface_rlc*  rrc_,
-               mac_interface_timers*      mac_timers_) :
+               srslte::timers*            timers_) :
   lcid(lcid_),
   pool(byte_buffer_pool::get_instance()),
   rrc(rrc_),
   log(log_),
   tx(log_),
-  rx(log_, lcid_, pdcp_, rrc_, mac_timers_)
+  rx(log_, lcid_, pdcp_, rrc_, timers_)
 {
 }
 
@@ -479,33 +479,31 @@ void rlc_um::rlc_um_tx::debug_state()
  * Rx subclass implementation
  ***************************************************************************/
 
-rlc_um::rlc_um_rx::rlc_um_rx(srslte::log*                  log_,
-                             uint32_t                      lcid_,
-                             srsue::pdcp_interface_rlc*    pdcp_,
-                             srsue::rrc_interface_rlc*     rrc_,
-                             srslte::mac_interface_timers* mac_timers_) :
+rlc_um::rlc_um_rx::rlc_um_rx(srslte::log*               log_,
+                             uint32_t                   lcid_,
+                             srsue::pdcp_interface_rlc* pdcp_,
+                             srsue::rrc_interface_rlc*  rrc_,
+                             srslte::timers*            timers_) :
   pool(byte_buffer_pool::get_instance()),
   log(log_),
   pdcp(pdcp_),
   rrc(rrc_),
-  mac_timers(mac_timers_),
+  timers(timers_),
   lcid(lcid_)
 {
-  reordering_timer_id = mac_timers->timer_get_unique_id();
-  reordering_timer    = mac_timers->timer_get(reordering_timer_id);
+  reordering_timer_id = timers->get_unique_id();
+  reordering_timer    = timers->get(reordering_timer_id);
 
   pthread_mutex_init(&mutex, NULL);
 }
 
-
 rlc_um::rlc_um_rx::~rlc_um_rx()
 {
   reordering_timer->stop();
-  mac_timers->timer_release_id(reordering_timer_id);
+  timers->release_id(reordering_timer_id);
 
   pthread_mutex_destroy(&mutex);
 }
-
 
 void rlc_um::rlc_um_rx::reestablish()
 {

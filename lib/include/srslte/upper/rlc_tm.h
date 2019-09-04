@@ -34,12 +34,12 @@ namespace srslte {
 class rlc_tm : public rlc_common
 {
 public:
-  rlc_tm(srslte::log*                  log_,
-         uint32_t                      lcid_,
-         srsue::pdcp_interface_rlc*    pdcp_,
-         srsue::rrc_interface_rlc*     rrc_,
-         srslte::mac_interface_timers* mac_timers_,
-         uint32_t                      queue_len = 16);
+  rlc_tm(srslte::log*               log_,
+         uint32_t                   lcid_,
+         srsue::pdcp_interface_rlc* pdcp_,
+         srsue::rrc_interface_rlc*  rrc_,
+         srslte::timers*            timers_,
+         uint32_t                   queue_len = 16);
   ~rlc_tm();
   bool configure(rlc_config_t cnfg);
   void stop();

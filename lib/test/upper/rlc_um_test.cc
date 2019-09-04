@@ -38,27 +38,7 @@ using namespace srslte;
 using namespace srsue;
 using namespace asn1::rrc;
 
-class mac_dummy_timers
-    :public srslte::mac_interface_timers
-{
-public:
-  srslte::timers::timer* timer_get(uint32_t timer_id)
-  {
-    return &t;
-  }
-  uint32_t timer_get_unique_id(){return 0;}
-  void step()
-  {
-    t.step();
-  }
-  void timer_release_id(uint32_t timer_id) {}
-private:
-  srslte::timers::timer t;
-};
-
-class rlc_um_tester
-    :public pdcp_interface_rlc
-    ,public rrc_interface_rlc
+class rlc_um_tester : public pdcp_interface_rlc, public rrc_interface_rlc
 {
 public:
   rlc_um_tester(){
@@ -103,9 +83,9 @@ int basic_test()
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
   log2.set_hex_limit(-1);
-  rlc_um_tester    tester;
-  mac_dummy_timers timers;
-  int              len = 0;
+  rlc_um_tester  tester;
+  srslte::timers timers(16);
+  int            len = 0;
 
   rlc_um rlc1(&log1, 3, &tester, &tester, &timers);
   rlc_um rlc2(&log2, 3, &tester, &tester, &timers);
@@ -173,9 +153,9 @@ int loss_test()
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
   log2.set_hex_limit(-1);
-  rlc_um_tester    tester;
-  mac_dummy_timers timers;
-  int              len = 0;
+  rlc_um_tester  tester;
+  srslte::timers timers(16);
+  int            len = 0;
 
   rlc_um rlc1(&log1, 3, &tester, &tester, &timers);
   rlc_um rlc2(&log2, 3, &tester, &tester, &timers);
@@ -218,8 +198,8 @@ int loss_test()
   }
 
   // Step the reordering timer until expiry
-  while(!timers.timer_get(1)->is_expired())
-    timers.timer_get(1)->step();
+  while (!timers.get(1)->is_expired())
+    timers.get(1)->step();
 
   TESTASSERT(NBUFS - 1 == tester.n_sdus);
 
@@ -234,9 +214,9 @@ int basic_mbsfn_test()
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
   log2.set_hex_limit(-1);
-  rlc_um_tester    tester;
-  mac_dummy_timers timers;
-  int              len = 0;
+  rlc_um_tester  tester;
+  srslte::timers timers(16);
+  int            len = 0;
 
   rlc_um rlc1(&log1, 3, &tester, &tester, &timers);
   rlc_um rlc2(&log2, 3, &tester, &tester, &timers);
@@ -306,9 +286,9 @@ int reassmble_test()
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
   log2.set_hex_limit(-1);
-  rlc_um_tester    tester;
-  mac_dummy_timers timers;
-  int              len = 0;
+  rlc_um_tester  tester;
+  srslte::timers timers(16);
+  int            len = 0;
 
   rlc_um rlc1(&log1, 3, &tester, &tester, &timers);
   rlc_um rlc2(&log2, 3, &tester, &tester, &timers);
@@ -415,9 +395,9 @@ int reassmble_test2()
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
   log2.set_hex_limit(-1);
-  rlc_um_tester    tester;
-  mac_dummy_timers timers;
-  int              len = 0;
+  rlc_um_tester  tester;
+  srslte::timers timers(16);
+  int            len = 0;
 
   rlc_um rlc1(&log1, 3, &tester, &tester, &timers);
   rlc_um rlc2(&log2, 3, &tester, &tester, &timers);

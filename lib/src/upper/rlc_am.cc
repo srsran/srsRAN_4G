@@ -32,22 +32,18 @@
 
 namespace srslte {
 
-rlc_am::rlc_am(srslte::log*                  log_,
-               uint32_t                      lcid_,
-               srsue::pdcp_interface_rlc*    pdcp_,
-               srsue::rrc_interface_rlc*     rrc_,
-               srslte::mac_interface_timers* mac_timers_) :
+rlc_am::rlc_am(srslte::log*               log_,
+               uint32_t                   lcid_,
+               srsue::pdcp_interface_rlc* pdcp_,
+               srsue::rrc_interface_rlc*  rrc_,
+               srslte::timers*            timers_) :
   log(log_),
   rrc(rrc_),
   pdcp(pdcp_),
-  mac_timers(mac_timers_),
+  timers(timers_),
   lcid(lcid_),
   tx(this),
   rx(this)
-{
-}
-
-rlc_am::~rlc_am()
 {
 }
 
@@ -170,11 +166,11 @@ rlc_am::rlc_am_tx::rlc_am_tx(rlc_am* parent_) :
   log(parent_->log),
   pool(byte_buffer_pool::get_instance())
 {
-  poll_retx_timer_id = parent->mac_timers->timer_get_unique_id();
-  poll_retx_timer    = parent->mac_timers->timer_get(poll_retx_timer_id);
+  poll_retx_timer_id = parent->timers->get_unique_id();
+  poll_retx_timer    = parent->timers->get(poll_retx_timer_id);
 
-  status_prohibit_timer_id = parent->mac_timers->timer_get_unique_id();
-  status_prohibit_timer    = parent->mac_timers->timer_get(status_prohibit_timer_id);
+  status_prohibit_timer_id = parent->timers->get_unique_id();
+  status_prohibit_timer    = parent->timers->get(status_prohibit_timer_id);
 
   pthread_mutex_init(&mutex, NULL);
 }
@@ -182,10 +178,10 @@ rlc_am::rlc_am_tx::rlc_am_tx(rlc_am* parent_) :
 rlc_am::rlc_am_tx::~rlc_am_tx()
 {
   poll_retx_timer->stop();
-  parent->mac_timers->timer_release_id(poll_retx_timer_id);
+  parent->timers->release_id(poll_retx_timer_id);
 
   status_prohibit_timer->stop();
-  parent->mac_timers->timer_release_id(status_prohibit_timer_id);
+  parent->timers->release_id(status_prohibit_timer_id);
 
   pthread_mutex_destroy(&mutex);
 }
@@ -225,11 +221,11 @@ void rlc_am::rlc_am_tx::stop()
 
   tx_enabled = false;
 
-  if (parent->mac_timers != NULL && poll_retx_timer != NULL) {
+  if (parent->timers != NULL && poll_retx_timer != NULL) {
     poll_retx_timer->stop();
   }
 
-  if (parent->mac_timers != NULL && status_prohibit_timer != NULL) {
+  if (parent->timers != NULL && status_prohibit_timer != NULL) {
     status_prohibit_timer->stop();
   }
 
@@ -1124,8 +1120,8 @@ rlc_am::rlc_am_rx::rlc_am_rx(rlc_am* parent_) :
   pool(byte_buffer_pool::get_instance()),
   log(parent_->log)
 {
-  reordering_timer_id = parent->mac_timers->timer_get_unique_id();
-  reordering_timer    = parent->mac_timers->timer_get(reordering_timer_id);
+  reordering_timer_id = parent->timers->get_unique_id();
+  reordering_timer    = parent->timers->get(reordering_timer_id);
 
   pthread_mutex_init(&mutex, NULL);
 }
@@ -1133,7 +1129,7 @@ rlc_am::rlc_am_rx::rlc_am_rx(rlc_am* parent_) :
 rlc_am::rlc_am_rx::~rlc_am_rx()
 {
   reordering_timer->stop();
-  parent->mac_timers->timer_release_id(reordering_timer_id);
+  parent->timers->release_id(reordering_timer_id);
 
   pthread_mutex_destroy(&mutex);
 }
@@ -1166,7 +1162,7 @@ void rlc_am::rlc_am_rx::stop()
 {
   pthread_mutex_lock(&mutex);
 
-  if (parent->mac_timers != NULL && reordering_timer != NULL) {
+  if (parent->timers != NULL && reordering_timer != NULL) {
     reordering_timer->stop();
   }
 

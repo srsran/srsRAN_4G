@@ -132,7 +132,7 @@ void mme::run_thread()
     FD_SET(s11, &m_set);
 
     // Add timers to select
-    for (std::vector<mme_timer_t>::iterator it = m_timers.begin(); it != m_timers.end(); ++it) {
+    for (std::vector<mme_timer_t>::iterator it = timers.begin(); it != timers.end(); ++it) {
       FD_SET(it->fd, &m_set);
       max_fd = std::max(max_fd, it->fd);
       m_s1ap_log->debug("Adding Timer fd %d to fd_set\n", it->fd);
@@ -174,14 +174,14 @@ void mme::run_thread()
         m_mme_gtpc->handle_s11_pdu(pdu);
       }
       // Handle NAS Timers
-      for (std::vector<mme_timer_t>::iterator it = m_timers.begin(); it != m_timers.end();) {
+      for (std::vector<mme_timer_t>::iterator it = timers.begin(); it != timers.end();) {
         if (FD_ISSET(it->fd, &m_set)) {
           m_s1ap_log->info("Timer expired\n");
           uint64_t exp;
           rd_sz = read(it->fd, &exp, sizeof(uint64_t));
           m_s1ap->expire_nas_timer(it->type, it->imsi);
           close(it->fd);
-          m_timers.erase(it);
+          timers.erase(it);
         } else {
           ++it;
         }
@@ -205,14 +205,14 @@ bool mme::add_nas_timer(int timer_fd, nas_timer_type type, uint64_t imsi)
   timer.type = type;
   timer.imsi = imsi;
 
-  m_timers.push_back(timer);
+  timers.push_back(timer);
   return true;
 }
 
 bool mme::is_nas_timer_running(nas_timer_type type, uint64_t imsi)
 {
   std::vector<mme_timer_t>::iterator it;
-  for (it = m_timers.begin(); it != m_timers.end(); ++it) {
+  for (it = timers.begin(); it != timers.end(); ++it) {
     if (it->type == type && it->imsi == imsi) {
       return true; // found timer
     }
@@ -223,12 +223,12 @@ bool mme::is_nas_timer_running(nas_timer_type type, uint64_t imsi)
 bool mme::remove_nas_timer(nas_timer_type type, uint64_t imsi)
 {
   std::vector<mme_timer_t>::iterator it;
-  for (it = m_timers.begin(); it != m_timers.end(); ++it) {
+  for (it = timers.begin(); it != timers.end(); ++it) {
     if (it->type == type && it->imsi == imsi) {
       break; // found timer to remove
     }
   }
-  if (it == m_timers.end()) {
+  if (it == timers.end()) {
     m_s1ap_log->warning("Could not find timer to remove. IMSI %" PRIu64 ", Type %d\n", imsi, type);
     return false;
   }
@@ -237,7 +237,7 @@ bool mme::remove_nas_timer(nas_timer_type type, uint64_t imsi)
   m_s1ap_log->debug("Removing NAS timer from MME. IMSI %" PRIu64 ", Type %d, Fd: %d\n", imsi, type, it->fd);
   FD_CLR(it->fd, &m_set);
   close(it->fd);
-  m_timers.erase(it);
+  timers.erase(it);
   return true;
 }
 

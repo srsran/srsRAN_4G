@@ -289,15 +289,15 @@ public:
   rrc(srslte::log* rrc_log_);
   ~rrc();
 
-  void init(phy_interface_rrc_lte*        phy_,
-            mac_interface_rrc*            mac_,
-            rlc_interface_rrc*            rlc_,
-            pdcp_interface_rrc*           pdcp_,
-            nas_interface_rrc*            nas_,
-            usim_interface_rrc*           usim_,
-            gw_interface_rrc*             gw_,
-            srslte::mac_interface_timers* mac_timers_,
-            const rrc_args_t&             args_);
+  void init(phy_interface_rrc_lte* phy_,
+            mac_interface_rrc*     mac_,
+            rlc_interface_rrc*     rlc_,
+            pdcp_interface_rrc*    pdcp_,
+            nas_interface_rrc*     nas_,
+            usim_interface_rrc*    usim_,
+            gw_interface_rrc*      gw_,
+            srslte::timers*        timers_,
+            const rrc_args_t&      args_);
 
   void stop();
 
@@ -407,10 +407,10 @@ private:
   std::map<uint32_t, asn1::rrc::drb_to_add_mod_s> drbs;
 
   // RRC constants and timers
-  srslte::mac_interface_timers* mac_timers = nullptr;
-  uint32_t                      n310_cnt, N310 = 0;
-  uint32_t                      n311_cnt, N311 = 0;
-  uint32_t                      t300, t301, t302, t310, t311, t304 = 0;
+  srslte::timers* timers = nullptr;
+  uint32_t        n310_cnt, N310 = 0;
+  uint32_t        n311_cnt, N311 = 0;
+  uint32_t        t300, t301, t302, t310, t311, t304 = 0;
 
   // Radio bearers
   typedef enum{
@@ -523,10 +523,10 @@ private:
     std::map<uint32_t, report_cfg_t>  reports_cfg;
     std::map<uint32_t, meas_t>        active;
 
-    rrc*                          parent     = nullptr;
-    srslte::log*                  log_h      = nullptr;
-    phy_interface_rrc_lte*        phy        = nullptr;
-    srslte::mac_interface_timers* mac_timers = nullptr;
+    rrc*                   parent = nullptr;
+    srslte::log*           log_h  = nullptr;
+    phy_interface_rrc_lte* phy    = nullptr;
+    srslte::timers*        timers = nullptr;
 
     uint32_t filter_k_rsrp, filter_k_rsrq = 0;
     float    filter_a[NOF_MEASUREMENTS] = {};

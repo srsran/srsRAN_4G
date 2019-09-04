@@ -41,11 +41,13 @@ class rlc :  public rlc_interface_mac,
              public rlc_interface_pdcp
 {
 public:
- 
-  void init(pdcp_interface_rlc *pdcp_, rrc_interface_rlc *rrc_, mac_interface_rlc *mac_, 
-            srslte::mac_interface_timers *mac_timers_, srslte::log *log_h);
-  void stop(); 
-  
+  void init(pdcp_interface_rlc* pdcp_,
+            rrc_interface_rlc*  rrc_,
+            mac_interface_rlc*  mac_,
+            srslte::timers*     timers_,
+            srslte::log*        log_h);
+  void stop();
+
   // rlc_interface_rrc
   void clear_buffer(uint16_t rnti);
   void add_user(uint16_t rnti); 
@@ -90,12 +92,12 @@ private:
   
   mac_interface_rlc             *mac; 
   pdcp_interface_rlc            *pdcp;
-  rrc_interface_rlc             *rrc;
-  srslte::log                   *log_h; 
-  srslte::byte_buffer_pool      *pool;
-  srslte::mac_interface_timers  *mac_timers;
+  rrc_interface_rlc*             rrc;
+  srslte::log*                   log_h;
+  srslte::byte_buffer_pool*      pool;
+  srslte::timers*                timers;
 };
 
-}
+} // namespace srsenb
 
 #endif // SRSENB_RLC_H

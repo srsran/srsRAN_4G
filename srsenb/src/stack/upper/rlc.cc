@@ -23,17 +23,20 @@
 #include "srsenb/hdr/stack/upper/common_enb.h"
 
 namespace srsenb {
-  
-void rlc::init(pdcp_interface_rlc* pdcp_, rrc_interface_rlc* rrc_, mac_interface_rlc *mac_, 
-               srslte::mac_interface_timers *mac_timers_, srslte::log* log_h_)
-{
-  pdcp       = pdcp_; 
-  rrc        = rrc_, 
-  log_h      = log_h_; 
-  mac        = mac_; 
-  mac_timers = mac_timers_; 
 
-  pool       = srslte::byte_buffer_pool::get_instance();
+void rlc::init(pdcp_interface_rlc* pdcp_,
+               rrc_interface_rlc*  rrc_,
+               mac_interface_rlc*  mac_,
+               srslte::timers*     timers_,
+               srslte::log*        log_h_)
+{
+  pdcp     = pdcp_;
+  rrc      = rrc_;
+  log_h    = log_h_;
+  mac      = mac_;
+  timers   = timers_;
+
+  pool = srslte::byte_buffer_pool::get_instance();
 
   pthread_rwlock_init(&rwlock, NULL);
 }
@@ -54,9 +57,9 @@ void rlc::add_user(uint16_t rnti)
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti) == 0) {
     std::unique_ptr<srslte::rlc> obj(new srslte::rlc(log_h));
-    obj->init(&users[rnti], &users[rnti], mac_timers, RB_ID_SRB0);
-    users[rnti].rnti   = rnti; 
-    users[rnti].pdcp   = pdcp; 
+    obj->init(&users[rnti], &users[rnti], timers, RB_ID_SRB0);
+    users[rnti].rnti   = rnti;
+    users[rnti].pdcp   = pdcp;
     users[rnti].rrc    = rrc;
     users[rnti].rlc    = std::move(obj);
     users[rnti].parent = this; 

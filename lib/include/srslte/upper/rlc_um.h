@@ -47,7 +47,7 @@ public:
          uint32_t                   lcid_,
          srsue::pdcp_interface_rlc* pdcp_,
          srsue::rrc_interface_rlc*  rrc_,
-         mac_interface_timers*      mac_timers_);
+         srslte::timers*            timers_);
   ~rlc_um();
   bool configure(rlc_config_t cnfg);
   void reestablish();
@@ -128,14 +128,14 @@ private:
   // Receiver sub-class
   class rlc_um_rx : public timer_callback {
   public:
-    rlc_um_rx(srslte::log*                  log_,
-              uint32_t                      lcid_,
-              srsue::pdcp_interface_rlc*    pdcp_,
-              srsue::rrc_interface_rlc*     rrc_,
-              srslte::mac_interface_timers* mac_timers_);
+    rlc_um_rx(srslte::log*               log_,
+              uint32_t                   lcid_,
+              srsue::pdcp_interface_rlc* pdcp_,
+              srsue::rrc_interface_rlc*  rrc_,
+              srslte::timers*            timers_);
     ~rlc_um_rx();
-    void stop();
-    void reestablish();
+    void     stop();
+    void     reestablish();
     bool     configure(rlc_config_t cfg, std::string rb_name);
     void handle_data_pdu(uint8_t *payload, uint32_t nof_bytes);
     void reassemble_rx_sdus();
@@ -150,10 +150,10 @@ private:
   private:
     void reset();
 
-    byte_buffer_pool*                   pool       = nullptr;
-    srslte::log*                        log        = nullptr;
-    mac_interface_timers*               mac_timers = nullptr;
-    std::string                         rb_name;
+    byte_buffer_pool* pool   = nullptr;
+    srslte::log*      log    = nullptr;
+    srslte::timers*   timers = nullptr;
+    std::string       rb_name;
 
     /****************************************************************************
      * Configurable parameters

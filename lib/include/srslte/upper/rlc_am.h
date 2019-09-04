@@ -64,12 +64,11 @@ struct rlc_amd_retx_t{
 class rlc_am : public rlc_common
 {
 public:
-  rlc_am(srslte::log*                  log_,
-         uint32_t                      lcid_,
-         srsue::pdcp_interface_rlc*    pdcp_,
-         srsue::rrc_interface_rlc*     rrc_,
-         srslte::mac_interface_timers* mac_timers_);
-  ~rlc_am();
+  rlc_am(srslte::log*               log_,
+         uint32_t                   lcid_,
+         srsue::pdcp_interface_rlc* pdcp_,
+         srsue::rrc_interface_rlc*  rrc_,
+         srslte::timers*            timers_);
   bool configure(rlc_config_t cfg_);
   void reestablish();
   void stop();
@@ -276,13 +275,13 @@ private:
   };
 
   // Common variables needed/provided by parent class
-  srsue::rrc_interface_rlc*  rrc               = nullptr;
-  srslte::log*               log               = nullptr;
-  srsue::pdcp_interface_rlc* pdcp              = nullptr;
-  mac_interface_timers*      mac_timers        = nullptr;
-  uint32_t                   lcid              = 0;
-  rlc_config_t               cfg               = {};
-  std::string               rb_name;
+  srsue::rrc_interface_rlc*  rrc    = nullptr;
+  srslte::log*               log    = nullptr;
+  srsue::pdcp_interface_rlc* pdcp   = nullptr;
+  srslte::timers*            timers = nullptr;
+  uint32_t                   lcid   = 0;
+  rlc_config_t               cfg    = {};
+  std::string                rb_name;
 
   static const int poll_periodicity = 8; // After how many data PDUs a status PDU shall be requested
 

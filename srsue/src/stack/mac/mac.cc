@@ -38,7 +38,6 @@ using namespace asn1::rrc;
 namespace srsue {
 
 mac::mac(srslte::log* log_) :
-  timers(64),
   pdu_process_thread(&demux_unit),
   mch_msg(10, log_),
   mux_unit(log_),
@@ -72,26 +71,27 @@ mac::~mac()
   srslte_softbuffer_rx_free(&mch_softbuffer);
 }
 
-bool mac::init(phy_interface_mac_lte* phy, rlc_interface_mac* rlc, rrc_interface_mac* rrc)
+bool mac::init(phy_interface_mac_lte* phy, rlc_interface_mac* rlc, rrc_interface_mac* rrc, srslte::timers* timers_)
 {
-  phy_h = phy;
-  rlc_h = rlc;
-  rrc_h = rrc;
+  phy_h  = phy;
+  rlc_h  = rlc;
+  rrc_h  = rrc;
+  timers = timers_;
 
-  timer_alignment                      = timers.get_unique_id();
-  uint32_t contention_resolution_timer = timers.get_unique_id();
+  timer_alignment                      = timers->get_unique_id();
+  uint32_t contention_resolution_timer = timers->get_unique_id();
 
-  bsr_procedure.init(rlc_h, log_h, &timers);
-  phr_procedure.init(phy_h, log_h, &timers);
+  bsr_procedure.init(rlc_h, log_h, timers);
+  phr_procedure.init(phy_h, log_h, timers);
   mux_unit.init(rlc_h, &bsr_procedure, &phr_procedure);
-  demux_unit.init(phy_h, rlc_h, this, timers.get(timer_alignment));
+  demux_unit.init(phy_h, rlc_h, this, timers->get(timer_alignment));
   ra_procedure.init(
-      phy_h, rrc, log_h, &uernti, timers.get(timer_alignment), timers.get(contention_resolution_timer), &mux_unit);
+      phy_h, rrc, log_h, &uernti, timers->get(timer_alignment), timers->get(contention_resolution_timer), &mux_unit);
   sr_procedure.init(phy_h, rrc, log_h);
 
   // Create UL/DL unique HARQ pointers
   ul_harq.at(0)->init(log_h, &uernti, &ra_procedure, &mux_unit);
-  dl_harq.at(0)->init(log_h, &uernti, timers.get(timer_alignment), &demux_unit);
+  dl_harq.at(0)->init(log_h, &uernti, timers->get(timer_alignment), &demux_unit);
 
   reset();
 
@@ -135,7 +135,7 @@ void mac::reconfiguration(const uint32_t& cc_idx, const bool& enable)
     }
     while (dl_harq.size() < cc_idx + 1) {
       auto dl = dl_harq_entity_ptr(new dl_harq_entity());
-      dl->init(log_h, &uernti, timers.get(timer_alignment), &demux_unit);
+      dl->init(log_h, &uernti, timers->get(timer_alignment), &demux_unit);
 
       if (pcap) {
         dl->start_pcap(pcap);
@@ -162,7 +162,7 @@ void mac::reset()
 
   Info("Resetting MAC\n");
 
-  timers.get(timer_alignment)->stop();
+  timers->get(timer_alignment)->stop();
 
   timer_alignment_expire();
 
@@ -233,7 +233,6 @@ void mac::run_tti(const uint32_t tti)
   ra_window_start  = -1;
   ra_window_length = -1;
   ra_procedure.update_rar_window(&ra_window_start, &ra_window_length);
-  timers.step_all();
 }
 
 void mac::bcch_start_rx(int si_window_start, int si_window_length)
@@ -509,12 +508,12 @@ void mac::new_mch_dl(srslte_pdsch_grant_t phy_grant, tb_action_dl_t* action)
 void mac::setup_timers(int time_alignment_timer)
 {
   // stop currently running time alignment timer
-  if (timers.get(timer_alignment)->is_running()) {
-    timers.get(timer_alignment)->stop();
+  if (timers->get(timer_alignment)->is_running()) {
+    timers->get(timer_alignment)->stop();
   }
 
   if (time_alignment_timer > 0) {
-    timers.get(timer_alignment)->set(this, time_alignment_timer);
+    timers->get(timer_alignment)->set(this, time_alignment_timer);
   }
 }
 
@@ -651,9 +650,6 @@ void mac::get_metrics(mac_metrics_t m[SRSLTE_MAX_CARRIERS])
   bzero(&metrics, sizeof(mac_metrics_t) * SRSLTE_MAX_CARRIERS);
 }
 
-
-
-
 /********************************************************
  *
  * Interface for timers used by upper layers
@@ -661,19 +657,18 @@ void mac::get_metrics(mac_metrics_t m[SRSLTE_MAX_CARRIERS])
  *******************************************************/
 srslte::timers::timer* mac::timer_get(uint32_t timer_id)
 {
-  return timers.get(timer_id);
+  return timers->get(timer_id);
 }
 
 void mac::timer_release_id(uint32_t timer_id)
 {
-  timers.release_id(timer_id);
+  timers->release_id(timer_id);
 }
 
 uint32_t mac::timer_get_unique_id()
 {
-  return timers.get_unique_id();
+  return timers->get_unique_id();
 }
-
 
 /********************************************************
  *
