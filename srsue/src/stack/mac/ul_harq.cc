@@ -77,7 +77,7 @@ void ul_harq_entity::reset_ndi()
   }
 }
 
-void ul_harq_entity::set_config(srsue::mac_interface_rrc_common::ul_harq_cfg_t& harq_cfg)
+void ul_harq_entity::set_config(srslte::ul_harq_cfg_t& harq_cfg)
 {
   this->harq_cfg = harq_cfg;
 }

@@ -75,7 +75,7 @@ void bsr_proc::reset()
   trigger_tti = 0;
 }
 
-void bsr_proc::set_config(srsue::mac_interface_rrc::bsr_cfg_t& bsr_cfg)
+void bsr_proc::set_config(srslte::bsr_cfg_t& bsr_cfg)
 {
   pthread_mutex_lock(&mutex);
 

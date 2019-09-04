@@ -390,8 +390,8 @@ private:
 
   uint16_t                         ho_src_rnti = 0;
   cell_t                           ho_src_cell = {};
-  phy_interface_rrc_lte::phy_cfg_t current_phy_cfg, previous_phy_cfg = {};
-  mac_interface_rrc::mac_cfg_t     current_mac_cfg, previous_mac_cfg = {};
+  srslte::phy_cfg_t                current_phy_cfg, previous_phy_cfg = {};
+  srslte::mac_cfg_t                current_mac_cfg, previous_mac_cfg = {};
   bool                             pending_mob_reconf = false;
   asn1::rrc::rrc_conn_recfg_s      mob_reconf         = {};
 
@@ -668,9 +668,9 @@ private:
   bool apply_rr_config_dedicated(asn1::rrc::rr_cfg_ded_s* cnfg);
   void apply_scell_config(asn1::rrc::rrc_conn_recfg_r8_ies_s* reconfig_r8);
   void apply_phy_config_dedicated(const asn1::rrc::phys_cfg_ded_s& phy_cnfg);
+  void apply_phy_scell_config(const asn1::rrc::scell_to_add_mod_r10_s* scell_config);
 
   void apply_mac_config_dedicated_default();
-  void apply_mac_config_dedicated_explicit(asn1::rrc::mac_main_cfg_s mac_cfg);
 
   void handle_sib1();
   void handle_sib2();
@@ -689,7 +689,6 @@ private:
 
   // Helpers for setting default values
   void set_phy_default_pucch_srs();
-  void set_phy_config_common_default();
   void set_phy_config_dedicated_default();
   void set_phy_default();
   void set_mac_default();

@@ -37,6 +37,7 @@
 #include "srslte/common/interfaces_common.h"
 #include "srslte/common/security.h"
 #include "srslte/common/stack_procedure.h"
+#include "srslte/interfaces/rrc_interface_types.h"
 #include "srslte/phy/channel/channel.h"
 #include "srslte/phy/rf/rf.h"
 
@@ -315,30 +316,6 @@ public:
   virtual void write_pdu_mch(uint32_t lcid, uint8_t *payload, uint32_t nof_bytes) = 0;
 };
 
-
-//BSR interface for MUX
-class bsr_interface_mux
-{
-public:
-  typedef enum {
-    LONG_BSR,
-    SHORT_BSR,
-    TRUNC_BSR
-  } bsr_format_t;
-
-  typedef struct {
-    bsr_format_t format;
-    uint32_t buff_size[4];
-  } bsr_t;
-
-  /* MUX calls BSR to check if it can fit a BSR into PDU */
-  virtual bool need_to_send_bsr_on_ul_grant(uint32_t grant_size, bsr_t *bsr) = 0;
-
-  /* MUX calls BSR to let it generate a padding BSR if there is space in PDU */
-  virtual bool generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t *bsr) = 0;
-};
-
-
 /** MAC interface 
  *
  */
@@ -439,195 +416,12 @@ public:
     uint64_t contention_id;
   } ue_rnti_t;
 
-  typedef struct ul_harq_cfg_t {
-    uint32_t max_harq_msg3_tx;
-    uint32_t max_harq_tx;
-    ul_harq_cfg_t() { reset(); }
-    void reset()
-    {
-      max_harq_msg3_tx = 5;
-      max_harq_tx      = 5;
-    }
-  } ul_harq_cfg_t;
 };
 
 /* Interface RRC -> MAC */
 class mac_interface_rrc : public mac_interface_rrc_common
 {
 public:
-  typedef struct bsr_cfg_t {
-    int periodic_timer;
-    int retx_timer;
-    bsr_cfg_t() { reset(); }
-    void reset()
-    {
-      periodic_timer = -1;
-      retx_timer     = 2560;
-    }
-  } bsr_cfg_t;
-
-  typedef struct phr_cfg_t {
-    bool enabled;
-    int  periodic_timer;
-    int  prohibit_timer;
-    int  db_pathloss_change;
-    bool extended;
-    phr_cfg_t() { reset(); }
-    void reset()
-    {
-      enabled            = false;
-      periodic_timer     = -1;
-      prohibit_timer     = -1;
-      db_pathloss_change = -1;
-      extended           = false;
-    }
-  } phr_cfg_t;
-
-  typedef struct sr_cfg_t {
-    bool enabled;
-    int  dsr_transmax;
-    sr_cfg_t() { reset(); }
-    void reset()
-    {
-      enabled      = false;
-      dsr_transmax = 0;
-    }
-  } sr_cfg_t;
-
-  typedef struct rach_cfg_t {
-    bool     enabled;
-    uint32_t nof_preambles;
-    uint32_t nof_groupA_preambles;
-    int32_t  messagePowerOffsetGroupB;
-    uint32_t messageSizeGroupA;
-    uint32_t responseWindowSize;
-    uint32_t powerRampingStep;
-    uint32_t preambleTransMax;
-    int32_t  iniReceivedTargetPower;
-    uint32_t contentionResolutionTimer;
-    uint32_t new_ra_msg_len;
-    rach_cfg_t() { reset(); }
-    void reset()
-    {
-      enabled                   = false;
-      nof_preambles             = 0;
-      nof_groupA_preambles      = 0;
-      messagePowerOffsetGroupB  = 0;
-      messageSizeGroupA         = 0;
-      responseWindowSize        = 0;
-      powerRampingStep          = 0;
-      preambleTransMax          = 0;
-      iniReceivedTargetPower    = 0;
-      contentionResolutionTimer = 0;
-      new_ra_msg_len            = 0;
-    }
-  } rach_cfg_t;
-
-  class mac_cfg_t
-  {
-  public:
-    // Default constructor with default values as in 36.331 9.2.2
-    mac_cfg_t() { set_defaults(); }
-
-    void set_defaults()
-    {
-      rach_cfg.reset();
-      set_mac_main_cfg_default();
-    }
-
-    void set_mac_main_cfg_default()
-    {
-      bsr_cfg.reset();
-      phr_cfg.reset();
-      sr_cfg.reset();
-      harq_cfg.reset();
-      time_alignment_timer = -1;
-    }
-
-    // Called only if section is present
-    void set_sched_request_cfg(asn1::rrc::sched_request_cfg_c& cfg)
-    {
-      sr_cfg.enabled = cfg.type() == asn1::rrc::setup_e::setup;
-      if (sr_cfg.enabled) {
-        sr_cfg.dsr_transmax = cfg.setup().dsr_trans_max.to_number();
-      }
-    }
-
-    // MAC-MainConfig section is always present
-    void set_mac_main_cfg(asn1::rrc::mac_main_cfg_s& cfg)
-    {
-      // Update values only if each section is present
-      if (cfg.phr_cfg_present) {
-        phr_cfg.enabled = cfg.phr_cfg.type() == asn1::rrc::setup_e::setup;
-        if (phr_cfg.enabled) {
-          phr_cfg.prohibit_timer     = cfg.phr_cfg.setup().prohibit_phr_timer.to_number();
-          phr_cfg.periodic_timer     = cfg.phr_cfg.setup().periodic_phr_timer.to_number();
-          phr_cfg.db_pathloss_change = cfg.phr_cfg.setup().dl_pathloss_change.to_number();
-        }
-      }
-      if (cfg.mac_main_cfg_v1020.is_present()) {
-        asn1::rrc::mac_main_cfg_s::mac_main_cfg_v1020_s_* mac_main_cfg_v1020 = cfg.mac_main_cfg_v1020.get();
-        phr_cfg.extended = mac_main_cfg_v1020->extended_phr_r10_present;
-      }
-      if (cfg.ul_sch_cfg_present) {
-        bsr_cfg.periodic_timer = cfg.ul_sch_cfg.periodic_bsr_timer.to_number();
-        bsr_cfg.retx_timer     = cfg.ul_sch_cfg.retx_bsr_timer.to_number();
-        if (cfg.ul_sch_cfg.max_harq_tx_present) {
-          harq_cfg.max_harq_tx = cfg.ul_sch_cfg.max_harq_tx.to_number();
-        }
-      }
-      // TimeAlignmentDedicated overwrites Common??
-      time_alignment_timer = cfg.time_align_timer_ded.to_number();
-    }
-
-    // RACH-Common section is always present
-    void set_rach_cfg_common(asn1::rrc::rach_cfg_common_s& cfg)
-    {
-
-      // Preamble info
-      rach_cfg.nof_preambles = cfg.preamb_info.nof_ra_preambs.to_number();
-      if (cfg.preamb_info.preambs_group_a_cfg_present) {
-        rach_cfg.nof_groupA_preambles     = cfg.preamb_info.preambs_group_a_cfg.size_of_ra_preambs_group_a.to_number();
-        rach_cfg.messageSizeGroupA        = cfg.preamb_info.preambs_group_a_cfg.msg_size_group_a.to_number();
-        rach_cfg.messagePowerOffsetGroupB = cfg.preamb_info.preambs_group_a_cfg.msg_pwr_offset_group_b.to_number();
-      } else {
-        rach_cfg.nof_groupA_preambles = 0;
-      }
-
-      // Power ramping
-      rach_cfg.powerRampingStep       = cfg.pwr_ramp_params.pwr_ramp_step.to_number();
-      rach_cfg.iniReceivedTargetPower = cfg.pwr_ramp_params.preamb_init_rx_target_pwr.to_number();
-
-      // Supervision info
-      rach_cfg.preambleTransMax          = cfg.ra_supervision_info.preamb_trans_max.to_number();
-      rach_cfg.responseWindowSize        = cfg.ra_supervision_info.ra_resp_win_size.to_number();
-      rach_cfg.contentionResolutionTimer = cfg.ra_supervision_info.mac_contention_resolution_timer.to_number();
-
-      // HARQ Msg3
-      harq_cfg.max_harq_msg3_tx = cfg.max_harq_msg3_tx;
-    }
-
-    void set_time_alignment(asn1::rrc::time_align_timer_e time_alignment_timer)
-    {
-      this->time_alignment_timer = time_alignment_timer.to_number();
-    }
-
-    bsr_cfg_t&     get_bsr_cfg() { return bsr_cfg; }
-    phr_cfg_t&     get_phr_cfg() { return phr_cfg; }
-    rach_cfg_t&    get_rach_cfg() { return rach_cfg; }
-    sr_cfg_t&      get_sr_cfg() { return sr_cfg; }
-    ul_harq_cfg_t& get_harq_cfg() { return harq_cfg; }
-    int            get_time_alignment_timer() { return time_alignment_timer; }
-
-  private:
-    bsr_cfg_t     bsr_cfg;
-    phr_cfg_t     phr_cfg;
-    sr_cfg_t      sr_cfg;
-    rach_cfg_t    rach_cfg;
-    ul_harq_cfg_t harq_cfg;
-    int           time_alignment_timer;
-  };
-
   virtual void clear_rntis() = 0;
 
   /* Instructs the MAC to start receiving BCCH */
@@ -645,7 +439,7 @@ public:
 
   virtual uint32_t get_current_tti() = 0;
 
-  virtual void set_config(mac_cfg_t& mac_cfg) = 0;
+  virtual void set_config(srslte::mac_cfg_t& mac_cfg) = 0;
 
   virtual void get_rntis(ue_rnti_t *rntis) = 0;
   virtual void set_contention_id(uint64_t uecri) = 0;
@@ -780,19 +574,6 @@ public:
 class phy_interface_rrc_lte
 {
 public:
-  struct phy_cfg_common_t {
-    asn1::rrc::prach_cfg_sib_s      prach_cnfg;
-    asn1::rrc::pdsch_cfg_common_s   pdsch_cnfg;
-    asn1::rrc::pusch_cfg_common_s   pusch_cnfg;
-    asn1::rrc::phich_cfg_s          phich_cnfg;
-    asn1::rrc::pucch_cfg_common_s   pucch_cnfg;
-    asn1::rrc::srs_ul_cfg_common_c  srs_ul_cnfg;
-    asn1::rrc::ul_pwr_ctrl_common_s ul_pwr_ctrl;
-    asn1::rrc::tdd_cfg_s            tdd_cnfg;
-    asn1::rrc::srs_ant_port_e       ant_info;
-    bool                            rrc_enable_64qam;
-  };
-
   struct phy_cfg_mbsfn_t {
     asn1::rrc::mbsfn_sf_cfg_s       mbsfn_subfr_cnfg;
     asn1::rrc::mbms_notif_cfg_r9_s  mbsfn_notification_cnfg;
@@ -800,19 +581,15 @@ public:
     asn1::rrc::mcch_msg_s           mcch;
   };
 
-  typedef struct {
-    asn1::rrc::phys_cfg_ded_s dedicated;
-    phy_cfg_common_t          common;
-    phy_cfg_mbsfn_t           mbsfn;
-  } phy_cfg_t;
-
   virtual void get_current_cell(srslte_cell_t *cell, uint32_t *current_earfcn = NULL) = 0;
   virtual uint32_t get_current_earfcn() = 0;
   virtual uint32_t get_current_pci() = 0;
 
-  virtual void set_config(phy_cfg_t* config)                                     = 0;
-  virtual void set_config_scell(asn1::rrc::scell_to_add_mod_r10_s* scell_config) = 0;
-  virtual void set_config_tdd(asn1::rrc::tdd_cfg_s* tdd)                  = 0;
+  virtual void set_config(srslte::phy_cfg_t& config,
+                          uint32_t           cc_idx    = 0,
+                          uint32_t           earfcn    = 0,
+                          srslte_cell_t*     cell_info = nullptr)             = 0;
+  virtual void set_config_tdd(srslte_tdd_config_t& tdd_config)            = 0;
   virtual void set_config_mbsfn_sib2(asn1::rrc::sib_type2_s* sib2)        = 0;
   virtual void set_config_mbsfn_sib13(asn1::rrc::sib_type13_r9_s* sib13)  = 0;
   virtual void set_config_mbsfn_mcch(asn1::rrc::mcch_msg_s* mcch)         = 0;

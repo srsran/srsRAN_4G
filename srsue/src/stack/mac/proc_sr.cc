@@ -66,7 +66,7 @@ bool sr_proc::need_tx(uint32_t tti)
   return false; 
 }
 
-void sr_proc::set_config(srsue::mac_interface_rrc::sr_cfg_t& cfg)
+void sr_proc::set_config(srslte::sr_cfg_t& cfg)
 {
   sr_cfg = cfg;
 }

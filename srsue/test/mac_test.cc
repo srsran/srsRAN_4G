@@ -19,6 +19,7 @@
  *
  */
 
+#include "srslte/asn1/rrc_asn1_utils.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/interfaces/ue_interfaces.h"
@@ -1344,8 +1345,8 @@ int mac_random_access_test()
   // Configure MAC
   mac mac(&mac_log);
   mac.init(&phy, &rlc, &rrc, &timers);
-  mac_interface_rrc::mac_cfg_t mac_cfg;
-  mac_cfg.set_rach_cfg_common(rach_cfg);
+  srslte::mac_cfg_t mac_cfg;
+  set_mac_cfg_t_rach_cfg_common(&mac_cfg, rach_cfg);
   mac.set_config(mac_cfg);
 
   // generate config for LCIDs in different LCGs than CCCH

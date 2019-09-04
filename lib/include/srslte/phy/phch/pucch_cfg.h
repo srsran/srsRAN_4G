@@ -62,7 +62,7 @@ typedef struct SRSLTE_API {
   uint32_t n_pucch_2;
   uint32_t n_pucch_sr;
   bool     simul_cqi_ack;
-  bool     tdd_ack_bundle; // if false, multiplex
+  bool     tdd_ack_multiplex; // if false, bundle
   bool     sps_enabled;
   uint32_t tpc_for_pucch;
 

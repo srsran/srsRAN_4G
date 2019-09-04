@@ -34,7 +34,18 @@ struct plmn_id_s;
 struct s_tmsi_s;
 struct rlc_cfg_c;
 struct srb_to_add_mod_s;
-
+struct sched_request_cfg_c;
+struct mac_main_cfg_s;
+struct rach_cfg_common_s;
+struct time_align_timer_opts;
+struct phys_cfg_ded_s;
+struct prach_cfg_info_s;
+struct pdsch_cfg_common_s;
+struct pusch_cfg_common_s;
+struct pucch_cfg_common_s;
+struct srs_ul_cfg_common_c;
+struct ul_pwr_ctrl_common_s;
+struct scell_to_add_mod_r10_s;
 } // namespace rrc
 } // namespace asn1
 
@@ -49,9 +60,33 @@ void      to_asn1(asn1::rrc::plmn_id_s* asn1_type, const plmn_id_t& cfg);
 s_tmsi_t make_s_tmsi_t(const asn1::rrc::s_tmsi_s& asn1_type);
 void     to_asn1(asn1::rrc::s_tmsi_s* asn1_type, const s_tmsi_t& cfg);
 
+/***************************
+ *      RLC Config
+ **************************/
 rlc_config_t make_rlc_config_t(const asn1::rrc::rlc_cfg_c& asn1_type);
 rlc_config_t make_rlc_config_t(const asn1::rrc::srb_to_add_mod_s& asn1_type);
 void         to_asn1(asn1::rrc::rlc_cfg_c* asn1_type, const rlc_config_t& cfg);
+
+/***************************
+ *      MAC Config
+ **************************/
+void set_mac_cfg_t_sched_request_cfg(mac_cfg_t* cfg, const asn1::rrc::sched_request_cfg_c& asn1_type);
+void set_mac_cfg_t_main_cfg(mac_cfg_t* cfg, const asn1::rrc::mac_main_cfg_s& asn1_type);
+void set_mac_cfg_t_rach_cfg_common(mac_cfg_t* cfg, const asn1::rrc::rach_cfg_common_s& asn1_type);
+void set_mac_cfg_t_time_alignment(mac_cfg_t* cfg, const asn1::rrc::time_align_timer_opts asn1_type);
+
+/***************************
+ *      PHY Config
+ **************************/
+void set_phy_cfg_t_dedicated_cfg(phy_cfg_t* cfg, const asn1::rrc::phys_cfg_ded_s& asn1_type);
+void set_phy_cfg_t_common_prach(phy_cfg_t* cfg, const asn1::rrc::prach_cfg_info_s* asn1_type, uint32_t root_seq_idx);
+void set_phy_cfg_t_common_pdsch(phy_cfg_t* cfg, const asn1::rrc::pdsch_cfg_common_s& asn1_type);
+void set_phy_cfg_t_common_pusch(phy_cfg_t* cfg, const asn1::rrc::pusch_cfg_common_s& asn1_type);
+void set_phy_cfg_t_common_pucch(phy_cfg_t* cfg, const asn1::rrc::pucch_cfg_common_s& asn1_type);
+void set_phy_cfg_t_common_srs(phy_cfg_t* cfg, const asn1::rrc::srs_ul_cfg_common_c& asn1_type);
+void set_phy_cfg_t_common_pwr_ctrl(phy_cfg_t* cfg, const asn1::rrc::ul_pwr_ctrl_common_s& asn1_type);
+void set_phy_cfg_t_scell_config(phy_cfg_t* cfg, const asn1::rrc::scell_to_add_mod_r10_s* asn1_type);
+void set_phy_cfg_t_enable_64qam(phy_cfg_t* cfg, const bool enabled);
 }
 
 #endif // SRSLTE_RRC_ASN1_UTILS_H

@@ -33,6 +33,24 @@
 
 namespace srsue {
 
+// BSR interface for MUX
+class bsr_interface_mux
+{
+public:
+  typedef enum { LONG_BSR, SHORT_BSR, TRUNC_BSR } bsr_format_t;
+
+  typedef struct {
+    bsr_format_t format;
+    uint32_t     buff_size[4];
+  } bsr_t;
+
+  /* MUX calls BSR to check if it can fit a BSR into PDU */
+  virtual bool need_to_send_bsr_on_ul_grant(uint32_t grant_size, bsr_t* bsr) = 0;
+
+  /* MUX calls BSR to let it generate a padding BSR if there is space in PDU */
+  virtual bool generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t* bsr) = 0;
+};
+
 class bsr_proc : public srslte::timer_callback, public bsr_interface_mux
 {
 public:
@@ -40,7 +58,7 @@ public:
   void init(rlc_interface_mac* rlc, srslte::log* log_h, srslte::timers* timers_db);
   void step(uint32_t tti);  
   void reset();
-  void set_config(mac_interface_rrc::bsr_cfg_t& bsr_cfg);
+  void set_config(srslte::bsr_cfg_t& bsr_cfg);
 
   void     setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority);
   void timer_expired(uint32_t timer_id);
@@ -60,7 +78,7 @@ private:
   srslte::log       *log_h;
   rlc_interface_mac *rlc;
 
-  mac_interface_rrc::bsr_cfg_t bsr_cfg;
+  srslte::bsr_cfg_t bsr_cfg;
 
   bool              initiated;
 

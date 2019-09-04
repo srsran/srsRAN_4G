@@ -479,7 +479,7 @@ static int dci_blind_search(srslte_ue_dl_t*     q,
 
 int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t*     q,
                              srslte_dl_sf_cfg_t* sf,
-                             srslte_ue_dl_cfg_t* cfg,
+                             srslte_ue_dl_cfg_t* dl_cfg,
                              uint16_t            rnti,
                              srslte_dci_ul_t     dci_ul[SRSLTE_MAX_DCI_MSG])
 {
@@ -497,7 +497,7 @@ int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t*     q,
       uint32_t sf_idx = sf->tti % 10;
       uint32_t cfi    = sf->cfi;
 
-      set_mi_value(q, sf, cfg);
+      set_mi_value(q, sf, dl_cfg);
 
       // Configure and run DCI blind search
       dci_blind_search_t search_space;
@@ -512,12 +512,12 @@ int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t*     q,
 
       current_ss->format = SRSLTE_DCI_FORMAT0;
       INFO("Searching UL C-RNTI in %d ue locations\n", search_space.nof_locations);
-      nof_msg = dci_blind_search(q, sf, rnti, current_ss, &cfg->dci_cfg, dci_msg);
+      nof_msg = dci_blind_search(q, sf, rnti, current_ss, &dl_cfg->cfg.dci, dci_msg);
     }
 
     // Unpack DCI messages
     for (uint32_t i = 0; i < nof_msg; i++) {
-      if (srslte_dci_msg_unpack_pusch(&q->cell, sf, &cfg->dci_cfg, &dci_msg[i], &dci_ul[i])) {
+      if (srslte_dci_msg_unpack_pusch(&q->cell, sf, &dl_cfg->cfg.dci, &dci_msg[i], &dci_ul[i])) {
         ERROR("Unpacking UL DCI\n");
         return SRSLTE_ERROR;
       }
@@ -533,13 +533,13 @@ int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t*     q,
 // Blind search for SI/P/RA-RNTI
 static int find_dl_dci_type_siprarnti(srslte_ue_dl_t*     q,
                                       srslte_dl_sf_cfg_t* sf,
-                                      srslte_ue_dl_cfg_t* cfg,
+                                      srslte_ue_dl_cfg_t* dl_cfg,
                                       uint16_t            rnti,
                                       srslte_dci_msg_t    dci_msg[SRSLTE_MAX_DCI_MSG])
 {
   int ret = 0;
 
-  srslte_dci_cfg_t* dci_cfg = &cfg->dci_cfg;
+  srslte_dci_cfg_t* dci_cfg = &dl_cfg->cfg.dci;
 
   // Configure and run DCI blind search
   dci_blind_search_t search_space;
@@ -575,7 +575,7 @@ static int find_dl_dci_type_crnti(srslte_ue_dl_t*     q,
 
   uint32_t          sf_idx  = sf->tti % 10;
   uint32_t          cfi     = sf->cfi;
-  srslte_dci_cfg_t* dci_cfg = &cfg->dci_cfg;
+  srslte_dci_cfg_t* dci_cfg = &cfg->cfg.dci;
 
   // Search UE-specific search space
   if (q->pregen_rnti == rnti) {
@@ -619,25 +619,25 @@ static int find_dl_dci_type_crnti(srslte_ue_dl_t*     q,
 
 int srslte_ue_dl_find_dl_dci(srslte_ue_dl_t*     q,
                              srslte_dl_sf_cfg_t* sf,
-                             srslte_ue_dl_cfg_t* cfg,
+                             srslte_ue_dl_cfg_t* dl_cfg,
                              uint16_t            rnti,
                              srslte_dci_dl_t     dci_dl[SRSLTE_MAX_DCI_MSG])
 {
 
-  set_mi_value(q, sf, cfg);
+  set_mi_value(q, sf, dl_cfg);
 
   srslte_dci_msg_t dci_msg[SRSLTE_MAX_DCI_MSG];
 
   int nof_msg = 0;
   if (rnti == SRSLTE_SIRNTI || rnti == SRSLTE_PRNTI || SRSLTE_RNTI_ISRAR(rnti)) {
-    nof_msg = find_dl_dci_type_siprarnti(q, sf, cfg, rnti, dci_msg);
+    nof_msg = find_dl_dci_type_siprarnti(q, sf, dl_cfg, rnti, dci_msg);
   } else {
-    nof_msg = find_dl_dci_type_crnti(q, sf, cfg, rnti, dci_msg);
+    nof_msg = find_dl_dci_type_crnti(q, sf, dl_cfg, rnti, dci_msg);
   }
 
   // Unpack DCI messages
   for (uint32_t i = 0; i < nof_msg; i++) {
-    if (srslte_dci_msg_unpack_pdsch(&q->cell, sf, &cfg->dci_cfg, &dci_msg[i], &dci_dl[i])) {
+    if (srslte_dci_msg_unpack_pdsch(&q->cell, sf, &dl_cfg->cfg.dci, &dci_msg[i], &dci_dl[i])) {
       ERROR("Unpacking DL DCI\n");
       return SRSLTE_ERROR;
     }
@@ -651,7 +651,7 @@ int srslte_ue_dl_dci_to_pdsch_grant(srslte_ue_dl_t*       q,
                                     srslte_dci_dl_t*      dci,
                                     srslte_pdsch_grant_t* grant)
 {
-  return srslte_ra_dl_dci_to_grant(&q->cell, sf, cfg->cfg.tm, cfg->pdsch_use_tbs_index_alt, dci, grant);
+  return srslte_ra_dl_dci_to_grant(&q->cell, sf, cfg->cfg.tm, cfg->cfg.pdsch.use_tbs_index_alt, dci, grant);
 }
 
 int srslte_ue_dl_decode_pdsch(srslte_ue_dl_t*     q,
@@ -1032,7 +1032,7 @@ void srslte_ue_dl_gen_ack(srslte_ue_dl_t*     q,
       uci_data->cfg.ack.tdd_ack_M = ack_value->M;
 
       // ACK/NACK bundling or multiplexing and M=1
-      if (ack_info->tdd_ack_bundle || ack_value->M == 1) {
+      if (!ack_info->tdd_ack_multiplex || ack_value->M == 1) {
         for (uint32_t tb = 0; tb < nof_tb; tb++) {
           bool first_in_bundle = true;
           for (uint32_t k = 0; k < ack_value->M; k++) {
@@ -1090,10 +1090,10 @@ void srslte_ue_dl_gen_ack(srslte_ue_dl_t*     q,
 
     ack_info->V_dai_ul++; // Table 7.3-x
 
-    uci_data->cfg.ack.tdd_is_bundling = ack_info->tdd_ack_bundle;
+    uci_data->cfg.ack.tdd_is_multiplex = ack_info->tdd_ack_multiplex;
 
     // Bundling or multiplexing and M=1
-    if (ack_info->tdd_ack_bundle || ack_info->cc[0].M == 1) {
+    if (!ack_info->tdd_ack_multiplex || ack_info->cc[0].M == 1) {
       // 1 or 2 ACK/NACK bits
       uci_data->cfg.ack.nof_acks = nof_tb;
 

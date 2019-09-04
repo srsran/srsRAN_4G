@@ -39,7 +39,7 @@ typedef struct SRSLTE_API {
   uint32_t N_bundle;
   uint32_t tdd_ack_M;
   uint32_t tdd_ack_m;
-  bool     tdd_is_bundling;
+  bool     tdd_is_multiplex;
   bool     has_scell_ack;
 } srslte_uci_cfg_ack_t;
 

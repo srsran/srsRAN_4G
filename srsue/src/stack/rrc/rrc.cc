@@ -157,10 +157,8 @@ void rrc::init(phy_interface_rrc_lte* phy_,
 
   pending_mob_reconf = false;
 
-  // Set default values for all layers
+  // Set default values for RRC. MAC and PHY are set to default themselves
   set_rrc_default();
-  set_phy_default();
-  set_mac_default();
 
   measurements.init(this);
 
@@ -1274,7 +1272,7 @@ void rrc::ho_failed()
 void rrc::con_reconfig_failed()
 {
   // Set previous PHY/MAC configuration
-  phy->set_config(&previous_phy_cfg);
+  phy->set_config(previous_phy_cfg);
   mac->set_config(previous_mac_cfg);
 
   // And restore current configs
@@ -1595,7 +1593,10 @@ void rrc::handle_sib1()
 
   // Set TDD Config
   if (sib1->tdd_cfg_present) {
-    phy->set_config_tdd(&sib1->tdd_cfg);
+    srslte_tdd_config_t tdd_config;
+    tdd_config.sf_config = sib1->tdd_cfg.sf_assign.to_number();
+    tdd_config.ss_config = sib1->tdd_cfg.special_sf_patterns.to_number();
+    phy->set_config_tdd(tdd_config);
   }
 }
 
@@ -1606,20 +1607,21 @@ void rrc::handle_sib2()
   sib_type2_s* sib2 = serving_cell->sib2ptr();
 
   // Apply RACH and timeAlginmentTimer configuration
-  current_mac_cfg.set_rach_cfg_common(sib2->rr_cfg_common.rach_cfg_common);
-  current_mac_cfg.set_time_alignment(sib2->time_align_timer_common);
+  set_mac_cfg_t_rach_cfg_common(&current_mac_cfg, sib2->rr_cfg_common.rach_cfg_common);
+  set_mac_cfg_t_time_alignment(&current_mac_cfg, sib2->time_align_timer_common);
   mac->set_config(current_mac_cfg);
 
   // Set MBSFN configs
   phy->set_config_mbsfn_sib2(sib2);
 
   // Apply PHY RR Config Common
-  current_phy_cfg.common.pdsch_cnfg  = sib2->rr_cfg_common.pdsch_cfg_common;
-  current_phy_cfg.common.pusch_cnfg  = sib2->rr_cfg_common.pusch_cfg_common;
-  current_phy_cfg.common.pucch_cnfg  = sib2->rr_cfg_common.pucch_cfg_common;
-  current_phy_cfg.common.ul_pwr_ctrl = sib2->rr_cfg_common.ul_pwr_ctrl_common;
-  current_phy_cfg.common.prach_cnfg  = sib2->rr_cfg_common.prach_cfg;
-  current_phy_cfg.common.srs_ul_cnfg = sib2->rr_cfg_common.srs_ul_cfg_common;
+  set_phy_cfg_t_common_pdsch(&current_phy_cfg, sib2->rr_cfg_common.pdsch_cfg_common);
+  set_phy_cfg_t_common_pusch(&current_phy_cfg, sib2->rr_cfg_common.pusch_cfg_common);
+  set_phy_cfg_t_common_pucch(&current_phy_cfg, sib2->rr_cfg_common.pucch_cfg_common);
+  set_phy_cfg_t_common_pwr_ctrl(&current_phy_cfg, sib2->rr_cfg_common.ul_pwr_ctrl_common);
+  set_phy_cfg_t_common_prach(
+      &current_phy_cfg, &sib2->rr_cfg_common.prach_cfg.prach_cfg_info, sib2->rr_cfg_common.prach_cfg.root_seq_idx);
+  set_phy_cfg_t_common_srs(&current_phy_cfg, sib2->rr_cfg_common.srs_ul_cfg_common);
 
   // According to 3GPP 36.331 v12 UE-EUTRA-Capability field descriptions
   // Allow 64QAM for:
@@ -1627,19 +1629,19 @@ void rrc::handle_sib2()
   //   ue-CategoryUL 5 and 13 when enable64QAM (with suffix)
   // enable64QAM-v1270 shall be ignored if enable64QAM (without suffix) is false
   if (args.ue_category == 5 || (args.release >= 10 && args.ue_category == 8)) {
-    current_phy_cfg.common.rrc_enable_64qam = sib2->rr_cfg_common.pusch_cfg_common.pusch_cfg_basic.enable64_qam;
+    set_phy_cfg_t_enable_64qam(&current_phy_cfg, sib2->rr_cfg_common.pusch_cfg_common.pusch_cfg_basic.enable64_qam);
   } else if (args.release >= 12 && sib2->rr_cfg_common.pusch_cfg_common.pusch_cfg_basic.enable64_qam) {
     if (args.ue_category_ul == 5 || args.ue_category_ul == 13) {
       // ASN1 Generator simplifies enable64QAM-v1270 because it is an enumeration that is always true
-      current_phy_cfg.common.rrc_enable_64qam = sib2->rr_cfg_common.pusch_cfg_common_v1270.is_present();
+      set_phy_cfg_t_enable_64qam(&current_phy_cfg, sib2->rr_cfg_common.pusch_cfg_common_v1270.is_present());
     } else {
-      current_phy_cfg.common.rrc_enable_64qam = false;
+      set_phy_cfg_t_enable_64qam(&current_phy_cfg, false);
     }
   } else {
-    current_phy_cfg.common.rrc_enable_64qam = false;
+    set_phy_cfg_t_enable_64qam(&current_phy_cfg, false);
   }
 
-  phy->set_config(&current_phy_cfg);
+  phy->set_config(current_phy_cfg);
 
   log_rr_config_common();
 
@@ -2278,73 +2280,76 @@ void rrc::handle_ue_capability_enquiry(const asn1::rrc::ue_cap_enquiry_s& enquir
 void rrc::log_rr_config_common()
 {
   rrc_log->info("Set RACH ConfigCommon: NofPreambles=%d, ResponseWindow=%d, ContentionResolutionTimer=%d ms\n",
-                current_mac_cfg.get_rach_cfg().nof_preambles,
-                current_mac_cfg.get_rach_cfg().responseWindowSize,
-                current_mac_cfg.get_rach_cfg().contentionResolutionTimer);
+                current_mac_cfg.rach_cfg.nof_preambles,
+                current_mac_cfg.rach_cfg.responseWindowSize,
+                current_mac_cfg.rach_cfg.contentionResolutionTimer);
 
-  rrc_log->info("Set PUSCH ConfigCommon: HopOffset=%d, RSGroup=%d, RSNcs=%d, N_sb=%d\n",
-                current_phy_cfg.common.pusch_cnfg.pusch_cfg_basic.pusch_hop_offset,
-                current_phy_cfg.common.pusch_cnfg.ul_ref_sigs_pusch.group_assign_pusch,
-                current_phy_cfg.common.pusch_cnfg.ul_ref_sigs_pusch.cyclic_shift,
-                current_phy_cfg.common.pusch_cnfg.pusch_cfg_basic.n_sb);
+  rrc_log->info("Set PUSCH ConfigCommon: P0_pusch=%f, DMRS cs=%d, delta_ss=%d, N_sb=%d\n",
+                current_phy_cfg.ul_cfg.power_ctrl.p0_ue_pusch,
+                current_phy_cfg.ul_cfg.dmrs.cyclic_shift,
+                current_phy_cfg.ul_cfg.dmrs.delta_ss,
+                current_phy_cfg.ul_cfg.hopping.n_sb);
 
   rrc_log->info("Set PUCCH ConfigCommon: DeltaShift=%d, CyclicShift=%d, N1=%d, NRB=%d\n",
-                current_phy_cfg.common.pucch_cnfg.delta_pucch_shift.to_number(),
-                current_phy_cfg.common.pucch_cnfg.n_cs_an,
-                current_phy_cfg.common.pucch_cnfg.n1_pucch_an,
-                current_phy_cfg.common.pucch_cnfg.n_rb_cqi);
+                current_phy_cfg.ul_cfg.pucch.delta_pucch_shift,
+                current_phy_cfg.ul_cfg.pucch.N_cs,
+                current_phy_cfg.ul_cfg.pucch.n1_pucch_an_cs[0][0],
+                current_phy_cfg.ul_cfg.pucch.n_rb_2);
 
   rrc_log->info("Set PRACH ConfigCommon: SeqIdx=%d, HS=%s, FreqOffset=%d, ZC=%d, ConfigIndex=%d\n",
-                current_phy_cfg.common.prach_cnfg.root_seq_idx,
-                current_phy_cfg.common.prach_cnfg.prach_cfg_info.high_speed_flag ? "yes" : "no",
-                current_phy_cfg.common.prach_cnfg.prach_cfg_info.prach_freq_offset,
-                current_phy_cfg.common.prach_cnfg.prach_cfg_info.zero_correlation_zone_cfg,
-                current_phy_cfg.common.prach_cnfg.prach_cfg_info.prach_cfg_idx);
+                current_phy_cfg.prach_cfg.root_seq_idx,
+                current_phy_cfg.prach_cfg.hs_flag ? "yes" : "no",
+                current_phy_cfg.prach_cfg.freq_offset,
+                current_phy_cfg.prach_cfg.zero_corr_zone,
+                current_phy_cfg.prach_cfg.config_idx);
 
-  if (current_phy_cfg.common.srs_ul_cnfg.type() == setup_e::setup) {
-    rrc_log->info("Set SRS ConfigCommon: BW-Configuration=%d, SF-Configuration=%d, ACKNACK=%s\n",
-                  current_phy_cfg.common.srs_ul_cnfg.setup().srs_bw_cfg.to_number(),
-                  current_phy_cfg.common.srs_ul_cnfg.setup().srs_sf_cfg.to_number(),
-                  current_phy_cfg.common.srs_ul_cnfg.setup().ack_nack_srs_simul_tx ? "yes" : "no");
+  if (current_phy_cfg.ul_cfg.srs.configured) {
+    rrc_log->info("Set SRS ConfigCommon: BW-Configuration=%d, SF-Configuration=%d, Simult-ACKNACK=%s\n",
+                  current_phy_cfg.ul_cfg.srs.bw_cfg,
+                  current_phy_cfg.ul_cfg.srs.subframe_config,
+                  current_phy_cfg.ul_cfg.srs.simul_ack ? "yes" : "no");
   }
 }
 
 void rrc::apply_rr_config_common(rr_cfg_common_s* config, bool send_lower_layers)
 {
   if (config->rach_cfg_common_present) {
-    current_mac_cfg.set_rach_cfg_common(config->rach_cfg_common);
+    set_mac_cfg_t_rach_cfg_common(&current_mac_cfg, config->rach_cfg_common);
   }
-
-  phy_interface_rrc_lte::phy_cfg_common_t* common = &current_phy_cfg.common;
 
   if (config->prach_cfg.prach_cfg_info_present) {
-    common->prach_cnfg.prach_cfg_info = config->prach_cfg.prach_cfg_info;
+    set_phy_cfg_t_common_prach(&current_phy_cfg, &config->prach_cfg.prach_cfg_info, config->prach_cfg.root_seq_idx);
+  } else {
+    set_phy_cfg_t_common_prach(&current_phy_cfg, NULL, config->prach_cfg.root_seq_idx);
   }
-  common->prach_cnfg.root_seq_idx = config->prach_cfg.root_seq_idx;
+
   if (config->pdsch_cfg_common_present) {
-    common->pdsch_cnfg = config->pdsch_cfg_common;
+    set_phy_cfg_t_common_pdsch(&current_phy_cfg, config->pdsch_cfg_common);
   }
-  common->pusch_cnfg = config->pusch_cfg_common;
+
+  set_phy_cfg_t_common_pusch(&current_phy_cfg, config->pusch_cfg_common);
+
   if (config->phich_cfg_present) {
-    common->phich_cnfg = config->phich_cfg;
+    // TODO
   }
 
   if (config->pucch_cfg_common_present) {
-    common->pucch_cnfg = config->pucch_cfg_common;
+    set_phy_cfg_t_common_pucch(&current_phy_cfg, config->pucch_cfg_common);
   }
+
   if (config->srs_ul_cfg_common_present) {
-    common->srs_ul_cnfg = config->srs_ul_cfg_common;
+    set_phy_cfg_t_common_srs(&current_phy_cfg, config->srs_ul_cfg_common);
   }
+
   if (config->ul_pwr_ctrl_common_present) {
-    common->ul_pwr_ctrl = config->ul_pwr_ctrl_common;
+    set_phy_cfg_t_common_pwr_ctrl(&current_phy_cfg, config->ul_pwr_ctrl_common);
   }
-  // TODO: p_max, antenna_info, tdd...
 
   log_rr_config_common();
 
   if (send_lower_layers) {
     mac->set_config(current_mac_cfg);
-    phy->set_config(&current_phy_cfg);
+    phy->set_config(current_phy_cfg);
   }
 }
 
@@ -2353,69 +2358,42 @@ void rrc::log_phy_config_dedicated()
   if (!rrc_log) {
     return;
   }
-  phys_cfg_ded_s* current_cfg = &current_phy_cfg.dedicated;
 
-  if (current_cfg->pdsch_cfg_ded_present) {
-    rrc_log->info("Set PDSCH-Config p_a=%s\n", current_cfg->pdsch_cfg_ded.p_a.to_string().c_str());
+  if (current_phy_cfg.dl_cfg.cqi_report.periodic_configured) {
+    rrc_log->info("Set cqi-PUCCH-ResourceIndex=%d, cqi-pmi-ConfigIndex=%d, cqi-FormatIndicatorPeriodic=%d\n",
+                  current_phy_cfg.ul_cfg.pucch.n_pucch_2,
+                  current_phy_cfg.dl_cfg.cqi_report.pmi_idx,
+                  current_phy_cfg.dl_cfg.cqi_report.periodic_mode);
+  }
+  if (current_phy_cfg.dl_cfg.cqi_report.aperiodic_configured) {
+    rrc_log->info("Set cqi-ReportModeAperiodic=%d\n", current_phy_cfg.dl_cfg.cqi_report.aperiodic_mode);
   }
 
-  if (current_cfg->cqi_report_cfg_present) {
-    if (current_cfg->cqi_report_cfg.cqi_report_periodic_present and
-        current_cfg->cqi_report_cfg.cqi_report_periodic.type() == setup_e::setup) {
-      rrc_log->info(
-          "Set cqi-PUCCH-ResourceIndex=%d, cqi-pmi-ConfigIndex=%d, cqi-FormatIndicatorPeriodic=%s\n",
-          current_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pucch_res_idx,
-          current_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pmi_cfg_idx,
-          current_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_format_ind_periodic.type().to_string().c_str());
-    }
-    if (current_cfg->cqi_report_cfg.cqi_report_mode_aperiodic_present) {
-      rrc_log->info("Set cqi-ReportModeAperiodic=%s\n",
-                    current_cfg->cqi_report_cfg.cqi_report_mode_aperiodic.to_string().c_str());
-    }
-  }
-
-  if (current_cfg->sched_request_cfg_present and current_cfg->sched_request_cfg.type() == setup_e::setup) {
+  if (current_phy_cfg.ul_cfg.pucch.sr_configured) {
     rrc_log->info("Set PHY config ded: SR-n_pucch=%d, SR-ConfigIndex=%d, SR-TransMax=%d\n",
-                  current_cfg->sched_request_cfg.setup().sr_pucch_res_idx,
-                  current_cfg->sched_request_cfg.setup().sr_cfg_idx,
-                  current_cfg->sched_request_cfg.setup().dsr_trans_max.to_number());
+                  current_phy_cfg.ul_cfg.pucch.n_pucch_sr,
+                  current_phy_cfg.ul_cfg.pucch.I_sr,
+                  current_mac_cfg.sr_cfg.dsr_transmax);
   }
 
-  if (current_cfg->srs_ul_cfg_ded_present and current_cfg->srs_ul_cfg_ded.type() == setup_e::setup) {
-    rrc_log->info("Set PHY config ded: SRS-ConfigIndex=%d, SRS-bw=%s, SRS-Nrcc=%d, SRS-hop=%s, SRS-Ncs=%s\n",
-                  current_cfg->srs_ul_cfg_ded.setup().srs_cfg_idx,
-                  current_cfg->srs_ul_cfg_ded.setup().srs_bw.to_string().c_str(),
-                  current_cfg->srs_ul_cfg_ded.setup().freq_domain_position,
-                  current_cfg->srs_ul_cfg_ded.setup().srs_hop_bw.to_string().c_str(),
-                  current_cfg->srs_ul_cfg_ded.setup().cyclic_shift.to_string().c_str());
+  if (current_phy_cfg.ul_cfg.srs.configured) {
+    rrc_log->info("Set PHY config ded: SRS-ConfigIndex=%d, SRS-bw=%d, SRS-Nrcc=%d, SRS-hop=%d, SRS-Ncs=%d\n",
+                  current_phy_cfg.ul_cfg.srs.I_srs,
+                  current_phy_cfg.ul_cfg.srs.bw_cfg,
+                  current_phy_cfg.ul_cfg.srs.n_rrc,
+                  current_phy_cfg.ul_cfg.srs.b_hop,
+                  current_phy_cfg.ul_cfg.srs.n_srs);
   }
 }
 
-// Apply default physical common
-void rrc::set_phy_config_common_default()
+// Apply default physical common and dedicated configuration
+void rrc::set_phy_default()
 {
-  // Get PUCCH config and reset
-  pucch_cfg_common_s* pucch_cnfg = &current_phy_cfg.common.pucch_cnfg;
-  *pucch_cnfg                    = {};
-  pucch_cnfg->delta_pucch_shift  = pucch_cfg_common_s::delta_pucch_shift_opts::ds1;
-
-  // Get UL power control, reset and set defaults
-  ul_pwr_ctrl_common_s* ul_pwr_ctrl = &current_phy_cfg.common.ul_pwr_ctrl;
-  *ul_pwr_ctrl                      = {};
-  ul_pwr_ctrl->alpha.value          = alpha_r12_opts::al0;
-  ul_pwr_ctrl->delta_flist_pucch.delta_f_pucch_format1.value =
-      delta_flist_pucch_s::delta_f_pucch_format1_opts::delta_f0;
-  ul_pwr_ctrl->delta_flist_pucch.delta_f_pucch_format1b.value =
-      delta_flist_pucch_s::delta_f_pucch_format1b_opts::delta_f1;
-  ul_pwr_ctrl->delta_flist_pucch.delta_f_pucch_format2.value =
-      delta_flist_pucch_s::delta_f_pucch_format2_opts::delta_f0;
-  ul_pwr_ctrl->delta_flist_pucch.delta_f_pucch_format2a.value =
-      delta_flist_pucch_s::delta_f_pucch_format2a_opts::delta_f0;
-  ul_pwr_ctrl->delta_flist_pucch.delta_f_pucch_format2b.value =
-      delta_flist_pucch_s::delta_f_pucch_format2b_opts::delta_f0;
+  current_phy_cfg.set_defaults_dedicated();
+  current_phy_cfg.set_defaults_common();
 
   if (phy != nullptr) {
-    phy->set_config(&current_phy_cfg);
+    phy->set_config(current_phy_cfg);
   } else {
     rrc_log->info("RRC not initialized. Skipping default PHY config.\n");
   }
@@ -2424,62 +2402,10 @@ void rrc::set_phy_config_common_default()
 // Apply default physical channel configs (9.2.4)
 void rrc::set_phy_config_dedicated_default()
 {
-  // Get current configuration
-  phys_cfg_ded_s* current_cfg = &current_phy_cfg.dedicated;
-
-  // Reset all present flags
-  *current_cfg = {};
-
-  // Set defaults
-  current_cfg->pdsch_cfg_ded_present = true;
-  current_cfg->pdsch_cfg_ded.p_a     = pdsch_cfg_ded_s::p_a_e_::db0;
-
-  current_cfg->pucch_cfg_ded_present                            = true;
-  current_cfg->pucch_cfg_ded.tdd_ack_nack_feedback_mode_present = true;
-  current_cfg->pucch_cfg_ded.tdd_ack_nack_feedback_mode = pucch_cfg_ded_s::tdd_ack_nack_feedback_mode_e_::bundling;
-  current_cfg->pucch_cfg_ded.ack_nack_repeat.set(setup_e::release);
-
-  current_cfg->pusch_cfg_ded_present             = true;
-  current_cfg->pusch_cfg_ded.beta_offset_ack_idx = 10;
-  current_cfg->pusch_cfg_ded.beta_offset_ri_idx  = 12;
-  current_cfg->pusch_cfg_ded.beta_offset_cqi_idx = 15;
-
-  current_cfg->ul_pwr_ctrl_ded_present              = true;
-  current_cfg->ul_pwr_ctrl_ded.p0_ue_pusch          = 0;
-  current_cfg->ul_pwr_ctrl_ded.delta_mcs_enabled    = ul_pwr_ctrl_ded_s::delta_mcs_enabled_e_::en0;
-  current_cfg->ul_pwr_ctrl_ded.accumulation_enabled = true;
-  current_cfg->ul_pwr_ctrl_ded.p0_ue_pucch          = 0;
-  current_cfg->ul_pwr_ctrl_ded.p_srs_offset         = 7;
-
-  current_cfg->ul_pwr_ctrl_ded.filt_coef_present = true;
-  current_cfg->ul_pwr_ctrl_ded.filt_coef         = filt_coef_e::fc4;
-
-  current_cfg->tpc_pdcch_cfg_pucch_present = true;
-  current_cfg->tpc_pdcch_cfg_pucch.set(setup_e::release);
-
-  current_cfg->tpc_pdcch_cfg_pusch_present = true;
-  current_cfg->tpc_pdcch_cfg_pusch.set(setup_e::release);
-
-  current_cfg->cqi_report_cfg_present                     = true;
-  current_cfg->cqi_report_cfg.cqi_report_periodic_present = true;
-  current_cfg->cqi_report_cfg.cqi_report_periodic.set(setup_e::release);
-
-  current_cfg->srs_ul_cfg_ded_present = true;
-  current_cfg->srs_ul_cfg_ded.set(setup_e::release);
-
-  current_cfg->ant_info_present = true;
-  current_cfg->ant_info.set_explicit_value();
-  current_cfg->ant_info.explicit_value().tx_mode                          = ant_info_ded_s::tx_mode_e_::tm1;
-  current_cfg->ant_info.explicit_value().codebook_subset_restrict_present = false;
-  current_cfg->ant_info.explicit_value().ue_tx_ant_sel.set(setup_e::release);
-
-  current_cfg->sched_request_cfg_present = true;
-  current_cfg->sched_request_cfg.set(setup_e::release);
-
-  log_phy_config_dedicated();
+  current_phy_cfg.set_defaults_dedicated();
 
   if (phy != nullptr) {
-    phy->set_config(&current_phy_cfg);
+    phy->set_config(current_phy_cfg);
   } else {
     rrc_log->info("RRC not initialized. Skipping default PHY config.\n");
   }
@@ -2488,82 +2414,47 @@ void rrc::set_phy_config_dedicated_default()
 // Apply provided PHY config
 void rrc::apply_phy_config_dedicated(const phys_cfg_ded_s& phy_cnfg)
 {
-  // Get current configuration
-  phys_cfg_ded_s* current_cfg = &current_phy_cfg.dedicated;
-
-  if (phy_cnfg.pucch_cfg_ded_present) {
-    current_cfg->pucch_cfg_ded_present = true;
-    current_cfg->pucch_cfg_ded         = phy_cnfg.pucch_cfg_ded;
-  }
-
-  current_cfg->cqi_report_cfg_pcell_v1250 = phy_cnfg.cqi_report_cfg_pcell_v1250;
-  current_cfg->pucch_cfg_ded_v1020        = phy_cnfg.pucch_cfg_ded_v1020;
-
-  if (phy_cnfg.pusch_cfg_ded_present) {
-    current_cfg->pusch_cfg_ded_present = true;
-    current_cfg->pusch_cfg_ded         = phy_cnfg.pusch_cfg_ded;
-  }
-
-  if (phy_cnfg.ul_pwr_ctrl_ded_present) {
-    current_cfg->ul_pwr_ctrl_ded_present = true;
-    current_cfg->ul_pwr_ctrl_ded         = phy_cnfg.ul_pwr_ctrl_ded;
-  }
-
-  if (phy_cnfg.ul_pwr_ctrl_ded.filt_coef_present) {
-    current_cfg->ul_pwr_ctrl_ded.filt_coef_present = true;
-    current_cfg->ul_pwr_ctrl_ded.filt_coef         = phy_cnfg.ul_pwr_ctrl_ded.filt_coef;
-  }
-
-  if (phy_cnfg.tpc_pdcch_cfg_pucch_present) {
-    current_cfg->tpc_pdcch_cfg_pucch_present = true;
-    current_cfg->tpc_pdcch_cfg_pucch         = phy_cnfg.tpc_pdcch_cfg_pucch;
-  }
-
-  if (phy_cnfg.tpc_pdcch_cfg_pusch_present) {
-    current_cfg->tpc_pdcch_cfg_pusch_present = true;
-    current_cfg->tpc_pdcch_cfg_pusch         = phy_cnfg.tpc_pdcch_cfg_pusch;
-  }
-
-  if (phy_cnfg.cqi_report_cfg_present) {
-    current_cfg->cqi_report_cfg_present = true;
-
-    if (phy_cnfg.cqi_report_cfg.cqi_report_periodic_present) {
-
-      current_cfg->cqi_report_cfg.cqi_report_periodic_present = true;
-      current_cfg->cqi_report_cfg.cqi_report_periodic         = phy_cnfg.cqi_report_cfg.cqi_report_periodic;
-    }
-
-    if (phy_cnfg.cqi_report_cfg.cqi_report_mode_aperiodic_present) {
-      current_cfg->cqi_report_cfg.cqi_report_mode_aperiodic_present = true;
-      current_cfg->cqi_report_cfg.cqi_report_mode_aperiodic         = phy_cnfg.cqi_report_cfg.cqi_report_mode_aperiodic;
-    }
-    current_cfg->cqi_report_cfg.nom_pdsch_rs_epre_offset = phy_cnfg.cqi_report_cfg.nom_pdsch_rs_epre_offset;
-  }
-
-  if (phy_cnfg.srs_ul_cfg_ded_present) {
-    current_cfg->srs_ul_cfg_ded_present = true;
-    current_cfg->srs_ul_cfg_ded         = phy_cnfg.srs_ul_cfg_ded;
-  }
-
-  if (phy_cnfg.ant_info_present) {
-    current_cfg->ant_info_present = true;
-    current_cfg->ant_info         = phy_cnfg.ant_info;
-  }
-
-  if (phy_cnfg.sched_request_cfg_present) {
-    current_cfg->sched_request_cfg_present = true;
-    current_cfg->sched_request_cfg         = phy_cnfg.sched_request_cfg;
-  }
-
-  if (phy_cnfg.pdsch_cfg_ded_present) {
-    current_cfg->pdsch_cfg_ded_present = true;
-    current_cfg->pdsch_cfg_ded         = phy_cnfg.pdsch_cfg_ded;
-  }
+  set_phy_cfg_t_dedicated_cfg(&current_phy_cfg, phy_cnfg);
 
   log_phy_config_dedicated();
 
   if (phy != nullptr) {
-    phy->set_config(&current_phy_cfg);
+    phy->set_config(current_phy_cfg);
+  } else {
+    rrc_log->info("RRC not initialized. Skipping PHY config.\n");
+  }
+}
+
+void rrc::apply_phy_scell_config(const asn1::rrc::scell_to_add_mod_r10_s* scell_config)
+{
+  srslte_cell_t scell  = {};
+  uint32_t      earfcn = 0;
+
+  // Initialise default parameters from primary cell
+  phy->get_current_cell(&scell, &earfcn);
+
+  // Parse identification
+  if (scell_config->cell_identif_r10_present) {
+    scell.id = scell_config->cell_identif_r10.pci_r10;
+    earfcn   = scell_config->cell_identif_r10.dl_carrier_freq_r10;
+  }
+
+  // Parse radio resource
+  if (scell_config->rr_cfg_common_scell_r10_present) {
+    const rr_cfg_common_scell_r10_s* rr_cfg = &scell_config->rr_cfg_common_scell_r10;
+    scell.frame_type                        = (rr_cfg->tdd_cfg_v1130.is_present()) ? SRSLTE_TDD : SRSLTE_FDD;
+    scell.nof_prb                           = rr_cfg->non_ul_cfg_r10.dl_bw_r10.to_number();
+    scell.nof_ports                         = rr_cfg->non_ul_cfg_r10.ant_info_common_r10.ant_ports_count.to_number();
+    scell.phich_length    = (srslte_phich_length_t)rr_cfg->non_ul_cfg_r10.phich_cfg_r10.phich_dur.value;
+    scell.phich_resources = (srslte_phich_r_t)rr_cfg->non_ul_cfg_r10.phich_cfg_r10.phich_res.value;
+  }
+
+  // Initialize scell config with pcell cfg
+  srslte::phy_cfg_t scell_phy_cfg = current_phy_cfg;
+  set_phy_cfg_t_scell_config(&scell_phy_cfg, scell_config);
+
+  if (phy != nullptr) {
+    phy->set_config(scell_phy_cfg, scell_config->s_cell_idx_r10, earfcn, &scell);
   } else {
     rrc_log->info("RRC not initialized. Skipping PHY config.\n");
   }
@@ -2572,14 +2463,14 @@ void rrc::apply_phy_config_dedicated(const phys_cfg_ded_s& phy_cnfg)
 void rrc::log_mac_config_dedicated()
 {
   rrc_log->info("Set MAC main config: harq-MaxReTX=%d, bsr-TimerReTX=%d, bsr-TimerPeriodic=%d\n",
-                current_mac_cfg.get_harq_cfg().max_harq_msg3_tx,
-                current_mac_cfg.get_bsr_cfg().retx_timer,
-                current_mac_cfg.get_bsr_cfg().periodic_timer);
-  if (current_mac_cfg.get_phr_cfg().enabled) {
+                current_mac_cfg.harq_cfg.max_harq_msg3_tx,
+                current_mac_cfg.bsr_cfg.retx_timer,
+                current_mac_cfg.bsr_cfg.periodic_timer);
+  if (current_mac_cfg.phr_cfg.enabled) {
     rrc_log->info("Set MAC PHR config: periodicPHR-Timer=%d, prohibitPHR-Timer=%d, dl-PathlossChange=%d\n",
-                  current_mac_cfg.get_phr_cfg().periodic_timer,
-                  current_mac_cfg.get_phr_cfg().prohibit_timer,
-                  current_mac_cfg.get_phr_cfg().db_pathloss_change);
+                  current_mac_cfg.phr_cfg.periodic_timer,
+                  current_mac_cfg.phr_cfg.prohibit_timer,
+                  current_mac_cfg.phr_cfg.db_pathloss_change);
   }
 }
 
@@ -2592,31 +2483,25 @@ void rrc::apply_mac_config_dedicated_default()
   log_mac_config_dedicated();
 }
 
-void rrc::apply_mac_config_dedicated_explicit(mac_main_cfg_s mac_cnfg)
-{
-  current_mac_cfg.set_mac_main_cfg(mac_cnfg);
-  mac->set_config(current_mac_cfg);
-  log_mac_config_dedicated();
-}
-
 bool rrc::apply_rr_config_dedicated(rr_cfg_ded_s* cnfg)
 {
   if (cnfg->phys_cfg_ded_present) {
     apply_phy_config_dedicated(cnfg->phys_cfg_ded);
     // Apply SR configuration to MAC
     if (cnfg->phys_cfg_ded.sched_request_cfg_present) {
-      current_mac_cfg.set_sched_request_cfg(cnfg->phys_cfg_ded.sched_request_cfg);
+      set_mac_cfg_t_sched_request_cfg(&current_mac_cfg, cnfg->phys_cfg_ded.sched_request_cfg);
     }
   }
 
   if (cnfg->mac_main_cfg_present) {
     if (cnfg->mac_main_cfg.type() == rr_cfg_ded_s::mac_main_cfg_c_::types::default_value) {
-      apply_mac_config_dedicated_default();
+      current_mac_cfg.set_mac_main_cfg_default();
     } else {
-      apply_mac_config_dedicated_explicit(cnfg->mac_main_cfg.explicit_value());
+      set_mac_cfg_t_main_cfg(&current_mac_cfg, cnfg->mac_main_cfg.explicit_value());
     }
+    mac->set_config(current_mac_cfg);
   } else if (cnfg->phys_cfg_ded.sched_request_cfg_present) {
-    // If MAC-main not set but SR config is set, use directly mac->set_config to update confi
+    // If MAC-main not set but SR config is set, use directly mac->set_config to update config
     mac->set_config(current_mac_cfg);
     log_mac_config_dedicated();
   }
@@ -2694,7 +2579,7 @@ void rrc::apply_scell_config(asn1::rrc::rrc_conn_recfg_r8_ies_s* reconfig_r8)
             mac->reconfiguration(scell_config->s_cell_idx_r10, true);
 
             // Call phy reconfiguration
-            phy->set_config_scell(scell_config);
+            apply_phy_scell_config(scell_config);
           }
         }
 
@@ -2921,19 +2806,7 @@ void rrc::add_mrb(uint32_t lcid, uint32_t port)
 // PHY CONFIG DEDICATED Defaults (3GPP 36.331 v10 9.2.4)
 void rrc::set_phy_default_pucch_srs()
 {
-  // FIXME: Check 5.3.13 again, there are some fields that are not reset
-  // Set defaults to CQI, SRS and SR
-  current_phy_cfg.dedicated.cqi_report_cfg_present    = false;
-  current_phy_cfg.dedicated.srs_ul_cfg_ded_present    = false;
-  current_phy_cfg.dedicated.sched_request_cfg_present = false;
-
   rrc_log->info("Setting default PHY config dedicated\n");
-  set_phy_config_dedicated_default();
-}
-
-void rrc::set_phy_default()
-{
-  set_phy_config_common_default();
   set_phy_config_dedicated_default();
 }
 

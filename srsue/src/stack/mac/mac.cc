@@ -95,6 +95,10 @@ bool mac::init(phy_interface_mac_lte* phy, rlc_interface_mac* rlc, rrc_interface
 
   reset();
 
+  // Set default MAC parameters
+  mac_cfg_t default_cfg = {};
+  set_config(default_cfg);
+
   initialized = true;
 
   return true;
@@ -562,17 +566,17 @@ void mac::set_mbsfn_config(uint32_t nof_mbsfn_services)
 void mac::set_config(mac_cfg_t& mac_cfg)
 {
   // Set configuration for each module in MAC
-  bsr_procedure.set_config(mac_cfg.get_bsr_cfg());
-  phr_procedure.set_config(mac_cfg.get_phr_cfg());
-  sr_procedure.set_config(mac_cfg.get_sr_cfg());
-  ra_procedure.set_config(mac_cfg.get_rach_cfg());
-  ul_harq_cfg = mac_cfg.get_harq_cfg();
+  bsr_procedure.set_config(mac_cfg.bsr_cfg);
+  phr_procedure.set_config(mac_cfg.phr_cfg);
+  sr_procedure.set_config(mac_cfg.sr_cfg);
+  ra_procedure.set_config(mac_cfg.rach_cfg);
+  ul_harq_cfg = mac_cfg.harq_cfg;
   for (auto& i : ul_harq) {
     if (i != nullptr) {
       i->set_config(ul_harq_cfg);
     }
   }
-  setup_timers(mac_cfg.get_time_alignment_timer());
+  setup_timers(mac_cfg.time_alignment_timer);
 }
 
 void mac::setup_lcid(uint32_t lcid, uint32_t lcg, uint32_t priority, int PBR_x_tti, uint32_t BSD)

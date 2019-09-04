@@ -715,9 +715,6 @@ void phy_common::reset()
     is_first_of_burst[i] = true;
   }
 
-  multiple_csi_request_enabled = false;
-  cif_enabled                  = false;
-  srs_request_enabled          = false;
   ZERO_OBJECT(pending_dl_ack);
   ZERO_OBJECT(pending_dl_dai);
   ZERO_OBJECT(pending_ul_ack);

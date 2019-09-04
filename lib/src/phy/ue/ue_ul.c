@@ -826,7 +826,7 @@ get_npucch(srslte_pucch_cfg_t* cfg, srslte_uci_cfg_t* uci_cfg, srslte_uci_value_
       if (cell->frame_type == SRSLTE_FDD) {
         n_pucch_res = uci_cfg->ack.ncce[0] + cfg->N_pucch_1;
       } else {
-        if (uci_cfg->ack.tdd_is_bundling || uci_cfg->ack.tdd_ack_M == 1) {
+        if (!uci_cfg->ack.tdd_is_multiplex || uci_cfg->ack.tdd_ack_M == 1) {
           n_pucch_res = n_pucch_i_tdd(
               uci_cfg->ack.ncce[0], cfg->N_pucch_1, cell->nof_prb, uci_cfg->ack.tdd_ack_M, uci_cfg->ack.tdd_ack_m);
         } else {

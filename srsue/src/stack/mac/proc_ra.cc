@@ -91,7 +91,7 @@ void ra_proc::start_pcap(srslte::mac_pcap* pcap_)
 }
 
 /* Sets a new configuration. The configuration is applied by initialization() function */
-void ra_proc::set_config(srsue::mac_interface_rrc::rach_cfg_t& rach_cfg)
+void ra_proc::set_config(srslte::rach_cfg_t& rach_cfg)
 {
   std::unique_lock<std::mutex> ul(mutex);
   new_cfg = rach_cfg;

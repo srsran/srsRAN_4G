@@ -60,6 +60,7 @@ typedef struct SRSLTE_API {
   float                 rs_power;
   bool                  power_scale;
   bool                  csi_enable;
+  bool                  use_tbs_index_alt;
 
   union {
     srslte_softbuffer_tx_t* tx[SRSLTE_MAX_CODEWORDS];

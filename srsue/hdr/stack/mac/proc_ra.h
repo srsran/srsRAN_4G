@@ -79,7 +79,7 @@ public:
 
   void reset();
 
-  void set_config(mac_interface_rrc::rach_cfg_t& rach_cfg);
+  void set_config(srslte::rach_cfg_t& rach_cfg);
 
   void start_pdcch_order();
   void start_mac_order(uint32_t msg_len_bits = 56, bool is_ho = false);
@@ -118,7 +118,7 @@ private:
   srslte::rar_pdu       rar_pdu_msg;
 
   // Random Access parameters provided by higher layers defined in 5.1.1
-  mac_interface_rrc::rach_cfg_t rach_cfg, new_cfg;
+  srslte::rach_cfg_t rach_cfg, new_cfg;
 
   int      delta_preamble_db;
   uint32_t maskIndex;

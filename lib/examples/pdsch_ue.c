@@ -789,7 +789,7 @@ int main(int argc, char **argv) {
               dl_sf.tti        = tti;
               dl_sf.sf_type    = sf_type;
               ue_dl_cfg.cfg.tm = (srslte_tm_t)tm;
-              ue_dl_cfg.pdsch_use_tbs_index_alt = prog_args.enable_256qam;
+              ue_dl_cfg.cfg.pdsch.use_tbs_index_alt = prog_args.enable_256qam;
 
               if ((ue_dl_cfg.cfg.tm == SRSLTE_TM1 && cell.nof_ports == 1) ||
                   (ue_dl_cfg.cfg.tm > SRSLTE_TM1 && cell.nof_ports > 1)) {

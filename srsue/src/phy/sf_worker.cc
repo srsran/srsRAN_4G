@@ -74,7 +74,6 @@ sf_worker::sf_worker(uint32_t            max_prb,
   }
 
   pthread_mutex_init(&mutex, NULL);
-  reset_();
 }
 
 sf_worker::~sf_worker()
@@ -88,16 +87,11 @@ sf_worker::~sf_worker()
 void sf_worker::reset()
 {
   pthread_mutex_lock(&mutex);
-  reset_();
-  pthread_mutex_unlock(&mutex);
-}
-
-void sf_worker::reset_()
-{
   rssi_read_cnt = 0;
   for (uint32_t i = 0; i < cc_workers.size(); i++) {
     cc_workers[i]->reset();
   }
+  pthread_mutex_unlock(&mutex);
 }
 
 bool sf_worker::set_cell(uint32_t cc_idx, srslte_cell_t cell)
@@ -185,22 +179,14 @@ void sf_worker::enable_pregen_signals(bool enabled)
   }
 }
 
-void sf_worker::set_pcell_config(srsue::phy_interface_rrc_lte::phy_cfg_t* phy_cfg)
-{
-  pthread_mutex_lock(&mutex);
-  Info("Setting PCell configuration for cc_worker=%d, cc=%d\n", get_id(), 0);
-  cc_workers[0]->set_pcell_config(phy_cfg);
-  pthread_mutex_unlock(&mutex);
-}
-
-void sf_worker::set_scell_config(uint32_t cc_idx, asn1::rrc::scell_to_add_mod_r10_s* scell_config)
+void sf_worker::set_config(uint32_t cc_idx, srslte::phy_cfg_t& phy_cfg)
 {
   pthread_mutex_lock(&mutex);
   if (cc_idx < cc_workers.size()) {
-    Info("Setting SCell configuration for cc_worker=%d, cc=%d\n", get_id(), cc_idx);
-    cc_workers[cc_idx]->set_scell_config(scell_config);
+    Info("Setting configuration for cc_worker=%d, cc=%d\n", get_id(), cc_idx);
+    cc_workers[cc_idx]->set_config(phy_cfg);
   } else {
-    Error("Setting scell config for cc=%d; Not enough CC workers;\n", cc_idx);
+    Error("Setting config for cc=%d; Invalid cc_idx\n", cc_idx);
   }
   pthread_mutex_unlock(&mutex);
 }

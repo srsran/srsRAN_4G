@@ -56,8 +56,7 @@ public:
   void  set_cfo(const uint32_t& cc_idx, float cfo);
 
   void set_tdd_config(srslte_tdd_config_t config);
-  void set_pcell_config(phy_interface_rrc_lte::phy_cfg_t* phy_cfg);
-  void set_scell_config(uint32_t cc_idx, asn1::rrc::scell_to_add_mod_r10_s* scell_config);
+  void set_config(uint32_t cc_idx, srslte::phy_cfg_t& phy_cfg);
   void set_crnti(uint16_t rnti);
   void enable_pregen_signals(bool enabled);
 
@@ -80,34 +79,36 @@ public:
 private:
   /* Inherited from thread_pool::worker. Function called every subframe to run the DL/UL processing */
   void work_imp();
-  void reset_();
 
   void update_measurements();
   void reset_uci(srslte_uci_data_t* uci_data);
 
   std::vector<cc_worker*> cc_workers;
 
-  phy_common*         phy;
-  srslte::log*        log_h;
-  srslte::log*        log_phy_lib_h;
-  chest_feedback_itf* chest_loop;
+  phy_common* phy = nullptr;
+  ;
+  srslte::log* log_h = nullptr;
+  ;
+  srslte::log* log_phy_lib_h = nullptr;
+  ;
+  chest_feedback_itf* chest_loop = nullptr;
 
   pthread_mutex_t mutex;
 
-  srslte_cell_t       cell;
-  srslte_tdd_config_t tdd_config;
+  srslte_cell_t       cell       = {};
+  srslte_tdd_config_t tdd_config = {};
 
-  bool cell_initiated;
+  bool cell_initiated = false;
 
-  cf_t* prach_ptr;
-  float prach_power;
+  cf_t* prach_ptr   = nullptr;
+  float prach_power = 0;
 
-  uint32_t           tti;
-  srslte_timestamp_t tx_time[SRSLTE_MAX_RADIOS];
-  uint32_t           tx_sem_id;
-  int                next_offset[SRSLTE_MAX_RADIOS];
+  uint32_t           tti                            = 0;
+  uint32_t           tx_sem_id                      = 0;
+  srslte_timestamp_t tx_time[SRSLTE_MAX_RADIOS]     = {};
+  int                next_offset[SRSLTE_MAX_RADIOS] = {};
 
-  uint32_t rssi_read_cnt;
+  uint32_t rssi_read_cnt = 0;
 };
 
 } // namespace srsue

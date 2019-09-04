@@ -52,6 +52,7 @@
 typedef struct {
   bool multiple_csi_request_enabled;
   bool cif_enabled;
+  bool cif_present;
   bool srs_request_enabled;
   bool ra_format_enabled;
 } srslte_dci_cfg_t;

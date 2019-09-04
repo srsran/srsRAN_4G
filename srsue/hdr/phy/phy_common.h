@@ -87,10 +87,6 @@ public:
   } scell_cfg_t;
   scell_cfg_t scell_cfg[SRSLTE_MAX_CARRIERS];
 
-  bool multiple_csi_request_enabled;      /* True means cross scheduling enabled */
-  bool cif_enabled;                       /* True means cross scheduling enabled */
-  bool srs_request_enabled;
-
   // Save last TBS for uplink (mcs >= 28)
   srslte_ra_tb_t last_ul_tb[SRSLTE_MAX_HARQ_PROC][SRSLTE_MAX_CARRIERS];
 

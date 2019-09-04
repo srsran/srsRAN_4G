@@ -23,6 +23,7 @@
 #define SRSLTE_CC_WORKER_H
 
 #include "phy_common.h"
+#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/srslte.h"
 
 namespace srsue {
@@ -45,8 +46,7 @@ public:
   float get_ref_cfo();
 
   void set_tdd_config(srslte_tdd_config_t config);
-  void set_pcell_config(phy_interface_rrc_lte::phy_cfg_t* phy_cfg);
-  void set_scell_config(asn1::rrc::scell_to_add_mod_r10_s* phy_cfg);
+  void set_config(srslte::phy_cfg_t& phy_cfg);
   void set_crnti(uint16_t rnti);
   void enable_pregen_signals(bool enabled);
 
@@ -68,7 +68,6 @@ private:
                            uint32_t                               pid,
                            bool                                   ul_grant_available,
                            mac_interface_phy_lte::mac_grant_ul_t* mac_grant);
-  void fill_dci_cfg(srslte_dci_cfg_t* cfg, bool rel10 = false);
 
   // Cross-carried grants scheduled from PCell
   void set_dl_pending_grant(uint32_t cc_idx, srslte_dci_dl_t* dl_dci);
@@ -96,9 +95,6 @@ private:
   void     set_uci_aperiodic_cqi(srslte_uci_data_t* uci_data);
   void     set_uci_ack(srslte_uci_data_t* uci_data, bool is_grant_available, uint32_t dai_ul, bool is_pusch_available);
   uint32_t get_wideband_cqi();
-  srslte_cqi_report_mode_t aperiodic_mode(asn1::rrc::cqi_report_mode_aperiodic_e mode);
-  void                     parse_antenna_info(asn1::rrc::phys_cfg_ded_s* dedicated);
-  void                     parse_pucch_config(phy_interface_rrc_lte::phy_cfg_t* phy_cfg);
 
   /* Common objects */
   phy_common*  phy;

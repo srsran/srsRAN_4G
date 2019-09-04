@@ -107,9 +107,10 @@ public:
   void set_rar_grant(uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN], uint16_t rnti) final;
 
   /* Get/Set PHY parameters interface from RRC */
-  void set_config(phy_cfg_t* phy_cfg) final;
-  void set_config_scell(asn1::rrc::scell_to_add_mod_r10_s* scell_config) final;
-  void set_config_tdd(asn1::rrc::tdd_cfg_s* tdd) final;
+  void set_config(srslte::phy_cfg_t& config, uint32_t cc_idx, uint32_t earfcn, srslte_cell_t* cell_info) final;
+  void set_config_tdd(srslte_tdd_config_t& tdd_config) final;
+
+#warning "Remove ASN1 from MBSFN"
   void set_config_mbsfn_sib2(asn1::rrc::sib_type2_s* sib2) final;
   void set_config_mbsfn_sib13(asn1::rrc::sib_type13_r9_s* sib13) final;
   void set_config_mbsfn_mcch(asn1::rrc::mcch_msg_s* mcch) final;
@@ -142,7 +143,7 @@ private:
   const static int SF_RECV_THREAD_PRIO = 1;
   const static int WORKERS_THREAD_PRIO = 2;
 
-  srslte::radio_interface_phy*                              radio = nullptr;
+  srslte::radio_interface_phy*                      radio = nullptr;
   std::vector<std::unique_ptr<srslte::log_filter> > log_vec;
   srslte::logger*                                   logger = nullptr;
 
@@ -160,8 +161,8 @@ private:
   srslte_prach_cfg_t  prach_cfg  = {};
   srslte_tdd_config_t tdd_config = {};
 
-  phy_interface_rrc_lte::phy_cfg_t config = {};
-  phy_args_t                       args   = {};
+  srslte::phy_cfg_t config = {};
+  phy_args_t        args   = {};
 
   /* Current time advance */
   uint32_t n_ta = 0;
