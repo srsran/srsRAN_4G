@@ -27,6 +27,8 @@
 #ifndef SRSLTE_LOGGER_H
 #define SRSLTE_LOGGER_H
 
+#include "buffer_pool.h"
+#include <memory>
 #include <stdio.h>
 #include <string>
 
@@ -35,8 +37,54 @@ namespace srslte {
 class logger
 {
 public:
-  virtual void log(std::string *msg) = 0;
+  logger() : pool(16 * 1024) {}
+
+  class log_str
+  {
+  public:
+    log_str(const char* msg_) { strncpy(msg, msg_, size); }
+    log_str() { reset(); }
+    void             reset() { msg[0] = '\0'; }
+    const static int size = 512;
+    char             msg[size];
+  };
+
+  typedef buffer_pool<log_str> log_str_pool_t;
+
+  class log_str_deleter
+  {
+  public:
+    explicit log_str_deleter(log_str_pool_t* pool_ = nullptr) : pool(pool_) {}
+    void operator()(log_str* buf)
+    {
+      if (buf) {
+        if (pool) {
+          buf->reset();
+          pool->deallocate(buf);
+        } else
+          delete buf;
+      }
+    }
+
+  private:
+    log_str_pool_t* pool;
+  };
+  typedef std::unique_ptr<log_str, log_str_deleter> unique_log_str_t;
+
+  void log_char(const char* msg) { log(std::move(unique_log_str_t(new log_str(msg), log_str_deleter()))); }
+
+  virtual void log(unique_log_str_t msg) = 0;
+
+  log_str_pool_t& get_pool() { return pool; }
+
+private:
+  log_str_pool_t pool;
 };
+
+inline logger::unique_log_str_t allocate_unique_log_str(logger::log_str_pool_t& pool)
+{
+  return logger::unique_log_str_t(pool.allocate(), logger::log_str_deleter(&pool));
+}
 
 } // namespace srslte
 

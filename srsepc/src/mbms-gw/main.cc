@@ -204,7 +204,7 @@ main (int argc,char * argv[] )
     logger = &logger_stdout;
   } else {
     logger_file.init(args.log_args.filename);
-    logger_file.log("\n---  Software Radio Systems MBMS log ---\n\n");
+    logger_file.log_char("\n---  Software Radio Systems MBMS log ---\n\n");
     logger = &logger_file;
   }
 

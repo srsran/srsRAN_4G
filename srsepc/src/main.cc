@@ -401,9 +401,9 @@ int main(int argc, char* argv[])
     logger = &logger_stdout;
   } else {
     logger_file.init(args.log_args.filename);
-    logger_file.log("\n\n");
-    logger_file.log(get_build_string().c_str());
-    logger_file.log("\n---  Software Radio Systems EPC log ---\n\n");
+    logger_file.log_char("\n\n");
+    logger_file.log_char(get_build_string().c_str());
+    logger_file.log_char("\n---  Software Radio Systems EPC log ---\n\n");
     logger = &logger_file;
   }
 

@@ -35,7 +35,7 @@ logger_file::logger_file() : logfile(NULL), is_running(false), cur_length(0), ma
 
 logger_file::~logger_file() {
   if(is_running) {
-    log(new std::string("Closing log\n"));
+    logger::log_char("Closing log\n");
     pthread_mutex_lock(&mutex);
     is_running = false;
     pthread_cond_signal(&not_empty);  // wakeup thread and let it terminate
@@ -64,13 +64,10 @@ void logger_file::init(std::string file, int max_length_) {
   start(-2);
 }
 
-void logger_file::log(const char *msg) {
-  log(new std::string(msg));
-}
-
-void logger_file::log(str_ptr msg) {
+void logger_file::log(unique_log_str_t msg)
+{
   pthread_mutex_lock(&mutex);
-  buffer.push_back(msg);
+  buffer.push_back(std::move(msg));
   pthread_cond_signal(&not_empty);
   pthread_mutex_unlock(&mutex);
 }
@@ -85,11 +82,11 @@ void logger_file::run_thread() {
         return; // Thread done. Messages in buffer will be handled in flush.
       }
     }
-    str_ptr s = buffer.front();
+    unique_log_str_t s = std::move(buffer.front());
+
     int n = 0;
     if(logfile)
-      n = fprintf(logfile, "%s", s->c_str());
-    delete s; 
+      n = fprintf(logfile, "%s", s->msg);
     buffer.pop_front();
     pthread_mutex_unlock(&mutex);
     if (n > 0) {
@@ -111,13 +108,12 @@ void logger_file::run_thread() {
 }
 
 void logger_file::flush() {
-  std::deque<str_ptr>::iterator it;
+  std::deque<unique_log_str_t>::iterator it;
   for(it=buffer.begin();it!=buffer.end();it++)
   {
-    str_ptr s = *it; 
+    unique_log_str_t s = std::move(*it);
     if(logfile)
-      fprintf(logfile, "%s", s->c_str());
-    delete s; 
+      fprintf(logfile, "%s", s->msg);
   }
 }
 

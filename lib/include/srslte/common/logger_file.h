@@ -48,8 +48,7 @@ public:
   ~logger_file();
   void init(std::string file, int max_length = -1);
   // Implementation of log_out
-  void log(str_ptr msg);
-  void log(const char *msg);
+  void log(unique_log_str_t msg);
 
 private:
   void run_thread(); 
@@ -63,7 +62,8 @@ private:
   std::string           filename;
   pthread_cond_t        not_empty;
   pthread_mutex_t       mutex;
-  std::deque<str_ptr>   buffer;
+
+  std::deque<unique_log_str_t> buffer;
 };
 
 } // namespace srslte

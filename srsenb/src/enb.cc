@@ -84,8 +84,8 @@ int enb::init(const all_args_t& args_)
     logger = &logger_stdout;
   } else {
     logger_file.init(args.log.filename, args.log.file_max_size);
-    logger_file.log("\n\n");
-    logger_file.log(get_build_string().c_str());
+    logger_file.log_char("\n\n");
+    logger_file.log_char(get_build_string().c_str());
     logger = &logger_file;
   }
 

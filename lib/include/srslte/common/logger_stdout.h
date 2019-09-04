@@ -36,12 +36,7 @@ namespace srslte {
   class logger_stdout : public logger
   {
   public:
-    void log(std::string *msg) {
-      if (msg) {
-        fprintf(stdout, "%s", msg->c_str());
-        delete msg;
-      }
-    }
+    void log(unique_log_str_t log_str) { fprintf(stdout, "%s", log_str->msg); }
   };
 
 } // namespace srslte

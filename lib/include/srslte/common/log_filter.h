@@ -82,15 +82,16 @@ protected:
   logger *logger_h;
   bool    do_tti;
 
+  static const int char_buff_size = 512;
+
   time_itf      *time_src;
   time_format_t time_format;
 
   logger_stdout def_logger_stdout;
 
-  void all_log(srslte::LOG_LEVEL_ENUM level, uint32_t tti, const char *msg);
-  void all_log(srslte::LOG_LEVEL_ENUM level, uint32_t tti, const char *msg, const uint8_t *hex, int size);
-  void all_log_line(srslte::LOG_LEVEL_ENUM level, uint32_t tti, std::string file, int line, char *msg);
-  std::string now_time();
+  void all_log(srslte::LOG_LEVEL_ENUM level, uint32_t tti, const char* msg, const uint8_t* hex = nullptr, int size = 0);
+  void        now_time(char* buffer, const uint32_t buffer_len);
+  void        get_tti_str(const uint32_t tti_, char* buffer, const uint32_t buffer_len);
   std::string hex_string(const uint8_t *hex, int size);
 };
 
