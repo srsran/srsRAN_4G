@@ -1070,11 +1070,11 @@ bool rrc::ho_prepare()
     ho_src_rnti = uernti.crnti;
 
     // Reset/Reestablish stack
+    pdcp->reestablish();
+    rlc->reestablish();
     mac->wait_uplink();
     mac->clear_rntis();
     phy->meas_reset();
-    pdcp->reestablish();
-    rlc->reestablish();
     mac->reset();
     phy->reset();
 
