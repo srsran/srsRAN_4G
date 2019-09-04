@@ -692,10 +692,19 @@ void phy_common::get_sync_metrics(sync_metrics_t m[SRSLTE_MAX_CARRIERS])
   sync_metrics_read = true;
 }
 
+void phy_common::reset_radio()
+{
+  is_first_tx = true;
+  for (int i = 0; i < SRSLTE_MAX_RADIOS; i++) {
+    is_first_of_burst[i] = true;
+  }
+}
+
 void phy_common::reset()
 {
+  reset_radio();
+
   sr_enabled      = false;
-  is_first_tx     = true;
   cur_pathloss    = 0;
   cur_pusch_power = 0;
   p0_preamble     = 0;
@@ -710,10 +719,6 @@ void phy_common::reset()
   avg_rsrq_db = 0;
 
   pcell_report_period = 20;
-
-  for (int i = 0; i < SRSLTE_MAX_RADIOS; i++) {
-    is_first_of_burst[i] = true;
-  }
 
   ZERO_OBJECT(pending_dl_ack);
   ZERO_OBJECT(pending_dl_dai);

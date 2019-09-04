@@ -157,6 +157,7 @@ public:
   void get_sync_metrics(sync_metrics_t m[SRSLTE_MAX_CARRIERS]);
 
   void reset();
+  void reset_radio();
 
   /* SCell Management */
   void enable_scell(uint32_t cc_idx, bool enable);

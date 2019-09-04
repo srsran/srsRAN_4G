@@ -1070,9 +1070,9 @@ bool rrc::ho_prepare()
     ho_src_rnti = uernti.crnti;
 
     // Reset/Reestablish stack
+    mac->wait_uplink();
     mac->clear_rntis();
     phy->meas_reset();
-    mac->wait_uplink();
     pdcp->reestablish();
     rlc->reestablish();
     mac->reset();
@@ -1472,7 +1472,7 @@ void rrc::start_cell_reselection()
     return;
   }
 
-  rrc_log->info("Cell Reselection - Starting...");
+  rrc_log->info("Cell Reselection - Starting...\n");
   callback_list.defer_task([this]() {
     if (cell_selector.run()) {
       return srslte::proc_outcome_t::yield;
@@ -1498,7 +1498,7 @@ void rrc::start_cell_reselection()
           break;
       }
     }
-    rrc_log->info("Cell Reselection - Finished successfully");
+    rrc_log->info("Cell Reselection - Finished successfully\n");
     return srslte::proc_outcome_t::success;
   });
 }

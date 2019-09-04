@@ -110,7 +110,7 @@ void ul_harq_entity::new_grant_ul(mac_interface_phy_lte::mac_grant_ul_t  grant,
       Info("Not implemented\n");
     }
   } else {
-    Warning("Received grant for unknnown rnti=0x%x\n", grant.rnti);
+    Warning("Received grant for unknown rnti=0x%x\n", grant.rnti);
   }
 }
 

@@ -167,7 +167,7 @@ bool prach::prepare_to_send(uint32_t preamble_idx_, int allowed_subframe_, float
   } else {
     if (!cell_initiated) {
       Error("PRACH: Cell not configured\n");
-    } else if (preamble_idx_ >= 64) {
+    } else {
       Error("PRACH: Invalid preamble %d\n", preamble_idx_);
     }
     return false; 
