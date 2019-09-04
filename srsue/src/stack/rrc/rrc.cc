@@ -2051,7 +2051,7 @@ void rrc::handle_ue_capability_enquiry(const asn1::rrc::ue_cap_enquiry_s& enquir
         args.release = new_release;
       }
 
-      args.ue_category = (uint32_t)strtol(args.ue_category_str.c_str(), NULL, 10);
+      args.ue_category = (uint32_t)strtol(args.ue_category_str.c_str(), nullptr, 10);
       if (args.ue_category < SRSLTE_UE_CATEGORY_MIN || args.ue_category > SRSLTE_UE_CATEGORY_MAX) {
         uint32_t new_category =
             SRSLTE_MIN(SRSLTE_UE_CATEGORY_MAX, SRSLTE_MAX(SRSLTE_UE_CATEGORY_MIN, args.ue_category));
@@ -2082,11 +2082,11 @@ void rrc::handle_ue_capability_enquiry(const asn1::rrc::ue_cap_enquiry_s& enquir
 
       cap.rf_params.supported_band_list_eutra.resize(args.nof_supported_bands);
       cap.meas_params.band_list_eutra.resize(args.nof_supported_bands);
-      for (uint32_t i = 0; i < args.nof_supported_bands; i++) {
-        cap.rf_params.supported_band_list_eutra[i].band_eutra  = args.supported_bands[i];
-        cap.rf_params.supported_band_list_eutra[i].half_duplex = false;
-        cap.meas_params.band_list_eutra[i].inter_freq_band_list.resize(1);
-        cap.meas_params.band_list_eutra[i].inter_freq_band_list[0].inter_freq_need_for_gaps = true;
+      for (uint32_t k = 0; k < args.nof_supported_bands; k++) {
+        cap.rf_params.supported_band_list_eutra[k].band_eutra  = args.supported_bands[k];
+        cap.rf_params.supported_band_list_eutra[k].half_duplex = false;
+        cap.meas_params.band_list_eutra[k].inter_freq_band_list.resize(1);
+        cap.meas_params.band_list_eutra[k].inter_freq_band_list[0].inter_freq_need_for_gaps = true;
       }
 
       cap.feature_group_inds_present = true;
@@ -2124,7 +2124,7 @@ void rrc::handle_ue_capability_enquiry(const asn1::rrc::ue_cap_enquiry_s& enquir
 
         band_combination_params_r10_l combination_params;
         if (args.support_ca) {
-          for (uint32_t i = 0; i < args.nof_supported_bands; i++) {
+          for (uint32_t k = 0; k < args.nof_supported_bands; k++) {
             ca_mimo_params_dl_r10_s ca_mimo_params_dl;
             ca_mimo_params_dl.ca_bw_class_dl_r10                = ca_bw_class_r10_e::f;
             ca_mimo_params_dl.supported_mimo_cap_dl_r10_present = false;
@@ -2208,10 +2208,10 @@ void rrc::handle_ue_capability_enquiry(const asn1::rrc::ue_cap_enquiry_s& enquir
 
       if (args.release > 11) {
         supported_band_list_eutra_v1250_l supported_band_list_eutra_v1250;
-        for (uint32_t i = 0; i < args.nof_supported_bands; i++) {
+        for (uint32_t k = 0; k < args.nof_supported_bands; k++) {
           supported_band_eutra_v1250_s supported_band_eutra_v1250;
           // According to 3GPP 36.306 v12 Table 4.1A-1, 256QAM is supported for ue_category_dl 11-16
-          supported_band_eutra_v1250.dl_minus256_qam_r12_present = true;
+          supported_band_eutra_v1250.dl_minus256_qam_r12_present = (args.ue_category_dl >= 11);
 
           // According to 3GPP 36.331 v12 UE-EUTRA-Capability field descriptions
           // This field is only present when the field ue-CategoryUL is considered to 5 or 13.
@@ -2254,7 +2254,7 @@ void rrc::handle_ue_capability_enquiry(const asn1::rrc::ue_cap_enquiry_s& enquir
       asn1::bit_ref bref(buf, sizeof(buf));
       cap.pack(bref);
       bref.align_bytes_zero();
-      uint32_t cap_len = (uint32_t)bref.distance_bytes(buf);
+      auto cap_len = (uint32_t)bref.distance_bytes(buf);
       info->ue_cap_rat_container_list[rat_idx].ue_cap_rat_container.resize(cap_len);
       memcpy(info->ue_cap_rat_container_list[rat_idx].ue_cap_rat_container.data(), buf, cap_len);
       rat_idx++;
