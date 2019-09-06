@@ -48,6 +48,7 @@ extern "C" {
 
 #include "srslte/phy/ch_estimation/chest_dl.h"
 #include "srslte/phy/ch_estimation/chest_ul.h"
+#include "srslte/phy/ch_estimation/wiener_dl.h"
 #include "srslte/phy/ch_estimation/refsignal_dl.h"
 #include "srslte/phy/ch_estimation/refsignal_ul.h"
 
