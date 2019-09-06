@@ -19,34 +19,30 @@
  *
  */
 
-#include <srslte/srslte.h>
 #include <assert.h>
+#include <srslte/srslte.h>
 
 // Useful macros
 #define NSAMPLES2NBYTES(N) (sizeof(cf_t) * (N))
 #define M_1_3 0.33333333333333333333f /* 1 / 3 */
-#define M_1_4 0.25f /* 1 / 4 */
-#define M_4_7 0.571428571f /* 4 / 7*/
+#define M_1_4 0.25f                   /* 1 / 4 */
+#define M_4_7 0.571428571f            /* 4 / 7*/
 
 // Local state function prototypes
-static srslte_wiener_dl_state_t* srslte_wiener_dl_state_malloc(srslte_wiener_dl_t *q);
-static void srslte_wiener_dl_state_free(srslte_wiener_dl_state_t *q);
-static void srslte_wiener_dl_state_reset(srslte_wiener_dl_t *q, srslte_wiener_dl_state_t *state);
+static srslte_wiener_dl_state_t* srslte_wiener_dl_state_malloc(srslte_wiener_dl_t* q);
+static void                      srslte_wiener_dl_state_free(srslte_wiener_dl_state_t* q);
+static void                      srslte_wiener_dl_state_reset(srslte_wiener_dl_t* q, srslte_wiener_dl_state_t* state);
 
 // Local run function prototypes
-static void srslte_wiener_dl_run_symbol_1_8(srslte_wiener_dl_t *q,
-                                            srslte_wiener_dl_state_t *state,
-                                            cf_t *pilots,
-                                            float snr_lin);
-static void srslte_wiener_dl_run_symbol_2_9(srslte_wiener_dl_t *q,
-                                            srslte_wiener_dl_state_t *state);
-static void srslte_wiener_dl_run_symbol_5_12(srslte_wiener_dl_t *q,
-                                             srslte_wiener_dl_state_t *state,
-                                             cf_t *pilots,
-                                             uint32_t shift);
+static void
+            srslte_wiener_dl_run_symbol_1_8(srslte_wiener_dl_t* q, srslte_wiener_dl_state_t* state, cf_t* pilots, float snr_lin);
+static void srslte_wiener_dl_run_symbol_2_9(srslte_wiener_dl_t* q, srslte_wiener_dl_state_t* state);
+static void
+srslte_wiener_dl_run_symbol_5_12(srslte_wiener_dl_t* q, srslte_wiener_dl_state_t* state, cf_t* pilots, uint32_t shift);
 
 // Local state related functions
-static srslte_wiener_dl_state_t* srslte_wiener_dl_state_malloc(srslte_wiener_dl_t *q) {
+static srslte_wiener_dl_state_t* srslte_wiener_dl_state_malloc(srslte_wiener_dl_t* q)
+{
   // Allocate Channel state
   srslte_wiener_dl_state_t* state = calloc(sizeof(srslte_wiener_dl_state_t), 1);
 
@@ -73,7 +69,7 @@ static srslte_wiener_dl_state_t* srslte_wiener_dl_state_malloc(srslte_wiener_dl_
       }
     }
 
-    for(uint32_t i = 0; i < SRSLTE_WIENER_DL_TFIFO_SIZE && !ret; i++) {
+    for (uint32_t i = 0; i < SRSLTE_WIENER_DL_TFIFO_SIZE && !ret; i++) {
       state->tfifo[i] = srslte_vec_malloc(NSAMPLES2NBYTES(q->max_re));
       if (!state->tfifo[i]) {
         perror("malloc");
@@ -114,12 +110,12 @@ static srslte_wiener_dl_state_t* srslte_wiener_dl_state_malloc(srslte_wiener_dl_
     }
 
     // Initialise the rest
-    state->deltan = 0.0f;
-    state->nfifosamps = 0;
+    state->deltan       = 0.0f;
+    state->nfifosamps   = 0;
     state->invtpilotoff = 0;
-    state->sumlen = 0;
-    state->skip = 0;
-    state->cnt = 0;
+    state->sumlen       = 0;
+    state->skip         = 0;
+    state->cnt          = 0;
 
     if (ret) {
       // Free all allocated memory
@@ -133,7 +129,8 @@ static srslte_wiener_dl_state_t* srslte_wiener_dl_state_malloc(srslte_wiener_dl_
   return state;
 }
 
-static void srslte_wiener_dl_state_reset(srslte_wiener_dl_t *q, srslte_wiener_dl_state_t *state) {
+static void srslte_wiener_dl_state_reset(srslte_wiener_dl_t* q, srslte_wiener_dl_state_t* state)
+{
   if (q && state) {
     // Initialise memory
     for (uint32_t i = 0; i < SRSLTE_WIENER_DL_HLS_FIFO_SIZE; i++) {
@@ -151,19 +148,18 @@ static void srslte_wiener_dl_state_reset(srslte_wiener_dl_t *q, srslte_wiener_dl
       bzero(state->cxfifo[i], NSAMPLES2NBYTES(SRSLTE_WIENER_DL_TFIFO_SIZE));
     }
 
-
     // Initialise counters and variables
-    state->deltan = 0.0f;
-    state->nfifosamps = 0;
+    state->deltan       = 0.0f;
+    state->nfifosamps   = 0;
     state->invtpilotoff = 0;
-    state->sumlen = 0;
-    state->skip = 0;
-    state->cnt = 0;
+    state->sumlen       = 0;
+    state->skip         = 0;
+    state->cnt          = 0;
   }
 }
 
-
-static void srslte_wiener_dl_state_free(srslte_wiener_dl_state_t *q) {
+static void srslte_wiener_dl_state_free(srslte_wiener_dl_state_t* q)
+{
 
   if (q) {
     for (int i = 0; i < SRSLTE_WIENER_DL_HLS_FIFO_SIZE; i++) {
@@ -182,7 +178,7 @@ static void srslte_wiener_dl_state_free(srslte_wiener_dl_state_t *q) {
     if (q->xfifo) {
       free(q->xfifo);
     }
-    for(uint32_t i = 0; i < SRSLTE_WIENER_DL_CXFIFO_SIZE; i++) {
+    for (uint32_t i = 0; i < SRSLTE_WIENER_DL_CXFIFO_SIZE; i++) {
       if (q->cxfifo[i]) {
         free(q->cxfifo[i]);
       }
@@ -199,8 +195,8 @@ static void srslte_wiener_dl_state_free(srslte_wiener_dl_state_t *q) {
   }
 }
 
-
-int srslte_wiener_dl_init(srslte_wiener_dl_t *q, uint32_t max_prb, uint32_t max_tx_ports, uint32_t max_rx_ant) {
+int srslte_wiener_dl_init(srslte_wiener_dl_t* q, uint32_t max_prb, uint32_t max_tx_ports, uint32_t max_rx_ant)
+{
   int ret = SRSLTE_SUCCESS;
 
   if (q && max_prb > SRSLTE_MAX_PRB && max_tx_ports > SRSLTE_MAX_PORTS && max_rx_ant > SRSLTE_MAX_PORTS) {
@@ -208,15 +204,15 @@ int srslte_wiener_dl_init(srslte_wiener_dl_t *q, uint32_t max_prb, uint32_t max_
     bzero(q, sizeof(srslte_wiener_dl_t));
 
     // Set maximum parameters
-    q->max_prb = max_prb;
-    q->max_ref = max_prb * 2;
-    q->max_re = max_prb * SRSLTE_NRE;
+    q->max_prb      = max_prb;
+    q->max_ref      = max_prb * 2;
+    q->max_re       = max_prb * SRSLTE_NRE;
     q->max_tx_ports = max_tx_ports;
-    q->max_rx_ant= max_rx_ant;
+    q->max_rx_ant   = max_rx_ant;
 
     // Allocate state
-    for(uint32_t tx = 0; tx < q->max_tx_ports && !ret; tx++) {
-      for(uint32_t rx = 0; rx < q->max_tx_ports && !ret; rx++) {
+    for (uint32_t tx = 0; tx < q->max_tx_ports && !ret; tx++) {
+      for (uint32_t rx = 0; rx < q->max_tx_ports && !ret; rx++) {
         srslte_wiener_dl_state_t* state = srslte_wiener_dl_state_malloc(q);
         if (!state) {
           perror("srslte_wiener_dl_state_malloc");
@@ -248,7 +244,8 @@ int srslte_wiener_dl_init(srslte_wiener_dl_t *q, uint32_t max_prb, uint32_t max_
   return ret;
 }
 
-int srslte_wiener_dl_set_cell(srslte_wiener_dl_t *q, const srslte_cell_t *cell) {
+int srslte_wiener_dl_set_cell(srslte_wiener_dl_t* q, const srslte_cell_t* cell)
+{
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q && cell) {
@@ -256,9 +253,9 @@ int srslte_wiener_dl_set_cell(srslte_wiener_dl_t *q, const srslte_cell_t *cell) 
     ret = SRSLTE_SUCCESS;
 
     // Set new values
-    q->nof_prb = cell->nof_prb;
-    q->nof_ref = cell->nof_prb * 2;
-    q->nof_re = cell->nof_prb * SRSLTE_NRE;
+    q->nof_prb      = cell->nof_prb;
+    q->nof_ref      = cell->nof_prb * 2;
+    q->nof_re       = cell->nof_prb * SRSLTE_NRE;
     q->nof_tx_ports = cell->nof_ports;
 
     // Reset states
@@ -268,7 +265,8 @@ int srslte_wiener_dl_set_cell(srslte_wiener_dl_t *q, const srslte_cell_t *cell) 
   return ret;
 }
 
-void srslte_wiener_dl_reset(srslte_wiener_dl_t *q) {
+void srslte_wiener_dl_reset(srslte_wiener_dl_t* q)
+{
   if (q) {
     // Reset states
     for (uint32_t tx = 0; tx < SRSLTE_MAX_PORTS; tx++) {
@@ -285,14 +283,15 @@ void srslte_wiener_dl_reset(srslte_wiener_dl_t *q) {
   }
 }
 
-static void circshift_dim1(cf_t **matrix, uint32_t ndim1, int32_t k) {
+static void circshift_dim1(cf_t** matrix, uint32_t ndim1, int32_t k)
+{
   // Wrap k
   k = (k + ndim1) % ndim1;
 
   // Run k times
-  while(k--) {
+  while (k--) {
     // Save first pointer
-    cf_t *tmp_ptr = matrix[0];
+    cf_t* tmp_ptr = matrix[0];
 
     // Shift pointers one position
     for (int i = 0; i < ndim1 - 1; i++) {
@@ -304,13 +303,14 @@ static void circshift_dim1(cf_t **matrix, uint32_t ndim1, int32_t k) {
   }
 }
 
-static void circshift_dim2(cf_t **matrix, uint32_t ndim1, uint32_t ndim2, int32_t k) {
+static void circshift_dim2(cf_t** matrix, uint32_t ndim1, uint32_t ndim2, int32_t k)
+{
   // Wrap k
   k = (k + ndim1) % ndim1;
 
-  for(uint32_t dim1 = 0; dim1 < ndim1; dim1++) {
+  for (uint32_t dim1 = 0; dim1 < ndim1; dim1++) {
     // Run k times
-    for(int i = 0; i < k; i++) {
+    for (int i = 0; i < k; i++) {
       // Save first value
       cf_t tmp = matrix[dim1][0];
 
@@ -325,7 +325,8 @@ static void circshift_dim2(cf_t **matrix, uint32_t ndim1, uint32_t ndim2, int32_
   }
 }
 
-static void matrix_acc_dim1_cc(cf_t **matrix, cf_t *res, uint32_t ndim1, uint32_t ndim2) {
+static void matrix_acc_dim1_cc(cf_t** matrix, cf_t* res, uint32_t ndim1, uint32_t ndim2)
+{
   // Accumulate each column
   for (uint32_t dim2 = 0; dim2 < ndim2; dim2++) {
     cf_t acc = 0.0f;
@@ -336,17 +337,19 @@ static void matrix_acc_dim1_cc(cf_t **matrix, cf_t *res, uint32_t ndim1, uint32_
   }
 }
 
-static uint32_t matrix_acc_dim2_cc(cf_t **matrix, cf_t *res, uint32_t ndim1, uint32_t ndim2) {
+static uint32_t matrix_acc_dim2_cc(cf_t** matrix, cf_t* res, uint32_t ndim1, uint32_t ndim2)
+{
   // Accumulate each row
   for (uint32_t dim1 = 0; dim1 < ndim1; dim1++) {
     res[dim1] = srslte_vec_acc_cc(matrix[dim1], ndim2);
   }
 }
 
-static uint32_t vec_find_first_smaller_than_cf(cf_t *x, float y, uint32_t n, uint32_t pos) {
+static uint32_t vec_find_first_smaller_than_cf(cf_t* x, float y, uint32_t n, uint32_t pos)
+{
   uint32_t ret = n;
 
-  for(uint32_t i = pos; i < n && ret == n; i++) {
+  for (uint32_t i = pos; i < n && ret == n; i++) {
     if (cabsf(x[i]) > y) {
       ret = i;
     }
@@ -355,27 +358,32 @@ static uint32_t vec_find_first_smaller_than_cf(cf_t *x, float y, uint32_t n, uin
   return ret;
 }
 
-static void estimate_wiener(srslte_wiener_dl_t *q, const cf_t wm[SRSLTE_WIENER_DL_MIN_RE][SRSLTE_WIENER_DL_MIN_REF], cf_t *ref, cf_t *h) {
+static void estimate_wiener(srslte_wiener_dl_t* q,
+                            const cf_t          wm[SRSLTE_WIENER_DL_MIN_RE][SRSLTE_WIENER_DL_MIN_REF],
+                            cf_t*               ref,
+                            cf_t*               h)
+{
   uint32_t r_offset = 0; // Resource Element indexing offset
   uint32_t p_offset = 0; // Pilot indexing offset
 
   // Estimate lower band
-  for(uint32_t i = 0; i < SRSLTE_WIENER_DL_MIN_RE; i++) {
+  for (uint32_t i = 0; i < SRSLTE_WIENER_DL_MIN_RE; i++) {
     h[r_offset + i] = srslte_vec_dot_prod_ccc(&ref[p_offset], wm[i], SRSLTE_WIENER_DL_MIN_REF);
   }
 
   // Estimate Upper band (it might overlap in 6PRB cells with the lower band)
   r_offset = q->nof_re - SRSLTE_WIENER_DL_MIN_RE;
   p_offset = q->nof_ref - SRSLTE_WIENER_DL_MIN_REF;
-  for(uint32_t i = 0; i < SRSLTE_WIENER_DL_MIN_RE; i++) {
+  for (uint32_t i = 0; i < SRSLTE_WIENER_DL_MIN_RE; i++) {
     h[r_offset + i] = srslte_vec_dot_prod_ccc(&ref[p_offset], wm[i], SRSLTE_WIENER_DL_MIN_REF);
   }
 
   // Estimate center Resource elements
   if (q->nof_re > 2 * SRSLTE_WIENER_DL_MIN_RE) {
-    for (uint32_t prb = SRSLTE_WIENER_DL_MIN_PRB / 2; prb < q->nof_prb - SRSLTE_WIENER_DL_MIN_REF/2; prb += SRSLTE_WIENER_DL_MIN_PRB / 2) {
+    for (uint32_t prb = SRSLTE_WIENER_DL_MIN_PRB / 2; prb < q->nof_prb - SRSLTE_WIENER_DL_MIN_REF / 2;
+         prb += SRSLTE_WIENER_DL_MIN_PRB / 2) {
       uint32_t ref_idx = prb * 2 - SRSLTE_WIENER_DL_MIN_REF / 2;
-      uint32_t re_idx = prb * SRSLTE_NRE;
+      uint32_t re_idx  = prb * SRSLTE_NRE;
       for (uint32_t i = SRSLTE_WIENER_DL_MIN_RE / 4; i < (3 * SRSLTE_WIENER_DL_MIN_RE) / 4; i++) {
         h[re_idx + i] = srslte_vec_dot_prod_ccc(&ref[ref_idx], wm[i], SRSLTE_WIENER_DL_MIN_REF);
       }
@@ -383,18 +391,17 @@ static void estimate_wiener(srslte_wiener_dl_t *q, const cf_t wm[SRSLTE_WIENER_D
   }
 }
 
-static void srslte_wiener_dl_run_symbol_1_8(srslte_wiener_dl_t *q,
-                                            srslte_wiener_dl_state_t *state,
-                                            cf_t *pilots,
-                                            float snr_lin) {
+static void
+srslte_wiener_dl_run_symbol_1_8(srslte_wiener_dl_t* q, srslte_wiener_dl_state_t* state, cf_t* pilots, float snr_lin)
+{
 
   // there are pilot symbols (even) in this OFDM period (first symbol of the slot)
-  circshift_dim1(state->hls_fifo_2, SRSLTE_WIENER_DL_HLS_FIFO_SIZE, 1);   // shift matrix rows down one position
+  circshift_dim1(state->hls_fifo_2, SRSLTE_WIENER_DL_HLS_FIFO_SIZE, 1); // shift matrix rows down one position
   memcpy(state->hls_fifo_2[0], pilots, NSAMPLES2NBYTES(q->nof_ref));
 
   // Online training for pilot filtering
   circshift_dim2(&state->timefifo, 1, SRSLTE_WIENER_DL_TIMEFIFO_SIZE, 1); // shift columns right one position
-  state->timefifo[0] = conjf(pilots[q->nof_ref / 2]); // train with center of subband frequency
+  state->timefifo[0] = conjf(pilots[q->nof_ref / 2]);                     // train with center of subband frequency
 
   circshift_dim1(state->cxfifo, SRSLTE_WIENER_DL_CXFIFO_SIZE, 1); // shift rows down one position
   srslte_vec_sc_prod_ccc(state->timefifo, pilots[q->nof_ref / 2], state->cxfifo[0], SRSLTE_WIENER_DL_TIMEFIFO_SIZE);
@@ -407,33 +414,33 @@ static void srslte_wiener_dl_run_symbol_1_8(srslte_wiener_dl_t *q,
   uint32_t halfcx = vec_find_first_smaller_than_cf(q->tmp, cabsf(q->tmp[1]) * 0.5f, SRSLTE_WIENER_DL_TFIFO_SIZE, 2);
 
   // Update internal states
-  state->sumlen = SRSLTE_MAX(1, floorf(halfcx / 8.0f * SRSLTE_MIN(2.0f, 1.0f + 1.0f / snr_lin)));
-  state->skip = SRSLTE_MAX(1, floorf(halfcx / 4.0f * SRSLTE_MIN(1, snr_lin / 16.0f)));
-  state->deltan = 0;
+  state->sumlen       = SRSLTE_MAX(1, floorf(halfcx / 8.0f * SRSLTE_MIN(2.0f, 1.0f + 1.0f / snr_lin)));
+  state->skip         = SRSLTE_MAX(1, floorf(halfcx / 4.0f * SRSLTE_MIN(1, snr_lin / 16.0f)));
+  state->deltan       = 0;
   state->invtpilotoff = M_1_3;
 }
 
-static void srslte_wiener_dl_run_symbol_2_9(srslte_wiener_dl_t *q, srslte_wiener_dl_state_t *state) {
+static void srslte_wiener_dl_run_symbol_2_9(srslte_wiener_dl_t* q, srslte_wiener_dl_state_t* state)
+{
 
   // here we only shift and feed TD interpolation fifo
   circshift_dim1(state->tfifo, SRSLTE_WIENER_DL_TFIFO_SIZE, 1); // shift matrix columns right by one position
 
   // Average Reference Signals
   matrix_acc_dim1_cc(state->hls_fifo_2, q->tmp, SRSLTE_WIENER_DL_HLS_FIFO_SIZE, q->nof_ref); // Sum values
-  srslte_vec_sc_prod_cfc(q->tmp, 1.0f / state->sumlen, q->tmp, q->nof_ref); // Sacle sum
+  srslte_vec_sc_prod_cfc(q->tmp, 1.0f / state->sumlen, q->tmp, q->nof_ref);                  // Sacle sum
 
   // Estimate channel based on the wiener matrix 2
   estimate_wiener(q, q->wm2, q->tmp, state->tfifo[0]);
 
   // Update internal states
-  state->deltan = 0.0f;
+  state->deltan       = 0.0f;
   state->invtpilotoff = M_1_3;
 }
 
-static void srslte_wiener_dl_run_symbol_5_12(srslte_wiener_dl_t *q,
-                                             srslte_wiener_dl_state_t *state,
-                                             cf_t *pilots,
-                                             uint32_t shift) {
+static void
+srslte_wiener_dl_run_symbol_5_12(srslte_wiener_dl_t* q, srslte_wiener_dl_state_t* state, cf_t* pilots, uint32_t shift)
+{
   // there are pilot symbols (odd) in this OFDM period (fifth symbol of the slot)
   circshift_dim1(state->hls_fifo_1, SRSLTE_WIENER_DL_HLS_FIFO_SIZE, 1); // shift matrix rows down one position
   memcpy(state->hls_fifo_1[0], pilots, NSAMPLES2NBYTES(q->nof_ref));
@@ -442,13 +449,13 @@ static void srslte_wiener_dl_run_symbol_5_12(srslte_wiener_dl_t *q,
 
   // Average Reference Signals
   matrix_acc_dim1_cc(state->hls_fifo_1, q->tmp, SRSLTE_WIENER_DL_HLS_FIFO_SIZE, q->nof_ref); // Sum values
-  srslte_vec_sc_prod_cfc(q->tmp, 1.0f / state->sumlen, q->tmp, q->nof_ref); // Sacle sum
+  srslte_vec_sc_prod_cfc(q->tmp, 1.0f / state->sumlen, q->tmp, q->nof_ref);                  // Sacle sum
 
   // Estimate channel based on the wiener matrix 1
   estimate_wiener(q, q->wm1, q->tmp, state->tfifo[0]);
 
   // Update internal states
-  state->deltan = 0.0f;
+  state->deltan       = 0.0f;
   state->invtpilotoff = M_1_4;
   state->cnt++;
 
@@ -472,22 +479,29 @@ static void srslte_wiener_dl_run_symbol_5_12(srslte_wiener_dl_t *q,
 
     bzero(q->hlsv, NSAMPLES2NBYTES(SRSLTE_WIENER_DL_MIN_RE));
     bzero(q->hlsv_sum, NSAMPLES2NBYTES(SRSLTE_WIENER_DL_MIN_RE));
-    for(uint32_t i = pos2, k = pstart; i < SRSLTE_WIENER_DL_MIN_RE; i += 6, k++) {
-      q->hlsv[i] = conjf(state->hls_fifo_2[1][k]  +  (state->hls_fifo_2[0][k] - state->hls_fifo_2[1][k]) * M_4_7);
+    for (uint32_t i = pos2, k = pstart; i < SRSLTE_WIENER_DL_MIN_RE; i += 6, k++) {
+      q->hlsv[i] = conjf(state->hls_fifo_2[1][k] + (state->hls_fifo_2[0][k] - state->hls_fifo_2[1][k]) * M_4_7);
     }
-    for(uint32_t i = pos1, k = pstart; i < SRSLTE_WIENER_DL_MIN_RE; i += 6, k++) {
+    for (uint32_t i = pos1, k = pstart; i < SRSLTE_WIENER_DL_MIN_RE; i += 6, k++) {
       q->hlsv[i] = conjf(state->hls_fifo_1[1][k]);
     }
 
-    for(uint32_t i = 0; i < SRSLTE_WIENER_DL_MIN_REF * 2; i++) {
+    for (uint32_t i = 0; i < SRSLTE_WIENER_DL_MIN_REF * 2; i++) {
       srslte_vec_sc_prod_ccc(q->hlsv, conjf(q->hlsv[0]), q->tmp, SRSLTE_WIENER_DL_MIN_RE);
       srslte_vec_sum_ccc(q->tmp, q->hlsv_sum, q->hlsv_sum, SRSLTE_WIENER_DL_MIN_RE);
-
     }
   }
 }
 
-int srslte_wiener_dl_run(srslte_wiener_dl_t *q, uint32_t tx, uint32_t rx, uint32_t m, uint32_t shift, cf_t *pilots, cf_t *estimated, float snr_lin) {
+int srslte_wiener_dl_run(srslte_wiener_dl_t* q,
+                         uint32_t            tx,
+                         uint32_t            rx,
+                         uint32_t            m,
+                         uint32_t            shift,
+                         cf_t*               pilots,
+                         cf_t*               estimated,
+                         float               snr_lin)
+{
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
   if (q) {
@@ -520,10 +534,11 @@ int srslte_wiener_dl_run(srslte_wiener_dl_t *q, uint32_t tx, uint32_t rx, uint32
   return ret;
 }
 
-void srslte_wiener_dl_free(srslte_wiener_dl_t *q) {
+void srslte_wiener_dl_free(srslte_wiener_dl_t* q)
+{
   if (q) {
-    for(uint32_t tx = 0; tx < SRSLTE_MAX_PORTS; tx++) {
-      for(uint32_t rx = 0; rx < SRSLTE_MAX_PORTS; rx++) {
+    for (uint32_t tx = 0; tx < SRSLTE_MAX_PORTS; tx++) {
+      for (uint32_t rx = 0; rx < SRSLTE_MAX_PORTS; rx++) {
         if (q->state[tx][rx]) {
           srslte_wiener_dl_state_free(q->state[tx][rx]);
           q->state[tx][rx] = NULL;
@@ -538,6 +553,5 @@ void srslte_wiener_dl_free(srslte_wiener_dl_t *q) {
     if (q->random) {
       srslte_random_free(q->random);
     }
-
   }
 }

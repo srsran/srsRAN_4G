@@ -22,52 +22,52 @@
 #ifndef SRSLTE_SRSLTE_WIENER_DL_H_
 #define SRSLTE_SRSLTE_WIENER_DL_H_
 
-#include <srslte/srslte.h>
 #include <srslte/phy/utils/random.h>
+#include <srslte/srslte.h>
 
 // Constant static parameters
 #define SRSLTE_WIENER_DL_HLS_FIFO_SIZE (8U)
-#define SRSLTE_WIENER_DL_MIN_PRB       (4U)
-#define SRSLTE_WIENER_DL_MIN_RE        (SRSLTE_WIENER_DL_MIN_PRB * SRSLTE_NRE)
-#define SRSLTE_WIENER_DL_MIN_REF       (SRSLTE_WIENER_DL_MIN_PRB * 2U)
-#define SRSLTE_WIENER_DL_TFIFO_SIZE    (2U)
-#define SRSLTE_WIENER_DL_XFIFO_SIZE    (400U)
+#define SRSLTE_WIENER_DL_MIN_PRB (4U)
+#define SRSLTE_WIENER_DL_MIN_RE (SRSLTE_WIENER_DL_MIN_PRB * SRSLTE_NRE)
+#define SRSLTE_WIENER_DL_MIN_REF (SRSLTE_WIENER_DL_MIN_PRB * 2U)
+#define SRSLTE_WIENER_DL_TFIFO_SIZE (2U)
+#define SRSLTE_WIENER_DL_XFIFO_SIZE (400U)
 #define SRSLTE_WIENER_DL_TIMEFIFO_SIZE (32U)
-#define SRSLTE_WIENER_DL_CXFIFO_SIZE   (400U)
+#define SRSLTE_WIENER_DL_CXFIFO_SIZE (400U)
 
 typedef struct {
-  cf_t *hls_fifo_1[SRSLTE_WIENER_DL_HLS_FIFO_SIZE]; // Least square channel estimates on odd pilots
-  cf_t *hls_fifo_2[SRSLTE_WIENER_DL_HLS_FIFO_SIZE]; // Least square channel estimates on even pilots
-  cf_t *tfifo[SRSLTE_WIENER_DL_TFIFO_SIZE]; // memory for time domain channel linear interpolation
-  cf_t *xfifo; // fifo for averaging the frequency correlation vectors
-  cf_t *cV; // frequency correlation vector among all subcarriers
-  float deltan; // step within time domain linear interpolation
-  uint32_t nfifosamps; // number of samples inside the fifo for averaging the correlation vectors
-  float invtpilotoff; // step for time domain linear interpolation
-  cf_t *timefifo; // fifo for storing single frequency channel time domain evolution
-  cf_t *cxfifo[SRSLTE_WIENER_DL_CXFIFO_SIZE];  // fifo for averaging time domain channel correlation vector
+  cf_t*    hls_fifo_1[SRSLTE_WIENER_DL_HLS_FIFO_SIZE]; // Least square channel estimates on odd pilots
+  cf_t*    hls_fifo_2[SRSLTE_WIENER_DL_HLS_FIFO_SIZE]; // Least square channel estimates on even pilots
+  cf_t*    tfifo[SRSLTE_WIENER_DL_TFIFO_SIZE];         // memory for time domain channel linear interpolation
+  cf_t*    xfifo;                                      // fifo for averaging the frequency correlation vectors
+  cf_t*    cV;                                         // frequency correlation vector among all subcarriers
+  float    deltan;                                     // step within time domain linear interpolation
+  uint32_t nfifosamps;   // number of samples inside the fifo for averaging the correlation vectors
+  float    invtpilotoff; // step for time domain linear interpolation
+  cf_t*    timefifo;     // fifo for storing single frequency channel time domain evolution
+  cf_t*    cxfifo[SRSLTE_WIENER_DL_CXFIFO_SIZE]; // fifo for averaging time domain channel correlation vector
   uint32_t sumlen; // length of dynamic average window for time domain channel correlation vector
-  uint32_t skip;// pilot OFDM symbols to skip when training Wiener matrices (skip = 1,..,4)
-  uint32_t cnt; // counter for skipping pilot OFDM symbols
+  uint32_t skip;   // pilot OFDM symbols to skip when training Wiener matrices (skip = 1,..,4)
+  uint32_t cnt;    // counter for skipping pilot OFDM symbols
 } srslte_wiener_dl_state_t;
 
 typedef struct {
   // Maximum allocated number of...
-  uint32_t max_prb; // Resource Blocks
-  uint32_t max_ref; // Reference signals
-  uint32_t max_re; // Resource Elements (equivalent to sub-carriers)
-  uint32_t max_tx_ports;  // Tx Ports
-  uint32_t max_rx_ant;  // Rx Antennas
+  uint32_t max_prb;      // Resource Blocks
+  uint32_t max_ref;      // Reference signals
+  uint32_t max_re;       // Resource Elements (equivalent to sub-carriers)
+  uint32_t max_tx_ports; // Tx Ports
+  uint32_t max_rx_ant;   // Rx Antennas
 
   // Configured number of...
-  uint32_t nof_prb; // Resource Blocks
-  uint32_t nof_ref; // Reference signals
-  uint32_t nof_re; // Resource Elements (equivalent to sub-carriers)
-  uint32_t nof_tx_ports;  // Tx Ports
-  uint32_t nof_rx_ant;  // Rx Antennas
+  uint32_t nof_prb;      // Resource Blocks
+  uint32_t nof_ref;      // Reference signals
+  uint32_t nof_re;       // Resource Elements (equivalent to sub-carriers)
+  uint32_t nof_tx_ports; // Tx Ports
+  uint32_t nof_rx_ant;   // Rx Antennas
 
   // One state per possible channel (allocated in init)
-  srslte_wiener_dl_state_t *state[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
+  srslte_wiener_dl_state_t* state[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
 
   // Wiener matrices
   cf_t wm1[SRSLTE_WIENER_DL_MIN_RE][SRSLTE_WIENER_DL_MIN_REF];
@@ -76,30 +76,28 @@ typedef struct {
   cf_t hlsv_sum[SRSLTE_WIENER_DL_MIN_RE];
 
   // Temporal vector
-  cf_t *tmp;
+  cf_t* tmp;
 
   // Random generator
   srslte_random_t random;
 } srslte_wiener_dl_t;
 
-SRSLTE_API int srslte_wiener_dl_init(srslte_wiener_dl_t *q,
-                                     uint32_t max_prb,
-                                     uint32_t max_tx_ports,
-                                     uint32_t max_rx_ant);
+SRSLTE_API int
+srslte_wiener_dl_init(srslte_wiener_dl_t* q, uint32_t max_prb, uint32_t max_tx_ports, uint32_t max_rx_ant);
 
-SRSLTE_API int srslte_wiener_dl_set_cell(srslte_wiener_dl_t *q, const srslte_cell_t *cell);
+SRSLTE_API int srslte_wiener_dl_set_cell(srslte_wiener_dl_t* q, const srslte_cell_t* cell);
 
-SRSLTE_API void srslte_wiener_dl_reset(srslte_wiener_dl_t *q);
+SRSLTE_API void srslte_wiener_dl_reset(srslte_wiener_dl_t* q);
 
-SRSLTE_API int srslte_wiener_dl_run(srslte_wiener_dl_t *q,
-                                    uint32_t tx,
-                                    uint32_t rx,
-                                    uint32_t m,
-                                    uint32_t shift,
-                                    cf_t *pilots,
-                                    cf_t *estimated,
-                                    float snr_lin);
+SRSLTE_API int srslte_wiener_dl_run(srslte_wiener_dl_t* q,
+                                    uint32_t            tx,
+                                    uint32_t            rx,
+                                    uint32_t            m,
+                                    uint32_t            shift,
+                                    cf_t*               pilots,
+                                    cf_t*               estimated,
+                                    float               snr_lin);
 
-SRSLTE_API void srslte_wiener_dl_free(srslte_wiener_dl_t *q);
+SRSLTE_API void srslte_wiener_dl_free(srslte_wiener_dl_t* q);
 
-#endif //SRSLTE_SRSLTE_WIENER_DL_H_
+#endif // SRSLTE_SRSLTE_WIENER_DL_H_
