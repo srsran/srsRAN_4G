@@ -20,6 +20,7 @@
  */
 
 #include <assert.h>
+#include <srslte/phy/utils/mat.h>
 #include <srslte/srslte.h>
 
 // Useful macros
@@ -27,6 +28,13 @@
 #define M_1_3 0.33333333333333333333f /* 1 / 3 */
 #define M_1_4 0.25f                   /* 1 / 4 */
 #define M_4_7 0.571428571f            /* 4 / 7*/
+
+// Constants
+const float hlsv_sum_norm[SRSLTE_WIENER_DL_MIN_RE] = {
+    16.0f, 15.66f, 15.33f, 15.0f, 14.66f, 14.33f, 14.0f, 13.66f, 13.33f, 13.0f, 12.66f, 12.33f,
+    12.0f, 11.66f, 11.33f, 11.0f, 10.66f, 10.33f, 10.0f, 9.66f,  9.33f,  9.0f,  8.66f,  8.33f,
+    8.0f,  7.66f,  7.33f,  7.0f,  6.66f,  6.33f,  6.0f,  5.66f,  5.33f,  5.0f,  4.66f,  4.33f,
+    4.0f,  3.66f,  3.33f,  3.0f,  2.66f,  2.33f,  2.0f,  1.66f,  1.33f,  1.0f,  0.66f,  0.33f};
 
 // Local state function prototypes
 static srslte_wiener_dl_state_t* srslte_wiener_dl_state_malloc(srslte_wiener_dl_t* q);
@@ -37,8 +45,13 @@ static void                      srslte_wiener_dl_state_reset(srslte_wiener_dl_t
 static void
             srslte_wiener_dl_run_symbol_1_8(srslte_wiener_dl_t* q, srslte_wiener_dl_state_t* state, cf_t* pilots, float snr_lin);
 static void srslte_wiener_dl_run_symbol_2_9(srslte_wiener_dl_t* q, srslte_wiener_dl_state_t* state);
-static void
-srslte_wiener_dl_run_symbol_5_12(srslte_wiener_dl_t* q, srslte_wiener_dl_state_t* state, cf_t* pilots, uint32_t shift);
+static void srslte_wiener_dl_run_symbol_5_12(srslte_wiener_dl_t*       q,
+                                             srslte_wiener_dl_state_t* state,
+                                             cf_t*                     pilots,
+                                             uint32_t                  tx,
+                                             uint32_t                  rx,
+                                             uint32_t                  shift,
+                                             float                     snr_lin);
 
 // Local state related functions
 static srslte_wiener_dl_state_t* srslte_wiener_dl_state_malloc(srslte_wiener_dl_t* q)
@@ -77,17 +90,9 @@ static srslte_wiener_dl_state_t* srslte_wiener_dl_state_malloc(srslte_wiener_dl_
       }
     }
 
-    if (!ret) {
-      state->xfifo = srslte_vec_malloc(NSAMPLES2NBYTES(SRSLTE_WIENER_DL_MIN_RE * SRSLTE_WIENER_DL_XFIFO_SIZE));
-      if (!state->xfifo) {
-        perror("malloc");
-        ret = SRSLTE_ERROR;
-      }
-    }
-
-    if (!ret) {
-      state->cV = srslte_vec_malloc(NSAMPLES2NBYTES(SRSLTE_WIENER_DL_MIN_RE));
-      if (!state->cV) {
+    for (uint32_t i = 0; i < SRSLTE_WIENER_DL_XFIFO_SIZE && !ret; i++) {
+      state->xfifo[i] = srslte_vec_malloc(NSAMPLES2NBYTES(SRSLTE_WIENER_DL_MIN_RE));
+      if (!state->xfifo[i]) {
         perror("malloc");
         ret = SRSLTE_ERROR;
       }
@@ -140,7 +145,9 @@ static void srslte_wiener_dl_state_reset(srslte_wiener_dl_t* q, srslte_wiener_dl
     for (uint32_t i = 0; i < SRSLTE_WIENER_DL_TFIFO_SIZE; i++) {
       bzero(state->tfifo[i], NSAMPLES2NBYTES(q->nof_re));
     }
-    bzero(state->xfifo, NSAMPLES2NBYTES(SRSLTE_WIENER_DL_MIN_RE * SRSLTE_WIENER_DL_XFIFO_SIZE));
+    for (uint32_t i = 0; i < SRSLTE_WIENER_DL_XFIFO_SIZE; i++) {
+      bzero(state->xfifo, NSAMPLES2NBYTES(SRSLTE_WIENER_DL_MIN_RE));
+    }
     bzero(state->cV, NSAMPLES2NBYTES(SRSLTE_WIENER_DL_MIN_RE));
     bzero(state->timefifo, NSAMPLES2NBYTES(SRSLTE_WIENER_DL_TIMEFIFO_SIZE));
 
@@ -175,16 +182,15 @@ static void srslte_wiener_dl_state_free(srslte_wiener_dl_state_t* q)
         free(q->tfifo[i]);
       }
     }
-    if (q->xfifo) {
-      free(q->xfifo);
+    for (uint32_t i = 0; i < SRSLTE_WIENER_DL_XFIFO_SIZE; i++) {
+      if (q->xfifo[i]) {
+        free(q->xfifo[i]);
+      }
     }
     for (uint32_t i = 0; i < SRSLTE_WIENER_DL_CXFIFO_SIZE; i++) {
       if (q->cxfifo[i]) {
         free(q->cxfifo[i]);
       }
-    }
-    if (q->cV) {
-      free(q->cV);
     }
     if (q->timefifo) {
       free(q->timefifo);
@@ -239,6 +245,37 @@ int srslte_wiener_dl_init(srslte_wiener_dl_t* q, uint32_t max_prb, uint32_t max_
         ret = SRSLTE_ERROR;
       }
     }
+
+    // Create filter FFT/iFFT plans
+    if (!ret) {
+      ret = srslte_dft_plan_c(&q->fft, SRSLTE_WIENER_DL_MIN_RE, SRSLTE_DFT_FORWARD);
+    }
+
+    if (!ret) {
+      ret = srslte_dft_plan_c(&q->ifft, SRSLTE_WIENER_DL_MIN_RE, SRSLTE_DFT_BACKWARD);
+    }
+
+    // Initialise interpolation filter
+    if (!ret) {
+      bzero(q->filter, NSAMPLES2NBYTES(SRSLTE_WIENER_DL_MIN_RE));
+      q->filter[0]  = 3.0f / SRSLTE_WIENER_DL_MIN_RE;
+      q->filter[1]  = 2.0f / SRSLTE_WIENER_DL_MIN_RE;
+      q->filter[2]  = 1.0f / SRSLTE_WIENER_DL_MIN_RE;
+      q->filter[46] = 1.0f / SRSLTE_WIENER_DL_MIN_RE;
+      q->filter[47] = 2.0f / SRSLTE_WIENER_DL_MIN_RE;
+      srslte_dft_run_c(&q->fft, q->filter, q->filter);
+    }
+
+    // Initialise matrix inverter
+    if (!ret) {
+      q->matrix_inverter = calloc(sizeof(srslte_matrix_NxN_inv_t), 1);
+      if (q->matrix_inverter) {
+        ret = srslte_matrix_NxN_inv_init(q->matrix_inverter, SRSLTE_WIENER_DL_MIN_REF);
+      } else {
+        perror("calloc");
+        ret = SRSLTE_ERROR;
+      }
+    }
   }
 
   return ret;
@@ -285,21 +322,24 @@ void srslte_wiener_dl_reset(srslte_wiener_dl_t* q)
 
 static void circshift_dim1(cf_t** matrix, uint32_t ndim1, int32_t k)
 {
-  // Wrap k
-  k = (k + ndim1) % ndim1;
+  // Check valid inputs
+  if (matrix != NULL && ndim1 != 0 && k != 0) {
+    // Wrap k
+    k = (k + ndim1) % ndim1;
 
-  // Run k times
-  while (k--) {
-    // Save first pointer
-    cf_t* tmp_ptr = matrix[0];
+    // Run k times
+    while (k--) {
+      // Save first pointer
+      cf_t* tmp_ptr = matrix[0];
 
-    // Shift pointers one position
-    for (int i = 0; i < ndim1 - 1; i++) {
-      matrix[i] = matrix[i + 1];
+      // Shift pointers one position
+      for (int i = 0; i < ndim1 - 1; i++) {
+        matrix[i] = matrix[i + 1];
+      }
+
+      // Save last pointer
+      matrix[ndim1 - 1] = tmp_ptr;
     }
-
-    // Save last pointer
-    matrix[ndim1 - 1] = tmp_ptr;
   }
 }
 
@@ -337,13 +377,13 @@ static void matrix_acc_dim1_cc(cf_t** matrix, cf_t* res, uint32_t ndim1, uint32_
   }
 }
 
-static uint32_t matrix_acc_dim2_cc(cf_t** matrix, cf_t* res, uint32_t ndim1, uint32_t ndim2)
+/*static void matrix_acc_dim2_cc(cf_t** matrix, cf_t* res, uint32_t ndim1, uint32_t ndim2)
 {
   // Accumulate each row
   for (uint32_t dim1 = 0; dim1 < ndim1; dim1++) {
     res[dim1] = srslte_vec_acc_cc(matrix[dim1], ndim2);
   }
-}
+}*/
 
 static uint32_t vec_find_first_smaller_than_cf(cf_t* x, float y, uint32_t n, uint32_t pos)
 {
@@ -438,8 +478,13 @@ static void srslte_wiener_dl_run_symbol_2_9(srslte_wiener_dl_t* q, srslte_wiener
   state->invtpilotoff = M_1_3;
 }
 
-static void
-srslte_wiener_dl_run_symbol_5_12(srslte_wiener_dl_t* q, srslte_wiener_dl_state_t* state, cf_t* pilots, uint32_t shift)
+static void srslte_wiener_dl_run_symbol_5_12(srslte_wiener_dl_t*       q,
+                                             srslte_wiener_dl_state_t* state,
+                                             cf_t*                     pilots,
+                                             uint32_t                  tx,
+                                             uint32_t                  rx,
+                                             uint32_t                  shift,
+                                             float                     snr_lin)
 {
   // there are pilot symbols (odd) in this OFDM period (fifth symbol of the slot)
   circshift_dim1(state->hls_fifo_1, SRSLTE_WIENER_DL_HLS_FIFO_SIZE, 1); // shift matrix rows down one position
@@ -478,7 +523,6 @@ srslte_wiener_dl_run_symbol_5_12(srslte_wiener_dl_t* q, srslte_wiener_dl_state_t
     }
 
     bzero(q->hlsv, NSAMPLES2NBYTES(SRSLTE_WIENER_DL_MIN_RE));
-    bzero(q->hlsv_sum, NSAMPLES2NBYTES(SRSLTE_WIENER_DL_MIN_RE));
     for (uint32_t i = pos2, k = pstart; i < SRSLTE_WIENER_DL_MIN_RE; i += 6, k++) {
       q->hlsv[i] = conjf(state->hls_fifo_2[1][k] + (state->hls_fifo_2[0][k] - state->hls_fifo_2[1][k]) * M_4_7);
     }
@@ -486,9 +530,98 @@ srslte_wiener_dl_run_symbol_5_12(srslte_wiener_dl_t* q, srslte_wiener_dl_state_t
       q->hlsv[i] = conjf(state->hls_fifo_1[1][k]);
     }
 
+    // Correlate Least Squares estimation
+    bzero(q->hlsv_sum, NSAMPLES2NBYTES(SRSLTE_WIENER_DL_MIN_RE)); // Zero correlation vector
     for (uint32_t i = 0; i < SRSLTE_WIENER_DL_MIN_REF * 2; i++) {
-      srslte_vec_sc_prod_ccc(q->hlsv, conjf(q->hlsv[0]), q->tmp, SRSLTE_WIENER_DL_MIN_RE);
-      srslte_vec_sum_ccc(q->tmp, q->hlsv_sum, q->hlsv_sum, SRSLTE_WIENER_DL_MIN_RE);
+      uint32_t offset  = i * 3;
+      uint32_t sum_len = SRSLTE_WIENER_DL_MIN_RE - offset;
+      srslte_vec_sc_prod_ccc(&q->hlsv[offset], conjf(q->hlsv[offset]), q->tmp, sum_len);
+      srslte_vec_sum_ccc(q->tmp, q->hlsv_sum, q->hlsv_sum, sum_len);
+    }
+    srslte_vec_prod_cfc(q->hlsv_sum, hlsv_sum_norm, q->hlsv_sum, SRSLTE_WIENER_DL_MIN_RE); // Normalize correlation
+
+    // Put correlation in FIFO
+    state->nfifosamps = SRSLTE_MIN(state->nfifosamps + 1, SRSLTE_WIENER_DL_XFIFO_SIZE);
+    circshift_dim1(state->xfifo, state->nfifosamps, 1);
+    memcpy(state->xfifo[0], q->hlsv_sum, NSAMPLES2NBYTES(SRSLTE_WIENER_DL_MIN_RE));
+
+    // Average samples in FIFO
+    matrix_acc_dim1_cc(state->xfifo, state->cV, SRSLTE_WIENER_DL_XFIFO_SIZE, SRSLTE_WIENER_DL_MIN_RE);
+
+    // Interpolate
+    srslte_dft_run_c(&q->fft, state->cV, q->tmp);
+    srslte_vec_prod_ccc(q->tmp, q->filter, q->tmp, SRSLTE_WIENER_DL_MIN_RE);
+    srslte_dft_run_c(&q->ifft, q->tmp, state->cV);
+
+    // Interpolate last edge
+    state->cV[SRSLTE_WIENER_DL_MIN_RE - 2] =
+        state->cV[SRSLTE_WIENER_DL_MIN_RE - 6] +
+        (state->cV[SRSLTE_WIENER_DL_MIN_RE - 3] - state->cV[SRSLTE_WIENER_DL_MIN_RE - 6]) * 1.33333333f;
+    state->cV[SRSLTE_WIENER_DL_MIN_RE - 1] =
+        state->cV[SRSLTE_WIENER_DL_MIN_RE - 6] +
+        (state->cV[SRSLTE_WIENER_DL_MIN_RE - 3] - state->cV[SRSLTE_WIENER_DL_MIN_RE - 6]) * 1.66666666f;
+
+    if (tx == q->nof_tx_ports - 1 && rx == q->nof_rx_ant - 1) {
+      // Average correlation vectors
+      for (uint32_t i = 0; i < q->nof_tx_ports; i++) {
+        for (uint32_t j = 0; j < q->nof_rx_ant; j++) {
+          if (i == 0 && j == 0) {
+            // Copy if first one
+            memcpy(q->acV, q->state[i][j]->cV, NSAMPLES2NBYTES(SRSLTE_WIENER_DL_MIN_RE));
+          } else {
+            // Accumulate otherwise
+            srslte_vec_sum_ccc(q->state[i][j]->cV, q->acV, q->acV, SRSLTE_WIENER_DL_MIN_RE);
+          }
+        }
+      }
+
+      // Apply averaging scale
+      srslte_vec_sc_prod_cfc(q->acV, 1.0f / (q->nof_tx_ports + q->nof_rx_ant), q->acV, SRSLTE_WIENER_DL_MIN_RE);
+
+      // Compute square wiener correlation matrix
+      for (uint32_t i = 0; i < SRSLTE_WIENER_DL_MIN_REF; i++) {
+        for (uint32_t k = i; k < SRSLTE_WIENER_DL_MIN_REF; k++) {
+          q->RH.m[i][k] = q->acV[6 * (k - i)];
+          q->RH.m[k][i] = conjf(q->RH.m[i][k]);
+        }
+      }
+
+      // Add noise contribution to the square wiener
+      float N = (__real__ q->acV[0] / SRSLTE_MIN(15, state->sumlen));
+      for (uint32_t i = 0; i < SRSLTE_WIENER_DL_MIN_REF; i++) {
+        q->RH.m[i][i] += N;
+      }
+
+      // Compute wiener correlation inverse matrix
+      srslte_matrix_NxN_inv_run(q->matrix_inverter, q->RH.v, q->invRH.v);
+
+      // Generate Rectangular Wiener
+      for (uint32_t i = 0; i < SRSLTE_WIENER_DL_MIN_RE; i++) {
+        for (uint32_t k = 0; k < SRSLTE_WIENER_DL_MIN_REF; k++) {
+          int m1 = ((shift + 3) % 6) + 6 * k - i;
+          int m2 = shift + 6 * k - i;
+
+          if (m1 >= 0) {
+            q->hH1[i][k] = q->acV[m1];
+          } else {
+            q->hH1[i][k] = conjf(q->acV[-m1]);
+          }
+
+          if (m2 >= 0) {
+            q->hH2[i][k] = q->acV[m2];
+          } else {
+            q->hH2[i][k] = conjf(q->acV[-m2]);
+          }
+        }
+      }
+
+      // Compute Wiener matrices
+      for (uint32_t dim1 = 0; dim1 < SRSLTE_WIENER_DL_MIN_RE; dim1++) {
+        for (uint32_t dim2 = 0; dim2 < SRSLTE_WIENER_DL_MIN_REF; dim2++) {
+          q->wm1[dim1][dim2] = srslte_vec_dot_prod_ccc(q->hH1[dim1], q->invRH.m[dim2], SRSLTE_WIENER_DL_MIN_REF);
+          q->wm2[dim1][dim2] = srslte_vec_dot_prod_ccc(q->hH2[dim1], q->invRH.m[dim2], SRSLTE_WIENER_DL_MIN_REF);
+        }
+      }
     }
   }
 }
@@ -508,25 +641,32 @@ int srslte_wiener_dl_run(srslte_wiener_dl_t* q,
     // m is based on 0, increase one;
     m++;
 
+    // Get estimator state
+    srslte_wiener_dl_state_t* state = q->state[tx][rx];
+
     // Process symbol
     switch (m) {
       case 1:
       case 8:
-        srslte_wiener_dl_run_symbol_1_8(q, q->state[tx][rx], pilots, snr_lin);
+        srslte_wiener_dl_run_symbol_1_8(q, state, pilots, snr_lin);
         break;
       case 2:
       case 9:
-        srslte_wiener_dl_run_symbol_2_9(q, q->state[tx][rx]);
+        srslte_wiener_dl_run_symbol_2_9(q, state);
         break;
       case 5:
       case 12:
-        srslte_wiener_dl_run_symbol_5_12(q, q->state[tx][rx], pilots, snr_lin);
+        srslte_wiener_dl_run_symbol_5_12(q, state, pilots, tx, rx, shift, snr_lin);
         break;
       default:
         perror("unhandled switch-case");
     }
 
     // Estimate
+    srslte_vec_sub_ccc(state->tfifo[0], state->tfifo[1], q->tmp, q->nof_re);
+    srslte_vec_sc_prod_cfc(q->tmp, state->deltan * state->invtpilotoff, q->tmp, q->nof_re);
+    srslte_vec_sum_ccc(state->tfifo[1], q->tmp, estimated, q->nof_re);
+    state->deltan += 1.0f;
 
     ret = SRSLTE_SUCCESS;
   }
@@ -552,6 +692,14 @@ void srslte_wiener_dl_free(srslte_wiener_dl_t* q)
 
     if (q->random) {
       srslte_random_free(q->random);
+    }
+
+    srslte_dft_plan_free(&q->fft);
+    srslte_dft_plan_free(&q->ifft);
+
+    if (q->matrix_inverter) {
+      srslte_matrix_NxN_inv_free(q->matrix_inverter);
+      free(q->matrix_inverter);
     }
   }
 }

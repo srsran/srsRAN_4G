@@ -39,8 +39,8 @@ typedef struct {
   cf_t*    hls_fifo_1[SRSLTE_WIENER_DL_HLS_FIFO_SIZE]; // Least square channel estimates on odd pilots
   cf_t*    hls_fifo_2[SRSLTE_WIENER_DL_HLS_FIFO_SIZE]; // Least square channel estimates on even pilots
   cf_t*    tfifo[SRSLTE_WIENER_DL_TFIFO_SIZE];         // memory for time domain channel linear interpolation
-  cf_t*    xfifo;                                      // fifo for averaging the frequency correlation vectors
-  cf_t*    cV;                                         // frequency correlation vector among all subcarriers
+  cf_t*    xfifo[SRSLTE_WIENER_DL_XFIFO_SIZE];         // fifo for averaging the frequency correlation vectors
+  cf_t     cV[SRSLTE_WIENER_DL_MIN_RE];                // frequency correlation vector among all subcarriers
   float    deltan;                                     // step within time domain linear interpolation
   uint32_t nfifosamps;   // number of samples inside the fifo for averaging the correlation vectors
   float    invtpilotoff; // step for time domain linear interpolation
@@ -72,14 +72,36 @@ typedef struct {
   // Wiener matrices
   cf_t wm1[SRSLTE_WIENER_DL_MIN_RE][SRSLTE_WIENER_DL_MIN_REF];
   cf_t wm2[SRSLTE_WIENER_DL_MIN_RE][SRSLTE_WIENER_DL_MIN_REF];
+
+  // Calculation support
   cf_t hlsv[SRSLTE_WIENER_DL_MIN_RE];
   cf_t hlsv_sum[SRSLTE_WIENER_DL_MIN_RE];
+  cf_t acV[SRSLTE_WIENER_DL_MIN_RE];
+
+  union {
+    cf_t m[SRSLTE_WIENER_DL_MIN_REF][SRSLTE_WIENER_DL_MIN_REF];
+    cf_t v[SRSLTE_WIENER_DL_MIN_REF * SRSLTE_WIENER_DL_MIN_REF];
+  } RH;
+  union {
+    cf_t m[SRSLTE_WIENER_DL_MIN_REF][SRSLTE_WIENER_DL_MIN_REF];
+    cf_t v[SRSLTE_WIENER_DL_MIN_REF * SRSLTE_WIENER_DL_MIN_REF];
+  } invRH;
+  cf_t hH1[SRSLTE_WIENER_DL_MIN_RE][SRSLTE_WIENER_DL_MIN_REF];
+  cf_t hH2[SRSLTE_WIENER_DL_MIN_RE][SRSLTE_WIENER_DL_MIN_REF];
 
   // Temporal vector
   cf_t* tmp;
 
   // Random generator
   srslte_random_t random;
+
+  // FFT/iFFT
+  srslte_dft_plan_t fft;
+  srslte_dft_plan_t ifft;
+  cf_t              filter[SRSLTE_WIENER_DL_MIN_RE];
+
+  // Matrix inverter
+  void* matrix_inverter;
 } srslte_wiener_dl_t;
 
 SRSLTE_API int
