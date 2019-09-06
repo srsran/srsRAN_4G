@@ -30,7 +30,7 @@
 #include "srslte/phy/utils/mat.h"
 #include "srslte/phy/utils/vector.h"
 #include "srslte/phy/utils/vector_simd.h"
-
+static bool            inverter    = false;
 static bool            zf_solver   = false;
 static bool            mmse_solver = false;
 static bool            verbose     = false;
@@ -82,8 +82,11 @@ void usage(char* prog)
 void parse_args(int argc, char** argv)
 {
   int opt;
-  while ((opt = getopt(argc, argv, "mzvh")) != -1) {
+  while ((opt = getopt(argc, argv, "imzvh")) != -1) {
     switch (opt) {
+      case 'i':
+        inverter = true;
+        break;
       case 'm':
         mmse_solver = true;
         break;
@@ -267,6 +270,29 @@ static bool test_vec_dot_prod_ccc(void)
   return (cabsf(res - gold) < MAXIMUM_ERROR);
 }
 
+bool test_matrix_inv(void)
+{
+  const uint32_t                     N = 64;
+  __attribute__((aligned(256))) cf_t x[N * N];
+  __attribute__((aligned(256))) cf_t y[N * N];
+
+  srslte_matrix_NxN_inv_t matrix_nxn_inv = {};
+
+  srslte_matrix_NxN_inv_init(&matrix_nxn_inv, N);
+
+  for (int i = 0; i < N; i++) {
+    for (int j = 0; j < N; j++) {
+      x[i * N + j] = srslte_random_uniform_complex_dist(random_gen, -1.0f, +1.0f);
+    }
+  }
+
+  srslte_matrix_NxN_inv_run(&matrix_nxn_inv, x, y);
+
+  srslte_matrix_NxN_inv_free(&matrix_nxn_inv);
+
+  return true;
+}
+
 int main(int argc, char** argv)
 {
   bool passed = true;
@@ -290,6 +316,10 @@ int main(int argc, char** argv)
 #if SRSLTE_SIMD_CF_SIZE != 0
     RUN_TEST(test_mmse_solver_simd);
 #endif /* SRSLTE_SIMD_CF_SIZE != 0*/
+  }
+
+  if (inverter) {
+    RUN_TEST(test_matrix_inv);
   }
 
   RUN_TEST(test_vec_dot_prod_ccc);

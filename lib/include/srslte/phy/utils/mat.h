@@ -24,6 +24,7 @@
 
 #include "srslte/config.h"
 #include "srslte/phy/utils/simd.h"
+#include <inttypes.h>
 
 /* Generic implementation for complex reciprocal */
 SRSLTE_API cf_t srslte_mat_cf_recip_gen(cf_t a);
@@ -203,4 +204,17 @@ static inline void srslte_mat_2x2_mmse_simd(simd_cf_t  y0,
 }
 
 #endif /* SRSLTE_SIMD_CF_SIZE != 0 */
+
+typedef struct {
+  uint32_t N;
+  cf_t*    row_buffer;
+  cf_t*    matrix;
+} srslte_matrix_NxN_inv_t;
+
+SRSLTE_API int srslte_matrix_NxN_inv_init(srslte_matrix_NxN_inv_t* q, uint32_t N);
+
+SRSLTE_API void srslte_matrix_NxN_inv_run(srslte_matrix_NxN_inv_t* q, cf_t* in, cf_t* out);
+
+SRSLTE_API void srslte_matrix_NxN_inv_free(srslte_matrix_NxN_inv_t* q);
+
 #endif /* SRSLTE_MAT_H */
