@@ -21,7 +21,6 @@
 
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
-#include <c++/7/bits/basic_string.h>
 #include <iostream>
 #include <map>
 #include <memory>
