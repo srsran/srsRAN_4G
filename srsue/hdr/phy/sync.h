@@ -104,7 +104,7 @@ private:
     void     reset();
     float    get_last_cfo();
     void     set_agc_enable(bool enable);
-    ret_code run(srslte_cell_t* cell);
+    ret_code run(srslte_cell_t* cell, std::array<uint8_t, SRSLTE_BCH_PAYLOAD_LEN>& bch_payload);
 
   private:
     sync*                  p                        = nullptr;
@@ -128,9 +128,15 @@ private:
                   uint32_t          nof_subframes = SFN_SYNC_NOF_SUBFRAMES);
     void     reset();
     bool     set_cell(srslte_cell_t cell);
-    ret_code run_subframe(srslte_cell_t* cell, uint32_t* tti_cnt, bool sfidx_only = false);
-    ret_code
-    decode_mib(srslte_cell_t* cell, uint32_t* tti_cnt, cf_t* ext_buffer[SRSLTE_MAX_PORTS], bool sfidx_only = false);
+    ret_code run_subframe(srslte_cell_t*                               cell,
+                          uint32_t*                                    tti_cnt,
+                          std::array<uint8_t, SRSLTE_BCH_PAYLOAD_LEN>& bch_payload,
+                          bool                                         sfidx_only = false);
+    ret_code decode_mib(srslte_cell_t*                               cell,
+                        uint32_t*                                    tti_cnt,
+                        cf_t*                                        ext_buffer[SRSLTE_MAX_PORTS],
+                        std::array<uint8_t, SRSLTE_BCH_PAYLOAD_LEN>& bch_payload,
+                        bool                                         sfidx_only = false);
 
   private:
     const static int SFN_SYNC_NOF_SUBFRAMES = 100;
@@ -342,6 +348,7 @@ private:
   float         time_adv_sec      = 0;
   float         next_time_adv_sec = 0;
   uint32_t      tti               = 0;
+  std::array<uint8_t, SRSLTE_BCH_PAYLOAD_LEN> mib;
 
   uint32_t tx_worker_cnt = 0;
   uint32_t nof_workers   = 0;
