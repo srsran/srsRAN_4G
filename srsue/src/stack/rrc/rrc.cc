@@ -686,12 +686,16 @@ bool rrc::add_neighbour_cell(cell_t *new_cell) {
 }
 
 // If only neighbour PCI is provided, copy full cell from serving cell
-bool rrc::add_neighbour_cell(uint32_t earfcn, uint32_t pci, float rsrp) {
-  phy_interface_rrc_lte::phy_cell_t phy_cell;
-  phy_cell = serving_cell->phy_cell;
-  phy_cell.earfcn = earfcn;
-  phy_cell.cell.id = pci;
-  return add_neighbour_cell(phy_cell, rsrp);
+bool rrc::add_neighbour_cell(uint32_t earfcn, uint32_t pci, float rsrp)
+{
+  if (serving_cell->is_valid()) {
+    phy_interface_rrc_lte::phy_cell_t phy_cell;
+    phy_cell         = serving_cell->phy_cell;
+    phy_cell.earfcn  = earfcn;
+    phy_cell.cell.id = pci;
+    return add_neighbour_cell(phy_cell, rsrp);
+  }
+  return false;
 }
 
 bool rrc::add_neighbour_cell(phy_interface_rrc_lte::phy_cell_t phy_cell, float rsrp)
