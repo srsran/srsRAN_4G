@@ -1,4 +1,12 @@
+/*---------------------------------------------------------
 
+    zuc.cc
+    Adapted from ETSI/SAGE specifications:
+    "Specification of the 3GPP Confidentiality
+    and Integrity Algorithms 128-EEA3 & 128-EIA3.
+    Document 2: ZUC Specification"
+
+---------------------------------------------------------*/
 
 #include "srslte/common/zuc.h"
 
