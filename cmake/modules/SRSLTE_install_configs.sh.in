@@ -45,7 +45,8 @@ install_file(){
     # Set file ownership to user calling sudo
     if [ $SUDO_USER ]; then
       user=$SUDO_USER
-      chown $user:$user $dest_path
+      group=$SUDO_GID
+      chown $user:$group $dest_path
     fi
   else
     echo " - $source_path doesn't exists. Skipping it."
