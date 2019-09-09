@@ -545,15 +545,14 @@ void rrc::set_serving_cell(phy_interface_rrc_lte::phy_cell_t phy_cell)
   if (cell_idx >= 0) {
     set_serving_cell(cell_idx);
   } else {
-    rrc_log->error("Setting serving cell: Unkonwn cell with earfcn=%d, PCI=%d\n", phy_cell.earfcn, phy_cell.cell.id);
+    rrc_log->error("Setting serving cell: Unknown cell with earfcn=%d, PCI=%d\n", phy_cell.earfcn, phy_cell.cell.id);
   }
 }
 
 // Set new serving cell
 void rrc::set_serving_cell(uint32_t cell_idx) {
 
-  if (cell_idx < neighbour_cells.size())
-  {
+  if (cell_idx < neighbour_cells.size()) {
     // Remove future serving cell from neighbours to make space for current serving cell
     cell_t *new_serving_cell = neighbour_cells[cell_idx];
     if (!new_serving_cell) {
@@ -583,8 +582,12 @@ void rrc::set_serving_cell(uint32_t cell_idx) {
     // Set new serving cell
     serving_cell = new_serving_cell;
 
-    rrc_log->info("Setting serving cell idx=%d, earfcn=%d, PCI=%d, nof_neighbours=%zd\n", cell_idx,
-                  serving_cell->get_earfcn(), serving_cell->get_pci(), neighbour_cells.size());
+    rrc_log->info("Setting serving cell idx=%d, earfcn=%d, PCI=%d, rsrp=%.2f, nof_neighbours=%zd\n",
+                  cell_idx,
+                  serving_cell->get_earfcn(),
+                  serving_cell->get_pci(),
+                  serving_cell->get_rsrp(),
+                  neighbour_cells.size());
 
   } else {
     rrc_log->error("Setting invalid serving cell idx %d\n", cell_idx);

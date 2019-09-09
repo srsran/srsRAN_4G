@@ -323,6 +323,7 @@ proc_outcome_t rrc::cell_selection_proc::init(srsue::rrc* parent_)
 
   if (rrc_ptr->neighbour_cells.empty() and rrc_ptr->serving_cell->in_sync and rrc_ptr->phy->cell_is_camping()) {
     // don't bother with cell selection if there are no neighbours and we are already camping
+    Debug("Skipping Cell Selection Procedure ..\n");
     return proc_outcome_t::success;
   }
 
