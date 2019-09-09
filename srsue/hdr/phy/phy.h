@@ -110,7 +110,7 @@ public:
   void set_config(srslte::phy_cfg_t& config, uint32_t cc_idx, uint32_t earfcn, srslte_cell_t* cell_info) final;
   void set_config_tdd(srslte_tdd_config_t& tdd_config) final;
 
-#warning "Remove ASN1 from MBSFN"
+#pragma message("Remove ASN1 from MBSFN")
   void set_config_mbsfn_sib2(asn1::rrc::sib_type2_s* sib2) final;
   void set_config_mbsfn_sib13(asn1::rrc::sib_type13_r9_s* sib13) final;
   void set_config_mbsfn_mcch(asn1::rrc::mcch_msg_s* mcch) final;
