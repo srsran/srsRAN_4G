@@ -683,30 +683,35 @@ cf_t srslte_vec_dot_prod_ccc_simd(const cf_t* x, const cf_t* y, const int len)
   cf_t result = 0;
 
 #if SRSLTE_SIMD_CF_SIZE
-  __attribute__((aligned(64))) cf_t simd_dotProdVector[SRSLTE_SIMD_CF_SIZE];
+  if (len >= SRSLTE_SIMD_CF_SIZE) {
+    simd_cf_t avx_result = srslte_simd_cf_zero();
+    if (SRSLTE_IS_ALIGNED(x) && SRSLTE_IS_ALIGNED(y)) {
+      for (; i < len - SRSLTE_SIMD_CF_SIZE + 1; i += SRSLTE_SIMD_CF_SIZE) {
+        simd_cf_t xVal = srslte_simd_cfi_load(&x[i]);
+        simd_cf_t yVal = srslte_simd_cfi_load(&y[i]);
 
-  simd_cf_t avx_result = srslte_simd_cf_zero();
-  if (SRSLTE_IS_ALIGNED(x) && SRSLTE_IS_ALIGNED(y)) {
-    for (; i < len - SRSLTE_SIMD_CF_SIZE + 1; i += SRSLTE_SIMD_CF_SIZE) {
-      simd_cf_t xVal = srslte_simd_cfi_load(&x[i]);
-      simd_cf_t yVal = srslte_simd_cfi_load(&y[i]);
+        avx_result = srslte_simd_cf_add(srslte_simd_cf_prod(xVal, yVal), avx_result);
+      }
+    } else {
+      for (; i < len - SRSLTE_SIMD_CF_SIZE + 1; i += SRSLTE_SIMD_CF_SIZE) {
+        simd_cf_t xVal = srslte_simd_cfi_loadu(&x[i]);
+        simd_cf_t yVal = srslte_simd_cfi_loadu(&y[i]);
 
-      avx_result = srslte_simd_cf_add(srslte_simd_cf_prod(xVal, yVal), avx_result);
-      srslte_simd_cfi_store(simd_dotProdVector, avx_result);
+        avx_result = srslte_simd_cf_add(srslte_simd_cf_prod(xVal, yVal), avx_result);
+      }
     }
-  } else {
-    for (; i < len - SRSLTE_SIMD_CF_SIZE + 1; i += SRSLTE_SIMD_CF_SIZE) {
-      simd_cf_t xVal = srslte_simd_cfi_loadu(&x[i]);
-      simd_cf_t yVal = srslte_simd_cfi_loadu(&y[i]);
 
-      avx_result = srslte_simd_cf_add(srslte_simd_cf_prod(xVal, yVal), avx_result);
-      srslte_simd_cfi_storeu(simd_dotProdVector, avx_result);
+    __attribute__((aligned(64))) float simd_dotProdVector[SRSLTE_SIMD_CF_SIZE];
+    simd_f_t                           acc_re = srslte_simd_cf_re(avx_result);
+    simd_f_t                           acc_im = srslte_simd_cf_im(avx_result);
+
+    simd_f_t acc = srslte_simd_f_hadd(acc_re, acc_im);
+    for (int j = 2; j < SRSLTE_SIMD_F_SIZE; j *= 2) {
+      acc = srslte_simd_f_hadd(acc, acc);
     }
-  }
-
-  srslte_simd_cfi_store(simd_dotProdVector, avx_result);
-  for (int k = 0; k < SRSLTE_SIMD_CF_SIZE; k++) {
-    result += simd_dotProdVector[k];
+    srslte_simd_f_store(simd_dotProdVector, acc);
+    __real__ result = simd_dotProdVector[0];
+    __imag__ result = simd_dotProdVector[1];
   }
 #endif
 
@@ -754,28 +759,35 @@ cf_t srslte_vec_dot_prod_conj_ccc_simd(const cf_t* x, const cf_t* y, const int l
   cf_t result = 0;
 
 #if SRSLTE_SIMD_CF_SIZE
-  __attribute__((aligned(256))) cf_t simd_dotProdVector[SRSLTE_SIMD_CF_SIZE];
+  if (len >= SRSLTE_SIMD_CF_SIZE) {
+    simd_cf_t avx_result = srslte_simd_cf_zero();
+    if (SRSLTE_IS_ALIGNED(x) && SRSLTE_IS_ALIGNED(y)) {
+      for (; i < len - SRSLTE_SIMD_CF_SIZE + 1; i += SRSLTE_SIMD_CF_SIZE) {
+        simd_cf_t xVal = srslte_simd_cfi_load(&x[i]);
+        simd_cf_t yVal = srslte_simd_cfi_load(&y[i]);
 
-  simd_cf_t simd_result = srslte_simd_cf_zero();
-  if (SRSLTE_IS_ALIGNED(x) && SRSLTE_IS_ALIGNED(y)) {
-    for (; i < len - SRSLTE_SIMD_CF_SIZE + 1; i += SRSLTE_SIMD_CF_SIZE) {
-      simd_cf_t xVal = srslte_simd_cfi_load(&x[i]);
-      simd_cf_t yVal = srslte_simd_cfi_load(&y[i]);
+        avx_result = srslte_simd_cf_add(srslte_simd_cf_conjprod(xVal, yVal), avx_result);
+      }
+    } else {
+      for (; i < len - SRSLTE_SIMD_CF_SIZE + 1; i += SRSLTE_SIMD_CF_SIZE) {
+        simd_cf_t xVal = srslte_simd_cfi_loadu(&x[i]);
+        simd_cf_t yVal = srslte_simd_cfi_loadu(&y[i]);
 
-      simd_result = srslte_simd_cf_add(srslte_simd_cf_conjprod(xVal, yVal), simd_result);
+        avx_result = srslte_simd_cf_add(srslte_simd_cf_conjprod(xVal, yVal), avx_result);
+      }
     }
-  } else {
-    for (; i < len - SRSLTE_SIMD_CF_SIZE + 1; i += SRSLTE_SIMD_CF_SIZE) {
-      simd_cf_t xVal = srslte_simd_cfi_loadu(&x[i]);
-      simd_cf_t yVal = srslte_simd_cfi_loadu(&y[i]);
 
-      simd_result = srslte_simd_cf_add(srslte_simd_cf_conjprod(xVal, yVal), simd_result);
+    __attribute__((aligned(64))) float simd_dotProdVector[SRSLTE_SIMD_CF_SIZE];
+    simd_f_t                           acc_re = srslte_simd_cf_re(avx_result);
+    simd_f_t                           acc_im = srslte_simd_cf_im(avx_result);
+
+    simd_f_t acc = srslte_simd_f_hadd(acc_re, acc_im);
+    for (int j = 2; j < SRSLTE_SIMD_F_SIZE; j *= 2) {
+      acc = srslte_simd_f_hadd(acc, acc);
     }
-  }
-
-  srslte_simd_cfi_store(simd_dotProdVector, simd_result);
-  for (int k = 0; k < SRSLTE_SIMD_CF_SIZE; k++) {
-    result += simd_dotProdVector[k];
+    srslte_simd_f_store(simd_dotProdVector, acc);
+    __real__ result = simd_dotProdVector[0];
+    __imag__ result = simd_dotProdVector[1];
   }
 #endif
 
