@@ -45,6 +45,7 @@
 #include "srslte/phy/common/phy_common.h"
 #include "srslte/phy/resampling/interp.h"
 #include "srslte/phy/sync/pss.h"
+#include "wiener_dl.h"
 
 typedef struct SRSLTE_API {
   cf_t*    ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
@@ -78,6 +79,8 @@ typedef struct SRSLTE_API {
 
   srslte_refsignal_t   csr_refs;
   srslte_refsignal_t** mbsfn_refs;
+
+  srslte_wiener_dl_t* wiener_dl;
 
   cf_t* pilot_estimates;
   cf_t* pilot_estimates_average;

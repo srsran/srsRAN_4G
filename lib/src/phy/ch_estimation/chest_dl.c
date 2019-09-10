@@ -142,6 +142,14 @@ int srslte_chest_dl_init(srslte_chest_dl_t* q, uint32_t max_prb, uint32_t nof_rx
       goto clean_exit;
     }
 
+    q->wiener_dl = calloc(sizeof(srslte_wiener_dl_t), 1);
+    if (q->wiener_dl) {
+      srslte_wiener_dl_init(q->wiener_dl, max_prb, 2, nof_rx_antennas);
+    } else {
+      ERROR("Error allocating wiener filter\n");
+      goto clean_exit;
+    }
+
     q->nof_rx_antennas = nof_rx_antennas;
   }
 
@@ -190,6 +198,10 @@ void srslte_chest_dl_free(srslte_chest_dl_t* q)
   }
   if (q->pilot_recv_signal) {
     free(q->pilot_recv_signal);
+  }
+  if (q->wiener_dl) {
+    srslte_wiener_dl_free(q->wiener_dl);
+    free(q->wiener_dl);
   }
   bzero(q, sizeof(srslte_chest_dl_t));
 }
@@ -291,6 +303,11 @@ int srslte_chest_dl_set_cell(srslte_chest_dl_t* q, srslte_cell_t cell)
         return SRSLTE_ERROR;
       }
       if (srslte_interp_linear_resize(&q->srslte_interp_lin_mbsfn, 6 * q->cell.nof_prb, SRSLTE_NRE / 6)) {
+        fprintf(stderr, "Error initializing interpolator\n");
+        return SRSLTE_ERROR;
+      }
+
+      if (srslte_wiener_dl_set_cell(q->wiener_dl, cell)) {
         fprintf(stderr, "Error initializing interpolator\n");
         return SRSLTE_ERROR;
       }
@@ -626,6 +643,27 @@ static void chest_interpolate_noise_est(srslte_chest_dl_t*     q,
     }
 
     q->noise_estimate[rxant_id][port_id] = estimate_noise_pilots(q, sf, port_id);
+  }
+
+  if (q->wiener_dl && ch_mode == SRSLTE_SF_NORM) {
+    uint32_t nre   = q->cell.nof_prb * SRSLTE_NRE;
+    uint32_t nref  = q->cell.nof_prb * 2;
+    uint32_t shift = srslte_refsignal_cs_fidx(q->cell, 0, port_id, 0);
+    for (uint32_t m = 0, l = 0; m < 2 * SRSLTE_CP_NORM_NSYMB; m++) {
+      uint32_t k = srslte_refsignal_cs_nsymbol(l, q->cell.cp, 0);
+      srslte_wiener_dl_run(q->wiener_dl,
+                           port_id,
+                           rxant_id,
+                           m,
+                           shift,
+                           &input[nref * l],
+                           &ce[nre * m],
+                           q->noise_estimate[rxant_id][port_id]);
+
+      if (l == k) {
+        l++;
+      }
+    }
   }
 
   if (ce != NULL) {
