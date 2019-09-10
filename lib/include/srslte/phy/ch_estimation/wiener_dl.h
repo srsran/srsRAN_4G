@@ -19,11 +19,12 @@
  *
  */
 
-#ifndef SRSLTE_SRSLTE_WIENER_DL_H_
-#define SRSLTE_SRSLTE_WIENER_DL_H_
+#ifndef SRSLTE_WIENER_DL_H_
+#define SRSLTE_WIENER_DL_H_
 
+#include <srslte/config.h>
+#include <srslte/phy/dft/dft.h>
 #include <srslte/phy/utils/random.h>
-#include <srslte/srslte.h>
 
 // Constant static parameters
 #define SRSLTE_WIENER_DL_HLS_FIFO_SIZE (8U)
@@ -107,7 +108,7 @@ typedef struct {
 SRSLTE_API int
 srslte_wiener_dl_init(srslte_wiener_dl_t* q, uint32_t max_prb, uint32_t max_tx_ports, uint32_t max_rx_ant);
 
-SRSLTE_API int srslte_wiener_dl_set_cell(srslte_wiener_dl_t* q, const srslte_cell_t* cell);
+SRSLTE_API int srslte_wiener_dl_set_cell(srslte_wiener_dl_t* q, srslte_cell_t cell);
 
 SRSLTE_API void srslte_wiener_dl_reset(srslte_wiener_dl_t* q);
 
@@ -122,4 +123,4 @@ SRSLTE_API int srslte_wiener_dl_run(srslte_wiener_dl_t* q,
 
 SRSLTE_API void srslte_wiener_dl_free(srslte_wiener_dl_t* q);
 
-#endif // SRSLTE_SRSLTE_WIENER_DL_H_
+#endif // SRSLTE_WIENER_DL_H_
