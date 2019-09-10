@@ -255,6 +255,11 @@ void radio::tx_end()
   }
 }
 
+bool radio::get_is_start_of_burst()
+{
+  return is_start_of_burst;
+}
+
 void radio::set_freq_offset(double freq) {
   freq_offset = freq;
 }

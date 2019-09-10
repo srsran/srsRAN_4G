@@ -57,6 +57,10 @@ public:
   bool is_init() override { return radios.at(0)->is_init(); }
   void reset() override { return radios.at(0)->reset(); }
   bool is_continuous_tx() override { return radios.at(0)->is_continuous_tx(); }
+  bool get_is_start_of_burst(const uint32_t& radio_idx) override
+  {
+    return radios.at(radio_idx)->get_is_start_of_burst();
+  }
   bool tx(const uint32_t&           radio_idx,
           cf_t*                     buffer[SRSLTE_MAX_PORTS],
           const uint32_t&           nof_samples,
@@ -64,7 +68,13 @@ public:
   {
     return radios.at(radio_idx)->tx(buffer, nof_samples, tx_time);
   }
-  void tx_end() override { return radios.at(0)->tx_end(); }
+  void tx_end() override
+  {
+    // Send Tx exd to all radios
+    for (auto& r : radios) {
+      r->tx_end();
+    }
+  }
 
   bool rx_now(const uint32_t&     radio_idx,
               cf_t*               buffer[SRSLTE_MAX_PORTS],

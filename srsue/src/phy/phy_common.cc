@@ -582,10 +582,9 @@ void phy_common::worker_end(uint32_t           tti,
       }
 
       radio_h->tx(i, buffer[i], nof_samples[i], tx_time[i]);
-      is_first_of_burst[i] = false;
     } else {
       if (radio_h->is_continuous_tx()) {
-        if (!is_first_of_burst[i]) {
+        if (!radio_h->get_is_start_of_burst(i)) {
 
           if (ul_channel && !srslte_timestamp_iszero(&tx_time[i])) {
             bzero(zeros_multi[0], sizeof(cf_t) * nof_samples[i]);
@@ -595,10 +594,7 @@ void phy_common::worker_end(uint32_t           tti,
           radio_h->tx(i, zeros_multi, nof_samples[i], tx_time[i]);
         }
       } else {
-        if (!is_first_of_burst[i]) {
-          radio_h->tx_end();
-          is_first_of_burst[i] = true;
-        }
+        radio_h->tx_end();
       }
     }
   }
@@ -695,8 +691,13 @@ void phy_common::get_sync_metrics(sync_metrics_t m[SRSLTE_MAX_CARRIERS])
 void phy_common::reset_radio()
 {
   is_first_tx = true;
-  for (int i = 0; i < SRSLTE_MAX_RADIOS; i++) {
-    is_first_of_burst[i] = true;
+
+  // End Tx streams even if they are continuous
+  // Since is_first_of_burst is set to true, the radio need to send
+  // end of burst in order to stall correctly the Tx stream.
+  // This is required for UHD version 3.10 and newer.
+  if (radio_h) {
+    radio_h->tx_end();
   }
 }
 

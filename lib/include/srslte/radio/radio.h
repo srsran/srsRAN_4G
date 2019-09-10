@@ -92,6 +92,7 @@ class radio {
   bool tx_single(cf_t* buffer, uint32_t nof_samples, srslte_timestamp_t tx_time);
   bool tx(cf_t* buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t tx_time);
   void tx_end();
+  bool get_is_start_of_burst();
   bool rx_now(cf_t* buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t* rxd_time);
   bool rx_at(cf_t* buffer, uint32_t nof_samples, srslte_timestamp_t rx_time);
 

@@ -177,7 +177,6 @@ private:
   uint32_t           nof_workers;
   uint32_t           max_workers;
 
-  bool           is_first_of_burst[SRSLTE_MAX_RADIOS];
   srslte::radio_interface_phy* radio_h;
   float          cfo;
   srslte::log*   log_h;

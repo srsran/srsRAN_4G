@@ -57,17 +57,18 @@ public:
   virtual void   set_rx_srate(const uint32_t& radio_idx, const double& srate) = 0;
 
   // getter
-  virtual float             get_rx_gain(const uint32_t& radio_idx) = 0;
-  virtual double            get_freq_offset()                      = 0;
-  virtual double            get_tx_freq(const uint32_t& radio_idx) = 0;
-  virtual double            get_rx_freq(const uint32_t& radio_idx) = 0;
-  virtual float             get_max_tx_power()                     = 0;
-  virtual float             get_tx_gain_offset()                   = 0;
-  virtual float             get_rx_gain_offset()                   = 0;
-  virtual bool              is_continuous_tx()                     = 0;
-  virtual bool              is_init()                              = 0;
-  virtual void              reset()                                = 0;
-  virtual srslte_rf_info_t* get_info(const uint32_t& radio_idx)    = 0;
+  virtual float             get_rx_gain(const uint32_t& radio_idx)           = 0;
+  virtual double            get_freq_offset()                                = 0;
+  virtual double            get_tx_freq(const uint32_t& radio_idx)           = 0;
+  virtual double            get_rx_freq(const uint32_t& radio_idx)           = 0;
+  virtual float             get_max_tx_power()                               = 0;
+  virtual float             get_tx_gain_offset()                             = 0;
+  virtual float             get_rx_gain_offset()                             = 0;
+  virtual bool              is_continuous_tx()                               = 0;
+  virtual bool              get_is_start_of_burst(const uint32_t& radio_idx) = 0;
+  virtual bool              is_init()                                        = 0;
+  virtual void              reset()                                          = 0;
+  virtual srslte_rf_info_t* get_info(const uint32_t& radio_idx)              = 0;
 };
 
 class phy_interface_radio
