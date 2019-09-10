@@ -23,6 +23,7 @@
 #define SRSLTE_WIENER_DL_H_
 
 #include <srslte/config.h>
+#include <srslte/phy/common/phy_common.h>
 #include <srslte/phy/dft/dft.h>
 #include <srslte/phy/utils/random.h>
 
