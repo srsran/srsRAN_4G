@@ -1784,11 +1784,9 @@ bool rlc_am::rlc_am_rx::add_segment_and_check(rlc_amd_rx_pdu_segments_t *pdu, rl
 
 bool rlc_am::rlc_am_rx::inside_rx_window(const int16_t sn)
 {
-  if(RX_MOD_BASE(sn) >= RX_MOD_BASE(vr_r) &&
-     RX_MOD_BASE(sn) <  RX_MOD_BASE(vr_mr))
-  {
+  if (RX_MOD_BASE(sn) >= RX_MOD_BASE(static_cast<int16_t>(vr_r)) && RX_MOD_BASE(sn) < RX_MOD_BASE(vr_mr)) {
     return true;
-  }else{
+  } else {
     return false;
   }
 }
