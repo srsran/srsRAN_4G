@@ -483,6 +483,7 @@ int rf_soapy_open_multi(char* args, void** h, uint32_t num_requested_channels)
   }
 
   has_agc = SoapySDRDevice_hasGainMode(handler->device, SOAPY_SDR_TX, 0);
+  list = SoapySDRDevice_listGains(handler->device, SOAPY_SDR_TX, 0, &list_length);
   printf("State of gain elements for Tx channel 0 (AGC %s):\n", has_agc ? "supported":"not supported");
   for(int i = 0; i < list_length; i++) {
     printf(" - %s: %.2f dB\n", list[i], SoapySDRDevice_getGainElement(handler->device, SOAPY_SDR_TX, 0, list[i]));
