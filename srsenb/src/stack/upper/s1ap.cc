@@ -435,6 +435,8 @@ bool s1ap::handle_initiatingmessage(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg)
     return handle_paging(&msg->choice.Paging);
   case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_E_RABSETUPREQUEST:
     return handle_erabsetuprequest(&msg->choice.E_RABSetupRequest);
+  case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_UECONTEXTMODIFICATIONREQUEST:
+    return handle_uecontextmodifyrequest(&msg->choice.UEContextModificationRequest);
   default:
     s1ap_log->error("Unhandled intiating message: %s\n", liblte_s1ap_initiatingmessage_choice_text[msg->choice_type]);
   }
@@ -526,6 +528,23 @@ bool s1ap::handle_initialctxtsetuprequest(LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETU
     return false;
   }
 
+  /* Ideally the check below would be "if (users[rnti].is_csfb)" */
+  if (msg->CSFallbackIndicator_present) {
+    if (msg->CSFallbackIndicator.e == LIBLTE_S1AP_CSFALLBACKINDICATOR_CS_FALLBACK_REQUIRED ||
+        msg->CSFallbackIndicator.e == LIBLTE_S1AP_CSFALLBACKINDICATOR_CS_FALLBACK_HIGH_PRIORITY) {
+      // Send RRC Release (cs-fallback-triggered) to MME
+      LIBLTE_S1AP_CAUSE_STRUCT cause;
+      cause.ext                     = false;
+      cause.choice_type             = LIBLTE_S1AP_CAUSE_CHOICE_RADIONETWORK;
+      cause.choice.radioNetwork.ext = false;
+      cause.choice.radioNetwork.e   = LIBLTE_S1AP_CAUSERADIONETWORK_CS_FALLBACK_TRIGGERED;
+
+      /* FIXME: This should normally probably only be sent after the SecurityMode procedure has completed! */
+      ue_ctxt_map[rnti].release_requested = true;
+      send_uectxtreleaserequest(rnti, &cause);
+    }
+  }
+
   return true;
 }
 
@@ -563,6 +582,53 @@ bool s1ap::handle_erabsetuprequest(LIBLTE_S1AP_MESSAGE_E_RABSETUPREQUEST_STRUCT 
   // Setup UE ctxt in RRC
   if(!rrc->setup_ue_erabs(rnti, msg)) {
     return false;
+  }
+
+  return true;
+}
+
+bool s1ap::handle_uecontextmodifyrequest(LIBLTE_S1AP_MESSAGE_UECONTEXTMODIFICATIONREQUEST_STRUCT* msg)
+{
+  s1ap_log->info("Received UeContextModificationRequest\n");
+  if (enbid_to_rnti_map.end() == enbid_to_rnti_map.find(msg->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID)) {
+    s1ap_log->warning("eNB_UE_S1AP_ID not found - discarding message\n");
+    return false;
+  }
+  uint16_t rnti = enbid_to_rnti_map[msg->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID];
+  if (msg->MME_UE_S1AP_ID.MME_UE_S1AP_ID != ue_ctxt_map[rnti].MME_UE_S1AP_ID) {
+    s1ap_log->warning("MME_UE_S1AP_ID has changed - old:%d, new:%d\n",
+                      ue_ctxt_map[rnti].MME_UE_S1AP_ID,
+                      msg->MME_UE_S1AP_ID.MME_UE_S1AP_ID);
+    ue_ctxt_map[rnti].MME_UE_S1AP_ID = msg->MME_UE_S1AP_ID.MME_UE_S1AP_ID;
+  }
+
+  if (!rrc->modify_ue_ctxt(rnti, msg)) {
+    LIBLTE_S1AP_CAUSE_STRUCT cause;
+    cause.ext             = false;
+    cause.choice_type     = LIBLTE_S1AP_CAUSE_CHOICE_MISC;
+    cause.choice.misc.ext = false;
+    cause.choice.misc.e   = LIBLTE_S1AP_CAUSEMISC_UNSPECIFIED;
+    send_uectxmodifyfailure(rnti, &cause);
+    return true;
+  }
+
+  // Send UEContextModificationResponse
+  send_uectxmodifyresp(rnti);
+
+  /* Ideally the check below would be "if (users[rnti].is_csfb)" */
+  if (msg->CSFallbackIndicator_present) {
+    if (msg->CSFallbackIndicator.e == LIBLTE_S1AP_CSFALLBACKINDICATOR_CS_FALLBACK_REQUIRED ||
+        msg->CSFallbackIndicator.e == LIBLTE_S1AP_CSFALLBACKINDICATOR_CS_FALLBACK_HIGH_PRIORITY) {
+      // Send RRC Release (cs-fallback-triggered) to MME
+      LIBLTE_S1AP_CAUSE_STRUCT cause;
+      cause.ext                     = false;
+      cause.choice_type             = LIBLTE_S1AP_CAUSE_CHOICE_RADIONETWORK;
+      cause.choice.radioNetwork.ext = false;
+      cause.choice.radioNetwork.e   = LIBLTE_S1AP_CAUSERADIONETWORK_CS_FALLBACK_TRIGGERED;
+
+      ue_ctxt_map[rnti].release_requested = true;
+      send_uectxtreleaserequest(rnti, &cause);
+    }
   }
 
   return true;
@@ -982,6 +1048,103 @@ bool s1ap::send_initial_ctxt_setup_failure(uint16_t rnti)
   return true;
 }
 
+bool s1ap::send_uectxmodifyresp(uint16_t rnti)
+{
+  if (!mme_connected) {
+    return false;
+  }
+  srslte::unique_byte_buffer_t buf = srslte::allocate_unique_buffer(*pool);
+  if (!buf) {
+    s1ap_log->error("Fatal Error: Couldn't allocate buffer in s1ap::send_uectxmodifyresp().\n");
+    return false;
+  }
+
+  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
+  tx_pdu.ext         = false;
+  tx_pdu.choice_type = LIBLTE_S1AP_S1AP_PDU_CHOICE_SUCCESSFULOUTCOME;
+
+  LIBLTE_S1AP_SUCCESSFULOUTCOME_STRUCT* succ = &tx_pdu.choice.successfulOutcome;
+  succ->procedureCode                        = LIBLTE_S1AP_PROC_ID_UECONTEXTMODIFICATION;
+  succ->choice_type                          = LIBLTE_S1AP_SUCCESSFULOUTCOME_CHOICE_UECONTEXTMODIFICATIONRESPONSE;
+
+  LIBLTE_S1AP_MESSAGE_UECONTEXTMODIFICATIONRESPONSE_STRUCT* resp = &succ->choice.UEContextModificationResponse;
+  resp->ext                                                      = false;
+  resp->CriticalityDiagnostics_present                           = false;
+
+  resp->MME_UE_S1AP_ID.MME_UE_S1AP_ID = ue_ctxt_map[rnti].MME_UE_S1AP_ID;
+  resp->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ue_ctxt_map[rnti].eNB_UE_S1AP_ID;
+
+  liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT*)buf.get());
+  s1ap_log->info_hex(buf->msg, buf->N_bytes, "Sending ContextModificationFailure for RNTI:0x%x", rnti);
+
+  ssize_t n_sent = sctp_sendmsg(socket_fd,
+                                buf->msg,
+                                buf->N_bytes,
+                                (struct sockaddr*)&mme_addr,
+                                sizeof(struct sockaddr_in),
+                                htonl(PPID),
+                                0,
+                                ue_ctxt_map[rnti].stream_id,
+                                0,
+                                0);
+
+  if (n_sent == -1) {
+    s1ap_log->error("Failed to send ContextModificationFailure for RNTI:0x%x\n", rnti);
+    return false;
+  }
+
+  return true;
+}
+
+bool s1ap::send_uectxmodifyfailure(uint16_t rnti, LIBLTE_S1AP_CAUSE_STRUCT* cause)
+{
+  if (!mme_connected) {
+    return false;
+  }
+  srslte::unique_byte_buffer_t buf = srslte::allocate_unique_buffer(*pool);
+  if (!buf) {
+    s1ap_log->error("Fatal Error: Couldn't allocate buffer in s1ap::send_initial_ctxt_setup_failure().\n");
+    return false;
+  }
+
+  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
+  tx_pdu.ext         = false;
+  tx_pdu.choice_type = LIBLTE_S1AP_S1AP_PDU_CHOICE_UNSUCCESSFULOUTCOME;
+
+  LIBLTE_S1AP_UNSUCCESSFULOUTCOME_STRUCT* unsucc = &tx_pdu.choice.unsuccessfulOutcome;
+  unsucc->procedureCode                          = LIBLTE_S1AP_PROC_ID_UECONTEXTMODIFICATION;
+  unsucc->choice_type                            = LIBLTE_S1AP_UNSUCCESSFULOUTCOME_CHOICE_UECONTEXTMODIFICATIONFAILURE;
+
+  LIBLTE_S1AP_MESSAGE_UECONTEXTMODIFICATIONFAILURE_STRUCT* fail = &unsucc->choice.UEContextModificationFailure;
+  fail->ext                                                     = false;
+  fail->CriticalityDiagnostics_present                          = false;
+
+  fail->MME_UE_S1AP_ID.MME_UE_S1AP_ID = ue_ctxt_map[rnti].MME_UE_S1AP_ID;
+  fail->eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ue_ctxt_map[rnti].eNB_UE_S1AP_ID;
+
+  memcpy(&fail->Cause, cause, sizeof(LIBLTE_S1AP_CAUSE_STRUCT));
+
+  liblte_s1ap_pack_s1ap_pdu(&tx_pdu, (LIBLTE_BYTE_MSG_STRUCT*)buf.get());
+  s1ap_log->info_hex(buf->msg, buf->N_bytes, "Sending UEContextModificationFailure for RNTI:0x%x", rnti);
+
+  ssize_t n_sent = sctp_sendmsg(socket_fd,
+                                buf->msg,
+                                buf->N_bytes,
+                                (struct sockaddr*)&mme_addr,
+                                sizeof(struct sockaddr_in),
+                                htonl(PPID),
+                                0,
+                                ue_ctxt_map[rnti].stream_id,
+                                0,
+                                0);
+
+  if (n_sent == -1) {
+    s1ap_log->error("Failed to send UEContextModificationFailure for RNTI:0x%x\n", rnti);
+    return false;
+  }
+
+  return true;
+}
 
 //bool s1ap::send_ue_capabilities(uint16_t rnti, LIBLTE_RRC_UE_EUTRA_CAPABILITY_STRUCT *caps)
 //{
