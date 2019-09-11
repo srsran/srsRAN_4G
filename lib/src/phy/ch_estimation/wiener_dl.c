@@ -27,18 +27,63 @@
 // Useful macros
 #define NSAMPLES2NBYTES(N) (sizeof(cf_t) * (N))
 #define M_1_3 0.33333333333333333333f /* 1 / 3 */
+#define M_2_3 0.66666666666666666666f /* 2 / 3 */
 #define M_1_4 0.25f                   /* 1 / 4 */
 #define M_4_7 0.571428571f            /* 4 / 7 */
 #define M_4_3 1.33333333333333333333f /* 4 / 3 */
 #define M_5_3 1.66666666666666666666f /* 5 / 3 */
+#define SRSLTE_WIENER_HALFREF_IDX (q->nof_ref / 2 - 1)
 #define SRSLTE_WIENER_LOCAL
 
 // Constants
-const float hlsv_sum_norm[SRSLTE_WIENER_DL_MIN_RE] = {
-    16.0f, 15.66f, 15.33f, 15.0f, 14.66f, 14.33f, 14.0f, 13.66f, 13.33f, 13.0f, 12.66f, 12.33f,
-    12.0f, 11.66f, 11.33f, 11.0f, 10.66f, 10.33f, 10.0f, 9.66f,  9.33f,  9.0f,  8.66f,  8.33f,
-    8.0f,  7.66f,  7.33f,  7.0f,  6.66f,  6.33f,  6.0f,  5.66f,  5.33f,  5.0f,  4.66f,  4.33f,
-    4.0f,  3.66f,  3.33f,  3.0f,  2.66f,  2.33f,  2.0f,  1.66f,  1.33f,  1.0f,  0.66f,  0.33f};
+const float hlsv_sum_norm[SRSLTE_WIENER_DL_MIN_RE] = {0.0625,
+                                                      0.0638297872326845,
+                                                      0.0652173913015123,
+                                                      0.0666666666622222,
+                                                      0.0681818181756198,
+                                                      0.0697674418523526,
+                                                      0.0714285714183674,
+                                                      0.0731707316948245,
+                                                      0.074999999985,
+                                                      0.0769230769053254,
+                                                      0.078947368400277,
+                                                      0.0810810810569759,
+                                                      0.0833333333055555,
+                                                      0.085714285682449,
+                                                      0.0882352940813149,
+                                                      0.0909090908677686,
+                                                      0.093749999953125,
+                                                      0.0967741934953174,
+                                                      0.09999999994,
+                                                      0.103448275794293,
+                                                      0.107142857066327,
+                                                      0.111111111024691,
+                                                      0.115384615286982,
+                                                      0.1199999998896,
+                                                      0.124999999875,
+                                                      0.130434782466919,
+                                                      0.136363636202479,
+                                                      0.142857142673469,
+                                                      0.14999999979,
+                                                      0.157894736601108,
+                                                      0.166666666388889,
+                                                      0.176470587913495,
+                                                      0.187499999625,
+                                                      0.19999999956,
+                                                      0.214285713765306,
+                                                      0.230769230147929,
+                                                      0.24999999925,
+                                                      0.272727271809917,
+                                                      0.29999999886,
+                                                      0.333333331888889,
+                                                      0.374999998125,
+                                                      0.428571426061225,
+                                                      0.4999999965,
+                                                      0.59999999484,
+                                                      0.74999999175,
+                                                      0.999999985,
+                                                      1.4999999655,
+                                                      2.99999985900001};
 
 // Local state function prototypes
 SRSLTE_WIENER_LOCAL srslte_wiener_dl_state_t* srslte_wiener_dl_state_malloc(srslte_wiener_dl_t* q);
@@ -122,8 +167,8 @@ SRSLTE_WIENER_LOCAL srslte_wiener_dl_state_t* srslte_wiener_dl_state_malloc(srsl
     state->deltan       = 0.0f;
     state->nfifosamps   = 0;
     state->invtpilotoff = 0;
-    state->sumlen       = 0;
-    state->skip         = 0;
+    state->sumlen       = 1;
+    state->skip         = 1;
     state->cnt          = 0;
 
     if (ret) {
@@ -222,7 +267,7 @@ int srslte_wiener_dl_init(srslte_wiener_dl_t* q, uint32_t max_prb, uint32_t max_
 
     // Allocate state
     for (uint32_t tx = 0; tx < q->max_tx_ports && !ret; tx++) {
-      for (uint32_t rx = 0; rx < q->max_tx_ports && !ret; rx++) {
+      for (uint32_t rx = 0; rx < q->max_rx_ant && !ret; rx++) {
         srslte_wiener_dl_state_t* state = srslte_wiener_dl_state_malloc(q);
         if (!state) {
           perror("srslte_wiener_dl_state_malloc");
@@ -262,11 +307,11 @@ int srslte_wiener_dl_init(srslte_wiener_dl_t* q, uint32_t max_prb, uint32_t max_
     // Initialise interpolation filter
     if (!ret) {
       bzero(q->filter, NSAMPLES2NBYTES(SRSLTE_WIENER_DL_MIN_RE));
-      q->filter[0]  = 3.0f / SRSLTE_WIENER_DL_MIN_RE;
-      q->filter[1]  = 2.0f / SRSLTE_WIENER_DL_MIN_RE;
-      q->filter[2]  = 1.0f / SRSLTE_WIENER_DL_MIN_RE;
-      q->filter[46] = 1.0f / SRSLTE_WIENER_DL_MIN_RE;
-      q->filter[47] = 2.0f / SRSLTE_WIENER_DL_MIN_RE;
+      q->filter[0]                           = 1.0f / SRSLTE_WIENER_DL_MIN_RE;
+      q->filter[1]                           = M_2_3 / SRSLTE_WIENER_DL_MIN_RE;
+      q->filter[2]                           = M_1_3 / SRSLTE_WIENER_DL_MIN_RE;
+      q->filter[SRSLTE_WIENER_DL_MIN_RE - 2] = M_1_3 / SRSLTE_WIENER_DL_MIN_RE;
+      q->filter[SRSLTE_WIENER_DL_MIN_RE - 1] = M_2_3 / SRSLTE_WIENER_DL_MIN_RE;
       srslte_dft_run_c(&q->fft, q->filter, q->filter);
     }
 
@@ -298,6 +343,9 @@ int srslte_wiener_dl_set_cell(srslte_wiener_dl_t* q, srslte_cell_t cell)
     q->nof_ref      = cell.nof_prb * 2;
     q->nof_re       = cell.nof_prb * SRSLTE_NRE;
     q->nof_tx_ports = cell.nof_ports;
+    q->nof_rx_ant   = q->max_rx_ant;
+    q->ready        = false;
+    q->wm_computed  = false;
 
     // Reset states
     srslte_wiener_dl_reset(q);
@@ -333,16 +381,16 @@ SRSLTE_WIENER_LOCAL void circshift_dim1(cf_t** matrix, uint32_t ndim1, int32_t k
 
     // Run k times
     while (k--) {
-      // Save first pointer
-      cf_t* tmp_ptr = matrix[0];
+      // Save last pointer
+      cf_t* tmp_ptr = matrix[ndim1 - 1];
 
       // Shift pointers one position
-      for (int i = 0; i < ndim1 - 1; i++) {
-        matrix[i] = matrix[i + 1];
+      for (int i = ndim1 - 1; i > 0; i--) {
+        matrix[i] = matrix[i - 1];
       }
 
       // Save last pointer
-      matrix[ndim1 - 1] = tmp_ptr;
+      matrix[0] = tmp_ptr;
     }
   } else {
     ERROR("unattended circshift_dim1!");
@@ -352,21 +400,21 @@ SRSLTE_WIENER_LOCAL void circshift_dim1(cf_t** matrix, uint32_t ndim1, int32_t k
 SRSLTE_WIENER_LOCAL void circshift_dim2(cf_t** matrix, uint32_t ndim1, uint32_t ndim2, int32_t k)
 {
   // Wrap k
-  k = (k + ndim1) % ndim1;
+  k = (k + ndim2) % ndim2;
 
   for (uint32_t dim1 = 0; dim1 < ndim1; dim1++) {
     // Run k times
     for (int i = 0; i < k; i++) {
-      // Save first value
-      cf_t tmp = matrix[dim1][0];
+      // Save last value
+      cf_t tmp = matrix[dim1][ndim2 - 1];
 
       // Shift one position
-      for (int dim2 = 0; i < dim2 - 1; dim2++) {
-        matrix[dim1][dim2] = matrix[dim1][dim2 + 1];
+      for (int dim2 = ndim2 - 1; dim2 > 0; dim2--) {
+        matrix[dim1][dim2] = matrix[dim1][dim2 - 1];
       }
 
       // Save last value
-      matrix[ndim1][ndim2 - 1] = tmp;
+      matrix[dim1][0] = tmp;
     }
   }
 }
@@ -426,8 +474,8 @@ SRSLTE_WIENER_LOCAL cf_t _srslte_vec_dot_prod_ccc_simd(const cf_t* x, const cf_t
   if (len >= SRSLTE_SIMD_CF_SIZE) {
     simd_cf_t avx_result = srslte_simd_cf_zero();
     for (; i < len - SRSLTE_SIMD_CF_SIZE + 1; i += SRSLTE_SIMD_CF_SIZE) {
-      simd_cf_t xVal = srslte_simd_cfi_load(&x[i]);
-      simd_cf_t yVal = srslte_simd_cfi_load(&y[i]);
+      simd_cf_t xVal = srslte_simd_cfi_loadu(&x[i]);
+      simd_cf_t yVal = srslte_simd_cfi_loadu(&y[i]);
 
       avx_result = srslte_simd_cf_add(srslte_simd_cf_prod(xVal, yVal), avx_result);
     }
@@ -496,10 +544,11 @@ srslte_wiener_dl_run_symbol_1_8(srslte_wiener_dl_t* q, srslte_wiener_dl_state_t*
 
   // Online training for pilot filtering
   circshift_dim2(&state->timefifo, 1, SRSLTE_WIENER_DL_TIMEFIFO_SIZE, 1); // shift columns right one position
-  state->timefifo[0] = conjf(pilots[q->nof_ref / 2]);                     // train with center of subband frequency
+  state->timefifo[0] = conjf(pilots[SRSLTE_WIENER_HALFREF_IDX]);          // train with center of subband frequency
 
   circshift_dim1(state->cxfifo, SRSLTE_WIENER_DL_CXFIFO_SIZE, 1); // shift rows down one position
-  srslte_vec_sc_prod_ccc(state->timefifo, pilots[q->nof_ref / 2], state->cxfifo[0], SRSLTE_WIENER_DL_TIMEFIFO_SIZE);
+  srslte_vec_sc_prod_ccc(
+      state->timefifo, pilots[SRSLTE_WIENER_HALFREF_IDX], state->cxfifo[0], SRSLTE_WIENER_DL_TIMEFIFO_SIZE);
 
   // Calculate auto-correlation and normalize
   matrix_acc_dim1_cc(state->cxfifo, q->tmp, SRSLTE_WIENER_DL_CXFIFO_SIZE, SRSLTE_WIENER_DL_TIMEFIFO_SIZE);
@@ -511,8 +560,6 @@ srslte_wiener_dl_run_symbol_1_8(srslte_wiener_dl_t* q, srslte_wiener_dl_state_t*
   // Update internal states
   state->sumlen       = SRSLTE_MAX(1, floorf(halfcx / 8.0f * SRSLTE_MIN(2.0f, 1.0f + 1.0f / snr_lin)));
   state->skip         = SRSLTE_MAX(1, floorf(halfcx / 4.0f * SRSLTE_MIN(1, snr_lin / 16.0f)));
-  state->deltan       = 0;
-  state->invtpilotoff = M_1_3;
 }
 
 SRSLTE_WIENER_LOCAL void srslte_wiener_dl_run_symbol_2_9(srslte_wiener_dl_t* q, srslte_wiener_dl_state_t* state)
@@ -522,8 +569,8 @@ SRSLTE_WIENER_LOCAL void srslte_wiener_dl_run_symbol_2_9(srslte_wiener_dl_t* q, 
   circshift_dim1(state->tfifo, SRSLTE_WIENER_DL_TFIFO_SIZE, 1); // shift matrix columns right by one position
 
   // Average Reference Signals
-  matrix_acc_dim1_cc(state->hls_fifo_2, q->tmp, SRSLTE_WIENER_DL_HLS_FIFO_SIZE, q->nof_ref); // Sum values
-  srslte_vec_sc_prod_cfc(q->tmp, 1.0f / state->sumlen, q->tmp, q->nof_ref);                  // Sacle sum
+  matrix_acc_dim1_cc(state->hls_fifo_2, q->tmp, state->sumlen, q->nof_ref); // Sum values
+  srslte_vec_sc_prod_cfc(q->tmp, 1.0f / state->sumlen, q->tmp, q->nof_ref); // Scale sum
 
   // Estimate channel based on the wiener matrix 2
   estimate_wiener(q, q->wm2, q->tmp, state->tfifo[0]);
@@ -548,8 +595,8 @@ SRSLTE_WIENER_LOCAL void srslte_wiener_dl_run_symbol_5_12(srslte_wiener_dl_t*   
   circshift_dim1(state->tfifo, SRSLTE_WIENER_DL_TFIFO_SIZE, 1); // shift matrix columns right by one position
 
   // Average Reference Signals
-  matrix_acc_dim1_cc(state->hls_fifo_1, q->tmp, SRSLTE_WIENER_DL_HLS_FIFO_SIZE, q->nof_ref); // Sum values
-  srslte_vec_sc_prod_cfc(q->tmp, 1.0f / state->sumlen, q->tmp, q->nof_ref);                  // Sacle sum
+  matrix_acc_dim1_cc(state->hls_fifo_1, q->tmp, state->sumlen, q->nof_ref); // Sum values
+  srslte_vec_sc_prod_cfc(q->tmp, 1.0f / state->sumlen, q->tmp, q->nof_ref); // Scale sum
 
   // Estimate channel based on the wiener matrix 1
   estimate_wiener(q, q->wm1, q->tmp, state->tfifo[0]);
@@ -564,8 +611,8 @@ SRSLTE_WIENER_LOCAL void srslte_wiener_dl_run_symbol_5_12(srslte_wiener_dl_t*   
     state->cnt = 0; // Reset counter
     uint32_t pos1, pos2, nsbb, pstart;
 
-    pos1 = (shift < 3) ? 0 : 3;
-    pos2 = (pos1 + 3) % 6;
+    pos2 = (shift < 3) ? 0 : 3;
+    pos1 = (pos2 + 3) % 6;
 
     // Choose randomly a pair of PRB and calculate the start reference signal
     nsbb = srslte_random_uniform_int_dist(q->random, 0, q->nof_prb / 2);
@@ -602,6 +649,9 @@ SRSLTE_WIENER_LOCAL void srslte_wiener_dl_run_symbol_5_12(srslte_wiener_dl_t*   
 
     // Average samples in FIFO
     matrix_acc_dim1_cc(state->xfifo, state->cV, SRSLTE_WIENER_DL_XFIFO_SIZE, SRSLTE_WIENER_DL_MIN_RE);
+    if (state->nfifosamps) {
+      srslte_vec_sc_prod_cfc(state->cV, 1.0f / state->nfifosamps, state->cV, SRSLTE_WIENER_DL_MIN_RE);
+    }
 
     // Interpolate
     srslte_dft_run_c(&q->fft, state->cV, q->tmp);
@@ -623,6 +673,7 @@ SRSLTE_WIENER_LOCAL void srslte_wiener_dl_run_symbol_5_12(srslte_wiener_dl_t*   
           if (i == 0 && j == 0) {
             // Copy if first one
             memcpy(q->acV, q->state[i][j]->cV, NSAMPLES2NBYTES(SRSLTE_WIENER_DL_MIN_RE));
+
           } else {
             // Accumulate otherwise
             srslte_vec_sum_ccc(q->state[i][j]->cV, q->acV, q->acV, SRSLTE_WIENER_DL_MIN_RE);
@@ -631,7 +682,7 @@ SRSLTE_WIENER_LOCAL void srslte_wiener_dl_run_symbol_5_12(srslte_wiener_dl_t*   
       }
 
       // Apply averaging scale
-      srslte_vec_sc_prod_cfc(q->acV, 1.0f / (q->nof_tx_ports + q->nof_rx_ant), q->acV, SRSLTE_WIENER_DL_MIN_RE);
+      srslte_vec_sc_prod_cfc(q->acV, 1.0f / (q->nof_tx_ports * q->nof_rx_ant), q->acV, SRSLTE_WIENER_DL_MIN_RE);
 
       // Compute square wiener correlation matrix
       for (uint32_t i = 0; i < SRSLTE_WIENER_DL_MIN_REF; i++) {
@@ -673,10 +724,23 @@ SRSLTE_WIENER_LOCAL void srslte_wiener_dl_run_symbol_5_12(srslte_wiener_dl_t*   
       // Compute Wiener matrices
       for (uint32_t dim1 = 0; dim1 < SRSLTE_WIENER_DL_MIN_RE; dim1++) {
         for (uint32_t dim2 = 0; dim2 < SRSLTE_WIENER_DL_MIN_REF; dim2++) {
+
+#if 0
+          q->wm2[dim1][dim2] = 0;
+          for (int i = 0; i < SRSLTE_WIENER_DL_MIN_REF; i++) {
+            q->wm2[dim1][dim2] += q->hH2[dim1][i] * q->invRH.m[dim2][i];
+          }
+          q->wm1[dim1][dim2] = 0;
+          for (int i = 0; i < SRSLTE_WIENER_DL_MIN_REF; i++) {
+            q->wm1[dim1][dim2] += q->hH1[dim1][i] * q->invRH.m[dim2][i];
+          }
+#else
           q->wm1[dim1][dim2] = srslte_vec_dot_prod_ccc(q->hH1[dim1], q->invRH.m[dim2], SRSLTE_WIENER_DL_MIN_REF);
           q->wm2[dim1][dim2] = srslte_vec_dot_prod_ccc(q->hH2[dim1], q->invRH.m[dim2], SRSLTE_WIENER_DL_MIN_REF);
+#endif
         }
       }
+      q->wm_computed = true;
     }
   }
 }
@@ -702,6 +766,7 @@ int srslte_wiener_dl_run(srslte_wiener_dl_t* q,
     // Process symbol
     switch (m) {
       case 1:
+        q->ready = q->wm_computed;
       case 8:
         srslte_wiener_dl_run_symbol_1_8(q, state, pilots, snr_lin);
         break;
