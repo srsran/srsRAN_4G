@@ -48,36 +48,34 @@ void srslte_channel_hst_update_srate(srslte_channel_hst_t* q, uint32_t srate)
 void srslte_channel_hst_execute(
     srslte_channel_hst_t* q, cf_t* in, cf_t* out, uint32_t len, const srslte_timestamp_t* ts)
 {
-  if (q) {
-    if (q->srate_hz) {
-      // Convert period from seconds to samples
-      uint64_t period_nsamples = (uint64_t)roundf(q->period_s * q->srate_hz);
+  if (q && q->srate_hz) {
+    // Convert period from seconds to samples
+    uint64_t period_nsamples = (uint64_t)roundf(q->period_s * q->srate_hz);
 
-      // Convert timestamp to samples
-      uint64_t ts_nsamples = srslte_timestamp_uint64(ts, q->srate_hz) + (uint64_t)q->init_time_s * q->srate_hz;
+    // Convert timestamp to samples
+    uint64_t ts_nsamples = srslte_timestamp_uint64(ts, q->srate_hz) + (uint64_t)q->init_time_s * q->srate_hz;
 
-      // Calculate time modulus in period
-      uint64_t mod_t_nsamples = ts_nsamples - period_nsamples * (ts_nsamples / period_nsamples);
-      float    t              = (float)mod_t_nsamples / (float)q->srate_hz;
+    // Calculate time modulus in period
+    uint64_t mod_t_nsamples = ts_nsamples - period_nsamples * (ts_nsamples / period_nsamples);
+    float    t              = (float)mod_t_nsamples / (float)q->srate_hz;
 
-      float costheta = 0;
+    float costheta = 0;
 
-      if (0 <= t && t <= q->period_s / 2.0f) {
-        float num = q->period_s / 4.0f - t;
-        float den = sqrtf(powf(q->dmin_m * q->period_s / (q->ds_m * 2), 2.0f) + powf(num, 2.0f));
-        costheta  = num / den;
-      } else if (q->period_s / 2.0f < t && t < q->period_s) {
-        float num = -1.5f / 2.0f * q->period_s + t;
-        float den = sqrtf(powf(q->dmin_m * q->period_s / (q->ds_m * 2), 2.0f) + powf(num, 2.0f));
-        costheta  = num / den;
-      }
-
-      // Calculate doppler shift
-      q->fs_hz = q->fd_hz * costheta;
-
-      // Apply doppler shift, assume the doppler does not vary in a sub-frame
-      srslte_vec_apply_cfo(in, -q->fs_hz / q->srate_hz, out, len);
+    if (0 <= t && t <= q->period_s / 2.0f) {
+      float num = q->period_s / 4.0f - t;
+      float den = sqrtf(powf(q->dmin_m * q->period_s / (q->ds_m * 2), 2.0f) + powf(num, 2.0f));
+      costheta  = num / den;
+    } else if (q->period_s / 2.0f < t && t < q->period_s) {
+      float num = -1.5f / 2.0f * q->period_s + t;
+      float den = sqrtf(powf(q->dmin_m * q->period_s / (q->ds_m * 2), 2.0f) + powf(num, 2.0f));
+      costheta  = num / den;
     }
+
+    // Calculate doppler shift
+    q->fs_hz = q->fd_hz * costheta;
+
+    // Apply doppler shift, assume the doppler does not vary in a sub-frame
+    srslte_vec_apply_cfo(in, -q->fs_hz / q->srate_hz, out, len);
   }
 }
 
