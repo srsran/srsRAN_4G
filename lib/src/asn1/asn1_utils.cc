@@ -106,6 +106,10 @@ int bit_ref::distance_bytes() const
 
 SRSASN_CODE bit_ref::pack(uint32_t val, uint32_t n_bits)
 {
+  if (n_bits > 32) {
+    srsasn_log_print(LOG_LEVEL_ERROR, "This method only supports packing up to 32 bits\n");
+    return SRSASN_ERROR_ENCODE_FAIL;
+  }
   uint32_t mask;
   while (n_bits > 0) {
     if (ptr >= max_ptr) {
@@ -131,8 +135,33 @@ SRSASN_CODE bit_ref::pack(uint32_t val, uint32_t n_bits)
   return SRSASN_SUCCESS;
 }
 
+SRSASN_CODE bit_ref::pack_bytes(const uint8_t* buf, uint32_t n_bytes)
+{
+  if (n_bytes == 0) {
+    return SRSASN_SUCCESS;
+  }
+  if (ptr + n_bytes >= max_ptr) {
+    srsasn_log_print(LOG_LEVEL_ERROR, "Buffer size limit was achieved\n");
+    return SRSASN_ERROR_ENCODE_FAIL;
+  }
+  if (offset == 0) {
+    // Aligned case
+    memcpy(ptr, buf, n_bytes);
+    ptr += n_bytes;
+  } else {
+    for (uint32_t i = 0; i < n_bytes; ++i) {
+      pack(buf[i], 8);
+    }
+  }
+  return SRSASN_SUCCESS;
+}
+
 ValOrError unpack_bits(uint8_t*& ptr, uint8_t& offset, uint8_t* max_ptr, uint32_t n_bits)
 {
+  if (n_bits > 32) {
+    srsasn_log_print(LOG_LEVEL_ERROR, "This method only supports unpacking up to 32 bits\n");
+    return {0, SRSASN_ERROR_DECODE_FAIL};
+  }
   uint32_t val = 0;
   while (n_bits > 0) {
     if (ptr >= max_ptr) {
@@ -153,6 +182,27 @@ ValOrError unpack_bits(uint8_t*& ptr, uint8_t& offset, uint8_t* max_ptr, uint32_
     }
   }
   return ValOrError(val, SRSASN_SUCCESS);
+}
+
+SRSASN_CODE bit_ref::unpack_bytes(uint8_t* buf, uint32_t n_bytes)
+{
+  if (n_bytes == 0) {
+    return SRSASN_SUCCESS;
+  }
+  if (ptr + n_bytes >= max_ptr) {
+    srsasn_log_print(LOG_LEVEL_ERROR, "Buffer size limit was achieved\n");
+    return SRSASN_ERROR_DECODE_FAIL;
+  }
+  if (offset == 0) {
+    // Aligned case
+    memcpy(buf, ptr, n_bytes);
+    ptr += n_bytes;
+  } else {
+    for (uint32_t i = 0; i < n_bytes; ++i) {
+      unpack(buf[i], 8);
+    }
+  }
+  return SRSASN_SUCCESS;
 }
 
 SRSASN_CODE bit_ref::align_bytes()
@@ -180,6 +230,21 @@ SRSASN_CODE bit_ref::align_bytes_zero()
   *ptr &= mask;
   offset = 0;
   ptr++;
+  return SRSASN_SUCCESS;
+}
+
+SRSASN_CODE bit_ref::advance_bits(uint32_t n_bits)
+{
+  uint32_t extra_bits     = (offset + n_bits) % 8;
+  uint32_t bytes_required = ceilf((offset + n_bits) / 8.0f);
+  uint32_t bytes_offset   = floorf((offset + n_bits) / 8.0f);
+
+  if (ptr + bytes_required >= max_ptr) {
+    srsasn_log_print(LOG_LEVEL_ERROR, "Buffer size limit was achieved\n");
+    return SRSASN_ERROR_DECODE_FAIL;
+  }
+  ptr += bytes_offset;
+  offset = extra_bits;
   return SRSASN_SUCCESS;
 }
 

@@ -96,6 +96,7 @@ public:
   int distance_bytes() const;
 
   SRSASN_CODE pack(uint32_t val, uint32_t n_bits);
+  SRSASN_CODE pack_bytes(const uint8_t* buf, uint32_t n_bytes);
   template <class T>
   SRSASN_CODE unpack(T& val, uint32_t n_bits)
   {
@@ -103,8 +104,10 @@ public:
     val            = ret.val;
     return ret.code;
   }
+  SRSASN_CODE unpack_bytes(uint8_t* buf, uint32_t n_bytes);
   SRSASN_CODE align_bytes();
   SRSASN_CODE align_bytes_zero();
+  SRSASN_CODE advance_bits(uint32_t n_bits);
   void        set(uint8_t* start_ptr_, uint32_t max_size_);
 
 private:
