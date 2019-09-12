@@ -43,4 +43,4 @@ target_link_libraries(scell_search_test
         rrc_asn1
         ${CMAKE_THREAD_LIBS_INIT}
         ${Boost_LIBRARIES})
-add_test(scell_search_test scell_search_test)
+add_test(scell_search_test scell_search_test --duration=1 --phy_lib_log_level=0 --intra_meas_log_level=none --nof_enb=2 --cell.nof_prb=25)

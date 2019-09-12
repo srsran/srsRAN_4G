@@ -623,5 +623,12 @@ int main(int argc, char** argv)
   if (baseband_buffer) {
     free(baseband_buffer);
   }
+
+  for (auto& sb : softbuffer_tx) {
+    if (sb) {
+      free(sb);
+    }
+  }
+
   srslte_dft_exit();
 }

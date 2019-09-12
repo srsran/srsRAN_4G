@@ -177,6 +177,8 @@ void srslte_refsignal_dl_sync_free(srslte_refsignal_dl_sync_t* q)
         free(q->sequences[i]);
       }
     }
+
+    srslte_conv_fft_cc_free(&q->conv_fft_cc);
   }
 }
 
