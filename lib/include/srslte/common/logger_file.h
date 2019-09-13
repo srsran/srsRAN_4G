@@ -47,6 +47,7 @@ public:
   logger_file(std::string file);
   ~logger_file();
   void init(std::string file, int max_length = -1);
+  void stop();
   // Implementation of log_out
   void log(unique_log_str_t msg);
 
