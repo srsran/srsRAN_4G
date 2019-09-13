@@ -40,8 +40,9 @@
 #include "upper/usim.h"
 
 #include "srslte/common/buffer_pool.h"
-#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/log_filter.h"
+#include "srslte/common/multiqueue.h"
+#include "srslte/interfaces/ue_interfaces.h"
 
 #include "srsue/hdr/ue_metrics_interface.h"
 #include "ue_stack_base.h"
@@ -149,8 +150,18 @@ private:
   gw_interface_stack*      gw  = nullptr;
 
   // Thread
-  static const int                            STACK_MAIN_THREAD_PRIO = -1; // Use default high-priority below UHD
-  srslte::block_queue<std::function<void()> > pending_tasks;
+  static const int STACK_MAIN_THREAD_PRIO = -1; // Use default high-priority below UHD
+
+  // NOTE: we use this struct instead of a std::function bc lambdas can't capture by move in C++11
+  struct task_t {
+    std::function<void(task_t*)> func;
+    srslte::unique_byte_buffer_t pdu;
+    task_t() = default;
+    task_t(std::function<void(task_t*)> f_) : func(std::move(f_)) {}
+    void operator()() { func(this); }
+  };
+  srslte::multiqueue_handler<task_t> pending_tasks;
+  int                                sync_queue_id = -1, ue_queue_id = -1;
 };
 
 } // namespace srsue

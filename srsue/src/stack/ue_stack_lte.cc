@@ -40,6 +40,8 @@ ue_stack_lte::ue_stack_lte() :
   nas(&nas_log),
   thread("STACK")
 {
+  ue_queue_id   = pending_tasks.add_queue();
+  sync_queue_id = pending_tasks.add_queue();
 }
 
 ue_stack_lte::~ue_stack_lte()
@@ -130,7 +132,7 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
 void ue_stack_lte::stop()
 {
   if (running) {
-    pending_tasks.push([this]() { stop_impl(); });
+    pending_tasks.try_push(ue_queue_id, task_t{[this](task_t*) { stop_impl(); }});
     wait_thread_finish();
   }
 }
@@ -159,7 +161,8 @@ bool ue_stack_lte::switch_on()
 {
   if (running) {
     proc_state_t proc_result = proc_state_t::on_going;
-    pending_tasks.push([this, &proc_result]() { nas.start_attach_request(&proc_result); });
+    pending_tasks.try_push(ue_queue_id,
+                           task_t{[this, &proc_result](task_t*) { nas.start_attach_request(&proc_result); }});
     while (proc_result == proc_state_t::on_going) {
       usleep(1000);
     }
@@ -202,25 +205,25 @@ bool ue_stack_lte::get_metrics(stack_metrics_t* metrics)
 void ue_stack_lte::run_thread()
 {
   while (running) {
-    // FIXME: For now it is a single queue
-    std::function<void()> func = pending_tasks.wait_pop();
-    func();
+    task_t task;
+    pending_tasks.wait_pop(&task);
+    task();
   }
 }
 
 void ue_stack_lte::in_sync()
 {
-  pending_tasks.push([this]() { rrc.in_sync(); });
+  pending_tasks.try_push(sync_queue_id, task_t{[this](task_t*) { rrc.in_sync(); }});
 }
 
 void ue_stack_lte::out_of_sync()
 {
-  pending_tasks.push([this]() { rrc.out_of_sync(); });
+  pending_tasks.try_push(sync_queue_id, task_t{[this](task_t*) { rrc.out_of_sync(); }});
 }
 
 void ue_stack_lte::run_tti(uint32_t tti)
 {
-  pending_tasks.push([this, tti]() { run_tti_impl(tti); });
+  pending_tasks.try_push(sync_queue_id, task_t{[this, tti](task_t*) { run_tti_impl(tti); }});
 }
 
 void ue_stack_lte::run_tti_impl(uint32_t tti)
