@@ -58,7 +58,7 @@ public:
   ue_stack_lte();
   ~ue_stack_lte();
 
-  std::string get_type();
+  std::string get_type() final;
 
   int  init(const stack_args_t& args_, srslte::logger* logger_);
   int  init(const stack_args_t& args_, srslte::logger* logger_, phy_interface_stack_lte* phy_, gw_interface_stack* gw_);
@@ -107,10 +107,7 @@ public:
   void run_tti(uint32_t tti) final;
 
   // Interface for GW
-  void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking) final
-  {
-    pdcp.write_sdu(lcid, std::move(sdu), blocking);
-  }
+  void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking) final;
 
   bool is_lcid_enabled(uint32_t lcid) final { return pdcp.is_lcid_enabled(lcid); }
 
@@ -161,7 +158,7 @@ private:
     void operator()() { func(this); }
   };
   srslte::multiqueue_handler<task_t> pending_tasks;
-  int                                sync_queue_id = -1, ue_queue_id = -1;
+  int                                sync_queue_id = -1, ue_queue_id = -1, gw_queue_id = -1;
 };
 
 } // namespace srsue

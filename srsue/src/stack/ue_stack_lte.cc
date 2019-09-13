@@ -42,6 +42,7 @@ ue_stack_lte::ue_stack_lte() :
 {
   ue_queue_id   = pending_tasks.add_queue();
   sync_queue_id = pending_tasks.add_queue();
+  gw_queue_id   = pending_tasks.add_queue();
 }
 
 ue_stack_lte::~ue_stack_lte()
@@ -209,6 +210,18 @@ void ue_stack_lte::run_thread()
     pending_tasks.wait_pop(&task);
     task();
   }
+}
+
+/***********************************************************************************************************************
+ *                                                Stack Interfaces
+ **********************************************************************************************************************/
+
+void ue_stack_lte::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking)
+{
+  task_t task;
+  task.pdu  = std::move(sdu);
+  task.func = [this, lcid, blocking](task_t* task_ctxt) { pdcp.write_sdu(lcid, std::move(task_ctxt->pdu), blocking); };
+  pending_tasks.try_push(gw_queue_id, std::move(task));
 }
 
 void ue_stack_lte::in_sync()
