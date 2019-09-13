@@ -216,6 +216,16 @@ void ue_stack_lte::run_thread()
  *                                                Stack Interfaces
  **********************************************************************************************************************/
 
+/********************
+ *   GW Interface
+ *******************/
+
+/**
+ * Push GW SDU to stack
+ * @param lcid
+ * @param sdu
+ * @param blocking
+ */
 void ue_stack_lte::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking)
 {
   task_t task;
@@ -224,6 +234,13 @@ void ue_stack_lte::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bo
   pending_tasks.try_push(gw_queue_id, std::move(task));
 }
 
+/********************
+ *  SYNC Interface
+ *******************/
+
+/**
+ * Sync thread signal that it is in sync
+ */
 void ue_stack_lte::in_sync()
 {
   pending_tasks.try_push(sync_queue_id, task_t{[this](task_t*) { rrc.in_sync(); }});

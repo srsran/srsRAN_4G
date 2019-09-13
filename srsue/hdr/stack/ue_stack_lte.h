@@ -154,7 +154,7 @@ private:
     std::function<void(task_t*)> func;
     srslte::unique_byte_buffer_t pdu;
     task_t() = default;
-    task_t(std::function<void(task_t*)> f_) : func(std::move(f_)) {}
+    explicit task_t(std::function<void(task_t*)> f_) : func(std::move(f_)) {}
     void operator()() { func(this); }
   };
   srslte::multiqueue_handler<task_t> pending_tasks;

@@ -41,6 +41,7 @@ int test_multiqueue()
   multiqueue_handler<int> multiqueue;
   TESTASSERT(multiqueue.nof_queues() == 0)
 
+  // test push/pop and size for one queue
   int qid1 = multiqueue.add_queue();
   TESTASSERT(qid1 == 0 and multiqueue.is_queue_active(qid1))
   TESTASSERT(multiqueue.size(qid1) == 0 and multiqueue.empty(qid1))
@@ -53,6 +54,7 @@ int test_multiqueue()
   TESTASSERT(multiqueue.wait_pop(&number) == qid1)
   TESTASSERT(number == 2 and multiqueue.empty(qid1) and multiqueue.size(qid1) == 0)
 
+  // test push/pop and size for two queues
   int qid2 = multiqueue.add_queue();
   TESTASSERT(qid2 == 1)
   TESTASSERT(multiqueue.nof_queues() == 2 and multiqueue.is_queue_active(qid1))
@@ -60,13 +62,35 @@ int test_multiqueue()
   TESTASSERT(multiqueue.size(qid2) == 1 and not multiqueue.empty(qid2))
   TESTASSERT(multiqueue.empty(qid1) and multiqueue.size(qid1) == 0)
 
+  // check if erasing a queue breaks anything
   multiqueue.erase_queue(qid1);
   TESTASSERT(multiqueue.nof_queues() == 1 and not multiqueue.is_queue_active(qid1))
   qid1 = multiqueue.add_queue();
   TESTASSERT(qid1 == 0)
   TESTASSERT(multiqueue.empty(qid1) and multiqueue.is_queue_active(qid1))
-  TESTASSERT(multiqueue.try_push(qid1, number))
-  TESTASSERT(multiqueue.size(qid1) == 1)
+  multiqueue.wait_pop(&number);
+
+  // check round-robin
+  for (int i = 0; i < 10; ++i) {
+    TESTASSERT(multiqueue.try_push(qid1, i))
+  }
+  for (int i = 20; i < 35; ++i) {
+    TESTASSERT(multiqueue.try_push(qid2, i))
+  }
+  TESTASSERT(multiqueue.size(qid1) == 10)
+  TESTASSERT(multiqueue.size(qid2) == 15)
+  TESTASSERT(multiqueue.wait_pop(&number) == qid1 and number == 0)
+  TESTASSERT(multiqueue.wait_pop(&number) == qid2 and number == 20)
+  TESTASSERT(multiqueue.wait_pop(&number) == qid1 and number == 1)
+  TESTASSERT(multiqueue.wait_pop(&number) == qid2 and number == 21)
+  TESTASSERT(multiqueue.size(qid1) == 8)
+  TESTASSERT(multiqueue.size(qid2) == 13)
+  for (int i = 0; i < 8 * 2; ++i) {
+    multiqueue.wait_pop(&number);
+  }
+  TESTASSERT(multiqueue.size(qid1) == 0)
+  TESTASSERT(multiqueue.size(qid2) == 5)
+  TESTASSERT(multiqueue.wait_pop(&number) == qid2 and number == 30)
 
   std::cout << "outcome: Success\n";
   std::cout << "===========================================\n";
