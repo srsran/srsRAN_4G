@@ -51,69 +51,103 @@ class multiqueue_handler
     using std::queue<myobj>::size;
     using std::queue<myobj>::empty;
     using std::queue<myobj>::front;
+
+    std::condition_variable cv_full;
+    bool                    active = true;
   };
 
 public:
   explicit multiqueue_handler(uint32_t capacity_ = std::numeric_limits<uint32_t>::max()) : capacity(capacity_) {}
-  ~multiqueue_handler()
+  ~multiqueue_handler() { reset(); }
+
+  void reset()
   {
-    std::lock_guard<std::mutex> lck(mutex);
-    queues_active.clear();
-    queues.clear();
+    std::unique_lock<std::mutex> lock(mutex);
     running = false;
+    while (nof_threads_waiting > 0) {
+      uint32_t size = queues.size();
+      lock.unlock();
+      cv_empty.notify_one();
+      for (uint32_t i = 0; i < size; ++i) {
+        queues[i].cv_full.notify_all();
+      }
+      lock.lock();
+      // wait for all threads to unblock
+      cv_exit.wait(lock);
+    }
+    queues.clear();
   }
 
   int add_queue()
   {
-    uint32_t qidx = 0;
-    for (; qidx < queues_active.size() and queues_active[qidx]; ++qidx)
+    uint32_t                    qidx = 0;
+    std::lock_guard<std::mutex> lock(mutex);
+    if (not running) {
+      return -1;
+    }
+    for (; qidx < queues.size() and queues[qidx].active; ++qidx)
       ;
-    if (qidx == queues_active.size()) {
+    if (qidx == queues.size()) {
       // create new queue
-      std::lock_guard<std::mutex> lck(mutex);
-      queues_active.push_back(true);
       queues.emplace_back();
     } else {
-      queues_active[qidx] = true;
+      queues[qidx].active = true;
     }
     return (int)qidx;
   }
 
   int nof_queues()
   {
-    std::lock_guard<std::mutex> lck(mutex);
-    return std::count(queues_active.begin(), queues_active.end(), true);
+    std::lock_guard<std::mutex> lock(mutex);
+    uint32_t                    count = 0;
+    for (uint32_t i = 0; i < queues.size(); ++i) {
+      count += queues[i].active ? 1 : 0;
+    }
+    return count;
+  }
+
+  template <typename FwdRef>
+  void push(int q_idx, FwdRef&& value)
+  {
+    {
+      std::unique_lock<std::mutex> lock(mutex);
+      while (is_queue_active_(q_idx) and queues[q_idx].size() >= capacity) {
+        nof_threads_waiting++;
+        queues[q_idx].cv_full.wait(lock);
+        nof_threads_waiting--;
+      }
+      if (not is_queue_active_(q_idx)) {
+        cv_exit.notify_one();
+        return;
+      }
+      queues[q_idx].push(std::forward<FwdRef>(value));
+    }
+    cv_empty.notify_one();
   }
 
   bool try_push(int q_idx, const myobj& value)
   {
-    if (not running) {
-      return false;
-    }
     {
-      std::lock_guard<std::mutex> lck(mutex);
-      if (queues[q_idx].size() >= capacity) {
+      std::lock_guard<std::mutex> lock(mutex);
+      if (not is_queue_active_(q_idx) or queues[q_idx].size() >= capacity) {
         return false;
       }
       queues[q_idx].push(value);
     }
-    cv.notify_one();
+    cv_empty.notify_one();
     return true;
   }
 
   std::pair<bool, myobj> try_push(int q_idx, myobj&& value)
   {
-    if (not running) {
-      return {false, std::move(value)};
-    }
     {
       std::lock_guard<std::mutex> lck(mutex);
-      if (queues[q_idx].size() >= capacity) {
+      if (not is_queue_active_(q_idx) or queues[q_idx].size() >= capacity) {
         return {false, std::move(value)};
       }
       queues[q_idx].push(std::move(value));
     }
-    cv.notify_one();
+    cv_empty.notify_one();
     return {true, std::move(value)};
   }
 
@@ -121,19 +155,26 @@ public:
   {
     std::unique_lock<std::mutex> lock(mutex);
     while (running) {
-      cv.wait(lock);
       // Round-robin for all queues
-      for (uint32_t i = 0; queues.size(); ++i) {
+      for (const queue_wrapper& q : queues) {
         spin_idx = (spin_idx + 1) % queues.size();
-        if (queues_active[spin_idx] and not queues[spin_idx].empty()) {
+        if (is_queue_active_(spin_idx) and not queues[spin_idx].empty()) {
           if (value) {
             *value = std::move(queues[spin_idx].front());
           }
           queues[spin_idx].pop();
+          if (nof_threads_waiting > 0) {
+            lock.unlock();
+            queues[spin_idx].cv_full.notify_one();
+          }
           return spin_idx;
         }
       }
+      nof_threads_waiting++;
+      cv_empty.wait(lock);
+      nof_threads_waiting--;
     }
+    cv_exit.notify_one();
     return -1;
   }
 
@@ -152,14 +193,14 @@ public:
   const myobj& front(int qidx)
   {
     std::lock_guard<std::mutex> lck(mutex);
-    return queues.front();
+    return queues[qidx].front();
   }
 
   void erase_queue(int qidx)
   {
     std::lock_guard<std::mutex> lck(mutex);
-    if (queues_active[qidx]) {
-      queues_active[qidx] = false;
+    if (is_queue_active_(qidx)) {
+      queues[qidx].active = false;
       while (not queues[qidx].empty()) {
         queues[qidx].pop();
       }
@@ -169,17 +210,19 @@ public:
   bool is_queue_active(int qidx)
   {
     std::lock_guard<std::mutex> lck(mutex);
-    return queues_active[qidx];
+    return is_queue_active_(qidx);
   }
 
 private:
+  bool is_queue_active_(int qidx) const { return running and queues[qidx].active; }
+
   std::mutex                 mutex;
-  std::condition_variable    cv;
+  std::condition_variable    cv_empty, cv_exit;
   uint32_t                   spin_idx = 0;
   bool                       running  = true;
-  std::vector<bool>          queues_active;
   std::vector<queue_wrapper> queues;
   uint32_t                   capacity;
+  uint32_t                   nof_threads_waiting = 0;
 };
 
 } // namespace srslte

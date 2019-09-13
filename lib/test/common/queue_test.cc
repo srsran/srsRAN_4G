@@ -21,6 +21,8 @@
 
 #include <iostream>
 #include <srslte/common/multiqueue.h>
+#include <thread>
+#include <unistd.h>
 
 #define TESTASSERT(cond)                                                                                               \
   {                                                                                                                    \
@@ -98,7 +100,117 @@ int test_multiqueue()
   return 0;
 }
 
+int test_multiqueue_threading()
+{
+  std::cout << "\n===== TEST multiqueue threading test: start =====\n";
+
+  int                     capacity = 4, number, start_number = 2, nof_pushes = capacity + 1;
+  multiqueue_handler<int> multiqueue(capacity);
+  int                     qid1 = multiqueue.add_queue();
+  auto push_blocking_func      = [&multiqueue](int qid, int start_value, int nof_pushes, bool* is_running) {
+    for (int i = 0; i < nof_pushes; ++i) {
+      multiqueue.push(qid, start_value + i);
+      std::cout << "t1: pushed item " << i << std::endl;
+    }
+    std::cout << "t1: pushed all items\n";
+    *is_running = false;
+  };
+
+  bool        t1_running = true;
+  std::thread t1(push_blocking_func, qid1, start_number, nof_pushes, &t1_running);
+
+  TESTASSERT(t1_running)
+  usleep(1000);
+  TESTASSERT((int)multiqueue.size(qid1) == capacity)
+
+  for (int i = 0; i < nof_pushes; ++i) {
+    TESTASSERT(multiqueue.wait_pop(&number) == qid1)
+    TESTASSERT(number == start_number + i)
+    std::cout << "main: popped item " << i << "\n";
+  }
+  std::cout << "main: popped all items\n";
+  usleep(1000);
+  TESTASSERT(not t1_running)
+  TESTASSERT(multiqueue.size(qid1) == 0)
+
+  multiqueue.reset();
+  t1.join();
+
+  std::cout << "outcome: Success\n";
+  std::cout << "==================================================\n";
+
+  return 0;
+}
+
+int test_multiqueue_threading2()
+{
+  std::cout << "\n===== TEST multiqueue threading test 2: start =====\n";
+  // Description: push items until blocking in thread t1. Unblocks in main thread by calling multiqueue.reset()
+
+  int                     capacity = 4, start_number = 2, nof_pushes = capacity + 1;
+  multiqueue_handler<int> multiqueue(capacity);
+  int                     qid1 = multiqueue.add_queue();
+  auto push_blocking_func      = [&multiqueue](int qid, int start_value, int nof_pushes, bool* is_running) {
+    for (int i = 0; i < nof_pushes; ++i) {
+      multiqueue.push(qid, start_value + i);
+    }
+    std::cout << "t1: pushed all items\n";
+    *is_running = false;
+  };
+
+  bool        t1_running = true;
+  std::thread t1(push_blocking_func, qid1, start_number, nof_pushes, &t1_running);
+
+  TESTASSERT(t1_running)
+  usleep(1000);
+  TESTASSERT((int)multiqueue.size(qid1) == capacity)
+
+  multiqueue.reset();
+  t1.join();
+
+  std::cout << "outcome: Success\n";
+  std::cout << "===================================================\n";
+
+  return 0;
+}
+
+int test_multiqueue_threading3()
+{
+  std::cout << "\n===== TEST multiqueue threading test 3: start =====\n";
+  // pop will block in a separate thread, but multiqueue.reset() will unlock it
+
+  int                     capacity = 4;
+  multiqueue_handler<int> multiqueue(capacity);
+  int                     qid1              = multiqueue.add_queue();
+  auto                    pop_blocking_func = [&multiqueue](int qid, bool* success) {
+    int number;
+    int id   = multiqueue.wait_pop(&number);
+    *success = id < 0;
+  };
+
+  bool        t1_success = false;
+  std::thread t1(pop_blocking_func, qid1, &t1_success);
+
+  TESTASSERT(not t1_success)
+  usleep(1000);
+  TESTASSERT(not t1_success)
+  TESTASSERT((int)multiqueue.size(qid1) == 0)
+
+  // Should be able to unlock all
+  multiqueue.reset();
+  t1.join();
+  TESTASSERT(t1_success)
+
+  std::cout << "outcome: Success\n";
+  std::cout << "===================================================\n";
+
+  return 0;
+}
+
 int main()
 {
   TESTASSERT(test_multiqueue() == 0);
+  TESTASSERT(test_multiqueue_threading() == 0);
+  TESTASSERT(test_multiqueue_threading2() == 0);
+  TESTASSERT(test_multiqueue_threading3() == 0);
 }
