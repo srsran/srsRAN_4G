@@ -119,9 +119,11 @@ int test_multiqueue_threading()
   bool        t1_running = true;
   std::thread t1(push_blocking_func, qid1, start_number, nof_pushes, &t1_running);
 
-  TESTASSERT(t1_running)
-  usleep(1000);
-  TESTASSERT((int)multiqueue.size(qid1) == capacity)
+  // Wait for queue to fill
+  while ((int)multiqueue.size(qid1) != capacity) {
+    usleep(1000);
+    TESTASSERT(t1_running)
+  }
 
   for (int i = 0; i < nof_pushes; ++i) {
     TESTASSERT(multiqueue.wait_pop(&number) == qid1)
@@ -129,8 +131,11 @@ int test_multiqueue_threading()
     std::cout << "main: popped item " << i << "\n";
   }
   std::cout << "main: popped all items\n";
-  usleep(1000);
-  TESTASSERT(not t1_running)
+
+  // wait for thread to finish
+  while (t1_running) {
+    usleep(1000);
+  }
   TESTASSERT(multiqueue.size(qid1) == 0)
 
   multiqueue.reset();
@@ -161,9 +166,11 @@ int test_multiqueue_threading2()
   bool        t1_running = true;
   std::thread t1(push_blocking_func, qid1, start_number, nof_pushes, &t1_running);
 
-  TESTASSERT(t1_running)
-  usleep(1000);
-  TESTASSERT((int)multiqueue.size(qid1) == capacity)
+  // Wait for queue to fill
+  while ((int)multiqueue.size(qid1) != capacity) {
+    usleep(1000);
+    TESTASSERT(t1_running)
+  }
 
   multiqueue.reset();
   t1.join();
