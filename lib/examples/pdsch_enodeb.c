@@ -785,11 +785,6 @@ int main(int argc, char **argv) {
     
     int srate = srslte_sampling_freq_hz(cell.nof_prb);    
     if (srate != -1) {  
-      if (srate < 10e6) {          
-        srslte_rf_set_master_clock_rate(&rf, 4*srate);        
-      } else {
-        srslte_rf_set_master_clock_rate(&rf, srate);        
-      }
       printf("Setting sampling rate %.2f MHz\n", (float) srate/1000000);
       float srate_rf = srslte_rf_set_tx_srate(&rf, (double)srate);
       if (srate_rf != srate) {

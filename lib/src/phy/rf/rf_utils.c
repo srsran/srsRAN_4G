@@ -53,7 +53,6 @@ int rf_rssi_scan(srslte_rf_t *rf, float *freqs, float *rssi, int nof_bands, doub
 
     f = (double) freqs[i];
     srslte_rf_set_rx_freq(rf, 0, f);
-    srslte_rf_rx_wait_lo_locked(rf);
     usleep(10000);
     srslte_rf_start_rx_stream(rf, false);
 

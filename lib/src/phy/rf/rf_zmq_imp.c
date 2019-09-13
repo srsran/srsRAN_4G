@@ -601,16 +601,6 @@ int rf_zmq_close(void* h)
   return SRSLTE_SUCCESS;
 }
 
-void rf_zmq_set_master_clock_rate(void* h, double rate)
-{
-  // Do nothing
-}
-
-bool rf_zmq_is_master_clock_dynamic(void* h)
-{
-  return false;
-}
-
 void update_rates(rf_zmq_handler_t* handler, double srate)
 {
   if (handler) {

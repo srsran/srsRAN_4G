@@ -49,13 +49,7 @@ SRSLTE_API float rf_blade_get_rssi(void *h);
 
 SRSLTE_API bool rf_blade_rx_wait_lo_locked(void *h);
 
-SRSLTE_API void rf_blade_set_master_clock_rate(void *h, 
-                                          double rate); 
-
-SRSLTE_API bool rf_blade_is_master_clock_dynamic(void *h); 
-
-SRSLTE_API double rf_blade_set_rx_srate(void *h, 
-                                   double freq);
+SRSLTE_API double rf_blade_set_rx_srate(void* h, double freq);
 
 SRSLTE_API double rf_blade_set_rx_gain(void *h, 
                                   double gain);

@@ -164,8 +164,6 @@ int main(int argc, char **argv) {
     srslte_rf_set_rx_gain(&rf, 50);      
   }
 
-  srslte_rf_set_master_clock_rate(&rf, 30.72e6);        
-
   // Supress RF messages
   srslte_rf_suppress_stdout(&rf);
   
@@ -202,7 +200,6 @@ int main(int argc, char **argv) {
   
     /* set rf_freq */
     srslte_rf_set_rx_freq(&rf, 0, (double)channels[freq].fd * MHZ);
-    srslte_rf_rx_wait_lo_locked(&rf);
     INFO("Set rf_freq to %.3f MHz\n", (double) channels[freq].fd * MHZ/1000000);
 
     printf(

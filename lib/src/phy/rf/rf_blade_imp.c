@@ -244,13 +244,6 @@ int rf_blade_close(void *h)
   return 0;
 }
 
-void rf_blade_set_master_clock_rate(UNUSED void* h, UNUSED double rate) {}
-
-bool rf_blade_is_master_clock_dynamic(UNUSED void* h)
-{
-  return true; 
-}
-
 double rf_blade_set_rx_srate(void *h, double freq)
 {
   uint32_t bw;

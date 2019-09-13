@@ -92,17 +92,9 @@ SRSLTE_API void srslte_rf_flush_buffer(srslte_rf_t *h);
 
 SRSLTE_API bool srslte_rf_has_rssi(srslte_rf_t *h);
 
-SRSLTE_API float srslte_rf_get_rssi(srslte_rf_t *h); 
+SRSLTE_API float srslte_rf_get_rssi(srslte_rf_t* h);
 
-SRSLTE_API bool srslte_rf_rx_wait_lo_locked(srslte_rf_t *h);
-
-SRSLTE_API void srslte_rf_set_master_clock_rate(srslte_rf_t *h, 
-                                         double rate); 
-
-SRSLTE_API bool srslte_rf_is_master_clock_dynamic(srslte_rf_t *h); 
-
-SRSLTE_API double srslte_rf_set_rx_srate(srslte_rf_t *h, 
-                                  double freq);
+SRSLTE_API double srslte_rf_set_rx_srate(srslte_rf_t* h, double freq);
 
 SRSLTE_API double srslte_rf_set_rx_gain(srslte_rf_t *h, 
                                  double gain);

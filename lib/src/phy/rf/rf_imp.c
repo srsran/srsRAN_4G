@@ -131,11 +131,6 @@ const char* srslte_rf_name(srslte_rf_t *rf) {
   return ((rf_dev_t*) rf->dev)->srslte_rf_devname(rf->handler); 
 }
 
-bool srslte_rf_rx_wait_lo_locked(srslte_rf_t *rf)
-{
-  return ((rf_dev_t*) rf->dev)->srslte_rf_rx_wait_lo_locked(rf->handler);  
-}
-
 int srslte_rf_start_rx_stream(srslte_rf_t *rf, bool now)
 {
   return ((rf_dev_t*) rf->dev)->srslte_rf_start_rx_stream(rf->handler, now);
@@ -190,16 +185,6 @@ int srslte_rf_close(srslte_rf_t *rf)
   }
 
   return ((rf_dev_t*) rf->dev)->srslte_rf_close(rf->handler);  
-}
-
-void srslte_rf_set_master_clock_rate(srslte_rf_t *rf, double rate) 
-{
-  ((rf_dev_t*) rf->dev)->srslte_rf_set_master_clock_rate(rf->handler, rate);  
-}
-
-bool srslte_rf_is_master_clock_dynamic(srslte_rf_t *rf) 
-{
-  return ((rf_dev_t*) rf->dev)->srslte_rf_is_master_clock_dynamic(rf->handler);  
 }
 
 double srslte_rf_set_rx_srate(srslte_rf_t *rf, double freq)

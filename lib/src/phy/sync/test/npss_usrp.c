@@ -177,16 +177,9 @@ int main(int argc, char** argv)
     exit(-1);
   }
 
-  if (srate < 10e6) {
-    srslte_rf_set_master_clock_rate(&rf, 4 * srate);
-  } else {
-    srslte_rf_set_master_clock_rate(&rf, srate);
-  }
-
   printf("Set RX rate: %.2f MHz\n", srslte_rf_set_rx_srate(&rf, srate) / 1000000);
   printf("Set RX gain: %.1f dB\n", srslte_rf_set_rx_gain(&rf, rf_gain));
   printf("Set RX freq: %.2f MHz\n", srslte_rf_set_rx_freq(&rf, 0, rf_freq) / 1000000);
-  srslte_rf_rx_wait_lo_locked(&rf);
 
   buffer = malloc(sizeof(cf_t) * flen * 2);
   if (!buffer) {

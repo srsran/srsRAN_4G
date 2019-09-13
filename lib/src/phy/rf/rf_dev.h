@@ -34,8 +34,6 @@ typedef struct {
   int    (*srslte_rf_open)(char *args, void **h);
   int    (*srslte_rf_open_multi)(char *args, void **h, uint32_t nof_channels);
   int    (*srslte_rf_close)(void *h);
-  void   (*srslte_rf_set_master_clock_rate)(void *h, double rate);
-  bool   (*srslte_rf_is_master_clock_dynamic)(void *h);
   double (*srslte_rf_set_rx_srate)(void *h, double freq);
   double (*srslte_rf_set_rx_gain)(void *h, double gain);
   double (*srslte_rf_set_tx_gain)(void *h, double gain);
@@ -77,8 +75,6 @@ static rf_dev_t dev_uhd = {"UHD",
                            rf_uhd_open,
                            .srslte_rf_open_multi = rf_uhd_open_multi,
                            rf_uhd_close,
-                           rf_uhd_set_master_clock_rate,
-                           rf_uhd_is_master_clock_dynamic,
                            rf_uhd_set_rx_srate,
                            rf_uhd_set_rx_gain,
                            rf_uhd_set_tx_gain,
@@ -114,8 +110,6 @@ static rf_dev_t dev_blade = {"bladeRF",
                              rf_blade_open,
                              .srslte_rf_open_multi = rf_blade_open_multi,
                              rf_blade_close,
-                             rf_blade_set_master_clock_rate,
-                             rf_blade_is_master_clock_dynamic,
                              rf_blade_set_rx_srate,
                              rf_blade_set_rx_gain,
                              rf_blade_set_tx_gain,
@@ -150,8 +144,6 @@ static rf_dev_t dev_soapy = {"soapy",
                              rf_soapy_open,
                              rf_soapy_open_multi,
                              rf_soapy_close,
-                             rf_soapy_set_master_clock_rate,
-                             rf_soapy_is_master_clock_dynamic,
                              rf_soapy_set_rx_srate,
                              rf_soapy_set_rx_gain,
                              rf_soapy_set_tx_gain,
@@ -188,8 +180,6 @@ static rf_dev_t dev_zmq = {"zmq",
                            rf_zmq_open,
                            .srslte_rf_open_multi = rf_zmq_open_multi,
                            rf_zmq_close,
-                           rf_zmq_set_master_clock_rate,
-                           rf_zmq_is_master_clock_dynamic,
                            rf_zmq_set_rx_srate,
                            rf_zmq_set_rx_gain,
                            rf_zmq_set_tx_gain,

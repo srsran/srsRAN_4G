@@ -670,23 +670,23 @@ int rf_uhd_close(void* h)
 void rf_uhd_set_master_clock_rate(void* h, double rate)
 {
   rf_uhd_handler_t* handler = (rf_uhd_handler_t*)h;
-  if (fmod(handler->current_master_clock, rate)) {
-    if (handler->dynamic_rate) {
-      uhd_usrp_set_master_clock_rate(handler->usrp, rate, 0);
-    }
+  if (handler->dynamic_rate && handler->current_master_clock != rate) {
+    uhd_usrp_set_master_clock_rate(handler->usrp, rate, 0);
     handler->current_master_clock = rate;
   }
-}
-
-bool rf_uhd_is_master_clock_dynamic(void* h)
-{
-  rf_uhd_handler_t* handler = (rf_uhd_handler_t*)h;
-  return handler->dynamic_rate;
 }
 
 double rf_uhd_set_rx_srate(void* h, double freq)
 {
   rf_uhd_handler_t* handler = (rf_uhd_handler_t*)h;
+
+  // Set master clock rate
+  if (freq < 10e6) {
+    rf_uhd_set_master_clock_rate(&handler, 4 * freq);
+  } else {
+    rf_uhd_set_master_clock_rate(&handler, freq);
+  }
+
   if (handler->nof_rx_channels > 1) {
 #ifdef UHD_SUPPORTS_COMMAND_TIME
     time_t full;
@@ -714,6 +714,14 @@ double rf_uhd_set_rx_srate(void* h, double freq)
 double rf_uhd_set_tx_srate(void* h, double freq)
 {
   rf_uhd_handler_t* handler = (rf_uhd_handler_t*)h;
+
+  // Set master clock rate
+  if (freq < 10e6) {
+    rf_uhd_set_master_clock_rate(&handler, 4 * freq);
+  } else {
+    rf_uhd_set_master_clock_rate(&handler, freq);
+  }
+
   if (handler->nof_tx_channels > 1) {
 #ifdef UHD_SUPPORTS_COMMAND_TIME
     time_t full;
@@ -799,6 +807,7 @@ double rf_uhd_set_rx_freq(void* h, uint32_t ch, double freq)
       uhd_usrp_set_rx_freq(handler->usrp, &tune_request, i, &tune_result);
     }
   }
+  rf_uhd_rx_wait_lo_locked(handler);
   return freq;
 }
 
