@@ -1720,16 +1720,16 @@ void nas::cipher_decrypt(srslte::byte_buffer_t* pdu)
       m_nas_log->debug_hex(tmp_pdu.msg, pdu->N_bytes, "Decrypted");
       memcpy(&pdu->msg[6], &tmp_pdu.msg[6], pdu->N_bytes - 6);
       break;
-  case srslte::CIPHERING_ALGORITHM_ID_128_EEA3:
+    case srslte::CIPHERING_ALGORITHM_ID_128_EEA3:
       srslte::security_128_eea3(&m_sec_ctx.k_nas_enc[16],
-                        pdu->msg[5],
-                        0,            // Bearer always 0 for NAS
-                        srslte::SECURITY_DIRECTION_UPLINK,
-                        &pdu->msg[6],
-                        pdu->N_bytes-6,
-                        &tmp_pdu.msg[6]);
+                                pdu->msg[5],
+                                0, // Bearer always 0 for NAS
+                                srslte::SECURITY_DIRECTION_UPLINK,
+                                &pdu->msg[6],
+                                pdu->N_bytes - 6,
+                                &tmp_pdu.msg[6]);
       m_nas_log->debug_hex(tmp_pdu.msg, pdu->N_bytes, "Decrypted");
-      memcpy(&pdu->msg[6], &tmp_pdu.msg[6], pdu->N_bytes-6);
+      memcpy(&pdu->msg[6], &tmp_pdu.msg[6], pdu->N_bytes - 6);
       break;
     default:
       m_nas_log->error("Ciphering algorithms not known\n");
