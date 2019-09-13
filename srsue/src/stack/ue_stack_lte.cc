@@ -38,7 +38,8 @@ ue_stack_lte::ue_stack_lte() :
   rrc(&rrc_log),
   pdcp(&pdcp_log),
   nas(&nas_log),
-  thread("STACK")
+  thread("STACK"),
+  pending_tasks(1024)
 {
   ue_queue_id   = pending_tasks.add_queue();
   sync_queue_id = pending_tasks.add_queue();
