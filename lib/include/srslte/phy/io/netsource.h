@@ -67,6 +67,8 @@ SRSLTE_API int srslte_netsource_read(srslte_netsource_t *q,
                                      void *buffer, 
                                      int nof_bytes);
 
+SRSLTE_API int srslte_netsource_write(srslte_netsource_t* q, void* buffer, int nbytes);
+
 SRSLTE_API int srslte_netsource_set_timeout(srslte_netsource_t *q, 
                                             uint32_t microseconds); 
 

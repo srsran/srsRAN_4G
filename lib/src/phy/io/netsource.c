@@ -111,6 +111,22 @@ int srslte_netsource_read(srslte_netsource_t *q, void *buffer, int nbytes) {
   }
 }
 
+int srslte_netsource_write(srslte_netsource_t* q, void* buffer, int nbytes)
+{
+  // Loop until all bytes are sent
+  char* ptr = (char*)buffer;
+  while (nbytes > 0) {
+    ssize_t i = send(q->connfd, ptr, nbytes, 0);
+    if (i < 1) {
+      perror("Error calling send()\n");
+      return SRSLTE_ERROR;
+    }
+    ptr += i;
+    nbytes -= i;
+  }
+  return SRSLTE_SUCCESS;
+}
+
 int srslte_netsource_set_nonblocking(srslte_netsource_t *q) {
   if (fcntl(q->sockfd, F_SETFL, O_NONBLOCK)) {
     perror("fcntl");
