@@ -66,7 +66,7 @@ void print_console(srsasn_logger_level_t log_level, void* ctx, const char* str)
 }
 
 struct TestLogger {
-  TestLogger(const std::string& layer_) : layer(layer_) {}
+  TestLogger(const std::string& layer_) : layer(layer_), last_level(LOG_LEVEL_INFO) {}
   void log(srsasn_logger_level_t log_level, const char* str)
   {
     last_level = log_level;

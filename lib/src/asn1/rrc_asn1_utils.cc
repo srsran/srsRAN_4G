@@ -581,9 +581,8 @@ void set_phy_cfg_t_scell_config(phy_cfg_t* cfg, const asn1::rrc::scell_to_add_mo
 
         // Parse Transmission mode
         if (non_ul_cfg->ant_info_r10_present) {
-          asn1::rrc::ant_info_ded_r10_s::tx_mode_r10_e_::options tx_mode = non_ul_cfg->ant_info_r10.tx_mode_r10.value;
-          if ((srslte_tm_t)tx_mode < SRSLTE_TMINV) {
-            cfg->dl_cfg.tm = (srslte_tm_t)tx_mode;
+          if (non_ul_cfg->ant_info_r10.tx_mode_r10.to_number() < (uint8_t)SRSLTE_TMINV) {
+            cfg->dl_cfg.tm = (srslte_tm_t)non_ul_cfg->ant_info_r10.tx_mode_r10.to_number();
           } else {
             fprintf(stderr,
                     "Transmission mode (R10) %s is not supported\n",

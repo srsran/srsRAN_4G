@@ -444,7 +444,7 @@ void phy::set_config(srslte::phy_cfg_t& config, uint32_t cc_idx, uint32_t earfcn
 
     if (cc_idx == 0) {
       prach_cfg = config.prach_cfg;
-    } else {
+    } else if (cell_info) {
       // If SCell does not share synchronism with PCell ...
       if (m->radio_idx > 0) {
         scell_sync.at(m->radio_idx - 1)->set_scell_cell(cc_idx, cell_info, earfcn);
@@ -465,6 +465,8 @@ void phy::set_config(srslte::phy_cfg_t& config, uint32_t cc_idx, uint32_t earfcn
       common.scell_cfg[cc_idx].pci        = cell_info->id;
       common.scell_cfg[cc_idx].configured = true;
       common.scell_cfg[cc_idx].enabled    = false;
+    } else {
+      Error("Configuring Scell index %d but cell_info not provided\n", cc_idx);
     }
 
   } else {

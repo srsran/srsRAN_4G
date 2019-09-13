@@ -402,6 +402,7 @@ bool rrc::modify_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_UECONTEXTMODIFICATIO
 
   if (err) {
     // maybe pass a cause value?
+    pthread_mutex_unlock(&user_mutex);
     return false;
   }
 

@@ -412,6 +412,7 @@ struct phy_cfg_t {
   {
     ZERO_OBJECT(ul_cfg);
     ZERO_OBJECT(dl_cfg);
+    ZERO_OBJECT(prach_cfg);
 
     set_defaults_common();
     set_defaults_dedicated();

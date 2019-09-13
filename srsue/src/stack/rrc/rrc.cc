@@ -2446,6 +2446,11 @@ void rrc::apply_phy_scell_config(const asn1::rrc::scell_to_add_mod_r10_s* scell_
   srslte_cell_t scell  = {};
   uint32_t      earfcn = 0;
 
+  if (phy != nullptr) {
+    rrc_log->info("RRC not initialized. Skipping PHY config.\n");
+    return;
+  }
+
   // Initialise default parameters from primary cell
   phy->get_current_cell(&scell, &earfcn);
 
@@ -2462,18 +2467,14 @@ void rrc::apply_phy_scell_config(const asn1::rrc::scell_to_add_mod_r10_s* scell_
     scell.nof_prb                           = rr_cfg->non_ul_cfg_r10.dl_bw_r10.to_number();
     scell.nof_ports                         = rr_cfg->non_ul_cfg_r10.ant_info_common_r10.ant_ports_count.to_number();
     scell.phich_length    = (srslte_phich_length_t)rr_cfg->non_ul_cfg_r10.phich_cfg_r10.phich_dur.value;
-    scell.phich_resources = (srslte_phich_r_t)rr_cfg->non_ul_cfg_r10.phich_cfg_r10.phich_res.value;
+    scell.phich_resources = (srslte_phich_r_t)rr_cfg->non_ul_cfg_r10.phich_cfg_r10.phich_res.to_number();
   }
 
   // Initialize scell config with pcell cfg
   srslte::phy_cfg_t scell_phy_cfg = current_phy_cfg;
   set_phy_cfg_t_scell_config(&scell_phy_cfg, scell_config);
 
-  if (phy != nullptr) {
-    phy->set_config(scell_phy_cfg, scell_config->s_cell_idx_r10, earfcn, &scell);
-  } else {
-    rrc_log->info("RRC not initialized. Skipping PHY config.\n");
-  }
+  phy->set_config(scell_phy_cfg, scell_config->s_cell_idx_r10, earfcn, &scell);
 }
 
 void rrc::log_mac_config_dedicated()
