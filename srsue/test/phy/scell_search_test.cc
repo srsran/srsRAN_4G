@@ -364,6 +364,8 @@ int parse_args(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
+  int ret = SRSLTE_SUCCESS;
+
   // Parse args
   if (parse_args(argc, argv)) {
     return SRSLTE_ERROR;
@@ -624,11 +626,25 @@ int main(int argc, char** argv)
     free(baseband_buffer);
   }
 
+  for (auto& ptr : data_tx) {
+    if (ptr) {
+      free(ptr);
+    }
+  }
   for (auto& sb : softbuffer_tx) {
     if (sb) {
+      srslte_softbuffer_tx_free(sb);
       free(sb);
     }
   }
 
-  srslte_dft_exit();
+  atexit(srslte_dft_exit);
+
+  if (ret) {
+    printf("Error\n");
+  } else {
+    printf("Ok\n");
+  }
+
+  return ret;
 }
