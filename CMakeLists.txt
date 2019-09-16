@@ -207,6 +207,9 @@ if(ENABLE_SRSUE OR ENABLE_SRSENB OR ENABLE_SRSEPC)
   if(UNIX AND EXISTS "/usr/lib64")
       list(APPEND BOOST_LIBRARYDIR "/usr/lib64") #fedora 64-bit fix
   endif(UNIX AND EXISTS "/usr/lib64")
+  if(UNIX AND EXISTS "/usr/lib/x86_64-linux-gnu/")
+      list(APPEND BOOST_LIBRARYDIR "/usr/lib/x86_64-linux-gnu/")
+  endif(UNIX AND EXISTS "/usr/lib/x86_64-linux-gnu/")
   set(Boost_ADDITIONAL_VERSIONS
       "1.35.0" "1.35" "1.36.0" "1.36" "1.37.0" "1.37" "1.38.0" "1.38" "1.39.0" "1.39"
       "1.40.0" "1.40" "1.41.0" "1.41" "1.42.0" "1.42" "1.43.0" "1.43" "1.44.0" "1.44"

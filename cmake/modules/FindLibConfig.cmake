@@ -14,31 +14,37 @@
 FIND_PATH(LIBCONFIG_INCLUDE_DIR libconfig.h
   /usr/local/include
   /usr/include
+        /usr/lib/x86_64-linux-gnu/
 )
 
 FIND_PATH(LIBCONFIGPP_INCLUDE_DIR libconfig.h++
   /usr/local/include
   /usr/include
+  /usr/lib/x86_64-linux-gnu/
 )
 
 FIND_LIBRARY(LIBCONFIG_LIBRARY config
   /usr/local/lib
   /usr/lib
+  /usr/lib/x86_64-linux-gnu/
 )
 
 FIND_LIBRARY(LIBCONFIGPP_LIBRARY config++
   /usr/local/lib
   /usr/lib
+  /usr/lib/x86_64-linux-gnu/
 )
 
 FIND_LIBRARY(LIBCONFIG_STATIC_LIBRARY "libconfig${CMAKE_STATIC_LIBRARY_SUFFIX}"
   /usr/local/lib
   /usr/lib
+  /usr/lib/x86_64-linux-gnu/
 )
 
 FIND_LIBRARY(LIBCONFIGPP_STATIC_LIBRARY "libconfig++${CMAKE_STATIC_LIBRARY_SUFFIX}"
-    /usr/local/lib
-    /usr/lib
+  /usr/local/lib
+  /usr/lib
+  /usr/lib/x86_64-linux-gnu/
 )
 
 
