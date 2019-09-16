@@ -18,16 +18,17 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-add_subdirectory(upper)
-
-if (ENABLE_TTCN3)
-  add_subdirectory(ttcn3)
-endif (ENABLE_TTCN3)
-
-add_executable(metrics_test metrics_test.cc ../src/metrics_stdout.cc ../src/metrics_csv.cc)
-target_link_libraries(metrics_test srslte_phy srslte_common)
-add_test(metrics_test metrics_test -o ${CMAKE_CURRENT_BINARY_DIR}/ue_metrics.csv)
-
-add_executable(mac_test mac_test.cc)
-target_link_libraries(mac_test srsue_mac srsue_phy srslte_common srslte_phy srslte_radio srslte_asn1 rrc_asn1 ${CMAKE_THREAD_LIBS_INIT} ${Boost_LIBRARIES})
-add_test(mac_test mac_test)
+add_executable(ttcn3_dut ttcn3_dut.cc lte_ttcn3_phy.cc)
+target_link_libraries(ttcn3_dut srsue_stack
+                                srsue_upper
+                                srsue_rrc
+                                srslte_upper
+                                srslte_common
+                                srslte_phy
+                                srslte_radio
+                                srslte_upper
+                                srsue_phy
+                                srsue_mac
+                                rrc_asn1
+                                ${Boost_LIBRARIES})
+include_directories(${PROJECT_SOURCE_DIR}/srsue/test/ttcn3/hdr)

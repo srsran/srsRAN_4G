@@ -74,6 +74,8 @@ option(ENABLE_SOAPYSDR "Enable SoapySDR"                          ON)
 option(ENABLE_ZEROMQ   "Enable ZeroMQ"                            ON)
 option(ENABLE_HARDSIM  "Enable support for SIM cards"             ON)
 
+option(ENABLE_TTCN3    "Enable TTCN3 test binaries"               OFF)
+
 option(BUILD_STATIC    "Attempt to statically link external deps" OFF)
 option(RPATH           "Enable RPATH"                             OFF)
 option(ENABLE_ASAN     "Enable gcc/clang address sanitizer"       OFF)
@@ -226,6 +228,14 @@ if(ENABLE_GUI)
     link_directories(${SRSGUI_LIBRARY_DIRS})
   endif(SRSGUI_FOUND)
 endif(ENABLE_GUI)
+
+if (ENABLE_TTCN3)
+  find_package(RapidJSON REQUIRED)
+  add_definitions(-DENABLE_TTCN3)
+  include_directories(${RAPIDJSON_INCLUDE_DIRS})
+  link_directories(${RAPIDJSON_LIBRARY_DIRS})
+  message(STATUS "Building with TTCN3 binaries")
+endif (ENABLE_TTCN3)
 
 ########################################################################
 # Install Dirs
