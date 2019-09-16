@@ -88,6 +88,35 @@ int timers2_test()
   TESTASSERT(not t.is_running())
   TESTASSERT(callback_called)
 
+  // TEST: ordering of timers is respected
+  timers2::unique_timer t3 = timers.get_unique_timer();
+  TESTASSERT(t3.id() == 2)
+  int  first_id = -1, last_id = -1;
+  auto callback = [&first_id, &last_id](int id) {
+    if (first_id < 0) {
+      printf("First timer id=%d\n", id);
+      first_id = id;
+    }
+    last_id = id;
+  };
+  t.set(4, callback);
+  t2.set(2, callback);
+  t3.set(6, callback);
+  t.run();
+  t2.run();
+  t3.run();
+  for (uint32_t i = 0; i < 6; ++i) {
+    timers.step_all();
+    TESTASSERT(i >= 4 or t.is_running())
+    TESTASSERT(i >= 2 or t2.is_running())
+    TESTASSERT(t3.is_running())
+  }
+  timers.step_all();
+  TESTASSERT(t.is_expired() and t2.is_expired() and t3.is_expired())
+  TESTASSERT(first_id == 1)
+  printf("Last timer id=%d\n", last_id);
+  TESTASSERT(last_id == 2)
+
   printf("Success\n");
 
   return SRSLTE_SUCCESS;

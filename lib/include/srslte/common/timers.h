@@ -30,6 +30,7 @@
 #define SRSLTE_TIMERS_H
 
 #include <functional>
+#include <limits>
 #include <queue>
 #include <stdint.h>
 #include <stdio.h>
@@ -185,25 +186,28 @@ class timers2
     bool     is_running() const { return active and running and timeout > 0; }
     bool     is_expired() const { return active and not running and timeout > 0; }
 
-    void set(uint32_t duration_, std::function<void(int)> callback_)
+    bool set(uint32_t duration_)
     {
+      if (duration_ > std::numeric_limits<uint32_t>::max() / 4) {
+        ERROR("Error: timer durations above %u are not supported\n", std::numeric_limits<uint32_t>::max() / 4);
+        return false;
+      }
       if (not active) {
         ERROR("Error: setting inactive timer id=%d\n", id());
-        return;
+        return false;
       }
-      callback = std::move(callback_);
       duration = duration_;
       running  = false; // invalidates any on-going run
+      return true;
     }
 
-    void set(uint32_t duration_)
+    bool set(uint32_t duration_, std::function<void(int)> callback_)
     {
-      if (not active) {
-        ERROR("Error: setting inactive timer id=%d\n", id());
-        return;
+      if (set(duration_)) {
+        callback = std::move(callback_);
+        return true;
       }
-      duration = duration_;
-      running  = false; // invalidates any on-going run
+      return false;
     }
 
     void run()
@@ -333,7 +337,15 @@ private:
       timeout(timeout_)
     {
     }
-    bool operator<(const timer_run& other) const { return timeout > other.timeout; }
+    bool operator<(const timer_run& other) const
+    {
+      // returns true, if greater
+      uint32_t lim = std::numeric_limits<uint32_t>::max();
+      if (timeout > other.timeout) {
+        return (timeout - other.timeout) < lim / 2;
+      }
+      return (other.timeout - timeout) > lim / 2;
+    }
   };
 
   std::vector<timer_impl>        timer_list;
