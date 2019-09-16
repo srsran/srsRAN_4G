@@ -75,3 +75,6 @@ add_test(stack_procedure_test stack_procedure_test)
 add_executable(queue_test queue_test.cc)
 target_link_libraries(queue_test srslte_common ${CMAKE_THREAD_LIBS_INIT})
 add_test(queue_test queue_test)
+
+add_executable(timer_test timer_test.cc)
+target_link_libraries(timer_test srslte_common)
