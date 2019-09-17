@@ -92,6 +92,7 @@ void live_mac_trace::stop(){
   mac_trace_pdu_queue.push(std::move(mac_trace_pdu));
   wait_thread_finish();
   close(socket_d);
+  mac_trace_pdu_queue.clear();
 }
 
 void live_mac_trace::write_dl_crnti(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, bool crc_ok, uint32_t tti)
