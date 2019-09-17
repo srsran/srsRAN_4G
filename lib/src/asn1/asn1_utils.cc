@@ -106,7 +106,7 @@ int bit_ref::distance_bytes() const
 
 SRSASN_CODE bit_ref::pack(uint32_t val, uint32_t n_bits)
 {
-  if (n_bits > 32) {
+  if (n_bits >= 32) {
     srsasn_log_print(LOG_LEVEL_ERROR, "This method only supports packing up to 32 bits\n");
     return SRSASN_ERROR_ENCODE_FAIL;
   }

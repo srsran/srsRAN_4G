@@ -2446,7 +2446,7 @@ void rrc::apply_phy_scell_config(const asn1::rrc::scell_to_add_mod_r10_s* scell_
   srslte_cell_t scell  = {};
   uint32_t      earfcn = 0;
 
-  if (phy != nullptr) {
+  if (phy == nullptr) {
     rrc_log->info("RRC not initialized. Skipping PHY config.\n");
     return;
   }
