@@ -155,6 +155,9 @@ void enb_stack_lte::stop()
     if (args.pcap.enable) {
       mac_pcap.close();
     }
+    if (args.trace.enable) {
+      mac_trace_udp.stop();
+    }
     started = false;
   }
 }

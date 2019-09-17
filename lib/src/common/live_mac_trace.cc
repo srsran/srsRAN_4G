@@ -33,6 +33,7 @@ namespace srslte{
 live_mac_trace::live_mac_trace() : thread("MAC_LIVE_THREAD")
 {
   pool = byte_buffer_pool::get_instance();
+  running = false;
 }
 
 
@@ -61,12 +62,13 @@ void live_mac_trace::init(const char * server_ip_addr_, uint16_t server_udp_port
   client_addr.sin_addr.s_addr = inet_addr(client_ip_addr_);
   client_addr.sin_port = htons(client_udp_port_);
   mac_trace_pdu_queue.clear();
+  running = true;
   start();
 }
 
 
 
-void live_mac_trace::run_thread(){
+void live_mac_trace::run_thread(){ 
   running = true;
  
   while(running){
@@ -87,8 +89,7 @@ void live_mac_trace::stop(){
   running = false;
   mac_trace_pdu_t mac_trace_pdu;
   mac_trace_pdu.pdu = NULL;
-  mac_trace_pdu_queue.push(mac_trace_pdu);
-  sleep(0.01); // not sexy 
+  mac_trace_pdu_queue.push(std::move(mac_trace_pdu));
   wait_thread_finish();
   close(socket_d);
 }
@@ -146,7 +147,7 @@ void live_mac_trace::pack_and_queue(uint8_t* pdu, uint32_t pdu_len_bytes, uint32
   mac_trace_pdu.context.crcStatusOK = crc_ok;
   mac_trace_pdu.context.sysFrameNumber = (uint16_t)(tti/10);
   mac_trace_pdu.context.subFrameNumber = (uint16_t)(tti%10);
-  mac_trace_pdu_queue.push(mac_trace_pdu);
+  mac_trace_pdu_queue.push(std::move(mac_trace_pdu));
 }
 
 void live_mac_trace::send_mac_datagram(uint8_t* pdu, uint32_t pdu_len_bytes, MAC_Context_Info_t *context){
