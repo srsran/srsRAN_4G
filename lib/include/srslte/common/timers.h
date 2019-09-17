@@ -29,6 +29,7 @@
 #ifndef SRSLTE_TIMERS_H
 #define SRSLTE_TIMERS_H
 
+#include <algorithm>
 #include <functional>
 #include <limits>
 #include <queue>
@@ -284,6 +285,16 @@ public:
     uint32_t timer_id;
   };
 
+  explicit timers2(uint32_t capacity = 64)
+  {
+    timer_list.reserve(capacity);
+    // reserve a priority queue using a vector
+    std::vector<timer_run> v;
+    v.reserve(capacity);
+    std::priority_queue<timer_run> q(std::less<timer_run>(), std::move(v));
+    running_timers = std::move(q);
+  }
+
   void step_all()
   {
     cur_time++;
@@ -325,6 +336,10 @@ public:
   }
 
   uint32_t get_cur_time() const { return cur_time; }
+  uint32_t nof_timers() const
+  {
+    return std::count_if(timer_list.begin(), timer_list.end(), [](const timer_impl& t) { return t.active; });
+  }
 
 private:
   struct timer_run {
