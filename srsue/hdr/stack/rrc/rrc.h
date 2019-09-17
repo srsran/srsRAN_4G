@@ -668,7 +668,7 @@ private:
   bool apply_rr_config_dedicated(asn1::rrc::rr_cfg_ded_s* cnfg);
   void apply_scell_config(asn1::rrc::rrc_conn_recfg_r8_ies_s* reconfig_r8);
   void apply_phy_config_dedicated(const asn1::rrc::phys_cfg_ded_s& phy_cnfg);
-  void apply_phy_scell_config(const asn1::rrc::scell_to_add_mod_r10_s* scell_config);
+  void apply_phy_scell_config(const asn1::rrc::scell_to_add_mod_r10_s& scell_config);
 
   void apply_mac_config_dedicated_default();
 

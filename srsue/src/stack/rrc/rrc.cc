@@ -2441,7 +2441,7 @@ void rrc::apply_phy_config_dedicated(const phys_cfg_ded_s& phy_cnfg)
   }
 }
 
-void rrc::apply_phy_scell_config(const asn1::rrc::scell_to_add_mod_r10_s* scell_config)
+void rrc::apply_phy_scell_config(const asn1::rrc::scell_to_add_mod_r10_s& scell_config)
 {
   srslte_cell_t scell  = {};
   uint32_t      earfcn = 0;
@@ -2455,14 +2455,14 @@ void rrc::apply_phy_scell_config(const asn1::rrc::scell_to_add_mod_r10_s* scell_
   phy->get_current_cell(&scell, &earfcn);
 
   // Parse identification
-  if (scell_config->cell_identif_r10_present) {
-    scell.id = scell_config->cell_identif_r10.pci_r10;
-    earfcn   = scell_config->cell_identif_r10.dl_carrier_freq_r10;
+  if (scell_config.cell_identif_r10_present) {
+    scell.id = scell_config.cell_identif_r10.pci_r10;
+    earfcn   = scell_config.cell_identif_r10.dl_carrier_freq_r10;
   }
 
   // Parse radio resource
-  if (scell_config->rr_cfg_common_scell_r10_present) {
-    const rr_cfg_common_scell_r10_s* rr_cfg = &scell_config->rr_cfg_common_scell_r10;
+  if (scell_config.rr_cfg_common_scell_r10_present) {
+    const rr_cfg_common_scell_r10_s* rr_cfg = &scell_config.rr_cfg_common_scell_r10;
     scell.frame_type                        = (rr_cfg->tdd_cfg_v1130.is_present()) ? SRSLTE_TDD : SRSLTE_FDD;
     scell.nof_prb                           = rr_cfg->non_ul_cfg_r10.dl_bw_r10.to_number();
     scell.nof_ports                         = rr_cfg->non_ul_cfg_r10.ant_info_common_r10.ant_ports_count.to_number();
@@ -2474,7 +2474,7 @@ void rrc::apply_phy_scell_config(const asn1::rrc::scell_to_add_mod_r10_s* scell_
   srslte::phy_cfg_t scell_phy_cfg = current_phy_cfg;
   set_phy_cfg_t_scell_config(&scell_phy_cfg, scell_config);
 
-  phy->set_config(scell_phy_cfg, scell_config->s_cell_idx_r10, earfcn, &scell);
+  phy->set_config(scell_phy_cfg, scell_config.s_cell_idx_r10, earfcn, &scell);
 }
 
 void rrc::log_mac_config_dedicated()
@@ -2596,7 +2596,7 @@ void rrc::apply_scell_config(asn1::rrc::rrc_conn_recfg_r8_ies_s* reconfig_r8)
             mac->reconfiguration(scell_config->s_cell_idx_r10, true);
 
             // Call phy reconfiguration
-            apply_phy_scell_config(scell_config);
+            apply_phy_scell_config(*scell_config);
           }
         }
 

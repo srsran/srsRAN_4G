@@ -527,15 +527,15 @@ void set_phy_cfg_t_common_pwr_ctrl(phy_cfg_t* cfg, const asn1::rrc::ul_pwr_ctrl_
   cfg->ul_cfg.power_ctrl.delta_preamble_msg3 = asn1_type.delta_preamb_msg3;
 }
 
-void set_phy_cfg_t_scell_config(phy_cfg_t* cfg, const asn1::rrc::scell_to_add_mod_r10_s* asn1_type)
+void set_phy_cfg_t_scell_config(phy_cfg_t* cfg, const asn1::rrc::scell_to_add_mod_r10_s& asn1_type)
 {
 
-  if (asn1_type->rr_cfg_common_scell_r10_present) {
+  if (asn1_type.rr_cfg_common_scell_r10_present) {
 
     // Enable always CSI request extra bit
     cfg->dl_cfg.dci.multiple_csi_request_enabled = true;
 
-    auto* rr_cfg_common_scell_r10 = &asn1_type->rr_cfg_common_scell_r10;
+    auto* rr_cfg_common_scell_r10 = &asn1_type.rr_cfg_common_scell_r10;
 
     if (rr_cfg_common_scell_r10->ul_cfg_r10_present) {
       auto* ul_cfg_r10 = &rr_cfg_common_scell_r10->ul_cfg_r10;
@@ -569,8 +569,8 @@ void set_phy_cfg_t_scell_config(phy_cfg_t* cfg, const asn1::rrc::scell_to_add_mo
     }
   }
 
-  if (asn1_type->rr_cfg_ded_scell_r10_present) {
-    auto* rr_cfg_ded_scell_r10 = &asn1_type->rr_cfg_ded_scell_r10;
+  if (asn1_type.rr_cfg_ded_scell_r10_present) {
+    auto* rr_cfg_ded_scell_r10 = &asn1_type.rr_cfg_ded_scell_r10;
     if (rr_cfg_ded_scell_r10->phys_cfg_ded_scell_r10_present) {
       auto* phys_cfg_ded_scell_r10 = &rr_cfg_ded_scell_r10->phys_cfg_ded_scell_r10;
 
@@ -609,7 +609,7 @@ void set_phy_cfg_t_scell_config(phy_cfg_t* cfg, const asn1::rrc::scell_to_add_mo
 
         // Parse pdsch config dedicated
         if (non_ul_cfg->pdsch_cfg_ded_r10_present) {
-          cfg->dl_cfg.pdsch.p_b         = asn1_type->rr_cfg_common_scell_r10.non_ul_cfg_r10.pdsch_cfg_common_r10.p_b;
+          cfg->dl_cfg.pdsch.p_b         = asn1_type.rr_cfg_common_scell_r10.non_ul_cfg_r10.pdsch_cfg_common_r10.p_b;
           cfg->dl_cfg.pdsch.p_a         = non_ul_cfg->pdsch_cfg_ded_r10.p_a.to_number();
           cfg->dl_cfg.pdsch.power_scale = true;
         }
