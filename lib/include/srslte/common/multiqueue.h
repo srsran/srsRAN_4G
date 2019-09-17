@@ -221,7 +221,7 @@ private:
   uint32_t                   spin_idx = 0;
   bool                       running  = true;
   std::vector<queue_wrapper> queues;
-  uint32_t                   capacity;
+  uint32_t                   capacity            = 0;
   uint32_t                   nof_threads_waiting = 0;
 };
 

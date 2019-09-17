@@ -207,7 +207,7 @@ bool ue_stack_lte::get_metrics(stack_metrics_t* metrics)
 void ue_stack_lte::run_thread()
 {
   while (running) {
-    task_t task;
+    task_t task{};
     pending_tasks.wait_pop(&task);
     task();
   }
@@ -229,10 +229,13 @@ void ue_stack_lte::run_thread()
  */
 void ue_stack_lte::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking)
 {
-  task_t task;
+  task_t task{};
   task.pdu  = std::move(sdu);
   task.func = [this, lcid, blocking](task_t* task_ctxt) { pdcp.write_sdu(lcid, std::move(task_ctxt->pdu), blocking); };
-  pending_tasks.try_push(gw_queue_id, std::move(task));
+  std::pair<bool, task_t> ret = pending_tasks.try_push(gw_queue_id, std::move(task));
+  if (not ret.first) {
+    pdcp_log.warning("GW SDU with lcid=%d was discarded.\n", lcid);
+  }
 }
 
 /********************
@@ -244,17 +247,17 @@ void ue_stack_lte::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bo
  */
 void ue_stack_lte::in_sync()
 {
-  pending_tasks.try_push(sync_queue_id, task_t{[this](task_t*) { rrc.in_sync(); }});
+  pending_tasks.push(sync_queue_id, task_t{[this](task_t*) { rrc.in_sync(); }});
 }
 
 void ue_stack_lte::out_of_sync()
 {
-  pending_tasks.try_push(sync_queue_id, task_t{[this](task_t*) { rrc.out_of_sync(); }});
+  pending_tasks.push(sync_queue_id, task_t{[this](task_t*) { rrc.out_of_sync(); }});
 }
 
 void ue_stack_lte::run_tti(uint32_t tti)
 {
-  pending_tasks.try_push(sync_queue_id, task_t{[this, tti](task_t*) { run_tti_impl(tti); }});
+  pending_tasks.push(sync_queue_id, task_t{[this, tti](task_t*) { run_tti_impl(tti); }});
 }
 
 void ue_stack_lte::run_tti_impl(uint32_t tti)
