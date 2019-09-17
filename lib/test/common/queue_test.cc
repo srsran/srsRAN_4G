@@ -104,7 +104,7 @@ int test_multiqueue_threading()
 {
   std::cout << "\n===== TEST multiqueue threading test: start =====\n";
 
-  int                     capacity = 4, number, start_number = 2, nof_pushes = capacity + 1;
+  int                     capacity = 4, number = 0, start_number = 2, nof_pushes = capacity + 1;
   multiqueue_handler<int> multiqueue(capacity);
   int                     qid1 = multiqueue.add_queue();
   auto push_blocking_func      = [&multiqueue](int qid, int start_value, int nof_pushes, bool* is_running) {
@@ -190,9 +190,9 @@ int test_multiqueue_threading3()
   multiqueue_handler<int> multiqueue(capacity);
   int                     qid1              = multiqueue.add_queue();
   auto                    pop_blocking_func = [&multiqueue](int qid, bool* success) {
-    int number;
-    int id   = multiqueue.wait_pop(&number);
-    *success = id < 0;
+    int number = 0;
+    int id     = multiqueue.wait_pop(&number);
+    *success   = id < 0;
   };
 
   bool        t1_success = false;

@@ -208,8 +208,9 @@ void ue_stack_lte::run_thread()
 {
   while (running) {
     task_t task{};
-    pending_tasks.wait_pop(&task);
-    task();
+    if (pending_tasks.wait_pop(&task) >= 0) {
+      task();
+    }
   }
 }
 
