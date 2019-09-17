@@ -523,7 +523,7 @@ exit:
 
 void rlc::suspend_bearer(uint32_t lcid)
 {
-  pthread_rwlock_wrlock(&rwlock);
+  pthread_rwlock_rdlock(&rwlock);
 
   if (valid_lcid(lcid)) {
     if (rlc_array.at(lcid)->suspend()) {
@@ -540,7 +540,7 @@ void rlc::suspend_bearer(uint32_t lcid)
 
 void rlc::resume_bearer(uint32_t lcid)
 {
-  pthread_rwlock_wrlock(&rwlock);
+  pthread_rwlock_rdlock(&rwlock);
 
   rlc_log->info("Resuming radio bearer %s\n", rrc->get_rb_name(lcid).c_str());
   if (valid_lcid(lcid)) {
