@@ -630,6 +630,13 @@ class gw_interface_stack : public gw_interface_nas, public gw_interface_rrc, pub
 {
 };
 
+// STACK interface for MAC
+class stack_interface_mac
+{
+public:
+  virtual void process_pdus() = 0;
+};
+
 // Combined interface for PHY to access stack (MAC and RRC)
 class stack_interface_phy_lte : public mac_interface_phy_lte, public rrc_interface_phy_lte
 {

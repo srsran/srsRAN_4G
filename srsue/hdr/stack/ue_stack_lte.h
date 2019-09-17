@@ -52,6 +52,7 @@ namespace srsue {
 class ue_stack_lte final : public ue_stack_base,
                            public stack_interface_phy_lte,
                            public stack_interface_gw,
+                           public stack_interface_mac,
                            public thread
 {
 public:
@@ -111,6 +112,9 @@ public:
 
   bool is_lcid_enabled(uint32_t lcid) final { return pdcp.is_lcid_enabled(lcid); }
 
+  // Interface to upper MAC
+  void process_pdus() final;
+
 private:
   void run_thread() final;
   void run_tti_impl(uint32_t tti);
@@ -158,7 +162,7 @@ private:
     void operator()() { func(this); }
   };
   srslte::multiqueue_handler<task_t> pending_tasks;
-  int                                sync_queue_id = -1, ue_queue_id = -1, gw_queue_id = -1;
+  int                                sync_queue_id = -1, ue_queue_id = -1, gw_queue_id = -1, mac_queue_id = -1;
 };
 
 } // namespace srsue

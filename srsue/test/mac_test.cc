@@ -326,6 +326,11 @@ public:
   uint32_t rach_problem         = 0;
 };
 
+class stack_dummy : public stack_interface_mac
+{
+  void process_pdus() final {}
+};
+
 } // namespace srslte
 
 int mac_unpack_test()
@@ -358,13 +363,14 @@ int mac_unpack_test()
   rlc_log.set_hex_limit(100000);
 
   // dummy layers
-  phy_dummy phy;
-  rlc_dummy rlc(&rlc_log);
-  rrc_dummy rrc;
+  phy_dummy   phy;
+  rlc_dummy   rlc(&rlc_log);
+  rrc_dummy   rrc;
+  stack_dummy stack;
 
   // the actual MAC
   mac mac(&mac_log);
-  mac.init(&phy, &rlc, &rrc, &timers);
+  mac.init(&phy, &rlc, &rrc, &timers, &stack);
 
   // create dummy DL action and grant and push MAC PDU
   mac_interface_phy_lte::tb_action_dl_t dl_action;
@@ -415,13 +421,14 @@ int mac_ul_sch_pdu_test1()
   srslte::timers timers(64);
 
   // dummy layers
-  phy_dummy phy;
-  rlc_dummy rlc(&rlc_log);
-  rrc_dummy rrc;
+  phy_dummy   phy;
+  rlc_dummy   rlc(&rlc_log);
+  rrc_dummy   rrc;
+  stack_dummy stack;
 
   // the actual MAC
   mac mac(&mac_log);
-  mac.init(&phy, &rlc, &rrc, &timers);
+  mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
@@ -483,13 +490,14 @@ int mac_ul_logical_channel_prioritization_test1()
   srslte::timers timers(64);
 
   // dummy layers
-  phy_dummy phy;
-  rlc_dummy rlc(&rlc_log);
-  rrc_dummy rrc;
+  phy_dummy   phy;
+  rlc_dummy   rlc(&rlc_log);
+  rrc_dummy   rrc;
+  stack_dummy stack;
 
   // the actual MAC
   mac mac(&mac_log);
-  mac.init(&phy, &rlc, &rrc, &timers);
+  mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
@@ -596,13 +604,14 @@ int mac_ul_logical_channel_prioritization_test2()
   srslte::timers timers(64);
 
   // dummy layers
-  phy_dummy phy;
-  rlc_dummy rlc(&rlc_log);
-  rrc_dummy rrc;
+  phy_dummy   phy;
+  rlc_dummy   rlc(&rlc_log);
+  rrc_dummy   rrc;
+  stack_dummy stack;
 
   // the actual MAC
   mac mac(&mac_log);
-  mac.init(&phy, &rlc, &rrc, &timers);
+  mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
@@ -696,13 +705,14 @@ int mac_ul_logical_channel_prioritization_test3()
   srslte::timers timers(64);
 
   // dummy layers
-  phy_dummy phy;
-  rlc_dummy rlc(&rlc_log);
-  rrc_dummy rrc;
+  phy_dummy   phy;
+  rlc_dummy   rlc(&rlc_log);
+  rrc_dummy   rrc;
+  stack_dummy stack;
 
   // the actual MAC
   mac mac(&mac_log);
-  mac.init(&phy, &rlc, &rrc, &timers);
+  mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
@@ -784,13 +794,14 @@ int mac_ul_sch_pdu_with_short_bsr_test()
   srslte::timers timers(64);
 
   // dummy layers
-  phy_dummy phy;
-  rlc_dummy rlc(&rlc_log);
-  rrc_dummy rrc;
+  phy_dummy   phy;
+  rlc_dummy   rlc(&rlc_log);
+  rrc_dummy   rrc;
+  stack_dummy stack;
 
   // the actual MAC
   mac mac(&mac_log);
-  mac.init(&phy, &rlc, &rrc, &timers);
+  mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
@@ -870,13 +881,14 @@ int mac_ul_sch_pdu_with_padding_bsr_test()
   srslte::timers timers(64);
 
   // dummy layers
-  phy_dummy phy;
-  rlc_dummy rlc(&rlc_log);
-  rrc_dummy rrc;
+  phy_dummy   phy;
+  rlc_dummy   rlc(&rlc_log);
+  rrc_dummy   rrc;
+  stack_dummy stack;
 
   // the actual MAC
   mac mac(&mac_log);
-  mac.init(&phy, &rlc, &rrc, &timers);
+  mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
@@ -965,13 +977,14 @@ int mac_ul_sch_pdu_one_byte_test()
   srslte::timers timers(64);
 
   // dummy layers
-  phy_dummy phy;
-  rlc_dummy rlc(&rlc_log);
-  rrc_dummy rrc;
+  phy_dummy   phy;
+  rlc_dummy   rlc(&rlc_log);
+  rrc_dummy   rrc;
+  stack_dummy stack;
 
   // the actual MAC
   mac mac(&mac_log);
-  mac.init(&phy, &rlc, &rrc, &timers);
+  mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
@@ -1025,13 +1038,14 @@ int mac_ul_sch_pdu_two_byte_test()
   srslte::timers timers(64);
 
   // dummy layers
-  phy_dummy phy;
-  rlc_dummy rlc(&rlc_log);
-  rrc_dummy rrc;
+  phy_dummy   phy;
+  rlc_dummy   rlc(&rlc_log);
+  rrc_dummy   rrc;
+  stack_dummy stack;
 
   // the actual MAC
   mac mac(&mac_log);
-  mac.init(&phy, &rlc, &rrc, &timers);
+  mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
@@ -1085,13 +1099,14 @@ int mac_ul_sch_pdu_three_byte_test()
   srslte::timers timers(64);
 
   // dummy layers
-  phy_dummy phy;
-  rlc_dummy rlc(&rlc_log);
-  rrc_dummy rrc;
+  phy_dummy   phy;
+  rlc_dummy   rlc(&rlc_log);
+  rrc_dummy   rrc;
+  stack_dummy stack;
 
   // the actual MAC
   mac mac(&mac_log);
-  mac.init(&phy, &rlc, &rrc, &timers);
+  mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
@@ -1329,11 +1344,12 @@ int mac_random_access_test()
   // dummy layers
   phy_dummy phy;
   phy.set_log(&phy_log);
-  rlc_dummy rlc(&rlc_log);
-  rrc_dummy rrc;
+  rlc_dummy   rlc(&rlc_log);
+  rrc_dummy   rrc;
+  stack_dummy stack;
 
   // Configure default RACH parameters
-  asn1::rrc::rach_cfg_common_s rach_cfg = {};
+  asn1::rrc::rach_cfg_common_s rach_cfg         = {};
   rach_cfg.preamb_info.nof_ra_preambs   = asn1::rrc::rach_cfg_common_s::preamb_info_s_::nof_ra_preambs_opts::n12;
   rach_cfg.ra_supervision_info.preamb_trans_max = asn1::rrc::preamb_trans_max_opts::n8;
   rach_cfg.ra_supervision_info.ra_resp_win_size =
@@ -1344,7 +1360,7 @@ int mac_random_access_test()
 
   // Configure MAC
   mac mac(&mac_log);
-  mac.init(&phy, &rlc, &rrc, &timers);
+  mac.init(&phy, &rlc, &rrc, &timers, &stack);
   srslte::mac_cfg_t mac_cfg;
   set_mac_cfg_t_rach_cfg_common(&mac_cfg, rach_cfg);
   mac.set_config(mac_cfg);

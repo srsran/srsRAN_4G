@@ -44,6 +44,7 @@ ue_stack_lte::ue_stack_lte() :
   ue_queue_id   = pending_tasks.add_queue();
   sync_queue_id = pending_tasks.add_queue();
   gw_queue_id   = pending_tasks.add_queue();
+  mac_queue_id  = pending_tasks.add_queue();
 }
 
 ue_stack_lte::~ue_stack_lte()
@@ -119,7 +120,7 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
     return SRSLTE_ERROR;
   }
 
-  mac.init(phy, &rlc, &rrc, &timers);
+  mac.init(phy, &rlc, &rrc, &timers, this);
   rlc.init(&pdcp, &rrc, &timers, 0 /* RB_ID_SRB0 */);
   pdcp.init(&rlc, &rrc, gw);
   nas.init(usim.get(), &rrc, gw, args.nas);
@@ -267,6 +268,15 @@ void ue_stack_lte::run_tti_impl(uint32_t tti)
   rrc.run_tti(tti);
   nas.run_tti(tti);
   timers.step_all();
+}
+
+/********************
+ * low MAC Interface
+ *******************/
+
+void ue_stack_lte::process_pdus()
+{
+  pending_tasks.push(mac_queue_id, task_t{[this](task_t*) { mac.process_pdus(); }});
 }
 
 } // namespace srsue

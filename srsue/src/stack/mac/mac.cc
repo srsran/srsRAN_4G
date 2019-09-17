@@ -37,13 +37,7 @@ using namespace asn1::rrc;
 
 namespace srsue {
 
-mac::mac(srslte::log* log_) :
-  pdu_process_thread(&demux_unit),
-  mch_msg(10, log_),
-  mux_unit(log_),
-  demux_unit(log_),
-  pcap(nullptr),
-  log_h(log_)
+mac::mac(srslte::log* log_) : mch_msg(10, log_), mux_unit(log_), demux_unit(log_), pcap(nullptr), log_h(log_)
 {
   // Create PCell HARQ entities
   auto ul = ul_harq_entity_ptr(new ul_harq_entity());
@@ -71,12 +65,17 @@ mac::~mac()
   srslte_softbuffer_rx_free(&mch_softbuffer);
 }
 
-bool mac::init(phy_interface_mac_lte* phy, rlc_interface_mac* rlc, rrc_interface_mac* rrc, srslte::timers* timers_)
+bool mac::init(phy_interface_mac_lte* phy,
+               rlc_interface_mac*     rlc,
+               rrc_interface_mac*     rrc,
+               srslte::timers*        timers_,
+               stack_interface_mac*   stack_)
 {
-  phy_h  = phy;
-  rlc_h  = rlc;
-  rrc_h  = rrc;
-  timers = timers_;
+  phy_h   = phy;
+  rlc_h   = rlc;
+  rrc_h   = rrc;
+  timers  = timers_;
+  stack_h = stack_;
 
   timer_alignment                      = timers->get_unique_id();
   uint32_t contention_resolution_timer = timers->get_unique_id();
@@ -107,7 +106,6 @@ bool mac::init(phy_interface_mac_lte* phy, rlc_interface_mac* rlc, rrc_interface
 void mac::stop()
 {
   if (initialized) {
-    pdu_process_thread.stop();
     run_tti(0); // make sure it's not locked after last TTI
     initialized = false;
   }
@@ -388,7 +386,7 @@ void mac::mch_decoded(uint32_t len, bool crc)
     }
 
     demux_unit.push_pdu_mch(mch_payload_buffer, len);
-    pdu_process_thread.notify();
+    stack_h->process_pdus();
     if (pcap) {
       pcap->write_dl_mch(mch_payload_buffer, len, true, phy_h->get_current_tti());
     }
@@ -415,7 +413,7 @@ void mac::tb_decoded(uint32_t cc_idx, mac_grant_dl_t grant, bool ack[SRSLTE_MAX_
   } else {
 
     dl_harq.at(cc_idx)->tb_decoded(grant, ack);
-    pdu_process_thread.notify();
+    stack_h->process_pdus();
 
     for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
       if (grant.tb[tb].tbs) {
@@ -458,6 +456,14 @@ void mac::new_grant_dl(uint32_t                               cc_idx,
   } else {
     /* Discard */
     Info("Discarding dci in CC %d, RNTI=0x%x\n", cc_idx, grant.rnti);
+  }
+}
+
+void mac::process_pdus()
+{
+  bool have_data = true;
+  while (initialized and have_data) {
+    have_data = demux_unit.process_pdus();
   }
 }
 
@@ -619,9 +625,7 @@ void mac::get_metrics(mac_metrics_t m[SRSLTE_MAX_CARRIERS])
   int   rx_brate         = 0;
   int   ul_buffer        = 0;
   float dl_avg_ret       = 0;
-  float ul_avg_ret       = 0;
   int   dl_avg_ret_count = 0;
-  int   ul_avg_ret_count = 0;
 
   for (uint32_t r = 0; r < dl_harq.size(); r++) {
     tx_pkts += metrics[r].tx_pkts;
@@ -674,58 +678,4 @@ uint32_t mac::timer_get_unique_id()
   return timers->get_unique_id();
 }
 
-/********************************************************
- *
- * Class that runs a thread to process DL MAC PDUs from
- * DEMUX unit
- *
- *******************************************************/
-mac::pdu_process::pdu_process(demux* demux_unit_) : thread("MAC_PDU_PROCESS"), demux_unit(demux_unit_)
-{
-  running = true;
-  start(MAC_PDU_THREAD_PRIO);
-}
-
-mac::pdu_process::~pdu_process()
-{
-  if (running) {
-    stop();
-  }
-}
-
-void mac::pdu_process::stop()
-{
-  if (running) {
-    {
-      std::lock_guard<std::mutex> ul(mutex);
-      running = false;
-      cvar.notify_all();
-    }
-    wait_thread_finish();
-  }
-}
-
-void mac::pdu_process::notify()
-{
-  std::unique_lock<std::mutex> ul(mutex);
-  have_data = true;
-  cvar.notify_all();
-}
-
-void mac::pdu_process::run_thread()
-{
-  while(running) {
-    have_data = demux_unit->process_pdus();
-    if (!have_data) {
-      std::unique_lock<std::mutex> ul(mutex);
-      while(!have_data && running) {
-        cvar.wait(ul);
-      }
-    }
-  }
-}
-
-}
-
-
-
+} // namespace srsue
