@@ -36,7 +36,7 @@ namespace srslte {
   class logger_stdout : public logger
   {
   public:
-    void log(unique_log_str_t log_str) { fprintf(stdout, "%s", log_str->msg); }
+    void log(unique_log_str_t log_str) { fprintf(stdout, "%s", log_str->str()); }
   };
 
 } // namespace srslte

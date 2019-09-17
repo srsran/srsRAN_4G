@@ -103,9 +103,8 @@ void logger_file::run_thread() {
 
     int n = 0;
     if (logfile) {
-      n = fprintf(logfile, "%s", s->msg);
+      n = fprintf(logfile, "%s", s->str());
     }
-
     buffer.pop_front();
 
     if (n > 0) {
@@ -133,7 +132,7 @@ void logger_file::flush()
   for (it = buffer.begin(); it != buffer.end(); it++) {
     unique_log_str_t s = std::move(*it);
     if (logfile) {
-      fprintf(logfile, "%s", s->msg);
+      fprintf(logfile, "%s", s->str());
     }
   }
   buffer.clear();

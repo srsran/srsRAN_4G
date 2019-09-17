@@ -65,13 +65,22 @@ void log_filter::init(std::string layer, logger *logger_, bool tti)
   do_tti        = tti;
 }
 
-void log_filter::all_log(srslte::LOG_LEVEL_ENUM level, uint32_t tti, const char* msg, const uint8_t* hex, int size)
+void log_filter::all_log(
+    srslte::LOG_LEVEL_ENUM level, uint32_t tti, const char* msg, const uint8_t* hex, int size, bool long_msg)
 {
   char buffer_tti[16];
   char buffer_time[64];
 
   if (logger_h) {
-    logger::unique_log_str_t log_str = allocate_unique_log_str(logger_h->get_pool());
+    logger::unique_log_str_t log_str = nullptr;
+
+    if (long_msg) {
+      // For long messages, dynamically allocate a new log_str with enough size outside the pool.
+      uint32_t log_str_msg_len = sizeof(buffer_tti) + sizeof(buffer_time) + 10 + strlen(msg);
+      log_str = logger::unique_log_str_t(new logger::log_str(nullptr, log_str_msg_len), logger::log_str_deleter());
+    } else {
+      log_str = logger_h->allocate_unique_log_str();
+    }
 
     if (log_str) {
       now_time(buffer_time, sizeof(buffer_time));
@@ -79,8 +88,8 @@ void log_filter::all_log(srslte::LOG_LEVEL_ENUM level, uint32_t tti, const char*
         get_tti_str(tti, buffer_tti, sizeof(buffer_tti));
       }
 
-      snprintf(log_str->msg,
-               log_str->size,
+      snprintf(log_str->str(),
+               log_str->get_buffer_size(),
                "%s [%s] %s %s%s%s%s%s",
                buffer_time,
                get_service_name().c_str(),
@@ -108,86 +117,73 @@ void log_filter::console(const char * message, ...) {
   va_end(args);
 }
 
+#define all_log_expand(log_level)                                                                                      \
+  do {                                                                                                                 \
+    if (level >= LOG_LEVEL_ERROR) {                                                                                    \
+      char    args_msg[char_buff_size];                                                                                \
+      va_list args;                                                                                                    \
+      va_start(args, message);                                                                                         \
+      if (vsnprintf(args_msg, char_buff_size, message, args) > 0)                                                      \
+        all_log(LOG_LEVEL_ERROR, tti, args_msg);                                                                       \
+      va_end(args);                                                                                                    \
+    }                                                                                                                  \
+  } while (0)
+
+#define all_log_hex_expand(log_level)                                                                                  \
+  do {                                                                                                                 \
+    if (level >= LOG_LEVEL_ERROR) {                                                                                    \
+      char    args_msg[char_buff_size];                                                                                \
+      va_list args;                                                                                                    \
+      va_start(args, message);                                                                                         \
+      if (vsnprintf(args_msg, char_buff_size, message, args) > 0)                                                      \
+        all_log(LOG_LEVEL_ERROR, tti, args_msg, hex, size);                                                            \
+      va_end(args);                                                                                                    \
+    }                                                                                                                  \
+  } while (0)
+
 void log_filter::error(const char * message, ...) {
-  if (level >= LOG_LEVEL_ERROR) {
-    char      args_msg[char_buff_size];
+  all_log_expand(LOG_LEVEL_ERROR);
+}
+
+void log_filter::warning(const char * message, ...) {
+  all_log_expand(LOG_LEVEL_WARNING);
+}
+
+void log_filter::info(const char * message, ...) {
+  all_log_expand(LOG_LEVEL_INFO);
+}
+
+void log_filter::debug(const char * message, ...) {
+  all_log_expand(LOG_LEVEL_DEBUG);
+}
+
+void log_filter::debug_long(const char* message, ...)
+{
+  if (level >= LOG_LEVEL_DEBUG) {
+    char*     args_msg = NULL;
     va_list   args;
     va_start(args, message);
-    if (vsnprintf(args_msg, char_buff_size, message, args) > 0)
+    if (vasprintf(&args_msg, message, args) > 0)
       all_log(LOG_LEVEL_ERROR, tti, args_msg);
     va_end(args);
-  }
-}
-void log_filter::warning(const char * message, ...) {
-  if (level >= LOG_LEVEL_WARNING) {
-    char      args_msg[char_buff_size];
-    va_list   args;
-    va_start(args, message);
-    if (vsnprintf(args_msg, char_buff_size, message, args) > 0)
-      all_log(LOG_LEVEL_WARNING, tti, args_msg);
-    va_end(args);
-  }
-}
-void log_filter::info(const char * message, ...) {
-  if (level >= LOG_LEVEL_INFO) {
-    char      args_msg[char_buff_size];
-    va_list   args;
-    va_start(args, message);
-    if (vsnprintf(args_msg, char_buff_size, message, args) > 0)
-      all_log(LOG_LEVEL_INFO, tti, args_msg);
-    va_end(args);
-  }
-}
-void log_filter::debug(const char * message, ...) {
-  if (level >= LOG_LEVEL_DEBUG) {
-    char      args_msg[char_buff_size];
-    va_list   args;
-    va_start(args, message);
-    if (vsnprintf(args_msg, char_buff_size, message, args) > 0)
-      all_log(LOG_LEVEL_DEBUG, tti, args_msg);
-    va_end(args);
+    free(args_msg);
   }
 }
 
 void log_filter::error_hex(const uint8_t *hex, int size, const char * message, ...) {
-  if (level >= LOG_LEVEL_ERROR) {
-    char      args_msg[char_buff_size];
-    va_list   args;
-    va_start(args, message);
-    if (vsnprintf(args_msg, char_buff_size, message, args) > 0)
-      all_log(LOG_LEVEL_ERROR, tti, args_msg, hex, size);
-    va_end(args);
-  }
+  all_log_hex_expand(LOG_LEVEL_ERROR);
 }
+
 void log_filter::warning_hex(const uint8_t *hex, int size, const char * message, ...) {
-  if (level >= LOG_LEVEL_WARNING) {
-    char      args_msg[char_buff_size];
-    va_list   args;
-    va_start(args, message);
-    if (vsnprintf(args_msg, char_buff_size, message, args) > 0)
-      all_log(LOG_LEVEL_WARNING, tti, args_msg, hex, size);
-    va_end(args);
-  }
+  all_log_hex_expand(LOG_LEVEL_WARNING);
 }
+
 void log_filter::info_hex(const uint8_t *hex, int size, const char * message, ...) {
-  if (level >= LOG_LEVEL_INFO) {
-    char      args_msg[char_buff_size];
-    va_list   args;
-    va_start(args, message);
-    if (vsnprintf(args_msg, char_buff_size, message, args) > 0)
-      all_log(LOG_LEVEL_INFO, tti, args_msg, hex, size);
-    va_end(args);
-  }
+  all_log_hex_expand(LOG_LEVEL_INFO);
 }
+
 void log_filter::debug_hex(const uint8_t *hex, int size, const char * message, ...) {
-  if (level >= LOG_LEVEL_DEBUG) {
-    char      args_msg[char_buff_size];
-    va_list   args;
-    va_start(args, message);
-    if (vsnprintf(args_msg, char_buff_size, message, args) > 0)
-      all_log(LOG_LEVEL_DEBUG, tti, args_msg, hex, size);
-    va_end(args);
-  }
+  all_log_hex_expand(LOG_LEVEL_DEBUG);
 }
 
 void log_filter::set_time_src(time_itf *source, time_format_t format) {

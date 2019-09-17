@@ -37,16 +37,33 @@ namespace srslte {
 class logger
 {
 public:
+  const static uint32_t preallocated_log_str_size = 1024;
+
   logger() : pool(16 * 1024) {}
 
   class log_str
   {
   public:
-    log_str(const char* msg_) { strncpy(msg, msg_, size); }
-    log_str() { reset(); }
-    void             reset() { msg[0] = '\0'; }
-    const static int size = 512;
-    char             msg[size];
+    log_str(const char* msg_ = nullptr, uint32_t size_ = 0)
+    {
+      size = size_ ? size_ : preallocated_log_str_size;
+      msg  = new char[size];
+      if (msg_) {
+        strncpy(msg, msg_, size);
+      } else {
+        msg[0] = '\0';
+      }
+    }
+    log_str(const log_str&) = delete;
+    log_str& operator=(const log_str&) = delete;
+    ~log_str() { delete[] msg; }
+    void     reset() { msg[0] = '\0'; }
+    char*    str() { return msg; }
+    uint32_t get_buffer_size() { return size; }
+
+  private:
+    uint32_t size;
+    char*    msg;
   };
 
   typedef buffer_pool<log_str> log_str_pool_t;
@@ -61,8 +78,9 @@ public:
         if (pool) {
           buf->reset();
           pool->deallocate(buf);
-        } else
+        } else {
           delete buf;
+        }
       }
     }
 
@@ -75,16 +93,15 @@ public:
 
   virtual void log(unique_log_str_t msg) = 0;
 
-  log_str_pool_t& get_pool() { return pool; }
+  log_str_pool_t&  get_pool() { return pool; }
+  unique_log_str_t allocate_unique_log_str()
+  {
+    return unique_log_str_t(pool.allocate(), logger::log_str_deleter(&pool));
+  }
 
 private:
   log_str_pool_t pool;
 };
-
-inline logger::unique_log_str_t allocate_unique_log_str(logger::log_str_pool_t& pool)
-{
-  return logger::unique_log_str_t(pool.allocate(), logger::log_str_deleter(&pool));
-}
 
 } // namespace srslte
 
