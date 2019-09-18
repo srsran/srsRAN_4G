@@ -391,7 +391,9 @@ void sync::run_thread()
          * The function search_p.run() will not return until the search finishes
          */
         cell_search_ret = search_p.run(&cell, mib);
-        stack->bch_decoded_ok(mib.data(), mib.size() / 8);
+        if (cell_search_ret == search::CELL_FOUND) {
+          stack->bch_decoded_ok(mib.data(), mib.size() / 8);
+        }
         phy_state.state_exit();
         break;
       case sync_state::SFN_SYNC:
