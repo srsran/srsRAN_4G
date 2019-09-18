@@ -119,24 +119,24 @@ void log_filter::console(const char * message, ...) {
 
 #define all_log_expand(log_level)                                                                                      \
   do {                                                                                                                 \
-    if (level >= LOG_LEVEL_ERROR) {                                                                                    \
+    if (level >= log_level) {                                                                                          \
       char    args_msg[char_buff_size];                                                                                \
       va_list args;                                                                                                    \
       va_start(args, message);                                                                                         \
       if (vsnprintf(args_msg, char_buff_size, message, args) > 0)                                                      \
-        all_log(LOG_LEVEL_ERROR, tti, args_msg);                                                                       \
+        all_log(log_level, tti, args_msg);                                                                             \
       va_end(args);                                                                                                    \
     }                                                                                                                  \
   } while (0)
 
 #define all_log_hex_expand(log_level)                                                                                  \
   do {                                                                                                                 \
-    if (level >= LOG_LEVEL_ERROR) {                                                                                    \
+    if (level >= log_level) {                                                                                          \
       char    args_msg[char_buff_size];                                                                                \
       va_list args;                                                                                                    \
       va_start(args, message);                                                                                         \
       if (vsnprintf(args_msg, char_buff_size, message, args) > 0)                                                      \
-        all_log(LOG_LEVEL_ERROR, tti, args_msg, hex, size);                                                            \
+        all_log(log_level, tti, args_msg, hex, size);                                                                  \
       va_end(args);                                                                                                    \
     }                                                                                                                  \
   } while (0)
