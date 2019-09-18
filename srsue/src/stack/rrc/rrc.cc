@@ -1530,8 +1530,24 @@ void rrc::start_cell_reselection()
 *******************************************************************************/
 void rrc::write_pdu_bcch_bch(unique_byte_buffer_t pdu)
 {
+  asn1::rrc::bcch_bch_msg_s bch_msg;
+  asn1::bit_ref             bch_bref(pdu->msg, pdu->N_bytes);
+  asn1::SRSASN_CODE         err = bch_msg.unpack(bch_bref);
+  if (err != asn1::SRSASN_SUCCESS) {
+    rrc_log->error("Could not unpack BCCH-BCH message.\n");
+    return;
+  }
+
+  if (rrc_log->get_level() == srslte::LOG_LEVEL_INFO) {
+    rrc_log->info("BCCH-BCH - Rx (%d B)\n", pdu->N_bytes);
+  } else if (rrc_log->get_level() >= srslte::LOG_LEVEL_DEBUG) {
+    asn1::json_writer json_writer;
+    bch_msg.to_json(json_writer);
+    rrc_log->debug_hex(pdu->msg, pdu->N_bytes, "BCCH-BCH - Rx (%d B)\n", pdu->N_bytes);
+    rrc_log->debug("Content:\n%s\n", json_writer.to_string().c_str());
+  }
+
   // Do we need to do something with BCH?
-  rrc_log->info_hex(pdu->msg, pdu->N_bytes, "BCCH BCH message received.");
 }
 
 void rrc::write_pdu_bcch_dlsch(unique_byte_buffer_t pdu)
@@ -1555,7 +1571,7 @@ void rrc::parse_pdu_bcch_dlsch(unique_byte_buffer_t pdu)
     return;
   }
 
-  log_rrc_message("BCCH", Rx, pdu.get(), dlsch_msg);
+  log_rrc_message("BCCH-DLSCH", Rx, pdu.get(), dlsch_msg);
 
   if (dlsch_msg.msg.c1().type() == bcch_dl_sch_msg_type_c::c1_c_::types::sib_type1) {
     rrc_log->info("Processing SIB1 (1/1)\n");
