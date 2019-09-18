@@ -68,15 +68,15 @@ void log_filter::init(std::string layer, logger *logger_, bool tti)
 void log_filter::all_log(
     srslte::LOG_LEVEL_ENUM level, uint32_t tti, const char* msg, const uint8_t* hex, int size, bool long_msg)
 {
-  char buffer_tti[16];
-  char buffer_time[64];
+  char buffer_tti[16]  = {};
+  char buffer_time[64] = {};
 
   if (logger_h) {
     logger::unique_log_str_t log_str = nullptr;
 
     if (long_msg) {
       // For long messages, dynamically allocate a new log_str with enough size outside the pool.
-      uint32_t log_str_msg_len = sizeof(buffer_tti) + sizeof(buffer_time) + 10 + strlen(msg);
+      uint32_t log_str_msg_len = sizeof(buffer_tti) + sizeof(buffer_time) + 20 + size;
       log_str = logger::unique_log_str_t(new logger::log_str(nullptr, log_str_msg_len), logger::log_str_deleter());
     } else {
       log_str = logger_h->allocate_unique_log_str();
@@ -164,7 +164,7 @@ void log_filter::debug_long(const char* message, ...)
     va_list   args;
     va_start(args, message);
     if (vasprintf(&args_msg, message, args) > 0)
-      all_log(LOG_LEVEL_ERROR, tti, args_msg);
+      all_log(LOG_LEVEL_DEBUG, tti, args_msg, nullptr, strlen(args_msg), true);
     va_end(args);
     free(args_msg);
   }

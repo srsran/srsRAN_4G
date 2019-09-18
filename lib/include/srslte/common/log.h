@@ -134,6 +134,7 @@ public:
   virtual void warning(const char * message, ...) __attribute__ ((format (printf, 2, 3))) = 0;
   virtual void info(const char * message, ...)    __attribute__ ((format (printf, 2, 3))) = 0;
   virtual void debug(const char * message, ...)   __attribute__ ((format (printf, 2, 3))) = 0;
+  virtual void debug_long(const char* message, ...) __attribute__((format(printf, 2, 3))) = 0;
 
   // Same with hex dump
   virtual void error_hex(const uint8_t *, int, const char *, ...)   __attribute__((format (printf, 4, 5)))
