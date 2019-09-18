@@ -88,10 +88,10 @@ public:
   scell_cfg_t scell_cfg[SRSLTE_MAX_CARRIERS];
 
   // Save last TBS for uplink (mcs >= 28)
-  srslte_ra_tb_t last_ul_tb[SRSLTE_MAX_HARQ_PROC][SRSLTE_MAX_CARRIERS];
+  srslte_ra_tb_t last_ul_tb[SRSLTE_MAX_HARQ_PROC][SRSLTE_MAX_CARRIERS] = {};
 
   // Save last TBS for DL (Format1C)
-  int last_dl_tbs[SRSLTE_MAX_HARQ_PROC][SRSLTE_MAX_CARRIERS][SRSLTE_MAX_CODEWORDS];
+  int last_dl_tbs[SRSLTE_MAX_HARQ_PROC][SRSLTE_MAX_CARRIERS][SRSLTE_MAX_CODEWORDS] = {};
 
   phy_common(uint32_t max_workers);
 

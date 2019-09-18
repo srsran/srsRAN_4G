@@ -117,7 +117,6 @@ cc_worker::cc_worker(uint32_t cc_idx, uint32_t max_prb, srsue::phy_common* phy, 
     ue_dl.pdsch.llr_is_8bit        = true;
     ue_dl.pdsch.dl_sch.llr_is_8bit = true;
   }
-  pregen_enabled = false;
 }
 
 cc_worker::~cc_worker()

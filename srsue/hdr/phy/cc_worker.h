@@ -105,7 +105,7 @@ private:
   srslte_ul_sf_cfg_t sf_cfg_ul;
 
   uint32_t cc_idx;
-  bool     pregen_enabled;
+  bool     pregen_enabled = false;
   bool     cell_initiated;
   cf_t*    signal_buffer_rx[SRSLTE_MAX_PORTS];
   cf_t*    signal_buffer_tx[SRSLTE_MAX_PORTS];
