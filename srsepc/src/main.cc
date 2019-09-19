@@ -89,8 +89,8 @@ void parse_args(all_args_t* args, int argc, char* argv[])
   string   mme_apn;
   string   encryption_algo;
   string   integrity_algo;
-  uint16_t paging_timer;
-  uint32_t max_paging_queue;
+  uint16_t paging_timer     = 0;
+  uint32_t max_paging_queue = 0;
   string   spgw_bind_addr;
   string   sgi_if_addr;
   string   sgi_if_name;

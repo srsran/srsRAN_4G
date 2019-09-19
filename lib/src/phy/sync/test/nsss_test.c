@@ -86,8 +86,8 @@ void parse_args(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-  cf_t*               fft_buffer;
-  cf_t*               buffer;
+  cf_t*               fft_buffer = NULL;
+  cf_t*               buffer     = NULL;
   srslte_nsss_synch_t syncobj;
   srslte_ofdm_t       ifft;
   int                 fft_size;
@@ -107,20 +107,20 @@ int main(int argc, char** argv)
   fft_size = srslte_symbol_sz(NOF_PRB);
   if (fft_size < 0) {
     fprintf(stderr, "Invalid nof_prb=%d\n", NOF_PRB);
-    return ret;
+    goto exit;
   }
 
   printf("SFLEN is %d samples\n", SFLEN);
   fft_buffer = malloc(sizeof(cf_t) * SFLEN * max_num_sf);
   if (!fft_buffer) {
     perror("malloc");
-    return ret;
+    goto exit;
   }
   memset(fft_buffer, 0, sizeof(cf_t) * SFLEN * max_num_sf);
 
   if (srslte_ofdm_tx_init(&ifft, SRSLTE_CP_NORM, buffer, fft_buffer, NOF_PRB)) {
     fprintf(stderr, "Error creating iFFT object\n");
-    return ret;
+    goto exit;
   }
 
   if (input_file_name != NULL) {
@@ -128,7 +128,7 @@ int main(int argc, char** argv)
     printf("Opening file %s\n", input_file_name);
     if (srslte_filesource_init(&fsrc, input_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
       fprintf(stderr, "Error opening file %s\n", input_file_name);
-      return ret;
+      goto exit;
     }
     num_sf = 0;
 
@@ -141,7 +141,7 @@ int main(int argc, char** argv)
       int n = srslte_filesource_read(&fsrc, &fft_buffer[num_sf * SFLEN], SFLEN);
       if (n < 0) {
         fprintf(stderr, "Error reading samples\n");
-        return ret;
+        goto exit;
       }
       if (n < SFLEN) {
         fprintf(stdout, "End of file (n=%d, sflen=%d)\n", n, SFLEN);
@@ -157,7 +157,7 @@ int main(int argc, char** argv)
   printf("Initializing NSSS synch with %dx%d samples.\n", num_sf, SFLEN);
   if (srslte_nsss_synch_init(&syncobj, num_sf * SFLEN, fft_size)) {
     fprintf(stderr, "Error initializing NSSS object\n");
-    return ret;
+    goto exit;
   }
 
   // write single NSSS sequence if not reading from input file
@@ -214,10 +214,16 @@ int main(int argc, char** argv)
 #endif
 
   // cleanup
+exit:
   srslte_nsss_synch_free(&syncobj);
-  free(buffer);
-  free(fft_buffer);
   srslte_ofdm_tx_free(&ifft);
+  if (buffer) {
+    free(buffer);
+  }
+  if (fft_buffer) {
+    free(fft_buffer);
+  }
+
   return ret;
 }
 

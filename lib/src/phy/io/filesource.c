@@ -52,7 +52,7 @@ void srslte_filesource_seek(srslte_filesource_t *q, int pos) {
 
 int read_complex_f(FILE *f, _Complex float *y) {
   char in_str[64];
-  _Complex float x;
+  _Complex float x = 0;
   if (NULL == fgets(in_str, 64, f)) {
     return -1;
   } else {

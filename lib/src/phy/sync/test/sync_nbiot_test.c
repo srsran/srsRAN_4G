@@ -83,8 +83,9 @@ void parse_args(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
+  int            ret        = SRSLTE_ERROR;
   int            sf_idx = 0;
-  cf_t*          fft_buffer;
+  cf_t*          fft_buffer = NULL;
   _Complex float buffer[SFLEN]; // FLEN + fft_size
 
   srslte_filesource_t fsrc;
@@ -102,7 +103,7 @@ int main(int argc, char** argv)
     printf("Opening file...\n");
     if (srslte_filesource_init(&fsrc, input_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
       fprintf(stderr, "Error opening file %s\n", input_file_name);
-      exit(-1);
+      goto exit;
     }
   }
 
@@ -116,14 +117,14 @@ int main(int argc, char** argv)
   fft_buffer = malloc(sizeof(cf_t) * SFLEN * 2);
   if (!fft_buffer) {
     perror("malloc");
-    exit(-1);
+    goto exit;
   }
 
   memset(buffer, 0, sizeof(cf_t) * SFLEN);
 
   if (srslte_cfo_init(&cfocorr, SFLEN)) {
     fprintf(stderr, "Error initiating CFO\n");
-    return -1;
+    goto exit;
   }
   // Set a CFO tolerance of approx 100 Hz
   srslte_cfo_set_tol(&cfocorr, 100.0 / (15000.0 * fft_size));
@@ -131,7 +132,7 @@ int main(int argc, char** argv)
   // init synch object for a maximum SFLEN samples
   if (srslte_sync_nbiot_init(&syncobj, SFLEN, SFLEN, fft_size)) {
     fprintf(stderr, "Error initiating NPSS/NSSS\n");
-    return -1;
+    goto exit;
   }
   srslte_sync_nbiot_set_cfo_enable(&syncobj, true);
 
@@ -140,7 +141,7 @@ int main(int argc, char** argv)
     if (srslte_ofdm_tx_init(
             &ifft, SRSLTE_CP_NORM, buffer, &fft_buffer[offset], SRSLTE_NBIOT_DEFAULT_NUM_PRB_BASECELL)) {
       fprintf(stderr, "Error creating iFFT object\n");
-      exit(-1);
+      goto exit;
     }
     srslte_ofdm_set_normalize(&ifft, true);
     srslte_ofdm_set_freq_shift(&ifft, -SRSLTE_NBIOT_FREQ_SHIFT_FACTOR);
@@ -162,7 +163,7 @@ int main(int argc, char** argv)
     int n = srslte_filesource_read(&fsrc, fft_buffer, SFLEN);
     if (n < 0) {
       fprintf(stderr, "Error reading samples\n");
-      exit(-1);
+      goto exit;
     }
   }
 
@@ -204,15 +205,23 @@ int main(int argc, char** argv)
                        (SFLEN + SRSLTE_NPSS_CORR_FILTER_LEN - 1) * sizeof(float));
 #endif
 
+  printf("Ok\n");
+
+  ret = SRSLTE_SUCCESS;
+
   // cleanup
-  if (input_file_name != NULL)
+exit:
+  if (input_file_name != NULL) {
     srslte_filesource_free(&fsrc);
+  }
   srslte_sync_nbiot_free(&syncobj);
-  free(fft_buffer);
   srslte_cfo_free(&cfocorr);
 
-  printf("Ok\n");
-  exit(0);
+  if (fft_buffer) {
+    free(fft_buffer);
+  }
+
+  return ret;
 }
 
 void write_to_file()

@@ -606,13 +606,13 @@ int main(int argc, char **argv) {
     dl_sf.tdd_config.configured = true;
   }
 
-  srslte_chest_dl_cfg_t chest_pdsch_cfg;
+  srslte_chest_dl_cfg_t chest_pdsch_cfg = {};
   chest_pdsch_cfg.cfo_estimate_enable  = prog_args.enable_cfo_ref;
   chest_pdsch_cfg.cfo_estimate_sf_mask = 1023;
   chest_pdsch_cfg.interpolate_subframe = !prog_args.average_subframe;
 
   // Special configuration for MBSFN channel estimation
-  srslte_chest_dl_cfg_t chest_mbsfn_cfg;
+  srslte_chest_dl_cfg_t chest_mbsfn_cfg = {};
   chest_mbsfn_cfg.filter_type          = SRSLTE_CHEST_FILTER_TRIANGLE;
   chest_mbsfn_cfg.filter_coef[0]       = 0.1;
   chest_mbsfn_cfg.interpolate_subframe = true;
