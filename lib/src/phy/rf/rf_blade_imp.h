@@ -47,8 +47,6 @@ SRSLTE_API bool rf_blade_has_rssi(void *h);
 
 SRSLTE_API float rf_blade_get_rssi(void *h); 
 
-SRSLTE_API bool rf_blade_rx_wait_lo_locked(void *h);
-
 SRSLTE_API double rf_blade_set_rx_srate(void* h, double freq);
 
 SRSLTE_API double rf_blade_set_rx_gain(void *h, 

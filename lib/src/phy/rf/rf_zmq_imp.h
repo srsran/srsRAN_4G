@@ -51,8 +51,6 @@ SRSLTE_API bool rf_zmq_has_rssi(void* h);
 
 SRSLTE_API float rf_zmq_get_rssi(void* h);
 
-SRSLTE_API bool rf_zmq_rx_wait_lo_locked(void* h);
-
 SRSLTE_API double rf_zmq_set_rx_srate(void* h, double freq);
 
 SRSLTE_API double rf_zmq_set_rx_gain(void* h, double gain);

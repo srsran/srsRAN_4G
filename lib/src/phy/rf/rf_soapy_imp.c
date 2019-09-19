@@ -53,6 +53,7 @@ typedef struct {
   bool rx_stream_active;
   srslte_rf_info_t info;
   double tx_rate;
+  double           master_clock_rate;
   size_t rx_mtu, tx_mtu;
   size_t           num_rx_channels;
   size_t           num_tx_channels;
@@ -192,10 +193,8 @@ char* rf_soapy_devname(void* h)
   return handler->devname;
 }
 
-
-bool rf_soapy_rx_wait_lo_locked(void *h)
+static bool rf_soapy_rx_wait_lo_locked(rf_soapy_handler_t* handler)
 {
-  rf_soapy_handler_t *handler = (rf_soapy_handler_t*)h;
   char *ret = SoapySDRDevice_readChannelSensor(handler->device, SOAPY_SDR_RX, 0, "lo_locked");
   if (ret != NULL) {
     return (strcmp(ret, "true") == 0 ? true : false);
@@ -380,8 +379,8 @@ int rf_soapy_open_multi(char* args, void** h, uint32_t num_requested_channels)
   for (uint32_t i = 0; i < handler->num_rx_channels; ++i) {
     list = SoapySDRDevice_listChannelSensors(handler->device, SOAPY_SDR_RX, i, &list_length);
     printf("Available sensors for Rx channel %d: \n", i);
-    for (int i = 0; i < list_length; i++) {
-      printf(" - %s\n", list[i]);
+    for (int j = 0; j < list_length; j++) {
+      printf(" - %s\n", list[j]);
     }
   }
 
@@ -554,27 +553,28 @@ int rf_soapy_close(void *h)
   return SRSLTE_SUCCESS;
 }
 
-void rf_soapy_set_master_clock_rate(void *h, double rate)
+void soapy_set_master_clock_rate(rf_soapy_handler_t* handler, double rate)
 {
-  rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
-  if (SoapySDRDevice_setMasterClockRate(handler->device, rate) != 0) {
-    printf("rf_soapy_set_master_clock_rate Rx fail: %s\n", SoapySDRDevice_lastError());
+  if (rate != rate) {
+    if (SoapySDRDevice_setMasterClockRate(handler->device, rate) != 0) {
+      printf("rf_soapy_set_master_clock_rate Rx fail: %s\n", SoapySDRDevice_lastError());
+    } else {
+      handler->master_clock_rate = rate;
+    }
   }
 
   printf("Set master clock rate to %.2f MHz\n", SoapySDRDevice_getMasterClockRate(handler->device)/1e6);
 }
 
-
-bool rf_soapy_is_master_clock_dynamic(void *h)
-{
-  printf("TODO: implement rf_soapy_is_master_clock_dynamic()\n");
-  return false;
-}
-
-
 double rf_soapy_set_rx_srate(void *h, double rate)
 {
   rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
+
+  if (rate < 10e6) {
+    soapy_set_master_clock_rate(handler, 4 * rate);
+  } else {
+    soapy_set_master_clock_rate(handler, rate);
+  }
 
   // Restart streaming, as the Lime seems to have problems reconfiguring the sample rate during streaming
   bool rx_stream_active = handler->rx_stream_active;
@@ -615,6 +615,12 @@ double rf_soapy_set_rx_srate(void *h, double rate)
 double rf_soapy_set_tx_srate(void *h, double rate)
 {
   rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
+
+  if (rate < 10e6) {
+    soapy_set_master_clock_rate(handler, 4 * rate);
+  } else {
+    soapy_set_master_clock_rate(handler, rate);
+  }
 
   // stop/start streaming during rate reconfiguration
   bool rx_stream_active = handler->rx_stream_active;
@@ -778,12 +784,10 @@ int  rf_soapy_recv_with_time_multi(void *h,
     if (ret == SOAPY_SDR_OVERFLOW || (ret > 0 && (flags & SOAPY_SDR_END_ABRUPT) != 0)) {
       log_overflow(handler);
       continue;
-    } else
-    if (ret == SOAPY_SDR_TIMEOUT) {
+    } else if (ret == SOAPY_SDR_TIMEOUT) {
       log_late(handler, true);
       continue;
-    } else
-    if (ret < 0) {
+    } else if (ret < 0) {
       // unspecific error
       printf("SoapySDRDevice_readStream returned %d: %s\n", ret, SoapySDR_errToStr(ret));
       handler->num_other_errors++;
@@ -791,8 +795,8 @@ int  rf_soapy_recv_with_time_multi(void *h,
 
     // update rx time only for first segment
     if (secs != NULL && frac_secs != NULL && n == 0) {
-      *secs = timeNs / 1e9;
-      *frac_secs = (timeNs % 1000000000)/1e9;
+      *secs      = floor(timeNs / 1e9);
+      *frac_secs = (timeNs % 1000000000) / 1e9;
       //printf("rx_time: secs=%lld, frac_secs=%lf timeNs=%llu\n", *secs, *frac_secs, timeNs);
     }
 
@@ -917,9 +921,7 @@ int rf_soapy_send_timed_multi(void*  h,
         timeNs += adv;
       }
       n += ret;
-    }
-    else
-    if (ret < 0) {
+    } else if (ret < 0) {
       // An error has occured
       switch (ret) {
         case SOAPY_SDR_TIMEOUT:

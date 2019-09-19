@@ -52,12 +52,6 @@ void rf_blade_register_error_handler(UNUSED void* ptr, srslte_rf_error_handler_t
   blade_error_handler = new_handler;
 }
 
-bool rf_blade_rx_wait_lo_locked(UNUSED void* h)
-{
-  usleep(1000);
-  return true; 
-}
-
 const unsigned int num_buffers    = 256;
 const unsigned int ms_buffer_size_rx = 1024; 
 const unsigned int buffer_size_tx = 1024;  

@@ -23,7 +23,6 @@
 typedef struct {
   const char *name;
   char*  (*srslte_rf_devname) (void *h);
-  bool   (*srslte_rf_rx_wait_lo_locked) (void *h);
   int    (*srslte_rf_start_rx_stream)(void *h, bool now);
   int    (*srslte_rf_stop_rx_stream)(void *h);
   void   (*srslte_rf_flush_buffer)(void *h);
@@ -64,7 +63,6 @@ typedef struct {
 
 static rf_dev_t dev_uhd = {"UHD",
                            rf_uhd_devname,
-                           rf_uhd_rx_wait_lo_locked,
                            rf_uhd_start_rx_stream,
                            rf_uhd_stop_rx_stream,
                            rf_uhd_flush_buffer,
@@ -99,7 +97,6 @@ static rf_dev_t dev_uhd = {"UHD",
 
 static rf_dev_t dev_blade = {"bladeRF",
                              rf_blade_devname,
-                             rf_blade_rx_wait_lo_locked,
                              rf_blade_start_rx_stream,
                              rf_blade_stop_rx_stream,
                              rf_blade_flush_buffer,
@@ -133,7 +130,6 @@ static rf_dev_t dev_blade = {"bladeRF",
 
 static rf_dev_t dev_soapy = {"soapy",
                              rf_soapy_devname,
-                             rf_soapy_rx_wait_lo_locked,
                              rf_soapy_start_rx_stream,
                              rf_soapy_stop_rx_stream,
                              rf_soapy_flush_buffer,
@@ -169,7 +165,6 @@ static rf_dev_t dev_soapy = {"soapy",
 
 static rf_dev_t dev_zmq = {"zmq",
                            rf_zmq_devname,
-                           rf_zmq_rx_wait_lo_locked,
                            rf_zmq_start_rx_stream,
                            rf_zmq_stop_rx_stream,
                            rf_zmq_flush_buffer,

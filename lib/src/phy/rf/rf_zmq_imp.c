@@ -294,12 +294,6 @@ char* rf_zmq_devname(void* h)
   return (char*)zmq_devname;
 }
 
-bool rf_zmq_rx_wait_lo_locked(void* h)
-{
-  // TODO: Return true if it is client and connected
-  return true;
-}
-
 int rf_zmq_start_rx_stream(void* h, bool now)
 {
   return SRSLTE_SUCCESS;
