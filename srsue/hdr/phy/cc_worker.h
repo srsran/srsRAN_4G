@@ -69,15 +69,6 @@ private:
                            bool                                   ul_grant_available,
                            mac_interface_phy_lte::mac_grant_ul_t* mac_grant);
 
-  // Cross-carried grants scheduled from PCell
-  void set_dl_pending_grant(uint32_t cc_idx, srslte_dci_dl_t* dl_dci);
-  bool get_dl_pending_grant(uint32_t cc_idx, srslte_dci_dl_t* dl_dci);
-  typedef struct {
-    bool            enable;
-    srslte_dci_dl_t dl_dci;
-  } pending_dl_grant_t;
-  pending_dl_grant_t pending_dl_grant[SRSLTE_MAX_CARRIERS]; // Only for the current TTI
-
   /* Methods for DL... */
   int decode_pdcch_ul();
   int decode_pdcch_dl();
@@ -97,34 +88,34 @@ private:
   uint32_t get_wideband_cqi();
 
   /* Common objects */
-  phy_common*  phy;
-  srslte::log* log_h;
+  phy_common*  phy   = nullptr;
+  srslte::log* log_h = nullptr;
 
-  srslte_cell_t      cell;
-  srslte_dl_sf_cfg_t sf_cfg_dl;
-  srslte_ul_sf_cfg_t sf_cfg_ul;
+  srslte_cell_t      cell      = {};
+  srslte_dl_sf_cfg_t sf_cfg_dl = {};
+  srslte_ul_sf_cfg_t sf_cfg_ul = {};
 
-  uint32_t cc_idx;
-  bool     pregen_enabled = false;
-  bool     cell_initiated;
-  cf_t*    signal_buffer_rx[SRSLTE_MAX_PORTS];
-  cf_t*    signal_buffer_tx[SRSLTE_MAX_PORTS];
+  uint32_t cc_idx                             = 0;
+  bool     pregen_enabled                     = false;
+  bool     cell_initiated                     = false;
+  cf_t*    signal_buffer_rx[SRSLTE_MAX_PORTS] = {};
+  cf_t*    signal_buffer_tx[SRSLTE_MAX_PORTS] = {};
 
   /* Objects for DL */
-  srslte_ue_dl_t     ue_dl;
-  srslte_ue_dl_cfg_t ue_dl_cfg;
-  srslte_pmch_cfg_t  pmch_cfg;
+  srslte_ue_dl_t     ue_dl     = {};
+  srslte_ue_dl_cfg_t ue_dl_cfg = {};
+  srslte_pmch_cfg_t  pmch_cfg  = {};
 
-  srslte_chest_dl_cfg_t chest_mbsfn_cfg;
-  srslte_chest_dl_cfg_t chest_default_cfg;
+  srslte_chest_dl_cfg_t chest_mbsfn_cfg   = {};
+  srslte_chest_dl_cfg_t chest_default_cfg = {};
 
   /* Objects for UL */
-  srslte_ue_ul_t     ue_ul;
-  srslte_ue_ul_cfg_t ue_ul_cfg;
+  srslte_ue_ul_t     ue_ul     = {};
+  srslte_ue_ul_cfg_t ue_ul_cfg = {};
 
   // Metrics
-  dl_metrics_t dl_metrics;
-  ul_metrics_t ul_metrics;
+  dl_metrics_t dl_metrics = {};
+  ul_metrics_t ul_metrics = {};
 };
 
 } // namespace srsue

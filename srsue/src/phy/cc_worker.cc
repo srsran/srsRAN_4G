@@ -49,30 +49,11 @@ namespace srsue {
  *
  */
 
-cc_worker::cc_worker(uint32_t cc_idx, uint32_t max_prb, srsue::phy_common* phy, srslte::log* log_h)
+cc_worker::cc_worker(uint32_t cc_idx_, uint32_t max_prb, srsue::phy_common* phy_, srslte::log* log_h_)
 {
-  ZERO_OBJECT(signal_buffer_rx);
-  ZERO_OBJECT(signal_buffer_tx);
-  ZERO_OBJECT(pending_dl_grant);
-  ZERO_OBJECT(cell);
-  ZERO_OBJECT(sf_cfg_dl);
-  ZERO_OBJECT(sf_cfg_ul);
-  ZERO_OBJECT(ue_dl);
-  ZERO_OBJECT(ue_dl_cfg);
-  ZERO_OBJECT(ue_dl_cfg.cfg.pdsch);
-  ZERO_OBJECT(pmch_cfg);
-  ZERO_OBJECT(chest_mbsfn_cfg);
-  ZERO_OBJECT(chest_default_cfg);
-  ZERO_OBJECT(ue_ul);
-  ZERO_OBJECT(ue_ul_cfg);
-  ZERO_OBJECT(dl_metrics);
-  ZERO_OBJECT(ul_metrics);
-
-  cell_initiated = false;
-
-  this->cc_idx = cc_idx;
-  this->phy    = phy;
-  this->log_h  = log_h;
+  cc_idx = cc_idx_;
+  phy    = phy_;
+  log_h  = log_h_;
 
   for (uint32_t i = 0; i < phy->args->nof_rx_ant; i++) {
     signal_buffer_rx[i] = (cf_t*)srslte_vec_malloc(3 * sizeof(cf_t) * SRSLTE_SF_LEN_PRB(max_prb));
@@ -143,10 +124,10 @@ void cc_worker::reset()
   set_config(empty_cfg);
 }
 
-bool cc_worker::set_cell(srslte_cell_t cell)
+bool cc_worker::set_cell(srslte_cell_t cell_)
 {
-  if (this->cell.id != cell.id || !cell_initiated) {
-    this->cell = cell;
+  if (cell.id != cell_.id || !cell_initiated) {
+    cell = cell_;
 
     if (srslte_ue_dl_set_cell(&ue_dl, cell)) {
       Error("Initiating UE DL\n");
@@ -216,27 +197,6 @@ void cc_worker::enable_pregen_signals(bool enabled)
   this->pregen_enabled = enabled;
 }
 
-void cc_worker::set_dl_pending_grant(uint32_t cc_idx, srslte_dci_dl_t* dl_dci)
-{
-  if (!pending_dl_grant[cc_idx].enable) {
-    pending_dl_grant[cc_idx].dl_dci = *dl_dci;
-    pending_dl_grant[cc_idx].enable = true;
-  } else {
-    Warning("set_dl_pending_grant: cc=%d already exists\n", cc_idx);
-  }
-}
-
-bool cc_worker::get_dl_pending_grant(uint32_t cc_idx, srslte_dci_dl_t* dl_dci)
-{
-  if (pending_dl_grant[cc_idx].enable) {
-    *dl_dci                         = pending_dl_grant[cc_idx].dl_dci;
-    pending_dl_grant[cc_idx].enable = false;
-    return true;
-  } else {
-    return false;
-  }
-}
-
 /************
  *
  * Downlink Functions
@@ -245,9 +205,9 @@ bool cc_worker::get_dl_pending_grant(uint32_t cc_idx, srslte_dci_dl_t* dl_dci)
 
 bool cc_worker::work_dl_regular()
 {
-  bool dl_ack[SRSLTE_MAX_CODEWORDS];
+  bool dl_ack[SRSLTE_MAX_CODEWORDS] = {};
 
-  mac_interface_phy_lte::tb_action_dl_t dl_action;
+  mac_interface_phy_lte::tb_action_dl_t dl_action = {};
 
   bool found_dl_grant = false;
 
@@ -288,8 +248,8 @@ bool cc_worker::work_dl_regular()
     }
   }
 
-  srslte_dci_dl_t dci_dl;
-  bool            has_dl_grant = get_dl_pending_grant(cc_idx, &dci_dl);
+  srslte_dci_dl_t dci_dl       = {};
+  bool            has_dl_grant = phy->get_dl_pending_grant(CURRENT_TTI, cc_idx, &dci_dl);
 
   // If found a dci for this carrier, generate a grant, pass it to MAC and decode the associated PDSCH
   if (has_dl_grant) {
@@ -313,7 +273,7 @@ bool cc_worker::work_dl_regular()
     ue_dl_cfg.cfg.pdsch.rnti = dci_dl.rnti;
 
     // Generate MAC grant
-    mac_interface_phy_lte::mac_grant_dl_t mac_grant;
+    mac_interface_phy_lte::mac_grant_dl_t mac_grant = {};
     dl_phy_to_mac_grant(&ue_dl_cfg.cfg.pdsch.grant, &dci_dl, &mac_grant);
 
     // Save ACK resource configuration
@@ -333,7 +293,7 @@ bool cc_worker::work_dl_regular()
 
 bool cc_worker::work_dl_mbsfn(srslte_mbsfn_cfg_t mbsfn_cfg)
 {
-  mac_interface_phy_lte::tb_action_dl_t dl_action;
+  mac_interface_phy_lte::tb_action_dl_t dl_action = {};
 
   // Configure MBSFN settings
   srslte_ue_dl_set_mbsfn_area_id(&ue_dl, mbsfn_cfg.mbsfn_area_id);
@@ -400,8 +360,7 @@ int cc_worker::decode_pdcch_dl()
 {
   int nof_grants = 0;
 
-  srslte_dci_dl_t dci[SRSLTE_MAX_CARRIERS];
-  ZERO_OBJECT(dci);
+  srslte_dci_dl_t dci[SRSLTE_MAX_CARRIERS] = {};
 
   uint16_t dl_rnti = phy->stack->get_dl_sched_rnti(CURRENT_TTI);
   if (dl_rnti) {
@@ -424,10 +383,10 @@ int cc_worker::decode_pdcch_dl()
 
     for (int k = 0; k < nof_grants; k++) {
       // Save dci to CC index
-      set_dl_pending_grant(dci[k].cif_present ? dci[k].cif : cc_idx, &dci[k]);
+      phy->set_dl_pending_grant(CURRENT_TTI, dci[k].cif_present ? dci[k].cif : cc_idx, &dci[k]);
 
       // Logging
-      char str[512];
+      char str[512] = {};
       srslte_dci_dl_info(&dci[k], str, 512);
       Info("PDCCH: cc=%d, %s, snr=%.1f dB\n", cc_idx, str, ue_dl.chest_res.snr_db);
     }
@@ -440,12 +399,11 @@ int cc_worker::decode_pdsch(srslte_pdsch_ack_resource_t            ack_resource,
                             bool                                   mac_acks[SRSLTE_MAX_CODEWORDS])
 {
 
-  srslte_pdsch_res_t pdsch_dec[SRSLTE_MAX_CODEWORDS];
-  ZERO_OBJECT(pdsch_dec);
+  srslte_pdsch_res_t pdsch_dec[SRSLTE_MAX_CODEWORDS] = {};
 
   // See if at least 1 codeword needs to be decoded. If not need to be decode, resend ACK
   bool decode_enable = false;
-  bool tb_enable[SRSLTE_MAX_CODEWORDS];
+  bool tb_enable[SRSLTE_MAX_CODEWORDS] = {};
   for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
     tb_enable[tb] = ue_dl_cfg.cfg.pdsch.grant.tb[tb].enabled;
     if (action->tb[tb].enabled) {
@@ -472,7 +430,7 @@ int cc_worker::decode_pdsch(srslte_pdsch_ack_resource_t            ack_resource,
   }
 
   // Generate ACKs for MAC and PUCCH
-  uint8_t pending_acks[SRSLTE_MAX_CODEWORDS];
+  uint8_t pending_acks[SRSLTE_MAX_CODEWORDS] = {};
   for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
     // For MAC, set to true if it's a duplicate
     mac_acks[tb] = action->tb[tb].enabled ? pdsch_dec[tb].crc : true;
@@ -492,7 +450,7 @@ int cc_worker::decode_pdsch(srslte_pdsch_ack_resource_t            ack_resource,
     dl_metrics.turbo_iters = pdsch_dec->avg_iterations_block / 2;
 
     // Logging
-    char str[512];
+    char str[512] = {};
     srslte_pdsch_rx_info(&ue_dl_cfg.cfg.pdsch, pdsch_dec, str, 512);
     Info("PDSCH: cc=%d, %s, snr=%.1f dB\n", cc_idx, str, ue_dl.chest_res.snr_db);
   }
@@ -502,7 +460,7 @@ int cc_worker::decode_pdsch(srslte_pdsch_ack_resource_t            ack_resource,
 
 int cc_worker::decode_pmch(mac_interface_phy_lte::tb_action_dl_t* action, srslte_mbsfn_cfg_t* mbsfn_cfg)
 {
-  srslte_pdsch_res_t pmch_dec;
+  srslte_pdsch_res_t pmch_dec = {};
 
   pmch_cfg.area_id                     = mbsfn_cfg->mbsfn_area_id;
   pmch_cfg.pdsch_cfg.softbuffers.rx[0] = action->tb[0].softbuffer.rx;
@@ -576,7 +534,7 @@ void cc_worker::update_measurements()
   // Average RSRQ over DEFAULT_MEAS_PERIOD_MS then sent to RRC
   float rsrq_db = ue_dl.chest_res.rsrq_db;
   if (std::isnormal(rsrq_db)) {
-    if (!(CURRENT_TTI % phy->pcell_report_period) || !phy->avg_rsrq_db) {
+    if (!(CURRENT_TTI % phy->pcell_report_period) || !std::isnormal(phy->avg_rsrq_db)) {
       phy->avg_rsrq_db = rsrq_db;
     } else {
       phy->avg_rsrq_db = SRSLTE_VEC_CMA(rsrq_db, phy->avg_rsrq_db, CURRENT_TTI % phy->pcell_report_period);
@@ -586,10 +544,10 @@ void cc_worker::update_measurements()
   // Average RSRP taken from CRS
   float rsrp_lin = ue_dl.chest_res.rsrp;
   if (std::isnormal(rsrp_lin)) {
-    if (!phy->avg_rsrp[cc_idx] && !std::isnan(phy->avg_rsrp[cc_idx])) {
-      phy->avg_rsrp[cc_idx] = SRSLTE_VEC_EMA(rsrp_lin, phy->avg_rsrp[cc_idx], snr_ema_coeff);
-    } else {
+    if (!std::isnormal(phy->avg_rsrp[cc_idx])) {
       phy->avg_rsrp[cc_idx] = rsrp_lin;
+    } else {
+      phy->avg_rsrp[cc_idx] = SRSLTE_VEC_EMA(rsrp_lin, phy->avg_rsrp[cc_idx], snr_ema_coeff);
     }
   }
 
@@ -598,7 +556,7 @@ void cc_worker::update_measurements()
 
   // Serving cell RSRP measurements are averaged over DEFAULT_MEAS_PERIOD_MS then sent to RRC
   if (std::isnormal(rsrp_dbm)) {
-    if (!(CURRENT_TTI % phy->pcell_report_period) || !phy->avg_rsrp_dbm[cc_idx]) {
+    if (!(CURRENT_TTI % phy->pcell_report_period) || !std::isnormal(phy->avg_rsrp_dbm[cc_idx])) {
       phy->avg_rsrp_dbm[cc_idx] = rsrp_dbm;
     } else {
       phy->avg_rsrp_dbm[cc_idx] =
@@ -613,7 +571,7 @@ void cc_worker::update_measurements()
   // Average noise
   float cur_noise = ue_dl.chest_res.noise_estimate;
   if (std::isnormal(cur_noise)) {
-    if (!phy->avg_noise) {
+    if (!std::isnormal(phy->avg_noise[cc_idx])) {
       phy->avg_noise[cc_idx] = cur_noise;
     } else {
       phy->avg_noise[cc_idx] = SRSLTE_VEC_EMA(cur_noise, phy->avg_noise[cc_idx], snr_ema_coeff);
@@ -622,7 +580,7 @@ void cc_worker::update_measurements()
 
   // Average snr in the log domain
   if (std::isnormal(ue_dl.chest_res.snr_db)) {
-    if (!phy->avg_noise) {
+    if (!std::isnormal(phy->avg_snr_db_cqi[cc_idx])) {
       phy->avg_snr_db_cqi[cc_idx] = ue_dl.chest_res.snr_db;
     } else {
       phy->avg_snr_db_cqi[cc_idx] = SRSLTE_VEC_EMA(ue_dl.chest_res.snr_db, phy->avg_snr_db_cqi[cc_idx], snr_ema_coeff);
@@ -660,7 +618,7 @@ bool cc_worker::work_ul(srslte_uci_data_t* uci_data)
 
   bool ul_grant_available = phy->get_ul_pending_grant(&sf_cfg_ul, cc_idx, &pid, &dci_ul);
   ul_mac_grant.phich_available =
-      phy->get_ul_received_ack(&sf_cfg_ul, cc_idx, &ul_mac_grant.hi_value, ul_grant_available ? NULL : &dci_ul);
+      phy->get_ul_received_ack(&sf_cfg_ul, cc_idx, &ul_mac_grant.hi_value, ul_grant_available ? nullptr : &dci_ul);
 
   // If there is no grant, pid is from current TX TTI
   if (!ul_grant_available) {
@@ -717,7 +675,7 @@ bool cc_worker::work_ul(srslte_uci_data_t* uci_data)
   }
 
   // Generate uplink signal, include uci data on only PCell
-  signal_ready = encode_uplink(&ul_action, (cc_idx == 0) ? uci_data : NULL);
+  signal_ready = encode_uplink(&ul_action, (cc_idx == 0) ? uci_data : nullptr);
 
   // Prepare to receive ACK through PHICH
   if (ul_action.expect_ack) {
@@ -803,6 +761,12 @@ bool cc_worker::encode_uplink(mac_interface_phy_lte::tb_action_ul_t* action, srs
   if (action) {
     data.ptr                              = action->tb.payload;
     ue_ul_cfg.ul_cfg.pusch.softbuffers.tx = action->tb.softbuffer.tx;
+
+    // Use RV from higher layers
+    ue_ul_cfg.ul_cfg.pusch.grant.tb.rv = action->tb.rv;
+
+    // Setup PUSCH grant
+    ue_ul_cfg.grant_available = action->tb.enabled;
   }
 
   // Set UCI data and configuration
@@ -814,12 +778,6 @@ bool cc_worker::encode_uplink(mac_interface_phy_lte::tb_action_ul_t* action, srs
     ZERO_OBJECT(ue_ul_cfg.ul_cfg.pusch.uci_cfg);
     ZERO_OBJECT(ue_ul_cfg.ul_cfg.pucch.uci_cfg);
   }
-
-  // Use RV from higher layers
-  ue_ul_cfg.ul_cfg.pusch.grant.tb.rv = action->tb.rv;
-
-  // Setup PUSCH grant
-  ue_ul_cfg.grant_available = action->tb.enabled;
 
   // Set UL RNTI
   ue_ul_cfg.ul_cfg.pucch.rnti = phy->stack->get_ul_sched_rnti(CURRENT_TTI_TX);
@@ -896,9 +854,9 @@ void cc_worker::set_uci_ack(srslte_uci_data_t* uci_data,
   uint32_t           nof_configured_carriers = 0;
 
   // Only PCell generates ACK for all SCell
-  for (uint32_t cc_idx = 0; cc_idx < phy->args->nof_carriers; cc_idx++) {
-    if (cc_idx == 0 || phy->scell_cfg[cc_idx].configured) {
-      phy->get_dl_pending_ack(&sf_cfg_ul, cc_idx, &ack_info.cc[cc_idx]);
+  for (uint32_t i = 0; i < phy->args->nof_carriers; i++) {
+    if (i == 0 || phy->scell_cfg[i].configured) {
+      phy->get_dl_pending_ack(&sf_cfg_ul, i, &ack_info.cc[i]);
       nof_configured_carriers++;
     }
   }
