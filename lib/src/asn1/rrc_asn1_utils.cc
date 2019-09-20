@@ -406,7 +406,8 @@ void set_phy_cfg_t_dedicated_cfg(phy_cfg_t* cfg, const asn1::rrc::phys_cfg_ded_s
     }
   }
 
-  if (asn1_type.ant_info_r10.is_present()) {
+  if (asn1_type.ant_info_r10.is_present() &&
+      asn1_type.ant_info_r10->type() == asn1::rrc::phys_cfg_ded_s::ant_info_r10_c_::types::explicit_value_r10) {
     // Parse Release 10
     asn1::rrc::ant_info_ded_r10_s::tx_mode_r10_e_::options tx_mode =
         asn1_type.ant_info_r10->explicit_value_r10().tx_mode_r10.value;
