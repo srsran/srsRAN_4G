@@ -553,28 +553,9 @@ int rf_soapy_close(void *h)
   return SRSLTE_SUCCESS;
 }
 
-void soapy_set_master_clock_rate(rf_soapy_handler_t* handler, double rate)
-{
-  if (rate != rate) {
-    if (SoapySDRDevice_setMasterClockRate(handler->device, rate) != 0) {
-      printf("rf_soapy_set_master_clock_rate Rx fail: %s\n", SoapySDRDevice_lastError());
-    } else {
-      handler->master_clock_rate = rate;
-    }
-  }
-
-  printf("Set master clock rate to %.2f MHz\n", SoapySDRDevice_getMasterClockRate(handler->device)/1e6);
-}
-
 double rf_soapy_set_rx_srate(void *h, double rate)
 {
   rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
-
-  if (rate < 10e6) {
-    soapy_set_master_clock_rate(handler, 4 * rate);
-  } else {
-    soapy_set_master_clock_rate(handler, rate);
-  }
 
   // Restart streaming, as the Lime seems to have problems reconfiguring the sample rate during streaming
   bool rx_stream_active = handler->rx_stream_active;
@@ -615,12 +596,6 @@ double rf_soapy_set_rx_srate(void *h, double rate)
 double rf_soapy_set_tx_srate(void *h, double rate)
 {
   rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
-
-  if (rate < 10e6) {
-    soapy_set_master_clock_rate(handler, 4 * rate);
-  } else {
-    soapy_set_master_clock_rate(handler, rate);
-  }
 
   // stop/start streaming during rate reconfiguration
   bool rx_stream_active = handler->rx_stream_active;
