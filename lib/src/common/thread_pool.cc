@@ -280,6 +280,129 @@ uint32_t thread_pool::get_nof_workers()
   return nof_workers;
 }
 
+/**************************************************************************
+ *  task_thread_pool - uses a queue to enqueue callables, that start
+ *  once a worker is available
+ *************************************************************************/
+
+task_thread_pool::task_thread_pool(uint32_t nof_workers) : running(false)
+{
+  workers.reserve(nof_workers);
+  for (uint32_t i = 0; i < nof_workers; ++i) {
+    workers.emplace_back(this, i);
+  }
 }
 
+task_thread_pool::~task_thread_pool()
+{
+  stop();
+}
 
+void task_thread_pool::start(int32_t prio, uint32_t mask)
+{
+  std::lock_guard<std::mutex> lock(queue_mutex);
+  running = true;
+  for (worker_t& w : workers) {
+    w.setup(prio, mask);
+  }
+}
+
+void task_thread_pool::stop()
+{
+  std::unique_lock<std::mutex> lock(queue_mutex);
+  running = false;
+  do {
+    nof_workers_running = 0;
+    // next worker that is still running
+    for (worker_t& w : workers) {
+      if (w.is_running()) {
+        nof_workers_running++;
+      }
+    }
+    if (nof_workers_running > 0) {
+      lock.unlock();
+      cv_empty.notify_all();
+      lock.lock();
+      cv_exit.wait(lock);
+    }
+  } while (nof_workers_running > 0);
+}
+
+void task_thread_pool::push_task(const task_t& task)
+{
+  {
+    std::lock_guard<std::mutex> lock(queue_mutex);
+    pending_tasks.push(task);
+  }
+  cv_empty.notify_one();
+}
+
+void task_thread_pool::push_task(task_t&& task)
+{
+  {
+    std::lock_guard<std::mutex> lock(queue_mutex);
+    pending_tasks.push(std::move(task));
+  }
+  cv_empty.notify_one();
+}
+
+uint32_t task_thread_pool::nof_pending_tasks()
+{
+  std::lock_guard<std::mutex> lock(queue_mutex);
+  return pending_tasks.size();
+}
+
+task_thread_pool::worker_t::worker_t(srslte::task_thread_pool* parent_, uint32_t my_id) :
+  parent(parent_),
+  thread("TASKWORKER"),
+  id_(my_id)
+{
+  set_name(std::string("TASKWORKER") + std::to_string(my_id));
+}
+
+void task_thread_pool::worker_t::setup(int32_t prio, uint32_t mask)
+{
+  if (mask == 255) {
+    start(prio);
+  } else {
+    start_cpu_mask(prio, mask);
+  }
+}
+
+bool task_thread_pool::worker_t::wait_task(task_t* task)
+{
+  std::unique_lock<std::mutex> lock(parent->queue_mutex);
+  while (parent->running and parent->pending_tasks.empty()) {
+    parent->cv_empty.wait(lock);
+  }
+  if (not parent->running) {
+    return false;
+  }
+  if (task) {
+    *task = std::move(parent->pending_tasks.front());
+  }
+  parent->pending_tasks.pop();
+  return true;
+}
+
+void task_thread_pool::worker_t::run_thread()
+{
+  running = true;
+
+  // main loop
+  task_t task;
+  while (wait_task(&task)) {
+    task(id());
+  }
+
+  // on exit, notify pool class
+  std::unique_lock<std::mutex> lock(parent->queue_mutex);
+  running = false;
+  parent->nof_workers_running--;
+  if (parent->nof_workers_running == 0) {
+    lock.unlock();
+    parent->cv_exit.notify_one();
+  }
+}
+
+} // namespace srslte

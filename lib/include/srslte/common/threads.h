@@ -50,9 +50,11 @@ class thread
 {
 public:
   thread(const std::string& name_) : _thread(0), name(name_) {}
-  bool start(int prio = -1) {
-    return threads_new_rt_prio(&_thread, thread_function_entry, this, prio);    
-  }
+  thread(const thread&)     = delete;
+  thread(thread&&) noexcept = default;
+  thread& operator=(const thread&) = delete;
+  thread& operator=(thread&&) noexcept = default;
+  bool    start(int prio = -1) { return threads_new_rt_prio(&_thread, thread_function_entry, this, prio); }
   bool start_cpu(int prio, int cpu) {
     return threads_new_rt_cpu(&_thread, thread_function_entry, this, cpu, prio);    
   }

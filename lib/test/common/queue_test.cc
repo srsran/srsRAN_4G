@@ -19,8 +19,9 @@
  *
  */
 
+#include "srslte/common/multiqueue.h"
+#include "srslte/common/thread_pool.h"
 #include <iostream>
-#include <srslte/common/multiqueue.h>
 #include <thread>
 #include <unistd.h>
 
@@ -214,10 +215,104 @@ int test_multiqueue_threading3()
   return 0;
 }
 
+int test_task_thread_pool()
+{
+  std::cout << "\n====== TEST task thread pool test 1: start ======\n";
+  // Description: check whether the tasks are successfully distributed between workers
+
+  uint32_t                nof_workers = 4, nof_runs = 10000;
+  std::vector<int>        count_worker(nof_workers, 0);
+  std::vector<std::mutex> count_mutex(nof_workers);
+
+  task_thread_pool thread_pool(nof_workers);
+  thread_pool.start();
+
+  auto task = [&count_worker, &count_mutex](uint32_t worker_id) {
+    std::lock_guard<std::mutex> lock(count_mutex[worker_id]);
+    //    std::cout << "hello world from worker " << worker_id << std::endl;
+    count_worker[worker_id]++;
+  };
+
+  for (uint32_t i = 0; i < nof_runs; ++i) {
+    thread_pool.push_task(task);
+  }
+
+  // wait for all tasks to be successfully processed
+  while (thread_pool.nof_pending_tasks() > 0) {
+    usleep(100);
+  }
+
+  thread_pool.stop();
+
+  uint32_t total_count = 0;
+  for (uint32_t i = 0; i < nof_workers; ++i) {
+    if (count_worker[i] < 10) {
+      printf("the number of tasks %d assigned to worker %d is too low\n", count_worker[i], i);
+      return -1;
+    }
+    total_count += count_worker[i];
+    printf("worker %d: %d runs\n", i, count_worker[i]);
+  }
+  if (total_count != nof_runs) {
+    printf("Number of task runs=%d does not match total=%d\n", total_count, nof_runs);
+    return -1;
+  }
+
+  std::cout << "outcome: Success\n";
+  std::cout << "===================================================\n";
+  return 0;
+}
+
+int test_task_thread_pool2()
+{
+  std::cout << "\n====== TEST task thread pool test 2: start ======\n";
+  // Description: push a very long task to all workers, and call thread_pool.stop() to check if it waits for the tasks
+  //              to be completed, and does not get stuck.
+
+  uint32_t   nof_workers     = 4;
+  uint8_t    workers_started = 0, workers_finished = 0;
+  std::mutex mut;
+
+  task_thread_pool thread_pool(nof_workers);
+  thread_pool.start();
+
+  auto task = [&workers_started, &workers_finished, &mut](uint32_t worker_id) {
+    {
+      std::lock_guard<std::mutex> lock(mut);
+      workers_started++;
+    }
+    sleep(1);
+    std::lock_guard<std::mutex> lock(mut);
+    std::cout << "worker " << worker_id << " has finished\n";
+    workers_finished++;
+  };
+
+  for (uint32_t i = 0; i < nof_workers; ++i) {
+    thread_pool.push_task(task);
+  }
+
+  while (workers_started != nof_workers) {
+    usleep(10);
+  }
+
+  std::cout << "stopping thread pool...\n";
+  thread_pool.stop();
+  std::cout << "thread pool stopped.\n";
+
+  TESTASSERT(workers_finished == nof_workers);
+
+  std::cout << "outcome: Success\n";
+  std::cout << "===================================================\n";
+  return 0;
+}
+
 int main()
 {
   TESTASSERT(test_multiqueue() == 0);
   TESTASSERT(test_multiqueue_threading() == 0);
   TESTASSERT(test_multiqueue_threading2() == 0);
   TESTASSERT(test_multiqueue_threading3() == 0);
+
+  TESTASSERT(test_task_thread_pool() == 0);
+  TESTASSERT(test_task_thread_pool2() == 0);
 }
