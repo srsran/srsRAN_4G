@@ -250,9 +250,9 @@ void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_
     }
   }
 
-  cfg     = cfg_;
+  cfg = cfg_;
 
-  if((read_ctxt_file(&ctxt))) {
+  if ((read_ctxt_file(&ctxt))) {
     usim->generate_nas_keys(ctxt.k_asme, k_nas_enc, k_nas_int,
                             ctxt.cipher_algo, ctxt.integ_algo);
     nas_log->debug_hex(k_nas_enc, 32, "NAS encryption key - k_nas_enc");
@@ -264,7 +264,8 @@ void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_
   running = true;
 }
 
-void nas::stop() {
+void nas::stop()
+{
   running = false;
   write_ctxt_file(ctxt);
 }
@@ -277,7 +278,8 @@ void nas::get_metrics(nas_metrics_t* m)
   *m                            = metrics;
 }
 
-emm_state_t nas::get_state() {
+emm_state_t nas::get_state()
+{
   return state;
 }
 
@@ -296,7 +298,6 @@ void nas::run_tti(uint32_t tti)
  */
 void nas::start_attach_request(srslte::proc_state_t* result)
 {
-
   nas_log->info("Attach Request\n");
   switch (state) {
     case EMM_STATE_DEREGISTERED:
@@ -381,12 +382,13 @@ bool nas::detach_request() {
   return false;
 }
 
-void nas::leave_connected() {
-  eps_bearer.clear();
+void nas::leave_connected()
+{
   return;
 }
 
-bool nas::is_attached() {
+bool nas::is_attached()
+{
   return state == EMM_STATE_REGISTERED;
 }
 
