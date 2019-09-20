@@ -177,6 +177,8 @@ private:
   uint32_t           nof_workers;
   uint32_t           max_workers;
 
+  bool is_pending_tx_end = false;
+
   srslte::radio_interface_phy* radio_h;
   float          cfo;
   srslte::log*   log_h;

@@ -1340,8 +1340,8 @@ void rrc::leave_connected()
   nas->leave_connected();
   pdcp->reset();
   rlc->reset();
-  phy->reset();
   mac->reset();
+  phy->reset();
   set_phy_default();
   set_mac_default();
   stop_timers();
@@ -2421,8 +2421,7 @@ void rrc::log_phy_config_dedicated()
 // Apply default physical common and dedicated configuration
 void rrc::set_phy_default()
 {
-  current_phy_cfg.set_defaults_dedicated();
-  current_phy_cfg.set_defaults_common();
+  current_phy_cfg.set_defaults();
 
   if (phy != nullptr) {
     phy->set_config(current_phy_cfg);

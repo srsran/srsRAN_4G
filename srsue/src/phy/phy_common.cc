@@ -584,17 +584,24 @@ void phy_common::worker_end(uint32_t           tti,
       radio_h->tx(i, buffer[i], nof_samples[i], tx_time[i]);
     } else {
       if (radio_h->is_continuous_tx()) {
-        if (!radio_h->get_is_start_of_burst(i)) {
+        if (is_pending_tx_end) {
+          radio_h->tx_end();
+          is_pending_tx_end = false;
+        } else {
+          if (!radio_h->get_is_start_of_burst(i)) {
 
-          if (ul_channel && !srslte_timestamp_iszero(&tx_time[i])) {
-            bzero(zeros_multi[0], sizeof(cf_t) * nof_samples[i]);
-            ul_channel->run(zeros_multi, zeros_multi, nof_samples[i], tx_time[i]);
+            if (ul_channel && !srslte_timestamp_iszero(&tx_time[i])) {
+              bzero(zeros_multi[0], sizeof(cf_t) * nof_samples[i]);
+              ul_channel->run(zeros_multi, zeros_multi, nof_samples[i], tx_time[i]);
+            }
+
+            radio_h->tx(i, zeros_multi, nof_samples[i], tx_time[i]);
           }
-
-          radio_h->tx(i, zeros_multi, nof_samples[i], tx_time[i]);
         }
       } else {
-        radio_h->tx_end();
+        if (i == 0) {
+          radio_h->tx_end();
+        }
       }
     }
   }
@@ -696,9 +703,7 @@ void phy_common::reset_radio()
   // Since is_first_of_burst is set to true, the radio need to send
   // end of burst in order to stall correctly the Tx stream.
   // This is required for UHD version 3.10 and newer.
-  if (radio_h) {
-    radio_h->tx_end();
-  }
+  is_pending_tx_end = true;
 }
 
 void phy_common::reset()

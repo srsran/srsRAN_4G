@@ -408,38 +408,51 @@ struct mac_cfg_t {
  **************************/
 
 struct phy_cfg_t {
-  phy_cfg_t()
+  phy_cfg_t() { set_defaults(); }
+
+  void set_defaults()
   {
     ZERO_OBJECT(ul_cfg);
     ZERO_OBJECT(dl_cfg);
     ZERO_OBJECT(prach_cfg);
 
-    set_defaults_common();
-    set_defaults_dedicated();
-  }
-
-  void set_defaults_common()
-  {
+    // CommonConfig defaults for non-zero values
     ul_cfg.pucch.delta_pucch_shift     = 1;
     ul_cfg.power_ctrl.delta_f_pucch[0] = 0;
     ul_cfg.power_ctrl.delta_f_pucch[1] = 1;
     ul_cfg.power_ctrl.delta_f_pucch[2] = 0;
     ul_cfg.power_ctrl.delta_f_pucch[3] = 0;
     ul_cfg.power_ctrl.delta_f_pucch[4] = 0;
+
+    set_defaults_dedicated();
   }
 
+  // 36.331 9.2.4
   void set_defaults_dedicated()
   {
     dl_cfg.tm = SRSLTE_TM1;
 
+    dl_cfg.pdsch.use_tbs_index_alt = false;
+    dl_cfg.pdsch.p_a               = 0;
+
+    dl_cfg.cqi_report.periodic_configured  = false;
+    dl_cfg.cqi_report.aperiodic_configured = false;
+
+    ul_cfg.pucch.tdd_ack_multiplex = false;
+
     ul_cfg.pusch.uci_offset.I_offset_ack = 10;
-    ul_cfg.pusch.uci_offset.I_offset_cqi = 15;
     ul_cfg.pusch.uci_offset.I_offset_ri  = 12;
+    ul_cfg.pusch.uci_offset.I_offset_cqi = 15;
 
-    ul_cfg.power_ctrl.acc_enabled  = true;
-    ul_cfg.power_ctrl.p_srs_offset = 7;
+    ul_cfg.power_ctrl.p0_nominal_pusch = 0;
+    ul_cfg.power_ctrl.delta_mcs_based  = false;
+    ul_cfg.power_ctrl.acc_enabled      = true;
+    ul_cfg.power_ctrl.p0_nominal_pucch = 0;
+    ul_cfg.power_ctrl.p_srs_offset     = 7;
 
-    // Rest of default values are 0 or false
+    ul_cfg.srs.dedicated_enabled = false;
+
+    ul_cfg.pucch.sr_configured = false;
   }
 
   srslte_dl_cfg_t    dl_cfg;
