@@ -330,11 +330,21 @@ public:
 class stack_dummy : public stack_interface_mac
 {
 public:
-  void init(mac* mac_) { mac_h = mac_; }
+  void init(mac* mac_, phy_interface_mac_lte* phy_)
+  {
+    mac_h = mac_;
+    phy_h = phy_;
+  }
   void process_pdus() final { mac_h->process_pdus(); }
+  void wait_ra_completion(uint16_t rnti) final
+  {
+    phy_h->set_crnti(rnti);
+    mac_h->notify_ra_completed();
+  }
 
 private:
-  mac* mac_h = nullptr;
+  phy_interface_mac_lte* phy_h;
+  mac*                   mac_h = nullptr;
 };
 
 } // namespace srslte
@@ -376,7 +386,7 @@ int mac_unpack_test()
 
   // the actual MAC
   mac mac(&mac_log);
-  stack.init(&mac);
+  stack.init(&mac, &phy);
   mac.init(&phy, &rlc, &rrc, &timers, &stack);
 
   // create dummy DL action and grant and push MAC PDU
@@ -435,7 +445,7 @@ int mac_ul_sch_pdu_test1()
 
   // the actual MAC
   mac mac(&mac_log);
-  stack.init(&mac);
+  stack.init(&mac, &phy);
   mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
@@ -505,7 +515,7 @@ int mac_ul_logical_channel_prioritization_test1()
 
   // the actual MAC
   mac mac(&mac_log);
-  stack.init(&mac);
+  stack.init(&mac, &phy);
   mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
@@ -620,7 +630,7 @@ int mac_ul_logical_channel_prioritization_test2()
 
   // the actual MAC
   mac mac(&mac_log);
-  stack.init(&mac);
+  stack.init(&mac, &phy);
   mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
@@ -722,7 +732,7 @@ int mac_ul_logical_channel_prioritization_test3()
 
   // the actual MAC
   mac mac(&mac_log);
-  stack.init(&mac);
+  stack.init(&mac, &phy);
   mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
@@ -812,7 +822,7 @@ int mac_ul_sch_pdu_with_short_bsr_test()
 
   // the actual MAC
   mac mac(&mac_log);
-  stack.init(&mac);
+  stack.init(&mac, &phy);
   mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
@@ -900,7 +910,7 @@ int mac_ul_sch_pdu_with_padding_bsr_test()
 
   // the actual MAC
   mac mac(&mac_log);
-  stack.init(&mac);
+  stack.init(&mac, &phy);
   mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
@@ -997,7 +1007,7 @@ int mac_ul_sch_pdu_one_byte_test()
 
   // the actual MAC
   mac mac(&mac_log);
-  stack.init(&mac);
+  stack.init(&mac, &phy);
   mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
@@ -1059,7 +1069,7 @@ int mac_ul_sch_pdu_two_byte_test()
 
   // the actual MAC
   mac mac(&mac_log);
-  stack.init(&mac);
+  stack.init(&mac, &phy);
   mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
@@ -1121,7 +1131,7 @@ int mac_ul_sch_pdu_three_byte_test()
 
   // the actual MAC
   mac mac(&mac_log);
-  stack.init(&mac);
+  stack.init(&mac, &phy);
   mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
@@ -1376,7 +1386,7 @@ int mac_random_access_test()
 
   // Configure MAC
   mac mac(&mac_log);
-  stack.init(&mac);
+  stack.init(&mac, &phy);
   mac.init(&phy, &rlc, &rrc, &timers, &stack);
   srslte::mac_cfg_t mac_cfg;
   set_mac_cfg_t_rach_cfg_common(&mac_cfg, rach_cfg);

@@ -626,7 +626,8 @@ class gw_interface_stack : public gw_interface_nas, public gw_interface_rrc, pub
 class stack_interface_mac
 {
 public:
-  virtual void process_pdus() = 0;
+  virtual void process_pdus()                    = 0;
+  virtual void wait_ra_completion(uint16_t rnti) = 0;
 };
 
 // Combined interface for PHY to access stack (MAC and RRC)

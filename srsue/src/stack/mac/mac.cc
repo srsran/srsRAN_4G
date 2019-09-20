@@ -84,8 +84,14 @@ bool mac::init(phy_interface_mac_lte* phy,
   phr_procedure.init(phy_h, log_h, timers);
   mux_unit.init(rlc_h, &bsr_procedure, &phr_procedure);
   demux_unit.init(phy_h, rlc_h, this, timers->get(timer_alignment));
-  ra_procedure.init(
-      phy_h, rrc, log_h, &uernti, timers->get(timer_alignment), timers->get(contention_resolution_timer), &mux_unit);
+  ra_procedure.init(phy_h,
+                    rrc,
+                    log_h,
+                    &uernti,
+                    timers->get(timer_alignment),
+                    timers->get(contention_resolution_timer),
+                    &mux_unit,
+                    stack_h);
   sr_procedure.init(phy_h, rrc, log_h);
 
   // Create UL/DL unique HARQ pointers
@@ -465,6 +471,11 @@ void mac::process_pdus()
   while (initialized and have_data) {
     have_data = demux_unit.process_pdus();
   }
+}
+
+void mac::notify_ra_completed()
+{
+  ra_procedure.notify_ra_completed();
 }
 
 uint32_t mac::get_current_tti()

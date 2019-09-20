@@ -42,6 +42,7 @@
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/multiqueue.h"
+#include "srslte/common/thread_pool.h"
 #include "srslte/interfaces/ue_interfaces.h"
 
 #include "srsue/hdr/ue_metrics_interface.h"
@@ -114,6 +115,7 @@ public:
 
   // Interface to upper MAC
   void process_pdus() final;
+  void wait_ra_completion(uint16_t rnti) final;
 
 private:
   void run_thread() final;
@@ -163,6 +165,7 @@ private:
   };
   srslte::multiqueue_handler<task_t> pending_tasks;
   int                                sync_queue_id = -1, ue_queue_id = -1, gw_queue_id = -1, mac_queue_id = -1;
+  srslte::task_thread_pool           background_tasks; ///< Thread pool used for long, low-priority tasks
 };
 
 } // namespace srsue

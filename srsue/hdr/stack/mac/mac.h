@@ -102,7 +102,9 @@ public:
   void get_rntis(ue_rnti_t* rntis);
   void set_ho_rnti(uint16_t crnti, uint16_t target_pci);
 
+  /*********** interface for stack ******************/
   void process_pdus();
+  void notify_ra_completed();
 
   void start_pcap(srslte::mac_pcap* pcap);
 

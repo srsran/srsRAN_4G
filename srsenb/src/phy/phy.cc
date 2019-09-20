@@ -283,8 +283,9 @@ void phy::configure_mbsfn(sib_type2_s* sib2, sib_type13_r9_s* sib13, mcch_msg_s 
 }
 
 // Start GUI
-void phy::start_plot() {
-  ((sf_worker)workers[0]).start_plot();
+void phy::start_plot()
+{
+  ((sf_worker*)&workers[0])->start_plot();
 }
 
-}
+} // namespace srsenb

@@ -39,12 +39,15 @@ ue_stack_lte::ue_stack_lte() :
   pdcp(&pdcp_log),
   nas(&nas_log),
   thread("STACK"),
-  pending_tasks(1024)
+  pending_tasks(1024),
+  background_tasks(2)
 {
   ue_queue_id   = pending_tasks.add_queue();
   sync_queue_id = pending_tasks.add_queue();
   gw_queue_id   = pending_tasks.add_queue();
   mac_queue_id  = pending_tasks.add_queue();
+
+  background_tasks.start();
 }
 
 ue_stack_lte::~ue_stack_lte()
@@ -277,6 +280,15 @@ void ue_stack_lte::run_tti_impl(uint32_t tti)
 void ue_stack_lte::process_pdus()
 {
   pending_tasks.push(mac_queue_id, task_t{[this](task_t*) { mac.process_pdus(); }});
+}
+
+void ue_stack_lte::wait_ra_completion(uint16_t rnti)
+{
+  background_tasks.push_task([this, rnti](uint32_t worker_id){
+    phy->set_crnti(rnti);
+    // signal MAC RA proc to go back to idle
+    mac.notify_ra_completed();
+  });
 }
 
 } // namespace srsue
