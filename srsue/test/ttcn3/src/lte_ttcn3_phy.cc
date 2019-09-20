@@ -48,7 +48,7 @@ int lte_ttcn3_phy::init(const phy_args_t& args_, stack_interface_phy_lte* stack_
 // ue_phy_base interface
 int lte_ttcn3_phy::init(const phy_args_t& args_)
 {
-  log.init("PHY  ", logger);
+  log.init("PHY ", logger);
   log.set_level(args_.log.phy_level);
 
   return SRSLTE_SUCCESS;
@@ -356,10 +356,10 @@ void lte_ttcn3_phy::run_tti()
   for (auto& cell : cells) {
     if (cell.info.id == pcell.info.id) {
       if (cell.power >= MIN_IN_SYNC_POWER) {
-        log.info("PCell id=%d power=%.2f -> sync\n", pcell.info.id, cell.power);
+        log.debug("PCell id=%d power=%.2f -> sync\n", pcell.info.id, cell.power);
         stack->in_sync();
       } else {
-        log.info("PCell id=%d power=%.2f -> out of sync\n", pcell.info.id, cell.power);
+        log.debug("PCell id=%d power=%.2f -> out of sync\n", pcell.info.id, cell.power);
         stack->out_of_sync();
       }
       break; // make sure to call stack only once

@@ -71,14 +71,14 @@ public:
     }
 
     // init and configure logging
-    log.init("SYS-SIM", logger);
-    ut_log.init("UT     ", logger);
-    sys_log.init("SYS    ", logger);
-    ip_sock_log.init("IP_SOCK", logger);
-    ip_ctrl_log.init("IP_CTRL", logger);
-    srb_log.init("SRB    ", logger);
-    ss_mac_log.init("SS-MAC ", logger);
-    ss_rlc_log.init("SS-RLC ", logger);
+    log.init("SS  ", logger);
+    ut_log.init("UT  ", logger);
+    sys_log.init("SYS ", logger);
+    ip_sock_log.init("IP_S", logger);
+    ip_ctrl_log.init("IP_C", logger);
+    srb_log.init("SRB  ", logger);
+    ss_mac_log.init("SS-MAC", logger);
+    ss_rlc_log.init("SS-RLC", logger);
     ss_pdcp_log.init("SS-PDCP", logger);
 
     log.set_level(args.log.all_level);
@@ -596,7 +596,7 @@ public:
           // Check if we need to provide a UL grant as well
         }
       } else {
-        log.error("Not handling RNTI=%d\n", dl_rnti);
+        log.debug("Not handling RNTI=%d\n", dl_rnti);
       }
 
       usleep(1000);

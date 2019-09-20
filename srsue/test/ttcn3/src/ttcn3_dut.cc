@@ -97,6 +97,7 @@ all_args_t parse_args(ttcn3_dut_args_t* args, int argc, char* argv[])
   all_args.log.all_level     = args->log_level;
   all_args.log.all_hex_limit = args->log_hex_level;
 
+  all_args.phy.log.phy_level        = args->log_level;
   all_args.stack.log.mac_level      = args->log_level;
   all_args.stack.log.rlc_level      = args->log_level;
   all_args.stack.log.pdcp_level     = args->log_level;
@@ -104,6 +105,7 @@ all_args_t parse_args(ttcn3_dut_args_t* args, int argc, char* argv[])
   all_args.stack.log.nas_level      = args->log_level;
   all_args.stack.log.gw_level       = args->log_level;
   all_args.stack.log.usim_level     = args->log_level;
+  all_args.phy.log.phy_hex_limit    = args->log_hex_level;
   all_args.stack.log.mac_hex_limit  = args->log_hex_level;
   all_args.stack.log.rlc_hex_limit  = args->log_hex_level;
   all_args.stack.log.pdcp_hex_limit = args->log_hex_level;

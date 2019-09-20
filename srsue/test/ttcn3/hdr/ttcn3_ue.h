@@ -29,7 +29,7 @@
 class ttcn3_ue : public phy_interface_syssim, public gw_interface_stack
 {
 public:
-  ttcn3_ue() : run_id(0), logger(nullptr) {}
+  ttcn3_ue() {}
 
   virtual ~ttcn3_ue() {}
 
@@ -40,11 +40,12 @@ public:
     // Init UE log
     log.init("UE  ", logger);
     log.set_level(srslte::LOG_LEVEL_INFO);
+    log.info("Built in %s mode using %s.\n", srslte_get_build_mode(), srslte_get_build_info());
 
     // Patch args
     args.stack.nas.force_imsi_attach = true;
-    args.stack.nas.eia               = "0,1,2";
-    args.stack.nas.eea               = "0,1,2";
+    args.stack.nas.eia               = "1,2,3";
+    args.stack.nas.eea               = "0,1,2,3";
 
     // Configure default parameters
     args.stack.usim.algo = "xor";
@@ -64,7 +65,6 @@ public:
     args.rf.type           = "none";
     args.stack.type        = "lte";
     args.phy.type          = "lte_ttcn3";
-    args.phy.log.phy_level = "debug";
 
     // Instantiate layers and stack together our UE
     if (args.stack.type == "lte") {
@@ -141,10 +141,7 @@ private:
   srslte::logger*    logger = nullptr;
   srslte::log_filter log; // Own logger for UE
 
-  all_args_t                args;
-  srslte::byte_buffer_pool* pool = nullptr;
-
-  uint32_t run_id;
+  all_args_t args = {};
 };
 
 #endif // SRSUE_TTCN3_UE_H
