@@ -534,12 +534,13 @@ int rf_zmq_recv_with_time_multi(
     rf_zmq_info(handler->id, " - next rx time: %d + %.3f\n", ts_rx.full_secs, ts_rx.frac_secs);
     rf_zmq_info(handler->id, " - next tx time: %d + %.3f\n", ts_tx.full_secs, ts_tx.frac_secs);
 
+    // Leave time for the Tx to transmit
+    usleep((1000000 * nsamples) / handler->base_srate);
+
     // check for tx gap if we're also transmitting on this radio
     if (handler->transmitter.running) {
       rf_zmq_tx_align(&handler->transmitter, handler->next_rx_ts + nsamples_baserate);
     }
-
-    usleep((1000000 * nsamples) / handler->base_srate);
 
     // copy from rx buffer as many samples as requested into provided buffer
     cf_t* ptr = (handler->decim_factor != 1) ? handler->buffer_decimation : data[0];
@@ -581,6 +582,10 @@ int rf_zmq_recv_with_time_multi(
                   nsamples_baserate,
                   nsamples);
     }
+
+    // Set gain
+    float scale = powf(10.0f, handler->rx_gain / 20);
+    srslte_vec_sc_prod_cfc(data[0], scale, data[0], nsamples);
 
     // update rx time
     update_ts(handler, &handler->next_rx_ts, nsamples_baserate, "rx");

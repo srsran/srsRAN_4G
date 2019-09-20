@@ -97,22 +97,9 @@ clean_exit:
   return ret;
 }
 
-int rf_zmq_tx_align(rf_zmq_tx_t* q, uint64_t ts)
-{
-  int64_t nsamples = (int64_t)ts - (int64_t)q->nsamples;
-
-  if (nsamples > 0) {
-    rf_zmq_info(q->id, " - Detected Tx gap of %d samples.\n", nsamples);
-    rf_zmq_tx_baseband(q, q->zeros, (uint32_t)nsamples);
-  }
-
-  return (int)nsamples;
-}
-
-int rf_zmq_tx_baseband(rf_zmq_tx_t* q, cf_t* buffer, uint32_t nsamples)
+static int _rf_zmq_tx_baseband(rf_zmq_tx_t* q, cf_t* buffer, uint32_t nsamples)
 {
   int n = SRSLTE_ERROR;
-  pthread_mutex_lock(&q->mutex);
 
   while (n < 0 && q->running) {
     // Receive Transmit request
@@ -156,6 +143,33 @@ int rf_zmq_tx_baseband(rf_zmq_tx_t* q, cf_t* buffer, uint32_t nsamples)
   n = nsamples;
 
 clean_exit:
+  return n;
+}
+
+int rf_zmq_tx_align(rf_zmq_tx_t* q, uint64_t ts)
+{
+  pthread_mutex_lock(&q->mutex);
+
+  int64_t nsamples = (int64_t)ts - (int64_t)q->nsamples;
+
+  if (nsamples > 0) {
+    rf_zmq_info(q->id, " - Detected Tx gap of %d samples.\n", nsamples);
+    _rf_zmq_tx_baseband(q, q->zeros, (uint32_t)nsamples);
+  }
+
+  pthread_mutex_unlock(&q->mutex);
+
+  return (int)nsamples;
+}
+
+int rf_zmq_tx_baseband(rf_zmq_tx_t* q, cf_t* buffer, uint32_t nsamples)
+{
+  int n;
+
+  pthread_mutex_lock(&q->mutex);
+
+  n = _rf_zmq_tx_baseband(q, buffer, nsamples);
+
   pthread_mutex_unlock(&q->mutex);
 
   return n;
