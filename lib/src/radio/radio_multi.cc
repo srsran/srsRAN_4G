@@ -89,7 +89,7 @@ int radio_multi::init(const rf_args_t& args_, phy_interface_radio* phy_)
       radio->set_burst_preamble(strtof(args.burst_preamble.c_str(), nullptr));
     }
     if (args.continuous_tx != "auto") {
-      radio->set_continuous_tx(!(args.continuous_tx == "yes"));
+      radio->set_continuous_tx(args.continuous_tx == "yes");
     }
 
     // Set PHY options
