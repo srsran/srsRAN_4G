@@ -28,7 +28,7 @@
 #include <srslte/phy/utils/vector.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include <zconf.h>
+#include <unistd.h>
 #include <zmq.h>
 
 typedef struct {

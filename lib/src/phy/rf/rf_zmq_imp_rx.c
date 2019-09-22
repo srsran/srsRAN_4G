@@ -28,7 +28,6 @@
 #include <srslte/phy/utils/vector.h>
 #include <stdlib.h>
 #include <string.h>
-#include <zconf.h>
 #include <zmq.h>
 
 static void* rf_zmq_async_rx_thread(void* h)
