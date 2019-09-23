@@ -54,10 +54,11 @@ typedef enum {
 static const char rrc_cfg_cqi_mode_text[RRC_CFG_CQI_MODE_N_ITEMS][20] = {"periodic", "aperiodic"};
 
 typedef struct {
-  uint32_t           sf_mapping[80]; 
-  uint32_t           nof_subframes; 
-  uint32_t           nof_prb; 
-  uint32_t           period; 
+  uint32_t           sf_mapping[80];
+  uint32_t           nof_subframes;
+  uint32_t           nof_prb;
+  uint32_t           period;
+  uint32_t           m_ri;
   bool               simultaneousAckCQI;
   rrc_cfg_cqi_mode_t mode; 
 } rrc_cfg_cqi_t; 
@@ -244,6 +245,8 @@ public:
     int  cqi_allocate(uint32_t period, uint16_t* pmi_idx, uint16_t* n_pucch);
     void cqi_get(uint16_t* pmi_idx, uint16_t* n_pucch);
     int  cqi_free();
+
+    int ri_get(uint32_t m_ri, uint16_t* ri_idx);
 
     bool select_security_algorithms();
     void send_dl_ccch(asn1::rrc::dl_ccch_msg_s* dl_ccch_msg);

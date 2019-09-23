@@ -1780,10 +1780,14 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
     if (phy_cfg->ant_info_present and
         ((phy_cfg->ant_info.explicit_value().tx_mode == ant_info_ded_s::tx_mode_e_::tm3) ||
          (phy_cfg->ant_info.explicit_value().tx_mode == ant_info_ded_s::tx_mode_e_::tm4))) {
-      phy_cfg->cqi_report_cfg.cqi_report_periodic.set_setup();
-      phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx_present = true;
-      phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx         = 483;
-      parent->rrc_log->console("\nWarning: Only 1 user is supported in TM3 and TM4\n\n");
+      uint16_t ri_idx = 0;
+      if (ri_get(parent->cfg.cqi_cfg.m_ri, &ri_idx) == SRSLTE_SUCCESS) {
+        phy_cfg->cqi_report_cfg.cqi_report_periodic.set_setup();
+        phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx_present = true;
+        phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx         = ri_idx;
+      } else {
+        parent->rrc_log->console("\nWarning: Configured wrong M_ri parameter.\n\n");
+      }
     } else {
       phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx_present = false;
     }
@@ -2300,4 +2304,43 @@ int rrc::ue::cqi_allocate(uint32_t period, uint16_t* pmi_idx, uint16_t* n_pucch)
   return 0; 
 }
 
+int rrc::ue::ri_get(uint32_t m_ri, uint16_t* ri_idx)
+{
+  int32_t ret = SRSLTE_SUCCESS;
+
+  uint32_t I_ri        = 0;
+  int32_t  N_offset_ri = 0; // Naivest approach: overlap RI with PMI
+  switch (m_ri) {
+    case 0:
+      // Disabled
+      break;
+    case 1:
+      I_ri = -N_offset_ri;
+      break;
+    case 2:
+      I_ri = 161 - N_offset_ri;
+      break;
+    case 4:
+      I_ri = 322 - N_offset_ri;
+      break;
+    case 8:
+      I_ri = 483 - N_offset_ri;
+      break;
+    case 16:
+      I_ri = 644 - N_offset_ri;
+      break;
+    case 32:
+      I_ri = 805 - N_offset_ri;
+      break;
+    default:
+      parent->rrc_log->error("Allocating RI: invalid m_ri=%d\n", m_ri);
+  }
+
+  // If ri_dix is available, copy
+  if (ri_idx) {
+    *ri_idx = I_ri;
+  }
+
+  return ret;
+}
 }
