@@ -218,7 +218,6 @@ void phy::get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS])
 
   uint32_t nof_users = workers[0].get_nof_rnti(); 
   bzero(metrics, sizeof(phy_metrics_t)*ENB_METRICS_MAX_USERS);
-  int n_tot = 0; 
   for (uint32_t i=0;i<nof_workers;i++) {
     workers[i].get_metrics(metrics_tmp);
     for (uint32_t j=0;j<nof_users;j++) {

@@ -43,7 +43,10 @@ extern "C" {
 #define SRSLTE_MIN(a,b) ((a)<(b)?(a):(b))
 
 // Cumulative moving average
-#define SRSLTE_VEC_CMA(data, average, n) ((average) + ((data) - (average)) / ((n)+1)) 
+#define SRSLTE_VEC_CMA(data, average, n) ((average) + ((data) - (average)) / ((n) + 1))
+
+// Proportional moving average
+#define SRSLTE_VEC_PMA(average1, n1, average2, n2) (((average1) * (n1) + (average2) * (n2)) / ((n1) + (n2)))
 
 // Exponential moving average
 #define SRSLTE_VEC_EMA(data, average, alpha) ((alpha)*(data)+(1-alpha)*(average))

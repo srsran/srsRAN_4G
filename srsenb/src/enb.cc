@@ -259,7 +259,7 @@ int enb::parse_args(const all_args_t& args_)
 
   // Patch certain args that are not exposed yet
   args.rf.nof_radios      = 1;
-  args.rf.nof_rf_channels = 1;
+  args.rf.nof_rf_channels = args.phy.nof_carriers;
   args.rf.nof_rx_ant      = args.enb.nof_ports;
 
   return SRSLTE_SUCCESS;

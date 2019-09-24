@@ -22,24 +22,24 @@
 #ifndef SRSENB_PHCH_WORKER_H
 #define SRSENB_PHCH_WORKER_H
 
+#include <mutex>
 #include <string.h>
 
+#include "cc_worker.h"
 #include "phy_common.h"
 #include "srslte/srslte.h"
-
-#define LOG_EXECTIME
 
 namespace srsenb {
 
 class sf_worker : public srslte::thread_pool::worker
 {
 public:
-  sf_worker();
+  sf_worker()  = default;
+  ~sf_worker() = default;
   void init(phy_common* phy, srslte::log* log_h);
-  void stop();
-  void reset();
+  void stop() final;
 
-  cf_t* get_buffer_rx(uint32_t antenna_idx);
+  cf_t* get_buffer_rx(uint32_t cc_idx, uint32_t antenna_idx);
   void  set_time(uint32_t tti, uint32_t tx_worker_cnt, srslte_timestamp_t tx_time);
 
   int      add_rnti(uint16_t rnti, bool is_temporal);
@@ -58,85 +58,29 @@ public:
   uint32_t get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS]);
 
 private:
-  constexpr static float PUSCH_RL_SNR_DB_TH = 1.0;
-  constexpr static float PUCCH_RL_CORR_TH   = 0.15;
-
-  void work_imp();
-
-  int encode_pdsch(stack_interface_phy_lte::dl_sched_grant_t* grants, uint32_t nof_grants);
-  int encode_pmch(stack_interface_phy_lte::dl_sched_grant_t* grant, srslte_mbsfn_cfg_t* mbsfn_cfg);
-  int decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, uint32_t nof_pusch);
-  int encode_phich(stack_interface_phy_lte::ul_sched_ack_t* acks, uint32_t nof_acks);
-  int encode_pdcch_dl(stack_interface_phy_lte::dl_sched_grant_t* grants, uint32_t nof_grants);
-  int encode_pdcch_ul(stack_interface_phy_lte::ul_sched_grant_t* grants, uint32_t nof_grants);
-  int decode_pucch();
-
-  void send_uci_data(uint16_t rnti, srslte_uci_cfg_t* uci_cfg, srslte_uci_value_t* uci_value);
-  bool fill_uci_cfg(uint16_t rnti, bool aperiodic_cqi_request, srslte_uci_cfg_t* uci_cfg);
+  void work_imp() final;
 
   /* Common objects */
-  srslte::log* log_h;
-  phy_common*  phy;
-  bool         initiated;
-  bool         running;
+  srslte::log* log_h             = nullptr;
+  phy_common*  phy               = nullptr;
+  bool         initiated         = false;
+  bool         running           = false;
+  bool         is_worker_running = false;
 
-  cf_t*              signal_buffer_rx[SRSLTE_MAX_PORTS];
-  cf_t*              signal_buffer_tx[SRSLTE_MAX_PORTS];
-  uint32_t           tti_rx, tti_tx_dl, tti_tx_ul;
-  uint32_t           t_rx, t_tx_dl, t_tx_ul;
-  uint32_t           tx_worker_cnt;
-  srslte_timestamp_t tx_time;
+  uint32_t           tti_rx = 0, tti_tx_dl = 0, tti_tx_ul = 0;
+  uint32_t           t_rx = 0, t_tx_dl = 0, t_tx_ul = 0;
+  uint32_t           tx_worker_cnt = 0;
+  srslte_timestamp_t tx_time       = {};
 
-  srslte_enb_dl_t enb_dl;
-  srslte_enb_ul_t enb_ul;
+  std::vector<std::unique_ptr<cc_worker> > cc_workers;
 
-  srslte_dl_sf_cfg_t dl_sf;
-  srslte_ul_sf_cfg_t ul_sf;
+  srslte_dl_sf_cfg_t dl_sf = {};
+  srslte_ul_sf_cfg_t ul_sf = {};
 
-  srslte_softbuffer_tx_t temp_mbsfn_softbuffer;
-
-  // Class to store user information
-  class ue
-  {
-  public:
-    ue(uint16_t rnti, phy_common* phy) : is_grant_available(false), rnti(0)
-    {
-      ZERO_OBJECT(phich_grant);
-      ZERO_OBJECT(metrics);
-      bzero(&metrics, sizeof(phy_metrics_t));
-
-      // Copy common configuartion
-      ul_cfg = phy->ul_cfg_com;
-      dl_cfg = phy->dl_cfg_com;
-
-      // Fill RNTI
-      this->rnti        = rnti;
-      dl_cfg.pdsch.rnti = rnti;
-      ul_cfg.pusch.rnti = rnti;
-      ul_cfg.pucch.rnti = rnti;
-    }
-
-    bool                 is_grant_available;
-    srslte_phich_grant_t phich_grant;
-
-    srslte_dl_cfg_t dl_cfg;
-    srslte_ul_cfg_t ul_cfg;
-
-    void metrics_read(phy_metrics_t* metrics);
-    void metrics_dl(uint32_t mcs);
-    void metrics_ul(uint32_t mcs, float rssi, float sinr, uint32_t turbo_iters);
-
-  private:
-    uint32_t      rnti;
-    phy_metrics_t metrics;
-  };
-
-  // Each worker keeps a local copy of the user database. Uses more memory but more efficient to manage concurrency
-  std::map<uint16_t, ue*> ue_db;
+  srslte_softbuffer_tx_t temp_mbsfn_softbuffer = {};
 
   // mutex to protect worker_imp() from configuration interface
-  pthread_mutex_t mutex;
-  bool            is_worker_running;
+  std::mutex mutex;
 };
 
 } // namespace srsenb

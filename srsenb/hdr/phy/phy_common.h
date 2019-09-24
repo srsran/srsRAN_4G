@@ -41,6 +41,8 @@ typedef struct {
   std::string            type;
   srslte::phy_log_args_t log;
 
+  uint32_t nof_carriers;
+
   float       max_prach_offset_us;
   int         pusch_max_its;
   bool        pusch_8bit_decoder;

@@ -100,8 +100,10 @@ void txrx::run_thread()
     tti    = (tti + 1) % 10240;
     worker = (sf_worker*)workers_pool->wait_worker(tti);
     if (worker) {
-      for (int p = 0; p < SRSLTE_MAX_PORTS; p++) {
-        buffer[p] = worker->get_buffer_rx(p);
+      for (uint32_t c = 0, i = 0; c < worker_com->params.nof_carriers; c++) {
+        for (uint32_t p = 0; p < worker_com->cell.nof_ports; p++, i++) {
+          buffer[i] = worker->get_buffer_rx(c, p);
+        }
       }
 
       radio_h->rx_now(0, buffer, sf_len, &rx_time);
