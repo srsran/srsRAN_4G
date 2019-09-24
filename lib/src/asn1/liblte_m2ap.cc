@@ -198,7 +198,7 @@ LIBLTE_ERROR_ENUM liblte_m2ap_unpack_protocolie_singlecontainer(uint8_t**       
 
     // Enum - ie->criticality
     ie->criticality = (LIBLTE_M2AP_CRITICALITY_ENUM)liblte_bits_2_value(ptr, 2);
-    liblte_align_up(ptr, 16);
+    liblte_align_up(ptr, 8);
 
     err = LIBLTE_SUCCESS;
   }
