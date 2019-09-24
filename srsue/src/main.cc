@@ -431,7 +431,7 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
 
   // Apply all_level to any unset layers
   if (vm.count("log.all_level")) {
-    if (!vm.count("log.phy_level")) {
+    if (!vm.count("log.rf_level")) {
       args->rf.log_level = args->log.all_level;
     }
     if (!vm.count("log.phy_level")) {
