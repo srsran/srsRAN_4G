@@ -38,24 +38,6 @@ namespace scell {
 
 intra_measure::intra_measure() : scell(), thread("SYNC_INTRA_MEASURE")
 {
-
-  rrc           = nullptr;
-  common        = nullptr;
-  search_buffer = nullptr;
-  log_h         = nullptr;
-
-  current_earfcn = 0;
-  current_sflen  = 0;
-  measure_tti    = 0;
-  receive_cnt    = 0;
-
-  running         = false;
-  receive_enabled = false;
-  receiving       = false;
-
-  ZERO_OBJECT(info);
-  ZERO_OBJECT(ring_buffer);
-  ZERO_OBJECT(primary_cell);
 }
 
 intra_measure::~intra_measure()

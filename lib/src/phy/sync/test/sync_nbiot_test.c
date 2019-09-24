@@ -88,12 +88,12 @@ int main(int argc, char** argv)
   cf_t*          fft_buffer = NULL;
   _Complex float buffer[SFLEN]; // FLEN + fft_size
 
-  srslte_filesource_t fsrc;
+  srslte_filesource_t fsrc     = {};
   uint32_t            find_idx = 0;
-  srslte_sync_nbiot_t syncobj;
-  srslte_ofdm_t       ifft;
-  srslte_cfo_t        cfocorr;
-  int                 fft_size;
+  srslte_sync_nbiot_t syncobj  = {};
+  srslte_ofdm_t       ifft     = {};
+  srslte_cfo_t        cfocorr  = {};
+  int                 fft_size = 0;
 
   input_file_name = NULL;
 

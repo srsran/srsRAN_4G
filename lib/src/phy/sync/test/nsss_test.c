@@ -88,10 +88,10 @@ int main(int argc, char** argv)
 {
   cf_t*               fft_buffer = NULL;
   cf_t*               buffer     = NULL;
-  srslte_nsss_synch_t syncobj;
-  srslte_ofdm_t       ifft;
-  int                 fft_size;
-  float               peak_value;
+  srslte_nsss_synch_t syncobj    = {};
+  srslte_ofdm_t       ifft       = {};
+  int                 fft_size   = 0;
+  float               peak_value = 0.0;
   int                 num_sf = 1;
   int                 ret    = SRSLTE_ERROR;
 

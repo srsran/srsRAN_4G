@@ -50,29 +50,29 @@ private:
   void             run_thread();
   const static int INTRA_FREQ_MEAS_PRIO = DEFAULT_PRIORITY + 5;
 
-  scell_recv             scell;
-  rrc_interface_phy_lte* rrc;
-  srslte::log*           log_h;
-  phy_common*            common;
-  uint32_t               current_earfcn;
-  uint32_t               current_sflen;
-  srslte_cell_t          primary_cell;
+  scell_recv             scell          = {};
+  rrc_interface_phy_lte* rrc            = nullptr;
+  srslte::log*           log_h          = nullptr;
+  phy_common*            common         = nullptr;
+  uint32_t               current_earfcn = 0;
+  uint32_t               current_sflen  = 0;
+  srslte_cell_t          primary_cell   = {};
   std::vector<int>       active_pci;
 
   srslte::tti_sync_cv tti_sync;
 
-  cf_t* search_buffer;
+  cf_t* search_buffer = nullptr;
 
-  scell_recv::cell_info_t info[scell_recv::MAX_CELLS];
+  scell_recv::cell_info_t info[scell_recv::MAX_CELLS] = {};
 
-  bool                running;
-  bool                receive_enabled;
-  bool                receiving;
-  uint32_t            measure_tti;
-  uint32_t            receive_cnt;
-  srslte_ringbuffer_t ring_buffer;
+  bool                running         = false;
+  bool                receive_enabled = false;
+  bool                receiving       = false;
+  uint32_t            measure_tti     = 0;
+  uint32_t            receive_cnt     = 0;
+  srslte_ringbuffer_t ring_buffer     = {};
 
-  srslte_refsignal_dl_sync_t refsignal_dl_sync;
+  srslte_refsignal_dl_sync_t refsignal_dl_sync = {};
 };
 
 } // namespace scell

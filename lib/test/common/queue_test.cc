@@ -206,7 +206,7 @@ int test_multiqueue_threading3()
   // Should be able to unlock all
   multiqueue.reset();
   t1.join();
-  TESTASSERT(t1_success)
+  TESTASSERT(t1_success);
 
   std::cout << "outcome: Success\n";
   std::cout << "===================================================\n";
