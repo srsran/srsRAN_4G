@@ -60,8 +60,18 @@ void metrics_stdout::toggle_print(bool b)
 
 void metrics_stdout::set_metrics(ue_metrics_t &metrics, const uint32_t period_usec)
 {
-  if(!do_print || ue == NULL)
+  if (ue == NULL) {
     return;
+  }
+
+  // always print RF error
+  if (metrics.rf.rf_error) {
+    printf("RF status: O=%d, U=%d, L=%d\n", metrics.rf.rf_o, metrics.rf.rf_u, metrics.rf.rf_l);
+  }
+
+  if (!do_print) {
+    return;
+  }
 
   if (metrics.stack.rrc.state != RRC_STATE_CONNECTED) {
     cout << "--- disconnected ---" << endl;
