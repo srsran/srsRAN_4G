@@ -493,11 +493,7 @@ void sync::run_thread()
               srslte_timestamp_t rx_time, tx_time;
               srslte_ue_sync_get_last_timestamp(&ue_sync, &rx_time);
               srslte_timestamp_copy(&tx_time, &rx_time);
-              if (prach_ptr) {
-                srslte_timestamp_add(&tx_time, 0, TX_DELAY * 1e-3);
-              } else {
-                srslte_timestamp_add(&tx_time, 0, TX_DELAY * 1e-3 - time_adv_sec);
-              }
+              srslte_timestamp_add(&tx_time, 0, TX_DELAY * 1e-3 - time_adv_sec);
 
               worker->set_prach(prach_ptr?&prach_ptr[prach_sf_cnt*SRSLTE_SF_LEN_PRB(cell.nof_prb)]:NULL, prach_power);
 

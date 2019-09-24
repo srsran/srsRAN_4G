@@ -223,8 +223,12 @@ void sf_worker::work_imp()
 
   /***** Uplink Generation + Transmission *******/
 
-  bool  tx_signal_ready                                    = false;
-  cf_t* tx_signal_ptr[SRSLTE_MAX_RADIOS][SRSLTE_MAX_PORTS] = {};
+  bool     tx_signal_ready                                    = false;
+  cf_t*    tx_signal_ptr[SRSLTE_MAX_RADIOS][SRSLTE_MAX_PORTS] = {};
+  uint32_t nof_samples[SRSLTE_MAX_RADIOS]                     = {};
+  for (uint32_t i = 0; i < phy->args->nof_radios; i++) {
+    nof_samples[i] = SRSLTE_SF_LEN_PRB(cell.nof_prb);
+  }
 
   /* If TTI+4 is an uplink subframe (TODO: Support short PRACH and SRS in UpPts special subframes) */
   if ((srslte_sfidx_tdd_type(tdd_config, TTI_TX(tti) % 10) == SRSLTE_TDD_SF_U) || cell.frame_type == SRSLTE_FDD) {
@@ -257,13 +261,14 @@ void sf_worker::work_imp()
   if (prach_ptr) {
     tx_signal_ready     = true;
     tx_signal_ptr[0][0] = prach_ptr;
-    prach_ptr           = NULL;
+    prach_ptr           = nullptr;
+    Info("PRACH! next_offset=%d;\n", next_offset[0]);
+  } else {
+    for (uint32_t i = 0; i < phy->args->nof_radios; i++) {
+      nof_samples[i] += next_offset[i];
+    }
   }
 
-  uint32_t nof_samples[SRSLTE_MAX_RADIOS];
-  for (uint32_t i = 0; i < phy->args->nof_radios; i++) {
-    nof_samples[i] = SRSLTE_SF_LEN_PRB(cell.nof_prb) + next_offset[i];
-  }
 
   // Call worker_end to transmit the signal
   phy->worker_end(tx_sem_id, tx_signal_ready, tx_signal_ptr, nof_samples, tx_time);
