@@ -262,7 +262,7 @@ void srslte_refsignal_dl_sync_run(srslte_refsignal_dl_sync_t* q, cf_t* buffer, u
         cf_t* buf = &buffer[n];
 
         // Measure subframe rsrp, rssi and accumulate
-        float rsrp, rssi, cfo;
+        float rsrp = 0.0f, rssi = 0.0f, cfo = 0.0f;
         srslte_refsignal_dl_sync_measure_sf(q, buf, sf_idx, &rsrp, &rssi, &cfo);
         rsrp_lin += rsrp;
         rssi_lin += rssi;
@@ -271,9 +271,11 @@ void srslte_refsignal_dl_sync_run(srslte_refsignal_dl_sync_t* q, cf_t* buffer, u
       }
 
       // Average measurements
-      rsrp_lin /= sf_count;
-      rssi_lin /= sf_count;
-      cfo_acc /= sf_count;
+      if (sf_count) {
+        rsrp_lin /= sf_count;
+        rssi_lin /= sf_count;
+        cfo_acc /= sf_count;
+      }
 
       // Calculate in dBm
       q->rsrp_dBfs = 10.0f * log10f(rsrp_lin) + 30.0f;

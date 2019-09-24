@@ -42,7 +42,6 @@ static srslte_cell_t     cell_base = {.nof_prb         = 6,
 static std::string       intra_meas_log_level;
 static std::string       cell_list;
 static int               phy_lib_log_level;
-static srsue::phy_args_t phy_args;
 
 // On the Fly parameters
 static int         earfcn_dl;
@@ -293,7 +292,7 @@ public:
 // shorten boost program options namespace
 namespace bpo = boost::program_options;
 
-int parse_args(int argc, char** argv)
+int parse_args(int argc, char** argv, srsue::phy_args_t* phy_args)
 {
   int ret = SRSLTE_SUCCESS;
 
@@ -307,8 +306,8 @@ int parse_args(int argc, char** argv)
       ("duration",                  bpo::value<uint32_t>(&duration_execution_s)->default_value(60),                "Duration of the execution in seconds")
       ("cell.nof_prb",              bpo::value<uint32_t>(&cell_base.nof_prb)->default_value(100),                  "Cell Number of PRB")
       ("intra_meas_log_level",      bpo::value<std::string>(&intra_meas_log_level)->default_value("none"),         "Intra measurement log level (none, warning, info, debug)")
-      ("intra_freq_meas_len_ms",    bpo::value<uint32_t>(&phy_args.intra_freq_meas_len_ms)->default_value(20),     "Intra measurement measurement length")
-      ("intra_freq_meas_period_ms", bpo::value<uint32_t>(&phy_args.intra_freq_meas_period_ms)->default_value(200), "Intra measurement measurement period")
+      ("intra_freq_meas_len_ms",    bpo::value<uint32_t>(&phy_args->intra_freq_meas_len_ms)->default_value(20),     "Intra measurement measurement length")
+      ("intra_freq_meas_period_ms", bpo::value<uint32_t>(&phy_args->intra_freq_meas_period_ms)->default_value(200), "Intra measurement measurement period")
       ("phy_lib_log_level",         bpo::value<int>(&phy_lib_log_level)->default_value(SRSLTE_VERBOSE_NONE),       "Phy lib log level (0: none, 1: info, 2: debug)")
       ("cell_list",                 bpo::value<std::string>(&cell_list)->default_value("10,17,24,31,38,45,52"),    "Comma separated neighbour PCI cell list")
       ;
@@ -365,9 +364,10 @@ int parse_args(int argc, char** argv)
 int main(int argc, char** argv)
 {
   int ret = SRSLTE_SUCCESS;
+  srsue::phy_args_t phy_args = {};
 
   // Parse args
-  if (parse_args(argc, argv)) {
+  if (parse_args(argc, argv, &phy_args)) {
     return SRSLTE_ERROR;
   }
 
@@ -422,19 +422,22 @@ int main(int argc, char** argv)
     softbuffer_tx[i]       = (srslte_softbuffer_tx_t*)calloc(sizeof(srslte_softbuffer_tx_t), 1);
     if (!softbuffer_tx[i]) {
       ERROR("Error allocating softbuffer_tx\n");
+      ret = SRSLTE_ERROR;
     }
 
     if (srslte_softbuffer_tx_init(softbuffer_tx[i], cell_base.nof_prb)) {
       ERROR("Error initiating softbuffer_tx\n");
+      ret = SRSLTE_ERROR;
     }
 
     data_tx[i] = (uint8_t*)srslte_vec_malloc(sizeof(uint8_t) * nof_bytes);
     if (!data_tx[i]) {
       ERROR("Error allocating data tx\n");
-    }
-
-    for (uint32_t j = 0; j < nof_bytes; j++) {
-      data_tx[i][j] = (uint8_t)srslte_random_uniform_int_dist(random_gen, 0, 255);
+      ret = SRSLTE_ERROR;
+    } else {
+      for (uint32_t j = 0; j < nof_bytes; j++) {
+        data_tx[i][j] = (uint8_t)srslte_random_uniform_int_dist(random_gen, 0, 255);
+      }
     }
 
     srslte_random_free(random_gen);

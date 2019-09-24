@@ -2484,11 +2484,30 @@ void rrc::apply_phy_scell_config(const asn1::rrc::scell_to_add_mod_r10_s& scell_
   // Parse radio resource
   if (scell_config.rr_cfg_common_scell_r10_present) {
     const rr_cfg_common_scell_r10_s* rr_cfg = &scell_config.rr_cfg_common_scell_r10;
+    auto                             non_ul_cfg = &rr_cfg->non_ul_cfg_r10;
     scell.frame_type                        = (rr_cfg->tdd_cfg_v1130.is_present()) ? SRSLTE_TDD : SRSLTE_FDD;
-    scell.nof_prb                           = rr_cfg->non_ul_cfg_r10.dl_bw_r10.to_number();
-    scell.nof_ports                         = rr_cfg->non_ul_cfg_r10.ant_info_common_r10.ant_ports_count.to_number();
-    scell.phich_length    = (srslte_phich_length_t)rr_cfg->non_ul_cfg_r10.phich_cfg_r10.phich_dur.value;
-    scell.phich_resources = (srslte_phich_r_t)rr_cfg->non_ul_cfg_r10.phich_cfg_r10.phich_res.to_number();
+    scell.nof_prb                               = non_ul_cfg->dl_bw_r10.to_number();
+    scell.nof_ports                             = non_ul_cfg->ant_info_common_r10.ant_ports_count.to_number();
+    scell.phich_length = (non_ul_cfg->phich_cfg_r10.phich_dur.value == phich_cfg_s::phich_dur_opts::normal)
+                             ? SRSLTE_PHICH_NORM
+                             : SRSLTE_PHICH_EXT;
+
+    // Avoid direct conversion between different phich resource enum
+    switch (non_ul_cfg->phich_cfg_r10.phich_res.value) {
+      case phich_cfg_s::phich_res_opts::one_sixth:
+        scell.phich_resources = SRSLTE_PHICH_R_1_6;
+        break;
+      case phich_cfg_s::phich_res_opts::half:
+        scell.phich_resources = SRSLTE_PHICH_R_1_2;
+        break;
+      case phich_cfg_s::phich_res_opts::one:
+        scell.phich_resources = SRSLTE_PHICH_R_1;
+        break;
+      case phich_cfg_s::phich_res_opts::two:
+      case phich_cfg_s::phich_res_opts::nulltype:
+        scell.phich_resources = SRSLTE_PHICH_R_2;
+        break;
+    }
   }
 
   // Initialize scell config with pcell cfg

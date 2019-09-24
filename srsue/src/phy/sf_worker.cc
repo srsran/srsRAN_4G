@@ -60,20 +60,15 @@ sf_worker::sf_worker(uint32_t            max_prb,
                      srslte::log*        log_phy_lib_h_,
                      chest_feedback_itf* chest_loop_)
 {
-  cell_initiated      = false;
   phy                 = phy_;
   log_h               = log_h_;
   log_phy_lib_h       = log_phy_lib_h_;
   chest_loop          = chest_loop_;
 
-  bzero(&tdd_config, sizeof(srslte_tdd_config_t));
-
   // ue_sync in phy.cc requires a buffer for 3 subframes
   for (uint32_t r = 0; r < phy->args->nof_carriers; r++) {
     cc_workers.push_back(new cc_worker(r, max_prb, phy, log_h));
   }
-
-  pthread_mutex_init(&mutex, NULL);
 }
 
 sf_worker::~sf_worker()
@@ -81,26 +76,24 @@ sf_worker::~sf_worker()
   for (uint32_t r = 0; r < phy->args->nof_carriers; r++) {
     delete cc_workers[r];
   }
-  pthread_mutex_destroy(&mutex);
 }
 
 void sf_worker::reset()
 {
-  pthread_mutex_lock(&mutex);
+  std::lock_guard<std::mutex> lg(mutex);
   rssi_read_cnt = 0;
-  for (uint32_t i = 0; i < cc_workers.size(); i++) {
-    cc_workers[i]->reset();
+  for (auto& cc_worker : cc_workers) {
+    cc_worker->reset();
   }
-  pthread_mutex_unlock(&mutex);
 }
 
-bool sf_worker::set_cell(uint32_t cc_idx, srslte_cell_t cell)
+bool sf_worker::set_cell(uint32_t cc_idx, srslte_cell_t cell_)
 {
   bool ret = false;
-  pthread_mutex_lock(&mutex);
+  std::lock_guard<std::mutex> lg(mutex);
 
   if (cc_idx < cc_workers.size()) {
-    if (!cc_workers[cc_idx]->set_cell(cell)) {
+    if (!cc_workers[cc_idx]->set_cell(cell_)) {
       Error("Setting cell for cc=%d\n", cc_idx);
       goto unlock;
     }
@@ -109,13 +102,12 @@ bool sf_worker::set_cell(uint32_t cc_idx, srslte_cell_t cell)
   }
 
   if (cc_idx == 0) {
-    this->cell     = cell;
+    cell           = cell_;
     cell_initiated = true;
   }
   ret = true;
 
 unlock:
-  pthread_mutex_unlock(&mutex);
   return ret;
 }
 
@@ -124,13 +116,13 @@ cf_t* sf_worker::get_buffer(uint32_t carrier_idx, uint32_t antenna_idx)
   return cc_workers[carrier_idx]->get_rx_buffer(antenna_idx);
 }
 
-void sf_worker::set_tti(uint32_t tti, uint32_t tx_worker_cnt)
+void sf_worker::set_tti(uint32_t tti_, uint32_t tx_worker_cnt)
 {
-  for (uint32_t cc_idx = 0; cc_idx < cc_workers.size(); cc_idx++) {
-    cc_workers[cc_idx]->set_tti(tti);
-  }
+  tti = tti_;
 
-  this->tti = tti;
+  for (auto& cc_worker : cc_workers) {
+    cc_worker->set_tti(tti);
+  }
 
   tx_sem_id = tx_worker_cnt;
   log_h->step(tti);
@@ -140,16 +132,16 @@ void sf_worker::set_tti(uint32_t tti, uint32_t tx_worker_cnt)
   }
 }
 
-void sf_worker::set_tx_time(uint32_t radio_idx, srslte_timestamp_t tx_time, int next_offset)
+void sf_worker::set_tx_time(uint32_t radio_idx, srslte_timestamp_t tx_time_, int next_offset_)
 {
-  this->next_offset[radio_idx] = next_offset;
-  this->tx_time[radio_idx]     = tx_time;
+  next_offset[radio_idx] = next_offset_;
+  tx_time[radio_idx]     = tx_time_;
 }
 
-void sf_worker::set_prach(cf_t* prach_ptr, float prach_power)
+void sf_worker::set_prach(cf_t* prach_ptr_, float prach_power_)
 {
-  this->prach_ptr   = prach_ptr;
-  this->prach_power = prach_power;
+  prach_ptr   = prach_ptr_;
+  prach_power = prach_power_;
 }
 
 void sf_worker::set_cfo(const uint32_t& cc_idx, float cfo)
@@ -159,45 +151,43 @@ void sf_worker::set_cfo(const uint32_t& cc_idx, float cfo)
 
 void sf_worker::set_crnti(uint16_t rnti)
 {
-  for (uint32_t cc_idx = 0; cc_idx < cc_workers.size(); cc_idx++) {
-    cc_workers[cc_idx]->set_crnti(rnti);
+  for (auto& cc_worker : cc_workers) {
+    cc_worker->set_crnti(rnti);
   }
 }
 
 void sf_worker::set_tdd_config(srslte_tdd_config_t config)
 {
-  for (uint32_t cc_idx = 0; cc_idx < cc_workers.size(); cc_idx++) {
-    cc_workers[cc_idx]->set_tdd_config(config);
+  for (auto& cc_worker : cc_workers) {
+    cc_worker->set_tdd_config(config);
   }
   tdd_config = config;
 }
 
 void sf_worker::enable_pregen_signals(bool enabled)
 {
-  for (uint32_t cc_idx = 0; cc_idx < cc_workers.size(); cc_idx++) {
-    cc_workers[cc_idx]->enable_pregen_signals(enabled);
+  for (auto& cc_worker : cc_workers) {
+    cc_worker->enable_pregen_signals(enabled);
   }
 }
 
 void sf_worker::set_config(uint32_t cc_idx, srslte::phy_cfg_t& phy_cfg)
 {
-  pthread_mutex_lock(&mutex);
+  std::lock_guard<std::mutex> lg(mutex);
   if (cc_idx < cc_workers.size()) {
     Info("Setting configuration for cc_worker=%d, cc=%d\n", get_id(), cc_idx);
     cc_workers[cc_idx]->set_config(phy_cfg);
   } else {
     Error("Setting config for cc=%d; Invalid cc_idx\n", cc_idx);
   }
-  pthread_mutex_unlock(&mutex);
 }
 
 void sf_worker::work_imp()
 {
+  std::lock_guard<std::mutex> lg(mutex);
   if (!cell_initiated) {
     return;
   }
-
-  pthread_mutex_lock(&mutex);
 
   /***** Downlink Processing *******/
 
@@ -262,7 +252,6 @@ void sf_worker::work_imp()
     tx_signal_ready     = true;
     tx_signal_ptr[0][0] = prach_ptr;
     prach_ptr           = nullptr;
-    Info("PRACH! next_offset=%d;\n", next_offset[0]);
   } else {
     for (uint32_t i = 0; i < phy->args->nof_radios; i++) {
       nof_samples[i] += next_offset[i];
@@ -277,10 +266,8 @@ void sf_worker::work_imp()
     update_measurements();
   }
 
-  pthread_mutex_unlock(&mutex);
-
   // Call feedback loop for chest
-  if (chest_loop && ((1 << (tti % 10)) & phy->args->cfo_ref_mask)) {
+  if (chest_loop && ((1U << (tti % 10U)) & phy->args->cfo_ref_mask)) {
     chest_loop->set_cfo(cc_workers[0]->get_ref_cfo());
   }
 
@@ -423,6 +410,7 @@ plot_scatter_t pconst;
 #define SCATTER_PDSCH_PLOT_LEN 4000
 float tmp_plot[SCATTER_PDSCH_BUFFER_LEN];
 cf_t  tmp_plot2[SRSLTE_SF_LEN_RE(SRSLTE_MAX_PRB, SRSLTE_CP_NORM)];
+bool  plot_quit = false;
 
 #define CFO_PLOT_LEN 0 /* Set to non zero for enabling CFO plot */
 #if CFO_PLOT_LEN > 0
@@ -440,7 +428,7 @@ static float       sync_buffer[SYNC_PLOT_LEN];
 
 void* plot_thread_run(void* arg)
 {
-  srsue::sf_worker* worker = (srsue::sf_worker*)arg;
+  auto              worker    = (srsue::sf_worker*)arg;
   uint32_t          row_count = 0;
 
   sdrgui_init();
@@ -485,7 +473,7 @@ void* plot_thread_run(void* arg)
 
   int n;
   int readed_pdsch_re = 0;
-  while (1) {
+  while (!plot_quit) {
     sem_wait(&plot_sem);
 
     if (readed_pdsch_re < SCATTER_PDSCH_PLOT_LEN) {
@@ -512,7 +500,7 @@ void* plot_thread_run(void* arg)
     plot_real_setNewData(&pcfo, cfo_buffer, CFO_PLOT_LEN);
 #endif /* CFO_PLOT_LEN > 0 */
   }
-  return NULL;
+  return nullptr;
 }
 
 void init_plots(srsue::sf_worker* worker)
@@ -524,7 +512,7 @@ void init_plots(srsue::sf_worker* worker)
   }
 
   pthread_attr_t     attr;
-  struct sched_param param;
+  struct sched_param param = {};
   param.sched_priority = 0;
   pthread_attr_init(&attr);
   pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);

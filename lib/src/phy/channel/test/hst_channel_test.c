@@ -92,7 +92,9 @@ int main(int argc, char** argv)
   }
 
   // Generate random samples
-  srslte_vec_gen_sine(1.0f, 0.0f, input_buffer, size);
+  if (ret == SRSLTE_SUCCESS) {
+    srslte_vec_gen_sine(1.0f, 0.0f, input_buffer, size);
+  }
 
   // Initialise delay channel
   if (ret == SRSLTE_SUCCESS) {
@@ -133,7 +135,7 @@ int main(int argc, char** argv)
     free(output_buffer);
   }
 
-  uint64_t nof_samples = sim_time_periods * 1000 * period_s * size;
+  uint64_t nof_samples = sim_time_periods * (uint64_t)(1000 * period_s) * size;
   double   elapsed_us  = t[0].tv_sec * 1e6 + t[0].tv_usec;
 
   // Print result and exit

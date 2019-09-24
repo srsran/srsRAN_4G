@@ -54,9 +54,6 @@ phy_common::phy_common(uint32_t max_workers_) : tx_sem(max_workers_)
   }
 
   reset();
-
-  sib13_configured = false;
-  mcch_configured  = false;
 }
 
 phy_common::~phy_common()
@@ -792,10 +789,11 @@ bool phy_common::is_mch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti)
           uint32_t frame_alloc_idx = sfn % enum_to_number(mcch.common_sf_alloc_period);
           uint32_t sf_alloc_idx    = frame_alloc_idx * mbsfn_per_frame + ((sf < 4) ? sf - 1 : sf - 3);
           std::unique_lock<std::mutex> lock(mtch_mutex);
+          lock.lock();
           while (!have_mtch_stop) {
             mtch_cvar.wait(lock);
           }
-          mtch_mutex.unlock();
+          lock.unlock();
 
           for (uint32_t i = 0; i < mcch.nof_pmch_info; i++) {
             if (sf_alloc_idx <= mch_period_stop) {

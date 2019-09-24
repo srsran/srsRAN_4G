@@ -78,7 +78,7 @@ public:
 
 private:
   /* Inherited from thread_pool::worker. Function called every subframe to run the DL/UL processing */
-  void work_imp();
+  void work_imp() final;
 
   void update_measurements();
   void reset_uci(srslte_uci_data_t* uci_data);
@@ -93,7 +93,7 @@ private:
   ;
   chest_feedback_itf* chest_loop = nullptr;
 
-  pthread_mutex_t mutex;
+  std::mutex mutex;
 
   srslte_cell_t       cell       = {};
   srslte_tdd_config_t tdd_config = {};
