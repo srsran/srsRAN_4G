@@ -19,9 +19,10 @@
  *
  */
 
-#include <assert.h>
-#include <stdio.h>
 #include "srslte/common/thread_pool.h"
+#include <assert.h>
+#include <chrono>
+#include <stdio.h>
 
 #define DEBUG 0
 #define debug_thread(fmt, ...) do { if(DEBUG) printf(fmt, __VA_ARGS__); } while(0)
@@ -310,22 +311,22 @@ void task_thread_pool::start(int32_t prio, uint32_t mask)
 void task_thread_pool::stop()
 {
   std::unique_lock<std::mutex> lock(queue_mutex);
-  running = false;
-  do {
-    nof_workers_running = 0;
-    // next worker that is still running
-    for (worker_t& w : workers) {
-      if (w.is_running()) {
-        nof_workers_running++;
-      }
+  running             = false;
+  nof_workers_running = 0;
+  // next worker that is still running
+  for (worker_t& w : workers) {
+    if (w.is_running()) {
+      nof_workers_running++;
     }
-    if (nof_workers_running > 0) {
-      lock.unlock();
-      cv_empty.notify_all();
-      lock.lock();
+  }
+  if (nof_workers_running > 0) {
+    lock.unlock();
+    cv_empty.notify_all();
+    lock.lock();
+    while (nof_workers_running > 0) {
       cv_exit.wait(lock);
     }
-  } while (nof_workers_running > 0);
+  }
 }
 
 void task_thread_pool::push_task(const task_t& task)
