@@ -1756,7 +1756,7 @@ void rrc::process_pcch(unique_byte_buffer_t pdu)
   pcch_msg_s    pcch_msg;
   asn1::bit_ref bref(pdu->msg, pdu->N_bytes);
   if (pcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS or pcch_msg.msg.type().value != pcch_msg_type_c::types_opts::c1) {
-    rrc_log->error("Failed to unpack PCCH message\n");
+    rrc_log->error_hex(pdu->buffer, pdu->N_bytes, "Failed to unpack PCCH message (%d B)\n", pdu->N_bytes);
     return;
   }
 
