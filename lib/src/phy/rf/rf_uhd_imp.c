@@ -681,10 +681,8 @@ double rf_uhd_set_rx_srate(void* h, double freq)
   rf_uhd_handler_t* handler = (rf_uhd_handler_t*)h;
 
   // Set master clock rate
-  if (freq < 10e6) {
+  if (fmod(handler->current_master_clock, freq)) {
     rf_uhd_set_master_clock_rate(handler, 4 * freq);
-  } else {
-    rf_uhd_set_master_clock_rate(handler, freq);
   }
 
   if (handler->nof_rx_channels > 1) {
@@ -716,10 +714,8 @@ double rf_uhd_set_tx_srate(void* h, double freq)
   rf_uhd_handler_t* handler = (rf_uhd_handler_t*)h;
 
   // Set master clock rate
-  if (freq < 10e6) {
+  if (fmod(handler->current_master_clock, freq)) {
     rf_uhd_set_master_clock_rate(handler, 4 * freq);
-  } else {
-    rf_uhd_set_master_clock_rate(handler, freq);
   }
 
   if (handler->nof_tx_channels > 1) {
