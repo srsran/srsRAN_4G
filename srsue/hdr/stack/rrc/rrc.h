@@ -185,6 +185,7 @@ class cell_t
     has_valid_sib13 = true;
   }
 
+  // TODO: replace with TTI count
   uint32_t timeout_secs(struct timeval now) {
     struct timeval t[3];
     memcpy(&t[2], &now, sizeof(struct timeval));
@@ -443,22 +444,26 @@ private:
   // List of strongest neighbour cell
   const static int NEIGHBOUR_TIMEOUT   = 5;
   const static int NOF_NEIGHBOUR_CELLS = 8;
-  std::vector<cell_t*> neighbour_cells;
-  cell_t*              serving_cell = nullptr;
-  void set_serving_cell(uint32_t cell_idx);
-  void                 set_serving_cell(phy_interface_rrc_lte::phy_cell_t phy_cell);
 
+  typedef std::unique_ptr<cell_t> unique_cell_t;
+  std::vector<unique_cell_t>      neighbour_cells;
+  unique_cell_t                   serving_cell = nullptr;
+  void set_serving_cell(uint32_t cell_idx);
+  void                            set_serving_cell(phy_interface_rrc_lte::phy_cell_t phy_cell);
+
+  unique_cell_t                  remove_neighbour_cell(const uint32_t earfcn, const uint32_t pci);
+  cell_t*                        get_neighbour_cell_handle(const uint32_t earfcn, const uint32_t pci);
+  bool                           has_neighbour_cell(const uint32_t earfcn, const uint32_t pci);
   int  find_neighbour_cell(uint32_t earfcn, uint32_t pci);
   bool add_neighbour_cell(uint32_t earfcn, uint32_t pci, float rsrp);
   bool                           add_neighbour_cell(phy_interface_rrc_lte::phy_cell_t phy_cell, float rsrp);
-  bool add_neighbour_cell(cell_t *cell);
+  bool                           add_neighbour_cell(unique_cell_t new_cell);
   void sort_neighbour_cells();
   void clean_neighbours();
-  std::vector<cell_t*>::iterator delete_neighbour(std::vector<cell_t*>::iterator it);
-  void delete_neighbour(uint32_t cell_idx);
+  void                           delete_last_neighbour();
 
   bool initiated                                      = false;
-  asn1::rrc::reest_cause_e m_reest_cause              = {};
+  asn1::rrc::reest_cause_e m_reest_cause                                  = asn1::rrc::reest_cause_e::nulltype;
   uint16_t                 m_reest_rnti               = 0;
   bool                     reestablishment_started                        = false;
   bool                     reestablishment_successful = false;

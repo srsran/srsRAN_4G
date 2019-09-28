@@ -340,27 +340,29 @@ proc_outcome_t rrc::cell_selection_proc::step_cell_selection()
   for (; neigh_index < rrc_ptr->neighbour_cells.size(); ++neigh_index) {
     /*TODO: CHECK that PLMN matches. Currently we don't receive SIB1 of neighbour cells
      * neighbour_cells[i]->plmn_equals(selected_plmn_id) && */
-    if (rrc_ptr->neighbour_cells[neigh_index]->in_sync) {
+    if (rrc_ptr->neighbour_cells.at(neigh_index)->in_sync) {
       // Matches S criteria
-      float   rsrp      = rrc_ptr->neighbour_cells[neigh_index]->get_rsrp();
-      cell_t* serv_cell = rrc_ptr->serving_cell;
-      if (not serv_cell->in_sync or
+      float rsrp = rrc_ptr->neighbour_cells.at(neigh_index)->get_rsrp();
+
+      if (not rrc_ptr->serving_cell->in_sync or
           (rrc_ptr->cell_selection_criteria(rsrp) and rsrp > rrc_ptr->serving_cell->get_rsrp() + 5)) {
         // currently connected and verifies cell selection criteria
         // Try to select Cell
-        rrc_ptr->set_serving_cell(neigh_index);
-        Info("Selected cell idx=%d, PCI=%d, EARFCN=%d\n", neigh_index, serv_cell->get_pci(), serv_cell->get_earfcn());
-        log_h->console("Selected cell PCI=%d, EARFCN=%d\n", serv_cell->get_pci(), serv_cell->get_earfcn());
+        rrc_ptr->set_serving_cell(rrc_ptr->neighbour_cells.at(neigh_index)->phy_cell);
+        Info(
+            "Selected cell PCI=%d, EARFCN=%d\n", rrc_ptr->serving_cell->get_pci(), rrc_ptr->serving_cell->get_earfcn());
+        log_h->console(
+            "Selected cell PCI=%d, EARFCN=%d\n", rrc_ptr->serving_cell->get_pci(), rrc_ptr->serving_cell->get_earfcn());
 
         /* BLOCKING CALL */
-        if (rrc_ptr->phy->cell_select(&serv_cell->phy_cell)) {
+        if (rrc_ptr->phy->cell_select(&rrc_ptr->serving_cell->phy_cell)) {
           if (not rrc_ptr->serv_cell_cfg.launch(rrc_ptr, rrc_ptr->ue_required_sibs)) {
             return proc_outcome_t::error;
           }
           state = search_state_t::cell_config;
           return proc_outcome_t::repeat;
         } else {
-          serv_cell->in_sync = false;
+          rrc_ptr->serving_cell->in_sync = false;
           Error("Could not camp on serving cell.\n");
           // Continue to next neighbour cell
         }
