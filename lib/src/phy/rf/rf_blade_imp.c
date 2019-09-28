@@ -203,7 +203,7 @@ int rf_blade_open(char *args, void **h)
     return status;
   }
 
-  status = bladerf_get_gain_range(handler->dev, BLADERF_RX_X1, &range_tx);
+  status = bladerf_get_gain_range(handler->dev, BLADERF_TX_X1, &range_tx);
   if ((status != 0) || (range_tx == NULL)) {
     ERROR("Failed to get TX gain range: %s\n", bladerf_strerror(status));
     return status;
