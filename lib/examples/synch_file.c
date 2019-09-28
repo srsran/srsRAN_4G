@@ -158,7 +158,7 @@ int main(int argc, char **argv) {
    * a) requries more memory but has less latency and is paralellizable.
    */
   for (N_id_2=0;N_id_2<3;N_id_2++) {
-    if (srslte_pss_init(&pss[N_id_2], frame_length)) {
+    if (srslte_pss_init_fft(&pss[N_id_2], frame_length, symbol_sz)) {
       ERROR("Error initializing PSS object\n");
       exit(-1);
     }
@@ -166,7 +166,7 @@ int main(int argc, char **argv) {
       ERROR("Error initializing N_id_2\n");
       exit(-1);
     }
-    if (srslte_sss_init(&sss[N_id_2], 128)) {
+    if (srslte_sss_init(&sss[N_id_2], symbol_sz)) {
       ERROR("Error initializing SSS object\n");
       exit(-1);
     }
