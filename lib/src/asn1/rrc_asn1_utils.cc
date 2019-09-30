@@ -688,7 +688,7 @@ void set_phy_cfg_t_scell_config(phy_cfg_t* cfg, const asn1::rrc::scell_to_add_mo
 
 mbms_notif_cfg_t make_mbms_notif_cfg(const asn1::rrc::mbms_notif_cfg_r9_s& asn1_type)
 {
-  mbms_notif_cfg_t ret;
+  mbms_notif_cfg_t ret{};
   ret.notif_repeat_coeff = (mbms_notif_cfg_t::coeff_t)asn1_type.notif_repeat_coeff_r9.value;
   ret.notif_offset       = asn1_type.notif_offset_r9;
   ret.notif_sf_idx       = asn1_type.notif_sf_idx_r9;
@@ -697,7 +697,7 @@ mbms_notif_cfg_t make_mbms_notif_cfg(const asn1::rrc::mbms_notif_cfg_r9_s& asn1_
 
 mbsfn_area_info_t make_mbsfn_area_info(const asn1::rrc::mbsfn_area_info_r9_s& asn1_type)
 {
-  mbsfn_area_info_t ret;
+  mbsfn_area_info_t ret{};
   ret.mbsfn_area_id        = asn1_type.mbsfn_area_id_r9;
   ret.non_mbsfn_region_len = (mbsfn_area_info_t::region_len_t)asn1_type.non_mbsfn_region_len.value;
   ret.notif_ind            = asn1_type.notif_ind_r9;
@@ -713,7 +713,7 @@ mbsfn_area_info_t make_mbsfn_area_info(const asn1::rrc::mbsfn_area_info_r9_s& as
 
 mbsfn_sf_cfg_t make_mbsfn_sf_cfg(const asn1::rrc::mbsfn_sf_cfg_s& sf_cfg)
 {
-  mbsfn_sf_cfg_t cfg;
+  mbsfn_sf_cfg_t cfg{};
   cfg.radioframe_alloc_period = (mbsfn_sf_cfg_t::alloc_period_t)sf_cfg.radioframe_alloc_period.value;
   cfg.radioframe_alloc_offset = sf_cfg.radioframe_alloc_offset;
   cfg.nof_alloc_subfrs        = (mbsfn_sf_cfg_t::sf_alloc_type_t)sf_cfg.sf_alloc.type().value;
@@ -727,7 +727,7 @@ mbsfn_sf_cfg_t make_mbsfn_sf_cfg(const asn1::rrc::mbsfn_sf_cfg_s& sf_cfg)
 
 pmch_info_t make_pmch_info(const asn1::rrc::pmch_info_r9_s& asn1_type)
 {
-  pmch_info_t ret;
+  pmch_info_t ret{};
   ret.sf_alloc_end     = asn1_type.pmch_cfg_r9.sf_alloc_end_r9;
   ret.data_mcs         = asn1_type.pmch_cfg_r9.data_mcs_r9;
   ret.mch_sched_period = (pmch_info_t::mch_sched_period_t)asn1_type.pmch_cfg_r9.mch_sched_period_r9.value;
@@ -752,7 +752,7 @@ pmch_info_t make_pmch_info(const asn1::rrc::pmch_info_r9_s& asn1_type)
 
 mcch_msg_t make_mcch_msg(const asn1::rrc::mcch_msg_s& asn1_type)
 {
-  mcch_msg_t msg;
+  mcch_msg_t msg{};
   auto&      r9           = asn1_type.msg.c1().mbsfn_area_cfg_r9();
   msg.nof_common_sf_alloc = r9.common_sf_alloc_r9.size();
   for (uint32_t i = 0; i < msg.nof_common_sf_alloc; ++i) {
@@ -769,7 +769,7 @@ static_assert(ASN1_RRC_MAX_SESSION_PER_PMCH == pmch_info_t::max_session_per_pmch
 
 sib13_t make_sib13(const asn1::rrc::sib_type13_r9_s& asn1_type)
 {
-  sib13_t sib13;
+  sib13_t sib13{};
   sib13.nof_mbsfn_area_info = asn1_type.mbsfn_area_info_list_r9.size();
   for (uint32_t i = 0; i < asn1_type.mbsfn_area_info_list_r9.size(); ++i) {
     sib13.mbsfn_area_info_list[i] = make_mbsfn_area_info(asn1_type.mbsfn_area_info_list_r9[i]);
