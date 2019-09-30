@@ -1629,6 +1629,14 @@ int rlc_am::rlc_am_rx::get_status_pdu(rlc_status_pdu_t* status, const uint32_t m
       if (status->N_nack >= 1) {
         log->debug("Removing last NACK SN=%d\n", status->nacks[status->N_nack].nack_sn);
         status->N_nack--;
+        // make sure we don't have the current ACK_SN in the NACK list
+        if (rlc_am_is_valid_status_pdu(*status) == false) {
+          // No space to send any NACKs
+          log->debug("Resetting N_nack to zero\n");
+          status->N_nack = 0;
+        }
+      } else {
+        log->error("Failed to generate small enough status PDU\n");
       }
       break;
     }
@@ -2022,6 +2030,16 @@ int rlc_am_write_status_pdu(rlc_status_pdu_t *status, uint8_t *payload)
   // Pack bits
   srslte_bit_pack_vector(tmp.msg, payload, tmp.N_bits);
   return tmp.N_bits/8;
+}
+
+bool rlc_am_is_valid_status_pdu(const rlc_status_pdu_t& status)
+{
+  for (uint16_t i = 0; i < status.N_nack; ++i) {
+    if (status.nacks[i].nack_sn == status.ack_sn) {
+      return false;
+    }
+  }
+  return true;
 }
 
 uint32_t rlc_am_packed_length(rlc_amd_pdu_header_t *header)

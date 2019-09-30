@@ -154,7 +154,7 @@ struct rlc_status_nack_t{
 
 // STATUS PDU
 struct rlc_status_pdu_t{
-  uint16_t          ack_sn;
+  uint16_t          ack_sn; // SN of the next not received RLC Data PDU
   uint32_t          N_nack;
   rlc_status_nack_t nacks[RLC_AM_WINDOW_SIZE];
 

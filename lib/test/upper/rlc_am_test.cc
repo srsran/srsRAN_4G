@@ -1586,10 +1586,17 @@ bool status_pdu_test()
 
   // Read status PDU from RLC2
   byte_buffer_t status_buf;
-  len                = rlc2.read_pdu(status_buf.msg, 3); // provide only small grant
+  len                = rlc2.read_pdu(status_buf.msg, 5); // provide only small grant
   status_buf.N_bytes = len;
 
   assert(status_buf.N_bytes != 0);
+
+  // check status PDU doesn't contain ACK_SN in NACK list
+  rlc_status_pdu_t status_pdu = {};
+  rlc_am_read_status_pdu(status_buf.msg, status_buf.N_bytes, &status_pdu);
+  if (rlc_am_is_valid_status_pdu(status_pdu) == false) {
+    return -1;
+  }
 
   // Write status PDU to RLC1
   rlc1.write_pdu(status_buf.msg, status_buf.N_bytes);

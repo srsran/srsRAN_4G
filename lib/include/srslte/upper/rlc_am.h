@@ -306,6 +306,7 @@ int         rlc_am_write_status_pdu(rlc_status_pdu_t *status, uint8_t *payload);
 uint32_t    rlc_am_packed_length(rlc_amd_pdu_header_t *header);
 uint32_t    rlc_am_packed_length(rlc_status_pdu_t *status);
 uint32_t    rlc_am_packed_length(rlc_amd_retx_t retx);
+bool        rlc_am_is_valid_status_pdu(const rlc_status_pdu_t& status);
 bool        rlc_am_is_control_pdu(byte_buffer_t *pdu);
 bool        rlc_am_is_control_pdu(uint8_t *payload);
 bool        rlc_am_is_pdu_segment(uint8_t *payload);
@@ -317,6 +318,5 @@ bool        rlc_am_is_unaligned(const uint8_t fi);
 bool        rlc_am_not_start_aligned(const uint8_t fi);
 
 } // namespace srslte
-
 
 #endif // SRSLTE_RLC_AM_H
