@@ -146,8 +146,9 @@ int test_tx(uint32_t                     n_packets,
   rlc_dummy rlc(log);
   rrc_dummy rrc(log);
   gw_dummy  gw(log);
+  srslte::timers timers(64);
 
-  pdcp.init(&rlc, &rrc, &gw, log, 0, cfg);
+  pdcp.init(&rlc, &rrc, &gw, &timers, log, 0, cfg);
   pdcp.config_security(
       k_enc, k_int, k_enc, k_int, srslte::CIPHERING_ALGORITHM_ID_128_EEA2, srslte::INTEGRITY_ALGORITHM_ID_128_EIA2);
   pdcp.enable_integrity();
@@ -269,21 +270,23 @@ int test_rx_in_sequence(uint64_t n_packets, uint8_t pdcp_sn_len, srslte::byte_bu
   srslte::pdcp_config_t cfg_rx = {
       1, srslte::PDCP_RB_IS_DRB, srslte::SECURITY_DIRECTION_DOWNLINK, srslte::SECURITY_DIRECTION_UPLINK, pdcp_sn_len};
 
-  rlc_dummy rlc_tx(log);
-  rrc_dummy rrc_tx(log);
-  gw_dummy  gw_tx(log);
+  rlc_dummy      rlc_tx(log);
+  rrc_dummy      rrc_tx(log);
+  gw_dummy       gw_tx(log);
+  srslte::timers timers_tx(64);
 
-  rlc_dummy rlc_rx(log);
-  rrc_dummy rrc_rx(log);
-  gw_dummy  gw_rx(log);
+  rlc_dummy      rlc_rx(log);
+  rrc_dummy      rrc_rx(log);
+  gw_dummy       gw_rx(log);
+  srslte::timers timers_rx(64);
 
-  pdcp_tx.init(&rlc_tx, &rrc_tx, &gw_tx, log, 0, cfg_tx);
+  pdcp_tx.init(&rlc_tx, &rrc_tx, &gw_tx, &timers_tx, log, 0, cfg_tx);
   pdcp_tx.config_security(
       k_enc, k_int, k_enc, k_int, srslte::CIPHERING_ALGORITHM_ID_128_EEA2, srslte::INTEGRITY_ALGORITHM_ID_128_EIA2);
   pdcp_tx.enable_integrity();
   pdcp_tx.enable_encryption();
 
-  pdcp_rx.init(&rlc_rx, &rrc_rx, &gw_rx, log, 0, cfg_rx);
+  pdcp_rx.init(&rlc_rx, &rrc_rx, &gw_rx, &timers_rx, log, 0, cfg_rx);
   pdcp_rx.config_security(
       k_enc, k_int, k_enc, k_int, srslte::CIPHERING_ALGORITHM_ID_128_EEA2, srslte::INTEGRITY_ALGORITHM_ID_128_EIA2);
   pdcp_rx.enable_integrity();

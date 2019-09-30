@@ -32,6 +32,7 @@ pdcp_entity_nr::~pdcp_entity_nr() {}
 void pdcp_entity_nr::init(srsue::rlc_interface_pdcp* rlc_,
                           srsue::rrc_interface_pdcp* rrc_,
                           srsue::gw_interface_pdcp*  gw_,
+                          srslte::timers*            timers_,
                           srslte::log*               log_,
                           uint32_t                   lcid_,
                           pdcp_config_t              cfg_)
@@ -39,6 +40,7 @@ void pdcp_entity_nr::init(srsue::rlc_interface_pdcp* rlc_,
   rlc           = rlc_;
   rrc           = rrc_;
   gw            = gw_;
+  timers        = timers_;
   log           = log_;
   lcid          = lcid_;
   cfg           = cfg_;

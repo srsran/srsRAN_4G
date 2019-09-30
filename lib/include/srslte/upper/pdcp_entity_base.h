@@ -90,7 +90,8 @@ public:
   uint32_t COUNT(uint32_t hfn, uint32_t sn);
 
 protected:
-  srslte::log* log = nullptr;
+  srslte::log*    log    = nullptr;
+  srslte::timers* timers = nullptr;
 
   bool     active        = false;
   uint32_t lcid          = 0;

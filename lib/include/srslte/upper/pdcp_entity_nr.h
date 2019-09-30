@@ -44,6 +44,7 @@ public:
   void init(srsue::rlc_interface_pdcp* rlc_,
             srsue::rrc_interface_pdcp* rrc_,
             srsue::gw_interface_pdcp*  gw_,
+            srslte::timers*            timers_,
             srslte::log*               log_,
             uint32_t                   lcid_,
             pdcp_config_t              cfg_);
