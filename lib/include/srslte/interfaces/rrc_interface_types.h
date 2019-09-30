@@ -520,6 +520,120 @@ struct phy_cfg_t {
   srslte_prach_cfg_t prach_cfg;
 };
 
+struct mbsfn_sf_cfg_t {
+  enum class alloc_period_t { n1, n2, n4, n8, n16, n32, nulltype };
+  alloc_period_t radioframe_alloc_period;
+  uint8_t        radioframe_alloc_offset = 0;
+  enum class sf_alloc_type_t { one_frame, four_frames, nulltype };
+  sf_alloc_type_t nof_alloc_subfrs;
+  uint32_t        sf_alloc;
+};
+inline uint16_t enum_to_number(const mbsfn_sf_cfg_t::alloc_period_t& radioframe_period)
+{
+  constexpr static uint16_t options[] = {1, 2, 4, 8, 16, 32};
+  return enum_to_number(options, (uint32_t)mbsfn_sf_cfg_t::alloc_period_t::nulltype, (uint32_t)radioframe_period);
+}
+
+struct mbms_notif_cfg_t {
+  enum class coeff_t { n2, n4 };
+  coeff_t notif_repeat_coeff = coeff_t::n2;
+  uint8_t notif_offset       = 0;
+  uint8_t notif_sf_idx       = 1;
+};
+
+// MBSFN-AreaInfo-r9 ::= SEQUENCE
+struct mbsfn_area_info_t {
+  uint8_t mbsfn_area_id = 0;
+  enum class region_len_t { s1, s2, nulltype } non_mbsfn_region_len;
+  uint8_t notif_ind = 0;
+  struct mcch_cfg_t {
+    enum class repeat_period_t { rf32, rf64, rf128, rf256, nulltype } mcch_repeat_period;
+    uint8_t mcch_offset = 0;
+    enum class mod_period_t { rf512, rf1024 } mcch_mod_period;
+    uint8_t sf_alloc_info = 0;
+    enum class sig_mcs_t { n2, n7, n13, n19, nulltype } sig_mcs;
+  } mcch_cfg;
+};
+inline uint16_t enum_to_number(const mbsfn_area_info_t::region_len_t& region_len)
+{
+  constexpr static uint16_t options[] = {1, 2};
+  return enum_to_number(options, (uint32_t)mbsfn_area_info_t::region_len_t::nulltype, (uint32_t)region_len);
+}
+inline uint16_t enum_to_number(const mbsfn_area_info_t::mcch_cfg_t::repeat_period_t& repeat_period)
+{
+  constexpr static uint16_t options[] = {32, 64, 128, 256};
+  return enum_to_number(
+      options, (uint32_t)mbsfn_area_info_t::mcch_cfg_t::repeat_period_t::nulltype, (uint32_t)repeat_period);
+}
+inline uint16_t enum_to_number(const mbsfn_area_info_t::mcch_cfg_t::sig_mcs_t& sig_mcs)
+{
+  constexpr static uint16_t options[] = {2, 7, 13, 19};
+  return enum_to_number(options, (uint32_t)mbsfn_area_info_t::mcch_cfg_t::sig_mcs_t::nulltype, (uint32_t)sig_mcs);
+}
+
+// TMGI-r9
+struct tmgi_t {
+  enum class plmn_id_type_t { plmn_idx, explicit_value } plmn_id_type;
+  union choice {
+    uint8_t   plmn_idx;
+    plmn_id_t explicit_value;
+    choice() : plmn_idx(0) {}
+  } plmn_id;
+  uint8_t serviced_id[3];
+  tmgi_t() : plmn_id_type(plmn_id_type_t::plmn_idx) {}
+};
+
+struct pmch_info_t {
+  // pmch_cfg_t
+  uint16_t sf_alloc_end = 0;
+  uint8_t  data_mcs     = 0;
+  enum class mch_sched_period_t { rf8, rf16, rf32, rf64, rf128, rf256, rf512, rf1024, nulltype } mch_sched_period;
+  // mbms_session_info_list
+  struct mbms_session_info_t {
+    bool    session_id_present = false;
+    tmgi_t  tmgi;
+    uint8_t session_id;
+    uint8_t lc_ch_id = 0;
+  };
+  uint32_t              nof_mbms_session_info;
+  static const uint32_t max_session_per_pmch = 29;
+  mbms_session_info_t   mbms_session_info_list[max_session_per_pmch];
+};
+inline uint16_t enum_to_number(const pmch_info_t::mch_sched_period_t& mch_period)
+{
+  constexpr static uint16_t options[] = {8, 16, 32, 64, 128, 256, 512, 1024};
+  return enum_to_number(options, (uint32_t)pmch_info_t::mch_sched_period_t::nulltype, (uint32_t)mch_period);
+}
+
+struct mcch_msg_t {
+  uint32_t       nof_common_sf_alloc = 0;
+  mbsfn_sf_cfg_t common_sf_alloc[8];
+  enum class common_sf_alloc_period_t { rf4, rf8, rf16, rf32, rf64, rf128, rf256, nulltype } common_sf_alloc_period;
+  uint32_t    nof_pmch_info;
+  pmch_info_t pmch_info_list[15];
+  // mbsfn_area_cfg_v930_ies non crit ext OPTIONAL
+};
+inline uint16_t enum_to_number(const mcch_msg_t::common_sf_alloc_period_t& alloc_period)
+{
+  constexpr static uint16_t options[] = {4, 8, 16, 32, 64, 128, 256};
+  return enum_to_number(options, (uint32_t)mcch_msg_t::common_sf_alloc_period_t::nulltype, (uint32_t)alloc_period);
+}
+
+struct phy_cfg_mbsfn_t {
+  mbsfn_sf_cfg_t    mbsfn_subfr_cnfg;
+  mbms_notif_cfg_t  mbsfn_notification_cnfg;
+  mbsfn_area_info_t mbsfn_area_info;
+  mcch_msg_t        mcch;
+};
+
+// SystemInformationBlockType13-r9
+struct sib13_t {
+  static const uint32_t max_mbsfn_area      = 8;
+  uint32_t              nof_mbsfn_area_info = 0;
+  mbsfn_area_info_t     mbsfn_area_info_list[max_mbsfn_area];
+  mbms_notif_cfg_t      notif_cfg;
+};
+
 } // namespace srslte
 
 #endif // SRSLTE_RRC_INTERFACE_TYPES_H

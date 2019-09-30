@@ -46,6 +46,12 @@ struct pucch_cfg_common_s;
 struct srs_ul_cfg_common_c;
 struct ul_pwr_ctrl_common_s;
 struct scell_to_add_mod_r10_s;
+struct mbms_notif_cfg_r9_s;
+struct mbsfn_area_info_r9_s;
+struct mbsfn_sf_cfg_s;
+struct mcch_msg_s;
+struct sib_type13_r9_s;
+
 } // namespace rrc
 } // namespace asn1
 
@@ -87,6 +93,14 @@ void set_phy_cfg_t_common_srs(phy_cfg_t* cfg, const asn1::rrc::srs_ul_cfg_common
 void set_phy_cfg_t_common_pwr_ctrl(phy_cfg_t* cfg, const asn1::rrc::ul_pwr_ctrl_common_s& asn1_type);
 void set_phy_cfg_t_scell_config(phy_cfg_t* cfg, const asn1::rrc::scell_to_add_mod_r10_s& asn1_type);
 void set_phy_cfg_t_enable_64qam(phy_cfg_t* cfg, const bool enabled);
-}
+
+// mbms
+mbms_notif_cfg_t  make_mbms_notif_cfg(const asn1::rrc::mbms_notif_cfg_r9_s& asn1_type);
+mbsfn_area_info_t make_mbsfn_area_info(const asn1::rrc::mbsfn_area_info_r9_s& asn1_type);
+mbsfn_sf_cfg_t    make_mbsfn_sf_cfg(const asn1::rrc::mbsfn_sf_cfg_s& sf_cfg);
+mcch_msg_t        make_mcch_msg(const asn1::rrc::mcch_msg_s& asn1_type);
+sib13_t           make_sib13(const asn1::rrc::sib_type13_r9_s& asn1_type);
+
+} // namespace srslte
 
 #endif // SRSLTE_RRC_ASN1_UTILS_H

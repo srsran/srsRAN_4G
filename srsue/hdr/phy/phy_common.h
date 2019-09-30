@@ -55,7 +55,7 @@ public:
   phy_args_t*              args  = nullptr;
   stack_interface_phy_lte* stack = nullptr;
 
-  phy_interface_rrc_lte::phy_cfg_mbsfn_t mbsfn_config;
+  srslte::phy_cfg_mbsfn_t mbsfn_config;
 
   /* Power control variables */
   float    pathloss[SRSLTE_MAX_CARRIERS]       = {};

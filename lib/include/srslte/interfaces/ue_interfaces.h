@@ -32,7 +32,6 @@
 
 #include "rrc_interface_types.h"
 #include "srslte/asn1/liblte_mme.h"
-#include "srslte/asn1/rrc_asn1.h"
 #include "srslte/common/common.h"
 #include "srslte/common/interfaces_common.h"
 #include "srslte/common/security.h"
@@ -574,28 +573,21 @@ public:
 class phy_interface_rrc_lte
 {
 public:
-  struct phy_cfg_mbsfn_t {
-    asn1::rrc::mbsfn_sf_cfg_s       mbsfn_subfr_cnfg;
-    asn1::rrc::mbms_notif_cfg_r9_s  mbsfn_notification_cnfg;
-    asn1::rrc::mbsfn_area_info_r9_s mbsfn_area_info;
-    asn1::rrc::mcch_msg_s           mcch;
-  };
-
-  virtual void get_current_cell(srslte_cell_t *cell, uint32_t *current_earfcn = NULL) = 0;
-  virtual uint32_t get_current_earfcn() = 0;
-  virtual uint32_t get_current_pci() = 0;
+  virtual void     get_current_cell(srslte_cell_t* cell, uint32_t* current_earfcn = NULL) = 0;
+  virtual uint32_t get_current_earfcn()                                                   = 0;
+  virtual uint32_t get_current_pci()                                                      = 0;
 
   virtual void set_config(srslte::phy_cfg_t& config,
                           uint32_t           cc_idx    = 0,
                           uint32_t           earfcn    = 0,
-                          srslte_cell_t*     cell_info = nullptr)             = 0;
-  virtual void set_config_tdd(srslte_tdd_config_t& tdd_config)            = 0;
-  virtual void set_config_mbsfn_sib2(asn1::rrc::sib_type2_s* sib2)        = 0;
-  virtual void set_config_mbsfn_sib13(asn1::rrc::sib_type13_r9_s* sib13)  = 0;
-  virtual void set_config_mbsfn_mcch(asn1::rrc::mcch_msg_s* mcch)         = 0;
+                          srslte_cell_t*     cell_info = nullptr)                             = 0;
+  virtual void set_config_tdd(srslte_tdd_config_t& tdd_config)                            = 0;
+  virtual void set_config_mbsfn_sib2(srslte::mbsfn_sf_cfg_t* cfg_list, uint32_t nof_cfgs) = 0;
+  virtual void set_config_mbsfn_sib13(const srslte::sib13_t& sib13)                       = 0;
+  virtual void set_config_mbsfn_mcch(const srslte::mcch_msg_t& mcch)                      = 0;
 
   /* Measurements interface */
-  virtual void meas_reset() = 0;
+  virtual void meas_reset()                              = 0;
   virtual int  meas_start(uint32_t earfcn, int pci = -1) = 0;
   virtual int  meas_stop(uint32_t earfcn, int pci = -1) = 0;
 

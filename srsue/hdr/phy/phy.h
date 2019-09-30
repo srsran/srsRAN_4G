@@ -110,10 +110,9 @@ public:
   void set_config(srslte::phy_cfg_t& config, uint32_t cc_idx, uint32_t earfcn, srslte_cell_t* cell_info) final;
   void set_config_tdd(srslte_tdd_config_t& tdd_config) final;
 
-#pragma message("Remove ASN1 from MBSFN")
-  void set_config_mbsfn_sib2(asn1::rrc::sib_type2_s* sib2) final;
-  void set_config_mbsfn_sib13(asn1::rrc::sib_type13_r9_s* sib13) final;
-  void set_config_mbsfn_mcch(asn1::rrc::mcch_msg_s* mcch) final;
+  void set_config_mbsfn_sib2(srslte::mbsfn_sf_cfg_t* cfg_list, uint32_t nof_cfgs) final;
+  void set_config_mbsfn_sib13(const srslte::sib13_t& sib13) final;
+  void set_config_mbsfn_mcch(const srslte::mcch_msg_t& mcch) final;
 
   /*Set MAC->PHY MCH period  stopping point*/
   void set_mch_period_stop(uint32_t stop) final;

@@ -26,6 +26,7 @@
 
 #include "rrc_common.h"
 #include "rrc_metrics.h"
+#include "srslte/asn1/rrc_asn1.h"
 #include "srslte/asn1/rrc_asn1_utils.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/block_queue.h"
@@ -37,8 +38,8 @@
 #include "srslte/common/threads.h"
 #include "srslte/interfaces/ue_interfaces.h"
 
-#include <math.h>
 #include <map>
+#include <math.h>
 #include <queue>
 
 #define SRSLTE_RRC_N_BANDS 43

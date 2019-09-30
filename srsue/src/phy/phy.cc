@@ -488,36 +488,34 @@ void phy::set_config_tdd(srslte_tdd_config_t& tdd_config_)
   }
 }
 
-void phy::set_config_mbsfn_sib2(sib_type2_s* sib2)
+void phy::set_config_mbsfn_sib2(srslte::mbsfn_sf_cfg_t* cfg_list, uint32_t nof_cfgs)
 {
-  if (sib2->mbsfn_sf_cfg_list_present and sib2->mbsfn_sf_cfg_list.size() > 1) {
-    Warning("SIB2 has %d MBSFN subframe configs - only 1 supported\n", sib2->mbsfn_sf_cfg_list.size());
+  if (nof_cfgs > 1) {
+    Warning("SIB2 has %d MBSFN subframe configs - only 1 supported\n", nof_cfgs);
   }
-  if (sib2->mbsfn_sf_cfg_list_present and sib2->mbsfn_sf_cfg_list.size() > 0) {
-    common.mbsfn_config.mbsfn_subfr_cnfg = sib2->mbsfn_sf_cfg_list[0];
+  if (nof_cfgs > 0) {
+    common.mbsfn_config.mbsfn_subfr_cnfg = cfg_list[0];
     common.build_mch_table();
   }
 }
 
-void phy::set_config_mbsfn_sib13(sib_type13_r9_s* sib13)
+void phy::set_config_mbsfn_sib13(const srslte::sib13_t& sib13)
 {
-  common.mbsfn_config.mbsfn_notification_cnfg = sib13->notif_cfg_r9;
-  if (sib13->mbsfn_area_info_list_r9.size() > 1) {
-    Warning("SIB13 has %d MBSFN area info elements - only 1 supported\n", sib13->mbsfn_area_info_list_r9.size());
+  common.mbsfn_config.mbsfn_notification_cnfg = sib13.notif_cfg;
+  if (sib13.nof_mbsfn_area_info > 1) {
+    Warning("SIB13 has %d MBSFN area info elements - only 1 supported\n", sib13.nof_mbsfn_area_info);
   }
-  if (sib13->mbsfn_area_info_list_r9.size() > 0) {
-    common.mbsfn_config.mbsfn_area_info = sib13->mbsfn_area_info_list_r9[0];
+  if (sib13.nof_mbsfn_area_info > 0) {
+    common.mbsfn_config.mbsfn_area_info = sib13.mbsfn_area_info_list[0];
     common.build_mcch_table();
   }
 }
 
-void phy::set_config_mbsfn_mcch(mcch_msg_s* mcch)
+void phy::set_config_mbsfn_mcch(const srslte::mcch_msg_t& mcch)
 {
-  common.mbsfn_config.mcch = *mcch;
-  stack->set_mbsfn_config(
-      common.mbsfn_config.mcch.msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[0].mbms_session_info_list_r9.size());
-  common.set_mch_period_stop(
-      common.mbsfn_config.mcch.msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[0].pmch_cfg_r9.sf_alloc_end_r9);
+  common.mbsfn_config.mcch = mcch;
+  stack->set_mbsfn_config(common.mbsfn_config.mcch.pmch_info_list[0].nof_mbms_session_info);
+  common.set_mch_period_stop(common.mbsfn_config.mcch.pmch_info_list[0].sf_alloc_end);
   common.set_mcch();
 }
 

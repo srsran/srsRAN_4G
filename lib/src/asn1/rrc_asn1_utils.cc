@@ -684,4 +684,98 @@ void set_phy_cfg_t_scell_config(phy_cfg_t* cfg, const asn1::rrc::scell_to_add_mo
   }
 }
 
+// MBMS
+
+mbms_notif_cfg_t make_mbms_notif_cfg(const asn1::rrc::mbms_notif_cfg_r9_s& asn1_type)
+{
+  mbms_notif_cfg_t ret;
+  ret.notif_repeat_coeff = (mbms_notif_cfg_t::coeff_t)asn1_type.notif_repeat_coeff_r9.value;
+  ret.notif_offset       = asn1_type.notif_offset_r9;
+  ret.notif_sf_idx       = asn1_type.notif_sf_idx_r9;
+  return ret;
+}
+
+mbsfn_area_info_t make_mbsfn_area_info(const asn1::rrc::mbsfn_area_info_r9_s& asn1_type)
+{
+  mbsfn_area_info_t ret;
+  ret.mbsfn_area_id        = asn1_type.mbsfn_area_id_r9;
+  ret.non_mbsfn_region_len = (mbsfn_area_info_t::region_len_t)asn1_type.non_mbsfn_region_len.value;
+  ret.notif_ind            = asn1_type.notif_ind_r9;
+  ret.mcch_cfg.mcch_repeat_period =
+      (mbsfn_area_info_t::mcch_cfg_t::repeat_period_t)asn1_type.mcch_cfg_r9.mcch_repeat_period_r9.value;
+  ret.mcch_cfg.mcch_offset = asn1_type.mcch_cfg_r9.mcch_offset_r9;
+  ret.mcch_cfg.mcch_mod_period =
+      (mbsfn_area_info_t::mcch_cfg_t::mod_period_t)asn1_type.mcch_cfg_r9.mcch_mod_period_r9.value;
+  ret.mcch_cfg.sf_alloc_info = asn1_type.mcch_cfg_r9.sf_alloc_info_r9.to_number();
+  ret.mcch_cfg.sig_mcs       = (mbsfn_area_info_t::mcch_cfg_t::sig_mcs_t)asn1_type.mcch_cfg_r9.sig_mcs_r9.value;
+  return ret;
+}
+
+mbsfn_sf_cfg_t make_mbsfn_sf_cfg(const asn1::rrc::mbsfn_sf_cfg_s& sf_cfg)
+{
+  mbsfn_sf_cfg_t cfg;
+  cfg.radioframe_alloc_period = (mbsfn_sf_cfg_t::alloc_period_t)sf_cfg.radioframe_alloc_period.value;
+  cfg.radioframe_alloc_offset = sf_cfg.radioframe_alloc_offset;
+  cfg.nof_alloc_subfrs        = (mbsfn_sf_cfg_t::sf_alloc_type_t)sf_cfg.sf_alloc.type().value;
+  if (sf_cfg.sf_alloc.type().value == asn1::rrc::mbsfn_sf_cfg_s::sf_alloc_c_::types_opts::one_frame) {
+    cfg.sf_alloc = sf_cfg.sf_alloc.one_frame().to_number();
+  } else {
+    cfg.sf_alloc = sf_cfg.sf_alloc.four_frames().to_number();
+  }
+  return cfg;
+}
+
+pmch_info_t make_pmch_info(const asn1::rrc::pmch_info_r9_s& asn1_type)
+{
+  pmch_info_t ret;
+  ret.sf_alloc_end     = asn1_type.pmch_cfg_r9.sf_alloc_end_r9;
+  ret.data_mcs         = asn1_type.pmch_cfg_r9.data_mcs_r9;
+  ret.mch_sched_period = (pmch_info_t::mch_sched_period_t)asn1_type.pmch_cfg_r9.mch_sched_period_r9.value;
+
+  ret.nof_mbms_session_info = asn1_type.mbms_session_info_list_r9.size();
+  for (uint32_t i = 0; i < ret.nof_mbms_session_info; ++i) {
+    auto& asn1item          = asn1_type.mbms_session_info_list_r9[i];
+    auto& item              = ret.mbms_session_info_list[i];
+    item.session_id_present = asn1item.session_id_r9_present;
+    item.lc_ch_id           = asn1item.lc_ch_id_r9;
+    item.session_id         = asn1item.session_id_r9[0];
+    item.tmgi.plmn_id_type  = (tmgi_t::plmn_id_type_t)asn1item.tmgi_r9.plmn_id_r9.type().value;
+    if (item.tmgi.plmn_id_type == tmgi_t::plmn_id_type_t::plmn_idx) {
+      item.tmgi.plmn_id.plmn_idx = asn1item.tmgi_r9.plmn_id_r9.plmn_idx_r9();
+    } else {
+      item.tmgi.plmn_id.explicit_value = make_plmn_id_t(asn1item.tmgi_r9.plmn_id_r9.explicit_value_r9());
+    }
+    memcpy(item.tmgi.serviced_id, &asn1item.tmgi_r9.service_id_r9[0], 3);
+  }
+  return ret;
+}
+
+mcch_msg_t make_mcch_msg(const asn1::rrc::mcch_msg_s& asn1_type)
+{
+  mcch_msg_t msg;
+  auto&      r9           = asn1_type.msg.c1().mbsfn_area_cfg_r9();
+  msg.nof_common_sf_alloc = r9.common_sf_alloc_r9.size();
+  for (uint32_t i = 0; i < msg.nof_common_sf_alloc; ++i) {
+    msg.common_sf_alloc[i] = make_mbsfn_sf_cfg(r9.common_sf_alloc_r9[i]);
+  }
+  msg.common_sf_alloc_period = (mcch_msg_t::common_sf_alloc_period_t)r9.common_sf_alloc_period_r9.value;
+  msg.nof_pmch_info          = r9.pmch_info_list_r9.size();
+  for (uint32_t i = 0; i < msg.nof_pmch_info; ++i) {
+    msg.pmch_info_list[i] = make_pmch_info(r9.pmch_info_list_r9[i]);
+  }
+  return msg;
+}
+static_assert(ASN1_RRC_MAX_SESSION_PER_PMCH == pmch_info_t::max_session_per_pmch, "ASN1 to srsLTE interface mismatch");
+
+sib13_t make_sib13(const asn1::rrc::sib_type13_r9_s& asn1_type)
+{
+  sib13_t sib13;
+  sib13.nof_mbsfn_area_info = asn1_type.mbsfn_area_info_list_r9.size();
+  for (uint32_t i = 0; i < asn1_type.mbsfn_area_info_list_r9.size(); ++i) {
+    sib13.mbsfn_area_info_list[i] = make_mbsfn_area_info(asn1_type.mbsfn_area_info_list_r9[i]);
+  }
+  sib13.notif_cfg = make_mbms_notif_cfg(asn1_type.notif_cfg_r9);
+  return sib13;
+}
+
 } // namespace srslte

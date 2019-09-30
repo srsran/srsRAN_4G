@@ -1644,7 +1644,13 @@ void rrc::handle_sib2()
   mac->set_config(current_mac_cfg);
 
   // Set MBSFN configs
-  phy->set_config_mbsfn_sib2(sib2);
+  if (sib2->mbsfn_sf_cfg_list_present) {
+    srslte::mbsfn_sf_cfg_t list[ASN1_RRC_MAX_MBSFN_ALLOCS];
+    for (uint32_t i = 0; i < sib2->mbsfn_sf_cfg_list.size(); ++i) {
+      list[i] = srslte::make_mbsfn_sf_cfg(sib2->mbsfn_sf_cfg_list[i]);
+    }
+    phy->set_config_mbsfn_sib2(&list[0], sib2->mbsfn_sf_cfg_list.size());
+  }
 
   // Apply PHY RR Config Common
   set_phy_cfg_t_common_pdsch(&current_phy_cfg, sib2->rr_cfg_common.pdsch_cfg_common);
@@ -1720,7 +1726,7 @@ void rrc::handle_sib13()
 
   sib_type13_r9_s* sib13 = serving_cell->sib13ptr();
 
-  phy->set_config_mbsfn_sib13(sib13);
+  phy->set_config_mbsfn_sib13(srslte::make_sib13(*sib13));
   add_mrb(0, 0); // Add MRB0
 }
 
@@ -1806,7 +1812,7 @@ void rrc::parse_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
     return;
   }
   serving_cell->has_mcch = true;
-  phy->set_config_mbsfn_mcch(&serving_cell->mcch);
+  phy->set_config_mbsfn_mcch(srslte::make_mcch_msg(serving_cell->mcch));
   log_rrc_message("MCH", Rx, pdu.get(), serving_cell->mcch);
   if (args.mbms_service_id >= 0) {
     rrc_log->info("Attempting to auto-start MBMS service %d\n", args.mbms_service_id);

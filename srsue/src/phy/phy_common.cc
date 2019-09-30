@@ -705,11 +705,10 @@ void phy_common::build_mch_table()
   bzero(&mch_table[0], sizeof(uint8_t) * 40);
 
   // 40 element table represents 4 frames (40 subframes)
-  if (mbsfn_config.mbsfn_subfr_cnfg.sf_alloc.type() == asn1::rrc::mbsfn_sf_cfg_s::sf_alloc_c_::types::one_frame) {
-    generate_mch_table(&mch_table[0], (uint32_t)mbsfn_config.mbsfn_subfr_cnfg.sf_alloc.one_frame().to_number(), 1u);
-  } else if (mbsfn_config.mbsfn_subfr_cnfg.sf_alloc.type() ==
-             asn1::rrc::mbsfn_sf_cfg_s::sf_alloc_c_::types::four_frames) {
-    generate_mch_table(&mch_table[0], (uint32_t)mbsfn_config.mbsfn_subfr_cnfg.sf_alloc.four_frames().to_number(), 4u);
+  if (mbsfn_config.mbsfn_subfr_cnfg.nof_alloc_subfrs == srslte::mbsfn_sf_cfg_t::sf_alloc_type_t::one_frame) {
+    generate_mch_table(&mch_table[0], (uint32_t)mbsfn_config.mbsfn_subfr_cnfg.sf_alloc, 1u);
+  } else if (mbsfn_config.mbsfn_subfr_cnfg.nof_alloc_subfrs == srslte::mbsfn_sf_cfg_t::sf_alloc_type_t::four_frames) {
+    generate_mch_table(&mch_table[0], (uint32_t)mbsfn_config.mbsfn_subfr_cnfg.sf_alloc, 4u);
   } else {
     log_h->error("The subframe config has not been set for MBSFN\n");
   }
@@ -727,7 +726,7 @@ void phy_common::build_mcch_table()
 {
   // First reset tables
   bzero(&mcch_table[0], sizeof(uint8_t) * 10);
-  generate_mcch_table(&mcch_table[0], (uint32_t)mbsfn_config.mbsfn_area_info.mcch_cfg_r9.sf_alloc_info_r9.to_number());
+  generate_mcch_table(&mcch_table[0], (uint32_t)mbsfn_config.mbsfn_area_info.mcch_cfg.sf_alloc_info);
   // Debug
   std::stringstream ss;
   ss << "|";
@@ -776,21 +775,21 @@ bool phy_common::is_mch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti)
 
   // Not MCCH, check for MCH
   if (sib13_configured) {
-    mbsfn_sf_cfg_s*                  subfr_cnfg = &mbsfn_config.mbsfn_subfr_cnfg;
-    asn1::rrc::mbsfn_area_info_r9_s* area_info  = &mbsfn_config.mbsfn_area_info;
-    offset                                      = subfr_cnfg->radioframe_alloc_offset;
-    period                                      = subfr_cnfg->radioframe_alloc_period.to_number();
+    srslte::mbsfn_sf_cfg_t&    subfr_cnfg = mbsfn_config.mbsfn_subfr_cnfg;
+    srslte::mbsfn_area_info_t& area_info  = mbsfn_config.mbsfn_area_info;
+    offset                                = subfr_cnfg.radioframe_alloc_offset;
+    period                                = srslte::enum_to_number(subfr_cnfg.radioframe_alloc_period);
 
-    if (subfr_cnfg->sf_alloc.type() == mbsfn_sf_cfg_s::sf_alloc_c_::types::one_frame) {
+    if (subfr_cnfg.nof_alloc_subfrs == srslte::mbsfn_sf_cfg_t::sf_alloc_type_t::one_frame) {
       if ((sfn % period == offset) && (mch_table[sf] > 0)) {
-        cfg->mbsfn_area_id           = area_info->mbsfn_area_id_r9;
-        cfg->non_mbsfn_region_length = area_info->non_mbsfn_region_len.to_number();
+        cfg->mbsfn_area_id           = area_info.mbsfn_area_id;
+        cfg->non_mbsfn_region_length = enum_to_number(area_info.non_mbsfn_region_len);
         if (mcch_configured) {
           // Iterate through PMCH configs to see which one applies in the current frame
-          mbsfn_area_cfg_r9_s* mcch            = &mbsfn_config.mcch.msg.c1().mbsfn_area_cfg_r9();
-          uint32_t             mbsfn_per_frame = mcch->pmch_info_list_r9[0].pmch_cfg_r9.sf_alloc_end_r9 /
-                                     mcch->pmch_info_list_r9[0].pmch_cfg_r9.mch_sched_period_r9.to_number();
-          uint32_t frame_alloc_idx = sfn % mcch->common_sf_alloc_period_r9.to_number();
+          srslte::mcch_msg_t& mcch = mbsfn_config.mcch;
+          uint32_t            mbsfn_per_frame =
+              mcch.pmch_info_list[0].sf_alloc_end / enum_to_number(mcch.pmch_info_list[0].mch_sched_period);
+          uint32_t frame_alloc_idx = sfn % enum_to_number(mcch.common_sf_alloc_period);
           uint32_t sf_alloc_idx    = frame_alloc_idx * mbsfn_per_frame + ((sf < 4) ? sf - 1 : sf - 3);
           std::unique_lock<std::mutex> lock(mtch_mutex);
           while (!have_mtch_stop) {
@@ -798,10 +797,10 @@ bool phy_common::is_mch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti)
           }
           mtch_mutex.unlock();
 
-          for (uint32_t i = 0; i < mcch->pmch_info_list_r9.size(); i++) {
+          for (uint32_t i = 0; i < mcch.nof_pmch_info; i++) {
             if (sf_alloc_idx <= mch_period_stop) {
               // trigger conditional variable, has ot be untriggered by mtch stop location
-              cfg->mbsfn_mcs = mcch->pmch_info_list_r9[i].pmch_cfg_r9.data_mcs_r9;
+              cfg->mbsfn_mcs = mcch.pmch_info_list[i].data_mcs;
               cfg->enable    = true;
             } else {
               // have_mtch_stop = false;
@@ -811,12 +810,12 @@ bool phy_common::is_mch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti)
         }
         return true;
       }
-    } else if (subfr_cnfg->sf_alloc.type() == mbsfn_sf_cfg_s::sf_alloc_c_::types::four_frames) {
+    } else if (subfr_cnfg.nof_alloc_subfrs == srslte::mbsfn_sf_cfg_t::sf_alloc_type_t::four_frames) {
       uint8_t idx = sfn % period;
       if ((idx >= offset) && (idx < offset + 4)) {
         if (mch_table[(idx * 10) + sf] > 0) {
-          cfg->mbsfn_area_id           = area_info->mbsfn_area_id_r9;
-          cfg->non_mbsfn_region_length = area_info->non_mbsfn_region_len.to_number();
+          cfg->mbsfn_area_id           = area_info.mbsfn_area_id;
+          cfg->non_mbsfn_region_length = enum_to_number(area_info.non_mbsfn_region_len);
           // TODO: check for MCCH configuration, set MCS and decode
           return true;
         }
@@ -840,15 +839,15 @@ bool phy_common::is_mcch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti)
   sf  = (uint8_t)(phy_tti % 10);
 
   if (sib13_configured) {
-    mbsfn_area_info_r9_s* area_info = &mbsfn_config.mbsfn_area_info;
+    srslte::mbsfn_area_info_t& area_info = mbsfn_config.mbsfn_area_info;
 
-    offset = area_info->mcch_cfg_r9.mcch_offset_r9;
-    period = area_info->mcch_cfg_r9.mcch_repeat_period_r9.to_number();
+    offset = area_info.mcch_cfg.mcch_offset;
+    period = enum_to_number(area_info.mcch_cfg.mcch_repeat_period);
 
     if ((sfn % period == offset) && mcch_table[sf] > 0) {
-      cfg->mbsfn_area_id           = area_info->mbsfn_area_id_r9;
-      cfg->non_mbsfn_region_length = area_info->non_mbsfn_region_len.to_number();
-      cfg->mbsfn_mcs               = area_info->mcch_cfg_r9.sig_mcs_r9.to_number();
+      cfg->mbsfn_area_id           = area_info.mbsfn_area_id;
+      cfg->non_mbsfn_region_length = enum_to_number(area_info.non_mbsfn_region_len);
+      cfg->mbsfn_mcs               = enum_to_number(area_info.mcch_cfg.sig_mcs);
       cfg->enable                  = true;
       have_mtch_stop               = false;
       Debug("MCCH subframe TTI:%d\n", phy_tti);
