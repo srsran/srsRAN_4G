@@ -672,14 +672,13 @@ bool nas::integrity_check(byte_buffer_t* pdu)
   }
 
   if (pdu->N_bytes > 5) {
-    uint8_t exp_mac[4] = {0};
+    uint8_t  exp_mac[4] = {0};
     uint8_t *mac = &pdu->msg[1];
-    integrity_generate(&k_nas_int[16],
-                       ctxt.rx_count,
-                       SECURITY_DIRECTION_DOWNLINK,
-                       &pdu->msg[5],
-                       pdu->N_bytes-5,
-                       &exp_mac[0]);
+
+    // generate expected MAC
+    uint32_t count_est = (ctxt.rx_count & 0x0FF0) | pdu->msg[5];
+    integrity_generate(
+        &k_nas_int[16], count_est, SECURITY_DIRECTION_DOWNLINK, &pdu->msg[5], pdu->N_bytes - 5, &exp_mac[0]);
 
     // Check if expected mac equals the sent mac
     for (int i = 0; i < 4; i++) {
@@ -693,6 +692,12 @@ bool nas::integrity_check(byte_buffer_t* pdu)
     }
     nas_log->info("Integrity check ok. Local: count=%d, Received: count=%d\n",
                   ctxt.rx_count, pdu->msg[5]);
+
+    // Updated local count (according to TS 24.301 Sec. 4.4.3.3)
+    if (pdu->msg[5] != ctxt.rx_count) {
+      nas_log->info("Update local count to received value %d\n", pdu->msg[5]);
+      ctxt.rx_count = count_est;
+    }
     return true;
   } else {
     nas_log->error("Invalid integrity check PDU size (%d)\n", pdu->N_bytes);
