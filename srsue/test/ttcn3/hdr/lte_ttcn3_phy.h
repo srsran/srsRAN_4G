@@ -138,6 +138,8 @@ private:
   int  sr_tx_tti  = -1;
   bool sr_pending = false;
 
+  std::mutex mutex;
+
   uint32_t ra_trans_cnt = 0;
 
   stack_interface_phy_lte* stack  = nullptr;

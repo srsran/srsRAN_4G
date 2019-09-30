@@ -31,7 +31,6 @@ lte_ttcn3_phy::lte_ttcn3_phy(srslte::logger* logger_) : logger(logger_) {}
 lte_ttcn3_phy::~lte_ttcn3_phy() {}
 
 int lte_ttcn3_phy::init(const phy_args_t& args_, stack_interface_phy_lte* stack_, syssim_interface_phy* syssim_)
-
 {
   stack  = stack_;
   syssim = syssim_;
@@ -69,6 +68,7 @@ void lte_ttcn3_phy::get_metrics(phy_metrics_t* m) {}
 // The interface for the SS
 void lte_ttcn3_phy::set_cell_map(const cell_list_t& cells_)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   cells = cells_;
 }
 
@@ -140,6 +140,8 @@ void lte_ttcn3_phy::set_config_mbsfn_mcch(asn1::rrc::mcch_msg_s* mcch){};
 /* Cell search and selection procedures */
 phy_interface_rrc_lte::cell_search_ret_t lte_ttcn3_phy::cell_search(phy_cell_t* found_cell)
 {
+  std::lock_guard<std::mutex> lock(mutex);
+
   log.info("Running cell search in PHY\n");
   cell_search_ret_t ret = {};
 
@@ -259,6 +261,8 @@ void lte_ttcn3_phy::set_rar_grant(uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN], u
 // Called from the SYSSIM to configure the current TTI
 void lte_ttcn3_phy::set_current_tti(uint32_t tti)
 {
+  std::lock_guard<std::mutex> lock(mutex);
+
   current_tti = tti;
   run_tti();
 }
@@ -282,6 +286,7 @@ float lte_ttcn3_phy::get_pathloss_db()
 }
 
 // Only provides a new UL grant, Tx is then triggered
+// Calling function hold mutex
 void lte_ttcn3_phy::new_grant_ul(mac_interface_phy_lte::mac_grant_ul_t ul_mac_grant)
 {
   mac_interface_phy_lte::tb_action_ul_t ul_action = {};
@@ -298,6 +303,8 @@ void lte_ttcn3_phy::new_grant_ul(mac_interface_phy_lte::mac_grant_ul_t ul_mac_gr
 // Provides DL grant, copy data into DL action and pass up to MAC
 void lte_ttcn3_phy::new_tb(const srsue::mac_interface_phy_lte::mac_grant_dl_t dl_grant, const uint8_t* data)
 {
+  std::lock_guard<std::mutex> lock(mutex);
+
   if (data == nullptr) {
     log.error("Invalid data buffer passed\n");
     return;
@@ -345,6 +352,7 @@ void lte_ttcn3_phy::radio_failure()
   log.debug("%s not implemented.\n", __FUNCTION__);
 }
 
+// Calling function set_tti() is holding mutex
 void lte_ttcn3_phy::run_tti()
 {
   // send report for each cell
