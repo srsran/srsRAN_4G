@@ -121,29 +121,39 @@ void new_test()
   TestObj::dtor_counter = 0;
 }
 
-class custom_proc : public srslte::proc_impl_t
+class custom_proc
 {
 public:
+  custom_proc() : ctor_value(5) {}
+
   proc_outcome_t init(int a_)
   {
     if (a_ < 0) {
       printf("Failed to initiate custom_proc\n");
       return proc_outcome_t::error;
     }
-    obj.id = a_;
+    obj.id       = a_;
+    reset_called = false;
     return proc_outcome_t::yield;
   }
-  proc_outcome_t step() final
+  proc_outcome_t step()
   {
     if (counter++ > 5) {
       return proc_outcome_t::success;
     }
     return proc_outcome_t::yield;
   }
-  void stop() final { printf("TestObj %d stop() was called\n", obj.id); }
+  void        stop(bool is_success) { printf("TestObj %d stop() was called\n", obj.id); }
   const char* name() const { return "custom proc"; }
+  void        clear()
+  {
+    reset_called = true;
+    printf("TestObj was reset\n");
+  }
 
-  TestObj obj;
+  TestObj   obj;
+  const int ctor_value   = 5;
+  bool      reset_called = false;
 
 private:
   int counter = 0;
@@ -159,6 +169,7 @@ int test_local_1()
   proc.launch(1);
   TESTASSERT(proc.is_active());
   TESTASSERT(not proc.is_complete());
+  TESTASSERT(not proc.get()->reset_called);
 
   while (proc.run()) {
   }
@@ -166,29 +177,36 @@ int test_local_1()
   TESTASSERT(proc.is_active());
   TESTASSERT(proc.is_complete());
 
-  printf("pop being called\n");
-  custom_proc procobj = proc.pop();
+  const custom_proc& procobj = *proc.get();
   TESTASSERT(procobj.obj.id == 1);
-  TESTASSERT(procobj.is_success());
+  TESTASSERT(proc.is_active());
+  printf("clear() being called\n");
+  proc.clear();
   TESTASSERT(not proc.is_active());
-  TESTASSERT(proc.get()->obj.id == 0); // Proc is ready to be reused
+  TESTASSERT(proc.get()->reset_called); // Proc is ready to be reused
+  TESTASSERT(proc.get()->ctor_value == 5);
 
   printf("EXIT\n");
   TESTASSERT(TestObj::copy_counter == 0);
-  TESTASSERT(TestObj::move_counter == 2); // pop() makes a swap which causes 2 moves
-  TESTASSERT(TestObj::dtor_counter == 2); // 2 dtors inside pop() (handler and popped obj not yet destructed)
+  TESTASSERT(TestObj::move_counter == 0);
+  TESTASSERT(TestObj::dtor_counter == 0); // destructor not called yet
   return 0;
 }
 
 int test_callback_1()
 {
+  /*
+   * Description: Test a procedure inserted in a manager list via "proc_manager_list_t::add_proc(...)"
+   *              - check if the proc is not cleared automatically after it finished (need to check the result)
+   *              - check if pop() works as expected, and resets proc after proc_result_t<T> goes out of scope
+   */
   new_test();
   printf("\n--- Test %s ---\n", __func__);
-  srslte::callback_list_t     callbacks;
+  srslte::proc_manager_list_t         callbacks;
   srslte::proc_t<custom_proc> proc;
   TESTASSERT(not proc.is_active());
 
-  proc.launch(2);
+  TESTASSERT(proc.launch(2));
   callbacks.add_proc(proc); // We have to call pop() explicitly to take the result
   TESTASSERT(callbacks.size() == 1);
 
@@ -200,29 +218,38 @@ int test_callback_1()
   TESTASSERT(proc.is_active());
   TESTASSERT(proc.is_complete());
 
-  printf("pop being called\n");
-  custom_proc procobj = proc.pop();
-  TESTASSERT(procobj.is_success());
-  TESTASSERT(procobj.obj.id == 2);
+  TESTASSERT(proc.get()->obj.id == 2);
+  TESTASSERT(proc.is_active());
+  {
+    printf("pop being called\n");
+    srslte::proc_result_t<custom_proc> ret = proc.pop();
+    TESTASSERT(proc.is_active());
+    TESTASSERT(ret.is_success());
+    // proc::reset() is finally called
+  }
   TESTASSERT(not proc.is_active());
+  TESTASSERT(proc.get()->reset_called); // Proc is ready to be reused
 
-  TESTASSERT(proc.get()->obj.id == 0); // Proc is ready to be reused
   printf("EXIT\n");
   TESTASSERT(TestObj::copy_counter == 0);
-  TESTASSERT(TestObj::move_counter == 2); // pop makes two moves
-  TESTASSERT(TestObj::dtor_counter == 2); // handler not yet destructed
+  TESTASSERT(TestObj::move_counter == 0);
+  TESTASSERT(TestObj::dtor_counter == 0); // handler not yet destructed
   return 0;
 }
 
 int test_callback_2()
 {
+  /*
+   * Description: Test a procedure inserted in a manager list via "proc_manager_list_t::consume_proc(...)"
+   *              - check if the proc disappears automatically after it finished
+   */
   new_test();
   printf("\n--- Test %s ---\n", __func__);
-  srslte::callback_list_t     callbacks;
+  srslte::proc_manager_list_t         callbacks;
   srslte::proc_t<custom_proc> proc;
   TESTASSERT(not proc.is_active());
 
-  proc.launch(3);
+  TESTASSERT(proc.launch(3));
   TESTASSERT(proc.is_active());
   TESTASSERT(not proc.is_complete());
   callbacks.consume_proc(std::move(proc));
@@ -235,16 +262,20 @@ int test_callback_2()
 
   printf("EXIT\n");
   TESTASSERT(TestObj::copy_counter == 0);
-  TESTASSERT(TestObj::move_counter == 0); // no pop()
-  TESTASSERT(TestObj::dtor_counter == 1); // handler not yet destructed
+  TESTASSERT(TestObj::move_counter == 0); // it does not move proc itself, but its pointer
+  TESTASSERT(TestObj::dtor_counter == 1); // handler not yet destructed, but we called proc move
   return 0;
 }
 
 int test_callback_3()
 {
+  /*
+   * Description: Test a procedure inserted in a manager list via "proc_manager_list_t::defer_proc(...)"
+   *              - check if the proc is cleared automatically after it finished
+   */
   new_test();
   printf("\n--- Test %s ---\n", __func__);
-  srslte::callback_list_t     callbacks;
+  srslte::proc_manager_list_t         callbacks;
   srslte::proc_t<custom_proc> proc;
   TESTASSERT(not proc.is_active());
 
@@ -263,21 +294,26 @@ int test_callback_3()
   }
   TESTASSERT(not proc.is_active());
   TESTASSERT(not proc.is_complete());
-  TESTASSERT(proc.get()->obj.id == 0); // Proc is ready to be reused
+  TESTASSERT(proc.get()->reset_called); // Proc is ready to be reused
 
   printf("EXIT\n");
   TESTASSERT(TestObj::copy_counter == 0);
   TESTASSERT(TestObj::move_counter == 0);
-  TESTASSERT(TestObj::dtor_counter == 1); // handler not yet destructed
+  TESTASSERT(TestObj::dtor_counter == 0); // handler not yet destructed
   return 0;
 }
 
 int test_callback_4()
 {
+  /*
+   * Description: Test for Lambda procedure types
+   *              - test if a lambda that we passed decrements a counter correctly
+   *              - test if when the lambda goes out of scope, procedure still works fine
+   */
   new_test();
   printf("\n--- Test %s ---\n", __func__);
-  srslte::callback_list_t callbacks;
-  int*                    counter = new int(5);
+  srslte::proc_manager_list_t callbacks;
+  int*                        counter = new int(5);
 
   {
     callbacks.defer_task([counter]() {
@@ -300,6 +336,28 @@ int test_callback_4()
   return 0;
 }
 
+int test_callback_5()
+{
+  /*
+   * Description: Test if finished procedure does not get added to the dispatch list
+   */
+  new_test();
+  printf("\n--- Test %s ---\n", __func__);
+  srslte::proc_manager_list_t         callbacks;
+  srslte::proc_t<custom_proc> proc;
+  TESTASSERT(proc.launch(5));
+  while (proc.run()) {
+    TESTASSERT(proc.is_active());
+  }
+  TESTASSERT(proc.is_active());
+  TESTASSERT(not proc.get()->reset_called);
+  TESTASSERT(proc.is_complete());
+  callbacks.defer_proc(proc);
+  TESTASSERT(callbacks.size() == 0); // do not add finished callbacks
+
+  return 0;
+}
+
 int main()
 {
   TESTASSERT(test_local_1() == 0);
@@ -307,6 +365,7 @@ int main()
   TESTASSERT(test_callback_2() == 0);
   TESTASSERT(test_callback_3() == 0);
   TESTASSERT(test_callback_4() == 0);
+  TESTASSERT(test_callback_5() == 0);
 
   return 0;
 }

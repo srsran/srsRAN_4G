@@ -53,6 +53,15 @@ rrc::rrc(srslte::log* rrc_log_) :
   last_state(RRC_STATE_CONNECTED),
   drb_up(false),
   rrc_log(rrc_log_),
+  cell_searcher(this),
+  si_acquirer(this),
+  serv_cell_cfg(this),
+  cell_selector(this),
+  idle_setter(this),
+  pcch_processor(this),
+  conn_req_proc(this),
+  plmn_searcher(this),
+  cell_reselector(this),
   serving_cell(unique_cell_t(new cell_t({}, 0.0)))
 {
 }
@@ -171,11 +180,13 @@ void rrc::get_metrics(rrc_metrics_t& m)
   m.state = state;
 }
 
-bool rrc::is_connected() {
+bool rrc::is_connected()
+{
   return (RRC_STATE_CONNECTED == state);
 }
 
-bool rrc::have_drb() {
+bool rrc::have_drb()
+{
   return drb_up;
 }
 
@@ -301,7 +312,7 @@ uint16_t rrc::get_mnc() {
  */
 bool rrc::plmn_search()
 {
-  if (not plmn_searcher.launch(this)) {
+  if (not plmn_searcher.launch()) {
     rrc_log->error("Unable to initiate PLMN search\n");
     return false;
   }
@@ -330,7 +341,7 @@ void rrc::plmn_select(srslte::plmn_id_t plmn_id)
  */
 bool rrc::connection_request(srslte::establishment_cause_t cause, srslte::unique_byte_buffer_t dedicated_info_nas_)
 {
-  if (not conn_req_proc.launch(this, cause, std::move(dedicated_info_nas_))) {
+  if (not conn_req_proc.launch(cause, std::move(dedicated_info_nas_))) {
     rrc_log->error("Failed to initiate connection request procedure\n");
     return false;
   }
@@ -1193,7 +1204,7 @@ void rrc::start_ho()
 
 void rrc::start_go_idle()
 {
-  if (not idle_setter.launch(this)) {
+  if (not idle_setter.launch()) {
     rrc_log->info("Failed to set RRC to IDLE\n");
     return;
   }
@@ -1472,10 +1483,10 @@ void rrc::start_cell_reselection()
     return;
   }
 
-  if (not cell_reselector.launch(this)) {
+  if (not cell_reselector.launch()) {
     rrc_log->error("Failed to initiate a Cell Reselection procedure...\n");
   }
-  callback_list.defer_proc(cell_reselector);
+  callback_list.add_proc(cell_reselector);
 }
 
 void rrc::cell_search_completed(const phy_interface_rrc_lte::cell_search_ret_t& cs_ret,
@@ -1743,7 +1754,7 @@ void rrc::process_pcch(unique_byte_buffer_t pdu)
     paging->paging_record_list.resize(ASN1_RRC_MAX_PAGE_REC);
   }
 
-  if (not pcch_processor.launch(this, *paging)) {
+  if (not pcch_processor.launch(*paging)) {
     rrc_log->error("Failed to launch process PCCH procedure\n");
     return;
   }

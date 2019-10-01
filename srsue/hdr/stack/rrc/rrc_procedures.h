@@ -29,7 +29,7 @@
 
 namespace srsue {
 
-class rrc::cell_search_proc : public srslte::proc_impl_t
+class rrc::cell_search_proc
 {
 public:
   struct cell_search_event_t {
@@ -38,11 +38,12 @@ public:
   };
   enum class state_t { phy_cell_search, si_acquire };
 
-  srslte::proc_outcome_t init(rrc* parent_);
-  srslte::proc_outcome_t step() final;
+  explicit cell_search_proc(rrc* parent_);
+  srslte::proc_outcome_t init();
+  srslte::proc_outcome_t step();
   srslte::proc_outcome_t trigger_event(const cell_search_event_t& event);
 
-  phy_interface_rrc_lte::cell_search_ret_t get_cs_ret() { return search_result.cs_ret; }
+  phy_interface_rrc_lte::cell_search_ret_t get_cs_ret() const { return search_result.cs_ret; }
   static const char*                       name() { return "Cell Search"; }
 
 private:
@@ -57,13 +58,14 @@ private:
   state_t             state;
 };
 
-class rrc::si_acquire_proc : public srslte::proc_impl_t
+class rrc::si_acquire_proc
 {
 public:
   const static int SIB_SEARCH_TIMEOUT_MS = 1000;
 
-  srslte::proc_outcome_t init(rrc* parent_, uint32_t sib_index_);
-  srslte::proc_outcome_t step() final;
+  explicit si_acquire_proc(rrc* parent_);
+  srslte::proc_outcome_t init(uint32_t sib_index_);
+  srslte::proc_outcome_t step();
   static const char*     name() { return "SI Acquire"; }
 
 private:
@@ -74,37 +76,40 @@ private:
   srslte::log* log_h;
 
   // state
-  uint32_t period, sched_index;
+  uint32_t period = 0, sched_index = 0;
   uint32_t start_tti      = 0;
   uint32_t sib_index      = 0;
   uint32_t last_win_start = 0;
 };
 
-class rrc::serving_cell_config_proc : public srslte::proc_impl_t
+class rrc::serving_cell_config_proc
 {
 public:
-  srslte::proc_outcome_t init(rrc* parent_, const std::vector<uint32_t>& required_sibs_);
-  srslte::proc_outcome_t step() final;
+  explicit serving_cell_config_proc(rrc* parent_);
+  srslte::proc_outcome_t init(const std::vector<uint32_t>& required_sibs_);
+  srslte::proc_outcome_t step();
   static const char*     name() { return "Serving Cell Configuration"; }
 
 private:
-  // consts
+  rrc*         rrc_ptr;
+  srslte::log* log_h;
+
+  // proc args
   std::vector<uint32_t> required_sibs;
-  rrc*                  rrc_ptr;
-  srslte::log*          log_h;
 
   // state variables
   enum class search_state_t { next_sib, si_acquire } search_state;
   uint32_t req_idx = 0;
 };
 
-class rrc::cell_selection_proc : public srslte::proc_impl_t
+class rrc::cell_selection_proc
 {
 public:
-  srslte::proc_outcome_t init(rrc* parent_);
-  srslte::proc_outcome_t step() final;
-  void                   stop() final;
-  cs_result_t            get_cs_result() { return cs_result; }
+  explicit cell_selection_proc(rrc* parent_);
+  srslte::proc_outcome_t init();
+  srslte::proc_outcome_t step();
+  void                   stop(bool is_success);
+  cs_result_t            get_cs_result() const { return cs_result; }
   static const char*     name() { return "Cell Selection"; }
 
 private:
@@ -123,12 +128,13 @@ private:
   uint32_t       neigh_index;
 };
 
-class rrc::plmn_search_proc : public srslte::proc_impl_t
+class rrc::plmn_search_proc
 {
 public:
-  srslte::proc_outcome_t init(rrc* parent_);
-  srslte::proc_outcome_t step() final;
-  void                   stop() final;
+  explicit plmn_search_proc(rrc* parent_);
+  srslte::proc_outcome_t init();
+  srslte::proc_outcome_t step();
+  void                   stop(bool is_success);
   static const char*     name() { return "PLMN Search"; }
 
 private:
@@ -138,10 +144,10 @@ private:
 
   // state variables
   found_plmn_t found_plmns[MAX_FOUND_PLMNS];
-  int          nof_plmns;
+  int          nof_plmns = 0;
 };
 
-class rrc::connection_request_proc : public srslte::proc_impl_t
+class rrc::connection_request_proc
 {
 public:
   struct cell_selection_complete {
@@ -149,17 +155,19 @@ public:
     cs_result_t cs_result;
   };
 
+  explicit connection_request_proc(rrc* parent_);
   srslte::proc_outcome_t
-                         init(rrc* parent_, srslte::establishment_cause_t cause_, srslte::unique_byte_buffer_t dedicated_info_nas_);
-  srslte::proc_outcome_t step() final;
-  void                   stop() final;
+                         init(srslte::establishment_cause_t cause_, srslte::unique_byte_buffer_t dedicated_info_nas_);
+  srslte::proc_outcome_t step();
+  void                   stop(bool is_success);
   srslte::proc_outcome_t trigger_event(const cell_selection_complete& e);
   static const char*     name() { return "Connection Request"; }
 
 private:
+  // const
+  rrc*         rrc_ptr;
+  srslte::log* log_h;
   // args
-  rrc*                          rrc_ptr;
-  srslte::log*                  log_h;
   srslte::establishment_cause_t cause;
   srslte::unique_byte_buffer_t  dedicated_info_nas;
 
@@ -168,15 +176,16 @@ private:
   cs_result_t cs_ret;
 };
 
-class rrc::process_pcch_proc : public srslte::proc_impl_t
+class rrc::process_pcch_proc
 {
 public:
   struct paging_complete {
     bool outcome;
   };
 
-  srslte::proc_outcome_t init(rrc* parent_, const asn1::rrc::paging_s& paging_);
-  srslte::proc_outcome_t step() final;
+  explicit process_pcch_proc(rrc* parent_);
+  srslte::proc_outcome_t init(const asn1::rrc::paging_s& paging_);
+  srslte::proc_outcome_t step();
   srslte::proc_outcome_t trigger_event(paging_complete e);
   static const char*     name() { return "Process PCCH"; }
 
@@ -191,11 +200,12 @@ private:
   enum class state_t { next_record, nas_paging, serv_cell_cfg } state;
 };
 
-class rrc::go_idle_proc : public srslte::proc_impl_t
+class rrc::go_idle_proc
 {
 public:
-  srslte::proc_outcome_t init(rrc* rrc_);
-  srslte::proc_outcome_t step() final;
+  explicit go_idle_proc(rrc* rrc_);
+  srslte::proc_outcome_t init();
+  srslte::proc_outcome_t step();
   static const char*     name() { return "Go Idle"; }
 
 private:
@@ -205,11 +215,12 @@ private:
   uint32_t rlc_flush_counter;
 };
 
-class rrc::cell_reselection_proc : public srslte::proc_impl_t
+class rrc::cell_reselection_proc
 {
 public:
-  srslte::proc_outcome_t init(rrc* rrc_);
-  srslte::proc_outcome_t step() final;
+  cell_reselection_proc(rrc* rrc_);
+  srslte::proc_outcome_t init();
+  srslte::proc_outcome_t step();
   static const char*     name() { return "Cell Reselection"; }
 
 private:

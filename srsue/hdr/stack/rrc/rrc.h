@@ -481,7 +481,8 @@ private:
   bool                     reestablishment_successful = false;
 
   // Measurements sub-class
-  class rrc_meas {
+  class rrc_meas
+  {
   public:
     void init(rrc *parent);
     void reset();
@@ -633,7 +634,7 @@ private:
   srslte::proc_t<plmn_search_proc>         plmn_searcher;
   srslte::proc_t<cell_reselection_proc>    cell_reselector;
 
-  srslte::callback_list_t callback_list;
+  srslte::proc_manager_list_t callback_list;
 
   bool cell_selection_criteria(float rsrp, float rsrq = 0);
   void cell_reselection(float rsrp, float rsrq);

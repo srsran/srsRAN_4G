@@ -44,10 +44,8 @@ namespace srsue {
 
 using srslte::proc_outcome_t;
 
-proc_outcome_t nas::plmn_search_proc::init(nas* nas_ptr_)
+proc_outcome_t nas::plmn_search_proc::init()
 {
-  nas_ptr = nas_ptr_;
-
   // start RRC
   state = state_t::plmn_search;
   if (not nas_ptr->rrc->plmn_search()) {
@@ -65,7 +63,7 @@ proc_outcome_t nas::plmn_search_proc::step()
     if (nas_ptr->rrc_connector.run()) {
       return proc_outcome_t::yield;
     }
-    rrc_connect_proc ret = nas_ptr->rrc_connector.pop();
+    proc_result_t<rrc_connect_proc> ret = nas_ptr->rrc_connector.pop();
     if (ret.is_success()) {
       return proc_outcome_t::success;
     }
@@ -116,7 +114,7 @@ proc_outcome_t nas::plmn_search_proc::trigger_event(const plmn_search_complete_t
 
   nas_ptr->rrc->plmn_select(nas_ptr->current_plmn);
 
-  if (not nas_ptr->rrc_connector.launch(nas_ptr, srslte::establishment_cause_t ::mo_data, nullptr)) {
+  if (not nas_ptr->rrc_connector.launch(srslte::establishment_cause_t::mo_data, nullptr)) {
     ProcError("Unable to initiate RRC connection.\n");
     return proc_outcome_t::error;
   }
@@ -125,11 +123,8 @@ proc_outcome_t nas::plmn_search_proc::trigger_event(const plmn_search_complete_t
   return proc_outcome_t::yield;
 }
 
-proc_outcome_t
-nas::rrc_connect_proc::init(nas* nas_ptr_, srslte::establishment_cause_t cause_, srslte::unique_byte_buffer_t pdu)
+proc_outcome_t nas::rrc_connect_proc::init(srslte::establishment_cause_t cause_, srslte::unique_byte_buffer_t pdu)
 {
-  nas_ptr = nas_ptr_;
-
   if (nas_ptr->rrc->is_connected()) {
     ProcInfo("Stopping. Reason: Already connected\n");
     return proc_outcome_t::success;
@@ -173,8 +168,8 @@ proc_outcome_t nas::rrc_connect_proc::step()
     if (nas_ptr->conn_req_proc.run()) {
       return proc_outcome_t::yield;
     }
-    query_proc_t<bool> ret = nas_ptr->conn_req_proc.pop();
-    if (not ret.result()) {
+    proc_result_t<query_proc_t<bool>> ret = nas_ptr->conn_req_proc.pop();
+    if (ret.is_error()) {
       ProcError("Could not establish RRC connection\n");
       return proc_outcome_t::error;
     }
@@ -195,7 +190,7 @@ proc_outcome_t nas::rrc_connect_proc::step()
       } else if (nas_ptr->state == EMM_STATE_DEREGISTERED) {
         ProcError("Timeout or received attach reject while trying to attach\n");
         nas_ptr->nas_log->console("Failed to Attach\n");
-      } else if (!nas_ptr->rrc->is_connected()) {
+      } else if (!nas_ptr->rrc->is_connected()){
         ProcError("Was disconnected while attaching\n");
       } else {
         ProcError("Timed out while trying to attach\n");
@@ -213,15 +208,17 @@ proc_outcome_t nas::rrc_connect_proc::step()
 nas::nas(srslte::log* log_, srslte::timers* timers_) :
   nas_log(log_),
   pool(byte_buffer_pool::get_instance()),
+  plmn_searcher(this),
+  rrc_connector(this),
   timers(timers_)
 {
 }
 
 void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_nas* gw_, const nas_args_t& cfg_)
 {
-  usim = usim_;
-  rrc = rrc_;
-  gw = gw_;
+  usim  = usim_;
+  rrc   = rrc_;
+  gw    = gw_;
   state = EMM_STATE_DEREGISTERED;
 
   if (!usim->get_home_plmn_id(&home_plmn)) {
@@ -342,7 +339,7 @@ void nas::start_attach_request(srslte::proc_state_t* result, srslte::establishme
       // Search PLMN is not selected
       if (!plmn_is_selected) {
         nas_log->info("No PLMN selected. Starting PLMN Search...\n");
-        if (not plmn_searcher.launch(this)) {
+        if (not plmn_searcher.launch()) {
           if (result != nullptr) {
             *result = proc_state_t::error;
           }
@@ -352,7 +349,7 @@ void nas::start_attach_request(srslte::proc_state_t* result, srslte::establishme
           if (plmn_searcher.run()) {
             return proc_outcome_t::yield;
           }
-          plmn_search_proc p = plmn_searcher.pop();
+          proc_result_t<plmn_search_proc> p = plmn_searcher.pop();
           nas_log->info("Attach Request from PLMN Search %s\n", p.is_success() ? "finished successfully" : "failed");
           if (result != nullptr) {
             *result = p.is_success() ? proc_state_t::success : proc_state_t::error;
@@ -382,7 +379,7 @@ void nas::start_attach_request(srslte::proc_state_t* result, srslte::establishme
         }
       } else {
         nas_log->info("NAS is already registered but RRC disconnected. Connecting now...\n");
-        if (not rrc_connector.launch(this, cause_, nullptr)) {
+        if (not rrc_connector.launch(cause_, nullptr)) {
           nas_log->error("Cannot initiate concurrent rrc connection procedures\n");
           if (result != nullptr) {
             *result = proc_state_t::error;
@@ -393,7 +390,7 @@ void nas::start_attach_request(srslte::proc_state_t* result, srslte::establishme
           if (rrc_connector.run()) {
             return proc_outcome_t::yield;
           }
-          rrc_connect_proc proc = rrc_connector.pop();
+          proc_result_t<rrc_connect_proc> proc = rrc_connector.pop();
           if (proc.is_success()) {
             nas_log->info("NAS attached successfully.\n");
           } else {
@@ -465,7 +462,7 @@ void nas::paging(s_tmsi_t* ue_identity)
       nas_log->error("Cannot initiate concurrent RRC connection establishment procedures\n");
       return;
     }
-    if (not rrc_connector.launch(this, srslte::establishment_cause_t ::mt_access, nullptr)) {
+    if (not rrc_connector.launch(srslte::establishment_cause_t::mt_access, nullptr)) {
       nas_log->error("Could not launch RRC Connect()\n");
       return;
     }
@@ -1335,8 +1332,8 @@ void nas::parse_service_reject(uint32_t lcid, unique_byte_buffer_t pdu)
   have_ctxt = false;
   have_guti = false;
 
-  // Send attach request after receiving service reject 
-  pdu->clear(); 
+  // Send attach request after receiving service reject
+  pdu->clear();
   gen_attach_request(pdu.get());
   rrc->write_sdu(std::move(pdu));
 }
@@ -1793,7 +1790,7 @@ void nas::send_detach_request(bool switch_off)
   if (rrc->is_connected()) {
     rrc->write_sdu(std::move(pdu));
   } else {
-    if (not rrc_connector.launch(this, establishment_cause_t::mo_sig, std::move(pdu))) {
+    if (not rrc_connector.launch(establishment_cause_t::mo_sig, std::move(pdu))) {
       nas_log->error("Failed to initiate RRC Connection Request\n");
     }
     callbacks.defer_proc(rrc_connector);

@@ -70,6 +70,7 @@ target_link_libraries(mac_nr_pdu_test srslte_phy srslte_common ${CMAKE_THREAD_LI
 add_test(mac_nr_pdu_test mac_nr_pdu_test)
 
 add_executable(stack_procedure_test stack_procedure_test.cc)
+add_test(stack_procedure_test stack_procedure_test)
 
 add_executable(queue_test queue_test.cc)
 target_link_libraries(queue_test srslte_common ${CMAKE_THREAD_LIBS_INIT})

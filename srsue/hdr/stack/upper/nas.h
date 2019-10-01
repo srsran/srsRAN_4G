@@ -258,23 +258,24 @@ private:
     return list;
   }
 
-  class rrc_connect_proc : public srslte::proc_impl_t
+  class rrc_connect_proc
   {
   public:
     struct connection_request_completed_t {
       bool outcome;
     };
 
-    srslte::proc_outcome_t init(nas* nas_ptr_, srslte::establishment_cause_t cause_, srslte::unique_byte_buffer_t pdu);
-    srslte::proc_outcome_t step() final;
-    static const char* name() { return "RRC Connect"; }
+    rrc_connect_proc(nas* nas_ptr_) : nas_ptr(nas_ptr_) {}
+    srslte::proc_outcome_t init(srslte::establishment_cause_t cause_, srslte::unique_byte_buffer_t pdu);
+    srslte::proc_outcome_t step();
+    static const char*     name() { return "RRC Connect"; }
 
   private:
     nas* nas_ptr;
     enum class state_t { conn_req, wait_attach } state;
     uint32_t wait_timeout;
   };
-  class plmn_search_proc : public srslte::proc_impl_t
+  class plmn_search_proc
   {
   public:
     struct plmn_search_complete_t {
@@ -288,22 +289,22 @@ private:
       }
     };
 
-    srslte::proc_outcome_t init(nas* nas_ptr_);
-    srslte::proc_outcome_t step() final;
+    plmn_search_proc(nas* nas_ptr_) : nas_ptr(nas_ptr_) {}
+    srslte::proc_outcome_t init();
+    srslte::proc_outcome_t step();
     srslte::proc_outcome_t trigger_event(const plmn_search_complete_t& t);
-    static const char* name() { return "PLMN Search"; }
+    static const char*     name() { return "PLMN Search"; }
 
   private:
     nas* nas_ptr;
     enum class state_t { plmn_search, rrc_connect } state;
   };
-  srslte::callback_list_t                     callbacks;
+  srslte::proc_manager_list_t                         callbacks;
   srslte::proc_t<plmn_search_proc>            plmn_searcher;
   srslte::proc_t<rrc_connect_proc>            rrc_connector;
   srslte::proc_t<srslte::query_proc_t<bool> > conn_req_proc;
 };
 
 } // namespace srsue
-
 
 #endif // SRSUE_NAS_H
