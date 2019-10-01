@@ -149,8 +149,13 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
     return; // Invalid count, drop.
   }
 
-  // TODO check if PDU has been received
-  // TODO Store PDU in reception buffer
+  // Check if PDU has been received
+  if (reorder_queue.find(rcvd_count) != reorder_queue.end()) {
+    return; // PDU already present, drop. 
+  }
+
+  // Store PDU in reception buffer
+  reorder_queue[rcvd_count] = std::move(pdu);
 
   // Update RX_NEXT
   if (rcvd_count >= rx_next) {
@@ -160,19 +165,28 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   // TODO if out-of-order configured, submit to upper layer
 
   if (rcvd_count == rx_deliv) {
-    // Deliver to upper layers (TODO queueing needs to be implemented)
-    if (is_srb()) {
-      rrc->write_pdu(lcid, std::move(pdu));
-    } else {
-      gw->write_pdu(lcid, std::move(pdu));
+    // Deliver to upper layers in ascending order of associeted COUNT
+    for (std::map<uint32_t, unique_byte_buffer_t>::iterator it = reorder_queue.begin();
+         it != reorder_queue.end();) {
+      if (it->first == rx_deliv) {
+        // Pass to upper layers
+        if (is_srb()) {
+          rrc->write_pdu(lcid, std::move(it->second));
+        } else {
+          gw->write_pdu(lcid, std::move(it->second));
+        }
+
+        // Remove from queue
+        reorder_queue.erase(it++);
+
+        // Update RX_DELIV
+        rx_deliv = rx_deliv + 1; // TODO needs to be corrected when queueing is implemented
+        printf("New RX_deliv %d, rcvd_count %d\n", rx_deliv, rcvd_count);
+      } else {
+        break;
+      }
     }
-
-    // Update RX_DELIV
-    rx_deliv = rcvd_count + 1; // TODO needs to be corrected when queueing is implemented
-    printf("New RX_deliv %d, rcvd_count %d\n", rx_deliv, rcvd_count);
   }
-
-  // Not clear how to update RX_DELIV without reception buffer (TODO)
 
   // TODO handle reordering timers
 }
@@ -196,7 +210,6 @@ uint32_t pdcp_entity_nr::read_data_header(const unique_byte_buffer_t& pdu)
     case PDCP_SN_LEN_18:
       srslte::uint8_to_uint24(pdu->msg, &rcvd_sn_32);
       rcvd_sn_32 = SN(rcvd_sn_32);
-      break;
       break;
     default:
       log->error("Cannot extract RCVD_SN, invalid SN length configured: %d\n", cfg.sn_len);

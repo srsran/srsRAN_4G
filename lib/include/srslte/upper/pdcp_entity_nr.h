@@ -29,6 +29,7 @@
 #include "srslte/common/log.h"
 #include "srslte/common/security.h"
 #include "srslte/common/threads.h"
+#include <map>
 
 namespace srslte {
 
@@ -64,6 +65,9 @@ private:
   srsue::rlc_interface_pdcp* rlc = nullptr;
   srsue::rrc_interface_pdcp* rrc = nullptr;
   srsue::gw_interface_pdcp*  gw  = nullptr;
+
+  // Reordering Queue
+  std::map<uint32_t, unique_byte_buffer_t> reorder_queue;
 
   // State variables: 3GPP TS 38.323 v15.2.0, section 7.1
   uint32_t tx_next  = 0; // COUNT value of next SDU to be transmitted.
