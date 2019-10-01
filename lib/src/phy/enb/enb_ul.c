@@ -217,7 +217,7 @@ int srslte_enb_ul_get_pucch(srslte_enb_ul_t*    q,
 
   // If we are looking for SR and ACK at the same time and ret=0, means there is no SR.
   // try again to decode ACK only
-  if (cfg->uci_cfg.is_scheduling_request_tti && cfg->uci_cfg.ack.nof_acks && !res->detected) {
+  if (cfg->uci_cfg.is_scheduling_request_tti && srslte_uci_cfg_total_ack(&cfg->uci_cfg) && !res->detected) {
     cfg->uci_cfg.is_scheduling_request_tti = false;
     if (get_pucch(q, ul_sf, cfg, res)) {
       return -1;

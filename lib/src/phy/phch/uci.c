@@ -787,6 +787,23 @@ int srslte_uci_decode_ack_ri(srslte_pusch_cfg_t* cfg,
   return (int) Qprime;
 }
 
+uint32_t srslte_uci_cfg_total_ack(srslte_uci_cfg_t* uci_cfg)
+{
+  uint32_t nof_ack = 0;
+  for (uint32_t i = 0; i < SRSLTE_MAX_CARRIERS; i++) {
+    nof_ack += uci_cfg->ack[i].nof_acks;
+  }
+  return nof_ack;
+}
+
+void srslte_uci_data_reset(srslte_uci_data_t* uci_data)
+{
+  bzero(uci_data, sizeof(srslte_uci_data_t));
+
+  /* Set all ACKs to DTX */
+  memset(uci_data->value.ack.ack_value, 2, SRSLTE_UCI_MAX_ACK_BITS);
+}
+
 int srslte_uci_data_info(srslte_uci_cfg_t* uci_cfg, srslte_uci_value_t* uci_data, char* str, uint32_t str_len)
 {
   int n = 0;
@@ -795,13 +812,13 @@ int srslte_uci_data_info(srslte_uci_cfg_t* uci_cfg, srslte_uci_value_t* uci_data
     n = srslte_print_check(str, str_len, n, ", sr=%s", uci_data->scheduling_request ? "yes" : "no");
   }
 
-  if (uci_cfg->ack.nof_acks) {
+  if (srslte_uci_cfg_total_ack(uci_cfg)) {
     n = srslte_print_check(str, str_len, n, ", ack=");
-    for (uint32_t i = 0; i < uci_cfg->ack.nof_acks; i++) {
+    for (uint32_t i = 0; i < srslte_uci_cfg_total_ack(uci_cfg); i++) {
       n = srslte_print_check(str, str_len, n, "%d", uci_data->ack.ack_value[i]);
     }
-    if (uci_cfg->ack.N_bundle) {
-      n = srslte_print_check(str, str_len, n, ", n_bundle=%d", uci_cfg->ack.N_bundle);
+    if (uci_cfg->ack[0].N_bundle) {
+      n = srslte_print_check(str, str_len, n, ", n_bundle=%d", uci_cfg->ack[0].N_bundle);
     }
   }
 

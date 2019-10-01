@@ -283,10 +283,7 @@ void sf_worker::work_imp()
 
 void sf_worker::reset_uci(srslte_uci_data_t* uci_data)
 {
-  bzero(uci_data, sizeof(srslte_uci_data_t));
-
-  /* Set all ACKs to DTX */
-  memset(uci_data->value.ack.ack_value, 2, SRSLTE_UCI_MAX_ACK_BITS);
+  srslte_uci_data_reset(uci_data);
 }
 
 /**************************** Measurements **************************/

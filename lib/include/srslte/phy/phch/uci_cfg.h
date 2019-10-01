@@ -40,11 +40,12 @@ typedef struct SRSLTE_API {
   uint32_t tdd_ack_M;
   uint32_t tdd_ack_m;
   bool     tdd_is_multiplex;
-  bool     has_scell_ack;
+  uint32_t tpc_for_pucch;
+  uint32_t grant_cc_idx;
 } srslte_uci_cfg_ack_t;
 
 typedef struct SRSLTE_API {
-  srslte_uci_cfg_ack_t ack;
+  srslte_uci_cfg_ack_t ack[SRSLTE_MAX_CARRIERS];
   srslte_cqi_cfg_t     cqi;
   bool                 is_scheduling_request_tti;
 } srslte_uci_cfg_t;

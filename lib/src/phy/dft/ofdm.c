@@ -580,14 +580,13 @@ void srslte_ofdm_set_normalize(srslte_ofdm_t *q, bool normalize_enable) {
 void srslte_ofdm_tx_sf(srslte_ofdm_t *q)
 {
   uint32_t n;
-  if(!q->mbsfn_subframe){
+  if (!q->mbsfn_subframe) {
     for (n=0;n<2;n++) {
       srslte_ofdm_tx_slot(q, n);
     }
-  }
-  else{
-     srslte_ofdm_tx_slot_mbsfn(q, &q->in_buffer[0*q->nof_re*q->nof_symbols], &q->out_buffer[0*q->slot_sz]);
-     srslte_ofdm_tx_slot(q, 1);
+  } else {
+    srslte_ofdm_tx_slot_mbsfn(q, &q->in_buffer[0 * q->nof_re * q->nof_symbols], &q->out_buffer[0 * q->slot_sz]);
+    srslte_ofdm_tx_slot(q, 1);
   }
   if (q->freq_shift) {
     srslte_vec_prod_ccc(q->out_buffer, q->shift_buffer, q->out_buffer, 2*q->slot_sz);

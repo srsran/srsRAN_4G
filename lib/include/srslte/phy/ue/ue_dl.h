@@ -126,6 +126,8 @@ typedef struct SRSLTE_API {
 typedef struct {
   uint32_t v_dai_dl;
   uint32_t n_cce;
+  uint32_t grant_cc_idx;
+  uint32_t tpc_for_pucch;
 } srslte_pdsch_ack_resource_t;
 
 typedef struct {

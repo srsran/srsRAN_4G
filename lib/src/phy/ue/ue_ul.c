@@ -385,7 +385,7 @@ float srslte_ue_ul_pucch_power(srslte_ue_ul_t* q, srslte_ue_ul_cfg_t* cfg, srslt
 
   float h;
   int   n_cqi  = srslte_cqi_size(&uci_cfg->cqi);
-  int   n_harq = uci_cfg->ack.nof_acks;
+  int   n_harq = srslte_uci_cfg_total_ack(uci_cfg);
 
   if (format <= SRSLTE_PUCCH_FORMAT_1B) {
     h = 0;
@@ -487,15 +487,16 @@ get_format(srslte_pucch_cfg_t* cfg, srslte_uci_cfg_t* uci_cfg, srslte_uci_value_
   if (!uci_cfg->cqi.data_enable && uci_cfg->cqi.ri_len == 0) {
     // PUCCH Format 3 condition specified in:
     // 3GPP 36.213 10.1.2.2.2 PUCCH format 3 HARQ-ACK procedure
-    if (cfg->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3 && uci_cfg->ack.has_scell_ack) {
+    if (cfg->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3 &&
+        srslte_uci_cfg_total_ack(uci_cfg) > 1) {
       format = SRSLTE_PUCCH_FORMAT_3;
     }
     // 1-bit ACK + optional SR
-    else if (uci_cfg->ack.nof_acks == 1) {
+    else if (srslte_uci_cfg_total_ack(uci_cfg) == 1) {
       format = SRSLTE_PUCCH_FORMAT_1A;
     }
     // 2-bit ACK + optional SR
-    else if (uci_cfg->ack.nof_acks >= 2) {
+    else if (srslte_uci_cfg_total_ack(uci_cfg) >= 2 && srslte_uci_cfg_total_ack(uci_cfg) <= 4) {
       format = SRSLTE_PUCCH_FORMAT_1B; // with channel selection if > 2
     }
     // If UCI value is provided, use SR signal only, otherwise SR request opportunity
@@ -503,52 +504,79 @@ get_format(srslte_pucch_cfg_t* cfg, srslte_uci_cfg_t* uci_cfg, srslte_uci_value_
       if (uci_value->scheduling_request) {
         format = SRSLTE_PUCCH_FORMAT_1;
       }
+    } else if (uci_cfg->is_scheduling_request_tti) {
+      format = SRSLTE_PUCCH_FORMAT_1;
     } else {
-      if (uci_cfg->is_scheduling_request_tti) {
-        format = SRSLTE_PUCCH_FORMAT_1;
-      }
+      fprintf(stderr,
+              "Error selecting PUCCH format: Unsupported number of ACK bits %d\n",
+              srslte_uci_cfg_total_ack(uci_cfg));
     }
   }
   // CQI data
   else {
     // CQI and no ack
-    if (uci_cfg->ack.nof_acks == 0) {
+    if (srslte_uci_cfg_total_ack(uci_cfg) == 0) {
       format = SRSLTE_PUCCH_FORMAT_2;
     }
     // CQI + 1-bit ACK
-    else if (uci_cfg->ack.nof_acks == 1 && SRSLTE_CP_ISNORM(cp)) {
+    else if (srslte_uci_cfg_total_ack(uci_cfg) == 1 && SRSLTE_CP_ISNORM(cp)) {
       format = SRSLTE_PUCCH_FORMAT_2A;
     }
     // CQI + 2-bit ACK
-    else if (uci_cfg->ack.nof_acks == 2) {
+    else if (srslte_uci_cfg_total_ack(uci_cfg) == 2) {
       format = SRSLTE_PUCCH_FORMAT_2B;
     }
     // CQI + 2-bit ACK + cyclic prefix
-    else if (uci_cfg->ack.nof_acks == 1 && SRSLTE_CP_ISEXT(cp)) {
+    else if (srslte_uci_cfg_total_ack(uci_cfg) == 1 && SRSLTE_CP_ISEXT(cp)) {
       format = SRSLTE_PUCCH_FORMAT_2B;
     }
   }
   return format;
 }
 
-// n_pucch and b0b1 selection for CA, tables 10.1.2.2.1-3 to -5
-static uint32_t
-get_npucch_cs(srslte_pucch_cfg_t* cfg, uint32_t n_cce, srslte_uci_cfg_t* uci_cfg, srslte_uci_value_t* uci_value)
+// Selection of n_pucch for PUCCH Format 1a and 1b with channel selection for 1 and 2 CC
+static uint32_t get_npucch_cs(srslte_pucch_cfg_t* cfg, srslte_uci_cfg_t* uci_cfg, srslte_uci_value_t* uci_value)
 {
-  uint32_t n_pucch = 0;
-  uint8_t* b       = uci_value->ack.ack_value;
+  uint32_t n_pucch      = 0;
+  uint8_t* b            = uci_value->ack.ack_value;
+  uint32_t n_pucch_i[4] = {};
 
-  switch (uci_cfg->ack.nof_acks) {
+  // Determine the 4 PUCCH resources n_pucch_j associated with HARQ-ACK(j)
+  uint32_t k = 0;
+  for (int i = 0; i < 2; i++) {
+    // If grant has been scheduled in PCell
+    if (uci_cfg->ack[i].grant_cc_idx == 0) {
+      for (uint32_t j = 0; j < uci_cfg->ack[i].nof_acks; j++) {
+        if (k < 4) {
+          n_pucch_i[k++] = uci_cfg->ack[i].ncce[0] + cfg->N_pucch_1 + j;
+        } else {
+          fprintf(stderr, "get_npucch_cs(): Too many ack bits\n");
+        }
+      }
+    } else {
+      for (uint32_t j = 0; j < uci_cfg->ack[i].nof_acks; j++) {
+        if (k < 4) {
+          n_pucch_i[k++] = cfg->n1_pucch_an_cs[uci_cfg->ack[i].tpc_for_pucch % 4][j];
+        } else {
+          fprintf(stderr, "get_npucch_cs(): Too many ack bits\n");
+        }
+      }
+    }
+  }
+
+  // Do resource selection and bit mapping according to tables 10.1.2.2.1-3, 10.1.2.2.1-4 and 10.1.2.2.1-5
+  switch (srslte_uci_cfg_total_ack(uci_cfg)) {
     case 1:
-      n_pucch = n_cce + cfg->N_pucch_1;
+      // 1-bit is Format1A always
+      n_pucch = n_pucch_i[0];
       break;
     case 2:
       if (b[1] != 1) {
         /* n_pucch1_0 */
-        n_pucch = n_cce + cfg->N_pucch_1;
+        n_pucch = n_pucch_i[0];
       } else {
         /* n_pucch1_1 */
-        n_pucch = cfg->n1_pucch_an_cs[cfg->tpc_for_pucch % 4][0];
+        n_pucch = n_pucch_i[1];
       }
       if (b[0] == 1) {
         b[0] = 1;
@@ -561,13 +589,13 @@ get_npucch_cs(srslte_pucch_cfg_t* cfg, uint32_t n_cce, srslte_uci_cfg_t* uci_cfg
     case 3:
       if (b[0] != 1 && b[1] != 1) {
         /* n_pucch1_2 */
-        n_pucch = cfg->n1_pucch_an_cs[cfg->tpc_for_pucch % 4][0];
+        n_pucch = n_pucch_i[2];
       } else if (b[2] == 1) {
         /* n_pucch1_1 */
-        n_pucch = cfg->n1_pucch_an_cs[cfg->tpc_for_pucch % 4][0];
+        n_pucch = n_pucch_i[1];
       } else {
         /* n_pucch1_0 */
-        n_pucch = n_cce + cfg->N_pucch_1;
+        n_pucch = n_pucch_i[0];
       }
       if (b[0] != 1 && b[1] != 1 && b[2] != 1) {
         b[0] = 0;
@@ -586,16 +614,16 @@ get_npucch_cs(srslte_pucch_cfg_t* cfg, uint32_t n_cce, srslte_uci_cfg_t* uci_cfg
     case 4:
       if (b[2] != 1 && b[3] != 1) {
         /* n_pucch1_0 */
-        n_pucch = n_cce + cfg->N_pucch_1;
+        n_pucch = n_pucch_i[0];
       } else if (b[1] == 1 && b[2] == 1) {
         /* n_pucch1_1 */
-        n_pucch = n_cce + cfg->N_pucch_1 + 1;
+        n_pucch = n_pucch_i[1];
       } else if (b[0] == 1) {
         /* n_pucch1_2 */
-        n_pucch = cfg->n1_pucch_an_cs[cfg->tpc_for_pucch % 4][0];
+        n_pucch = n_pucch_i[2];
       } else {
         /* n_pucch1_3 */
-        n_pucch = cfg->n1_pucch_an_cs[cfg->tpc_for_pucch % 4][1];
+        n_pucch = n_pucch_i[3];
       }
       if (b[2] != 1 && b[3] != 1) {
         /* n_pucch1_0 */
@@ -651,7 +679,7 @@ static void set_b01(uint8_t* b, uint8_t x)
 static uint32_t get_npucch_tdd(uint32_t n_pucch[4], srslte_uci_cfg_t* uci_cfg, srslte_uci_value_t* uci_value)
 {
   uint8_t* b = uci_value->ack.ack_value;
-  switch (uci_cfg->ack.nof_acks) {
+  switch (uci_cfg->ack[0].nof_acks) {
     case 1:
       return n_pucch[0];
     case 2:
@@ -673,7 +701,7 @@ static uint32_t get_npucch_tdd(uint32_t n_pucch[4], srslte_uci_cfg_t* uci_cfg, s
       }
       break;
     case 3:
-      uci_cfg->ack.nof_acks = 2;
+      uci_cfg->ack[0].nof_acks = 2;
       if (is_ack(b[0]) && is_ack(b[1]) && is_ack(b[2])) {
         set_b01(b, 3);
         return n_pucch[2];
@@ -707,7 +735,7 @@ static uint32_t get_npucch_tdd(uint32_t n_pucch[4], srslte_uci_cfg_t* uci_cfg, s
       }
       break;
     case 4:
-      uci_cfg->ack.nof_acks = 2;
+      uci_cfg->ack[0].nof_acks = 2;
       if (is_ack(b[0]) && is_ack(b[1]) && is_ack(b[2]) && is_ack(b[3])) {
         set_b01(b, 3);
         return n_pucch[1];
@@ -800,49 +828,55 @@ get_npucch(srslte_pucch_cfg_t* cfg, srslte_uci_cfg_t* uci_cfg, srslte_uci_value_
 {
   uint32_t n_pucch_res = 0;
 
+  if (uci_cfg->is_scheduling_request_tti) {
+    return cfg->n_pucch_sr;
+  }
+
   if (uci_value) {
-    if (cfg->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS && cfg->format < SRSLTE_PUCCH_FORMAT_2 &&
-        !uci_value->scheduling_request && uci_cfg->ack.nof_acks > 0) {
-      n_pucch_res = get_npucch_cs(cfg, uci_cfg->ack.ncce[0], uci_cfg, uci_value);
-      return n_pucch_res;
-    } else if (cfg->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3 &&
-               cfg->format == SRSLTE_PUCCH_FORMAT_3) {
-      n_pucch_res = cfg->n3_pucch_an_list[cfg->tpc_for_pucch % SRSLTE_PUCCH_SIZE_AN_CS];
-      return n_pucch_res;
-    } else if (uci_value->scheduling_request) {
-      // If SR signal or SR opportunity, use n_pucch_sr for format 1, 1a, 1b
-      n_pucch_res = cfg->n_pucch_sr;
-      return n_pucch_res;
+    if (uci_value->scheduling_request) {
+      return cfg->n_pucch_sr;
     }
-  } else if (uci_cfg->is_scheduling_request_tti) {
-    n_pucch_res = cfg->n_pucch_sr;
-    return n_pucch_res;
+  }
+
+  if (!uci_value || !cell || !uci_cfg) {
+    fprintf(stderr, "get_npucch(): Invalid parameters\n");
+    return 0;
   }
 
   if (cfg->format < SRSLTE_PUCCH_FORMAT_2) {
     if (cfg->sps_enabled) {
-      n_pucch_res = cfg->n_pucch_1[cfg->tpc_for_pucch % 4];
+      n_pucch_res = cfg->n_pucch_1[uci_cfg->ack[0].tpc_for_pucch % 4];
     } else {
       if (cell->frame_type == SRSLTE_FDD) {
-        n_pucch_res = uci_cfg->ack.ncce[0] + cfg->N_pucch_1;
+        switch (cfg->ack_nack_feedback_mode) {
+          case SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3:
+            n_pucch_res = cfg->n3_pucch_an_list[uci_cfg->ack[0].tpc_for_pucch % SRSLTE_PUCCH_SIZE_AN_CS];
+            break;
+          case SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS:
+            n_pucch_res = get_npucch_cs(cfg, uci_cfg, uci_value);
+            break;
+          default:
+            n_pucch_res = uci_cfg->ack[0].ncce[0] + cfg->N_pucch_1;
+            break;
+        }
       } else {
-        if (!uci_cfg->ack.tdd_is_multiplex || uci_cfg->ack.tdd_ack_M == 1) {
-          n_pucch_res = n_pucch_i_tdd(
-              uci_cfg->ack.ncce[0], cfg->N_pucch_1, cell->nof_prb, uci_cfg->ack.tdd_ack_M, uci_cfg->ack.tdd_ack_m);
+        // only 1 CC supported in TDD
+        if (!uci_cfg->ack[0].tdd_is_multiplex || uci_cfg->ack[0].tdd_ack_M == 1) {
+          n_pucch_res = n_pucch_i_tdd(uci_cfg->ack[0].ncce[0],
+                                      cfg->N_pucch_1,
+                                      cell->nof_prb,
+                                      uci_cfg->ack[0].tdd_ack_M,
+                                      uci_cfg->ack[0].tdd_ack_m);
         } else {
-          if (uci_cfg->ack.tdd_ack_M <= 4) {
+          if (uci_cfg->ack[0].tdd_ack_M <= 4) {
             uint32_t n_pucch[4] = {};
-            for (uint32_t i = 0; i < uci_cfg->ack.tdd_ack_M; i++) {
+            for (uint32_t i = 0; i < uci_cfg->ack[0].tdd_ack_M; i++) {
               n_pucch[i] =
-                  n_pucch_i_tdd(uci_cfg->ack.ncce[i], cfg->N_pucch_1, cell->nof_prb, uci_cfg->ack.tdd_ack_M, i);
+                  n_pucch_i_tdd(uci_cfg->ack[0].ncce[i], cfg->N_pucch_1, cell->nof_prb, uci_cfg->ack[0].tdd_ack_M, i);
             }
-            if (uci_value) {
-              n_pucch_res = get_npucch_tdd(n_pucch, uci_cfg, uci_value);
-            } else {
-              ERROR("Error Not Implemented: TDD requires uci_value\n");
-            }
+            n_pucch_res = get_npucch_tdd(n_pucch, uci_cfg, uci_value);
           } else {
-            ERROR("Invalid M=%d in PUCCH TDD multiplexing\n", uci_cfg->ack.tdd_ack_M);
+            ERROR("Invalid M=%d in PUCCH TDD multiplexing\n", uci_cfg->ack[0].tdd_ack_M);
           }
         }
       }
@@ -861,7 +895,7 @@ void srslte_ue_ul_pucch_resource_selection(srslte_cell_t*      cell,
                                            srslte_uci_value_t* uci_value)
 {
   // Drop CQI if there is collision with ACK
-  if ((!cfg->simul_cqi_ack || uci_cfg->ack.has_scell_ack) && uci_cfg->ack.nof_acks > 0 && uci_cfg->cqi.data_enable) {
+  if (!cfg->simul_cqi_ack && srslte_uci_cfg_total_ack(uci_cfg) > 0 && uci_cfg->cqi.data_enable) {
     uci_cfg->cqi.data_enable = false;
   }
 
@@ -870,16 +904,17 @@ void srslte_ue_ul_pucch_resource_selection(srslte_cell_t*      cell,
 
   if (uci_value) {
     if (cfg->format == SRSLTE_PUCCH_FORMAT_3) {
+      fprintf(stderr, "Warning: PUCCH3 under development\n");
       uint8_t* b = uci_value->ack.ack_value;
       uint8_t  temp[SRSLTE_UCI_MAX_ACK_BITS + 1];
 
-      uint32_t k = uci_cfg->ack.nof_acks;
-      for (; k < uci_cfg->ack.nof_acks; k++) {
+      uint32_t k = uci_cfg->ack[0].nof_acks;
+      for (; k < uci_cfg->ack[0].nof_acks; k++) {
         temp[k] = (uint8_t)((b[k] == 1) ? 1 : 0);
       }
-      memcpy(temp, uci_value->ack.ack_value, uci_cfg->ack.nof_acks);
+      memcpy(temp, uci_value->ack.ack_value, uci_cfg->ack[0].nof_acks);
       if (uci_cfg->is_scheduling_request_tti) {
-        temp[uci_cfg->ack.nof_acks] = (uint8_t)(uci_value->scheduling_request ? 1 : 0);
+        temp[uci_cfg->ack[0].nof_acks] = (uint8_t)(uci_value->scheduling_request ? 1 : 0);
         k++;
       }
       srslte_uci_encode_ack_sr_pucch3(temp, k, b);
@@ -993,7 +1028,7 @@ bool srslte_ue_ul_gen_sr(srslte_ue_ul_cfg_t* cfg, srslte_ul_sf_cfg_t* sf, srslte
   return false;
 }
 
-#define uci_pending(cfg) (cfg.ack.nof_acks > 0 || cfg.cqi.data_enable || cfg.cqi.ri_len > 0)
+#define uci_pending(cfg) (srslte_uci_cfg_total_ack(&cfg) > 0 || cfg.cqi.data_enable || cfg.cqi.ri_len > 0)
 
 int srslte_ue_ul_encode(srslte_ue_ul_t* q, srslte_ul_sf_cfg_t* sf, srslte_ue_ul_cfg_t* cfg, srslte_pusch_data_t* data)
 {
@@ -1002,7 +1037,7 @@ int srslte_ue_ul_encode(srslte_ue_ul_t* q, srslte_ul_sf_cfg_t* sf, srslte_ue_ul_
   /* Convert DTX to NACK in channel-selection mode (Release 10 only)*/
   if (cfg->ul_cfg.pucch.ack_nack_feedback_mode != SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_NORMAL) {
     uint32_t dtx_count = 0;
-    for (uint32_t a = 0; a < cfg->ul_cfg.pusch.uci_cfg.ack.nof_acks; a++) {
+    for (uint32_t a = 0; a < srslte_uci_cfg_total_ack(&cfg->ul_cfg.pusch.uci_cfg); a++) {
       if (data->uci.ack.ack_value[a] == 2) {
         data->uci.ack.ack_value[a] = 0;
         dtx_count++;
@@ -1010,8 +1045,10 @@ int srslte_ue_ul_encode(srslte_ue_ul_t* q, srslte_ul_sf_cfg_t* sf, srslte_ue_ul_
     }
 
     /* If all bits are DTX, do not transmit HARQ */
-    if (dtx_count == cfg->ul_cfg.pusch.uci_cfg.ack.nof_acks) {
-      cfg->ul_cfg.pusch.uci_cfg.ack.nof_acks = 0;
+    if (dtx_count == srslte_uci_cfg_total_ack(&cfg->ul_cfg.pusch.uci_cfg)) {
+      for (int i = 0; i < 2; i++) { // Format 1b-CS only supports 2 CC
+        cfg->ul_cfg.pusch.uci_cfg.ack[i].nof_acks = 0;
+      }
     }
   }
 

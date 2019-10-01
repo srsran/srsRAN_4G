@@ -430,22 +430,30 @@ void phy_common::set_rar_grant_tti(uint32_t tti)
   rar_grant_tti = tti;
 }
 
-void phy_common::set_dl_pending_grant(uint32_t tti, uint32_t cc_idx, const srslte_dci_dl_t* dl_dci)
+void phy_common::set_dl_pending_grant(uint32_t               tti,
+                                      uint32_t               cc_idx,
+                                      uint32_t               grant_cc_idx,
+                                      const srslte_dci_dl_t* dl_dci)
 {
   if (!pending_dl_grant[tti % FDD_HARQ_DELAY_MS][cc_idx].enable) {
-    pending_dl_grant[tti % FDD_HARQ_DELAY_MS][cc_idx].dl_dci = *dl_dci;
-    pending_dl_grant[tti % FDD_HARQ_DELAY_MS][cc_idx].enable = true;
+    pending_dl_grant[tti % FDD_HARQ_DELAY_MS][cc_idx].dl_dci       = *dl_dci;
+    pending_dl_grant[tti % FDD_HARQ_DELAY_MS][cc_idx].grant_cc_idx = grant_cc_idx;
+    pending_dl_grant[tti % FDD_HARQ_DELAY_MS][cc_idx].enable       = true;
   } else {
     Warning("set_dl_pending_grant: cc=%d already exists\n", cc_idx);
   }
 }
 
-bool phy_common::get_dl_pending_grant(uint32_t tti, uint32_t cc_idx, srslte_dci_dl_t* dl_dci)
+bool phy_common::get_dl_pending_grant(uint32_t tti, uint32_t cc_idx, uint32_t* grant_cc_idx, srslte_dci_dl_t* dl_dci)
 {
   if (pending_dl_grant[tti % FDD_HARQ_DELAY_MS][cc_idx].enable) {
     // Read grant
-    *dl_dci = pending_dl_grant[tti % FDD_HARQ_DELAY_MS][cc_idx].dl_dci;
-
+    if (dl_dci) {
+      *dl_dci = pending_dl_grant[tti % FDD_HARQ_DELAY_MS][cc_idx].dl_dci;
+    }
+    if (grant_cc_idx) {
+      *grant_cc_idx = pending_dl_grant[tti % FDD_HARQ_DELAY_MS][cc_idx].grant_cc_idx;
+    }
     // Reset read flag
     pending_dl_grant[tti % FDD_HARQ_DELAY_MS][cc_idx].enable = false;
     return true;

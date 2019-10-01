@@ -938,7 +938,7 @@ static int uci_decode_ri_ack(
   uint32_t cqi_len = srslte_cqi_size(&cfg->uci_cfg.cqi);
 
   // Deinterleave and decode HARQ bits
-  if (cfg->uci_cfg.ack.nof_acks > 0) {
+  if (srslte_uci_cfg_total_ack(&cfg->uci_cfg) > 0) {
     float beta = beta_harq_offset[cfg->uci_offset.I_offset_ack];
     if (cfg->grant.tb.tbs == 0) {
       beta /= beta_cqi_offset[cfg->uci_offset.I_offset_cqi];
@@ -951,7 +951,7 @@ static int uci_decode_ri_ack(
                                    cqi_len,
                                    q->ack_ri_bits,
                                    uci_data->ack.ack_value,
-                                   cfg->uci_cfg.ack.nof_acks,
+                                   srslte_uci_cfg_total_ack(&cfg->uci_cfg),
                                    false);
     if (ret < 0) {
       return ret;
@@ -1120,7 +1120,7 @@ int srslte_ulsch_encode(srslte_sch_t*       q,
                                    beta,
                                    nb_q / Qm,
                                    true,
-                                   cfg->uci_cfg.ack.N_bundle,
+                                   cfg->uci_cfg.ack[0].N_bundle,
                                    q->ack_ri_bits);
     if (ret < 0) {
       return ret;
@@ -1169,19 +1169,19 @@ int srslte_ulsch_encode(srslte_sch_t*       q,
   ulsch_interleave(g_bits, Qm, nb_q / Qm, cfg->grant.nof_symb, q_bits, q->ack_ri_bits, Q_prime_ri * Qm, q->temp_g_bits);
 
   // Encode (and interleave) ACK
-  if (cfg->uci_cfg.ack.nof_acks > 0) {
+  if (srslte_uci_cfg_total_ack(&cfg->uci_cfg) > 0) {
     float beta = beta_harq_offset[cfg->uci_offset.I_offset_ack];
     if (cb_segm.tbs == 0) {
       beta /= beta_cqi_offset[cfg->uci_offset.I_offset_cqi];
     }
     ret = srslte_uci_encode_ack_ri(cfg,
                                    uci_data->ack.ack_value,
-                                   cfg->uci_cfg.ack.nof_acks,
+                                   srslte_uci_cfg_total_ack(&cfg->uci_cfg),
                                    (uint32_t)uci_cqi_len,
                                    beta,
                                    nb_q / Qm,
                                    false,
-                                   cfg->uci_cfg.ack.N_bundle,
+                                   cfg->uci_cfg.ack[0].N_bundle,
                                    &q->ack_ri_bits[Q_prime_ri * Qm]);
     if (ret < 0) {
       return ret; 

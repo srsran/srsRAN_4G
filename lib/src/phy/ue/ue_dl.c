@@ -927,157 +927,136 @@ void srslte_ue_dl_gen_cqi_aperiodic(srslte_ue_dl_t*     q,
   }
 }
 
+/* UE downlink procedure for reporting HARQ-ACK bits in FDD, Section 7.3 36.213
+ */
+static void gen_ack_fdd(srslte_pdsch_ack_t* ack_info, srslte_uci_data_t* uci_data)
+{
+  uint32_t nof_tb = 1;
+  if (ack_info->transmission_mode > SRSLTE_TM2) {
+    nof_tb = SRSLTE_MAX_CODEWORDS;
+  }
+
+  // Second clause: When 2 CC are configured with PUCCH CS mode and SR is also requested, bundle spatial codewords
+  if (ack_info->nof_cc == 2 && uci_data->value.scheduling_request == true &&
+      ack_info->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS) {
+    for (uint32_t cc_idx = 0; cc_idx < ack_info->nof_cc; cc_idx++) {
+      if (ack_info->cc[cc_idx].m[0].present) {
+        uci_data->value.ack.ack_value[cc_idx] = 1;
+        for (uint32_t tb = 0; tb < nof_tb; tb++) {
+          if (ack_info->cc[cc_idx].m[0].value[tb] != 2) {
+            uci_data->value.ack.ack_value[cc_idx] &= ack_info->cc[cc_idx].m[0].value[tb];
+          }
+        }
+      } else {
+        uci_data->value.ack.ack_value[cc_idx] = 2;
+      }
+    }
+    for (uint32_t i = 0; i < 2; i++) {
+      uci_data->cfg.ack[i].nof_acks = 1;
+    }
+  } else {
+    // By default, in FDD we just pass through all HARQ-ACK bits
+    uint32_t tb_count = 0;
+    uint32_t n        = 0;
+    for (uint32_t cc_idx = 0; cc_idx < ack_info->nof_cc; cc_idx++) {
+      for (uint32_t tb = 0; tb < nof_tb; tb++, n++) {
+        uci_data->value.ack.ack_value[n] = ack_info->cc[cc_idx].m[0].value[tb];
+        if (ack_info->cc[cc_idx].m[0].present && ack_info->cc[cc_idx].m[0].value[tb] != 2) {
+          tb_count++;
+        }
+      }
+    }
+    if (ack_info->nof_cc == 1) {
+      // If only 1 configured cell, report 1 or 2 bits depending on number of detected TB
+      uci_data->cfg.ack[0].nof_acks = tb_count;
+    } else {
+      // For 2 or more configured cells, report nof_tb per carrier except if there are no HARQ-ACK bits to report, in
+      // which case we set to 0
+      for (int i = 0; i < 2; i++) {
+        uci_data->cfg.ack[i].nof_acks = (tb_count != 0) ? nof_tb : 0;
+      }
+    }
+  }
+
+  // n_cce values are just copied
+  for (uint32_t i = 0; i < ack_info->nof_cc; i++) {
+    uci_data->cfg.ack[i].ncce[0]       = ack_info->cc[i].m[0].resource.n_cce;
+    uci_data->cfg.ack[i].grant_cc_idx  = ack_info->cc[i].m[0].resource.grant_cc_idx;
+    uci_data->cfg.ack[i].tpc_for_pucch = ack_info->cc[i].m[0].resource.tpc_for_pucch;
+  }
+}
+
 // Table 7.3-1
 static const uint32_t multiple_acknack[10][2] = {
     {0, 0}, {1, 1}, {1, 0}, {0, 1}, {1, 1}, {1, 0}, {0, 1}, {1, 1}, {1, 0}, {0, 1}};
 
-/* UE downlink procedure for reporting ACK/NACK, Section 7.3 36.213
+/* UE downlink procedure for reporting HARQ-ACK bits in TDD, Section 7.3 36.213
  */
-void srslte_ue_dl_gen_ack(srslte_ue_dl_t*     q,
-                          srslte_dl_sf_cfg_t* sf,
-                          srslte_pdsch_ack_t* ack_info,
-                          srslte_uci_data_t*  uci_data)
+static void gen_ack_tdd(bool is_tdd_mode16, srslte_pdsch_ack_t* ack_info, srslte_uci_data_t* uci_data)
 {
   uint32_t V_dai_dl = 0;
-
-  bool is_tdd_mode16 = sf->tdd_config.sf_config >= 1 && sf->tdd_config.sf_config <= 6;
 
   uint32_t nof_tb = 1;
   if (ack_info->transmission_mode > SRSLTE_TM2) {
     nof_tb = SRSLTE_MAX_CODEWORDS;
   }
 
-  // Implementation 3GPP 36.213 V10.13.0. Section 7.3. 2nd Clause.
-  if (q->cell.frame_type == SRSLTE_FDD) {
-    if (ack_info->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS &&
-        uci_data->value.scheduling_request && !ack_info->is_pusch_available) {
-      for (uint32_t cc_idx = 0; cc_idx < ack_info->nof_cc; cc_idx++) {
-        uint32_t dtx_count      = 0;
-        bool     bundle_spatial = true;
-
-        for (uint32_t tb = 0; tb < nof_tb; tb++) {
-          if (ack_info->cc[cc_idx].m[0].present && ack_info->cc[cc_idx].m[0].value[tb] != 2) {
-            if (ack_info->cc[cc_idx].m[0].value[tb] != 1) {
-              bundle_spatial = false;
-            }
-            if (cc_idx != 0) {
-              uci_data->cfg.ack.has_scell_ack = true;
-            }
-          } else {
-            dtx_count++;
-          }
-        }
-        uci_data->value.ack.ack_value[cc_idx] = (uint8_t)((bundle_spatial && dtx_count != nof_tb) ? 1 : 0);
-      }
-
-      uci_data->cfg.ack.nof_acks  = ack_info->nof_cc;
-      uci_data->cfg.ack.tdd_ack_M = 1;
-      return;
-
-    } else if ((ack_info->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS &&
-                ack_info->is_pusch_available) ||
-               ack_info->ack_nack_feedback_mode == SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3) {
-      uint32_t tb_count = 0;
-      uint32_t n        = 0;
-      for (uint32_t cc_idx = 0; cc_idx < ack_info->nof_cc; cc_idx++) {
-        for (uint32_t tb = 0; tb < nof_tb; tb++, n++) {
-          uci_data->value.ack.ack_value[n] = ack_info->cc[cc_idx].m[0].value[tb];
-          if (ack_info->cc[cc_idx].m[0].present && ack_info->cc[cc_idx].m[0].value[tb] != 2) {
-            tb_count++;
-          }
-        }
-      }
-      uci_data->cfg.ack.nof_acks = (tb_count != 0) ? n : 0;
-      return;
-    }
+  if (ack_info->nof_cc > 1) {
+    fprintf(stderr, "Error generating HARQ-ACK bits. Only 1 CC is supported in TDD\n");
   }
 
-  // Calculate U_dai and count number of ACK for this subframe by spatial bundling across codewords
-  uint32_t nof_pos_acks   = 0;
-  uint32_t nof_total_acks = 0;
-  uint32_t U_dai          = 0;
-  for (uint32_t cc_idx = 0; cc_idx < ack_info->nof_cc; cc_idx++) {
-    for (uint32_t i = 0; i < ack_info->cc[cc_idx].M; i++) {
-      bool bundle_spatial = false;
-      bool first_bundle   = true;
-      for (uint32_t j = 0; j < nof_tb; j++) {
-        if (ack_info->cc[cc_idx].m[i].present) {
-          if (first_bundle) {
-            bundle_spatial = ack_info->cc[cc_idx].m[i].value[j] == 1;
-            U_dai++;
-            first_bundle = false;
-          } else {
-            bundle_spatial &= ack_info->cc[cc_idx].m[i].value[j] == 1;
-          }
-          if (bundle_spatial) {
-            nof_pos_acks++;
-          }
-          if (ack_info->cc[cc_idx].m[i].value[j] != 2) {
-            nof_total_acks++;
-          }
-        }
-      }
-    }
-  }
+  // Arrange bits for FDD or TDD Bundling or Multiplexing.
+  srslte_pdsch_ack_cc_t* ack_value = &ack_info->cc[0];
+  srslte_uci_cfg_ack_t*  ack_cfg   = &uci_data->cfg.ack[0];
 
-  for (uint32_t cc_idx = 0; cc_idx < ack_info->nof_cc; cc_idx++) {
+  uint32_t min_k = 10;
 
-    // Arrange bits for FDD or TDD Bundling or Multiplexing
-    srslte_pdsch_ack_cc_t* ack_value = &ack_info->cc[cc_idx];
+  if (ack_value->M > 0) {
 
-    uint32_t min_k = 10;
+    ack_cfg->tdd_ack_M = ack_value->M;
 
-    if (ack_info->cc[cc_idx].M > 0) {
-
-      uci_data->cfg.ack.tdd_ack_M = ack_value->M;
-
-      // ACK/NACK bundling or multiplexing and M=1
-      if (!ack_info->tdd_ack_multiplex || ack_value->M == 1) {
-        for (uint32_t tb = 0; tb < nof_tb; tb++) {
-          bool first_in_bundle = true;
-          for (uint32_t k = 0; k < ack_value->M; k++) {
-            if (ack_value->m[k].present && ack_value->m[k].value[tb] != 2) {
-              uci_data->cfg.ack.has_scell_ack |= (cc_idx != 0); // If a grant is detected in an scell
-
-              // Bundle on time domain
-              if (first_in_bundle) {
-                uci_data->value.ack.ack_value[nof_tb * cc_idx + tb] = ack_value->m[k].value[tb];
-                first_in_bundle                                     = false;
-              } else {
-                uci_data->value.ack.ack_value[nof_tb * cc_idx + tb] = (uint8_t)(
-                    ((uci_data->value.ack.ack_value[nof_tb * cc_idx + tb] == 1) & (ack_value->m[k].value[tb])) ? 1 : 0);
-              }
-              // V_dai_dl is for the one with lowest k value
-              if (ack_value->m[k].k < min_k || q->cell.frame_type == SRSLTE_FDD) {
-                min_k    = ack_value->m[k].k;
-                V_dai_dl = ack_value->m[k].resource.v_dai_dl + 1; // Table 7.3-X
-                if (cc_idx == 0) {
-                  uci_data->cfg.ack.ncce[0]   = ack_info->cc[cc_idx].m[k].resource.n_cce;
-                  uci_data->cfg.ack.tdd_ack_m = k;
-                }
-              }
-            }
-          }
-        }
-        // ACK/NACK multiplexing and M > 1
-      } else {
+    // ACK/NACK bundling or multiplexing and M=1
+    if (!ack_info->tdd_ack_multiplex || ack_value->M == 1) {
+      for (uint32_t tb = 0; tb < nof_tb; tb++) {
+        bool first_in_bundle = true;
         for (uint32_t k = 0; k < ack_value->M; k++) {
-          // Bundle spatial domain
-          bool spatial_ack = true;
-          for (uint32_t i = 0; i < nof_tb; i++) {
-            if (ack_value->m[k].value[i] != 2) {
-              spatial_ack &= (ack_value->m[k].value[i] == 1);
+          if (ack_value->m[k].present && ack_value->m[k].value[tb] != 2) {
+            // Bundle on time domain
+            if (first_in_bundle) {
+              uci_data->value.ack.ack_value[tb] = ack_value->m[k].value[tb];
+              first_in_bundle                   = false;
+            } else {
+              uci_data->value.ack.ack_value[tb] =
+                  (uint8_t)(((uci_data->value.ack.ack_value[tb] == 1) & (ack_value->m[k].value[tb])) ? 1 : 0);
+            }
+            // V_dai_dl is for the one with lowest k value
+            if (ack_value->m[k].k < min_k) {
+              min_k              = ack_value->m[k].k;
+              V_dai_dl           = ack_value->m[k].resource.v_dai_dl + 1; // Table 7.3-X
+              ack_cfg->ncce[0]   = ack_value->m[k].resource.n_cce;
+              ack_cfg->tdd_ack_m = k;
             }
           }
-          // In multiplexing for pusch, sort them accordingly
-          if (ack_value->m[k].present) {
-            uint32_t p = k;
-            if (q->cell.frame_type == SRSLTE_TDD && ack_info->is_pusch_available && ack_info->is_grant_available) {
-              p = ack_value->m[k].resource.v_dai_dl;
-            }
-            uci_data->value.ack.ack_value[ack_value->M * cc_idx + p] = (uint8_t)(spatial_ack ? 1 : 0);
-            uci_data->cfg.ack.ncce[ack_value->M * cc_idx + p]        = ack_info->cc[cc_idx].m[k].resource.n_cce;
+        }
+      }
+      // ACK/NACK multiplexing and M > 1
+    } else {
+      for (uint32_t k = 0; k < ack_value->M; k++) {
+        // Bundle spatial domain
+        bool spatial_ack = true;
+        for (uint32_t i = 0; i < nof_tb; i++) {
+          if (ack_value->m[k].value[i] != 2) {
+            spatial_ack &= (ack_value->m[k].value[i] == 1);
           }
+        }
+        // In multiplexing for pusch, sort them accordingly
+        if (ack_value->m[k].present) {
+          uint32_t p = k;
+          if (ack_info->is_pusch_available && ack_info->is_grant_available) {
+            p = ack_value->m[k].resource.v_dai_dl;
+          }
+          uci_data->value.ack.ack_value[p] = (uint8_t)(spatial_ack ? 1 : 0);
+          ack_cfg->ncce[p]                 = ack_value->m[k].resource.n_cce;
         }
       }
     }
@@ -1085,17 +1064,43 @@ void srslte_ue_dl_gen_ack(srslte_ue_dl_t*     q,
 
   bool missing_ack = false;
 
+  // Calculate U_dai and count number of ACK for this subframe by spatial bundling across codewords
+  uint32_t nof_pos_acks   = 0;
+  uint32_t U_dai          = 0;
+  uint32_t nof_total_acks = 0;
+  for (uint32_t i = 0; i < ack_value->M; i++) {
+    bool bundle_spatial = false;
+    bool first_bundle   = true;
+    for (uint32_t j = 0; j < nof_tb; j++) {
+      if (ack_value->m[i].present) {
+        if (first_bundle) {
+          bundle_spatial = ack_value->m[i].value[j] == 1;
+          U_dai++;
+          first_bundle = false;
+        } else {
+          bundle_spatial &= ack_value->m[i].value[j] == 1;
+        }
+        if (bundle_spatial) {
+          nof_pos_acks++;
+        }
+        if (ack_value->m[i].value[j] != 2) {
+          nof_total_acks++;
+        }
+      }
+    }
+  }
+
   // For TDD PUSCH
-  if (q->cell.frame_type == SRSLTE_TDD && is_tdd_mode16) {
+  if (is_tdd_mode16) {
 
     ack_info->V_dai_ul++; // Table 7.3-x
 
-    uci_data->cfg.ack.tdd_is_multiplex = ack_info->tdd_ack_multiplex;
+    ack_cfg->tdd_is_multiplex = ack_info->tdd_ack_multiplex;
 
     // Bundling or multiplexing and M=1
     if (!ack_info->tdd_ack_multiplex || ack_info->cc[0].M == 1) {
       // 1 or 2 ACK/NACK bits
-      uci_data->cfg.ack.nof_acks = nof_tb;
+      ack_cfg->nof_acks = nof_tb;
 
       // Determine if there is any missing ACK/NACK in the set and N_bundle value
 
@@ -1103,7 +1108,7 @@ void srslte_ue_dl_gen_ack(srslte_ue_dl_t*     q,
       if (!ack_info->is_pusch_available) {
         if ((V_dai_dl != (U_dai - 1) % 4 + 1 && U_dai > 0) || U_dai == 0) {
           // In ul procedure 10.2, skip ACK/NACK in bundling PUCCH
-          uci_data->cfg.ack.nof_acks = 0;
+          ack_cfg->nof_acks = 0;
           if (U_dai > 0) {
             missing_ack = true;
           }
@@ -1112,30 +1117,30 @@ void srslte_ue_dl_gen_ack(srslte_ue_dl_t*     q,
       } else if (ack_info->is_grant_available) {
         if (ack_info->V_dai_ul != (U_dai - 1) % 4 + 1) {
           bzero(uci_data->value.ack.ack_value, nof_tb);
-          uci_data->cfg.ack.N_bundle = ack_info->V_dai_ul + 2;
+          ack_cfg->N_bundle = ack_info->V_dai_ul + 2;
         } else {
-          uci_data->cfg.ack.N_bundle = ack_info->V_dai_ul;
+          ack_cfg->N_bundle = ack_info->V_dai_ul;
         }
         // do not transmit case
         if (ack_info->V_dai_ul == 4 && U_dai == 0) {
-          uci_data->cfg.ack.nof_acks = 0;
+          ack_cfg->nof_acks = 0;
         }
         // Transmitting on PUSCH not based on grant
       } else {
         if (V_dai_dl != (U_dai - 1) % 4 + 1 && U_dai > 0) {
           bzero(uci_data->value.ack.ack_value, nof_tb);
         }
-        uci_data->cfg.ack.N_bundle = U_dai;
+        ack_cfg->N_bundle = U_dai;
         // do not transmit case
         if (U_dai == 0) {
-          uci_data->cfg.ack.nof_acks = 0;
+          ack_cfg->nof_acks = 0;
         }
       }
 
       // In PUSCH and MIMO, nack 2nd codeword if not received, in PUCCH do not transmit
-      if (nof_tb == 2 && uci_data->value.ack.ack_value[1] == 2 && uci_data->cfg.ack.nof_acks == 2) {
+      if (nof_tb == 2 && uci_data->value.ack.ack_value[1] == 2 && ack_cfg->nof_acks == 2) {
         if (!ack_info->is_pusch_available) {
-          uci_data->cfg.ack.nof_acks = 1;
+          ack_cfg->nof_acks = 1;
         } else {
           uci_data->value.ack.ack_value[1] = 0;
         }
@@ -1147,15 +1152,15 @@ void srslte_ue_dl_gen_ack(srslte_ue_dl_t*     q,
         if (ack_info->is_grant_available) {
           // Do not transmit if...
           if (!(ack_info->V_dai_ul == 4 && U_dai == 0)) {
-            uci_data->cfg.ack.nof_acks = ack_info->V_dai_ul;
+            ack_cfg->nof_acks = ack_info->V_dai_ul;
           }
         } else {
-          uci_data->cfg.ack.nof_acks = ack_info->cc[0].M;
+          ack_cfg->nof_acks = ack_info->cc[0].M;
         }
 
         // Set DTX bits to NACKs
         uint32_t count_acks = 0;
-        for (uint32_t i = 0; i < uci_data->cfg.ack.nof_acks; i++) {
+        for (uint32_t i = 0; i < ack_cfg->nof_acks; i++) {
           if (uci_data->value.ack.ack_value[i] == 2) {
             uci_data->value.ack.ack_value[i] = 0;
           } else {
@@ -1163,26 +1168,19 @@ void srslte_ue_dl_gen_ack(srslte_ue_dl_t*     q,
           }
         }
         if (!count_acks) {
-          uci_data->cfg.ack.nof_acks = 0;
+          ack_cfg->nof_acks = 0;
         }
       } else {
-        uci_data->cfg.ack.nof_acks = ack_info->cc[0].M;
+        ack_cfg->nof_acks = ack_info->cc[0].M;
       }
     }
   } else {
-    if (q->cell.frame_type == SRSLTE_TDD) { // And subframe config 0
-      uci_data->cfg.ack.N_bundle = 1;
-    }
-    uci_data->cfg.ack.nof_acks = nof_total_acks;
-  }
-
-  // If no pending ACK/NACK
-  if (uci_data->cfg.ack.nof_acks == 0) {
-    return;
+    ack_cfg->N_bundle = 1;
+    ack_cfg->nof_acks = nof_total_acks;
   }
 
   // Multiple ACK/NACK responses with SR and CQI
-  if (q->cell.frame_type == SRSLTE_TDD && uci_data->cfg.ack.nof_acks && !ack_info->is_pusch_available &&
+  if (ack_cfg->nof_acks && !ack_info->is_pusch_available &&
       (uci_data->value.scheduling_request ||
        ((uci_data->cfg.cqi.data_enable || uci_data->cfg.cqi.ri_len) && ack_info->simul_cqi_ack))) {
     if (missing_ack) {
@@ -1193,7 +1191,23 @@ void srslte_ue_dl_gen_ack(srslte_ue_dl_t*     q,
       uci_data->value.ack.ack_value[0] = multiple_acknack[nof_pos_acks][0];
       uci_data->value.ack.ack_value[1] = multiple_acknack[nof_pos_acks][1];
     }
-    uci_data->cfg.ack.nof_acks = 2;
+    ack_cfg->nof_acks = 2;
+  }
+}
+
+/* UE downlink procedure for reporting ACK/NACK, Section 7.3 36.213
+ */
+void srslte_ue_dl_gen_ack(srslte_ue_dl_t*     q,
+                          srslte_dl_sf_cfg_t* sf,
+                          srslte_pdsch_ack_t* ack_info,
+                          srslte_uci_data_t*  uci_data)
+{
+
+  if (q->cell.frame_type == SRSLTE_FDD) {
+    gen_ack_fdd(ack_info, uci_data);
+  } else {
+    bool is_tdd_mode16 = sf->tdd_config.sf_config >= 1 && sf->tdd_config.sf_config <= 6;
+    gen_ack_tdd(is_tdd_mode16, ack_info, uci_data);
   }
 }
 

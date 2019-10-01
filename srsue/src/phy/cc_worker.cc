@@ -249,7 +249,8 @@ bool cc_worker::work_dl_regular()
   }
 
   srslte_dci_dl_t dci_dl       = {};
-  bool            has_dl_grant = phy->get_dl_pending_grant(CURRENT_TTI, cc_idx, &dci_dl);
+  uint32_t        grant_cc_idx = 0;
+  bool            has_dl_grant = phy->get_dl_pending_grant(CURRENT_TTI, cc_idx, &grant_cc_idx, &dci_dl);
 
   // If found a dci for this carrier, generate a grant, pass it to MAC and decode the associated PDSCH
   if (has_dl_grant) {
@@ -277,7 +278,7 @@ bool cc_worker::work_dl_regular()
     dl_phy_to_mac_grant(&ue_dl_cfg.cfg.pdsch.grant, &dci_dl, &mac_grant);
 
     // Save ACK resource configuration
-    srslte_pdsch_ack_resource_t ack_resource = {dci_dl.dai, dci_dl.location.ncce};
+    srslte_pdsch_ack_resource_t ack_resource = {dci_dl.dai, dci_dl.location.ncce, grant_cc_idx, dci_dl.tpc_pucch};
 
     // Send grant to MAC and get action for this TB, then call tb_decoded to unlock MAC
     phy->stack->new_grant_dl(cc_idx, mac_grant, &dl_action);
@@ -384,7 +385,7 @@ int cc_worker::decode_pdcch_dl()
 
     for (int k = 0; k < nof_grants; k++) {
       // Save dci to CC index
-      phy->set_dl_pending_grant(CURRENT_TTI, dci[k].cif_present ? dci[k].cif : cc_idx, &dci[k]);
+      phy->set_dl_pending_grant(CURRENT_TTI, dci[k].cif_present ? dci[k].cif : cc_idx, cc_idx, &dci[k]);
 
       // Logging
       char str[512] = {};
@@ -860,17 +861,6 @@ void cc_worker::set_uci_ack(srslte_uci_data_t* uci_data,
     if (i == 0 || phy->scell_cfg[i].configured) {
       phy->get_dl_pending_ack(&sf_cfg_ul, i, &ack_info.cc[i]);
       nof_configured_carriers++;
-    }
-  }
-
-  // Set ACK length for CA (default value is set to DTX)
-  if (ue_ul_cfg.ul_cfg.pucch.ack_nack_feedback_mode != SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_NORMAL) {
-    if (ue_dl_cfg.cfg.tm > SRSLTE_TM2) {
-      /* TM3, TM4 */
-      uci_data->cfg.ack.nof_acks = nof_configured_carriers * SRSLTE_MAX_CODEWORDS;
-    } else {
-      /* TM1, TM2 */
-      uci_data->cfg.ack.nof_acks = nof_configured_carriers;
     }
   }
 

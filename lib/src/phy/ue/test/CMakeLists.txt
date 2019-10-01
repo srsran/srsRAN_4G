@@ -18,7 +18,14 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-file(GLOB SOURCES "*.c")
-add_library(srslte_ue OBJECT ${SOURCES})
+########################################################################
+# PROGRAM TO DEBUG PSS FROM USRP  
+########################################################################
 
-add_subdirectory(test)
+add_executable(gen_ack_test gen_ack_test.c)
+target_link_libraries(gen_ack_test srslte_phy)
+add_test(gen_ack_test gen_ack_test)
+
+add_executable(pucch_resource_test pucch_resource_test.c)
+target_link_libraries(pucch_resource_test srslte_phy)
+add_test(pucch_resource_test pucch_resource_test)

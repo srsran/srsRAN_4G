@@ -100,8 +100,8 @@ public:
 
   void set_rar_grant(uint8_t grant_payload[SRSLTE_RAR_GRANT_LEN], uint16_t rnti, srslte_tdd_config_t tdd_config);
 
-  void set_dl_pending_grant(uint32_t tti, uint32_t cc_idx, const srslte_dci_dl_t* dl_dci);
-  bool get_dl_pending_grant(uint32_t tti, uint32_t cc_idx, srslte_dci_dl_t* dl_dci);
+  void set_dl_pending_grant(uint32_t tti, uint32_t cc_idx, uint32_t grant_cc_idx, const srslte_dci_dl_t* dl_dci);
+  bool get_dl_pending_grant(uint32_t tti, uint32_t cc_idx, uint32_t* grant_cc_idx, srslte_dci_dl_t* dl_dci);
 
   void set_ul_pending_ack(srslte_ul_sf_cfg_t*  sf,
                           uint32_t             cc_idx,
@@ -215,6 +215,7 @@ private:
   // Cross-carried grants scheduled from PCell
   typedef struct {
     bool            enable;
+    uint32_t        grant_cc_idx;
     srslte_dci_dl_t dl_dci;
   } pending_dl_grant_t;
   pending_dl_grant_t pending_dl_grant[FDD_HARQ_DELAY_MS][SRSLTE_MAX_CARRIERS] = {};
