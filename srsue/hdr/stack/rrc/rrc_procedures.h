@@ -108,7 +108,7 @@ public:
   explicit cell_selection_proc(rrc* parent_);
   srslte::proc_outcome_t init();
   srslte::proc_outcome_t step();
-  void                   stop(bool is_success);
+  void                   on_complete(bool is_success);
   cs_result_t            get_cs_result() const { return cs_result; }
   static const char*     name() { return "Cell Selection"; }
 
@@ -134,7 +134,7 @@ public:
   explicit plmn_search_proc(rrc* parent_);
   srslte::proc_outcome_t init();
   srslte::proc_outcome_t step();
-  void                   stop(bool is_success);
+  void                   on_complete(bool is_success);
   static const char*     name() { return "PLMN Search"; }
 
 private:
@@ -159,7 +159,7 @@ public:
   srslte::proc_outcome_t
                          init(srslte::establishment_cause_t cause_, srslte::unique_byte_buffer_t dedicated_info_nas_);
   srslte::proc_outcome_t step();
-  void                   stop(bool is_success);
+  void                   on_complete(bool is_success);
   srslte::proc_outcome_t trigger_event(const cell_selection_complete& e);
   static const char*     name() { return "Connection Request"; }
 

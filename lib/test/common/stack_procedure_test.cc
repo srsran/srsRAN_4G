@@ -143,7 +143,7 @@ public:
     }
     return proc_outcome_t::yield;
   }
-  void        stop(bool is_success) { printf("TestObj %d stop() was called\n", obj.id); }
+  void        on_complete(bool is_success) { printf("TestObj %d stop() was called\n", obj.id); }
   const char* name() const { return "custom proc"; }
   void        clear()
   {
@@ -157,6 +157,34 @@ public:
 
 private:
   int counter = 0;
+};
+
+class custom_proc2_t
+{
+public:
+  proc_outcome_t init()
+  {
+    exit_val = "init";
+    counter  = 0;
+    return proc_outcome_t::yield;
+  }
+  proc_outcome_t step()
+  {
+    if (counter++ > 5) {
+      return proc_outcome_t::success;
+    }
+    return proc_outcome_t::yield;
+  }
+  void on_complete(bool is_success)
+  {
+    if (is_success) {
+      exit_val = "success";
+    } else {
+      exit_val = "fail";
+    }
+  }
+  std::string exit_val = "";
+  int         counter  = 0;
 };
 
 int test_local_1()
@@ -358,6 +386,41 @@ int test_callback_5()
   return 0;
 }
 
+int test_complete_callback_1()
+{
+  /*
+   * Description: Test if on_complete() callbacks are correctly called
+   */
+  printf("\n--- Test %s ---\n", __func__);
+  srslte::proc_manager_list_t            callbacks;
+  srslte::proc_t<custom_proc2_t> proc;
+
+  std::string run_result;
+  auto        continuation_task = [&run_result](bool is_success) { run_result = is_success ? "SUCCESS" : "FAILURE"; };
+  std::string results[]         = {"", "SUCCESS", "", "SUCCESS", "SUCCESS", "SUCCESS"};
+  for (uint32_t i = 0; i < 6; ++i) {
+    run_result = "";
+    if (i == 1) {
+      TESTASSERT(proc.then(continuation_task) == 0);
+    } else if (i == 3) {
+      TESTASSERT(proc.then_always(continuation_task) == 0);
+    }
+
+    TESTASSERT(proc.launch());
+    TESTASSERT(proc.get()->exit_val == "init");
+    while (proc.run()) {
+      TESTASSERT(proc.get()->exit_val == "init");
+      TESTASSERT(proc.is_active());
+    }
+    TESTASSERT(proc.is_active() and proc.is_complete());
+    srslte::proc_result_t<custom_proc2_t> ret = proc.pop();
+    TESTASSERT(ret.is_success() and ret.proc()->exit_val == "success");
+
+    TESTASSERT(run_result == results[i]);
+  }
+  return 0;
+}
+
 int main()
 {
   TESTASSERT(test_local_1() == 0);
@@ -366,6 +429,7 @@ int main()
   TESTASSERT(test_callback_3() == 0);
   TESTASSERT(test_callback_4() == 0);
   TESTASSERT(test_callback_5() == 0);
+  TESTASSERT(test_complete_callback_1() == 0);
 
   return 0;
 }

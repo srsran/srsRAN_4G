@@ -345,24 +345,20 @@ void nas::start_attach_request(srslte::proc_state_t* result, srslte::establishme
           }
           return;
         }
-        callbacks.defer_task([this, result]() {
-          if (plmn_searcher.run()) {
-            return proc_outcome_t::yield;
-          }
-          proc_result_t<plmn_search_proc> p = plmn_searcher.pop();
-          nas_log->info("Attach Request from PLMN Search %s\n", p.is_success() ? "finished successfully" : "failed");
+        callbacks.defer_proc(plmn_searcher);
+        plmn_searcher.then([this, result](bool is_success) {
+          nas_log->info("Attach Request from PLMN Search %s\n", is_success ? "finished successfully" : "failed");
           if (result != nullptr) {
-            *result = p.is_success() ? proc_state_t::success : proc_state_t::error;
+            *result = is_success ? proc_state_t::success : proc_state_t::error;
           }
           // start T3411
           nas_log->debug("Starting T3411\n");
           timers->get(t3411)->reset();
           timers->get(t3411)->run();
 
-          if (not p.is_success()) {
+          if (not is_success) {
             enter_emm_deregistered();
           }
-          return proc_outcome_t::success;
         });
       } else {
         nas_log->error("PLMN selected in state %s\n", emm_state_text[state]);
@@ -386,18 +382,15 @@ void nas::start_attach_request(srslte::proc_state_t* result, srslte::establishme
           }
           return;
         }
-        callbacks.defer_task([this, result]() {
-          if (rrc_connector.run()) {
-            return proc_outcome_t::yield;
-          }
-          proc_result_t<rrc_connect_proc> proc = rrc_connector.pop();
-          if (proc.is_success()) {
-            nas_log->info("NAS attached successfully.\n");
+        callbacks.defer_proc(rrc_connector);
+        rrc_connector.then([this, result](bool is_success) {
+          if (is_success) {
+            nas_log->info("NAS attached successfully\n");
           } else {
             nas_log->error("Could not attach from attach_request\n");
           }
           if (result != nullptr) {
-            *result = proc.is_success() ? proc_state_t::success : proc_state_t::error;
+            *result = is_success ? proc_state_t::success : proc_state_t::error;
           }
           return proc_outcome_t::success;
         });

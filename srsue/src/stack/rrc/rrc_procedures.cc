@@ -455,7 +455,7 @@ proc_outcome_t rrc::cell_selection_proc::step()
   return proc_outcome_t::error;
 }
 
-void rrc::cell_selection_proc::stop(bool is_success)
+void rrc::cell_selection_proc::on_complete(bool is_success)
 {
   // Inform Connection Request Procedure
   Info("Completed with %s. Informing proc %s\n",
@@ -532,7 +532,7 @@ proc_outcome_t rrc::plmn_search_proc::step()
   return proc_outcome_t::repeat;
 }
 
-void rrc::plmn_search_proc::stop(bool is_success)
+void rrc::plmn_search_proc::on_complete(bool is_success)
 {
   // on cleanup, call plmn_search_completed
   if (is_success) {
@@ -658,7 +658,7 @@ proc_outcome_t rrc::connection_request_proc::step()
   return proc_outcome_t::error;
 }
 
-void rrc::connection_request_proc::stop(bool is_success)
+void rrc::connection_request_proc::on_complete(bool is_success)
 {
   if (not is_success) {
     log_h->warning("Could not establish connection. Deallocating dedicatedInfoNAS PDU\n");
