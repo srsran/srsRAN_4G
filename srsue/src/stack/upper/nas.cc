@@ -321,7 +321,7 @@ void nas::start_attach_request(srslte::proc_state_t* result)
           return proc_outcome_t::success;
         });
       } else {
-        nas_log->error("PLMN selected in state %s\n.", emm_state_text[state]);
+        nas_log->error("PLMN selected in state %s\n", emm_state_text[state]);
         *result = proc_state_t::error;
       }
       break;
@@ -1020,15 +1020,18 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
     eps_bearer_t bearer  = {};
     bearer.type          = DEFAULT_EPS_BEARER;
     bearer.eps_bearer_id = act_def_eps_bearer_context_req.eps_bearer_id;
-    if (not eps_bearer.insert(eps_bearer_map_pair_t(bearer.eps_bearer_id, bearer)).second) {
+    if (eps_bearer.insert(eps_bearer_map_pair_t(bearer.eps_bearer_id, bearer)).second) {
+      // bearer added successfully
+      state = EMM_STATE_REGISTERED;
+
+      // send attach complete
+      send_attach_complete(transaction_id, bearer.eps_bearer_id);
+    } else {
+      // bearer already exists (perhaps the attach complete got lost and this is a retx?)
+      // FIXME: what are we supposed to do in this case?
       nas_log->error("Error adding EPS bearer.\n");
-      return;
     }
 
-    state = EMM_STATE_REGISTERED;
-
-    // send attach complete
-    send_attach_complete(transaction_id, bearer.eps_bearer_id);
   } else {
     nas_log->info("Not handling attach type %u\n", attach_accept.eps_attach_result);
     state = EMM_STATE_DEREGISTERED;
@@ -1102,22 +1105,21 @@ void nas::parse_authentication_reject(uint32_t lcid, unique_byte_buffer_t pdu)
   // FIXME: Command RRC to release?
 }
 
-void nas::parse_identity_request(uint32_t lcid, unique_byte_buffer_t pdu)
+void nas::parse_identity_request(unique_byte_buffer_t pdu, const uint8_t sec_hdr_type)
 {
-  LIBLTE_MME_ID_REQUEST_MSG_STRUCT  id_req;
-  ZERO_OBJECT(id_req);
-  LIBLTE_MME_ID_RESPONSE_MSG_STRUCT id_resp;
-  ZERO_OBJECT(id_resp);
-
+  LIBLTE_MME_ID_REQUEST_MSG_STRUCT id_req = {};
   liblte_mme_unpack_identity_request_msg((LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), &id_req);
 
-  // Deallocate PDU after parsing
-
+  nas_log->info("Received Identity Request. ID type: %d\n", id_req.id_type);
   ctxt.rx_count++;
 
-  nas_log->info("Received Identity Request. ID type: %d\n", id_req.id_type);
-
-  send_identity_response(lcid, id_req.id_type);
+  // do not respond if request is not protected (TS 24.301 Sec. 4.4.4.2)
+  if (sec_hdr_type >= LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY ||
+      (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS && id_req.id_type == LIBLTE_MME_MOBILE_ID_TYPE_IMSI)) {
+    send_identity_response(id_req.id_type, sec_hdr_type);
+  } else {
+    nas_log->info("Not sending identity response due to missing integrity protection.\n");
+  }
 }
 
 void nas::parse_security_mode_command(uint32_t lcid, unique_byte_buffer_t pdu)
@@ -1848,13 +1850,11 @@ void nas::send_authentication_failure(const uint8_t cause, const uint8_t* auth_f
   rrc->write_sdu(std::move(msg));
 }
 
-
-void nas::send_identity_response(uint32_t lcid, uint8 id_type)
+void nas::send_identity_response(const uint8 id_type, const uint8_t sec_hdr_type)
 {
-  LIBLTE_MME_ID_RESPONSE_MSG_STRUCT id_resp;
-  ZERO_OBJECT(id_resp);
+  LIBLTE_MME_ID_RESPONSE_MSG_STRUCT id_resp = {};
 
-  switch(id_type) {
+  switch (id_type) {
     case LIBLTE_MME_MOBILE_ID_TYPE_IMSI:
       id_resp.mobile_id.type_of_id = LIBLTE_MME_MOBILE_ID_TYPE_IMSI;
       usim->get_imsi_vec(id_resp.mobile_id.imsi, 15);
@@ -1874,9 +1874,16 @@ void nas::send_identity_response(uint32_t lcid, uint8 id_type)
     return;
   }
 
-  liblte_mme_pack_identity_response_msg(&id_resp, (LIBLTE_BYTE_MSG_STRUCT*)pdu.get());
+  liblte_mme_pack_identity_response_msg(&id_resp, sec_hdr_type, ctxt.tx_count, (LIBLTE_BYTE_MSG_STRUCT*)pdu.get());
 
-  if(pcap != NULL) {
+  // add security if needed
+  if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED && pdu->N_bytes > 5) {
+    cipher_encrypt(pdu.get());
+    integrity_generate(
+        &k_nas_int[16], ctxt.tx_count, SECURITY_DIRECTION_UPLINK, &pdu->msg[5], pdu->N_bytes - 5, &pdu->msg[1]);
+  }
+
+  if (pcap != NULL) {
     pcap->write_nas(pdu->msg, pdu->N_bytes);
   }
 

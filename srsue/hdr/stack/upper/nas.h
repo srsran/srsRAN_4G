@@ -160,7 +160,7 @@ private:
   void parse_attach_reject(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
   void parse_authentication_request(uint32_t lcid, srslte::unique_byte_buffer_t pdu, const uint8_t sec_hdr_type);
   void parse_authentication_reject(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
-  void parse_identity_request(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
+  void parse_identity_request(srslte::unique_byte_buffer_t pdu, const uint8_t sec_hdr_type);
   void parse_security_mode_command(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
   void parse_service_reject(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
   void parse_esm_information_request(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
@@ -178,7 +178,7 @@ private:
 
   // Senders
   void send_attach_complete(const uint8_t& transaction_id, const uint8_t& eps_bearer_id);
-  void send_identity_response(uint32_t lcid, uint8 id_type);
+  void send_identity_response(uint8 id_type, const uint8_t sec_hdr_type);
   void send_service_request();
   void send_esm_information_response(const uint8 proc_transaction_id);
   void send_authentication_response(const uint8_t* res, const size_t res_len, const uint8_t sec_hdr_type);
