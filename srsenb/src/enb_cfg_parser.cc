@@ -21,9 +21,15 @@
 
 #include "enb_cfg_parser.h"
 #include "srsenb/hdr/cfg_parser.h"
+#include "srslte/asn1/rrc_asn1_utils.h"
 #include "srslte/phy/common/phy_common.h"
 #include "srslte/srslte.h"
-#include "srslte/asn1/rrc_asn1_utils.h"
+
+#define HANDLEPARSERCODE(cond)                                                                                         \
+  if ((cond) != 0) {                                                                                                   \
+    printf("[%d][%s()] Parser Error detected\n", __LINE__, __FUNCTION__);                                              \
+    return -1;                                                                                                         \
+  }
 
 using namespace asn1::rrc;
 
@@ -940,10 +946,16 @@ int enb::parse_rr(all_args_t* args, rrc_cfg_t* rrc_cfg)
   cqi_report_cnfg.add_field(new parser::field<bool>("simultaneousAckCQI", &rrc_cfg->cqi_cfg.simultaneousAckCQI));
   cqi_report_cnfg.add_field(new field_sf_mapping(rrc_cfg->cqi_cfg.sf_mapping, &rrc_cfg->cqi_cfg.nof_subframes));
 
+  /* RRC config section */
+  parser::section rrc_cnfg("rrc_cnfg");
+  rrc_cnfg.set_optional(&rrc_cfg->meas_cfg_present);
+  rrc_cnfg.add_field(new rr_sections::rrc_cnfg_section(&rrc_cfg->meas_cfg));
+
   // Run parser with two sections
   parser p(args->enb_files.rr_config);
   p.add_section(&mac_cnfg);
   p.add_section(&phy_cfg);
+  p.add_section(&rrc_cnfg);
   return p.parse();
 }
 
@@ -1146,5 +1158,60 @@ int field_qci::parse(libconfig::Setting& root)
 
   return 0;
 }
+
+namespace rr_sections {
+
+static int parse_meas_cell_list(rrc_meas_cfg_t* meas_cfg, Setting& root)
+{
+  meas_cfg->meas_cells.resize(root.getLength());
+  for (uint32_t i = 0; i < meas_cfg->meas_cells.size(); ++i) {
+    meas_cfg->meas_cells[i].earfcn   = root[i]["dl_earfcn"];
+    meas_cfg->meas_cells[i].pci      = (unsigned int)root[i]["pci"] % 504;
+    meas_cfg->meas_cells[i].cell_id  = (unsigned int)root[i]["cell_idx"];
+    meas_cfg->meas_cells[i].q_offset = 0; // LIBLTE_RRC_Q_OFFSET_RANGE_DB_0; // TODO
+                                          //    // FIXME: TEMP
+                                          //    printf("PARSER: neighbor cell: {dl_earfcn=%d pci=%d cell_idx=0x%x}\n",
+                                          //           meas_cfg->meas_cells[i].earfcn,
+                                          //           meas_cfg->meas_cells[i].pci,
+                                          //           meas_cfg->meas_cells[i].cell_id);
+  }
+  return 0;
+}
+
+static int parse_meas_report_desc(rrc_meas_cfg_t* meas_cfg, Setting& root)
+{
+  // NOTE: For now, only support one meas_report for all cells.
+  // TODO: for a1
+  // TODO: for a2
+  // meas report parsing
+  meas_cfg->meas_reports.resize(1);
+  asn1::rrc::report_cfg_eutra_s& meas_item = meas_cfg->meas_reports[0];
+  HANDLEPARSERCODE(asn1_parsers::str_to_enum(meas_item.trigger_quant, root["a3_report_type"]));
+  auto& event                                   = meas_item.trigger_type.set_event();
+  event.event_id.set_event_a3().report_on_leave = false;
+  event.event_id.event_a3().a3_offset           = (int)root["a3_offset"];
+  event.hysteresis                              = (int)root["a3_hysteresis"];
+  meas_item.max_report_cells                    = 1;                                        // TODO: parse
+  meas_item.report_amount.value                 = report_cfg_eutra_s::report_amount_e_::r1; // TODO: parse
+  meas_item.report_interv.value                 = report_interv_e::ms120;                   // TODO: parse
+  // quant coeff parsing
+  auto& quant = meas_cfg->quant_cfg;
+  HANDLEPARSERCODE(asn1_parsers::number_to_enum(event.time_to_trigger, root["a3_time_to_trigger"]));
+  HANDLEPARSERCODE(
+      asn1_parsers::opt_number_to_enum(quant.filt_coef_rsrp, quant.filt_coef_rsrp_present, root, "rsrp_config"));
+  HANDLEPARSERCODE(
+      asn1_parsers::opt_number_to_enum(quant.filt_coef_rsrq, quant.filt_coef_rsrq_present, root, "rsrq_config"));
+
+  return 0;
+}
+
+int rrc_cnfg_section::parse(libconfig::Setting& root)
+{
+  HANDLEPARSERCODE(parse_meas_cell_list(meas_cfg, root["meas_cell_list"]));
+  HANDLEPARSERCODE(parse_meas_report_desc(meas_cfg, root["meas_report_desc"]));
+  return 0;
+}
+
+} // namespace rr_sections
 
 } // namespace srsenb

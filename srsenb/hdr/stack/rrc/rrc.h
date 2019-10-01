@@ -70,9 +70,28 @@ typedef struct {
   asn1::rrc::rlc_cfg_c                          rlc_cfg;
 } rrc_cfg_qci_t;
 
+// structure used to parse the cfg file.
+struct meas_cell_cfg_t {
+  uint32_t earfcn;
+  uint16_t pci;
+  uint32_t cell_id;
+  float    q_offset;
+};
+
+// neigh measurement Cell info
+struct rrc_meas_cfg_t {
+  std::vector<meas_cell_cfg_t>               meas_cells;
+  std::vector<asn1::rrc::report_cfg_eutra_s> meas_reports;
+  asn1::rrc::quant_cfg_eutra_s               quant_cfg;
+  //  uint32_t nof_meas_ids;
+  //  srslte::rrc_meas_id_t meas_ids[LIBLTE_RRC_MAX_MEAS_ID];
+  // FIXME: Add blacklist cells
+  // FIXME: Add multiple meas configs
+};
+
 #define MAX_NOF_QCI 10
-  
-typedef struct {
+
+struct rrc_cfg_t {
   asn1::rrc::sib_type1_s     sib1;
   asn1::rrc::sib_info_item_c sibs[ASN1_RRC_MAX_SIB];
   asn1::rrc::mac_main_cfg_s  mac_cnfg;
@@ -83,51 +102,34 @@ typedef struct {
   rrc_cfg_sr_t                       sr_cfg;
   rrc_cfg_cqi_t                      cqi_cfg;
   rrc_cfg_qci_t                      qci_cfg[MAX_NOF_QCI];
-  srslte_cell_t                      cell;
-  bool                               enable_mbsfn;
-  uint32_t                           inactivity_timeout_ms;
-  srslte::CIPHERING_ALGORITHM_ID_ENUM
-      eea_preference_list[srslte::CIPHERING_ALGORITHM_ID_N_ITEMS];
-  srslte::INTEGRITY_ALGORITHM_ID_ENUM
-      eia_preference_list[srslte::INTEGRITY_ALGORITHM_ID_N_ITEMS];
-} rrc_cfg_t;
+  srslte_cell_t                       cell;
+  bool                                enable_mbsfn;
+  uint32_t                            inactivity_timeout_ms;
+  srslte::CIPHERING_ALGORITHM_ID_ENUM eea_preference_list[srslte::CIPHERING_ALGORITHM_ID_N_ITEMS];
+  srslte::INTEGRITY_ALGORITHM_ID_ENUM eia_preference_list[srslte::INTEGRITY_ALGORITHM_ID_N_ITEMS];
+  bool                                meas_cfg_present = false;
+  rrc_meas_cfg_t                      meas_cfg;
+  uint32_t                            pci;       // TODO: add this to srslte_cell_t?
+  uint32_t                            dl_earfcn; // TODO: add this to srslte_cell_t?
+};
 
 static const char rrc_state_text[RRC_STATE_N_ITEMS][100] = {"IDLE",
                                                             "WAIT FOR CON SETUP COMPLETE",
                                                             "WAIT FOR SECURITY MODE COMPLETE",
                                                             "WAIT FOR UE CAPABILITIY INFORMATION",
                                                             "WAIT FOR CON RECONF COMPLETE",
-                                                            "RRC CONNECTED"
+                                                            "RRC CONNECTED",
                                                             "RELEASE REQUEST"};
 
-class rrc : public rrc_interface_pdcp, 
-            public rrc_interface_mac, 
+class rrc : public rrc_interface_pdcp,
+            public rrc_interface_mac,
             public rrc_interface_rlc,
             public rrc_interface_s1ap,
             public thread
 {
 public:
-  rrc() : act_monitor(this), cnotifier(NULL), running(false), nof_si_messages(0), thread("RRC")
-  {
-    users.clear();
-    pending_paging.clear();
-
-    pool = NULL;
-    phy = NULL;
-    mac = NULL;
-    rlc = NULL;
-    pdcp = NULL;
-    gtpu = NULL;
-    s1ap = NULL;
-    rrc_log = NULL;
-
-    bzero(&sr_sched, sizeof(sr_sched));
-    bzero(&cqi_sched, sizeof(cqi_sched));
-    bzero(&cfg.sr_cfg, sizeof(cfg.sr_cfg));
-    bzero(&cfg.cqi_cfg, sizeof(cfg.cqi_cfg));
-    bzero(&cfg.qci_cfg, sizeof(cfg.qci_cfg));
-    bzero(&cfg.cell, sizeof(cfg.cell));
-  }
+  rrc();
+  ~rrc();
 
   void init(rrc_cfg_t*               cfg,
             phy_interface_stack_lte* phy,
@@ -156,12 +158,12 @@ public:
   // rrc_interface_s1ap
   void write_dl_info(uint16_t rnti, srslte::unique_byte_buffer_t sdu);
   void release_complete(uint16_t rnti);
-  bool setup_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT *msg);
-  bool modify_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_UECONTEXTMODIFICATIONREQUEST_STRUCT *msg);
-  bool setup_ue_erabs(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPREQUEST_STRUCT *msg);
+  bool setup_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT* msg);
+  bool modify_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_UECONTEXTMODIFICATIONREQUEST_STRUCT* msg);
+  bool setup_ue_erabs(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPREQUEST_STRUCT* msg);
   bool release_erabs(uint32_t rnti);
   void add_paging_id(uint32_t ueid, LIBLTE_S1AP_UEPAGINGID_STRUCT UEPagingID);
-  
+
   // rrc_interface_pdcp
   void write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu);
 
@@ -194,7 +196,9 @@ public:
   class ue
   {
   public:
-    ue();
+    class rrc_mobility;
+
+    ue(rrc* outer_rrc = nullptr, uint16_t rnti = 0);
     bool is_connected();
     bool is_idle();
     bool is_timeout();
@@ -228,15 +232,17 @@ public:
     void set_security_capabilities(LIBLTE_S1AP_UESECURITYCAPABILITIES_STRUCT *caps);
     void set_security_key(uint8_t* key, uint32_t length);
 
-    bool setup_erabs(LIBLTE_S1AP_E_RABTOBESETUPLISTCTXTSUREQ_STRUCT *e);
-    bool setup_erabs(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT *e);
-    void setup_erab(uint8_t id, LIBLTE_S1AP_E_RABLEVELQOSPARAMETERS_STRUCT *qos,
-                    LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT *addr, uint32_t teid_out,
-                    LIBLTE_S1AP_NAS_PDU_STRUCT *nas_pdu);
+    bool setup_erabs(LIBLTE_S1AP_E_RABTOBESETUPLISTCTXTSUREQ_STRUCT* e);
+    bool setup_erabs(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT* e);
+    void setup_erab(uint8_t                                     id,
+                    LIBLTE_S1AP_E_RABLEVELQOSPARAMETERS_STRUCT* qos,
+                    LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT*   addr,
+                    uint32_t                                    teid_out,
+                    LIBLTE_S1AP_NAS_PDU_STRUCT*                 nas_pdu);
     bool release_erabs();
 
     void notify_s1ap_ue_ctxt_setup_complete();
-    void notify_s1ap_ue_erab_setup_response(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT *e);
+    void notify_s1ap_ue_erab_setup_response(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT* e);
 
     int  sr_allocate(uint32_t period, uint8_t* I_sr, uint16_t* N_pucch_sr);
     void sr_get(uint8_t* I_sr, uint16_t* N_pucch_sr);
@@ -261,11 +267,12 @@ public:
     bool is_csfb;
 
   private:
-    srslte::byte_buffer_pool  *pool;
-
-    struct timeval t_last_activity;
+    srslte::byte_buffer_pool* pool;
+    struct timeval            t_last_activity;
+    struct timeval            t_ue_init;
 
     asn1::rrc::establishment_cause_e establishment_cause;
+    std::unique_ptr<rrc_mobility>    mobility_handler;
 
     // S-TMSI for this UE
     bool      has_tmsi;
@@ -386,11 +393,14 @@ private:
   asn1::rrc::sib_type2_s sib2;
   asn1::rrc::sib_type7_s sib7;
 
-  void run_thread();
-  void rem_user_thread(uint16_t rnti);
+  class mobility_cfg;
+  std::unique_ptr<mobility_cfg> enb_mobility_cfg;
+
+  void            run_thread();
+  void            rem_user_thread(uint16_t rnti);
   pthread_mutex_t user_mutex;
-  
-  pthread_mutex_t paging_mutex; 
+
+  pthread_mutex_t paging_mutex;
 };
 
 } // namespace srsenb

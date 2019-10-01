@@ -20,6 +20,7 @@
  */
 
 #include "srsenb/hdr/stack/rrc/rrc.h"
+#include "srsenb/hdr/stack/rrc/rrc_mobility.h"
 #include "srslte/asn1/asn1_utils.h"
 #include "srslte/asn1/liblte_mme.h"
 #include "srslte/asn1/rrc_asn1_utils.h"
@@ -36,6 +37,30 @@ using srslte::uint8_to_uint32;
 using namespace asn1::rrc;
 
 namespace srsenb {
+
+rrc::rrc() : act_monitor(this), cnotifier(NULL), running(false), nof_si_messages(0), thread("RRC")
+{
+  users.clear();
+  pending_paging.clear();
+
+  pool    = NULL;
+  phy     = NULL;
+  mac     = NULL;
+  rlc     = NULL;
+  pdcp    = NULL;
+  gtpu    = NULL;
+  s1ap    = NULL;
+  rrc_log = NULL;
+
+  bzero(&sr_sched, sizeof(sr_sched));
+  bzero(&cqi_sched, sizeof(cqi_sched));
+  bzero(&cfg.sr_cfg, sizeof(cfg.sr_cfg));
+  bzero(&cfg.cqi_cfg, sizeof(cfg.cqi_cfg));
+  bzero(&cfg.qci_cfg, sizeof(cfg.qci_cfg));
+  bzero(&cfg.cell, sizeof(cfg.cell));
+}
+
+rrc::~rrc() {}
 
 void rrc::init(rrc_cfg_t*               cfg_,
                phy_interface_stack_lte* phy_,
@@ -64,10 +89,11 @@ void rrc::init(rrc_cfg_t*               cfg_,
       cfg_->enable_mbsfn) {
     configure_mbsfn_sibs(&cfg.sibs[1].sib2(), &cfg.sibs[12].sib13_v920());
   }
-  
-  nof_si_messages = generate_sibs();  
+
+  nof_si_messages = generate_sibs();
   config_mac();
- 
+  enb_mobility_cfg.reset(new mobility_cfg(this));
+
   pthread_mutex_init(&user_mutex, NULL);
   pthread_mutex_init(&paging_mutex, NULL);
 
@@ -1002,19 +1028,18 @@ void rrc::activity_monitor::run_thread()
   }
 }
 
-
-
-
-
 /*******************************************************************************
   UE class
 
   Every function in UE class is called from a mutex environment thus does not
   need extra protection.
 *******************************************************************************/
-rrc::ue::ue()
+
+rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_) :
+  parent(outer_rrc),
+  rnti(rnti_),
+  pool(srslte::byte_buffer_pool::get_instance())
 {
-  parent            = NULL;
   set_activity();
   has_tmsi          = false;
   connect_notified  = false;
@@ -1035,7 +1060,8 @@ rrc::ue::ue()
   nas_pending       = false;
   is_csfb           = false;
   state             = RRC_STATE_IDLE;
-  pool              = srslte::byte_buffer_pool::get_instance();
+  gettimeofday(&t_ue_init, NULL);
+  mobility_handler.reset(new rrc_mobility(this));
 }
 
 rrc_state_t rrc::ue::get_state()
@@ -1820,7 +1846,7 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
     parent->rrc_log->console("The QCI %d for DRB1 is invalid or not configured.\n", erabs[5].qos_params.qCI.QCI);
     return;
   }
-  
+
   // Add SRB2 and DRB1 to the scheduler
   srsenb::sched_interface::ue_bearer_cfg_t bearer_cfg;
   bearer_cfg.direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
@@ -1828,7 +1854,7 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   parent->mac->bearer_ue_cfg(rnti, 2, &bearer_cfg);
   bearer_cfg.group = conn_reconf->rr_cfg_ded.drb_to_add_mod_list[0].lc_ch_cfg.ul_specific_params.lc_ch_group;
   parent->mac->bearer_ue_cfg(rnti, 3, &bearer_cfg);
-  
+
   // Configure SRB2 in RLC and PDCP
   parent->rlc->add_bearer(rnti, 2, srslte::rlc_config_t::srb_config(2));
 
@@ -2119,7 +2145,10 @@ void rrc::ue::send_dl_dcch(dl_dcch_msg_s* dl_dcch_msg, srslte::unique_byte_buffe
   }
   if (pdu) {
     asn1::bit_ref bref(pdu->msg, pdu->get_tailroom());
-    dl_dcch_msg->pack(bref);
+    if (dl_dcch_msg->pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
+      parent->rrc_log->error("Failed to encode DL-DCCH-Msg\n");
+      return;
+    }
     pdu->N_bytes = 1u + (uint32_t)bref.distance_bytes(pdu->msg);
 
     // send on SRB2 if user is fully registered (after RRC reconfig complete)

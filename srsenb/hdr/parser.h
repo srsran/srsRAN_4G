@@ -22,35 +22,35 @@
 #ifndef SRSENB_PARSER_H
 #define SRSENB_PARSER_H
 
-#include <stdarg.h>
-#include <string>
-#include <list>
-#include <stdlib.h>
-#include <stdint.h>
-#include <typeinfo>
-#include <libconfig.h++>
-#include <string.h>
-#include <iostream>
+#include "srslte/asn1/asn1_utils.h"
+#include <algorithm>
 #include <fstream>
-
+#include <iostream>
+#include <libconfig.h++>
+#include <list>
+#include <stdarg.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <string>
+#include <typeinfo>
 
 namespace srsenb {
-  
+
 using namespace libconfig;
 
 class parser
 {
-public: 
-  
-  class field_itf 
+public:
+  class field_itf
   {
-  public: 
-    virtual ~field_itf(){} 
-    virtual int parse(Setting &root) = 0; 
-    virtual const char* get_name() = 0;
+  public:
+    virtual ~field_itf()                     = default;
+    virtual int         parse(Setting& root) = 0;
+    virtual const char* get_name()           = 0;
   };
-  
-  template<class T>
+
+  template <class T>
   class field_enum_str : public field_itf
   {
   public:
@@ -300,13 +300,116 @@ public:
     bool t; 
     bool r = root.lookupValue(name, t);
     *val = t;
-    return r; 
+    return r;
   }
 
-  
-private: 
-  std::list<section*> sections;   
-  std::string filename;
+private:
+  std::list<section*> sections;
+  std::string         filename;
 };
+
+template <typename T>
+int parse_opt_field(T& obj, bool& flag, const char* field_name, Setting& root)
+{
+  flag = root.lookupValue(field_name, obj);
+  return 0;
 }
+
+template <typename T, typename Parser>
+int parse_opt_field(T& obj, bool& flag, const char* field_name, Setting& root, Parser field_parser)
+{
+  flag = false;
+  if (root.exists(field_name)) {
+    flag = true;
+    return field_parser(obj, root[field_name]);
+  }
+  return 0;
+}
+
+namespace asn1_parsers {
+
+template <class EnumType>
+bool nowhitespace_string_to_enum(EnumType& e, const std::string& s)
+{
+  std::string s_nows = s;
+  std::transform(s_nows.begin(), s_nows.end(), s_nows.begin(), ::tolower);
+  s_nows.erase(std::remove(s_nows.begin(), s_nows.end(), ' '), s_nows.end());
+  s_nows.erase(std::remove(s_nows.begin(), s_nows.end(), '-'), s_nows.end());
+  for (uint32_t i = 0; i < EnumType::nof_types; ++i) {
+    e                   = (typename EnumType::options)i;
+    std::string s_nows2 = e.to_string();
+    std::transform(s_nows2.begin(), s_nows2.end(), s_nows2.begin(), ::tolower);
+    s_nows2.erase(std::remove(s_nows2.begin(), s_nows2.end(), ' '), s_nows2.end());
+    s_nows2.erase(std::remove(s_nows2.begin(), s_nows2.end(), '-'), s_nows2.end());
+    if (s_nows2 == s_nows) {
+      return true;
+    }
+  }
+  return false;
+}
+
+template <class EnumType>
+int str_to_enum(EnumType& enum_val, Setting& root)
+{
+  std::string val   = root;
+  bool        found = nowhitespace_string_to_enum(enum_val, val);
+  if (not found) {
+    fprintf(stderr, "PARSER ERROR: Invalid option: \"%s\" for asn1 enum type\n", val.c_str());
+    fprintf(stderr, "Valid options:  \"%s\"", EnumType((typename EnumType::options)0).to_string().c_str());
+    for (uint32_t i = 1; i < EnumType::nof_types; i++) {
+      fprintf(stderr, ", \"%s\"", EnumType((typename EnumType::options)i).to_string().c_str());
+    }
+    fprintf(stderr, "\n");
+  }
+  return found ? 0 : -1;
+}
+
+template <typename EnumType>
+int opt_str_to_enum(EnumType& enum_val, bool& presence_flag, Setting& root, const char* name)
+{
+  return parse_opt_field(enum_val, presence_flag, name, root, str_to_enum<EnumType>);
+}
+
+template <typename EnumType>
+int number_to_enum(EnumType& enum_val, Setting& root)
+{
+  if (root.isNumber()) {
+    typename EnumType::number_type val;
+    if (root.getType() == Setting::TypeInt64) {
+      val = (long int)root;
+    } else if (root.getType() == Setting::TypeInt) {
+      val = (int)root;
+    }
+    bool found = asn1::number_to_enum(enum_val, val);
+    if (not found) {
+      std::ostringstream ss;
+      ss << val;
+      fprintf(stderr, "Invalid option: %s for enum field \"%s\"\n", ss.str().c_str(), root.getName());
+      ss.str("");
+      ss << EnumType((typename EnumType::options)0).to_number();
+      fprintf(stderr, "Valid options:  %s", ss.str().c_str());
+      for (uint32_t i = 1; i < EnumType::nof_types; i++) {
+        ss.str("");
+        ss << EnumType((typename EnumType::options)i).to_number();
+        fprintf(stderr, ", %s", ss.str().c_str());
+      }
+      fprintf(stderr, "\n");
+    }
+    return found ? 0 : -1;
+  } else {
+    std::string str_val = root;
+    fprintf(stderr, "Expected a number for enum field %s but received a string %s\n", root.getName(), str_val.c_str());
+  }
+  return -1;
+}
+
+template <typename EnumType>
+int opt_number_to_enum(EnumType& enum_val, bool& presence_flag, Setting& root, const char* name)
+{
+  return parse_opt_field(enum_val, presence_flag, name, root, number_to_enum<EnumType>);
+}
+
+} // namespace asn1_parsers
+
+} // namespace srsenb
 #endif // PARSER_H

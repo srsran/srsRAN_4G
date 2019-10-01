@@ -34,7 +34,7 @@
 #include "srslte/asn1/asn1_utils.h"
 
 namespace srsenb {
-  
+
 using namespace libconfig;
 
 class field_sched_info : public parser::field_itf
@@ -113,14 +113,58 @@ class field_qci : public parser::field_itf
 public:
   field_qci(rrc_cfg_qci_t *cfg_) { cfg = cfg_; }
   ~field_qci(){}
-  const char* get_name() {
-    return "field_cqi"; 
-  }
+  const char* get_name() { return "field_cqi"; }
 
-  int parse(Setting &root);    
-private: 
-  rrc_cfg_qci_t *cfg; 
+  int parse(Setting& root);
+
+private:
+  rrc_cfg_qci_t* cfg;
 };
+
+namespace rr_sections {
+
+// rrc_cnfg
+
+class rrc_cnfg_section final : public parser::field_itf
+{
+public:
+  explicit rrc_cnfg_section(rrc_meas_cfg_t* meas_cfg_) : meas_cfg(meas_cfg_) {}
+
+  int parse(Setting& root) override;
+
+  const char* get_name() override { return "meas_cell_list"; }
+
+private:
+  rrc_meas_cfg_t* meas_cfg;
+};
+
+class field_meas_cell_list final : public parser::field_itf
+{
+public:
+  explicit field_meas_cell_list(rrc_meas_cfg_t* meas_cfg_) : meas_cfg(meas_cfg_) {}
+
+  int parse(Setting& root) override;
+
+  const char* get_name() override { return "meas_cell_list"; }
+
+private:
+  rrc_meas_cfg_t* meas_cfg;
+};
+
+class field_meas_report_desc final : public parser::field_itf
+{
+public:
+  explicit field_meas_report_desc(rrc_meas_cfg_t* meas_cfg_) : meas_cfg(meas_cfg_) {}
+
+  int parse(Setting& root) override;
+
+  const char* get_name() override { return "meas_report_desc"; }
+
+private:
+  rrc_meas_cfg_t* meas_cfg;
+};
+
+} // namespace rr_sections
 
 // ASN1 parsers
 
@@ -276,31 +320,11 @@ bool parse_enum_by_number_str(EnumType& enum_val, const char* name, Setting& roo
 }
 
 template <class EnumType>
-bool nowhitespace_string_to_enum(EnumType& e, const std::string& s)
-{
-  std::string s_nows = s;
-  std::transform(s_nows.begin(), s_nows.end(), s_nows.begin(), ::tolower);
-  s_nows.erase(std::remove(s_nows.begin(), s_nows.end(), ' '), s_nows.end());
-  s_nows.erase(std::remove(s_nows.begin(), s_nows.end(), '-'), s_nows.end());
-  for (uint32_t i = 0; i < EnumType::nof_types; ++i) {
-    e                   = (typename EnumType::options)i;
-    std::string s_nows2 = e.to_string();
-    std::transform(s_nows2.begin(), s_nows2.end(), s_nows2.begin(), ::tolower);
-    s_nows2.erase(std::remove(s_nows2.begin(), s_nows2.end(), ' '), s_nows2.end());
-    s_nows2.erase(std::remove(s_nows2.begin(), s_nows2.end(), '-'), s_nows2.end());
-    if (s_nows2 == s_nows) {
-      return true;
-    }
-  }
-  return false;
-}
-
-template <class EnumType>
 bool parse_enum_by_str(EnumType& enum_val, const char* name, Setting& root)
 {
   std::string val;
   if (root.lookupValue(name, val)) {
-    bool found = nowhitespace_string_to_enum(enum_val, val);
+    bool found = asn1_parsers::nowhitespace_string_to_enum(enum_val, val);
     if (not found) {
       fprintf(stderr, "PARSER ERROR: Invalid option: \"%s\" for field \"%s\"\n", val.c_str(), name);
       fprintf(stderr, "Valid options:  \"%s\"", EnumType((typename EnumType::options)0).to_string().c_str());
