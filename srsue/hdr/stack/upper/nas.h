@@ -251,7 +251,7 @@ private:
       bool outcome;
     };
 
-    srslte::proc_outcome_t init(nas* nas_ptr_);
+    srslte::proc_outcome_t init(nas* nas_ptr_, srslte::unique_byte_buffer_t pdu);
     srslte::proc_outcome_t step() final;
     static const char* name() { return "RRC Connect"; }
 

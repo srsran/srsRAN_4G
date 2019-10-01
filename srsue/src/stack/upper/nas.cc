@@ -114,7 +114,7 @@ proc_outcome_t nas::plmn_search_proc::trigger_event(const plmn_search_complete_t
 
   nas_ptr->rrc->plmn_select(nas_ptr->current_plmn);
 
-  if (not nas_ptr->rrc_connector.launch(nas_ptr)) {
+  if (not nas_ptr->rrc_connector.launch(nas_ptr, nullptr)) {
     Error("Unable to initiate RRC connection.\n");
     return proc_outcome_t::error;
   }
@@ -123,7 +123,7 @@ proc_outcome_t nas::plmn_search_proc::trigger_event(const plmn_search_complete_t
   return proc_outcome_t::yield;
 }
 
-proc_outcome_t nas::rrc_connect_proc::init(nas* nas_ptr_)
+proc_outcome_t nas::rrc_connect_proc::init(nas* nas_ptr_, srslte::unique_byte_buffer_t pdu)
 {
   nas_ptr = nas_ptr_;
 
@@ -132,17 +132,19 @@ proc_outcome_t nas::rrc_connect_proc::init(nas* nas_ptr_)
     return proc_outcome_t::success;
   }
 
-  // Generate service request or attach request message
-  unique_byte_buffer_t dedicatedInfoNAS = srslte::allocate_unique_buffer(*nas_ptr->pool, true);
-  if (!dedicatedInfoNAS) {
-    Error("Fatal Error: Couldn't allocate PDU.\n");
-    return proc_outcome_t::error;
-  }
+  if (pdu == nullptr) {
+    // Generate service request or attach request message
+    pdu = srslte::allocate_unique_buffer(*nas_ptr->pool, true);
+    if (!pdu) {
+      Error("Fatal Error: Couldn't allocate PDU.\n");
+      return proc_outcome_t::error;
+    }
 
-  if (nas_ptr->state == EMM_STATE_REGISTERED) {
-    nas_ptr->gen_service_request(dedicatedInfoNAS.get());
-  } else {
-    nas_ptr->gen_attach_request(dedicatedInfoNAS.get());
+    if (nas_ptr->state == EMM_STATE_REGISTERED) {
+      nas_ptr->gen_service_request(pdu.get());
+    } else {
+      nas_ptr->gen_attach_request(pdu.get());
+    }
   }
 
   // Provide UE-Identity to RRC if have one
@@ -160,7 +162,7 @@ proc_outcome_t nas::rrc_connect_proc::init(nas* nas_ptr_)
   }
 
   state = state_t::conn_req;
-  if (not nas_ptr->start_connection_request(establish_cause, std::move(dedicatedInfoNAS))) {
+  if (not nas_ptr->start_connection_request(establish_cause, std::move(pdu))) {
     return proc_outcome_t::error;
   }
 
@@ -319,6 +321,7 @@ void nas::start_attach_request(srslte::proc_state_t* result)
           return proc_outcome_t::success;
         });
       } else {
+        nas_log->error("PLMN selected in state %s\n.", emm_state_text[state]);
         *result = proc_state_t::error;
       }
       break;
@@ -328,7 +331,7 @@ void nas::start_attach_request(srslte::proc_state_t* result)
         *result = proc_state_t::success;
       } else {
         nas_log->info("NAS is already registered but RRC disconnected. Connecting now...\n");
-        if (not rrc_connector.launch(this)) {
+        if (not rrc_connector.launch(this, nullptr)) {
           nas_log->error("Cannot initiate concurrent rrc connection procedures\n");
           *result = proc_state_t::error;
           return;
@@ -371,6 +374,7 @@ bool nas::detach_request() {
     case EMM_STATE_REGISTERED:
       // send detach request
       send_detach_request(true);
+      plmn_is_selected = false;
       state = EMM_STATE_DEREGISTERED;
       break;
     case EMM_STATE_DEREGISTERED_INITIATED:
@@ -400,7 +404,7 @@ void nas::paging(s_tmsi_t* ue_identity)
       nas_log->error("Cannot initiate concurrent RRC connection establishment procedures\n");
       return;
     }
-    if (not rrc_connector.launch(this)) {
+    if (not rrc_connector.launch(this, nullptr)) {
       nas_log->error("Could not launch RRC Connect()\n");
       return;
     }
@@ -530,7 +534,7 @@ void nas::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
       parse_authentication_reject(lcid, std::move(pdu));
       break;
     case LIBLTE_MME_MSG_TYPE_IDENTITY_REQUEST:
-      parse_identity_request(lcid, std::move(pdu));
+      parse_identity_request(std::move(pdu), sec_hdr_type);
       break;
     case LIBLTE_MME_MSG_TYPE_SECURITY_MODE_COMMAND:
       parse_security_mode_command(lcid, std::move(pdu));
@@ -1694,13 +1698,21 @@ void nas::send_detach_request(bool switch_off)
     }
   }
 
+  if (switch_off) {
+    // Deactivate EPS bearer according to Sec. 5.5.2.2.2
+    nas_log->info("Clearing EPS bearer context.\n");
+    eps_bearer.clear();
+  }
+
   nas_log->info("Sending detach request\n");
   if (rrc->is_connected()) {
     rrc->write_sdu(std::move(pdu));
   } else {
-    if (not start_connection_request(establishment_cause_t::mo_sig, std::move(pdu))) {
-      nas_log->info("Failed to initiate RRC Connection Request\n");
+
+    if (not rrc_connector.launch(this, std::move(pdu))) {
+      nas_log->error("Failed to initiate RRC Connection Request\n");
     }
+    callbacks.defer_proc(rrc_connector);
   }
 }
 
