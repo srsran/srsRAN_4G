@@ -223,7 +223,7 @@ int main(int argc, char **argv) {
       exit(-1);
     } else if (n > 0) {
       for (int i=0;i<3;i++) {
-        if (found_cells[i].psr > 10.0) {
+        if (found_cells[i].psr > 2.0) {
           srslte_cell_t cell;
           cell.id = found_cells[i].cell_id; 
           cell.cp = found_cells[i].cp; 
@@ -241,7 +241,7 @@ int main(int argc, char **argv) {
               results[n_found_cells].power = found_cells[i].peak;
               n_found_cells++;
             }
-          }          
+          }
         }
       }
     }    
