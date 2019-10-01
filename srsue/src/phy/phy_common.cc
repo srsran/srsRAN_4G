@@ -789,7 +789,6 @@ bool phy_common::is_mch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti)
           uint32_t frame_alloc_idx = sfn % enum_to_number(mcch.common_sf_alloc_period);
           uint32_t sf_alloc_idx    = frame_alloc_idx * mbsfn_per_frame + ((sf < 4) ? sf - 1 : sf - 3);
           std::unique_lock<std::mutex> lock(mtch_mutex);
-          lock.lock();
           while (!have_mtch_stop) {
             mtch_cvar.wait(lock);
           }

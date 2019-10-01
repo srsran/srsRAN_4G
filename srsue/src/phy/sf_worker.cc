@@ -80,7 +80,7 @@ sf_worker::~sf_worker()
 
 void sf_worker::reset()
 {
-  std::lock_guard<std::mutex> lg(mutex);
+  std::lock_guard<std::mutex> lock(mutex);
   rssi_read_cnt = 0;
   for (auto& cc_worker : cc_workers) {
     cc_worker->reset();
@@ -90,7 +90,7 @@ void sf_worker::reset()
 bool sf_worker::set_cell(uint32_t cc_idx, srslte_cell_t cell_)
 {
   bool ret = false;
-  std::lock_guard<std::mutex> lg(mutex);
+  std::lock_guard<std::mutex> lock(mutex);
 
   if (cc_idx < cc_workers.size()) {
     if (!cc_workers[cc_idx]->set_cell(cell_)) {
@@ -173,7 +173,7 @@ void sf_worker::enable_pregen_signals(bool enabled)
 
 void sf_worker::set_config(uint32_t cc_idx, srslte::phy_cfg_t& phy_cfg)
 {
-  std::lock_guard<std::mutex> lg(mutex);
+  std::lock_guard<std::mutex> lock(mutex);
   if (cc_idx < cc_workers.size()) {
     Info("Setting configuration for cc_worker=%d, cc=%d\n", get_id(), cc_idx);
     cc_workers[cc_idx]->set_config(phy_cfg);
@@ -184,7 +184,7 @@ void sf_worker::set_config(uint32_t cc_idx, srslte::phy_cfg_t& phy_cfg)
 
 void sf_worker::work_imp()
 {
-  std::lock_guard<std::mutex> lg(mutex);
+  std::lock_guard<std::mutex> lock(mutex);
   if (!cell_initiated) {
     return;
   }

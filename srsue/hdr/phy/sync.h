@@ -221,7 +221,7 @@ private:
      */
     state_t run_state()
     {
-      std::lock_guard<std::mutex> lg(inside);
+      std::lock_guard<std::mutex> lock(inside);
       cur_state = next_state;
       if (state_setting) {
         state_setting = false;
@@ -234,7 +234,7 @@ private:
     // Called by the main thread at the end of each state to indicate it has finished.
     void state_exit(bool exit_ok = true)
     {
-      std::lock_guard<std::mutex> lg(inside);
+      std::lock_guard<std::mutex> lock(inside);
       if (cur_state == SFN_SYNC && exit_ok == true) {
         next_state = CAMPING;
       } else {
@@ -245,7 +245,7 @@ private:
     }
     void force_sfn_sync()
     {
-      std::lock_guard<std::mutex> lg(inside);
+      std::lock_guard<std::mutex> lock(inside);
       next_state = SFN_SYNC;
     }
 
@@ -256,19 +256,19 @@ private:
      */
     void go_idle()
     {
-      std::lock_guard<std::mutex> lg(outside);
+      std::lock_guard<std::mutex> lock(outside);
       go_state(IDLE);
     }
     void run_cell_search()
     {
-      std::lock_guard<std::mutex> lg(outside);
+      std::lock_guard<std::mutex> lock(outside);
       go_state(CELL_SEARCH);
       wait_state_run();
       wait_state_next();
     }
     void run_sfn_sync()
     {
-      std::lock_guard<std::mutex> lg(outside);
+      std::lock_guard<std::mutex> lock(outside);
       go_state(SFN_SYNC);
       wait_state_run();
       wait_state_next();
