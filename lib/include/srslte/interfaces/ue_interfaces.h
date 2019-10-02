@@ -338,6 +338,7 @@ public:
     uint32_t pid;
     uint16_t rnti;
     bool     is_sps_release;
+    uint32_t tti;
   } mac_grant_dl_t;
 
   typedef struct {
@@ -346,6 +347,7 @@ public:
     uint16_t rnti;
     bool     phich_available;
     bool     hi_value;
+    uint32_t tti_tx;
   } mac_grant_ul_t;
 
   typedef struct {

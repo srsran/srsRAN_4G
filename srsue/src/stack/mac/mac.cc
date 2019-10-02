@@ -407,14 +407,14 @@ void mac::tb_decoded(uint32_t cc_idx, mac_grant_dl_t grant, bool ack[SRSLTE_MAX_
 {
   if (SRSLTE_RNTI_ISRAR(grant.rnti)) {
     if (ack[0]) {
-      ra_procedure.tb_decoded_ok();
+      ra_procedure.tb_decoded_ok(grant.tti);
     }
   } else if (grant.rnti == SRSLTE_PRNTI) {
     // Send PCH payload to RLC
     rlc_h->write_pdu_pcch(pch_payload_buffer, grant.tb[0].tbs);
 
     if (pcap) {
-      pcap->write_dl_pch(pch_payload_buffer, grant.tb[0].tbs, true, phy_h->get_current_tti());
+      pcap->write_dl_pch(pch_payload_buffer, grant.tb[0].tbs, true, grant.tti);
     }
   } else {
 

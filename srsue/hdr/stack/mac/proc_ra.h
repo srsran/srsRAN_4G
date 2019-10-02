@@ -93,7 +93,7 @@ public:
   void pdcch_to_crnti(bool is_new_uplink_transmission);
   void timer_expired(uint32_t timer_id);
   void new_grant_dl(mac_interface_phy_lte::mac_grant_dl_t grant, mac_interface_phy_lte::tb_action_dl_t* action);
-  void tb_decoded_ok();
+  void tb_decoded_ok(const uint32_t tti);
 
   void start_noncont(uint32_t preamble_index, uint32_t prach_mask);
   bool contention_resolution_id_received(uint64_t uecri);

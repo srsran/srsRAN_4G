@@ -342,6 +342,7 @@ void cc_worker::dl_phy_to_mac_grant(srslte_pdsch_grant_t*                       
   /* Fill MAC dci structure */
   mac_grant->pid  = dl_dci->pid;
   mac_grant->rnti = dl_dci->rnti;
+  mac_grant->tti  = CURRENT_TTI;
 
   for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
     mac_grant->tb[i].ndi         = dl_dci->tb[i].ndi;
@@ -711,6 +712,7 @@ void cc_worker::ul_phy_to_mac_grant(srslte_pusch_grant_t*                       
   mac_grant->tb.tbs         = phy_grant->tb.tbs / (uint32_t)8;
   mac_grant->tb.rv          = phy_grant->tb.rv;
   mac_grant->pid            = pid;
+  mac_grant->tti_tx         = CURRENT_TTI_TX;
 }
 
 int cc_worker::decode_pdcch_ul()

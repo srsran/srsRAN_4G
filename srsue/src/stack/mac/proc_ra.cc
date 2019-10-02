@@ -164,7 +164,6 @@ void ra_proc::step(uint32_t tti_)
  */
 void ra_proc::state_pdcch_setup()
 {
-
   phy_interface_mac_lte::prach_info_t info = phy_h->prach_get_info();
   if (info.is_transmitted) {
     ra_tti  = info.tti_ra;
@@ -393,9 +392,10 @@ void ra_proc::new_grant_dl(mac_interface_phy_lte::mac_grant_dl_t grant, mac_inte
 /* Called upon the successful decoding of a TB addressed to RA-RNTI.
  * Processes the reception of a RAR as defined in 5.1.4
  */
-void ra_proc::tb_decoded_ok() {
+void ra_proc::tb_decoded_ok(const uint32_t tti)
+{
   if (pcap) {
-    pcap->write_dl_ranti(rar_pdu_buffer, rar_grant_nbytes, ra_rnti, true, 0);
+    pcap->write_dl_ranti(rar_pdu_buffer, rar_grant_nbytes, ra_rnti, true, tti);
   }
   
   rDebug("RAR decoded successfully TBS=%d\n", rar_grant_nbytes);
