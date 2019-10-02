@@ -66,9 +66,6 @@ private:
   srsue::rrc_interface_pdcp* rrc = nullptr;
   srsue::gw_interface_pdcp*  gw  = nullptr;
 
-  // Reordering Queue
-  std::map<uint32_t, unique_byte_buffer_t> reorder_queue;
-
   // State variables: 3GPP TS 38.323 v15.2.0, section 7.1
   uint32_t tx_next  = 0; // COUNT value of next SDU to be transmitted.
   uint32_t rx_next  = 0; // COUNT value of next SDU expected to be received.
@@ -77,6 +74,11 @@ private:
 
   // Constants: 3GPP TS 38.323 v15.2.0, section 7.2
   uint32_t window_size = 0;
+
+  // Reordering Queue / Timers
+  std::map<uint32_t, unique_byte_buffer_t> reorder_queue;
+  srslte::timers::timer*                   reordering_timer    = nullptr;
+  uint32_t                                 reordering_timer_id = 0;
 
   // Packing/Unpacking Helper functions
   uint32_t read_data_header(const unique_byte_buffer_t& sdu);
