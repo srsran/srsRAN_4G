@@ -98,16 +98,18 @@ void rrc::init(phy_interface_rrc_lte* phy_,
                usim_interface_rrc*    usim_,
                gw_interface_rrc*      gw_,
                srslte::timers*        timers_,
+               stack_interface_rrc*   stack_,
                const rrc_args_t&      args_)
 {
-  pool = byte_buffer_pool::get_instance();
+  pool  = byte_buffer_pool::get_instance();
   phy = phy_;
   mac = mac_;
   rlc = rlc_;
   pdcp = pdcp_;
-  nas = nas_;
-  usim = usim_;
-  gw = gw_;
+  nas   = nas_;
+  usim  = usim_;
+  gw    = gw_;
+  stack = stack_;
 
   args = args_;
 
@@ -325,9 +327,9 @@ void rrc::plmn_select(srslte::plmn_id_t plmn_id)
  * it. Sends connectionRequest message and returns if message transmitted successfully.
  * It does not wait until completition of Connection Establishment procedure
  */
-bool rrc::connection_request(srslte::establishment_cause_t cause, srslte::unique_byte_buffer_t dedicated_info_nas)
+bool rrc::connection_request(srslte::establishment_cause_t cause, srslte::unique_byte_buffer_t dedicated_info_nas_)
 {
-  if (not conn_req_proc.launch(this, cause, std::move(dedicated_info_nas))) {
+  if (not conn_req_proc.launch(this, cause, std::move(dedicated_info_nas_))) {
     rrc_log->error("Failed to initiate connection request procedure\n");
     return false;
   }
@@ -1479,15 +1481,21 @@ void rrc::start_cell_reselection()
   });
 }
 
+void rrc::cell_search_completed(const phy_interface_rrc_lte::cell_search_ret_t& cs_ret,
+                                const phy_interface_rrc_lte::phy_cell_t&        found_cell)
+{
+  cell_searcher.trigger_event(cell_search_proc::cell_search_event_t{cs_ret, found_cell});
+}
+
 /*******************************************************************************
-*
-*
-*
-* Reception of Broadcast messages (MIB and SIBs)
-*
-*
-*
-*******************************************************************************/
+ *
+ *
+ *
+ * Reception of Broadcast messages (MIB and SIBs)
+ *
+ *
+ *
+ *******************************************************************************/
 void rrc::write_pdu_bcch_bch(unique_byte_buffer_t pdu)
 {
   asn1::rrc::bcch_bch_msg_s bch_msg;
@@ -2847,11 +2855,12 @@ void rrc::set_rrc_default()
  *
  ************************************************************************/
 
-void rrc::rrc_meas::init(rrc *parent) {
-  this->parent      = parent;
-  this->log_h       = parent->rrc_log;
-  this->phy         = parent->phy;
-  this->timers      = parent->timers;
+void rrc::rrc_meas::init(rrc* parent_)
+{
+  this->parent      = parent_;
+  this->log_h       = parent_->rrc_log;
+  this->phy         = parent_->phy;
+  this->timers      = parent_->timers;
   s_measure_enabled = false;
   reset();
 }

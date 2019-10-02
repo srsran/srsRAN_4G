@@ -32,12 +32,17 @@ namespace srsue {
 class rrc::cell_search_proc : public srslte::proc_impl_t
 {
 public:
+  struct cell_search_event_t {
+    phy_interface_rrc_lte::cell_search_ret_t cs_ret;
+    phy_interface_rrc_lte::phy_cell_t        found_cell;
+  };
   enum class state_t { phy_cell_search, si_acquire };
 
   srslte::proc_outcome_t init(rrc* parent_);
   srslte::proc_outcome_t step() final;
+  srslte::proc_outcome_t trigger_event(const cell_search_event_t& event);
 
-  phy_interface_rrc_lte::cell_search_ret_t get_cs_ret() { return cs_ret; }
+  phy_interface_rrc_lte::cell_search_ret_t get_cs_ret() { return search_result.cs_ret; }
   static const char*                       name() { return "Cell Search"; }
 
 private:
@@ -48,8 +53,8 @@ private:
   srslte::log* log_h;
 
   // state vars
-  phy_interface_rrc_lte::cell_search_ret_t cs_ret;
-  state_t                                  state;
+  cell_search_event_t search_result;
+  state_t             state;
 };
 
 class rrc::si_acquire_proc : public srslte::proc_impl_t

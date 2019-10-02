@@ -127,7 +127,7 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   rlc.init(&pdcp, &rrc, &timers, 0 /* RB_ID_SRB0 */);
   pdcp.init(&rlc, &rrc, gw);
   nas.init(usim.get(), &rrc, gw, args.nas);
-  rrc.init(phy, &mac, &rlc, &pdcp, &nas, usim.get(), gw, &timers, args.rrc);
+  rrc.init(phy, &mac, &rlc, &pdcp, &nas, usim.get(), gw, &timers, this, args.rrc);
 
   running = true;
   start(STACK_MAIN_THREAD_PRIO);
@@ -284,10 +284,24 @@ void ue_stack_lte::process_pdus()
 
 void ue_stack_lte::wait_ra_completion(uint16_t rnti)
 {
-  background_tasks.push_task([this, rnti](uint32_t worker_id){
+  background_tasks.push_task([this, rnti](uint32_t worker_id) {
     phy->set_crnti(rnti);
     // signal MAC RA proc to go back to idle
     mac.notify_ra_completed();
+  });
+}
+
+/********************
+ *  RRC Interface
+ *******************/
+
+void ue_stack_lte::start_cell_search()
+{
+  background_tasks.push_task([this](uint32_t worker_id) {
+    phy_interface_rrc_lte::phy_cell_t        found_cell;
+    phy_interface_rrc_lte::cell_search_ret_t ret = phy->cell_search(&found_cell);
+    // notify back RRC
+    rrc.cell_search_completed(ret, found_cell);
   });
 }
 

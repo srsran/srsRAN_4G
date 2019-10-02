@@ -299,6 +299,7 @@ public:
             usim_interface_rrc*    usim_,
             gw_interface_rrc*      gw_,
             srslte::timers*        timers_,
+            stack_interface_rrc*   stack_,
             const rrc_args_t&      args_);
 
   void stop();
@@ -349,8 +350,11 @@ public:
   void write_pdu_pcch(srslte::unique_byte_buffer_t pdu);
   void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
 
-private:
+  // STACK interface
+  void cell_search_completed(const phy_interface_rrc_lte::cell_search_ret_t& cs_ret,
+                             const phy_interface_rrc_lte::phy_cell_t&        found_cell);
 
+private:
   typedef struct {
     enum { PDU, PCCH, PDU_MCH, RLF, PDU_BCCH_DLSCH, STOP } command;
     srslte::unique_byte_buffer_t pdu;
@@ -371,6 +375,7 @@ private:
   nas_interface_rrc*        nas     = nullptr;
   usim_interface_rrc*       usim    = nullptr;
   gw_interface_rrc*         gw      = nullptr;
+  stack_interface_rrc*      stack   = nullptr;
 
   srslte::unique_byte_buffer_t dedicated_info_nas;
 

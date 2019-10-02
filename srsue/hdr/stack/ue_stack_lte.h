@@ -54,6 +54,7 @@ class ue_stack_lte final : public ue_stack_base,
                            public stack_interface_phy_lte,
                            public stack_interface_gw,
                            public stack_interface_mac,
+                           public stack_interface_rrc,
                            public thread
 {
 public:
@@ -116,6 +117,9 @@ public:
   // Interface to upper MAC
   void process_pdus() final;
   void wait_ra_completion(uint16_t rnti) final;
+
+  // Interface for RRC
+  void start_cell_search() final;
 
 private:
   void run_thread() final;

@@ -43,6 +43,7 @@ proc_outcome_t rrc::cell_search_proc::init(srsue::rrc* parent_)
 
   Info("Starting...\n");
   state = state_t::phy_cell_search;
+  rrc_ptr->stack->start_cell_search();
   return proc_outcome_t::repeat;
 }
 
@@ -50,25 +51,8 @@ proc_outcome_t rrc::cell_search_proc::init(srsue::rrc* parent_)
 proc_outcome_t rrc::cell_search_proc::step()
 {
   if (state == state_t::phy_cell_search) {
-    // Blocks waiting for result of phy cell search
-    phy_interface_rrc_lte::phy_cell_t new_cell;
-
-    // BLOCKING CALL
-    cs_ret = rrc_ptr->phy->cell_search(&new_cell);
-
-    switch (cs_ret.found) {
-      case phy_interface_rrc_lte::cell_search_ret_t::CELL_FOUND: {
-        return handle_cell_found(new_cell);
-      }
-      case phy_interface_rrc_lte::cell_search_ret_t::CELL_NOT_FOUND:
-        Info("No cells found.\n");
-        // do nothing
-        return proc_outcome_t::success;
-      case phy_interface_rrc_lte::cell_search_ret_t::ERROR:
-        Error("Error while performing cell search\n");
-        // TODO: check what errors can happen (currently not handled in our code)
-        return proc_outcome_t::error;
-    }
+    // Waits for cell search to complete
+    return proc_outcome_t::yield;
   } else if (state == state_t::si_acquire) {
     if (not rrc_ptr->si_acquirer.run()) {
       // SI Acquire has completed
@@ -119,6 +103,32 @@ proc_outcome_t rrc::cell_search_proc::handle_cell_found(const phy_interface_rrc_
   Info("Cell has no SIB1. Obtaining SIB1...\n");
   state = state_t::si_acquire;
   return proc_outcome_t::repeat;
+}
+
+proc_outcome_t rrc::cell_search_proc::trigger_event(const cell_search_event_t& event)
+{
+  if (state != state_t::phy_cell_search) {
+    Error("Received unexpected cell search result\n");
+    return proc_outcome_t::error;
+  }
+  search_result = event;
+
+  Info("PHY cell search completed.\n");
+  // Transition to SI Acquire or finish
+  switch (search_result.cs_ret.found) {
+    case phy_interface_rrc_lte::cell_search_ret_t::CELL_FOUND: {
+      return handle_cell_found(search_result.found_cell);
+    }
+    case phy_interface_rrc_lte::cell_search_ret_t::CELL_NOT_FOUND:
+      Info("No cells found.\n");
+      // do nothing
+      return proc_outcome_t::success;
+    case phy_interface_rrc_lte::cell_search_ret_t::ERROR:
+      Error("Error while performing cell search\n");
+      // TODO: check what errors can happen (currently not handled in our code)
+      return proc_outcome_t::error;
+  }
+  return proc_outcome_t::yield;
 }
 
 /**************************************

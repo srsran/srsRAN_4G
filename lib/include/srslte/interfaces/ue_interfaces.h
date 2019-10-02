@@ -632,6 +632,13 @@ public:
   virtual void wait_ra_completion(uint16_t rnti) = 0;
 };
 
+// STACK interface for RRC
+class stack_interface_rrc
+{
+public:
+  virtual void start_cell_search() = 0;
+};
+
 // Combined interface for PHY to access stack (MAC and RRC)
 class stack_interface_phy_lte : public mac_interface_phy_lte, public rrc_interface_phy_lte
 {
