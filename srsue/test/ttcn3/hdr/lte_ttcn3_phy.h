@@ -73,9 +73,9 @@ public:
   void
        set_config(srslte::phy_cfg_t& config, uint32_t cc_idx = 0, uint32_t earfcn = 0, srslte_cell_t* cell_info = nullptr);
   void set_config_tdd(srslte_tdd_config_t& tdd_config);
-  void set_config_mbsfn_sib2(asn1::rrc::sib_type2_s* sib2);
-  void set_config_mbsfn_sib13(asn1::rrc::sib_type13_r9_s* sib13);
-  void set_config_mbsfn_mcch(asn1::rrc::mcch_msg_s* mcch);
+  void set_config_mbsfn_sib2(srslte::mbsfn_sf_cfg_t* cfg_list, uint32_t nof_cfgs){};
+  void set_config_mbsfn_sib13(const srslte::sib13_t& sib13){};
+  void set_config_mbsfn_mcch(const srslte::mcch_msg_t& mcch){};
 
   // Measurements interface
   void meas_reset();
@@ -83,7 +83,7 @@ public:
   int  meas_stop(uint32_t earfcn, int pci = -1);
 
   // phy_interface_mac_lte
-  void set_mch_period_stop(uint32_t stop);
+  void set_mch_period_stop(uint32_t stop){};
 
   // Cell search and selection procedures
   cell_search_ret_t cell_search(phy_cell_t* found_cell);

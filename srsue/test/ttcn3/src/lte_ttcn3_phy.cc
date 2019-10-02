@@ -128,14 +128,6 @@ int lte_ttcn3_phy::meas_stop(uint32_t earfcn, int pci)
   return 0;
 };
 
-// eMBMS interface
-void lte_ttcn3_phy::set_mch_period_stop(uint32_t stop){};
-
-void lte_ttcn3_phy::set_config_mbsfn_sib2(asn1::rrc::sib_type2_s* sib2){};
-
-void lte_ttcn3_phy::set_config_mbsfn_sib13(asn1::rrc::sib_type13_r9_s* sib13){};
-
-void lte_ttcn3_phy::set_config_mbsfn_mcch(asn1::rrc::mcch_msg_s* mcch){};
 
 /* Cell search and selection procedures */
 phy_interface_rrc_lte::cell_search_ret_t lte_ttcn3_phy::cell_search(phy_cell_t* found_cell)
