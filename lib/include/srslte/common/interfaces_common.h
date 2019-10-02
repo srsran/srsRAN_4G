@@ -67,6 +67,88 @@ public:
   uint32_t lcid;
 };
 
+/***************************
+ *      PDCP Config
+ **************************/
+// LTE and NR common config
+const uint8_t PDCP_SN_LEN_5  = 5;
+const uint8_t PDCP_SN_LEN_7  = 7;
+const uint8_t PDCP_SN_LEN_12 = 12;
+const uint8_t PDCP_SN_LEN_18 = 18;
+
+typedef enum { PDCP_RB_IS_SRB, PDCP_RB_IS_DRB } pdcp_rb_type_t;
+
+enum class pdcp_t_reordering_t {
+  ms0 = 0,
+  ms1 = 1,
+  ms2 = 2,
+  ms4 = 4,
+  ms5 = 5,
+  ms8 = 8,
+  ms10 = 10,
+  ms15 = 15,
+  ms20 = 20,
+  ms30 = 30,
+  ms40 = 40,
+  ms50 = 50,
+  ms60 = 60,
+  ms80 = 80,
+  ms100 = 100,
+  ms120 = 120,
+  ms140 = 140,
+  ms160 = 160,
+  ms180 = 180,
+  ms200 = 200,
+  ms220 = 220,
+  ms240 = 240,
+  ms260 = 260,
+  ms280 = 280,
+  ms300 = 300,
+  ms500 = 500,
+  ms750 = 750,
+  ms1000 = 1000,
+  ms1250 = 1250,
+  ms1500 = 1500,
+  ms1750 = 1750,
+  ms2000 = 2000,
+  ms2250 = 2250,
+  ms2500 = 2500,
+  ms2750 = 2750,
+  ms3000 = 3000
+};
+
+class pdcp_config_t
+{
+public:
+  pdcp_config_t(uint8_t              bearer_id_,
+                pdcp_rb_type_t       rb_type_,
+                security_direction_t tx_direction_,
+                security_direction_t rx_direction_,
+                uint8_t              sn_len_,
+                pdcp_t_reordering_t  t_reordering_) :
+    bearer_id(bearer_id_),
+    rb_type(rb_type_),
+    tx_direction(tx_direction_),
+    rx_direction(rx_direction_),
+    sn_len(sn_len_),
+    t_reordering(t_reordering_)
+
+  {
+    hdr_len_bytes = ceil((float)sn_len / 8);
+  }
+
+  uint8_t              bearer_id     = 1;
+  pdcp_rb_type_t       rb_type       = PDCP_RB_IS_DRB;
+  security_direction_t tx_direction  = SECURITY_DIRECTION_DOWNLINK;
+  security_direction_t rx_direction  = SECURITY_DIRECTION_UPLINK;
+  uint8_t              sn_len        = PDCP_SN_LEN_12;
+  uint8_t              hdr_len_bytes = 2;
+
+  pdcp_t_reordering_t t_reordering = pdcp_t_reordering_t::ms500;
+
+  // TODO: Support the following configurations
+  // bool do_rohc;
+};
 
 class read_pdu_interface
 {
