@@ -316,7 +316,7 @@ bool rrc::plmn_search()
     rrc_log->error("Unable to initiate PLMN search\n");
     return false;
   }
-  callback_list.defer_proc(plmn_searcher);
+  callback_list.add_proc(plmn_searcher);
   return true;
 }
 
@@ -345,7 +345,7 @@ bool rrc::connection_request(srslte::establishment_cause_t cause, srslte::unique
     rrc_log->error("Failed to initiate connection request procedure\n");
     return false;
   }
-  callback_list.defer_proc(conn_req_proc);
+  callback_list.add_proc(conn_req_proc);
   return true;
 }
 
@@ -1189,7 +1189,7 @@ bool rrc::con_reconfig_ho(asn1::rrc::rrc_conn_recfg_s* reconfig)
 
 void rrc::start_ho()
 {
-  callback_list.defer_task([this]() {
+  callback_list.add_task([this]() {
     if (state != RRC_STATE_CONNECTED) {
       rrc_log->info("HO interrupted, since RRC is no longer in connected state\n");
       return srslte::proc_outcome_t::success;
@@ -1208,7 +1208,7 @@ void rrc::start_go_idle()
     rrc_log->info("Failed to set RRC to IDLE\n");
     return;
   }
-  callback_list.defer_proc(idle_setter);
+  callback_list.add_proc(idle_setter);
 }
 
 // Handle RRC Reconfiguration without MobilityInformation Section 5.3.5.3
@@ -1478,7 +1478,7 @@ void rrc::start_cell_reselection()
     return;
   }
 
-  if (cell_reselector.is_active()) {
+  if (cell_reselector.is_busy()) {
     // it is already running
     return;
   }
@@ -1492,7 +1492,7 @@ void rrc::start_cell_reselection()
 void rrc::cell_search_completed(const phy_interface_rrc_lte::cell_search_ret_t& cs_ret,
                                 const phy_interface_rrc_lte::phy_cell_t&        found_cell)
 {
-  cell_searcher.trigger_event(cell_search_proc::cell_search_event_t{cs_ret, found_cell});
+  cell_searcher.trigger(cell_search_proc::cell_search_event_t{cs_ret, found_cell});
 }
 
 /*******************************************************************************
@@ -1725,7 +1725,7 @@ void rrc::write_pdu_pcch(unique_byte_buffer_t pdu)
 
 void rrc::paging_completed(bool outcome)
 {
-  pcch_processor.trigger_event(process_pcch_proc::paging_complete{outcome});
+  pcch_processor.trigger(process_pcch_proc::paging_complete{outcome});
 }
 
 void rrc::process_pcch(unique_byte_buffer_t pdu)
@@ -1760,7 +1760,7 @@ void rrc::process_pcch(unique_byte_buffer_t pdu)
   }
 
   // we do not care about the outcome
-  callback_list.defer_proc(pcch_processor);
+  callback_list.add_proc(pcch_processor);
 }
 
 void rrc::write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)

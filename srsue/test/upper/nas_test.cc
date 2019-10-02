@@ -119,10 +119,11 @@ public:
     printf("NAS generated SDU (len=%d):\n", sdu->N_bytes);
     last_sdu_len = sdu->N_bytes;
     srslte_vec_fprint_byte(stdout, sdu->msg, sdu->N_bytes);
+    is_connected_flag = true;
     nas_ptr->connection_request_completed(true);
     return true;
   }
-  bool is_connected() {return false;}
+  bool is_connected() { return is_connected_flag; }
 
   uint16_t get_mcc() { return mcc; }
   uint16_t get_mnc() { return mnc; }
@@ -132,8 +133,9 @@ public:
 
 private:
   nas*         nas_ptr;
-  uint32_t last_sdu_len;
+  uint32_t     last_sdu_len;
   found_plmn_t plmns;
+  bool         is_connected_flag = false;
 };
 
 class stack_dummy : public stack_interface_gw, public thread
@@ -143,12 +145,12 @@ public:
   void init() { start(-1); }
   bool switch_on() final
   {
-    proc_state_t proc_result = proc_state_t::on_going;
+    proc_result_t<void> proc_result;
     nas->start_attach_request(&proc_result, srslte::establishment_cause_t::mo_data);
-    while (proc_result == proc_state_t::on_going) {
+    while (not proc_result.is_complete()) {
       usleep(1000);
     }
-    return proc_result == proc_state_t::success;
+    return proc_result.is_success();
   }
   void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking)
   {

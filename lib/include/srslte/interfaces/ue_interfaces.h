@@ -196,25 +196,26 @@ public:
   typedef enum { BARRING_NONE = 0, BARRING_MO_DATA, BARRING_MO_SIGNALLING, BARRING_MT, BARRING_ALL } barring_t;
   virtual void     left_rrc_connected()                                       = 0;
   virtual void     set_barring(barring_t barring)                             = 0;
-  virtual void     paging(srslte::s_tmsi_t* ue_identity)                      = 0;
+  virtual bool     paging(srslte::s_tmsi_t* ue_identity)                      = 0;
   virtual bool     is_attached()                                              = 0;
   virtual void     write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu) = 0;
   virtual uint32_t get_k_enb_count()                                          = 0;
   virtual bool     get_k_asme(uint8_t* k_asme_, uint32_t n)                   = 0;
   virtual uint32_t get_ipv4_addr()                                            = 0;
   virtual bool     get_ipv6_addr(uint8_t* ipv6_addr)                          = 0;
-  virtual void plmn_search_completed(rrc_interface_nas::found_plmn_t found_plmns[rrc_interface_nas::MAX_FOUND_PLMNS],
-                                     int                             nof_plmns)                                                           = 0;
-  virtual bool connection_request_completed(bool outcome)                     = 0;
-  virtual void run_tti(uint32_t tti)                                          = 0;
+  virtual void
+               plmn_search_completed(const rrc_interface_nas::found_plmn_t found_plmns[rrc_interface_nas::MAX_FOUND_PLMNS],
+                                     int                                   nof_plmns)       = 0;
+  virtual bool connection_request_completed(bool outcome) = 0;
+  virtual void run_tti(uint32_t tti)                      = 0;
 };
 
 // NAS interface for UE
 class nas_interface_ue
 {
 public:
-  virtual void start_attach_request(srslte::proc_state_t* proc_result, srslte::establishment_cause_t cause_) = 0;
-  virtual bool detach_request(const bool switch_off)                   = 0;
+  virtual void start_attach_request(srslte::proc_result_t<void>* proc_result, srslte::establishment_cause_t cause_) = 0;
+  virtual bool detach_request(const bool switch_off)                          = 0;
 };
 
 // PDCP interface for RRC

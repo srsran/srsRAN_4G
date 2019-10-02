@@ -35,7 +35,7 @@ using srslte::proc_outcome_t;
  *       Cell Search Procedure
  *************************************/
 
-rrc::cell_search_proc::cell_search_proc(rrc* parent_) : rrc_ptr(parent_), log_h(parent_->rrc_log) {}
+rrc::cell_search_proc::cell_search_proc(rrc* parent_) : rrc_ptr(parent_) {}
 
 /* Searches for a cell in the current frequency and retrieves SIB1 if not retrieved yet */
 proc_outcome_t rrc::cell_search_proc::init()
@@ -43,7 +43,7 @@ proc_outcome_t rrc::cell_search_proc::init()
   Info("Starting...\n");
   state = state_t::phy_cell_search;
   rrc_ptr->stack->start_cell_search();
-  return proc_outcome_t::repeat;
+  return proc_outcome_t::yield;
 }
 
 /* Implements the SI acquisition procedure. Configures MAC/PHY scheduling to retrieve SI messages.*/
@@ -53,18 +53,15 @@ proc_outcome_t rrc::cell_search_proc::step()
     // Waits for cell search to complete
     return proc_outcome_t::yield;
   } else if (state == state_t::si_acquire) {
-    if (not rrc_ptr->si_acquirer.run()) {
-      // SI Acquire has completed
-      srslte::proc_result_t<si_acquire_proc> ret = rrc_ptr->si_acquirer.pop();
-      if (ret.is_error()) {
-        Error("Failed to trigger SI acquire for SIB0\n");
-        return proc_outcome_t::error;
-      } else {
-        //      if(parent->serving_cell->has_sib(0)) {
-        //      }
-        return proc_outcome_t::success;
-      }
+    if (rrc_ptr->si_acquirer.run()) {
+      return proc_outcome_t::yield;
     }
+    // SI Acquire has completed
+    if (si_acquire_fut.is_error()) {
+      Error("Failed to trigger SI acquire for SIB0\n");
+      return proc_outcome_t::error;
+    }
+    return proc_outcome_t::success;
   }
   return proc_outcome_t::yield;
 }
@@ -82,7 +79,7 @@ proc_outcome_t rrc::cell_search_proc::handle_cell_found(const phy_interface_rrc_
   rrc_ptr->set_serving_cell(new_cell);
 
   if (not rrc_ptr->phy->cell_is_camping()) {
-    log_h->warning("Could not camp on found cell.\n");
+    Warning("Could not camp on found cell.\n");
     return proc_outcome_t::error;
   }
 
@@ -97,6 +94,7 @@ proc_outcome_t rrc::cell_search_proc::handle_cell_found(const phy_interface_rrc_
     Error("SI Acquire is already running...\n");
     return proc_outcome_t::error;
   }
+  si_acquire_fut = rrc_ptr->si_acquirer.get_future();
 
   // instruct MAC to look for SIB1
   Info("Cell has no SIB1. Obtaining SIB1...\n");
@@ -104,7 +102,7 @@ proc_outcome_t rrc::cell_search_proc::handle_cell_found(const phy_interface_rrc_
   return proc_outcome_t::repeat;
 }
 
-proc_outcome_t rrc::cell_search_proc::trigger_event(const cell_search_event_t& event)
+proc_outcome_t rrc::cell_search_proc::react(const cell_search_event_t& event)
 {
   if (state != state_t::phy_cell_search) {
     Error("Received unexpected cell search result\n");
@@ -279,7 +277,8 @@ proc_outcome_t rrc::serving_cell_config_proc::step()
           Error("SI Acquire is already running...\n");
           return proc_outcome_t::error;
         }
-        search_state = search_state_t::si_acquire;
+        si_acquire_fut = rrc_ptr->si_acquirer.get_future();
+        search_state   = search_state_t::si_acquire;
         return proc_outcome_t::repeat;
       } else {
         // UE had SIB already. Handle its SIB
@@ -301,20 +300,20 @@ proc_outcome_t rrc::serving_cell_config_proc::step()
       return proc_outcome_t::success;
     }
   } else if (search_state == search_state_t::si_acquire) {
-    uint32_t required_sib = required_sibs[req_idx];
-    if (not rrc_ptr->si_acquirer.run()) {
-      srslte::proc_result_t<si_acquire_proc> ret = rrc_ptr->si_acquirer.pop();
-      if (ret.is_error() or not rrc_ptr->serving_cell->has_sib(required_sib)) {
-        if (required_sib < 2) {
-          log_h->warning("Serving Cell Configuration has failed\n");
-          return proc_outcome_t::error;
-        }
-      }
-      // continue with remaining SIBs
-      search_state = search_state_t::next_sib;
-      req_idx++;
-      return proc_outcome_t::repeat;
+    if (rrc_ptr->si_acquirer.run()) {
+      return proc_outcome_t::yield;
     }
+    uint32_t required_sib = required_sibs[req_idx];
+    if (si_acquire_fut.is_error() or not rrc_ptr->serving_cell->has_sib(required_sib)) {
+      if (required_sib < 2) {
+        log_h->warning("Serving Cell Configuration has failed\n");
+        return proc_outcome_t::error;
+      }
+    }
+    // continue with remaining SIBs
+    search_state = search_state_t::next_sib;
+    req_idx++;
+    return proc_outcome_t::repeat;
   }
   return proc_outcome_t::yield;
 }
@@ -323,7 +322,7 @@ proc_outcome_t rrc::serving_cell_config_proc::step()
  *       Cell Selection Procedure
  *************************************/
 
-rrc::cell_selection_proc::cell_selection_proc(rrc* parent_) : rrc_ptr(parent_), log_h(parent_->rrc_log) {}
+rrc::cell_selection_proc::cell_selection_proc(rrc* parent_) : rrc_ptr(parent_) {}
 
 /*
  * Cell selection procedure 36.304 5.2.3
@@ -361,14 +360,15 @@ proc_outcome_t rrc::cell_selection_proc::step_cell_selection()
         // Try to select Cell
         rrc_ptr->set_serving_cell(rrc_ptr->neighbour_cells.at(neigh_index)->phy_cell);
         Info("Selected cell: %s\n", rrc_ptr->serving_cell->print().c_str());
-        log_h->console("Selected cell: %s\n", rrc_ptr->serving_cell->print().c_str());
+        rrc_ptr->rrc_log->console("Selected cell: %s\n", rrc_ptr->serving_cell->print().c_str());
 
         /* BLOCKING CALL */
         if (rrc_ptr->phy->cell_select(&rrc_ptr->serving_cell->phy_cell)) {
           if (not rrc_ptr->serv_cell_cfg.launch(rrc_ptr->ue_required_sibs)) {
             return proc_outcome_t::error;
           }
-          state = search_state_t::cell_config;
+          serv_cell_cfg_fut = rrc_ptr->serv_cell_cfg.get_future();
+          state             = search_state_t::cell_config;
           return proc_outcome_t::repeat;
         } else {
           rrc_ptr->serving_cell->in_sync = false;
@@ -400,27 +400,25 @@ proc_outcome_t rrc::cell_selection_proc::step_cell_selection()
   if (not rrc_ptr->cell_searcher.launch()) {
     return proc_outcome_t::error;
   }
-  state = search_state_t::cell_search;
+  cell_search_fut = rrc_ptr->cell_searcher.get_future();
+  state           = search_state_t::cell_search;
   return proc_outcome_t::repeat;
 }
 
 proc_outcome_t rrc::cell_selection_proc::step_cell_search()
 {
-
   if (rrc_ptr->cell_searcher.run()) {
     return proc_outcome_t::yield;
   }
-  srslte::proc_result_t<cell_search_proc> ret = rrc_ptr->cell_searcher.pop();
-  if (ret.is_error()) {
+  if (cell_search_fut.is_error()) {
     cs_result = cs_result_t::no_cell;
     return proc_outcome_t::error;
-  } else {
-    cs_result = (ret.proc()->get_cs_ret().found == phy_interface_rrc_lte::cell_search_ret_t::CELL_FOUND)
-                    ? cs_result_t::changed_cell
-                    : cs_result_t::no_cell;
-    Info("Cell Search of cell selection run successfully\n");
-    return proc_outcome_t::success;
   }
+  cs_result = (cell_search_fut.value()->found == phy_interface_rrc_lte::cell_search_ret_t::CELL_FOUND)
+                  ? cs_result_t::changed_cell
+                  : cs_result_t::no_cell;
+  Info("Cell Search of cell selection run successfully\n");
+  return proc_outcome_t::success;
 }
 
 proc_outcome_t rrc::cell_selection_proc::step_cell_config()
@@ -428,18 +426,16 @@ proc_outcome_t rrc::cell_selection_proc::step_cell_config()
   if (rrc_ptr->serv_cell_cfg.run()) {
     return proc_outcome_t::yield;
   }
-  srslte::proc_result_t<serving_cell_config_proc> ret = rrc_ptr->serv_cell_cfg.pop();
-  if (ret.is_success()) {
+  if (serv_cell_cfg_fut.is_success()) {
     Info("All SIBs of serving cell obtained successfully\n");
     cs_result = cs_result_t::changed_cell;
     return proc_outcome_t::success;
-  } else {
-    Error("While configuring serving cell\n");
-    // resume cell selection
-    state = search_state_t::cell_selection;
-    ++neigh_index;
-    return proc_outcome_t::repeat;
   }
+  Error("While configuring serving cell\n");
+  // resume cell selection
+  state = search_state_t::cell_selection;
+  ++neigh_index;
+  return proc_outcome_t::repeat;
 }
 
 proc_outcome_t rrc::cell_selection_proc::step()
@@ -455,13 +451,13 @@ proc_outcome_t rrc::cell_selection_proc::step()
   return proc_outcome_t::error;
 }
 
-void rrc::cell_selection_proc::on_complete(bool is_success)
+void rrc::cell_selection_proc::then(const srslte::proc_result_t<cs_result_t>& proc_result) const
 {
   // Inform Connection Request Procedure
   Info("Completed with %s. Informing proc %s\n",
-       is_success ? "success" : "failure",
+       proc_result.is_success() ? "success" : "failure",
        rrc_ptr->conn_req_proc.get()->name());
-  rrc_ptr->conn_req_proc.trigger_event(connection_request_proc::cell_selection_complete{is_success, cs_result});
+  rrc_ptr->conn_req_proc.trigger(proc_result);
 }
 
 /**************************************
@@ -478,6 +474,7 @@ proc_outcome_t rrc::plmn_search_proc::init()
     Error("Failed due to fail to init cell search...\n");
     return proc_outcome_t::error;
   }
+  cell_search_fut = rrc_ptr->cell_searcher.get_future();
   return proc_outcome_t::repeat;
 }
 
@@ -492,16 +489,14 @@ proc_outcome_t rrc::plmn_search_proc::step()
     // wait for new TTI
     return proc_outcome_t::yield;
   }
-  srslte::proc_result_t<cell_search_proc>  ret    = rrc_ptr->cell_searcher.pop();
-  phy_interface_rrc_lte::cell_search_ret_t cs_ret = ret.proc()->get_cs_ret();
-  if (ret.is_error() or cs_ret.found == phy_interface_rrc_lte::cell_search_ret_t::ERROR) {
+  if (cell_search_fut.is_error() or cell_search_fut.value()->found == phy_interface_rrc_lte::cell_search_ret_t::ERROR) {
     // stop search
     nof_plmns = -1;
     Error("Failed due to failed cell search sub-procedure\n");
     return proc_outcome_t::error;
   }
 
-  if (cs_ret.found == phy_interface_rrc_lte::cell_search_ret_t::CELL_FOUND) {
+  if (cell_search_fut.value()->found == phy_interface_rrc_lte::cell_search_ret_t::CELL_FOUND) {
     if (rrc_ptr->serving_cell->has_sib1()) {
       // Save PLMN and TAC to NAS
       for (uint32_t i = 0; i < rrc_ptr->serving_cell->nof_plmns(); i++) {
@@ -518,7 +513,7 @@ proc_outcome_t rrc::plmn_search_proc::step()
     }
   }
 
-  if (cs_ret.last_freq == phy_interface_rrc_lte::cell_search_ret_t::NO_MORE_FREQS) {
+  if (cell_search_fut.value()->last_freq == phy_interface_rrc_lte::cell_search_ret_t::NO_MORE_FREQS) {
     Info("completed PLMN search\n");
     return proc_outcome_t::success;
   }
@@ -532,10 +527,10 @@ proc_outcome_t rrc::plmn_search_proc::step()
   return proc_outcome_t::repeat;
 }
 
-void rrc::plmn_search_proc::on_complete(bool is_success)
+void rrc::plmn_search_proc::then(const srslte::proc_result_t<void>& result) const
 {
   // on cleanup, call plmn_search_completed
-  if (is_success) {
+  if (result.is_success()) {
     Info("completed with success\n");
     rrc_ptr->nas->plmn_search_completed(found_plmns, nof_plmns);
   } else {
@@ -577,25 +572,15 @@ proc_outcome_t rrc::connection_request_proc::init(srslte::establishment_cause_t 
   cs_ret = cs_result_t::no_cell;
 
   state = state_t::cell_selection;
-  if (not rrc_ptr->cell_selector.launch()) {
-    if (not rrc_ptr->cell_selector.is_active()) {
-      // Launch failed but cell selection was not already running
+  if (rrc_ptr->cell_selector.is_idle()) {
+    // No one is running cell selection
+    if (not rrc_ptr->cell_selector.launch()) {
       Error("Failed to initiate cell selection procedure...\n");
       return proc_outcome_t::error;
-    } else if (not rrc_ptr->cell_selector.is_complete()) {
-      // In case it was already running, just wait for an cell_selection_complete event trigger
-      Info("Cell selection proc already on-going. Wait for its result\n");
-    } else {
-      // It already completed with success. FIXME: Find more elegant solution
-      Info("A cell selection procedure has just finished successfully. I am reusing its result\n");
-      cell_selection_complete e{};
-      e.cs_result  = rrc_ptr->cell_selector.get()->get_cs_result();
-      e.is_success = e.cs_result == cs_result_t::same_cell or e.cs_result == cs_result_t::changed_cell;
-      return trigger_event(e);
     }
+    rrc_ptr->callback_list.add_proc(rrc_ptr->cell_selector);
   } else {
-    // In case we were able to launch it, let the callback list handle it
-    rrc_ptr->callback_list.defer_proc(rrc_ptr->cell_selector);
+    Info("Cell selection proc already on-going. Wait for its result\n");
   }
   return proc_outcome_t::yield;
 }
@@ -609,9 +594,7 @@ proc_outcome_t rrc::connection_request_proc::step()
     if (rrc_ptr->serv_cell_cfg.run()) {
       return proc_outcome_t::yield;
     }
-    srslte::proc_result_t<serving_cell_config_proc> ret = rrc_ptr->serv_cell_cfg.pop();
-
-    if (ret.is_error()) {
+    if (serv_cfg_fut.is_error()) {
       Error("Configuring serving cell\n");
       return proc_outcome_t::error;
     }
@@ -643,13 +626,13 @@ proc_outcome_t rrc::connection_request_proc::step()
       return proc_outcome_t::success;
     } else if (rrc_ptr->timers->get(rrc_ptr->t300)->is_expired()) {
       // T300 is expired: 5.3.3.6
-      Info("Timer T300 expired: ConnectionRequest timed out\n");
+      Warning("Timer T300 expired: ConnectionRequest timed out\n");
       rrc_ptr->mac->reset();
       rrc_ptr->set_mac_default();
       rrc_ptr->rlc->reestablish();
     } else {
       // T300 is stopped but RRC not Connected is because received Reject: Section 5.3.3.8
-      Info("Timer T300 stopped: Received ConnectionReject\n");
+      Warning("Timer T300 stopped: Received ConnectionReject\n");
       rrc_ptr->mac->reset();
       rrc_ptr->set_mac_default();
     }
@@ -658,28 +641,27 @@ proc_outcome_t rrc::connection_request_proc::step()
   return proc_outcome_t::error;
 }
 
-void rrc::connection_request_proc::on_complete(bool is_success)
+void rrc::connection_request_proc::then(const srslte::proc_result_t<void>& result)
 {
-  if (not is_success) {
+  if (result.is_error()) {
     log_h->warning("Could not establish connection. Deallocating dedicatedInfoNAS PDU\n");
     this->dedicated_info_nas.reset();
-    rrc_ptr->nas->connection_request_completed(false);
   } else {
     Info("Finished connection request procedure successfully.\n");
-    rrc_ptr->nas->connection_request_completed(true);
   }
+  rrc_ptr->nas->connection_request_completed(result.is_success());
 }
 
-srslte::proc_outcome_t rrc::connection_request_proc::trigger_event(const cell_selection_complete& e)
+srslte::proc_outcome_t rrc::connection_request_proc::react(const cell_selection_proc::cell_selection_complete_ev& e)
 {
   if (state != state_t::cell_selection) {
     // ignore if we are not expecting an cell selection result
     return proc_outcome_t::yield;
   }
-  if (not e.is_success) {
+  if (e.is_error()) {
     return proc_outcome_t::error;
   }
-  cs_ret = e.cs_result;
+  cs_ret = *e.value();
   // .. and SI acquisition
   if (rrc_ptr->phy->cell_is_camping()) {
 
@@ -695,7 +677,8 @@ srslte::proc_outcome_t rrc::connection_request_proc::trigger_event(const cell_se
       Error("Attach request failed to configure serving cell...\n");
       return proc_outcome_t::error;
     }
-    state = state_t::config_serving_cell;
+    serv_cfg_fut = rrc_ptr->serv_cell_cfg.get_future();
+    state        = state_t::config_serving_cell;
     return proc_outcome_t::repeat;
   } else {
     switch (cs_ret) {
@@ -744,11 +727,14 @@ proc_outcome_t rrc::process_pcch_proc::step()
         if (RRC_STATE_IDLE == rrc_ptr->state) {
           Info("S-TMSI match in paging message\n");
           log_h->console("S-TMSI match in paging message\n");
-          rrc_ptr->nas->paging(&s_tmsi_paged);
+          if (not rrc_ptr->nas->paging(&s_tmsi_paged)) {
+            Error("Unable to start NAS paging proc\n");
+            return proc_outcome_t::error;
+          }
           state = state_t::nas_paging;
           return proc_outcome_t::repeat;
         } else {
-          log_h->warning("Received paging while in CONNECT\n");
+          Warning("Received paging while in CONNECT\n");
         }
       } else {
         Info("Received paging for unknown identity\n");
@@ -764,6 +750,7 @@ proc_outcome_t rrc::process_pcch_proc::step()
         Error("Failed to initiate a serving cell configuration procedure\n");
         return proc_outcome_t::error;
       }
+      serv_cfg_fut = rrc_ptr->serv_cell_cfg.get_future();
     } else {
       Info("Completed successfully\n");
       return proc_outcome_t::success;
@@ -777,8 +764,7 @@ proc_outcome_t rrc::process_pcch_proc::step()
     if (rrc_ptr->serv_cell_cfg.run()) {
       return proc_outcome_t::yield;
     }
-    srslte::proc_result_t<serving_cell_config_proc> ret = rrc_ptr->serv_cell_cfg.pop();
-    if (ret.is_success()) {
+    if (serv_cfg_fut.is_success()) {
       Info("All SIBs of serving cell obtained successfully\n");
       return proc_outcome_t::success;
     } else {
@@ -789,8 +775,12 @@ proc_outcome_t rrc::process_pcch_proc::step()
   return proc_outcome_t::yield;
 }
 
-proc_outcome_t rrc::process_pcch_proc::trigger_event(paging_complete e)
+proc_outcome_t rrc::process_pcch_proc::react(paging_complete e)
 {
+  if (state != state_t::nas_paging) {
+    Warning("Received an unexpected paging complete\n");
+    return proc_outcome_t::yield;
+  }
   if (not e.outcome) {
     Info("NAS Paging has failed\n");
     return proc_outcome_t::error;
@@ -826,8 +816,7 @@ proc_outcome_t rrc::go_idle_proc::step()
     rrc_ptr->leave_connected();
     return proc_outcome_t::success;
   } else {
-    rrc_ptr->rrc_log->debug(
-        "Postponing transition to RRC IDLE (%d ms < %d ms)\n", rlc_flush_counter, rlc_flush_timeout);
+    Debug("Postponing transition to RRC IDLE (%d ms < %d ms)\n", rlc_flush_counter, rlc_flush_timeout);
   }
   return proc_outcome_t::yield;
 }
@@ -846,6 +835,7 @@ proc_outcome_t rrc::cell_reselection_proc::init()
     Error("Failed to initiate a Cell Selection procedure...\n");
     return proc_outcome_t::error;
   }
+  cell_selection_fut = rrc_ptr->cell_selector.get_future();
 
   return proc_outcome_t::yield;
 }
@@ -855,13 +845,12 @@ proc_outcome_t rrc::cell_reselection_proc::step()
   if (rrc_ptr->cell_selector.run()) {
     return srslte::proc_outcome_t::yield;
   }
-  srslte::proc_result_t<cell_selection_proc> ret = rrc_ptr->cell_selector.pop();
-  if (ret.is_error()) {
+  if (cell_selection_fut.is_error()) {
     Error("Cell Reselection - Error while selecting a cell\n");
     return srslte::proc_outcome_t::error;
   }
 
-  switch (ret.proc()->get_cs_result()) {
+  switch (*cell_selection_fut.value()) {
     case cs_result_t::changed_cell:
       // New cell has been selected, start receiving PCCH
       rrc_ptr->mac->pcch_start_rx();
