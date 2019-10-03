@@ -311,20 +311,21 @@ void task_thread_pool::start(int32_t prio, uint32_t mask)
 void task_thread_pool::stop()
 {
   std::unique_lock<std::mutex> lock(queue_mutex);
-  running             = false;
-  nof_workers_running = 0;
-  // next worker that is still running
-  for (worker_t& w : workers) {
-    if (w.is_running()) {
-      nof_workers_running++;
+  if (running) {
+    running              = false;
+    bool workers_running = false;
+    for (worker_t& w : workers) {
+      if (w.is_running()) {
+        workers_running = true;
+        break;
+      }
     }
-  }
-  if (nof_workers_running > 0) {
     lock.unlock();
-    cv_empty.notify_all();
-    lock.lock();
-    while (nof_workers_running > 0) {
-      cv_exit.wait(lock);
+    if (workers_running) {
+      cv_empty.notify_all();
+    }
+    for (worker_t& w : workers) {
+      w.stop();
     }
   }
 }
@@ -360,8 +361,14 @@ task_thread_pool::worker_t::worker_t(srslte::task_thread_pool* parent_, uint32_t
 {
 }
 
+void task_thread_pool::worker_t::stop()
+{
+  wait_thread_finish();
+}
+
 void task_thread_pool::worker_t::setup(int32_t prio, uint32_t mask)
 {
+  running = true;
   if (mask == 255) {
     start(prio);
   } else {
@@ -387,8 +394,6 @@ bool task_thread_pool::worker_t::wait_task(task_t* task)
 
 void task_thread_pool::worker_t::run_thread()
 {
-  running = true;
-
   // main loop
   task_t task;
   while (wait_task(&task)) {
@@ -398,11 +403,6 @@ void task_thread_pool::worker_t::run_thread()
   // on exit, notify pool class
   std::unique_lock<std::mutex> lock(parent->queue_mutex);
   running = false;
-  parent->nof_workers_running--;
-  if (parent->nof_workers_running == 0) {
-    lock.unlock();
-    parent->cv_exit.notify_one();
-  }
 }
 
 } // namespace srslte

@@ -305,6 +305,21 @@ int test_task_thread_pool2()
   return 0;
 }
 
+int test_task_thread_pool3()
+{
+  std::cout << "\n====== TEST task thread pool test 3: start ======\n";
+  // Description: create many workers and shut down the pool before all of them started yet. Should exit cleanly
+
+  uint32_t nof_workers = 100;
+
+  task_thread_pool thread_pool(nof_workers);
+  thread_pool.start();
+
+  std::cout << "outcome: Success\n";
+  std::cout << "===================================================\n";
+  return 0;
+}
+
 int main()
 {
   TESTASSERT(test_multiqueue() == 0);
@@ -314,4 +329,5 @@ int main()
 
   TESTASSERT(test_task_thread_pool() == 0);
   TESTASSERT(test_task_thread_pool2() == 0);
+  TESTASSERT(test_task_thread_pool3() == 0);
 }

@@ -107,7 +107,7 @@ class task_thread_pool
   using task_t = std::function<void(uint32_t worker_id)>;
 
 public:
-  task_thread_pool(uint32_t nof_workers);
+  explicit task_thread_pool(uint32_t nof_workers);
   ~task_thread_pool();
   void start(int32_t prio = -1, uint32_t mask = 255);
   void stop();
@@ -121,6 +121,7 @@ private:
   {
   public:
     explicit worker_t(task_thread_pool* parent_, uint32_t id);
+    void     stop();
     void     setup(int32_t prio, uint32_t mask);
     bool     is_running() const { return running; }
     uint32_t id() const { return id_; }
@@ -138,9 +139,8 @@ private:
   std::queue<task_t>      pending_tasks;
   std::vector<worker_t>   workers;
   std::mutex              queue_mutex;
-  std::condition_variable cv_empty, cv_exit;
+  std::condition_variable cv_empty;
   bool                    running;
-  uint32_t                nof_workers_running = 0;
 };
 
 } // namespace srslte
