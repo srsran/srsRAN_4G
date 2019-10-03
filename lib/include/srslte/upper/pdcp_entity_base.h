@@ -98,7 +98,12 @@ protected:
   bool     do_integrity  = false;
   bool     do_encryption = false;
 
-  pdcp_config_t cfg = {1, PDCP_RB_IS_DRB, SECURITY_DIRECTION_DOWNLINK, SECURITY_DIRECTION_UPLINK, PDCP_SN_LEN_12};
+  pdcp_config_t cfg = {1,
+                       PDCP_RB_IS_DRB,
+                       SECURITY_DIRECTION_DOWNLINK,
+                       SECURITY_DIRECTION_UPLINK,
+                       PDCP_SN_LEN_12,
+                       pdcp_t_reordering_t::ms500};
 
   std::mutex mutex;
 

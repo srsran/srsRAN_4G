@@ -148,8 +148,12 @@ int test_tx(uint32_t                     n_packets,
             srslte::log*                 log)
 {
   srslte::pdcp_entity_nr pdcp;
-  srslte::pdcp_config_t  cfg = {
-      1, srslte::PDCP_RB_IS_DRB, srslte::SECURITY_DIRECTION_UPLINK, srslte::SECURITY_DIRECTION_DOWNLINK, pdcp_sn_len};
+  srslte::pdcp_config_t  cfg = {1,
+                               srslte::PDCP_RB_IS_DRB,
+                               srslte::SECURITY_DIRECTION_UPLINK,
+                               srslte::SECURITY_DIRECTION_DOWNLINK,
+                               pdcp_sn_len,
+                               srslte::pdcp_t_reordering_t::ms500};
 
   rlc_dummy rlc(log);
   rrc_dummy rrc(log);
@@ -273,10 +277,20 @@ int test_rx_in_sequence(uint64_t n_packets, uint8_t pdcp_sn_len, srslte::byte_bu
 {
   srslte::pdcp_entity_nr pdcp_tx;
   srslte::pdcp_entity_nr pdcp_rx;
-  srslte::pdcp_config_t  cfg_tx = {
-      1, srslte::PDCP_RB_IS_DRB, srslte::SECURITY_DIRECTION_UPLINK, srslte::SECURITY_DIRECTION_DOWNLINK, pdcp_sn_len};
-  srslte::pdcp_config_t cfg_rx = {
-      1, srslte::PDCP_RB_IS_DRB, srslte::SECURITY_DIRECTION_DOWNLINK, srslte::SECURITY_DIRECTION_UPLINK, pdcp_sn_len};
+
+  srslte::pdcp_config_t  cfg_tx = {1,
+                                  srslte::PDCP_RB_IS_DRB,
+                                  srslte::SECURITY_DIRECTION_UPLINK,
+                                  srslte::SECURITY_DIRECTION_DOWNLINK,
+                                  pdcp_sn_len,
+                                  srslte::pdcp_t_reordering_t::ms500};
+
+  srslte::pdcp_config_t  cfg_rx = {1,
+                                  srslte::PDCP_RB_IS_DRB,
+                                  srslte::SECURITY_DIRECTION_DOWNLINK,
+                                  srslte::SECURITY_DIRECTION_UPLINK,
+                                  pdcp_sn_len,
+                                  srslte::pdcp_t_reordering_t::ms500};
 
   rlc_dummy      rlc_tx(log);
   rrc_dummy      rrc_tx(log);
@@ -334,8 +348,12 @@ int test_rx_in_sequence(uint64_t n_packets, uint8_t pdcp_sn_len, srslte::byte_bu
 int test_rx_out_of_order(uint8_t pdcp_sn_len, srslte::byte_buffer_pool* pool, srslte::log* log)
 {
   srslte::pdcp_entity_nr pdcp_rx;
-  srslte::pdcp_config_t cfg_rx = {
-      1, srslte::PDCP_RB_IS_DRB, srslte::SECURITY_DIRECTION_DOWNLINK, srslte::SECURITY_DIRECTION_UPLINK, pdcp_sn_len};
+  srslte::pdcp_config_t  cfg_rx = {1,
+                                  srslte::PDCP_RB_IS_DRB,
+                                  srslte::SECURITY_DIRECTION_DOWNLINK,
+                                  srslte::SECURITY_DIRECTION_UPLINK,
+                                  pdcp_sn_len,
+                                  srslte::pdcp_t_reordering_t::ms500};
 
   rlc_dummy      rlc_rx(log);
   rrc_dummy      rrc_rx(log);
@@ -380,8 +398,12 @@ int test_rx_out_of_order(uint8_t pdcp_sn_len, srslte::byte_buffer_pool* pool, sr
 int test_rx_out_of_order_timeout(uint8_t pdcp_sn_len, srslte::byte_buffer_pool* pool, srslte::log* log)
 {
   srslte::pdcp_entity_nr pdcp_rx;
-  srslte::pdcp_config_t cfg_rx = {
-      1, srslte::PDCP_RB_IS_DRB, srslte::SECURITY_DIRECTION_DOWNLINK, srslte::SECURITY_DIRECTION_UPLINK, pdcp_sn_len};
+  srslte::pdcp_config_t  cfg_rx = {1,
+                                  srslte::PDCP_RB_IS_DRB,
+                                  srslte::SECURITY_DIRECTION_DOWNLINK,
+                                  srslte::SECURITY_DIRECTION_UPLINK,
+                                  pdcp_sn_len,
+                                  srslte::pdcp_t_reordering_t::ms500};
 
   rlc_dummy      rlc_rx(log);
   rrc_dummy      rrc_rx(log);
@@ -406,11 +428,15 @@ int test_rx_out_of_order_timeout(uint8_t pdcp_sn_len, srslte::byte_buffer_pool* 
 
   // decript and check matching SDUs (out of order)
   pdcp_rx.write_pdu(std::move(rx_pdu7));
-  gw_rx.get_last_pdu(sdu_act);
 
   // Make sure out of order is not received until time out
   TESTASSERT(gw_rx.rx_count == 0);
-
+  for (uint16_t i = 0; i < 500; ++i){
+    timers_rx.step_all();
+  }
+  //Trigger timer
+  TESTASSERT(gw_rx.rx_count == 1);
+  gw_rx.get_last_pdu(sdu_act);
   TESTASSERT(sdu_exp->N_bytes == sdu_act->N_bytes);
   for (uint32_t j = 0; j < sdu_act->N_bytes; ++j) {
     TESTASSERT(sdu_exp->msg[j] == sdu_act->msg[j]);

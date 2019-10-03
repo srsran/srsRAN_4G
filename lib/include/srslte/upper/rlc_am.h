@@ -290,24 +290,24 @@ private:
  * Header pack/unpack helper functions
  * Ref: 3GPP TS 36.322 v10.0.0 Section 6.2.1
  ***************************************************************************/
-void        rlc_am_read_data_pdu_header(byte_buffer_t *pdu, rlc_amd_pdu_header_t *header);
-void        rlc_am_read_data_pdu_header(uint8_t **payload, uint32_t *nof_bytes, rlc_amd_pdu_header_t *header);
-void        rlc_am_write_data_pdu_header(rlc_amd_pdu_header_t *header, byte_buffer_t *pdu);
-void        rlc_am_write_data_pdu_header(rlc_amd_pdu_header_t *header, uint8_t **payload);
-void        rlc_am_read_status_pdu(byte_buffer_t *pdu, rlc_status_pdu_t *status);
-void        rlc_am_read_status_pdu(uint8_t *payload, uint32_t nof_bytes, rlc_status_pdu_t *status);
-void        rlc_am_write_status_pdu(rlc_status_pdu_t *status, byte_buffer_t *pdu );
-int         rlc_am_write_status_pdu(rlc_status_pdu_t *status, uint8_t *payload);
+void rlc_am_read_data_pdu_header(byte_buffer_t* pdu, rlc_amd_pdu_header_t* header);
+void rlc_am_read_data_pdu_header(uint8_t** payload, uint32_t* nof_bytes, rlc_amd_pdu_header_t* header);
+void rlc_am_write_data_pdu_header(rlc_amd_pdu_header_t* header, byte_buffer_t* pdu);
+void rlc_am_write_data_pdu_header(rlc_amd_pdu_header_t* header, uint8_t** payload);
+void rlc_am_read_status_pdu(byte_buffer_t* pdu, rlc_status_pdu_t* status);
+void rlc_am_read_status_pdu(uint8_t* payload, uint32_t nof_bytes, rlc_status_pdu_t* status);
+void rlc_am_write_status_pdu(rlc_status_pdu_t* status, byte_buffer_t* pdu);
+int  rlc_am_write_status_pdu(rlc_status_pdu_t* status, uint8_t* payload);
 
-uint32_t    rlc_am_packed_length(rlc_amd_pdu_header_t *header);
-uint32_t    rlc_am_packed_length(rlc_status_pdu_t *status);
+uint32_t    rlc_am_packed_length(rlc_amd_pdu_header_t* header);
+uint32_t    rlc_am_packed_length(rlc_status_pdu_t* status);
 uint32_t    rlc_am_packed_length(rlc_amd_retx_t retx);
 bool        rlc_am_is_valid_status_pdu(const rlc_status_pdu_t& status);
-bool        rlc_am_is_control_pdu(byte_buffer_t *pdu);
-bool        rlc_am_is_control_pdu(uint8_t *payload);
-bool        rlc_am_is_pdu_segment(uint8_t *payload);
-std::string rlc_am_status_pdu_to_string(rlc_status_pdu_t *status);
-std::string rlc_amd_pdu_header_to_string(const rlc_amd_pdu_header_t &header);
+bool        rlc_am_is_control_pdu(byte_buffer_t* pdu);
+bool        rlc_am_is_control_pdu(uint8_t* payload);
+bool        rlc_am_is_pdu_segment(uint8_t* payload);
+std::string rlc_am_status_pdu_to_string(rlc_status_pdu_t* status);
+std::string rlc_amd_pdu_header_to_string(const rlc_amd_pdu_header_t& header);
 bool        rlc_am_start_aligned(const uint8_t fi);
 bool        rlc_am_end_aligned(const uint8_t fi);
 bool        rlc_am_is_unaligned(const uint8_t fi);

@@ -85,7 +85,33 @@ private:
   void     write_data_header(const unique_byte_buffer_t& sdu, uint32_t sn);
   void     extract_mac(const unique_byte_buffer_t& sdu, uint8_t* mac);
   void     append_mac(const unique_byte_buffer_t& sdu, uint8_t* mac);
+
+  // Pass to Upper Layers Helper function
+  void deliver_all_consecutive_counts();
+  void pass_to_upper_layers(unique_byte_buffer_t pdu);
+
+  // Reordering callback (t-Reordering)  
+  class reordering_callback : public timer_callback
+  {
+  public:
+    reordering_callback(pdcp_entity_nr* parent_) { parent = parent_; };
+    virtual void timer_expired(uint32_t timer_id) final;
+
+  private:
+    pdcp_entity_nr* parent;
+  };
+
+  reordering_callback reordering_fnc;
 };
+
+inline void pdcp_entity_nr::pass_to_upper_layers(unique_byte_buffer_t sdu)
+{
+  if (is_srb()) {
+    rrc->write_pdu(lcid, std::move(sdu));
+  } else {
+    gw->write_pdu(lcid, std::move(sdu));
+  }
+}
 
 } // namespace srslte
 #endif // SRSLTE_PDCP_ENTITY_NR_H

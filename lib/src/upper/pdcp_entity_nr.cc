@@ -25,7 +25,7 @@
 
 namespace srslte {
 
-pdcp_entity_nr::pdcp_entity_nr() {}
+pdcp_entity_nr::pdcp_entity_nr() : reordering_fnc(this) {}
 
 pdcp_entity_nr::~pdcp_entity_nr() {}
 
@@ -53,7 +53,7 @@ void pdcp_entity_nr::init(srsue::rlc_interface_pdcp* rlc_,
   // Timers
   reordering_timer_id = timers->get_unique_id();
   reordering_timer    = timers->get(reordering_timer_id);
-
+  reordering_timer->set(&reordering_fnc, (uint32_t)cfg.t_reordering);
 }
 
 // Reestablishment procedure: 38.323 5.2
@@ -173,29 +173,24 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
 
   if (rcvd_count == rx_deliv) {
     // Deliver to upper layers in ascending order of associeted COUNT
-    log->debug("Delivering SDU(s) to upper layers\n");
-    for (std::map<uint32_t, unique_byte_buffer_t>::iterator it = reorder_queue.begin();
-         it != reorder_queue.end() && it->first == rx_deliv;) {
-      log->debug("Delivering SDU with RCVD_COUNT %d\n", it->first);
-
-      // Pass to upper layers
-      if (is_srb()) {
-        rrc->write_pdu(lcid, std::move(it->second));
-      } else {
-        gw->write_pdu(lcid, std::move(it->second));
-      }
-
-      // Remove from queue
-      reorder_queue.erase(it++);
-
-      // Update RX_DELIV
-      rx_deliv = rx_deliv + 1; // TODO needs to be corrected when queueing is implemented
-    }
+    deliver_all_consecutive_counts();
   }
 
-  // TODO handle reordering timers
+  // Handle reordering timers
+  if(reordering_timer->is_running() and rx_deliv >= rx_reord){
+    reordering_timer->stop();
+    reordering_timer->reset();
+  } 
+
+  if (not reordering_timer->is_running() and rx_deliv < rx_next) {
+    rx_reord = rx_next;
+    reordering_timer->run();
+  }
 }
 
+/*
+ * Packing / Unpacking Helpers
+ */
 uint32_t pdcp_entity_nr::read_data_header(const unique_byte_buffer_t& pdu)
 {
   // Check PDU is long enough to extract header
@@ -277,5 +272,47 @@ void pdcp_entity_nr::append_mac(const unique_byte_buffer_t& sdu, uint8_t* mac)
   // Append MAC
   memcpy(&sdu->msg[sdu->N_bytes], mac, 4);
   sdu->N_bytes += 4;
+}
+
+/*
+ * Reordering Helpers
+ */
+// Deliver all consecutivly associated COUNTs.
+// Update RX_NEXT after submitting to higher layers
+void pdcp_entity_nr::deliver_all_consecutive_counts()
+{
+  for (std::map<uint32_t, unique_byte_buffer_t>::iterator it = reorder_queue.begin();
+                                  it != reorder_queue.end() && it->first == rx_deliv;
+                                  reorder_queue.erase(it++))
+  {
+    log->debug("Delivering SDU with RCVD_COUNT %d\n", it->first);
+
+    // Pass PDCP SDU to the next layers
+    pass_to_upper_layers(std::move(it->second));
+
+    // Update RX_DELIV
+    rx_deliv = rx_deliv + 1; // TODO needs to be corrected when queueing is implemented
+  }
+}
+
+void pdcp_entity_nr::reordering_callback::timer_expired(uint32_t timer_id)
+{
+  parent->log->debug("Reordering timer expired\n");
+
+  // Deliver all PDCP SDU(s) with associeted COUNT value(s) < RX_REORD
+  for (std::map<uint32_t, unique_byte_buffer_t>::iterator it = parent->reorder_queue.begin();
+       it != parent->reorder_queue.end() && it->first < parent->rx_reord;
+       parent->reorder_queue.erase(it++)) {
+       // Deliver to upper layers
+       parent->pass_to_upper_layers(std::move(it->second));
+  }
+
+  // Deliver all PDCP SDU(s) consecutivly associeted COUNT value(s) starting from RX_REORD
+  parent->deliver_all_consecutive_counts();
+
+  if (parent->rx_deliv < parent->rx_next){
+
+  }
+  return;
 }
 } // namespace srslte
