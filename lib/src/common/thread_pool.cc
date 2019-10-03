@@ -355,10 +355,9 @@ uint32_t task_thread_pool::nof_pending_tasks()
 
 task_thread_pool::worker_t::worker_t(srslte::task_thread_pool* parent_, uint32_t my_id) :
   parent(parent_),
-  thread("TASKWORKER"),
+  thread(std::string("TASKWORKER") + std::to_string(my_id)),
   id_(my_id)
 {
-  set_name(std::string("TASKWORKER") + std::to_string(my_id));
 }
 
 void task_thread_pool::worker_t::setup(int32_t prio, uint32_t mask)
