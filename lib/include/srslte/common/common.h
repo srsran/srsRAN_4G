@@ -97,159 +97,159 @@ namespace srslte {
  * copy constructors & assignment operators for quick copying. Byte buffer
  * holds a next pointer to support linked lists.
  *****************************************************************************/
-class byte_buffer_t{
+class byte_buffer_t
+{
 public:
-    uint32_t    N_bytes;
-    uint8_t     buffer[SRSLTE_MAX_BUFFER_SIZE_BYTES];
-    uint8_t    *msg;
+  uint32_t N_bytes;
+  uint8_t  buffer[SRSLTE_MAX_BUFFER_SIZE_BYTES];
+  uint8_t* msg;
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
-    char        debug_name[SRSLTE_BUFFER_POOL_LOG_NAME_LEN];
+  char debug_name[SRSLTE_BUFFER_POOL_LOG_NAME_LEN];
 #endif
 
-    byte_buffer_t():N_bytes(0)
-    {
-      bzero(buffer, SRSLTE_MAX_BUFFER_SIZE_BYTES);
+  byte_buffer_t() : N_bytes(0)
+  {
+    bzero(buffer, SRSLTE_MAX_BUFFER_SIZE_BYTES);
 #ifdef ENABLE_TIMESTAMP
-      timestamp_is_set = false;
+    timestamp_is_set = false;
 #endif
-      msg = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
-      next = NULL; 
+    msg  = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
+    next = NULL;
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
-      bzero(debug_name, SRSLTE_BUFFER_POOL_LOG_NAME_LEN);
+    bzero(debug_name, SRSLTE_BUFFER_POOL_LOG_NAME_LEN);
 #endif
-    }
-    byte_buffer_t(const byte_buffer_t& buf)
-    {
-      bzero(buffer, SRSLTE_MAX_BUFFER_SIZE_BYTES);
-      msg = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
-      next = NULL;
-      // copy actual contents
-      N_bytes = buf.N_bytes;
-      memcpy(msg, buf.msg, N_bytes);
-    }
-    byte_buffer_t & operator= (const byte_buffer_t & buf)
-    {
-      // avoid self assignment
-      if (&buf == this)
-        return *this;
-      bzero(buffer, SRSLTE_MAX_BUFFER_SIZE_BYTES);
-      msg = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
-      next = NULL;
-      N_bytes = buf.N_bytes;
-      memcpy(msg, buf.msg, N_bytes);
+  }
+  byte_buffer_t(const byte_buffer_t& buf)
+  {
+    bzero(buffer, SRSLTE_MAX_BUFFER_SIZE_BYTES);
+    msg  = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
+    next = NULL;
+    // copy actual contents
+    N_bytes = buf.N_bytes;
+    memcpy(msg, buf.msg, N_bytes);
+  }
+  byte_buffer_t& operator=(const byte_buffer_t& buf)
+  {
+    // avoid self assignment
+    if (&buf == this)
       return *this;
-    }
-    void clear()
-    {
-      msg       = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
-      N_bytes   = 0;
+    bzero(buffer, SRSLTE_MAX_BUFFER_SIZE_BYTES);
+    msg     = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
+    next    = NULL;
+    N_bytes = buf.N_bytes;
+    memcpy(msg, buf.msg, N_bytes);
+    return *this;
+  }
+  void clear()
+  {
+    msg     = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
+    N_bytes = 0;
 #ifdef ENABLE_TIMESTAMP
-      timestamp_is_set = false;
+    timestamp_is_set = false;
 #endif
-    }
-    uint32_t get_headroom()
-    {
-      return msg-buffer;
-    }
-    // Returns the remaining space from what is reported to be the length of msg
-    uint32_t get_tailroom()
-    {
-      return (sizeof(buffer) - (msg-buffer) - N_bytes);
-    }
-    long get_latency_us()
-    {
+  }
+  uint32_t get_headroom() { return msg - buffer; }
+  // Returns the remaining space from what is reported to be the length of msg
+  uint32_t get_tailroom() { return (sizeof(buffer) - (msg - buffer) - N_bytes); }
+  long     get_latency_us()
+  {
 #ifdef ENABLE_TIMESTAMP
-      if(!timestamp_is_set)
-        return 0;
-      gettimeofday(&timestamp[2], NULL); 
-      get_time_interval(timestamp);
-      return timestamp[0].tv_usec;
-#else
+    if (!timestamp_is_set)
       return 0;
-#endif
-    }
-    
-    void set_timestamp() 
-    {
-#ifdef ENABLE_TIMESTAMP
-      gettimeofday(&timestamp[1], NULL);
-      timestamp_is_set = true;
-#endif
-    }
-
-  private:
-#ifdef ENABLE_TIMESTAMP
-    struct timeval timestamp[3];
-    bool           timestamp_is_set; 
-#endif
-    byte_buffer_t *next;
-};
-
-struct bit_buffer_t{
-    uint32_t    N_bits;
-    uint8_t     buffer[SRSLTE_MAX_BUFFER_SIZE_BITS];
-    uint8_t    *msg;
-#ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
-    char        debug_name[128];
-#endif
-
-    bit_buffer_t():N_bits(0)
-    {
-      msg = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
-#ifdef ENABLE_TIMESTAMP
-      timestamp_is_set = false;
-#endif
-    }
-    bit_buffer_t(const bit_buffer_t& buf){
-      msg = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
-      N_bits = buf.N_bits;
-      memcpy(msg, buf.msg, N_bits);
-    }
-    bit_buffer_t & operator= (const bit_buffer_t & buf){
-      // avoid self assignment
-      if (&buf == this) {
-        return *this;
-      }
-      msg = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
-      N_bits = buf.N_bits;
-      memcpy(msg, buf.msg, N_bits);
-      return *this;
-    }
-    void clear()
-    {
-      msg       = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
-      N_bits    = 0;
-#ifdef ENABLE_TIMESTAMP
-      timestamp_is_set = false;
-#endif
-    }
-    uint32_t get_headroom()
-    {
-      return msg-buffer;
-    }
-    long get_latency_us()
-    {
-#ifdef ENABLE_TIMESTAMP
-      if(!timestamp_is_set)
-        return 0;
-      gettimeofday(&timestamp[2], NULL); 
-      return timestamp[0].tv_usec;
+    gettimeofday(&timestamp[2], NULL);
+    get_time_interval(timestamp);
+    return timestamp[0].tv_usec;
 #else
-      return 0;
+    return 0;
 #endif
-    }
-    void set_timestamp() 
-    {
+  }
+
+  void set_timestamp()
+  {
 #ifdef ENABLE_TIMESTAMP
-      gettimeofday(&timestamp[1], NULL);
-      timestamp_is_set = true;
+    gettimeofday(&timestamp[1], NULL);
+    timestamp_is_set = true;
 #endif
-    }
+  }
+
+  void append_bytes(uint8_t *buf, uint32_t size)
+  {
+    memcpy(&msg[N_bytes], buf, size);
+    N_bytes += size;
+  }
 
 private:
 #ifdef ENABLE_TIMESTAMP
-    struct timeval timestamp[3];
-    bool           timestamp_is_set; 
+  struct timeval timestamp[3];
+  bool           timestamp_is_set;
+#endif
+  byte_buffer_t* next;
+};
+
+struct bit_buffer_t {
+  uint32_t N_bits;
+  uint8_t  buffer[SRSLTE_MAX_BUFFER_SIZE_BITS];
+  uint8_t* msg;
+#ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
+  char debug_name[128];
+#endif
+
+  bit_buffer_t() : N_bits(0)
+  {
+    msg = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
+#ifdef ENABLE_TIMESTAMP
+    timestamp_is_set = false;
+#endif
+  }
+  bit_buffer_t(const bit_buffer_t& buf)
+  {
+    msg    = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
+    N_bits = buf.N_bits;
+    memcpy(msg, buf.msg, N_bits);
+  }
+  bit_buffer_t& operator=(const bit_buffer_t& buf)
+  {
+    // avoid self assignment
+    if (&buf == this) {
+      return *this;
+    }
+    msg    = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
+    N_bits = buf.N_bits;
+    memcpy(msg, buf.msg, N_bits);
+    return *this;
+  }
+  void clear()
+  {
+    msg    = &buffer[SRSLTE_BUFFER_HEADER_OFFSET];
+    N_bits = 0;
+#ifdef ENABLE_TIMESTAMP
+    timestamp_is_set = false;
+#endif
+  }
+  uint32_t get_headroom() { return msg - buffer; }
+  long     get_latency_us()
+  {
+#ifdef ENABLE_TIMESTAMP
+    if (!timestamp_is_set)
+      return 0;
+    gettimeofday(&timestamp[2], NULL);
+    return timestamp[0].tv_usec;
+#else
+    return 0;
+#endif
+  }
+  void set_timestamp()
+  {
+#ifdef ENABLE_TIMESTAMP
+    gettimeofday(&timestamp[1], NULL);
+    timestamp_is_set = true;
+#endif
+  }
+
+private:
+#ifdef ENABLE_TIMESTAMP
+  struct timeval timestamp[3];
+  bool           timestamp_is_set;
 #endif
 };
 
