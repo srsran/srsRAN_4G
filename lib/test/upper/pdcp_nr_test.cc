@@ -19,25 +19,24 @@
  *
  */
 
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/log_filter.h"
-#include "srslte/common/security.h"
-#include "srslte/upper/pdcp_entity_nr.h"
+#include "pdcp_nr_test.h"
 #include <iostream>
 
-#define TESTASSERT(cond)                                                                                               \
-  {                                                                                                                    \
-    if (!(cond)) {                                                                                                     \
-      std::cout << "[" << __FUNCTION__ << "][Line " << __LINE__ << "]: FAIL at " << (#cond) << std::endl;              \
-      return -1;                                                                                                       \
-    }                                                                                                                  \
-  }
 
 // Encryption and Integrity Keys
 uint8_t k_int[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15,
                    0x16, 0x17, 0x18, 0x19, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x30, 0x31};
 uint8_t k_enc[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15,
                    0x16, 0x17, 0x18, 0x19, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x30, 0x31};
+
+pdcp_security_cfg sec_cfg = {
+    k_int,
+    k_enc,
+    k_int,
+    k_enc,
+    srslte::INTEGRITY_ALGORITHM_ID_128_EIA2,
+    srslte::CIPHERING_ALGORITHM_ID_128_EEA2,
+};
 
 // Test SDUs for tx
 uint8_t  sdu1[]   = {0x18, 0xE2};
@@ -70,95 +69,6 @@ uint32_t SDU2_LEN = 2;
 uint8_t  pdu7[]   = {0x80, 0x01, 0x5e, 0x3d, 0x64, 0xaf, 0xac, 0x7c};
 uint32_t PDU7_LEN = 8;
 
-// dummy classes
-class rlc_dummy : public srsue::rlc_interface_pdcp
-{
-public:
-  rlc_dummy(srslte::log* log_) : log(log_) {}
-
-  void get_last_sdu(const srslte::unique_byte_buffer_t& pdu)
-  {
-    memcpy(pdu->msg, last_pdcp_pdu->msg, last_pdcp_pdu->N_bytes);
-    pdu->N_bytes = last_pdcp_pdu->N_bytes;
-    return;
-  }
-  void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking = true)
-  {
-    log->info_hex(sdu->msg, sdu->N_bytes, "RLC SDU");
-    last_pdcp_pdu.swap(sdu);
-  }
-
-private:
-  srslte::log*                 log;
-  srslte::unique_byte_buffer_t last_pdcp_pdu;
-
-  bool rb_is_um(uint32_t lcid) { return false; }
-};
-
-class rrc_dummy : public srsue::rrc_interface_pdcp
-{
-public:
-  rrc_dummy(srslte::log* log_) : log(log_) {}
-
-  void write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
-  void write_pdu_bcch_bch(srslte::unique_byte_buffer_t pdu) {}
-  void write_pdu_bcch_dlsch(srslte::unique_byte_buffer_t pdu) {}
-  void write_pdu_pcch(srslte::unique_byte_buffer_t pdu) {}
-  void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
-
-  std::string get_rb_name(uint32_t lcid) { return "None"; }
-
-private:
-  srslte::log* log;
-};
-
-class gw_dummy : public srsue::gw_interface_pdcp
-{
-public:
-  gw_dummy(srslte::log* log_) : log(log_) {}
-
-  void     write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
-  uint32_t rx_count = 0;
-
-  void get_last_pdu(const srslte::unique_byte_buffer_t& pdu)
-  {
-    memcpy(pdu->msg, last_pdu->msg, last_pdu->N_bytes);
-    pdu->N_bytes = last_pdu->N_bytes;
-    return;
-  }
-  void write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
-  {
-    log->info_hex(pdu->msg, pdu->N_bytes, "GW PDU");
-    rx_count++;
-    last_pdu.swap(pdu);
-  }
-
-private:
-  srslte::log*                 log;
-  srslte::unique_byte_buffer_t last_pdu;
-};
-
-/*
- * Helper classes to reduce copy / pasting in setting up tests
- */
-class pdcp_nr_test_helper
-{
-public:
-  pdcp_nr_test_helper(srslte::pdcp_config_t cfg, srslte::log* log) : rlc(log), rrc(log), gw(log), timers(64)
-  {
-    pdcp.init(&rlc, &rrc, &gw, &timers, log, 0, cfg);
-    pdcp.config_security(
-        k_enc, k_int, k_enc, k_int, srslte::CIPHERING_ALGORITHM_ID_128_EEA2, srslte::INTEGRITY_ALGORITHM_ID_128_EIA2);
-    pdcp.enable_integrity();
-    pdcp.enable_encryption();
-  }
-
-  srslte::pdcp_entity_nr pdcp;
-  rlc_dummy              rlc;
-  rrc_dummy              rrc;
-  gw_dummy               gw;
-  srslte::timers         timers;
-};
 
 /*
  * Genric function to test transmission of in-sequence packets
@@ -176,7 +86,7 @@ int test_tx(uint32_t                     n_packets,
                                pdcp_sn_len,
                                srslte::pdcp_t_reordering_t::ms500};
 
-  pdcp_nr_test_helper     pdcp_hlp(cfg, log);
+  pdcp_nr_test_helper     pdcp_hlp(cfg, sec_cfg, log);
   srslte::pdcp_entity_nr* pdcp = &pdcp_hlp.pdcp;
   rlc_dummy*              rlc  = &pdcp_hlp.rlc;
 
