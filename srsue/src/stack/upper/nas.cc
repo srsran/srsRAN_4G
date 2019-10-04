@@ -69,6 +69,7 @@ proc_outcome_t nas::plmn_search_proc::step()
     if (ret.is_success()) {
       return proc_outcome_t::success;
     }
+    nas_ptr->enter_emm_deregistered();
     return proc_outcome_t::error;
   }
   return proc_outcome_t::yield;
@@ -114,7 +115,7 @@ proc_outcome_t nas::plmn_search_proc::trigger_event(const plmn_search_complete_t
 
   nas_ptr->rrc->plmn_select(nas_ptr->current_plmn);
 
-  if (not nas_ptr->rrc_connector.launch(nas_ptr, nullptr)) {
+  if (not nas_ptr->rrc_connector.launch(nas_ptr, srslte::establishment_cause_t ::mo_data, nullptr)) {
     Error("Unable to initiate RRC connection.\n");
     return proc_outcome_t::error;
   }
@@ -123,7 +124,8 @@ proc_outcome_t nas::plmn_search_proc::trigger_event(const plmn_search_complete_t
   return proc_outcome_t::yield;
 }
 
-proc_outcome_t nas::rrc_connect_proc::init(nas* nas_ptr_, srslte::unique_byte_buffer_t pdu)
+proc_outcome_t
+nas::rrc_connect_proc::init(nas* nas_ptr_, srslte::establishment_cause_t cause_, srslte::unique_byte_buffer_t pdu)
 {
   nas_ptr = nas_ptr_;
 
@@ -155,14 +157,8 @@ proc_outcome_t nas::rrc_connect_proc::init(nas* nas_ptr_, srslte::unique_byte_bu
     nas_ptr->rrc->set_ue_identity(s_tmsi);
   }
 
-  establishment_cause_t establish_cause = establishment_cause_t::mo_sig;
-  if (nas_ptr->state == EMM_STATE_REGISTERED) {
-    // FIXME: only need to use MT_ACCESS for establishment after paging
-    establish_cause = establishment_cause_t::mt_access;
-  }
-
   state = state_t::conn_req;
-  if (not nas_ptr->start_connection_request(establish_cause, std::move(pdu))) {
+  if (not nas_ptr->start_connection_request(cause_, std::move(pdu))) {
     return proc_outcome_t::error;
   }
 
@@ -303,7 +299,6 @@ void nas::start_attach_request(srslte::proc_state_t* result)
   nas_log->info("Attach Request\n");
   switch (state) {
     case EMM_STATE_DEREGISTERED:
-
       // Search PLMN is not selected
       if (!plmn_is_selected) {
         nas_log->info("No PLMN selected. Starting PLMN Search...\n");
@@ -318,6 +313,10 @@ void nas::start_attach_request(srslte::proc_state_t* result)
           plmn_search_proc p = plmn_searcher.pop();
           nas_log->info("Attach Request from PLMN Search %s\n", p.is_success() ? "finished successfully" : "failed");
           *result = p.is_success() ? proc_state_t::success : proc_state_t::error;
+          // stay in this state if attach failed
+          if (not p.is_success()) {
+            enter_emm_deregistered();
+          }
           return proc_outcome_t::success;
         });
       } else {
@@ -331,7 +330,7 @@ void nas::start_attach_request(srslte::proc_state_t* result)
         *result = proc_state_t::success;
       } else {
         nas_log->info("NAS is already registered but RRC disconnected. Connecting now...\n");
-        if (not rrc_connector.launch(this, nullptr)) {
+        if (not rrc_connector.launch(this, srslte::establishment_cause_t ::mo_data, nullptr)) {
           nas_log->error("Cannot initiate concurrent rrc connection procedures\n");
           *result = proc_state_t::error;
           return;
@@ -363,7 +362,8 @@ void nas::plmn_search_completed(rrc_interface_nas::found_plmn_t found_plmns[rrc_
   plmn_searcher.trigger_event(plmn_search_proc::plmn_search_complete_t(found_plmns, nof_plmns));
 }
 
-bool nas::detach_request() {
+bool nas::detach_request(const bool switch_off)
+{
   // attempt detach for 5s
   nas_log->info("Detach Request\n");
 
@@ -373,9 +373,7 @@ bool nas::detach_request() {
       break;
     case EMM_STATE_REGISTERED:
       // send detach request
-      send_detach_request(true);
-      plmn_is_selected = false;
-      state = EMM_STATE_DEREGISTERED;
+      send_detach_request(switch_off);
       break;
     case EMM_STATE_DEREGISTERED_INITIATED:
       // do nothing ..
@@ -386,7 +384,18 @@ bool nas::detach_request() {
   return false;
 }
 
-void nas::leave_connected()
+void nas::enter_emm_deregistered()
+{
+  // Deactivate EPS bearer according to Sec. 5.5.2.2.2
+  nas_log->info("Clearing EPS bearer context.\n");
+
+  eps_bearer.clear();
+
+  plmn_is_selected = false;
+  state            = EMM_STATE_DEREGISTERED;
+}
+
+void nas::left_rrc_connected()
 {
   return;
 }
@@ -404,7 +413,7 @@ void nas::paging(s_tmsi_t* ue_identity)
       nas_log->error("Cannot initiate concurrent RRC connection establishment procedures\n");
       return;
     }
-    if (not rrc_connector.launch(this, nullptr)) {
+    if (not rrc_connector.launch(this, srslte::establishment_cause_t ::mt_access, nullptr)) {
       nas_log->error("Could not launch RRC Connect()\n");
       return;
     }
@@ -417,7 +426,6 @@ void nas::paging(s_tmsi_t* ue_identity)
       rrc->paging_completed(success);
       return proc_outcome_t::success;
     });
-
   } else {
     nas_log->warning("Received paging while in state %s\n", emm_state_text[state]);
   }
@@ -1034,7 +1042,7 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
 
   } else {
     nas_log->info("Not handling attach type %u\n", attach_accept.eps_attach_result);
-    state = EMM_STATE_DEREGISTERED;
+    enter_emm_deregistered();
   }
 
   ctxt.rx_count++;
@@ -1048,7 +1056,7 @@ void nas::parse_attach_reject(uint32_t lcid, unique_byte_buffer_t pdu)
   liblte_mme_unpack_attach_reject_msg((LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), &attach_rej);
   nas_log->warning("Received Attach Reject. Cause= %02X\n", attach_rej.emm_cause);
   nas_log->console("Received Attach Reject. Cause= %02X\n", attach_rej.emm_cause);
-  state = EMM_STATE_DEREGISTERED;
+  enter_emm_deregistered();
   // FIXME: Command RRC to release?
 }
 
@@ -1101,7 +1109,7 @@ void nas::parse_authentication_request(uint32_t lcid, unique_byte_buffer_t pdu, 
 void nas::parse_authentication_reject(uint32_t lcid, unique_byte_buffer_t pdu)
 {
   nas_log->warning("Received Authentication Reject\n");
-  state = EMM_STATE_DEREGISTERED;
+  enter_emm_deregistered();
   // FIXME: Command RRC to release?
 }
 
@@ -1256,8 +1264,7 @@ void nas::parse_service_reject(uint32_t lcid, unique_byte_buffer_t pdu)
 
   // FIXME: handle NAS backoff-timers correctly
 
-  // Mark state as EMM-DEREGISTERED
-  state = EMM_STATE_DEREGISTERED;
+  enter_emm_deregistered();
 
   // Reset security context
   ctxt      = {};
@@ -1297,13 +1304,19 @@ void nas::parse_detach_request(uint32_t lcid, unique_byte_buffer_t pdu)
   liblte_mme_unpack_detach_request_msg((LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), &detach_request);
   ctxt.rx_count++;
 
-  if (state == EMM_STATE_REGISTERED) {
-    nas_log->info("Received Detach request (type=%d)\n", detach_request.detach_type.type_of_detach);
-    state = EMM_STATE_DEREGISTERED;
-    // send accept
-    send_detach_accept();
-  } else {
-    nas_log->warning("Received detach request in invalid state (state=%d)\n", state);
+  switch (state) {
+    case EMM_STATE_DEREGISTERED_INITIATED:
+      nas_log->info("Received detach from network while performing UE initiated detach. Aborting UE detach.\n");
+    case EMM_STATE_REGISTERED:
+      nas_log->info("Received detach request (type=%d)\n", detach_request.detach_type.type_of_detach);
+
+      // send accept and leave state
+      send_detach_accept();
+      enter_emm_deregistered();
+      break;
+    default:
+      nas_log->warning("Received detach request in invalid state (%s)\n", emm_state_text[state]);
+      break;
   }
 }
 
@@ -1651,7 +1664,7 @@ void nas::send_detach_request(bool switch_off)
     detach_request.detach_type.type_of_detach = LIBLTE_MME_SO_FLAG_SWITCH_OFF;
   } else {
     detach_request.detach_type.switch_off = 0;
-    detach_request.detach_type.type_of_detach = LIBLTE_MME_SO_FLAG_NORMAL_DETACH;
+    detach_request.detach_type.type_of_detach = LIBLTE_MME_TOD_UL_EPS_DETACH;
   }
 
   // GUTI or IMSI detach
@@ -1701,17 +1714,17 @@ void nas::send_detach_request(bool switch_off)
   }
 
   if (switch_off) {
-    // Deactivate EPS bearer according to Sec. 5.5.2.2.2
-    nas_log->info("Clearing EPS bearer context.\n");
-    eps_bearer.clear();
+    enter_emm_deregistered();
+  } else {
+    // we are expecting a response from the core
+    state = EMM_STATE_DEREGISTERED_INITIATED;
   }
 
   nas_log->info("Sending detach request\n");
   if (rrc->is_connected()) {
     rrc->write_sdu(std::move(pdu));
   } else {
-
-    if (not rrc_connector.launch(this, std::move(pdu))) {
+    if (not rrc_connector.launch(this, establishment_cause_t::mo_sig, std::move(pdu))) {
       nas_log->error("Failed to initiate RRC Connection Request\n");
     }
     callbacks.defer_proc(rrc_connector);

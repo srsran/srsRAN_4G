@@ -180,8 +180,8 @@ bool ue_stack_lte::switch_on()
 
 bool ue_stack_lte::switch_off()
 {
-  // generate detach request
-  nas.detach_request();
+  // generate detach request with switch-off flag
+  nas.detach_request(true);
 
   // wait for max. 5s for it to be sent (according to TS 24.301 Sec 25.5.2.2)
   const uint32_t RB_ID_SRB1 = 1;
@@ -197,6 +197,18 @@ bool ue_stack_lte::switch_off()
   }
 
   return detach_sent;
+}
+
+bool ue_stack_lte::enable_data()
+{
+  // perform attach request
+  return switch_on();
+}
+
+bool ue_stack_lte::disable_data()
+{
+  // generate detach request
+  return nas.detach_request(false);
 }
 
 bool ue_stack_lte::get_metrics(stack_metrics_t* metrics)

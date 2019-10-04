@@ -121,7 +121,7 @@ private:
             log->error("Received unknown command: %s\n", mmi_cmd.GetString());
           }
         } else if (a.HasMember("AT")) {
-          log->error("AT commands not implemented.\n");
+          handle_at_command(document);
         } else if (a.HasMember("TC_START")) {
           log->info("Received TC_START command.\n");
           const Value& cmd = a["TC_START"];
@@ -162,6 +162,23 @@ private:
 
     log->info("Sending %s to tester (%zd B)\n", buffer.GetString(), buffer.GetSize());
     srslte_netsource_write(&net_source, (char*)buffer.GetString(), buffer.GetSize());
+  }
+
+  void handle_at_command(Document& document)
+  {
+    // We can assume the doc contains a AT CMD
+    const Value& at = document["Cmd"]["AT"];
+
+    // turn off data services
+    if (std::string(at.GetString()) == "AT+CGATT=0<CR>") {
+      log->info("Disabling data services\n");
+      syssim->disable_data();
+    } else if (std::string(at.GetString()) == "AT+CGATT=1<CR>") {
+      log->info("Enabling data services\n");
+      syssim->enable_data();
+    } else {
+      log->error("Not handling AT command %s\n", at.GetString());
+    }
   }
 
   syssim_interface* syssim = nullptr;

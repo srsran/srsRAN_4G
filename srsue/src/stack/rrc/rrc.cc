@@ -1299,7 +1299,7 @@ void rrc::leave_connected()
   drb_up = false;
   security_is_activated = false;
   measurements.reset();
-  nas->leave_connected();
+  nas->left_rrc_connected();
   pdcp->reset();
   rlc->reset();
   mac->reset();

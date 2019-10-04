@@ -67,6 +67,8 @@ public:
   int  init(const stack_args_t& args_, srslte::logger* logger_, phy_interface_stack_lte* phy_, gw_interface_stack* gw_);
   bool switch_on() final;
   bool switch_off();
+  bool enable_data();
+  bool disable_data();
   void stop();
 
   bool get_metrics(stack_metrics_t* metrics);

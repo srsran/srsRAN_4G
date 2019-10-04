@@ -34,6 +34,8 @@ public:
   virtual void     power_off_ue()                                                                                 = 0;
   virtual void     switch_on_ue()                                                                                 = 0;
   virtual void     switch_off_ue()                                                                                = 0;
+  virtual void     enable_data()                                                                                  = 0;
+  virtual void     disable_data()                                                                                 = 0;
   virtual void     set_cell_config(std::string cell_name, uint32_t earfcn, srslte_cell_t cell, const float power) = 0;
   virtual void     set_cell_attenuation(std::string cell_name, const float attenuation)                           = 0;
   virtual void     add_bcch_pdu(srslte::unique_byte_buffer_t pdu)                                                 = 0;

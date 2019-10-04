@@ -107,6 +107,10 @@ public:
 
   bool switch_off() { return stack->switch_off(); }
 
+  bool enable_data() { return stack->enable_data(); }
+
+  bool disable_data() { return stack->disable_data(); }
+
   // The interface for SYSSIM
   void set_cell_map(lte_ttcn3_phy::cell_list_t phy_cell_map) { phy->set_cell_map(phy_cell_map); }
 

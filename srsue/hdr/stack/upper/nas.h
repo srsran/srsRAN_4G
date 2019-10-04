@@ -49,7 +49,7 @@ public:
   emm_state_t get_state();
 
   // RRC interface
-  void     leave_connected();
+  void     left_rrc_connected();
   void     paging(srslte::s_tmsi_t* ue_identity);
   void     set_barring(barring_t barring);
   void     write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
@@ -61,7 +61,8 @@ public:
 
   // UE interface
   void start_attach_request(srslte::proc_state_t* result) final;
-  bool detach_request() final;
+  bool detach_request(const bool switch_off) final;
+  void enter_emm_deregistered();
 
   void plmn_search_completed(rrc_interface_nas::found_plmn_t found_plmns[rrc_interface_nas::MAX_FOUND_PLMNS],
                              int                             nof_plmns) final;
@@ -251,7 +252,7 @@ private:
       bool outcome;
     };
 
-    srslte::proc_outcome_t init(nas* nas_ptr_, srslte::unique_byte_buffer_t pdu);
+    srslte::proc_outcome_t init(nas* nas_ptr_, srslte::establishment_cause_t cause_, srslte::unique_byte_buffer_t pdu);
     srslte::proc_outcome_t step() final;
     static const char* name() { return "RRC Connect"; }
 

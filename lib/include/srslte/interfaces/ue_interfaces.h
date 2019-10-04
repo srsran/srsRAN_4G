@@ -194,7 +194,7 @@ class nas_interface_rrc
 {
 public:
   typedef enum { BARRING_NONE = 0, BARRING_MO_DATA, BARRING_MO_SIGNALLING, BARRING_MT, BARRING_ALL } barring_t;
-  virtual void     leave_connected()                                                                          = 0;
+  virtual void     left_rrc_connected()                                       = 0;
   virtual void     set_barring(barring_t barring)                             = 0;
   virtual void     paging(srslte::s_tmsi_t* ue_identity)                      = 0;
   virtual bool     is_attached()                                              = 0;
@@ -214,7 +214,7 @@ class nas_interface_ue
 {
 public:
   virtual void start_attach_request(srslte::proc_state_t* proc_result) = 0;
-  virtual bool detach_request()                                        = 0;
+  virtual bool detach_request(const bool switch_off)                   = 0;
 };
 
 // PDCP interface for RRC

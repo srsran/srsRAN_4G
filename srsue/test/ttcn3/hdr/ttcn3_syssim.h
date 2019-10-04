@@ -244,6 +244,22 @@ public:
     }
   }
 
+  void enable_data()
+  {
+    if (ue) {
+      log.info("Enabling data services on UE ID=%d\n", run_id);
+      ue->enable_data();
+    }
+  }
+
+  void disable_data()
+  {
+    if (ue) {
+      log.info("Disabling data services on UE ID=%d\n", run_id);
+      ue->disable_data();
+    }
+  }
+
   // Interface for PHY
   void prach_indication(uint32_t preamble_index_, const uint32_t& cell_id)
   {
