@@ -199,8 +199,6 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
  */
 int test_rx_in_sequence(uint64_t n_packets, uint8_t pdcp_sn_len, srslte::byte_buffer_pool* pool, srslte::log* log)
 {
-  srslte::pdcp_entity_nr pdcp_tx;
-  srslte::pdcp_entity_nr pdcp_rx;
 
   srslte::pdcp_config_t  cfg_tx = {1,
                                   srslte::PDCP_RB_IS_DRB,
@@ -216,27 +214,13 @@ int test_rx_in_sequence(uint64_t n_packets, uint8_t pdcp_sn_len, srslte::byte_bu
                                   pdcp_sn_len,
                                   srslte::pdcp_t_reordering_t::ms500};
 
-  rlc_dummy      rlc_tx(log);
-  rrc_dummy      rrc_tx(log);
-  gw_dummy       gw_tx(log);
-  srslte::timers timers_tx(64);
+  pdcp_nr_test_helper     pdcp_hlp_tx(cfg_tx, sec_cfg, log);
+  srslte::pdcp_entity_nr* pdcp_tx = &pdcp_hlp_tx.pdcp;
+  rlc_dummy*              rlc_tx  = &pdcp_hlp_tx.rlc;
 
-  rlc_dummy      rlc_rx(log);
-  rrc_dummy      rrc_rx(log);
-  gw_dummy       gw_rx(log);
-  srslte::timers timers_rx(64);
-
-  pdcp_tx.init(&rlc_tx, &rrc_tx, &gw_tx, &timers_tx, log, 0, cfg_tx);
-  pdcp_tx.config_security(
-      k_enc, k_int, k_enc, k_int, srslte::CIPHERING_ALGORITHM_ID_128_EEA2, srslte::INTEGRITY_ALGORITHM_ID_128_EIA2);
-  pdcp_tx.enable_integrity();
-  pdcp_tx.enable_encryption();
-
-  pdcp_rx.init(&rlc_rx, &rrc_rx, &gw_rx, &timers_rx, log, 0, cfg_rx);
-  pdcp_rx.config_security(
-      k_enc, k_int, k_enc, k_int, srslte::CIPHERING_ALGORITHM_ID_128_EEA2, srslte::INTEGRITY_ALGORITHM_ID_128_EIA2);
-  pdcp_rx.enable_integrity();
-  pdcp_rx.enable_encryption();
+  pdcp_nr_test_helper     pdcp_hlp_rx(cfg_rx, sec_cfg, log);
+  srslte::pdcp_entity_nr* pdcp_rx = &pdcp_hlp_rx.pdcp;
+  gw_dummy*               gw_rx   = &pdcp_hlp_rx.gw;
 
   srslte::unique_byte_buffer_t sdu_act = allocate_unique_buffer(*pool);
   srslte::unique_byte_buffer_t sdu_exp = allocate_unique_buffer(*pool);
@@ -252,10 +236,10 @@ int test_rx_in_sequence(uint64_t n_packets, uint8_t pdcp_sn_len, srslte::byte_bu
     sdu->N_bytes = SDU1_LEN;
 
     // Generate encripted and integrity protected PDU
-    pdcp_tx.write_sdu(std::move(sdu), true);
-    rlc_tx.get_last_sdu(pdu);
-    pdcp_rx.write_pdu(std::move(pdu));
-    gw_rx.get_last_pdu(sdu_act);
+    pdcp_tx->write_sdu(std::move(sdu), true);
+    rlc_tx->get_last_sdu(pdu);
+    pdcp_rx->write_pdu(std::move(pdu));
+    gw_rx->get_last_pdu(sdu_act);
 
     TESTASSERT(sdu_exp->N_bytes == sdu_act->N_bytes);
     for (uint32_t j = 0; j < sdu_act->N_bytes; ++j) {
