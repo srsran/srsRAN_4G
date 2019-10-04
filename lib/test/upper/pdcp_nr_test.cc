@@ -141,10 +141,10 @@ private:
 /*
  * Helper classes to reduce copy / pasting in setting up tests
  */
-class pdcp_test_helper
+class pdcp_nr_test_helper
 {
 public:
-  pdcp_test_helper(srslte::pdcp_config_t cfg, srslte::log* log) : rlc(log), rrc(log), gw(log), timers(64)
+  pdcp_nr_test_helper(srslte::pdcp_config_t cfg, srslte::log* log) : rlc(log), rrc(log), gw(log), timers(64)
   {
     pdcp.init(&rlc, &rrc, &gw, &timers, log, 0, cfg);
     pdcp.config_security(
@@ -176,7 +176,7 @@ int test_tx(uint32_t                     n_packets,
                                pdcp_sn_len,
                                srslte::pdcp_t_reordering_t::ms500};
 
-  pdcp_test_helper        pdcp_hlp(cfg, log);
+  pdcp_nr_test_helper     pdcp_hlp(cfg, log);
   srslte::pdcp_entity_nr* pdcp = &pdcp_hlp.pdcp;
   rlc_dummy*              rlc  = &pdcp_hlp.rlc;
 
