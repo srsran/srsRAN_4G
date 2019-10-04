@@ -139,6 +139,28 @@ private:
 };
 
 /*
+ * Helper classes to reduce copy / pasting in setting up tests
+ */
+class pdcp_test_helper
+{
+public:
+  pdcp_test_helper(srslte::pdcp_config_t cfg, srslte::log* log) : rlc(log), rrc(log), gw(log), timers(64)
+  {
+    pdcp.init(&rlc, &rrc, &gw, &timers, log, 0, cfg);
+    pdcp.config_security(
+        k_enc, k_int, k_enc, k_int, srslte::CIPHERING_ALGORITHM_ID_128_EEA2, srslte::INTEGRITY_ALGORITHM_ID_128_EIA2);
+    pdcp.enable_integrity();
+    pdcp.enable_encryption();
+  }
+
+  srslte::pdcp_entity_nr pdcp;
+  rlc_dummy              rlc;
+  rrc_dummy              rrc;
+  gw_dummy               gw;
+  srslte::timers         timers;
+};
+
+/*
  * Genric function to test transmission of in-sequence packets
  */
 int test_tx(uint32_t                     n_packets,
@@ -147,7 +169,6 @@ int test_tx(uint32_t                     n_packets,
             srslte::byte_buffer_pool*    pool,
             srslte::log*                 log)
 {
-  srslte::pdcp_entity_nr pdcp;
   srslte::pdcp_config_t  cfg = {1,
                                srslte::PDCP_RB_IS_DRB,
                                srslte::SECURITY_DIRECTION_UPLINK,
@@ -155,16 +176,9 @@ int test_tx(uint32_t                     n_packets,
                                pdcp_sn_len,
                                srslte::pdcp_t_reordering_t::ms500};
 
-  rlc_dummy rlc(log);
-  rrc_dummy rrc(log);
-  gw_dummy  gw(log);
-  srslte::timers timers(64);
-
-  pdcp.init(&rlc, &rrc, &gw, &timers, log, 0, cfg);
-  pdcp.config_security(
-      k_enc, k_int, k_enc, k_int, srslte::CIPHERING_ALGORITHM_ID_128_EEA2, srslte::INTEGRITY_ALGORITHM_ID_128_EIA2);
-  pdcp.enable_integrity();
-  pdcp.enable_encryption();
+  pdcp_test_helper        pdcp_hlp(cfg, log);
+  srslte::pdcp_entity_nr* pdcp = &pdcp_hlp.pdcp;
+  rlc_dummy*              rlc  = &pdcp_hlp.rlc;
 
   // Test SDU
   srslte::unique_byte_buffer_t sdu = allocate_unique_buffer(*pool);
@@ -177,10 +191,10 @@ int test_tx(uint32_t                     n_packets,
     srslte::unique_byte_buffer_t sdu = allocate_unique_buffer(*pool);
     memcpy(sdu->msg, sdu1, SDU1_LEN);
     sdu->N_bytes = SDU1_LEN;
-    pdcp.write_sdu(std::move(sdu), true);
+    pdcp->write_sdu(std::move(sdu), true);
   }
   srslte::unique_byte_buffer_t pdu_act = allocate_unique_buffer(*pool);
-  rlc.get_last_sdu(pdu_act);
+  rlc->get_last_sdu(pdu_act);
 
   TESTASSERT(pdu_act->N_bytes == pdu_exp->N_bytes);
   for (uint32_t i = 0; i < pdu_exp->N_bytes; ++i) {
@@ -457,6 +471,7 @@ int run_all_tests(srslte::byte_buffer_pool* pool)
   TESTASSERT(test_rx_in_sequence(262145, srslte::PDCP_SN_LEN_18, pool, &log) == 0);
   TESTASSERT(test_rx_out_of_order(srslte::PDCP_SN_LEN_12, pool, &log) == 0);
   TESTASSERT(test_rx_out_of_order_timeout(srslte::PDCP_SN_LEN_12, pool, &log) == 0);
+  // TESTASSERT(test_rx_out_of_order_wraparound(srslte::PDCP_SN_LEN_12, pool, &log) == 0);
   return 0;
 }
 
