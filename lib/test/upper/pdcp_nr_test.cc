@@ -255,7 +255,6 @@ int test_rx_in_sequence(uint64_t n_packets, uint8_t pdcp_sn_len, srslte::byte_bu
  */
 int test_rx_out_of_order(uint8_t pdcp_sn_len, srslte::byte_buffer_pool* pool, srslte::log* log)
 {
-  srslte::pdcp_entity_nr pdcp_rx;
   srslte::pdcp_config_t  cfg_rx = {1,
                                   srslte::PDCP_RB_IS_DRB,
                                   srslte::SECURITY_DIRECTION_DOWNLINK,
@@ -263,16 +262,9 @@ int test_rx_out_of_order(uint8_t pdcp_sn_len, srslte::byte_buffer_pool* pool, sr
                                   pdcp_sn_len,
                                   srslte::pdcp_t_reordering_t::ms500};
 
-  rlc_dummy      rlc_rx(log);
-  rrc_dummy      rrc_rx(log);
-  gw_dummy       gw_rx(log);
-  srslte::timers timers_rx(64);
-
-  pdcp_rx.init(&rlc_rx, &rrc_rx, &gw_rx, &timers_rx, log, 0, cfg_rx);
-  pdcp_rx.config_security(
-      k_enc, k_int, k_enc, k_int, srslte::CIPHERING_ALGORITHM_ID_128_EEA2, srslte::INTEGRITY_ALGORITHM_ID_128_EIA2);
-  pdcp_rx.enable_integrity();
-  pdcp_rx.enable_encryption();
+  pdcp_nr_test_helper     pdcp_rx_hlp(cfg_rx, sec_cfg, log);
+  srslte::pdcp_entity_nr* pdcp_rx = &pdcp_rx_hlp.pdcp;
+  gw_dummy*               gw_rx   = &pdcp_rx_hlp.gw;
 
   srslte::unique_byte_buffer_t sdu_act = allocate_unique_buffer(*pool);
   srslte::unique_byte_buffer_t sdu_exp = allocate_unique_buffer(*pool);
@@ -288,9 +280,9 @@ int test_rx_out_of_order(uint8_t pdcp_sn_len, srslte::byte_buffer_pool* pool, sr
   rx_pdu7->N_bytes = PDU7_LEN;
 
   // decript and check matching SDUs (out of order)
-  pdcp_rx.write_pdu(std::move(rx_pdu7));
-  pdcp_rx.write_pdu(std::move(rx_pdu1));
-  gw_rx.get_last_pdu(sdu_act);
+  pdcp_rx->write_pdu(std::move(rx_pdu7));
+  pdcp_rx->write_pdu(std::move(rx_pdu1));
+  gw_rx->get_last_pdu(sdu_act);
 
   TESTASSERT(sdu_exp->N_bytes == sdu_act->N_bytes);
   for (uint32_t j = 0; j < sdu_act->N_bytes; ++j) {
@@ -305,7 +297,6 @@ int test_rx_out_of_order(uint8_t pdcp_sn_len, srslte::byte_buffer_pool* pool, sr
  */
 int test_rx_out_of_order_timeout(uint8_t pdcp_sn_len, srslte::byte_buffer_pool* pool, srslte::log* log)
 {
-  srslte::pdcp_entity_nr pdcp_rx;
   srslte::pdcp_config_t  cfg_rx = {1,
                                   srslte::PDCP_RB_IS_DRB,
                                   srslte::SECURITY_DIRECTION_DOWNLINK,
@@ -313,16 +304,10 @@ int test_rx_out_of_order_timeout(uint8_t pdcp_sn_len, srslte::byte_buffer_pool* 
                                   pdcp_sn_len,
                                   srslte::pdcp_t_reordering_t::ms500};
 
-  rlc_dummy      rlc_rx(log);
-  rrc_dummy      rrc_rx(log);
-  gw_dummy       gw_rx(log);
-  srslte::timers timers_rx(64);
-
-  pdcp_rx.init(&rlc_rx, &rrc_rx, &gw_rx, &timers_rx, log, 0, cfg_rx);
-  pdcp_rx.config_security(
-      k_enc, k_int, k_enc, k_int, srslte::CIPHERING_ALGORITHM_ID_128_EEA2, srslte::INTEGRITY_ALGORITHM_ID_128_EIA2);
-  pdcp_rx.enable_integrity();
-  pdcp_rx.enable_encryption();
+  pdcp_nr_test_helper     pdcp_rx_hlp(cfg_rx, sec_cfg, log);
+  srslte::pdcp_entity_nr* pdcp_rx = &pdcp_rx_hlp.pdcp;
+  gw_dummy*               gw_rx   = &pdcp_rx_hlp.gw;
+  srslte::timers*         timers  = &pdcp_rx_hlp.timers;
 
   srslte::unique_byte_buffer_t sdu_act = allocate_unique_buffer(*pool);
   srslte::unique_byte_buffer_t sdu_exp = allocate_unique_buffer(*pool);
@@ -335,16 +320,19 @@ int test_rx_out_of_order_timeout(uint8_t pdcp_sn_len, srslte::byte_buffer_pool* 
   rx_pdu7->N_bytes = PDU7_LEN;
 
   // decript and check matching SDUs (out of order)
-  pdcp_rx.write_pdu(std::move(rx_pdu7));
+  pdcp_rx->write_pdu(std::move(rx_pdu7));
 
   // Make sure out of order is not received until time out
-  TESTASSERT(gw_rx.rx_count == 0);
+  TESTASSERT(gw_rx->rx_count == 0);
+
+  // Trigger timer
   for (uint16_t i = 0; i < 500; ++i){
-    timers_rx.step_all();
+    timers->step_all();
   }
-  //Trigger timer
-  TESTASSERT(gw_rx.rx_count == 1);
-  gw_rx.get_last_pdu(sdu_act);
+
+  // Make sure timout delivered PDU to GW
+  TESTASSERT(gw_rx->rx_count == 1);
+  gw_rx->get_last_pdu(sdu_act);
   TESTASSERT(sdu_exp->N_bytes == sdu_act->N_bytes);
   for (uint32_t j = 0; j < sdu_act->N_bytes; ++j) {
     TESTASSERT(sdu_exp->msg[j] == sdu_act->msg[j]);
