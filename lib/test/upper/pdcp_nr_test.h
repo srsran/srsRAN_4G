@@ -26,6 +26,7 @@
 #include "srslte/common/log_filter.h"
 #include "srslte/common/security.h"
 #include "srslte/upper/pdcp_entity_nr.h"
+#include <iostream>
 
 #define TESTASSERT(cond)                                                                                               \
   {                                                                                                                    \
@@ -34,6 +35,15 @@
       return -1;                                                                                                       \
     }                                                                                                                  \
   }
+
+int compare_two_packets(const srslte::unique_byte_buffer_t& msg1, const srslte::unique_byte_buffer_t& msg2)
+{
+  TESTASSERT(msg1->N_bytes == msg2->N_bytes);
+  for (uint32_t i = 0; i < msg1->N_bytes; ++i) {
+    TESTASSERT(msg1->msg[i] == msg2->msg[i]);
+  }
+  return 0;
+}
 
 struct pdcp_security_cfg {
   uint8_t *k_int_rrc;

@@ -19,7 +19,6 @@
  *
  */
 #include "pdcp_nr_test.h"
-#include <iostream>
 
 
 // Encryption and Integrity Keys
@@ -90,10 +89,7 @@ int test_tx(uint32_t                     n_packets,
   srslte::unique_byte_buffer_t pdu_act = allocate_unique_buffer(*pool);
   rlc->get_last_sdu(pdu_act);
 
-  TESTASSERT(pdu_act->N_bytes == pdu_exp->N_bytes);
-  for (uint32_t i = 0; i < pdu_exp->N_bytes; ++i) {
-    TESTASSERT(pdu_act->msg[i] == pdu_exp->msg[i]);
-  }
+  TESTASSERT(compare_two_packets(pdu_act, pdu_exp) == 0);
   return 0;
 }
 
@@ -144,10 +140,7 @@ int test_rx_in_sequence(uint64_t n_packets, uint8_t pdcp_sn_len, srslte::byte_bu
     gw_rx->get_last_pdu(sdu_act);
 
     // Check if resulting SDU matches original SDU
-    TESTASSERT(sdu_exp->N_bytes == sdu_act->N_bytes);
-    for (uint32_t j = 0; j < sdu_act->N_bytes; ++j) {
-      TESTASSERT(sdu_exp->msg[j] == sdu_act->msg[j]);
-    }
+    TESTASSERT(compare_two_packets(sdu_exp,sdu_act) == 0);
   }
   return 0;
 }
@@ -184,10 +177,7 @@ int test_rx_out_of_order(uint8_t pdcp_sn_len, srslte::byte_buffer_pool* pool, sr
   pdcp_rx->write_pdu(std::move(rx_pdu1));
   gw_rx->get_last_pdu(sdu_act);
 
-  TESTASSERT(sdu_exp->N_bytes == sdu_act->N_bytes);
-  for (uint32_t j = 0; j < sdu_act->N_bytes; ++j) {
-    TESTASSERT(sdu_exp->msg[j] == sdu_act->msg[j]);
-  }
+  TESTASSERT(compare_two_packets(sdu_exp, sdu_act) == 0);
   return 0;
 }
 
@@ -231,10 +221,7 @@ int test_rx_out_of_order_timeout(uint8_t pdcp_sn_len, srslte::byte_buffer_pool* 
   // Make sure timout delivered PDU to GW
   TESTASSERT(gw_rx->rx_count == 1);
   gw_rx->get_last_pdu(sdu_act);
-  TESTASSERT(sdu_exp->N_bytes == sdu_act->N_bytes);
-  for (uint32_t j = 0; j < sdu_act->N_bytes; ++j) {
-    TESTASSERT(sdu_exp->msg[j] == sdu_act->msg[j]);
-  }
+  TESTASSERT(compare_two_packets(sdu_exp, sdu_act) == 0);
   return 0;
 }
 
@@ -271,10 +258,7 @@ int test_rx_out_of_order_wraparound(uint8_t pdcp_sn_len, srslte::byte_buffer_poo
   pdcp_rx->write_pdu(std::move(rx_pdu7));
   gw_rx->get_last_pdu(sdu_act);
 
-  TESTASSERT(sdu_exp->N_bytes == sdu_act->N_bytes);
-  for (uint32_t j = 0; j < sdu_act->N_bytes; ++j) {
-    TESTASSERT(sdu_exp->msg[j] == sdu_act->msg[j]);
-  }
+  TESTASSERT(compare_two_packets(sdu_exp, sdu_act) == 0);
   return 0;
 }
 
@@ -303,8 +287,11 @@ int test_rx_out_of_order(uint64_t n_packets, uint8_t pdcp_sn_len, srslte::byte_b
   srslte::pdcp_entity_nr* pdcp_rx = &pdcp_hlp_rx.pdcp;
   gw_dummy*               gw_rx   = &pdcp_hlp_rx.gw;
 
+  // Make sure that n_pakets is large enough to reorder
+  TESTASSERT(n_packets >= 2);
+
   // Generate test message and encript/decript SDU. Check match with original SDU
-  for (uint64_t i = 0; i < n_packets - 1; ++i) {
+  for (uint64_t i = 0; i < n_packets - 2; ++i) {
     srslte::unique_byte_buffer_t sdu = allocate_unique_buffer(*pool);
     sdu->append_bytes(sdu1, sizeof(sdu1));
 
@@ -340,6 +327,7 @@ int test_rx_out_of_order(uint64_t n_packets, uint8_t pdcp_sn_len, srslte::byte_b
   srslte::unique_byte_buffer_t sdu_act = allocate_unique_buffer(*pool);
   gw_rx->get_last_pdu(sdu_act);
 
+  TESTASSERT(compare_two_packets(sdu_act, tx_sdu_out2) == 0);
   return 0;
 }
 /*
@@ -420,19 +408,19 @@ int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
    * RX Test 1: PDCP Entity with SN LEN = 12
    * Test In-sequence reception of 4097 packets
    */
-  TESTASSERT(test_rx_in_sequence(4097, srslte::PDCP_SN_LEN_12, pool, log) == 0);
+  // TESTASSERT(test_rx_in_sequence(4097, srslte::PDCP_SN_LEN_12, pool, log) == 0);
 
   /*
    * RX Test 2: PDCP Entity with SN LEN = 12
    * Test In-sequence reception of 4294967297 packets. This tests SN wrap-around
    */
-  // TESTASSERT(test_rx_in_sequence(4294967297, srslte::PDCP_SN_LEN_12, pool, &log) == 0);
+  // // TESTASSERT(test_rx_in_sequence(4294967297, srslte::PDCP_SN_LEN_12, pool, &log) == 0);
 
   /*
    * RX Test 3: PDCP Entity with SN LEN = 18
    * Test In-sequence reception of 262145 packets.
    */
-  TESTASSERT(test_rx_in_sequence(262145, srslte::PDCP_SN_LEN_18, pool, log) == 0);
+  // TESTASSERT(test_rx_in_sequence(262145, srslte::PDCP_SN_LEN_18, pool, log) == 0);
 
   /*
    * RX Test 4: PDCP Entity with SN LEN = 12
@@ -444,8 +432,13 @@ int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
    * RX Test 5: PDCP Entity with SN LEN = 12
    * Test timeout of t-Reordering when one packet is lost.
    */
-  TESTASSERT(test_rx_out_of_order_timeout(srslte::PDCP_SN_LEN_12, pool, log) == 0);
+  //TESTASSERT(test_rx_out_of_order_timeout(srslte::PDCP_SN_LEN_12, pool, log) == 0);
 
+  /*
+   * RX Test 5: PDCP Entity with SN LEN = 12
+   * Test timeout of t-Reordering when one packet is lost.
+   */
+  TESTASSERT(test_rx_out_of_order(2, srslte::PDCP_SN_LEN_12, pool, log) == 0);
   return 0;
 }
 // Setup all tests
@@ -456,7 +449,7 @@ int run_all_tests(srslte::byte_buffer_pool* pool)
   log.set_level(srslte::LOG_LEVEL_DEBUG);
   log.set_hex_limit(128);
 
-  TESTASSERT(test_tx_all(pool, &log) == 0);
+  //TESTASSERT(test_tx_all(pool, &log) == 0);
   TESTASSERT(test_rx_all(pool, &log) == 0);
   // TESTASSERT(test_rx_out_of_order_wraparound(srslte::PDCP_SN_LEN_12, pool, &log) == 0);
   return 0;
