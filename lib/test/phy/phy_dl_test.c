@@ -578,7 +578,7 @@ int main(int argc, char** argv)
     ue_dl_cfg.chest_cfg.filter_type          = SRSLTE_CHEST_FILTER_GAUSS;
     ue_dl_cfg.chest_cfg.noise_alg            = SRSLTE_NOISE_ALG_REFS;
     ue_dl_cfg.chest_cfg.rsrp_neighbour       = false;
-    ue_dl_cfg.chest_cfg.interpolate_subframe = false;
+    ue_dl_cfg.chest_cfg.estimator_alg        = SRSLTE_ESTIMATOR_ALG_AVERAGE;
     ue_dl_cfg.chest_cfg.cfo_estimate_enable  = false;
     ue_dl_cfg.chest_cfg.cfo_estimate_sf_mask = false;
     ue_dl_cfg.chest_cfg.sync_error_enable    = false;

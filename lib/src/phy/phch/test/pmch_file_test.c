@@ -195,7 +195,7 @@ int main(int argc, char** argv)
   // Special configuration for MBSFN channel estimation
   ue_dl_cfg.chest_cfg.filter_type          = SRSLTE_CHEST_FILTER_TRIANGLE;
   ue_dl_cfg.chest_cfg.filter_coef[0]       = 0.1;
-  ue_dl_cfg.chest_cfg.interpolate_subframe = true;
+  ue_dl_cfg.chest_cfg.estimator_alg        = SRSLTE_ESTIMATOR_ALG_INTERPOLATE;
   ue_dl_cfg.chest_cfg.noise_alg            = SRSLTE_NOISE_ALG_PSS;
 
   if ((ret = srslte_ue_dl_decode_fft_estimate(&ue_dl, &dl_sf, &ue_dl_cfg)) < 0) {

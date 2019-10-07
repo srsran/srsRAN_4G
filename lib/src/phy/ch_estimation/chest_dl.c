@@ -446,7 +446,7 @@ static void interpolate_pilots(srslte_chest_dl_t*     q,
   /* Interpolate in the frequency domain */
 
   uint32_t freq_nsymbols = nsymbols;
-  if (!cfg->interpolate_subframe) {
+  if (cfg->estimator_alg == SRSLTE_ESTIMATOR_ALG_AVERAGE) {
     freq_nsymbols = 1;
   }
 
@@ -470,7 +470,7 @@ static void interpolate_pilots(srslte_chest_dl_t*     q,
                                     (fidx_offset) ? 1 : 2);
       }
     } else {
-      if (!cfg->interpolate_subframe && nsymbols > 1) {
+      if (cfg->estimator_alg == SRSLTE_ESTIMATOR_ALG_AVERAGE && nsymbols > 1) {
         fidx_offset = q->cell.id % 3;
         srslte_interp_linear_offset(
             &q->srslte_interp_lin_3, pilot_estimates, ce, fidx_offset, SRSLTE_NRE / 4 - fidx_offset);
@@ -487,7 +487,7 @@ static void interpolate_pilots(srslte_chest_dl_t*     q,
   }
 
   /* Now interpolate in the time domain between symbols */
-  if (sf->sf_type == SRSLTE_SF_NORM && (!cfg->interpolate_subframe || nsymbols < 3)) {
+  if (sf->sf_type == SRSLTE_SF_NORM && (cfg->estimator_alg == SRSLTE_ESTIMATOR_ALG_AVERAGE || nsymbols < 3)) {
     // If we average per subframe, just copy the estimates in the time domain
     for (uint32_t l = 1; l < 2 * SRSLTE_CP_NSYMB(q->cell.cp); l++) {
       memcpy(&ce[l * SRSLTE_NRE * q->cell.nof_prb], ce, sizeof(cf_t) * SRSLTE_NRE * q->cell.nof_prb);
@@ -547,7 +547,7 @@ static void average_pilots(srslte_chest_dl_t*     q,
   uint32_t nref = (sf->sf_type == SRSLTE_SF_MBSFN) ? 6 * q->cell.nof_prb : 2 * q->cell.nof_prb;
 
   // Average in the time domain if enabled
-  if (!cfg->interpolate_subframe && nsymbols > 1) {
+  if (cfg->estimator_alg == SRSLTE_ESTIMATOR_ALG_AVERAGE && nsymbols > 1) {
     cf_t* temp = output; // Use output as temporal buffer
 
     if (srslte_refsignal_cs_fidx(q->cell, 0, port_id, 0) < 3) {
@@ -645,24 +645,35 @@ static void chest_interpolate_noise_est(srslte_chest_dl_t*     q,
     q->noise_estimate[rxant_id][port_id] = estimate_noise_pilots(q, sf, port_id);
   }
 
-  if (q->wiener_dl && ch_mode == SRSLTE_SF_NORM) {
+  if (q->wiener_dl && ch_mode == SRSLTE_SF_NORM && cfg->estimator_alg == SRSLTE_ESTIMATOR_ALG_WIENER) {
+    bool     ready   = q->wiener_dl->ready;
     uint32_t nre   = q->cell.nof_prb * SRSLTE_NRE;
     uint32_t nref  = q->cell.nof_prb * 2;
     uint32_t shift = srslte_refsignal_cs_fidx(q->cell, 0, port_id, 0);
-    for (uint32_t m = 0, l = 0; m < 2 * SRSLTE_CP_NORM_NSYMB; m++) {
-      uint32_t k = srslte_refsignal_cs_nsymbol(l, q->cell.cp, 0);
-      srslte_wiener_dl_run(q->wiener_dl,
-                           port_id,
-                           rxant_id,
-                           m,
-                           shift,
-                           &input[nref * l],
-                           &ce[nre * m],
-                           q->noise_estimate[rxant_id][port_id]);
+    uint32_t nsymb   = srslte_refsignal_cs_nof_symbols(&q->csr_refs, sf, port_id);
+    float    snr_lin = +INFINITY;
 
-      if (l == k) {
-        l++;
+    if (isnormal(q->noise_estimate[rxant_id][port_id]) && isnormal(q->rsrp[rxant_id][port_id])) {
+      snr_lin = q->rsrp[rxant_id][port_id] / q->noise_estimate[rxant_id][port_id] / 2;
+    }
+
+    for (uint32_t m = 0, l = 0; m < 2 * SRSLTE_CP_NORM_NSYMB + 4; m++) {
+      uint32_t ce_idx = 0;
+
+      if (m >= 4) {
+        ce_idx = (m - 4) * nre;
       }
+
+      uint32_t k = srslte_refsignal_cs_nsymbol(l, q->cell.cp, port_id);
+      srslte_wiener_dl_run(
+          q->wiener_dl, port_id, rxant_id, m, shift, &q->pilot_estimates[nref * l], &ce[ce_idx], snr_lin);
+
+      if (m == k) {
+        l = (l + 1) % nsymb;
+      }
+    }
+    if (ready) {
+      return;
     }
   }
 
@@ -686,7 +697,7 @@ static void chest_interpolate_noise_est(srslte_chest_dl_t*     q,
         break;
     }
 
-    if (!cfg->interpolate_subframe && ch_mode == SRSLTE_SF_MBSFN) {
+    if (cfg->estimator_alg != SRSLTE_ESTIMATOR_ALG_INTERPOLATE && ch_mode == SRSLTE_SF_MBSFN) {
       ERROR("Warning: Subframe interpolation must be enabled in MBSFN subframes\n");
     }
 
@@ -969,4 +980,21 @@ int srslte_chest_dl_estimate_cfg(srslte_chest_dl_t*     q,
   fill_res(q, res);
 
   return SRSLTE_SUCCESS;
+}
+
+srslte_chest_dl_estimator_alg_t srslte_chest_dl_str2estimator_alg(const char* str)
+{
+  srslte_chest_dl_estimator_alg_t ret = SRSLTE_ESTIMATOR_ALG_AVERAGE;
+
+  if (str) {
+    if (strcmp(str, "interpolate") == 0) {
+      ret = SRSLTE_ESTIMATOR_ALG_INTERPOLATE;
+    } else if (strcmp(str, "average") == 0) {
+      ret = SRSLTE_ESTIMATOR_ALG_AVERAGE;
+    } else if (strcmp(str, "wiener") == 0) {
+      ret = SRSLTE_ESTIMATOR_ALG_WIENER;
+    }
+  }
+
+  return ret;
 }

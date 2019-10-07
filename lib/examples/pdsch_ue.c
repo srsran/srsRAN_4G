@@ -91,7 +91,7 @@ typedef struct {
   uint32_t file_nof_ports;
   uint32_t file_cell_id;
   bool     enable_cfo_ref;
-  bool     average_subframe;
+  char*    estimator_alg;
   char*    rf_dev;
   char*    rf_args;
   uint32_t rf_nof_rx_ant;
@@ -133,7 +133,7 @@ void args_default(prog_args_t* args)
   args->rf_freq                            = -1.0;
   args->rf_nof_rx_ant                      = 1;
   args->enable_cfo_ref                     = false;
-  args->average_subframe                   = false;
+  args->estimator_alg                      = "interpolate";
   args->enable_256qam                      = false;
 #ifdef ENABLE_AGC_DEFAULT
   args->rf_gain = -1.0;
@@ -176,7 +176,7 @@ void usage(prog_args_t* args, char* prog)
   printf("\t-l Force N_id_2 [Default best]\n");
   printf("\t-C Disable CFO correction [Default %s]\n", args->disable_cfo ? "Disabled" : "Enabled");
   printf("\t-F Enable RS-based CFO correction [Default %s]\n", !args->enable_cfo_ref ? "Disabled" : "Enabled");
-  printf("\t-R Average channel estimates on 1 ms [Default %s]\n", !args->average_subframe ? "Disabled" : "Enabled");
+  printf("\t-R Channel estimates algorithm (average, interpolate, wiener) [Default %s]\n", args->estimator_alg);
   printf("\t-t Add time offset [Default %d]\n", args->time_offset);
   printf("\t-T Set TDD special subframe configuration [Default %d]\n", args->tdd_special_sf);
   printf("\t-G Set TDD uplink/downlink configuration [Default %d]\n", args->sf_config);
@@ -242,7 +242,7 @@ void parse_args(prog_args_t* args, int argc, char** argv)
         args->enable_cfo_ref = true;
         break;
       case 'R':
-        args->average_subframe = true;
+        args->estimator_alg = argv[optind];
         break;
       case 't':
         args->time_offset = (uint32_t)strtol(argv[optind], NULL, 10);
@@ -606,13 +606,13 @@ int main(int argc, char** argv)
   srslte_chest_dl_cfg_t chest_pdsch_cfg = {};
   chest_pdsch_cfg.cfo_estimate_enable   = prog_args.enable_cfo_ref;
   chest_pdsch_cfg.cfo_estimate_sf_mask  = 1023;
-  chest_pdsch_cfg.interpolate_subframe  = !prog_args.average_subframe;
+  chest_pdsch_cfg.estimator_alg        = srslte_chest_dl_str2estimator_alg(prog_args.estimator_alg);
 
   // Special configuration for MBSFN channel estimation
   srslte_chest_dl_cfg_t chest_mbsfn_cfg = {};
   chest_mbsfn_cfg.filter_type           = SRSLTE_CHEST_FILTER_TRIANGLE;
   chest_mbsfn_cfg.filter_coef[0]        = 0.1;
-  chest_mbsfn_cfg.interpolate_subframe  = true;
+  chest_mbsfn_cfg.estimator_alg        = SRSLTE_ESTIMATOR_ALG_INTERPOLATE;
   chest_mbsfn_cfg.noise_alg             = SRSLTE_NOISE_ALG_PSS;
 
   // Allocate softbuffer buffers

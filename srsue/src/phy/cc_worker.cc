@@ -87,7 +87,7 @@ cc_worker::cc_worker(uint32_t cc_idx_, uint32_t max_prb, srsue::phy_common* phy_
   // Define MBSFN subframes channel estimation and save default one
   chest_mbsfn_cfg.filter_type          = SRSLTE_CHEST_FILTER_TRIANGLE;
   chest_mbsfn_cfg.filter_coef[0]       = 0.1;
-  chest_mbsfn_cfg.interpolate_subframe = true;
+  chest_mbsfn_cfg.estimator_alg        = SRSLTE_ESTIMATOR_ALG_INTERPOLATE;
   chest_mbsfn_cfg.noise_alg            = SRSLTE_NOISE_ALG_PSS;
 
   chest_default_cfg = ue_dl_cfg.chest_cfg;
@@ -144,8 +144,8 @@ bool cc_worker::set_cell(srslte_cell_t cell_)
       return false;
     }
 
-    if (cell.frame_type == SRSLTE_TDD && !ue_dl_cfg.chest_cfg.interpolate_subframe) {
-      chest_default_cfg.interpolate_subframe = true;
+    if (cell.frame_type == SRSLTE_TDD && ue_dl_cfg.chest_cfg.estimator_alg != SRSLTE_ESTIMATOR_ALG_INTERPOLATE) {
+      chest_default_cfg.estimator_alg = SRSLTE_ESTIMATOR_ALG_INTERPOLATE;
       log_h->console("Enabling subframe interpolation for TDD cells (recommended setting)\n");
     }
 

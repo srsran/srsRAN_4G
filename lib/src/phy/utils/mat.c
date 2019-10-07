@@ -443,13 +443,21 @@ static inline void srslte_vec_sub_ccc_simd_inline(const cf_t* x, const cf_t* y, 
 
 static inline cf_t reciprocal(cf_t x)
 {
-  cf_t y;
+  cf_t y = 0.0f;
 
   float mod  = __real__ x * __real__ x + __imag__ x * __imag__ x;
-  __real__ y = (__real__ x) / mod;
-  __imag__ y = -(__imag__ x) / mod;
+
+  if (isnormal(mod)) {
+    __real__ y = (__real__ x) / mod;
+    __imag__ y = -(__imag__ x) / mod;
+  }
 
   return y;
+}
+
+static inline float _cabs2(cf_t x)
+{
+  return __real__ x * __real__ x + __imag__ x * __imag__ x;
 }
 
 void srslte_matrix_NxN_inv_run(srslte_matrix_NxN_inv_t* q, cf_t* in, cf_t* out)
@@ -476,8 +484,29 @@ void srslte_matrix_NxN_inv_run(srslte_matrix_NxN_inv_t* q, cf_t* in, cf_t* out)
 
     // 1) Forward elimination
     for (int i = 0; i < N - 1; i++) {
-      tmp_src_ptr = &q->matrix[N * 2 * (N - 1 - i)];
-      cf_t b      = tmp_src_ptr[N - 1 - i];
+      uint32_t row_i = N - i - 1;
+      uint32_t col_i = N - i - 1;
+      float    max_v = 0.0f;
+      uint32_t max_i = 0;
+
+      // Find Row with highest value in the column to reduce
+      for (int j = 0; j < N - i; j++) {
+        float v = _cabs2(q->matrix[(j + 1) * 2 * N - 1 - i]);
+        if (v > max_v) {
+          max_i = j;
+          max_v = v;
+        }
+      }
+
+      // Swap rows
+      if (max_i != row_i) {
+        memcpy(q->row_buffer, &q->matrix[row_i * N * 2], sizeof(cf_t) * N * 2);
+        memcpy(&q->matrix[row_i * N * 2], &q->matrix[max_i * N * 2], sizeof(cf_t) * N * 2);
+        memcpy(&q->matrix[max_i * N * 2], q->row_buffer, sizeof(cf_t) * N * 2);
+      }
+
+      tmp_src_ptr = &q->matrix[N * 2 * row_i]; // Select row
+      cf_t b      = tmp_src_ptr[col_i];
       srslte_vec_sc_prod_ccc_simd_inline(tmp_src_ptr, reciprocal(b), tmp_src_ptr, 2 * N);
 
       for (int j = 0; j < N - i - 1; j++) {

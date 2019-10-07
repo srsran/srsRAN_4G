@@ -67,11 +67,19 @@ typedef struct SRSLTE_API {
   float    sync_error;
 } srslte_chest_dl_res_t;
 
+// Noise estimation algorithm
 typedef enum SRSLTE_API {
   SRSLTE_NOISE_ALG_REFS = 0,
   SRSLTE_NOISE_ALG_PSS,
   SRSLTE_NOISE_ALG_EMPTY,
 } srslte_chest_dl_noise_alg_t;
+
+// Channel estimator algorithm
+typedef enum SRSLTE_API {
+  SRSLTE_ESTIMATOR_ALG_AVERAGE = 0,
+  SRSLTE_ESTIMATOR_ALG_INTERPOLATE,
+  SRSLTE_ESTIMATOR_ALG_WIENER,
+} srslte_chest_dl_estimator_alg_t;
 
 typedef struct SRSLTE_API {
   srslte_cell_t cell;
@@ -114,12 +122,13 @@ typedef struct SRSLTE_API {
 
 typedef struct SRSLTE_API {
 
-  srslte_chest_dl_noise_alg_t noise_alg;
+  srslte_chest_dl_estimator_alg_t estimator_alg;
+  srslte_chest_dl_noise_alg_t     noise_alg;
+
   srslte_chest_filter_t       filter_type;
   float                       filter_coef[2];
 
   uint16_t mbsfn_area_id;
-  bool     interpolate_subframe;
   bool     rsrp_neighbour;
   bool     cfo_estimate_enable;
   uint32_t cfo_estimate_sf_mask;
@@ -157,5 +166,7 @@ SRSLTE_API int srslte_chest_dl_estimate_cfg(srslte_chest_dl_t*     q,
                                             srslte_chest_dl_cfg_t* cfg,
                                             cf_t*                  input[SRSLTE_MAX_PORTS],
                                             srslte_chest_dl_res_t* res);
+
+SRSLTE_API srslte_chest_dl_estimator_alg_t srslte_chest_dl_str2estimator_alg(const char* str);
 
 #endif // SRSLTE_CHEST_DL_H
