@@ -74,6 +74,8 @@ typedef struct {
   // Wiener matrices
   cf_t wm1[SRSLTE_WIENER_DL_MIN_RE][SRSLTE_WIENER_DL_MIN_REF];
   cf_t wm2[SRSLTE_WIENER_DL_MIN_RE][SRSLTE_WIENER_DL_MIN_REF];
+  bool wm_computed;
+  bool ready;
 
   // Calculation support
   cf_t hlsv[SRSLTE_WIENER_DL_MIN_RE];

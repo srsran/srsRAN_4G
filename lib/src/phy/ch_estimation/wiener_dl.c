@@ -36,53 +36,53 @@
 #define SRSLTE_WIENER_LOCAL
 
 // Constants
-const float hlsv_sum_norm[SRSLTE_WIENER_DL_MIN_RE] = {0.0625,
-                                                      0.0638297872326845,
-                                                      0.0652173913015123,
-                                                      0.0666666666622222,
-                                                      0.0681818181756198,
-                                                      0.0697674418523526,
-                                                      0.0714285714183674,
-                                                      0.0731707316948245,
-                                                      0.074999999985,
-                                                      0.0769230769053254,
-                                                      0.078947368400277,
-                                                      0.0810810810569759,
-                                                      0.0833333333055555,
-                                                      0.085714285682449,
-                                                      0.0882352940813149,
-                                                      0.0909090908677686,
-                                                      0.093749999953125,
-                                                      0.0967741934953174,
-                                                      0.09999999994,
-                                                      0.103448275794293,
-                                                      0.107142857066327,
-                                                      0.111111111024691,
-                                                      0.115384615286982,
-                                                      0.1199999998896,
-                                                      0.124999999875,
-                                                      0.130434782466919,
-                                                      0.136363636202479,
-                                                      0.142857142673469,
-                                                      0.14999999979,
-                                                      0.157894736601108,
-                                                      0.166666666388889,
-                                                      0.176470587913495,
-                                                      0.187499999625,
-                                                      0.19999999956,
-                                                      0.214285713765306,
-                                                      0.230769230147929,
-                                                      0.24999999925,
-                                                      0.272727271809917,
-                                                      0.29999999886,
-                                                      0.333333331888889,
-                                                      0.374999998125,
-                                                      0.428571426061225,
-                                                      0.4999999965,
-                                                      0.59999999484,
-                                                      0.74999999175,
-                                                      0.999999985,
-                                                      1.4999999655,
+const float hlsv_sum_norm[SRSLTE_WIENER_DL_MIN_RE] = {0.0625f,
+                                                      0.0638297872326845f,
+                                                      0.0652173913015123f,
+                                                      0.0666666666622222f,
+                                                      0.0681818181756198f,
+                                                      0.0697674418523526f,
+                                                      0.0714285714183674f,
+                                                      0.0731707316948245f,
+                                                      0.074999999985f,
+                                                      0.0769230769053254f,
+                                                      0.078947368400277f,
+                                                      0.0810810810569759f,
+                                                      0.0833333333055555f,
+                                                      0.085714285682449f,
+                                                      0.0882352940813149f,
+                                                      0.0909090908677686f,
+                                                      0.093749999953125f,
+                                                      0.0967741934953174f,
+                                                      0.09999999994f,
+                                                      0.103448275794293f,
+                                                      0.107142857066327f,
+                                                      0.111111111024691f,
+                                                      0.115384615286982f,
+                                                      0.1199999998896f,
+                                                      0.124999999875f,
+                                                      0.130434782466919f,
+                                                      0.136363636202479f,
+                                                      0.142857142673469f,
+                                                      0.14999999979f,
+                                                      0.157894736601108f,
+                                                      0.166666666388889f,
+                                                      0.176470587913495f,
+                                                      0.187499999625f,
+                                                      0.19999999956f,
+                                                      0.214285713765306f,
+                                                      0.230769230147929f,
+                                                      0.24999999925f,
+                                                      0.272727271809917f,
+                                                      0.29999999886f,
+                                                      0.333333331888889f,
+                                                      0.374999998125f,
+                                                      0.428571426061225f,
+                                                      0.4999999965f,
+                                                      0.59999999484f,
+                                                      0.74999999175f,
+                                                      0.999999985f,
+                                                      1.4999999655f,
                                                       2.99999985900001};
 
 // Local state function prototypes
@@ -156,7 +156,7 @@ SRSLTE_WIENER_LOCAL srslte_wiener_dl_state_t* srslte_wiener_dl_state_malloc(srsl
     }
 
     for (uint32_t i = 0; i < SRSLTE_WIENER_DL_CXFIFO_SIZE && !ret; i++) {
-      state->cxfifo[i] = srslte_vec_malloc(NSAMPLES2NBYTES(SRSLTE_WIENER_DL_MIN_RE));
+      state->cxfifo[i] = srslte_vec_malloc(NSAMPLES2NBYTES(SRSLTE_WIENER_DL_TIMEFIFO_SIZE));
       if (!state->cxfifo[i]) {
         perror("malloc");
         ret = SRSLTE_ERROR;
@@ -201,7 +201,7 @@ SRSLTE_WIENER_LOCAL void srslte_wiener_dl_state_reset(srslte_wiener_dl_t* q, srs
     bzero(state->timefifo, NSAMPLES2NBYTES(SRSLTE_WIENER_DL_TIMEFIFO_SIZE));
 
     for (uint32_t i = 0; i < SRSLTE_WIENER_DL_CXFIFO_SIZE; i++) {
-      bzero(state->cxfifo[i], NSAMPLES2NBYTES(SRSLTE_WIENER_DL_TFIFO_SIZE));
+      bzero(state->cxfifo[i], NSAMPLES2NBYTES(SRSLTE_WIENER_DL_TIMEFIFO_SIZE));
     }
 
     // Initialise counters and variables
@@ -457,8 +457,8 @@ SRSLTE_WIENER_LOCAL uint32_t vec_find_first_smaller_than_cf(cf_t* x, float y, ui
   uint32_t ret = n;
 
   for (uint32_t i = pos; i < n && ret == n; i++) {
-    if (cabsf(x[i]) > y) {
-      ret = i;
+    if (cabsf(x[i]) <= y) {
+      ret = i - pos + 1;
     }
   }
 
@@ -523,12 +523,11 @@ static void estimate_wiener(srslte_wiener_dl_t* q,
 
   // Estimate center Resource elements
   if (q->nof_re > 2 * SRSLTE_WIENER_DL_MIN_RE) {
-    for (uint32_t prb = SRSLTE_WIENER_DL_MIN_PRB / 2; prb < q->nof_prb - SRSLTE_WIENER_DL_MIN_REF / 2;
-         prb += SRSLTE_WIENER_DL_MIN_PRB / 2) {
-      uint32_t ref_idx = prb * 2 - SRSLTE_WIENER_DL_MIN_REF / 2;
-      uint32_t re_idx  = prb * SRSLTE_NRE;
-      for (uint32_t i = SRSLTE_WIENER_DL_MIN_RE / 4; i < (3 * SRSLTE_WIENER_DL_MIN_RE) / 4; i++) {
-        h[re_idx + i] = _srslte_vec_dot_prod_ccc_simd(&ref[ref_idx], wm[i], SRSLTE_WIENER_DL_MIN_REF);
+    for (uint32_t prb = 2; prb < q->nof_prb - 2; prb += 2) {
+      p_offset = (prb - 1) * 2;
+      r_offset = prb * SRSLTE_NRE;
+      for (uint32_t i = 0; i < SRSLTE_NRE * 2; i++) {
+        h[r_offset + i] = _srslte_vec_dot_prod_ccc_simd(&ref[p_offset], wm[i + SRSLTE_NRE], SRSLTE_WIENER_DL_MIN_REF);
       }
     }
   }
@@ -555,7 +554,7 @@ srslte_wiener_dl_run_symbol_1_8(srslte_wiener_dl_t* q, srslte_wiener_dl_state_t*
   srslte_vec_sc_prod_cfc(q->tmp, 1.0f / SRSLTE_WIENER_DL_CXFIFO_SIZE, q->tmp, SRSLTE_WIENER_DL_TIMEFIFO_SIZE);
 
   // Find index of half amplitude
-  uint32_t halfcx = vec_find_first_smaller_than_cf(q->tmp, cabsf(q->tmp[1]) * 0.5f, SRSLTE_WIENER_DL_TFIFO_SIZE, 2);
+  uint32_t halfcx = vec_find_first_smaller_than_cf(q->tmp, cabsf(q->tmp[1]) * 0.5f, SRSLTE_WIENER_DL_TIMEFIFO_SIZE, 2);
 
   // Update internal states
   state->sumlen       = SRSLTE_MAX(1, floorf(halfcx / 8.0f * SRSLTE_MIN(2.0f, 1.0f + 1.0f / snr_lin)));
@@ -621,7 +620,7 @@ SRSLTE_WIENER_LOCAL void srslte_wiener_dl_run_symbol_5_12(srslte_wiener_dl_t*   
     } else if (nsbb >= (q->nof_prb / 2) - 1) {
       pstart = q->nof_ref - SRSLTE_WIENER_DL_MIN_REF;
     } else {
-      pstart = (SRSLTE_WIENER_DL_MIN_REF / 2) * nsbb - 1;
+      pstart = (SRSLTE_WIENER_DL_MIN_REF / 2) * nsbb - 2;
     }
 
     bzero(q->hlsv, NSAMPLES2NBYTES(SRSLTE_WIENER_DL_MIN_RE));
@@ -693,7 +692,12 @@ SRSLTE_WIENER_LOCAL void srslte_wiener_dl_run_symbol_5_12(srslte_wiener_dl_t*   
       }
 
       // Add noise contribution to the square wiener
-      float N = (__real__ q->acV[0] / SRSLTE_MIN(15, snr_lin * state->sumlen));
+      float N = 0.0f;
+
+      if (isnormal(__real__ q->acV[0]) && isnormal(snr_lin) && state->sumlen > 0) {
+        N = (__real__ q->acV[0] / SRSLTE_MIN(15, snr_lin * state->sumlen));
+      }
+
       for (uint32_t i = 0; i < SRSLTE_WIENER_DL_MIN_REF; i++) {
         q->RH.m[i][i] += N;
       }
@@ -724,20 +728,14 @@ SRSLTE_WIENER_LOCAL void srslte_wiener_dl_run_symbol_5_12(srslte_wiener_dl_t*   
       // Compute Wiener matrices
       for (uint32_t dim1 = 0; dim1 < SRSLTE_WIENER_DL_MIN_RE; dim1++) {
         for (uint32_t dim2 = 0; dim2 < SRSLTE_WIENER_DL_MIN_REF; dim2++) {
-
-#if 0
           q->wm2[dim1][dim2] = 0;
           for (int i = 0; i < SRSLTE_WIENER_DL_MIN_REF; i++) {
-            q->wm2[dim1][dim2] += q->hH2[dim1][i] * q->invRH.m[dim2][i];
+            q->wm2[dim1][dim2] += q->hH2[dim1][i] * q->invRH.m[i][dim2];
           }
           q->wm1[dim1][dim2] = 0;
           for (int i = 0; i < SRSLTE_WIENER_DL_MIN_REF; i++) {
-            q->wm1[dim1][dim2] += q->hH1[dim1][i] * q->invRH.m[dim2][i];
+            q->wm1[dim1][dim2] += q->hH1[dim1][i] * q->invRH.m[i][dim2];
           }
-#else
-          q->wm1[dim1][dim2] = srslte_vec_dot_prod_ccc(q->hH1[dim1], q->invRH.m[dim2], SRSLTE_WIENER_DL_MIN_REF);
-          q->wm2[dim1][dim2] = srslte_vec_dot_prod_ccc(q->hH2[dim1], q->invRH.m[dim2], SRSLTE_WIENER_DL_MIN_REF);
-#endif
         }
       }
       q->wm_computed = true;
