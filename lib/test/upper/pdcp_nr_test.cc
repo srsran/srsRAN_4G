@@ -36,6 +36,7 @@ pdcp_security_cfg sec_cfg = {
     srslte::CIPHERING_ALGORITHM_ID_128_EEA2,
 };
 
+
 // Test SDUs for tx
 uint8_t sdu1[] = {0x18, 0xE2};
 uint8_t sdu2[] = {0xde, 0xad};
@@ -50,6 +51,14 @@ uint8_t pdu6[] = {0x80, 0x00, 0x00, 0xc2, 0x47, 0xa8, 0xdd, 0xc0, 0x73};
 
 // Test PDUs for rx (generated from SDU2)
 uint8_t pdu7[] = {0x80, 0x01, 0x5e, 0x3d, 0x64, 0xaf, 0xac, 0x7c};
+
+// Struct to help initialize pdcp_helper.
+struct pdcp_nr_initial_state_cfg {
+  uint32_t tx_next  = 0;
+  uint32_t rx_next  = 0;
+  uint32_t rx_deliv = 0;
+  uint32_t rx_reord = 0;
+};
 
 /*
  * Genric function to test transmission of in-sequence packets
@@ -330,6 +339,52 @@ int test_rx_out_of_order(uint64_t n_packets, uint8_t pdcp_sn_len, srslte::byte_b
   TESTASSERT(compare_two_packets(sdu_act, sdu_exp) == 0);
   return 0;
 }
+
+int test_rx_with_initial_state(srslte::unique_byte_buffer_t              sdu_exp,
+                               std::vector<srslte::unique_byte_buffer_t> rx_pdus,
+                               uint8_t                                   pdcp_sn_len,
+                               srslte::byte_buffer_pool*                 pool,
+                               srslte::log*                              log)
+{
+
+  srslte::pdcp_config_t  cfg_rx = {1,
+                                  srslte::PDCP_RB_IS_DRB,
+                                  srslte::SECURITY_DIRECTION_DOWNLINK,
+                                  srslte::SECURITY_DIRECTION_UPLINK,
+                                  pdcp_sn_len,
+                                  srslte::pdcp_t_reordering_t::ms500};
+
+  pdcp_nr_test_helper     pdcp_hlp_rx(cfg_rx, sec_cfg, log);
+  srslte::pdcp_entity_nr* pdcp_rx = &pdcp_hlp_rx.pdcp;
+  gw_dummy*               gw_rx   = &pdcp_hlp_rx.gw;
+
+  // Set PDCP initial state
+  struct pdcp_nr_initial_state_cfg initial_state;
+  initial_state.tx_next  = 0;
+  initial_state.rx_next  = 4294967295;
+  initial_state.rx_deliv = 4294967295;
+  initial_state.rx_reord = 0;
+
+  pdcp_rx->set_tx_next(initial_state.tx_next);
+  pdcp_rx->set_rx_next(initial_state.rx_next);
+  pdcp_rx->set_rx_deliv(initial_state.rx_deliv);
+  pdcp_rx->set_rx_reord(initial_state.rx_reord);
+
+  // Write PDUs into Rx PDCP
+  for(srslte::unique_byte_buffer_t &rx_pdu : rx_pdus){
+    pdcp_rx->write_pdu(std::move(rx_pdu));
+  }
+
+  // Test actual reception
+  TESTASSERT(gw_rx->rx_count == rx_pdus.size());
+  srslte::unique_byte_buffer_t sdu_act = allocate_unique_buffer(*pool);
+  gw_rx->get_last_pdu(sdu_act);
+
+  log->info_hex(sdu_act->msg, sdu_act->N_bytes, "SDU act");
+  TESTASSERT(compare_two_packets(sdu_act, sdu_exp) == 0);
+  return 0;
+}
+
 /*
  * TX Test: PDCP Entity with SN LEN = 12 and 18.
  * PDCP entity configured with EIA2 and EEA2
