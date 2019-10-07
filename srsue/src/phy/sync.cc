@@ -93,8 +93,15 @@ void sync::init(srslte::radio_interface_phy* _radio,
   reset();
   running = true;
 
-  // Enable AGC
+  // Enable AGC for primary cell receiver
   set_agc_enable(worker_com->args->agc_enable);
+
+  // Enable AGC for secondary asynchronous receiver
+  if (scell_sync) {
+    for (auto& q : *scell_sync) {
+      q->set_agc_enable(worker_com->args->agc_enable);
+    }
+  }
 
   // Start main thread
   if (sync_cpu_affinity < 0) {
