@@ -37,25 +37,19 @@ pdcp_security_cfg sec_cfg = {
 };
 
 // Test SDUs for tx
-uint8_t  sdu1[]   = {0x18, 0xE2};
-
-uint8_t  sdu2[]   = {0xde, 0xad};
+uint8_t sdu1[] = {0x18, 0xE2};
+uint8_t sdu2[] = {0xde, 0xad};
 
 // Test PDUs for rx (generated from SDU1)
-uint8_t  pdu1[]   = {0x80, 0x00, 0x8f, 0xe3, 0xe0, 0xdf, 0x82, 0x92};
-
-uint8_t  pdu2[]   = {0x88, 0x00, 0x8d, 0x2c, 0x47, 0x5e, 0xb1, 0x5b};
-
-uint8_t  pdu3[]   = {0x80, 0x00, 0x97, 0xbe, 0xa3, 0x32, 0xfa, 0x61};
-
-uint8_t  pdu4[]   = {0x80, 0x00, 0x00, 0x8f, 0xe3, 0xe0, 0xdf, 0x82, 0x92};
-
-uint8_t  pdu5[]   = {0x82, 0x00, 0x00, 0x15, 0x01, 0xf4, 0xb0, 0xfc, 0xc5};
-
-uint8_t  pdu6[]   = {0x80, 0x00, 0x00, 0xc2, 0x47, 0xa8, 0xdd, 0xc0, 0x73};
+uint8_t pdu1[] = {0x80, 0x00, 0x8f, 0xe3, 0xe0, 0xdf, 0x82, 0x92};
+uint8_t pdu2[] = {0x88, 0x00, 0x8d, 0x2c, 0x47, 0x5e, 0xb1, 0x5b};
+uint8_t pdu3[] = {0x80, 0x00, 0x97, 0xbe, 0xa3, 0x32, 0xfa, 0x61};
+uint8_t pdu4[] = {0x80, 0x00, 0x00, 0x8f, 0xe3, 0xe0, 0xdf, 0x82, 0x92};
+uint8_t pdu5[] = {0x82, 0x00, 0x00, 0x15, 0x01, 0xf4, 0xb0, 0xfc, 0xc5};
+uint8_t pdu6[] = {0x80, 0x00, 0x00, 0xc2, 0x47, 0xa8, 0xdd, 0xc0, 0x73};
 
 // Test PDUs for rx (generated from SDU2)
-uint8_t  pdu7[]   = {0x80, 0x01, 0x5e, 0x3d, 0x64, 0xaf, 0xac, 0x7c};
+uint8_t pdu7[] = {0x80, 0x01, 0x5e, 0x3d, 0x64, 0xaf, 0xac, 0x7c};
 
 /*
  * Genric function to test transmission of in-sequence packets
@@ -303,31 +297,37 @@ int test_rx_out_of_order(uint64_t n_packets, uint8_t pdcp_sn_len, srslte::byte_b
     rlc_tx->get_last_sdu(pdu);
     pdcp_rx->write_pdu(std::move(pdu));
   }
+ 
+  // Allocate buffers for later comparison.
+  srslte::unique_byte_buffer_t sdu_act = allocate_unique_buffer(*pool);
+  srslte::unique_byte_buffer_t sdu_exp = allocate_unique_buffer(*pool);
 
   // Write PDUs into tx entity to get expected PDUs
-  srslte::unique_byte_buffer_t tx_sdu_out2 = allocate_unique_buffer(*pool);
-  tx_sdu_out2->append_bytes(sdu2, sizeof(sdu2));
-  pdcp_tx->write_sdu(std::move(tx_sdu_out2), true);
-
-  srslte::unique_byte_buffer_t tx_pdu_out2 = allocate_unique_buffer(*pool);
-  rlc_tx->get_last_sdu(tx_pdu_out2);
-
   srslte::unique_byte_buffer_t tx_sdu_out1 = allocate_unique_buffer(*pool);
   tx_sdu_out1->append_bytes(sdu1, sizeof(sdu1));
   pdcp_tx->write_sdu(std::move(tx_sdu_out1), true);
 
   srslte::unique_byte_buffer_t tx_pdu_out1 = allocate_unique_buffer(*pool);
   rlc_tx->get_last_sdu(tx_pdu_out1);
+
+  srslte::unique_byte_buffer_t tx_sdu_out2 = allocate_unique_buffer(*pool);
+  tx_sdu_out2->append_bytes(sdu2, sizeof(sdu2));
+  *sdu_exp = *tx_sdu_out2; // save expected SDU
+  pdcp_tx->write_sdu(std::move(tx_sdu_out2), true);
+
+  srslte::unique_byte_buffer_t tx_pdu_out2 = allocate_unique_buffer(*pool);
+  rlc_tx->get_last_sdu(tx_pdu_out2);
     
   // Write PDUs out-of-order into rx entity to see if re-ordering is OK.
-  pdcp_rx->write_pdu(std::move(tx_pdu_out1));
   pdcp_rx->write_pdu(std::move(tx_pdu_out2));
+  pdcp_rx->write_pdu(std::move(tx_pdu_out1));
 
   // Test actual reception
-  srslte::unique_byte_buffer_t sdu_act = allocate_unique_buffer(*pool);
+  TESTASSERT(gw_rx->rx_count == n_packets);
   gw_rx->get_last_pdu(sdu_act);
 
-  TESTASSERT(compare_two_packets(sdu_act, tx_sdu_out2) == 0);
+  log->info_hex(sdu_act->msg, sdu_act->N_bytes, "SDU act");
+  TESTASSERT(compare_two_packets(sdu_act, sdu_exp) == 0);
   return 0;
 }
 /*
@@ -406,39 +406,43 @@ int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
 {
   /*
    * RX Test 1: PDCP Entity with SN LEN = 12
-   * Test In-sequence reception of 4097 packets
+   * Test in-sequence reception of 4097 packets.
+   * This tests correct handling of HFN in the case of SN wraparound
    */
-  // TESTASSERT(test_rx_in_sequence(4097, srslte::PDCP_SN_LEN_12, pool, log) == 0);
+  TESTASSERT(test_rx_in_sequence(4097, srslte::PDCP_SN_LEN_12, pool, log) == 0);
 
   /*
    * RX Test 2: PDCP Entity with SN LEN = 12
-   * Test In-sequence reception of 4294967297 packets. This tests SN wrap-around
+   * Test in-sequence reception of 4294967297 packets.
+   * This tests correct handling of COUNT in the case of [HFN|SN] wraparound
    */
   // // TESTASSERT(test_rx_in_sequence(4294967297, srslte::PDCP_SN_LEN_12, pool, &log) == 0);
 
   /*
    * RX Test 3: PDCP Entity with SN LEN = 18
    * Test In-sequence reception of 262145 packets.
+   * This tests correct handling of HFN in the case of SN wraparound
    */
-  // TESTASSERT(test_rx_in_sequence(262145, srslte::PDCP_SN_LEN_18, pool, log) == 0);
+  TESTASSERT(test_rx_in_sequence(262145, srslte::PDCP_SN_LEN_18, pool, log) == 0);
 
   /*
    * RX Test 4: PDCP Entity with SN LEN = 12
    * Test Reception of one out-of-order packet.
    */
-  TESTASSERT(test_rx_out_of_order(srslte::PDCP_SN_LEN_12, pool, log) == 0);
-
-  /*
-   * RX Test 5: PDCP Entity with SN LEN = 12
-   * Test timeout of t-Reordering when one packet is lost.
-   */
-  //TESTASSERT(test_rx_out_of_order_timeout(srslte::PDCP_SN_LEN_12, pool, log) == 0);
-
-  /*
-   * RX Test 5: PDCP Entity with SN LEN = 12
-   * Test timeout of t-Reordering when one packet is lost.
-   */
+  //TESTASSERT(test_rx_out_of_order(srslte::PDCP_SN_LEN_12, pool, log) == 0);
   TESTASSERT(test_rx_out_of_order(2, srslte::PDCP_SN_LEN_12, pool, log) == 0);
+
+  /*
+   * RX Test 5: PDCP Entity with SN LEN = 12
+   * Test timeout of t-Reordering when one packet is lost.
+   */
+  TESTASSERT(test_rx_out_of_order_timeout(srslte::PDCP_SN_LEN_12, pool, log) == 0);
+
+  /*
+   * RX Test 5: PDCP Entity with SN LEN = 12
+   * Test timeout of t-Reordering when one packet is lost.
+   */
+  //TESTASSERT(test_rx_out_of_order(4294967297, srslte::PDCP_SN_LEN_12, pool, log) == 0);
   return 0;
 }
 // Setup all tests
@@ -449,9 +453,8 @@ int run_all_tests(srslte::byte_buffer_pool* pool)
   log.set_level(srslte::LOG_LEVEL_DEBUG);
   log.set_hex_limit(128);
 
-  //TESTASSERT(test_tx_all(pool, &log) == 0);
+  TESTASSERT(test_tx_all(pool, &log) == 0);
   TESTASSERT(test_rx_all(pool, &log) == 0);
-  // TESTASSERT(test_rx_out_of_order_wraparound(srslte::PDCP_SN_LEN_12, pool, &log) == 0);
   return 0;
 }
 

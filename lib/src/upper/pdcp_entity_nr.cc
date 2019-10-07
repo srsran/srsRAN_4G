@@ -25,7 +25,7 @@
 
 namespace srslte {
 
-pdcp_entity_nr::pdcp_entity_nr() : reordering_fnc(this) {}
+pdcp_entity_nr::pdcp_entity_nr() : reordering_fnc(new pdcp_entity_nr::reordering_callback(this)) {}
 
 pdcp_entity_nr::~pdcp_entity_nr() {}
 
@@ -53,7 +53,7 @@ void pdcp_entity_nr::init(srsue::rlc_interface_pdcp* rlc_,
   // Timers
   reordering_timer_id = timers->get_unique_id();
   reordering_timer    = timers->get(reordering_timer_id);
-  reordering_timer->set(&reordering_fnc, (uint32_t)cfg.t_reordering);
+  reordering_timer->set(reordering_fnc.get(), (uint32_t)cfg.t_reordering);
 }
 
 // Reestablishment procedure: 38.323 5.2

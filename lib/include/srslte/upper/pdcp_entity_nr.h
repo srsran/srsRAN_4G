@@ -61,6 +61,12 @@ public:
   // RLC interface
   void write_pdu(unique_byte_buffer_t pdu);
 
+  // State variable settters (should be used only for testing)
+  void set_tx_next(uint32_t tx_next_) { tx_next = tx_next_; }
+  void set_rx_next(uint32_t rx_next_) { rx_next = rx_next_; }
+  void set_rx_deliv(uint32_t rx_deliv_) { rx_deliv = rx_deliv_; }
+  void set_rx_reord(uint32_t rx_reord_) { rx_reord = rx_reord_; }
+
 private:
   srsue::rlc_interface_pdcp* rlc = nullptr;
   srsue::rrc_interface_pdcp* rrc = nullptr;
@@ -90,18 +96,22 @@ private:
   void deliver_all_consecutive_counts();
   void pass_to_upper_layers(unique_byte_buffer_t pdu);
 
-  // Reordering callback (t-Reordering)  
-  class reordering_callback : public timer_callback
-  {
-  public:
-    reordering_callback(pdcp_entity_nr* parent_) { parent = parent_; };
-    virtual void timer_expired(uint32_t timer_id) final;
+  // Reodering callback (t-Reordering)
+  class reordering_callback;
+  std::unique_ptr<reordering_callback> reordering_fnc;
+};
 
-  private:
-    pdcp_entity_nr* parent;
-  };
-
-  reordering_callback reordering_fnc;
+/*
+ * Timer callbacks
+ */
+// Reordering callback (t-Reordering)  
+class pdcp_entity_nr::reordering_callback : public timer_callback
+{
+public:
+  reordering_callback(pdcp_entity_nr* parent_) { parent = parent_; };
+  virtual void timer_expired(uint32_t timer_id) final;
+private:
+  pdcp_entity_nr* parent;
 };
 
 inline void pdcp_entity_nr::pass_to_upper_layers(unique_byte_buffer_t sdu)
