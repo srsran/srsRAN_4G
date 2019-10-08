@@ -20,7 +20,6 @@
  */
 #include "pdcp_nr_test.h"
 
-
 // Encryption and Integrity Keys
 uint8_t k_int[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15,
                    0x16, 0x17, 0x18, 0x19, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x30, 0x31};
@@ -38,16 +37,16 @@ pdcp_security_cfg sec_cfg = {
 
 
 // Test SDUs for tx
-uint8_t sdu1[] = {0x18, 0xE2};
+uint8_t sdu1[] = {0x18, 0xe2};
 uint8_t sdu2[] = {0xde, 0xad};
 
 // Test PDUs for rx (generated from SDU1)
 uint8_t pdu1_count0_snlen12[] = {0x80, 0x00, 0x8f, 0xe3, 0xe0, 0xdf, 0x82, 0x92};
-uint8_t pdu2[] = {0x88, 0x00, 0x8d, 0x2c, 0x47, 0x5e, 0xb1, 0x5b};
-uint8_t pdu3[] = {0x80, 0x00, 0x97, 0xbe, 0xa3, 0x32, 0xfa, 0x61};
-uint8_t pdu4[] = {0x80, 0x00, 0x00, 0x8f, 0xe3, 0xe0, 0xdf, 0x82, 0x92};
-uint8_t pdu5[] = {0x82, 0x00, 0x00, 0x15, 0x01, 0xf4, 0xb0, 0xfc, 0xc5};
-uint8_t pdu6[] = {0x80, 0x00, 0x00, 0xc2, 0x47, 0xa8, 0xdd, 0xc0, 0x73};
+uint8_t pdu1_count2048_snlen12[] = {0x88, 0x00, 0x8d, 0x2c, 0x47, 0x5e, 0xb1, 0x5b};
+uint8_t pdu1_count4096_snlen12[] = {0x80, 0x00, 0x97, 0xbe, 0xa3, 0x32, 0xfa, 0x61};
+uint8_t pdu1_count0_snlen18[] = {0x80, 0x00, 0x00, 0x8f, 0xe3, 0xe0, 0xdf, 0x82, 0x92};
+uint8_t pdu1_count131072_snlen18[] = {0x82, 0x00, 0x00, 0x15, 0x01, 0xf4, 0xb0, 0xfc, 0xc5};
+uint8_t pdu1_count262144_snlen18[] = {0x80, 0x00, 0x00, 0xc2, 0x47, 0xa8, 0xdd, 0xc0, 0x73};
 
 // Test PDUs for rx (generated from SDU2)
 uint8_t pdu7[] = {0x80, 0x01, 0x5e, 0x3d, 0x64, 0xaf, 0xac, 0x7c};
@@ -415,9 +414,9 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
    * Input: {0x18, 0xE2}
    * Output: PDCP Header {0x88, 0x00}, Ciphered Text {0x8d, 0x2c}, MAC-I {0x47, 0x5e, 0xb1, 0x5b}
    */
-  srslte::unique_byte_buffer_t pdu_exp_sn2048_len12 = allocate_unique_buffer(*pool);
-  pdu_exp_sn2048_len12->append_bytes(pdu2, sizeof(pdu2));
-  TESTASSERT(test_tx(2049, srslte::PDCP_SN_LEN_12, std::move(pdu_exp_sn2048_len12), pool, log) == 0);
+  srslte::unique_byte_buffer_t pdu_exp_count2048_len12 = allocate_unique_buffer(*pool);
+  pdu_exp_count2048_len12->append_bytes(pdu1_count2048_snlen12, sizeof(pdu1_count2048_snlen12));
+  TESTASSERT(test_tx(2049, srslte::PDCP_SN_LEN_12, std::move(pdu_exp_count2048_len12), pool, log) == 0);
 
   /*
    * TX Test 3: PDCP Entity with SN LEN = 12
@@ -425,9 +424,9 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
    * Input: {0x18, 0xE2}
    * Output: PDCP Header {0x80,0x00}, Ciphered Text {0x97, 0xbe}, MAC-I {0xa3, 0x32, 0xfa, 0x61}
    */
-  srslte::unique_byte_buffer_t pdu_exp_sn4096_len12 = allocate_unique_buffer(*pool);
-  pdu_exp_sn4096_len12->append_bytes(pdu3, sizeof(pdu3));
-  TESTASSERT(test_tx(4097, srslte::PDCP_SN_LEN_12, std::move(pdu_exp_sn4096_len12), pool, log) == 0);
+  srslte::unique_byte_buffer_t pdu_exp_count4096_len12 = allocate_unique_buffer(*pool);
+  pdu_exp_count4096_len12->append_bytes(pdu1_count4096_snlen12, sizeof(pdu1_count4096_snlen12));
+  TESTASSERT(test_tx(4097, srslte::PDCP_SN_LEN_12, std::move(pdu_exp_count4096_len12), pool, log) == 0);
 
   /*
    * TX Test 4: PDCP Entity with SN LEN = 18
@@ -435,9 +434,9 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
    * Input: {0x18, 0xE2}
    * Output: PDCP Header {0x80, 0x80, 0x00}, Ciphered Text {0x8f, 0xe3}, MAC-I {0xe0, 0xdf, 0x82, 0x92}
    */
-  srslte::unique_byte_buffer_t pdu_exp_sn0_len18 = allocate_unique_buffer(*pool);
-  pdu_exp_sn0_len18->append_bytes(pdu4, sizeof(pdu4));
-  TESTASSERT(test_tx(1, srslte::PDCP_SN_LEN_18, std::move(pdu_exp_sn0_len18), pool, log) == 0);
+  srslte::unique_byte_buffer_t pdu_exp_count0_len18 = allocate_unique_buffer(*pool);
+  pdu_exp_count0_len18->append_bytes(pdu1_count0_snlen18, sizeof(pdu1_count0_snlen18));
+  TESTASSERT(test_tx(1, srslte::PDCP_SN_LEN_18, std::move(pdu_exp_count0_len18), pool, log) == 0);
 
   /*
    * TX Test 5: PDCP Entity with SN LEN = 18
@@ -446,7 +445,7 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
    * Output: PDCP Header {0x82, 0x00, 0x00}, Ciphered Text {0x15, 0x01}, MAC-I {0xf4, 0xb0, 0xfc, 0xc5}
    */
   srslte::unique_byte_buffer_t pdu_exp_sn131072_len18 = allocate_unique_buffer(*pool);
-  pdu_exp_sn131072_len18->append_bytes(pdu5, sizeof(pdu5));
+  pdu_exp_sn131072_len18->append_bytes(pdu1_count131072_snlen18, sizeof(pdu1_count131072_snlen18));
   TESTASSERT(test_tx(131073, srslte::PDCP_SN_LEN_18, std::move(pdu_exp_sn131072_len18), pool, log) == 0);
 
   /*
@@ -455,9 +454,9 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
    * Input: {0x18, 0xE2}
    * Output: PDCP Header {0x80, 0x00, 0x00}, Ciphered Text {0xc2, 0x47}, MAC-I {0xa8, 0xdd, 0xc0, 0x73}
    */
-  srslte::unique_byte_buffer_t pdu_exp_sn262144_len18 = allocate_unique_buffer(*pool);
-  pdu_exp_sn262144_len18->append_bytes(pdu6, sizeof(pdu6));
-  TESTASSERT(test_tx(262145, srslte::PDCP_SN_LEN_18, std::move(pdu_exp_sn262144_len18), pool, log) == 0);
+  srslte::unique_byte_buffer_t pdu_exp_count262144_len18 = allocate_unique_buffer(*pool);
+  pdu_exp_count262144_len18->append_bytes(pdu1_count262144_snlen18, sizeof(pdu1_count262144_snlen18));
+  TESTASSERT(test_tx(262145, srslte::PDCP_SN_LEN_18, std::move(pdu_exp_count262144_len18), pool, log) == 0);
   return 0;
 }
 
@@ -519,14 +518,13 @@ int run_all_tests(srslte::byte_buffer_pool* pool)
   // Helpers for generating expected PDUs
   srslte::unique_byte_buffer_t sdu = srslte::allocate_unique_buffer(*pool);
   sdu->append_bytes(sdu1, sizeof(sdu1));
-  srslte::pdcp_config_t        cfg_tx = {1,
+  srslte::pdcp_config_t cfg_tx = {1,
                                   srslte::PDCP_RB_IS_DRB,
                                   srslte::SECURITY_DIRECTION_UPLINK,
                                   srslte::SECURITY_DIRECTION_DOWNLINK,
-                                  srslte::PDCP_SN_LEN_12,
+                                  srslte::PDCP_SN_LEN_18,
                                   srslte::pdcp_t_reordering_t::ms500};
   gen_expected_pdu(std::move(sdu), 0, cfg_tx, sec_cfg, &log, pool);
-  //gen_expected_pdu(std::move(sdu), 4096, cfg_tx, sec_cfg, &log, pool);
   //TESTASSERT(test_tx_all(pool, &log) == 0);
   //TESTASSERT(test_rx_all(pool, &log) == 0);
   return 0;
