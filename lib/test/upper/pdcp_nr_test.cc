@@ -42,7 +42,7 @@ uint8_t sdu1[] = {0x18, 0xE2};
 uint8_t sdu2[] = {0xde, 0xad};
 
 // Test PDUs for rx (generated from SDU1)
-uint8_t pdu1[] = {0x80, 0x00, 0x8f, 0xe3, 0xe0, 0xdf, 0x82, 0x92};
+uint8_t pdu1_count0_snlen12[] = {0x80, 0x00, 0x8f, 0xe3, 0xe0, 0xdf, 0x82, 0x92};
 uint8_t pdu2[] = {0x88, 0x00, 0x8d, 0x2c, 0x47, 0x5e, 0xb1, 0x5b};
 uint8_t pdu3[] = {0x80, 0x00, 0x97, 0xbe, 0xa3, 0x32, 0xfa, 0x61};
 uint8_t pdu4[] = {0x80, 0x00, 0x00, 0x8f, 0xe3, 0xe0, 0xdf, 0x82, 0x92};
@@ -172,7 +172,7 @@ int test_rx_out_of_order(uint8_t pdcp_sn_len, srslte::byte_buffer_pool* pool, sr
   // Get encripted and integrity protected PDUs used for testing
   srslte::unique_byte_buffer_t rx_pdu1 = allocate_unique_buffer(*pool);
   srslte::unique_byte_buffer_t rx_pdu7 = allocate_unique_buffer(*pool);
-  rx_pdu1->append_bytes(pdu1, sizeof(pdu1));
+  rx_pdu1->append_bytes(pdu1_count0_snlen12, sizeof(pdu1_count0_snlen12));
   rx_pdu7->append_bytes(pdu7, sizeof(pdu7));
 
   // decript and check matching SDUs (out of order)
@@ -252,7 +252,7 @@ int test_rx_out_of_order_wraparound(uint8_t pdcp_sn_len, srslte::byte_buffer_poo
   // Generate encripted and integrity protected PDUs
   srslte::unique_byte_buffer_t rx_pdu1 = allocate_unique_buffer(*pool);
   srslte::unique_byte_buffer_t rx_pdu7 = allocate_unique_buffer(*pool);
-  rx_pdu1->append_bytes(pdu1, sizeof(pdu1));
+  rx_pdu1->append_bytes(pdu1_count0_snlen12, sizeof(pdu1_count0_snlen12));
   rx_pdu7->append_bytes(pdu7, sizeof(pdu7));
 
 
@@ -372,7 +372,7 @@ int test_rx_with_initial_state(uint8_t pdcp_sn_len, srslte::byte_buffer_pool* po
   rx_pdus[0] = srslte::allocate_unique_buffer(*pool); 
   rx_pdus[1] = srslte::allocate_unique_buffer(*pool); 
 
-  rx_pdus[0]->append_bytes(pdu1, sizeof(pdu1));
+  rx_pdus[0]->append_bytes(pdu1_count0_snlen12, sizeof(pdu1_count0_snlen12));
   rx_pdus[1]->append_bytes(pdu7, sizeof(pdu7));
 
   // set sdu exp
@@ -405,9 +405,9 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
    * Input: {0x18, 0xE2}
    * Output: PDCP Header {0x80, 0x00}, Ciphered Text {0x8f, 0xe3}, MAC-I {0xe0, 0xdf, 0x82, 0x92}
    */
-  srslte::unique_byte_buffer_t pdu_exp_sn0_len12 = allocate_unique_buffer(*pool);
-  pdu_exp_sn0_len12->append_bytes(pdu1, sizeof(pdu1));
-  TESTASSERT(test_tx(1, srslte::PDCP_SN_LEN_12, std::move(pdu_exp_sn0_len12), pool, log) == 0);
+  srslte::unique_byte_buffer_t pdu_exp_count0_len12 = allocate_unique_buffer(*pool);
+  pdu_exp_count0_len12->append_bytes(pdu1_count0_snlen12, sizeof(pdu1_count0_snlen12));
+  TESTASSERT(test_tx(1, srslte::PDCP_SN_LEN_12, std::move(pdu_exp_count0_len12), pool, log) == 0);
 
   /*
    * TX Test 2: PDCP Entity with SN LEN = 12
@@ -516,6 +516,17 @@ int run_all_tests(srslte::byte_buffer_pool* pool)
   log.set_level(srslte::LOG_LEVEL_DEBUG);
   log.set_hex_limit(128);
 
+  // Helpers for generating expected PDUs
+  srslte::unique_byte_buffer_t sdu = srslte::allocate_unique_buffer(*pool);
+  sdu->append_bytes(sdu1, sizeof(sdu1));
+  srslte::pdcp_config_t        cfg_tx = {1,
+                                  srslte::PDCP_RB_IS_DRB,
+                                  srslte::SECURITY_DIRECTION_UPLINK,
+                                  srslte::SECURITY_DIRECTION_DOWNLINK,
+                                  srslte::PDCP_SN_LEN_12,
+                                  srslte::pdcp_t_reordering_t::ms500};
+  gen_expected_pdu(std::move(sdu), 0, cfg_tx, sec_cfg, &log, pool);
+  //gen_expected_pdu(std::move(sdu), 4096, cfg_tx, sec_cfg, &log, pool);
   //TESTASSERT(test_tx_all(pool, &log) == 0);
   //TESTASSERT(test_rx_all(pool, &log) == 0);
   return 0;

@@ -45,6 +45,14 @@ int compare_two_packets(const srslte::unique_byte_buffer_t& msg1, const srslte::
   return 0;
 }
 
+void print_packet_array(const srslte::unique_byte_buffer_t &msg){
+  printf("uint8_t msg[] = {\n");
+  for (uint64_t i = 0; i < msg->N_bytes; ++i){
+    printf("0x%02x, ",msg->msg[i]);
+  }
+  printf("\n};\n");
+}
+
 struct pdcp_security_cfg {
   uint8_t *k_int_rrc;
   uint8_t *k_enc_rrc;
@@ -149,7 +157,7 @@ public:
 };
 
 void gen_expected_pdu(srslte::unique_byte_buffer_t in_sdu,
-                      uint32_t                     n_packets,
+                      uint32_t                     count,
                       srslte::pdcp_config_t        cfg,
                       pdcp_security_cfg            sec_cfg,
                       srslte::log*                 log,
@@ -157,16 +165,16 @@ void gen_expected_pdu(srslte::unique_byte_buffer_t in_sdu,
 {
   pdcp_nr_test_helper     pdcp_hlp(cfg, sec_cfg, log);
   srslte::pdcp_entity_nr* pdcp = &pdcp_hlp.pdcp;
-  gw_dummy*       gw   = &pdcp_hlp.gw;
+  rlc_dummy*              rlc  = &pdcp_hlp.rlc;
 
-  for (uint32_t i = 0; i < n_packets; ++i) {
+  for (uint32_t i = 0; i <= count; ++i) {
     srslte::unique_byte_buffer_t sdu = srslte::allocate_unique_buffer(*pool);
     *sdu                             = *in_sdu;
     pdcp->write_sdu(std::move(sdu), true);
   }
   srslte::unique_byte_buffer_t out_pdu = srslte::allocate_unique_buffer(*pool);
-  gw->get_last_pdu(out_pdu);
-  log->info_hex(out_pdu->msg, out_pdu->N_bytes, "Output PDU");
+  rlc->get_last_sdu(out_pdu);
+  print_packet_array(out_pdu);
 }
 
 #endif // SRSLTE_PDCP_NR_TEST_H
