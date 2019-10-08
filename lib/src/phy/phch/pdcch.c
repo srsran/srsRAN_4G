@@ -296,7 +296,7 @@ uint32_t srslte_pdcch_common_locations_ncce(uint32_t nof_cce, srslte_dci_locatio
   for (l = 3; l > 1; l--) {
     L = (1 << l);
     for (i = 0; i < SRSLTE_MIN(nof_cce, 16) / (L); i++) {
-      uint32_t ncce = (L) * (i % (nof_cce / (L)));
+      uint32_t ncce = (L) * (i);
       if (k < max_candidates && ncce + L <= nof_cce) {
         c[k].L    = l;
         c[k].ncce = ncce;
