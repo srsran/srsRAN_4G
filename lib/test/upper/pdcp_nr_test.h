@@ -147,4 +147,26 @@ public:
   gw_dummy               gw;
   srslte::timers         timers;
 };
+
+void gen_expected_pdu(srslte::unique_byte_buffer_t in_sdu,
+                      uint32_t                     n_packets,
+                      srslte::pdcp_config_t        cfg,
+                      pdcp_security_cfg            sec_cfg,
+                      srslte::log*                 log,
+                      srslte::byte_buffer_pool*    pool)
+{
+  pdcp_nr_test_helper     pdcp_hlp(cfg, sec_cfg, log);
+  srslte::pdcp_entity_nr* pdcp = &pdcp_hlp.pdcp;
+  gw_dummy*       gw   = &pdcp_hlp.gw;
+
+  for (uint32_t i = 0; i < n_packets; ++i) {
+    srslte::unique_byte_buffer_t sdu = srslte::allocate_unique_buffer(*pool);
+    *sdu                             = *in_sdu;
+    pdcp->write_sdu(std::move(sdu), true);
+  }
+  srslte::unique_byte_buffer_t out_pdu = srslte::allocate_unique_buffer(*pool);
+  gw->get_last_pdu(out_pdu);
+  log->info_hex(out_pdu->msg, out_pdu->N_bytes, "Output PDU");
+}
+
 #endif // SRSLTE_PDCP_NR_TEST_H
