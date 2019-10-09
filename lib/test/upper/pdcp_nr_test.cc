@@ -346,30 +346,28 @@ int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
    * Test in-sequence reception of 4097 packets.
    * This tests correct handling of HFN in the case of SN wraparound (SN LEN 12)
    */
-  //TESTASSERT(test_rx_in_sequence(4096, normal_init_state, srslte::PDCP_SN_LEN_12, pool, log) == 0);
+  TESTASSERT(test_rx_in_sequence(4096, normal_init_state, srslte::PDCP_SN_LEN_12, pool, log) == 0);
 
   /*
    * RX Test 2: PDCP Entity with SN LEN = 12
    * Test in-sequence reception of 4294967297 packets.
    * This tests correct handling of COUNT in the case of [HFN|SN] wraparound
    */
-  //pdcp_initial_state test2_init_state = {};
-  //TESTASSERT(test_rx_in_sequence(4294967296, near_wraparound_init_state, srslte::PDCP_SN_LEN_12, pool, log) == 0);
+  TESTASSERT(test_rx_in_sequence(4294967296, near_wraparound_init_state, srslte::PDCP_SN_LEN_12, pool, log) == 0);
 
   /*
    * RX Test 3: PDCP Entity with SN LEN = 18
    * Test In-sequence reception of 262145 packets.
    * This tests correct handling of HFN in the case of SN wraparound (SN LEN 18)
    */
-  pdcp_initial_state test3_init_state = {};
-  //TESTASSERT(test_rx_in_sequence(262144, normal_init_state, srslte::PDCP_SN_LEN_18, pool, log) == 0);
+  TESTASSERT(test_rx_in_sequence(262144, normal_init_state, srslte::PDCP_SN_LEN_18, pool, log) == 0);
 
   /*
    * RX Test 4: PDCP Entity with SN LEN = 18
    * Test in-sequence reception of 4294967297 packets.
    * This tests correct handling of COUNT in the case of [HFN|SN] wraparound
    */
-  //TESTASSERT(test_rx_in_sequence(4294967296, near_wraparound_init_state, srslte::PDCP_SN_LEN_18, pool, log) == 0);
+  TESTASSERT(test_rx_in_sequence(4294967296, near_wraparound_init_state, srslte::PDCP_SN_LEN_18, pool, log) == 0);
 
   /*
    * RX Test 5: PDCP Entity with SN LEN = 12
@@ -382,6 +380,7 @@ int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
    * Test Reception of one out-of-order packet at COUNT wraparound.
    */
   TESTASSERT(test_rx_out_of_order(near_wraparound_init_state, srslte::PDCP_SN_LEN_12, pool, log) == 0);
+
   /*
    * RX Test 5: PDCP Entity with SN LEN = 12
    * Test timeout of t-Reordering when one packet is lost.

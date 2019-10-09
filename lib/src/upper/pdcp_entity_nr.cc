@@ -311,7 +311,8 @@ void pdcp_entity_nr::reordering_callback::timer_expired(uint32_t timer_id)
   parent->deliver_all_consecutive_counts();
 
   if (parent->rx_deliv < parent->rx_next){
-
+    parent->rx_reord = parent->rx_next;
+    parent->reordering_timer->run();
   }
   return;
 }
