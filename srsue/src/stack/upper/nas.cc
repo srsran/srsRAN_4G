@@ -364,9 +364,6 @@ void nas::plmn_search_completed(rrc_interface_nas::found_plmn_t found_plmns[rrc_
 
 bool nas::detach_request(const bool switch_off)
 {
-  // attempt detach for 5s
-  nas_log->info("Detach Request\n");
-
   switch (state) {
     case EMM_STATE_DEREGISTERED:
       // do nothing ..
@@ -387,7 +384,7 @@ bool nas::detach_request(const bool switch_off)
 void nas::enter_emm_deregistered()
 {
   // Deactivate EPS bearer according to Sec. 5.5.2.2.2
-  nas_log->info("Clearing EPS bearer context.\n");
+  nas_log->debug("Clearing EPS bearer context\n");
 
   eps_bearer.clear();
 
@@ -1673,7 +1670,7 @@ void nas::send_detach_request(bool switch_off)
     memcpy(&detach_request.eps_mobile_id.guti, &ctxt.guti, sizeof(LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT));
     detach_request.nas_ksi.tsc_flag      = LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE;
     detach_request.nas_ksi.nas_ksi       = ctxt.ksi;
-    nas_log->info("Requesting Detach with GUTI\n"); //If sent as an Initial UE message, it cannot be chiphered
+    nas_log->info("Sending detach request with GUTI\n"); // If sent as an Initial UE message, it cannot be chiphered
     liblte_mme_pack_detach_request_msg(&detach_request,
                                        rrc->is_connected() ? LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED
                                                            : LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY,
@@ -1704,7 +1701,7 @@ void nas::send_detach_request(bool switch_off)
     detach_request.nas_ksi.tsc_flag      = LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE;
     detach_request.nas_ksi.nas_ksi       = 0;
     usim->get_imsi_vec(detach_request.eps_mobile_id.imsi, 15);
-    nas_log->info("Requesting IMSI detach (IMSI=%s)\n", usim->get_imsi_str().c_str());
+    nas_log->info("Sending detach request with IMSI\n");
     liblte_mme_pack_detach_request_msg(
         &detach_request, LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS, ctxt.tx_count, (LIBLTE_BYTE_MSG_STRUCT*)pdu.get());
 
@@ -1720,7 +1717,6 @@ void nas::send_detach_request(bool switch_off)
     state = EMM_STATE_DEREGISTERED_INITIATED;
   }
 
-  nas_log->info("Sending detach request\n");
   if (rrc->is_connected()) {
     rrc->write_sdu(std::move(pdu));
   } else {

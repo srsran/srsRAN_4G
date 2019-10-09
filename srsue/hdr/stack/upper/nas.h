@@ -62,7 +62,6 @@ public:
   // UE interface
   void start_attach_request(srslte::proc_state_t* result) final;
   bool detach_request(const bool switch_off) final;
-  void enter_emm_deregistered();
 
   void plmn_search_completed(rrc_interface_nas::found_plmn_t found_plmns[rrc_interface_nas::MAX_FOUND_PLMNS],
                              int                             nof_plmns) final;
@@ -193,6 +192,9 @@ private:
   void send_deactivate_eps_bearer_context_accept(const uint8_t& proc_transaction_id, const uint8_t& eps_bearer_id);
   void send_modify_eps_bearer_context_accept(const uint8_t& proc_transaction_id, const uint8_t& eps_bearer_id);
   void send_activate_test_mode_complete(const uint8_t sec_hdr_type);
+
+  // Other internal helpers
+  void enter_emm_deregistered();
 
   // security context persistence file
   bool read_ctxt_file(nas_sec_ctxt *ctxt);
