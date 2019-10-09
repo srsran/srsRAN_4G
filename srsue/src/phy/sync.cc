@@ -561,6 +561,7 @@ void sync::run_thread()
               Warning("SYNC:  Out-of-sync detected in PSS/SSS\n");
               out_of_sync();
               worker->release();
+              is_end_of_burst = true;
 
               // Force decoding MIB, for making sure that the TTI will be right
               if (!force_camping_sfn_sync) {
