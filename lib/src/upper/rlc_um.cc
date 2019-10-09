@@ -274,10 +274,12 @@ bool rlc_um::rlc_um_tx_base::has_data()
 
 uint32_t rlc_um::rlc_um_tx_base::get_buffer_state()
 {
+  std::lock_guard<std::mutex> lock(mutex);
+
   // Bytes needed for tx SDUs
   uint32_t n_sdus  = tx_sdu_queue.size();
   uint32_t n_bytes = tx_sdu_queue.size_bytes();
-  if(tx_sdu) {
+  if (tx_sdu) {
     n_sdus++;
     n_bytes += tx_sdu->N_bytes;
   }
