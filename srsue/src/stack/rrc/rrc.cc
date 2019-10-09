@@ -2385,7 +2385,7 @@ void rrc::log_phy_config_dedicated()
   if (current_phy_cfg.ul_cfg.srs.configured) {
     rrc_log->info("Set PHY config ded: SRS-ConfigIndex=%d, SRS-bw=%d, SRS-Nrcc=%d, SRS-hop=%d, SRS-Ncs=%d\n",
                   current_phy_cfg.ul_cfg.srs.I_srs,
-                  current_phy_cfg.ul_cfg.srs.bw_cfg,
+                  current_phy_cfg.ul_cfg.srs.B,
                   current_phy_cfg.ul_cfg.srs.n_rrc,
                   current_phy_cfg.ul_cfg.srs.b_hop,
                   current_phy_cfg.ul_cfg.srs.n_srs);
