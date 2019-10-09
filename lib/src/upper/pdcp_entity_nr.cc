@@ -140,7 +140,7 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   }
   rcvd_count = COUNT(rcvd_hfn, rcvd_sn);
 
-  log->debug("RCVD_SN %d, RCVD_COUNT %d\n", rcvd_sn, rcvd_count);
+  log->debug("RCVD_SN %" PRIu32 ", RCVD_COUNT %" PRIu32 "\n", rcvd_sn, rcvd_count);
 
   // Decripting
   cipher_decrypt(pdu->msg, pdu->N_bytes, rcvd_count, pdu->msg);
@@ -285,7 +285,7 @@ void pdcp_entity_nr::deliver_all_consecutive_counts()
                                   it != reorder_queue.end() && it->first == rx_deliv;
                                   reorder_queue.erase(it++))
   {
-    log->debug("Delivering SDU with RCVD_COUNT %d\n", it->first);
+    log->debug("Delivering SDU with RCVD_COUNT %" PRIu32 "\n", it->first);
 
     // Pass PDCP SDU to the next layers
     pass_to_upper_layers(std::move(it->second));

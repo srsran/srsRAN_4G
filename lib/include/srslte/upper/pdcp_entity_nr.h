@@ -114,6 +114,9 @@ private:
   pdcp_entity_nr* parent;
 };
 
+/*
+ * Helpers
+ */
 inline void pdcp_entity_nr::pass_to_upper_layers(unique_byte_buffer_t sdu)
 {
   if (is_srb()) {

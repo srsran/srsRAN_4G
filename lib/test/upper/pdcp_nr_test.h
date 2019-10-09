@@ -62,6 +62,13 @@ struct pdcp_security_cfg {
   srslte::CIPHERING_ALGORITHM_ID_ENUM enc_algo;
 };
 
+struct pdcp_initial_state {
+  uint32_t tx_next;
+  uint32_t rx_next;
+  uint32_t rx_deliv;
+  uint32_t rx_reord;
+};
+
 // dummy classes
 class rlc_dummy : public srsue::rlc_interface_pdcp
 {
@@ -147,6 +154,13 @@ public:
         sec_cfg.k_enc_rrc, sec_cfg.k_int_rrc, sec_cfg.k_enc_up, sec_cfg.k_int_up, sec_cfg.enc_algo, sec_cfg.int_algo);
     pdcp.enable_integrity();
     pdcp.enable_encryption();
+  }
+
+  void set_pdcp_initial_state(pdcp_initial_state init_state) {
+    pdcp.set_tx_next(init_state.tx_next);
+    pdcp.set_rx_next(init_state.rx_next);
+    pdcp.set_rx_deliv(init_state.rx_deliv);
+    pdcp.set_rx_reord(init_state.rx_reord);
   }
 
   srslte::pdcp_entity_nr pdcp;
