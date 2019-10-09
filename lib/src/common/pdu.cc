@@ -177,7 +177,7 @@ uint8_t* sch_pdu::write_packet(srslte::log* log_h)
 
   // Print warning if we have padding only
   if (nof_subheaders <= 0 && nof_subheaders < (int)max_subheaders) {
-    log_h->warning("Writing MAC PDU with padding only (%d B)\n", pdu_len);
+    log_h->debug("Writing MAC PDU with padding only (%d B)\n", pdu_len);
   }
 
   /* Sanity check and print if error */

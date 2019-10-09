@@ -485,7 +485,55 @@ int mac_sch_pdu_pack_test6()
   pdu.write_packet(&mac_log);
 
   // compare with tv
-  TESTASSERT(memcmp(buffer.msg, tv, sizeof(buffer.N_bytes)) == 0);
+  TESTASSERT(memcmp(buffer.msg, tv, buffer.N_bytes) == 0);
+
+  // log
+  mac_log.info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
+
+#if HAVE_PCAP
+  pcap_handle->write_ul_crnti(buffer.msg, buffer.N_bytes, 0x1001, true, 1);
+#endif
+
+  return SRSLTE_SUCCESS;
+}
+
+// Test for short MAC PDU containing padding only
+int mac_sch_pdu_pack_test7()
+{
+  srslte::log_filter mac_log("MAC");
+  mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
+  mac_log.set_hex_limit(32);
+
+  rlc_dummy rlc;
+  rlc.write_sdu(1, 8);
+
+  const uint32_t  pdu_size = 2;
+  srslte::sch_pdu pdu(10, &mac_log);
+
+  uint8_t tv[pdu_size] = {0x1f, 0x1f};
+
+  byte_buffer_t buffer;
+  pdu.init_tx(&buffer, pdu_size, true);
+
+  TESTASSERT(pdu.rem_size() == pdu_size);
+  TESTASSERT(pdu.get_pdu_len() == pdu_size);
+  TESTASSERT(pdu.get_sdu_space() == pdu_size - 1);
+  TESTASSERT(pdu.get_current_sdu_ptr() == buffer.msg);
+
+  // Try to add SDU, subheader is ok
+  TESTASSERT(pdu.new_subh());
+
+  // adding SDU fails
+  TESTASSERT(pdu.get()->set_sdu(2, 8, &rlc) == SRSLTE_ERROR);
+
+  // remove subheader again
+  pdu.del_subh();
+
+  // write PDU
+  pdu.write_packet(&mac_log);
+
+  // compare with tv
+  TESTASSERT(memcmp(buffer.msg, tv, buffer.N_bytes) == 0);
 
   // log
   mac_log.info_hex(buffer.msg, buffer.N_bytes, "MAC PDU (%d B):\n", buffer.N_bytes);
@@ -601,7 +649,7 @@ int mac_mch_pdu_pack_test1() {
 #endif
 
   // compare with TV
-  TESTASSERT(memcmp(buffer.msg, tv, sizeof(buffer.N_bytes)) == 0);
+  TESTASSERT(memcmp(buffer.msg, tv, buffer.N_bytes) == 0);
 
 #if HAVE_PCAP
   pcap_handle->write_ul_crnti(tv, sizeof(tv), 0x1001, true, 1);
@@ -620,6 +668,30 @@ int mac_sch_pdu_unpack_test1()
   mac_log.set_hex_limit(100000);
 
   srslte::sch_pdu pdu(10, &mac_log);
+  pdu.init_rx(sizeof(tv), false);
+  pdu.parse_packet(tv);
+
+  // make sure this PDU is reset and will not be further processed
+  TESTASSERT(pdu.nof_subh() == 0);
+  TESTASSERT(pdu.next() == false);
+
+#if HAVE_PCAP
+  pcap_handle->write_ul_crnti(tv, sizeof(tv), 0x1001, true, 1);
+#endif
+
+  return SRSLTE_SUCCESS;
+}
+
+// Parsing a (corrupted) MAC PDU that only contains padding
+int mac_sch_pdu_unpack_test2()
+{
+  static uint8_t tv[] = {0x3f, 0x3f};
+
+  srslte::log_filter mac_log("MAC");
+  mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
+  mac_log.set_hex_limit(100000);
+
+  srslte::sch_pdu pdu(20, &mac_log);
   pdu.init_rx(sizeof(tv), false);
   pdu.parse_packet(tv);
 
@@ -691,6 +763,11 @@ int main(int argc, char** argv)
     return SRSLTE_ERROR;
   }
 
+  if (mac_sch_pdu_pack_test7()) {
+    fprintf(stderr, "mac_sch_pdu_pack_test7 failed.\n");
+    return SRSLTE_ERROR;
+  }
+
   if (mac_sch_pdu_pack_error_test()) {
     fprintf(stderr, "mac_sch_pdu_pack_error_test failed.\n");
     return SRSLTE_ERROR;
@@ -703,6 +780,11 @@ int main(int argc, char** argv)
 
   if (mac_sch_pdu_unpack_test1()) {
     fprintf(stderr, "mac_sch_pdu_unpack_test1 failed.\n");
+    return SRSLTE_ERROR;
+  }
+
+  if (mac_sch_pdu_unpack_test2()) {
+    fprintf(stderr, "mac_sch_pdu_unpack_test2 failed.\n");
     return SRSLTE_ERROR;
   }
 
