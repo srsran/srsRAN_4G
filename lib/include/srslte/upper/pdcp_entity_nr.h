@@ -99,6 +99,9 @@ private:
   // Reodering callback (t-Reordering)
   class reordering_callback;
   std::unique_ptr<reordering_callback> reordering_fnc;
+
+  // COUNT overflow protection
+  bool tx_overflow = false;
 };
 
 /*

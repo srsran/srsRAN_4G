@@ -100,6 +100,10 @@ void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, bool blocking)
 
   // Increment TX_NEXT
   tx_next++;
+  if (tx_next == 0 or tx_overflow) {
+    tx_overflowasdfdsaf  = true;
+    log->warning("TX_NEXT has overflowed. Droping packet\n");
+  }
 
   // Check if PDCP is associated with more than on RLC entity TODO
   // Write to lower layers

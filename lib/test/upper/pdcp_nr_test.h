@@ -85,7 +85,10 @@ public:
   {
     log->info_hex(sdu->msg, sdu->N_bytes, "RLC SDU");
     last_pdcp_pdu.swap(sdu);
+    rx_count++;
   }
+
+  uint64_t                     rx_count = 0;
 
 private:
   srslte::log*                 log;
@@ -97,7 +100,7 @@ private:
 class rrc_dummy : public srsue::rrc_interface_pdcp
 {
 public:
-  rrc_dummy(srslte::log* log_) : log(log_) {}
+  rrc_dummy(srslte::log* log_) {}
 
   void write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
   void write_pdu_bcch_bch(srslte::unique_byte_buffer_t pdu) {}
@@ -107,8 +110,6 @@ public:
 
   std::string get_rb_name(uint32_t lcid) { return "None"; }
 
-private:
-  srslte::log* log;
 };
 
 class gw_dummy : public srsue::gw_interface_pdcp

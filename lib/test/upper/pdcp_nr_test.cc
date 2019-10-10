@@ -45,9 +45,11 @@ uint8_t sdu2[] = {0xde, 0xad};
 uint8_t pdu1_count0_snlen12[] = {0x80, 0x00, 0x8f, 0xe3, 0xe0, 0xdf, 0x82, 0x92};
 uint8_t pdu1_count2048_snlen12[] = {0x88, 0x00, 0x8d, 0x2c, 0x47, 0x5e, 0xb1, 0x5b};
 uint8_t pdu1_count4096_snlen12[] = {0x80, 0x00, 0x97, 0xbe, 0xa3, 0x32, 0xfa, 0x61};
+uint8_t pdu1_count4294967295_snlen12[] = {0x80, 0x00, 0x00, 0xc2, 0x47, 0xa8, 0xdd, 0xc0, 0x73};
 uint8_t pdu1_count0_snlen18[] = {0x80, 0x00, 0x00, 0x8f, 0xe3, 0xe0, 0xdf, 0x82, 0x92};
 uint8_t pdu1_count131072_snlen18[] = {0x82, 0x00, 0x00, 0x15, 0x01, 0xf4, 0xb0, 0xfc, 0xc5};
 uint8_t pdu1_count262144_snlen18[] = {0x80, 0x00, 0x00, 0xc2, 0x47, 0xa8, 0xdd, 0xc0, 0x73};
+uint8_t pdu1_count4294967295_snlen18[] = {0x80, 0x00, 0x00, 0xc2, 0x47, 0xa8, 0xdd, 0xc0, 0x73};
 
 // Test PDUs for rx (generated from SDU2)
 uint8_t pdu7[] = {0x80, 0x01, 0x5e, 0x3d, 0x64, 0xaf, 0xac, 0x7c};
@@ -60,11 +62,21 @@ struct pdcp_nr_initial_state_cfg {
   uint32_t rx_reord = 0;
 };
 
+// This is the normal initial state. All state variables are set to zero
+pdcp_initial_state normal_init_state = {};
+
+// Some tests regarding COUNT wraparound take really long.
+// This puts the PCDC state closer to wraparound quickly.
+pdcp_initial_state near_wraparound_init_state = {
+    .tx_next = 4294967295, .rx_next = 4294967295, .rx_deliv = 4294967295, .rx_reord = 0};
+
 /*
  * Genric function to test transmission of in-sequence packets
  */
 int test_tx(uint32_t                     n_packets,
+            const pdcp_initial_state&    init_state,
             uint8_t                      pdcp_sn_len,
+            uint64_t                     n_pdus_exp,
             srslte::unique_byte_buffer_t pdu_exp,
             srslte::byte_buffer_pool*    pool,
             srslte::log*                 log)
@@ -92,6 +104,7 @@ int test_tx(uint32_t                     n_packets,
   srslte::unique_byte_buffer_t pdu_act = allocate_unique_buffer(*pool);
   rlc->get_last_sdu(pdu_act);
 
+  TESTASSERT(rlc->rx_count == n_pdus_exp);
   TESTASSERT(compare_two_packets(pdu_act, pdu_exp) == 0);
   return 0;
 }
@@ -265,15 +278,23 @@ int test_rx_out_of_order_timeout(uint8_t pdcp_sn_len, srslte::byte_buffer_pool* 
  */
 int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
 {
+  uint64_t n_packets;
   /*
    * TX Test 1: PDCP Entity with SN LEN = 12
    * TX_NEXT = 0.
    * Input: {0x18, 0xE2}
    * Output: PDCP Header {0x80, 0x00}, Ciphered Text {0x8f, 0xe3}, MAC-I {0xe0, 0xdf, 0x82, 0x92}
    */
+  n_packets = 1;
   srslte::unique_byte_buffer_t pdu_exp_count0_len12 = allocate_unique_buffer(*pool);
   pdu_exp_count0_len12->append_bytes(pdu1_count0_snlen12, sizeof(pdu1_count0_snlen12));
-  TESTASSERT(test_tx(1, srslte::PDCP_SN_LEN_12, std::move(pdu_exp_count0_len12), pool, log) == 0);
+  TESTASSERT(test_tx(n_packets,
+                     normal_init_state,
+                     srslte::PDCP_SN_LEN_12,
+                     n_packets,
+                     std::move(pdu_exp_count0_len12),
+                     pool,
+                     log) == 0);
 
   /*
    * TX Test 2: PDCP Entity with SN LEN = 12
@@ -281,9 +302,16 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
    * Input: {0x18, 0xE2}
    * Output: PDCP Header {0x88, 0x00}, Ciphered Text {0x8d, 0x2c}, MAC-I {0x47, 0x5e, 0xb1, 0x5b}
    */
+  n_packets = 2049;
   srslte::unique_byte_buffer_t pdu_exp_count2048_len12 = allocate_unique_buffer(*pool);
   pdu_exp_count2048_len12->append_bytes(pdu1_count2048_snlen12, sizeof(pdu1_count2048_snlen12));
-  TESTASSERT(test_tx(2049, srslte::PDCP_SN_LEN_12, std::move(pdu_exp_count2048_len12), pool, log) == 0);
+  TESTASSERT(test_tx(n_packets,
+                     normal_init_state,
+                     srslte::PDCP_SN_LEN_12,
+                     n_packets,
+                     std::move(pdu_exp_count2048_len12),
+                     pool,
+                     log) == 0);
 
   /*
    * TX Test 3: PDCP Entity with SN LEN = 12
@@ -291,9 +319,16 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
    * Input: {0x18, 0xE2}
    * Output: PDCP Header {0x80,0x00}, Ciphered Text {0x97, 0xbe}, MAC-I {0xa3, 0x32, 0xfa, 0x61}
    */
+  n_packets = 4097;
   srslte::unique_byte_buffer_t pdu_exp_count4096_len12 = allocate_unique_buffer(*pool);
   pdu_exp_count4096_len12->append_bytes(pdu1_count4096_snlen12, sizeof(pdu1_count4096_snlen12));
-  TESTASSERT(test_tx(4097, srslte::PDCP_SN_LEN_12, std::move(pdu_exp_count4096_len12), pool, log) == 0);
+  TESTASSERT(test_tx(n_packets,
+                     normal_init_state,
+                     srslte::PDCP_SN_LEN_12,
+                     n_packets,
+                     std::move(pdu_exp_count4096_len12),
+                     pool,
+                     log) == 0);
 
   /*
    * TX Test 4: PDCP Entity with SN LEN = 18
@@ -301,9 +336,16 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
    * Input: {0x18, 0xE2}
    * Output: PDCP Header {0x80, 0x80, 0x00}, Ciphered Text {0x8f, 0xe3}, MAC-I {0xe0, 0xdf, 0x82, 0x92}
    */
+  n_packets = 1;
   srslte::unique_byte_buffer_t pdu_exp_count0_len18 = allocate_unique_buffer(*pool);
   pdu_exp_count0_len18->append_bytes(pdu1_count0_snlen18, sizeof(pdu1_count0_snlen18));
-  TESTASSERT(test_tx(1, srslte::PDCP_SN_LEN_18, std::move(pdu_exp_count0_len18), pool, log) == 0);
+  TESTASSERT(test_tx(n_packets,
+                     normal_init_state,
+                     srslte::PDCP_SN_LEN_18,
+                     n_packets,
+                     std::move(pdu_exp_count0_len18),
+                     pool,
+                     log) == 0);
 
   /*
    * TX Test 5: PDCP Entity with SN LEN = 18
@@ -311,9 +353,16 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
    * Input: {0x18, 0xE2}
    * Output: PDCP Header {0x82, 0x00, 0x00}, Ciphered Text {0x15, 0x01}, MAC-I {0xf4, 0xb0, 0xfc, 0xc5}
    */
+  n_packets                                           = 131073;
   srslte::unique_byte_buffer_t pdu_exp_sn131072_len18 = allocate_unique_buffer(*pool);
   pdu_exp_sn131072_len18->append_bytes(pdu1_count131072_snlen18, sizeof(pdu1_count131072_snlen18));
-  TESTASSERT(test_tx(131073, srslte::PDCP_SN_LEN_18, std::move(pdu_exp_sn131072_len18), pool, log) == 0);
+  TESTASSERT(test_tx(n_packets,
+                     normal_init_state,
+                     srslte::PDCP_SN_LEN_18,
+                     n_packets,
+                     std::move(pdu_exp_sn131072_len18),
+                     pool,
+                     log) == 0);
 
   /*
    * TX Test 6: PDCP Entity with SN LEN = 18
@@ -321,9 +370,32 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
    * Input: {0x18, 0xE2}
    * Output: PDCP Header {0x80, 0x00, 0x00}, Ciphered Text {0xc2, 0x47}, MAC-I {0xa8, 0xdd, 0xc0, 0x73}
    */
+  n_packets                                              = 262145;
   srslte::unique_byte_buffer_t pdu_exp_count262144_len18 = allocate_unique_buffer(*pool);
   pdu_exp_count262144_len18->append_bytes(pdu1_count262144_snlen18, sizeof(pdu1_count262144_snlen18));
-  TESTASSERT(test_tx(262145, srslte::PDCP_SN_LEN_18, std::move(pdu_exp_count262144_len18), pool, log) == 0);
+  TESTASSERT(test_tx(n_packets,
+                     normal_init_state,
+                     srslte::PDCP_SN_LEN_18,
+                     n_packets,
+                     std::move(pdu_exp_count262144_len18),
+                     pool,
+                     log) == 0);
+
+  /*
+   * TX Test 7: PDCP Entity with SN LEN = 18
+   * Test TX at COUNT wraparound.
+   * Should print a warning and drop all packets after wraparound.
+   */
+  n_packets = 5;
+  srslte::unique_byte_buffer_t pdu_exp_count4294967295_len18 = allocate_unique_buffer(*pool);
+  pdu_exp_count4294967295_len18->append_bytes(pdu1_count4294967295_snlen18, sizeof(pdu1_count4294967295_snlen18));
+  TESTASSERT(test_tx(n_packets,
+                     near_wraparound_init_state,
+                     srslte::PDCP_SN_LEN_12,
+                     1,
+                     std::move(pdu_exp_count4294967295_len18),
+                     pool,
+                     log) == 0);
   return 0;
 }
 
@@ -333,13 +405,6 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
  */
 int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
 {
-  // This is the normal initial state. All state variables are set to zero
-  pdcp_initial_state normal_init_state = {}; 
-
-  // Some tests regarding COUNT wraparound take really long.
-  // This puts the PCDC state closer to wraparound quickly.
-  pdcp_initial_state near_wraparound_init_state = {
-      .tx_next = 4294967295, .rx_next = 4294967295, .rx_deliv = 4294967295, .rx_reord = 0};
 
   /*
    * RX Test 1: PDCP Entity with SN LEN = 12
@@ -412,8 +477,8 @@ int run_all_tests(srslte::byte_buffer_pool* pool)
   //                                 srslte::PDCP_SN_LEN_18,
   //                                 srslte::pdcp_t_reordering_t::ms500};
   //gen_expected_pdu(std::move(sdu), 0, cfg_tx, sec_cfg, &log, pool);
-  //TESTASSERT(test_tx_all(pool, &log) == 0);
-  TESTASSERT(test_rx_all(pool, &log) == 0);
+  TESTASSERT(test_tx_all(pool, &log) == 0);
+  //TESTASSERT(test_rx_all(pool, &log) == 0);
   return 0;
 }
 
