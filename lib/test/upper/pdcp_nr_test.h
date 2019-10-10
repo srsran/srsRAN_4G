@@ -199,4 +199,15 @@ void gen_expected_pdu(srslte::unique_byte_buffer_t in_sdu,
   print_packet_array(out_pdu);
 }
 
+// Helper function to generate vector of PDU from a vector of TX_NEXTs for generating expected pdus
+void gen_expected_pdus_vector(const std::vector<uint32_t>&               tx_nexts,
+                              std::vector<srslte::unique_byte_buffer_t>& pdu_vec,
+                              srslte::byte_buffer_pool*                  pool)
+{
+  for (uint32_t tx_next : tx_nexts) {
+    srslte::unique_byte_byffer_t pdu = srslte::allocate_byte_buffer(*pool);
+    gen_expected_pdu(tx_next, pdu);
+    pdu_vec.push_back(pdu);
+  }
+}
 #endif // SRSLTE_PDCP_NR_TEST_H

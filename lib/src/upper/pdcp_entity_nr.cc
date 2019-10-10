@@ -162,6 +162,8 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
 
   // Check valid rcvd_count
   if (rcvd_count < rx_deliv) {
+    log->debug("Out-of-order after time-out, duplicate or COUNT wrap-around\n");
+    log->debug("RCVD_COUNT %" PRIu32 ", RCVD_COUNT %" PRIu32 "\n", rcvd_count, rx_deliv);
     return; // Invalid count, drop.
   }
 

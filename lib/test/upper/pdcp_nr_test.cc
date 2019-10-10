@@ -106,7 +106,13 @@ int test_tx(uint32_t                     n_packets,
 /*
  * Genric function to test reception of in-sequence packets
  */
-int test_rx_in_sequence(uint64_t tx_next_max, const pdcp_initial_state &init_state, uint8_t pdcp_sn_len, srslte::byte_buffer_pool* pool, srslte::log* log)
+int test_rx_in_sequence(uint64_t                     tx_next_max,
+                        const pdcp_initial_state&    init_state,
+                        uint8_t                      pdcp_sn_len,
+                        uint32_t                     n_sdus_exp,
+                        srslte::byte_buffer_pool*    pool,
+                        srslte::log*                 log)
+
 {
 
   srslte::pdcp_config_t  cfg_tx = {1,
@@ -155,6 +161,9 @@ int test_rx_in_sequence(uint64_t tx_next_max, const pdcp_initial_state &init_sta
     // Check if resulting SDU matches original SDU
     TESTASSERT(compare_two_packets(sdu_exp,sdu_act) == 0);
   }
+
+  // Test if the number of RX packets
+  TESTASSERT(gw_rx->rx_count == n_sdus_exp);
   return 0;
 }
 
@@ -421,28 +430,29 @@ int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
    * Test in-sequence reception of 4097 packets.
    * This tests correct handling of HFN in the case of SN wraparound (SN LEN 12)
    */
-  TESTASSERT(test_rx_in_sequence(4096, normal_init_state, srslte::PDCP_SN_LEN_12, pool, log) == 0);
+   TESTASSERT(test_rx_in_sequence(4096, normal_init_state, srslte::PDCP_SN_LEN_12, 4097, pool, log) == 0);
 
   /*
    * RX Test 2: PDCP Entity with SN LEN = 12
    * Test in-sequence reception of 4294967297 packets.
    * This tests correct handling of COUNT in the case of [HFN|SN] wraparound
+   * Packet that wraparound should be dropped, so only one packet should be received at the GW.
    */
-  TESTASSERT(test_rx_in_sequence(4294967296, near_wraparound_init_state, srslte::PDCP_SN_LEN_12, pool, log) == 0);
+  TESTASSERT(test_rx_in_sequence(4294967296, near_wraparound_init_state, srslte::PDCP_SN_LEN_12, 1, pool, log) == 0);
 
   /*
    * RX Test 3: PDCP Entity with SN LEN = 18
    * Test In-sequence reception of 262145 packets.
    * This tests correct handling of HFN in the case of SN wraparound (SN LEN 18)
    */
-  TESTASSERT(test_rx_in_sequence(262144, normal_init_state, srslte::PDCP_SN_LEN_18, pool, log) == 0);
+  TESTASSERT(test_rx_in_sequence(262144, normal_init_state, srslte::PDCP_SN_LEN_18, 262146, pool, log) == 0);
 
   /*
    * RX Test 4: PDCP Entity with SN LEN = 18
    * Test in-sequence reception of 4294967297 packets.
    * This tests correct handling of COUNT in the case of [HFN|SN] wraparound
    */
-  TESTASSERT(test_rx_in_sequence(4294967296, near_wraparound_init_state, srslte::PDCP_SN_LEN_18, pool, log) == 0);
+  TESTASSERT(test_rx_in_sequence(4294967296, near_wraparound_init_state, srslte::PDCP_SN_LEN_18, 2, pool, log) == 0);
 
   /*
    * RX Test 5: PDCP Entity with SN LEN = 12
@@ -469,6 +479,7 @@ int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
   //TESTASSERT(test_rx_out_of_order(4294967297, srslte::PDCP_SN_LEN_12, pool, log) == 0);
   return 0;
 }
+
 // Setup all tests
 int run_all_tests(srslte::byte_buffer_pool* pool)
 {
@@ -477,8 +488,8 @@ int run_all_tests(srslte::byte_buffer_pool* pool)
   log.set_level(srslte::LOG_LEVEL_DEBUG);
   log.set_hex_limit(128);
 
-  TESTASSERT(test_tx_all(pool, &log) == 0);
-  //TESTASSERT(test_rx_all(pool, &log) == 0);
+  //TESTASSERT(test_tx_all(pool, &log) == 0);
+  TESTASSERT(test_rx_all(pool, &log) == 0);
 
   // Helpers for generating expected PDUs
   // srslte::unique_byte_buffer_t sdu = srslte::allocate_unique_buffer(*pool);
