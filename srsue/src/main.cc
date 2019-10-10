@@ -578,12 +578,12 @@ int main(int argc, char* argv[])
   }
 
   if (running) {
-    if (args.gui.enable) {
+  if (args.gui.enable) {
       ue.start_plot();
     }
   }
 
-  while (running) {
+  while (running){
     sleep(1);
   }
 
