@@ -92,6 +92,7 @@ int test_tx(uint32_t                     n_packets,
   srslte::pdcp_entity_nr* pdcp = &pdcp_hlp.pdcp;
   rlc_dummy*              rlc  = &pdcp_hlp.rlc;
 
+  pdcp_hlp.set_pdcp_initial_state(init_state);
 
   // Run test
   for (uint32_t i = 0; i < n_packets; ++i) {
@@ -104,6 +105,7 @@ int test_tx(uint32_t                     n_packets,
   srslte::unique_byte_buffer_t pdu_act = allocate_unique_buffer(*pool);
   rlc->get_last_sdu(pdu_act);
 
+  std::cout << "Actual RX pdus" << rlc->rx_count << "Rcvd pdus " << n_pdus_exp << "\n";
   TESTASSERT(rlc->rx_count == n_pdus_exp);
   TESTASSERT(compare_two_packets(pdu_act, pdu_exp) == 0);
   return 0;
