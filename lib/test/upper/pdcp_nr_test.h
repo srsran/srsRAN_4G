@@ -141,6 +141,8 @@ private:
 /*
  * Helper classes to reduce copy / pasting in setting up tests
  */
+
+// PDCP helper to setup PDCP + Dummy 
 class pdcp_nr_test_helper
 {
 public:
@@ -171,6 +173,7 @@ public:
   srslte::timers         timers;
 };
 
+// Helper function to generate PDUs 
 void gen_expected_pdu(srslte::unique_byte_buffer_t in_sdu,
                       uint32_t                     count,
                       srslte::pdcp_config_t        cfg,
@@ -182,11 +185,15 @@ void gen_expected_pdu(srslte::unique_byte_buffer_t in_sdu,
   srslte::pdcp_entity_nr* pdcp = &pdcp_hlp.pdcp;
   rlc_dummy*              rlc  = &pdcp_hlp.rlc;
 
-  for (uint32_t i = 0; i <= count; ++i) {
-    srslte::unique_byte_buffer_t sdu = srslte::allocate_unique_buffer(*pool);
-    *sdu                             = *in_sdu;
-    pdcp->write_sdu(std::move(sdu), true);
-  }
+  pdcp_initial_state init_state = {};
+  init_state.tx_next = count;
+  pdcp_hlp.set_pdcp_initial_state(init_state);
+
+  // for (uint32_t i = 0; i <= count; ++i) {
+  srslte::unique_byte_buffer_t sdu = srslte::allocate_unique_buffer(*pool);
+  *sdu                             = *in_sdu;
+  pdcp->write_sdu(std::move(sdu), true);
+  //}
   srslte::unique_byte_buffer_t out_pdu = srslte::allocate_unique_buffer(*pool);
   rlc->get_last_sdu(out_pdu);
   print_packet_array(out_pdu);

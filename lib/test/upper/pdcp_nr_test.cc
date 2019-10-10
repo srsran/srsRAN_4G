@@ -45,22 +45,15 @@ uint8_t sdu2[] = {0xde, 0xad};
 uint8_t pdu1_count0_snlen12[] = {0x80, 0x00, 0x8f, 0xe3, 0xe0, 0xdf, 0x82, 0x92};
 uint8_t pdu1_count2048_snlen12[] = {0x88, 0x00, 0x8d, 0x2c, 0x47, 0x5e, 0xb1, 0x5b};
 uint8_t pdu1_count4096_snlen12[] = {0x80, 0x00, 0x97, 0xbe, 0xa3, 0x32, 0xfa, 0x61};
-uint8_t pdu1_count4294967295_snlen12[] = {0x80, 0x00, 0x00, 0xc2, 0x47, 0xa8, 0xdd, 0xc0, 0x73};
+uint8_t pdu1_count4294967295_snlen12[] = {0x8f, 0xff, 0x1e, 0x47, 0xe6, 0x86, 0x28, 0x6c};
 uint8_t pdu1_count0_snlen18[] = {0x80, 0x00, 0x00, 0x8f, 0xe3, 0xe0, 0xdf, 0x82, 0x92};
 uint8_t pdu1_count131072_snlen18[] = {0x82, 0x00, 0x00, 0x15, 0x01, 0xf4, 0xb0, 0xfc, 0xc5};
 uint8_t pdu1_count262144_snlen18[] = {0x80, 0x00, 0x00, 0xc2, 0x47, 0xa8, 0xdd, 0xc0, 0x73};
-uint8_t pdu1_count4294967295_snlen18[] = {0x80, 0x00, 0x00, 0xc2, 0x47, 0xa8, 0xdd, 0xc0, 0x73};
+uint8_t pdu1_count4294967295_snlen18[] = {0x83, 0xff, 0xff, 0x1e, 0x47, 0xe6, 0x86, 0x28, 0x6c};
 
 // Test PDUs for rx (generated from SDU2)
 uint8_t pdu7[] = {0x80, 0x01, 0x5e, 0x3d, 0x64, 0xaf, 0xac, 0x7c};
 
-// Struct to help initialize pdcp_helper.
-struct pdcp_nr_initial_state_cfg {
-  uint32_t tx_next  = 0;
-  uint32_t rx_next  = 0;
-  uint32_t rx_deliv = 0;
-  uint32_t rx_reord = 0;
-};
 
 // This is the normal initial state. All state variables are set to zero
 pdcp_initial_state normal_init_state = {};
@@ -105,7 +98,6 @@ int test_tx(uint32_t                     n_packets,
   srslte::unique_byte_buffer_t pdu_act = allocate_unique_buffer(*pool);
   rlc->get_last_sdu(pdu_act);
 
-  std::cout << "Actual RX pdus" << rlc->rx_count << "Rcvd pdus " << n_pdus_exp << "\n";
   TESTASSERT(rlc->rx_count == n_pdus_exp);
   TESTASSERT(compare_two_packets(pdu_act, pdu_exp) == 0);
   return 0;
@@ -384,7 +376,23 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
                      log) == 0);
 
   /*
-   * TX Test 7: PDCP Entity with SN LEN = 18
+   * TX Test 7: PDCP Entity with SN LEN = 12
+   * Test TX at COUNT wraparound.
+   * Should print a warning and drop all packets after wraparound.
+   */
+  n_packets = 5;
+  srslte::unique_byte_buffer_t pdu_exp_count4294967295_len12 = allocate_unique_buffer(*pool);
+  pdu_exp_count4294967295_len12->append_bytes(pdu1_count4294967295_snlen12, sizeof(pdu1_count4294967295_snlen12));
+  TESTASSERT(test_tx(n_packets,
+                     near_wraparound_init_state,
+                     srslte::PDCP_SN_LEN_12,
+                     1,
+                     std::move(pdu_exp_count4294967295_len12),
+                     pool,
+                     log) == 0);
+
+  /*
+   * TX Test 8: PDCP Entity with SN LEN = 18
    * Test TX at COUNT wraparound.
    * Should print a warning and drop all packets after wraparound.
    */
@@ -393,7 +401,7 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
   pdu_exp_count4294967295_len18->append_bytes(pdu1_count4294967295_snlen18, sizeof(pdu1_count4294967295_snlen18));
   TESTASSERT(test_tx(n_packets,
                      near_wraparound_init_state,
-                     srslte::PDCP_SN_LEN_12,
+                     srslte::PDCP_SN_LEN_18,
                      1,
                      std::move(pdu_exp_count4294967295_len18),
                      pool,
@@ -469,18 +477,20 @@ int run_all_tests(srslte::byte_buffer_pool* pool)
   log.set_level(srslte::LOG_LEVEL_DEBUG);
   log.set_hex_limit(128);
 
+  TESTASSERT(test_tx_all(pool, &log) == 0);
+  //TESTASSERT(test_rx_all(pool, &log) == 0);
+
   // Helpers for generating expected PDUs
   // srslte::unique_byte_buffer_t sdu = srslte::allocate_unique_buffer(*pool);
   // sdu->append_bytes(sdu1, sizeof(sdu1));
   // srslte::pdcp_config_t cfg_tx = {1,
-  //                                 srslte::PDCP_RB_IS_DRB,
-  //                                 srslte::SECURITY_DIRECTION_UPLINK,
-  //                                 srslte::SECURITY_DIRECTION_DOWNLINK,
-  //                                 srslte::PDCP_SN_LEN_18,
-  //                                 srslte::pdcp_t_reordering_t::ms500};
-  //gen_expected_pdu(std::move(sdu), 0, cfg_tx, sec_cfg, &log, pool);
-  TESTASSERT(test_tx_all(pool, &log) == 0);
-  //TESTASSERT(test_rx_all(pool, &log) == 0);
+  //                                srslte::PDCP_RB_IS_DRB,
+  //                                srslte::SECURITY_DIRECTION_UPLINK,
+  //                                srslte::SECURITY_DIRECTION_DOWNLINK,
+  //                                srslte::PDCP_SN_LEN_12,
+  //                                srslte::pdcp_t_reordering_t::ms500};
+  // uint32_t tx_next = 4294967295;
+  // gen_expected_pdu(std::move(sdu), tx_next, cfg_tx, sec_cfg, &log, pool);
   return 0;
 }
 
