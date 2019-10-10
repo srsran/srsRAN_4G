@@ -957,6 +957,7 @@ static void gen_ack_fdd(srslte_pdsch_ack_t* ack_info, srslte_uci_data_t* uci_dat
   } else {
     // By default, in FDD we just pass through all HARQ-ACK bits
     uint32_t tb_count = 0;
+    uint32_t tb_count_cc0 = 0;
     uint32_t n        = 0;
     for (uint32_t cc_idx = 0; cc_idx < ack_info->nof_cc; cc_idx++) {
       for (uint32_t tb = 0; tb < nof_tb; tb++, n++) {
@@ -964,11 +965,45 @@ static void gen_ack_fdd(srslte_pdsch_ack_t* ack_info, srslte_uci_data_t* uci_dat
         if (ack_info->cc[cc_idx].m[0].present && ack_info->cc[cc_idx].m[0].value[tb] != 2) {
           tb_count++;
         }
+
+        // Save primary cell number of TB
+        if (cc_idx == 0) {
+          tb_count_cc0 = tb_count;
+        }
       }
     }
     if (ack_info->nof_cc == 1) {
       // If only 1 configured cell, report 1 or 2 bits depending on number of detected TB
       uci_data->cfg.ack[0].nof_acks = tb_count;
+    } else if (uci_data->cfg.cqi.data_enable && !ack_info->is_pusch_available) {
+      // 3GPP 36.213 R.15 Section 10.1.1:
+      // For FDD or for FDD-TDD and primary cell frame structure type 1 and for a UE that is configured with more than
+      // one serving cell, in case of collision between a periodic CSI report and an HARQ-ACK in a same subframe without
+      // PUSCH,
+      if (tb_count_cc0 == tb_count && ack_info->simul_cqi_ack) {
+        // - if the parameter simultaneousAckNackAndCQI provided by higher layers is set TRUE and if the HARQ-ACK
+        //   corresponds to a PDSCH transmission or PDCCH/EPDCCH indicating downlink SPS release only on the
+        //   primary cell, then the periodic CSI report is multiplexed with HARQ-ACK on PUCCH using PUCCH format 2/2a/2b
+        uci_data->cfg.ack[0].nof_acks = tb_count_cc0;
+#if 0
+      } else if (ack_info->simul_cqi_ack_pucch3 &&
+          tb_count + srslte_cqi_size(&uci_data->cfg.cqi) + uci_data->value.scheduling_request ? 1 : 0 <= 22) {
+        // - else if the UE is configured with PUCCH format 3 and if the parameter simultaneousAckNackAndCQI-Format3-
+        //   r11 provided by higher layers is set TRUE, and if PUCCH resource is determined according to subclause
+        //   10.1.2.2.2, and
+        //   - if the total number of bits in the subframe corresponding to HARQ-ACKs, SR (if any), and the CSI is not
+        //     larger than 22 or
+        //   - if the total number of bits in the subframe corresponding to spatially bundled HARQ-ACKs, SR (if any), and
+        //     the CSI is not larger than 22 then the periodic CSI report is multiplexed with HARQ-ACK on PUCCH using
+        //     the determined PUCCH format 3 resource according to [4]
+        for (int i = 0; i < ack_info->nof_cc; i++) {
+          uci_data->cfg.ack[i].nof_acks = (tb_count != 0) ? nof_tb : 0;
+        }
+#endif
+      } else {
+        // - otherwise, CSI is dropped
+        uci_data->cfg.cqi.data_enable = false;
+      }
     } else {
       // For 2 or more configured cells, report nof_tb per carrier except if there are no HARQ-ACK bits to report, in
       // which case we set to 0

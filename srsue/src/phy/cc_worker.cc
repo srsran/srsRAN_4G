@@ -634,6 +634,8 @@ bool cc_worker::work_ul(srslte_uci_data_t* uci_data)
   } else {
     /* Check PCell and enabled secondary cells */
     if (cc_idx == 0 || phy->scell_cfg[cc_idx].enabled) {
+      // 3GPP 36.213 Section 7.2
+      // If the UE is configured with more than one serving cell, it transmits CSI for activated serving cell(s) only.
       set_uci_periodic_cqi(uci_data);
     }
   }
