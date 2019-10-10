@@ -455,6 +455,15 @@ proc_outcome_t rrc::cell_selection_proc::step()
   return proc_outcome_t::error;
 }
 
+void rrc::cell_selection_proc::stop()
+{
+  // Inform Connection Request Procedure
+  Info("Completed with %s. Informing proc %s\n",
+       is_success() ? "success" : "failure",
+       rrc_ptr->conn_req_proc.get()->name());
+  rrc_ptr->conn_req_proc.trigger_event(connection_request_proc::cell_selection_complete{is_success(), cs_result});
+}
+
 /**************************************
  *       PLMN search Procedure
  *************************************/
@@ -569,59 +578,27 @@ proc_outcome_t rrc::connection_request_proc::init(rrc*                          
 
   cs_ret = cs_result_t::no_cell;
 
-  if (not rrc_ptr->cell_selector.launch(rrc_ptr)) {
-    Error("Failed to initiate cell selection procedure...\n");
-    return proc_outcome_t::error;
-  }
   state = state_t::cell_selection;
+  if (not rrc_ptr->cell_selector.launch(rrc_ptr)) {
+    if (not rrc_ptr->cell_selector.is_active()) {
+      // Launch failed but cell selection was not already running
+      Error("Failed to initiate cell selection procedure...\n");
+      return proc_outcome_t::error;
+    }
+    // In case it was already running, just wait for an cell_selection_complete event trigger
+    Info("Cell selection proc already on-going. Wait for its result\n");
+  } else {
+    // In case we were able to launch it, let the callback list handle it
+    rrc_ptr->callback_list.defer_proc(rrc_ptr->cell_selector);
+  }
   return proc_outcome_t::repeat;
 }
 
 proc_outcome_t rrc::connection_request_proc::step()
 {
   if (state == state_t::cell_selection) {
-    // Perform cell selection & reselection for the selected PLMN
-    if (rrc_ptr->cell_selector.run()) {
-      return proc_outcome_t::yield;
-    }
-    cell_selection_proc result = rrc_ptr->cell_selector.pop();
-    if (result.is_error()) {
-      return proc_outcome_t::error;
-    }
-    cs_ret = result.get_cs_result();
-
-    // .. and SI acquisition
-    if (rrc_ptr->phy->cell_is_camping()) {
-
-      // Set default configurations
-      rrc_ptr->set_phy_default();
-      rrc_ptr->set_mac_default();
-
-      // CCCH configuration applied already at start
-      // timeAlignmentCommon applied in configure_serving_cell
-
-      Info("Configuring serving cell...\n");
-      if (not rrc_ptr->serv_cell_cfg.launch(rrc_ptr, rrc_ptr->ue_required_sibs)) {
-        Error("Attach request failed to configure serving cell...\n");
-        return proc_outcome_t::error;
-      }
-      state = state_t::config_serving_cell;
-      return proc_outcome_t::repeat;
-    } else {
-      switch (cs_ret) {
-        case cs_result_t::same_cell:
-          log_h->warning("Did not reselect cell but serving cell is out-of-sync.\n");
-          rrc_ptr->serving_cell->in_sync = false;
-          break;
-        case cs_result_t::changed_cell:
-          log_h->warning("Selected a new cell but could not camp on. Setting out-of-sync.\n");
-          rrc_ptr->serving_cell->in_sync = false;
-          break;
-        default:
-          log_h->warning("Could not find any suitable cell to connect\n");
-      }
-      return proc_outcome_t::error;
-    }
+    // NOTE: cell selection will signal back with an event trigger
+    return proc_outcome_t::yield;
   } else if (state == state_t::config_serving_cell) {
     if (rrc_ptr->serv_cell_cfg.run()) {
       return proc_outcome_t::yield;
@@ -684,6 +661,50 @@ void rrc::connection_request_proc::stop()
   } else if (is_success()) {
     Info("Finished connection request procedure successfully.\n");
     rrc_ptr->nas->connection_request_completed(true);
+  }
+}
+
+srslte::proc_outcome_t rrc::connection_request_proc::trigger_event(const cell_selection_complete& e)
+{
+  if (state != state_t::cell_selection) {
+    // ignore if we are not expecting an cell selection result
+    return proc_outcome_t::yield;
+  }
+  if (not e.is_success) {
+    return proc_outcome_t::error;
+  }
+  cs_ret = e.cs_result;
+  // .. and SI acquisition
+  if (rrc_ptr->phy->cell_is_camping()) {
+
+    // Set default configurations
+    rrc_ptr->set_phy_default();
+    rrc_ptr->set_mac_default();
+
+    // CCCH configuration applied already at start
+    // timeAlignmentCommon applied in configure_serving_cell
+
+    Info("Configuring serving cell...\n");
+    if (not rrc_ptr->serv_cell_cfg.launch(rrc_ptr, rrc_ptr->ue_required_sibs)) {
+      Error("Attach request failed to configure serving cell...\n");
+      return proc_outcome_t::error;
+    }
+    state = state_t::config_serving_cell;
+    return proc_outcome_t::repeat;
+  } else {
+    switch (cs_ret) {
+      case cs_result_t::same_cell:
+        log_h->warning("Did not reselect cell but serving cell is out-of-sync.\n");
+        rrc_ptr->serving_cell->in_sync = false;
+        break;
+      case cs_result_t::changed_cell:
+        log_h->warning("Selected a new cell but could not camp on. Setting out-of-sync.\n");
+        rrc_ptr->serving_cell->in_sync = false;
+        break;
+      default:
+        log_h->warning("Could not find any suitable cell to connect\n");
+    }
+    return proc_outcome_t::error;
   }
 }
 

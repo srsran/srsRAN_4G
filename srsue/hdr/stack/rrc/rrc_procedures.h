@@ -103,6 +103,7 @@ class rrc::cell_selection_proc : public srslte::proc_impl_t
 public:
   srslte::proc_outcome_t init(rrc* parent_);
   srslte::proc_outcome_t step() final;
+  void                   stop() final;
   cs_result_t            get_cs_result() { return cs_result; }
   static const char*     name() { return "Cell Selection"; }
 
@@ -143,10 +144,16 @@ private:
 class rrc::connection_request_proc : public srslte::proc_impl_t
 {
 public:
+  struct cell_selection_complete {
+    bool        is_success;
+    cs_result_t cs_result;
+  };
+
   srslte::proc_outcome_t
                          init(rrc* parent_, srslte::establishment_cause_t cause_, srslte::unique_byte_buffer_t dedicated_info_nas_);
   srslte::proc_outcome_t step() final;
   void                   stop() final;
+  srslte::proc_outcome_t trigger_event(const cell_selection_complete& e);
   static const char*     name() { return "Connection Request"; }
 
 private:
