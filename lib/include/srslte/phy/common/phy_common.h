@@ -288,7 +288,7 @@ enum band_geographical_area {
   SRSLTE_BAND_GEO_AREA_NA
 };
 
-// NB-IoT specific structs
+///< NB-IoT specific structs
 typedef enum {
   SRSLTE_NBIOT_MODE_INBAND_SAME_PCI = 0,
   SRSLTE_NBIOT_MODE_INBAND_DIFFERENT_PCI,
@@ -328,6 +328,21 @@ typedef struct SRSLTE_API {
 #define SRSLTE_NBIOT_NPBCH_NOF_TOTAL_BITS (1600) ///< Number of bits for the entire NPBCH (See 36.211 Sec 10.2.4.1)
 #define SRSLTE_NBIOT_NPBCH_NOF_BITS_SF                                                                                 \
   (SRSLTE_NBIOT_NPBCH_NOF_TOTAL_BITS / 8) ///< The NPBCH is transmitted in 8 blocks (See 36.211 Sec 10.2.4.4)
+
+///< Sidelink
+typedef enum SRSLTE_API {
+  SRSLTE_SIDELINK_TM1,
+  SRSLTE_SIDELINK_TM2,
+  SRSLTE_SIDELINK_TM3,
+  SRSLTE_SIDELINK_TM4
+} srslte_sl_tm_t;
+
+typedef enum SRSLTE_API {
+  SRSLTE_SIDELINK_PSBCH,
+  SRSLTE_SIDELINK_PSCCH,
+  SRSLTE_SIDELINK_PSSCH,
+  SRSLTE_SIDELINK_PSDCH
+} srslte_sl_channels_t;
 
 SRSLTE_API bool srslte_cell_isvalid(srslte_cell_t* cell);
 

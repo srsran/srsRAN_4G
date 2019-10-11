@@ -76,9 +76,53 @@ add_test(sync_test_400 sync_test -o 400 -p 50 -c 500)
 add_test(sync_test_100_e sync_test -o 100 -e -p 50 -c 133)
 add_test(sync_test_400_e sync_test -o 400 -e -p 50 -c 123)
 
+########################################################################
+# SYNC NB-IoT TEST
+########################################################################
+
 add_test(npss_test_nonoise npss_test)
 add_test(nsss_test_nonoise_2 nsss_test -c 2)
 add_test(nsss_test_nonoise_501 nsss_test -c 501)
+
+########################################################################
+# SYNC SL TEST
+########################################################################
+
+add_executable(sync_sl_test sync_sl_test.c)
+target_link_libraries(sync_sl_test srslte_phy)
+
+add_executable(psss_file_test psss_file_test.c)
+target_link_libraries(psss_file_test srslte_phy)
+
+# SL TM 2
+add_test(sync_sl_test_tm2_p6_c_0 sync_sl_test -p 6 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p6_c0_s1.92e+6.dat)
+add_test(sync_sl_test_tm2_p15_c_84 sync_sl_test -p 15 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p15_c84_s3.84e+6.dat)
+add_test(sync_sl_test_tm2_p25_c_168 sync_sl_test -p 25 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p25_c168_s7.68e+6.dat)
+add_test(sync_sl_test_tm2_p50_c_252 sync_sl_test -p 50 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p50_c252_s15.36e+6.dat)
+add_test(sync_sl_test_tm2_p100_c_335 sync_sl_test -p 100 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p100_c335_s30.72e+6.dat)
+# Sample offset
+add_test(sync_sl_test_tm2_p25_c_168_so sync_sl_test -p 25 -d -o 300 -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm2_p25_c168_s7.68e+6.dat)
+# Self-test
+add_test(sync_sl_test_tm2_self_test_p25_c_168 sync_sl_test -p 25 -c 168 -d)
+# Self-test with frequency offset
+add_test(sync_sl_test_tm2_self_test_p25_c_168_fo sync_sl_test -p 25 -c 168 -d -f 100)
+# Self-test with frequency offset and sample offset
+add_test(sync_sl_test_tm2_self_test_p25_c_168_fo_so sync_sl_test -p 25 -c 168 -d -f 100 -o 3600)
+
+# SL TM 4
+add_test(sync_sl_test_tm4_p6_c_0 sync_sl_test -p 6 -t 4 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm4_p6_c0_s1.92e+6.dat)
+add_test(sync_sl_test_tm4_p15_c_84 sync_sl_test -p 15 -t 4 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm4_p15_c84_s3.84e+6.dat)
+add_test(sync_sl_test_tm4_p25_c_168 sync_sl_test -p 25 -t 4 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm4_p25_c168_s7.68e+6.dat)
+add_test(sync_sl_test_tm4_p50_c_252 sync_sl_test -p 50 -t 4 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm4_p50_c252_s15.36e+6.dat)
+add_test(sync_sl_test_tm4_p100_c_335 sync_sl_test -p 100 -t 4 -d -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm4_p100_c335_s30.72e+6.dat)
+# Sample offset
+add_test(sync_sl_test_tm4_p25_c_168_so sync_sl_test -p 25 -t 4 -d -o 300 -i ${CMAKE_HOME_DIRECTORY}/lib/src/phy/phch/test/signal_sidelink_ideal_tm4_p25_c168_s7.68e+6.dat)
+# Self-test
+add_test(sync_sl_test_self_test_tm4_p25_c_168 sync_sl_test -p 25 -t 4 -c 168 -d)
+# Self-test with frequency offset
+add_test(sync_sl_test_self_test_tm4_p25_c_168_fo sync_sl_test -p 25 -t 4 -c 168 -d -f 100)
+# Self-test with frequency offset and sample offset
+add_test(sync_sl_test_self_test_tm4_p25_c_168_fo_so sync_sl_test -p 25 -t 4 -c 168 -d -f 100 -o 3600)
 
 ########################################################################
 # CFO TEST  
