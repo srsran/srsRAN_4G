@@ -136,7 +136,16 @@ public:
         ret = subheaders[nof_subheaders].read_subheader(&ptr);
         nof_subheaders++;
       }
-    } while (ret && (nof_subheaders + 1) < (int)max_subheaders);
+
+      if (ret && (ptr - init_ptr) >= pdu_len) {
+        // stop processing last subheader indicates another one but all bytes are consume
+        nof_subheaders = 0;
+        INFO("Corrupted MAC PDU - all bytes have been consumed (pdu_len=%d)\n", pdu_len);
+        if (log) {
+          log->info_hex(init_ptr, pdu_len, "Corrupted MAC PDU - all bytes have been consumed (pdu_len=%d)\n", pdu_len);
+        }
+      }
+    } while (ret && (nof_subheaders + 1) < (int)max_subheaders && pdu_len > (ptr - init_ptr));
 
     for (int i = 0; i < nof_subheaders; i++) {
       subheaders[i].read_payload(&ptr);
