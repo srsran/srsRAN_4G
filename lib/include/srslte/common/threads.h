@@ -75,6 +75,17 @@ public:
     pthread_cancel(_thread);
   }
 
+  static std::string get_name()
+  {
+    const uint32_t  MAX_LEN       = 16;
+    char            name[MAX_LEN] = {};
+    const pthread_t tid           = pthread_self();
+    if (pthread_getname_np(tid, name, MAX_LEN)) {
+      perror("Could not get pthread name");
+    }
+    return std::string(name);
+  }
+
 protected:
   virtual void run_thread() = 0;
 
