@@ -173,14 +173,21 @@ public:
   srslte::timers         timers;
 };
 
-// Helper function to generate PDUs 
-void gen_expected_pdu(srslte::unique_byte_buffer_t in_sdu,
-                      uint32_t                     count,
-                      srslte::pdcp_config_t        cfg,
-                      pdcp_security_cfg            sec_cfg,
-                      srslte::log*                 log,
-                      srslte::byte_buffer_pool*    pool)
+// Helper function to generate PDUs
+srslte::unique_byte_buffer_t gen_expected_pdu(const srslte::unique_byte_buffer_t& in_sdu,
+                                              uint32_t                            count,
+                                              uint8_t                             pdcp_sn_len,
+                                              pdcp_security_cfg                   sec_cfg,
+                                              srslte::byte_buffer_pool*           pool,
+                                              srslte::log*                        log)
 {
+  srslte::pdcp_config_t cfg = {1,
+                               srslte::PDCP_RB_IS_DRB,
+                               srslte::SECURITY_DIRECTION_DOWNLINK,
+                               srslte::SECURITY_DIRECTION_UPLINK,
+                               pdcp_sn_len,
+                               srslte::pdcp_t_reordering_t::ms500};
+
   pdcp_nr_test_helper     pdcp_hlp(cfg, sec_cfg, log);
   srslte::pdcp_entity_nr* pdcp = &pdcp_hlp.pdcp;
   rlc_dummy*              rlc  = &pdcp_hlp.rlc;
@@ -189,25 +196,28 @@ void gen_expected_pdu(srslte::unique_byte_buffer_t in_sdu,
   init_state.tx_next = count;
   pdcp_hlp.set_pdcp_initial_state(init_state);
 
-  // for (uint32_t i = 0; i <= count; ++i) {
   srslte::unique_byte_buffer_t sdu = srslte::allocate_unique_buffer(*pool);
   *sdu                             = *in_sdu;
   pdcp->write_sdu(std::move(sdu), true);
-  //}
   srslte::unique_byte_buffer_t out_pdu = srslte::allocate_unique_buffer(*pool);
   rlc->get_last_sdu(out_pdu);
-  print_packet_array(out_pdu);
+
+  return std::move(out_pdu);
 }
 
 // Helper function to generate vector of PDU from a vector of TX_NEXTs for generating expected pdus
-void gen_expected_pdus_vector(const std::vector<uint32_t>&               tx_nexts,
-                              std::vector<srslte::unique_byte_buffer_t>& pdu_vec,
-                              srslte::byte_buffer_pool*                  pool)
+std::vector<srslte::unique_byte_buffer_t> gen_expected_pdus_vector(const srslte::unique_byte_buffer_t& in_sdu,
+                                                                   const std::vector<uint32_t>&        tx_nexts,
+                                                                   uint8_t                             pdcp_sn_len,
+                                                                   pdcp_security_cfg                   sec_cfg,
+                                                                   srslte::byte_buffer_pool*           pool,
+                                                                   srslte::log*                        log)
 {
+  std::vector<srslte::unique_byte_buffer_t> pdu_vec;
   for (uint32_t tx_next : tx_nexts) {
-    srslte::unique_byte_byffer_t pdu = srslte::allocate_byte_buffer(*pool);
-    gen_expected_pdu(tx_next, pdu);
-    pdu_vec.push_back(pdu);
+    srslte::unique_byte_buffer_t pdu = gen_expected_pdu(in_sdu, tx_next, pdcp_sn_len, sec_cfg, pool, log);
+    pdu_vec.push_back(std::move(pdu));
   }
+  return pdu_vec;
 }
 #endif // SRSLTE_PDCP_NR_TEST_H

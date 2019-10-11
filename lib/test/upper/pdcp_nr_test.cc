@@ -19,6 +19,7 @@
  *
  */
 #include "pdcp_nr_test.h"
+#include <numeric>
 
 // Encryption and Integrity Keys
 uint8_t k_int[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15,
@@ -424,60 +425,69 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
  */
 int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
 {
+   // Test SDUs
+   srslte::unique_byte_buffer_t tst_sdu1 = allocate_unique_buffer(*pool); // SDU 1 
+   tst_sdu1->append_bytes(sdu1, sizeof(sdu1));
+   srslte::unique_byte_buffer_t tst_sdu2 = allocate_unique_buffer(*pool); // SDU 2
+   tst_sdu2->append_bytes(sdu2, sizeof(sdu2));
 
   /*
    * RX Test 1: PDCP Entity with SN LEN = 12
    * Test in-sequence reception of 4097 packets.
    * This tests correct handling of HFN in the case of SN wraparound (SN LEN 12)
    */
-   TESTASSERT(test_rx_in_sequence(4096, normal_init_state, srslte::PDCP_SN_LEN_12, 4097, pool, log) == 0);
+   std::vector<uint32_t> test1_counts(2);                      // Test two packets
+   std::iota(test1_counts.begin(), test1_counts.end(), 4095);  // Starting at COUNT 4095
+   std::vector<srslte::unique_byte_buffer_t> test1_exp_pdus = gen_expected_pdus_vector(tst_sdu1, test1_counts, srslte::PDCP_SN_LEN_12, sec_cfg, pool, log);
+   pdcp_initial_state test1_init_state = {.tx_next = 4095, .rx_next = 4095, .rx_deliv = 4095, .rx_reord = 0};
+   TESTASSERT(test_rx_in_sequence(4096, test1_init_state, srslte::PDCP_SN_LEN_12, 2, pool, log) == 0);
 
-  /*
-   * RX Test 2: PDCP Entity with SN LEN = 12
-   * Test in-sequence reception of 4294967297 packets.
-   * This tests correct handling of COUNT in the case of [HFN|SN] wraparound
-   * Packet that wraparound should be dropped, so only one packet should be received at the GW.
-   */
-  TESTASSERT(test_rx_in_sequence(4294967296, near_wraparound_init_state, srslte::PDCP_SN_LEN_12, 1, pool, log) == 0);
+   /*
+    * RX Test 2: PDCP Entity with SN LEN = 12
+    * Test in-sequence reception of 4294967297 packets.
+    * This tests correct handling of COUNT in the case of [HFN|SN] wraparound
+    * Packet that wraparound should be dropped, so only one packet should be received at the GW.
+    */
+   TESTASSERT(test_rx_in_sequence(4294967296, near_wraparound_init_state, srslte::PDCP_SN_LEN_12, 1, pool, log) == 0);
 
-  /*
-   * RX Test 3: PDCP Entity with SN LEN = 18
-   * Test In-sequence reception of 262145 packets.
-   * This tests correct handling of HFN in the case of SN wraparound (SN LEN 18)
-   */
-  TESTASSERT(test_rx_in_sequence(262144, normal_init_state, srslte::PDCP_SN_LEN_18, 262146, pool, log) == 0);
+   /*
+    * RX Test 3: PDCP Entity with SN LEN = 18
+    * Test In-sequence reception of 262145 packets.
+    * This tests correct handling of HFN in the case of SN wraparound (SN LEN 18)
+    */
+   TESTASSERT(test_rx_in_sequence(262144, normal_init_state, srslte::PDCP_SN_LEN_18, 262146, pool, log) == 0);
 
-  /*
-   * RX Test 4: PDCP Entity with SN LEN = 18
-   * Test in-sequence reception of 4294967297 packets.
-   * This tests correct handling of COUNT in the case of [HFN|SN] wraparound
-   */
-  TESTASSERT(test_rx_in_sequence(4294967296, near_wraparound_init_state, srslte::PDCP_SN_LEN_18, 2, pool, log) == 0);
+   /*
+    * RX Test 4: PDCP Entity with SN LEN = 18
+    * Test in-sequence reception of 4294967297 packets.
+    * This tests correct handling of COUNT in the case of [HFN|SN] wraparound
+    */
+   TESTASSERT(test_rx_in_sequence(4294967296, near_wraparound_init_state, srslte::PDCP_SN_LEN_18, 2, pool, log) == 0);
 
-  /*
-   * RX Test 5: PDCP Entity with SN LEN = 12
-   * Test Reception of one out-of-order packet.
-   */
-  TESTASSERT(test_rx_out_of_order(normal_init_state, srslte::PDCP_SN_LEN_12, pool, log) == 0);
+   /*
+    * RX Test 5: PDCP Entity with SN LEN = 12
+    * Test Reception of one out-of-order packet.
+    */
+   TESTASSERT(test_rx_out_of_order(normal_init_state, srslte::PDCP_SN_LEN_12, pool, log) == 0);
 
-  /*
-   * RX Test 6: PDCP Entity with SN LEN = 12
-   * Test Reception of one out-of-order packet at COUNT wraparound.
-   */
-  TESTASSERT(test_rx_out_of_order(near_wraparound_init_state, srslte::PDCP_SN_LEN_12, pool, log) == 0);
+   /*
+    * RX Test 6: PDCP Entity with SN LEN = 12
+    * Test Reception of one out-of-order packet at COUNT wraparound.
+    */
+   TESTASSERT(test_rx_out_of_order(near_wraparound_init_state, srslte::PDCP_SN_LEN_12, pool, log) == 0);
 
-  /*
-   * RX Test 5: PDCP Entity with SN LEN = 12
-   * Test timeout of t-Reordering when one packet is lost.
-   */
-  //TESTASSERT(test_rx_out_of_order_timeout(srslte::PDCP_SN_LEN_12, pool, log) == 0);
+   /*
+    * RX Test 5: PDCP Entity with SN LEN = 12
+    * Test timeout of t-Reordering when one packet is lost.
+    */
+   // TESTASSERT(test_rx_out_of_order_timeout(srslte::PDCP_SN_LEN_12, pool, log) == 0);
 
-  /*
-   * RX Test 5: PDCP Entity with SN LEN = 12
-   * Test timeout of t-Reordering when one packet is lost.
-   */
-  //TESTASSERT(test_rx_out_of_order(4294967297, srslte::PDCP_SN_LEN_12, pool, log) == 0);
-  return 0;
+   /*
+    * RX Test 5: PDCP Entity with SN LEN = 12
+    * Test timeout of t-Reordering when one packet is lost.
+    */
+   // TESTASSERT(test_rx_out_of_order(4294967297, srslte::PDCP_SN_LEN_12, pool, log) == 0);
+   return 0;
 }
 
 // Setup all tests
