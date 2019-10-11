@@ -826,4 +826,51 @@ proc_outcome_t rrc::go_idle_proc::step()
   return proc_outcome_t::yield;
 }
 
+/**************************************
+ *    Cell Reselection procedure
+ *************************************/
+
+proc_outcome_t rrc::cell_reselection_proc::init(srsue::rrc* rrc_)
+{
+  rrc_ptr = rrc_;
+
+  Info("Cell Reselection - Starting...\n");
+  if (not rrc_ptr->cell_selector.launch(rrc_ptr)) {
+    Error("Failed to initiate a Cell Selection procedure...\n");
+    return proc_outcome_t::error;
+  }
+
+  return proc_outcome_t::yield;
+}
+
+proc_outcome_t rrc::cell_reselection_proc::step()
+{
+  if (rrc_ptr->cell_selector.run()) {
+    return srslte::proc_outcome_t::yield;
+  }
+  cell_selection_proc ret = rrc_ptr->cell_selector.pop();
+  if (ret.is_error()) {
+    Error("Cell Reselection - Error while selecting a cell\n");
+    return srslte::proc_outcome_t::error;
+  }
+
+  switch (ret.get_cs_result()) {
+    case cs_result_t::changed_cell:
+      // New cell has been selected, start receiving PCCH
+      rrc_ptr->mac->pcch_start_rx();
+      break;
+    case cs_result_t::no_cell:
+      Warning("Could not find any cell to camp on\n");
+      break;
+    case cs_result_t::same_cell:
+      if (!rrc_ptr->phy->cell_is_camping()) {
+        Warning("Did not reselect cell but serving cell is out-of-sync.\n");
+        rrc_ptr->serving_cell->in_sync = false;
+      }
+      break;
+  }
+  Info("Cell Reselection - Finished successfully\n");
+  return srslte::proc_outcome_t::success;
+}
+
 } // namespace srsue

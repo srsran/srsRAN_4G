@@ -205,6 +205,17 @@ private:
   uint32_t rlc_flush_counter;
 };
 
+class rrc::cell_reselection_proc : public srslte::proc_impl_t
+{
+public:
+  srslte::proc_outcome_t init(rrc* rrc_);
+  srslte::proc_outcome_t step() final;
+  static const char*     name() { return "Cell Reselection"; }
+
+private:
+  rrc* rrc_ptr;
+};
+
 } // namespace srsue
 
 #endif // SRSLTE_RRC_PROCEDURES_H

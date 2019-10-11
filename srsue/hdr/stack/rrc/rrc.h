@@ -615,6 +615,7 @@ private:
   class plmn_search_proc;
   class process_pcch_proc;
   class go_idle_proc;
+  class cell_reselection_proc;
   srslte::proc_t<cell_search_proc>         cell_searcher;
   srslte::proc_t<si_acquire_proc>          si_acquirer;
   srslte::proc_t<serving_cell_config_proc> serv_cell_cfg;
@@ -623,6 +624,7 @@ private:
   srslte::proc_t<process_pcch_proc>        pcch_processor;
   srslte::proc_t<connection_request_proc>  conn_req_proc;
   srslte::proc_t<plmn_search_proc>         plmn_searcher;
+  srslte::proc_t<cell_reselection_proc>    cell_reselector;
 
   srslte::callback_list_t callback_list;
 

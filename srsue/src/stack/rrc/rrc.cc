@@ -1445,40 +1445,15 @@ void rrc::start_cell_reselection()
     return;
   }
 
-  if (not cell_selector.launch(this)) {
-    rrc_log->error("Failed to initiate a Cell Selection procedure...\n");
+  if (cell_reselector.is_active()) {
+    // it is already running
     return;
   }
 
-  rrc_log->info("Cell Reselection - Starting...\n");
-  callback_list.defer_task([this]() {
-    if (cell_selector.run()) {
-      return srslte::proc_outcome_t::yield;
-    }
-    cell_selection_proc ret = cell_selector.pop();
-    if (ret.is_error()) {
-      rrc_log->error("Cell Reselection - Error while selecting a cell\n");
-      return srslte::proc_outcome_t::error;
-    } else {
-      switch (ret.get_cs_result()) {
-        case cs_result_t::changed_cell:
-          // New cell has been selected, start receiving PCCH
-          mac->pcch_start_rx();
-          break;
-        case cs_result_t::no_cell:
-          rrc_log->warning("Could not find any cell to camp on\n");
-          break;
-        case cs_result_t::same_cell:
-          if (!phy->cell_is_camping()) {
-            rrc_log->warning("Did not reselect cell but serving cell is out-of-sync.\n");
-            serving_cell->in_sync = false;
-          }
-          break;
-      }
-    }
-    rrc_log->info("Cell Reselection - Finished successfully\n");
-    return srslte::proc_outcome_t::success;
-  });
+  if (not cell_reselector.launch(this)) {
+    rrc_log->error("Failed to initiate a Cell Reselection procedure...\n");
+  }
+  callback_list.defer_proc(cell_reselector);
 }
 
 void rrc::cell_search_completed(const phy_interface_rrc_lte::cell_search_ret_t& cs_ret,
