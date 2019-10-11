@@ -35,7 +35,7 @@ public:
   ttcn3_sys_interface() : netsource_handler("TTCN3_SYS_IF"){};
   ~ttcn3_sys_interface(){};
 
-  void init(syssim_interface* syssim_, srslte::log* log_, std::string net_ip_, uint32_t net_port_)
+  void init(ss_sys_interface* syssim_, srslte::log* log_, std::string net_ip_, uint32_t net_port_)
   {
     syssim      = syssim_;
     net_ip      = net_ip_;
@@ -596,7 +596,7 @@ private:
   }
 
   phy_interface_syssim* phy    = nullptr;
-  syssim_interface*     syssim = nullptr;
+  ss_sys_interface*     syssim = nullptr;
   byte_buffer_pool*     pool   = nullptr;
 };
 

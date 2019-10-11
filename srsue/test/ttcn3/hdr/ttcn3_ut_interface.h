@@ -37,7 +37,7 @@ public:
   ttcn3_ut_interface() : netsource_handler("TTCN3_UT_IF") {}
   ~ttcn3_ut_interface(){};
 
-  void init(syssim_interface* syssim_, srslte::log* log_, std::string net_ip_, uint32_t net_port_)
+  void init(ss_ut_interface* syssim_, srslte::log* log_, std::string net_ip_, uint32_t net_port_)
   {
     syssim      = syssim_;
     log         = log_;
@@ -181,7 +181,7 @@ private:
     }
   }
 
-  syssim_interface* syssim = nullptr;
+  ss_ut_interface* syssim = nullptr;
 };
 
 #endif // SRSUE_TTCN3_UT_INTERFACE_H

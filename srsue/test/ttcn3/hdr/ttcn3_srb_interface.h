@@ -34,10 +34,10 @@ using namespace srslte;
 class ttcn3_srb_interface : public netsource_handler
 {
 public:
-  ttcn3_srb_interface() : syssim(nullptr), pool(byte_buffer_pool::get_instance()), netsource_handler("TTCN3_SRB_IF"){};
+  ttcn3_srb_interface() : pool(byte_buffer_pool::get_instance()), netsource_handler("TTCN3_SRB_IF"){};
   ~ttcn3_srb_interface(){};
 
-  void init(syssim_interface* syssim_, srslte::log* log_, std::string net_ip_, uint32_t net_port_)
+  void init(ss_srb_interface* syssim_, srslte::log* log_, std::string net_ip_, uint32_t net_port_)
   {
     syssim   = syssim_;
     log      = log_;
@@ -166,7 +166,7 @@ private:
     syssim->add_dcch_pdu(lcid, std::move(pdu));
   }
 
-  syssim_interface* syssim = nullptr;
+  ss_srb_interface* syssim = nullptr;
   byte_buffer_pool* pool   = nullptr;
 };
 

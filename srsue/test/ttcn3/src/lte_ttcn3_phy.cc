@@ -75,6 +75,8 @@ void lte_ttcn3_phy::set_cell_map(const cell_list_t& cells_)
 // The interface for RRC
 void lte_ttcn3_phy::get_current_cell(srslte_cell_t* cell_, uint32_t* earfcn_)
 {
+  std::lock_guard<std::mutex> lock(mutex);
+
   if (cell_) {
     memcpy(cell_, &pcell.info, sizeof(srslte_cell_t));
   }
@@ -202,6 +204,8 @@ std::string lte_ttcn3_phy::get_type()
 
 phy_interface_mac_lte::prach_info_t lte_ttcn3_phy::prach_get_info()
 {
+  std::lock_guard<std::mutex> lock(mutex);
+
   prach_info_t info = {};
   if (prach_tti_tx != -1) {
     info.is_transmitted = true;
@@ -281,6 +285,8 @@ float lte_ttcn3_phy::get_pathloss_db()
 // Calling function hold mutex
 void lte_ttcn3_phy::new_grant_ul(mac_interface_phy_lte::mac_grant_ul_t ul_mac_grant)
 {
+  std::lock_guard<std::mutex> lock(mutex);
+
   mac_interface_phy_lte::tb_action_ul_t ul_action = {};
 
   // Deliver grant and retrieve payload

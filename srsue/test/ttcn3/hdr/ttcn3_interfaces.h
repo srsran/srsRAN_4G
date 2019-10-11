@@ -25,8 +25,8 @@
 #include "srslte/common/common.h"
 #include "srslte/interfaces/ue_interfaces.h"
 
-// Interface used by system interface to communicate with main component
-class syssim_interface
+// Interfaces used by system interface to communicate with main component
+class ss_ut_interface
 {
 public:
   virtual void     tc_start(const char* name)                                                                     = 0;
@@ -36,12 +36,15 @@ public:
   virtual void     switch_off_ue()                                                                                = 0;
   virtual void     enable_data()                                                                                  = 0;
   virtual void     disable_data()                                                                                 = 0;
-  virtual void     set_cell_config(std::string cell_name, uint32_t earfcn, srslte_cell_t cell, const float power) = 0;
-  virtual void     set_cell_attenuation(std::string cell_name, const float attenuation)                           = 0;
+};
+
+class ss_sys_interface
+{
+public:
   virtual void     add_bcch_pdu(srslte::unique_byte_buffer_t pdu)                                                 = 0;
-  virtual void     add_ccch_pdu(srslte::unique_byte_buffer_t pdu)                                                 = 0;
-  virtual void     add_dcch_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu)                                  = 0;
   virtual void     add_pch_pdu(srslte::unique_byte_buffer_t pdu)                                                  = 0;
+  virtual void     set_cell_attenuation(std::string cell_name, const float attenuation)                           = 0;
+  virtual void     set_cell_config(std::string cell_name, uint32_t earfcn, srslte_cell_t cell, const float power) = 0;
   virtual void     add_srb(uint32_t lcid, srslte::pdcp_config_t pdcp_config)                                      = 0;
   virtual void     del_srb(uint32_t lcid)                                                                         = 0;
   virtual uint32_t get_tti()                                                                                      = 0;
@@ -53,12 +56,18 @@ public:
                                    const srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo)                          = 0;
 };
 
+class ss_srb_interface
+{
+public:
+  virtual void add_ccch_pdu(srslte::unique_byte_buffer_t pdu)                = 0;
+  virtual void add_dcch_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu) = 0;
+};
+
 class syssim_interface_phy
 {
 public:
   virtual void prach_indication(uint32_t preamble_index, const uint32_t& cell_id) = 0;
   virtual void sr_req(uint32_t tti_tx)                                            = 0;
-  // 0; virtual void
   virtual void tx_pdu(const uint8_t* payload, const int len, const uint32_t tx_tti) = 0;
 };
 
