@@ -1003,6 +1003,11 @@ static void gen_ack_fdd(srslte_pdsch_ack_t* ack_info, srslte_uci_data_t* uci_dat
       } else {
         // - otherwise, CSI is dropped
         uci_data->cfg.cqi.data_enable = false;
+
+        //
+        for (int i = 0; i < 2; i++) {
+          uci_data->cfg.ack[i].nof_acks = (tb_count != 0) ? nof_tb : 0;
+        }
       }
     } else {
       // For 2 or more configured cells, report nof_tb per carrier except if there are no HARQ-ACK bits to report, in
