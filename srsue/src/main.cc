@@ -583,14 +583,10 @@ int main(int argc, char* argv[])
   pthread_create(&input, nullptr, &input_loop, &args);
 
   cout << "Attaching UE..." << endl;
-  while (!ue.switch_on() && running) {
-    sleep(1);
-  }
+  ue.switch_on();
 
-  if (running) {
-    if (args.gui.enable) {
-      ue.start_plot();
-    }
+  if (args.gui.enable) {
+    ue.start_plot();
   }
 
   while (running) {

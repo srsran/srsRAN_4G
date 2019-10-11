@@ -303,7 +303,9 @@ void nas::start_attach_request(srslte::proc_state_t* result)
       if (!plmn_is_selected) {
         nas_log->info("No PLMN selected. Starting PLMN Search...\n");
         if (not plmn_searcher.launch(this)) {
-          *result = proc_state_t::error;
+          if (result != nullptr) {
+            *result = proc_state_t::error;
+          }
           return;
         }
         callbacks.defer_task([this, result]() {
@@ -312,8 +314,9 @@ void nas::start_attach_request(srslte::proc_state_t* result)
           }
           plmn_search_proc p = plmn_searcher.pop();
           nas_log->info("Attach Request from PLMN Search %s\n", p.is_success() ? "finished successfully" : "failed");
-          *result = p.is_success() ? proc_state_t::success : proc_state_t::error;
-          // stay in this state if attach failed
+          if (result != nullptr) {
+            *result = p.is_success() ? proc_state_t::success : proc_state_t::error;
+          }
           if (not p.is_success()) {
             enter_emm_deregistered();
           }
@@ -321,18 +324,24 @@ void nas::start_attach_request(srslte::proc_state_t* result)
         });
       } else {
         nas_log->error("PLMN selected in state %s\n", emm_state_text[state]);
-        *result = proc_state_t::error;
+        if (result != nullptr) {
+          *result = proc_state_t::error;
+        }
       }
       break;
     case EMM_STATE_REGISTERED:
       if (rrc->is_connected()) {
         nas_log->info("NAS is already registered and RRC connected\n");
-        *result = proc_state_t::success;
+        if (result != nullptr) {
+          *result = proc_state_t::success;
+        }
       } else {
         nas_log->info("NAS is already registered but RRC disconnected. Connecting now...\n");
         if (not rrc_connector.launch(this, srslte::establishment_cause_t ::mo_data, nullptr)) {
           nas_log->error("Cannot initiate concurrent rrc connection procedures\n");
-          *result = proc_state_t::error;
+          if (result != nullptr) {
+            *result = proc_state_t::error;
+          }
           return;
         }
         callbacks.defer_task([this, result]() {
@@ -345,14 +354,18 @@ void nas::start_attach_request(srslte::proc_state_t* result)
           } else {
             nas_log->error("Could not attach from attach_request\n");
           }
-          *result = proc.is_success() ? proc_state_t::success : proc_state_t::error;
+          if (result != nullptr) {
+            *result = proc.is_success() ? proc_state_t::success : proc_state_t::error;
+          }
           return proc_outcome_t::success;
         });
       }
       break;
     default:
       nas_log->info("Attach request ignored. State = %s\n", emm_state_text[state]);
-      *result = proc_state_t::error;
+      if (result != nullptr) {
+        *result = proc_state_t::error;
+      }
   }
 }
 

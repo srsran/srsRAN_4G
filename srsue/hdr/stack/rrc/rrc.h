@@ -77,9 +77,7 @@ class cell_t
   bool equals(cell_t *x) {
     return equals(x->phy_cell.earfcn, x->phy_cell.cell.id);
   }
-  bool equals(uint32_t earfcn, uint32_t pci) {
-    return earfcn == this->phy_cell.earfcn && pci == phy_cell.cell.id;
-  }
+  bool equals(uint32_t earfcn, uint32_t pci) { return earfcn == phy_cell.earfcn && pci == phy_cell.cell.id; }
   // NaN means an RSRP value has not yet been obtained. Keep then in the list and clean them if never updated
   bool greater(cell_t *x) {
     return rsrp > x->rsrp || std::isnan(rsrp);
