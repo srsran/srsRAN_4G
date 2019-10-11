@@ -183,8 +183,8 @@ srslte::unique_byte_buffer_t gen_expected_pdu(const srslte::unique_byte_buffer_t
 {
   srslte::pdcp_config_t cfg = {1,
                                srslte::PDCP_RB_IS_DRB,
-                               srslte::SECURITY_DIRECTION_DOWNLINK,
                                srslte::SECURITY_DIRECTION_UPLINK,
+                               srslte::SECURITY_DIRECTION_DOWNLINK,
                                pdcp_sn_len,
                                srslte::pdcp_t_reordering_t::ms500};
 
@@ -202,7 +202,7 @@ srslte::unique_byte_buffer_t gen_expected_pdu(const srslte::unique_byte_buffer_t
   srslte::unique_byte_buffer_t out_pdu = srslte::allocate_unique_buffer(*pool);
   rlc->get_last_sdu(out_pdu);
 
-  return std::move(out_pdu);
+  return out_pdu;
 }
 
 // Helper function to generate vector of PDU from a vector of TX_NEXTs for generating expected pdus

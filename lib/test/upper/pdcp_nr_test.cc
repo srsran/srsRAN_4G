@@ -53,7 +53,7 @@ uint8_t pdu1_count262144_snlen18[] = {0x80, 0x00, 0x00, 0xc2, 0x47, 0xa8, 0xdd, 
 uint8_t pdu1_count4294967295_snlen18[] = {0x83, 0xff, 0xff, 0x1e, 0x47, 0xe6, 0x86, 0x28, 0x6c};
 
 // Test PDUs for rx (generated from SDU2)
-uint8_t pdu7[] = {0x80, 0x01, 0x5e, 0x3d, 0x64, 0xaf, 0xac, 0x7c};
+uint8_t pdu2_count1_snlen12[] = {0x80, 0x01, 0x5e, 0x3d, 0x64, 0xaf, 0xac, 0x7c};
 
 
 // This is the normal initial state. All state variables are set to zero
@@ -107,21 +107,14 @@ int test_tx(uint32_t                     n_packets,
 /*
  * Genric function to test reception of in-sequence packets
  */
-int test_rx_in_sequence(uint64_t                     tx_next_max,
-                        const pdcp_initial_state&    init_state,
-                        uint8_t                      pdcp_sn_len,
-                        uint32_t                     n_sdus_exp,
-                        srslte::byte_buffer_pool*    pool,
-                        srslte::log*                 log)
+int test_rx_in_sequence(std::vector<srslte::unique_byte_buffer_t> pdus,
+                        const pdcp_initial_state&                 init_state,
+                        uint8_t                                   pdcp_sn_len,
+                        uint32_t                                  n_sdus_exp,
+                        srslte::byte_buffer_pool*                 pool,
+                        srslte::log*                              log)
 
 {
-
-  srslte::pdcp_config_t  cfg_tx = {1,
-                                  srslte::PDCP_RB_IS_DRB,
-                                  srslte::SECURITY_DIRECTION_UPLINK,
-                                  srslte::SECURITY_DIRECTION_DOWNLINK,
-                                  pdcp_sn_len,
-                                  srslte::pdcp_t_reordering_t::ms500};
 
   srslte::pdcp_config_t  cfg_rx = {1,
                                   srslte::PDCP_RB_IS_DRB,
@@ -130,15 +123,10 @@ int test_rx_in_sequence(uint64_t                     tx_next_max,
                                   pdcp_sn_len,
                                   srslte::pdcp_t_reordering_t::ms500};
 
-  pdcp_nr_test_helper     pdcp_hlp_tx(cfg_tx, sec_cfg, log);
-  srslte::pdcp_entity_nr* pdcp_tx = &pdcp_hlp_tx.pdcp;
-  rlc_dummy*              rlc_tx  = &pdcp_hlp_tx.rlc;
-
   pdcp_nr_test_helper     pdcp_hlp_rx(cfg_rx, sec_cfg, log);
   srslte::pdcp_entity_nr* pdcp_rx = &pdcp_hlp_rx.pdcp;
   gw_dummy*               gw_rx   = &pdcp_hlp_rx.gw;
 
-  pdcp_hlp_tx.set_pdcp_initial_state(init_state);
   pdcp_hlp_rx.set_pdcp_initial_state(init_state);
 
   srslte::unique_byte_buffer_t sdu_act = allocate_unique_buffer(*pool);
@@ -146,14 +134,9 @@ int test_rx_in_sequence(uint64_t                     tx_next_max,
   sdu_exp->append_bytes(sdu1, sizeof(sdu1));
 
   // Generate test message and encript/decript SDU. Check match with original SDU
-  for (uint64_t i = init_state.tx_next; i <= tx_next_max; ++i) {
+  for (srslte::unique_byte_buffer_t& pdu : pdus) {
     srslte::unique_byte_buffer_t sdu = allocate_unique_buffer(*pool);
-    srslte::unique_byte_buffer_t pdu = allocate_unique_buffer(*pool);
     sdu->append_bytes(sdu_exp->msg, sdu_exp->N_bytes);
-
-    // Generate encripted and integrity protected PDU
-    pdcp_tx->write_sdu(std::move(sdu), true);
-    rlc_tx->get_last_sdu(pdu);
     
     // Decript and integrity check the PDU
     pdcp_rx->write_pdu(std::move(pdu));
@@ -256,7 +239,7 @@ int test_rx_out_of_order_timeout(uint8_t pdcp_sn_len, srslte::byte_buffer_pool* 
 
   // Generate encripted and integrity protected PDUs
   srslte::unique_byte_buffer_t rx_pdu7 = allocate_unique_buffer(*pool);
-  rx_pdu7->append_bytes(pdu7, sizeof(pdu7));
+  rx_pdu7->append_bytes(pdu2_count1_snlen12, sizeof(pdu2_count1_snlen12));
 
   // decript and check matching SDUs (out of order)
   pdcp_rx->write_pdu(std::move(rx_pdu7));
@@ -436,45 +419,88 @@ int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
    * Test in-sequence reception of 4097 packets.
    * This tests correct handling of HFN in the case of SN wraparound (SN LEN 12)
    */
-   std::vector<uint32_t> test1_counts(2);                      // Test two packets
-   std::iota(test1_counts.begin(), test1_counts.end(), 4095);  // Starting at COUNT 4095
-   std::vector<srslte::unique_byte_buffer_t> test1_exp_pdus = gen_expected_pdus_vector(tst_sdu1, test1_counts, srslte::PDCP_SN_LEN_12, sec_cfg, pool, log);
-   pdcp_initial_state test1_init_state = {.tx_next = 4095, .rx_next = 4095, .rx_deliv = 4095, .rx_reord = 0};
-   TESTASSERT(test_rx_in_sequence(4096, test1_init_state, srslte::PDCP_SN_LEN_12, 2, pool, log) == 0);
-
+   {
+     std::vector<uint32_t> test1_counts(2);                     // Test two packets
+     std::iota(test1_counts.begin(), test1_counts.end(), 4095); // Starting at COUNT 4095
+     std::vector<srslte::unique_byte_buffer_t> test1_pdus =
+         gen_expected_pdus_vector(tst_sdu1, test1_counts, srslte::PDCP_SN_LEN_12, sec_cfg, pool, log);
+     pdcp_initial_state test1_init_state = {.tx_next = 4095, .rx_next = 4095, .rx_deliv = 4095, .rx_reord = 0};
+     TESTASSERT(test_rx_in_sequence(std::move(test1_pdus), test1_init_state, srslte::PDCP_SN_LEN_12, 2, pool, log) ==
+                0);
+   }
    /*
     * RX Test 2: PDCP Entity with SN LEN = 12
     * Test in-sequence reception of 4294967297 packets.
     * This tests correct handling of COUNT in the case of [HFN|SN] wraparound
     * Packet that wraparound should be dropped, so only one packet should be received at the GW.
     */
-   TESTASSERT(test_rx_in_sequence(4294967296, near_wraparound_init_state, srslte::PDCP_SN_LEN_12, 1, pool, log) == 0);
-
+   {
+     std::vector<uint32_t> test2_counts(2);                           // Test two packets
+     std::iota(test2_counts.begin(), test2_counts.end(), 4294967295); // Starting at COUNT 4294967295
+     std::vector<srslte::unique_byte_buffer_t> test2_pdus =
+         gen_expected_pdus_vector(tst_sdu1, test2_counts, srslte::PDCP_SN_LEN_12, sec_cfg, pool, log);
+     pdcp_initial_state test2_init_state = {
+         .tx_next = 4294967295, .rx_next = 4294967295, .rx_deliv = 4294967295, .rx_reord = 0};
+     TESTASSERT(test_rx_in_sequence(std::move(test2_pdus), test2_init_state, srslte::PDCP_SN_LEN_12, 1, pool, log) ==
+                0);
+   }
    /*
     * RX Test 3: PDCP Entity with SN LEN = 18
     * Test In-sequence reception of 262145 packets.
     * This tests correct handling of HFN in the case of SN wraparound (SN LEN 18)
     */
-   TESTASSERT(test_rx_in_sequence(262144, normal_init_state, srslte::PDCP_SN_LEN_18, 262146, pool, log) == 0);
+   {
+     std::vector<uint32_t> test3_counts(2);                       // Test two packets
+     std::iota(test3_counts.begin(), test3_counts.end(), 262144); // Starting at COUNT 262144 
+     std::vector<srslte::unique_byte_buffer_t> test3_pdus =
+         gen_expected_pdus_vector(tst_sdu1, test3_counts, srslte::PDCP_SN_LEN_18, sec_cfg, pool, log);
+     pdcp_initial_state test3_init_state = {.tx_next = 262144, .rx_next = 262144, .rx_deliv = 262144, .rx_reord = 0};
+     TESTASSERT(test_rx_in_sequence(std::move(test3_pdus), test3_init_state, srslte::PDCP_SN_LEN_18, 2, pool, log) ==
+                0);
+   }
 
    /*
     * RX Test 4: PDCP Entity with SN LEN = 18
     * Test in-sequence reception of 4294967297 packets.
     * This tests correct handling of COUNT in the case of [HFN|SN] wraparound
     */
-   TESTASSERT(test_rx_in_sequence(4294967296, near_wraparound_init_state, srslte::PDCP_SN_LEN_18, 2, pool, log) == 0);
+   {
+     std::vector<uint32_t> test4_counts(2);                           // Test two packets
+     std::iota(test4_counts.begin(), test4_counts.end(), 4294967295); // Starting at COUNT 4294967295 
+     std::vector<srslte::unique_byte_buffer_t> test4_pdus =
+         gen_expected_pdus_vector(tst_sdu1, test4_counts, srslte::PDCP_SN_LEN_18, sec_cfg, pool, log);
+     pdcp_initial_state test4_init_state = {.tx_next = 4294967295, .rx_next = 4294967295, .rx_deliv = 4294967295, .rx_reord = 0};
+     TESTASSERT(test_rx_in_sequence(std::move(test4_pdus), test4_init_state, srslte::PDCP_SN_LEN_18, 1, pool, log) ==
+                0);
+   }
 
+   /*
+    * RX Test 5: PDCP Entity with SN LEN = 12
+    * Test reception of two out-of-order packets, starting at COUNT 0.
+    */
+   {
+     std::vector<srslte::unique_byte_buffer_t> test5_pdus;
+     pdcp_initial_state                        test5_init_state = {};
+     srslte::unique_byte_buffer_t              pdu1             = srslte::allocate_unique_buffer(*pool);
+     srslte::unique_byte_buffer_t              pdu2             = srslte::allocate_unique_buffer(*pool);
+     pdu1->append_bytes(pdu1_count0_snlen12, sizeof(pdu1_count0_snlen12));
+     pdu2->append_bytes(pdu2_count1_snlen12, sizeof(pdu2_count1_snlen12));
+     test5_pdus.push_back(std::move(pdu2));
+     test5_pdus.push_back(std::move(pdu1));
+     TESTASSERT(test_rx_in_sequence(std::move(test5_pdus), test5_init_state, srslte::PDCP_SN_LEN_12, 2, pool, log) ==
+                0);
+   }
    /*
     * RX Test 5: PDCP Entity with SN LEN = 12
     * Test Reception of one out-of-order packet.
     */
-   TESTASSERT(test_rx_out_of_order(normal_init_state, srslte::PDCP_SN_LEN_12, pool, log) == 0);
+   //TESTASSERT(test_rx_out_of_order(normal_init_state, srslte::PDCP_SN_LEN_12, pool, log) == 0);
 
    /*
     * RX Test 6: PDCP Entity with SN LEN = 12
     * Test Reception of one out-of-order packet at COUNT wraparound.
     */
-   TESTASSERT(test_rx_out_of_order(near_wraparound_init_state, srslte::PDCP_SN_LEN_12, pool, log) == 0);
+   //TESTASSERT(test_rx_out_of_order(near_wraparound_init_state, srslte::PDCP_SN_LEN_12, pool, log) == 0);
 
    /*
     * RX Test 5: PDCP Entity with SN LEN = 12

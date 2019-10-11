@@ -149,7 +149,7 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   }
   rcvd_count = COUNT(rcvd_hfn, rcvd_sn);
 
-  log->debug("RCVD_SN %" PRIu32 ", RCVD_COUNT %" PRIu32 "\n", rcvd_sn, rcvd_count);
+  log->debug("RCVD_HFN %" PRIu32 " RCVD_SN %" PRIu32 ", RCVD_COUNT %" PRIu32 "\n", rcvd_hfn, rcvd_sn, rcvd_count);
 
   // Decripting
   cipher_decrypt(pdu->msg, pdu->N_bytes, rcvd_count, pdu->msg);
@@ -298,11 +298,21 @@ void pdcp_entity_nr::deliver_all_consecutive_counts()
   {
     log->debug("Delivering SDU with RCVD_COUNT %" PRIu32 "\n", it->first);
 
+    // Check RX_DELIV overflow
+    if (rx_overflow) {
+      log->warning("RX_DELIV has overflowed. Droping packet\n");
+      return;
+    }
+    if (rx_deliv + 1 == 0) {
+      rx_overflow  = true;
+    }
+
     // Pass PDCP SDU to the next layers
     pass_to_upper_layers(std::move(it->second));
 
     // Update RX_DELIV
-    rx_deliv = rx_deliv + 1; // TODO needs to be corrected when queueing is implemented
+    rx_deliv = rx_deliv + 1; 
+
   }
 }
 

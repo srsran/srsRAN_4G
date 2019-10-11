@@ -102,6 +102,7 @@ private:
 
   // COUNT overflow protection
   bool tx_overflow = false;
+  bool rx_overflow = false;
 };
 
 /*
