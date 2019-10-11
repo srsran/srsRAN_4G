@@ -1,6 +1,17 @@
 Change Log for Releases
 ==============================
 
+## 19.09
+  * Add initial support for NR in MAC/RLC/PDCP
+  * Add sync code for NB-IoT
+  * Add support for EIA3/EEA3 (i.e. ZUC)
+  * Add support for CSFB in srsENB
+  * Add adaptation layer to run TTCN-3 conformance tests for srsUE
+  * Add High Speed Train model to channel simulator
+  * Rework RRC and NAS layer and make them non-blocking
+  * Fixes in ZMQ, bladeRF and Soapy RF modules
+  * Other bug-fixes and improved stability and performance in all parts
+
 ## 19.06
   * Add QAM256 support in srsUE
   * Add QoS support in srsUE
