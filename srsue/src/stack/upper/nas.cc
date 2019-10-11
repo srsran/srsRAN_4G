@@ -208,7 +208,12 @@ proc_outcome_t nas::rrc_connect_proc::step()
  *   NAS
  ********************************************************************/
 
-nas::nas(srslte::log* log_) : nas_log(log_), pool(byte_buffer_pool::get_instance()) {}
+nas::nas(srslte::log* log_, srslte::timers* timers_) :
+  nas_log(log_),
+  pool(byte_buffer_pool::get_instance()),
+  timers(timers_)
+{
+}
 
 void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_nas* gw_, const nas_args_t& cfg_)
 {
@@ -259,6 +264,12 @@ void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_
     have_ctxt = true;
   }
 
+  // Configure T3410 and T3411
+  t3410 = timers->get_unique_id();
+  timers->get(t3410)->set(this, t3410_duration_ms);
+  t3411 = timers->get_unique_id();
+  timers->get(t3411)->set(this, t3411_duration_ms);
+
   running = true;
 }
 
@@ -286,6 +297,20 @@ void nas::run_tti(uint32_t tti)
   callbacks.run();
 }
 
+void nas::timer_expired(uint32_t timeout_id)
+{
+  if (timeout_id == t3410) {
+    nas_log->info("Timer T3410 expired: starting T3411\n");
+    timers->get(t3411)->reset();
+    timers->get(t3411)->run();
+  } else if (timeout_id == t3411) {
+    nas_log->info("Timer T3411 expired: trying to attach again\n");
+    start_attach_request(nullptr);
+  } else {
+    nas_log->error("Timeout from unknown timer id %d\n", timeout_id);
+  }
+}
+
 /*******************************************************************************
  * UE interface
  ******************************************************************************/
@@ -299,6 +324,19 @@ void nas::start_attach_request(srslte::proc_state_t* result)
   nas_log->info("Attach Request\n");
   switch (state) {
     case EMM_STATE_DEREGISTERED:
+
+      // start T3410
+      nas_log->debug("Starting T3410\n");
+      timers->get(t3410)->reset();
+      timers->get(t3410)->run();
+
+      // stop T3411
+      if (timers->get(t3411)->is_running()) {
+        timers->get(t3411)->stop();
+      }
+
+      // Todo: stop T3402
+
       // Search PLMN is not selected
       if (!plmn_is_selected) {
         nas_log->info("No PLMN selected. Starting PLMN Search...\n");
@@ -317,6 +355,11 @@ void nas::start_attach_request(srslte::proc_state_t* result)
           if (result != nullptr) {
             *result = p.is_success() ? proc_state_t::success : proc_state_t::error;
           }
+          // start T3411
+          nas_log->debug("Starting T3411\n");
+          timers->get(t3411)->reset();
+          timers->get(t3411)->run();
+
           if (not p.is_success()) {
             enter_emm_deregistered();
           }
@@ -844,6 +887,11 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
 
   nas_log->info("Received Attach Accept\n");
 
+  // stop T3410
+  if (timers->get(t3410)->is_running()) {
+    timers->get(t3410)->stop();
+  }
+
   LIBLTE_MME_ATTACH_ACCEPT_MSG_STRUCT attach_accept = {};
   liblte_mme_unpack_attach_accept_msg((LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), &attach_accept);
 
@@ -1066,6 +1114,12 @@ void nas::parse_attach_reject(uint32_t lcid, unique_byte_buffer_t pdu)
   liblte_mme_unpack_attach_reject_msg((LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), &attach_rej);
   nas_log->warning("Received Attach Reject. Cause= %02X\n", attach_rej.emm_cause);
   nas_log->console("Received Attach Reject. Cause= %02X\n", attach_rej.emm_cause);
+
+  // stop T3410
+  if (timers->get(t3410)->is_running()) {
+    timers->get(t3410)->stop();
+  }
+
   enter_emm_deregistered();
   // FIXME: Command RRC to release?
 }
@@ -1559,6 +1613,12 @@ void nas::gen_attach_request(byte_buffer_t* msg)
   if (have_ctxt) {
     set_k_enb_count(ctxt.tx_count);
     ctxt.tx_count++;
+  }
+
+  // stop T3411
+  if (timers->get(t3411)->is_running()) {
+    nas_log->debug("Stopping T3411\n");
+    timers->get(t3411)->stop();
   }
 }
 

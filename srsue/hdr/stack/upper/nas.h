@@ -37,10 +37,10 @@ using srslte::byte_buffer_t;
 
 namespace srsue {
 
-class nas : public nas_interface_rrc, public nas_interface_ue
+class nas : public nas_interface_rrc, public nas_interface_ue, public srslte::timer_callback
 {
 public:
-  nas(srslte::log* log_);
+  nas(srslte::log* log_, srslte::timers* timers_);
   void init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_nas* gw_, const nas_args_t& args_);
   void stop();
   void run_tti(uint32_t tti) final;
@@ -68,6 +68,9 @@ public:
   bool start_connection_request(srslte::establishment_cause_t establish_cause,
                                 srslte::unique_byte_buffer_t  ded_info_nas);
   bool connection_request_completed(bool outcome) final;
+
+  // timer callback
+  void timer_expired(uint32_t timeout_id);
 
   // PCAP
   void start_pcap(srslte::nas_pcap *pcap_);
@@ -128,6 +131,14 @@ private:
   uint8_t chap_id = 0;
 
   uint8_t transaction_id = 0;
+
+  // timers
+  srslte::timers* timers = nullptr;
+  uint32_t        t3410  = 0; // started when attach request is sent, on expiry, start t3411
+  uint32_t        t3411  = 0; // started when attach failed
+
+  const uint32_t t3410_duration_ms = 15 * 1000; // 15s according to TS 24.301 Sec 10.2
+  const uint32_t t3411_duration_ms = 10 * 1000; // 10s according to TS 24.301 Sec 10.2
 
   // Security
   bool    eia_caps[8]   = {};
