@@ -584,14 +584,22 @@ proc_outcome_t rrc::connection_request_proc::init(rrc*                          
       // Launch failed but cell selection was not already running
       Error("Failed to initiate cell selection procedure...\n");
       return proc_outcome_t::error;
+    } else if (not rrc_ptr->cell_selector.is_complete()) {
+      // In case it was already running, just wait for an cell_selection_complete event trigger
+      Info("Cell selection proc already on-going. Wait for its result\n");
+    } else {
+      // It already completed with success. FIXME: Find more elegant solution
+      Info("A cell selection procedure has just finished successfully. I am reusing its result\n");
+      cell_selection_complete e{};
+      e.is_success = rrc_ptr->cell_selector.get()->is_success();
+      e.cs_result  = rrc_ptr->cell_selector.get()->get_cs_result();
+      return trigger_event(e);
     }
-    // In case it was already running, just wait for an cell_selection_complete event trigger
-    Info("Cell selection proc already on-going. Wait for its result\n");
   } else {
     // In case we were able to launch it, let the callback list handle it
     rrc_ptr->callback_list.defer_proc(rrc_ptr->cell_selector);
   }
-  return proc_outcome_t::repeat;
+  return proc_outcome_t::yield;
 }
 
 proc_outcome_t rrc::connection_request_proc::step()

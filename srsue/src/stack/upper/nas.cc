@@ -36,9 +36,9 @@
 
 using namespace srslte;
 
-#define Error(fmt, ...) nas_ptr->nas_log->error("%s - " fmt, name(), ##__VA_ARGS__)
-#define Warning(fmt, ...) nas_ptr->nas_log->warning("%s - " fmt, name(), ##__VA_ARGS__)
-#define Info(fmt, ...) nas_ptr->nas_log->info("%s - " fmt, name(), ##__VA_ARGS__)
+#define Error(fmt, ...) nas_ptr->nas_log->error("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
+#define Warning(fmt, ...) nas_ptr->nas_log->warning("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
+#define Info(fmt, ...) nas_ptr->nas_log->info("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
 
 namespace srsue {
 
@@ -157,12 +157,12 @@ nas::rrc_connect_proc::init(nas* nas_ptr_, srslte::establishment_cause_t cause_,
     nas_ptr->rrc->set_ue_identity(s_tmsi);
   }
 
+  Info("Starting...\n");
   state = state_t::conn_req;
   if (not nas_ptr->start_connection_request(cause_, std::move(pdu))) {
     return proc_outcome_t::error;
   }
 
-  Info("Starting...\n");
   return proc_outcome_t::yield;
 }
 
