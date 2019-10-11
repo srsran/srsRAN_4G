@@ -43,9 +43,10 @@ ue_stack_lte::ue_stack_lte() :
   background_tasks(2)
 {
   ue_queue_id   = pending_tasks.add_queue();
-  sync_queue_id = pending_tasks.add_queue();
-  gw_queue_id   = pending_tasks.add_queue();
-  mac_queue_id  = pending_tasks.add_queue();
+  sync_queue_id       = pending_tasks.add_queue();
+  gw_queue_id         = pending_tasks.add_queue();
+  mac_queue_id        = pending_tasks.add_queue();
+  background_queue_id = pending_tasks.add_queue();
 
   background_tasks.start();
 }
@@ -313,7 +314,8 @@ void ue_stack_lte::start_cell_search()
     phy_interface_rrc_lte::phy_cell_t        found_cell;
     phy_interface_rrc_lte::cell_search_ret_t ret = phy->cell_search(&found_cell);
     // notify back RRC
-    rrc.cell_search_completed(ret, found_cell);
+    pending_tasks.push(background_queue_id,
+                       task_t{[this, found_cell, ret](task_t*) { rrc.cell_search_completed(ret, found_cell); }});
   });
 }
 

@@ -170,8 +170,8 @@ private:
     void operator()() { func(this); }
   };
   srslte::multiqueue_handler<task_t> pending_tasks;
-  int                                sync_queue_id = -1, ue_queue_id = -1, gw_queue_id = -1, mac_queue_id = -1;
-  srslte::task_thread_pool           background_tasks; ///< Thread pool used for long, low-priority tasks
+  int sync_queue_id = -1, ue_queue_id = -1, gw_queue_id = -1, mac_queue_id = -1, background_queue_id = -1;
+  srslte::task_thread_pool background_tasks; ///< Thread pool used for long, low-priority tasks
 };
 
 } // namespace srsue
