@@ -646,11 +646,9 @@ int sf_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, u
 
 int sf_worker::decode_pucch()
 {
-  srslte_pucch_res_t pucch_res;
-  ZERO_OBJECT(pucch_res);
-
   for (std::map<uint16_t, ue*>::iterator iter = ue_db.begin(); iter != ue_db.end(); ++iter) {
-    uint16_t rnti = (uint16_t)iter->first;
+    srslte_pucch_res_t pucch_res = {};
+    uint16_t           rnti      = (uint16_t)iter->first;
 
     // If it's a User RNTI and doesn't have PUSCH grant in this TTI
     if (SRSLTE_RNTI_ISUSER(rnti) && !ue_db[rnti]->is_grant_available) {
