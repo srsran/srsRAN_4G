@@ -36,9 +36,9 @@
 
 using namespace srslte;
 
-#define Error(fmt, ...) nas_ptr->nas_log->error("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
-#define Warning(fmt, ...) nas_ptr->nas_log->warning("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
-#define Info(fmt, ...) nas_ptr->nas_log->info("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
+#define ProcError(fmt, ...) nas_ptr->nas_log->error("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
+#define ProcWarning(fmt, ...) nas_ptr->nas_log->warning("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
+#define ProcInfo(fmt, ...) nas_ptr->nas_log->info("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
 
 namespace srsue {
 
@@ -51,11 +51,11 @@ proc_outcome_t nas::plmn_search_proc::init(nas* nas_ptr_)
   // start RRC
   state = state_t::plmn_search;
   if (not nas_ptr->rrc->plmn_search()) {
-    Error("Error while searching for PLMNs\n");
+    ProcError("ProcError while searching for PLMNs\n");
     return proc_outcome_t::error;
   }
 
-  Info("Starting...\n");
+  ProcInfo("Starting...\n");
   return proc_outcome_t::yield;
 }
 
@@ -78,21 +78,21 @@ proc_outcome_t nas::plmn_search_proc::step()
 proc_outcome_t nas::plmn_search_proc::trigger_event(const plmn_search_complete_t& t)
 {
   if (state != state_t::plmn_search) {
-    Warning("PLMN Search Complete was received but PLMN Search is not running.\n");
+    ProcWarning("PLMN Search Complete was received but PLMN Search is not running.\n");
     return proc_outcome_t::yield; // ignore
   }
 
   // check whether the state hasn't changed
   if (nas_ptr->state != EMM_STATE_DEREGISTERED or nas_ptr->plmn_is_selected) {
-    Error("Error while searching for PLMNs\n");
+    ProcError("ProcError while searching for PLMNs\n");
     return proc_outcome_t::error;
   }
 
   if (t.nof_plmns < 0) {
-    Error("Error while searching for PLMNs\n");
+    ProcError("Error while searching for PLMNs\n");
     return proc_outcome_t::error;
   } else if (t.nof_plmns == 0) {
-    Warning("Did not find any PLMN in the set of frequencies.\n");
+    ProcWarning("Did not find any PLMN in the set of frequencies.\n");
     return proc_outcome_t::error;
   }
 
@@ -109,14 +109,14 @@ proc_outcome_t nas::plmn_search_proc::trigger_event(const plmn_search_complete_t
 
   // Select PLMN in request establishment of RRC connection
   if (not nas_ptr->plmn_is_selected) {
-    Error("PLMN is not selected because no suitable PLMN was found\n");
+    ProcError("PLMN is not selected because no suitable PLMN was found\n");
     return proc_outcome_t::error;
   }
 
   nas_ptr->rrc->plmn_select(nas_ptr->current_plmn);
 
   if (not nas_ptr->rrc_connector.launch(nas_ptr, srslte::establishment_cause_t ::mo_data, nullptr)) {
-    Error("Unable to initiate RRC connection.\n");
+    ProcError("Unable to initiate RRC connection.\n");
     return proc_outcome_t::error;
   }
 
@@ -130,7 +130,7 @@ nas::rrc_connect_proc::init(nas* nas_ptr_, srslte::establishment_cause_t cause_,
   nas_ptr = nas_ptr_;
 
   if (nas_ptr->rrc->is_connected()) {
-    Info("Stopping. Reason: Already connected\n");
+    ProcInfo("Stopping. Reason: Already connected\n");
     return proc_outcome_t::success;
   }
 
@@ -138,7 +138,7 @@ nas::rrc_connect_proc::init(nas* nas_ptr_, srslte::establishment_cause_t cause_,
     // Generate service request or attach request message
     pdu = srslte::allocate_unique_buffer(*nas_ptr->pool, true);
     if (!pdu) {
-      Error("Fatal Error: Couldn't allocate PDU.\n");
+      ProcError("Fatal Error: Couldn't allocate PDU.\n");
       return proc_outcome_t::error;
     }
 
@@ -157,7 +157,7 @@ nas::rrc_connect_proc::init(nas* nas_ptr_, srslte::establishment_cause_t cause_,
     nas_ptr->rrc->set_ue_identity(s_tmsi);
   }
 
-  Info("Starting...\n");
+  ProcInfo("Starting...\n");
   state = state_t::conn_req;
   if (not nas_ptr->start_connection_request(cause_, std::move(pdu))) {
     return proc_outcome_t::error;
@@ -174,10 +174,10 @@ proc_outcome_t nas::rrc_connect_proc::step()
     }
     query_proc_t<bool> ret = nas_ptr->conn_req_proc.pop();
     if (not ret.result()) {
-      Error("Could not establish RRC connection\n");
+      ProcError("Could not establish RRC connection\n");
       return proc_outcome_t::error;
     }
-    Info("Connection established correctly. Waiting for Attach\n");
+    ProcInfo("Connection established correctly. Waiting for Attach\n");
     wait_timeout = 0;
     // Wait until attachment. If doing a service request is already attached
     state = state_t::wait_attach;
@@ -188,15 +188,15 @@ proc_outcome_t nas::rrc_connect_proc::step()
     if (wait_timeout >= 5000 or nas_ptr->state == EMM_STATE_REGISTERED or not nas_ptr->running or
         not nas_ptr->rrc->is_connected()) {
       if (nas_ptr->state == EMM_STATE_REGISTERED) {
-        Info("EMM Registered correctly\n");
+        ProcInfo("EMM Registered correctly\n");
         return proc_outcome_t::success;
       } else if (nas_ptr->state == EMM_STATE_DEREGISTERED) {
-        Error("Timeout or received attach reject while trying to attach\n");
+        ProcError("Timeout or received attach reject while trying to attach\n");
         nas_ptr->nas_log->console("Failed to Attach\n");
       } else if (!nas_ptr->rrc->is_connected()) {
-        Error("Was disconnected while attaching\n");
+        ProcError("Was disconnected while attaching\n");
       } else {
-        Error("Timed out while trying to attach\n");
+        ProcError("Timed out while trying to attach\n");
       }
       return proc_outcome_t::error;
     }
