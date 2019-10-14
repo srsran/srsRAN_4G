@@ -88,7 +88,7 @@ void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, bool blocking)
     return;
   }
   if (tx_next + 1 == 0) {
-    tx_overflow  = true;
+    tx_overflow = true;
   }
 
   // Start discard timer TODO
@@ -169,7 +169,7 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
 
   // Check if PDU has been received
   if (reorder_queue.find(rcvd_count) != reorder_queue.end()) {
-    return; // PDU already present, drop. 
+    return; // PDU already present, drop.
   }
 
   // Store PDU in reception buffer
@@ -188,10 +188,10 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   }
 
   // Handle reordering timers
-  if(reordering_timer->is_running() and rx_deliv >= rx_reord){
+  if (reordering_timer->is_running() and rx_deliv >= rx_reord) {
     reordering_timer->stop();
     reordering_timer->reset();
-  } 
+  }
 
   if (not reordering_timer->is_running() and rx_deliv < rx_next) {
     rx_reord = rx_next;
@@ -293,9 +293,8 @@ void pdcp_entity_nr::append_mac(const unique_byte_buffer_t& sdu, uint8_t* mac)
 void pdcp_entity_nr::deliver_all_consecutive_counts()
 {
   for (std::map<uint32_t, unique_byte_buffer_t>::iterator it = reorder_queue.begin();
-                                  it != reorder_queue.end() && it->first == rx_deliv;
-                                  reorder_queue.erase(it++))
-  {
+       it != reorder_queue.end() && it->first == rx_deliv;
+       reorder_queue.erase(it++)) {
     log->debug("Delivering SDU with RCVD_COUNT %" PRIu32 "\n", it->first);
 
     // Check RX_DELIV overflow
@@ -304,15 +303,14 @@ void pdcp_entity_nr::deliver_all_consecutive_counts()
       return;
     }
     if (rx_deliv + 1 == 0) {
-      rx_overflow  = true;
+      rx_overflow = true;
     }
 
     // Pass PDCP SDU to the next layers
     pass_to_upper_layers(std::move(it->second));
 
     // Update RX_DELIV
-    rx_deliv = rx_deliv + 1; 
-
+    rx_deliv = rx_deliv + 1;
   }
 }
 
@@ -324,14 +322,14 @@ void pdcp_entity_nr::reordering_callback::timer_expired(uint32_t timer_id)
   for (std::map<uint32_t, unique_byte_buffer_t>::iterator it = parent->reorder_queue.begin();
        it != parent->reorder_queue.end() && it->first < parent->rx_reord;
        parent->reorder_queue.erase(it++)) {
-       // Deliver to upper layers
-       parent->pass_to_upper_layers(std::move(it->second));
+    // Deliver to upper layers
+    parent->pass_to_upper_layers(std::move(it->second));
   }
 
   // Deliver all PDCP SDU(s) consecutivly associeted COUNT value(s) starting from RX_REORD
   parent->deliver_all_consecutive_counts();
 
-  if (parent->rx_deliv < parent->rx_next){
+  if (parent->rx_deliv < parent->rx_next) {
     parent->rx_reord = parent->rx_next;
     parent->reordering_timer->run();
   }

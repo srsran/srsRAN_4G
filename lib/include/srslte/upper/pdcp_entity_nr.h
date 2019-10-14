@@ -108,12 +108,13 @@ private:
 /*
  * Timer callbacks
  */
-// Reordering callback (t-Reordering)  
+// Reordering callback (t-Reordering)
 class pdcp_entity_nr::reordering_callback : public timer_callback
 {
 public:
   reordering_callback(pdcp_entity_nr* parent_) { parent = parent_; };
   virtual void timer_expired(uint32_t timer_id) final;
+
 private:
   pdcp_entity_nr* parent;
 };

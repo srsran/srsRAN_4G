@@ -22,8 +22,8 @@
 #ifndef SRSLTE_INTERFACES_COMMON_H
 #define SRSLTE_INTERFACES_COMMON_H
 
-#include "srslte/common/timers.h"
 #include "srslte/common/security.h"
+#include "srslte/common/timers.h"
 #include <string>
 
 namespace srslte {
@@ -60,9 +60,7 @@ typedef struct {
 class srslte_gw_config_t
 {
 public:
-  srslte_gw_config_t(uint32_t lcid_ = 0)
-  :lcid(lcid_)
-  {}
+  srslte_gw_config_t(uint32_t lcid_ = 0) : lcid(lcid_) {}
 
   uint32_t lcid;
 };
@@ -79,33 +77,33 @@ const uint8_t PDCP_SN_LEN_18 = 18;
 typedef enum { PDCP_RB_IS_SRB, PDCP_RB_IS_DRB } pdcp_rb_type_t;
 
 enum class pdcp_t_reordering_t {
-  ms0 = 0,
-  ms1 = 1,
-  ms2 = 2,
-  ms4 = 4,
-  ms5 = 5,
-  ms8 = 8,
-  ms10 = 10,
-  ms15 = 15,
-  ms20 = 20,
-  ms30 = 30,
-  ms40 = 40,
-  ms50 = 50,
-  ms60 = 60,
-  ms80 = 80,
-  ms100 = 100,
-  ms120 = 120,
-  ms140 = 140,
-  ms160 = 160,
-  ms180 = 180,
-  ms200 = 200,
-  ms220 = 220,
-  ms240 = 240,
-  ms260 = 260,
-  ms280 = 280,
-  ms300 = 300,
-  ms500 = 500,
-  ms750 = 750,
+  ms0    = 0,
+  ms1    = 1,
+  ms2    = 2,
+  ms4    = 4,
+  ms5    = 5,
+  ms8    = 8,
+  ms10   = 10,
+  ms15   = 15,
+  ms20   = 20,
+  ms30   = 30,
+  ms40   = 40,
+  ms50   = 50,
+  ms60   = 60,
+  ms80   = 80,
+  ms100  = 100,
+  ms120  = 120,
+  ms140  = 140,
+  ms160  = 160,
+  ms180  = 180,
+  ms200  = 200,
+  ms220  = 220,
+  ms240  = 240,
+  ms260  = 260,
+  ms280  = 280,
+  ms300  = 300,
+  ms500  = 500,
+  ms750  = 750,
   ms1000 = 1000,
   ms1250 = 1250,
   ms1500 = 1500,
@@ -153,9 +151,9 @@ public:
 class read_pdu_interface
 {
 public:
-  virtual int read_pdu(uint32_t lcid, uint8_t *payload, uint32_t requested_bytes) = 0; 
+  virtual int read_pdu(uint32_t lcid, uint8_t* payload, uint32_t requested_bytes) = 0;
 };
 
-}
+} // namespace srslte
 
 #endif // SRSLTE_INTERFACES_COMMON_H

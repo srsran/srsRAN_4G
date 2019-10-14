@@ -45,19 +45,20 @@ int compare_two_packets(const srslte::unique_byte_buffer_t& msg1, const srslte::
   return 0;
 }
 
-void print_packet_array(const srslte::unique_byte_buffer_t &msg){
+void print_packet_array(const srslte::unique_byte_buffer_t& msg)
+{
   printf("uint8_t msg[] = {\n");
-  for (uint64_t i = 0; i < msg->N_bytes; ++i){
-    printf("0x%02x, ",msg->msg[i]);
+  for (uint64_t i = 0; i < msg->N_bytes; ++i) {
+    printf("0x%02x, ", msg->msg[i]);
   }
   printf("\n};\n");
 }
 
 struct pdcp_security_cfg {
-  uint8_t *k_int_rrc;
-  uint8_t *k_enc_rrc;
-  uint8_t *k_int_up;
-  uint8_t *k_enc_up;
+  uint8_t*                            k_int_rrc;
+  uint8_t*                            k_enc_rrc;
+  uint8_t*                            k_int_up;
+  uint8_t*                            k_enc_up;
   srslte::INTEGRITY_ALGORITHM_ID_ENUM int_algo;
   srslte::CIPHERING_ALGORITHM_ID_ENUM enc_algo;
 };
@@ -88,7 +89,7 @@ public:
     rx_count++;
   }
 
-  uint64_t                     rx_count = 0;
+  uint64_t rx_count = 0;
 
 private:
   srslte::log*                 log;
@@ -109,7 +110,6 @@ public:
   void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
 
   std::string get_rb_name(uint32_t lcid) { return "None"; }
-
 };
 
 class gw_dummy : public srsue::gw_interface_pdcp
@@ -142,7 +142,7 @@ private:
  * Helper classes to reduce copy / pasting in setting up tests
  */
 
-// PDCP helper to setup PDCP + Dummy 
+// PDCP helper to setup PDCP + Dummy
 class pdcp_nr_test_helper
 {
 public:
@@ -159,7 +159,8 @@ public:
     pdcp.enable_encryption();
   }
 
-  void set_pdcp_initial_state(pdcp_initial_state init_state) {
+  void set_pdcp_initial_state(pdcp_initial_state init_state)
+  {
     pdcp.set_tx_next(init_state.tx_next);
     pdcp.set_rx_next(init_state.rx_next);
     pdcp.set_rx_deliv(init_state.rx_deliv);
@@ -193,7 +194,7 @@ srslte::unique_byte_buffer_t gen_expected_pdu(const srslte::unique_byte_buffer_t
   rlc_dummy*              rlc  = &pdcp_hlp.rlc;
 
   pdcp_initial_state init_state = {};
-  init_state.tx_next = count;
+  init_state.tx_next            = count;
   pdcp_hlp.set_pdcp_initial_state(init_state);
 
   srslte::unique_byte_buffer_t sdu = srslte::allocate_unique_buffer(*pool);

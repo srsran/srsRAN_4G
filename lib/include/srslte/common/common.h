@@ -34,13 +34,13 @@
                               DEFINES
 *******************************************************************************/
 
-#define SRSLTE_UE_CATEGORY     4
+#define SRSLTE_UE_CATEGORY 4
 
-#define SRSLTE_N_SRB           3
-#define SRSLTE_N_DRB           8
+#define SRSLTE_N_SRB 3
+#define SRSLTE_N_DRB 8
 #define SRSLTE_N_RADIO_BEARERS 11
 
-#define SRSLTE_N_MCH_LCIDS     32
+#define SRSLTE_N_MCH_LCIDS 32
 
 #define TX_DELAY 4
 #define MSG3_DELAY_MS 2 // Delay added to TX_DELAY
@@ -56,7 +56,7 @@
 #define TTI_RX_ACK(tti)  (TTI_ADD(tti, FDD_HARQ_DELAY_MS + TX_DELAY))
 
 #define TTIMOD_SZ 20
-#define TTIMOD(tti)     (tti%TTIMOD_SZ)
+#define TTIMOD(tti) (tti % TTIMOD_SZ)
 
 #define PHICH_MAX_SF 6 // Maximum PHICH in a subframe (1 in FDD, > 1 in TDD, see table 9.1.2-1 36.213)
 
@@ -65,7 +65,7 @@
 // Cat 4 UE - Max number of DL-SCH transport block bits received within a TTI
 // 3GPP 36.306 v15.4.0 Table 4.1.1 for Category 11 with 2 layers and 256QAM
 #define SRSLTE_MAX_TBSIZE_BITS 97896
-#define SRSLTE_BUFFER_HEADER_OFFSET  1020
+#define SRSLTE_BUFFER_HEADER_OFFSET 1020
 #define SRSLTE_MAX_BUFFER_SIZE_BITS (SRSLTE_MAX_TBSIZE_BITS + SRSLTE_BUFFER_HEADER_OFFSET)
 #define SRSLTE_MAX_BUFFER_SIZE_BYTES (SRSLTE_MAX_TBSIZE_BITS / 8 + SRSLTE_BUFFER_HEADER_OFFSET)
 
@@ -172,7 +172,7 @@ public:
 #endif
   }
 
-  void append_bytes(uint8_t *buf, uint32_t size)
+  void append_bytes(uint8_t* buf, uint32_t size)
   {
     memcpy(&msg[N_bytes], buf, size);
     N_bytes += size;
