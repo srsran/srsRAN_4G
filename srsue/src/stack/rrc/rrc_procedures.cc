@@ -736,7 +736,7 @@ proc_outcome_t rrc::process_pcch_proc::step()
            paging.paging_record_list[paging_idx].ue_id.s_tmsi().m_tmsi.to_number());
       if (rrc_ptr->ue_identity == s_tmsi_paged) {
         if (RRC_STATE_IDLE == rrc_ptr->state) {
-          Info("S-TMS->I match in paging message\n");
+          Info("S-TMSI match in paging message\n");
           log_h->console("S-TMSI match in paging message\n");
           rrc_ptr->nas->paging(&s_tmsi_paged);
           state = state_t::nas_paging;
