@@ -387,6 +387,11 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
    set(CMAKE_SHARED_LINKER_FLAGS "-undefined dynamic_lookup")
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
+# Add colored output when using the Ninja generator
+if("Ninja" STREQUAL ${CMAKE_GENERATOR})
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fdiagnostics-color=always")
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fdiagnostics-color=always")
+endif()
 
 # Add -Werror to C/C++ flags for newer compilers
 if(NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
