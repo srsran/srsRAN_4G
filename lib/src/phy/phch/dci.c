@@ -246,9 +246,44 @@ static uint32_t tpmi_bits(uint32_t nof_ports)
 
 static uint32_t dci_format1B_sizeof(srslte_cell_t* cell, srslte_dl_sf_cfg_t* sf, srslte_dci_cfg_t* cfg)
 {
-  // same as format1A minus the differentiation bit plus TPMI + PMI
-  uint32_t n = dci_format1A_sizeof(cell, sf, cfg) - 1 + tpmi_bits(cell->nof_ports) + 1 + (IS_TDD ? 2 : 0);
+  uint32_t n = 0;
 
+  /* Carrier indicator – 0 or 3 bits */
+  n += (cfg->cif_enabled) ? 3 : 0;
+
+  /* Localized/Distributed VRB assignment flag – 1 bit */
+  n += 1;
+
+  /* Resource block assignment */
+  n += riv_nbits(cell->nof_prb);
+
+  /* Modulation and coding scheme and redundancy version – 5 bits */
+  n += 5;
+
+  /* HARQ process number – 3 bits (FDD) , 4 bits (TDD) */
+  n += HARQ_PID_LEN;
+
+  /* New data indicator – 1 bit */
+  n += 1;
+
+  /* Redundancy version – 2 bits */
+  n += 2;
+
+  /* TPC command for PUCCH – 2 bits */
+  n += 2;
+
+  /* Downlink Assignment Index – 2 bits (TDD) */
+  n += (IS_TDD ? 2 : 0);
+
+  /* TPMI information for precoding – number of bits as specified in Table 5.3.3.1.3A-1 */
+  n += tpmi_bits(cell->nof_ports);
+
+  /* PMI confirmation for precoding – 1 bit as specified in Table 5.3.3.1.3A-2 */
+  n += 1;
+
+  while (n < dci_format0_sizeof_(cell, sf, cfg)) {
+    n++;
+  }
   while (is_ambiguous_size(n)) {
     n++;
   }
