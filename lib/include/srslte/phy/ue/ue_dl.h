@@ -112,21 +112,22 @@ typedef struct SRSLTE_API {
 typedef struct SRSLTE_API {
   srslte_cqi_report_cfg_t cqi_report;
   srslte_pdsch_cfg_t      pdsch;
+  srslte_dci_cfg_t        dci;
   srslte_tm_t             tm;
 } srslte_dl_cfg_t;
 
 typedef struct SRSLTE_API {
   srslte_dl_cfg_t       cfg;
   srslte_chest_dl_cfg_t chest_cfg;
-  srslte_dci_cfg_t      dci_cfg;
   uint32_t              last_ri;
   float                 snr_to_cqi_offset;
-  bool                  pdsch_use_tbs_index_alt;
 } srslte_ue_dl_cfg_t;
 
 typedef struct {
   uint32_t v_dai_dl;
   uint32_t n_cce;
+  uint32_t grant_cc_idx;
+  uint32_t tpc_for_pucch;
 } srslte_pdsch_ack_resource_t;
 
 typedef struct {
@@ -149,7 +150,7 @@ typedef struct {
   srslte_ack_nack_feedback_mode_t ack_nack_feedback_mode;
   bool                            is_grant_available;
   bool                            is_pusch_available;
-  bool                            tdd_ack_bundle;
+  bool                            tdd_ack_multiplex;
   bool                            simul_cqi_ack;
 } srslte_pdsch_ack_t;
 
@@ -182,13 +183,13 @@ SRSLTE_API int srslte_ue_dl_decode_fft_estimate_noguru(srslte_ue_dl_t*     q,
 /* Finds UL/DL DCI in the signal processed in a previous call to decode_fft_estimate() */
 SRSLTE_API int srslte_ue_dl_find_ul_dci(srslte_ue_dl_t*     q,
                                         srslte_dl_sf_cfg_t* sf,
-                                        srslte_ue_dl_cfg_t* cfg,
+                                        srslte_ue_dl_cfg_t* dl_cfg,
                                         uint16_t            rnti,
                                         srslte_dci_ul_t     dci_msg[SRSLTE_MAX_DCI_MSG]);
 
 SRSLTE_API int srslte_ue_dl_find_dl_dci(srslte_ue_dl_t*     q,
                                         srslte_dl_sf_cfg_t* sf,
-                                        srslte_ue_dl_cfg_t* cfg,
+                                        srslte_ue_dl_cfg_t* dl_cfg,
                                         uint16_t            rnti,
                                         srslte_dci_dl_t     dci_msg[SRSLTE_MAX_DCI_MSG]);
 

@@ -23,6 +23,7 @@
 #define SRSLTE_CC_WORKER_H
 
 #include "phy_common.h"
+#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/srslte.h"
 
 namespace srsue {
@@ -45,8 +46,7 @@ public:
   float get_ref_cfo();
 
   void set_tdd_config(srslte_tdd_config_t config);
-  void set_pcell_config(phy_interface_rrc_lte::phy_cfg_t* phy_cfg);
-  void set_scell_config(asn1::rrc::scell_to_add_mod_r10_s* phy_cfg);
+  void set_config(srslte::phy_cfg_t& phy_cfg);
   void set_crnti(uint16_t rnti);
   void enable_pregen_signals(bool enabled);
 
@@ -68,16 +68,6 @@ private:
                            uint32_t                               pid,
                            bool                                   ul_grant_available,
                            mac_interface_phy_lte::mac_grant_ul_t* mac_grant);
-  void fill_dci_cfg(srslte_dci_cfg_t* cfg, bool rel10 = false);
-
-  // Cross-carried grants scheduled from PCell
-  void set_dl_pending_grant(uint32_t cc_idx, srslte_dci_dl_t* dl_dci);
-  bool get_dl_pending_grant(uint32_t cc_idx, srslte_dci_dl_t* dl_dci);
-  typedef struct {
-    bool            enable;
-    srslte_dci_dl_t dl_dci;
-  } pending_dl_grant_t;
-  pending_dl_grant_t pending_dl_grant[SRSLTE_MAX_CARRIERS]; // Only for the current TTI
 
   /* Methods for DL... */
   int decode_pdcch_ul();
@@ -96,39 +86,36 @@ private:
   void     set_uci_aperiodic_cqi(srslte_uci_data_t* uci_data);
   void     set_uci_ack(srslte_uci_data_t* uci_data, bool is_grant_available, uint32_t dai_ul, bool is_pusch_available);
   uint32_t get_wideband_cqi();
-  srslte_cqi_report_mode_t aperiodic_mode(asn1::rrc::cqi_report_mode_aperiodic_e mode);
-  void                     parse_antenna_info(asn1::rrc::phys_cfg_ded_s* dedicated);
-  void                     parse_pucch_config(phy_interface_rrc_lte::phy_cfg_t* phy_cfg);
 
   /* Common objects */
-  phy_common*  phy;
-  srslte::log* log_h;
+  phy_common*  phy   = nullptr;
+  srslte::log* log_h = nullptr;
 
-  srslte_cell_t      cell;
-  srslte_dl_sf_cfg_t sf_cfg_dl;
-  srslte_ul_sf_cfg_t sf_cfg_ul;
+  srslte_cell_t      cell      = {};
+  srslte_dl_sf_cfg_t sf_cfg_dl = {};
+  srslte_ul_sf_cfg_t sf_cfg_ul = {};
 
-  uint32_t cc_idx;
-  bool     pregen_enabled;
-  bool     cell_initiated;
-  cf_t*    signal_buffer_rx[SRSLTE_MAX_PORTS];
-  cf_t*    signal_buffer_tx[SRSLTE_MAX_PORTS];
+  uint32_t cc_idx                             = 0;
+  bool     pregen_enabled                     = false;
+  bool     cell_initiated                     = false;
+  cf_t*    signal_buffer_rx[SRSLTE_MAX_PORTS] = {};
+  cf_t*    signal_buffer_tx[SRSLTE_MAX_PORTS] = {};
 
   /* Objects for DL */
-  srslte_ue_dl_t     ue_dl;
-  srslte_ue_dl_cfg_t ue_dl_cfg;
-  srslte_pmch_cfg_t  pmch_cfg;
+  srslte_ue_dl_t     ue_dl     = {};
+  srslte_ue_dl_cfg_t ue_dl_cfg = {};
+  srslte_pmch_cfg_t  pmch_cfg  = {};
 
-  srslte_chest_dl_cfg_t chest_mbsfn_cfg;
-  srslte_chest_dl_cfg_t chest_default_cfg;
+  srslte_chest_dl_cfg_t chest_mbsfn_cfg   = {};
+  srslte_chest_dl_cfg_t chest_default_cfg = {};
 
   /* Objects for UL */
-  srslte_ue_ul_t     ue_ul;
-  srslte_ue_ul_cfg_t ue_ul_cfg;
+  srslte_ue_ul_t     ue_ul     = {};
+  srslte_ue_ul_cfg_t ue_ul_cfg = {};
 
   // Metrics
-  dl_metrics_t dl_metrics;
-  ul_metrics_t ul_metrics;
+  dl_metrics_t dl_metrics = {};
+  ul_metrics_t ul_metrics = {};
 };
 
 } // namespace srsue

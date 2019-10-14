@@ -158,7 +158,7 @@ int main(int argc, char **argv) {
    * a) requries more memory but has less latency and is paralellizable.
    */
   for (N_id_2=0;N_id_2<3;N_id_2++) {
-    if (srslte_pss_init(&pss[N_id_2], frame_length)) {
+    if (srslte_pss_init_fft(&pss[N_id_2], frame_length, symbol_sz)) {
       ERROR("Error initializing PSS object\n");
       exit(-1);
     }
@@ -166,7 +166,7 @@ int main(int argc, char **argv) {
       ERROR("Error initializing N_id_2\n");
       exit(-1);
     }
-    if (srslte_sss_init(&sss[N_id_2], 128)) {
+    if (srslte_sss_init(&sss[N_id_2], symbol_sz)) {
       ERROR("Error initializing SSS object\n");
       exit(-1);
     }
@@ -220,10 +220,15 @@ int main(int argc, char **argv) {
 
         cfo[frame_cnt] = srslte_pss_cfo_compute(&pss[N_id_2], &input[peak_pos[N_id_2]-128]);
         printf("\t%d\t%d\t%d\t%d\t%.3f\t\t%3d\t%d\t%d\t%.3f\n",
-            frame_cnt,N_id_2, srslte_sss_N_id_1(&sss[N_id_2], m0, m1),
-            srslte_sss_subframe(m0, m1), peak_value[N_id_2],
-            peak_pos[N_id_2], m0, m1,
-            cfo[frame_cnt]);
+               frame_cnt,
+               N_id_2,
+               srslte_sss_N_id_1(&sss[N_id_2], m0, m1, m1_value + m0_value),
+               srslte_sss_subframe(m0, m1),
+               peak_value[N_id_2],
+               peak_pos[N_id_2],
+               m0,
+               m1,
+               cfo[frame_cnt]);
       }
     }
     gettimeofday(&tdata[2], NULL);

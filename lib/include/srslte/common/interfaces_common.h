@@ -67,22 +67,36 @@ public:
   uint32_t lcid;
 };
 
+const uint8_t PDCP_SN_LEN_5  = 5;
+const uint8_t PDCP_SN_LEN_7  = 7;
+const uint8_t PDCP_SN_LEN_12 = 12;
+const uint8_t PDCP_SN_LEN_18 = 18;
 
-class srslte_pdcp_config_t
+typedef enum { PDCP_RB_IS_SRB, PDCP_RB_IS_DRB } pdcp_rb_type_t;
+
+class pdcp_config_t
 {
 public:
-  srslte_pdcp_config_t(uint8_t bearer_id_ = 0, bool is_control_ = false, bool is_data_ = false, uint8_t direction_ = SECURITY_DIRECTION_UPLINK)
-    :bearer_id(bearer_id_)
-    ,direction(direction_)
-    ,is_control(is_control_)
-    ,is_data(is_data_)
-    ,sn_len(12) {}
+  pdcp_config_t(uint8_t              bearer_id_,
+                pdcp_rb_type_t       rb_type_,
+                security_direction_t tx_direction_,
+                security_direction_t rx_direction_,
+                uint8_t              sn_len_) :
+    bearer_id(bearer_id_),
+    rb_type(rb_type_),
+    tx_direction(tx_direction_),
+    rx_direction(rx_direction_),
+    sn_len(sn_len_)
+  {
+    hdr_len_bytes = ceil((float)sn_len / 8);
+  }
 
-  uint32_t bearer_id;
-  uint8_t  direction;
-  bool     is_control;
-  bool     is_data;
-  uint8_t  sn_len;
+  uint8_t              bearer_id     = 1;
+  pdcp_rb_type_t       rb_type       = PDCP_RB_IS_DRB;
+  security_direction_t tx_direction  = SECURITY_DIRECTION_DOWNLINK;
+  security_direction_t rx_direction  = SECURITY_DIRECTION_UPLINK;
+  uint8_t              sn_len        = PDCP_SN_LEN_12;
+  uint8_t              hdr_len_bytes = 2;
 
   // TODO: Support the following configurations
   // bool do_rohc;

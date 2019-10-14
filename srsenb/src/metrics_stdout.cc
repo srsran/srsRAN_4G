@@ -62,7 +62,15 @@ void metrics_stdout::toggle_print(bool b)
 
 void metrics_stdout::set_metrics(enb_metrics_t &metrics, const uint32_t period_usec)
 {
-  if (!do_print || enb == NULL || metrics.stack.rrc.n_ues == 0) {
+  if (!do_print || enb == nullptr) {
+    return;
+  }
+
+  if (metrics.rf.rf_error) {
+    printf("RF status: O=%d, U=%d, L=%d\n", metrics.rf.rf_o, metrics.rf.rf_u, metrics.rf.rf_l);
+  }
+
+  if (metrics.stack.rrc.n_ues == 0) {
     return;
   }
 
@@ -128,10 +136,6 @@ void metrics_stdout::set_metrics(enb_metrics_t &metrics, const uint32_t period_u
     }
     cout << float_to_eng_string(metrics.stack.mac[i].ul_buffer, 2);
     cout << endl;
-  }
-
-  if (metrics.rf.rf_error) {
-    printf("RF status: O=%d, U=%d, L=%d\n", metrics.rf.rf_o, metrics.rf.rf_u, metrics.rf.rf_l);
   }
 
   cout.flags(f); // For avoiding Coverity defect: Not restoring ostream format

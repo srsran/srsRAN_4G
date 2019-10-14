@@ -75,7 +75,7 @@ void bsr_proc::reset()
   trigger_tti = 0;
 }
 
-void bsr_proc::set_config(srsue::mac_interface_rrc::bsr_cfg_t& bsr_cfg)
+void bsr_proc::set_config(srslte::bsr_cfg_t& bsr_cfg)
 {
   pthread_mutex_lock(&mutex);
 
@@ -223,7 +223,7 @@ bool bsr_proc::generate_bsr(bsr_t* bsr, uint32_t nof_padding_bytes)
       // If space only for short
       if (nof_lcg > 1) {
         bsr->format           = TRUNC_BSR;
-        uint32_t max_prio_lcg = find_max_priority_lcg();
+        uint32_t max_prio_lcg = find_max_priority_lcg_with_data();
         for (uint32_t i = 0; i < NOF_LCG; i++) {
           if (max_prio_lcg != i) {
             bsr->buff_size[i] = 0; 
@@ -383,7 +383,6 @@ bool bsr_proc::generate_padding_bsr(uint32_t nof_padding_bytes, bsr_t* bsr)
     set_trigger(NONE);
     ret = true;
   }
-
   pthread_mutex_unlock(&mutex);
 
   return ret;
@@ -434,13 +433,13 @@ void bsr_proc::setup_lcid(uint32_t lcid, uint32_t new_lcg, uint32_t priority)
   }
 }
 
-uint32_t bsr_proc::find_max_priority_lcg()
+uint32_t bsr_proc::find_max_priority_lcg_with_data()
 {
   int32_t  max_prio = 99;
   uint32_t max_idx  = 0;
   for (int i = 0; i < NOF_LCG; i++) {
     for (std::map<uint32_t, lcid_t>::iterator iter = lcgs[i].begin(); iter != lcgs[i].end(); ++iter) {
-      if (iter->second.priority < max_prio) {
+      if (iter->second.priority < max_prio && iter->second.old_buffer > 0) {
         max_prio = iter->second.priority;
         max_idx  = i;
       }

@@ -32,22 +32,18 @@
 
 namespace srslte {
 
-rlc_am::rlc_am(srslte::log*                  log_,
-               uint32_t                      lcid_,
-               srsue::pdcp_interface_rlc*    pdcp_,
-               srsue::rrc_interface_rlc*     rrc_,
-               srslte::mac_interface_timers* mac_timers_) :
+rlc_am::rlc_am(srslte::log*               log_,
+               uint32_t                   lcid_,
+               srsue::pdcp_interface_rlc* pdcp_,
+               srsue::rrc_interface_rlc*  rrc_,
+               srslte::timers*            timers_) :
   log(log_),
   rrc(rrc_),
   pdcp(pdcp_),
-  mac_timers(mac_timers_),
+  timers(timers_),
   lcid(lcid_),
   tx(this),
   rx(this)
-{
-}
-
-rlc_am::~rlc_am()
 {
 }
 
@@ -170,11 +166,11 @@ rlc_am::rlc_am_tx::rlc_am_tx(rlc_am* parent_) :
   log(parent_->log),
   pool(byte_buffer_pool::get_instance())
 {
-  poll_retx_timer_id = parent->mac_timers->timer_get_unique_id();
-  poll_retx_timer    = parent->mac_timers->timer_get(poll_retx_timer_id);
+  poll_retx_timer_id = parent->timers->get_unique_id();
+  poll_retx_timer    = parent->timers->get(poll_retx_timer_id);
 
-  status_prohibit_timer_id = parent->mac_timers->timer_get_unique_id();
-  status_prohibit_timer    = parent->mac_timers->timer_get(status_prohibit_timer_id);
+  status_prohibit_timer_id = parent->timers->get_unique_id();
+  status_prohibit_timer    = parent->timers->get(status_prohibit_timer_id);
 
   pthread_mutex_init(&mutex, NULL);
 }
@@ -182,10 +178,10 @@ rlc_am::rlc_am_tx::rlc_am_tx(rlc_am* parent_) :
 rlc_am::rlc_am_tx::~rlc_am_tx()
 {
   poll_retx_timer->stop();
-  parent->mac_timers->timer_release_id(poll_retx_timer_id);
+  parent->timers->release_id(poll_retx_timer_id);
 
   status_prohibit_timer->stop();
-  parent->mac_timers->timer_release_id(status_prohibit_timer_id);
+  parent->timers->release_id(status_prohibit_timer_id);
 
   pthread_mutex_destroy(&mutex);
 }
@@ -225,11 +221,11 @@ void rlc_am::rlc_am_tx::stop()
 
   tx_enabled = false;
 
-  if (parent->mac_timers != NULL && poll_retx_timer != NULL) {
+  if (parent->timers != NULL && poll_retx_timer != NULL) {
     poll_retx_timer->stop();
   }
 
-  if (parent->mac_timers != NULL && status_prohibit_timer != NULL) {
+  if (parent->timers != NULL && status_prohibit_timer != NULL) {
     status_prohibit_timer->stop();
   }
 
@@ -1124,8 +1120,8 @@ rlc_am::rlc_am_rx::rlc_am_rx(rlc_am* parent_) :
   pool(byte_buffer_pool::get_instance()),
   log(parent_->log)
 {
-  reordering_timer_id = parent->mac_timers->timer_get_unique_id();
-  reordering_timer    = parent->mac_timers->timer_get(reordering_timer_id);
+  reordering_timer_id = parent->timers->get_unique_id();
+  reordering_timer    = parent->timers->get(reordering_timer_id);
 
   pthread_mutex_init(&mutex, NULL);
 }
@@ -1133,7 +1129,7 @@ rlc_am::rlc_am_rx::rlc_am_rx(rlc_am* parent_) :
 rlc_am::rlc_am_rx::~rlc_am_rx()
 {
   reordering_timer->stop();
-  parent->mac_timers->timer_release_id(reordering_timer_id);
+  parent->timers->release_id(reordering_timer_id);
 
   pthread_mutex_destroy(&mutex);
 }
@@ -1166,7 +1162,7 @@ void rlc_am::rlc_am_rx::stop()
 {
   pthread_mutex_lock(&mutex);
 
-  if (parent->mac_timers != NULL && reordering_timer != NULL) {
+  if (parent->timers != NULL && reordering_timer != NULL) {
     reordering_timer->stop();
   }
 
@@ -1633,6 +1629,14 @@ int rlc_am::rlc_am_rx::get_status_pdu(rlc_status_pdu_t* status, const uint32_t m
       if (status->N_nack >= 1) {
         log->debug("Removing last NACK SN=%d\n", status->nacks[status->N_nack].nack_sn);
         status->N_nack--;
+        // make sure we don't have the current ACK_SN in the NACK list
+        if (rlc_am_is_valid_status_pdu(*status) == false) {
+          // No space to send any NACKs
+          log->debug("Resetting N_nack to zero\n");
+          status->N_nack = 0;
+        }
+      } else {
+        log->error("Failed to generate small enough status PDU\n");
       }
       break;
     }
@@ -1786,13 +1790,11 @@ bool rlc_am::rlc_am_rx::add_segment_and_check(rlc_amd_rx_pdu_segments_t *pdu, rl
   return true;
 }
 
-bool rlc_am::rlc_am_rx::inside_rx_window(uint16_t sn)
+bool rlc_am::rlc_am_rx::inside_rx_window(const int16_t sn)
 {
-  if(RX_MOD_BASE(sn) >= RX_MOD_BASE(vr_r) &&
-     RX_MOD_BASE(sn) <  RX_MOD_BASE(vr_mr))
-  {
+  if (RX_MOD_BASE(sn) >= RX_MOD_BASE(static_cast<int16_t>(vr_r)) && RX_MOD_BASE(sn) < RX_MOD_BASE(vr_mr)) {
     return true;
-  }else{
+  } else {
     return false;
   }
 }
@@ -2028,6 +2030,16 @@ int rlc_am_write_status_pdu(rlc_status_pdu_t *status, uint8_t *payload)
   // Pack bits
   srslte_bit_pack_vector(tmp.msg, payload, tmp.N_bits);
   return tmp.N_bits/8;
+}
+
+bool rlc_am_is_valid_status_pdu(const rlc_status_pdu_t& status)
+{
+  for (uint16_t i = 0; i < status.N_nack; ++i) {
+    if (status.nacks[i].nack_sn == status.ack_sn) {
+      return false;
+    }
+  }
+  return true;
 }
 
 uint32_t rlc_am_packed_length(rlc_amd_pdu_header_t *header)

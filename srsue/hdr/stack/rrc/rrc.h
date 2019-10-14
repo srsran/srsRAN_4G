@@ -26,6 +26,7 @@
 
 #include "rrc_common.h"
 #include "rrc_metrics.h"
+#include "srslte/asn1/rrc_asn1.h"
 #include "srslte/asn1/rrc_asn1_utils.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/block_queue.h"
@@ -33,11 +34,12 @@
 #include "srslte/common/common.h"
 #include "srslte/common/log.h"
 #include "srslte/common/security.h"
+#include "srslte/common/stack_procedure.h"
 #include "srslte/common/threads.h"
 #include "srslte/interfaces/ue_interfaces.h"
 
-#include <math.h>
 #include <map>
+#include <math.h>
 #include <queue>
 
 #define SRSLTE_RRC_N_BANDS 43
@@ -183,6 +185,7 @@ class cell_t
     has_valid_sib13 = true;
   }
 
+  // TODO: replace with TTI count
   uint32_t timeout_secs(struct timeval now) {
     struct timeval t[3];
     memcpy(&t[2], &now, sizeof(struct timeval));
@@ -282,22 +285,22 @@ class rrc : public rrc_interface_nas,
             public rrc_interface_mac,
             public rrc_interface_pdcp,
             public rrc_interface_rlc,
-            public srslte::timer_callback,
-            public thread
+            public srslte::timer_callback
 {
 public:
   rrc(srslte::log* rrc_log_);
   ~rrc();
 
-  void init(phy_interface_rrc_lte*        phy_,
-            mac_interface_rrc*            mac_,
-            rlc_interface_rrc*            rlc_,
-            pdcp_interface_rrc*           pdcp_,
-            nas_interface_rrc*            nas_,
-            usim_interface_rrc*           usim_,
-            gw_interface_rrc*             gw_,
-            srslte::mac_interface_timers* mac_timers_,
-            const rrc_args_t&             args_);
+  void init(phy_interface_rrc_lte* phy_,
+            mac_interface_rrc*     mac_,
+            rlc_interface_rrc*     rlc_,
+            pdcp_interface_rrc*    pdcp_,
+            nas_interface_rrc*     nas_,
+            usim_interface_rrc*    usim_,
+            gw_interface_rrc*      gw_,
+            srslte::timers*        timers_,
+            stack_interface_rrc*   stack_,
+            const rrc_args_t&      args_);
 
   void stop();
 
@@ -319,10 +322,11 @@ public:
   void enable_capabilities();
   uint16_t get_mcc();
   uint16_t get_mnc();
-  int plmn_search(found_plmn_t found_plmns[MAX_FOUND_PLMNS]);
+  bool     plmn_search() final;
   void     plmn_select(srslte::plmn_id_t plmn_id);
   bool     connection_request(srslte::establishment_cause_t cause, srslte::unique_byte_buffer_t dedicated_info_nas);
   void     set_ue_identity(srslte::s_tmsi_t s_tmsi);
+  void     paging_completed(bool outcome) final;
 
   // PHY interface
   void in_sync();
@@ -346,17 +350,19 @@ public:
   void write_pdu_pcch(srslte::unique_byte_buffer_t pdu);
   void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
 
-private:
+  // STACK interface
+  void cell_search_completed(const phy_interface_rrc_lte::cell_search_ret_t& cs_ret,
+                             const phy_interface_rrc_lte::phy_cell_t&        found_cell);
 
+private:
   typedef struct {
-    enum { PDU, PCCH, STOP, MBMS_START } command;
+    enum { PDU, PCCH, PDU_MCH, RLF, PDU_BCCH_DLSCH, STOP } command;
     srslte::unique_byte_buffer_t pdu;
     uint16_t lcid;
   } cmd_msg_t;
 
   bool                           running = false;
   srslte::block_queue<cmd_msg_t> cmd_q;
-  void run_thread();
 
   void process_pcch(srslte::unique_byte_buffer_t pdu);
 
@@ -369,6 +375,7 @@ private:
   nas_interface_rrc*        nas     = nullptr;
   usim_interface_rrc*       usim    = nullptr;
   gw_interface_rrc*         gw      = nullptr;
+  stack_interface_rrc*      stack   = nullptr;
 
   srslte::unique_byte_buffer_t dedicated_info_nas;
 
@@ -376,8 +383,6 @@ private:
   void send_ul_dcch_msg(uint32_t lcid, const asn1::rrc::ul_dcch_msg_s& msg);
 
   srslte::bit_buffer_t          bit_buf;
-
-  pthread_mutex_t mutex;
 
   rrc_state_t         state, last_state = RRC_STATE_IDLE;
   uint8_t             transaction_id = 0;
@@ -392,8 +397,8 @@ private:
 
   uint16_t                         ho_src_rnti = 0;
   cell_t                           ho_src_cell = {};
-  phy_interface_rrc_lte::phy_cfg_t current_phy_cfg, previous_phy_cfg = {};
-  mac_interface_rrc::mac_cfg_t     current_mac_cfg, previous_mac_cfg = {};
+  srslte::phy_cfg_t                current_phy_cfg, previous_phy_cfg = {};
+  srslte::mac_cfg_t                current_mac_cfg, previous_mac_cfg = {};
   bool                             pending_mob_reconf = false;
   asn1::rrc::rrc_conn_recfg_s      mob_reconf         = {};
 
@@ -409,10 +414,10 @@ private:
   std::map<uint32_t, asn1::rrc::drb_to_add_mod_s> drbs;
 
   // RRC constants and timers
-  srslte::mac_interface_timers* mac_timers = nullptr;
-  uint32_t                      n310_cnt, N310 = 0;
-  uint32_t                      n311_cnt, N311 = 0;
-  uint32_t                      t300, t301, t302, t310, t311, t304 = 0;
+  srslte::timers* timers = nullptr;
+  uint32_t        n310_cnt, N310 = 0;
+  uint32_t        n311_cnt, N311 = 0;
+  uint32_t        t300, t301, t302, t310, t311, t304 = 0;
 
   // Radio bearers
   typedef enum{
@@ -444,36 +449,29 @@ private:
   // List of strongest neighbour cell
   const static int NEIGHBOUR_TIMEOUT   = 5;
   const static int NOF_NEIGHBOUR_CELLS = 8;
-  std::vector<cell_t*> neighbour_cells;
-  cell_t*              serving_cell = nullptr;
-  void set_serving_cell(uint32_t cell_idx);
-  void                 set_serving_cell(phy_interface_rrc_lte::phy_cell_t phy_cell);
 
+  typedef std::unique_ptr<cell_t> unique_cell_t;
+  std::vector<unique_cell_t>      neighbour_cells;
+  unique_cell_t                   serving_cell = nullptr;
+  void set_serving_cell(uint32_t cell_idx);
+  void                            set_serving_cell(phy_interface_rrc_lte::phy_cell_t phy_cell);
+
+  unique_cell_t                  remove_neighbour_cell(const uint32_t earfcn, const uint32_t pci);
+  cell_t*                        get_neighbour_cell_handle(const uint32_t earfcn, const uint32_t pci);
+  bool                           has_neighbour_cell(const uint32_t earfcn, const uint32_t pci);
   int  find_neighbour_cell(uint32_t earfcn, uint32_t pci);
   bool add_neighbour_cell(uint32_t earfcn, uint32_t pci, float rsrp);
   bool                           add_neighbour_cell(phy_interface_rrc_lte::phy_cell_t phy_cell, float rsrp);
-  bool add_neighbour_cell(cell_t *cell);
+  bool                           add_neighbour_cell(unique_cell_t new_cell);
   void sort_neighbour_cells();
   void clean_neighbours();
-  std::vector<cell_t*>::iterator delete_neighbour(std::vector<cell_t*>::iterator it);
-  void delete_neighbour(uint32_t cell_idx);
-
-  bool               configure_serving_cell();
-
-  bool               si_acquire(uint32_t index);
-  uint32_t           sib_start_tti(uint32_t tti, uint32_t period, uint32_t offset, uint32_t sf);
-  const static int SIB_SEARCH_TIMEOUT_MS = 1000;
+  void                           delete_last_neighbour();
 
   bool                     initiated                  = false;
-  bool                     ho_start                   = false;
-  bool                     go_idle                    = false;
-  asn1::rrc::reest_cause_e m_reest_cause              = {};
+  asn1::rrc::reest_cause_e m_reest_cause              = asn1::rrc::reest_cause_e::nulltype;
   uint16_t                 m_reest_rnti               = 0;
   bool                     reestablishment_started    = false;
   bool                     reestablishment_successful = false;
-
-  uint32_t rlc_flush_counter = 0;
-  uint32_t rlc_flush_timeout = 0;
 
   // Measurements sub-class
   class rrc_meas {
@@ -536,10 +534,10 @@ private:
     std::map<uint32_t, report_cfg_t>  reports_cfg;
     std::map<uint32_t, meas_t>        active;
 
-    rrc*                          parent     = nullptr;
-    srslte::log*                  log_h      = nullptr;
-    phy_interface_rrc_lte*        phy        = nullptr;
-    srslte::mac_interface_timers* mac_timers = nullptr;
+    rrc*                   parent = nullptr;
+    srslte::log*           log_h  = nullptr;
+    phy_interface_rrc_lte* phy    = nullptr;
+    srslte::timers*        timers = nullptr;
 
     uint32_t filter_k_rsrp, filter_k_rsrq = 0;
     float    filter_a[NOF_MEASUREMENTS] = {};
@@ -602,20 +600,38 @@ private:
   float         get_srxlev(float Qrxlevmeas);
   float         get_squal(float Qqualmeas);
 
-  typedef enum {
-    CHANGED_CELL = 0,
-    SAME_CELL    = 1,
-    NO_CELL      = 2
-  } cs_ret_t;
+  /********************
+   *  RRC Procedures
+   *******************/
 
-  cs_ret_t      cell_selection();
-  bool          cell_selection_criteria(float rsrp, float rsrq = 0);
-  void          cell_reselection(float rsrp, float rsrq);
+  enum class cs_result_t { changed_cell, same_cell, no_cell };
 
-  phy_interface_rrc_lte::cell_search_ret_t cell_search();
+  // RRC procedures (fwd declared)
+  class cell_search_proc;
+  class si_acquire_proc;
+  class serving_cell_config_proc;
+  class cell_selection_proc;
+  class connection_request_proc;
+  class plmn_search_proc;
+  class process_pcch_proc;
+  class go_idle_proc;
+  srslte::proc_t<cell_search_proc>         cell_searcher;
+  srslte::proc_t<si_acquire_proc>          si_acquirer;
+  srslte::proc_t<serving_cell_config_proc> serv_cell_cfg;
+  srslte::proc_t<cell_selection_proc>      cell_selector;
+  srslte::proc_t<go_idle_proc>             idle_setter;
+  srslte::proc_t<process_pcch_proc>        pcch_processor;
+  srslte::proc_t<connection_request_proc>  conn_req_proc;
+  srslte::proc_t<plmn_search_proc>         plmn_searcher;
 
-  srslte::plmn_id_t selected_plmn_id = {};
-  bool              plmn_is_selected = false;
+  srslte::callback_list_t callback_list;
+
+  bool cell_selection_criteria(float rsrp, float rsrq = 0);
+  void cell_reselection(float rsrp, float rsrq);
+
+  std::vector<uint32_t> ue_required_sibs;
+  srslte::plmn_id_t     selected_plmn_id = {};
+  bool                  plmn_is_selected = false;
 
   bool security_is_activated = false;
 
@@ -623,20 +639,21 @@ private:
   void max_retx_attempted();
 
   // Senders
-  void send_con_request(asn1::rrc::establishment_cause_e cause);
+  void send_con_request(srslte::establishment_cause_t cause);
   void send_con_restablish_request();
   void send_con_restablish_complete();
   void send_con_setup_complete(srslte::unique_byte_buffer_t nas_msg);
   void send_ul_info_transfer(srslte::unique_byte_buffer_t nas_msg);
   void send_security_mode_complete();
   void send_rrc_con_reconfig_complete();
-  void send_rrc_ue_cap_info();
 
   // Parsers
   void process_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
   void parse_dl_ccch(srslte::unique_byte_buffer_t pdu);
   void parse_dl_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
   void parse_dl_info_transfer(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
+  void parse_pdu_bcch_dlsch(srslte::unique_byte_buffer_t pdu);
+  void parse_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
 
   // Helpers
   bool con_reconfig(asn1::rrc::rrc_conn_recfg_s* reconfig);
@@ -644,12 +661,15 @@ private:
   bool con_reconfig_ho(asn1::rrc::rrc_conn_recfg_s* reconfig);
   bool ho_prepare();
   void ho_failed();
+  void start_ho();
+  void start_go_idle();
   void rrc_connection_release();
   void radio_link_failure();
   void leave_connected();
   void stop_timers();
   void init_con_restablish_request(asn1::rrc::reest_cause_e cause);
   void proc_con_restablish_request();
+  void start_cell_reselection();
 
   void log_rr_config_common();
   void log_phy_config_dedicated();
@@ -659,9 +679,9 @@ private:
   bool apply_rr_config_dedicated(asn1::rrc::rr_cfg_ded_s* cnfg);
   void apply_scell_config(asn1::rrc::rrc_conn_recfg_r8_ies_s* reconfig_r8);
   void apply_phy_config_dedicated(const asn1::rrc::phys_cfg_ded_s& phy_cnfg);
+  void apply_phy_scell_config(const asn1::rrc::scell_to_add_mod_r10_s& scell_config);
 
   void apply_mac_config_dedicated_default();
-  void apply_mac_config_dedicated_explicit(asn1::rrc::mac_main_cfg_s mac_cfg);
 
   void handle_sib1();
   void handle_sib2();
@@ -671,6 +691,7 @@ private:
   void handle_con_setup(asn1::rrc::rrc_conn_setup_s* setup);
   void handle_con_reest(asn1::rrc::rrc_conn_reest_s* setup);
   void handle_rrc_con_reconfig(uint32_t lcid, asn1::rrc::rrc_conn_recfg_s* reconfig);
+  void     handle_ue_capability_enquiry(const asn1::rrc::ue_cap_enquiry_s& enquiry);
   void add_srb(asn1::rrc::srb_to_add_mod_s* srb_cnfg);
   void add_drb(asn1::rrc::drb_to_add_mod_s* drb_cnfg);
   void release_drb(uint32_t drb_id);
@@ -679,7 +700,6 @@ private:
 
   // Helpers for setting default values
   void set_phy_default_pucch_srs();
-  void set_phy_config_common_default();
   void set_phy_config_dedicated_default();
   void set_phy_default();
   void set_mac_default();

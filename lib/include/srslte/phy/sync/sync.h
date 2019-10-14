@@ -118,6 +118,7 @@ typedef struct SRSLTE_API {
   bool              sss_generated;
   bool              sss_detected;
   bool              sss_available;
+  float             sss_corr;
   srslte_dft_plan_t idftp_sss;
   cf_t              sss_recv[SRSLTE_SYMBOL_SZ_MAX];
   cf_t              sss_signal[2][SRSLTE_SYMBOL_SZ_MAX];
@@ -241,6 +242,8 @@ SRSLTE_API void srslte_sync_sss_en(srslte_sync_t *q,
 SRSLTE_API srslte_pss_t* srslte_sync_get_cur_pss_obj(srslte_sync_t *q);
 
 SRSLTE_API bool srslte_sync_sss_detected(srslte_sync_t *q);
+
+SRSLTE_API float srslte_sync_sss_correlation_peak(srslte_sync_t* q);
 
 SRSLTE_API bool srslte_sync_sss_available(srslte_sync_t* q);
 

@@ -29,36 +29,38 @@
 
 #include "srslte/common/common.h"
 
-
-#define SECURITY_DIRECTION_UPLINK   0
-#define SECURITY_DIRECTION_DOWNLINK 1
-
 namespace srslte {
 
-typedef enum{
-    CIPHERING_ALGORITHM_ID_EEA0 = 0,
-    CIPHERING_ALGORITHM_ID_128_EEA1,
-    CIPHERING_ALGORITHM_ID_128_EEA2,
-    CIPHERING_ALGORITHM_ID_N_ITEMS,
-}CIPHERING_ALGORITHM_ID_ENUM;
-static const char ciphering_algorithm_id_text[CIPHERING_ALGORITHM_ID_N_ITEMS][20] = {"EEA0",
-                                                                                     "128-EEA1",
-                                                                                     "128-EEA2"};
-typedef enum{
-    INTEGRITY_ALGORITHM_ID_EIA0 = 0,
-    INTEGRITY_ALGORITHM_ID_128_EIA1,
-    INTEGRITY_ALGORITHM_ID_128_EIA2,
-    INTEGRITY_ALGORITHM_ID_N_ITEMS,
-}INTEGRITY_ALGORITHM_ID_ENUM;
-static const char integrity_algorithm_id_text[INTEGRITY_ALGORITHM_ID_N_ITEMS][20] = {"EIA0",
-                                                                                     "128-EIA1",
-                                                                                     "128-EIA2"};
+typedef enum {
+  CIPHERING_ALGORITHM_ID_EEA0 = 0,
+  CIPHERING_ALGORITHM_ID_128_EEA1,
+  CIPHERING_ALGORITHM_ID_128_EEA2,
+  CIPHERING_ALGORITHM_ID_128_EEA3,
+  CIPHERING_ALGORITHM_ID_N_ITEMS,
+} CIPHERING_ALGORITHM_ID_ENUM;
+static const char ciphering_algorithm_id_text[CIPHERING_ALGORITHM_ID_N_ITEMS][20] = {
+    "EEA0", "128-EEA1", "128-EEA2", "128-EEA3"};
 
+typedef enum {
+  INTEGRITY_ALGORITHM_ID_EIA0 = 0,
+  INTEGRITY_ALGORITHM_ID_128_EIA1,
+  INTEGRITY_ALGORITHM_ID_128_EIA2,
+  INTEGRITY_ALGORITHM_ID_128_EIA3,
+  INTEGRITY_ALGORITHM_ID_N_ITEMS,
+} INTEGRITY_ALGORITHM_ID_ENUM;
+static const char integrity_algorithm_id_text[INTEGRITY_ALGORITHM_ID_N_ITEMS][20] = {
+    "EIA0", "128-EIA1", "128-EIA2", "128-EIA3"};
+
+typedef enum {
+  SECURITY_DIRECTION_UPLINK   = 0,
+  SECURITY_DIRECTION_DOWNLINK = 1,
+  SECURITY_DIRECTION_N_ITEMS,
+} security_direction_t;
+static const char security_direction_text[INTEGRITY_ALGORITHM_ID_N_ITEMS][20] = {"Uplink", "Downlink"};
 
 /******************************************************************************
  * Key Generation
  *****************************************************************************/
-
 uint8_t security_generate_k_asme( uint8_t  *ck,
                                   uint8_t  *ik,
                                   uint8_t  *ak,
@@ -101,83 +103,45 @@ uint8_t security_generate_k_up( uint8_t                       *k_enb,
 /******************************************************************************
  * Integrity Protection
  *****************************************************************************/
+uint8_t security_128_eia1(
+    uint8_t* key, uint32_t count, uint32_t bearer, uint8_t direction, uint8_t* msg, uint32_t msg_len, uint8_t* mac);
 
-uint8_t security_128_eia1( uint8_t  *key,
-                           uint32_t  count,
-                           uint32_t   bearer,
-                           uint8_t   direction,
-                           uint8_t  *msg,
-                           uint32_t  msg_len,
-                           uint8_t  *mac);
+uint8_t security_128_eia2(
+    uint8_t* key, uint32_t count, uint32_t bearer, uint8_t direction, uint8_t* msg, uint32_t msg_len, uint8_t* mac);
 
-uint8_t security_128_eia2( uint8_t  *key,
-                           uint32_t  count,
-                           uint32_t   bearer,
-                           uint8_t   direction,
-                           uint8_t  *msg,
-                           uint32_t  msg_len,
-                           uint8_t  *mac);
+uint8_t security_128_eia3(
+    uint8_t* key, uint32_t count, uint32_t bearer, uint8_t direction, uint8_t* msg, uint32_t msg_len, uint8_t* mac);
 
-uint8_t security_md5(const uint8_t *input,
-                     size_t         len,
-                     uint8_t       *output);
-
+uint8_t security_md5(const uint8_t* input, size_t len, uint8_t* output);
 
 /******************************************************************************
  * Encryption / Decryption
  *****************************************************************************/
+uint8_t security_128_eea1(
+    uint8_t* key, uint32_t count, uint8_t bearer, uint8_t direction, uint8_t* msg, uint32_t msg_len, uint8_t* msg_out);
 
-uint8_t security_128_eea1( uint8_t  *key,
-                           uint32_t  count,
-                           uint8_t   bearer,
-                           uint8_t   direction,
-                           uint8_t  *msg,
-                           uint32_t  msg_len,
-                           uint8_t  *msg_out);
+uint8_t security_128_eea2(
+    uint8_t* key, uint32_t count, uint8_t bearer, uint8_t direction, uint8_t* msg, uint32_t msg_len, uint8_t* msg_out);
 
-uint8_t security_128_eea2(uint8_t  *key,
-                           uint32_t  count,
-                           uint8_t   bearer,
-                           uint8_t   direction,
-                           uint8_t  *msg,
-                           uint32_t  msg_len,
-                           uint8_t  *msg_out);
+uint8_t security_128_eea3(
+    uint8_t* key, uint32_t count, uint8_t bearer, uint8_t direction, uint8_t* msg, uint32_t msg_len, uint8_t* msg_out);
 
 /******************************************************************************
  * Authentication
  *****************************************************************************/
-uint8_t compute_opc( uint8_t *k,
-                       uint8_t *op,
-                       uint8_t *opc);
+uint8_t compute_opc(uint8_t* k, uint8_t* op, uint8_t* opc);
 
-uint8_t security_milenage_f1( uint8_t *k,
-                              uint8_t *op,
-                              uint8_t *rand,
-                              uint8_t *sqn,
-                              uint8_t *amf,
-                              uint8_t *mac_a);
+uint8_t security_milenage_f1(uint8_t* k, uint8_t* op, uint8_t* rand, uint8_t* sqn, uint8_t* amf, uint8_t* mac_a);
 
-uint8_t security_milenage_f1_star( uint8_t *k,
-                                   uint8_t *op,
-                                   uint8_t *rand,
-                                   uint8_t *sqn,
-                                   uint8_t *amf,
-                                   uint8_t *mac_s);
+uint8_t security_milenage_f1_star(uint8_t* k, uint8_t* op, uint8_t* rand, uint8_t* sqn, uint8_t* amf, uint8_t* mac_s);
 
-uint8_t security_milenage_f2345( uint8_t *k,
-                                 uint8_t *op,
-                                 uint8_t *rand,
-                                 uint8_t *res,
-                                 uint8_t *ck,
-                                 uint8_t *ik,
-                                 uint8_t *ak);
+uint8_t
+security_milenage_f2345(uint8_t* k, uint8_t* op, uint8_t* rand, uint8_t* res, uint8_t* ck, uint8_t* ik, uint8_t* ak);
 
 uint8_t security_milenage_f5_star( uint8_t *k,
                                    uint8_t *op,
                                    uint8_t *rand,
                                    uint8_t *ak);
 
-
 } // namespace srslte
-
 #endif // SRSLTE_SECURITY_H

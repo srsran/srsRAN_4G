@@ -83,16 +83,6 @@ void log_error_code(SRSASN_CODE code, const char* filename, int line)
        bit_ref
 *********************/
 
-bit_ref::bit_ref() : ptr(NULL), offset(0), start_ptr(NULL), max_ptr(NULL) {}
-
-bit_ref::bit_ref(uint8_t* start_ptr_, uint32_t max_size_) :
-  ptr(start_ptr_),
-  offset(0),
-  start_ptr(start_ptr_),
-  max_ptr(max_size_ + start_ptr_)
-{
-}
-
 int bit_ref::distance(const bit_ref& other) const
 {
   return ((int)offset - (int)other.offset) + 8 * ((int)(ptr - other.ptr));
@@ -116,6 +106,10 @@ int bit_ref::distance_bytes() const
 
 SRSASN_CODE bit_ref::pack(uint32_t val, uint32_t n_bits)
 {
+  if (n_bits >= 32) {
+    srsasn_log_print(LOG_LEVEL_ERROR, "This method only supports packing up to 32 bits\n");
+    return SRSASN_ERROR_ENCODE_FAIL;
+  }
   uint32_t mask;
   while (n_bits > 0) {
     if (ptr >= max_ptr) {
@@ -141,8 +135,33 @@ SRSASN_CODE bit_ref::pack(uint32_t val, uint32_t n_bits)
   return SRSASN_SUCCESS;
 }
 
+SRSASN_CODE bit_ref::pack_bytes(const uint8_t* buf, uint32_t n_bytes)
+{
+  if (n_bytes == 0) {
+    return SRSASN_SUCCESS;
+  }
+  if (ptr + n_bytes >= max_ptr) {
+    srsasn_log_print(LOG_LEVEL_ERROR, "Buffer size limit was achieved\n");
+    return SRSASN_ERROR_ENCODE_FAIL;
+  }
+  if (offset == 0) {
+    // Aligned case
+    memcpy(ptr, buf, n_bytes);
+    ptr += n_bytes;
+  } else {
+    for (uint32_t i = 0; i < n_bytes; ++i) {
+      pack(buf[i], 8);
+    }
+  }
+  return SRSASN_SUCCESS;
+}
+
 ValOrError unpack_bits(uint8_t*& ptr, uint8_t& offset, uint8_t* max_ptr, uint32_t n_bits)
 {
+  if (n_bits > 32) {
+    srsasn_log_print(LOG_LEVEL_ERROR, "This method only supports unpacking up to 32 bits\n");
+    return {0, SRSASN_ERROR_DECODE_FAIL};
+  }
   uint32_t val = 0;
   while (n_bits > 0) {
     if (ptr >= max_ptr) {
@@ -163,6 +182,27 @@ ValOrError unpack_bits(uint8_t*& ptr, uint8_t& offset, uint8_t* max_ptr, uint32_
     }
   }
   return ValOrError(val, SRSASN_SUCCESS);
+}
+
+SRSASN_CODE bit_ref::unpack_bytes(uint8_t* buf, uint32_t n_bytes)
+{
+  if (n_bytes == 0) {
+    return SRSASN_SUCCESS;
+  }
+  if (ptr + n_bytes >= max_ptr) {
+    srsasn_log_print(LOG_LEVEL_ERROR, "Buffer size limit was achieved\n");
+    return SRSASN_ERROR_DECODE_FAIL;
+  }
+  if (offset == 0) {
+    // Aligned case
+    memcpy(buf, ptr, n_bytes);
+    ptr += n_bytes;
+  } else {
+    for (uint32_t i = 0; i < n_bytes; ++i) {
+      unpack(buf[i], 8);
+    }
+  }
+  return SRSASN_SUCCESS;
 }
 
 SRSASN_CODE bit_ref::align_bytes()
@@ -190,6 +230,21 @@ SRSASN_CODE bit_ref::align_bytes_zero()
   *ptr &= mask;
   offset = 0;
   ptr++;
+  return SRSASN_SUCCESS;
+}
+
+SRSASN_CODE bit_ref::advance_bits(uint32_t n_bits)
+{
+  uint32_t extra_bits     = (offset + n_bits) % 8;
+  uint32_t bytes_required = ceilf((offset + n_bits) / 8.0f);
+  uint32_t bytes_offset   = floorf((offset + n_bits) / 8.0f);
+
+  if (ptr + bytes_required >= max_ptr) {
+    srsasn_log_print(LOG_LEVEL_ERROR, "Buffer size limit was achieved\n");
+    return SRSASN_ERROR_DECODE_FAIL;
+  }
+  ptr += bytes_offset;
+  offset = extra_bits;
   return SRSASN_SUCCESS;
 }
 
@@ -370,10 +425,6 @@ template SRSASN_CODE unpack_unalign_integer<uint16_t>(uint16_t& n, bit_ref& bref
 template SRSASN_CODE unpack_unalign_integer<uint32_t>(uint32_t& n, bit_ref& bref, uint32_t lb, uint32_t ub);
 template SRSASN_CODE unpack_unalign_integer<uint64_t>(uint64_t& n, bit_ref& bref, uint64_t lb, uint64_t ub);
 
-template <class IntType>
-UnalignedIntegerPacker<IntType>::UnalignedIntegerPacker(IntType lb_, IntType ub_) : lb(lb_), ub(ub_)
-{
-}
 template <class IntType>
 SRSASN_CODE UnalignedIntegerPacker<IntType>::pack(bit_ref& bref, IntType n) const
 {
@@ -921,84 +972,81 @@ void log_invalid_choice_id(uint32_t val, const char* choice_type)
       ext group
 *********************/
 
-ext_groups_header::ext_groups_header(uint32_t max_nof_groups, uint32_t nof_nogroups_) : nof_nogroups(nof_nogroups_)
+bool& ext_groups_packer_guard::operator[](uint32_t idx)
 {
-  if (max_nof_groups > 20) {
-    srsasn_log_print(LOG_LEVEL_ERROR, "increase the size of ext group packer/unpacker\n");
+  if (idx >= groups.size()) {
+    uint32_t prev_size = groups.size();
+    groups.resize(idx + 1);
+    std::fill(&groups[prev_size], &groups[groups.size()], false);
   }
-  groups.resize(max_nof_groups);
-  for (uint32_t i = 0; i < groups.size(); ++i) {
-    groups[i] = false;
-  }
-  nof_groups = groups.size() + 1; // unset
-}
-
-bool& ext_groups_header::operator[](uint32_t idx)
-{
   return groups[idx];
 }
 
-SRSASN_CODE ext_groups_header::pack_nof_groups(bit_ref& bref) const
+SRSASN_CODE ext_groups_packer_guard::pack(asn1::bit_ref& bref) const
 {
-  nof_groups = 0;
-  for (uint32_t i = 0; i < groups.size(); ++i) {
+  // pack number of groups
+  int32_t i = groups.size() - 1;
+  for (; i >= 0; --i) {
     if (groups[i]) {
-      nof_groups = i + 1;
+      break;
     }
   }
-  if (nof_groups > groups.size()) {
-    srsasn_log_print(LOG_LEVEL_ERROR, "Exceeded maximum number of groups (%d>%d)\n", nof_groups, groups.size());
-    return SRSASN_ERROR_ENCODE_FAIL;
-  }
-  HANDLE_CODE(pack_norm_small_integer(bref, nof_groups + nof_nogroups - 1));
-  return SRSASN_SUCCESS;
-}
+  uint32_t nof_groups = (uint32_t)i + 1u;
+  HANDLE_CODE(pack_norm_small_integer(bref, nof_groups - 1));
 
-SRSASN_CODE ext_groups_header::pack_group_flags(bit_ref& bref) const
-{
-  if (nof_groups > groups.size()) {
-    srsasn_log_print(LOG_LEVEL_ERROR, "Exceeded maximum number of groups (%d>%d)\n", nof_groups, groups.size());
-    return SRSASN_ERROR_ENCODE_FAIL;
-  }
-  for (uint32_t i = 0; i < nof_groups; ++i) {
-    HANDLE_CODE(bref.pack(groups[i], 1));
+  // pack each group presence flag
+  for (uint32_t j = 0; j < nof_groups; ++j) {
+    HANDLE_CODE(bref.pack(groups[j], 1));
   }
   return SRSASN_SUCCESS;
 }
 
-SRSASN_CODE ext_groups_header::pack(bit_ref& bref) const
+ext_groups_unpacker_guard::ext_groups_unpacker_guard(uint32_t nof_supported_groups_) :
+  nof_supported_groups(nof_supported_groups_)
 {
-  HANDLE_CODE(pack_nof_groups(bref));
-  return pack_group_flags(bref);
+  resize(nof_supported_groups);
 }
 
-SRSASN_CODE ext_groups_header::unpack_nof_groups(bit_ref& bref)
+bool& ext_groups_unpacker_guard::operator[](uint32_t idx)
 {
-  HANDLE_CODE(unpack_norm_small_integer(nof_groups, bref));
-  nof_groups += 1 - nof_nogroups;
-  if (nof_groups > groups.size()) {
-    srsasn_log_print(LOG_LEVEL_ERROR, "Exceeded maximum number of groups (%d>%d)\n", nof_groups, groups.size());
-    return SRSASN_ERROR_DECODE_FAIL;
+  if (idx >= groups.size()) {
+    // only resizes for unknown extensions
+    resize(idx + 1);
   }
-  return SRSASN_SUCCESS;
+  return groups[idx];
 }
 
-SRSASN_CODE ext_groups_header::unpack_group_flags(bit_ref& bref)
+void ext_groups_unpacker_guard::resize(uint32_t new_size)
 {
-  if (nof_groups > groups.size()) {
-    srsasn_log_print(LOG_LEVEL_ERROR, "Exceeded maximum number of groups (%d>%d)\n", nof_groups, groups.size());
-    return SRSASN_ERROR_DECODE_FAIL;
+  // always grows
+  uint32_t prev_size = groups.size();
+  groups.resize(std::max(new_size, nof_supported_groups));
+  std::fill(&groups[prev_size], &groups[groups.size()], false);
+}
+
+ext_groups_unpacker_guard::~ext_groups_unpacker_guard()
+{
+  // consume all the unknown extensions
+  for (uint32_t i = nof_supported_groups; i < nof_unpacked_groups; ++i) {
+    if (groups[i]) {
+      varlength_field_unpack_guard scope(*bref_tracker);
+    }
   }
-  for (uint32_t i = 0; i < nof_groups; ++i) {
+}
+
+SRSASN_CODE ext_groups_unpacker_guard::unpack(bit_ref& bref)
+{
+  bref_tracker = &bref;
+  // unpack nof of ext groups
+  HANDLE_CODE(unpack_norm_small_integer(nof_unpacked_groups, bref));
+  nof_unpacked_groups += 1;
+  resize(nof_unpacked_groups);
+
+  // unpack each group presence flag
+  for (uint32_t i = 0; i < nof_unpacked_groups; ++i) {
     HANDLE_CODE(bref.unpack(groups[i], 1));
   }
   return SRSASN_SUCCESS;
-}
-
-SRSASN_CODE ext_groups_header::unpack(bit_ref& bref)
-{
-  HANDLE_CODE(unpack_nof_groups(bref));
-  return unpack_group_flags(bref);
 }
 
 /*********************

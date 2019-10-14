@@ -45,13 +45,10 @@ class rlc
 public:
   rlc(log* rlc_log_);
   virtual ~rlc();
-  void init(srsue::pdcp_interface_rlc* pdcp_,
-            srsue::rrc_interface_rlc*  rrc_,
-            mac_interface_timers*      mac_timers_,
-            uint32_t                   lcid_);
+  void init(srsue::pdcp_interface_rlc* pdcp_, srsue::rrc_interface_rlc* rrc_, srslte::timers* timers_, uint32_t lcid_);
   void stop();
 
-  void get_metrics(rlc_metrics_t &m);
+  void get_metrics(rlc_metrics_t& m);
 
   // PDCP interface
   void write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, bool blocking = true);
@@ -92,9 +89,9 @@ private:
   srslte::log*                  rlc_log    = nullptr;
   srsue::pdcp_interface_rlc*    pdcp       = nullptr;
   srsue::rrc_interface_rlc*     rrc        = nullptr;
-  srslte::mac_interface_timers* mac_timers = nullptr;
+  srslte::timers*               timers     = nullptr;
 
-  typedef std::map<uint16_t, rlc_common*> rlc_map_t;
+  typedef std::map<uint16_t, rlc_common*>  rlc_map_t;
   typedef std::pair<uint16_t, rlc_common*> rlc_map_pair_t;
 
   rlc_map_t rlc_array, rlc_array_mrb;
@@ -109,7 +106,6 @@ private:
   bool valid_lcid_mrb(uint32_t lcid);
 };
 
-} // namespace srsue
-
+} // namespace srslte
 
 #endif // SRSLTE_RLC_H

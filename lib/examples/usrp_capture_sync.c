@@ -100,7 +100,11 @@ void parse_args(int argc, char **argv) {
 
 int srslte_rf_recv_wrapper(void *h, cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *t) {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
-  return srslte_rf_recv_with_time_multi(h, (void**)data[0], nsamples, true, NULL, NULL);
+  void* ptr[SRSLTE_MAX_PORTS];
+  for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
+    ptr[i] = data[i];
+  }
+  return srslte_rf_recv_with_time_multi(h, ptr, nsamples, true, NULL, NULL);
 }
 
 int main(int argc, char **argv) {
@@ -122,7 +126,6 @@ int main(int argc, char **argv) {
     ERROR("Error opening rf\n");
     exit(-1);
   }
-  srslte_rf_set_master_clock_rate(&rf, 30.72e6);
 
   for (int i = 0; i < nof_rx_antennas; i++) {
     buffer[i] = srslte_vec_malloc(3 * sizeof(cf_t) * SRSLTE_SF_LEN_PRB(100));
@@ -137,11 +140,6 @@ int main(int argc, char **argv) {
   printf("Set RX gain: %.1f dB\n", srslte_rf_set_rx_gain(&rf, rf_gain));
     int srate = srslte_sampling_freq_hz(nof_prb);    
     if (srate != -1) {  
-      if (srate < 10e6) {          
-        srslte_rf_set_master_clock_rate(&rf, 4*srate);        
-      } else {
-        srslte_rf_set_master_clock_rate(&rf, srate);        
-      }
       printf("Setting sampling rate %.2f MHz\n", (float) srate/1000000);
       float srate_rf = srslte_rf_set_rx_srate(&rf, (double) srate);
       if (srate_rf != srate) {
@@ -152,7 +150,6 @@ int main(int argc, char **argv) {
       ERROR("Invalid number of PRB %d\n", nof_prb);
       exit(-1);
     }
-  srslte_rf_rx_wait_lo_locked(&rf);
   srslte_rf_start_rx_stream(&rf, false);
 
   cell.cp = SRSLTE_CP_NORM; 

@@ -33,6 +33,10 @@ add_executable(test_eia1 test_eia1.cc)
 target_link_libraries(test_eia1 srslte_common srslte_phy ${CMAKE_THREAD_LIBS_INIT})
 add_test(test_eia1 test_eia1)
 
+add_executable(test_eia3 test_eia3.cc)
+target_link_libraries(test_eia3 srslte_common)
+add_test(test_eia3 test_eia3)
+
 add_executable(test_eea1 test_eea1.cc)
 target_link_libraries(test_eea1 srslte_common srslte_phy ${CMAKE_THREAD_LIBS_INIT})
 add_test(test_eea1 test_eea1)
@@ -40,6 +44,10 @@ add_test(test_eea1 test_eea1)
 add_executable(test_eea2 test_eea2.cc)
 target_link_libraries(test_eea2 srslte_common srslte_phy ${CMAKE_THREAD_LIBS_INIT})
 add_test(test_eea2 test_eea2)
+
+add_executable(test_eea3 test_eea3.cc)
+target_link_libraries(test_eea3 srslte_common srslte_phy ${CMAKE_THREAD_LIBS_INIT})
+add_test(test_eea3 test_eea3)
 
 add_executable(test_f12345 test_f12345.cc)
 target_link_libraries(test_f12345 srslte_common ${CMAKE_THREAD_LIBS_INIT})
@@ -56,3 +64,13 @@ add_executable(bcd_helpers_test bcd_helpers_test.cc)
 add_executable(pdu_test pdu_test.cc)
 target_link_libraries(pdu_test srslte_phy srslte_common ${CMAKE_THREAD_LIBS_INIT})
 add_test(pdu_test pdu_test)
+
+add_executable(mac_nr_pdu_test mac_nr_pdu_test.cc)
+target_link_libraries(mac_nr_pdu_test srslte_phy srslte_common ${CMAKE_THREAD_LIBS_INIT})
+add_test(mac_nr_pdu_test mac_nr_pdu_test)
+
+add_executable(stack_procedure_test stack_procedure_test.cc)
+
+add_executable(queue_test queue_test.cc)
+target_link_libraries(queue_test srslte_common ${CMAKE_THREAD_LIBS_INIT})
+add_test(queue_test queue_test)

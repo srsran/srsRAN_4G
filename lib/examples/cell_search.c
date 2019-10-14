@@ -164,8 +164,6 @@ int main(int argc, char **argv) {
     srslte_rf_set_rx_gain(&rf, 50);      
   }
 
-  srslte_rf_set_master_clock_rate(&rf, 30.72e6);        
-
   // Supress RF messages
   srslte_rf_suppress_stdout(&rf);
   
@@ -202,7 +200,6 @@ int main(int argc, char **argv) {
   
     /* set rf_freq */
     srslte_rf_set_rx_freq(&rf, 0, (double)channels[freq].fd * MHZ);
-    srslte_rf_rx_wait_lo_locked(&rf);
     INFO("Set rf_freq to %.3f MHz\n", (double) channels[freq].fd * MHZ/1000000);
 
     printf(
@@ -226,7 +223,7 @@ int main(int argc, char **argv) {
       exit(-1);
     } else if (n > 0) {
       for (int i=0;i<3;i++) {
-        if (found_cells[i].psr > 10.0) {
+        if (found_cells[i].psr > 2.0) {
           srslte_cell_t cell;
           cell.id = found_cells[i].cell_id; 
           cell.cp = found_cells[i].cp; 
@@ -244,7 +241,7 @@ int main(int argc, char **argv) {
               results[n_found_cells].power = found_cells[i].peak;
               n_found_cells++;
             }
-          }          
+          }
         }
       }
     }    

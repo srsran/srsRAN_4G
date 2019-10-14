@@ -571,7 +571,7 @@ static int encode_bits(srslte_pucch_cfg_t*   cfg,
                        uint8_t               pucch2_bits[SRSLTE_PUCCH_MAX_BITS])
 {
   if (format < SRSLTE_PUCCH_FORMAT_2) {
-    memcpy(pucch_bits, uci_data->ack.ack_value, cfg->uci_cfg.ack.nof_acks * sizeof(uint8_t));
+    memcpy(pucch_bits, uci_data->ack.ack_value, srslte_uci_cfg_total_ack(&cfg->uci_cfg) * sizeof(uint8_t));
   } else if (format >= SRSLTE_PUCCH_FORMAT_2 && format < SRSLTE_PUCCH_FORMAT_3) {
     /* Put RI (goes alone) */
     if (cfg->uci_cfg.cqi.ri_len) {
@@ -594,7 +594,7 @@ static int encode_bits(srslte_pucch_cfg_t*   cfg,
   } else if (format == SRSLTE_PUCCH_FORMAT_3) {
     uint8_t  temp[SRSLTE_UCI_MAX_ACK_BITS + 1];
     uint32_t k = 0;
-    for (; k < cfg->uci_cfg.ack.nof_acks; k++) {
+    for (; k < srslte_uci_cfg_total_ack(&cfg->uci_cfg); k++) {
       temp[k] = (uint8_t)((uci_data->ack.ack_value[k] == 1) ? 1 : 0);
     }
     if (cfg->uci_cfg.is_scheduling_request_tti) {
@@ -719,7 +719,7 @@ static void decode_bits(srslte_uci_cfg_t*   uci_cfg,
   }
 
   // Save ACK bits
-  for (uint32_t a = 0; a < uci_cfg->ack.nof_acks; a++) {
+  for (uint32_t a = 0; a < srslte_uci_cfg_total_ack(uci_cfg); a++) {
     if (uci_cfg->cqi.data_enable || uci_cfg->cqi.ri_len) {
       uci_data->ack.ack_value[a] = pucch_dmrs_bits[a];
     } else {

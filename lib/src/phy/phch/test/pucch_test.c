@@ -204,13 +204,13 @@ int main(int argc, char **argv) {
             case SRSLTE_PUCCH_FORMAT_1A:
             case SRSLTE_PUCCH_FORMAT_2A:
               uci_data.value.ack.ack_value[0] = 1;
-              uci_data.cfg.ack.nof_acks       = 1;
+              uci_data.cfg.ack[0].nof_acks    = 1;
               break;
             case SRSLTE_PUCCH_FORMAT_1B:
             case SRSLTE_PUCCH_FORMAT_2B:
               uci_data.value.ack.ack_value[0] = 1;
               uci_data.value.ack.ack_value[1] = 1;
-              uci_data.cfg.ack.nof_acks       = 2;
+              uci_data.cfg.ack[0].nof_acks    = 2;
               break;
             default:
               break;

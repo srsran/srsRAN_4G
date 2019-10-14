@@ -935,6 +935,7 @@ int enb::parse_rr(all_args_t* args, rrc_cfg_t* rrc_cfg)
   cqi_report_cnfg.add_field(new parser::field_enum_str<rrc_cfg_cqi_mode_t>(
       "mode", &rrc_cfg->cqi_cfg.mode, rrc_cfg_cqi_mode_text, RRC_CFG_CQI_MODE_N_ITEMS));
   cqi_report_cnfg.add_field(new parser::field<uint32>("period", &rrc_cfg->cqi_cfg.period));
+  cqi_report_cnfg.add_field(new parser::field<uint32>("m_ri", &rrc_cfg->cqi_cfg.m_ri));
   cqi_report_cnfg.add_field(new parser::field<uint32>("nof_prb", &rrc_cfg->cqi_cfg.nof_prb));
   cqi_report_cnfg.add_field(new parser::field<bool>("simultaneousAckCQI", &rrc_cfg->cqi_cfg.simultaneousAckCQI));
   cqi_report_cnfg.add_field(new field_sf_mapping(rrc_cfg->cqi_cfg.sf_mapping, &rrc_cfg->cqi_cfg.nof_subframes));

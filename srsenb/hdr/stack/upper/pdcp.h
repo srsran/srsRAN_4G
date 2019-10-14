@@ -28,10 +28,8 @@
 #define SRSENB_PDCP_H
 
 namespace srsenb {
-  
-class pdcp :  public pdcp_interface_rlc, 
-              public pdcp_interface_gtpu,
-              public pdcp_interface_rrc
+
+class pdcp : public pdcp_interface_rlc, public pdcp_interface_gtpu, public pdcp_interface_rrc
 {
 public:
   pdcp(srslte::log* pdcp_log_);
@@ -45,46 +43,46 @@ public:
 
   // pdcp_interface_rrc
   void reset(uint16_t rnti);
-  void add_user(uint16_t rnti);  
+  void add_user(uint16_t rnti);
   void rem_user(uint16_t rnti);
   void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu);
-  void add_bearer(uint16_t rnti, uint32_t lcid, srslte::srslte_pdcp_config_t cnfg);
-  void config_security(uint16_t rnti, 
-                       uint32_t lcid,
-                       uint8_t *k_rrc_enc_,
-                       uint8_t *k_rrc_int_,
-                       uint8_t *k_up_enc_,
+  void add_bearer(uint16_t rnti, uint32_t lcid, srslte::pdcp_config_t cnfg);
+  void config_security(uint16_t                            rnti,
+                       uint32_t                            lcid,
+                       uint8_t*                            k_rrc_enc_,
+                       uint8_t*                            k_rrc_int_,
+                       uint8_t*                            k_up_enc_,
                        srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
                        srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_);
   void enable_integrity(uint16_t rnti, uint32_t lcid);
   void enable_encryption(uint16_t rnti, uint32_t lcid);
-private: 
-  
+
+private:
   class user_interface_rlc : public srsue::rlc_interface_pdcp
   {
   public:
-    uint16_t rnti; 
-    srsenb::rlc_interface_pdcp *rlc; 
+    uint16_t                    rnti;
+    srsenb::rlc_interface_pdcp* rlc;
     // rlc_interface_pdcp
     void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking);
     bool rb_is_um(uint32_t lcid);
   };
-  
+
   class user_interface_gtpu : public srsue::gw_interface_pdcp
   {
-  public: 
-    uint16_t rnti; 
-    srsenb::gtpu_interface_pdcp  *gtpu;
+  public:
+    uint16_t                     rnti;
+    srsenb::gtpu_interface_pdcp* gtpu;
     // gw_interface_pdcp
     void write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
     void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu) {}
-  }; 
-  
+  };
+
   class user_interface_rrc : public srsue::rrc_interface_pdcp
   {
-  public: 
-    uint16_t rnti; 
-    srsenb::rrc_interface_pdcp *rrc;
+  public:
+    uint16_t                    rnti;
+    srsenb::rrc_interface_pdcp* rrc;
     // rrc_interface_pdcp
     void        write_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu);
     void        write_pdu_bcch_bch(srslte::unique_byte_buffer_t pdu);
@@ -93,29 +91,28 @@ private:
     void        write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu) {}
     std::string get_rb_name(uint32_t lcid);
   };
-  
-  class user_interface 
+
+  class user_interface
   {
-  public: 
-    user_interface_rlc  rlc_itf; 
+  public:
+    user_interface_rlc  rlc_itf;
     user_interface_gtpu gtpu_itf;
-    user_interface_rrc  rrc_itf; 
-    srslte::pdcp        *pdcp; 
+    user_interface_rrc  rrc_itf;
+    srslte::pdcp*       pdcp;
   };
 
-  void clear_user(user_interface *ue);
-  
-  std::map<uint32_t,user_interface> users;
+  void clear_user(user_interface* ue);
+
+  std::map<uint32_t, user_interface> users;
 
   pthread_rwlock_t rwlock;
-  
-  rlc_interface_pdcp  *rlc;
-  rrc_interface_pdcp  *rrc;
-  gtpu_interface_pdcp *gtpu;
-  srslte::log         *log_h;
-  srslte::byte_buffer_pool *pool;
+
+  rlc_interface_pdcp*       rlc;
+  rrc_interface_pdcp*       rrc;
+  gtpu_interface_pdcp*      gtpu;
+  srslte::log*              log_h;
+  srslte::byte_buffer_pool* pool;
 };
 
-}
-
+} // namespace srsenb
 #endif // SRSENB_PDCP_H

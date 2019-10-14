@@ -52,6 +52,7 @@
 typedef struct {
   bool multiple_csi_request_enabled;
   bool cif_enabled;
+  bool cif_present;
   bool srs_request_enabled;
   bool ra_format_enabled;
 } srslte_dci_cfg_t;
@@ -160,8 +161,9 @@ typedef struct SRSLTE_API {
   // Release 10
   uint32_t         cif;
   bool             cif_present;
+  uint8_t          multiple_csi_request;
   bool             multiple_csi_request_present;
-  uint32_t         srs_request;
+  bool             srs_request;
   bool             srs_request_present;
   srslte_ra_type_t ra_type;
   bool             ra_type_present;

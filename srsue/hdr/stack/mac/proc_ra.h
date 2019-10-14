@@ -75,11 +75,12 @@ public:
             mac_interface_rrc::ue_rnti_t* rntis,
             srslte::timers::timer*        time_alignment_timer_,
             srslte::timers::timer*        contention_resolution_timer_,
-            mux*                          mux_unit);
+            mux*                          mux_unit,
+            stack_interface_mac*          stack_);
 
   void reset();
 
-  void set_config(mac_interface_rrc::rach_cfg_t& rach_cfg);
+  void set_config(srslte::rach_cfg_t& rach_cfg);
 
   void start_pdcch_order();
   void start_mac_order(uint32_t msg_len_bits = 56, bool is_ho = false);
@@ -92,11 +93,13 @@ public:
   void pdcch_to_crnti(bool is_new_uplink_transmission);
   void timer_expired(uint32_t timer_id);
   void new_grant_dl(mac_interface_phy_lte::mac_grant_dl_t grant, mac_interface_phy_lte::tb_action_dl_t* action);
-  void tb_decoded_ok();
+  void tb_decoded_ok(const uint32_t tti);
 
   void start_noncont(uint32_t preamble_index, uint32_t prach_mask);
   bool contention_resolution_id_received(uint64_t uecri);
   void start_pcap(srslte::mac_pcap* pcap);
+
+  void notify_ra_completed();
 
 private:
   void state_pdcch_setup();
@@ -118,7 +121,7 @@ private:
   srslte::rar_pdu       rar_pdu_msg;
 
   // Random Access parameters provided by higher layers defined in 5.1.1
-  mac_interface_rrc::rach_cfg_t rach_cfg, new_cfg;
+  srslte::rach_cfg_t rach_cfg, new_cfg;
 
   int      delta_preamble_db;
   uint32_t maskIndex;
@@ -143,7 +146,15 @@ private:
 
   srslte_softbuffer_rx_t softbuffer_rar;
 
-  enum { IDLE = 0, PDCCH_SETUP, RESPONSE_RECEPTION, BACKOFF_WAIT, CONTENTION_RESOLUTION, COMPLETITION } state;
+  enum {
+    IDLE = 0,
+    PDCCH_SETUP,
+    RESPONSE_RECEPTION,
+    BACKOFF_WAIT,
+    CONTENTION_RESOLUTION,
+    START_WAIT_COMPLETION,
+    WAITING_COMPLETION
+  } state;
 
   typedef enum { RA_GROUP_A, RA_GROUP_B } ra_group_t;
 
@@ -155,12 +166,13 @@ private:
 
   phy_interface_mac_lte* phy_h;
   srslte::log*       log_h;
-  mux               *mux_unit;
-  srslte::mac_pcap  *pcap;
-  rrc_interface_mac *rrc;
+  mux*                   mux_unit;
+  srslte::mac_pcap*      pcap;
+  rrc_interface_mac*     rrc;
+  stack_interface_mac*   stack;
 
-  srslte::timers::timer  *time_alignment_timer;
-  srslte::timers::timer  *contention_resolution_timer;
+  srslte::timers::timer* time_alignment_timer;
+  srslte::timers::timer* contention_resolution_timer;
 
   mac_interface_rrc::ue_rnti_t *rntis;
 

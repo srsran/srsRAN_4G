@@ -28,8 +28,6 @@
 #define DEVNAME_ZMQ "ZeroMQ"
 #define PARAM_LEN (128)
 #define PARAM_LEN_SHORT (PARAM_LEN / 2)
-#define ZMQ_MAX_RX_BYTES                                                                                               \
-  (5 * SRSLTE_SF_LEN_MAX * sizeof(cf_t)) // Five subframes at max LTE rate using default FFT-length
 
 SRSLTE_API int rf_zmq_open(char* args, void** handler);
 
@@ -50,12 +48,6 @@ SRSLTE_API void rf_zmq_flush_buffer(void* h);
 SRSLTE_API bool rf_zmq_has_rssi(void* h);
 
 SRSLTE_API float rf_zmq_get_rssi(void* h);
-
-SRSLTE_API bool rf_zmq_rx_wait_lo_locked(void* h);
-
-SRSLTE_API void rf_zmq_set_master_clock_rate(void* h, double rate);
-
-SRSLTE_API bool rf_zmq_is_master_clock_dynamic(void* h);
 
 SRSLTE_API double rf_zmq_set_rx_srate(void* h, double freq);
 

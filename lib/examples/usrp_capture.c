@@ -123,7 +123,6 @@ int main(int argc, char **argv) {
     ERROR("Error opening rf\n");
     exit(-1);
   }
-  srslte_rf_set_master_clock_rate(&rf, 30.72e6);        
 
   sigset_t sigset;
   sigemptyset(&sigset);
@@ -134,11 +133,6 @@ int main(int argc, char **argv) {
   printf("Set RX gain: %.2f dB\n", srslte_rf_set_rx_gain(&rf, rf_gain));
   float srate = srslte_rf_set_rx_srate(&rf, rf_rate); 
   if (srate != rf_rate) {
-    if (srate < 10e6) {          
-      srslte_rf_set_master_clock_rate(&rf, 4*rf_rate);        
-    } else {
-      srslte_rf_set_master_clock_rate(&rf, rf_rate);        
-    }
     srate = srslte_rf_set_rx_srate(&rf, rf_rate);
     if (srate != rf_rate) {
       ERROR("Error setting samplign frequency %.2f MHz\n", rf_rate * 1e-6);
@@ -147,7 +141,6 @@ int main(int argc, char **argv) {
   }
 
   printf("Correctly RX rate: %.2f MHz\n", srate*1e-6);
-  srslte_rf_rx_wait_lo_locked(&rf);
   srslte_rf_start_rx_stream(&rf, false);
   
   

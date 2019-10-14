@@ -46,5 +46,6 @@ phy_cnfg =
     period = 40; // in ms
     subframe = [0];
     nof_prb = 2; 
+    m_ri = 8; // RI period in CQI period
   };
 };

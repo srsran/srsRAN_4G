@@ -35,7 +35,7 @@
 
 #define MAX_TIME_OFFSET 128
 
-#define TRACK_MAX_LOST 20
+#define TRACK_MAX_LOST 10
 #define TRACK_FRAME_SIZE 32
 #define FIND_NOF_AVG_FRAMES     4
 
@@ -398,7 +398,7 @@ int srslte_ue_sync_set_cell(srslte_ue_sync_t *q, srslte_cell_t cell)
       srslte_sync_set_threshold(&q->sfind,  3.0);
 
       srslte_sync_set_em_alpha(&q->strack,  0.0);
-      srslte_sync_set_threshold(&q->strack, 1.2);
+      srslte_sync_set_threshold(&q->strack, 1.5);
     }
 
     // When cell is unknown, do CP CFO correction
@@ -635,7 +635,8 @@ static int track_peak_ok(srslte_ue_sync_t* q, uint32_t track_idx)
   
   q->peak_idx = q->sf_len/2 + q->last_sample_offset;  
   q->frame_ok_cnt++;
-  
+  q->frame_no_cnt = 0;
+
   return 1;
 }
 

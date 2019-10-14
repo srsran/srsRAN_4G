@@ -177,7 +177,7 @@ uint8_t* sch_pdu::write_packet(srslte::log* log_h)
 
   // Print warning if we have padding only
   if (nof_subheaders <= 0 && nof_subheaders < (int)max_subheaders) {
-    log_h->warning("Writing MAC PDU with padding only (%d B)\n", pdu_len);
+    log_h->debug("Writing MAC PDU with padding only (%d B)\n", pdu_len);
   }
 
   /* Sanity check and print if error */
@@ -556,9 +556,9 @@ bool sch_subh::set_bsr(uint32_t buff_size[4], sch_subh::cetype format)
   uint32_t ce_size = format == LONG_BSR ? 3 : 1;
   if (((sch_pdu*)parent)->has_space_ce(ce_size)) {
     if (format == LONG_BSR) {
-      w_payload_ce[0] = (buff_size_table(buff_size[0]) & 0x3f) << 2 | (buff_size_table(buff_size[1]) & 0xc0) >> 6;
-      w_payload_ce[1] = (buff_size_table(buff_size[1]) & 0xf) << 4 | (buff_size_table(buff_size[2]) & 0xf0) >> 4;
-      w_payload_ce[2] = (buff_size_table(buff_size[2]) & 0x3) << 6 | (buff_size_table(buff_size[3]) & 0x3f);
+      w_payload_ce[0] = ((buff_size_table(buff_size[0]) & 0x3f) << 2) | ((buff_size_table(buff_size[1]) & 0x30) >> 4);
+      w_payload_ce[1] = ((buff_size_table(buff_size[1]) & 0xf) << 4) | ((buff_size_table(buff_size[2]) & 0x3c) >> 2);
+      w_payload_ce[2] = ((buff_size_table(buff_size[2]) & 0x3) << 6) | ((buff_size_table(buff_size[3]) & 0x3f));
     } else {
       w_payload_ce[0] = (nonzero_lcg & 0x3) << 6 | (buff_size_table(buff_size[nonzero_lcg]) & 0x3f);
     }

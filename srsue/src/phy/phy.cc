@@ -341,7 +341,9 @@ uint32_t phy::get_current_earfcn() {
 
 void phy::prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm)
 {
+  n_ta = 0;
   sfsync.set_time_adv_sec(0.0f);
+  common.reset_radio();
   if (!prach_buffer.prepare_to_send(preamble_idx, allowed_subframe, target_power_dbm)) {
     Error("Preparing PRACH to send\n");
   }
@@ -421,130 +423,99 @@ void phy::enable_pregen_signals(bool enable)
   }
 }
 
-void phy::set_config(phy_interface_rrc_lte::phy_cfg_t* phy_cfg)
+void phy::set_config(srslte::phy_cfg_t& config, uint32_t cc_idx, uint32_t earfcn, srslte_cell_t* cell_info)
 {
-  if (is_initiated()) {
-    for (uint32_t i = 0; i < nof_workers; i++) {
-      workers[i]->set_pcell_config(phy_cfg);
-    }
+  if (!is_initiated()) {
+    fprintf(stderr, "Error calling set_config(): PHY not initialized\n");
+    return;
   }
-  // Save PRACH configuration
-  prach_cfg.config_idx     = phy_cfg->common.prach_cnfg.prach_cfg_info.prach_cfg_idx;
-  prach_cfg.root_seq_idx   = phy_cfg->common.prach_cnfg.root_seq_idx;
-  prach_cfg.zero_corr_zone = phy_cfg->common.prach_cnfg.prach_cfg_info.zero_correlation_zone_cfg;
-  prach_cfg.freq_offset    = phy_cfg->common.prach_cnfg.prach_cfg_info.prach_freq_offset;
-  prach_cfg.hs_flag        = phy_cfg->common.prach_cnfg.prach_cfg_info.high_speed_flag;
-}
-
-void phy::set_config_scell(asn1::rrc::scell_to_add_mod_r10_s* scell_config)
-{
-  // Enable CSI request extra bit
-  common.multiple_csi_request_enabled = true;
-
-  uint32_t cc_idx = scell_config->s_cell_idx_r10;
 
   // Component carrier index zero should be reserved for PCell
-  if (cc_idx != 0 && cc_idx < args.nof_carriers) {
+  if (cc_idx < args.nof_carriers) {
     carrier_map_t* m      = &args.carrier_map[cc_idx];
-    srslte_cell_t  cell   = {};
-    uint32_t       earfcn = 0;
-
-    // Initialise default parameters from primary cell
-    sfsync.get_current_cell(&cell, &earfcn);
-
-    // Parse identification
-    if (scell_config->cell_identif_r10_present) {
-      cell.id = scell_config->cell_identif_r10.pci_r10;
-      earfcn  = scell_config->cell_identif_r10.dl_carrier_freq_r10;
-    }
-
-    // Parse radio resource
-    if (scell_config->rr_cfg_common_scell_r10_present) {
-      rr_cfg_common_scell_r10_s* rr_cfg = &scell_config->rr_cfg_common_scell_r10;
-      cell.frame_type                   = (rr_cfg->tdd_cfg_v1130_present) ? SRSLTE_TDD : SRSLTE_FDD;
-      cell.nof_prb                      = rr_cfg->non_ul_cfg_r10.dl_bw_r10.to_number();
-      cell.nof_ports                    = rr_cfg->non_ul_cfg_r10.ant_info_common_r10.ant_ports_count.to_number();
-      cell.phich_length                 = (srslte_phich_length_t)rr_cfg->non_ul_cfg_r10.phich_cfg_r10.phich_dur.value;
-      cell.phich_resources              = (srslte_phich_r_t)rr_cfg->non_ul_cfg_r10.phich_cfg_r10.phich_res.value;
-    }
 
     // Send configuration to workers
     for (uint32_t i = 0; i < nof_workers; i++) {
-      workers[i]->set_cell(cc_idx, cell);
-      workers[i]->set_scell_config(cc_idx, scell_config);
+      if (cell_info) {
+        workers[i]->set_cell(cc_idx, *cell_info);
+      }
+      workers[i]->set_config(cc_idx, config);
     }
 
-    // If SCell does not share synchronism with PCell ...
-    if (m->radio_idx > 0) {
-      scell_sync.at(m->radio_idx - 1)->set_scell_cell(cc_idx, &cell, earfcn);
-    } else {
-      // Change frequency only if the earfcn was modified
-      if (common.scell_cfg[cc_idx].earfcn != earfcn) {
-        float dl_freq = srslte_band_fd(earfcn) * 1e6f;
-        float ul_freq = srslte_band_fu(srslte_band_ul_earfcn(earfcn)) * 1e6f;
-        for (uint32_t p = 0; p < common.args->nof_rx_ant; p++) {
-          radio->set_rx_freq(m->radio_idx, m->channel_idx + p, dl_freq);
-          radio->set_tx_freq(m->radio_idx, m->channel_idx + p, ul_freq);
+    if (cc_idx == 0) {
+      prach_cfg = config.prach_cfg;
+    } else if (cell_info) {
+      // If SCell does not share synchronism with PCell ...
+      if (m->radio_idx > 0) {
+        scell_sync.at(m->radio_idx - 1)->set_scell_cell(cc_idx, cell_info, earfcn);
+      } else {
+        // Change frequency only if the earfcn was modified
+        if (common.scell_cfg[cc_idx].earfcn != earfcn) {
+          float dl_freq = srslte_band_fd(earfcn) * 1e6f;
+          float ul_freq = srslte_band_fu(srslte_band_ul_earfcn(earfcn)) * 1e6f;
+          for (uint32_t p = 0; p < common.args->nof_rx_ant; p++) {
+            radio->set_rx_freq(m->radio_idx, m->channel_idx + p, dl_freq);
+            radio->set_tx_freq(m->radio_idx, m->channel_idx + p, ul_freq);
+          }
         }
       }
+
+      // Store SCell earfcn and pci
+      common.scell_cfg[cc_idx].earfcn     = earfcn;
+      common.scell_cfg[cc_idx].pci        = cell_info->id;
+      common.scell_cfg[cc_idx].configured = true;
+      common.scell_cfg[cc_idx].enabled    = false;
+    } else {
+      Error("Configuring Scell index %d but cell_info not provided\n", cc_idx);
     }
 
-    // Store SCell earfcn and pci
-    common.scell_cfg[cc_idx].earfcn     = earfcn;
-    common.scell_cfg[cc_idx].pci        = cell.id;
-    common.scell_cfg[cc_idx].configured = true;
-    common.scell_cfg[cc_idx].enabled    = false;
   } else {
-    log_h->console("Received SCell configuration for index %d but there are not enough CC workers available\n",
-                   scell_config->s_cell_idx_r10);
+    log_h->console("Received SCell configuration for index %d but there are not enough CC workers available\n", cc_idx);
   }
 }
 
-void phy::set_config_tdd(tdd_cfg_s* tdd)
+void phy::set_config_tdd(srslte_tdd_config_t& tdd_config_)
 {
-  tdd_config.sf_config  = tdd->sf_assign.to_number();
-  tdd_config.ss_config  = tdd->special_sf_patterns.to_number();
-  tdd_config.configured = true;
+  tdd_config = tdd_config_;
 
   if (!tdd_config.configured) {
     log_h->console("Setting TDD-config: %d, SS config: %d\n", tdd_config.sf_config, tdd_config.ss_config);
   }
+  tdd_config.configured = true;
 
   for (uint32_t i = 0; i < nof_workers; i++) {
     workers[i]->set_tdd_config(tdd_config);
   }
 }
 
-void phy::set_config_mbsfn_sib2(sib_type2_s* sib2)
+void phy::set_config_mbsfn_sib2(srslte::mbsfn_sf_cfg_t* cfg_list, uint32_t nof_cfgs)
 {
-  if (sib2->mbsfn_sf_cfg_list_present and sib2->mbsfn_sf_cfg_list.size() > 1) {
-    Warning("SIB2 has %d MBSFN subframe configs - only 1 supported\n", sib2->mbsfn_sf_cfg_list.size());
+  if (nof_cfgs > 1) {
+    Warning("SIB2 has %d MBSFN subframe configs - only 1 supported\n", nof_cfgs);
   }
-  if (sib2->mbsfn_sf_cfg_list_present and sib2->mbsfn_sf_cfg_list.size() > 0) {
-    common.mbsfn_config.mbsfn_subfr_cnfg = sib2->mbsfn_sf_cfg_list[0];
+  if (nof_cfgs > 0) {
+    common.mbsfn_config.mbsfn_subfr_cnfg = cfg_list[0];
     common.build_mch_table();
   }
 }
 
-void phy::set_config_mbsfn_sib13(sib_type13_r9_s* sib13)
+void phy::set_config_mbsfn_sib13(const srslte::sib13_t& sib13)
 {
-  common.mbsfn_config.mbsfn_notification_cnfg = sib13->notif_cfg_r9;
-  if (sib13->mbsfn_area_info_list_r9.size() > 1) {
-    Warning("SIB13 has %d MBSFN area info elements - only 1 supported\n", sib13->mbsfn_area_info_list_r9.size());
+  common.mbsfn_config.mbsfn_notification_cnfg = sib13.notif_cfg;
+  if (sib13.nof_mbsfn_area_info > 1) {
+    Warning("SIB13 has %d MBSFN area info elements - only 1 supported\n", sib13.nof_mbsfn_area_info);
   }
-  if (sib13->mbsfn_area_info_list_r9.size() > 0) {
-    common.mbsfn_config.mbsfn_area_info = sib13->mbsfn_area_info_list_r9[0];
+  if (sib13.nof_mbsfn_area_info > 0) {
+    common.mbsfn_config.mbsfn_area_info = sib13.mbsfn_area_info_list[0];
     common.build_mcch_table();
   }
 }
 
-void phy::set_config_mbsfn_mcch(mcch_msg_s* mcch)
+void phy::set_config_mbsfn_mcch(const srslte::mcch_msg_t& mcch)
 {
-  common.mbsfn_config.mcch = *mcch;
-  stack->set_mbsfn_config(
-      common.mbsfn_config.mcch.msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[0].mbms_session_info_list_r9.size());
-  common.set_mch_period_stop(
-      common.mbsfn_config.mcch.msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[0].pmch_cfg_r9.sf_alloc_end_r9);
+  common.mbsfn_config.mcch = mcch;
+  stack->set_mbsfn_config(common.mbsfn_config.mcch.pmch_info_list[0].nof_mbms_session_info);
+  common.set_mch_period_stop(common.mbsfn_config.mcch.pmch_info_list[0].sf_alloc_end);
   common.set_mcch();
 }
 

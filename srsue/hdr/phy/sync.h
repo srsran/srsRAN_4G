@@ -104,7 +104,7 @@ private:
     void     reset();
     float    get_last_cfo();
     void     set_agc_enable(bool enable);
-    ret_code run(srslte_cell_t* cell);
+    ret_code run(srslte_cell_t* cell, std::array<uint8_t, SRSLTE_BCH_PAYLOAD_LEN>& bch_payload);
 
   private:
     sync*                  p                        = nullptr;
@@ -128,9 +128,15 @@ private:
                   uint32_t          nof_subframes = SFN_SYNC_NOF_SUBFRAMES);
     void     reset();
     bool     set_cell(srslte_cell_t cell);
-    ret_code run_subframe(srslte_cell_t* cell, uint32_t* tti_cnt, bool sfidx_only = false);
-    ret_code
-    decode_mib(srslte_cell_t* cell, uint32_t* tti_cnt, cf_t* ext_buffer[SRSLTE_MAX_PORTS], bool sfidx_only = false);
+    ret_code run_subframe(srslte_cell_t*                               cell,
+                          uint32_t*                                    tti_cnt,
+                          std::array<uint8_t, SRSLTE_BCH_PAYLOAD_LEN>& bch_payload,
+                          bool                                         sfidx_only = false);
+    ret_code decode_mib(srslte_cell_t*                               cell,
+                        uint32_t*                                    tti_cnt,
+                        cf_t*                                        ext_buffer[SRSLTE_MAX_PORTS],
+                        std::array<uint8_t, SRSLTE_BCH_PAYLOAD_LEN>& bch_payload,
+                        bool                                         sfidx_only = false);
 
   private:
     const static int SFN_SYNC_NOF_SUBFRAMES = 100;
@@ -215,7 +221,7 @@ private:
      */
     state_t run_state()
     {
-      std::lock_guard<std::mutex> lg(inside);
+      std::lock_guard<std::mutex> lock(inside);
       cur_state = next_state;
       if (state_setting) {
         state_setting = false;
@@ -228,7 +234,7 @@ private:
     // Called by the main thread at the end of each state to indicate it has finished.
     void state_exit(bool exit_ok = true)
     {
-      std::lock_guard<std::mutex> lg(inside);
+      std::lock_guard<std::mutex> lock(inside);
       if (cur_state == SFN_SYNC && exit_ok == true) {
         next_state = CAMPING;
       } else {
@@ -239,7 +245,7 @@ private:
     }
     void force_sfn_sync()
     {
-      std::lock_guard<std::mutex> lg(inside);
+      std::lock_guard<std::mutex> lock(inside);
       next_state = SFN_SYNC;
     }
 
@@ -250,19 +256,19 @@ private:
      */
     void go_idle()
     {
-      std::lock_guard<std::mutex> lg(outside);
+      std::lock_guard<std::mutex> lock(outside);
       go_state(IDLE);
     }
     void run_cell_search()
     {
-      std::lock_guard<std::mutex> lg(outside);
+      std::lock_guard<std::mutex> lock(outside);
       go_state(CELL_SEARCH);
       wait_state_run();
       wait_state_next();
     }
     void run_sfn_sync()
     {
-      std::lock_guard<std::mutex> lg(outside);
+      std::lock_guard<std::mutex> lock(outside);
       go_state(SFN_SYNC);
       wait_state_run();
       wait_state_next();
@@ -342,6 +348,7 @@ private:
   float         time_adv_sec      = 0;
   float         next_time_adv_sec = 0;
   uint32_t      tti               = 0;
+  std::array<uint8_t, SRSLTE_BCH_PAYLOAD_LEN> mib;
 
   uint32_t tx_worker_cnt = 0;
   uint32_t nof_workers   = 0;

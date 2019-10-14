@@ -92,20 +92,21 @@ public:
   private: 
     timer_callback *callback; 
     uint32_t timeout; 
-    uint32_t counter; 
-    bool running; 
+    uint32_t counter;
+    bool            running;
   };
-  
-  timers(uint32_t nof_timers_) : timer_list(nof_timers_),used_timers(nof_timers_) {
-    nof_timers = nof_timers_; 
-    next_timer = 0;
+
+  timers(uint32_t nof_timers_) : timer_list(nof_timers_), used_timers(nof_timers_)
+  {
+    nof_timers      = nof_timers_;
+    next_timer      = 0;
     nof_used_timers = 0;
-    for (uint32_t i=0;i<nof_timers;i++) {
+    for (uint32_t i = 0; i < nof_timers; i++) {
       timer_list[i].id = i;
       used_timers[i] = false;
     }
   }
-  
+
   void step_all() {
     for (uint32_t i=0;i<nof_timers;i++) {
       get(i)->step();
@@ -169,5 +170,5 @@ private:
 };
 
 } // namespace srslte
-  
+
 #endif // SRSLTE_TIMERS_H

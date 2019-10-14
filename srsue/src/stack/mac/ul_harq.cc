@@ -77,7 +77,7 @@ void ul_harq_entity::reset_ndi()
   }
 }
 
-void ul_harq_entity::set_config(srsue::mac_interface_rrc_common::ul_harq_cfg_t& harq_cfg)
+void ul_harq_entity::set_config(srslte::ul_harq_cfg_t& harq_cfg)
 {
   this->harq_cfg = harq_cfg;
 }
@@ -110,7 +110,7 @@ void ul_harq_entity::new_grant_ul(mac_interface_phy_lte::mac_grant_ul_t  grant,
       Info("Not implemented\n");
     }
   } else {
-    Warning("Received grant for unknnown rnti=0x%x\n", grant.rnti);
+    Warning("Received grant for unknown rnti=0x%x\n", grant.rnti);
   }
 }
 
@@ -286,7 +286,7 @@ void ul_harq_entity::ul_harq_process::new_grant_ul(mac_interface_phy_lte::mac_gr
       } else {
         rnti = harq_entity->rntis->crnti;
       }
-      harq_entity->pcap->write_ul_crnti(pdu_ptr, grant.tb.tbs, rnti, get_nof_retx(), 0);
+      harq_entity->pcap->write_ul_crnti(pdu_ptr, grant.tb.tbs, rnti, get_nof_retx(), grant.tti_tx);
     }
   } else if (has_grant()) {
     // Non-Adaptive Re-Tx

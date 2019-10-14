@@ -44,7 +44,7 @@ if(RF_FOUND)
 
   if (ZEROMQ_FOUND)
     add_definitions(-DENABLE_ZEROMQ)
-    list(APPEND SOURCES_RF rf_zmq_imp.c)
+    list(APPEND SOURCES_RF rf_zmq_imp.c rf_zmq_imp_tx.c rf_zmq_imp_rx.c)
   endif (ZEROMQ_FOUND)
 
   add_library(srslte_rf SHARED ${SOURCES_RF})

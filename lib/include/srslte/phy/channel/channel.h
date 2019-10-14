@@ -24,10 +24,10 @@
 
 #include "delay.h"
 #include "fading.h"
+#include "hst.h"
 #include "rlf.h"
 #include <memory>
-#include <srslte/config.h>
-#include <srslte/srslte.h>
+#include <srslte/common/log_filter.h>
 #include <string>
 
 namespace srslte {
@@ -43,11 +43,18 @@ public:
     bool        fading_enable = false;
     std::string fading_model  = "none";
 
+    // High Speed Train options
+    bool  hst_enable      = false;
+    float hst_fd_hz       = 750.0f;
+    float hst_period_s    = 7.2f;
+    float hst_init_time_s = 0.0f;
+
     // Delay options
-    bool     delay_enable   = false;
-    float    delay_min_us   = 10;
-    float    delay_max_us   = 100;
-    uint32_t delay_period_s = 3600;
+    bool  delay_enable      = false;
+    float delay_min_us      = 10;
+    float delay_max_us      = 100;
+    float delay_period_s    = 3600;
+    float delay_init_time_s = 0;
 
     // RLF options
     bool     rlf_enable   = false;
@@ -57,15 +64,18 @@ public:
 
   channel(const args_t& channel_args, uint32_t _nof_ports);
   ~channel();
+  void set_logger(log_filter* _log_h);
   void set_srate(uint32_t srate);
   void run(cf_t* in[SRSLTE_MAX_PORTS], cf_t* out[SRSLTE_MAX_PORTS], uint32_t len, const srslte_timestamp_t& t);
 
 private:
   srslte_channel_fading_t* fading[SRSLTE_MAX_PORTS] = {};
   srslte_channel_delay_t*  delay[SRSLTE_MAX_PORTS]  = {};
+  srslte_channel_hst_t*    hst                      = nullptr; // HST has no buffers / no multiple instance is required
   srslte_channel_rlf_t*    rlf                      = nullptr; // RLF has no buffers / no multiple instance is required
   cf_t*                    buffer_in                = nullptr;
   cf_t*                    buffer_out               = nullptr;
+  log_filter*              log_h                    = nullptr;
   uint32_t                 nof_ports                = 0;
   uint32_t                 current_srate            = 0;
   args_t                   args                     = {};

@@ -84,8 +84,8 @@ int enb::init(const all_args_t& args_)
     logger = &logger_stdout;
   } else {
     logger_file.init(args.log.filename, args.log.file_max_size);
-    logger_file.log("\n\n");
-    logger_file.log(get_build_string().c_str());
+    logger_file.log_char("\n\n");
+    logger_file.log_char(get_build_string().c_str());
     logger = &logger_file;
   }
 
@@ -220,6 +220,9 @@ int enb::parse_args(const all_args_t& args_)
     } else if ((*it) == "EEA2") {
       rrc_cfg.eea_preference_list[i] = srslte::CIPHERING_ALGORITHM_ID_128_EEA2;
       i++;
+    } else if ((*it) == "EEA3") {
+      rrc_cfg.eea_preference_list[i] = srslte::CIPHERING_ALGORITHM_ID_128_EEA3;
+      i++;
     } else {
       fprintf(stderr, "Failed to parse EEA prefence list %s \n", args.general.eea_pref_list.c_str());
       return SRSLTE_ERROR;
@@ -240,6 +243,9 @@ int enb::parse_args(const all_args_t& args_)
       i++;
     } else if ((*it) == "EIA2") {
       rrc_cfg.eia_preference_list[i] = srslte::INTEGRITY_ALGORITHM_ID_128_EIA2;
+      i++;
+    } else if ((*it) == "EIA3") {
+      rrc_cfg.eia_preference_list[i] = srslte::INTEGRITY_ALGORITHM_ID_128_EIA3;
       i++;
     } else {
       fprintf(stderr, "Failed to parse EIA prefence list %s \n", args.general.eia_pref_list.c_str());

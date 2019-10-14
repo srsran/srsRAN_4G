@@ -65,18 +65,30 @@ static void corr_all_sz_partial(cf_t z[SRSLTE_SSS_N], float s[SRSLTE_SSS_N][SRSL
 static void extract_pair_sss(srslte_sss_t *q, const cf_t *input, cf_t *ce, cf_t y[2][SRSLTE_SSS_N]) {
   cf_t input_fft[SRSLTE_SYMBOL_SZ_MAX];
 
+  // Run FFT
   srslte_dft_run_c(&q->dftp_input, input, input_fft);
-  
+
+  // Equalize if available channel estimate
   if (ce) {
     srslte_vec_div_ccc(&input_fft[q->fft_size/2-SRSLTE_SSS_N], ce,
                        &input_fft[q->fft_size/2-SRSLTE_SSS_N], 2*SRSLTE_SSS_N);
   }
-  
+
+  // Extract FFT Data
   for (int i = 0; i < SRSLTE_SSS_N; i++) {
     y[0][i] = input_fft[q->fft_size/2-SRSLTE_SSS_N + 2 * i];
     y[1][i] = input_fft[q->fft_size/2-SRSLTE_SSS_N + 2 * i + 1];
   }
 
+  // Normalize
+  for (int i = 0; i < 2; i++) {
+    float avg_pow = srslte_vec_avg_power_cf(y[i], SRSLTE_SSS_N);
+    float rms     = (avg_pow != 0.0f) ? sqrtf(avg_pow) : 1.0f;
+
+    srslte_vec_sc_prod_cfc(y[i], 1.0 / rms, y[i], SRSLTE_SSS_N);
+  }
+
+  // Unmask signal with sequence generated from NID2
   srslte_vec_prod_cfc(y[0], q->fc_tables[q->N_id_2].c[0], y[0], SRSLTE_SSS_N);
   srslte_vec_prod_cfc(y[1], q->fc_tables[q->N_id_2].c[1], y[1], SRSLTE_SSS_N);
 

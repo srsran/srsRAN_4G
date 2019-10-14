@@ -29,7 +29,7 @@
 
 #define MAC_LTE_DLT  147
 #define NAS_LTE_DLT  148
-#define RLC_LTE_DLT  149 // UDP needs to be selected as protocol
+#define UDP_DLT 149 // UDP needs to be selected as protocol
 #define S1AP_LTE_DLT  150 
 
 /* This structure gets written to the start of the file */
@@ -102,6 +102,25 @@ typedef struct NAS_Context_Info_s {
   // No Context yet
 } NAS_Context_Info_t;
 
+#define MAC_NR_START_STRING "mac-nr"
+#define MAC_NR_PHR_TYPE2_OTHERCELL_TAG 0x05
+#define MAC_NR_HARQID 0x06
+
+/* Context information for every MAC NR PDU that will be logged */
+typedef struct {
+  uint8_t  radioType;
+  uint8_t  direction;
+  uint8_t  rntiType;
+  uint16_t rnti;
+  uint16_t ueid;
+  uint8_t  harqid;
+
+  uint8_t phr_type2_othercell;
+
+  uint16_t system_frame_number;
+  uint8_t  sub_frame_number;
+  uint16_t length;
+} mac_nr_context_info_t;
 
 /* RLC-LTE disector */
 
@@ -435,6 +454,95 @@ inline int LTE_PCAP_S1AP_WritePDU(FILE *fd, S1AP_Context_Info_t *context,
     fwrite(PDU, 1, length, fd);
 
     return 1;
+}
+
+/**************************************************************************
+ * API functions for writing MAC-NR PCAP files                           *
+ **************************************************************************/
+
+/* Write an individual NR MAC PDU (PCAP packet header + UDP header + nr-mac-context + mac-pdu) */
+inline int NR_PCAP_MAC_WritePDU(FILE* fd, mac_nr_context_info_t* context, const unsigned char* PDU, unsigned int length)
+{
+  char context_header[256] = {};
+  int  offset              = 0;
+
+  /* Can't write if file wasn't successfully opened */
+  if (fd == NULL) {
+    printf("Error: Can't write to empty file handle\n");
+    return 0;
+  }
+
+  // Add dummy UDP header, start with src and dest port
+  context_header[offset++] = 0xde;
+  context_header[offset++] = 0xad;
+  context_header[offset++] = 0xbe;
+  context_header[offset++] = 0xef;
+  // length
+  uint16_t tmp16 = htons(length + 31);
+  memcpy(context_header + offset, &tmp16, 2);
+  offset += 2;
+  // dummy CRC
+  context_header[offset++] = 0xde;
+  context_header[offset++] = 0xad;
+
+  // Start magic string
+  memcpy(&context_header[offset], MAC_NR_START_STRING, strlen(MAC_NR_START_STRING));
+  offset += strlen(MAC_NR_START_STRING);
+
+  /*****************************************************************/
+  /* Context information (same as written by UDP heuristic clients */
+  context_header[offset++] = context->radioType;
+  context_header[offset++] = context->direction;
+  context_header[offset++] = context->rntiType;
+
+  /* RNTI */
+  context_header[offset++] = MAC_LTE_RNTI_TAG;
+  tmp16                    = htons(context->rnti);
+  memcpy(context_header + offset, &tmp16, 2);
+  offset += 2;
+
+  /* UEId */
+  context_header[offset++] = MAC_LTE_UEID_TAG;
+  tmp16                    = htons(context->ueid);
+  memcpy(context_header + offset, &tmp16, 2);
+  offset += 2;
+
+  /* HARQID */
+  context_header[offset++] = MAC_NR_HARQID;
+  context_header[offset++] = context->harqid;
+
+  /* PHR Type2 other cell */
+  context_header[offset++] = MAC_NR_PHR_TYPE2_OTHERCELL_TAG;
+  context_header[offset++] = context->phr_type2_othercell;
+
+  /* Subframe Number and System Frame Number */
+  /* SFN is stored in 12 MSB and SF in 4 LSB */
+  context_header[offset++] = MAC_LTE_FRAME_SUBFRAME_TAG;
+  tmp16                    = (context->system_frame_number << 4) | context->sub_frame_number;
+  tmp16                    = htons(tmp16);
+  memcpy(context_header + offset, &tmp16, 2);
+  offset += 2;
+
+  /* Data tag immediately preceding PDU */
+  context_header[offset++] = MAC_LTE_PAYLOAD_TAG;
+
+  /****************************************************************/
+  /* PCAP Header                                                  */
+  struct timeval t;
+  gettimeofday(&t, NULL);
+  pcaprec_hdr_t packet_header;
+  packet_header.ts_sec   = t.tv_sec;
+  packet_header.ts_usec  = t.tv_usec;
+  packet_header.incl_len = offset + length;
+  packet_header.orig_len = offset + length;
+
+  /***************************************************************/
+  /* Now write everything to the file                            */
+  fwrite(&packet_header, sizeof(pcaprec_hdr_t), 1, fd);
+  fwrite(context_header, 1, offset, fd);
+  fwrite(PDU, 1, length, fd);
+
+  return 1;
 }
 
 #endif // SRSLTE_PCAP_H

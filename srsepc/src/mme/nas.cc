@@ -1554,12 +1554,31 @@ bool nas::short_integrity_check(srslte::byte_buffer_t* pdu)
     case srslte::INTEGRITY_ALGORITHM_ID_EIA0:
       break;
     case srslte::INTEGRITY_ALGORITHM_ID_128_EIA1:
-      srslte::security_128_eia1(&m_sec_ctx.k_nas_int[16], m_sec_ctx.ul_nas_count, 0, SECURITY_DIRECTION_UPLINK,
-                                &pdu->msg[0], 2, &exp_mac[0]);
+      srslte::security_128_eia1(&m_sec_ctx.k_nas_int[16],
+                                m_sec_ctx.ul_nas_count,
+                                0,
+                                srslte::SECURITY_DIRECTION_UPLINK,
+                                &pdu->msg[0],
+                                2,
+                                &exp_mac[0]);
       break;
     case srslte::INTEGRITY_ALGORITHM_ID_128_EIA2:
-      srslte::security_128_eia2(&m_sec_ctx.k_nas_int[16], m_sec_ctx.ul_nas_count, 0, SECURITY_DIRECTION_UPLINK,
-                                &pdu->msg[0], 2, &exp_mac[0]);
+      srslte::security_128_eia2(&m_sec_ctx.k_nas_int[16],
+                                m_sec_ctx.ul_nas_count,
+                                0,
+                                srslte::SECURITY_DIRECTION_UPLINK,
+                                &pdu->msg[0],
+                                2,
+                                &exp_mac[0]);
+      break;
+    case srslte::INTEGRITY_ALGORITHM_ID_128_EIA3:
+      srslte::security_128_eia3(&m_sec_ctx.k_nas_int[16],
+                                m_sec_ctx.ul_nas_count,
+                                0,
+                                srslte::SECURITY_DIRECTION_UPLINK,
+                                &pdu->msg[0],
+                                2,
+                                &exp_mac[0]);
       break;
     default:
       break;
@@ -1592,7 +1611,7 @@ bool nas::integrity_check(srslte::byte_buffer_t* pdu)
       srslte::security_128_eia1(&m_sec_ctx.k_nas_int[16],
                                 m_sec_ctx.ul_nas_count,
                                 0,
-                                SECURITY_DIRECTION_UPLINK,
+                                srslte::SECURITY_DIRECTION_UPLINK,
                                 &pdu->msg[5],
                                 pdu->N_bytes - 5,
                                 &exp_mac[0]);
@@ -1601,7 +1620,16 @@ bool nas::integrity_check(srslte::byte_buffer_t* pdu)
       srslte::security_128_eia2(&m_sec_ctx.k_nas_int[16],
                                 m_sec_ctx.ul_nas_count,
                                 0,
-                                SECURITY_DIRECTION_UPLINK,
+                                srslte::SECURITY_DIRECTION_UPLINK,
+                                &pdu->msg[5],
+                                pdu->N_bytes - 5,
+                                &exp_mac[0]);
+      break;
+    case srslte::INTEGRITY_ALGORITHM_ID_128_EIA3:
+      srslte::security_128_eia3(&m_sec_ctx.k_nas_int[16],
+                                m_sec_ctx.ul_nas_count,
+                                0,
+                                srslte::SECURITY_DIRECTION_UPLINK,
                                 &pdu->msg[5],
                                 pdu->N_bytes - 5,
                                 &exp_mac[0]);
@@ -1633,7 +1661,7 @@ void nas::integrity_generate(srslte::byte_buffer_t* pdu, uint8_t* mac)
       srslte::security_128_eia1(&m_sec_ctx.k_nas_int[16],
                                 m_sec_ctx.dl_nas_count,
                                 0, // Bearer always 0 for NAS
-                                SECURITY_DIRECTION_DOWNLINK,
+                                srslte::SECURITY_DIRECTION_DOWNLINK,
                                 &pdu->msg[5],
                                 pdu->N_bytes - 5,
                                 mac);
@@ -1642,7 +1670,16 @@ void nas::integrity_generate(srslte::byte_buffer_t* pdu, uint8_t* mac)
       srslte::security_128_eia2(&m_sec_ctx.k_nas_int[16],
                                 m_sec_ctx.dl_nas_count,
                                 0, // Bearer always 0 for NAS
-                                SECURITY_DIRECTION_DOWNLINK,
+                                srslte::SECURITY_DIRECTION_DOWNLINK,
+                                &pdu->msg[5],
+                                pdu->N_bytes - 5,
+                                mac);
+      break;
+    case srslte::INTEGRITY_ALGORITHM_ID_128_EIA3:
+      srslte::security_128_eia3(&m_sec_ctx.k_nas_int[16],
+                                m_sec_ctx.dl_nas_count,
+                                0, // Bearer always 0 for NAS
+                                srslte::SECURITY_DIRECTION_DOWNLINK,
                                 &pdu->msg[5],
                                 pdu->N_bytes - 5,
                                 mac);
@@ -1665,7 +1702,7 @@ void nas::cipher_decrypt(srslte::byte_buffer_t* pdu)
       srslte::security_128_eea1(&m_sec_ctx.k_nas_enc[16],
                                 pdu->msg[5],
                                 0, // Bearer always 0 for NAS
-                                SECURITY_DIRECTION_UPLINK,
+                                srslte::SECURITY_DIRECTION_UPLINK,
                                 &pdu->msg[6],
                                 pdu->N_bytes - 6,
                                 &tmp_pdu.msg[6]);
@@ -1676,7 +1713,18 @@ void nas::cipher_decrypt(srslte::byte_buffer_t* pdu)
       srslte::security_128_eea2(&m_sec_ctx.k_nas_enc[16],
                                 pdu->msg[5],
                                 0, // Bearer always 0 for NAS
-                                SECURITY_DIRECTION_UPLINK,
+                                srslte::SECURITY_DIRECTION_UPLINK,
+                                &pdu->msg[6],
+                                pdu->N_bytes - 6,
+                                &tmp_pdu.msg[6]);
+      m_nas_log->debug_hex(tmp_pdu.msg, pdu->N_bytes, "Decrypted");
+      memcpy(&pdu->msg[6], &tmp_pdu.msg[6], pdu->N_bytes - 6);
+      break;
+    case srslte::CIPHERING_ALGORITHM_ID_128_EEA3:
+      srslte::security_128_eea3(&m_sec_ctx.k_nas_enc[16],
+                                pdu->msg[5],
+                                0, // Bearer always 0 for NAS
+                                srslte::SECURITY_DIRECTION_UPLINK,
                                 &pdu->msg[6],
                                 pdu->N_bytes - 6,
                                 &tmp_pdu.msg[6]);
@@ -1699,7 +1747,7 @@ void nas::cipher_encrypt(srslte::byte_buffer_t* pdu)
       srslte::security_128_eea1(&m_sec_ctx.k_nas_enc[16],
                                 pdu->msg[5],
                                 0, // Bearer always 0 for NAS
-                                SECURITY_DIRECTION_DOWNLINK,
+                                srslte::SECURITY_DIRECTION_DOWNLINK,
                                 &pdu->msg[6],
                                 pdu->N_bytes - 6,
                                 &pdu_tmp.msg[6]);
@@ -1710,7 +1758,18 @@ void nas::cipher_encrypt(srslte::byte_buffer_t* pdu)
       srslte::security_128_eea2(&m_sec_ctx.k_nas_enc[16],
                                 pdu->msg[5],
                                 0, // Bearer always 0 for NAS
-                                SECURITY_DIRECTION_DOWNLINK,
+                                srslte::SECURITY_DIRECTION_DOWNLINK,
+                                &pdu->msg[6],
+                                pdu->N_bytes - 6,
+                                &pdu_tmp.msg[6]);
+      memcpy(&pdu->msg[6], &pdu_tmp.msg[6], pdu->N_bytes - 6);
+      m_nas_log->debug_hex(pdu_tmp.msg, pdu->N_bytes, "Encrypted");
+      break;
+    case srslte::CIPHERING_ALGORITHM_ID_128_EEA3:
+      srslte::security_128_eea3(&m_sec_ctx.k_nas_enc[16],
+                                pdu->msg[5],
+                                0, // Bearer always 0 for NAS
+                                srslte::SECURITY_DIRECTION_DOWNLINK,
                                 &pdu->msg[6],
                                 pdu->N_bytes - 6,
                                 &pdu_tmp.msg[6]);

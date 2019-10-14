@@ -35,11 +35,15 @@
 
 /* Random access procedure as specified in Section 5.1 of 36.321 */
 
-
 namespace srsue {
 
-const char* state_str[6] = {
-    "RA:    INIT:   ", "RA:    PDCCH:  ", "RA:    Rx:     ", "RA:    Backof: ", "RA:    ConRes: ", "RA:    Complt: "};
+const char* state_str[] = {"RA:    INIT:   ",
+                           "RA:    PDCCH:  ",
+                           "RA:    Rx:     ",
+                           "RA:    Backof: ",
+                           "RA:    ConRes: ",
+                           "RA:    WaitComplt: ",
+                           "RA:    Complt: "};
 
 #define rError(fmt, ...) Error("%s" fmt, state_str[state], ##__VA_ARGS__)
 #define rInfo(fmt, ...) Info("%s" fmt, state_str[state], ##__VA_ARGS__)
@@ -58,17 +62,19 @@ void ra_proc::init(phy_interface_mac_lte*        phy_h_,
                    mac_interface_rrc::ue_rnti_t* rntis_,
                    srslte::timers::timer*        time_alignment_timer_,
                    srslte::timers::timer*        contention_resolution_timer_,
-                   mux*                          mux_unit_)
+                   mux*                          mux_unit_,
+                   stack_interface_mac*          stack_)
 {
-  phy_h     = phy_h_; 
-  log_h     = log_h_; 
-  rntis     = rntis_;
-  mux_unit  = mux_unit_;
-  rrc       = rrc_;
+  phy_h    = phy_h_;
+  log_h    = log_h_;
+  rntis    = rntis_;
+  mux_unit = mux_unit_;
+  rrc      = rrc_;
+  stack    = stack_;
 
   time_alignment_timer        = time_alignment_timer_;
   contention_resolution_timer = contention_resolution_timer_;
-  
+
   srslte_softbuffer_rx_init(&softbuffer_rar, 10);
 
   reset();
@@ -91,7 +97,7 @@ void ra_proc::start_pcap(srslte::mac_pcap* pcap_)
 }
 
 /* Sets a new configuration. The configuration is applied by initialization() function */
-void ra_proc::set_config(srsue::mac_interface_rrc::rach_cfg_t& rach_cfg)
+void ra_proc::set_config(srslte::rach_cfg_t& rach_cfg)
 {
   std::unique_lock<std::mutex> ul(mutex);
   new_cfg = rach_cfg;
@@ -145,8 +151,11 @@ void ra_proc::step(uint32_t tti_)
     case CONTENTION_RESOLUTION:
       state_contention_resolution();
       break;
-    case COMPLETITION:
+    case START_WAIT_COMPLETION:
       state_completition();
+      break;
+    case WAITING_COMPLETION:
+      // do nothing, bc we are waiting for the phy to finish
       break;
   }
 }
@@ -155,7 +164,6 @@ void ra_proc::step(uint32_t tti_)
  */
 void ra_proc::state_pdcch_setup()
 {
-
   phy_interface_mac_lte::prach_info_t info = phy_h->prach_get_info();
   if (info.is_transmitted) {
     ra_tti  = info.tti_ra;
@@ -227,7 +235,19 @@ void ra_proc::state_contention_resolution()
  */
 void ra_proc::state_completition()
 {
-  phy_h->set_crnti(rntis->crnti);
+  state = WAITING_COMPLETION;
+  stack->wait_ra_completion(rntis->crnti);
+  //  phy_h->set_crnti(rntis->crnti);
+  //  state = IDLE;
+}
+
+void ra_proc::notify_ra_completed()
+{
+  if (state != WAITING_COMPLETION) {
+    rError("Received unexpected notification of RA completion\n");
+  } else {
+    rInfo("RA waiting procedure completed\n");
+  }
   state = IDLE;
 }
 
@@ -372,9 +392,10 @@ void ra_proc::new_grant_dl(mac_interface_phy_lte::mac_grant_dl_t grant, mac_inte
 /* Called upon the successful decoding of a TB addressed to RA-RNTI.
  * Processes the reception of a RAR as defined in 5.1.4
  */
-void ra_proc::tb_decoded_ok() {
+void ra_proc::tb_decoded_ok(const uint32_t tti)
+{
   if (pcap) {
-    pcap->write_dl_ranti(rar_pdu_buffer, rar_grant_nbytes, ra_rnti, true, 0);
+    pcap->write_dl_ranti(rar_pdu_buffer, rar_grant_nbytes, ra_rnti, true, tti);
   }
   
   rDebug("RAR decoded successfully TBS=%d\n", rar_grant_nbytes);
@@ -501,10 +522,11 @@ void ra_proc::complete()
   log_h->console("Random Access Complete.     c-rnti=0x%x, ta=%d\n", rntis->crnti, current_ta);
   rInfo("Random Access Complete.     c-rnti=0x%x, ta=%d\n", rntis->crnti, current_ta);
 
-  state = COMPLETITION;
+  state = START_WAIT_COMPLETION;
 }
 
-void ra_proc::start_noncont(uint32_t preamble_index, uint32_t prach_mask) {
+void ra_proc::start_noncont(uint32_t preamble_index, uint32_t prach_mask)
+{
   next_preamble_idx = preamble_index;
   next_prach_mask   = prach_mask;
   noncontention_enabled = true;

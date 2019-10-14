@@ -23,12 +23,12 @@
 
 namespace srslte {
 
-rlc_tm::rlc_tm(srslte::log*                  log_,
-               uint32_t                      lcid_,
-               srsue::pdcp_interface_rlc*    pdcp_,
-               srsue::rrc_interface_rlc*     rrc_,
-               srslte::mac_interface_timers* mac_timers_,
-               uint32_t                      queue_len_) :
+rlc_tm::rlc_tm(srslte::log*               log_,
+               uint32_t                   lcid_,
+               srsue::pdcp_interface_rlc* pdcp_,
+               srsue::rrc_interface_rlc*  rrc_,
+               srslte::timers*            timers_,
+               uint32_t                   queue_len_) :
   ul_queue(queue_len_),
   log(log_),
   pdcp(pdcp_),
@@ -193,4 +193,4 @@ void rlc_tm::write_pdu(uint8_t *payload, uint32_t nof_bytes)
   }
 }
 
-} // namespace srsue
+} // namespace srslte

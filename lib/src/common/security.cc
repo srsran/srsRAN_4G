@@ -150,24 +150,19 @@ uint8_t security_128_eia1( uint8_t  *key,
   return SRSLTE_SUCCESS;
 }
 
-uint8_t security_128_eia2( uint8_t  *key,
-                           uint32_t  count,
-                           uint32_t   bearer,
-                           uint8_t   direction,
-                           uint8_t  *msg,
-                           uint32_t  msg_len,
-                           uint8_t  *mac)
+uint8_t security_128_eia2(
+    uint8_t* key, uint32_t count, uint32_t bearer, uint8_t direction, uint8_t* msg, uint32_t msg_len, uint8_t* mac)
 {
-  return liblte_security_128_eia2(key,
-                                  count,
-                                  bearer,
-                                  direction,
-                                  msg,
-                                  msg_len,
-                                  mac);
+  return liblte_security_128_eia2(key, count, bearer, direction, msg, msg_len, mac);
 }
 
-uint8_t security_md5(const uint8_t *input, size_t len, uint8_t *output)
+uint8_t security_128_eia3(
+    uint8_t* key, uint32_t count, uint32_t bearer, uint8_t direction, uint8_t* msg, uint32_t msg_len, uint8_t* mac)
+{
+  return liblte_security_128_eia3(key, count, bearer, direction, msg, msg_len * 8, mac);
+}
+
+uint8_t security_md5(const uint8_t* input, size_t len, uint8_t* output)
 {
   memset(output, 0x00, 16);
 #ifdef HAVE_MBEDTLS
@@ -178,7 +173,6 @@ uint8_t security_md5(const uint8_t *input, size_t len, uint8_t *output)
 #endif
   return SRSLTE_SUCCESS;
 }
-
 
 /******************************************************************************
  * Encryption / Decryption
@@ -202,34 +196,26 @@ uint8_t security_128_eea1(uint8_t  *key,
 
 }
 
+uint8_t security_128_eea2(
+    uint8_t* key, uint32_t count, uint8_t bearer, uint8_t direction, uint8_t* msg, uint32_t msg_len, uint8_t* msg_out)
+{
 
-uint8_t security_128_eea2(uint8_t  *key,
-                           uint32_t count,
-                           uint8_t  bearer,
-                           uint8_t direction,
-                           uint8_t *msg,
-                           uint32_t msg_len,
-                           uint8_t *msg_out){
+  return liblte_security_encryption_eea2(key, count, bearer, direction, msg, msg_len * 8, msg_out);
+}
 
-    return liblte_security_encryption_eea2(key,
-                                           count,
-                                           bearer,
-                                           direction,
-                                           msg,
-                                           msg_len * 8,
-                                           msg_out);
+uint8_t security_128_eea3(
+    uint8_t* key, uint32_t count, uint8_t bearer, uint8_t direction, uint8_t* msg, uint32_t msg_len, uint8_t* msg_out)
+{
+
+  return liblte_security_encryption_eea3(key, count, bearer, direction, msg, msg_len * 8, msg_out);
 }
 
 /******************************************************************************
  * Authentication
  *****************************************************************************/
-uint8_t compute_opc( uint8_t *k,
-                     uint8_t *op,
-                     uint8_t *opc)
+uint8_t compute_opc(uint8_t* k, uint8_t* op, uint8_t* opc)
 {
-  return liblte_compute_opc(k,
-                            op,
-                            opc);
+  return liblte_compute_opc(k, op, opc);
 }
 
 uint8_t security_milenage_f1( uint8_t *k,
@@ -290,5 +276,4 @@ uint8_t security_milenage_f5_star( uint8_t *k,
                                           ak);
 }
 
-
-} // namespace srsue
+} // namespace srslte

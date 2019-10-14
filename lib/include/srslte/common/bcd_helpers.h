@@ -156,14 +156,12 @@ inline bool bytes_to_mnc(const uint8_t* bytes, uint16_t* mnc, uint8_t len)
   if (len != 3 && len != 2) {
     *mnc = 0;
     return false;
-  }
-  if (len == 3) {
+  } else if (len == 3) {
     *mnc = 0xF000;
     *mnc |= ((uint16_t)bytes[0]) << 8u;
     *mnc |= ((uint16_t)bytes[1]) << 4u;
     *mnc |= ((uint16_t)bytes[2]) << 0u;
-  }
-  if (len == 2) {
+  } else if (len == 2) {
     *mnc = 0xFF00;
     *mnc |= ((uint16_t)bytes[0]) << 4u;
     *mnc |= ((uint16_t)bytes[1]) << 0u;

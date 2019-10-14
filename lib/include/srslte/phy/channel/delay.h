@@ -22,16 +22,17 @@
 #ifndef SRSLTE_DELAY_H
 #define SRSLTE_DELAY_H
 
-#include <srslte/config.h>
-#include <srslte/phy/common/timestamp.h>
-#include <srslte/phy/utils/ringbuffer.h>
+#include <srslte/srslte.h>
 
 typedef struct {
   float    delay_min_us;
   float    delay_max_us;
-  uint32_t period_s;
+  float    period_s;
+  float    init_time_s;
   uint32_t srate_max_hz;
   uint32_t srate_hz;
+  float    delay_us;
+  float    delay_nsamples;
 
   srslte_ringbuffer_t rb;
   cf_t*               zero_buffer;
@@ -41,8 +42,12 @@ typedef struct {
 extern "C" {
 #endif
 
-SRSLTE_API int srslte_channel_delay_init(
-    srslte_channel_delay_t* q, float delay_min_ns, float delay_max_ns, uint32_t period_s, uint32_t srate_max_hz);
+SRSLTE_API int srslte_channel_delay_init(srslte_channel_delay_t* q,
+                                         float                   delay_min_us,
+                                         float                   delay_max_us,
+                                         float                   period_s,
+                                         float                   init_time_s,
+                                         uint32_t                srate_max_hz);
 
 SRSLTE_API void srslte_channel_delay_update_srate(srslte_channel_delay_t* q, uint32_t srate_hz);
 

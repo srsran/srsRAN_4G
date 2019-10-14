@@ -255,6 +255,11 @@ void radio::tx_end()
   }
 }
 
+bool radio::get_is_start_of_burst()
+{
+  return is_start_of_burst;
+}
+
 void radio::set_freq_offset(double freq) {
   freq_offset = freq;
 }
@@ -274,19 +279,8 @@ double radio::set_rx_gain_th(float gain)
   return srslte_rf_set_rx_gain_th(&rf_device, gain);
 }
 
-void radio::set_master_clock_rate(double rate)
-{
-  if (rate != master_clock_rate) {
-    srslte_rf_stop_rx_stream(&rf_device);
-    srslte_rf_set_master_clock_rate(&rf_device, rate);
-    srslte_rf_start_rx_stream(&rf_device, false);
-    master_clock_rate = rate;
-  }
-}
-
 void radio::set_rx_srate(double srate)
 {
-  set_master_clock_rate(srate);
   srslte_rf_set_rx_srate(&rf_device, srate);
 }
 
@@ -327,7 +321,6 @@ float radio::get_rx_gain()
 
 void radio::set_tx_srate(double srate)
 {
-  set_master_clock_rate(srate);
   cur_tx_srate = srslte_rf_set_tx_srate(&rf_device, srate);
   burst_preamble_samples = (uint32_t) (cur_tx_srate * burst_preamble_sec);
   if (burst_preamble_samples > burst_preamble_max_samples) {

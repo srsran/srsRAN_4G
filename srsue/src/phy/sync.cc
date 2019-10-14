@@ -93,8 +93,15 @@ void sync::init(srslte::radio_interface_phy* _radio,
   reset();
   running = true;
 
-  // Enable AGC
+  // Enable AGC for primary cell receiver
   set_agc_enable(worker_com->args->agc_enable);
+
+  // Enable AGC for secondary asynchronous receiver
+  if (scell_sync) {
+    for (auto& q : *scell_sync) {
+      q->set_agc_enable(worker_com->args->agc_enable);
+    }
+  }
 
   // Start main thread
   if (sync_cpu_affinity < 0) {
@@ -336,22 +343,19 @@ bool sync::cell_is_camping()
   return phy_state.is_camping();
 }
 
-
-
-
 /**
  * MAIN THREAD
- * 
+ *
  * The main thread process the SYNC state machine. Every state except IDLE must have exclusive access to
  * all variables. If any change of cell configuration must be done, the thread must be in IDLE.
  *
  * On each state except campling, 1 function is called and the thread jumps to the next state based on the output.
  *
- * It has 3 states: Cell search, SFN syncrhonization, intial measurement and camping.
+ * It has 3 states: Cell search, SFN synchronization, initial measurement and camping.
  * - CELL_SEARCH:   Initial Cell id and MIB acquisition. Uses 1.92 MHz sampling rate
  * - CELL_SYNC:     Full sampling rate, uses MIB to obtain SFN. When SFN is obtained, moves to CELL_CAMP
- * - CELL_CAMP:     Cell camping state. Calls the PHCH workers to process subframes and mantains cell synchronization.
- * - IDLE:          Receives and discards received samples. Does not mantain synchronization.
+ * - CELL_CAMP:     Cell camping state. Calls the PHCH workers to process subframes and maintains cell synchronization.
+ * - IDLE:          Receives and discards received samples. Does not maintain synchronization.
  *
  */
 
@@ -393,7 +397,10 @@ void sync::run_thread()
         /* Search for a cell in the current frequency and go to IDLE.
          * The function search_p.run() will not return until the search finishes
          */
-        cell_search_ret = search_p.run(&cell);
+        cell_search_ret = search_p.run(&cell, mib);
+        if (cell_search_ret == search::CELL_FOUND) {
+          stack->bch_decoded_ok(mib.data(), mib.size() / 8);
+        }
         phy_state.state_exit();
         break;
       case sync_state::SFN_SYNC:
@@ -401,7 +408,7 @@ void sync::run_thread()
         /* SFN synchronization using MIB. run_subframe() receives and processes 1 subframe
          * and returns
          */
-        switch(sfn_p.run_subframe(&cell, &tti)) {
+        switch (sfn_p.run_subframe(&cell, &tti, mib)) {
           case sfn_sync::SFN_FOUND:
             stack->in_sync();
             phy_state.state_exit();
@@ -442,7 +449,7 @@ void sync::run_thread()
               // Force decode MIB if required
               if (force_camping_sfn_sync) {
                 uint32_t                 _tti = 0;
-                sync::sfn_sync::ret_code ret  = sfn_p.decode_mib(&cell, &_tti, buffer[0]);
+                sync::sfn_sync::ret_code ret  = sfn_p.decode_mib(&cell, &_tti, buffer[0], mib);
 
                 if (ret == sfn_sync::SFN_FOUND) {
                   // Force tti
@@ -493,11 +500,7 @@ void sync::run_thread()
               srslte_timestamp_t rx_time, tx_time;
               srslte_ue_sync_get_last_timestamp(&ue_sync, &rx_time);
               srslte_timestamp_copy(&tx_time, &rx_time);
-              if (prach_ptr) {
-                srslte_timestamp_add(&tx_time, 0, TX_DELAY * 1e-3);
-              } else {
-                srslte_timestamp_add(&tx_time, 0, TX_DELAY * 1e-3 - time_adv_sec);
-              }
+              srslte_timestamp_add(&tx_time, 0, TX_DELAY * 1e-3 - time_adv_sec);
 
               worker->set_prach(prach_ptr?&prach_ptr[prach_sf_cnt*SRSLTE_SF_LEN_PRB(cell.nof_prb)]:NULL, prach_power);
 
@@ -558,6 +561,7 @@ void sync::run_thread()
               Warning("SYNC:  Out-of-sync detected in PSS/SSS\n");
               out_of_sync();
               worker->release();
+              is_end_of_burst = true;
 
               // Force decoding MIB, for making sure that the TTI will be right
               if (!force_camping_sfn_sync) {
@@ -995,14 +999,11 @@ void sync::search::set_agc_enable(bool enable)
   }
 }
 
-sync::search::ret_code sync::search::run(srslte_cell_t* cell)
+sync::search::ret_code sync::search::run(srslte_cell_t* cell, std::array<uint8_t, SRSLTE_BCH_PAYLOAD_LEN>& bch_payload)
 {
-
   if (!cell) {
     return ERROR;
   }
-
-  uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
 
   srslte_ue_cellsearch_result_t found_cells[3];
 
@@ -1062,11 +1063,13 @@ sync::search::ret_code sync::search::run(srslte_cell_t* cell)
 
   /* Find and decode MIB */
   int sfn_offset;
-  ret = srslte_ue_mib_sync_decode(&ue_mib_sync,
-                                  40,
-                                  bch_payload, &cell->nof_ports, &sfn_offset);
+  ret = srslte_ue_mib_sync_decode(&ue_mib_sync, 40, bch_payload.data(), &cell->nof_ports, &sfn_offset);
   if (ret == 1) {
-    srslte_pbch_mib_unpack(bch_payload, cell, NULL);
+    srslte_pbch_mib_unpack(bch_payload.data(), cell, NULL);
+    // pack MIB and store inplace for PCAP dump
+    std::array<uint8_t, SRSLTE_BCH_PAYLOAD_LEN / 8> mib_packed;
+    srslte_bit_pack_vector(bch_payload.data(), mib_packed.data(), SRSLTE_BCH_PAYLOAD_LEN);
+    std::copy(std::begin(mib_packed), std::end(mib_packed), std::begin(bch_payload));
 
     fprintf(stdout,
             "Found Cell:  Mode=%s, PCI=%d, PRB=%d, Ports=%d, CFO=%.1f KHz\n",
@@ -1147,7 +1150,10 @@ void sync::sfn_sync::reset()
   srslte_ue_mib_reset(&ue_mib);
 }
 
-sync::sfn_sync::ret_code sync::sfn_sync::run_subframe(srslte_cell_t* cell, uint32_t* tti_cnt, bool sfidx_only)
+sync::sfn_sync::ret_code sync::sfn_sync::run_subframe(srslte_cell_t*                               cell,
+                                                      uint32_t*                                    tti_cnt,
+                                                      std::array<uint8_t, SRSLTE_BCH_PAYLOAD_LEN>& bch_payload,
+                                                      bool                                         sfidx_only)
 {
 
   int ret = srslte_ue_sync_zerocopy(ue_sync, buffer);
@@ -1157,7 +1163,7 @@ sync::sfn_sync::ret_code sync::sfn_sync::run_subframe(srslte_cell_t* cell, uint3
   }
 
   if (ret == 1) {
-    sync::sfn_sync::ret_code ret2 = decode_mib(cell, tti_cnt, NULL, sfidx_only);
+    sync::sfn_sync::ret_code ret2 = decode_mib(cell, tti_cnt, NULL, bch_payload, sfidx_only);
     if (ret2 != SFN_NOFOUND) {
       return ret2;
     }
@@ -1174,12 +1180,12 @@ sync::sfn_sync::ret_code sync::sfn_sync::run_subframe(srslte_cell_t* cell, uint3
   return IDLE;
 }
 
-sync::sfn_sync::ret_code
-sync::sfn_sync::decode_mib(srslte_cell_t* cell, uint32_t* tti_cnt, cf_t* ext_buffer[SRSLTE_MAX_PORTS], bool sfidx_only)
+sync::sfn_sync::ret_code sync::sfn_sync::decode_mib(srslte_cell_t* cell,
+                                                    uint32_t*      tti_cnt,
+                                                    cf_t*          ext_buffer[SRSLTE_MAX_PORTS],
+                                                    std::array<uint8_t, SRSLTE_BCH_PAYLOAD_LEN>& bch_payload,
+                                                    bool                                         sfidx_only)
 {
-
-  uint8_t bch_payload[SRSLTE_BCH_PAYLOAD_LEN];
-
   // If external buffer provided not equal to internal buffer, copy data
   if ((ext_buffer != NULL) && (ext_buffer != buffer)) {
     memcpy(buffer[0], ext_buffer[0], sizeof(cf_t) * ue_sync->sf_len);
@@ -1196,14 +1202,14 @@ sync::sfn_sync::decode_mib(srslte_cell_t* cell, uint32_t* tti_cnt, cf_t* ext_buf
     }
 
     int sfn_offset = 0;
-    int n          = srslte_ue_mib_decode(&ue_mib, bch_payload, NULL, &sfn_offset);
+    int n          = srslte_ue_mib_decode(&ue_mib, bch_payload.data(), NULL, &sfn_offset);
     switch (n) {
       default:
         Error("SYNC:  Error decoding MIB while synchronising SFN");
         return ERROR;
       case SRSLTE_UE_MIB_FOUND:
         uint32_t sfn;
-        srslte_pbch_mib_unpack(bch_payload, cell, &sfn);
+        srslte_pbch_mib_unpack(bch_payload.data(), cell, &sfn);
 
         sfn = (sfn + sfn_offset) % 1024;
         if (tti_cnt) {

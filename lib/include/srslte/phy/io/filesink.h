@@ -33,6 +33,7 @@
 #define SRSLTE_FILESINK_H
 
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "srslte/config.h"

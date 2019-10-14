@@ -22,8 +22,8 @@
 #ifndef SRSLTE_FADING_H
 #define SRSLTE_FADING_H
 
-#include "srslte/phy/dft/dft.h"
 #include <inttypes.h>
+#include <srslte/srslte.h>
 
 #define SRSLTE_CHANNEL_FADING_MAXTAPS 9
 

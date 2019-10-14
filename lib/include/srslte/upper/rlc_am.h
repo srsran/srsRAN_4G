@@ -64,12 +64,11 @@ struct rlc_amd_retx_t{
 class rlc_am : public rlc_common
 {
 public:
-  rlc_am(srslte::log*                  log_,
-         uint32_t                      lcid_,
-         srsue::pdcp_interface_rlc*    pdcp_,
-         srsue::rrc_interface_rlc*     rrc_,
-         srslte::mac_interface_timers* mac_timers_);
-  ~rlc_am();
+  rlc_am(srslte::log*               log_,
+         uint32_t                   lcid_,
+         srsue::pdcp_interface_rlc* pdcp_,
+         srsue::rrc_interface_rlc*  rrc_,
+         srslte::timers*            timers_);
   bool configure(rlc_config_t cfg_);
   void reestablish();
   void stop();
@@ -223,7 +222,7 @@ private:
     void handle_data_pdu(uint8_t *payload, uint32_t nof_bytes, rlc_amd_pdu_header_t &header);
     void handle_data_pdu_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_pdu_header_t &header);
     void reassemble_rx_sdus();
-    bool inside_rx_window(uint16_t sn);
+    bool inside_rx_window(const int16_t sn);
     void debug_state();
     void print_rx_segments();
     bool add_segment_and_check(rlc_amd_rx_pdu_segments_t *pdu, rlc_amd_rx_pdu_t *segment);
@@ -276,13 +275,13 @@ private:
   };
 
   // Common variables needed/provided by parent class
-  srsue::rrc_interface_rlc*  rrc               = nullptr;
-  srslte::log*               log               = nullptr;
-  srsue::pdcp_interface_rlc* pdcp              = nullptr;
-  mac_interface_timers*      mac_timers        = nullptr;
-  uint32_t                   lcid              = 0;
-  rlc_config_t               cfg               = {};
-  std::string               rb_name;
+  srsue::rrc_interface_rlc*  rrc    = nullptr;
+  srslte::log*               log    = nullptr;
+  srsue::pdcp_interface_rlc* pdcp   = nullptr;
+  srslte::timers*            timers = nullptr;
+  uint32_t                   lcid   = 0;
+  rlc_config_t               cfg    = {};
+  std::string                rb_name;
 
   static const int poll_periodicity = 8; // After how many data PDUs a status PDU shall be requested
 
@@ -307,6 +306,7 @@ int         rlc_am_write_status_pdu(rlc_status_pdu_t *status, uint8_t *payload);
 uint32_t    rlc_am_packed_length(rlc_amd_pdu_header_t *header);
 uint32_t    rlc_am_packed_length(rlc_status_pdu_t *status);
 uint32_t    rlc_am_packed_length(rlc_amd_retx_t retx);
+bool        rlc_am_is_valid_status_pdu(const rlc_status_pdu_t& status);
 bool        rlc_am_is_control_pdu(byte_buffer_t *pdu);
 bool        rlc_am_is_control_pdu(uint8_t *payload);
 bool        rlc_am_is_pdu_segment(uint8_t *payload);
@@ -318,6 +318,5 @@ bool        rlc_am_is_unaligned(const uint8_t fi);
 bool        rlc_am_not_start_aligned(const uint8_t fi);
 
 } // namespace srslte
-
 
 #endif // SRSLTE_RLC_AM_H

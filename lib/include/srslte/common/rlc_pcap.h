@@ -55,6 +55,6 @@ private:
                       uint16_t channel_id);
 };
 
-} // namespace srsue
+} // namespace srslte
 
 #endif // RLCPCAP_H

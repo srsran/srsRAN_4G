@@ -103,6 +103,7 @@ typedef enum {
   LIBLTE_SECURITY_CIPHERING_ALGORITHM_ID_EEA0 = 0,
   LIBLTE_SECURITY_CIPHERING_ALGORITHM_ID_128_EEA1,
   LIBLTE_SECURITY_CIPHERING_ALGORITHM_ID_128_EEA2,
+  LIBLTE_SECURITY_CIPHERING_ALGORITHM_ID_128_EEA3,
   LIBLTE_SECURITY_CIPHERING_ALGORITHM_ID_N_ITEMS,
 } LIBLTE_SECURITY_CIPHERING_ALGORITHM_ID_ENUM;
 static const char liblte_security_ciphering_algorithm_id_text[LIBLTE_SECURITY_CIPHERING_ALGORITHM_ID_N_ITEMS][20] = {
@@ -111,6 +112,7 @@ typedef enum {
   LIBLTE_SECURITY_INTEGRITY_ALGORITHM_ID_EIA0 = 0,
   LIBLTE_SECURITY_INTEGRITY_ALGORITHM_ID_128_EIA1,
   LIBLTE_SECURITY_INTEGRITY_ALGORITHM_ID_128_EIA2,
+  LIBLTE_SECURITY_INTEGRITY_ALGORITHM_ID_128_EIA3,
   LIBLTE_SECURITY_INTEGRITY_ALGORITHM_ID_N_ITEMS,
 } LIBLTE_SECURITY_INTEGRITY_ALGORITHM_ID_ENUM;
 static const char liblte_security_integrity_algorithm_id_text[LIBLTE_SECURITY_INTEGRITY_ALGORITHM_ID_N_ITEMS][20] = {
@@ -177,6 +179,8 @@ LIBLTE_ERROR_ENUM liblte_security_128_eia2(
     uint8* key, uint32 count, uint8 bearer, uint8 direction, uint8* msg, uint32 msg_len, uint8* mac);
 LIBLTE_ERROR_ENUM liblte_security_128_eia2(
     uint8* key, uint32 count, uint8 bearer, uint8 direction, LIBLTE_BIT_MSG_STRUCT* msg, uint8* mac);
+LIBLTE_ERROR_ENUM liblte_security_128_eia3(
+    uint8* key, uint32 count, uint8 bearer, uint8 direction, uint8* msg, uint32 msg_len, uint8* mac);
 
 /*********************************************************************
     Name: liblte_security_encryption_eea1
@@ -223,6 +227,12 @@ LIBLTE_ERROR_ENUM liblte_security_encryption_eea2(
 *********************************************************************/
 LIBLTE_ERROR_ENUM liblte_security_decryption_eea2(
     uint8* key, uint32 count, uint8 bearer, uint8 direction, uint8* ct, uint32 ct_len, uint8* out);
+
+LIBLTE_ERROR_ENUM liblte_security_encryption_eea3(
+    uint8* key, uint32 count, uint8 bearer, uint8 direction, uint8* msg, uint32 msg_len, uint8* out);
+
+LIBLTE_ERROR_ENUM liblte_security_decryption_eea3(
+    uint8* key, uint32 count, uint8 bearer, uint8 direction, uint8* msg, uint32 msg_len, uint8* out);
 
 /*********************************************************************
     Name: liblte_security_milenage_f1

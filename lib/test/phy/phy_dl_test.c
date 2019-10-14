@@ -593,8 +593,8 @@ int main(int argc, char **argv) {
     ue_dl_cfg.chest_cfg.cfo_estimate_enable  = false;
     ue_dl_cfg.chest_cfg.cfo_estimate_sf_mask = false;
     ue_dl_cfg.chest_cfg.sync_error_enable    = false;
-    ue_dl_cfg.dci_cfg                        = dci_cfg;
-    ue_dl_cfg.pdsch_use_tbs_index_alt        = enable_256qam;
+    ue_dl_cfg.cfg.dci                        = dci_cfg;
+    ue_dl_cfg.cfg.pdsch.use_tbs_index_alt    = enable_256qam;
 
     srslte_pdsch_res_t pdsch_res[SRSLTE_MAX_CODEWORDS];
     for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {

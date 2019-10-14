@@ -127,6 +127,10 @@ SRSLTE_API int srslte_uci_decode_ack_ri(srslte_pusch_cfg_t* cfg,
                                         uint32_t            nof_bits,
                                         bool                is_ri);
 
+SRSLTE_API uint32_t srslte_uci_cfg_total_ack(srslte_uci_cfg_t* uci_cfg);
+
+SRSLTE_API void srslte_uci_data_reset(srslte_uci_data_t* uci_data);
+
 SRSLTE_API int srslte_uci_data_info(srslte_uci_cfg_t* uci_cfg,
                                     srslte_uci_value_t* uci_data,
                                     char* str,

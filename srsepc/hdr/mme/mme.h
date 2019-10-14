@@ -81,7 +81,7 @@ private:
   fd_set                    m_set;
 
   // Timer map
-  std::vector<mme_timer_t> m_timers;
+  std::vector<mme_timer_t> timers;
 
   // Timer Methods
   void handle_timer_expire(int timer_fd);

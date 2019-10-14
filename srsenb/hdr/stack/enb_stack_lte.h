@@ -86,7 +86,11 @@ public:
   // Radio-Link status
   void rl_failure(uint16_t rnti) final { mac.rl_failure(rnti); }
   void rl_ok(uint16_t rnti) final { mac.rl_ok(rnti); }
-  void tti_clock() final { mac.tti_clock(); }
+  void tti_clock() final
+  {
+    timers.step_all();
+    mac.tti_clock();
+  }
 
 private:
   stack_args_t args    = {};
@@ -102,6 +106,7 @@ private:
   srsenb::s1ap     s1ap;
 
   srslte::logger* logger = nullptr;
+  srslte::timers  timers;
 
   // Radio and PHY log are in enb.cc
   srslte::log_filter mac_log;

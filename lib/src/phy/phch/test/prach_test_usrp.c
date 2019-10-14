@@ -173,16 +173,6 @@ int main(int argc, char **argv) {
   srslte_rf_set_rx_freq(&rf, 0, uhd_freq);
   srslte_rf_set_tx_freq(&rf, 0, uhd_freq);
 
-  if (srate > 1e6 && (srate / 1000) > 0) {
-    if (30720%(srate/1000) == 0) {
-      srslte_rf_set_master_clock_rate(&rf, 30.72e6);        
-    } else {
-      srslte_rf_set_master_clock_rate(&rf, 23.04e6);        
-    }
-  } else {
-    printf("Invalid sampling rate %d Hz\n", srate);
-    exit(-1);
-  }
   printf("Setting sampling rate %.2f MHz\n", (float) srate/1000000);
   float srate_rf = srslte_rf_set_rx_srate(&rf, (double) srate);
   if (srate_rf != srate) {

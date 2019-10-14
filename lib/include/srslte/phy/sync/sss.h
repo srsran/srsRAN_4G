@@ -131,9 +131,7 @@ SRSLTE_API int srslte_sss_m0m1_diff(srslte_sss_t *q,
 SRSLTE_API uint32_t srslte_sss_subframe(uint32_t m0,
                                               uint32_t m1);
 
-SRSLTE_API int srslte_sss_N_id_1(srslte_sss_t *q,
-                                       uint32_t m0, 
-                                       uint32_t m1);
+SRSLTE_API int srslte_sss_N_id_1(srslte_sss_t* q, uint32_t m0, uint32_t m1, float corr);
 
 SRSLTE_API int srslte_sss_frame(srslte_sss_t *q,
                                       cf_t *input, 

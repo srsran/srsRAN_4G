@@ -48,6 +48,28 @@ static const char rlc_fi_field_text[RLC_FI_FIELD_N_ITEMS][32] = {"Start and end 
                                                                  "Not start aligned",
                                                                  "Not start or end aligned"};
 
+enum class rlc_nr_si_field_t : unsigned {
+  full_sdu                       = 0b00,
+  first_segment                  = 0b01,
+  last_segment                   = 0b10,
+  neither_first_nor_last_segment = 0b11,
+  nulltype
+};
+inline std::string to_string(const rlc_nr_si_field_t& si)
+{
+  constexpr static const char* options[] = {"Data field contains full SDU",
+                                            "Data field contains first segment of SDU",
+                                            "Data field contains last segment of SDU",
+                                            "Data field contains neither first nor last segment of SDU"};
+  return enum_to_text(options, (uint32_t)rlc_nr_si_field_t::nulltype, (uint32_t)si);
+}
+
+static inline uint8_t operator&(rlc_nr_si_field_t lhs, int rhs)
+{
+  return static_cast<uint8_t>(static_cast<std::underlying_type<rlc_nr_si_field_t>::type>(lhs) &
+                              static_cast<std::underlying_type<rlc_nr_si_field_t>::type>(rhs));
+}
+
 typedef enum{
   RLC_DC_FIELD_CONTROL_PDU = 0,
   RLC_DC_FIELD_DATA_PDU,
@@ -64,6 +86,13 @@ typedef struct{
   uint32_t          N_li;                   // Number of length indicators
   uint16_t          li[RLC_AM_WINDOW_SIZE]; // Array of length indicators
 }rlc_umd_pdu_header_t;
+
+typedef struct {
+  rlc_nr_si_field_t   si;      // Segmentation info
+  rlc_um_nr_sn_size_t sn_size; // Sequence number size (6 or 12 bits)
+  uint16_t            sn;      // Sequence number
+  uint16_t            so;      // Sequence offset
+} rlc_um_nr_pdu_header_t;
 
 // AMD PDU Header
 struct rlc_amd_pdu_header_t{
@@ -125,7 +154,7 @@ struct rlc_status_nack_t{
 
 // STATUS PDU
 struct rlc_status_pdu_t{
-  uint16_t          ack_sn;
+  uint16_t          ack_sn; // SN of the next not received RLC Data PDU
   uint32_t          N_nack;
   rlc_status_nack_t nacks[RLC_AM_WINDOW_SIZE];
 

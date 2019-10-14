@@ -51,7 +51,11 @@ class mac : public mac_interface_phy_lte,
 public:
   mac(srslte::log* log_);
   ~mac();
-  bool init(phy_interface_mac_lte* phy, rlc_interface_mac* rlc, rrc_interface_mac* rrc);
+  bool init(phy_interface_mac_lte* phy,
+            rlc_interface_mac*     rlc,
+            rrc_interface_mac*     rrc,
+            srslte::timers*        timers_,
+            stack_interface_mac*   stack);
   void stop();
 
   void get_metrics(mac_metrics_t m[SRSLTE_MAX_CARRIERS]);
@@ -95,8 +99,12 @@ public:
   void start_noncont_ho(uint32_t preamble_index, uint32_t prach_mask);
   void start_cont_ho();
 
-  void get_rntis(ue_rnti_t *rntis);
+  void get_rntis(ue_rnti_t* rntis);
   void set_ho_rnti(uint16_t crnti, uint16_t target_pci);
+
+  /*********** interface for stack ******************/
+  void process_pdus();
+  void notify_ra_completed();
 
   void start_pcap(srslte::mac_pcap* pcap);
 
@@ -118,11 +126,12 @@ private:
   static const int MAC_MAIN_THREAD_PRIO = -1; // Use default high-priority below UHD
   static const int MAC_PDU_THREAD_PRIO  = 5;
 
-  // Interaction with PHY 
-  phy_interface_mac_lte    *phy_h;
-  rlc_interface_mac    *rlc_h; 
-  rrc_interface_mac    *rrc_h; 
-  srslte::log          *log_h;
+  // Interaction with PHY
+  phy_interface_mac_lte*                     phy_h   = nullptr;
+  rlc_interface_mac*                         rlc_h   = nullptr;
+  rrc_interface_mac*                         rrc_h   = nullptr;
+  stack_interface_mac*                       stack_h = nullptr;
+  srslte::log*                               log_h;
   mac_interface_phy_lte::mac_phy_cfg_mbsfn_t phy_mbsfn_cfg;
 
   // RNTI search window scheduling
@@ -163,7 +172,7 @@ private:
   uint32_t        timer_alignment = 0;
   void            setup_timers(int time_alignment_timer);
   void            timer_alignment_expire();
-  srslte::timers  timers;
+  srslte::timers* timers = nullptr;
 
   // pointer to MAC PCAP object
   srslte::mac_pcap* pcap              = nullptr;
@@ -172,23 +181,6 @@ private:
   mac_metrics_t metrics[SRSLTE_MAX_CARRIERS] = {};
 
   bool initialized = false;
-
-  /* Class to process MAC PDUs from DEMUX unit */
-  class pdu_process : public thread {
-  public:
-    explicit pdu_process(demux* demux_unit);
-    ~pdu_process();
-    void notify();
-    void stop();
-  private:
-    void                    run_thread() final;
-    bool                    running   = false;
-    bool                    have_data = false;
-    std::mutex              mutex;
-    std::condition_variable cvar;
-    demux*                  demux_unit = nullptr;
-  };
-  pdu_process pdu_process_thread;
 };
 
 } // namespace srsue

@@ -21,7 +21,6 @@
 
 #include "srslte/srslte.h"
 #include "srsue/hdr/phy/cc_worker.h"
-#include "srslte/interfaces/ue_interfaces.h"
 
 #define Error(fmt, ...)                                                                                                \
   if (SRSLTE_DEBUG_ENABLED)                                                                                            \
@@ -50,30 +49,11 @@ namespace srsue {
  *
  */
 
-cc_worker::cc_worker(uint32_t cc_idx, uint32_t max_prb, srsue::phy_common* phy, srslte::log* log_h)
+cc_worker::cc_worker(uint32_t cc_idx_, uint32_t max_prb, srsue::phy_common* phy_, srslte::log* log_h_)
 {
-  ZERO_OBJECT(signal_buffer_rx);
-  ZERO_OBJECT(signal_buffer_tx);
-  ZERO_OBJECT(pending_dl_grant);
-  ZERO_OBJECT(cell);
-  ZERO_OBJECT(sf_cfg_dl);
-  ZERO_OBJECT(sf_cfg_ul);
-  ZERO_OBJECT(ue_dl);
-  ZERO_OBJECT(ue_dl_cfg);
-  ZERO_OBJECT(ue_dl_cfg.cfg.pdsch);
-  ZERO_OBJECT(pmch_cfg);
-  ZERO_OBJECT(chest_mbsfn_cfg);
-  ZERO_OBJECT(chest_default_cfg);
-  ZERO_OBJECT(ue_ul);
-  ZERO_OBJECT(ue_ul_cfg);
-  ZERO_OBJECT(dl_metrics);
-  ZERO_OBJECT(ul_metrics);
-
-  cell_initiated = false;
-
-  this->cc_idx = cc_idx;
-  this->phy    = phy;
-  this->log_h  = log_h;
+  cc_idx = cc_idx_;
+  phy    = phy_;
+  log_h  = log_h_;
 
   for (uint32_t i = 0; i < phy->args->nof_rx_ant; i++) {
     signal_buffer_rx[i] = (cf_t*)srslte_vec_malloc(3 * sizeof(cf_t) * SRSLTE_SF_LEN_PRB(max_prb));
@@ -111,11 +91,13 @@ cc_worker::cc_worker(uint32_t cc_idx, uint32_t max_prb, srsue::phy_common* phy, 
 
   chest_default_cfg = ue_dl_cfg.chest_cfg;
 
+  // Set default PHY params
+  reset();
+
   if (phy->args->pdsch_8bit_decoder) {
     ue_dl.pdsch.llr_is_8bit        = true;
     ue_dl.pdsch.dl_sch.llr_is_8bit = true;
   }
-  pregen_enabled = false;
 }
 
 cc_worker::~cc_worker()
@@ -137,27 +119,15 @@ void cc_worker::reset()
   bzero(&dl_metrics, sizeof(dl_metrics_t));
   bzero(&ul_metrics, sizeof(ul_metrics_t));
 
-  phy_interface_rrc_lte::phy_cfg_t empty_cfg = {};
-  // defaults
-  empty_cfg.common.pucch_cnfg.delta_pucch_shift.value = pucch_cfg_common_s::delta_pucch_shift_opts::ds1;
-  empty_cfg.common.ul_pwr_ctrl.alpha.value            = alpha_r12_opts::al0;
-  empty_cfg.common.ul_pwr_ctrl.delta_flist_pucch.delta_f_pucch_format1.value =
-      delta_flist_pucch_s::delta_f_pucch_format1_opts::delta_f0;
-  empty_cfg.common.ul_pwr_ctrl.delta_flist_pucch.delta_f_pucch_format1b.value =
-      delta_flist_pucch_s::delta_f_pucch_format1b_opts::delta_f1;
-  empty_cfg.common.ul_pwr_ctrl.delta_flist_pucch.delta_f_pucch_format2.value =
-      delta_flist_pucch_s::delta_f_pucch_format2_opts::delta_f0;
-  empty_cfg.common.ul_pwr_ctrl.delta_flist_pucch.delta_f_pucch_format2a.value =
-      delta_flist_pucch_s::delta_f_pucch_format2a_opts::delta_f0;
-  empty_cfg.common.ul_pwr_ctrl.delta_flist_pucch.delta_f_pucch_format2b.value =
-      delta_flist_pucch_s::delta_f_pucch_format2b_opts::delta_f0;
-  set_pcell_config(&empty_cfg);
+  // constructor sets defaults
+  srslte::phy_cfg_t empty_cfg;
+  set_config(empty_cfg);
 }
 
-bool cc_worker::set_cell(srslte_cell_t cell)
+bool cc_worker::set_cell(srslte_cell_t cell_)
 {
-  if (this->cell.id != cell.id || !cell_initiated) {
-    this->cell = cell;
+  if (cell.id != cell_.id || !cell_initiated) {
+    cell = cell_;
 
     if (srslte_ue_dl_set_cell(&ue_dl, cell)) {
       Error("Initiating UE DL\n");
@@ -227,37 +197,6 @@ void cc_worker::enable_pregen_signals(bool enabled)
   this->pregen_enabled = enabled;
 }
 
-void cc_worker::fill_dci_cfg(srslte_dci_cfg_t* cfg, bool rel10)
-{
-  bzero(cfg, sizeof(srslte_dci_cfg_t));
-  if (rel10 && phy->cif_enabled) {
-    cfg->cif_enabled = phy->cif_enabled;
-  }
-  cfg->multiple_csi_request_enabled = phy->multiple_csi_request_enabled;
-  cfg->srs_request_enabled          = phy->srs_request_enabled;
-}
-
-void cc_worker::set_dl_pending_grant(uint32_t cc_idx, srslte_dci_dl_t* dl_dci)
-{
-  if (!pending_dl_grant[cc_idx].enable) {
-    pending_dl_grant[cc_idx].dl_dci = *dl_dci;
-    pending_dl_grant[cc_idx].enable = true;
-  } else {
-    Warning("set_dl_pending_grant: cc=%d already exists\n", cc_idx);
-  }
-}
-
-bool cc_worker::get_dl_pending_grant(uint32_t cc_idx, srslte_dci_dl_t* dl_dci)
-{
-  if (pending_dl_grant[cc_idx].enable) {
-    *dl_dci                         = pending_dl_grant[cc_idx].dl_dci;
-    pending_dl_grant[cc_idx].enable = false;
-    return true;
-  } else {
-    return false;
-  }
-}
-
 /************
  *
  * Downlink Functions
@@ -266,9 +205,9 @@ bool cc_worker::get_dl_pending_grant(uint32_t cc_idx, srslte_dci_dl_t* dl_dci)
 
 bool cc_worker::work_dl_regular()
 {
-  bool dl_ack[SRSLTE_MAX_CODEWORDS];
+  bool dl_ack[SRSLTE_MAX_CODEWORDS] = {};
 
-  mac_interface_phy_lte::tb_action_dl_t dl_action;
+  mac_interface_phy_lte::tb_action_dl_t dl_action = {};
 
   bool found_dl_grant = false;
 
@@ -303,14 +242,15 @@ bool cc_worker::work_dl_regular()
     }
 
     /* Look for DL and UL dci(s) if this is PCell, or no cross-carrier scheduling is enabled */
-    if ((cc_idx == 0) || (!phy->cif_enabled)) {
+    if ((cc_idx == 0) || (!ue_dl_cfg.cfg.dci.cif_present)) {
       found_dl_grant = decode_pdcch_dl() > 0;
       decode_pdcch_ul();
     }
   }
 
-  srslte_dci_dl_t dci_dl;
-  bool            has_dl_grant = get_dl_pending_grant(cc_idx, &dci_dl);
+  srslte_dci_dl_t dci_dl       = {};
+  uint32_t        grant_cc_idx = 0;
+  bool            has_dl_grant = phy->get_dl_pending_grant(CURRENT_TTI, cc_idx, &grant_cc_idx, &dci_dl);
 
   // If found a dci for this carrier, generate a grant, pass it to MAC and decode the associated PDSCH
   if (has_dl_grant) {
@@ -334,11 +274,11 @@ bool cc_worker::work_dl_regular()
     ue_dl_cfg.cfg.pdsch.rnti = dci_dl.rnti;
 
     // Generate MAC grant
-    mac_interface_phy_lte::mac_grant_dl_t mac_grant;
+    mac_interface_phy_lte::mac_grant_dl_t mac_grant = {};
     dl_phy_to_mac_grant(&ue_dl_cfg.cfg.pdsch.grant, &dci_dl, &mac_grant);
 
     // Save ACK resource configuration
-    srslte_pdsch_ack_resource_t ack_resource = {dci_dl.dai, dci_dl.location.ncce};
+    srslte_pdsch_ack_resource_t ack_resource = {dci_dl.dai, dci_dl.location.ncce, grant_cc_idx, dci_dl.tpc_pucch};
 
     // Send grant to MAC and get action for this TB, then call tb_decoded to unlock MAC
     phy->stack->new_grant_dl(cc_idx, mac_grant, &dl_action);
@@ -354,7 +294,7 @@ bool cc_worker::work_dl_regular()
 
 bool cc_worker::work_dl_mbsfn(srslte_mbsfn_cfg_t mbsfn_cfg)
 {
-  mac_interface_phy_lte::tb_action_dl_t dl_action;
+  mac_interface_phy_lte::tb_action_dl_t dl_action = {};
 
   // Configure MBSFN settings
   srslte_ue_dl_set_mbsfn_area_id(&ue_dl, mbsfn_cfg.mbsfn_area_id);
@@ -403,6 +343,7 @@ void cc_worker::dl_phy_to_mac_grant(srslte_pdsch_grant_t*                       
   /* Fill MAC dci structure */
   mac_grant->pid  = dl_dci->pid;
   mac_grant->rnti = dl_dci->rnti;
+  mac_grant->tti  = CURRENT_TTI;
 
   for (int i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
     mac_grant->tb[i].ndi         = dl_dci->tb[i].ndi;
@@ -421,16 +362,15 @@ int cc_worker::decode_pdcch_dl()
 {
   int nof_grants = 0;
 
-  srslte_dci_dl_t dci[SRSLTE_MAX_CARRIERS];
-  ZERO_OBJECT(dci);
+  srslte_dci_dl_t dci[SRSLTE_MAX_CARRIERS] = {};
 
   uint16_t dl_rnti = phy->stack->get_dl_sched_rnti(CURRENT_TTI);
   if (dl_rnti) {
 
     /* Blind search first without cross scheduling then with it if enabled */
-    for (int i = 0; i < (phy->cif_enabled ? 2 : 1) && !nof_grants; i++) {
-      fill_dci_cfg(&ue_dl_cfg.dci_cfg, i > 0);
+    for (int i = 0; i < (ue_dl_cfg.cfg.dci.cif_present ? 2 : 1) && !nof_grants; i++) {
       Debug("PDCCH looking for rnti=0x%x\n", dl_rnti);
+      ue_dl_cfg.cfg.dci.cif_enabled = i > 0;
       nof_grants = srslte_ue_dl_find_dl_dci(&ue_dl, &sf_cfg_dl, &ue_dl_cfg, dl_rnti, dci);
       if (nof_grants < 0) {
         Error("Looking for DL grants\n");
@@ -445,10 +385,10 @@ int cc_worker::decode_pdcch_dl()
 
     for (int k = 0; k < nof_grants; k++) {
       // Save dci to CC index
-      set_dl_pending_grant(dci[k].cif_present ? dci[k].cif : cc_idx, &dci[k]);
+      phy->set_dl_pending_grant(CURRENT_TTI, dci[k].cif_present ? dci[k].cif : cc_idx, cc_idx, &dci[k]);
 
       // Logging
-      char str[512];
+      char str[512] = {};
       srslte_dci_dl_info(&dci[k], str, 512);
       Info("PDCCH: cc=%d, %s, snr=%.1f dB\n", cc_idx, str, ue_dl.chest_res.snr_db);
     }
@@ -461,12 +401,11 @@ int cc_worker::decode_pdsch(srslte_pdsch_ack_resource_t            ack_resource,
                             bool                                   mac_acks[SRSLTE_MAX_CODEWORDS])
 {
 
-  srslte_pdsch_res_t pdsch_dec[SRSLTE_MAX_CODEWORDS];
-  ZERO_OBJECT(pdsch_dec);
+  srslte_pdsch_res_t pdsch_dec[SRSLTE_MAX_CODEWORDS] = {};
 
   // See if at least 1 codeword needs to be decoded. If not need to be decode, resend ACK
   bool decode_enable = false;
-  bool tb_enable[SRSLTE_MAX_CODEWORDS];
+  bool tb_enable[SRSLTE_MAX_CODEWORDS] = {};
   for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
     tb_enable[tb] = ue_dl_cfg.cfg.pdsch.grant.tb[tb].enabled;
     if (action->tb[tb].enabled) {
@@ -493,7 +432,7 @@ int cc_worker::decode_pdsch(srslte_pdsch_ack_resource_t            ack_resource,
   }
 
   // Generate ACKs for MAC and PUCCH
-  uint8_t pending_acks[SRSLTE_MAX_CODEWORDS];
+  uint8_t pending_acks[SRSLTE_MAX_CODEWORDS] = {};
   for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
     // For MAC, set to true if it's a duplicate
     mac_acks[tb] = action->tb[tb].enabled ? pdsch_dec[tb].crc : true;
@@ -513,7 +452,7 @@ int cc_worker::decode_pdsch(srslte_pdsch_ack_resource_t            ack_resource,
     dl_metrics.turbo_iters = pdsch_dec->avg_iterations_block / 2;
 
     // Logging
-    char str[512];
+    char str[512] = {};
     srslte_pdsch_rx_info(&ue_dl_cfg.cfg.pdsch, pdsch_dec, str, 512);
     Info("PDSCH: cc=%d, %s, snr=%.1f dB\n", cc_idx, str, ue_dl.chest_res.snr_db);
   }
@@ -523,7 +462,7 @@ int cc_worker::decode_pdsch(srslte_pdsch_ack_resource_t            ack_resource,
 
 int cc_worker::decode_pmch(mac_interface_phy_lte::tb_action_dl_t* action, srslte_mbsfn_cfg_t* mbsfn_cfg)
 {
-  srslte_pdsch_res_t pmch_dec;
+  srslte_pdsch_res_t pmch_dec = {};
 
   pmch_cfg.area_id                     = mbsfn_cfg->mbsfn_area_id;
   pmch_cfg.pdsch_cfg.softbuffers.rx[0] = action->tb[0].softbuffer.rx;
@@ -597,7 +536,7 @@ void cc_worker::update_measurements()
   // Average RSRQ over DEFAULT_MEAS_PERIOD_MS then sent to RRC
   float rsrq_db = ue_dl.chest_res.rsrq_db;
   if (std::isnormal(rsrq_db)) {
-    if (!(CURRENT_TTI % phy->pcell_report_period) || !phy->avg_rsrq_db) {
+    if (!(CURRENT_TTI % phy->pcell_report_period) || !std::isnormal(phy->avg_rsrq_db)) {
       phy->avg_rsrq_db = rsrq_db;
     } else {
       phy->avg_rsrq_db = SRSLTE_VEC_CMA(rsrq_db, phy->avg_rsrq_db, CURRENT_TTI % phy->pcell_report_period);
@@ -607,10 +546,10 @@ void cc_worker::update_measurements()
   // Average RSRP taken from CRS
   float rsrp_lin = ue_dl.chest_res.rsrp;
   if (std::isnormal(rsrp_lin)) {
-    if (!phy->avg_rsrp[cc_idx] && !std::isnan(phy->avg_rsrp[cc_idx])) {
-      phy->avg_rsrp[cc_idx] = SRSLTE_VEC_EMA(rsrp_lin, phy->avg_rsrp[cc_idx], snr_ema_coeff);
-    } else {
+    if (!std::isnormal(phy->avg_rsrp[cc_idx])) {
       phy->avg_rsrp[cc_idx] = rsrp_lin;
+    } else {
+      phy->avg_rsrp[cc_idx] = SRSLTE_VEC_EMA(rsrp_lin, phy->avg_rsrp[cc_idx], snr_ema_coeff);
     }
   }
 
@@ -619,7 +558,7 @@ void cc_worker::update_measurements()
 
   // Serving cell RSRP measurements are averaged over DEFAULT_MEAS_PERIOD_MS then sent to RRC
   if (std::isnormal(rsrp_dbm)) {
-    if (!(CURRENT_TTI % phy->pcell_report_period) || !phy->avg_rsrp_dbm[cc_idx]) {
+    if (!(CURRENT_TTI % phy->pcell_report_period) || !std::isnormal(phy->avg_rsrp_dbm[cc_idx])) {
       phy->avg_rsrp_dbm[cc_idx] = rsrp_dbm;
     } else {
       phy->avg_rsrp_dbm[cc_idx] =
@@ -634,7 +573,7 @@ void cc_worker::update_measurements()
   // Average noise
   float cur_noise = ue_dl.chest_res.noise_estimate;
   if (std::isnormal(cur_noise)) {
-    if (!phy->avg_noise) {
+    if (!std::isnormal(phy->avg_noise[cc_idx])) {
       phy->avg_noise[cc_idx] = cur_noise;
     } else {
       phy->avg_noise[cc_idx] = SRSLTE_VEC_EMA(cur_noise, phy->avg_noise[cc_idx], snr_ema_coeff);
@@ -643,7 +582,7 @@ void cc_worker::update_measurements()
 
   // Average snr in the log domain
   if (std::isnormal(ue_dl.chest_res.snr_db)) {
-    if (!phy->avg_noise) {
+    if (!std::isnormal(phy->avg_snr_db_cqi[cc_idx])) {
       phy->avg_snr_db_cqi[cc_idx] = ue_dl.chest_res.snr_db;
     } else {
       phy->avg_snr_db_cqi[cc_idx] = SRSLTE_VEC_EMA(ue_dl.chest_res.snr_db, phy->avg_snr_db_cqi[cc_idx], snr_ema_coeff);
@@ -681,7 +620,7 @@ bool cc_worker::work_ul(srslte_uci_data_t* uci_data)
 
   bool ul_grant_available = phy->get_ul_pending_grant(&sf_cfg_ul, cc_idx, &pid, &dci_ul);
   ul_mac_grant.phich_available =
-      phy->get_ul_received_ack(&sf_cfg_ul, cc_idx, &ul_mac_grant.hi_value, ul_grant_available ? NULL : &dci_ul);
+      phy->get_ul_received_ack(&sf_cfg_ul, cc_idx, &ul_mac_grant.hi_value, ul_grant_available ? nullptr : &dci_ul);
 
   // If there is no grant, pid is from current TX TTI
   if (!ul_grant_available) {
@@ -695,6 +634,8 @@ bool cc_worker::work_ul(srslte_uci_data_t* uci_data)
   } else {
     /* Check PCell and enabled secondary cells */
     if (cc_idx == 0 || phy->scell_cfg[cc_idx].enabled) {
+      // 3GPP 36.213 Section 7.2
+      // If the UE is configured with more than one serving cell, it transmits CSI for activated serving cell(s) only.
       set_uci_periodic_cqi(uci_data);
     }
   }
@@ -738,7 +679,7 @@ bool cc_worker::work_ul(srslte_uci_data_t* uci_data)
   }
 
   // Generate uplink signal, include uci data on only PCell
-  signal_ready = encode_uplink(&ul_action, (cc_idx == 0) ? uci_data : NULL);
+  signal_ready = encode_uplink(&ul_action, (cc_idx == 0) ? uci_data : nullptr);
 
   // Prepare to receive ACK through PHICH
   if (ul_action.expect_ack) {
@@ -774,6 +715,7 @@ void cc_worker::ul_phy_to_mac_grant(srslte_pusch_grant_t*                       
   mac_grant->tb.tbs         = phy_grant->tb.tbs / (uint32_t)8;
   mac_grant->tb.rv          = phy_grant->tb.rv;
   mac_grant->pid            = pid;
+  mac_grant->tti_tx         = CURRENT_TTI_TX;
 }
 
 int cc_worker::decode_pdcch_ul()
@@ -787,8 +729,8 @@ int cc_worker::decode_pdcch_ul()
 
   if (ul_rnti) {
     /* Blind search first without cross scheduling then with it if enabled */
-    for (int i = 0; i < (phy->cif_enabled ? 2 : 1) && !nof_grants; i++) {
-      fill_dci_cfg(&ue_dl_cfg.dci_cfg, i > 0);
+    for (int i = 0; i < (ue_dl_cfg.cfg.dci.cif_present ? 2 : 1) && !nof_grants; i++) {
+      ue_dl_cfg.cfg.dci.cif_enabled = i > 0;
       nof_grants = srslte_ue_dl_find_ul_dci(&ue_dl, &sf_cfg_dl, &ue_dl_cfg, ul_rnti, dci);
       if (nof_grants < 0) {
         Error("Looking for UL grants\n");
@@ -824,6 +766,12 @@ bool cc_worker::encode_uplink(mac_interface_phy_lte::tb_action_ul_t* action, srs
   if (action) {
     data.ptr                              = action->tb.payload;
     ue_ul_cfg.ul_cfg.pusch.softbuffers.tx = action->tb.softbuffer.tx;
+
+    // Use RV from higher layers
+    ue_ul_cfg.ul_cfg.pusch.grant.tb.rv = action->tb.rv;
+
+    // Setup PUSCH grant
+    ue_ul_cfg.grant_available = action->tb.enabled;
   }
 
   // Set UCI data and configuration
@@ -835,12 +783,6 @@ bool cc_worker::encode_uplink(mac_interface_phy_lte::tb_action_ul_t* action, srs
     ZERO_OBJECT(ue_ul_cfg.ul_cfg.pusch.uci_cfg);
     ZERO_OBJECT(ue_ul_cfg.ul_cfg.pucch.uci_cfg);
   }
-
-  // Use RV from higher layers
-  ue_ul_cfg.ul_cfg.pusch.grant.tb.rv = action->tb.rv;
-
-  // Setup PUSCH grant
-  ue_ul_cfg.grant_available = action->tb.enabled;
 
   // Set UL RNTI
   ue_ul_cfg.ul_cfg.pucch.rnti = phy->stack->get_ul_sched_rnti(CURRENT_TTI_TX);
@@ -917,21 +859,10 @@ void cc_worker::set_uci_ack(srslte_uci_data_t* uci_data,
   uint32_t           nof_configured_carriers = 0;
 
   // Only PCell generates ACK for all SCell
-  for (uint32_t cc_idx = 0; cc_idx < phy->args->nof_carriers; cc_idx++) {
-    if (cc_idx == 0 || phy->scell_cfg[cc_idx].configured) {
-      phy->get_dl_pending_ack(&sf_cfg_ul, cc_idx, &ack_info.cc[cc_idx]);
+  for (uint32_t i = 0; i < phy->args->nof_carriers; i++) {
+    if (i == 0 || phy->scell_cfg[i].configured) {
+      phy->get_dl_pending_ack(&sf_cfg_ul, i, &ack_info.cc[i]);
       nof_configured_carriers++;
-    }
-  }
-
-  // Set ACK length for CA (default value is set to DTX)
-  if (ue_ul_cfg.ul_cfg.pucch.ack_nack_feedback_mode != SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_NORMAL) {
-    if (ue_dl_cfg.cfg.tm > SRSLTE_TM2) {
-      /* TM3, TM4 */
-      uci_data->cfg.ack.nof_acks = nof_configured_carriers * SRSLTE_MAX_CODEWORDS;
-    } else {
-      /* TM1, TM2 */
-      uci_data->cfg.ack.nof_acks = nof_configured_carriers;
     }
   }
 
@@ -939,7 +870,7 @@ void cc_worker::set_uci_ack(srslte_uci_data_t* uci_data,
   ack_info.is_grant_available     = is_grant_available;
   ack_info.is_pusch_available     = is_pusch_available;
   ack_info.V_dai_ul               = V_dai_ul;
-  ack_info.tdd_ack_bundle         = ue_ul_cfg.ul_cfg.pucch.tdd_ack_bundle;
+  ack_info.tdd_ack_multiplex      = ue_ul_cfg.ul_cfg.pucch.tdd_ack_multiplex;
   ack_info.simul_cqi_ack          = ue_ul_cfg.ul_cfg.pucch.simul_cqi_ack;
   ack_info.ack_nack_feedback_mode = ue_ul_cfg.ul_cfg.pucch.ack_nack_feedback_mode;
   ack_info.nof_cc                 = nof_configured_carriers;
@@ -955,453 +886,19 @@ void cc_worker::set_uci_ack(srslte_uci_data_t* uci_data,
  *
  */
 
-srslte_cqi_report_mode_t cc_worker::aperiodic_mode(cqi_report_mode_aperiodic_e mode)
-{
-  switch (mode) {
-    case cqi_report_mode_aperiodic_e::rm12:
-      return SRSLTE_CQI_MODE_12;
-    case cqi_report_mode_aperiodic_e::rm20:
-      return SRSLTE_CQI_MODE_20;
-    case cqi_report_mode_aperiodic_e::rm22:
-      return SRSLTE_CQI_MODE_22;
-    case cqi_report_mode_aperiodic_e::rm30:
-      return SRSLTE_CQI_MODE_30;
-    case cqi_report_mode_aperiodic_e::rm31:
-      return SRSLTE_CQI_MODE_31;
-    case cqi_report_mode_aperiodic_e::rm10_v1310:
-    case cqi_report_mode_aperiodic_e::rm11_v1310:
-    case cqi_report_mode_aperiodic_e::rm32_v1250:
-      fprintf(stderr, "Aperiodic mode %s not handled\n", mode.to_string().c_str());
-    default:
-      return SRSLTE_CQI_MODE_NA;
-  }
-}
-
-void cc_worker::parse_antenna_info(phys_cfg_ded_s* dedicated)
-{
-  if (dedicated->ant_info_r10_present) {
-    // Parse Release 10
-    ant_info_ded_r10_s::tx_mode_r10_e_::options tx_mode =
-        dedicated->ant_info_r10->explicit_value_r10().tx_mode_r10.value;
-    if ((srslte_tm_t)tx_mode < SRSLTE_TMINV) {
-      ue_dl_cfg.cfg.tm = (srslte_tm_t)tx_mode;
-    } else {
-      fprintf(stderr,
-              "Transmission mode (R10) %s is not supported\n",
-              dedicated->ant_info_r10->explicit_value_r10().tx_mode_r10.to_string().c_str());
-    }
-  } else if (dedicated->ant_info_present &&
-             dedicated->ant_info.type() == phys_cfg_ded_s::ant_info_c_::types::explicit_value) {
-    // Parse Release 8
-    ant_info_ded_s::tx_mode_e_::options tx_mode = dedicated->ant_info.explicit_value().tx_mode.value;
-    if ((srslte_tm_t)tx_mode < SRSLTE_TMINV) {
-      ue_dl_cfg.cfg.tm = (srslte_tm_t)tx_mode;
-    } else {
-      fprintf(stderr,
-              "Transmission mode (R8) %s is not supported\n",
-              dedicated->ant_info.explicit_value().tx_mode.to_string().c_str());
-    }
-  } else {
-    if (cell.nof_ports == 1) {
-      // No antenna info provided
-      ue_dl_cfg.cfg.tm = SRSLTE_TM1;
-    } else {
-      // No antenna info provided
-      ue_dl_cfg.cfg.tm = SRSLTE_TM2;
-    }
-  }
-}
-
-void cc_worker::parse_pucch_config(phy_interface_rrc_lte::phy_cfg_t* phy_cfg)
-{
-  phy_interface_rrc_lte::phy_cfg_common_t* common    = &phy_cfg->common;
-  phys_cfg_ded_s*                      dedicated = &phy_cfg->dedicated;
-
-  /* PUCCH configuration */
-  bzero(&ue_ul_cfg.ul_cfg.pucch, sizeof(srslte_pucch_cfg_t));
-  ue_ul_cfg.ul_cfg.pucch.delta_pucch_shift = common->pucch_cnfg.delta_pucch_shift.to_number();
-  ue_ul_cfg.ul_cfg.pucch.N_cs              = common->pucch_cnfg.n_cs_an;
-  ue_ul_cfg.ul_cfg.pucch.n_rb_2            = common->pucch_cnfg.n_rb_cqi;
-
-  /* PUCCH Scheduling configuration */
-  ue_ul_cfg.ul_cfg.pucch.n_pucch_1[0] = 0; // TODO: n_pucch_1 for SPS
-  ue_ul_cfg.ul_cfg.pucch.n_pucch_1[1] = 0;
-  ue_ul_cfg.ul_cfg.pucch.n_pucch_1[2] = 0;
-  ue_ul_cfg.ul_cfg.pucch.n_pucch_1[3] = 0;
-  ue_ul_cfg.ul_cfg.pucch.N_pucch_1    = common->pucch_cnfg.n1_pucch_an;
-  if (dedicated->cqi_report_cfg.cqi_report_periodic_present and
-      dedicated->cqi_report_cfg.cqi_report_periodic.type().value == setup_e::setup) {
-    ue_ul_cfg.ul_cfg.pucch.n_pucch_2     = dedicated->cqi_report_cfg.cqi_report_periodic.setup().cqi_pucch_res_idx;
-    ue_ul_cfg.ul_cfg.pucch.simul_cqi_ack = dedicated->cqi_report_cfg.cqi_report_periodic.setup().simul_ack_nack_and_cqi;
-  } else {
-    // FIXME: put is_pucch_configured flag here?
-    ue_ul_cfg.ul_cfg.pucch.n_pucch_2     = 0;
-    ue_ul_cfg.ul_cfg.pucch.simul_cqi_ack = false;
-  }
-
-  /* SR configuration */
-  if (dedicated->sched_request_cfg_present and dedicated->sched_request_cfg.type() == setup_e::setup) {
-    ue_ul_cfg.ul_cfg.pucch.I_sr          = dedicated->sched_request_cfg.setup().sr_cfg_idx;
-    ue_ul_cfg.ul_cfg.pucch.n_pucch_sr    = dedicated->sched_request_cfg.setup().sr_pucch_res_idx;
-    ue_ul_cfg.ul_cfg.pucch.sr_configured = true;
-  } else {
-    ue_ul_cfg.ul_cfg.pucch.I_sr          = 0;
-    ue_ul_cfg.ul_cfg.pucch.n_pucch_sr    = 0;
-    ue_ul_cfg.ul_cfg.pucch.sr_configured = false;
-  }
-
-  if (dedicated->pucch_cfg_ded.tdd_ack_nack_feedback_mode_present) {
-    ue_ul_cfg.ul_cfg.pucch.tdd_ack_bundle =
-        dedicated->pucch_cfg_ded.tdd_ack_nack_feedback_mode == pucch_cfg_ded_s::tdd_ack_nack_feedback_mode_e_::bundling;
-  } else {
-    ue_ul_cfg.ul_cfg.pucch.tdd_ack_bundle = false;
-  }
-
-  if (dedicated->pucch_cfg_ded_v1020_present) {
-    pucch_cfg_ded_v1020_s* pucch_cfg_ded = dedicated->pucch_cfg_ded_v1020.get();
-
-    if (pucch_cfg_ded->pucch_format_r10_present) {
-
-      typedef pucch_cfg_ded_v1020_s::pucch_format_r10_c_ pucch_format_r10_t;
-      pucch_format_r10_t*                                pucch_format_r10 = &pucch_cfg_ded->pucch_format_r10;
-
-      if (pucch_format_r10->type() == pucch_format_r10_t::types::format3_r10) {
-        // Select feedback mode
-        ue_ul_cfg.ul_cfg.pucch.ack_nack_feedback_mode = SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_PUCCH3;
-
-        pucch_format3_conf_r13_s* format3_r13 = &pucch_format_r10->format3_r10();
-        for (uint32_t n = 0; n < SRSLTE_MIN(format3_r13->n3_pucch_an_list_r13.size(), SRSLTE_PUCCH_SIZE_AN_CS); n++) {
-          ue_ul_cfg.ul_cfg.pucch.n3_pucch_an_list[n] = format3_r13->n3_pucch_an_list_r13[n];
-        }
-        if (format3_r13->two_ant_port_activ_pucch_format3_r13_present) {
-          if (format3_r13->two_ant_port_activ_pucch_format3_r13.type() == setup_e::setup) {
-            // TODO: UL MIMO Configure PUCCH two antenna port
-          } else {
-            // TODO: UL MIMO Disable two antenna port
-          }
-        }
-      } else if (pucch_format_r10->type() == pucch_cfg_ded_v1020_s::pucch_format_r10_c_::types::ch_sel_r10) {
-
-        typedef pucch_format_r10_t::ch_sel_r10_s_ ch_sel_r10_t;
-        ch_sel_r10_t*                             ch_sel_r10 = &pucch_format_r10->ch_sel_r10();
-
-        if (ch_sel_r10->n1_pucch_an_cs_r10_present) {
-          typedef ch_sel_r10_t::n1_pucch_an_cs_r10_c_ n1_pucch_an_cs_r10_t;
-          n1_pucch_an_cs_r10_t*                       n1_pucch_an_cs_r10 = &ch_sel_r10->n1_pucch_an_cs_r10;
-
-          if (n1_pucch_an_cs_r10->type() == setup_e::setup) {
-            // Select feedback mode
-            ue_ul_cfg.ul_cfg.pucch.ack_nack_feedback_mode = SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_CS;
-
-            typedef n1_pucch_an_cs_r10_t::setup_s_::n1_pucch_an_cs_list_r10_l_ n1_pucch_an_cs_list_r10_t;
-            n1_pucch_an_cs_list_r10_t                                          n1_pucch_an_cs_list =
-                ch_sel_r10->n1_pucch_an_cs_r10.setup().n1_pucch_an_cs_list_r10;
-            for (uint32_t i = 0; i < SRSLTE_MIN(n1_pucch_an_cs_list.size(), SRSLTE_PUCCH_NOF_AN_CS); i++) {
-              n1_pucch_an_cs_r10_l n1_pucch_an_cs = n1_pucch_an_cs_list[i];
-              for (uint32_t j = 0; j < SRSLTE_PUCCH_SIZE_AN_CS; j++) {
-                ue_ul_cfg.ul_cfg.pucch.n1_pucch_an_cs[j][i] = n1_pucch_an_cs[j];
-              }
-            }
-          } else {
-            ue_ul_cfg.ul_cfg.pucch.ack_nack_feedback_mode = SRSLTE_PUCCH_ACK_NACK_FEEDBACK_MODE_NORMAL;
-          }
-        }
-      } else {
-        // Do nothing
-      }
-    }
-  }
-}
-
 /* Translates RRC structs into PHY structs
  */
-void cc_worker::set_pcell_config(phy_interface_rrc_lte::phy_cfg_t* phy_cfg)
+void cc_worker::set_config(srslte::phy_cfg_t& phy_cfg)
 {
-  phy_interface_rrc_lte::phy_cfg_common_t* common    = &phy_cfg->common;
-  phys_cfg_ded_s*                      dedicated = &phy_cfg->dedicated;
+  // Save configuration
+  ue_dl_cfg.cfg    = phy_cfg.dl_cfg;
+  ue_ul_cfg.ul_cfg = phy_cfg.ul_cfg;
 
-  // Configure PDSCH
-  if (dedicated->pdsch_cfg_ded_present && common->pdsch_cnfg.p_b < 4) {
-    ue_dl_cfg.cfg.pdsch.p_a         = dedicated->pdsch_cfg_ded.p_a.to_number();
-    ue_dl_cfg.cfg.pdsch.p_b         = common->pdsch_cnfg.p_b;
-    ue_dl_cfg.cfg.pdsch.power_scale = true;
-  } else {
-    ue_dl_cfg.cfg.pdsch.power_scale = false;
-  }
-  ue_dl_cfg.cfg.pdsch.rs_power = (float)common->pdsch_cnfg.ref_sig_pwr;
-  parse_antenna_info(dedicated);
-
-  // Configure PUSCH
-  ue_ul_cfg.ul_cfg.pusch.enable_64qam =
-      phy_cfg->common.pusch_cnfg.pusch_cfg_basic.enable64_qam && phy_cfg->common.rrc_enable_64qam;
-
-  /* PUSCH DMRS signal configuration */
-  bzero(&ue_ul_cfg.ul_cfg.dmrs, sizeof(srslte_refsignal_dmrs_pusch_cfg_t));
-  ue_ul_cfg.ul_cfg.dmrs.group_hopping_en    = common->pusch_cnfg.ul_ref_sigs_pusch.group_hop_enabled;
-  ue_ul_cfg.ul_cfg.dmrs.sequence_hopping_en = common->pusch_cnfg.ul_ref_sigs_pusch.seq_hop_enabled;
-  ue_ul_cfg.ul_cfg.dmrs.cyclic_shift        = common->pusch_cnfg.ul_ref_sigs_pusch.cyclic_shift;
-  ue_ul_cfg.ul_cfg.dmrs.delta_ss            = common->pusch_cnfg.ul_ref_sigs_pusch.group_assign_pusch;
-
-  /* PUSCH Hopping configuration */
-  bzero(&ue_ul_cfg.ul_cfg.hopping, sizeof(srslte_pusch_hopping_cfg_t));
-  ue_ul_cfg.ul_cfg.hopping.n_sb = common->pusch_cnfg.pusch_cfg_basic.n_sb;
-  ue_ul_cfg.ul_cfg.hopping.hop_mode =
-      common->pusch_cnfg.pusch_cfg_basic.hop_mode.value ==
-              pusch_cfg_common_s::pusch_cfg_basic_s_::hop_mode_e_::intra_and_inter_sub_frame
-          ? ue_ul_cfg.ul_cfg.hopping.SRSLTE_PUSCH_HOP_MODE_INTRA_SF
-          : ue_ul_cfg.ul_cfg.hopping.SRSLTE_PUSCH_HOP_MODE_INTER_SF;
-  ue_ul_cfg.ul_cfg.hopping.hopping_offset = common->pusch_cnfg.pusch_cfg_basic.pusch_hop_offset;
-
-  /* PUSCH UCI configuration */
-  bzero(&ue_ul_cfg.ul_cfg.pusch.uci_offset, sizeof(srslte_uci_offset_cfg_t));
-  ue_ul_cfg.ul_cfg.pusch.uci_offset.I_offset_ack = dedicated->pusch_cfg_ded.beta_offset_ack_idx;
-  ue_ul_cfg.ul_cfg.pusch.uci_offset.I_offset_cqi = dedicated->pusch_cfg_ded.beta_offset_cqi_idx;
-  ue_ul_cfg.ul_cfg.pusch.uci_offset.I_offset_ri  = dedicated->pusch_cfg_ded.beta_offset_ri_idx;
-
-  parse_pucch_config(phy_cfg);
-
-  /* SRS Configuration */
-  bzero(&ue_ul_cfg.ul_cfg.srs, sizeof(srslte_refsignal_srs_cfg_t));
-  ue_ul_cfg.ul_cfg.srs.configured = dedicated->srs_ul_cfg_ded_present and
-                                    dedicated->srs_ul_cfg_ded.type() == setup_e::setup and
-                                    common->srs_ul_cnfg.type() == setup_e::setup;
-  if (ue_ul_cfg.ul_cfg.srs.configured) {
-    ue_ul_cfg.ul_cfg.srs.I_srs           = dedicated->srs_ul_cfg_ded.setup().srs_cfg_idx;
-    ue_ul_cfg.ul_cfg.srs.B               = dedicated->srs_ul_cfg_ded.setup().srs_bw;
-    ue_ul_cfg.ul_cfg.srs.b_hop           = dedicated->srs_ul_cfg_ded.setup().srs_hop_bw;
-    ue_ul_cfg.ul_cfg.srs.n_rrc           = dedicated->srs_ul_cfg_ded.setup().freq_domain_position;
-    ue_ul_cfg.ul_cfg.srs.k_tc            = dedicated->srs_ul_cfg_ded.setup().tx_comb;
-    ue_ul_cfg.ul_cfg.srs.n_srs           = dedicated->srs_ul_cfg_ded.setup().cyclic_shift;
-    ue_ul_cfg.ul_cfg.srs.simul_ack       = common->srs_ul_cnfg.setup().ack_nack_srs_simul_tx;
-    ue_ul_cfg.ul_cfg.srs.bw_cfg          = common->srs_ul_cnfg.setup().srs_bw_cfg.to_number();
-    ue_ul_cfg.ul_cfg.srs.subframe_config = common->srs_ul_cnfg.setup().srs_sf_cfg.to_number();
-  }
-
-  /* UL power control configuration */
-  bzero(&ue_ul_cfg.ul_cfg.power_ctrl, sizeof(srslte_ue_ul_powerctrl_t));
-  ue_ul_cfg.ul_cfg.power_ctrl.p0_nominal_pusch = common->ul_pwr_ctrl.p0_nominal_pusch;
-  ue_ul_cfg.ul_cfg.power_ctrl.alpha            = common->ul_pwr_ctrl.alpha.to_number();
-  ue_ul_cfg.ul_cfg.power_ctrl.p0_nominal_pucch = common->ul_pwr_ctrl.p0_nominal_pucch;
-  ue_ul_cfg.ul_cfg.power_ctrl.delta_f_pucch[0] =
-      common->ul_pwr_ctrl.delta_flist_pucch.delta_f_pucch_format1.to_number();
-  ue_ul_cfg.ul_cfg.power_ctrl.delta_f_pucch[1] =
-      common->ul_pwr_ctrl.delta_flist_pucch.delta_f_pucch_format1b.to_number();
-  ue_ul_cfg.ul_cfg.power_ctrl.delta_f_pucch[2] =
-      common->ul_pwr_ctrl.delta_flist_pucch.delta_f_pucch_format2.to_number();
-  ue_ul_cfg.ul_cfg.power_ctrl.delta_f_pucch[3] =
-      common->ul_pwr_ctrl.delta_flist_pucch.delta_f_pucch_format2a.to_number();
-  ue_ul_cfg.ul_cfg.power_ctrl.delta_f_pucch[4] =
-      common->ul_pwr_ctrl.delta_flist_pucch.delta_f_pucch_format2b.to_number();
-
-  ue_ul_cfg.ul_cfg.power_ctrl.delta_preamble_msg3 = common->ul_pwr_ctrl.delta_preamb_msg3;
-
-  ue_ul_cfg.ul_cfg.power_ctrl.p0_ue_pusch = dedicated->ul_pwr_ctrl_ded.p0_ue_pusch;
-  ue_ul_cfg.ul_cfg.power_ctrl.delta_mcs_based =
-      dedicated->ul_pwr_ctrl_ded.delta_mcs_enabled == ul_pwr_ctrl_ded_s::delta_mcs_enabled_e_::en0;
-  ue_ul_cfg.ul_cfg.power_ctrl.acc_enabled  = dedicated->ul_pwr_ctrl_ded.accumulation_enabled;
-  ue_ul_cfg.ul_cfg.power_ctrl.p0_ue_pucch  = dedicated->ul_pwr_ctrl_ded.p0_ue_pucch;
-  ue_ul_cfg.ul_cfg.power_ctrl.p_srs_offset = dedicated->ul_pwr_ctrl_ded.p_srs_offset;
-
-  /* CQI configuration */
-  bzero(&ue_dl_cfg.cfg.cqi_report, sizeof(srslte_cqi_report_cfg_t));
-  ue_dl_cfg.cfg.cqi_report.periodic_configured = dedicated->cqi_report_cfg.cqi_report_periodic_present and
-                                                 dedicated->cqi_report_cfg.cqi_report_periodic.type() == setup_e::setup;
-  if (ue_dl_cfg.cfg.cqi_report.periodic_configured) {
-    ue_dl_cfg.cfg.cqi_report.pmi_idx = dedicated->cqi_report_cfg.cqi_report_periodic.setup().cqi_pmi_cfg_idx;
-    ue_dl_cfg.cfg.cqi_report.format_is_subband =
-        dedicated->cqi_report_cfg.cqi_report_periodic.setup().cqi_format_ind_periodic.type().value ==
-        cqi_report_periodic_c::setup_s_::cqi_format_ind_periodic_c_::types::subband_cqi;
-    if (ue_dl_cfg.cfg.cqi_report.format_is_subband) {
-      ue_dl_cfg.cfg.cqi_report.subband_size =
-          dedicated->cqi_report_cfg.cqi_report_periodic.setup().cqi_format_ind_periodic.subband_cqi().k;
-    }
-    if (dedicated->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx_present) {
-      if (cell.nof_ports == 1) {
-        log_h->warning("Received Rank Indication report configuration but only 1 antenna is available\n");
-      }
-      ue_dl_cfg.cfg.cqi_report.ri_idx         = dedicated->cqi_report_cfg.cqi_report_periodic.setup().ri_cfg_idx;
-      ue_dl_cfg.cfg.cqi_report.ri_idx_present = true;
-    } else {
-      ue_dl_cfg.cfg.cqi_report.ri_idx_present = false;
-    }
-  }
-
-  if (dedicated->cqi_report_cfg.cqi_report_mode_aperiodic_present) {
-    ue_dl_cfg.cfg.cqi_report.aperiodic_configured = true;
-    ue_dl_cfg.cfg.cqi_report.aperiodic_mode       = aperiodic_mode(dedicated->cqi_report_cfg.cqi_report_mode_aperiodic);
-  }
-  if (dedicated->cqi_report_cfg_pcell_v1250_present) {
-    auto cqi_report_cfg_pcell_v1250 = dedicated->cqi_report_cfg_pcell_v1250.get();
-    if (cqi_report_cfg_pcell_v1250->alt_cqi_table_r12_present) {
-      ue_dl_cfg.pdsch_use_tbs_index_alt = true;
-    }
-  } else {
-    ue_dl_cfg.pdsch_use_tbs_index_alt = false;
-  }
-
+  // Update signals
   if (pregen_enabled) {
     Info("Pre-generating UL signals...\n");
     srslte_ue_ul_pregen_signals(&ue_ul, &ue_ul_cfg);
     Info("Done pre-generating signals worker...\n");
-  }
-}
-
-void cc_worker::set_scell_config(asn1::rrc::scell_to_add_mod_r10_s* phy_cfg)
-{
-  if (phy_cfg->rr_cfg_common_scell_r10_present) {
-    rr_cfg_common_scell_r10_s* rr_cfg_common_scell_r10 = &phy_cfg->rr_cfg_common_scell_r10;
-
-    if (rr_cfg_common_scell_r10->ul_cfg_r10_present) {
-      typedef rr_cfg_common_scell_r10_s::ul_cfg_r10_s_ ul_cfg_r10_t;
-      ul_cfg_r10_t*                                    ul_cfg_r10 = &rr_cfg_common_scell_r10->ul_cfg_r10;
-
-      // Parse Power control
-      ul_pwr_ctrl_common_scell_r10_s* ul_pwr_ctrl_common_scell_r10 = &ul_cfg_r10->ul_pwr_ctrl_common_scell_r10;
-      bzero(&ue_ul_cfg.ul_cfg.power_ctrl, sizeof(srslte_ue_ul_powerctrl_t));
-      ue_ul_cfg.ul_cfg.power_ctrl.p0_nominal_pusch = ul_pwr_ctrl_common_scell_r10->p0_nominal_pusch_r10;
-      ue_ul_cfg.ul_cfg.power_ctrl.alpha            = ul_pwr_ctrl_common_scell_r10->alpha_r10.to_number();
-
-      // Parse SRS
-      typedef srs_ul_cfg_common_c::setup_s_ srs_ul_cfg_common_t;
-      if (ul_cfg_r10->srs_ul_cfg_common_r10.type() == setup_e::setup) {
-        srs_ul_cfg_common_t* srs_ul_cfg_common = &ul_cfg_r10->srs_ul_cfg_common_r10.setup();
-        ue_ul_cfg.ul_cfg.srs.configured        = true;
-        ue_ul_cfg.ul_cfg.srs.simul_ack         = srs_ul_cfg_common->ack_nack_srs_simul_tx;
-        ue_ul_cfg.ul_cfg.srs.bw_cfg            = srs_ul_cfg_common->srs_bw_cfg.to_number();
-        ue_ul_cfg.ul_cfg.srs.subframe_config   = srs_ul_cfg_common->srs_sf_cfg.to_number();
-      } else {
-        ue_ul_cfg.ul_cfg.srs.configured = false;
-      }
-
-      // Parse PUSCH
-      pusch_cfg_common_s* pusch_cfg_common = &ul_cfg_r10->pusch_cfg_common_r10;
-      bzero(&ue_ul_cfg.ul_cfg.hopping, sizeof(srslte_pusch_hopping_cfg_t));
-      ue_ul_cfg.ul_cfg.hopping.n_sb = pusch_cfg_common->pusch_cfg_basic.n_sb;
-      ue_ul_cfg.ul_cfg.hopping.hop_mode =
-          pusch_cfg_common->pusch_cfg_basic.hop_mode.value ==
-                  pusch_cfg_common_s::pusch_cfg_basic_s_::hop_mode_e_::intra_and_inter_sub_frame
-              ? ue_ul_cfg.ul_cfg.hopping.SRSLTE_PUSCH_HOP_MODE_INTRA_SF
-              : ue_ul_cfg.ul_cfg.hopping.SRSLTE_PUSCH_HOP_MODE_INTER_SF;
-      ue_ul_cfg.ul_cfg.hopping.hopping_offset = pusch_cfg_common->pusch_cfg_basic.pusch_hop_offset;
-      ue_ul_cfg.ul_cfg.pusch.enable_64qam     = pusch_cfg_common->pusch_cfg_basic.enable64_qam;
-    }
-  }
-
-  if (phy_cfg->rr_cfg_ded_scell_r10_present) {
-    rr_cfg_ded_scell_r10_s* rr_cfg_ded_scell_r10 = &phy_cfg->rr_cfg_ded_scell_r10;
-    if (rr_cfg_ded_scell_r10->phys_cfg_ded_scell_r10_present) {
-      phys_cfg_ded_scell_r10_s* phys_cfg_ded_scell_r10 = &rr_cfg_ded_scell_r10->phys_cfg_ded_scell_r10;
-
-      // Parse nonUL Configuration
-      if (phys_cfg_ded_scell_r10->non_ul_cfg_r10_present) {
-
-        typedef phys_cfg_ded_scell_r10_s::non_ul_cfg_r10_s_ non_ul_cfg_t;
-        non_ul_cfg_t*                                       non_ul_cfg = &phys_cfg_ded_scell_r10->non_ul_cfg_r10;
-
-        // Parse Transmission mode
-        if (non_ul_cfg->ant_info_r10_present) {
-          ant_info_ded_r10_s::tx_mode_r10_e_::options tx_mode = non_ul_cfg->ant_info_r10.tx_mode_r10.value;
-          if ((srslte_tm_t)tx_mode < SRSLTE_TMINV) {
-            ue_dl_cfg.cfg.tm = (srslte_tm_t)tx_mode;
-          } else {
-            fprintf(stderr,
-                    "Transmission mode (R10) %s is not supported\n",
-                    non_ul_cfg->ant_info_r10.tx_mode_r10.to_string().c_str());
-          }
-        }
-
-        // Parse Cross carrier scheduling
-        if (non_ul_cfg->cross_carrier_sched_cfg_r10_present) {
-          typedef cross_carrier_sched_cfg_r10_s::sched_cell_info_r10_c_ sched_info_t;
-
-          typedef sched_info_t::types cross_carrier_type_e;
-          sched_info_t*               sched_info = &non_ul_cfg->cross_carrier_sched_cfg_r10.sched_cell_info_r10;
-
-          cross_carrier_type_e cross_carrier_type = sched_info->type();
-          if (cross_carrier_type == cross_carrier_type_e::own_r10) {
-            ue_dl_cfg.dci_cfg.cif_enabled = sched_info->own_r10().cif_presence_r10;
-          } else {
-            ue_dl_cfg.dci_cfg.cif_enabled = false; // This CC does not have Carrier Indicator Field
-            // ue_dl_cfg.blablabla = sched_info->other_r10().pdsch_start_r10;
-            // ue_dl_cfg.blablabla = sched_info->other_r10().sched_cell_id_r10;
-          }
-        }
-
-        // Parse pdsch config dedicated
-        if (non_ul_cfg->pdsch_cfg_ded_r10_present) {
-          ue_dl_cfg.cfg.pdsch.p_b         = phy_cfg->rr_cfg_common_scell_r10.non_ul_cfg_r10.pdsch_cfg_common_r10.p_b;
-          ue_dl_cfg.cfg.pdsch.p_a         = non_ul_cfg->pdsch_cfg_ded_r10.p_a.to_number();
-          ue_dl_cfg.cfg.pdsch.power_scale = true;
-        }
-      }
-
-      // Parse UL Configuration
-      if (phys_cfg_ded_scell_r10->ul_cfg_r10_present) {
-        typedef phys_cfg_ded_scell_r10_s::ul_cfg_r10_s_ ul_cfg_t;
-        ul_cfg_t*                                       ul_cfg = &phys_cfg_ded_scell_r10->ul_cfg_r10;
-
-        // Parse CQI param
-        if (ul_cfg->cqi_report_cfg_scell_r10_present) {
-          cqi_report_cfg_scell_r10_s* cqi_report_cfg = &ul_cfg->cqi_report_cfg_scell_r10;
-
-          // Aperiodic report
-          if (cqi_report_cfg->cqi_report_mode_aperiodic_r10_present) {
-            ue_dl_cfg.cfg.cqi_report.aperiodic_configured = true;
-            ue_dl_cfg.cfg.cqi_report.aperiodic_mode = aperiodic_mode(cqi_report_cfg->cqi_report_mode_aperiodic_r10);
-          }
-
-          // Periodic report
-          if (cqi_report_cfg->cqi_report_periodic_scell_r10_present) {
-            if (cqi_report_cfg->cqi_report_periodic_scell_r10.type() == setup_e::setup) {
-              typedef cqi_report_periodic_r10_c::setup_s_ cqi_cfg_t;
-              cqi_cfg_t cqi_cfg                            = cqi_report_cfg->cqi_report_periodic_scell_r10.setup();
-              ue_dl_cfg.cfg.cqi_report.periodic_configured = true;
-              ue_dl_cfg.cfg.cqi_report.pmi_idx             = cqi_cfg.cqi_pmi_cfg_idx;
-              ue_dl_cfg.cfg.cqi_report.format_is_subband =
-                  cqi_cfg.cqi_format_ind_periodic_r10.type().value ==
-                  cqi_cfg_t::cqi_format_ind_periodic_r10_c_::types::subband_cqi_r10;
-              if (ue_dl_cfg.cfg.cqi_report.format_is_subband) {
-                ue_dl_cfg.cfg.cqi_report.subband_size = cqi_cfg.cqi_format_ind_periodic_r10.subband_cqi_r10().k;
-              }
-              if (cqi_cfg.ri_cfg_idx_present) {
-                ue_dl_cfg.cfg.cqi_report.ri_idx         = cqi_cfg.ri_cfg_idx;
-                ue_dl_cfg.cfg.cqi_report.ri_idx_present = true;
-              } else {
-                ue_dl_cfg.cfg.cqi_report.ri_idx_present = false;
-              }
-            } else {
-              // Release, disable periodic reporting
-              ue_dl_cfg.cfg.cqi_report.periodic_configured = false;
-            }
-          }
-        }
-
-        if (ul_cfg->srs_ul_cfg_ded_r10_present) {
-          // Sounding reference signals
-          if (ul_cfg->srs_ul_cfg_ded_r10.type() == setup_e::setup) {
-            srs_ul_cfg_ded_c::setup_s_* srs_ul_cfg_ded_r10 = &ul_cfg->srs_ul_cfg_ded_r10.setup();
-            ue_ul_cfg.ul_cfg.srs.I_srs                     = srs_ul_cfg_ded_r10->srs_cfg_idx;
-            ue_ul_cfg.ul_cfg.srs.B                         = srs_ul_cfg_ded_r10->srs_bw;
-            ue_ul_cfg.ul_cfg.srs.b_hop                     = srs_ul_cfg_ded_r10->srs_hop_bw;
-            ue_ul_cfg.ul_cfg.srs.n_rrc                     = srs_ul_cfg_ded_r10->freq_domain_position;
-            ue_ul_cfg.ul_cfg.srs.k_tc                      = srs_ul_cfg_ded_r10->tx_comb;
-            ue_ul_cfg.ul_cfg.srs.n_srs                     = srs_ul_cfg_ded_r10->cyclic_shift;
-          } else {
-            ue_ul_cfg.ul_cfg.srs.configured = false;
-          }
-        }
-      }
-
-      if (phys_cfg_ded_scell_r10->cqi_report_cfg_scell_v1250_present) {
-        auto cqi_report_cfg_scell = phys_cfg_ded_scell_r10->cqi_report_cfg_scell_v1250.get();
-
-        // Enable/disable PDSCH 256QAM
-        ue_dl_cfg.pdsch_use_tbs_index_alt = cqi_report_cfg_scell->alt_cqi_table_r12_present;
-      } else {
-        // Assume there is no PDSCH 256QAM
-        ue_dl_cfg.pdsch_use_tbs_index_alt = false;
-      }
-    }
   }
 }
 

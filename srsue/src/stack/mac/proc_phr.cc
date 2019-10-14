@@ -58,7 +58,7 @@ void phr_proc::reset()
   phr_is_triggered     = false;
 }
 
-void phr_proc::set_config(srsue::mac_interface_rrc::phr_cfg_t& cfg)
+void phr_proc::set_config(srslte::phr_cfg_t& cfg)
 {
   phr_cfg = cfg;
 

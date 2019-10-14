@@ -58,6 +58,7 @@ public:
   void warning(const char * message, ...) __attribute__ ((format (printf, 2, 3)));
   void info(const char * message, ...)    __attribute__ ((format (printf, 2, 3)));
   void debug(const char * message, ...)   __attribute__ ((format (printf, 2, 3)));
+  void debug_long(const char* message, ...) __attribute__((format(printf, 2, 3)));
 
   void error_hex(const uint8_t *hex, int size, const char * message, ...)   __attribute__((format (printf, 4, 5)));
   void warning_hex(const uint8_t *hex, int size, const char * message, ...) __attribute__((format (printf, 4, 5)));
@@ -82,18 +83,24 @@ protected:
   logger *logger_h;
   bool    do_tti;
 
+  static const int char_buff_size = logger::preallocated_log_str_size - 64 * 3;
+
   time_itf      *time_src;
   time_format_t time_format;
 
   logger_stdout def_logger_stdout;
 
-  void all_log(srslte::LOG_LEVEL_ENUM level, uint32_t tti, const char *msg);
-  void all_log(srslte::LOG_LEVEL_ENUM level, uint32_t tti, const char *msg, const uint8_t *hex, int size);
-  void all_log_line(srslte::LOG_LEVEL_ENUM level, uint32_t tti, std::string file, int line, char *msg);
-  std::string now_time();
+  void        all_log(srslte::LOG_LEVEL_ENUM level,
+                      uint32_t               tti,
+                      const char*            msg,
+                      const uint8_t*         hex      = nullptr,
+                      int                    size     = 0,
+                      bool                   long_msg = false);
+  void        now_time(char* buffer, const uint32_t buffer_len);
+  void        get_tti_str(const uint32_t tti_, char* buffer, const uint32_t buffer_len);
   std::string hex_string(const uint8_t *hex, int size);
 };
 
-} // namespace srsue
+} // namespace srslte
 
 #endif // SRSLTE_LOG_FILTER_H

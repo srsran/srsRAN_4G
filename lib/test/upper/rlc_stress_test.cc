@@ -111,21 +111,6 @@ void parse_args(stress_test_args_t *args, int argc, char *argv[]) {
   }
 }
 
-// To provide timer services to RLC
-class stack_dummy : public srslte::mac_interface_timers
-{
-public:
-  stack_dummy() : timers(8) {}
-
-  srslte::timers::timer* timer_get(uint32_t timer_id) { return timers.get(timer_id); }
-  uint32_t               timer_get_unique_id() { return timers.get_unique_id(); }
-  void                   timer_release_id(uint32_t timer_id) { timers.release_id(timer_id); }
-  void                   step_timer() { timers.step_all(); }
-
-private:
-  srslte::timers timers;
-};
-
 class mac_dummy : public thread
 {
 public:
@@ -133,7 +118,7 @@ public:
             rlc_interface_mac* rlc2_,
             stress_test_args_t args_,
             uint32_t           lcid_,
-            stack_dummy*       stack_,
+            timers*            timers_,
             rlc_pcap*          pcap_ = NULL) :
     run_enable(true),
     rlc1(rlc1_),
@@ -141,7 +126,7 @@ public:
     args(args_),
     pcap(pcap_),
     lcid(lcid_),
-    stack(stack_),
+    timers(timers_),
     log("MAC  "),
     thread("MAC_DUMMY"),
     real_dist(0.0, 1.0)
@@ -207,7 +192,7 @@ private:
       run_tti(rlc2, rlc1, false);
 
       // step timer
-      stack->step_timer();
+      timers->step_all();
     }
   }
 
@@ -216,10 +201,10 @@ private:
 
   bool run_enable;
   stress_test_args_t args;
-  rlc_pcap *pcap;
-  uint32_t lcid;
+  rlc_pcap*          pcap;
+  uint32_t           lcid;
   srslte::log_filter log;
-  stack_dummy*       stack = nullptr;
+  srslte::timers*    timers = nullptr;
 
   std::mt19937                          mt19937;
   std::uniform_real_distribution<float> real_dist;
@@ -354,17 +339,17 @@ void stress_test(stress_test_args_t args)
     exit(-1);
   }
 
-  stack_dummy stack;
+  srslte::timers timers(8);
 
   rlc rlc1(&log1);
   rlc rlc2(&log2);
 
   rlc_tester tester1(&rlc1, "tester1", args, lcid);
   rlc_tester tester2(&rlc2, "tester2", args, lcid);
-  mac_dummy     mac(&rlc1, &rlc2, args, lcid, &stack, &pcap);
+  mac_dummy  mac(&rlc1, &rlc2, args, lcid, &timers, &pcap);
 
-  rlc1.init(&tester1, &tester1, &stack, 0);
-  rlc2.init(&tester2, &tester2, &stack, 0);
+  rlc1.init(&tester1, &tester1, &timers, 0);
+  rlc2.init(&tester2, &tester2, &timers, 0);
 
   // only add AM and UM bearers
   if (args.mode != "TM") {

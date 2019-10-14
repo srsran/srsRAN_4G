@@ -157,16 +157,9 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  if (srate < 10e6) {
-    srslte_rf_set_master_clock_rate(&rf, 4*srate);        
-  } else {
-    srslte_rf_set_master_clock_rate(&rf, srate);        
-  }
-
   printf("Set RX rate: %.2f MHz\n", srslte_rf_set_rx_srate(&rf, srate) / 1000000);
   printf("Set RX gain: %.1f dB\n", srslte_rf_set_rx_gain(&rf, rf_gain));
   printf("Set RX freq: %.2f MHz\n", srslte_rf_set_rx_freq(&rf, 0, rf_freq) / 1000000);
-  srslte_rf_rx_wait_lo_locked(&rf);
 
   buffer = malloc(sizeof(cf_t) * flen * 2);
   if (!buffer) {
@@ -272,23 +265,23 @@ int main(int argc, char **argv) {
           // Filter SSS
           srslte_pss_filter(&pss, &buffer[sss_idx], &buffer[sss_idx]);
 
-          INFO("Full N_id_1: %d\n", srslte_sss_N_id_1(&sss, m0, m1));
+          INFO("Full N_id_1: %d\n", srslte_sss_N_id_1(&sss, m0, m1, m1_value + m0_value));
           srslte_sss_m0m1_partial(&sss, &buffer[sss_idx], 1, ce, &m0, &m0_value, &m1, &m1_value);
-          if (srslte_sss_N_id_1(&sss, m0, m1) != N_id_1) {
-            sss_error2++;            
+          if (srslte_sss_N_id_1(&sss, m0, m1, m1_value + m0_value) != N_id_1) {
+            sss_error2++;
           }
-          INFO("Partial N_id_1: %d\n", srslte_sss_N_id_1(&sss, m0, m1));
+          INFO("Partial N_id_1: %d\n", srslte_sss_N_id_1(&sss, m0, m1, m1_value + m0_value));
           srslte_sss_m0m1_diff_coh(&sss, &buffer[sss_idx], ce, &m0, &m0_value, &m1, &m1_value);
-          if (srslte_sss_N_id_1(&sss, m0, m1) != N_id_1) {
-            sss_error3++;            
+          if (srslte_sss_N_id_1(&sss, m0, m1, m1_value + m0_value) != N_id_1) {
+            sss_error3++;
           }
-          INFO("Diff N_id_1: %d\n", srslte_sss_N_id_1(&sss, m0, m1));
+          INFO("Diff N_id_1: %d\n", srslte_sss_N_id_1(&sss, m0, m1, m1_value + m0_value));
         }
         srslte_sss_m0m1_partial(&sss, &buffer[sss_idx], 1, NULL, &m0, &m0_value, &m1, &m1_value);
-        if (srslte_sss_N_id_1(&sss, m0, m1) != N_id_1) {
-          sss_error1++;     
+        if (srslte_sss_N_id_1(&sss, m0, m1, m1_value + m0_value) != N_id_1) {
+          sss_error1++;
         }
-      
+
         // Estimate CP 
         if (peak_idx > 2*(fft_size + SRSLTE_CP_LEN_EXT(fft_size))) {
           srslte_cp_t cp = srslte_sync_detect_cp(&ssync, buffer, peak_idx);

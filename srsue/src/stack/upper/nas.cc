@@ -36,7 +36,173 @@
 
 using namespace srslte;
 
+#define Error(fmt, ...) nas_ptr->nas_log->error("%s - " fmt, name(), ##__VA_ARGS__)
+#define Warning(fmt, ...) nas_ptr->nas_log->warning("%s - " fmt, name(), ##__VA_ARGS__)
+#define Info(fmt, ...) nas_ptr->nas_log->info("%s - " fmt, name(), ##__VA_ARGS__)
+
 namespace srsue {
+
+using srslte::proc_outcome_t;
+
+proc_outcome_t nas::plmn_search_proc::init(nas* nas_ptr_)
+{
+  nas_ptr = nas_ptr_;
+
+  // start RRC
+  state = state_t::plmn_search;
+  if (not nas_ptr->rrc->plmn_search()) {
+    Error("Error while searching for PLMNs\n");
+    return proc_outcome_t::error;
+  }
+
+  Info("Starting...\n");
+  return proc_outcome_t::yield;
+}
+
+proc_outcome_t nas::plmn_search_proc::step()
+{
+  if (state == state_t::rrc_connect) {
+    if (nas_ptr->rrc_connector.run()) {
+      return proc_outcome_t::yield;
+    }
+    rrc_connect_proc ret = nas_ptr->rrc_connector.pop();
+    if (ret.is_success()) {
+      return proc_outcome_t::success;
+    }
+    nas_ptr->enter_emm_deregistered();
+    return proc_outcome_t::error;
+  }
+  return proc_outcome_t::yield;
+}
+
+proc_outcome_t nas::plmn_search_proc::trigger_event(const plmn_search_complete_t& t)
+{
+  if (state != state_t::plmn_search) {
+    Warning("PLMN Search Complete was received but PLMN Search is not running.\n");
+    return proc_outcome_t::yield; // ignore
+  }
+
+  // check whether the state hasn't changed
+  if (nas_ptr->state != EMM_STATE_DEREGISTERED or nas_ptr->plmn_is_selected) {
+    Error("Error while searching for PLMNs\n");
+    return proc_outcome_t::error;
+  }
+
+  if (t.nof_plmns < 0) {
+    Error("Error while searching for PLMNs\n");
+    return proc_outcome_t::error;
+  } else if (t.nof_plmns == 0) {
+    Warning("Did not find any PLMN in the set of frequencies.\n");
+    return proc_outcome_t::error;
+  }
+
+  // Save PLMNs
+  nas_ptr->known_plmns.clear();
+  for (int i = 0; i < t.nof_plmns; i++) {
+    nas_ptr->known_plmns.push_back(t.found_plmns[i].plmn_id);
+    nas_ptr->nas_log->info(
+        "Found PLMN:  Id=%s, TAC=%d\n", t.found_plmns[i].plmn_id.to_string().c_str(), t.found_plmns[i].tac);
+    nas_ptr->nas_log->console(
+        "Found PLMN:  Id=%s, TAC=%d\n", t.found_plmns[i].plmn_id.to_string().c_str(), t.found_plmns[i].tac);
+  }
+  nas_ptr->select_plmn();
+
+  // Select PLMN in request establishment of RRC connection
+  if (not nas_ptr->plmn_is_selected) {
+    Error("PLMN is not selected because no suitable PLMN was found\n");
+    return proc_outcome_t::error;
+  }
+
+  nas_ptr->rrc->plmn_select(nas_ptr->current_plmn);
+
+  if (not nas_ptr->rrc_connector.launch(nas_ptr, srslte::establishment_cause_t ::mo_data, nullptr)) {
+    Error("Unable to initiate RRC connection.\n");
+    return proc_outcome_t::error;
+  }
+
+  state = state_t::rrc_connect;
+  return proc_outcome_t::yield;
+}
+
+proc_outcome_t
+nas::rrc_connect_proc::init(nas* nas_ptr_, srslte::establishment_cause_t cause_, srslte::unique_byte_buffer_t pdu)
+{
+  nas_ptr = nas_ptr_;
+
+  if (nas_ptr->rrc->is_connected()) {
+    Info("Stopping. Reason: Already connected\n");
+    return proc_outcome_t::success;
+  }
+
+  if (pdu == nullptr) {
+    // Generate service request or attach request message
+    pdu = srslte::allocate_unique_buffer(*nas_ptr->pool, true);
+    if (!pdu) {
+      Error("Fatal Error: Couldn't allocate PDU.\n");
+      return proc_outcome_t::error;
+    }
+
+    if (nas_ptr->state == EMM_STATE_REGISTERED) {
+      nas_ptr->gen_service_request(pdu.get());
+    } else {
+      nas_ptr->gen_attach_request(pdu.get());
+    }
+  }
+
+  // Provide UE-Identity to RRC if have one
+  if (nas_ptr->have_guti) {
+    srslte::s_tmsi_t s_tmsi;
+    s_tmsi.mmec   = nas_ptr->ctxt.guti.mme_code;
+    s_tmsi.m_tmsi = nas_ptr->ctxt.guti.m_tmsi;
+    nas_ptr->rrc->set_ue_identity(s_tmsi);
+  }
+
+  state = state_t::conn_req;
+  if (not nas_ptr->start_connection_request(cause_, std::move(pdu))) {
+    return proc_outcome_t::error;
+  }
+
+  Info("Starting...\n");
+  return proc_outcome_t::yield;
+}
+
+proc_outcome_t nas::rrc_connect_proc::step()
+{
+  if (state == state_t::conn_req) {
+    if (nas_ptr->conn_req_proc.run()) {
+      return proc_outcome_t::yield;
+    }
+    query_proc_t<bool> ret = nas_ptr->conn_req_proc.pop();
+    if (not ret.result()) {
+      Error("Could not establish RRC connection\n");
+      return proc_outcome_t::error;
+    }
+    Info("Connection established correctly. Waiting for Attach\n");
+    wait_timeout = 0;
+    // Wait until attachment. If doing a service request is already attached
+    state = state_t::wait_attach;
+    return proc_outcome_t::repeat;
+  } else if (state == state_t::wait_attach) {
+    wait_timeout++;
+    // Wait until attachment. If doing a service request is already attached
+    if (wait_timeout >= 5000 or nas_ptr->state == EMM_STATE_REGISTERED or not nas_ptr->running or
+        not nas_ptr->rrc->is_connected()) {
+      if (nas_ptr->state == EMM_STATE_REGISTERED) {
+        Info("EMM Registered correctly\n");
+        return proc_outcome_t::success;
+      } else if (nas_ptr->state == EMM_STATE_DEREGISTERED) {
+        Error("Timeout or received attach reject while trying to attach\n");
+        nas_ptr->nas_log->console("Failed to Attach\n");
+      } else if (!nas_ptr->rrc->is_connected()) {
+        Error("Was disconnected while attaching\n");
+      } else {
+        Error("Timed out while trying to attach\n");
+      }
+      return proc_outcome_t::error;
+    }
+  }
+  return proc_outcome_t::yield;
+}
 
 /*********************************************************************
  *   NAS
@@ -62,7 +228,7 @@ void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_
     nas_log->error("Empty EIA list. Select at least one EIA algorithm.\n");
   }
   for (std::vector<uint8_t>::const_iterator it = cap_list.begin(); it != cap_list.end(); ++it) {
-    if (*it != 0 && *it < 3) {
+    if (*it != 0 && *it < 4) {
       eia_caps[*it] = true;
     } else {
       nas_log->error("EIA%d is not a valid EIA algorithm.\n", *it);
@@ -75,16 +241,16 @@ void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_
     nas_log->error("Empty EEA list. Select at least one EEA algorithm.\n");
   }
   for (std::vector<uint8_t>::const_iterator it = cap_list.begin(); it != cap_list.end(); ++it) {
-    if (*it < 3) {
+    if (*it < 4) {
       eea_caps[*it] = true;
     } else {
       nas_log->error("EEA%d is not a valid EEA algorithm.\n", *it);
     }
   }
 
-  cfg     = cfg_;
+  cfg = cfg_;
 
-  if((read_ctxt_file(&ctxt))) {
+  if ((read_ctxt_file(&ctxt))) {
     usim->generate_nas_keys(ctxt.k_asme, k_nas_enc, k_nas_int,
                             ctxt.cipher_algo, ctxt.integ_algo);
     nas_log->debug_hex(k_nas_enc, 32, "NAS encryption key - k_nas_enc");
@@ -96,7 +262,8 @@ void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_
   running = true;
 }
 
-void nas::stop() {
+void nas::stop()
+{
   running = false;
   write_ctxt_file(ctxt);
 }
@@ -109,8 +276,14 @@ void nas::get_metrics(nas_metrics_t* m)
   *m                            = metrics;
 }
 
-emm_state_t nas::get_state() {
+emm_state_t nas::get_state()
+{
   return state;
+}
+
+void nas::run_tti(uint32_t tti)
+{
+  callbacks.run();
 }
 
 /*******************************************************************************
@@ -121,82 +294,83 @@ emm_state_t nas::get_state() {
  * The function returns true if the UE could attach correctly or false in case of error or timeout during attachment.
  *
  */
-bool nas::attach_request() {
-  rrc_interface_nas::found_plmn_t found_plmns[rrc_interface_nas::MAX_FOUND_PLMNS];
-  int nof_plmns = 0;
-
+void nas::start_attach_request(srslte::proc_state_t* result)
+{
   nas_log->info("Attach Request\n");
   switch (state) {
     case EMM_STATE_DEREGISTERED:
-
       // Search PLMN is not selected
       if (!plmn_is_selected) {
         nas_log->info("No PLMN selected. Starting PLMN Search...\n");
-        nof_plmns = rrc->plmn_search(found_plmns);
-        if (nof_plmns > 0) {
-          // Save PLMNs
-          known_plmns.clear();
-          for (int i=0;i<nof_plmns;i++) {
-            known_plmns.push_back(found_plmns[i].plmn_id);
-            nas_log->info(
-                "Found PLMN:  Id=%s, TAC=%d\n", found_plmns[i].plmn_id.to_string().c_str(), found_plmns[i].tac);
-            nas_log->console(
-                "Found PLMN:  Id=%s, TAC=%d\n", found_plmns[i].plmn_id.to_string().c_str(), found_plmns[i].tac);
+        if (not plmn_searcher.launch(this)) {
+          *result = proc_state_t::error;
+          return;
+        }
+        callbacks.defer_task([this, result]() {
+          if (plmn_searcher.run()) {
+            return proc_outcome_t::yield;
           }
-          select_plmn();
-        } else if (nof_plmns == 0) {
-          nas_log->warning("Did not find any PLMN in the set of frequencies\n");
-          return false;
-        } else if (nof_plmns < 0) {
-          nas_log->error("Error while searching for PLMNs\n");
-          return false;
-        }
-      }
-      // Select PLMN in request establishment of RRC connection
-      if (plmn_is_selected) {
-        rrc->plmn_select(current_plmn);
-        if (rrc_connect()) {
-          nas_log->info("NAS attached successfully.\n");
-          return true;
-        } else {
-          nas_log->error("Could not attach in attach request\n");
-        }
+          plmn_search_proc p = plmn_searcher.pop();
+          nas_log->info("Attach Request from PLMN Search %s\n", p.is_success() ? "finished successfully" : "failed");
+          *result = p.is_success() ? proc_state_t::success : proc_state_t::error;
+          // stay in this state if attach failed
+          if (not p.is_success()) {
+            enter_emm_deregistered();
+          }
+          return proc_outcome_t::success;
+        });
       } else {
-        nas_log->error("PLMN is not selected because no suitable PLMN was found\n");
+        nas_log->error("PLMN selected in state %s\n", emm_state_text[state]);
+        *result = proc_state_t::error;
       }
       break;
     case EMM_STATE_REGISTERED:
       if (rrc->is_connected()) {
         nas_log->info("NAS is already registered and RRC connected\n");
-        return true;
+        *result = proc_state_t::success;
       } else {
         nas_log->info("NAS is already registered but RRC disconnected. Connecting now...\n");
-        if (rrc_connect()) {
-          nas_log->info("NAS attached successfully.\n");
-          return true;
-        } else {
-          nas_log->error("Could not attach from attach_request\n");
+        if (not rrc_connector.launch(this, srslte::establishment_cause_t ::mo_data, nullptr)) {
+          nas_log->error("Cannot initiate concurrent rrc connection procedures\n");
+          *result = proc_state_t::error;
+          return;
         }
+        callbacks.defer_task([this, result]() {
+          if (rrc_connector.run()) {
+            return proc_outcome_t::yield;
+          }
+          rrc_connect_proc proc = rrc_connector.pop();
+          if (proc.is_success()) {
+            nas_log->info("NAS attached successfully.\n");
+          } else {
+            nas_log->error("Could not attach from attach_request\n");
+          }
+          *result = proc.is_success() ? proc_state_t::success : proc_state_t::error;
+          return proc_outcome_t::success;
+        });
       }
       break;
     default:
       nas_log->info("Attach request ignored. State = %s\n", emm_state_text[state]);
+      *result = proc_state_t::error;
   }
-  return false;
 }
 
-bool nas::detach_request() {
-  // attempt detach for 5s
-  nas_log->info("Detach Request\n");
+void nas::plmn_search_completed(rrc_interface_nas::found_plmn_t found_plmns[rrc_interface_nas::MAX_FOUND_PLMNS],
+                                int                             nof_plmns)
+{
+  plmn_searcher.trigger_event(plmn_search_proc::plmn_search_complete_t(found_plmns, nof_plmns));
+}
 
+bool nas::detach_request(const bool switch_off)
+{
   switch (state) {
     case EMM_STATE_DEREGISTERED:
       // do nothing ..
       break;
     case EMM_STATE_REGISTERED:
       // send detach request
-      send_detach_request(true);
-      state = EMM_STATE_DEREGISTERED;
+      send_detach_request(switch_off);
       break;
     case EMM_STATE_DEREGISTERED_INITIATED:
       // do nothing ..
@@ -207,12 +381,24 @@ bool nas::detach_request() {
   return false;
 }
 
-void nas::leave_connected() {
+void nas::enter_emm_deregistered()
+{
+  // Deactivate EPS bearer according to Sec. 5.5.2.2.2
+  nas_log->debug("Clearing EPS bearer context\n");
+
   eps_bearer.clear();
+
+  plmn_is_selected = false;
+  state            = EMM_STATE_DEREGISTERED;
+}
+
+void nas::left_rrc_connected()
+{
   return;
 }
 
-bool nas::is_attached() {
+bool nas::is_attached()
+{
   return state == EMM_STATE_REGISTERED;
 }
 
@@ -220,11 +406,23 @@ void nas::paging(s_tmsi_t* ue_identity)
 {
   if (state == EMM_STATE_REGISTERED) {
     nas_log->info("Received paging: requesting RRC connection establishment\n");
-    if (rrc_connect()) {
-      nas_log->info("Attached successfully\n");
-    } else {
-      nas_log->error("Could not attach from paging\n");
+    if (rrc_connector.is_active()) {
+      nas_log->error("Cannot initiate concurrent RRC connection establishment procedures\n");
+      return;
     }
+    if (not rrc_connector.launch(this, srslte::establishment_cause_t ::mt_access, nullptr)) {
+      nas_log->error("Could not launch RRC Connect()\n");
+      return;
+    }
+    // once completed, call paging complete
+    callbacks.defer_task([this]() {
+      if (rrc_connector.run()) {
+        return proc_outcome_t::yield;
+      }
+      bool success = rrc_connector.pop().is_success();
+      rrc->paging_completed(success);
+      return proc_outcome_t::success;
+    });
   } else {
     nas_log->warning("Received paging while in state %s\n", emm_state_text[state]);
   }
@@ -234,66 +432,25 @@ void nas::set_barring(barring_t barring) {
   current_barring = barring;
 }
 
-/* Internal function that requests RRC connection, waits for positive or negative response and returns true/false
- */
-bool nas::rrc_connect() {
-  if (rrc->is_connected()) {
-    nas_log->info("Already connected\n");
-    return true;
-  }
-
-  // Generate service request or attach request message
-  unique_byte_buffer_t dedicatedInfoNAS = srslte::allocate_unique_buffer(*pool, true);
-  if (!dedicatedInfoNAS) {
-    nas_log->error("Fatal Error: Couldn't allocate PDU in rrc_connect().\n");
+bool nas::start_connection_request(srslte::establishment_cause_t establish_cause,
+                                   srslte::unique_byte_buffer_t  ded_info_nas)
+{
+  if (not conn_req_proc.launch()) {
+    nas_log->error("Failed to initiate a connection request procedure\n");
     return false;
   }
-
-  if (state == EMM_STATE_REGISTERED) {
-    gen_service_request(dedicatedInfoNAS.get());
-  } else {
-    gen_attach_request(dedicatedInfoNAS.get());
+  if (not rrc->connection_request(establish_cause, std::move(ded_info_nas))) {
+    nas_log->error("Failed to initiate a connection request procedure\n");
+    conn_req_proc.pop();
+    return false;
   }
+  return true;
+}
 
-  // Provide UE-Identity to RRC if have one
-  if (have_guti) {
-    s_tmsi_t s_tmsi;
-    s_tmsi.m_tmsi = ctxt.guti.m_tmsi;
-    s_tmsi.mmec   = ctxt.guti.mme_code;
-    rrc->set_ue_identity(s_tmsi);
-  }
-
-  // Set establishment cause
-  srslte::establishment_cause_t establish_cause = srslte::establishment_cause_t::mo_sig;
-  if (state == EMM_STATE_REGISTERED) {
-    // FIXME: only need to use MT_ACCESS for establishment after paging
-    establish_cause = establishment_cause_t::mt_access;
-  }
-
-  if (rrc->connection_request(establish_cause, std::move(dedicatedInfoNAS))) {
-    nas_log->info("Connection established correctly. Waiting for Attach\n");
-
-    // Wait until attachment. If doing a service request is already attached
-    uint32_t tout = 0;
-    while (tout < 5000 && state != EMM_STATE_REGISTERED && running && rrc->is_connected()) {
-      usleep(1000);
-      tout++;
-    }
-    if (state == EMM_STATE_REGISTERED) {
-      nas_log->info("EMM Registered correctly\n");
-      return true;
-    } else if (state == EMM_STATE_DEREGISTERED) {
-      nas_log->error("Timeout or received attach reject while trying to attach\n");
-      nas_log->console("Failed to Attach\n");
-    } else if (!rrc->is_connected()) {
-      nas_log->error("Was disconnected while attaching\n");
-    } else {
-      nas_log->error("Timed out while trying to attach\n");
-    }
-  } else {
-    nas_log->error("Could not establish RRC connection\n");
-  }
-  return false;
+bool nas::connection_request_completed(bool outcome)
+{
+  conn_req_proc.trigger_event(outcome);
+  return conn_req_proc.is_active();
 }
 
 void nas::select_plmn() {
@@ -311,7 +468,7 @@ void nas::select_plmn() {
   }
 
   // If not, select the first available PLMN
-  if (known_plmns.size() > 0) {
+  if (not known_plmns.empty()) {
     nas_log->info("Could not find Home PLMN Id=%s, trying to connect to PLMN Id=%s\n",
                   home_plmn.to_string().c_str(),
                   known_plmns[0].to_string().c_str());
@@ -359,7 +516,7 @@ void nas::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
   }
 
   // Write NAS pcap
-  if(pcap != NULL) {
+  if (pcap != nullptr) {
     pcap->write_nas(pdu->msg, pdu->N_bytes);
   }
 
@@ -382,7 +539,7 @@ void nas::write_pdu(uint32_t lcid, unique_byte_buffer_t pdu)
       parse_authentication_reject(lcid, std::move(pdu));
       break;
     case LIBLTE_MME_MSG_TYPE_IDENTITY_REQUEST:
-      parse_identity_request(lcid, std::move(pdu));
+      parse_identity_request(std::move(pdu), sec_hdr_type);
       break;
     case LIBLTE_MME_MSG_TYPE_SECURITY_MODE_COMMAND:
       parse_security_mode_command(lcid, std::move(pdu));
@@ -424,7 +581,6 @@ void nas::set_k_enb_count(uint32_t count) {
   // UL count for RRC key derivation depends on UL Count of the Attach Request or Service Request.
   // On the case of an Authentication Request, the UL count used to generate K_enb must be reset to zero.
   ctxt.k_enb_count = count;
-  return;
 }
 
 uint32_t nas::get_k_enb_count() {
@@ -436,7 +592,7 @@ bool nas::get_k_asme(uint8_t *k_asme_, uint32_t n) {
     nas_log->error("K_asme requested before security context established\n");
     return false;
   }
-  if(NULL == k_asme_ || n < 32) {
+  if (nullptr == k_asme_ || n < 32) {
     nas_log->error("Invalid parameters to get_k_asme");
     return false;
   }
@@ -494,7 +650,16 @@ void nas::integrity_generate(uint8_t *key_128,
     case INTEGRITY_ALGORITHM_ID_128_EIA2:
       security_128_eia2(key_128,
                         count,
-                        0,            // Bearer always 0 for NAS
+                        0, // Bearer always 0 for NAS
+                        direction,
+                        msg,
+                        msg_len,
+                        mac);
+      break;
+    case INTEGRITY_ALGORITHM_ID_128_EIA3:
+      security_128_eia3(key_128,
+                        count,
+                        0, // Bearer always 0 for NAS
                         direction,
                         msg,
                         msg_len,
@@ -516,14 +681,13 @@ bool nas::integrity_check(byte_buffer_t* pdu)
   }
 
   if (pdu->N_bytes > 5) {
-    uint8_t exp_mac[4] = {0};
+    uint8_t  exp_mac[4] = {0};
     uint8_t *mac = &pdu->msg[1];
-    integrity_generate(&k_nas_int[16],
-                       ctxt.rx_count,
-                       SECURITY_DIRECTION_DOWNLINK,
-                       &pdu->msg[5],
-                       pdu->N_bytes-5,
-                       &exp_mac[0]);
+
+    // generate expected MAC
+    uint32_t count_est = (ctxt.rx_count & 0x0FF0) | pdu->msg[5];
+    integrity_generate(
+        &k_nas_int[16], count_est, SECURITY_DIRECTION_DOWNLINK, &pdu->msg[5], pdu->N_bytes - 5, &exp_mac[0]);
 
     // Check if expected mac equals the sent mac
     for (int i = 0; i < 4; i++) {
@@ -537,6 +701,12 @@ bool nas::integrity_check(byte_buffer_t* pdu)
     }
     nas_log->info("Integrity check ok. Local: count=%d, Received: count=%d\n",
                   ctxt.rx_count, pdu->msg[5]);
+
+    // Updated local count (according to TS 24.301 Sec. 4.4.3.3)
+    if (pdu->msg[5] != ctxt.rx_count) {
+      nas_log->info("Update local count to received value %d\n", pdu->msg[5]);
+      ctxt.rx_count = count_est;
+    }
     return true;
   } else {
     nas_log->error("Invalid integrity check PDU size (%d)\n", pdu->N_bytes);
@@ -559,21 +729,31 @@ void nas::cipher_encrypt(byte_buffer_t* pdu)
                         &pdu->msg[6],
                         pdu->N_bytes-6,
                         &pdu_tmp.msg[6]);
-      memcpy(&pdu->msg[6], &pdu_tmp.msg[6], pdu->N_bytes-6);
+      memcpy(&pdu->msg[6], &pdu_tmp.msg[6], pdu->N_bytes - 6);
       break;
   case CIPHERING_ALGORITHM_ID_128_EEA2:
-      security_128_eea2(&k_nas_enc[16],
-                        pdu->msg[5],
-                        0,            // Bearer always 0 for NAS
-                        SECURITY_DIRECTION_UPLINK,
-                        &pdu->msg[6],
-                        pdu->N_bytes-6,
-                        &pdu_tmp.msg[6]);
-      memcpy(&pdu->msg[6], &pdu_tmp.msg[6], pdu->N_bytes-6);
-      break;
+    security_128_eea2(&k_nas_enc[16],
+                      pdu->msg[5],
+                      0, // Bearer always 0 for NAS
+                      SECURITY_DIRECTION_UPLINK,
+                      &pdu->msg[6],
+                      pdu->N_bytes - 6,
+                      &pdu_tmp.msg[6]);
+    memcpy(&pdu->msg[6], &pdu_tmp.msg[6], pdu->N_bytes - 6);
+    break;
+  case CIPHERING_ALGORITHM_ID_128_EEA3:
+    security_128_eea3(&k_nas_enc[16],
+                      pdu->msg[5],
+                      0, // Bearer always 0 for NAS
+                      SECURITY_DIRECTION_UPLINK,
+                      &pdu->msg[6],
+                      pdu->N_bytes - 6,
+                      &pdu_tmp.msg[6]);
+    memcpy(&pdu->msg[6], &pdu_tmp.msg[6], pdu->N_bytes - 6);
+    break;
   default:
-      nas_log->error("Ciphering algorithm not known\n");
-      break;
+    nas_log->error("Ciphering algorithm not known\n");
+    break;
   }
 }
 
@@ -595,19 +775,30 @@ void nas::cipher_decrypt(byte_buffer_t* pdu)
       memcpy(&pdu->msg[6], &tmp_pdu.msg[6], pdu->N_bytes-6);
       break;
   case CIPHERING_ALGORITHM_ID_128_EEA2:
-      security_128_eea2(&k_nas_enc[16],
-                        pdu->msg[5],
-                        0,            // Bearer always 0 for NAS
-                        SECURITY_DIRECTION_DOWNLINK,
-                        &pdu->msg[6],
-                        pdu->N_bytes-6,
-                        &tmp_pdu.msg[6]);
-      nas_log->debug_hex(tmp_pdu.msg, pdu->N_bytes, "Decrypted");
-      memcpy(&pdu->msg[6], &tmp_pdu.msg[6], pdu->N_bytes-6);
-      break;
-    default:
-      nas_log->error("Ciphering algorithms not known\n");
-      break;
+    security_128_eea2(&k_nas_enc[16],
+                      pdu->msg[5],
+                      0, // Bearer always 0 for NAS
+                      SECURITY_DIRECTION_DOWNLINK,
+                      &pdu->msg[6],
+                      pdu->N_bytes - 6,
+                      &tmp_pdu.msg[6]);
+    nas_log->debug_hex(tmp_pdu.msg, pdu->N_bytes, "Decrypted");
+    memcpy(&pdu->msg[6], &tmp_pdu.msg[6], pdu->N_bytes - 6);
+    break;
+  case CIPHERING_ALGORITHM_ID_128_EEA3:
+    security_128_eea3(&k_nas_enc[16],
+                      pdu->msg[5],
+                      0, // Bearer always 0 for NAS
+                      SECURITY_DIRECTION_DOWNLINK,
+                      &pdu->msg[6],
+                      pdu->N_bytes - 6,
+                      &tmp_pdu.msg[6]);
+    nas_log->debug_hex(tmp_pdu.msg, pdu->N_bytes, "Decrypted");
+    memcpy(&pdu->msg[6], &tmp_pdu.msg[6], pdu->N_bytes - 6);
+    break;
+  default:
+    nas_log->error("Ciphering algorithms not known\n");
+    break;
   }
 }
 
@@ -834,18 +1025,21 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
     eps_bearer_t bearer  = {};
     bearer.type          = DEFAULT_EPS_BEARER;
     bearer.eps_bearer_id = act_def_eps_bearer_context_req.eps_bearer_id;
-    if (not eps_bearer.insert(eps_bearer_map_pair_t(bearer.eps_bearer_id, bearer)).second) {
+    if (eps_bearer.insert(eps_bearer_map_pair_t(bearer.eps_bearer_id, bearer)).second) {
+      // bearer added successfully
+      state = EMM_STATE_REGISTERED;
+
+      // send attach complete
+      send_attach_complete(transaction_id, bearer.eps_bearer_id);
+    } else {
+      // bearer already exists (perhaps the attach complete got lost and this is a retx?)
+      // FIXME: what are we supposed to do in this case?
       nas_log->error("Error adding EPS bearer.\n");
-      return;
     }
 
-    state = EMM_STATE_REGISTERED;
-
-    // send attach complete
-    send_attach_complete(transaction_id, bearer.eps_bearer_id);
   } else {
     nas_log->info("Not handling attach type %u\n", attach_accept.eps_attach_result);
-    state = EMM_STATE_DEREGISTERED;
+    enter_emm_deregistered();
   }
 
   ctxt.rx_count++;
@@ -859,7 +1053,7 @@ void nas::parse_attach_reject(uint32_t lcid, unique_byte_buffer_t pdu)
   liblte_mme_unpack_attach_reject_msg((LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), &attach_rej);
   nas_log->warning("Received Attach Reject. Cause= %02X\n", attach_rej.emm_cause);
   nas_log->console("Received Attach Reject. Cause= %02X\n", attach_rej.emm_cause);
-  state = EMM_STATE_DEREGISTERED;
+  enter_emm_deregistered();
   // FIXME: Command RRC to release?
 }
 
@@ -912,26 +1106,25 @@ void nas::parse_authentication_request(uint32_t lcid, unique_byte_buffer_t pdu, 
 void nas::parse_authentication_reject(uint32_t lcid, unique_byte_buffer_t pdu)
 {
   nas_log->warning("Received Authentication Reject\n");
-  state = EMM_STATE_DEREGISTERED;
+  enter_emm_deregistered();
   // FIXME: Command RRC to release?
 }
 
-void nas::parse_identity_request(uint32_t lcid, unique_byte_buffer_t pdu)
+void nas::parse_identity_request(unique_byte_buffer_t pdu, const uint8_t sec_hdr_type)
 {
-  LIBLTE_MME_ID_REQUEST_MSG_STRUCT  id_req;
-  ZERO_OBJECT(id_req);
-  LIBLTE_MME_ID_RESPONSE_MSG_STRUCT id_resp;
-  ZERO_OBJECT(id_resp);
-
+  LIBLTE_MME_ID_REQUEST_MSG_STRUCT id_req = {};
   liblte_mme_unpack_identity_request_msg((LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), &id_req);
 
-  // Deallocate PDU after parsing
-
+  nas_log->info("Received Identity Request. ID type: %d\n", id_req.id_type);
   ctxt.rx_count++;
 
-  nas_log->info("Received Identity Request. ID type: %d\n", id_req.id_type);
-
-  send_identity_response(lcid, id_req.id_type);
+  // do not respond if request is not protected (TS 24.301 Sec. 4.4.4.2)
+  if (sec_hdr_type >= LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY ||
+      (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS && id_req.id_type == LIBLTE_MME_MOBILE_ID_TYPE_IMSI)) {
+    send_identity_response(id_req.id_type, sec_hdr_type);
+  } else {
+    nas_log->info("Not sending identity response due to missing integrity protection.\n");
+  }
 }
 
 void nas::parse_security_mode_command(uint32_t lcid, unique_byte_buffer_t pdu)
@@ -1007,7 +1200,7 @@ void nas::parse_security_mode_command(uint32_t lcid, unique_byte_buffer_t pdu)
   nas_log->debug("Generating integrity check. integ_algo:%d, count_dl:%d, lcid:%d\n",
                  ctxt.integ_algo, ctxt.rx_count, lcid);
 
-  if (integrity_check(pdu.get()) != true) {
+  if (not integrity_check(pdu.get())) {
     nas_log->warning("Sending Security Mode Reject due to integrity check failure\n");
     send_security_mode_reject(LIBLTE_MME_EMM_CAUSE_MAC_FAILURE);
     return;
@@ -1068,8 +1261,7 @@ void nas::parse_service_reject(uint32_t lcid, unique_byte_buffer_t pdu)
 
   // FIXME: handle NAS backoff-timers correctly
 
-  // Mark state as EMM-DEREGISTERED
-  state = EMM_STATE_DEREGISTERED;
+  enter_emm_deregistered();
 
   // Reset security context
   ctxt      = {};
@@ -1109,13 +1301,19 @@ void nas::parse_detach_request(uint32_t lcid, unique_byte_buffer_t pdu)
   liblte_mme_unpack_detach_request_msg((LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), &detach_request);
   ctxt.rx_count++;
 
-  if (state == EMM_STATE_REGISTERED) {
-    nas_log->info("Received Detach request (type=%d)\n", detach_request.detach_type.type_of_detach);
-    state = EMM_STATE_DEREGISTERED;
-    // send accept
-    send_detach_accept();
-  } else {
-    nas_log->warning("Received detach request in invalid state (state=%d)\n", state);
+  switch (state) {
+    case EMM_STATE_DEREGISTERED_INITIATED:
+      nas_log->info("Received detach from network while performing UE initiated detach. Aborting UE detach.\n");
+    case EMM_STATE_REGISTERED:
+      nas_log->info("Received detach request (type=%d)\n", detach_request.detach_type.type_of_detach);
+
+      // send accept and leave state
+      send_detach_accept();
+      enter_emm_deregistered();
+      break;
+    default:
+      nas_log->warning("Received detach request in invalid state (%s)\n", emm_state_text[state]);
+      break;
   }
 }
 
@@ -1463,7 +1661,7 @@ void nas::send_detach_request(bool switch_off)
     detach_request.detach_type.type_of_detach = LIBLTE_MME_SO_FLAG_SWITCH_OFF;
   } else {
     detach_request.detach_type.switch_off = 0;
-    detach_request.detach_type.type_of_detach = LIBLTE_MME_SO_FLAG_NORMAL_DETACH;
+    detach_request.detach_type.type_of_detach = LIBLTE_MME_TOD_UL_EPS_DETACH;
   }
 
   // GUTI or IMSI detach
@@ -1472,7 +1670,7 @@ void nas::send_detach_request(bool switch_off)
     memcpy(&detach_request.eps_mobile_id.guti, &ctxt.guti, sizeof(LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT));
     detach_request.nas_ksi.tsc_flag      = LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE;
     detach_request.nas_ksi.nas_ksi       = ctxt.ksi;
-    nas_log->info("Requesting Detach with GUTI\n"); //If sent as an Initial UE message, it cannot be chiphered
+    nas_log->info("Sending detach request with GUTI\n"); // If sent as an Initial UE message, it cannot be chiphered
     liblte_mme_pack_detach_request_msg(&detach_request,
                                        rrc->is_connected() ? LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED
                                                            : LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY,
@@ -1503,7 +1701,7 @@ void nas::send_detach_request(bool switch_off)
     detach_request.nas_ksi.tsc_flag      = LIBLTE_MME_TYPE_OF_SECURITY_CONTEXT_FLAG_NATIVE;
     detach_request.nas_ksi.nas_ksi       = 0;
     usim->get_imsi_vec(detach_request.eps_mobile_id.imsi, 15);
-    nas_log->info("Requesting IMSI detach (IMSI=%s)\n", usim->get_imsi_str().c_str());
+    nas_log->info("Sending detach request with IMSI\n");
     liblte_mme_pack_detach_request_msg(
         &detach_request, LIBLTE_MME_SECURITY_HDR_TYPE_PLAIN_NAS, ctxt.tx_count, (LIBLTE_BYTE_MSG_STRUCT*)pdu.get());
 
@@ -1512,11 +1710,20 @@ void nas::send_detach_request(bool switch_off)
     }
   }
 
-  nas_log->info("Sending detach request\n");
+  if (switch_off) {
+    enter_emm_deregistered();
+  } else {
+    // we are expecting a response from the core
+    state = EMM_STATE_DEREGISTERED_INITIATED;
+  }
+
   if (rrc->is_connected()) {
     rrc->write_sdu(std::move(pdu));
   } else {
-    rrc->connection_request(establishment_cause_t::mo_sig, std::move(pdu));
+    if (not rrc_connector.launch(this, establishment_cause_t::mo_sig, std::move(pdu))) {
+      nas_log->error("Failed to initiate RRC Connection Request\n");
+    }
+    callbacks.defer_proc(rrc_connector);
   }
 }
 
@@ -1652,13 +1859,11 @@ void nas::send_authentication_failure(const uint8_t cause, const uint8_t* auth_f
   rrc->write_sdu(std::move(msg));
 }
 
-
-void nas::send_identity_response(uint32_t lcid, uint8 id_type)
+void nas::send_identity_response(const uint8 id_type, const uint8_t sec_hdr_type)
 {
-  LIBLTE_MME_ID_RESPONSE_MSG_STRUCT id_resp;
-  ZERO_OBJECT(id_resp);
+  LIBLTE_MME_ID_RESPONSE_MSG_STRUCT id_resp = {};
 
-  switch(id_type) {
+  switch (id_type) {
     case LIBLTE_MME_MOBILE_ID_TYPE_IMSI:
       id_resp.mobile_id.type_of_id = LIBLTE_MME_MOBILE_ID_TYPE_IMSI;
       usim->get_imsi_vec(id_resp.mobile_id.imsi, 15);
@@ -1678,9 +1883,16 @@ void nas::send_identity_response(uint32_t lcid, uint8 id_type)
     return;
   }
 
-  liblte_mme_pack_identity_response_msg(&id_resp, (LIBLTE_BYTE_MSG_STRUCT*)pdu.get());
+  liblte_mme_pack_identity_response_msg(&id_resp, sec_hdr_type, ctxt.tx_count, (LIBLTE_BYTE_MSG_STRUCT*)pdu.get());
 
-  if(pcap != NULL) {
+  // add security if needed
+  if (sec_hdr_type == LIBLTE_MME_SECURITY_HDR_TYPE_INTEGRITY_AND_CIPHERED && pdu->N_bytes > 5) {
+    cipher_encrypt(pdu.get());
+    integrity_generate(
+        &k_nas_int[16], ctxt.tx_count, SECURITY_DIRECTION_UPLINK, &pdu->msg[5], pdu->N_bytes - 5, &pdu->msg[1]);
+  }
+
+  if (pcap != NULL) {
     pcap->write_nas(pdu->msg, pdu->N_bytes);
   }
 

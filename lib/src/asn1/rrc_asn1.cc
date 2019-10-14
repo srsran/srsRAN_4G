@@ -26,8 +26,8 @@ using namespace asn1;
 using namespace asn1::rrc;
 
 /*******************************************************************************
-/*                               Helper Functions
-/******************************************************************************/
+ *                               Helper Functions
+ ******************************************************************************/
 
 #define rrc_asn1_warn_assert(cond, file, line)                                                                         \
   if ((cond)) {                                                                                                        \
@@ -40,8 +40,8 @@ static void log_invalid_choice_id(uint32_t val, const char* choice_type)
 }
 
 /*******************************************************************************
-/*                                Struct Methods
-/******************************************************************************/
+ *                                Struct Methods
+ ******************************************************************************/
 
 // PHICH-Config ::= SEQUENCE
 SRSASN_CODE phich_cfg_s::pack(bit_ref& bref) const
@@ -1366,24 +1366,20 @@ SRSASN_CODE sl_pssch_tx_cfg_r14_s::pack(bit_ref& bref) const
   HANDLE_CODE(params_below_thres_r14.pack(bref));
 
   if (ext) {
-    ext_groups_header group_flags(1);
-    rrc_asn1_warn_assert(
-        params_above_thres_v1530_present != (params_above_thres_v1530.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= params_above_thres_v1530_present;
-    rrc_asn1_warn_assert(
-        params_below_thres_v1530_present != (params_below_thres_v1530.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= params_below_thres_v1530_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= params_above_thres_v1530.is_present();
+    group_flags[0] |= params_below_thres_v1530.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(params_above_thres_v1530_present, 1));
-      HANDLE_CODE(bref.pack(params_below_thres_v1530_present, 1));
-      if (params_above_thres_v1530_present) {
+      HANDLE_CODE(bref.pack(params_above_thres_v1530.is_present(), 1));
+      HANDLE_CODE(bref.pack(params_below_thres_v1530.is_present(), 1));
+      if (params_above_thres_v1530.is_present()) {
         HANDLE_CODE(params_above_thres_v1530->pack(bref));
       }
-      if (params_below_thres_v1530_present) {
+      if (params_below_thres_v1530.is_present()) {
         HANDLE_CODE(params_below_thres_v1530->pack(bref));
       }
     }
@@ -1403,20 +1399,22 @@ SRSASN_CODE sl_pssch_tx_cfg_r14_s::unpack(bit_ref& bref)
   HANDLE_CODE(params_below_thres_r14.unpack(bref));
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool params_above_thres_v1530_present;
       HANDLE_CODE(bref.unpack(params_above_thres_v1530_present, 1));
+      params_above_thres_v1530.set_present(params_above_thres_v1530_present);
+      bool params_below_thres_v1530_present;
       HANDLE_CODE(bref.unpack(params_below_thres_v1530_present, 1));
-      if (params_above_thres_v1530_present) {
-        params_above_thres_v1530 = make_copy_ptr(sl_pssch_tx_params_v1530_s());
+      params_below_thres_v1530.set_present(params_below_thres_v1530_present);
+      if (params_above_thres_v1530.is_present()) {
         HANDLE_CODE(params_above_thres_v1530->unpack(bref));
       }
-      if (params_below_thres_v1530_present) {
-        params_below_thres_v1530 = make_copy_ptr(sl_pssch_tx_params_v1530_s());
+      if (params_below_thres_v1530.is_present()) {
         HANDLE_CODE(params_below_thres_v1530->unpack(bref));
       }
     }
@@ -1435,15 +1433,11 @@ void sl_pssch_tx_cfg_r14_s::to_json(json_writer& j) const
   j.write_fieldname("parametersBelowThres-r14");
   params_below_thres_r14.to_json(j);
   if (ext) {
-    rrc_asn1_warn_assert(
-        params_above_thres_v1530_present != (params_above_thres_v1530.get() != NULL), __FILE__, __LINE__);
-    if (params_above_thres_v1530_present) {
+    if (params_above_thres_v1530.is_present()) {
       j.write_fieldname("parametersAboveThres-v1530");
       params_above_thres_v1530->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        params_below_thres_v1530_present != (params_below_thres_v1530.get() != NULL), __FILE__, __LINE__);
-    if (params_below_thres_v1530_present) {
+    if (params_below_thres_v1530.is_present()) {
       j.write_fieldname("parametersBelowThres-v1530");
       params_below_thres_v1530->to_json(j);
     }
@@ -2179,24 +2173,20 @@ SRSASN_CODE sl_comm_res_pool_v2x_r14_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
-    rrc_asn1_warn_assert(
-        sl_min_t2_value_list_r15_present != (sl_min_t2_value_list_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= sl_min_t2_value_list_r15_present;
-    rrc_asn1_warn_assert(
-        cbr_pssch_tx_cfg_list_v1530_present != (cbr_pssch_tx_cfg_list_v1530.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= cbr_pssch_tx_cfg_list_v1530_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= sl_min_t2_value_list_r15.is_present();
+    group_flags[0] |= cbr_pssch_tx_cfg_list_v1530.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(sl_min_t2_value_list_r15_present, 1));
-      HANDLE_CODE(bref.pack(cbr_pssch_tx_cfg_list_v1530_present, 1));
-      if (sl_min_t2_value_list_r15_present) {
+      HANDLE_CODE(bref.pack(sl_min_t2_value_list_r15.is_present(), 1));
+      HANDLE_CODE(bref.pack(cbr_pssch_tx_cfg_list_v1530.is_present(), 1));
+      if (sl_min_t2_value_list_r15.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *sl_min_t2_value_list_r15, 1, 8));
       }
-      if (cbr_pssch_tx_cfg_list_v1530_present) {
+      if (cbr_pssch_tx_cfg_list_v1530.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *cbr_pssch_tx_cfg_list_v1530, 1, 8));
       }
     }
@@ -2262,20 +2252,22 @@ SRSASN_CODE sl_comm_res_pool_v2x_r14_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool sl_min_t2_value_list_r15_present;
       HANDLE_CODE(bref.unpack(sl_min_t2_value_list_r15_present, 1));
+      sl_min_t2_value_list_r15.set_present(sl_min_t2_value_list_r15_present);
+      bool cbr_pssch_tx_cfg_list_v1530_present;
       HANDLE_CODE(bref.unpack(cbr_pssch_tx_cfg_list_v1530_present, 1));
-      if (sl_min_t2_value_list_r15_present) {
-        sl_min_t2_value_list_r15 = make_copy_ptr(sl_min_t2_value_list_r15_l());
+      cbr_pssch_tx_cfg_list_v1530.set_present(cbr_pssch_tx_cfg_list_v1530_present);
+      if (sl_min_t2_value_list_r15.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*sl_min_t2_value_list_r15, bref, 1, 8));
       }
-      if (cbr_pssch_tx_cfg_list_v1530_present) {
-        cbr_pssch_tx_cfg_list_v1530 = make_copy_ptr(sl_cbr_pppp_tx_cfg_list_v1530_l());
+      if (cbr_pssch_tx_cfg_list_v1530.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*cbr_pssch_tx_cfg_list_v1530, bref, 1, 8));
       }
     }
@@ -2344,18 +2336,14 @@ void sl_comm_res_pool_v2x_r14_s::to_json(json_writer& j) const
     j.end_array();
   }
   if (ext) {
-    rrc_asn1_warn_assert(
-        sl_min_t2_value_list_r15_present != (sl_min_t2_value_list_r15.get() != NULL), __FILE__, __LINE__);
-    if (sl_min_t2_value_list_r15_present) {
+    if (sl_min_t2_value_list_r15.is_present()) {
       j.start_array("sl-MinT2ValueList-r15");
       for (uint32_t i1 = 0; i1 < sl_min_t2_value_list_r15->size(); ++i1) {
         ((*sl_min_t2_value_list_r15)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(
-        cbr_pssch_tx_cfg_list_v1530_present != (cbr_pssch_tx_cfg_list_v1530.get() != NULL), __FILE__, __LINE__);
-    if (cbr_pssch_tx_cfg_list_v1530_present) {
+    if (cbr_pssch_tx_cfg_list_v1530.is_present()) {
       j.start_array("cbr-pssch-TxConfigList-v1530");
       for (uint32_t i1 = 0; i1 < cbr_pssch_tx_cfg_list_v1530->size(); ++i1) {
         ((*cbr_pssch_tx_cfg_list_v1530)[i1]).to_json(j);
@@ -2416,7 +2404,7 @@ SRSASN_CODE sl_sync_cfg_nfreq_r13_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(3);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= sync_offset_ind_v1430_present;
     group_flags[0] |= gnss_sync_r14_present;
     group_flags[1] |= sync_offset_ind2_r14_present;
@@ -2425,7 +2413,7 @@ SRSASN_CODE sl_sync_cfg_nfreq_r13_s::pack(bit_ref& bref) const
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(sync_offset_ind_v1430_present, 1));
       HANDLE_CODE(bref.pack(gnss_sync_r14_present, 1));
@@ -2434,7 +2422,7 @@ SRSASN_CODE sl_sync_cfg_nfreq_r13_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(sync_offset_ind2_r14_present, 1));
       HANDLE_CODE(bref.pack(sync_offset_ind3_r14_present, 1));
@@ -2446,7 +2434,7 @@ SRSASN_CODE sl_sync_cfg_nfreq_r13_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(slss_tx_disabled_r15_present, 1));
     }
@@ -2479,11 +2467,11 @@ SRSASN_CODE sl_sync_cfg_nfreq_r13_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(3);
+    ext_groups_unpacker_guard group_flags(3);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(sync_offset_ind_v1430_present, 1));
       HANDLE_CODE(bref.unpack(gnss_sync_r14_present, 1));
@@ -2492,7 +2480,7 @@ SRSASN_CODE sl_sync_cfg_nfreq_r13_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(sync_offset_ind2_r14_present, 1));
       HANDLE_CODE(bref.unpack(sync_offset_ind3_r14_present, 1));
@@ -2504,7 +2492,7 @@ SRSASN_CODE sl_sync_cfg_nfreq_r13_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(slss_tx_disabled_r15_present, 1));
     }
@@ -2813,7 +2801,6 @@ SRSASN_CODE sl_comm_tx_pool_sensing_cfg_r14_s::unpack(bit_ref& bref)
   HANDLE_CODE(bref.unpack(sl_reselect_after_r14_present, 1));
 
   HANDLE_CODE(unpack_dyn_seq_of(pssch_tx_cfg_list_r14, bref, 1, 16));
-  thres_pssch_rsrp_list_r14 = make_copy_ptr(sl_thres_pssch_rsrp_list_r14_l());
   HANDLE_CODE(unpack_fixed_seq_of(&(*thres_pssch_rsrp_list_r14)[0],
                                   bref,
                                   thres_pssch_rsrp_list_r14->size(),
@@ -2895,41 +2882,34 @@ SRSASN_CODE sl_disc_res_pool_r12_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(2);
-    rrc_asn1_warn_assert(disc_period_v1310_present != (disc_period_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= disc_period_v1310_present;
-    rrc_asn1_warn_assert(
-        rx_params_add_neigh_freq_r13_present != (rx_params_add_neigh_freq_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= rx_params_add_neigh_freq_r13_present;
-    rrc_asn1_warn_assert(
-        tx_params_add_neigh_freq_r13_present != (tx_params_add_neigh_freq_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= tx_params_add_neigh_freq_r13_present;
-    rrc_asn1_warn_assert(
-        tx_params_add_neigh_freq_v1370_present != (tx_params_add_neigh_freq_v1370.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= tx_params_add_neigh_freq_v1370_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= disc_period_v1310.is_present();
+    group_flags[0] |= rx_params_add_neigh_freq_r13.is_present();
+    group_flags[0] |= tx_params_add_neigh_freq_r13.is_present();
+    group_flags[1] |= tx_params_add_neigh_freq_v1370.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(disc_period_v1310_present, 1));
-      HANDLE_CODE(bref.pack(rx_params_add_neigh_freq_r13_present, 1));
-      HANDLE_CODE(bref.pack(tx_params_add_neigh_freq_r13_present, 1));
-      if (disc_period_v1310_present) {
+      HANDLE_CODE(bref.pack(disc_period_v1310.is_present(), 1));
+      HANDLE_CODE(bref.pack(rx_params_add_neigh_freq_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(tx_params_add_neigh_freq_r13.is_present(), 1));
+      if (disc_period_v1310.is_present()) {
         HANDLE_CODE(disc_period_v1310->pack(bref));
       }
-      if (rx_params_add_neigh_freq_r13_present) {
+      if (rx_params_add_neigh_freq_r13.is_present()) {
         HANDLE_CODE(rx_params_add_neigh_freq_r13->pack(bref));
       }
-      if (tx_params_add_neigh_freq_r13_present) {
+      if (tx_params_add_neigh_freq_r13.is_present()) {
         HANDLE_CODE(tx_params_add_neigh_freq_r13->pack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(tx_params_add_neigh_freq_v1370_present, 1));
-      if (tx_params_add_neigh_freq_v1370_present) {
+      HANDLE_CODE(bref.pack(tx_params_add_neigh_freq_v1370.is_present(), 1));
+      if (tx_params_add_neigh_freq_v1370.is_present()) {
         HANDLE_CODE(tx_params_add_neigh_freq_v1370->pack(bref));
       }
     }
@@ -2964,34 +2944,38 @@ SRSASN_CODE sl_disc_res_pool_r12_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(2);
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool disc_period_v1310_present;
       HANDLE_CODE(bref.unpack(disc_period_v1310_present, 1));
+      disc_period_v1310.set_present(disc_period_v1310_present);
+      bool rx_params_add_neigh_freq_r13_present;
       HANDLE_CODE(bref.unpack(rx_params_add_neigh_freq_r13_present, 1));
+      rx_params_add_neigh_freq_r13.set_present(rx_params_add_neigh_freq_r13_present);
+      bool tx_params_add_neigh_freq_r13_present;
       HANDLE_CODE(bref.unpack(tx_params_add_neigh_freq_r13_present, 1));
-      if (disc_period_v1310_present) {
-        disc_period_v1310 = make_copy_ptr(disc_period_v1310_c_());
+      tx_params_add_neigh_freq_r13.set_present(tx_params_add_neigh_freq_r13_present);
+      if (disc_period_v1310.is_present()) {
         HANDLE_CODE(disc_period_v1310->unpack(bref));
       }
-      if (rx_params_add_neigh_freq_r13_present) {
-        rx_params_add_neigh_freq_r13 = make_copy_ptr(rx_params_add_neigh_freq_r13_c_());
+      if (rx_params_add_neigh_freq_r13.is_present()) {
         HANDLE_CODE(rx_params_add_neigh_freq_r13->unpack(bref));
       }
-      if (tx_params_add_neigh_freq_r13_present) {
-        tx_params_add_neigh_freq_r13 = make_copy_ptr(tx_params_add_neigh_freq_r13_c_());
+      if (tx_params_add_neigh_freq_r13.is_present()) {
         HANDLE_CODE(tx_params_add_neigh_freq_r13->unpack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool tx_params_add_neigh_freq_v1370_present;
       HANDLE_CODE(bref.unpack(tx_params_add_neigh_freq_v1370_present, 1));
-      if (tx_params_add_neigh_freq_v1370_present) {
-        tx_params_add_neigh_freq_v1370 = make_copy_ptr(tx_params_add_neigh_freq_v1370_c_());
+      tx_params_add_neigh_freq_v1370.set_present(tx_params_add_neigh_freq_v1370_present);
+      if (tx_params_add_neigh_freq_v1370.is_present()) {
         HANDLE_CODE(tx_params_add_neigh_freq_v1370->unpack(bref));
       }
     }
@@ -3033,26 +3017,19 @@ void sl_disc_res_pool_r12_s::to_json(json_writer& j) const
     j.end_obj();
   }
   if (ext) {
-    rrc_asn1_warn_assert(disc_period_v1310_present != (disc_period_v1310.get() != NULL), __FILE__, __LINE__);
-    if (disc_period_v1310_present) {
+    if (disc_period_v1310.is_present()) {
       j.write_fieldname("discPeriod-v1310");
       disc_period_v1310->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        rx_params_add_neigh_freq_r13_present != (rx_params_add_neigh_freq_r13.get() != NULL), __FILE__, __LINE__);
-    if (rx_params_add_neigh_freq_r13_present) {
+    if (rx_params_add_neigh_freq_r13.is_present()) {
       j.write_fieldname("rxParamsAddNeighFreq-r13");
       rx_params_add_neigh_freq_r13->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        tx_params_add_neigh_freq_r13_present != (tx_params_add_neigh_freq_r13.get() != NULL), __FILE__, __LINE__);
-    if (tx_params_add_neigh_freq_r13_present) {
+    if (tx_params_add_neigh_freq_r13.is_present()) {
       j.write_fieldname("txParamsAddNeighFreq-r13");
       tx_params_add_neigh_freq_r13->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        tx_params_add_neigh_freq_v1370_present != (tx_params_add_neigh_freq_v1370.get() != NULL), __FILE__, __LINE__);
-    if (tx_params_add_neigh_freq_v1370_present) {
+    if (tx_params_add_neigh_freq_v1370.is_present()) {
       j.write_fieldname("txParamsAddNeighFreq-v1370");
       tx_params_add_neigh_freq_v1370->to_json(j);
     }
@@ -4696,16 +4673,15 @@ SRSASN_CODE rach_ce_level_info_r13_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_enum(bref, rar_hop_cfg_r13));
 
   if (ext) {
-    ext_groups_header group_flags(1);
-    rrc_asn1_warn_assert(edt_params_r15_present != (edt_params_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= edt_params_r15_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= edt_params_r15.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(edt_params_r15_present, 1));
-      if (edt_params_r15_present) {
+      HANDLE_CODE(bref.pack(edt_params_r15.is_present(), 1));
+      if (edt_params_r15.is_present()) {
         HANDLE_CODE(bref.pack(edt_params_r15->mac_contention_resolution_timer_r15_present, 1));
         HANDLE_CODE(pack_unalign_integer(bref, edt_params_r15->edt_last_preamb_r15, (uint8_t)0, (uint8_t)63));
         HANDLE_CODE(bref.pack(edt_params_r15->edt_small_tbs_enabled_r15, 1));
@@ -4728,15 +4704,16 @@ SRSASN_CODE rach_ce_level_info_r13_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_enum(rar_hop_cfg_r13, bref));
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool edt_params_r15_present;
       HANDLE_CODE(bref.unpack(edt_params_r15_present, 1));
-      if (edt_params_r15_present) {
-        edt_params_r15 = make_copy_ptr(edt_params_r15_s_());
+      edt_params_r15.set_present(edt_params_r15_present);
+      if (edt_params_r15.is_present()) {
         HANDLE_CODE(bref.unpack(edt_params_r15->mac_contention_resolution_timer_r15_present, 1));
         HANDLE_CODE(unpack_unalign_integer(edt_params_r15->edt_last_preamb_r15, bref, (uint8_t)0, (uint8_t)63));
         HANDLE_CODE(bref.unpack(edt_params_r15->edt_small_tbs_enabled_r15, 1));
@@ -4761,8 +4738,7 @@ void rach_ce_level_info_r13_s::to_json(json_writer& j) const
   j.write_str("mac-ContentionResolutionTimer-r13", mac_contention_resolution_timer_r13.to_string());
   j.write_str("rar-HoppingConfig-r13", rar_hop_cfg_r13.to_string());
   if (ext) {
-    rrc_asn1_warn_assert(edt_params_r15_present != (edt_params_r15.get() != NULL), __FILE__, __LINE__);
-    if (edt_params_r15_present) {
+    if (edt_params_r15.is_present()) {
       j.write_fieldname("edt-Parameters-r15");
       j.start_obj();
       j.write_int("edt-LastPreamble-r15", edt_params_r15->edt_last_preamb_r15);
@@ -6568,28 +6544,24 @@ SRSASN_CODE sl_inter_freq_info_v2x_r14_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(2);
-    rrc_asn1_warn_assert(
-        add_spec_emission_v2x_r14_present != (add_spec_emission_v2x_r14.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= add_spec_emission_v2x_r14_present;
-    rrc_asn1_warn_assert(
-        v2x_freq_sel_cfg_list_r15_present != (v2x_freq_sel_cfg_list_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= v2x_freq_sel_cfg_list_r15_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= add_spec_emission_v2x_r14.is_present();
+    group_flags[1] |= v2x_freq_sel_cfg_list_r15.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(add_spec_emission_v2x_r14_present, 1));
-      if (add_spec_emission_v2x_r14_present) {
+      HANDLE_CODE(bref.pack(add_spec_emission_v2x_r14.is_present(), 1));
+      if (add_spec_emission_v2x_r14.is_present()) {
         HANDLE_CODE(add_spec_emission_v2x_r14->pack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(v2x_freq_sel_cfg_list_r15_present, 1));
-      if (v2x_freq_sel_cfg_list_r15_present) {
+      HANDLE_CODE(bref.pack(v2x_freq_sel_cfg_list_r15.is_present(), 1));
+      if (v2x_freq_sel_cfg_list_r15.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *v2x_freq_sel_cfg_list_r15, 1, 8));
       }
     }
@@ -6623,24 +6595,26 @@ SRSASN_CODE sl_inter_freq_info_v2x_r14_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(2);
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool add_spec_emission_v2x_r14_present;
       HANDLE_CODE(bref.unpack(add_spec_emission_v2x_r14_present, 1));
-      if (add_spec_emission_v2x_r14_present) {
-        add_spec_emission_v2x_r14 = make_copy_ptr(add_spec_emission_v2x_r14_c_());
+      add_spec_emission_v2x_r14.set_present(add_spec_emission_v2x_r14_present);
+      if (add_spec_emission_v2x_r14.is_present()) {
         HANDLE_CODE(add_spec_emission_v2x_r14->unpack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool v2x_freq_sel_cfg_list_r15_present;
       HANDLE_CODE(bref.unpack(v2x_freq_sel_cfg_list_r15_present, 1));
-      if (v2x_freq_sel_cfg_list_r15_present) {
-        v2x_freq_sel_cfg_list_r15 = make_copy_ptr(sl_v2x_freq_sel_cfg_list_r15_l());
+      v2x_freq_sel_cfg_list_r15.set_present(v2x_freq_sel_cfg_list_r15_present);
+      if (v2x_freq_sel_cfg_list_r15.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*v2x_freq_sel_cfg_list_r15, bref, 1, 8));
       }
     }
@@ -6676,15 +6650,11 @@ void sl_inter_freq_info_v2x_r14_s::to_json(json_writer& j) const
     j.end_array();
   }
   if (ext) {
-    rrc_asn1_warn_assert(
-        add_spec_emission_v2x_r14_present != (add_spec_emission_v2x_r14.get() != NULL), __FILE__, __LINE__);
-    if (add_spec_emission_v2x_r14_present) {
+    if (add_spec_emission_v2x_r14.is_present()) {
       j.write_fieldname("additionalSpectrumEmissionV2X-r14");
       add_spec_emission_v2x_r14->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        v2x_freq_sel_cfg_list_r15_present != (v2x_freq_sel_cfg_list_r15.get() != NULL), __FILE__, __LINE__);
-    if (v2x_freq_sel_cfg_list_r15_present) {
+    if (v2x_freq_sel_cfg_list_r15.is_present()) {
       j.start_array("v2x-FreqSelectionConfigList-r15");
       for (uint32_t i1 = 0; i1 < v2x_freq_sel_cfg_list_r15->size(); ++i1) {
         ((*v2x_freq_sel_cfg_list_r15)[i1]).to_json(j);
@@ -6906,7 +6876,7 @@ SRSASN_CODE sl_sync_cfg_r12_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(4);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= sync_tx_periodic_r13_present;
     group_flags[1] |= sync_offset_ind_v1430_present;
     group_flags[1] |= gnss_sync_r14_present;
@@ -6916,12 +6886,12 @@ SRSASN_CODE sl_sync_cfg_r12_s::pack(bit_ref& bref) const
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(sync_tx_periodic_r13_present, 1));
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(sync_offset_ind_v1430_present, 1));
       HANDLE_CODE(bref.pack(gnss_sync_r14_present, 1));
@@ -6930,7 +6900,7 @@ SRSASN_CODE sl_sync_cfg_r12_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(sync_offset_ind2_r14_present, 1));
       HANDLE_CODE(bref.pack(sync_offset_ind3_r14_present, 1));
@@ -6942,7 +6912,7 @@ SRSASN_CODE sl_sync_cfg_r12_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[3]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(slss_tx_disabled_r15_present, 1));
     }
@@ -6972,16 +6942,16 @@ SRSASN_CODE sl_sync_cfg_r12_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(4);
+    ext_groups_unpacker_guard group_flags(4);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(sync_tx_periodic_r13_present, 1));
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(sync_offset_ind_v1430_present, 1));
       HANDLE_CODE(bref.unpack(gnss_sync_r14_present, 1));
@@ -6990,7 +6960,7 @@ SRSASN_CODE sl_sync_cfg_r12_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(sync_offset_ind2_r14_present, 1));
       HANDLE_CODE(bref.unpack(sync_offset_ind3_r14_present, 1));
@@ -7002,7 +6972,7 @@ SRSASN_CODE sl_sync_cfg_r12_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[3]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(slss_tx_disabled_r15_present, 1));
     }
@@ -8130,16 +8100,15 @@ SRSASN_CODE carrier_freq_utra_fdd_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_unalign_integer(bref, q_qual_min, (int8_t)-24, (int8_t)0));
 
   if (ext) {
-    ext_groups_header group_flags(1);
-    rrc_asn1_warn_assert(thresh_x_q_r9_present != (thresh_x_q_r9.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= thresh_x_q_r9_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= thresh_x_q_r9.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(thresh_x_q_r9_present, 1));
-      if (thresh_x_q_r9_present) {
+      HANDLE_CODE(bref.pack(thresh_x_q_r9.is_present(), 1));
+      if (thresh_x_q_r9.is_present()) {
         HANDLE_CODE(pack_unalign_integer(bref, thresh_x_q_r9->thresh_x_high_q_r9, (uint8_t)0, (uint8_t)31));
         HANDLE_CODE(pack_unalign_integer(bref, thresh_x_q_r9->thresh_x_low_q_r9, (uint8_t)0, (uint8_t)31));
       }
@@ -8163,15 +8132,16 @@ SRSASN_CODE carrier_freq_utra_fdd_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_unalign_integer(q_qual_min, bref, (int8_t)-24, (int8_t)0));
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool thresh_x_q_r9_present;
       HANDLE_CODE(bref.unpack(thresh_x_q_r9_present, 1));
-      if (thresh_x_q_r9_present) {
-        thresh_x_q_r9 = make_copy_ptr(thresh_x_q_r9_s_());
+      thresh_x_q_r9.set_present(thresh_x_q_r9_present);
+      if (thresh_x_q_r9.is_present()) {
         HANDLE_CODE(unpack_unalign_integer(thresh_x_q_r9->thresh_x_high_q_r9, bref, (uint8_t)0, (uint8_t)31));
         HANDLE_CODE(unpack_unalign_integer(thresh_x_q_r9->thresh_x_low_q_r9, bref, (uint8_t)0, (uint8_t)31));
       }
@@ -8192,8 +8162,7 @@ void carrier_freq_utra_fdd_s::to_json(json_writer& j) const
   j.write_int("p-MaxUTRA", p_max_utra);
   j.write_int("q-QualMin", q_qual_min);
   if (ext) {
-    rrc_asn1_warn_assert(thresh_x_q_r9_present != (thresh_x_q_r9.get() != NULL), __FILE__, __LINE__);
-    if (thresh_x_q_r9_present) {
+    if (thresh_x_q_r9.is_present()) {
       j.write_fieldname("threshX-Q-r9");
       j.start_obj();
       j.write_int("threshX-HighQ-r9", thresh_x_q_r9->thresh_x_high_q_r9);
@@ -9044,28 +9013,27 @@ SRSASN_CODE inter_freq_carrier_freq_info_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(2);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= q_qual_min_r9_present;
-    rrc_asn1_warn_assert(thresh_x_q_r9_present != (thresh_x_q_r9.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= thresh_x_q_r9_present;
+    group_flags[0] |= thresh_x_q_r9.is_present();
     group_flags[1] |= q_qual_min_wb_r11_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(q_qual_min_r9_present, 1));
-      HANDLE_CODE(bref.pack(thresh_x_q_r9_present, 1));
+      HANDLE_CODE(bref.pack(thresh_x_q_r9.is_present(), 1));
       if (q_qual_min_r9_present) {
         HANDLE_CODE(pack_unalign_integer(bref, q_qual_min_r9, (int8_t)-34, (int8_t)-3));
       }
-      if (thresh_x_q_r9_present) {
+      if (thresh_x_q_r9.is_present()) {
         HANDLE_CODE(pack_unalign_integer(bref, thresh_x_q_r9->thresh_x_high_q_r9, (uint8_t)0, (uint8_t)31));
         HANDLE_CODE(pack_unalign_integer(bref, thresh_x_q_r9->thresh_x_low_q_r9, (uint8_t)0, (uint8_t)31));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(q_qual_min_wb_r11_present, 1));
       if (q_qual_min_wb_r11_present) {
@@ -9113,25 +9081,26 @@ SRSASN_CODE inter_freq_carrier_freq_info_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(2);
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(q_qual_min_r9_present, 1));
+      bool thresh_x_q_r9_present;
       HANDLE_CODE(bref.unpack(thresh_x_q_r9_present, 1));
+      thresh_x_q_r9.set_present(thresh_x_q_r9_present);
       if (q_qual_min_r9_present) {
         HANDLE_CODE(unpack_unalign_integer(q_qual_min_r9, bref, (int8_t)-34, (int8_t)-3));
       }
-      if (thresh_x_q_r9_present) {
-        thresh_x_q_r9 = make_copy_ptr(thresh_x_q_r9_s_());
+      if (thresh_x_q_r9.is_present()) {
         HANDLE_CODE(unpack_unalign_integer(thresh_x_q_r9->thresh_x_high_q_r9, bref, (uint8_t)0, (uint8_t)31));
         HANDLE_CODE(unpack_unalign_integer(thresh_x_q_r9->thresh_x_low_q_r9, bref, (uint8_t)0, (uint8_t)31));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(q_qual_min_wb_r11_present, 1));
       if (q_qual_min_wb_r11_present) {
@@ -9183,8 +9152,7 @@ void inter_freq_carrier_freq_info_s::to_json(json_writer& j) const
     if (q_qual_min_r9_present) {
       j.write_int("q-QualMin-r9", q_qual_min_r9);
     }
-    rrc_asn1_warn_assert(thresh_x_q_r9_present != (thresh_x_q_r9.get() != NULL), __FILE__, __LINE__);
-    if (thresh_x_q_r9_present) {
+    if (thresh_x_q_r9.is_present()) {
       j.write_fieldname("threshX-Q-r9");
       j.start_obj();
       j.write_int("threshX-HighQ-r9", thresh_x_q_r9->thresh_x_high_q_r9);
@@ -9735,18 +9703,17 @@ SRSASN_CODE mbsfn_area_info_r9_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_enum(bref, mcch_cfg_r9.sig_mcs_r9));
 
   if (ext) {
-    ext_groups_header group_flags(1);
-    rrc_asn1_warn_assert(mcch_cfg_r14_present != (mcch_cfg_r14.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= mcch_cfg_r14_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= mcch_cfg_r14.is_present();
     group_flags[0] |= subcarrier_spacing_mbms_r14_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(mcch_cfg_r14_present, 1));
+      HANDLE_CODE(bref.pack(mcch_cfg_r14.is_present(), 1));
       HANDLE_CODE(bref.pack(subcarrier_spacing_mbms_r14_present, 1));
-      if (mcch_cfg_r14_present) {
+      if (mcch_cfg_r14.is_present()) {
         HANDLE_CODE(bref.pack(mcch_cfg_r14->mcch_repeat_period_v1430_present, 1));
         HANDLE_CODE(bref.pack(mcch_cfg_r14->mcch_mod_period_v1430_present, 1));
         if (mcch_cfg_r14->mcch_repeat_period_v1430_present) {
@@ -9776,16 +9743,17 @@ SRSASN_CODE mbsfn_area_info_r9_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_enum(mcch_cfg_r9.sig_mcs_r9, bref));
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool mcch_cfg_r14_present;
       HANDLE_CODE(bref.unpack(mcch_cfg_r14_present, 1));
+      mcch_cfg_r14.set_present(mcch_cfg_r14_present);
       HANDLE_CODE(bref.unpack(subcarrier_spacing_mbms_r14_present, 1));
-      if (mcch_cfg_r14_present) {
-        mcch_cfg_r14 = make_copy_ptr(mcch_cfg_r14_s_());
+      if (mcch_cfg_r14.is_present()) {
         HANDLE_CODE(bref.unpack(mcch_cfg_r14->mcch_repeat_period_v1430_present, 1));
         HANDLE_CODE(bref.unpack(mcch_cfg_r14->mcch_mod_period_v1430_present, 1));
         if (mcch_cfg_r14->mcch_repeat_period_v1430_present) {
@@ -9817,8 +9785,7 @@ void mbsfn_area_info_r9_s::to_json(json_writer& j) const
   j.write_str("signallingMCS-r9", mcch_cfg_r9.sig_mcs_r9.to_string());
   j.end_obj();
   if (ext) {
-    rrc_asn1_warn_assert(mcch_cfg_r14_present != (mcch_cfg_r14.get() != NULL), __FILE__, __LINE__);
-    if (mcch_cfg_r14_present) {
+    if (mcch_cfg_r14.is_present()) {
       j.write_fieldname("mcch-Config-r14");
       j.start_obj();
       if (mcch_cfg_r14->mcch_repeat_period_v1430_present) {
@@ -10752,28 +10719,26 @@ SRSASN_CODE rach_cfg_common_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_unalign_integer(bref, max_harq_msg3_tx, (uint8_t)1, (uint8_t)8));
 
   if (ext) {
-    ext_groups_header group_flags(2);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= preamb_trans_max_ce_r13_present;
-    rrc_asn1_warn_assert(
-        rach_ce_level_info_list_r13_present != (rach_ce_level_info_list_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= rach_ce_level_info_list_r13_present;
+    group_flags[0] |= rach_ce_level_info_list_r13.is_present();
     group_flags[1] |= edt_small_tbs_subset_r15_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(preamb_trans_max_ce_r13_present, 1));
-      HANDLE_CODE(bref.pack(rach_ce_level_info_list_r13_present, 1));
+      HANDLE_CODE(bref.pack(rach_ce_level_info_list_r13.is_present(), 1));
       if (preamb_trans_max_ce_r13_present) {
         HANDLE_CODE(pack_enum(bref, preamb_trans_max_ce_r13));
       }
-      if (rach_ce_level_info_list_r13_present) {
+      if (rach_ce_level_info_list_r13.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *rach_ce_level_info_list_r13, 1, 4));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(edt_small_tbs_subset_r15_present, 1));
     }
@@ -10798,24 +10763,25 @@ SRSASN_CODE rach_cfg_common_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_unalign_integer(max_harq_msg3_tx, bref, (uint8_t)1, (uint8_t)8));
 
   if (ext) {
-    ext_groups_header group_flags(2);
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(preamb_trans_max_ce_r13_present, 1));
+      bool rach_ce_level_info_list_r13_present;
       HANDLE_CODE(bref.unpack(rach_ce_level_info_list_r13_present, 1));
+      rach_ce_level_info_list_r13.set_present(rach_ce_level_info_list_r13_present);
       if (preamb_trans_max_ce_r13_present) {
         HANDLE_CODE(unpack_enum(preamb_trans_max_ce_r13, bref));
       }
-      if (rach_ce_level_info_list_r13_present) {
-        rach_ce_level_info_list_r13 = make_copy_ptr(rach_ce_level_info_list_r13_l());
+      if (rach_ce_level_info_list_r13.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*rach_ce_level_info_list_r13, bref, 1, 4));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(edt_small_tbs_subset_r15_present, 1));
     }
@@ -10850,9 +10816,7 @@ void rach_cfg_common_s::to_json(json_writer& j) const
     if (preamb_trans_max_ce_r13_present) {
       j.write_str("preambleTransMax-CE-r13", preamb_trans_max_ce_r13.to_string());
     }
-    rrc_asn1_warn_assert(
-        rach_ce_level_info_list_r13_present != (rach_ce_level_info_list_r13.get() != NULL), __FILE__, __LINE__);
-    if (rach_ce_level_info_list_r13_present) {
+    if (rach_ce_level_info_list_r13.is_present()) {
       j.start_array("rach-CE-LevelInfoList-r13");
       for (uint32_t i1 = 0; i1 < rach_ce_level_info_list_r13->size(); ++i1) {
         ((*rach_ce_level_info_list_r13)[i1]).to_json(j);
@@ -11248,16 +11212,15 @@ SRSASN_CODE sl_comm_res_pool_r12_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
-    rrc_asn1_warn_assert(prio_list_r13_present != (prio_list_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= prio_list_r13_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= prio_list_r13.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(prio_list_r13_present, 1));
-      if (prio_list_r13_present) {
+      HANDLE_CODE(bref.pack(prio_list_r13.is_present(), 1));
+      if (prio_list_r13.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *prio_list_r13, 1, 8, UnalignedIntegerPacker<uint8_t>(1, 8)));
       }
     }
@@ -11296,15 +11259,16 @@ SRSASN_CODE sl_comm_res_pool_r12_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool prio_list_r13_present;
       HANDLE_CODE(bref.unpack(prio_list_r13_present, 1));
-      if (prio_list_r13_present) {
-        prio_list_r13 = make_copy_ptr(sl_prio_list_r13_l());
+      prio_list_r13.set_present(prio_list_r13_present);
+      if (prio_list_r13.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*prio_list_r13, bref, 1, 8, UnalignedIntegerPacker<uint8_t>(1, 8)));
       }
     }
@@ -11351,8 +11315,7 @@ void sl_comm_res_pool_r12_s::to_json(json_writer& j) const
     j.end_obj();
   }
   if (ext) {
-    rrc_asn1_warn_assert(prio_list_r13_present != (prio_list_r13.get() != NULL), __FILE__, __LINE__);
-    if (prio_list_r13_present) {
+    if (prio_list_r13.is_present()) {
       j.start_array("priorityList-r13");
       for (uint32_t i1 = 0; i1 < prio_list_r13->size(); ++i1) {
         j.write_int(((*prio_list_r13)[i1]));
@@ -12645,133 +12608,115 @@ SRSASN_CODE rr_cfg_common_sib_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_enum(bref, ul_cp_len));
 
   if (ext) {
-    ext_groups_header group_flags(6);
-    rrc_asn1_warn_assert(
-        ul_pwr_ctrl_common_v1020_present != (ul_pwr_ctrl_common_v1020.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= ul_pwr_ctrl_common_v1020_present;
-    rrc_asn1_warn_assert(rach_cfg_common_v1250_present != (rach_cfg_common_v1250.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= rach_cfg_common_v1250_present;
-    rrc_asn1_warn_assert(pusch_cfg_common_v1270_present != (pusch_cfg_common_v1270.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= pusch_cfg_common_v1270_present;
-    rrc_asn1_warn_assert(bcch_cfg_v1310_present != (bcch_cfg_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= bcch_cfg_v1310_present;
-    rrc_asn1_warn_assert(pcch_cfg_v1310_present != (pcch_cfg_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= pcch_cfg_v1310_present;
-    rrc_asn1_warn_assert(freq_hop_params_r13_present != (freq_hop_params_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= freq_hop_params_r13_present;
-    rrc_asn1_warn_assert(pdsch_cfg_common_v1310_present != (pdsch_cfg_common_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= pdsch_cfg_common_v1310_present;
-    rrc_asn1_warn_assert(pusch_cfg_common_v1310_present != (pusch_cfg_common_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= pusch_cfg_common_v1310_present;
-    rrc_asn1_warn_assert(prach_cfg_common_v1310_present != (prach_cfg_common_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= prach_cfg_common_v1310_present;
-    rrc_asn1_warn_assert(pucch_cfg_common_v1310_present != (pucch_cfg_common_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= pucch_cfg_common_v1310_present;
-    rrc_asn1_warn_assert(high_speed_cfg_r14_present != (high_speed_cfg_r14.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= high_speed_cfg_r14_present;
-    rrc_asn1_warn_assert(prach_cfg_v1430_present != (prach_cfg_v1430.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= prach_cfg_v1430_present;
-    rrc_asn1_warn_assert(pucch_cfg_common_v1430_present != (pucch_cfg_common_v1430.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= pucch_cfg_common_v1430_present;
-    rrc_asn1_warn_assert(prach_cfg_v1530_present != (prach_cfg_v1530.get() != NULL), __FILE__, __LINE__);
-    group_flags[5] |= prach_cfg_v1530_present;
-    rrc_asn1_warn_assert(ce_rss_cfg_r15_present != (ce_rss_cfg_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[5] |= ce_rss_cfg_r15_present;
-    rrc_asn1_warn_assert(wus_cfg_r15_present != (wus_cfg_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[5] |= wus_cfg_r15_present;
-    rrc_asn1_warn_assert(high_speed_cfg_v1530_present != (high_speed_cfg_v1530.get() != NULL), __FILE__, __LINE__);
-    group_flags[5] |= high_speed_cfg_v1530_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= ul_pwr_ctrl_common_v1020.is_present();
+    group_flags[1] |= rach_cfg_common_v1250.is_present();
+    group_flags[2] |= pusch_cfg_common_v1270.is_present();
+    group_flags[3] |= bcch_cfg_v1310.is_present();
+    group_flags[3] |= pcch_cfg_v1310.is_present();
+    group_flags[3] |= freq_hop_params_r13.is_present();
+    group_flags[3] |= pdsch_cfg_common_v1310.is_present();
+    group_flags[3] |= pusch_cfg_common_v1310.is_present();
+    group_flags[3] |= prach_cfg_common_v1310.is_present();
+    group_flags[3] |= pucch_cfg_common_v1310.is_present();
+    group_flags[4] |= high_speed_cfg_r14.is_present();
+    group_flags[4] |= prach_cfg_v1430.is_present();
+    group_flags[4] |= pucch_cfg_common_v1430.is_present();
+    group_flags[5] |= prach_cfg_v1530.is_present();
+    group_flags[5] |= ce_rss_cfg_r15.is_present();
+    group_flags[5] |= wus_cfg_r15.is_present();
+    group_flags[5] |= high_speed_cfg_v1530.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(ul_pwr_ctrl_common_v1020_present, 1));
-      if (ul_pwr_ctrl_common_v1020_present) {
+      HANDLE_CODE(bref.pack(ul_pwr_ctrl_common_v1020.is_present(), 1));
+      if (ul_pwr_ctrl_common_v1020.is_present()) {
         HANDLE_CODE(ul_pwr_ctrl_common_v1020->pack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(rach_cfg_common_v1250_present, 1));
-      if (rach_cfg_common_v1250_present) {
+      HANDLE_CODE(bref.pack(rach_cfg_common_v1250.is_present(), 1));
+      if (rach_cfg_common_v1250.is_present()) {
         HANDLE_CODE(rach_cfg_common_v1250->pack(bref));
       }
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(pusch_cfg_common_v1270_present, 1));
-      if (pusch_cfg_common_v1270_present) {
+      HANDLE_CODE(bref.pack(pusch_cfg_common_v1270.is_present(), 1));
+      if (pusch_cfg_common_v1270.is_present()) {
         HANDLE_CODE(pusch_cfg_common_v1270->pack(bref));
       }
     }
     if (group_flags[3]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(bcch_cfg_v1310_present, 1));
-      HANDLE_CODE(bref.pack(pcch_cfg_v1310_present, 1));
-      HANDLE_CODE(bref.pack(freq_hop_params_r13_present, 1));
-      HANDLE_CODE(bref.pack(pdsch_cfg_common_v1310_present, 1));
-      HANDLE_CODE(bref.pack(pusch_cfg_common_v1310_present, 1));
-      HANDLE_CODE(bref.pack(prach_cfg_common_v1310_present, 1));
-      HANDLE_CODE(bref.pack(pucch_cfg_common_v1310_present, 1));
-      if (bcch_cfg_v1310_present) {
+      HANDLE_CODE(bref.pack(bcch_cfg_v1310.is_present(), 1));
+      HANDLE_CODE(bref.pack(pcch_cfg_v1310.is_present(), 1));
+      HANDLE_CODE(bref.pack(freq_hop_params_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(pdsch_cfg_common_v1310.is_present(), 1));
+      HANDLE_CODE(bref.pack(pusch_cfg_common_v1310.is_present(), 1));
+      HANDLE_CODE(bref.pack(prach_cfg_common_v1310.is_present(), 1));
+      HANDLE_CODE(bref.pack(pucch_cfg_common_v1310.is_present(), 1));
+      if (bcch_cfg_v1310.is_present()) {
         HANDLE_CODE(bcch_cfg_v1310->pack(bref));
       }
-      if (pcch_cfg_v1310_present) {
+      if (pcch_cfg_v1310.is_present()) {
         HANDLE_CODE(pcch_cfg_v1310->pack(bref));
       }
-      if (freq_hop_params_r13_present) {
+      if (freq_hop_params_r13.is_present()) {
         HANDLE_CODE(freq_hop_params_r13->pack(bref));
       }
-      if (pdsch_cfg_common_v1310_present) {
+      if (pdsch_cfg_common_v1310.is_present()) {
         HANDLE_CODE(pdsch_cfg_common_v1310->pack(bref));
       }
-      if (pusch_cfg_common_v1310_present) {
+      if (pusch_cfg_common_v1310.is_present()) {
         HANDLE_CODE(pusch_cfg_common_v1310->pack(bref));
       }
-      if (prach_cfg_common_v1310_present) {
+      if (prach_cfg_common_v1310.is_present()) {
         HANDLE_CODE(prach_cfg_common_v1310->pack(bref));
       }
-      if (pucch_cfg_common_v1310_present) {
+      if (pucch_cfg_common_v1310.is_present()) {
         HANDLE_CODE(pucch_cfg_common_v1310->pack(bref));
       }
     }
     if (group_flags[4]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(high_speed_cfg_r14_present, 1));
-      HANDLE_CODE(bref.pack(prach_cfg_v1430_present, 1));
-      HANDLE_CODE(bref.pack(pucch_cfg_common_v1430_present, 1));
-      if (high_speed_cfg_r14_present) {
+      HANDLE_CODE(bref.pack(high_speed_cfg_r14.is_present(), 1));
+      HANDLE_CODE(bref.pack(prach_cfg_v1430.is_present(), 1));
+      HANDLE_CODE(bref.pack(pucch_cfg_common_v1430.is_present(), 1));
+      if (high_speed_cfg_r14.is_present()) {
         HANDLE_CODE(high_speed_cfg_r14->pack(bref));
       }
-      if (prach_cfg_v1430_present) {
+      if (prach_cfg_v1430.is_present()) {
         HANDLE_CODE(prach_cfg_v1430->pack(bref));
       }
-      if (pucch_cfg_common_v1430_present) {
+      if (pucch_cfg_common_v1430.is_present()) {
         HANDLE_CODE(pucch_cfg_common_v1430->pack(bref));
       }
     }
     if (group_flags[5]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(prach_cfg_v1530_present, 1));
-      HANDLE_CODE(bref.pack(ce_rss_cfg_r15_present, 1));
-      HANDLE_CODE(bref.pack(wus_cfg_r15_present, 1));
-      HANDLE_CODE(bref.pack(high_speed_cfg_v1530_present, 1));
-      if (prach_cfg_v1530_present) {
+      HANDLE_CODE(bref.pack(prach_cfg_v1530.is_present(), 1));
+      HANDLE_CODE(bref.pack(ce_rss_cfg_r15.is_present(), 1));
+      HANDLE_CODE(bref.pack(wus_cfg_r15.is_present(), 1));
+      HANDLE_CODE(bref.pack(high_speed_cfg_v1530.is_present(), 1));
+      if (prach_cfg_v1530.is_present()) {
         HANDLE_CODE(prach_cfg_v1530->pack(bref));
       }
-      if (ce_rss_cfg_r15_present) {
+      if (ce_rss_cfg_r15.is_present()) {
         HANDLE_CODE(ce_rss_cfg_r15->pack(bref));
       }
-      if (wus_cfg_r15_present) {
+      if (wus_cfg_r15.is_present()) {
         HANDLE_CODE(wus_cfg_r15->pack(bref));
       }
-      if (high_speed_cfg_v1530_present) {
+      if (high_speed_cfg_v1530.is_present()) {
         HANDLE_CODE(high_speed_cfg_v1530->pack(bref));
       }
     }
@@ -12793,115 +12738,132 @@ SRSASN_CODE rr_cfg_common_sib_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_enum(ul_cp_len, bref));
 
   if (ext) {
-    ext_groups_header group_flags(6);
+    ext_groups_unpacker_guard group_flags(6);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool ul_pwr_ctrl_common_v1020_present;
       HANDLE_CODE(bref.unpack(ul_pwr_ctrl_common_v1020_present, 1));
-      if (ul_pwr_ctrl_common_v1020_present) {
-        ul_pwr_ctrl_common_v1020 = make_copy_ptr(ul_pwr_ctrl_common_v1020_s());
+      ul_pwr_ctrl_common_v1020.set_present(ul_pwr_ctrl_common_v1020_present);
+      if (ul_pwr_ctrl_common_v1020.is_present()) {
         HANDLE_CODE(ul_pwr_ctrl_common_v1020->unpack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool rach_cfg_common_v1250_present;
       HANDLE_CODE(bref.unpack(rach_cfg_common_v1250_present, 1));
-      if (rach_cfg_common_v1250_present) {
-        rach_cfg_common_v1250 = make_copy_ptr(rach_cfg_common_v1250_s());
+      rach_cfg_common_v1250.set_present(rach_cfg_common_v1250_present);
+      if (rach_cfg_common_v1250.is_present()) {
         HANDLE_CODE(rach_cfg_common_v1250->unpack(bref));
       }
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool pusch_cfg_common_v1270_present;
       HANDLE_CODE(bref.unpack(pusch_cfg_common_v1270_present, 1));
-      if (pusch_cfg_common_v1270_present) {
-        pusch_cfg_common_v1270 = make_copy_ptr(pusch_cfg_common_v1270_s());
+      pusch_cfg_common_v1270.set_present(pusch_cfg_common_v1270_present);
+      if (pusch_cfg_common_v1270.is_present()) {
         HANDLE_CODE(pusch_cfg_common_v1270->unpack(bref));
       }
     }
     if (group_flags[3]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool bcch_cfg_v1310_present;
       HANDLE_CODE(bref.unpack(bcch_cfg_v1310_present, 1));
+      bcch_cfg_v1310.set_present(bcch_cfg_v1310_present);
+      bool pcch_cfg_v1310_present;
       HANDLE_CODE(bref.unpack(pcch_cfg_v1310_present, 1));
+      pcch_cfg_v1310.set_present(pcch_cfg_v1310_present);
+      bool freq_hop_params_r13_present;
       HANDLE_CODE(bref.unpack(freq_hop_params_r13_present, 1));
+      freq_hop_params_r13.set_present(freq_hop_params_r13_present);
+      bool pdsch_cfg_common_v1310_present;
       HANDLE_CODE(bref.unpack(pdsch_cfg_common_v1310_present, 1));
+      pdsch_cfg_common_v1310.set_present(pdsch_cfg_common_v1310_present);
+      bool pusch_cfg_common_v1310_present;
       HANDLE_CODE(bref.unpack(pusch_cfg_common_v1310_present, 1));
+      pusch_cfg_common_v1310.set_present(pusch_cfg_common_v1310_present);
+      bool prach_cfg_common_v1310_present;
       HANDLE_CODE(bref.unpack(prach_cfg_common_v1310_present, 1));
+      prach_cfg_common_v1310.set_present(prach_cfg_common_v1310_present);
+      bool pucch_cfg_common_v1310_present;
       HANDLE_CODE(bref.unpack(pucch_cfg_common_v1310_present, 1));
-      if (bcch_cfg_v1310_present) {
-        bcch_cfg_v1310 = make_copy_ptr(bcch_cfg_v1310_s());
+      pucch_cfg_common_v1310.set_present(pucch_cfg_common_v1310_present);
+      if (bcch_cfg_v1310.is_present()) {
         HANDLE_CODE(bcch_cfg_v1310->unpack(bref));
       }
-      if (pcch_cfg_v1310_present) {
-        pcch_cfg_v1310 = make_copy_ptr(pcch_cfg_v1310_s());
+      if (pcch_cfg_v1310.is_present()) {
         HANDLE_CODE(pcch_cfg_v1310->unpack(bref));
       }
-      if (freq_hop_params_r13_present) {
-        freq_hop_params_r13 = make_copy_ptr(freq_hop_params_r13_s());
+      if (freq_hop_params_r13.is_present()) {
         HANDLE_CODE(freq_hop_params_r13->unpack(bref));
       }
-      if (pdsch_cfg_common_v1310_present) {
-        pdsch_cfg_common_v1310 = make_copy_ptr(pdsch_cfg_common_v1310_s());
+      if (pdsch_cfg_common_v1310.is_present()) {
         HANDLE_CODE(pdsch_cfg_common_v1310->unpack(bref));
       }
-      if (pusch_cfg_common_v1310_present) {
-        pusch_cfg_common_v1310 = make_copy_ptr(pusch_cfg_common_v1310_s());
+      if (pusch_cfg_common_v1310.is_present()) {
         HANDLE_CODE(pusch_cfg_common_v1310->unpack(bref));
       }
-      if (prach_cfg_common_v1310_present) {
-        prach_cfg_common_v1310 = make_copy_ptr(prach_cfg_sib_v1310_s());
+      if (prach_cfg_common_v1310.is_present()) {
         HANDLE_CODE(prach_cfg_common_v1310->unpack(bref));
       }
-      if (pucch_cfg_common_v1310_present) {
-        pucch_cfg_common_v1310 = make_copy_ptr(pucch_cfg_common_v1310_s());
+      if (pucch_cfg_common_v1310.is_present()) {
         HANDLE_CODE(pucch_cfg_common_v1310->unpack(bref));
       }
     }
     if (group_flags[4]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool high_speed_cfg_r14_present;
       HANDLE_CODE(bref.unpack(high_speed_cfg_r14_present, 1));
+      high_speed_cfg_r14.set_present(high_speed_cfg_r14_present);
+      bool prach_cfg_v1430_present;
       HANDLE_CODE(bref.unpack(prach_cfg_v1430_present, 1));
+      prach_cfg_v1430.set_present(prach_cfg_v1430_present);
+      bool pucch_cfg_common_v1430_present;
       HANDLE_CODE(bref.unpack(pucch_cfg_common_v1430_present, 1));
-      if (high_speed_cfg_r14_present) {
-        high_speed_cfg_r14 = make_copy_ptr(high_speed_cfg_r14_s());
+      pucch_cfg_common_v1430.set_present(pucch_cfg_common_v1430_present);
+      if (high_speed_cfg_r14.is_present()) {
         HANDLE_CODE(high_speed_cfg_r14->unpack(bref));
       }
-      if (prach_cfg_v1430_present) {
-        prach_cfg_v1430 = make_copy_ptr(prach_cfg_v1430_s());
+      if (prach_cfg_v1430.is_present()) {
         HANDLE_CODE(prach_cfg_v1430->unpack(bref));
       }
-      if (pucch_cfg_common_v1430_present) {
-        pucch_cfg_common_v1430 = make_copy_ptr(pucch_cfg_common_v1430_s());
+      if (pucch_cfg_common_v1430.is_present()) {
         HANDLE_CODE(pucch_cfg_common_v1430->unpack(bref));
       }
     }
     if (group_flags[5]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool prach_cfg_v1530_present;
       HANDLE_CODE(bref.unpack(prach_cfg_v1530_present, 1));
+      prach_cfg_v1530.set_present(prach_cfg_v1530_present);
+      bool ce_rss_cfg_r15_present;
       HANDLE_CODE(bref.unpack(ce_rss_cfg_r15_present, 1));
+      ce_rss_cfg_r15.set_present(ce_rss_cfg_r15_present);
+      bool wus_cfg_r15_present;
       HANDLE_CODE(bref.unpack(wus_cfg_r15_present, 1));
+      wus_cfg_r15.set_present(wus_cfg_r15_present);
+      bool high_speed_cfg_v1530_present;
       HANDLE_CODE(bref.unpack(high_speed_cfg_v1530_present, 1));
-      if (prach_cfg_v1530_present) {
-        prach_cfg_v1530 = make_copy_ptr(prach_cfg_sib_v1530_s());
+      high_speed_cfg_v1530.set_present(high_speed_cfg_v1530_present);
+      if (prach_cfg_v1530.is_present()) {
         HANDLE_CODE(prach_cfg_v1530->unpack(bref));
       }
-      if (ce_rss_cfg_r15_present) {
-        ce_rss_cfg_r15 = make_copy_ptr(rss_cfg_r15_s());
+      if (ce_rss_cfg_r15.is_present()) {
         HANDLE_CODE(ce_rss_cfg_r15->unpack(bref));
       }
-      if (wus_cfg_r15_present) {
-        wus_cfg_r15 = make_copy_ptr(wus_cfg_r15_s());
+      if (wus_cfg_r15.is_present()) {
         HANDLE_CODE(wus_cfg_r15->unpack(bref));
       }
-      if (high_speed_cfg_v1530_present) {
-        high_speed_cfg_v1530 = make_copy_ptr(high_speed_cfg_v1530_s());
+      if (high_speed_cfg_v1530.is_present()) {
         HANDLE_CODE(high_speed_cfg_v1530->unpack(bref));
       }
     }
@@ -12931,89 +12893,71 @@ void rr_cfg_common_sib_s::to_json(json_writer& j) const
   ul_pwr_ctrl_common.to_json(j);
   j.write_str("ul-CyclicPrefixLength", ul_cp_len.to_string());
   if (ext) {
-    rrc_asn1_warn_assert(
-        ul_pwr_ctrl_common_v1020_present != (ul_pwr_ctrl_common_v1020.get() != NULL), __FILE__, __LINE__);
-    if (ul_pwr_ctrl_common_v1020_present) {
+    if (ul_pwr_ctrl_common_v1020.is_present()) {
       j.write_fieldname("uplinkPowerControlCommon-v1020");
       ul_pwr_ctrl_common_v1020->to_json(j);
     }
-    rrc_asn1_warn_assert(rach_cfg_common_v1250_present != (rach_cfg_common_v1250.get() != NULL), __FILE__, __LINE__);
-    if (rach_cfg_common_v1250_present) {
+    if (rach_cfg_common_v1250.is_present()) {
       j.write_fieldname("rach-ConfigCommon-v1250");
       rach_cfg_common_v1250->to_json(j);
     }
-    rrc_asn1_warn_assert(pusch_cfg_common_v1270_present != (pusch_cfg_common_v1270.get() != NULL), __FILE__, __LINE__);
-    if (pusch_cfg_common_v1270_present) {
+    if (pusch_cfg_common_v1270.is_present()) {
       j.write_fieldname("pusch-ConfigCommon-v1270");
       pusch_cfg_common_v1270->to_json(j);
     }
-    rrc_asn1_warn_assert(bcch_cfg_v1310_present != (bcch_cfg_v1310.get() != NULL), __FILE__, __LINE__);
-    if (bcch_cfg_v1310_present) {
+    if (bcch_cfg_v1310.is_present()) {
       j.write_fieldname("bcch-Config-v1310");
       bcch_cfg_v1310->to_json(j);
     }
-    rrc_asn1_warn_assert(pcch_cfg_v1310_present != (pcch_cfg_v1310.get() != NULL), __FILE__, __LINE__);
-    if (pcch_cfg_v1310_present) {
+    if (pcch_cfg_v1310.is_present()) {
       j.write_fieldname("pcch-Config-v1310");
       pcch_cfg_v1310->to_json(j);
     }
-    rrc_asn1_warn_assert(freq_hop_params_r13_present != (freq_hop_params_r13.get() != NULL), __FILE__, __LINE__);
-    if (freq_hop_params_r13_present) {
+    if (freq_hop_params_r13.is_present()) {
       j.write_fieldname("freqHoppingParameters-r13");
       freq_hop_params_r13->to_json(j);
     }
-    rrc_asn1_warn_assert(pdsch_cfg_common_v1310_present != (pdsch_cfg_common_v1310.get() != NULL), __FILE__, __LINE__);
-    if (pdsch_cfg_common_v1310_present) {
+    if (pdsch_cfg_common_v1310.is_present()) {
       j.write_fieldname("pdsch-ConfigCommon-v1310");
       pdsch_cfg_common_v1310->to_json(j);
     }
-    rrc_asn1_warn_assert(pusch_cfg_common_v1310_present != (pusch_cfg_common_v1310.get() != NULL), __FILE__, __LINE__);
-    if (pusch_cfg_common_v1310_present) {
+    if (pusch_cfg_common_v1310.is_present()) {
       j.write_fieldname("pusch-ConfigCommon-v1310");
       pusch_cfg_common_v1310->to_json(j);
     }
-    rrc_asn1_warn_assert(prach_cfg_common_v1310_present != (prach_cfg_common_v1310.get() != NULL), __FILE__, __LINE__);
-    if (prach_cfg_common_v1310_present) {
+    if (prach_cfg_common_v1310.is_present()) {
       j.write_fieldname("prach-ConfigCommon-v1310");
       prach_cfg_common_v1310->to_json(j);
     }
-    rrc_asn1_warn_assert(pucch_cfg_common_v1310_present != (pucch_cfg_common_v1310.get() != NULL), __FILE__, __LINE__);
-    if (pucch_cfg_common_v1310_present) {
+    if (pucch_cfg_common_v1310.is_present()) {
       j.write_fieldname("pucch-ConfigCommon-v1310");
       pucch_cfg_common_v1310->to_json(j);
     }
-    rrc_asn1_warn_assert(high_speed_cfg_r14_present != (high_speed_cfg_r14.get() != NULL), __FILE__, __LINE__);
-    if (high_speed_cfg_r14_present) {
+    if (high_speed_cfg_r14.is_present()) {
       j.write_fieldname("highSpeedConfig-r14");
       high_speed_cfg_r14->to_json(j);
     }
-    rrc_asn1_warn_assert(prach_cfg_v1430_present != (prach_cfg_v1430.get() != NULL), __FILE__, __LINE__);
-    if (prach_cfg_v1430_present) {
+    if (prach_cfg_v1430.is_present()) {
       j.write_fieldname("prach-Config-v1430");
       prach_cfg_v1430->to_json(j);
     }
-    rrc_asn1_warn_assert(pucch_cfg_common_v1430_present != (pucch_cfg_common_v1430.get() != NULL), __FILE__, __LINE__);
-    if (pucch_cfg_common_v1430_present) {
+    if (pucch_cfg_common_v1430.is_present()) {
       j.write_fieldname("pucch-ConfigCommon-v1430");
       pucch_cfg_common_v1430->to_json(j);
     }
-    rrc_asn1_warn_assert(prach_cfg_v1530_present != (prach_cfg_v1530.get() != NULL), __FILE__, __LINE__);
-    if (prach_cfg_v1530_present) {
+    if (prach_cfg_v1530.is_present()) {
       j.write_fieldname("prach-Config-v1530");
       prach_cfg_v1530->to_json(j);
     }
-    rrc_asn1_warn_assert(ce_rss_cfg_r15_present != (ce_rss_cfg_r15.get() != NULL), __FILE__, __LINE__);
-    if (ce_rss_cfg_r15_present) {
+    if (ce_rss_cfg_r15.is_present()) {
       j.write_fieldname("ce-RSS-Config-r15");
       ce_rss_cfg_r15->to_json(j);
     }
-    rrc_asn1_warn_assert(wus_cfg_r15_present != (wus_cfg_r15.get() != NULL), __FILE__, __LINE__);
-    if (wus_cfg_r15_present) {
+    if (wus_cfg_r15.is_present()) {
       j.write_fieldname("wus-Config-r15");
       wus_cfg_r15->to_json(j);
     }
-    rrc_asn1_warn_assert(high_speed_cfg_v1530_present != (high_speed_cfg_v1530.get() != NULL), __FILE__, __LINE__);
-    if (high_speed_cfg_v1530_present) {
+    if (high_speed_cfg_v1530.is_present()) {
       j.write_fieldname("highSpeedConfig-v1530");
       high_speed_cfg_v1530->to_json(j);
     }
@@ -14101,7 +14045,7 @@ SRSASN_CODE ue_timers_and_consts_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_enum(bref, n311));
 
   if (ext) {
-    ext_groups_header group_flags(3);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= t300_v1310_present;
     group_flags[0] |= t301_v1310_present;
     group_flags[1] |= t310_v1330_present;
@@ -14109,7 +14053,7 @@ SRSASN_CODE ue_timers_and_consts_s::pack(bit_ref& bref) const
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(t300_v1310_present, 1));
       HANDLE_CODE(bref.pack(t301_v1310_present, 1));
@@ -14121,7 +14065,7 @@ SRSASN_CODE ue_timers_and_consts_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(t310_v1330_present, 1));
       if (t310_v1330_present) {
@@ -14129,7 +14073,7 @@ SRSASN_CODE ue_timers_and_consts_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(t300_r15_present, 1));
       if (t300_r15_present) {
@@ -14150,11 +14094,11 @@ SRSASN_CODE ue_timers_and_consts_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_enum(n311, bref));
 
   if (ext) {
-    ext_groups_header group_flags(3);
+    ext_groups_unpacker_guard group_flags(3);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(t300_v1310_present, 1));
       HANDLE_CODE(bref.unpack(t301_v1310_present, 1));
@@ -14166,7 +14110,7 @@ SRSASN_CODE ue_timers_and_consts_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(t310_v1330_present, 1));
       if (t310_v1330_present) {
@@ -14174,7 +14118,7 @@ SRSASN_CODE ue_timers_and_consts_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(t300_r15_present, 1));
       if (t300_r15_present) {
@@ -14597,12 +14541,12 @@ SRSASN_CODE sib_type12_r9_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= warning_area_coordinates_segment_r15_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(warning_area_coordinates_segment_r15_present, 1));
       if (warning_area_coordinates_segment_r15_present) {
@@ -14631,11 +14575,11 @@ SRSASN_CODE sib_type12_r9_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(warning_area_coordinates_segment_r15_present, 1));
       if (warning_area_coordinates_segment_r15_present) {
@@ -14680,16 +14624,15 @@ SRSASN_CODE sib_type13_r9_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
-    rrc_asn1_warn_assert(notif_cfg_v1430_present != (notif_cfg_v1430.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= notif_cfg_v1430_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= notif_cfg_v1430.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(notif_cfg_v1430_present, 1));
-      if (notif_cfg_v1430_present) {
+      HANDLE_CODE(bref.pack(notif_cfg_v1430.is_present(), 1));
+      if (notif_cfg_v1430.is_present()) {
         HANDLE_CODE(notif_cfg_v1430->pack(bref));
       }
     }
@@ -14708,15 +14651,16 @@ SRSASN_CODE sib_type13_r9_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool notif_cfg_v1430_present;
       HANDLE_CODE(bref.unpack(notif_cfg_v1430_present, 1));
-      if (notif_cfg_v1430_present) {
-        notif_cfg_v1430 = make_copy_ptr(mbms_notif_cfg_v1430_s());
+      notif_cfg_v1430.set_present(notif_cfg_v1430_present);
+      if (notif_cfg_v1430.is_present()) {
         HANDLE_CODE(notif_cfg_v1430->unpack(bref));
       }
     }
@@ -14737,8 +14681,7 @@ void sib_type13_r9_s::to_json(json_writer& j) const
     j.write_str("lateNonCriticalExtension", late_non_crit_ext.to_string());
   }
   if (ext) {
-    rrc_asn1_warn_assert(notif_cfg_v1430_present != (notif_cfg_v1430.get() != NULL), __FILE__, __LINE__);
-    if (notif_cfg_v1430_present) {
+    if (notif_cfg_v1430.is_present()) {
       j.write_fieldname("notificationConfig-v1430");
       notif_cfg_v1430->to_json(j);
     }
@@ -14761,12 +14704,12 @@ SRSASN_CODE sib_type14_r11_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= eab_per_rsrp_r15_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(eab_per_rsrp_r15_present, 1));
       if (eab_per_rsrp_r15_present) {
@@ -14790,11 +14733,11 @@ SRSASN_CODE sib_type14_r11_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(eab_per_rsrp_r15_present, 1));
       if (eab_per_rsrp_r15_present) {
@@ -14964,38 +14907,29 @@ SRSASN_CODE sib_type15_r11_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(2);
-    rrc_asn1_warn_assert(
-        mbms_sai_inter_freq_list_v1140_present != (mbms_sai_inter_freq_list_v1140.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= mbms_sai_inter_freq_list_v1140_present;
-    rrc_asn1_warn_assert(mbms_intra_freq_carrier_type_r14_present != (mbms_intra_freq_carrier_type_r14.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[1] |= mbms_intra_freq_carrier_type_r14_present;
-    rrc_asn1_warn_assert(mbms_inter_freq_carrier_type_list_r14_present !=
-                             (mbms_inter_freq_carrier_type_list_r14.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[1] |= mbms_inter_freq_carrier_type_list_r14_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= mbms_sai_inter_freq_list_v1140.is_present();
+    group_flags[1] |= mbms_intra_freq_carrier_type_r14.is_present();
+    group_flags[1] |= mbms_inter_freq_carrier_type_list_r14.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(mbms_sai_inter_freq_list_v1140_present, 1));
-      if (mbms_sai_inter_freq_list_v1140_present) {
+      HANDLE_CODE(bref.pack(mbms_sai_inter_freq_list_v1140.is_present(), 1));
+      if (mbms_sai_inter_freq_list_v1140.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *mbms_sai_inter_freq_list_v1140, 1, 8));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(mbms_intra_freq_carrier_type_r14_present, 1));
-      HANDLE_CODE(bref.pack(mbms_inter_freq_carrier_type_list_r14_present, 1));
-      if (mbms_intra_freq_carrier_type_r14_present) {
+      HANDLE_CODE(bref.pack(mbms_intra_freq_carrier_type_r14.is_present(), 1));
+      HANDLE_CODE(bref.pack(mbms_inter_freq_carrier_type_list_r14.is_present(), 1));
+      if (mbms_intra_freq_carrier_type_r14.is_present()) {
         HANDLE_CODE(mbms_intra_freq_carrier_type_r14->pack(bref));
       }
-      if (mbms_inter_freq_carrier_type_list_r14_present) {
+      if (mbms_inter_freq_carrier_type_list_r14.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *mbms_inter_freq_carrier_type_list_r14, 1, 8));
       }
     }
@@ -15020,29 +14954,32 @@ SRSASN_CODE sib_type15_r11_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(2);
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool mbms_sai_inter_freq_list_v1140_present;
       HANDLE_CODE(bref.unpack(mbms_sai_inter_freq_list_v1140_present, 1));
-      if (mbms_sai_inter_freq_list_v1140_present) {
-        mbms_sai_inter_freq_list_v1140 = make_copy_ptr(mbms_sai_inter_freq_list_v1140_l());
+      mbms_sai_inter_freq_list_v1140.set_present(mbms_sai_inter_freq_list_v1140_present);
+      if (mbms_sai_inter_freq_list_v1140.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*mbms_sai_inter_freq_list_v1140, bref, 1, 8));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool mbms_intra_freq_carrier_type_r14_present;
       HANDLE_CODE(bref.unpack(mbms_intra_freq_carrier_type_r14_present, 1));
+      mbms_intra_freq_carrier_type_r14.set_present(mbms_intra_freq_carrier_type_r14_present);
+      bool mbms_inter_freq_carrier_type_list_r14_present;
       HANDLE_CODE(bref.unpack(mbms_inter_freq_carrier_type_list_r14_present, 1));
-      if (mbms_intra_freq_carrier_type_r14_present) {
-        mbms_intra_freq_carrier_type_r14 = make_copy_ptr(mbms_carrier_type_r14_s());
+      mbms_inter_freq_carrier_type_list_r14.set_present(mbms_inter_freq_carrier_type_list_r14_present);
+      if (mbms_intra_freq_carrier_type_r14.is_present()) {
         HANDLE_CODE(mbms_intra_freq_carrier_type_r14->unpack(bref));
       }
-      if (mbms_inter_freq_carrier_type_list_r14_present) {
-        mbms_inter_freq_carrier_type_list_r14 = make_copy_ptr(mbms_inter_freq_carrier_type_list_r14_l());
+      if (mbms_inter_freq_carrier_type_list_r14.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*mbms_inter_freq_carrier_type_list_r14, bref, 1, 8));
       }
     }
@@ -15070,27 +15007,18 @@ void sib_type15_r11_s::to_json(json_writer& j) const
     j.write_str("lateNonCriticalExtension", late_non_crit_ext.to_string());
   }
   if (ext) {
-    rrc_asn1_warn_assert(
-        mbms_sai_inter_freq_list_v1140_present != (mbms_sai_inter_freq_list_v1140.get() != NULL), __FILE__, __LINE__);
-    if (mbms_sai_inter_freq_list_v1140_present) {
+    if (mbms_sai_inter_freq_list_v1140.is_present()) {
       j.start_array("mbms-SAI-InterFreqList-v1140");
       for (uint32_t i1 = 0; i1 < mbms_sai_inter_freq_list_v1140->size(); ++i1) {
         ((*mbms_sai_inter_freq_list_v1140)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(mbms_intra_freq_carrier_type_r14_present != (mbms_intra_freq_carrier_type_r14.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (mbms_intra_freq_carrier_type_r14_present) {
+    if (mbms_intra_freq_carrier_type_r14.is_present()) {
       j.write_fieldname("mbms-IntraFreqCarrierType-r14");
       mbms_intra_freq_carrier_type_r14->to_json(j);
     }
-    rrc_asn1_warn_assert(mbms_inter_freq_carrier_type_list_r14_present !=
-                             (mbms_inter_freq_carrier_type_list_r14.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (mbms_inter_freq_carrier_type_list_r14_present) {
+    if (mbms_inter_freq_carrier_type_list_r14.is_present()) {
       j.start_array("mbms-InterFreqCarrierTypeList-r14");
       for (uint32_t i1 = 0; i1 < mbms_inter_freq_carrier_type_list_r14->size(); ++i1) {
         ((*mbms_inter_freq_carrier_type_list_r14)[i1]).to_json(j);
@@ -15128,16 +15056,15 @@ SRSASN_CODE sib_type16_r11_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
-    rrc_asn1_warn_assert(time_ref_info_r15_present != (time_ref_info_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= time_ref_info_r15_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= time_ref_info_r15.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(time_ref_info_r15_present, 1));
-      if (time_ref_info_r15_present) {
+      HANDLE_CODE(bref.pack(time_ref_info_r15.is_present(), 1));
+      if (time_ref_info_r15.is_present()) {
         HANDLE_CODE(time_ref_info_r15->pack(bref));
       }
     }
@@ -15170,15 +15097,16 @@ SRSASN_CODE sib_type16_r11_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool time_ref_info_r15_present;
       HANDLE_CODE(bref.unpack(time_ref_info_r15_present, 1));
-      if (time_ref_info_r15_present) {
-        time_ref_info_r15 = make_copy_ptr(time_ref_info_r15_s());
+      time_ref_info_r15.set_present(time_ref_info_r15_present);
+      if (time_ref_info_r15.is_present()) {
         HANDLE_CODE(time_ref_info_r15->unpack(bref));
       }
     }
@@ -15207,8 +15135,7 @@ void sib_type16_r11_s::to_json(json_writer& j) const
     j.write_str("lateNonCriticalExtension", late_non_crit_ext.to_string());
   }
   if (ext) {
-    rrc_asn1_warn_assert(time_ref_info_r15_present != (time_ref_info_r15.get() != NULL), __FILE__, __LINE__);
-    if (time_ref_info_r15_present) {
+    if (time_ref_info_r15.is_present()) {
       j.write_fieldname("timeReferenceInfo-r15");
       time_ref_info_r15->to_json(j);
     }
@@ -15290,23 +15217,19 @@ SRSASN_CODE sib_type18_r12_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
-    rrc_asn1_warn_assert(comm_tx_pool_normal_common_ext_r13_present !=
-                             (comm_tx_pool_normal_common_ext_r13.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[0] |= comm_tx_pool_normal_common_ext_r13_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= comm_tx_pool_normal_common_ext_r13.is_present();
     group_flags[0] |= comm_tx_res_uc_req_allowed_r13_present;
     group_flags[0] |= comm_tx_allow_relay_common_r13_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(comm_tx_pool_normal_common_ext_r13_present, 1));
+      HANDLE_CODE(bref.pack(comm_tx_pool_normal_common_ext_r13.is_present(), 1));
       HANDLE_CODE(bref.pack(comm_tx_res_uc_req_allowed_r13_present, 1));
       HANDLE_CODE(bref.pack(comm_tx_allow_relay_common_r13_present, 1));
-      if (comm_tx_pool_normal_common_ext_r13_present) {
+      if (comm_tx_pool_normal_common_ext_r13.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *comm_tx_pool_normal_common_ext_r13, 1, 4));
       }
     }
@@ -15339,17 +15262,18 @@ SRSASN_CODE sib_type18_r12_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool comm_tx_pool_normal_common_ext_r13_present;
       HANDLE_CODE(bref.unpack(comm_tx_pool_normal_common_ext_r13_present, 1));
+      comm_tx_pool_normal_common_ext_r13.set_present(comm_tx_pool_normal_common_ext_r13_present);
       HANDLE_CODE(bref.unpack(comm_tx_res_uc_req_allowed_r13_present, 1));
       HANDLE_CODE(bref.unpack(comm_tx_allow_relay_common_r13_present, 1));
-      if (comm_tx_pool_normal_common_ext_r13_present) {
-        comm_tx_pool_normal_common_ext_r13 = make_copy_ptr(sl_comm_tx_pool_list_ext_r13_l());
+      if (comm_tx_pool_normal_common_ext_r13.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*comm_tx_pool_normal_common_ext_r13, bref, 1, 4));
       }
     }
@@ -15394,11 +15318,7 @@ void sib_type18_r12_s::to_json(json_writer& j) const
     j.write_str("lateNonCriticalExtension", late_non_crit_ext.to_string());
   }
   if (ext) {
-    rrc_asn1_warn_assert(comm_tx_pool_normal_common_ext_r13_present !=
-                             (comm_tx_pool_normal_common_ext_r13.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (comm_tx_pool_normal_common_ext_r13_present) {
+    if (comm_tx_pool_normal_common_ext_r13.is_present()) {
       j.start_array("commTxPoolNormalCommonExt-r13");
       for (uint32_t i1 = 0; i1 < comm_tx_pool_normal_common_ext_r13->size(); ++i1) {
         ((*comm_tx_pool_normal_common_ext_r13)[i1]).to_json(j);
@@ -15447,33 +15367,30 @@ SRSASN_CODE sib_type19_r12_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
-    rrc_asn1_warn_assert(disc_cfg_v1310_present != (disc_cfg_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= disc_cfg_v1310_present;
-    rrc_asn1_warn_assert(disc_cfg_relay_r13_present != (disc_cfg_relay_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= disc_cfg_relay_r13_present;
-    rrc_asn1_warn_assert(disc_cfg_ps_minus13_present != (disc_cfg_ps_minus13.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= disc_cfg_ps_minus13_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= disc_cfg_v1310.is_present();
+    group_flags[0] |= disc_cfg_relay_r13.is_present();
+    group_flags[0] |= disc_cfg_ps_minus13.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(disc_cfg_v1310_present, 1));
-      HANDLE_CODE(bref.pack(disc_cfg_relay_r13_present, 1));
-      HANDLE_CODE(bref.pack(disc_cfg_ps_minus13_present, 1));
-      if (disc_cfg_v1310_present) {
+      HANDLE_CODE(bref.pack(disc_cfg_v1310.is_present(), 1));
+      HANDLE_CODE(bref.pack(disc_cfg_relay_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(disc_cfg_ps_minus13.is_present(), 1));
+      if (disc_cfg_v1310.is_present()) {
         HANDLE_CODE(bref.pack(disc_cfg_v1310->disc_inter_freq_list_v1310_present, 1));
         HANDLE_CODE(bref.pack(disc_cfg_v1310->gap_requests_allowed_common_present, 1));
         if (disc_cfg_v1310->disc_inter_freq_list_v1310_present) {
           HANDLE_CODE(pack_dyn_seq_of(bref, disc_cfg_v1310->disc_inter_freq_list_v1310, 1, 8));
         }
       }
-      if (disc_cfg_relay_r13_present) {
+      if (disc_cfg_relay_r13.is_present()) {
         HANDLE_CODE(disc_cfg_relay_r13->relay_ue_cfg_r13.pack(bref));
         HANDLE_CODE(disc_cfg_relay_r13->remote_ue_cfg_r13.pack(bref));
       }
-      if (disc_cfg_ps_minus13_present) {
+      if (disc_cfg_ps_minus13.is_present()) {
         HANDLE_CODE(bref.pack(disc_cfg_ps_minus13->disc_tx_pool_ps_common_r13_present, 1));
         HANDLE_CODE(pack_dyn_seq_of(bref, disc_cfg_ps_minus13->disc_rx_pool_ps_r13, 1, 16));
         if (disc_cfg_ps_minus13->disc_tx_pool_ps_common_r13_present) {
@@ -15515,30 +15432,33 @@ SRSASN_CODE sib_type19_r12_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool disc_cfg_v1310_present;
       HANDLE_CODE(bref.unpack(disc_cfg_v1310_present, 1));
+      disc_cfg_v1310.set_present(disc_cfg_v1310_present);
+      bool disc_cfg_relay_r13_present;
       HANDLE_CODE(bref.unpack(disc_cfg_relay_r13_present, 1));
+      disc_cfg_relay_r13.set_present(disc_cfg_relay_r13_present);
+      bool disc_cfg_ps_minus13_present;
       HANDLE_CODE(bref.unpack(disc_cfg_ps_minus13_present, 1));
-      if (disc_cfg_v1310_present) {
-        disc_cfg_v1310 = make_copy_ptr(disc_cfg_v1310_s_());
+      disc_cfg_ps_minus13.set_present(disc_cfg_ps_minus13_present);
+      if (disc_cfg_v1310.is_present()) {
         HANDLE_CODE(bref.unpack(disc_cfg_v1310->disc_inter_freq_list_v1310_present, 1));
         HANDLE_CODE(bref.unpack(disc_cfg_v1310->gap_requests_allowed_common_present, 1));
         if (disc_cfg_v1310->disc_inter_freq_list_v1310_present) {
           HANDLE_CODE(unpack_dyn_seq_of(disc_cfg_v1310->disc_inter_freq_list_v1310, bref, 1, 8));
         }
       }
-      if (disc_cfg_relay_r13_present) {
-        disc_cfg_relay_r13 = make_copy_ptr(disc_cfg_relay_r13_s_());
+      if (disc_cfg_relay_r13.is_present()) {
         HANDLE_CODE(disc_cfg_relay_r13->relay_ue_cfg_r13.unpack(bref));
         HANDLE_CODE(disc_cfg_relay_r13->remote_ue_cfg_r13.unpack(bref));
       }
-      if (disc_cfg_ps_minus13_present) {
-        disc_cfg_ps_minus13 = make_copy_ptr(disc_cfg_ps_minus13_s_());
+      if (disc_cfg_ps_minus13.is_present()) {
         HANDLE_CODE(bref.unpack(disc_cfg_ps_minus13->disc_tx_pool_ps_common_r13_present, 1));
         HANDLE_CODE(unpack_dyn_seq_of(disc_cfg_ps_minus13->disc_rx_pool_ps_r13, bref, 1, 16));
         if (disc_cfg_ps_minus13->disc_tx_pool_ps_common_r13_present) {
@@ -15594,8 +15514,7 @@ void sib_type19_r12_s::to_json(json_writer& j) const
     j.write_str("lateNonCriticalExtension", late_non_crit_ext.to_string());
   }
   if (ext) {
-    rrc_asn1_warn_assert(disc_cfg_v1310_present != (disc_cfg_v1310.get() != NULL), __FILE__, __LINE__);
-    if (disc_cfg_v1310_present) {
+    if (disc_cfg_v1310.is_present()) {
       j.write_fieldname("discConfig-v1310");
       j.start_obj();
       if (disc_cfg_v1310->disc_inter_freq_list_v1310_present) {
@@ -15610,8 +15529,7 @@ void sib_type19_r12_s::to_json(json_writer& j) const
       }
       j.end_obj();
     }
-    rrc_asn1_warn_assert(disc_cfg_relay_r13_present != (disc_cfg_relay_r13.get() != NULL), __FILE__, __LINE__);
-    if (disc_cfg_relay_r13_present) {
+    if (disc_cfg_relay_r13.is_present()) {
       j.write_fieldname("discConfigRelay-r13");
       j.start_obj();
       j.write_fieldname("relayUE-Config-r13");
@@ -15620,8 +15538,7 @@ void sib_type19_r12_s::to_json(json_writer& j) const
       disc_cfg_relay_r13->remote_ue_cfg_r13.to_json(j);
       j.end_obj();
     }
-    rrc_asn1_warn_assert(disc_cfg_ps_minus13_present != (disc_cfg_ps_minus13.get() != NULL), __FILE__, __LINE__);
-    if (disc_cfg_ps_minus13_present) {
+    if (disc_cfg_ps_minus13.is_present()) {
       j.write_fieldname("discConfigPS-13");
       j.start_obj();
       j.start_array("discRxPoolPS-r13");
@@ -15677,147 +15594,126 @@ SRSASN_CODE sib_type2_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_enum(bref, time_align_timer_common));
 
   if (ext) {
-    ext_groups_header group_flags(10, 1);
-    rrc_asn1_warn_assert(
-        ssac_barr_for_mmtel_voice_r9_present != (ssac_barr_for_mmtel_voice_r9.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= ssac_barr_for_mmtel_voice_r9_present;
-    rrc_asn1_warn_assert(
-        ssac_barr_for_mmtel_video_r9_present != (ssac_barr_for_mmtel_video_r9.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= ssac_barr_for_mmtel_video_r9_present;
-    rrc_asn1_warn_assert(ac_barr_for_csfb_r10_present != (ac_barr_for_csfb_r10.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= ac_barr_for_csfb_r10_present;
-    group_flags[2] |= ac_barr_skip_for_mmtel_voice_r12_present;
-    group_flags[2] |= ac_barr_skip_for_mmtel_video_r12_present;
-    group_flags[2] |= ac_barr_skip_for_sms_r12_present;
-    rrc_asn1_warn_assert(
-        ac_barr_per_plmn_list_r12_present != (ac_barr_per_plmn_list_r12.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= ac_barr_per_plmn_list_r12_present;
-    group_flags[3] |= voice_service_cause_ind_r12_present;
-    rrc_asn1_warn_assert(
-        acdc_barr_for_common_r13_present != (acdc_barr_for_common_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= acdc_barr_for_common_r13_present;
-    rrc_asn1_warn_assert(
-        acdc_barr_per_plmn_list_r13_present != (acdc_barr_per_plmn_list_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= acdc_barr_per_plmn_list_r13_present;
-    rrc_asn1_warn_assert(
-        udt_restricting_for_common_r13_present != (udt_restricting_for_common_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[5] |= udt_restricting_for_common_r13_present;
-    rrc_asn1_warn_assert(udt_restricting_per_plmn_list_r13_present != (udt_restricting_per_plmn_list_r13.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[5] |= udt_restricting_per_plmn_list_r13_present;
-    rrc_asn1_warn_assert(
-        c_io_t_eps_optim_info_r13_present != (c_io_t_eps_optim_info_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[5] |= c_io_t_eps_optim_info_r13_present;
-    group_flags[5] |= use_full_resume_id_r13_present;
-    group_flags[6] |= unicast_freq_hop_ind_r13_present;
-    rrc_asn1_warn_assert(
-        mbsfn_sf_cfg_list_v1430_present != (mbsfn_sf_cfg_list_v1430.get() != NULL), __FILE__, __LINE__);
-    group_flags[7] |= mbsfn_sf_cfg_list_v1430_present;
-    group_flags[7] |= video_service_cause_ind_r14_present;
-    rrc_asn1_warn_assert(plmn_info_list_r15_present != (plmn_info_list_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[8] |= plmn_info_list_r15_present;
-    group_flags[9] |= cp_edt_r15_present;
-    group_flags[9] |= up_edt_r15_present;
-    group_flags[9] |= idle_mode_meass_r15_present;
-    group_flags[9] |= reduced_cp_latency_enabled_r15_present;
-    group_flags.pack_nof_groups(bref);
-    HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
-    group_flags.pack_group_flags(bref);
-
-    if (late_non_crit_ext_present) {
-      HANDLE_CODE(late_non_crit_ext.pack(bref));
-    }
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= late_non_crit_ext_present;
+    group_flags[1] |= ssac_barr_for_mmtel_voice_r9.is_present();
+    group_flags[1] |= ssac_barr_for_mmtel_video_r9.is_present();
+    group_flags[2] |= ac_barr_for_csfb_r10.is_present();
+    group_flags[3] |= ac_barr_skip_for_mmtel_voice_r12_present;
+    group_flags[3] |= ac_barr_skip_for_mmtel_video_r12_present;
+    group_flags[3] |= ac_barr_skip_for_sms_r12_present;
+    group_flags[3] |= ac_barr_per_plmn_list_r12.is_present();
+    group_flags[4] |= voice_service_cause_ind_r12_present;
+    group_flags[5] |= acdc_barr_for_common_r13.is_present();
+    group_flags[5] |= acdc_barr_per_plmn_list_r13.is_present();
+    group_flags[6] |= udt_restricting_for_common_r13.is_present();
+    group_flags[6] |= udt_restricting_per_plmn_list_r13.is_present();
+    group_flags[6] |= c_io_t_eps_optim_info_r13.is_present();
+    group_flags[6] |= use_full_resume_id_r13_present;
+    group_flags[7] |= unicast_freq_hop_ind_r13_present;
+    group_flags[8] |= mbsfn_sf_cfg_list_v1430.is_present();
+    group_flags[8] |= video_service_cause_ind_r14_present;
+    group_flags[9] |= plmn_info_list_r15.is_present();
+    group_flags[10] |= cp_edt_r15_present;
+    group_flags[10] |= up_edt_r15_present;
+    group_flags[10] |= idle_mode_meass_r15_present;
+    group_flags[10] |= reduced_cp_latency_enabled_r15_present;
+    group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(ssac_barr_for_mmtel_voice_r9_present, 1));
-      HANDLE_CODE(bref.pack(ssac_barr_for_mmtel_video_r9_present, 1));
-      if (ssac_barr_for_mmtel_voice_r9_present) {
+      HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
+    }
+    if (group_flags[1]) {
+      varlength_field_pack_guard varlen_scope(bref);
+
+      HANDLE_CODE(bref.pack(ssac_barr_for_mmtel_voice_r9.is_present(), 1));
+      HANDLE_CODE(bref.pack(ssac_barr_for_mmtel_video_r9.is_present(), 1));
+      if (ssac_barr_for_mmtel_voice_r9.is_present()) {
         HANDLE_CODE(ssac_barr_for_mmtel_voice_r9->pack(bref));
       }
-      if (ssac_barr_for_mmtel_video_r9_present) {
+      if (ssac_barr_for_mmtel_video_r9.is_present()) {
         HANDLE_CODE(ssac_barr_for_mmtel_video_r9->pack(bref));
       }
     }
-    if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+    if (group_flags[2]) {
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(ac_barr_for_csfb_r10_present, 1));
-      if (ac_barr_for_csfb_r10_present) {
+      HANDLE_CODE(bref.pack(ac_barr_for_csfb_r10.is_present(), 1));
+      if (ac_barr_for_csfb_r10.is_present()) {
         HANDLE_CODE(ac_barr_for_csfb_r10->pack(bref));
       }
     }
-    if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+    if (group_flags[3]) {
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(ac_barr_skip_for_mmtel_voice_r12_present, 1));
       HANDLE_CODE(bref.pack(ac_barr_skip_for_mmtel_video_r12_present, 1));
       HANDLE_CODE(bref.pack(ac_barr_skip_for_sms_r12_present, 1));
-      HANDLE_CODE(bref.pack(ac_barr_per_plmn_list_r12_present, 1));
-      if (ac_barr_per_plmn_list_r12_present) {
+      HANDLE_CODE(bref.pack(ac_barr_per_plmn_list_r12.is_present(), 1));
+      if (ac_barr_per_plmn_list_r12.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *ac_barr_per_plmn_list_r12, 1, 6));
       }
     }
-    if (group_flags[3]) {
-      varlength_field_pack_guard packer(bref);
+    if (group_flags[4]) {
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(voice_service_cause_ind_r12_present, 1));
     }
-    if (group_flags[4]) {
-      varlength_field_pack_guard packer(bref);
+    if (group_flags[5]) {
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(acdc_barr_for_common_r13_present, 1));
-      HANDLE_CODE(bref.pack(acdc_barr_per_plmn_list_r13_present, 1));
-      if (acdc_barr_for_common_r13_present) {
+      HANDLE_CODE(bref.pack(acdc_barr_for_common_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(acdc_barr_per_plmn_list_r13.is_present(), 1));
+      if (acdc_barr_for_common_r13.is_present()) {
         HANDLE_CODE(acdc_barr_for_common_r13->pack(bref));
       }
-      if (acdc_barr_per_plmn_list_r13_present) {
+      if (acdc_barr_per_plmn_list_r13.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *acdc_barr_per_plmn_list_r13, 1, 6));
       }
     }
-    if (group_flags[5]) {
-      varlength_field_pack_guard packer(bref);
+    if (group_flags[6]) {
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(udt_restricting_for_common_r13_present, 1));
-      HANDLE_CODE(bref.pack(udt_restricting_per_plmn_list_r13_present, 1));
-      HANDLE_CODE(bref.pack(c_io_t_eps_optim_info_r13_present, 1));
+      HANDLE_CODE(bref.pack(udt_restricting_for_common_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(udt_restricting_per_plmn_list_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(c_io_t_eps_optim_info_r13.is_present(), 1));
       HANDLE_CODE(bref.pack(use_full_resume_id_r13_present, 1));
-      if (udt_restricting_for_common_r13_present) {
+      if (udt_restricting_for_common_r13.is_present()) {
         HANDLE_CODE(udt_restricting_for_common_r13->pack(bref));
       }
-      if (udt_restricting_per_plmn_list_r13_present) {
+      if (udt_restricting_per_plmn_list_r13.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *udt_restricting_per_plmn_list_r13, 1, 6));
       }
-      if (c_io_t_eps_optim_info_r13_present) {
+      if (c_io_t_eps_optim_info_r13.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *c_io_t_eps_optim_info_r13, 1, 6));
       }
     }
-    if (group_flags[6]) {
-      varlength_field_pack_guard packer(bref);
+    if (group_flags[7]) {
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(unicast_freq_hop_ind_r13_present, 1));
     }
-    if (group_flags[7]) {
-      varlength_field_pack_guard packer(bref);
+    if (group_flags[8]) {
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(mbsfn_sf_cfg_list_v1430_present, 1));
+      HANDLE_CODE(bref.pack(mbsfn_sf_cfg_list_v1430.is_present(), 1));
       HANDLE_CODE(bref.pack(video_service_cause_ind_r14_present, 1));
-      if (mbsfn_sf_cfg_list_v1430_present) {
+      if (mbsfn_sf_cfg_list_v1430.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *mbsfn_sf_cfg_list_v1430, 1, 8));
       }
     }
-    if (group_flags[8]) {
-      varlength_field_pack_guard packer(bref);
+    if (group_flags[9]) {
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(plmn_info_list_r15_present, 1));
-      if (plmn_info_list_r15_present) {
+      HANDLE_CODE(bref.pack(plmn_info_list_r15.is_present(), 1));
+      if (plmn_info_list_r15.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *plmn_info_list_r15, 1, 6));
       }
     }
-    if (group_flags[9]) {
-      varlength_field_pack_guard packer(bref);
+    if (group_flags[10]) {
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(cp_edt_r15_present, 1));
       HANDLE_CODE(bref.pack(up_edt_r15_present, 1));
@@ -15861,115 +15757,125 @@ SRSASN_CODE sib_type2_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_enum(time_align_timer_common, bref));
 
   if (ext) {
-    ext_groups_header group_flags(10, 1);
-    group_flags.unpack_nof_groups(bref);
-    HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
-    group_flags.unpack_group_flags(bref);
-
-    if (late_non_crit_ext_present) {
-      HANDLE_CODE(late_non_crit_ext.unpack(bref));
-    }
+    ext_groups_unpacker_guard group_flags(11);
+    group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
+    }
+    if (group_flags[1]) {
+      varlength_field_unpack_guard varlen_scope(bref);
+
+      bool ssac_barr_for_mmtel_voice_r9_present;
       HANDLE_CODE(bref.unpack(ssac_barr_for_mmtel_voice_r9_present, 1));
+      ssac_barr_for_mmtel_voice_r9.set_present(ssac_barr_for_mmtel_voice_r9_present);
+      bool ssac_barr_for_mmtel_video_r9_present;
       HANDLE_CODE(bref.unpack(ssac_barr_for_mmtel_video_r9_present, 1));
-      if (ssac_barr_for_mmtel_voice_r9_present) {
-        ssac_barr_for_mmtel_voice_r9 = make_copy_ptr(ac_barr_cfg_s());
+      ssac_barr_for_mmtel_video_r9.set_present(ssac_barr_for_mmtel_video_r9_present);
+      if (ssac_barr_for_mmtel_voice_r9.is_present()) {
         HANDLE_CODE(ssac_barr_for_mmtel_voice_r9->unpack(bref));
       }
-      if (ssac_barr_for_mmtel_video_r9_present) {
-        ssac_barr_for_mmtel_video_r9 = make_copy_ptr(ac_barr_cfg_s());
+      if (ssac_barr_for_mmtel_video_r9.is_present()) {
         HANDLE_CODE(ssac_barr_for_mmtel_video_r9->unpack(bref));
       }
     }
-    if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+    if (group_flags[2]) {
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool ac_barr_for_csfb_r10_present;
       HANDLE_CODE(bref.unpack(ac_barr_for_csfb_r10_present, 1));
-      if (ac_barr_for_csfb_r10_present) {
-        ac_barr_for_csfb_r10 = make_copy_ptr(ac_barr_cfg_s());
+      ac_barr_for_csfb_r10.set_present(ac_barr_for_csfb_r10_present);
+      if (ac_barr_for_csfb_r10.is_present()) {
         HANDLE_CODE(ac_barr_for_csfb_r10->unpack(bref));
       }
     }
-    if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+    if (group_flags[3]) {
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(ac_barr_skip_for_mmtel_voice_r12_present, 1));
       HANDLE_CODE(bref.unpack(ac_barr_skip_for_mmtel_video_r12_present, 1));
       HANDLE_CODE(bref.unpack(ac_barr_skip_for_sms_r12_present, 1));
+      bool ac_barr_per_plmn_list_r12_present;
       HANDLE_CODE(bref.unpack(ac_barr_per_plmn_list_r12_present, 1));
-      if (ac_barr_per_plmn_list_r12_present) {
-        ac_barr_per_plmn_list_r12 = make_copy_ptr(ac_barr_per_plmn_list_r12_l());
+      ac_barr_per_plmn_list_r12.set_present(ac_barr_per_plmn_list_r12_present);
+      if (ac_barr_per_plmn_list_r12.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*ac_barr_per_plmn_list_r12, bref, 1, 6));
       }
     }
-    if (group_flags[3]) {
-      varlength_field_unpack_guard unpacker(bref);
+    if (group_flags[4]) {
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(voice_service_cause_ind_r12_present, 1));
     }
-    if (group_flags[4]) {
-      varlength_field_unpack_guard unpacker(bref);
+    if (group_flags[5]) {
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool acdc_barr_for_common_r13_present;
       HANDLE_CODE(bref.unpack(acdc_barr_for_common_r13_present, 1));
+      acdc_barr_for_common_r13.set_present(acdc_barr_for_common_r13_present);
+      bool acdc_barr_per_plmn_list_r13_present;
       HANDLE_CODE(bref.unpack(acdc_barr_per_plmn_list_r13_present, 1));
-      if (acdc_barr_for_common_r13_present) {
-        acdc_barr_for_common_r13 = make_copy_ptr(acdc_barr_for_common_r13_s());
+      acdc_barr_per_plmn_list_r13.set_present(acdc_barr_per_plmn_list_r13_present);
+      if (acdc_barr_for_common_r13.is_present()) {
         HANDLE_CODE(acdc_barr_for_common_r13->unpack(bref));
       }
-      if (acdc_barr_per_plmn_list_r13_present) {
-        acdc_barr_per_plmn_list_r13 = make_copy_ptr(acdc_barr_per_plmn_list_r13_l());
+      if (acdc_barr_per_plmn_list_r13.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*acdc_barr_per_plmn_list_r13, bref, 1, 6));
       }
     }
-    if (group_flags[5]) {
-      varlength_field_unpack_guard unpacker(bref);
+    if (group_flags[6]) {
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool udt_restricting_for_common_r13_present;
       HANDLE_CODE(bref.unpack(udt_restricting_for_common_r13_present, 1));
+      udt_restricting_for_common_r13.set_present(udt_restricting_for_common_r13_present);
+      bool udt_restricting_per_plmn_list_r13_present;
       HANDLE_CODE(bref.unpack(udt_restricting_per_plmn_list_r13_present, 1));
+      udt_restricting_per_plmn_list_r13.set_present(udt_restricting_per_plmn_list_r13_present);
+      bool c_io_t_eps_optim_info_r13_present;
       HANDLE_CODE(bref.unpack(c_io_t_eps_optim_info_r13_present, 1));
+      c_io_t_eps_optim_info_r13.set_present(c_io_t_eps_optim_info_r13_present);
       HANDLE_CODE(bref.unpack(use_full_resume_id_r13_present, 1));
-      if (udt_restricting_for_common_r13_present) {
-        udt_restricting_for_common_r13 = make_copy_ptr(udt_restricting_r13_s());
+      if (udt_restricting_for_common_r13.is_present()) {
         HANDLE_CODE(udt_restricting_for_common_r13->unpack(bref));
       }
-      if (udt_restricting_per_plmn_list_r13_present) {
-        udt_restricting_per_plmn_list_r13 = make_copy_ptr(udt_restricting_per_plmn_list_r13_l());
+      if (udt_restricting_per_plmn_list_r13.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*udt_restricting_per_plmn_list_r13, bref, 1, 6));
       }
-      if (c_io_t_eps_optim_info_r13_present) {
-        c_io_t_eps_optim_info_r13 = make_copy_ptr(ciot_eps_optim_info_r13_l());
+      if (c_io_t_eps_optim_info_r13.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*c_io_t_eps_optim_info_r13, bref, 1, 6));
       }
     }
-    if (group_flags[6]) {
-      varlength_field_unpack_guard unpacker(bref);
+    if (group_flags[7]) {
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(unicast_freq_hop_ind_r13_present, 1));
     }
-    if (group_flags[7]) {
-      varlength_field_unpack_guard unpacker(bref);
+    if (group_flags[8]) {
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool mbsfn_sf_cfg_list_v1430_present;
       HANDLE_CODE(bref.unpack(mbsfn_sf_cfg_list_v1430_present, 1));
+      mbsfn_sf_cfg_list_v1430.set_present(mbsfn_sf_cfg_list_v1430_present);
       HANDLE_CODE(bref.unpack(video_service_cause_ind_r14_present, 1));
-      if (mbsfn_sf_cfg_list_v1430_present) {
-        mbsfn_sf_cfg_list_v1430 = make_copy_ptr(mbsfn_sf_cfg_list_v1430_l());
+      if (mbsfn_sf_cfg_list_v1430.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*mbsfn_sf_cfg_list_v1430, bref, 1, 8));
       }
     }
-    if (group_flags[8]) {
-      varlength_field_unpack_guard unpacker(bref);
+    if (group_flags[9]) {
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool plmn_info_list_r15_present;
       HANDLE_CODE(bref.unpack(plmn_info_list_r15_present, 1));
-      if (plmn_info_list_r15_present) {
-        plmn_info_list_r15 = make_copy_ptr(plmn_info_list_r15_l());
+      plmn_info_list_r15.set_present(plmn_info_list_r15_present);
+      if (plmn_info_list_r15.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*plmn_info_list_r15, bref, 1, 6));
       }
     }
-    if (group_flags[9]) {
-      varlength_field_unpack_guard unpacker(bref);
+    if (group_flags[10]) {
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(cp_edt_r15_present, 1));
       HANDLE_CODE(bref.unpack(up_edt_r15_present, 1));
@@ -16022,20 +15928,15 @@ void sib_type2_s::to_json(json_writer& j) const
     if (late_non_crit_ext_present) {
       j.write_str("lateNonCriticalExtension", late_non_crit_ext.to_string());
     }
-    rrc_asn1_warn_assert(
-        ssac_barr_for_mmtel_voice_r9_present != (ssac_barr_for_mmtel_voice_r9.get() != NULL), __FILE__, __LINE__);
-    if (ssac_barr_for_mmtel_voice_r9_present) {
+    if (ssac_barr_for_mmtel_voice_r9.is_present()) {
       j.write_fieldname("ssac-BarringForMMTEL-Voice-r9");
       ssac_barr_for_mmtel_voice_r9->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        ssac_barr_for_mmtel_video_r9_present != (ssac_barr_for_mmtel_video_r9.get() != NULL), __FILE__, __LINE__);
-    if (ssac_barr_for_mmtel_video_r9_present) {
+    if (ssac_barr_for_mmtel_video_r9.is_present()) {
       j.write_fieldname("ssac-BarringForMMTEL-Video-r9");
       ssac_barr_for_mmtel_video_r9->to_json(j);
     }
-    rrc_asn1_warn_assert(ac_barr_for_csfb_r10_present != (ac_barr_for_csfb_r10.get() != NULL), __FILE__, __LINE__);
-    if (ac_barr_for_csfb_r10_present) {
+    if (ac_barr_for_csfb_r10.is_present()) {
       j.write_fieldname("ac-BarringForCSFB-r10");
       ac_barr_for_csfb_r10->to_json(j);
     }
@@ -16048,9 +15949,7 @@ void sib_type2_s::to_json(json_writer& j) const
     if (ac_barr_skip_for_sms_r12_present) {
       j.write_str("ac-BarringSkipForSMS-r12", "true");
     }
-    rrc_asn1_warn_assert(
-        ac_barr_per_plmn_list_r12_present != (ac_barr_per_plmn_list_r12.get() != NULL), __FILE__, __LINE__);
-    if (ac_barr_per_plmn_list_r12_present) {
+    if (ac_barr_per_plmn_list_r12.is_present()) {
       j.start_array("ac-BarringPerPLMN-List-r12");
       for (uint32_t i1 = 0; i1 < ac_barr_per_plmn_list_r12->size(); ++i1) {
         ((*ac_barr_per_plmn_list_r12)[i1]).to_json(j);
@@ -16060,40 +15959,29 @@ void sib_type2_s::to_json(json_writer& j) const
     if (voice_service_cause_ind_r12_present) {
       j.write_str("voiceServiceCauseIndication-r12", "true");
     }
-    rrc_asn1_warn_assert(
-        acdc_barr_for_common_r13_present != (acdc_barr_for_common_r13.get() != NULL), __FILE__, __LINE__);
-    if (acdc_barr_for_common_r13_present) {
+    if (acdc_barr_for_common_r13.is_present()) {
       j.write_fieldname("acdc-BarringForCommon-r13");
       acdc_barr_for_common_r13->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        acdc_barr_per_plmn_list_r13_present != (acdc_barr_per_plmn_list_r13.get() != NULL), __FILE__, __LINE__);
-    if (acdc_barr_per_plmn_list_r13_present) {
+    if (acdc_barr_per_plmn_list_r13.is_present()) {
       j.start_array("acdc-BarringPerPLMN-List-r13");
       for (uint32_t i1 = 0; i1 < acdc_barr_per_plmn_list_r13->size(); ++i1) {
         ((*acdc_barr_per_plmn_list_r13)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(
-        udt_restricting_for_common_r13_present != (udt_restricting_for_common_r13.get() != NULL), __FILE__, __LINE__);
-    if (udt_restricting_for_common_r13_present) {
+    if (udt_restricting_for_common_r13.is_present()) {
       j.write_fieldname("udt-RestrictingForCommon-r13");
       udt_restricting_for_common_r13->to_json(j);
     }
-    rrc_asn1_warn_assert(udt_restricting_per_plmn_list_r13_present != (udt_restricting_per_plmn_list_r13.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (udt_restricting_per_plmn_list_r13_present) {
+    if (udt_restricting_per_plmn_list_r13.is_present()) {
       j.start_array("udt-RestrictingPerPLMN-List-r13");
       for (uint32_t i1 = 0; i1 < udt_restricting_per_plmn_list_r13->size(); ++i1) {
         ((*udt_restricting_per_plmn_list_r13)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(
-        c_io_t_eps_optim_info_r13_present != (c_io_t_eps_optim_info_r13.get() != NULL), __FILE__, __LINE__);
-    if (c_io_t_eps_optim_info_r13_present) {
+    if (c_io_t_eps_optim_info_r13.is_present()) {
       j.start_array("cIoT-EPS-OptimisationInfo-r13");
       for (uint32_t i1 = 0; i1 < c_io_t_eps_optim_info_r13->size(); ++i1) {
         ((*c_io_t_eps_optim_info_r13)[i1]).to_json(j);
@@ -16106,9 +15994,7 @@ void sib_type2_s::to_json(json_writer& j) const
     if (unicast_freq_hop_ind_r13_present) {
       j.write_str("unicastFreqHoppingInd-r13", "true");
     }
-    rrc_asn1_warn_assert(
-        mbsfn_sf_cfg_list_v1430_present != (mbsfn_sf_cfg_list_v1430.get() != NULL), __FILE__, __LINE__);
-    if (mbsfn_sf_cfg_list_v1430_present) {
+    if (mbsfn_sf_cfg_list_v1430.is_present()) {
       j.start_array("mbsfn-SubframeConfigList-v1430");
       for (uint32_t i1 = 0; i1 < mbsfn_sf_cfg_list_v1430->size(); ++i1) {
         ((*mbsfn_sf_cfg_list_v1430)[i1]).to_json(j);
@@ -16118,8 +16004,7 @@ void sib_type2_s::to_json(json_writer& j) const
     if (video_service_cause_ind_r14_present) {
       j.write_str("videoServiceCauseIndication-r14", "true");
     }
-    rrc_asn1_warn_assert(plmn_info_list_r15_present != (plmn_info_list_r15.get() != NULL), __FILE__, __LINE__);
-    if (plmn_info_list_r15_present) {
+    if (plmn_info_list_r15.is_present()) {
       j.start_array("plmn-InfoList-r15");
       for (uint32_t i1 = 0; i1 < plmn_info_list_r15->size(); ++i1) {
         ((*plmn_info_list_r15)[i1]).to_json(j);
@@ -16161,11 +16046,9 @@ SRSASN_CODE sib_type20_r13_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(2);
-    rrc_asn1_warn_assert(br_bcch_cfg_r14_present != (br_bcch_cfg_r14.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= br_bcch_cfg_r14_present;
-    rrc_asn1_warn_assert(sc_mcch_sched_info_r14_present != (sc_mcch_sched_info_r14.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= sc_mcch_sched_info_r14_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= br_bcch_cfg_r14.is_present();
+    group_flags[0] |= sc_mcch_sched_info_r14.is_present();
     group_flags[0] |= pdsch_max_num_repeat_cemode_a_sc_mtch_r14_present;
     group_flags[0] |= pdsch_max_num_repeat_cemode_b_sc_mtch_r14_present;
     group_flags[1] |= sc_mcch_repeat_period_v1470_present;
@@ -16173,13 +16056,13 @@ SRSASN_CODE sib_type20_r13_s::pack(bit_ref& bref) const
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(br_bcch_cfg_r14_present, 1));
-      HANDLE_CODE(bref.pack(sc_mcch_sched_info_r14_present, 1));
+      HANDLE_CODE(bref.pack(br_bcch_cfg_r14.is_present(), 1));
+      HANDLE_CODE(bref.pack(sc_mcch_sched_info_r14.is_present(), 1));
       HANDLE_CODE(bref.pack(pdsch_max_num_repeat_cemode_a_sc_mtch_r14_present, 1));
       HANDLE_CODE(bref.pack(pdsch_max_num_repeat_cemode_b_sc_mtch_r14_present, 1));
-      if (br_bcch_cfg_r14_present) {
+      if (br_bcch_cfg_r14.is_present()) {
         HANDLE_CODE(pack_unalign_integer(bref, br_bcch_cfg_r14->mpdcch_nb_sc_mcch_r14, (uint8_t)1, (uint8_t)16));
         HANDLE_CODE(pack_enum(bref, br_bcch_cfg_r14->mpdcch_num_repeat_sc_mcch_r14));
         HANDLE_CODE(br_bcch_cfg_r14->mpdcch_start_sf_sc_mcch_r14.pack(bref));
@@ -16190,7 +16073,7 @@ SRSASN_CODE sib_type20_r13_s::pack(bit_ref& bref) const
         HANDLE_CODE(pack_enum(bref, br_bcch_cfg_r14->sc_mcch_repeat_period_br_r14));
         HANDLE_CODE(pack_enum(bref, br_bcch_cfg_r14->sc_mcch_mod_period_br_r14));
       }
-      if (sc_mcch_sched_info_r14_present) {
+      if (sc_mcch_sched_info_r14.is_present()) {
         HANDLE_CODE(sc_mcch_sched_info_r14->pack(bref));
       }
       if (pdsch_max_num_repeat_cemode_a_sc_mtch_r14_present) {
@@ -16201,7 +16084,7 @@ SRSASN_CODE sib_type20_r13_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(sc_mcch_repeat_period_v1470_present, 1));
       HANDLE_CODE(bref.pack(sc_mcch_mod_period_v1470_present, 1));
@@ -16227,18 +16110,21 @@ SRSASN_CODE sib_type20_r13_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(2);
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool br_bcch_cfg_r14_present;
       HANDLE_CODE(bref.unpack(br_bcch_cfg_r14_present, 1));
+      br_bcch_cfg_r14.set_present(br_bcch_cfg_r14_present);
+      bool sc_mcch_sched_info_r14_present;
       HANDLE_CODE(bref.unpack(sc_mcch_sched_info_r14_present, 1));
+      sc_mcch_sched_info_r14.set_present(sc_mcch_sched_info_r14_present);
       HANDLE_CODE(bref.unpack(pdsch_max_num_repeat_cemode_a_sc_mtch_r14_present, 1));
       HANDLE_CODE(bref.unpack(pdsch_max_num_repeat_cemode_b_sc_mtch_r14_present, 1));
-      if (br_bcch_cfg_r14_present) {
-        br_bcch_cfg_r14 = make_copy_ptr(br_bcch_cfg_r14_s_());
+      if (br_bcch_cfg_r14.is_present()) {
         HANDLE_CODE(unpack_unalign_integer(br_bcch_cfg_r14->mpdcch_nb_sc_mcch_r14, bref, (uint8_t)1, (uint8_t)16));
         HANDLE_CODE(unpack_enum(br_bcch_cfg_r14->mpdcch_num_repeat_sc_mcch_r14, bref));
         HANDLE_CODE(br_bcch_cfg_r14->mpdcch_start_sf_sc_mcch_r14.unpack(bref));
@@ -16249,8 +16135,7 @@ SRSASN_CODE sib_type20_r13_s::unpack(bit_ref& bref)
         HANDLE_CODE(unpack_enum(br_bcch_cfg_r14->sc_mcch_repeat_period_br_r14, bref));
         HANDLE_CODE(unpack_enum(br_bcch_cfg_r14->sc_mcch_mod_period_br_r14, bref));
       }
-      if (sc_mcch_sched_info_r14_present) {
-        sc_mcch_sched_info_r14 = make_copy_ptr(sc_mcch_sched_info_r14_s());
+      if (sc_mcch_sched_info_r14.is_present()) {
         HANDLE_CODE(sc_mcch_sched_info_r14->unpack(bref));
       }
       if (pdsch_max_num_repeat_cemode_a_sc_mtch_r14_present) {
@@ -16261,7 +16146,7 @@ SRSASN_CODE sib_type20_r13_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(sc_mcch_repeat_period_v1470_present, 1));
       HANDLE_CODE(bref.unpack(sc_mcch_mod_period_v1470_present, 1));
@@ -16283,8 +16168,7 @@ void sib_type20_r13_s::to_json(json_writer& j) const
     j.write_str("lateNonCriticalExtension", late_non_crit_ext.to_string());
   }
   if (ext) {
-    rrc_asn1_warn_assert(br_bcch_cfg_r14_present != (br_bcch_cfg_r14.get() != NULL), __FILE__, __LINE__);
-    if (br_bcch_cfg_r14_present) {
+    if (br_bcch_cfg_r14.is_present()) {
       j.write_fieldname("br-BCCH-Config-r14");
       j.start_obj();
       j.write_str("dummy", "rf1");
@@ -16301,8 +16185,7 @@ void sib_type20_r13_s::to_json(json_writer& j) const
       j.write_str("sc-mcch-ModificationPeriod-BR-r14", br_bcch_cfg_r14->sc_mcch_mod_period_br_r14.to_string());
       j.end_obj();
     }
-    rrc_asn1_warn_assert(sc_mcch_sched_info_r14_present != (sc_mcch_sched_info_r14.get() != NULL), __FILE__, __LINE__);
-    if (sc_mcch_sched_info_r14_present) {
+    if (sc_mcch_sched_info_r14.is_present()) {
       j.write_fieldname("sc-mcch-SchedulingInfo-r14");
       sc_mcch_sched_info_r14->to_json(j);
     }
@@ -16872,61 +16755,43 @@ SRSASN_CODE sib_type3_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(8, 1);
-    rrc_asn1_warn_assert(s_intra_search_v920_present != (s_intra_search_v920.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= s_intra_search_v920_present;
-    rrc_asn1_warn_assert(
-        s_non_intra_search_v920_present != (s_non_intra_search_v920.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= s_non_intra_search_v920_present;
-    group_flags[0] |= q_qual_min_r9_present;
-    group_flags[0] |= thresh_serving_low_q_r9_present;
-    group_flags[1] |= q_qual_min_wb_r11_present;
-    group_flags[2] |= q_qual_min_rsrq_on_all_symbols_r12_present;
-    rrc_asn1_warn_assert(cell_resel_serving_freq_info_v1310_present !=
-                             (cell_resel_serving_freq_info_v1310.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[3] |= cell_resel_serving_freq_info_v1310_present;
-    rrc_asn1_warn_assert(
-        redist_serving_info_r13_present != (redist_serving_info_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= redist_serving_info_r13_present;
-    rrc_asn1_warn_assert(cell_sel_info_ce_r13_present != (cell_sel_info_ce_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= cell_sel_info_ce_r13_present;
-    group_flags[3] |= t_resel_eutra_ce_r13_present;
-    rrc_asn1_warn_assert(cell_sel_info_ce1_r13_present != (cell_sel_info_ce1_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= cell_sel_info_ce1_r13_present;
-    rrc_asn1_warn_assert(
-        cell_sel_info_ce1_v1360_present != (cell_sel_info_ce1_v1360.get() != NULL), __FILE__, __LINE__);
-    group_flags[5] |= cell_sel_info_ce1_v1360_present;
-    rrc_asn1_warn_assert(
-        cell_resel_info_common_v1460_present != (cell_resel_info_common_v1460.get() != NULL), __FILE__, __LINE__);
-    group_flags[6] |= cell_resel_info_common_v1460_present;
-    rrc_asn1_warn_assert(
-        cell_resel_info_hsdn_r15_present != (cell_resel_info_hsdn_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[7] |= cell_resel_info_hsdn_r15_present;
-    rrc_asn1_warn_assert(cell_sel_info_ce_v1530_present != (cell_sel_info_ce_v1530.get() != NULL), __FILE__, __LINE__);
-    group_flags[7] |= cell_sel_info_ce_v1530_present;
-    group_flags[7] |= crs_intf_mitig_neigh_cells_ce_r15_present;
-    group_flags.pack_nof_groups(bref);
-    HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
-    group_flags.pack_group_flags(bref);
-
-    if (late_non_crit_ext_present) {
-      HANDLE_CODE(late_non_crit_ext.pack(bref));
-    }
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= late_non_crit_ext_present;
+    group_flags[1] |= s_intra_search_v920.is_present();
+    group_flags[1] |= s_non_intra_search_v920.is_present();
+    group_flags[1] |= q_qual_min_r9_present;
+    group_flags[1] |= thresh_serving_low_q_r9_present;
+    group_flags[2] |= q_qual_min_wb_r11_present;
+    group_flags[3] |= q_qual_min_rsrq_on_all_symbols_r12_present;
+    group_flags[4] |= cell_resel_serving_freq_info_v1310.is_present();
+    group_flags[4] |= redist_serving_info_r13.is_present();
+    group_flags[4] |= cell_sel_info_ce_r13.is_present();
+    group_flags[4] |= t_resel_eutra_ce_r13_present;
+    group_flags[5] |= cell_sel_info_ce1_r13.is_present();
+    group_flags[6] |= cell_sel_info_ce1_v1360.is_present();
+    group_flags[7] |= cell_resel_info_common_v1460.is_present();
+    group_flags[8] |= cell_resel_info_hsdn_r15.is_present();
+    group_flags[8] |= cell_sel_info_ce_v1530.is_present();
+    group_flags[8] |= crs_intf_mitig_neigh_cells_ce_r15_present;
+    group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(s_intra_search_v920_present, 1));
-      HANDLE_CODE(bref.pack(s_non_intra_search_v920_present, 1));
+      HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
+    }
+    if (group_flags[1]) {
+      varlength_field_pack_guard varlen_scope(bref);
+
+      HANDLE_CODE(bref.pack(s_intra_search_v920.is_present(), 1));
+      HANDLE_CODE(bref.pack(s_non_intra_search_v920.is_present(), 1));
       HANDLE_CODE(bref.pack(q_qual_min_r9_present, 1));
       HANDLE_CODE(bref.pack(thresh_serving_low_q_r9_present, 1));
-      if (s_intra_search_v920_present) {
+      if (s_intra_search_v920.is_present()) {
         HANDLE_CODE(pack_unalign_integer(bref, s_intra_search_v920->s_intra_search_p_r9, (uint8_t)0, (uint8_t)31));
         HANDLE_CODE(pack_unalign_integer(bref, s_intra_search_v920->s_intra_search_q_r9, (uint8_t)0, (uint8_t)31));
       }
-      if (s_non_intra_search_v920_present) {
+      if (s_non_intra_search_v920.is_present()) {
         HANDLE_CODE(
             pack_unalign_integer(bref, s_non_intra_search_v920->s_non_intra_search_p_r9, (uint8_t)0, (uint8_t)31));
         HANDLE_CODE(
@@ -16939,76 +16804,76 @@ SRSASN_CODE sib_type3_s::pack(bit_ref& bref) const
         HANDLE_CODE(pack_unalign_integer(bref, thresh_serving_low_q_r9, (uint8_t)0, (uint8_t)31));
       }
     }
-    if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+    if (group_flags[2]) {
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(q_qual_min_wb_r11_present, 1));
       if (q_qual_min_wb_r11_present) {
         HANDLE_CODE(pack_unalign_integer(bref, q_qual_min_wb_r11, (int8_t)-34, (int8_t)-3));
       }
     }
-    if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+    if (group_flags[3]) {
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(q_qual_min_rsrq_on_all_symbols_r12_present, 1));
       if (q_qual_min_rsrq_on_all_symbols_r12_present) {
         HANDLE_CODE(pack_unalign_integer(bref, q_qual_min_rsrq_on_all_symbols_r12, (int8_t)-34, (int8_t)-3));
       }
     }
-    if (group_flags[3]) {
-      varlength_field_pack_guard packer(bref);
+    if (group_flags[4]) {
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(cell_resel_serving_freq_info_v1310_present, 1));
-      HANDLE_CODE(bref.pack(redist_serving_info_r13_present, 1));
-      HANDLE_CODE(bref.pack(cell_sel_info_ce_r13_present, 1));
+      HANDLE_CODE(bref.pack(cell_resel_serving_freq_info_v1310.is_present(), 1));
+      HANDLE_CODE(bref.pack(redist_serving_info_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(cell_sel_info_ce_r13.is_present(), 1));
       HANDLE_CODE(bref.pack(t_resel_eutra_ce_r13_present, 1));
-      if (cell_resel_serving_freq_info_v1310_present) {
+      if (cell_resel_serving_freq_info_v1310.is_present()) {
         HANDLE_CODE(cell_resel_serving_freq_info_v1310->pack(bref));
       }
-      if (redist_serving_info_r13_present) {
+      if (redist_serving_info_r13.is_present()) {
         HANDLE_CODE(redist_serving_info_r13->pack(bref));
       }
-      if (cell_sel_info_ce_r13_present) {
+      if (cell_sel_info_ce_r13.is_present()) {
         HANDLE_CODE(cell_sel_info_ce_r13->pack(bref));
       }
       if (t_resel_eutra_ce_r13_present) {
         HANDLE_CODE(pack_unalign_integer(bref, t_resel_eutra_ce_r13, (uint8_t)0, (uint8_t)15));
       }
     }
-    if (group_flags[4]) {
-      varlength_field_pack_guard packer(bref);
+    if (group_flags[5]) {
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(cell_sel_info_ce1_r13_present, 1));
-      if (cell_sel_info_ce1_r13_present) {
+      HANDLE_CODE(bref.pack(cell_sel_info_ce1_r13.is_present(), 1));
+      if (cell_sel_info_ce1_r13.is_present()) {
         HANDLE_CODE(cell_sel_info_ce1_r13->pack(bref));
       }
     }
-    if (group_flags[5]) {
-      varlength_field_pack_guard packer(bref);
+    if (group_flags[6]) {
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(cell_sel_info_ce1_v1360_present, 1));
-      if (cell_sel_info_ce1_v1360_present) {
+      HANDLE_CODE(bref.pack(cell_sel_info_ce1_v1360.is_present(), 1));
+      if (cell_sel_info_ce1_v1360.is_present()) {
         HANDLE_CODE(cell_sel_info_ce1_v1360->pack(bref));
       }
     }
-    if (group_flags[6]) {
-      varlength_field_pack_guard packer(bref);
+    if (group_flags[7]) {
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(cell_resel_info_common_v1460_present, 1));
-      if (cell_resel_info_common_v1460_present) {
+      HANDLE_CODE(bref.pack(cell_resel_info_common_v1460.is_present(), 1));
+      if (cell_resel_info_common_v1460.is_present()) {
         HANDLE_CODE(cell_resel_info_common_v1460->pack(bref));
       }
     }
-    if (group_flags[7]) {
-      varlength_field_pack_guard packer(bref);
+    if (group_flags[8]) {
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(cell_resel_info_hsdn_r15_present, 1));
-      HANDLE_CODE(bref.pack(cell_sel_info_ce_v1530_present, 1));
+      HANDLE_CODE(bref.pack(cell_resel_info_hsdn_r15.is_present(), 1));
+      HANDLE_CODE(bref.pack(cell_sel_info_ce_v1530.is_present(), 1));
       HANDLE_CODE(bref.pack(crs_intf_mitig_neigh_cells_ce_r15_present, 1));
-      if (cell_resel_info_hsdn_r15_present) {
+      if (cell_resel_info_hsdn_r15.is_present()) {
         HANDLE_CODE(cell_resel_info_hsdn_r15->pack(bref));
       }
-      if (cell_sel_info_ce_v1530_present) {
+      if (cell_sel_info_ce_v1530.is_present()) {
         HANDLE_CODE(cell_sel_info_ce_v1530->pack(bref));
       }
     }
@@ -17053,29 +16918,30 @@ SRSASN_CODE sib_type3_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(8, 1);
-    group_flags.unpack_nof_groups(bref);
-    HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
-    group_flags.unpack_group_flags(bref);
-
-    if (late_non_crit_ext_present) {
-      HANDLE_CODE(late_non_crit_ext.unpack(bref));
-    }
+    ext_groups_unpacker_guard group_flags(9);
+    group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
+    }
+    if (group_flags[1]) {
+      varlength_field_unpack_guard varlen_scope(bref);
+
+      bool s_intra_search_v920_present;
       HANDLE_CODE(bref.unpack(s_intra_search_v920_present, 1));
+      s_intra_search_v920.set_present(s_intra_search_v920_present);
+      bool s_non_intra_search_v920_present;
       HANDLE_CODE(bref.unpack(s_non_intra_search_v920_present, 1));
+      s_non_intra_search_v920.set_present(s_non_intra_search_v920_present);
       HANDLE_CODE(bref.unpack(q_qual_min_r9_present, 1));
       HANDLE_CODE(bref.unpack(thresh_serving_low_q_r9_present, 1));
-      if (s_intra_search_v920_present) {
-        s_intra_search_v920 = make_copy_ptr(s_intra_search_v920_s_());
+      if (s_intra_search_v920.is_present()) {
         HANDLE_CODE(unpack_unalign_integer(s_intra_search_v920->s_intra_search_p_r9, bref, (uint8_t)0, (uint8_t)31));
         HANDLE_CODE(unpack_unalign_integer(s_intra_search_v920->s_intra_search_q_r9, bref, (uint8_t)0, (uint8_t)31));
       }
-      if (s_non_intra_search_v920_present) {
-        s_non_intra_search_v920 = make_copy_ptr(s_non_intra_search_v920_s_());
+      if (s_non_intra_search_v920.is_present()) {
         HANDLE_CODE(
             unpack_unalign_integer(s_non_intra_search_v920->s_non_intra_search_p_r9, bref, (uint8_t)0, (uint8_t)31));
         HANDLE_CODE(
@@ -17088,84 +16954,92 @@ SRSASN_CODE sib_type3_s::unpack(bit_ref& bref)
         HANDLE_CODE(unpack_unalign_integer(thresh_serving_low_q_r9, bref, (uint8_t)0, (uint8_t)31));
       }
     }
-    if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+    if (group_flags[2]) {
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(q_qual_min_wb_r11_present, 1));
       if (q_qual_min_wb_r11_present) {
         HANDLE_CODE(unpack_unalign_integer(q_qual_min_wb_r11, bref, (int8_t)-34, (int8_t)-3));
       }
     }
-    if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+    if (group_flags[3]) {
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(q_qual_min_rsrq_on_all_symbols_r12_present, 1));
       if (q_qual_min_rsrq_on_all_symbols_r12_present) {
         HANDLE_CODE(unpack_unalign_integer(q_qual_min_rsrq_on_all_symbols_r12, bref, (int8_t)-34, (int8_t)-3));
       }
     }
-    if (group_flags[3]) {
-      varlength_field_unpack_guard unpacker(bref);
+    if (group_flags[4]) {
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool cell_resel_serving_freq_info_v1310_present;
       HANDLE_CODE(bref.unpack(cell_resel_serving_freq_info_v1310_present, 1));
+      cell_resel_serving_freq_info_v1310.set_present(cell_resel_serving_freq_info_v1310_present);
+      bool redist_serving_info_r13_present;
       HANDLE_CODE(bref.unpack(redist_serving_info_r13_present, 1));
+      redist_serving_info_r13.set_present(redist_serving_info_r13_present);
+      bool cell_sel_info_ce_r13_present;
       HANDLE_CODE(bref.unpack(cell_sel_info_ce_r13_present, 1));
+      cell_sel_info_ce_r13.set_present(cell_sel_info_ce_r13_present);
       HANDLE_CODE(bref.unpack(t_resel_eutra_ce_r13_present, 1));
-      if (cell_resel_serving_freq_info_v1310_present) {
-        cell_resel_serving_freq_info_v1310 = make_copy_ptr(cell_resel_serving_freq_info_v1310_s());
+      if (cell_resel_serving_freq_info_v1310.is_present()) {
         HANDLE_CODE(cell_resel_serving_freq_info_v1310->unpack(bref));
       }
-      if (redist_serving_info_r13_present) {
-        redist_serving_info_r13 = make_copy_ptr(redist_serving_info_r13_s());
+      if (redist_serving_info_r13.is_present()) {
         HANDLE_CODE(redist_serving_info_r13->unpack(bref));
       }
-      if (cell_sel_info_ce_r13_present) {
-        cell_sel_info_ce_r13 = make_copy_ptr(cell_sel_info_ce_r13_s());
+      if (cell_sel_info_ce_r13.is_present()) {
         HANDLE_CODE(cell_sel_info_ce_r13->unpack(bref));
       }
       if (t_resel_eutra_ce_r13_present) {
         HANDLE_CODE(unpack_unalign_integer(t_resel_eutra_ce_r13, bref, (uint8_t)0, (uint8_t)15));
       }
     }
-    if (group_flags[4]) {
-      varlength_field_unpack_guard unpacker(bref);
+    if (group_flags[5]) {
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool cell_sel_info_ce1_r13_present;
       HANDLE_CODE(bref.unpack(cell_sel_info_ce1_r13_present, 1));
-      if (cell_sel_info_ce1_r13_present) {
-        cell_sel_info_ce1_r13 = make_copy_ptr(cell_sel_info_ce1_r13_s());
+      cell_sel_info_ce1_r13.set_present(cell_sel_info_ce1_r13_present);
+      if (cell_sel_info_ce1_r13.is_present()) {
         HANDLE_CODE(cell_sel_info_ce1_r13->unpack(bref));
       }
     }
-    if (group_flags[5]) {
-      varlength_field_unpack_guard unpacker(bref);
+    if (group_flags[6]) {
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool cell_sel_info_ce1_v1360_present;
       HANDLE_CODE(bref.unpack(cell_sel_info_ce1_v1360_present, 1));
-      if (cell_sel_info_ce1_v1360_present) {
-        cell_sel_info_ce1_v1360 = make_copy_ptr(cell_sel_info_ce1_v1360_s());
+      cell_sel_info_ce1_v1360.set_present(cell_sel_info_ce1_v1360_present);
+      if (cell_sel_info_ce1_v1360.is_present()) {
         HANDLE_CODE(cell_sel_info_ce1_v1360->unpack(bref));
       }
     }
-    if (group_flags[6]) {
-      varlength_field_unpack_guard unpacker(bref);
+    if (group_flags[7]) {
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool cell_resel_info_common_v1460_present;
       HANDLE_CODE(bref.unpack(cell_resel_info_common_v1460_present, 1));
-      if (cell_resel_info_common_v1460_present) {
-        cell_resel_info_common_v1460 = make_copy_ptr(cell_resel_info_common_v1460_s());
+      cell_resel_info_common_v1460.set_present(cell_resel_info_common_v1460_present);
+      if (cell_resel_info_common_v1460.is_present()) {
         HANDLE_CODE(cell_resel_info_common_v1460->unpack(bref));
       }
     }
-    if (group_flags[7]) {
-      varlength_field_unpack_guard unpacker(bref);
+    if (group_flags[8]) {
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool cell_resel_info_hsdn_r15_present;
       HANDLE_CODE(bref.unpack(cell_resel_info_hsdn_r15_present, 1));
+      cell_resel_info_hsdn_r15.set_present(cell_resel_info_hsdn_r15_present);
+      bool cell_sel_info_ce_v1530_present;
       HANDLE_CODE(bref.unpack(cell_sel_info_ce_v1530_present, 1));
+      cell_sel_info_ce_v1530.set_present(cell_sel_info_ce_v1530_present);
       HANDLE_CODE(bref.unpack(crs_intf_mitig_neigh_cells_ce_r15_present, 1));
-      if (cell_resel_info_hsdn_r15_present) {
-        cell_resel_info_hsdn_r15 = make_copy_ptr(cell_resel_info_hsdn_r15_s());
+      if (cell_resel_info_hsdn_r15.is_present()) {
         HANDLE_CODE(cell_resel_info_hsdn_r15->unpack(bref));
       }
-      if (cell_sel_info_ce_v1530_present) {
-        cell_sel_info_ce_v1530 = make_copy_ptr(cell_sel_info_ce_v1530_s());
+      if (cell_sel_info_ce_v1530.is_present()) {
         HANDLE_CODE(cell_sel_info_ce_v1530->unpack(bref));
       }
     }
@@ -17223,17 +17097,14 @@ void sib_type3_s::to_json(json_writer& j) const
     if (late_non_crit_ext_present) {
       j.write_str("lateNonCriticalExtension", late_non_crit_ext.to_string());
     }
-    rrc_asn1_warn_assert(s_intra_search_v920_present != (s_intra_search_v920.get() != NULL), __FILE__, __LINE__);
-    if (s_intra_search_v920_present) {
+    if (s_intra_search_v920.is_present()) {
       j.write_fieldname("s-IntraSearch-v920");
       j.start_obj();
       j.write_int("s-IntraSearchP-r9", s_intra_search_v920->s_intra_search_p_r9);
       j.write_int("s-IntraSearchQ-r9", s_intra_search_v920->s_intra_search_q_r9);
       j.end_obj();
     }
-    rrc_asn1_warn_assert(
-        s_non_intra_search_v920_present != (s_non_intra_search_v920.get() != NULL), __FILE__, __LINE__);
-    if (s_non_intra_search_v920_present) {
+    if (s_non_intra_search_v920.is_present()) {
       j.write_fieldname("s-NonIntraSearch-v920");
       j.start_obj();
       j.write_int("s-NonIntraSearchP-r9", s_non_intra_search_v920->s_non_intra_search_p_r9);
@@ -17252,53 +17123,38 @@ void sib_type3_s::to_json(json_writer& j) const
     if (q_qual_min_rsrq_on_all_symbols_r12_present) {
       j.write_int("q-QualMinRSRQ-OnAllSymbols-r12", q_qual_min_rsrq_on_all_symbols_r12);
     }
-    rrc_asn1_warn_assert(cell_resel_serving_freq_info_v1310_present !=
-                             (cell_resel_serving_freq_info_v1310.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (cell_resel_serving_freq_info_v1310_present) {
+    if (cell_resel_serving_freq_info_v1310.is_present()) {
       j.write_fieldname("cellReselectionServingFreqInfo-v1310");
       cell_resel_serving_freq_info_v1310->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        redist_serving_info_r13_present != (redist_serving_info_r13.get() != NULL), __FILE__, __LINE__);
-    if (redist_serving_info_r13_present) {
+    if (redist_serving_info_r13.is_present()) {
       j.write_fieldname("redistributionServingInfo-r13");
       redist_serving_info_r13->to_json(j);
     }
-    rrc_asn1_warn_assert(cell_sel_info_ce_r13_present != (cell_sel_info_ce_r13.get() != NULL), __FILE__, __LINE__);
-    if (cell_sel_info_ce_r13_present) {
+    if (cell_sel_info_ce_r13.is_present()) {
       j.write_fieldname("cellSelectionInfoCE-r13");
       cell_sel_info_ce_r13->to_json(j);
     }
     if (t_resel_eutra_ce_r13_present) {
       j.write_int("t-ReselectionEUTRA-CE-r13", t_resel_eutra_ce_r13);
     }
-    rrc_asn1_warn_assert(cell_sel_info_ce1_r13_present != (cell_sel_info_ce1_r13.get() != NULL), __FILE__, __LINE__);
-    if (cell_sel_info_ce1_r13_present) {
+    if (cell_sel_info_ce1_r13.is_present()) {
       j.write_fieldname("cellSelectionInfoCE1-r13");
       cell_sel_info_ce1_r13->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        cell_sel_info_ce1_v1360_present != (cell_sel_info_ce1_v1360.get() != NULL), __FILE__, __LINE__);
-    if (cell_sel_info_ce1_v1360_present) {
+    if (cell_sel_info_ce1_v1360.is_present()) {
       j.write_fieldname("cellSelectionInfoCE1-v1360");
       cell_sel_info_ce1_v1360->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        cell_resel_info_common_v1460_present != (cell_resel_info_common_v1460.get() != NULL), __FILE__, __LINE__);
-    if (cell_resel_info_common_v1460_present) {
+    if (cell_resel_info_common_v1460.is_present()) {
       j.write_fieldname("cellReselectionInfoCommon-v1460");
       cell_resel_info_common_v1460->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        cell_resel_info_hsdn_r15_present != (cell_resel_info_hsdn_r15.get() != NULL), __FILE__, __LINE__);
-    if (cell_resel_info_hsdn_r15_present) {
+    if (cell_resel_info_hsdn_r15.is_present()) {
       j.write_fieldname("cellReselectionInfoHSDN-r15");
       cell_resel_info_hsdn_r15->to_json(j);
     }
-    rrc_asn1_warn_assert(cell_sel_info_ce_v1530_present != (cell_sel_info_ce_v1530.get() != NULL), __FILE__, __LINE__);
-    if (cell_sel_info_ce_v1530_present) {
+    if (cell_sel_info_ce_v1530.is_present()) {
       j.write_fieldname("cellSelectionInfoCE-v1530");
       cell_sel_info_ce_v1530->to_json(j);
     }
@@ -17328,25 +17184,21 @@ SRSASN_CODE sib_type4_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(1, 1);
-    rrc_asn1_warn_assert(intra_freq_neigh_hsdn_cell_list_r15_present !=
-                             (intra_freq_neigh_hsdn_cell_list_r15.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[0] |= intra_freq_neigh_hsdn_cell_list_r15_present;
-    group_flags.pack_nof_groups(bref);
-    HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
-    group_flags.pack_group_flags(bref);
-
-    if (late_non_crit_ext_present) {
-      HANDLE_CODE(late_non_crit_ext.pack(bref));
-    }
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= late_non_crit_ext_present;
+    group_flags[1] |= intra_freq_neigh_hsdn_cell_list_r15.is_present();
+    group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(intra_freq_neigh_hsdn_cell_list_r15_present, 1));
-      if (intra_freq_neigh_hsdn_cell_list_r15_present) {
+      HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
+    }
+    if (group_flags[1]) {
+      varlength_field_pack_guard varlen_scope(bref);
+
+      HANDLE_CODE(bref.pack(intra_freq_neigh_hsdn_cell_list_r15.is_present(), 1));
+      if (intra_freq_neigh_hsdn_cell_list_r15.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *intra_freq_neigh_hsdn_cell_list_r15, 1, 16));
       }
     }
@@ -17371,21 +17223,21 @@ SRSASN_CODE sib_type4_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(1, 1);
-    group_flags.unpack_nof_groups(bref);
-    HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
-    group_flags.unpack_group_flags(bref);
-
-    if (late_non_crit_ext_present) {
-      HANDLE_CODE(late_non_crit_ext.unpack(bref));
-    }
+    ext_groups_unpacker_guard group_flags(2);
+    group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
+    }
+    if (group_flags[1]) {
+      varlength_field_unpack_guard varlen_scope(bref);
+
+      bool intra_freq_neigh_hsdn_cell_list_r15_present;
       HANDLE_CODE(bref.unpack(intra_freq_neigh_hsdn_cell_list_r15_present, 1));
-      if (intra_freq_neigh_hsdn_cell_list_r15_present) {
-        intra_freq_neigh_hsdn_cell_list_r15 = make_copy_ptr(intra_freq_neigh_hsdn_cell_list_r15_l());
+      intra_freq_neigh_hsdn_cell_list_r15.set_present(intra_freq_neigh_hsdn_cell_list_r15_present);
+      if (intra_freq_neigh_hsdn_cell_list_r15.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*intra_freq_neigh_hsdn_cell_list_r15, bref, 1, 16));
       }
     }
@@ -17417,11 +17269,7 @@ void sib_type4_s::to_json(json_writer& j) const
     if (late_non_crit_ext_present) {
       j.write_str("lateNonCriticalExtension", late_non_crit_ext.to_string());
     }
-    rrc_asn1_warn_assert(intra_freq_neigh_hsdn_cell_list_r15_present !=
-                             (intra_freq_neigh_hsdn_cell_list_r15.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (intra_freq_neigh_hsdn_cell_list_r15_present) {
+    if (intra_freq_neigh_hsdn_cell_list_r15.is_present()) {
       j.start_array("intraFreqNeighHSDN-CellList-r15");
       for (uint32_t i1 = 0; i1 < intra_freq_neigh_hsdn_cell_list_r15->size(); ++i1) {
         ((*intra_freq_neigh_hsdn_cell_list_r15)[i1]).to_json(j);
@@ -17439,141 +17287,100 @@ SRSASN_CODE sib_type5_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_dyn_seq_of(bref, inter_freq_carrier_freq_list, 1, 8));
 
   if (ext) {
-    ext_groups_header group_flags(7, 1);
-    rrc_asn1_warn_assert(inter_freq_carrier_freq_list_v1250_present !=
-                             (inter_freq_carrier_freq_list_v1250.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[0] |= inter_freq_carrier_freq_list_v1250_present;
-    rrc_asn1_warn_assert(inter_freq_carrier_freq_list_ext_r12_present !=
-                             (inter_freq_carrier_freq_list_ext_r12.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[0] |= inter_freq_carrier_freq_list_ext_r12_present;
-    rrc_asn1_warn_assert(inter_freq_carrier_freq_list_ext_v1280_present !=
-                             (inter_freq_carrier_freq_list_ext_v1280.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[1] |= inter_freq_carrier_freq_list_ext_v1280_present;
-    rrc_asn1_warn_assert(inter_freq_carrier_freq_list_v1310_present !=
-                             (inter_freq_carrier_freq_list_v1310.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[2] |= inter_freq_carrier_freq_list_v1310_present;
-    rrc_asn1_warn_assert(inter_freq_carrier_freq_list_ext_v1310_present !=
-                             (inter_freq_carrier_freq_list_ext_v1310.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[2] |= inter_freq_carrier_freq_list_ext_v1310_present;
-    rrc_asn1_warn_assert(inter_freq_carrier_freq_list_v1350_present !=
-                             (inter_freq_carrier_freq_list_v1350.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[3] |= inter_freq_carrier_freq_list_v1350_present;
-    rrc_asn1_warn_assert(inter_freq_carrier_freq_list_ext_v1350_present !=
-                             (inter_freq_carrier_freq_list_ext_v1350.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[3] |= inter_freq_carrier_freq_list_ext_v1350_present;
-    rrc_asn1_warn_assert(inter_freq_carrier_freq_list_ext_v1360_present !=
-                             (inter_freq_carrier_freq_list_ext_v1360.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[4] |= inter_freq_carrier_freq_list_ext_v1360_present;
-    group_flags[5] |= scptm_freq_offset_r14_present;
-    rrc_asn1_warn_assert(inter_freq_carrier_freq_list_v1530_present !=
-                             (inter_freq_carrier_freq_list_v1530.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[6] |= inter_freq_carrier_freq_list_v1530_present;
-    rrc_asn1_warn_assert(inter_freq_carrier_freq_list_ext_v1530_present !=
-                             (inter_freq_carrier_freq_list_ext_v1530.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[6] |= inter_freq_carrier_freq_list_ext_v1530_present;
-    rrc_asn1_warn_assert(meas_idle_cfg_sib_r15_present != (meas_idle_cfg_sib_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[6] |= meas_idle_cfg_sib_r15_present;
-    group_flags.pack_nof_groups(bref);
-    HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
-    group_flags.pack_group_flags(bref);
-
-    if (late_non_crit_ext_present) {
-      HANDLE_CODE(late_non_crit_ext.pack(bref));
-    }
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= late_non_crit_ext_present;
+    group_flags[1] |= inter_freq_carrier_freq_list_v1250.is_present();
+    group_flags[1] |= inter_freq_carrier_freq_list_ext_r12.is_present();
+    group_flags[2] |= inter_freq_carrier_freq_list_ext_v1280.is_present();
+    group_flags[3] |= inter_freq_carrier_freq_list_v1310.is_present();
+    group_flags[3] |= inter_freq_carrier_freq_list_ext_v1310.is_present();
+    group_flags[4] |= inter_freq_carrier_freq_list_v1350.is_present();
+    group_flags[4] |= inter_freq_carrier_freq_list_ext_v1350.is_present();
+    group_flags[5] |= inter_freq_carrier_freq_list_ext_v1360.is_present();
+    group_flags[6] |= scptm_freq_offset_r14_present;
+    group_flags[7] |= inter_freq_carrier_freq_list_v1530.is_present();
+    group_flags[7] |= inter_freq_carrier_freq_list_ext_v1530.is_present();
+    group_flags[7] |= meas_idle_cfg_sib_r15.is_present();
+    group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(inter_freq_carrier_freq_list_v1250_present, 1));
-      HANDLE_CODE(bref.pack(inter_freq_carrier_freq_list_ext_r12_present, 1));
-      if (inter_freq_carrier_freq_list_v1250_present) {
+      HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
+    }
+    if (group_flags[1]) {
+      varlength_field_pack_guard varlen_scope(bref);
+
+      HANDLE_CODE(bref.pack(inter_freq_carrier_freq_list_v1250.is_present(), 1));
+      HANDLE_CODE(bref.pack(inter_freq_carrier_freq_list_ext_r12.is_present(), 1));
+      if (inter_freq_carrier_freq_list_v1250.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *inter_freq_carrier_freq_list_v1250, 1, 8));
       }
-      if (inter_freq_carrier_freq_list_ext_r12_present) {
+      if (inter_freq_carrier_freq_list_ext_r12.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *inter_freq_carrier_freq_list_ext_r12, 1, 8));
       }
     }
-    if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+    if (group_flags[2]) {
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(inter_freq_carrier_freq_list_ext_v1280_present, 1));
-      if (inter_freq_carrier_freq_list_ext_v1280_present) {
+      HANDLE_CODE(bref.pack(inter_freq_carrier_freq_list_ext_v1280.is_present(), 1));
+      if (inter_freq_carrier_freq_list_ext_v1280.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *inter_freq_carrier_freq_list_ext_v1280, 1, 8));
       }
     }
-    if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+    if (group_flags[3]) {
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(inter_freq_carrier_freq_list_v1310_present, 1));
-      HANDLE_CODE(bref.pack(inter_freq_carrier_freq_list_ext_v1310_present, 1));
-      if (inter_freq_carrier_freq_list_v1310_present) {
+      HANDLE_CODE(bref.pack(inter_freq_carrier_freq_list_v1310.is_present(), 1));
+      HANDLE_CODE(bref.pack(inter_freq_carrier_freq_list_ext_v1310.is_present(), 1));
+      if (inter_freq_carrier_freq_list_v1310.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *inter_freq_carrier_freq_list_v1310, 1, 8));
       }
-      if (inter_freq_carrier_freq_list_ext_v1310_present) {
+      if (inter_freq_carrier_freq_list_ext_v1310.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *inter_freq_carrier_freq_list_ext_v1310, 1, 8));
       }
     }
-    if (group_flags[3]) {
-      varlength_field_pack_guard packer(bref);
+    if (group_flags[4]) {
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(inter_freq_carrier_freq_list_v1350_present, 1));
-      HANDLE_CODE(bref.pack(inter_freq_carrier_freq_list_ext_v1350_present, 1));
-      if (inter_freq_carrier_freq_list_v1350_present) {
+      HANDLE_CODE(bref.pack(inter_freq_carrier_freq_list_v1350.is_present(), 1));
+      HANDLE_CODE(bref.pack(inter_freq_carrier_freq_list_ext_v1350.is_present(), 1));
+      if (inter_freq_carrier_freq_list_v1350.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *inter_freq_carrier_freq_list_v1350, 1, 8));
       }
-      if (inter_freq_carrier_freq_list_ext_v1350_present) {
+      if (inter_freq_carrier_freq_list_ext_v1350.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *inter_freq_carrier_freq_list_ext_v1350, 1, 8));
       }
     }
-    if (group_flags[4]) {
-      varlength_field_pack_guard packer(bref);
+    if (group_flags[5]) {
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(inter_freq_carrier_freq_list_ext_v1360_present, 1));
-      if (inter_freq_carrier_freq_list_ext_v1360_present) {
+      HANDLE_CODE(bref.pack(inter_freq_carrier_freq_list_ext_v1360.is_present(), 1));
+      if (inter_freq_carrier_freq_list_ext_v1360.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *inter_freq_carrier_freq_list_ext_v1360, 1, 8));
       }
     }
-    if (group_flags[5]) {
-      varlength_field_pack_guard packer(bref);
+    if (group_flags[6]) {
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(scptm_freq_offset_r14_present, 1));
       if (scptm_freq_offset_r14_present) {
         HANDLE_CODE(pack_unalign_integer(bref, scptm_freq_offset_r14, (uint8_t)1, (uint8_t)8));
       }
     }
-    if (group_flags[6]) {
-      varlength_field_pack_guard packer(bref);
+    if (group_flags[7]) {
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(inter_freq_carrier_freq_list_v1530_present, 1));
-      HANDLE_CODE(bref.pack(inter_freq_carrier_freq_list_ext_v1530_present, 1));
-      HANDLE_CODE(bref.pack(meas_idle_cfg_sib_r15_present, 1));
-      if (inter_freq_carrier_freq_list_v1530_present) {
+      HANDLE_CODE(bref.pack(inter_freq_carrier_freq_list_v1530.is_present(), 1));
+      HANDLE_CODE(bref.pack(inter_freq_carrier_freq_list_ext_v1530.is_present(), 1));
+      HANDLE_CODE(bref.pack(meas_idle_cfg_sib_r15.is_present(), 1));
+      if (inter_freq_carrier_freq_list_v1530.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *inter_freq_carrier_freq_list_v1530, 1, 8));
       }
-      if (inter_freq_carrier_freq_list_ext_v1530_present) {
+      if (inter_freq_carrier_freq_list_ext_v1530.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *inter_freq_carrier_freq_list_ext_v1530, 1, 8));
       }
-      if (meas_idle_cfg_sib_r15_present) {
+      if (meas_idle_cfg_sib_r15.is_present()) {
         HANDLE_CODE(meas_idle_cfg_sib_r15->pack(bref));
       }
     }
@@ -17586,99 +17393,109 @@ SRSASN_CODE sib_type5_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_dyn_seq_of(inter_freq_carrier_freq_list, bref, 1, 8));
 
   if (ext) {
-    ext_groups_header group_flags(7, 1);
-    group_flags.unpack_nof_groups(bref);
-    HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
-    group_flags.unpack_group_flags(bref);
-
-    if (late_non_crit_ext_present) {
-      HANDLE_CODE(late_non_crit_ext.unpack(bref));
-    }
+    ext_groups_unpacker_guard group_flags(8);
+    group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
+    }
+    if (group_flags[1]) {
+      varlength_field_unpack_guard varlen_scope(bref);
+
+      bool inter_freq_carrier_freq_list_v1250_present;
       HANDLE_CODE(bref.unpack(inter_freq_carrier_freq_list_v1250_present, 1));
+      inter_freq_carrier_freq_list_v1250.set_present(inter_freq_carrier_freq_list_v1250_present);
+      bool inter_freq_carrier_freq_list_ext_r12_present;
       HANDLE_CODE(bref.unpack(inter_freq_carrier_freq_list_ext_r12_present, 1));
-      if (inter_freq_carrier_freq_list_v1250_present) {
-        inter_freq_carrier_freq_list_v1250 = make_copy_ptr(inter_freq_carrier_freq_list_v1250_l());
+      inter_freq_carrier_freq_list_ext_r12.set_present(inter_freq_carrier_freq_list_ext_r12_present);
+      if (inter_freq_carrier_freq_list_v1250.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*inter_freq_carrier_freq_list_v1250, bref, 1, 8));
       }
-      if (inter_freq_carrier_freq_list_ext_r12_present) {
-        inter_freq_carrier_freq_list_ext_r12 = make_copy_ptr(inter_freq_carrier_freq_list_ext_r12_l());
+      if (inter_freq_carrier_freq_list_ext_r12.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*inter_freq_carrier_freq_list_ext_r12, bref, 1, 8));
       }
     }
-    if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+    if (group_flags[2]) {
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool inter_freq_carrier_freq_list_ext_v1280_present;
       HANDLE_CODE(bref.unpack(inter_freq_carrier_freq_list_ext_v1280_present, 1));
-      if (inter_freq_carrier_freq_list_ext_v1280_present) {
-        inter_freq_carrier_freq_list_ext_v1280 = make_copy_ptr(inter_freq_carrier_freq_list_ext_v1280_l());
+      inter_freq_carrier_freq_list_ext_v1280.set_present(inter_freq_carrier_freq_list_ext_v1280_present);
+      if (inter_freq_carrier_freq_list_ext_v1280.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*inter_freq_carrier_freq_list_ext_v1280, bref, 1, 8));
       }
     }
-    if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+    if (group_flags[3]) {
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool inter_freq_carrier_freq_list_v1310_present;
       HANDLE_CODE(bref.unpack(inter_freq_carrier_freq_list_v1310_present, 1));
+      inter_freq_carrier_freq_list_v1310.set_present(inter_freq_carrier_freq_list_v1310_present);
+      bool inter_freq_carrier_freq_list_ext_v1310_present;
       HANDLE_CODE(bref.unpack(inter_freq_carrier_freq_list_ext_v1310_present, 1));
-      if (inter_freq_carrier_freq_list_v1310_present) {
-        inter_freq_carrier_freq_list_v1310 = make_copy_ptr(inter_freq_carrier_freq_list_v1310_l());
+      inter_freq_carrier_freq_list_ext_v1310.set_present(inter_freq_carrier_freq_list_ext_v1310_present);
+      if (inter_freq_carrier_freq_list_v1310.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*inter_freq_carrier_freq_list_v1310, bref, 1, 8));
       }
-      if (inter_freq_carrier_freq_list_ext_v1310_present) {
-        inter_freq_carrier_freq_list_ext_v1310 = make_copy_ptr(inter_freq_carrier_freq_list_ext_v1310_l());
+      if (inter_freq_carrier_freq_list_ext_v1310.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*inter_freq_carrier_freq_list_ext_v1310, bref, 1, 8));
       }
     }
-    if (group_flags[3]) {
-      varlength_field_unpack_guard unpacker(bref);
+    if (group_flags[4]) {
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool inter_freq_carrier_freq_list_v1350_present;
       HANDLE_CODE(bref.unpack(inter_freq_carrier_freq_list_v1350_present, 1));
+      inter_freq_carrier_freq_list_v1350.set_present(inter_freq_carrier_freq_list_v1350_present);
+      bool inter_freq_carrier_freq_list_ext_v1350_present;
       HANDLE_CODE(bref.unpack(inter_freq_carrier_freq_list_ext_v1350_present, 1));
-      if (inter_freq_carrier_freq_list_v1350_present) {
-        inter_freq_carrier_freq_list_v1350 = make_copy_ptr(inter_freq_carrier_freq_list_v1350_l());
+      inter_freq_carrier_freq_list_ext_v1350.set_present(inter_freq_carrier_freq_list_ext_v1350_present);
+      if (inter_freq_carrier_freq_list_v1350.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*inter_freq_carrier_freq_list_v1350, bref, 1, 8));
       }
-      if (inter_freq_carrier_freq_list_ext_v1350_present) {
-        inter_freq_carrier_freq_list_ext_v1350 = make_copy_ptr(inter_freq_carrier_freq_list_ext_v1350_l());
+      if (inter_freq_carrier_freq_list_ext_v1350.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*inter_freq_carrier_freq_list_ext_v1350, bref, 1, 8));
       }
     }
-    if (group_flags[4]) {
-      varlength_field_unpack_guard unpacker(bref);
+    if (group_flags[5]) {
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool inter_freq_carrier_freq_list_ext_v1360_present;
       HANDLE_CODE(bref.unpack(inter_freq_carrier_freq_list_ext_v1360_present, 1));
-      if (inter_freq_carrier_freq_list_ext_v1360_present) {
-        inter_freq_carrier_freq_list_ext_v1360 = make_copy_ptr(inter_freq_carrier_freq_list_ext_v1360_l());
+      inter_freq_carrier_freq_list_ext_v1360.set_present(inter_freq_carrier_freq_list_ext_v1360_present);
+      if (inter_freq_carrier_freq_list_ext_v1360.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*inter_freq_carrier_freq_list_ext_v1360, bref, 1, 8));
       }
     }
-    if (group_flags[5]) {
-      varlength_field_unpack_guard unpacker(bref);
+    if (group_flags[6]) {
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(scptm_freq_offset_r14_present, 1));
       if (scptm_freq_offset_r14_present) {
         HANDLE_CODE(unpack_unalign_integer(scptm_freq_offset_r14, bref, (uint8_t)1, (uint8_t)8));
       }
     }
-    if (group_flags[6]) {
-      varlength_field_unpack_guard unpacker(bref);
+    if (group_flags[7]) {
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool inter_freq_carrier_freq_list_v1530_present;
       HANDLE_CODE(bref.unpack(inter_freq_carrier_freq_list_v1530_present, 1));
+      inter_freq_carrier_freq_list_v1530.set_present(inter_freq_carrier_freq_list_v1530_present);
+      bool inter_freq_carrier_freq_list_ext_v1530_present;
       HANDLE_CODE(bref.unpack(inter_freq_carrier_freq_list_ext_v1530_present, 1));
+      inter_freq_carrier_freq_list_ext_v1530.set_present(inter_freq_carrier_freq_list_ext_v1530_present);
+      bool meas_idle_cfg_sib_r15_present;
       HANDLE_CODE(bref.unpack(meas_idle_cfg_sib_r15_present, 1));
-      if (inter_freq_carrier_freq_list_v1530_present) {
-        inter_freq_carrier_freq_list_v1530 = make_copy_ptr(inter_freq_carrier_freq_list_v1530_l());
+      meas_idle_cfg_sib_r15.set_present(meas_idle_cfg_sib_r15_present);
+      if (inter_freq_carrier_freq_list_v1530.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*inter_freq_carrier_freq_list_v1530, bref, 1, 8));
       }
-      if (inter_freq_carrier_freq_list_ext_v1530_present) {
-        inter_freq_carrier_freq_list_ext_v1530 = make_copy_ptr(inter_freq_carrier_freq_list_ext_v1530_l());
+      if (inter_freq_carrier_freq_list_ext_v1530.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*inter_freq_carrier_freq_list_ext_v1530, bref, 1, 8));
       }
-      if (meas_idle_cfg_sib_r15_present) {
-        meas_idle_cfg_sib_r15 = make_copy_ptr(meas_idle_cfg_sib_r15_s());
+      if (meas_idle_cfg_sib_r15.is_present()) {
         HANDLE_CODE(meas_idle_cfg_sib_r15->unpack(bref));
       }
     }
@@ -17697,88 +17514,56 @@ void sib_type5_s::to_json(json_writer& j) const
     if (late_non_crit_ext_present) {
       j.write_str("lateNonCriticalExtension", late_non_crit_ext.to_string());
     }
-    rrc_asn1_warn_assert(inter_freq_carrier_freq_list_v1250_present !=
-                             (inter_freq_carrier_freq_list_v1250.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (inter_freq_carrier_freq_list_v1250_present) {
+    if (inter_freq_carrier_freq_list_v1250.is_present()) {
       j.start_array("interFreqCarrierFreqList-v1250");
       for (uint32_t i1 = 0; i1 < inter_freq_carrier_freq_list_v1250->size(); ++i1) {
         ((*inter_freq_carrier_freq_list_v1250)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(inter_freq_carrier_freq_list_ext_r12_present !=
-                             (inter_freq_carrier_freq_list_ext_r12.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (inter_freq_carrier_freq_list_ext_r12_present) {
+    if (inter_freq_carrier_freq_list_ext_r12.is_present()) {
       j.start_array("interFreqCarrierFreqListExt-r12");
       for (uint32_t i1 = 0; i1 < inter_freq_carrier_freq_list_ext_r12->size(); ++i1) {
         ((*inter_freq_carrier_freq_list_ext_r12)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(inter_freq_carrier_freq_list_ext_v1280_present !=
-                             (inter_freq_carrier_freq_list_ext_v1280.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (inter_freq_carrier_freq_list_ext_v1280_present) {
+    if (inter_freq_carrier_freq_list_ext_v1280.is_present()) {
       j.start_array("interFreqCarrierFreqListExt-v1280");
       for (uint32_t i1 = 0; i1 < inter_freq_carrier_freq_list_ext_v1280->size(); ++i1) {
         ((*inter_freq_carrier_freq_list_ext_v1280)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(inter_freq_carrier_freq_list_v1310_present !=
-                             (inter_freq_carrier_freq_list_v1310.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (inter_freq_carrier_freq_list_v1310_present) {
+    if (inter_freq_carrier_freq_list_v1310.is_present()) {
       j.start_array("interFreqCarrierFreqList-v1310");
       for (uint32_t i1 = 0; i1 < inter_freq_carrier_freq_list_v1310->size(); ++i1) {
         ((*inter_freq_carrier_freq_list_v1310)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(inter_freq_carrier_freq_list_ext_v1310_present !=
-                             (inter_freq_carrier_freq_list_ext_v1310.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (inter_freq_carrier_freq_list_ext_v1310_present) {
+    if (inter_freq_carrier_freq_list_ext_v1310.is_present()) {
       j.start_array("interFreqCarrierFreqListExt-v1310");
       for (uint32_t i1 = 0; i1 < inter_freq_carrier_freq_list_ext_v1310->size(); ++i1) {
         ((*inter_freq_carrier_freq_list_ext_v1310)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(inter_freq_carrier_freq_list_v1350_present !=
-                             (inter_freq_carrier_freq_list_v1350.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (inter_freq_carrier_freq_list_v1350_present) {
+    if (inter_freq_carrier_freq_list_v1350.is_present()) {
       j.start_array("interFreqCarrierFreqList-v1350");
       for (uint32_t i1 = 0; i1 < inter_freq_carrier_freq_list_v1350->size(); ++i1) {
         ((*inter_freq_carrier_freq_list_v1350)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(inter_freq_carrier_freq_list_ext_v1350_present !=
-                             (inter_freq_carrier_freq_list_ext_v1350.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (inter_freq_carrier_freq_list_ext_v1350_present) {
+    if (inter_freq_carrier_freq_list_ext_v1350.is_present()) {
       j.start_array("interFreqCarrierFreqListExt-v1350");
       for (uint32_t i1 = 0; i1 < inter_freq_carrier_freq_list_ext_v1350->size(); ++i1) {
         ((*inter_freq_carrier_freq_list_ext_v1350)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(inter_freq_carrier_freq_list_ext_v1360_present !=
-                             (inter_freq_carrier_freq_list_ext_v1360.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (inter_freq_carrier_freq_list_ext_v1360_present) {
+    if (inter_freq_carrier_freq_list_ext_v1360.is_present()) {
       j.start_array("interFreqCarrierFreqListExt-v1360");
       for (uint32_t i1 = 0; i1 < inter_freq_carrier_freq_list_ext_v1360->size(); ++i1) {
         ((*inter_freq_carrier_freq_list_ext_v1360)[i1]).to_json(j);
@@ -17788,30 +17573,21 @@ void sib_type5_s::to_json(json_writer& j) const
     if (scptm_freq_offset_r14_present) {
       j.write_int("scptm-FreqOffset-r14", scptm_freq_offset_r14);
     }
-    rrc_asn1_warn_assert(inter_freq_carrier_freq_list_v1530_present !=
-                             (inter_freq_carrier_freq_list_v1530.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (inter_freq_carrier_freq_list_v1530_present) {
+    if (inter_freq_carrier_freq_list_v1530.is_present()) {
       j.start_array("interFreqCarrierFreqList-v1530");
       for (uint32_t i1 = 0; i1 < inter_freq_carrier_freq_list_v1530->size(); ++i1) {
         ((*inter_freq_carrier_freq_list_v1530)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(inter_freq_carrier_freq_list_ext_v1530_present !=
-                             (inter_freq_carrier_freq_list_ext_v1530.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (inter_freq_carrier_freq_list_ext_v1530_present) {
+    if (inter_freq_carrier_freq_list_ext_v1530.is_present()) {
       j.start_array("interFreqCarrierFreqListExt-v1530");
       for (uint32_t i1 = 0; i1 < inter_freq_carrier_freq_list_ext_v1530->size(); ++i1) {
         ((*inter_freq_carrier_freq_list_ext_v1530)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(meas_idle_cfg_sib_r15_present != (meas_idle_cfg_sib_r15.get() != NULL), __FILE__, __LINE__);
-    if (meas_idle_cfg_sib_r15_present) {
+    if (meas_idle_cfg_sib_r15.is_present()) {
       j.write_fieldname("measIdleConfigSIB-r15");
       meas_idle_cfg_sib_r15->to_json(j);
     }
@@ -17839,50 +17615,36 @@ SRSASN_CODE sib_type6_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(1, 1);
-    rrc_asn1_warn_assert(carrier_freq_list_utra_fdd_v1250_present != (carrier_freq_list_utra_fdd_v1250.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[0] |= carrier_freq_list_utra_fdd_v1250_present;
-    rrc_asn1_warn_assert(carrier_freq_list_utra_tdd_v1250_present != (carrier_freq_list_utra_tdd_v1250.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[0] |= carrier_freq_list_utra_tdd_v1250_present;
-    rrc_asn1_warn_assert(carrier_freq_list_utra_fdd_ext_r12_present !=
-                             (carrier_freq_list_utra_fdd_ext_r12.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[0] |= carrier_freq_list_utra_fdd_ext_r12_present;
-    rrc_asn1_warn_assert(carrier_freq_list_utra_tdd_ext_r12_present !=
-                             (carrier_freq_list_utra_tdd_ext_r12.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[0] |= carrier_freq_list_utra_tdd_ext_r12_present;
-    group_flags.pack_nof_groups(bref);
-    HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
-    group_flags.pack_group_flags(bref);
-
-    if (late_non_crit_ext_present) {
-      HANDLE_CODE(late_non_crit_ext.pack(bref));
-    }
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= late_non_crit_ext_present;
+    group_flags[1] |= carrier_freq_list_utra_fdd_v1250.is_present();
+    group_flags[1] |= carrier_freq_list_utra_tdd_v1250.is_present();
+    group_flags[1] |= carrier_freq_list_utra_fdd_ext_r12.is_present();
+    group_flags[1] |= carrier_freq_list_utra_tdd_ext_r12.is_present();
+    group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(carrier_freq_list_utra_fdd_v1250_present, 1));
-      HANDLE_CODE(bref.pack(carrier_freq_list_utra_tdd_v1250_present, 1));
-      HANDLE_CODE(bref.pack(carrier_freq_list_utra_fdd_ext_r12_present, 1));
-      HANDLE_CODE(bref.pack(carrier_freq_list_utra_tdd_ext_r12_present, 1));
-      if (carrier_freq_list_utra_fdd_v1250_present) {
+      HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
+    }
+    if (group_flags[1]) {
+      varlength_field_pack_guard varlen_scope(bref);
+
+      HANDLE_CODE(bref.pack(carrier_freq_list_utra_fdd_v1250.is_present(), 1));
+      HANDLE_CODE(bref.pack(carrier_freq_list_utra_tdd_v1250.is_present(), 1));
+      HANDLE_CODE(bref.pack(carrier_freq_list_utra_fdd_ext_r12.is_present(), 1));
+      HANDLE_CODE(bref.pack(carrier_freq_list_utra_tdd_ext_r12.is_present(), 1));
+      if (carrier_freq_list_utra_fdd_v1250.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *carrier_freq_list_utra_fdd_v1250, 1, 16));
       }
-      if (carrier_freq_list_utra_tdd_v1250_present) {
+      if (carrier_freq_list_utra_tdd_v1250.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *carrier_freq_list_utra_tdd_v1250, 1, 16));
       }
-      if (carrier_freq_list_utra_fdd_ext_r12_present) {
+      if (carrier_freq_list_utra_fdd_ext_r12.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *carrier_freq_list_utra_fdd_ext_r12, 1, 16));
       }
-      if (carrier_freq_list_utra_tdd_ext_r12_present) {
+      if (carrier_freq_list_utra_tdd_ext_r12.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *carrier_freq_list_utra_tdd_ext_r12, 1, 16));
       }
     }
@@ -17908,36 +17670,39 @@ SRSASN_CODE sib_type6_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(1, 1);
-    group_flags.unpack_nof_groups(bref);
-    HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
-    group_flags.unpack_group_flags(bref);
-
-    if (late_non_crit_ext_present) {
-      HANDLE_CODE(late_non_crit_ext.unpack(bref));
-    }
+    ext_groups_unpacker_guard group_flags(2);
+    group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
+    }
+    if (group_flags[1]) {
+      varlength_field_unpack_guard varlen_scope(bref);
+
+      bool carrier_freq_list_utra_fdd_v1250_present;
       HANDLE_CODE(bref.unpack(carrier_freq_list_utra_fdd_v1250_present, 1));
+      carrier_freq_list_utra_fdd_v1250.set_present(carrier_freq_list_utra_fdd_v1250_present);
+      bool carrier_freq_list_utra_tdd_v1250_present;
       HANDLE_CODE(bref.unpack(carrier_freq_list_utra_tdd_v1250_present, 1));
+      carrier_freq_list_utra_tdd_v1250.set_present(carrier_freq_list_utra_tdd_v1250_present);
+      bool carrier_freq_list_utra_fdd_ext_r12_present;
       HANDLE_CODE(bref.unpack(carrier_freq_list_utra_fdd_ext_r12_present, 1));
+      carrier_freq_list_utra_fdd_ext_r12.set_present(carrier_freq_list_utra_fdd_ext_r12_present);
+      bool carrier_freq_list_utra_tdd_ext_r12_present;
       HANDLE_CODE(bref.unpack(carrier_freq_list_utra_tdd_ext_r12_present, 1));
-      if (carrier_freq_list_utra_fdd_v1250_present) {
-        carrier_freq_list_utra_fdd_v1250 = make_copy_ptr(carrier_freq_list_utra_fdd_v1250_l_());
+      carrier_freq_list_utra_tdd_ext_r12.set_present(carrier_freq_list_utra_tdd_ext_r12_present);
+      if (carrier_freq_list_utra_fdd_v1250.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*carrier_freq_list_utra_fdd_v1250, bref, 1, 16));
       }
-      if (carrier_freq_list_utra_tdd_v1250_present) {
-        carrier_freq_list_utra_tdd_v1250 = make_copy_ptr(carrier_freq_list_utra_tdd_v1250_l_());
+      if (carrier_freq_list_utra_tdd_v1250.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*carrier_freq_list_utra_tdd_v1250, bref, 1, 16));
       }
-      if (carrier_freq_list_utra_fdd_ext_r12_present) {
-        carrier_freq_list_utra_fdd_ext_r12 = make_copy_ptr(carrier_freq_list_utra_fdd_ext_r12_l());
+      if (carrier_freq_list_utra_fdd_ext_r12.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*carrier_freq_list_utra_fdd_ext_r12, bref, 1, 16));
       }
-      if (carrier_freq_list_utra_tdd_ext_r12_present) {
-        carrier_freq_list_utra_tdd_ext_r12 = make_copy_ptr(carrier_freq_list_utra_tdd_ext_r12_l());
+      if (carrier_freq_list_utra_tdd_ext_r12.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*carrier_freq_list_utra_tdd_ext_r12, bref, 1, 16));
       }
     }
@@ -17970,42 +17735,28 @@ void sib_type6_s::to_json(json_writer& j) const
     if (late_non_crit_ext_present) {
       j.write_str("lateNonCriticalExtension", late_non_crit_ext.to_string());
     }
-    rrc_asn1_warn_assert(carrier_freq_list_utra_fdd_v1250_present != (carrier_freq_list_utra_fdd_v1250.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (carrier_freq_list_utra_fdd_v1250_present) {
+    if (carrier_freq_list_utra_fdd_v1250.is_present()) {
       j.start_array("carrierFreqListUTRA-FDD-v1250");
       for (uint32_t i1 = 0; i1 < carrier_freq_list_utra_fdd_v1250->size(); ++i1) {
         ((*carrier_freq_list_utra_fdd_v1250)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(carrier_freq_list_utra_tdd_v1250_present != (carrier_freq_list_utra_tdd_v1250.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (carrier_freq_list_utra_tdd_v1250_present) {
+    if (carrier_freq_list_utra_tdd_v1250.is_present()) {
       j.start_array("carrierFreqListUTRA-TDD-v1250");
       for (uint32_t i1 = 0; i1 < carrier_freq_list_utra_tdd_v1250->size(); ++i1) {
         ((*carrier_freq_list_utra_tdd_v1250)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(carrier_freq_list_utra_fdd_ext_r12_present !=
-                             (carrier_freq_list_utra_fdd_ext_r12.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (carrier_freq_list_utra_fdd_ext_r12_present) {
+    if (carrier_freq_list_utra_fdd_ext_r12.is_present()) {
       j.start_array("carrierFreqListUTRA-FDD-Ext-r12");
       for (uint32_t i1 = 0; i1 < carrier_freq_list_utra_fdd_ext_r12->size(); ++i1) {
         ((*carrier_freq_list_utra_fdd_ext_r12)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(carrier_freq_list_utra_tdd_ext_r12_present !=
-                             (carrier_freq_list_utra_tdd_ext_r12.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (carrier_freq_list_utra_tdd_ext_r12_present) {
+    if (carrier_freq_list_utra_tdd_ext_r12.is_present()) {
       j.start_array("carrierFreqListUTRA-TDD-Ext-r12");
       for (uint32_t i1 = 0; i1 < carrier_freq_list_utra_tdd_ext_r12->size(); ++i1) {
         ((*carrier_freq_list_utra_tdd_ext_r12)[i1]).to_json(j);
@@ -18124,64 +17875,56 @@ SRSASN_CODE sib_type8_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(3, 1);
-    group_flags[0] |= csfb_support_for_dual_rx_ues_r9_present;
-    rrc_asn1_warn_assert(
-        cell_resel_params_hrpd_v920_present != (cell_resel_params_hrpd_v920.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= cell_resel_params_hrpd_v920_present;
-    rrc_asn1_warn_assert(
-        cell_resel_params1_xrtt_v920_present != (cell_resel_params1_xrtt_v920.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= cell_resel_params1_xrtt_v920_present;
-    rrc_asn1_warn_assert(
-        csfb_regist_param1_xrtt_v920_present != (csfb_regist_param1_xrtt_v920.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= csfb_regist_param1_xrtt_v920_present;
-    rrc_asn1_warn_assert(ac_barr_cfg1_xrtt_r9_present != (ac_barr_cfg1_xrtt_r9.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= ac_barr_cfg1_xrtt_r9_present;
-    group_flags[1] |= csfb_dual_rx_tx_support_r10_present;
-    rrc_asn1_warn_assert(sib8_per_plmn_list_r11_present != (sib8_per_plmn_list_r11.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= sib8_per_plmn_list_r11_present;
-    group_flags.pack_nof_groups(bref);
-    HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
-    group_flags.pack_group_flags(bref);
-
-    if (late_non_crit_ext_present) {
-      HANDLE_CODE(late_non_crit_ext.pack(bref));
-    }
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= late_non_crit_ext_present;
+    group_flags[1] |= csfb_support_for_dual_rx_ues_r9_present;
+    group_flags[1] |= cell_resel_params_hrpd_v920.is_present();
+    group_flags[1] |= cell_resel_params1_xrtt_v920.is_present();
+    group_flags[1] |= csfb_regist_param1_xrtt_v920.is_present();
+    group_flags[1] |= ac_barr_cfg1_xrtt_r9.is_present();
+    group_flags[2] |= csfb_dual_rx_tx_support_r10_present;
+    group_flags[3] |= sib8_per_plmn_list_r11.is_present();
+    group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
+
+      HANDLE_CODE(bref.pack(late_non_crit_ext_present, 1));
+    }
+    if (group_flags[1]) {
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(csfb_support_for_dual_rx_ues_r9_present, 1));
-      HANDLE_CODE(bref.pack(cell_resel_params_hrpd_v920_present, 1));
-      HANDLE_CODE(bref.pack(cell_resel_params1_xrtt_v920_present, 1));
-      HANDLE_CODE(bref.pack(csfb_regist_param1_xrtt_v920_present, 1));
-      HANDLE_CODE(bref.pack(ac_barr_cfg1_xrtt_r9_present, 1));
+      HANDLE_CODE(bref.pack(cell_resel_params_hrpd_v920.is_present(), 1));
+      HANDLE_CODE(bref.pack(cell_resel_params1_xrtt_v920.is_present(), 1));
+      HANDLE_CODE(bref.pack(csfb_regist_param1_xrtt_v920.is_present(), 1));
+      HANDLE_CODE(bref.pack(ac_barr_cfg1_xrtt_r9.is_present(), 1));
       if (csfb_support_for_dual_rx_ues_r9_present) {
         HANDLE_CODE(bref.pack(csfb_support_for_dual_rx_ues_r9, 1));
       }
-      if (cell_resel_params_hrpd_v920_present) {
+      if (cell_resel_params_hrpd_v920.is_present()) {
         HANDLE_CODE(cell_resel_params_hrpd_v920->pack(bref));
       }
-      if (cell_resel_params1_xrtt_v920_present) {
+      if (cell_resel_params1_xrtt_v920.is_present()) {
         HANDLE_CODE(cell_resel_params1_xrtt_v920->pack(bref));
       }
-      if (csfb_regist_param1_xrtt_v920_present) {
+      if (csfb_regist_param1_xrtt_v920.is_present()) {
         HANDLE_CODE(csfb_regist_param1_xrtt_v920->pack(bref));
       }
-      if (ac_barr_cfg1_xrtt_r9_present) {
+      if (ac_barr_cfg1_xrtt_r9.is_present()) {
         HANDLE_CODE(ac_barr_cfg1_xrtt_r9->pack(bref));
       }
     }
-    if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+    if (group_flags[2]) {
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(csfb_dual_rx_tx_support_r10_present, 1));
     }
-    if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+    if (group_flags[3]) {
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(sib8_per_plmn_list_r11_present, 1));
-      if (sib8_per_plmn_list_r11_present) {
+      HANDLE_CODE(bref.pack(sib8_per_plmn_list_r11.is_present(), 1));
+      if (sib8_per_plmn_list_r11.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *sib8_per_plmn_list_r11, 1, 6));
       }
     }
@@ -18225,54 +17968,58 @@ SRSASN_CODE sib_type8_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(3, 1);
-    group_flags.unpack_nof_groups(bref);
-    HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
-    group_flags.unpack_group_flags(bref);
-
-    if (late_non_crit_ext_present) {
-      HANDLE_CODE(late_non_crit_ext.unpack(bref));
-    }
+    ext_groups_unpacker_guard group_flags(4);
+    group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
+
+      HANDLE_CODE(bref.unpack(late_non_crit_ext_present, 1));
+    }
+    if (group_flags[1]) {
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(csfb_support_for_dual_rx_ues_r9_present, 1));
+      bool cell_resel_params_hrpd_v920_present;
       HANDLE_CODE(bref.unpack(cell_resel_params_hrpd_v920_present, 1));
+      cell_resel_params_hrpd_v920.set_present(cell_resel_params_hrpd_v920_present);
+      bool cell_resel_params1_xrtt_v920_present;
       HANDLE_CODE(bref.unpack(cell_resel_params1_xrtt_v920_present, 1));
+      cell_resel_params1_xrtt_v920.set_present(cell_resel_params1_xrtt_v920_present);
+      bool csfb_regist_param1_xrtt_v920_present;
       HANDLE_CODE(bref.unpack(csfb_regist_param1_xrtt_v920_present, 1));
+      csfb_regist_param1_xrtt_v920.set_present(csfb_regist_param1_xrtt_v920_present);
+      bool ac_barr_cfg1_xrtt_r9_present;
       HANDLE_CODE(bref.unpack(ac_barr_cfg1_xrtt_r9_present, 1));
+      ac_barr_cfg1_xrtt_r9.set_present(ac_barr_cfg1_xrtt_r9_present);
       if (csfb_support_for_dual_rx_ues_r9_present) {
         HANDLE_CODE(bref.unpack(csfb_support_for_dual_rx_ues_r9, 1));
       }
-      if (cell_resel_params_hrpd_v920_present) {
-        cell_resel_params_hrpd_v920 = make_copy_ptr(cell_resel_params_cdma2000_v920_s());
+      if (cell_resel_params_hrpd_v920.is_present()) {
         HANDLE_CODE(cell_resel_params_hrpd_v920->unpack(bref));
       }
-      if (cell_resel_params1_xrtt_v920_present) {
-        cell_resel_params1_xrtt_v920 = make_copy_ptr(cell_resel_params_cdma2000_v920_s());
+      if (cell_resel_params1_xrtt_v920.is_present()) {
         HANDLE_CODE(cell_resel_params1_xrtt_v920->unpack(bref));
       }
-      if (csfb_regist_param1_xrtt_v920_present) {
-        csfb_regist_param1_xrtt_v920 = make_copy_ptr(csfb_regist_param1_xrtt_v920_s());
+      if (csfb_regist_param1_xrtt_v920.is_present()) {
         HANDLE_CODE(csfb_regist_param1_xrtt_v920->unpack(bref));
       }
-      if (ac_barr_cfg1_xrtt_r9_present) {
-        ac_barr_cfg1_xrtt_r9 = make_copy_ptr(ac_barr_cfg1_xrtt_r9_s());
+      if (ac_barr_cfg1_xrtt_r9.is_present()) {
         HANDLE_CODE(ac_barr_cfg1_xrtt_r9->unpack(bref));
       }
     }
-    if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+    if (group_flags[2]) {
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(csfb_dual_rx_tx_support_r10_present, 1));
     }
-    if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+    if (group_flags[3]) {
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool sib8_per_plmn_list_r11_present;
       HANDLE_CODE(bref.unpack(sib8_per_plmn_list_r11_present, 1));
-      if (sib8_per_plmn_list_r11_present) {
-        sib8_per_plmn_list_r11 = make_copy_ptr(sib8_per_plmn_list_r11_l());
+      sib8_per_plmn_list_r11.set_present(sib8_per_plmn_list_r11_present);
+      if (sib8_per_plmn_list_r11.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*sib8_per_plmn_list_r11, bref, 1, 6));
       }
     }
@@ -18323,34 +18070,26 @@ void sib_type8_s::to_json(json_writer& j) const
     if (csfb_support_for_dual_rx_ues_r9_present) {
       j.write_bool("csfb-SupportForDualRxUEs-r9", csfb_support_for_dual_rx_ues_r9);
     }
-    rrc_asn1_warn_assert(
-        cell_resel_params_hrpd_v920_present != (cell_resel_params_hrpd_v920.get() != NULL), __FILE__, __LINE__);
-    if (cell_resel_params_hrpd_v920_present) {
+    if (cell_resel_params_hrpd_v920.is_present()) {
       j.write_fieldname("cellReselectionParametersHRPD-v920");
       cell_resel_params_hrpd_v920->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        cell_resel_params1_xrtt_v920_present != (cell_resel_params1_xrtt_v920.get() != NULL), __FILE__, __LINE__);
-    if (cell_resel_params1_xrtt_v920_present) {
+    if (cell_resel_params1_xrtt_v920.is_present()) {
       j.write_fieldname("cellReselectionParameters1XRTT-v920");
       cell_resel_params1_xrtt_v920->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        csfb_regist_param1_xrtt_v920_present != (csfb_regist_param1_xrtt_v920.get() != NULL), __FILE__, __LINE__);
-    if (csfb_regist_param1_xrtt_v920_present) {
+    if (csfb_regist_param1_xrtt_v920.is_present()) {
       j.write_fieldname("csfb-RegistrationParam1XRTT-v920");
       csfb_regist_param1_xrtt_v920->to_json(j);
     }
-    rrc_asn1_warn_assert(ac_barr_cfg1_xrtt_r9_present != (ac_barr_cfg1_xrtt_r9.get() != NULL), __FILE__, __LINE__);
-    if (ac_barr_cfg1_xrtt_r9_present) {
+    if (ac_barr_cfg1_xrtt_r9.is_present()) {
       j.write_fieldname("ac-BarringConfig1XRTT-r9");
       ac_barr_cfg1_xrtt_r9->to_json(j);
     }
     if (csfb_dual_rx_tx_support_r10_present) {
       j.write_str("csfb-DualRxTxSupport-r10", "true");
     }
-    rrc_asn1_warn_assert(sib8_per_plmn_list_r11_present != (sib8_per_plmn_list_r11.get() != NULL), __FILE__, __LINE__);
-    if (sib8_per_plmn_list_r11_present) {
+    if (sib8_per_plmn_list_r11.is_present()) {
       j.start_array("sib8-PerPLMN-List-r11");
       for (uint32_t i1 = 0; i1 < sib8_per_plmn_list_r11->size(); ++i1) {
         ((*sib8_per_plmn_list_r11)[i1]).to_json(j);
@@ -21400,17 +21139,15 @@ SRSASN_CODE csi_rs_cfg_nzp_r11_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(3);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= csi_rs_cfg_nzp_id_v1310_present;
     group_flags[1] |= tx_comb_r14_present;
     group_flags[1] |= freq_density_r14_present;
-    rrc_asn1_warn_assert(
-        mbsfn_sf_cfg_list_v1430_present != (mbsfn_sf_cfg_list_v1430.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= mbsfn_sf_cfg_list_v1430_present;
+    group_flags[2] |= mbsfn_sf_cfg_list_v1430.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(csi_rs_cfg_nzp_id_v1310_present, 1));
       if (csi_rs_cfg_nzp_id_v1310_present) {
@@ -21418,7 +21155,7 @@ SRSASN_CODE csi_rs_cfg_nzp_r11_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(tx_comb_r14_present, 1));
       HANDLE_CODE(bref.pack(freq_density_r14_present, 1));
@@ -21430,10 +21167,10 @@ SRSASN_CODE csi_rs_cfg_nzp_r11_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(mbsfn_sf_cfg_list_v1430_present, 1));
-      if (mbsfn_sf_cfg_list_v1430_present) {
+      HANDLE_CODE(bref.pack(mbsfn_sf_cfg_list_v1430.is_present(), 1));
+      if (mbsfn_sf_cfg_list_v1430.is_present()) {
         HANDLE_CODE(mbsfn_sf_cfg_list_v1430->pack(bref));
       }
     }
@@ -21460,11 +21197,11 @@ SRSASN_CODE csi_rs_cfg_nzp_r11_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(3);
+    ext_groups_unpacker_guard group_flags(3);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(csi_rs_cfg_nzp_id_v1310_present, 1));
       if (csi_rs_cfg_nzp_id_v1310_present) {
@@ -21472,7 +21209,7 @@ SRSASN_CODE csi_rs_cfg_nzp_r11_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(tx_comb_r14_present, 1));
       HANDLE_CODE(bref.unpack(freq_density_r14_present, 1));
@@ -21484,11 +21221,12 @@ SRSASN_CODE csi_rs_cfg_nzp_r11_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool mbsfn_sf_cfg_list_v1430_present;
       HANDLE_CODE(bref.unpack(mbsfn_sf_cfg_list_v1430_present, 1));
-      if (mbsfn_sf_cfg_list_v1430_present) {
-        mbsfn_sf_cfg_list_v1430 = make_copy_ptr(mbsfn_sf_cfg_list_v1430_c_());
+      mbsfn_sf_cfg_list_v1430.set_present(mbsfn_sf_cfg_list_v1430_present);
+      if (mbsfn_sf_cfg_list_v1430.is_present()) {
         HANDLE_CODE(mbsfn_sf_cfg_list_v1430->unpack(bref));
       }
     }
@@ -21524,9 +21262,7 @@ void csi_rs_cfg_nzp_r11_s::to_json(json_writer& j) const
     if (freq_density_r14_present) {
       j.write_str("frequencyDensity-r14", freq_density_r14.to_string());
     }
-    rrc_asn1_warn_assert(
-        mbsfn_sf_cfg_list_v1430_present != (mbsfn_sf_cfg_list_v1430.get() != NULL), __FILE__, __LINE__);
-    if (mbsfn_sf_cfg_list_v1430_present) {
+    if (mbsfn_sf_cfg_list_v1430.is_present()) {
       j.write_fieldname("mbsfn-SubframeConfigList-v1430");
       mbsfn_sf_cfg_list_v1430->to_json(j);
     }
@@ -21657,13 +21393,13 @@ SRSASN_CODE nzp_res_cfg_r13_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_unalign_integer(bref, res_cfg_r13, (uint8_t)0, (uint8_t)31));
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= tx_comb_r14_present;
     group_flags[0] |= freq_density_r14_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(tx_comb_r14_present, 1));
       HANDLE_CODE(bref.pack(freq_density_r14_present, 1));
@@ -21683,11 +21419,11 @@ SRSASN_CODE nzp_res_cfg_r13_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_unalign_integer(res_cfg_r13, bref, (uint8_t)0, (uint8_t)31));
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(tx_comb_r14_present, 1));
       HANDLE_CODE(bref.unpack(freq_density_r14_present, 1));
@@ -23274,22 +23010,21 @@ SRSASN_CODE cqi_report_periodic_proc_ext_r11_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(2);
-    rrc_asn1_warn_assert(cri_report_cfg_r13_present != (cri_report_cfg_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= cri_report_cfg_r13_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= cri_report_cfg_r13.is_present();
     group_flags[1] |= periodicity_factor_wb_r13_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(cri_report_cfg_r13_present, 1));
-      if (cri_report_cfg_r13_present) {
+      HANDLE_CODE(bref.pack(cri_report_cfg_r13.is_present(), 1));
+      if (cri_report_cfg_r13.is_present()) {
         HANDLE_CODE(cri_report_cfg_r13->pack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(periodicity_factor_wb_r13_present, 1));
       if (periodicity_factor_wb_r13_present) {
@@ -23316,20 +23051,21 @@ SRSASN_CODE cqi_report_periodic_proc_ext_r11_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(2);
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool cri_report_cfg_r13_present;
       HANDLE_CODE(bref.unpack(cri_report_cfg_r13_present, 1));
-      if (cri_report_cfg_r13_present) {
-        cri_report_cfg_r13 = make_copy_ptr(cri_report_cfg_r13_c());
+      cri_report_cfg_r13.set_present(cri_report_cfg_r13_present);
+      if (cri_report_cfg_r13.is_present()) {
         HANDLE_CODE(cri_report_cfg_r13->unpack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(periodicity_factor_wb_r13_present, 1));
       if (periodicity_factor_wb_r13_present) {
@@ -23354,8 +23090,7 @@ void cqi_report_periodic_proc_ext_r11_s::to_json(json_writer& j) const
     csi_cfg_idx_r11.to_json(j);
   }
   if (ext) {
-    rrc_asn1_warn_assert(cri_report_cfg_r13_present != (cri_report_cfg_r13.get() != NULL), __FILE__, __LINE__);
-    if (cri_report_cfg_r13_present) {
+    if (cri_report_cfg_r13.is_present()) {
       j.write_fieldname("cri-ReportConfig-r13");
       cri_report_cfg_r13->to_json(j);
     }
@@ -23577,12 +23312,12 @@ SRSASN_CODE csi_im_cfg_r11_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_unalign_integer(bref, sf_cfg_r11, (uint8_t)0, (uint8_t)154));
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= interference_meas_restrict_r13_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(interference_meas_restrict_r13_present, 1));
       if (interference_meas_restrict_r13_present) {
@@ -23600,11 +23335,11 @@ SRSASN_CODE csi_im_cfg_r11_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_unalign_integer(sf_cfg_r11, bref, (uint8_t)0, (uint8_t)154));
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(interference_meas_restrict_r13_present, 1));
       if (interference_meas_restrict_r13_present) {
@@ -23637,13 +23372,13 @@ SRSASN_CODE csi_im_cfg_ext_r12_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_unalign_integer(bref, sf_cfg_r12, (uint8_t)0, (uint8_t)154));
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= interference_meas_restrict_r13_present;
     group_flags[0] |= csi_im_cfg_id_v1310_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(interference_meas_restrict_r13_present, 1));
       HANDLE_CODE(bref.pack(csi_im_cfg_id_v1310_present, 1));
@@ -23665,11 +23400,11 @@ SRSASN_CODE csi_im_cfg_ext_r12_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_unalign_integer(sf_cfg_r12, bref, (uint8_t)0, (uint8_t)154));
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(interference_meas_restrict_r13_present, 1));
       HANDLE_CODE(bref.unpack(csi_im_cfg_id_v1310_present, 1));
@@ -23723,73 +23458,60 @@ SRSASN_CODE csi_process_r11_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(5);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= alternative_codebook_enabled_for4_tx_proc_r12_present;
-    rrc_asn1_warn_assert(csi_im_cfg_id_list_r12_present != (csi_im_cfg_id_list_r12.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= csi_im_cfg_id_list_r12_present;
-    rrc_asn1_warn_assert(
-        cqi_report_aperiodic_proc2_r12_present != (cqi_report_aperiodic_proc2_r12.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= cqi_report_aperiodic_proc2_r12_present;
-    rrc_asn1_warn_assert(
-        cqi_report_aperiodic_proc_v1310_present != (cqi_report_aperiodic_proc_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= cqi_report_aperiodic_proc_v1310_present;
-    rrc_asn1_warn_assert(cqi_report_aperiodic_proc2_v1310_present != (cqi_report_aperiodic_proc2_v1310.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[1] |= cqi_report_aperiodic_proc2_v1310_present;
-    rrc_asn1_warn_assert(e_mimo_type_r13_present != (e_mimo_type_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= e_mimo_type_r13_present;
-    rrc_asn1_warn_assert(dummy_present != (dummy.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= dummy_present;
-    rrc_asn1_warn_assert(e_mimo_hybrid_r14_present != (e_mimo_hybrid_r14.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= e_mimo_hybrid_r14_present;
+    group_flags[0] |= csi_im_cfg_id_list_r12.is_present();
+    group_flags[0] |= cqi_report_aperiodic_proc2_r12.is_present();
+    group_flags[1] |= cqi_report_aperiodic_proc_v1310.is_present();
+    group_flags[1] |= cqi_report_aperiodic_proc2_v1310.is_present();
+    group_flags[1] |= e_mimo_type_r13.is_present();
+    group_flags[2] |= dummy.is_present();
+    group_flags[2] |= e_mimo_hybrid_r14.is_present();
     group_flags[2] |= advanced_codebook_enabled_r14_present;
-    rrc_asn1_warn_assert(e_mimo_type_v1480_present != (e_mimo_type_v1480.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= e_mimo_type_v1480_present;
+    group_flags[3] |= e_mimo_type_v1480.is_present();
     group_flags[4] |= fe_comp_csi_enabled_v1530_present;
-    rrc_asn1_warn_assert(e_mimo_type_v1530_present != (e_mimo_type_v1530.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= e_mimo_type_v1530_present;
+    group_flags[4] |= e_mimo_type_v1530.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(alternative_codebook_enabled_for4_tx_proc_r12_present, 1));
-      HANDLE_CODE(bref.pack(csi_im_cfg_id_list_r12_present, 1));
-      HANDLE_CODE(bref.pack(cqi_report_aperiodic_proc2_r12_present, 1));
-      if (csi_im_cfg_id_list_r12_present) {
+      HANDLE_CODE(bref.pack(csi_im_cfg_id_list_r12.is_present(), 1));
+      HANDLE_CODE(bref.pack(cqi_report_aperiodic_proc2_r12.is_present(), 1));
+      if (csi_im_cfg_id_list_r12.is_present()) {
         HANDLE_CODE(csi_im_cfg_id_list_r12->pack(bref));
       }
-      if (cqi_report_aperiodic_proc2_r12_present) {
+      if (cqi_report_aperiodic_proc2_r12.is_present()) {
         HANDLE_CODE(cqi_report_aperiodic_proc2_r12->pack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(cqi_report_aperiodic_proc_v1310_present, 1));
-      HANDLE_CODE(bref.pack(cqi_report_aperiodic_proc2_v1310_present, 1));
-      HANDLE_CODE(bref.pack(e_mimo_type_r13_present, 1));
-      if (cqi_report_aperiodic_proc_v1310_present) {
+      HANDLE_CODE(bref.pack(cqi_report_aperiodic_proc_v1310.is_present(), 1));
+      HANDLE_CODE(bref.pack(cqi_report_aperiodic_proc2_v1310.is_present(), 1));
+      HANDLE_CODE(bref.pack(e_mimo_type_r13.is_present(), 1));
+      if (cqi_report_aperiodic_proc_v1310.is_present()) {
         HANDLE_CODE(cqi_report_aperiodic_proc_v1310->pack(bref));
       }
-      if (cqi_report_aperiodic_proc2_v1310_present) {
+      if (cqi_report_aperiodic_proc2_v1310.is_present()) {
         HANDLE_CODE(cqi_report_aperiodic_proc2_v1310->pack(bref));
       }
-      if (e_mimo_type_r13_present) {
+      if (e_mimo_type_r13.is_present()) {
         HANDLE_CODE(e_mimo_type_r13->pack(bref));
       }
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(dummy_present, 1));
-      HANDLE_CODE(bref.pack(e_mimo_hybrid_r14_present, 1));
+      HANDLE_CODE(bref.pack(dummy.is_present(), 1));
+      HANDLE_CODE(bref.pack(e_mimo_hybrid_r14.is_present(), 1));
       HANDLE_CODE(bref.pack(advanced_codebook_enabled_r14_present, 1));
-      if (dummy_present) {
+      if (dummy.is_present()) {
         HANDLE_CODE(dummy->pack(bref));
       }
-      if (e_mimo_hybrid_r14_present) {
+      if (e_mimo_hybrid_r14.is_present()) {
         HANDLE_CODE(e_mimo_hybrid_r14->pack(bref));
       }
       if (advanced_codebook_enabled_r14_present) {
@@ -23797,22 +23519,22 @@ SRSASN_CODE csi_process_r11_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[3]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(e_mimo_type_v1480_present, 1));
-      if (e_mimo_type_v1480_present) {
+      HANDLE_CODE(bref.pack(e_mimo_type_v1480.is_present(), 1));
+      if (e_mimo_type_v1480.is_present()) {
         HANDLE_CODE(e_mimo_type_v1480->pack(bref));
       }
     }
     if (group_flags[4]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(fe_comp_csi_enabled_v1530_present, 1));
-      HANDLE_CODE(bref.pack(e_mimo_type_v1530_present, 1));
+      HANDLE_CODE(bref.pack(e_mimo_type_v1530.is_present(), 1));
       if (fe_comp_csi_enabled_v1530_present) {
         HANDLE_CODE(bref.pack(fe_comp_csi_enabled_v1530, 1));
       }
-      if (e_mimo_type_v1530_present) {
+      if (e_mimo_type_v1530.is_present()) {
         HANDLE_CODE(e_mimo_type_v1530->pack(bref));
       }
     }
@@ -23841,55 +23563,62 @@ SRSASN_CODE csi_process_r11_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(5);
+    ext_groups_unpacker_guard group_flags(5);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(alternative_codebook_enabled_for4_tx_proc_r12_present, 1));
+      bool csi_im_cfg_id_list_r12_present;
       HANDLE_CODE(bref.unpack(csi_im_cfg_id_list_r12_present, 1));
+      csi_im_cfg_id_list_r12.set_present(csi_im_cfg_id_list_r12_present);
+      bool cqi_report_aperiodic_proc2_r12_present;
       HANDLE_CODE(bref.unpack(cqi_report_aperiodic_proc2_r12_present, 1));
-      if (csi_im_cfg_id_list_r12_present) {
-        csi_im_cfg_id_list_r12 = make_copy_ptr(csi_im_cfg_id_list_r12_c_());
+      cqi_report_aperiodic_proc2_r12.set_present(cqi_report_aperiodic_proc2_r12_present);
+      if (csi_im_cfg_id_list_r12.is_present()) {
         HANDLE_CODE(csi_im_cfg_id_list_r12->unpack(bref));
       }
-      if (cqi_report_aperiodic_proc2_r12_present) {
-        cqi_report_aperiodic_proc2_r12 = make_copy_ptr(cqi_report_aperiodic_proc2_r12_c_());
+      if (cqi_report_aperiodic_proc2_r12.is_present()) {
         HANDLE_CODE(cqi_report_aperiodic_proc2_r12->unpack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool cqi_report_aperiodic_proc_v1310_present;
       HANDLE_CODE(bref.unpack(cqi_report_aperiodic_proc_v1310_present, 1));
+      cqi_report_aperiodic_proc_v1310.set_present(cqi_report_aperiodic_proc_v1310_present);
+      bool cqi_report_aperiodic_proc2_v1310_present;
       HANDLE_CODE(bref.unpack(cqi_report_aperiodic_proc2_v1310_present, 1));
+      cqi_report_aperiodic_proc2_v1310.set_present(cqi_report_aperiodic_proc2_v1310_present);
+      bool e_mimo_type_r13_present;
       HANDLE_CODE(bref.unpack(e_mimo_type_r13_present, 1));
-      if (cqi_report_aperiodic_proc_v1310_present) {
-        cqi_report_aperiodic_proc_v1310 = make_copy_ptr(cqi_report_aperiodic_proc_v1310_c_());
+      e_mimo_type_r13.set_present(e_mimo_type_r13_present);
+      if (cqi_report_aperiodic_proc_v1310.is_present()) {
         HANDLE_CODE(cqi_report_aperiodic_proc_v1310->unpack(bref));
       }
-      if (cqi_report_aperiodic_proc2_v1310_present) {
-        cqi_report_aperiodic_proc2_v1310 = make_copy_ptr(cqi_report_aperiodic_proc2_v1310_c_());
+      if (cqi_report_aperiodic_proc2_v1310.is_present()) {
         HANDLE_CODE(cqi_report_aperiodic_proc2_v1310->unpack(bref));
       }
-      if (e_mimo_type_r13_present) {
-        e_mimo_type_r13 = make_copy_ptr(csi_rs_cfg_emimo_r13_c());
+      if (e_mimo_type_r13.is_present()) {
         HANDLE_CODE(e_mimo_type_r13->unpack(bref));
       }
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool dummy_present;
       HANDLE_CODE(bref.unpack(dummy_present, 1));
+      dummy.set_present(dummy_present);
+      bool e_mimo_hybrid_r14_present;
       HANDLE_CODE(bref.unpack(e_mimo_hybrid_r14_present, 1));
+      e_mimo_hybrid_r14.set_present(e_mimo_hybrid_r14_present);
       HANDLE_CODE(bref.unpack(advanced_codebook_enabled_r14_present, 1));
-      if (dummy_present) {
-        dummy = make_copy_ptr(csi_rs_cfg_emimo_v1430_c());
+      if (dummy.is_present()) {
         HANDLE_CODE(dummy->unpack(bref));
       }
-      if (e_mimo_hybrid_r14_present) {
-        e_mimo_hybrid_r14 = make_copy_ptr(csi_rs_cfg_emimo_hybrid_r14_c());
+      if (e_mimo_hybrid_r14.is_present()) {
         HANDLE_CODE(e_mimo_hybrid_r14->unpack(bref));
       }
       if (advanced_codebook_enabled_r14_present) {
@@ -23897,24 +23626,26 @@ SRSASN_CODE csi_process_r11_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[3]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool e_mimo_type_v1480_present;
       HANDLE_CODE(bref.unpack(e_mimo_type_v1480_present, 1));
-      if (e_mimo_type_v1480_present) {
-        e_mimo_type_v1480 = make_copy_ptr(csi_rs_cfg_emimo_v1480_c());
+      e_mimo_type_v1480.set_present(e_mimo_type_v1480_present);
+      if (e_mimo_type_v1480.is_present()) {
         HANDLE_CODE(e_mimo_type_v1480->unpack(bref));
       }
     }
     if (group_flags[4]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(fe_comp_csi_enabled_v1530_present, 1));
+      bool e_mimo_type_v1530_present;
       HANDLE_CODE(bref.unpack(e_mimo_type_v1530_present, 1));
+      e_mimo_type_v1530.set_present(e_mimo_type_v1530_present);
       if (fe_comp_csi_enabled_v1530_present) {
         HANDLE_CODE(bref.unpack(fe_comp_csi_enabled_v1530, 1));
       }
-      if (e_mimo_type_v1530_present) {
-        e_mimo_type_v1530 = make_copy_ptr(csi_rs_cfg_emimo_v1530_c());
+      if (e_mimo_type_v1530.is_present()) {
         HANDLE_CODE(e_mimo_type_v1530->unpack(bref));
       }
     }
@@ -23947,58 +23678,45 @@ void csi_process_r11_s::to_json(json_writer& j) const
     if (alternative_codebook_enabled_for4_tx_proc_r12_present) {
       j.write_str("alternativeCodebookEnabledFor4TXProc-r12", "true");
     }
-    rrc_asn1_warn_assert(csi_im_cfg_id_list_r12_present != (csi_im_cfg_id_list_r12.get() != NULL), __FILE__, __LINE__);
-    if (csi_im_cfg_id_list_r12_present) {
+    if (csi_im_cfg_id_list_r12.is_present()) {
       j.write_fieldname("csi-IM-ConfigIdList-r12");
       csi_im_cfg_id_list_r12->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        cqi_report_aperiodic_proc2_r12_present != (cqi_report_aperiodic_proc2_r12.get() != NULL), __FILE__, __LINE__);
-    if (cqi_report_aperiodic_proc2_r12_present) {
+    if (cqi_report_aperiodic_proc2_r12.is_present()) {
       j.write_fieldname("cqi-ReportAperiodicProc2-r12");
       cqi_report_aperiodic_proc2_r12->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        cqi_report_aperiodic_proc_v1310_present != (cqi_report_aperiodic_proc_v1310.get() != NULL), __FILE__, __LINE__);
-    if (cqi_report_aperiodic_proc_v1310_present) {
+    if (cqi_report_aperiodic_proc_v1310.is_present()) {
       j.write_fieldname("cqi-ReportAperiodicProc-v1310");
       cqi_report_aperiodic_proc_v1310->to_json(j);
     }
-    rrc_asn1_warn_assert(cqi_report_aperiodic_proc2_v1310_present != (cqi_report_aperiodic_proc2_v1310.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (cqi_report_aperiodic_proc2_v1310_present) {
+    if (cqi_report_aperiodic_proc2_v1310.is_present()) {
       j.write_fieldname("cqi-ReportAperiodicProc2-v1310");
       cqi_report_aperiodic_proc2_v1310->to_json(j);
     }
-    rrc_asn1_warn_assert(e_mimo_type_r13_present != (e_mimo_type_r13.get() != NULL), __FILE__, __LINE__);
-    if (e_mimo_type_r13_present) {
+    if (e_mimo_type_r13.is_present()) {
       j.write_fieldname("eMIMO-Type-r13");
       e_mimo_type_r13->to_json(j);
     }
-    rrc_asn1_warn_assert(dummy_present != (dummy.get() != NULL), __FILE__, __LINE__);
-    if (dummy_present) {
+    if (dummy.is_present()) {
       j.write_fieldname("dummy");
       dummy->to_json(j);
     }
-    rrc_asn1_warn_assert(e_mimo_hybrid_r14_present != (e_mimo_hybrid_r14.get() != NULL), __FILE__, __LINE__);
-    if (e_mimo_hybrid_r14_present) {
+    if (e_mimo_hybrid_r14.is_present()) {
       j.write_fieldname("eMIMO-Hybrid-r14");
       e_mimo_hybrid_r14->to_json(j);
     }
     if (advanced_codebook_enabled_r14_present) {
       j.write_bool("advancedCodebookEnabled-r14", advanced_codebook_enabled_r14);
     }
-    rrc_asn1_warn_assert(e_mimo_type_v1480_present != (e_mimo_type_v1480.get() != NULL), __FILE__, __LINE__);
-    if (e_mimo_type_v1480_present) {
+    if (e_mimo_type_v1480.is_present()) {
       j.write_fieldname("eMIMO-Type-v1480");
       e_mimo_type_v1480->to_json(j);
     }
     if (fe_comp_csi_enabled_v1530_present) {
       j.write_bool("feCOMP-CSI-Enabled-v1530", fe_comp_csi_enabled_v1530);
     }
-    rrc_asn1_warn_assert(e_mimo_type_v1530_present != (e_mimo_type_v1530.get() != NULL), __FILE__, __LINE__);
-    if (e_mimo_type_v1530_present) {
+    if (e_mimo_type_v1530.is_present()) {
       j.write_fieldname("eMIMO-Type-v1530");
       e_mimo_type_v1530->to_json(j);
     }
@@ -27070,32 +26788,29 @@ SRSASN_CODE epdcch_set_cfg_r11_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(2);
-    rrc_asn1_warn_assert(csi_rs_cfg_zp_id2_r12_present != (csi_rs_cfg_zp_id2_r12.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= csi_rs_cfg_zp_id2_r12_present;
-    rrc_asn1_warn_assert(num_prb_pairs_v1310_present != (num_prb_pairs_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= num_prb_pairs_v1310_present;
-    rrc_asn1_warn_assert(mpdcch_cfg_r13_present != (mpdcch_cfg_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= mpdcch_cfg_r13_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= csi_rs_cfg_zp_id2_r12.is_present();
+    group_flags[1] |= num_prb_pairs_v1310.is_present();
+    group_flags[1] |= mpdcch_cfg_r13.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(csi_rs_cfg_zp_id2_r12_present, 1));
-      if (csi_rs_cfg_zp_id2_r12_present) {
+      HANDLE_CODE(bref.pack(csi_rs_cfg_zp_id2_r12.is_present(), 1));
+      if (csi_rs_cfg_zp_id2_r12.is_present()) {
         HANDLE_CODE(csi_rs_cfg_zp_id2_r12->pack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(num_prb_pairs_v1310_present, 1));
-      HANDLE_CODE(bref.pack(mpdcch_cfg_r13_present, 1));
-      if (num_prb_pairs_v1310_present) {
+      HANDLE_CODE(bref.pack(num_prb_pairs_v1310.is_present(), 1));
+      HANDLE_CODE(bref.pack(mpdcch_cfg_r13.is_present(), 1));
+      if (num_prb_pairs_v1310.is_present()) {
         HANDLE_CODE(num_prb_pairs_v1310->pack(bref));
       }
-      if (mpdcch_cfg_r13_present) {
+      if (mpdcch_cfg_r13.is_present()) {
         HANDLE_CODE(mpdcch_cfg_r13->pack(bref));
       }
     }
@@ -27118,29 +26833,32 @@ SRSASN_CODE epdcch_set_cfg_r11_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(2);
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool csi_rs_cfg_zp_id2_r12_present;
       HANDLE_CODE(bref.unpack(csi_rs_cfg_zp_id2_r12_present, 1));
-      if (csi_rs_cfg_zp_id2_r12_present) {
-        csi_rs_cfg_zp_id2_r12 = make_copy_ptr(csi_rs_cfg_zp_id2_r12_c_());
+      csi_rs_cfg_zp_id2_r12.set_present(csi_rs_cfg_zp_id2_r12_present);
+      if (csi_rs_cfg_zp_id2_r12.is_present()) {
         HANDLE_CODE(csi_rs_cfg_zp_id2_r12->unpack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool num_prb_pairs_v1310_present;
       HANDLE_CODE(bref.unpack(num_prb_pairs_v1310_present, 1));
+      num_prb_pairs_v1310.set_present(num_prb_pairs_v1310_present);
+      bool mpdcch_cfg_r13_present;
       HANDLE_CODE(bref.unpack(mpdcch_cfg_r13_present, 1));
-      if (num_prb_pairs_v1310_present) {
-        num_prb_pairs_v1310 = make_copy_ptr(num_prb_pairs_v1310_c_());
+      mpdcch_cfg_r13.set_present(mpdcch_cfg_r13_present);
+      if (num_prb_pairs_v1310.is_present()) {
         HANDLE_CODE(num_prb_pairs_v1310->unpack(bref));
       }
-      if (mpdcch_cfg_r13_present) {
-        mpdcch_cfg_r13 = make_copy_ptr(mpdcch_cfg_r13_c_());
+      if (mpdcch_cfg_r13.is_present()) {
         HANDLE_CODE(mpdcch_cfg_r13->unpack(bref));
       }
     }
@@ -27163,18 +26881,15 @@ void epdcch_set_cfg_r11_s::to_json(json_writer& j) const
     j.write_int("re-MappingQCL-ConfigId-r11", re_map_qcl_cfg_id_r11);
   }
   if (ext) {
-    rrc_asn1_warn_assert(csi_rs_cfg_zp_id2_r12_present != (csi_rs_cfg_zp_id2_r12.get() != NULL), __FILE__, __LINE__);
-    if (csi_rs_cfg_zp_id2_r12_present) {
+    if (csi_rs_cfg_zp_id2_r12.is_present()) {
       j.write_fieldname("csi-RS-ConfigZPId2-r12");
       csi_rs_cfg_zp_id2_r12->to_json(j);
     }
-    rrc_asn1_warn_assert(num_prb_pairs_v1310_present != (num_prb_pairs_v1310.get() != NULL), __FILE__, __LINE__);
-    if (num_prb_pairs_v1310_present) {
+    if (num_prb_pairs_v1310.is_present()) {
       j.write_fieldname("numberPRB-Pairs-v1310");
       num_prb_pairs_v1310->to_json(j);
     }
-    rrc_asn1_warn_assert(mpdcch_cfg_r13_present != (mpdcch_cfg_r13.get() != NULL), __FILE__, __LINE__);
-    if (mpdcch_cfg_r13_present) {
+    if (mpdcch_cfg_r13.is_present()) {
       j.write_fieldname("mpdcch-config-r13");
       mpdcch_cfg_r13->to_json(j);
     }
@@ -27623,27 +27338,24 @@ SRSASN_CODE lc_ch_cfg_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(4);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= lc_ch_sr_mask_r9_present;
     group_flags[1] |= lc_ch_sr_prohibit_r12_present;
     group_flags[2] |= laa_ul_allowed_r14_present;
     group_flags[2] |= bit_rate_query_prohibit_timer_r14_present;
-    rrc_asn1_warn_assert(allowed_tti_lens_r15_present != (allowed_tti_lens_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= allowed_tti_lens_r15_present;
-    rrc_asn1_warn_assert(lc_ch_sr_restrict_r15_present != (lc_ch_sr_restrict_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= lc_ch_sr_restrict_r15_present;
-    rrc_asn1_warn_assert(chl_access_prio_r15_present != (chl_access_prio_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= chl_access_prio_r15_present;
+    group_flags[3] |= allowed_tti_lens_r15.is_present();
+    group_flags[3] |= lc_ch_sr_restrict_r15.is_present();
+    group_flags[3] |= chl_access_prio_r15.is_present();
     group_flags[3] |= lch_cell_restrict_r15_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(lc_ch_sr_mask_r9_present, 1));
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(lc_ch_sr_prohibit_r12_present, 1));
       if (lc_ch_sr_prohibit_r12_present) {
@@ -27651,7 +27363,7 @@ SRSASN_CODE lc_ch_cfg_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(laa_ul_allowed_r14_present, 1));
       HANDLE_CODE(bref.pack(bit_rate_query_prohibit_timer_r14_present, 1));
@@ -27663,19 +27375,19 @@ SRSASN_CODE lc_ch_cfg_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[3]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(allowed_tti_lens_r15_present, 1));
-      HANDLE_CODE(bref.pack(lc_ch_sr_restrict_r15_present, 1));
-      HANDLE_CODE(bref.pack(chl_access_prio_r15_present, 1));
+      HANDLE_CODE(bref.pack(allowed_tti_lens_r15.is_present(), 1));
+      HANDLE_CODE(bref.pack(lc_ch_sr_restrict_r15.is_present(), 1));
+      HANDLE_CODE(bref.pack(chl_access_prio_r15.is_present(), 1));
       HANDLE_CODE(bref.pack(lch_cell_restrict_r15_present, 1));
-      if (allowed_tti_lens_r15_present) {
+      if (allowed_tti_lens_r15.is_present()) {
         HANDLE_CODE(allowed_tti_lens_r15->pack(bref));
       }
-      if (lc_ch_sr_restrict_r15_present) {
+      if (lc_ch_sr_restrict_r15.is_present()) {
         HANDLE_CODE(lc_ch_sr_restrict_r15->pack(bref));
       }
-      if (chl_access_prio_r15_present) {
+      if (chl_access_prio_r15.is_present()) {
         HANDLE_CODE(chl_access_prio_r15->pack(bref));
       }
       if (lch_cell_restrict_r15_present) {
@@ -27701,16 +27413,16 @@ SRSASN_CODE lc_ch_cfg_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(4);
+    ext_groups_unpacker_guard group_flags(4);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(lc_ch_sr_mask_r9_present, 1));
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(lc_ch_sr_prohibit_r12_present, 1));
       if (lc_ch_sr_prohibit_r12_present) {
@@ -27718,7 +27430,7 @@ SRSASN_CODE lc_ch_cfg_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(laa_ul_allowed_r14_present, 1));
       HANDLE_CODE(bref.unpack(bit_rate_query_prohibit_timer_r14_present, 1));
@@ -27730,22 +27442,25 @@ SRSASN_CODE lc_ch_cfg_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[3]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool allowed_tti_lens_r15_present;
       HANDLE_CODE(bref.unpack(allowed_tti_lens_r15_present, 1));
+      allowed_tti_lens_r15.set_present(allowed_tti_lens_r15_present);
+      bool lc_ch_sr_restrict_r15_present;
       HANDLE_CODE(bref.unpack(lc_ch_sr_restrict_r15_present, 1));
+      lc_ch_sr_restrict_r15.set_present(lc_ch_sr_restrict_r15_present);
+      bool chl_access_prio_r15_present;
       HANDLE_CODE(bref.unpack(chl_access_prio_r15_present, 1));
+      chl_access_prio_r15.set_present(chl_access_prio_r15_present);
       HANDLE_CODE(bref.unpack(lch_cell_restrict_r15_present, 1));
-      if (allowed_tti_lens_r15_present) {
-        allowed_tti_lens_r15 = make_copy_ptr(allowed_tti_lens_r15_c_());
+      if (allowed_tti_lens_r15.is_present()) {
         HANDLE_CODE(allowed_tti_lens_r15->unpack(bref));
       }
-      if (lc_ch_sr_restrict_r15_present) {
-        lc_ch_sr_restrict_r15 = make_copy_ptr(lc_ch_sr_restrict_r15_c_());
+      if (lc_ch_sr_restrict_r15.is_present()) {
         HANDLE_CODE(lc_ch_sr_restrict_r15->unpack(bref));
       }
-      if (chl_access_prio_r15_present) {
-        chl_access_prio_r15 = make_copy_ptr(chl_access_prio_r15_c_());
+      if (chl_access_prio_r15.is_present()) {
         HANDLE_CODE(chl_access_prio_r15->unpack(bref));
       }
       if (lch_cell_restrict_r15_present) {
@@ -27782,18 +27497,15 @@ void lc_ch_cfg_s::to_json(json_writer& j) const
     if (bit_rate_query_prohibit_timer_r14_present) {
       j.write_str("bitRateQueryProhibitTimer-r14", bit_rate_query_prohibit_timer_r14.to_string());
     }
-    rrc_asn1_warn_assert(allowed_tti_lens_r15_present != (allowed_tti_lens_r15.get() != NULL), __FILE__, __LINE__);
-    if (allowed_tti_lens_r15_present) {
+    if (allowed_tti_lens_r15.is_present()) {
       j.write_fieldname("allowedTTI-Lengths-r15");
       allowed_tti_lens_r15->to_json(j);
     }
-    rrc_asn1_warn_assert(lc_ch_sr_restrict_r15_present != (lc_ch_sr_restrict_r15.get() != NULL), __FILE__, __LINE__);
-    if (lc_ch_sr_restrict_r15_present) {
+    if (lc_ch_sr_restrict_r15.is_present()) {
       j.write_fieldname("logicalChannelSR-Restriction-r15");
       lc_ch_sr_restrict_r15->to_json(j);
     }
-    rrc_asn1_warn_assert(chl_access_prio_r15_present != (chl_access_prio_r15.get() != NULL), __FILE__, __LINE__);
-    if (chl_access_prio_r15_present) {
+    if (chl_access_prio_r15.is_present()) {
       j.write_fieldname("channellAccessPriority-r15");
       chl_access_prio_r15->to_json(j);
     }
@@ -27986,27 +27698,24 @@ SRSASN_CODE pdsch_re_map_qcl_cfg_r11_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(2);
-    rrc_asn1_warn_assert(
-        mbsfn_sf_cfg_list_v1430_present != (mbsfn_sf_cfg_list_v1430.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= mbsfn_sf_cfg_list_v1430_present;
-    rrc_asn1_warn_assert(codeword_one_cfg_v1530_present != (codeword_one_cfg_v1530.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= codeword_one_cfg_v1530_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= mbsfn_sf_cfg_list_v1430.is_present();
+    group_flags[1] |= codeword_one_cfg_v1530.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(mbsfn_sf_cfg_list_v1430_present, 1));
-      if (mbsfn_sf_cfg_list_v1430_present) {
+      HANDLE_CODE(bref.pack(mbsfn_sf_cfg_list_v1430.is_present(), 1));
+      if (mbsfn_sf_cfg_list_v1430.is_present()) {
         HANDLE_CODE(mbsfn_sf_cfg_list_v1430->pack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(codeword_one_cfg_v1530_present, 1));
-      if (codeword_one_cfg_v1530_present) {
+      HANDLE_CODE(bref.pack(codeword_one_cfg_v1530.is_present(), 1));
+      if (codeword_one_cfg_v1530.is_present()) {
         HANDLE_CODE(codeword_one_cfg_v1530->pack(bref));
       }
     }
@@ -28035,24 +27744,26 @@ SRSASN_CODE pdsch_re_map_qcl_cfg_r11_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(2);
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool mbsfn_sf_cfg_list_v1430_present;
       HANDLE_CODE(bref.unpack(mbsfn_sf_cfg_list_v1430_present, 1));
-      if (mbsfn_sf_cfg_list_v1430_present) {
-        mbsfn_sf_cfg_list_v1430 = make_copy_ptr(mbsfn_sf_cfg_list_v1430_c_());
+      mbsfn_sf_cfg_list_v1430.set_present(mbsfn_sf_cfg_list_v1430_present);
+      if (mbsfn_sf_cfg_list_v1430.is_present()) {
         HANDLE_CODE(mbsfn_sf_cfg_list_v1430->unpack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool codeword_one_cfg_v1530_present;
       HANDLE_CODE(bref.unpack(codeword_one_cfg_v1530_present, 1));
-      if (codeword_one_cfg_v1530_present) {
-        codeword_one_cfg_v1530 = make_copy_ptr(codeword_one_cfg_v1530_c_());
+      codeword_one_cfg_v1530.set_present(codeword_one_cfg_v1530_present);
+      if (codeword_one_cfg_v1530.is_present()) {
         HANDLE_CODE(codeword_one_cfg_v1530->unpack(bref));
       }
     }
@@ -28080,14 +27791,11 @@ void pdsch_re_map_qcl_cfg_r11_s::to_json(json_writer& j) const
     j.write_int("qcl-CSI-RS-ConfigNZPId-r11", qcl_csi_rs_cfg_nzp_id_r11);
   }
   if (ext) {
-    rrc_asn1_warn_assert(
-        mbsfn_sf_cfg_list_v1430_present != (mbsfn_sf_cfg_list_v1430.get() != NULL), __FILE__, __LINE__);
-    if (mbsfn_sf_cfg_list_v1430_present) {
+    if (mbsfn_sf_cfg_list_v1430.is_present()) {
       j.write_fieldname("mbsfn-SubframeConfigList-v1430");
       mbsfn_sf_cfg_list_v1430->to_json(j);
     }
-    rrc_asn1_warn_assert(codeword_one_cfg_v1530_present != (codeword_one_cfg_v1530.get() != NULL), __FILE__, __LINE__);
-    if (codeword_one_cfg_v1530_present) {
+    if (codeword_one_cfg_v1530.is_present()) {
       j.write_fieldname("codewordOneConfig-v1530");
       codeword_one_cfg_v1530->to_json(j);
     }
@@ -29383,17 +29091,15 @@ SRSASN_CODE crs_assist_info_r11_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_dyn_seq_of(bref, mbsfn_sf_cfg_list_r11, 1, 8));
 
   if (ext) {
-    ext_groups_header group_flags(1);
-    rrc_asn1_warn_assert(
-        mbsfn_sf_cfg_list_v1430_present != (mbsfn_sf_cfg_list_v1430.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= mbsfn_sf_cfg_list_v1430_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= mbsfn_sf_cfg_list_v1430.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(mbsfn_sf_cfg_list_v1430_present, 1));
-      if (mbsfn_sf_cfg_list_v1430_present) {
+      HANDLE_CODE(bref.pack(mbsfn_sf_cfg_list_v1430.is_present(), 1));
+      if (mbsfn_sf_cfg_list_v1430.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *mbsfn_sf_cfg_list_v1430, 1, 8));
       }
     }
@@ -29408,15 +29114,16 @@ SRSASN_CODE crs_assist_info_r11_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_dyn_seq_of(mbsfn_sf_cfg_list_r11, bref, 1, 8));
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool mbsfn_sf_cfg_list_v1430_present;
       HANDLE_CODE(bref.unpack(mbsfn_sf_cfg_list_v1430_present, 1));
-      if (mbsfn_sf_cfg_list_v1430_present) {
-        mbsfn_sf_cfg_list_v1430 = make_copy_ptr(mbsfn_sf_cfg_list_v1430_l());
+      mbsfn_sf_cfg_list_v1430.set_present(mbsfn_sf_cfg_list_v1430_present);
+      if (mbsfn_sf_cfg_list_v1430.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*mbsfn_sf_cfg_list_v1430, bref, 1, 8));
       }
     }
@@ -29434,9 +29141,7 @@ void crs_assist_info_r11_s::to_json(json_writer& j) const
   }
   j.end_array();
   if (ext) {
-    rrc_asn1_warn_assert(
-        mbsfn_sf_cfg_list_v1430_present != (mbsfn_sf_cfg_list_v1430.get() != NULL), __FILE__, __LINE__);
-    if (mbsfn_sf_cfg_list_v1430_present) {
+    if (mbsfn_sf_cfg_list_v1430.is_present()) {
       j.start_array("mbsfn-SubframeConfigList-v1430");
       for (uint32_t i1 = 0; i1 < mbsfn_sf_cfg_list_v1430->size(); ++i1) {
         ((*mbsfn_sf_cfg_list_v1430)[i1]).to_json(j);
@@ -29460,17 +29165,15 @@ SRSASN_CODE crs_assist_info_r13_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
-    rrc_asn1_warn_assert(
-        mbsfn_sf_cfg_list_v1430_present != (mbsfn_sf_cfg_list_v1430.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= mbsfn_sf_cfg_list_v1430_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= mbsfn_sf_cfg_list_v1430.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(mbsfn_sf_cfg_list_v1430_present, 1));
-      if (mbsfn_sf_cfg_list_v1430_present) {
+      HANDLE_CODE(bref.pack(mbsfn_sf_cfg_list_v1430.is_present(), 1));
+      if (mbsfn_sf_cfg_list_v1430.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *mbsfn_sf_cfg_list_v1430, 1, 8));
       }
     }
@@ -29489,15 +29192,16 @@ SRSASN_CODE crs_assist_info_r13_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool mbsfn_sf_cfg_list_v1430_present;
       HANDLE_CODE(bref.unpack(mbsfn_sf_cfg_list_v1430_present, 1));
-      if (mbsfn_sf_cfg_list_v1430_present) {
-        mbsfn_sf_cfg_list_v1430 = make_copy_ptr(mbsfn_sf_cfg_list_v1430_l());
+      mbsfn_sf_cfg_list_v1430.set_present(mbsfn_sf_cfg_list_v1430_present);
+      if (mbsfn_sf_cfg_list_v1430.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*mbsfn_sf_cfg_list_v1430, bref, 1, 8));
       }
     }
@@ -29517,9 +29221,7 @@ void crs_assist_info_r13_s::to_json(json_writer& j) const
     j.end_array();
   }
   if (ext) {
-    rrc_asn1_warn_assert(
-        mbsfn_sf_cfg_list_v1430_present != (mbsfn_sf_cfg_list_v1430.get() != NULL), __FILE__, __LINE__);
-    if (mbsfn_sf_cfg_list_v1430_present) {
+    if (mbsfn_sf_cfg_list_v1430.is_present()) {
       j.start_array("mbsfn-SubframeConfigList-v1430");
       for (uint32_t i1 = 0; i1 < mbsfn_sf_cfg_list_v1430->size(); ++i1) {
         ((*mbsfn_sf_cfg_list_v1430)[i1]).to_json(j);
@@ -30149,40 +29851,32 @@ SRSASN_CODE pdcp_cfg_s::pack(bit_ref& bref) const
   HANDLE_CODE(hdr_compress.pack(bref));
 
   if (ext) {
-    ext_groups_header group_flags(6);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= rn_integrity_protection_r10_present;
     group_flags[1] |= pdcp_sn_size_v1130_present;
     group_flags[2] |= ul_data_split_drb_via_scg_r12_present;
     group_flags[2] |= t_reordering_r12_present;
-    rrc_asn1_warn_assert(
-        ul_data_split_thres_r13_present != (ul_data_split_thres_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= ul_data_split_thres_r13_present;
+    group_flags[3] |= ul_data_split_thres_r13.is_present();
     group_flags[3] |= pdcp_sn_size_v1310_present;
-    rrc_asn1_warn_assert(status_feedback_r13_present != (status_feedback_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= status_feedback_r13_present;
-    rrc_asn1_warn_assert(ul_lwa_cfg_r14_present != (ul_lwa_cfg_r14.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= ul_lwa_cfg_r14_present;
-    rrc_asn1_warn_assert(
-        ul_only_hdr_compress_r14_present != (ul_only_hdr_compress_r14.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= ul_only_hdr_compress_r14_present;
-    rrc_asn1_warn_assert(ul_data_compress_r15_present != (ul_data_compress_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[5] |= ul_data_compress_r15_present;
-    rrc_asn1_warn_assert(pdcp_dupl_cfg_r15_present != (pdcp_dupl_cfg_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[5] |= pdcp_dupl_cfg_r15_present;
+    group_flags[3] |= status_feedback_r13.is_present();
+    group_flags[4] |= ul_lwa_cfg_r14.is_present();
+    group_flags[4] |= ul_only_hdr_compress_r14.is_present();
+    group_flags[5] |= ul_data_compress_r15.is_present();
+    group_flags[5] |= pdcp_dupl_cfg_r15.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(rn_integrity_protection_r10_present, 1));
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(pdcp_sn_size_v1130_present, 1));
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(ul_data_split_drb_via_scg_r12_present, 1));
       HANDLE_CODE(bref.pack(t_reordering_r12_present, 1));
@@ -30194,36 +29888,36 @@ SRSASN_CODE pdcp_cfg_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[3]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(ul_data_split_thres_r13_present, 1));
+      HANDLE_CODE(bref.pack(ul_data_split_thres_r13.is_present(), 1));
       HANDLE_CODE(bref.pack(pdcp_sn_size_v1310_present, 1));
-      HANDLE_CODE(bref.pack(status_feedback_r13_present, 1));
-      if (ul_data_split_thres_r13_present) {
+      HANDLE_CODE(bref.pack(status_feedback_r13.is_present(), 1));
+      if (ul_data_split_thres_r13.is_present()) {
         HANDLE_CODE(ul_data_split_thres_r13->pack(bref));
       }
-      if (status_feedback_r13_present) {
+      if (status_feedback_r13.is_present()) {
         HANDLE_CODE(status_feedback_r13->pack(bref));
       }
     }
     if (group_flags[4]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(ul_lwa_cfg_r14_present, 1));
-      HANDLE_CODE(bref.pack(ul_only_hdr_compress_r14_present, 1));
-      if (ul_lwa_cfg_r14_present) {
+      HANDLE_CODE(bref.pack(ul_lwa_cfg_r14.is_present(), 1));
+      HANDLE_CODE(bref.pack(ul_only_hdr_compress_r14.is_present(), 1));
+      if (ul_lwa_cfg_r14.is_present()) {
         HANDLE_CODE(ul_lwa_cfg_r14->pack(bref));
       }
-      if (ul_only_hdr_compress_r14_present) {
+      if (ul_only_hdr_compress_r14.is_present()) {
         HANDLE_CODE(ul_only_hdr_compress_r14->pack(bref));
       }
     }
     if (group_flags[5]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(ul_data_compress_r15_present, 1));
-      HANDLE_CODE(bref.pack(pdcp_dupl_cfg_r15_present, 1));
-      if (ul_data_compress_r15_present) {
+      HANDLE_CODE(bref.pack(ul_data_compress_r15.is_present(), 1));
+      HANDLE_CODE(bref.pack(pdcp_dupl_cfg_r15.is_present(), 1));
+      if (ul_data_compress_r15.is_present()) {
         bref.pack(ul_data_compress_r15->ext, 1);
         HANDLE_CODE(bref.pack(ul_data_compress_r15->dictionary_r15_present, 1));
         HANDLE_CODE(pack_enum(bref, ul_data_compress_r15->buffer_size_r15));
@@ -30231,7 +29925,7 @@ SRSASN_CODE pdcp_cfg_s::pack(bit_ref& bref) const
           HANDLE_CODE(pack_enum(bref, ul_data_compress_r15->dictionary_r15));
         }
       }
-      if (pdcp_dupl_cfg_r15_present) {
+      if (pdcp_dupl_cfg_r15.is_present()) {
         HANDLE_CODE(pdcp_dupl_cfg_r15->pack(bref));
       }
     }
@@ -30257,21 +29951,21 @@ SRSASN_CODE pdcp_cfg_s::unpack(bit_ref& bref)
   HANDLE_CODE(hdr_compress.unpack(bref));
 
   if (ext) {
-    ext_groups_header group_flags(6);
+    ext_groups_unpacker_guard group_flags(6);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(rn_integrity_protection_r10_present, 1));
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(pdcp_sn_size_v1130_present, 1));
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(ul_data_split_drb_via_scg_r12_present, 1));
       HANDLE_CODE(bref.unpack(t_reordering_r12_present, 1));
@@ -30283,41 +29977,48 @@ SRSASN_CODE pdcp_cfg_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[3]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool ul_data_split_thres_r13_present;
       HANDLE_CODE(bref.unpack(ul_data_split_thres_r13_present, 1));
+      ul_data_split_thres_r13.set_present(ul_data_split_thres_r13_present);
       HANDLE_CODE(bref.unpack(pdcp_sn_size_v1310_present, 1));
+      bool status_feedback_r13_present;
       HANDLE_CODE(bref.unpack(status_feedback_r13_present, 1));
-      if (ul_data_split_thres_r13_present) {
-        ul_data_split_thres_r13 = make_copy_ptr(ul_data_split_thres_r13_c_());
+      status_feedback_r13.set_present(status_feedback_r13_present);
+      if (ul_data_split_thres_r13.is_present()) {
         HANDLE_CODE(ul_data_split_thres_r13->unpack(bref));
       }
-      if (status_feedback_r13_present) {
-        status_feedback_r13 = make_copy_ptr(status_feedback_r13_c_());
+      if (status_feedback_r13.is_present()) {
         HANDLE_CODE(status_feedback_r13->unpack(bref));
       }
     }
     if (group_flags[4]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool ul_lwa_cfg_r14_present;
       HANDLE_CODE(bref.unpack(ul_lwa_cfg_r14_present, 1));
+      ul_lwa_cfg_r14.set_present(ul_lwa_cfg_r14_present);
+      bool ul_only_hdr_compress_r14_present;
       HANDLE_CODE(bref.unpack(ul_only_hdr_compress_r14_present, 1));
-      if (ul_lwa_cfg_r14_present) {
-        ul_lwa_cfg_r14 = make_copy_ptr(ul_lwa_cfg_r14_c_());
+      ul_only_hdr_compress_r14.set_present(ul_only_hdr_compress_r14_present);
+      if (ul_lwa_cfg_r14.is_present()) {
         HANDLE_CODE(ul_lwa_cfg_r14->unpack(bref));
       }
-      if (ul_only_hdr_compress_r14_present) {
-        ul_only_hdr_compress_r14 = make_copy_ptr(ul_only_hdr_compress_r14_c_());
+      if (ul_only_hdr_compress_r14.is_present()) {
         HANDLE_CODE(ul_only_hdr_compress_r14->unpack(bref));
       }
     }
     if (group_flags[5]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool ul_data_compress_r15_present;
       HANDLE_CODE(bref.unpack(ul_data_compress_r15_present, 1));
+      ul_data_compress_r15.set_present(ul_data_compress_r15_present);
+      bool pdcp_dupl_cfg_r15_present;
       HANDLE_CODE(bref.unpack(pdcp_dupl_cfg_r15_present, 1));
-      if (ul_data_compress_r15_present) {
-        ul_data_compress_r15 = make_copy_ptr(ul_data_compress_r15_s_());
+      pdcp_dupl_cfg_r15.set_present(pdcp_dupl_cfg_r15_present);
+      if (ul_data_compress_r15.is_present()) {
         bref.unpack(ul_data_compress_r15->ext, 1);
         HANDLE_CODE(bref.unpack(ul_data_compress_r15->dictionary_r15_present, 1));
         HANDLE_CODE(unpack_enum(ul_data_compress_r15->buffer_size_r15, bref));
@@ -30325,8 +30026,7 @@ SRSASN_CODE pdcp_cfg_s::unpack(bit_ref& bref)
           HANDLE_CODE(unpack_enum(ul_data_compress_r15->dictionary_r15, bref));
         }
       }
-      if (pdcp_dupl_cfg_r15_present) {
-        pdcp_dupl_cfg_r15 = make_copy_ptr(pdcp_dupl_cfg_r15_c_());
+      if (pdcp_dupl_cfg_r15.is_present()) {
         HANDLE_CODE(pdcp_dupl_cfg_r15->unpack(bref));
       }
     }
@@ -30366,33 +30066,26 @@ void pdcp_cfg_s::to_json(json_writer& j) const
     if (t_reordering_r12_present) {
       j.write_str("t-Reordering-r12", t_reordering_r12.to_string());
     }
-    rrc_asn1_warn_assert(
-        ul_data_split_thres_r13_present != (ul_data_split_thres_r13.get() != NULL), __FILE__, __LINE__);
-    if (ul_data_split_thres_r13_present) {
+    if (ul_data_split_thres_r13.is_present()) {
       j.write_fieldname("ul-DataSplitThreshold-r13");
       ul_data_split_thres_r13->to_json(j);
     }
     if (pdcp_sn_size_v1310_present) {
       j.write_str("pdcp-SN-Size-v1310", "len18bits");
     }
-    rrc_asn1_warn_assert(status_feedback_r13_present != (status_feedback_r13.get() != NULL), __FILE__, __LINE__);
-    if (status_feedback_r13_present) {
+    if (status_feedback_r13.is_present()) {
       j.write_fieldname("statusFeedback-r13");
       status_feedback_r13->to_json(j);
     }
-    rrc_asn1_warn_assert(ul_lwa_cfg_r14_present != (ul_lwa_cfg_r14.get() != NULL), __FILE__, __LINE__);
-    if (ul_lwa_cfg_r14_present) {
+    if (ul_lwa_cfg_r14.is_present()) {
       j.write_fieldname("ul-LWA-Config-r14");
       ul_lwa_cfg_r14->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        ul_only_hdr_compress_r14_present != (ul_only_hdr_compress_r14.get() != NULL), __FILE__, __LINE__);
-    if (ul_only_hdr_compress_r14_present) {
+    if (ul_only_hdr_compress_r14.is_present()) {
       j.write_fieldname("uplinkOnlyHeaderCompression-r14");
       ul_only_hdr_compress_r14->to_json(j);
     }
-    rrc_asn1_warn_assert(ul_data_compress_r15_present != (ul_data_compress_r15.get() != NULL), __FILE__, __LINE__);
-    if (ul_data_compress_r15_present) {
+    if (ul_data_compress_r15.is_present()) {
       j.write_fieldname("uplinkDataCompression-r15");
       j.start_obj();
       j.write_str("bufferSize-r15", ul_data_compress_r15->buffer_size_r15.to_string());
@@ -30401,8 +30094,7 @@ void pdcp_cfg_s::to_json(json_writer& j) const
       }
       j.end_obj();
     }
-    rrc_asn1_warn_assert(pdcp_dupl_cfg_r15_present != (pdcp_dupl_cfg_r15.get() != NULL), __FILE__, __LINE__);
-    if (pdcp_dupl_cfg_r15_present) {
+    if (pdcp_dupl_cfg_r15.is_present()) {
       j.write_fieldname("pdcp-DuplicationConfig-r15");
       pdcp_dupl_cfg_r15->to_json(j);
     }
@@ -31723,10 +31415,8 @@ SRSASN_CODE sps_cfg_ul_c::setup_s_::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(4);
-    rrc_asn1_warn_assert(
-        p0_persistent_sf_set2_r12_present != (p0_persistent_sf_set2_r12.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= p0_persistent_sf_set2_r12_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= p0_persistent_sf_set2_r12.is_present();
     group_flags[1] |= nof_conf_ul_sps_processes_r13_present;
     group_flags[2] |= fixed_rv_non_adaptive_r14_present;
     group_flags[2] |= sps_cfg_idx_r14_present;
@@ -31734,23 +31424,21 @@ SRSASN_CODE sps_cfg_ul_c::setup_s_::pack(bit_ref& bref) const
     group_flags[3] |= cyclic_shift_sps_r15_present;
     group_flags[3] |= harq_proc_id_offset_r15_present;
     group_flags[3] |= rv_sps_ul_repeats_r15_present;
-    rrc_asn1_warn_assert(
-        tpc_pdcch_cfg_pusch_sps_r15_present != (tpc_pdcch_cfg_pusch_sps_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= tpc_pdcch_cfg_pusch_sps_r15_present;
+    group_flags[3] |= tpc_pdcch_cfg_pusch_sps_r15.is_present();
     group_flags[3] |= total_num_pusch_sps_ul_repeats_r15_present;
     group_flags[3] |= sps_cfg_idx_r15_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(p0_persistent_sf_set2_r12_present, 1));
-      if (p0_persistent_sf_set2_r12_present) {
+      HANDLE_CODE(bref.pack(p0_persistent_sf_set2_r12.is_present(), 1));
+      if (p0_persistent_sf_set2_r12.is_present()) {
         HANDLE_CODE(p0_persistent_sf_set2_r12->pack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(nof_conf_ul_sps_processes_r13_present, 1));
       if (nof_conf_ul_sps_processes_r13_present) {
@@ -31758,7 +31446,7 @@ SRSASN_CODE sps_cfg_ul_c::setup_s_::pack(bit_ref& bref) const
       }
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(fixed_rv_non_adaptive_r14_present, 1));
       HANDLE_CODE(bref.pack(sps_cfg_idx_r14_present, 1));
@@ -31771,12 +31459,12 @@ SRSASN_CODE sps_cfg_ul_c::setup_s_::pack(bit_ref& bref) const
       }
     }
     if (group_flags[3]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(cyclic_shift_sps_r15_present, 1));
       HANDLE_CODE(bref.pack(harq_proc_id_offset_r15_present, 1));
       HANDLE_CODE(bref.pack(rv_sps_ul_repeats_r15_present, 1));
-      HANDLE_CODE(bref.pack(tpc_pdcch_cfg_pusch_sps_r15_present, 1));
+      HANDLE_CODE(bref.pack(tpc_pdcch_cfg_pusch_sps_r15.is_present(), 1));
       HANDLE_CODE(bref.pack(total_num_pusch_sps_ul_repeats_r15_present, 1));
       HANDLE_CODE(bref.pack(sps_cfg_idx_r15_present, 1));
       if (cyclic_shift_sps_r15_present) {
@@ -31788,7 +31476,7 @@ SRSASN_CODE sps_cfg_ul_c::setup_s_::pack(bit_ref& bref) const
       if (rv_sps_ul_repeats_r15_present) {
         HANDLE_CODE(pack_enum(bref, rv_sps_ul_repeats_r15));
       }
-      if (tpc_pdcch_cfg_pusch_sps_r15_present) {
+      if (tpc_pdcch_cfg_pusch_sps_r15.is_present()) {
         HANDLE_CODE(tpc_pdcch_cfg_pusch_sps_r15->pack(bref));
       }
       if (total_num_pusch_sps_ul_repeats_r15_present) {
@@ -31815,20 +31503,21 @@ SRSASN_CODE sps_cfg_ul_c::setup_s_::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(4);
+    ext_groups_unpacker_guard group_flags(4);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool p0_persistent_sf_set2_r12_present;
       HANDLE_CODE(bref.unpack(p0_persistent_sf_set2_r12_present, 1));
-      if (p0_persistent_sf_set2_r12_present) {
-        p0_persistent_sf_set2_r12 = make_copy_ptr(p0_persistent_sf_set2_r12_c_());
+      p0_persistent_sf_set2_r12.set_present(p0_persistent_sf_set2_r12_present);
+      if (p0_persistent_sf_set2_r12.is_present()) {
         HANDLE_CODE(p0_persistent_sf_set2_r12->unpack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(nof_conf_ul_sps_processes_r13_present, 1));
       if (nof_conf_ul_sps_processes_r13_present) {
@@ -31836,7 +31525,7 @@ SRSASN_CODE sps_cfg_ul_c::setup_s_::unpack(bit_ref& bref)
       }
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(fixed_rv_non_adaptive_r14_present, 1));
       HANDLE_CODE(bref.unpack(sps_cfg_idx_r14_present, 1));
@@ -31849,12 +31538,14 @@ SRSASN_CODE sps_cfg_ul_c::setup_s_::unpack(bit_ref& bref)
       }
     }
     if (group_flags[3]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(cyclic_shift_sps_r15_present, 1));
       HANDLE_CODE(bref.unpack(harq_proc_id_offset_r15_present, 1));
       HANDLE_CODE(bref.unpack(rv_sps_ul_repeats_r15_present, 1));
+      bool tpc_pdcch_cfg_pusch_sps_r15_present;
       HANDLE_CODE(bref.unpack(tpc_pdcch_cfg_pusch_sps_r15_present, 1));
+      tpc_pdcch_cfg_pusch_sps_r15.set_present(tpc_pdcch_cfg_pusch_sps_r15_present);
       HANDLE_CODE(bref.unpack(total_num_pusch_sps_ul_repeats_r15_present, 1));
       HANDLE_CODE(bref.unpack(sps_cfg_idx_r15_present, 1));
       if (cyclic_shift_sps_r15_present) {
@@ -31866,8 +31557,7 @@ SRSASN_CODE sps_cfg_ul_c::setup_s_::unpack(bit_ref& bref)
       if (rv_sps_ul_repeats_r15_present) {
         HANDLE_CODE(unpack_enum(rv_sps_ul_repeats_r15, bref));
       }
-      if (tpc_pdcch_cfg_pusch_sps_r15_present) {
-        tpc_pdcch_cfg_pusch_sps_r15 = make_copy_ptr(tpc_pdcch_cfg_c());
+      if (tpc_pdcch_cfg_pusch_sps_r15.is_present()) {
         HANDLE_CODE(tpc_pdcch_cfg_pusch_sps_r15->unpack(bref));
       }
       if (total_num_pusch_sps_ul_repeats_r15_present) {
@@ -31896,9 +31586,7 @@ void sps_cfg_ul_c::setup_s_::to_json(json_writer& j) const
     j.write_str("twoIntervalsConfig", "true");
   }
   if (ext) {
-    rrc_asn1_warn_assert(
-        p0_persistent_sf_set2_r12_present != (p0_persistent_sf_set2_r12.get() != NULL), __FILE__, __LINE__);
-    if (p0_persistent_sf_set2_r12_present) {
+    if (p0_persistent_sf_set2_r12.is_present()) {
       j.write_fieldname("p0-PersistentSubframeSet2-r12");
       p0_persistent_sf_set2_r12->to_json(j);
     }
@@ -31923,9 +31611,7 @@ void sps_cfg_ul_c::setup_s_::to_json(json_writer& j) const
     if (rv_sps_ul_repeats_r15_present) {
       j.write_str("rv-SPS-UL-Repetitions-r15", rv_sps_ul_repeats_r15.to_string());
     }
-    rrc_asn1_warn_assert(
-        tpc_pdcch_cfg_pusch_sps_r15_present != (tpc_pdcch_cfg_pusch_sps_r15.get() != NULL), __FILE__, __LINE__);
-    if (tpc_pdcch_cfg_pusch_sps_r15_present) {
+    if (tpc_pdcch_cfg_pusch_sps_r15.is_present()) {
       j.write_fieldname("tpc-PDCCH-ConfigPUSCH-SPS-r15");
       tpc_pdcch_cfg_pusch_sps_r15->to_json(j);
     }
@@ -34173,45 +33859,38 @@ SRSASN_CODE drb_to_add_mod_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(5);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= drb_type_change_r12_present;
-    rrc_asn1_warn_assert(rlc_cfg_v1250_present != (rlc_cfg_v1250.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= rlc_cfg_v1250_present;
-    rrc_asn1_warn_assert(rlc_cfg_v1310_present != (rlc_cfg_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= rlc_cfg_v1310_present;
+    group_flags[0] |= rlc_cfg_v1250.is_present();
+    group_flags[1] |= rlc_cfg_v1310.is_present();
     group_flags[1] |= drb_type_lwa_r13_present;
     group_flags[1] |= drb_type_lwip_r13_present;
-    rrc_asn1_warn_assert(rlc_cfg_v1430_present != (rlc_cfg_v1430.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= rlc_cfg_v1430_present;
+    group_flags[2] |= rlc_cfg_v1430.is_present();
     group_flags[2] |= lwip_ul_aggregation_r14_present;
     group_flags[2] |= lwip_dl_aggregation_r14_present;
     group_flags[2] |= lwa_wlan_ac_r14_present;
-    rrc_asn1_warn_assert(rlc_cfg_v1510_present != (rlc_cfg_v1510.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= rlc_cfg_v1510_present;
-    rrc_asn1_warn_assert(rlc_cfg_v1530_present != (rlc_cfg_v1530.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= rlc_cfg_v1530_present;
-    rrc_asn1_warn_assert(
-        rlc_bearer_cfg_dupl_r15_present != (rlc_bearer_cfg_dupl_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= rlc_bearer_cfg_dupl_r15_present;
+    group_flags[3] |= rlc_cfg_v1510.is_present();
+    group_flags[4] |= rlc_cfg_v1530.is_present();
+    group_flags[4] |= rlc_bearer_cfg_dupl_r15.is_present();
     group_flags[4] |= lc_ch_id_r15_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(drb_type_change_r12_present, 1));
-      HANDLE_CODE(bref.pack(rlc_cfg_v1250_present, 1));
-      if (rlc_cfg_v1250_present) {
+      HANDLE_CODE(bref.pack(rlc_cfg_v1250.is_present(), 1));
+      if (rlc_cfg_v1250.is_present()) {
         HANDLE_CODE(rlc_cfg_v1250->pack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(rlc_cfg_v1310_present, 1));
+      HANDLE_CODE(bref.pack(rlc_cfg_v1310.is_present(), 1));
       HANDLE_CODE(bref.pack(drb_type_lwa_r13_present, 1));
       HANDLE_CODE(bref.pack(drb_type_lwip_r13_present, 1));
-      if (rlc_cfg_v1310_present) {
+      if (rlc_cfg_v1310.is_present()) {
         HANDLE_CODE(rlc_cfg_v1310->pack(bref));
       }
       if (drb_type_lwa_r13_present) {
@@ -34222,13 +33901,13 @@ SRSASN_CODE drb_to_add_mod_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(rlc_cfg_v1430_present, 1));
+      HANDLE_CODE(bref.pack(rlc_cfg_v1430.is_present(), 1));
       HANDLE_CODE(bref.pack(lwip_ul_aggregation_r14_present, 1));
       HANDLE_CODE(bref.pack(lwip_dl_aggregation_r14_present, 1));
       HANDLE_CODE(bref.pack(lwa_wlan_ac_r14_present, 1));
-      if (rlc_cfg_v1430_present) {
+      if (rlc_cfg_v1430.is_present()) {
         HANDLE_CODE(rlc_cfg_v1430->pack(bref));
       }
       if (lwip_ul_aggregation_r14_present) {
@@ -34242,23 +33921,23 @@ SRSASN_CODE drb_to_add_mod_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[3]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(rlc_cfg_v1510_present, 1));
-      if (rlc_cfg_v1510_present) {
+      HANDLE_CODE(bref.pack(rlc_cfg_v1510.is_present(), 1));
+      if (rlc_cfg_v1510.is_present()) {
         HANDLE_CODE(rlc_cfg_v1510->pack(bref));
       }
     }
     if (group_flags[4]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(rlc_cfg_v1530_present, 1));
-      HANDLE_CODE(bref.pack(rlc_bearer_cfg_dupl_r15_present, 1));
+      HANDLE_CODE(bref.pack(rlc_cfg_v1530.is_present(), 1));
+      HANDLE_CODE(bref.pack(rlc_bearer_cfg_dupl_r15.is_present(), 1));
       HANDLE_CODE(bref.pack(lc_ch_id_r15_present, 1));
-      if (rlc_cfg_v1530_present) {
+      if (rlc_cfg_v1530.is_present()) {
         HANDLE_CODE(rlc_cfg_v1530->pack(bref));
       }
-      if (rlc_bearer_cfg_dupl_r15_present) {
+      if (rlc_bearer_cfg_dupl_r15.is_present()) {
         HANDLE_CODE(rlc_bearer_cfg_dupl_r15->pack(bref));
       }
       if (lc_ch_id_r15_present) {
@@ -34295,27 +33974,29 @@ SRSASN_CODE drb_to_add_mod_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(5);
+    ext_groups_unpacker_guard group_flags(5);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(drb_type_change_r12_present, 1));
+      bool rlc_cfg_v1250_present;
       HANDLE_CODE(bref.unpack(rlc_cfg_v1250_present, 1));
-      if (rlc_cfg_v1250_present) {
-        rlc_cfg_v1250 = make_copy_ptr(rlc_cfg_v1250_s());
+      rlc_cfg_v1250.set_present(rlc_cfg_v1250_present);
+      if (rlc_cfg_v1250.is_present()) {
         HANDLE_CODE(rlc_cfg_v1250->unpack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool rlc_cfg_v1310_present;
       HANDLE_CODE(bref.unpack(rlc_cfg_v1310_present, 1));
+      rlc_cfg_v1310.set_present(rlc_cfg_v1310_present);
       HANDLE_CODE(bref.unpack(drb_type_lwa_r13_present, 1));
       HANDLE_CODE(bref.unpack(drb_type_lwip_r13_present, 1));
-      if (rlc_cfg_v1310_present) {
-        rlc_cfg_v1310 = make_copy_ptr(rlc_cfg_v1310_s());
+      if (rlc_cfg_v1310.is_present()) {
         HANDLE_CODE(rlc_cfg_v1310->unpack(bref));
       }
       if (drb_type_lwa_r13_present) {
@@ -34326,14 +34007,15 @@ SRSASN_CODE drb_to_add_mod_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool rlc_cfg_v1430_present;
       HANDLE_CODE(bref.unpack(rlc_cfg_v1430_present, 1));
+      rlc_cfg_v1430.set_present(rlc_cfg_v1430_present);
       HANDLE_CODE(bref.unpack(lwip_ul_aggregation_r14_present, 1));
       HANDLE_CODE(bref.unpack(lwip_dl_aggregation_r14_present, 1));
       HANDLE_CODE(bref.unpack(lwa_wlan_ac_r14_present, 1));
-      if (rlc_cfg_v1430_present) {
-        rlc_cfg_v1430 = make_copy_ptr(rlc_cfg_v1430_c());
+      if (rlc_cfg_v1430.is_present()) {
         HANDLE_CODE(rlc_cfg_v1430->unpack(bref));
       }
       if (lwip_ul_aggregation_r14_present) {
@@ -34347,26 +34029,29 @@ SRSASN_CODE drb_to_add_mod_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[3]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool rlc_cfg_v1510_present;
       HANDLE_CODE(bref.unpack(rlc_cfg_v1510_present, 1));
-      if (rlc_cfg_v1510_present) {
-        rlc_cfg_v1510 = make_copy_ptr(rlc_cfg_v1510_s());
+      rlc_cfg_v1510.set_present(rlc_cfg_v1510_present);
+      if (rlc_cfg_v1510.is_present()) {
         HANDLE_CODE(rlc_cfg_v1510->unpack(bref));
       }
     }
     if (group_flags[4]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool rlc_cfg_v1530_present;
       HANDLE_CODE(bref.unpack(rlc_cfg_v1530_present, 1));
+      rlc_cfg_v1530.set_present(rlc_cfg_v1530_present);
+      bool rlc_bearer_cfg_dupl_r15_present;
       HANDLE_CODE(bref.unpack(rlc_bearer_cfg_dupl_r15_present, 1));
+      rlc_bearer_cfg_dupl_r15.set_present(rlc_bearer_cfg_dupl_r15_present);
       HANDLE_CODE(bref.unpack(lc_ch_id_r15_present, 1));
-      if (rlc_cfg_v1530_present) {
-        rlc_cfg_v1530 = make_copy_ptr(rlc_cfg_v1530_c());
+      if (rlc_cfg_v1530.is_present()) {
         HANDLE_CODE(rlc_cfg_v1530->unpack(bref));
       }
-      if (rlc_bearer_cfg_dupl_r15_present) {
-        rlc_bearer_cfg_dupl_r15 = make_copy_ptr(rlc_bearer_cfg_r15_c());
+      if (rlc_bearer_cfg_dupl_r15.is_present()) {
         HANDLE_CODE(rlc_bearer_cfg_dupl_r15->unpack(bref));
       }
       if (lc_ch_id_r15_present) {
@@ -34402,13 +34087,11 @@ void drb_to_add_mod_s::to_json(json_writer& j) const
     if (drb_type_change_r12_present) {
       j.write_str("drb-TypeChange-r12", "toMCG");
     }
-    rrc_asn1_warn_assert(rlc_cfg_v1250_present != (rlc_cfg_v1250.get() != NULL), __FILE__, __LINE__);
-    if (rlc_cfg_v1250_present) {
+    if (rlc_cfg_v1250.is_present()) {
       j.write_fieldname("rlc-Config-v1250");
       rlc_cfg_v1250->to_json(j);
     }
-    rrc_asn1_warn_assert(rlc_cfg_v1310_present != (rlc_cfg_v1310.get() != NULL), __FILE__, __LINE__);
-    if (rlc_cfg_v1310_present) {
+    if (rlc_cfg_v1310.is_present()) {
       j.write_fieldname("rlc-Config-v1310");
       rlc_cfg_v1310->to_json(j);
     }
@@ -34418,8 +34101,7 @@ void drb_to_add_mod_s::to_json(json_writer& j) const
     if (drb_type_lwip_r13_present) {
       j.write_str("drb-TypeLWIP-r13", drb_type_lwip_r13.to_string());
     }
-    rrc_asn1_warn_assert(rlc_cfg_v1430_present != (rlc_cfg_v1430.get() != NULL), __FILE__, __LINE__);
-    if (rlc_cfg_v1430_present) {
+    if (rlc_cfg_v1430.is_present()) {
       j.write_fieldname("rlc-Config-v1430");
       rlc_cfg_v1430->to_json(j);
     }
@@ -34432,19 +34114,15 @@ void drb_to_add_mod_s::to_json(json_writer& j) const
     if (lwa_wlan_ac_r14_present) {
       j.write_str("lwa-WLAN-AC-r14", lwa_wlan_ac_r14.to_string());
     }
-    rrc_asn1_warn_assert(rlc_cfg_v1510_present != (rlc_cfg_v1510.get() != NULL), __FILE__, __LINE__);
-    if (rlc_cfg_v1510_present) {
+    if (rlc_cfg_v1510.is_present()) {
       j.write_fieldname("rlc-Config-v1510");
       rlc_cfg_v1510->to_json(j);
     }
-    rrc_asn1_warn_assert(rlc_cfg_v1530_present != (rlc_cfg_v1530.get() != NULL), __FILE__, __LINE__);
-    if (rlc_cfg_v1530_present) {
+    if (rlc_cfg_v1530.is_present()) {
       j.write_fieldname("rlc-Config-v1530");
       rlc_cfg_v1530->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        rlc_bearer_cfg_dupl_r15_present != (rlc_bearer_cfg_dupl_r15.get() != NULL), __FILE__, __LINE__);
-    if (rlc_bearer_cfg_dupl_r15_present) {
+    if (rlc_bearer_cfg_dupl_r15.is_present()) {
       j.write_fieldname("rlc-BearerConfigDupl-r15");
       rlc_bearer_cfg_dupl_r15->to_json(j);
     }
@@ -38633,16 +38311,15 @@ SRSASN_CODE sps_cfg_dl_c::setup_s_::pack(bit_ref& bref) const
   HANDLE_CODE(pack_dyn_seq_of(bref, n1_pucch_an_persistent_list, 1, 4, UnalignedIntegerPacker<uint16_t>(0, 2047)));
 
   if (ext) {
-    ext_groups_header group_flags(1);
-    rrc_asn1_warn_assert(two_ant_port_activ_r10_present != (two_ant_port_activ_r10.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= two_ant_port_activ_r10_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= two_ant_port_activ_r10.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(two_ant_port_activ_r10_present, 1));
-      if (two_ant_port_activ_r10_present) {
+      HANDLE_CODE(bref.pack(two_ant_port_activ_r10.is_present(), 1));
+      if (two_ant_port_activ_r10.is_present()) {
         HANDLE_CODE(two_ant_port_activ_r10->pack(bref));
       }
     }
@@ -38657,15 +38334,16 @@ SRSASN_CODE sps_cfg_dl_c::setup_s_::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_dyn_seq_of(n1_pucch_an_persistent_list, bref, 1, 4, UnalignedIntegerPacker<uint16_t>(0, 2047)));
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool two_ant_port_activ_r10_present;
       HANDLE_CODE(bref.unpack(two_ant_port_activ_r10_present, 1));
-      if (two_ant_port_activ_r10_present) {
-        two_ant_port_activ_r10 = make_copy_ptr(two_ant_port_activ_r10_c_());
+      two_ant_port_activ_r10.set_present(two_ant_port_activ_r10_present);
+      if (two_ant_port_activ_r10.is_present()) {
         HANDLE_CODE(two_ant_port_activ_r10->unpack(bref));
       }
     }
@@ -38683,8 +38361,7 @@ void sps_cfg_dl_c::setup_s_::to_json(json_writer& j) const
   }
   j.end_array();
   if (ext) {
-    rrc_asn1_warn_assert(two_ant_port_activ_r10_present != (two_ant_port_activ_r10.get() != NULL), __FILE__, __LINE__);
-    if (two_ant_port_activ_r10_present) {
+    if (two_ant_port_activ_r10.is_present()) {
       j.write_fieldname("twoAntennaPortActivated-r10");
       two_ant_port_activ_r10->to_json(j);
     }
@@ -38768,27 +38445,24 @@ SRSASN_CODE srb_to_add_mod_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= pdcp_ver_change_r15_present;
-    rrc_asn1_warn_assert(rlc_cfg_v1530_present != (rlc_cfg_v1530.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= rlc_cfg_v1530_present;
-    rrc_asn1_warn_assert(
-        rlc_bearer_cfg_dupl_r15_present != (rlc_bearer_cfg_dupl_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= rlc_bearer_cfg_dupl_r15_present;
+    group_flags[0] |= rlc_cfg_v1530.is_present();
+    group_flags[0] |= rlc_bearer_cfg_dupl_r15.is_present();
     group_flags[0] |= srb_id_v1530_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(pdcp_ver_change_r15_present, 1));
-      HANDLE_CODE(bref.pack(rlc_cfg_v1530_present, 1));
-      HANDLE_CODE(bref.pack(rlc_bearer_cfg_dupl_r15_present, 1));
+      HANDLE_CODE(bref.pack(rlc_cfg_v1530.is_present(), 1));
+      HANDLE_CODE(bref.pack(rlc_bearer_cfg_dupl_r15.is_present(), 1));
       HANDLE_CODE(bref.pack(srb_id_v1530_present, 1));
-      if (rlc_cfg_v1530_present) {
+      if (rlc_cfg_v1530.is_present()) {
         HANDLE_CODE(rlc_cfg_v1530->pack(bref));
       }
-      if (rlc_bearer_cfg_dupl_r15_present) {
+      if (rlc_bearer_cfg_dupl_r15.is_present()) {
         HANDLE_CODE(rlc_bearer_cfg_dupl_r15->pack(bref));
       }
       if (srb_id_v1530_present) {
@@ -38813,22 +38487,24 @@ SRSASN_CODE srb_to_add_mod_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(pdcp_ver_change_r15_present, 1));
+      bool rlc_cfg_v1530_present;
       HANDLE_CODE(bref.unpack(rlc_cfg_v1530_present, 1));
+      rlc_cfg_v1530.set_present(rlc_cfg_v1530_present);
+      bool rlc_bearer_cfg_dupl_r15_present;
       HANDLE_CODE(bref.unpack(rlc_bearer_cfg_dupl_r15_present, 1));
+      rlc_bearer_cfg_dupl_r15.set_present(rlc_bearer_cfg_dupl_r15_present);
       HANDLE_CODE(bref.unpack(srb_id_v1530_present, 1));
-      if (rlc_cfg_v1530_present) {
-        rlc_cfg_v1530 = make_copy_ptr(rlc_cfg_v1530_c());
+      if (rlc_cfg_v1530.is_present()) {
         HANDLE_CODE(rlc_cfg_v1530->unpack(bref));
       }
-      if (rlc_bearer_cfg_dupl_r15_present) {
-        rlc_bearer_cfg_dupl_r15 = make_copy_ptr(rlc_bearer_cfg_r15_c());
+      if (rlc_bearer_cfg_dupl_r15.is_present()) {
         HANDLE_CODE(rlc_bearer_cfg_dupl_r15->unpack(bref));
       }
       if (srb_id_v1530_present) {
@@ -38854,14 +38530,11 @@ void srb_to_add_mod_s::to_json(json_writer& j) const
     if (pdcp_ver_change_r15_present) {
       j.write_str("pdcp-verChange-r15", "true");
     }
-    rrc_asn1_warn_assert(rlc_cfg_v1530_present != (rlc_cfg_v1530.get() != NULL), __FILE__, __LINE__);
-    if (rlc_cfg_v1530_present) {
+    if (rlc_cfg_v1530.is_present()) {
       j.write_fieldname("rlc-Config-v1530");
       rlc_cfg_v1530->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        rlc_bearer_cfg_dupl_r15_present != (rlc_bearer_cfg_dupl_r15.get() != NULL), __FILE__, __LINE__);
-    if (rlc_bearer_cfg_dupl_r15_present) {
+    if (rlc_bearer_cfg_dupl_r15.is_present()) {
       j.write_fieldname("rlc-BearerConfigDupl-r15");
       rlc_bearer_cfg_dupl_r15->to_json(j);
     }
@@ -40191,48 +39864,29 @@ SRSASN_CODE mac_main_cfg_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(9);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= sr_prohibit_timer_r9_present;
-    rrc_asn1_warn_assert(mac_main_cfg_v1020_present != (mac_main_cfg_v1020.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= mac_main_cfg_v1020_present;
-    rrc_asn1_warn_assert(
-        stag_to_release_list_r11_present != (stag_to_release_list_r11.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= stag_to_release_list_r11_present;
-    rrc_asn1_warn_assert(
-        stag_to_add_mod_list_r11_present != (stag_to_add_mod_list_r11.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= stag_to_add_mod_list_r11_present;
-    rrc_asn1_warn_assert(drx_cfg_v1130_present != (drx_cfg_v1130.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= drx_cfg_v1130_present;
+    group_flags[1] |= mac_main_cfg_v1020.is_present();
+    group_flags[2] |= stag_to_release_list_r11.is_present();
+    group_flags[2] |= stag_to_add_mod_list_r11.is_present();
+    group_flags[2] |= drx_cfg_v1130.is_present();
     group_flags[3] |= e_harq_pattern_r12_present;
-    rrc_asn1_warn_assert(dual_connect_phr_present != (dual_connect_phr.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= dual_connect_phr_present;
-    rrc_asn1_warn_assert(lc_ch_sr_cfg_r12_present != (lc_ch_sr_cfg_r12.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= lc_ch_sr_cfg_r12_present;
-    rrc_asn1_warn_assert(drx_cfg_v1310_present != (drx_cfg_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= drx_cfg_v1310_present;
+    group_flags[3] |= dual_connect_phr.is_present();
+    group_flags[3] |= lc_ch_sr_cfg_r12.is_present();
+    group_flags[4] |= drx_cfg_v1310.is_present();
     group_flags[4] |= extended_phr2_r13_present;
-    rrc_asn1_warn_assert(e_drx_cfg_cycle_start_offset_r13_present != (e_drx_cfg_cycle_start_offset_r13.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[4] |= e_drx_cfg_cycle_start_offset_r13_present;
-    rrc_asn1_warn_assert(drx_cfg_r13_present != (drx_cfg_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[5] |= drx_cfg_r13_present;
-    rrc_asn1_warn_assert(skip_ul_tx_r14_present != (skip_ul_tx_r14.get() != NULL), __FILE__, __LINE__);
-    group_flags[6] |= skip_ul_tx_r14_present;
-    rrc_asn1_warn_assert(
-        data_inactivity_timer_cfg_r14_present != (data_inactivity_timer_cfg_r14.get() != NULL), __FILE__, __LINE__);
-    group_flags[6] |= data_inactivity_timer_cfg_r14_present;
+    group_flags[4] |= e_drx_cfg_cycle_start_offset_r13.is_present();
+    group_flags[5] |= drx_cfg_r13.is_present();
+    group_flags[6] |= skip_ul_tx_r14.is_present();
+    group_flags[6] |= data_inactivity_timer_cfg_r14.is_present();
     group_flags[7] |= rai_activation_r14_present;
-    rrc_asn1_warn_assert(short_tti_and_spt_r15_present != (short_tti_and_spt_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[8] |= short_tti_and_spt_r15_present;
+    group_flags[8] |= short_tti_and_spt_r15.is_present();
     group_flags[8] |= mpdcch_ul_harq_ack_feedback_cfg_r15_present;
-    rrc_asn1_warn_assert(
-        dormant_state_timers_r15_present != (dormant_state_timers_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[8] |= dormant_state_timers_r15_present;
+    group_flags[8] |= dormant_state_timers_r15.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(sr_prohibit_timer_r9_present, 1));
       if (sr_prohibit_timer_r9_present) {
@@ -40240,10 +39894,10 @@ SRSASN_CODE mac_main_cfg_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(mac_main_cfg_v1020_present, 1));
-      if (mac_main_cfg_v1020_present) {
+      HANDLE_CODE(bref.pack(mac_main_cfg_v1020.is_present(), 1));
+      if (mac_main_cfg_v1020.is_present()) {
         HANDLE_CODE(bref.pack(mac_main_cfg_v1020->s_cell_deactivation_timer_r10_present, 1));
         HANDLE_CODE(bref.pack(mac_main_cfg_v1020->extended_bsr_sizes_r10_present, 1));
         HANDLE_CODE(bref.pack(mac_main_cfg_v1020->extended_phr_r10_present, 1));
@@ -40253,91 +39907,91 @@ SRSASN_CODE mac_main_cfg_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(stag_to_release_list_r11_present, 1));
-      HANDLE_CODE(bref.pack(stag_to_add_mod_list_r11_present, 1));
-      HANDLE_CODE(bref.pack(drx_cfg_v1130_present, 1));
-      if (stag_to_release_list_r11_present) {
+      HANDLE_CODE(bref.pack(stag_to_release_list_r11.is_present(), 1));
+      HANDLE_CODE(bref.pack(stag_to_add_mod_list_r11.is_present(), 1));
+      HANDLE_CODE(bref.pack(drx_cfg_v1130.is_present(), 1));
+      if (stag_to_release_list_r11.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *stag_to_release_list_r11, 1, 3, UnalignedIntegerPacker<uint8_t>(1, 3)));
       }
-      if (stag_to_add_mod_list_r11_present) {
+      if (stag_to_add_mod_list_r11.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *stag_to_add_mod_list_r11, 1, 3));
       }
-      if (drx_cfg_v1130_present) {
+      if (drx_cfg_v1130.is_present()) {
         HANDLE_CODE(drx_cfg_v1130->pack(bref));
       }
     }
     if (group_flags[3]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(e_harq_pattern_r12_present, 1));
-      HANDLE_CODE(bref.pack(dual_connect_phr_present, 1));
-      HANDLE_CODE(bref.pack(lc_ch_sr_cfg_r12_present, 1));
+      HANDLE_CODE(bref.pack(dual_connect_phr.is_present(), 1));
+      HANDLE_CODE(bref.pack(lc_ch_sr_cfg_r12.is_present(), 1));
       if (e_harq_pattern_r12_present) {
         HANDLE_CODE(bref.pack(e_harq_pattern_r12, 1));
       }
-      if (dual_connect_phr_present) {
+      if (dual_connect_phr.is_present()) {
         HANDLE_CODE(dual_connect_phr->pack(bref));
       }
-      if (lc_ch_sr_cfg_r12_present) {
+      if (lc_ch_sr_cfg_r12.is_present()) {
         HANDLE_CODE(lc_ch_sr_cfg_r12->pack(bref));
       }
     }
     if (group_flags[4]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(drx_cfg_v1310_present, 1));
+      HANDLE_CODE(bref.pack(drx_cfg_v1310.is_present(), 1));
       HANDLE_CODE(bref.pack(extended_phr2_r13_present, 1));
-      HANDLE_CODE(bref.pack(e_drx_cfg_cycle_start_offset_r13_present, 1));
-      if (drx_cfg_v1310_present) {
+      HANDLE_CODE(bref.pack(e_drx_cfg_cycle_start_offset_r13.is_present(), 1));
+      if (drx_cfg_v1310.is_present()) {
         HANDLE_CODE(drx_cfg_v1310->pack(bref));
       }
       if (extended_phr2_r13_present) {
         HANDLE_CODE(bref.pack(extended_phr2_r13, 1));
       }
-      if (e_drx_cfg_cycle_start_offset_r13_present) {
+      if (e_drx_cfg_cycle_start_offset_r13.is_present()) {
         HANDLE_CODE(e_drx_cfg_cycle_start_offset_r13->pack(bref));
       }
     }
     if (group_flags[5]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(drx_cfg_r13_present, 1));
-      if (drx_cfg_r13_present) {
+      HANDLE_CODE(bref.pack(drx_cfg_r13.is_present(), 1));
+      if (drx_cfg_r13.is_present()) {
         HANDLE_CODE(drx_cfg_r13->pack(bref));
       }
     }
     if (group_flags[6]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(skip_ul_tx_r14_present, 1));
-      HANDLE_CODE(bref.pack(data_inactivity_timer_cfg_r14_present, 1));
-      if (skip_ul_tx_r14_present) {
+      HANDLE_CODE(bref.pack(skip_ul_tx_r14.is_present(), 1));
+      HANDLE_CODE(bref.pack(data_inactivity_timer_cfg_r14.is_present(), 1));
+      if (skip_ul_tx_r14.is_present()) {
         HANDLE_CODE(skip_ul_tx_r14->pack(bref));
       }
-      if (data_inactivity_timer_cfg_r14_present) {
+      if (data_inactivity_timer_cfg_r14.is_present()) {
         HANDLE_CODE(data_inactivity_timer_cfg_r14->pack(bref));
       }
     }
     if (group_flags[7]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(rai_activation_r14_present, 1));
     }
     if (group_flags[8]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(short_tti_and_spt_r15_present, 1));
+      HANDLE_CODE(bref.pack(short_tti_and_spt_r15.is_present(), 1));
       HANDLE_CODE(bref.pack(mpdcch_ul_harq_ack_feedback_cfg_r15_present, 1));
-      HANDLE_CODE(bref.pack(dormant_state_timers_r15_present, 1));
-      if (short_tti_and_spt_r15_present) {
+      HANDLE_CODE(bref.pack(dormant_state_timers_r15.is_present(), 1));
+      if (short_tti_and_spt_r15.is_present()) {
         HANDLE_CODE(short_tti_and_spt_r15->pack(bref));
       }
       if (mpdcch_ul_harq_ack_feedback_cfg_r15_present) {
         HANDLE_CODE(bref.pack(mpdcch_ul_harq_ack_feedback_cfg_r15, 1));
       }
-      if (dormant_state_timers_r15_present) {
+      if (dormant_state_timers_r15.is_present()) {
         HANDLE_CODE(dormant_state_timers_r15->pack(bref));
       }
     }
@@ -40372,11 +40026,11 @@ SRSASN_CODE mac_main_cfg_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(9);
+    ext_groups_unpacker_guard group_flags(9);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(sr_prohibit_timer_r9_present, 1));
       if (sr_prohibit_timer_r9_present) {
@@ -40384,11 +40038,12 @@ SRSASN_CODE mac_main_cfg_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool mac_main_cfg_v1020_present;
       HANDLE_CODE(bref.unpack(mac_main_cfg_v1020_present, 1));
-      if (mac_main_cfg_v1020_present) {
-        mac_main_cfg_v1020 = make_copy_ptr(mac_main_cfg_v1020_s_());
+      mac_main_cfg_v1020.set_present(mac_main_cfg_v1020_present);
+      if (mac_main_cfg_v1020.is_present()) {
         HANDLE_CODE(bref.unpack(mac_main_cfg_v1020->s_cell_deactivation_timer_r10_present, 1));
         HANDLE_CODE(bref.unpack(mac_main_cfg_v1020->extended_bsr_sizes_r10_present, 1));
         HANDLE_CODE(bref.unpack(mac_main_cfg_v1020->extended_phr_r10_present, 1));
@@ -40398,103 +40053,115 @@ SRSASN_CODE mac_main_cfg_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool stag_to_release_list_r11_present;
       HANDLE_CODE(bref.unpack(stag_to_release_list_r11_present, 1));
+      stag_to_release_list_r11.set_present(stag_to_release_list_r11_present);
+      bool stag_to_add_mod_list_r11_present;
       HANDLE_CODE(bref.unpack(stag_to_add_mod_list_r11_present, 1));
+      stag_to_add_mod_list_r11.set_present(stag_to_add_mod_list_r11_present);
+      bool drx_cfg_v1130_present;
       HANDLE_CODE(bref.unpack(drx_cfg_v1130_present, 1));
-      if (stag_to_release_list_r11_present) {
-        stag_to_release_list_r11 = make_copy_ptr(stag_to_release_list_r11_l());
+      drx_cfg_v1130.set_present(drx_cfg_v1130_present);
+      if (stag_to_release_list_r11.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*stag_to_release_list_r11, bref, 1, 3, UnalignedIntegerPacker<uint8_t>(1, 3)));
       }
-      if (stag_to_add_mod_list_r11_present) {
-        stag_to_add_mod_list_r11 = make_copy_ptr(stag_to_add_mod_list_r11_l());
+      if (stag_to_add_mod_list_r11.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*stag_to_add_mod_list_r11, bref, 1, 3));
       }
-      if (drx_cfg_v1130_present) {
-        drx_cfg_v1130 = make_copy_ptr(drx_cfg_v1130_s());
+      if (drx_cfg_v1130.is_present()) {
         HANDLE_CODE(drx_cfg_v1130->unpack(bref));
       }
     }
     if (group_flags[3]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(e_harq_pattern_r12_present, 1));
+      bool dual_connect_phr_present;
       HANDLE_CODE(bref.unpack(dual_connect_phr_present, 1));
+      dual_connect_phr.set_present(dual_connect_phr_present);
+      bool lc_ch_sr_cfg_r12_present;
       HANDLE_CODE(bref.unpack(lc_ch_sr_cfg_r12_present, 1));
+      lc_ch_sr_cfg_r12.set_present(lc_ch_sr_cfg_r12_present);
       if (e_harq_pattern_r12_present) {
         HANDLE_CODE(bref.unpack(e_harq_pattern_r12, 1));
       }
-      if (dual_connect_phr_present) {
-        dual_connect_phr = make_copy_ptr(dual_connect_phr_c_());
+      if (dual_connect_phr.is_present()) {
         HANDLE_CODE(dual_connect_phr->unpack(bref));
       }
-      if (lc_ch_sr_cfg_r12_present) {
-        lc_ch_sr_cfg_r12 = make_copy_ptr(lc_ch_sr_cfg_r12_c_());
+      if (lc_ch_sr_cfg_r12.is_present()) {
         HANDLE_CODE(lc_ch_sr_cfg_r12->unpack(bref));
       }
     }
     if (group_flags[4]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool drx_cfg_v1310_present;
       HANDLE_CODE(bref.unpack(drx_cfg_v1310_present, 1));
+      drx_cfg_v1310.set_present(drx_cfg_v1310_present);
       HANDLE_CODE(bref.unpack(extended_phr2_r13_present, 1));
+      bool e_drx_cfg_cycle_start_offset_r13_present;
       HANDLE_CODE(bref.unpack(e_drx_cfg_cycle_start_offset_r13_present, 1));
-      if (drx_cfg_v1310_present) {
-        drx_cfg_v1310 = make_copy_ptr(drx_cfg_v1310_s());
+      e_drx_cfg_cycle_start_offset_r13.set_present(e_drx_cfg_cycle_start_offset_r13_present);
+      if (drx_cfg_v1310.is_present()) {
         HANDLE_CODE(drx_cfg_v1310->unpack(bref));
       }
       if (extended_phr2_r13_present) {
         HANDLE_CODE(bref.unpack(extended_phr2_r13, 1));
       }
-      if (e_drx_cfg_cycle_start_offset_r13_present) {
-        e_drx_cfg_cycle_start_offset_r13 = make_copy_ptr(e_drx_cfg_cycle_start_offset_r13_c_());
+      if (e_drx_cfg_cycle_start_offset_r13.is_present()) {
         HANDLE_CODE(e_drx_cfg_cycle_start_offset_r13->unpack(bref));
       }
     }
     if (group_flags[5]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool drx_cfg_r13_present;
       HANDLE_CODE(bref.unpack(drx_cfg_r13_present, 1));
-      if (drx_cfg_r13_present) {
-        drx_cfg_r13 = make_copy_ptr(drx_cfg_r13_c_());
+      drx_cfg_r13.set_present(drx_cfg_r13_present);
+      if (drx_cfg_r13.is_present()) {
         HANDLE_CODE(drx_cfg_r13->unpack(bref));
       }
     }
     if (group_flags[6]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool skip_ul_tx_r14_present;
       HANDLE_CODE(bref.unpack(skip_ul_tx_r14_present, 1));
+      skip_ul_tx_r14.set_present(skip_ul_tx_r14_present);
+      bool data_inactivity_timer_cfg_r14_present;
       HANDLE_CODE(bref.unpack(data_inactivity_timer_cfg_r14_present, 1));
-      if (skip_ul_tx_r14_present) {
-        skip_ul_tx_r14 = make_copy_ptr(skip_ul_tx_r14_c_());
+      data_inactivity_timer_cfg_r14.set_present(data_inactivity_timer_cfg_r14_present);
+      if (skip_ul_tx_r14.is_present()) {
         HANDLE_CODE(skip_ul_tx_r14->unpack(bref));
       }
-      if (data_inactivity_timer_cfg_r14_present) {
-        data_inactivity_timer_cfg_r14 = make_copy_ptr(data_inactivity_timer_cfg_r14_c_());
+      if (data_inactivity_timer_cfg_r14.is_present()) {
         HANDLE_CODE(data_inactivity_timer_cfg_r14->unpack(bref));
       }
     }
     if (group_flags[7]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(rai_activation_r14_present, 1));
     }
     if (group_flags[8]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool short_tti_and_spt_r15_present;
       HANDLE_CODE(bref.unpack(short_tti_and_spt_r15_present, 1));
+      short_tti_and_spt_r15.set_present(short_tti_and_spt_r15_present);
       HANDLE_CODE(bref.unpack(mpdcch_ul_harq_ack_feedback_cfg_r15_present, 1));
+      bool dormant_state_timers_r15_present;
       HANDLE_CODE(bref.unpack(dormant_state_timers_r15_present, 1));
-      if (short_tti_and_spt_r15_present) {
-        short_tti_and_spt_r15 = make_copy_ptr(short_tti_and_spt_r15_c_());
+      dormant_state_timers_r15.set_present(dormant_state_timers_r15_present);
+      if (short_tti_and_spt_r15.is_present()) {
         HANDLE_CODE(short_tti_and_spt_r15->unpack(bref));
       }
       if (mpdcch_ul_harq_ack_feedback_cfg_r15_present) {
         HANDLE_CODE(bref.unpack(mpdcch_ul_harq_ack_feedback_cfg_r15, 1));
       }
-      if (dormant_state_timers_r15_present) {
-        dormant_state_timers_r15 = make_copy_ptr(dormant_state_timers_r15_c_());
+      if (dormant_state_timers_r15.is_present()) {
         HANDLE_CODE(dormant_state_timers_r15->unpack(bref));
       }
     }
@@ -40530,8 +40197,7 @@ void mac_main_cfg_s::to_json(json_writer& j) const
     if (sr_prohibit_timer_r9_present) {
       j.write_int("sr-ProhibitTimer-r9", sr_prohibit_timer_r9);
     }
-    rrc_asn1_warn_assert(mac_main_cfg_v1020_present != (mac_main_cfg_v1020.get() != NULL), __FILE__, __LINE__);
-    if (mac_main_cfg_v1020_present) {
+    if (mac_main_cfg_v1020.is_present()) {
       j.write_fieldname("mac-MainConfig-v1020");
       j.start_obj();
       if (mac_main_cfg_v1020->s_cell_deactivation_timer_r10_present) {
@@ -40545,87 +40211,69 @@ void mac_main_cfg_s::to_json(json_writer& j) const
       }
       j.end_obj();
     }
-    rrc_asn1_warn_assert(
-        stag_to_release_list_r11_present != (stag_to_release_list_r11.get() != NULL), __FILE__, __LINE__);
-    if (stag_to_release_list_r11_present) {
+    if (stag_to_release_list_r11.is_present()) {
       j.start_array("stag-ToReleaseList-r11");
       for (uint32_t i1 = 0; i1 < stag_to_release_list_r11->size(); ++i1) {
         j.write_int(((*stag_to_release_list_r11)[i1]));
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(
-        stag_to_add_mod_list_r11_present != (stag_to_add_mod_list_r11.get() != NULL), __FILE__, __LINE__);
-    if (stag_to_add_mod_list_r11_present) {
+    if (stag_to_add_mod_list_r11.is_present()) {
       j.start_array("stag-ToAddModList-r11");
       for (uint32_t i1 = 0; i1 < stag_to_add_mod_list_r11->size(); ++i1) {
         ((*stag_to_add_mod_list_r11)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(drx_cfg_v1130_present != (drx_cfg_v1130.get() != NULL), __FILE__, __LINE__);
-    if (drx_cfg_v1130_present) {
+    if (drx_cfg_v1130.is_present()) {
       j.write_fieldname("drx-Config-v1130");
       drx_cfg_v1130->to_json(j);
     }
     if (e_harq_pattern_r12_present) {
       j.write_bool("e-HARQ-Pattern-r12", e_harq_pattern_r12);
     }
-    rrc_asn1_warn_assert(dual_connect_phr_present != (dual_connect_phr.get() != NULL), __FILE__, __LINE__);
-    if (dual_connect_phr_present) {
+    if (dual_connect_phr.is_present()) {
       j.write_fieldname("dualConnectivityPHR");
       dual_connect_phr->to_json(j);
     }
-    rrc_asn1_warn_assert(lc_ch_sr_cfg_r12_present != (lc_ch_sr_cfg_r12.get() != NULL), __FILE__, __LINE__);
-    if (lc_ch_sr_cfg_r12_present) {
+    if (lc_ch_sr_cfg_r12.is_present()) {
       j.write_fieldname("logicalChannelSR-Config-r12");
       lc_ch_sr_cfg_r12->to_json(j);
     }
-    rrc_asn1_warn_assert(drx_cfg_v1310_present != (drx_cfg_v1310.get() != NULL), __FILE__, __LINE__);
-    if (drx_cfg_v1310_present) {
+    if (drx_cfg_v1310.is_present()) {
       j.write_fieldname("drx-Config-v1310");
       drx_cfg_v1310->to_json(j);
     }
     if (extended_phr2_r13_present) {
       j.write_bool("extendedPHR2-r13", extended_phr2_r13);
     }
-    rrc_asn1_warn_assert(e_drx_cfg_cycle_start_offset_r13_present != (e_drx_cfg_cycle_start_offset_r13.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (e_drx_cfg_cycle_start_offset_r13_present) {
+    if (e_drx_cfg_cycle_start_offset_r13.is_present()) {
       j.write_fieldname("eDRX-Config-CycleStartOffset-r13");
       e_drx_cfg_cycle_start_offset_r13->to_json(j);
     }
-    rrc_asn1_warn_assert(drx_cfg_r13_present != (drx_cfg_r13.get() != NULL), __FILE__, __LINE__);
-    if (drx_cfg_r13_present) {
+    if (drx_cfg_r13.is_present()) {
       j.write_fieldname("drx-Config-r13");
       drx_cfg_r13->to_json(j);
     }
-    rrc_asn1_warn_assert(skip_ul_tx_r14_present != (skip_ul_tx_r14.get() != NULL), __FILE__, __LINE__);
-    if (skip_ul_tx_r14_present) {
+    if (skip_ul_tx_r14.is_present()) {
       j.write_fieldname("skipUplinkTx-r14");
       skip_ul_tx_r14->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        data_inactivity_timer_cfg_r14_present != (data_inactivity_timer_cfg_r14.get() != NULL), __FILE__, __LINE__);
-    if (data_inactivity_timer_cfg_r14_present) {
+    if (data_inactivity_timer_cfg_r14.is_present()) {
       j.write_fieldname("dataInactivityTimerConfig-r14");
       data_inactivity_timer_cfg_r14->to_json(j);
     }
     if (rai_activation_r14_present) {
       j.write_str("rai-Activation-r14", "true");
     }
-    rrc_asn1_warn_assert(short_tti_and_spt_r15_present != (short_tti_and_spt_r15.get() != NULL), __FILE__, __LINE__);
-    if (short_tti_and_spt_r15_present) {
+    if (short_tti_and_spt_r15.is_present()) {
       j.write_fieldname("shortTTI-AndSPT-r15");
       short_tti_and_spt_r15->to_json(j);
     }
     if (mpdcch_ul_harq_ack_feedback_cfg_r15_present) {
       j.write_bool("mpdcch-UL-HARQ-ACK-FeedbackConfig-r15", mpdcch_ul_harq_ack_feedback_cfg_r15);
     }
-    rrc_asn1_warn_assert(
-        dormant_state_timers_r15_present != (dormant_state_timers_r15.get() != NULL), __FILE__, __LINE__);
-    if (dormant_state_timers_r15_present) {
+    if (dormant_state_timers_r15.is_present()) {
       j.write_fieldname("dormantStateTimers-r15");
       dormant_state_timers_r15->to_json(j);
     }
@@ -41648,475 +41296,364 @@ SRSASN_CODE phys_cfg_ded_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(11);
-    rrc_asn1_warn_assert(cqi_report_cfg_v920_present != (cqi_report_cfg_v920.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= cqi_report_cfg_v920_present;
-    rrc_asn1_warn_assert(ant_info_v920_present != (ant_info_v920.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= ant_info_v920_present;
-    rrc_asn1_warn_assert(ant_info_r10_present != (ant_info_r10.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= ant_info_r10_present;
-    rrc_asn1_warn_assert(ant_info_ul_r10_present != (ant_info_ul_r10.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= ant_info_ul_r10_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= cqi_report_cfg_v920.is_present();
+    group_flags[0] |= ant_info_v920.is_present();
+    group_flags[1] |= ant_info_r10.is_present();
+    group_flags[1] |= ant_info_ul_r10.is_present();
     group_flags[1] |= cif_presence_r10_present;
-    rrc_asn1_warn_assert(cqi_report_cfg_r10_present != (cqi_report_cfg_r10.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= cqi_report_cfg_r10_present;
-    rrc_asn1_warn_assert(csi_rs_cfg_r10_present != (csi_rs_cfg_r10.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= csi_rs_cfg_r10_present;
-    rrc_asn1_warn_assert(pucch_cfg_ded_v1020_present != (pucch_cfg_ded_v1020.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= pucch_cfg_ded_v1020_present;
-    rrc_asn1_warn_assert(pusch_cfg_ded_v1020_present != (pusch_cfg_ded_v1020.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= pusch_cfg_ded_v1020_present;
-    rrc_asn1_warn_assert(
-        sched_request_cfg_v1020_present != (sched_request_cfg_v1020.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= sched_request_cfg_v1020_present;
-    rrc_asn1_warn_assert(srs_ul_cfg_ded_v1020_present != (srs_ul_cfg_ded_v1020.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= srs_ul_cfg_ded_v1020_present;
-    rrc_asn1_warn_assert(
-        srs_ul_cfg_ded_aperiodic_r10_present != (srs_ul_cfg_ded_aperiodic_r10.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= srs_ul_cfg_ded_aperiodic_r10_present;
-    rrc_asn1_warn_assert(ul_pwr_ctrl_ded_v1020_present != (ul_pwr_ctrl_ded_v1020.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= ul_pwr_ctrl_ded_v1020_present;
-    rrc_asn1_warn_assert(
-        add_spec_emission_ca_r10_present != (add_spec_emission_ca_r10.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= add_spec_emission_ca_r10_present;
-    rrc_asn1_warn_assert(csi_rs_cfg_nzp_to_release_list_r11_present !=
-                             (csi_rs_cfg_nzp_to_release_list_r11.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[3] |= csi_rs_cfg_nzp_to_release_list_r11_present;
-    rrc_asn1_warn_assert(csi_rs_cfg_nzp_to_add_mod_list_r11_present !=
-                             (csi_rs_cfg_nzp_to_add_mod_list_r11.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[3] |= csi_rs_cfg_nzp_to_add_mod_list_r11_present;
-    rrc_asn1_warn_assert(csi_rs_cfg_zp_to_release_list_r11_present != (csi_rs_cfg_zp_to_release_list_r11.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[3] |= csi_rs_cfg_zp_to_release_list_r11_present;
-    rrc_asn1_warn_assert(csi_rs_cfg_zp_to_add_mod_list_r11_present != (csi_rs_cfg_zp_to_add_mod_list_r11.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[3] |= csi_rs_cfg_zp_to_add_mod_list_r11_present;
-    rrc_asn1_warn_assert(epdcch_cfg_r11_present != (epdcch_cfg_r11.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= epdcch_cfg_r11_present;
-    rrc_asn1_warn_assert(pdsch_cfg_ded_v1130_present != (pdsch_cfg_ded_v1130.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= pdsch_cfg_ded_v1130_present;
-    rrc_asn1_warn_assert(cqi_report_cfg_v1130_present != (cqi_report_cfg_v1130.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= cqi_report_cfg_v1130_present;
-    rrc_asn1_warn_assert(pucch_cfg_ded_v1130_present != (pucch_cfg_ded_v1130.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= pucch_cfg_ded_v1130_present;
-    rrc_asn1_warn_assert(pusch_cfg_ded_v1130_present != (pusch_cfg_ded_v1130.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= pusch_cfg_ded_v1130_present;
-    rrc_asn1_warn_assert(ul_pwr_ctrl_ded_v1130_present != (ul_pwr_ctrl_ded_v1130.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= ul_pwr_ctrl_ded_v1130_present;
-    rrc_asn1_warn_assert(ant_info_v1250_present != (ant_info_v1250.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= ant_info_v1250_present;
-    rrc_asn1_warn_assert(eimta_main_cfg_r12_present != (eimta_main_cfg_r12.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= eimta_main_cfg_r12_present;
-    rrc_asn1_warn_assert(
-        eimta_main_cfg_pcell_r12_present != (eimta_main_cfg_pcell_r12.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= eimta_main_cfg_pcell_r12_present;
-    rrc_asn1_warn_assert(pucch_cfg_ded_v1250_present != (pucch_cfg_ded_v1250.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= pucch_cfg_ded_v1250_present;
-    rrc_asn1_warn_assert(
-        cqi_report_cfg_pcell_v1250_present != (cqi_report_cfg_pcell_v1250.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= cqi_report_cfg_pcell_v1250_present;
-    rrc_asn1_warn_assert(ul_pwr_ctrl_ded_v1250_present != (ul_pwr_ctrl_ded_v1250.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= ul_pwr_ctrl_ded_v1250_present;
-    rrc_asn1_warn_assert(pusch_cfg_ded_v1250_present != (pusch_cfg_ded_v1250.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= pusch_cfg_ded_v1250_present;
-    rrc_asn1_warn_assert(csi_rs_cfg_v1250_present != (csi_rs_cfg_v1250.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= csi_rs_cfg_v1250_present;
-    rrc_asn1_warn_assert(pdsch_cfg_ded_v1280_present != (pdsch_cfg_ded_v1280.get() != NULL), __FILE__, __LINE__);
-    group_flags[5] |= pdsch_cfg_ded_v1280_present;
-    rrc_asn1_warn_assert(pdsch_cfg_ded_v1310_present != (pdsch_cfg_ded_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[6] |= pdsch_cfg_ded_v1310_present;
-    rrc_asn1_warn_assert(pucch_cfg_ded_r13_present != (pucch_cfg_ded_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[6] |= pucch_cfg_ded_r13_present;
-    rrc_asn1_warn_assert(pusch_cfg_ded_r13_present != (pusch_cfg_ded_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[6] |= pusch_cfg_ded_r13_present;
-    rrc_asn1_warn_assert(
-        pdcch_candidate_reductions_r13_present != (pdcch_candidate_reductions_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[6] |= pdcch_candidate_reductions_r13_present;
-    rrc_asn1_warn_assert(cqi_report_cfg_v1310_present != (cqi_report_cfg_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[6] |= cqi_report_cfg_v1310_present;
-    rrc_asn1_warn_assert(srs_ul_cfg_ded_v1310_present != (srs_ul_cfg_ded_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[6] |= srs_ul_cfg_ded_v1310_present;
-    rrc_asn1_warn_assert(
-        srs_ul_cfg_ded_up_pts_ext_r13_present != (srs_ul_cfg_ded_up_pts_ext_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[6] |= srs_ul_cfg_ded_up_pts_ext_r13_present;
-    rrc_asn1_warn_assert(
-        srs_ul_cfg_ded_aperiodic_v1310_present != (srs_ul_cfg_ded_aperiodic_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[6] |= srs_ul_cfg_ded_aperiodic_v1310_present;
-    rrc_asn1_warn_assert(srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_present !=
-                             (srs_ul_cfg_ded_aperiodic_up_pts_ext_r13.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[6] |= srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_present;
-    rrc_asn1_warn_assert(csi_rs_cfg_v1310_present != (csi_rs_cfg_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[6] |= csi_rs_cfg_v1310_present;
-    rrc_asn1_warn_assert(ce_mode_r13_present != (ce_mode_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[6] |= ce_mode_r13_present;
-    rrc_asn1_warn_assert(csi_rs_cfg_nzp_to_add_mod_list_ext_r13_present !=
-                             (csi_rs_cfg_nzp_to_add_mod_list_ext_r13.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[6] |= csi_rs_cfg_nzp_to_add_mod_list_ext_r13_present;
-    rrc_asn1_warn_assert(csi_rs_cfg_nzp_to_release_list_ext_r13_present !=
-                             (csi_rs_cfg_nzp_to_release_list_ext_r13.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[6] |= csi_rs_cfg_nzp_to_release_list_ext_r13_present;
-    rrc_asn1_warn_assert(cqi_report_cfg_v1320_present != (cqi_report_cfg_v1320.get() != NULL), __FILE__, __LINE__);
-    group_flags[7] |= cqi_report_cfg_v1320_present;
-    rrc_asn1_warn_assert(
-        type_a_srs_tpc_pdcch_group_r14_present != (type_a_srs_tpc_pdcch_group_r14.get() != NULL), __FILE__, __LINE__);
-    group_flags[8] |= type_a_srs_tpc_pdcch_group_r14_present;
-    rrc_asn1_warn_assert(must_cfg_r14_present != (must_cfg_r14.get() != NULL), __FILE__, __LINE__);
-    group_flags[8] |= must_cfg_r14_present;
-    rrc_asn1_warn_assert(pusch_enhance_cfg_r14_present != (pusch_enhance_cfg_r14.get() != NULL), __FILE__, __LINE__);
-    group_flags[8] |= pusch_enhance_cfg_r14_present;
+    group_flags[1] |= cqi_report_cfg_r10.is_present();
+    group_flags[1] |= csi_rs_cfg_r10.is_present();
+    group_flags[1] |= pucch_cfg_ded_v1020.is_present();
+    group_flags[1] |= pusch_cfg_ded_v1020.is_present();
+    group_flags[1] |= sched_request_cfg_v1020.is_present();
+    group_flags[1] |= srs_ul_cfg_ded_v1020.is_present();
+    group_flags[1] |= srs_ul_cfg_ded_aperiodic_r10.is_present();
+    group_flags[1] |= ul_pwr_ctrl_ded_v1020.is_present();
+    group_flags[2] |= add_spec_emission_ca_r10.is_present();
+    group_flags[3] |= csi_rs_cfg_nzp_to_release_list_r11.is_present();
+    group_flags[3] |= csi_rs_cfg_nzp_to_add_mod_list_r11.is_present();
+    group_flags[3] |= csi_rs_cfg_zp_to_release_list_r11.is_present();
+    group_flags[3] |= csi_rs_cfg_zp_to_add_mod_list_r11.is_present();
+    group_flags[3] |= epdcch_cfg_r11.is_present();
+    group_flags[3] |= pdsch_cfg_ded_v1130.is_present();
+    group_flags[3] |= cqi_report_cfg_v1130.is_present();
+    group_flags[3] |= pucch_cfg_ded_v1130.is_present();
+    group_flags[3] |= pusch_cfg_ded_v1130.is_present();
+    group_flags[3] |= ul_pwr_ctrl_ded_v1130.is_present();
+    group_flags[4] |= ant_info_v1250.is_present();
+    group_flags[4] |= eimta_main_cfg_r12.is_present();
+    group_flags[4] |= eimta_main_cfg_pcell_r12.is_present();
+    group_flags[4] |= pucch_cfg_ded_v1250.is_present();
+    group_flags[4] |= cqi_report_cfg_pcell_v1250.is_present();
+    group_flags[4] |= ul_pwr_ctrl_ded_v1250.is_present();
+    group_flags[4] |= pusch_cfg_ded_v1250.is_present();
+    group_flags[4] |= csi_rs_cfg_v1250.is_present();
+    group_flags[5] |= pdsch_cfg_ded_v1280.is_present();
+    group_flags[6] |= pdsch_cfg_ded_v1310.is_present();
+    group_flags[6] |= pucch_cfg_ded_r13.is_present();
+    group_flags[6] |= pusch_cfg_ded_r13.is_present();
+    group_flags[6] |= pdcch_candidate_reductions_r13.is_present();
+    group_flags[6] |= cqi_report_cfg_v1310.is_present();
+    group_flags[6] |= srs_ul_cfg_ded_v1310.is_present();
+    group_flags[6] |= srs_ul_cfg_ded_up_pts_ext_r13.is_present();
+    group_flags[6] |= srs_ul_cfg_ded_aperiodic_v1310.is_present();
+    group_flags[6] |= srs_ul_cfg_ded_aperiodic_up_pts_ext_r13.is_present();
+    group_flags[6] |= csi_rs_cfg_v1310.is_present();
+    group_flags[6] |= ce_mode_r13.is_present();
+    group_flags[6] |= csi_rs_cfg_nzp_to_add_mod_list_ext_r13.is_present();
+    group_flags[6] |= csi_rs_cfg_nzp_to_release_list_ext_r13.is_present();
+    group_flags[7] |= cqi_report_cfg_v1320.is_present();
+    group_flags[8] |= type_a_srs_tpc_pdcch_group_r14.is_present();
+    group_flags[8] |= must_cfg_r14.is_present();
+    group_flags[8] |= pusch_enhance_cfg_r14.is_present();
     group_flags[8] |= ce_pdsch_pusch_enhancement_cfg_r14_present;
-    rrc_asn1_warn_assert(ant_info_v1430_present != (ant_info_v1430.get() != NULL), __FILE__, __LINE__);
-    group_flags[8] |= ant_info_v1430_present;
-    rrc_asn1_warn_assert(pucch_cfg_ded_v1430_present != (pucch_cfg_ded_v1430.get() != NULL), __FILE__, __LINE__);
-    group_flags[8] |= pucch_cfg_ded_v1430_present;
-    rrc_asn1_warn_assert(pdsch_cfg_ded_v1430_present != (pdsch_cfg_ded_v1430.get() != NULL), __FILE__, __LINE__);
-    group_flags[8] |= pdsch_cfg_ded_v1430_present;
-    rrc_asn1_warn_assert(pusch_cfg_ded_v1430_present != (pusch_cfg_ded_v1430.get() != NULL), __FILE__, __LINE__);
-    group_flags[8] |= pusch_cfg_ded_v1430_present;
-    rrc_asn1_warn_assert(srs_ul_periodic_cfg_ded_list_r14_present != (srs_ul_periodic_cfg_ded_list_r14.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[8] |= srs_ul_periodic_cfg_ded_list_r14_present;
-    rrc_asn1_warn_assert(srs_ul_periodic_cfg_ded_up_pts_ext_list_r14_present !=
-                             (srs_ul_periodic_cfg_ded_up_pts_ext_list_r14.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[8] |= srs_ul_periodic_cfg_ded_up_pts_ext_list_r14_present;
-    rrc_asn1_warn_assert(srs_ul_aperiodic_cfg_ded_list_r14_present != (srs_ul_aperiodic_cfg_ded_list_r14.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[8] |= srs_ul_aperiodic_cfg_ded_list_r14_present;
-    rrc_asn1_warn_assert(srs_ul_cfg_ded_ap_up_pts_ext_list_r14_present !=
-                             (srs_ul_cfg_ded_ap_up_pts_ext_list_r14.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[8] |= srs_ul_cfg_ded_ap_up_pts_ext_list_r14_present;
-    rrc_asn1_warn_assert(csi_rs_cfg_v1430_present != (csi_rs_cfg_v1430.get() != NULL), __FILE__, __LINE__);
-    group_flags[8] |= csi_rs_cfg_v1430_present;
-    rrc_asn1_warn_assert(
-        csi_rs_cfg_zp_ap_list_r14_present != (csi_rs_cfg_zp_ap_list_r14.get() != NULL), __FILE__, __LINE__);
-    group_flags[8] |= csi_rs_cfg_zp_ap_list_r14_present;
-    rrc_asn1_warn_assert(cqi_report_cfg_v1430_present != (cqi_report_cfg_v1430.get() != NULL), __FILE__, __LINE__);
-    group_flags[8] |= cqi_report_cfg_v1430_present;
+    group_flags[8] |= ant_info_v1430.is_present();
+    group_flags[8] |= pucch_cfg_ded_v1430.is_present();
+    group_flags[8] |= pdsch_cfg_ded_v1430.is_present();
+    group_flags[8] |= pusch_cfg_ded_v1430.is_present();
+    group_flags[8] |= srs_ul_periodic_cfg_ded_list_r14.is_present();
+    group_flags[8] |= srs_ul_periodic_cfg_ded_up_pts_ext_list_r14.is_present();
+    group_flags[8] |= srs_ul_aperiodic_cfg_ded_list_r14.is_present();
+    group_flags[8] |= srs_ul_cfg_ded_ap_up_pts_ext_list_r14.is_present();
+    group_flags[8] |= csi_rs_cfg_v1430.is_present();
+    group_flags[8] |= csi_rs_cfg_zp_ap_list_r14.is_present();
+    group_flags[8] |= cqi_report_cfg_v1430.is_present();
     group_flags[8] |= semi_open_loop_r14_present;
-    rrc_asn1_warn_assert(csi_rs_cfg_v1480_present != (csi_rs_cfg_v1480.get() != NULL), __FILE__, __LINE__);
-    group_flags[9] |= csi_rs_cfg_v1480_present;
-    rrc_asn1_warn_assert(phys_cfg_ded_stti_r15_present != (phys_cfg_ded_stti_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[10] |= phys_cfg_ded_stti_r15_present;
-    rrc_asn1_warn_assert(pdsch_cfg_ded_v1530_present != (pdsch_cfg_ded_v1530.get() != NULL), __FILE__, __LINE__);
-    group_flags[10] |= pdsch_cfg_ded_v1530_present;
-    rrc_asn1_warn_assert(pusch_cfg_ded_v1530_present != (pusch_cfg_ded_v1530.get() != NULL), __FILE__, __LINE__);
-    group_flags[10] |= pusch_cfg_ded_v1530_present;
-    rrc_asn1_warn_assert(cqi_report_cfg_v1530_present != (cqi_report_cfg_v1530.get() != NULL), __FILE__, __LINE__);
-    group_flags[10] |= cqi_report_cfg_v1530_present;
-    rrc_asn1_warn_assert(ant_info_v1530_present != (ant_info_v1530.get() != NULL), __FILE__, __LINE__);
-    group_flags[10] |= ant_info_v1530_present;
-    rrc_asn1_warn_assert(csi_rs_cfg_v1530_present != (csi_rs_cfg_v1530.get() != NULL), __FILE__, __LINE__);
-    group_flags[10] |= csi_rs_cfg_v1530_present;
-    rrc_asn1_warn_assert(ul_pwr_ctrl_ded_v1530_present != (ul_pwr_ctrl_ded_v1530.get() != NULL), __FILE__, __LINE__);
-    group_flags[10] |= ul_pwr_ctrl_ded_v1530_present;
-    rrc_asn1_warn_assert(
-        semi_static_cfi_cfg_r15_present != (semi_static_cfi_cfg_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[10] |= semi_static_cfi_cfg_r15_present;
-    rrc_asn1_warn_assert(
-        blind_pdsch_repeat_cfg_r15_present != (blind_pdsch_repeat_cfg_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[10] |= blind_pdsch_repeat_cfg_r15_present;
+    group_flags[9] |= csi_rs_cfg_v1480.is_present();
+    group_flags[10] |= phys_cfg_ded_stti_r15.is_present();
+    group_flags[10] |= pdsch_cfg_ded_v1530.is_present();
+    group_flags[10] |= pusch_cfg_ded_v1530.is_present();
+    group_flags[10] |= cqi_report_cfg_v1530.is_present();
+    group_flags[10] |= ant_info_v1530.is_present();
+    group_flags[10] |= csi_rs_cfg_v1530.is_present();
+    group_flags[10] |= ul_pwr_ctrl_ded_v1530.is_present();
+    group_flags[10] |= semi_static_cfi_cfg_r15.is_present();
+    group_flags[10] |= blind_pdsch_repeat_cfg_r15.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(cqi_report_cfg_v920_present, 1));
-      HANDLE_CODE(bref.pack(ant_info_v920_present, 1));
-      if (cqi_report_cfg_v920_present) {
+      HANDLE_CODE(bref.pack(cqi_report_cfg_v920.is_present(), 1));
+      HANDLE_CODE(bref.pack(ant_info_v920.is_present(), 1));
+      if (cqi_report_cfg_v920.is_present()) {
         HANDLE_CODE(cqi_report_cfg_v920->pack(bref));
       }
-      if (ant_info_v920_present) {
+      if (ant_info_v920.is_present()) {
         HANDLE_CODE(ant_info_v920->pack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(ant_info_r10_present, 1));
-      HANDLE_CODE(bref.pack(ant_info_ul_r10_present, 1));
+      HANDLE_CODE(bref.pack(ant_info_r10.is_present(), 1));
+      HANDLE_CODE(bref.pack(ant_info_ul_r10.is_present(), 1));
       HANDLE_CODE(bref.pack(cif_presence_r10_present, 1));
-      HANDLE_CODE(bref.pack(cqi_report_cfg_r10_present, 1));
-      HANDLE_CODE(bref.pack(csi_rs_cfg_r10_present, 1));
-      HANDLE_CODE(bref.pack(pucch_cfg_ded_v1020_present, 1));
-      HANDLE_CODE(bref.pack(pusch_cfg_ded_v1020_present, 1));
-      HANDLE_CODE(bref.pack(sched_request_cfg_v1020_present, 1));
-      HANDLE_CODE(bref.pack(srs_ul_cfg_ded_v1020_present, 1));
-      HANDLE_CODE(bref.pack(srs_ul_cfg_ded_aperiodic_r10_present, 1));
-      HANDLE_CODE(bref.pack(ul_pwr_ctrl_ded_v1020_present, 1));
-      if (ant_info_r10_present) {
+      HANDLE_CODE(bref.pack(cqi_report_cfg_r10.is_present(), 1));
+      HANDLE_CODE(bref.pack(csi_rs_cfg_r10.is_present(), 1));
+      HANDLE_CODE(bref.pack(pucch_cfg_ded_v1020.is_present(), 1));
+      HANDLE_CODE(bref.pack(pusch_cfg_ded_v1020.is_present(), 1));
+      HANDLE_CODE(bref.pack(sched_request_cfg_v1020.is_present(), 1));
+      HANDLE_CODE(bref.pack(srs_ul_cfg_ded_v1020.is_present(), 1));
+      HANDLE_CODE(bref.pack(srs_ul_cfg_ded_aperiodic_r10.is_present(), 1));
+      HANDLE_CODE(bref.pack(ul_pwr_ctrl_ded_v1020.is_present(), 1));
+      if (ant_info_r10.is_present()) {
         HANDLE_CODE(ant_info_r10->pack(bref));
       }
-      if (ant_info_ul_r10_present) {
+      if (ant_info_ul_r10.is_present()) {
         HANDLE_CODE(ant_info_ul_r10->pack(bref));
       }
       if (cif_presence_r10_present) {
         HANDLE_CODE(bref.pack(cif_presence_r10, 1));
       }
-      if (cqi_report_cfg_r10_present) {
+      if (cqi_report_cfg_r10.is_present()) {
         HANDLE_CODE(cqi_report_cfg_r10->pack(bref));
       }
-      if (csi_rs_cfg_r10_present) {
+      if (csi_rs_cfg_r10.is_present()) {
         HANDLE_CODE(csi_rs_cfg_r10->pack(bref));
       }
-      if (pucch_cfg_ded_v1020_present) {
+      if (pucch_cfg_ded_v1020.is_present()) {
         HANDLE_CODE(pucch_cfg_ded_v1020->pack(bref));
       }
-      if (pusch_cfg_ded_v1020_present) {
+      if (pusch_cfg_ded_v1020.is_present()) {
         HANDLE_CODE(pusch_cfg_ded_v1020->pack(bref));
       }
-      if (sched_request_cfg_v1020_present) {
+      if (sched_request_cfg_v1020.is_present()) {
         HANDLE_CODE(sched_request_cfg_v1020->pack(bref));
       }
-      if (srs_ul_cfg_ded_v1020_present) {
+      if (srs_ul_cfg_ded_v1020.is_present()) {
         HANDLE_CODE(srs_ul_cfg_ded_v1020->pack(bref));
       }
-      if (srs_ul_cfg_ded_aperiodic_r10_present) {
+      if (srs_ul_cfg_ded_aperiodic_r10.is_present()) {
         HANDLE_CODE(srs_ul_cfg_ded_aperiodic_r10->pack(bref));
       }
-      if (ul_pwr_ctrl_ded_v1020_present) {
+      if (ul_pwr_ctrl_ded_v1020.is_present()) {
         HANDLE_CODE(ul_pwr_ctrl_ded_v1020->pack(bref));
       }
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(add_spec_emission_ca_r10_present, 1));
-      if (add_spec_emission_ca_r10_present) {
+      HANDLE_CODE(bref.pack(add_spec_emission_ca_r10.is_present(), 1));
+      if (add_spec_emission_ca_r10.is_present()) {
         HANDLE_CODE(add_spec_emission_ca_r10->pack(bref));
       }
     }
     if (group_flags[3]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(csi_rs_cfg_nzp_to_release_list_r11_present, 1));
-      HANDLE_CODE(bref.pack(csi_rs_cfg_nzp_to_add_mod_list_r11_present, 1));
-      HANDLE_CODE(bref.pack(csi_rs_cfg_zp_to_release_list_r11_present, 1));
-      HANDLE_CODE(bref.pack(csi_rs_cfg_zp_to_add_mod_list_r11_present, 1));
-      HANDLE_CODE(bref.pack(epdcch_cfg_r11_present, 1));
-      HANDLE_CODE(bref.pack(pdsch_cfg_ded_v1130_present, 1));
-      HANDLE_CODE(bref.pack(cqi_report_cfg_v1130_present, 1));
-      HANDLE_CODE(bref.pack(pucch_cfg_ded_v1130_present, 1));
-      HANDLE_CODE(bref.pack(pusch_cfg_ded_v1130_present, 1));
-      HANDLE_CODE(bref.pack(ul_pwr_ctrl_ded_v1130_present, 1));
-      if (csi_rs_cfg_nzp_to_release_list_r11_present) {
+      HANDLE_CODE(bref.pack(csi_rs_cfg_nzp_to_release_list_r11.is_present(), 1));
+      HANDLE_CODE(bref.pack(csi_rs_cfg_nzp_to_add_mod_list_r11.is_present(), 1));
+      HANDLE_CODE(bref.pack(csi_rs_cfg_zp_to_release_list_r11.is_present(), 1));
+      HANDLE_CODE(bref.pack(csi_rs_cfg_zp_to_add_mod_list_r11.is_present(), 1));
+      HANDLE_CODE(bref.pack(epdcch_cfg_r11.is_present(), 1));
+      HANDLE_CODE(bref.pack(pdsch_cfg_ded_v1130.is_present(), 1));
+      HANDLE_CODE(bref.pack(cqi_report_cfg_v1130.is_present(), 1));
+      HANDLE_CODE(bref.pack(pucch_cfg_ded_v1130.is_present(), 1));
+      HANDLE_CODE(bref.pack(pusch_cfg_ded_v1130.is_present(), 1));
+      HANDLE_CODE(bref.pack(ul_pwr_ctrl_ded_v1130.is_present(), 1));
+      if (csi_rs_cfg_nzp_to_release_list_r11.is_present()) {
         HANDLE_CODE(
             pack_dyn_seq_of(bref, *csi_rs_cfg_nzp_to_release_list_r11, 1, 3, UnalignedIntegerPacker<uint8_t>(1, 3)));
       }
-      if (csi_rs_cfg_nzp_to_add_mod_list_r11_present) {
+      if (csi_rs_cfg_nzp_to_add_mod_list_r11.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *csi_rs_cfg_nzp_to_add_mod_list_r11, 1, 3));
       }
-      if (csi_rs_cfg_zp_to_release_list_r11_present) {
+      if (csi_rs_cfg_zp_to_release_list_r11.is_present()) {
         HANDLE_CODE(
             pack_dyn_seq_of(bref, *csi_rs_cfg_zp_to_release_list_r11, 1, 4, UnalignedIntegerPacker<uint8_t>(1, 4)));
       }
-      if (csi_rs_cfg_zp_to_add_mod_list_r11_present) {
+      if (csi_rs_cfg_zp_to_add_mod_list_r11.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *csi_rs_cfg_zp_to_add_mod_list_r11, 1, 4));
       }
-      if (epdcch_cfg_r11_present) {
+      if (epdcch_cfg_r11.is_present()) {
         HANDLE_CODE(epdcch_cfg_r11->pack(bref));
       }
-      if (pdsch_cfg_ded_v1130_present) {
+      if (pdsch_cfg_ded_v1130.is_present()) {
         HANDLE_CODE(pdsch_cfg_ded_v1130->pack(bref));
       }
-      if (cqi_report_cfg_v1130_present) {
+      if (cqi_report_cfg_v1130.is_present()) {
         HANDLE_CODE(cqi_report_cfg_v1130->pack(bref));
       }
-      if (pucch_cfg_ded_v1130_present) {
+      if (pucch_cfg_ded_v1130.is_present()) {
         HANDLE_CODE(pucch_cfg_ded_v1130->pack(bref));
       }
-      if (pusch_cfg_ded_v1130_present) {
+      if (pusch_cfg_ded_v1130.is_present()) {
         HANDLE_CODE(pusch_cfg_ded_v1130->pack(bref));
       }
-      if (ul_pwr_ctrl_ded_v1130_present) {
+      if (ul_pwr_ctrl_ded_v1130.is_present()) {
         HANDLE_CODE(ul_pwr_ctrl_ded_v1130->pack(bref));
       }
     }
     if (group_flags[4]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(ant_info_v1250_present, 1));
-      HANDLE_CODE(bref.pack(eimta_main_cfg_r12_present, 1));
-      HANDLE_CODE(bref.pack(eimta_main_cfg_pcell_r12_present, 1));
-      HANDLE_CODE(bref.pack(pucch_cfg_ded_v1250_present, 1));
-      HANDLE_CODE(bref.pack(cqi_report_cfg_pcell_v1250_present, 1));
-      HANDLE_CODE(bref.pack(ul_pwr_ctrl_ded_v1250_present, 1));
-      HANDLE_CODE(bref.pack(pusch_cfg_ded_v1250_present, 1));
-      HANDLE_CODE(bref.pack(csi_rs_cfg_v1250_present, 1));
-      if (ant_info_v1250_present) {
+      HANDLE_CODE(bref.pack(ant_info_v1250.is_present(), 1));
+      HANDLE_CODE(bref.pack(eimta_main_cfg_r12.is_present(), 1));
+      HANDLE_CODE(bref.pack(eimta_main_cfg_pcell_r12.is_present(), 1));
+      HANDLE_CODE(bref.pack(pucch_cfg_ded_v1250.is_present(), 1));
+      HANDLE_CODE(bref.pack(cqi_report_cfg_pcell_v1250.is_present(), 1));
+      HANDLE_CODE(bref.pack(ul_pwr_ctrl_ded_v1250.is_present(), 1));
+      HANDLE_CODE(bref.pack(pusch_cfg_ded_v1250.is_present(), 1));
+      HANDLE_CODE(bref.pack(csi_rs_cfg_v1250.is_present(), 1));
+      if (ant_info_v1250.is_present()) {
         HANDLE_CODE(ant_info_v1250->pack(bref));
       }
-      if (eimta_main_cfg_r12_present) {
+      if (eimta_main_cfg_r12.is_present()) {
         HANDLE_CODE(eimta_main_cfg_r12->pack(bref));
       }
-      if (eimta_main_cfg_pcell_r12_present) {
+      if (eimta_main_cfg_pcell_r12.is_present()) {
         HANDLE_CODE(eimta_main_cfg_pcell_r12->pack(bref));
       }
-      if (pucch_cfg_ded_v1250_present) {
+      if (pucch_cfg_ded_v1250.is_present()) {
         HANDLE_CODE(pucch_cfg_ded_v1250->pack(bref));
       }
-      if (cqi_report_cfg_pcell_v1250_present) {
+      if (cqi_report_cfg_pcell_v1250.is_present()) {
         HANDLE_CODE(cqi_report_cfg_pcell_v1250->pack(bref));
       }
-      if (ul_pwr_ctrl_ded_v1250_present) {
+      if (ul_pwr_ctrl_ded_v1250.is_present()) {
         HANDLE_CODE(ul_pwr_ctrl_ded_v1250->pack(bref));
       }
-      if (pusch_cfg_ded_v1250_present) {
+      if (pusch_cfg_ded_v1250.is_present()) {
         HANDLE_CODE(pusch_cfg_ded_v1250->pack(bref));
       }
-      if (csi_rs_cfg_v1250_present) {
+      if (csi_rs_cfg_v1250.is_present()) {
         HANDLE_CODE(csi_rs_cfg_v1250->pack(bref));
       }
     }
     if (group_flags[5]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(pdsch_cfg_ded_v1280_present, 1));
-      if (pdsch_cfg_ded_v1280_present) {
+      HANDLE_CODE(bref.pack(pdsch_cfg_ded_v1280.is_present(), 1));
+      if (pdsch_cfg_ded_v1280.is_present()) {
         HANDLE_CODE(pdsch_cfg_ded_v1280->pack(bref));
       }
     }
     if (group_flags[6]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(pdsch_cfg_ded_v1310_present, 1));
-      HANDLE_CODE(bref.pack(pucch_cfg_ded_r13_present, 1));
-      HANDLE_CODE(bref.pack(pusch_cfg_ded_r13_present, 1));
-      HANDLE_CODE(bref.pack(pdcch_candidate_reductions_r13_present, 1));
-      HANDLE_CODE(bref.pack(cqi_report_cfg_v1310_present, 1));
-      HANDLE_CODE(bref.pack(srs_ul_cfg_ded_v1310_present, 1));
-      HANDLE_CODE(bref.pack(srs_ul_cfg_ded_up_pts_ext_r13_present, 1));
-      HANDLE_CODE(bref.pack(srs_ul_cfg_ded_aperiodic_v1310_present, 1));
-      HANDLE_CODE(bref.pack(srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_present, 1));
-      HANDLE_CODE(bref.pack(csi_rs_cfg_v1310_present, 1));
-      HANDLE_CODE(bref.pack(ce_mode_r13_present, 1));
-      HANDLE_CODE(bref.pack(csi_rs_cfg_nzp_to_add_mod_list_ext_r13_present, 1));
-      HANDLE_CODE(bref.pack(csi_rs_cfg_nzp_to_release_list_ext_r13_present, 1));
-      if (pdsch_cfg_ded_v1310_present) {
+      HANDLE_CODE(bref.pack(pdsch_cfg_ded_v1310.is_present(), 1));
+      HANDLE_CODE(bref.pack(pucch_cfg_ded_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(pusch_cfg_ded_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(pdcch_candidate_reductions_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(cqi_report_cfg_v1310.is_present(), 1));
+      HANDLE_CODE(bref.pack(srs_ul_cfg_ded_v1310.is_present(), 1));
+      HANDLE_CODE(bref.pack(srs_ul_cfg_ded_up_pts_ext_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(srs_ul_cfg_ded_aperiodic_v1310.is_present(), 1));
+      HANDLE_CODE(bref.pack(srs_ul_cfg_ded_aperiodic_up_pts_ext_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(csi_rs_cfg_v1310.is_present(), 1));
+      HANDLE_CODE(bref.pack(ce_mode_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(csi_rs_cfg_nzp_to_add_mod_list_ext_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(csi_rs_cfg_nzp_to_release_list_ext_r13.is_present(), 1));
+      if (pdsch_cfg_ded_v1310.is_present()) {
         HANDLE_CODE(pdsch_cfg_ded_v1310->pack(bref));
       }
-      if (pucch_cfg_ded_r13_present) {
+      if (pucch_cfg_ded_r13.is_present()) {
         HANDLE_CODE(pucch_cfg_ded_r13->pack(bref));
       }
-      if (pusch_cfg_ded_r13_present) {
+      if (pusch_cfg_ded_r13.is_present()) {
         HANDLE_CODE(pusch_cfg_ded_r13->pack(bref));
       }
-      if (pdcch_candidate_reductions_r13_present) {
+      if (pdcch_candidate_reductions_r13.is_present()) {
         HANDLE_CODE(pdcch_candidate_reductions_r13->pack(bref));
       }
-      if (cqi_report_cfg_v1310_present) {
+      if (cqi_report_cfg_v1310.is_present()) {
         HANDLE_CODE(cqi_report_cfg_v1310->pack(bref));
       }
-      if (srs_ul_cfg_ded_v1310_present) {
+      if (srs_ul_cfg_ded_v1310.is_present()) {
         HANDLE_CODE(srs_ul_cfg_ded_v1310->pack(bref));
       }
-      if (srs_ul_cfg_ded_up_pts_ext_r13_present) {
+      if (srs_ul_cfg_ded_up_pts_ext_r13.is_present()) {
         HANDLE_CODE(srs_ul_cfg_ded_up_pts_ext_r13->pack(bref));
       }
-      if (srs_ul_cfg_ded_aperiodic_v1310_present) {
+      if (srs_ul_cfg_ded_aperiodic_v1310.is_present()) {
         HANDLE_CODE(srs_ul_cfg_ded_aperiodic_v1310->pack(bref));
       }
-      if (srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_present) {
+      if (srs_ul_cfg_ded_aperiodic_up_pts_ext_r13.is_present()) {
         HANDLE_CODE(srs_ul_cfg_ded_aperiodic_up_pts_ext_r13->pack(bref));
       }
-      if (csi_rs_cfg_v1310_present) {
+      if (csi_rs_cfg_v1310.is_present()) {
         HANDLE_CODE(csi_rs_cfg_v1310->pack(bref));
       }
-      if (ce_mode_r13_present) {
+      if (ce_mode_r13.is_present()) {
         HANDLE_CODE(ce_mode_r13->pack(bref));
       }
-      if (csi_rs_cfg_nzp_to_add_mod_list_ext_r13_present) {
+      if (csi_rs_cfg_nzp_to_add_mod_list_ext_r13.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *csi_rs_cfg_nzp_to_add_mod_list_ext_r13, 1, 21));
       }
-      if (csi_rs_cfg_nzp_to_release_list_ext_r13_present) {
+      if (csi_rs_cfg_nzp_to_release_list_ext_r13.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(
             bref, *csi_rs_cfg_nzp_to_release_list_ext_r13, 1, 21, UnalignedIntegerPacker<uint8_t>(4, 24)));
       }
     }
     if (group_flags[7]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(cqi_report_cfg_v1320_present, 1));
-      if (cqi_report_cfg_v1320_present) {
+      HANDLE_CODE(bref.pack(cqi_report_cfg_v1320.is_present(), 1));
+      if (cqi_report_cfg_v1320.is_present()) {
         HANDLE_CODE(cqi_report_cfg_v1320->pack(bref));
       }
     }
     if (group_flags[8]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(type_a_srs_tpc_pdcch_group_r14_present, 1));
-      HANDLE_CODE(bref.pack(must_cfg_r14_present, 1));
-      HANDLE_CODE(bref.pack(pusch_enhance_cfg_r14_present, 1));
+      HANDLE_CODE(bref.pack(type_a_srs_tpc_pdcch_group_r14.is_present(), 1));
+      HANDLE_CODE(bref.pack(must_cfg_r14.is_present(), 1));
+      HANDLE_CODE(bref.pack(pusch_enhance_cfg_r14.is_present(), 1));
       HANDLE_CODE(bref.pack(ce_pdsch_pusch_enhancement_cfg_r14_present, 1));
-      HANDLE_CODE(bref.pack(ant_info_v1430_present, 1));
-      HANDLE_CODE(bref.pack(pucch_cfg_ded_v1430_present, 1));
-      HANDLE_CODE(bref.pack(pdsch_cfg_ded_v1430_present, 1));
-      HANDLE_CODE(bref.pack(pusch_cfg_ded_v1430_present, 1));
-      HANDLE_CODE(bref.pack(srs_ul_periodic_cfg_ded_list_r14_present, 1));
-      HANDLE_CODE(bref.pack(srs_ul_periodic_cfg_ded_up_pts_ext_list_r14_present, 1));
-      HANDLE_CODE(bref.pack(srs_ul_aperiodic_cfg_ded_list_r14_present, 1));
-      HANDLE_CODE(bref.pack(srs_ul_cfg_ded_ap_up_pts_ext_list_r14_present, 1));
-      HANDLE_CODE(bref.pack(csi_rs_cfg_v1430_present, 1));
-      HANDLE_CODE(bref.pack(csi_rs_cfg_zp_ap_list_r14_present, 1));
-      HANDLE_CODE(bref.pack(cqi_report_cfg_v1430_present, 1));
+      HANDLE_CODE(bref.pack(ant_info_v1430.is_present(), 1));
+      HANDLE_CODE(bref.pack(pucch_cfg_ded_v1430.is_present(), 1));
+      HANDLE_CODE(bref.pack(pdsch_cfg_ded_v1430.is_present(), 1));
+      HANDLE_CODE(bref.pack(pusch_cfg_ded_v1430.is_present(), 1));
+      HANDLE_CODE(bref.pack(srs_ul_periodic_cfg_ded_list_r14.is_present(), 1));
+      HANDLE_CODE(bref.pack(srs_ul_periodic_cfg_ded_up_pts_ext_list_r14.is_present(), 1));
+      HANDLE_CODE(bref.pack(srs_ul_aperiodic_cfg_ded_list_r14.is_present(), 1));
+      HANDLE_CODE(bref.pack(srs_ul_cfg_ded_ap_up_pts_ext_list_r14.is_present(), 1));
+      HANDLE_CODE(bref.pack(csi_rs_cfg_v1430.is_present(), 1));
+      HANDLE_CODE(bref.pack(csi_rs_cfg_zp_ap_list_r14.is_present(), 1));
+      HANDLE_CODE(bref.pack(cqi_report_cfg_v1430.is_present(), 1));
       HANDLE_CODE(bref.pack(semi_open_loop_r14_present, 1));
-      if (type_a_srs_tpc_pdcch_group_r14_present) {
+      if (type_a_srs_tpc_pdcch_group_r14.is_present()) {
         HANDLE_CODE(type_a_srs_tpc_pdcch_group_r14->pack(bref));
       }
-      if (must_cfg_r14_present) {
+      if (must_cfg_r14.is_present()) {
         HANDLE_CODE(must_cfg_r14->pack(bref));
       }
-      if (pusch_enhance_cfg_r14_present) {
+      if (pusch_enhance_cfg_r14.is_present()) {
         HANDLE_CODE(pusch_enhance_cfg_r14->pack(bref));
       }
-      if (ant_info_v1430_present) {
+      if (ant_info_v1430.is_present()) {
         HANDLE_CODE(ant_info_v1430->pack(bref));
       }
-      if (pucch_cfg_ded_v1430_present) {
+      if (pucch_cfg_ded_v1430.is_present()) {
         HANDLE_CODE(pucch_cfg_ded_v1430->pack(bref));
       }
-      if (pdsch_cfg_ded_v1430_present) {
+      if (pdsch_cfg_ded_v1430.is_present()) {
         HANDLE_CODE(pdsch_cfg_ded_v1430->pack(bref));
       }
-      if (pusch_cfg_ded_v1430_present) {
+      if (pusch_cfg_ded_v1430.is_present()) {
         HANDLE_CODE(pusch_cfg_ded_v1430->pack(bref));
       }
-      if (srs_ul_periodic_cfg_ded_list_r14_present) {
+      if (srs_ul_periodic_cfg_ded_list_r14.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *srs_ul_periodic_cfg_ded_list_r14, 1, 2));
       }
-      if (srs_ul_periodic_cfg_ded_up_pts_ext_list_r14_present) {
+      if (srs_ul_periodic_cfg_ded_up_pts_ext_list_r14.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *srs_ul_periodic_cfg_ded_up_pts_ext_list_r14, 1, 4));
       }
-      if (srs_ul_aperiodic_cfg_ded_list_r14_present) {
+      if (srs_ul_aperiodic_cfg_ded_list_r14.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *srs_ul_aperiodic_cfg_ded_list_r14, 1, 2));
       }
-      if (srs_ul_cfg_ded_ap_up_pts_ext_list_r14_present) {
+      if (srs_ul_cfg_ded_ap_up_pts_ext_list_r14.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *srs_ul_cfg_ded_ap_up_pts_ext_list_r14, 1, 4));
       }
-      if (csi_rs_cfg_v1430_present) {
+      if (csi_rs_cfg_v1430.is_present()) {
         HANDLE_CODE(csi_rs_cfg_v1430->pack(bref));
       }
-      if (csi_rs_cfg_zp_ap_list_r14_present) {
+      if (csi_rs_cfg_zp_ap_list_r14.is_present()) {
         HANDLE_CODE(csi_rs_cfg_zp_ap_list_r14->pack(bref));
       }
-      if (cqi_report_cfg_v1430_present) {
+      if (cqi_report_cfg_v1430.is_present()) {
         HANDLE_CODE(cqi_report_cfg_v1430->pack(bref));
       }
       if (semi_open_loop_r14_present) {
@@ -42124,50 +41661,50 @@ SRSASN_CODE phys_cfg_ded_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[9]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(csi_rs_cfg_v1480_present, 1));
-      if (csi_rs_cfg_v1480_present) {
+      HANDLE_CODE(bref.pack(csi_rs_cfg_v1480.is_present(), 1));
+      if (csi_rs_cfg_v1480.is_present()) {
         HANDLE_CODE(csi_rs_cfg_v1480->pack(bref));
       }
     }
     if (group_flags[10]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(phys_cfg_ded_stti_r15_present, 1));
-      HANDLE_CODE(bref.pack(pdsch_cfg_ded_v1530_present, 1));
-      HANDLE_CODE(bref.pack(pusch_cfg_ded_v1530_present, 1));
-      HANDLE_CODE(bref.pack(cqi_report_cfg_v1530_present, 1));
-      HANDLE_CODE(bref.pack(ant_info_v1530_present, 1));
-      HANDLE_CODE(bref.pack(csi_rs_cfg_v1530_present, 1));
-      HANDLE_CODE(bref.pack(ul_pwr_ctrl_ded_v1530_present, 1));
-      HANDLE_CODE(bref.pack(semi_static_cfi_cfg_r15_present, 1));
-      HANDLE_CODE(bref.pack(blind_pdsch_repeat_cfg_r15_present, 1));
-      if (phys_cfg_ded_stti_r15_present) {
+      HANDLE_CODE(bref.pack(phys_cfg_ded_stti_r15.is_present(), 1));
+      HANDLE_CODE(bref.pack(pdsch_cfg_ded_v1530.is_present(), 1));
+      HANDLE_CODE(bref.pack(pusch_cfg_ded_v1530.is_present(), 1));
+      HANDLE_CODE(bref.pack(cqi_report_cfg_v1530.is_present(), 1));
+      HANDLE_CODE(bref.pack(ant_info_v1530.is_present(), 1));
+      HANDLE_CODE(bref.pack(csi_rs_cfg_v1530.is_present(), 1));
+      HANDLE_CODE(bref.pack(ul_pwr_ctrl_ded_v1530.is_present(), 1));
+      HANDLE_CODE(bref.pack(semi_static_cfi_cfg_r15.is_present(), 1));
+      HANDLE_CODE(bref.pack(blind_pdsch_repeat_cfg_r15.is_present(), 1));
+      if (phys_cfg_ded_stti_r15.is_present()) {
         HANDLE_CODE(phys_cfg_ded_stti_r15->pack(bref));
       }
-      if (pdsch_cfg_ded_v1530_present) {
+      if (pdsch_cfg_ded_v1530.is_present()) {
         HANDLE_CODE(pdsch_cfg_ded_v1530->pack(bref));
       }
-      if (pusch_cfg_ded_v1530_present) {
+      if (pusch_cfg_ded_v1530.is_present()) {
         HANDLE_CODE(pusch_cfg_ded_v1530->pack(bref));
       }
-      if (cqi_report_cfg_v1530_present) {
+      if (cqi_report_cfg_v1530.is_present()) {
         HANDLE_CODE(cqi_report_cfg_v1530->pack(bref));
       }
-      if (ant_info_v1530_present) {
+      if (ant_info_v1530.is_present()) {
         HANDLE_CODE(ant_info_v1530->pack(bref));
       }
-      if (csi_rs_cfg_v1530_present) {
+      if (csi_rs_cfg_v1530.is_present()) {
         HANDLE_CODE(csi_rs_cfg_v1530->pack(bref));
       }
-      if (ul_pwr_ctrl_ded_v1530_present) {
+      if (ul_pwr_ctrl_ded_v1530.is_present()) {
         HANDLE_CODE(ul_pwr_ctrl_ded_v1530->pack(bref));
       }
-      if (semi_static_cfi_cfg_r15_present) {
+      if (semi_static_cfi_cfg_r15.is_present()) {
         HANDLE_CODE(semi_static_cfi_cfg_r15->pack(bref));
       }
-      if (blind_pdsch_repeat_cfg_r15_present) {
+      if (blind_pdsch_repeat_cfg_r15.is_present()) {
         HANDLE_CODE(blind_pdsch_repeat_cfg_r15->pack(bref));
       }
     }
@@ -42220,351 +41757,411 @@ SRSASN_CODE phys_cfg_ded_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(11);
+    ext_groups_unpacker_guard group_flags(11);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool cqi_report_cfg_v920_present;
       HANDLE_CODE(bref.unpack(cqi_report_cfg_v920_present, 1));
+      cqi_report_cfg_v920.set_present(cqi_report_cfg_v920_present);
+      bool ant_info_v920_present;
       HANDLE_CODE(bref.unpack(ant_info_v920_present, 1));
-      if (cqi_report_cfg_v920_present) {
-        cqi_report_cfg_v920 = make_copy_ptr(cqi_report_cfg_v920_s());
+      ant_info_v920.set_present(ant_info_v920_present);
+      if (cqi_report_cfg_v920.is_present()) {
         HANDLE_CODE(cqi_report_cfg_v920->unpack(bref));
       }
-      if (ant_info_v920_present) {
-        ant_info_v920 = make_copy_ptr(ant_info_ded_v920_s());
+      if (ant_info_v920.is_present()) {
         HANDLE_CODE(ant_info_v920->unpack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool ant_info_r10_present;
       HANDLE_CODE(bref.unpack(ant_info_r10_present, 1));
+      ant_info_r10.set_present(ant_info_r10_present);
+      bool ant_info_ul_r10_present;
       HANDLE_CODE(bref.unpack(ant_info_ul_r10_present, 1));
+      ant_info_ul_r10.set_present(ant_info_ul_r10_present);
       HANDLE_CODE(bref.unpack(cif_presence_r10_present, 1));
+      bool cqi_report_cfg_r10_present;
       HANDLE_CODE(bref.unpack(cqi_report_cfg_r10_present, 1));
+      cqi_report_cfg_r10.set_present(cqi_report_cfg_r10_present);
+      bool csi_rs_cfg_r10_present;
       HANDLE_CODE(bref.unpack(csi_rs_cfg_r10_present, 1));
+      csi_rs_cfg_r10.set_present(csi_rs_cfg_r10_present);
+      bool pucch_cfg_ded_v1020_present;
       HANDLE_CODE(bref.unpack(pucch_cfg_ded_v1020_present, 1));
+      pucch_cfg_ded_v1020.set_present(pucch_cfg_ded_v1020_present);
+      bool pusch_cfg_ded_v1020_present;
       HANDLE_CODE(bref.unpack(pusch_cfg_ded_v1020_present, 1));
+      pusch_cfg_ded_v1020.set_present(pusch_cfg_ded_v1020_present);
+      bool sched_request_cfg_v1020_present;
       HANDLE_CODE(bref.unpack(sched_request_cfg_v1020_present, 1));
+      sched_request_cfg_v1020.set_present(sched_request_cfg_v1020_present);
+      bool srs_ul_cfg_ded_v1020_present;
       HANDLE_CODE(bref.unpack(srs_ul_cfg_ded_v1020_present, 1));
+      srs_ul_cfg_ded_v1020.set_present(srs_ul_cfg_ded_v1020_present);
+      bool srs_ul_cfg_ded_aperiodic_r10_present;
       HANDLE_CODE(bref.unpack(srs_ul_cfg_ded_aperiodic_r10_present, 1));
+      srs_ul_cfg_ded_aperiodic_r10.set_present(srs_ul_cfg_ded_aperiodic_r10_present);
+      bool ul_pwr_ctrl_ded_v1020_present;
       HANDLE_CODE(bref.unpack(ul_pwr_ctrl_ded_v1020_present, 1));
-      if (ant_info_r10_present) {
-        ant_info_r10 = make_copy_ptr(ant_info_r10_c_());
+      ul_pwr_ctrl_ded_v1020.set_present(ul_pwr_ctrl_ded_v1020_present);
+      if (ant_info_r10.is_present()) {
         HANDLE_CODE(ant_info_r10->unpack(bref));
       }
-      if (ant_info_ul_r10_present) {
-        ant_info_ul_r10 = make_copy_ptr(ant_info_ul_r10_s());
+      if (ant_info_ul_r10.is_present()) {
         HANDLE_CODE(ant_info_ul_r10->unpack(bref));
       }
       if (cif_presence_r10_present) {
         HANDLE_CODE(bref.unpack(cif_presence_r10, 1));
       }
-      if (cqi_report_cfg_r10_present) {
-        cqi_report_cfg_r10 = make_copy_ptr(cqi_report_cfg_r10_s());
+      if (cqi_report_cfg_r10.is_present()) {
         HANDLE_CODE(cqi_report_cfg_r10->unpack(bref));
       }
-      if (csi_rs_cfg_r10_present) {
-        csi_rs_cfg_r10 = make_copy_ptr(csi_rs_cfg_r10_s());
+      if (csi_rs_cfg_r10.is_present()) {
         HANDLE_CODE(csi_rs_cfg_r10->unpack(bref));
       }
-      if (pucch_cfg_ded_v1020_present) {
-        pucch_cfg_ded_v1020 = make_copy_ptr(pucch_cfg_ded_v1020_s());
+      if (pucch_cfg_ded_v1020.is_present()) {
         HANDLE_CODE(pucch_cfg_ded_v1020->unpack(bref));
       }
-      if (pusch_cfg_ded_v1020_present) {
-        pusch_cfg_ded_v1020 = make_copy_ptr(pusch_cfg_ded_v1020_s());
+      if (pusch_cfg_ded_v1020.is_present()) {
         HANDLE_CODE(pusch_cfg_ded_v1020->unpack(bref));
       }
-      if (sched_request_cfg_v1020_present) {
-        sched_request_cfg_v1020 = make_copy_ptr(sched_request_cfg_v1020_s());
+      if (sched_request_cfg_v1020.is_present()) {
         HANDLE_CODE(sched_request_cfg_v1020->unpack(bref));
       }
-      if (srs_ul_cfg_ded_v1020_present) {
-        srs_ul_cfg_ded_v1020 = make_copy_ptr(srs_ul_cfg_ded_v1020_s());
+      if (srs_ul_cfg_ded_v1020.is_present()) {
         HANDLE_CODE(srs_ul_cfg_ded_v1020->unpack(bref));
       }
-      if (srs_ul_cfg_ded_aperiodic_r10_present) {
-        srs_ul_cfg_ded_aperiodic_r10 = make_copy_ptr(srs_ul_cfg_ded_aperiodic_r10_c());
+      if (srs_ul_cfg_ded_aperiodic_r10.is_present()) {
         HANDLE_CODE(srs_ul_cfg_ded_aperiodic_r10->unpack(bref));
       }
-      if (ul_pwr_ctrl_ded_v1020_present) {
-        ul_pwr_ctrl_ded_v1020 = make_copy_ptr(ul_pwr_ctrl_ded_v1020_s());
+      if (ul_pwr_ctrl_ded_v1020.is_present()) {
         HANDLE_CODE(ul_pwr_ctrl_ded_v1020->unpack(bref));
       }
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool add_spec_emission_ca_r10_present;
       HANDLE_CODE(bref.unpack(add_spec_emission_ca_r10_present, 1));
-      if (add_spec_emission_ca_r10_present) {
-        add_spec_emission_ca_r10 = make_copy_ptr(add_spec_emission_ca_r10_c_());
+      add_spec_emission_ca_r10.set_present(add_spec_emission_ca_r10_present);
+      if (add_spec_emission_ca_r10.is_present()) {
         HANDLE_CODE(add_spec_emission_ca_r10->unpack(bref));
       }
     }
     if (group_flags[3]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool csi_rs_cfg_nzp_to_release_list_r11_present;
       HANDLE_CODE(bref.unpack(csi_rs_cfg_nzp_to_release_list_r11_present, 1));
+      csi_rs_cfg_nzp_to_release_list_r11.set_present(csi_rs_cfg_nzp_to_release_list_r11_present);
+      bool csi_rs_cfg_nzp_to_add_mod_list_r11_present;
       HANDLE_CODE(bref.unpack(csi_rs_cfg_nzp_to_add_mod_list_r11_present, 1));
+      csi_rs_cfg_nzp_to_add_mod_list_r11.set_present(csi_rs_cfg_nzp_to_add_mod_list_r11_present);
+      bool csi_rs_cfg_zp_to_release_list_r11_present;
       HANDLE_CODE(bref.unpack(csi_rs_cfg_zp_to_release_list_r11_present, 1));
+      csi_rs_cfg_zp_to_release_list_r11.set_present(csi_rs_cfg_zp_to_release_list_r11_present);
+      bool csi_rs_cfg_zp_to_add_mod_list_r11_present;
       HANDLE_CODE(bref.unpack(csi_rs_cfg_zp_to_add_mod_list_r11_present, 1));
+      csi_rs_cfg_zp_to_add_mod_list_r11.set_present(csi_rs_cfg_zp_to_add_mod_list_r11_present);
+      bool epdcch_cfg_r11_present;
       HANDLE_CODE(bref.unpack(epdcch_cfg_r11_present, 1));
+      epdcch_cfg_r11.set_present(epdcch_cfg_r11_present);
+      bool pdsch_cfg_ded_v1130_present;
       HANDLE_CODE(bref.unpack(pdsch_cfg_ded_v1130_present, 1));
+      pdsch_cfg_ded_v1130.set_present(pdsch_cfg_ded_v1130_present);
+      bool cqi_report_cfg_v1130_present;
       HANDLE_CODE(bref.unpack(cqi_report_cfg_v1130_present, 1));
+      cqi_report_cfg_v1130.set_present(cqi_report_cfg_v1130_present);
+      bool pucch_cfg_ded_v1130_present;
       HANDLE_CODE(bref.unpack(pucch_cfg_ded_v1130_present, 1));
+      pucch_cfg_ded_v1130.set_present(pucch_cfg_ded_v1130_present);
+      bool pusch_cfg_ded_v1130_present;
       HANDLE_CODE(bref.unpack(pusch_cfg_ded_v1130_present, 1));
+      pusch_cfg_ded_v1130.set_present(pusch_cfg_ded_v1130_present);
+      bool ul_pwr_ctrl_ded_v1130_present;
       HANDLE_CODE(bref.unpack(ul_pwr_ctrl_ded_v1130_present, 1));
-      if (csi_rs_cfg_nzp_to_release_list_r11_present) {
-        csi_rs_cfg_nzp_to_release_list_r11 = make_copy_ptr(csi_rs_cfg_nzp_to_release_list_r11_l());
+      ul_pwr_ctrl_ded_v1130.set_present(ul_pwr_ctrl_ded_v1130_present);
+      if (csi_rs_cfg_nzp_to_release_list_r11.is_present()) {
         HANDLE_CODE(
             unpack_dyn_seq_of(*csi_rs_cfg_nzp_to_release_list_r11, bref, 1, 3, UnalignedIntegerPacker<uint8_t>(1, 3)));
       }
-      if (csi_rs_cfg_nzp_to_add_mod_list_r11_present) {
-        csi_rs_cfg_nzp_to_add_mod_list_r11 = make_copy_ptr(csi_rs_cfg_nzp_to_add_mod_list_r11_l());
+      if (csi_rs_cfg_nzp_to_add_mod_list_r11.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*csi_rs_cfg_nzp_to_add_mod_list_r11, bref, 1, 3));
       }
-      if (csi_rs_cfg_zp_to_release_list_r11_present) {
-        csi_rs_cfg_zp_to_release_list_r11 = make_copy_ptr(csi_rs_cfg_zp_to_release_list_r11_l());
+      if (csi_rs_cfg_zp_to_release_list_r11.is_present()) {
         HANDLE_CODE(
             unpack_dyn_seq_of(*csi_rs_cfg_zp_to_release_list_r11, bref, 1, 4, UnalignedIntegerPacker<uint8_t>(1, 4)));
       }
-      if (csi_rs_cfg_zp_to_add_mod_list_r11_present) {
-        csi_rs_cfg_zp_to_add_mod_list_r11 = make_copy_ptr(csi_rs_cfg_zp_to_add_mod_list_r11_l());
+      if (csi_rs_cfg_zp_to_add_mod_list_r11.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*csi_rs_cfg_zp_to_add_mod_list_r11, bref, 1, 4));
       }
-      if (epdcch_cfg_r11_present) {
-        epdcch_cfg_r11 = make_copy_ptr(epdcch_cfg_r11_s());
+      if (epdcch_cfg_r11.is_present()) {
         HANDLE_CODE(epdcch_cfg_r11->unpack(bref));
       }
-      if (pdsch_cfg_ded_v1130_present) {
-        pdsch_cfg_ded_v1130 = make_copy_ptr(pdsch_cfg_ded_v1130_s());
+      if (pdsch_cfg_ded_v1130.is_present()) {
         HANDLE_CODE(pdsch_cfg_ded_v1130->unpack(bref));
       }
-      if (cqi_report_cfg_v1130_present) {
-        cqi_report_cfg_v1130 = make_copy_ptr(cqi_report_cfg_v1130_s());
+      if (cqi_report_cfg_v1130.is_present()) {
         HANDLE_CODE(cqi_report_cfg_v1130->unpack(bref));
       }
-      if (pucch_cfg_ded_v1130_present) {
-        pucch_cfg_ded_v1130 = make_copy_ptr(pucch_cfg_ded_v1130_s());
+      if (pucch_cfg_ded_v1130.is_present()) {
         HANDLE_CODE(pucch_cfg_ded_v1130->unpack(bref));
       }
-      if (pusch_cfg_ded_v1130_present) {
-        pusch_cfg_ded_v1130 = make_copy_ptr(pusch_cfg_ded_v1130_s());
+      if (pusch_cfg_ded_v1130.is_present()) {
         HANDLE_CODE(pusch_cfg_ded_v1130->unpack(bref));
       }
-      if (ul_pwr_ctrl_ded_v1130_present) {
-        ul_pwr_ctrl_ded_v1130 = make_copy_ptr(ul_pwr_ctrl_ded_v1130_s());
+      if (ul_pwr_ctrl_ded_v1130.is_present()) {
         HANDLE_CODE(ul_pwr_ctrl_ded_v1130->unpack(bref));
       }
     }
     if (group_flags[4]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool ant_info_v1250_present;
       HANDLE_CODE(bref.unpack(ant_info_v1250_present, 1));
+      ant_info_v1250.set_present(ant_info_v1250_present);
+      bool eimta_main_cfg_r12_present;
       HANDLE_CODE(bref.unpack(eimta_main_cfg_r12_present, 1));
+      eimta_main_cfg_r12.set_present(eimta_main_cfg_r12_present);
+      bool eimta_main_cfg_pcell_r12_present;
       HANDLE_CODE(bref.unpack(eimta_main_cfg_pcell_r12_present, 1));
+      eimta_main_cfg_pcell_r12.set_present(eimta_main_cfg_pcell_r12_present);
+      bool pucch_cfg_ded_v1250_present;
       HANDLE_CODE(bref.unpack(pucch_cfg_ded_v1250_present, 1));
+      pucch_cfg_ded_v1250.set_present(pucch_cfg_ded_v1250_present);
+      bool cqi_report_cfg_pcell_v1250_present;
       HANDLE_CODE(bref.unpack(cqi_report_cfg_pcell_v1250_present, 1));
+      cqi_report_cfg_pcell_v1250.set_present(cqi_report_cfg_pcell_v1250_present);
+      bool ul_pwr_ctrl_ded_v1250_present;
       HANDLE_CODE(bref.unpack(ul_pwr_ctrl_ded_v1250_present, 1));
+      ul_pwr_ctrl_ded_v1250.set_present(ul_pwr_ctrl_ded_v1250_present);
+      bool pusch_cfg_ded_v1250_present;
       HANDLE_CODE(bref.unpack(pusch_cfg_ded_v1250_present, 1));
+      pusch_cfg_ded_v1250.set_present(pusch_cfg_ded_v1250_present);
+      bool csi_rs_cfg_v1250_present;
       HANDLE_CODE(bref.unpack(csi_rs_cfg_v1250_present, 1));
-      if (ant_info_v1250_present) {
-        ant_info_v1250 = make_copy_ptr(ant_info_ded_v1250_s());
+      csi_rs_cfg_v1250.set_present(csi_rs_cfg_v1250_present);
+      if (ant_info_v1250.is_present()) {
         HANDLE_CODE(ant_info_v1250->unpack(bref));
       }
-      if (eimta_main_cfg_r12_present) {
-        eimta_main_cfg_r12 = make_copy_ptr(eimta_main_cfg_r12_c());
+      if (eimta_main_cfg_r12.is_present()) {
         HANDLE_CODE(eimta_main_cfg_r12->unpack(bref));
       }
-      if (eimta_main_cfg_pcell_r12_present) {
-        eimta_main_cfg_pcell_r12 = make_copy_ptr(eimta_main_cfg_serv_cell_r12_c());
+      if (eimta_main_cfg_pcell_r12.is_present()) {
         HANDLE_CODE(eimta_main_cfg_pcell_r12->unpack(bref));
       }
-      if (pucch_cfg_ded_v1250_present) {
-        pucch_cfg_ded_v1250 = make_copy_ptr(pucch_cfg_ded_v1250_s());
+      if (pucch_cfg_ded_v1250.is_present()) {
         HANDLE_CODE(pucch_cfg_ded_v1250->unpack(bref));
       }
-      if (cqi_report_cfg_pcell_v1250_present) {
-        cqi_report_cfg_pcell_v1250 = make_copy_ptr(cqi_report_cfg_v1250_s());
+      if (cqi_report_cfg_pcell_v1250.is_present()) {
         HANDLE_CODE(cqi_report_cfg_pcell_v1250->unpack(bref));
       }
-      if (ul_pwr_ctrl_ded_v1250_present) {
-        ul_pwr_ctrl_ded_v1250 = make_copy_ptr(ul_pwr_ctrl_ded_v1250_s());
+      if (ul_pwr_ctrl_ded_v1250.is_present()) {
         HANDLE_CODE(ul_pwr_ctrl_ded_v1250->unpack(bref));
       }
-      if (pusch_cfg_ded_v1250_present) {
-        pusch_cfg_ded_v1250 = make_copy_ptr(pusch_cfg_ded_v1250_s());
+      if (pusch_cfg_ded_v1250.is_present()) {
         HANDLE_CODE(pusch_cfg_ded_v1250->unpack(bref));
       }
-      if (csi_rs_cfg_v1250_present) {
-        csi_rs_cfg_v1250 = make_copy_ptr(csi_rs_cfg_v1250_s());
+      if (csi_rs_cfg_v1250.is_present()) {
         HANDLE_CODE(csi_rs_cfg_v1250->unpack(bref));
       }
     }
     if (group_flags[5]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool pdsch_cfg_ded_v1280_present;
       HANDLE_CODE(bref.unpack(pdsch_cfg_ded_v1280_present, 1));
-      if (pdsch_cfg_ded_v1280_present) {
-        pdsch_cfg_ded_v1280 = make_copy_ptr(pdsch_cfg_ded_v1280_s());
+      pdsch_cfg_ded_v1280.set_present(pdsch_cfg_ded_v1280_present);
+      if (pdsch_cfg_ded_v1280.is_present()) {
         HANDLE_CODE(pdsch_cfg_ded_v1280->unpack(bref));
       }
     }
     if (group_flags[6]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool pdsch_cfg_ded_v1310_present;
       HANDLE_CODE(bref.unpack(pdsch_cfg_ded_v1310_present, 1));
+      pdsch_cfg_ded_v1310.set_present(pdsch_cfg_ded_v1310_present);
+      bool pucch_cfg_ded_r13_present;
       HANDLE_CODE(bref.unpack(pucch_cfg_ded_r13_present, 1));
+      pucch_cfg_ded_r13.set_present(pucch_cfg_ded_r13_present);
+      bool pusch_cfg_ded_r13_present;
       HANDLE_CODE(bref.unpack(pusch_cfg_ded_r13_present, 1));
+      pusch_cfg_ded_r13.set_present(pusch_cfg_ded_r13_present);
+      bool pdcch_candidate_reductions_r13_present;
       HANDLE_CODE(bref.unpack(pdcch_candidate_reductions_r13_present, 1));
+      pdcch_candidate_reductions_r13.set_present(pdcch_candidate_reductions_r13_present);
+      bool cqi_report_cfg_v1310_present;
       HANDLE_CODE(bref.unpack(cqi_report_cfg_v1310_present, 1));
+      cqi_report_cfg_v1310.set_present(cqi_report_cfg_v1310_present);
+      bool srs_ul_cfg_ded_v1310_present;
       HANDLE_CODE(bref.unpack(srs_ul_cfg_ded_v1310_present, 1));
+      srs_ul_cfg_ded_v1310.set_present(srs_ul_cfg_ded_v1310_present);
+      bool srs_ul_cfg_ded_up_pts_ext_r13_present;
       HANDLE_CODE(bref.unpack(srs_ul_cfg_ded_up_pts_ext_r13_present, 1));
+      srs_ul_cfg_ded_up_pts_ext_r13.set_present(srs_ul_cfg_ded_up_pts_ext_r13_present);
+      bool srs_ul_cfg_ded_aperiodic_v1310_present;
       HANDLE_CODE(bref.unpack(srs_ul_cfg_ded_aperiodic_v1310_present, 1));
+      srs_ul_cfg_ded_aperiodic_v1310.set_present(srs_ul_cfg_ded_aperiodic_v1310_present);
+      bool srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_present;
       HANDLE_CODE(bref.unpack(srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_present, 1));
+      srs_ul_cfg_ded_aperiodic_up_pts_ext_r13.set_present(srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_present);
+      bool csi_rs_cfg_v1310_present;
       HANDLE_CODE(bref.unpack(csi_rs_cfg_v1310_present, 1));
+      csi_rs_cfg_v1310.set_present(csi_rs_cfg_v1310_present);
+      bool ce_mode_r13_present;
       HANDLE_CODE(bref.unpack(ce_mode_r13_present, 1));
+      ce_mode_r13.set_present(ce_mode_r13_present);
+      bool csi_rs_cfg_nzp_to_add_mod_list_ext_r13_present;
       HANDLE_CODE(bref.unpack(csi_rs_cfg_nzp_to_add_mod_list_ext_r13_present, 1));
+      csi_rs_cfg_nzp_to_add_mod_list_ext_r13.set_present(csi_rs_cfg_nzp_to_add_mod_list_ext_r13_present);
+      bool csi_rs_cfg_nzp_to_release_list_ext_r13_present;
       HANDLE_CODE(bref.unpack(csi_rs_cfg_nzp_to_release_list_ext_r13_present, 1));
-      if (pdsch_cfg_ded_v1310_present) {
-        pdsch_cfg_ded_v1310 = make_copy_ptr(pdsch_cfg_ded_v1310_s());
+      csi_rs_cfg_nzp_to_release_list_ext_r13.set_present(csi_rs_cfg_nzp_to_release_list_ext_r13_present);
+      if (pdsch_cfg_ded_v1310.is_present()) {
         HANDLE_CODE(pdsch_cfg_ded_v1310->unpack(bref));
       }
-      if (pucch_cfg_ded_r13_present) {
-        pucch_cfg_ded_r13 = make_copy_ptr(pucch_cfg_ded_r13_s());
+      if (pucch_cfg_ded_r13.is_present()) {
         HANDLE_CODE(pucch_cfg_ded_r13->unpack(bref));
       }
-      if (pusch_cfg_ded_r13_present) {
-        pusch_cfg_ded_r13 = make_copy_ptr(pusch_cfg_ded_r13_s());
+      if (pusch_cfg_ded_r13.is_present()) {
         HANDLE_CODE(pusch_cfg_ded_r13->unpack(bref));
       }
-      if (pdcch_candidate_reductions_r13_present) {
-        pdcch_candidate_reductions_r13 = make_copy_ptr(pdcch_candidate_reductions_r13_c());
+      if (pdcch_candidate_reductions_r13.is_present()) {
         HANDLE_CODE(pdcch_candidate_reductions_r13->unpack(bref));
       }
-      if (cqi_report_cfg_v1310_present) {
-        cqi_report_cfg_v1310 = make_copy_ptr(cqi_report_cfg_v1310_s());
+      if (cqi_report_cfg_v1310.is_present()) {
         HANDLE_CODE(cqi_report_cfg_v1310->unpack(bref));
       }
-      if (srs_ul_cfg_ded_v1310_present) {
-        srs_ul_cfg_ded_v1310 = make_copy_ptr(srs_ul_cfg_ded_v1310_c());
+      if (srs_ul_cfg_ded_v1310.is_present()) {
         HANDLE_CODE(srs_ul_cfg_ded_v1310->unpack(bref));
       }
-      if (srs_ul_cfg_ded_up_pts_ext_r13_present) {
-        srs_ul_cfg_ded_up_pts_ext_r13 = make_copy_ptr(srs_ul_cfg_ded_up_pts_ext_r13_c());
+      if (srs_ul_cfg_ded_up_pts_ext_r13.is_present()) {
         HANDLE_CODE(srs_ul_cfg_ded_up_pts_ext_r13->unpack(bref));
       }
-      if (srs_ul_cfg_ded_aperiodic_v1310_present) {
-        srs_ul_cfg_ded_aperiodic_v1310 = make_copy_ptr(srs_ul_cfg_ded_aperiodic_v1310_c());
+      if (srs_ul_cfg_ded_aperiodic_v1310.is_present()) {
         HANDLE_CODE(srs_ul_cfg_ded_aperiodic_v1310->unpack(bref));
       }
-      if (srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_present) {
-        srs_ul_cfg_ded_aperiodic_up_pts_ext_r13 = make_copy_ptr(srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_c());
+      if (srs_ul_cfg_ded_aperiodic_up_pts_ext_r13.is_present()) {
         HANDLE_CODE(srs_ul_cfg_ded_aperiodic_up_pts_ext_r13->unpack(bref));
       }
-      if (csi_rs_cfg_v1310_present) {
-        csi_rs_cfg_v1310 = make_copy_ptr(csi_rs_cfg_v1310_s());
+      if (csi_rs_cfg_v1310.is_present()) {
         HANDLE_CODE(csi_rs_cfg_v1310->unpack(bref));
       }
-      if (ce_mode_r13_present) {
-        ce_mode_r13 = make_copy_ptr(ce_mode_r13_c_());
+      if (ce_mode_r13.is_present()) {
         HANDLE_CODE(ce_mode_r13->unpack(bref));
       }
-      if (csi_rs_cfg_nzp_to_add_mod_list_ext_r13_present) {
-        csi_rs_cfg_nzp_to_add_mod_list_ext_r13 = make_copy_ptr(csi_rs_cfg_nzp_to_add_mod_list_ext_r13_l());
+      if (csi_rs_cfg_nzp_to_add_mod_list_ext_r13.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*csi_rs_cfg_nzp_to_add_mod_list_ext_r13, bref, 1, 21));
       }
-      if (csi_rs_cfg_nzp_to_release_list_ext_r13_present) {
-        csi_rs_cfg_nzp_to_release_list_ext_r13 = make_copy_ptr(csi_rs_cfg_nzp_to_release_list_ext_r13_l());
+      if (csi_rs_cfg_nzp_to_release_list_ext_r13.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(
             *csi_rs_cfg_nzp_to_release_list_ext_r13, bref, 1, 21, UnalignedIntegerPacker<uint8_t>(4, 24)));
       }
     }
     if (group_flags[7]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool cqi_report_cfg_v1320_present;
       HANDLE_CODE(bref.unpack(cqi_report_cfg_v1320_present, 1));
-      if (cqi_report_cfg_v1320_present) {
-        cqi_report_cfg_v1320 = make_copy_ptr(cqi_report_cfg_v1320_s());
+      cqi_report_cfg_v1320.set_present(cqi_report_cfg_v1320_present);
+      if (cqi_report_cfg_v1320.is_present()) {
         HANDLE_CODE(cqi_report_cfg_v1320->unpack(bref));
       }
     }
     if (group_flags[8]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool type_a_srs_tpc_pdcch_group_r14_present;
       HANDLE_CODE(bref.unpack(type_a_srs_tpc_pdcch_group_r14_present, 1));
+      type_a_srs_tpc_pdcch_group_r14.set_present(type_a_srs_tpc_pdcch_group_r14_present);
+      bool must_cfg_r14_present;
       HANDLE_CODE(bref.unpack(must_cfg_r14_present, 1));
+      must_cfg_r14.set_present(must_cfg_r14_present);
+      bool pusch_enhance_cfg_r14_present;
       HANDLE_CODE(bref.unpack(pusch_enhance_cfg_r14_present, 1));
+      pusch_enhance_cfg_r14.set_present(pusch_enhance_cfg_r14_present);
       HANDLE_CODE(bref.unpack(ce_pdsch_pusch_enhancement_cfg_r14_present, 1));
+      bool ant_info_v1430_present;
       HANDLE_CODE(bref.unpack(ant_info_v1430_present, 1));
+      ant_info_v1430.set_present(ant_info_v1430_present);
+      bool pucch_cfg_ded_v1430_present;
       HANDLE_CODE(bref.unpack(pucch_cfg_ded_v1430_present, 1));
+      pucch_cfg_ded_v1430.set_present(pucch_cfg_ded_v1430_present);
+      bool pdsch_cfg_ded_v1430_present;
       HANDLE_CODE(bref.unpack(pdsch_cfg_ded_v1430_present, 1));
+      pdsch_cfg_ded_v1430.set_present(pdsch_cfg_ded_v1430_present);
+      bool pusch_cfg_ded_v1430_present;
       HANDLE_CODE(bref.unpack(pusch_cfg_ded_v1430_present, 1));
+      pusch_cfg_ded_v1430.set_present(pusch_cfg_ded_v1430_present);
+      bool srs_ul_periodic_cfg_ded_list_r14_present;
       HANDLE_CODE(bref.unpack(srs_ul_periodic_cfg_ded_list_r14_present, 1));
+      srs_ul_periodic_cfg_ded_list_r14.set_present(srs_ul_periodic_cfg_ded_list_r14_present);
+      bool srs_ul_periodic_cfg_ded_up_pts_ext_list_r14_present;
       HANDLE_CODE(bref.unpack(srs_ul_periodic_cfg_ded_up_pts_ext_list_r14_present, 1));
+      srs_ul_periodic_cfg_ded_up_pts_ext_list_r14.set_present(srs_ul_periodic_cfg_ded_up_pts_ext_list_r14_present);
+      bool srs_ul_aperiodic_cfg_ded_list_r14_present;
       HANDLE_CODE(bref.unpack(srs_ul_aperiodic_cfg_ded_list_r14_present, 1));
+      srs_ul_aperiodic_cfg_ded_list_r14.set_present(srs_ul_aperiodic_cfg_ded_list_r14_present);
+      bool srs_ul_cfg_ded_ap_up_pts_ext_list_r14_present;
       HANDLE_CODE(bref.unpack(srs_ul_cfg_ded_ap_up_pts_ext_list_r14_present, 1));
+      srs_ul_cfg_ded_ap_up_pts_ext_list_r14.set_present(srs_ul_cfg_ded_ap_up_pts_ext_list_r14_present);
+      bool csi_rs_cfg_v1430_present;
       HANDLE_CODE(bref.unpack(csi_rs_cfg_v1430_present, 1));
+      csi_rs_cfg_v1430.set_present(csi_rs_cfg_v1430_present);
+      bool csi_rs_cfg_zp_ap_list_r14_present;
       HANDLE_CODE(bref.unpack(csi_rs_cfg_zp_ap_list_r14_present, 1));
+      csi_rs_cfg_zp_ap_list_r14.set_present(csi_rs_cfg_zp_ap_list_r14_present);
+      bool cqi_report_cfg_v1430_present;
       HANDLE_CODE(bref.unpack(cqi_report_cfg_v1430_present, 1));
+      cqi_report_cfg_v1430.set_present(cqi_report_cfg_v1430_present);
       HANDLE_CODE(bref.unpack(semi_open_loop_r14_present, 1));
-      if (type_a_srs_tpc_pdcch_group_r14_present) {
-        type_a_srs_tpc_pdcch_group_r14 = make_copy_ptr(type_a_srs_tpc_pdcch_group_r14_c_());
+      if (type_a_srs_tpc_pdcch_group_r14.is_present()) {
         HANDLE_CODE(type_a_srs_tpc_pdcch_group_r14->unpack(bref));
       }
-      if (must_cfg_r14_present) {
-        must_cfg_r14 = make_copy_ptr(must_cfg_r14_c_());
+      if (must_cfg_r14.is_present()) {
         HANDLE_CODE(must_cfg_r14->unpack(bref));
       }
-      if (pusch_enhance_cfg_r14_present) {
-        pusch_enhance_cfg_r14 = make_copy_ptr(pusch_enhance_cfg_r14_c());
+      if (pusch_enhance_cfg_r14.is_present()) {
         HANDLE_CODE(pusch_enhance_cfg_r14->unpack(bref));
       }
-      if (ant_info_v1430_present) {
-        ant_info_v1430 = make_copy_ptr(ant_info_ded_v1430_s());
+      if (ant_info_v1430.is_present()) {
         HANDLE_CODE(ant_info_v1430->unpack(bref));
       }
-      if (pucch_cfg_ded_v1430_present) {
-        pucch_cfg_ded_v1430 = make_copy_ptr(pucch_cfg_ded_v1430_s());
+      if (pucch_cfg_ded_v1430.is_present()) {
         HANDLE_CODE(pucch_cfg_ded_v1430->unpack(bref));
       }
-      if (pdsch_cfg_ded_v1430_present) {
-        pdsch_cfg_ded_v1430 = make_copy_ptr(pdsch_cfg_ded_v1430_s());
+      if (pdsch_cfg_ded_v1430.is_present()) {
         HANDLE_CODE(pdsch_cfg_ded_v1430->unpack(bref));
       }
-      if (pusch_cfg_ded_v1430_present) {
-        pusch_cfg_ded_v1430 = make_copy_ptr(pusch_cfg_ded_v1430_s());
+      if (pusch_cfg_ded_v1430.is_present()) {
         HANDLE_CODE(pusch_cfg_ded_v1430->unpack(bref));
       }
-      if (srs_ul_periodic_cfg_ded_list_r14_present) {
-        srs_ul_periodic_cfg_ded_list_r14 = make_copy_ptr(srs_ul_periodic_cfg_ded_list_r14_l_());
+      if (srs_ul_periodic_cfg_ded_list_r14.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*srs_ul_periodic_cfg_ded_list_r14, bref, 1, 2));
       }
-      if (srs_ul_periodic_cfg_ded_up_pts_ext_list_r14_present) {
-        srs_ul_periodic_cfg_ded_up_pts_ext_list_r14 = make_copy_ptr(srs_ul_periodic_cfg_ded_up_pts_ext_list_r14_l_());
+      if (srs_ul_periodic_cfg_ded_up_pts_ext_list_r14.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*srs_ul_periodic_cfg_ded_up_pts_ext_list_r14, bref, 1, 4));
       }
-      if (srs_ul_aperiodic_cfg_ded_list_r14_present) {
-        srs_ul_aperiodic_cfg_ded_list_r14 = make_copy_ptr(srs_ul_aperiodic_cfg_ded_list_r14_l_());
+      if (srs_ul_aperiodic_cfg_ded_list_r14.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*srs_ul_aperiodic_cfg_ded_list_r14, bref, 1, 2));
       }
-      if (srs_ul_cfg_ded_ap_up_pts_ext_list_r14_present) {
-        srs_ul_cfg_ded_ap_up_pts_ext_list_r14 = make_copy_ptr(srs_ul_cfg_ded_ap_up_pts_ext_list_r14_l_());
+      if (srs_ul_cfg_ded_ap_up_pts_ext_list_r14.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*srs_ul_cfg_ded_ap_up_pts_ext_list_r14, bref, 1, 4));
       }
-      if (csi_rs_cfg_v1430_present) {
-        csi_rs_cfg_v1430 = make_copy_ptr(csi_rs_cfg_v1430_s());
+      if (csi_rs_cfg_v1430.is_present()) {
         HANDLE_CODE(csi_rs_cfg_v1430->unpack(bref));
       }
-      if (csi_rs_cfg_zp_ap_list_r14_present) {
-        csi_rs_cfg_zp_ap_list_r14 = make_copy_ptr(csi_rs_cfg_zp_ap_list_r14_c());
+      if (csi_rs_cfg_zp_ap_list_r14.is_present()) {
         HANDLE_CODE(csi_rs_cfg_zp_ap_list_r14->unpack(bref));
       }
-      if (cqi_report_cfg_v1430_present) {
-        cqi_report_cfg_v1430 = make_copy_ptr(cqi_report_cfg_v1430_s());
+      if (cqi_report_cfg_v1430.is_present()) {
         HANDLE_CODE(cqi_report_cfg_v1430->unpack(bref));
       }
       if (semi_open_loop_r14_present) {
@@ -42572,60 +42169,70 @@ SRSASN_CODE phys_cfg_ded_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[9]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool csi_rs_cfg_v1480_present;
       HANDLE_CODE(bref.unpack(csi_rs_cfg_v1480_present, 1));
-      if (csi_rs_cfg_v1480_present) {
-        csi_rs_cfg_v1480 = make_copy_ptr(csi_rs_cfg_v1480_s());
+      csi_rs_cfg_v1480.set_present(csi_rs_cfg_v1480_present);
+      if (csi_rs_cfg_v1480.is_present()) {
         HANDLE_CODE(csi_rs_cfg_v1480->unpack(bref));
       }
     }
     if (group_flags[10]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool phys_cfg_ded_stti_r15_present;
       HANDLE_CODE(bref.unpack(phys_cfg_ded_stti_r15_present, 1));
+      phys_cfg_ded_stti_r15.set_present(phys_cfg_ded_stti_r15_present);
+      bool pdsch_cfg_ded_v1530_present;
       HANDLE_CODE(bref.unpack(pdsch_cfg_ded_v1530_present, 1));
+      pdsch_cfg_ded_v1530.set_present(pdsch_cfg_ded_v1530_present);
+      bool pusch_cfg_ded_v1530_present;
       HANDLE_CODE(bref.unpack(pusch_cfg_ded_v1530_present, 1));
+      pusch_cfg_ded_v1530.set_present(pusch_cfg_ded_v1530_present);
+      bool cqi_report_cfg_v1530_present;
       HANDLE_CODE(bref.unpack(cqi_report_cfg_v1530_present, 1));
+      cqi_report_cfg_v1530.set_present(cqi_report_cfg_v1530_present);
+      bool ant_info_v1530_present;
       HANDLE_CODE(bref.unpack(ant_info_v1530_present, 1));
+      ant_info_v1530.set_present(ant_info_v1530_present);
+      bool csi_rs_cfg_v1530_present;
       HANDLE_CODE(bref.unpack(csi_rs_cfg_v1530_present, 1));
+      csi_rs_cfg_v1530.set_present(csi_rs_cfg_v1530_present);
+      bool ul_pwr_ctrl_ded_v1530_present;
       HANDLE_CODE(bref.unpack(ul_pwr_ctrl_ded_v1530_present, 1));
+      ul_pwr_ctrl_ded_v1530.set_present(ul_pwr_ctrl_ded_v1530_present);
+      bool semi_static_cfi_cfg_r15_present;
       HANDLE_CODE(bref.unpack(semi_static_cfi_cfg_r15_present, 1));
+      semi_static_cfi_cfg_r15.set_present(semi_static_cfi_cfg_r15_present);
+      bool blind_pdsch_repeat_cfg_r15_present;
       HANDLE_CODE(bref.unpack(blind_pdsch_repeat_cfg_r15_present, 1));
-      if (phys_cfg_ded_stti_r15_present) {
-        phys_cfg_ded_stti_r15 = make_copy_ptr(phys_cfg_ded_stti_r15_c());
+      blind_pdsch_repeat_cfg_r15.set_present(blind_pdsch_repeat_cfg_r15_present);
+      if (phys_cfg_ded_stti_r15.is_present()) {
         HANDLE_CODE(phys_cfg_ded_stti_r15->unpack(bref));
       }
-      if (pdsch_cfg_ded_v1530_present) {
-        pdsch_cfg_ded_v1530 = make_copy_ptr(pdsch_cfg_ded_v1530_s());
+      if (pdsch_cfg_ded_v1530.is_present()) {
         HANDLE_CODE(pdsch_cfg_ded_v1530->unpack(bref));
       }
-      if (pusch_cfg_ded_v1530_present) {
-        pusch_cfg_ded_v1530 = make_copy_ptr(pusch_cfg_ded_v1530_s());
+      if (pusch_cfg_ded_v1530.is_present()) {
         HANDLE_CODE(pusch_cfg_ded_v1530->unpack(bref));
       }
-      if (cqi_report_cfg_v1530_present) {
-        cqi_report_cfg_v1530 = make_copy_ptr(cqi_report_cfg_v1530_s());
+      if (cqi_report_cfg_v1530.is_present()) {
         HANDLE_CODE(cqi_report_cfg_v1530->unpack(bref));
       }
-      if (ant_info_v1530_present) {
-        ant_info_v1530 = make_copy_ptr(ant_info_ded_v1530_c());
+      if (ant_info_v1530.is_present()) {
         HANDLE_CODE(ant_info_v1530->unpack(bref));
       }
-      if (csi_rs_cfg_v1530_present) {
-        csi_rs_cfg_v1530 = make_copy_ptr(csi_rs_cfg_v1530_s());
+      if (csi_rs_cfg_v1530.is_present()) {
         HANDLE_CODE(csi_rs_cfg_v1530->unpack(bref));
       }
-      if (ul_pwr_ctrl_ded_v1530_present) {
-        ul_pwr_ctrl_ded_v1530 = make_copy_ptr(ul_pwr_ctrl_ded_v1530_s());
+      if (ul_pwr_ctrl_ded_v1530.is_present()) {
         HANDLE_CODE(ul_pwr_ctrl_ded_v1530->unpack(bref));
       }
-      if (semi_static_cfi_cfg_r15_present) {
-        semi_static_cfi_cfg_r15 = make_copy_ptr(semi_static_cfi_cfg_r15_c_());
+      if (semi_static_cfi_cfg_r15.is_present()) {
         HANDLE_CODE(semi_static_cfi_cfg_r15->unpack(bref));
       }
-      if (blind_pdsch_repeat_cfg_r15_present) {
-        blind_pdsch_repeat_cfg_r15 = make_copy_ptr(blind_pdsch_repeat_cfg_r15_c_());
+      if (blind_pdsch_repeat_cfg_r15.is_present()) {
         HANDLE_CODE(blind_pdsch_repeat_cfg_r15->unpack(bref));
       }
     }
@@ -42676,433 +42283,322 @@ void phys_cfg_ded_s::to_json(json_writer& j) const
     sched_request_cfg.to_json(j);
   }
   if (ext) {
-    rrc_asn1_warn_assert(cqi_report_cfg_v920_present != (cqi_report_cfg_v920.get() != NULL), __FILE__, __LINE__);
-    if (cqi_report_cfg_v920_present) {
+    if (cqi_report_cfg_v920.is_present()) {
       j.write_fieldname("cqi-ReportConfig-v920");
       cqi_report_cfg_v920->to_json(j);
     }
-    rrc_asn1_warn_assert(ant_info_v920_present != (ant_info_v920.get() != NULL), __FILE__, __LINE__);
-    if (ant_info_v920_present) {
+    if (ant_info_v920.is_present()) {
       j.write_fieldname("antennaInfo-v920");
       ant_info_v920->to_json(j);
     }
-    rrc_asn1_warn_assert(ant_info_r10_present != (ant_info_r10.get() != NULL), __FILE__, __LINE__);
-    if (ant_info_r10_present) {
+    if (ant_info_r10.is_present()) {
       j.write_fieldname("antennaInfo-r10");
       ant_info_r10->to_json(j);
     }
-    rrc_asn1_warn_assert(ant_info_ul_r10_present != (ant_info_ul_r10.get() != NULL), __FILE__, __LINE__);
-    if (ant_info_ul_r10_present) {
+    if (ant_info_ul_r10.is_present()) {
       j.write_fieldname("antennaInfoUL-r10");
       ant_info_ul_r10->to_json(j);
     }
     if (cif_presence_r10_present) {
       j.write_bool("cif-Presence-r10", cif_presence_r10);
     }
-    rrc_asn1_warn_assert(cqi_report_cfg_r10_present != (cqi_report_cfg_r10.get() != NULL), __FILE__, __LINE__);
-    if (cqi_report_cfg_r10_present) {
+    if (cqi_report_cfg_r10.is_present()) {
       j.write_fieldname("cqi-ReportConfig-r10");
       cqi_report_cfg_r10->to_json(j);
     }
-    rrc_asn1_warn_assert(csi_rs_cfg_r10_present != (csi_rs_cfg_r10.get() != NULL), __FILE__, __LINE__);
-    if (csi_rs_cfg_r10_present) {
+    if (csi_rs_cfg_r10.is_present()) {
       j.write_fieldname("csi-RS-Config-r10");
       csi_rs_cfg_r10->to_json(j);
     }
-    rrc_asn1_warn_assert(pucch_cfg_ded_v1020_present != (pucch_cfg_ded_v1020.get() != NULL), __FILE__, __LINE__);
-    if (pucch_cfg_ded_v1020_present) {
+    if (pucch_cfg_ded_v1020.is_present()) {
       j.write_fieldname("pucch-ConfigDedicated-v1020");
       pucch_cfg_ded_v1020->to_json(j);
     }
-    rrc_asn1_warn_assert(pusch_cfg_ded_v1020_present != (pusch_cfg_ded_v1020.get() != NULL), __FILE__, __LINE__);
-    if (pusch_cfg_ded_v1020_present) {
+    if (pusch_cfg_ded_v1020.is_present()) {
       j.write_fieldname("pusch-ConfigDedicated-v1020");
       pusch_cfg_ded_v1020->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        sched_request_cfg_v1020_present != (sched_request_cfg_v1020.get() != NULL), __FILE__, __LINE__);
-    if (sched_request_cfg_v1020_present) {
+    if (sched_request_cfg_v1020.is_present()) {
       j.write_fieldname("schedulingRequestConfig-v1020");
       sched_request_cfg_v1020->to_json(j);
     }
-    rrc_asn1_warn_assert(srs_ul_cfg_ded_v1020_present != (srs_ul_cfg_ded_v1020.get() != NULL), __FILE__, __LINE__);
-    if (srs_ul_cfg_ded_v1020_present) {
+    if (srs_ul_cfg_ded_v1020.is_present()) {
       j.write_fieldname("soundingRS-UL-ConfigDedicated-v1020");
       srs_ul_cfg_ded_v1020->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        srs_ul_cfg_ded_aperiodic_r10_present != (srs_ul_cfg_ded_aperiodic_r10.get() != NULL), __FILE__, __LINE__);
-    if (srs_ul_cfg_ded_aperiodic_r10_present) {
+    if (srs_ul_cfg_ded_aperiodic_r10.is_present()) {
       j.write_fieldname("soundingRS-UL-ConfigDedicatedAperiodic-r10");
       srs_ul_cfg_ded_aperiodic_r10->to_json(j);
     }
-    rrc_asn1_warn_assert(ul_pwr_ctrl_ded_v1020_present != (ul_pwr_ctrl_ded_v1020.get() != NULL), __FILE__, __LINE__);
-    if (ul_pwr_ctrl_ded_v1020_present) {
+    if (ul_pwr_ctrl_ded_v1020.is_present()) {
       j.write_fieldname("uplinkPowerControlDedicated-v1020");
       ul_pwr_ctrl_ded_v1020->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        add_spec_emission_ca_r10_present != (add_spec_emission_ca_r10.get() != NULL), __FILE__, __LINE__);
-    if (add_spec_emission_ca_r10_present) {
+    if (add_spec_emission_ca_r10.is_present()) {
       j.write_fieldname("additionalSpectrumEmissionCA-r10");
       add_spec_emission_ca_r10->to_json(j);
     }
-    rrc_asn1_warn_assert(csi_rs_cfg_nzp_to_release_list_r11_present !=
-                             (csi_rs_cfg_nzp_to_release_list_r11.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (csi_rs_cfg_nzp_to_release_list_r11_present) {
+    if (csi_rs_cfg_nzp_to_release_list_r11.is_present()) {
       j.start_array("csi-RS-ConfigNZPToReleaseList-r11");
       for (uint32_t i1 = 0; i1 < csi_rs_cfg_nzp_to_release_list_r11->size(); ++i1) {
         j.write_int(((*csi_rs_cfg_nzp_to_release_list_r11)[i1]));
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(csi_rs_cfg_nzp_to_add_mod_list_r11_present !=
-                             (csi_rs_cfg_nzp_to_add_mod_list_r11.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (csi_rs_cfg_nzp_to_add_mod_list_r11_present) {
+    if (csi_rs_cfg_nzp_to_add_mod_list_r11.is_present()) {
       j.start_array("csi-RS-ConfigNZPToAddModList-r11");
       for (uint32_t i1 = 0; i1 < csi_rs_cfg_nzp_to_add_mod_list_r11->size(); ++i1) {
         ((*csi_rs_cfg_nzp_to_add_mod_list_r11)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(csi_rs_cfg_zp_to_release_list_r11_present != (csi_rs_cfg_zp_to_release_list_r11.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (csi_rs_cfg_zp_to_release_list_r11_present) {
+    if (csi_rs_cfg_zp_to_release_list_r11.is_present()) {
       j.start_array("csi-RS-ConfigZPToReleaseList-r11");
       for (uint32_t i1 = 0; i1 < csi_rs_cfg_zp_to_release_list_r11->size(); ++i1) {
         j.write_int(((*csi_rs_cfg_zp_to_release_list_r11)[i1]));
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(csi_rs_cfg_zp_to_add_mod_list_r11_present != (csi_rs_cfg_zp_to_add_mod_list_r11.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (csi_rs_cfg_zp_to_add_mod_list_r11_present) {
+    if (csi_rs_cfg_zp_to_add_mod_list_r11.is_present()) {
       j.start_array("csi-RS-ConfigZPToAddModList-r11");
       for (uint32_t i1 = 0; i1 < csi_rs_cfg_zp_to_add_mod_list_r11->size(); ++i1) {
         ((*csi_rs_cfg_zp_to_add_mod_list_r11)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(epdcch_cfg_r11_present != (epdcch_cfg_r11.get() != NULL), __FILE__, __LINE__);
-    if (epdcch_cfg_r11_present) {
+    if (epdcch_cfg_r11.is_present()) {
       j.write_fieldname("epdcch-Config-r11");
       epdcch_cfg_r11->to_json(j);
     }
-    rrc_asn1_warn_assert(pdsch_cfg_ded_v1130_present != (pdsch_cfg_ded_v1130.get() != NULL), __FILE__, __LINE__);
-    if (pdsch_cfg_ded_v1130_present) {
+    if (pdsch_cfg_ded_v1130.is_present()) {
       j.write_fieldname("pdsch-ConfigDedicated-v1130");
       pdsch_cfg_ded_v1130->to_json(j);
     }
-    rrc_asn1_warn_assert(cqi_report_cfg_v1130_present != (cqi_report_cfg_v1130.get() != NULL), __FILE__, __LINE__);
-    if (cqi_report_cfg_v1130_present) {
+    if (cqi_report_cfg_v1130.is_present()) {
       j.write_fieldname("cqi-ReportConfig-v1130");
       cqi_report_cfg_v1130->to_json(j);
     }
-    rrc_asn1_warn_assert(pucch_cfg_ded_v1130_present != (pucch_cfg_ded_v1130.get() != NULL), __FILE__, __LINE__);
-    if (pucch_cfg_ded_v1130_present) {
+    if (pucch_cfg_ded_v1130.is_present()) {
       j.write_fieldname("pucch-ConfigDedicated-v1130");
       pucch_cfg_ded_v1130->to_json(j);
     }
-    rrc_asn1_warn_assert(pusch_cfg_ded_v1130_present != (pusch_cfg_ded_v1130.get() != NULL), __FILE__, __LINE__);
-    if (pusch_cfg_ded_v1130_present) {
+    if (pusch_cfg_ded_v1130.is_present()) {
       j.write_fieldname("pusch-ConfigDedicated-v1130");
       pusch_cfg_ded_v1130->to_json(j);
     }
-    rrc_asn1_warn_assert(ul_pwr_ctrl_ded_v1130_present != (ul_pwr_ctrl_ded_v1130.get() != NULL), __FILE__, __LINE__);
-    if (ul_pwr_ctrl_ded_v1130_present) {
+    if (ul_pwr_ctrl_ded_v1130.is_present()) {
       j.write_fieldname("uplinkPowerControlDedicated-v1130");
       ul_pwr_ctrl_ded_v1130->to_json(j);
     }
-    rrc_asn1_warn_assert(ant_info_v1250_present != (ant_info_v1250.get() != NULL), __FILE__, __LINE__);
-    if (ant_info_v1250_present) {
+    if (ant_info_v1250.is_present()) {
       j.write_fieldname("antennaInfo-v1250");
       ant_info_v1250->to_json(j);
     }
-    rrc_asn1_warn_assert(eimta_main_cfg_r12_present != (eimta_main_cfg_r12.get() != NULL), __FILE__, __LINE__);
-    if (eimta_main_cfg_r12_present) {
+    if (eimta_main_cfg_r12.is_present()) {
       j.write_fieldname("eimta-MainConfig-r12");
       eimta_main_cfg_r12->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        eimta_main_cfg_pcell_r12_present != (eimta_main_cfg_pcell_r12.get() != NULL), __FILE__, __LINE__);
-    if (eimta_main_cfg_pcell_r12_present) {
+    if (eimta_main_cfg_pcell_r12.is_present()) {
       j.write_fieldname("eimta-MainConfigPCell-r12");
       eimta_main_cfg_pcell_r12->to_json(j);
     }
-    rrc_asn1_warn_assert(pucch_cfg_ded_v1250_present != (pucch_cfg_ded_v1250.get() != NULL), __FILE__, __LINE__);
-    if (pucch_cfg_ded_v1250_present) {
+    if (pucch_cfg_ded_v1250.is_present()) {
       j.write_fieldname("pucch-ConfigDedicated-v1250");
       pucch_cfg_ded_v1250->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        cqi_report_cfg_pcell_v1250_present != (cqi_report_cfg_pcell_v1250.get() != NULL), __FILE__, __LINE__);
-    if (cqi_report_cfg_pcell_v1250_present) {
+    if (cqi_report_cfg_pcell_v1250.is_present()) {
       j.write_fieldname("cqi-ReportConfigPCell-v1250");
       cqi_report_cfg_pcell_v1250->to_json(j);
     }
-    rrc_asn1_warn_assert(ul_pwr_ctrl_ded_v1250_present != (ul_pwr_ctrl_ded_v1250.get() != NULL), __FILE__, __LINE__);
-    if (ul_pwr_ctrl_ded_v1250_present) {
+    if (ul_pwr_ctrl_ded_v1250.is_present()) {
       j.write_fieldname("uplinkPowerControlDedicated-v1250");
       ul_pwr_ctrl_ded_v1250->to_json(j);
     }
-    rrc_asn1_warn_assert(pusch_cfg_ded_v1250_present != (pusch_cfg_ded_v1250.get() != NULL), __FILE__, __LINE__);
-    if (pusch_cfg_ded_v1250_present) {
+    if (pusch_cfg_ded_v1250.is_present()) {
       j.write_fieldname("pusch-ConfigDedicated-v1250");
       pusch_cfg_ded_v1250->to_json(j);
     }
-    rrc_asn1_warn_assert(csi_rs_cfg_v1250_present != (csi_rs_cfg_v1250.get() != NULL), __FILE__, __LINE__);
-    if (csi_rs_cfg_v1250_present) {
+    if (csi_rs_cfg_v1250.is_present()) {
       j.write_fieldname("csi-RS-Config-v1250");
       csi_rs_cfg_v1250->to_json(j);
     }
-    rrc_asn1_warn_assert(pdsch_cfg_ded_v1280_present != (pdsch_cfg_ded_v1280.get() != NULL), __FILE__, __LINE__);
-    if (pdsch_cfg_ded_v1280_present) {
+    if (pdsch_cfg_ded_v1280.is_present()) {
       j.write_fieldname("pdsch-ConfigDedicated-v1280");
       pdsch_cfg_ded_v1280->to_json(j);
     }
-    rrc_asn1_warn_assert(pdsch_cfg_ded_v1310_present != (pdsch_cfg_ded_v1310.get() != NULL), __FILE__, __LINE__);
-    if (pdsch_cfg_ded_v1310_present) {
+    if (pdsch_cfg_ded_v1310.is_present()) {
       j.write_fieldname("pdsch-ConfigDedicated-v1310");
       pdsch_cfg_ded_v1310->to_json(j);
     }
-    rrc_asn1_warn_assert(pucch_cfg_ded_r13_present != (pucch_cfg_ded_r13.get() != NULL), __FILE__, __LINE__);
-    if (pucch_cfg_ded_r13_present) {
+    if (pucch_cfg_ded_r13.is_present()) {
       j.write_fieldname("pucch-ConfigDedicated-r13");
       pucch_cfg_ded_r13->to_json(j);
     }
-    rrc_asn1_warn_assert(pusch_cfg_ded_r13_present != (pusch_cfg_ded_r13.get() != NULL), __FILE__, __LINE__);
-    if (pusch_cfg_ded_r13_present) {
+    if (pusch_cfg_ded_r13.is_present()) {
       j.write_fieldname("pusch-ConfigDedicated-r13");
       pusch_cfg_ded_r13->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        pdcch_candidate_reductions_r13_present != (pdcch_candidate_reductions_r13.get() != NULL), __FILE__, __LINE__);
-    if (pdcch_candidate_reductions_r13_present) {
+    if (pdcch_candidate_reductions_r13.is_present()) {
       j.write_fieldname("pdcch-CandidateReductions-r13");
       pdcch_candidate_reductions_r13->to_json(j);
     }
-    rrc_asn1_warn_assert(cqi_report_cfg_v1310_present != (cqi_report_cfg_v1310.get() != NULL), __FILE__, __LINE__);
-    if (cqi_report_cfg_v1310_present) {
+    if (cqi_report_cfg_v1310.is_present()) {
       j.write_fieldname("cqi-ReportConfig-v1310");
       cqi_report_cfg_v1310->to_json(j);
     }
-    rrc_asn1_warn_assert(srs_ul_cfg_ded_v1310_present != (srs_ul_cfg_ded_v1310.get() != NULL), __FILE__, __LINE__);
-    if (srs_ul_cfg_ded_v1310_present) {
+    if (srs_ul_cfg_ded_v1310.is_present()) {
       j.write_fieldname("soundingRS-UL-ConfigDedicated-v1310");
       srs_ul_cfg_ded_v1310->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        srs_ul_cfg_ded_up_pts_ext_r13_present != (srs_ul_cfg_ded_up_pts_ext_r13.get() != NULL), __FILE__, __LINE__);
-    if (srs_ul_cfg_ded_up_pts_ext_r13_present) {
+    if (srs_ul_cfg_ded_up_pts_ext_r13.is_present()) {
       j.write_fieldname("soundingRS-UL-ConfigDedicatedUpPTsExt-r13");
       srs_ul_cfg_ded_up_pts_ext_r13->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        srs_ul_cfg_ded_aperiodic_v1310_present != (srs_ul_cfg_ded_aperiodic_v1310.get() != NULL), __FILE__, __LINE__);
-    if (srs_ul_cfg_ded_aperiodic_v1310_present) {
+    if (srs_ul_cfg_ded_aperiodic_v1310.is_present()) {
       j.write_fieldname("soundingRS-UL-ConfigDedicatedAperiodic-v1310");
       srs_ul_cfg_ded_aperiodic_v1310->to_json(j);
     }
-    rrc_asn1_warn_assert(srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_present !=
-                             (srs_ul_cfg_ded_aperiodic_up_pts_ext_r13.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_present) {
+    if (srs_ul_cfg_ded_aperiodic_up_pts_ext_r13.is_present()) {
       j.write_fieldname("soundingRS-UL-ConfigDedicatedAperiodicUpPTsExt-r13");
       srs_ul_cfg_ded_aperiodic_up_pts_ext_r13->to_json(j);
     }
-    rrc_asn1_warn_assert(csi_rs_cfg_v1310_present != (csi_rs_cfg_v1310.get() != NULL), __FILE__, __LINE__);
-    if (csi_rs_cfg_v1310_present) {
+    if (csi_rs_cfg_v1310.is_present()) {
       j.write_fieldname("csi-RS-Config-v1310");
       csi_rs_cfg_v1310->to_json(j);
     }
-    rrc_asn1_warn_assert(ce_mode_r13_present != (ce_mode_r13.get() != NULL), __FILE__, __LINE__);
-    if (ce_mode_r13_present) {
+    if (ce_mode_r13.is_present()) {
       j.write_fieldname("ce-Mode-r13");
       ce_mode_r13->to_json(j);
     }
-    rrc_asn1_warn_assert(csi_rs_cfg_nzp_to_add_mod_list_ext_r13_present !=
-                             (csi_rs_cfg_nzp_to_add_mod_list_ext_r13.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (csi_rs_cfg_nzp_to_add_mod_list_ext_r13_present) {
+    if (csi_rs_cfg_nzp_to_add_mod_list_ext_r13.is_present()) {
       j.start_array("csi-RS-ConfigNZPToAddModListExt-r13");
       for (uint32_t i1 = 0; i1 < csi_rs_cfg_nzp_to_add_mod_list_ext_r13->size(); ++i1) {
         ((*csi_rs_cfg_nzp_to_add_mod_list_ext_r13)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(csi_rs_cfg_nzp_to_release_list_ext_r13_present !=
-                             (csi_rs_cfg_nzp_to_release_list_ext_r13.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (csi_rs_cfg_nzp_to_release_list_ext_r13_present) {
+    if (csi_rs_cfg_nzp_to_release_list_ext_r13.is_present()) {
       j.start_array("csi-RS-ConfigNZPToReleaseListExt-r13");
       for (uint32_t i1 = 0; i1 < csi_rs_cfg_nzp_to_release_list_ext_r13->size(); ++i1) {
         j.write_int(((*csi_rs_cfg_nzp_to_release_list_ext_r13)[i1]));
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(cqi_report_cfg_v1320_present != (cqi_report_cfg_v1320.get() != NULL), __FILE__, __LINE__);
-    if (cqi_report_cfg_v1320_present) {
+    if (cqi_report_cfg_v1320.is_present()) {
       j.write_fieldname("cqi-ReportConfig-v1320");
       cqi_report_cfg_v1320->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        type_a_srs_tpc_pdcch_group_r14_present != (type_a_srs_tpc_pdcch_group_r14.get() != NULL), __FILE__, __LINE__);
-    if (type_a_srs_tpc_pdcch_group_r14_present) {
+    if (type_a_srs_tpc_pdcch_group_r14.is_present()) {
       j.write_fieldname("typeA-SRS-TPC-PDCCH-Group-r14");
       type_a_srs_tpc_pdcch_group_r14->to_json(j);
     }
-    rrc_asn1_warn_assert(must_cfg_r14_present != (must_cfg_r14.get() != NULL), __FILE__, __LINE__);
-    if (must_cfg_r14_present) {
+    if (must_cfg_r14.is_present()) {
       j.write_fieldname("must-Config-r14");
       must_cfg_r14->to_json(j);
     }
-    rrc_asn1_warn_assert(pusch_enhance_cfg_r14_present != (pusch_enhance_cfg_r14.get() != NULL), __FILE__, __LINE__);
-    if (pusch_enhance_cfg_r14_present) {
+    if (pusch_enhance_cfg_r14.is_present()) {
       j.write_fieldname("pusch-EnhancementsConfig-r14");
       pusch_enhance_cfg_r14->to_json(j);
     }
     if (ce_pdsch_pusch_enhancement_cfg_r14_present) {
       j.write_str("ce-pdsch-pusch-EnhancementConfig-r14", "on");
     }
-    rrc_asn1_warn_assert(ant_info_v1430_present != (ant_info_v1430.get() != NULL), __FILE__, __LINE__);
-    if (ant_info_v1430_present) {
+    if (ant_info_v1430.is_present()) {
       j.write_fieldname("antennaInfo-v1430");
       ant_info_v1430->to_json(j);
     }
-    rrc_asn1_warn_assert(pucch_cfg_ded_v1430_present != (pucch_cfg_ded_v1430.get() != NULL), __FILE__, __LINE__);
-    if (pucch_cfg_ded_v1430_present) {
+    if (pucch_cfg_ded_v1430.is_present()) {
       j.write_fieldname("pucch-ConfigDedicated-v1430");
       pucch_cfg_ded_v1430->to_json(j);
     }
-    rrc_asn1_warn_assert(pdsch_cfg_ded_v1430_present != (pdsch_cfg_ded_v1430.get() != NULL), __FILE__, __LINE__);
-    if (pdsch_cfg_ded_v1430_present) {
+    if (pdsch_cfg_ded_v1430.is_present()) {
       j.write_fieldname("pdsch-ConfigDedicated-v1430");
       pdsch_cfg_ded_v1430->to_json(j);
     }
-    rrc_asn1_warn_assert(pusch_cfg_ded_v1430_present != (pusch_cfg_ded_v1430.get() != NULL), __FILE__, __LINE__);
-    if (pusch_cfg_ded_v1430_present) {
+    if (pusch_cfg_ded_v1430.is_present()) {
       j.write_fieldname("pusch-ConfigDedicated-v1430");
       pusch_cfg_ded_v1430->to_json(j);
     }
-    rrc_asn1_warn_assert(srs_ul_periodic_cfg_ded_list_r14_present != (srs_ul_periodic_cfg_ded_list_r14.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (srs_ul_periodic_cfg_ded_list_r14_present) {
+    if (srs_ul_periodic_cfg_ded_list_r14.is_present()) {
       j.start_array("soundingRS-UL-PeriodicConfigDedicatedList-r14");
       for (uint32_t i1 = 0; i1 < srs_ul_periodic_cfg_ded_list_r14->size(); ++i1) {
         ((*srs_ul_periodic_cfg_ded_list_r14)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(srs_ul_periodic_cfg_ded_up_pts_ext_list_r14_present !=
-                             (srs_ul_periodic_cfg_ded_up_pts_ext_list_r14.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (srs_ul_periodic_cfg_ded_up_pts_ext_list_r14_present) {
+    if (srs_ul_periodic_cfg_ded_up_pts_ext_list_r14.is_present()) {
       j.start_array("soundingRS-UL-PeriodicConfigDedicatedUpPTsExtList-r14");
       for (uint32_t i1 = 0; i1 < srs_ul_periodic_cfg_ded_up_pts_ext_list_r14->size(); ++i1) {
         ((*srs_ul_periodic_cfg_ded_up_pts_ext_list_r14)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(srs_ul_aperiodic_cfg_ded_list_r14_present != (srs_ul_aperiodic_cfg_ded_list_r14.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (srs_ul_aperiodic_cfg_ded_list_r14_present) {
+    if (srs_ul_aperiodic_cfg_ded_list_r14.is_present()) {
       j.start_array("soundingRS-UL-AperiodicConfigDedicatedList-r14");
       for (uint32_t i1 = 0; i1 < srs_ul_aperiodic_cfg_ded_list_r14->size(); ++i1) {
         ((*srs_ul_aperiodic_cfg_ded_list_r14)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(srs_ul_cfg_ded_ap_up_pts_ext_list_r14_present !=
-                             (srs_ul_cfg_ded_ap_up_pts_ext_list_r14.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (srs_ul_cfg_ded_ap_up_pts_ext_list_r14_present) {
+    if (srs_ul_cfg_ded_ap_up_pts_ext_list_r14.is_present()) {
       j.start_array("soundingRS-UL-ConfigDedicatedApUpPTsExtList-r14");
       for (uint32_t i1 = 0; i1 < srs_ul_cfg_ded_ap_up_pts_ext_list_r14->size(); ++i1) {
         ((*srs_ul_cfg_ded_ap_up_pts_ext_list_r14)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(csi_rs_cfg_v1430_present != (csi_rs_cfg_v1430.get() != NULL), __FILE__, __LINE__);
-    if (csi_rs_cfg_v1430_present) {
+    if (csi_rs_cfg_v1430.is_present()) {
       j.write_fieldname("csi-RS-Config-v1430");
       csi_rs_cfg_v1430->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        csi_rs_cfg_zp_ap_list_r14_present != (csi_rs_cfg_zp_ap_list_r14.get() != NULL), __FILE__, __LINE__);
-    if (csi_rs_cfg_zp_ap_list_r14_present) {
+    if (csi_rs_cfg_zp_ap_list_r14.is_present()) {
       j.write_fieldname("csi-RS-ConfigZP-ApList-r14");
       csi_rs_cfg_zp_ap_list_r14->to_json(j);
     }
-    rrc_asn1_warn_assert(cqi_report_cfg_v1430_present != (cqi_report_cfg_v1430.get() != NULL), __FILE__, __LINE__);
-    if (cqi_report_cfg_v1430_present) {
+    if (cqi_report_cfg_v1430.is_present()) {
       j.write_fieldname("cqi-ReportConfig-v1430");
       cqi_report_cfg_v1430->to_json(j);
     }
     if (semi_open_loop_r14_present) {
       j.write_bool("semiOpenLoop-r14", semi_open_loop_r14);
     }
-    rrc_asn1_warn_assert(csi_rs_cfg_v1480_present != (csi_rs_cfg_v1480.get() != NULL), __FILE__, __LINE__);
-    if (csi_rs_cfg_v1480_present) {
+    if (csi_rs_cfg_v1480.is_present()) {
       j.write_fieldname("csi-RS-Config-v1480");
       csi_rs_cfg_v1480->to_json(j);
     }
-    rrc_asn1_warn_assert(phys_cfg_ded_stti_r15_present != (phys_cfg_ded_stti_r15.get() != NULL), __FILE__, __LINE__);
-    if (phys_cfg_ded_stti_r15_present) {
+    if (phys_cfg_ded_stti_r15.is_present()) {
       j.write_fieldname("physicalConfigDedicatedSTTI-r15");
       phys_cfg_ded_stti_r15->to_json(j);
     }
-    rrc_asn1_warn_assert(pdsch_cfg_ded_v1530_present != (pdsch_cfg_ded_v1530.get() != NULL), __FILE__, __LINE__);
-    if (pdsch_cfg_ded_v1530_present) {
+    if (pdsch_cfg_ded_v1530.is_present()) {
       j.write_fieldname("pdsch-ConfigDedicated-v1530");
       pdsch_cfg_ded_v1530->to_json(j);
     }
-    rrc_asn1_warn_assert(pusch_cfg_ded_v1530_present != (pusch_cfg_ded_v1530.get() != NULL), __FILE__, __LINE__);
-    if (pusch_cfg_ded_v1530_present) {
+    if (pusch_cfg_ded_v1530.is_present()) {
       j.write_fieldname("pusch-ConfigDedicated-v1530");
       pusch_cfg_ded_v1530->to_json(j);
     }
-    rrc_asn1_warn_assert(cqi_report_cfg_v1530_present != (cqi_report_cfg_v1530.get() != NULL), __FILE__, __LINE__);
-    if (cqi_report_cfg_v1530_present) {
+    if (cqi_report_cfg_v1530.is_present()) {
       j.write_fieldname("cqi-ReportConfig-v1530");
       cqi_report_cfg_v1530->to_json(j);
     }
-    rrc_asn1_warn_assert(ant_info_v1530_present != (ant_info_v1530.get() != NULL), __FILE__, __LINE__);
-    if (ant_info_v1530_present) {
+    if (ant_info_v1530.is_present()) {
       j.write_fieldname("antennaInfo-v1530");
       ant_info_v1530->to_json(j);
     }
-    rrc_asn1_warn_assert(csi_rs_cfg_v1530_present != (csi_rs_cfg_v1530.get() != NULL), __FILE__, __LINE__);
-    if (csi_rs_cfg_v1530_present) {
+    if (csi_rs_cfg_v1530.is_present()) {
       j.write_fieldname("csi-RS-Config-v1530");
       csi_rs_cfg_v1530->to_json(j);
     }
-    rrc_asn1_warn_assert(ul_pwr_ctrl_ded_v1530_present != (ul_pwr_ctrl_ded_v1530.get() != NULL), __FILE__, __LINE__);
-    if (ul_pwr_ctrl_ded_v1530_present) {
+    if (ul_pwr_ctrl_ded_v1530.is_present()) {
       j.write_fieldname("uplinkPowerControlDedicated-v1530");
       ul_pwr_ctrl_ded_v1530->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        semi_static_cfi_cfg_r15_present != (semi_static_cfi_cfg_r15.get() != NULL), __FILE__, __LINE__);
-    if (semi_static_cfi_cfg_r15_present) {
+    if (semi_static_cfi_cfg_r15.is_present()) {
       j.write_fieldname("semiStaticCFI-Config-r15");
       semi_static_cfi_cfg_r15->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        blind_pdsch_repeat_cfg_r15_present != (blind_pdsch_repeat_cfg_r15.get() != NULL), __FILE__, __LINE__);
-    if (blind_pdsch_repeat_cfg_r15_present) {
+    if (blind_pdsch_repeat_cfg_r15.is_present()) {
       j.write_fieldname("blindPDSCH-Repetition-Config-r15");
       blind_pdsch_repeat_cfg_r15->to_json(j);
     }
@@ -43820,12 +43316,12 @@ SRSASN_CODE rlf_timers_and_consts_r13_c::setup_s_::pack(bit_ref& bref) const
   HANDLE_CODE(pack_enum(bref, t301_v1310));
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= t310_v1330_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(t310_v1330_present, 1));
       if (t310_v1330_present) {
@@ -43841,11 +43337,11 @@ SRSASN_CODE rlf_timers_and_consts_r13_c::setup_s_::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_enum(t301_v1310, bref));
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(t310_v1330_present, 1));
       if (t310_v1330_present) {
@@ -44272,45 +43768,38 @@ SRSASN_CODE idle_mode_mob_ctrl_info_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(3);
-    rrc_asn1_warn_assert(
-        freq_prio_list_ext_eutra_r12_present != (freq_prio_list_ext_eutra_r12.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= freq_prio_list_ext_eutra_r12_present;
-    rrc_asn1_warn_assert(
-        freq_prio_list_eutra_v1310_present != (freq_prio_list_eutra_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= freq_prio_list_eutra_v1310_present;
-    rrc_asn1_warn_assert(
-        freq_prio_list_ext_eutra_v1310_present != (freq_prio_list_ext_eutra_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= freq_prio_list_ext_eutra_v1310_present;
-    rrc_asn1_warn_assert(freq_prio_list_nr_r15_present != (freq_prio_list_nr_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= freq_prio_list_nr_r15_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= freq_prio_list_ext_eutra_r12.is_present();
+    group_flags[1] |= freq_prio_list_eutra_v1310.is_present();
+    group_flags[1] |= freq_prio_list_ext_eutra_v1310.is_present();
+    group_flags[2] |= freq_prio_list_nr_r15.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(freq_prio_list_ext_eutra_r12_present, 1));
-      if (freq_prio_list_ext_eutra_r12_present) {
+      HANDLE_CODE(bref.pack(freq_prio_list_ext_eutra_r12.is_present(), 1));
+      if (freq_prio_list_ext_eutra_r12.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *freq_prio_list_ext_eutra_r12, 1, 8));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(freq_prio_list_eutra_v1310_present, 1));
-      HANDLE_CODE(bref.pack(freq_prio_list_ext_eutra_v1310_present, 1));
-      if (freq_prio_list_eutra_v1310_present) {
+      HANDLE_CODE(bref.pack(freq_prio_list_eutra_v1310.is_present(), 1));
+      HANDLE_CODE(bref.pack(freq_prio_list_ext_eutra_v1310.is_present(), 1));
+      if (freq_prio_list_eutra_v1310.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *freq_prio_list_eutra_v1310, 1, 8));
       }
-      if (freq_prio_list_ext_eutra_v1310_present) {
+      if (freq_prio_list_ext_eutra_v1310.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *freq_prio_list_ext_eutra_v1310, 1, 8));
       }
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(freq_prio_list_nr_r15_present, 1));
-      if (freq_prio_list_nr_r15_present) {
+      HANDLE_CODE(bref.pack(freq_prio_list_nr_r15.is_present(), 1));
+      if (freq_prio_list_nr_r15.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *freq_prio_list_nr_r15, 1, 8));
       }
     }
@@ -44351,38 +43840,42 @@ SRSASN_CODE idle_mode_mob_ctrl_info_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(3);
+    ext_groups_unpacker_guard group_flags(3);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool freq_prio_list_ext_eutra_r12_present;
       HANDLE_CODE(bref.unpack(freq_prio_list_ext_eutra_r12_present, 1));
-      if (freq_prio_list_ext_eutra_r12_present) {
-        freq_prio_list_ext_eutra_r12 = make_copy_ptr(freq_prio_list_ext_eutra_r12_l());
+      freq_prio_list_ext_eutra_r12.set_present(freq_prio_list_ext_eutra_r12_present);
+      if (freq_prio_list_ext_eutra_r12.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*freq_prio_list_ext_eutra_r12, bref, 1, 8));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool freq_prio_list_eutra_v1310_present;
       HANDLE_CODE(bref.unpack(freq_prio_list_eutra_v1310_present, 1));
+      freq_prio_list_eutra_v1310.set_present(freq_prio_list_eutra_v1310_present);
+      bool freq_prio_list_ext_eutra_v1310_present;
       HANDLE_CODE(bref.unpack(freq_prio_list_ext_eutra_v1310_present, 1));
-      if (freq_prio_list_eutra_v1310_present) {
-        freq_prio_list_eutra_v1310 = make_copy_ptr(freq_prio_list_eutra_v1310_l());
+      freq_prio_list_ext_eutra_v1310.set_present(freq_prio_list_ext_eutra_v1310_present);
+      if (freq_prio_list_eutra_v1310.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*freq_prio_list_eutra_v1310, bref, 1, 8));
       }
-      if (freq_prio_list_ext_eutra_v1310_present) {
-        freq_prio_list_ext_eutra_v1310 = make_copy_ptr(freq_prio_list_ext_eutra_v1310_l());
+      if (freq_prio_list_ext_eutra_v1310.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*freq_prio_list_ext_eutra_v1310, bref, 1, 8));
       }
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool freq_prio_list_nr_r15_present;
       HANDLE_CODE(bref.unpack(freq_prio_list_nr_r15_present, 1));
-      if (freq_prio_list_nr_r15_present) {
-        freq_prio_list_nr_r15 = make_copy_ptr(freq_prio_list_nr_r15_l());
+      freq_prio_list_nr_r15.set_present(freq_prio_list_nr_r15_present);
+      if (freq_prio_list_nr_r15.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*freq_prio_list_nr_r15, bref, 1, 8));
       }
     }
@@ -44438,35 +43931,28 @@ void idle_mode_mob_ctrl_info_s::to_json(json_writer& j) const
     j.write_str("t320", t320.to_string());
   }
   if (ext) {
-    rrc_asn1_warn_assert(
-        freq_prio_list_ext_eutra_r12_present != (freq_prio_list_ext_eutra_r12.get() != NULL), __FILE__, __LINE__);
-    if (freq_prio_list_ext_eutra_r12_present) {
+    if (freq_prio_list_ext_eutra_r12.is_present()) {
       j.start_array("freqPriorityListExtEUTRA-r12");
       for (uint32_t i1 = 0; i1 < freq_prio_list_ext_eutra_r12->size(); ++i1) {
         ((*freq_prio_list_ext_eutra_r12)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(
-        freq_prio_list_eutra_v1310_present != (freq_prio_list_eutra_v1310.get() != NULL), __FILE__, __LINE__);
-    if (freq_prio_list_eutra_v1310_present) {
+    if (freq_prio_list_eutra_v1310.is_present()) {
       j.start_array("freqPriorityListEUTRA-v1310");
       for (uint32_t i1 = 0; i1 < freq_prio_list_eutra_v1310->size(); ++i1) {
         ((*freq_prio_list_eutra_v1310)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(
-        freq_prio_list_ext_eutra_v1310_present != (freq_prio_list_ext_eutra_v1310.get() != NULL), __FILE__, __LINE__);
-    if (freq_prio_list_ext_eutra_v1310_present) {
+    if (freq_prio_list_ext_eutra_v1310.is_present()) {
       j.start_array("freqPriorityListExtEUTRA-v1310");
       for (uint32_t i1 = 0; i1 < freq_prio_list_ext_eutra_v1310->size(); ++i1) {
         ((*freq_prio_list_ext_eutra_v1310)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(freq_prio_list_nr_r15_present != (freq_prio_list_nr_r15.get() != NULL), __FILE__, __LINE__);
-    if (freq_prio_list_nr_r15_present) {
+    if (freq_prio_list_nr_r15.is_present()) {
       j.start_array("freqPriorityListNR-r15");
       for (uint32_t i1 = 0; i1 < freq_prio_list_nr_r15->size(); ++i1) {
         ((*freq_prio_list_nr_r15)[i1]).to_json(j);
@@ -44685,133 +44171,109 @@ SRSASN_CODE rr_cfg_ded_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(7);
-    rrc_asn1_warn_assert(
-        rlf_timers_and_consts_r9_present != (rlf_timers_and_consts_r9.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= rlf_timers_and_consts_r9_present;
-    rrc_asn1_warn_assert(
-        meas_sf_pattern_pcell_r10_present != (meas_sf_pattern_pcell_r10.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= meas_sf_pattern_pcell_r10_present;
-    rrc_asn1_warn_assert(
-        neigh_cells_crs_info_r11_present != (neigh_cells_crs_info_r11.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= neigh_cells_crs_info_r11_present;
-    rrc_asn1_warn_assert(naics_info_r12_present != (naics_info_r12.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= naics_info_r12_present;
-    rrc_asn1_warn_assert(
-        neigh_cells_crs_info_r13_present != (neigh_cells_crs_info_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= neigh_cells_crs_info_r13_present;
-    rrc_asn1_warn_assert(
-        rlf_timers_and_consts_r13_present != (rlf_timers_and_consts_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= rlf_timers_and_consts_r13_present;
-    rrc_asn1_warn_assert(sps_cfg_v1430_present != (sps_cfg_v1430.get() != NULL), __FILE__, __LINE__);
-    group_flags[5] |= sps_cfg_v1430_present;
-    rrc_asn1_warn_assert(
-        srb_to_add_mod_ext_list_r15_present != (srb_to_add_mod_ext_list_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[6] |= srb_to_add_mod_ext_list_r15_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= rlf_timers_and_consts_r9.is_present();
+    group_flags[1] |= meas_sf_pattern_pcell_r10.is_present();
+    group_flags[2] |= neigh_cells_crs_info_r11.is_present();
+    group_flags[3] |= naics_info_r12.is_present();
+    group_flags[4] |= neigh_cells_crs_info_r13.is_present();
+    group_flags[4] |= rlf_timers_and_consts_r13.is_present();
+    group_flags[5] |= sps_cfg_v1430.is_present();
+    group_flags[6] |= srb_to_add_mod_ext_list_r15.is_present();
     group_flags[6] |= srb_to_release_ext_list_r15_present;
-    rrc_asn1_warn_assert(sps_cfg_v1530_present != (sps_cfg_v1530.get() != NULL), __FILE__, __LINE__);
-    group_flags[6] |= sps_cfg_v1530_present;
-    rrc_asn1_warn_assert(crs_intf_mitig_cfg_r15_present != (crs_intf_mitig_cfg_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[6] |= crs_intf_mitig_cfg_r15_present;
-    rrc_asn1_warn_assert(
-        neigh_cells_crs_info_r15_present != (neigh_cells_crs_info_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[6] |= neigh_cells_crs_info_r15_present;
-    rrc_asn1_warn_assert(
-        drb_to_add_mod_list_r15_present != (drb_to_add_mod_list_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[6] |= drb_to_add_mod_list_r15_present;
-    rrc_asn1_warn_assert(
-        drb_to_release_list_r15_present != (drb_to_release_list_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[6] |= drb_to_release_list_r15_present;
-    rrc_asn1_warn_assert(
-        srb_to_release_list_dupl_r15_present != (srb_to_release_list_dupl_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[6] |= srb_to_release_list_dupl_r15_present;
+    group_flags[6] |= sps_cfg_v1530.is_present();
+    group_flags[6] |= crs_intf_mitig_cfg_r15.is_present();
+    group_flags[6] |= neigh_cells_crs_info_r15.is_present();
+    group_flags[6] |= drb_to_add_mod_list_r15.is_present();
+    group_flags[6] |= drb_to_release_list_r15.is_present();
+    group_flags[6] |= srb_to_release_list_dupl_r15.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(rlf_timers_and_consts_r9_present, 1));
-      if (rlf_timers_and_consts_r9_present) {
+      HANDLE_CODE(bref.pack(rlf_timers_and_consts_r9.is_present(), 1));
+      if (rlf_timers_and_consts_r9.is_present()) {
         HANDLE_CODE(rlf_timers_and_consts_r9->pack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(meas_sf_pattern_pcell_r10_present, 1));
-      if (meas_sf_pattern_pcell_r10_present) {
+      HANDLE_CODE(bref.pack(meas_sf_pattern_pcell_r10.is_present(), 1));
+      if (meas_sf_pattern_pcell_r10.is_present()) {
         HANDLE_CODE(meas_sf_pattern_pcell_r10->pack(bref));
       }
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(neigh_cells_crs_info_r11_present, 1));
-      if (neigh_cells_crs_info_r11_present) {
+      HANDLE_CODE(bref.pack(neigh_cells_crs_info_r11.is_present(), 1));
+      if (neigh_cells_crs_info_r11.is_present()) {
         HANDLE_CODE(neigh_cells_crs_info_r11->pack(bref));
       }
     }
     if (group_flags[3]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(naics_info_r12_present, 1));
-      if (naics_info_r12_present) {
+      HANDLE_CODE(bref.pack(naics_info_r12.is_present(), 1));
+      if (naics_info_r12.is_present()) {
         HANDLE_CODE(naics_info_r12->pack(bref));
       }
     }
     if (group_flags[4]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(neigh_cells_crs_info_r13_present, 1));
-      HANDLE_CODE(bref.pack(rlf_timers_and_consts_r13_present, 1));
-      if (neigh_cells_crs_info_r13_present) {
+      HANDLE_CODE(bref.pack(neigh_cells_crs_info_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(rlf_timers_and_consts_r13.is_present(), 1));
+      if (neigh_cells_crs_info_r13.is_present()) {
         HANDLE_CODE(neigh_cells_crs_info_r13->pack(bref));
       }
-      if (rlf_timers_and_consts_r13_present) {
+      if (rlf_timers_and_consts_r13.is_present()) {
         HANDLE_CODE(rlf_timers_and_consts_r13->pack(bref));
       }
     }
     if (group_flags[5]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(sps_cfg_v1430_present, 1));
-      if (sps_cfg_v1430_present) {
+      HANDLE_CODE(bref.pack(sps_cfg_v1430.is_present(), 1));
+      if (sps_cfg_v1430.is_present()) {
         HANDLE_CODE(sps_cfg_v1430->pack(bref));
       }
     }
     if (group_flags[6]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(srb_to_add_mod_ext_list_r15_present, 1));
+      HANDLE_CODE(bref.pack(srb_to_add_mod_ext_list_r15.is_present(), 1));
       HANDLE_CODE(bref.pack(srb_to_release_ext_list_r15_present, 1));
-      HANDLE_CODE(bref.pack(sps_cfg_v1530_present, 1));
-      HANDLE_CODE(bref.pack(crs_intf_mitig_cfg_r15_present, 1));
-      HANDLE_CODE(bref.pack(neigh_cells_crs_info_r15_present, 1));
-      HANDLE_CODE(bref.pack(drb_to_add_mod_list_r15_present, 1));
-      HANDLE_CODE(bref.pack(drb_to_release_list_r15_present, 1));
-      HANDLE_CODE(bref.pack(srb_to_release_list_dupl_r15_present, 1));
-      if (srb_to_add_mod_ext_list_r15_present) {
+      HANDLE_CODE(bref.pack(sps_cfg_v1530.is_present(), 1));
+      HANDLE_CODE(bref.pack(crs_intf_mitig_cfg_r15.is_present(), 1));
+      HANDLE_CODE(bref.pack(neigh_cells_crs_info_r15.is_present(), 1));
+      HANDLE_CODE(bref.pack(drb_to_add_mod_list_r15.is_present(), 1));
+      HANDLE_CODE(bref.pack(drb_to_release_list_r15.is_present(), 1));
+      HANDLE_CODE(bref.pack(srb_to_release_list_dupl_r15.is_present(), 1));
+      if (srb_to_add_mod_ext_list_r15.is_present()) {
         HANDLE_CODE(pack_fixed_seq_of(bref, &(*srb_to_add_mod_ext_list_r15)[0], srb_to_add_mod_ext_list_r15->size()));
       }
       if (srb_to_release_ext_list_r15_present) {
         HANDLE_CODE(pack_unalign_integer(bref, srb_to_release_ext_list_r15, (uint8_t)4, (uint8_t)4));
       }
-      if (sps_cfg_v1530_present) {
+      if (sps_cfg_v1530.is_present()) {
         HANDLE_CODE(sps_cfg_v1530->pack(bref));
       }
-      if (crs_intf_mitig_cfg_r15_present) {
+      if (crs_intf_mitig_cfg_r15.is_present()) {
         HANDLE_CODE(crs_intf_mitig_cfg_r15->pack(bref));
       }
-      if (neigh_cells_crs_info_r15_present) {
+      if (neigh_cells_crs_info_r15.is_present()) {
         HANDLE_CODE(neigh_cells_crs_info_r15->pack(bref));
       }
-      if (drb_to_add_mod_list_r15_present) {
+      if (drb_to_add_mod_list_r15.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *drb_to_add_mod_list_r15, 1, 15));
       }
-      if (drb_to_release_list_r15_present) {
+      if (drb_to_release_list_r15.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *drb_to_release_list_r15, 1, 15, UnalignedIntegerPacker<uint8_t>(1, 32)));
       }
-      if (srb_to_release_list_dupl_r15_present) {
+      if (srb_to_release_list_dupl_r15.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *srb_to_release_list_dupl_r15, 1, 2, UnalignedIntegerPacker<uint8_t>(1, 2)));
       }
     }
@@ -44848,108 +44310,122 @@ SRSASN_CODE rr_cfg_ded_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(7);
+    ext_groups_unpacker_guard group_flags(7);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool rlf_timers_and_consts_r9_present;
       HANDLE_CODE(bref.unpack(rlf_timers_and_consts_r9_present, 1));
-      if (rlf_timers_and_consts_r9_present) {
-        rlf_timers_and_consts_r9 = make_copy_ptr(rlf_timers_and_consts_r9_c());
+      rlf_timers_and_consts_r9.set_present(rlf_timers_and_consts_r9_present);
+      if (rlf_timers_and_consts_r9.is_present()) {
         HANDLE_CODE(rlf_timers_and_consts_r9->unpack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool meas_sf_pattern_pcell_r10_present;
       HANDLE_CODE(bref.unpack(meas_sf_pattern_pcell_r10_present, 1));
-      if (meas_sf_pattern_pcell_r10_present) {
-        meas_sf_pattern_pcell_r10 = make_copy_ptr(meas_sf_pattern_pcell_r10_c());
+      meas_sf_pattern_pcell_r10.set_present(meas_sf_pattern_pcell_r10_present);
+      if (meas_sf_pattern_pcell_r10.is_present()) {
         HANDLE_CODE(meas_sf_pattern_pcell_r10->unpack(bref));
       }
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool neigh_cells_crs_info_r11_present;
       HANDLE_CODE(bref.unpack(neigh_cells_crs_info_r11_present, 1));
-      if (neigh_cells_crs_info_r11_present) {
-        neigh_cells_crs_info_r11 = make_copy_ptr(neigh_cells_crs_info_r11_c());
+      neigh_cells_crs_info_r11.set_present(neigh_cells_crs_info_r11_present);
+      if (neigh_cells_crs_info_r11.is_present()) {
         HANDLE_CODE(neigh_cells_crs_info_r11->unpack(bref));
       }
     }
     if (group_flags[3]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool naics_info_r12_present;
       HANDLE_CODE(bref.unpack(naics_info_r12_present, 1));
-      if (naics_info_r12_present) {
-        naics_info_r12 = make_copy_ptr(naics_assist_info_r12_c());
+      naics_info_r12.set_present(naics_info_r12_present);
+      if (naics_info_r12.is_present()) {
         HANDLE_CODE(naics_info_r12->unpack(bref));
       }
     }
     if (group_flags[4]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool neigh_cells_crs_info_r13_present;
       HANDLE_CODE(bref.unpack(neigh_cells_crs_info_r13_present, 1));
+      neigh_cells_crs_info_r13.set_present(neigh_cells_crs_info_r13_present);
+      bool rlf_timers_and_consts_r13_present;
       HANDLE_CODE(bref.unpack(rlf_timers_and_consts_r13_present, 1));
-      if (neigh_cells_crs_info_r13_present) {
-        neigh_cells_crs_info_r13 = make_copy_ptr(neigh_cells_crs_info_r13_c());
+      rlf_timers_and_consts_r13.set_present(rlf_timers_and_consts_r13_present);
+      if (neigh_cells_crs_info_r13.is_present()) {
         HANDLE_CODE(neigh_cells_crs_info_r13->unpack(bref));
       }
-      if (rlf_timers_and_consts_r13_present) {
-        rlf_timers_and_consts_r13 = make_copy_ptr(rlf_timers_and_consts_r13_c());
+      if (rlf_timers_and_consts_r13.is_present()) {
         HANDLE_CODE(rlf_timers_and_consts_r13->unpack(bref));
       }
     }
     if (group_flags[5]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool sps_cfg_v1430_present;
       HANDLE_CODE(bref.unpack(sps_cfg_v1430_present, 1));
-      if (sps_cfg_v1430_present) {
-        sps_cfg_v1430 = make_copy_ptr(sps_cfg_v1430_s());
+      sps_cfg_v1430.set_present(sps_cfg_v1430_present);
+      if (sps_cfg_v1430.is_present()) {
         HANDLE_CODE(sps_cfg_v1430->unpack(bref));
       }
     }
     if (group_flags[6]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool srb_to_add_mod_ext_list_r15_present;
       HANDLE_CODE(bref.unpack(srb_to_add_mod_ext_list_r15_present, 1));
+      srb_to_add_mod_ext_list_r15.set_present(srb_to_add_mod_ext_list_r15_present);
       HANDLE_CODE(bref.unpack(srb_to_release_ext_list_r15_present, 1));
+      bool sps_cfg_v1530_present;
       HANDLE_CODE(bref.unpack(sps_cfg_v1530_present, 1));
+      sps_cfg_v1530.set_present(sps_cfg_v1530_present);
+      bool crs_intf_mitig_cfg_r15_present;
       HANDLE_CODE(bref.unpack(crs_intf_mitig_cfg_r15_present, 1));
+      crs_intf_mitig_cfg_r15.set_present(crs_intf_mitig_cfg_r15_present);
+      bool neigh_cells_crs_info_r15_present;
       HANDLE_CODE(bref.unpack(neigh_cells_crs_info_r15_present, 1));
+      neigh_cells_crs_info_r15.set_present(neigh_cells_crs_info_r15_present);
+      bool drb_to_add_mod_list_r15_present;
       HANDLE_CODE(bref.unpack(drb_to_add_mod_list_r15_present, 1));
+      drb_to_add_mod_list_r15.set_present(drb_to_add_mod_list_r15_present);
+      bool drb_to_release_list_r15_present;
       HANDLE_CODE(bref.unpack(drb_to_release_list_r15_present, 1));
+      drb_to_release_list_r15.set_present(drb_to_release_list_r15_present);
+      bool srb_to_release_list_dupl_r15_present;
       HANDLE_CODE(bref.unpack(srb_to_release_list_dupl_r15_present, 1));
-      if (srb_to_add_mod_ext_list_r15_present) {
-        srb_to_add_mod_ext_list_r15 = make_copy_ptr(srb_to_add_mod_ext_list_r15_l());
+      srb_to_release_list_dupl_r15.set_present(srb_to_release_list_dupl_r15_present);
+      if (srb_to_add_mod_ext_list_r15.is_present()) {
         HANDLE_CODE(unpack_fixed_seq_of(&(*srb_to_add_mod_ext_list_r15)[0], bref, srb_to_add_mod_ext_list_r15->size()));
       }
       if (srb_to_release_ext_list_r15_present) {
         HANDLE_CODE(unpack_unalign_integer(srb_to_release_ext_list_r15, bref, (uint8_t)4, (uint8_t)4));
       }
-      if (sps_cfg_v1530_present) {
-        sps_cfg_v1530 = make_copy_ptr(sps_cfg_v1530_s());
+      if (sps_cfg_v1530.is_present()) {
         HANDLE_CODE(sps_cfg_v1530->unpack(bref));
       }
-      if (crs_intf_mitig_cfg_r15_present) {
-        crs_intf_mitig_cfg_r15 = make_copy_ptr(crs_intf_mitig_cfg_r15_c_());
+      if (crs_intf_mitig_cfg_r15.is_present()) {
         HANDLE_CODE(crs_intf_mitig_cfg_r15->unpack(bref));
       }
-      if (neigh_cells_crs_info_r15_present) {
-        neigh_cells_crs_info_r15 = make_copy_ptr(neigh_cells_crs_info_r15_c());
+      if (neigh_cells_crs_info_r15.is_present()) {
         HANDLE_CODE(neigh_cells_crs_info_r15->unpack(bref));
       }
-      if (drb_to_add_mod_list_r15_present) {
-        drb_to_add_mod_list_r15 = make_copy_ptr(drb_to_add_mod_list_r15_l());
+      if (drb_to_add_mod_list_r15.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*drb_to_add_mod_list_r15, bref, 1, 15));
       }
-      if (drb_to_release_list_r15_present) {
-        drb_to_release_list_r15 = make_copy_ptr(drb_to_release_list_r15_l());
+      if (drb_to_release_list_r15.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*drb_to_release_list_r15, bref, 1, 15, UnalignedIntegerPacker<uint8_t>(1, 32)));
       }
-      if (srb_to_release_list_dupl_r15_present) {
-        srb_to_release_list_dupl_r15 = make_copy_ptr(srb_to_release_list_dupl_r15_l());
+      if (srb_to_release_list_dupl_r15.is_present()) {
         HANDLE_CODE(
             unpack_dyn_seq_of(*srb_to_release_list_dupl_r15, bref, 1, 2, UnalignedIntegerPacker<uint8_t>(1, 2)));
       }
@@ -44994,49 +44470,35 @@ void rr_cfg_ded_s::to_json(json_writer& j) const
     phys_cfg_ded.to_json(j);
   }
   if (ext) {
-    rrc_asn1_warn_assert(
-        rlf_timers_and_consts_r9_present != (rlf_timers_and_consts_r9.get() != NULL), __FILE__, __LINE__);
-    if (rlf_timers_and_consts_r9_present) {
+    if (rlf_timers_and_consts_r9.is_present()) {
       j.write_fieldname("rlf-TimersAndConstants-r9");
       rlf_timers_and_consts_r9->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        meas_sf_pattern_pcell_r10_present != (meas_sf_pattern_pcell_r10.get() != NULL), __FILE__, __LINE__);
-    if (meas_sf_pattern_pcell_r10_present) {
+    if (meas_sf_pattern_pcell_r10.is_present()) {
       j.write_fieldname("measSubframePatternPCell-r10");
       meas_sf_pattern_pcell_r10->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        neigh_cells_crs_info_r11_present != (neigh_cells_crs_info_r11.get() != NULL), __FILE__, __LINE__);
-    if (neigh_cells_crs_info_r11_present) {
+    if (neigh_cells_crs_info_r11.is_present()) {
       j.write_fieldname("neighCellsCRS-Info-r11");
       neigh_cells_crs_info_r11->to_json(j);
     }
-    rrc_asn1_warn_assert(naics_info_r12_present != (naics_info_r12.get() != NULL), __FILE__, __LINE__);
-    if (naics_info_r12_present) {
+    if (naics_info_r12.is_present()) {
       j.write_fieldname("naics-Info-r12");
       naics_info_r12->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        neigh_cells_crs_info_r13_present != (neigh_cells_crs_info_r13.get() != NULL), __FILE__, __LINE__);
-    if (neigh_cells_crs_info_r13_present) {
+    if (neigh_cells_crs_info_r13.is_present()) {
       j.write_fieldname("neighCellsCRS-Info-r13");
       neigh_cells_crs_info_r13->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        rlf_timers_and_consts_r13_present != (rlf_timers_and_consts_r13.get() != NULL), __FILE__, __LINE__);
-    if (rlf_timers_and_consts_r13_present) {
+    if (rlf_timers_and_consts_r13.is_present()) {
       j.write_fieldname("rlf-TimersAndConstants-r13");
       rlf_timers_and_consts_r13->to_json(j);
     }
-    rrc_asn1_warn_assert(sps_cfg_v1430_present != (sps_cfg_v1430.get() != NULL), __FILE__, __LINE__);
-    if (sps_cfg_v1430_present) {
+    if (sps_cfg_v1430.is_present()) {
       j.write_fieldname("sps-Config-v1430");
       sps_cfg_v1430->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        srb_to_add_mod_ext_list_r15_present != (srb_to_add_mod_ext_list_r15.get() != NULL), __FILE__, __LINE__);
-    if (srb_to_add_mod_ext_list_r15_present) {
+    if (srb_to_add_mod_ext_list_r15.is_present()) {
       j.start_array("srb-ToAddModExtList-r15");
       for (uint32_t i1 = 0; i1 < srb_to_add_mod_ext_list_r15->size(); ++i1) {
         ((*srb_to_add_mod_ext_list_r15)[i1]).to_json(j);
@@ -45046,43 +44508,33 @@ void rr_cfg_ded_s::to_json(json_writer& j) const
     if (srb_to_release_ext_list_r15_present) {
       j.write_int("srb-ToReleaseExtList-r15", srb_to_release_ext_list_r15);
     }
-    rrc_asn1_warn_assert(sps_cfg_v1530_present != (sps_cfg_v1530.get() != NULL), __FILE__, __LINE__);
-    if (sps_cfg_v1530_present) {
+    if (sps_cfg_v1530.is_present()) {
       j.write_fieldname("sps-Config-v1530");
       sps_cfg_v1530->to_json(j);
     }
-    rrc_asn1_warn_assert(crs_intf_mitig_cfg_r15_present != (crs_intf_mitig_cfg_r15.get() != NULL), __FILE__, __LINE__);
-    if (crs_intf_mitig_cfg_r15_present) {
+    if (crs_intf_mitig_cfg_r15.is_present()) {
       j.write_fieldname("crs-IntfMitigConfig-r15");
       crs_intf_mitig_cfg_r15->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        neigh_cells_crs_info_r15_present != (neigh_cells_crs_info_r15.get() != NULL), __FILE__, __LINE__);
-    if (neigh_cells_crs_info_r15_present) {
+    if (neigh_cells_crs_info_r15.is_present()) {
       j.write_fieldname("neighCellsCRS-Info-r15");
       neigh_cells_crs_info_r15->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        drb_to_add_mod_list_r15_present != (drb_to_add_mod_list_r15.get() != NULL), __FILE__, __LINE__);
-    if (drb_to_add_mod_list_r15_present) {
+    if (drb_to_add_mod_list_r15.is_present()) {
       j.start_array("drb-ToAddModList-r15");
       for (uint32_t i1 = 0; i1 < drb_to_add_mod_list_r15->size(); ++i1) {
         ((*drb_to_add_mod_list_r15)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(
-        drb_to_release_list_r15_present != (drb_to_release_list_r15.get() != NULL), __FILE__, __LINE__);
-    if (drb_to_release_list_r15_present) {
+    if (drb_to_release_list_r15.is_present()) {
       j.start_array("drb-ToReleaseList-r15");
       for (uint32_t i1 = 0; i1 < drb_to_release_list_r15->size(); ++i1) {
         j.write_int(((*drb_to_release_list_r15)[i1]));
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(
-        srb_to_release_list_dupl_r15_present != (srb_to_release_list_dupl_r15.get() != NULL), __FILE__, __LINE__);
-    if (srb_to_release_list_dupl_r15_present) {
+    if (srb_to_release_list_dupl_r15.is_present()) {
       j.start_array("srb-ToReleaseListDupl-r15");
       for (uint32_t i1 = 0; i1 < srb_to_release_list_dupl_r15->size(); ++i1) {
         j.write_int(((*srb_to_release_list_dupl_r15)[i1]));
@@ -49544,418 +48996,318 @@ SRSASN_CODE phys_cfg_ded_scell_r10_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(8);
-    rrc_asn1_warn_assert(csi_rs_cfg_nzp_to_release_list_r11_present !=
-                             (csi_rs_cfg_nzp_to_release_list_r11.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[0] |= csi_rs_cfg_nzp_to_release_list_r11_present;
-    rrc_asn1_warn_assert(csi_rs_cfg_nzp_to_add_mod_list_r11_present !=
-                             (csi_rs_cfg_nzp_to_add_mod_list_r11.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[0] |= csi_rs_cfg_nzp_to_add_mod_list_r11_present;
-    rrc_asn1_warn_assert(csi_rs_cfg_zp_to_release_list_r11_present != (csi_rs_cfg_zp_to_release_list_r11.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[0] |= csi_rs_cfg_zp_to_release_list_r11_present;
-    rrc_asn1_warn_assert(csi_rs_cfg_zp_to_add_mod_list_r11_present != (csi_rs_cfg_zp_to_add_mod_list_r11.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[0] |= csi_rs_cfg_zp_to_add_mod_list_r11_present;
-    rrc_asn1_warn_assert(epdcch_cfg_r11_present != (epdcch_cfg_r11.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= epdcch_cfg_r11_present;
-    rrc_asn1_warn_assert(pdsch_cfg_ded_v1130_present != (pdsch_cfg_ded_v1130.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= pdsch_cfg_ded_v1130_present;
-    rrc_asn1_warn_assert(cqi_report_cfg_v1130_present != (cqi_report_cfg_v1130.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= cqi_report_cfg_v1130_present;
-    rrc_asn1_warn_assert(pusch_cfg_ded_v1130_present != (pusch_cfg_ded_v1130.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= pusch_cfg_ded_v1130_present;
-    rrc_asn1_warn_assert(
-        ul_pwr_ctrl_ded_scell_v1130_present != (ul_pwr_ctrl_ded_scell_v1130.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= ul_pwr_ctrl_ded_scell_v1130_present;
-    rrc_asn1_warn_assert(ant_info_v1250_present != (ant_info_v1250.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= ant_info_v1250_present;
-    rrc_asn1_warn_assert(
-        eimta_main_cfg_scell_r12_present != (eimta_main_cfg_scell_r12.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= eimta_main_cfg_scell_r12_present;
-    rrc_asn1_warn_assert(
-        cqi_report_cfg_scell_v1250_present != (cqi_report_cfg_scell_v1250.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= cqi_report_cfg_scell_v1250_present;
-    rrc_asn1_warn_assert(
-        ul_pwr_ctrl_ded_scell_v1250_present != (ul_pwr_ctrl_ded_scell_v1250.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= ul_pwr_ctrl_ded_scell_v1250_present;
-    rrc_asn1_warn_assert(csi_rs_cfg_v1250_present != (csi_rs_cfg_v1250.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= csi_rs_cfg_v1250_present;
-    rrc_asn1_warn_assert(pdsch_cfg_ded_v1280_present != (pdsch_cfg_ded_v1280.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= pdsch_cfg_ded_v1280_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= csi_rs_cfg_nzp_to_release_list_r11.is_present();
+    group_flags[0] |= csi_rs_cfg_nzp_to_add_mod_list_r11.is_present();
+    group_flags[0] |= csi_rs_cfg_zp_to_release_list_r11.is_present();
+    group_flags[0] |= csi_rs_cfg_zp_to_add_mod_list_r11.is_present();
+    group_flags[0] |= epdcch_cfg_r11.is_present();
+    group_flags[0] |= pdsch_cfg_ded_v1130.is_present();
+    group_flags[0] |= cqi_report_cfg_v1130.is_present();
+    group_flags[0] |= pusch_cfg_ded_v1130.is_present();
+    group_flags[0] |= ul_pwr_ctrl_ded_scell_v1130.is_present();
+    group_flags[1] |= ant_info_v1250.is_present();
+    group_flags[1] |= eimta_main_cfg_scell_r12.is_present();
+    group_flags[1] |= cqi_report_cfg_scell_v1250.is_present();
+    group_flags[1] |= ul_pwr_ctrl_ded_scell_v1250.is_present();
+    group_flags[1] |= csi_rs_cfg_v1250.is_present();
+    group_flags[2] |= pdsch_cfg_ded_v1280.is_present();
     group_flags[3] |= pucch_cell_r13_present;
-    rrc_asn1_warn_assert(pucch_scell_present != (pucch_scell.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= pucch_scell_present;
-    rrc_asn1_warn_assert(
-        cross_carrier_sched_cfg_r13_present != (cross_carrier_sched_cfg_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= cross_carrier_sched_cfg_r13_present;
-    rrc_asn1_warn_assert(pdcch_cfg_scell_r13_present != (pdcch_cfg_scell_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= pdcch_cfg_scell_r13_present;
-    rrc_asn1_warn_assert(cqi_report_cfg_v1310_present != (cqi_report_cfg_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= cqi_report_cfg_v1310_present;
-    rrc_asn1_warn_assert(pdsch_cfg_ded_v1310_present != (pdsch_cfg_ded_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= pdsch_cfg_ded_v1310_present;
-    rrc_asn1_warn_assert(srs_ul_cfg_ded_v1310_present != (srs_ul_cfg_ded_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= srs_ul_cfg_ded_v1310_present;
-    rrc_asn1_warn_assert(
-        srs_ul_cfg_ded_up_pts_ext_r13_present != (srs_ul_cfg_ded_up_pts_ext_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= srs_ul_cfg_ded_up_pts_ext_r13_present;
-    rrc_asn1_warn_assert(
-        srs_ul_cfg_ded_aperiodic_v1310_present != (srs_ul_cfg_ded_aperiodic_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= srs_ul_cfg_ded_aperiodic_v1310_present;
-    rrc_asn1_warn_assert(srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_present !=
-                             (srs_ul_cfg_ded_aperiodic_up_pts_ext_r13.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[3] |= srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_present;
-    rrc_asn1_warn_assert(csi_rs_cfg_v1310_present != (csi_rs_cfg_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= csi_rs_cfg_v1310_present;
-    rrc_asn1_warn_assert(laa_scell_cfg_r13_present != (laa_scell_cfg_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= laa_scell_cfg_r13_present;
-    rrc_asn1_warn_assert(csi_rs_cfg_nzp_to_add_mod_list_ext_r13_present !=
-                             (csi_rs_cfg_nzp_to_add_mod_list_ext_r13.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[3] |= csi_rs_cfg_nzp_to_add_mod_list_ext_r13_present;
-    rrc_asn1_warn_assert(csi_rs_cfg_nzp_to_release_list_ext_r13_present !=
-                             (csi_rs_cfg_nzp_to_release_list_ext_r13.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[3] |= csi_rs_cfg_nzp_to_release_list_ext_r13_present;
-    rrc_asn1_warn_assert(cqi_report_cfg_v1320_present != (cqi_report_cfg_v1320.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= cqi_report_cfg_v1320_present;
-    rrc_asn1_warn_assert(laa_scell_cfg_v1430_present != (laa_scell_cfg_v1430.get() != NULL), __FILE__, __LINE__);
-    group_flags[5] |= laa_scell_cfg_v1430_present;
-    rrc_asn1_warn_assert(
-        type_b_srs_tpc_pdcch_cfg_r14_present != (type_b_srs_tpc_pdcch_cfg_r14.get() != NULL), __FILE__, __LINE__);
-    group_flags[5] |= type_b_srs_tpc_pdcch_cfg_r14_present;
-    rrc_asn1_warn_assert(ul_pusch_less_pwr_ctrl_ded_v1430_present != (ul_pusch_less_pwr_ctrl_ded_v1430.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[5] |= ul_pusch_less_pwr_ctrl_ded_v1430_present;
-    rrc_asn1_warn_assert(srs_ul_periodic_cfg_ded_list_r14_present != (srs_ul_periodic_cfg_ded_list_r14.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[5] |= srs_ul_periodic_cfg_ded_list_r14_present;
-    rrc_asn1_warn_assert(srs_ul_periodic_cfg_ded_up_pts_ext_list_r14_present !=
-                             (srs_ul_periodic_cfg_ded_up_pts_ext_list_r14.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[5] |= srs_ul_periodic_cfg_ded_up_pts_ext_list_r14_present;
-    rrc_asn1_warn_assert(srs_ul_aperiodic_cfg_ded_list_r14_present != (srs_ul_aperiodic_cfg_ded_list_r14.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[5] |= srs_ul_aperiodic_cfg_ded_list_r14_present;
-    rrc_asn1_warn_assert(srs_ul_cfg_ded_ap_up_pts_ext_list_r14_present !=
-                             (srs_ul_cfg_ded_ap_up_pts_ext_list_r14.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[5] |= srs_ul_cfg_ded_ap_up_pts_ext_list_r14_present;
-    rrc_asn1_warn_assert(must_cfg_r14_present != (must_cfg_r14.get() != NULL), __FILE__, __LINE__);
-    group_flags[5] |= must_cfg_r14_present;
-    rrc_asn1_warn_assert(pusch_cfg_ded_v1430_present != (pusch_cfg_ded_v1430.get() != NULL), __FILE__, __LINE__);
-    group_flags[5] |= pusch_cfg_ded_v1430_present;
-    rrc_asn1_warn_assert(csi_rs_cfg_v1430_present != (csi_rs_cfg_v1430.get() != NULL), __FILE__, __LINE__);
-    group_flags[5] |= csi_rs_cfg_v1430_present;
-    rrc_asn1_warn_assert(
-        csi_rs_cfg_zp_ap_list_r14_present != (csi_rs_cfg_zp_ap_list_r14.get() != NULL), __FILE__, __LINE__);
-    group_flags[5] |= csi_rs_cfg_zp_ap_list_r14_present;
-    rrc_asn1_warn_assert(cqi_report_cfg_v1430_present != (cqi_report_cfg_v1430.get() != NULL), __FILE__, __LINE__);
-    group_flags[5] |= cqi_report_cfg_v1430_present;
+    group_flags[3] |= pucch_scell.is_present();
+    group_flags[3] |= cross_carrier_sched_cfg_r13.is_present();
+    group_flags[3] |= pdcch_cfg_scell_r13.is_present();
+    group_flags[3] |= cqi_report_cfg_v1310.is_present();
+    group_flags[3] |= pdsch_cfg_ded_v1310.is_present();
+    group_flags[3] |= srs_ul_cfg_ded_v1310.is_present();
+    group_flags[3] |= srs_ul_cfg_ded_up_pts_ext_r13.is_present();
+    group_flags[3] |= srs_ul_cfg_ded_aperiodic_v1310.is_present();
+    group_flags[3] |= srs_ul_cfg_ded_aperiodic_up_pts_ext_r13.is_present();
+    group_flags[3] |= csi_rs_cfg_v1310.is_present();
+    group_flags[3] |= laa_scell_cfg_r13.is_present();
+    group_flags[3] |= csi_rs_cfg_nzp_to_add_mod_list_ext_r13.is_present();
+    group_flags[3] |= csi_rs_cfg_nzp_to_release_list_ext_r13.is_present();
+    group_flags[4] |= cqi_report_cfg_v1320.is_present();
+    group_flags[5] |= laa_scell_cfg_v1430.is_present();
+    group_flags[5] |= type_b_srs_tpc_pdcch_cfg_r14.is_present();
+    group_flags[5] |= ul_pusch_less_pwr_ctrl_ded_v1430.is_present();
+    group_flags[5] |= srs_ul_periodic_cfg_ded_list_r14.is_present();
+    group_flags[5] |= srs_ul_periodic_cfg_ded_up_pts_ext_list_r14.is_present();
+    group_flags[5] |= srs_ul_aperiodic_cfg_ded_list_r14.is_present();
+    group_flags[5] |= srs_ul_cfg_ded_ap_up_pts_ext_list_r14.is_present();
+    group_flags[5] |= must_cfg_r14.is_present();
+    group_flags[5] |= pusch_cfg_ded_v1430.is_present();
+    group_flags[5] |= csi_rs_cfg_v1430.is_present();
+    group_flags[5] |= csi_rs_cfg_zp_ap_list_r14.is_present();
+    group_flags[5] |= cqi_report_cfg_v1430.is_present();
     group_flags[5] |= semi_open_loop_r14_present;
-    rrc_asn1_warn_assert(
-        pdsch_cfg_ded_scell_v1430_present != (pdsch_cfg_ded_scell_v1430.get() != NULL), __FILE__, __LINE__);
-    group_flags[5] |= pdsch_cfg_ded_scell_v1430_present;
-    rrc_asn1_warn_assert(csi_rs_cfg_v1480_present != (csi_rs_cfg_v1480.get() != NULL), __FILE__, __LINE__);
-    group_flags[6] |= csi_rs_cfg_v1480_present;
-    rrc_asn1_warn_assert(phys_cfg_ded_stti_r15_present != (phys_cfg_ded_stti_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[7] |= phys_cfg_ded_stti_r15_present;
-    rrc_asn1_warn_assert(pdsch_cfg_ded_v1530_present != (pdsch_cfg_ded_v1530.get() != NULL), __FILE__, __LINE__);
-    group_flags[7] |= pdsch_cfg_ded_v1530_present;
-    rrc_asn1_warn_assert(cqi_report_cfg_v1530_present != (cqi_report_cfg_v1530.get() != NULL), __FILE__, __LINE__);
-    group_flags[7] |= cqi_report_cfg_v1530_present;
-    rrc_asn1_warn_assert(
-        cqi_report_cfg_scell_r15_present != (cqi_report_cfg_scell_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[7] |= cqi_report_cfg_scell_r15_present;
-    rrc_asn1_warn_assert(
-        cqi_short_cfg_scell_r15_present != (cqi_short_cfg_scell_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[7] |= cqi_short_cfg_scell_r15_present;
-    rrc_asn1_warn_assert(csi_rs_cfg_v1530_present != (csi_rs_cfg_v1530.get() != NULL), __FILE__, __LINE__);
-    group_flags[7] |= csi_rs_cfg_v1530_present;
-    rrc_asn1_warn_assert(
-        ul_pwr_ctrl_ded_scell_v1530_present != (ul_pwr_ctrl_ded_scell_v1530.get() != NULL), __FILE__, __LINE__);
-    group_flags[7] |= ul_pwr_ctrl_ded_scell_v1530_present;
-    rrc_asn1_warn_assert(laa_scell_cfg_v1530_present != (laa_scell_cfg_v1530.get() != NULL), __FILE__, __LINE__);
-    group_flags[7] |= laa_scell_cfg_v1530_present;
-    rrc_asn1_warn_assert(pusch_cfg_ded_v1530_present != (pusch_cfg_ded_v1530.get() != NULL), __FILE__, __LINE__);
-    group_flags[7] |= pusch_cfg_ded_v1530_present;
-    rrc_asn1_warn_assert(
-        semi_static_cfi_cfg_r15_present != (semi_static_cfi_cfg_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[7] |= semi_static_cfi_cfg_r15_present;
-    rrc_asn1_warn_assert(
-        blind_pdsch_repeat_cfg_r15_present != (blind_pdsch_repeat_cfg_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[7] |= blind_pdsch_repeat_cfg_r15_present;
+    group_flags[5] |= pdsch_cfg_ded_scell_v1430.is_present();
+    group_flags[6] |= csi_rs_cfg_v1480.is_present();
+    group_flags[7] |= phys_cfg_ded_stti_r15.is_present();
+    group_flags[7] |= pdsch_cfg_ded_v1530.is_present();
+    group_flags[7] |= cqi_report_cfg_v1530.is_present();
+    group_flags[7] |= cqi_report_cfg_scell_r15.is_present();
+    group_flags[7] |= cqi_short_cfg_scell_r15.is_present();
+    group_flags[7] |= csi_rs_cfg_v1530.is_present();
+    group_flags[7] |= ul_pwr_ctrl_ded_scell_v1530.is_present();
+    group_flags[7] |= laa_scell_cfg_v1530.is_present();
+    group_flags[7] |= pusch_cfg_ded_v1530.is_present();
+    group_flags[7] |= semi_static_cfi_cfg_r15.is_present();
+    group_flags[7] |= blind_pdsch_repeat_cfg_r15.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(csi_rs_cfg_nzp_to_release_list_r11_present, 1));
-      HANDLE_CODE(bref.pack(csi_rs_cfg_nzp_to_add_mod_list_r11_present, 1));
-      HANDLE_CODE(bref.pack(csi_rs_cfg_zp_to_release_list_r11_present, 1));
-      HANDLE_CODE(bref.pack(csi_rs_cfg_zp_to_add_mod_list_r11_present, 1));
-      HANDLE_CODE(bref.pack(epdcch_cfg_r11_present, 1));
-      HANDLE_CODE(bref.pack(pdsch_cfg_ded_v1130_present, 1));
-      HANDLE_CODE(bref.pack(cqi_report_cfg_v1130_present, 1));
-      HANDLE_CODE(bref.pack(pusch_cfg_ded_v1130_present, 1));
-      HANDLE_CODE(bref.pack(ul_pwr_ctrl_ded_scell_v1130_present, 1));
-      if (csi_rs_cfg_nzp_to_release_list_r11_present) {
+      HANDLE_CODE(bref.pack(csi_rs_cfg_nzp_to_release_list_r11.is_present(), 1));
+      HANDLE_CODE(bref.pack(csi_rs_cfg_nzp_to_add_mod_list_r11.is_present(), 1));
+      HANDLE_CODE(bref.pack(csi_rs_cfg_zp_to_release_list_r11.is_present(), 1));
+      HANDLE_CODE(bref.pack(csi_rs_cfg_zp_to_add_mod_list_r11.is_present(), 1));
+      HANDLE_CODE(bref.pack(epdcch_cfg_r11.is_present(), 1));
+      HANDLE_CODE(bref.pack(pdsch_cfg_ded_v1130.is_present(), 1));
+      HANDLE_CODE(bref.pack(cqi_report_cfg_v1130.is_present(), 1));
+      HANDLE_CODE(bref.pack(pusch_cfg_ded_v1130.is_present(), 1));
+      HANDLE_CODE(bref.pack(ul_pwr_ctrl_ded_scell_v1130.is_present(), 1));
+      if (csi_rs_cfg_nzp_to_release_list_r11.is_present()) {
         HANDLE_CODE(
             pack_dyn_seq_of(bref, *csi_rs_cfg_nzp_to_release_list_r11, 1, 3, UnalignedIntegerPacker<uint8_t>(1, 3)));
       }
-      if (csi_rs_cfg_nzp_to_add_mod_list_r11_present) {
+      if (csi_rs_cfg_nzp_to_add_mod_list_r11.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *csi_rs_cfg_nzp_to_add_mod_list_r11, 1, 3));
       }
-      if (csi_rs_cfg_zp_to_release_list_r11_present) {
+      if (csi_rs_cfg_zp_to_release_list_r11.is_present()) {
         HANDLE_CODE(
             pack_dyn_seq_of(bref, *csi_rs_cfg_zp_to_release_list_r11, 1, 4, UnalignedIntegerPacker<uint8_t>(1, 4)));
       }
-      if (csi_rs_cfg_zp_to_add_mod_list_r11_present) {
+      if (csi_rs_cfg_zp_to_add_mod_list_r11.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *csi_rs_cfg_zp_to_add_mod_list_r11, 1, 4));
       }
-      if (epdcch_cfg_r11_present) {
+      if (epdcch_cfg_r11.is_present()) {
         HANDLE_CODE(epdcch_cfg_r11->pack(bref));
       }
-      if (pdsch_cfg_ded_v1130_present) {
+      if (pdsch_cfg_ded_v1130.is_present()) {
         HANDLE_CODE(pdsch_cfg_ded_v1130->pack(bref));
       }
-      if (cqi_report_cfg_v1130_present) {
+      if (cqi_report_cfg_v1130.is_present()) {
         HANDLE_CODE(cqi_report_cfg_v1130->pack(bref));
       }
-      if (pusch_cfg_ded_v1130_present) {
+      if (pusch_cfg_ded_v1130.is_present()) {
         HANDLE_CODE(pusch_cfg_ded_v1130->pack(bref));
       }
-      if (ul_pwr_ctrl_ded_scell_v1130_present) {
+      if (ul_pwr_ctrl_ded_scell_v1130.is_present()) {
         HANDLE_CODE(ul_pwr_ctrl_ded_scell_v1130->pack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(ant_info_v1250_present, 1));
-      HANDLE_CODE(bref.pack(eimta_main_cfg_scell_r12_present, 1));
-      HANDLE_CODE(bref.pack(cqi_report_cfg_scell_v1250_present, 1));
-      HANDLE_CODE(bref.pack(ul_pwr_ctrl_ded_scell_v1250_present, 1));
-      HANDLE_CODE(bref.pack(csi_rs_cfg_v1250_present, 1));
-      if (ant_info_v1250_present) {
+      HANDLE_CODE(bref.pack(ant_info_v1250.is_present(), 1));
+      HANDLE_CODE(bref.pack(eimta_main_cfg_scell_r12.is_present(), 1));
+      HANDLE_CODE(bref.pack(cqi_report_cfg_scell_v1250.is_present(), 1));
+      HANDLE_CODE(bref.pack(ul_pwr_ctrl_ded_scell_v1250.is_present(), 1));
+      HANDLE_CODE(bref.pack(csi_rs_cfg_v1250.is_present(), 1));
+      if (ant_info_v1250.is_present()) {
         HANDLE_CODE(ant_info_v1250->pack(bref));
       }
-      if (eimta_main_cfg_scell_r12_present) {
+      if (eimta_main_cfg_scell_r12.is_present()) {
         HANDLE_CODE(eimta_main_cfg_scell_r12->pack(bref));
       }
-      if (cqi_report_cfg_scell_v1250_present) {
+      if (cqi_report_cfg_scell_v1250.is_present()) {
         HANDLE_CODE(cqi_report_cfg_scell_v1250->pack(bref));
       }
-      if (ul_pwr_ctrl_ded_scell_v1250_present) {
+      if (ul_pwr_ctrl_ded_scell_v1250.is_present()) {
         HANDLE_CODE(ul_pwr_ctrl_ded_scell_v1250->pack(bref));
       }
-      if (csi_rs_cfg_v1250_present) {
+      if (csi_rs_cfg_v1250.is_present()) {
         HANDLE_CODE(csi_rs_cfg_v1250->pack(bref));
       }
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(pdsch_cfg_ded_v1280_present, 1));
-      if (pdsch_cfg_ded_v1280_present) {
+      HANDLE_CODE(bref.pack(pdsch_cfg_ded_v1280.is_present(), 1));
+      if (pdsch_cfg_ded_v1280.is_present()) {
         HANDLE_CODE(pdsch_cfg_ded_v1280->pack(bref));
       }
     }
     if (group_flags[3]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(pucch_cell_r13_present, 1));
-      HANDLE_CODE(bref.pack(pucch_scell_present, 1));
-      HANDLE_CODE(bref.pack(cross_carrier_sched_cfg_r13_present, 1));
-      HANDLE_CODE(bref.pack(pdcch_cfg_scell_r13_present, 1));
-      HANDLE_CODE(bref.pack(cqi_report_cfg_v1310_present, 1));
-      HANDLE_CODE(bref.pack(pdsch_cfg_ded_v1310_present, 1));
-      HANDLE_CODE(bref.pack(srs_ul_cfg_ded_v1310_present, 1));
-      HANDLE_CODE(bref.pack(srs_ul_cfg_ded_up_pts_ext_r13_present, 1));
-      HANDLE_CODE(bref.pack(srs_ul_cfg_ded_aperiodic_v1310_present, 1));
-      HANDLE_CODE(bref.pack(srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_present, 1));
-      HANDLE_CODE(bref.pack(csi_rs_cfg_v1310_present, 1));
-      HANDLE_CODE(bref.pack(laa_scell_cfg_r13_present, 1));
-      HANDLE_CODE(bref.pack(csi_rs_cfg_nzp_to_add_mod_list_ext_r13_present, 1));
-      HANDLE_CODE(bref.pack(csi_rs_cfg_nzp_to_release_list_ext_r13_present, 1));
-      if (pucch_scell_present) {
+      HANDLE_CODE(bref.pack(pucch_scell.is_present(), 1));
+      HANDLE_CODE(bref.pack(cross_carrier_sched_cfg_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(pdcch_cfg_scell_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(cqi_report_cfg_v1310.is_present(), 1));
+      HANDLE_CODE(bref.pack(pdsch_cfg_ded_v1310.is_present(), 1));
+      HANDLE_CODE(bref.pack(srs_ul_cfg_ded_v1310.is_present(), 1));
+      HANDLE_CODE(bref.pack(srs_ul_cfg_ded_up_pts_ext_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(srs_ul_cfg_ded_aperiodic_v1310.is_present(), 1));
+      HANDLE_CODE(bref.pack(srs_ul_cfg_ded_aperiodic_up_pts_ext_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(csi_rs_cfg_v1310.is_present(), 1));
+      HANDLE_CODE(bref.pack(laa_scell_cfg_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(csi_rs_cfg_nzp_to_add_mod_list_ext_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(csi_rs_cfg_nzp_to_release_list_ext_r13.is_present(), 1));
+      if (pucch_scell.is_present()) {
         HANDLE_CODE(pucch_scell->pack(bref));
       }
-      if (cross_carrier_sched_cfg_r13_present) {
+      if (cross_carrier_sched_cfg_r13.is_present()) {
         HANDLE_CODE(cross_carrier_sched_cfg_r13->pack(bref));
       }
-      if (pdcch_cfg_scell_r13_present) {
+      if (pdcch_cfg_scell_r13.is_present()) {
         HANDLE_CODE(pdcch_cfg_scell_r13->pack(bref));
       }
-      if (cqi_report_cfg_v1310_present) {
+      if (cqi_report_cfg_v1310.is_present()) {
         HANDLE_CODE(cqi_report_cfg_v1310->pack(bref));
       }
-      if (pdsch_cfg_ded_v1310_present) {
+      if (pdsch_cfg_ded_v1310.is_present()) {
         HANDLE_CODE(pdsch_cfg_ded_v1310->pack(bref));
       }
-      if (srs_ul_cfg_ded_v1310_present) {
+      if (srs_ul_cfg_ded_v1310.is_present()) {
         HANDLE_CODE(srs_ul_cfg_ded_v1310->pack(bref));
       }
-      if (srs_ul_cfg_ded_up_pts_ext_r13_present) {
+      if (srs_ul_cfg_ded_up_pts_ext_r13.is_present()) {
         HANDLE_CODE(srs_ul_cfg_ded_up_pts_ext_r13->pack(bref));
       }
-      if (srs_ul_cfg_ded_aperiodic_v1310_present) {
+      if (srs_ul_cfg_ded_aperiodic_v1310.is_present()) {
         HANDLE_CODE(srs_ul_cfg_ded_aperiodic_v1310->pack(bref));
       }
-      if (srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_present) {
+      if (srs_ul_cfg_ded_aperiodic_up_pts_ext_r13.is_present()) {
         HANDLE_CODE(srs_ul_cfg_ded_aperiodic_up_pts_ext_r13->pack(bref));
       }
-      if (csi_rs_cfg_v1310_present) {
+      if (csi_rs_cfg_v1310.is_present()) {
         HANDLE_CODE(csi_rs_cfg_v1310->pack(bref));
       }
-      if (laa_scell_cfg_r13_present) {
+      if (laa_scell_cfg_r13.is_present()) {
         HANDLE_CODE(laa_scell_cfg_r13->pack(bref));
       }
-      if (csi_rs_cfg_nzp_to_add_mod_list_ext_r13_present) {
+      if (csi_rs_cfg_nzp_to_add_mod_list_ext_r13.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *csi_rs_cfg_nzp_to_add_mod_list_ext_r13, 1, 21));
       }
-      if (csi_rs_cfg_nzp_to_release_list_ext_r13_present) {
+      if (csi_rs_cfg_nzp_to_release_list_ext_r13.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(
             bref, *csi_rs_cfg_nzp_to_release_list_ext_r13, 1, 21, UnalignedIntegerPacker<uint8_t>(4, 24)));
       }
     }
     if (group_flags[4]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(cqi_report_cfg_v1320_present, 1));
-      if (cqi_report_cfg_v1320_present) {
+      HANDLE_CODE(bref.pack(cqi_report_cfg_v1320.is_present(), 1));
+      if (cqi_report_cfg_v1320.is_present()) {
         HANDLE_CODE(cqi_report_cfg_v1320->pack(bref));
       }
     }
     if (group_flags[5]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(laa_scell_cfg_v1430_present, 1));
-      HANDLE_CODE(bref.pack(type_b_srs_tpc_pdcch_cfg_r14_present, 1));
-      HANDLE_CODE(bref.pack(ul_pusch_less_pwr_ctrl_ded_v1430_present, 1));
-      HANDLE_CODE(bref.pack(srs_ul_periodic_cfg_ded_list_r14_present, 1));
-      HANDLE_CODE(bref.pack(srs_ul_periodic_cfg_ded_up_pts_ext_list_r14_present, 1));
-      HANDLE_CODE(bref.pack(srs_ul_aperiodic_cfg_ded_list_r14_present, 1));
-      HANDLE_CODE(bref.pack(srs_ul_cfg_ded_ap_up_pts_ext_list_r14_present, 1));
-      HANDLE_CODE(bref.pack(must_cfg_r14_present, 1));
-      HANDLE_CODE(bref.pack(pusch_cfg_ded_v1430_present, 1));
-      HANDLE_CODE(bref.pack(csi_rs_cfg_v1430_present, 1));
-      HANDLE_CODE(bref.pack(csi_rs_cfg_zp_ap_list_r14_present, 1));
-      HANDLE_CODE(bref.pack(cqi_report_cfg_v1430_present, 1));
+      HANDLE_CODE(bref.pack(laa_scell_cfg_v1430.is_present(), 1));
+      HANDLE_CODE(bref.pack(type_b_srs_tpc_pdcch_cfg_r14.is_present(), 1));
+      HANDLE_CODE(bref.pack(ul_pusch_less_pwr_ctrl_ded_v1430.is_present(), 1));
+      HANDLE_CODE(bref.pack(srs_ul_periodic_cfg_ded_list_r14.is_present(), 1));
+      HANDLE_CODE(bref.pack(srs_ul_periodic_cfg_ded_up_pts_ext_list_r14.is_present(), 1));
+      HANDLE_CODE(bref.pack(srs_ul_aperiodic_cfg_ded_list_r14.is_present(), 1));
+      HANDLE_CODE(bref.pack(srs_ul_cfg_ded_ap_up_pts_ext_list_r14.is_present(), 1));
+      HANDLE_CODE(bref.pack(must_cfg_r14.is_present(), 1));
+      HANDLE_CODE(bref.pack(pusch_cfg_ded_v1430.is_present(), 1));
+      HANDLE_CODE(bref.pack(csi_rs_cfg_v1430.is_present(), 1));
+      HANDLE_CODE(bref.pack(csi_rs_cfg_zp_ap_list_r14.is_present(), 1));
+      HANDLE_CODE(bref.pack(cqi_report_cfg_v1430.is_present(), 1));
       HANDLE_CODE(bref.pack(semi_open_loop_r14_present, 1));
-      HANDLE_CODE(bref.pack(pdsch_cfg_ded_scell_v1430_present, 1));
-      if (laa_scell_cfg_v1430_present) {
+      HANDLE_CODE(bref.pack(pdsch_cfg_ded_scell_v1430.is_present(), 1));
+      if (laa_scell_cfg_v1430.is_present()) {
         HANDLE_CODE(laa_scell_cfg_v1430->pack(bref));
       }
-      if (type_b_srs_tpc_pdcch_cfg_r14_present) {
+      if (type_b_srs_tpc_pdcch_cfg_r14.is_present()) {
         HANDLE_CODE(type_b_srs_tpc_pdcch_cfg_r14->pack(bref));
       }
-      if (ul_pusch_less_pwr_ctrl_ded_v1430_present) {
+      if (ul_pusch_less_pwr_ctrl_ded_v1430.is_present()) {
         HANDLE_CODE(ul_pusch_less_pwr_ctrl_ded_v1430->pack(bref));
       }
-      if (srs_ul_periodic_cfg_ded_list_r14_present) {
+      if (srs_ul_periodic_cfg_ded_list_r14.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *srs_ul_periodic_cfg_ded_list_r14, 1, 2));
       }
-      if (srs_ul_periodic_cfg_ded_up_pts_ext_list_r14_present) {
+      if (srs_ul_periodic_cfg_ded_up_pts_ext_list_r14.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *srs_ul_periodic_cfg_ded_up_pts_ext_list_r14, 1, 4));
       }
-      if (srs_ul_aperiodic_cfg_ded_list_r14_present) {
+      if (srs_ul_aperiodic_cfg_ded_list_r14.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *srs_ul_aperiodic_cfg_ded_list_r14, 1, 2));
       }
-      if (srs_ul_cfg_ded_ap_up_pts_ext_list_r14_present) {
+      if (srs_ul_cfg_ded_ap_up_pts_ext_list_r14.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *srs_ul_cfg_ded_ap_up_pts_ext_list_r14, 1, 4));
       }
-      if (must_cfg_r14_present) {
+      if (must_cfg_r14.is_present()) {
         HANDLE_CODE(must_cfg_r14->pack(bref));
       }
-      if (pusch_cfg_ded_v1430_present) {
+      if (pusch_cfg_ded_v1430.is_present()) {
         HANDLE_CODE(pusch_cfg_ded_v1430->pack(bref));
       }
-      if (csi_rs_cfg_v1430_present) {
+      if (csi_rs_cfg_v1430.is_present()) {
         HANDLE_CODE(csi_rs_cfg_v1430->pack(bref));
       }
-      if (csi_rs_cfg_zp_ap_list_r14_present) {
+      if (csi_rs_cfg_zp_ap_list_r14.is_present()) {
         HANDLE_CODE(csi_rs_cfg_zp_ap_list_r14->pack(bref));
       }
-      if (cqi_report_cfg_v1430_present) {
+      if (cqi_report_cfg_v1430.is_present()) {
         HANDLE_CODE(cqi_report_cfg_v1430->pack(bref));
       }
       if (semi_open_loop_r14_present) {
         HANDLE_CODE(bref.pack(semi_open_loop_r14, 1));
       }
-      if (pdsch_cfg_ded_scell_v1430_present) {
+      if (pdsch_cfg_ded_scell_v1430.is_present()) {
         HANDLE_CODE(pdsch_cfg_ded_scell_v1430->pack(bref));
       }
     }
     if (group_flags[6]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(csi_rs_cfg_v1480_present, 1));
-      if (csi_rs_cfg_v1480_present) {
+      HANDLE_CODE(bref.pack(csi_rs_cfg_v1480.is_present(), 1));
+      if (csi_rs_cfg_v1480.is_present()) {
         HANDLE_CODE(csi_rs_cfg_v1480->pack(bref));
       }
     }
     if (group_flags[7]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(phys_cfg_ded_stti_r15_present, 1));
-      HANDLE_CODE(bref.pack(pdsch_cfg_ded_v1530_present, 1));
-      HANDLE_CODE(bref.pack(cqi_report_cfg_v1530_present, 1));
-      HANDLE_CODE(bref.pack(cqi_report_cfg_scell_r15_present, 1));
-      HANDLE_CODE(bref.pack(cqi_short_cfg_scell_r15_present, 1));
-      HANDLE_CODE(bref.pack(csi_rs_cfg_v1530_present, 1));
-      HANDLE_CODE(bref.pack(ul_pwr_ctrl_ded_scell_v1530_present, 1));
-      HANDLE_CODE(bref.pack(laa_scell_cfg_v1530_present, 1));
-      HANDLE_CODE(bref.pack(pusch_cfg_ded_v1530_present, 1));
-      HANDLE_CODE(bref.pack(semi_static_cfi_cfg_r15_present, 1));
-      HANDLE_CODE(bref.pack(blind_pdsch_repeat_cfg_r15_present, 1));
-      if (phys_cfg_ded_stti_r15_present) {
+      HANDLE_CODE(bref.pack(phys_cfg_ded_stti_r15.is_present(), 1));
+      HANDLE_CODE(bref.pack(pdsch_cfg_ded_v1530.is_present(), 1));
+      HANDLE_CODE(bref.pack(cqi_report_cfg_v1530.is_present(), 1));
+      HANDLE_CODE(bref.pack(cqi_report_cfg_scell_r15.is_present(), 1));
+      HANDLE_CODE(bref.pack(cqi_short_cfg_scell_r15.is_present(), 1));
+      HANDLE_CODE(bref.pack(csi_rs_cfg_v1530.is_present(), 1));
+      HANDLE_CODE(bref.pack(ul_pwr_ctrl_ded_scell_v1530.is_present(), 1));
+      HANDLE_CODE(bref.pack(laa_scell_cfg_v1530.is_present(), 1));
+      HANDLE_CODE(bref.pack(pusch_cfg_ded_v1530.is_present(), 1));
+      HANDLE_CODE(bref.pack(semi_static_cfi_cfg_r15.is_present(), 1));
+      HANDLE_CODE(bref.pack(blind_pdsch_repeat_cfg_r15.is_present(), 1));
+      if (phys_cfg_ded_stti_r15.is_present()) {
         HANDLE_CODE(phys_cfg_ded_stti_r15->pack(bref));
       }
-      if (pdsch_cfg_ded_v1530_present) {
+      if (pdsch_cfg_ded_v1530.is_present()) {
         HANDLE_CODE(pdsch_cfg_ded_v1530->pack(bref));
       }
-      if (cqi_report_cfg_v1530_present) {
+      if (cqi_report_cfg_v1530.is_present()) {
         HANDLE_CODE(cqi_report_cfg_v1530->pack(bref));
       }
-      if (cqi_report_cfg_scell_r15_present) {
+      if (cqi_report_cfg_scell_r15.is_present()) {
         HANDLE_CODE(cqi_report_cfg_scell_r15->pack(bref));
       }
-      if (cqi_short_cfg_scell_r15_present) {
+      if (cqi_short_cfg_scell_r15.is_present()) {
         HANDLE_CODE(cqi_short_cfg_scell_r15->pack(bref));
       }
-      if (csi_rs_cfg_v1530_present) {
+      if (csi_rs_cfg_v1530.is_present()) {
         HANDLE_CODE(csi_rs_cfg_v1530->pack(bref));
       }
-      if (ul_pwr_ctrl_ded_scell_v1530_present) {
+      if (ul_pwr_ctrl_ded_scell_v1530.is_present()) {
         HANDLE_CODE(ul_pwr_ctrl_ded_scell_v1530->pack(bref));
       }
-      if (laa_scell_cfg_v1530_present) {
+      if (laa_scell_cfg_v1530.is_present()) {
         HANDLE_CODE(laa_scell_cfg_v1530->pack(bref));
       }
-      if (pusch_cfg_ded_v1530_present) {
+      if (pusch_cfg_ded_v1530.is_present()) {
         HANDLE_CODE(pusch_cfg_ded_v1530->pack(bref));
       }
-      if (semi_static_cfi_cfg_r15_present) {
+      if (semi_static_cfi_cfg_r15.is_present()) {
         HANDLE_CODE(semi_static_cfi_cfg_r15->pack(bref));
       }
-      if (blind_pdsch_repeat_cfg_r15_present) {
+      if (blind_pdsch_repeat_cfg_r15.is_present()) {
         HANDLE_CODE(blind_pdsch_repeat_cfg_r15->pack(bref));
       }
     }
@@ -50018,316 +49370,370 @@ SRSASN_CODE phys_cfg_ded_scell_r10_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(8);
+    ext_groups_unpacker_guard group_flags(8);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool csi_rs_cfg_nzp_to_release_list_r11_present;
       HANDLE_CODE(bref.unpack(csi_rs_cfg_nzp_to_release_list_r11_present, 1));
+      csi_rs_cfg_nzp_to_release_list_r11.set_present(csi_rs_cfg_nzp_to_release_list_r11_present);
+      bool csi_rs_cfg_nzp_to_add_mod_list_r11_present;
       HANDLE_CODE(bref.unpack(csi_rs_cfg_nzp_to_add_mod_list_r11_present, 1));
+      csi_rs_cfg_nzp_to_add_mod_list_r11.set_present(csi_rs_cfg_nzp_to_add_mod_list_r11_present);
+      bool csi_rs_cfg_zp_to_release_list_r11_present;
       HANDLE_CODE(bref.unpack(csi_rs_cfg_zp_to_release_list_r11_present, 1));
+      csi_rs_cfg_zp_to_release_list_r11.set_present(csi_rs_cfg_zp_to_release_list_r11_present);
+      bool csi_rs_cfg_zp_to_add_mod_list_r11_present;
       HANDLE_CODE(bref.unpack(csi_rs_cfg_zp_to_add_mod_list_r11_present, 1));
+      csi_rs_cfg_zp_to_add_mod_list_r11.set_present(csi_rs_cfg_zp_to_add_mod_list_r11_present);
+      bool epdcch_cfg_r11_present;
       HANDLE_CODE(bref.unpack(epdcch_cfg_r11_present, 1));
+      epdcch_cfg_r11.set_present(epdcch_cfg_r11_present);
+      bool pdsch_cfg_ded_v1130_present;
       HANDLE_CODE(bref.unpack(pdsch_cfg_ded_v1130_present, 1));
+      pdsch_cfg_ded_v1130.set_present(pdsch_cfg_ded_v1130_present);
+      bool cqi_report_cfg_v1130_present;
       HANDLE_CODE(bref.unpack(cqi_report_cfg_v1130_present, 1));
+      cqi_report_cfg_v1130.set_present(cqi_report_cfg_v1130_present);
+      bool pusch_cfg_ded_v1130_present;
       HANDLE_CODE(bref.unpack(pusch_cfg_ded_v1130_present, 1));
+      pusch_cfg_ded_v1130.set_present(pusch_cfg_ded_v1130_present);
+      bool ul_pwr_ctrl_ded_scell_v1130_present;
       HANDLE_CODE(bref.unpack(ul_pwr_ctrl_ded_scell_v1130_present, 1));
-      if (csi_rs_cfg_nzp_to_release_list_r11_present) {
-        csi_rs_cfg_nzp_to_release_list_r11 = make_copy_ptr(csi_rs_cfg_nzp_to_release_list_r11_l());
+      ul_pwr_ctrl_ded_scell_v1130.set_present(ul_pwr_ctrl_ded_scell_v1130_present);
+      if (csi_rs_cfg_nzp_to_release_list_r11.is_present()) {
         HANDLE_CODE(
             unpack_dyn_seq_of(*csi_rs_cfg_nzp_to_release_list_r11, bref, 1, 3, UnalignedIntegerPacker<uint8_t>(1, 3)));
       }
-      if (csi_rs_cfg_nzp_to_add_mod_list_r11_present) {
-        csi_rs_cfg_nzp_to_add_mod_list_r11 = make_copy_ptr(csi_rs_cfg_nzp_to_add_mod_list_r11_l());
+      if (csi_rs_cfg_nzp_to_add_mod_list_r11.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*csi_rs_cfg_nzp_to_add_mod_list_r11, bref, 1, 3));
       }
-      if (csi_rs_cfg_zp_to_release_list_r11_present) {
-        csi_rs_cfg_zp_to_release_list_r11 = make_copy_ptr(csi_rs_cfg_zp_to_release_list_r11_l());
+      if (csi_rs_cfg_zp_to_release_list_r11.is_present()) {
         HANDLE_CODE(
             unpack_dyn_seq_of(*csi_rs_cfg_zp_to_release_list_r11, bref, 1, 4, UnalignedIntegerPacker<uint8_t>(1, 4)));
       }
-      if (csi_rs_cfg_zp_to_add_mod_list_r11_present) {
-        csi_rs_cfg_zp_to_add_mod_list_r11 = make_copy_ptr(csi_rs_cfg_zp_to_add_mod_list_r11_l());
+      if (csi_rs_cfg_zp_to_add_mod_list_r11.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*csi_rs_cfg_zp_to_add_mod_list_r11, bref, 1, 4));
       }
-      if (epdcch_cfg_r11_present) {
-        epdcch_cfg_r11 = make_copy_ptr(epdcch_cfg_r11_s());
+      if (epdcch_cfg_r11.is_present()) {
         HANDLE_CODE(epdcch_cfg_r11->unpack(bref));
       }
-      if (pdsch_cfg_ded_v1130_present) {
-        pdsch_cfg_ded_v1130 = make_copy_ptr(pdsch_cfg_ded_v1130_s());
+      if (pdsch_cfg_ded_v1130.is_present()) {
         HANDLE_CODE(pdsch_cfg_ded_v1130->unpack(bref));
       }
-      if (cqi_report_cfg_v1130_present) {
-        cqi_report_cfg_v1130 = make_copy_ptr(cqi_report_cfg_v1130_s());
+      if (cqi_report_cfg_v1130.is_present()) {
         HANDLE_CODE(cqi_report_cfg_v1130->unpack(bref));
       }
-      if (pusch_cfg_ded_v1130_present) {
-        pusch_cfg_ded_v1130 = make_copy_ptr(pusch_cfg_ded_v1130_s());
+      if (pusch_cfg_ded_v1130.is_present()) {
         HANDLE_CODE(pusch_cfg_ded_v1130->unpack(bref));
       }
-      if (ul_pwr_ctrl_ded_scell_v1130_present) {
-        ul_pwr_ctrl_ded_scell_v1130 = make_copy_ptr(ul_pwr_ctrl_ded_v1130_s());
+      if (ul_pwr_ctrl_ded_scell_v1130.is_present()) {
         HANDLE_CODE(ul_pwr_ctrl_ded_scell_v1130->unpack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool ant_info_v1250_present;
       HANDLE_CODE(bref.unpack(ant_info_v1250_present, 1));
+      ant_info_v1250.set_present(ant_info_v1250_present);
+      bool eimta_main_cfg_scell_r12_present;
       HANDLE_CODE(bref.unpack(eimta_main_cfg_scell_r12_present, 1));
+      eimta_main_cfg_scell_r12.set_present(eimta_main_cfg_scell_r12_present);
+      bool cqi_report_cfg_scell_v1250_present;
       HANDLE_CODE(bref.unpack(cqi_report_cfg_scell_v1250_present, 1));
+      cqi_report_cfg_scell_v1250.set_present(cqi_report_cfg_scell_v1250_present);
+      bool ul_pwr_ctrl_ded_scell_v1250_present;
       HANDLE_CODE(bref.unpack(ul_pwr_ctrl_ded_scell_v1250_present, 1));
+      ul_pwr_ctrl_ded_scell_v1250.set_present(ul_pwr_ctrl_ded_scell_v1250_present);
+      bool csi_rs_cfg_v1250_present;
       HANDLE_CODE(bref.unpack(csi_rs_cfg_v1250_present, 1));
-      if (ant_info_v1250_present) {
-        ant_info_v1250 = make_copy_ptr(ant_info_ded_v1250_s());
+      csi_rs_cfg_v1250.set_present(csi_rs_cfg_v1250_present);
+      if (ant_info_v1250.is_present()) {
         HANDLE_CODE(ant_info_v1250->unpack(bref));
       }
-      if (eimta_main_cfg_scell_r12_present) {
-        eimta_main_cfg_scell_r12 = make_copy_ptr(eimta_main_cfg_serv_cell_r12_c());
+      if (eimta_main_cfg_scell_r12.is_present()) {
         HANDLE_CODE(eimta_main_cfg_scell_r12->unpack(bref));
       }
-      if (cqi_report_cfg_scell_v1250_present) {
-        cqi_report_cfg_scell_v1250 = make_copy_ptr(cqi_report_cfg_v1250_s());
+      if (cqi_report_cfg_scell_v1250.is_present()) {
         HANDLE_CODE(cqi_report_cfg_scell_v1250->unpack(bref));
       }
-      if (ul_pwr_ctrl_ded_scell_v1250_present) {
-        ul_pwr_ctrl_ded_scell_v1250 = make_copy_ptr(ul_pwr_ctrl_ded_v1250_s());
+      if (ul_pwr_ctrl_ded_scell_v1250.is_present()) {
         HANDLE_CODE(ul_pwr_ctrl_ded_scell_v1250->unpack(bref));
       }
-      if (csi_rs_cfg_v1250_present) {
-        csi_rs_cfg_v1250 = make_copy_ptr(csi_rs_cfg_v1250_s());
+      if (csi_rs_cfg_v1250.is_present()) {
         HANDLE_CODE(csi_rs_cfg_v1250->unpack(bref));
       }
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool pdsch_cfg_ded_v1280_present;
       HANDLE_CODE(bref.unpack(pdsch_cfg_ded_v1280_present, 1));
-      if (pdsch_cfg_ded_v1280_present) {
-        pdsch_cfg_ded_v1280 = make_copy_ptr(pdsch_cfg_ded_v1280_s());
+      pdsch_cfg_ded_v1280.set_present(pdsch_cfg_ded_v1280_present);
+      if (pdsch_cfg_ded_v1280.is_present()) {
         HANDLE_CODE(pdsch_cfg_ded_v1280->unpack(bref));
       }
     }
     if (group_flags[3]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(pucch_cell_r13_present, 1));
+      bool pucch_scell_present;
       HANDLE_CODE(bref.unpack(pucch_scell_present, 1));
+      pucch_scell.set_present(pucch_scell_present);
+      bool cross_carrier_sched_cfg_r13_present;
       HANDLE_CODE(bref.unpack(cross_carrier_sched_cfg_r13_present, 1));
+      cross_carrier_sched_cfg_r13.set_present(cross_carrier_sched_cfg_r13_present);
+      bool pdcch_cfg_scell_r13_present;
       HANDLE_CODE(bref.unpack(pdcch_cfg_scell_r13_present, 1));
+      pdcch_cfg_scell_r13.set_present(pdcch_cfg_scell_r13_present);
+      bool cqi_report_cfg_v1310_present;
       HANDLE_CODE(bref.unpack(cqi_report_cfg_v1310_present, 1));
+      cqi_report_cfg_v1310.set_present(cqi_report_cfg_v1310_present);
+      bool pdsch_cfg_ded_v1310_present;
       HANDLE_CODE(bref.unpack(pdsch_cfg_ded_v1310_present, 1));
+      pdsch_cfg_ded_v1310.set_present(pdsch_cfg_ded_v1310_present);
+      bool srs_ul_cfg_ded_v1310_present;
       HANDLE_CODE(bref.unpack(srs_ul_cfg_ded_v1310_present, 1));
+      srs_ul_cfg_ded_v1310.set_present(srs_ul_cfg_ded_v1310_present);
+      bool srs_ul_cfg_ded_up_pts_ext_r13_present;
       HANDLE_CODE(bref.unpack(srs_ul_cfg_ded_up_pts_ext_r13_present, 1));
+      srs_ul_cfg_ded_up_pts_ext_r13.set_present(srs_ul_cfg_ded_up_pts_ext_r13_present);
+      bool srs_ul_cfg_ded_aperiodic_v1310_present;
       HANDLE_CODE(bref.unpack(srs_ul_cfg_ded_aperiodic_v1310_present, 1));
+      srs_ul_cfg_ded_aperiodic_v1310.set_present(srs_ul_cfg_ded_aperiodic_v1310_present);
+      bool srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_present;
       HANDLE_CODE(bref.unpack(srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_present, 1));
+      srs_ul_cfg_ded_aperiodic_up_pts_ext_r13.set_present(srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_present);
+      bool csi_rs_cfg_v1310_present;
       HANDLE_CODE(bref.unpack(csi_rs_cfg_v1310_present, 1));
+      csi_rs_cfg_v1310.set_present(csi_rs_cfg_v1310_present);
+      bool laa_scell_cfg_r13_present;
       HANDLE_CODE(bref.unpack(laa_scell_cfg_r13_present, 1));
+      laa_scell_cfg_r13.set_present(laa_scell_cfg_r13_present);
+      bool csi_rs_cfg_nzp_to_add_mod_list_ext_r13_present;
       HANDLE_CODE(bref.unpack(csi_rs_cfg_nzp_to_add_mod_list_ext_r13_present, 1));
+      csi_rs_cfg_nzp_to_add_mod_list_ext_r13.set_present(csi_rs_cfg_nzp_to_add_mod_list_ext_r13_present);
+      bool csi_rs_cfg_nzp_to_release_list_ext_r13_present;
       HANDLE_CODE(bref.unpack(csi_rs_cfg_nzp_to_release_list_ext_r13_present, 1));
-      if (pucch_scell_present) {
-        pucch_scell = make_copy_ptr(pucch_scell_c_());
+      csi_rs_cfg_nzp_to_release_list_ext_r13.set_present(csi_rs_cfg_nzp_to_release_list_ext_r13_present);
+      if (pucch_scell.is_present()) {
         HANDLE_CODE(pucch_scell->unpack(bref));
       }
-      if (cross_carrier_sched_cfg_r13_present) {
-        cross_carrier_sched_cfg_r13 = make_copy_ptr(cross_carrier_sched_cfg_r13_s());
+      if (cross_carrier_sched_cfg_r13.is_present()) {
         HANDLE_CODE(cross_carrier_sched_cfg_r13->unpack(bref));
       }
-      if (pdcch_cfg_scell_r13_present) {
-        pdcch_cfg_scell_r13 = make_copy_ptr(pdcch_cfg_scell_r13_s());
+      if (pdcch_cfg_scell_r13.is_present()) {
         HANDLE_CODE(pdcch_cfg_scell_r13->unpack(bref));
       }
-      if (cqi_report_cfg_v1310_present) {
-        cqi_report_cfg_v1310 = make_copy_ptr(cqi_report_cfg_v1310_s());
+      if (cqi_report_cfg_v1310.is_present()) {
         HANDLE_CODE(cqi_report_cfg_v1310->unpack(bref));
       }
-      if (pdsch_cfg_ded_v1310_present) {
-        pdsch_cfg_ded_v1310 = make_copy_ptr(pdsch_cfg_ded_v1310_s());
+      if (pdsch_cfg_ded_v1310.is_present()) {
         HANDLE_CODE(pdsch_cfg_ded_v1310->unpack(bref));
       }
-      if (srs_ul_cfg_ded_v1310_present) {
-        srs_ul_cfg_ded_v1310 = make_copy_ptr(srs_ul_cfg_ded_v1310_c());
+      if (srs_ul_cfg_ded_v1310.is_present()) {
         HANDLE_CODE(srs_ul_cfg_ded_v1310->unpack(bref));
       }
-      if (srs_ul_cfg_ded_up_pts_ext_r13_present) {
-        srs_ul_cfg_ded_up_pts_ext_r13 = make_copy_ptr(srs_ul_cfg_ded_up_pts_ext_r13_c());
+      if (srs_ul_cfg_ded_up_pts_ext_r13.is_present()) {
         HANDLE_CODE(srs_ul_cfg_ded_up_pts_ext_r13->unpack(bref));
       }
-      if (srs_ul_cfg_ded_aperiodic_v1310_present) {
-        srs_ul_cfg_ded_aperiodic_v1310 = make_copy_ptr(srs_ul_cfg_ded_aperiodic_v1310_c());
+      if (srs_ul_cfg_ded_aperiodic_v1310.is_present()) {
         HANDLE_CODE(srs_ul_cfg_ded_aperiodic_v1310->unpack(bref));
       }
-      if (srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_present) {
-        srs_ul_cfg_ded_aperiodic_up_pts_ext_r13 = make_copy_ptr(srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_c());
+      if (srs_ul_cfg_ded_aperiodic_up_pts_ext_r13.is_present()) {
         HANDLE_CODE(srs_ul_cfg_ded_aperiodic_up_pts_ext_r13->unpack(bref));
       }
-      if (csi_rs_cfg_v1310_present) {
-        csi_rs_cfg_v1310 = make_copy_ptr(csi_rs_cfg_v1310_s());
+      if (csi_rs_cfg_v1310.is_present()) {
         HANDLE_CODE(csi_rs_cfg_v1310->unpack(bref));
       }
-      if (laa_scell_cfg_r13_present) {
-        laa_scell_cfg_r13 = make_copy_ptr(laa_scell_cfg_r13_s());
+      if (laa_scell_cfg_r13.is_present()) {
         HANDLE_CODE(laa_scell_cfg_r13->unpack(bref));
       }
-      if (csi_rs_cfg_nzp_to_add_mod_list_ext_r13_present) {
-        csi_rs_cfg_nzp_to_add_mod_list_ext_r13 = make_copy_ptr(csi_rs_cfg_nzp_to_add_mod_list_ext_r13_l());
+      if (csi_rs_cfg_nzp_to_add_mod_list_ext_r13.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*csi_rs_cfg_nzp_to_add_mod_list_ext_r13, bref, 1, 21));
       }
-      if (csi_rs_cfg_nzp_to_release_list_ext_r13_present) {
-        csi_rs_cfg_nzp_to_release_list_ext_r13 = make_copy_ptr(csi_rs_cfg_nzp_to_release_list_ext_r13_l());
+      if (csi_rs_cfg_nzp_to_release_list_ext_r13.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(
             *csi_rs_cfg_nzp_to_release_list_ext_r13, bref, 1, 21, UnalignedIntegerPacker<uint8_t>(4, 24)));
       }
     }
     if (group_flags[4]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool cqi_report_cfg_v1320_present;
       HANDLE_CODE(bref.unpack(cqi_report_cfg_v1320_present, 1));
-      if (cqi_report_cfg_v1320_present) {
-        cqi_report_cfg_v1320 = make_copy_ptr(cqi_report_cfg_v1320_s());
+      cqi_report_cfg_v1320.set_present(cqi_report_cfg_v1320_present);
+      if (cqi_report_cfg_v1320.is_present()) {
         HANDLE_CODE(cqi_report_cfg_v1320->unpack(bref));
       }
     }
     if (group_flags[5]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool laa_scell_cfg_v1430_present;
       HANDLE_CODE(bref.unpack(laa_scell_cfg_v1430_present, 1));
+      laa_scell_cfg_v1430.set_present(laa_scell_cfg_v1430_present);
+      bool type_b_srs_tpc_pdcch_cfg_r14_present;
       HANDLE_CODE(bref.unpack(type_b_srs_tpc_pdcch_cfg_r14_present, 1));
+      type_b_srs_tpc_pdcch_cfg_r14.set_present(type_b_srs_tpc_pdcch_cfg_r14_present);
+      bool ul_pusch_less_pwr_ctrl_ded_v1430_present;
       HANDLE_CODE(bref.unpack(ul_pusch_less_pwr_ctrl_ded_v1430_present, 1));
+      ul_pusch_less_pwr_ctrl_ded_v1430.set_present(ul_pusch_less_pwr_ctrl_ded_v1430_present);
+      bool srs_ul_periodic_cfg_ded_list_r14_present;
       HANDLE_CODE(bref.unpack(srs_ul_periodic_cfg_ded_list_r14_present, 1));
+      srs_ul_periodic_cfg_ded_list_r14.set_present(srs_ul_periodic_cfg_ded_list_r14_present);
+      bool srs_ul_periodic_cfg_ded_up_pts_ext_list_r14_present;
       HANDLE_CODE(bref.unpack(srs_ul_periodic_cfg_ded_up_pts_ext_list_r14_present, 1));
+      srs_ul_periodic_cfg_ded_up_pts_ext_list_r14.set_present(srs_ul_periodic_cfg_ded_up_pts_ext_list_r14_present);
+      bool srs_ul_aperiodic_cfg_ded_list_r14_present;
       HANDLE_CODE(bref.unpack(srs_ul_aperiodic_cfg_ded_list_r14_present, 1));
+      srs_ul_aperiodic_cfg_ded_list_r14.set_present(srs_ul_aperiodic_cfg_ded_list_r14_present);
+      bool srs_ul_cfg_ded_ap_up_pts_ext_list_r14_present;
       HANDLE_CODE(bref.unpack(srs_ul_cfg_ded_ap_up_pts_ext_list_r14_present, 1));
+      srs_ul_cfg_ded_ap_up_pts_ext_list_r14.set_present(srs_ul_cfg_ded_ap_up_pts_ext_list_r14_present);
+      bool must_cfg_r14_present;
       HANDLE_CODE(bref.unpack(must_cfg_r14_present, 1));
+      must_cfg_r14.set_present(must_cfg_r14_present);
+      bool pusch_cfg_ded_v1430_present;
       HANDLE_CODE(bref.unpack(pusch_cfg_ded_v1430_present, 1));
+      pusch_cfg_ded_v1430.set_present(pusch_cfg_ded_v1430_present);
+      bool csi_rs_cfg_v1430_present;
       HANDLE_CODE(bref.unpack(csi_rs_cfg_v1430_present, 1));
+      csi_rs_cfg_v1430.set_present(csi_rs_cfg_v1430_present);
+      bool csi_rs_cfg_zp_ap_list_r14_present;
       HANDLE_CODE(bref.unpack(csi_rs_cfg_zp_ap_list_r14_present, 1));
+      csi_rs_cfg_zp_ap_list_r14.set_present(csi_rs_cfg_zp_ap_list_r14_present);
+      bool cqi_report_cfg_v1430_present;
       HANDLE_CODE(bref.unpack(cqi_report_cfg_v1430_present, 1));
+      cqi_report_cfg_v1430.set_present(cqi_report_cfg_v1430_present);
       HANDLE_CODE(bref.unpack(semi_open_loop_r14_present, 1));
+      bool pdsch_cfg_ded_scell_v1430_present;
       HANDLE_CODE(bref.unpack(pdsch_cfg_ded_scell_v1430_present, 1));
-      if (laa_scell_cfg_v1430_present) {
-        laa_scell_cfg_v1430 = make_copy_ptr(laa_scell_cfg_v1430_s());
+      pdsch_cfg_ded_scell_v1430.set_present(pdsch_cfg_ded_scell_v1430_present);
+      if (laa_scell_cfg_v1430.is_present()) {
         HANDLE_CODE(laa_scell_cfg_v1430->unpack(bref));
       }
-      if (type_b_srs_tpc_pdcch_cfg_r14_present) {
-        type_b_srs_tpc_pdcch_cfg_r14 = make_copy_ptr(srs_tpc_pdcch_cfg_r14_c());
+      if (type_b_srs_tpc_pdcch_cfg_r14.is_present()) {
         HANDLE_CODE(type_b_srs_tpc_pdcch_cfg_r14->unpack(bref));
       }
-      if (ul_pusch_less_pwr_ctrl_ded_v1430_present) {
-        ul_pusch_less_pwr_ctrl_ded_v1430 = make_copy_ptr(ul_pusch_less_pwr_ctrl_ded_v1430_s());
+      if (ul_pusch_less_pwr_ctrl_ded_v1430.is_present()) {
         HANDLE_CODE(ul_pusch_less_pwr_ctrl_ded_v1430->unpack(bref));
       }
-      if (srs_ul_periodic_cfg_ded_list_r14_present) {
-        srs_ul_periodic_cfg_ded_list_r14 = make_copy_ptr(srs_ul_periodic_cfg_ded_list_r14_l_());
+      if (srs_ul_periodic_cfg_ded_list_r14.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*srs_ul_periodic_cfg_ded_list_r14, bref, 1, 2));
       }
-      if (srs_ul_periodic_cfg_ded_up_pts_ext_list_r14_present) {
-        srs_ul_periodic_cfg_ded_up_pts_ext_list_r14 = make_copy_ptr(srs_ul_periodic_cfg_ded_up_pts_ext_list_r14_l_());
+      if (srs_ul_periodic_cfg_ded_up_pts_ext_list_r14.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*srs_ul_periodic_cfg_ded_up_pts_ext_list_r14, bref, 1, 4));
       }
-      if (srs_ul_aperiodic_cfg_ded_list_r14_present) {
-        srs_ul_aperiodic_cfg_ded_list_r14 = make_copy_ptr(srs_ul_aperiodic_cfg_ded_list_r14_l_());
+      if (srs_ul_aperiodic_cfg_ded_list_r14.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*srs_ul_aperiodic_cfg_ded_list_r14, bref, 1, 2));
       }
-      if (srs_ul_cfg_ded_ap_up_pts_ext_list_r14_present) {
-        srs_ul_cfg_ded_ap_up_pts_ext_list_r14 = make_copy_ptr(srs_ul_cfg_ded_ap_up_pts_ext_list_r14_l_());
+      if (srs_ul_cfg_ded_ap_up_pts_ext_list_r14.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*srs_ul_cfg_ded_ap_up_pts_ext_list_r14, bref, 1, 4));
       }
-      if (must_cfg_r14_present) {
-        must_cfg_r14 = make_copy_ptr(must_cfg_r14_c_());
+      if (must_cfg_r14.is_present()) {
         HANDLE_CODE(must_cfg_r14->unpack(bref));
       }
-      if (pusch_cfg_ded_v1430_present) {
-        pusch_cfg_ded_v1430 = make_copy_ptr(pusch_cfg_ded_scell_v1430_s());
+      if (pusch_cfg_ded_v1430.is_present()) {
         HANDLE_CODE(pusch_cfg_ded_v1430->unpack(bref));
       }
-      if (csi_rs_cfg_v1430_present) {
-        csi_rs_cfg_v1430 = make_copy_ptr(csi_rs_cfg_v1430_s());
+      if (csi_rs_cfg_v1430.is_present()) {
         HANDLE_CODE(csi_rs_cfg_v1430->unpack(bref));
       }
-      if (csi_rs_cfg_zp_ap_list_r14_present) {
-        csi_rs_cfg_zp_ap_list_r14 = make_copy_ptr(csi_rs_cfg_zp_ap_list_r14_c());
+      if (csi_rs_cfg_zp_ap_list_r14.is_present()) {
         HANDLE_CODE(csi_rs_cfg_zp_ap_list_r14->unpack(bref));
       }
-      if (cqi_report_cfg_v1430_present) {
-        cqi_report_cfg_v1430 = make_copy_ptr(cqi_report_cfg_v1430_s());
+      if (cqi_report_cfg_v1430.is_present()) {
         HANDLE_CODE(cqi_report_cfg_v1430->unpack(bref));
       }
       if (semi_open_loop_r14_present) {
         HANDLE_CODE(bref.unpack(semi_open_loop_r14, 1));
       }
-      if (pdsch_cfg_ded_scell_v1430_present) {
-        pdsch_cfg_ded_scell_v1430 = make_copy_ptr(pdsch_cfg_ded_scell_v1430_s());
+      if (pdsch_cfg_ded_scell_v1430.is_present()) {
         HANDLE_CODE(pdsch_cfg_ded_scell_v1430->unpack(bref));
       }
     }
     if (group_flags[6]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool csi_rs_cfg_v1480_present;
       HANDLE_CODE(bref.unpack(csi_rs_cfg_v1480_present, 1));
-      if (csi_rs_cfg_v1480_present) {
-        csi_rs_cfg_v1480 = make_copy_ptr(csi_rs_cfg_v1480_s());
+      csi_rs_cfg_v1480.set_present(csi_rs_cfg_v1480_present);
+      if (csi_rs_cfg_v1480.is_present()) {
         HANDLE_CODE(csi_rs_cfg_v1480->unpack(bref));
       }
     }
     if (group_flags[7]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool phys_cfg_ded_stti_r15_present;
       HANDLE_CODE(bref.unpack(phys_cfg_ded_stti_r15_present, 1));
+      phys_cfg_ded_stti_r15.set_present(phys_cfg_ded_stti_r15_present);
+      bool pdsch_cfg_ded_v1530_present;
       HANDLE_CODE(bref.unpack(pdsch_cfg_ded_v1530_present, 1));
+      pdsch_cfg_ded_v1530.set_present(pdsch_cfg_ded_v1530_present);
+      bool cqi_report_cfg_v1530_present;
       HANDLE_CODE(bref.unpack(cqi_report_cfg_v1530_present, 1));
+      cqi_report_cfg_v1530.set_present(cqi_report_cfg_v1530_present);
+      bool cqi_report_cfg_scell_r15_present;
       HANDLE_CODE(bref.unpack(cqi_report_cfg_scell_r15_present, 1));
+      cqi_report_cfg_scell_r15.set_present(cqi_report_cfg_scell_r15_present);
+      bool cqi_short_cfg_scell_r15_present;
       HANDLE_CODE(bref.unpack(cqi_short_cfg_scell_r15_present, 1));
+      cqi_short_cfg_scell_r15.set_present(cqi_short_cfg_scell_r15_present);
+      bool csi_rs_cfg_v1530_present;
       HANDLE_CODE(bref.unpack(csi_rs_cfg_v1530_present, 1));
+      csi_rs_cfg_v1530.set_present(csi_rs_cfg_v1530_present);
+      bool ul_pwr_ctrl_ded_scell_v1530_present;
       HANDLE_CODE(bref.unpack(ul_pwr_ctrl_ded_scell_v1530_present, 1));
+      ul_pwr_ctrl_ded_scell_v1530.set_present(ul_pwr_ctrl_ded_scell_v1530_present);
+      bool laa_scell_cfg_v1530_present;
       HANDLE_CODE(bref.unpack(laa_scell_cfg_v1530_present, 1));
+      laa_scell_cfg_v1530.set_present(laa_scell_cfg_v1530_present);
+      bool pusch_cfg_ded_v1530_present;
       HANDLE_CODE(bref.unpack(pusch_cfg_ded_v1530_present, 1));
+      pusch_cfg_ded_v1530.set_present(pusch_cfg_ded_v1530_present);
+      bool semi_static_cfi_cfg_r15_present;
       HANDLE_CODE(bref.unpack(semi_static_cfi_cfg_r15_present, 1));
+      semi_static_cfi_cfg_r15.set_present(semi_static_cfi_cfg_r15_present);
+      bool blind_pdsch_repeat_cfg_r15_present;
       HANDLE_CODE(bref.unpack(blind_pdsch_repeat_cfg_r15_present, 1));
-      if (phys_cfg_ded_stti_r15_present) {
-        phys_cfg_ded_stti_r15 = make_copy_ptr(phys_cfg_ded_stti_r15_c());
+      blind_pdsch_repeat_cfg_r15.set_present(blind_pdsch_repeat_cfg_r15_present);
+      if (phys_cfg_ded_stti_r15.is_present()) {
         HANDLE_CODE(phys_cfg_ded_stti_r15->unpack(bref));
       }
-      if (pdsch_cfg_ded_v1530_present) {
-        pdsch_cfg_ded_v1530 = make_copy_ptr(pdsch_cfg_ded_v1530_s());
+      if (pdsch_cfg_ded_v1530.is_present()) {
         HANDLE_CODE(pdsch_cfg_ded_v1530->unpack(bref));
       }
-      if (cqi_report_cfg_v1530_present) {
-        cqi_report_cfg_v1530 = make_copy_ptr(cqi_report_cfg_v1530_s());
+      if (cqi_report_cfg_v1530.is_present()) {
         HANDLE_CODE(cqi_report_cfg_v1530->unpack(bref));
       }
-      if (cqi_report_cfg_scell_r15_present) {
-        cqi_report_cfg_scell_r15 = make_copy_ptr(cqi_report_cfg_scell_r15_s());
+      if (cqi_report_cfg_scell_r15.is_present()) {
         HANDLE_CODE(cqi_report_cfg_scell_r15->unpack(bref));
       }
-      if (cqi_short_cfg_scell_r15_present) {
-        cqi_short_cfg_scell_r15 = make_copy_ptr(cqi_short_cfg_scell_r15_c());
+      if (cqi_short_cfg_scell_r15.is_present()) {
         HANDLE_CODE(cqi_short_cfg_scell_r15->unpack(bref));
       }
-      if (csi_rs_cfg_v1530_present) {
-        csi_rs_cfg_v1530 = make_copy_ptr(csi_rs_cfg_v1530_s());
+      if (csi_rs_cfg_v1530.is_present()) {
         HANDLE_CODE(csi_rs_cfg_v1530->unpack(bref));
       }
-      if (ul_pwr_ctrl_ded_scell_v1530_present) {
-        ul_pwr_ctrl_ded_scell_v1530 = make_copy_ptr(ul_pwr_ctrl_ded_v1530_s());
+      if (ul_pwr_ctrl_ded_scell_v1530.is_present()) {
         HANDLE_CODE(ul_pwr_ctrl_ded_scell_v1530->unpack(bref));
       }
-      if (laa_scell_cfg_v1530_present) {
-        laa_scell_cfg_v1530 = make_copy_ptr(laa_scell_cfg_v1530_s());
+      if (laa_scell_cfg_v1530.is_present()) {
         HANDLE_CODE(laa_scell_cfg_v1530->unpack(bref));
       }
-      if (pusch_cfg_ded_v1530_present) {
-        pusch_cfg_ded_v1530 = make_copy_ptr(pusch_cfg_ded_scell_v1530_s());
+      if (pusch_cfg_ded_v1530.is_present()) {
         HANDLE_CODE(pusch_cfg_ded_v1530->unpack(bref));
       }
-      if (semi_static_cfi_cfg_r15_present) {
-        semi_static_cfi_cfg_r15 = make_copy_ptr(semi_static_cfi_cfg_r15_c_());
+      if (semi_static_cfi_cfg_r15.is_present()) {
         HANDLE_CODE(semi_static_cfi_cfg_r15->unpack(bref));
       }
-      if (blind_pdsch_repeat_cfg_r15_present) {
-        blind_pdsch_repeat_cfg_r15 = make_copy_ptr(blind_pdsch_repeat_cfg_r15_c_());
+      if (blind_pdsch_repeat_cfg_r15.is_present()) {
         HANDLE_CODE(blind_pdsch_repeat_cfg_r15->unpack(bref));
       }
     }
@@ -50392,355 +49798,255 @@ void phys_cfg_ded_scell_r10_s::to_json(json_writer& j) const
     j.end_obj();
   }
   if (ext) {
-    rrc_asn1_warn_assert(csi_rs_cfg_nzp_to_release_list_r11_present !=
-                             (csi_rs_cfg_nzp_to_release_list_r11.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (csi_rs_cfg_nzp_to_release_list_r11_present) {
+    if (csi_rs_cfg_nzp_to_release_list_r11.is_present()) {
       j.start_array("csi-RS-ConfigNZPToReleaseList-r11");
       for (uint32_t i1 = 0; i1 < csi_rs_cfg_nzp_to_release_list_r11->size(); ++i1) {
         j.write_int(((*csi_rs_cfg_nzp_to_release_list_r11)[i1]));
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(csi_rs_cfg_nzp_to_add_mod_list_r11_present !=
-                             (csi_rs_cfg_nzp_to_add_mod_list_r11.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (csi_rs_cfg_nzp_to_add_mod_list_r11_present) {
+    if (csi_rs_cfg_nzp_to_add_mod_list_r11.is_present()) {
       j.start_array("csi-RS-ConfigNZPToAddModList-r11");
       for (uint32_t i1 = 0; i1 < csi_rs_cfg_nzp_to_add_mod_list_r11->size(); ++i1) {
         ((*csi_rs_cfg_nzp_to_add_mod_list_r11)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(csi_rs_cfg_zp_to_release_list_r11_present != (csi_rs_cfg_zp_to_release_list_r11.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (csi_rs_cfg_zp_to_release_list_r11_present) {
+    if (csi_rs_cfg_zp_to_release_list_r11.is_present()) {
       j.start_array("csi-RS-ConfigZPToReleaseList-r11");
       for (uint32_t i1 = 0; i1 < csi_rs_cfg_zp_to_release_list_r11->size(); ++i1) {
         j.write_int(((*csi_rs_cfg_zp_to_release_list_r11)[i1]));
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(csi_rs_cfg_zp_to_add_mod_list_r11_present != (csi_rs_cfg_zp_to_add_mod_list_r11.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (csi_rs_cfg_zp_to_add_mod_list_r11_present) {
+    if (csi_rs_cfg_zp_to_add_mod_list_r11.is_present()) {
       j.start_array("csi-RS-ConfigZPToAddModList-r11");
       for (uint32_t i1 = 0; i1 < csi_rs_cfg_zp_to_add_mod_list_r11->size(); ++i1) {
         ((*csi_rs_cfg_zp_to_add_mod_list_r11)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(epdcch_cfg_r11_present != (epdcch_cfg_r11.get() != NULL), __FILE__, __LINE__);
-    if (epdcch_cfg_r11_present) {
+    if (epdcch_cfg_r11.is_present()) {
       j.write_fieldname("epdcch-Config-r11");
       epdcch_cfg_r11->to_json(j);
     }
-    rrc_asn1_warn_assert(pdsch_cfg_ded_v1130_present != (pdsch_cfg_ded_v1130.get() != NULL), __FILE__, __LINE__);
-    if (pdsch_cfg_ded_v1130_present) {
+    if (pdsch_cfg_ded_v1130.is_present()) {
       j.write_fieldname("pdsch-ConfigDedicated-v1130");
       pdsch_cfg_ded_v1130->to_json(j);
     }
-    rrc_asn1_warn_assert(cqi_report_cfg_v1130_present != (cqi_report_cfg_v1130.get() != NULL), __FILE__, __LINE__);
-    if (cqi_report_cfg_v1130_present) {
+    if (cqi_report_cfg_v1130.is_present()) {
       j.write_fieldname("cqi-ReportConfig-v1130");
       cqi_report_cfg_v1130->to_json(j);
     }
-    rrc_asn1_warn_assert(pusch_cfg_ded_v1130_present != (pusch_cfg_ded_v1130.get() != NULL), __FILE__, __LINE__);
-    if (pusch_cfg_ded_v1130_present) {
+    if (pusch_cfg_ded_v1130.is_present()) {
       j.write_fieldname("pusch-ConfigDedicated-v1130");
       pusch_cfg_ded_v1130->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        ul_pwr_ctrl_ded_scell_v1130_present != (ul_pwr_ctrl_ded_scell_v1130.get() != NULL), __FILE__, __LINE__);
-    if (ul_pwr_ctrl_ded_scell_v1130_present) {
+    if (ul_pwr_ctrl_ded_scell_v1130.is_present()) {
       j.write_fieldname("uplinkPowerControlDedicatedSCell-v1130");
       ul_pwr_ctrl_ded_scell_v1130->to_json(j);
     }
-    rrc_asn1_warn_assert(ant_info_v1250_present != (ant_info_v1250.get() != NULL), __FILE__, __LINE__);
-    if (ant_info_v1250_present) {
+    if (ant_info_v1250.is_present()) {
       j.write_fieldname("antennaInfo-v1250");
       ant_info_v1250->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        eimta_main_cfg_scell_r12_present != (eimta_main_cfg_scell_r12.get() != NULL), __FILE__, __LINE__);
-    if (eimta_main_cfg_scell_r12_present) {
+    if (eimta_main_cfg_scell_r12.is_present()) {
       j.write_fieldname("eimta-MainConfigSCell-r12");
       eimta_main_cfg_scell_r12->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        cqi_report_cfg_scell_v1250_present != (cqi_report_cfg_scell_v1250.get() != NULL), __FILE__, __LINE__);
-    if (cqi_report_cfg_scell_v1250_present) {
+    if (cqi_report_cfg_scell_v1250.is_present()) {
       j.write_fieldname("cqi-ReportConfigSCell-v1250");
       cqi_report_cfg_scell_v1250->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        ul_pwr_ctrl_ded_scell_v1250_present != (ul_pwr_ctrl_ded_scell_v1250.get() != NULL), __FILE__, __LINE__);
-    if (ul_pwr_ctrl_ded_scell_v1250_present) {
+    if (ul_pwr_ctrl_ded_scell_v1250.is_present()) {
       j.write_fieldname("uplinkPowerControlDedicatedSCell-v1250");
       ul_pwr_ctrl_ded_scell_v1250->to_json(j);
     }
-    rrc_asn1_warn_assert(csi_rs_cfg_v1250_present != (csi_rs_cfg_v1250.get() != NULL), __FILE__, __LINE__);
-    if (csi_rs_cfg_v1250_present) {
+    if (csi_rs_cfg_v1250.is_present()) {
       j.write_fieldname("csi-RS-Config-v1250");
       csi_rs_cfg_v1250->to_json(j);
     }
-    rrc_asn1_warn_assert(pdsch_cfg_ded_v1280_present != (pdsch_cfg_ded_v1280.get() != NULL), __FILE__, __LINE__);
-    if (pdsch_cfg_ded_v1280_present) {
+    if (pdsch_cfg_ded_v1280.is_present()) {
       j.write_fieldname("pdsch-ConfigDedicated-v1280");
       pdsch_cfg_ded_v1280->to_json(j);
     }
     if (pucch_cell_r13_present) {
       j.write_str("pucch-Cell-r13", "true");
     }
-    rrc_asn1_warn_assert(pucch_scell_present != (pucch_scell.get() != NULL), __FILE__, __LINE__);
-    if (pucch_scell_present) {
+    if (pucch_scell.is_present()) {
       j.write_fieldname("pucch-SCell");
       pucch_scell->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        cross_carrier_sched_cfg_r13_present != (cross_carrier_sched_cfg_r13.get() != NULL), __FILE__, __LINE__);
-    if (cross_carrier_sched_cfg_r13_present) {
+    if (cross_carrier_sched_cfg_r13.is_present()) {
       j.write_fieldname("crossCarrierSchedulingConfig-r13");
       cross_carrier_sched_cfg_r13->to_json(j);
     }
-    rrc_asn1_warn_assert(pdcch_cfg_scell_r13_present != (pdcch_cfg_scell_r13.get() != NULL), __FILE__, __LINE__);
-    if (pdcch_cfg_scell_r13_present) {
+    if (pdcch_cfg_scell_r13.is_present()) {
       j.write_fieldname("pdcch-ConfigSCell-r13");
       pdcch_cfg_scell_r13->to_json(j);
     }
-    rrc_asn1_warn_assert(cqi_report_cfg_v1310_present != (cqi_report_cfg_v1310.get() != NULL), __FILE__, __LINE__);
-    if (cqi_report_cfg_v1310_present) {
+    if (cqi_report_cfg_v1310.is_present()) {
       j.write_fieldname("cqi-ReportConfig-v1310");
       cqi_report_cfg_v1310->to_json(j);
     }
-    rrc_asn1_warn_assert(pdsch_cfg_ded_v1310_present != (pdsch_cfg_ded_v1310.get() != NULL), __FILE__, __LINE__);
-    if (pdsch_cfg_ded_v1310_present) {
+    if (pdsch_cfg_ded_v1310.is_present()) {
       j.write_fieldname("pdsch-ConfigDedicated-v1310");
       pdsch_cfg_ded_v1310->to_json(j);
     }
-    rrc_asn1_warn_assert(srs_ul_cfg_ded_v1310_present != (srs_ul_cfg_ded_v1310.get() != NULL), __FILE__, __LINE__);
-    if (srs_ul_cfg_ded_v1310_present) {
+    if (srs_ul_cfg_ded_v1310.is_present()) {
       j.write_fieldname("soundingRS-UL-ConfigDedicated-v1310");
       srs_ul_cfg_ded_v1310->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        srs_ul_cfg_ded_up_pts_ext_r13_present != (srs_ul_cfg_ded_up_pts_ext_r13.get() != NULL), __FILE__, __LINE__);
-    if (srs_ul_cfg_ded_up_pts_ext_r13_present) {
+    if (srs_ul_cfg_ded_up_pts_ext_r13.is_present()) {
       j.write_fieldname("soundingRS-UL-ConfigDedicatedUpPTsExt-r13");
       srs_ul_cfg_ded_up_pts_ext_r13->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        srs_ul_cfg_ded_aperiodic_v1310_present != (srs_ul_cfg_ded_aperiodic_v1310.get() != NULL), __FILE__, __LINE__);
-    if (srs_ul_cfg_ded_aperiodic_v1310_present) {
+    if (srs_ul_cfg_ded_aperiodic_v1310.is_present()) {
       j.write_fieldname("soundingRS-UL-ConfigDedicatedAperiodic-v1310");
       srs_ul_cfg_ded_aperiodic_v1310->to_json(j);
     }
-    rrc_asn1_warn_assert(srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_present !=
-                             (srs_ul_cfg_ded_aperiodic_up_pts_ext_r13.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_present) {
+    if (srs_ul_cfg_ded_aperiodic_up_pts_ext_r13.is_present()) {
       j.write_fieldname("soundingRS-UL-ConfigDedicatedAperiodicUpPTsExt-r13");
       srs_ul_cfg_ded_aperiodic_up_pts_ext_r13->to_json(j);
     }
-    rrc_asn1_warn_assert(csi_rs_cfg_v1310_present != (csi_rs_cfg_v1310.get() != NULL), __FILE__, __LINE__);
-    if (csi_rs_cfg_v1310_present) {
+    if (csi_rs_cfg_v1310.is_present()) {
       j.write_fieldname("csi-RS-Config-v1310");
       csi_rs_cfg_v1310->to_json(j);
     }
-    rrc_asn1_warn_assert(laa_scell_cfg_r13_present != (laa_scell_cfg_r13.get() != NULL), __FILE__, __LINE__);
-    if (laa_scell_cfg_r13_present) {
+    if (laa_scell_cfg_r13.is_present()) {
       j.write_fieldname("laa-SCellConfiguration-r13");
       laa_scell_cfg_r13->to_json(j);
     }
-    rrc_asn1_warn_assert(csi_rs_cfg_nzp_to_add_mod_list_ext_r13_present !=
-                             (csi_rs_cfg_nzp_to_add_mod_list_ext_r13.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (csi_rs_cfg_nzp_to_add_mod_list_ext_r13_present) {
+    if (csi_rs_cfg_nzp_to_add_mod_list_ext_r13.is_present()) {
       j.start_array("csi-RS-ConfigNZPToAddModListExt-r13");
       for (uint32_t i1 = 0; i1 < csi_rs_cfg_nzp_to_add_mod_list_ext_r13->size(); ++i1) {
         ((*csi_rs_cfg_nzp_to_add_mod_list_ext_r13)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(csi_rs_cfg_nzp_to_release_list_ext_r13_present !=
-                             (csi_rs_cfg_nzp_to_release_list_ext_r13.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (csi_rs_cfg_nzp_to_release_list_ext_r13_present) {
+    if (csi_rs_cfg_nzp_to_release_list_ext_r13.is_present()) {
       j.start_array("csi-RS-ConfigNZPToReleaseListExt-r13");
       for (uint32_t i1 = 0; i1 < csi_rs_cfg_nzp_to_release_list_ext_r13->size(); ++i1) {
         j.write_int(((*csi_rs_cfg_nzp_to_release_list_ext_r13)[i1]));
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(cqi_report_cfg_v1320_present != (cqi_report_cfg_v1320.get() != NULL), __FILE__, __LINE__);
-    if (cqi_report_cfg_v1320_present) {
+    if (cqi_report_cfg_v1320.is_present()) {
       j.write_fieldname("cqi-ReportConfig-v1320");
       cqi_report_cfg_v1320->to_json(j);
     }
-    rrc_asn1_warn_assert(laa_scell_cfg_v1430_present != (laa_scell_cfg_v1430.get() != NULL), __FILE__, __LINE__);
-    if (laa_scell_cfg_v1430_present) {
+    if (laa_scell_cfg_v1430.is_present()) {
       j.write_fieldname("laa-SCellConfiguration-v1430");
       laa_scell_cfg_v1430->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        type_b_srs_tpc_pdcch_cfg_r14_present != (type_b_srs_tpc_pdcch_cfg_r14.get() != NULL), __FILE__, __LINE__);
-    if (type_b_srs_tpc_pdcch_cfg_r14_present) {
+    if (type_b_srs_tpc_pdcch_cfg_r14.is_present()) {
       j.write_fieldname("typeB-SRS-TPC-PDCCH-Config-r14");
       type_b_srs_tpc_pdcch_cfg_r14->to_json(j);
     }
-    rrc_asn1_warn_assert(ul_pusch_less_pwr_ctrl_ded_v1430_present != (ul_pusch_less_pwr_ctrl_ded_v1430.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (ul_pusch_less_pwr_ctrl_ded_v1430_present) {
+    if (ul_pusch_less_pwr_ctrl_ded_v1430.is_present()) {
       j.write_fieldname("uplinkPUSCH-LessPowerControlDedicated-v1430");
       ul_pusch_less_pwr_ctrl_ded_v1430->to_json(j);
     }
-    rrc_asn1_warn_assert(srs_ul_periodic_cfg_ded_list_r14_present != (srs_ul_periodic_cfg_ded_list_r14.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (srs_ul_periodic_cfg_ded_list_r14_present) {
+    if (srs_ul_periodic_cfg_ded_list_r14.is_present()) {
       j.start_array("soundingRS-UL-PeriodicConfigDedicatedList-r14");
       for (uint32_t i1 = 0; i1 < srs_ul_periodic_cfg_ded_list_r14->size(); ++i1) {
         ((*srs_ul_periodic_cfg_ded_list_r14)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(srs_ul_periodic_cfg_ded_up_pts_ext_list_r14_present !=
-                             (srs_ul_periodic_cfg_ded_up_pts_ext_list_r14.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (srs_ul_periodic_cfg_ded_up_pts_ext_list_r14_present) {
+    if (srs_ul_periodic_cfg_ded_up_pts_ext_list_r14.is_present()) {
       j.start_array("soundingRS-UL-PeriodicConfigDedicatedUpPTsExtList-r14");
       for (uint32_t i1 = 0; i1 < srs_ul_periodic_cfg_ded_up_pts_ext_list_r14->size(); ++i1) {
         ((*srs_ul_periodic_cfg_ded_up_pts_ext_list_r14)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(srs_ul_aperiodic_cfg_ded_list_r14_present != (srs_ul_aperiodic_cfg_ded_list_r14.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (srs_ul_aperiodic_cfg_ded_list_r14_present) {
+    if (srs_ul_aperiodic_cfg_ded_list_r14.is_present()) {
       j.start_array("soundingRS-UL-AperiodicConfigDedicatedList-r14");
       for (uint32_t i1 = 0; i1 < srs_ul_aperiodic_cfg_ded_list_r14->size(); ++i1) {
         ((*srs_ul_aperiodic_cfg_ded_list_r14)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(srs_ul_cfg_ded_ap_up_pts_ext_list_r14_present !=
-                             (srs_ul_cfg_ded_ap_up_pts_ext_list_r14.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (srs_ul_cfg_ded_ap_up_pts_ext_list_r14_present) {
+    if (srs_ul_cfg_ded_ap_up_pts_ext_list_r14.is_present()) {
       j.start_array("soundingRS-UL-ConfigDedicatedApUpPTsExtList-r14");
       for (uint32_t i1 = 0; i1 < srs_ul_cfg_ded_ap_up_pts_ext_list_r14->size(); ++i1) {
         ((*srs_ul_cfg_ded_ap_up_pts_ext_list_r14)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(must_cfg_r14_present != (must_cfg_r14.get() != NULL), __FILE__, __LINE__);
-    if (must_cfg_r14_present) {
+    if (must_cfg_r14.is_present()) {
       j.write_fieldname("must-Config-r14");
       must_cfg_r14->to_json(j);
     }
-    rrc_asn1_warn_assert(pusch_cfg_ded_v1430_present != (pusch_cfg_ded_v1430.get() != NULL), __FILE__, __LINE__);
-    if (pusch_cfg_ded_v1430_present) {
+    if (pusch_cfg_ded_v1430.is_present()) {
       j.write_fieldname("pusch-ConfigDedicated-v1430");
       pusch_cfg_ded_v1430->to_json(j);
     }
-    rrc_asn1_warn_assert(csi_rs_cfg_v1430_present != (csi_rs_cfg_v1430.get() != NULL), __FILE__, __LINE__);
-    if (csi_rs_cfg_v1430_present) {
+    if (csi_rs_cfg_v1430.is_present()) {
       j.write_fieldname("csi-RS-Config-v1430");
       csi_rs_cfg_v1430->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        csi_rs_cfg_zp_ap_list_r14_present != (csi_rs_cfg_zp_ap_list_r14.get() != NULL), __FILE__, __LINE__);
-    if (csi_rs_cfg_zp_ap_list_r14_present) {
+    if (csi_rs_cfg_zp_ap_list_r14.is_present()) {
       j.write_fieldname("csi-RS-ConfigZP-ApList-r14");
       csi_rs_cfg_zp_ap_list_r14->to_json(j);
     }
-    rrc_asn1_warn_assert(cqi_report_cfg_v1430_present != (cqi_report_cfg_v1430.get() != NULL), __FILE__, __LINE__);
-    if (cqi_report_cfg_v1430_present) {
+    if (cqi_report_cfg_v1430.is_present()) {
       j.write_fieldname("cqi-ReportConfig-v1430");
       cqi_report_cfg_v1430->to_json(j);
     }
     if (semi_open_loop_r14_present) {
       j.write_bool("semiOpenLoop-r14", semi_open_loop_r14);
     }
-    rrc_asn1_warn_assert(
-        pdsch_cfg_ded_scell_v1430_present != (pdsch_cfg_ded_scell_v1430.get() != NULL), __FILE__, __LINE__);
-    if (pdsch_cfg_ded_scell_v1430_present) {
+    if (pdsch_cfg_ded_scell_v1430.is_present()) {
       j.write_fieldname("pdsch-ConfigDedicatedSCell-v1430");
       pdsch_cfg_ded_scell_v1430->to_json(j);
     }
-    rrc_asn1_warn_assert(csi_rs_cfg_v1480_present != (csi_rs_cfg_v1480.get() != NULL), __FILE__, __LINE__);
-    if (csi_rs_cfg_v1480_present) {
+    if (csi_rs_cfg_v1480.is_present()) {
       j.write_fieldname("csi-RS-Config-v1480");
       csi_rs_cfg_v1480->to_json(j);
     }
-    rrc_asn1_warn_assert(phys_cfg_ded_stti_r15_present != (phys_cfg_ded_stti_r15.get() != NULL), __FILE__, __LINE__);
-    if (phys_cfg_ded_stti_r15_present) {
+    if (phys_cfg_ded_stti_r15.is_present()) {
       j.write_fieldname("physicalConfigDedicatedSTTI-r15");
       phys_cfg_ded_stti_r15->to_json(j);
     }
-    rrc_asn1_warn_assert(pdsch_cfg_ded_v1530_present != (pdsch_cfg_ded_v1530.get() != NULL), __FILE__, __LINE__);
-    if (pdsch_cfg_ded_v1530_present) {
+    if (pdsch_cfg_ded_v1530.is_present()) {
       j.write_fieldname("pdsch-ConfigDedicated-v1530");
       pdsch_cfg_ded_v1530->to_json(j);
     }
-    rrc_asn1_warn_assert(cqi_report_cfg_v1530_present != (cqi_report_cfg_v1530.get() != NULL), __FILE__, __LINE__);
-    if (cqi_report_cfg_v1530_present) {
+    if (cqi_report_cfg_v1530.is_present()) {
       j.write_fieldname("cqi-ReportConfig-v1530");
       cqi_report_cfg_v1530->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        cqi_report_cfg_scell_r15_present != (cqi_report_cfg_scell_r15.get() != NULL), __FILE__, __LINE__);
-    if (cqi_report_cfg_scell_r15_present) {
+    if (cqi_report_cfg_scell_r15.is_present()) {
       j.write_fieldname("cqi-ReportConfigSCell-r15");
       cqi_report_cfg_scell_r15->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        cqi_short_cfg_scell_r15_present != (cqi_short_cfg_scell_r15.get() != NULL), __FILE__, __LINE__);
-    if (cqi_short_cfg_scell_r15_present) {
+    if (cqi_short_cfg_scell_r15.is_present()) {
       j.write_fieldname("cqi-ShortConfigSCell-r15");
       cqi_short_cfg_scell_r15->to_json(j);
     }
-    rrc_asn1_warn_assert(csi_rs_cfg_v1530_present != (csi_rs_cfg_v1530.get() != NULL), __FILE__, __LINE__);
-    if (csi_rs_cfg_v1530_present) {
+    if (csi_rs_cfg_v1530.is_present()) {
       j.write_fieldname("csi-RS-Config-v1530");
       csi_rs_cfg_v1530->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        ul_pwr_ctrl_ded_scell_v1530_present != (ul_pwr_ctrl_ded_scell_v1530.get() != NULL), __FILE__, __LINE__);
-    if (ul_pwr_ctrl_ded_scell_v1530_present) {
+    if (ul_pwr_ctrl_ded_scell_v1530.is_present()) {
       j.write_fieldname("uplinkPowerControlDedicatedSCell-v1530");
       ul_pwr_ctrl_ded_scell_v1530->to_json(j);
     }
-    rrc_asn1_warn_assert(laa_scell_cfg_v1530_present != (laa_scell_cfg_v1530.get() != NULL), __FILE__, __LINE__);
-    if (laa_scell_cfg_v1530_present) {
+    if (laa_scell_cfg_v1530.is_present()) {
       j.write_fieldname("laa-SCellConfiguration-v1530");
       laa_scell_cfg_v1530->to_json(j);
     }
-    rrc_asn1_warn_assert(pusch_cfg_ded_v1530_present != (pusch_cfg_ded_v1530.get() != NULL), __FILE__, __LINE__);
-    if (pusch_cfg_ded_v1530_present) {
+    if (pusch_cfg_ded_v1530.is_present()) {
       j.write_fieldname("pusch-ConfigDedicated-v1530");
       pusch_cfg_ded_v1530->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        semi_static_cfi_cfg_r15_present != (semi_static_cfi_cfg_r15.get() != NULL), __FILE__, __LINE__);
-    if (semi_static_cfi_cfg_r15_present) {
+    if (semi_static_cfi_cfg_r15.is_present()) {
       j.write_fieldname("semiStaticCFI-Config-r15");
       semi_static_cfi_cfg_r15->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        blind_pdsch_repeat_cfg_r15_present != (blind_pdsch_repeat_cfg_r15.get() != NULL), __FILE__, __LINE__);
-    if (blind_pdsch_repeat_cfg_r15_present) {
+    if (blind_pdsch_repeat_cfg_r15.is_present()) {
       j.write_fieldname("blindPDSCH-Repetition-Config-r15");
       blind_pdsch_repeat_cfg_r15->to_json(j);
     }
@@ -51621,44 +50927,26 @@ SRSASN_CODE rr_cfg_common_scell_r10_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(7);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= ul_carrier_freq_v1090_present;
-    rrc_asn1_warn_assert(
-        rach_cfg_common_scell_r11_present != (rach_cfg_common_scell_r11.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= rach_cfg_common_scell_r11_present;
-    rrc_asn1_warn_assert(prach_cfg_scell_r11_present != (prach_cfg_scell_r11.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= prach_cfg_scell_r11_present;
-    rrc_asn1_warn_assert(tdd_cfg_v1130_present != (tdd_cfg_v1130.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= tdd_cfg_v1130_present;
-    rrc_asn1_warn_assert(
-        ul_pwr_ctrl_common_scell_v1130_present != (ul_pwr_ctrl_common_scell_v1130.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= ul_pwr_ctrl_common_scell_v1130_present;
-    rrc_asn1_warn_assert(pusch_cfg_common_v1270_present != (pusch_cfg_common_v1270.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= pusch_cfg_common_v1270_present;
-    rrc_asn1_warn_assert(pucch_cfg_common_r13_present != (pucch_cfg_common_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= pucch_cfg_common_r13_present;
-    rrc_asn1_warn_assert(
-        ul_pwr_ctrl_common_scell_v1310_present != (ul_pwr_ctrl_common_scell_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= ul_pwr_ctrl_common_scell_v1310_present;
-    rrc_asn1_warn_assert(
-        high_speed_cfg_scell_r14_present != (high_speed_cfg_scell_r14.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= high_speed_cfg_scell_r14_present;
-    rrc_asn1_warn_assert(prach_cfg_v1430_present != (prach_cfg_v1430.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= prach_cfg_v1430_present;
-    rrc_asn1_warn_assert(ul_cfg_r14_present != (ul_cfg_r14.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= ul_cfg_r14_present;
+    group_flags[1] |= rach_cfg_common_scell_r11.is_present();
+    group_flags[1] |= prach_cfg_scell_r11.is_present();
+    group_flags[1] |= tdd_cfg_v1130.is_present();
+    group_flags[1] |= ul_pwr_ctrl_common_scell_v1130.is_present();
+    group_flags[2] |= pusch_cfg_common_v1270.is_present();
+    group_flags[3] |= pucch_cfg_common_r13.is_present();
+    group_flags[3] |= ul_pwr_ctrl_common_scell_v1310.is_present();
+    group_flags[4] |= high_speed_cfg_scell_r14.is_present();
+    group_flags[4] |= prach_cfg_v1430.is_present();
+    group_flags[4] |= ul_cfg_r14.is_present();
     group_flags[4] |= harq_ref_cfg_r14_present;
     group_flags[4] |= srs_flex_timing_r14_present;
-    rrc_asn1_warn_assert(
-        mbsfn_sf_cfg_list_v1430_present != (mbsfn_sf_cfg_list_v1430.get() != NULL), __FILE__, __LINE__);
-    group_flags[5] |= mbsfn_sf_cfg_list_v1430_present;
-    rrc_asn1_warn_assert(
-        ul_pwr_ctrl_common_scell_v1530_present != (ul_pwr_ctrl_common_scell_v1530.get() != NULL), __FILE__, __LINE__);
-    group_flags[6] |= ul_pwr_ctrl_common_scell_v1530_present;
+    group_flags[5] |= mbsfn_sf_cfg_list_v1430.is_present();
+    group_flags[6] |= ul_pwr_ctrl_common_scell_v1530.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(ul_carrier_freq_v1090_present, 1));
       if (ul_carrier_freq_v1090_present) {
@@ -51666,60 +50954,60 @@ SRSASN_CODE rr_cfg_common_scell_r10_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(rach_cfg_common_scell_r11_present, 1));
-      HANDLE_CODE(bref.pack(prach_cfg_scell_r11_present, 1));
-      HANDLE_CODE(bref.pack(tdd_cfg_v1130_present, 1));
-      HANDLE_CODE(bref.pack(ul_pwr_ctrl_common_scell_v1130_present, 1));
-      if (rach_cfg_common_scell_r11_present) {
+      HANDLE_CODE(bref.pack(rach_cfg_common_scell_r11.is_present(), 1));
+      HANDLE_CODE(bref.pack(prach_cfg_scell_r11.is_present(), 1));
+      HANDLE_CODE(bref.pack(tdd_cfg_v1130.is_present(), 1));
+      HANDLE_CODE(bref.pack(ul_pwr_ctrl_common_scell_v1130.is_present(), 1));
+      if (rach_cfg_common_scell_r11.is_present()) {
         HANDLE_CODE(rach_cfg_common_scell_r11->pack(bref));
       }
-      if (prach_cfg_scell_r11_present) {
+      if (prach_cfg_scell_r11.is_present()) {
         HANDLE_CODE(prach_cfg_scell_r11->pack(bref));
       }
-      if (tdd_cfg_v1130_present) {
+      if (tdd_cfg_v1130.is_present()) {
         HANDLE_CODE(tdd_cfg_v1130->pack(bref));
       }
-      if (ul_pwr_ctrl_common_scell_v1130_present) {
+      if (ul_pwr_ctrl_common_scell_v1130.is_present()) {
         HANDLE_CODE(ul_pwr_ctrl_common_scell_v1130->pack(bref));
       }
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(pusch_cfg_common_v1270_present, 1));
-      if (pusch_cfg_common_v1270_present) {
+      HANDLE_CODE(bref.pack(pusch_cfg_common_v1270.is_present(), 1));
+      if (pusch_cfg_common_v1270.is_present()) {
         HANDLE_CODE(pusch_cfg_common_v1270->pack(bref));
       }
     }
     if (group_flags[3]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(pucch_cfg_common_r13_present, 1));
-      HANDLE_CODE(bref.pack(ul_pwr_ctrl_common_scell_v1310_present, 1));
-      if (pucch_cfg_common_r13_present) {
+      HANDLE_CODE(bref.pack(pucch_cfg_common_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(ul_pwr_ctrl_common_scell_v1310.is_present(), 1));
+      if (pucch_cfg_common_r13.is_present()) {
         HANDLE_CODE(pucch_cfg_common_r13->pack(bref));
       }
-      if (ul_pwr_ctrl_common_scell_v1310_present) {
+      if (ul_pwr_ctrl_common_scell_v1310.is_present()) {
         HANDLE_CODE(ul_pwr_ctrl_common_scell_v1310->pack(bref));
       }
     }
     if (group_flags[4]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(high_speed_cfg_scell_r14_present, 1));
-      HANDLE_CODE(bref.pack(prach_cfg_v1430_present, 1));
-      HANDLE_CODE(bref.pack(ul_cfg_r14_present, 1));
+      HANDLE_CODE(bref.pack(high_speed_cfg_scell_r14.is_present(), 1));
+      HANDLE_CODE(bref.pack(prach_cfg_v1430.is_present(), 1));
+      HANDLE_CODE(bref.pack(ul_cfg_r14.is_present(), 1));
       HANDLE_CODE(bref.pack(harq_ref_cfg_r14_present, 1));
       HANDLE_CODE(bref.pack(srs_flex_timing_r14_present, 1));
-      if (high_speed_cfg_scell_r14_present) {
+      if (high_speed_cfg_scell_r14.is_present()) {
         HANDLE_CODE(high_speed_cfg_scell_r14->pack(bref));
       }
-      if (prach_cfg_v1430_present) {
+      if (prach_cfg_v1430.is_present()) {
         HANDLE_CODE(prach_cfg_v1430->pack(bref));
       }
-      if (ul_cfg_r14_present) {
+      if (ul_cfg_r14.is_present()) {
         HANDLE_CODE(bref.pack(ul_cfg_r14->p_max_r14_present, 1));
         HANDLE_CODE(bref.pack(ul_cfg_r14->prach_cfg_scell_r14_present, 1));
         HANDLE_CODE(bref.pack(ul_cfg_r14->ul_pwr_ctrl_common_pusch_less_cell_v1430_present, 1));
@@ -51751,18 +51039,18 @@ SRSASN_CODE rr_cfg_common_scell_r10_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[5]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(mbsfn_sf_cfg_list_v1430_present, 1));
-      if (mbsfn_sf_cfg_list_v1430_present) {
+      HANDLE_CODE(bref.pack(mbsfn_sf_cfg_list_v1430.is_present(), 1));
+      if (mbsfn_sf_cfg_list_v1430.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *mbsfn_sf_cfg_list_v1430, 1, 8));
       }
     }
     if (group_flags[6]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(ul_pwr_ctrl_common_scell_v1530_present, 1));
-      if (ul_pwr_ctrl_common_scell_v1530_present) {
+      HANDLE_CODE(bref.pack(ul_pwr_ctrl_common_scell_v1530.is_present(), 1));
+      if (ul_pwr_ctrl_common_scell_v1530.is_present()) {
         HANDLE_CODE(ul_pwr_ctrl_common_scell_v1530->pack(bref));
       }
     }
@@ -51813,11 +51101,11 @@ SRSASN_CODE rr_cfg_common_scell_r10_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(7);
+    ext_groups_unpacker_guard group_flags(7);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(ul_carrier_freq_v1090_present, 1));
       if (ul_carrier_freq_v1090_present) {
@@ -51825,70 +51113,80 @@ SRSASN_CODE rr_cfg_common_scell_r10_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool rach_cfg_common_scell_r11_present;
       HANDLE_CODE(bref.unpack(rach_cfg_common_scell_r11_present, 1));
+      rach_cfg_common_scell_r11.set_present(rach_cfg_common_scell_r11_present);
+      bool prach_cfg_scell_r11_present;
       HANDLE_CODE(bref.unpack(prach_cfg_scell_r11_present, 1));
+      prach_cfg_scell_r11.set_present(prach_cfg_scell_r11_present);
+      bool tdd_cfg_v1130_present;
       HANDLE_CODE(bref.unpack(tdd_cfg_v1130_present, 1));
+      tdd_cfg_v1130.set_present(tdd_cfg_v1130_present);
+      bool ul_pwr_ctrl_common_scell_v1130_present;
       HANDLE_CODE(bref.unpack(ul_pwr_ctrl_common_scell_v1130_present, 1));
-      if (rach_cfg_common_scell_r11_present) {
-        rach_cfg_common_scell_r11 = make_copy_ptr(rach_cfg_common_scell_r11_s());
+      ul_pwr_ctrl_common_scell_v1130.set_present(ul_pwr_ctrl_common_scell_v1130_present);
+      if (rach_cfg_common_scell_r11.is_present()) {
         HANDLE_CODE(rach_cfg_common_scell_r11->unpack(bref));
       }
-      if (prach_cfg_scell_r11_present) {
-        prach_cfg_scell_r11 = make_copy_ptr(prach_cfg_s());
+      if (prach_cfg_scell_r11.is_present()) {
         HANDLE_CODE(prach_cfg_scell_r11->unpack(bref));
       }
-      if (tdd_cfg_v1130_present) {
-        tdd_cfg_v1130 = make_copy_ptr(tdd_cfg_v1130_s());
+      if (tdd_cfg_v1130.is_present()) {
         HANDLE_CODE(tdd_cfg_v1130->unpack(bref));
       }
-      if (ul_pwr_ctrl_common_scell_v1130_present) {
-        ul_pwr_ctrl_common_scell_v1130 = make_copy_ptr(ul_pwr_ctrl_common_scell_v1130_s());
+      if (ul_pwr_ctrl_common_scell_v1130.is_present()) {
         HANDLE_CODE(ul_pwr_ctrl_common_scell_v1130->unpack(bref));
       }
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool pusch_cfg_common_v1270_present;
       HANDLE_CODE(bref.unpack(pusch_cfg_common_v1270_present, 1));
-      if (pusch_cfg_common_v1270_present) {
-        pusch_cfg_common_v1270 = make_copy_ptr(pusch_cfg_common_v1270_s());
+      pusch_cfg_common_v1270.set_present(pusch_cfg_common_v1270_present);
+      if (pusch_cfg_common_v1270.is_present()) {
         HANDLE_CODE(pusch_cfg_common_v1270->unpack(bref));
       }
     }
     if (group_flags[3]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool pucch_cfg_common_r13_present;
       HANDLE_CODE(bref.unpack(pucch_cfg_common_r13_present, 1));
+      pucch_cfg_common_r13.set_present(pucch_cfg_common_r13_present);
+      bool ul_pwr_ctrl_common_scell_v1310_present;
       HANDLE_CODE(bref.unpack(ul_pwr_ctrl_common_scell_v1310_present, 1));
-      if (pucch_cfg_common_r13_present) {
-        pucch_cfg_common_r13 = make_copy_ptr(pucch_cfg_common_s());
+      ul_pwr_ctrl_common_scell_v1310.set_present(ul_pwr_ctrl_common_scell_v1310_present);
+      if (pucch_cfg_common_r13.is_present()) {
         HANDLE_CODE(pucch_cfg_common_r13->unpack(bref));
       }
-      if (ul_pwr_ctrl_common_scell_v1310_present) {
-        ul_pwr_ctrl_common_scell_v1310 = make_copy_ptr(ul_pwr_ctrl_common_scell_v1310_s());
+      if (ul_pwr_ctrl_common_scell_v1310.is_present()) {
         HANDLE_CODE(ul_pwr_ctrl_common_scell_v1310->unpack(bref));
       }
     }
     if (group_flags[4]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool high_speed_cfg_scell_r14_present;
       HANDLE_CODE(bref.unpack(high_speed_cfg_scell_r14_present, 1));
+      high_speed_cfg_scell_r14.set_present(high_speed_cfg_scell_r14_present);
+      bool prach_cfg_v1430_present;
       HANDLE_CODE(bref.unpack(prach_cfg_v1430_present, 1));
+      prach_cfg_v1430.set_present(prach_cfg_v1430_present);
+      bool ul_cfg_r14_present;
       HANDLE_CODE(bref.unpack(ul_cfg_r14_present, 1));
+      ul_cfg_r14.set_present(ul_cfg_r14_present);
       HANDLE_CODE(bref.unpack(harq_ref_cfg_r14_present, 1));
       HANDLE_CODE(bref.unpack(srs_flex_timing_r14_present, 1));
-      if (high_speed_cfg_scell_r14_present) {
-        high_speed_cfg_scell_r14 = make_copy_ptr(high_speed_cfg_scell_r14_s());
+      if (high_speed_cfg_scell_r14.is_present()) {
         HANDLE_CODE(high_speed_cfg_scell_r14->unpack(bref));
       }
-      if (prach_cfg_v1430_present) {
-        prach_cfg_v1430 = make_copy_ptr(prach_cfg_v1430_s());
+      if (prach_cfg_v1430.is_present()) {
         HANDLE_CODE(prach_cfg_v1430->unpack(bref));
       }
-      if (ul_cfg_r14_present) {
-        ul_cfg_r14 = make_copy_ptr(ul_cfg_r14_s_());
+      if (ul_cfg_r14.is_present()) {
         HANDLE_CODE(bref.unpack(ul_cfg_r14->p_max_r14_present, 1));
         HANDLE_CODE(bref.unpack(ul_cfg_r14->prach_cfg_scell_r14_present, 1));
         HANDLE_CODE(bref.unpack(ul_cfg_r14->ul_pwr_ctrl_common_pusch_less_cell_v1430_present, 1));
@@ -51920,20 +51218,22 @@ SRSASN_CODE rr_cfg_common_scell_r10_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[5]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool mbsfn_sf_cfg_list_v1430_present;
       HANDLE_CODE(bref.unpack(mbsfn_sf_cfg_list_v1430_present, 1));
-      if (mbsfn_sf_cfg_list_v1430_present) {
-        mbsfn_sf_cfg_list_v1430 = make_copy_ptr(mbsfn_sf_cfg_list_v1430_l());
+      mbsfn_sf_cfg_list_v1430.set_present(mbsfn_sf_cfg_list_v1430_present);
+      if (mbsfn_sf_cfg_list_v1430.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*mbsfn_sf_cfg_list_v1430, bref, 1, 8));
       }
     }
     if (group_flags[6]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool ul_pwr_ctrl_common_scell_v1530_present;
       HANDLE_CODE(bref.unpack(ul_pwr_ctrl_common_scell_v1530_present, 1));
-      if (ul_pwr_ctrl_common_scell_v1530_present) {
-        ul_pwr_ctrl_common_scell_v1530 = make_copy_ptr(ul_pwr_ctrl_common_v1530_s());
+      ul_pwr_ctrl_common_scell_v1530.set_present(ul_pwr_ctrl_common_scell_v1530_present);
+      if (ul_pwr_ctrl_common_scell_v1530.is_present()) {
         HANDLE_CODE(ul_pwr_ctrl_common_scell_v1530->unpack(bref));
       }
     }
@@ -51997,57 +51297,43 @@ void rr_cfg_common_scell_r10_s::to_json(json_writer& j) const
     if (ul_carrier_freq_v1090_present) {
       j.write_int("ul-CarrierFreq-v1090", ul_carrier_freq_v1090);
     }
-    rrc_asn1_warn_assert(
-        rach_cfg_common_scell_r11_present != (rach_cfg_common_scell_r11.get() != NULL), __FILE__, __LINE__);
-    if (rach_cfg_common_scell_r11_present) {
+    if (rach_cfg_common_scell_r11.is_present()) {
       j.write_fieldname("rach-ConfigCommonSCell-r11");
       rach_cfg_common_scell_r11->to_json(j);
     }
-    rrc_asn1_warn_assert(prach_cfg_scell_r11_present != (prach_cfg_scell_r11.get() != NULL), __FILE__, __LINE__);
-    if (prach_cfg_scell_r11_present) {
+    if (prach_cfg_scell_r11.is_present()) {
       j.write_fieldname("prach-ConfigSCell-r11");
       prach_cfg_scell_r11->to_json(j);
     }
-    rrc_asn1_warn_assert(tdd_cfg_v1130_present != (tdd_cfg_v1130.get() != NULL), __FILE__, __LINE__);
-    if (tdd_cfg_v1130_present) {
+    if (tdd_cfg_v1130.is_present()) {
       j.write_fieldname("tdd-Config-v1130");
       tdd_cfg_v1130->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        ul_pwr_ctrl_common_scell_v1130_present != (ul_pwr_ctrl_common_scell_v1130.get() != NULL), __FILE__, __LINE__);
-    if (ul_pwr_ctrl_common_scell_v1130_present) {
+    if (ul_pwr_ctrl_common_scell_v1130.is_present()) {
       j.write_fieldname("uplinkPowerControlCommonSCell-v1130");
       ul_pwr_ctrl_common_scell_v1130->to_json(j);
     }
-    rrc_asn1_warn_assert(pusch_cfg_common_v1270_present != (pusch_cfg_common_v1270.get() != NULL), __FILE__, __LINE__);
-    if (pusch_cfg_common_v1270_present) {
+    if (pusch_cfg_common_v1270.is_present()) {
       j.write_fieldname("pusch-ConfigCommon-v1270");
       pusch_cfg_common_v1270->to_json(j);
     }
-    rrc_asn1_warn_assert(pucch_cfg_common_r13_present != (pucch_cfg_common_r13.get() != NULL), __FILE__, __LINE__);
-    if (pucch_cfg_common_r13_present) {
+    if (pucch_cfg_common_r13.is_present()) {
       j.write_fieldname("pucch-ConfigCommon-r13");
       pucch_cfg_common_r13->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        ul_pwr_ctrl_common_scell_v1310_present != (ul_pwr_ctrl_common_scell_v1310.get() != NULL), __FILE__, __LINE__);
-    if (ul_pwr_ctrl_common_scell_v1310_present) {
+    if (ul_pwr_ctrl_common_scell_v1310.is_present()) {
       j.write_fieldname("uplinkPowerControlCommonSCell-v1310");
       ul_pwr_ctrl_common_scell_v1310->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        high_speed_cfg_scell_r14_present != (high_speed_cfg_scell_r14.get() != NULL), __FILE__, __LINE__);
-    if (high_speed_cfg_scell_r14_present) {
+    if (high_speed_cfg_scell_r14.is_present()) {
       j.write_fieldname("highSpeedConfigSCell-r14");
       high_speed_cfg_scell_r14->to_json(j);
     }
-    rrc_asn1_warn_assert(prach_cfg_v1430_present != (prach_cfg_v1430.get() != NULL), __FILE__, __LINE__);
-    if (prach_cfg_v1430_present) {
+    if (prach_cfg_v1430.is_present()) {
       j.write_fieldname("prach-Config-v1430");
       prach_cfg_v1430->to_json(j);
     }
-    rrc_asn1_warn_assert(ul_cfg_r14_present != (ul_cfg_r14.get() != NULL), __FILE__, __LINE__);
-    if (ul_cfg_r14_present) {
+    if (ul_cfg_r14.is_present()) {
       j.write_fieldname("ul-Configuration-r14");
       j.start_obj();
       j.write_fieldname("ul-FreqInfo-r14");
@@ -52082,18 +51368,14 @@ void rr_cfg_common_scell_r10_s::to_json(json_writer& j) const
     if (srs_flex_timing_r14_present) {
       j.write_str("soundingRS-FlexibleTiming-r14", "true");
     }
-    rrc_asn1_warn_assert(
-        mbsfn_sf_cfg_list_v1430_present != (mbsfn_sf_cfg_list_v1430.get() != NULL), __FILE__, __LINE__);
-    if (mbsfn_sf_cfg_list_v1430_present) {
+    if (mbsfn_sf_cfg_list_v1430.is_present()) {
       j.start_array("mbsfn-SubframeConfigList-v1430");
       for (uint32_t i1 = 0; i1 < mbsfn_sf_cfg_list_v1430->size(); ++i1) {
         ((*mbsfn_sf_cfg_list_v1430)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(
-        ul_pwr_ctrl_common_scell_v1530_present != (ul_pwr_ctrl_common_scell_v1530.get() != NULL), __FILE__, __LINE__);
-    if (ul_pwr_ctrl_common_scell_v1530_present) {
+    if (ul_pwr_ctrl_common_scell_v1530.is_present()) {
       j.write_fieldname("uplinkPowerControlCommonSCell-v1530");
       ul_pwr_ctrl_common_scell_v1530->to_json(j);
     }
@@ -52112,70 +51394,61 @@ SRSASN_CODE rr_cfg_ded_scell_r10_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(5);
-    rrc_asn1_warn_assert(mac_main_cfg_scell_r11_present != (mac_main_cfg_scell_r11.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= mac_main_cfg_scell_r11_present;
-    rrc_asn1_warn_assert(naics_info_r12_present != (naics_info_r12.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= naics_info_r12_present;
-    rrc_asn1_warn_assert(
-        neigh_cells_crs_info_scell_r13_present != (neigh_cells_crs_info_scell_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= neigh_cells_crs_info_scell_r13_present;
-    rrc_asn1_warn_assert(
-        phys_cfg_ded_scell_v1370_present != (phys_cfg_ded_scell_v1370.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= phys_cfg_ded_scell_v1370_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= mac_main_cfg_scell_r11.is_present();
+    group_flags[1] |= naics_info_r12.is_present();
+    group_flags[2] |= neigh_cells_crs_info_scell_r13.is_present();
+    group_flags[3] |= phys_cfg_ded_scell_v1370.is_present();
     group_flags[4] |= crs_intf_mitig_enabled_r15_present;
-    rrc_asn1_warn_assert(
-        neigh_cells_crs_info_r15_present != (neigh_cells_crs_info_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= neigh_cells_crs_info_r15_present;
-    rrc_asn1_warn_assert(sps_cfg_v1530_present != (sps_cfg_v1530.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= sps_cfg_v1530_present;
+    group_flags[4] |= neigh_cells_crs_info_r15.is_present();
+    group_flags[4] |= sps_cfg_v1530.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(mac_main_cfg_scell_r11_present, 1));
-      if (mac_main_cfg_scell_r11_present) {
+      HANDLE_CODE(bref.pack(mac_main_cfg_scell_r11.is_present(), 1));
+      if (mac_main_cfg_scell_r11.is_present()) {
         HANDLE_CODE(mac_main_cfg_scell_r11->pack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(naics_info_r12_present, 1));
-      if (naics_info_r12_present) {
+      HANDLE_CODE(bref.pack(naics_info_r12.is_present(), 1));
+      if (naics_info_r12.is_present()) {
         HANDLE_CODE(naics_info_r12->pack(bref));
       }
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(neigh_cells_crs_info_scell_r13_present, 1));
-      if (neigh_cells_crs_info_scell_r13_present) {
+      HANDLE_CODE(bref.pack(neigh_cells_crs_info_scell_r13.is_present(), 1));
+      if (neigh_cells_crs_info_scell_r13.is_present()) {
         HANDLE_CODE(neigh_cells_crs_info_scell_r13->pack(bref));
       }
     }
     if (group_flags[3]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(phys_cfg_ded_scell_v1370_present, 1));
-      if (phys_cfg_ded_scell_v1370_present) {
+      HANDLE_CODE(bref.pack(phys_cfg_ded_scell_v1370.is_present(), 1));
+      if (phys_cfg_ded_scell_v1370.is_present()) {
         HANDLE_CODE(phys_cfg_ded_scell_v1370->pack(bref));
       }
     }
     if (group_flags[4]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(crs_intf_mitig_enabled_r15_present, 1));
-      HANDLE_CODE(bref.pack(neigh_cells_crs_info_r15_present, 1));
-      HANDLE_CODE(bref.pack(sps_cfg_v1530_present, 1));
+      HANDLE_CODE(bref.pack(neigh_cells_crs_info_r15.is_present(), 1));
+      HANDLE_CODE(bref.pack(sps_cfg_v1530.is_present(), 1));
       if (crs_intf_mitig_enabled_r15_present) {
         HANDLE_CODE(bref.pack(crs_intf_mitig_enabled_r15, 1));
       }
-      if (neigh_cells_crs_info_r15_present) {
+      if (neigh_cells_crs_info_r15.is_present()) {
         HANDLE_CODE(neigh_cells_crs_info_r15->pack(bref));
       }
-      if (sps_cfg_v1530_present) {
+      if (sps_cfg_v1530.is_present()) {
         HANDLE_CODE(sps_cfg_v1530->pack(bref));
       }
     }
@@ -52192,60 +51465,66 @@ SRSASN_CODE rr_cfg_ded_scell_r10_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(5);
+    ext_groups_unpacker_guard group_flags(5);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool mac_main_cfg_scell_r11_present;
       HANDLE_CODE(bref.unpack(mac_main_cfg_scell_r11_present, 1));
-      if (mac_main_cfg_scell_r11_present) {
-        mac_main_cfg_scell_r11 = make_copy_ptr(mac_main_cfg_scell_r11_s());
+      mac_main_cfg_scell_r11.set_present(mac_main_cfg_scell_r11_present);
+      if (mac_main_cfg_scell_r11.is_present()) {
         HANDLE_CODE(mac_main_cfg_scell_r11->unpack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool naics_info_r12_present;
       HANDLE_CODE(bref.unpack(naics_info_r12_present, 1));
-      if (naics_info_r12_present) {
-        naics_info_r12 = make_copy_ptr(naics_assist_info_r12_c());
+      naics_info_r12.set_present(naics_info_r12_present);
+      if (naics_info_r12.is_present()) {
         HANDLE_CODE(naics_info_r12->unpack(bref));
       }
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool neigh_cells_crs_info_scell_r13_present;
       HANDLE_CODE(bref.unpack(neigh_cells_crs_info_scell_r13_present, 1));
-      if (neigh_cells_crs_info_scell_r13_present) {
-        neigh_cells_crs_info_scell_r13 = make_copy_ptr(neigh_cells_crs_info_r13_c());
+      neigh_cells_crs_info_scell_r13.set_present(neigh_cells_crs_info_scell_r13_present);
+      if (neigh_cells_crs_info_scell_r13.is_present()) {
         HANDLE_CODE(neigh_cells_crs_info_scell_r13->unpack(bref));
       }
     }
     if (group_flags[3]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool phys_cfg_ded_scell_v1370_present;
       HANDLE_CODE(bref.unpack(phys_cfg_ded_scell_v1370_present, 1));
-      if (phys_cfg_ded_scell_v1370_present) {
-        phys_cfg_ded_scell_v1370 = make_copy_ptr(phys_cfg_ded_scell_v1370_s());
+      phys_cfg_ded_scell_v1370.set_present(phys_cfg_ded_scell_v1370_present);
+      if (phys_cfg_ded_scell_v1370.is_present()) {
         HANDLE_CODE(phys_cfg_ded_scell_v1370->unpack(bref));
       }
     }
     if (group_flags[4]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(crs_intf_mitig_enabled_r15_present, 1));
+      bool neigh_cells_crs_info_r15_present;
       HANDLE_CODE(bref.unpack(neigh_cells_crs_info_r15_present, 1));
+      neigh_cells_crs_info_r15.set_present(neigh_cells_crs_info_r15_present);
+      bool sps_cfg_v1530_present;
       HANDLE_CODE(bref.unpack(sps_cfg_v1530_present, 1));
+      sps_cfg_v1530.set_present(sps_cfg_v1530_present);
       if (crs_intf_mitig_enabled_r15_present) {
         HANDLE_CODE(bref.unpack(crs_intf_mitig_enabled_r15, 1));
       }
-      if (neigh_cells_crs_info_r15_present) {
-        neigh_cells_crs_info_r15 = make_copy_ptr(neigh_cells_crs_info_r15_c());
+      if (neigh_cells_crs_info_r15.is_present()) {
         HANDLE_CODE(neigh_cells_crs_info_r15->unpack(bref));
       }
-      if (sps_cfg_v1530_present) {
-        sps_cfg_v1530 = make_copy_ptr(sps_cfg_v1530_s());
+      if (sps_cfg_v1530.is_present()) {
         HANDLE_CODE(sps_cfg_v1530->unpack(bref));
       }
     }
@@ -52260,39 +51539,30 @@ void rr_cfg_ded_scell_r10_s::to_json(json_writer& j) const
     phys_cfg_ded_scell_r10.to_json(j);
   }
   if (ext) {
-    rrc_asn1_warn_assert(mac_main_cfg_scell_r11_present != (mac_main_cfg_scell_r11.get() != NULL), __FILE__, __LINE__);
-    if (mac_main_cfg_scell_r11_present) {
+    if (mac_main_cfg_scell_r11.is_present()) {
       j.write_fieldname("mac-MainConfigSCell-r11");
       mac_main_cfg_scell_r11->to_json(j);
     }
-    rrc_asn1_warn_assert(naics_info_r12_present != (naics_info_r12.get() != NULL), __FILE__, __LINE__);
-    if (naics_info_r12_present) {
+    if (naics_info_r12.is_present()) {
       j.write_fieldname("naics-Info-r12");
       naics_info_r12->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        neigh_cells_crs_info_scell_r13_present != (neigh_cells_crs_info_scell_r13.get() != NULL), __FILE__, __LINE__);
-    if (neigh_cells_crs_info_scell_r13_present) {
+    if (neigh_cells_crs_info_scell_r13.is_present()) {
       j.write_fieldname("neighCellsCRS-InfoSCell-r13");
       neigh_cells_crs_info_scell_r13->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        phys_cfg_ded_scell_v1370_present != (phys_cfg_ded_scell_v1370.get() != NULL), __FILE__, __LINE__);
-    if (phys_cfg_ded_scell_v1370_present) {
+    if (phys_cfg_ded_scell_v1370.is_present()) {
       j.write_fieldname("physicalConfigDedicatedSCell-v1370");
       phys_cfg_ded_scell_v1370->to_json(j);
     }
     if (crs_intf_mitig_enabled_r15_present) {
       j.write_bool("crs-IntfMitigEnabled-r15", crs_intf_mitig_enabled_r15);
     }
-    rrc_asn1_warn_assert(
-        neigh_cells_crs_info_r15_present != (neigh_cells_crs_info_r15.get() != NULL), __FILE__, __LINE__);
-    if (neigh_cells_crs_info_r15_present) {
+    if (neigh_cells_crs_info_r15.is_present()) {
       j.write_fieldname("neighCellsCRS-Info-r15");
       neigh_cells_crs_info_r15->to_json(j);
     }
-    rrc_asn1_warn_assert(sps_cfg_v1530_present != (sps_cfg_v1530.get() != NULL), __FILE__, __LINE__);
-    if (sps_cfg_v1530_present) {
+    if (sps_cfg_v1530.is_present()) {
       j.write_fieldname("sps-Config-v1530");
       sps_cfg_v1530->to_json(j);
     }
@@ -52636,38 +51906,34 @@ SRSASN_CODE drb_to_add_mod_scg_r12_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(2);
-    rrc_asn1_warn_assert(rlc_cfg_v1430_present != (rlc_cfg_v1430.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= rlc_cfg_v1430_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= rlc_cfg_v1430.is_present();
     group_flags[1] |= lc_ch_id_scg_r15_present;
-    rrc_asn1_warn_assert(rlc_cfg_v1530_present != (rlc_cfg_v1530.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= rlc_cfg_v1530_present;
-    rrc_asn1_warn_assert(
-        rlc_bearer_cfg_dupl_r15_present != (rlc_bearer_cfg_dupl_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= rlc_bearer_cfg_dupl_r15_present;
+    group_flags[1] |= rlc_cfg_v1530.is_present();
+    group_flags[1] |= rlc_bearer_cfg_dupl_r15.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(rlc_cfg_v1430_present, 1));
-      if (rlc_cfg_v1430_present) {
+      HANDLE_CODE(bref.pack(rlc_cfg_v1430.is_present(), 1));
+      if (rlc_cfg_v1430.is_present()) {
         HANDLE_CODE(rlc_cfg_v1430->pack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(lc_ch_id_scg_r15_present, 1));
-      HANDLE_CODE(bref.pack(rlc_cfg_v1530_present, 1));
-      HANDLE_CODE(bref.pack(rlc_bearer_cfg_dupl_r15_present, 1));
+      HANDLE_CODE(bref.pack(rlc_cfg_v1530.is_present(), 1));
+      HANDLE_CODE(bref.pack(rlc_bearer_cfg_dupl_r15.is_present(), 1));
       if (lc_ch_id_scg_r15_present) {
         HANDLE_CODE(pack_unalign_integer(bref, lc_ch_id_scg_r15, (uint8_t)32, (uint8_t)38));
       }
-      if (rlc_cfg_v1530_present) {
+      if (rlc_cfg_v1530.is_present()) {
         HANDLE_CODE(rlc_cfg_v1530->pack(bref));
       }
-      if (rlc_bearer_cfg_dupl_r15_present) {
+      if (rlc_bearer_cfg_dupl_r15.is_present()) {
         HANDLE_CODE(rlc_bearer_cfg_dupl_r15->pack(bref));
       }
     }
@@ -52701,33 +51967,36 @@ SRSASN_CODE drb_to_add_mod_scg_r12_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(2);
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool rlc_cfg_v1430_present;
       HANDLE_CODE(bref.unpack(rlc_cfg_v1430_present, 1));
-      if (rlc_cfg_v1430_present) {
-        rlc_cfg_v1430 = make_copy_ptr(rlc_cfg_v1430_c());
+      rlc_cfg_v1430.set_present(rlc_cfg_v1430_present);
+      if (rlc_cfg_v1430.is_present()) {
         HANDLE_CODE(rlc_cfg_v1430->unpack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(lc_ch_id_scg_r15_present, 1));
+      bool rlc_cfg_v1530_present;
       HANDLE_CODE(bref.unpack(rlc_cfg_v1530_present, 1));
+      rlc_cfg_v1530.set_present(rlc_cfg_v1530_present);
+      bool rlc_bearer_cfg_dupl_r15_present;
       HANDLE_CODE(bref.unpack(rlc_bearer_cfg_dupl_r15_present, 1));
+      rlc_bearer_cfg_dupl_r15.set_present(rlc_bearer_cfg_dupl_r15_present);
       if (lc_ch_id_scg_r15_present) {
         HANDLE_CODE(unpack_unalign_integer(lc_ch_id_scg_r15, bref, (uint8_t)32, (uint8_t)38));
       }
-      if (rlc_cfg_v1530_present) {
-        rlc_cfg_v1530 = make_copy_ptr(rlc_cfg_v1530_c());
+      if (rlc_cfg_v1530.is_present()) {
         HANDLE_CODE(rlc_cfg_v1530->unpack(bref));
       }
-      if (rlc_bearer_cfg_dupl_r15_present) {
-        rlc_bearer_cfg_dupl_r15 = make_copy_ptr(rlc_bearer_cfg_r15_c());
+      if (rlc_bearer_cfg_dupl_r15.is_present()) {
         HANDLE_CODE(rlc_bearer_cfg_dupl_r15->unpack(bref));
       }
     }
@@ -52758,22 +52027,18 @@ void drb_to_add_mod_scg_r12_s::to_json(json_writer& j) const
     lc_ch_cfg_scg_r12.to_json(j);
   }
   if (ext) {
-    rrc_asn1_warn_assert(rlc_cfg_v1430_present != (rlc_cfg_v1430.get() != NULL), __FILE__, __LINE__);
-    if (rlc_cfg_v1430_present) {
+    if (rlc_cfg_v1430.is_present()) {
       j.write_fieldname("rlc-Config-v1430");
       rlc_cfg_v1430->to_json(j);
     }
     if (lc_ch_id_scg_r15_present) {
       j.write_int("logicalChannelIdentitySCG-r15", lc_ch_id_scg_r15);
     }
-    rrc_asn1_warn_assert(rlc_cfg_v1530_present != (rlc_cfg_v1530.get() != NULL), __FILE__, __LINE__);
-    if (rlc_cfg_v1530_present) {
+    if (rlc_cfg_v1530.is_present()) {
       j.write_fieldname("rlc-Config-v1530");
       rlc_cfg_v1530->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        rlc_bearer_cfg_dupl_r15_present != (rlc_bearer_cfg_dupl_r15.get() != NULL), __FILE__, __LINE__);
-    if (rlc_bearer_cfg_dupl_r15_present) {
+    if (rlc_bearer_cfg_dupl_r15.is_present()) {
       j.write_fieldname("rlc-BearerConfigDupl-r15");
       rlc_bearer_cfg_dupl_r15->to_json(j);
     }
@@ -54047,30 +53312,24 @@ SRSASN_CODE rr_cfg_common_ps_cell_r12_s::pack(bit_ref& bref) const
   HANDLE_CODE(ul_pwr_ctrl_common_ps_cell_r12.pack(bref));
 
   if (ext) {
-    ext_groups_header group_flags(2);
-    rrc_asn1_warn_assert(ul_pwr_ctrl_common_ps_cell_v1310_present != (ul_pwr_ctrl_common_ps_cell_v1310.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[0] |= ul_pwr_ctrl_common_ps_cell_v1310_present;
-    rrc_asn1_warn_assert(ul_pwr_ctrl_common_ps_cell_v1530_present != (ul_pwr_ctrl_common_ps_cell_v1530.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[1] |= ul_pwr_ctrl_common_ps_cell_v1530_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= ul_pwr_ctrl_common_ps_cell_v1310.is_present();
+    group_flags[1] |= ul_pwr_ctrl_common_ps_cell_v1530.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(ul_pwr_ctrl_common_ps_cell_v1310_present, 1));
-      if (ul_pwr_ctrl_common_ps_cell_v1310_present) {
+      HANDLE_CODE(bref.pack(ul_pwr_ctrl_common_ps_cell_v1310.is_present(), 1));
+      if (ul_pwr_ctrl_common_ps_cell_v1310.is_present()) {
         HANDLE_CODE(ul_pwr_ctrl_common_ps_cell_v1310->pack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(ul_pwr_ctrl_common_ps_cell_v1530_present, 1));
-      if (ul_pwr_ctrl_common_ps_cell_v1530_present) {
+      HANDLE_CODE(bref.pack(ul_pwr_ctrl_common_ps_cell_v1530.is_present(), 1));
+      if (ul_pwr_ctrl_common_ps_cell_v1530.is_present()) {
         HANDLE_CODE(ul_pwr_ctrl_common_ps_cell_v1530->pack(bref));
       }
     }
@@ -54086,24 +53345,26 @@ SRSASN_CODE rr_cfg_common_ps_cell_r12_s::unpack(bit_ref& bref)
   HANDLE_CODE(ul_pwr_ctrl_common_ps_cell_r12.unpack(bref));
 
   if (ext) {
-    ext_groups_header group_flags(2);
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool ul_pwr_ctrl_common_ps_cell_v1310_present;
       HANDLE_CODE(bref.unpack(ul_pwr_ctrl_common_ps_cell_v1310_present, 1));
-      if (ul_pwr_ctrl_common_ps_cell_v1310_present) {
-        ul_pwr_ctrl_common_ps_cell_v1310 = make_copy_ptr(ul_pwr_ctrl_common_v1310_s());
+      ul_pwr_ctrl_common_ps_cell_v1310.set_present(ul_pwr_ctrl_common_ps_cell_v1310_present);
+      if (ul_pwr_ctrl_common_ps_cell_v1310.is_present()) {
         HANDLE_CODE(ul_pwr_ctrl_common_ps_cell_v1310->unpack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool ul_pwr_ctrl_common_ps_cell_v1530_present;
       HANDLE_CODE(bref.unpack(ul_pwr_ctrl_common_ps_cell_v1530_present, 1));
-      if (ul_pwr_ctrl_common_ps_cell_v1530_present) {
-        ul_pwr_ctrl_common_ps_cell_v1530 = make_copy_ptr(ul_pwr_ctrl_common_v1530_s());
+      ul_pwr_ctrl_common_ps_cell_v1530.set_present(ul_pwr_ctrl_common_ps_cell_v1530_present);
+      if (ul_pwr_ctrl_common_ps_cell_v1530.is_present()) {
         HANDLE_CODE(ul_pwr_ctrl_common_ps_cell_v1530->unpack(bref));
       }
     }
@@ -54122,17 +53383,11 @@ void rr_cfg_common_ps_cell_r12_s::to_json(json_writer& j) const
   j.write_fieldname("uplinkPowerControlCommonPSCell-r12");
   ul_pwr_ctrl_common_ps_cell_r12.to_json(j);
   if (ext) {
-    rrc_asn1_warn_assert(ul_pwr_ctrl_common_ps_cell_v1310_present != (ul_pwr_ctrl_common_ps_cell_v1310.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (ul_pwr_ctrl_common_ps_cell_v1310_present) {
+    if (ul_pwr_ctrl_common_ps_cell_v1310.is_present()) {
       j.write_fieldname("uplinkPowerControlCommonPSCell-v1310");
       ul_pwr_ctrl_common_ps_cell_v1310->to_json(j);
     }
-    rrc_asn1_warn_assert(ul_pwr_ctrl_common_ps_cell_v1530_present != (ul_pwr_ctrl_common_ps_cell_v1530.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (ul_pwr_ctrl_common_ps_cell_v1530_present) {
+    if (ul_pwr_ctrl_common_ps_cell_v1530.is_present()) {
       j.write_fieldname("uplinkPowerControlCommonPSCell-v1530");
       ul_pwr_ctrl_common_ps_cell_v1530->to_json(j);
     }
@@ -54201,50 +53456,43 @@ SRSASN_CODE rr_cfg_ded_ps_cell_r12_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(3);
-    rrc_asn1_warn_assert(neigh_cells_crs_info_ps_cell_r13_present != (neigh_cells_crs_info_ps_cell_r13.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[0] |= neigh_cells_crs_info_ps_cell_r13_present;
-    rrc_asn1_warn_assert(sps_cfg_v1430_present != (sps_cfg_v1430.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= sps_cfg_v1430_present;
-    rrc_asn1_warn_assert(sps_cfg_v1530_present != (sps_cfg_v1530.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= sps_cfg_v1530_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= neigh_cells_crs_info_ps_cell_r13.is_present();
+    group_flags[1] |= sps_cfg_v1430.is_present();
+    group_flags[2] |= sps_cfg_v1530.is_present();
     group_flags[2] |= crs_intf_mitig_enabled_r15_present;
-    rrc_asn1_warn_assert(
-        neigh_cells_crs_info_r15_present != (neigh_cells_crs_info_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= neigh_cells_crs_info_r15_present;
+    group_flags[2] |= neigh_cells_crs_info_r15.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(neigh_cells_crs_info_ps_cell_r13_present, 1));
-      if (neigh_cells_crs_info_ps_cell_r13_present) {
+      HANDLE_CODE(bref.pack(neigh_cells_crs_info_ps_cell_r13.is_present(), 1));
+      if (neigh_cells_crs_info_ps_cell_r13.is_present()) {
         HANDLE_CODE(neigh_cells_crs_info_ps_cell_r13->pack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(sps_cfg_v1430_present, 1));
-      if (sps_cfg_v1430_present) {
+      HANDLE_CODE(bref.pack(sps_cfg_v1430.is_present(), 1));
+      if (sps_cfg_v1430.is_present()) {
         HANDLE_CODE(sps_cfg_v1430->pack(bref));
       }
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(sps_cfg_v1530_present, 1));
+      HANDLE_CODE(bref.pack(sps_cfg_v1530.is_present(), 1));
       HANDLE_CODE(bref.pack(crs_intf_mitig_enabled_r15_present, 1));
-      HANDLE_CODE(bref.pack(neigh_cells_crs_info_r15_present, 1));
-      if (sps_cfg_v1530_present) {
+      HANDLE_CODE(bref.pack(neigh_cells_crs_info_r15.is_present(), 1));
+      if (sps_cfg_v1530.is_present()) {
         HANDLE_CODE(sps_cfg_v1530->pack(bref));
       }
       if (crs_intf_mitig_enabled_r15_present) {
         HANDLE_CODE(bref.pack(crs_intf_mitig_enabled_r15, 1));
       }
-      if (neigh_cells_crs_info_r15_present) {
+      if (neigh_cells_crs_info_r15.is_present()) {
         HANDLE_CODE(neigh_cells_crs_info_r15->pack(bref));
       }
     }
@@ -54269,42 +53517,46 @@ SRSASN_CODE rr_cfg_ded_ps_cell_r12_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(3);
+    ext_groups_unpacker_guard group_flags(3);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool neigh_cells_crs_info_ps_cell_r13_present;
       HANDLE_CODE(bref.unpack(neigh_cells_crs_info_ps_cell_r13_present, 1));
-      if (neigh_cells_crs_info_ps_cell_r13_present) {
-        neigh_cells_crs_info_ps_cell_r13 = make_copy_ptr(neigh_cells_crs_info_r13_c());
+      neigh_cells_crs_info_ps_cell_r13.set_present(neigh_cells_crs_info_ps_cell_r13_present);
+      if (neigh_cells_crs_info_ps_cell_r13.is_present()) {
         HANDLE_CODE(neigh_cells_crs_info_ps_cell_r13->unpack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool sps_cfg_v1430_present;
       HANDLE_CODE(bref.unpack(sps_cfg_v1430_present, 1));
-      if (sps_cfg_v1430_present) {
-        sps_cfg_v1430 = make_copy_ptr(sps_cfg_v1430_s());
+      sps_cfg_v1430.set_present(sps_cfg_v1430_present);
+      if (sps_cfg_v1430.is_present()) {
         HANDLE_CODE(sps_cfg_v1430->unpack(bref));
       }
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool sps_cfg_v1530_present;
       HANDLE_CODE(bref.unpack(sps_cfg_v1530_present, 1));
+      sps_cfg_v1530.set_present(sps_cfg_v1530_present);
       HANDLE_CODE(bref.unpack(crs_intf_mitig_enabled_r15_present, 1));
+      bool neigh_cells_crs_info_r15_present;
       HANDLE_CODE(bref.unpack(neigh_cells_crs_info_r15_present, 1));
-      if (sps_cfg_v1530_present) {
-        sps_cfg_v1530 = make_copy_ptr(sps_cfg_v1530_s());
+      neigh_cells_crs_info_r15.set_present(neigh_cells_crs_info_r15_present);
+      if (sps_cfg_v1530.is_present()) {
         HANDLE_CODE(sps_cfg_v1530->unpack(bref));
       }
       if (crs_intf_mitig_enabled_r15_present) {
         HANDLE_CODE(bref.unpack(crs_intf_mitig_enabled_r15, 1));
       }
-      if (neigh_cells_crs_info_r15_present) {
-        neigh_cells_crs_info_r15 = make_copy_ptr(neigh_cells_crs_info_r15_c());
+      if (neigh_cells_crs_info_r15.is_present()) {
         HANDLE_CODE(neigh_cells_crs_info_r15->unpack(bref));
       }
     }
@@ -54327,29 +53579,22 @@ void rr_cfg_ded_ps_cell_r12_s::to_json(json_writer& j) const
     naics_info_r12.to_json(j);
   }
   if (ext) {
-    rrc_asn1_warn_assert(neigh_cells_crs_info_ps_cell_r13_present != (neigh_cells_crs_info_ps_cell_r13.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (neigh_cells_crs_info_ps_cell_r13_present) {
+    if (neigh_cells_crs_info_ps_cell_r13.is_present()) {
       j.write_fieldname("neighCellsCRS-InfoPSCell-r13");
       neigh_cells_crs_info_ps_cell_r13->to_json(j);
     }
-    rrc_asn1_warn_assert(sps_cfg_v1430_present != (sps_cfg_v1430.get() != NULL), __FILE__, __LINE__);
-    if (sps_cfg_v1430_present) {
+    if (sps_cfg_v1430.is_present()) {
       j.write_fieldname("sps-Config-v1430");
       sps_cfg_v1430->to_json(j);
     }
-    rrc_asn1_warn_assert(sps_cfg_v1530_present != (sps_cfg_v1530.get() != NULL), __FILE__, __LINE__);
-    if (sps_cfg_v1530_present) {
+    if (sps_cfg_v1530.is_present()) {
       j.write_fieldname("sps-Config-v1530");
       sps_cfg_v1530->to_json(j);
     }
     if (crs_intf_mitig_enabled_r15_present) {
       j.write_bool("crs-IntfMitigEnabled-r15", crs_intf_mitig_enabled_r15);
     }
-    rrc_asn1_warn_assert(
-        neigh_cells_crs_info_r15_present != (neigh_cells_crs_info_r15.get() != NULL), __FILE__, __LINE__);
-    if (neigh_cells_crs_info_r15_present) {
+    if (neigh_cells_crs_info_r15.is_present()) {
       j.write_fieldname("neighCellsCRS-Info-r15");
       neigh_cells_crs_info_r15->to_json(j);
     }
@@ -54409,17 +53654,15 @@ SRSASN_CODE scell_to_add_mod_r10_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(4);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= dl_carrier_freq_v1090_present;
-    rrc_asn1_warn_assert(
-        ant_info_ded_scell_v10i0_present != (ant_info_ded_scell_v10i0.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= ant_info_ded_scell_v10i0_present;
+    group_flags[1] |= ant_info_ded_scell_v10i0.is_present();
     group_flags[2] |= srs_switch_from_serv_cell_idx_r14_present;
     group_flags[3] |= s_cell_state_r15_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(dl_carrier_freq_v1090_present, 1));
       if (dl_carrier_freq_v1090_present) {
@@ -54427,15 +53670,15 @@ SRSASN_CODE scell_to_add_mod_r10_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(ant_info_ded_scell_v10i0_present, 1));
-      if (ant_info_ded_scell_v10i0_present) {
+      HANDLE_CODE(bref.pack(ant_info_ded_scell_v10i0.is_present(), 1));
+      if (ant_info_ded_scell_v10i0.is_present()) {
         HANDLE_CODE(ant_info_ded_scell_v10i0->pack(bref));
       }
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(srs_switch_from_serv_cell_idx_r14_present, 1));
       if (srs_switch_from_serv_cell_idx_r14_present) {
@@ -54443,7 +53686,7 @@ SRSASN_CODE scell_to_add_mod_r10_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[3]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(s_cell_state_r15_present, 1));
       if (s_cell_state_r15_present) {
@@ -54473,11 +53716,11 @@ SRSASN_CODE scell_to_add_mod_r10_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(4);
+    ext_groups_unpacker_guard group_flags(4);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(dl_carrier_freq_v1090_present, 1));
       if (dl_carrier_freq_v1090_present) {
@@ -54485,16 +53728,17 @@ SRSASN_CODE scell_to_add_mod_r10_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool ant_info_ded_scell_v10i0_present;
       HANDLE_CODE(bref.unpack(ant_info_ded_scell_v10i0_present, 1));
-      if (ant_info_ded_scell_v10i0_present) {
-        ant_info_ded_scell_v10i0 = make_copy_ptr(ant_info_ded_v10i0_s());
+      ant_info_ded_scell_v10i0.set_present(ant_info_ded_scell_v10i0_present);
+      if (ant_info_ded_scell_v10i0.is_present()) {
         HANDLE_CODE(ant_info_ded_scell_v10i0->unpack(bref));
       }
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(srs_switch_from_serv_cell_idx_r14_present, 1));
       if (srs_switch_from_serv_cell_idx_r14_present) {
@@ -54502,7 +53746,7 @@ SRSASN_CODE scell_to_add_mod_r10_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[3]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(s_cell_state_r15_present, 1));
       if (s_cell_state_r15_present) {
@@ -54535,9 +53779,7 @@ void scell_to_add_mod_r10_s::to_json(json_writer& j) const
     if (dl_carrier_freq_v1090_present) {
       j.write_int("dl-CarrierFreq-v1090", dl_carrier_freq_v1090);
     }
-    rrc_asn1_warn_assert(
-        ant_info_ded_scell_v10i0_present != (ant_info_ded_scell_v10i0.get() != NULL), __FILE__, __LINE__);
-    if (ant_info_ded_scell_v10i0_present) {
+    if (ant_info_ded_scell_v10i0.is_present()) {
       j.write_fieldname("antennaInfoDedicatedSCell-v10i0");
       ant_info_ded_scell_v10i0->to_json(j);
     }
@@ -54624,12 +53866,12 @@ SRSASN_CODE scell_to_add_mod_ext_v1430_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= s_cell_state_r15_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(s_cell_state_r15_present, 1));
       if (s_cell_state_r15_present) {
@@ -54649,11 +53891,11 @@ SRSASN_CODE scell_to_add_mod_ext_v1430_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(s_cell_state_r15_present, 1));
       if (s_cell_state_r15_present) {
@@ -54938,12 +54180,12 @@ SRSASN_CODE tunnel_cfg_lwip_r13_s::pack(bit_ref& bref) const
   HANDLE_CODE(ike_id_r13.pack(bref));
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= lwip_counter_r13_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(lwip_counter_r13_present, 1));
       if (lwip_counter_r13_present) {
@@ -54960,11 +54202,11 @@ SRSASN_CODE tunnel_cfg_lwip_r13_s::unpack(bit_ref& bref)
   HANDLE_CODE(ike_id_r13.unpack(bref));
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(lwip_counter_r13_present, 1));
       if (lwip_counter_r13_present) {
@@ -55009,16 +54251,15 @@ SRSASN_CODE wlan_mob_cfg_r13_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
-    rrc_asn1_warn_assert(wlan_suspend_cfg_r14_present != (wlan_suspend_cfg_r14.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= wlan_suspend_cfg_r14_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= wlan_suspend_cfg_r14.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(wlan_suspend_cfg_r14_present, 1));
-      if (wlan_suspend_cfg_r14_present) {
+      HANDLE_CODE(bref.pack(wlan_suspend_cfg_r14.is_present(), 1));
+      if (wlan_suspend_cfg_r14.is_present()) {
         HANDLE_CODE(wlan_suspend_cfg_r14->pack(bref));
       }
     }
@@ -55044,15 +54285,16 @@ SRSASN_CODE wlan_mob_cfg_r13_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool wlan_suspend_cfg_r14_present;
       HANDLE_CODE(bref.unpack(wlan_suspend_cfg_r14_present, 1));
-      if (wlan_suspend_cfg_r14_present) {
-        wlan_suspend_cfg_r14 = make_copy_ptr(wlan_suspend_cfg_r14_s());
+      wlan_suspend_cfg_r14.set_present(wlan_suspend_cfg_r14_present);
+      if (wlan_suspend_cfg_r14.is_present()) {
         HANDLE_CODE(wlan_suspend_cfg_r14->unpack(bref));
       }
     }
@@ -55083,8 +54325,7 @@ void wlan_mob_cfg_r13_s::to_json(json_writer& j) const
     j.write_str("successReportRequested-r13", "true");
   }
   if (ext) {
-    rrc_asn1_warn_assert(wlan_suspend_cfg_r14_present != (wlan_suspend_cfg_r14.get() != NULL), __FILE__, __LINE__);
-    if (wlan_suspend_cfg_r14_present) {
+    if (wlan_suspend_cfg_r14.is_present()) {
       j.write_fieldname("wlan-SuspendConfig-r14");
       wlan_suspend_cfg_r14->to_json(j);
     }
@@ -55107,12 +54348,12 @@ SRSASN_CODE lwa_cfg_r13_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= wt_mac_address_r14_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(wt_mac_address_r14_present, 1));
       if (wt_mac_address_r14_present) {
@@ -55136,11 +54377,11 @@ SRSASN_CODE lwa_cfg_r13_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(wt_mac_address_r14_present, 1));
       if (wt_mac_address_r14_present) {
@@ -55233,18 +54474,17 @@ SRSASN_CODE mob_ctrl_info_scg_r12_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= make_before_break_scg_r14_present;
-    rrc_asn1_warn_assert(rach_skip_scg_r14_present != (rach_skip_scg_r14.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= rach_skip_scg_r14_present;
+    group_flags[0] |= rach_skip_scg_r14.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(make_before_break_scg_r14_present, 1));
-      HANDLE_CODE(bref.pack(rach_skip_scg_r14_present, 1));
-      if (rach_skip_scg_r14_present) {
+      HANDLE_CODE(bref.pack(rach_skip_scg_r14.is_present(), 1));
+      if (rach_skip_scg_r14.is_present()) {
         HANDLE_CODE(rach_skip_scg_r14->pack(bref));
       }
     }
@@ -55270,16 +54510,17 @@ SRSASN_CODE mob_ctrl_info_scg_r12_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(make_before_break_scg_r14_present, 1));
+      bool rach_skip_scg_r14_present;
       HANDLE_CODE(bref.unpack(rach_skip_scg_r14_present, 1));
-      if (rach_skip_scg_r14_present) {
-        rach_skip_scg_r14 = make_copy_ptr(rach_skip_r14_s());
+      rach_skip_scg_r14.set_present(rach_skip_scg_r14_present);
+      if (rach_skip_scg_r14.is_present()) {
         HANDLE_CODE(rach_skip_scg_r14->unpack(bref));
       }
     }
@@ -55304,8 +54545,7 @@ void mob_ctrl_info_scg_r12_s::to_json(json_writer& j) const
     if (make_before_break_scg_r14_present) {
       j.write_str("makeBeforeBreakSCG-r14", "true");
     }
-    rrc_asn1_warn_assert(rach_skip_scg_r14_present != (rach_skip_scg_r14.get() != NULL), __FILE__, __LINE__);
-    if (rach_skip_scg_r14_present) {
+    if (rach_skip_scg_r14.is_present()) {
       j.write_fieldname("rach-SkipSCG-r14");
       rach_skip_scg_r14->to_json(j);
     }
@@ -55334,26 +54574,22 @@ SRSASN_CODE ps_cell_to_add_mod_r12_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(3);
-    rrc_asn1_warn_assert(
-        ant_info_ded_ps_cell_v1280_present != (ant_info_ded_ps_cell_v1280.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= ant_info_ded_ps_cell_v1280_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= ant_info_ded_ps_cell_v1280.is_present();
     group_flags[1] |= s_cell_idx_r13_present;
-    rrc_asn1_warn_assert(
-        rr_cfg_ded_ps_cell_v1370_present != (rr_cfg_ded_ps_cell_v1370.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= rr_cfg_ded_ps_cell_v1370_present;
+    group_flags[2] |= rr_cfg_ded_ps_cell_v1370.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(ant_info_ded_ps_cell_v1280_present, 1));
-      if (ant_info_ded_ps_cell_v1280_present) {
+      HANDLE_CODE(bref.pack(ant_info_ded_ps_cell_v1280.is_present(), 1));
+      if (ant_info_ded_ps_cell_v1280.is_present()) {
         HANDLE_CODE(ant_info_ded_ps_cell_v1280->pack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(s_cell_idx_r13_present, 1));
       if (s_cell_idx_r13_present) {
@@ -55361,10 +54597,10 @@ SRSASN_CODE ps_cell_to_add_mod_r12_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(rr_cfg_ded_ps_cell_v1370_present, 1));
-      if (rr_cfg_ded_ps_cell_v1370_present) {
+      HANDLE_CODE(bref.pack(rr_cfg_ded_ps_cell_v1370.is_present(), 1));
+      if (rr_cfg_ded_ps_cell_v1370.is_present()) {
         HANDLE_CODE(rr_cfg_ded_ps_cell_v1370->pack(bref));
       }
     }
@@ -55391,20 +54627,21 @@ SRSASN_CODE ps_cell_to_add_mod_r12_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(3);
+    ext_groups_unpacker_guard group_flags(3);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool ant_info_ded_ps_cell_v1280_present;
       HANDLE_CODE(bref.unpack(ant_info_ded_ps_cell_v1280_present, 1));
-      if (ant_info_ded_ps_cell_v1280_present) {
-        ant_info_ded_ps_cell_v1280 = make_copy_ptr(ant_info_ded_v10i0_s());
+      ant_info_ded_ps_cell_v1280.set_present(ant_info_ded_ps_cell_v1280_present);
+      if (ant_info_ded_ps_cell_v1280.is_present()) {
         HANDLE_CODE(ant_info_ded_ps_cell_v1280->unpack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(s_cell_idx_r13_present, 1));
       if (s_cell_idx_r13_present) {
@@ -55412,11 +54649,12 @@ SRSASN_CODE ps_cell_to_add_mod_r12_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool rr_cfg_ded_ps_cell_v1370_present;
       HANDLE_CODE(bref.unpack(rr_cfg_ded_ps_cell_v1370_present, 1));
-      if (rr_cfg_ded_ps_cell_v1370_present) {
-        rr_cfg_ded_ps_cell_v1370 = make_copy_ptr(rr_cfg_ded_ps_cell_v1370_s());
+      rr_cfg_ded_ps_cell_v1370.set_present(rr_cfg_ded_ps_cell_v1370_present);
+      if (rr_cfg_ded_ps_cell_v1370.is_present()) {
         HANDLE_CODE(rr_cfg_ded_ps_cell_v1370->unpack(bref));
       }
     }
@@ -55443,18 +54681,14 @@ void ps_cell_to_add_mod_r12_s::to_json(json_writer& j) const
     rr_cfg_ded_ps_cell_r12.to_json(j);
   }
   if (ext) {
-    rrc_asn1_warn_assert(
-        ant_info_ded_ps_cell_v1280_present != (ant_info_ded_ps_cell_v1280.get() != NULL), __FILE__, __LINE__);
-    if (ant_info_ded_ps_cell_v1280_present) {
+    if (ant_info_ded_ps_cell_v1280.is_present()) {
       j.write_fieldname("antennaInfoDedicatedPSCell-v1280");
       ant_info_ded_ps_cell_v1280->to_json(j);
     }
     if (s_cell_idx_r13_present) {
       j.write_int("sCellIndex-r13", s_cell_idx_r13);
     }
-    rrc_asn1_warn_assert(
-        rr_cfg_ded_ps_cell_v1370_present != (rr_cfg_ded_ps_cell_v1370.get() != NULL), __FILE__, __LINE__);
-    if (rr_cfg_ded_ps_cell_v1370_present) {
+    if (rr_cfg_ded_ps_cell_v1370.is_present()) {
       j.write_fieldname("radioResourceConfigDedicatedPSCell-v1370");
       rr_cfg_ded_ps_cell_v1370->to_json(j);
     }
@@ -55845,17 +55079,15 @@ SRSASN_CODE rr_cfg_ded_scg_r12_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
-    rrc_asn1_warn_assert(
-        drb_to_add_mod_list_scg_r15_present != (drb_to_add_mod_list_scg_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= drb_to_add_mod_list_scg_r15_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= drb_to_add_mod_list_scg_r15.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(drb_to_add_mod_list_scg_r15_present, 1));
-      if (drb_to_add_mod_list_scg_r15_present) {
+      HANDLE_CODE(bref.pack(drb_to_add_mod_list_scg_r15.is_present(), 1));
+      if (drb_to_add_mod_list_scg_r15.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *drb_to_add_mod_list_scg_r15, 1, 15));
       }
     }
@@ -55880,15 +55112,16 @@ SRSASN_CODE rr_cfg_ded_scg_r12_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool drb_to_add_mod_list_scg_r15_present;
       HANDLE_CODE(bref.unpack(drb_to_add_mod_list_scg_r15_present, 1));
-      if (drb_to_add_mod_list_scg_r15_present) {
-        drb_to_add_mod_list_scg_r15 = make_copy_ptr(drb_to_add_mod_list_scg_r15_l());
+      drb_to_add_mod_list_scg_r15.set_present(drb_to_add_mod_list_scg_r15_present);
+      if (drb_to_add_mod_list_scg_r15.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*drb_to_add_mod_list_scg_r15, bref, 1, 15));
       }
     }
@@ -55914,9 +55147,7 @@ void rr_cfg_ded_scg_r12_s::to_json(json_writer& j) const
     rlf_timers_and_consts_scg_r12.to_json(j);
   }
   if (ext) {
-    rrc_asn1_warn_assert(
-        drb_to_add_mod_list_scg_r15_present != (drb_to_add_mod_list_scg_r15.get() != NULL), __FILE__, __LINE__);
-    if (drb_to_add_mod_list_scg_r15_present) {
+    if (drb_to_add_mod_list_scg_r15.is_present()) {
       j.start_array("drb-ToAddModListSCG-r15");
       for (uint32_t i1 = 0; i1 < drb_to_add_mod_list_scg_r15->size(); ++i1) {
         ((*drb_to_add_mod_list_scg_r15)[i1]).to_json(j);
@@ -56115,31 +55346,27 @@ SRSASN_CODE sl_v2x_cfg_ded_r14_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
-    rrc_asn1_warn_assert(comm_tx_res_v1530_present != (comm_tx_res_v1530.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= comm_tx_res_v1530_present;
-    rrc_asn1_warn_assert(
-        v2x_packet_dupl_cfg_r15_present != (v2x_packet_dupl_cfg_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= v2x_packet_dupl_cfg_r15_present;
-    rrc_asn1_warn_assert(sync_freq_list_r15_present != (sync_freq_list_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= sync_freq_list_r15_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= comm_tx_res_v1530.is_present();
+    group_flags[0] |= v2x_packet_dupl_cfg_r15.is_present();
+    group_flags[0] |= sync_freq_list_r15.is_present();
     group_flags[0] |= slss_tx_multi_freq_r15_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(comm_tx_res_v1530_present, 1));
-      HANDLE_CODE(bref.pack(v2x_packet_dupl_cfg_r15_present, 1));
-      HANDLE_CODE(bref.pack(sync_freq_list_r15_present, 1));
+      HANDLE_CODE(bref.pack(comm_tx_res_v1530.is_present(), 1));
+      HANDLE_CODE(bref.pack(v2x_packet_dupl_cfg_r15.is_present(), 1));
+      HANDLE_CODE(bref.pack(sync_freq_list_r15.is_present(), 1));
       HANDLE_CODE(bref.pack(slss_tx_multi_freq_r15_present, 1));
-      if (comm_tx_res_v1530_present) {
+      if (comm_tx_res_v1530.is_present()) {
         HANDLE_CODE(comm_tx_res_v1530->pack(bref));
       }
-      if (v2x_packet_dupl_cfg_r15_present) {
+      if (v2x_packet_dupl_cfg_r15.is_present()) {
         HANDLE_CODE(v2x_packet_dupl_cfg_r15->pack(bref));
       }
-      if (sync_freq_list_r15_present) {
+      if (sync_freq_list_r15.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *sync_freq_list_r15, 1, 8, UnalignedIntegerPacker<uint32_t>(0, 262143)));
       }
     }
@@ -56172,26 +55399,29 @@ SRSASN_CODE sl_v2x_cfg_ded_r14_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool comm_tx_res_v1530_present;
       HANDLE_CODE(bref.unpack(comm_tx_res_v1530_present, 1));
+      comm_tx_res_v1530.set_present(comm_tx_res_v1530_present);
+      bool v2x_packet_dupl_cfg_r15_present;
       HANDLE_CODE(bref.unpack(v2x_packet_dupl_cfg_r15_present, 1));
+      v2x_packet_dupl_cfg_r15.set_present(v2x_packet_dupl_cfg_r15_present);
+      bool sync_freq_list_r15_present;
       HANDLE_CODE(bref.unpack(sync_freq_list_r15_present, 1));
+      sync_freq_list_r15.set_present(sync_freq_list_r15_present);
       HANDLE_CODE(bref.unpack(slss_tx_multi_freq_r15_present, 1));
-      if (comm_tx_res_v1530_present) {
-        comm_tx_res_v1530 = make_copy_ptr(comm_tx_res_v1530_c_());
+      if (comm_tx_res_v1530.is_present()) {
         HANDLE_CODE(comm_tx_res_v1530->unpack(bref));
       }
-      if (v2x_packet_dupl_cfg_r15_present) {
-        v2x_packet_dupl_cfg_r15 = make_copy_ptr(sl_v2x_packet_dupl_cfg_r15_s());
+      if (v2x_packet_dupl_cfg_r15.is_present()) {
         HANDLE_CODE(v2x_packet_dupl_cfg_r15->unpack(bref));
       }
-      if (sync_freq_list_r15_present) {
-        sync_freq_list_r15 = make_copy_ptr(sl_v2x_sync_freq_list_r15_l());
+      if (sync_freq_list_r15.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*sync_freq_list_r15, bref, 1, 8, UnalignedIntegerPacker<uint32_t>(0, 262143)));
       }
     }
@@ -56223,19 +55453,15 @@ void sl_v2x_cfg_ded_r14_s::to_json(json_writer& j) const
     cbr_ded_tx_cfg_list_r14.to_json(j);
   }
   if (ext) {
-    rrc_asn1_warn_assert(comm_tx_res_v1530_present != (comm_tx_res_v1530.get() != NULL), __FILE__, __LINE__);
-    if (comm_tx_res_v1530_present) {
+    if (comm_tx_res_v1530.is_present()) {
       j.write_fieldname("commTxResources-v1530");
       comm_tx_res_v1530->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        v2x_packet_dupl_cfg_r15_present != (v2x_packet_dupl_cfg_r15.get() != NULL), __FILE__, __LINE__);
-    if (v2x_packet_dupl_cfg_r15_present) {
+    if (v2x_packet_dupl_cfg_r15.is_present()) {
       j.write_fieldname("v2x-PacketDuplicationConfig-r15");
       v2x_packet_dupl_cfg_r15->to_json(j);
     }
-    rrc_asn1_warn_assert(sync_freq_list_r15_present != (sync_freq_list_r15.get() != NULL), __FILE__, __LINE__);
-    if (sync_freq_list_r15_present) {
+    if (sync_freq_list_r15.is_present()) {
       j.start_array("syncFreqList-r15");
       for (uint32_t i1 = 0; i1 < sync_freq_list_r15->size(); ++i1) {
         j.write_int(((*sync_freq_list_r15)[i1]));
@@ -57321,76 +56547,54 @@ SRSASN_CODE scg_cfg_part_scg_r12_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(4);
-    rrc_asn1_warn_assert(s_cell_to_release_list_scg_ext_r13_present !=
-                             (s_cell_to_release_list_scg_ext_r13.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[0] |= s_cell_to_release_list_scg_ext_r13_present;
-    rrc_asn1_warn_assert(s_cell_to_add_mod_list_scg_ext_r13_present !=
-                             (s_cell_to_add_mod_list_scg_ext_r13.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[0] |= s_cell_to_add_mod_list_scg_ext_r13_present;
-    rrc_asn1_warn_assert(s_cell_to_add_mod_list_scg_ext_v1370_present !=
-                             (s_cell_to_add_mod_list_scg_ext_v1370.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[1] |= s_cell_to_add_mod_list_scg_ext_v1370_present;
-    rrc_asn1_warn_assert(
-        p_scell_to_add_mod_v1440_present != (p_scell_to_add_mod_v1440.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= p_scell_to_add_mod_v1440_present;
-    rrc_asn1_warn_assert(s_cell_group_to_release_list_scg_r15_present !=
-                             (s_cell_group_to_release_list_scg_r15.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[3] |= s_cell_group_to_release_list_scg_r15_present;
-    rrc_asn1_warn_assert(s_cell_group_to_add_mod_list_scg_r15_present !=
-                             (s_cell_group_to_add_mod_list_scg_r15.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[3] |= s_cell_group_to_add_mod_list_scg_r15_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= s_cell_to_release_list_scg_ext_r13.is_present();
+    group_flags[0] |= s_cell_to_add_mod_list_scg_ext_r13.is_present();
+    group_flags[1] |= s_cell_to_add_mod_list_scg_ext_v1370.is_present();
+    group_flags[2] |= p_scell_to_add_mod_v1440.is_present();
+    group_flags[3] |= s_cell_group_to_release_list_scg_r15.is_present();
+    group_flags[3] |= s_cell_group_to_add_mod_list_scg_r15.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(s_cell_to_release_list_scg_ext_r13_present, 1));
-      HANDLE_CODE(bref.pack(s_cell_to_add_mod_list_scg_ext_r13_present, 1));
-      if (s_cell_to_release_list_scg_ext_r13_present) {
+      HANDLE_CODE(bref.pack(s_cell_to_release_list_scg_ext_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(s_cell_to_add_mod_list_scg_ext_r13.is_present(), 1));
+      if (s_cell_to_release_list_scg_ext_r13.is_present()) {
         HANDLE_CODE(
             pack_dyn_seq_of(bref, *s_cell_to_release_list_scg_ext_r13, 1, 31, UnalignedIntegerPacker<uint8_t>(1, 31)));
       }
-      if (s_cell_to_add_mod_list_scg_ext_r13_present) {
+      if (s_cell_to_add_mod_list_scg_ext_r13.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *s_cell_to_add_mod_list_scg_ext_r13, 1, 31));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(s_cell_to_add_mod_list_scg_ext_v1370_present, 1));
-      if (s_cell_to_add_mod_list_scg_ext_v1370_present) {
+      HANDLE_CODE(bref.pack(s_cell_to_add_mod_list_scg_ext_v1370.is_present(), 1));
+      if (s_cell_to_add_mod_list_scg_ext_v1370.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *s_cell_to_add_mod_list_scg_ext_v1370, 1, 31));
       }
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(p_scell_to_add_mod_v1440_present, 1));
-      if (p_scell_to_add_mod_v1440_present) {
+      HANDLE_CODE(bref.pack(p_scell_to_add_mod_v1440.is_present(), 1));
+      if (p_scell_to_add_mod_v1440.is_present()) {
         HANDLE_CODE(p_scell_to_add_mod_v1440->pack(bref));
       }
     }
     if (group_flags[3]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(s_cell_group_to_release_list_scg_r15_present, 1));
-      HANDLE_CODE(bref.pack(s_cell_group_to_add_mod_list_scg_r15_present, 1));
-      if (s_cell_group_to_release_list_scg_r15_present) {
+      HANDLE_CODE(bref.pack(s_cell_group_to_release_list_scg_r15.is_present(), 1));
+      HANDLE_CODE(bref.pack(s_cell_group_to_add_mod_list_scg_r15.is_present(), 1));
+      if (s_cell_group_to_release_list_scg_r15.is_present()) {
         HANDLE_CODE(
             pack_dyn_seq_of(bref, *s_cell_group_to_release_list_scg_r15, 1, 4, UnalignedIntegerPacker<uint8_t>(1, 4)));
       }
-      if (s_cell_group_to_add_mod_list_scg_r15_present) {
+      if (s_cell_group_to_add_mod_list_scg_r15.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *s_cell_group_to_add_mod_list_scg_r15, 1, 4));
       }
     }
@@ -57423,54 +56627,60 @@ SRSASN_CODE scg_cfg_part_scg_r12_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(4);
+    ext_groups_unpacker_guard group_flags(4);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool s_cell_to_release_list_scg_ext_r13_present;
       HANDLE_CODE(bref.unpack(s_cell_to_release_list_scg_ext_r13_present, 1));
+      s_cell_to_release_list_scg_ext_r13.set_present(s_cell_to_release_list_scg_ext_r13_present);
+      bool s_cell_to_add_mod_list_scg_ext_r13_present;
       HANDLE_CODE(bref.unpack(s_cell_to_add_mod_list_scg_ext_r13_present, 1));
-      if (s_cell_to_release_list_scg_ext_r13_present) {
-        s_cell_to_release_list_scg_ext_r13 = make_copy_ptr(scell_to_release_list_ext_r13_l());
+      s_cell_to_add_mod_list_scg_ext_r13.set_present(s_cell_to_add_mod_list_scg_ext_r13_present);
+      if (s_cell_to_release_list_scg_ext_r13.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(
             *s_cell_to_release_list_scg_ext_r13, bref, 1, 31, UnalignedIntegerPacker<uint8_t>(1, 31)));
       }
-      if (s_cell_to_add_mod_list_scg_ext_r13_present) {
-        s_cell_to_add_mod_list_scg_ext_r13 = make_copy_ptr(scell_to_add_mod_list_ext_r13_l());
+      if (s_cell_to_add_mod_list_scg_ext_r13.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*s_cell_to_add_mod_list_scg_ext_r13, bref, 1, 31));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool s_cell_to_add_mod_list_scg_ext_v1370_present;
       HANDLE_CODE(bref.unpack(s_cell_to_add_mod_list_scg_ext_v1370_present, 1));
-      if (s_cell_to_add_mod_list_scg_ext_v1370_present) {
-        s_cell_to_add_mod_list_scg_ext_v1370 = make_copy_ptr(scell_to_add_mod_list_ext_v1370_l());
+      s_cell_to_add_mod_list_scg_ext_v1370.set_present(s_cell_to_add_mod_list_scg_ext_v1370_present);
+      if (s_cell_to_add_mod_list_scg_ext_v1370.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*s_cell_to_add_mod_list_scg_ext_v1370, bref, 1, 31));
       }
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool p_scell_to_add_mod_v1440_present;
       HANDLE_CODE(bref.unpack(p_scell_to_add_mod_v1440_present, 1));
-      if (p_scell_to_add_mod_v1440_present) {
-        p_scell_to_add_mod_v1440 = make_copy_ptr(ps_cell_to_add_mod_v1440_s());
+      p_scell_to_add_mod_v1440.set_present(p_scell_to_add_mod_v1440_present);
+      if (p_scell_to_add_mod_v1440.is_present()) {
         HANDLE_CODE(p_scell_to_add_mod_v1440->unpack(bref));
       }
     }
     if (group_flags[3]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool s_cell_group_to_release_list_scg_r15_present;
       HANDLE_CODE(bref.unpack(s_cell_group_to_release_list_scg_r15_present, 1));
+      s_cell_group_to_release_list_scg_r15.set_present(s_cell_group_to_release_list_scg_r15_present);
+      bool s_cell_group_to_add_mod_list_scg_r15_present;
       HANDLE_CODE(bref.unpack(s_cell_group_to_add_mod_list_scg_r15_present, 1));
-      if (s_cell_group_to_release_list_scg_r15_present) {
-        s_cell_group_to_release_list_scg_r15 = make_copy_ptr(scell_group_to_release_list_r15_l());
+      s_cell_group_to_add_mod_list_scg_r15.set_present(s_cell_group_to_add_mod_list_scg_r15_present);
+      if (s_cell_group_to_release_list_scg_r15.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(
             *s_cell_group_to_release_list_scg_r15, bref, 1, 4, UnalignedIntegerPacker<uint8_t>(1, 4)));
       }
-      if (s_cell_group_to_add_mod_list_scg_r15_present) {
-        s_cell_group_to_add_mod_list_scg_r15 = make_copy_ptr(scell_group_to_add_mod_list_r15_l());
+      if (s_cell_group_to_add_mod_list_scg_r15.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*s_cell_group_to_add_mod_list_scg_r15, bref, 1, 4));
       }
     }
@@ -57507,61 +56717,39 @@ void scg_cfg_part_scg_r12_s::to_json(json_writer& j) const
     mob_ctrl_info_scg_r12.to_json(j);
   }
   if (ext) {
-    rrc_asn1_warn_assert(s_cell_to_release_list_scg_ext_r13_present !=
-                             (s_cell_to_release_list_scg_ext_r13.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (s_cell_to_release_list_scg_ext_r13_present) {
+    if (s_cell_to_release_list_scg_ext_r13.is_present()) {
       j.start_array("sCellToReleaseListSCG-Ext-r13");
       for (uint32_t i1 = 0; i1 < s_cell_to_release_list_scg_ext_r13->size(); ++i1) {
         j.write_int(((*s_cell_to_release_list_scg_ext_r13)[i1]));
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(s_cell_to_add_mod_list_scg_ext_r13_present !=
-                             (s_cell_to_add_mod_list_scg_ext_r13.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (s_cell_to_add_mod_list_scg_ext_r13_present) {
+    if (s_cell_to_add_mod_list_scg_ext_r13.is_present()) {
       j.start_array("sCellToAddModListSCG-Ext-r13");
       for (uint32_t i1 = 0; i1 < s_cell_to_add_mod_list_scg_ext_r13->size(); ++i1) {
         ((*s_cell_to_add_mod_list_scg_ext_r13)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(s_cell_to_add_mod_list_scg_ext_v1370_present !=
-                             (s_cell_to_add_mod_list_scg_ext_v1370.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (s_cell_to_add_mod_list_scg_ext_v1370_present) {
+    if (s_cell_to_add_mod_list_scg_ext_v1370.is_present()) {
       j.start_array("sCellToAddModListSCG-Ext-v1370");
       for (uint32_t i1 = 0; i1 < s_cell_to_add_mod_list_scg_ext_v1370->size(); ++i1) {
         ((*s_cell_to_add_mod_list_scg_ext_v1370)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(
-        p_scell_to_add_mod_v1440_present != (p_scell_to_add_mod_v1440.get() != NULL), __FILE__, __LINE__);
-    if (p_scell_to_add_mod_v1440_present) {
+    if (p_scell_to_add_mod_v1440.is_present()) {
       j.write_fieldname("pSCellToAddMod-v1440");
       p_scell_to_add_mod_v1440->to_json(j);
     }
-    rrc_asn1_warn_assert(s_cell_group_to_release_list_scg_r15_present !=
-                             (s_cell_group_to_release_list_scg_r15.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (s_cell_group_to_release_list_scg_r15_present) {
+    if (s_cell_group_to_release_list_scg_r15.is_present()) {
       j.start_array("sCellGroupToReleaseListSCG-r15");
       for (uint32_t i1 = 0; i1 < s_cell_group_to_release_list_scg_r15->size(); ++i1) {
         j.write_int(((*s_cell_group_to_release_list_scg_r15)[i1]));
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(s_cell_group_to_add_mod_list_scg_r15_present !=
-                             (s_cell_group_to_add_mod_list_scg_r15.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (s_cell_group_to_add_mod_list_scg_r15_present) {
+    if (s_cell_group_to_add_mod_list_scg_r15.is_present()) {
       j.start_array("sCellGroupToAddModListSCG-r15");
       for (uint32_t i1 = 0; i1 < s_cell_group_to_add_mod_list_scg_r15->size(); ++i1) {
         ((*s_cell_group_to_add_mod_list_scg_r15)[i1]).to_json(j);
@@ -58330,18 +57518,17 @@ SRSASN_CODE sl_comm_cfg_r12_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
-    rrc_asn1_warn_assert(comm_tx_res_v1310_present != (comm_tx_res_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= comm_tx_res_v1310_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= comm_tx_res_v1310.is_present();
     group_flags[0] |= comm_tx_allow_relay_ded_r13_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(comm_tx_res_v1310_present, 1));
+      HANDLE_CODE(bref.pack(comm_tx_res_v1310.is_present(), 1));
       HANDLE_CODE(bref.pack(comm_tx_allow_relay_ded_r13_present, 1));
-      if (comm_tx_res_v1310_present) {
+      if (comm_tx_res_v1310.is_present()) {
         HANDLE_CODE(comm_tx_res_v1310->pack(bref));
       }
       if (comm_tx_allow_relay_ded_r13_present) {
@@ -58361,16 +57548,17 @@ SRSASN_CODE sl_comm_cfg_r12_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool comm_tx_res_v1310_present;
       HANDLE_CODE(bref.unpack(comm_tx_res_v1310_present, 1));
+      comm_tx_res_v1310.set_present(comm_tx_res_v1310_present);
       HANDLE_CODE(bref.unpack(comm_tx_allow_relay_ded_r13_present, 1));
-      if (comm_tx_res_v1310_present) {
-        comm_tx_res_v1310 = make_copy_ptr(comm_tx_res_v1310_c_());
+      if (comm_tx_res_v1310.is_present()) {
         HANDLE_CODE(comm_tx_res_v1310->unpack(bref));
       }
       if (comm_tx_allow_relay_ded_r13_present) {
@@ -58388,8 +57576,7 @@ void sl_comm_cfg_r12_s::to_json(json_writer& j) const
     comm_tx_res_r12.to_json(j);
   }
   if (ext) {
-    rrc_asn1_warn_assert(comm_tx_res_v1310_present != (comm_tx_res_v1310.get() != NULL), __FILE__, __LINE__);
-    if (comm_tx_res_v1310_present) {
+    if (comm_tx_res_v1310.is_present()) {
       j.write_fieldname("commTxResources-v1310");
       comm_tx_res_v1310->to_json(j);
     }
@@ -58896,57 +58083,49 @@ SRSASN_CODE sl_disc_cfg_r12_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(2);
-    rrc_asn1_warn_assert(disc_tf_idx_list_v1260_present != (disc_tf_idx_list_v1260.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= disc_tf_idx_list_v1260_present;
-    rrc_asn1_warn_assert(disc_tx_res_ps_r13_present != (disc_tx_res_ps_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= disc_tx_res_ps_r13_present;
-    rrc_asn1_warn_assert(
-        disc_tx_inter_freq_info_r13_present != (disc_tx_inter_freq_info_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= disc_tx_inter_freq_info_r13_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= disc_tf_idx_list_v1260.is_present();
+    group_flags[1] |= disc_tx_res_ps_r13.is_present();
+    group_flags[1] |= disc_tx_inter_freq_info_r13.is_present();
     group_flags[1] |= gap_requests_allowed_ded_r13_present;
-    rrc_asn1_warn_assert(disc_rx_gap_cfg_r13_present != (disc_rx_gap_cfg_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= disc_rx_gap_cfg_r13_present;
-    rrc_asn1_warn_assert(disc_tx_gap_cfg_r13_present != (disc_tx_gap_cfg_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= disc_tx_gap_cfg_r13_present;
-    rrc_asn1_warn_assert(
-        disc_sys_info_to_report_cfg_r13_present != (disc_sys_info_to_report_cfg_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= disc_sys_info_to_report_cfg_r13_present;
+    group_flags[1] |= disc_rx_gap_cfg_r13.is_present();
+    group_flags[1] |= disc_tx_gap_cfg_r13.is_present();
+    group_flags[1] |= disc_sys_info_to_report_cfg_r13.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(disc_tf_idx_list_v1260_present, 1));
-      if (disc_tf_idx_list_v1260_present) {
+      HANDLE_CODE(bref.pack(disc_tf_idx_list_v1260.is_present(), 1));
+      if (disc_tf_idx_list_v1260.is_present()) {
         HANDLE_CODE(disc_tf_idx_list_v1260->pack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(disc_tx_res_ps_r13_present, 1));
-      HANDLE_CODE(bref.pack(disc_tx_inter_freq_info_r13_present, 1));
+      HANDLE_CODE(bref.pack(disc_tx_res_ps_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(disc_tx_inter_freq_info_r13.is_present(), 1));
       HANDLE_CODE(bref.pack(gap_requests_allowed_ded_r13_present, 1));
-      HANDLE_CODE(bref.pack(disc_rx_gap_cfg_r13_present, 1));
-      HANDLE_CODE(bref.pack(disc_tx_gap_cfg_r13_present, 1));
-      HANDLE_CODE(bref.pack(disc_sys_info_to_report_cfg_r13_present, 1));
-      if (disc_tx_res_ps_r13_present) {
+      HANDLE_CODE(bref.pack(disc_rx_gap_cfg_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(disc_tx_gap_cfg_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(disc_sys_info_to_report_cfg_r13.is_present(), 1));
+      if (disc_tx_res_ps_r13.is_present()) {
         HANDLE_CODE(disc_tx_res_ps_r13->pack(bref));
       }
-      if (disc_tx_inter_freq_info_r13_present) {
+      if (disc_tx_inter_freq_info_r13.is_present()) {
         HANDLE_CODE(disc_tx_inter_freq_info_r13->pack(bref));
       }
       if (gap_requests_allowed_ded_r13_present) {
         HANDLE_CODE(bref.pack(gap_requests_allowed_ded_r13, 1));
       }
-      if (disc_rx_gap_cfg_r13_present) {
+      if (disc_rx_gap_cfg_r13.is_present()) {
         HANDLE_CODE(disc_rx_gap_cfg_r13->pack(bref));
       }
-      if (disc_tx_gap_cfg_r13_present) {
+      if (disc_tx_gap_cfg_r13.is_present()) {
         HANDLE_CODE(disc_tx_gap_cfg_r13->pack(bref));
       }
-      if (disc_sys_info_to_report_cfg_r13_present) {
+      if (disc_sys_info_to_report_cfg_r13.is_present()) {
         HANDLE_CODE(disc_sys_info_to_report_cfg_r13->pack(bref));
       }
     }
@@ -58963,48 +58142,54 @@ SRSASN_CODE sl_disc_cfg_r12_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(2);
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool disc_tf_idx_list_v1260_present;
       HANDLE_CODE(bref.unpack(disc_tf_idx_list_v1260_present, 1));
-      if (disc_tf_idx_list_v1260_present) {
-        disc_tf_idx_list_v1260 = make_copy_ptr(disc_tf_idx_list_v1260_c_());
+      disc_tf_idx_list_v1260.set_present(disc_tf_idx_list_v1260_present);
+      if (disc_tf_idx_list_v1260.is_present()) {
         HANDLE_CODE(disc_tf_idx_list_v1260->unpack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool disc_tx_res_ps_r13_present;
       HANDLE_CODE(bref.unpack(disc_tx_res_ps_r13_present, 1));
+      disc_tx_res_ps_r13.set_present(disc_tx_res_ps_r13_present);
+      bool disc_tx_inter_freq_info_r13_present;
       HANDLE_CODE(bref.unpack(disc_tx_inter_freq_info_r13_present, 1));
+      disc_tx_inter_freq_info_r13.set_present(disc_tx_inter_freq_info_r13_present);
       HANDLE_CODE(bref.unpack(gap_requests_allowed_ded_r13_present, 1));
+      bool disc_rx_gap_cfg_r13_present;
       HANDLE_CODE(bref.unpack(disc_rx_gap_cfg_r13_present, 1));
+      disc_rx_gap_cfg_r13.set_present(disc_rx_gap_cfg_r13_present);
+      bool disc_tx_gap_cfg_r13_present;
       HANDLE_CODE(bref.unpack(disc_tx_gap_cfg_r13_present, 1));
+      disc_tx_gap_cfg_r13.set_present(disc_tx_gap_cfg_r13_present);
+      bool disc_sys_info_to_report_cfg_r13_present;
       HANDLE_CODE(bref.unpack(disc_sys_info_to_report_cfg_r13_present, 1));
-      if (disc_tx_res_ps_r13_present) {
-        disc_tx_res_ps_r13 = make_copy_ptr(disc_tx_res_ps_r13_c_());
+      disc_sys_info_to_report_cfg_r13.set_present(disc_sys_info_to_report_cfg_r13_present);
+      if (disc_tx_res_ps_r13.is_present()) {
         HANDLE_CODE(disc_tx_res_ps_r13->unpack(bref));
       }
-      if (disc_tx_inter_freq_info_r13_present) {
-        disc_tx_inter_freq_info_r13 = make_copy_ptr(disc_tx_inter_freq_info_r13_c_());
+      if (disc_tx_inter_freq_info_r13.is_present()) {
         HANDLE_CODE(disc_tx_inter_freq_info_r13->unpack(bref));
       }
       if (gap_requests_allowed_ded_r13_present) {
         HANDLE_CODE(bref.unpack(gap_requests_allowed_ded_r13, 1));
       }
-      if (disc_rx_gap_cfg_r13_present) {
-        disc_rx_gap_cfg_r13 = make_copy_ptr(disc_rx_gap_cfg_r13_c_());
+      if (disc_rx_gap_cfg_r13.is_present()) {
         HANDLE_CODE(disc_rx_gap_cfg_r13->unpack(bref));
       }
-      if (disc_tx_gap_cfg_r13_present) {
-        disc_tx_gap_cfg_r13 = make_copy_ptr(disc_tx_gap_cfg_r13_c_());
+      if (disc_tx_gap_cfg_r13.is_present()) {
         HANDLE_CODE(disc_tx_gap_cfg_r13->unpack(bref));
       }
-      if (disc_sys_info_to_report_cfg_r13_present) {
-        disc_sys_info_to_report_cfg_r13 = make_copy_ptr(disc_sys_info_to_report_cfg_r13_c_());
+      if (disc_sys_info_to_report_cfg_r13.is_present()) {
         HANDLE_CODE(disc_sys_info_to_report_cfg_r13->unpack(bref));
       }
     }
@@ -59019,38 +58204,30 @@ void sl_disc_cfg_r12_s::to_json(json_writer& j) const
     disc_tx_res_r12.to_json(j);
   }
   if (ext) {
-    rrc_asn1_warn_assert(disc_tf_idx_list_v1260_present != (disc_tf_idx_list_v1260.get() != NULL), __FILE__, __LINE__);
-    if (disc_tf_idx_list_v1260_present) {
+    if (disc_tf_idx_list_v1260.is_present()) {
       j.write_fieldname("discTF-IndexList-v1260");
       disc_tf_idx_list_v1260->to_json(j);
     }
-    rrc_asn1_warn_assert(disc_tx_res_ps_r13_present != (disc_tx_res_ps_r13.get() != NULL), __FILE__, __LINE__);
-    if (disc_tx_res_ps_r13_present) {
+    if (disc_tx_res_ps_r13.is_present()) {
       j.write_fieldname("discTxResourcesPS-r13");
       disc_tx_res_ps_r13->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        disc_tx_inter_freq_info_r13_present != (disc_tx_inter_freq_info_r13.get() != NULL), __FILE__, __LINE__);
-    if (disc_tx_inter_freq_info_r13_present) {
+    if (disc_tx_inter_freq_info_r13.is_present()) {
       j.write_fieldname("discTxInterFreqInfo-r13");
       disc_tx_inter_freq_info_r13->to_json(j);
     }
     if (gap_requests_allowed_ded_r13_present) {
       j.write_bool("gapRequestsAllowedDedicated-r13", gap_requests_allowed_ded_r13);
     }
-    rrc_asn1_warn_assert(disc_rx_gap_cfg_r13_present != (disc_rx_gap_cfg_r13.get() != NULL), __FILE__, __LINE__);
-    if (disc_rx_gap_cfg_r13_present) {
+    if (disc_rx_gap_cfg_r13.is_present()) {
       j.write_fieldname("discRxGapConfig-r13");
       disc_rx_gap_cfg_r13->to_json(j);
     }
-    rrc_asn1_warn_assert(disc_tx_gap_cfg_r13_present != (disc_tx_gap_cfg_r13.get() != NULL), __FILE__, __LINE__);
-    if (disc_tx_gap_cfg_r13_present) {
+    if (disc_tx_gap_cfg_r13.is_present()) {
       j.write_fieldname("discTxGapConfig-r13");
       disc_tx_gap_cfg_r13->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        disc_sys_info_to_report_cfg_r13_present != (disc_sys_info_to_report_cfg_r13.get() != NULL), __FILE__, __LINE__);
-    if (disc_sys_info_to_report_cfg_r13_present) {
+    if (disc_sys_info_to_report_cfg_r13.is_present()) {
       j.write_fieldname("discSysInfoToReportConfig-r13");
       disc_sys_info_to_report_cfg_r13->to_json(j);
     }
@@ -62236,28 +61413,27 @@ SRSASN_CODE idc_cfg_r11_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(3);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= idc_ind_ul_ca_r11_present;
     group_flags[1] |= idc_hardware_sharing_ind_r13_present;
-    rrc_asn1_warn_assert(idc_ind_mrdc_r15_present != (idc_ind_mrdc_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= idc_ind_mrdc_r15_present;
+    group_flags[2] |= idc_ind_mrdc_r15.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(idc_ind_ul_ca_r11_present, 1));
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(idc_hardware_sharing_ind_r13_present, 1));
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(idc_ind_mrdc_r15_present, 1));
-      if (idc_ind_mrdc_r15_present) {
+      HANDLE_CODE(bref.pack(idc_ind_mrdc_r15.is_present(), 1));
+      if (idc_ind_mrdc_r15.is_present()) {
         HANDLE_CODE(idc_ind_mrdc_r15->pack(bref));
       }
     }
@@ -62276,25 +61452,26 @@ SRSASN_CODE idc_cfg_r11_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(3);
+    ext_groups_unpacker_guard group_flags(3);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(idc_ind_ul_ca_r11_present, 1));
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(idc_hardware_sharing_ind_r13_present, 1));
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool idc_ind_mrdc_r15_present;
       HANDLE_CODE(bref.unpack(idc_ind_mrdc_r15_present, 1));
-      if (idc_ind_mrdc_r15_present) {
-        idc_ind_mrdc_r15 = make_copy_ptr(idc_ind_mrdc_r15_c_());
+      idc_ind_mrdc_r15.set_present(idc_ind_mrdc_r15_present);
+      if (idc_ind_mrdc_r15.is_present()) {
         HANDLE_CODE(idc_ind_mrdc_r15->unpack(bref));
       }
     }
@@ -62322,8 +61499,7 @@ void idc_cfg_r11_s::to_json(json_writer& j) const
     if (idc_hardware_sharing_ind_r13_present) {
       j.write_str("idc-HardwareSharingIndication-r13", "setup");
     }
-    rrc_asn1_warn_assert(idc_ind_mrdc_r15_present != (idc_ind_mrdc_r15.get() != NULL), __FILE__, __LINE__);
-    if (idc_ind_mrdc_r15_present) {
+    if (idc_ind_mrdc_r15.is_present()) {
       j.write_fieldname("idc-Indication-MRDC-r15");
       idc_ind_mrdc_r15->to_json(j);
     }
@@ -62592,58 +61768,39 @@ SRSASN_CODE meas_obj_eutra_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(6);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= meas_cycle_scell_r10_present;
-    rrc_asn1_warn_assert(
-        meas_sf_pattern_cfg_neigh_r10_present != (meas_sf_pattern_cfg_neigh_r10.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= meas_sf_pattern_cfg_neigh_r10_present;
+    group_flags[0] |= meas_sf_pattern_cfg_neigh_r10.is_present();
     group_flags[1] |= wideband_rsrq_meas_r11_present;
-    rrc_asn1_warn_assert(
-        alt_ttt_cells_to_rem_list_r12_present != (alt_ttt_cells_to_rem_list_r12.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= alt_ttt_cells_to_rem_list_r12_present;
-    rrc_asn1_warn_assert(alt_ttt_cells_to_add_mod_list_r12_present != (alt_ttt_cells_to_add_mod_list_r12.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[2] |= alt_ttt_cells_to_add_mod_list_r12_present;
-    rrc_asn1_warn_assert(t312_r12_present != (t312_r12.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= t312_r12_present;
+    group_flags[2] |= alt_ttt_cells_to_rem_list_r12.is_present();
+    group_flags[2] |= alt_ttt_cells_to_add_mod_list_r12.is_present();
+    group_flags[2] |= t312_r12.is_present();
     group_flags[2] |= reduced_meas_performance_r12_present;
-    rrc_asn1_warn_assert(meas_ds_cfg_r12_present != (meas_ds_cfg_r12.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= meas_ds_cfg_r12_present;
-    rrc_asn1_warn_assert(
-        white_cells_to_rem_list_r13_present != (white_cells_to_rem_list_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= white_cells_to_rem_list_r13_present;
-    rrc_asn1_warn_assert(
-        white_cells_to_add_mod_list_r13_present != (white_cells_to_add_mod_list_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= white_cells_to_add_mod_list_r13_present;
-    rrc_asn1_warn_assert(rmtc_cfg_r13_present != (rmtc_cfg_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= rmtc_cfg_r13_present;
+    group_flags[2] |= meas_ds_cfg_r12.is_present();
+    group_flags[3] |= white_cells_to_rem_list_r13.is_present();
+    group_flags[3] |= white_cells_to_add_mod_list_r13.is_present();
+    group_flags[3] |= rmtc_cfg_r13.is_present();
     group_flags[3] |= carrier_freq_r13_present;
-    rrc_asn1_warn_assert(
-        tx_res_pool_to_rem_list_r14_present != (tx_res_pool_to_rem_list_r14.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= tx_res_pool_to_rem_list_r14_present;
-    rrc_asn1_warn_assert(
-        tx_res_pool_to_add_list_r14_present != (tx_res_pool_to_add_list_r14.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= tx_res_pool_to_add_list_r14_present;
+    group_flags[4] |= tx_res_pool_to_rem_list_r14.is_present();
+    group_flags[4] |= tx_res_pool_to_add_list_r14.is_present();
     group_flags[4] |= fembms_mixed_carrier_r14_present;
-    rrc_asn1_warn_assert(meas_sensing_cfg_r15_present != (meas_sensing_cfg_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[5] |= meas_sensing_cfg_r15_present;
+    group_flags[5] |= meas_sensing_cfg_r15.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(meas_cycle_scell_r10_present, 1));
-      HANDLE_CODE(bref.pack(meas_sf_pattern_cfg_neigh_r10_present, 1));
+      HANDLE_CODE(bref.pack(meas_sf_pattern_cfg_neigh_r10.is_present(), 1));
       if (meas_cycle_scell_r10_present) {
         HANDLE_CODE(pack_enum(bref, meas_cycle_scell_r10));
       }
-      if (meas_sf_pattern_cfg_neigh_r10_present) {
+      if (meas_sf_pattern_cfg_neigh_r10.is_present()) {
         HANDLE_CODE(meas_sf_pattern_cfg_neigh_r10->pack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(wideband_rsrq_meas_r11_present, 1));
       if (wideband_rsrq_meas_r11_present) {
@@ -62651,44 +61808,44 @@ SRSASN_CODE meas_obj_eutra_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(alt_ttt_cells_to_rem_list_r12_present, 1));
-      HANDLE_CODE(bref.pack(alt_ttt_cells_to_add_mod_list_r12_present, 1));
-      HANDLE_CODE(bref.pack(t312_r12_present, 1));
+      HANDLE_CODE(bref.pack(alt_ttt_cells_to_rem_list_r12.is_present(), 1));
+      HANDLE_CODE(bref.pack(alt_ttt_cells_to_add_mod_list_r12.is_present(), 1));
+      HANDLE_CODE(bref.pack(t312_r12.is_present(), 1));
       HANDLE_CODE(bref.pack(reduced_meas_performance_r12_present, 1));
-      HANDLE_CODE(bref.pack(meas_ds_cfg_r12_present, 1));
-      if (alt_ttt_cells_to_rem_list_r12_present) {
+      HANDLE_CODE(bref.pack(meas_ds_cfg_r12.is_present(), 1));
+      if (alt_ttt_cells_to_rem_list_r12.is_present()) {
         HANDLE_CODE(
             pack_dyn_seq_of(bref, *alt_ttt_cells_to_rem_list_r12, 1, 32, UnalignedIntegerPacker<uint8_t>(1, 32)));
       }
-      if (alt_ttt_cells_to_add_mod_list_r12_present) {
+      if (alt_ttt_cells_to_add_mod_list_r12.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *alt_ttt_cells_to_add_mod_list_r12, 1, 32));
       }
-      if (t312_r12_present) {
+      if (t312_r12.is_present()) {
         HANDLE_CODE(t312_r12->pack(bref));
       }
       if (reduced_meas_performance_r12_present) {
         HANDLE_CODE(bref.pack(reduced_meas_performance_r12, 1));
       }
-      if (meas_ds_cfg_r12_present) {
+      if (meas_ds_cfg_r12.is_present()) {
         HANDLE_CODE(meas_ds_cfg_r12->pack(bref));
       }
     }
     if (group_flags[3]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(white_cells_to_rem_list_r13_present, 1));
-      HANDLE_CODE(bref.pack(white_cells_to_add_mod_list_r13_present, 1));
-      HANDLE_CODE(bref.pack(rmtc_cfg_r13_present, 1));
+      HANDLE_CODE(bref.pack(white_cells_to_rem_list_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(white_cells_to_add_mod_list_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(rmtc_cfg_r13.is_present(), 1));
       HANDLE_CODE(bref.pack(carrier_freq_r13_present, 1));
-      if (white_cells_to_rem_list_r13_present) {
+      if (white_cells_to_rem_list_r13.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *white_cells_to_rem_list_r13, 1, 32, UnalignedIntegerPacker<uint8_t>(1, 32)));
       }
-      if (white_cells_to_add_mod_list_r13_present) {
+      if (white_cells_to_add_mod_list_r13.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *white_cells_to_add_mod_list_r13, 1, 32));
       }
-      if (rmtc_cfg_r13_present) {
+      if (rmtc_cfg_r13.is_present()) {
         HANDLE_CODE(rmtc_cfg_r13->pack(bref));
       }
       if (carrier_freq_r13_present) {
@@ -62696,15 +61853,15 @@ SRSASN_CODE meas_obj_eutra_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[4]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(tx_res_pool_to_rem_list_r14_present, 1));
-      HANDLE_CODE(bref.pack(tx_res_pool_to_add_list_r14_present, 1));
+      HANDLE_CODE(bref.pack(tx_res_pool_to_rem_list_r14.is_present(), 1));
+      HANDLE_CODE(bref.pack(tx_res_pool_to_add_list_r14.is_present(), 1));
       HANDLE_CODE(bref.pack(fembms_mixed_carrier_r14_present, 1));
-      if (tx_res_pool_to_rem_list_r14_present) {
+      if (tx_res_pool_to_rem_list_r14.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *tx_res_pool_to_rem_list_r14, 1, 72, UnalignedIntegerPacker<uint8_t>(1, 72)));
       }
-      if (tx_res_pool_to_add_list_r14_present) {
+      if (tx_res_pool_to_add_list_r14.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *tx_res_pool_to_add_list_r14, 1, 72, UnalignedIntegerPacker<uint8_t>(1, 72)));
       }
       if (fembms_mixed_carrier_r14_present) {
@@ -62712,10 +61869,10 @@ SRSASN_CODE meas_obj_eutra_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[5]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(meas_sensing_cfg_r15_present, 1));
-      if (meas_sensing_cfg_r15_present) {
+      HANDLE_CODE(bref.pack(meas_sensing_cfg_r15.is_present(), 1));
+      if (meas_sensing_cfg_r15.is_present()) {
         HANDLE_CODE(meas_sensing_cfg_r15->pack(bref));
       }
     }
@@ -62756,24 +61913,25 @@ SRSASN_CODE meas_obj_eutra_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(6);
+    ext_groups_unpacker_guard group_flags(6);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(meas_cycle_scell_r10_present, 1));
+      bool meas_sf_pattern_cfg_neigh_r10_present;
       HANDLE_CODE(bref.unpack(meas_sf_pattern_cfg_neigh_r10_present, 1));
+      meas_sf_pattern_cfg_neigh_r10.set_present(meas_sf_pattern_cfg_neigh_r10_present);
       if (meas_cycle_scell_r10_present) {
         HANDLE_CODE(unpack_enum(meas_cycle_scell_r10, bref));
       }
-      if (meas_sf_pattern_cfg_neigh_r10_present) {
-        meas_sf_pattern_cfg_neigh_r10 = make_copy_ptr(meas_sf_pattern_cfg_neigh_r10_c());
+      if (meas_sf_pattern_cfg_neigh_r10.is_present()) {
         HANDLE_CODE(meas_sf_pattern_cfg_neigh_r10->unpack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(wideband_rsrq_meas_r11_present, 1));
       if (wideband_rsrq_meas_r11_present) {
@@ -62781,52 +61939,59 @@ SRSASN_CODE meas_obj_eutra_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool alt_ttt_cells_to_rem_list_r12_present;
       HANDLE_CODE(bref.unpack(alt_ttt_cells_to_rem_list_r12_present, 1));
+      alt_ttt_cells_to_rem_list_r12.set_present(alt_ttt_cells_to_rem_list_r12_present);
+      bool alt_ttt_cells_to_add_mod_list_r12_present;
       HANDLE_CODE(bref.unpack(alt_ttt_cells_to_add_mod_list_r12_present, 1));
+      alt_ttt_cells_to_add_mod_list_r12.set_present(alt_ttt_cells_to_add_mod_list_r12_present);
+      bool t312_r12_present;
       HANDLE_CODE(bref.unpack(t312_r12_present, 1));
+      t312_r12.set_present(t312_r12_present);
       HANDLE_CODE(bref.unpack(reduced_meas_performance_r12_present, 1));
+      bool meas_ds_cfg_r12_present;
       HANDLE_CODE(bref.unpack(meas_ds_cfg_r12_present, 1));
-      if (alt_ttt_cells_to_rem_list_r12_present) {
-        alt_ttt_cells_to_rem_list_r12 = make_copy_ptr(cell_idx_list_l());
+      meas_ds_cfg_r12.set_present(meas_ds_cfg_r12_present);
+      if (alt_ttt_cells_to_rem_list_r12.is_present()) {
         HANDLE_CODE(
             unpack_dyn_seq_of(*alt_ttt_cells_to_rem_list_r12, bref, 1, 32, UnalignedIntegerPacker<uint8_t>(1, 32)));
       }
-      if (alt_ttt_cells_to_add_mod_list_r12_present) {
-        alt_ttt_cells_to_add_mod_list_r12 = make_copy_ptr(alt_ttt_cells_to_add_mod_list_r12_l());
+      if (alt_ttt_cells_to_add_mod_list_r12.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*alt_ttt_cells_to_add_mod_list_r12, bref, 1, 32));
       }
-      if (t312_r12_present) {
-        t312_r12 = make_copy_ptr(t312_r12_c_());
+      if (t312_r12.is_present()) {
         HANDLE_CODE(t312_r12->unpack(bref));
       }
       if (reduced_meas_performance_r12_present) {
         HANDLE_CODE(bref.unpack(reduced_meas_performance_r12, 1));
       }
-      if (meas_ds_cfg_r12_present) {
-        meas_ds_cfg_r12 = make_copy_ptr(meas_ds_cfg_r12_c());
+      if (meas_ds_cfg_r12.is_present()) {
         HANDLE_CODE(meas_ds_cfg_r12->unpack(bref));
       }
     }
     if (group_flags[3]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool white_cells_to_rem_list_r13_present;
       HANDLE_CODE(bref.unpack(white_cells_to_rem_list_r13_present, 1));
+      white_cells_to_rem_list_r13.set_present(white_cells_to_rem_list_r13_present);
+      bool white_cells_to_add_mod_list_r13_present;
       HANDLE_CODE(bref.unpack(white_cells_to_add_mod_list_r13_present, 1));
+      white_cells_to_add_mod_list_r13.set_present(white_cells_to_add_mod_list_r13_present);
+      bool rmtc_cfg_r13_present;
       HANDLE_CODE(bref.unpack(rmtc_cfg_r13_present, 1));
+      rmtc_cfg_r13.set_present(rmtc_cfg_r13_present);
       HANDLE_CODE(bref.unpack(carrier_freq_r13_present, 1));
-      if (white_cells_to_rem_list_r13_present) {
-        white_cells_to_rem_list_r13 = make_copy_ptr(cell_idx_list_l());
+      if (white_cells_to_rem_list_r13.is_present()) {
         HANDLE_CODE(
             unpack_dyn_seq_of(*white_cells_to_rem_list_r13, bref, 1, 32, UnalignedIntegerPacker<uint8_t>(1, 32)));
       }
-      if (white_cells_to_add_mod_list_r13_present) {
-        white_cells_to_add_mod_list_r13 = make_copy_ptr(white_cells_to_add_mod_list_r13_l());
+      if (white_cells_to_add_mod_list_r13.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*white_cells_to_add_mod_list_r13, bref, 1, 32));
       }
-      if (rmtc_cfg_r13_present) {
-        rmtc_cfg_r13 = make_copy_ptr(rmtc_cfg_r13_c());
+      if (rmtc_cfg_r13.is_present()) {
         HANDLE_CODE(rmtc_cfg_r13->unpack(bref));
       }
       if (carrier_freq_r13_present) {
@@ -62834,18 +61999,20 @@ SRSASN_CODE meas_obj_eutra_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[4]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool tx_res_pool_to_rem_list_r14_present;
       HANDLE_CODE(bref.unpack(tx_res_pool_to_rem_list_r14_present, 1));
+      tx_res_pool_to_rem_list_r14.set_present(tx_res_pool_to_rem_list_r14_present);
+      bool tx_res_pool_to_add_list_r14_present;
       HANDLE_CODE(bref.unpack(tx_res_pool_to_add_list_r14_present, 1));
+      tx_res_pool_to_add_list_r14.set_present(tx_res_pool_to_add_list_r14_present);
       HANDLE_CODE(bref.unpack(fembms_mixed_carrier_r14_present, 1));
-      if (tx_res_pool_to_rem_list_r14_present) {
-        tx_res_pool_to_rem_list_r14 = make_copy_ptr(tx_res_pool_meas_list_r14_l());
+      if (tx_res_pool_to_rem_list_r14.is_present()) {
         HANDLE_CODE(
             unpack_dyn_seq_of(*tx_res_pool_to_rem_list_r14, bref, 1, 72, UnalignedIntegerPacker<uint8_t>(1, 72)));
       }
-      if (tx_res_pool_to_add_list_r14_present) {
-        tx_res_pool_to_add_list_r14 = make_copy_ptr(tx_res_pool_meas_list_r14_l());
+      if (tx_res_pool_to_add_list_r14.is_present()) {
         HANDLE_CODE(
             unpack_dyn_seq_of(*tx_res_pool_to_add_list_r14, bref, 1, 72, UnalignedIntegerPacker<uint8_t>(1, 72)));
       }
@@ -62854,11 +62021,12 @@ SRSASN_CODE meas_obj_eutra_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[5]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool meas_sensing_cfg_r15_present;
       HANDLE_CODE(bref.unpack(meas_sensing_cfg_r15_present, 1));
-      if (meas_sensing_cfg_r15_present) {
-        meas_sensing_cfg_r15 = make_copy_ptr(meas_sensing_cfg_r15_s());
+      meas_sensing_cfg_r15.set_present(meas_sensing_cfg_r15_present);
+      if (meas_sensing_cfg_r15.is_present()) {
         HANDLE_CODE(meas_sensing_cfg_r15->unpack(bref));
       }
     }
@@ -62910,85 +62078,67 @@ void meas_obj_eutra_s::to_json(json_writer& j) const
     if (meas_cycle_scell_r10_present) {
       j.write_str("measCycleSCell-r10", meas_cycle_scell_r10.to_string());
     }
-    rrc_asn1_warn_assert(
-        meas_sf_pattern_cfg_neigh_r10_present != (meas_sf_pattern_cfg_neigh_r10.get() != NULL), __FILE__, __LINE__);
-    if (meas_sf_pattern_cfg_neigh_r10_present) {
+    if (meas_sf_pattern_cfg_neigh_r10.is_present()) {
       j.write_fieldname("measSubframePatternConfigNeigh-r10");
       meas_sf_pattern_cfg_neigh_r10->to_json(j);
     }
     if (wideband_rsrq_meas_r11_present) {
       j.write_bool("widebandRSRQ-Meas-r11", wideband_rsrq_meas_r11);
     }
-    rrc_asn1_warn_assert(
-        alt_ttt_cells_to_rem_list_r12_present != (alt_ttt_cells_to_rem_list_r12.get() != NULL), __FILE__, __LINE__);
-    if (alt_ttt_cells_to_rem_list_r12_present) {
+    if (alt_ttt_cells_to_rem_list_r12.is_present()) {
       j.start_array("altTTT-CellsToRemoveList-r12");
       for (uint32_t i1 = 0; i1 < alt_ttt_cells_to_rem_list_r12->size(); ++i1) {
         j.write_int(((*alt_ttt_cells_to_rem_list_r12)[i1]));
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(alt_ttt_cells_to_add_mod_list_r12_present != (alt_ttt_cells_to_add_mod_list_r12.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (alt_ttt_cells_to_add_mod_list_r12_present) {
+    if (alt_ttt_cells_to_add_mod_list_r12.is_present()) {
       j.start_array("altTTT-CellsToAddModList-r12");
       for (uint32_t i1 = 0; i1 < alt_ttt_cells_to_add_mod_list_r12->size(); ++i1) {
         ((*alt_ttt_cells_to_add_mod_list_r12)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(t312_r12_present != (t312_r12.get() != NULL), __FILE__, __LINE__);
-    if (t312_r12_present) {
+    if (t312_r12.is_present()) {
       j.write_fieldname("t312-r12");
       t312_r12->to_json(j);
     }
     if (reduced_meas_performance_r12_present) {
       j.write_bool("reducedMeasPerformance-r12", reduced_meas_performance_r12);
     }
-    rrc_asn1_warn_assert(meas_ds_cfg_r12_present != (meas_ds_cfg_r12.get() != NULL), __FILE__, __LINE__);
-    if (meas_ds_cfg_r12_present) {
+    if (meas_ds_cfg_r12.is_present()) {
       j.write_fieldname("measDS-Config-r12");
       meas_ds_cfg_r12->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        white_cells_to_rem_list_r13_present != (white_cells_to_rem_list_r13.get() != NULL), __FILE__, __LINE__);
-    if (white_cells_to_rem_list_r13_present) {
+    if (white_cells_to_rem_list_r13.is_present()) {
       j.start_array("whiteCellsToRemoveList-r13");
       for (uint32_t i1 = 0; i1 < white_cells_to_rem_list_r13->size(); ++i1) {
         j.write_int(((*white_cells_to_rem_list_r13)[i1]));
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(
-        white_cells_to_add_mod_list_r13_present != (white_cells_to_add_mod_list_r13.get() != NULL), __FILE__, __LINE__);
-    if (white_cells_to_add_mod_list_r13_present) {
+    if (white_cells_to_add_mod_list_r13.is_present()) {
       j.start_array("whiteCellsToAddModList-r13");
       for (uint32_t i1 = 0; i1 < white_cells_to_add_mod_list_r13->size(); ++i1) {
         ((*white_cells_to_add_mod_list_r13)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(rmtc_cfg_r13_present != (rmtc_cfg_r13.get() != NULL), __FILE__, __LINE__);
-    if (rmtc_cfg_r13_present) {
+    if (rmtc_cfg_r13.is_present()) {
       j.write_fieldname("rmtc-Config-r13");
       rmtc_cfg_r13->to_json(j);
     }
     if (carrier_freq_r13_present) {
       j.write_int("carrierFreq-r13", carrier_freq_r13);
     }
-    rrc_asn1_warn_assert(
-        tx_res_pool_to_rem_list_r14_present != (tx_res_pool_to_rem_list_r14.get() != NULL), __FILE__, __LINE__);
-    if (tx_res_pool_to_rem_list_r14_present) {
+    if (tx_res_pool_to_rem_list_r14.is_present()) {
       j.start_array("tx-ResourcePoolToRemoveList-r14");
       for (uint32_t i1 = 0; i1 < tx_res_pool_to_rem_list_r14->size(); ++i1) {
         j.write_int(((*tx_res_pool_to_rem_list_r14)[i1]));
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(
-        tx_res_pool_to_add_list_r14_present != (tx_res_pool_to_add_list_r14.get() != NULL), __FILE__, __LINE__);
-    if (tx_res_pool_to_add_list_r14_present) {
+    if (tx_res_pool_to_add_list_r14.is_present()) {
       j.start_array("tx-ResourcePoolToAddList-r14");
       for (uint32_t i1 = 0; i1 < tx_res_pool_to_add_list_r14->size(); ++i1) {
         j.write_int(((*tx_res_pool_to_add_list_r14)[i1]));
@@ -62998,8 +62148,7 @@ void meas_obj_eutra_s::to_json(json_writer& j) const
     if (fembms_mixed_carrier_r14_present) {
       j.write_bool("fembms-MixedCarrier-r14", fembms_mixed_carrier_r14);
     }
-    rrc_asn1_warn_assert(meas_sensing_cfg_r15_present != (meas_sensing_cfg_r15.get() != NULL), __FILE__, __LINE__);
-    if (meas_sensing_cfg_r15_present) {
+    if (meas_sensing_cfg_r15.is_present()) {
       j.write_fieldname("measSensing-Config-r15");
       meas_sensing_cfg_r15->to_json(j);
     }
@@ -63172,32 +62321,30 @@ SRSASN_CODE meas_obj_nr_r15_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= cell_for_which_to_report_cgi_r15_present;
     group_flags[0] |= derive_ssb_idx_from_cell_r15_present;
-    rrc_asn1_warn_assert(ss_rssi_meas_r15_present != (ss_rssi_meas_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= ss_rssi_meas_r15_present;
-    rrc_asn1_warn_assert(band_nr_r15_present != (band_nr_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= band_nr_r15_present;
+    group_flags[0] |= ss_rssi_meas_r15.is_present();
+    group_flags[0] |= band_nr_r15.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(cell_for_which_to_report_cgi_r15_present, 1));
       HANDLE_CODE(bref.pack(derive_ssb_idx_from_cell_r15_present, 1));
-      HANDLE_CODE(bref.pack(ss_rssi_meas_r15_present, 1));
-      HANDLE_CODE(bref.pack(band_nr_r15_present, 1));
+      HANDLE_CODE(bref.pack(ss_rssi_meas_r15.is_present(), 1));
+      HANDLE_CODE(bref.pack(band_nr_r15.is_present(), 1));
       if (cell_for_which_to_report_cgi_r15_present) {
         HANDLE_CODE(pack_unalign_integer(bref, cell_for_which_to_report_cgi_r15, (uint16_t)0, (uint16_t)1007));
       }
       if (derive_ssb_idx_from_cell_r15_present) {
         HANDLE_CODE(bref.pack(derive_ssb_idx_from_cell_r15, 1));
       }
-      if (ss_rssi_meas_r15_present) {
+      if (ss_rssi_meas_r15.is_present()) {
         HANDLE_CODE(ss_rssi_meas_r15->pack(bref));
       }
-      if (band_nr_r15_present) {
+      if (band_nr_r15.is_present()) {
         HANDLE_CODE(band_nr_r15->pack(bref));
       }
     }
@@ -63238,28 +62385,30 @@ SRSASN_CODE meas_obj_nr_r15_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(cell_for_which_to_report_cgi_r15_present, 1));
       HANDLE_CODE(bref.unpack(derive_ssb_idx_from_cell_r15_present, 1));
+      bool ss_rssi_meas_r15_present;
       HANDLE_CODE(bref.unpack(ss_rssi_meas_r15_present, 1));
+      ss_rssi_meas_r15.set_present(ss_rssi_meas_r15_present);
+      bool band_nr_r15_present;
       HANDLE_CODE(bref.unpack(band_nr_r15_present, 1));
+      band_nr_r15.set_present(band_nr_r15_present);
       if (cell_for_which_to_report_cgi_r15_present) {
         HANDLE_CODE(unpack_unalign_integer(cell_for_which_to_report_cgi_r15, bref, (uint16_t)0, (uint16_t)1007));
       }
       if (derive_ssb_idx_from_cell_r15_present) {
         HANDLE_CODE(bref.unpack(derive_ssb_idx_from_cell_r15, 1));
       }
-      if (ss_rssi_meas_r15_present) {
-        ss_rssi_meas_r15 = make_copy_ptr(ss_rssi_meas_r15_s());
+      if (ss_rssi_meas_r15.is_present()) {
         HANDLE_CODE(ss_rssi_meas_r15->unpack(bref));
       }
-      if (band_nr_r15_present) {
-        band_nr_r15 = make_copy_ptr(band_nr_r15_c_());
+      if (band_nr_r15.is_present()) {
         HANDLE_CODE(band_nr_r15->unpack(bref));
       }
     }
@@ -63311,13 +62460,11 @@ void meas_obj_nr_r15_s::to_json(json_writer& j) const
     if (derive_ssb_idx_from_cell_r15_present) {
       j.write_bool("deriveSSB-IndexFromCell-r15", derive_ssb_idx_from_cell_r15);
     }
-    rrc_asn1_warn_assert(ss_rssi_meas_r15_present != (ss_rssi_meas_r15.get() != NULL), __FILE__, __LINE__);
-    if (ss_rssi_meas_r15_present) {
+    if (ss_rssi_meas_r15.is_present()) {
       j.write_fieldname("ss-RSSI-Measurement-r15");
       ss_rssi_meas_r15->to_json(j);
     }
-    rrc_asn1_warn_assert(band_nr_r15_present != (band_nr_r15.get() != NULL), __FILE__, __LINE__);
-    if (band_nr_r15_present) {
+    if (band_nr_r15.is_present()) {
       j.write_fieldname("bandNR-r15");
       band_nr_r15->to_json(j);
     }
@@ -63400,23 +62547,21 @@ SRSASN_CODE meas_obj_utra_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(2);
-    rrc_asn1_warn_assert(
-        csg_allowed_report_cells_v930_present != (csg_allowed_report_cells_v930.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= csg_allowed_report_cells_v930_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= csg_allowed_report_cells_v930.is_present();
     group_flags[1] |= reduced_meas_performance_r12_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(csg_allowed_report_cells_v930_present, 1));
-      if (csg_allowed_report_cells_v930_present) {
+      HANDLE_CODE(bref.pack(csg_allowed_report_cells_v930.is_present(), 1));
+      if (csg_allowed_report_cells_v930.is_present()) {
         HANDLE_CODE(csg_allowed_report_cells_v930->pack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(reduced_meas_performance_r12_present, 1));
       if (reduced_meas_performance_r12_present) {
@@ -63449,20 +62594,21 @@ SRSASN_CODE meas_obj_utra_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(2);
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool csg_allowed_report_cells_v930_present;
       HANDLE_CODE(bref.unpack(csg_allowed_report_cells_v930_present, 1));
-      if (csg_allowed_report_cells_v930_present) {
-        csg_allowed_report_cells_v930 = make_copy_ptr(csg_allowed_report_cells_r9_s());
+      csg_allowed_report_cells_v930.set_present(csg_allowed_report_cells_v930_present);
+      if (csg_allowed_report_cells_v930.is_present()) {
         HANDLE_CODE(csg_allowed_report_cells_v930->unpack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(reduced_meas_performance_r12_present, 1));
       if (reduced_meas_performance_r12_present) {
@@ -63495,9 +62641,7 @@ void meas_obj_utra_s::to_json(json_writer& j) const
     cell_for_which_to_report_cgi.to_json(j);
   }
   if (ext) {
-    rrc_asn1_warn_assert(
-        csg_allowed_report_cells_v930_present != (csg_allowed_report_cells_v930.get() != NULL), __FILE__, __LINE__);
-    if (csg_allowed_report_cells_v930_present) {
+    if (csg_allowed_report_cells_v930.is_present()) {
       j.write_fieldname("csg-allowedReportingCells-v930");
       csg_allowed_report_cells_v930->to_json(j);
     }
@@ -64634,69 +63778,59 @@ SRSASN_CODE report_cfg_eutra_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_enum(bref, report_amount));
 
   if (ext) {
-    ext_groups_header group_flags(8);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= si_request_for_ho_r9_present;
     group_flags[0] |= ue_rx_tx_time_diff_periodical_r9_present;
     group_flags[1] |= include_location_info_r10_present;
     group_flags[1] |= report_add_neigh_meas_r10_present;
-    rrc_asn1_warn_assert(
-        alternative_time_to_trigger_r12_present != (alternative_time_to_trigger_r12.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= alternative_time_to_trigger_r12_present;
+    group_flags[2] |= alternative_time_to_trigger_r12.is_present();
     group_flags[2] |= use_t312_r12_present;
     group_flags[2] |= use_ps_cell_r12_present;
-    rrc_asn1_warn_assert(a_n_thres1_v1250_present != (a_n_thres1_v1250.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= a_n_thres1_v1250_present;
-    rrc_asn1_warn_assert(a5_thres2_v1250_present != (a5_thres2_v1250.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= a5_thres2_v1250_present;
+    group_flags[2] |= a_n_thres1_v1250.is_present();
+    group_flags[2] |= a5_thres2_v1250.is_present();
     group_flags[2] |= report_strongest_csi_rss_r12_present;
     group_flags[2] |= report_crs_meas_r12_present;
     group_flags[2] |= trigger_quant_csi_rs_r12_present;
     group_flags[3] |= report_sstd_meas_r13_present;
-    rrc_asn1_warn_assert(rs_sinr_cfg_r13_present != (rs_sinr_cfg_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= rs_sinr_cfg_r13_present;
+    group_flags[3] |= rs_sinr_cfg_r13.is_present();
     group_flags[3] |= use_white_cell_list_r13_present;
-    rrc_asn1_warn_assert(
-        meas_rssi_report_cfg_r13_present != (meas_rssi_report_cfg_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= meas_rssi_report_cfg_r13_present;
+    group_flags[3] |= meas_rssi_report_cfg_r13.is_present();
     group_flags[3] |= include_multi_band_info_r13_present;
-    rrc_asn1_warn_assert(ul_delay_cfg_r13_present != (ul_delay_cfg_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= ul_delay_cfg_r13_present;
+    group_flags[3] |= ul_delay_cfg_r13.is_present();
     group_flags[4] |= ue_rx_tx_time_diff_periodical_tdd_r13_present;
     group_flags[5] |= purpose_v1430_present;
     group_flags[6] |= max_report_rs_idx_r15_present;
-    rrc_asn1_warn_assert(include_bt_meas_r15_present != (include_bt_meas_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[7] |= include_bt_meas_r15_present;
-    rrc_asn1_warn_assert(include_wlan_meas_r15_present != (include_wlan_meas_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[7] |= include_wlan_meas_r15_present;
+    group_flags[7] |= include_bt_meas_r15.is_present();
+    group_flags[7] |= include_wlan_meas_r15.is_present();
     group_flags[7] |= purpose_r15_present;
     group_flags[7] |= nof_triggering_cells_r15_present;
     group_flags[7] |= a4_a5_report_on_leave_r15_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(si_request_for_ho_r9_present, 1));
       HANDLE_CODE(bref.pack(ue_rx_tx_time_diff_periodical_r9_present, 1));
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(include_location_info_r10_present, 1));
       HANDLE_CODE(bref.pack(report_add_neigh_meas_r10_present, 1));
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(alternative_time_to_trigger_r12_present, 1));
+      HANDLE_CODE(bref.pack(alternative_time_to_trigger_r12.is_present(), 1));
       HANDLE_CODE(bref.pack(use_t312_r12_present, 1));
       HANDLE_CODE(bref.pack(use_ps_cell_r12_present, 1));
-      HANDLE_CODE(bref.pack(a_n_thres1_v1250_present, 1));
-      HANDLE_CODE(bref.pack(a5_thres2_v1250_present, 1));
+      HANDLE_CODE(bref.pack(a_n_thres1_v1250.is_present(), 1));
+      HANDLE_CODE(bref.pack(a5_thres2_v1250.is_present(), 1));
       HANDLE_CODE(bref.pack(report_strongest_csi_rss_r12_present, 1));
       HANDLE_CODE(bref.pack(report_crs_meas_r12_present, 1));
       HANDLE_CODE(bref.pack(trigger_quant_csi_rs_r12_present, 1));
-      if (alternative_time_to_trigger_r12_present) {
+      if (alternative_time_to_trigger_r12.is_present()) {
         HANDLE_CODE(alternative_time_to_trigger_r12->pack(bref));
       }
       if (use_t312_r12_present) {
@@ -64705,10 +63839,10 @@ SRSASN_CODE report_cfg_eutra_s::pack(bit_ref& bref) const
       if (use_ps_cell_r12_present) {
         HANDLE_CODE(bref.pack(use_ps_cell_r12, 1));
       }
-      if (a_n_thres1_v1250_present) {
+      if (a_n_thres1_v1250.is_present()) {
         HANDLE_CODE(a_n_thres1_v1250->pack(bref));
       }
-      if (a5_thres2_v1250_present) {
+      if (a5_thres2_v1250.is_present()) {
         HANDLE_CODE(a5_thres2_v1250->pack(bref));
       }
       if (report_strongest_csi_rss_r12_present) {
@@ -64722,32 +63856,32 @@ SRSASN_CODE report_cfg_eutra_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[3]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(report_sstd_meas_r13_present, 1));
-      HANDLE_CODE(bref.pack(rs_sinr_cfg_r13_present, 1));
+      HANDLE_CODE(bref.pack(rs_sinr_cfg_r13.is_present(), 1));
       HANDLE_CODE(bref.pack(use_white_cell_list_r13_present, 1));
-      HANDLE_CODE(bref.pack(meas_rssi_report_cfg_r13_present, 1));
+      HANDLE_CODE(bref.pack(meas_rssi_report_cfg_r13.is_present(), 1));
       HANDLE_CODE(bref.pack(include_multi_band_info_r13_present, 1));
-      HANDLE_CODE(bref.pack(ul_delay_cfg_r13_present, 1));
+      HANDLE_CODE(bref.pack(ul_delay_cfg_r13.is_present(), 1));
       if (report_sstd_meas_r13_present) {
         HANDLE_CODE(bref.pack(report_sstd_meas_r13, 1));
       }
-      if (rs_sinr_cfg_r13_present) {
+      if (rs_sinr_cfg_r13.is_present()) {
         HANDLE_CODE(rs_sinr_cfg_r13->pack(bref));
       }
       if (use_white_cell_list_r13_present) {
         HANDLE_CODE(bref.pack(use_white_cell_list_r13, 1));
       }
-      if (meas_rssi_report_cfg_r13_present) {
+      if (meas_rssi_report_cfg_r13.is_present()) {
         HANDLE_CODE(meas_rssi_report_cfg_r13->pack(bref));
       }
-      if (ul_delay_cfg_r13_present) {
+      if (ul_delay_cfg_r13.is_present()) {
         HANDLE_CODE(ul_delay_cfg_r13->pack(bref));
       }
     }
     if (group_flags[4]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(ue_rx_tx_time_diff_periodical_tdd_r13_present, 1));
       if (ue_rx_tx_time_diff_periodical_tdd_r13_present) {
@@ -64755,7 +63889,7 @@ SRSASN_CODE report_cfg_eutra_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[5]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(purpose_v1430_present, 1));
       if (purpose_v1430_present) {
@@ -64763,7 +63897,7 @@ SRSASN_CODE report_cfg_eutra_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[6]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(max_report_rs_idx_r15_present, 1));
       if (max_report_rs_idx_r15_present) {
@@ -64771,17 +63905,17 @@ SRSASN_CODE report_cfg_eutra_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[7]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(include_bt_meas_r15_present, 1));
-      HANDLE_CODE(bref.pack(include_wlan_meas_r15_present, 1));
+      HANDLE_CODE(bref.pack(include_bt_meas_r15.is_present(), 1));
+      HANDLE_CODE(bref.pack(include_wlan_meas_r15.is_present(), 1));
       HANDLE_CODE(bref.pack(purpose_r15_present, 1));
       HANDLE_CODE(bref.pack(nof_triggering_cells_r15_present, 1));
       HANDLE_CODE(bref.pack(a4_a5_report_on_leave_r15_present, 1));
-      if (include_bt_meas_r15_present) {
+      if (include_bt_meas_r15.is_present()) {
         HANDLE_CODE(include_bt_meas_r15->pack(bref));
       }
-      if (include_wlan_meas_r15_present) {
+      if (include_wlan_meas_r15.is_present()) {
         HANDLE_CODE(include_wlan_meas_r15->pack(bref));
       }
       if (nof_triggering_cells_r15_present) {
@@ -64805,34 +63939,39 @@ SRSASN_CODE report_cfg_eutra_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_enum(report_amount, bref));
 
   if (ext) {
-    ext_groups_header group_flags(8);
+    ext_groups_unpacker_guard group_flags(8);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(si_request_for_ho_r9_present, 1));
       HANDLE_CODE(bref.unpack(ue_rx_tx_time_diff_periodical_r9_present, 1));
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(include_location_info_r10_present, 1));
       HANDLE_CODE(bref.unpack(report_add_neigh_meas_r10_present, 1));
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool alternative_time_to_trigger_r12_present;
       HANDLE_CODE(bref.unpack(alternative_time_to_trigger_r12_present, 1));
+      alternative_time_to_trigger_r12.set_present(alternative_time_to_trigger_r12_present);
       HANDLE_CODE(bref.unpack(use_t312_r12_present, 1));
       HANDLE_CODE(bref.unpack(use_ps_cell_r12_present, 1));
+      bool a_n_thres1_v1250_present;
       HANDLE_CODE(bref.unpack(a_n_thres1_v1250_present, 1));
+      a_n_thres1_v1250.set_present(a_n_thres1_v1250_present);
+      bool a5_thres2_v1250_present;
       HANDLE_CODE(bref.unpack(a5_thres2_v1250_present, 1));
+      a5_thres2_v1250.set_present(a5_thres2_v1250_present);
       HANDLE_CODE(bref.unpack(report_strongest_csi_rss_r12_present, 1));
       HANDLE_CODE(bref.unpack(report_crs_meas_r12_present, 1));
       HANDLE_CODE(bref.unpack(trigger_quant_csi_rs_r12_present, 1));
-      if (alternative_time_to_trigger_r12_present) {
-        alternative_time_to_trigger_r12 = make_copy_ptr(alternative_time_to_trigger_r12_c_());
+      if (alternative_time_to_trigger_r12.is_present()) {
         HANDLE_CODE(alternative_time_to_trigger_r12->unpack(bref));
       }
       if (use_t312_r12_present) {
@@ -64841,12 +63980,10 @@ SRSASN_CODE report_cfg_eutra_s::unpack(bit_ref& bref)
       if (use_ps_cell_r12_present) {
         HANDLE_CODE(bref.unpack(use_ps_cell_r12, 1));
       }
-      if (a_n_thres1_v1250_present) {
-        a_n_thres1_v1250 = make_copy_ptr(rsrq_range_cfg_r12_c());
+      if (a_n_thres1_v1250.is_present()) {
         HANDLE_CODE(a_n_thres1_v1250->unpack(bref));
       }
-      if (a5_thres2_v1250_present) {
-        a5_thres2_v1250 = make_copy_ptr(rsrq_range_cfg_r12_c());
+      if (a5_thres2_v1250.is_present()) {
         HANDLE_CODE(a5_thres2_v1250->unpack(bref));
       }
       if (report_strongest_csi_rss_r12_present) {
@@ -64860,35 +63997,38 @@ SRSASN_CODE report_cfg_eutra_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[3]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(report_sstd_meas_r13_present, 1));
+      bool rs_sinr_cfg_r13_present;
       HANDLE_CODE(bref.unpack(rs_sinr_cfg_r13_present, 1));
+      rs_sinr_cfg_r13.set_present(rs_sinr_cfg_r13_present);
       HANDLE_CODE(bref.unpack(use_white_cell_list_r13_present, 1));
+      bool meas_rssi_report_cfg_r13_present;
       HANDLE_CODE(bref.unpack(meas_rssi_report_cfg_r13_present, 1));
+      meas_rssi_report_cfg_r13.set_present(meas_rssi_report_cfg_r13_present);
       HANDLE_CODE(bref.unpack(include_multi_band_info_r13_present, 1));
+      bool ul_delay_cfg_r13_present;
       HANDLE_CODE(bref.unpack(ul_delay_cfg_r13_present, 1));
+      ul_delay_cfg_r13.set_present(ul_delay_cfg_r13_present);
       if (report_sstd_meas_r13_present) {
         HANDLE_CODE(bref.unpack(report_sstd_meas_r13, 1));
       }
-      if (rs_sinr_cfg_r13_present) {
-        rs_sinr_cfg_r13 = make_copy_ptr(rs_sinr_cfg_r13_c_());
+      if (rs_sinr_cfg_r13.is_present()) {
         HANDLE_CODE(rs_sinr_cfg_r13->unpack(bref));
       }
       if (use_white_cell_list_r13_present) {
         HANDLE_CODE(bref.unpack(use_white_cell_list_r13, 1));
       }
-      if (meas_rssi_report_cfg_r13_present) {
-        meas_rssi_report_cfg_r13 = make_copy_ptr(meas_rssi_report_cfg_r13_s());
+      if (meas_rssi_report_cfg_r13.is_present()) {
         HANDLE_CODE(meas_rssi_report_cfg_r13->unpack(bref));
       }
-      if (ul_delay_cfg_r13_present) {
-        ul_delay_cfg_r13 = make_copy_ptr(ul_delay_cfg_r13_c());
+      if (ul_delay_cfg_r13.is_present()) {
         HANDLE_CODE(ul_delay_cfg_r13->unpack(bref));
       }
     }
     if (group_flags[4]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(ue_rx_tx_time_diff_periodical_tdd_r13_present, 1));
       if (ue_rx_tx_time_diff_periodical_tdd_r13_present) {
@@ -64896,7 +64036,7 @@ SRSASN_CODE report_cfg_eutra_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[5]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(purpose_v1430_present, 1));
       if (purpose_v1430_present) {
@@ -64904,7 +64044,7 @@ SRSASN_CODE report_cfg_eutra_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[6]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(max_report_rs_idx_r15_present, 1));
       if (max_report_rs_idx_r15_present) {
@@ -64912,19 +64052,21 @@ SRSASN_CODE report_cfg_eutra_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[7]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool include_bt_meas_r15_present;
       HANDLE_CODE(bref.unpack(include_bt_meas_r15_present, 1));
+      include_bt_meas_r15.set_present(include_bt_meas_r15_present);
+      bool include_wlan_meas_r15_present;
       HANDLE_CODE(bref.unpack(include_wlan_meas_r15_present, 1));
+      include_wlan_meas_r15.set_present(include_wlan_meas_r15_present);
       HANDLE_CODE(bref.unpack(purpose_r15_present, 1));
       HANDLE_CODE(bref.unpack(nof_triggering_cells_r15_present, 1));
       HANDLE_CODE(bref.unpack(a4_a5_report_on_leave_r15_present, 1));
-      if (include_bt_meas_r15_present) {
-        include_bt_meas_r15 = make_copy_ptr(bt_name_list_cfg_r15_c());
+      if (include_bt_meas_r15.is_present()) {
         HANDLE_CODE(include_bt_meas_r15->unpack(bref));
       }
-      if (include_wlan_meas_r15_present) {
-        include_wlan_meas_r15 = make_copy_ptr(wlan_name_list_cfg_r15_c());
+      if (include_wlan_meas_r15.is_present()) {
         HANDLE_CODE(include_wlan_meas_r15->unpack(bref));
       }
       if (nof_triggering_cells_r15_present) {
@@ -64960,9 +64102,7 @@ void report_cfg_eutra_s::to_json(json_writer& j) const
     if (report_add_neigh_meas_r10_present) {
       j.write_str("reportAddNeighMeas-r10", "setup");
     }
-    rrc_asn1_warn_assert(
-        alternative_time_to_trigger_r12_present != (alternative_time_to_trigger_r12.get() != NULL), __FILE__, __LINE__);
-    if (alternative_time_to_trigger_r12_present) {
+    if (alternative_time_to_trigger_r12.is_present()) {
       j.write_fieldname("alternativeTimeToTrigger-r12");
       alternative_time_to_trigger_r12->to_json(j);
     }
@@ -64972,13 +64112,11 @@ void report_cfg_eutra_s::to_json(json_writer& j) const
     if (use_ps_cell_r12_present) {
       j.write_bool("usePSCell-r12", use_ps_cell_r12);
     }
-    rrc_asn1_warn_assert(a_n_thres1_v1250_present != (a_n_thres1_v1250.get() != NULL), __FILE__, __LINE__);
-    if (a_n_thres1_v1250_present) {
+    if (a_n_thres1_v1250.is_present()) {
       j.write_fieldname("aN-Threshold1-v1250");
       a_n_thres1_v1250->to_json(j);
     }
-    rrc_asn1_warn_assert(a5_thres2_v1250_present != (a5_thres2_v1250.get() != NULL), __FILE__, __LINE__);
-    if (a5_thres2_v1250_present) {
+    if (a5_thres2_v1250.is_present()) {
       j.write_fieldname("a5-Threshold2-v1250");
       a5_thres2_v1250->to_json(j);
     }
@@ -64994,25 +64132,21 @@ void report_cfg_eutra_s::to_json(json_writer& j) const
     if (report_sstd_meas_r13_present) {
       j.write_bool("reportSSTD-Meas-r13", report_sstd_meas_r13);
     }
-    rrc_asn1_warn_assert(rs_sinr_cfg_r13_present != (rs_sinr_cfg_r13.get() != NULL), __FILE__, __LINE__);
-    if (rs_sinr_cfg_r13_present) {
+    if (rs_sinr_cfg_r13.is_present()) {
       j.write_fieldname("rs-sinr-Config-r13");
       rs_sinr_cfg_r13->to_json(j);
     }
     if (use_white_cell_list_r13_present) {
       j.write_bool("useWhiteCellList-r13", use_white_cell_list_r13);
     }
-    rrc_asn1_warn_assert(
-        meas_rssi_report_cfg_r13_present != (meas_rssi_report_cfg_r13.get() != NULL), __FILE__, __LINE__);
-    if (meas_rssi_report_cfg_r13_present) {
+    if (meas_rssi_report_cfg_r13.is_present()) {
       j.write_fieldname("measRSSI-ReportConfig-r13");
       meas_rssi_report_cfg_r13->to_json(j);
     }
     if (include_multi_band_info_r13_present) {
       j.write_str("includeMultiBandInfo-r13", "true");
     }
-    rrc_asn1_warn_assert(ul_delay_cfg_r13_present != (ul_delay_cfg_r13.get() != NULL), __FILE__, __LINE__);
-    if (ul_delay_cfg_r13_present) {
+    if (ul_delay_cfg_r13.is_present()) {
       j.write_fieldname("ul-DelayConfig-r13");
       ul_delay_cfg_r13->to_json(j);
     }
@@ -65025,13 +64159,11 @@ void report_cfg_eutra_s::to_json(json_writer& j) const
     if (max_report_rs_idx_r15_present) {
       j.write_int("maxReportRS-Index-r15", max_report_rs_idx_r15);
     }
-    rrc_asn1_warn_assert(include_bt_meas_r15_present != (include_bt_meas_r15.get() != NULL), __FILE__, __LINE__);
-    if (include_bt_meas_r15_present) {
+    if (include_bt_meas_r15.is_present()) {
       j.write_fieldname("includeBT-Meas-r15");
       include_bt_meas_r15->to_json(j);
     }
-    rrc_asn1_warn_assert(include_wlan_meas_r15_present != (include_wlan_meas_r15.get() != NULL), __FILE__, __LINE__);
-    if (include_wlan_meas_r15_present) {
+    if (include_wlan_meas_r15.is_present()) {
       j.write_fieldname("includeWLAN-Meas-r15");
       include_wlan_meas_r15->to_json(j);
     }
@@ -65312,38 +64444,32 @@ SRSASN_CODE report_cfg_inter_rat_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_enum(bref, report_amount));
 
   if (ext) {
-    ext_groups_header group_flags(7);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= si_request_for_ho_r9_present;
     group_flags[1] |= report_quant_utra_fdd_r10_present;
     group_flags[2] |= include_location_info_r11_present;
-    rrc_asn1_warn_assert(b2_thres1_v1250_present != (b2_thres1_v1250.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= b2_thres1_v1250_present;
-    rrc_asn1_warn_assert(report_quant_wlan_r13_present != (report_quant_wlan_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= report_quant_wlan_r13_present;
+    group_flags[3] |= b2_thres1_v1250.is_present();
+    group_flags[4] |= report_quant_wlan_r13.is_present();
     group_flags[5] |= report_any_wlan_r14_present;
-    rrc_asn1_warn_assert(
-        report_quant_cell_nr_r15_present != (report_quant_cell_nr_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[6] |= report_quant_cell_nr_r15_present;
+    group_flags[6] |= report_quant_cell_nr_r15.is_present();
     group_flags[6] |= max_report_rs_idx_r15_present;
-    rrc_asn1_warn_assert(
-        report_quant_rs_idx_nr_r15_present != (report_quant_rs_idx_nr_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[6] |= report_quant_rs_idx_nr_r15_present;
+    group_flags[6] |= report_quant_rs_idx_nr_r15.is_present();
     group_flags[6] |= report_rs_idx_results_nr_present;
     group_flags[6] |= report_sftd_meas_r15_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(si_request_for_ho_r9_present, 1));
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(report_quant_utra_fdd_r10_present, 1));
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(include_location_info_r11_present, 1));
       if (include_location_info_r11_present) {
@@ -65351,23 +64477,23 @@ SRSASN_CODE report_cfg_inter_rat_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[3]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(b2_thres1_v1250_present, 1));
-      if (b2_thres1_v1250_present) {
+      HANDLE_CODE(bref.pack(b2_thres1_v1250.is_present(), 1));
+      if (b2_thres1_v1250.is_present()) {
         HANDLE_CODE(b2_thres1_v1250->pack(bref));
       }
     }
     if (group_flags[4]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(report_quant_wlan_r13_present, 1));
-      if (report_quant_wlan_r13_present) {
+      HANDLE_CODE(bref.pack(report_quant_wlan_r13.is_present(), 1));
+      if (report_quant_wlan_r13.is_present()) {
         HANDLE_CODE(report_quant_wlan_r13->pack(bref));
       }
     }
     if (group_flags[5]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(report_any_wlan_r14_present, 1));
       if (report_any_wlan_r14_present) {
@@ -65375,20 +64501,20 @@ SRSASN_CODE report_cfg_inter_rat_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[6]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(report_quant_cell_nr_r15_present, 1));
+      HANDLE_CODE(bref.pack(report_quant_cell_nr_r15.is_present(), 1));
       HANDLE_CODE(bref.pack(max_report_rs_idx_r15_present, 1));
-      HANDLE_CODE(bref.pack(report_quant_rs_idx_nr_r15_present, 1));
+      HANDLE_CODE(bref.pack(report_quant_rs_idx_nr_r15.is_present(), 1));
       HANDLE_CODE(bref.pack(report_rs_idx_results_nr_present, 1));
       HANDLE_CODE(bref.pack(report_sftd_meas_r15_present, 1));
-      if (report_quant_cell_nr_r15_present) {
+      if (report_quant_cell_nr_r15.is_present()) {
         HANDLE_CODE(report_quant_cell_nr_r15->pack(bref));
       }
       if (max_report_rs_idx_r15_present) {
         HANDLE_CODE(pack_unalign_integer(bref, max_report_rs_idx_r15, (uint8_t)0, (uint8_t)32));
       }
-      if (report_quant_rs_idx_nr_r15_present) {
+      if (report_quant_rs_idx_nr_r15.is_present()) {
         HANDLE_CODE(report_quant_rs_idx_nr_r15->pack(bref));
       }
       if (report_rs_idx_results_nr_present) {
@@ -65410,21 +64536,21 @@ SRSASN_CODE report_cfg_inter_rat_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_enum(report_amount, bref));
 
   if (ext) {
-    ext_groups_header group_flags(7);
+    ext_groups_unpacker_guard group_flags(7);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(si_request_for_ho_r9_present, 1));
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(report_quant_utra_fdd_r10_present, 1));
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(include_location_info_r11_present, 1));
       if (include_location_info_r11_present) {
@@ -65432,25 +64558,27 @@ SRSASN_CODE report_cfg_inter_rat_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[3]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool b2_thres1_v1250_present;
       HANDLE_CODE(bref.unpack(b2_thres1_v1250_present, 1));
-      if (b2_thres1_v1250_present) {
-        b2_thres1_v1250 = make_copy_ptr(b2_thres1_v1250_c_());
+      b2_thres1_v1250.set_present(b2_thres1_v1250_present);
+      if (b2_thres1_v1250.is_present()) {
         HANDLE_CODE(b2_thres1_v1250->unpack(bref));
       }
     }
     if (group_flags[4]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool report_quant_wlan_r13_present;
       HANDLE_CODE(bref.unpack(report_quant_wlan_r13_present, 1));
-      if (report_quant_wlan_r13_present) {
-        report_quant_wlan_r13 = make_copy_ptr(report_quant_wlan_r13_s());
+      report_quant_wlan_r13.set_present(report_quant_wlan_r13_present);
+      if (report_quant_wlan_r13.is_present()) {
         HANDLE_CODE(report_quant_wlan_r13->unpack(bref));
       }
     }
     if (group_flags[5]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(report_any_wlan_r14_present, 1));
       if (report_any_wlan_r14_present) {
@@ -65458,22 +64586,24 @@ SRSASN_CODE report_cfg_inter_rat_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[6]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool report_quant_cell_nr_r15_present;
       HANDLE_CODE(bref.unpack(report_quant_cell_nr_r15_present, 1));
+      report_quant_cell_nr_r15.set_present(report_quant_cell_nr_r15_present);
       HANDLE_CODE(bref.unpack(max_report_rs_idx_r15_present, 1));
+      bool report_quant_rs_idx_nr_r15_present;
       HANDLE_CODE(bref.unpack(report_quant_rs_idx_nr_r15_present, 1));
+      report_quant_rs_idx_nr_r15.set_present(report_quant_rs_idx_nr_r15_present);
       HANDLE_CODE(bref.unpack(report_rs_idx_results_nr_present, 1));
       HANDLE_CODE(bref.unpack(report_sftd_meas_r15_present, 1));
-      if (report_quant_cell_nr_r15_present) {
-        report_quant_cell_nr_r15 = make_copy_ptr(report_quant_nr_r15_s());
+      if (report_quant_cell_nr_r15.is_present()) {
         HANDLE_CODE(report_quant_cell_nr_r15->unpack(bref));
       }
       if (max_report_rs_idx_r15_present) {
         HANDLE_CODE(unpack_unalign_integer(max_report_rs_idx_r15, bref, (uint8_t)0, (uint8_t)32));
       }
-      if (report_quant_rs_idx_nr_r15_present) {
-        report_quant_rs_idx_nr_r15 = make_copy_ptr(report_quant_nr_r15_s());
+      if (report_quant_rs_idx_nr_r15.is_present()) {
         HANDLE_CODE(report_quant_rs_idx_nr_r15->unpack(bref));
       }
       if (report_rs_idx_results_nr_present) {
@@ -65504,31 +64634,25 @@ void report_cfg_inter_rat_s::to_json(json_writer& j) const
     if (include_location_info_r11_present) {
       j.write_bool("includeLocationInfo-r11", include_location_info_r11);
     }
-    rrc_asn1_warn_assert(b2_thres1_v1250_present != (b2_thres1_v1250.get() != NULL), __FILE__, __LINE__);
-    if (b2_thres1_v1250_present) {
+    if (b2_thres1_v1250.is_present()) {
       j.write_fieldname("b2-Threshold1-v1250");
       b2_thres1_v1250->to_json(j);
     }
-    rrc_asn1_warn_assert(report_quant_wlan_r13_present != (report_quant_wlan_r13.get() != NULL), __FILE__, __LINE__);
-    if (report_quant_wlan_r13_present) {
+    if (report_quant_wlan_r13.is_present()) {
       j.write_fieldname("reportQuantityWLAN-r13");
       report_quant_wlan_r13->to_json(j);
     }
     if (report_any_wlan_r14_present) {
       j.write_bool("reportAnyWLAN-r14", report_any_wlan_r14);
     }
-    rrc_asn1_warn_assert(
-        report_quant_cell_nr_r15_present != (report_quant_cell_nr_r15.get() != NULL), __FILE__, __LINE__);
-    if (report_quant_cell_nr_r15_present) {
+    if (report_quant_cell_nr_r15.is_present()) {
       j.write_fieldname("reportQuantityCellNR-r15");
       report_quant_cell_nr_r15->to_json(j);
     }
     if (max_report_rs_idx_r15_present) {
       j.write_int("maxReportRS-Index-r15", max_report_rs_idx_r15);
     }
-    rrc_asn1_warn_assert(
-        report_quant_rs_idx_nr_r15_present != (report_quant_rs_idx_nr_r15.get() != NULL), __FILE__, __LINE__);
-    if (report_quant_rs_idx_nr_r15_present) {
+    if (report_quant_rs_idx_nr_r15.is_present()) {
       j.write_fieldname("reportQuantityRS-IndexNR-r15");
       report_quant_rs_idx_nr_r15->to_json(j);
     }
@@ -67195,94 +66319,82 @@ SRSASN_CODE other_cfg_r9_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(4);
-    rrc_asn1_warn_assert(idc_cfg_r11_present != (idc_cfg_r11.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= idc_cfg_r11_present;
-    rrc_asn1_warn_assert(pwr_pref_ind_cfg_r11_present != (pwr_pref_ind_cfg_r11.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= pwr_pref_ind_cfg_r11_present;
-    rrc_asn1_warn_assert(
-        obtain_location_cfg_r11_present != (obtain_location_cfg_r11.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= obtain_location_cfg_r11_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= idc_cfg_r11.is_present();
+    group_flags[0] |= pwr_pref_ind_cfg_r11.is_present();
+    group_flags[0] |= obtain_location_cfg_r11.is_present();
     group_flags[1] |= bw_pref_ind_timer_r14_present;
     group_flags[1] |= sps_assist_info_report_r14_present;
-    rrc_asn1_warn_assert(
-        delay_budget_report_cfg_r14_present != (delay_budget_report_cfg_r14.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= delay_budget_report_cfg_r14_present;
-    rrc_asn1_warn_assert(rlm_report_cfg_r14_present != (rlm_report_cfg_r14.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= rlm_report_cfg_r14_present;
-    rrc_asn1_warn_assert(
-        overheat_assist_cfg_r14_present != (overheat_assist_cfg_r14.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= overheat_assist_cfg_r14_present;
-    rrc_asn1_warn_assert(meas_cfg_app_layer_r15_present != (meas_cfg_app_layer_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= meas_cfg_app_layer_r15_present;
+    group_flags[1] |= delay_budget_report_cfg_r14.is_present();
+    group_flags[1] |= rlm_report_cfg_r14.is_present();
+    group_flags[2] |= overheat_assist_cfg_r14.is_present();
+    group_flags[3] |= meas_cfg_app_layer_r15.is_present();
     group_flags[3] |= ailc_bit_cfg_r15_present;
-    rrc_asn1_warn_assert(bt_name_list_cfg_r15_present != (bt_name_list_cfg_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= bt_name_list_cfg_r15_present;
-    rrc_asn1_warn_assert(wlan_name_list_cfg_r15_present != (wlan_name_list_cfg_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= wlan_name_list_cfg_r15_present;
+    group_flags[3] |= bt_name_list_cfg_r15.is_present();
+    group_flags[3] |= wlan_name_list_cfg_r15.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(idc_cfg_r11_present, 1));
-      HANDLE_CODE(bref.pack(pwr_pref_ind_cfg_r11_present, 1));
-      HANDLE_CODE(bref.pack(obtain_location_cfg_r11_present, 1));
-      if (idc_cfg_r11_present) {
+      HANDLE_CODE(bref.pack(idc_cfg_r11.is_present(), 1));
+      HANDLE_CODE(bref.pack(pwr_pref_ind_cfg_r11.is_present(), 1));
+      HANDLE_CODE(bref.pack(obtain_location_cfg_r11.is_present(), 1));
+      if (idc_cfg_r11.is_present()) {
         HANDLE_CODE(idc_cfg_r11->pack(bref));
       }
-      if (pwr_pref_ind_cfg_r11_present) {
+      if (pwr_pref_ind_cfg_r11.is_present()) {
         HANDLE_CODE(pwr_pref_ind_cfg_r11->pack(bref));
       }
-      if (obtain_location_cfg_r11_present) {
+      if (obtain_location_cfg_r11.is_present()) {
         HANDLE_CODE(obtain_location_cfg_r11->pack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(bw_pref_ind_timer_r14_present, 1));
       HANDLE_CODE(bref.pack(sps_assist_info_report_r14_present, 1));
-      HANDLE_CODE(bref.pack(delay_budget_report_cfg_r14_present, 1));
-      HANDLE_CODE(bref.pack(rlm_report_cfg_r14_present, 1));
+      HANDLE_CODE(bref.pack(delay_budget_report_cfg_r14.is_present(), 1));
+      HANDLE_CODE(bref.pack(rlm_report_cfg_r14.is_present(), 1));
       if (bw_pref_ind_timer_r14_present) {
         HANDLE_CODE(pack_enum(bref, bw_pref_ind_timer_r14));
       }
       if (sps_assist_info_report_r14_present) {
         HANDLE_CODE(bref.pack(sps_assist_info_report_r14, 1));
       }
-      if (delay_budget_report_cfg_r14_present) {
+      if (delay_budget_report_cfg_r14.is_present()) {
         HANDLE_CODE(delay_budget_report_cfg_r14->pack(bref));
       }
-      if (rlm_report_cfg_r14_present) {
+      if (rlm_report_cfg_r14.is_present()) {
         HANDLE_CODE(rlm_report_cfg_r14->pack(bref));
       }
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(overheat_assist_cfg_r14_present, 1));
-      if (overheat_assist_cfg_r14_present) {
+      HANDLE_CODE(bref.pack(overheat_assist_cfg_r14.is_present(), 1));
+      if (overheat_assist_cfg_r14.is_present()) {
         HANDLE_CODE(overheat_assist_cfg_r14->pack(bref));
       }
     }
     if (group_flags[3]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(meas_cfg_app_layer_r15_present, 1));
+      HANDLE_CODE(bref.pack(meas_cfg_app_layer_r15.is_present(), 1));
       HANDLE_CODE(bref.pack(ailc_bit_cfg_r15_present, 1));
-      HANDLE_CODE(bref.pack(bt_name_list_cfg_r15_present, 1));
-      HANDLE_CODE(bref.pack(wlan_name_list_cfg_r15_present, 1));
-      if (meas_cfg_app_layer_r15_present) {
+      HANDLE_CODE(bref.pack(bt_name_list_cfg_r15.is_present(), 1));
+      HANDLE_CODE(bref.pack(wlan_name_list_cfg_r15.is_present(), 1));
+      if (meas_cfg_app_layer_r15.is_present()) {
         HANDLE_CODE(meas_cfg_app_layer_r15->pack(bref));
       }
       if (ailc_bit_cfg_r15_present) {
         HANDLE_CODE(bref.pack(ailc_bit_cfg_r15, 1));
       }
-      if (bt_name_list_cfg_r15_present) {
+      if (bt_name_list_cfg_r15.is_present()) {
         HANDLE_CODE(bt_name_list_cfg_r15->pack(bref));
       }
-      if (wlan_name_list_cfg_r15_present) {
+      if (wlan_name_list_cfg_r15.is_present()) {
         HANDLE_CODE(wlan_name_list_cfg_r15->pack(bref));
       }
     }
@@ -67299,79 +66411,88 @@ SRSASN_CODE other_cfg_r9_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(4);
+    ext_groups_unpacker_guard group_flags(4);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool idc_cfg_r11_present;
       HANDLE_CODE(bref.unpack(idc_cfg_r11_present, 1));
+      idc_cfg_r11.set_present(idc_cfg_r11_present);
+      bool pwr_pref_ind_cfg_r11_present;
       HANDLE_CODE(bref.unpack(pwr_pref_ind_cfg_r11_present, 1));
+      pwr_pref_ind_cfg_r11.set_present(pwr_pref_ind_cfg_r11_present);
+      bool obtain_location_cfg_r11_present;
       HANDLE_CODE(bref.unpack(obtain_location_cfg_r11_present, 1));
-      if (idc_cfg_r11_present) {
-        idc_cfg_r11 = make_copy_ptr(idc_cfg_r11_s());
+      obtain_location_cfg_r11.set_present(obtain_location_cfg_r11_present);
+      if (idc_cfg_r11.is_present()) {
         HANDLE_CODE(idc_cfg_r11->unpack(bref));
       }
-      if (pwr_pref_ind_cfg_r11_present) {
-        pwr_pref_ind_cfg_r11 = make_copy_ptr(pwr_pref_ind_cfg_r11_c());
+      if (pwr_pref_ind_cfg_r11.is_present()) {
         HANDLE_CODE(pwr_pref_ind_cfg_r11->unpack(bref));
       }
-      if (obtain_location_cfg_r11_present) {
-        obtain_location_cfg_r11 = make_copy_ptr(obtain_location_cfg_r11_s());
+      if (obtain_location_cfg_r11.is_present()) {
         HANDLE_CODE(obtain_location_cfg_r11->unpack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(bw_pref_ind_timer_r14_present, 1));
       HANDLE_CODE(bref.unpack(sps_assist_info_report_r14_present, 1));
+      bool delay_budget_report_cfg_r14_present;
       HANDLE_CODE(bref.unpack(delay_budget_report_cfg_r14_present, 1));
+      delay_budget_report_cfg_r14.set_present(delay_budget_report_cfg_r14_present);
+      bool rlm_report_cfg_r14_present;
       HANDLE_CODE(bref.unpack(rlm_report_cfg_r14_present, 1));
+      rlm_report_cfg_r14.set_present(rlm_report_cfg_r14_present);
       if (bw_pref_ind_timer_r14_present) {
         HANDLE_CODE(unpack_enum(bw_pref_ind_timer_r14, bref));
       }
       if (sps_assist_info_report_r14_present) {
         HANDLE_CODE(bref.unpack(sps_assist_info_report_r14, 1));
       }
-      if (delay_budget_report_cfg_r14_present) {
-        delay_budget_report_cfg_r14 = make_copy_ptr(delay_budget_report_cfg_r14_c_());
+      if (delay_budget_report_cfg_r14.is_present()) {
         HANDLE_CODE(delay_budget_report_cfg_r14->unpack(bref));
       }
-      if (rlm_report_cfg_r14_present) {
-        rlm_report_cfg_r14 = make_copy_ptr(rlm_report_cfg_r14_c_());
+      if (rlm_report_cfg_r14.is_present()) {
         HANDLE_CODE(rlm_report_cfg_r14->unpack(bref));
       }
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool overheat_assist_cfg_r14_present;
       HANDLE_CODE(bref.unpack(overheat_assist_cfg_r14_present, 1));
-      if (overheat_assist_cfg_r14_present) {
-        overheat_assist_cfg_r14 = make_copy_ptr(overheat_assist_cfg_r14_c_());
+      overheat_assist_cfg_r14.set_present(overheat_assist_cfg_r14_present);
+      if (overheat_assist_cfg_r14.is_present()) {
         HANDLE_CODE(overheat_assist_cfg_r14->unpack(bref));
       }
     }
     if (group_flags[3]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool meas_cfg_app_layer_r15_present;
       HANDLE_CODE(bref.unpack(meas_cfg_app_layer_r15_present, 1));
+      meas_cfg_app_layer_r15.set_present(meas_cfg_app_layer_r15_present);
       HANDLE_CODE(bref.unpack(ailc_bit_cfg_r15_present, 1));
+      bool bt_name_list_cfg_r15_present;
       HANDLE_CODE(bref.unpack(bt_name_list_cfg_r15_present, 1));
+      bt_name_list_cfg_r15.set_present(bt_name_list_cfg_r15_present);
+      bool wlan_name_list_cfg_r15_present;
       HANDLE_CODE(bref.unpack(wlan_name_list_cfg_r15_present, 1));
-      if (meas_cfg_app_layer_r15_present) {
-        meas_cfg_app_layer_r15 = make_copy_ptr(meas_cfg_app_layer_r15_c_());
+      wlan_name_list_cfg_r15.set_present(wlan_name_list_cfg_r15_present);
+      if (meas_cfg_app_layer_r15.is_present()) {
         HANDLE_CODE(meas_cfg_app_layer_r15->unpack(bref));
       }
       if (ailc_bit_cfg_r15_present) {
         HANDLE_CODE(bref.unpack(ailc_bit_cfg_r15, 1));
       }
-      if (bt_name_list_cfg_r15_present) {
-        bt_name_list_cfg_r15 = make_copy_ptr(bt_name_list_cfg_r15_c());
+      if (bt_name_list_cfg_r15.is_present()) {
         HANDLE_CODE(bt_name_list_cfg_r15->unpack(bref));
       }
-      if (wlan_name_list_cfg_r15_present) {
-        wlan_name_list_cfg_r15 = make_copy_ptr(wlan_name_list_cfg_r15_c());
+      if (wlan_name_list_cfg_r15.is_present()) {
         HANDLE_CODE(wlan_name_list_cfg_r15->unpack(bref));
       }
     }
@@ -67386,19 +66507,15 @@ void other_cfg_r9_s::to_json(json_writer& j) const
     report_proximity_cfg_r9.to_json(j);
   }
   if (ext) {
-    rrc_asn1_warn_assert(idc_cfg_r11_present != (idc_cfg_r11.get() != NULL), __FILE__, __LINE__);
-    if (idc_cfg_r11_present) {
+    if (idc_cfg_r11.is_present()) {
       j.write_fieldname("idc-Config-r11");
       idc_cfg_r11->to_json(j);
     }
-    rrc_asn1_warn_assert(pwr_pref_ind_cfg_r11_present != (pwr_pref_ind_cfg_r11.get() != NULL), __FILE__, __LINE__);
-    if (pwr_pref_ind_cfg_r11_present) {
+    if (pwr_pref_ind_cfg_r11.is_present()) {
       j.write_fieldname("powerPrefIndicationConfig-r11");
       pwr_pref_ind_cfg_r11->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        obtain_location_cfg_r11_present != (obtain_location_cfg_r11.get() != NULL), __FILE__, __LINE__);
-    if (obtain_location_cfg_r11_present) {
+    if (obtain_location_cfg_r11.is_present()) {
       j.write_fieldname("obtainLocationConfig-r11");
       obtain_location_cfg_r11->to_json(j);
     }
@@ -67408,38 +66525,30 @@ void other_cfg_r9_s::to_json(json_writer& j) const
     if (sps_assist_info_report_r14_present) {
       j.write_bool("sps-AssistanceInfoReport-r14", sps_assist_info_report_r14);
     }
-    rrc_asn1_warn_assert(
-        delay_budget_report_cfg_r14_present != (delay_budget_report_cfg_r14.get() != NULL), __FILE__, __LINE__);
-    if (delay_budget_report_cfg_r14_present) {
+    if (delay_budget_report_cfg_r14.is_present()) {
       j.write_fieldname("delayBudgetReportingConfig-r14");
       delay_budget_report_cfg_r14->to_json(j);
     }
-    rrc_asn1_warn_assert(rlm_report_cfg_r14_present != (rlm_report_cfg_r14.get() != NULL), __FILE__, __LINE__);
-    if (rlm_report_cfg_r14_present) {
+    if (rlm_report_cfg_r14.is_present()) {
       j.write_fieldname("rlm-ReportConfig-r14");
       rlm_report_cfg_r14->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        overheat_assist_cfg_r14_present != (overheat_assist_cfg_r14.get() != NULL), __FILE__, __LINE__);
-    if (overheat_assist_cfg_r14_present) {
+    if (overheat_assist_cfg_r14.is_present()) {
       j.write_fieldname("overheatingAssistanceConfig-r14");
       overheat_assist_cfg_r14->to_json(j);
     }
-    rrc_asn1_warn_assert(meas_cfg_app_layer_r15_present != (meas_cfg_app_layer_r15.get() != NULL), __FILE__, __LINE__);
-    if (meas_cfg_app_layer_r15_present) {
+    if (meas_cfg_app_layer_r15.is_present()) {
       j.write_fieldname("measConfigAppLayer-r15");
       meas_cfg_app_layer_r15->to_json(j);
     }
     if (ailc_bit_cfg_r15_present) {
       j.write_bool("ailc-BitConfig-r15", ailc_bit_cfg_r15);
     }
-    rrc_asn1_warn_assert(bt_name_list_cfg_r15_present != (bt_name_list_cfg_r15.get() != NULL), __FILE__, __LINE__);
-    if (bt_name_list_cfg_r15_present) {
+    if (bt_name_list_cfg_r15.is_present()) {
       j.write_fieldname("bt-NameListConfig-r15");
       bt_name_list_cfg_r15->to_json(j);
     }
-    rrc_asn1_warn_assert(wlan_name_list_cfg_r15_present != (wlan_name_list_cfg_r15.get() != NULL), __FILE__, __LINE__);
-    if (wlan_name_list_cfg_r15_present) {
+    if (wlan_name_list_cfg_r15.is_present()) {
       j.write_fieldname("wlan-NameListConfig-r15");
       wlan_name_list_cfg_r15->to_json(j);
     }
@@ -69567,52 +68676,47 @@ SRSASN_CODE quant_cfg_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(4);
-    rrc_asn1_warn_assert(quant_cfg_utra_v1020_present != (quant_cfg_utra_v1020.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= quant_cfg_utra_v1020_present;
-    rrc_asn1_warn_assert(quant_cfg_eutra_v1250_present != (quant_cfg_eutra_v1250.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= quant_cfg_eutra_v1250_present;
-    rrc_asn1_warn_assert(quant_cfg_eutra_v1310_present != (quant_cfg_eutra_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= quant_cfg_eutra_v1310_present;
-    rrc_asn1_warn_assert(quant_cfg_wlan_r13_present != (quant_cfg_wlan_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= quant_cfg_wlan_r13_present;
-    rrc_asn1_warn_assert(quant_cfg_nr_list_r15_present != (quant_cfg_nr_list_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= quant_cfg_nr_list_r15_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= quant_cfg_utra_v1020.is_present();
+    group_flags[1] |= quant_cfg_eutra_v1250.is_present();
+    group_flags[2] |= quant_cfg_eutra_v1310.is_present();
+    group_flags[2] |= quant_cfg_wlan_r13.is_present();
+    group_flags[3] |= quant_cfg_nr_list_r15.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(quant_cfg_utra_v1020_present, 1));
-      if (quant_cfg_utra_v1020_present) {
+      HANDLE_CODE(bref.pack(quant_cfg_utra_v1020.is_present(), 1));
+      if (quant_cfg_utra_v1020.is_present()) {
         HANDLE_CODE(quant_cfg_utra_v1020->pack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(quant_cfg_eutra_v1250_present, 1));
-      if (quant_cfg_eutra_v1250_present) {
+      HANDLE_CODE(bref.pack(quant_cfg_eutra_v1250.is_present(), 1));
+      if (quant_cfg_eutra_v1250.is_present()) {
         HANDLE_CODE(quant_cfg_eutra_v1250->pack(bref));
       }
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(quant_cfg_eutra_v1310_present, 1));
-      HANDLE_CODE(bref.pack(quant_cfg_wlan_r13_present, 1));
-      if (quant_cfg_eutra_v1310_present) {
+      HANDLE_CODE(bref.pack(quant_cfg_eutra_v1310.is_present(), 1));
+      HANDLE_CODE(bref.pack(quant_cfg_wlan_r13.is_present(), 1));
+      if (quant_cfg_eutra_v1310.is_present()) {
         HANDLE_CODE(quant_cfg_eutra_v1310->pack(bref));
       }
-      if (quant_cfg_wlan_r13_present) {
+      if (quant_cfg_wlan_r13.is_present()) {
         HANDLE_CODE(quant_cfg_wlan_r13->pack(bref));
       }
     }
     if (group_flags[3]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(quant_cfg_nr_list_r15_present, 1));
-      if (quant_cfg_nr_list_r15_present) {
+      HANDLE_CODE(bref.pack(quant_cfg_nr_list_r15.is_present(), 1));
+      if (quant_cfg_nr_list_r15.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *quant_cfg_nr_list_r15, 1, 2));
       }
     }
@@ -69641,47 +68745,52 @@ SRSASN_CODE quant_cfg_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(4);
+    ext_groups_unpacker_guard group_flags(4);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool quant_cfg_utra_v1020_present;
       HANDLE_CODE(bref.unpack(quant_cfg_utra_v1020_present, 1));
-      if (quant_cfg_utra_v1020_present) {
-        quant_cfg_utra_v1020 = make_copy_ptr(quant_cfg_utra_v1020_s());
+      quant_cfg_utra_v1020.set_present(quant_cfg_utra_v1020_present);
+      if (quant_cfg_utra_v1020.is_present()) {
         HANDLE_CODE(quant_cfg_utra_v1020->unpack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool quant_cfg_eutra_v1250_present;
       HANDLE_CODE(bref.unpack(quant_cfg_eutra_v1250_present, 1));
-      if (quant_cfg_eutra_v1250_present) {
-        quant_cfg_eutra_v1250 = make_copy_ptr(quant_cfg_eutra_v1250_s());
+      quant_cfg_eutra_v1250.set_present(quant_cfg_eutra_v1250_present);
+      if (quant_cfg_eutra_v1250.is_present()) {
         HANDLE_CODE(quant_cfg_eutra_v1250->unpack(bref));
       }
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool quant_cfg_eutra_v1310_present;
       HANDLE_CODE(bref.unpack(quant_cfg_eutra_v1310_present, 1));
+      quant_cfg_eutra_v1310.set_present(quant_cfg_eutra_v1310_present);
+      bool quant_cfg_wlan_r13_present;
       HANDLE_CODE(bref.unpack(quant_cfg_wlan_r13_present, 1));
-      if (quant_cfg_eutra_v1310_present) {
-        quant_cfg_eutra_v1310 = make_copy_ptr(quant_cfg_eutra_v1310_s());
+      quant_cfg_wlan_r13.set_present(quant_cfg_wlan_r13_present);
+      if (quant_cfg_eutra_v1310.is_present()) {
         HANDLE_CODE(quant_cfg_eutra_v1310->unpack(bref));
       }
-      if (quant_cfg_wlan_r13_present) {
-        quant_cfg_wlan_r13 = make_copy_ptr(quant_cfg_wlan_r13_s());
+      if (quant_cfg_wlan_r13.is_present()) {
         HANDLE_CODE(quant_cfg_wlan_r13->unpack(bref));
       }
     }
     if (group_flags[3]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool quant_cfg_nr_list_r15_present;
       HANDLE_CODE(bref.unpack(quant_cfg_nr_list_r15_present, 1));
-      if (quant_cfg_nr_list_r15_present) {
-        quant_cfg_nr_list_r15 = make_copy_ptr(quant_cfg_nr_list_r15_l());
+      quant_cfg_nr_list_r15.set_present(quant_cfg_nr_list_r15_present);
+      if (quant_cfg_nr_list_r15.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*quant_cfg_nr_list_r15, bref, 1, 2));
       }
     }
@@ -69708,28 +68817,23 @@ void quant_cfg_s::to_json(json_writer& j) const
     quant_cfg_cdma2000.to_json(j);
   }
   if (ext) {
-    rrc_asn1_warn_assert(quant_cfg_utra_v1020_present != (quant_cfg_utra_v1020.get() != NULL), __FILE__, __LINE__);
-    if (quant_cfg_utra_v1020_present) {
+    if (quant_cfg_utra_v1020.is_present()) {
       j.write_fieldname("quantityConfigUTRA-v1020");
       quant_cfg_utra_v1020->to_json(j);
     }
-    rrc_asn1_warn_assert(quant_cfg_eutra_v1250_present != (quant_cfg_eutra_v1250.get() != NULL), __FILE__, __LINE__);
-    if (quant_cfg_eutra_v1250_present) {
+    if (quant_cfg_eutra_v1250.is_present()) {
       j.write_fieldname("quantityConfigEUTRA-v1250");
       quant_cfg_eutra_v1250->to_json(j);
     }
-    rrc_asn1_warn_assert(quant_cfg_eutra_v1310_present != (quant_cfg_eutra_v1310.get() != NULL), __FILE__, __LINE__);
-    if (quant_cfg_eutra_v1310_present) {
+    if (quant_cfg_eutra_v1310.is_present()) {
       j.write_fieldname("quantityConfigEUTRA-v1310");
       quant_cfg_eutra_v1310->to_json(j);
     }
-    rrc_asn1_warn_assert(quant_cfg_wlan_r13_present != (quant_cfg_wlan_r13.get() != NULL), __FILE__, __LINE__);
-    if (quant_cfg_wlan_r13_present) {
+    if (quant_cfg_wlan_r13.is_present()) {
       j.write_fieldname("quantityConfigWLAN-r13");
       quant_cfg_wlan_r13->to_json(j);
     }
-    rrc_asn1_warn_assert(quant_cfg_nr_list_r15_present != (quant_cfg_nr_list_r15.get() != NULL), __FILE__, __LINE__);
-    if (quant_cfg_nr_list_r15_present) {
+    if (quant_cfg_nr_list_r15.is_present()) {
       j.start_array("quantityConfigNRList-r15");
       for (uint32_t i1 = 0; i1 < quant_cfg_nr_list_r15->size(); ++i1) {
         ((*quant_cfg_nr_list_r15)[i1]).to_json(j);
@@ -70212,133 +69316,114 @@ SRSASN_CODE rr_cfg_common_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_enum(bref, ul_cp_len));
 
   if (ext) {
-    ext_groups_header group_flags(7);
-    rrc_asn1_warn_assert(
-        ul_pwr_ctrl_common_v1020_present != (ul_pwr_ctrl_common_v1020.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= ul_pwr_ctrl_common_v1020_present;
-    rrc_asn1_warn_assert(tdd_cfg_v1130_present != (tdd_cfg_v1130.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= tdd_cfg_v1130_present;
-    rrc_asn1_warn_assert(pusch_cfg_common_v1270_present != (pusch_cfg_common_v1270.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= pusch_cfg_common_v1270_present;
-    rrc_asn1_warn_assert(prach_cfg_v1310_present != (prach_cfg_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= prach_cfg_v1310_present;
-    rrc_asn1_warn_assert(freq_hop_params_r13_present != (freq_hop_params_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= freq_hop_params_r13_present;
-    rrc_asn1_warn_assert(pdsch_cfg_common_v1310_present != (pdsch_cfg_common_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= pdsch_cfg_common_v1310_present;
-    rrc_asn1_warn_assert(pucch_cfg_common_v1310_present != (pucch_cfg_common_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= pucch_cfg_common_v1310_present;
-    rrc_asn1_warn_assert(pusch_cfg_common_v1310_present != (pusch_cfg_common_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= pusch_cfg_common_v1310_present;
-    rrc_asn1_warn_assert(
-        ul_pwr_ctrl_common_v1310_present != (ul_pwr_ctrl_common_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= ul_pwr_ctrl_common_v1310_present;
-    rrc_asn1_warn_assert(high_speed_cfg_r14_present != (high_speed_cfg_r14.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= high_speed_cfg_r14_present;
-    rrc_asn1_warn_assert(prach_cfg_v1430_present != (prach_cfg_v1430.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= prach_cfg_v1430_present;
-    rrc_asn1_warn_assert(pucch_cfg_common_v1430_present != (pucch_cfg_common_v1430.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= pucch_cfg_common_v1430_present;
-    rrc_asn1_warn_assert(tdd_cfg_v1430_present != (tdd_cfg_v1430.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= tdd_cfg_v1430_present;
-    rrc_asn1_warn_assert(tdd_cfg_v1450_present != (tdd_cfg_v1450.get() != NULL), __FILE__, __LINE__);
-    group_flags[5] |= tdd_cfg_v1450_present;
-    rrc_asn1_warn_assert(
-        ul_pwr_ctrl_common_v1530_present != (ul_pwr_ctrl_common_v1530.get() != NULL), __FILE__, __LINE__);
-    group_flags[6] |= ul_pwr_ctrl_common_v1530_present;
-    rrc_asn1_warn_assert(high_speed_cfg_v1530_present != (high_speed_cfg_v1530.get() != NULL), __FILE__, __LINE__);
-    group_flags[6] |= high_speed_cfg_v1530_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= ul_pwr_ctrl_common_v1020.is_present();
+    group_flags[1] |= tdd_cfg_v1130.is_present();
+    group_flags[2] |= pusch_cfg_common_v1270.is_present();
+    group_flags[3] |= prach_cfg_v1310.is_present();
+    group_flags[3] |= freq_hop_params_r13.is_present();
+    group_flags[3] |= pdsch_cfg_common_v1310.is_present();
+    group_flags[3] |= pucch_cfg_common_v1310.is_present();
+    group_flags[3] |= pusch_cfg_common_v1310.is_present();
+    group_flags[3] |= ul_pwr_ctrl_common_v1310.is_present();
+    group_flags[4] |= high_speed_cfg_r14.is_present();
+    group_flags[4] |= prach_cfg_v1430.is_present();
+    group_flags[4] |= pucch_cfg_common_v1430.is_present();
+    group_flags[4] |= tdd_cfg_v1430.is_present();
+    group_flags[5] |= tdd_cfg_v1450.is_present();
+    group_flags[6] |= ul_pwr_ctrl_common_v1530.is_present();
+    group_flags[6] |= high_speed_cfg_v1530.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(ul_pwr_ctrl_common_v1020_present, 1));
-      if (ul_pwr_ctrl_common_v1020_present) {
+      HANDLE_CODE(bref.pack(ul_pwr_ctrl_common_v1020.is_present(), 1));
+      if (ul_pwr_ctrl_common_v1020.is_present()) {
         HANDLE_CODE(ul_pwr_ctrl_common_v1020->pack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(tdd_cfg_v1130_present, 1));
-      if (tdd_cfg_v1130_present) {
+      HANDLE_CODE(bref.pack(tdd_cfg_v1130.is_present(), 1));
+      if (tdd_cfg_v1130.is_present()) {
         HANDLE_CODE(tdd_cfg_v1130->pack(bref));
       }
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(pusch_cfg_common_v1270_present, 1));
-      if (pusch_cfg_common_v1270_present) {
+      HANDLE_CODE(bref.pack(pusch_cfg_common_v1270.is_present(), 1));
+      if (pusch_cfg_common_v1270.is_present()) {
         HANDLE_CODE(pusch_cfg_common_v1270->pack(bref));
       }
     }
     if (group_flags[3]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(prach_cfg_v1310_present, 1));
-      HANDLE_CODE(bref.pack(freq_hop_params_r13_present, 1));
-      HANDLE_CODE(bref.pack(pdsch_cfg_common_v1310_present, 1));
-      HANDLE_CODE(bref.pack(pucch_cfg_common_v1310_present, 1));
-      HANDLE_CODE(bref.pack(pusch_cfg_common_v1310_present, 1));
-      HANDLE_CODE(bref.pack(ul_pwr_ctrl_common_v1310_present, 1));
-      if (prach_cfg_v1310_present) {
+      HANDLE_CODE(bref.pack(prach_cfg_v1310.is_present(), 1));
+      HANDLE_CODE(bref.pack(freq_hop_params_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(pdsch_cfg_common_v1310.is_present(), 1));
+      HANDLE_CODE(bref.pack(pucch_cfg_common_v1310.is_present(), 1));
+      HANDLE_CODE(bref.pack(pusch_cfg_common_v1310.is_present(), 1));
+      HANDLE_CODE(bref.pack(ul_pwr_ctrl_common_v1310.is_present(), 1));
+      if (prach_cfg_v1310.is_present()) {
         HANDLE_CODE(prach_cfg_v1310->pack(bref));
       }
-      if (freq_hop_params_r13_present) {
+      if (freq_hop_params_r13.is_present()) {
         HANDLE_CODE(freq_hop_params_r13->pack(bref));
       }
-      if (pdsch_cfg_common_v1310_present) {
+      if (pdsch_cfg_common_v1310.is_present()) {
         HANDLE_CODE(pdsch_cfg_common_v1310->pack(bref));
       }
-      if (pucch_cfg_common_v1310_present) {
+      if (pucch_cfg_common_v1310.is_present()) {
         HANDLE_CODE(pucch_cfg_common_v1310->pack(bref));
       }
-      if (pusch_cfg_common_v1310_present) {
+      if (pusch_cfg_common_v1310.is_present()) {
         HANDLE_CODE(pusch_cfg_common_v1310->pack(bref));
       }
-      if (ul_pwr_ctrl_common_v1310_present) {
+      if (ul_pwr_ctrl_common_v1310.is_present()) {
         HANDLE_CODE(ul_pwr_ctrl_common_v1310->pack(bref));
       }
     }
     if (group_flags[4]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(high_speed_cfg_r14_present, 1));
-      HANDLE_CODE(bref.pack(prach_cfg_v1430_present, 1));
-      HANDLE_CODE(bref.pack(pucch_cfg_common_v1430_present, 1));
-      HANDLE_CODE(bref.pack(tdd_cfg_v1430_present, 1));
-      if (high_speed_cfg_r14_present) {
+      HANDLE_CODE(bref.pack(high_speed_cfg_r14.is_present(), 1));
+      HANDLE_CODE(bref.pack(prach_cfg_v1430.is_present(), 1));
+      HANDLE_CODE(bref.pack(pucch_cfg_common_v1430.is_present(), 1));
+      HANDLE_CODE(bref.pack(tdd_cfg_v1430.is_present(), 1));
+      if (high_speed_cfg_r14.is_present()) {
         HANDLE_CODE(high_speed_cfg_r14->pack(bref));
       }
-      if (prach_cfg_v1430_present) {
+      if (prach_cfg_v1430.is_present()) {
         HANDLE_CODE(prach_cfg_v1430->pack(bref));
       }
-      if (pucch_cfg_common_v1430_present) {
+      if (pucch_cfg_common_v1430.is_present()) {
         HANDLE_CODE(pucch_cfg_common_v1430->pack(bref));
       }
-      if (tdd_cfg_v1430_present) {
+      if (tdd_cfg_v1430.is_present()) {
         HANDLE_CODE(tdd_cfg_v1430->pack(bref));
       }
     }
     if (group_flags[5]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(tdd_cfg_v1450_present, 1));
-      if (tdd_cfg_v1450_present) {
+      HANDLE_CODE(bref.pack(tdd_cfg_v1450.is_present(), 1));
+      if (tdd_cfg_v1450.is_present()) {
         HANDLE_CODE(tdd_cfg_v1450->pack(bref));
       }
     }
     if (group_flags[6]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(ul_pwr_ctrl_common_v1530_present, 1));
-      HANDLE_CODE(bref.pack(high_speed_cfg_v1530_present, 1));
-      if (ul_pwr_ctrl_common_v1530_present) {
+      HANDLE_CODE(bref.pack(ul_pwr_ctrl_common_v1530.is_present(), 1));
+      HANDLE_CODE(bref.pack(high_speed_cfg_v1530.is_present(), 1));
+      if (ul_pwr_ctrl_common_v1530.is_present()) {
         HANDLE_CODE(ul_pwr_ctrl_common_v1530->pack(bref));
       }
-      if (high_speed_cfg_v1530_present) {
+      if (high_speed_cfg_v1530.is_present()) {
         HANDLE_CODE(high_speed_cfg_v1530->pack(bref));
       }
     }
@@ -70390,114 +69475,130 @@ SRSASN_CODE rr_cfg_common_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_enum(ul_cp_len, bref));
 
   if (ext) {
-    ext_groups_header group_flags(7);
+    ext_groups_unpacker_guard group_flags(7);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool ul_pwr_ctrl_common_v1020_present;
       HANDLE_CODE(bref.unpack(ul_pwr_ctrl_common_v1020_present, 1));
-      if (ul_pwr_ctrl_common_v1020_present) {
-        ul_pwr_ctrl_common_v1020 = make_copy_ptr(ul_pwr_ctrl_common_v1020_s());
+      ul_pwr_ctrl_common_v1020.set_present(ul_pwr_ctrl_common_v1020_present);
+      if (ul_pwr_ctrl_common_v1020.is_present()) {
         HANDLE_CODE(ul_pwr_ctrl_common_v1020->unpack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool tdd_cfg_v1130_present;
       HANDLE_CODE(bref.unpack(tdd_cfg_v1130_present, 1));
-      if (tdd_cfg_v1130_present) {
-        tdd_cfg_v1130 = make_copy_ptr(tdd_cfg_v1130_s());
+      tdd_cfg_v1130.set_present(tdd_cfg_v1130_present);
+      if (tdd_cfg_v1130.is_present()) {
         HANDLE_CODE(tdd_cfg_v1130->unpack(bref));
       }
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool pusch_cfg_common_v1270_present;
       HANDLE_CODE(bref.unpack(pusch_cfg_common_v1270_present, 1));
-      if (pusch_cfg_common_v1270_present) {
-        pusch_cfg_common_v1270 = make_copy_ptr(pusch_cfg_common_v1270_s());
+      pusch_cfg_common_v1270.set_present(pusch_cfg_common_v1270_present);
+      if (pusch_cfg_common_v1270.is_present()) {
         HANDLE_CODE(pusch_cfg_common_v1270->unpack(bref));
       }
     }
     if (group_flags[3]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool prach_cfg_v1310_present;
       HANDLE_CODE(bref.unpack(prach_cfg_v1310_present, 1));
+      prach_cfg_v1310.set_present(prach_cfg_v1310_present);
+      bool freq_hop_params_r13_present;
       HANDLE_CODE(bref.unpack(freq_hop_params_r13_present, 1));
+      freq_hop_params_r13.set_present(freq_hop_params_r13_present);
+      bool pdsch_cfg_common_v1310_present;
       HANDLE_CODE(bref.unpack(pdsch_cfg_common_v1310_present, 1));
+      pdsch_cfg_common_v1310.set_present(pdsch_cfg_common_v1310_present);
+      bool pucch_cfg_common_v1310_present;
       HANDLE_CODE(bref.unpack(pucch_cfg_common_v1310_present, 1));
+      pucch_cfg_common_v1310.set_present(pucch_cfg_common_v1310_present);
+      bool pusch_cfg_common_v1310_present;
       HANDLE_CODE(bref.unpack(pusch_cfg_common_v1310_present, 1));
+      pusch_cfg_common_v1310.set_present(pusch_cfg_common_v1310_present);
+      bool ul_pwr_ctrl_common_v1310_present;
       HANDLE_CODE(bref.unpack(ul_pwr_ctrl_common_v1310_present, 1));
-      if (prach_cfg_v1310_present) {
-        prach_cfg_v1310 = make_copy_ptr(prach_cfg_v1310_s());
+      ul_pwr_ctrl_common_v1310.set_present(ul_pwr_ctrl_common_v1310_present);
+      if (prach_cfg_v1310.is_present()) {
         HANDLE_CODE(prach_cfg_v1310->unpack(bref));
       }
-      if (freq_hop_params_r13_present) {
-        freq_hop_params_r13 = make_copy_ptr(freq_hop_params_r13_s());
+      if (freq_hop_params_r13.is_present()) {
         HANDLE_CODE(freq_hop_params_r13->unpack(bref));
       }
-      if (pdsch_cfg_common_v1310_present) {
-        pdsch_cfg_common_v1310 = make_copy_ptr(pdsch_cfg_common_v1310_s());
+      if (pdsch_cfg_common_v1310.is_present()) {
         HANDLE_CODE(pdsch_cfg_common_v1310->unpack(bref));
       }
-      if (pucch_cfg_common_v1310_present) {
-        pucch_cfg_common_v1310 = make_copy_ptr(pucch_cfg_common_v1310_s());
+      if (pucch_cfg_common_v1310.is_present()) {
         HANDLE_CODE(pucch_cfg_common_v1310->unpack(bref));
       }
-      if (pusch_cfg_common_v1310_present) {
-        pusch_cfg_common_v1310 = make_copy_ptr(pusch_cfg_common_v1310_s());
+      if (pusch_cfg_common_v1310.is_present()) {
         HANDLE_CODE(pusch_cfg_common_v1310->unpack(bref));
       }
-      if (ul_pwr_ctrl_common_v1310_present) {
-        ul_pwr_ctrl_common_v1310 = make_copy_ptr(ul_pwr_ctrl_common_v1310_s());
+      if (ul_pwr_ctrl_common_v1310.is_present()) {
         HANDLE_CODE(ul_pwr_ctrl_common_v1310->unpack(bref));
       }
     }
     if (group_flags[4]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool high_speed_cfg_r14_present;
       HANDLE_CODE(bref.unpack(high_speed_cfg_r14_present, 1));
+      high_speed_cfg_r14.set_present(high_speed_cfg_r14_present);
+      bool prach_cfg_v1430_present;
       HANDLE_CODE(bref.unpack(prach_cfg_v1430_present, 1));
+      prach_cfg_v1430.set_present(prach_cfg_v1430_present);
+      bool pucch_cfg_common_v1430_present;
       HANDLE_CODE(bref.unpack(pucch_cfg_common_v1430_present, 1));
+      pucch_cfg_common_v1430.set_present(pucch_cfg_common_v1430_present);
+      bool tdd_cfg_v1430_present;
       HANDLE_CODE(bref.unpack(tdd_cfg_v1430_present, 1));
-      if (high_speed_cfg_r14_present) {
-        high_speed_cfg_r14 = make_copy_ptr(high_speed_cfg_r14_s());
+      tdd_cfg_v1430.set_present(tdd_cfg_v1430_present);
+      if (high_speed_cfg_r14.is_present()) {
         HANDLE_CODE(high_speed_cfg_r14->unpack(bref));
       }
-      if (prach_cfg_v1430_present) {
-        prach_cfg_v1430 = make_copy_ptr(prach_cfg_v1430_s());
+      if (prach_cfg_v1430.is_present()) {
         HANDLE_CODE(prach_cfg_v1430->unpack(bref));
       }
-      if (pucch_cfg_common_v1430_present) {
-        pucch_cfg_common_v1430 = make_copy_ptr(pucch_cfg_common_v1430_s());
+      if (pucch_cfg_common_v1430.is_present()) {
         HANDLE_CODE(pucch_cfg_common_v1430->unpack(bref));
       }
-      if (tdd_cfg_v1430_present) {
-        tdd_cfg_v1430 = make_copy_ptr(tdd_cfg_v1430_s());
+      if (tdd_cfg_v1430.is_present()) {
         HANDLE_CODE(tdd_cfg_v1430->unpack(bref));
       }
     }
     if (group_flags[5]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool tdd_cfg_v1450_present;
       HANDLE_CODE(bref.unpack(tdd_cfg_v1450_present, 1));
-      if (tdd_cfg_v1450_present) {
-        tdd_cfg_v1450 = make_copy_ptr(tdd_cfg_v1450_s());
+      tdd_cfg_v1450.set_present(tdd_cfg_v1450_present);
+      if (tdd_cfg_v1450.is_present()) {
         HANDLE_CODE(tdd_cfg_v1450->unpack(bref));
       }
     }
     if (group_flags[6]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool ul_pwr_ctrl_common_v1530_present;
       HANDLE_CODE(bref.unpack(ul_pwr_ctrl_common_v1530_present, 1));
+      ul_pwr_ctrl_common_v1530.set_present(ul_pwr_ctrl_common_v1530_present);
+      bool high_speed_cfg_v1530_present;
       HANDLE_CODE(bref.unpack(high_speed_cfg_v1530_present, 1));
-      if (ul_pwr_ctrl_common_v1530_present) {
-        ul_pwr_ctrl_common_v1530 = make_copy_ptr(ul_pwr_ctrl_common_v1530_s());
+      high_speed_cfg_v1530.set_present(high_speed_cfg_v1530_present);
+      if (ul_pwr_ctrl_common_v1530.is_present()) {
         HANDLE_CODE(ul_pwr_ctrl_common_v1530->unpack(bref));
       }
-      if (high_speed_cfg_v1530_present) {
-        high_speed_cfg_v1530 = make_copy_ptr(high_speed_cfg_v1530_s());
+      if (high_speed_cfg_v1530.is_present()) {
         HANDLE_CODE(high_speed_cfg_v1530->unpack(bref));
       }
     }
@@ -70548,86 +69649,67 @@ void rr_cfg_common_s::to_json(json_writer& j) const
   }
   j.write_str("ul-CyclicPrefixLength", ul_cp_len.to_string());
   if (ext) {
-    rrc_asn1_warn_assert(
-        ul_pwr_ctrl_common_v1020_present != (ul_pwr_ctrl_common_v1020.get() != NULL), __FILE__, __LINE__);
-    if (ul_pwr_ctrl_common_v1020_present) {
+    if (ul_pwr_ctrl_common_v1020.is_present()) {
       j.write_fieldname("uplinkPowerControlCommon-v1020");
       ul_pwr_ctrl_common_v1020->to_json(j);
     }
-    rrc_asn1_warn_assert(tdd_cfg_v1130_present != (tdd_cfg_v1130.get() != NULL), __FILE__, __LINE__);
-    if (tdd_cfg_v1130_present) {
+    if (tdd_cfg_v1130.is_present()) {
       j.write_fieldname("tdd-Config-v1130");
       tdd_cfg_v1130->to_json(j);
     }
-    rrc_asn1_warn_assert(pusch_cfg_common_v1270_present != (pusch_cfg_common_v1270.get() != NULL), __FILE__, __LINE__);
-    if (pusch_cfg_common_v1270_present) {
+    if (pusch_cfg_common_v1270.is_present()) {
       j.write_fieldname("pusch-ConfigCommon-v1270");
       pusch_cfg_common_v1270->to_json(j);
     }
-    rrc_asn1_warn_assert(prach_cfg_v1310_present != (prach_cfg_v1310.get() != NULL), __FILE__, __LINE__);
-    if (prach_cfg_v1310_present) {
+    if (prach_cfg_v1310.is_present()) {
       j.write_fieldname("prach-Config-v1310");
       prach_cfg_v1310->to_json(j);
     }
-    rrc_asn1_warn_assert(freq_hop_params_r13_present != (freq_hop_params_r13.get() != NULL), __FILE__, __LINE__);
-    if (freq_hop_params_r13_present) {
+    if (freq_hop_params_r13.is_present()) {
       j.write_fieldname("freqHoppingParameters-r13");
       freq_hop_params_r13->to_json(j);
     }
-    rrc_asn1_warn_assert(pdsch_cfg_common_v1310_present != (pdsch_cfg_common_v1310.get() != NULL), __FILE__, __LINE__);
-    if (pdsch_cfg_common_v1310_present) {
+    if (pdsch_cfg_common_v1310.is_present()) {
       j.write_fieldname("pdsch-ConfigCommon-v1310");
       pdsch_cfg_common_v1310->to_json(j);
     }
-    rrc_asn1_warn_assert(pucch_cfg_common_v1310_present != (pucch_cfg_common_v1310.get() != NULL), __FILE__, __LINE__);
-    if (pucch_cfg_common_v1310_present) {
+    if (pucch_cfg_common_v1310.is_present()) {
       j.write_fieldname("pucch-ConfigCommon-v1310");
       pucch_cfg_common_v1310->to_json(j);
     }
-    rrc_asn1_warn_assert(pusch_cfg_common_v1310_present != (pusch_cfg_common_v1310.get() != NULL), __FILE__, __LINE__);
-    if (pusch_cfg_common_v1310_present) {
+    if (pusch_cfg_common_v1310.is_present()) {
       j.write_fieldname("pusch-ConfigCommon-v1310");
       pusch_cfg_common_v1310->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        ul_pwr_ctrl_common_v1310_present != (ul_pwr_ctrl_common_v1310.get() != NULL), __FILE__, __LINE__);
-    if (ul_pwr_ctrl_common_v1310_present) {
+    if (ul_pwr_ctrl_common_v1310.is_present()) {
       j.write_fieldname("uplinkPowerControlCommon-v1310");
       ul_pwr_ctrl_common_v1310->to_json(j);
     }
-    rrc_asn1_warn_assert(high_speed_cfg_r14_present != (high_speed_cfg_r14.get() != NULL), __FILE__, __LINE__);
-    if (high_speed_cfg_r14_present) {
+    if (high_speed_cfg_r14.is_present()) {
       j.write_fieldname("highSpeedConfig-r14");
       high_speed_cfg_r14->to_json(j);
     }
-    rrc_asn1_warn_assert(prach_cfg_v1430_present != (prach_cfg_v1430.get() != NULL), __FILE__, __LINE__);
-    if (prach_cfg_v1430_present) {
+    if (prach_cfg_v1430.is_present()) {
       j.write_fieldname("prach-Config-v1430");
       prach_cfg_v1430->to_json(j);
     }
-    rrc_asn1_warn_assert(pucch_cfg_common_v1430_present != (pucch_cfg_common_v1430.get() != NULL), __FILE__, __LINE__);
-    if (pucch_cfg_common_v1430_present) {
+    if (pucch_cfg_common_v1430.is_present()) {
       j.write_fieldname("pucch-ConfigCommon-v1430");
       pucch_cfg_common_v1430->to_json(j);
     }
-    rrc_asn1_warn_assert(tdd_cfg_v1430_present != (tdd_cfg_v1430.get() != NULL), __FILE__, __LINE__);
-    if (tdd_cfg_v1430_present) {
+    if (tdd_cfg_v1430.is_present()) {
       j.write_fieldname("tdd-Config-v1430");
       tdd_cfg_v1430->to_json(j);
     }
-    rrc_asn1_warn_assert(tdd_cfg_v1450_present != (tdd_cfg_v1450.get() != NULL), __FILE__, __LINE__);
-    if (tdd_cfg_v1450_present) {
+    if (tdd_cfg_v1450.is_present()) {
       j.write_fieldname("tdd-Config-v1450");
       tdd_cfg_v1450->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        ul_pwr_ctrl_common_v1530_present != (ul_pwr_ctrl_common_v1530.get() != NULL), __FILE__, __LINE__);
-    if (ul_pwr_ctrl_common_v1530_present) {
+    if (ul_pwr_ctrl_common_v1530.is_present()) {
       j.write_fieldname("uplinkPowerControlCommon-v1530");
       ul_pwr_ctrl_common_v1530->to_json(j);
     }
-    rrc_asn1_warn_assert(high_speed_cfg_v1530_present != (high_speed_cfg_v1530.get() != NULL), __FILE__, __LINE__);
-    if (high_speed_cfg_v1530_present) {
+    if (high_speed_cfg_v1530.is_present()) {
       j.write_fieldname("highSpeedConfig-v1530");
       high_speed_cfg_v1530->to_json(j);
     }
@@ -71411,59 +70493,35 @@ SRSASN_CODE meas_cfg_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(7);
-    rrc_asn1_warn_assert(
-        meas_obj_to_add_mod_list_v9e0_present != (meas_obj_to_add_mod_list_v9e0.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= meas_obj_to_add_mod_list_v9e0_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= meas_obj_to_add_mod_list_v9e0.is_present();
     group_flags[1] |= allow_interruptions_r11_present;
-    rrc_asn1_warn_assert(meas_scale_factor_r12_present != (meas_scale_factor_r12.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= meas_scale_factor_r12_present;
-    rrc_asn1_warn_assert(
-        meas_id_to_rem_list_ext_r12_present != (meas_id_to_rem_list_ext_r12.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= meas_id_to_rem_list_ext_r12_present;
-    rrc_asn1_warn_assert(
-        meas_id_to_add_mod_list_ext_r12_present != (meas_id_to_add_mod_list_ext_r12.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= meas_id_to_add_mod_list_ext_r12_present;
+    group_flags[2] |= meas_scale_factor_r12.is_present();
+    group_flags[2] |= meas_id_to_rem_list_ext_r12.is_present();
+    group_flags[2] |= meas_id_to_add_mod_list_ext_r12.is_present();
     group_flags[2] |= meas_rsrq_on_all_symbols_r12_present;
-    rrc_asn1_warn_assert(
-        meas_obj_to_rem_list_ext_r13_present != (meas_obj_to_rem_list_ext_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= meas_obj_to_rem_list_ext_r13_present;
-    rrc_asn1_warn_assert(meas_obj_to_add_mod_list_ext_r13_present != (meas_obj_to_add_mod_list_ext_r13.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[3] |= meas_obj_to_add_mod_list_ext_r13_present;
-    rrc_asn1_warn_assert(
-        meas_id_to_add_mod_list_v1310_present != (meas_id_to_add_mod_list_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= meas_id_to_add_mod_list_v1310_present;
-    rrc_asn1_warn_assert(meas_id_to_add_mod_list_ext_v1310_present != (meas_id_to_add_mod_list_ext_v1310.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[3] |= meas_id_to_add_mod_list_ext_v1310_present;
-    rrc_asn1_warn_assert(
-        meas_gap_cfg_per_cc_list_r14_present != (meas_gap_cfg_per_cc_list_r14.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= meas_gap_cfg_per_cc_list_r14_present;
-    rrc_asn1_warn_assert(
-        meas_gap_sharing_cfg_r14_present != (meas_gap_sharing_cfg_r14.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= meas_gap_sharing_cfg_r14_present;
+    group_flags[3] |= meas_obj_to_rem_list_ext_r13.is_present();
+    group_flags[3] |= meas_obj_to_add_mod_list_ext_r13.is_present();
+    group_flags[3] |= meas_id_to_add_mod_list_v1310.is_present();
+    group_flags[3] |= meas_id_to_add_mod_list_ext_v1310.is_present();
+    group_flags[4] |= meas_gap_cfg_per_cc_list_r14.is_present();
+    group_flags[4] |= meas_gap_sharing_cfg_r14.is_present();
     group_flags[5] |= fr1_gap_r15_present;
     group_flags[5] |= mgta_r15_present;
-    rrc_asn1_warn_assert(
-        meas_gap_cfg_dense_prs_r15_present != (meas_gap_cfg_dense_prs_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[6] |= meas_gap_cfg_dense_prs_r15_present;
-    rrc_asn1_warn_assert(height_thresh_ref_r15_present != (height_thresh_ref_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[6] |= height_thresh_ref_r15_present;
+    group_flags[6] |= meas_gap_cfg_dense_prs_r15.is_present();
+    group_flags[6] |= height_thresh_ref_r15.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(meas_obj_to_add_mod_list_v9e0_present, 1));
-      if (meas_obj_to_add_mod_list_v9e0_present) {
+      HANDLE_CODE(bref.pack(meas_obj_to_add_mod_list_v9e0.is_present(), 1));
+      if (meas_obj_to_add_mod_list_v9e0.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *meas_obj_to_add_mod_list_v9e0, 1, 32));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(allow_interruptions_r11_present, 1));
       if (allow_interruptions_r11_present) {
@@ -71471,20 +70529,20 @@ SRSASN_CODE meas_cfg_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(meas_scale_factor_r12_present, 1));
-      HANDLE_CODE(bref.pack(meas_id_to_rem_list_ext_r12_present, 1));
-      HANDLE_CODE(bref.pack(meas_id_to_add_mod_list_ext_r12_present, 1));
+      HANDLE_CODE(bref.pack(meas_scale_factor_r12.is_present(), 1));
+      HANDLE_CODE(bref.pack(meas_id_to_rem_list_ext_r12.is_present(), 1));
+      HANDLE_CODE(bref.pack(meas_id_to_add_mod_list_ext_r12.is_present(), 1));
       HANDLE_CODE(bref.pack(meas_rsrq_on_all_symbols_r12_present, 1));
-      if (meas_scale_factor_r12_present) {
+      if (meas_scale_factor_r12.is_present()) {
         HANDLE_CODE(meas_scale_factor_r12->pack(bref));
       }
-      if (meas_id_to_rem_list_ext_r12_present) {
+      if (meas_id_to_rem_list_ext_r12.is_present()) {
         HANDLE_CODE(
             pack_dyn_seq_of(bref, *meas_id_to_rem_list_ext_r12, 1, 32, UnalignedIntegerPacker<uint8_t>(33, 64)));
       }
-      if (meas_id_to_add_mod_list_ext_r12_present) {
+      if (meas_id_to_add_mod_list_ext_r12.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *meas_id_to_add_mod_list_ext_r12, 1, 32));
       }
       if (meas_rsrq_on_all_symbols_r12_present) {
@@ -71492,40 +70550,40 @@ SRSASN_CODE meas_cfg_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[3]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(meas_obj_to_rem_list_ext_r13_present, 1));
-      HANDLE_CODE(bref.pack(meas_obj_to_add_mod_list_ext_r13_present, 1));
-      HANDLE_CODE(bref.pack(meas_id_to_add_mod_list_v1310_present, 1));
-      HANDLE_CODE(bref.pack(meas_id_to_add_mod_list_ext_v1310_present, 1));
-      if (meas_obj_to_rem_list_ext_r13_present) {
+      HANDLE_CODE(bref.pack(meas_obj_to_rem_list_ext_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(meas_obj_to_add_mod_list_ext_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(meas_id_to_add_mod_list_v1310.is_present(), 1));
+      HANDLE_CODE(bref.pack(meas_id_to_add_mod_list_ext_v1310.is_present(), 1));
+      if (meas_obj_to_rem_list_ext_r13.is_present()) {
         HANDLE_CODE(
             pack_dyn_seq_of(bref, *meas_obj_to_rem_list_ext_r13, 1, 32, UnalignedIntegerPacker<uint8_t>(33, 64)));
       }
-      if (meas_obj_to_add_mod_list_ext_r13_present) {
+      if (meas_obj_to_add_mod_list_ext_r13.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *meas_obj_to_add_mod_list_ext_r13, 1, 32));
       }
-      if (meas_id_to_add_mod_list_v1310_present) {
+      if (meas_id_to_add_mod_list_v1310.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *meas_id_to_add_mod_list_v1310, 1, 32));
       }
-      if (meas_id_to_add_mod_list_ext_v1310_present) {
+      if (meas_id_to_add_mod_list_ext_v1310.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *meas_id_to_add_mod_list_ext_v1310, 1, 32));
       }
     }
     if (group_flags[4]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(meas_gap_cfg_per_cc_list_r14_present, 1));
-      HANDLE_CODE(bref.pack(meas_gap_sharing_cfg_r14_present, 1));
-      if (meas_gap_cfg_per_cc_list_r14_present) {
+      HANDLE_CODE(bref.pack(meas_gap_cfg_per_cc_list_r14.is_present(), 1));
+      HANDLE_CODE(bref.pack(meas_gap_sharing_cfg_r14.is_present(), 1));
+      if (meas_gap_cfg_per_cc_list_r14.is_present()) {
         HANDLE_CODE(meas_gap_cfg_per_cc_list_r14->pack(bref));
       }
-      if (meas_gap_sharing_cfg_r14_present) {
+      if (meas_gap_sharing_cfg_r14.is_present()) {
         HANDLE_CODE(meas_gap_sharing_cfg_r14->pack(bref));
       }
     }
     if (group_flags[5]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(fr1_gap_r15_present, 1));
       HANDLE_CODE(bref.pack(mgta_r15_present, 1));
@@ -71537,14 +70595,14 @@ SRSASN_CODE meas_cfg_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[6]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(meas_gap_cfg_dense_prs_r15_present, 1));
-      HANDLE_CODE(bref.pack(height_thresh_ref_r15_present, 1));
-      if (meas_gap_cfg_dense_prs_r15_present) {
+      HANDLE_CODE(bref.pack(meas_gap_cfg_dense_prs_r15.is_present(), 1));
+      HANDLE_CODE(bref.pack(height_thresh_ref_r15.is_present(), 1));
+      if (meas_gap_cfg_dense_prs_r15.is_present()) {
         HANDLE_CODE(meas_gap_cfg_dense_prs_r15->pack(bref));
       }
-      if (height_thresh_ref_r15_present) {
+      if (height_thresh_ref_r15.is_present()) {
         HANDLE_CODE(height_thresh_ref_r15->pack(bref));
       }
     }
@@ -71601,20 +70659,21 @@ SRSASN_CODE meas_cfg_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(7);
+    ext_groups_unpacker_guard group_flags(7);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool meas_obj_to_add_mod_list_v9e0_present;
       HANDLE_CODE(bref.unpack(meas_obj_to_add_mod_list_v9e0_present, 1));
-      if (meas_obj_to_add_mod_list_v9e0_present) {
-        meas_obj_to_add_mod_list_v9e0 = make_copy_ptr(meas_obj_to_add_mod_list_v9e0_l());
+      meas_obj_to_add_mod_list_v9e0.set_present(meas_obj_to_add_mod_list_v9e0_present);
+      if (meas_obj_to_add_mod_list_v9e0.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*meas_obj_to_add_mod_list_v9e0, bref, 1, 32));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(allow_interruptions_r11_present, 1));
       if (allow_interruptions_r11_present) {
@@ -71622,23 +70681,26 @@ SRSASN_CODE meas_cfg_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool meas_scale_factor_r12_present;
       HANDLE_CODE(bref.unpack(meas_scale_factor_r12_present, 1));
+      meas_scale_factor_r12.set_present(meas_scale_factor_r12_present);
+      bool meas_id_to_rem_list_ext_r12_present;
       HANDLE_CODE(bref.unpack(meas_id_to_rem_list_ext_r12_present, 1));
+      meas_id_to_rem_list_ext_r12.set_present(meas_id_to_rem_list_ext_r12_present);
+      bool meas_id_to_add_mod_list_ext_r12_present;
       HANDLE_CODE(bref.unpack(meas_id_to_add_mod_list_ext_r12_present, 1));
+      meas_id_to_add_mod_list_ext_r12.set_present(meas_id_to_add_mod_list_ext_r12_present);
       HANDLE_CODE(bref.unpack(meas_rsrq_on_all_symbols_r12_present, 1));
-      if (meas_scale_factor_r12_present) {
-        meas_scale_factor_r12 = make_copy_ptr(meas_scale_factor_r12_c_());
+      if (meas_scale_factor_r12.is_present()) {
         HANDLE_CODE(meas_scale_factor_r12->unpack(bref));
       }
-      if (meas_id_to_rem_list_ext_r12_present) {
-        meas_id_to_rem_list_ext_r12 = make_copy_ptr(meas_id_to_rem_list_ext_r12_l());
+      if (meas_id_to_rem_list_ext_r12.is_present()) {
         HANDLE_CODE(
             unpack_dyn_seq_of(*meas_id_to_rem_list_ext_r12, bref, 1, 32, UnalignedIntegerPacker<uint8_t>(33, 64)));
       }
-      if (meas_id_to_add_mod_list_ext_r12_present) {
-        meas_id_to_add_mod_list_ext_r12 = make_copy_ptr(meas_id_to_add_mod_list_ext_r12_l());
+      if (meas_id_to_add_mod_list_ext_r12.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*meas_id_to_add_mod_list_ext_r12, bref, 1, 32));
       }
       if (meas_rsrq_on_all_symbols_r12_present) {
@@ -71646,46 +70708,52 @@ SRSASN_CODE meas_cfg_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[3]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool meas_obj_to_rem_list_ext_r13_present;
       HANDLE_CODE(bref.unpack(meas_obj_to_rem_list_ext_r13_present, 1));
+      meas_obj_to_rem_list_ext_r13.set_present(meas_obj_to_rem_list_ext_r13_present);
+      bool meas_obj_to_add_mod_list_ext_r13_present;
       HANDLE_CODE(bref.unpack(meas_obj_to_add_mod_list_ext_r13_present, 1));
+      meas_obj_to_add_mod_list_ext_r13.set_present(meas_obj_to_add_mod_list_ext_r13_present);
+      bool meas_id_to_add_mod_list_v1310_present;
       HANDLE_CODE(bref.unpack(meas_id_to_add_mod_list_v1310_present, 1));
+      meas_id_to_add_mod_list_v1310.set_present(meas_id_to_add_mod_list_v1310_present);
+      bool meas_id_to_add_mod_list_ext_v1310_present;
       HANDLE_CODE(bref.unpack(meas_id_to_add_mod_list_ext_v1310_present, 1));
-      if (meas_obj_to_rem_list_ext_r13_present) {
-        meas_obj_to_rem_list_ext_r13 = make_copy_ptr(meas_obj_to_rem_list_ext_r13_l());
+      meas_id_to_add_mod_list_ext_v1310.set_present(meas_id_to_add_mod_list_ext_v1310_present);
+      if (meas_obj_to_rem_list_ext_r13.is_present()) {
         HANDLE_CODE(
             unpack_dyn_seq_of(*meas_obj_to_rem_list_ext_r13, bref, 1, 32, UnalignedIntegerPacker<uint8_t>(33, 64)));
       }
-      if (meas_obj_to_add_mod_list_ext_r13_present) {
-        meas_obj_to_add_mod_list_ext_r13 = make_copy_ptr(meas_obj_to_add_mod_list_ext_r13_l());
+      if (meas_obj_to_add_mod_list_ext_r13.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*meas_obj_to_add_mod_list_ext_r13, bref, 1, 32));
       }
-      if (meas_id_to_add_mod_list_v1310_present) {
-        meas_id_to_add_mod_list_v1310 = make_copy_ptr(meas_id_to_add_mod_list_v1310_l());
+      if (meas_id_to_add_mod_list_v1310.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*meas_id_to_add_mod_list_v1310, bref, 1, 32));
       }
-      if (meas_id_to_add_mod_list_ext_v1310_present) {
-        meas_id_to_add_mod_list_ext_v1310 = make_copy_ptr(meas_id_to_add_mod_list_ext_v1310_l());
+      if (meas_id_to_add_mod_list_ext_v1310.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*meas_id_to_add_mod_list_ext_v1310, bref, 1, 32));
       }
     }
     if (group_flags[4]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool meas_gap_cfg_per_cc_list_r14_present;
       HANDLE_CODE(bref.unpack(meas_gap_cfg_per_cc_list_r14_present, 1));
+      meas_gap_cfg_per_cc_list_r14.set_present(meas_gap_cfg_per_cc_list_r14_present);
+      bool meas_gap_sharing_cfg_r14_present;
       HANDLE_CODE(bref.unpack(meas_gap_sharing_cfg_r14_present, 1));
-      if (meas_gap_cfg_per_cc_list_r14_present) {
-        meas_gap_cfg_per_cc_list_r14 = make_copy_ptr(meas_gap_cfg_per_cc_list_r14_c());
+      meas_gap_sharing_cfg_r14.set_present(meas_gap_sharing_cfg_r14_present);
+      if (meas_gap_cfg_per_cc_list_r14.is_present()) {
         HANDLE_CODE(meas_gap_cfg_per_cc_list_r14->unpack(bref));
       }
-      if (meas_gap_sharing_cfg_r14_present) {
-        meas_gap_sharing_cfg_r14 = make_copy_ptr(meas_gap_sharing_cfg_r14_c());
+      if (meas_gap_sharing_cfg_r14.is_present()) {
         HANDLE_CODE(meas_gap_sharing_cfg_r14->unpack(bref));
       }
     }
     if (group_flags[5]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(fr1_gap_r15_present, 1));
       HANDLE_CODE(bref.unpack(mgta_r15_present, 1));
@@ -71697,16 +70765,18 @@ SRSASN_CODE meas_cfg_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[6]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool meas_gap_cfg_dense_prs_r15_present;
       HANDLE_CODE(bref.unpack(meas_gap_cfg_dense_prs_r15_present, 1));
+      meas_gap_cfg_dense_prs_r15.set_present(meas_gap_cfg_dense_prs_r15_present);
+      bool height_thresh_ref_r15_present;
       HANDLE_CODE(bref.unpack(height_thresh_ref_r15_present, 1));
-      if (meas_gap_cfg_dense_prs_r15_present) {
-        meas_gap_cfg_dense_prs_r15 = make_copy_ptr(meas_gap_cfg_dense_prs_r15_c());
+      height_thresh_ref_r15.set_present(height_thresh_ref_r15_present);
+      if (meas_gap_cfg_dense_prs_r15.is_present()) {
         HANDLE_CODE(meas_gap_cfg_dense_prs_r15->unpack(bref));
       }
-      if (height_thresh_ref_r15_present) {
-        height_thresh_ref_r15 = make_copy_ptr(height_thresh_ref_r15_c_());
+      if (height_thresh_ref_r15.is_present()) {
         HANDLE_CODE(height_thresh_ref_r15->unpack(bref));
       }
     }
@@ -71778,9 +70848,7 @@ void meas_cfg_s::to_json(json_writer& j) const
     speed_state_pars.to_json(j);
   }
   if (ext) {
-    rrc_asn1_warn_assert(
-        meas_obj_to_add_mod_list_v9e0_present != (meas_obj_to_add_mod_list_v9e0.get() != NULL), __FILE__, __LINE__);
-    if (meas_obj_to_add_mod_list_v9e0_present) {
+    if (meas_obj_to_add_mod_list_v9e0.is_present()) {
       j.start_array("measObjectToAddModList-v9e0");
       for (uint32_t i1 = 0; i1 < meas_obj_to_add_mod_list_v9e0->size(); ++i1) {
         ((*meas_obj_to_add_mod_list_v9e0)[i1]).to_json(j);
@@ -71790,23 +70858,18 @@ void meas_cfg_s::to_json(json_writer& j) const
     if (allow_interruptions_r11_present) {
       j.write_bool("allowInterruptions-r11", allow_interruptions_r11);
     }
-    rrc_asn1_warn_assert(meas_scale_factor_r12_present != (meas_scale_factor_r12.get() != NULL), __FILE__, __LINE__);
-    if (meas_scale_factor_r12_present) {
+    if (meas_scale_factor_r12.is_present()) {
       j.write_fieldname("measScaleFactor-r12");
       meas_scale_factor_r12->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        meas_id_to_rem_list_ext_r12_present != (meas_id_to_rem_list_ext_r12.get() != NULL), __FILE__, __LINE__);
-    if (meas_id_to_rem_list_ext_r12_present) {
+    if (meas_id_to_rem_list_ext_r12.is_present()) {
       j.start_array("measIdToRemoveListExt-r12");
       for (uint32_t i1 = 0; i1 < meas_id_to_rem_list_ext_r12->size(); ++i1) {
         j.write_int(((*meas_id_to_rem_list_ext_r12)[i1]));
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(
-        meas_id_to_add_mod_list_ext_r12_present != (meas_id_to_add_mod_list_ext_r12.get() != NULL), __FILE__, __LINE__);
-    if (meas_id_to_add_mod_list_ext_r12_present) {
+    if (meas_id_to_add_mod_list_ext_r12.is_present()) {
       j.start_array("measIdToAddModListExt-r12");
       for (uint32_t i1 = 0; i1 < meas_id_to_add_mod_list_ext_r12->size(); ++i1) {
         ((*meas_id_to_add_mod_list_ext_r12)[i1]).to_json(j);
@@ -71816,53 +70879,39 @@ void meas_cfg_s::to_json(json_writer& j) const
     if (meas_rsrq_on_all_symbols_r12_present) {
       j.write_bool("measRSRQ-OnAllSymbols-r12", meas_rsrq_on_all_symbols_r12);
     }
-    rrc_asn1_warn_assert(
-        meas_obj_to_rem_list_ext_r13_present != (meas_obj_to_rem_list_ext_r13.get() != NULL), __FILE__, __LINE__);
-    if (meas_obj_to_rem_list_ext_r13_present) {
+    if (meas_obj_to_rem_list_ext_r13.is_present()) {
       j.start_array("measObjectToRemoveListExt-r13");
       for (uint32_t i1 = 0; i1 < meas_obj_to_rem_list_ext_r13->size(); ++i1) {
         j.write_int(((*meas_obj_to_rem_list_ext_r13)[i1]));
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(meas_obj_to_add_mod_list_ext_r13_present != (meas_obj_to_add_mod_list_ext_r13.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (meas_obj_to_add_mod_list_ext_r13_present) {
+    if (meas_obj_to_add_mod_list_ext_r13.is_present()) {
       j.start_array("measObjectToAddModListExt-r13");
       for (uint32_t i1 = 0; i1 < meas_obj_to_add_mod_list_ext_r13->size(); ++i1) {
         ((*meas_obj_to_add_mod_list_ext_r13)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(
-        meas_id_to_add_mod_list_v1310_present != (meas_id_to_add_mod_list_v1310.get() != NULL), __FILE__, __LINE__);
-    if (meas_id_to_add_mod_list_v1310_present) {
+    if (meas_id_to_add_mod_list_v1310.is_present()) {
       j.start_array("measIdToAddModList-v1310");
       for (uint32_t i1 = 0; i1 < meas_id_to_add_mod_list_v1310->size(); ++i1) {
         ((*meas_id_to_add_mod_list_v1310)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(meas_id_to_add_mod_list_ext_v1310_present != (meas_id_to_add_mod_list_ext_v1310.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (meas_id_to_add_mod_list_ext_v1310_present) {
+    if (meas_id_to_add_mod_list_ext_v1310.is_present()) {
       j.start_array("measIdToAddModListExt-v1310");
       for (uint32_t i1 = 0; i1 < meas_id_to_add_mod_list_ext_v1310->size(); ++i1) {
         ((*meas_id_to_add_mod_list_ext_v1310)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(
-        meas_gap_cfg_per_cc_list_r14_present != (meas_gap_cfg_per_cc_list_r14.get() != NULL), __FILE__, __LINE__);
-    if (meas_gap_cfg_per_cc_list_r14_present) {
+    if (meas_gap_cfg_per_cc_list_r14.is_present()) {
       j.write_fieldname("measGapConfigPerCC-List-r14");
       meas_gap_cfg_per_cc_list_r14->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        meas_gap_sharing_cfg_r14_present != (meas_gap_sharing_cfg_r14.get() != NULL), __FILE__, __LINE__);
-    if (meas_gap_sharing_cfg_r14_present) {
+    if (meas_gap_sharing_cfg_r14.is_present()) {
       j.write_fieldname("measGapSharingConfig-r14");
       meas_gap_sharing_cfg_r14->to_json(j);
     }
@@ -71872,14 +70921,11 @@ void meas_cfg_s::to_json(json_writer& j) const
     if (mgta_r15_present) {
       j.write_bool("mgta-r15", mgta_r15);
     }
-    rrc_asn1_warn_assert(
-        meas_gap_cfg_dense_prs_r15_present != (meas_gap_cfg_dense_prs_r15.get() != NULL), __FILE__, __LINE__);
-    if (meas_gap_cfg_dense_prs_r15_present) {
+    if (meas_gap_cfg_dense_prs_r15.is_present()) {
       j.write_fieldname("measGapConfigDensePRS-r15");
       meas_gap_cfg_dense_prs_r15->to_json(j);
     }
-    rrc_asn1_warn_assert(height_thresh_ref_r15_present != (height_thresh_ref_r15.get() != NULL), __FILE__, __LINE__);
-    if (height_thresh_ref_r15_present) {
+    if (height_thresh_ref_r15.is_present()) {
       j.write_fieldname("heightThreshRef-r15");
       height_thresh_ref_r15->to_json(j);
     }
@@ -72075,54 +71121,51 @@ SRSASN_CODE mob_ctrl_info_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(4);
-    rrc_asn1_warn_assert(carrier_freq_v9e0_present != (carrier_freq_v9e0.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= carrier_freq_v9e0_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= carrier_freq_v9e0.is_present();
     group_flags[1] |= drb_continue_rohc_r11_present;
-    rrc_asn1_warn_assert(mob_ctrl_info_v2x_r14_present != (mob_ctrl_info_v2x_r14.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= mob_ctrl_info_v2x_r14_present;
+    group_flags[2] |= mob_ctrl_info_v2x_r14.is_present();
     group_flags[2] |= ho_without_wt_change_r14_present;
     group_flags[2] |= make_before_break_r14_present;
-    rrc_asn1_warn_assert(rach_skip_r14_present != (rach_skip_r14.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= rach_skip_r14_present;
+    group_flags[2] |= rach_skip_r14.is_present();
     group_flags[2] |= same_sfn_ind_r14_present;
     group_flags[3] |= mib_repeat_status_r14_present;
     group_flags[3] |= sched_info_sib1_br_r14_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(carrier_freq_v9e0_present, 1));
-      if (carrier_freq_v9e0_present) {
+      HANDLE_CODE(bref.pack(carrier_freq_v9e0.is_present(), 1));
+      if (carrier_freq_v9e0.is_present()) {
         HANDLE_CODE(carrier_freq_v9e0->pack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(drb_continue_rohc_r11_present, 1));
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(mob_ctrl_info_v2x_r14_present, 1));
+      HANDLE_CODE(bref.pack(mob_ctrl_info_v2x_r14.is_present(), 1));
       HANDLE_CODE(bref.pack(ho_without_wt_change_r14_present, 1));
       HANDLE_CODE(bref.pack(make_before_break_r14_present, 1));
-      HANDLE_CODE(bref.pack(rach_skip_r14_present, 1));
+      HANDLE_CODE(bref.pack(rach_skip_r14.is_present(), 1));
       HANDLE_CODE(bref.pack(same_sfn_ind_r14_present, 1));
-      if (mob_ctrl_info_v2x_r14_present) {
+      if (mob_ctrl_info_v2x_r14.is_present()) {
         HANDLE_CODE(mob_ctrl_info_v2x_r14->pack(bref));
       }
       if (ho_without_wt_change_r14_present) {
         HANDLE_CODE(pack_enum(bref, ho_without_wt_change_r14));
       }
-      if (rach_skip_r14_present) {
+      if (rach_skip_r14.is_present()) {
         HANDLE_CODE(rach_skip_r14->pack(bref));
       }
     }
     if (group_flags[3]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(mib_repeat_status_r14_present, 1));
       HANDLE_CODE(bref.pack(sched_info_sib1_br_r14_present, 1));
@@ -72162,45 +71205,48 @@ SRSASN_CODE mob_ctrl_info_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(4);
+    ext_groups_unpacker_guard group_flags(4);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool carrier_freq_v9e0_present;
       HANDLE_CODE(bref.unpack(carrier_freq_v9e0_present, 1));
-      if (carrier_freq_v9e0_present) {
-        carrier_freq_v9e0 = make_copy_ptr(carrier_freq_eutra_v9e0_s());
+      carrier_freq_v9e0.set_present(carrier_freq_v9e0_present);
+      if (carrier_freq_v9e0.is_present()) {
         HANDLE_CODE(carrier_freq_v9e0->unpack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(drb_continue_rohc_r11_present, 1));
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool mob_ctrl_info_v2x_r14_present;
       HANDLE_CODE(bref.unpack(mob_ctrl_info_v2x_r14_present, 1));
+      mob_ctrl_info_v2x_r14.set_present(mob_ctrl_info_v2x_r14_present);
       HANDLE_CODE(bref.unpack(ho_without_wt_change_r14_present, 1));
       HANDLE_CODE(bref.unpack(make_before_break_r14_present, 1));
+      bool rach_skip_r14_present;
       HANDLE_CODE(bref.unpack(rach_skip_r14_present, 1));
+      rach_skip_r14.set_present(rach_skip_r14_present);
       HANDLE_CODE(bref.unpack(same_sfn_ind_r14_present, 1));
-      if (mob_ctrl_info_v2x_r14_present) {
-        mob_ctrl_info_v2x_r14 = make_copy_ptr(mob_ctrl_info_v2x_r14_s());
+      if (mob_ctrl_info_v2x_r14.is_present()) {
         HANDLE_CODE(mob_ctrl_info_v2x_r14->unpack(bref));
       }
       if (ho_without_wt_change_r14_present) {
         HANDLE_CODE(unpack_enum(ho_without_wt_change_r14, bref));
       }
-      if (rach_skip_r14_present) {
-        rach_skip_r14 = make_copy_ptr(rach_skip_r14_s());
+      if (rach_skip_r14.is_present()) {
         HANDLE_CODE(rach_skip_r14->unpack(bref));
       }
     }
     if (group_flags[3]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(mib_repeat_status_r14_present, 1));
       HANDLE_CODE(bref.unpack(sched_info_sib1_br_r14_present, 1));
@@ -72238,16 +71284,14 @@ void mob_ctrl_info_s::to_json(json_writer& j) const
     rach_cfg_ded.to_json(j);
   }
   if (ext) {
-    rrc_asn1_warn_assert(carrier_freq_v9e0_present != (carrier_freq_v9e0.get() != NULL), __FILE__, __LINE__);
-    if (carrier_freq_v9e0_present) {
+    if (carrier_freq_v9e0.is_present()) {
       j.write_fieldname("carrierFreq-v9e0");
       carrier_freq_v9e0->to_json(j);
     }
     if (drb_continue_rohc_r11_present) {
       j.write_str("drb-ContinueROHC-r11", "true");
     }
-    rrc_asn1_warn_assert(mob_ctrl_info_v2x_r14_present != (mob_ctrl_info_v2x_r14.get() != NULL), __FILE__, __LINE__);
-    if (mob_ctrl_info_v2x_r14_present) {
+    if (mob_ctrl_info_v2x_r14.is_present()) {
       j.write_fieldname("mobilityControlInfoV2X-r14");
       mob_ctrl_info_v2x_r14->to_json(j);
     }
@@ -72257,8 +71301,7 @@ void mob_ctrl_info_s::to_json(json_writer& j) const
     if (make_before_break_r14_present) {
       j.write_str("makeBeforeBreak-r14", "true");
     }
-    rrc_asn1_warn_assert(rach_skip_r14_present != (rach_skip_r14.get() != NULL), __FILE__, __LINE__);
-    if (rach_skip_r14_present) {
+    if (rach_skip_r14.is_present()) {
       j.write_fieldname("rach-Skip-r14");
       rach_skip_r14->to_json(j);
     }
@@ -78906,12 +77949,12 @@ SRSASN_CODE pmch_cfg_r12_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_enum(bref, mch_sched_period_r12));
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= mch_sched_period_v1430_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(mch_sched_period_v1430_present, 1));
       if (mch_sched_period_v1430_present) {
@@ -78929,11 +77972,11 @@ SRSASN_CODE pmch_cfg_r12_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_enum(mch_sched_period_r12, bref));
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(mch_sched_period_v1430_present, 1));
       if (mch_sched_period_v1430_present) {
@@ -81221,12 +80264,12 @@ SRSASN_CODE sc_mtch_info_r13_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= p_a_r13_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(p_a_r13_present, 1));
       if (p_a_r13_present) {
@@ -81252,11 +80295,11 @@ SRSASN_CODE sc_mtch_info_r13_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(p_a_r13_present, 1));
       if (p_a_r13_present) {
@@ -83820,29 +82863,26 @@ SRSASN_CODE meas_result_eutra_s::meas_result_s_::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(5);
-    rrc_asn1_warn_assert(add_si_info_r9_present != (add_si_info_r9.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= add_si_info_r9_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= add_si_info_r9.is_present();
     group_flags[1] |= primary_plmn_suitable_r12_present;
     group_flags[1] |= meas_result_v1250_present;
     group_flags[2] |= rs_sinr_result_r13_present;
-    rrc_asn1_warn_assert(cgi_info_v1310_present != (cgi_info_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= cgi_info_v1310_present;
+    group_flags[2] |= cgi_info_v1310.is_present();
     group_flags[3] |= meas_result_v1360_present;
-    rrc_asn1_warn_assert(cgi_info_minus5_gc_r15_present != (cgi_info_minus5_gc_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= cgi_info_minus5_gc_r15_present;
+    group_flags[4] |= cgi_info_minus5_gc_r15.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(add_si_info_r9_present, 1));
-      if (add_si_info_r9_present) {
+      HANDLE_CODE(bref.pack(add_si_info_r9.is_present(), 1));
+      if (add_si_info_r9.is_present()) {
         HANDLE_CODE(add_si_info_r9->pack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(primary_plmn_suitable_r12_present, 1));
       HANDLE_CODE(bref.pack(meas_result_v1250_present, 1));
@@ -83851,14 +82891,14 @@ SRSASN_CODE meas_result_eutra_s::meas_result_s_::pack(bit_ref& bref) const
       }
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(rs_sinr_result_r13_present, 1));
-      HANDLE_CODE(bref.pack(cgi_info_v1310_present, 1));
+      HANDLE_CODE(bref.pack(cgi_info_v1310.is_present(), 1));
       if (rs_sinr_result_r13_present) {
         HANDLE_CODE(pack_unalign_integer(bref, rs_sinr_result_r13, (uint8_t)0, (uint8_t)127));
       }
-      if (cgi_info_v1310_present) {
+      if (cgi_info_v1310.is_present()) {
         HANDLE_CODE(bref.pack(cgi_info_v1310->freq_band_ind_r13_present, 1));
         HANDLE_CODE(bref.pack(cgi_info_v1310->multi_band_info_list_r13_present, 1));
         HANDLE_CODE(bref.pack(cgi_info_v1310->freq_band_ind_prio_r13_present, 1));
@@ -83872,7 +82912,7 @@ SRSASN_CODE meas_result_eutra_s::meas_result_s_::pack(bit_ref& bref) const
       }
     }
     if (group_flags[3]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(meas_result_v1360_present, 1));
       if (meas_result_v1360_present) {
@@ -83880,10 +82920,10 @@ SRSASN_CODE meas_result_eutra_s::meas_result_s_::pack(bit_ref& bref) const
       }
     }
     if (group_flags[4]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(cgi_info_minus5_gc_r15_present, 1));
-      if (cgi_info_minus5_gc_r15_present) {
+      HANDLE_CODE(bref.pack(cgi_info_minus5_gc_r15.is_present(), 1));
+      if (cgi_info_minus5_gc_r15.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *cgi_info_minus5_gc_r15, 1, 6));
       }
     }
@@ -83904,20 +82944,21 @@ SRSASN_CODE meas_result_eutra_s::meas_result_s_::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(5);
+    ext_groups_unpacker_guard group_flags(5);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool add_si_info_r9_present;
       HANDLE_CODE(bref.unpack(add_si_info_r9_present, 1));
-      if (add_si_info_r9_present) {
-        add_si_info_r9 = make_copy_ptr(add_si_info_r9_s());
+      add_si_info_r9.set_present(add_si_info_r9_present);
+      if (add_si_info_r9.is_present()) {
         HANDLE_CODE(add_si_info_r9->unpack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(primary_plmn_suitable_r12_present, 1));
       HANDLE_CODE(bref.unpack(meas_result_v1250_present, 1));
@@ -83926,15 +82967,16 @@ SRSASN_CODE meas_result_eutra_s::meas_result_s_::unpack(bit_ref& bref)
       }
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(rs_sinr_result_r13_present, 1));
+      bool cgi_info_v1310_present;
       HANDLE_CODE(bref.unpack(cgi_info_v1310_present, 1));
+      cgi_info_v1310.set_present(cgi_info_v1310_present);
       if (rs_sinr_result_r13_present) {
         HANDLE_CODE(unpack_unalign_integer(rs_sinr_result_r13, bref, (uint8_t)0, (uint8_t)127));
       }
-      if (cgi_info_v1310_present) {
-        cgi_info_v1310 = make_copy_ptr(cgi_info_v1310_s_());
+      if (cgi_info_v1310.is_present()) {
         HANDLE_CODE(bref.unpack(cgi_info_v1310->freq_band_ind_r13_present, 1));
         HANDLE_CODE(bref.unpack(cgi_info_v1310->multi_band_info_list_r13_present, 1));
         HANDLE_CODE(bref.unpack(cgi_info_v1310->freq_band_ind_prio_r13_present, 1));
@@ -83948,7 +82990,7 @@ SRSASN_CODE meas_result_eutra_s::meas_result_s_::unpack(bit_ref& bref)
       }
     }
     if (group_flags[3]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(meas_result_v1360_present, 1));
       if (meas_result_v1360_present) {
@@ -83956,11 +82998,12 @@ SRSASN_CODE meas_result_eutra_s::meas_result_s_::unpack(bit_ref& bref)
       }
     }
     if (group_flags[4]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool cgi_info_minus5_gc_r15_present;
       HANDLE_CODE(bref.unpack(cgi_info_minus5_gc_r15_present, 1));
-      if (cgi_info_minus5_gc_r15_present) {
-        cgi_info_minus5_gc_r15 = make_copy_ptr(cgi_info_minus5_gc_r15_l_());
+      cgi_info_minus5_gc_r15.set_present(cgi_info_minus5_gc_r15_present);
+      if (cgi_info_minus5_gc_r15.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*cgi_info_minus5_gc_r15, bref, 1, 6));
       }
     }
@@ -83977,8 +83020,7 @@ void meas_result_eutra_s::meas_result_s_::to_json(json_writer& j) const
     j.write_int("rsrqResult", rsrq_result);
   }
   if (ext) {
-    rrc_asn1_warn_assert(add_si_info_r9_present != (add_si_info_r9.get() != NULL), __FILE__, __LINE__);
-    if (add_si_info_r9_present) {
+    if (add_si_info_r9.is_present()) {
       j.write_fieldname("additionalSI-Info-r9");
       add_si_info_r9->to_json(j);
     }
@@ -83991,8 +83033,7 @@ void meas_result_eutra_s::meas_result_s_::to_json(json_writer& j) const
     if (rs_sinr_result_r13_present) {
       j.write_int("rs-sinr-Result-r13", rs_sinr_result_r13);
     }
-    rrc_asn1_warn_assert(cgi_info_v1310_present != (cgi_info_v1310.get() != NULL), __FILE__, __LINE__);
-    if (cgi_info_v1310_present) {
+    if (cgi_info_v1310.is_present()) {
       j.write_fieldname("cgi-Info-v1310");
       j.start_obj();
       if (cgi_info_v1310->freq_band_ind_r13_present) {
@@ -84013,8 +83054,7 @@ void meas_result_eutra_s::meas_result_s_::to_json(json_writer& j) const
     if (meas_result_v1360_present) {
       j.write_int("measResult-v1360", meas_result_v1360);
     }
-    rrc_asn1_warn_assert(cgi_info_minus5_gc_r15_present != (cgi_info_minus5_gc_r15.get() != NULL), __FILE__, __LINE__);
-    if (cgi_info_minus5_gc_r15_present) {
+    if (cgi_info_minus5_gc_r15.is_present()) {
       j.start_array("cgi-Info-5GC-r15");
       for (uint32_t i1 = 0; i1 < cgi_info_minus5_gc_r15->size(); ++i1) {
         ((*cgi_info_minus5_gc_r15)[i1]).to_json(j);
@@ -84245,22 +83285,21 @@ SRSASN_CODE meas_result_utra_s::meas_result_s_::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(2);
-    rrc_asn1_warn_assert(add_si_info_r9_present != (add_si_info_r9.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= add_si_info_r9_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= add_si_info_r9.is_present();
     group_flags[1] |= primary_plmn_suitable_r12_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(add_si_info_r9_present, 1));
-      if (add_si_info_r9_present) {
+      HANDLE_CODE(bref.pack(add_si_info_r9.is_present(), 1));
+      if (add_si_info_r9.is_present()) {
         HANDLE_CODE(add_si_info_r9->pack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(primary_plmn_suitable_r12_present, 1));
     }
@@ -84281,20 +83320,21 @@ SRSASN_CODE meas_result_utra_s::meas_result_s_::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(2);
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool add_si_info_r9_present;
       HANDLE_CODE(bref.unpack(add_si_info_r9_present, 1));
-      if (add_si_info_r9_present) {
-        add_si_info_r9 = make_copy_ptr(add_si_info_r9_s());
+      add_si_info_r9.set_present(add_si_info_r9_present);
+      if (add_si_info_r9.is_present()) {
         HANDLE_CODE(add_si_info_r9->unpack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(primary_plmn_suitable_r12_present, 1));
     }
@@ -84311,8 +83351,7 @@ void meas_result_utra_s::meas_result_s_::to_json(json_writer& j) const
     j.write_int("utra-EcN0", utra_ec_n0);
   }
   if (ext) {
-    rrc_asn1_warn_assert(add_si_info_r9_present != (add_si_info_r9.get() != NULL), __FILE__, __LINE__);
-    if (add_si_info_r9_present) {
+    if (add_si_info_r9.is_present()) {
       j.write_fieldname("additionalSI-Info-r9");
       add_si_info_r9->to_json(j);
     }
@@ -84491,17 +83530,15 @@ SRSASN_CODE location_info_r10_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
-    rrc_asn1_warn_assert(
-        vertical_velocity_info_r15_present != (vertical_velocity_info_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= vertical_velocity_info_r15_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= vertical_velocity_info_r15.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(vertical_velocity_info_r15_present, 1));
-      if (vertical_velocity_info_r15_present) {
+      HANDLE_CODE(bref.pack(vertical_velocity_info_r15.is_present(), 1));
+      if (vertical_velocity_info_r15.is_present()) {
         HANDLE_CODE(vertical_velocity_info_r15->pack(bref));
       }
     }
@@ -84523,15 +83560,16 @@ SRSASN_CODE location_info_r10_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool vertical_velocity_info_r15_present;
       HANDLE_CODE(bref.unpack(vertical_velocity_info_r15_present, 1));
-      if (vertical_velocity_info_r15_present) {
-        vertical_velocity_info_r15 = make_copy_ptr(vertical_velocity_info_r15_c_());
+      vertical_velocity_info_r15.set_present(vertical_velocity_info_r15_present);
+      if (vertical_velocity_info_r15.is_present()) {
         HANDLE_CODE(vertical_velocity_info_r15->unpack(bref));
       }
     }
@@ -84550,9 +83588,7 @@ void location_info_r10_s::to_json(json_writer& j) const
     j.write_str("gnss-TOD-msec-r10", gnss_tod_msec_r10.to_string());
   }
   if (ext) {
-    rrc_asn1_warn_assert(
-        vertical_velocity_info_r15_present != (vertical_velocity_info_r15.get() != NULL), __FILE__, __LINE__);
-    if (vertical_velocity_info_r15_present) {
+    if (vertical_velocity_info_r15.is_present()) {
       j.write_fieldname("verticalVelocityInfo-r15");
       vertical_velocity_info_r15->to_json(j);
     }
@@ -86455,65 +85491,53 @@ SRSASN_CODE log_meas_info_r10_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(5);
-    rrc_asn1_warn_assert(
-        meas_result_list_eutra_v1090_present != (meas_result_list_eutra_v1090.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= meas_result_list_eutra_v1090_present;
-    rrc_asn1_warn_assert(
-        meas_result_list_mbsfn_r12_present != (meas_result_list_mbsfn_r12.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= meas_result_list_mbsfn_r12_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= meas_result_list_eutra_v1090.is_present();
+    group_flags[1] |= meas_result_list_mbsfn_r12.is_present();
     group_flags[1] |= meas_result_serv_cell_v1250_present;
-    rrc_asn1_warn_assert(
-        serv_cell_rsrq_type_r12_present != (serv_cell_rsrq_type_r12.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= serv_cell_rsrq_type_r12_present;
-    rrc_asn1_warn_assert(
-        meas_result_list_eutra_v1250_present != (meas_result_list_eutra_v1250.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= meas_result_list_eutra_v1250_present;
+    group_flags[1] |= serv_cell_rsrq_type_r12.is_present();
+    group_flags[1] |= meas_result_list_eutra_v1250.is_present();
     group_flags[2] |= in_dev_coex_detected_r13_present;
     group_flags[3] |= meas_result_serv_cell_v1360_present;
-    rrc_asn1_warn_assert(
-        log_meas_result_list_bt_r15_present != (log_meas_result_list_bt_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= log_meas_result_list_bt_r15_present;
-    rrc_asn1_warn_assert(
-        log_meas_result_list_wlan_r15_present != (log_meas_result_list_wlan_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[4] |= log_meas_result_list_wlan_r15_present;
+    group_flags[4] |= log_meas_result_list_bt_r15.is_present();
+    group_flags[4] |= log_meas_result_list_wlan_r15.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(meas_result_list_eutra_v1090_present, 1));
-      if (meas_result_list_eutra_v1090_present) {
+      HANDLE_CODE(bref.pack(meas_result_list_eutra_v1090.is_present(), 1));
+      if (meas_result_list_eutra_v1090.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *meas_result_list_eutra_v1090, 1, 8));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(meas_result_list_mbsfn_r12_present, 1));
+      HANDLE_CODE(bref.pack(meas_result_list_mbsfn_r12.is_present(), 1));
       HANDLE_CODE(bref.pack(meas_result_serv_cell_v1250_present, 1));
-      HANDLE_CODE(bref.pack(serv_cell_rsrq_type_r12_present, 1));
-      HANDLE_CODE(bref.pack(meas_result_list_eutra_v1250_present, 1));
-      if (meas_result_list_mbsfn_r12_present) {
+      HANDLE_CODE(bref.pack(serv_cell_rsrq_type_r12.is_present(), 1));
+      HANDLE_CODE(bref.pack(meas_result_list_eutra_v1250.is_present(), 1));
+      if (meas_result_list_mbsfn_r12.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *meas_result_list_mbsfn_r12, 1, 8));
       }
       if (meas_result_serv_cell_v1250_present) {
         HANDLE_CODE(pack_unalign_integer(bref, meas_result_serv_cell_v1250, (int8_t)-30, (int8_t)46));
       }
-      if (serv_cell_rsrq_type_r12_present) {
+      if (serv_cell_rsrq_type_r12.is_present()) {
         HANDLE_CODE(serv_cell_rsrq_type_r12->pack(bref));
       }
-      if (meas_result_list_eutra_v1250_present) {
+      if (meas_result_list_eutra_v1250.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *meas_result_list_eutra_v1250, 1, 8));
       }
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(in_dev_coex_detected_r13_present, 1));
     }
     if (group_flags[3]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(meas_result_serv_cell_v1360_present, 1));
       if (meas_result_serv_cell_v1360_present) {
@@ -86521,14 +85545,14 @@ SRSASN_CODE log_meas_info_r10_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[4]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(log_meas_result_list_bt_r15_present, 1));
-      HANDLE_CODE(bref.pack(log_meas_result_list_wlan_r15_present, 1));
-      if (log_meas_result_list_bt_r15_present) {
+      HANDLE_CODE(bref.pack(log_meas_result_list_bt_r15.is_present(), 1));
+      HANDLE_CODE(bref.pack(log_meas_result_list_wlan_r15.is_present(), 1));
+      if (log_meas_result_list_bt_r15.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *log_meas_result_list_bt_r15, 1, 32));
       }
-      if (log_meas_result_list_wlan_r15_present) {
+      if (log_meas_result_list_wlan_r15.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *log_meas_result_list_wlan_r15, 1, 32));
       }
     }
@@ -86569,48 +85593,52 @@ SRSASN_CODE log_meas_info_r10_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(5);
+    ext_groups_unpacker_guard group_flags(5);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool meas_result_list_eutra_v1090_present;
       HANDLE_CODE(bref.unpack(meas_result_list_eutra_v1090_present, 1));
-      if (meas_result_list_eutra_v1090_present) {
-        meas_result_list_eutra_v1090 = make_copy_ptr(meas_result_list2_eutra_v9e0_l());
+      meas_result_list_eutra_v1090.set_present(meas_result_list_eutra_v1090_present);
+      if (meas_result_list_eutra_v1090.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*meas_result_list_eutra_v1090, bref, 1, 8));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool meas_result_list_mbsfn_r12_present;
       HANDLE_CODE(bref.unpack(meas_result_list_mbsfn_r12_present, 1));
+      meas_result_list_mbsfn_r12.set_present(meas_result_list_mbsfn_r12_present);
       HANDLE_CODE(bref.unpack(meas_result_serv_cell_v1250_present, 1));
+      bool serv_cell_rsrq_type_r12_present;
       HANDLE_CODE(bref.unpack(serv_cell_rsrq_type_r12_present, 1));
+      serv_cell_rsrq_type_r12.set_present(serv_cell_rsrq_type_r12_present);
+      bool meas_result_list_eutra_v1250_present;
       HANDLE_CODE(bref.unpack(meas_result_list_eutra_v1250_present, 1));
-      if (meas_result_list_mbsfn_r12_present) {
-        meas_result_list_mbsfn_r12 = make_copy_ptr(meas_result_list_mbsfn_r12_l());
+      meas_result_list_eutra_v1250.set_present(meas_result_list_eutra_v1250_present);
+      if (meas_result_list_mbsfn_r12.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*meas_result_list_mbsfn_r12, bref, 1, 8));
       }
       if (meas_result_serv_cell_v1250_present) {
         HANDLE_CODE(unpack_unalign_integer(meas_result_serv_cell_v1250, bref, (int8_t)-30, (int8_t)46));
       }
-      if (serv_cell_rsrq_type_r12_present) {
-        serv_cell_rsrq_type_r12 = make_copy_ptr(rsrq_type_r12_s());
+      if (serv_cell_rsrq_type_r12.is_present()) {
         HANDLE_CODE(serv_cell_rsrq_type_r12->unpack(bref));
       }
-      if (meas_result_list_eutra_v1250_present) {
-        meas_result_list_eutra_v1250 = make_copy_ptr(meas_result_list2_eutra_v1250_l());
+      if (meas_result_list_eutra_v1250.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*meas_result_list_eutra_v1250, bref, 1, 8));
       }
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(in_dev_coex_detected_r13_present, 1));
     }
     if (group_flags[3]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(meas_result_serv_cell_v1360_present, 1));
       if (meas_result_serv_cell_v1360_present) {
@@ -86618,16 +85646,18 @@ SRSASN_CODE log_meas_info_r10_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[4]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool log_meas_result_list_bt_r15_present;
       HANDLE_CODE(bref.unpack(log_meas_result_list_bt_r15_present, 1));
+      log_meas_result_list_bt_r15.set_present(log_meas_result_list_bt_r15_present);
+      bool log_meas_result_list_wlan_r15_present;
       HANDLE_CODE(bref.unpack(log_meas_result_list_wlan_r15_present, 1));
-      if (log_meas_result_list_bt_r15_present) {
-        log_meas_result_list_bt_r15 = make_copy_ptr(log_meas_result_list_bt_r15_l());
+      log_meas_result_list_wlan_r15.set_present(log_meas_result_list_wlan_r15_present);
+      if (log_meas_result_list_bt_r15.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*log_meas_result_list_bt_r15, bref, 1, 32));
       }
-      if (log_meas_result_list_wlan_r15_present) {
-        log_meas_result_list_wlan_r15 = make_copy_ptr(log_meas_result_list_wlan_r15_l());
+      if (log_meas_result_list_wlan_r15.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*log_meas_result_list_wlan_r15, bref, 1, 32));
       }
     }
@@ -86687,18 +85717,14 @@ void log_meas_info_r10_s::to_json(json_writer& j) const
     j.end_obj();
   }
   if (ext) {
-    rrc_asn1_warn_assert(
-        meas_result_list_eutra_v1090_present != (meas_result_list_eutra_v1090.get() != NULL), __FILE__, __LINE__);
-    if (meas_result_list_eutra_v1090_present) {
+    if (meas_result_list_eutra_v1090.is_present()) {
       j.start_array("measResultListEUTRA-v1090");
       for (uint32_t i1 = 0; i1 < meas_result_list_eutra_v1090->size(); ++i1) {
         ((*meas_result_list_eutra_v1090)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(
-        meas_result_list_mbsfn_r12_present != (meas_result_list_mbsfn_r12.get() != NULL), __FILE__, __LINE__);
-    if (meas_result_list_mbsfn_r12_present) {
+    if (meas_result_list_mbsfn_r12.is_present()) {
       j.start_array("measResultListMBSFN-r12");
       for (uint32_t i1 = 0; i1 < meas_result_list_mbsfn_r12->size(); ++i1) {
         ((*meas_result_list_mbsfn_r12)[i1]).to_json(j);
@@ -86708,15 +85734,11 @@ void log_meas_info_r10_s::to_json(json_writer& j) const
     if (meas_result_serv_cell_v1250_present) {
       j.write_int("measResultServCell-v1250", meas_result_serv_cell_v1250);
     }
-    rrc_asn1_warn_assert(
-        serv_cell_rsrq_type_r12_present != (serv_cell_rsrq_type_r12.get() != NULL), __FILE__, __LINE__);
-    if (serv_cell_rsrq_type_r12_present) {
+    if (serv_cell_rsrq_type_r12.is_present()) {
       j.write_fieldname("servCellRSRQ-Type-r12");
       serv_cell_rsrq_type_r12->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        meas_result_list_eutra_v1250_present != (meas_result_list_eutra_v1250.get() != NULL), __FILE__, __LINE__);
-    if (meas_result_list_eutra_v1250_present) {
+    if (meas_result_list_eutra_v1250.is_present()) {
       j.start_array("measResultListEUTRA-v1250");
       for (uint32_t i1 = 0; i1 < meas_result_list_eutra_v1250->size(); ++i1) {
         ((*meas_result_list_eutra_v1250)[i1]).to_json(j);
@@ -86729,18 +85751,14 @@ void log_meas_info_r10_s::to_json(json_writer& j) const
     if (meas_result_serv_cell_v1360_present) {
       j.write_int("measResultServCell-v1360", meas_result_serv_cell_v1360);
     }
-    rrc_asn1_warn_assert(
-        log_meas_result_list_bt_r15_present != (log_meas_result_list_bt_r15.get() != NULL), __FILE__, __LINE__);
-    if (log_meas_result_list_bt_r15_present) {
+    if (log_meas_result_list_bt_r15.is_present()) {
       j.start_array("logMeasResultListBT-r15");
       for (uint32_t i1 = 0; i1 < log_meas_result_list_bt_r15->size(); ++i1) {
         ((*log_meas_result_list_bt_r15)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(
-        log_meas_result_list_wlan_r15_present != (log_meas_result_list_wlan_r15.get() != NULL), __FILE__, __LINE__);
-    if (log_meas_result_list_wlan_r15_present) {
+    if (log_meas_result_list_wlan_r15.is_present()) {
       j.start_array("logMeasResultListWLAN-r15");
       for (uint32_t i1 = 0; i1 < log_meas_result_list_wlan_r15->size(); ++i1) {
         ((*log_meas_result_list_wlan_r15)[i1]).to_json(j);
@@ -86790,16 +85808,15 @@ SRSASN_CODE meas_result_cell_nr_r15_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
-    rrc_asn1_warn_assert(cgi_info_r15_present != (cgi_info_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= cgi_info_r15_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= cgi_info_r15.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(cgi_info_r15_present, 1));
-      if (cgi_info_r15_present) {
+      HANDLE_CODE(bref.pack(cgi_info_r15.is_present(), 1));
+      if (cgi_info_r15.is_present()) {
         HANDLE_CODE(cgi_info_r15->pack(bref));
       }
     }
@@ -86818,15 +85835,16 @@ SRSASN_CODE meas_result_cell_nr_r15_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool cgi_info_r15_present;
       HANDLE_CODE(bref.unpack(cgi_info_r15_present, 1));
-      if (cgi_info_r15_present) {
-        cgi_info_r15 = make_copy_ptr(cgi_info_nr_r15_s());
+      cgi_info_r15.set_present(cgi_info_r15_present);
+      if (cgi_info_r15.is_present()) {
         HANDLE_CODE(cgi_info_r15->unpack(bref));
       }
     }
@@ -86847,8 +85865,7 @@ void meas_result_cell_nr_r15_s::to_json(json_writer& j) const
     j.end_array();
   }
   if (ext) {
-    rrc_asn1_warn_assert(cgi_info_r15_present != (cgi_info_r15.get() != NULL), __FILE__, __LINE__);
-    if (cgi_info_r15_present) {
+    if (cgi_info_r15.is_present()) {
       j.write_fieldname("cgi-Info-r15");
       cgi_info_r15->to_json(j);
     }
@@ -87191,41 +86208,33 @@ SRSASN_CODE conn_est_fail_report_r11_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(3);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= meas_result_failed_cell_v1250_present;
-    rrc_asn1_warn_assert(
-        failed_cell_rsrq_type_r12_present != (failed_cell_rsrq_type_r12.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= failed_cell_rsrq_type_r12_present;
-    rrc_asn1_warn_assert(
-        meas_result_list_eutra_v1250_present != (meas_result_list_eutra_v1250.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= meas_result_list_eutra_v1250_present;
+    group_flags[0] |= failed_cell_rsrq_type_r12.is_present();
+    group_flags[0] |= meas_result_list_eutra_v1250.is_present();
     group_flags[1] |= meas_result_failed_cell_v1360_present;
-    rrc_asn1_warn_assert(
-        log_meas_result_list_bt_r15_present != (log_meas_result_list_bt_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= log_meas_result_list_bt_r15_present;
-    rrc_asn1_warn_assert(
-        log_meas_result_list_wlan_r15_present != (log_meas_result_list_wlan_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= log_meas_result_list_wlan_r15_present;
+    group_flags[2] |= log_meas_result_list_bt_r15.is_present();
+    group_flags[2] |= log_meas_result_list_wlan_r15.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(meas_result_failed_cell_v1250_present, 1));
-      HANDLE_CODE(bref.pack(failed_cell_rsrq_type_r12_present, 1));
-      HANDLE_CODE(bref.pack(meas_result_list_eutra_v1250_present, 1));
+      HANDLE_CODE(bref.pack(failed_cell_rsrq_type_r12.is_present(), 1));
+      HANDLE_CODE(bref.pack(meas_result_list_eutra_v1250.is_present(), 1));
       if (meas_result_failed_cell_v1250_present) {
         HANDLE_CODE(pack_unalign_integer(bref, meas_result_failed_cell_v1250, (int8_t)-30, (int8_t)46));
       }
-      if (failed_cell_rsrq_type_r12_present) {
+      if (failed_cell_rsrq_type_r12.is_present()) {
         HANDLE_CODE(failed_cell_rsrq_type_r12->pack(bref));
       }
-      if (meas_result_list_eutra_v1250_present) {
+      if (meas_result_list_eutra_v1250.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *meas_result_list_eutra_v1250, 1, 8));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(meas_result_failed_cell_v1360_present, 1));
       if (meas_result_failed_cell_v1360_present) {
@@ -87233,14 +86242,14 @@ SRSASN_CODE conn_est_fail_report_r11_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(log_meas_result_list_bt_r15_present, 1));
-      HANDLE_CODE(bref.pack(log_meas_result_list_wlan_r15_present, 1));
-      if (log_meas_result_list_bt_r15_present) {
+      HANDLE_CODE(bref.pack(log_meas_result_list_bt_r15.is_present(), 1));
+      HANDLE_CODE(bref.pack(log_meas_result_list_wlan_r15.is_present(), 1));
+      if (log_meas_result_list_bt_r15.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *log_meas_result_list_bt_r15, 1, 32));
       }
-      if (log_meas_result_list_wlan_r15_present) {
+      if (log_meas_result_list_wlan_r15.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *log_meas_result_list_wlan_r15, 1, 32));
       }
     }
@@ -87290,29 +86299,31 @@ SRSASN_CODE conn_est_fail_report_r11_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(3);
+    ext_groups_unpacker_guard group_flags(3);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(meas_result_failed_cell_v1250_present, 1));
+      bool failed_cell_rsrq_type_r12_present;
       HANDLE_CODE(bref.unpack(failed_cell_rsrq_type_r12_present, 1));
+      failed_cell_rsrq_type_r12.set_present(failed_cell_rsrq_type_r12_present);
+      bool meas_result_list_eutra_v1250_present;
       HANDLE_CODE(bref.unpack(meas_result_list_eutra_v1250_present, 1));
+      meas_result_list_eutra_v1250.set_present(meas_result_list_eutra_v1250_present);
       if (meas_result_failed_cell_v1250_present) {
         HANDLE_CODE(unpack_unalign_integer(meas_result_failed_cell_v1250, bref, (int8_t)-30, (int8_t)46));
       }
-      if (failed_cell_rsrq_type_r12_present) {
-        failed_cell_rsrq_type_r12 = make_copy_ptr(rsrq_type_r12_s());
+      if (failed_cell_rsrq_type_r12.is_present()) {
         HANDLE_CODE(failed_cell_rsrq_type_r12->unpack(bref));
       }
-      if (meas_result_list_eutra_v1250_present) {
-        meas_result_list_eutra_v1250 = make_copy_ptr(meas_result_list2_eutra_v1250_l());
+      if (meas_result_list_eutra_v1250.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*meas_result_list_eutra_v1250, bref, 1, 8));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(meas_result_failed_cell_v1360_present, 1));
       if (meas_result_failed_cell_v1360_present) {
@@ -87320,16 +86331,18 @@ SRSASN_CODE conn_est_fail_report_r11_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool log_meas_result_list_bt_r15_present;
       HANDLE_CODE(bref.unpack(log_meas_result_list_bt_r15_present, 1));
+      log_meas_result_list_bt_r15.set_present(log_meas_result_list_bt_r15_present);
+      bool log_meas_result_list_wlan_r15_present;
       HANDLE_CODE(bref.unpack(log_meas_result_list_wlan_r15_present, 1));
-      if (log_meas_result_list_bt_r15_present) {
-        log_meas_result_list_bt_r15 = make_copy_ptr(log_meas_result_list_bt_r15_l());
+      log_meas_result_list_wlan_r15.set_present(log_meas_result_list_wlan_r15_present);
+      if (log_meas_result_list_bt_r15.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*log_meas_result_list_bt_r15, bref, 1, 32));
       }
-      if (log_meas_result_list_wlan_r15_present) {
-        log_meas_result_list_wlan_r15 = make_copy_ptr(log_meas_result_list_wlan_r15_l());
+      if (log_meas_result_list_wlan_r15.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*log_meas_result_list_wlan_r15, bref, 1, 32));
       }
     }
@@ -87400,15 +86413,11 @@ void conn_est_fail_report_r11_s::to_json(json_writer& j) const
     if (meas_result_failed_cell_v1250_present) {
       j.write_int("measResultFailedCell-v1250", meas_result_failed_cell_v1250);
     }
-    rrc_asn1_warn_assert(
-        failed_cell_rsrq_type_r12_present != (failed_cell_rsrq_type_r12.get() != NULL), __FILE__, __LINE__);
-    if (failed_cell_rsrq_type_r12_present) {
+    if (failed_cell_rsrq_type_r12.is_present()) {
       j.write_fieldname("failedCellRSRQ-Type-r12");
       failed_cell_rsrq_type_r12->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        meas_result_list_eutra_v1250_present != (meas_result_list_eutra_v1250.get() != NULL), __FILE__, __LINE__);
-    if (meas_result_list_eutra_v1250_present) {
+    if (meas_result_list_eutra_v1250.is_present()) {
       j.start_array("measResultListEUTRA-v1250");
       for (uint32_t i1 = 0; i1 < meas_result_list_eutra_v1250->size(); ++i1) {
         ((*meas_result_list_eutra_v1250)[i1]).to_json(j);
@@ -87418,18 +86427,14 @@ void conn_est_fail_report_r11_s::to_json(json_writer& j) const
     if (meas_result_failed_cell_v1360_present) {
       j.write_int("measResultFailedCell-v1360", meas_result_failed_cell_v1360);
     }
-    rrc_asn1_warn_assert(
-        log_meas_result_list_bt_r15_present != (log_meas_result_list_bt_r15.get() != NULL), __FILE__, __LINE__);
-    if (log_meas_result_list_bt_r15_present) {
+    if (log_meas_result_list_bt_r15.is_present()) {
       j.start_array("logMeasResultListBT-r15");
       for (uint32_t i1 = 0; i1 < log_meas_result_list_bt_r15->size(); ++i1) {
         ((*log_meas_result_list_bt_r15)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(
-        log_meas_result_list_wlan_r15_present != (log_meas_result_list_wlan_r15.get() != NULL), __FILE__, __LINE__);
-    if (log_meas_result_list_wlan_r15_present) {
+    if (log_meas_result_list_wlan_r15.is_present()) {
       j.start_array("logMeasResultListWLAN-r15");
       for (uint32_t i1 = 0; i1 < log_meas_result_list_wlan_r15->size(); ++i1) {
         ((*log_meas_result_list_wlan_r15)[i1]).to_json(j);
@@ -88072,13 +87077,13 @@ SRSASN_CODE log_meas_report_r10_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_dyn_seq_of(bref, log_meas_info_list_r10, 1, 520));
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= log_meas_available_bt_r15_present;
     group_flags[0] |= log_meas_available_wlan_r15_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(log_meas_available_bt_r15_present, 1));
       HANDLE_CODE(bref.pack(log_meas_available_wlan_r15_present, 1));
@@ -88098,11 +87103,11 @@ SRSASN_CODE log_meas_report_r10_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_dyn_seq_of(log_meas_info_list_r10, bref, 1, 520));
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(log_meas_available_bt_r15_present, 1));
       HANDLE_CODE(bref.unpack(log_meas_available_wlan_r15_present, 1));
@@ -88318,20 +87323,15 @@ SRSASN_CODE meas_result_serv_freq_r10_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(2);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= meas_result_scell_v1250_present;
     group_flags[0] |= meas_result_best_neigh_cell_v1250_present;
-    rrc_asn1_warn_assert(
-        meas_result_scell_v1310_present != (meas_result_scell_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= meas_result_scell_v1310_present;
-    rrc_asn1_warn_assert(meas_result_best_neigh_cell_v1310_present != (meas_result_best_neigh_cell_v1310.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[1] |= meas_result_best_neigh_cell_v1310_present;
+    group_flags[1] |= meas_result_scell_v1310.is_present();
+    group_flags[1] |= meas_result_best_neigh_cell_v1310.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(meas_result_scell_v1250_present, 1));
       HANDLE_CODE(bref.pack(meas_result_best_neigh_cell_v1250_present, 1));
@@ -88343,14 +87343,14 @@ SRSASN_CODE meas_result_serv_freq_r10_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(meas_result_scell_v1310_present, 1));
-      HANDLE_CODE(bref.pack(meas_result_best_neigh_cell_v1310_present, 1));
-      if (meas_result_scell_v1310_present) {
+      HANDLE_CODE(bref.pack(meas_result_scell_v1310.is_present(), 1));
+      HANDLE_CODE(bref.pack(meas_result_best_neigh_cell_v1310.is_present(), 1));
+      if (meas_result_scell_v1310.is_present()) {
         HANDLE_CODE(pack_unalign_integer(bref, meas_result_scell_v1310->rs_sinr_result_r13, (uint8_t)0, (uint8_t)127));
       }
-      if (meas_result_best_neigh_cell_v1310_present) {
+      if (meas_result_best_neigh_cell_v1310.is_present()) {
         HANDLE_CODE(pack_unalign_integer(
             bref, meas_result_best_neigh_cell_v1310->rs_sinr_result_r13, (uint8_t)0, (uint8_t)127));
       }
@@ -88378,11 +87378,11 @@ SRSASN_CODE meas_result_serv_freq_r10_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(2);
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(meas_result_scell_v1250_present, 1));
       HANDLE_CODE(bref.unpack(meas_result_best_neigh_cell_v1250_present, 1));
@@ -88394,17 +87394,19 @@ SRSASN_CODE meas_result_serv_freq_r10_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool meas_result_scell_v1310_present;
       HANDLE_CODE(bref.unpack(meas_result_scell_v1310_present, 1));
+      meas_result_scell_v1310.set_present(meas_result_scell_v1310_present);
+      bool meas_result_best_neigh_cell_v1310_present;
       HANDLE_CODE(bref.unpack(meas_result_best_neigh_cell_v1310_present, 1));
-      if (meas_result_scell_v1310_present) {
-        meas_result_scell_v1310 = make_copy_ptr(meas_result_scell_v1310_s_());
+      meas_result_best_neigh_cell_v1310.set_present(meas_result_best_neigh_cell_v1310_present);
+      if (meas_result_scell_v1310.is_present()) {
         HANDLE_CODE(
             unpack_unalign_integer(meas_result_scell_v1310->rs_sinr_result_r13, bref, (uint8_t)0, (uint8_t)127));
       }
-      if (meas_result_best_neigh_cell_v1310_present) {
-        meas_result_best_neigh_cell_v1310 = make_copy_ptr(meas_result_best_neigh_cell_v1310_s_());
+      if (meas_result_best_neigh_cell_v1310.is_present()) {
         HANDLE_CODE(unpack_unalign_integer(
             meas_result_best_neigh_cell_v1310->rs_sinr_result_r13, bref, (uint8_t)0, (uint8_t)127));
       }
@@ -88438,18 +87440,13 @@ void meas_result_serv_freq_r10_s::to_json(json_writer& j) const
     if (meas_result_best_neigh_cell_v1250_present) {
       j.write_int("measResultBestNeighCell-v1250", meas_result_best_neigh_cell_v1250);
     }
-    rrc_asn1_warn_assert(
-        meas_result_scell_v1310_present != (meas_result_scell_v1310.get() != NULL), __FILE__, __LINE__);
-    if (meas_result_scell_v1310_present) {
+    if (meas_result_scell_v1310.is_present()) {
       j.write_fieldname("measResultSCell-v1310");
       j.start_obj();
       j.write_int("rs-sinr-Result-r13", meas_result_scell_v1310->rs_sinr_result_r13);
       j.end_obj();
     }
-    rrc_asn1_warn_assert(meas_result_best_neigh_cell_v1310_present != (meas_result_best_neigh_cell_v1310.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (meas_result_best_neigh_cell_v1310_present) {
+    if (meas_result_best_neigh_cell_v1310.is_present()) {
       j.write_fieldname("measResultBestNeighCell-v1310");
       j.start_obj();
       j.write_int("rs-sinr-Result-r13", meas_result_best_neigh_cell_v1310->rs_sinr_result_r13);
@@ -88489,18 +87486,15 @@ SRSASN_CODE meas_result_serv_freq_r13_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
-    rrc_asn1_warn_assert(meas_result_best_neigh_cell_v1360_present != (meas_result_best_neigh_cell_v1360.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[0] |= meas_result_best_neigh_cell_v1360_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= meas_result_best_neigh_cell_v1360.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(meas_result_best_neigh_cell_v1360_present, 1));
-      if (meas_result_best_neigh_cell_v1360_present) {
+      HANDLE_CODE(bref.pack(meas_result_best_neigh_cell_v1360.is_present(), 1));
+      if (meas_result_best_neigh_cell_v1360.is_present()) {
         HANDLE_CODE(pack_unalign_integer(
             bref, meas_result_best_neigh_cell_v1360->rsrp_result_ncell_v1360, (int8_t)-17, (int8_t)-1));
       }
@@ -88537,15 +87531,16 @@ SRSASN_CODE meas_result_serv_freq_r13_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool meas_result_best_neigh_cell_v1360_present;
       HANDLE_CODE(bref.unpack(meas_result_best_neigh_cell_v1360_present, 1));
-      if (meas_result_best_neigh_cell_v1360_present) {
-        meas_result_best_neigh_cell_v1360 = make_copy_ptr(meas_result_best_neigh_cell_v1360_s_());
+      meas_result_best_neigh_cell_v1360.set_present(meas_result_best_neigh_cell_v1360_present);
+      if (meas_result_best_neigh_cell_v1360.is_present()) {
         HANDLE_CODE(unpack_unalign_integer(
             meas_result_best_neigh_cell_v1360->rsrp_result_ncell_v1360, bref, (int8_t)-17, (int8_t)-1));
       }
@@ -88579,10 +87574,7 @@ void meas_result_serv_freq_r13_s::to_json(json_writer& j) const
     j.end_obj();
   }
   if (ext) {
-    rrc_asn1_warn_assert(meas_result_best_neigh_cell_v1360_present != (meas_result_best_neigh_cell_v1360.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (meas_result_best_neigh_cell_v1360_present) {
+    if (meas_result_best_neigh_cell_v1360.is_present()) {
       j.write_fieldname("measResultBestNeighCell-v1360");
       j.start_obj();
       j.write_int("rsrpResultNCell-v1360", meas_result_best_neigh_cell_v1360->rsrp_result_ncell_v1360);
@@ -89012,16 +88004,15 @@ SRSASN_CODE sl_disc_sys_info_report_r13_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
-    rrc_asn1_warn_assert(freq_info_v1370_present != (freq_info_v1370.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= freq_info_v1370_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= freq_info_v1370.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(freq_info_v1370_present, 1));
-      if (freq_info_v1370_present) {
+      HANDLE_CODE(bref.pack(freq_info_v1370.is_present(), 1));
+      if (freq_info_v1370.is_present()) {
         HANDLE_CODE(pack_unalign_integer(bref, freq_info_v1370->add_spec_emission_v1370, (uint16_t)33, (uint16_t)288));
       }
     }
@@ -89103,15 +88094,16 @@ SRSASN_CODE sl_disc_sys_info_report_r13_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool freq_info_v1370_present;
       HANDLE_CODE(bref.unpack(freq_info_v1370_present, 1));
-      if (freq_info_v1370_present) {
-        freq_info_v1370 = make_copy_ptr(freq_info_v1370_s_());
+      freq_info_v1370.set_present(freq_info_v1370_present);
+      if (freq_info_v1370.is_present()) {
         HANDLE_CODE(
             unpack_unalign_integer(freq_info_v1370->add_spec_emission_v1370, bref, (uint16_t)33, (uint16_t)288));
       }
@@ -89202,8 +88194,7 @@ void sl_disc_sys_info_report_r13_s::to_json(json_writer& j) const
     j.write_int("referenceSignalPower-r13", ref_sig_pwr_r13);
   }
   if (ext) {
-    rrc_asn1_warn_assert(freq_info_v1370_present != (freq_info_v1370.get() != NULL), __FILE__, __LINE__);
-    if (freq_info_v1370_present) {
+    if (freq_info_v1370.is_present()) {
       j.write_fieldname("freqInfo-v1370");
       j.start_obj();
       j.write_int("additionalSpectrumEmission-v1370", freq_info_v1370->add_spec_emission_v1370);
@@ -89405,7 +88396,7 @@ SRSASN_CODE ue_radio_paging_info_r12_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(2);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= ue_category_dl_v1310_present;
     group_flags[0] |= ce_mode_a_r13_present;
     group_flags[0] |= ce_mode_b_r13_present;
@@ -89416,14 +88407,14 @@ SRSASN_CODE ue_radio_paging_info_r12_s::pack(bit_ref& bref) const
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(ue_category_dl_v1310_present, 1));
       HANDLE_CODE(bref.pack(ce_mode_a_r13_present, 1));
       HANDLE_CODE(bref.pack(ce_mode_b_r13_present, 1));
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(wake_up_signal_r15_present, 1));
       HANDLE_CODE(bref.pack(wake_up_signal_tdd_r15_present, 1));
@@ -89449,18 +88440,18 @@ SRSASN_CODE ue_radio_paging_info_r12_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(2);
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(ue_category_dl_v1310_present, 1));
       HANDLE_CODE(bref.unpack(ce_mode_a_r13_present, 1));
       HANDLE_CODE(bref.unpack(ce_mode_b_r13_present, 1));
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(wake_up_signal_r15_present, 1));
       HANDLE_CODE(bref.unpack(wake_up_signal_tdd_r15_present, 1));
@@ -90171,14 +89162,13 @@ SRSASN_CODE rstd_inter_freq_info_r10_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_unalign_integer(bref, meas_prs_offset_r10, (uint8_t)0, (uint8_t)39));
 
   if (ext) {
-    ext_groups_header group_flags(2);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= carrier_freq_v1090_present;
-    rrc_asn1_warn_assert(meas_prs_offset_r15_present != (meas_prs_offset_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= meas_prs_offset_r15_present;
+    group_flags[1] |= meas_prs_offset_r15.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(carrier_freq_v1090_present, 1));
       if (carrier_freq_v1090_present) {
@@ -90186,10 +89176,10 @@ SRSASN_CODE rstd_inter_freq_info_r10_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(meas_prs_offset_r15_present, 1));
-      if (meas_prs_offset_r15_present) {
+      HANDLE_CODE(bref.pack(meas_prs_offset_r15.is_present(), 1));
+      if (meas_prs_offset_r15.is_present()) {
         HANDLE_CODE(meas_prs_offset_r15->pack(bref));
       }
     }
@@ -90203,11 +89193,11 @@ SRSASN_CODE rstd_inter_freq_info_r10_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_unalign_integer(meas_prs_offset_r10, bref, (uint8_t)0, (uint8_t)39));
 
   if (ext) {
-    ext_groups_header group_flags(2);
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(carrier_freq_v1090_present, 1));
       if (carrier_freq_v1090_present) {
@@ -90215,11 +89205,12 @@ SRSASN_CODE rstd_inter_freq_info_r10_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool meas_prs_offset_r15_present;
       HANDLE_CODE(bref.unpack(meas_prs_offset_r15_present, 1));
-      if (meas_prs_offset_r15_present) {
-        meas_prs_offset_r15 = make_copy_ptr(meas_prs_offset_r15_c_());
+      meas_prs_offset_r15.set_present(meas_prs_offset_r15_present);
+      if (meas_prs_offset_r15.is_present()) {
         HANDLE_CODE(meas_prs_offset_r15->unpack(bref));
       }
     }
@@ -90235,8 +89226,7 @@ void rstd_inter_freq_info_r10_s::to_json(json_writer& j) const
     if (carrier_freq_v1090_present) {
       j.write_int("carrierFreq-v1090", carrier_freq_v1090);
     }
-    rrc_asn1_warn_assert(meas_prs_offset_r15_present != (meas_prs_offset_r15.get() != NULL), __FILE__, __LINE__);
-    if (meas_prs_offset_r15_present) {
+    if (meas_prs_offset_r15.is_present()) {
       j.write_fieldname("measPRS-Offset-r15");
       meas_prs_offset_r15->to_json(j);
     }
@@ -91097,25 +90087,21 @@ SRSASN_CODE fail_report_scg_r12_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(2);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= fail_type_v1290_present;
-    rrc_asn1_warn_assert(meas_result_serv_freq_list_ext_r13_present !=
-                             (meas_result_serv_freq_list_ext_r13.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[1] |= meas_result_serv_freq_list_ext_r13_present;
+    group_flags[1] |= meas_result_serv_freq_list_ext_r13.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(fail_type_v1290_present, 1));
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(meas_result_serv_freq_list_ext_r13_present, 1));
-      if (meas_result_serv_freq_list_ext_r13_present) {
+      HANDLE_CODE(bref.pack(meas_result_serv_freq_list_ext_r13.is_present(), 1));
+      if (meas_result_serv_freq_list_ext_r13.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *meas_result_serv_freq_list_ext_r13, 1, 32));
       }
     }
@@ -91137,20 +90123,21 @@ SRSASN_CODE fail_report_scg_r12_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(2);
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(fail_type_v1290_present, 1));
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool meas_result_serv_freq_list_ext_r13_present;
       HANDLE_CODE(bref.unpack(meas_result_serv_freq_list_ext_r13_present, 1));
-      if (meas_result_serv_freq_list_ext_r13_present) {
-        meas_result_serv_freq_list_ext_r13 = make_copy_ptr(meas_result_serv_freq_list_ext_r13_l());
+      meas_result_serv_freq_list_ext_r13.set_present(meas_result_serv_freq_list_ext_r13_present);
+      if (meas_result_serv_freq_list_ext_r13.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*meas_result_serv_freq_list_ext_r13, bref, 1, 32));
       }
     }
@@ -91179,11 +90166,7 @@ void fail_report_scg_r12_s::to_json(json_writer& j) const
     if (fail_type_v1290_present) {
       j.write_str("failureType-v1290", "maxUL-TimingDiff-v1290");
     }
-    rrc_asn1_warn_assert(meas_result_serv_freq_list_ext_r13_present !=
-                             (meas_result_serv_freq_list_ext_r13.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (meas_result_serv_freq_list_ext_r13_present) {
+    if (meas_result_serv_freq_list_ext_r13.is_present()) {
       j.start_array("measResultServFreqListExt-r13");
       for (uint32_t i1 = 0; i1 < meas_result_serv_freq_list_ext_r13->size(); ++i1) {
         ((*meas_result_serv_freq_list_ext_r13)[i1]).to_json(j);
@@ -91324,131 +90307,96 @@ SRSASN_CODE meas_results_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(8);
-    rrc_asn1_warn_assert(
-        meas_result_for_ecid_r9_present != (meas_result_for_ecid_r9.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= meas_result_for_ecid_r9_present;
-    rrc_asn1_warn_assert(location_info_r10_present != (location_info_r10.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= location_info_r10_present;
-    rrc_asn1_warn_assert(
-        meas_result_serv_freq_list_r10_present != (meas_result_serv_freq_list_r10.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= meas_result_serv_freq_list_r10_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= meas_result_for_ecid_r9.is_present();
+    group_flags[1] |= location_info_r10.is_present();
+    group_flags[1] |= meas_result_serv_freq_list_r10.is_present();
     group_flags[2] |= meas_id_v1250_present;
     group_flags[2] |= meas_result_pcell_v1250_present;
-    rrc_asn1_warn_assert(
-        meas_result_csi_rs_list_r12_present != (meas_result_csi_rs_list_r12.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= meas_result_csi_rs_list_r12_present;
-    rrc_asn1_warn_assert(
-        meas_result_for_rssi_r13_present != (meas_result_for_rssi_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= meas_result_for_rssi_r13_present;
-    rrc_asn1_warn_assert(meas_result_serv_freq_list_ext_r13_present !=
-                             (meas_result_serv_freq_list_ext_r13.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[3] |= meas_result_serv_freq_list_ext_r13_present;
-    rrc_asn1_warn_assert(meas_result_sstd_r13_present != (meas_result_sstd_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= meas_result_sstd_r13_present;
-    rrc_asn1_warn_assert(
-        meas_result_pcell_v1310_present != (meas_result_pcell_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= meas_result_pcell_v1310_present;
-    rrc_asn1_warn_assert(
-        ul_pdcp_delay_result_list_r13_present != (ul_pdcp_delay_result_list_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= ul_pdcp_delay_result_list_r13_present;
-    rrc_asn1_warn_assert(
-        meas_result_list_wlan_r13_present != (meas_result_list_wlan_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= meas_result_list_wlan_r13_present;
+    group_flags[2] |= meas_result_csi_rs_list_r12.is_present();
+    group_flags[3] |= meas_result_for_rssi_r13.is_present();
+    group_flags[3] |= meas_result_serv_freq_list_ext_r13.is_present();
+    group_flags[3] |= meas_result_sstd_r13.is_present();
+    group_flags[3] |= meas_result_pcell_v1310.is_present();
+    group_flags[3] |= ul_pdcp_delay_result_list_r13.is_present();
+    group_flags[3] |= meas_result_list_wlan_r13.is_present();
     group_flags[4] |= meas_result_pcell_v1360_present;
-    rrc_asn1_warn_assert(
-        meas_result_list_cbr_r14_present != (meas_result_list_cbr_r14.get() != NULL), __FILE__, __LINE__);
-    group_flags[5] |= meas_result_list_cbr_r14_present;
-    rrc_asn1_warn_assert(
-        meas_result_list_wlan_r14_present != (meas_result_list_wlan_r14.get() != NULL), __FILE__, __LINE__);
-    group_flags[5] |= meas_result_list_wlan_r14_present;
-    rrc_asn1_warn_assert(meas_result_serv_freq_list_nr_r15_present != (meas_result_serv_freq_list_nr_r15.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[6] |= meas_result_serv_freq_list_nr_r15_present;
-    rrc_asn1_warn_assert(
-        meas_result_cell_list_sftd_r15_present != (meas_result_cell_list_sftd_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[6] |= meas_result_cell_list_sftd_r15_present;
-    rrc_asn1_warn_assert(
-        log_meas_result_list_bt_r15_present != (log_meas_result_list_bt_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[7] |= log_meas_result_list_bt_r15_present;
-    rrc_asn1_warn_assert(
-        log_meas_result_list_wlan_r15_present != (log_meas_result_list_wlan_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[7] |= log_meas_result_list_wlan_r15_present;
-    rrc_asn1_warn_assert(
-        meas_result_sensing_r15_present != (meas_result_sensing_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[7] |= meas_result_sensing_r15_present;
+    group_flags[5] |= meas_result_list_cbr_r14.is_present();
+    group_flags[5] |= meas_result_list_wlan_r14.is_present();
+    group_flags[6] |= meas_result_serv_freq_list_nr_r15.is_present();
+    group_flags[6] |= meas_result_cell_list_sftd_r15.is_present();
+    group_flags[7] |= log_meas_result_list_bt_r15.is_present();
+    group_flags[7] |= log_meas_result_list_wlan_r15.is_present();
+    group_flags[7] |= meas_result_sensing_r15.is_present();
     group_flags[7] |= height_ue_r15_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(meas_result_for_ecid_r9_present, 1));
-      if (meas_result_for_ecid_r9_present) {
+      HANDLE_CODE(bref.pack(meas_result_for_ecid_r9.is_present(), 1));
+      if (meas_result_for_ecid_r9.is_present()) {
         HANDLE_CODE(meas_result_for_ecid_r9->pack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(location_info_r10_present, 1));
-      HANDLE_CODE(bref.pack(meas_result_serv_freq_list_r10_present, 1));
-      if (location_info_r10_present) {
+      HANDLE_CODE(bref.pack(location_info_r10.is_present(), 1));
+      HANDLE_CODE(bref.pack(meas_result_serv_freq_list_r10.is_present(), 1));
+      if (location_info_r10.is_present()) {
         HANDLE_CODE(location_info_r10->pack(bref));
       }
-      if (meas_result_serv_freq_list_r10_present) {
+      if (meas_result_serv_freq_list_r10.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *meas_result_serv_freq_list_r10, 1, 5));
       }
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(meas_id_v1250_present, 1));
       HANDLE_CODE(bref.pack(meas_result_pcell_v1250_present, 1));
-      HANDLE_CODE(bref.pack(meas_result_csi_rs_list_r12_present, 1));
+      HANDLE_CODE(bref.pack(meas_result_csi_rs_list_r12.is_present(), 1));
       if (meas_id_v1250_present) {
         HANDLE_CODE(pack_unalign_integer(bref, meas_id_v1250, (uint8_t)33, (uint8_t)64));
       }
       if (meas_result_pcell_v1250_present) {
         HANDLE_CODE(pack_unalign_integer(bref, meas_result_pcell_v1250, (int8_t)-30, (int8_t)46));
       }
-      if (meas_result_csi_rs_list_r12_present) {
+      if (meas_result_csi_rs_list_r12.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *meas_result_csi_rs_list_r12, 1, 8));
       }
     }
     if (group_flags[3]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(meas_result_for_rssi_r13_present, 1));
-      HANDLE_CODE(bref.pack(meas_result_serv_freq_list_ext_r13_present, 1));
-      HANDLE_CODE(bref.pack(meas_result_sstd_r13_present, 1));
-      HANDLE_CODE(bref.pack(meas_result_pcell_v1310_present, 1));
-      HANDLE_CODE(bref.pack(ul_pdcp_delay_result_list_r13_present, 1));
-      HANDLE_CODE(bref.pack(meas_result_list_wlan_r13_present, 1));
-      if (meas_result_for_rssi_r13_present) {
+      HANDLE_CODE(bref.pack(meas_result_for_rssi_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(meas_result_serv_freq_list_ext_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(meas_result_sstd_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(meas_result_pcell_v1310.is_present(), 1));
+      HANDLE_CODE(bref.pack(ul_pdcp_delay_result_list_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(meas_result_list_wlan_r13.is_present(), 1));
+      if (meas_result_for_rssi_r13.is_present()) {
         HANDLE_CODE(meas_result_for_rssi_r13->pack(bref));
       }
-      if (meas_result_serv_freq_list_ext_r13_present) {
+      if (meas_result_serv_freq_list_ext_r13.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *meas_result_serv_freq_list_ext_r13, 1, 32));
       }
-      if (meas_result_sstd_r13_present) {
+      if (meas_result_sstd_r13.is_present()) {
         HANDLE_CODE(meas_result_sstd_r13->pack(bref));
       }
-      if (meas_result_pcell_v1310_present) {
+      if (meas_result_pcell_v1310.is_present()) {
         HANDLE_CODE(pack_unalign_integer(bref, meas_result_pcell_v1310->rs_sinr_result_r13, (uint8_t)0, (uint8_t)127));
       }
-      if (ul_pdcp_delay_result_list_r13_present) {
+      if (ul_pdcp_delay_result_list_r13.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *ul_pdcp_delay_result_list_r13, 1, 6));
       }
-      if (meas_result_list_wlan_r13_present) {
+      if (meas_result_list_wlan_r13.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *meas_result_list_wlan_r13, 1, 8));
       }
     }
     if (group_flags[4]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(meas_result_pcell_v1360_present, 1));
       if (meas_result_pcell_v1360_present) {
@@ -91456,43 +90404,43 @@ SRSASN_CODE meas_results_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[5]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(meas_result_list_cbr_r14_present, 1));
-      HANDLE_CODE(bref.pack(meas_result_list_wlan_r14_present, 1));
-      if (meas_result_list_cbr_r14_present) {
+      HANDLE_CODE(bref.pack(meas_result_list_cbr_r14.is_present(), 1));
+      HANDLE_CODE(bref.pack(meas_result_list_wlan_r14.is_present(), 1));
+      if (meas_result_list_cbr_r14.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *meas_result_list_cbr_r14, 1, 72));
       }
-      if (meas_result_list_wlan_r14_present) {
+      if (meas_result_list_wlan_r14.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *meas_result_list_wlan_r14, 1, 32));
       }
     }
     if (group_flags[6]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(meas_result_serv_freq_list_nr_r15_present, 1));
-      HANDLE_CODE(bref.pack(meas_result_cell_list_sftd_r15_present, 1));
-      if (meas_result_serv_freq_list_nr_r15_present) {
+      HANDLE_CODE(bref.pack(meas_result_serv_freq_list_nr_r15.is_present(), 1));
+      HANDLE_CODE(bref.pack(meas_result_cell_list_sftd_r15.is_present(), 1));
+      if (meas_result_serv_freq_list_nr_r15.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *meas_result_serv_freq_list_nr_r15, 1, 32));
       }
-      if (meas_result_cell_list_sftd_r15_present) {
+      if (meas_result_cell_list_sftd_r15.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *meas_result_cell_list_sftd_r15, 1, 3));
       }
     }
     if (group_flags[7]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(log_meas_result_list_bt_r15_present, 1));
-      HANDLE_CODE(bref.pack(log_meas_result_list_wlan_r15_present, 1));
-      HANDLE_CODE(bref.pack(meas_result_sensing_r15_present, 1));
+      HANDLE_CODE(bref.pack(log_meas_result_list_bt_r15.is_present(), 1));
+      HANDLE_CODE(bref.pack(log_meas_result_list_wlan_r15.is_present(), 1));
+      HANDLE_CODE(bref.pack(meas_result_sensing_r15.is_present(), 1));
       HANDLE_CODE(bref.pack(height_ue_r15_present, 1));
-      if (log_meas_result_list_bt_r15_present) {
+      if (log_meas_result_list_bt_r15.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *log_meas_result_list_bt_r15, 1, 32));
       }
-      if (log_meas_result_list_wlan_r15_present) {
+      if (log_meas_result_list_wlan_r15.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *log_meas_result_list_wlan_r15, 1, 32));
       }
-      if (meas_result_sensing_r15_present) {
+      if (meas_result_sensing_r15.is_present()) {
         HANDLE_CODE(meas_result_sensing_r15->pack(bref));
       }
       if (height_ue_r15_present) {
@@ -91515,86 +90463,96 @@ SRSASN_CODE meas_results_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(8);
+    ext_groups_unpacker_guard group_flags(8);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool meas_result_for_ecid_r9_present;
       HANDLE_CODE(bref.unpack(meas_result_for_ecid_r9_present, 1));
-      if (meas_result_for_ecid_r9_present) {
-        meas_result_for_ecid_r9 = make_copy_ptr(meas_result_for_ecid_r9_s());
+      meas_result_for_ecid_r9.set_present(meas_result_for_ecid_r9_present);
+      if (meas_result_for_ecid_r9.is_present()) {
         HANDLE_CODE(meas_result_for_ecid_r9->unpack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool location_info_r10_present;
       HANDLE_CODE(bref.unpack(location_info_r10_present, 1));
+      location_info_r10.set_present(location_info_r10_present);
+      bool meas_result_serv_freq_list_r10_present;
       HANDLE_CODE(bref.unpack(meas_result_serv_freq_list_r10_present, 1));
-      if (location_info_r10_present) {
-        location_info_r10 = make_copy_ptr(location_info_r10_s());
+      meas_result_serv_freq_list_r10.set_present(meas_result_serv_freq_list_r10_present);
+      if (location_info_r10.is_present()) {
         HANDLE_CODE(location_info_r10->unpack(bref));
       }
-      if (meas_result_serv_freq_list_r10_present) {
-        meas_result_serv_freq_list_r10 = make_copy_ptr(meas_result_serv_freq_list_r10_l());
+      if (meas_result_serv_freq_list_r10.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*meas_result_serv_freq_list_r10, bref, 1, 5));
       }
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(meas_id_v1250_present, 1));
       HANDLE_CODE(bref.unpack(meas_result_pcell_v1250_present, 1));
+      bool meas_result_csi_rs_list_r12_present;
       HANDLE_CODE(bref.unpack(meas_result_csi_rs_list_r12_present, 1));
+      meas_result_csi_rs_list_r12.set_present(meas_result_csi_rs_list_r12_present);
       if (meas_id_v1250_present) {
         HANDLE_CODE(unpack_unalign_integer(meas_id_v1250, bref, (uint8_t)33, (uint8_t)64));
       }
       if (meas_result_pcell_v1250_present) {
         HANDLE_CODE(unpack_unalign_integer(meas_result_pcell_v1250, bref, (int8_t)-30, (int8_t)46));
       }
-      if (meas_result_csi_rs_list_r12_present) {
-        meas_result_csi_rs_list_r12 = make_copy_ptr(meas_result_csi_rs_list_r12_l());
+      if (meas_result_csi_rs_list_r12.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*meas_result_csi_rs_list_r12, bref, 1, 8));
       }
     }
     if (group_flags[3]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool meas_result_for_rssi_r13_present;
       HANDLE_CODE(bref.unpack(meas_result_for_rssi_r13_present, 1));
+      meas_result_for_rssi_r13.set_present(meas_result_for_rssi_r13_present);
+      bool meas_result_serv_freq_list_ext_r13_present;
       HANDLE_CODE(bref.unpack(meas_result_serv_freq_list_ext_r13_present, 1));
+      meas_result_serv_freq_list_ext_r13.set_present(meas_result_serv_freq_list_ext_r13_present);
+      bool meas_result_sstd_r13_present;
       HANDLE_CODE(bref.unpack(meas_result_sstd_r13_present, 1));
+      meas_result_sstd_r13.set_present(meas_result_sstd_r13_present);
+      bool meas_result_pcell_v1310_present;
       HANDLE_CODE(bref.unpack(meas_result_pcell_v1310_present, 1));
+      meas_result_pcell_v1310.set_present(meas_result_pcell_v1310_present);
+      bool ul_pdcp_delay_result_list_r13_present;
       HANDLE_CODE(bref.unpack(ul_pdcp_delay_result_list_r13_present, 1));
+      ul_pdcp_delay_result_list_r13.set_present(ul_pdcp_delay_result_list_r13_present);
+      bool meas_result_list_wlan_r13_present;
       HANDLE_CODE(bref.unpack(meas_result_list_wlan_r13_present, 1));
-      if (meas_result_for_rssi_r13_present) {
-        meas_result_for_rssi_r13 = make_copy_ptr(meas_result_for_rssi_r13_s());
+      meas_result_list_wlan_r13.set_present(meas_result_list_wlan_r13_present);
+      if (meas_result_for_rssi_r13.is_present()) {
         HANDLE_CODE(meas_result_for_rssi_r13->unpack(bref));
       }
-      if (meas_result_serv_freq_list_ext_r13_present) {
-        meas_result_serv_freq_list_ext_r13 = make_copy_ptr(meas_result_serv_freq_list_ext_r13_l());
+      if (meas_result_serv_freq_list_ext_r13.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*meas_result_serv_freq_list_ext_r13, bref, 1, 32));
       }
-      if (meas_result_sstd_r13_present) {
-        meas_result_sstd_r13 = make_copy_ptr(meas_result_sstd_r13_s());
+      if (meas_result_sstd_r13.is_present()) {
         HANDLE_CODE(meas_result_sstd_r13->unpack(bref));
       }
-      if (meas_result_pcell_v1310_present) {
-        meas_result_pcell_v1310 = make_copy_ptr(meas_result_pcell_v1310_s_());
+      if (meas_result_pcell_v1310.is_present()) {
         HANDLE_CODE(
             unpack_unalign_integer(meas_result_pcell_v1310->rs_sinr_result_r13, bref, (uint8_t)0, (uint8_t)127));
       }
-      if (ul_pdcp_delay_result_list_r13_present) {
-        ul_pdcp_delay_result_list_r13 = make_copy_ptr(ul_pdcp_delay_result_list_r13_l());
+      if (ul_pdcp_delay_result_list_r13.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*ul_pdcp_delay_result_list_r13, bref, 1, 6));
       }
-      if (meas_result_list_wlan_r13_present) {
-        meas_result_list_wlan_r13 = make_copy_ptr(meas_result_list_wlan_r13_l());
+      if (meas_result_list_wlan_r13.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*meas_result_list_wlan_r13, bref, 1, 8));
       }
     }
     if (group_flags[4]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(meas_result_pcell_v1360_present, 1));
       if (meas_result_pcell_v1360_present) {
@@ -91602,50 +90560,57 @@ SRSASN_CODE meas_results_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[5]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool meas_result_list_cbr_r14_present;
       HANDLE_CODE(bref.unpack(meas_result_list_cbr_r14_present, 1));
+      meas_result_list_cbr_r14.set_present(meas_result_list_cbr_r14_present);
+      bool meas_result_list_wlan_r14_present;
       HANDLE_CODE(bref.unpack(meas_result_list_wlan_r14_present, 1));
-      if (meas_result_list_cbr_r14_present) {
-        meas_result_list_cbr_r14 = make_copy_ptr(meas_result_list_cbr_r14_l());
+      meas_result_list_wlan_r14.set_present(meas_result_list_wlan_r14_present);
+      if (meas_result_list_cbr_r14.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*meas_result_list_cbr_r14, bref, 1, 72));
       }
-      if (meas_result_list_wlan_r14_present) {
-        meas_result_list_wlan_r14 = make_copy_ptr(meas_result_list_wlan_r14_l());
+      if (meas_result_list_wlan_r14.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*meas_result_list_wlan_r14, bref, 1, 32));
       }
     }
     if (group_flags[6]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool meas_result_serv_freq_list_nr_r15_present;
       HANDLE_CODE(bref.unpack(meas_result_serv_freq_list_nr_r15_present, 1));
+      meas_result_serv_freq_list_nr_r15.set_present(meas_result_serv_freq_list_nr_r15_present);
+      bool meas_result_cell_list_sftd_r15_present;
       HANDLE_CODE(bref.unpack(meas_result_cell_list_sftd_r15_present, 1));
-      if (meas_result_serv_freq_list_nr_r15_present) {
-        meas_result_serv_freq_list_nr_r15 = make_copy_ptr(meas_result_serv_freq_list_nr_r15_l());
+      meas_result_cell_list_sftd_r15.set_present(meas_result_cell_list_sftd_r15_present);
+      if (meas_result_serv_freq_list_nr_r15.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*meas_result_serv_freq_list_nr_r15, bref, 1, 32));
       }
-      if (meas_result_cell_list_sftd_r15_present) {
-        meas_result_cell_list_sftd_r15 = make_copy_ptr(meas_result_cell_list_sftd_r15_l());
+      if (meas_result_cell_list_sftd_r15.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*meas_result_cell_list_sftd_r15, bref, 1, 3));
       }
     }
     if (group_flags[7]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool log_meas_result_list_bt_r15_present;
       HANDLE_CODE(bref.unpack(log_meas_result_list_bt_r15_present, 1));
+      log_meas_result_list_bt_r15.set_present(log_meas_result_list_bt_r15_present);
+      bool log_meas_result_list_wlan_r15_present;
       HANDLE_CODE(bref.unpack(log_meas_result_list_wlan_r15_present, 1));
+      log_meas_result_list_wlan_r15.set_present(log_meas_result_list_wlan_r15_present);
+      bool meas_result_sensing_r15_present;
       HANDLE_CODE(bref.unpack(meas_result_sensing_r15_present, 1));
+      meas_result_sensing_r15.set_present(meas_result_sensing_r15_present);
       HANDLE_CODE(bref.unpack(height_ue_r15_present, 1));
-      if (log_meas_result_list_bt_r15_present) {
-        log_meas_result_list_bt_r15 = make_copy_ptr(log_meas_result_list_bt_r15_l());
+      if (log_meas_result_list_bt_r15.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*log_meas_result_list_bt_r15, bref, 1, 32));
       }
-      if (log_meas_result_list_wlan_r15_present) {
-        log_meas_result_list_wlan_r15 = make_copy_ptr(log_meas_result_list_wlan_r15_l());
+      if (log_meas_result_list_wlan_r15.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*log_meas_result_list_wlan_r15, bref, 1, 32));
       }
-      if (meas_result_sensing_r15_present) {
-        meas_result_sensing_r15 = make_copy_ptr(meas_result_sensing_r15_s());
+      if (meas_result_sensing_r15.is_present()) {
         HANDLE_CODE(meas_result_sensing_r15->unpack(bref));
       }
       if (height_ue_r15_present) {
@@ -91669,20 +90634,15 @@ void meas_results_s::to_json(json_writer& j) const
     meas_result_neigh_cells.to_json(j);
   }
   if (ext) {
-    rrc_asn1_warn_assert(
-        meas_result_for_ecid_r9_present != (meas_result_for_ecid_r9.get() != NULL), __FILE__, __LINE__);
-    if (meas_result_for_ecid_r9_present) {
+    if (meas_result_for_ecid_r9.is_present()) {
       j.write_fieldname("measResultForECID-r9");
       meas_result_for_ecid_r9->to_json(j);
     }
-    rrc_asn1_warn_assert(location_info_r10_present != (location_info_r10.get() != NULL), __FILE__, __LINE__);
-    if (location_info_r10_present) {
+    if (location_info_r10.is_present()) {
       j.write_fieldname("locationInfo-r10");
       location_info_r10->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        meas_result_serv_freq_list_r10_present != (meas_result_serv_freq_list_r10.get() != NULL), __FILE__, __LINE__);
-    if (meas_result_serv_freq_list_r10_present) {
+    if (meas_result_serv_freq_list_r10.is_present()) {
       j.start_array("measResultServFreqList-r10");
       for (uint32_t i1 = 0; i1 < meas_result_serv_freq_list_r10->size(); ++i1) {
         ((*meas_result_serv_freq_list_r10)[i1]).to_json(j);
@@ -91695,57 +90655,42 @@ void meas_results_s::to_json(json_writer& j) const
     if (meas_result_pcell_v1250_present) {
       j.write_int("measResultPCell-v1250", meas_result_pcell_v1250);
     }
-    rrc_asn1_warn_assert(
-        meas_result_csi_rs_list_r12_present != (meas_result_csi_rs_list_r12.get() != NULL), __FILE__, __LINE__);
-    if (meas_result_csi_rs_list_r12_present) {
+    if (meas_result_csi_rs_list_r12.is_present()) {
       j.start_array("measResultCSI-RS-List-r12");
       for (uint32_t i1 = 0; i1 < meas_result_csi_rs_list_r12->size(); ++i1) {
         ((*meas_result_csi_rs_list_r12)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(
-        meas_result_for_rssi_r13_present != (meas_result_for_rssi_r13.get() != NULL), __FILE__, __LINE__);
-    if (meas_result_for_rssi_r13_present) {
+    if (meas_result_for_rssi_r13.is_present()) {
       j.write_fieldname("measResultForRSSI-r13");
       meas_result_for_rssi_r13->to_json(j);
     }
-    rrc_asn1_warn_assert(meas_result_serv_freq_list_ext_r13_present !=
-                             (meas_result_serv_freq_list_ext_r13.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (meas_result_serv_freq_list_ext_r13_present) {
+    if (meas_result_serv_freq_list_ext_r13.is_present()) {
       j.start_array("measResultServFreqListExt-r13");
       for (uint32_t i1 = 0; i1 < meas_result_serv_freq_list_ext_r13->size(); ++i1) {
         ((*meas_result_serv_freq_list_ext_r13)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(meas_result_sstd_r13_present != (meas_result_sstd_r13.get() != NULL), __FILE__, __LINE__);
-    if (meas_result_sstd_r13_present) {
+    if (meas_result_sstd_r13.is_present()) {
       j.write_fieldname("measResultSSTD-r13");
       meas_result_sstd_r13->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        meas_result_pcell_v1310_present != (meas_result_pcell_v1310.get() != NULL), __FILE__, __LINE__);
-    if (meas_result_pcell_v1310_present) {
+    if (meas_result_pcell_v1310.is_present()) {
       j.write_fieldname("measResultPCell-v1310");
       j.start_obj();
       j.write_int("rs-sinr-Result-r13", meas_result_pcell_v1310->rs_sinr_result_r13);
       j.end_obj();
     }
-    rrc_asn1_warn_assert(
-        ul_pdcp_delay_result_list_r13_present != (ul_pdcp_delay_result_list_r13.get() != NULL), __FILE__, __LINE__);
-    if (ul_pdcp_delay_result_list_r13_present) {
+    if (ul_pdcp_delay_result_list_r13.is_present()) {
       j.start_array("ul-PDCP-DelayResultList-r13");
       for (uint32_t i1 = 0; i1 < ul_pdcp_delay_result_list_r13->size(); ++i1) {
         ((*ul_pdcp_delay_result_list_r13)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(
-        meas_result_list_wlan_r13_present != (meas_result_list_wlan_r13.get() != NULL), __FILE__, __LINE__);
-    if (meas_result_list_wlan_r13_present) {
+    if (meas_result_list_wlan_r13.is_present()) {
       j.start_array("measResultListWLAN-r13");
       for (uint32_t i1 = 0; i1 < meas_result_list_wlan_r13->size(); ++i1) {
         ((*meas_result_list_wlan_r13)[i1]).to_json(j);
@@ -91755,64 +90700,49 @@ void meas_results_s::to_json(json_writer& j) const
     if (meas_result_pcell_v1360_present) {
       j.write_int("measResultPCell-v1360", meas_result_pcell_v1360);
     }
-    rrc_asn1_warn_assert(
-        meas_result_list_cbr_r14_present != (meas_result_list_cbr_r14.get() != NULL), __FILE__, __LINE__);
-    if (meas_result_list_cbr_r14_present) {
+    if (meas_result_list_cbr_r14.is_present()) {
       j.start_array("measResultListCBR-r14");
       for (uint32_t i1 = 0; i1 < meas_result_list_cbr_r14->size(); ++i1) {
         ((*meas_result_list_cbr_r14)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(
-        meas_result_list_wlan_r14_present != (meas_result_list_wlan_r14.get() != NULL), __FILE__, __LINE__);
-    if (meas_result_list_wlan_r14_present) {
+    if (meas_result_list_wlan_r14.is_present()) {
       j.start_array("measResultListWLAN-r14");
       for (uint32_t i1 = 0; i1 < meas_result_list_wlan_r14->size(); ++i1) {
         ((*meas_result_list_wlan_r14)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(meas_result_serv_freq_list_nr_r15_present != (meas_result_serv_freq_list_nr_r15.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (meas_result_serv_freq_list_nr_r15_present) {
+    if (meas_result_serv_freq_list_nr_r15.is_present()) {
       j.start_array("measResultServFreqListNR-r15");
       for (uint32_t i1 = 0; i1 < meas_result_serv_freq_list_nr_r15->size(); ++i1) {
         ((*meas_result_serv_freq_list_nr_r15)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(
-        meas_result_cell_list_sftd_r15_present != (meas_result_cell_list_sftd_r15.get() != NULL), __FILE__, __LINE__);
-    if (meas_result_cell_list_sftd_r15_present) {
+    if (meas_result_cell_list_sftd_r15.is_present()) {
       j.start_array("measResultCellListSFTD-r15");
       for (uint32_t i1 = 0; i1 < meas_result_cell_list_sftd_r15->size(); ++i1) {
         ((*meas_result_cell_list_sftd_r15)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(
-        log_meas_result_list_bt_r15_present != (log_meas_result_list_bt_r15.get() != NULL), __FILE__, __LINE__);
-    if (log_meas_result_list_bt_r15_present) {
+    if (log_meas_result_list_bt_r15.is_present()) {
       j.start_array("logMeasResultListBT-r15");
       for (uint32_t i1 = 0; i1 < log_meas_result_list_bt_r15->size(); ++i1) {
         ((*log_meas_result_list_bt_r15)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(
-        log_meas_result_list_wlan_r15_present != (log_meas_result_list_wlan_r15.get() != NULL), __FILE__, __LINE__);
-    if (log_meas_result_list_wlan_r15_present) {
+    if (log_meas_result_list_wlan_r15.is_present()) {
       j.start_array("logMeasResultListWLAN-r15");
       for (uint32_t i1 = 0; i1 < log_meas_result_list_wlan_r15->size(); ++i1) {
         ((*log_meas_result_list_wlan_r15)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(
-        meas_result_sensing_r15_present != (meas_result_sensing_r15.get() != NULL), __FILE__, __LINE__);
-    if (meas_result_sensing_r15_present) {
+    if (meas_result_sensing_r15.is_present()) {
       j.write_fieldname("measResultSensing-r15");
       meas_result_sensing_r15->to_json(j);
     }
@@ -92129,60 +91059,43 @@ SRSASN_CODE rlf_report_r9_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(7);
-    rrc_asn1_warn_assert(location_info_r10_present != (location_info_r10.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= location_info_r10_present;
-    rrc_asn1_warn_assert(failed_pcell_id_r10_present != (failed_pcell_id_r10.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= failed_pcell_id_r10_present;
-    rrc_asn1_warn_assert(reest_cell_id_r10_present != (reest_cell_id_r10.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= reest_cell_id_r10_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= location_info_r10.is_present();
+    group_flags[0] |= failed_pcell_id_r10.is_present();
+    group_flags[0] |= reest_cell_id_r10.is_present();
     group_flags[0] |= time_conn_fail_r10_present;
     group_flags[0] |= conn_fail_type_r10_present;
-    rrc_asn1_warn_assert(prev_pcell_id_r10_present != (prev_pcell_id_r10.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= prev_pcell_id_r10_present;
-    rrc_asn1_warn_assert(failed_pcell_id_v1090_present != (failed_pcell_id_v1090.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= failed_pcell_id_v1090_present;
-    rrc_asn1_warn_assert(basic_fields_r11_present != (basic_fields_r11.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= basic_fields_r11_present;
-    rrc_asn1_warn_assert(prev_utra_cell_id_r11_present != (prev_utra_cell_id_r11.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= prev_utra_cell_id_r11_present;
-    rrc_asn1_warn_assert(sel_utra_cell_id_r11_present != (sel_utra_cell_id_r11.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= sel_utra_cell_id_r11_present;
-    rrc_asn1_warn_assert(failed_pcell_id_v1250_present != (failed_pcell_id_v1250.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= failed_pcell_id_v1250_present;
+    group_flags[0] |= prev_pcell_id_r10.is_present();
+    group_flags[1] |= failed_pcell_id_v1090.is_present();
+    group_flags[2] |= basic_fields_r11.is_present();
+    group_flags[2] |= prev_utra_cell_id_r11.is_present();
+    group_flags[2] |= sel_utra_cell_id_r11.is_present();
+    group_flags[3] |= failed_pcell_id_v1250.is_present();
     group_flags[3] |= meas_result_last_serv_cell_v1250_present;
-    rrc_asn1_warn_assert(
-        last_serv_cell_rsrq_type_r12_present != (last_serv_cell_rsrq_type_r12.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= last_serv_cell_rsrq_type_r12_present;
-    rrc_asn1_warn_assert(
-        meas_result_list_eutra_v1250_present != (meas_result_list_eutra_v1250.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= meas_result_list_eutra_v1250_present;
+    group_flags[3] |= last_serv_cell_rsrq_type_r12.is_present();
+    group_flags[3] |= meas_result_list_eutra_v1250.is_present();
     group_flags[4] |= drb_established_with_qci_minus1_r13_present;
     group_flags[5] |= meas_result_last_serv_cell_v1360_present;
-    rrc_asn1_warn_assert(
-        log_meas_result_list_bt_r15_present != (log_meas_result_list_bt_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[6] |= log_meas_result_list_bt_r15_present;
-    rrc_asn1_warn_assert(
-        log_meas_result_list_wlan_r15_present != (log_meas_result_list_wlan_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[6] |= log_meas_result_list_wlan_r15_present;
+    group_flags[6] |= log_meas_result_list_bt_r15.is_present();
+    group_flags[6] |= log_meas_result_list_wlan_r15.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(location_info_r10_present, 1));
-      HANDLE_CODE(bref.pack(failed_pcell_id_r10_present, 1));
-      HANDLE_CODE(bref.pack(reest_cell_id_r10_present, 1));
+      HANDLE_CODE(bref.pack(location_info_r10.is_present(), 1));
+      HANDLE_CODE(bref.pack(failed_pcell_id_r10.is_present(), 1));
+      HANDLE_CODE(bref.pack(reest_cell_id_r10.is_present(), 1));
       HANDLE_CODE(bref.pack(time_conn_fail_r10_present, 1));
       HANDLE_CODE(bref.pack(conn_fail_type_r10_present, 1));
-      HANDLE_CODE(bref.pack(prev_pcell_id_r10_present, 1));
-      if (location_info_r10_present) {
+      HANDLE_CODE(bref.pack(prev_pcell_id_r10.is_present(), 1));
+      if (location_info_r10.is_present()) {
         HANDLE_CODE(location_info_r10->pack(bref));
       }
-      if (failed_pcell_id_r10_present) {
+      if (failed_pcell_id_r10.is_present()) {
         HANDLE_CODE(failed_pcell_id_r10->pack(bref));
       }
-      if (reest_cell_id_r10_present) {
+      if (reest_cell_id_r10.is_present()) {
         HANDLE_CODE(reest_cell_id_r10->pack(bref));
       }
       if (time_conn_fail_r10_present) {
@@ -92191,31 +91104,31 @@ SRSASN_CODE rlf_report_r9_s::pack(bit_ref& bref) const
       if (conn_fail_type_r10_present) {
         HANDLE_CODE(pack_enum(bref, conn_fail_type_r10));
       }
-      if (prev_pcell_id_r10_present) {
+      if (prev_pcell_id_r10.is_present()) {
         HANDLE_CODE(prev_pcell_id_r10->pack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(failed_pcell_id_v1090_present, 1));
-      if (failed_pcell_id_v1090_present) {
+      HANDLE_CODE(bref.pack(failed_pcell_id_v1090.is_present(), 1));
+      if (failed_pcell_id_v1090.is_present()) {
         HANDLE_CODE(
             pack_unalign_integer(bref, failed_pcell_id_v1090->carrier_freq_v1090, (uint32_t)65536, (uint32_t)262143));
       }
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(basic_fields_r11_present, 1));
-      HANDLE_CODE(bref.pack(prev_utra_cell_id_r11_present, 1));
-      HANDLE_CODE(bref.pack(sel_utra_cell_id_r11_present, 1));
-      if (basic_fields_r11_present) {
+      HANDLE_CODE(bref.pack(basic_fields_r11.is_present(), 1));
+      HANDLE_CODE(bref.pack(prev_utra_cell_id_r11.is_present(), 1));
+      HANDLE_CODE(bref.pack(sel_utra_cell_id_r11.is_present(), 1));
+      if (basic_fields_r11.is_present()) {
         HANDLE_CODE(basic_fields_r11->c_rnti_r11.pack(bref));
         HANDLE_CODE(pack_enum(bref, basic_fields_r11->rlf_cause_r11));
         HANDLE_CODE(pack_unalign_integer(bref, basic_fields_r11->time_since_fail_r11, (uint32_t)0, (uint32_t)172800));
       }
-      if (prev_utra_cell_id_r11_present) {
+      if (prev_utra_cell_id_r11.is_present()) {
         HANDLE_CODE(bref.pack(prev_utra_cell_id_r11->cell_global_id_r11_present, 1));
         HANDLE_CODE(pack_unalign_integer(bref, prev_utra_cell_id_r11->carrier_freq_r11, (uint16_t)0, (uint16_t)16383));
         HANDLE_CODE(prev_utra_cell_id_r11->pci_r11.pack(bref));
@@ -92223,38 +91136,38 @@ SRSASN_CODE rlf_report_r9_s::pack(bit_ref& bref) const
           HANDLE_CODE(prev_utra_cell_id_r11->cell_global_id_r11.pack(bref));
         }
       }
-      if (sel_utra_cell_id_r11_present) {
+      if (sel_utra_cell_id_r11.is_present()) {
         HANDLE_CODE(pack_unalign_integer(bref, sel_utra_cell_id_r11->carrier_freq_r11, (uint16_t)0, (uint16_t)16383));
         HANDLE_CODE(sel_utra_cell_id_r11->pci_r11.pack(bref));
       }
     }
     if (group_flags[3]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(failed_pcell_id_v1250_present, 1));
+      HANDLE_CODE(bref.pack(failed_pcell_id_v1250.is_present(), 1));
       HANDLE_CODE(bref.pack(meas_result_last_serv_cell_v1250_present, 1));
-      HANDLE_CODE(bref.pack(last_serv_cell_rsrq_type_r12_present, 1));
-      HANDLE_CODE(bref.pack(meas_result_list_eutra_v1250_present, 1));
-      if (failed_pcell_id_v1250_present) {
+      HANDLE_CODE(bref.pack(last_serv_cell_rsrq_type_r12.is_present(), 1));
+      HANDLE_CODE(bref.pack(meas_result_list_eutra_v1250.is_present(), 1));
+      if (failed_pcell_id_v1250.is_present()) {
         HANDLE_CODE(failed_pcell_id_v1250->tac_failed_pcell_r12.pack(bref));
       }
       if (meas_result_last_serv_cell_v1250_present) {
         HANDLE_CODE(pack_unalign_integer(bref, meas_result_last_serv_cell_v1250, (int8_t)-30, (int8_t)46));
       }
-      if (last_serv_cell_rsrq_type_r12_present) {
+      if (last_serv_cell_rsrq_type_r12.is_present()) {
         HANDLE_CODE(last_serv_cell_rsrq_type_r12->pack(bref));
       }
-      if (meas_result_list_eutra_v1250_present) {
+      if (meas_result_list_eutra_v1250.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *meas_result_list_eutra_v1250, 1, 8));
       }
     }
     if (group_flags[4]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(drb_established_with_qci_minus1_r13_present, 1));
     }
     if (group_flags[5]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(meas_result_last_serv_cell_v1360_present, 1));
       if (meas_result_last_serv_cell_v1360_present) {
@@ -92262,14 +91175,14 @@ SRSASN_CODE rlf_report_r9_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[6]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(log_meas_result_list_bt_r15_present, 1));
-      HANDLE_CODE(bref.pack(log_meas_result_list_wlan_r15_present, 1));
-      if (log_meas_result_list_bt_r15_present) {
+      HANDLE_CODE(bref.pack(log_meas_result_list_bt_r15.is_present(), 1));
+      HANDLE_CODE(bref.pack(log_meas_result_list_wlan_r15.is_present(), 1));
+      if (log_meas_result_list_bt_r15.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *log_meas_result_list_bt_r15, 1, 32));
       }
-      if (log_meas_result_list_wlan_r15_present) {
+      if (log_meas_result_list_wlan_r15.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *log_meas_result_list_wlan_r15, 1, 32));
       }
     }
@@ -92306,28 +91219,33 @@ SRSASN_CODE rlf_report_r9_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(7);
+    ext_groups_unpacker_guard group_flags(7);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool location_info_r10_present;
       HANDLE_CODE(bref.unpack(location_info_r10_present, 1));
+      location_info_r10.set_present(location_info_r10_present);
+      bool failed_pcell_id_r10_present;
       HANDLE_CODE(bref.unpack(failed_pcell_id_r10_present, 1));
+      failed_pcell_id_r10.set_present(failed_pcell_id_r10_present);
+      bool reest_cell_id_r10_present;
       HANDLE_CODE(bref.unpack(reest_cell_id_r10_present, 1));
+      reest_cell_id_r10.set_present(reest_cell_id_r10_present);
       HANDLE_CODE(bref.unpack(time_conn_fail_r10_present, 1));
       HANDLE_CODE(bref.unpack(conn_fail_type_r10_present, 1));
+      bool prev_pcell_id_r10_present;
       HANDLE_CODE(bref.unpack(prev_pcell_id_r10_present, 1));
-      if (location_info_r10_present) {
-        location_info_r10 = make_copy_ptr(location_info_r10_s());
+      prev_pcell_id_r10.set_present(prev_pcell_id_r10_present);
+      if (location_info_r10.is_present()) {
         HANDLE_CODE(location_info_r10->unpack(bref));
       }
-      if (failed_pcell_id_r10_present) {
-        failed_pcell_id_r10 = make_copy_ptr(failed_pcell_id_r10_c_());
+      if (failed_pcell_id_r10.is_present()) {
         HANDLE_CODE(failed_pcell_id_r10->unpack(bref));
       }
-      if (reest_cell_id_r10_present) {
-        reest_cell_id_r10 = make_copy_ptr(cell_global_id_eutra_s());
+      if (reest_cell_id_r10.is_present()) {
         HANDLE_CODE(reest_cell_id_r10->unpack(bref));
       }
       if (time_conn_fail_r10_present) {
@@ -92336,35 +91254,39 @@ SRSASN_CODE rlf_report_r9_s::unpack(bit_ref& bref)
       if (conn_fail_type_r10_present) {
         HANDLE_CODE(unpack_enum(conn_fail_type_r10, bref));
       }
-      if (prev_pcell_id_r10_present) {
-        prev_pcell_id_r10 = make_copy_ptr(cell_global_id_eutra_s());
+      if (prev_pcell_id_r10.is_present()) {
         HANDLE_CODE(prev_pcell_id_r10->unpack(bref));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool failed_pcell_id_v1090_present;
       HANDLE_CODE(bref.unpack(failed_pcell_id_v1090_present, 1));
-      if (failed_pcell_id_v1090_present) {
-        failed_pcell_id_v1090 = make_copy_ptr(failed_pcell_id_v1090_s_());
+      failed_pcell_id_v1090.set_present(failed_pcell_id_v1090_present);
+      if (failed_pcell_id_v1090.is_present()) {
         HANDLE_CODE(
             unpack_unalign_integer(failed_pcell_id_v1090->carrier_freq_v1090, bref, (uint32_t)65536, (uint32_t)262143));
       }
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool basic_fields_r11_present;
       HANDLE_CODE(bref.unpack(basic_fields_r11_present, 1));
+      basic_fields_r11.set_present(basic_fields_r11_present);
+      bool prev_utra_cell_id_r11_present;
       HANDLE_CODE(bref.unpack(prev_utra_cell_id_r11_present, 1));
+      prev_utra_cell_id_r11.set_present(prev_utra_cell_id_r11_present);
+      bool sel_utra_cell_id_r11_present;
       HANDLE_CODE(bref.unpack(sel_utra_cell_id_r11_present, 1));
-      if (basic_fields_r11_present) {
-        basic_fields_r11 = make_copy_ptr(basic_fields_r11_s_());
+      sel_utra_cell_id_r11.set_present(sel_utra_cell_id_r11_present);
+      if (basic_fields_r11.is_present()) {
         HANDLE_CODE(basic_fields_r11->c_rnti_r11.unpack(bref));
         HANDLE_CODE(unpack_enum(basic_fields_r11->rlf_cause_r11, bref));
         HANDLE_CODE(unpack_unalign_integer(basic_fields_r11->time_since_fail_r11, bref, (uint32_t)0, (uint32_t)172800));
       }
-      if (prev_utra_cell_id_r11_present) {
-        prev_utra_cell_id_r11 = make_copy_ptr(prev_utra_cell_id_r11_s_());
+      if (prev_utra_cell_id_r11.is_present()) {
         HANDLE_CODE(bref.unpack(prev_utra_cell_id_r11->cell_global_id_r11_present, 1));
         HANDLE_CODE(
             unpack_unalign_integer(prev_utra_cell_id_r11->carrier_freq_r11, bref, (uint16_t)0, (uint16_t)16383));
@@ -92373,42 +91295,44 @@ SRSASN_CODE rlf_report_r9_s::unpack(bit_ref& bref)
           HANDLE_CODE(prev_utra_cell_id_r11->cell_global_id_r11.unpack(bref));
         }
       }
-      if (sel_utra_cell_id_r11_present) {
-        sel_utra_cell_id_r11 = make_copy_ptr(sel_utra_cell_id_r11_s_());
+      if (sel_utra_cell_id_r11.is_present()) {
         HANDLE_CODE(unpack_unalign_integer(sel_utra_cell_id_r11->carrier_freq_r11, bref, (uint16_t)0, (uint16_t)16383));
         HANDLE_CODE(sel_utra_cell_id_r11->pci_r11.unpack(bref));
       }
     }
     if (group_flags[3]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool failed_pcell_id_v1250_present;
       HANDLE_CODE(bref.unpack(failed_pcell_id_v1250_present, 1));
+      failed_pcell_id_v1250.set_present(failed_pcell_id_v1250_present);
       HANDLE_CODE(bref.unpack(meas_result_last_serv_cell_v1250_present, 1));
+      bool last_serv_cell_rsrq_type_r12_present;
       HANDLE_CODE(bref.unpack(last_serv_cell_rsrq_type_r12_present, 1));
+      last_serv_cell_rsrq_type_r12.set_present(last_serv_cell_rsrq_type_r12_present);
+      bool meas_result_list_eutra_v1250_present;
       HANDLE_CODE(bref.unpack(meas_result_list_eutra_v1250_present, 1));
-      if (failed_pcell_id_v1250_present) {
-        failed_pcell_id_v1250 = make_copy_ptr(failed_pcell_id_v1250_s_());
+      meas_result_list_eutra_v1250.set_present(meas_result_list_eutra_v1250_present);
+      if (failed_pcell_id_v1250.is_present()) {
         HANDLE_CODE(failed_pcell_id_v1250->tac_failed_pcell_r12.unpack(bref));
       }
       if (meas_result_last_serv_cell_v1250_present) {
         HANDLE_CODE(unpack_unalign_integer(meas_result_last_serv_cell_v1250, bref, (int8_t)-30, (int8_t)46));
       }
-      if (last_serv_cell_rsrq_type_r12_present) {
-        last_serv_cell_rsrq_type_r12 = make_copy_ptr(rsrq_type_r12_s());
+      if (last_serv_cell_rsrq_type_r12.is_present()) {
         HANDLE_CODE(last_serv_cell_rsrq_type_r12->unpack(bref));
       }
-      if (meas_result_list_eutra_v1250_present) {
-        meas_result_list_eutra_v1250 = make_copy_ptr(meas_result_list2_eutra_v1250_l());
+      if (meas_result_list_eutra_v1250.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*meas_result_list_eutra_v1250, bref, 1, 8));
       }
     }
     if (group_flags[4]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(drb_established_with_qci_minus1_r13_present, 1));
     }
     if (group_flags[5]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(meas_result_last_serv_cell_v1360_present, 1));
       if (meas_result_last_serv_cell_v1360_present) {
@@ -92416,16 +91340,18 @@ SRSASN_CODE rlf_report_r9_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[6]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool log_meas_result_list_bt_r15_present;
       HANDLE_CODE(bref.unpack(log_meas_result_list_bt_r15_present, 1));
+      log_meas_result_list_bt_r15.set_present(log_meas_result_list_bt_r15_present);
+      bool log_meas_result_list_wlan_r15_present;
       HANDLE_CODE(bref.unpack(log_meas_result_list_wlan_r15_present, 1));
-      if (log_meas_result_list_bt_r15_present) {
-        log_meas_result_list_bt_r15 = make_copy_ptr(log_meas_result_list_bt_r15_l());
+      log_meas_result_list_wlan_r15.set_present(log_meas_result_list_wlan_r15_present);
+      if (log_meas_result_list_bt_r15.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*log_meas_result_list_bt_r15, bref, 1, 32));
       }
-      if (log_meas_result_list_wlan_r15_present) {
-        log_meas_result_list_wlan_r15 = make_copy_ptr(log_meas_result_list_wlan_r15_l());
+      if (log_meas_result_list_wlan_r15.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*log_meas_result_list_wlan_r15, bref, 1, 32));
       }
     }
@@ -92476,18 +91402,15 @@ void rlf_report_r9_s::to_json(json_writer& j) const
     j.end_obj();
   }
   if (ext) {
-    rrc_asn1_warn_assert(location_info_r10_present != (location_info_r10.get() != NULL), __FILE__, __LINE__);
-    if (location_info_r10_present) {
+    if (location_info_r10.is_present()) {
       j.write_fieldname("locationInfo-r10");
       location_info_r10->to_json(j);
     }
-    rrc_asn1_warn_assert(failed_pcell_id_r10_present != (failed_pcell_id_r10.get() != NULL), __FILE__, __LINE__);
-    if (failed_pcell_id_r10_present) {
+    if (failed_pcell_id_r10.is_present()) {
       j.write_fieldname("failedPCellId-r10");
       failed_pcell_id_r10->to_json(j);
     }
-    rrc_asn1_warn_assert(reest_cell_id_r10_present != (reest_cell_id_r10.get() != NULL), __FILE__, __LINE__);
-    if (reest_cell_id_r10_present) {
+    if (reest_cell_id_r10.is_present()) {
       j.write_fieldname("reestablishmentCellId-r10");
       reest_cell_id_r10->to_json(j);
     }
@@ -92497,20 +91420,17 @@ void rlf_report_r9_s::to_json(json_writer& j) const
     if (conn_fail_type_r10_present) {
       j.write_str("connectionFailureType-r10", conn_fail_type_r10.to_string());
     }
-    rrc_asn1_warn_assert(prev_pcell_id_r10_present != (prev_pcell_id_r10.get() != NULL), __FILE__, __LINE__);
-    if (prev_pcell_id_r10_present) {
+    if (prev_pcell_id_r10.is_present()) {
       j.write_fieldname("previousPCellId-r10");
       prev_pcell_id_r10->to_json(j);
     }
-    rrc_asn1_warn_assert(failed_pcell_id_v1090_present != (failed_pcell_id_v1090.get() != NULL), __FILE__, __LINE__);
-    if (failed_pcell_id_v1090_present) {
+    if (failed_pcell_id_v1090.is_present()) {
       j.write_fieldname("failedPCellId-v1090");
       j.start_obj();
       j.write_int("carrierFreq-v1090", failed_pcell_id_v1090->carrier_freq_v1090);
       j.end_obj();
     }
-    rrc_asn1_warn_assert(basic_fields_r11_present != (basic_fields_r11.get() != NULL), __FILE__, __LINE__);
-    if (basic_fields_r11_present) {
+    if (basic_fields_r11.is_present()) {
       j.write_fieldname("basicFields-r11");
       j.start_obj();
       j.write_str("c-RNTI-r11", basic_fields_r11->c_rnti_r11.to_string());
@@ -92518,8 +91438,7 @@ void rlf_report_r9_s::to_json(json_writer& j) const
       j.write_int("timeSinceFailure-r11", basic_fields_r11->time_since_fail_r11);
       j.end_obj();
     }
-    rrc_asn1_warn_assert(prev_utra_cell_id_r11_present != (prev_utra_cell_id_r11.get() != NULL), __FILE__, __LINE__);
-    if (prev_utra_cell_id_r11_present) {
+    if (prev_utra_cell_id_r11.is_present()) {
       j.write_fieldname("previousUTRA-CellId-r11");
       j.start_obj();
       j.write_int("carrierFreq-r11", prev_utra_cell_id_r11->carrier_freq_r11);
@@ -92531,8 +91450,7 @@ void rlf_report_r9_s::to_json(json_writer& j) const
       }
       j.end_obj();
     }
-    rrc_asn1_warn_assert(sel_utra_cell_id_r11_present != (sel_utra_cell_id_r11.get() != NULL), __FILE__, __LINE__);
-    if (sel_utra_cell_id_r11_present) {
+    if (sel_utra_cell_id_r11.is_present()) {
       j.write_fieldname("selectedUTRA-CellId-r11");
       j.start_obj();
       j.write_int("carrierFreq-r11", sel_utra_cell_id_r11->carrier_freq_r11);
@@ -92540,8 +91458,7 @@ void rlf_report_r9_s::to_json(json_writer& j) const
       sel_utra_cell_id_r11->pci_r11.to_json(j);
       j.end_obj();
     }
-    rrc_asn1_warn_assert(failed_pcell_id_v1250_present != (failed_pcell_id_v1250.get() != NULL), __FILE__, __LINE__);
-    if (failed_pcell_id_v1250_present) {
+    if (failed_pcell_id_v1250.is_present()) {
       j.write_fieldname("failedPCellId-v1250");
       j.start_obj();
       j.write_str("tac-FailedPCell-r12", failed_pcell_id_v1250->tac_failed_pcell_r12.to_string());
@@ -92550,15 +91467,11 @@ void rlf_report_r9_s::to_json(json_writer& j) const
     if (meas_result_last_serv_cell_v1250_present) {
       j.write_int("measResultLastServCell-v1250", meas_result_last_serv_cell_v1250);
     }
-    rrc_asn1_warn_assert(
-        last_serv_cell_rsrq_type_r12_present != (last_serv_cell_rsrq_type_r12.get() != NULL), __FILE__, __LINE__);
-    if (last_serv_cell_rsrq_type_r12_present) {
+    if (last_serv_cell_rsrq_type_r12.is_present()) {
       j.write_fieldname("lastServCellRSRQ-Type-r12");
       last_serv_cell_rsrq_type_r12->to_json(j);
     }
-    rrc_asn1_warn_assert(
-        meas_result_list_eutra_v1250_present != (meas_result_list_eutra_v1250.get() != NULL), __FILE__, __LINE__);
-    if (meas_result_list_eutra_v1250_present) {
+    if (meas_result_list_eutra_v1250.is_present()) {
       j.start_array("measResultListEUTRA-v1250");
       for (uint32_t i1 = 0; i1 < meas_result_list_eutra_v1250->size(); ++i1) {
         ((*meas_result_list_eutra_v1250)[i1]).to_json(j);
@@ -92571,18 +91484,14 @@ void rlf_report_r9_s::to_json(json_writer& j) const
     if (meas_result_last_serv_cell_v1360_present) {
       j.write_int("measResultLastServCell-v1360", meas_result_last_serv_cell_v1360);
     }
-    rrc_asn1_warn_assert(
-        log_meas_result_list_bt_r15_present != (log_meas_result_list_bt_r15.get() != NULL), __FILE__, __LINE__);
-    if (log_meas_result_list_bt_r15_present) {
+    if (log_meas_result_list_bt_r15.is_present()) {
       j.start_array("logMeasResultListBT-r15");
       for (uint32_t i1 = 0; i1 < log_meas_result_list_bt_r15->size(); ++i1) {
         ((*log_meas_result_list_bt_r15)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(
-        log_meas_result_list_wlan_r15_present != (log_meas_result_list_wlan_r15.get() != NULL), __FILE__, __LINE__);
-    if (log_meas_result_list_wlan_r15_present) {
+    if (log_meas_result_list_wlan_r15.is_present()) {
       j.start_array("logMeasResultListWLAN-r15");
       for (uint32_t i1 = 0; i1 < log_meas_result_list_wlan_r15->size(); ++i1) {
         ((*log_meas_result_list_wlan_r15)[i1]).to_json(j);
@@ -113191,19 +112100,15 @@ SRSASN_CODE ue_eutra_cap_add_xdd_mode_v1060_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
-    rrc_asn1_warn_assert(otdoa_positioning_capabilities_r10_present !=
-                             (otdoa_positioning_capabilities_r10.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    group_flags[0] |= otdoa_positioning_capabilities_r10_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= otdoa_positioning_capabilities_r10.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(otdoa_positioning_capabilities_r10_present, 1));
-      if (otdoa_positioning_capabilities_r10_present) {
+      HANDLE_CODE(bref.pack(otdoa_positioning_capabilities_r10.is_present(), 1));
+      if (otdoa_positioning_capabilities_r10.is_present()) {
         HANDLE_CODE(otdoa_positioning_capabilities_r10->pack(bref));
       }
     }
@@ -113232,15 +112137,16 @@ SRSASN_CODE ue_eutra_cap_add_xdd_mode_v1060_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool otdoa_positioning_capabilities_r10_present;
       HANDLE_CODE(bref.unpack(otdoa_positioning_capabilities_r10_present, 1));
-      if (otdoa_positioning_capabilities_r10_present) {
-        otdoa_positioning_capabilities_r10 = make_copy_ptr(otdoa_positioning_capabilities_r10_s());
+      otdoa_positioning_capabilities_r10.set_present(otdoa_positioning_capabilities_r10_present);
+      if (otdoa_positioning_capabilities_r10.is_present()) {
         HANDLE_CODE(otdoa_positioning_capabilities_r10->unpack(bref));
       }
     }
@@ -113266,11 +112172,7 @@ void ue_eutra_cap_add_xdd_mode_v1060_s::to_json(json_writer& j) const
     inter_rat_params_utra_tdd_v1060.to_json(j);
   }
   if (ext) {
-    rrc_asn1_warn_assert(otdoa_positioning_capabilities_r10_present !=
-                             (otdoa_positioning_capabilities_r10.get() != NULL),
-                         __FILE__,
-                         __LINE__);
-    if (otdoa_positioning_capabilities_r10_present) {
+    if (otdoa_positioning_capabilities_r10.is_present()) {
       j.write_fieldname("otdoa-PositioningCapabilities-r10");
       otdoa_positioning_capabilities_r10->to_json(j);
     }
@@ -114413,20 +113315,16 @@ SRSASN_CODE as_cfg_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_unalign_integer(bref, source_dl_carrier_freq, (uint16_t)0, (uint16_t)65535));
 
   if (ext) {
-    ext_groups_header group_flags(4);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= source_sib_type1_ext_present;
-    group_flags[0] |= source_other_cfg_r9.get() != NULL;
-    rrc_asn1_warn_assert(
-        source_scell_cfg_list_r10_present != (source_scell_cfg_list_r10.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= source_scell_cfg_list_r10_present;
-    rrc_asn1_warn_assert(source_cfg_scg_r12_present != (source_cfg_scg_r12.get() != NULL), __FILE__, __LINE__);
-    group_flags[2] |= source_cfg_scg_r12_present;
-    rrc_asn1_warn_assert(as_cfg_nr_r15_present != (as_cfg_nr_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[3] |= as_cfg_nr_r15_present;
+    group_flags[0] |= source_other_cfg_r9.is_present();
+    group_flags[1] |= source_scell_cfg_list_r10.is_present();
+    group_flags[2] |= source_cfg_scg_r12.is_present();
+    group_flags[3] |= as_cfg_nr_r15.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(source_sib_type1_ext_present, 1));
       if (source_sib_type1_ext_present) {
@@ -114435,26 +113333,26 @@ SRSASN_CODE as_cfg_s::pack(bit_ref& bref) const
       HANDLE_CODE(source_other_cfg_r9->pack(bref));
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(source_scell_cfg_list_r10_present, 1));
-      if (source_scell_cfg_list_r10_present) {
+      HANDLE_CODE(bref.pack(source_scell_cfg_list_r10.is_present(), 1));
+      if (source_scell_cfg_list_r10.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *source_scell_cfg_list_r10, 1, 4));
       }
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(source_cfg_scg_r12_present, 1));
-      if (source_cfg_scg_r12_present) {
+      HANDLE_CODE(bref.pack(source_cfg_scg_r12.is_present(), 1));
+      if (source_cfg_scg_r12.is_present()) {
         HANDLE_CODE(source_cfg_scg_r12->pack(bref));
       }
     }
     if (group_flags[3]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(as_cfg_nr_r15_present, 1));
-      if (as_cfg_nr_r15_present) {
+      HANDLE_CODE(bref.pack(as_cfg_nr_r15.is_present(), 1));
+      if (as_cfg_nr_r15.is_present()) {
         HANDLE_CODE(as_cfg_nr_r15->pack(bref));
       }
     }
@@ -114475,43 +113373,45 @@ SRSASN_CODE as_cfg_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_unalign_integer(source_dl_carrier_freq, bref, (uint16_t)0, (uint16_t)65535));
 
   if (ext) {
-    ext_groups_header group_flags(4);
+    ext_groups_unpacker_guard group_flags(4);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(source_sib_type1_ext_present, 1));
       if (source_sib_type1_ext_present) {
         HANDLE_CODE(source_sib_type1_ext.unpack(bref));
       }
-      source_other_cfg_r9 = make_copy_ptr(other_cfg_r9_s());
       HANDLE_CODE(source_other_cfg_r9->unpack(bref));
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool source_scell_cfg_list_r10_present;
       HANDLE_CODE(bref.unpack(source_scell_cfg_list_r10_present, 1));
-      if (source_scell_cfg_list_r10_present) {
-        source_scell_cfg_list_r10 = make_copy_ptr(scell_to_add_mod_list_r10_l());
+      source_scell_cfg_list_r10.set_present(source_scell_cfg_list_r10_present);
+      if (source_scell_cfg_list_r10.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*source_scell_cfg_list_r10, bref, 1, 4));
       }
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool source_cfg_scg_r12_present;
       HANDLE_CODE(bref.unpack(source_cfg_scg_r12_present, 1));
-      if (source_cfg_scg_r12_present) {
-        source_cfg_scg_r12 = make_copy_ptr(scg_cfg_r12_s());
+      source_cfg_scg_r12.set_present(source_cfg_scg_r12_present);
+      if (source_cfg_scg_r12.is_present()) {
         HANDLE_CODE(source_cfg_scg_r12->unpack(bref));
       }
     }
     if (group_flags[3]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool as_cfg_nr_r15_present;
       HANDLE_CODE(bref.unpack(as_cfg_nr_r15_present, 1));
-      if (as_cfg_nr_r15_present) {
-        as_cfg_nr_r15 = make_copy_ptr(as_cfg_nr_r15_s());
+      as_cfg_nr_r15.set_present(as_cfg_nr_r15_present);
+      if (as_cfg_nr_r15.is_present()) {
         HANDLE_CODE(as_cfg_nr_r15->unpack(bref));
       }
     }
@@ -114543,22 +113443,18 @@ void as_cfg_s::to_json(json_writer& j) const
     }
     j.write_fieldname("sourceOtherConfig-r9");
     source_other_cfg_r9->to_json(j);
-    rrc_asn1_warn_assert(
-        source_scell_cfg_list_r10_present != (source_scell_cfg_list_r10.get() != NULL), __FILE__, __LINE__);
-    if (source_scell_cfg_list_r10_present) {
+    if (source_scell_cfg_list_r10.is_present()) {
       j.start_array("sourceSCellConfigList-r10");
       for (uint32_t i1 = 0; i1 < source_scell_cfg_list_r10->size(); ++i1) {
         ((*source_scell_cfg_list_r10)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(source_cfg_scg_r12_present != (source_cfg_scg_r12.get() != NULL), __FILE__, __LINE__);
-    if (source_cfg_scg_r12_present) {
+    if (source_cfg_scg_r12.is_present()) {
       j.write_fieldname("sourceConfigSCG-r12");
       source_cfg_scg_r12->to_json(j);
     }
-    rrc_asn1_warn_assert(as_cfg_nr_r15_present != (as_cfg_nr_r15.get() != NULL), __FILE__, __LINE__);
-    if (as_cfg_nr_r15_present) {
+    if (as_cfg_nr_r15.is_present()) {
       j.write_fieldname("as-ConfigNR-r15");
       as_cfg_nr_r15->to_json(j);
     }
@@ -114894,13 +113790,13 @@ SRSASN_CODE as_context_v1130_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(2);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= sidelink_ue_info_r12_present;
     group_flags[1] |= source_context_en_dc_r15_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(sidelink_ue_info_r12_present, 1));
       if (sidelink_ue_info_r12_present) {
@@ -114908,7 +113804,7 @@ SRSASN_CODE as_context_v1130_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(source_context_en_dc_r15_present, 1));
       if (source_context_en_dc_r15_present) {
@@ -114936,11 +113832,11 @@ SRSASN_CODE as_context_v1130_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(2);
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(sidelink_ue_info_r12_present, 1));
       if (sidelink_ue_info_r12_present) {
@@ -114948,7 +113844,7 @@ SRSASN_CODE as_context_v1130_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(source_context_en_dc_r15_present, 1));
       if (source_context_en_dc_r15_present) {
@@ -115028,14 +113924,14 @@ SRSASN_CODE candidate_cell_info_r10_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(3);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= dl_carrier_freq_v1090_present;
     group_flags[1] |= rsrq_result_v1250_present;
     group_flags[2] |= rs_sinr_result_r13_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(dl_carrier_freq_v1090_present, 1));
       if (dl_carrier_freq_v1090_present) {
@@ -115043,7 +113939,7 @@ SRSASN_CODE candidate_cell_info_r10_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(rsrq_result_v1250_present, 1));
       if (rsrq_result_v1250_present) {
@@ -115051,7 +113947,7 @@ SRSASN_CODE candidate_cell_info_r10_s::pack(bit_ref& bref) const
       }
     }
     if (group_flags[2]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(rs_sinr_result_r13_present, 1));
       if (rs_sinr_result_r13_present) {
@@ -115077,11 +113973,11 @@ SRSASN_CODE candidate_cell_info_r10_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(3);
+    ext_groups_unpacker_guard group_flags(3);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(dl_carrier_freq_v1090_present, 1));
       if (dl_carrier_freq_v1090_present) {
@@ -115089,7 +113985,7 @@ SRSASN_CODE candidate_cell_info_r10_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(rsrq_result_v1250_present, 1));
       if (rsrq_result_v1250_present) {
@@ -115097,7 +113993,7 @@ SRSASN_CODE candidate_cell_info_r10_s::unpack(bit_ref& bref)
       }
     }
     if (group_flags[2]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(rs_sinr_result_r13_present, 1));
       if (rs_sinr_result_r13_present) {
@@ -115150,22 +114046,20 @@ SRSASN_CODE cell_to_add_mod_r12_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= s_cell_idx_r13_present;
-    rrc_asn1_warn_assert(
-        meas_result_cell_to_add_v1310_present != (meas_result_cell_to_add_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= meas_result_cell_to_add_v1310_present;
+    group_flags[0] |= meas_result_cell_to_add_v1310.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(s_cell_idx_r13_present, 1));
-      HANDLE_CODE(bref.pack(meas_result_cell_to_add_v1310_present, 1));
+      HANDLE_CODE(bref.pack(meas_result_cell_to_add_v1310.is_present(), 1));
       if (s_cell_idx_r13_present) {
         HANDLE_CODE(pack_unalign_integer(bref, s_cell_idx_r13, (uint8_t)1, (uint8_t)31));
       }
-      if (meas_result_cell_to_add_v1310_present) {
+      if (meas_result_cell_to_add_v1310.is_present()) {
         HANDLE_CODE(
             pack_unalign_integer(bref, meas_result_cell_to_add_v1310->rs_sinr_result_r13, (uint8_t)0, (uint8_t)127));
       }
@@ -115190,19 +114084,20 @@ SRSASN_CODE cell_to_add_mod_r12_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(s_cell_idx_r13_present, 1));
+      bool meas_result_cell_to_add_v1310_present;
       HANDLE_CODE(bref.unpack(meas_result_cell_to_add_v1310_present, 1));
+      meas_result_cell_to_add_v1310.set_present(meas_result_cell_to_add_v1310_present);
       if (s_cell_idx_r13_present) {
         HANDLE_CODE(unpack_unalign_integer(s_cell_idx_r13, bref, (uint8_t)1, (uint8_t)31));
       }
-      if (meas_result_cell_to_add_v1310_present) {
-        meas_result_cell_to_add_v1310 = make_copy_ptr(meas_result_cell_to_add_v1310_s_());
+      if (meas_result_cell_to_add_v1310.is_present()) {
         HANDLE_CODE(
             unpack_unalign_integer(meas_result_cell_to_add_v1310->rs_sinr_result_r13, bref, (uint8_t)0, (uint8_t)127));
       }
@@ -115232,9 +114127,7 @@ void cell_to_add_mod_r12_s::to_json(json_writer& j) const
     if (s_cell_idx_r13_present) {
       j.write_int("sCellIndex-r13", s_cell_idx_r13);
     }
-    rrc_asn1_warn_assert(
-        meas_result_cell_to_add_v1310_present != (meas_result_cell_to_add_v1310.get() != NULL), __FILE__, __LINE__);
-    if (meas_result_cell_to_add_v1310_present) {
+    if (meas_result_cell_to_add_v1310.is_present()) {
       j.write_fieldname("measResultCellToAdd-v1310");
       j.start_obj();
       j.write_int("rs-sinr-Result-r13", meas_result_cell_to_add_v1310->rs_sinr_result_r13);
@@ -116270,28 +115163,24 @@ SRSASN_CODE rrm_cfg_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(2);
-    rrc_asn1_warn_assert(
-        candidate_cell_info_list_r10_present != (candidate_cell_info_list_r10.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= candidate_cell_info_list_r10_present;
-    rrc_asn1_warn_assert(
-        candidate_cell_info_list_nr_r15_present != (candidate_cell_info_list_nr_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[1] |= candidate_cell_info_list_nr_r15_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= candidate_cell_info_list_r10.is_present();
+    group_flags[1] |= candidate_cell_info_list_nr_r15.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(candidate_cell_info_list_r10_present, 1));
-      if (candidate_cell_info_list_r10_present) {
+      HANDLE_CODE(bref.pack(candidate_cell_info_list_r10.is_present(), 1));
+      if (candidate_cell_info_list_r10.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *candidate_cell_info_list_r10, 1, 8));
       }
     }
     if (group_flags[1]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(candidate_cell_info_list_nr_r15_present, 1));
-      if (candidate_cell_info_list_nr_r15_present) {
+      HANDLE_CODE(bref.pack(candidate_cell_info_list_nr_r15.is_present(), 1));
+      if (candidate_cell_info_list_nr_r15.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *candidate_cell_info_list_nr_r15, 1, 32));
       }
     }
@@ -116308,24 +115197,26 @@ SRSASN_CODE rrm_cfg_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(2);
+    ext_groups_unpacker_guard group_flags(2);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool candidate_cell_info_list_r10_present;
       HANDLE_CODE(bref.unpack(candidate_cell_info_list_r10_present, 1));
-      if (candidate_cell_info_list_r10_present) {
-        candidate_cell_info_list_r10 = make_copy_ptr(candidate_cell_info_list_r10_l());
+      candidate_cell_info_list_r10.set_present(candidate_cell_info_list_r10_present);
+      if (candidate_cell_info_list_r10.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*candidate_cell_info_list_r10, bref, 1, 8));
       }
     }
     if (group_flags[1]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool candidate_cell_info_list_nr_r15_present;
       HANDLE_CODE(bref.unpack(candidate_cell_info_list_nr_r15_present, 1));
-      if (candidate_cell_info_list_nr_r15_present) {
-        candidate_cell_info_list_nr_r15 = make_copy_ptr(meas_result_serv_freq_list_nr_r15_l());
+      candidate_cell_info_list_nr_r15.set_present(candidate_cell_info_list_nr_r15_present);
+      if (candidate_cell_info_list_nr_r15.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*candidate_cell_info_list_nr_r15, bref, 1, 32));
       }
     }
@@ -116339,18 +115230,14 @@ void rrm_cfg_s::to_json(json_writer& j) const
     j.write_str("ue-InactiveTime", ue_inactive_time.to_string());
   }
   if (ext) {
-    rrc_asn1_warn_assert(
-        candidate_cell_info_list_r10_present != (candidate_cell_info_list_r10.get() != NULL), __FILE__, __LINE__);
-    if (candidate_cell_info_list_r10_present) {
+    if (candidate_cell_info_list_r10.is_present()) {
       j.start_array("candidateCellInfoList-r10");
       for (uint32_t i1 = 0; i1 < candidate_cell_info_list_r10->size(); ++i1) {
         ((*candidate_cell_info_list_r10)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(
-        candidate_cell_info_list_nr_r15_present != (candidate_cell_info_list_nr_r15.get() != NULL), __FILE__, __LINE__);
-    if (candidate_cell_info_list_nr_r15_present) {
+    if (candidate_cell_info_list_nr_r15.is_present()) {
       j.start_array("candidateCellInfoListNR-r15");
       for (uint32_t i1 = 0; i1 < candidate_cell_info_list_nr_r15->size(); ++i1) {
         ((*candidate_cell_info_list_nr_r15)[i1]).to_json(j);
@@ -116816,22 +115703,20 @@ SRSASN_CODE meas_result_serv_cell_scg_r12_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_unalign_integer(bref, meas_result_scell_r12.rsrq_result_scell_r12, (uint8_t)0, (uint8_t)34));
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= serv_cell_id_r13_present;
-    rrc_asn1_warn_assert(
-        meas_result_scell_v1310_present != (meas_result_scell_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= meas_result_scell_v1310_present;
+    group_flags[0] |= meas_result_scell_v1310.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(serv_cell_id_r13_present, 1));
-      HANDLE_CODE(bref.pack(meas_result_scell_v1310_present, 1));
+      HANDLE_CODE(bref.pack(meas_result_scell_v1310.is_present(), 1));
       if (serv_cell_id_r13_present) {
         HANDLE_CODE(pack_unalign_integer(bref, serv_cell_id_r13, (uint8_t)0, (uint8_t)31));
       }
-      if (meas_result_scell_v1310_present) {
+      if (meas_result_scell_v1310.is_present()) {
         HANDLE_CODE(
             pack_unalign_integer(bref, meas_result_scell_v1310->rs_sinr_result_scell_r13, (uint8_t)0, (uint8_t)127));
       }
@@ -116847,19 +115732,20 @@ SRSASN_CODE meas_result_serv_cell_scg_r12_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_unalign_integer(meas_result_scell_r12.rsrq_result_scell_r12, bref, (uint8_t)0, (uint8_t)34));
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(serv_cell_id_r13_present, 1));
+      bool meas_result_scell_v1310_present;
       HANDLE_CODE(bref.unpack(meas_result_scell_v1310_present, 1));
+      meas_result_scell_v1310.set_present(meas_result_scell_v1310_present);
       if (serv_cell_id_r13_present) {
         HANDLE_CODE(unpack_unalign_integer(serv_cell_id_r13, bref, (uint8_t)0, (uint8_t)31));
       }
-      if (meas_result_scell_v1310_present) {
-        meas_result_scell_v1310 = make_copy_ptr(meas_result_scell_v1310_s_());
+      if (meas_result_scell_v1310.is_present()) {
         HANDLE_CODE(
             unpack_unalign_integer(meas_result_scell_v1310->rs_sinr_result_scell_r13, bref, (uint8_t)0, (uint8_t)127));
       }
@@ -116880,9 +115766,7 @@ void meas_result_serv_cell_scg_r12_s::to_json(json_writer& j) const
     if (serv_cell_id_r13_present) {
       j.write_int("servCellId-r13", serv_cell_id_r13);
     }
-    rrc_asn1_warn_assert(
-        meas_result_scell_v1310_present != (meas_result_scell_v1310.get() != NULL), __FILE__, __LINE__);
-    if (meas_result_scell_v1310_present) {
+    if (meas_result_scell_v1310.is_present()) {
       j.write_fieldname("measResultSCell-v1310");
       j.start_obj();
       j.write_int("rs-sinr-ResultSCell-r13", meas_result_scell_v1310->rs_sinr_result_scell_r13);
@@ -117788,16 +116672,15 @@ SRSASN_CODE sl_precfg_comm_pool_r12_s::pack(bit_ref& bref) const
   HANDLE_CODE(trpt_subset_r12.pack(bref));
 
   if (ext) {
-    ext_groups_header group_flags(1);
-    rrc_asn1_warn_assert(prio_list_r13_present != (prio_list_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= prio_list_r13_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= prio_list_r13.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(prio_list_r13_present, 1));
-      if (prio_list_r13_present) {
+      HANDLE_CODE(bref.pack(prio_list_r13.is_present(), 1));
+      if (prio_list_r13.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *prio_list_r13, 1, 8, UnalignedIntegerPacker<uint8_t>(1, 8)));
       }
     }
@@ -117818,15 +116701,16 @@ SRSASN_CODE sl_precfg_comm_pool_r12_s::unpack(bit_ref& bref)
   HANDLE_CODE(trpt_subset_r12.unpack(bref));
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool prio_list_r13_present;
       HANDLE_CODE(bref.unpack(prio_list_r13_present, 1));
-      if (prio_list_r13_present) {
-        prio_list_r13 = make_copy_ptr(sl_prio_list_r13_l());
+      prio_list_r13.set_present(prio_list_r13_present);
+      if (prio_list_r13.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*prio_list_r13, bref, 1, 8, UnalignedIntegerPacker<uint8_t>(1, 8)));
       }
     }
@@ -117849,8 +116733,7 @@ void sl_precfg_comm_pool_r12_s::to_json(json_writer& j) const
   j.write_int("dataTxParameters-r12", data_tx_params_r12);
   j.write_str("trpt-Subset-r12", trpt_subset_r12.to_string());
   if (ext) {
-    rrc_asn1_warn_assert(prio_list_r13_present != (prio_list_r13.get() != NULL), __FILE__, __LINE__);
-    if (prio_list_r13_present) {
+    if (prio_list_r13.is_present()) {
       j.start_array("priorityList-r13");
       for (uint32_t i1 = 0; i1 < prio_list_r13->size(); ++i1) {
         j.write_int(((*prio_list_r13)[i1]));
@@ -117934,12 +116817,12 @@ SRSASN_CODE sl_precfg_general_r12_s::pack(bit_ref& bref) const
   HANDLE_CODE(reserved_r12.pack(bref));
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= add_spec_emission_v1440_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(add_spec_emission_v1440_present, 1));
       if (add_spec_emission_v1440_present) {
@@ -117967,11 +116850,11 @@ SRSASN_CODE sl_precfg_general_r12_s::unpack(bit_ref& bref)
   HANDLE_CODE(reserved_r12.unpack(bref));
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(add_spec_emission_v1440_present, 1));
       if (add_spec_emission_v1440_present) {
@@ -118044,12 +116927,12 @@ SRSASN_CODE sl_precfg_sync_r12_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_enum(bref, sync_ref_diff_hyst_r12));
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= sync_tx_periodic_r13_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(sync_tx_periodic_r13_present, 1));
     }
@@ -118069,11 +116952,11 @@ SRSASN_CODE sl_precfg_sync_r12_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_enum(sync_ref_diff_hyst_r12, bref));
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(sync_tx_periodic_r13_present, 1));
     }
@@ -118144,24 +117027,20 @@ SRSASN_CODE sl_v2x_precfg_comm_pool_r14_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
-    rrc_asn1_warn_assert(
-        sl_min_t2_value_list_r15_present != (sl_min_t2_value_list_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= sl_min_t2_value_list_r15_present;
-    rrc_asn1_warn_assert(
-        cbr_pssch_tx_cfg_list_v1530_present != (cbr_pssch_tx_cfg_list_v1530.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= cbr_pssch_tx_cfg_list_v1530_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= sl_min_t2_value_list_r15.is_present();
+    group_flags[0] |= cbr_pssch_tx_cfg_list_v1530.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(sl_min_t2_value_list_r15_present, 1));
-      HANDLE_CODE(bref.pack(cbr_pssch_tx_cfg_list_v1530_present, 1));
-      if (sl_min_t2_value_list_r15_present) {
+      HANDLE_CODE(bref.pack(sl_min_t2_value_list_r15.is_present(), 1));
+      HANDLE_CODE(bref.pack(cbr_pssch_tx_cfg_list_v1530.is_present(), 1));
+      if (sl_min_t2_value_list_r15.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *sl_min_t2_value_list_r15, 1, 8));
       }
-      if (cbr_pssch_tx_cfg_list_v1530_present) {
+      if (cbr_pssch_tx_cfg_list_v1530.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *cbr_pssch_tx_cfg_list_v1530, 1, 8));
       }
     }
@@ -118212,20 +117091,22 @@ SRSASN_CODE sl_v2x_precfg_comm_pool_r14_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool sl_min_t2_value_list_r15_present;
       HANDLE_CODE(bref.unpack(sl_min_t2_value_list_r15_present, 1));
+      sl_min_t2_value_list_r15.set_present(sl_min_t2_value_list_r15_present);
+      bool cbr_pssch_tx_cfg_list_v1530_present;
       HANDLE_CODE(bref.unpack(cbr_pssch_tx_cfg_list_v1530_present, 1));
-      if (sl_min_t2_value_list_r15_present) {
-        sl_min_t2_value_list_r15 = make_copy_ptr(sl_min_t2_value_list_r15_l());
+      cbr_pssch_tx_cfg_list_v1530.set_present(cbr_pssch_tx_cfg_list_v1530_present);
+      if (sl_min_t2_value_list_r15.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*sl_min_t2_value_list_r15, bref, 1, 8));
       }
-      if (cbr_pssch_tx_cfg_list_v1530_present) {
-        cbr_pssch_tx_cfg_list_v1530 = make_copy_ptr(sl_cbr_pppp_tx_precfg_list_v1530_l());
+      if (cbr_pssch_tx_cfg_list_v1530.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*cbr_pssch_tx_cfg_list_v1530, bref, 1, 8));
       }
     }
@@ -118278,18 +117159,14 @@ void sl_v2x_precfg_comm_pool_r14_s::to_json(json_writer& j) const
     j.end_array();
   }
   if (ext) {
-    rrc_asn1_warn_assert(
-        sl_min_t2_value_list_r15_present != (sl_min_t2_value_list_r15.get() != NULL), __FILE__, __LINE__);
-    if (sl_min_t2_value_list_r15_present) {
+    if (sl_min_t2_value_list_r15.is_present()) {
       j.start_array("sl-MinT2ValueList-r15");
       for (uint32_t i1 = 0; i1 < sl_min_t2_value_list_r15->size(); ++i1) {
         ((*sl_min_t2_value_list_r15)[i1]).to_json(j);
       }
       j.end_array();
     }
-    rrc_asn1_warn_assert(
-        cbr_pssch_tx_cfg_list_v1530_present != (cbr_pssch_tx_cfg_list_v1530.get() != NULL), __FILE__, __LINE__);
-    if (cbr_pssch_tx_cfg_list_v1530_present) {
+    if (cbr_pssch_tx_cfg_list_v1530.is_present()) {
       j.start_array("cbr-pssch-TxConfigList-v1530");
       for (uint32_t i1 = 0; i1 < cbr_pssch_tx_cfg_list_v1530->size(); ++i1) {
         ((*cbr_pssch_tx_cfg_list_v1530)[i1]).to_json(j);
@@ -118348,12 +117225,12 @@ SRSASN_CODE sl_precfg_v2x_sync_r14_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_enum(bref, sync_ref_diff_hyst_r14));
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_packer_guard group_flags;
     group_flags[0] |= slss_tx_disabled_r15_present;
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.pack(slss_tx_disabled_r15_present, 1));
     }
@@ -118371,11 +117248,11 @@ SRSASN_CODE sl_precfg_v2x_sync_r14_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_enum(sync_ref_diff_hyst_r14, bref));
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
       HANDLE_CODE(bref.unpack(slss_tx_disabled_r15_present, 1));
     }
@@ -118409,36 +117286,33 @@ SRSASN_CODE sl_precfg_r12_s::pack(bit_ref& bref) const
   HANDLE_CODE(pack_dyn_seq_of(bref, precfg_comm_r12, 1, 4));
 
   if (ext) {
-    ext_groups_header group_flags(1);
-    rrc_asn1_warn_assert(precfg_comm_v1310_present != (precfg_comm_v1310.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= precfg_comm_v1310_present;
-    rrc_asn1_warn_assert(precfg_disc_r13_present != (precfg_disc_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= precfg_disc_r13_present;
-    rrc_asn1_warn_assert(precfg_relay_r13_present != (precfg_relay_r13.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= precfg_relay_r13_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= precfg_comm_v1310.is_present();
+    group_flags[0] |= precfg_disc_r13.is_present();
+    group_flags[0] |= precfg_relay_r13.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(precfg_comm_v1310_present, 1));
-      HANDLE_CODE(bref.pack(precfg_disc_r13_present, 1));
-      HANDLE_CODE(bref.pack(precfg_relay_r13_present, 1));
-      if (precfg_comm_v1310_present) {
+      HANDLE_CODE(bref.pack(precfg_comm_v1310.is_present(), 1));
+      HANDLE_CODE(bref.pack(precfg_disc_r13.is_present(), 1));
+      HANDLE_CODE(bref.pack(precfg_relay_r13.is_present(), 1));
+      if (precfg_comm_v1310.is_present()) {
         HANDLE_CODE(bref.pack(precfg_comm_v1310->comm_tx_pool_list_r13_present, 1));
         HANDLE_CODE(pack_dyn_seq_of(bref, precfg_comm_v1310->comm_rx_pool_list_r13, 1, 12));
         if (precfg_comm_v1310->comm_tx_pool_list_r13_present) {
           HANDLE_CODE(pack_dyn_seq_of(bref, precfg_comm_v1310->comm_tx_pool_list_r13, 1, 7));
         }
       }
-      if (precfg_disc_r13_present) {
+      if (precfg_disc_r13.is_present()) {
         HANDLE_CODE(bref.pack(precfg_disc_r13->disc_tx_pool_list_r13_present, 1));
         HANDLE_CODE(pack_dyn_seq_of(bref, precfg_disc_r13->disc_rx_pool_list_r13, 1, 16));
         if (precfg_disc_r13->disc_tx_pool_list_r13_present) {
           HANDLE_CODE(pack_dyn_seq_of(bref, precfg_disc_r13->disc_tx_pool_list_r13, 1, 4));
         }
       }
-      if (precfg_relay_r13_present) {
+      if (precfg_relay_r13.is_present()) {
         HANDLE_CODE(precfg_relay_r13->pack(bref));
       }
     }
@@ -118453,33 +117327,36 @@ SRSASN_CODE sl_precfg_r12_s::unpack(bit_ref& bref)
   HANDLE_CODE(unpack_dyn_seq_of(precfg_comm_r12, bref, 1, 4));
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool precfg_comm_v1310_present;
       HANDLE_CODE(bref.unpack(precfg_comm_v1310_present, 1));
+      precfg_comm_v1310.set_present(precfg_comm_v1310_present);
+      bool precfg_disc_r13_present;
       HANDLE_CODE(bref.unpack(precfg_disc_r13_present, 1));
+      precfg_disc_r13.set_present(precfg_disc_r13_present);
+      bool precfg_relay_r13_present;
       HANDLE_CODE(bref.unpack(precfg_relay_r13_present, 1));
-      if (precfg_comm_v1310_present) {
-        precfg_comm_v1310 = make_copy_ptr(precfg_comm_v1310_s_());
+      precfg_relay_r13.set_present(precfg_relay_r13_present);
+      if (precfg_comm_v1310.is_present()) {
         HANDLE_CODE(bref.unpack(precfg_comm_v1310->comm_tx_pool_list_r13_present, 1));
         HANDLE_CODE(unpack_dyn_seq_of(precfg_comm_v1310->comm_rx_pool_list_r13, bref, 1, 12));
         if (precfg_comm_v1310->comm_tx_pool_list_r13_present) {
           HANDLE_CODE(unpack_dyn_seq_of(precfg_comm_v1310->comm_tx_pool_list_r13, bref, 1, 7));
         }
       }
-      if (precfg_disc_r13_present) {
-        precfg_disc_r13 = make_copy_ptr(precfg_disc_r13_s_());
+      if (precfg_disc_r13.is_present()) {
         HANDLE_CODE(bref.unpack(precfg_disc_r13->disc_tx_pool_list_r13_present, 1));
         HANDLE_CODE(unpack_dyn_seq_of(precfg_disc_r13->disc_rx_pool_list_r13, bref, 1, 16));
         if (precfg_disc_r13->disc_tx_pool_list_r13_present) {
           HANDLE_CODE(unpack_dyn_seq_of(precfg_disc_r13->disc_tx_pool_list_r13, bref, 1, 4));
         }
       }
-      if (precfg_relay_r13_present) {
-        precfg_relay_r13 = make_copy_ptr(sl_precfg_relay_r13_s());
+      if (precfg_relay_r13.is_present()) {
         HANDLE_CODE(precfg_relay_r13->unpack(bref));
       }
     }
@@ -118499,8 +117376,7 @@ void sl_precfg_r12_s::to_json(json_writer& j) const
   }
   j.end_array();
   if (ext) {
-    rrc_asn1_warn_assert(precfg_comm_v1310_present != (precfg_comm_v1310.get() != NULL), __FILE__, __LINE__);
-    if (precfg_comm_v1310_present) {
+    if (precfg_comm_v1310.is_present()) {
       j.write_fieldname("preconfigComm-v1310");
       j.start_obj();
       j.start_array("commRxPoolList-r13");
@@ -118517,8 +117393,7 @@ void sl_precfg_r12_s::to_json(json_writer& j) const
       }
       j.end_obj();
     }
-    rrc_asn1_warn_assert(precfg_disc_r13_present != (precfg_disc_r13.get() != NULL), __FILE__, __LINE__);
-    if (precfg_disc_r13_present) {
+    if (precfg_disc_r13.is_present()) {
       j.write_fieldname("preconfigDisc-r13");
       j.start_obj();
       j.start_array("discRxPoolList-r13");
@@ -118535,8 +117410,7 @@ void sl_precfg_r12_s::to_json(json_writer& j) const
       }
       j.end_obj();
     }
-    rrc_asn1_warn_assert(precfg_relay_r13_present != (precfg_relay_r13.get() != NULL), __FILE__, __LINE__);
-    if (precfg_relay_r13_present) {
+    if (precfg_relay_r13.is_present()) {
       j.write_fieldname("preconfigRelay-r13");
       precfg_relay_r13->to_json(j);
     }
@@ -118576,17 +117450,15 @@ SRSASN_CODE sl_v2x_precfg_freq_info_r14_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
-    rrc_asn1_warn_assert(
-        v2x_freq_sel_cfg_list_r15_present != (v2x_freq_sel_cfg_list_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= v2x_freq_sel_cfg_list_r15_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= v2x_freq_sel_cfg_list_r15.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(v2x_freq_sel_cfg_list_r15_present, 1));
-      if (v2x_freq_sel_cfg_list_r15_present) {
+      HANDLE_CODE(bref.pack(v2x_freq_sel_cfg_list_r15.is_present(), 1));
+      if (v2x_freq_sel_cfg_list_r15.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *v2x_freq_sel_cfg_list_r15, 1, 8));
       }
     }
@@ -118624,15 +117496,16 @@ SRSASN_CODE sl_v2x_precfg_freq_info_r14_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool v2x_freq_sel_cfg_list_r15_present;
       HANDLE_CODE(bref.unpack(v2x_freq_sel_cfg_list_r15_present, 1));
-      if (v2x_freq_sel_cfg_list_r15_present) {
-        v2x_freq_sel_cfg_list_r15 = make_copy_ptr(sl_v2x_freq_sel_cfg_list_r15_l());
+      v2x_freq_sel_cfg_list_r15.set_present(v2x_freq_sel_cfg_list_r15_present);
+      if (v2x_freq_sel_cfg_list_r15.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*v2x_freq_sel_cfg_list_r15, bref, 1, 8));
       }
     }
@@ -118679,9 +117552,7 @@ void sl_v2x_precfg_freq_info_r14_s::to_json(json_writer& j) const
     j.write_int("offsetDFN-r14", offset_dfn_r14);
   }
   if (ext) {
-    rrc_asn1_warn_assert(
-        v2x_freq_sel_cfg_list_r15_present != (v2x_freq_sel_cfg_list_r15.get() != NULL), __FILE__, __LINE__);
-    if (v2x_freq_sel_cfg_list_r15_present) {
+    if (v2x_freq_sel_cfg_list_r15.is_present()) {
       j.start_array("v2x-FreqSelectionConfigList-r15");
       for (uint32_t i1 = 0; i1 < v2x_freq_sel_cfg_list_r15->size(); ++i1) {
         ((*v2x_freq_sel_cfg_list_r15)[i1]).to_json(j);
@@ -118708,32 +117579,27 @@ SRSASN_CODE sl_v2x_precfg_r14_s::pack(bit_ref& bref) const
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
-    rrc_asn1_warn_assert(
-        v2x_packet_dupl_cfg_r15_present != (v2x_packet_dupl_cfg_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= v2x_packet_dupl_cfg_r15_present;
-    rrc_asn1_warn_assert(sync_freq_list_r15_present != (sync_freq_list_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= sync_freq_list_r15_present;
+    ext_groups_packer_guard group_flags;
+    group_flags[0] |= v2x_packet_dupl_cfg_r15.is_present();
+    group_flags[0] |= sync_freq_list_r15.is_present();
     group_flags[0] |= slss_tx_multi_freq_r15_present;
-    rrc_asn1_warn_assert(
-        v2x_tx_profile_list_r15_present != (v2x_tx_profile_list_r15.get() != NULL), __FILE__, __LINE__);
-    group_flags[0] |= v2x_tx_profile_list_r15_present;
+    group_flags[0] |= v2x_tx_profile_list_r15.is_present();
     group_flags.pack(bref);
 
     if (group_flags[0]) {
-      varlength_field_pack_guard packer(bref);
+      varlength_field_pack_guard varlen_scope(bref);
 
-      HANDLE_CODE(bref.pack(v2x_packet_dupl_cfg_r15_present, 1));
-      HANDLE_CODE(bref.pack(sync_freq_list_r15_present, 1));
+      HANDLE_CODE(bref.pack(v2x_packet_dupl_cfg_r15.is_present(), 1));
+      HANDLE_CODE(bref.pack(sync_freq_list_r15.is_present(), 1));
       HANDLE_CODE(bref.pack(slss_tx_multi_freq_r15_present, 1));
-      HANDLE_CODE(bref.pack(v2x_tx_profile_list_r15_present, 1));
-      if (v2x_packet_dupl_cfg_r15_present) {
+      HANDLE_CODE(bref.pack(v2x_tx_profile_list_r15.is_present(), 1));
+      if (v2x_packet_dupl_cfg_r15.is_present()) {
         HANDLE_CODE(v2x_packet_dupl_cfg_r15->pack(bref));
       }
-      if (sync_freq_list_r15_present) {
+      if (sync_freq_list_r15.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *sync_freq_list_r15, 1, 8, UnalignedIntegerPacker<uint32_t>(0, 262143)));
       }
-      if (v2x_tx_profile_list_r15_present) {
+      if (v2x_tx_profile_list_r15.is_present()) {
         HANDLE_CODE(pack_dyn_seq_of(bref, *v2x_tx_profile_list_r15, 1, 256, EnumPacker()));
       }
     }
@@ -118756,26 +117622,29 @@ SRSASN_CODE sl_v2x_precfg_r14_s::unpack(bit_ref& bref)
   }
 
   if (ext) {
-    ext_groups_header group_flags(1);
+    ext_groups_unpacker_guard group_flags(1);
     group_flags.unpack(bref);
 
     if (group_flags[0]) {
-      varlength_field_unpack_guard unpacker(bref);
+      varlength_field_unpack_guard varlen_scope(bref);
 
+      bool v2x_packet_dupl_cfg_r15_present;
       HANDLE_CODE(bref.unpack(v2x_packet_dupl_cfg_r15_present, 1));
+      v2x_packet_dupl_cfg_r15.set_present(v2x_packet_dupl_cfg_r15_present);
+      bool sync_freq_list_r15_present;
       HANDLE_CODE(bref.unpack(sync_freq_list_r15_present, 1));
+      sync_freq_list_r15.set_present(sync_freq_list_r15_present);
       HANDLE_CODE(bref.unpack(slss_tx_multi_freq_r15_present, 1));
+      bool v2x_tx_profile_list_r15_present;
       HANDLE_CODE(bref.unpack(v2x_tx_profile_list_r15_present, 1));
-      if (v2x_packet_dupl_cfg_r15_present) {
-        v2x_packet_dupl_cfg_r15 = make_copy_ptr(sl_v2x_packet_dupl_cfg_r15_s());
+      v2x_tx_profile_list_r15.set_present(v2x_tx_profile_list_r15_present);
+      if (v2x_packet_dupl_cfg_r15.is_present()) {
         HANDLE_CODE(v2x_packet_dupl_cfg_r15->unpack(bref));
       }
-      if (sync_freq_list_r15_present) {
-        sync_freq_list_r15 = make_copy_ptr(sl_v2x_sync_freq_list_r15_l());
+      if (sync_freq_list_r15.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*sync_freq_list_r15, bref, 1, 8, UnalignedIntegerPacker<uint32_t>(0, 262143)));
       }
-      if (v2x_tx_profile_list_r15_present) {
-        v2x_tx_profile_list_r15 = make_copy_ptr(sl_v2x_tx_profile_list_r15_l());
+      if (v2x_tx_profile_list_r15.is_present()) {
         HANDLE_CODE(unpack_dyn_seq_of(*v2x_tx_profile_list_r15, bref, 1, 256, EnumPacker()));
       }
     }
@@ -118802,14 +117671,11 @@ void sl_v2x_precfg_r14_s::to_json(json_writer& j) const
     cbr_precfg_list_r14.to_json(j);
   }
   if (ext) {
-    rrc_asn1_warn_assert(
-        v2x_packet_dupl_cfg_r15_present != (v2x_packet_dupl_cfg_r15.get() != NULL), __FILE__, __LINE__);
-    if (v2x_packet_dupl_cfg_r15_present) {
+    if (v2x_packet_dupl_cfg_r15.is_present()) {
       j.write_fieldname("v2x-PacketDuplicationConfig-r15");
       v2x_packet_dupl_cfg_r15->to_json(j);
     }
-    rrc_asn1_warn_assert(sync_freq_list_r15_present != (sync_freq_list_r15.get() != NULL), __FILE__, __LINE__);
-    if (sync_freq_list_r15_present) {
+    if (sync_freq_list_r15.is_present()) {
       j.start_array("syncFreqList-r15");
       for (uint32_t i1 = 0; i1 < sync_freq_list_r15->size(); ++i1) {
         j.write_int(((*sync_freq_list_r15)[i1]));
@@ -118819,9 +117685,7 @@ void sl_v2x_precfg_r14_s::to_json(json_writer& j) const
     if (slss_tx_multi_freq_r15_present) {
       j.write_str("slss-TxMultiFreq-r15", "true");
     }
-    rrc_asn1_warn_assert(
-        v2x_tx_profile_list_r15_present != (v2x_tx_profile_list_r15.get() != NULL), __FILE__, __LINE__);
-    if (v2x_tx_profile_list_r15_present) {
+    if (v2x_tx_profile_list_r15.is_present()) {
       j.start_array("v2x-TxProfileList-r15");
       for (uint32_t i1 = 0; i1 < v2x_tx_profile_list_r15->size(); ++i1) {
         j.write_str(((*v2x_tx_profile_list_r15)[i1]).to_string());

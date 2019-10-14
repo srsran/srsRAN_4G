@@ -54,17 +54,9 @@ SRSLTE_API void rf_uhd_flush_buffer(void *h);
 
 SRSLTE_API bool rf_uhd_has_rssi(void *h);
 
-SRSLTE_API float rf_uhd_get_rssi(void *h); 
+SRSLTE_API float rf_uhd_get_rssi(void* h);
 
-SRSLTE_API bool rf_uhd_rx_wait_lo_locked(void *h);
-
-SRSLTE_API void rf_uhd_set_master_clock_rate(void *h, 
-                                          double rate); 
-
-SRSLTE_API bool rf_uhd_is_master_clock_dynamic(void *h); 
-
-SRSLTE_API double rf_uhd_set_rx_srate(void *h, 
-                                   double freq);
+SRSLTE_API double rf_uhd_set_rx_srate(void* h, double freq);
 
 SRSLTE_API double rf_uhd_set_rx_gain(void *h, 
                                   double gain);

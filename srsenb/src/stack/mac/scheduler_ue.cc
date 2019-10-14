@@ -278,8 +278,8 @@ bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2])
     // Pending ACKs
     for (int i = 0; i < SCHED_MAX_HARQ_PROC; i++) {
       if (TTI_TX(dl_harq[i].get_tti()) == current_tti) {
-        cfg.pucch_cfg.uci_cfg.ack.ncce[0]  = dl_harq[i].get_n_cce();
-        cfg.pucch_cfg.uci_cfg.ack.nof_acks = 1;
+        cfg.pucch_cfg.uci_cfg.ack[0].ncce[0]  = dl_harq[i].get_n_cce();
+        cfg.pucch_cfg.uci_cfg.ack[0].nof_acks = 1;
         ret                                = true;
       }
     }
@@ -299,7 +299,7 @@ bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2])
             prb_idx[0],
             prb_idx[1],
             cfg.pucch_cfg.n_pucch,
-            cfg.pucch_cfg.uci_cfg.ack.ncce[0],
+            cfg.pucch_cfg.uci_cfg.ack[0].ncce[0],
             cfg.pucch_cfg.uci_cfg.is_scheduling_request_tti);
     }
   }
@@ -896,9 +896,8 @@ uint32_t sched_ue::get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_sym
 
 uint32_t sched_ue::get_required_prb_ul(uint32_t req_bytes) 
 {
-  int mcs = 0; 
-  int tbs = 0; 
-  uint32_t nbytes = 0; 
+  int      mcs    = 0;
+  uint32_t nbytes = 0;
   uint32_t N_srs = 0;
 
   uint32_t n = 0;

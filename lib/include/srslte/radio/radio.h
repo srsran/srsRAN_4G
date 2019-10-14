@@ -49,7 +49,6 @@ class radio {
      burst_preamble_samples      = 0;
      burst_preamble_time_rounded = 0;
 
-     master_clock_rate  = 0;
      cur_tx_srate       = 0;
      tx_adv_sec         = 0;
      tx_adv_nsamples    = 0;
@@ -92,6 +91,7 @@ class radio {
   bool tx_single(cf_t* buffer, uint32_t nof_samples, srslte_timestamp_t tx_time);
   bool tx(cf_t* buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t tx_time);
   void tx_end();
+  bool get_is_start_of_burst();
   bool rx_now(cf_t* buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t* rxd_time);
   bool rx_at(cf_t* buffer, uint32_t nof_samples, srslte_timestamp_t rx_time);
 
@@ -99,7 +99,6 @@ class radio {
   void set_rx_gain(float gain);
   void set_tx_rx_gain_offset(float offset);
   double set_rx_gain_th(float gain);
-  void   set_master_clock_rate(double rate);
 
   void set_freq_offset(double freq);
   void set_tx_freq(uint32_t chan, double freq);
@@ -138,7 +137,6 @@ class radio {
    uint32_t              burst_preamble_samples;
    double                burst_preamble_time_rounded; // preamble time rounded to sample time
    cf_t*                 zeros;
-   double                master_clock_rate;
    double                cur_tx_srate;
 
    double tx_adv_sec;      // Transmission time advance to compensate for antenna->timestamp delay

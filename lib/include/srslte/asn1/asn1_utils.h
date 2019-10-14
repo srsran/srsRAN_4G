@@ -23,6 +23,7 @@
 #define SRSASN_COMMON_UTILS_H
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstring>
 #include <sstream>
@@ -80,8 +81,13 @@ ValOrError unpack_bits(uint8_t*& ptr, uint8_t& offset, uint8_t* max_ptr, uint32_
 class bit_ref
 {
 public:
-  bit_ref();
-  bit_ref(uint8_t* start_ptr_, uint32_t max_size_);
+  bit_ref() = default;
+  bit_ref(uint8_t* start_ptr_, uint32_t max_size_) :
+    ptr(start_ptr_),
+    start_ptr(start_ptr_),
+    max_ptr(max_size_ + start_ptr_)
+  {
+  }
 
   int distance(const bit_ref& other) const;
   int distance(uint8_t* ref_ptr) const;
@@ -90,6 +96,7 @@ public:
   int distance_bytes() const;
 
   SRSASN_CODE pack(uint32_t val, uint32_t n_bits);
+  SRSASN_CODE pack_bytes(const uint8_t* buf, uint32_t n_bytes);
   template <class T>
   SRSASN_CODE unpack(T& val, uint32_t n_bits)
   {
@@ -97,15 +104,17 @@ public:
     val            = ret.val;
     return ret.code;
   }
+  SRSASN_CODE unpack_bytes(uint8_t* buf, uint32_t n_bytes);
   SRSASN_CODE align_bytes();
   SRSASN_CODE align_bytes_zero();
+  SRSASN_CODE advance_bits(uint32_t n_bits);
   void        set(uint8_t* start_ptr_, uint32_t max_size_);
 
 private:
-  uint8_t* ptr;
-  uint8_t  offset;
-  uint8_t* start_ptr;
-  uint8_t* max_ptr;
+  uint8_t* ptr       = nullptr;
+  uint8_t  offset    = 0;
+  uint8_t* start_ptr = nullptr;
+  uint8_t* max_ptr   = nullptr;
 };
 
 /*********************
@@ -116,7 +125,7 @@ class dyn_array
 {
 public:
   typedef T item_type;
-  dyn_array() : data_(NULL), size_(0), cap_(0) {}
+  dyn_array() = default;
   dyn_array(uint32_t new_size) : size_(new_size), cap_(new_size) { data_ = new T[size_]; }
   dyn_array(const dyn_array<T>& other)
   {
@@ -183,8 +192,9 @@ public:
   const T* data() const { return &data_[0]; }
 
 private:
-  T*       data_;
-  uint32_t size_, cap_;
+  T*       data_ = nullptr;
+  uint32_t size_ = 0;
+  uint32_t cap_  = 0;
 };
 
 template <class T, uint32_t MAX_N>
@@ -217,24 +227,6 @@ public:
 private:
   T        data_[MAX_N];
   uint32_t current_size;
-};
-
-template <class T, uint32_t N>
-class fixed_array
-{
-public:
-  typedef T       item_type;
-  static uint32_t size() { return N; }
-  T&              operator[](uint32_t idx) { return data_[idx]; }
-  const T&        operator[](uint32_t idx) const { return data_[idx]; }
-  bool     operator==(const fixed_array<T, N>& other) const { return std::equal(data_, data_ + size(), other.data_); }
-  T&       back() { return data_[size() - 1]; }
-  const T& back() const { return data_[size() - 1]; }
-  T*       data() { return &data_[0]; }
-  const T* data() const { return &data_[0]; }
-
-private:
-  T data_[N];
 };
 
 /*********************
@@ -341,22 +333,21 @@ template <class IntType>
 SRSASN_CODE unpack_unalign_integer(IntType& n, bit_ref& bref, IntType lb, IntType ub);
 template <class IntType>
 struct UnalignedIntegerPacker {
-  UnalignedIntegerPacker(IntType, IntType);
-  IntType     lb;
-  IntType     ub;
-  SRSASN_CODE pack(bit_ref& bref, IntType n) const;
-  SRSASN_CODE unpack(IntType& n, bit_ref& bref) const;
+  UnalignedIntegerPacker(IntType lb_, IntType ub_) : lb(lb_), ub(ub_) {}
+  const IntType lb;
+  const IntType ub;
+  SRSASN_CODE   pack(bit_ref& bref, IntType n) const;
+  SRSASN_CODE   unpack(IntType& n, bit_ref& bref) const;
 };
 
 template <class IntType, IntType lb, IntType ub>
 struct unaligned_integer {
-  IntType                               value;
-  const UnalignedIntegerPacker<IntType> packer;
-  unaligned_integer() : packer(lb, ub) {}
-  unaligned_integer(IntType value_) : value(value_), packer(lb, ub) {}
+  IntType value;
+  unaligned_integer() = default;
+  unaligned_integer(IntType value_) : value(value_) {}
               operator IntType() { return value; }
-  SRSASN_CODE pack(bit_ref& bref) const { return packer.pack(bref, value); }
-  SRSASN_CODE unpack(bit_ref& bref) { return packer.unpack(value, bref); }
+  SRSASN_CODE pack(bit_ref& bref) const { return pack_unalign_integer(bref, value, lb, ub); }
+  SRSASN_CODE unpack(bit_ref& bref) { return unpack_unalign_integer(value, bref, lb, ub); }
 };
 
 template <class IntType>
@@ -486,7 +477,7 @@ public:
   SRSASN_CODE unpack(bit_ref& bref);
 
 private:
-  fixed_array<uint8_t, N> octets_;
+  std::array<uint8_t, N> octets_;
 };
 
 template <uint32_t N>
@@ -520,7 +511,7 @@ SRSASN_CODE fixed_octstring<N>::unpack(bit_ref& bref)
 class dyn_octstring
 {
 public:
-  dyn_octstring() {}
+  dyn_octstring() = default;
   dyn_octstring(uint32_t new_size) : octets_(new_size) {}
 
   const uint8_t& operator[](uint32_t idx) const { return octets_[idx]; }
@@ -621,7 +612,7 @@ public:
   SRSASN_CODE unpack(bit_ref& bref, bool& ext) { return unpack_fixed_bitstring(data(), ext, bref, N); }
 
 private:
-  fixed_array<uint8_t, (uint32_t)((N + 7) / 8)> octets_; // ceil(N/8.0)
+  std::array<uint8_t, (uint32_t)((N + 7) / 8)> octets_; // ceil(N/8.0)
 };
 
 /*********************
@@ -874,16 +865,15 @@ template <class T>
 class copy_ptr
 {
 public:
-  copy_ptr() : ptr(NULL) {}
-  explicit copy_ptr(T* ptr_) :
+  explicit copy_ptr(T* ptr_ = nullptr) :
     ptr(ptr_) {} // it takes hold of the pointer (including destruction). You should use make_copy_ptr() in most cases
-                 // instead of this ctor
-  copy_ptr(const copy_ptr<T>& other) { ptr = other.make_obj_(); } // it allocates new memory for the new object
+  // instead of this ctor
+  copy_ptr(const copy_ptr<T>& other) { ptr = (other.ptr == nullptr) ? nullptr : new T(*other.ptr); }
   ~copy_ptr() { destroy_(); }
   copy_ptr<T>& operator=(const copy_ptr<T>& other)
   {
     if (this != &other) {
-      acquire(other.make_obj_());
+      reset((other.ptr == nullptr) ? nullptr : new T(*other.ptr));
     }
     return *this;
   }
@@ -897,15 +887,23 @@ public:
   T*       release()
   {
     T* ret = ptr;
-    ptr    = NULL;
+    ptr    = nullptr;
     return ret;
   }
-  void acquire(T* ptr_)
+  void reset(T* ptr_ = nullptr)
   {
     destroy_();
     ptr = ptr_;
   }
-  void reset() { acquire(NULL); }
+  void set_present(bool flag = true)
+  {
+    if (flag) {
+      reset(new T());
+    } else {
+      reset();
+    }
+  }
+  bool is_present() const { return get() != nullptr; }
 
 private:
   void destroy_()
@@ -914,7 +912,6 @@ private:
       delete ptr;
     }
   }
-  T* make_obj_() const { return (ptr == NULL) ? NULL : new T(*ptr); }
   T* ptr;
 };
 
@@ -928,23 +925,31 @@ copy_ptr<T> make_copy_ptr(const T& t)
       ext group
 *********************/
 
-class ext_groups_header
+class ext_groups_packer_guard
 {
 public:
-  ext_groups_header(uint32_t max_nof_groups, uint32_t nof_nogroups_ = 0);
-  bool& operator[](uint32_t idx);
-
-  SRSASN_CODE pack_nof_groups(bit_ref& bref) const;
-  SRSASN_CODE pack_group_flags(bit_ref& bref) const;
+  bool&       operator[](uint32_t idx);
   SRSASN_CODE pack(bit_ref& bref) const;
-  SRSASN_CODE unpack_nof_groups(bit_ref& bref);
-  SRSASN_CODE unpack_group_flags(bit_ref& bref);
+
+private:
+  bounded_array<bool, 20> groups;
+};
+
+class ext_groups_unpacker_guard
+{
+public:
+  explicit ext_groups_unpacker_guard(uint32_t nof_supported_groups_);
+  ~ext_groups_unpacker_guard();
+
+  void        resize(uint32_t new_size);
+  bool&       operator[](uint32_t idx);
   SRSASN_CODE unpack(bit_ref& bref);
 
 private:
-  mutable uint32_t        nof_groups;
-  const uint32_t          nof_nogroups;
   bounded_array<bool, 20> groups;
+  const uint32_t          nof_supported_groups;
+  uint32_t                nof_unpacked_groups = 0;
+  bit_ref*                bref_tracker        = nullptr;
 };
 
 /*********************

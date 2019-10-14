@@ -19,6 +19,8 @@
  *
  */
 
+#include "srslte/asn1/rrc_asn1.h"
+#include "srslte/asn1/rrc_asn1_utils.h"
 #include "srslte/common/log_filter.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/interfaces/ue_interfaces.h"
@@ -54,6 +56,9 @@ public:
   uint32_t get_buffer_state(const uint32_t lcid) { return ul_queues[lcid]; }
   int      read_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
   {
+    if (!read_enable) {
+      return 0;
+    }
     uint32_t len = SRSLTE_MIN(ul_queues[lcid], nof_bytes);
 
     // set payload bytes to LCID so we can check later if the scheduling was correct
@@ -77,7 +82,10 @@ public:
   void     write_pdu_mch(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes){};
   uint32_t get_received_bytes() { return received_bytes; }
 
+  void disable_read() { read_enable = false; }
+
 private:
+  bool                read_enable = true;
   uint32_t            received_bytes;
   srslte::log_filter* log;
   // UL queues where key is LCID and value the queue length
@@ -319,6 +327,26 @@ public:
   uint32_t rach_problem         = 0;
 };
 
+class stack_dummy : public stack_interface_mac
+{
+public:
+  void init(mac* mac_, phy_interface_mac_lte* phy_)
+  {
+    mac_h = mac_;
+    phy_h = phy_;
+  }
+  void process_pdus() final { mac_h->process_pdus(); }
+  void wait_ra_completion(uint16_t rnti) final
+  {
+    phy_h->set_crnti(rnti);
+    mac_h->notify_ra_completed();
+  }
+
+private:
+  phy_interface_mac_lte* phy_h;
+  mac*                   mac_h = nullptr;
+};
+
 } // namespace srslte
 
 int mac_unpack_test()
@@ -343,6 +371,7 @@ int mac_unpack_test()
 
   srslte::log_filter rlc_log("RLC");
   srslte::log_filter mac_log("MAC");
+  srslte::timers     timers(64);
 
   mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
   mac_log.set_hex_limit(100000);
@@ -350,13 +379,15 @@ int mac_unpack_test()
   rlc_log.set_hex_limit(100000);
 
   // dummy layers
-  phy_dummy phy;
-  rlc_dummy rlc(&rlc_log);
-  rrc_dummy rrc;
+  phy_dummy   phy;
+  rlc_dummy   rlc(&rlc_log);
+  rrc_dummy   rrc;
+  stack_dummy stack;
 
   // the actual MAC
   mac mac(&mac_log);
-  mac.init(&phy, &rlc, &rrc);
+  stack.init(&mac, &phy);
+  mac.init(&phy, &rlc, &rrc, &timers, &stack);
 
   // create dummy DL action and grant and push MAC PDU
   mac_interface_phy_lte::tb_action_dl_t dl_action;
@@ -379,6 +410,7 @@ int mac_unpack_test()
   // make sure MAC PDU thread picks up before stopping
   sleep(1);
   mac.run_tti(0);
+  timers.step_all();
   mac.stop();
 
   // check length of both received RLC PDUs
@@ -403,14 +435,18 @@ int mac_ul_sch_pdu_test1()
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
 
+  srslte::timers timers(64);
+
   // dummy layers
-  phy_dummy phy;
-  rlc_dummy rlc(&rlc_log);
-  rrc_dummy rrc;
+  phy_dummy   phy;
+  rlc_dummy   rlc(&rlc_log);
+  rrc_dummy   rrc;
+  stack_dummy stack;
 
   // the actual MAC
   mac mac(&mac_log);
-  mac.init(&phy, &rlc, &rrc);
+  stack.init(&mac, &phy);
+  mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
@@ -469,14 +505,18 @@ int mac_ul_logical_channel_prioritization_test1()
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
 
+  srslte::timers timers(64);
+
   // dummy layers
-  phy_dummy phy;
-  rlc_dummy rlc(&rlc_log);
-  rrc_dummy rrc;
+  phy_dummy   phy;
+  rlc_dummy   rlc(&rlc_log);
+  rrc_dummy   rrc;
+  stack_dummy stack;
 
   // the actual MAC
   mac mac(&mac_log);
-  mac.init(&phy, &rlc, &rrc);
+  stack.init(&mac, &phy);
+  mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
@@ -580,14 +620,18 @@ int mac_ul_logical_channel_prioritization_test2()
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
 
+  srslte::timers timers(64);
+
   // dummy layers
-  phy_dummy phy;
-  rlc_dummy rlc(&rlc_log);
-  rrc_dummy rrc;
+  phy_dummy   phy;
+  rlc_dummy   rlc(&rlc_log);
+  rrc_dummy   rrc;
+  stack_dummy stack;
 
   // the actual MAC
   mac mac(&mac_log);
-  mac.init(&phy, &rlc, &rrc);
+  stack.init(&mac, &phy);
+  mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
@@ -678,14 +722,18 @@ int mac_ul_logical_channel_prioritization_test3()
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
 
+  srslte::timers timers(64);
+
   // dummy layers
-  phy_dummy phy;
-  rlc_dummy rlc(&rlc_log);
-  rrc_dummy rrc;
+  phy_dummy   phy;
+  rlc_dummy   rlc(&rlc_log);
+  rrc_dummy   rrc;
+  stack_dummy stack;
 
   // the actual MAC
   mac mac(&mac_log);
-  mac.init(&phy, &rlc, &rrc);
+  stack.init(&mac, &phy);
+  mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
@@ -764,14 +812,18 @@ int mac_ul_sch_pdu_with_short_bsr_test()
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
 
+  srslte::timers timers(64);
+
   // dummy layers
-  phy_dummy phy;
-  rlc_dummy rlc(&rlc_log);
-  rrc_dummy rrc;
+  phy_dummy   phy;
+  rlc_dummy   rlc(&rlc_log);
+  rrc_dummy   rrc;
+  stack_dummy stack;
 
   // the actual MAC
   mac mac(&mac_log);
-  mac.init(&phy, &rlc, &rrc);
+  stack.init(&mac, &phy);
+  mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
@@ -840,8 +892,6 @@ int mac_ul_sch_pdu_with_short_bsr_test()
 // PDU with only padding BSR (long BSR) and the rest padding
 int mac_ul_sch_pdu_with_padding_bsr_test()
 {
-  const uint8_t tv[] = {0x3e, 0x1f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-
   srslte::log_filter mac_log("MAC");
   mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
   mac_log.set_hex_limit(100000);
@@ -850,19 +900,26 @@ int mac_ul_sch_pdu_with_padding_bsr_test()
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
 
+  srslte::timers timers(64);
+
   // dummy layers
-  phy_dummy phy;
-  rlc_dummy rlc(&rlc_log);
-  rrc_dummy rrc;
+  phy_dummy   phy;
+  rlc_dummy   rlc(&rlc_log);
+  rrc_dummy   rrc;
+  stack_dummy stack;
 
   // the actual MAC
   mac mac(&mac_log);
-  mac.init(&phy, &rlc, &rrc);
+  stack.init(&mac, &phy);
+  mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
   // create UL action and grant and push MAC PDU
   {
+
+    const uint8_t tv[] = {0x3e, 0x1f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
     mac_interface_phy_lte::tb_action_ul_t ul_action = {};
     mac_interface_phy_lte::mac_grant_ul_t mac_grant = {};
 
@@ -871,6 +928,41 @@ int mac_ul_sch_pdu_with_padding_bsr_test()
     mac_grant.tb.ndi         = true;
     mac_grant.tb.tbs         = 10; // give enough room for Padding BSR
     int cc_idx               = 0;
+
+    // Send grant to MAC and get action for this TB, then call tb_decoded to unlock MAC
+    mac.new_grant_ul(cc_idx, mac_grant, &ul_action);
+
+    // print generated PDU
+    mac_log.info_hex(ul_action.tb.payload, mac_grant.tb.tbs, "Generated PDU (%d B)\n", mac_grant.tb.tbs);
+#if HAVE_PCAP
+    pcap_handle->write_ul_crnti(ul_action.tb.payload, mac_grant.tb.tbs, 0x1001, true, 1);
+#endif
+
+    TESTASSERT(memcmp(ul_action.tb.payload, tv, sizeof(tv)) == 0);
+  }
+
+  // create UL action and grant and push MAC PDU
+  {
+
+    const uint8_t tv[] = {0x1c, 0x42};
+
+    mac_interface_phy_lte::tb_action_ul_t ul_action = {};
+    mac_interface_phy_lte::mac_grant_ul_t mac_grant = {};
+
+    mac_grant.rnti           = crnti; // make sure MAC picks it up as valid UL grant
+    mac_grant.tb.ndi_present = true;
+    mac_grant.tb.ndi         = true;
+    mac_grant.pid            = 2;
+    mac_grant.tb.tbs         = 2; // give enough room for Padding BSR
+    int cc_idx               = 0;
+
+    // Add data to multiple LCID
+    mac.setup_lcid(1, 1, 1, -1, 0);
+    mac.setup_lcid(2, 2, 2, -1, 0);
+    rlc.disable_read();
+    rlc.write_sdu(1, 10);
+    rlc.write_sdu(2, 100);
+    mac.run_tti(1);
 
     // Send grant to MAC and get action for this TB, then call tb_decoded to unlock MAC
     mac.new_grant_ul(cc_idx, mac_grant, &ul_action);
@@ -905,14 +997,18 @@ int mac_ul_sch_pdu_one_byte_test()
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
 
+  srslte::timers timers(64);
+
   // dummy layers
-  phy_dummy phy;
-  rlc_dummy rlc(&rlc_log);
-  rrc_dummy rrc;
+  phy_dummy   phy;
+  rlc_dummy   rlc(&rlc_log);
+  rrc_dummy   rrc;
+  stack_dummy stack;
 
   // the actual MAC
   mac mac(&mac_log);
-  mac.init(&phy, &rlc, &rrc);
+  stack.init(&mac, &phy);
+  mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
@@ -963,14 +1059,18 @@ int mac_ul_sch_pdu_two_byte_test()
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
 
+  srslte::timers timers(64);
+
   // dummy layers
-  phy_dummy phy;
-  rlc_dummy rlc(&rlc_log);
-  rrc_dummy rrc;
+  phy_dummy   phy;
+  rlc_dummy   rlc(&rlc_log);
+  rrc_dummy   rrc;
+  stack_dummy stack;
 
   // the actual MAC
   mac mac(&mac_log);
-  mac.init(&phy, &rlc, &rrc);
+  stack.init(&mac, &phy);
+  mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
@@ -1021,14 +1121,18 @@ int mac_ul_sch_pdu_three_byte_test()
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
 
+  srslte::timers timers(64);
+
   // dummy layers
-  phy_dummy phy;
-  rlc_dummy rlc(&rlc_log);
-  rrc_dummy rrc;
+  phy_dummy   phy;
+  rlc_dummy   rlc(&rlc_log);
+  rrc_dummy   rrc;
+  stack_dummy stack;
 
   // the actual MAC
   mac mac(&mac_log);
-  mac.init(&phy, &rlc, &rrc);
+  stack.init(&mac, &phy);
+  mac.init(&phy, &rlc, &rrc, &timers, &stack);
   const uint16_t crnti = 0x1001;
   mac.set_ho_rnti(crnti, 0);
 
@@ -1084,7 +1188,7 @@ struct ra_test {
 
 struct ra_test test;
 
-int run_mac_ra_test(struct ra_test test, mac* mac, phy_dummy* phy, uint32_t* tti_state)
+int run_mac_ra_test(struct ra_test test, mac* mac, phy_dummy* phy, uint32_t* tti_state, srslte::timers* timers)
 {
   uint32_t tti = *tti_state;
 
@@ -1106,6 +1210,7 @@ int run_mac_ra_test(struct ra_test test, mac* mac, phy_dummy* phy, uint32_t* tti
     if (test.assume_prach_transmitted != (int)j) {
       phy->set_prach_tti(tti + phy->prach_delay);
       mac->run_tti(tti++);
+      timers->step_all();
     }
 
     // Check MAC instructs PHY to transmit PRACH
@@ -1125,6 +1230,7 @@ int run_mac_ra_test(struct ra_test test, mac* mac, phy_dummy* phy, uint32_t* tti
       mac->run_tti(tti);
       TESTASSERT(!SRSLTE_RNTI_ISRAR(mac->get_dl_sched_rnti(tti)));
       tti++;
+      timers->step_all();
     }
 
     bool rapid_found = false;
@@ -1133,6 +1239,7 @@ int run_mac_ra_test(struct ra_test test, mac* mac, phy_dummy* phy, uint32_t* tti
       mac->run_tti(tti);
       TESTASSERT(mac->get_dl_sched_rnti(tti) == phy->get_rar_rnti());
       tti++;
+      timers->step_all();
 
       // Receive RAR
       if (test.rar_nof_rapid > 0) {
@@ -1158,6 +1265,7 @@ int run_mac_ra_test(struct ra_test test, mac* mac, phy_dummy* phy, uint32_t* tti
           mac->run_tti(tti);
           TESTASSERT(mac->get_dl_sched_rnti(tti) == (test.crnti ? test.crnti : test.temp_rnti));
           tti++;
+          timers->step_all();
         }
 
         if (i == test.rach_cfg.max_harq_msg3_tx) {
@@ -1180,6 +1288,7 @@ int run_mac_ra_test(struct ra_test test, mac* mac, phy_dummy* phy, uint32_t* tti
         mac->run_tti(tti);
         TESTASSERT(mac->get_dl_sched_rnti(tti) == (test.crnti ? test.crnti : test.temp_rnti));
         tti++;
+        timers->step_all();
 
         if (test.msg4_enable) {
           if (test.crnti) {
@@ -1216,6 +1325,7 @@ int run_mac_ra_test(struct ra_test test, mac* mac, phy_dummy* phy, uint32_t* tti
       phy->set_prach_tti(tti + phy->prach_delay, false);
       TESTASSERT(mac->get_dl_sched_rnti(tti) != temp_rnti);
       mac->run_tti(tti++);
+      timers->step_all();
     }
   }
 
@@ -1225,6 +1335,7 @@ int run_mac_ra_test(struct ra_test test, mac* mac, phy_dummy* phy, uint32_t* tti
     TESTASSERT(phy->get_crnti() == (test.crnti ? test.crnti : test.temp_rnti));
     TESTASSERT(mac->get_dl_sched_rnti(tti) == (test.crnti ? test.crnti : test.temp_rnti));
     tti++;
+    timers->step_all();
   }
 
   *tti_state = tti;
@@ -1254,14 +1365,17 @@ int mac_random_access_test()
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
 
+  srslte::timers timers(64);
+
   // dummy layers
   phy_dummy phy;
   phy.set_log(&phy_log);
-  rlc_dummy rlc(&rlc_log);
-  rrc_dummy rrc;
+  rlc_dummy   rlc(&rlc_log);
+  rrc_dummy   rrc;
+  stack_dummy stack;
 
   // Configure default RACH parameters
-  asn1::rrc::rach_cfg_common_s rach_cfg = {};
+  asn1::rrc::rach_cfg_common_s rach_cfg         = {};
   rach_cfg.preamb_info.nof_ra_preambs   = asn1::rrc::rach_cfg_common_s::preamb_info_s_::nof_ra_preambs_opts::n12;
   rach_cfg.ra_supervision_info.preamb_trans_max = asn1::rrc::preamb_trans_max_opts::n8;
   rach_cfg.ra_supervision_info.ra_resp_win_size =
@@ -1272,9 +1386,10 @@ int mac_random_access_test()
 
   // Configure MAC
   mac mac(&mac_log);
-  mac.init(&phy, &rlc, &rrc);
-  mac_interface_rrc::mac_cfg_t mac_cfg;
-  mac_cfg.set_rach_cfg_common(rach_cfg);
+  stack.init(&mac, &phy);
+  mac.init(&phy, &rlc, &rrc, &timers, &stack);
+  srslte::mac_cfg_t mac_cfg;
+  set_mac_cfg_t_rach_cfg_common(&mac_cfg, rach_cfg);
   mac.set_config(mac_cfg);
 
   // generate config for LCIDs in different LCGs than CCCH
@@ -1311,11 +1426,12 @@ int mac_random_access_test()
   mac_log.info("\n=========== Test %d =============\n", test_id++);
   my_test.rach_cfg   = rach_cfg;
   my_test.nof_prachs = rach_cfg.ra_supervision_info.preamb_trans_max.to_number();
-  TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti));
+  TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti, &timers));
 
   // Make sure it triggers RRC signal
   mac.run_tti(tti++);
   TESTASSERT(rrc.rach_problem == 1);
+  timers.step_all();
 
   // Reset MAC
   mac.reset();
@@ -1329,7 +1445,7 @@ int mac_random_access_test()
   my_test.rar_nof_rapid         = 1;
   my_test.nof_prachs            = 1;
   my_test.rar_nof_invalid_rapid = rach_cfg.ra_supervision_info.ra_resp_win_size.to_number();
-  TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti));
+  TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti, &timers));
 
   // Test 3: RAR received but no matching RAPID. Test Msg3 retransmissions
   //         On each HARQ retx, contention resolution timer must be restarted (5.1.5)
@@ -1337,7 +1453,7 @@ int mac_random_access_test()
   mac_log.info("\n=========== Test %d =============\n", test_id++);
   my_test.rar_nof_invalid_rapid = 0;
   my_test.nof_msg3_retx         = rach_cfg.max_harq_msg3_tx;
-  TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti));
+  TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti, &timers));
 
   // Test 4: RAR with valid RAPID. Msg3 transmitted, Msg4 received but invalid ConRes
   //         Contention resolution is defined in 5.1.5. If ConResID does not match, the ConRes is considered
@@ -1346,7 +1462,7 @@ int mac_random_access_test()
   phy.reset();
   my_test.nof_msg3_retx = 0;
   my_test.msg4_enable   = true;
-  TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti));
+  TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti, &timers));
 
   // Test 5: Msg4 received and valid ConRes. In this case a valid ConResID is received and RA procedure is successful
   mac_log.info("\n=========== Test %d =============\n", test_id++);
@@ -1354,7 +1470,7 @@ int mac_random_access_test()
   my_test.msg4_valid_conres        = true;
   my_test.check_ra_successful      = true;
   my_test.assume_prach_transmitted = 0;
-  TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti));
+  TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti, &timers));
 
   // Test 6: RA with existing C-RNTI (Sends C-RNTI MAC CE)
   //         The transmission of C-RNTI MAC CE is only done if no CCCH is present (5.1.4).
@@ -1366,7 +1482,7 @@ int mac_random_access_test()
   my_test.temp_rnti++; // Temporal C-RNTI has to change to avoid duplicate
   my_test.assume_prach_transmitted = -1;
   my_test.send_valid_ul_grant      = true;
-  TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti));
+  TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti, &timers));
 
   // Test 7: Test Contention based Random Access. This is used eg in HO where preamble is chosen by UE.
   //         It is similar to Test 5 because C-RNTI is available to the UE when start the RA but
@@ -1377,6 +1493,7 @@ int mac_random_access_test()
   phy.set_crnti(0);
   mac.start_cont_ho();
   mac.run_tti(tti++);
+  timers.step_all();
   rrc.ho_finish      = false;
   my_test.nof_prachs = rach_cfg.ra_supervision_info.preamb_trans_max.to_number();
   my_test.temp_rnti++; // Temporal C-RNTI has to change to avoid duplicate
@@ -1384,7 +1501,7 @@ int mac_random_access_test()
   my_test.assume_prach_transmitted = 0;
   my_test.check_ra_successful      = false;
   my_test.send_valid_ul_grant      = false;
-  TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti));
+  TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti, &timers));
   TESTASSERT(!rrc.ho_finish_successful && rrc.ho_finish);
 
   // Test 8: Test Contention based Random Access. Same as above but we let the procedure finish successfully.
@@ -1393,11 +1510,12 @@ int mac_random_access_test()
   phy.set_crnti(0);
   mac.start_cont_ho();
   mac.run_tti(tti++);
+  timers.step_all();
   rrc.ho_finish      = false;
   my_test.nof_prachs = 1;
   my_test.temp_rnti++; // Temporal C-RNTI has to change to avoid duplicate
   my_test.send_valid_ul_grant = true;
-  TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti));
+  TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti, &timers));
   TESTASSERT(rrc.ho_finish_successful && rrc.ho_finish);
 
   // Test 9: Test non-Contention based HO. Used in HO but preamble is given by the network. In addition to checking
@@ -1406,6 +1524,7 @@ int mac_random_access_test()
   mac_log.info("\n=========== Test %d =============\n", test_id++);
   phy.set_prach_tti(tti + phy.prach_delay);
   mac.run_tti(tti++);
+  timers.step_all();
   phy.set_crnti(0);
   rrc.ho_finish        = false;
   my_test.preamble_idx = 3;
@@ -1413,8 +1532,9 @@ int mac_random_access_test()
   my_test.nof_prachs            = rach_cfg.ra_supervision_info.preamb_trans_max.to_number();
   my_test.rar_nof_invalid_rapid = rach_cfg.ra_supervision_info.ra_resp_win_size.to_number();
   my_test.temp_rnti++; // Temporal C-RNTI has to change to avoid duplicate
-  TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti));
+  TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti, &timers));
   mac.run_tti(tti++);
+  timers.step_all();
   TESTASSERT(!rrc.ho_finish_successful && rrc.ho_finish);
 
   // Test 10: Test non-Contention based HO. Used in HO but preamble is given by the network. We check that
@@ -1422,6 +1542,7 @@ int mac_random_access_test()
   mac_log.info("\n=========== Test %d =============\n", test_id++);
   phy.set_prach_tti(tti + phy.prach_delay);
   mac.run_tti(tti++);
+  timers.step_all();
   phy.set_crnti(0);
   rrc.ho_finish        = false;
   my_test.preamble_idx = 3;
@@ -1430,8 +1551,9 @@ int mac_random_access_test()
   my_test.rar_nof_invalid_rapid = 0;
   my_test.check_ra_successful   = true;
   my_test.temp_rnti++; // Temporal C-RNTI has to change to avoid duplicate
-  TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti));
+  TESTASSERT(!run_mac_ra_test(my_test, &mac, &phy, &tti, &timers));
   mac.run_tti(tti++);
+  timers.step_all();
   TESTASSERT(rrc.ho_finish_successful && rrc.ho_finish);
 
   mac.stop();

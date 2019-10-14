@@ -23,7 +23,7 @@
 #include "srslte/common/log_filter.h"
 #include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/upper/pdcp.h"
-#include "srslte/upper/pdcp_entity.h"
+#include "srslte/upper/pdcp_entity_lte.h"
 #include "srslte/upper/rlc.h"
 #include "srsue/hdr/stack/mac/mac.h"
 #include "srsue/hdr/stack/rrc/rrc.h"
@@ -47,24 +47,20 @@ using namespace asn1::rrc;
     }                                                                                                                  \
   }
 
-uint8_t auth_request_pdu[] = { 0x07, 0x52, 0x01, 0x0c, 0x63, 0xa8, 0x54, 0x13, 0xe6, 0xa4,
-                               0xce, 0xd9, 0x86, 0xfb, 0xe5, 0xce, 0x9b, 0x62, 0x5e, 0x10,
-                               0x67, 0x57, 0xb3, 0xc2, 0xb9, 0x70, 0x90, 0x01, 0x0c, 0x72,
-                               0x8a, 0x67, 0x57, 0x92, 0x52, 0xb8 };
+uint8_t auth_request_pdu[] = {0x07, 0x52, 0x01, 0x0c, 0x63, 0xa8, 0x54, 0x13, 0xe6, 0xa4, 0xce, 0xd9,
+                              0x86, 0xfb, 0xe5, 0xce, 0x9b, 0x62, 0x5e, 0x10, 0x67, 0x57, 0xb3, 0xc2,
+                              0xb9, 0x70, 0x90, 0x01, 0x0c, 0x72, 0x8a, 0x67, 0x57, 0x92, 0x52, 0xb8};
 
-uint8_t sec_mode_command_pdu[] = { 0x37, 0x37, 0xc7, 0x67, 0xae, 0x00, 0x07, 0x5d, 0x02, 0x01,
-                                   0x02, 0xe0, 0x60, 0xc1 };
+uint8_t sec_mode_command_pdu[] = {0x37, 0x4e, 0xfd, 0x57, 0x11, 0x00, 0x07, 0x5d, 0x02, 0x01, 0x02, 0xf0, 0x70, 0xc1};
 
-uint8_t attach_accept_pdu[] = { 0x27, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0x42, 0x01, 0x3e,
-                                0x06, 0x00, 0x00, 0xf1, 0x10, 0x00, 0x01, 0x00, 0x2a, 0x52,
-                                0x01, 0xc1, 0x01, 0x04, 0x1b, 0x07, 0x74, 0x65, 0x73, 0x74,
-                                0x31, 0x32, 0x33, 0x06, 0x6d, 0x6e, 0x63, 0x30, 0x30, 0x31,
-                                0x06, 0x6d, 0x63, 0x63, 0x30, 0x30, 0x31, 0x04, 0x67, 0x70,
-                                0x72, 0x73, 0x05, 0x01, 0xc0, 0xa8, 0x05, 0x02, 0x27, 0x01,
-                                0x80, 0x50, 0x0b, 0xf6, 0x00, 0xf1, 0x10, 0x80, 0x01, 0x01,
-                                0x35, 0x16, 0x6d, 0xbc, 0x64, 0x01, 0x00 };
+uint8_t attach_accept_pdu[] = {0x27, 0x00, 0x00, 0x00, 0x00, 0x00, 0x07, 0x42, 0x01, 0x3e, 0x06, 0x00, 0x00,
+                               0xf1, 0x10, 0x00, 0x01, 0x00, 0x2a, 0x52, 0x01, 0xc1, 0x01, 0x04, 0x1b, 0x07,
+                               0x74, 0x65, 0x73, 0x74, 0x31, 0x32, 0x33, 0x06, 0x6d, 0x6e, 0x63, 0x30, 0x30,
+                               0x31, 0x06, 0x6d, 0x63, 0x63, 0x30, 0x30, 0x31, 0x04, 0x67, 0x70, 0x72, 0x73,
+                               0x05, 0x01, 0xc0, 0xa8, 0x05, 0x02, 0x27, 0x01, 0x80, 0x50, 0x0b, 0xf6, 0x00,
+                               0xf1, 0x10, 0x80, 0x01, 0x01, 0x35, 0x16, 0x6d, 0xbc, 0x64, 0x01, 0x00};
 
-uint8_t esm_info_req_pdu[] = { 0x27, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x5a, 0xd9 };
+uint8_t esm_info_req_pdu[] = {0x27, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x5a, 0xd9};
 
 uint8_t activate_dedicated_eps_bearer_pdu[] = {0x27, 0x00, 0x00, 0x00, 0x00, 0x00, 0x62, 0x00, 0xc5, 0x05,
                                                0x01, 0x01, 0x07, 0x21, 0x31, 0x00, 0x03, 0x40, 0x08, 0xae,
@@ -90,7 +86,7 @@ public:
   void        write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu) {}
   std::string get_rb_name(uint32_t lcid) { return std::string("lcid"); }
   void        write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking) {}
-  bool is_lcid_enabled(uint32_t lcid) { return false; }
+  bool        is_lcid_enabled(uint32_t lcid) { return false; }
 };
 
 class rrc_dummy : public rrc_interface_nas
@@ -100,6 +96,7 @@ public:
     plmns.plmn_id.from_number(mcc, mnc);
     plmns.tac = 0xffff;
   }
+  void init(nas* nas_) { nas_ptr = nas_; }
   void write_sdu(unique_byte_buffer_t sdu)
   {
     last_sdu_len = sdu->N_bytes;
@@ -110,10 +107,11 @@ public:
   uint32_t get_last_sdu_len() { return last_sdu_len; }
   void reset() { last_sdu_len = 0; }
 
-  int plmn_search(srsue::rrc_interface_nas::found_plmn_t* found) {
-    memcpy(found, &plmns, sizeof(found_plmn_t));
-    return 1;
-  };
+  bool plmn_search()
+  {
+    nas_ptr->plmn_search_completed(&plmns, 1);
+    return true;
+  }
   void plmn_select(srslte::plmn_id_t plmn_id){};
   void set_ue_identity(srslte::s_tmsi_t s_tmsi) {}
   bool connection_request(srslte::establishment_cause_t cause, srslte::unique_byte_buffer_t sdu)
@@ -121,6 +119,7 @@ public:
     printf("NAS generated SDU (len=%d):\n", sdu->N_bytes);
     last_sdu_len = sdu->N_bytes;
     srslte_vec_fprint_byte(stdout, sdu->msg, sdu->N_bytes);
+    nas_ptr->connection_request_completed(true);
     return true;
   }
   bool is_connected() {return false;}
@@ -129,8 +128,10 @@ public:
   uint16_t get_mnc() { return mnc; }
   void enable_capabilities() {}
   uint32_t get_lcid_for_eps_bearer(const uint32_t& eps_bearer_id) { return 0; }
+  void     paging_completed(bool outcome) {}
 
 private:
+  nas*         nas_ptr;
   uint32_t last_sdu_len;
   found_plmn_t plmns;
 };
@@ -140,13 +141,28 @@ class stack_dummy : public stack_interface_gw, public thread
 public:
   stack_dummy(pdcp_interface_gw* pdcp_, srsue::nas* nas_) : pdcp(pdcp_), nas(nas_), thread("DUMMY STACK") {}
   void init() { start(-1); }
-  bool switch_on() final { return nas->attach_request(); }
+  bool switch_on() final
+  {
+    proc_state_t proc_result = proc_state_t::on_going;
+    nas->start_attach_request(&proc_result);
+    while (proc_result == proc_state_t::on_going) {
+      usleep(1000);
+    }
+    return proc_result == proc_state_t::success;
+  }
   void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking)
   {
     pdcp->write_sdu(lcid, std::move(sdu), blocking);
   }
   bool is_lcid_enabled(uint32_t lcid) { return pdcp->is_lcid_enabled(lcid); }
-  void run_thread() { running = true; }
+  void run_thread()
+  {
+    running          = true;
+    uint32_t counter = 0;
+    while (running) {
+      nas->run_tti(counter++);
+    }
+  }
   void stop()
   {
     running = false;
@@ -208,9 +224,10 @@ int security_command_test()
   {
     srsue::nas nas(&nas_log);
     nas_args_t cfg;
-    cfg.eia = "1,2";
-    cfg.eea = "0,1,2";
+    cfg.eia = "1,2,3";
+    cfg.eea = "0,1,2,3";
     nas.init(&usim, &rrc_dummy, &gw, cfg);
+    rrc_dummy.init(&nas);
 
     // push auth request PDU to NAS to generate security context
     byte_buffer_pool*  pool = byte_buffer_pool::get_instance();
@@ -279,6 +296,7 @@ int mme_attach_request_test()
     stack_dummy stack(&pdcp_dummy, &nas);
 
     nas.init(&usim, &rrc_dummy, &gw, nas_cfg);
+    rrc_dummy.init(&nas);
 
     gw_args_t gw_args;
     gw_args.tun_dev_name     = "tun0";

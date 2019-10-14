@@ -136,14 +136,8 @@ int main(int argc, char **argv) {
     ERROR("Error opening rf\n");
     exit(-1);
   }
-  srslte_rf_set_master_clock_rate(&rf, 30.72e6);        
-  
-  int srate = srslte_sampling_freq_hz(nof_prb);    
-  if (srate < 10e6) {          
-    srslte_rf_set_master_clock_rate(&rf, 4*srate);        
-  } else {
-    srslte_rf_set_master_clock_rate(&rf, srate);        
-  }
+
+  int srate = srslte_sampling_freq_hz(nof_prb);
   srslte_rf_set_rx_srate(&rf, (double) srate);
   srslte_rf_set_tx_srate(&rf, (double) srate);
   

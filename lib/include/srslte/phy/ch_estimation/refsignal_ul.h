@@ -64,6 +64,8 @@ typedef struct SRSLTE_API {
   uint32_t I_srs; 
   uint32_t k_tc; 
   uint32_t n_rrc;
+  bool     dedicated_enabled;
+  bool     common_enabled;
   bool     configured;
 } srslte_refsignal_srs_cfg_t;
 

@@ -53,12 +53,12 @@ rlc::~rlc()
 
 void rlc::init(srsue::pdcp_interface_rlc* pdcp_,
                srsue::rrc_interface_rlc*  rrc_,
-               mac_interface_timers*      mac_timers_,
+               srslte::timers*            timers_,
                uint32_t                   lcid_)
 {
-  pdcp    = pdcp_;
-  rrc     = rrc_;
-  mac_timers = mac_timers_;
+  pdcp         = pdcp_;
+  rrc          = rrc_;
+  timers       = timers_;
   default_lcid = lcid_;
 
   gettimeofday(&metrics_time[1], NULL);
@@ -384,13 +384,13 @@ void rlc::add_bearer(uint32_t lcid, rlc_config_t cnfg)
   if (not valid_lcid(lcid)) {
     switch (cnfg.rlc_mode) {
       case rlc_mode_t::tm:
-        rlc_entity = new rlc_tm(rlc_log, lcid, pdcp, rrc, mac_timers);
+        rlc_entity = new rlc_tm(rlc_log, lcid, pdcp, rrc, timers);
         break;
       case rlc_mode_t::am:
-        rlc_entity = new rlc_am(rlc_log, lcid, pdcp, rrc, mac_timers);
+        rlc_entity = new rlc_am(rlc_log, lcid, pdcp, rrc, timers);
         break;
       case rlc_mode_t::um:
-        rlc_entity = new rlc_um(rlc_log, lcid, pdcp, rrc, mac_timers);
+        rlc_entity = new rlc_um(rlc_log, lcid, pdcp, rrc, timers);
         break;
       default:
         rlc_log->error("Cannot add RLC entity - invalid mode\n");
@@ -428,10 +428,10 @@ unlock_and_exit:
 void rlc::add_bearer_mrb(uint32_t lcid)
 {
   pthread_rwlock_wrlock(&rwlock);
-  rlc_common *rlc_entity = NULL;
+  rlc_common* rlc_entity = NULL;
 
   if (not valid_lcid_mrb(lcid)) {
-    rlc_entity = new rlc_um(rlc_log, lcid, pdcp, rrc, mac_timers);
+    rlc_entity = new rlc_um(rlc_log, lcid, pdcp, rrc, timers);
     // configure and add to array
     if (not rlc_entity->configure(rlc_config_t::mch_config())) {
       rlc_log->error("Error configuring RLC entity\n.");
@@ -523,7 +523,7 @@ exit:
 
 void rlc::suspend_bearer(uint32_t lcid)
 {
-  pthread_rwlock_wrlock(&rwlock);
+  pthread_rwlock_rdlock(&rwlock);
 
   if (valid_lcid(lcid)) {
     if (rlc_array.at(lcid)->suspend()) {
@@ -540,7 +540,7 @@ void rlc::suspend_bearer(uint32_t lcid)
 
 void rlc::resume_bearer(uint32_t lcid)
 {
-  pthread_rwlock_wrlock(&rwlock);
+  pthread_rwlock_rdlock(&rwlock);
 
   rlc_log->info("Resuming radio bearer %s\n", rrc->get_rb_name(lcid).c_str());
   if (valid_lcid(lcid)) {

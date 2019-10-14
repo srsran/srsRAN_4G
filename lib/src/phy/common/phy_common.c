@@ -46,7 +46,7 @@ bool srslte_cellid_isvalid(uint32_t cell_id) {
 }
 
 bool srslte_nofprb_isvalid(uint32_t nof_prb) {
-  if (nof_prb >= 6 && nof_prb <= SRSLTE_MAX_PRB) {
+  if (nof_prb >= 6 && nof_prb <= 100) {
     return true;
   } else {
     return false;
@@ -738,4 +738,43 @@ uint32_t srslte_print_check(char* s, size_t max_len, uint32_t cur_len, const cha
     exit(-1);
   }
   return cur_len;
+}
+
+bool srslte_nbiot_prb_isvalid(srslte_nbiot_cell_t* cell)
+{
+  if (cell->nbiot_prb <= cell->base.nof_prb) {
+    return true;
+  }
+  return false;
+}
+
+bool srslte_nbiot_cell_isvalid(srslte_nbiot_cell_t* cell)
+{
+  return (srslte_cell_isvalid(&cell->base) && srslte_nbiot_portid_isvalid(cell->nof_ports) &&
+          srslte_nbiot_prb_isvalid(cell) && srslte_cellid_isvalid(cell->n_id_ncell));
+}
+
+bool srslte_nbiot_portid_isvalid(uint32_t port_id)
+{
+  if (port_id <= SRSLTE_NBIOT_MAX_PORTS) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+char* srslte_nbiot_mode_string(srslte_nbiot_mode_t mode)
+{
+  switch (mode) {
+    case SRSLTE_NBIOT_MODE_INBAND_SAME_PCI:
+      return "Inband (Same PCI)";
+    case SRSLTE_NBIOT_MODE_INBAND_DIFFERENT_PCI:
+      return "Inband (Different PCI)";
+    case SRSLTE_NBIOT_MODE_GUARDBAND:
+      return "Guardband";
+    case SRSLTE_NBIOT_MODE_STANDALONE:
+      return "Standalone";
+    default:
+      return "N/A";
+  }
 }

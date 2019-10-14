@@ -27,6 +27,7 @@ using namespace srslte;
 namespace srsue {
 
 ue_stack_lte::ue_stack_lte() :
+  timers(64),
   running(false),
   args(),
   logger(nullptr),
@@ -37,8 +38,17 @@ ue_stack_lte::ue_stack_lte() :
   rrc(&rrc_log),
   pdcp(&pdcp_log),
   nas(&nas_log),
-  thread("STACK")
+  thread("STACK"),
+  pending_tasks(1024),
+  background_tasks(2)
 {
+  ue_queue_id         = pending_tasks.add_queue();
+  sync_queue_id       = pending_tasks.add_queue();
+  gw_queue_id         = pending_tasks.add_queue();
+  mac_queue_id        = pending_tasks.add_queue();
+  background_queue_id = pending_tasks.add_queue();
+
+  background_tasks.start();
 }
 
 ue_stack_lte::~ue_stack_lte()
@@ -114,11 +124,11 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
     return SRSLTE_ERROR;
   }
 
-  mac.init(phy, &rlc, &rrc);
-  rlc.init(&pdcp, &rrc, &mac, 0 /* RB_ID_SRB0 */);
+  mac.init(phy, &rlc, &rrc, &timers, this);
+  rlc.init(&pdcp, &rrc, &timers, 0 /* RB_ID_SRB0 */);
   pdcp.init(&rlc, &rrc, gw);
   nas.init(usim.get(), &rrc, gw, args.nas);
-  rrc.init(phy, &mac, &rlc, &pdcp, &nas, usim.get(), gw, &mac, args.rrc);
+  rrc.init(phy, &mac, &rlc, &pdcp, &nas, usim.get(), gw, &timers, this, args.rrc);
 
   running = true;
   start(STACK_MAIN_THREAD_PRIO);
@@ -129,7 +139,7 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
 void ue_stack_lte::stop()
 {
   if (running) {
-    pending_tasks.push([this]() { stop_impl(); });
+    pending_tasks.try_push(ue_queue_id, task_t{[this](task_t*) { stop_impl(); }});
     wait_thread_finish();
   }
 }
@@ -157,7 +167,13 @@ void ue_stack_lte::stop_impl()
 bool ue_stack_lte::switch_on()
 {
   if (running) {
-    return nas.attach_request();
+    proc_state_t proc_result = proc_state_t::on_going;
+    pending_tasks.try_push(ue_queue_id,
+                           task_t{[this, &proc_result](task_t*) { nas.start_attach_request(&proc_result); }});
+    while (proc_result == proc_state_t::on_going) {
+      usleep(1000);
+    }
+    return proc_result == proc_state_t::success;
   }
 
   return false;
@@ -165,8 +181,8 @@ bool ue_stack_lte::switch_on()
 
 bool ue_stack_lte::switch_off()
 {
-  // generate detach request
-  nas.detach_request();
+  // generate detach request with switch-off flag
+  nas.detach_request(true);
 
   // wait for max. 5s for it to be sent (according to TS 24.301 Sec 25.5.2.2)
   const uint32_t RB_ID_SRB1 = 1;
@@ -184,6 +200,18 @@ bool ue_stack_lte::switch_off()
   return detach_sent;
 }
 
+bool ue_stack_lte::enable_data()
+{
+  // perform attach request
+  return switch_on();
+}
+
+bool ue_stack_lte::disable_data()
+{
+  // generate detach request
+  return nas.detach_request(false);
+}
+
 bool ue_stack_lte::get_metrics(stack_metrics_t* metrics)
 {
   mac.get_metrics(metrics->mac);
@@ -196,31 +224,99 @@ bool ue_stack_lte::get_metrics(stack_metrics_t* metrics)
 void ue_stack_lte::run_thread()
 {
   while (running) {
-    // FIXME: For now it is a single queue
-    std::function<void()> func = pending_tasks.wait_pop();
-    func();
+    task_t task{};
+    if (pending_tasks.wait_pop(&task) >= 0) {
+      task();
+    }
   }
 }
 
+/***********************************************************************************************************************
+ *                                                Stack Interfaces
+ **********************************************************************************************************************/
+
+/********************
+ *   GW Interface
+ *******************/
+
+/**
+ * Push GW SDU to stack
+ * @param lcid
+ * @param sdu
+ * @param blocking
+ */
+void ue_stack_lte::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking)
+{
+  task_t task{};
+  task.pdu  = std::move(sdu);
+  task.func = [this, lcid, blocking](task_t* task_ctxt) { pdcp.write_sdu(lcid, std::move(task_ctxt->pdu), blocking); };
+  std::pair<bool, task_t> ret = pending_tasks.try_push(gw_queue_id, std::move(task));
+  if (not ret.first) {
+    pdcp_log.warning("GW SDU with lcid=%d was discarded.\n", lcid);
+  }
+}
+
+/********************
+ *  SYNC Interface
+ *******************/
+
+/**
+ * Sync thread signal that it is in sync
+ */
 void ue_stack_lte::in_sync()
 {
-  pending_tasks.push([this]() { rrc.in_sync(); });
+  pending_tasks.push(sync_queue_id, task_t{[this](task_t*) { rrc.in_sync(); }});
 }
 
 void ue_stack_lte::out_of_sync()
 {
-  pending_tasks.push([this]() { rrc.out_of_sync(); });
+  pending_tasks.push(sync_queue_id, task_t{[this](task_t*) { rrc.out_of_sync(); }});
 }
 
 void ue_stack_lte::run_tti(uint32_t tti)
 {
-  pending_tasks.push([this, tti]() { run_tti_impl(tti); });
+  pending_tasks.push(sync_queue_id, task_t{[this, tti](task_t*) { run_tti_impl(tti); }});
 }
 
 void ue_stack_lte::run_tti_impl(uint32_t tti)
 {
   mac.run_tti(tti);
   rrc.run_tti(tti);
+  nas.run_tti(tti);
+  timers.step_all();
+}
+
+/********************
+ * low MAC Interface
+ *******************/
+
+void ue_stack_lte::process_pdus()
+{
+  pending_tasks.push(mac_queue_id, task_t{[this](task_t*) { mac.process_pdus(); }});
+}
+
+void ue_stack_lte::wait_ra_completion(uint16_t rnti)
+{
+  background_tasks.push_task([this, rnti](uint32_t worker_id) {
+    phy->set_crnti(rnti);
+    // signal MAC RA proc to go back to idle
+    mac.notify_ra_completed();
+  });
+}
+
+/********************
+ *  RRC Interface
+ *******************/
+
+void ue_stack_lte::start_cell_search()
+{
+  background_tasks.push_task([this](uint32_t worker_id) {
+    phy_interface_rrc_lte::phy_cell_t        found_cell;
+    phy_interface_rrc_lte::cell_search_ret_t ret = phy->cell_search(&found_cell);
+    // notify back RRC
+    pending_tasks.push(background_queue_id,
+                       task_t{[this, found_cell, ret](task_t*) { rrc.cell_search_completed(ret, found_cell); }});
+  });
 }
 
 } // namespace srsue

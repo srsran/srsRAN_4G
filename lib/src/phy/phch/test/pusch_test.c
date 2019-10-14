@@ -121,7 +121,7 @@ void parse_extensive_param(char *param, char *arg) {
       uci_data_tx.cfg.cqi.ri_len = 1;
     }
   } else if (!strcmp(param, "uci_ack")) {
-    uci_data_tx.cfg.ack.nof_acks = SRSLTE_MIN(uci_data_tx.cfg.ack.nof_acks + 1, SRSLTE_UCI_MAX_ACK_BITS);
+    uci_data_tx.cfg.ack[0].nof_acks = SRSLTE_MIN(uci_data_tx.cfg.ack[0].nof_acks + 1, SRSLTE_UCI_MAX_ACK_BITS);
   } else if (!strcmp(param, "enable_64qam")) {
     enable_64_qam ^= true;
   } else {
@@ -295,7 +295,7 @@ int main(int argc, char** argv)
       data[i] = (uint8_t)srslte_random_uniform_int_dist(random_h, 0, 255);
     }
 
-    for (uint32_t a = 0; a < uci_data_tx.cfg.ack.nof_acks; a++) {
+    for (uint32_t a = 0; a < uci_data_tx.cfg.ack[0].nof_acks; a++) {
       uci_data_tx.value.ack.ack_value[a] = (uint8_t)srslte_random_uniform_int_dist(random_h, 0, 1);
     }
 
@@ -338,17 +338,17 @@ int main(int argc, char** argv)
       INFO("Rx Data is Ok\n");
     }
 
-    if (uci_data_tx.cfg.ack.nof_acks) {
-      if (memcmp(uci_data_tx.value.ack.ack_value, pusch_res.uci.ack.ack_value, uci_data_tx.cfg.ack.nof_acks) != 0) {
+    if (uci_data_tx.cfg.ack[0].nof_acks) {
+      if (memcmp(uci_data_tx.value.ack.ack_value, pusch_res.uci.ack.ack_value, uci_data_tx.cfg.ack[0].nof_acks) != 0) {
         printf("UCI ACK bit error:\n");
         printf("\tTx: ");
-        srslte_vec_fprint_byte(stdout, uci_data_tx.value.ack.ack_value, uci_data_tx.cfg.ack.nof_acks);
+        srslte_vec_fprint_byte(stdout, uci_data_tx.value.ack.ack_value, uci_data_tx.cfg.ack[0].nof_acks);
         printf("\tRx: ");
-        srslte_vec_fprint_byte(stdout, pusch_res.uci.ack.ack_value, cfg.uci_cfg.ack.nof_acks);
+        srslte_vec_fprint_byte(stdout, pusch_res.uci.ack.ack_value, cfg.uci_cfg.ack[0].nof_acks);
         ret = SRSLTE_ERROR;
       } else {
         INFO("Rx ACK (%d bits) is Ok, %d%d\n",
-             uci_data_tx.cfg.ack.nof_acks,
+             uci_data_tx.cfg.ack[0].nof_acks,
              uci_data_tx.value.ack.ack_value[0],
              uci_data_tx.value.ack.ack_value[1]);
       }

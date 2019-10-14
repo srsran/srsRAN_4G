@@ -89,8 +89,8 @@ void parse_args(all_args_t* args, int argc, char* argv[])
   string   mme_apn;
   string   encryption_algo;
   string   integrity_algo;
-  uint16_t paging_timer;
-  uint32_t max_paging_queue;
+  uint16_t paging_timer     = 0;
+  uint32_t max_paging_queue = 0;
   string   spgw_bind_addr;
   string   sgi_if_addr;
   string   sgi_if_name;
@@ -249,9 +249,11 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     args->mme_args.s1ap_args.encryption_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA1;
   } else if (boost::iequals(encryption_algo, "eea2")) {
     args->mme_args.s1ap_args.encryption_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA2;
+  } else if (boost::iequals(encryption_algo, "eea3")) {
+    args->mme_args.s1ap_args.encryption_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA3;
   } else {
     args->mme_args.s1ap_args.encryption_algo = srslte::CIPHERING_ALGORITHM_ID_EEA0;
-    cout << "Error parsing mme.encryption_algo:" << encryption_algo << " - must be EEA0, EEA1, or EEA2." << endl;
+    cout << "Error parsing mme.encryption_algo:" << encryption_algo << " - must be EEA0, EEA1, EEA2 or EEA3." << endl;
     cout << "Using default mme.encryption_algo: EEA0" << endl;
   }
 
@@ -263,9 +265,11 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     args->mme_args.s1ap_args.integrity_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA1;
   } else if (boost::iequals(integrity_algo, "eia2")) {
     args->mme_args.s1ap_args.integrity_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA2;
+  } else if (boost::iequals(integrity_algo, "eia3")) {
+    args->mme_args.s1ap_args.integrity_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA3;
   } else {
     args->mme_args.s1ap_args.integrity_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA1;
-    cout << "Error parsing mme.integrity_algo:" << encryption_algo << " - must be EIA0, EIA1, or EIA2." << endl;
+    cout << "Error parsing mme.integrity_algo:" << encryption_algo << " - must be EIA0, EIA1, EIA2 or EIA3." << endl;
     cout << "Using default mme.integrity_algo: EIA1" << endl;
   }
 
@@ -401,9 +405,9 @@ int main(int argc, char* argv[])
     logger = &logger_stdout;
   } else {
     logger_file.init(args.log_args.filename);
-    logger_file.log("\n\n");
-    logger_file.log(get_build_string().c_str());
-    logger_file.log("\n---  Software Radio Systems EPC log ---\n\n");
+    logger_file.log_char("\n\n");
+    logger_file.log_char(get_build_string().c_str());
+    logger_file.log_char("\n---  Software Radio Systems EPC log ---\n\n");
     logger = &logger_file;
   }
 

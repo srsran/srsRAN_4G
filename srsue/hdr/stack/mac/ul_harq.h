@@ -48,7 +48,7 @@ public:
 
   void reset();
   void reset_ndi();
-  void set_config(mac_interface_rrc_common::ul_harq_cfg_t& harq_cfg);
+  void set_config(srslte::ul_harq_cfg_t& harq_cfg);
 
   void start_pcap(srslte::mac_pcap* pcap_);
 
@@ -112,7 +112,7 @@ private:
   srslte::log*      log_h;
 
   mac_interface_rrc_common::ue_rnti_t*    rntis;
-  mac_interface_rrc_common::ul_harq_cfg_t harq_cfg;
+  srslte::ul_harq_cfg_t                   harq_cfg;
 
   float    average_retx;
   uint64_t nof_pkts;

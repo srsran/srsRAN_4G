@@ -474,12 +474,9 @@ int main(int argc, char **argv) {
     sigprocmask(SIG_UNBLOCK, &sigset, NULL);
     signal(SIGINT, sig_int_handler);
 
-    srslte_rf_set_master_clock_rate(&rf, 30.72e6);
-
     /* set receiver frequency */
     printf("Tunning receiver to %.3f MHz\n", (prog_args.rf_freq + prog_args.file_offset_freq) / 1000000);
     srslte_rf_set_rx_freq(&rf, prog_args.rf_nof_rx_ant, prog_args.rf_freq + prog_args.file_offset_freq);
-    srslte_rf_rx_wait_lo_locked(&rf);
 
     uint32_t ntrial = 0;
     do {
@@ -501,11 +498,6 @@ int main(int argc, char **argv) {
     /* set sampling frequency */
     int srate = srslte_sampling_freq_hz(cell.nof_prb);
     if (srate != -1) {
-      if (srate < 10e6) {
-        srslte_rf_set_master_clock_rate(&rf, 4 * srate);
-      } else {
-        srslte_rf_set_master_clock_rate(&rf, srate);
-      }
       printf("Setting sampling rate %.2f MHz\n", (float)srate / 1000000);
       float srate_rf = srslte_rf_set_rx_srate(&rf, (double) srate);
       if (srate_rf != srate) {
@@ -606,13 +598,13 @@ int main(int argc, char **argv) {
     dl_sf.tdd_config.configured = true;
   }
 
-  srslte_chest_dl_cfg_t chest_pdsch_cfg;
+  srslte_chest_dl_cfg_t chest_pdsch_cfg = {};
   chest_pdsch_cfg.cfo_estimate_enable  = prog_args.enable_cfo_ref;
   chest_pdsch_cfg.cfo_estimate_sf_mask = 1023;
   chest_pdsch_cfg.interpolate_subframe = !prog_args.average_subframe;
 
   // Special configuration for MBSFN channel estimation
-  srslte_chest_dl_cfg_t chest_mbsfn_cfg;
+  srslte_chest_dl_cfg_t chest_mbsfn_cfg = {};
   chest_mbsfn_cfg.filter_type          = SRSLTE_CHEST_FILTER_TRIANGLE;
   chest_mbsfn_cfg.filter_coef[0]       = 0.1;
   chest_mbsfn_cfg.interpolate_subframe = true;
@@ -789,7 +781,7 @@ int main(int argc, char **argv) {
               dl_sf.tti        = tti;
               dl_sf.sf_type    = sf_type;
               ue_dl_cfg.cfg.tm = (srslte_tm_t)tm;
-              ue_dl_cfg.pdsch_use_tbs_index_alt = prog_args.enable_256qam;
+              ue_dl_cfg.cfg.pdsch.use_tbs_index_alt = prog_args.enable_256qam;
 
               if ((ue_dl_cfg.cfg.tm == SRSLTE_TM1 && cell.nof_ports == 1) ||
                   (ue_dl_cfg.cfg.tm > SRSLTE_TM1 && cell.nof_ports > 1)) {

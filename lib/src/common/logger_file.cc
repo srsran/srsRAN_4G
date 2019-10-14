@@ -33,44 +33,58 @@ logger_file::logger_file() : logfile(NULL), is_running(false), cur_length(0), ma
   pthread_cond_init(&not_empty, NULL);
 }
 
-logger_file::~logger_file() {
-  if(is_running) {
-    log(new std::string("Closing log\n"));
-    pthread_mutex_lock(&mutex);
-    is_running = false;
-    pthread_cond_signal(&not_empty);  // wakeup thread and let it terminate
-    pthread_mutex_unlock(&mutex);
-    wait_thread_finish();
-    flush();
-    if (logfile) {
-      fclose(logfile);
-    }
-  }
+logger_file::~logger_file()
+{
+  stop();
   pthread_mutex_destroy(&mutex);
   pthread_cond_destroy(&not_empty);
 }
 
 void logger_file::init(std::string file, int max_length_) {
-  pthread_mutex_init(&mutex, NULL); 
-  pthread_cond_init(&not_empty, NULL);
+  if (is_running) {
+    fprintf(stderr, "Error: logger thread is already running.\n");
+    return;
+  }
+  pthread_mutex_lock(&mutex);
   max_length = (int64_t)max_length_*1024;
   name_idx = 0;
   filename = file;
   logfile = fopen(filename.c_str(), "w");
-  if(logfile == NULL) {
+  if (logfile == NULL) {
     printf("Error: could not create log file, no messages will be logged!\n");
   }
   is_running = true;
   start(-2);
+  pthread_mutex_unlock(&mutex);
 }
 
-void logger_file::log(const char *msg) {
-  log(new std::string(msg));
+void logger_file::stop()
+{
+  if (is_running) {
+    logger::log_char("Closing log\n");
+    pthread_mutex_lock(&mutex);
+    is_running = false;
+    pthread_cond_signal(&not_empty); // wakeup thread and let it terminate
+    pthread_mutex_unlock(&mutex);
+    wait_thread_finish();
+    pthread_mutex_lock(&mutex);
+    flush();
+    if (logfile) {
+      fclose(logfile);
+      logfile = NULL;
+    }
+    pthread_mutex_unlock(&mutex);
+  } else {
+    pthread_mutex_lock(&mutex);
+    flush(); // flush even if thread isn't running anymore
+    pthread_mutex_unlock(&mutex);
+  }
 }
 
-void logger_file::log(str_ptr msg) {
+void logger_file::log(unique_log_str_t msg)
+{
   pthread_mutex_lock(&mutex);
-  buffer.push_back(msg);
+  buffer.push_back(std::move(msg));
   pthread_cond_signal(&not_empty);
   pthread_mutex_unlock(&mutex);
 }
@@ -85,13 +99,14 @@ void logger_file::run_thread() {
         return; // Thread done. Messages in buffer will be handled in flush.
       }
     }
-    str_ptr s = buffer.front();
+    unique_log_str_t s = std::move(buffer.front());
+
     int n = 0;
-    if(logfile)
-      n = fprintf(logfile, "%s", s->c_str());
-    delete s; 
+    if (logfile) {
+      n = fprintf(logfile, "%s", s->str());
+    }
     buffer.pop_front();
-    pthread_mutex_unlock(&mutex);
+
     if (n > 0) {
       cur_length += (int64_t) n;
       if (cur_length >= max_length && max_length > 0) {
@@ -107,18 +122,20 @@ void logger_file::run_thread() {
         cur_length = 0;
       }
     }
+    pthread_mutex_unlock(&mutex);
   }
 }
 
-void logger_file::flush() {
-  std::deque<str_ptr>::iterator it;
-  for(it=buffer.begin();it!=buffer.end();it++)
-  {
-    str_ptr s = *it; 
-    if(logfile)
-      fprintf(logfile, "%s", s->c_str());
-    delete s; 
+void logger_file::flush()
+{
+  std::deque<unique_log_str_t>::iterator it;
+  for (it = buffer.begin(); it != buffer.end(); it++) {
+    unique_log_str_t s = std::move(*it);
+    if (logfile) {
+      fprintf(logfile, "%s", s->str());
+    }
   }
+  buffer.clear();
 }
 
-} // namespace srsue
+} // namespace srslte

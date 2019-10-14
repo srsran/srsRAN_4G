@@ -38,7 +38,7 @@ class phr_proc : public srslte::timer_callback
 public:
   phr_proc();
   void init(phy_interface_mac_lte* phy_h, srslte::log* log_h_, srslte::timers* timers_db_);
-  void set_config(mac_interface_rrc::phr_cfg_t& cfg);
+  void set_config(srslte::phr_cfg_t& cfg);
   void step(uint32_t tti);
   void reset();
   
@@ -55,7 +55,7 @@ private:
   srslte::log* log_h;
   phy_interface_mac_lte*       phy_h;
   srslte::timers* timers_db;
-  mac_interface_rrc::phr_cfg_t phr_cfg;
+  srslte::phr_cfg_t            phr_cfg;
   bool initiated;
   int last_pathloss_db;
   bool phr_is_triggered;

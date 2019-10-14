@@ -40,8 +40,10 @@
 #include "upper/usim.h"
 
 #include "srslte/common/buffer_pool.h"
-#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/common/log_filter.h"
+#include "srslte/common/multiqueue.h"
+#include "srslte/common/thread_pool.h"
+#include "srslte/interfaces/ue_interfaces.h"
 
 #include "srsue/hdr/ue_metrics_interface.h"
 #include "ue_stack_base.h"
@@ -51,18 +53,22 @@ namespace srsue {
 class ue_stack_lte final : public ue_stack_base,
                            public stack_interface_phy_lte,
                            public stack_interface_gw,
+                           public stack_interface_mac,
+                           public stack_interface_rrc,
                            public thread
 {
 public:
   ue_stack_lte();
   ~ue_stack_lte();
 
-  std::string get_type();
+  std::string get_type() final;
 
   int  init(const stack_args_t& args_, srslte::logger* logger_);
   int  init(const stack_args_t& args_, srslte::logger* logger_, phy_interface_stack_lte* phy_, gw_interface_stack* gw_);
   bool switch_on() final;
   bool switch_off();
+  bool enable_data();
+  bool disable_data();
   void stop();
 
   bool get_metrics(stack_metrics_t* metrics);
@@ -106,12 +112,16 @@ public:
   void run_tti(uint32_t tti) final;
 
   // Interface for GW
-  void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking) final
-  {
-    pdcp.write_sdu(lcid, std::move(sdu), blocking);
-  }
+  void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking) final;
 
   bool is_lcid_enabled(uint32_t lcid) final { return pdcp.is_lcid_enabled(lcid); }
+
+  // Interface to upper MAC
+  void process_pdus() final;
+  void wait_ra_completion(uint16_t rnti) final;
+
+  // Interface for RRC
+  void start_cell_search() final;
 
 private:
   void run_thread() final;
@@ -120,6 +130,9 @@ private:
 
   bool                running;
   srsue::stack_args_t args;
+
+  // timers
+  srslte::timers timers;
 
   // UE stack logging
   srslte::logger*    logger = nullptr;
@@ -146,8 +159,19 @@ private:
   gw_interface_stack*      gw  = nullptr;
 
   // Thread
-  static const int                            STACK_MAIN_THREAD_PRIO = -1; // Use default high-priority below UHD
-  srslte::block_queue<std::function<void()> > pending_tasks;
+  static const int STACK_MAIN_THREAD_PRIO = -1; // Use default high-priority below UHD
+
+  // NOTE: we use this struct instead of a std::function bc lambdas can't capture by move in C++11
+  struct task_t {
+    std::function<void(task_t*)> func;
+    srslte::unique_byte_buffer_t pdu;
+    task_t() = default;
+    explicit task_t(std::function<void(task_t*)> f_) : func(std::move(f_)) {}
+    void operator()() { func(this); }
+  };
+  srslte::multiqueue_handler<task_t> pending_tasks;
+  int sync_queue_id = -1, ue_queue_id = -1, gw_queue_id = -1, mac_queue_id = -1, background_queue_id = -1;
+  srslte::task_thread_pool background_tasks; ///< Thread pool used for long, low-priority tasks
 };
 
 } // namespace srsue

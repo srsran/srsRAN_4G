@@ -18,7 +18,12 @@
 # and at http://www.gnu.org/licenses/.
 #
 
+add_subdirectory(phy)
 add_subdirectory(upper)
+
+if (ENABLE_TTCN3)
+  add_subdirectory(ttcn3)
+endif (ENABLE_TTCN3)
 
 add_executable(metrics_test metrics_test.cc ../src/metrics_stdout.cc ../src/metrics_csv.cc)
 target_link_libraries(metrics_test srslte_phy srslte_common)

@@ -28,6 +28,7 @@ FIND_LIBRARY(
           /usr/local/lib64
           /usr/lib
           /usr/lib64
+          /usr/lib/x86_64-linux-gnu/
 )
 
 message(STATUS "SCTP LIBRARIES: " ${SCTP_LIBRARIES})

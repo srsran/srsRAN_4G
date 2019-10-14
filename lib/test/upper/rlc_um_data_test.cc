@@ -31,8 +31,6 @@ uint32_t PDU1_LEN = 2;
 uint8_t pdu2[] = {0x1C ,0xE1 ,0x06 ,0x80};
 uint32_t PDU2_LEN = 4;
 
-using namespace srsue;
-
 int main(int argc, char **argv) {
   srslte::rlc_umd_pdu_header_t h;
   srslte::byte_buffer_t  b1,b2;

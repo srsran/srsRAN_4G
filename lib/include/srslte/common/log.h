@@ -65,9 +65,7 @@ public:
     tti = 0;
     level = LOG_LEVEL_NONE;
     hex_limit = 0;
-    show_layer_en = true;
     add_string_en = false;
-    level_text_short = true;
   }
 
   log(std::string service_name_) {
@@ -75,9 +73,7 @@ public:
     tti = 0;
     level = LOG_LEVEL_NONE;
     hex_limit = 0;
-    show_layer_en = true;
     add_string_en = false;
-    level_text_short = true;
   }
 
   virtual ~log() {};
@@ -131,12 +127,6 @@ public:
   int get_hex_limit() {
     return hex_limit;
   }
-  void set_log_level_short(bool enable) {
-    level_text_short = enable;
-  }
-  void show_layer(bool enable) {
-    show_layer_en = enable;
-  }
 
   // Pure virtual methods for logging
   virtual void console(const char * message, ...) __attribute__ ((format (printf, 2, 3))) = 0;
@@ -144,6 +134,7 @@ public:
   virtual void warning(const char * message, ...) __attribute__ ((format (printf, 2, 3))) = 0;
   virtual void info(const char * message, ...)    __attribute__ ((format (printf, 2, 3))) = 0;
   virtual void debug(const char * message, ...)   __attribute__ ((format (printf, 2, 3))) = 0;
+  virtual void debug_long(const char* message, ...) __attribute__((format(printf, 2, 3))) = 0;
 
   // Same with hex dump
   virtual void error_hex(const uint8_t *, int, const char *, ...)   __attribute__((format (printf, 4, 5)))
@@ -162,8 +153,6 @@ protected:
   int             hex_limit;
   std::string     service_name;
 
-  bool        show_layer_en;
-  bool        level_text_short;
   bool        add_string_en;
   std::string add_string_val;
 };

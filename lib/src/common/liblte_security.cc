@@ -37,6 +37,7 @@
 #include "srslte/common/liblte_security.h"
 #include "math.h"
 #include "srslte/common/liblte_ssl.h"
+#include "srslte/common/zuc.h"
 
 /*******************************************************************************
                               DEFINES
@@ -807,6 +808,88 @@ LIBLTE_ERROR_ENUM liblte_security_128_eia2(
   return (err);
 }
 
+u32 GET_WORD(u32* DATA, u32 i)
+{
+  u32 WORD, ti;
+  ti = i % 32;
+  if (ti == 0)
+    WORD = DATA[i / 32];
+  else
+    WORD = (DATA[i / 32] << ti) | (DATA[i / 32 + 1] >> (32 - ti));
+  return WORD;
+}
+
+u8 GET_BIT(uint8_t* DATA, u32 i)
+{
+  return (DATA[i / 8] & (1 << (7 - (i % 8)))) ? 1 : 0;
+}
+
+LIBLTE_ERROR_ENUM liblte_security_128_eia3(
+    uint8* key, uint32 count, uint8 bearer, uint8 direction, uint8* msg, uint32 msg_len, uint8* mac)
+
+{
+  LIBLTE_ERROR_ENUM err    = LIBLTE_ERROR_INVALID_INPUTS;
+  uint8_t           iv[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+  uint32* ks;
+  uint32  msg_len_block_8, msg_len_block_32, m;
+
+  if (key != NULL && msg != NULL && mac != NULL) {
+    msg_len_block_8  = (msg_len + 7) / 8;
+    msg_len_block_32 = (msg_len + 31) / 32;
+
+    // Construct iv
+    iv[0] = (count >> 24) & 0xFF;
+    iv[1] = (count >> 16) & 0xFF;
+    iv[2] = (count >> 8) & 0xFF;
+    iv[3] = count & 0xFF;
+
+    iv[4] = (bearer << 3) & 0xF8;
+    iv[5] = iv[6] = iv[7] = 0;
+
+    iv[8]  = ((count >> 24) & 0xFF) ^ ((direction & 1) << 7);
+    iv[9]  = (count >> 16) & 0xFF;
+    iv[10] = (count >> 8) & 0xFF;
+    iv[11] = count & 0xFF;
+
+    iv[12] = iv[4];
+    iv[13] = iv[5];
+    iv[14] = iv[6] ^ ((direction & 1) << 7);
+    iv[15] = iv[7];
+
+    zuc_state_t zuc_state;
+    // Initialize keystream
+    zuc_initialize(&zuc_state, key, iv);
+
+    // Generate keystream
+    int N = msg_len + 64;
+    int L = (N + 31) / 32;
+
+    ks = (uint32*)calloc(L, sizeof(uint32));
+
+    zuc_generate_keystream(&zuc_state, L, ks);
+
+    uint32_t T = 0;
+    for (uint32_t i = 0; i < msg_len; i++) {
+      if (GET_BIT(msg, i)) {
+        T ^= GET_WORD(ks, i);
+      }
+    }
+
+    T ^= GET_WORD(ks, msg_len);
+
+    uint32_t mac_tmp = T ^ ks[L - 1];
+    mac[0]           = (mac_tmp >> 24) & 0xFF;
+    mac[1]           = (mac_tmp >> 16) & 0xFF;
+    mac[2]           = (mac_tmp >> 8) & 0xFF;
+    mac[3]           = mac_tmp & 0xFF;
+
+    free(ks);
+  }
+
+  return (err);
+}
+
 /*********************************************************************
     Name: liblte_security_encryption_eea1
 
@@ -949,6 +1032,89 @@ LIBLTE_ERROR_ENUM liblte_security_decryption_eea2(
     uint8* key, uint32 count, uint8 bearer, uint8 direction, uint8* ct, uint32 ct_len, uint8* out)
 {
   return liblte_security_encryption_eea2(key, count, bearer, direction, ct, ct_len, out);
+}
+
+/*********************************************************************
+    Name: liblte_security_encryption_eea1
+
+    Description: 128-bit encryption algorithm EEA1.
+
+    Document Reference: 33.401 v13.1.0 Annex B.1.2
+                        35.215 v13.0.0 References
+                        Specification of the 3GPP Confidentiality and
+                            Integrity Algorithms UEA2 & UIA2 D1 v2.1
+*********************************************************************/
+LIBLTE_ERROR_ENUM liblte_security_encryption_eea3(
+    uint8* key, uint32 count, uint8 bearer, uint8 direction, uint8* msg, uint32 msg_len, uint8* out)
+{
+  LIBLTE_ERROR_ENUM err    = LIBLTE_ERROR_INVALID_INPUTS;
+  uint8_t           iv[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+  uint32* ks;
+  int32   i;
+  uint32  msg_len_block_8, msg_len_block_32, m;
+
+  if (key != NULL && msg != NULL && out != NULL) {
+    msg_len_block_8  = (msg_len + 7) / 8;
+    msg_len_block_32 = (msg_len + 31) / 32;
+
+    // Construct iv
+    iv[0]  = (count >> 24) & 0xFF;
+    iv[1]  = (count >> 16) & 0xFF;
+    iv[2]  = (count >> 8) & 0xFF;
+    iv[3]  = (count)&0xFF;
+    iv[4]  = ((bearer & 0x1F) << 3) | ((direction & 0x01) << 2);
+    iv[5]  = 0;
+    iv[6]  = 0;
+    iv[7]  = 0;
+    iv[8]  = iv[0];
+    iv[9]  = iv[1];
+    iv[10] = iv[2];
+    iv[11] = iv[3];
+    iv[12] = iv[4];
+    iv[13] = iv[5];
+    iv[14] = iv[6];
+    iv[15] = iv[7];
+
+    zuc_state_t zuc_state;
+    // Initialize keystream
+    zuc_initialize(&zuc_state, key, iv);
+
+    // Generate keystream
+
+    ks = (uint32*)calloc(msg_len_block_32, sizeof(uint32));
+    zuc_generate_keystream(&zuc_state, msg_len_block_32, ks);
+
+    // Generate output except last block
+    for (i = 0; i < (int32_t)msg_len_block_32 - 1; i++) {
+      out[4 * i + 0] = msg[4 * i + 0] ^ ((ks[i] >> 24) & 0xFF);
+      out[4 * i + 1] = msg[4 * i + 1] ^ ((ks[i] >> 16) & 0xFF);
+      out[4 * i + 2] = msg[4 * i + 2] ^ ((ks[i] >> 8) & 0xFF);
+      out[4 * i + 3] = msg[4 * i + 3] ^ ((ks[i] & 0xFF));
+    }
+
+    // Process last bytes
+    for (i = (msg_len_block_32 - 1) * 4; i < (int32_t)msg_len_block_8; i++) {
+      out[i] = msg[i] ^ ((ks[i / 4] >> ((3 - (i % 4)) * 8)) & 0xFF);
+    }
+
+    // Zero tailing bits
+    zero_tailing_bits(out, msg_len);
+
+    // Clean up
+    free(ks);
+    // zuc_deinitialize(state_ptr);
+
+    err = LIBLTE_SUCCESS;
+  }
+
+  return (err);
+}
+
+LIBLTE_ERROR_ENUM liblte_security_decryption_eea3(
+    uint8* key, uint32 count, uint8 bearer, uint8 direction, uint8* msg, uint32 msg_len, uint8* out)
+{
+  return liblte_security_encryption_eea3(key, count, bearer, direction, msg, msg_len, out);
 }
 
 /*********************************************************************

@@ -35,22 +35,9 @@
 #define NBUFS 5
 
 using namespace srslte;
-using namespace srsue;
 using namespace asn1::rrc;
 
-class mac_dummy_timers : public srslte::mac_interface_timers
-{
-public:
-  srslte::timers::timer* timer_get(uint32_t timer_id) { return &t; }
-  uint32_t               timer_get_unique_id() { return 0; }
-  void                   step() { t.step(); }
-  void                   timer_release_id(uint32_t timer_id) {}
-
-private:
-  srslte::timers::timer t;
-};
-
-class rlc_tester : public pdcp_interface_rlc, public rrc_interface_rlc
+class rlc_tester : public srsue::pdcp_interface_rlc, public srsue::rrc_interface_rlc
 {
 public:
   rlc_tester()
@@ -92,8 +79,8 @@ int basic_test()
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
   log2.set_hex_limit(-1);
-  rlc_tester       tester;
-  mac_dummy_timers timers;
+  rlc_tester     tester;
+  srslte::timers timers(1);
 
   int len = 0;
 

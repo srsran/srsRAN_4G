@@ -488,10 +488,10 @@ bool sf_worker::fill_uci_cfg(uint16_t rnti, bool aperiodic_cqi_request, srslte_u
   // Get pending ACKs with an associated PUSCH transmission
   // TODO: Use ue_dl procedures to compute uci_ack_cfg for TDD and CA
   for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
-    uci_cfg->ack.pending_tb[tb] = phy->ue_db_is_ack_pending(tti_rx, rnti, tb, &uci_cfg->ack.ncce[0]);
-    Debug("ACK: is pending tti=%d, mod=%d, value=%d\n", tti_rx, TTIMOD(tti_rx), uci_cfg->ack.pending_tb[tb]);
-    if (uci_cfg->ack.pending_tb[tb]) {
-      uci_cfg->ack.nof_acks++;
+    uci_cfg->ack[0].pending_tb[tb] = phy->ue_db_is_ack_pending(tti_rx, rnti, tb, &uci_cfg->ack[0].ncce[0]);
+    Debug("ACK: is pending tti=%d, mod=%d, value=%d\n", tti_rx, TTIMOD(tti_rx), uci_cfg->ack[0].pending_tb[tb]);
+    if (uci_cfg->ack[0].pending_tb[tb]) {
+      uci_cfg->ack[0].nof_acks++;
       uci_required = true;
     }
   }
@@ -518,7 +518,7 @@ void sf_worker::send_uci_data(uint16_t rnti, srslte_uci_cfg_t* uci_cfg, srslte_u
   /* If only one ACK is required, it can be for TB0 or TB1 */
   uint32_t ack_idx = 0;
   for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
-    if (uci_cfg->ack.pending_tb[tb]) {
+    if (uci_cfg->ack[0].pending_tb[tb]) {
       bool ack   = uci_value->ack.ack_value[ack_idx];
       bool valid = uci_value->ack.valid;
       phy->stack->ack_info(tti_rx, rnti, tb, ack && valid);

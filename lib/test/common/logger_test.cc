@@ -39,7 +39,7 @@ void* thread_loop(void *a) {
   for(int i=0;i<NMSGS;i++)
   {
     sprintf(buf, "Thread %d: %d", args->thread_id, i);
-    args->l->log(new std::string(buf));
+    args->l->log_char(buf);
   }
   return NULL;
 }

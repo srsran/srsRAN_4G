@@ -214,7 +214,7 @@ alloc_outcome_t sched::tti_sched_t::alloc_ul(sched_ue*                       use
     return ret;
   }
 
-  ul_alloc_t ul_alloc;
+  ul_alloc_t ul_alloc = {};
   ul_alloc.type     = alloc_type;
   ul_alloc.dci_idx  = tti_alloc.get_pdcch_grid().nof_allocs() - 1;
   ul_alloc.user_ptr = user;

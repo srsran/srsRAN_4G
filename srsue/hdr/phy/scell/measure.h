@@ -51,6 +51,7 @@ public:
   float    rsrp();
   float    rsrq();
   float    snr();
+  float    cfo();
   uint32_t frame_st_idx();
   void     set_rx_gain_offset(float rx_gain_offset);
 
@@ -63,7 +64,7 @@ private:
   uint32_t           nof_subframes;
   uint32_t           current_prb;
   float              rx_gain_offset;
-  float              mean_rsrp, mean_rsrq, mean_snr, mean_rssi;
+  float              mean_rsrp, mean_rsrq, mean_snr, mean_rssi, mean_cfo;
   uint32_t           final_offset;
   const static int   RSRP_MEASURE_NOF_FRAMES = 5;
 };

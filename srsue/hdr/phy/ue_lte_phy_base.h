@@ -28,6 +28,7 @@
 #define SRSUE_UE_LTE_PHY_BASE_H
 
 #include "srslte/common/log_filter.h"
+#include "srslte/interfaces/common_interfaces.h"
 #include "srsue/hdr/phy/ue_phy_base.h"
 
 namespace srsue {

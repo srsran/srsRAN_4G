@@ -20,3 +20,5 @@
 
 file(GLOB SOURCES "*.c")
 add_library(srslte_ue OBJECT ${SOURCES})
+
+add_subdirectory(test)
