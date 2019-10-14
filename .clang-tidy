@@ -7,7 +7,6 @@
 # - init of static memory may cause an exception (cert-err58)
 # - forbidden implicit conversion from pointer/int to bool
 # - recommended auto
-# - recommended for-range loops
 # Naming conventions set to snake_case
 Checks: '*,-fuchsia-*,
          -cppcoreguidelines-pro-type-vararg,-hicpp-vararg,
@@ -17,11 +16,9 @@ Checks: '*,-fuchsia-*,
          -cppcoreguidelines-pro-type-union-access,
          -modernize-use-using,
          -modernize-use-auto,-hicpp-use-auto,
-         -modernize-loop-convert,
          -google-runtime-references,-google-readability-casting,-google-build-using-namespace,
          google-default-arguments,-cppcoreguidelines-pro-bounds-pointer-arithmetic,
          -cert-err58-cpp,
-         -readability-implicit-bool-conversion,
          readability-identifier-naming'
 HeaderFilterRegex: ''
 AnalyzeTemporaryDtors: false

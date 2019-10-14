@@ -208,11 +208,11 @@ private:
   void enter_emm_deregistered();
 
   // security context persistence file
-  bool read_ctxt_file(nas_sec_ctxt *ctxt);
-  bool write_ctxt_file(nas_sec_ctxt ctxt);
+  bool read_ctxt_file(nas_sec_ctxt* ctxt);
+  bool write_ctxt_file(nas_sec_ctxt ctxt_);
 
   // ctxt file helpers
-  std::string hex_to_string(uint8_t *hex, int size);
+  std::string hex_to_string(uint8_t* hex, int size);
   bool        string_to_hex(std::string hex_str, uint8_t *hex, uint32_t len);
   std::string emm_info_str(LIBLTE_MME_EMM_INFORMATION_MSG_STRUCT *info);
 
