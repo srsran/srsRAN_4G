@@ -570,10 +570,11 @@ void sf_worker::send_uci_data(uint16_t rnti, srslte_uci_cfg_t* uci_cfg, srslte_u
 
 int sf_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, uint32_t nof_pusch)
 {
-  srslte_pusch_res_t pusch_res;
 
   for (uint32_t i = 0; i < nof_pusch; i++) {
-    uint16_t rnti = grants[i].dci.rnti;
+    srslte_pusch_res_t pusch_res = {};
+    uint16_t           rnti      = grants[i].dci.rnti;
+
     if (rnti) {
       // mark this tti as having an ul dci to avoid pucch
       ue_db[rnti]->is_grant_available = true;
