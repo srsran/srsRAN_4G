@@ -128,20 +128,19 @@ int test_rx(std::vector<pdcp_test_event_t>     events,
 
   pdcp_hlp_rx.set_pdcp_initial_state(init_state);
 
-  srslte::unique_byte_buffer_t sdu_act = allocate_unique_buffer(*pool);
-
   // Generate test message and encript/decript SDU. 
   for (pdcp_test_event_t& event : events) {
 
     // Decript and integrity check the PDU
     pdcp_rx->write_pdu(std::move(event.pkt));
-    gw_rx->get_last_pdu(sdu_act);
 
   }
 
   // Test if the number of RX packets
-  TESTASSERT(compare_two_packets(sdu_exp, sdu_act) == 0);
   TESTASSERT(gw_rx->rx_count == n_sdus_exp);
+  srslte::unique_byte_buffer_t sdu_act = allocate_unique_buffer(*pool);
+  gw_rx->get_last_pdu(sdu_act);
+  TESTASSERT(compare_two_packets(sdu_exp, sdu_act) == 0);
   return 0;
 }
 
