@@ -36,11 +36,12 @@ int rf_zmq_tx_open(rf_zmq_tx_t* q, const char* id, void* zmq_ctx, char* sock_arg
   int ret = SRSLTE_ERROR;
 
   if (q) {
-    // Copy id
-    strncpy(q->id, id, 16);
-
     // Zero object
     bzero(q, sizeof(rf_zmq_tx_t));
+
+    // Copy id
+    strncpy(q->id, id, ZMQ_ID_STRLEN - 1);
+    q->id[ZMQ_ID_STRLEN - 1] = '\0';
 
     // Create socket
     q->sock = zmq_socket(zmq_ctx, ZMQ_REP);

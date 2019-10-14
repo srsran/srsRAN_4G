@@ -38,9 +38,10 @@
 #define ZMQ_MAX_BUFFER_SIZE (NSAMPLES2NBYTES(3072000)) // 10 subframes at 20 MHz
 #define ZMQ_TIMEOUT_MS (1000)
 #define ZMQ_BASERATE_DEFAULT_HZ (23040000)
+#define ZMQ_ID_STRLEN 16
 
 typedef struct {
-  char            id[16];
+  char            id[ZMQ_ID_STRLEN];
   void*           sock;
   uint64_t        nsamples;
   bool            running;
@@ -49,7 +50,7 @@ typedef struct {
 } rf_zmq_tx_t;
 
 typedef struct {
-  char                id[16];
+  char                id[ZMQ_ID_STRLEN];
   void*               sock;
   uint64_t            nsamples;
   bool                running;
