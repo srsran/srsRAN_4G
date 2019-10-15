@@ -45,15 +45,6 @@ int compare_two_packets(const srslte::unique_byte_buffer_t& msg1, const srslte::
   return 0;
 }
 
-void print_packet_array(const srslte::unique_byte_buffer_t& msg)
-{
-  printf("uint8_t msg[] = {\n");
-  for (uint64_t i = 0; i < msg->N_bytes; ++i) {
-    printf("0x%02x, ", msg->msg[i]);
-  }
-  printf("\n};\n");
-}
-
 struct pdcp_security_cfg {
   uint8_t*                            k_int_rrc;
   uint8_t*                            k_enc_rrc;
@@ -231,4 +222,13 @@ std::vector<pdcp_test_event_t> gen_expected_pdus_vector(const srslte::unique_byt
   return pdu_vec;
 }
 
+// Helper to print packets
+void print_packet_array(const srslte::unique_byte_buffer_t& msg)
+{
+  printf("uint8_t msg[] = {\n");
+  for (uint64_t i = 0; i < msg->N_bytes; ++i) {
+    printf("0x%02x, ", msg->msg[i]);
+  }
+  printf("\n};\n");
+}
 #endif // SRSLTE_PDCP_NR_TEST_H
