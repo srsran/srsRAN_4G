@@ -106,13 +106,13 @@ int test_tx(uint32_t                     n_packets,
 /*
  * Genric function to test reception of in-sequence packets
  */
-int test_rx(std::vector<pdcp_test_event_t>     events,
-            const pdcp_initial_state&          init_state,
-            uint8_t                            pdcp_sn_len,
-            uint32_t                           n_sdus_exp,
-            const srslte::unique_byte_buffer_t &sdu_exp,
-            srslte::byte_buffer_pool*          pool,
-            srslte::log*                       log)
+int test_rx(std::vector<pdcp_test_event_t>      events,
+            const pdcp_initial_state&           init_state,
+            uint8_t                             pdcp_sn_len,
+            uint32_t                            n_sdus_exp,
+            const srslte::unique_byte_buffer_t& sdu_exp,
+            srslte::byte_buffer_pool*           pool,
+            srslte::log*                        log)
 
 {
 
@@ -124,17 +124,17 @@ int test_rx(std::vector<pdcp_test_event_t>     events,
                                   srslte::pdcp_t_reordering_t::ms500};
 
   pdcp_nr_test_helper     pdcp_hlp_rx(cfg_rx, sec_cfg, log);
-  srslte::pdcp_entity_nr* pdcp_rx = &pdcp_hlp_rx.pdcp;
+  srslte::pdcp_entity_nr* pdcp_rx   = &pdcp_hlp_rx.pdcp;
   gw_dummy*               gw_rx     = &pdcp_hlp_rx.gw;
   srslte::timers*         timers_rx = &pdcp_hlp_rx.timers;
   pdcp_hlp_rx.set_pdcp_initial_state(init_state);
 
-  // Generate test message and encript/decript SDU. 
+  // Generate test message and encript/decript SDU.
   for (pdcp_test_event_t& event : events) {
 
     // Decript and integrity check the PDU
     pdcp_rx->write_pdu(std::move(event.pkt));
-    for (uint32_t i = 0; i < event.ticks; ++i){
+    for (uint32_t i = 0; i < event.ticks; ++i) {
       timers_rx->step_all();
     }
   }
@@ -368,12 +368,12 @@ int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
     pdcp_initial_state             test5_init_state = {};
 
     // First PDU
-    pdcp_test_event_t              event_pdu1;
+    pdcp_test_event_t event_pdu1;
     event_pdu1.pkt = srslte::allocate_unique_buffer(*pool);
     event_pdu1.pkt->append_bytes(pdu1_count0_snlen12, sizeof(pdu1_count0_snlen12));
 
     // Second PDU
-    pdcp_test_event_t              event_pdu2;
+    pdcp_test_event_t event_pdu2;
     event_pdu2.pkt = srslte::allocate_unique_buffer(*pool);
     event_pdu2.pkt->append_bytes(pdu2_count1_snlen12, sizeof(pdu2_count1_snlen12));
 
@@ -392,12 +392,12 @@ int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
     pdcp_initial_state             test6_init_state = {};
 
     // First PDU
-    pdcp_test_event_t              event_pdu1;
+    pdcp_test_event_t event_pdu1;
     event_pdu1.pkt = srslte::allocate_unique_buffer(*pool);
     event_pdu1.pkt->append_bytes(pdu1_count0_snlen18, sizeof(pdu1_count0_snlen18));
 
     // Second PDU
-    pdcp_test_event_t              event_pdu2;
+    pdcp_test_event_t event_pdu2;
     event_pdu2.pkt = srslte::allocate_unique_buffer(*pool);
     event_pdu2.pkt->append_bytes(pdu2_count1_snlen18, sizeof(pdu2_count1_snlen18));
 
@@ -416,7 +416,7 @@ int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
     pdcp_initial_state             test7_init_state = {};
 
     // First PDU
-    pdcp_test_event_t              event_pdu1;
+    pdcp_test_event_t event_pdu1;
     event_pdu1.pkt = srslte::allocate_unique_buffer(*pool);
     event_pdu1.pkt->append_bytes(pdu2_count1_snlen12, sizeof(pdu2_count1_snlen12));
     event_pdu1.ticks = 500;
@@ -435,12 +435,12 @@ int test_rx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
     pdcp_initial_state             test8_init_state = {};
 
     // First PDU
-    pdcp_test_event_t              event_pdu1;
+    pdcp_test_event_t event_pdu1;
     event_pdu1.pkt = srslte::allocate_unique_buffer(*pool);
     event_pdu1.pkt->append_bytes(pdu1_count0_snlen12, sizeof(pdu1_count0_snlen12));
 
     // Second PDU
-    pdcp_test_event_t              event_pdu2;
+    pdcp_test_event_t event_pdu2;
     event_pdu2.pkt = srslte::allocate_unique_buffer(*pool);
     event_pdu2.pkt->append_bytes(pdu1_count0_snlen12, sizeof(pdu1_count0_snlen12));
 
@@ -464,11 +464,11 @@ int run_all_tests(srslte::byte_buffer_pool* pool)
   TESTASSERT(test_rx_all(pool, &log) == 0);
 
   // Helpers for generating expected PDUs
-  //srslte::unique_byte_buffer_t sdu = srslte::allocate_unique_buffer(*pool);
-  //sdu->append_bytes(sdu2, sizeof(sdu2));
-  //uint32_t tx_next = 1;
-  //srslte::unique_byte_buffer_t pdu = gen_expected_pdu(std::move(sdu), tx_next, srslte::PDCP_SN_LEN_18, sec_cfg, pool, &log);
-  //print_packet_array(pdu);
+  // srslte::unique_byte_buffer_t sdu = srslte::allocate_unique_buffer(*pool);
+  // sdu->append_bytes(sdu2, sizeof(sdu2));
+  // uint32_t tx_next = 1;
+  // srslte::unique_byte_buffer_t pdu = gen_expected_pdu(std::move(sdu), tx_next, srslte::PDCP_SN_LEN_18, sec_cfg, pool,
+  // &log); print_packet_array(pdu);
   return 0;
 }
 
