@@ -117,15 +117,17 @@ log_tester log_out("ALL");
 
 #define Warning(fmt, ...)                                                                                              \
   log_out.warning(fmt, ##__VA_ARGS__);                                                                                 \
-  warn_counter++;
+  warn_counter++
 #define TestError(fmt, ...)                                                                                            \
   log_out.error(fmt, ##__VA_ARGS__);                                                                                   \
-  exit(-1);
+  exit(-1)
 #define CondError(cond, fmt, ...)                                                                                      \
-  if (cond) {                                                                                                          \
-    log_out.error(fmt, ##__VA_ARGS__);                                                                                 \
-    exit(-1);                                                                                                          \
-  }
+  do {                                                                                                                 \
+    if (cond) {                                                                                                        \
+      log_out.error(fmt, ##__VA_ARGS__);                                                                               \
+      exit(-1);                                                                                                        \
+    }                                                                                                                  \
+  } while (0)
 
 /*******************
  *     Dummies     *
@@ -182,7 +184,6 @@ struct sched_tester : public srsenb::sched {
     tester_user_results                                       total_ues; ///< stores combined UL/DL buffer state
     srsenb::sched_interface::ul_sched_res_t                   sched_result_ul;
     srsenb::sched_interface::dl_sched_res_t                   sched_result_dl;
-    typedef std::map<uint16_t, tester_user_results>::iterator ue_it_t;
   };
   struct ue_info {
     int                                      prach_tti = -1, rar_tti = -1, msg3_tti = -1;
@@ -246,7 +247,7 @@ void sched_tester::add_user(uint16_t                                 rnti,
   tester_ues.insert(std::make_pair(rnti, info));
 
   if (ue_cfg(rnti, &ue_cfg_) != SRSLTE_SUCCESS) {
-    TestError("[TESTER] Registering new user rnti=0x%x to SCHED\n", rnti)
+    TestError("[TESTER] Registering new user rnti=0x%x to SCHED\n", rnti);
   }
   dl_sched_rar_info_t rar_info = {};
   rar_info.prach_tti     = tti_data.tti_rx;
@@ -310,7 +311,7 @@ void sched_tester::process_tti_args()
     if (e.second.sr_data > 0) {
       uint32_t tot_ul_data = ue_db[e.first].get_pending_ul_new_data(tti_data.tti_tx_ul) + e.second.sr_data;
       uint32_t lcid        = 0;
-      ul_bsr(e.first, lcid, tot_ul_data);
+      ul_bsr(e.first, lcid, tot_ul_data, true);
     }
     if (e.second.dl_data > 0) {
       uint32_t lcid = 0;
@@ -599,8 +600,8 @@ void sched_tester::test_harqs()
   }
 
   for (uint32_t i = 0; i < tti_data.sched_result_ul.nof_dci_elems; ++i) {
-    const auto&                 pusch = tti_data.sched_result_ul.pusch[i];
-    uint16_t                    rnti  = pusch.dci.rnti;
+    const auto&                 pusch   = tti_data.sched_result_ul.pusch[i];
+    uint16_t                    rnti    = pusch.dci.rnti;
     const auto&                 ue_data = tti_data.ue_data[rnti];
     const srsenb::ul_harq_proc* h       = ue_db[rnti].get_ul_harq(tti_data.tti_tx_ul);
     CondError(h == nullptr or h->is_empty(), "[TESTER] scheduled UL harq does not exist or is empty\n");
@@ -778,7 +779,7 @@ void sched_tester::test_collisions()
   }
 
   srslte::bounded_bitset<100, true> dl_allocs(cfg.cell.nof_prb), alloc_mask(cfg.cell.nof_prb);
-  srslte_dl_sf_cfg_t dl_sf;
+  srslte_dl_sf_cfg_t                dl_sf;
   ZERO_OBJECT(dl_sf);
 
   for (uint32_t i = 0; i < tti_data.sched_result_dl.nof_data_elems; ++i) {
@@ -979,10 +980,10 @@ void test_scheduler_rand(srsenb::sched_interface::cell_cfg_t cell_cfg, const sch
 
   log_out.set_level(srslte::LOG_LEVEL_INFO);
 
-  tester.sim_args                                          = args;
-  srslte_cell_t&                           cell_cfg_phy    = cell_cfg.cell;
-  srsenb::sched_interface::dl_sched_res_t& sched_result_dl = tester.tti_data.sched_result_dl;
-  srsenb::sched_interface::ul_sched_res_t& sched_result_ul = tester.tti_data.sched_result_ul;
+  tester.sim_args = args;
+  //  srslte_cell_t&                           cell_cfg_phy    = cell_cfg.cell;
+  //  srsenb::sched_interface::dl_sched_res_t& sched_result_dl = tester.tti_data.sched_result_dl;
+  //  srsenb::sched_interface::ul_sched_res_t& sched_result_ul = tester.tti_data.sched_result_ul;
 
   tester.init(nullptr, &log_out);
   tester.set_metric(&dl_metric, &ul_metric);

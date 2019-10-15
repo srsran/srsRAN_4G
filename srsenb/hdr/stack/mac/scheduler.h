@@ -46,31 +46,10 @@ namespace srsenb {
 class sched : public sched_interface
 {
 public:
-  // handle for DL metric
-  class dl_tti_sched_t
-  {
-  public:
-    virtual alloc_outcome_t  alloc_dl_user(sched_ue* user, const rbgmask_t& user_mask, uint32_t pid) = 0;
-    virtual const rbgmask_t& get_dl_mask() const                                                     = 0;
-    virtual uint32_t         get_tti_tx_dl() const                                                   = 0;
-    virtual uint32_t         get_nof_ctrl_symbols() const                                            = 0;
-    virtual bool             is_dl_alloc(sched_ue* user) const                                       = 0;
-  };
-
-  // handle for UL metric
-  class ul_tti_sched_t
-  {
-  public:
-    virtual alloc_outcome_t  alloc_ul_user(sched_ue* user, ul_harq_proc::ul_alloc_t alloc) = 0;
-    virtual const prbmask_t& get_ul_mask() const                                           = 0;
-    virtual uint32_t         get_tti_tx_ul() const                                         = 0;
-    virtual bool             is_ul_alloc(sched_ue* user) const                             = 0;
-  };
-
   /*************************************************************
-   * 
+   *
    * Scheduling metric interface definition
-   * 
+   *
    ************************************************************/
 
   class metric_dl
@@ -100,41 +79,41 @@ public:
   sched(); 
   ~sched();
 
-  void init(rrc_interface_mac *rrc, srslte::log *log);
-  void set_metric(metric_dl *dl_metric, metric_ul *ul_metric);
-  int cell_cfg(cell_cfg_t *cell_cfg); 
-  void set_sched_cfg(sched_args_t *sched_cfg);
-  int reset();
+  void init(rrc_interface_mac* rrc, srslte::log* log);
+  void set_metric(metric_dl* dl_metric, metric_ul* ul_metric);
+  int  cell_cfg(cell_cfg_t* cell_cfg) final;
+  void set_sched_cfg(sched_args_t* sched_cfg);
+  int  reset() final;
 
-  int ue_cfg(uint16_t rnti, ue_cfg_t *ue_cfg);
-  int ue_rem(uint16_t rnti);
-  bool ue_exists(uint16_t rnti);
+  int  ue_cfg(uint16_t rnti, ue_cfg_t* ue_cfg) final;
+  int  ue_rem(uint16_t rnti) final;
+  bool ue_exists(uint16_t rnti) final;
   void ue_needs_ta_cmd(uint16_t rnti, uint32_t nof_ta_cmd);
 
-  void phy_config_enabled(uint16_t rnti, bool enabled); 
-  
-  int bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, ue_bearer_cfg_t *cfg); 
-  int bearer_ue_rem(uint16_t rnti, uint32_t lc_id); 
+  void phy_config_enabled(uint16_t rnti, bool enabled);
 
-  uint32_t get_ul_buffer(uint16_t rnti); 
-  uint32_t get_dl_buffer(uint16_t rnti); 
+  int bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, ue_bearer_cfg_t* cfg) final;
+  int bearer_ue_rem(uint16_t rnti, uint32_t lc_id) final;
 
-  int dl_rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue);
-  int dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code);
+  uint32_t get_ul_buffer(uint16_t rnti) final;
+  uint32_t get_dl_buffer(uint16_t rnti) final;
+
+  int dl_rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue) final;
+  int dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code) final;
 
   int dl_ant_info(uint16_t rnti, asn1::rrc::phys_cfg_ded_s::ant_info_c_* dedicated);
-  int dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack);
-  int dl_rach_info(dl_sched_rar_info_t rar_info);
-  int dl_ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value);
-  int dl_pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value);
-  int dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value); 
-  
-  int ul_crc_info(uint32_t tti, uint16_t rnti, bool crc);
-  int ul_sr_info(uint32_t tti, uint16_t rnti); 
-  int ul_bsr(uint16_t rnti, uint32_t lcid, uint32_t bsr, bool set_value = true);
-  int ul_recv_len(uint16_t rnti, uint32_t lcid, uint32_t len);
-  int ul_phr(uint16_t rnti, int phr); 
-  int ul_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi, uint32_t ul_ch_code);
+  int dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack) final;
+  int dl_rach_info(dl_sched_rar_info_t rar_info) final;
+  int dl_ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value) final;
+  int dl_pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value) final;
+  int dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value) final;
+
+  int ul_crc_info(uint32_t tti, uint16_t rnti, bool crc) final;
+  int ul_sr_info(uint32_t tti, uint16_t rnti) override;
+  int ul_bsr(uint16_t rnti, uint32_t lcid, uint32_t bsr, bool set_value = true) final;
+  int ul_recv_len(uint16_t rnti, uint32_t lcid, uint32_t len) final;
+  int ul_phr(uint16_t rnti, int phr) final;
+  int ul_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi, uint32_t ul_ch_code) final;
 
   int dl_sched(uint32_t tti, dl_sched_res_t* sched_result) final;
   int ul_sched(uint32_t tti, ul_sched_res_t* sched_result) final;

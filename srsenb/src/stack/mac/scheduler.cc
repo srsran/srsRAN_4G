@@ -164,7 +164,7 @@ sched::tti_sched_t::alloc_rar(uint32_t aggr_lvl, const dl_sched_rar_t& rar_grant
   ctrl_code_t ret = alloc_dl_ctrl(aggr_lvl, buf_rar, ra_rnti);
   if (not ret.first) {
     Warning("SCHED: Could not allocate RAR for L=%d, cause=%s\n", aggr_lvl, ret.first.to_string());
-    return {ret.first, NULL};
+    return {ret.first, nullptr};
   }
 
   // Allocation successful
@@ -529,7 +529,8 @@ int sched::tti_sched_t::generate_format1a(
       mcs                      = i;
       tbs                      = srslte_ra_tbs_from_idx(i, 2);
       break;
-    } else if (srslte_ra_tbs_from_idx(i, 3) >= tbs) {
+    }
+    if (srslte_ra_tbs_from_idx(i, 3) >= tbs) {
       dci->type2_alloc.n_prb1a = srslte_ra_type2_t::SRSLTE_RA_TYPE2_NPRB1A_3;
       mcs                      = i;
       tbs                      = srslte_ra_tbs_from_idx(i, 3);
@@ -568,10 +569,10 @@ int sched::tti_sched_t::generate_format1a(
 sched::sched() : bc_aggr_level(0), rar_aggr_level(0), P(0), si_n_rbg(0), rar_n_rbg(0), nof_rbg(0)
 {
   current_tti = 0;
-  log_h = NULL;
-  dl_metric = NULL;
-  ul_metric = NULL;
-  rrc = NULL;
+  log_h       = nullptr;
+  dl_metric   = nullptr;
+  ul_metric   = nullptr;
+  rrc         = nullptr;
 
   bzero(&cfg, sizeof(cfg));
   bzero(&regs, sizeof(regs));
@@ -584,7 +585,7 @@ sched::sched() : bc_aggr_level(0), rar_aggr_level(0), P(0), si_n_rbg(0), rar_n_r
     bzero(rar_locations[i], sizeof(sched_ue::sched_dci_cce_t) * 10);
   }
 
-  pthread_rwlock_init(&rwlock, NULL);
+  pthread_rwlock_init(&rwlock, nullptr);
 
   reset();
 }
@@ -627,7 +628,7 @@ int sched::reset()
 
 void sched::set_sched_cfg(sched_interface::sched_args_t* sched_cfg_)
 {
-  if (sched_cfg_) {
+  if (sched_cfg_ != nullptr) {
     sched_cfg = *sched_cfg_;
   }
 }
@@ -651,7 +652,7 @@ int sched::cell_cfg(sched_interface::cell_cfg_t* cell_cfg)
   cfg = *cell_cfg;
 
   // Get DCI locations
-  if (srslte_regs_init(&regs, cfg.cell)) {
+  if (srslte_regs_init(&regs, cfg.cell) != LIBLTE_SUCCESS) {
     Error("Getting DCI locations\n");
     return SRSLTE_ERROR;
   }
@@ -733,7 +734,7 @@ int sched::ue_rem(uint16_t rnti)
 {
   int ret = 0;
   pthread_rwlock_wrlock(&rwlock);
-  if (ue_db.count(rnti)) {
+  if (ue_db.count(rnti) > 0) {
     ue_db.erase(rnti);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
@@ -764,7 +765,7 @@ void sched::ue_needs_ta_cmd(uint16_t rnti, uint32_t nof_ta_cmd) {
 void sched::phy_config_enabled(uint16_t rnti, bool enabled)
 {
   pthread_rwlock_rdlock(&rwlock);
-  if (ue_db.count(rnti)) {
+  if (ue_db.count(rnti) > 0) {
     ue_db[rnti].phy_config_enabled(current_tti, enabled);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
@@ -776,7 +777,7 @@ int sched::bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bear
 {
   int ret = 0;
   pthread_rwlock_rdlock(&rwlock);
-  if (ue_db.count(rnti)) {
+  if (ue_db.count(rnti) > 0) {
     ue_db[rnti].set_bearer_cfg(lc_id, cfg_);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
@@ -790,7 +791,7 @@ int sched::bearer_ue_rem(uint16_t rnti, uint32_t lc_id)
 {
   int ret = 0;
   pthread_rwlock_rdlock(&rwlock);
-  if (ue_db.count(rnti)) {
+  if (ue_db.count(rnti) > 0) {
     ue_db[rnti].rem_bearer(lc_id);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
@@ -804,7 +805,7 @@ uint32_t sched::get_dl_buffer(uint16_t rnti)
 {
   uint32_t ret = 0;
   pthread_rwlock_rdlock(&rwlock);
-  if (ue_db.count(rnti)) {
+  if (ue_db.count(rnti) > 0) {
     ret = ue_db[rnti].get_pending_dl_new_data(current_tti);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
@@ -817,7 +818,7 @@ uint32_t sched::get_ul_buffer(uint16_t rnti)
 {
   uint32_t ret = 0;
   pthread_rwlock_rdlock(&rwlock);
-  if (ue_db.count(rnti)) {
+  if (ue_db.count(rnti) > 0) {
     ret = ue_db[rnti].get_pending_ul_new_data(current_tti);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
@@ -830,7 +831,7 @@ int sched::dl_rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue,
 {
   int ret = 0;
   pthread_rwlock_rdlock(&rwlock);
-  if (ue_db.count(rnti)) {
+  if (ue_db.count(rnti) > 0) {
     ue_db[rnti].dl_buffer_state(lc_id, tx_queue, retx_queue);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
@@ -844,7 +845,7 @@ int sched::dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code)
 {
   int ret = 0;
   pthread_rwlock_rdlock(&rwlock);
-  if (ue_db.count(rnti)) {
+  if (ue_db.count(rnti) > 0) {
     ue_db[rnti].mac_buffer_state(ce_code);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
@@ -858,7 +859,7 @@ int sched::dl_ant_info(uint16_t rnti, asn1::rrc::phys_cfg_ded_s::ant_info_c_* dl
 {
   int ret = 0;
   pthread_rwlock_rdlock(&rwlock);
-  if (ue_db.count(rnti)) {
+  if (ue_db.count(rnti) > 0) {
     ue_db[rnti].set_dl_ant_info(dl_ant_info);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
@@ -872,7 +873,7 @@ int sched::dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack)
 {
   int ret = 0;
   pthread_rwlock_rdlock(&rwlock);
-  if (ue_db.count(rnti)) {
+  if (ue_db.count(rnti) > 0) {
     ret = ue_db[rnti].set_ack_info(tti, tb_idx, ack);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
@@ -886,7 +887,7 @@ int sched::ul_crc_info(uint32_t tti, uint16_t rnti, bool crc)
 {
   int ret = 0;
   pthread_rwlock_rdlock(&rwlock);
-  if (ue_db.count(rnti)) {
+  if (ue_db.count(rnti) > 0) {
     ue_db[rnti].set_ul_crc(tti, crc);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
@@ -900,7 +901,7 @@ int sched::dl_ri_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value)
 {
   int ret = 0;
   pthread_rwlock_rdlock(&rwlock);
-  if (ue_db.count(rnti)) {
+  if (ue_db.count(rnti) > 0) {
     ue_db[rnti].set_dl_ri(tti, cqi_value);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
@@ -914,7 +915,7 @@ int sched::dl_pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value)
 {
   int ret = 0;
   pthread_rwlock_rdlock(&rwlock);
-  if (ue_db.count(rnti)) {
+  if (ue_db.count(rnti) > 0) {
     ue_db[rnti].set_dl_pmi(tti, pmi_value);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
@@ -928,7 +929,7 @@ int sched::dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value)
 {
   int ret = 0;
   pthread_rwlock_rdlock(&rwlock);
-  if (ue_db.count(rnti)) {
+  if (ue_db.count(rnti) > 0) {
     ue_db[rnti].set_dl_cqi(tti, cqi_value);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
@@ -950,7 +951,7 @@ int sched::ul_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi, uint32_t ul_ch
 {
   int ret = 0;
   pthread_rwlock_rdlock(&rwlock);
-  if (ue_db.count(rnti)) {
+  if (ue_db.count(rnti) > 0) {
     ue_db[rnti].set_ul_cqi(tti, cqi, ul_ch_code);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
@@ -964,7 +965,7 @@ int sched::ul_bsr(uint16_t rnti, uint32_t lcid, uint32_t bsr, bool set_value)
 {
   int ret = 0;
   pthread_rwlock_rdlock(&rwlock);
-  if (ue_db.count(rnti)) {
+  if (ue_db.count(rnti) > 0) {
     ue_db[rnti].ul_buffer_state(lcid, bsr, set_value);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
@@ -978,7 +979,7 @@ int sched::ul_recv_len(uint16_t rnti, uint32_t lcid, uint32_t len)
 {
   int ret = 0;
   pthread_rwlock_rdlock(&rwlock);
-  if (ue_db.count(rnti)) {
+  if (ue_db.count(rnti) > 0) {
     ue_db[rnti].ul_recv_len(lcid, len);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
@@ -992,7 +993,7 @@ int sched::ul_phr(uint16_t rnti, int phr)
 {
   int ret = 0;
   pthread_rwlock_rdlock(&rwlock);
-  if (ue_db.count(rnti)) {
+  if (ue_db.count(rnti) > 0) {
     ue_db[rnti].ul_phr(phr);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
@@ -1006,7 +1007,7 @@ int sched::ul_sr_info(uint32_t tti, uint16_t rnti)
 {
   int ret = 0;
   pthread_rwlock_rdlock(&rwlock);
-  if (ue_db.count(rnti)) {
+  if (ue_db.count(rnti) > 0) {
     ue_db[rnti].set_sr();
   } else {
     Error("User rnti=0x%x not found\n", rnti);
@@ -1024,7 +1025,7 @@ void sched::set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs)
 void sched::tpc_inc(uint16_t rnti)
 {
   pthread_rwlock_rdlock(&rwlock);
-  if (ue_db.count(rnti)) {
+  if (ue_db.count(rnti) > 0) {
     ue_db[rnti].tpc_inc();
   } else {
     Error("User rnti=0x%x not found\n", rnti);
@@ -1035,7 +1036,7 @@ void sched::tpc_inc(uint16_t rnti)
 void sched::tpc_dec(uint16_t rnti)
 {
   pthread_rwlock_rdlock(&rwlock);
-  if (ue_db.count(rnti)) {
+  if (ue_db.count(rnti) > 0) {
     ue_db[rnti].tpc_dec();
   } else {
     Error("User rnti=0x%x not found\n", rnti);
@@ -1127,7 +1128,7 @@ void sched::dl_sched_bc(tti_sched_t* tti_sched)
 
   /* Allocate DCIs and RBGs for each SIB */
   for (int i = 0; i < MAX_SIBS; i++) {
-    if (cfg.sibs[i].len && pending_sibs[i].is_in_window && pending_sibs[i].n_tx < 4) {
+    if (cfg.sibs[i].len > 0 && pending_sibs[i].is_in_window && pending_sibs[i].n_tx < 4) {
       uint32_t nof_tx = (i > 0) ? SRSLTE_MIN(CEILFRAC(cfg.si_window_ms, 10), 4) : 4;
       uint32_t n_sf   = (tti_sched->get_tti_tx_dl() - pending_sibs[i].window_start);
 
@@ -1146,9 +1147,9 @@ void sched::dl_sched_bc(tti_sched_t* tti_sched)
   }
 
   /* Allocate DCIs and RBGs for paging */
-  if (rrc) {
+  if (rrc != nullptr) {
     uint32_t paging_payload = 0;
-    if (rrc->is_paging_opportunity(current_tti, &paging_payload) and paging_payload) {
+    if (rrc->is_paging_opportunity(current_tti, &paging_payload) and paging_payload > 0) {
       tti_sched->alloc_paging(bc_aggr_level, paging_payload);
     }
   }
@@ -1305,7 +1306,7 @@ void sched::ul_sched_msg3(tti_sched_t* tti_sched)
   }
 
   uint16_t rnti = pending_msg3[pending_tti].rnti;
-  if (not ue_db.count(rnti)) {
+  if (ue_db.count(rnti) == 0) {
     log_h->warning("SCHED: Msg3 allocated for user rnti=0x%x that no longer exists\n", rnti);
     return;
   }
@@ -1417,6 +1418,4 @@ void sched::generate_cce_location(
   }
 }
 
-}
-
-
+} // namespace srsenb

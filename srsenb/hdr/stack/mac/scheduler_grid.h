@@ -30,10 +30,10 @@
 
 namespace srsenb {
 
-// Type of Allocation
+//! Type of Allocation
 enum class alloc_type_t { DL_BC, DL_PCCH, DL_RAR, DL_DATA, UL_DATA };
 
-// Result of alloc attempt
+//! Result of alloc attempt
 struct alloc_outcome_t {
   enum result_enum { SUCCESS, DCI_COLLISION, RB_COLLISION, ERROR };
   result_enum result = ERROR;
@@ -41,19 +41,20 @@ struct alloc_outcome_t {
   alloc_outcome_t(result_enum e) : result(e) {}
               operator result_enum() { return result; }
               operator bool() { return result == SUCCESS; }
-  const char* to_string() const;
+              const char* to_string() const;
 };
 
+//! Class responsible for managing a PDCCH CCE grid, namely cce allocs, and avoid collisions.
 class pdcch_grid_t
 {
 public:
   struct alloc_t {
     uint16_t     rnti;
     srslte_dci_location_t dci_pos = {0, 0};
-    pdcch_mask_t current_mask;
-    pdcch_mask_t total_mask;
+    pdcch_mask_t          current_mask;
+    pdcch_mask_t          total_mask;
   };
-  typedef std::vector<const alloc_t*> alloc_result_t;
+  using alloc_result_t = std::vector<const alloc_t*>;
 
   void init(srslte::log*               log_,
             srslte_regs_t*             regs,
@@ -99,10 +100,11 @@ private:
   size_t                   nof_dci_allocs = 0;
 };
 
+//! manages a full TTI grid, namely CCE and RB allocations
 class tti_grid_t
 {
 public:
-  typedef std::pair<alloc_outcome_t, rbg_range_t> ctrl_alloc_t;
+  using ctrl_alloc_t = std::pair<alloc_outcome_t, rbg_range_t>;
 
   void            init(srslte::log* log_, sched_interface::cell_cfg_t* cell_, const pdcch_grid_t& pdcch_grid);
   void            new_tti(uint32_t tti_rx_, uint32_t start_cfi);
@@ -125,14 +127,14 @@ public:
   uint32_t            get_sf_idx() const { return pdcch_alloc.get_sf_idx(); }
 
 private:
-  alloc_outcome_t alloc_dl(uint32_t aggr_lvl, alloc_type_t alloc_type, rbgmask_t alloc_mask, sched_ue* user = NULL);
+  alloc_outcome_t alloc_dl(uint32_t aggr_lvl, alloc_type_t alloc_type, rbgmask_t alloc_mask, sched_ue* user = nullptr);
 
   // consts
   srslte::log*                 log_h    = nullptr;
   sched_interface::cell_cfg_t* cell_cfg = nullptr;
   uint32_t                     nof_prbs = 0;
   uint32_t                     nof_rbgs = 0;
-  uint32_t                     si_n_rbg, rar_n_rbg = 0;
+  uint32_t                     si_n_rbg = 0, rar_n_rbg = 0;
 
   // tti const
   uint32_t tti_rx = 10241;
@@ -145,6 +147,27 @@ private:
   uint32_t  avail_rbg = 0;
   rbgmask_t dl_mask   = {};
   prbmask_t ul_mask   = {};
+};
+
+//! generic interface used by DL scheduler algorithm
+class dl_tti_sched_t
+{
+public:
+  virtual alloc_outcome_t  alloc_dl_user(sched_ue* user, const rbgmask_t& user_mask, uint32_t pid) = 0;
+  virtual const rbgmask_t& get_dl_mask() const                                                     = 0;
+  virtual uint32_t         get_tti_tx_dl() const                                                   = 0;
+  virtual uint32_t         get_nof_ctrl_symbols() const                                            = 0;
+  virtual bool             is_dl_alloc(sched_ue* user) const                                       = 0;
+};
+
+//! generic interface used by UL scheduler algorithm
+class ul_tti_sched_t
+{
+public:
+  virtual alloc_outcome_t  alloc_ul_user(sched_ue* user, ul_harq_proc::ul_alloc_t alloc) = 0;
+  virtual const prbmask_t& get_ul_mask() const                                           = 0;
+  virtual uint32_t         get_tti_tx_ul() const                                         = 0;
+  virtual bool             is_ul_alloc(sched_ue* user) const                             = 0;
 };
 
 } // namespace srsenb

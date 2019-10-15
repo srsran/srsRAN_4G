@@ -41,7 +41,7 @@ void dl_metric_rr::set_log(srslte::log* log_)
   log_h = log_;
 }
 
-void dl_metric_rr::sched_users(std::map<uint16_t, sched_ue>& ue_db, sched::dl_tti_sched_t* tti_sched)
+void dl_metric_rr::sched_users(std::map<uint16_t, sched_ue>& ue_db, dl_tti_sched_t* tti_sched)
 {
   typedef std::map<uint16_t, sched_ue>::iterator it_t;
 
@@ -102,7 +102,7 @@ dl_harq_proc* dl_metric_rr::allocate_user(sched_ue* user)
       return h;
     } else if (code == alloc_outcome_t::DCI_COLLISION) {
       // No DCIs available for this user. Move to next
-      return NULL;
+      return nullptr;
     }
 
     // If previous mask does not fit, find another with exact same number of rbgs
@@ -112,7 +112,7 @@ dl_harq_proc* dl_metric_rr::allocate_user(sched_ue* user)
       if (code == alloc_outcome_t::SUCCESS) {
         return h;
       } else if (code == alloc_outcome_t::DCI_COLLISION) {
-        return NULL;
+        return nullptr;
       }
     }
   }
@@ -138,12 +138,12 @@ dl_harq_proc* dl_metric_rr::allocate_user(sched_ue* user)
     }
   }
 
-  return NULL;
+  return nullptr;
 }
 
 /*****************************************************************
  *
- * Uplink Metric 
+ * Uplink Metric
  *
  *****************************************************************/
 
@@ -152,7 +152,7 @@ void ul_metric_rr::set_log(srslte::log* log_)
   log_h = log_;
 }
 
-void ul_metric_rr::sched_users(std::map<uint16_t, sched_ue>& ue_db, sched::ul_tti_sched_t* tti_sched)
+void ul_metric_rr::sched_users(std::map<uint16_t, sched_ue>& ue_db, ul_tti_sched_t* tti_sched)
 {
   typedef std::map<uint16_t, sched_ue>::iterator it_t;
 
@@ -225,10 +225,10 @@ bool ul_metric_rr::find_allocation(uint32_t L, ul_harq_proc::ul_alloc_t* alloc)
   return alloc->L == L; 
 }
 
-ul_harq_proc* ul_metric_rr::allocate_user_retx_prbs(sched_ue *user)
+ul_harq_proc* ul_metric_rr::allocate_user_retx_prbs(sched_ue* user)
 {
   if (tti_alloc->is_ul_alloc(user)) {
-    return NULL;
+    return nullptr;
   }
   alloc_outcome_t ret;
   ul_harq_proc*   h = user->get_ul_harq(current_tti);
@@ -241,34 +241,36 @@ ul_harq_proc* ul_metric_rr::allocate_user_retx_prbs(sched_ue *user)
     ret = tti_alloc->alloc_ul_user(user, alloc);
     if (ret == alloc_outcome_t::SUCCESS) {
       return h;
-    } else if (ret == alloc_outcome_t::DCI_COLLISION) {
+    }
+    if (ret == alloc_outcome_t::DCI_COLLISION) {
       log_h->warning("SCHED: Couldn't find space in PDCCH for UL tx of rnti=0x%x\n", user->get_rnti());
-      return NULL;
+      return nullptr;
     }
 
     if (find_allocation(alloc.L, &alloc)) {
       ret = tti_alloc->alloc_ul_user(user, alloc);
       if (ret == alloc_outcome_t::SUCCESS) {
         return h;
-      } else if (ret == alloc_outcome_t::DCI_COLLISION) {
+      }
+      if (ret == alloc_outcome_t::DCI_COLLISION) {
         log_h->warning("SCHED: Couldn't find space in PDCCH for UL tx of rnti=0x%x\n", user->get_rnti());
       }
     }
   }
-  return NULL;
+  return nullptr;
 }
 
 ul_harq_proc* ul_metric_rr::allocate_user_newtx_prbs(sched_ue* user)
 {
   if (tti_alloc->is_ul_alloc(user)) {
-    return NULL;
+    return nullptr;
   }
   uint32_t      pending_data = user->get_pending_ul_new_data(current_tti);
   ul_harq_proc* h            = user->get_ul_harq(current_tti);
 
   // find an empty PID
-  if (h->is_empty(0) and pending_data) {
-    uint32_t pending_rb = user->get_required_prb_ul(pending_data);
+  if (h->is_empty(0) and pending_data > 0) {
+    uint32_t                 pending_rb = user->get_required_prb_ul(pending_data);
     ul_harq_proc::ul_alloc_t alloc;
 
     find_allocation(pending_rb, &alloc);
@@ -281,7 +283,7 @@ ul_harq_proc* ul_metric_rr::allocate_user_newtx_prbs(sched_ue* user)
       }
     }
   }
-  return NULL;
+  return nullptr;
 }
 
-}
+} // namespace srsenb
