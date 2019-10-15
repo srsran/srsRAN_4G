@@ -153,6 +153,7 @@ protected:
     uint32_t window_start;
     uint32_t n_tx;
   } sched_sib_t;
+  class bc_sched_t;
 
   class tti_sched_t : public dl_tti_sched_t, public ul_tti_sched_t
   {

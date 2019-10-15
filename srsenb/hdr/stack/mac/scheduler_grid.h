@@ -100,7 +100,7 @@ private:
   size_t                   nof_dci_allocs = 0;
 };
 
-//! manages a full TTI grid, namely CCE and RB allocations
+//! manages a full TTI grid resources, namely CCE and DL/UL RB allocations
 class tti_grid_t
 {
 public:

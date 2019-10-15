@@ -226,6 +226,7 @@ struct sched_tester : public srsenb::sched {
   void assert_no_empty_allocs();
   void test_collisions();
   void test_harqs();
+  void test_sibs();
   void run_tti(uint32_t tti_rx);
 
 private:
@@ -381,6 +382,7 @@ void sched_tester::process_results()
   test_collisions();
   assert_no_empty_allocs();
   test_harqs();
+  test_sibs();
 }
 
 void sched_tester::run_tti(uint32_t tti_rx)
@@ -710,6 +712,40 @@ void sched_tester::test_harqs()
   //      }
   //    }
   //  }
+}
+
+void sched_tester::test_sibs()
+{
+  uint32_t sfn          = tti_data.tti_tx_dl / 10;
+  uint32_t sf_idx       = TTI_TX(tti_data.tti_rx) % 10;
+  bool     sib1_present = ((sfn % 2) == 0) and sf_idx == 5;
+
+  using bc_elem     = sched_interface::dl_sched_bc_t;
+  bc_elem* bc_begin = &tti_data.sched_result_dl.bc[0];
+  bc_elem* bc_end   = &tti_data.sched_result_dl.bc[tti_data.sched_result_dl.nof_bc_elems];
+
+  /* Test if SIB1 was correctly scheduled */
+  if (sib1_present) {
+    auto it = std::find_if(bc_begin, bc_end, [](bc_elem& elem) { return elem.index == 0; });
+    CondError(it == bc_end, "Failed to allocate SIB1 in even sfn, sf_idx==5\n");
+  }
+
+  /* Test if any SIB was scheduled outside of its window */
+  for (bc_elem* bc = bc_begin; bc != bc_end; ++bc) {
+    if (bc->index == 0) {
+      continue;
+    }
+    uint32_t x         = (bc->index - 1) * cfg.si_window_ms;
+    uint32_t sf        = x % 10;
+    uint32_t sfn_start = sfn;
+    while ((sfn_start % cfg.sibs[bc->index].period_rf) != x / 10) {
+      sfn_start--;
+    }
+    uint32_t win_start = sfn_start * 10 + sf;
+    uint32_t win_end   = win_start + cfg.si_window_ms;
+    CondError(tti_data.tti_tx_dl < win_start or tti_data.tti_tx_dl > win_end,
+              "Scheduled SIB is outside of its SIB window\n");
+  }
 }
 
 void sched_tester::test_collisions()
