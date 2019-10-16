@@ -276,35 +276,50 @@ void srslte_vec_neg_bbb_simd(const int8_t *x, const int8_t *y, int8_t *z, const 
   }
 }
 
+#define SAVE_OUTPUT_16_SSE(j)                                                                                          \
+  x    = (int16_t)_mm_extract_epi16(xVal, j);                                                                          \
+  l    = (uint16_t)_mm_extract_epi16(lutVal, j);                                                                       \
+  y[l] = (short)x;
+
 /* No improvement with AVX */
 void srslte_vec_lut_sss_simd(const short *x, const unsigned short *lut, short *y, const int len) {
   int i = 0;
 #ifdef LV_HAVE_SSE
-#ifndef DEBUG_MODE
   if (SRSLTE_IS_ALIGNED(x) && SRSLTE_IS_ALIGNED(lut)) {
     for (; i < len - 7; i += 8) {
       __m128i xVal = _mm_load_si128((__m128i *) &x[i]);
       __m128i lutVal = _mm_load_si128((__m128i *) &lut[i]);
 
-      for (int k = 0; k < 8; k++) {
-        int16_t x = (int16_t) _mm_extract_epi16(xVal, k);
-        uint16_t l = (uint16_t) _mm_extract_epi16(lutVal, k);
-        y[l] = (short) x;
-      }
+      int16_t  x;
+      uint16_t l;
+
+      SAVE_OUTPUT_16_SSE(0);
+      SAVE_OUTPUT_16_SSE(1);
+      SAVE_OUTPUT_16_SSE(2);
+      SAVE_OUTPUT_16_SSE(3);
+      SAVE_OUTPUT_16_SSE(4);
+      SAVE_OUTPUT_16_SSE(5);
+      SAVE_OUTPUT_16_SSE(6);
+      SAVE_OUTPUT_16_SSE(7);
     }
   } else {
     for (; i < len - 7; i += 8) {
       __m128i xVal = _mm_loadu_si128((__m128i *) &x[i]);
       __m128i lutVal = _mm_loadu_si128((__m128i *) &lut[i]);
 
-      for (int k = 0; k < 8; k++) {
-        int16_t x = (int16_t) _mm_extract_epi16(xVal, k);
-        uint16_t l = (uint16_t) _mm_extract_epi16(lutVal, k);
-        y[l] = (short) x;
-      }
+      int16_t  x;
+      uint16_t l;
+
+      SAVE_OUTPUT_16_SSE(0);
+      SAVE_OUTPUT_16_SSE(1);
+      SAVE_OUTPUT_16_SSE(2);
+      SAVE_OUTPUT_16_SSE(3);
+      SAVE_OUTPUT_16_SSE(4);
+      SAVE_OUTPUT_16_SSE(5);
+      SAVE_OUTPUT_16_SSE(6);
+      SAVE_OUTPUT_16_SSE(7);
     }
   }
-#endif
 #endif
 
   for (; i < len; i++) {
@@ -312,26 +327,45 @@ void srslte_vec_lut_sss_simd(const short *x, const unsigned short *lut, short *y
   }
 }
 
+#define SAVE_OUTPUT_SSE_8(j)                                                                                           \
+  x    = (int8_t)_mm_extract_epi8(xVal, j);                                                                            \
+  l    = (uint16_t)_mm_extract_epi16(lutVal1, j);                                                                      \
+  y[l] = (char)x;
+
+#define SAVE_OUTPUT_SSE_8_2(j)                                                                                         \
+  x    = (int8_t)_mm_extract_epi8(xVal, j + 8);                                                                        \
+  l    = (uint16_t)_mm_extract_epi16(lutVal2, j);                                                                      \
+  y[l] = (char)x;
+
 void srslte_vec_lut_bbb_simd(const int8_t *x, const unsigned short *lut, int8_t *y, const int len) {
   int i = 0;
 #ifdef LV_HAVE_SSE
-#ifndef DEBUG_MODE
   if (SRSLTE_IS_ALIGNED(x) && SRSLTE_IS_ALIGNED(lut)) {
     for (; i < len - 15; i += 16) {
       __m128i xVal = _mm_load_si128((__m128i *) &x[i]);
       __m128i lutVal1 = _mm_load_si128((__m128i *) &lut[i]);
       __m128i lutVal2 = _mm_load_si128((__m128i *) &lut[i+8]);
 
-      for (int k = 0; k < 8; k++) {
-        int8_t x = (int8_t) _mm_extract_epi8(xVal, k);
-        uint16_t l = (uint16_t) _mm_extract_epi16(lutVal1, k);
-        y[l] = (char) x;
-      }
-      for (int k = 0; k < 8; k++) {
-        int8_t x = (int8_t) _mm_extract_epi8(xVal, k+8);
-        uint16_t l = (uint16_t) _mm_extract_epi16(lutVal2, k);
-        y[l] = (char) x;
-      }
+      int8_t   x;
+      uint16_t l;
+
+      SAVE_OUTPUT_SSE_8(0);
+      SAVE_OUTPUT_SSE_8(1);
+      SAVE_OUTPUT_SSE_8(2);
+      SAVE_OUTPUT_SSE_8(3);
+      SAVE_OUTPUT_SSE_8(4);
+      SAVE_OUTPUT_SSE_8(5);
+      SAVE_OUTPUT_SSE_8(6);
+      SAVE_OUTPUT_SSE_8(7);
+
+      SAVE_OUTPUT_SSE_8_2(0);
+      SAVE_OUTPUT_SSE_8_2(1);
+      SAVE_OUTPUT_SSE_8_2(2);
+      SAVE_OUTPUT_SSE_8_2(3);
+      SAVE_OUTPUT_SSE_8_2(4);
+      SAVE_OUTPUT_SSE_8_2(5);
+      SAVE_OUTPUT_SSE_8_2(6);
+      SAVE_OUTPUT_SSE_8_2(7);
     }
   } else {
     for (; i < len - 15; i += 16) {
@@ -339,19 +373,28 @@ void srslte_vec_lut_bbb_simd(const int8_t *x, const unsigned short *lut, int8_t 
       __m128i lutVal1 = _mm_loadu_si128((__m128i *) &lut[i]);
       __m128i lutVal2 = _mm_loadu_si128((__m128i *) &lut[i+8]);
 
-      for (int k = 0; k < 8; k++) {
-        int8_t x = (int8_t) _mm_extract_epi8(xVal, k);
-        uint16_t l = (uint16_t) _mm_extract_epi16(lutVal1, k);
-        y[l] = (char) x;
-      }
-      for (int k = 0; k < 8; k++) {
-        int8_t x = (int8_t) _mm_extract_epi8(xVal, k+8);
-        uint16_t l = (uint16_t) _mm_extract_epi16(lutVal2, k);
-        y[l] = (char) x;
-      }
+      int8_t   x;
+      uint16_t l;
+
+      SAVE_OUTPUT_SSE_8(0);
+      SAVE_OUTPUT_SSE_8(1);
+      SAVE_OUTPUT_SSE_8(2);
+      SAVE_OUTPUT_SSE_8(3);
+      SAVE_OUTPUT_SSE_8(4);
+      SAVE_OUTPUT_SSE_8(5);
+      SAVE_OUTPUT_SSE_8(6);
+      SAVE_OUTPUT_SSE_8(7);
+
+      SAVE_OUTPUT_SSE_8_2(0);
+      SAVE_OUTPUT_SSE_8_2(1);
+      SAVE_OUTPUT_SSE_8_2(2);
+      SAVE_OUTPUT_SSE_8_2(3);
+      SAVE_OUTPUT_SSE_8_2(4);
+      SAVE_OUTPUT_SSE_8_2(5);
+      SAVE_OUTPUT_SSE_8_2(6);
+      SAVE_OUTPUT_SSE_8_2(7);
     }
   }
-#endif
 #endif
 
   for (; i < len; i++) {
