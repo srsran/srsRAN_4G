@@ -815,7 +815,9 @@ int sched::dl_ant_info(uint16_t rnti, asn1::rrc::phys_cfg_ded_s::ant_info_c_* dl
 
 int sched::dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack)
 {
-  return ue_db_access(rnti, [tti, tb_idx, ack](sched_ue& ue) { ue.set_ack_info(tti, tb_idx, ack); });
+  int ret = -1;
+  ue_db_access(rnti, [tti, tb_idx, ack, &ret](sched_ue& ue) { ret = ue.set_ack_info(tti, tb_idx, ack); });
+  return ret;
 }
 
 int sched::ul_crc_info(uint32_t tti, uint16_t rnti, bool crc)
@@ -848,72 +850,27 @@ int sched::dl_rach_info(dl_sched_rar_info_t rar_info)
 
 int sched::ul_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi, uint32_t ul_ch_code)
 {
-  int ret = 0;
-  pthread_rwlock_rdlock(&rwlock);
-  if (ue_db.count(rnti) > 0) {
-    ue_db[rnti].set_ul_cqi(tti, cqi, ul_ch_code);
-  } else {
-    Error("User rnti=0x%x not found\n", rnti);
-    ret = -1;
-  }
-  pthread_rwlock_unlock(&rwlock);
-  return ret;
+  return ue_db_access(rnti, [tti, cqi, ul_ch_code](sched_ue& ue) { ue.set_ul_cqi(tti, cqi, ul_ch_code); });
 }
 
 int sched::ul_bsr(uint16_t rnti, uint32_t lcid, uint32_t bsr, bool set_value)
 {
-  int ret = 0;
-  pthread_rwlock_rdlock(&rwlock);
-  if (ue_db.count(rnti) > 0) {
-    ue_db[rnti].ul_buffer_state(lcid, bsr, set_value);
-  } else {
-    Error("User rnti=0x%x not found\n", rnti);
-    ret = -1;
-  }
-  pthread_rwlock_unlock(&rwlock);
-  return ret;
+  return ue_db_access(rnti, [lcid, bsr, set_value](sched_ue& ue) { ue.ul_buffer_state(lcid, bsr, set_value); });
 }
 
 int sched::ul_recv_len(uint16_t rnti, uint32_t lcid, uint32_t len)
 {
-  int ret = 0;
-  pthread_rwlock_rdlock(&rwlock);
-  if (ue_db.count(rnti) > 0) {
-    ue_db[rnti].ul_recv_len(lcid, len);
-  } else {
-    Error("User rnti=0x%x not found\n", rnti);
-    ret = -1;
-  }
-  pthread_rwlock_unlock(&rwlock);
-  return ret;
+  return ue_db_access(rnti, [lcid, len](sched_ue& ue) { ue.ul_recv_len(lcid, len); });
 }
 
 int sched::ul_phr(uint16_t rnti, int phr)
 {
-  int ret = 0;
-  pthread_rwlock_rdlock(&rwlock);
-  if (ue_db.count(rnti) > 0) {
-    ue_db[rnti].ul_phr(phr);
-  } else {
-    Error("User rnti=0x%x not found\n", rnti);
-    ret = -1;
-  }
-  pthread_rwlock_unlock(&rwlock);
-  return ret;
+  return ue_db_access(rnti, [phr](sched_ue& ue) { ue.ul_phr(phr); });
 }
 
 int sched::ul_sr_info(uint32_t tti, uint16_t rnti)
 {
-  int ret = 0;
-  pthread_rwlock_rdlock(&rwlock);
-  if (ue_db.count(rnti) > 0) {
-    ue_db[rnti].set_sr();
-  } else {
-    Error("User rnti=0x%x not found\n", rnti);
-    ret = -1;
-  }
-  pthread_rwlock_unlock(&rwlock);
-  return ret;
+  return ue_db_access(rnti, [](sched_ue& ue) { ue.set_sr(); });
 }
 
 void sched::set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs)
@@ -923,30 +880,18 @@ void sched::set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs)
 
 void sched::tpc_inc(uint16_t rnti)
 {
-  pthread_rwlock_rdlock(&rwlock);
-  if (ue_db.count(rnti) > 0) {
-    ue_db[rnti].tpc_inc();
-  } else {
-    Error("User rnti=0x%x not found\n", rnti);
-  }
-  pthread_rwlock_unlock(&rwlock);
+  ue_db_access(rnti, [](sched_ue& ue) { ue.tpc_inc(); });
 }
 
 void sched::tpc_dec(uint16_t rnti)
 {
-  pthread_rwlock_rdlock(&rwlock);
-  if (ue_db.count(rnti) > 0) {
-    ue_db[rnti].tpc_dec();
-  } else {
-    Error("User rnti=0x%x not found\n", rnti);
-  }
-  pthread_rwlock_unlock(&rwlock);
+  ue_db_access(rnti, [](sched_ue& ue) { ue.tpc_dec(); });
 }
 
 /*******************************************************
- * 
- * Main sched functions 
- * 
+ *
+ * Main sched functions
+ *
  *******************************************************/
 
 sched::tti_sched_t* sched::new_tti(uint32_t tti_rx)
