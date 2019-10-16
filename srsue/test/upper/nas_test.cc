@@ -204,6 +204,8 @@ int security_command_test()
   nas_log.set_hex_limit(100000);
   rrc_log.set_hex_limit(100000);
 
+  srslte::timers timers(10);
+
   rrc_dummy rrc_dummy;
   gw_dummy gw;
 
@@ -217,12 +219,12 @@ int security_command_test()
 
   // init USIM
   srsue::usim usim(&usim_log);
-  bool    net_valid;
+  bool        net_valid = false;
   uint8_t res[16];
   usim.init(&args);
 
   {
-    srsue::nas nas(&nas_log);
+    srsue::nas nas(&nas_log, &timers);
     nas_args_t cfg;
     cfg.eia = "1,2,3";
     cfg.eea = "0,1,2,3";
@@ -274,6 +276,8 @@ int mme_attach_request_test()
   usim_log.set_hex_limit(100000);
   gw_log.set_hex_limit(100000);
 
+  srslte::timers timers(10);
+
   rrc_dummy rrc_dummy;
   pdcp_dummy pdcp_dummy;
 
@@ -291,7 +295,7 @@ int mme_attach_request_test()
     nas_args_t nas_cfg;
     nas_cfg.force_imsi_attach = true;
     nas_cfg.apn_name          = "test123";
-    srsue::nas  nas(&nas_log);
+    srsue::nas  nas(&nas_log, &timers);
     srsue::gw  gw;
     stack_dummy stack(&pdcp_dummy, &nas);
 
@@ -352,6 +356,8 @@ int esm_info_request_test()
   nas_log.set_hex_limit(100000);
   rrc_log.set_hex_limit(100000);
 
+  srslte::timers timers(10);
+
   rrc_dummy rrc_dummy;
   gw_dummy gw;
 
@@ -372,7 +378,7 @@ int esm_info_request_test()
   pool = byte_buffer_pool::get_instance();
 
   {
-    srsue::nas nas(&nas_log);
+    srsue::nas nas(&nas_log, &timers);
     nas_args_t cfg;
     cfg.apn_name          = "srslte";
     cfg.apn_user          = "srsuser";
@@ -409,6 +415,8 @@ int dedicated_eps_bearer_test()
   nas_log.set_hex_limit(100000);
   rrc_log.set_hex_limit(100000);
 
+  srslte::timers timers(10);
+
   rrc_dummy rrc_dummy;
   gw_dummy  gw;
 
@@ -425,7 +433,7 @@ int dedicated_eps_bearer_test()
 
   srslte::byte_buffer_pool* pool = byte_buffer_pool::get_instance();
 
-  srsue::nas nas(&nas_log);
+  srsue::nas nas(&nas_log, &timers);
   nas_args_t cfg        = {};
   cfg.force_imsi_attach = true; // make sure we get a fresh security context
   nas.init(&usim, &rrc_dummy, &gw, cfg);
