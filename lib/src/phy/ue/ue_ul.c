@@ -500,11 +500,7 @@ get_format(srslte_pucch_cfg_t* cfg, srslte_uci_cfg_t* uci_cfg, srslte_uci_value_
       format = SRSLTE_PUCCH_FORMAT_1B; // with channel selection if > 2
     }
     // If UCI value is provided, use SR signal only, otherwise SR request opportunity
-    else if (uci_value) {
-      if (uci_value->scheduling_request) {
-        format = SRSLTE_PUCCH_FORMAT_1;
-      }
-    } else if (uci_cfg->is_scheduling_request_tti) {
+    else if (uci_cfg->is_scheduling_request_tti || (uci_value && uci_value->scheduling_request)) {
       format = SRSLTE_PUCCH_FORMAT_1;
     } else {
       fprintf(stderr,
