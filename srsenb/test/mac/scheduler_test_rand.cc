@@ -426,7 +426,7 @@ void sched_tester::test_ra()
       if (tti_data.tti_tx_dl >= window[0]) {
         for (uint32_t i = 0; i < tti_data.sched_result_dl.nof_rar_elems; ++i) {
           for (uint32_t j = 0; j < tti_data.sched_result_dl.rar[i].nof_grants; ++j) {
-            if (tti_data.sched_result_dl.rar[i].msg3_grant[j].data.prach_tti == tti_data.tti_tx_dl) {
+            if (tti_data.sched_result_dl.rar[i].msg3_grant[j].data.prach_tti + TX_DELAY == tti_data.tti_tx_dl) {
               userinfo.rar_tti = tti_data.tti_tx_dl;
             }
           }
@@ -701,17 +701,17 @@ void sched_tester::test_harqs()
     to_ul_ack.insert(std::make_pair(ack_data.tti_tx_ul, ack_data));
   }
 
-  //  // Check whether some pids got old
-  //  for (auto& user : ue_db) {
-  //    for (int i = 0; i < 2 * FDD_HARQ_DELAY_MS; i++) {
-  //      if (not(user.second.get_dl_harq(i)->is_empty(0) and user.second.get_dl_harq(1))) {
-  //        if (srslte_tti_interval(tti_data.tti_tx_dl, user.second.get_dl_harq(i)->get_tti()) > 49) {
-  //          TestError("[TESTER] The pid=%d for rnti=0x%x got old.\n", user.second.get_dl_harq(i)->get_id(),
-  //          user.first);
-  //        }
-  //      }
-  //    }
-  //  }
+//    // Check whether some pids got old
+//    for (auto& user : ue_db) {
+//      for (int i = 0; i < 2 * FDD_HARQ_DELAY_MS; i++) {
+//        if (not(user.second.get_dl_harq(i)->is_empty(0) and user.second.get_dl_harq(1))) {
+//          if (srslte_tti_interval(tti_data.tti_tx_dl, user.second.get_dl_harq(i)->get_tti()) > 49) {
+//            TestError("[TESTER] The pid=%d for rnti=0x%x got old.\n", user.second.get_dl_harq(i)->get_id(),
+//            user.first);
+//          }
+//        }
+//      }
+//    }
 }
 
 void sched_tester::test_sibs()

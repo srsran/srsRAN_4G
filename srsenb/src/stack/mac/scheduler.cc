@@ -23,6 +23,7 @@
 #include <string.h>
 
 #include "srsenb/hdr/stack/mac/scheduler.h"
+#include "srsenb/hdr/stack/mac/scheduler_ctrl.h"
 #include "srslte/common/pdu.h"
 #include "srslte/srslte.h"
 
@@ -562,11 +563,18 @@ int sched::tti_sched_t::generate_format1a(
 }
 
 /*******************************************************
- * 
- * Initialization and sched configuration functions 
- * 
+ *
+ * Initialization and sched configuration functions
+ *
  *******************************************************/
-sched::sched() : bc_aggr_level(0), rar_aggr_level(0), P(0), si_n_rbg(0), rar_n_rbg(0), nof_rbg(0)
+sched::sched() :
+  bc_aggr_level(0),
+  rar_aggr_level(0),
+  P(0),
+  si_n_rbg(0),
+  rar_n_rbg(0),
+  nof_rbg(0),
+  bc_sched(new bc_sched_t{&cfg})
 {
   current_tti = 0;
   log_h       = nullptr;
@@ -608,13 +616,14 @@ void sched::init(rrc_interface_mac* rrc_, srslte::log* log)
   sched_cfg.max_aggr_level   = 3;
   log_h                      = log;
   rrc                        = rrc_;
+
+  bc_sched->init(rrc);
   reset();
 }
 
 int sched::reset()
 {
   bzero(pending_msg3, sizeof(pending_msg3_t) * TTIMOD_SZ);
-  bzero(pending_sibs, sizeof(sched_sib_t) * MAX_SIBS);
   while (not pending_rars.empty()) {
     pending_rars.pop();
   }
@@ -1088,73 +1097,6 @@ sched::tti_sched_t* sched::new_tti(uint32_t tti_rx)
   return tti_sched;
 }
 
-// Schedules Broadcast messages (SIB)
-void sched::dl_sched_bc(tti_sched_t* tti_sched)
-{
-  /* Activate/Deactivate SI windows */
-  for (int i = 0; i < MAX_SIBS; i++) {
-    // There is SIB data
-    if (cfg.sibs[i].len == 0) {
-      continue;
-    }
-
-    if (!pending_sibs[i].is_in_window) {
-      uint32_t sf = 5;
-      uint32_t x  = 0;
-      if (i > 0) {
-        x  = (i - 1) * cfg.si_window_ms;
-        sf = x % 10;
-      }
-      if ((tti_sched->get_sfn() % (cfg.sibs[i].period_rf)) == x / 10 && tti_sched->get_sf_idx() == sf) {
-        pending_sibs[i].is_in_window = true;
-        pending_sibs[i].window_start = tti_sched->get_tti_tx_dl();
-        pending_sibs[i].n_tx         = 0;
-      }
-    } else {
-      if (i > 0) {
-        if (srslte_tti_interval(tti_sched->get_tti_tx_dl(), pending_sibs[i].window_start) > cfg.si_window_ms) {
-          // the si window has passed
-          pending_sibs[i].is_in_window = false;
-          pending_sibs[i].window_start = 0;
-        }
-      } else {
-        // SIB1 is always in window
-        if (pending_sibs[0].n_tx == 4) {
-          pending_sibs[0].n_tx = 0;
-        }
-      }
-    }
-  }
-
-  /* Allocate DCIs and RBGs for each SIB */
-  for (int i = 0; i < MAX_SIBS; i++) {
-    if (cfg.sibs[i].len > 0 && pending_sibs[i].is_in_window && pending_sibs[i].n_tx < 4) {
-      uint32_t nof_tx = (i > 0) ? SRSLTE_MIN(CEILFRAC(cfg.si_window_ms, 10), 4) : 4;
-      uint32_t n_sf   = (tti_sched->get_tti_tx_dl() - pending_sibs[i].window_start);
-
-      // Check if there is any SIB to tx
-      bool sib1_flag = i == 0 and (tti_sched->get_sfn() % 2) == 0 and tti_sched->get_sf_idx() == 5;
-      bool other_sibs_flag =
-          i > 0 and n_sf >= (cfg.si_window_ms / nof_tx) * pending_sibs[i].n_tx and tti_sched->get_sf_idx() == 9;
-      if (!sib1_flag and !other_sibs_flag) {
-        continue;
-      }
-
-      // Schedule SIB
-      tti_sched->alloc_bc(bc_aggr_level, i, pending_sibs[i].n_tx);
-      pending_sibs[i].n_tx++;
-    }
-  }
-
-  /* Allocate DCIs and RBGs for paging */
-  if (rrc != nullptr) {
-    uint32_t paging_payload = 0;
-    if (rrc->is_paging_opportunity(current_tti, &paging_payload) and paging_payload > 0) {
-      tti_sched->alloc_paging(bc_aggr_level, paging_payload);
-    }
-  }
-}
-
 bool is_in_tti_interval(uint32_t tti, uint32_t tti1, uint32_t tti2)
 {
   tti %= 10240;
@@ -1260,8 +1202,8 @@ int sched::generate_dl_sched(tti_sched_t* tti_sched)
   bc_aggr_level  = 2;
   rar_aggr_level = 2;
 
-  /* Schedule Broadcast data */
-  dl_sched_bc(tti_sched);
+  /* Schedule Broadcast data (SIB and paging) */
+  bc_sched->dl_sched(tti_sched);
 
   /* Schedule RAR */
   dl_sched_rar(tti_sched);

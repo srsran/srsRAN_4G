@@ -30,6 +30,7 @@ class sched::bc_sched_t
 {
 public:
   bc_sched_t(cell_cfg_t* cfg_);
+  void init(rrc_interface_mac* rrc_);
 
   void dl_sched(tti_sched_t* tti_sched);
   void reset();
@@ -43,9 +44,11 @@ private:
 
   void update_si_windows(tti_sched_t* tti_sched);
   void alloc_sibs(tti_sched_t* tti_sched);
+  void alloc_paging(tti_sched_t* tti_sched);
 
   // args
-  cell_cfg_t* cfg;
+  cell_cfg_t*        cfg;
+  rrc_interface_mac* rrc = nullptr;
 
   std::array<sched_sib_t, sched_interface::MAX_SIBS> pending_sibs;
 

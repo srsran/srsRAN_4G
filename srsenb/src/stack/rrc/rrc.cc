@@ -556,8 +556,8 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t *payload_len)
     }
   }
 
-  for (uint32_t i = 0; i < ue_to_remove.size(); i++) {
-    pending_paging.erase(ue_to_remove[i]);
+  for (unsigned int i : ue_to_remove) {
+    pending_paging.erase(i);
   }
 
   pthread_mutex_unlock(&paging_mutex);

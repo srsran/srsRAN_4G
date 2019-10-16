@@ -25,6 +25,11 @@ namespace srsenb {
 
 sched::bc_sched_t::bc_sched_t(cell_cfg_t* cfg_) : cfg(cfg_) {}
 
+void sched::bc_sched_t::init(srsenb::rrc_interface_mac* rrc_)
+{
+  rrc = rrc_;
+}
+
 void sched::bc_sched_t::dl_sched(sched::tti_sched_t* tti_sched)
 {
   current_sf_idx = tti_sched->get_sf_idx();
@@ -37,6 +42,10 @@ void sched::bc_sched_t::dl_sched(sched::tti_sched_t* tti_sched)
 
   /* Allocate DCIs and RBGs for each SIB */
   alloc_sibs(tti_sched);
+
+  /* Allocate Paging */
+  // NOTE: It blocks
+  alloc_paging(tti_sched);
 }
 
 void sched::bc_sched_t::update_si_windows(tti_sched_t* tti_sched)
@@ -95,6 +104,17 @@ void sched::bc_sched_t::alloc_sibs(tti_sched_t* tti_sched)
       // Schedule SIB
       tti_sched->alloc_bc(bc_aggr_level, i, pending_sibs[i].n_tx);
       pending_sibs[i].n_tx++;
+    }
+  }
+}
+
+void sched::bc_sched_t::alloc_paging(srsenb::sched::tti_sched_t* tti_sched)
+{
+  /* Allocate DCIs and RBGs for paging */
+  if (rrc != nullptr) {
+    uint32_t paging_payload = 0;
+    if (rrc->is_paging_opportunity(current_tti, &paging_payload) and paging_payload > 0) {
+      tti_sched->alloc_paging(bc_aggr_level, paging_payload);
     }
   }
 }

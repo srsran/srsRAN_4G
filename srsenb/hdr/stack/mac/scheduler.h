@@ -148,11 +148,6 @@ protected:
   // This is for computing DCI locations
   srslte_regs_t regs;
 
-  typedef struct {
-    bool is_in_window;
-    uint32_t window_start;
-    uint32_t n_tx;
-  } sched_sib_t;
   class bc_sched_t;
 
   class tti_sched_t : public dl_tti_sched_t, public ul_tti_sched_t
@@ -266,16 +261,14 @@ protected:
   void         generate_phich(tti_sched_t* tti_sched);
   int          generate_dl_sched(tti_sched_t* tti_sched);
   int          generate_ul_sched(tti_sched_t* tti_sched);
-  void         dl_sched_bc(tti_sched_t* tti_sched);
   void         dl_sched_rar(tti_sched_t* tti_sched);
   void         dl_sched_data(tti_sched_t* tti_sched);
   void         ul_sched_msg3(tti_sched_t* tti_sched);
 
-  std::map<uint16_t, sched_ue>   ue_db;
-  sched_sib_t pending_sibs[MAX_SIBS];
+  std::map<uint16_t, sched_ue> ue_db;
 
   typedef struct {
-    bool enabled; 
+    bool     enabled;
     uint16_t rnti; 
     uint32_t L; 
     uint32_t n_prb; 
@@ -297,9 +290,10 @@ protected:
   prbmask_t prach_mask;
   prbmask_t pucch_mask;
 
-  uint32_t bc_aggr_level; 
-  uint32_t rar_aggr_level; 
-  
+  uint32_t                    bc_aggr_level;
+  uint32_t                    rar_aggr_level;
+  std::unique_ptr<bc_sched_t> bc_sched;
+
   uint32_t pdsch_re[10];
   uint32_t current_tti;
 
