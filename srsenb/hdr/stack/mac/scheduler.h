@@ -35,6 +35,20 @@
 
 namespace srsenb {
 
+namespace sched_utils {
+
+inline bool is_in_tti_interval(uint32_t tti, uint32_t tti1, uint32_t tti2)
+{
+  tti %= 10240;
+  tti1 %= 10240;
+  tti2 %= 10240;
+  if (tti1 <= tti2) {
+    return tti >= tti1 and tti <= tti2;
+  }
+  return tti >= tti1 or tti <= tti2;
+}
+
+} // namespace sched_utils
 
 /* Caution: User addition (ue_cfg) and removal (ue_rem) are not thread-safe
  * Rest of operations are thread-safe
@@ -149,8 +163,9 @@ protected:
   srslte_regs_t regs;
 
   class bc_sched_t;
+  class ra_sched_t;
 
-  class tti_sched_t : public dl_tti_sched_t, public ul_tti_sched_t
+  class tti_sched_result_t : public dl_tti_sched_t, public ul_tti_sched_t
   {
   public:
     struct ctrl_alloc_t {
@@ -227,10 +242,10 @@ protected:
     bool            is_dl_alloc(sched_ue* user) const final;
     bool            is_ul_alloc(sched_ue* user) const final;
     ctrl_code_t     alloc_dl_ctrl(uint32_t aggr_lvl, uint32_t tbs_bytes, uint16_t rnti);
-    alloc_outcome_t alloc_ul(sched_ue*                       user,
-                             ul_harq_proc::ul_alloc_t        alloc,
-                             tti_sched_t::ul_alloc_t::type_t alloc_type,
-                             uint32_t                        msg3 = 0);
+    alloc_outcome_t alloc_ul(sched_ue*                              user,
+                             ul_harq_proc::ul_alloc_t               alloc,
+                             tti_sched_result_t::ul_alloc_t::type_t alloc_type,
+                             uint32_t                               msg3 = 0);
     int             generate_format1a(
                     uint32_t rb_start, uint32_t l_crb, uint32_t tbs, uint32_t rv, uint16_t rnti, srslte_dci_dl_t* dci);
     void set_bc_sched_result(const pdcch_grid_t::alloc_result_t& dci_result);
@@ -253,17 +268,15 @@ protected:
   };
 
   const static uint32_t nof_sched_ttis = 10;
-  tti_sched_t           tti_scheds[nof_sched_ttis];
-  tti_sched_t*          get_tti_sched(uint32_t tti_rx) { return &tti_scheds[tti_rx % nof_sched_ttis]; }
+  tti_sched_result_t    tti_scheds[nof_sched_ttis];
+  tti_sched_result_t*   get_tti_sched(uint32_t tti_rx) { return &tti_scheds[tti_rx % nof_sched_ttis]; }
   std::vector<uint8_t>  tti_dl_mask;
 
-  tti_sched_t* new_tti(uint32_t tti_rx);
-  void         generate_phich(tti_sched_t* tti_sched);
-  int          generate_dl_sched(tti_sched_t* tti_sched);
-  int          generate_ul_sched(tti_sched_t* tti_sched);
-  void         dl_sched_rar(tti_sched_t* tti_sched);
-  void         dl_sched_data(tti_sched_t* tti_sched);
-  void         ul_sched_msg3(tti_sched_t* tti_sched);
+  tti_sched_result_t* new_tti(uint32_t tti_rx);
+  void                generate_phich(tti_sched_result_t* tti_sched);
+  int                 generate_dl_sched(tti_sched_result_t* tti_sched);
+  int                 generate_ul_sched(tti_sched_result_t* tti_sched);
+  void                dl_sched_data(tti_sched_result_t* tti_sched);
 
   // Helper methods
   template <typename Func>
@@ -271,17 +284,6 @@ protected:
 
   std::map<uint16_t, sched_ue> ue_db;
 
-  typedef struct {
-    bool     enabled;
-    uint16_t rnti; 
-    uint32_t L; 
-    uint32_t n_prb; 
-    uint32_t mcs; 
-  } pending_msg3_t;
-
-  std::queue<dl_sched_rar_info_t> pending_rars;
-  pending_msg3_t pending_msg3[TTIMOD_SZ];
-    
   // Allowed DCI locations for SIB and RAR per CFI
   sched_ue::sched_dci_cce_t common_locations[3];
   sched_ue::sched_dci_cce_t rar_locations[3][10];
@@ -294,9 +296,8 @@ protected:
   prbmask_t prach_mask;
   prbmask_t pucch_mask;
 
-  uint32_t                    bc_aggr_level;
-  uint32_t                    rar_aggr_level;
   std::unique_ptr<bc_sched_t> bc_sched;
+  std::unique_ptr<ra_sched_t> rar_sched;
 
   uint32_t pdsch_re[10];
   uint32_t current_tti;
