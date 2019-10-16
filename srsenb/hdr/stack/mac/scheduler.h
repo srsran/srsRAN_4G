@@ -265,6 +265,10 @@ protected:
   void         dl_sched_data(tti_sched_t* tti_sched);
   void         ul_sched_msg3(tti_sched_t* tti_sched);
 
+  // Helper methods
+  template <typename Func>
+  int ue_db_access(uint16_t rnti, Func);
+
   std::map<uint16_t, sched_ue> ue_db;
 
   typedef struct {
