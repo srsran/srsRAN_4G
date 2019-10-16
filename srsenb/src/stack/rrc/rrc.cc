@@ -193,13 +193,11 @@ void rrc::add_user(uint16_t rnti)
   }
 
   if (rnti == SRSLTE_MRNTI) {
-    srslte::pdcp_config_t cfg = {
-        .bearer_id    = 1,
-        .rb_type      = srslte::PDCP_RB_IS_DRB,
-        .tx_direction = srslte::SECURITY_DIRECTION_DOWNLINK,
-        .rx_direction = srslte::SECURITY_DIRECTION_UPLINK,
-        .sn_len       = srslte::PDCP_SN_LEN_12,
-    };
+    srslte::pdcp_config_t cfg(1,
+                              srslte::PDCP_RB_IS_DRB,
+                              srslte::SECURITY_DIRECTION_DOWNLINK,
+                              srslte::SECURITY_DIRECTION_UPLINK,
+                              srslte::PDCP_SN_LEN_12);
 
     uint32_t teid_in = 1;
 
@@ -1612,11 +1610,11 @@ void rrc::ue::send_connection_setup(bool is_setup)
   parent->rlc->add_bearer(rnti, 1, srslte::rlc_config_t::srb_config(1));
 
   // Configure SRB1 in PDCP
-  srslte::pdcp_config_t pdcp_cnfg{.bearer_id    = 1,
-                                  .rb_type      = srslte::PDCP_RB_IS_SRB,
-                                  .tx_direction = srslte::SECURITY_DIRECTION_DOWNLINK,
-                                  .rx_direction = srslte::SECURITY_DIRECTION_UPLINK,
-                                  .sn_len       = srslte::PDCP_SN_LEN_5};
+  srslte::pdcp_config_t pdcp_cnfg(1,
+                                  srslte::PDCP_RB_IS_SRB,
+                                  srslte::SECURITY_DIRECTION_DOWNLINK,
+                                  srslte::SECURITY_DIRECTION_UPLINK,
+                                  srslte::PDCP_SN_LEN_5);
   parent->pdcp->add_bearer(rnti, 1, pdcp_cnfg);
 
   // Configure PHY layer
@@ -1831,11 +1829,11 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   parent->rlc->add_bearer(rnti, 2, srslte::rlc_config_t::srb_config(2));
 
   // Configure SRB2 in PDCP
-  srslte::pdcp_config_t pdcp_cnfg_srb = {.bearer_id    = 2,
-                                         .rb_type      = srslte::PDCP_RB_IS_SRB,
-                                         .tx_direction = srslte::SECURITY_DIRECTION_DOWNLINK,
-                                         .rx_direction = srslte::SECURITY_DIRECTION_UPLINK,
-                                         .sn_len       = srslte::PDCP_SN_LEN_5};
+  srslte::pdcp_config_t pdcp_cnfg_srb(2,
+                                      srslte::PDCP_RB_IS_SRB,
+                                      srslte::SECURITY_DIRECTION_DOWNLINK,
+                                      srslte::SECURITY_DIRECTION_UPLINK,
+                                      srslte::PDCP_SN_LEN_5);
   parent->pdcp->add_bearer(rnti, 2, pdcp_cnfg_srb);
   parent->pdcp->config_security(rnti, 2, k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo);
   parent->pdcp->enable_integrity(rnti, 2);
@@ -1845,11 +1843,11 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   parent->rlc->add_bearer(rnti, 3, srslte::make_rlc_config_t(conn_reconf->rr_cfg_ded.drb_to_add_mod_list[0].rlc_cfg));
 
   // Configure DRB1 in PDCP
-  srslte::pdcp_config_t pdcp_cnfg_drb = {.bearer_id    = 1,
-                                         .rb_type      = srslte::PDCP_RB_IS_DRB,
-                                         .tx_direction = srslte::SECURITY_DIRECTION_DOWNLINK,
-                                         .rx_direction = srslte::SECURITY_DIRECTION_UPLINK,
-                                         .sn_len       = srslte::PDCP_SN_LEN_12};
+  srslte::pdcp_config_t pdcp_cnfg_drb(1,
+                                      srslte::PDCP_RB_IS_DRB,
+                                      srslte::SECURITY_DIRECTION_DOWNLINK,
+                                      srslte::SECURITY_DIRECTION_UPLINK,
+                                      srslte::PDCP_SN_LEN_12);
   if (conn_reconf->rr_cfg_ded.drb_to_add_mod_list[0].pdcp_cfg.rlc_um_present) {
     if (conn_reconf->rr_cfg_ded.drb_to_add_mod_list[0].pdcp_cfg.rlc_um.pdcp_sn_size.value ==
         pdcp_cfg_s::rlc_um_s_::pdcp_sn_size_e_::len7bits) {
@@ -1913,12 +1911,12 @@ void rrc::ue::send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBE
     parent->rlc->add_bearer(rnti, lcid, srslte::make_rlc_config_t(drb_item.rlc_cfg));
 
     // Configure DRB in PDCP
-    srslte::pdcp_config_t pdcp_config = {
-        .bearer_id    = (uint8_t)(drb_item.drb_id - 1), // TODO: Review all ID mapping LCID DRB ERAB EPSBID Mapping
-        .rb_type      = srslte::PDCP_RB_IS_DRB,
-        .tx_direction = srslte::SECURITY_DIRECTION_DOWNLINK,
-        .rx_direction = srslte::SECURITY_DIRECTION_UPLINK,
-        .sn_len       = srslte::PDCP_SN_LEN_12};
+    srslte::pdcp_config_t pdcp_config(
+        (uint8_t)(drb_item.drb_id - 1), // TODO: Review all ID mapping LCID DRB ERAB EPSBID Mapping
+        srslte::PDCP_RB_IS_DRB,
+        srslte::SECURITY_DIRECTION_DOWNLINK,
+        srslte::SECURITY_DIRECTION_UPLINK,
+        srslte::PDCP_SN_LEN_12);
     parent->pdcp->add_bearer(rnti, lcid, pdcp_config);
 
     // DRB has already been configured in GTPU through bearer setup
