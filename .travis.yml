@@ -6,6 +6,9 @@ before_script:
    - sudo apt-get install -qq build-essential cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libconfig++-dev libsctp-dev colordiff
 
 language: cpp
+compiler:
+  - gcc
+  - clang
 
 addons:
   apt:
