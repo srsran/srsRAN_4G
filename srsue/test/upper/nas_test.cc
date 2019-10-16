@@ -220,9 +220,8 @@ int security_command_test()
   // init USIM
   srsue::usim usim(&usim_log);
   bool        net_valid = false;
-  uint8_t res[16];
+  uint8_t     res[16];
   usim.init(&args);
-  srslte::timers timers(8);
 
   {
     srsue::nas nas(&nas_log, &timers);
@@ -288,10 +287,9 @@ int mme_attach_request_test()
   args.algo = "xor";
   args.imei = "353490069873319";
   args.imsi = "001010123456789";
-  args.k = "00112233445566778899aabbccddeeff";
-  args.op = "63BFA50EE6523365FF14C1F45F88737D";
+  args.k    = "00112233445566778899aabbccddeeff";
+  args.op   = "63BFA50EE6523365FF14C1F45F88737D";
   usim.init(&args);
-  srslte::timers timers(8);
 
   {
     nas_args_t nas_cfg;
@@ -376,9 +374,8 @@ int esm_info_request_test()
   uint8_t res[16];
   usim.init(&args);
 
-  srslte::byte_buffer_pool *pool;
+  srslte::byte_buffer_pool* pool;
   pool = byte_buffer_pool::get_instance();
-  srslte::timers timers(8);
 
   {
     srsue::nas nas(&nas_log, &timers);
@@ -433,7 +430,6 @@ int dedicated_eps_bearer_test()
   // init USIM
   srsue::usim usim(&usim_log);
   usim.init(&args);
-  srslte::timers timers(8);
 
   srslte::byte_buffer_pool* pool = byte_buffer_pool::get_instance();
 
