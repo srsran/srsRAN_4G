@@ -249,6 +249,7 @@ int sched::ra_sched_t::dl_rach_info(dl_sched_rar_info_t rar_info)
 
 void sched::ra_sched_t::reset()
 {
+  tti_tx_dl = 0;
   for (auto& msg3 : pending_msg3) {
     msg3 = {};
   }

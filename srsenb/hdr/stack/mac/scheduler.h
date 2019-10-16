@@ -48,6 +48,11 @@ inline bool is_in_tti_interval(uint32_t tti, uint32_t tti1, uint32_t tti2)
   return tti >= tti1 or tti <= tti2;
 }
 
+inline uint32_t tti_subtract(uint32_t tti1, uint32_t tti2)
+{
+  return (tti1 + 10240 - tti2) % 10240;
+}
+
 } // namespace sched_utils
 
 /* Caution: User addition (ue_cfg) and removal (ue_rem) are not thread-safe
@@ -68,29 +73,27 @@ public:
 
   class metric_dl
   {
-  public: 
-
+  public:
     /* Virtual methods for user metric calculation */
     virtual void set_log(srslte::log* log_)                                                  = 0;
     virtual void sched_users(std::map<uint16_t, sched_ue>& ue_db, dl_tti_sched_t* tti_sched) = 0;
   };
 
-  
   class metric_ul
   {
-  public: 
+  public:
     /* Virtual methods for user metric calculation */
     virtual void set_log(srslte::log* log_)                                                  = 0;
     virtual void sched_users(std::map<uint16_t, sched_ue>& ue_db, ul_tti_sched_t* tti_sched) = 0;
   };
 
   /*************************************************************
-   * 
-   * FAPI-like Interface 
-   * 
+   *
+   * FAPI-like Interface
+   *
    ************************************************************/
-  
-  sched(); 
+
+  sched();
   ~sched();
 
   void init(rrc_interface_mac* rrc, srslte::log* log);
@@ -135,29 +138,30 @@ public:
   /* Custom functions
    */
   void set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs) final;
-  void tpc_inc(uint16_t rnti); 
+  void tpc_inc(uint16_t rnti);
   void tpc_dec(uint16_t rnti);
 
   // Static Methods
-  static uint32_t get_rvidx(uint32_t retx_idx) {
-    const static int rv_idx[4] = {0, 2, 3, 1}; 
-    return rv_idx[retx_idx%4]; 
+  static uint32_t get_rvidx(uint32_t retx_idx)
+  {
+    const static int rv_idx[4] = {0, 2, 3, 1};
+    return rv_idx[retx_idx % 4];
   }
   static void generate_cce_location(
       srslte_regs_t* regs, sched_ue::sched_dci_cce_t* location, uint32_t cfi, uint32_t sf_idx = 0, uint16_t rnti = 0);
   static uint32_t aggr_level(uint32_t aggr_idx) { return 1u << aggr_idx; }
 
 protected:
-  metric_dl *dl_metric;
-  metric_ul *ul_metric; 
-  srslte::log *log_h; 
-  rrc_interface_mac *rrc;
+  metric_dl*         dl_metric;
+  metric_ul*         ul_metric;
+  srslte::log*       log_h;
+  rrc_interface_mac* rrc;
 
   pthread_rwlock_t rwlock;
   std::mutex       sched_mutex;
 
-  cell_cfg_t cfg;
-  sched_args_t sched_cfg; 
+  cell_cfg_t   cfg;
+  sched_args_t sched_cfg;
 
   // This is for computing DCI locations
   srslte_regs_t regs;
@@ -169,8 +173,8 @@ protected:
   {
   public:
     struct ctrl_alloc_t {
-      size_t      dci_idx;
-      rbg_range_t rbg_range;
+      size_t       dci_idx;
+      rbg_range_t  rbg_range;
       uint16_t     rnti;
       uint32_t     req_bytes;
       alloc_type_t alloc_type;
@@ -181,27 +185,27 @@ protected:
       explicit rar_alloc_t(const ctrl_alloc_t& c) : ctrl_alloc_t(c) {}
     };
     struct bc_alloc_t : public ctrl_alloc_t {
-      uint32_t       rv = 0;
-      uint32_t       sib_idx = 0;
-      bc_alloc_t() = default;
+      uint32_t rv      = 0;
+      uint32_t sib_idx = 0;
+      bc_alloc_t()     = default;
       explicit bc_alloc_t(const ctrl_alloc_t& c) : ctrl_alloc_t(c) {}
     };
     struct dl_alloc_t {
-      size_t           dci_idx;
-      sched_ue*        user_ptr;
-      rbgmask_t        user_mask;
-      uint32_t         pid;
+      size_t    dci_idx;
+      sched_ue* user_ptr;
+      rbgmask_t user_mask;
+      uint32_t  pid;
     };
     struct ul_alloc_t {
       enum type_t { NEWTX, NOADAPT_RETX, ADAPT_RETX, MSG3 };
-      size_t           dci_idx;
-      type_t           type;
-      sched_ue*        user_ptr;
+      size_t                   dci_idx;
+      type_t                   type;
+      sched_ue*                user_ptr;
       ul_harq_proc::ul_alloc_t alloc;
       uint32_t                 mcs = 0;
-      bool             is_retx() const { return type == NOADAPT_RETX or type == ADAPT_RETX; }
-      bool             is_msg3() const { return type == MSG3; }
-      bool             needs_pdcch() const { return type == NEWTX or type == ADAPT_RETX; }
+      bool                     is_retx() const { return type == NOADAPT_RETX or type == ADAPT_RETX; }
+      bool                     is_msg3() const { return type == MSG3; }
+      bool                     needs_pdcch() const { return type == NEWTX or type == ADAPT_RETX; }
     };
     typedef std::pair<alloc_outcome_t, const rar_alloc_t*> rar_code_t;
     typedef std::pair<alloc_outcome_t, const ctrl_alloc_t> ctrl_code_t;
@@ -254,10 +258,10 @@ protected:
     void set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_result);
 
     // consts
-    sched*          parent = NULL;
-    srslte::log*    log_h  = NULL;
+    sched*          parent = nullptr;
+    srslte::log*    log_h  = nullptr;
     uint32_t        P;
-    cell_cfg_sib_t* sibs_cfg = NULL;
+    cell_cfg_sib_t* sibs_cfg = nullptr;
 
     // internal state
     tti_grid_t               tti_alloc;
@@ -267,10 +271,9 @@ protected:
     std::vector<ul_alloc_t>  ul_data_allocs;
   };
 
-  const static uint32_t nof_sched_ttis = 10;
-  tti_sched_result_t    tti_scheds[nof_sched_ttis];
-  tti_sched_result_t*   get_tti_sched(uint32_t tti_rx) { return &tti_scheds[tti_rx % nof_sched_ttis]; }
-  std::vector<uint8_t>  tti_dl_mask;
+  std::array<tti_sched_result_t, 10> tti_scheds;
+  tti_sched_result_t*                get_tti_sched(uint32_t tti_rx) { return &tti_scheds[tti_rx % tti_scheds.size()]; }
+  std::vector<uint8_t>               tti_dl_mask;
 
   tti_sched_result_t* new_tti(uint32_t tti_rx);
   void                generate_phich(tti_sched_result_t* tti_sched);
@@ -290,8 +293,6 @@ protected:
 
   // derived from args
   uint32_t  P;
-  uint32_t  si_n_rbg;
-  uint32_t  rar_n_rbg;
   uint32_t  nof_rbg;
   prbmask_t prach_mask;
   prbmask_t pucch_mask;
@@ -299,13 +300,12 @@ protected:
   std::unique_ptr<bc_sched_t> bc_sched;
   std::unique_ptr<ra_sched_t> rar_sched;
 
-  uint32_t pdsch_re[10];
-  uint32_t current_tti;
+  std::array<uint32_t, 10> pdsch_re;
+  uint32_t                 current_tti;
 
   bool configured;
-
 };
 
-}
+} // namespace srsenb
 
 #endif // SRSENB_SCHEDULER_H

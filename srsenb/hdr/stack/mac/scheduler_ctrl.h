@@ -29,7 +29,7 @@ namespace srsenb {
 class sched::bc_sched_t
 {
 public:
-  bc_sched_t(cell_cfg_t* cfg_);
+  explicit bc_sched_t(cell_cfg_t* cfg_);
   void init(rrc_interface_mac* rrc_);
 
   void dl_sched(tti_sched_result_t* tti_sched);

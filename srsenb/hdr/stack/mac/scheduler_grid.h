@@ -49,7 +49,7 @@ class pdcch_grid_t
 {
 public:
   struct alloc_t {
-    uint16_t     rnti;
+    uint16_t              rnti    = 0;
     srslte_dci_location_t dci_pos = {0, 0};
     pdcch_mask_t          current_mask;
     pdcch_mask_t          total_mask;
@@ -74,8 +74,8 @@ public:
   uint32_t get_sf_idx() const { return sf_idx; }
 
 private:
-  const static uint32_t           nof_cfis = 3;
-  typedef std::pair<int, alloc_t> tree_node_t;
+  const static uint32_t nof_cfis = 3;
+  using tree_node_t = std::pair<int, alloc_t>; ///< First represents the parent node idx, and second the alloc tree node
 
   void                             reset();
   const sched_ue::sched_dci_cce_t* get_cce_loc_table(alloc_type_t alloc_type, sched_ue* user) const;
@@ -86,10 +86,10 @@ private:
                                                      const sched_ue::sched_dci_cce_t* dci_locs);
 
   // consts
-  srslte::log*               log_h            = nullptr;
-  sched_ue::sched_dci_cce_t* common_locations = nullptr;
-  sched_ue::sched_dci_cce_t* rar_locations[10]        = {nullptr};
-  uint32_t                   cce_size_array[nof_cfis] = {0};
+  srslte::log*               log_h             = nullptr;
+  sched_ue::sched_dci_cce_t* common_locations  = nullptr;
+  sched_ue::sched_dci_cce_t* rar_locations[10] = {nullptr};
+  std::array<uint32_t, 3>    cce_size_array{};
 
   // tti vars
   uint32_t                 tti_rx       = 0;
@@ -104,11 +104,14 @@ private:
 class tti_grid_t
 {
 public:
-  using ctrl_alloc_t = std::pair<alloc_outcome_t, rbg_range_t>;
+  struct dl_ctrl_alloc_t {
+    alloc_outcome_t outcome;
+    rbg_range_t     rbg_range;
+  };
 
   void            init(srslte::log* log_, sched_interface::cell_cfg_t* cell_, const pdcch_grid_t& pdcch_grid);
   void            new_tti(uint32_t tti_rx_, uint32_t start_cfi);
-  ctrl_alloc_t    alloc_dl_ctrl(uint32_t aggr_lvl, alloc_type_t alloc_type);
+  dl_ctrl_alloc_t alloc_dl_ctrl(uint32_t aggr_lvl, alloc_type_t alloc_type);
   alloc_outcome_t alloc_dl_data(sched_ue* user, const rbgmask_t& user_mask);
   alloc_outcome_t alloc_ul_data(sched_ue* user, ul_harq_proc::ul_alloc_t alloc, bool needs_pdcch);
 

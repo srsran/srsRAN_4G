@@ -56,7 +56,7 @@ void pdcch_grid_t::init(srslte::log*               log_,
   }
 
   // precompute nof_cces
-  for (uint32_t cfix = 0; cfix < nof_cfis; ++cfix) {
+  for (uint32_t cfix = 0; cfix < cce_size_array.size(); ++cfix) {
     int ret = srslte_regs_pdcch_ncce(regs, cfix + 1);
     if (ret < 0) {
       log_h->error("SCHED: Failed to calculate the number of CCEs in the PDCCH\n");
@@ -315,7 +315,7 @@ alloc_outcome_t tti_grid_t::alloc_dl(uint32_t aggr_lvl, alloc_type_t alloc_type,
 }
 
 //! Allocates CCEs and RBs for control allocs. It allocates RBs in a contiguous manner.
-tti_grid_t::ctrl_alloc_t tti_grid_t::alloc_dl_ctrl(uint32_t aggr_lvl, alloc_type_t alloc_type)
+tti_grid_t::dl_ctrl_alloc_t tti_grid_t::alloc_dl_ctrl(uint32_t aggr_lvl, alloc_type_t alloc_type)
 {
   rbg_range_t range;
   range.rbg_start = nof_rbgs - avail_rbg;

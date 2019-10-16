@@ -101,19 +101,19 @@ sched::tti_sched_result_t::alloc_dl_ctrl(uint32_t aggr_lvl, uint32_t tbs_bytes, 
   }
 
   /* Allocate space in the DL RBG and PDCCH grids */
-  tti_grid_t::ctrl_alloc_t ret = tti_alloc.alloc_dl_ctrl(aggr_lvl, alloc_type);
-  if (not ret.first) {
-    return {ret.first, ctrl_alloc};
+  tti_grid_t::dl_ctrl_alloc_t ret = tti_alloc.alloc_dl_ctrl(aggr_lvl, alloc_type);
+  if (not ret.outcome) {
+    return {ret.outcome, ctrl_alloc};
   }
 
   // Allocation Successful
-  ctrl_alloc.dci_idx   = tti_alloc.get_pdcch_grid().nof_allocs() - 1;
-  ctrl_alloc.rbg_range = ret.second;
+  ctrl_alloc.dci_idx    = tti_alloc.get_pdcch_grid().nof_allocs() - 1;
+  ctrl_alloc.rbg_range  = ret.rbg_range;
   ctrl_alloc.rnti       = rnti;
   ctrl_alloc.req_bytes  = tbs_bytes;
   ctrl_alloc.alloc_type = alloc_type;
 
-  return {ret.first, ctrl_alloc};
+  return {ret.outcome, ctrl_alloc};
 }
 
 alloc_outcome_t sched::tti_sched_result_t::alloc_bc(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t sib_ntx)
@@ -188,7 +188,7 @@ alloc_outcome_t sched::tti_sched_result_t::alloc_dl_user(sched_ue* user, const r
 
   // Try to allocate RBGs and DCI
   alloc_outcome_t ret = tti_alloc.alloc_dl_data(user, user_mask);
-  if (not ret) {
+  if (ret != alloc_outcome_t::SUCCESS) {
     return ret;
   }
 
@@ -217,7 +217,7 @@ alloc_outcome_t sched::tti_sched_result_t::alloc_ul(sched_ue*                   
   // Allocate RBGs and DCI space
   bool            needs_pdcch = alloc_type == ul_alloc_t::ADAPT_RETX or alloc_type == ul_alloc_t::NEWTX;
   alloc_outcome_t ret         = tti_alloc.alloc_ul_data(user, alloc, needs_pdcch);
-  if (not ret) {
+  if (ret != alloc_outcome_t::SUCCESS) {
     return ret;
   }
 
@@ -569,13 +569,7 @@ int sched::tti_sched_result_t::generate_format1a(
  * Initialization and sched configuration functions
  *
  *******************************************************/
-sched::sched() :
-  P(0),
-  si_n_rbg(0),
-  rar_n_rbg(0),
-  nof_rbg(0),
-  bc_sched(new bc_sched_t{&cfg}),
-  rar_sched(new ra_sched_t{&cfg})
+sched::sched() : P(0), nof_rbg(0), bc_sched(new bc_sched_t{&cfg}), rar_sched(new ra_sched_t{&cfg})
 {
   current_tti = 0;
   log_h       = nullptr;
@@ -668,10 +662,8 @@ int sched::cell_cfg(sched_interface::cell_cfg_t* cell_cfg)
     return SRSLTE_ERROR;
   }
 
-  P = srslte_ra_type0_P(cfg.cell.nof_prb);
-  si_n_rbg  = srslte::ceil_div(4, P);
-  rar_n_rbg = srslte::ceil_div(3, P);
-  nof_rbg   = srslte::ceil_div(cfg.cell.nof_prb, P);
+  P       = srslte_ra_type0_P(cfg.cell.nof_prb);
+  nof_rbg = srslte::ceil_div(cfg.cell.nof_prb, P);
   pucch_mask.resize(cfg.cell.nof_prb);
   if (cfg.nrb_pucch > 0) {
     pucch_mask.fill(0, (uint32_t)cfg.nrb_pucch);
@@ -1030,7 +1022,7 @@ int sched::dl_sched(uint32_t tti, sched_interface::dl_sched_res_t* sched_result)
     return 0;
   }
 
-  uint32_t tti_rx = TTI_SUB(tti, TX_DELAY);
+  uint32_t tti_rx = sched_utils::tti_subtract(tti, TX_DELAY);
 
   // Compute scheduling Result for tti_rx
   tti_sched_result_t* tti_sched = new_tti(tti_rx);
@@ -1049,7 +1041,7 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
   }
 
   // Compute scheduling Result for tti_rx
-  uint32_t            tti_rx    = (tti + 10240 - 2 * FDD_HARQ_DELAY_MS) % 10240;
+  uint32_t            tti_rx    = sched_utils::tti_subtract(tti, 2 * FDD_HARQ_DELAY_MS);
   tti_sched_result_t* tti_sched = new_tti(tti_rx);
 
   // Copy results
