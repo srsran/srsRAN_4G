@@ -101,7 +101,7 @@ int rf_zmq_rx_open(rf_zmq_rx_t* q, char* id, void* zmq_ctx, char* sock_args)
 
   if (q) {
     // Zero object
-    bzero(q, sizeof(rf_zmq_tx_t));
+    bzero(q, sizeof(rf_zmq_rx_t));
 
     // Copy id
     strncpy(q->id, id, ZMQ_ID_STRLEN - 1);
