@@ -32,12 +32,6 @@
 #include "srslte/phy/utils/debug.h"
 #include "srslte/phy/utils/vector.h"
 
-#ifdef DEBUG_MODE
-#pragma message "FIXME: Disabling SSE/AVX turbo rate matching"
-#undef LV_HAVE_SSE
-#undef LV_HAVE_AVX
-#endif
-
 #ifdef LV_HAVE_SSE
 #include <x86intrin.h>
 int srslte_rm_turbo_rx_lut_sse(int16_t *input, int16_t *output, uint16_t *deinter, uint32_t in_len, uint32_t cb_idx, uint32_t rv_idx);
@@ -467,6 +461,11 @@ int srslte_rm_turbo_rx_lut_8bit(int8_t *input, int8_t *output, uint32_t in_len, 
 
 #ifdef LV_HAVE_SSE
 
+#define SAVE_OUTPUT_16_SSE(j)                                                                                          \
+  x = (int16_t)_mm_extract_epi16(xVal, j);                                                                             \
+  l = (uint16_t)_mm_extract_epi16(lutVal, j);                                                                          \
+  output[l] += x;
+
 int srslte_rm_turbo_rx_lut_sse(int16_t *input, int16_t *output, uint16_t *deinter, uint32_t in_len, uint32_t cb_idx, uint32_t rv_idx)
 {
   if (rv_idx < 4 && cb_idx < SRSLTE_NOF_TC_CB_SIZES) {
@@ -475,18 +474,25 @@ int srslte_rm_turbo_rx_lut_sse(int16_t *input, int16_t *output, uint16_t *deinte
     const __m128i* xPtr   = (const __m128i*) input;
     const __m128i* lutPtr = (const __m128i*) deinter;
     __m128i xVal, lutVal;
-    
+
+    int16_t  x;
+    uint16_t l;
+
     /* Simplify load if we do not need to wrap (ie high rates) */
     if (in_len <= out_len) {
       for (int i=0;i<in_len/8;i++) {
         xVal   = _mm_loadu_si128(xPtr);
         lutVal = _mm_loadu_si128(lutPtr);
-      
-        for (int j=0;j<8;j++) {
-          int16_t x  = (int16_t)  _mm_extract_epi16(xVal,   j); 
-          uint16_t l = (uint16_t) _mm_extract_epi16(lutVal, j);
-          output[l] += x;
-        }
+
+        SAVE_OUTPUT_16_SSE(0);
+        SAVE_OUTPUT_16_SSE(1);
+        SAVE_OUTPUT_16_SSE(2);
+        SAVE_OUTPUT_16_SSE(3);
+        SAVE_OUTPUT_16_SSE(4);
+        SAVE_OUTPUT_16_SSE(5);
+        SAVE_OUTPUT_16_SSE(6);
+        SAVE_OUTPUT_16_SSE(7);
+
         xPtr ++;
         lutPtr ++;
       }
@@ -500,12 +506,16 @@ int srslte_rm_turbo_rx_lut_sse(int16_t *input, int16_t *output, uint16_t *deinte
       while(inputCnt < in_len - 8) {
         xVal   = _mm_loadu_si128(xPtr);
         lutVal = _mm_loadu_si128(lutPtr);
-      
-        for (int j=0;j<8;j++) {
-          int16_t x  = (int16_t)  _mm_extract_epi16(xVal,   j); 
-          uint16_t l = (uint16_t) _mm_extract_epi16(lutVal, j);
-          output[l] += x;
-        }
+
+        SAVE_OUTPUT_16_SSE(0);
+        SAVE_OUTPUT_16_SSE(1);
+        SAVE_OUTPUT_16_SSE(2);
+        SAVE_OUTPUT_16_SSE(3);
+        SAVE_OUTPUT_16_SSE(4);
+        SAVE_OUTPUT_16_SSE(5);
+        SAVE_OUTPUT_16_SSE(6);
+        SAVE_OUTPUT_16_SSE(7);
+
         xPtr++;
         lutPtr++;
         intCnt   += 8;
@@ -536,6 +546,16 @@ int srslte_rm_turbo_rx_lut_sse(int16_t *input, int16_t *output, uint16_t *deinte
   }
 }
 
+#define SAVE_OUTPUT_SSE_8(j)                                                                                           \
+  x = (int8_t)_mm_extract_epi8(xVal, j);                                                                               \
+  l = (uint16_t)_mm_extract_epi16(lutVal1, j);                                                                         \
+  output[l] += x;
+
+#define SAVE_OUTPUT_SSE_8_2(j)                                                                                         \
+  x = (int8_t)_mm_extract_epi8(xVal, j + 8);                                                                           \
+  l = (uint16_t)_mm_extract_epi16(lutVal2, j);                                                                         \
+  output[l] += x;
+
 int srslte_rm_turbo_rx_lut_sse_8bit(int8_t *input, int8_t *output, uint16_t *deinter, uint32_t in_len, uint32_t cb_idx, uint32_t rv_idx)
 {
   if (rv_idx < 4 && cb_idx < SRSLTE_NOF_TC_CB_SIZES) {
@@ -544,6 +564,9 @@ int srslte_rm_turbo_rx_lut_sse_8bit(int8_t *input, int8_t *output, uint16_t *dei
     const __m128i* xPtr   = (const __m128i*) input;
     const __m128i* lutPtr = (const __m128i*) deinter;
     __m128i xVal, lutVal1, lutVal2;
+
+    int8_t   x;
+    uint16_t l;
 
     /* Simplify load if we do not need to wrap (ie high rates) */
     if (in_len <= out_len) {
@@ -555,16 +578,23 @@ int srslte_rm_turbo_rx_lut_sse_8bit(int8_t *input, int8_t *output, uint16_t *dei
         lutVal2 = _mm_loadu_si128(lutPtr);
         lutPtr ++;
 
-        for (int j=0;j<8;j++) {
-          int8_t x  = (int8_t)  _mm_extract_epi8(xVal,   j);
-          uint16_t l = (uint16_t) _mm_extract_epi16(lutVal1, j);
-          output[l] += x;
-        }
-        for (int j=0;j<8;j++) {
-          int8_t x  = (int8_t)  _mm_extract_epi8(xVal,   j+8);
-          uint16_t l = (uint16_t) _mm_extract_epi16(lutVal2, j);
-          output[l] += x;
-        }
+        SAVE_OUTPUT_SSE_8(0);
+        SAVE_OUTPUT_SSE_8(1);
+        SAVE_OUTPUT_SSE_8(2);
+        SAVE_OUTPUT_SSE_8(3);
+        SAVE_OUTPUT_SSE_8(4);
+        SAVE_OUTPUT_SSE_8(5);
+        SAVE_OUTPUT_SSE_8(6);
+        SAVE_OUTPUT_SSE_8(7);
+
+        SAVE_OUTPUT_SSE_8_2(0);
+        SAVE_OUTPUT_SSE_8_2(1);
+        SAVE_OUTPUT_SSE_8_2(2);
+        SAVE_OUTPUT_SSE_8_2(3);
+        SAVE_OUTPUT_SSE_8_2(4);
+        SAVE_OUTPUT_SSE_8_2(5);
+        SAVE_OUTPUT_SSE_8_2(6);
+        SAVE_OUTPUT_SSE_8_2(7);
       }
       for (int i=16*(in_len/16);i<in_len;i++) {
         output[deinter[i%out_len]] += input[i];
@@ -581,16 +611,24 @@ int srslte_rm_turbo_rx_lut_sse_8bit(int8_t *input, int8_t *output, uint16_t *dei
         lutVal2 = _mm_loadu_si128(lutPtr);
         lutPtr ++;
 
-        for (int j=0;j<8;j++) {
-          int8_t x  = (int8_t)  _mm_extract_epi8(xVal,   j);
-          uint16_t l = (uint16_t) _mm_extract_epi16(lutVal1, j);
-          output[l] += x;
-        }
-        for (int j=0;j<8;j++) {
-          int8_t x  = (int8_t)  _mm_extract_epi8(xVal,   j+8);
-          uint16_t l = (uint16_t) _mm_extract_epi16(lutVal2, j);
-          output[l] += x;
-        }
+        SAVE_OUTPUT_SSE_8(0);
+        SAVE_OUTPUT_SSE_8(1);
+        SAVE_OUTPUT_SSE_8(2);
+        SAVE_OUTPUT_SSE_8(3);
+        SAVE_OUTPUT_SSE_8(4);
+        SAVE_OUTPUT_SSE_8(5);
+        SAVE_OUTPUT_SSE_8(6);
+        SAVE_OUTPUT_SSE_8(7);
+
+        SAVE_OUTPUT_SSE_8_2(0);
+        SAVE_OUTPUT_SSE_8_2(1);
+        SAVE_OUTPUT_SSE_8_2(2);
+        SAVE_OUTPUT_SSE_8_2(3);
+        SAVE_OUTPUT_SSE_8_2(4);
+        SAVE_OUTPUT_SSE_8_2(5);
+        SAVE_OUTPUT_SSE_8_2(6);
+        SAVE_OUTPUT_SSE_8_2(7);
+
         intCnt   += 16;
         inputCnt += 16;
         if (intCnt >= out_len && inputCnt < in_len - 16) {
@@ -632,9 +670,10 @@ int srslte_rm_turbo_rx_lut_sse_8bit(int8_t *input, int8_t *output, uint16_t *dei
 
 #ifdef LV_HAVE_AVX
 
-#define SAVE_OUTPUT(j) x  = (int16_t) _mm256_extract_epi16(xVal,   j);\
-                       l = (uint16_t) _mm256_extract_epi16(lutVal, j);\
-                       output[l] += x;
+#define SAVE_OUTPUT(j)                                                                                                 \
+  x = (int16_t)_mm256_extract_epi16(xVal, j);                                                                          \
+  l = (uint16_t)_mm256_extract_epi16(lutVal, j);                                                                       \
+  output[l] += x;
 
 int srslte_rm_turbo_rx_lut_avx(int16_t *input, int16_t *output, uint16_t *deinter, uint32_t in_len, uint32_t cb_idx, uint32_t rv_idx)
 {
