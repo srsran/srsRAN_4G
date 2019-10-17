@@ -880,6 +880,11 @@ void rrc::send_con_restablish_request()
     crnti  = ho_src_rnti;
     pci    = ho_src_cell.get_pci();
     cellid = ho_src_cell.get_cell_id();
+  } else if (cause == asn1::rrc::reest_cause_e::other_fail) {
+    // use source PCI after RLF
+    crnti  = m_reest_rnti;
+    pci    = m_reest_source_pci;
+    cellid = serving_cell->get_cell_id();
   } else {
     crnti  = m_reest_rnti;
     pci    = serving_cell->get_pci();
@@ -887,8 +892,7 @@ void rrc::send_con_restablish_request()
   }
 
   // Compute shortMAC-I
-  uint8_t varShortMAC_packed[16];
-  bzero(varShortMAC_packed, 16);
+  uint8_t       varShortMAC_packed[16] = {};
   asn1::bit_ref bref(varShortMAC_packed, sizeof(varShortMAC_packed));
 
   // ASN.1 encode VarShortMAC-Input
@@ -1347,6 +1351,8 @@ void rrc::init_con_restablish_request(asn1::rrc::reest_cause_e cause)
     // Save reestablishment cause and current C-RNTI
     m_reest_rnti  = uernti.crnti;
     m_reest_cause = cause;
+    m_reest_source_pci = serving_cell->get_pci(); // needed for reestablishment with another cell
+
     reestablishment_started = false;
 
     // initiation of reestablishment procedure as indicates in 3GPP 36.331 Section 5.3.7.2

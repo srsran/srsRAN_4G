@@ -468,6 +468,7 @@ private:
   bool initiated                                      = false;
   asn1::rrc::reest_cause_e m_reest_cause                                  = asn1::rrc::reest_cause_e::nulltype;
   uint16_t                 m_reest_rnti               = 0;
+  uint16_t                 m_reest_source_pci                             = 0;
   bool                     reestablishment_started                        = false;
   bool                     reestablishment_successful = false;
 
