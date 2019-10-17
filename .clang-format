@@ -8,7 +8,8 @@ AlignConsecutiveDeclarations: true #Changed
 AlignEscapedNewlines: Right
 AlignOperands:   true
 AlignTrailingComments: true
-AllowAllParametersOfDeclarationOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: false # Changed
+#AllowAllArgumentsOnNextLine: false # Changed
 AllowShortBlocksOnASingleLine: false
 AllowShortCaseLabelsOnASingleLine: false
 AllowShortFunctionsOnASingleLine: Inline #Changed
