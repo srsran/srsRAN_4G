@@ -76,6 +76,7 @@ const uint8_t PDCP_SN_LEN_18 = 18;
 
 typedef enum { PDCP_RB_IS_SRB, PDCP_RB_IS_DRB } pdcp_rb_type_t;
 
+// Take from PDCP-Config (TS 38.331 version 15.2.1)
 enum class pdcp_t_reordering_t {
   ms0    = 0,
   ms1    = 1,
