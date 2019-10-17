@@ -380,10 +380,12 @@ void *input_loop(void *m)
           cout << "Enter t to restart trace." << endl;
         }
         metrics->toggle_print(do_metrics);
+      } else if ('q' == key) {
+        sig_int_handler(0);
       }
     }
   }
-  return NULL;
+  return nullptr;
 }
 
 int main(int argc, char *argv[])
