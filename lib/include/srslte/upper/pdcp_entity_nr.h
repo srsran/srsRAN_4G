@@ -61,7 +61,7 @@ public:
   // RLC interface
   void write_pdu(unique_byte_buffer_t pdu);
 
-  // State variable settters (should be used only for testing)
+  // State variable setters (should be used only for testing)
   void set_tx_next(uint32_t tx_next_) { tx_next = tx_next_; }
   void set_rx_next(uint32_t rx_next_) { rx_next = rx_next_; }
   void set_rx_deliv(uint32_t rx_deliv_) { rx_deliv = rx_deliv_; }
