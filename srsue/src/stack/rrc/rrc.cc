@@ -1396,13 +1396,13 @@ void rrc::proc_con_restablish_request()
     apply_mac_config_dedicated_default();
 
     // perform cell selection in accordance with the cell selection process as specified in TS 36.304 [4];
-    // ... this happens in rrc::run_tti()
+    start_cell_reselection();
   }
 
   // Check timer...
   if (timers->get(t311)->is_running()) {
-    // Check for synchronism
-    if (serving_cell->in_sync) {
+    // Wait until we're synced and have obtained SIBs
+    if (serving_cell->in_sync && serving_cell->has_sib1() && serving_cell->has_sib2() && serving_cell->has_sib3()) {
       // Perform cell selection in accordance to 36.304
       if (cell_selection_criteria(serving_cell->get_rsrp())) {
         // Actions following cell reselection while T311 is running 5.3.7.3
@@ -1424,7 +1424,8 @@ void rrc::proc_con_restablish_request()
       } else {
         // Upon selecting an inter-RAT cell
         rrc_log->warning("Reestablishment Cell Selection criteria failed.\n");
-        rrc_log->console("Reestablishment Cell Selection criteria failed. in_sync=%d\n", serving_cell->in_sync);
+        rrc_log->console("Reestablishment Cell Selection criteria failed (rsrp=%.2f)\n",
+                         serving_cell->get_rsrp());
         leave_connected();
       }
     } else {
@@ -2621,7 +2622,6 @@ void rrc::handle_con_setup(rrc_conn_setup_s* setup)
 /* Reception of RRCConnectionReestablishment by the UE 5.3.7.5 */
 void rrc::handle_con_reest(rrc_conn_reest_s* setup)
 {
-
   timers->get(t301)->stop();
 
   // Reestablish PDCP and RLC for SRB1
