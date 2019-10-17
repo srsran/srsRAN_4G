@@ -37,8 +37,7 @@
 #include "srslte/srslte.h"
 #include <cstddef>
 
-namespace srsepc{
-
+namespace srsepc {
 
 const uint16_t GTPU_RX_PORT = 2152;
 
@@ -52,47 +51,44 @@ typedef struct {
   int         m1u_multi_ttl;
 } mbms_gw_args_t;
 
-struct pseudo_hdr
-{
-  uint32_t  src_addr;
-  uint32_t  dst_addr;
-  uint8_t   placeholder;
-  uint8_t   protocol;
-  uint16_t  udp_len;
+struct pseudo_hdr {
+  uint32_t src_addr;
+  uint32_t dst_addr;
+  uint8_t  placeholder;
+  uint8_t  protocol;
+  uint16_t udp_len;
 };
 
-class mbms_gw:
-  public thread
+class mbms_gw : public thread
 {
 public:
   static mbms_gw* get_instance(void);
-  static void cleanup(void);
-  int init(mbms_gw_args_t* args, srslte::log_filter *mbms_gw_log);
-  void stop();
-  void run_thread();
+  static void     cleanup(void);
+  int             init(mbms_gw_args_t* args, srslte::log_filter* mbms_gw_log);
+  void            stop();
+  void            run_thread();
 
 private:
-
   /* Methods */
   mbms_gw();
   virtual ~mbms_gw();
-  static mbms_gw *m_instance;
+  static mbms_gw* m_instance;
 
-  int init_sgi_mb_if(mbms_gw_args_t *args);
-  int init_m1_u(mbms_gw_args_t *args);
-  void handle_sgi_md_pdu(srslte::byte_buffer_t *msg);
-  uint16_t in_cksum(uint16_t *iphdr, int count);
+  int      init_sgi_mb_if(mbms_gw_args_t* args);
+  int      init_m1_u(mbms_gw_args_t* args);
+  void     handle_sgi_md_pdu(srslte::byte_buffer_t* msg);
+  uint16_t in_cksum(uint16_t* iphdr, int count);
 
   /* Members */
-  bool m_running;
-  srslte::byte_buffer_pool *m_pool;
-  srslte::log_filter  *m_mbms_gw_log;
+  bool                      m_running;
+  srslte::byte_buffer_pool* m_pool;
+  srslte::log_filter*       m_mbms_gw_log;
 
   bool m_sgi_mb_up;
-  int m_sgi_mb_if;
+  int  m_sgi_mb_if;
 
-  bool m_m1u_up;
-  int m_m1u;
+  bool               m_m1u_up;
+  int                m_m1u;
   struct sockaddr_in m_m1u_multi_addr;
 };
 

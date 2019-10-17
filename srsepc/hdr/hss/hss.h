@@ -28,17 +28,17 @@
 #ifndef SRSEPC_HSS_H
 #define SRSEPC_HSS_H
 
-#include <cstddef>
-#include "srslte/common/log.h"
-#include "srslte/common/logger_file.h"
-#include "srslte/common/log_filter.h"
 #include "srslte/common/buffer_pool.h"
+#include "srslte/common/log.h"
+#include "srslte/common/log_filter.h"
+#include "srslte/common/logger_file.h"
 #include "srslte/interfaces/epc_interfaces.h"
+#include <cstddef>
 #include <fstream>
 #include <map>
 
-#define LTE_FDD_ENB_IND_HE_N_BITS    5
-#define LTE_FDD_ENB_IND_HE_MASK      0x1FUL
+#define LTE_FDD_ENB_IND_HE_N_BITS 5
+#define LTE_FDD_ENB_IND_HE_MASK 0x1FUL
 #define LTE_FDD_ENB_IND_HE_MAX_VALUE 31
 #define LTE_FDD_ENB_SEQ_HE_MAX_VALUE 0x07FFFFFFFFFFUL
 
@@ -116,7 +116,7 @@ private:
 
   std::string hex_string(uint8_t* hex, int size);
 
-  std::string        db_file;
+  std::string db_file;
 
   /*Logs*/
   srslte::log_filter* m_hss_log;

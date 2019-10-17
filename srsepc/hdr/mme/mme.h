@@ -28,13 +28,13 @@
 #ifndef SRSEPC_MME_H
 #define SRSEPC_MME_H
 
-#include <cstddef>
-#include "srslte/common/log.h"
-#include "srslte/common/logger_file.h"
-#include "srslte/common/log_filter.h"
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/threads.h"
 #include "s1ap.h"
+#include "srslte/common/buffer_pool.h"
+#include "srslte/common/log.h"
+#include "srslte/common/log_filter.h"
+#include "srslte/common/logger_file.h"
+#include "srslte/common/threads.h"
+#include <cstddef>
 
 namespace srsepc {
 
@@ -45,8 +45,8 @@ typedef struct {
 } mme_args_t;
 
 typedef struct {
-  int fd;
-  uint64_t imsi;
+  int                 fd;
+  uint64_t            imsi;
   enum nas_timer_type type;
 } mme_timer_t;
 

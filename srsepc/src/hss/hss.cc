@@ -79,8 +79,7 @@ int hss::init(hss_args_t* hss_args, srslte::log_filter* hss_log)
 
   db_file = hss_args->db_file;
 
-  m_hss_log->info("HSS Initialized. DB file %s, MCC: %d, MNC: %d\n",
-                  hss_args->db_file.c_str(), mcc, mnc);
+  m_hss_log->info("HSS Initialized. DB file %s, MCC: %d, MNC: %d\n", hss_args->db_file.c_str(), mcc, mnc);
   m_hss_log->console("HSS Initialized.\n");
   return 0;
 }
@@ -132,7 +131,7 @@ bool hss::read_db_file(std::string db_filename)
         m_hss_log->error("Neither XOR nor MILENAGE configured.\n");
         return false;
       }
-      ue_ctx->imsi         = atoll(split[2].c_str());
+      ue_ctx->imsi = atoll(split[2].c_str());
       get_uint_vec_from_hex_str(split[3], ue_ctx->key, 16);
       if (split[4] == std::string("op")) {
         ue_ctx->op_configured = true;
@@ -203,7 +202,7 @@ bool hss::write_db_file(std::string db_filename)
   }
   m_hss_log->info("Opened DB file: %s\n", db_filename.c_str());
 
-  //Write comment info
+  // Write comment info
   m_db_file << "#                                                                                           \n"
             << "# .csv to store UE's information in HSS                                                     \n"
             << "# Kept in the following format: \"Name,Auth,IMSI,Key,OP_Type,OP,AMF,SQN,QCI,IP_alloc\"      \n"

@@ -101,6 +101,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
 
   // Command line only options
   bpo::options_description general("General options");
+  // clang-format off
   general.add_options()
       ("help,h", "Produce help message")
       ("version,v", "Print version information and exit")
@@ -108,7 +109,6 @@ void parse_args(all_args_t* args, int argc, char* argv[])
 
   // Command line or config file options
   bpo::options_description common("Configuration options");
-  // clang-format off
   common.add_options()
     ("mme.mme_code",        bpo::value<string>(&mme_code)->default_value("0x01"),            "MME Code")
     ("mme.name",            bpo::value<string>(&mme_name)->default_value("srsmme01"),        "MME Name")
@@ -151,7 +151,6 @@ void parse_args(all_args_t* args, int argc, char* argv[])
 
     ("log.filename", bpo::value<string>(&args->log_args.filename)->default_value("/tmp/epc.log"),"Log filename")
     ;
-  // clang-format on
 
   // Positional options - config file location
   bpo::options_description position("Positional options");
@@ -208,7 +207,7 @@ void parse_args(all_args_t* args, int argc, char* argv[])
     exit(1);
   }
 
-  //Concert hex strings
+  // Concert hex strings
   {
     std::stringstream sstr;
     sstr << std::hex << vm["mme.mme_group"].as<std::string>();

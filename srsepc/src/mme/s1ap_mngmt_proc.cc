@@ -79,8 +79,8 @@ bool s1ap_mngmt_proc::handle_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST
     return false;
   }
 
-  //Store SCTP sendrecv info
-  memcpy(&enb_ctx.sri, enb_sri,sizeof(struct sctp_sndrcvinfo));
+  // Store SCTP sendrecv info
+  memcpy(&enb_ctx.sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
 
   // Log S1 Setup Request Info
   m_s1ap_log->console("Received S1 Setup Request.\n");
@@ -130,7 +130,8 @@ bool s1ap_mngmt_proc::unpack_s1_setup_request(LIBLTE_S1AP_MESSAGE_S1SETUPREQUEST
   }
   // eNB Id
   bzero(enb_id_bits, sizeof(enb_id_bits));
-  memcpy(&enb_id_bits[32 - LIBLTE_S1AP_MACROENB_ID_BIT_STRING_LEN], msg->Global_ENB_ID.eNB_ID.choice.macroENB_ID.buffer,
+  memcpy(&enb_id_bits[32 - LIBLTE_S1AP_MACROENB_ID_BIT_STRING_LEN],
+         msg->Global_ENB_ID.eNB_ID.choice.macroENB_ID.buffer,
          LIBLTE_S1AP_MACROENB_ID_BIT_STRING_LEN);
   liblte_pack(enb_id_bits, 32, (uint8_t*)&tmp32);
   enb_ctx->enb_id = ntohl(tmp32);
@@ -240,7 +241,7 @@ bool s1ap_mngmt_proc::pack_s1_setup_response(s1ap_args_t s1ap_args, srslte::byte
 
   s1_resp->RelativeMMECapacity.RelativeMMECapacity = 255;
   s1_resp->MMERelaySupportIndicator_present        = false;
-  s1_resp->CriticalityDiagnostics_present = false;
+  s1_resp->CriticalityDiagnostics_present          = false;
 
   liblte_s1ap_pack_s1ap_pdu(&pdu, (LIBLTE_BYTE_MSG_STRUCT*)msg);
   return true;

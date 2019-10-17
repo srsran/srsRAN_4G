@@ -64,7 +64,8 @@ public:
        handle_downlink_data_notification_acknowledge(const srslte::gtpc_header&                                 header,
                                                      const srslte::gtpc_downlink_data_notification_acknowledge& not_ack);
   void handle_downlink_data_notification_failure_indication(
-      const srslte::gtpc_header& header, const srslte::gtpc_downlink_data_notification_failure_indication& not_fail);
+      const srslte::gtpc_header&                                        header,
+      const srslte::gtpc_downlink_data_notification_failure_indication& not_fail);
 
   virtual bool queue_downlink_packet(uint32_t spgw_ctr_teid, srslte::byte_buffer_t* msg);
   virtual bool send_downlink_data_notification(uint32_t spgw_ctr_teid);
