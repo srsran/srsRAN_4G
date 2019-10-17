@@ -34,17 +34,16 @@
 #define MCS_FIRST_DL 4
 #define MIN_DATA_TBS 4
 
-/****************************************************** 
+/******************************************************
  *                  UE class                          *
  ******************************************************/
 
 namespace srsenb {
 
-
 /*******************************************************
- * 
- * Initialization and configuration functions 
- * 
+ *
+ * Initialization and configuration functions
+ *
  *******************************************************/
 
 sched_ue::sched_ue() :
@@ -110,10 +109,9 @@ void sched_ue::set_cfg(uint16_t                     rnti_,
     }
   }
 
-  for (int i=0;i<sched_interface::MAX_LC;i++) {
+  for (int i = 0; i < sched_interface::MAX_LC; i++) {
     set_bearer_cfg(i, &cfg.ue_bearers[i]);
   }
-
 }
 
 void sched_ue::reset()
@@ -144,12 +142,13 @@ void sched_ue::reset()
     }
   }
 
-  for (int i=0;i<sched_interface::MAX_LC; i++) {
+  for (int i = 0; i < sched_interface::MAX_LC; i++) {
     rem_bearer(i);
   }
 }
 
-void sched_ue::set_fixed_mcs(int mcs_ul, int mcs_dl) {
+void sched_ue::set_fixed_mcs(int mcs_ul, int mcs_dl)
+{
   std::lock_guard<std::mutex> lock(mutex);
   fixed_mcs_ul = mcs_ul;
   fixed_mcs_dl = mcs_dl;
@@ -158,14 +157,14 @@ void sched_ue::set_fixed_mcs(int mcs_ul, int mcs_dl) {
 void sched_ue::set_max_mcs(int mcs_ul, int mcs_dl, int max_aggr_level_) {
   std::lock_guard<std::mutex> lock(mutex);
   if (mcs_ul < 0) {
-    max_mcs_ul = 28;     
+    max_mcs_ul = 28;
   } else {
-    max_mcs_ul = mcs_ul;     
+    max_mcs_ul = mcs_ul;
   }
   if (mcs_dl < 0) {
-    max_mcs_dl = 28;     
+    max_mcs_dl = 28;
   } else {
-    max_mcs_dl = mcs_dl;     
+    max_mcs_dl = mcs_dl;
   }
   if (max_aggr_level_ < 0) {
     max_aggr_level = 3;
@@ -174,11 +173,10 @@ void sched_ue::set_max_mcs(int mcs_ul, int mcs_dl, int max_aggr_level_) {
   }
 }
 
-
 /*******************************************************
- * 
- * FAPI-like main scheduler interface. 
- * 
+ *
+ * FAPI-like main scheduler interface.
+ *
  *******************************************************/
 
 void sched_ue::set_bearer_cfg(uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg)
@@ -186,10 +184,10 @@ void sched_ue::set_bearer_cfg(uint32_t lc_id, sched_interface::ue_bearer_cfg_t* 
   std::lock_guard<std::mutex> lock(mutex);
   if (lc_id < sched_interface::MAX_LC) {
     memcpy(&lch[lc_id].cfg, cfg, sizeof(sched_interface::ue_bearer_cfg_t));
-    lch[lc_id].buf_tx = 0; 
-    lch[lc_id].buf_retx = 0; 
+    lch[lc_id].buf_tx   = 0;
+    lch[lc_id].buf_retx = 0;
     if (lch[lc_id].cfg.direction != sched_interface::ue_bearer_cfg_t::IDLE) {
-      Info("SCHED: Set bearer config lc_id=%d, direction=%d\n", lc_id, (int) lch[lc_id].cfg.direction);
+      Info("SCHED: Set bearer config lc_id=%d, direction=%d\n", lc_id, (int)lch[lc_id].cfg.direction);
     }
   }
 }
@@ -204,8 +202,8 @@ void sched_ue::rem_bearer(uint32_t lc_id)
 
 void sched_ue::phy_config_enabled(uint32_t tti, bool enabled)
 {
-  dl_cqi_tti = tti; 
-  phy_config_dedicated_enabled = enabled; 
+  dl_cqi_tti                   = tti;
+  phy_config_dedicated_enabled = enabled;
 }
 
 void sched_ue::ul_buffer_state(uint8_t lc_id, uint32_t bsr, bool set_value)
@@ -218,12 +216,11 @@ void sched_ue::ul_buffer_state(uint8_t lc_id, uint32_t bsr, bool set_value)
       lch[lc_id].bsr += bsr;
     }
   }
-  Debug("SCHED: bsr=%d, lcid=%d, bsr={%d,%d,%d,%d}\n", bsr, lc_id,
-       lch[0].bsr, lch[1].bsr, lch[2].bsr, lch[3].bsr);
+  Debug("SCHED: bsr=%d, lcid=%d, bsr={%d,%d,%d,%d}\n", bsr, lc_id, lch[0].bsr, lch[1].bsr, lch[2].bsr, lch[3].bsr);
 }
 
 void sched_ue::ul_phr(int phr)
-{ 
+{
   power_headroom = phr;
 }
 
@@ -245,12 +242,12 @@ void sched_ue::mac_buffer_state(uint32_t ce_code)
 
 void sched_ue::set_sr()
 {
-  sr = true; 
+  sr = true;
 }
 
 void sched_ue::unset_sr()
 {
-  sr = false; 
+  sr = false;
 }
 
 void sched_ue::set_needs_ta_cmd(uint32_t nof_ta_cmd_) {
@@ -292,7 +289,7 @@ bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2])
       if (TTI_TX(dl_harq[i].get_tti()) == current_tti) {
         cfg.pucch_cfg.uci_cfg.ack[0].ncce[0]  = dl_harq[i].get_n_cce();
         cfg.pucch_cfg.uci_cfg.ack[0].nof_acks = 1;
-        ret                                = true;
+        ret                                   = true;
       }
     }
     // Periodic CQI
@@ -322,8 +319,8 @@ bool sched_ue::get_pucch_sched(uint32_t current_tti, uint32_t prb_idx[2])
 int sched_ue::set_ack_info(uint32_t tti, uint32_t tb_idx, bool ack)
 {
   std::lock_guard<std::mutex> lock(mutex);
-  int ret = -1;
-  for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
+  int                         ret = -1;
+  for (int i = 0; i < SCHED_MAX_HARQ_PROC; i++) {
     if (TTI_TX(dl_harq[i].get_tti()) == tti) {
       Debug("SCHED: Set ACK=%d for rnti=0x%x, pid=%d, tb=%d, tti=%d\n", ack, rnti, i, tb_idx, tti);
       dl_harq[i].set_ack(tb_idx, ack);
@@ -345,19 +342,18 @@ void sched_ue::ul_recv_len(uint32_t lcid, uint32_t len)
 
   // Remove PDCP header??
   if (len > 4) {
-    len -= 4; 
+    len -= 4;
   }
   if (lcid < sched_interface::MAX_LC) {
     if (bearer_is_ul(&lch[lcid])) {
-      if (lch[lcid].bsr > (int) len) {
+      if (lch[lcid].bsr > (int)len) {
         lch[lcid].bsr -= len;
       } else {
         lch[lcid].bsr = 0;
       }
     }
   }
-  Debug("SCHED: recv_len=%d, lcid=%d, bsr={%d,%d,%d,%d}\n", len, lcid,
-       lch[0].bsr, lch[1].bsr, lch[2].bsr, lch[3].bsr);
+  Debug("SCHED: recv_len=%d, lcid=%d, bsr={%d,%d,%d,%d}\n", len, lcid, lch[0].bsr, lch[1].bsr, lch[2].bsr, lch[3].bsr);
 }
 
 void sched_ue::set_ul_crc(uint32_t tti, bool crc_res)
@@ -400,16 +396,18 @@ void sched_ue::set_ul_cqi(uint32_t tti, uint32_t cqi, uint32_t ul_ch_code)
   ul_cqi_tti = tti;
 }
 
-void sched_ue::tpc_inc() {
+void sched_ue::tpc_inc()
+{
   std::lock_guard<std::mutex> lock(mutex);
   if (power_headroom > 0) {
     next_tpc_pusch = 3;
-    next_tpc_pucch = 3;    
+    next_tpc_pucch = 3;
   }
   log_h->info("SCHED: Set TCP=%d for rnti=0x%x\n", next_tpc_pucch, rnti);
 }
 
-void sched_ue::tpc_dec() {
+void sched_ue::tpc_dec()
+{
   std::lock_guard<std::mutex> lock(mutex);
   next_tpc_pusch = 0;
   next_tpc_pucch = 0;
@@ -417,9 +415,9 @@ void sched_ue::tpc_dec() {
 }
 
 /*******************************************************
- * 
- * Functions used to generate DCI grants 
- * 
+ *
+ * Functions used to generate DCI grants
+ *
  *******************************************************/
 
 // Generates a Format1 dci
@@ -531,7 +529,7 @@ int sched_ue::generate_format2a(
     dl_harq_proc* h, sched_interface::dl_sched_data_t* data, uint32_t tti, uint32_t cfi, const rbgmask_t& user_mask)
 {
   std::lock_guard<std::mutex> lock(mutex);
-  int ret = generate_format2a_unlocked(h, data, tti, cfi, user_mask);
+  int                         ret = generate_format2a_unlocked(h, data, tti, cfi, user_mask);
   return ret;
 }
 
@@ -571,7 +569,7 @@ int sched_ue::generate_format2a_unlocked(
     for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
       if (!h->is_empty(tb)) {
         tb_en[tb] = true;
-        no_retx = false;
+        no_retx   = false;
       }
     }
     /* Two layers, no retransmissions...  */
@@ -583,8 +581,8 @@ int sched_ue::generate_format2a_unlocked(
 
   for (uint32_t tb = 0; tb < SRSLTE_MAX_TB; tb++) {
     uint32_t req_bytes = get_pending_dl_new_data_total_unlocked(tti);
-    int mcs = 0;
-    int tbs = 0;
+    int      mcs       = 0;
+    int      tbs       = 0;
 
     if (!h->is_empty(tb)) {
       h->new_retx(user_mask, tb, tti, &mcs, &tbs, data->dci.location.ncce);
@@ -631,7 +629,7 @@ int sched_ue::generate_format2a_unlocked(
   dci->format    = SRSLTE_DCI_FORMAT2A;
   dci->rnti      = rnti;
   dci->pid       = h->get_id();
-  dci->tpc_pucch = (uint8_t) next_tpc_pucch;
+  dci->tpc_pucch = (uint8_t)next_tpc_pucch;
   next_tpc_pucch = 1;
 
   int ret = data->tbs[0] + data->tbs[1];
@@ -651,9 +649,9 @@ int sched_ue::generate_format2(
   /* Compute precoding information */
   data->dci.format = SRSLTE_DCI_FORMAT2;
   if ((SRSLTE_DCI_IS_TB_EN(data->dci.tb[0]) + SRSLTE_DCI_IS_TB_EN(data->dci.tb[1])) == 1) {
-    data->dci.pinfo = (uint8_t) (dl_pmi + 1) % (uint8_t) 5;
+    data->dci.pinfo = (uint8_t)(dl_pmi + 1) % (uint8_t)5;
   } else {
-    data->dci.pinfo = (uint8_t) (dl_pmi & 1);
+    data->dci.pinfo = (uint8_t)(dl_pmi & 1);
   }
 
   return ret;
@@ -701,7 +699,7 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
   } else {
     // retx
     h->new_retx(0, tti, &mcs, NULL, alloc);
-    tbs      = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs, true), alloc.L) / 8;
+    tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs, true), alloc.L) / 8;
   }
 
   data->tbs = tbs;
@@ -719,45 +717,50 @@ int sched_ue::generate_format0(sched_interface::ul_sched_data_t* data,
     dci->tb.ndi      = h->get_ndi(0);
     dci->cqi_request = cqi_request;
     dci->freq_hop_fl = srslte_dci_ul_t::SRSLTE_RA_PUSCH_HOP_DISABLED;
-    dci->tpc_pusch   = next_tpc_pusch; 
-    next_tpc_pusch   = 1; 
+    dci->tpc_pusch   = next_tpc_pusch;
+    next_tpc_pusch   = 1;
   }
 
   return tbs;
 }
 
 /*******************************************************
- * 
+ *
  * Functions used by scheduler or scheduler metric objects
- * 
+ *
  *******************************************************/
 
-bool sched_ue::bearer_is_ul(ue_bearer_t *lch) {
-  return lch->cfg.direction == sched_interface::ue_bearer_cfg_t::UL || lch->cfg.direction == sched_interface::ue_bearer_cfg_t::BOTH;
+bool sched_ue::bearer_is_ul(ue_bearer_t* lch)
+{
+  return lch->cfg.direction == sched_interface::ue_bearer_cfg_t::UL ||
+         lch->cfg.direction == sched_interface::ue_bearer_cfg_t::BOTH;
 }
 
-bool sched_ue::bearer_is_dl(ue_bearer_t *lch) {
-  return lch->cfg.direction == sched_interface::ue_bearer_cfg_t::DL || lch->cfg.direction == sched_interface::ue_bearer_cfg_t::BOTH;
+bool sched_ue::bearer_is_dl(ue_bearer_t* lch)
+{
+  return lch->cfg.direction == sched_interface::ue_bearer_cfg_t::DL ||
+         lch->cfg.direction == sched_interface::ue_bearer_cfg_t::BOTH;
 }
 
-uint32_t sched_ue::get_max_retx() {
-  return cfg.maxharq_tx; 
+uint32_t sched_ue::get_max_retx()
+{
+  return cfg.maxharq_tx;
 }
 
 bool sched_ue::is_first_dl_tx()
 {
-  for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
+  for (int i = 0; i < SCHED_MAX_HARQ_PROC; i++) {
     if (dl_harq[i].nof_tx(0) > 0) {
-      return false; 
+      return false;
     }
   }
-  return true; 
+  return true;
 }
 
 bool sched_ue::needs_cqi(uint32_t tti, bool will_be_sent)
 {
   std::lock_guard<std::mutex> lock(mutex);
-  bool ret = needs_cqi_unlocked(tti, will_be_sent);
+  bool                        ret = needs_cqi_unlocked(tti, will_be_sent);
   return ret;
 }
 
@@ -765,12 +768,9 @@ bool sched_ue::needs_cqi(uint32_t tti, bool will_be_sent)
 bool sched_ue::needs_cqi_unlocked(uint32_t tti, bool will_be_sent)
 {
   bool ret = false;
-  if (phy_config_dedicated_enabled &&
-      cfg.aperiodic_cqi_period     &&
-      get_pending_dl_new_data_unlocked(tti) > 0)
-  {
+  if (phy_config_dedicated_enabled && cfg.aperiodic_cqi_period && get_pending_dl_new_data_unlocked(tti) > 0) {
     uint32_t interval = srslte_tti_interval(tti, dl_cqi_tti);
-    bool needscqi = interval >= cfg.aperiodic_cqi_period;
+    bool     needscqi = interval >= cfg.aperiodic_cqi_period;
     if (needscqi) {
       uint32_t interval_sent = srslte_tti_interval(tti, cqi_request_tti);
       if (interval_sent >= 16) {
@@ -788,7 +788,7 @@ bool sched_ue::needs_cqi_unlocked(uint32_t tti, bool will_be_sent)
 uint32_t sched_ue::get_pending_dl_new_data(uint32_t tti)
 {
   std::lock_guard<std::mutex> lock(mutex);
-  uint32_t pending_data = get_pending_dl_new_data_unlocked(tti);
+  uint32_t                    pending_data = get_pending_dl_new_data_unlocked(tti);
   return pending_data;
 }
 
@@ -799,16 +799,16 @@ uint32_t sched_ue::get_pending_dl_new_data(uint32_t tti)
 uint32_t sched_ue::get_pending_dl_new_data_total(uint32_t tti)
 {
   std::lock_guard<std::mutex> lock(mutex);
-  uint32_t req_bytes = get_pending_dl_new_data_total_unlocked(tti);
+  uint32_t                    req_bytes = get_pending_dl_new_data_total_unlocked(tti);
   return req_bytes;
 }
 
 uint32_t sched_ue::get_pending_dl_new_data_total_unlocked(uint32_t tti)
 {
   uint32_t req_bytes = get_pending_dl_new_data_unlocked(tti);
-  if(req_bytes>0) {
+  if (req_bytes > 0) {
     req_bytes += (req_bytes < 128) ? 2 : 3; // consider the header
-    if(is_first_dl_tx()) {
+    if (is_first_dl_tx()) {
       req_bytes += 6; // count for RAR
     }
   }
@@ -819,7 +819,7 @@ uint32_t sched_ue::get_pending_dl_new_data_total_unlocked(uint32_t tti)
 uint32_t sched_ue::get_pending_dl_new_data_unlocked(uint32_t tti)
 {
   uint32_t pending_data = 0;
-  for (int i=0;i<sched_interface::MAX_LC;i++) {
+  for (int i = 0; i < sched_interface::MAX_LC; i++) {
     if (bearer_is_dl(&lch[i])) {
       pending_data += lch[i].buf_retx + lch[i].buf_tx;
     }
@@ -833,14 +833,14 @@ uint32_t sched_ue::get_pending_dl_new_data_unlocked(uint32_t tti)
 uint32_t sched_ue::get_pending_ul_new_data(uint32_t tti)
 {
   std::lock_guard<std::mutex> lock(mutex);
-  uint32_t pending_data = get_pending_ul_new_data_unlocked(tti);
+  uint32_t                    pending_data = get_pending_ul_new_data_unlocked(tti);
   return pending_data;
 }
 
 uint32_t sched_ue::get_pending_ul_old_data()
 {
   std::lock_guard<std::mutex> lock(mutex);
-  uint32_t pending_data = get_pending_ul_old_data_unlocked();
+  uint32_t                    pending_data = get_pending_ul_old_data_unlocked();
   return pending_data;
 }
 
@@ -848,7 +848,7 @@ uint32_t sched_ue::get_pending_ul_old_data()
 uint32_t sched_ue::get_pending_ul_new_data_unlocked(uint32_t tti)
 {
   uint32_t pending_data = 0;
-  for (int i=0;i<sched_interface::MAX_LC;i++) {
+  for (int i = 0; i < sched_interface::MAX_LC; i++) {
     if (bearer_is_ul(&lch[i])) {
       pending_data += lch[i].bsr;
     }
@@ -866,8 +866,13 @@ uint32_t sched_ue::get_pending_ul_new_data_unlocked(uint32_t tti)
     pending_data = 0;
   }
   if (pending_data) {
-    Debug("SCHED: pending_data=%d, pending_ul_data=%d, bsr={%d,%d,%d,%d}\n", pending_data,pending_ul_data,
-          lch[0].bsr, lch[1].bsr, lch[2].bsr, lch[3].bsr);
+    Debug("SCHED: pending_data=%d, pending_ul_data=%d, bsr={%d,%d,%d,%d}\n",
+          pending_data,
+          pending_ul_data,
+          lch[0].bsr,
+          lch[1].bsr,
+          lch[2].bsr,
+          lch[3].bsr);
   }
   return pending_data;
 }
@@ -876,7 +881,7 @@ uint32_t sched_ue::get_pending_ul_new_data_unlocked(uint32_t tti)
 uint32_t sched_ue::get_pending_ul_old_data_unlocked()
 {
   uint32_t pending_data = 0;
-  for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
+  for (int i = 0; i < SCHED_MAX_HARQ_PROC; i++) {
     pending_data += ul_harq[i].get_pending_data();
   }
   return pending_data;
@@ -884,12 +889,12 @@ uint32_t sched_ue::get_pending_ul_old_data_unlocked()
 
 uint32_t sched_ue::prb_to_rbg(uint32_t nof_prb)
 {
-  return (uint32_t) ceil((float) nof_prb / P);
+  return (uint32_t)ceil((float)nof_prb / P);
 }
 
 uint32_t sched_ue::rgb_to_prb(uint32_t nof_rbg)
 {
-  return P*nof_rbg;
+  return P * nof_rbg;
 }
 
 uint32_t sched_ue::get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_symbols)
@@ -903,10 +908,10 @@ uint32_t sched_ue::get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_sym
   uint32_t nbytes = 0;
   uint32_t n;
   int      mcs0 = (is_first_dl_tx() and cell.nof_prb == 6) ? MCS_FIRST_DL : fixed_mcs_dl;
-  for (n=0; n < cell.nof_prb && nbytes < req_bytes; ++n) {
+  for (n = 0; n < cell.nof_prb && nbytes < req_bytes; ++n) {
     nof_re = srslte_ra_dl_approx_nof_re(&cell, n + 1, nof_ctrl_symbols);
     if (mcs0 < 0) {
-      tbs = alloc_tbs_dl(n+1, nof_re, 0, &mcs);
+      tbs = alloc_tbs_dl(n + 1, nof_re, 0, &mcs);
     } else {
       tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(mcs0, false), n + 1) / 8;
     }
@@ -920,33 +925,33 @@ uint32_t sched_ue::get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_sym
   return n;
 }
 
-uint32_t sched_ue::get_required_prb_ul(uint32_t req_bytes) 
+uint32_t sched_ue::get_required_prb_ul(uint32_t req_bytes)
 {
   int      mcs    = 0;
   uint32_t nbytes = 0;
-  uint32_t N_srs = 0;
+  uint32_t N_srs  = 0;
 
   uint32_t n = 0;
   if (req_bytes == 0) {
-    return 0; 
+    return 0;
   }
 
   std::lock_guard<std::mutex> lock(mutex);
 
   for (n = 1; n < cell.nof_prb && nbytes < req_bytes + 4; n++) {
-    uint32_t nof_re = (2*(SRSLTE_CP_NSYMB(cell.cp)-1) - N_srs)*n*SRSLTE_NRE;
-    int tbs = 0; 
+    uint32_t nof_re = (2 * (SRSLTE_CP_NSYMB(cell.cp) - 1) - N_srs) * n * SRSLTE_NRE;
+    int      tbs    = 0;
     if (fixed_mcs_ul < 0) {
       tbs = alloc_tbs_ul(n, nof_re, 0, &mcs);
     } else {
       tbs = srslte_ra_tbs_from_idx(srslte_ra_tbs_idx_from_mcs(fixed_mcs_ul, true), n) / 8;
     }
     if (tbs > 0) {
-      nbytes = tbs; 
+      nbytes = tbs;
     }
   }
 
-  while (!srslte_dft_precoding_valid_prb(n) && n<=cell.nof_prb) {
+  while (!srslte_dft_precoding_valid_prb(n) && n <= cell.nof_prb) {
     n++;
   }
 
@@ -955,7 +960,7 @@ uint32_t sched_ue::get_required_prb_ul(uint32_t req_bytes)
 
 bool sched_ue::is_sr_triggered()
 {
-  return sr; 
+  return sr;
 }
 
 void sched_ue::reset_pending_pids(uint32_t tti_rx)
@@ -966,7 +971,7 @@ void sched_ue::reset_pending_pids(uint32_t tti_rx)
   get_ul_harq(tti_tx_ul)->reset_pending_data();
 
   // DL harqs
-  for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
+  for (int i = 0; i < SCHED_MAX_HARQ_PROC; i++) {
     dl_harq[i].reset_pending_data();
     if (not dl_harq[i].is_empty()) {
       uint32_t tti_diff = srslte_tti_interval(tti_tx_dl, dl_harq[i].get_tti());
@@ -986,18 +991,18 @@ dl_harq_proc* sched_ue::get_pending_dl_harq(uint32_t tti)
 
   std::lock_guard<std::mutex> lock(mutex);
 
-  int oldest_idx=-1;
-  uint32_t oldest_tti = 0; 
-  for (int i=0;i<SCHED_MAX_HARQ_PROC;i++) {
+  int      oldest_idx = -1;
+  uint32_t oldest_tti = 0;
+  for (int i = 0; i < SCHED_MAX_HARQ_PROC; i++) {
     if (dl_harq[i].has_pending_retx(0, tti) || dl_harq[i].has_pending_retx(1, tti)) {
       uint32_t x = srslte_tti_interval(tti, dl_harq[i].get_tti());
       if (x > oldest_tti) {
-        oldest_idx = i; 
-        oldest_tti = x; 
+        oldest_idx = i;
+        oldest_tti = x;
       }
     }
   }
-  dl_harq_proc *h = NULL;
+  dl_harq_proc* h = NULL;
   if (oldest_idx >= 0) {
     h = &dl_harq[oldest_idx];
   }
@@ -1005,7 +1010,7 @@ dl_harq_proc* sched_ue::get_pending_dl_harq(uint32_t tti)
   return h;
 
 #else
-  return &dl_harq[tti%SCHED_MAX_HARQ_PROC];
+  return &dl_harq[tti % SCHED_MAX_HARQ_PROC];
 #endif
 }
 
@@ -1013,8 +1018,8 @@ dl_harq_proc* sched_ue::get_empty_dl_harq()
 {
   std::lock_guard<std::mutex> lock(mutex);
 
-  dl_harq_proc *h = NULL;
-  for (int i=0;i<SCHED_MAX_HARQ_PROC && !h;i++) {
+  dl_harq_proc* h = NULL;
+  for (int i = 0; i < SCHED_MAX_HARQ_PROC && !h; i++) {
     if (dl_harq[i].is_empty(0) && dl_harq[i].is_empty(1)) {
       h = &dl_harq[i];
     }
@@ -1042,7 +1047,8 @@ dl_harq_proc* sched_ue::get_dl_harq(uint32_t idx)
   return &dl_harq[idx];
 }
 
-srslte_dci_format_t sched_ue::get_dci_format() {
+srslte_dci_format_t sched_ue::get_dci_format()
+{
   srslte_dci_format_t ret = SRSLTE_DCI_FORMAT1;
 
   if (phy_config_dedicated_enabled) {
@@ -1072,16 +1078,15 @@ srslte_dci_format_t sched_ue::get_dci_format() {
   return ret;
 }
 
-
 /* Find lowest DCI aggregation level supported by the UE spectral efficiency */
 uint32_t sched_ue::get_aggr_level(uint32_t nof_bits)
 {
   std::lock_guard<std::mutex> lock(mutex);
-  uint32_t l=0;
-  float max_coderate = srslte_cqi_to_coderate(dl_cqi);
-  float coderate = 99;
-  float factor=1.5;
-  uint32_t l_max = 3;
+  uint32_t                    l            = 0;
+  float                       max_coderate = srslte_cqi_to_coderate(dl_cqi);
+  float                       coderate     = 99;
+  float                       factor       = 1.5;
+  uint32_t                    l_max        = 3;
   if (cell.nof_prb == 6) {
     factor = 1.0;
     l_max  = 2;
@@ -1090,53 +1095,59 @@ uint32_t sched_ue::get_aggr_level(uint32_t nof_bits)
   do {
     coderate = srslte_pdcch_coderate(nof_bits, l);
     l++;
-  } while(l<l_max && factor*coderate > max_coderate);
-  Debug("SCHED: CQI=%d, l=%d, nof_bits=%d, coderate=%.2f, max_coderate=%.2f\n", dl_cqi, l, nof_bits, coderate, max_coderate);
+  } while (l < l_max && factor * coderate > max_coderate);
+  Debug("SCHED: CQI=%d, l=%d, nof_bits=%d, coderate=%.2f, max_coderate=%.2f\n",
+        dl_cqi,
+        l,
+        nof_bits,
+        coderate,
+        max_coderate);
   return l;
 }
 
 sched_ue::sched_dci_cce_t* sched_ue::get_locations(uint32_t cfi, uint32_t sf_idx)
 {
   if (cfi > 0 && cfi <= 3) {
-    return &dci_locations[cfi-1][sf_idx];
+    return &dci_locations[cfi - 1][sf_idx];
   } else {
     Error("SCHED: Invalid CFI=%d\n", cfi);
-    return &dci_locations[0][sf_idx]; 
-  }    
+    return &dci_locations[0][sf_idx];
+  }
 }
 
 /* Allocates first available RLC PDU */
 int sched_ue::alloc_pdu(int tbs_bytes, sched_interface::dl_sched_pdu_t* pdu)
 {
   // TODO: Implement lcid priority (now lowest index is lowest priority)
-  int x = 0; 
-  int i = 0; 
-  for (i=0;i<sched_interface::MAX_LC && !x;i++) {
+  int x = 0;
+  int i = 0;
+  for (i = 0; i < sched_interface::MAX_LC && !x; i++) {
     if (lch[i].buf_retx) {
       x = SRSLTE_MIN(lch[i].buf_retx, tbs_bytes);
-      lch[i].buf_retx -= x; 
+      lch[i].buf_retx -= x;
     } else if (lch[i].buf_tx) {
       x = SRSLTE_MIN(lch[i].buf_tx, tbs_bytes);
-      lch[i].buf_tx -= x; 
+      lch[i].buf_tx -= x;
     }
   }
   if (x) {
-    pdu->lcid   = i-1; 
-    pdu->nbytes = x;  
+    pdu->lcid   = i - 1;
+    pdu->nbytes = x;
     Debug("SCHED: Allocated lcid=%d, nbytes=%d, tbs_bytes=%d\n", pdu->lcid, pdu->nbytes, tbs_bytes);
   }
   return x;
 }
 
-uint32_t sched_ue::format1_count_prb(uint32_t bitmask, uint32_t cell_nof_prb) {
-  uint32_t P = srslte_ra_type0_P(cell_nof_prb);
-  uint32_t nb = (int) ceilf((float) cell_nof_prb / P);
-  
-  uint32_t nof_prb = 0;   
+uint32_t sched_ue::format1_count_prb(uint32_t bitmask, uint32_t cell_nof_prb)
+{
+  uint32_t P  = srslte_ra_type0_P(cell_nof_prb);
+  uint32_t nb = (int)ceilf((float)cell_nof_prb / P);
+
+  uint32_t nof_prb = 0;
   for (uint32_t i = 0; i < nb; i++) {
     if (bitmask & (1 << (nb - i - 1))) {
       for (uint32_t j = 0; j < P; j++) {
-        if (i*P+j < cell_nof_prb) {
+        if (i * P + j < cell_nof_prb) {
           nof_prb++;
         }
       }
@@ -1145,12 +1156,12 @@ uint32_t sched_ue::format1_count_prb(uint32_t bitmask, uint32_t cell_nof_prb) {
   return nof_prb;
 }
 
-int sched_ue::cqi_to_tbs(uint32_t cqi, uint32_t nof_prb, uint32_t nof_re, uint32_t max_mcs, uint32_t max_Qm, bool is_ul,
-                         uint32_t* mcs)
+int sched_ue::cqi_to_tbs(
+    uint32_t cqi, uint32_t nof_prb, uint32_t nof_re, uint32_t max_mcs, uint32_t max_Qm, bool is_ul, uint32_t* mcs)
 {
-  float max_coderate = srslte_cqi_to_coderate(cqi);
+  float    max_coderate = srslte_cqi_to_coderate(cqi);
   int      sel_mcs      = max_mcs + 1;
-  float coderate = 99;
+  float    coderate     = 99;
   float    eff_coderate = 99;
   uint32_t Qm           = 1;
   int      tbs          = 0;
@@ -1162,43 +1173,33 @@ int sched_ue::cqi_to_tbs(uint32_t cqi, uint32_t nof_prb, uint32_t nof_re, uint32
     coderate         = srslte_coderate(tbs, nof_re);
     srslte_mod_t mod = (is_ul) ? srslte_ra_ul_mod_from_mcs(sel_mcs) : srslte_ra_dl_mod_from_mcs(sel_mcs);
     Qm               = SRSLTE_MIN(max_Qm, srslte_mod_bits_x_symbol(mod));
-    eff_coderate = coderate/Qm;
-  } while((sel_mcs > 0 && coderate > max_coderate) || eff_coderate > 0.930);
+    eff_coderate     = coderate / Qm;
+  } while ((sel_mcs > 0 && coderate > max_coderate) || eff_coderate > 0.930);
   if (mcs) {
     *mcs = (uint32_t)sel_mcs;
   }
   return tbs;
 }
 
-int sched_ue::alloc_tbs_dl(uint32_t nof_prb,
-                        uint32_t nof_re,
-                        uint32_t req_bytes,
-                        int *mcs)
+int sched_ue::alloc_tbs_dl(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int* mcs)
 {
   return alloc_tbs(nof_prb, nof_re, req_bytes, false, mcs);
 }
 
-int sched_ue::alloc_tbs_ul(uint32_t nof_prb,
-                           uint32_t nof_re,
-                           uint32_t req_bytes,
-                           int *mcs)
+int sched_ue::alloc_tbs_ul(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int* mcs)
 {
   return alloc_tbs(nof_prb, nof_re, req_bytes, true, mcs);
 }
 
-  /* In this scheduler we tend to use all the available bandwidth and select the MCS
- * that approximates the minimum between the capacity and the requested rate 
+/* In this scheduler we tend to use all the available bandwidth and select the MCS
+ * that approximates the minimum between the capacity and the requested rate
  */
-int sched_ue::alloc_tbs(uint32_t nof_prb,
-                        uint32_t nof_re,
-                        uint32_t req_bytes,
-                        bool is_ul,
-                        int *mcs)
+int sched_ue::alloc_tbs(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, bool is_ul, int* mcs)
 {
   uint32_t sel_mcs = 0;
 
-  uint32_t cqi     = is_ul?ul_cqi:dl_cqi;
-  uint32_t max_mcs = is_ul?max_mcs_ul:max_mcs_dl;
+  uint32_t cqi     = is_ul ? ul_cqi : dl_cqi;
+  uint32_t max_mcs = is_ul ? max_mcs_ul : max_mcs_dl;
   uint32_t max_Qm  = is_ul ? 4 : 6; // Allow 16-QAM in PUSCH Only
 
   // TODO: Compute real spectral efficiency based on PUSCH-UCI configuration
@@ -1222,11 +1223,10 @@ int sched_ue::alloc_tbs(uint32_t nof_prb,
   }
 
   if (mcs && tbs_bytes >= 0) {
-    *mcs = (int) sel_mcs; 
+    *mcs = (int)sel_mcs;
   }
 
   return tbs_bytes;
 }
 
-
-}
+} // namespace srsenb

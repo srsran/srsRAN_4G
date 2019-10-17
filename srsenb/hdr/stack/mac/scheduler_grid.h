@@ -41,7 +41,7 @@ struct alloc_outcome_t {
   alloc_outcome_t(result_enum e) : result(e) {}
               operator result_enum() { return result; }
               operator bool() { return result == SUCCESS; }
-              const char* to_string() const;
+  const char* to_string() const;
 };
 
 //! Class responsible for managing a PDCCH CCE grid, namely cce allocs, and avoid collisions.

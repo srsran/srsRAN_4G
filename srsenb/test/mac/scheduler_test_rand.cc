@@ -181,10 +181,10 @@ struct sched_tester : public srsenb::sched {
     ra_sched_t::pending_msg3_t        ul_pending_msg3;
     srslte::bounded_bitset<128, true> used_cce;
     //    std::vector<bool>                                         used_cce;
-    std::map<uint16_t, tester_user_results>                   ue_data;   ///< stores buffer state of each user
-    tester_user_results                                       total_ues; ///< stores combined UL/DL buffer state
-    srsenb::sched_interface::ul_sched_res_t                   sched_result_ul;
-    srsenb::sched_interface::dl_sched_res_t                   sched_result_dl;
+    std::map<uint16_t, tester_user_results> ue_data;   ///< stores buffer state of each user
+    tester_user_results                     total_ues; ///< stores combined UL/DL buffer state
+    srsenb::sched_interface::ul_sched_res_t sched_result_ul;
+    srsenb::sched_interface::dl_sched_res_t sched_result_dl;
   };
   struct ue_info {
     int                                      prach_tti = -1, rar_tti = -1, msg3_tti = -1;

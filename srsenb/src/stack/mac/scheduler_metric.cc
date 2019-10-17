@@ -23,10 +23,10 @@
 #include "srsenb/hdr/stack/mac/scheduler_harq.h"
 #include <string.h>
 
-#define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
+#define Error(fmt, ...) log_h->error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    log_h->info(fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   log_h->debug(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...) log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...) log_h->debug(fmt, ##__VA_ARGS__)
 
 namespace srsenb {
 
@@ -54,8 +54,8 @@ void dl_metric_rr::sched_users(std::map<uint16_t, sched_ue>& ue_db, dl_tti_sched
   uint32_t priority_idx = tti_alloc->get_tti_tx_dl() % (uint32_t)ue_db.size();
   it_t     iter         = ue_db.begin();
   std::advance(iter, priority_idx);
-  for(uint32_t ue_count = 0 ; ue_count < ue_db.size() ; ++iter, ++ue_count) {
-    if(iter==ue_db.end()) {
+  for (uint32_t ue_count = 0; ue_count < ue_db.size(); ++iter, ++ue_count) {
+    if (iter == ue_db.end()) {
       iter = ue_db.begin(); // wrap around
     }
     sched_ue* user = &iter->second;
@@ -122,7 +122,7 @@ dl_harq_proc* dl_metric_rr::allocate_user(sched_ue* user)
   h = user->get_empty_dl_harq();
   if (h) {
 #else
-    if (h && h->is_empty()) {
+  if (h && h->is_empty()) {
 #endif
     // Allocate resources based on pending data
     if (req_bytes) {
@@ -159,17 +159,18 @@ void ul_metric_rr::sched_users(std::map<uint16_t, sched_ue>& ue_db, ul_tti_sched
   tti_alloc   = tti_sched;
   current_tti = tti_alloc->get_tti_tx_ul();
 
-  if(ue_db.size()==0)
-      return;
+  if (ue_db.size() == 0)
+    return;
 
   // give priority in a time-domain RR basis
-  uint32_t priority_idx = (current_tti+(uint32_t)ue_db.size()/2) % (uint32_t)ue_db.size(); // make DL and UL interleaved
+  uint32_t priority_idx =
+      (current_tti + (uint32_t)ue_db.size() / 2) % (uint32_t)ue_db.size(); // make DL and UL interleaved
 
   // allocate reTxs first
   it_t iter = ue_db.begin();
   std::advance(iter, priority_idx);
-  for(uint32_t ue_count = 0 ; ue_count < ue_db.size() ; ++iter, ++ue_count) {
-    if(iter==ue_db.end()) {
+  for (uint32_t ue_count = 0; ue_count < ue_db.size(); ++iter, ++ue_count) {
+    if (iter == ue_db.end()) {
       iter = ue_db.begin(); // wrap around
     }
     sched_ue* user = &iter->second;
@@ -178,9 +179,9 @@ void ul_metric_rr::sched_users(std::map<uint16_t, sched_ue>& ue_db, ul_tti_sched
 
   // give priority in a time-domain RR basis
   iter = ue_db.begin();
-  std::advance(iter,priority_idx);
-  for(uint32_t ue_count = 0 ; ue_count < ue_db.size() ; ++iter, ++ue_count) {
-    if(iter==ue_db.end()) {
+  std::advance(iter, priority_idx);
+  for (uint32_t ue_count = 0; ue_count < ue_db.size(); ++iter, ++ue_count) {
+    if (iter == ue_db.end()) {
       iter = ue_db.begin(); // wrap around
     }
     sched_ue* user = &iter->second;
@@ -200,12 +201,12 @@ bool ul_metric_rr::find_allocation(uint32_t L, ul_harq_proc::ul_alloc_t* alloc)
   bzero(alloc, sizeof(ul_harq_proc::ul_alloc_t));
   for (uint32_t n = 0; n < used_rb->size() && alloc->L < L; n++) {
     if (not used_rb->test(n) && alloc->L == 0) {
-      alloc->RB_start = n; 
+      alloc->RB_start = n;
     }
     if (not used_rb->test(n)) {
-      alloc->L++; 
+      alloc->L++;
     } else if (alloc->L > 0) {
-      // avoid edges 
+      // avoid edges
       if (n < 3) {
         alloc->RB_start = 0;
         alloc->L        = 0;
@@ -214,15 +215,15 @@ bool ul_metric_rr::find_allocation(uint32_t L, ul_harq_proc::ul_alloc_t* alloc)
       }
     }
   }
-  if (alloc->L==0) {
+  if (alloc->L == 0) {
     return false;
   }
-  
-  // Make sure L is allowed by SC-FDMA modulation 
+
+  // Make sure L is allowed by SC-FDMA modulation
   while (!srslte_dft_precoding_valid_prb(alloc->L)) {
     alloc->L--;
   }
-  return alloc->L == L; 
+  return alloc->L == L;
 }
 
 ul_harq_proc* ul_metric_rr::allocate_user_retx_prbs(sched_ue* user)

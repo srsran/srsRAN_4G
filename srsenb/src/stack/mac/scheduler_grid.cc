@@ -131,7 +131,7 @@ void pdcch_grid_t::update_alloc_tree(int                              parent_nod
                                      const sched_ue::sched_dci_cce_t* dci_locs)
 {
   alloc_t alloc;
-  alloc.rnti     = (user != nullptr) ? user->get_rnti() : (uint16_t)0u;
+  alloc.rnti      = (user != nullptr) ? user->get_rnti() : (uint16_t)0u;
   alloc.dci_pos.L = aggr_idx;
 
   // get cumulative pdcch mask

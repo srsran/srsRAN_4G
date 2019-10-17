@@ -27,10 +27,10 @@
 #include "srslte/common/pdu.h"
 #include "srslte/srslte.h"
 
-#define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
+#define Error(fmt, ...) log_h->error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    log_h->info(fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   log_h->debug(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...) log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...) log_h->debug(fmt, ##__VA_ARGS__)
 
 namespace srsenb {
 
@@ -118,9 +118,9 @@ sched::tti_sched_result_t::alloc_dl_ctrl(uint32_t aggr_lvl, uint32_t tbs_bytes, 
 
 alloc_outcome_t sched::tti_sched_result_t::alloc_bc(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t sib_ntx)
 {
-  uint32_t                        sib_len = sibs_cfg[sib_idx].len;
-  uint32_t                        rv      = get_rvidx(sib_ntx);
-  ctrl_code_t                     ret     = alloc_dl_ctrl(aggr_lvl, sib_len, SRSLTE_SIRNTI);
+  uint32_t    sib_len = sibs_cfg[sib_idx].len;
+  uint32_t    rv      = get_rvidx(sib_ntx);
+  ctrl_code_t ret     = alloc_dl_ctrl(aggr_lvl, sib_len, SRSLTE_SIRNTI);
   if (not ret.first) {
     Warning("SCHED: Could not allocate SIB=%d, L=%d, len=%d, cause=%s\n",
             sib_idx + 1,
@@ -132,7 +132,7 @@ alloc_outcome_t sched::tti_sched_result_t::alloc_bc(uint32_t aggr_lvl, uint32_t 
 
   // BC allocation successful
   bc_alloc_t bc_alloc(ret.second);
-  bc_alloc.rv     = rv;
+  bc_alloc.rv      = rv;
   bc_alloc.sib_idx = sib_idx;
   bc_allocs.push_back(bc_alloc);
 
@@ -222,11 +222,11 @@ alloc_outcome_t sched::tti_sched_result_t::alloc_ul(sched_ue*                   
   }
 
   ul_alloc_t ul_alloc = {};
-  ul_alloc.type     = alloc_type;
-  ul_alloc.dci_idx  = tti_alloc.get_pdcch_grid().nof_allocs() - 1;
-  ul_alloc.user_ptr = user;
-  ul_alloc.alloc    = alloc;
-  ul_alloc.mcs      = mcs;
+  ul_alloc.type       = alloc_type;
+  ul_alloc.dci_idx    = tti_alloc.get_pdcch_grid().nof_allocs() - 1;
+  ul_alloc.user_ptr   = user;
+  ul_alloc.alloc      = alloc;
+  ul_alloc.mcs        = mcs;
   ul_data_allocs.push_back(ul_alloc);
 
   return alloc_outcome_t::SUCCESS;
@@ -388,7 +388,7 @@ void sched::tti_sched_result_t::set_dl_data_sched_result(const pdcch_grid_t::all
     srslte_dci_format_t dci_format  = user->get_dci_format();
     bool                is_newtx    = h->is_empty();
 
-    int  tbs      = 0;
+    int tbs = 0;
     switch (dci_format) {
       case SRSLTE_DCI_FORMAT1:
         tbs = user->generate_format1(h, data, get_tti_tx_dl(), get_cfi(), data_alloc.user_mask);
@@ -437,7 +437,7 @@ void sched::tti_sched_result_t::set_ul_sched_result(const pdcch_grid_t::alloc_re
   for (const auto& ul_alloc : ul_data_allocs) {
     sched_interface::ul_sched_data_t* pusch = &ul_sched_result.pusch[ul_sched_result.nof_dci_elems];
 
-    sched_ue*     user = ul_alloc.user_ptr;
+    sched_ue* user = ul_alloc.user_ptr;
 
     srslte_dci_location_t cce_range = {0, 0};
     if (ul_alloc.needs_pdcch()) {
@@ -712,11 +712,10 @@ int sched::cell_cfg(sched_interface::cell_cfg_t* cell_cfg)
   return 0;
 }
 
-
 /*******************************************************
- * 
+ *
  * FAPI-like main sched interface. Wrappers to UE object
- * 
+ *
  *******************************************************/
 
 int sched::ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* ue_cfg)
@@ -984,8 +983,8 @@ void sched::generate_phich(tti_sched_result_t* tti_sched)
 int sched::generate_ul_sched(tti_sched_result_t* tti_sched)
 {
   /* Initialize variables */
-  current_tti                = tti_sched->get_tti_tx_ul();
-  prbmask_t& ul_mask         = tti_sched->get_ul_mask();
+  current_tti        = tti_sched->get_tti_tx_ul();
+  prbmask_t& ul_mask = tti_sched->get_ul_mask();
 
   // reserve PRBs for PRACH
   if (srslte_prach_tti_opportunity_config_fdd(cfg.prach_config, tti_sched->get_tti_tx_ul(), -1)) {
