@@ -35,7 +35,7 @@ class sf_worker : public srslte::thread_pool::worker
 {
 public:
   sf_worker()  = default;
-  ~sf_worker() = default;
+  ~sf_worker();
   void init(phy_common* phy, srslte::log* log_h);
   void stop() final;
 
@@ -65,7 +65,7 @@ private:
   phy_common*  phy               = nullptr;
   bool         initiated         = false;
   bool         running           = false;
-  bool         is_worker_running = false;
+  std::mutex   work_mutex;
 
   uint32_t           tti_rx = 0, tti_tx_dl = 0, tti_tx_ul = 0;
   uint32_t           t_rx = 0, t_tx_dl = 0, t_tx_ul = 0;
@@ -74,13 +74,7 @@ private:
 
   std::vector<std::unique_ptr<cc_worker> > cc_workers;
 
-  srslte_dl_sf_cfg_t dl_sf = {};
-  srslte_ul_sf_cfg_t ul_sf = {};
-
   srslte_softbuffer_tx_t temp_mbsfn_softbuffer = {};
-
-  // mutex to protect worker_imp() from configuration interface
-  std::mutex mutex;
 };
 
 } // namespace srsenb

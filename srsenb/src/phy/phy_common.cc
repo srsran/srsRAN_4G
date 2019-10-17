@@ -37,20 +37,12 @@ using namespace asn1::rrc;
 
 namespace srsenb {
 
-phy_common::phy_common(uint32_t max_workers) : tx_sem(max_workers)
+phy_common::phy_common(uint32_t max_workers_) : tx_sem(max_workers_)
 {
-  this->nof_workers          = nof_workers;
+  nof_workers                = max_workers_;
   params.max_prach_offset_us = 20;
-  radio                      = NULL;
-  stack                      = NULL;
-  is_first_tx                = false;
-  is_first_of_burst          = false;
   have_mtch_stop             = false;
-  this->max_workers          = max_workers;
-
-  ZERO_OBJECT(ul_cfg_com);
-  ZERO_OBJECT(dl_cfg_com);
-  ZERO_OBJECT(ul_grants);
+  max_workers                = max_workers_;
 
   for (uint32_t i = 0; i < max_workers; i++) {
     sem_init(&tx_sem[i], 0, 0); // All semaphores start blocked
@@ -64,9 +56,9 @@ phy_common::~phy_common()
   }
 }
 
-void phy_common::set_nof_workers(uint32_t nof_workers)
+void phy_common::set_nof_workers(uint32_t nof_workers_)
 {
-  this->nof_workers = nof_workers;
+  nof_workers = nof_workers_;
 }
 
 void phy_common::reset()
@@ -83,12 +75,11 @@ bool phy_common::init(const srslte_cell_t&         cell_,
   stack = stack_;
   cell  = cell_;
 
-  pthread_mutex_init(&user_mutex, NULL);
-  pthread_mutex_init(&mtch_mutex, NULL);
-  pthread_cond_init(&mtch_cvar, NULL);
+  pthread_mutex_init(&user_mutex, nullptr);
+  pthread_mutex_init(&mtch_mutex, nullptr);
+  pthread_cond_init(&mtch_cvar, nullptr);
 
-  is_first_of_burst = true; 
-  is_first_tx = true; 
+  is_first_tx = true;
   reset();
   return true; 
 }
@@ -136,7 +127,7 @@ void phy_common::worker_end(uint32_t           tti,
 
 void phy_common::ue_db_clear(uint32_t tti)
 {
-  for(std::map<uint16_t,common_ue>::iterator iter=common_ue_db.begin(); iter!=common_ue_db.end(); ++iter) {
+  for (auto iter = common_ue_db.begin(); iter != common_ue_db.end(); ++iter) {
     pending_ack_t *p = &((common_ue*)&iter->second)->pending_ack;
     for (uint32_t tb_idx = 0; tb_idx < SRSLTE_MAX_TB; tb_idx++) {
       p->is_pending[TTIMOD(tti)][tb_idx] = false;

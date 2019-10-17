@@ -43,8 +43,8 @@ public:
     sf_cnt(0),
     thread("PRACH_WORKER")
   {
-    log_h = NULL;
-    stack = NULL;
+    log_h = nullptr;
+    stack = nullptr;
     bzero(&prach, sizeof(srslte_prach_t));
     bzero(&prach_indices, sizeof(prach_indices));
     bzero(&prach_offsets, sizeof(prach_offsets));
@@ -75,36 +75,32 @@ private:
   const static int sf_buffer_sz = 128*1024;
   class sf_buffer {
   public:
-    sf_buffer()
-    {
-      nof_samples = 0;
-      tti         = 0;
-    }
+    sf_buffer() = default;
     void reset()
     {
       nof_samples = 0;
       tti         = 0;
     }
-    cf_t     samples[sf_buffer_sz];
-    uint32_t nof_samples;
-    uint32_t tti;
+    cf_t     samples[sf_buffer_sz] = {};
+    uint32_t nof_samples           = 0;
+    uint32_t tti                   = 0;
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
     char debug_name[SRSLTE_BUFFER_POOL_LOG_NAME_LEN];
 #endif /* SRSLTE_BUFFER_POOL_LOG_ENABLED */
   };
   srslte::buffer_pool<sf_buffer>  buffer_pool;
   srslte::block_queue<sf_buffer*> pending_buffers;
-  sf_buffer* current_buffer;
 
-  srslte::log* log_h;
-  stack_interface_phy_lte* stack;
-  float max_prach_offset_us;
-  bool initiated;
-  bool running;
-  uint32_t nof_sf;
-  uint32_t sf_cnt;
+  sf_buffer*               current_buffer      = nullptr;
+  srslte::log*             log_h               = nullptr;
+  stack_interface_phy_lte* stack               = nullptr;
+  float                    max_prach_offset_us = 0.0f;
+  bool                     initiated           = 0;
+  bool                     running             = false;
+  uint32_t                 nof_sf              = 0;
+  uint32_t                 sf_cnt              = 0;
 
-  void run_thread();
+  void run_thread() final;
   int run_tti(sf_buffer *b);
 
 

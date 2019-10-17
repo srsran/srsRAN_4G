@@ -35,8 +35,8 @@ class cc_worker
 {
 public:
   cc_worker();
+  ~cc_worker();
   void init(phy_common* phy, srslte::log* log_h, uint32_t cc_idx);
-  void stop();
   void reset();
 
   cf_t* get_buffer_rx(uint32_t antenna_idx);
@@ -133,6 +133,7 @@ private:
 
   // Each worker keeps a local copy of the user database. Uses more memory but more efficient to manage concurrency
   std::map<uint16_t, ue*> ue_db;
+  std::mutex              mutex;
 };
 
 } // namespace srsenb

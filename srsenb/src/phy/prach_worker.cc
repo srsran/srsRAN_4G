@@ -62,7 +62,7 @@ void prach_worker::stop()
   srslte_prach_free(&prach);
 
   running = false;
-  sf_buffer *s = NULL;
+  sf_buffer* s = nullptr;
   pending_buffers.push(s);
   wait_thread_finish();
 }

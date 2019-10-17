@@ -60,9 +60,9 @@ public:
   std::string get_type() { return "lte"; };
 
   /* MAC->PHY interface */
-  int  add_rnti(uint16_t rnti, bool is_temporal = false);
-  void rem_rnti(uint16_t rnti);
-  void set_mch_period_stop(uint32_t stop);
+  int  add_rnti(uint16_t rnti, bool is_temporal = false) final;
+  void rem_rnti(uint16_t rnti) final;
+  void set_mch_period_stop(uint32_t stop) final;
 
   /*RRC-PHY interface*/
   void configure_mbsfn(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s mcch);

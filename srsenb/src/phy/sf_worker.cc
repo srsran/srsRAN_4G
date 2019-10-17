@@ -108,20 +108,9 @@ void sf_worker::init(phy_common* phy_, srslte::log* log_h_)
 
 void sf_worker::stop()
 {
+  std::lock_guard<std::mutex> lock(work_mutex);
   running = false;
-  std::lock_guard<std::mutex> lg(mutex);
-
-  int cnt = 0;
-  while (is_worker_running && cnt < 100) {
-    usleep(1000);
-    cnt++;
-  }
-
-  if (!is_worker_running) {
-    srslte_softbuffer_tx_free(&temp_mbsfn_softbuffer);
-  } else {
-    log_h->console("Warning could not stop properly PHY\n");
-  }
+  srslte::thread_pool::worker::stop();
 }
 
 cf_t* sf_worker::get_buffer_rx(uint32_t cc_idx, uint32_t antenna_idx)
@@ -140,7 +129,7 @@ void sf_worker::set_time(uint32_t tti_, uint32_t tx_worker_cnt_, srslte_timestam
   t_tx_ul = TTIMOD(tti_tx_ul);
 
   tx_worker_cnt = tx_worker_cnt_;
-  memcpy(&tx_time, &tx_time_, sizeof(srslte_timestamp_t));
+  srslte_timestamp_copy(&tx_time, &tx_time_);
 
   for (auto& w : cc_workers) {
     w->set_tti(tti_);
@@ -149,7 +138,6 @@ void sf_worker::set_time(uint32_t tti_, uint32_t tx_worker_cnt_, srslte_timestam
 
 int sf_worker::add_rnti(uint16_t rnti, bool is_temporal)
 {
-  std::lock_guard<std::mutex> lg(mutex);
   for (auto& w : cc_workers) {
     w->add_rnti(rnti, is_temporal);
   }
@@ -158,7 +146,6 @@ int sf_worker::add_rnti(uint16_t rnti, bool is_temporal)
 
 void sf_worker::rem_rnti(uint16_t rnti)
 {
-  std::lock_guard<std::mutex> lg(mutex);
   for (auto& w : cc_workers) {
     w->rem_rnti(rnti);
   }
@@ -171,7 +158,6 @@ uint32_t sf_worker::get_nof_rnti()
 
 void sf_worker::set_config_dedicated(uint16_t rnti, asn1::rrc::phys_cfg_ded_s* dedicated)
 {
-  std::lock_guard<std::mutex> lg(mutex);
   for (auto& w : cc_workers) {
     w->set_config_dedicated(rnti, dedicated);
   }
@@ -179,13 +165,15 @@ void sf_worker::set_config_dedicated(uint16_t rnti, asn1::rrc::phys_cfg_ded_s* d
 
 void sf_worker::work_imp()
 {
-  std::lock_guard<std::mutex> lg(mutex);
+  std::lock_guard<std::mutex> lock(work_mutex);
   cf_t*                       signal_buffer_tx[SRSLTE_MAX_PORTS * SRSLTE_MAX_CARRIERS];
+
+  srslte_ul_sf_cfg_t ul_sf = {};
+  srslte_dl_sf_cfg_t dl_sf = {};
 
   if (!running) {
     return;
   }
-  is_worker_running = true;
 
   srslte_mbsfn_cfg_t mbsfn_cfg;
   srslte_sf_t        sf_type = phy->is_mbsfn_sf(&mbsfn_cfg, tti_tx_dl) ? SRSLTE_SF_MBSFN : SRSLTE_SF_NORM;
@@ -199,7 +187,6 @@ void sf_worker::work_imp()
   Debug("Worker %d running\n", get_id());
 
   // Configure UL subframe
-  ZERO_OBJECT(ul_sf);
   ul_sf.tti = tti_rx;
 
   // Process UL
@@ -212,29 +199,28 @@ void sf_worker::work_imp()
   if (sf_type == SRSLTE_SF_NORM) {
     if (stack->get_dl_sched(tti_tx_dl, &dl_grants[t_tx_dl]) < 0) {
       Error("Getting DL scheduling from MAC\n");
-      goto unlock;
+      return;
     }
   } else {
     dl_grants[t_tx_dl].cfi = mbsfn_cfg.non_mbsfn_region_length;
     if (stack->get_mch_sched(tti_tx_dl, mbsfn_cfg.is_mcch, &dl_grants[t_tx_dl])) {
       Error("Getting MCH packets from MAC\n");
-      goto unlock;
+      return;
     }
   }
 
   if (dl_grants[t_tx_dl].cfi < 1 || dl_grants[t_tx_dl].cfi > 3) {
     Error("Invalid CFI=%d\n", dl_grants[t_tx_dl].cfi);
-    goto unlock;
+    return;
   }
 
   // Get UL scheduling for the TX TTI from MAC
   if (stack->get_ul_sched(tti_tx_ul, &ul_grants[t_tx_ul]) < 0) {
     Error("Getting UL scheduling from MAC\n");
-    goto unlock;
+    return;
   }
 
   // Configure DL subframe
-  ZERO_OBJECT(dl_sf);
   dl_sf.tti              = tti_tx_dl;
   dl_sf.cfi              = dl_grants[t_tx_dl].cfi;
   dl_sf.sf_type          = sf_type;
@@ -255,8 +241,6 @@ void sf_worker::work_imp()
   Debug("Sending to radio\n");
   phy->worker_end(tx_worker_cnt, signal_buffer_tx, SRSLTE_SF_LEN_PRB(phy->cell.nof_prb), tx_time);
 
-  is_worker_running = false;
-
 #ifdef DEBUG_WRITE_FILE
   fwrite(signal_buffer_tx, SRSLTE_SF_LEN_PRB(phy->cell.nof_prb) * sizeof(cf_t), 1, f);
 #endif
@@ -275,10 +259,6 @@ void sf_worker::work_imp()
   }
 #endif
 
-unlock:
-  if (is_worker_running) {
-    is_worker_running = false;
-  }
 }
 
 /************ METRICS interface ********************/
@@ -337,6 +317,11 @@ int sf_worker::read_pusch_d(cf_t* pdsch_d)
 int sf_worker::read_pucch_d(cf_t* pdsch_d)
 {
   return cc_workers[0]->read_pucch_d(pdsch_d);
+}
+
+sf_worker::~sf_worker()
+{
+  srslte_softbuffer_tx_free(&temp_mbsfn_softbuffer);
 }
 
 } // namespace srsenb

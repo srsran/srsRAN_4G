@@ -59,6 +59,27 @@ cc_worker::cc_worker()
   reset();
 }
 
+cc_worker::~cc_worker()
+{
+  srslte_softbuffer_tx_free(&temp_mbsfn_softbuffer);
+  srslte_enb_dl_free(&enb_dl);
+  srslte_enb_ul_free(&enb_ul);
+
+  for (int p = 0; p < SRSLTE_MAX_PORTS; p++) {
+    if (signal_buffer_rx[p]) {
+      free(signal_buffer_rx[p]);
+    }
+    if (signal_buffer_tx[p]) {
+      free(signal_buffer_tx[p]);
+    }
+  }
+
+  // Delete all users
+  for (auto& it : ue_db) {
+    delete it.second;
+  }
+}
+
 #ifdef DEBUG_WRITE_FILE
 FILE* f;
 #endif
@@ -132,25 +153,6 @@ void cc_worker::init(phy_common* phy_, srslte::log* log_h_, uint32_t cc_idx_)
 #endif
 }
 
-void cc_worker::stop()
-{
-  srslte_softbuffer_tx_free(&temp_mbsfn_softbuffer);
-  srslte_enb_dl_free(&enb_dl);
-  srslte_enb_ul_free(&enb_ul);
-  for (int p = 0; p < SRSLTE_MAX_PORTS; p++) {
-    if (signal_buffer_rx[p]) {
-      free(signal_buffer_rx[p]);
-    }
-    if (signal_buffer_tx[p]) {
-      free(signal_buffer_tx[p]);
-    }
-  }
-  // Delete all users
-  for (auto& it : ue_db) {
-    delete it.second;
-  }
-}
-
 void cc_worker::reset()
 {
   initiated = false;
@@ -190,16 +192,19 @@ int cc_worker::add_rnti(uint16_t rnti, bool is_temporal)
     }
   }
 
+  mutex.lock();
   // Create user unless already exists
   if (!ue_db.count(rnti)) {
     ue_db[rnti] = new ue(rnti, phy);
   }
+  mutex.unlock();
 
   return SRSLTE_SUCCESS;
 }
 
 void cc_worker::rem_rnti(uint16_t rnti)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   if (ue_db.count(rnti)) {
 
     delete ue_db[rnti];
@@ -228,11 +233,14 @@ void cc_worker::rem_rnti(uint16_t rnti)
 
 uint32_t cc_worker::get_nof_rnti()
 {
+  std::lock_guard<std::mutex> lock(mutex);
   return ue_db.size();
 }
 
 void cc_worker::set_config_dedicated(uint16_t rnti, asn1::rrc::phys_cfg_ded_s* dedicated)
 {
+  std::lock_guard<std::mutex> lock(mutex);
+
   if (ue_db.count(rnti)) {
 
     if (dedicated->pusch_cfg_ded_present && dedicated->sched_request_cfg_present) {
@@ -311,6 +319,7 @@ void cc_worker::set_config_dedicated(uint16_t rnti, asn1::rrc::phys_cfg_ded_s* d
 
 void cc_worker::work_ul(srslte_ul_sf_cfg_t* ul_sf_cfg, stack_interface_phy_lte::ul_sched_t* ul_grants)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   ul_sf = *ul_sf_cfg;
   log_h->step(ul_sf.tti);
 
@@ -334,6 +343,7 @@ void cc_worker::work_dl(srslte_dl_sf_cfg_t*                  dl_sf_cfg,
                         stack_interface_phy_lte::ul_sched_t* ul_grants,
                         srslte_mbsfn_cfg_t*                  mbsfn_cfg)
 {
+  std::lock_guard<std::mutex> lock(mutex);
   dl_sf = *dl_sf_cfg;
 
   // Put base signals (references, PBCH, PCFICH and PSS/SSS) into the resource grid
@@ -711,6 +721,7 @@ int cc_worker::encode_pdsch(stack_interface_phy_lte::dl_sched_grant_t* grants, u
 /************ METRICS interface ********************/
 uint32_t cc_worker::get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS])
 {
+  std::lock_guard<std::mutex> lock(mutex);
   uint32_t cnt = 0;
   for (auto& iter : ue_db) {
     ue*      u    = iter.second;

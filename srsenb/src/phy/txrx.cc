@@ -38,14 +38,9 @@ using namespace std;
 
 namespace srsenb {
 
-txrx::txrx() : tx_worker_cnt(0), nof_workers(0), tti(0), thread("TXRX")
+txrx::txrx() : thread("TXRX")
 {
-  running = false;   
-  radio_h = NULL; 
-  log_h   = NULL; 
-  workers_pool = NULL; 
-  worker_com   = NULL;
-  prach = NULL;
+  /* Do nothing */
 }
 
 bool txrx::init(srslte::radio_interface_phy* radio_h_,
@@ -78,11 +73,12 @@ void txrx::stop()
 
 void txrx::run_thread()
 {
-  sf_worker*         worker                   = NULL;
-  cf_t *buffer[SRSLTE_MAX_PORTS] = {NULL};
-  srslte_timestamp_t rx_time = {}, tx_time = {};
-  uint32_t sf_len = SRSLTE_SF_LEN_PRB(worker_com->cell.nof_prb);
-  
+  sf_worker*         worker                   = nullptr;
+  cf_t*              buffer[SRSLTE_MAX_PORTS] = {};
+  srslte_timestamp_t rx_time                  = {};
+  srslte_timestamp_t tx_time                  = {};
+  uint32_t           sf_len                   = SRSLTE_SF_LEN_PRB(worker_com->cell.nof_prb);
+
   float samp_rate = srslte_sampling_freq_hz(worker_com->cell.nof_prb);
   log_h->console("Setting Sampling frequency %.2f MHz\n", (float) samp_rate/1000000);
 
