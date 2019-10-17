@@ -206,16 +206,16 @@ srslte::unique_byte_buffer_t gen_expected_pdu(const srslte::unique_byte_buffer_t
 
 // Helper function to generate vector of PDU from a vector of TX_NEXTs for generating expected pdus
 std::vector<pdcp_test_event_t> gen_expected_pdus_vector(const srslte::unique_byte_buffer_t& in_sdu,
-                                                                   const std::vector<uint32_t>&        tx_nexts,
-                                                                   uint8_t                             pdcp_sn_len,
-                                                                   pdcp_security_cfg                   sec_cfg,
-                                                                   srslte::byte_buffer_pool*           pool,
-                                                                   srslte::log*                        log)
+                                                        const std::vector<uint32_t>&        tx_nexts,
+                                                        uint8_t                             pdcp_sn_len,
+                                                        pdcp_security_cfg                   sec_cfg,
+                                                        srslte::byte_buffer_pool*           pool,
+                                                        srslte::log*                        log)
 {
   std::vector<pdcp_test_event_t> pdu_vec;
   for (uint32_t tx_next : tx_nexts) {
     pdcp_test_event_t event;
-    event.pkt = gen_expected_pdu(in_sdu, tx_next, pdcp_sn_len, sec_cfg, pool, log);
+    event.pkt   = gen_expected_pdu(in_sdu, tx_next, pdcp_sn_len, sec_cfg, pool, log);
     event.ticks = 0;
     pdu_vec.push_back(std::move(event));
   }

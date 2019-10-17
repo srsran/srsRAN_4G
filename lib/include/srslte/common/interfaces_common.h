@@ -130,7 +130,6 @@ public:
     rx_direction(rx_direction_),
     sn_len(sn_len_),
     t_reordering(t_reordering_)
-
   {
     hdr_len_bytes = ceil((float)sn_len / 8);
   }
