@@ -144,7 +144,7 @@ public:
   bool switch_on() final
   {
     proc_state_t proc_result = proc_state_t::on_going;
-    nas->start_attach_request(&proc_result);
+    nas->start_attach_request(&proc_result, srslte::establishment_cause_t::mo_data);
     while (proc_result == proc_state_t::on_going) {
       usleep(1000);
     }

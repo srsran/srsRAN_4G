@@ -167,7 +167,9 @@ void ue_stack_lte::stop_impl()
 bool ue_stack_lte::switch_on()
 {
   if (running) {
-    pending_tasks.try_push(ue_queue_id, task_t{[this](task_t*) { nas.start_attach_request(nullptr); }});
+    pending_tasks.try_push(ue_queue_id, task_t{[this](task_t*) {
+                             nas.start_attach_request(nullptr, srslte::establishment_cause_t::mo_data);
+                           }});
     return true;
   }
   return false;

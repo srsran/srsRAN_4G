@@ -307,7 +307,7 @@ void nas::timer_expired(uint32_t timeout_id)
     timers->get(t3411)->run();
   } else if (timeout_id == t3411) {
     nas_log->info("Timer T3411 expired: trying to attach again\n");
-    start_attach_request(nullptr);
+    start_attach_request(nullptr, srslte::establishment_cause_t::mo_sig);
   } else {
     nas_log->error("Timeout from unknown timer id %d\n", timeout_id);
   }
@@ -321,7 +321,7 @@ void nas::timer_expired(uint32_t timeout_id)
  * The function returns true if the UE could attach correctly or false in case of error or timeout during attachment.
  *
  */
-void nas::start_attach_request(srslte::proc_state_t* result)
+void nas::start_attach_request(srslte::proc_state_t* result, srslte::establishment_cause_t cause_)
 {
   nas_log->info("Attach Request\n");
   switch (state) {
@@ -382,7 +382,7 @@ void nas::start_attach_request(srslte::proc_state_t* result)
         }
       } else {
         nas_log->info("NAS is already registered but RRC disconnected. Connecting now...\n");
-        if (not rrc_connector.launch(this, srslte::establishment_cause_t ::mo_data, nullptr)) {
+        if (not rrc_connector.launch(this, cause_, nullptr)) {
           nas_log->error("Cannot initiate concurrent rrc connection procedures\n");
           if (result != nullptr) {
             *result = proc_state_t::error;
