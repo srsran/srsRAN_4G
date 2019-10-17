@@ -97,6 +97,41 @@ private:
   uint32_t                                       rar_aggr_level = 2;
 };
 
+class sched::carrier_sched
+{
+public:
+  explicit carrier_sched(sched* sched_);
+
+  void                       init();
+  void                       reset();
+  void                       cell_cfg();
+  void                       set_metric(sched::metric_dl* dl_metric_, sched::metric_ul* ul_metric_);
+  void                       set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs);
+  sched::tti_sched_result_t* generate_tti_result(uint32_t tti_rx);
+
+  // private:
+  void generate_phich(tti_sched_result_t* tti_sched);
+  //! Compute DL scheduler result for given TTI
+  int generate_dl_sched(tti_sched_result_t* tti_result);
+  //! Compute UL scheduler result for given TTI
+  int generate_ul_sched(tti_sched_result_t* tti_sched);
+
+  // args
+  sched*       sched_ptr = nullptr;
+  srslte::log* log_h     = nullptr;
+  cell_cfg_t*  cfg       = nullptr;
+  metric_dl*   dl_metric = nullptr;
+  metric_ul*   ul_metric = nullptr;
+
+  // TTI result storage and management
+  std::array<tti_sched_result_t, 10> tti_scheds;
+  tti_sched_result_t*                get_tti_sched(uint32_t tti_rx) { return &tti_scheds[tti_rx % tti_scheds.size()]; }
+  std::vector<uint8_t>               tti_dl_mask; ///< Some TTIs may be forbidden for DL sched due to MBMS
+
+  std::unique_ptr<sched::bc_sched_t> bc_sched;
+  std::unique_ptr<sched::ra_sched_t> ra_sched;
+};
+
 } // namespace srsenb
 
 #endif // SRSLTE_SCHEDULER_CTRL_H

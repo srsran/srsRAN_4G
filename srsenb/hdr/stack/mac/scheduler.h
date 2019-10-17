@@ -48,11 +48,6 @@ inline bool is_in_tti_interval(uint32_t tti, uint32_t tti1, uint32_t tti2)
   return tti >= tti1 or tti <= tti2;
 }
 
-inline uint32_t tti_subtract(uint32_t tti1, uint32_t tti2)
-{
-  return (tti1 + 10240 - tti2) % 10240;
-}
-
 } // namespace sched_utils
 
 /* Caution: User addition (ue_cfg) and removal (ue_rem) are not thread-safe
@@ -152,8 +147,6 @@ public:
   static uint32_t aggr_level(uint32_t aggr_idx) { return 1u << aggr_idx; }
 
 protected:
-  metric_dl*         dl_metric;
-  metric_ul*         ul_metric;
   srslte::log*       log_h;
   rrc_interface_mac* rrc;
 
@@ -166,8 +159,9 @@ protected:
   // This is for computing DCI locations
   srslte_regs_t regs;
 
-  class bc_sched_t;
+  class carrier_sched;
   class ra_sched_t;
+  class bc_sched_t;
 
   class tti_sched_result_t : public dl_tti_sched_t, public ul_tti_sched_t
   {
@@ -271,16 +265,6 @@ protected:
     std::vector<ul_alloc_t>  ul_data_allocs;
   };
 
-  std::array<tti_sched_result_t, 10> tti_scheds;
-  tti_sched_result_t*                get_tti_sched(uint32_t tti_rx) { return &tti_scheds[tti_rx % tti_scheds.size()]; }
-  std::vector<uint8_t>               tti_dl_mask;
-
-  tti_sched_result_t* new_tti(uint32_t tti_rx);
-  void                generate_phich(tti_sched_result_t* tti_sched);
-  int                 generate_dl_sched(tti_sched_result_t* tti_sched);
-  int                 generate_ul_sched(tti_sched_result_t* tti_sched);
-  void                dl_sched_data(tti_sched_result_t* tti_sched);
-
   // Helper methods
   template <typename Func>
   int ue_db_access(uint16_t rnti, Func);
@@ -297,8 +281,8 @@ protected:
   prbmask_t prach_mask;
   prbmask_t pucch_mask;
 
-  std::unique_ptr<bc_sched_t> bc_sched;
-  std::unique_ptr<ra_sched_t> rar_sched;
+  // independent schedulers for each carrier
+  std::vector<carrier_sched> carrier_schedulers;
 
   std::array<uint32_t, 10> pdsch_re;
   uint32_t                 current_tti;

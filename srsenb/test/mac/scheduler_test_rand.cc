@@ -281,7 +281,7 @@ void sched_tester::new_test_tti(uint32_t tti_)
   } else {
     tti_data.ul_sf_idx = (tti_data.tti_tx_ul + 10240 - FDD_HARQ_DELAY_MS) % 10;
   }
-  tti_data.ul_pending_msg3 = rar_sched->find_pending_msg3(tti_data.tti_tx_ul);
+  tti_data.ul_pending_msg3 = carrier_schedulers[0].ra_sched->find_pending_msg3(tti_data.tti_tx_ul);
   tti_data.current_cfi     = sched_cfg.nof_ctrl_symbols;
   tti_data.used_cce.resize(srslte_regs_pdcch_ncce(&regs, tti_data.current_cfi));
   tti_data.used_cce.reset();
@@ -494,7 +494,7 @@ void sched_tester::assert_no_empty_allocs()
  */
 void sched_tester::test_tti_result()
 {
-  tti_sched_result_t* tti_sched = get_tti_sched(tti_data.tti_rx);
+  tti_sched_result_t* tti_sched = carrier_schedulers[0].get_tti_sched(tti_data.tti_rx);
 
   // Helper Function: checks if there is any collision. If not, fills the mask
   auto try_cce_fill = [&](const srslte_dci_location_t& dci_loc, const char* ch) {
@@ -546,7 +546,7 @@ void sched_tester::test_tti_result()
     for (uint32_t j = 0; j < rar.nof_grants; ++j) {
       const auto&                       msg3_grant = rar.msg3_grant[j];
       const ra_sched_t::pending_msg3_t& p =
-          rar_sched->find_pending_msg3(tti_sched->get_tti_tx_dl() + MSG3_DELAY_MS + TX_DELAY);
+          carrier_schedulers[0].ra_sched->find_pending_msg3(tti_sched->get_tti_tx_dl() + MSG3_DELAY_MS + TX_DELAY);
       CondError(not p.enabled, "Pending Msg3 should have been set\n");
       uint32_t rba = srslte_ra_type2_to_riv(p.L, p.n_prb, cfg.cell.nof_prb);
       CondError(msg3_grant.grant.rba != rba, "Pending Msg3 RBA is not valid\n");
@@ -554,7 +554,7 @@ void sched_tester::test_tti_result()
   }
 
   /* verify if sched_result "used_cce" coincide with sched "used_cce" */
-  auto* tti_alloc = get_tti_sched(tti_data.tti_rx);
+  auto* tti_alloc = carrier_schedulers[0].get_tti_sched(tti_data.tti_rx);
   if (tti_data.used_cce != tti_alloc->get_pdcch_mask()) {
     std::string mask_str = tti_alloc->get_pdcch_mask().to_string();
     TestError("[TESTER] The used_cce do not match: (%s!=%s)\n", mask_str.c_str(), tti_data.used_cce.to_hex().c_str());
@@ -751,7 +751,7 @@ void sched_tester::test_sibs()
 
 void sched_tester::test_collisions()
 {
-  tti_sched_result_t* tti_sched = get_tti_sched(tti_data.tti_rx);
+  tti_sched_result_t* tti_sched = carrier_schedulers[0].get_tti_sched(tti_data.tti_rx);
 
   srsenb::prbmask_t ul_allocs(cfg.cell.nof_prb);
 
@@ -892,7 +892,7 @@ void sched_tester::test_collisions()
       rbgmask.reset(i);
     }
   }
-  if (rbgmask != get_tti_sched(tti_data.tti_rx)->get_dl_mask()) {
+  if (rbgmask != carrier_schedulers[0].get_tti_sched(tti_data.tti_rx)->get_dl_mask()) {
     TestError("[TESTER] The UL PRB mask and the scheduler result UL mask are not consistent\n");
   }
 }

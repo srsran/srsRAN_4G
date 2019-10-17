@@ -264,4 +264,182 @@ const sched::ra_sched_t::pending_msg3_t& sched::ra_sched_t::find_pending_msg3(ui
   return pending_msg3[pending_tti];
 }
 
+/*******************************************************
+ *                 Carrier scheduling
+ *******************************************************/
+
+sched::carrier_sched::carrier_sched(sched* sched_) : sched_ptr(sched_), cfg(&sched_->cfg) {}
+
+void sched::carrier_sched::init()
+{
+  log_h = sched_ptr->log_h;
+  tti_dl_mask.resize(10, 0);
+
+  // FIXME check cfg
+  bc_sched.reset(new bc_sched_t{cfg});
+  ra_sched.reset(new ra_sched_t{cfg});
+  bc_sched->init(sched_ptr->rrc);
+  ra_sched->init(log_h, sched_ptr->ue_db);
+}
+
+void sched::carrier_sched::reset()
+{
+  std::lock_guard<std::mutex> lock(sched_ptr->sched_mutex);
+  if (ra_sched != nullptr) {
+    ra_sched->reset();
+  }
+  if (bc_sched != nullptr) {
+    bc_sched->reset();
+  }
+}
+
+void sched::carrier_sched::cell_cfg()
+{
+  // sched::cfg is now fully set
+
+  // Initiate the tti_scheduler for each TTI
+  for (tti_sched_result_t& tti_sched : tti_scheds) {
+    tti_sched.init(sched_ptr);
+  }
+}
+
+void sched::carrier_sched::set_metric(sched::metric_dl* dl_metric_, sched::metric_ul* ul_metric_)
+{
+  dl_metric = dl_metric_;
+  ul_metric = ul_metric_;
+  dl_metric->set_log(log_h);
+  ul_metric->set_log(log_h);
+}
+
+void sched::carrier_sched::set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs)
+{
+  tti_dl_mask.assign(tti_mask, tti_mask + nof_sfs);
+}
+
+sched::tti_sched_result_t* sched::carrier_sched::generate_tti_result(uint32_t tti_rx)
+{
+  tti_sched_result_t* tti_sched = get_tti_sched(tti_rx);
+
+  // if it is the first time tti is run, reset vars
+  if (tti_rx != tti_sched->get_tti_rx()) {
+    uint32_t start_cfi = sched_ptr->sched_cfg.nof_ctrl_symbols - ((cfg->cell.nof_prb >= 10) ? 0 : 1);
+    tti_sched->new_tti(tti_rx, start_cfi);
+
+    // Protects access to pending_rar[], pending_msg3[], pending_sibs[], rlc buffers
+    std::lock_guard<std::mutex> lock(sched_ptr->sched_mutex);
+    pthread_rwlock_rdlock(&sched_ptr->rwlock);
+
+    /* Schedule PHICH */
+    generate_phich(tti_sched);
+
+    /* Schedule DL */
+    if (tti_dl_mask[tti_sched->get_tti_tx_dl() % tti_dl_mask.size()] == 0) {
+      generate_dl_sched(tti_sched);
+    }
+
+    /* Schedule UL */
+    generate_ul_sched(tti_sched);
+
+    /* Generate DCI */
+    tti_sched->generate_dcis();
+
+    /* reset PIDs with pending data or blocked */
+    for (auto& user : sched_ptr->ue_db) {
+      user.second.reset_pending_pids(tti_rx);
+    }
+
+    pthread_rwlock_unlock(&sched_ptr->rwlock);
+  }
+
+  return tti_sched;
+}
+
+void sched::carrier_sched::generate_phich(tti_sched_result_t* tti_sched)
+{
+  // Allocate user PHICHs
+  uint32_t nof_phich_elems = 0;
+  for (auto& ue_pair : sched_ptr->ue_db) {
+    sched_ue& user = ue_pair.second;
+    uint16_t  rnti = ue_pair.first;
+
+    //    user.has_pucch = false; // FIXME: What is this for?
+
+    ul_harq_proc* h = user.get_ul_harq(tti_sched->get_tti_rx());
+
+    /* Indicate PHICH acknowledgment if needed */
+    if (h->has_pending_ack()) {
+      tti_sched->ul_sched_result.phich[nof_phich_elems].phich =
+          h->get_pending_ack() ? ul_sched_phich_t::ACK : ul_sched_phich_t::NACK;
+      tti_sched->ul_sched_result.phich[nof_phich_elems].rnti = rnti;
+      log_h->debug("SCHED: Allocated PHICH for rnti=0x%x, value=%d\n",
+                   rnti,
+                   tti_sched->ul_sched_result.phich[nof_phich_elems].phich);
+      nof_phich_elems++;
+    }
+  }
+  tti_sched->ul_sched_result.nof_phich_elems = nof_phich_elems;
+}
+
+int sched::carrier_sched::generate_dl_sched(tti_sched_result_t* tti_result)
+{
+  /* Schedule Broadcast data (SIB and paging) */
+  if (bc_sched != nullptr) {
+    bc_sched->dl_sched(tti_result);
+  }
+
+  /* Schedule RAR */
+  ra_sched->dl_sched(tti_result);
+
+  /* Schedule pending RLC data */
+  // NOTE: In case of 6 PRBs, do not transmit if there is going to be a PRACH in the UL to avoid collisions
+  if (cfg->cell.nof_prb == 6) {
+    uint32_t tti_rx_ack   = TTI_RX_ACK(tti_result->get_tti_rx());
+    bool     msg3_enabled = false;
+    if (ra_sched != nullptr and ra_sched->find_pending_msg3(tti_rx_ack).enabled) {
+      msg3_enabled = true;
+    }
+    if (srslte_prach_tti_opportunity_config_fdd(cfg->prach_config, tti_rx_ack, -1) or msg3_enabled) {
+      tti_result->get_dl_mask().fill(0, tti_result->get_dl_mask().size());
+    }
+  }
+
+  // call scheduler metric to fill RB grid
+  dl_metric->sched_users(sched_ptr->ue_db, tti_result);
+
+  return LIBLTE_SUCCESS;
+}
+
+int sched::carrier_sched::generate_ul_sched(srsenb::sched::tti_sched_result_t* tti_result)
+{
+  uint32_t   tti_tx_ul = tti_result->get_tti_tx_ul();
+  prbmask_t& ul_mask   = tti_result->get_ul_mask();
+
+  /* reserve PRBs for PRACH */
+  if (srslte_prach_tti_opportunity_config_fdd(cfg->prach_config, tti_tx_ul, -1)) {
+    ul_mask = sched_ptr->prach_mask;
+    log_h->debug("SCHED: Allocated PRACH RBs. Mask: 0x%s\n", sched_ptr->prach_mask.to_hex().c_str());
+  }
+
+  /* Allocate Msg3 if there's a pending RAR */
+  ra_sched->ul_sched(tti_result);
+
+  /* reserve PRBs for PUCCH */
+  if (cfg->cell.nof_prb != 6 and (ul_mask & sched_ptr->pucch_mask).any()) {
+    log_h->error("There was a collision with the PUCCH. current mask=0x%s, pucch_mask=0x%s\n",
+                 ul_mask.to_hex().c_str(),
+                 sched_ptr->pucch_mask.to_hex().c_str());
+  }
+  ul_mask |= sched_ptr->pucch_mask;
+
+  /* Call scheduler for UL data */
+  ul_metric->sched_users(sched_ptr->ue_db, tti_result);
+
+  /* Update pending data counters after this TTI */
+  for (auto& user : sched_ptr->ue_db) {
+    user.second.get_ul_harq(tti_tx_ul)->reset_pending_data();
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
 } // namespace srsenb

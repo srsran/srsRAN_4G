@@ -34,6 +34,20 @@
 
 namespace srsenb {
 
+namespace sched_utils {
+
+uint32_t tti_subtract(uint32_t tti1, uint32_t tti2)
+{
+  return (tti1 + 10240 - tti2) % 10240;
+}
+
+uint32_t max_tti(uint32_t tti1, uint32_t tti2)
+{
+  return ((tti1 - tti2) > 10240 / 2) ? SRSLTE_MIN(tti1, tti2) : SRSLTE_MAX(tti1, tti2);
+}
+
+} // namespace sched_utils
+
 /*******************************************************
  *          TTI resource Scheduling Methods
  *******************************************************/
@@ -356,7 +370,7 @@ void sched::tti_sched_result_t::set_rar_sched_result(const pdcch_grid_t::alloc_r
     // Print RAR allocation result
     for (uint32_t i = 0; i < rar->nof_grants; ++i) {
       const auto& msg3_grant    = rar->msg3_grant[i];
-      uint16_t    expected_rnti = parent->rar_sched->find_pending_msg3(get_tti_tx_dl() + MSG3_DELAY_MS + TX_DELAY).rnti;
+      uint16_t    expected_rnti = parent->carrier_schedulers[0].ra_sched->find_pending_msg3(get_tti_tx_dl() + MSG3_DELAY_MS + TX_DELAY).rnti;
       log_h->info("SCHED: RAR, temp_crnti=0x%x, ra-rnti=%d, rbgs=(%d,%d), dci=(%d,%d), rar_grant_rba=%d, "
                   "rar_grant_mcs=%d\n",
                   expected_rnti,
@@ -569,12 +583,10 @@ int sched::tti_sched_result_t::generate_format1a(
  * Initialization and sched configuration functions
  *
  *******************************************************/
-sched::sched() : P(0), nof_rbg(0), bc_sched(new bc_sched_t{&cfg}), rar_sched(new ra_sched_t{&cfg})
+sched::sched() : P(0), nof_rbg(0)
 {
   current_tti = 0;
   log_h       = nullptr;
-  dl_metric   = nullptr;
-  ul_metric   = nullptr;
   rrc         = nullptr;
 
   bzero(&cfg, sizeof(cfg));
@@ -582,13 +594,15 @@ sched::sched() : P(0), nof_rbg(0), bc_sched(new bc_sched_t{&cfg}), rar_sched(new
   bzero(&sched_cfg, sizeof(sched_cfg));
   bzero(&common_locations, sizeof(common_locations));
   bzero(&pdsch_re, sizeof(pdsch_re));
-  tti_dl_mask.resize(10, 0);
 
   for (int i = 0; i < 3; i++) {
     bzero(rar_locations[i], sizeof(sched_ue::sched_dci_cce_t) * 10);
   }
 
   pthread_rwlock_init(&rwlock, nullptr);
+
+  // Initialize Independent carrier schedulers
+  carrier_schedulers.emplace_back(this);
 
   reset();
 }
@@ -612,18 +626,17 @@ void sched::init(rrc_interface_mac* rrc_, srslte::log* log)
   log_h                      = log;
   rrc                        = rrc_;
 
-  bc_sched->init(rrc);
-  rar_sched->init(log_h, ue_db);
+  for (carrier_sched& c : carrier_schedulers) {
+    c.init();
+  }
   reset();
 }
 
 int sched::reset()
 {
   configured = false;
-  {
-    std::lock_guard<std::mutex> lock(sched_mutex);
-    rar_sched->reset();
-    bc_sched->reset();
+  for (carrier_sched& c : carrier_schedulers) {
+    c.reset();
   }
   pthread_rwlock_wrlock(&rwlock);
   ue_db.clear();
@@ -640,10 +653,9 @@ void sched::set_sched_cfg(sched_interface::sched_args_t* sched_cfg_)
 
 void sched::set_metric(sched::metric_dl* dl_metric_, sched::metric_ul* ul_metric_)
 {
-  dl_metric = dl_metric_;
-  ul_metric = ul_metric_;
-  dl_metric->set_log(log_h);
-  ul_metric->set_log(log_h);
+  for (carrier_sched& c : carrier_schedulers) {
+    c.set_metric(dl_metric_, ul_metric_);
+  }
 }
 
 int sched::cell_cfg(sched_interface::cell_cfg_t* cell_cfg)
@@ -685,8 +697,8 @@ int sched::cell_cfg(sched_interface::cell_cfg_t* cell_cfg)
   }
 
   // Initiate the tti_scheduler for each TTI
-  for (tti_sched_result_t& tti_sched : tti_scheds) {
-    tti_sched.init(this);
+  for (carrier_sched& c : carrier_schedulers) {
+    c.cell_cfg();
   }
   configured = true;
 
@@ -761,6 +773,7 @@ void sched::ue_needs_ta_cmd(uint16_t rnti, uint32_t nof_ta_cmd) {
 
 void sched::phy_config_enabled(uint16_t rnti, bool enabled)
 {
+  // FIXME: Check if correct use of current_tti
   ue_db_access(rnti, [this, enabled](sched_ue& ue) { ue.phy_config_enabled(current_tti, enabled); });
 }
 
@@ -776,6 +789,7 @@ int sched::bearer_ue_rem(uint16_t rnti, uint32_t lc_id)
 
 uint32_t sched::get_dl_buffer(uint16_t rnti)
 {
+  // FIXME: Check if correct use of current_tti
   uint32_t ret = 0;
   ue_db_access(rnti, [this, &ret](sched_ue& ue) { ret = ue.get_pending_dl_new_data(current_tti); });
   return ret;
@@ -783,6 +797,7 @@ uint32_t sched::get_dl_buffer(uint16_t rnti)
 
 uint32_t sched::get_ul_buffer(uint16_t rnti)
 {
+  // FIXME: Check if correct use of current_tti
   uint32_t ret = 0;
   ue_db_access(rnti, [this, &ret](sched_ue& ue) { ret = ue.get_pending_ul_new_data(current_tti); });
   return ret;
@@ -834,7 +849,7 @@ int sched::dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value)
 int sched::dl_rach_info(dl_sched_rar_info_t rar_info)
 {
   std::lock_guard<std::mutex> lock(sched_mutex);
-  return rar_sched->dl_rach_info(rar_info);
+  return carrier_schedulers[0].ra_sched->dl_rach_info(rar_info);
 }
 
 int sched::ul_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi, uint32_t ul_ch_code)
@@ -864,7 +879,7 @@ int sched::ul_sr_info(uint32_t tti, uint16_t rnti)
 
 void sched::set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs)
 {
-  tti_dl_mask.assign(tti_mask, tti_mask + nof_sfs);
+  carrier_schedulers[0].set_dl_tti_mask(tti_mask, nof_sfs);
 }
 
 void sched::tpc_inc(uint16_t rnti)
@@ -883,137 +898,6 @@ void sched::tpc_dec(uint16_t rnti)
  *
  *******************************************************/
 
-sched::tti_sched_result_t* sched::new_tti(uint32_t tti_rx)
-{
-  tti_sched_result_t* tti_sched = get_tti_sched(tti_rx);
-
-  // if it is the first time tti is run, reset vars
-  if (tti_rx != tti_sched->get_tti_rx()) {
-    uint32_t start_cfi = sched_cfg.nof_ctrl_symbols;
-    tti_sched->new_tti(tti_rx, start_cfi);
-
-    // Protects access to pending_rar[], pending_msg3[], pending_sibs[], rlc buffers
-    std::lock_guard<std::mutex> lock(sched_mutex);
-    pthread_rwlock_rdlock(&rwlock);
-
-    /* Schedule PHICH */
-    generate_phich(tti_sched);
-
-    /* Schedule DL */
-    if (tti_dl_mask[tti_sched->get_tti_tx_dl() % tti_dl_mask.size()] == 0) {
-      generate_dl_sched(tti_sched);
-    }
-
-    /* Schedule UL */
-    generate_ul_sched(tti_sched);
-
-    /* Generate DCI */
-    tti_sched->generate_dcis();
-
-    /* reset PIDs with pending data or blocked */
-    for (auto& user : ue_db) {
-      user.second.reset_pending_pids(tti_rx);
-    }
-
-    pthread_rwlock_unlock(&rwlock);
-  }
-
-  return tti_sched;
-}
-
-void sched::dl_sched_data(tti_sched_result_t* tti_sched)
-{
-  // NOTE: In case of 6 PRBs, do not transmit if there is going to be a PRACH in the UL to avoid collisions
-  uint32_t tti_rx_ack   = TTI_RX_ACK(tti_sched->get_tti_rx());
-  bool     msg3_enabled = rar_sched->find_pending_msg3(tti_rx_ack).enabled;
-  if (cfg.cell.nof_prb == 6 and
-      (srslte_prach_tti_opportunity_config_fdd(cfg.prach_config, tti_rx_ack, -1) or msg3_enabled)) {
-    tti_sched->get_dl_mask().fill(0, tti_sched->get_dl_mask().size());
-  }
-
-  // call scheduler metric to fill RB grid
-  dl_metric->sched_users(ue_db, tti_sched);
-}
-
-// Compute DL scheduler result
-int sched::generate_dl_sched(tti_sched_result_t* tti_sched)
-{
-  /* Initialize variables */
-  current_tti = tti_sched->get_tti_tx_dl();
-
-  /* Schedule Broadcast data (SIB and paging) */
-  bc_sched->dl_sched(tti_sched);
-
-  /* Schedule RAR */
-  rar_sched->dl_sched(tti_sched);
-
-  /* Schedule pending RLC data */
-  dl_sched_data(tti_sched);
-
-  return 0;
-}
-
-void sched::generate_phich(tti_sched_result_t* tti_sched)
-{
-  // Allocate user PHICHs
-  uint32_t nof_phich_elems = 0;
-  for (auto& ue_pair : ue_db) {
-    sched_ue& user = ue_pair.second;
-    uint16_t  rnti = ue_pair.first;
-
-    //    user.has_pucch = false; // FIXME: What is this for?
-
-    ul_harq_proc* h = user.get_ul_harq(tti_sched->get_tti_rx());
-
-    /* Indicate PHICH acknowledgment if needed */
-    if (h->has_pending_ack()) {
-      tti_sched->ul_sched_result.phich[nof_phich_elems].phich =
-          h->get_pending_ack() ? ul_sched_phich_t::ACK : ul_sched_phich_t::NACK;
-      tti_sched->ul_sched_result.phich[nof_phich_elems].rnti = rnti;
-      log_h->debug("SCHED: Allocated PHICH for rnti=0x%x, value=%d\n",
-                   rnti,
-                   tti_sched->ul_sched_result.phich[nof_phich_elems].phich == ul_sched_phich_t::ACK);
-      nof_phich_elems++;
-    }
-  }
-  tti_sched->ul_sched_result.nof_phich_elems = nof_phich_elems;
-}
-
-// Compute UL scheduler result
-int sched::generate_ul_sched(tti_sched_result_t* tti_sched)
-{
-  /* Initialize variables */
-  current_tti        = tti_sched->get_tti_tx_ul();
-  prbmask_t& ul_mask = tti_sched->get_ul_mask();
-
-  // reserve PRBs for PRACH
-  if (srslte_prach_tti_opportunity_config_fdd(cfg.prach_config, tti_sched->get_tti_tx_ul(), -1)) {
-    ul_mask = prach_mask;
-    log_h->debug("SCHED: Allocated PRACH RBs. Mask: 0x%s\n", prach_mask.to_hex().c_str());
-  }
-
-  // Update available allocation if there's a pending RAR
-  rar_sched->ul_sched(tti_sched);
-
-  // reserve PRBs for PUCCH
-  if (cfg.cell.nof_prb != 6 and (ul_mask & pucch_mask).any()) {
-    log_h->error("There was a collision with the PUCCH. current mask=0x%s, pucch_mask=0x%s\n",
-                 ul_mask.to_hex().c_str(),
-                 pucch_mask.to_hex().c_str());
-  }
-  ul_mask |= pucch_mask;
-
-  // Call scheduler for UL data
-  ul_metric->sched_users(ue_db, tti_sched);
-
-  // Update pending data counters after this TTI
-  for (auto& user : ue_db) {
-    user.second.get_ul_harq(tti_sched->get_tti_tx_ul())->reset_pending_data();
-  }
-
-  return SRSLTE_SUCCESS;
-}
-
 // Downlink Scheduler API
 int sched::dl_sched(uint32_t tti, sched_interface::dl_sched_res_t* sched_result)
 {
@@ -1022,9 +906,10 @@ int sched::dl_sched(uint32_t tti, sched_interface::dl_sched_res_t* sched_result)
   }
 
   uint32_t tti_rx = sched_utils::tti_subtract(tti, TX_DELAY);
+  current_tti     = sched_utils::max_tti(current_tti, tti_rx);
 
   // Compute scheduling Result for tti_rx
-  tti_sched_result_t* tti_sched = new_tti(tti_rx);
+  tti_sched_result_t* tti_sched = carrier_schedulers[0].generate_tti_result(tti_rx);
 
   // copy result
   *sched_result = tti_sched->dl_sched_result;
@@ -1041,7 +926,7 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
 
   // Compute scheduling Result for tti_rx
   uint32_t            tti_rx    = sched_utils::tti_subtract(tti, 2 * FDD_HARQ_DELAY_MS);
-  tti_sched_result_t* tti_sched = new_tti(tti_rx);
+  tti_sched_result_t* tti_sched = carrier_schedulers[0].generate_tti_result(tti_rx);
 
   // Copy results
   *sched_result = tti_sched->ul_sched_result;
