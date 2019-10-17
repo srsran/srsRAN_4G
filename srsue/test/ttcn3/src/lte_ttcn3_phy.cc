@@ -47,7 +47,7 @@ int lte_ttcn3_phy::init(const phy_args_t& args_, stack_interface_phy_lte* stack_
 // ue_phy_base interface
 int lte_ttcn3_phy::init(const phy_args_t& args_)
 {
-  log.init("PHY ", logger);
+  log.init("PHY ", logger, true);
   log.set_level(args_.log.phy_level);
 
   return SRSLTE_SUCCESS;
@@ -130,15 +130,8 @@ int lte_ttcn3_phy::meas_stop(uint32_t earfcn, int pci)
   return 0;
 };
 
-
-/* Cell search and selection procedures */
-phy_interface_rrc_lte::cell_search_ret_t lte_ttcn3_phy::cell_search(phy_cell_t* found_cell)
+void lte_ttcn3_phy::select_pcell()
 {
-  std::lock_guard<std::mutex> lock(mutex);
-
-  log.info("Running cell search in PHY\n");
-  cell_search_ret_t ret = {};
-
   // select strongest cell as PCell
   float max_power = -145;
   int   max_index = 0;
@@ -148,11 +141,22 @@ phy_interface_rrc_lte::cell_search_ret_t lte_ttcn3_phy::cell_search(phy_cell_t* 
       max_index = i;
     }
   }
+  pcell = cells[max_index];
+  log.info("Setting PCell to EARFCN=%d CellId=%d with RS power=%.2f\n", pcell.earfcn, pcell.info.id, pcell.power);
+}
 
-  // Consider cell found if above -100dBm
-  if (max_power >= MIN_IN_SYNC_POWER) {
-    pcell = cells[max_index];
-    log.info("Setting PCell to EARFCN=%d CellId=%d with RS power=%.2f\n", pcell.earfcn, pcell.info.id, max_power);
+/* Cell search and selection procedures */
+phy_interface_rrc_lte::cell_search_ret_t lte_ttcn3_phy::cell_search(phy_cell_t* found_cell)
+{
+  std::lock_guard<std::mutex> lock(mutex);
+
+  select_pcell();
+
+  log.info("Running cell search in PHY\n");
+  cell_search_ret_t ret = {};
+
+  // Consider cell found if Pcell power >= -100dBm
+  if (pcell.power >= MIN_IN_SYNC_POWER) {
     if (found_cell) {
       found_cell->earfcn = pcell.earfcn;
       found_cell->cell   = pcell.info;
@@ -166,15 +170,22 @@ phy_interface_rrc_lte::cell_search_ret_t lte_ttcn3_phy::cell_search(phy_cell_t* 
   return ret;
 };
 
-bool lte_ttcn3_phy::cell_select(phy_cell_t* cell)
+bool lte_ttcn3_phy::cell_select(phy_cell_t* rrc_cell)
 {
-  log.debug("%s not implemented.\n", __FUNCTION__);
-  return true;
+  // try to find RRC cell in current cell map
+  for (auto& cell : cells) {
+    if (cell.info.id == rrc_cell->cell.id) {
+      pcell = cell;
+      return true;
+    }
+  }
+
+  return false;
 };
 
 bool lte_ttcn3_phy::cell_is_camping()
 {
-  return true;
+  return (pcell.power >= MIN_IN_SYNC_POWER);
 };
 
 void lte_ttcn3_phy::reset()
@@ -205,14 +216,11 @@ std::string lte_ttcn3_phy::get_type()
 phy_interface_mac_lte::prach_info_t lte_ttcn3_phy::prach_get_info()
 {
   std::lock_guard<std::mutex> lock(mutex);
-
   prach_info_t info = {};
   if (prach_tti_tx != -1) {
     info.is_transmitted = true;
     info.tti_ra         = prach_tti_tx;
   }
-
-  log.info("Return prach_tti_tx=%d\n", prach_tti_tx);
   return info;
 }
 

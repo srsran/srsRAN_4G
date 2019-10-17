@@ -151,6 +151,11 @@ private:
     memcpy(pdu->msg, payload, pdu->N_bytes);
 
     syssim->add_ccch_pdu(std::move(pdu));
+
+    // FIXME: is there a better way to check for RRCConnectionReestablishment?
+    if (ccch_is_rrc_reestablishment(document)) {
+      syssim->reestablish_bearer(1);
+    }
   }
 
   // Todo: move to SYSSIM
@@ -164,6 +169,19 @@ private:
     memcpy(pdu->msg, payload, pdu->N_bytes);
 
     syssim->add_dcch_pdu(lcid, std::move(pdu));
+  }
+
+  bool ccch_is_rrc_reestablishment(Document& document)
+  {
+    const Value& dcch = document["RrcPdu"]["Ccch"];
+    if (dcch.HasMember("message_")) {
+      if (dcch["message_"].HasMember("c1")) {
+        if (dcch["message_"]["c1"].HasMember("rrcConnectionReestablishment")) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   ss_srb_interface* syssim = nullptr;

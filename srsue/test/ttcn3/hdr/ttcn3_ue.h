@@ -100,7 +100,13 @@ public:
 
   void stop()
   {
-    // nothing to do here
+    if (stack) {
+      stack->stop();
+    }
+
+    if (phy) {
+      phy->stop();
+    }
   }
 
   bool switch_on() { return stack->switch_on(); }

@@ -103,8 +103,8 @@ private:
         sib->N_bytes = tb_len;
 
         // Push to main component
-        log->info_hex(sib->msg, sib->N_bytes, "Received BCCH DL-SCH\n");
-        syssim->add_bcch_pdu(std::move(sib));
+        log->info_hex(sib->msg, sib->N_bytes, "Received BCCH DL-SCH for %s\n", cell_name.GetString());
+        syssim->add_bcch_dlsch_pdu(cell_name.GetString(), std::move(sib));
 
         consumed_bytes = payload_ptr - payload;
       }

@@ -148,7 +148,7 @@ public:
     rlc.reset();
     pdcp.reset();
     cells.clear();
-    pcell = {};
+    pcell_idx = -1;
   }
 
   // Called from UT before starting testcase
@@ -198,20 +198,22 @@ public:
     }
   }
 
+  // Called from UT to terminate the testcase
   void tc_end()
   {
+    // ask periodic thread to stop before locking mutex
+    running = false;
+
     std::lock_guard<std::mutex> lock(mutex);
 
-    if (ue != NULL) {
-      // ask periodic thread to stop
-      running = false;
-
+    if (ue != nullptr) {
       log.info("Deinitializing UE ID=%d\n", run_id);
       log.console("Deinitializing UE ID=%d\n", run_id);
       ue->stop();
 
       // wait until SS main thread has terminated before resetting UE
       wait_thread_finish();
+
       ue.reset();
 
       // Reset SS' RLC and PDCP
@@ -243,17 +245,16 @@ public:
   // Called from PHY but always from the SS main thread with lock being hold
   void prach_indication(uint32_t preamble_index_, const uint32_t& cell_id)
   {
+    // verify that UE intends to send PRACH on current Pcell
+    if (cells[pcell_idx]->cell.id != cell_id) {
+      log.error(
+          "UE is attempting to PRACH on pci=%d while current Pcell is pci=%d\n", cell_id, cells[pcell_idx]->cell.id);
+      return;
+    }
+
     // store TTI for providing UL grant for Msg3 transmission
     prach_tti            = tti;
     prach_preamble_index = preamble_index_;
-
-    // update active pcell (chosen by UE) in syssim
-    for (auto& cell : cells) {
-      if (cell.cell.id == cell_id) {
-        pcell = cell;
-        break;
-      }
-    }
   }
 
   // Called from PHY but always from the SS main thread with lock being hold
@@ -513,11 +514,11 @@ public:
           mac_interface_phy_lte::mac_grant_dl_t dl_grant = {};
           dl_grant.pid                                   = get_pid(tti);
           dl_grant.rnti                                  = dl_rnti;
-          dl_grant.tb[0].tbs                             = sibs[sib_idx]->N_bytes;
+          dl_grant.tb[0].tbs                             = cells[pcell_idx]->sibs[sib_idx]->N_bytes;
           dl_grant.tb[0].ndi                             = get_ndi_for_new_dl_tx(tti);
-          ue->new_tb(dl_grant, sibs[sib_idx]->msg);
-
-          sib_idx = (sib_idx + 1) % sibs.size();
+          ue->new_tb(dl_grant, cells[pcell_idx]->sibs[sib_idx]->msg);
+          log.info("Delivered SIB%d for pcell_idx=%d\n", sib_idx, pcell_idx);
+          sib_idx = (sib_idx + 1) % cells[pcell_idx]->sibs.size();
         } else if (SRSLTE_RNTI_ISRAR(dl_rnti)) {
           if (prach_tti != -1) {
             rar_tti = (prach_tti + 3) % 10240;
@@ -634,12 +635,12 @@ public:
     if (not syssim_has_cell(name)) {
       // insert new cell
       log.info("Adding cell %s with cellId=%d and power=%.2f dBm\n", name.c_str(), cell_.id, power);
-      syssim_cell_t cell = {};
-      cell.name          = name;
-      cell.cell          = cell_;
-      cell.initial_power = power;
-      cell.earfcn        = earfcn_;
-      cells.push_back(cell);
+      unique_syssim_cell_t cell = unique_syssim_cell_t(new syssim_cell_t);
+      cell->name                = name;
+      cell->cell                = cell_;
+      cell->initial_power       = power;
+      cell->earfcn              = earfcn_;
+      cells.push_back(std::move(cell));
     } else {
       // cell is already there
       log.info("Cell already there, reconfigure\n");
@@ -651,8 +652,8 @@ public:
   // internal function
   bool syssim_has_cell(std::string cell_name)
   {
-    for (uint32_t i = 0; i < cells.size(); ++i) {
-      if (cells[i].name == cell_name) {
+    for (auto& cell : cells) {
+      if (cell->name == cell_name) {
         return true;
       }
     }
@@ -667,9 +668,9 @@ public:
     }
 
     // update cell's power
-    for (uint32_t i = 0; i < cells.size(); ++i) {
-      if (cells[i].name == cell_name) {
-        cells[i].attenuation = value;
+    for (auto& cell : cells) {
+      if (cell->name == cell_name) {
+        cell->attenuation = value;
         break;
       }
     }
@@ -685,25 +686,51 @@ public:
       log.error("Can't configure cell. UE not initialized.\n");
     }
 
-      // convert syssim cell list to phy cell list
+    // convert syssim cell list to phy cell list
+    {
       lte_ttcn3_phy::cell_list_t phy_cells;
-      for (uint32_t i = 0; i < cells.size(); ++i) {
+      for (auto& ss_cell : cells) {
         lte_ttcn3_phy::cell_t phy_cell = {};
-        phy_cell.info                  = cells[i].cell;
-        phy_cell.power                 = cells[i].initial_power - cells[i].attenuation;
-        phy_cell.earfcn                = cells[i].earfcn;
-        log.debug("Configuring cell %d with PCI=%d with TxPower=%f\n", i, phy_cell.info.id, phy_cell.power);
+        phy_cell.info                  = ss_cell->cell;
+        phy_cell.power                 = ss_cell->initial_power - ss_cell->attenuation;
+        phy_cell.earfcn                = ss_cell->earfcn;
+        log.info("Configuring cell with PCI=%d with TxPower=%.2f\n", phy_cell.info.id, phy_cell.power);
         phy_cells.push_back(phy_cell);
       }
 
       // SYSSIM defines what cells the UE can connect to
       ue->set_cell_map(phy_cells);
+    }
+
+    // reselect SS Pcell
+    float max_power = -145;
+    for (uint32_t i = 0; i < cells.size(); ++i) {
+      float actual_power = cells[i]->initial_power - cells[i]->attenuation;
+      if (actual_power > max_power) {
+        max_power = actual_power;
+        pcell_idx = i;
+        log.info("Selecting PCI=%d with TxPower=%.2f as Pcell\n", cells[pcell_idx]->cell.id, max_power);
+      }
+    }
   }
 
-  void add_bcch_pdu(unique_byte_buffer_t pdu)
+  bool have_valid_pcell() { return (pcell_idx >= 0 && pcell_idx < static_cast<int>(cells.size())); }
+
+  void add_bcch_dlsch_pdu(const string cell_name, unique_byte_buffer_t pdu)
   {
     std::lock_guard<std::mutex> lock(mutex);
-    sibs.push_back(std::move(pdu));
+
+    if (not syssim_has_cell(cell_name)) {
+      log.error("Can't add BCCH to cell. Cell not found.\n");
+    }
+
+    // add SIB
+    for (auto& cell : cells) {
+      if (cell->name == cell_name) {
+        cell->sibs.push_back(std::move(pdu));
+        break;
+      }
+    }
   }
 
   void add_ccch_pdu(unique_byte_buffer_t pdu)
@@ -753,6 +780,14 @@ public:
     rlc.add_bearer(lcid, srslte::rlc_config_t::srb_config(lcid));
   }
 
+  void reestablish_bearer(uint32_t lcid)
+  {
+    std::lock_guard<std::mutex> lock(mutex);
+    log.info("Reestablishing LCID=%d\n", lcid);
+    pdcp.reestablish(lcid);
+    rlc.reestablish(lcid);
+  }
+
   void del_srb(uint32_t lcid)
   {
     std::lock_guard<std::mutex> lock(mutex);
@@ -782,7 +817,7 @@ public:
 
     // prepend pcell PCID
     pdu->msg--;
-    *pdu->msg = static_cast<uint8_t>(pcell.cell.id);
+    *pdu->msg = static_cast<uint8_t>(cells[pcell_idx]->cell.id);
     pdu->N_bytes++;
 
     // push content to Titan
@@ -832,6 +867,7 @@ public:
                       const srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                       const srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
   {
+    log.info("Setting AS security for LCID=%d\n", lcid);
     pdcp.config_security(lcid, k_rrc_enc.data(), k_rrc_int.data(), k_up_enc.data(), cipher_algo, integ_algo);
     pdcp.enable_integrity(lcid);
     pdcp.enable_encryption(lcid);
@@ -874,7 +910,6 @@ private:
 
   uint32_t run_id = 0;
 
-  std::vector<unique_byte_buffer_t> sibs;
   int32_t                           tti                  = 0;
   int32_t                           prach_tti            = -1;
   int32_t                           rar_tti              = -1;
@@ -890,13 +925,15 @@ private:
   // Map between the cellId (name) used by 3GPP test suite and srsLTE cell struct
   typedef struct {
     std::string   name;
-    srslte_cell_t cell;
-    float         initial_power;
-    float         attenuation;
-    uint32_t      earfcn;
+    srslte_cell_t                     cell          = {};
+    float                             initial_power = 0.0;
+    float                             attenuation   = 0.0;
+    uint32_t                          earfcn        = 0;
+    std::vector<unique_byte_buffer_t> sibs;
   } syssim_cell_t;
-  std::vector<syssim_cell_t> cells;
-  syssim_cell_t              pcell = {};
+  typedef std::unique_ptr<syssim_cell_t> unique_syssim_cell_t;
+  std::vector<unique_syssim_cell_t>      cells;
+  int32_t                                pcell_idx = -1;
 
   srslte::pdu_queue pdus;
   srslte::sch_pdu   mac_msg_dl, mac_msg_ul;

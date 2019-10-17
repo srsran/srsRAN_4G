@@ -41,7 +41,7 @@ public:
 class ss_sys_interface
 {
 public:
-  virtual void     add_bcch_pdu(srslte::unique_byte_buffer_t pdu)                                                 = 0;
+  virtual void     add_bcch_dlsch_pdu(const std::string cell_name, srslte::unique_byte_buffer_t pdu)              = 0;
   virtual void     add_pch_pdu(srslte::unique_byte_buffer_t pdu)                                                  = 0;
   virtual void     set_cell_attenuation(std::string cell_name, const float attenuation)                           = 0;
   virtual void     set_cell_config(std::string cell_name, uint32_t earfcn, srslte_cell_t cell, const float power) = 0;
@@ -61,6 +61,7 @@ class ss_srb_interface
 public:
   virtual void add_ccch_pdu(srslte::unique_byte_buffer_t pdu)                = 0;
   virtual void add_dcch_pdu(uint32_t lcid, srslte::unique_byte_buffer_t pdu) = 0;
+  virtual void reestablish_bearer(uint32_t lcid)                             = 0;
 };
 
 class syssim_interface_phy
