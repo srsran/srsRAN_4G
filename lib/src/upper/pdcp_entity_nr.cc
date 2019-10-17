@@ -54,6 +54,9 @@ void pdcp_entity_nr::init(srsue::rlc_interface_pdcp* rlc_,
   reordering_timer_id = timers->get_unique_id();
   reordering_timer    = timers->get(reordering_timer_id);
   reordering_timer->set(reordering_fnc.get(), (uint32_t)cfg.t_reordering);
+ 
+  // Mark entity as initialized 
+  initialized = true;
 }
 
 // Reestablishment procedure: 38.323 5.2
@@ -75,6 +78,12 @@ void pdcp_entity_nr::reset()
 // SDAP/RRC interface
 void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, bool blocking)
 {
+  // Check initialization
+  if (not initialized) {
+    return;
+  }
+
+  // Log SDU
   log->info_hex(sdu->msg,
                 sdu->N_bytes,
                 "TX %s SDU, do_integrity = %s, do_encryption = %s",
@@ -118,6 +127,12 @@ void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, bool blocking)
 // RLC interface
 void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
 {
+  // Check initialization
+  if (not initialized) {
+    return;
+  }
+
+  // Log PDU
   log->info_hex(pdu->msg,
                 pdu->N_bytes,
                 "RX %s PDU (%d B), do_integrity = %s, do_encryption = %s",

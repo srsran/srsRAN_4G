@@ -68,6 +68,8 @@ public:
   void set_rx_reord(uint32_t rx_reord_) { rx_reord = rx_reord_; }
 
 private:
+  bool initialized = false;
+
   srsue::rlc_interface_pdcp* rlc = nullptr;
   srsue::rrc_interface_pdcp* rrc = nullptr;
   srsue::gw_interface_pdcp*  gw  = nullptr;
