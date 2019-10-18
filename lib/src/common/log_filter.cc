@@ -153,6 +153,19 @@ void log_filter::info(const char * message, ...) {
   all_log_expand(LOG_LEVEL_INFO);
 }
 
+void log_filter::info_long(const char* message, ...)
+{
+  if (level >= LOG_LEVEL_INFO) {
+    char*   args_msg = NULL;
+    va_list args;
+    va_start(args, message);
+    if (vasprintf(&args_msg, message, args) > 0)
+      all_log(LOG_LEVEL_INFO, tti, args_msg, nullptr, strlen(args_msg), true);
+    va_end(args);
+    free(args_msg);
+  }
+}
+
 void log_filter::debug(const char * message, ...) {
   all_log_expand(LOG_LEVEL_DEBUG);
 }

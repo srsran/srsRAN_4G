@@ -133,6 +133,7 @@ public:
   virtual void error(const char * message, ...)   __attribute__ ((format (printf, 2, 3))) = 0;
   virtual void warning(const char * message, ...) __attribute__ ((format (printf, 2, 3))) = 0;
   virtual void info(const char * message, ...)    __attribute__ ((format (printf, 2, 3))) = 0;
+  virtual void info_long(const char* message, ...) __attribute__((format(printf, 2, 3)))  = 0;
   virtual void debug(const char * message, ...)   __attribute__ ((format (printf, 2, 3))) = 0;
   virtual void debug_long(const char* message, ...) __attribute__((format(printf, 2, 3))) = 0;
 
