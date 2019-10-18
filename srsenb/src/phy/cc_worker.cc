@@ -759,31 +759,19 @@ void cc_worker::ue::metrics_ul(uint32_t mcs, float rssi, float sinr, float turbo
 
 int cc_worker::read_ce_abs(float* ce_abs)
 {
-  uint32_t i  = 0;
   int      sz = srslte_symbol_sz(phy->cell.nof_prb);
   bzero(ce_abs, sizeof(float) * sz);
   int g = (sz - 12 * phy->cell.nof_prb) / 2;
-  for (i = 0; i < 12 * phy->cell.nof_prb; i++) {
-    ce_abs[g + i] = 20 * log10(std::abs(std::complex<double>(enb_ul.chest_res.ce[i])));
-    if (isinf(ce_abs[g + i])) {
-      ce_abs[g + i] = -80;
-    }
-  }
+  srslte_vec_abs_dB_cf(enb_ul.chest_res.ce, -80.0f, &ce_abs[g], SRSLTE_NRE * phy->cell.nof_prb);
   return sz;
 }
 
 int cc_worker::read_ce_arg(float* ce_arg)
 {
-  uint32_t i  = 0;
   int      sz = srslte_symbol_sz(phy->cell.nof_prb);
   bzero(ce_arg, sizeof(float) * sz);
   int g = (sz - 12 * phy->cell.nof_prb) / 2;
-  for (i = 0; i < 12 * phy->cell.nof_prb; i++) {
-    ce_arg[g + i] = std::arg(std::complex<float>(enb_ul.chest_res.ce[i])) * 180.0f / (float)M_PI;
-    if (isinf(ce_arg[g + i])) {
-      ce_arg[g + i] = -80;
-    }
-  }
+  srslte_vec_arg_deg_cf(enb_ul.chest_res.ce, -80.0f, &ce_arg[g], SRSLTE_NRE * phy->cell.nof_prb);
   return sz;
 }
 
