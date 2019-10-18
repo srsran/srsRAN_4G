@@ -547,7 +547,7 @@ private:
         StringBuffer               buffer;
         PrettyWriter<StringBuffer> writer(buffer);
         document.Accept(writer);
-        log->info("Received %d bytes\n%s\n", json_len, (char*)buffer.GetString());
+        log->info_long("Received %d bytes\n%s\n", json_len, (char*)buffer.GetString());
 
         // check for common
         assert(document.HasMember("Common"));
