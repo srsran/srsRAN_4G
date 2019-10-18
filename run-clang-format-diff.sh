@@ -44,7 +44,7 @@ target=$1
 echo "Running code format check between ${target} and ${commit} .."
 
 # run clang-format
-diff="$(git diff ${target} | clang-format-diff -p1 | python3 -c 'data = open(0).read(); print(data); exit(1 if data else 0)')"
+diff="$(git diff -U0 ${target} | clang-format-diff -p1 | python3 -c 'data = open(0).read(); print(data); exit(1 if data else 0)')"
 
 # safe return code
 ret=$?
