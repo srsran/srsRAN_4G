@@ -20,7 +20,7 @@
  */
 
 #include "srsenb/hdr/stack/mac/scheduler.h"
-#include "srsenb/hdr/stack/mac/scheduler_ctrl.h"
+#include "srsenb/hdr/stack/mac/scheduler_carrier.h"
 #include "srsenb/hdr/stack/mac/scheduler_ue.h"
 #include <algorithm>
 #include <random>
@@ -178,7 +178,7 @@ struct sched_tester : public srsenb::sched {
     uint32_t                          tti_tx_dl;
     uint32_t                          tti_tx_ul;
     uint32_t                          current_cfi;
-    ra_sched_t::pending_msg3_t        ul_pending_msg3;
+    srsenb::ra_sched::pending_msg3_t  ul_pending_msg3;
     srslte::bounded_bitset<128, true> used_cce;
     //    std::vector<bool>                                         used_cce;
     std::map<uint16_t, tester_user_results> ue_data;   ///< stores buffer state of each user
@@ -207,6 +207,7 @@ struct sched_tester : public srsenb::sched {
     srsenb::ul_harq_proc ul_harq;
   };
 
+  uint32_t       nof_rbgs = 0;
   sched_sim_args sim_args;
 
   // tester control data
@@ -281,7 +282,7 @@ void sched_tester::new_test_tti(uint32_t tti_)
   } else {
     tti_data.ul_sf_idx = (tti_data.tti_tx_ul + 10240 - FDD_HARQ_DELAY_MS) % 10;
   }
-  tti_data.ul_pending_msg3 = carrier_schedulers[0].ra_sched->find_pending_msg3(tti_data.tti_tx_ul);
+  tti_data.ul_pending_msg3 = carrier_schedulers[0]->ra_sched_ptr->find_pending_msg3(tti_data.tti_tx_ul);
   tti_data.current_cfi     = sched_cfg.nof_ctrl_symbols;
   tti_data.used_cce.resize(srslte_regs_pdcch_ncce(&regs, tti_data.current_cfi));
   tti_data.used_cce.reset();
@@ -494,7 +495,7 @@ void sched_tester::assert_no_empty_allocs()
  */
 void sched_tester::test_tti_result()
 {
-  tti_sched_result_t* tti_sched = carrier_schedulers[0].get_tti_sched(tti_data.tti_rx);
+  carrier_sched::tti_sched_result_t* tti_sched = carrier_schedulers[0]->get_tti_sched(tti_data.tti_rx);
 
   // Helper Function: checks if there is any collision. If not, fills the mask
   auto try_cce_fill = [&](const srslte_dci_location_t& dci_loc, const char* ch) {
@@ -544,9 +545,9 @@ void sched_tester::test_tti_result()
     try_cce_fill(rar.dci.location, "DL RAR");
     CondError(rar.tbs == 0, "Allocated RAR process with invalid TBS=%d\n", rar.tbs);
     for (uint32_t j = 0; j < rar.nof_grants; ++j) {
-      const auto&                       msg3_grant = rar.msg3_grant[j];
-      const ra_sched_t::pending_msg3_t& p =
-          carrier_schedulers[0].ra_sched->find_pending_msg3(tti_sched->get_tti_tx_dl() + MSG3_DELAY_MS + TX_DELAY);
+      const auto&                             msg3_grant = rar.msg3_grant[j];
+      const srsenb::ra_sched::pending_msg3_t& p =
+          carrier_schedulers[0]->ra_sched_ptr->find_pending_msg3(tti_sched->get_tti_tx_dl() + MSG3_DELAY_MS + TX_DELAY);
       CondError(not p.enabled, "Pending Msg3 should have been set\n");
       uint32_t rba = srslte_ra_type2_to_riv(p.L, p.n_prb, cfg.cell.nof_prb);
       CondError(msg3_grant.grant.rba != rba, "Pending Msg3 RBA is not valid\n");
@@ -554,7 +555,7 @@ void sched_tester::test_tti_result()
   }
 
   /* verify if sched_result "used_cce" coincide with sched "used_cce" */
-  auto* tti_alloc = carrier_schedulers[0].get_tti_sched(tti_data.tti_rx);
+  auto* tti_alloc = carrier_schedulers[0]->get_tti_sched(tti_data.tti_rx);
   if (tti_data.used_cce != tti_alloc->get_pdcch_mask()) {
     std::string mask_str = tti_alloc->get_pdcch_mask().to_string();
     TestError("[TESTER] The used_cce do not match: (%s!=%s)\n", mask_str.c_str(), tti_data.used_cce.to_hex().c_str());
@@ -751,7 +752,7 @@ void sched_tester::test_sibs()
 
 void sched_tester::test_collisions()
 {
-  tti_sched_result_t* tti_sched = carrier_schedulers[0].get_tti_sched(tti_data.tti_rx);
+  carrier_sched::tti_sched_result_t* tti_sched = carrier_schedulers[0]->get_tti_sched(tti_data.tti_rx);
 
   srsenb::prbmask_t ul_allocs(cfg.cell.nof_prb);
 
@@ -880,9 +881,11 @@ void sched_tester::test_collisions()
   }
 
   // TEST: check if resulting DL mask is equal to scheduler internal DL mask
-  srsenb::rbgmask_t                 rbgmask(nof_rbg);
+  uint32_t P = srslte_ra_type0_P(cfg.cell.nof_prb);
+  nof_rbgs   = srslte::ceil_div(cfg.cell.nof_prb, P);
+  srsenb::rbgmask_t                 rbgmask(nof_rbgs);
   srslte::bounded_bitset<100, true> rev_alloc = ~dl_allocs;
-  for (uint32_t i = 0; i < nof_rbg; ++i) {
+  for (uint32_t i = 0; i < nof_rbgs; ++i) {
     uint32_t lim = SRSLTE_MIN((i + 1) * P, dl_allocs.size());
     bool     val = dl_allocs.any(i * P, lim);
     CondError(rev_alloc.any(i * P, lim) and val, "[TESTER] No holes can be left in an RBG\n");
@@ -892,7 +895,7 @@ void sched_tester::test_collisions()
       rbgmask.reset(i);
     }
   }
-  if (rbgmask != carrier_schedulers[0].get_tti_sched(tti_data.tti_rx)->get_dl_mask()) {
+  if (rbgmask != carrier_schedulers[0]->get_tti_sched(tti_data.tti_rx)->get_dl_mask()) {
     TestError("[TESTER] The UL PRB mask and the scheduler result UL mask are not consistent\n");
   }
 }

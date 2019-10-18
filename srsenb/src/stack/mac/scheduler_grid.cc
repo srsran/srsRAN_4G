@@ -44,15 +44,15 @@ const char* alloc_outcome_t::to_string() const
  *             PDCCH Allocation Methods
  *******************************************************/
 
-void pdcch_grid_t::init(srslte::log*               log_,
-                        srslte_regs_t*             regs,
-                        sched_ue::sched_dci_cce_t* common_locs,
-                        sched_ue::sched_dci_cce_t (*rar_locs)[10])
+void pdcch_grid_t::init(srslte::log*                                              log_,
+                        srslte_regs_t*                                            regs,
+                        std::array<sched_ue::sched_dci_cce_t, 3>&                 common_locs,
+                        std::array<std::array<sched_ue::sched_dci_cce_t, 10>, 3>& rar_locs)
 {
   log_h            = log_;
-  common_locations = common_locs;
+  common_locations = &common_locs[0];
   for (uint32_t cfix = 0; cfix < 3; ++cfix) {
-    rar_locations[cfix] = rar_locs[cfix];
+    rar_locations[cfix] = &rar_locs[cfix][0];
   }
 
   // precompute nof_cces

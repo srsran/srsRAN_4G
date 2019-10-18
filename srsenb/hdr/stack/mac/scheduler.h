@@ -146,124 +146,19 @@ public:
       srslte_regs_t* regs, sched_ue::sched_dci_cce_t* location, uint32_t cfi, uint32_t sf_idx = 0, uint16_t rnti = 0);
   static uint32_t aggr_level(uint32_t aggr_idx) { return 1u << aggr_idx; }
 
+  class carrier_sched;
+
 protected:
   srslte::log*       log_h;
   rrc_interface_mac* rrc;
 
   pthread_rwlock_t rwlock;
-  std::mutex       sched_mutex;
 
   cell_cfg_t   cfg;
   sched_args_t sched_cfg;
 
   // This is for computing DCI locations
   srslte_regs_t regs;
-
-  class carrier_sched;
-  class ra_sched_t;
-  class bc_sched_t;
-
-  class tti_sched_result_t : public dl_tti_sched_t, public ul_tti_sched_t
-  {
-  public:
-    struct ctrl_alloc_t {
-      size_t       dci_idx;
-      rbg_range_t  rbg_range;
-      uint16_t     rnti;
-      uint32_t     req_bytes;
-      alloc_type_t alloc_type;
-    };
-    struct rar_alloc_t : public ctrl_alloc_t {
-      dl_sched_rar_t rar_grant;
-      rar_alloc_t() = default;
-      explicit rar_alloc_t(const ctrl_alloc_t& c) : ctrl_alloc_t(c) {}
-    };
-    struct bc_alloc_t : public ctrl_alloc_t {
-      uint32_t rv      = 0;
-      uint32_t sib_idx = 0;
-      bc_alloc_t()     = default;
-      explicit bc_alloc_t(const ctrl_alloc_t& c) : ctrl_alloc_t(c) {}
-    };
-    struct dl_alloc_t {
-      size_t    dci_idx;
-      sched_ue* user_ptr;
-      rbgmask_t user_mask;
-      uint32_t  pid;
-    };
-    struct ul_alloc_t {
-      enum type_t { NEWTX, NOADAPT_RETX, ADAPT_RETX, MSG3 };
-      size_t                   dci_idx;
-      type_t                   type;
-      sched_ue*                user_ptr;
-      ul_harq_proc::ul_alloc_t alloc;
-      uint32_t                 mcs = 0;
-      bool                     is_retx() const { return type == NOADAPT_RETX or type == ADAPT_RETX; }
-      bool                     is_msg3() const { return type == MSG3; }
-      bool                     needs_pdcch() const { return type == NEWTX or type == ADAPT_RETX; }
-    };
-    typedef std::pair<alloc_outcome_t, const rar_alloc_t*> rar_code_t;
-    typedef std::pair<alloc_outcome_t, const ctrl_alloc_t> ctrl_code_t;
-
-    // TTI scheduler result
-    pdcch_mask_t                    pdcch_mask;
-    sched_interface::dl_sched_res_t dl_sched_result;
-    sched_interface::ul_sched_res_t ul_sched_result;
-
-    void            init(sched* parent_);
-    void            new_tti(uint32_t tti_rx_, uint32_t start_cfi);
-    alloc_outcome_t alloc_bc(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t sib_ntx);
-    alloc_outcome_t alloc_paging(uint32_t aggr_lvl, uint32_t paging_payload);
-    rar_code_t      alloc_rar(uint32_t aggr_lvl, const dl_sched_rar_t& rar_grant, uint32_t prach_tti, uint32_t buf_rar);
-    void            generate_dcis();
-    // dl_tti_sched itf
-    alloc_outcome_t  alloc_dl_user(sched_ue* user, const rbgmask_t& user_mask, uint32_t pid) final;
-    uint32_t         get_tti_tx_dl() const final { return tti_alloc.get_tti_tx_dl(); }
-    uint32_t         get_nof_ctrl_symbols() const final;
-    const rbgmask_t& get_dl_mask() const final { return tti_alloc.get_dl_mask(); }
-    // ul_tti_sched itf
-    alloc_outcome_t  alloc_ul_user(sched_ue* user, ul_harq_proc::ul_alloc_t alloc) final;
-    alloc_outcome_t  alloc_ul_msg3(sched_ue* user, ul_harq_proc::ul_alloc_t alloc, uint32_t mcs);
-    const prbmask_t& get_ul_mask() const final { return tti_alloc.get_ul_mask(); }
-    uint32_t         get_tti_tx_ul() const final { return tti_alloc.get_tti_tx_ul(); }
-
-    // getters
-    const pdcch_mask_t&            get_pdcch_mask() const { return pdcch_mask; }
-    rbgmask_t&                     get_dl_mask() { return tti_alloc.get_dl_mask(); }
-    prbmask_t&                     get_ul_mask() { return tti_alloc.get_ul_mask(); }
-    const std::vector<ul_alloc_t>& get_ul_allocs() const { return ul_data_allocs; }
-    uint32_t                       get_cfi() const { return tti_alloc.get_cfi(); }
-    uint32_t                       get_tti_rx() const { return tti_alloc.get_tti_rx(); }
-    uint32_t                       get_sfn() const { return tti_alloc.get_sfn(); }
-    uint32_t                       get_sf_idx() const { return tti_alloc.get_sf_idx(); }
-
-  private:
-    bool            is_dl_alloc(sched_ue* user) const final;
-    bool            is_ul_alloc(sched_ue* user) const final;
-    ctrl_code_t     alloc_dl_ctrl(uint32_t aggr_lvl, uint32_t tbs_bytes, uint16_t rnti);
-    alloc_outcome_t alloc_ul(sched_ue*                              user,
-                             ul_harq_proc::ul_alloc_t               alloc,
-                             tti_sched_result_t::ul_alloc_t::type_t alloc_type,
-                             uint32_t                               msg3 = 0);
-    int             generate_format1a(
-                    uint32_t rb_start, uint32_t l_crb, uint32_t tbs, uint32_t rv, uint16_t rnti, srslte_dci_dl_t* dci);
-    void set_bc_sched_result(const pdcch_grid_t::alloc_result_t& dci_result);
-    void set_rar_sched_result(const pdcch_grid_t::alloc_result_t& dci_result);
-    void set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_result);
-    void set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_result);
-
-    // consts
-    sched*          parent = nullptr;
-    srslte::log*    log_h  = nullptr;
-    uint32_t        P;
-    cell_cfg_sib_t* sibs_cfg = nullptr;
-
-    // internal state
-    tti_grid_t               tti_alloc;
-    std::vector<rar_alloc_t> rar_allocs;
-    std::vector<bc_alloc_t>  bc_allocs;
-    std::vector<dl_alloc_t>  data_allocs;
-    std::vector<ul_alloc_t>  ul_data_allocs;
-  };
 
   // Helper methods
   template <typename Func>
@@ -272,17 +167,11 @@ protected:
   std::map<uint16_t, sched_ue> ue_db;
 
   // Allowed DCI locations for SIB and RAR per CFI
-  sched_ue::sched_dci_cce_t common_locations[3];
-  sched_ue::sched_dci_cce_t rar_locations[3][10];
-
-  // derived from args
-  uint32_t  P;
-  uint32_t  nof_rbg;
-  prbmask_t prach_mask;
-  prbmask_t pucch_mask;
+  std::array<sched_ue::sched_dci_cce_t, 3>                 common_locations;
+  std::array<std::array<sched_ue::sched_dci_cce_t, 10>, 3> rar_locations;
 
   // independent schedulers for each carrier
-  std::vector<carrier_sched> carrier_schedulers;
+  std::vector<std::unique_ptr<carrier_sched> > carrier_schedulers;
 
   std::array<uint32_t, 10> pdsch_re;
   uint32_t                 current_tti;

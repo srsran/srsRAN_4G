@@ -56,12 +56,12 @@ public:
   };
   using alloc_result_t = std::vector<const alloc_t*>;
 
-  void init(srslte::log*               log_,
-            srslte_regs_t*             regs,
-            sched_ue::sched_dci_cce_t* common_locs,
-            sched_ue::sched_dci_cce_t (*rar_locs)[10]);
+  void init(srslte::log*                                              log_,
+            srslte_regs_t*                                            regs,
+            std::array<sched_ue::sched_dci_cce_t, 3>&                 common_locs,
+            std::array<std::array<sched_ue::sched_dci_cce_t, 10>, 3>& rar_locs);
   void new_tti(uint32_t tti_rx_, uint32_t start_cfi);
-  bool alloc_dci(alloc_type_t alloc_type, uint32_t aggr_idx, sched_ue* user = NULL);
+  bool alloc_dci(alloc_type_t alloc_type, uint32_t aggr_idx, sched_ue* user = nullptr);
   bool set_cfi(uint32_t cfi);
 
   // getters
@@ -86,10 +86,10 @@ private:
                                                      const sched_ue::sched_dci_cce_t* dci_locs);
 
   // consts
-  srslte::log*               log_h             = nullptr;
-  sched_ue::sched_dci_cce_t* common_locations  = nullptr;
-  sched_ue::sched_dci_cce_t* rar_locations[10] = {nullptr};
-  std::array<uint32_t, 3>    cce_size_array{};
+  srslte::log*                              log_h            = nullptr;
+  sched_ue::sched_dci_cce_t*                common_locations = nullptr;
+  std::array<sched_ue::sched_dci_cce_t*, 3> rar_locations{};
+  std::array<uint32_t, 3>                   cce_size_array{};
 
   // tti vars
   uint32_t                 tti_rx       = 0;
