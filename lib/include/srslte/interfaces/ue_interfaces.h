@@ -214,8 +214,8 @@ public:
 class nas_interface_ue
 {
 public:
-  virtual void start_attach_request(srslte::proc_result_t<void>* proc_result, srslte::establishment_cause_t cause_) = 0;
-  virtual bool detach_request(const bool switch_off)                          = 0;
+  virtual void start_attach_request(srslte::proc_state_t* proc_result, srslte::establishment_cause_t cause_) = 0;
+  virtual bool detach_request(const bool switch_off)                                                         = 0;
 };
 
 // PDCP interface for RRC

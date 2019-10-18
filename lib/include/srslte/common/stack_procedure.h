@@ -35,7 +35,7 @@ enum class proc_outcome_t { repeat, yield, success, error };
 /**************************************************************************************
  * helper functions for method optional overloading
  ************************************************************************************/
-namespace detail {
+namespace proc_detail {
 // used by proc_t<T> to call T::then() method only if it exists
 template <typename T, typename ProcResult>
 auto optional_then(T* obj, const ProcResult& result) -> decltype(obj->then(result))
@@ -59,7 +59,7 @@ inline auto optional_clear(...) -> void
 template <class T>
 auto        get_result_type(const T& obj) -> decltype(obj.get_result());
 inline auto get_result_type(...) -> void;
-} // namespace detail
+} // namespace proc_detail
 
 /**************************************************************************************
  * class: callback_group_t<Args...>
@@ -132,7 +132,7 @@ private:
  * successful run.
  **************************************************************************************/
 
-namespace detail {
+namespace proc_detail {
 struct proc_result_base_t {
   bool is_success() const { return state == result_state_t::value; }
   bool is_error() const { return state == result_state_t::error; }
@@ -144,9 +144,9 @@ struct proc_result_base_t {
 protected:
   enum class result_state_t { none, value, error } state = result_state_t::none;
 };
-} // namespace detail
+} // namespace proc_detail
 template <typename T>
-struct proc_result_t : public detail::proc_result_base_t {
+struct proc_result_t : public proc_detail::proc_result_base_t {
   const T* value() const { return state == result_state_t::value ? &t : nullptr; }
   void     set_val(const T& t_)
   {
@@ -163,13 +163,15 @@ protected:
   T t;
 };
 template <>
-struct proc_result_t<void> : public detail::proc_result_base_t {
+struct proc_result_t<void> : public proc_detail::proc_result_base_t {
   template <typename Proc>
   void extract_val(Proc& p)
   {
     set_val();
   }
 };
+// specialization for ResultType=void
+using proc_state_t = proc_result_t<void>;
 
 /**************************************************************************************
  * class: proc_future_t
@@ -280,7 +282,7 @@ public:
   template <typename... Args>
   explicit proc_t(Args&&... args) : proc_ptr(new T(std::forward<Args>(args)...))
   {
-    static_assert(std::is_same<result_type, decltype(detail::get_result_type(std::declval<T>()))>::value,
+    static_assert(std::is_same<result_type, decltype(proc_detail::get_result_type(std::declval<T>()))>::value,
                   "The types \"proc_t::result_type\" and the return of T::get_result() have to match");
   }
 
@@ -347,7 +349,7 @@ protected:
       proc_result.set_error();
     }
     // call T::then() if it exists
-    detail::optional_then(proc_ptr.get(), proc_result);
+    proc_detail::optional_then(proc_ptr.get(), proc_result);
     // signal continuations
     complete_callbacks(proc_result);
     // propagate proc_result to future if it exists, and release future
@@ -358,7 +360,7 @@ protected:
     // reset the current result, to prepare it for a new run.
     proc_result.clear();
     // back to inactive
-    detail::optional_clear(proc_ptr.get());
+    proc_detail::optional_clear(proc_ptr.get());
     proc_state = proc_status_t::idle;
   }
 

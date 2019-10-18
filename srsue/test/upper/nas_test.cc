@@ -145,7 +145,7 @@ public:
   void init() { start(-1); }
   bool switch_on() final
   {
-    proc_result_t<void> proc_result;
+    proc_state_t proc_result;
     nas->start_attach_request(&proc_result, srslte::establishment_cause_t::mo_data);
     while (not proc_result.is_complete()) {
       usleep(1000);

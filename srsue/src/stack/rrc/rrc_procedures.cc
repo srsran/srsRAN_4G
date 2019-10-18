@@ -527,7 +527,7 @@ proc_outcome_t rrc::plmn_search_proc::step()
   return proc_outcome_t::repeat;
 }
 
-void rrc::plmn_search_proc::then(const srslte::proc_result_t<void>& result) const
+void rrc::plmn_search_proc::then(const srslte::proc_state_t& result) const
 {
   // on cleanup, call plmn_search_completed
   if (result.is_success()) {
@@ -641,7 +641,7 @@ proc_outcome_t rrc::connection_request_proc::step()
   return proc_outcome_t::error;
 }
 
-void rrc::connection_request_proc::then(const srslte::proc_result_t<void>& result)
+void rrc::connection_request_proc::then(const srslte::proc_state_t& result)
 {
   if (result.is_error()) {
     log_h->warning("Could not establish connection. Deallocating dedicatedInfoNAS PDU\n");

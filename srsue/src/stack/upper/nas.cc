@@ -62,10 +62,10 @@ proc_outcome_t nas::plmn_search_proc::step()
   return proc_outcome_t::yield;
 }
 
-void nas::plmn_search_proc::then(const srslte::proc_result_t<void>& result)
+void nas::plmn_search_proc::then(const srslte::proc_state_t& result)
 {
   ProcInfo("Completed with %s\n", result.is_success() ? "success" : "failure");
-    
+
   // start T3411
   nas_ptr->nas_log->debug("Starting T3411\n");
   nas_ptr->timers->get(nas_ptr->t3411)->reset();
@@ -201,7 +201,7 @@ proc_outcome_t nas::rrc_connect_proc::step()
   return proc_outcome_t::error;
 }
 
-void nas::rrc_connect_proc::then(const srslte::proc_result_t<void>& result)
+void nas::rrc_connect_proc::then(const srslte::proc_state_t& result)
 {
   nas_ptr->plmn_searcher.trigger(result);
 }
@@ -338,7 +338,7 @@ void nas::timer_expired(uint32_t timeout_id)
  * The function returns true if the UE could attach correctly or false in case of error or timeout during attachment.
  *
  */
-void nas::start_attach_request(srslte::proc_result_t<void>* result, srslte::establishment_cause_t cause_)
+void nas::start_attach_request(srslte::proc_state_t* result, srslte::establishment_cause_t cause_)
 {
   nas_log->info("Attach Request\n");
   switch (state) {
@@ -365,7 +365,7 @@ void nas::start_attach_request(srslte::proc_result_t<void>* result, srslte::esta
           }
           return;
         }
-        plmn_searcher.then([this, result](const proc_result_t<void>& res) {
+        plmn_searcher.then([this, result](const proc_state_t& res) {
           nas_log->info("Attach Request from PLMN Search %s\n", res.is_success() ? "finished successfully" : "failed");
           if (result != nullptr) {
             *result = res;
@@ -393,7 +393,7 @@ void nas::start_attach_request(srslte::proc_result_t<void>* result, srslte::esta
           }
           return;
         }
-        rrc_connector.then([this, result](const proc_result_t<void>& res) {
+        rrc_connector.then([this, result](const proc_state_t& res) {
           if (res.is_success()) {
             nas_log->info("NAS attached successfully\n");
           } else {
@@ -466,7 +466,7 @@ bool nas::paging(s_tmsi_t* ue_identity)
       return false;
     }
     // once completed, call paging complete
-    rrc_connector.then([this](proc_result_t<void> outcome) {
+    rrc_connector.then([this](proc_state_t outcome) {
       rrc->paging_completed(outcome.is_success());
       return proc_outcome_t::success;
     });

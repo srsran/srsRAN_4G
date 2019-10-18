@@ -60,7 +60,7 @@ public:
   bool     get_ipv6_addr(uint8_t* ipv6_addr);
 
   // UE interface
-  void start_attach_request(srslte::proc_result_t<void>* result, srslte::establishment_cause_t cause_) final;
+  void start_attach_request(srslte::proc_state_t* result, srslte::establishment_cause_t cause_) final;
   bool detach_request(const bool switch_off) final;
 
   void plmn_search_completed(const rrc_interface_nas::found_plmn_t found_plmns[rrc_interface_nas::MAX_FOUND_PLMNS],
@@ -259,15 +259,15 @@ private:
   class rrc_connect_proc
   {
   public:
-    using rrc_connect_complete_ev = srslte::proc_result_t<void>;
+    using rrc_connect_complete_ev = srslte::proc_state_t;
     struct connection_request_completed_t {
       bool outcome;
     };
 
-    rrc_connect_proc(nas* nas_ptr_) : nas_ptr(nas_ptr_) {}
+    explicit rrc_connect_proc(nas* nas_ptr_) : nas_ptr(nas_ptr_) {}
     srslte::proc_outcome_t init(srslte::establishment_cause_t cause_, srslte::unique_byte_buffer_t pdu);
     srslte::proc_outcome_t step();
-    void                   then(const srslte::proc_result_t<void>& result);
+    void                   then(const srslte::proc_state_t& result);
     srslte::proc_outcome_t react(connection_request_completed_t event);
     static const char*     name() { return "RRC Connect"; }
 
@@ -290,10 +290,10 @@ private:
       }
     };
 
-    plmn_search_proc(nas* nas_ptr_) : nas_ptr(nas_ptr_) {}
+    explicit plmn_search_proc(nas* nas_ptr_) : nas_ptr(nas_ptr_) {}
     srslte::proc_outcome_t init();
     srslte::proc_outcome_t step();
-    void                   then(const srslte::proc_result_t<void>& result);
+    void                   then(const srslte::proc_state_t& result);
     srslte::proc_outcome_t react(const plmn_search_complete_t& t);
     srslte::proc_outcome_t react(const rrc_connect_proc::rrc_connect_complete_ev& t);
     static const char*     name() { return "PLMN Search"; }

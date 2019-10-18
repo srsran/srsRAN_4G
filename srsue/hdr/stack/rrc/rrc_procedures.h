@@ -138,7 +138,7 @@ public:
   explicit plmn_search_proc(rrc* parent_);
   srslte::proc_outcome_t init();
   srslte::proc_outcome_t step();
-  void                   then(const srslte::proc_result_t<void>& result) const;
+  void                   then(const srslte::proc_state_t& result) const;
   static const char*     name() { return "PLMN Search"; }
 
 private:
@@ -158,7 +158,7 @@ public:
   explicit connection_request_proc(rrc* parent_);
   srslte::proc_outcome_t init(srslte::establishment_cause_t cause_, srslte::unique_byte_buffer_t dedicated_info_nas_);
   srslte::proc_outcome_t step();
-  void                   then(const srslte::proc_result_t<void>& result);
+  void                   then(const srslte::proc_state_t& result);
   srslte::proc_outcome_t react(const cell_selection_proc::cell_selection_complete_ev& e);
   static const char*     name() { return "Connection Request"; }
 
