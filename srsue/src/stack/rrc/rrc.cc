@@ -415,29 +415,29 @@ void rrc::process_new_phy_meas(phy_meas_t meas)
 // Detection of physical layer problems in RRC_CONNECTED (5.3.11.1)
 void rrc::out_of_sync()
 {
-
   // CAUTION: We do not lock in this function since they are called from real-time threads
+  if (serving_cell && timers && rrc_log) {
+    serving_cell->in_sync = false;
 
-  serving_cell->in_sync = false;
-
-  // upon receiving N310 consecutive "out-of-sync" indications for the PCell from lower layers while neither T300,
-  //   T301, T304 nor T311 is running:
-  if (state == RRC_STATE_CONNECTED) {
-    if (!timers->get(t300)->is_running() && !timers->get(t301)->is_running() && !timers->get(t304)->is_running() &&
-        !timers->get(t310)->is_running() && !timers->get(t311)->is_running()) {
-      rrc_log->info("Received out-of-sync while in state %s. n310=%d, t311=%s, t310=%s\n",
-                    rrc_state_text[state],
-                    n310_cnt,
-                    timers->get(t311)->is_running() ? "running" : "stop",
-                    timers->get(t310)->is_running() ? "running" : "stop");
-      n310_cnt++;
-      if (n310_cnt == N310) {
-        rrc_log->info("Detected %d out-of-sync from PHY. Trying to resync. Starting T310 timer %d ms\n",
-                      N310,
-                      timers->get(t310)->get_timeout());
-        timers->get(t310)->reset();
-        timers->get(t310)->run();
-        n310_cnt = 0;
+    // upon receiving N310 consecutive "out-of-sync" indications for the PCell from lower layers while neither T300,
+    //   T301, T304 nor T311 is running:
+    if (state == RRC_STATE_CONNECTED) {
+      if (!timers->get(t300)->is_running() && !timers->get(t301)->is_running() && !timers->get(t304)->is_running() &&
+          !timers->get(t310)->is_running() && !timers->get(t311)->is_running()) {
+        rrc_log->info("Received out-of-sync while in state %s. n310=%d, t311=%s, t310=%s\n",
+                      rrc_state_text[state],
+                      n310_cnt,
+                      timers->get(t311)->is_running() ? "running" : "stop",
+                      timers->get(t310)->is_running() ? "running" : "stop");
+        n310_cnt++;
+        if (n310_cnt == N310) {
+          rrc_log->info("Detected %d out-of-sync from PHY. Trying to resync. Starting T310 timer %d ms\n",
+                        N310,
+                        timers->get(t310)->get_timeout());
+          timers->get(t310)->reset();
+          timers->get(t310)->run();
+          n310_cnt = 0;
+        }
       }
     }
   }

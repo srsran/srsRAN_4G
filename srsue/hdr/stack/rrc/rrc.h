@@ -382,7 +382,7 @@ private:
 
   srslte::bit_buffer_t          bit_buf;
 
-  rrc_state_t         state, last_state = RRC_STATE_IDLE;
+  rrc_state_t         state = RRC_STATE_IDLE, last_state = RRC_STATE_IDLE;
   uint8_t             transaction_id = 0;
   srslte::s_tmsi_t    ue_identity;
   bool                ue_identity_configured = false;
@@ -413,9 +413,9 @@ private:
 
   // RRC constants and timers
   srslte::timers* timers = nullptr;
-  uint32_t        n310_cnt, N310 = 0;
-  uint32_t        n311_cnt, N311 = 0;
-  uint32_t        t300, t301, t302, t310, t311, t304 = 0;
+  uint32_t        n310_cnt = 0, N310 = 0;
+  uint32_t        n311_cnt = 0, N311 = 0;
+  uint32_t        t300 = 0, t301 = 0, t302 = 0, t310 = 0, t311 = 0, t304 = 0;
 
   // Radio bearers
   typedef enum{
