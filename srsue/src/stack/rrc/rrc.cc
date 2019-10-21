@@ -134,7 +134,7 @@ void rrc::init(phy_interface_rrc_lte* phy_,
   t301 = timers->get_unique_timer();
   t302 = timers->get_unique_timer();
   t310 = timers->get_unique_timer();
-  t301 = timers->get_unique_timer();
+  t311 = timers->get_unique_timer();
   t304 = timers->get_unique_timer();
 
   ue_identity_configured = false;
