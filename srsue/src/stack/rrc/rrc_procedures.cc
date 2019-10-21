@@ -333,6 +333,7 @@ proc_outcome_t rrc::cell_selection_proc::init()
   if (rrc_ptr->neighbour_cells.empty() and rrc_ptr->serving_cell->in_sync and rrc_ptr->phy->cell_is_camping()) {
     // don't bother with cell selection if there are no neighbours and we are already camping
     Debug("Skipping Cell Selection Procedure ..\n");
+    cs_result = cs_result_t::same_cell;
     return proc_outcome_t::success;
   }
 
@@ -825,12 +826,11 @@ proc_outcome_t rrc::go_idle_proc::step()
  *    Cell Reselection procedure
  *************************************/
 
-rrc::cell_reselection_proc::cell_reselection_proc(srsue::rrc* rrc_) 
-  : rrc_ptr(rrc_) {} 
+rrc::cell_reselection_proc::cell_reselection_proc(srsue::rrc* rrc_) : rrc_ptr(rrc_) {}
 
 proc_outcome_t rrc::cell_reselection_proc::init()
 {
-  Info("Cell Reselection - Starting...\n");
+  Info("Starting...\n");
   if (not rrc_ptr->cell_selector.launch()) {
     Error("Failed to initiate a Cell Selection procedure...\n");
     return proc_outcome_t::error;
@@ -846,13 +846,14 @@ proc_outcome_t rrc::cell_reselection_proc::step()
     return srslte::proc_outcome_t::yield;
   }
   if (cell_selection_fut.is_error()) {
-    Error("Cell Reselection - Error while selecting a cell\n");
+    Error("Error while selecting a cell\n");
     return srslte::proc_outcome_t::error;
   }
 
+  Info("Cell Selection completed. Handling its result...\n");
   switch (*cell_selection_fut.value()) {
     case cs_result_t::changed_cell:
-      // New cell has been selected, start receiving PCCH
+      Info("New cell has been selected, start receiving PCCH\n");
       rrc_ptr->mac->pcch_start_rx();
       break;
     case cs_result_t::no_cell:

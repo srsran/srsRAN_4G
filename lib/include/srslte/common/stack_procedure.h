@@ -306,7 +306,7 @@ public:
   proc_future_type get_future()
   {
     if (future_result == nullptr) {
-      future_result = std::make_shared<proc_result_type>(proc_result);
+      future_result = std::make_shared<proc_result_type>();
     }
     return proc_future_type{future_result};
   }
@@ -342,30 +342,28 @@ protected:
 
   void run_then(bool is_success) final
   {
+    proc_result_type result;
     // update result state
     if (is_success) {
-      proc_result.extract_val(*proc_ptr);
+      result.extract_val(*proc_ptr);
     } else {
-      proc_result.set_error();
+      result.set_error();
     }
-    // call T::then() if it exists
-    proc_detail::optional_then(proc_ptr.get(), proc_result);
-    // signal continuations
-    complete_callbacks(proc_result);
     // propagate proc_result to future if it exists, and release future
     if (future_result != nullptr) {
-      *future_result = proc_result;
+      *future_result = result;
       future_result.reset();
     }
-    // reset the current result, to prepare it for a new run.
-    proc_result.clear();
+    // call T::then() if it exists
+    proc_detail::optional_then(proc_ptr.get(), result);
+    // signal continuations
+    complete_callbacks(result);
     // back to inactive
     proc_detail::optional_clear(proc_ptr.get());
     proc_state = proc_status_t::idle;
   }
 
   std::unique_ptr<T>                proc_ptr;
-  proc_result_type                  proc_result;
   std::shared_ptr<proc_result_type> future_result; //! used if get_future() itf is used.
   then_callback_list_t              complete_callbacks;
 };
