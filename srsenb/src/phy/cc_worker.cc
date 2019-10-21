@@ -323,9 +323,8 @@ void cc_worker::work_ul(srslte_ul_sf_cfg_t* ul_sf_cfg, stack_interface_phy_lte::
   ul_sf = *ul_sf_cfg;
   log_h->step(ul_sf.tti);
 
-  for (auto& iter : ue_db) {
-    auto rnti                       = (uint16_t)iter.first;
-    ue_db[rnti]->is_grant_available = false;
+  for (auto& ue : ue_db) {
+    ue.second->is_grant_available = false;
   }
 
   // Process UL signal
@@ -723,11 +722,9 @@ uint32_t cc_worker::get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS])
 {
   std::lock_guard<std::mutex> lock(mutex);
   uint32_t cnt = 0;
-  for (auto& iter : ue_db) {
-    ue*      u    = iter.second;
-    uint16_t rnti = iter.first;
-    if (SRSLTE_RNTI_ISUSER(rnti) && cnt < ENB_METRICS_MAX_USERS) {
-      u->metrics_read(&metrics[cnt]);
+  for (auto& ue : ue_db) {
+    if (SRSLTE_RNTI_ISUSER(ue.first) && cnt < ENB_METRICS_MAX_USERS) {
+      ue.second->metrics_read(&metrics[cnt]);
       cnt++;
     }
   }
@@ -777,14 +774,14 @@ int cc_worker::read_ce_arg(float* ce_arg)
 
 int cc_worker::read_pusch_d(cf_t* pdsch_d)
 {
-  int nof_re = 400; // enb_ul.ul_cfg.pusch.nbits.nof_re
+  int nof_re = enb_ul.pusch.max_re;
   memcpy(pdsch_d, enb_ul.pusch.d, nof_re * sizeof(cf_t));
   return nof_re;
 }
 
 int cc_worker::read_pucch_d(cf_t* pdsch_d)
 {
-  int nof_re = SRSLTE_PUCCH_MAX_BITS / 2; // enb_ul.ul_cfg.pusch.nbits.nof_re
+  int nof_re = SRSLTE_PUCCH_MAX_BITS / 2;
   memcpy(pdsch_d, enb_ul.pucch.z_tmp, nof_re * sizeof(cf_t));
   return nof_re;
 }

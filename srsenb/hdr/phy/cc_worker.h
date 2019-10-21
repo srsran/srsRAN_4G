@@ -100,14 +100,14 @@ private:
   class ue
   {
   public:
-    ue(uint16_t rnti, phy_common* phy)
+    ue(uint16_t id, phy_common* phy)
     {
       // Copy common configuartion
       ul_cfg = phy->ul_cfg_com;
       dl_cfg = phy->dl_cfg_com;
 
       // Fill RNTI
-      this->rnti        = rnti;
+      rnti              = id;
       dl_cfg.pdsch.rnti = rnti;
       ul_cfg.pusch.rnti = rnti;
       ul_cfg.pucch.rnti = rnti;
