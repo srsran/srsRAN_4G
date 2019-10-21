@@ -41,63 +41,69 @@
 #include "srslte/srslte.h"
 
 namespace srslte {
-  
-class timer_callback 
+
+class timer_callback
 {
-  public: 
-    virtual void timer_expired(uint32_t timer_id) = 0; 
-}; 
-  
+public:
+  virtual void timer_expired(uint32_t timer_id) = 0;
+};
+
 class timers
 {
 public:
   class timer
   {
   public:
-    timer(uint32_t id_=0) {id = id_; counter = 0; timeout = 0; running = false; callback = NULL; }
-    void set(timer_callback *callback_, uint32_t timeout_) {
-      callback = callback_; 
-      timeout = timeout_; 
+    timer(uint32_t id_ = 0)
+    {
+      id       = id_;
+      counter  = 0;
+      timeout  = 0;
+      running  = false;
+      callback = nullptr;
+    }
+
+    void set(timer_callback* callback_, uint32_t timeout_)
+    {
+      callback = callback_;
+      timeout  = timeout_;
       reset();
     }
-    bool is_running() {
-      return (counter < timeout) && running; 
-    }
-    bool is_expired() {
-      return (timeout > 0) && (counter >= timeout);
-    }
-    uint32_t get_timeout() {
-      return timeout; 
-    }
-    void reset() {
-      counter = 0; 
-    }
-    uint32_t value() {
-      return counter;
-    }
-    void step() {
+
+    bool is_running() { return (counter < timeout) && running; }
+
+    bool is_expired() { return (timeout > 0) && (counter >= timeout); }
+
+    uint32_t get_timeout() { return timeout; }
+
+    void reset() { counter = 0; }
+
+    uint32_t value() { return counter; }
+
+    void step()
+    {
       if (running) {
         counter++;
         if (is_expired()) {
-          running = false; 
+          running = false;
           if (callback) {
-            callback->timer_expired(id); 
+            callback->timer_expired(id);
           }
-        }        
+        }
       }
     }
-    void stop() {
-      running = false; 
-    }
-    void run() {
-      running = true; 
-    }
-    uint32_t id; 
-  private: 
-    timer_callback *callback; 
-    uint32_t timeout; 
-    uint32_t counter; 
-    bool running;
+
+    void stop() { running = false; }
+
+    void run() { running = true; }
+
+    uint32_t id;
+
+  private:
+    timer_callback* callback;
+    uint32_t        timeout;
+    uint32_t        counter;
+    bool            running;
   };
 
   timers(uint32_t nof_timers_) : timer_list(nof_timers_), used_timers(nof_timers_)
@@ -107,39 +113,50 @@ public:
     nof_used_timers = 0;
     for (uint32_t i = 0; i < nof_timers; i++) {
       timer_list[i].id = i;
-      used_timers[i] = false;
+      used_timers[i]   = false;
     }
   }
-  
-  void step_all() {
-    for (uint32_t i=0;i<nof_timers;i++) {
+
+  void step_all()
+  {
+    for (uint32_t i = 0; i < nof_timers; i++) {
       get(i)->step();
     }
   }
-  void stop_all() {
-    for (uint32_t i=0;i<nof_timers;i++) {
+
+  void stop_all()
+  {
+    for (uint32_t i = 0; i < nof_timers; i++) {
       get(i)->stop();
     }
   }
-  void run_all() {
-    for (uint32_t i=0;i<nof_timers;i++) {
+
+  void run_all()
+  {
+    for (uint32_t i = 0; i < nof_timers; i++) {
       get(i)->run();
     }
   }
-  void reset_all() {
-    for (uint32_t i=0;i<nof_timers;i++) {
+
+  void reset_all()
+  {
+    for (uint32_t i = 0; i < nof_timers; i++) {
       get(i)->reset();
     }
   }
-  timer *get(uint32_t i) {
+
+  timer* get(uint32_t i)
+  {
     if (i < nof_timers) {
-      return &timer_list[i];       
+      return &timer_list[i];
     } else {
       printf("Error accessing invalid timer %d (Only %d timers available)\n", i, nof_timers);
-      return NULL; 
+      return NULL;
     }
   }
-  void release_id(uint32_t i) {
+
+  void release_id(uint32_t i)
+  {
     if (nof_used_timers > 0 && i < nof_timers) {
       used_timers[i] = false;
       nof_used_timers--;
@@ -147,12 +164,14 @@ public:
       ERROR("Error releasing timer id=%d: nof_used_timers=%d, nof_timers=%d\n", i, nof_used_timers, nof_timers);
     }
   }
-  uint32_t get_unique_id() {
+
+  uint32_t get_unique_id()
+  {
     if (nof_used_timers >= nof_timers) {
       ERROR("Error getting unique timer id: no more timers available\n");
       return 0;
     } else {
-      for (uint32_t i=0;i<nof_timers;i++) {
+      for (uint32_t i = 0; i < nof_timers; i++) {
         if (!used_timers[i]) {
           used_timers[i] = true;
           nof_used_timers++;
@@ -165,32 +184,39 @@ public:
       return 0;
     }
   }
+
 private:
-  uint32_t next_timer;
-  uint32_t nof_used_timers;
-  uint32_t nof_timers;
-  std::vector<timer>   timer_list;
-  std::vector<bool>    used_timers;
+  uint32_t           next_timer;
+  uint32_t           nof_used_timers;
+  uint32_t           nof_timers;
+  std::vector<timer> timer_list;
+  std::vector<bool>  used_timers;
 };
 
-class timers2
+class timer_handler
 {
+  constexpr static uint32_t MAX_TIMER_DURATION = std::numeric_limits<uint32_t>::max() / 4;
+  constexpr static uint32_t MAX_TIMER_VALUE    = std::numeric_limits<uint32_t>::max() / 2;
+
   struct timer_impl {
-    timers2*                      parent;
+    timer_handler*                parent;
     uint32_t                      duration = 0, timeout = 0;
     bool                          running = false;
     bool                          active  = false;
     std::function<void(uint32_t)> callback;
 
-    explicit timer_impl(timers2* parent_) : parent(parent_) {}
-    uint32_t id() const { return std::distance((const timers2::timer_impl*)&parent->timer_list[0], this); }
-    bool     is_running() const { return active and running and timeout > 0; }
-    bool     is_expired() const { return active and not running and timeout > 0; }
+    explicit timer_impl(timer_handler* parent_) : parent(parent_) {}
+
+    uint32_t id() const { return std::distance((const timer_handler::timer_impl*)&parent->timer_list[0], this); }
+
+    bool is_running() const { return active and running and timeout > 0; }
+
+    bool is_expired() const { return active and not running and timeout > 0; }
 
     bool set(uint32_t duration_)
     {
-      if (duration_ > std::numeric_limits<uint32_t>::max() / 4) {
-        ERROR("Error: timer durations above %u are not supported\n", std::numeric_limits<uint32_t>::max() / 4);
+      if (duration_ > MAX_TIMER_DURATION) {
+        ERROR("Error: timer durations above %u are not supported\n", MAX_TIMER_DURATION);
         return false;
       }
       if (not active) {
@@ -199,6 +225,7 @@ class timers2
       }
       duration = duration_;
       running  = false; // invalidates any on-going run
+      timeout  = 0;
       return true;
     }
 
@@ -218,8 +245,14 @@ class timers2
         return;
       }
       timeout = parent->cur_time + duration;
-      parent->running_timers.emplace(parent, id(), timeout);
+      parent->running_timers.emplace(id(), timeout);
       running = true;
+    }
+
+    void stop()
+    {
+      running = false; // invalidates trigger
+      timeout = 0;     // makes is_expired() == false && is_running() == false
     }
 
     void clear()
@@ -229,13 +262,15 @@ class timers2
       running  = false;
       active   = false;
       callback = std::function<void(uint32_t)>();
-      // leave run_id unchanged;
+      // leave run_id unchanged. Since the timeout was changed, we shall not get spurious triggering
     }
 
     void trigger()
     {
       if (is_running()) {
-        callback(id());
+        if (callback) {
+          callback(id());
+        }
         running = false;
       }
     }
@@ -245,12 +280,15 @@ public:
   class unique_timer
   {
   public:
-    explicit unique_timer(timers2* parent_, uint32_t timer_id_) : parent(parent_), timer_id(timer_id_) {}
+    explicit unique_timer(timer_handler* parent_, uint32_t timer_id_) : parent(parent_), timer_id(timer_id_) {}
+
     unique_timer(const unique_timer&) = delete;
+
     unique_timer(unique_timer&& other) noexcept : parent(other.parent), timer_id(other.timer_id)
     {
       other.parent = nullptr;
     }
+
     ~unique_timer()
     {
       if (parent) {
@@ -258,8 +296,10 @@ public:
         impl()->clear();
       }
     }
+
     unique_timer& operator=(const unique_timer&) = delete;
-    unique_timer& operator                       =(unique_timer&& other) noexcept
+
+    unique_timer& operator=(unique_timer&& other) noexcept
     {
       if (this != &other) {
         timer_id     = other.timer_id;
@@ -269,23 +309,30 @@ public:
       return *this;
     }
 
-    void     set(uint32_t duration_, const std::function<void(int)>& callback_) { impl()->set(duration_, callback_); }
-    void     set(uint32_t duration_) { impl()->set(duration_); }
-    bool     is_running() const { return impl()->is_running(); }
-    bool     is_expired() const { return impl()->is_expired(); }
-    void     run() { impl()->run(); }
-    void     stop() { impl()->running = false; }
+    void set(uint32_t duration_, const std::function<void(int)>& callback_) { impl()->set(duration_, callback_); }
+
+    void set(uint32_t duration_) { impl()->set(duration_); }
+
+    bool is_running() const { return impl()->is_running(); }
+
+    bool is_expired() const { return impl()->is_expired(); }
+
+    void run() { impl()->run(); }
+
+    void stop() { impl()->stop(); }
+
     uint32_t id() const { return timer_id; }
 
   private:
-    timer_impl*       impl() { return &parent->timer_list[timer_id]; }
+    timer_impl* impl() { return &parent->timer_list[timer_id]; }
+
     const timer_impl* impl() const { return &parent->timer_list[timer_id]; }
 
-    timers2* parent;
-    uint32_t timer_id;
+    timer_handler* parent;
+    uint32_t       timer_id;
   };
 
-  explicit timers2(uint32_t capacity = 64)
+  explicit timer_handler(uint32_t capacity = 64)
   {
     timer_list.reserve(capacity);
     // reserve a priority queue using a vector
@@ -315,8 +362,8 @@ public:
     while (not running_timers.empty()) {
       running_timers.pop();
     }
-    for (uint32_t i = 0; i < timer_list.size(); ++i) {
-      timer_list[i].running = false;
+    for (auto& i : timer_list) {
+      i.running = false;
     }
   }
 
@@ -336,6 +383,7 @@ public:
   }
 
   uint32_t get_cur_time() const { return cur_time; }
+
   uint32_t nof_timers() const
   {
     return std::count_if(timer_list.begin(), timer_list.end(), [](const timer_impl& t) { return t.active; });
@@ -343,23 +391,18 @@ public:
 
 private:
   struct timer_run {
-    timers2* parent;
     uint32_t timer_id;
     uint32_t timeout;
-    timer_run(timers2* parent_, uint32_t timer_id_, uint32_t timeout_) :
-      parent(parent_),
-      timer_id(timer_id_),
-      timeout(timeout_)
-    {
-    }
+
+    timer_run(uint32_t timer_id_, uint32_t timeout_) : timer_id(timer_id_), timeout(timeout_) {}
+
     bool operator<(const timer_run& other) const
     {
-      // returns true, if greater
-      uint32_t lim = std::numeric_limits<uint32_t>::max();
+      // returns true, if other.timeout is lower than timeout, accounting for wrap around
       if (timeout > other.timeout) {
-        return (timeout - other.timeout) < lim / 2;
+        return (timeout - other.timeout) < MAX_TIMER_VALUE / 2;
       }
-      return (other.timeout - timeout) > lim / 2;
+      return (other.timeout - timeout) > MAX_TIMER_VALUE / 2;
     }
   };
 
