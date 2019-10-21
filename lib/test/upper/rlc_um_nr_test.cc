@@ -85,10 +85,10 @@ int rlc_um_nr_test1()
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
   log2.set_hex_limit(-1);
-  rlc_um_tester    tester;
-  srslte::timers   timers(16);
-  const uint32_t   num_sdus = 5;
-  int              len      = 0;
+  rlc_um_tester         tester;
+  srslte::timer_handler timers(16);
+  const uint32_t        num_sdus = 5;
+  int                   len      = 0;
 
   rlc_um rlc1(&log1, 3, &tester, &tester, &timers);
   rlc_um rlc2(&log2, 3, &tester, &tester, &timers);
@@ -139,11 +139,11 @@ int rlc_um_nr_test2()
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
   log2.set_hex_limit(-1);
-  rlc_um_tester    tester;
-  srslte::timers   timers(16);
-  const uint32_t   num_sdus = 1;
-  const uint32_t   sdu_size = 100;
-  int              len      = 0;
+  rlc_um_tester         tester;
+  srslte::timer_handler timers(16);
+  const uint32_t        num_sdus = 1;
+  const uint32_t        sdu_size = 100;
+  int                   len      = 0;
 
   rlc_um rlc1(&log1, 3, &tester, &tester, &timers);
   rlc_um rlc2(&log2, 3, &tester, &tester, &timers);

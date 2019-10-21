@@ -38,7 +38,7 @@ public:
          uint32_t                   lcid_,
          srsue::pdcp_interface_rlc* pdcp_,
          srsue::rrc_interface_rlc*  rrc_,
-         srslte::timers*            timers_,
+         srslte::timer_handler*     timers_,
          uint32_t                   queue_len = 16);
   ~rlc_tm();
   bool configure(rlc_config_t cnfg);

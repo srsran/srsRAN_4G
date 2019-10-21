@@ -40,7 +40,7 @@ namespace srsue {
 class nas : public nas_interface_rrc, public nas_interface_ue, public srslte::timer_callback
 {
 public:
-  nas(srslte::log* log_, srslte::timers* timers_);
+  nas(srslte::log* log_, srslte::timer_handler* timers_);
   void init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_nas* gw_, const nas_args_t& args_);
   void stop();
   void run_tti(uint32_t tti) final;
@@ -131,9 +131,9 @@ private:
   uint8_t transaction_id = 0;
 
   // timers
-  srslte::timers* timers = nullptr;
-  uint32_t        t3410  = 0; // started when attach request is sent, on expiry, start t3411
-  uint32_t        t3411  = 0; // started when attach failed
+  srslte::timer_handler*              timers = nullptr;
+  srslte::timer_handler::unique_timer t3410; // started when attach request is sent, on expiry, start t3411
+  srslte::timer_handler::unique_timer t3411; // started when attach failed
 
   const uint32_t t3410_duration_ms = 15 * 1000; // 15s according to TS 24.301 Sec 10.2
   const uint32_t t3411_duration_ms = 10 * 1000; // 10s according to TS 24.301 Sec 10.2

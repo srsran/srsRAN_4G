@@ -59,24 +59,21 @@ public:
     started_by_pdcch          = false;
     rar_grant_nbytes          = 0;
 
-    noncontention_enabled     = false;
-    next_preamble_idx         = 0;
-    next_prach_mask           = 0;
-
-    time_alignment_timer        = NULL;
-    contention_resolution_timer = NULL;
+    noncontention_enabled = false;
+    next_preamble_idx     = 0;
+    next_prach_mask       = 0;
   };
 
   ~ra_proc();
 
-  void init(phy_interface_mac_lte*        phy_h,
-            rrc_interface_mac*            rrc_,
-            srslte::log*                  log_h,
-            mac_interface_rrc::ue_rnti_t* rntis,
-            srslte::timers::timer*        time_alignment_timer_,
-            srslte::timers::timer*        contention_resolution_timer_,
-            mux*                          mux_unit,
-            stack_interface_mac*          stack_);
+  void init(phy_interface_mac_lte*               phy_h,
+            rrc_interface_mac*                   rrc_,
+            srslte::log*                         log_h,
+            mac_interface_rrc::ue_rnti_t*        rntis,
+            srslte::timer_handler::unique_timer* time_alignment_timer_,
+            srslte::timer_handler::unique_timer  contention_resolution_timer_,
+            mux*                                 mux_unit,
+            stack_interface_mac*                 stack_);
 
   void reset();
 
@@ -171,17 +168,17 @@ private:
   rrc_interface_mac*     rrc;
   stack_interface_mac*   stack;
 
-  srslte::timers::timer* time_alignment_timer;
-  srslte::timers::timer* contention_resolution_timer;
+  srslte::timer_handler::unique_timer* time_alignment_timer = nullptr;
+  srslte::timer_handler::unique_timer  contention_resolution_timer;
 
-  mac_interface_rrc::ue_rnti_t *rntis;
+  mac_interface_rrc::ue_rnti_t* rntis;
 
-  uint64_t    transmitted_contention_id;
-  uint16_t    transmitted_crnti;
+  uint64_t transmitted_contention_id;
+  uint16_t transmitted_crnti;
 
   std::mutex mutex;
 
-  bool ra_is_ho;
+  bool     ra_is_ho;
   bool started_by_pdcch;
   uint32_t rar_grant_nbytes;
   bool rar_received;

@@ -206,17 +206,17 @@ int security_command_test()
   nas_log.set_hex_limit(100000);
   rrc_log.set_hex_limit(100000);
 
-  srslte::timers timers(10);
+  srslte::timer_handler timers(10);
 
   rrc_dummy rrc_dummy;
-  gw_dummy gw;
+  gw_dummy  gw;
 
   usim_args_t args;
-  args.algo = "xor";
-  args.imei = "353490069873319";
-  args.imsi = "001010123456789";
-  args.k = "00112233445566778899aabbccddeeff";
-  args.op = "63BFA50EE6523365FF14C1F45F88737D";
+  args.algo     = "xor";
+  args.imei     = "353490069873319";
+  args.imsi     = "001010123456789";
+  args.k        = "00112233445566778899aabbccddeeff";
+  args.op       = "63BFA50EE6523365FF14C1F45F88737D";
   args.using_op = true;
 
   // init USIM
@@ -278,9 +278,9 @@ int mme_attach_request_test()
   usim_log.set_hex_limit(100000);
   gw_log.set_hex_limit(100000);
 
-  srslte::timers timers(10);
+  srslte::timer_handler timers(10);
 
-  rrc_dummy rrc_dummy;
+  rrc_dummy  rrc_dummy;
   pdcp_dummy pdcp_dummy;
 
   srsue::usim usim(&usim_log);
@@ -358,10 +358,10 @@ int esm_info_request_test()
   nas_log.set_hex_limit(100000);
   rrc_log.set_hex_limit(100000);
 
-  srslte::timers timers(10);
+  srslte::timer_handler timers(10);
 
   rrc_dummy rrc_dummy;
-  gw_dummy gw;
+  gw_dummy  gw;
 
   usim_args_t args;
   args.algo = "xor";
@@ -417,7 +417,7 @@ int dedicated_eps_bearer_test()
   nas_log.set_hex_limit(100000);
   rrc_log.set_hex_limit(100000);
 
-  srslte::timers timers(10);
+  srslte::timer_handler timers(10);
 
   rrc_dummy rrc_dummy;
   gw_dummy  gw;

@@ -107,7 +107,7 @@ void rrc::init(phy_interface_rrc_lte* phy_,
                nas_interface_rrc*     nas_,
                usim_interface_rrc*    usim_,
                gw_interface_rrc*      gw_,
-               srslte::timers*        timers_,
+               srslte::timer_handler* timers_,
                stack_interface_rrc*   stack_,
                const rrc_args_t&      args_)
 {
@@ -130,12 +130,12 @@ void rrc::init(phy_interface_rrc_lte* phy_,
 
   security_is_activated = false;
 
-  t300 = timers->get_unique_id();
-  t301 = timers->get_unique_id();
-  t302 = timers->get_unique_id();
-  t310 = timers->get_unique_id();
-  t311 = timers->get_unique_id();
-  t304 = timers->get_unique_id();
+  t300 = timers->get_unique_timer();
+  t301 = timers->get_unique_timer();
+  t302 = timers->get_unique_timer();
+  t310 = timers->get_unique_timer();
+  t301 = timers->get_unique_timer();
+  t304 = timers->get_unique_timer();
 
   ue_identity_configured = false;
 
@@ -434,20 +434,17 @@ void rrc::out_of_sync()
     // upon receiving N310 consecutive "out-of-sync" indications for the PCell from lower layers while neither T300,
     //   T301, T304 nor T311 is running:
     if (state == RRC_STATE_CONNECTED) {
-      if (!timers->get(t300)->is_running() && !timers->get(t301)->is_running() && !timers->get(t304)->is_running() &&
-          !timers->get(t310)->is_running() && !timers->get(t311)->is_running()) {
+      if (!t300.is_running() && !t301.is_running() && !t304.is_running() && !t310.is_running() && !t311.is_running()) {
         rrc_log->info("Received out-of-sync while in state %s. n310=%d, t311=%s, t310=%s\n",
                       rrc_state_text[state],
                       n310_cnt,
-                      timers->get(t311)->is_running() ? "running" : "stop",
-                      timers->get(t310)->is_running() ? "running" : "stop");
+                      t311.is_running() ? "running" : "stop",
+                      t310.is_running() ? "running" : "stop");
         n310_cnt++;
         if (n310_cnt == N310) {
-          rrc_log->info("Detected %d out-of-sync from PHY. Trying to resync. Starting T310 timer %d ms\n",
-                        N310,
-                        timers->get(t310)->get_timeout());
-          timers->get(t310)->reset();
-          timers->get(t310)->run();
+          rrc_log->info(
+              "Detected %d out-of-sync from PHY. Trying to resync. Starting T310 timer %d ms\n", N310, t310.duration());
+          t310.run();
           n310_cnt = 0;
         }
       }
@@ -460,10 +457,10 @@ void rrc::in_sync()
 {
   // CAUTION: We do not lock in this function since they are called from real-time threads
   serving_cell->in_sync = true;
-  if (timers->get(t310)->is_running()) {
+  if (t310.is_running()) {
     n311_cnt++;
     if (n311_cnt == N311) {
-      timers->get(t310)->stop();
+      t310.stop();
       n311_cnt = 0;
       rrc_log->info("Detected %d in-sync from PHY. Stopping T310 timer\n", N311);
     }
@@ -819,50 +816,44 @@ void rrc::max_retx_attempted() {
   cmd_q.push(std::move(msg));
 }
 
-void rrc::timer_expired(uint32_t timeout_id) {
-  if (timeout_id == t310) {
+void rrc::timer_expired(uint32_t timeout_id)
+{
+  if (timeout_id == t310.id()) {
     rrc_log->info("Timer T310 expired: Radio Link Failure\n");
     radio_link_failure();
-  } else if (timeout_id == t311) {
+  } else if (timeout_id == t311.id()) {
     rrc_log->info("Timer T311 expired: Going to RRC IDLE\n");
     start_go_idle();
-  } else if (timeout_id == t301) {
+  } else if (timeout_id == t301.id()) {
     if (state == RRC_STATE_IDLE) {
       rrc_log->info("Timer T301 expired: Already in IDLE.\n");
     } else {
       rrc_log->info("Timer T301 expired: Going to RRC IDLE\n");
       start_go_idle();
     }
-  } else if (timeout_id == t302) {
+  } else if (timeout_id == t302.id()) {
     rrc_log->info("Timer T302 expired. Informing NAS about barrier alleviation\n");
     nas->set_barring(nas_interface_rrc::BARRING_NONE);
-  } else if (timeout_id == t300) {
+  } else if (timeout_id == t300.id()) {
     // Do nothing, handled in connection_request()
-  } else if (timeout_id == t304) {
+  } else if (timeout_id == t304.id()) {
     rrc_log->console("Timer T304 expired: Handover failed\n");
     ho_failed();
-  // fw to measurement
+    // fw to measurement
   } else if (!measurements.timer_expired(timeout_id)) {
     rrc_log->error("Timeout from unknown timer id %d\n", timeout_id);
   }
 }
 
-
-
-
-
-
-
-
 /*******************************************************************************
-*
-*
-*
-* Connection Control: Establishment, Reconfiguration, Reestablishment and Release
-*
-*
-*
-*******************************************************************************/
+ *
+ *
+ *
+ * Connection Control: Establishment, Reconfiguration, Reestablishment and Release
+ *
+ *
+ *
+ *******************************************************************************/
 
 void rrc::send_con_request(srslte::establishment_cause_t cause)
 {
@@ -1067,8 +1058,8 @@ bool rrc::ho_prepare()
     }
 
     // Section 5.3.5.4
-    timers->get(t310)->stop();
-    timers->get(t304)->set(this, mob_ctrl_info->t304.to_number());
+    t310.stop();
+    t304.set(mob_ctrl_info->t304.to_number(), [this](uint32_t tid) { timer_expired(tid); });
 
     // Save serving cell and current configuration
     ho_src_cell = *serving_cell;
@@ -1153,12 +1144,12 @@ void rrc::ho_ra_completed(bool ra_successful)
         measurements.parse_meas_config(&mob_reconf_r8->meas_cfg);
       }
 
-      timers->get(t304)->stop();
+      t304.stop();
     }
     // T304 will expiry and send ho_failure
 
-    rrc_log->info("HO %ssuccessful\n", ra_successful?"":"un");
-    rrc_log->console("HO %ssuccessful\n", ra_successful?"":"un");
+    rrc_log->info("HO %ssuccessful\n", ra_successful ? "" : "un");
+    rrc_log->console("HO %ssuccessful\n", ra_successful ? "" : "un");
 
     pending_mob_reconf = false;
   } else {
@@ -1348,11 +1339,11 @@ void rrc::leave_connected()
 
 void rrc::stop_timers()
 {
-  timers->get(t300)->stop();
-  timers->get(t301)->stop();
-  timers->get(t310)->stop();
-  timers->get(t311)->stop();
-  timers->get(t304)->stop();
+  t300.stop();
+  t301.stop();
+  t310.stop();
+  t311.stop();
+  t304.stop();
 }
 
 /* Implementation of procedure in 3GPP 36.331 Section 5.3.7.2: Initiation
@@ -1402,11 +1393,10 @@ void rrc::proc_con_restablish_request()
     rrc_log->info("Resetting timers and MAC in RRC Connection Reestablishment Procedure\n");
 
     // stop timer T310, if running;
-    timers->get(t310)->stop();
+    t310.stop();
 
     // start timer T311;
-    timers->get(t311)->reset();
-    timers->get(t311)->run();
+    t311.run();
 
     // Suspend all RB except SRB0
     for (int i = 1; i < SRSLTE_N_RADIO_BEARERS; i++) {
@@ -1432,7 +1422,7 @@ void rrc::proc_con_restablish_request()
   }
 
   // Check timer...
-  if (timers->get(t311)->is_running()) {
+  if (t311.is_running()) {
     // Wait until we're synced and have obtained SIBs
     if (serving_cell->in_sync && serving_cell->has_sib1() && serving_cell->has_sib2() && serving_cell->has_sib3()) {
       // Perform cell selection in accordance to 36.304
@@ -1440,16 +1430,16 @@ void rrc::proc_con_restablish_request()
         // Actions following cell reselection while T311 is running 5.3.7.3
         // Upon selecting a suitable E-UTRA cell, the UE shall:
         rrc_log->info("Cell Selection criteria passed after %dms. Sending RRC Connection Reestablishment Request\n",
-                      timers->get(t311)->value());
+                      t311.value());
 
         // stop timer T311;
-        timers->get(t301)->reset();
+        t311.stop();
 
         // start timer T301;
-        timers->get(t301)->run();
+        t301.run();
 
         // apply the timeAlignmentTimerCommon included in SystemInformationBlockType2;
-        timers->get(t311)->stop();
+        // TODO
 
         // initiate transmission of the RRCConnectionReestablishmentRequest message in accordance with 5.3.7.4;
         send_con_restablish_request();
@@ -1659,20 +1649,21 @@ void rrc::handle_sib2()
 
   log_rr_config_common();
 
-  timers->get(t300)->set(this, sib2->ue_timers_and_consts.t300.to_number());
-  timers->get(t301)->set(this, sib2->ue_timers_and_consts.t301.to_number());
-  timers->get(t310)->set(this, sib2->ue_timers_and_consts.t310.to_number());
-  timers->get(t311)->set(this, sib2->ue_timers_and_consts.t311.to_number());
+  auto timer_expire_func = [this](uint32_t tid) { timer_expired(tid); };
+  t300.set(sib2->ue_timers_and_consts.t300.to_number(), timer_expire_func);
+  t301.set(sib2->ue_timers_and_consts.t301.to_number(), timer_expire_func);
+  t310.set(sib2->ue_timers_and_consts.t310.to_number(), timer_expire_func);
+  t311.set(sib2->ue_timers_and_consts.t311.to_number(), timer_expire_func);
   N310 = sib2->ue_timers_and_consts.n310.to_number();
   N311 = sib2->ue_timers_and_consts.n311.to_number();
 
   rrc_log->info("Set Constants and Timers: N310=%d, N311=%d, t300=%d, t301=%d, t310=%d, t311=%d\n",
                 N310,
                 N311,
-                timers->get(t300)->get_timeout(),
-                timers->get(t301)->get_timeout(),
-                timers->get(t310)->get_timeout(),
-                timers->get(t311)->get_timeout());
+                t300.duration(),
+                t301.duration(),
+                t310.duration(),
+                t311.duration());
 }
 
 void rrc::handle_sib3()
@@ -1914,12 +1905,12 @@ void rrc::parse_dl_ccch(unique_byte_buffer_t pdu)
       rrc_log->info("Received ConnectionReject. Wait time: %d\n", reject_r8->wait_time);
       rrc_log->console("Received ConnectionReject. Wait time: %d\n", reject_r8->wait_time);
 
-      timers->get(t300)->stop();
+      t300.stop();
 
       if (reject_r8->wait_time) {
         nas->set_barring(nas_interface_rrc::BARRING_ALL);
-        timers->get(t302)->set(this, reject_r8->wait_time * 1000u);
-        timers->get(t302)->run();
+        t302.set(reject_r8->wait_time * 1000, [this](uint32_t tid) { timer_expired(tid); });
+        t302.run();
       } else {
         // Perform the actions upon expiry of T302 if wait time is zero
         nas->set_barring(nas_interface_rrc::BARRING_NONE);
@@ -2543,19 +2534,20 @@ bool rrc::apply_rr_config_dedicated(rr_cfg_ded_s* cnfg)
     // TODO
   }
   if (cnfg->rlf_timers_and_consts_r9.is_present() and cnfg->rlf_timers_and_consts_r9->type() == setup_e::setup) {
-    timers->get(t301)->set(this, cnfg->rlf_timers_and_consts_r9->setup().t301_r9.to_number());
-    timers->get(t310)->set(this, cnfg->rlf_timers_and_consts_r9->setup().t310_r9.to_number());
-    timers->get(t311)->set(this, cnfg->rlf_timers_and_consts_r9->setup().t311_r9.to_number());
+    auto timer_expire_func = [this](uint32_t tid) { timer_expired(tid); };
+    t301.set(cnfg->rlf_timers_and_consts_r9->setup().t301_r9.to_number(), timer_expire_func);
+    t310.set(cnfg->rlf_timers_and_consts_r9->setup().t310_r9.to_number(), timer_expire_func);
+    t311.set(cnfg->rlf_timers_and_consts_r9->setup().t311_r9.to_number(), timer_expire_func);
     N310 = cnfg->rlf_timers_and_consts_r9->setup().n310_r9.to_number();
     N311 = cnfg->rlf_timers_and_consts_r9->setup().n311_r9.to_number();
 
     rrc_log->info("Updated Constants and Timers: N310=%d, N311=%d, t300=%u, t301=%u, t310=%u, t311=%u\n",
                   N310,
                   N311,
-                  timers->get(t300)->get_timeout(),
-                  timers->get(t301)->get_timeout(),
-                  timers->get(t310)->get_timeout(),
-                  timers->get(t311)->get_timeout());
+                  t300.duration(),
+                  t301.duration(),
+                  t310.duration(),
+                  t311.duration());
   }
   for (uint32_t i = 0; i < cnfg->srb_to_add_mod_list.size(); i++) {
     // TODO: handle SRB modification
@@ -2635,8 +2627,8 @@ void rrc::handle_con_setup(rrc_conn_setup_s* setup)
 {
   // Must enter CONNECT before stopping T300
   state = RRC_STATE_CONNECTED;
-  timers->get(t300)->stop();
-  timers->get(t302)->stop();
+  t300.stop();
+  t302.stop();
   rrc_log->console("RRC Connected\n");
 
   // Apply the Radio Resource configuration
@@ -2654,7 +2646,7 @@ void rrc::handle_con_setup(rrc_conn_setup_s* setup)
 /* Reception of RRCConnectionReestablishment by the UE 5.3.7.5 */
 void rrc::handle_con_reest(rrc_conn_reest_s* setup)
 {
-  timers->get(t301)->stop();
+  t301.stop();
 
   // Reestablish PDCP and RLC for SRB1
   pdcp->reestablish(1);
@@ -2848,10 +2840,11 @@ void rrc::set_mac_default() {
 
 void rrc::set_rrc_default()
 {
-  N310 = 1;
-  N311 = 1;
-  timers->get(t310)->set(this, 1000);
-  timers->get(t311)->set(this, 1000);
+  N310                   = 1;
+  N311                   = 1;
+  auto timer_expire_func = [this](uint32_t tid) { timer_expired(tid); };
+  t310.set(1000, timer_expire_func);
+  t311.set(1000, timer_expire_func);
 }
 
 /************************************************************************
@@ -3030,11 +3023,10 @@ void rrc::rrc_meas::generate_report(uint32_t meas_id)
   report->meas_result_neigh_cells_present = neigh_list.size() > 0;
 
   m->nof_reports_sent++;
-  timers->get(m->periodic_timer)->stop();
+  m->periodic_timer.stop();
 
   if (m->nof_reports_sent < cfg->amount) {
-    timers->get(m->periodic_timer)->reset();
-    timers->get(m->periodic_timer)->run();
+    m->periodic_timer.run();
   } else {
     if (cfg->trigger_type == report_cfg_t::PERIODIC) {
       m->triggered = false;
@@ -3063,11 +3055,11 @@ bool rrc::rrc_meas::process_event(eutra_event_s* event, uint32_t tti, bool enter
   } else if (exit_condition) {
     if (!cell->timer_exit_triggered) {
       cell->timer_exit_triggered = true;
-      cell->exit_tti      = tti;
+      cell->exit_tti             = tti;
     } else if (srslte_tti_interval(tti, cell->exit_tti) >= event->time_to_trigger) {
       m->triggered    = false;
       cell->triggered = false;
-      timers->get(m->periodic_timer)->stop();
+      m->periodic_timer.stop();
       if (event) {
         if (event->event_id.type() == eutra_event_s::event_id_c_::types::event_a3 &&
             event->event_id.event_a3().report_on_leave) {
@@ -3232,9 +3224,10 @@ void rrc::rrc_meas::ho_finish() {
 }
 
 // 5.5.4.1 expiry of periodical reporting timer
-bool rrc::rrc_meas::timer_expired(uint32_t timer_id) {
+bool rrc::rrc_meas::timer_expired(uint32_t timer_id)
+{
   for (std::map<uint32_t, meas_t>::iterator iter = active.begin(); iter != active.end(); ++iter) {
-    if (iter->second.periodic_timer == timer_id) {
+    if (iter->second.periodic_timer.id() == timer_id) {
       log_h->info("Generate report MeasId=%d, from timerId=%d\n", iter->first, timer_id);
       generate_report(iter->first);
       return true;
@@ -3245,11 +3238,12 @@ bool rrc::rrc_meas::timer_expired(uint32_t timer_id) {
 
 void rrc::rrc_meas::stop_reports(meas_t* m)
 {
-  timers->get(m->periodic_timer)->stop();
+  m->periodic_timer.stop();
   m->triggered = false;
 }
 
-void rrc::rrc_meas::stop_reports_object(uint32_t object_id) {
+void rrc::rrc_meas::stop_reports_object(uint32_t object_id)
+{
   for (std::map<uint32_t, meas_t>::iterator iter = active.begin(); iter != active.end(); ++iter) {
     if (iter->second.object_id == object_id) {
       stop_reports(&iter->second);
@@ -3282,8 +3276,6 @@ void rrc::rrc_meas::remove_meas_report(uint32_t report_id) {
 void rrc::rrc_meas::remove_meas_id(uint32_t measId)
 {
   if (active.count(measId)) {
-    timers->get(active[measId].periodic_timer)->stop();
-    timers->release_id(active[measId].periodic_timer);
     log_h->info("MEAS: Removed measId=%d\n", measId);
     active.erase(measId);
   } else {
@@ -3293,8 +3285,6 @@ void rrc::rrc_meas::remove_meas_id(uint32_t measId)
 
 void rrc::rrc_meas::remove_meas_id(std::map<uint32_t, meas_t>::iterator it)
 {
-  timers->get(it->second.periodic_timer)->stop();
-  timers->release_id(it->second.periodic_timer);
   log_h->info("MEAS: Removed measId=%d\n", it->first);
   active.erase(it);
 }
@@ -3443,16 +3433,20 @@ bool rrc::rrc_meas::parse_meas_config(meas_cfg_s* cfg)
       // Stop the timer if the entry exists or create the timer if not
       bool is_new = false;
       if (active.count(meas_id->meas_id)) {
-        timers->get(active[meas_id->meas_id].periodic_timer)->stop();
+        active[meas_id->meas_id].periodic_timer.stop();
       } else {
         is_new                                  = true;
-        active[meas_id->meas_id].periodic_timer = timers->get_unique_id();
+        active[meas_id->meas_id].periodic_timer = timers->get_unique_timer();
       }
       active[meas_id->meas_id].object_id = meas_id->meas_obj_id;
       active[meas_id->meas_id].report_id = meas_id->report_cfg_id;
       log_h->info("MEAS: %s measId=%d, measObjectId=%d, reportConfigId=%d, timer_id=%u, nof_values=%zd\n",
-                  is_new ? "Added" : "Updated", meas_id->meas_id, meas_id->meas_obj_id, meas_id->report_cfg_id,
-                  active[meas_id->meas_id].periodic_timer, active[meas_id->meas_id].cell_values.size());
+                  is_new ? "Added" : "Updated",
+                  meas_id->meas_id,
+                  meas_id->meas_obj_id,
+                  meas_id->report_cfg_id,
+                  active[meas_id->meas_id].periodic_timer.id(),
+                  active[meas_id->meas_id].cell_values.size());
     }
   }
 

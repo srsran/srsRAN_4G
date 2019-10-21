@@ -32,7 +32,7 @@ rlc_um::rlc_um(srslte::log*               log_,
                uint32_t                   lcid_,
                srsue::pdcp_interface_rlc* pdcp_,
                srsue::rrc_interface_rlc*  rrc_,
-               srslte::timers*            timers_) :
+               srslte::timer_handler*     timers_) :
   lcid(lcid_),
   pool(byte_buffer_pool::get_instance()),
   rrc(rrc_),
@@ -96,8 +96,8 @@ bool rlc_um::rlc_um_rx::configure(rlc_config_t cnfg_, std::string rb_name_)
     }
 
     // set reordering timer
-    if (reordering_timer != NULL) {
-      reordering_timer->set(this, cfg.um.t_reordering);
+    if (reordering_timer.is_valid()) {
+      reordering_timer.set(cfg.um.t_reordering, [this](uint32_t tid) { timer_expired(tid); });
     }
   } else {
     if (cfg.um_nr.mod == 0) {
@@ -609,31 +609,26 @@ rlc_um::rlc_um_rx::rlc_um_rx(srslte::log*               log_,
                              uint32_t                   lcid_,
                              srsue::pdcp_interface_rlc* pdcp_,
                              srsue::rrc_interface_rlc*  rrc_,
-                             srslte::timers*            timers_) :
+                             srslte::timer_handler*     timers_) :
   pool(byte_buffer_pool::get_instance()),
   log(log_),
   pdcp(pdcp_),
   rrc(rrc_),
   timers(timers_),
-  lcid(lcid_)
+  lcid(lcid_),
+  reordering_timer(timers_->get_unique_timer())
 {
-  reordering_timer_id = timers->get_unique_id();
-  reordering_timer    = timers->get(reordering_timer_id);
 }
 
-rlc_um::rlc_um_rx::~rlc_um_rx()
-{
-  reordering_timer->stop();
-  timers->release_id(reordering_timer_id);
-}
+rlc_um::rlc_um_rx::~rlc_um_rx() {}
 
 void rlc_um::rlc_um_rx::reestablish()
 {
   // try to reassemble any SDUs if possible
-  if (reordering_timer != NULL) {
-    if (reordering_timer->is_running()) {
-      reordering_timer->stop();
-      timer_expired(reordering_timer_id);
+  if (reordering_timer.is_valid()) {
+    if (reordering_timer.is_running()) {
+      reordering_timer.stop();
+      timer_expired(reordering_timer.id());
     }
   }
 
@@ -642,12 +637,12 @@ void rlc_um::rlc_um_rx::reestablish()
   rx_enabled = true;
 }
 
-
 void rlc_um::rlc_um_rx::stop()
 {
   std::lock_guard<std::mutex> lock(mutex);
   reset();
-  reordering_timer->stop();
+
+  reordering_timer.stop();
 }
 
 void rlc_um::rlc_um_rx::reset()
@@ -723,17 +718,14 @@ void rlc_um::rlc_um_rx::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   log->debug("Finished reassemble from received PDU\n");
 
   // Update reordering variables and timers
-  if(reordering_timer->is_running()) {
-    if(RX_MOD_BASE(vr_ux) <= RX_MOD_BASE(vr_ur) ||
-       (!inside_reordering_window(vr_ux) && vr_ux != vr_uh))
-    {
-      reordering_timer->stop();
+  if (reordering_timer.is_running()) {
+    if (RX_MOD_BASE(vr_ux) <= RX_MOD_BASE(vr_ur) || (!inside_reordering_window(vr_ux) && vr_ux != vr_uh)) {
+      reordering_timer.stop();
     }
   }
-  if(!reordering_timer->is_running()) {
-    if(RX_MOD_BASE(vr_uh) > RX_MOD_BASE(vr_ur)) {
-      reordering_timer->reset();
-      reordering_timer->run();
+  if (!reordering_timer.is_running()) {
+    if (RX_MOD_BASE(vr_uh) > RX_MOD_BASE(vr_ur)) {
+      reordering_timer.run();
       vr_ux = vr_uh;
     }
   }
@@ -1023,10 +1015,9 @@ void rlc_um::rlc_um_rx::reset_metrics()
 void rlc_um::rlc_um_rx::timer_expired(uint32_t timeout_id)
 {
   std::lock_guard<std::mutex> lock(mutex);
-  if (reordering_timer != NULL && reordering_timer_id == timeout_id) {
+  if (reordering_timer.is_valid() && reordering_timer.id() == timeout_id) {
     // 36.322 v10 Section 5.1.2.2.4
-    log->info("%s reordering timeout expiry - updating vr_ur and reassembling\n",
-              get_rb_name());
+    log->info("%s reordering timeout expiry - updating vr_ur and reassembling\n", get_rb_name());
 
     log->warning("Lost PDU SN: %d\n", vr_ur);
 
@@ -1043,8 +1034,7 @@ void rlc_um::rlc_um_rx::timer_expired(uint32_t timeout_id)
     }
 
     if (RX_MOD_BASE(vr_uh) > RX_MOD_BASE(vr_ur)) {
-      reordering_timer->reset();
-      reordering_timer->run();
+      reordering_timer.run();
       vr_ux = vr_uh;
     }
 

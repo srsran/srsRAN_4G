@@ -47,9 +47,9 @@ int basic_test()
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
   log2.set_hex_limit(-1);
-  rlc_um_tester  tester;
-  srslte::timers timers(16);
-  int            len = 0;
+  rlc_um_tester         tester;
+  srslte::timer_handler timers(16);
+  int                   len = 0;
 
   rlc_um rlc1(&log1, 3, &tester, &tester, &timers);
   rlc_um rlc2(&log2, 3, &tester, &tester, &timers);
@@ -116,9 +116,9 @@ int loss_test()
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
   log2.set_hex_limit(-1);
-  rlc_um_tester  tester;
-  srslte::timers timers(16);
-  int            len = 0;
+  rlc_um_tester         tester;
+  srslte::timer_handler timers(16);
+  int                   len = 0;
 
   rlc_um rlc1(&log1, 3, &tester, &tester, &timers);
   rlc_um rlc2(&log2, 3, &tester, &tester, &timers);
@@ -161,8 +161,11 @@ int loss_test()
   }
 
   // Step the reordering timer until expiry
-  while (!timers.get(1)->is_expired())
-    timers.get(1)->step();
+  //  while (!timers.get(1)->is_expired())
+  //    timers.get(1)->step();
+  while (timers.nof_running_timers() != 0) {
+    timers.step_all();
+  }
 
   TESTASSERT(NBUFS - 1 == tester.sdus.size());
 
@@ -177,9 +180,9 @@ int basic_mbsfn_test()
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
   log2.set_hex_limit(-1);
-  rlc_um_tester  tester;
-  srslte::timers timers(16);
-  int            len = 0;
+  rlc_um_tester         tester;
+  srslte::timer_handler timers(16);
+  int                   len = 0;
 
   rlc_um rlc1(&log1, 3, &tester, &tester, &timers);
   rlc_um rlc2(&log2, 3, &tester, &tester, &timers);
@@ -248,9 +251,9 @@ int reassmble_test()
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
   log2.set_hex_limit(-1);
-  rlc_um_tester  tester;
-  srslte::timers timers(16);
-  int            len = 0;
+  rlc_um_tester         tester;
+  srslte::timer_handler timers(16);
+  int                   len = 0;
 
   rlc_um rlc1(&log1, 3, &tester, &tester, &timers);
   rlc_um rlc2(&log2, 3, &tester, &tester, &timers);
@@ -357,9 +360,9 @@ int reassmble_test2()
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
   log2.set_hex_limit(-1);
-  rlc_um_tester  tester;
-  srslte::timers timers(16);
-  int            len = 0;
+  rlc_um_tester         tester;
+  srslte::timer_handler timers(16);
+  int                   len = 0;
 
   rlc_um rlc1(&log1, 3, &tester, &tester, &timers);
   rlc_um rlc2(&log2, 3, &tester, &tester, &timers);

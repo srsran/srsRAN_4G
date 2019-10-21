@@ -68,7 +68,7 @@ public:
          uint32_t                   lcid_,
          srsue::pdcp_interface_rlc* pdcp_,
          srsue::rrc_interface_rlc*  rrc_,
-         srslte::timers*            timers_);
+         srslte::timer_handler*     timers_);
   bool configure(rlc_config_t cfg_);
   void reestablish();
   void stop();
@@ -176,18 +176,15 @@ private:
      * Ref: 3GPP TS 36.322 v10.0.0 Section 7
      ***************************************************************************/
 
-    srslte::timers::timer* poll_retx_timer    = nullptr;
-    uint32_t               poll_retx_timer_id = 0;
-
-    srslte::timers::timer* status_prohibit_timer    = nullptr;
-    uint32_t               status_prohibit_timer_id = 0;
+    srslte::timer_handler::unique_timer poll_retx_timer;
+    srslte::timer_handler::unique_timer status_prohibit_timer;
 
     // Tx windows
-    std::map<uint32_t, rlc_amd_tx_pdu_t>          tx_window;
-    std::deque<rlc_amd_retx_t>                    retx_queue;
+    std::map<uint32_t, rlc_amd_tx_pdu_t> tx_window;
+    std::deque<rlc_amd_retx_t>           retx_queue;
 
     // Mutexes
-    pthread_mutex_t     mutex;
+    pthread_mutex_t mutex;
 
     // Metrics
     uint32_t num_tx_bytes = 0;
@@ -270,15 +267,14 @@ private:
      * Ref: 3GPP TS 36.322 v10.0.0 Section 7
      ***************************************************************************/
 
-    srslte::timers::timer* reordering_timer    = nullptr;
-    uint32_t               reordering_timer_id = 0;
+    srslte::timer_handler::unique_timer reordering_timer;
   };
 
   // Common variables needed/provided by parent class
   srsue::rrc_interface_rlc*  rrc    = nullptr;
   srslte::log*               log    = nullptr;
   srsue::pdcp_interface_rlc* pdcp   = nullptr;
-  srslte::timers*            timers = nullptr;
+  srslte::timer_handler*     timers = nullptr;
   uint32_t                   lcid   = 0;
   rlc_config_t               cfg    = {};
   std::string                rb_name;

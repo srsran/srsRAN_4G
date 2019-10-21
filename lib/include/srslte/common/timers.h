@@ -211,7 +211,9 @@ class timer_handler
 
     bool is_running() const { return active and running and timeout > 0; }
 
-    bool is_expired() const { return active and not running and timeout > 0; }
+    bool is_expired() const { return active and not running and timeout > 0 and timeout <= parent->cur_time; }
+
+    uint32_t value() const { return parent->cur_time - (timeout - duration); }
 
     bool set(uint32_t duration_)
     {
@@ -223,9 +225,8 @@ class timer_handler
         ERROR("Error: setting inactive timer id=%d\n", id());
         return false;
       }
+      stop(); // invalidates any on-going run
       duration = duration_;
-      running  = false; // invalidates any on-going run
-      timeout  = 0;
       return true;
     }
 
@@ -252,14 +253,15 @@ class timer_handler
     void stop()
     {
       running = false; // invalidates trigger
-      timeout = 0;     // makes is_expired() == false && is_running() == false
+      if (not is_expired()) {
+        timeout = 0; // if it has already expired, then do not alter is_expired() state
+      }
     }
 
     void clear()
     {
-      timeout  = 0;
+      stop();
       duration = 0;
-      running  = false;
       active   = false;
       callback = std::function<void(uint32_t)>();
       // leave run_id unchanged. Since the timeout was changed, we shall not get spurious triggering
@@ -280,6 +282,7 @@ public:
   class unique_timer
   {
   public:
+    unique_timer() : parent(nullptr), timer_id(std::numeric_limits<decltype(timer_id)>::max()) {}
     explicit unique_timer(timer_handler* parent_, uint32_t timer_id_) : parent(parent_), timer_id(timer_id_) {}
 
     unique_timer(const unique_timer&) = delete;
@@ -309,6 +312,8 @@ public:
       return *this;
     }
 
+    bool is_valid() const { return parent != nullptr; }
+
     void set(uint32_t duration_, const std::function<void(int)>& callback_) { impl()->set(duration_, callback_); }
 
     void set(uint32_t duration_) { impl()->set(duration_); }
@@ -317,11 +322,21 @@ public:
 
     bool is_expired() const { return impl()->is_expired(); }
 
+    uint32_t value() const { return impl()->value(); }
+
     void run() { impl()->run(); }
 
     void stop() { impl()->stop(); }
 
+    void release()
+    {
+      impl()->clear();
+      parent = nullptr;
+    }
+
     uint32_t id() const { return timer_id; }
+
+    uint32_t duration() const { return impl()->duration; }
 
   private:
     timer_impl* impl() { return &parent->timer_list[timer_id]; }
@@ -345,7 +360,7 @@ public:
   void step_all()
   {
     cur_time++;
-    while (not running_timers.empty() and cur_time > running_timers.top().timeout) {
+    while (not running_timers.empty() and cur_time >= running_timers.top().timeout) {
       timer_impl* ptr = &timer_list[running_timers.top().timer_id];
       // if the timer_run and timer_impl timeouts do not match, it means that timer_impl::timeout was overwritten.
       // in such case, do not trigger
@@ -387,6 +402,11 @@ public:
   uint32_t nof_timers() const
   {
     return std::count_if(timer_list.begin(), timer_list.end(), [](const timer_impl& t) { return t.active; });
+  }
+
+  uint32_t nof_running_timers() const
+  {
+    return std::count_if(timer_list.begin(), timer_list.end(), [](const timer_impl& t) { return t.is_running(); });
   }
 
 private:

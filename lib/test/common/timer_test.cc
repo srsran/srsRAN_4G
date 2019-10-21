@@ -55,7 +55,7 @@ int timers2_test()
       TESTASSERT(not t.is_running());
       t.run();
       TESTASSERT(t.is_running() and not t.is_expired());
-      for (uint32_t i = 0; i < dur; ++i) {
+      for (uint32_t i = 0; i < dur - 1; ++i) {
         timers.step_all();
         TESTASSERT(t.is_running() and not t.is_expired());
       }
@@ -63,7 +63,7 @@ int timers2_test()
       TESTASSERT(not t.is_running() and t.is_expired());
       TESTASSERT(callback_called);
     }
-    TESTASSERT(timers.get_cur_time() == 3 * (1 + dur));
+    TESTASSERT(timers.get_cur_time() == 3 * dur);
 
     // TEST: interrupt a timer. check if callback was called
     callback_called = false;
@@ -84,7 +84,7 @@ int timers2_test()
     timers.step_all();
     TESTASSERT(t.is_running());
     t.run(); // re-run
-    for (uint32_t i = 0; i < dur; ++i) {
+    for (uint32_t i = 0; i < dur - 1; ++i) {
       timers.step_all();
       TESTASSERT(t.is_running());
     }
@@ -109,10 +109,10 @@ int timers2_test()
     t.run();
     t2.run();
     t3.run();
-    for (uint32_t i = 0; i < 6; ++i) {
+    for (uint32_t i = 0; i < 5; ++i) {
       timers.step_all();
-      TESTASSERT(i >= 4 or t.is_running());
-      TESTASSERT(i >= 2 or t2.is_running());
+      TESTASSERT(i >= 3 or t.is_running());
+      TESTASSERT(i >= 1 or t2.is_running());
       TESTASSERT(t3.is_running());
     }
     timers.step_all();
@@ -131,7 +131,8 @@ int timers2_test2()
 {
   /**
    * Description:
-   * - check if we call stop(), the timer does not get into expired state
+   * - calling stop() early, forbids the timer from getting expired
+   * - calling stop() after timer has expired should be a noop
    */
   timer_handler timers;
   uint32_t      duration = 2;
@@ -139,8 +140,10 @@ int timers2_test2()
   auto utimer  = timers.get_unique_timer();
   auto utimer2 = timers.get_unique_timer();
   utimer.set(duration);
-  utimer.run();
   utimer2.set(duration);
+
+  // TEST 1: call utimer.stop() early and check if timer expires
+  utimer.run();
   utimer2.run();
   TESTASSERT(utimer.is_running() and not utimer.is_expired());
   utimer.stop();
@@ -150,6 +153,10 @@ int timers2_test2()
     timers.step_all();
   }
   TESTASSERT(not utimer.is_expired());
+  TESTASSERT(utimer2.is_expired());
+
+  // TEST 2: call utimer.stop() after it expires and assert it is still expired
+  utimer2.stop();
   TESTASSERT(utimer2.is_expired());
 
   return SRSLTE_SUCCESS;

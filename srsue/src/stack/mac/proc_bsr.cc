@@ -42,14 +42,14 @@ bsr_proc::bsr_proc()
   pthread_mutex_init(&mutex, NULL);
 }
 
-void bsr_proc::init(rlc_interface_mac* rlc_, srslte::log* log_h_, srslte::timers* timers_db_)
+void bsr_proc::init(rlc_interface_mac* rlc_, srslte::log* log_h_, srslte::timer_handler* timers_db_)
 {
-  log_h     = log_h_; 
-  rlc       = rlc_; 
+  log_h     = log_h_;
+  rlc       = rlc_;
   timers_db = timers_db_;
 
-  timer_periodic_id = timers_db->get_unique_id();
-  timer_retx_id     = timers_db->get_unique_id();
+  timer_periodic = timers_db->get_unique_timer();
+  timer_retx     = timers_db->get_unique_timer();
 
   reset();
   initiated = true;
@@ -63,13 +63,11 @@ void bsr_proc::set_trigger(srsue::bsr_proc::triggered_bsr_type_t new_trigger)
 
 void bsr_proc::reset()
 {
-  timers_db->get(timer_periodic_id)->stop();
-  timers_db->get(timer_periodic_id)->reset();
-  timers_db->get(timer_retx_id)->stop();
-  timers_db->get(timer_retx_id)->reset();
-  
-  reset_sr = false; 
-  sr_is_sent = false; 
+  timer_periodic.stop();
+  timer_retx.stop();
+
+  reset_sr           = false;
+  sr_is_sent         = false;
   triggered_bsr_type = NONE;
 
   trigger_tti = 0;
@@ -82,27 +80,28 @@ void bsr_proc::set_config(srslte::bsr_cfg_t& bsr_cfg)
   this->bsr_cfg = bsr_cfg;
 
   if (bsr_cfg.periodic_timer > 0) {
-    timers_db->get(timer_periodic_id)->set(this, bsr_cfg.periodic_timer);
+    timer_periodic.set(bsr_cfg.periodic_timer, [this](uint32_t tid) { timer_expired(tid); });
     Info("BSR:   Configured timer periodic %d ms\n", bsr_cfg.periodic_timer);
   }
   if (bsr_cfg.retx_timer > 0) {
-    timers_db->get(timer_retx_id)->set(this, bsr_cfg.retx_timer);
+    timer_retx.set(bsr_cfg.retx_timer, [this](uint32_t tid) { timer_expired(tid); });
     Info("BSR:   Configured timer reTX %d ms\n", bsr_cfg.retx_timer);
   }
   pthread_mutex_unlock(&mutex);
 }
 
 /* Process Periodic BSR */
-void bsr_proc::timer_expired(uint32_t timer_id) {
+void bsr_proc::timer_expired(uint32_t timer_id)
+{
   pthread_mutex_lock(&mutex);
   // periodicBSR-Timer
-  if (timer_id == timer_periodic_id) {
+  if (timer_id == timer_periodic.id()) {
     if (triggered_bsr_type == NONE) {
       set_trigger(PERIODIC);
       Debug("BSR:   Triggering Periodic BSR\n");
     }
     // retxBSR-Timer
-  } else if (timer_id == timer_retx_id) {
+  } else if (timer_id == timer_retx.id()) {
     // Enable reTx of SR only if periodic timer is not infinity
     Debug("BSR:   Timer BSR reTX expired, periodic=%d, channel=%d\n", bsr_cfg.periodic_timer, check_any_channel());
     // Triger Regular BSR if UE has available data for transmission on any channel
@@ -237,19 +236,22 @@ bool bsr_proc::generate_bsr(bsr_t* bsr, uint32_t nof_padding_bytes)
       bsr->format = LONG_BSR;
     }
   } else {
-    bsr->format = SHORT_BSR;    
+    bsr->format = SHORT_BSR;
     if (nof_lcg > 1) {
       bsr->format = LONG_BSR;
-    }  
+    }
   }
   Info("BSR:   Type %s, Format %s, Value=%d,%d,%d,%d\n",
-       bsr_type_tostring(triggered_bsr_type), bsr_format_tostring(bsr->format),
-       bsr->buff_size[0], bsr->buff_size[1], bsr->buff_size[2], bsr->buff_size[3]);
+       bsr_type_tostring(triggered_bsr_type),
+       bsr_format_tostring(bsr->format),
+       bsr->buff_size[0],
+       bsr->buff_size[1],
+       bsr->buff_size[2],
+       bsr->buff_size[3]);
 
   // Restart or Start Periodic timer every time a BSR is generated and transmitted in an UL grant
-  if (timers_db->get(timer_periodic_id)->get_timeout() && bsr->format != TRUNC_BSR) {
-    timers_db->get(timer_periodic_id)->reset();
-    timers_db->get(timer_periodic_id)->run();
+  if (timer_periodic.duration() && bsr->format != TRUNC_BSR) {
+    timer_periodic.run();
     Debug("BSR:   Started periodicBSR-Timer\n");
   }
 
@@ -360,9 +362,8 @@ bool bsr_proc::need_to_send_bsr_on_ul_grant(uint32_t grant_size, bsr_t* bsr)
   reset_sr = true;
 
   // Restart or Start ReTX timer upon indication of a grant
-  if (timers_db->get(timer_retx_id)->get_timeout()) {
-    timers_db->get(timer_retx_id)->reset();
-    timers_db->get(timer_retx_id)->run();
+  if (timer_retx.duration()) {
+    timer_retx.run();
     Debug("BSR:   Started retxBSR-Timer\n");
   }
   pthread_mutex_unlock(&mutex);

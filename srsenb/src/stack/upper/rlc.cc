@@ -24,11 +24,11 @@
 
 namespace srsenb {
 
-void rlc::init(pdcp_interface_rlc* pdcp_,
-               rrc_interface_rlc*  rrc_,
-               mac_interface_rlc*  mac_,
-               srslte::timers*     timers_,
-               srslte::log*        log_h_)
+void rlc::init(pdcp_interface_rlc*    pdcp_,
+               rrc_interface_rlc*     rrc_,
+               mac_interface_rlc*     mac_,
+               srslte::timer_handler* timers_,
+               srslte::log*           log_h_)
 {
   pdcp     = pdcp_;
   rrc      = rrc_;

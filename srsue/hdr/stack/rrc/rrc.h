@@ -303,7 +303,7 @@ public:
             nas_interface_rrc*     nas_,
             usim_interface_rrc*    usim_,
             gw_interface_rrc*      gw_,
-            srslte::timers*        timers_,
+            srslte::timer_handler* timers_,
             stack_interface_rrc*   stack_,
             const rrc_args_t&      args_);
 
@@ -419,13 +419,13 @@ private:
   std::map<uint32_t, asn1::rrc::drb_to_add_mod_s> drbs;
 
   // RRC constants and timers
-  srslte::timers* timers = nullptr;
-  uint32_t        n310_cnt = 0, N310 = 0;
-  uint32_t        n311_cnt = 0, N311 = 0;
-  uint32_t        t300 = 0, t301 = 0, t302 = 0, t310 = 0, t311 = 0, t304 = 0;
+  srslte::timer_handler*              timers = nullptr;
+  uint32_t                            n310_cnt, N310 = 0;
+  uint32_t                            n311_cnt, N311 = 0;
+  srslte::timer_handler::unique_timer t300, t301, t302, t310, t311, t304;
 
   // Radio bearers
-  typedef enum{
+  typedef enum {
     RB_ID_SRB0 = 0,
     RB_ID_SRB1,
     RB_ID_SRB2,
@@ -530,12 +530,12 @@ private:
     } meas_value_t;
 
     typedef struct {
-      uint32_t nof_reports_sent;
-      uint32_t report_id;
-      uint32_t object_id;
-      bool     triggered;
-      uint32_t periodic_timer;
-      std::map<uint32_t, meas_value_t> cell_values; // Value for each PCI in this object
+      uint32_t                            nof_reports_sent;
+      uint32_t                            report_id;
+      uint32_t                            object_id;
+      bool                                triggered;
+      srslte::timer_handler::unique_timer periodic_timer;
+      std::map<uint32_t, meas_value_t>    cell_values; // Value for each PCI in this object
     } meas_t;
 
     std::map<uint32_t, meas_obj_t>    objects;
@@ -545,7 +545,7 @@ private:
     rrc*                   parent = nullptr;
     srslte::log*           log_h  = nullptr;
     phy_interface_rrc_lte* phy    = nullptr;
-    srslte::timers*        timers = nullptr;
+    srslte::timer_handler* timers = nullptr;
 
     uint32_t filter_k_rsrp, filter_k_rsrq = 0;
     float    filter_a[NOF_MEASUREMENTS] = {};
