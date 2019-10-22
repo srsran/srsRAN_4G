@@ -258,9 +258,16 @@ class cell_t
     return 0;
   }
 
+  std::string print()
+  {
+    char buf[256];
+    snprintf(buf, 256, "{cell_id: 0x%x, pci: %d, dl_earfcn: %d}\n", get_cell_id(), get_pci(), get_earfcn());
+    return std::string{buf};
+  }
+
   phy_interface_rrc_lte::phy_cell_t phy_cell;
-  bool                          in_sync;
-  bool                          has_mcch;
+  bool                              in_sync;
+  bool                              has_mcch;
   asn1::rrc::sib_type1_s        sib1;
   asn1::rrc::sib_type2_s        sib2;
   asn1::rrc::sib_type3_s        sib3;
@@ -461,11 +468,12 @@ private:
   bool add_neighbour_cell(uint32_t earfcn, uint32_t pci, float rsrp);
   bool                           add_neighbour_cell(phy_interface_rrc_lte::phy_cell_t phy_cell, float rsrp);
   bool                           add_neighbour_cell(unique_cell_t new_cell);
-  void sort_neighbour_cells();
-  void clean_neighbours();
+  void                           sort_neighbour_cells();
+  void                           clean_neighbours();
   void                           delete_last_neighbour();
+  std::string                    print_neighbour_cells();
 
-  bool initiated                                      = false;
+  bool                     initiated                                      = false;
   asn1::rrc::reest_cause_e m_reest_cause                                  = asn1::rrc::reest_cause_e::nulltype;
   uint16_t                 m_reest_rnti               = 0;
   uint16_t                 m_reest_source_pci                             = 0;

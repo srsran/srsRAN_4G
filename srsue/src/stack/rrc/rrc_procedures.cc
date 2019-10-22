@@ -338,6 +338,7 @@ proc_outcome_t rrc::cell_selection_proc::init(srsue::rrc* parent_)
   }
 
   Info("Starting a Cell Selection Procedure...\n");
+  Info("Current neighbor cells: [%s]\n", rrc_ptr->print_neighbour_cells().c_str());
   neigh_index = 0;
   cs_result   = cs_result_t::no_cell;
   state       = search_state_t::cell_selection;
@@ -359,10 +360,8 @@ proc_outcome_t rrc::cell_selection_proc::step_cell_selection()
         // currently connected and verifies cell selection criteria
         // Try to select Cell
         rrc_ptr->set_serving_cell(rrc_ptr->neighbour_cells.at(neigh_index)->phy_cell);
-        Info(
-            "Selected cell PCI=%d, EARFCN=%d\n", rrc_ptr->serving_cell->get_pci(), rrc_ptr->serving_cell->get_earfcn());
-        log_h->console(
-            "Selected cell PCI=%d, EARFCN=%d\n", rrc_ptr->serving_cell->get_pci(), rrc_ptr->serving_cell->get_earfcn());
+        Info("Selected cell: %s\n", rrc_ptr->serving_cell->print().c_str());
+        log_h->console("Selected cell: %s\n", rrc_ptr->serving_cell->print().c_str());
 
         /* BLOCKING CALL */
         if (rrc_ptr->phy->cell_select(&rrc_ptr->serving_cell->phy_cell)) {
@@ -381,7 +380,7 @@ proc_outcome_t rrc::cell_selection_proc::step_cell_selection()
   }
   if (rrc_ptr->serving_cell->in_sync) {
     if (not rrc_ptr->phy->cell_is_camping()) {
-      Info("Serving cell is in-sync but not camping. Selecting it...\n");
+      Info("Serving cell %s is in-sync but not camping. Selecting it...\n", rrc_ptr->serving_cell->print().c_str());
 
       /* BLOCKING CALL */
       if (rrc_ptr->phy->cell_select(&rrc_ptr->serving_cell->phy_cell)) {
@@ -389,6 +388,7 @@ proc_outcome_t rrc::cell_selection_proc::step_cell_selection()
       } else {
         rrc_ptr->serving_cell->in_sync = false;
         Error("Could not camp on serving cell.\n");
+        return proc_outcome_t::error;
       }
     }
     cs_result = cs_result_t::same_cell;

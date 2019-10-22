@@ -29,6 +29,7 @@
 #include <inttypes.h> // for printing uint64_t
 #include <iostream>
 #include <math.h>
+#include <numeric>
 #include <sstream>
 #include <string.h>
 #include <unistd.h>
@@ -690,6 +691,20 @@ cell_t* rrc::get_neighbour_cell_handle(const uint32_t earfcn, const uint32_t pci
 bool rrc::has_neighbour_cell(const uint32_t earfcn, const uint32_t pci)
 {
   return get_neighbour_cell_handle(earfcn, pci) != nullptr;
+}
+
+std::string rrc::print_neighbour_cells()
+{
+  if (neighbour_cells.empty()) {
+    return "";
+  }
+  std::string s;
+  s.reserve(256);
+  for (auto it = neighbour_cells.begin(); it != neighbour_cells.end() - 1; ++it) {
+    s += (*it)->print() + ", ";
+  }
+  s += neighbour_cells.back()->print();
+  return s;
 }
 
 /*******************************************************************************

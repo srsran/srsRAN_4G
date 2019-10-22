@@ -276,7 +276,7 @@ bool sync::cell_select(phy_interface_rrc_lte::phy_cell_t* new_cell)
   if (!new_cell) {
     Info("Cell Select: Starting cell resynchronization\n");
   } else {
-    if (!srslte_cell_isvalid(&cell)) {
+    if (!srslte_cell_isvalid(&new_cell->cell)) {
       log_h->error("Cell Select: Invalid cell. ID=%d, PRB=%d, ports=%d\n", cell.id, cell.nof_prb, cell.nof_ports);
       return ret;
     }
