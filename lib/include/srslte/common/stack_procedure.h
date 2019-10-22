@@ -188,6 +188,7 @@ public:
   bool              is_success() const { return ptr->is_success(); }
   bool              is_complete() const { return ptr->is_complete(); }
   const ResultType* value() const { return is_success() ? ptr->value() : nullptr; }
+  bool              is_valid() const { return ptr != nullptr; }
 
 private:
   std::shared_ptr<proc_result_t<ResultType> > ptr;

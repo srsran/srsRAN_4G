@@ -89,12 +89,12 @@ proc_outcome_t rrc::cell_search_proc::handle_cell_found(const phy_interface_rrc_
     return proc_outcome_t::success;
   }
 
+  si_acquire_fut = rrc_ptr->si_acquirer.get_future();
   if (not rrc_ptr->si_acquirer.launch(0)) {
     // disallow concurrent si_acquire
     Error("SI Acquire is already running...\n");
     return proc_outcome_t::error;
   }
-  si_acquire_fut = rrc_ptr->si_acquirer.get_future();
 
   // instruct MAC to look for SIB1
   Info("Cell has no SIB1. Obtaining SIB1...\n");
@@ -273,12 +273,12 @@ proc_outcome_t rrc::serving_cell_config_proc::step()
 
       if (not rrc_ptr->serving_cell->has_sib(required_sib)) {
         Info("Cell has no SIB%d. Obtaining SIB%d\n", required_sib + 1, required_sib + 1);
+        si_acquire_fut = rrc_ptr->si_acquirer.get_future();
         if (not rrc_ptr->si_acquirer.launch(required_sib)) {
           Error("SI Acquire is already running...\n");
           return proc_outcome_t::error;
         }
-        si_acquire_fut = rrc_ptr->si_acquirer.get_future();
-        search_state   = search_state_t::si_acquire;
+        search_state = search_state_t::si_acquire;
         return proc_outcome_t::repeat;
       } else {
         // UE had SIB already. Handle its SIB
@@ -365,11 +365,11 @@ proc_outcome_t rrc::cell_selection_proc::step_cell_selection()
 
         /* BLOCKING CALL */
         if (rrc_ptr->phy->cell_select(&rrc_ptr->serving_cell->phy_cell)) {
+          serv_cell_cfg_fut = rrc_ptr->serv_cell_cfg.get_future();
           if (not rrc_ptr->serv_cell_cfg.launch(rrc_ptr->ue_required_sibs)) {
             return proc_outcome_t::error;
           }
-          serv_cell_cfg_fut = rrc_ptr->serv_cell_cfg.get_future();
-          state             = search_state_t::cell_config;
+          state = search_state_t::cell_config;
           return proc_outcome_t::repeat;
         } else {
           rrc_ptr->serving_cell->in_sync = false;
@@ -398,11 +398,11 @@ proc_outcome_t rrc::cell_selection_proc::step_cell_selection()
 
   // If can not find any suitable cell, search again
   Info("Cell selection and reselection in IDLE did not find any suitable cell. Searching again\n");
+  cell_search_fut = rrc_ptr->cell_searcher.get_future();
   if (not rrc_ptr->cell_searcher.launch()) {
     return proc_outcome_t::error;
   }
-  cell_search_fut = rrc_ptr->cell_searcher.get_future();
-  state           = search_state_t::cell_search;
+  state = search_state_t::cell_search;
   return proc_outcome_t::repeat;
 }
 
@@ -470,12 +470,12 @@ rrc::plmn_search_proc::plmn_search_proc(rrc* parent_) : rrc_ptr(parent_), log_h(
 proc_outcome_t rrc::plmn_search_proc::init()
 {
   Info("Starting PLMN search\n");
-  nof_plmns = 0;
+  nof_plmns       = 0;
+  cell_search_fut = rrc_ptr->cell_searcher.get_future();
   if (not rrc_ptr->cell_searcher.launch()) {
     Error("Failed due to fail to init cell search...\n");
     return proc_outcome_t::error;
   }
-  cell_search_fut = rrc_ptr->cell_searcher.get_future();
   return proc_outcome_t::repeat;
 }
 
@@ -674,12 +674,12 @@ srslte::proc_outcome_t rrc::connection_request_proc::react(const cell_selection_
     // timeAlignmentCommon applied in configure_serving_cell
 
     Info("Configuring serving cell...\n");
+    serv_cfg_fut = rrc_ptr->serv_cell_cfg.get_future();
     if (not rrc_ptr->serv_cell_cfg.launch(rrc_ptr->ue_required_sibs)) {
       Error("Attach request failed to configure serving cell...\n");
       return proc_outcome_t::error;
     }
-    serv_cfg_fut = rrc_ptr->serv_cell_cfg.get_future();
-    state        = state_t::config_serving_cell;
+    state = state_t::config_serving_cell;
     return proc_outcome_t::repeat;
   } else {
     switch (cs_ret) {
@@ -747,11 +747,11 @@ proc_outcome_t rrc::process_pcch_proc::step()
       rrc_ptr->serving_cell->reset_sibs();
 
       // create a serving cell config procedure and push it to callback list
+      serv_cfg_fut = rrc_ptr->serv_cell_cfg.get_future();
       if (not rrc_ptr->serv_cell_cfg.launch(rrc_ptr->ue_required_sibs)) {
         Error("Failed to initiate a serving cell configuration procedure\n");
         return proc_outcome_t::error;
       }
-      serv_cfg_fut = rrc_ptr->serv_cell_cfg.get_future();
     } else {
       Info("Completed successfully\n");
       return proc_outcome_t::success;
@@ -831,11 +831,11 @@ rrc::cell_reselection_proc::cell_reselection_proc(srsue::rrc* rrc_) : rrc_ptr(rr
 proc_outcome_t rrc::cell_reselection_proc::init()
 {
   Info("Starting...\n");
+  cell_selection_fut = rrc_ptr->cell_selector.get_future();
   if (not rrc_ptr->cell_selector.launch()) {
     Error("Failed to initiate a Cell Selection procedure...\n");
     return proc_outcome_t::error;
   }
-  cell_selection_fut = rrc_ptr->cell_selector.get_future();
 
   return proc_outcome_t::yield;
 }
@@ -866,7 +866,7 @@ proc_outcome_t rrc::cell_reselection_proc::step()
       }
       break;
   }
-  Info("Cell Reselection - Finished successfully\n");
+  Info("Finished successfully\n");
   return srslte::proc_outcome_t::success;
 }
 
