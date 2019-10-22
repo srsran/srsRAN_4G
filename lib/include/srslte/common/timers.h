@@ -225,8 +225,11 @@ class timer_handler
         ERROR("Error: setting inactive timer id=%d\n", id());
         return false;
       }
-      stop(); // invalidates any on-going run
       duration = duration_;
+      if (is_running()) {
+        // if already running, just extends timer lifetime
+        run();
+      }
       return true;
     }
 

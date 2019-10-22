@@ -162,10 +162,42 @@ int timers2_test2()
   return SRSLTE_SUCCESS;
 }
 
+int timers2_test3()
+{
+  /**
+   * Description:
+   * - setting a new duration while the timer is already running should not stop timer, and should extend timeout
+   */
+  timer_handler timers;
+  uint32_t      duration = 5;
+
+  auto utimer = timers.get_unique_timer();
+  utimer.set(duration);
+  utimer.run();
+
+  for (uint32_t i = 0; i < 2 * duration + 1; ++i) {
+    timers.step_all();
+    if ((i % 2) == 0) {
+      // extends lifetime
+      utimer.set(duration);
+    }
+    TESTASSERT(utimer.is_running());
+  }
+  for (uint32_t i = 0; i < duration - 1; ++i) {
+    timers.step_all();
+    TESTASSERT(utimer.is_running());
+  }
+  timers.step_all();
+  TESTASSERT(not utimer.is_running());
+
+  return SRSLTE_SUCCESS;
+}
+
 int main()
 {
   TESTASSERT(timers2_test() == SRSLTE_SUCCESS);
   TESTASSERT(timers2_test2() == SRSLTE_SUCCESS);
+  TESTASSERT(timers2_test3() == SRSLTE_SUCCESS);
 
   printf("Success\n");
   return 0;
