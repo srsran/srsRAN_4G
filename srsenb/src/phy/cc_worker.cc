@@ -481,7 +481,7 @@ int cc_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, u
         return SRSLTE_ERROR;
       }
 
-      uint32_t ul_pid = TTI_RX(tti_rx) % SRSLTE_FDD_NOF_HARQ;
+      uint32_t ul_pid = TTI_RX(ul_sf.tti) % SRSLTE_FDD_NOF_HARQ;
 
       // Handle Format0 adaptive retx
       // Use last TBS for this TB in case of mcs>28
@@ -492,11 +492,14 @@ int cc_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, u
       phy->ue_db_set_last_ul_tb(rnti, ul_pid, grant->tb);
 
       // Run PUSCH decoder
+      pusch_res = {};
       ue_db[rnti]->ul_cfg.pusch.softbuffers.rx = grants[i].softbuffer_rx;
       pusch_res.data                           = grants[i].data;
-      if (srslte_enb_ul_get_pusch(&enb_ul, &ul_sf, &ue_db[rnti]->ul_cfg.pusch, &pusch_res)) {
-        Error("Decoding PUSCH\n");
-        return SRSLTE_ERROR;
+      if (pusch_res.data) {
+        if (srslte_enb_ul_get_pusch(&enb_ul, &ul_sf, &ue_db[rnti]->ul_cfg.pusch, &pusch_res)) {
+          Error("Decoding PUSCH\n");
+          return SRSLTE_ERROR;
+        }
       }
 
       // Save PHICH scheduling for this user. Each user can have just 1 PUSCH dci per TTI
@@ -507,7 +510,7 @@ int cc_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, u
 
       // Notify MAC of RL status
       if (snr_db >= PUSCH_RL_SNR_DB_TH) {
-        phy->stack->snr_info(tti_rx, rnti, snr_db);
+        phy->stack->snr_info(ul_sf.tti, rnti, snr_db);
 
         if (grants[i].dci.tb.rv == 0) {
           if (!pusch_res.crc) {
@@ -519,19 +522,21 @@ int cc_worker::decode_pusch(stack_interface_phy_lte::ul_sched_grant_t* grants, u
         }
       }
 
-      // Notify MAC new received data and HARQ Indication value
-      phy->stack->crc_info(tti_rx, rnti, grant->tb.tbs / 8, pusch_res.crc);
-
       // Send UCI data to MAC
       send_uci_data(rnti, &ue_db[rnti]->ul_cfg.pusch.uci_cfg, &pusch_res.uci);
 
-      // Save metrics stats
-      ue_db[rnti]->metrics_ul(grants[i].dci.tb.mcs_idx, 0, snr_db, pusch_res.avg_iterations_block);
+      // Notify MAC new received data and HARQ Indication value
+      if (pusch_res.data) {
+        phy->stack->crc_info(tti_rx, rnti, grant->tb.tbs / 8, pusch_res.crc);
 
-      // Logging
-      char str[512];
-      srslte_pusch_rx_info(&ue_db[rnti]->ul_cfg.pusch, &pusch_res, str, 512);
-      Info("PUSCH: %s, snr=%.1f dB\n", str, snr_db);
+        // Save metrics stats
+        ue_db[rnti]->metrics_ul(grants[i].dci.tb.mcs_idx, 0, snr_db, pusch_res.avg_iterations_block);
+
+        // Logging
+        char str[512];
+        srslte_pusch_rx_info(&ue_db[rnti]->ul_cfg.pusch, &pusch_res, str, 512);
+        Info("PUSCH: %s, snr=%.1f dB\n", str, snr_db);
+      }
     }
   }
   return SRSLTE_SUCCESS;

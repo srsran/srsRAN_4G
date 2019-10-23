@@ -28,6 +28,7 @@
 #include "srslte/common/thread_pool.h"
 #include "srslte/common/threads.h"
 #include "srslte/radio/radio.h"
+#include "srslte/phy/channel/channel.h"
 
 namespace srsenb {
     
@@ -53,6 +54,7 @@ private:
   srslte::thread_pool*         workers_pool = nullptr;
   prach_worker*                prach        = nullptr;
   phy_common*                  worker_com   = nullptr;
+  srslte::channel_ptr          ul_channel   = nullptr;
 
   // Main system TTI counter
   uint32_t tti = 0;

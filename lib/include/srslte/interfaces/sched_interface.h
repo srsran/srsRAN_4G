@@ -54,7 +54,8 @@ public:
     int pdsch_max_mcs; 
     int pusch_mcs; 
     int pusch_max_mcs; 
-    int nof_ctrl_symbols; 
+    int nof_ctrl_symbols;
+    int max_aggr_level;
   } sched_args_t; 
 
     
@@ -71,7 +72,8 @@ public:
     srslte_pusch_hopping_cfg_t pusch_hopping_cfg; 
     
     /* prach configuration */
-    uint32_t prach_config; 
+    uint32_t prach_config;
+    uint32_t prach_nof_preambles;
     uint32_t prach_freq_offset; 
     uint32_t prach_rar_window;
     uint32_t prach_contention_resolution_timer; 
@@ -154,9 +156,17 @@ public:
     uint32_t        tbs;
     srslte_dci_ul_t dci;
   } ul_sched_data_t;
-  
+
   typedef struct {
-    uint32_t               ra_id;
+    uint32_t preamble_idx;
+    uint32_t ta_cmd;
+    uint16_t temp_crnti;
+    uint32_t msg3_size;
+    uint32_t prach_tti;
+  } dl_sched_rar_info_t;
+
+  typedef struct {
+    dl_sched_rar_info_t    data;
     srslte_dci_rar_grant_t grant; 
   } dl_sched_rar_grant_t;
   
@@ -229,7 +239,7 @@ public:
     
   /* DL information */
   virtual int dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack) = 0;
-  virtual int dl_rach_info(uint32_t tti, uint32_t ra_id, uint16_t rnti, uint32_t estimated_size) = 0; 
+  virtual int dl_rach_info(dl_sched_rar_info_t rar_info) = 0;
   virtual int dl_ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value) = 0; 
   virtual int dl_pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value) = 0;
   virtual int dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value) = 0; 

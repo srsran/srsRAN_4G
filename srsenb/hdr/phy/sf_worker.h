@@ -75,6 +75,7 @@ private:
   std::vector<std::unique_ptr<cc_worker> > cc_workers;
 
   srslte_softbuffer_tx_t temp_mbsfn_softbuffer = {};
+
 };
 
 } // namespace srsenb

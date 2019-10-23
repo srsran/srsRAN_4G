@@ -27,6 +27,7 @@
 #include "srslte/common/log.h"
 #include "srslte/common/thread_pool.h"
 #include "srslte/common/threads.h"
+#include "srslte/phy/channel/channel.h"
 #include "srslte/interfaces/common_interfaces.h"
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
@@ -51,6 +52,9 @@ typedef struct {
   std::string equalizer_mode;
   float       estimator_fil_w;
   bool        pregenerate_signals;
+
+  srslte::channel::args_t dl_channel_args;
+  srslte::channel::args_t ul_channel_args;
 } phy_args_t;
 
 class phy_common
@@ -79,6 +83,7 @@ public:
 
   srslte::radio_interface_phy* radio = nullptr;
   stack_interface_phy_lte*     stack = nullptr;
+  srslte::channel_ptr          dl_channel = nullptr;
 
   // Common objects for schedulign grants
   stack_interface_phy_lte::ul_sched_t ul_grants[TTIMOD_SZ] = {};

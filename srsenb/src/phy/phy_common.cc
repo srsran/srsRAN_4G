@@ -23,6 +23,7 @@
 #include "srslte/asn1/rrc_asn1.h"
 #include "srslte/common/log.h"
 #include "srslte/common/threads.h"
+#include "srslte/phy/channel/channel.h"
 #include <sstream>
 
 #include <assert.h>
@@ -39,7 +40,7 @@ namespace srsenb {
 
 phy_common::phy_common(uint32_t max_workers_) : tx_sem(max_workers_)
 {
-  nof_workers                = max_workers_;
+  nof_workers                = 0;
   params.max_prach_offset_us = 20;
   have_mtch_stop             = false;
   max_workers                = max_workers_;
@@ -79,6 +80,24 @@ bool phy_common::init(const srslte_cell_t&         cell_,
   pthread_mutex_init(&mtch_mutex, nullptr);
   pthread_cond_init(&mtch_cvar, nullptr);
 
+  // Instantiate UL channel emulator
+  if (params.ul_channel_args.enable) {
+    dl_channel =
+        srslte::channel_ptr(new srslte::channel(params.dl_channel_args, 1));
+
+    dl_channel->set_srate((uint32_t)srslte_sampling_freq_hz(cell.nof_prb));
+  }
+
+  is_first_tx = true;
+
+  // Instantiate UL channel emulator
+  if (params.ul_channel_args.enable) {
+    dl_channel =
+        srslte::channel_ptr(new srslte::channel(params.dl_channel_args, 1));
+
+    dl_channel->set_srate((uint32_t)srslte_sampling_freq_hz(cell.nof_prb));
+  }
+
   is_first_tx = true;
   reset();
   return true; 
@@ -114,6 +133,10 @@ void phy_common::worker_end(uint32_t           tti,
 
   // Wait for the green light to transmit in the current TTI
   sem_wait(&tx_sem[tti%nof_workers]);
+
+  if (dl_channel) {
+    dl_channel->run(buffer, buffer, nof_samples, tx_time);
+  }
 
   // always transmit on single radio
   radio->tx(0, buffer, nof_samples, tx_time);

@@ -30,6 +30,7 @@
 #include "srslte/interfaces/sched_interface.h"
 #include <map>
 #include <mutex>
+#include <queue>
 #include <pthread.h>
 
 namespace srsenb {
@@ -107,8 +108,9 @@ public:
 
   int ue_cfg(uint16_t rnti, ue_cfg_t *ue_cfg);
   int ue_rem(uint16_t rnti);
-  bool ue_exists(uint16_t rnti); 
-  
+  bool ue_exists(uint16_t rnti);
+  void ue_needs_ta_cmd(uint16_t rnti, uint32_t nof_ta_cmd);
+
   void phy_config_enabled(uint16_t rnti, bool enabled); 
   
   int bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, ue_bearer_cfg_t *cfg); 
@@ -122,7 +124,7 @@ public:
 
   int dl_ant_info(uint16_t rnti, asn1::rrc::phys_cfg_ded_s::ant_info_c_* dedicated);
   int dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack);
-  int dl_rach_info(uint32_t tti, uint32_t ra_id, uint16_t rnti, uint32_t estimated_size); 
+  int dl_rach_info(dl_sched_rar_info_t rar_info);
   int dl_ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value);
   int dl_pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value);
   int dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value); 
@@ -167,13 +169,6 @@ protected:
   // This is for computing DCI locations
   srslte_regs_t regs;
 
-  typedef struct {
-    int buf_rar; 
-    uint16_t rnti; 
-    uint32_t ra_id; 
-    uint32_t rar_tti;    
-  } sched_rar_t; 
-  
   typedef struct {
     bool is_in_window;
     uint32_t window_start;
@@ -230,7 +225,7 @@ protected:
     void            new_tti(uint32_t tti_rx_, uint32_t start_cfi);
     alloc_outcome_t alloc_bc(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t sib_ntx);
     alloc_outcome_t alloc_paging(uint32_t aggr_lvl, uint32_t paging_payload);
-    rar_code_t      alloc_rar(uint32_t aggr_lvl, const dl_sched_rar_t& rar_grant, uint32_t rar_tti, uint32_t buf_rar);
+    rar_code_t      alloc_rar(uint32_t aggr_lvl, const dl_sched_rar_t& rar_grant, uint32_t prach_tti, uint32_t buf_rar);
     void            generate_dcis();
     // dl_tti_sched itf
     alloc_outcome_t  alloc_dl_user(sched_ue* user, const rbgmask_t& user_mask, uint32_t pid) final;
@@ -305,11 +300,10 @@ protected:
     uint32_t L; 
     uint32_t n_prb; 
     uint32_t mcs; 
-  } pending_msg3_t; 
- 
-  const static int SCHED_MAX_PENDING_RAR = 8; 
-  sched_rar_t pending_rar[SCHED_MAX_PENDING_RAR];
-  pending_msg3_t pending_msg3[10]; 
+  } pending_msg3_t;
+
+  std::queue<dl_sched_rar_info_t> pending_rars;
+  pending_msg3_t pending_msg3[TTIMOD_SZ];
     
   // Allowed DCI locations for SIB and RAR per CFI
   sched_ue::sched_dci_cce_t common_locations[3];

@@ -60,7 +60,11 @@ bool txrx::init(srslte::radio_interface_phy* radio_h_,
   
   nof_workers = workers_pool->get_nof_workers();
   worker_com->set_nof_workers(nof_workers);
-    
+
+  if (worker_com->params.dl_channel_args.enable) {
+    ul_channel = srslte::channel_ptr(new srslte::channel(worker_com->params.ul_channel_args, 1));
+  }
+
   start(prio_);
   return true; 
 }
@@ -86,6 +90,10 @@ void txrx::run_thread()
   radio_h->set_rx_srate(0, samp_rate);
   radio_h->set_tx_srate(0, samp_rate);
 
+  if (ul_channel) {
+    ul_channel->set_srate(samp_rate);
+  }
+
   log_h->info("Starting RX/TX thread nof_prb=%d, sf_len=%d\n", worker_com->cell.nof_prb, sf_len);
 
   // Set TTI so that first TX is at tti=0
@@ -103,6 +111,10 @@ void txrx::run_thread()
       }
 
       radio_h->rx_now(0, buffer, sf_len, &rx_time);
+
+      if (ul_channel) {
+        ul_channel->run(buffer, buffer, sf_len, rx_time);
+      }
 
       /* Compute TX time: Any transmission happens in TTI+4 thus advance 4 ms the reception time */
       srslte_timestamp_copy(&tx_time, &rx_time);

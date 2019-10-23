@@ -83,7 +83,7 @@ public:
   void tpc_inc(); 
   void tpc_dec();
 
-  void set_max_mcs(int mcs_ul, int mcs_dl);
+  void set_max_mcs(int mcs_ul, int mcs_dl, int max_aggr_level = -1);
   void set_fixed_mcs(int mcs_ul, int mcs_dl);
 
   dl_harq_proc* find_dl_harq(uint32_t tti);
@@ -116,6 +116,8 @@ public:
 
   void       set_sr();
   void       unset_sr();
+
+  void       set_needs_ta_cmd(uint32_t nof_ta_cmd);
 
   int generate_format1(
       dl_harq_proc* h, sched_interface::dl_sched_data_t* data, uint32_t tti, uint32_t cfi, const rbgmask_t& user_mask);
@@ -198,11 +200,14 @@ private:
   uint32_t ul_cqi_tti; 
   uint16_t rnti; 
   uint32_t max_mcs_dl;
+  uint32_t max_aggr_level;
   uint32_t max_mcs_ul;
   uint32_t max_msg3retx;
   int      fixed_mcs_ul; 
   int      fixed_mcs_dl;
   uint32_t P;
+
+  uint32_t nof_ta_cmd;
 
   int next_tpc_pusch;
   int next_tpc_pucch;

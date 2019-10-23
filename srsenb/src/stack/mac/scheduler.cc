@@ -154,11 +154,14 @@ alloc_outcome_t sched::tti_sched_t::alloc_paging(uint32_t aggr_lvl, uint32_t pag
 }
 
 sched::tti_sched_t::rar_code_t
-sched::tti_sched_t::alloc_rar(uint32_t aggr_lvl, const dl_sched_rar_t& rar_grant, uint32_t rar_tti, uint32_t buf_rar)
+sched::tti_sched_t::alloc_rar(uint32_t aggr_lvl, const dl_sched_rar_t& rar_grant, uint32_t prach_tti, uint32_t buf_rar)
 {
-  uint16_t rar_sfidx = (uint16_t)((rar_tti + 1) % 10);
+  // RA-RNTI = 1 + t_id + f_id
+  // t_id = index of first subframe specified by PRACH (0<=t_id<10)
+  // f_id = index of the PRACH within subframe, in ascending order of freq domain (0<=f_id<6) (for FDD, f_id=0)
+  uint16_t ra_rnti = 1 + (uint16_t)(prach_tti % 10);
 
-  ctrl_code_t ret = alloc_dl_ctrl(aggr_lvl, buf_rar, rar_sfidx);
+  ctrl_code_t ret = alloc_dl_ctrl(aggr_lvl, buf_rar, ra_rnti);
   if (not ret.first) {
     Warning("SCHED: Could not allocate RAR for L=%d, cause=%s\n", aggr_lvl, ret.first.to_string());
     return {ret.first, NULL};
@@ -332,7 +335,7 @@ void sched::tti_sched_t::set_rar_sched_result(const pdcch_grid_t::alloc_result_t
     int         tbs =
         generate_format1a(prb_range.prb_start, prb_range.length(), rar_alloc.req_bytes, 0, rar_alloc.rnti, &rar->dci);
     if (tbs <= 0) {
-      log_h->warning("SCHED: Error RAR, ra_rnti_idx=%d, rbgs=(%d,%d), dci=(%d,%d)\n",
+      log_h->warning("SCHED: Error RAR, ra-rnti=%d, rbgs=(%d,%d), dci=(%d,%d)\n",
                      rar_alloc.rnti,
                      rar_alloc.rbg_range.rbg_start,
                      rar_alloc.rbg_range.rbg_end,
@@ -349,11 +352,10 @@ void sched::tti_sched_t::set_rar_sched_result(const pdcch_grid_t::alloc_result_t
     // Print RAR allocation result
     for (uint32_t i = 0; i < rar->nof_grants; ++i) {
       const auto& msg3_grant    = rar->msg3_grant[i];
-      uint32_t    pending_tti   = (get_tti_tx_dl() + MSG3_DELAY_MS + TX_DELAY) % 10;
+      uint32_t    pending_tti   = (get_tti_tx_dl() + MSG3_DELAY_MS + TX_DELAY) % TTIMOD_SZ;
       uint16_t    expected_rnti = parent->pending_msg3[pending_tti].rnti; // FIXME
-      log_h->info("SCHED: RAR, ra_id=%d, rnti=0x%x, rarnti_idx=%d, rbgs=(%d,%d), dci=(%d,%d), rar_grant_rba=%d, "
+      log_h->info("SCHED: RAR, temp_crnti=0x%x, ra-rnti=%d, rbgs=(%d,%d), dci=(%d,%d), rar_grant_rba=%d, "
                   "rar_grant_mcs=%d\n",
-                  msg3_grant.ra_id,
                   expected_rnti,
                   rar_alloc.rnti,
                   rar_alloc.rbg_range.rbg_start,
@@ -511,7 +513,7 @@ void sched::tti_sched_t::generate_dcis()
 
 uint32_t sched::tti_sched_t::get_nof_ctrl_symbols() const
 {
-  return tti_alloc.get_cfi() + (parent->cfg.cell.nof_prb <= 10) ? 1 : 0;
+  return tti_alloc.get_cfi() + ((parent->cfg.cell.nof_prb <= 10) ? 1 : 0);
 }
 
 int sched::tti_sched_t::generate_format1a(
@@ -602,6 +604,7 @@ void sched::init(rrc_interface_mac* rrc_, srslte::log* log)
   sched_cfg.pusch_max_mcs    = 28;
   sched_cfg.pusch_mcs        = -1;
   sched_cfg.nof_ctrl_symbols = 3;
+  sched_cfg.max_aggr_level   = 3;
   log_h                      = log;
   rrc                        = rrc_;
   reset();
@@ -609,9 +612,12 @@ void sched::init(rrc_interface_mac* rrc_, srslte::log* log)
 
 int sched::reset()
 {
-  bzero(pending_msg3, sizeof(pending_msg3_t) * 10);
-  bzero(pending_rar, sizeof(sched_rar_t) * SCHED_MAX_PENDING_RAR);
+  bzero(pending_msg3, sizeof(pending_msg3_t) * TTIMOD_SZ);
   bzero(pending_sibs, sizeof(sched_sib_t) * MAX_SIBS);
+  while (not pending_rars.empty()) {
+    pending_rars.pop();
+  }
+
   configured = false;
   pthread_rwlock_wrlock(&rwlock);
   ue_db.clear();
@@ -716,7 +722,7 @@ int sched::ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* ue_cfg)
   // Add or config user
   pthread_rwlock_rdlock(&rwlock);
   ue_db[rnti].set_cfg(rnti, ue_cfg, &cfg, &regs, log_h);
-  ue_db[rnti].set_max_mcs(sched_cfg.pusch_max_mcs, sched_cfg.pdsch_max_mcs);
+  ue_db[rnti].set_max_mcs(sched_cfg.pusch_max_mcs, sched_cfg.pdsch_max_mcs, sched_cfg.max_aggr_level);
   ue_db[rnti].set_fixed_mcs(sched_cfg.pusch_mcs, sched_cfg.pdsch_mcs);
   pthread_rwlock_unlock(&rwlock);
 
@@ -745,6 +751,16 @@ bool sched::ue_exists(uint16_t rnti)
   return ret;
 }
 
+void sched::ue_needs_ta_cmd(uint16_t rnti, uint32_t nof_ta_cmd) {
+  pthread_rwlock_rdlock(&rwlock);
+  if (ue_db.count(rnti)) {
+    ue_db[rnti].set_needs_ta_cmd(nof_ta_cmd);
+  } else {
+    Error("User rnti=0x%x not found\n", rnti);
+  }
+  pthread_rwlock_unlock(&rwlock);
+}
+
 void sched::phy_config_enabled(uint16_t rnti, bool enabled)
 {
   pthread_rwlock_rdlock(&rwlock);
@@ -756,12 +772,12 @@ void sched::phy_config_enabled(uint16_t rnti, bool enabled)
   pthread_rwlock_unlock(&rwlock);
 }
 
-int sched::bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg)
+int sched::bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg_)
 {
   int ret = 0;
   pthread_rwlock_rdlock(&rwlock);
   if (ue_db.count(rnti)) {
-    ue_db[rnti].set_bearer_cfg(lc_id, cfg);
+    ue_db[rnti].set_bearer_cfg(lc_id, cfg_);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
     ret = -1;
@@ -922,19 +938,12 @@ int sched::dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value)
   return ret;
 }
 
-int sched::dl_rach_info(uint32_t tti, uint32_t ra_id, uint16_t rnti, uint32_t estimated_size)
+int sched::dl_rach_info(dl_sched_rar_info_t rar_info)
 {
-  for (int i = 0; i < SCHED_MAX_PENDING_RAR; i++) {
-    if (!pending_rar[i].buf_rar) {
-      pending_rar[i].ra_id   = ra_id;
-      pending_rar[i].rnti    = rnti;
-      pending_rar[i].rar_tti = tti;
-      pending_rar[i].buf_rar = estimated_size;
-      return 0;
-    }
-  }
-  Warning("SCHED: New RACH discarted because maximum number of pending RAR exceeded (%d)\n", SCHED_MAX_PENDING_RAR);
-  return -1;
+  Info("SCHED: New RAR tti=%d, preamble=%d, temp_crnti=0x%x, ta_cmd=%d, msg3_size=%d\n",
+       rar_info.prach_tti, rar_info.preamble_idx, rar_info.temp_crnti, rar_info.ta_cmd, rar_info.msg3_size);
+  pending_rars.push(rar_info);
+  return 0;
 }
 
 int sched::ul_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi, uint32_t ul_ch_code)
@@ -1046,7 +1055,7 @@ sched::tti_sched_t* sched::new_tti(uint32_t tti_rx)
 
   // if it is the first time tti is run, reset vars
   if (tti_rx != tti_sched->get_tti_rx()) {
-    uint32_t start_cfi = sched_cfg.nof_ctrl_symbols - ((cfg.cell.nof_prb >= 10) ? 0 : 1);
+    uint32_t start_cfi = sched_cfg.nof_ctrl_symbols;
     tti_sched->new_tti(tti_rx, start_cfi);
 
     // Protects access to pending_rar[], pending_msg3[], pending_sibs[], rlc buffers
@@ -1157,78 +1166,74 @@ bool is_in_tti_interval(uint32_t tti, uint32_t tti1, uint32_t tti2)
 }
 
 // Schedules RAR
+// On every call to this function, we schedule the oldest RAR which is still within the window. If outside the window we discard it.
 void sched::dl_sched_rar(tti_sched_t* tti_sched)
 {
-  for (uint32_t i = 0; i < SCHED_MAX_PENDING_RAR; i++) {
-    // check if the RAR is inactive or was already scheduled
-    if (pending_rar[i].buf_rar == 0) {
-      continue;
-    }
-    // Check if we are still within the RAR window, otherwise discard it
+  // Discard all RARs out of the window. The first one inside the window is scheduled, if we can't we exit
+  while (!pending_rars.empty()) {
+    dl_sched_rar_info_t rar = pending_rars.front();
     if (not is_in_tti_interval(tti_sched->get_tti_tx_dl(),
-                               pending_rar[i].rar_tti + 3,
-                               pending_rar[i].rar_tti + 3 + cfg.prach_rar_window)) {
-      log_h->console("SCHED: Could not transmit RAR within the window (RA TTI=%d, Window=%d, Now=%d)\n",
-                     pending_rar[i].rar_tti,
+                               rar.prach_tti + 3,
+                               rar.prach_tti + 3 + cfg.prach_rar_window))
+    {
+      if (tti_sched->get_tti_tx_dl() >= rar.prach_tti + 3 + cfg.prach_rar_window) {
+        log_h->console("SCHED: Could not transmit RAR within the window (RA TTI=%d, Window=%d, Now=%d)\n",
+                       rar.prach_tti,
+                       cfg.prach_rar_window,
+                       current_tti);
+        log_h->error("SCHED: Could not transmit RAR within the window (RA TTI=%d, Window=%d, Now=%d)\n",
+                     rar.prach_tti,
                      cfg.prach_rar_window,
                      current_tti);
-      log_h->error("SCHED: Could not transmit RAR within the window (RA TTI=%d, Window=%d, Now=%d)\n",
-                   pending_rar[i].rar_tti,
-                   cfg.prach_rar_window,
-                   current_tti);
-      pending_rar[i].buf_rar = 0;
-      pending_rar[i].rar_tti = 0;
-      continue;
+        // Remove from pending queue and get next one if window has passed already
+        pending_rars.pop();
+        continue;
+      }
+      // If window not yet started do not look for more pending RARs
+      return;
     }
 
-    /* Group pending RARs with same transmission TTI */
-    uint32_t       tti     = pending_rar[i].rar_tti;
-    uint32_t       buf_rar = 0;
+    /* Since we do a fixed Msg3 scheduling for all RAR, we can only allocate 1 RAR per TTI.
+     * If we have enough space in the window, every call to this function we'll allocate 1 pending RAR and associate a
+     * Msg3 transmission
+     */
     dl_sched_rar_t rar_grant;
-    uint32_t       L_prb = 3;
-    uint32_t       n_prb = 2;
+    uint32_t L_prb = 3;
+    uint32_t n_prb = cfg.nrb_pucch>0?cfg.nrb_pucch:2;
     bzero(&rar_grant, sizeof(rar_grant));
     uint32_t rba = srslte_ra_type2_to_riv(L_prb, n_prb, cfg.cell.nof_prb);
-    for (uint32_t j = i; j < SCHED_MAX_PENDING_RAR; ++j) {
-      if (pending_rar[j].rar_tti != pending_rar[i].rar_tti) {
-        continue;
-      }
-      if (rar_grant.nof_grants > 0) {
-        log_h->warning("Only 1 RA is responded at a time. Found %d for TTI=%d\n", rar_grant.nof_grants + 1, tti);
-        continue;
-      }
 
-      dl_sched_rar_grant_t* grant = &rar_grant.msg3_grant[rar_grant.nof_grants];
-      grant->grant.tpc_pusch      = 3;
-      grant->grant.trunc_mcs      = 0;
-      grant->grant.rba            = rba;
-      grant->ra_id                = pending_rar[j].ra_id;
-      buf_rar += pending_rar[j].buf_rar;
-      rar_grant.nof_grants++;
-    }
+    dl_sched_rar_grant_t *grant = &rar_grant.msg3_grant[0];
+    grant->grant.tpc_pusch = 3;
+    grant->grant.trunc_mcs = 0;
+    grant->grant.rba = rba;
+    grant->data = rar;
+    rar_grant.nof_grants++;
 
     // Try to schedule DCI + RBGs for RAR Grant
-    tti_sched_t::rar_code_t ret = tti_sched->alloc_rar(rar_aggr_level, rar_grant, pending_rar[i].rar_tti, buf_rar);
-    if (not ret.first) {
-      continue;
+    tti_sched_t::rar_code_t ret = tti_sched->alloc_rar(rar_aggr_level,
+                                                       rar_grant,
+                                                       rar.prach_tti,
+                                                       7 * rar_grant.nof_grants); //fixme: check RAR size
+
+    // If we can allocate, schedule Msg3 and remove from pending
+    if (!ret.first) {
+      return;
     }
 
-    // Schedule Msg3
-    uint32_t pending_tti              = (tti_sched->get_tti_tx_dl() + MSG3_DELAY_MS + TX_DELAY) % 10;
+    // Schedule Msg3 only if there is a requirement for Msg3 data
+    uint32_t pending_tti = (tti_sched->get_tti_tx_dl() + MSG3_DELAY_MS + TX_DELAY) % TTIMOD_SZ;
     pending_msg3[pending_tti].enabled = true;
-    pending_msg3[pending_tti].rnti    = pending_rar[i].rnti; // FIXME
-    pending_msg3[pending_tti].L       = L_prb;
-    pending_msg3[pending_tti].n_prb   = n_prb;
-    dl_sched_rar_grant_t* last_msg3   = &rar_grant.msg3_grant[rar_grant.nof_grants - 1];
-    pending_msg3[pending_tti].mcs     = last_msg3->grant.trunc_mcs;
+    pending_msg3[pending_tti].rnti = rar.temp_crnti; // FIXME
+    pending_msg3[pending_tti].L = L_prb;
+    pending_msg3[pending_tti].n_prb = n_prb;
+    dl_sched_rar_grant_t *last_msg3 = &rar_grant.msg3_grant[rar_grant.nof_grants - 1];
+    pending_msg3[pending_tti].mcs = last_msg3->grant.trunc_mcs;
+    Info("SCHED: Allocating Msg3 for rnti=%d at tti=%d\n", rar.temp_crnti, tti_sched->get_tti_tx_dl() + MSG3_DELAY_MS + TX_DELAY);
 
-    // Reset allocated RARs
-    for (uint32_t j = i; j < SCHED_MAX_PENDING_RAR; ++j) {
-      if (pending_rar[j].rar_tti == pending_rar[i].rar_tti) {
-        pending_rar[j].buf_rar = 0;
-        pending_rar[j].rar_tti = 0;
-      }
-    }
+    // Remove pending RAR and exit
+    pending_rars.pop();
+    return;
   }
 }
 
@@ -1236,7 +1241,7 @@ void sched::dl_sched_data(tti_sched_t* tti_sched)
 {
   // NOTE: In case of 6 PRBs, do not transmit if there is going to be a PRACH in the UL to avoid collisions
   uint32_t tti_rx_ack  = TTI_RX_ACK(tti_sched->get_tti_rx());
-  uint32_t pending_tti = tti_rx_ack % 10;
+  uint32_t pending_tti = tti_rx_ack % TTIMOD_SZ;
   if (cfg.cell.nof_prb == 6 and (srslte_prach_tti_opportunity_config_fdd(cfg.prach_config, tti_rx_ack, -1) or
                                  pending_msg3[pending_tti].enabled)) {
     tti_sched->get_dl_mask().fill(0, tti_sched->get_dl_mask().size());
@@ -1285,7 +1290,7 @@ void sched::generate_phich(tti_sched_t* tti_sched)
       tti_sched->ul_sched_result.phich[nof_phich_elems].rnti = rnti;
       log_h->debug("SCHED: Allocated PHICH for rnti=0x%x, value=%d\n",
                    rnti,
-                   tti_sched->ul_sched_result.phich[nof_phich_elems].phich);
+                   tti_sched->ul_sched_result.phich[nof_phich_elems].phich == ul_sched_phich_t::ACK);
       nof_phich_elems++;
     }
   }
@@ -1294,7 +1299,7 @@ void sched::generate_phich(tti_sched_t* tti_sched)
 
 void sched::ul_sched_msg3(tti_sched_t* tti_sched)
 {
-  uint32_t pending_tti = tti_sched->get_tti_tx_ul() % 10;
+  uint32_t pending_tti = tti_sched->get_tti_tx_ul() % TTIMOD_SZ;
   if (not pending_msg3[pending_tti].enabled) {
     return;
   }

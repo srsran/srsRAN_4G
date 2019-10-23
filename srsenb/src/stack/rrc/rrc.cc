@@ -754,11 +754,13 @@ void rrc::config_mac()
       sched_cfg.sibs[i].period_rf = cfg.sib1.sched_info_list[i - 1].si_periodicity.to_number();
     }
   }
-  sched_cfg.si_window_ms = cfg.sib1.si_win_len.to_number();
-  sched_cfg.prach_rar_window =
+  sched_cfg.prach_config        = cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.prach_cfg_info.prach_cfg_idx;
+  sched_cfg.prach_nof_preambles = cfg.sibs[1].sib2().rr_cfg_common.rach_cfg_common.preamb_info.nof_ra_preambs.to_number();
+  sched_cfg.si_window_ms        = cfg.sib1.si_win_len.to_number();
+  sched_cfg.prach_rar_window    =
       cfg.sibs[1].sib2().rr_cfg_common.rach_cfg_common.ra_supervision_info.ra_resp_win_size.to_number();
-  sched_cfg.prach_freq_offset = cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.prach_cfg_info.prach_freq_offset;
-  sched_cfg.maxharq_msg3tx    = cfg.sibs[1].sib2().rr_cfg_common.rach_cfg_common.max_harq_msg3_tx;
+  sched_cfg.prach_freq_offset   = cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.prach_cfg_info.prach_freq_offset;
+  sched_cfg.maxharq_msg3tx      = cfg.sibs[1].sib2().rr_cfg_common.rach_cfg_common.max_harq_msg3_tx;
 
   sched_cfg.nrb_pucch = SRSLTE_MAX(cfg.sr_cfg.nof_prb, cfg.cqi_cfg.nof_prb);
   rrc_log->info("Allocating %d PRBs for PUCCH\n", sched_cfg.nrb_pucch);

@@ -136,8 +136,7 @@ private:
   srslte_cell_t cell; 
   mac_args_t    args; 
   
-  uint32_t      tti; 
-  bool          started; 
+  bool          started;
 
   /* Scheduler unit */
   sched            scheduler; 
@@ -153,23 +152,14 @@ private:
   std::map<uint16_t, ue*> ue_db;   
   uint16_t        last_rnti;   
   
-  uint8_t* assemble_rar(sched_interface::dl_sched_rar_grant_t *grants, uint32_t nof_grants, int rar_idx, uint32_t pdu_len);
+  uint8_t* assemble_rar(sched_interface::dl_sched_rar_grant_t *grants, uint32_t nof_grants, int rar_idx, uint32_t pdu_len, uint32_t tti);
   uint8_t* assemble_si(uint32_t index);
 
   const static int             rar_payload_len = 128;
   std::vector<srslte::rar_pdu> rar_pdu_msg;
   srslte::byte_buffer_t        rar_payload[sched_interface::MAX_RAR_LIST];
 
-  typedef struct {
-    uint32_t preamble_idx; 
-    uint32_t ta_cmd; 
-    uint16_t temp_crnti; 
-  } pending_rar_t; 
-
-  const static int MAX_PENDING_RARS = 64; 
-  pending_rar_t pending_rars[MAX_PENDING_RARS]; 
-  
-  const static int NOF_BCCH_DLSCH_MSG=sched_interface::MAX_SIBS; 
+  const static int NOF_BCCH_DLSCH_MSG=sched_interface::MAX_SIBS;
   uint8_t bcch_dlsch_payload[sched_interface::MAX_SIB_PAYLOAD_LEN];
   
   const static int pcch_payload_buffer_len = 1024;
@@ -199,13 +189,14 @@ private:
   /* Class to run upper-layer timers with normal priority */
   class timer_thread : public thread {
   public:
-    timer_thread(srslte::timers* t) : ttisync(10240), timers(t), running(false), thread("MAC_TIMER") { start(); }
+    timer_thread(mac* parent_, srslte::timers* t) : ttisync(10240), timers(t), running(false), parent(parent_), thread("MAC_TIMER") { start(); }
     void tti_clock();
     void stop();
   private:
     void run_thread();
     srslte::tti_sync_cv ttisync;
     srslte::timers     *timers;
+    mac                *parent;
     bool running; 
   };
   timer_thread   timers_thread;

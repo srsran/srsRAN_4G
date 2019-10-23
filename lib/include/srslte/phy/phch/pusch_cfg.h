@@ -43,7 +43,6 @@ typedef struct {
 
 typedef struct SRSLTE_API {
 
-  bool           is_from_rar;
   uint32_t       L_prb;
   uint32_t       n_prb[2];       // rb_start after frequency hopping
   uint32_t       n_prb_tilde[2]; // rb_start after frequency hopping per retx

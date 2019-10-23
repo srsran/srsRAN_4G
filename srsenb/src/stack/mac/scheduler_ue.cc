@@ -55,7 +55,8 @@ sched_ue::sched_ue() :
   max_mcs_ul(0),
   fixed_mcs_ul(0),
   fixed_mcs_dl(0),
-  phy_config_dedicated_enabled(false)
+  phy_config_dedicated_enabled(false),
+  nof_ta_cmd(0)
 {
   log_h = NULL;
 
@@ -86,6 +87,7 @@ void sched_ue::set_cfg(uint16_t                     rnti_,
 
     max_mcs_dl   = 28;
     max_mcs_ul   = 28;
+    max_aggr_level = 3;
     max_msg3retx = cell_cfg->maxharq_msg3tx;
 
     cfg = *cfg_;
@@ -153,7 +155,7 @@ void sched_ue::set_fixed_mcs(int mcs_ul, int mcs_dl) {
   fixed_mcs_dl = mcs_dl;
 }
 
-void sched_ue::set_max_mcs(int mcs_ul, int mcs_dl) {
+void sched_ue::set_max_mcs(int mcs_ul, int mcs_dl, int max_aggr_level_) {
   std::lock_guard<std::mutex> lock(mutex);
   if (mcs_ul < 0) {
     max_mcs_ul = 28;     
@@ -164,6 +166,11 @@ void sched_ue::set_max_mcs(int mcs_ul, int mcs_dl) {
     max_mcs_dl = 28;     
   } else {
     max_mcs_dl = mcs_dl;     
+  }
+  if (max_aggr_level_ < 0) {
+    max_aggr_level = 3;
+  } else {
+    max_aggr_level = max_aggr_level_;
   }
 }
 
@@ -244,6 +251,11 @@ void sched_ue::set_sr()
 void sched_ue::unset_sr()
 {
   sr = false; 
+}
+
+void sched_ue::set_needs_ta_cmd(uint32_t nof_ta_cmd_) {
+  nof_ta_cmd = nof_ta_cmd_;
+  Info("SCHED: rnti=0x%x needs %d TA CMD\n", rnti, nof_ta_cmd);
 }
 
 bool sched_ue::pucch_sr_collision(uint32_t current_tti, uint32_t n_cce)
@@ -463,15 +475,26 @@ int sched_ue::generate_format1(
 
     h->new_tx(user_mask, 0, tti, mcs, tbs, data->dci.location.ncce);
 
-    // Allocate MAC ConRes CE
-    if (need_conres_ce) {
-      data->pdu[0][0].lcid = srslte::sch_subh::CON_RES_ID;
-      data->nof_pdu_elems[0]++;
-      Info("SCHED: Added MAC Contention Resolution CE for rnti=0x%x\n", rnti);
-    }
-
     int rem_tbs = tbs;
     int x       = 0;
+
+    // Allocate MAC ConRes CE
+    if (need_conres_ce) {
+      data->pdu[0][data->nof_pdu_elems[0]].lcid = srslte::sch_subh::CON_RES_ID;
+      data->nof_pdu_elems[0]++;
+      Info("SCHED: Added MAC Contention Resolution CE for rnti=0x%x\n", rnti);
+    } else {
+      // Add TA CE. TODO: Common interface to add MAC CE
+      // FIXME: Can't put it in Msg4 because current srsUE doesn't read it
+      while(nof_ta_cmd > 0 && rem_tbs > 2) {
+        data->pdu[0][data->nof_pdu_elems[0]].lcid = srslte::sch_subh::TA_CMD;
+        data->nof_pdu_elems[0]++;
+        Info("SCHED: Added MAC TA CMD CE for rnti=0x%x\n", rnti);
+        nof_ta_cmd--;
+        rem_tbs -= 2;
+      }
+    }
+
     do {
       x = alloc_pdu(rem_tbs, &data->pdu[0][data->nof_pdu_elems[0]]);
       if (x) {
@@ -801,6 +824,9 @@ uint32_t sched_ue::get_pending_dl_new_data_unlocked(uint32_t tti)
       pending_data += lch[i].buf_retx + lch[i].buf_tx;
     }
   }
+  if (!is_first_dl_tx() && nof_ta_cmd) {
+    pending_data += nof_ta_cmd*2;
+  }
   return pending_data;
 }
 
@@ -1060,6 +1086,7 @@ uint32_t sched_ue::get_aggr_level(uint32_t nof_bits)
     factor = 1.0;
     l_max  = 2;
   }
+  l_max = SRSLTE_MIN(max_aggr_level, l_max);
   do {
     coderate = srslte_pdcch_coderate(nof_bits, l);
     l++;
