@@ -35,12 +35,44 @@
 
 #define LOG_HEX_LIMIT (-1)
 
+#define PCAP 1
+#define PCAP_CRNTI (0x1001)
+#define PCAP_TTI (666)
+
+#if PCAP
+#include "srslte/common/mac_nr_pcap.h"
+#include "srslte/common/mac_nr_pdu.h"
+static std::unique_ptr<srslte::mac_nr_pcap> pcap_handle = nullptr;
+#endif
+
+int write_pdu_to_pcap(const bool is_dl, const uint32_t lcid, const uint8_t* payload, const uint32_t len)
+{
+#if PCAP
+  if (pcap_handle) {
+    srslte::byte_buffer_t  tx_buffer;
+    srslte::mac_nr_sch_pdu tx_pdu;
+    tx_pdu.init_tx(&tx_buffer, len + 10);
+    tx_pdu.add_sdu(lcid, payload, len);
+    tx_pdu.pack();
+    if (is_dl) {
+      pcap_handle->write_dl_crnti(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
+    } else {
+      pcap_handle->write_ul_crnti(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
+    }
+
+    return SRSLTE_SUCCESS;
+  }
+#endif
+  return SRSLTE_ERROR;
+}
+
 using namespace std;
 using namespace srsue;
 using namespace srslte;
 namespace bpo = boost::program_options;
 
 typedef struct {
+  std::string rat;
   std::string mode;
   uint32_t    sdu_size;
   uint32_t    test_duration_sec;
@@ -72,6 +104,7 @@ void parse_args(stress_test_args_t *args, int argc, char *argv[]) {
   // Command line or config file options
   bpo::options_description common("Configuration options");
   common.add_options()
+  ("rat",          bpo::value<std::string>(&args->rat)->default_value("LTE"), "The RLC version to use (LTE/NR)")
   ("mode",          bpo::value<std::string>(&args->mode)->default_value("AM"), "Whether to test RLC acknowledged or unacknowledged mode (AM/UM)")
   ("duration",      bpo::value<uint32_t>(&args->test_duration_sec)->default_value(5), "Duration (sec)")
   ("sdu_size",      bpo::value<uint32_t>(&args->sdu_size)->default_value(1500), "Size of SDUs")
@@ -171,6 +204,8 @@ private:
           pdu_len = cut_pdu_len;
         }
         rx_rlc->write_pdu(lcid, pdu->msg, pdu_len);
+        write_pdu_to_pcap(is_dl, 4, pdu->msg, pdu_len);
+
         if (is_dl) {
           pcap->write_dl_am_ccch(pdu->msg, pdu_len);
         } else {
@@ -304,34 +339,56 @@ void stress_test(stress_test_args_t args)
   rlc_pcap pcap;
   uint32_t lcid = 1;
 
-  if (args.write_pcap) {
-    pcap.open("rlc_stress_test.pcap", 0);
-  }
+  rlc_config_t cnfg_ = {};
+  if (args.rat == "LTE") {
+    if (args.mode == "AM") {
+      // config RLC AM bearer
+      cnfg_.rlc_mode             = rlc_mode_t::am;
+      cnfg_.am.max_retx_thresh   = 4;
+      cnfg_.am.poll_byte         = 25 * 1000;
+      cnfg_.am.poll_pdu          = 4;
+      cnfg_.am.t_poll_retx       = 5;
+      cnfg_.am.t_reordering      = 5;
+      cnfg_.am.t_status_prohibit = 5;
+    } else if (args.mode == "UM") {
+      // config UM bearer
+      cnfg_.rlc_mode              = rlc_mode_t::um;
+      cnfg_.um.t_reordering       = 5;
+      cnfg_.um.rx_mod             = 32;
+      cnfg_.um.rx_sn_field_length = rlc_umd_sn_size_t::size5bits;
+      cnfg_.um.rx_window_size     = 16;
+      cnfg_.um.tx_sn_field_length = rlc_umd_sn_size_t::size5bits;
+      cnfg_.um.tx_mod             = 32;
+    } else if (args.mode == "TM") {
+      // use default LCID in TM
+      lcid = 0;
+    } else {
+      cout << "Unsupported RLC mode " << args.mode << ", exiting." << endl;
+      exit(-1);
+    }
 
-  rlc_config_t cnfg_;
-  if (args.mode == "AM") {
-    // config RLC AM bearer
-    cnfg_.rlc_mode             = rlc_mode_t::am;
-    cnfg_.am.max_retx_thresh = 4;
-    cnfg_.am.poll_byte = 25*1000;
-    cnfg_.am.poll_pdu = 4;
-    cnfg_.am.t_poll_retx = 5;
-    cnfg_.am.t_reordering = 5;
-    cnfg_.am.t_status_prohibit = 5;
-  } else if (args.mode == "UM") {
-    // config UM bearer
-    cnfg_.rlc_mode              = rlc_mode_t::um;
-    cnfg_.um.t_reordering = 5;
-    cnfg_.um.rx_mod = 32;
-    cnfg_.um.rx_sn_field_length = rlc_umd_sn_size_t::size5bits;
-    cnfg_.um.rx_window_size = 16;
-    cnfg_.um.tx_sn_field_length = rlc_umd_sn_size_t::size5bits;
-    cnfg_.um.tx_mod = 32;
-  } else if (args.mode == "TM") {
-    // use default LCID in TM
-    lcid = 0;
+#if PCAP
+    if (args.write_pcap) {
+      pcap.open("rlc_stress_test.pcap", 0);
+    }
+#endif
+
+  } else if (args.rat == "NR") {
+    if (args.mode == "UM") {
+      cnfg_ = rlc_config_t::default_rlc_um_nr_config(6);
+    } else {
+      cout << "Unsupported RLC mode " << args.mode << ", exiting." << endl;
+      exit(-1);
+    }
+
+#if PCAP
+    if (args.write_pcap) {
+      pcap_handle = std::unique_ptr<srslte::mac_nr_pcap>(new srslte::mac_nr_pcap());
+      pcap_handle->open("rlc_stress_test_nr.pcap");
+    }
+#endif
   } else {
-    cout << "Unsupported RLC mode " << args.mode << ", exiting." << endl;
+    cout << "Unsupported RAT mode " << args.rat << ", exiting." << endl;
     exit(-1);
   }
 
@@ -394,20 +451,20 @@ void stress_test(stress_test_args_t args)
   rlc_metrics_t metrics = {};
   rlc1.get_metrics(metrics);
 
-  printf("RLC1 received %d SDUs in %ds (%.2f/s), Throughput: DL=%4.2f Mbps, UL=%4.2f Mbps\n",
+  printf("RLC1 received %d SDUs in %ds (%.2f/s), Tx=%" PRIu64 " B, Rx=%" PRIu64 " B\n",
          tester1.get_nof_rx_pdus(),
          args.test_duration_sec,
-         static_cast<double>(tester1.get_nof_rx_pdus()/args.test_duration_sec),
-         metrics.dl_tput_mbps[lcid],
-         metrics.ul_tput_mbps[lcid]);
+         static_cast<double>(tester1.get_nof_rx_pdus() / args.test_duration_sec),
+         metrics.bearer[lcid].num_tx_bytes,
+         metrics.bearer[lcid].num_rx_bytes);
 
   rlc2.get_metrics(metrics);
-  printf("RLC2 received %d SDUs in %ds (%.2f/s), Throughput: DL=%4.2f Mbps, UL=%4.2f Mbps\n",
+  printf("RLC2 received %d SDUs in %ds (%.2f/s), Tx=%" PRIu64 " B, Rx=%" PRIu64 " B\n",
          tester2.get_nof_rx_pdus(),
          args.test_duration_sec,
-         static_cast<double>(tester2.get_nof_rx_pdus()/args.test_duration_sec),
-         metrics.dl_tput_mbps[lcid],
-         metrics.ul_tput_mbps[lcid]);
+         static_cast<double>(tester2.get_nof_rx_pdus() / args.test_duration_sec),
+         metrics.bearer[lcid].num_tx_bytes,
+         metrics.bearer[lcid].num_rx_bytes);
 }
 
 

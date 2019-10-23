@@ -146,6 +146,9 @@ bool basic_test()
   rlc_am_lte rlc1(&log1, 1, &tester, &tester, &timers);
   rlc_am_lte rlc2(&log2, 1, &tester, &tester, &timers);
 
+  // before configuring entity
+  assert(0 == rlc1.get_buffer_state());
+
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
   }
@@ -181,10 +184,14 @@ bool basic_test()
   }
 
   // Check statistics
-  if (rlc1.get_num_tx_bytes() != rlc2.get_num_rx_bytes()) {
+  rlc_bearer_metrics_t rlc1_metrics = rlc1.get_metrics();
+  rlc_bearer_metrics_t rlc2_metrics = rlc2.get_metrics();
+
+  if (rlc1_metrics.num_tx_bytes != rlc2_metrics.num_rx_bytes) {
     return -1;
   }
-  if (rlc2.get_num_tx_bytes() != rlc1.get_num_rx_bytes()) {
+
+  if (rlc2_metrics.num_tx_bytes != rlc1_metrics.num_rx_bytes) {
     return -1;
   }
 
@@ -245,11 +252,15 @@ bool concat_test()
     assert(*(tester.sdus[i]->msg)  == i);
   }
 
-  // check statistics
-  if (rlc1.get_num_tx_bytes() != rlc2.get_num_rx_bytes()) {
+  // Check statistics
+  rlc_bearer_metrics_t rlc1_metrics = rlc1.get_metrics();
+  rlc_bearer_metrics_t rlc2_metrics = rlc2.get_metrics();
+
+  if (rlc1_metrics.num_tx_bytes != rlc2_metrics.num_rx_bytes) {
     return -1;
   }
-  if (rlc2.get_num_tx_bytes() != rlc1.get_num_rx_bytes()) {
+
+  if (rlc2_metrics.num_tx_bytes != rlc1_metrics.num_rx_bytes) {
     return -1;
   }
 
@@ -340,10 +351,15 @@ bool segment_test(bool in_seq_rx)
       assert(tester.sdus[i]->msg[j]  == j);
   }
 
-  if (rlc1.get_num_tx_bytes() != rlc2.get_num_rx_bytes()) {
+  // Check statistics
+  rlc_bearer_metrics_t rlc1_metrics = rlc1.get_metrics();
+  rlc_bearer_metrics_t rlc2_metrics = rlc2.get_metrics();
+
+  if (rlc1_metrics.num_tx_bytes != rlc2_metrics.num_rx_bytes) {
     return -1;
   }
-  if (rlc2.get_num_tx_bytes() != rlc1.get_num_rx_bytes()) {
+
+  if (rlc2_metrics.num_tx_bytes != rlc1_metrics.num_rx_bytes) {
     return -1;
   }
 

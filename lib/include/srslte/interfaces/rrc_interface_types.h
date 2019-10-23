@@ -257,29 +257,30 @@ struct rlc_um_nr_config_t {
   rlc_um_nr_sn_size_t sn_field_length; // Number of bits used for sequence number
   uint32_t            UM_Window_Size;
   uint32_t            mod; // Rx/Tx counter modulus
+  int32_t             t_reassembly_ms; // Timer used by rx to detect PDU loss (ms)
 };
 
 #define RLC_TX_QUEUE_LEN (128)
 
-enum class rlc_type_t { lte, nr, nulltype };
-inline std::string to_string(const rlc_type_t& type)
+enum class srslte_rat_t { lte, nr, nulltype };
+inline std::string to_string(const srslte_rat_t& type)
 {
   constexpr static const char* options[] = {"LTE", "NR"};
-  return enum_to_text(options, (uint32_t)rlc_type_t::nulltype, (uint32_t)type);
+  return enum_to_text(options, (uint32_t)srslte_rat_t::nulltype, (uint32_t)type);
 }
 
 class rlc_config_t
 {
 public:
-  rlc_type_t         type;
-  rlc_mode_t         rlc_mode;
-  rlc_am_config_t    am;
-  rlc_um_config_t    um;
+  srslte_rat_t          rat;
+  rlc_mode_t       rlc_mode;
+  rlc_am_config_t  am;
+  rlc_um_config_t  um;
   rlc_um_nr_config_t um_nr;
   uint32_t           tx_queue_length;
 
   rlc_config_t() :
-    type(rlc_type_t::lte),
+    rat(srslte_rat_t::lte),
     rlc_mode(rlc_mode_t::tm),
     am(),
     um(),
@@ -290,7 +291,7 @@ public:
   static rlc_config_t mch_config()
   {
     rlc_config_t cfg          = {};
-    cfg.type                  = rlc_type_t::lte;
+    cfg.rat                   = srslte_rat_t::lte;
     cfg.rlc_mode              = rlc_mode_t::um;
     cfg.um.t_reordering       = 45;
     cfg.um.rx_sn_field_length = rlc_umd_sn_size_t::size5bits;
@@ -309,7 +310,7 @@ public:
     }
     // SRB1 and SRB2 are AM
     rlc_config_t rlc_cfg         = {};
-    rlc_cfg.type                 = rlc_type_t::lte;
+    rlc_cfg.rat                  = srslte_rat_t::lte;
     rlc_cfg.rlc_mode             = rlc_mode_t::am;
     rlc_cfg.am.t_poll_retx       = 45;
     rlc_cfg.am.poll_pdu          = -1;
@@ -322,7 +323,7 @@ public:
   static rlc_config_t default_rlc_um_config(uint32_t sn_size = 10)
   {
     rlc_config_t cnfg    = {};
-    cnfg.type            = rlc_type_t::lte;
+    cnfg.rat             = srslte_rat_t::lte;
     cnfg.rlc_mode        = rlc_mode_t::um;
     cnfg.um.t_reordering = 5;
     if (sn_size == 10) {
@@ -345,7 +346,7 @@ public:
   static rlc_config_t default_rlc_am_config()
   {
     rlc_config_t rlc_cnfg         = {};
-    rlc_cnfg.type                 = rlc_type_t::lte;
+    rlc_cnfg.rat                  = srslte_rat_t::lte;
     rlc_cnfg.rlc_mode             = rlc_mode_t::am;
     rlc_cnfg.am.t_reordering      = 5;
     rlc_cnfg.am.t_status_prohibit = 5;
@@ -358,7 +359,7 @@ public:
   static rlc_config_t default_rlc_um_nr_config(uint32_t sn_size = 6)
   {
     rlc_config_t cnfg = {};
-    cnfg.type         = rlc_type_t::nr;
+    cnfg.rat          = srslte_rat_t::nr;
     cnfg.rlc_mode     = rlc_mode_t::um;
     if (sn_size == 6) {
       cnfg.um_nr.sn_field_length = rlc_um_nr_sn_size_t::size6bits;
@@ -371,6 +372,7 @@ public:
     } else {
       return {};
     }
+    cnfg.um_nr.t_reassembly_ms = 5; // lowest non-zero value
     return cnfg;
   }
 };

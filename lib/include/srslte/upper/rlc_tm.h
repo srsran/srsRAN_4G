@@ -49,8 +49,7 @@ public:
   rlc_mode_t    get_mode();
   uint32_t      get_bearer();
 
-  uint32_t get_num_tx_bytes();
-  uint32_t get_num_rx_bytes();
+  rlc_bearer_metrics_t get_metrics();
   void reset_metrics();
 
   // PDCP interface
@@ -71,8 +70,7 @@ private:
 
   bool tx_enabled = true;
 
-  uint32_t num_tx_bytes = 0;
-  uint32_t num_rx_bytes = 0;
+  rlc_bearer_metrics_t metrics = {};
 
   // Thread-safe queues for MAC messages
   rlc_tx_queue    ul_queue;

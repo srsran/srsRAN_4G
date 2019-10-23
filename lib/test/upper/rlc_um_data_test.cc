@@ -19,9 +19,9 @@
  *
  */
 
-#include <iostream>
-#include "srslte/upper/rlc_um.h"
+#include "srslte/upper/rlc_um_lte.h"
 #include <assert.h>
+#include <iostream>
 
 // Fixed header only
 uint8_t pdu1[] = {0x18 ,0xE2};

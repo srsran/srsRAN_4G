@@ -23,6 +23,7 @@
 #define SRSLTE_RLC_COMMON_H
 
 #include "srslte/common/block_queue.h"
+#include "srslte/upper/rlc_metrics.h"
 #include <stdlib.h>
 
 namespace srslte {
@@ -64,6 +65,12 @@ inline std::string to_string(const rlc_nr_si_field_t& si)
   return enum_to_text(options, (uint32_t)rlc_nr_si_field_t::nulltype, (uint32_t)si);
 }
 
+inline std::string to_string_short(const rlc_nr_si_field_t& si)
+{
+  constexpr static const char* options[] = {"full", "first", "last", "middle"};
+  return enum_to_text(options, (uint32_t)rlc_nr_si_field_t::nulltype, (uint32_t)si);
+}
+
 static inline uint8_t operator&(rlc_nr_si_field_t lhs, int rhs)
 {
   return static_cast<uint8_t>(static_cast<std::underlying_type<rlc_nr_si_field_t>::type>(lhs) &
@@ -91,7 +98,7 @@ typedef struct {
   rlc_nr_si_field_t   si;      // Segmentation info
   rlc_um_nr_sn_size_t sn_size; // Sequence number size (6 or 12 bits)
   uint16_t            sn;      // Sequence number
-  uint16_t            so;      // Sequence offset
+  uint16_t            so;      // Segment offset
 } rlc_um_nr_pdu_header_t;
 
 // AMD PDU Header
@@ -137,8 +144,9 @@ struct rlc_amd_pdu_header_t{
     lsf  = h.lsf;
     so   = h.so;
     N_li = h.N_li;
-    for(uint32_t i=0;i<h.N_li;i++)
+    for (uint32_t i = 0; i < h.N_li; i++) {
       li[i] = h.li[i];
+    }
   }
 };
 
@@ -215,8 +223,7 @@ public:
   virtual rlc_mode_t    get_mode() = 0;
   virtual uint32_t      get_bearer() = 0;
 
-  virtual uint32_t get_num_tx_bytes() = 0;
-  virtual uint32_t get_num_rx_bytes() = 0;
+  virtual rlc_bearer_metrics_t get_metrics()   = 0;
   virtual void reset_metrics() = 0;
 
   // PDCP interface

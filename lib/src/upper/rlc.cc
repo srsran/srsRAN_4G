@@ -22,7 +22,8 @@
 #include "srslte/upper/rlc.h"
 #include "srslte/upper/rlc_am_lte.h"
 #include "srslte/upper/rlc_tm.h"
-#include "srslte/upper/rlc_um.h"
+#include "srslte/upper/rlc_um_lte.h"
+#include "srslte/upper/rlc_um_nr.h"
 
 namespace srslte {
 
@@ -100,20 +101,21 @@ void rlc::get_metrics(rlc_metrics_t &m)
   double secs = (double)metrics_time[0].tv_sec + metrics_time[0].tv_usec*1e-6;
 
   for (rlc_map_t::iterator it = rlc_array.begin(); it != rlc_array.end(); ++it) {
-    m.dl_tput_mbps[it->first] = (it->second->get_num_rx_bytes()*8/static_cast<double>(1e6))/secs;
-    m.ul_tput_mbps[it->first] = (it->second->get_num_tx_bytes()*8/static_cast<double>(1e6))/secs;
+    rlc_bearer_metrics_t metrics = it->second->get_metrics();
     rlc_log->info("LCID=%d, RX throughput: %4.6f Mbps. TX throughput: %4.6f Mbps.\n",
-                    it->first,
-                    (it->second->get_num_rx_bytes()*8/static_cast<double>(1e6))/secs,
-                    (it->second->get_num_tx_bytes()*8/static_cast<double>(1e6))/secs);
+                  it->first,
+                  (metrics.num_rx_bytes * 8 / static_cast<double>(1e6)) / secs,
+                  (metrics.num_tx_bytes * 8 / static_cast<double>(1e6)) / secs);
+    m.bearer[it->first] = metrics;
   }
 
   // Add multicast metrics
   for (rlc_map_t::iterator it = rlc_array_mrb.begin(); it != rlc_array_mrb.end(); ++it) {
-    m.dl_tput_mbps[it->first] = (it->second->get_num_rx_bytes()*8/static_cast<double>(1e6))/secs;
+    rlc_bearer_metrics_t metrics = it->second->get_metrics();
     rlc_log->info("MCH_LCID=%d, RX throughput: %4.6f Mbps\n",
                   it->first,
-                  (it->second->get_num_rx_bytes()*8/static_cast<double>(1e6))/secs);
+                  (metrics.num_rx_bytes * 8 / static_cast<double>(1e6)) / secs);
+    m.bearer[it->first] = metrics;
   }
 
   memcpy(&metrics_time[1], &metrics_time[2], sizeof(struct timeval));
@@ -382,19 +384,33 @@ void rlc::add_bearer(uint32_t lcid, rlc_config_t cnfg)
   rlc_common *rlc_entity = NULL;
 
   if (not valid_lcid(lcid)) {
-    switch (cnfg.rlc_mode) {
-      case rlc_mode_t::tm:
-        rlc_entity = new rlc_tm(rlc_log, lcid, pdcp, rrc, timers);
-        break;
-      case rlc_mode_t::am:
-        rlc_entity = new rlc_am_lte(rlc_log, lcid, pdcp, rrc, timers);
-        break;
-      case rlc_mode_t::um:
-        rlc_entity = new rlc_um(rlc_log, lcid, pdcp, rrc, timers);
-        break;
-      default:
-        rlc_log->error("Cannot add RLC entity - invalid mode\n");
-        goto unlock_and_exit;
+    if (cnfg.rat == srslte_rat_t::lte) {
+      switch (cnfg.rlc_mode) {
+        case rlc_mode_t::tm:
+          rlc_entity = new rlc_tm(rlc_log, lcid, pdcp, rrc, timers);
+          break;
+        case rlc_mode_t::am:
+          rlc_entity = new rlc_am_lte(rlc_log, lcid, pdcp, rrc, timers);
+          break;
+        case rlc_mode_t::um:
+          rlc_entity = new rlc_um_lte(rlc_log, lcid, pdcp, rrc, timers);
+          break;
+        default:
+          rlc_log->error("Cannot add RLC entity - invalid mode\n");
+          goto unlock_and_exit;
+      }
+    } else if (cnfg.rat == srslte_rat_t::nr) {
+      switch (cnfg.rlc_mode) {
+        case rlc_mode_t::tm:
+          rlc_entity = new rlc_tm(rlc_log, lcid, pdcp, rrc, timers);
+          break;
+        case rlc_mode_t::um:
+          rlc_entity = new rlc_um_nr(rlc_log, lcid, pdcp, rrc, timers);
+          break;
+        default:
+          rlc_log->error("Cannot add RLC entity - invalid mode\n");
+          goto unlock_and_exit;
+      }
     }
 
     if (not rlc_array.insert(rlc_map_pair_t(lcid, rlc_entity)).second) {
@@ -406,7 +422,7 @@ void rlc::add_bearer(uint32_t lcid, rlc_config_t cnfg)
   }
 
   // configure and add to array
-  if (cnfg.rlc_mode != rlc_mode_t::tm) {
+  if (cnfg.rlc_mode != rlc_mode_t::tm and rlc_array.find(lcid) != rlc_array.end()) {
     if (not rlc_array.at(lcid)->configure(cnfg)) {
       rlc_log->error("Error configuring RLC entity\n.");
       goto delete_and_exit;
@@ -431,7 +447,7 @@ void rlc::add_bearer_mrb(uint32_t lcid)
   rlc_common* rlc_entity = NULL;
 
   if (not valid_lcid_mrb(lcid)) {
-    rlc_entity = new rlc_um(rlc_log, lcid, pdcp, rrc, timers);
+    rlc_entity = new rlc_um_lte(rlc_log, lcid, pdcp, rrc, timers);
     // configure and add to array
     if (not rlc_entity->configure(rlc_config_t::mch_config())) {
       rlc_log->error("Error configuring RLC entity\n.");

@@ -102,14 +102,9 @@ uint32_t rlc_am_lte::get_bearer()
   return lcid;
 }
 
-uint32_t rlc_am_lte::get_num_rx_bytes()
+rlc_bearer_metrics_t rlc_am_lte::get_metrics()
 {
-  return rx.get_num_rx_bytes();
-}
-
-uint32_t rlc_am_lte::get_num_tx_bytes()
-{
-  return tx.get_num_tx_bytes();
+  return metrics;
 }
 
 void rlc_am_lte::reset_metrics()

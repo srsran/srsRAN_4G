@@ -86,8 +86,7 @@ public:
   int      read_pdu(uint8_t *payload, uint32_t nof_bytes);
   void     write_pdu(uint8_t *payload, uint32_t nof_bytes);
 
-  uint32_t get_num_tx_bytes();
-  uint32_t get_num_rx_bytes();
+  rlc_bearer_metrics_t get_metrics();
   void reset_metrics();
 
 private:
@@ -283,6 +282,8 @@ private:
   // Rx and Tx objects
   rlc_am_lte_tx tx;
   rlc_am_lte_rx rx;
+
+  rlc_bearer_metrics_t metrics = {};
 };
 
 /****************************************************************************
