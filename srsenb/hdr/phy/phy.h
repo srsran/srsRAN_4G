@@ -95,11 +95,11 @@ private:
   std::vector<std::unique_ptr<srslte::log_filter> > log_vec;
   srslte::log*                                      log_h = nullptr;
 
-  srslte::thread_pool      workers_pool;
-  std::vector<sf_worker>    workers;
-  phy_common                workers_common;
-  prach_worker             prach;
-  txrx                      tx_rx;
+  srslte::thread_pool    workers_pool;
+  std::vector<sf_worker> workers;
+  phy_common             workers_common;
+  prach_worker_pool      prach;
+  txrx                   tx_rx;
 
   bool initialized = false;
 

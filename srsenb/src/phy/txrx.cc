@@ -46,7 +46,7 @@ txrx::txrx() : thread("TXRX")
 bool txrx::init(srslte::radio_interface_phy* radio_h_,
                 srslte::thread_pool*         workers_pool_,
                 phy_common*                  worker_com_,
-                prach_worker*                prach_,
+                prach_worker_pool*           prach_,
                 srslte::log*                 log_h_,
                 uint32_t                     prio_)
 {
@@ -131,11 +131,12 @@ void txrx::run_thread()
       tx_worker_cnt = (tx_worker_cnt+1)%nof_workers;
       
       // Trigger phy worker execution
-      workers_pool->start_worker(worker);       
+      workers_pool->start_worker(worker);
 
-      // Trigger prach worker execution 
-      prach->new_tti(tti, buffer[0]);
-      
+      // Trigger prach worker execution
+      for (uint32_t cc = 0; cc < worker_com->params.nof_carriers; cc++) {
+        prach->new_tti(cc, tti, buffer[cc * worker_com->cell.nof_ports]);
+      }
     } else {
       // wait_worker() only returns NULL if it's being closed. Quit now to avoid unnecessary loops here
       running = false; 

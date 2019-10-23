@@ -61,7 +61,7 @@ public:
 
   /******** Interface from PHY (PHY -> MAC) ****************/
   int sr_detected(uint32_t tti, uint16_t rnti) final;
-  int rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv) final;
+  int rach_detected(uint32_t tti, uint32_t primary_cc_idx, uint32_t preamble_idx, uint32_t time_adv) final;
 
   int set_dl_ant_info(uint16_t rnti, asn1::rrc::phys_cfg_ded_s::ant_info_c_* dl_ant_info);
 

@@ -41,7 +41,7 @@ public:
   bool init(srslte::radio_interface_phy* radio_handler,
             srslte::thread_pool*         _workers_pool,
             phy_common*                  worker_com,
-            prach_worker*                prach,
+            prach_worker_pool*           prach_,
             srslte::log*                 log_h,
             uint32_t                     prio);
   void stop();
@@ -52,7 +52,7 @@ private:
   srslte::radio_interface_phy* radio_h      = nullptr;
   srslte::log*                 log_h        = nullptr;
   srslte::thread_pool*         workers_pool = nullptr;
-  prach_worker*                prach        = nullptr;
+  prach_worker_pool*           prach        = nullptr;
   phy_common*                  worker_com   = nullptr;
   srslte::channel_ptr          ul_channel   = nullptr;
 

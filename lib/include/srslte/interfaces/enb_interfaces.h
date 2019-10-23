@@ -73,12 +73,12 @@ public:
     ul_sched_grant_t pusch[MAX_GRANTS];
     ul_sched_ack_t   phich[MAX_GRANTS];
     uint32_t         nof_grants;
-    uint32_t nof_phich; 
-  } ul_sched_t; 
+    uint32_t         nof_phich;
+  } ul_sched_t;
 
-  virtual int sr_detected(uint32_t tti, uint16_t rnti) = 0; 
-  virtual int rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv) = 0; 
-  
+  virtual int sr_detected(uint32_t tti, uint16_t rnti)                                                       = 0;
+  virtual int rach_detected(uint32_t tti, uint32_t primary_cc_idx, uint32_t preamble_idx, uint32_t time_adv) = 0;
+
   virtual int ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value) = 0;
   virtual int pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value) = 0;
   virtual int cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value) = 0; 

@@ -57,9 +57,9 @@ public:
 
   /* PHY-MAC interface */
   int sr_detected(uint32_t tti, uint16_t rnti) final { return mac.sr_detected(tti, rnti); }
-  int rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv) final
+  int rach_detected(uint32_t tti, uint32_t primary_cc_idx, uint32_t preamble_idx, uint32_t time_adv) final
   {
-    return mac.rach_detected(tti, preamble_idx, time_adv);
+    return mac.rach_detected(tti, primary_cc_idx, preamble_idx, time_adv);
   }
   int ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value) final { return mac.ri_info(tti, rnti, ri_value); }
   int pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value) final { return mac.pmi_info(tti, rnti, pmi_value); }

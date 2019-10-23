@@ -460,7 +460,7 @@ int mac::sr_detected(uint32_t tti, uint16_t rnti)
   return ret;
 }
 
-int mac::rach_detected(uint32_t tti, uint32_t preamble_idx, uint32_t time_adv)
+int mac::rach_detected(uint32_t tti, uint32_t primary_cc_idx, uint32_t preamble_idx, uint32_t time_adv)
 {
   log_h->step(tti);
 

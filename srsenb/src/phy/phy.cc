@@ -58,15 +58,11 @@ phy::~phy()
 void phy::parse_config(const phy_cfg_t& cfg)
 {
   // PRACH configuration
-  ZERO_OBJECT(prach_cfg);
   prach_cfg.config_idx     = cfg.prach_cnfg.prach_cfg_info.prach_cfg_idx;
   prach_cfg.hs_flag        = cfg.prach_cnfg.prach_cfg_info.high_speed_flag;
   prach_cfg.root_seq_idx   = cfg.prach_cnfg.root_seq_idx;
   prach_cfg.zero_corr_zone = cfg.prach_cnfg.prach_cfg_info.zero_correlation_zone_cfg;
   prach_cfg.freq_offset    = cfg.prach_cnfg.prach_cfg_info.prach_freq_offset;
-
-  // Uplink Physical common configuration
-  ZERO_OBJECT(workers_common.ul_cfg_com);
 
   // DMRS
   workers_common.ul_cfg_com.dmrs.cyclic_shift        = cfg.pusch_cnfg.ul_ref_sigs_pusch.cyclic_shift;
@@ -80,7 +76,7 @@ void phy::parse_config(const phy_cfg_t& cfg)
               asn1::rrc::pusch_cfg_common_s::pusch_cfg_basic_s_::hop_mode_e_::intra_and_inter_sub_frame
           ? srslte_pusch_hopping_cfg_t::SRSLTE_PUSCH_HOP_MODE_INTRA_SF
           : srslte_pusch_hopping_cfg_t::SRSLTE_PUSCH_HOP_MODE_INTER_SF;
-  ;
+
   workers_common.ul_cfg_com.hopping.n_sb             = cfg.pusch_cnfg.pusch_cfg_basic.n_sb;
   workers_common.ul_cfg_com.hopping.hopping_offset   = cfg.pusch_cnfg.pusch_cfg_basic.pusch_hop_offset;
   workers_common.ul_cfg_com.pusch.max_nof_iterations = workers_common.params.pusch_max_its;
@@ -95,7 +91,6 @@ void phy::parse_config(const phy_cfg_t& cfg)
   workers_common.ul_cfg_com.pucch.threshold_format1 = 0.8;
 
   // PDSCH configuration
-  ZERO_OBJECT(workers_common.dl_cfg_com);
   workers_common.dl_cfg_com.tm                 = SRSLTE_TM1;
   workers_common.dl_cfg_com.pdsch.rs_power     = cfg.pdsch_cnfg.ref_sig_pwr;
   workers_common.dl_cfg_com.pdsch.p_b          = cfg.pdsch_cnfg.p_b;
@@ -107,7 +102,7 @@ int phy::init(const phy_args_t&            args,
               srslte::radio_interface_phy* radio_,
               stack_interface_phy_lte*     stack_)
 {
-  mlockall(MCL_CURRENT | MCL_FUTURE);
+  mlockall((uint32_t)MCL_CURRENT | (uint32_t)MCL_FUTURE);
 
   // Create array of pointers to phy_logs
   for (int i = 0; i < args.nof_phy_threads; i++) {
@@ -148,7 +143,10 @@ int phy::init(const phy_args_t&            args,
     workers_pool.init_worker(i, &workers[i], WORKERS_THREAD_PRIO);    
   }
 
-  prach.init(cfg.cell, prach_cfg, stack_, log_vec.at(0).get(), PRACH_WORKER_THREAD_PRIO);
+  // For each carrier, initialise PRACH worker
+  for (uint32_t cc = 0; cc < args.nof_carriers; cc++) {
+    prach.init(cc, cfg.cell, prach_cfg, stack_, log_vec.at(0).get(), PRACH_WORKER_THREAD_PRIO);
+  }
   prach.set_max_prach_offset_us(args.max_prach_offset_us);
 
   // Warning this must be initialized after all workers have been added to the pool
