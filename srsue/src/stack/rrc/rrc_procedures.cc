@@ -562,7 +562,7 @@ proc_outcome_t rrc::connection_request_proc::init(srslte::establishment_cause_t 
     return proc_outcome_t::error;
   }
 
-  if (rrc_ptr->timers->get(rrc_ptr->t302)->is_running()) {
+  if (rrc_ptr->t302.is_running()) {
     Info("Requested RRC connection establishment while T302 is running\n");
     rrc_ptr->nas->set_barring(nas_interface_rrc::BARRING_MO_DATA);
     return proc_outcome_t::error;
@@ -600,8 +600,7 @@ proc_outcome_t rrc::connection_request_proc::step()
       return proc_outcome_t::error;
     }
 
-    rrc_ptr->timers->get(rrc_ptr->t300)->reset();
-    rrc_ptr->timers->get(rrc_ptr->t300)->run();
+    rrc_ptr->t300.run();
 
     // Send connectionRequest message to lower layers
     rrc_ptr->send_con_request(cause);
@@ -618,14 +617,14 @@ proc_outcome_t rrc::connection_request_proc::step()
 
   } else if (state == state_t::wait_t300) {
     // Wait until t300 stops due to RRCConnectionSetup/Reject or expiry
-    if (rrc_ptr->timers->get(rrc_ptr->t300)->is_running()) {
+    if (rrc_ptr->t300.is_running()) {
       return proc_outcome_t::yield;
     }
 
     if (rrc_ptr->state == RRC_STATE_CONNECTED) {
       // Received ConnectionSetup
       return proc_outcome_t::success;
-    } else if (rrc_ptr->timers->get(rrc_ptr->t300)->is_expired()) {
+    } else if (rrc_ptr->t300.is_expired()) {
       // T300 is expired: 5.3.3.6
       Warning("Timer T300 expired: ConnectionRequest timed out\n");
       rrc_ptr->mac->reset();

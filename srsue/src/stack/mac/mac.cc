@@ -68,7 +68,7 @@ mac::~mac()
 bool mac::init(phy_interface_mac_lte* phy,
                rlc_interface_mac*     rlc,
                rrc_interface_mac*     rrc,
-               srslte::timers*        timers_,
+               srslte::timer_handler* timers_,
                stack_interface_mac*   stack_)
 {
   phy_h   = phy;
@@ -77,26 +77,20 @@ bool mac::init(phy_interface_mac_lte* phy,
   timers  = timers_;
   stack_h = stack_;
 
-  timer_alignment                      = timers->get_unique_id();
-  uint32_t contention_resolution_timer = timers->get_unique_id();
+  timer_alignment                                                 = timers->get_unique_timer();
+  srslte::timer_handler::unique_timer contention_resolution_timer = timers->get_unique_timer();
 
   bsr_procedure.init(rlc_h, log_h, timers);
   phr_procedure.init(phy_h, log_h, timers);
   mux_unit.init(rlc_h, &bsr_procedure, &phr_procedure);
-  demux_unit.init(phy_h, rlc_h, this, timers->get(timer_alignment));
-  ra_procedure.init(phy_h,
-                    rrc,
-                    log_h,
-                    &uernti,
-                    timers->get(timer_alignment),
-                    timers->get(contention_resolution_timer),
-                    &mux_unit,
-                    stack_h);
+  demux_unit.init(phy_h, rlc_h, this, &timer_alignment);
+  ra_procedure.init(
+      phy_h, rrc, log_h, &uernti, &timer_alignment, std::move(contention_resolution_timer), &mux_unit, stack_h);
   sr_procedure.init(phy_h, rrc, log_h);
 
   // Create UL/DL unique HARQ pointers
   ul_harq.at(0)->init(log_h, &uernti, &ra_procedure, &mux_unit);
-  dl_harq.at(0)->init(log_h, &uernti, timers->get(timer_alignment), &demux_unit);
+  dl_harq.at(0)->init(log_h, &uernti, &timer_alignment, &demux_unit);
 
   reset();
 
@@ -143,7 +137,7 @@ void mac::reconfiguration(const uint32_t& cc_idx, const bool& enable)
     }
     while (dl_harq.size() < cc_idx + 1) {
       auto dl = dl_harq_entity_ptr(new dl_harq_entity());
-      dl->init(log_h, &uernti, timers->get(timer_alignment), &demux_unit);
+      dl->init(log_h, &uernti, &timer_alignment, &demux_unit);
 
       if (pcap) {
         dl->start_pcap(pcap);
@@ -170,7 +164,7 @@ void mac::reset()
 
   Info("Resetting MAC\n");
 
-  timers->get(timer_alignment)->stop();
+  timer_alignment.stop();
 
   timer_alignment_expire();
 
@@ -529,18 +523,18 @@ void mac::new_mch_dl(srslte_pdsch_grant_t phy_grant, tb_action_dl_t* action)
 void mac::setup_timers(int time_alignment_timer)
 {
   // stop currently running time alignment timer
-  if (timers->get(timer_alignment)->is_running()) {
-    timers->get(timer_alignment)->stop();
+  if (timer_alignment.is_running()) {
+    timer_alignment.stop();
   }
 
   if (time_alignment_timer > 0) {
-    timers->get(timer_alignment)->set(this, time_alignment_timer);
+    timer_alignment.set(time_alignment_timer, [this](uint32_t tid) { timer_expired(tid); });
   }
 }
 
 void mac::timer_expired(uint32_t timer_id)
 {
-  if(timer_id == timer_alignment) {
+  if (timer_id == timer_alignment.id()) {
     timer_alignment_expire();
   } else {
     Warning("Received callback from unknown timer_id=%d\n", timer_id);
@@ -667,26 +661,6 @@ void mac::get_metrics(mac_metrics_t m[SRSLTE_MAX_CARRIERS])
   memcpy(m, metrics, sizeof(mac_metrics_t) * SRSLTE_MAX_CARRIERS);
   m = metrics;
   bzero(&metrics, sizeof(mac_metrics_t) * SRSLTE_MAX_CARRIERS);
-}
-
-/********************************************************
- *
- * Interface for timers used by upper layers
- *
- *******************************************************/
-srslte::timers::timer* mac::timer_get(uint32_t timer_id)
-{
-  return timers->get(timer_id);
-}
-
-void mac::timer_release_id(uint32_t timer_id)
-{
-  timers->release_id(timer_id);
-}
-
-uint32_t mac::timer_get_unique_id()
-{
-  return timers->get_unique_id();
 }
 
 } // namespace srsue

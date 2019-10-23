@@ -369,9 +369,9 @@ int mac_unpack_test()
                           0xc3, 0xb3, 0x5c, 0xa3, 0x23, 0xad, 0x00, 0x03, 0x20, 0x1b, 0x00, 0x00, 0x00,
                           0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x13, 0x89, 0x00, 0x00};
 
-  srslte::log_filter rlc_log("RLC");
-  srslte::log_filter mac_log("MAC");
-  srslte::timers     timers(64);
+  srslte::log_filter    rlc_log("RLC");
+  srslte::log_filter    mac_log("MAC");
+  srslte::timer_handler timers(64);
 
   mac_log.set_level(srslte::LOG_LEVEL_DEBUG);
   mac_log.set_hex_limit(100000);
@@ -435,7 +435,7 @@ int mac_ul_sch_pdu_test1()
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
 
-  srslte::timers timers(64);
+  srslte::timer_handler timers(64);
 
   // dummy layers
   phy_dummy   phy;
@@ -505,7 +505,7 @@ int mac_ul_logical_channel_prioritization_test1()
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
 
-  srslte::timers timers(64);
+  srslte::timer_handler timers(64);
 
   // dummy layers
   phy_dummy   phy;
@@ -620,7 +620,7 @@ int mac_ul_logical_channel_prioritization_test2()
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
 
-  srslte::timers timers(64);
+  srslte::timer_handler timers(64);
 
   // dummy layers
   phy_dummy   phy;
@@ -722,7 +722,7 @@ int mac_ul_logical_channel_prioritization_test3()
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
 
-  srslte::timers timers(64);
+  srslte::timer_handler timers(64);
 
   // dummy layers
   phy_dummy   phy;
@@ -812,7 +812,7 @@ int mac_ul_sch_pdu_with_short_bsr_test()
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
 
-  srslte::timers timers(64);
+  srslte::timer_handler timers(64);
 
   // dummy layers
   phy_dummy   phy;
@@ -900,7 +900,7 @@ int mac_ul_sch_pdu_with_padding_bsr_test()
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
 
-  srslte::timers timers(64);
+  srslte::timer_handler timers(64);
 
   // dummy layers
   phy_dummy   phy;
@@ -997,7 +997,7 @@ int mac_ul_sch_pdu_one_byte_test()
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
 
-  srslte::timers timers(64);
+  srslte::timer_handler timers(64);
 
   // dummy layers
   phy_dummy   phy;
@@ -1059,7 +1059,7 @@ int mac_ul_sch_pdu_two_byte_test()
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
 
-  srslte::timers timers(64);
+  srslte::timer_handler timers(64);
 
   // dummy layers
   phy_dummy   phy;
@@ -1121,7 +1121,7 @@ int mac_ul_sch_pdu_three_byte_test()
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
 
-  srslte::timers timers(64);
+  srslte::timer_handler timers(64);
 
   // dummy layers
   phy_dummy   phy;
@@ -1188,7 +1188,7 @@ struct ra_test {
 
 struct ra_test test;
 
-int run_mac_ra_test(struct ra_test test, mac* mac, phy_dummy* phy, uint32_t* tti_state, srslte::timers* timers)
+int run_mac_ra_test(struct ra_test test, mac* mac, phy_dummy* phy, uint32_t* tti_state, srslte::timer_handler* timers)
 {
   uint32_t tti = *tti_state;
 
@@ -1365,7 +1365,7 @@ int mac_random_access_test()
   rlc_log.set_level(srslte::LOG_LEVEL_DEBUG);
   rlc_log.set_hex_limit(100000);
 
-  srslte::timers timers(64);
+  srslte::timer_handler timers(64);
 
   // dummy layers
   phy_dummy phy;

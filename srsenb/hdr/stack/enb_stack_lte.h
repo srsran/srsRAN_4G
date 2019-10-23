@@ -105,8 +105,8 @@ private:
   srsenb::gtpu     gtpu;
   srsenb::s1ap     s1ap;
 
-  srslte::logger* logger = nullptr;
-  srslte::timers  timers;
+  srslte::logger*       logger = nullptr;
+  srslte::timer_handler timers;
 
   // Radio and PHY log are in enb.cc
   srslte::log_filter mac_log;

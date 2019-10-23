@@ -45,7 +45,10 @@ class rlc
 public:
   rlc(log* rlc_log_);
   virtual ~rlc();
-  void init(srsue::pdcp_interface_rlc* pdcp_, srsue::rrc_interface_rlc* rrc_, srslte::timers* timers_, uint32_t lcid_);
+  void init(srsue::pdcp_interface_rlc* pdcp_,
+            srsue::rrc_interface_rlc*  rrc_,
+            srslte::timer_handler*     timers_,
+            uint32_t                   lcid_);
   void stop();
 
   void get_metrics(rlc_metrics_t& m);
@@ -85,11 +88,11 @@ public:
 private:
   void reset_metrics();
 
-  byte_buffer_pool*             pool       = nullptr;
-  srslte::log*                  rlc_log    = nullptr;
-  srsue::pdcp_interface_rlc*    pdcp       = nullptr;
-  srsue::rrc_interface_rlc*     rrc        = nullptr;
-  srslte::timers*               timers     = nullptr;
+  byte_buffer_pool*          pool    = nullptr;
+  srslte::log*               rlc_log = nullptr;
+  srsue::pdcp_interface_rlc* pdcp    = nullptr;
+  srsue::rrc_interface_rlc*  rrc     = nullptr;
+  srslte::timer_handler*     timers  = nullptr;
 
   typedef std::map<uint16_t, rlc_common*>  rlc_map_t;
   typedef std::pair<uint16_t, rlc_common*> rlc_map_pair_t;

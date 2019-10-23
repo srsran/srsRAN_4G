@@ -79,8 +79,8 @@ int basic_test()
   log2.set_level(srslte::LOG_LEVEL_DEBUG);
   log1.set_hex_limit(-1);
   log2.set_hex_limit(-1);
-  rlc_tester     tester;
-  srslte::timers timers(1);
+  rlc_tester            tester;
+  srslte::timer_handler timers(1);
 
   int len = 0;
 

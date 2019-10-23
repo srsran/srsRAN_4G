@@ -53,7 +53,7 @@ public:
          uint32_t                   lcid_,
          srsue::pdcp_interface_rlc* pdcp_,
          srsue::rrc_interface_rlc*  rrc_,
-         srslte::timers*            timers_);
+         srslte::timer_handler*     timers_);
   ~rlc_um();
   bool configure(rlc_config_t cnfg);
   void reestablish();
@@ -167,7 +167,7 @@ private:
               uint32_t                   lcid_,
               srsue::pdcp_interface_rlc* pdcp_,
               srsue::rrc_interface_rlc*  rrc_,
-              srslte::timers*            timers_);
+              srslte::timer_handler*     timers_);
     ~rlc_um_rx();
     void     stop();
     void     reestablish();
@@ -185,10 +185,10 @@ private:
   private:
     void reset();
 
-    byte_buffer_pool* pool   = nullptr;
-    srslte::log*      log    = nullptr;
-    srslte::timers*   timers = nullptr;
-    std::string       rb_name;
+    byte_buffer_pool*      pool   = nullptr;
+    srslte::log*           log    = nullptr;
+    srslte::timer_handler* timers = nullptr;
+    std::string            rb_name;
 
     /****************************************************************************
      * Configurable parameters
@@ -225,11 +225,10 @@ private:
      * Timers
      * Ref: 3GPP TS 36.322 v10.0.0 Section 7
      ***************************************************************************/
-    srslte::timers::timer* reordering_timer    = nullptr;
-    uint32_t               reordering_timer_id = 0;
+    srslte::timer_handler::unique_timer reordering_timer;
 
     // helper functions
-    void debug_state();
+    void        debug_state();
     const char* get_rb_name();
   };
 

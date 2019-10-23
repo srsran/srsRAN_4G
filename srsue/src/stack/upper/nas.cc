@@ -68,8 +68,7 @@ void nas::plmn_search_proc::then(const srslte::proc_state_t& result)
 
   // start T3411
   nas_ptr->nas_log->debug("Starting T3411\n");
-  nas_ptr->timers->get(nas_ptr->t3411)->reset();
-  nas_ptr->timers->get(nas_ptr->t3411)->run();
+  nas_ptr->t3411.run();
 
   if (result.is_error()) {
     nas_ptr->enter_emm_deregistered();
@@ -225,12 +224,14 @@ proc_outcome_t nas::rrc_connect_proc::react(nas::rrc_connect_proc::connection_re
  *   NAS
  ********************************************************************/
 
-nas::nas(srslte::log* log_, srslte::timers* timers_) :
+nas::nas(srslte::log* log_, srslte::timer_handler* timers_) :
   nas_log(log_),
   pool(byte_buffer_pool::get_instance()),
   plmn_searcher(this),
   rrc_connector(this),
-  timers(timers_)
+  timers(timers_),
+  t3410(timers_->get_unique_timer()),
+  t3411(timers_->get_unique_timer())
 {
 }
 
@@ -284,10 +285,8 @@ void nas::init(usim_interface_nas* usim_, rrc_interface_nas* rrc_, gw_interface_
   }
 
   // Configure T3410 and T3411
-  t3410 = timers->get_unique_id();
-  timers->get(t3410)->set(this, t3410_duration_ms);
-  t3411 = timers->get_unique_id();
-  timers->get(t3411)->set(this, t3411_duration_ms);
+  t3410.set(t3410_duration_ms, [this](uint32_t tid) { timer_expired(tid); });
+  t3411.set(t3411_duration_ms, [this](uint32_t tid) { timer_expired(tid); });
 
   running = true;
 }
@@ -318,11 +317,10 @@ void nas::run_tti(uint32_t tti)
 
 void nas::timer_expired(uint32_t timeout_id)
 {
-  if (timeout_id == t3410) {
+  if (timeout_id == t3410.id()) {
     nas_log->info("Timer T3410 expired: starting T3411\n");
-    timers->get(t3411)->reset();
-    timers->get(t3411)->run();
-  } else if (timeout_id == t3411) {
+    t3411.run();
+  } else if (timeout_id == t3411.id()) {
     nas_log->info("Timer T3411 expired: trying to attach again\n");
     start_attach_request(nullptr, srslte::establishment_cause_t::mo_sig);
   } else {
@@ -346,12 +344,11 @@ void nas::start_attach_request(srslte::proc_state_t* result, srslte::establishme
 
       // start T3410
       nas_log->debug("Starting T3410\n");
-      timers->get(t3410)->reset();
-      timers->get(t3410)->run();
+      t3410.run();
 
       // stop T3411
-      if (timers->get(t3411)->is_running()) {
-        timers->get(t3411)->stop();
+      if (t3411.is_running()) {
+        t3411.stop();
       }
 
       // Todo: stop T3402
@@ -870,8 +867,8 @@ void nas::parse_attach_accept(uint32_t lcid, unique_byte_buffer_t pdu)
   nas_log->info("Received Attach Accept\n");
 
   // stop T3410
-  if (timers->get(t3410)->is_running()) {
-    timers->get(t3410)->stop();
+  if (t3410.is_running()) {
+    t3410.stop();
   }
 
   LIBLTE_MME_ATTACH_ACCEPT_MSG_STRUCT attach_accept = {};
@@ -1099,8 +1096,8 @@ void nas::parse_attach_reject(uint32_t lcid, unique_byte_buffer_t pdu)
   nas_log->console("Received Attach Reject. Cause= %02X\n", attach_rej.emm_cause);
 
   // stop T3410
-  if (timers->get(t3410)->is_running()) {
-    timers->get(t3410)->stop();
+  if (t3410.is_running()) {
+    t3410.stop();
   }
 
   enter_emm_deregistered();
@@ -1599,9 +1596,9 @@ void nas::gen_attach_request(byte_buffer_t* msg)
   }
 
   // stop T3411
-  if (timers->get(t3411)->is_running()) {
+  if (t3411.is_running()) {
     nas_log->debug("Stopping T3411\n");
-    timers->get(t3411)->stop();
+    t3411.stop();
   }
 }
 

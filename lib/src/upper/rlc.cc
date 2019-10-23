@@ -53,7 +53,7 @@ rlc::~rlc()
 
 void rlc::init(srsue::pdcp_interface_rlc* pdcp_,
                srsue::rrc_interface_rlc*  rrc_,
-               srslte::timers*            timers_,
+               srslte::timer_handler*     timers_,
                uint32_t                   lcid_)
 {
   pdcp         = pdcp_;

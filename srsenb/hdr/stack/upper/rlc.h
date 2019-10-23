@@ -31,21 +31,19 @@ typedef struct {
     uint32_t lcid;
     uint32_t plmn;
     uint16_t mtch_stop;
-    uint8_t *payload;
-}mch_service_t;
+    uint8_t* payload;
+} mch_service_t;
 
 namespace srsenb {
-  
-class rlc :  public rlc_interface_mac, 
-             public rlc_interface_rrc, 
-             public rlc_interface_pdcp
+
+class rlc : public rlc_interface_mac, public rlc_interface_rrc, public rlc_interface_pdcp
 {
 public:
-  void init(pdcp_interface_rlc* pdcp_,
-            rrc_interface_rlc*  rrc_,
-            mac_interface_rlc*  mac_,
-            srslte::timers*     timers_,
-            srslte::log*        log_h);
+  void init(pdcp_interface_rlc*    pdcp_,
+            rrc_interface_rlc*     rrc_,
+            mac_interface_rlc*     mac_,
+            srslte::timer_handler* timers_,
+            srslte::log*           log_h);
   void stop();
 
   // rlc_interface_rrc
@@ -88,15 +86,15 @@ private:
 
   pthread_rwlock_t rwlock;
 
-  std::map<uint32_t,user_interface> users; 
-  std::vector<mch_service_t> mch_services;
-  
-  mac_interface_rlc             *mac; 
-  pdcp_interface_rlc            *pdcp;
-  rrc_interface_rlc*             rrc;
-  srslte::log*                   log_h;
-  srslte::byte_buffer_pool*      pool;
-  srslte::timers*                timers;
+  std::map<uint32_t, user_interface> users;
+  std::vector<mch_service_t>         mch_services;
+
+  mac_interface_rlc*        mac;
+  pdcp_interface_rlc*       pdcp;
+  rrc_interface_rlc*        rrc;
+  srslte::log*              log_h;
+  srslte::byte_buffer_pool* pool;
+  srslte::timer_handler*    timers;
 };
 
 } // namespace srsenb

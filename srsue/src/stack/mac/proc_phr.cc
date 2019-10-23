@@ -38,24 +38,24 @@ phr_proc::phr_proc()
   phr_cfg          = {};
 }
 
-void phr_proc::init(phy_interface_mac_lte* phy_h_, srslte::log* log_h_, srslte::timers* timers_db_)
+void phr_proc::init(phy_interface_mac_lte* phy_h_, srslte::log* log_h_, srslte::timer_handler* timers_db_)
 {
   phy_h     = phy_h_;
   log_h     = log_h_;
   timers_db = timers_db_;
   initiated = true;
 
-  timer_periodic_id = timers_db->get_unique_id();
-  timer_prohibit_id = timers_db->get_unique_id();
+  timer_periodic = timers_db->get_unique_timer();
+  timer_prohibit = timers_db->get_unique_timer();
 
   reset();
 }
 
 void phr_proc::reset()
 {
-  timers_db->get(timer_periodic_id)->stop();
-  timers_db->get(timer_prohibit_id)->stop();
-  phr_is_triggered     = false;
+  timer_periodic.stop();
+  timer_prohibit.stop();
+  phr_is_triggered = false;
 }
 
 void phr_proc::set_config(srslte::phr_cfg_t& cfg)
@@ -63,21 +63,21 @@ void phr_proc::set_config(srslte::phr_cfg_t& cfg)
   phr_cfg = cfg;
 
   // First stop timers. If enabled==false or value is Inf, won't be re-started
-  timers_db->get(timer_periodic_id)->stop();
-  timers_db->get(timer_prohibit_id)->stop();
+  timer_periodic.stop();
+  timer_prohibit.stop();
 
   if (cfg.enabled) {
     // Setup timers and trigger PHR when configuration changed by higher layers
     if (phr_cfg.periodic_timer > 0) {
-      timers_db->get(timer_periodic_id)->set(this, phr_cfg.periodic_timer);
-      timers_db->get(timer_periodic_id)->run();
+      timer_periodic.set(phr_cfg.periodic_timer, [this](uint32_t tid) { timer_expired(tid); });
+      timer_periodic.run();
       phr_is_triggered = true;
       Info("PHR:   Configured timer periodic %d ms\n", phr_cfg.periodic_timer);
     }
 
     if (phr_cfg.prohibit_timer > 0) {
-      timers_db->get(timer_prohibit_id)->set(this, phr_cfg.prohibit_timer);
-      timers_db->get(timer_prohibit_id)->run();
+      timer_prohibit.set(phr_cfg.prohibit_timer, [this](uint32_t tid) { timer_expired(tid); });
+      timer_prohibit.run();
       Info("PHR:   Configured timer prohibit %d ms\n", phr_cfg.prohibit_timer);
       phr_is_triggered = true;
     }
@@ -99,22 +99,23 @@ bool phr_proc::pathloss_changed() {
   }
 }
 
-void phr_proc::start_timer() {
-  timers_db->get(timer_periodic_id)->run();
+void phr_proc::start_timer()
+{
+  timer_periodic.run();
 }
 
 /* Trigger PHR when timers exires */
-void phr_proc::timer_expired(uint32_t timer_id) {
+void phr_proc::timer_expired(uint32_t timer_id)
+{
   if (!phr_cfg.enabled) {
     Warning("PHR:   Timer triggered but PHR has been disabled\n");
     return;
   }
-  if (timer_id == timer_periodic_id) {
-    timers_db->get(timer_periodic_id)->reset();
-    timers_db->get(timer_periodic_id)->run();
+  if (timer_id == timer_periodic.id()) {
+    timer_periodic.run();
     Debug("PHR:   Triggered by timer periodic (timer expired).\n");
     phr_is_triggered = true;
-  } else if (timer_id == timer_prohibit_id) {
+  } else if (timer_id == timer_prohibit.id()) {
     if (pathloss_changed()) {
       Info("PHR:   Triggered by pathloss difference. cur_pathloss_db=%d (timer expired)\n", last_pathloss_db);
       phr_is_triggered = true;
@@ -127,33 +128,31 @@ void phr_proc::timer_expired(uint32_t timer_id) {
 void phr_proc::step(uint32_t tti)
 {
   if (phr_cfg.enabled && initiated) {
-    if (pathloss_changed() && timers_db->get(timer_prohibit_id)->is_expired()) {
+    if (pathloss_changed() && timer_prohibit.is_expired()) {
       Info("PHR:   Triggered by pathloss difference. cur_pathloss_db=%d\n", last_pathloss_db);
       phr_is_triggered = true;
     }
   }
 }
 
-bool phr_proc::generate_phr_on_ul_grant(float *phr) 
+bool phr_proc::generate_phr_on_ul_grant(float* phr)
 {
-  
+
   if (phr_is_triggered) {
     if (phr) {
       *phr = phy_h->get_phr();
     }
-    
-    Debug("PHR:   Generating PHR=%f\n", phr?*phr:0.0);
-    
-    timers_db->get(timer_periodic_id)->reset();
-    timers_db->get(timer_prohibit_id)->reset();
-    timers_db->get(timer_periodic_id)->run();
-    timers_db->get(timer_prohibit_id)->run();
-    
-    phr_is_triggered = false; 
-    
-    return true; 
+
+    Debug("PHR:   Generating PHR=%f\n", phr ? *phr : 0.0);
+
+    timer_periodic.run();
+    timer_prohibit.run();
+
+    phr_is_triggered = false;
+
+    return true;
   } else {
-    return false; 
+    return false;
   }
 }
 

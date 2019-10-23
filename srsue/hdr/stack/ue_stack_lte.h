@@ -132,7 +132,7 @@ private:
   srsue::stack_args_t args;
 
   // timers
-  srslte::timers timers;
+  srslte::timer_handler timers;
 
   // UE stack logging
   srslte::logger*    logger = nullptr;

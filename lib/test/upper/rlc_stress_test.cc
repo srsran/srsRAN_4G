@@ -118,7 +118,7 @@ public:
             rlc_interface_mac* rlc2_,
             stress_test_args_t args_,
             uint32_t           lcid_,
-            timers*            timers_,
+            timer_handler*     timers_,
             rlc_pcap*          pcap_ = NULL) :
     run_enable(true),
     rlc1(rlc1_),
@@ -196,25 +196,21 @@ private:
     }
   }
 
-  rlc_interface_mac *rlc1;
-  rlc_interface_mac *rlc2;
+  rlc_interface_mac* rlc1;
+  rlc_interface_mac* rlc2;
 
-  bool run_enable;
-  stress_test_args_t args;
-  rlc_pcap*          pcap;
-  uint32_t           lcid;
-  srslte::log_filter log;
-  srslte::timers*    timers = nullptr;
+  bool                   run_enable;
+  stress_test_args_t     args;
+  rlc_pcap*              pcap;
+  uint32_t               lcid;
+  srslte::log_filter     log;
+  srslte::timer_handler* timers = nullptr;
 
   std::mt19937                          mt19937;
   std::uniform_real_distribution<float> real_dist;
 };
 
-
-class rlc_tester
-    :public pdcp_interface_rlc
-    ,public rrc_interface_rlc
-    ,public thread
+class rlc_tester : public pdcp_interface_rlc, public rrc_interface_rlc, public thread
 {
 public:
   rlc_tester(rlc_interface_pdcp* rlc_, std::string name_, stress_test_args_t args_, uint32_t lcid_) :
@@ -339,7 +335,7 @@ void stress_test(stress_test_args_t args)
     exit(-1);
   }
 
-  srslte::timers timers(8);
+  srslte::timer_handler timers(8);
 
   rlc rlc1(&log1);
   rlc rlc2(&log2);

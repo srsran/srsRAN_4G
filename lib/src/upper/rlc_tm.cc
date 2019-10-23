@@ -27,7 +27,7 @@ rlc_tm::rlc_tm(srslte::log*               log_,
                uint32_t                   lcid_,
                srsue::pdcp_interface_rlc* pdcp_,
                srsue::rrc_interface_rlc*  rrc_,
-               srslte::timers*            timers_,
+               srslte::timer_handler*     timers_,
                uint32_t                   queue_len_) :
   ul_queue(queue_len_),
   log(log_),

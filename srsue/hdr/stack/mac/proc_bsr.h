@@ -55,8 +55,8 @@ class bsr_proc : public srslte::timer_callback, public bsr_interface_mux
 {
 public:
   bsr_proc();
-  void init(rlc_interface_mac* rlc, srslte::log* log_h, srslte::timers* timers_db);
-  void step(uint32_t tti);  
+  void init(rlc_interface_mac* rlc, srslte::log* log_h, srslte::timer_handler* timers_db);
+  void step(uint32_t tti);
   void reset();
   void set_config(srslte::bsr_cfg_t& bsr_cfg);
 
@@ -73,14 +73,14 @@ private:
 
   pthread_mutex_t mutex;
 
-  bool              reset_sr;
-  srslte::timers    *timers_db;
-  srslte::log       *log_h;
-  rlc_interface_mac *rlc;
+  bool                   reset_sr;
+  srslte::timer_handler* timers_db;
+  srslte::log*           log_h;
+  rlc_interface_mac*     rlc;
 
   srslte::bsr_cfg_t bsr_cfg;
 
-  bool              initiated;
+  bool initiated;
 
   const static int NOF_LCG = 4;
 
@@ -109,11 +109,11 @@ private:
   bool     check_any_channel();
   uint32_t get_buffer_state_lcg(uint32_t lcg);
   bool     generate_bsr(bsr_t* bsr, uint32_t nof_padding_bytes);
-  char* bsr_type_tostring(triggered_bsr_type_t type); 
-  char* bsr_format_tostring(bsr_format_t format);
+  char*    bsr_type_tostring(triggered_bsr_type_t type);
+  char*    bsr_format_tostring(bsr_format_t format);
 
-  uint32_t timer_periodic_id;
-  uint32_t timer_retx_id;
+  srslte::timer_handler::unique_timer timer_periodic;
+  srslte::timer_handler::unique_timer timer_retx;
 };
 
 } // namespace srsue

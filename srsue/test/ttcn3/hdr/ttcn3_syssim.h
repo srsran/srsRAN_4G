@@ -765,12 +765,6 @@ public:
     ue->new_tb(dl_grant, (const uint8_t*)pdu->msg);
   }
 
-  srslte::timers::timer* timer_get(uint32_t timer_id) { return timers.get(timer_id); }
-
-  uint32_t timer_get_unique_id() { return timers.get_unique_id(); }
-
-  void timer_release_id(uint32_t timer_id) { timers.release_id(timer_id); }
-
   void step_timer() { timers.step_all(); }
 
   void add_srb(uint32_t lcid, pdcp_config_t pdcp_config)
@@ -918,7 +912,7 @@ private:
   uint32_t                          prach_preamble_index = 0;
   uint16_t                          dl_rnti              = 0;
   uint16_t                          crnti                = TTCN3_CRNTI;
-  srslte::timers                    timers;
+  srslte::timer_handler             timers;
   bool                              last_dl_ndi[2 * FDD_HARQ_DELAY_MS] = {};
   bool                              last_ul_ndi[2 * FDD_HARQ_DELAY_MS] = {};
 

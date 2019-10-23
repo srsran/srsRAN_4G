@@ -45,7 +45,6 @@ namespace srsue {
 class mac : public mac_interface_phy_lte,
             public mac_interface_rrc,
             public srslte::timer_callback,
-            public srslte::mac_interface_timers,
             public mac_interface_demux
 {
 public:
@@ -54,7 +53,7 @@ public:
   bool init(phy_interface_mac_lte* phy,
             rlc_interface_mac*     rlc,
             rrc_interface_mac*     rrc,
-            srslte::timers*        timers_,
+            srslte::timer_handler* timers_,
             stack_interface_mac*   stack);
   void stop();
 
@@ -109,14 +108,9 @@ public:
   void start_pcap(srslte::mac_pcap* pcap);
 
   // Timer callback interface
-  void timer_expired(uint32_t timer_id); 
+  void timer_expired(uint32_t timer_id);
 
   uint32_t get_current_tti();
-
-  // Interface for upper-layer timers
-  srslte::timers::timer* timer_get(uint32_t timer_id);
-  void                   timer_release_id(uint32_t timer_id);
-  uint32_t               timer_get_unique_id();
 
 private:
   void clear_rntis();
@@ -169,10 +163,10 @@ private:
   srslte::mch_pdu        mch_msg;
 
   /* Functions for MAC Timers */
-  uint32_t        timer_alignment = 0;
-  void            setup_timers(int time_alignment_timer);
-  void            timer_alignment_expire();
-  srslte::timers* timers = nullptr;
+  srslte::timer_handler::unique_timer timer_alignment;
+  void                                setup_timers(int time_alignment_timer);
+  void                                timer_alignment_expire();
+  srslte::timer_handler*              timers = nullptr;
 
   // pointer to MAC PCAP object
   srslte::mac_pcap* pcap              = nullptr;
