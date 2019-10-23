@@ -1335,6 +1335,7 @@ void nas::parse_esm_information_request(uint32_t lcid, unique_byte_buffer_t pdu)
 
 void nas::parse_emm_information(uint32_t lcid, unique_byte_buffer_t pdu)
 {
+  LIBLTE_MME_EMM_INFORMATION_MSG_STRUCT emm_info = {};
   liblte_mme_unpack_emm_information_msg((LIBLTE_BYTE_MSG_STRUCT*)pdu.get(), &emm_info);
   std::string str = emm_info_str(&emm_info);
   nas_log->info("Received EMM Information: %s\n", str.c_str());

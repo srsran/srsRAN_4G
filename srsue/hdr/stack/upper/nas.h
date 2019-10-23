@@ -92,8 +92,6 @@ private:
 
   std::vector<srslte::plmn_id_t> known_plmns;
 
-  LIBLTE_MME_EMM_INFORMATION_MSG_STRUCT emm_info;
-
   // Security context
   struct nas_sec_ctxt{
     uint8_t  ksi;
