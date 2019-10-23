@@ -127,15 +127,15 @@ int main(int argc, char *argv[])
   
   srsenb::sched_interface::ue_bearer_cfg_t bearer_cfg;
   bzero(&bearer_cfg, sizeof(srsenb::sched_interface::ue_bearer_cfg_t));
-  bearer_cfg.direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH; 
+  bearer_cfg.direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
 
   my_sched.ue_cfg(rnti, &ue_cfg);
   my_sched.bearer_ue_cfg(rnti, 0, &bearer_cfg);
-  //my_sched.dl_rlc_buffer_state(rnti, 0, 1e6, 0);
-  my_sched.ul_bsr(rnti, 0, 1e6);
+  // my_sched.dl_rlc_buffer_state(rnti, 0, 1e6, 0);
+  my_sched.ul_bsr(rnti, 0, 1e6, true);
 
-  bool running = true; 
-  uint32_t tti = 0; 
+  bool     running = true;
+  uint32_t tti     = 0;
   while(running) {
     log_out.step(tti);
     if (tti > 50) {

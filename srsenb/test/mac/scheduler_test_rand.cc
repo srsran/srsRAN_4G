@@ -20,9 +20,9 @@
  */
 
 #include "srsenb/hdr/stack/mac/scheduler.h"
+#include "srsenb/hdr/stack/mac/scheduler_ctrl.h"
 #include "srsenb/hdr/stack/mac/scheduler_ue.h"
 #include <algorithm>
-#include <cstdlib>
 #include <random>
 #include <set>
 #include <srslte/srslte.h>
@@ -37,14 +37,46 @@
 #include "srslte/phy/utils/debug.h"
 #include "srslte/radio/radio.h"
 
+/********************************************************
+ * Random Tester for Scheduler.
+ * Current Checks:
+ * - Check if users are only added during a PRACH TTI
+ * - Allocation (DCI+RBs) of users that no longer exist
+ * - RAR is scheduled within the RAR window
+ * - Msg3 checks:
+ *   - scheduled/received at expected TTI
+ *   - with the correct RNTI and without PDCCH alloc
+ *   - unexpected msg3 arrival
+ * - Users without data to Tx cannot be allocated in UL
+ * - Retxs always take precedence
+ * - DCI:
+ *   - collisions detected
+ *   - mismatch between the union of all dcis and
+ *     scheduler class aggregate dci value
+ * - Invalid BC SIB index or TBS
+ * - Harqs:
+ *   - invalid pids scheduled
+ *   - empty harqs scheduled
+ *   - invalid harq TTI
+ *   - consistent NCCE loc
+ *   - invalid retx number
+ *   - DL adaptive retx/new tx <=> PDCCH alloc
+ *   ...
+ *******************************************************/
+
+/***************************
+ * Setup Random generators
+ **************************/
 // uint32_t const seed = std::random_device()();
-uint32_t const                        seed = 2452071795; // time(NULL);
+uint32_t const                        seed = 2452071795; // time(nullptr);
 std::default_random_engine            rand_gen(seed);
 std::uniform_real_distribution<float> unif_dist(0, 1.0);
-float                                 randf()
+
+float randf()
 {
   return unif_dist(rand_gen);
 }
+
 uint32_t err_counter  = 0;
 uint32_t warn_counter = 0;
 struct ue_stats_t {
@@ -73,44 +105,30 @@ class log_tester : public srslte::log_filter
 {
 public:
   explicit log_tester(std::string layer) : srslte::log_filter(layer) {}
-  void error(const char* message, ...) __attribute__((format(printf, 2, 3)));
+  ~log_tester() final
+  {
+    info("[TESTER] UE stats:\n");
+    for (auto& e : ue_stats) {
+      info("0x%x: {DL RBs: %lu, UL RBs: %lu}\n", e.first, e.second.nof_dl_rbs, e.second.nof_ul_rbs);
+    }
+    info("[TESTER] This was the seed: %u\n", seed);
+  }
 };
-void log_tester::error(const char* message, ...)
-{
-  if (level >= srslte::LOG_LEVEL_ERROR) {
-    char*   args_msg = NULL;
-    va_list args;
-    va_start(args, message);
-    if (vasprintf(&args_msg, message, args) > 0)
-      all_log(srslte::LOG_LEVEL_ERROR, tti, args_msg);
-    va_end(args);
-    free(args_msg);
-  }
-}
 log_tester log_out("ALL");
-
-void log_on_exit()
-{
-  log_out.info("[TESTER] UE stats:\n");
-  for (auto& e : ue_stats) {
-    log_out.info("0x%x: {DL RBs: %lu, UL RBs: %lu}\n", e.first, e.second.nof_dl_rbs, e.second.nof_ul_rbs);
-  }
-  log_out.info("[TESTER] This was the seed: %u\n", seed);
-}
 
 #define Warning(fmt, ...)                                                                                              \
   log_out.warning(fmt, ##__VA_ARGS__);                                                                                 \
-  warn_counter++;
+  warn_counter++
 #define TestError(fmt, ...)                                                                                            \
   log_out.error(fmt, ##__VA_ARGS__);                                                                                   \
-  log_on_exit();                                                                                                       \
-  exit(-1);
+  exit(-1)
 #define CondError(cond, fmt, ...)                                                                                      \
-  if (cond) {                                                                                                          \
-    log_out.error(fmt, ##__VA_ARGS__);                                                                                 \
-    log_on_exit();                                                                                                     \
-    exit(-1);                                                                                                          \
-  }
+  do {                                                                                                                 \
+    if (cond) {                                                                                                        \
+      log_out.error(fmt, ##__VA_ARGS__);                                                                               \
+      exit(-1);                                                                                                        \
+    }                                                                                                                  \
+  } while (0)
 
 /*******************
  *     Dummies     *
@@ -119,17 +137,15 @@ void log_on_exit()
 struct sched_sim_args {
   struct tti_event_t {
     struct user_event_t {
-      uint32_t sr_data;
-      uint32_t dl_data;
-      uint32_t dl_nof_retxs;
-      user_event_t() : sr_data(0), dl_data(0), dl_nof_retxs(0) {}
+      uint32_t sr_data      = 0;
+      uint32_t dl_data      = 0;
+      uint32_t dl_nof_retxs = 0;
     };
     std::map<uint16_t, user_event_t> users;
-    bool                             new_user;
-    bool                             rem_user;
+    bool                             new_user = false;
+    bool                             rem_user = false;
     uint32_t                         new_rnti;
     uint32_t                         rem_rnti;
-    tti_event_t() : new_user(false), rem_user(false) {}
   };
 
   std::vector<tti_event_t>                 tti_events;
@@ -150,8 +166,8 @@ struct sched_tester : public srsenb::sched {
     bool                                      has_ul_retx         = false;
     bool                                      has_ul_newtx        = false; ///< *no* retx, but has tx
     bool                                      ul_retx_got_delayed = false;
-    srsenb::sched_interface::ul_sched_data_t* ul_sched            = NULL; // fast lookup
-    srsenb::sched_interface::dl_sched_data_t* dl_sched            = NULL; // fast lookup
+    srsenb::sched_interface::ul_sched_data_t* ul_sched            = nullptr; // fast lookup
+    srsenb::sched_interface::dl_sched_data_t* dl_sched            = nullptr; // fast lookup
     srsenb::dl_harq_proc                      dl_harqs[2 * FDD_HARQ_DELAY_MS];
     srsenb::ul_harq_proc                      ul_harq;
   };
@@ -162,30 +178,27 @@ struct sched_tester : public srsenb::sched {
     uint32_t                          tti_tx_dl;
     uint32_t                          tti_tx_ul;
     uint32_t                          current_cfi;
-    pending_msg3_t                    ul_pending_msg3;
+    ra_sched_t::pending_msg3_t        ul_pending_msg3;
     srslte::bounded_bitset<128, true> used_cce;
     //    std::vector<bool>                                         used_cce;
     std::map<uint16_t, tester_user_results>                   ue_data;   ///< stores buffer state of each user
     tester_user_results                                       total_ues; ///< stores combined UL/DL buffer state
     srsenb::sched_interface::ul_sched_res_t                   sched_result_ul;
     srsenb::sched_interface::dl_sched_res_t                   sched_result_dl;
-    typedef std::map<uint16_t, tester_user_results>::iterator ue_it_t;
   };
   struct ue_info {
-    int                                      prach_tti, rar_tti, msg3_tti;
+    int                                      prach_tti = -1, rar_tti = -1, msg3_tti = -1;
     srsenb::sched_interface::ue_bearer_cfg_t bearer_cfg;
     srsenb::sched_interface::ue_cfg_t        user_cfg;
-    uint32_t                                 dl_data;
-    uint32_t                                 ul_data;
-    ue_info() : prach_tti(-1), rar_tti(-1), msg3_tti(-1), dl_data(0), ul_data(0) {}
+    uint32_t                                 dl_data = 0;
+    uint32_t                                 ul_data = 0;
   };
   struct ack_info_t {
-    uint16_t         rnti;
-    uint32_t         tti;
-    bool             dl_ack;
-    uint32_t         retx_delay;
+    uint16_t             rnti;
+    uint32_t             tti;
+    bool                 dl_ack     = false;
+    uint32_t             retx_delay = 0;
     srsenb::dl_harq_proc dl_harq;
-    ack_info_t() : dl_ack(false), retx_delay(0) {}
   };
   struct ul_ack_info_t {
     uint16_t             rnti;
@@ -214,6 +227,7 @@ struct sched_tester : public srsenb::sched {
   void assert_no_empty_allocs();
   void test_collisions();
   void test_harqs();
+  void test_sibs();
   void run_tti(uint32_t tti_rx);
 
 private:
@@ -234,7 +248,7 @@ void sched_tester::add_user(uint16_t                                 rnti,
   info.user_cfg   = ue_cfg_;
   tester_ues.insert(std::make_pair(rnti, info));
 
-  if (ue_cfg(rnti, &ue_cfg_)) {
+  if (ue_cfg(rnti, &ue_cfg_) != SRSLTE_SUCCESS) {
     TestError("[TESTER] Registering new user rnti=0x%x to SCHED\n", rnti);
   }
   dl_sched_rar_info_t rar_info = {};
@@ -267,7 +281,7 @@ void sched_tester::new_test_tti(uint32_t tti_)
   } else {
     tti_data.ul_sf_idx = (tti_data.tti_tx_ul + 10240 - FDD_HARQ_DELAY_MS) % 10;
   }
-  tti_data.ul_pending_msg3 = pending_msg3[tti_data.tti_tx_ul % TTIMOD_SZ];
+  tti_data.ul_pending_msg3 = rar_sched->find_pending_msg3(tti_data.tti_tx_ul);
   tti_data.current_cfi     = sched_cfg.nof_ctrl_symbols;
   tti_data.used_cce.resize(srslte_regs_pdcch_ncce(&regs, tti_data.current_cfi));
   tti_data.used_cce.reset();
@@ -299,7 +313,7 @@ void sched_tester::process_tti_args()
     if (e.second.sr_data > 0) {
       uint32_t tot_ul_data = ue_db[e.first].get_pending_ul_new_data(tti_data.tti_tx_ul) + e.second.sr_data;
       uint32_t lcid        = 0;
-      ul_bsr(e.first, lcid, tot_ul_data);
+      ul_bsr(e.first, lcid, tot_ul_data, true);
     }
     if (e.second.dl_data > 0) {
       uint32_t lcid = 0;
@@ -312,12 +326,10 @@ void sched_tester::process_tti_args()
 
 void sched_tester::before_sched()
 {
-  typedef std::map<uint16_t, srsenb::sched_ue>::iterator it_t;
-
   // check pending data buffers
-  for (it_t it = ue_db.begin(); it != ue_db.end(); ++it) {
-    uint16_t              rnti = it->first;
-    srsenb::sched_ue*     user = &it->second;
+  for (auto& it : ue_db) {
+    uint16_t              rnti = it.first;
+    srsenb::sched_ue*     user = &it.second;
     tester_user_results   d;
     srsenb::ul_harq_proc* hul = user->get_ul_harq(tti_data.tti_tx_ul);
     d.ul_pending_data         = get_ul_buffer(rnti);
@@ -326,9 +338,9 @@ void sched_tester::before_sched()
     d.has_ul_retx             = hul->has_pending_retx();
     d.has_ul_tx               = d.has_ul_retx or d.ul_pending_data > 0;
     srsenb::dl_harq_proc* hdl = user->get_pending_dl_harq(tti_data.tti_tx_dl);
-    d.has_dl_retx             = (hdl != NULL) and hdl->has_pending_retx(0, tti_data.tti_tx_dl);
-    d.has_dl_tx               = (hdl != NULL) or (it->second.get_empty_dl_harq() != NULL and d.dl_pending_data > 0);
-    d.has_ul_newtx            = not d.has_ul_retx and d.ul_pending_data > 0;
+    d.has_dl_retx             = (hdl != nullptr) and hdl->has_pending_retx(0, tti_data.tti_tx_dl);
+    d.has_dl_tx    = (hdl != nullptr) or (it.second.get_empty_dl_harq() != nullptr and d.dl_pending_data > 0);
+    d.has_ul_newtx = not d.has_ul_retx and d.ul_pending_data > 0;
     tti_data.ue_data.insert(std::make_pair(rnti, d));
     tti_data.total_ues.dl_pending_data += d.dl_pending_data;
     tti_data.total_ues.ul_pending_data += d.ul_pending_data;
@@ -371,6 +383,7 @@ void sched_tester::process_results()
   test_collisions();
   assert_no_empty_allocs();
   test_harqs();
+  test_sibs();
 }
 
 void sched_tester::run_tti(uint32_t tti_rx)
@@ -414,7 +427,7 @@ void sched_tester::test_ra()
       if (tti_data.tti_tx_dl >= window[0]) {
         for (uint32_t i = 0; i < tti_data.sched_result_dl.nof_rar_elems; ++i) {
           for (uint32_t j = 0; j < tti_data.sched_result_dl.rar[i].nof_grants; ++j) {
-            if (tti_data.sched_result_dl.rar[i].msg3_grant[j].data.prach_tti == tti_data.tti_tx_dl) {
+            if (tti_data.sched_result_dl.rar[i].msg3_grant[j].data.prach_tti + TX_DELAY == tti_data.tti_tx_dl) {
               userinfo.rar_tti = tti_data.tti_tx_dl;
             }
           }
@@ -449,15 +462,15 @@ void sched_tester::assert_no_empty_allocs()
 {
   // Test if allocations only take place for users with pending data or in RAR
   for (auto& iter : tti_data.ue_data) {
-    uint16_t          rnti = iter.first;
-    srsenb::sched_ue* user = &ue_db[rnti];
+    uint16_t rnti = iter.first;
+    //    srsenb::sched_ue* user = &ue_db[rnti];
 
-    if (!iter.second.has_ul_tx and tti_data.ue_data[rnti].ul_sched != NULL and
+    if (!iter.second.has_ul_tx and tti_data.ue_data[rnti].ul_sched != nullptr and
         tti_data.ue_data[rnti].ul_sched->needs_pdcch) {
       // FIXME: This test does not work for adaptive re-tx
       TestError("[TESTER] There was a user without data that got allocated in UL\n");
     }
-    srsenb::ul_harq_proc* hul       = user->get_ul_harq(tti_data.tti_tx_ul);
+    //    srsenb::ul_harq_proc* hul       = user->get_ul_harq(tti_data.tti_tx_ul);
     iter.second.ul_retx_got_delayed = iter.second.has_ul_retx and iter.second.ul_harq.is_empty(0);
     tti_data.total_ues.ul_retx_got_delayed |= iter.second.ul_retx_got_delayed;
     // Retxs cannot give space to newtx allocations
@@ -467,9 +480,8 @@ void sched_tester::assert_no_empty_allocs()
 
   // There must be allocations if there is pending data/retxs.
   bool no_dl_allocs = true;
-  for (std::map<uint16_t, tester_user_results>::iterator it = tti_data.ue_data.begin(); it != tti_data.ue_data.end();
-       ++it) {
-    if (it->second.dl_sched != NULL) {
+  for (auto& it : tti_data.ue_data) {
+    if (it.second.dl_sched != nullptr) {
       no_dl_allocs = false;
     }
   }
@@ -482,7 +494,7 @@ void sched_tester::assert_no_empty_allocs()
  */
 void sched_tester::test_tti_result()
 {
-  tti_sched_t* tti_sched = get_tti_sched(tti_data.tti_rx);
+  tti_sched_result_t* tti_sched = get_tti_sched(tti_data.tti_rx);
 
   // Helper Function: checks if there is any collision. If not, fills the mask
   auto try_cce_fill = [&](const srslte_dci_location_t& dci_loc, const char* ch) {
@@ -532,11 +544,11 @@ void sched_tester::test_tti_result()
     try_cce_fill(rar.dci.location, "DL RAR");
     CondError(rar.tbs == 0, "Allocated RAR process with invalid TBS=%d\n", rar.tbs);
     for (uint32_t j = 0; j < rar.nof_grants; ++j) {
-      const auto& msg3_grant  = rar.msg3_grant[j];
-      uint32_t    pending_tti = (tti_sched->get_tti_tx_dl() + MSG3_DELAY_MS + TX_DELAY) % TTIMOD_SZ;
-      CondError(not pending_msg3[pending_tti].enabled, "Pending Msg3 should have been set\n");
-      uint32_t rba =
-          srslte_ra_type2_to_riv(pending_msg3[pending_tti].L, pending_msg3[pending_tti].n_prb, cfg.cell.nof_prb);
+      const auto&                       msg3_grant = rar.msg3_grant[j];
+      const ra_sched_t::pending_msg3_t& p =
+          rar_sched->find_pending_msg3(tti_sched->get_tti_tx_dl() + MSG3_DELAY_MS + TX_DELAY);
+      CondError(not p.enabled, "Pending Msg3 should have been set\n");
+      uint32_t rba = srslte_ra_type2_to_riv(p.L, p.n_prb, cfg.cell.nof_prb);
       CondError(msg3_grant.grant.rba != rba, "Pending Msg3 RBA is not valid\n");
     }
   }
@@ -591,8 +603,8 @@ void sched_tester::test_harqs()
   }
 
   for (uint32_t i = 0; i < tti_data.sched_result_ul.nof_dci_elems; ++i) {
-    const auto&                 pusch = tti_data.sched_result_ul.pusch[i];
-    uint16_t                    rnti  = pusch.dci.rnti;
+    const auto&                 pusch   = tti_data.sched_result_ul.pusch[i];
+    uint16_t                    rnti    = pusch.dci.rnti;
     const auto&                 ue_data = tti_data.ue_data[rnti];
     const srsenb::ul_harq_proc* h       = ue_db[rnti].get_ul_harq(tti_data.tti_tx_ul);
     CondError(h == nullptr or h->is_empty(), "[TESTER] scheduled UL harq does not exist or is empty\n");
@@ -629,13 +641,15 @@ void sched_tester::test_harqs()
   }
   for (const auto& ue : ue_db) {
     const auto& hprev = tti_data.ue_data[ue.first].ul_harq;
-    if (not hprev.has_pending_ack())
+    if (not hprev.has_pending_ack()) {
       continue;
+    }
     uint32_t i = 0;
     for (; i < tti_data.sched_result_ul.nof_phich_elems; ++i) {
       const auto& phich = tti_data.sched_result_ul.phich[i];
-      if (phich.rnti == ue.first)
+      if (phich.rnti == ue.first) {
         break;
+      }
     }
     CondError(i == tti_data.sched_result_ul.nof_phich_elems,
               "[TESTER] harq had pending ack but no phich was allocked\n");
@@ -688,22 +702,56 @@ void sched_tester::test_harqs()
     to_ul_ack.insert(std::make_pair(ack_data.tti_tx_ul, ack_data));
   }
 
-  //  // Check whether some pids got old
-  //  for (auto& user : ue_db) {
-  //    for (int i = 0; i < 2 * FDD_HARQ_DELAY_MS; i++) {
-  //      if (not(user.second.get_dl_harq(i)->is_empty(0) and user.second.get_dl_harq(1))) {
-  //        if (srslte_tti_interval(tti_data.tti_tx_dl, user.second.get_dl_harq(i)->get_tti()) > 49) {
-  //          TestError("[TESTER] The pid=%d for rnti=0x%x got old.\n", user.second.get_dl_harq(i)->get_id(),
-  //          user.first);
-  //        }
-  //      }
-  //    }
-  //  }
+//    // Check whether some pids got old
+//    for (auto& user : ue_db) {
+//      for (int i = 0; i < 2 * FDD_HARQ_DELAY_MS; i++) {
+//        if (not(user.second.get_dl_harq(i)->is_empty(0) and user.second.get_dl_harq(1))) {
+//          if (srslte_tti_interval(tti_data.tti_tx_dl, user.second.get_dl_harq(i)->get_tti()) > 49) {
+//            TestError("[TESTER] The pid=%d for rnti=0x%x got old.\n", user.second.get_dl_harq(i)->get_id(),
+//            user.first);
+//          }
+//        }
+//      }
+//    }
+}
+
+void sched_tester::test_sibs()
+{
+  uint32_t sfn          = tti_data.tti_tx_dl / 10;
+  uint32_t sf_idx       = TTI_TX(tti_data.tti_rx) % 10;
+  bool     sib1_present = ((sfn % 2) == 0) and sf_idx == 5;
+
+  using bc_elem     = sched_interface::dl_sched_bc_t;
+  bc_elem* bc_begin = &tti_data.sched_result_dl.bc[0];
+  bc_elem* bc_end   = &tti_data.sched_result_dl.bc[tti_data.sched_result_dl.nof_bc_elems];
+
+  /* Test if SIB1 was correctly scheduled */
+  if (sib1_present) {
+    auto it = std::find_if(bc_begin, bc_end, [](bc_elem& elem) { return elem.index == 0; });
+    CondError(it == bc_end, "Failed to allocate SIB1 in even sfn, sf_idx==5\n");
+  }
+
+  /* Test if any SIB was scheduled outside of its window */
+  for (bc_elem* bc = bc_begin; bc != bc_end; ++bc) {
+    if (bc->index == 0) {
+      continue;
+    }
+    uint32_t x         = (bc->index - 1) * cfg.si_window_ms;
+    uint32_t sf        = x % 10;
+    uint32_t sfn_start = sfn;
+    while ((sfn_start % cfg.sibs[bc->index].period_rf) != x / 10) {
+      sfn_start--;
+    }
+    uint32_t win_start = sfn_start * 10 + sf;
+    uint32_t win_end   = win_start + cfg.si_window_ms;
+    CondError(tti_data.tti_tx_dl < win_start or tti_data.tti_tx_dl > win_end,
+              "Scheduled SIB is outside of its SIB window\n");
+  }
 }
 
 void sched_tester::test_collisions()
 {
-  tti_sched_t* tti_sched = get_tti_sched(tti_data.tti_rx);
+  tti_sched_result_t* tti_sched = get_tti_sched(tti_data.tti_rx);
 
   srsenb::prbmask_t ul_allocs(cfg.cell.nof_prb);
 
@@ -768,7 +816,7 @@ void sched_tester::test_collisions()
   }
 
   srslte::bounded_bitset<100, true> dl_allocs(cfg.cell.nof_prb), alloc_mask(cfg.cell.nof_prb);
-  srslte_dl_sf_cfg_t dl_sf;
+  srslte_dl_sf_cfg_t                dl_sf;
   ZERO_OBJECT(dl_sf);
 
   for (uint32_t i = 0; i < tti_data.sched_result_dl.nof_data_elems; ++i) {
@@ -777,11 +825,11 @@ void sched_tester::test_collisions()
     CondError(srslte_ra_dl_dci_to_grant(
                   &cfg.cell, &dl_sf, SRSLTE_TM1, false, &tti_data.sched_result_dl.data[i].dci, &grant) == SRSLTE_ERROR,
               "Failed to decode PDSCH grant\n");
-    for (uint32_t i = 0; i < alloc_mask.size(); ++i) {
-      if (grant.prb_idx[0][i]) {
-        alloc_mask.set(i);
+    for (uint32_t j = 0; j < alloc_mask.size(); ++j) {
+      if (grant.prb_idx[0][j]) {
+        alloc_mask.set(j);
       } else {
-        alloc_mask.reset(i);
+        alloc_mask.reset(j);
       }
     }
     if ((dl_allocs & alloc_mask).any()) {
@@ -798,9 +846,9 @@ void sched_tester::test_collisions()
                   &cfg.cell, &dl_sf, SRSLTE_TM1, false, &tti_data.sched_result_dl.bc[i].dci, &grant) == SRSLTE_ERROR,
               "Failed to decode PDSCH grant\n");
     alloc_mask.reset();
-    for (uint32_t i = 0; i < alloc_mask.size(); ++i) {
-      if (grant.prb_idx[0][i]) {
-        alloc_mask.set(i);
+    for (uint32_t j = 0; j < alloc_mask.size(); ++j) {
+      if (grant.prb_idx[0][j]) {
+        alloc_mask.set(j);
       }
     }
     if ((dl_allocs & alloc_mask).any()) {
@@ -816,11 +864,11 @@ void sched_tester::test_collisions()
     CondError(srslte_ra_dl_dci_to_grant(
                   &cfg.cell, &dl_sf, SRSLTE_TM1, false, &tti_data.sched_result_dl.rar[i].dci, &grant) == SRSLTE_ERROR,
               "Failed to decode PDSCH grant\n");
-    for (uint32_t i = 0; i < alloc_mask.size(); ++i) {
-      if (grant.prb_idx[0][i]) {
-        alloc_mask.set(i);
+    for (uint32_t j = 0; j < alloc_mask.size(); ++j) {
+      if (grant.prb_idx[0][j]) {
+        alloc_mask.set(j);
       } else {
-        alloc_mask.reset(i);
+        alloc_mask.reset(j);
       }
     }
     if ((dl_allocs & alloc_mask).any()) {
@@ -924,7 +972,7 @@ void sched_tester::ack_txs()
   //    for (auto it = ue_db.begin(); it != ue_db.end(); ++it) {
   //      uint16_t              rnti = it->first;
   //      srsenb::ul_harq_proc* h    = ue_db[rnti].get_ul_harq(tti_data.tti_rx);
-  //      if (h != NULL and not h->is_empty()) {
+  //      if (h != nullptr and not h->is_empty()) {
   //        ul_crc_info(tti_data.tti_rx, rnti, ack);
   //      }
   //    }
@@ -969,12 +1017,12 @@ void test_scheduler_rand(srsenb::sched_interface::cell_cfg_t cell_cfg, const sch
 
   log_out.set_level(srslte::LOG_LEVEL_INFO);
 
-  tester.sim_args                                          = args;
-  srslte_cell_t&                           cell_cfg_phy    = cell_cfg.cell;
-  srsenb::sched_interface::dl_sched_res_t& sched_result_dl = tester.tti_data.sched_result_dl;
-  srsenb::sched_interface::ul_sched_res_t& sched_result_ul = tester.tti_data.sched_result_ul;
+  tester.sim_args = args;
+  //  srslte_cell_t&                           cell_cfg_phy    = cell_cfg.cell;
+  //  srsenb::sched_interface::dl_sched_res_t& sched_result_dl = tester.tti_data.sched_result_dl;
+  //  srsenb::sched_interface::ul_sched_res_t& sched_result_ul = tester.tti_data.sched_result_ul;
 
-  tester.init(NULL, &log_out);
+  tester.init(nullptr, &log_out);
   tester.set_metric(&dl_metric, &ul_metric);
   tester.cell_cfg(&cell_cfg);
 
@@ -1005,6 +1053,7 @@ sched_sim_args rand_sim_params(const srsenb::sched_interface::cell_cfg_t& cell_c
   float                               ul_sr_exps[]   = {1, 4}; // log rand
   float                               dl_data_exps[] = {1, 4}; // log rand
   uint32_t                            max_nof_users  = 500;
+  std::uniform_int_distribution<>     connection_dur_dist(min_conn_dur, max_conn_dur);
 
   bzero(&sim_args.ue_cfg, sizeof(srsenb::sched_interface::ue_cfg_t));
   sim_args.ue_cfg.aperiodic_cqi_period = 40;
@@ -1029,8 +1078,8 @@ sched_sim_args rand_sim_params(const srsenb::sched_interface::cell_cfg_t& cell_c
         }
       }
 
-      for (uint32_t i = 0; i < current_rntis.size(); ++i) {
-        uint32_t rnti = current_rntis[i][0];
+      for (auto& current_rnti : current_rntis) {
+        uint32_t rnti = current_rnti[0];
         if (randf() < P_ul_sr) {
           float exp                                    = ul_sr_exps[0] + randf() * (ul_sr_exps[1] - ul_sr_exps[0]);
           sim_args.tti_events[tti].users[rnti].sr_data = (uint32_t)pow(10, exp);
@@ -1048,7 +1097,7 @@ sched_sim_args rand_sim_params(const srsenb::sched_interface::cell_cfg_t& cell_c
       std::vector<uint32_t> elem(3);
       elem[0] = rnti_start;
       elem[1] = tti;
-      elem[2] = min_conn_dur + rand() % (max_conn_dur - min_conn_dur);
+      elem[2] = connection_dur_dist(rand_gen);
       current_rntis.push_back(elem);
       sim_args.tti_events[tti].new_user = true;
       sim_args.tti_events[tti].new_rnti = rnti_start++;
@@ -1058,11 +1107,10 @@ sched_sim_args rand_sim_params(const srsenb::sched_interface::cell_cfg_t& cell_c
   return sim_args;
 }
 
-int main(int argc, char* argv[])
+int main()
 {
   printf("[TESTER] This is the chosen seed: %u\n", seed);
   /* initialize random seed: */
-  srand(seed);
   uint32_t N_runs = 1, nof_ttis = 10240 + 10;
 
   for (uint32_t n = 0; n < N_runs; ++n) {

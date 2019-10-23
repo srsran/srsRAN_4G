@@ -56,7 +56,7 @@ void pdcch_grid_t::init(srslte::log*               log_,
   }
 
   // precompute nof_cces
-  for (uint32_t cfix = 0; cfix < nof_cfis; ++cfix) {
+  for (uint32_t cfix = 0; cfix < cce_size_array.size(); ++cfix) {
     int ret = srslte_regs_pdcch_ncce(regs, cfix + 1);
     if (ret < 0) {
       log_h->error("SCHED: Failed to calculate the number of CCEs in the PDCCH\n");
@@ -89,7 +89,7 @@ const sched_ue::sched_dci_cce_t* pdcch_grid_t::get_cce_loc_table(alloc_type_t al
     case alloc_type_t::UL_DATA:
       return user->get_locations(current_cfix + 1, sf_idx);
   }
-  return NULL;
+  return nullptr;
 }
 
 bool pdcch_grid_t::alloc_dci(alloc_type_t alloc_type, uint32_t aggr_idx, sched_ue* user)
@@ -98,7 +98,7 @@ bool pdcch_grid_t::alloc_dci(alloc_type_t alloc_type, uint32_t aggr_idx, sched_u
 
   /* Get DCI Location Table */
   const sched_ue::sched_dci_cce_t* dci_locs = get_cce_loc_table(alloc_type, user);
-  if (!dci_locs) {
+  if (dci_locs == nullptr) {
     return false;
   }
 
@@ -199,16 +199,17 @@ void pdcch_grid_t::get_allocs(alloc_result_t* vec, pdcch_mask_t* tot_mask, size_
 {
   // if alloc tree is empty
   if (prev_start == prev_end) {
-    if (vec)
+    if (vec != nullptr) {
       vec->clear();
-    if (tot_mask) {
+    }
+    if (tot_mask != nullptr) {
       tot_mask->reset();
     }
     return;
   }
 
   // set vector of allocations
-  if (vec) {
+  if (vec != nullptr) {
     vec->clear();
     size_t i = prev_start + idx;
     while (dci_alloc_tree[i].first >= 0) {
@@ -220,7 +221,7 @@ void pdcch_grid_t::get_allocs(alloc_result_t* vec, pdcch_mask_t* tot_mask, size_
   }
 
   // set final cce mask
-  if (tot_mask) {
+  if (tot_mask != nullptr) {
     *tot_mask = dci_alloc_tree[prev_start + idx].second.total_mask;
   }
 }
@@ -293,6 +294,7 @@ void tti_grid_t::new_tti(uint32_t tti_rx_, uint32_t start_cfi)
   pdcch_alloc.new_tti(tti_rx, start_cfi);
 }
 
+//! Allocates CCEs and RBs for the given mask and allocation type (e.g. data, BC, RAR, paging)
 alloc_outcome_t tti_grid_t::alloc_dl(uint32_t aggr_lvl, alloc_type_t alloc_type, rbgmask_t alloc_mask, sched_ue* user)
 {
   // Check RBG collision
@@ -312,7 +314,8 @@ alloc_outcome_t tti_grid_t::alloc_dl(uint32_t aggr_lvl, alloc_type_t alloc_type,
   return alloc_outcome_t::SUCCESS;
 }
 
-tti_grid_t::ctrl_alloc_t tti_grid_t::alloc_dl_ctrl(uint32_t aggr_lvl, alloc_type_t alloc_type)
+//! Allocates CCEs and RBs for control allocs. It allocates RBs in a contiguous manner.
+tti_grid_t::dl_ctrl_alloc_t tti_grid_t::alloc_dl_ctrl(uint32_t aggr_lvl, alloc_type_t alloc_type)
 {
   rbg_range_t range;
   range.rbg_start = nof_rbgs - avail_rbg;
@@ -334,10 +337,11 @@ tti_grid_t::ctrl_alloc_t tti_grid_t::alloc_dl_ctrl(uint32_t aggr_lvl, alloc_type
   return {alloc_dl(aggr_lvl, alloc_type, new_mask), range};
 }
 
+//! Allocates CCEs and RBs for a user DL data alloc.
 alloc_outcome_t tti_grid_t::alloc_dl_data(sched_ue* user, const rbgmask_t& user_mask)
 {
   srslte_dci_format_t dci_format = user->get_dci_format();
-  uint32_t aggr_level = user->get_aggr_level(srslte_dci_format_sizeof(&cell_cfg->cell, NULL, NULL, dci_format));
+  uint32_t aggr_level = user->get_aggr_level(srslte_dci_format_sizeof(&cell_cfg->cell, nullptr, nullptr, dci_format));
   return alloc_dl(aggr_level, alloc_type_t::DL_DATA, user_mask, user);
 }
 
@@ -355,7 +359,8 @@ alloc_outcome_t tti_grid_t::alloc_ul_data(sched_ue* user, ul_harq_proc::ul_alloc
 
   // Generate PDCCH except for RAR and non-adaptive retx
   if (needs_pdcch) {
-    uint32_t aggr_idx = user->get_aggr_level(srslte_dci_format_sizeof(&cell_cfg->cell, NULL, NULL, SRSLTE_DCI_FORMAT0));
+    uint32_t aggr_idx =
+        user->get_aggr_level(srslte_dci_format_sizeof(&cell_cfg->cell, nullptr, nullptr, SRSLTE_DCI_FORMAT0));
     if (not pdcch_alloc.alloc_dci(alloc_type_t::UL_DATA, aggr_idx, user)) {
       return alloc_outcome_t::DCI_COLLISION;
     }
