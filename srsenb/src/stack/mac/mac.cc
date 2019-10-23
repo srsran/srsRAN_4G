@@ -843,28 +843,6 @@ void mac::tti_clock()
 
 /********************************************************
  *
- * Interface for upper layer timers
- *
- *******************************************************/
-uint32_t mac::timer_get_unique_id()
-{
-  return timers_db.get_unique_id();
-}
-
-void mac::timer_release_id(uint32_t timer_id)
-{
-  timers_db.release_id(timer_id);
-}
-
-/* Front-end to upper-layer timers */
-srslte::timers::timer* mac::timer_get(uint32_t timer_id)
-{
-  return timers_db.get(timer_id);
-}
-
-
-/********************************************************
- *
  * Class to run timers with normal priority
  *
  *******************************************************/

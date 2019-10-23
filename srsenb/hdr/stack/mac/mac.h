@@ -44,11 +44,7 @@ public:
   virtual bool process_pdus() = 0; 
 };
 
-class mac : public mac_interface_phy_lte,
-            public mac_interface_rlc,
-            public mac_interface_rrc,
-            public srslte::mac_interface_timers,
-            public pdu_process_handler
+class mac : public mac_interface_phy_lte, public mac_interface_rlc, public mac_interface_rrc, public pdu_process_handler
 {
 public:
   mac();
@@ -104,16 +100,11 @@ public:
   int bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t *cfg); 
   int bearer_ue_rem(uint16_t rnti, uint32_t lc_id); 
   int rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue);
-    
-  bool process_pdus(); 
 
-  // Interface for upper-layer timers
-  srslte::timers::timer*   timer_get(uint32_t timer_id);
-  void                     timer_release_id(uint32_t timer_id);
-  u_int32_t                timer_get_unique_id();
+  bool process_pdus();
 
   uint32_t get_current_tti();
-  void get_metrics(mac_metrics_t metrics[ENB_METRICS_MAX_USERS]);
+  void     get_metrics(mac_metrics_t metrics[ENB_METRICS_MAX_USERS]);
   void     write_mcch(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s* mcch);
 
 private:  
@@ -176,30 +167,31 @@ private:
   asn1::rrc::sib_type13_r9_s sib13;
 
   const static int mtch_payload_len = 10000;
-  uint8_t mtch_payload_buffer[mtch_payload_len];
-  
+  uint8_t          mtch_payload_buffer[mtch_payload_len];
+
   /* Functions for MAC Timers */
-  srslte::timers  timers_db;
-  void            setup_timers();
-  
+  srslte::timer_handler timers_db;
+  void                  setup_timers();
+
   // pointer to MAC PCAP object
   srslte::mac_pcap* pcap;
-  
 
   /* Class to run upper-layer timers with normal priority */
-  class timer_thread : public thread {
+  class timer_thread : public thread
+  {
   public:
-    timer_thread(mac* parent_, srslte::timers* t) : ttisync(10240), timers(t), running(false), parent(parent_), thread("MAC_TIMER") { start(); }
+    timer_thread(mac* parent_, srslte::timer_handler* t) : ttisync(10240), timers(t), running(false), parent(parent_), thread("MAC_TIMER") { start(); }
     void tti_clock();
     void stop();
+
   private:
     void run_thread();
     srslte::tti_sync_cv ttisync;
-    srslte::timers     *timers;
+    srslte::timer_handler *timers;
     mac                *parent;
     bool running; 
   };
-  timer_thread   timers_thread;
+  timer_thread timers_thread;
 
   /* Class to process MAC PDUs from DEMUX unit */
   class pdu_process : public thread {
