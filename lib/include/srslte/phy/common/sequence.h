@@ -96,4 +96,29 @@ SRSLTE_API int srslte_sequence_pmch(srslte_sequence_t *seq,
                                     uint32_t mbsfn_id,
                                     uint32_t len);
 
+SRSLTE_API int srslte_sequence_npbch(srslte_sequence_t* seq, srslte_cp_t cp, uint32_t cell_id);
+
+SRSLTE_API int srslte_sequence_npbch_r14(srslte_sequence_t* seq, uint32_t n_id_ncell, uint32_t nf);
+
+SRSLTE_API int srslte_sequence_npdsch(srslte_sequence_t* seq,
+                                      uint16_t           rnti,
+                                      int                q,
+                                      uint32_t           nf,
+                                      uint32_t           nslot,
+                                      uint32_t           cell_id,
+                                      uint32_t           len);
+
+SRSLTE_API int srslte_sequence_npdsch_bcch_r14(srslte_sequence_t* seq, uint32_t nf, uint32_t n_id_ncell, uint32_t len);
+
+SRSLTE_API int srslte_sequence_npdcch(srslte_sequence_t* seq, uint32_t nslot, uint32_t cell_id, uint32_t len);
+
+SRSLTE_API int srslte_sequence_npusch(srslte_sequence_t* seq,
+                                      uint16_t           rnti,
+                                      uint32_t           nf,
+                                      uint32_t           nslot,
+                                      uint32_t           cell_id,
+                                      uint32_t           len);
+
+SRSLTE_API int srslte_sequence_nprach(srslte_sequence_t* seq, uint32_t cell_id);
+
 #endif // SRSLTE_SEQUENCE_H
