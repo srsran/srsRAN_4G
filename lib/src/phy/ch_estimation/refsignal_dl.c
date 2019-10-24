@@ -228,7 +228,11 @@ inline uint32_t srslte_refsignal_cs_nof_symbols(srslte_refsignal_t* q, srslte_dl
 
 inline uint32_t srslte_refsignal_cs_nof_re(srslte_refsignal_t* q, srslte_dl_sf_cfg_t* sf, uint32_t port_id)
 {
-  return srslte_refsignal_cs_nof_symbols(q, sf, port_id) * q->cell.nof_prb * 2; // 2 RE per PRB
+  uint32_t nof_re = srslte_refsignal_cs_nof_symbols(q, sf, port_id);
+  if (q != NULL) {
+    nof_re *= q->cell.nof_prb * 2; // 2 RE per PRB
+  }
+  return nof_re;
 }
 
 inline uint32_t srslte_refsignal_cs_fidx(srslte_cell_t cell, uint32_t l, uint32_t port_id, uint32_t m) {

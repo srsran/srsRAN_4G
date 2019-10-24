@@ -46,4 +46,14 @@ target_link_libraries(refsignal_ul_test_all srslte_phy srslte_common)
 
 add_test(chest_test_ul_cellid0 chest_test_ul -c 0 -r 50) 
 add_test(chest_test_ul_cellid1 chest_test_ul -c 1 -r 50) 
-add_test(chest_test_ul_cellid1 chest_test_ul -c 2 -r 50)
+add_test(chest_test_ul_cellid1 chest_test_ul -c 2 -r 50) 
+
+
+########################################################################
+# Downlink Channel Estimation for NB-IoT TEST
+########################################################################
+
+add_executable(chest_nbiot_test_dl chest_nbiot_test_dl.c)
+target_link_libraries(chest_nbiot_test_dl srslte_phy)
+
+add_test(chest_nbiot_test_dl chest_nbiot_test_dl)
