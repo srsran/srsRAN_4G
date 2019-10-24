@@ -322,7 +322,7 @@ bool decode_tb_cb(srslte_sch_t *q,
 
       uint32_t rlen       = cb_segm->C==1?cb_len:(cb_len-24);
       uint32_t Gp         = nof_e_bits / Qm;
-      uint32_t gamma      = cb_segm->C>0?Gp%cb_segm->C:Gp;
+      uint32_t gamma      = Gp%cb_segm->C;
       uint32_t n_e        = Qm * (Gp/cb_segm->C);
 
       uint32_t rp   = cb_idx*n_e;

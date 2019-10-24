@@ -194,6 +194,7 @@ void srslte_chest_dl_free(srslte_chest_dl_t *q)
 int srslte_chest_dl_res_init(srslte_chest_dl_res_t* q, uint32_t max_prb)
 {
   bzero(q, sizeof(srslte_chest_dl_res_t));
+  // SRSLTE_SF_LEN_RE(a, b) macro ends comapring b (SRSLTE_CP_NORM) against the same value
   q->nof_re = SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM);
   for (uint32_t i = 0; i < SRSLTE_MAX_PORTS; i++) {
     for (uint32_t j = 0; j < SRSLTE_MAX_PORTS; j++) {
@@ -202,6 +203,7 @@ int srslte_chest_dl_res_init(srslte_chest_dl_res_t* q, uint32_t max_prb)
         perror("malloc");
         return -1;
       }
+      // SRSLTE_SF_LEN_RE(a, b) macro ends comapring b (SRSLTE_CP_NORM) against the same value
       bzero(q->ce[i][j], SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM) * sizeof(cf_t));
     }
   }

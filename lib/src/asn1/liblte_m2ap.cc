@@ -768,7 +768,7 @@ LIBLTE_ERROR_ENUM liblte_m2ap_pack_ecgi(LIBLTE_M2AP_ECGI_STRUCT* ie, uint8_t** p
       return LIBLTE_ERROR_DECODE_FAIL;
     }
 
-    if (ie->iE_Extensions_present) {
+    if (ie->iE_Extensions) {
       if (liblte_m2ap_pack_protocolextensioncontainer(&ie->iE_Extensions, ptr) != LIBLTE_SUCCESS) {
         return LIBLTE_ERROR_DECODE_FAIL;
       }
@@ -2007,7 +2007,7 @@ LIBLTE_ERROR_ENUM liblte_m2ap_pack_mcchrelatedbcchconfigpermbsfnareaitem(
       return LIBLTE_ERROR_ENCODE_FAIL;
     }
 
-    if (ie->iE_Extensions_present) {
+    if (ie->iE_Extensions) {
       if (liblte_m2ap_unpack_protocolextensioncontainer(ptr, &ie->iE_Extensions) != LIBLTE_SUCCESS) {
         return LIBLTE_ERROR_DECODE_FAIL;
       }
@@ -2338,7 +2338,7 @@ LIBLTE_ERROR_ENUM liblte_m2ap_pack_mbsfnsubframeconfiguration(LIBLTE_M2AP_MBSFN_
       return LIBLTE_ERROR_ENCODE_FAIL;
     }
 
-    if (ie->iE_Extensions_present) {
+    if (ie->iE_Extensions) {
       if (liblte_m2ap_pack_protocolextensioncontainer(&ie->iE_Extensions, ptr) != LIBLTE_SUCCESS) {
         return LIBLTE_ERROR_DECODE_FAIL;
       }
@@ -2506,7 +2506,7 @@ LIBLTE_ERROR_ENUM liblte_m2ap_pack_pmchconfiguration(LIBLTE_M2AP_PMCH_CONFIGURAT
       return LIBLTE_ERROR_DECODE_FAIL;
     }
 
-    if (ie->iE_Extensions_present) {
+    if (ie->iE_Extensions) {
       if (liblte_m2ap_unpack_protocolextensioncontainer(ptr, &ie->iE_Extensions) != LIBLTE_SUCCESS) {
         return LIBLTE_ERROR_DECODE_FAIL;
       }
@@ -2590,7 +2590,7 @@ LIBLTE_ERROR_ENUM liblte_m2ap_pack_pmchconfigurationitem(LIBLTE_M2AP_PMCH_CONFIG
       return LIBLTE_ERROR_DECODE_FAIL;
     }
 
-    if (ie->iE_Extensions_present) {
+    if (ie->iE_Extensions) {
       if (liblte_m2ap_unpack_protocolextensioncontainer(ptr, &ie->iE_Extensions) != LIBLTE_SUCCESS) {
         return LIBLTE_ERROR_DECODE_FAIL;
       }
@@ -3597,6 +3597,10 @@ liblte_m2ap_pack_mbmsschedulinginformationresponse(LIBLTE_M2AP_MESSAGE_MBMSSCHED
 
       // ProtocolIE - Criticality Diagnostics
       tmp_ptr = tmp_msg.msg;
+      // liblte_m2ap_pack_criticalitydiagnostics function
+      // only returns:
+      //  - LIBLTE_ERROR_INVALID_INPUTS
+      //  - LIBLTE_ERROR_ENCODE_FAIL
       if (liblte_m2ap_pack_criticalitydiagnostics(&msg->CriticalityDiagnostics, &tmp_ptr) != LIBLTE_SUCCESS) {
         return LIBLTE_ERROR_ENCODE_FAIL;
       }
@@ -3650,6 +3654,10 @@ liblte_m2ap_unpack_mbmsschedulinginformationresponse(uint8_t**                  
       }
 
       if (LIBLTE_M2AP_IE_ID_CRITICALITYDIAGNOSTICS == ie_id) {
+        // liblte_m2ap_unpack_criticalitydiagnostics function
+        // only returns:
+        //  - LIBLTE_ERROR_INVALID_INPUTS
+        //  - LIBLTE_ERROR_DECODE_FAIL
         if (liblte_m2ap_unpack_criticalitydiagnostics(ptr, &msg->CriticalityDiagnostics) != LIBLTE_SUCCESS) {
           return LIBLTE_ERROR_DECODE_FAIL;
         }

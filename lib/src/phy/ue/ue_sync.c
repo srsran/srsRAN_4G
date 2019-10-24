@@ -790,7 +790,9 @@ int srslte_ue_sync_zerocopy(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_P
 
           {
             // Process AGC every period
-            if (q->do_agc && (q->agc_period == 0 || (q->agc_period && (q->frame_total_cnt % q->agc_period) == 0))) {
+            // q->agc_period is unsigned int [0, MAX(Int)]
+            // as we are checking it against 0 first later it can't be < 0
+            if (q->do_agc && (q->agc_period == 0 || ((q->frame_total_cnt % q->agc_period) == 0))) {
               srslte_agc_process(&q->agc, input_buffer[0], q->sf_len);
             }
 

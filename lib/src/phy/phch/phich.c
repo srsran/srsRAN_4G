@@ -196,11 +196,6 @@ int srslte_phich_decode(srslte_phich_t*         q,
 
   uint32_t sf_idx = sf->tti % 10;
 
-  if (sf_idx >= SRSLTE_NOF_SF_X_FRAME) {
-    ERROR("Invalid nslot %d\n", sf_idx);
-    return SRSLTE_ERROR_INVALID_INPUTS;
-  }
-
   if (SRSLTE_CP_ISEXT(q->cell.cp)) {
     if (n_phich.nseq >= SRSLTE_PHICH_EXT_NSEQUENCES) {
       ERROR("Invalid nseq %d\n", n_phich.nseq);
@@ -328,11 +323,6 @@ int srslte_phich_encode(srslte_phich_t*         q,
   }
 
   uint32_t sf_idx = sf->tti % 10;
-
-  if (sf_idx >= SRSLTE_NOF_SF_X_FRAME) {
-    ERROR("Invalid nslot %d\n", sf_idx);
-    return SRSLTE_ERROR_INVALID_INPUTS;
-  }
 
   if (SRSLTE_CP_ISEXT(q->cell.cp)) {
     if (n_phich.nseq >= SRSLTE_PHICH_EXT_NSEQUENCES) {

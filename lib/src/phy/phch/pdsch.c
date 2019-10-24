@@ -1089,6 +1089,7 @@ int srslte_pdsch_encode(srslte_pdsch_t*     q,
       return SRSLTE_ERROR_INVALID_INPUTS;
     }
 
+    // Identical sub-expressions
     if (cfg->grant.nof_re > q->max_re || cfg->grant.nof_re > q->max_re) {
       ERROR("Error too many RE per subframe (%d). PDSCH configured for %d RE (%d PRB)\n",
             cfg->grant.nof_re,

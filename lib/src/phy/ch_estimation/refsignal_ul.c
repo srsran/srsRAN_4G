@@ -445,7 +445,7 @@ int srslte_refsignal_dmrs_pusch_pregen_put(srslte_refsignal_ul_t*             q,
 {
   uint32_t sf_idx = sf_cfg->tti % 10;
 
-  if (srslte_dft_precoding_valid_prb(pusch_cfg->grant.L_prb) && sf_idx < SRSLTE_NOF_SF_X_FRAME &&
+  if (srslte_dft_precoding_valid_prb(pusch_cfg->grant.L_prb) &&
       pusch_cfg->grant.n_dmrs < SRSLTE_NOF_CSHIFT) {
     srslte_refsignal_dmrs_pusch_put(
         q, pusch_cfg, pregen->r[pusch_cfg->grant.n_dmrs][sf_idx][pusch_cfg->grant.L_prb], sf_symbols);
@@ -850,14 +850,12 @@ int srslte_refsignal_srs_send_cs(uint32_t subframe_config, uint32_t sf_idx) {
       } else {
         return 1; 
       }
-    } else if (subframe_config == 14) {
+    } else {
       if (((sf_idx%tsfc)==7) || ((sf_idx%tsfc)==9)) {
         return 0; 
       } else {
         return 1; 
       }
-    } else {
-      return 0; 
     }
   } else {
     return SRSLTE_ERROR_INVALID_INPUTS;

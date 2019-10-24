@@ -445,6 +445,7 @@ int srslte_refsignal_mbsfn_set_cell(srslte_refsignal_t * q, srslte_cell_t cell, 
   ret = SRSLTE_SUCCESS;
 
 free_and_exit:
+  // Expression is always false
   if (ret == SRSLTE_ERROR) {
     srslte_refsignal_free(q);
   }

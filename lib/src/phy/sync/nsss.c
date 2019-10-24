@@ -270,12 +270,8 @@ int srslte_nsss_sync_find(
     }
 
     // set remaining return values
-    if (sfn_partial) {
-      *sfn_partial = 0; // we only search for the first of the four possible shifts
-    }
-    if (corr_peak_value) {
-      *corr_peak_value = peak_value;
-    }
+    *sfn_partial = 0; // we only search for the first of the four possible shifts
+    *corr_peak_value = peak_value;
   }
   return ret;
 }

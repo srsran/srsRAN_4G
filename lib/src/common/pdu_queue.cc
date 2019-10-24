@@ -48,6 +48,7 @@ uint8_t* pdu_queue::request(uint32_t len)
       log_h->error("Not enough buffers for MAC PDU\n");      
     }
     ERROR("Not enough buffers for MAC PDU\n");
+    exit(-1);
   }
   if ((void*) pdu->ptr != (void*) pdu) {
     ERROR("Fatal error in memory alignment in struct pdu_queue::pdu_t\n");

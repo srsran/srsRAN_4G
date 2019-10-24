@@ -42,6 +42,7 @@ int main(int argc, char **argv) {
   float sinr_2l[SRSLTE_MAX_CODEBOOKS];
   float cn;
   uint32_t pmi[2];
+  // SRSLTE_SF_LEN_RE(6, SRSLTE_CP_NORM) second argument should be variable or the returned value is fixed  
   uint32_t nof_symbols = (uint32_t) SRSLTE_SF_LEN_RE(6, SRSLTE_CP_NORM);
   int ret = SRSLTE_ERROR;
 

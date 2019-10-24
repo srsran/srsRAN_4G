@@ -111,6 +111,8 @@ static int pusch_init(srslte_pusch_t* q, uint32_t max_prb, bool is_ue)
     
     bzero(q, sizeof(srslte_pusch_t));
     ret = SRSLTE_ERROR;
+    // MAX_PUSCH_RE(SRSLTE_CP_NORM)
+    // is the same as 2 * SRSLTE_CP_NORM_NSYMB * 12
     q->max_re = max_prb * MAX_PUSCH_RE(SRSLTE_CP_NORM);
 
     INFO("Init PUSCH: %d PRBs\n", max_prb);

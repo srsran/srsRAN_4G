@@ -43,12 +43,14 @@ int srslte_enb_ul_init(srslte_enb_ul_t *q,
 
     bzero(q, sizeof(srslte_enb_ul_t));
 
+    // SRSLTE_SF_LEN_RE(a, b) macro ends comapring b (SRSLTE_CP_NORM) against the same value
     q->sf_symbols = srslte_vec_malloc(SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM) * sizeof(cf_t));
     if (!q->sf_symbols) {
       perror("malloc");
       goto clean_exit;
     }
 
+    // SRSLTE_SF_LEN_RE(a, b) macro ends comapring b (SRSLTE_CP_NORM) against the same value
     q->chest_res.ce = srslte_vec_malloc(SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM) * sizeof(cf_t));
     if (!q->chest_res.ce) {
       perror("malloc");

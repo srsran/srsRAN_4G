@@ -151,6 +151,7 @@ srslte::rlc_config_t make_rlc_config_t(const asn1::rrc::srb_to_add_mod_s& asn1_t
   } else {
     asn1::rrc::rrc_log_print(
         asn1::LOG_LEVEL_ERROR, "SRB %d does not support default initialization type\n", asn1_type.srb_id);
+    return rlc_config_t::srb_config(0);
   }
 }
 
@@ -431,7 +432,7 @@ void set_phy_cfg_t_dedicated_cfg(phy_cfg_t* cfg, const asn1::rrc::phys_cfg_ded_s
     }
   }
   if (asn1_type.sched_request_cfg_present) {
-    if (asn1_type.sched_request_cfg_present and asn1_type.sched_request_cfg.type() == asn1::rrc::setup_e::setup) {
+    if (asn1_type.sched_request_cfg.type() == asn1::rrc::setup_e::setup) {
       cfg->ul_cfg.pucch.I_sr          = asn1_type.sched_request_cfg.setup().sr_cfg_idx;
       cfg->ul_cfg.pucch.n_pucch_sr    = asn1_type.sched_request_cfg.setup().sr_pucch_res_idx;
       cfg->ul_cfg.pucch.sr_configured = true;
@@ -444,7 +445,7 @@ void set_phy_cfg_t_dedicated_cfg(phy_cfg_t* cfg, const asn1::rrc::phys_cfg_ded_s
 
   if (asn1_type.pdsch_cfg_ded_present) {
     // Configure PDSCH
-    if (asn1_type.pdsch_cfg_ded_present && cfg->dl_cfg.pdsch.p_b < 4) {
+    if (cfg->dl_cfg.pdsch.p_b < 4) {
       cfg->dl_cfg.pdsch.p_a         = asn1_type.pdsch_cfg_ded.p_a.to_number();
       cfg->dl_cfg.pdsch.power_scale = true;
     } else {

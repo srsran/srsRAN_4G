@@ -73,7 +73,7 @@ static int pmch_cp(srslte_pmch_t* q, cf_t* input, cf_t* output, uint32_t lstart_
             in_ptr = &input[(lp * q->cell.nof_prb + n) * SRSLTE_NRE];
           }
           // This is a symbol in a normal PRB with or without references
-          if (l >= lstart && l < lend) {
+          if (l >= lstart) {
             if (SRSLTE_SYMBOL_HAS_REF_MBSFN(l,s)) {
               if (l == 0 && s == 1) {
                 offset = 1;

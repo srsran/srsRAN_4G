@@ -53,8 +53,8 @@ int srslte_sequence_set_LTE_pr(srslte_sequence_t *q, uint32_t len, uint32_t seed
     return -1;
   }
 
-  if (len > q->max_len) {
-    ERROR("Error generating pseudo-random sequence: len %d is greater than allocated len %d\n", len, q->max_len);
+  if (len > q->cur_len) {
+    ERROR("Error generating pseudo-random sequence: len %d is greater than allocated len %d\n", len, q->cur_len);
     return -1;
   }
   pthread_mutex_lock(&mutex);

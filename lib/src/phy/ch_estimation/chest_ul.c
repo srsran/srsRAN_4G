@@ -146,6 +146,7 @@ void srslte_chest_ul_free(srslte_chest_ul_t *q)
 int srslte_chest_ul_res_init(srslte_chest_ul_res_t* q, uint32_t max_prb)
 {
   bzero(q, sizeof(srslte_chest_ul_res_t));
+  // SRSLTE_SF_LEN_RE(a, b) macro ends comapring b (SRSLTE_CP_NORM) against the same value
   q->nof_re = SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM);
   q->ce     = srslte_vec_malloc(q->nof_re * sizeof(cf_t));
   if (!q->ce) {

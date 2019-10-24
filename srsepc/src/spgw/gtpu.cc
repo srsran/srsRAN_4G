@@ -245,7 +245,7 @@ void spgw::gtpu::handle_sgi_pdu(srslte::byte_buffer_t* msg)
     m_gtpc->send_downlink_data_notification(spgw_teid);
     m_gtpc->queue_downlink_packet(spgw_teid, msg);
     return;
-  } else if (usr_found == false && ctr_found == true) {
+  } else if (usr_found == true && ctr_found == false) {
     m_gtpu_log->error("User plane tunnel found without a control plane tunnel present.\n");
     goto pkt_discard_out;
   } else {

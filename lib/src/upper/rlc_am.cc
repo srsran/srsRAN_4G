@@ -1070,7 +1070,7 @@ int rlc_am::rlc_am_tx::required_buffer_size(rlc_amd_retx_t retx)
 
     upper += old_header.li[i];
 
-    if (upper > retx.so_start && lower < retx.so_end) {  // Current SDU is needed
+    if (upper > retx.so_start) {  // Current SDU is needed
       li = upper - lower;
       if (upper > retx.so_end) {
         li -= upper - retx.so_end;

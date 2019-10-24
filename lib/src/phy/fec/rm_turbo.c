@@ -308,7 +308,6 @@ void srslte_rm_turbo_free_tables () {
     }
     rm_turbo_tables_generated = false;
   }
-  rm_turbo_tables_generated = false;
 }
 
 /**

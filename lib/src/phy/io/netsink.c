@@ -91,21 +91,19 @@ int srslte_netsink_write(srslte_netsink_t *q, void *buffer, int nof_bytes) {
     }
   } 
   int n = 0; 
-  if (q->connected) {
-    n = write(q->sockfd, buffer, nof_bytes);  
-    if (n < 0) {
-      if (errno == ECONNRESET) {
-        close(q->sockfd);
-        q->sockfd=socket(AF_INET, q->type==SRSLTE_NETSINK_TCP?SOCK_STREAM:SOCK_DGRAM,0);  
-        if (q->sockfd < 0) {
-          perror("socket");
-          return -1; 
-        }
-        q->connected = false; 
-        return 0; 
+  n = write(q->sockfd, buffer, nof_bytes);  
+  if (n < 0) {
+    if (errno == ECONNRESET) {
+      close(q->sockfd);
+      q->sockfd=socket(AF_INET, q->type==SRSLTE_NETSINK_TCP?SOCK_STREAM:SOCK_DGRAM,0);  
+      if (q->sockfd < 0) {
+        perror("socket");
+        return -1; 
       }
-    }    
-  } 
+      q->connected = false; 
+      return 0; 
+    }
+  }    
   return n;
 }
 

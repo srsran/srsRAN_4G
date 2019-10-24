@@ -48,6 +48,8 @@ int srslte_ue_mib_init(srslte_ue_mib_t * q,
       goto clean_exit;
     }
 
+    // SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM)
+    // second argument should be variable, otherwise value is fixed
     q->sf_symbols[0] = srslte_vec_malloc(SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM) * sizeof(cf_t));
     if (!q->sf_symbols[0]) {
       perror("malloc");
@@ -261,7 +263,7 @@ int srslte_ue_mib_sync_decode(srslte_ue_mib_sync_t * q,
         }
         nof_frames++;
       }
-    } while (mib_ret == SRSLTE_UE_MIB_NOTFOUND && ret >= 0 && nof_frames < max_frames_timeout);
+    } while (mib_ret == SRSLTE_UE_MIB_NOTFOUND && nof_frames < max_frames_timeout);
     if (mib_ret < 0) {
       ret = mib_ret; 
     }

@@ -213,8 +213,6 @@ static void ul_fill_ra_mcs(srslte_ra_tb_t* tb, srslte_ra_tb_t* last_tb, uint32_t
     } else if (tb->mcs_idx < 29) {
       tb->mod = SRSLTE_MOD_64QAM;
       tb->tbs = srslte_ra_tbs_from_idx(tb->mcs_idx - 2, L_prb);
-    } else {
-      ERROR("Invalid MCS index %d\n", tb->mcs_idx);
     }
   } else if (tb->mcs_idx == 29 && cqi_request && L_prb <= 4) {
     // 8.6.1 and 8.6.2 36.213 second paragraph

@@ -424,7 +424,6 @@ bool nas::handle_guti_attach_request_known_ue(nas*                              
     emm_ctx->attach_type = attach_req.eps_attach_type;
 
     // Set eNB information
-    ecm_ctx->enb_ue_s1ap_id = enb_ue_s1ap_id;
     memcpy(&ecm_ctx->enb_sri, enb_sri, sizeof(struct sctp_sndrcvinfo));
 
     // Save whether secure ESM information transfer is necessary

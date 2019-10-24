@@ -322,7 +322,7 @@ int regs_phich_init(srslte_regs_t* h, uint32_t phich_mi, bool mbsfn_or_sf1_6_tdd
       // Step 7
       if (h->phich_len == SRSLTE_PHICH_NORM) {
         li = 0;
-      } else if (h->phich_len == SRSLTE_PHICH_EXT && mbsfn_or_sf1_6_tdd) {
+      } else if (mbsfn_or_sf1_6_tdd) {
         li = (mi / 2 + i + 1) % 2;
       } else {
         li = i;
@@ -640,7 +640,7 @@ int regs_reg_init(srslte_regs_reg_t *reg, uint32_t symbol, uint32_t nreg, uint32
   case 2:
     reg->k0 = k0 + nreg * 6;
     /* there are two references in the middle */
-    j = z = 0;
+    j = 0;
     for (i = 0; i < vo; i++) {
       reg->k[j] = k0 + nreg * 6 + i;
       j++;

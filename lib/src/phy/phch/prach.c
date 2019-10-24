@@ -637,9 +637,7 @@ int srslte_prach_detect_offset(srslte_prach_t* p,
           if (p->peak_values[j] > p->detect_factor * corr_ave) {
             //printf("saving prach correlation\n");
             //memcpy(save_corr, p->corr, p->N_zc*sizeof(float));
-            if (indices) {
-              indices[*n_indices] = (i * n_wins) + j;
-            }
+            indices[*n_indices] = (i * n_wins) + j;
             if (peak_to_avg) {
               peak_to_avg[*n_indices] = p->peak_values[j] / corr_ave;
             }

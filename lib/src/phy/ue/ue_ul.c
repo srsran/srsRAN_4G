@@ -635,7 +635,7 @@ static uint32_t get_npucch_cs(srslte_pucch_cfg_t* cfg, srslte_uci_cfg_t* uci_cfg
         b[1] = (uint8_t)((b[3] != 1 ? 0 : 1) & ((b[1] != 1 ? 0 : 1) ^ (b[2] != 1 ? 0 : 1)));
       } else {
         /* n_pucch1_3 */
-        b[0] = (uint8_t)((b[1] != 1 ? 0 : 1) & (b[0] != 1 ? 1 : 0));
+        b[0] = (uint8_t)((b[1] != 1 ? 0 : 1) & (1));
         b[1] = (uint8_t)((b[3] != 1 ? 0 : 1) & ((b[1] != 1 ? 0 : 1) ^ (b[2] != 1 ? 0 : 1)));
       }
       break;

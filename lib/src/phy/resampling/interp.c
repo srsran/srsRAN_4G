@@ -187,7 +187,6 @@ int srslte_interp_linear_init(srslte_interp_lin_t *q, uint32_t vector_len, uint3
     q->ramp = srslte_vec_malloc(M * sizeof(float));
     if (!q->ramp) {
       perror("malloc");
-      free(q->ramp);
       free(q->diff_vec);
       return SRSLTE_ERROR; 
     }    

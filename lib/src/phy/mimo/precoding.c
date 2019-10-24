@@ -303,14 +303,14 @@ int srslte_predecoding_single(cf_t *y_, cf_t *h_, cf_t *x, float *csi, int nof_s
   }
 
 #ifdef LV_HAVE_AVX
-  if (nof_symbols > 32 && nof_rxant <= 2) {
+  if (nof_symbols > 32) {
     return srslte_predecoding_single_avx(y, h, x, nof_rxant, nof_symbols, scaling, noise_estimate);
   } else {
     return srslte_predecoding_single_gen(y, h, x, nof_rxant, nof_symbols, scaling, noise_estimate);
   }
 #else
   #ifdef LV_HAVE_SSE
-    if (nof_symbols > 32 && nof_rxant <= 2) {
+    if (nof_symbols > 32) {
       return srslte_predecoding_single_sse(y, h, x, nof_rxant, nof_symbols, scaling, noise_estimate);
     } else {
       return srslte_predecoding_single_gen(y, h, x, nof_rxant, nof_symbols, scaling, noise_estimate);
@@ -1217,7 +1217,6 @@ static int srslte_predecoding_multiplex_2x2_zf_csi(cf_t *y[SRSLTE_MAX_PORTS],
     x[1][i] = (-h10 * y[0][i] + h00 * y[1][i]) * det;
 
     csi[i] = 1.0f;
-    csi[i] = 1.0f;
   }
   return SRSLTE_SUCCESS;
 }
@@ -1788,7 +1787,7 @@ int srslte_predecoding_type(cf_t*              y[SRSLTE_MAX_PORTS],
 
   switch (type) {
     case SRSLTE_TXSCHEME_CDD:
-      if (nof_layers >= 2 && nof_layers <= 4) {
+      if (nof_layers >= 2) {
         switch (mimo_decoder) {
           case SRSLTE_MIMO_DECODER_ZF:
             return srslte_predecoding_ccd_zf(y, h, x, csi, nof_rxant, nof_ports, nof_layers, nof_symbols, scaling);

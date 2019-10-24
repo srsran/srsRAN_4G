@@ -150,10 +150,10 @@ int main(int argc, char **argv) {
               bool group_hopping_en = false; 
               bool sequence_hopping_en = false; 
               
-              if (!t) {
+              if (!t) { // Never enter here, code block can be removed
                 group_hopping_en = false;
                 sequence_hopping_en = false;                
-              } else if (t == 1) {
+              } else if (t == 1) { // t can't be 1, maybe t == 2 and next t == 3?
                 group_hopping_en = false;
                 sequence_hopping_en = true;                
               } else if (t == 2) {

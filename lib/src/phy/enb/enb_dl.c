@@ -45,6 +45,7 @@ int srslte_enb_dl_init(srslte_enb_dl_t *q, cf_t *out_buffer[SRSLTE_MAX_PORTS], u
     bzero(q, sizeof(srslte_enb_dl_t));
 
     for (int i=0;i<SRSLTE_MAX_PORTS;i++) {
+      // SRSLTE_SF_LEN_RE(a, b) macro ends comapring b (SRSLTE_CP_NORM) against the same value
       q->sf_symbols[i] = srslte_vec_malloc(SRSLTE_SF_LEN_RE(max_prb, SRSLTE_CP_NORM) * sizeof(cf_t));
       if (!q->sf_symbols[i]) {
         perror("malloc");

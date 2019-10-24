@@ -572,7 +572,7 @@ static int encode_bits(srslte_pucch_cfg_t*   cfg,
 {
   if (format < SRSLTE_PUCCH_FORMAT_2) {
     memcpy(pucch_bits, uci_data->ack.ack_value, srslte_uci_cfg_total_ack(&cfg->uci_cfg) * sizeof(uint8_t));
-  } else if (format >= SRSLTE_PUCCH_FORMAT_2 && format < SRSLTE_PUCCH_FORMAT_3) {
+  } else if (format < SRSLTE_PUCCH_FORMAT_3) {
     /* Put RI (goes alone) */
     if (cfg->uci_cfg.cqi.ri_len) {
       uint8_t temp[2] = {uci_data->ri, 0};

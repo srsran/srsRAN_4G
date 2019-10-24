@@ -130,6 +130,7 @@ bool hss::read_db_file(std::string db_filename)
         ue_ctx->algo = HSS_ALGO_MILENAGE;
       } else {
         m_hss_log->error("Neither XOR nor MILENAGE configured.\n");
+        delete ue_ctx;
         return false;
       }
       ue_ctx->imsi         = atoll(split[2].c_str());
@@ -143,6 +144,7 @@ bool hss::read_db_file(std::string db_filename)
         get_uint_vec_from_hex_str(split[5], ue_ctx->opc, 16);
       } else {
         m_hss_log->error("Neither OP nor OPc configured.\n");
+        delete ue_ctx;
         return false;
       }
       get_uint_vec_from_hex_str(split[6], ue_ctx->amf, 2);
@@ -169,10 +171,12 @@ bool hss::read_db_file(std::string db_filename)
             m_hss_log->info("static ip addr %s\n", ue_ctx->static_ip_addr.c_str());
           } else {
             m_hss_log->info("duplicate static ip addr %s\n", split[9].c_str());
+            delete ue_ctx;
             return false;
           }
         } else {
           m_hss_log->info("invalid static ip addr %s, %s\n", split[9].c_str(), strerror(errno));
+          delete ue_ctx;
           return false;
         }
       }

@@ -132,7 +132,7 @@ bool threads_new_rt_cpu(pthread_t *thread, void *(*start_routine) (void*), void 
     }
   }
 
-  int err = pthread_create(thread, attr_enable ? &attr : NULL, start_routine, arg);
+  int err = pthread_create(thread, &attr, start_routine, arg);
   if (err) {
     if (EPERM == err) {
       perror("Warning: Failed to create thread with real-time priority. Creating it with normal priority");
@@ -148,9 +148,7 @@ bool threads_new_rt_cpu(pthread_t *thread, void *(*start_routine) (void*), void 
   } else {
     ret = true; 
   }
-  if (attr_enable) {
-    pthread_attr_destroy(&attr);
-  }
+  pthread_attr_destroy(&attr);
   return ret; 
 }
 
