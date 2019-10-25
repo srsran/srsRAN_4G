@@ -541,7 +541,6 @@ int rf_soapy_close(void *h)
   }
 
   SoapySDRDevice_unmake(handler->device);
-  free(handler);
 
   // print statistics
   if (handler->num_lates) printf("#lates=%d\n", handler->num_lates);
@@ -549,6 +548,8 @@ int rf_soapy_close(void *h)
   if (handler->num_underflows) printf("#underflows=%d\n", handler->num_underflows);
   if (handler->num_time_errors) printf("#time_errors=%d\n", handler->num_time_errors);
   if (handler->num_other_errors) printf("#other_errors=%d\n", handler->num_other_errors);
+
+  free(handler);
 
   return SRSLTE_SUCCESS;
 }
@@ -573,15 +574,17 @@ double rf_soapy_set_rx_srate(void *h, double rate)
     // Set bandwidth close to current rate
     size_t         bw_length;
     SoapySDRRange* bw_range = SoapySDRDevice_getBandwidthRange(handler->device, SOAPY_SDR_RX, 0, &bw_length);
-    double         bw       = rate * 0.75;
-    bw                      = SRSLTE_MIN(bw, bw_range->maximum);
-    bw                      = SRSLTE_MAX(bw, bw_range->minimum);
-    bw                      = SRSLTE_MAX(bw, 2.5e6); // For the Lime to avoid warnings
-    if (SoapySDRDevice_setBandwidth(handler->device, SOAPY_SDR_RX, i, bw) != 0) {
-      printf("setBandwidth fail: %s\n", SoapySDRDevice_lastError());
-      return SRSLTE_ERROR;
+    for (int k = 0; k < bw_length; ++k) {
+      double bw = rate * 0.75;
+      bw        = SRSLTE_MIN(bw, bw_range[k].maximum);
+      bw        = SRSLTE_MAX(bw, bw_range[k].minimum);
+      bw        = SRSLTE_MAX(bw, 2.5e6); // For the Lime to avoid warnings
+      if (SoapySDRDevice_setBandwidth(handler->device, SOAPY_SDR_RX, i, bw) != 0) {
+        printf("setBandwidth fail: %s\n", SoapySDRDevice_lastError());
+        return SRSLTE_ERROR;
+      }
+      printf("Set Rx bandwidth to %.2f MHz\n", SoapySDRDevice_getBandwidth(handler->device, SOAPY_SDR_RX, i) / 1e6);
     }
-    printf("Set Rx bandwidth to %.2f MHz\n", SoapySDRDevice_getBandwidth(handler->device, SOAPY_SDR_RX, i) / 1e6);
 #endif
   }
 
@@ -612,16 +615,18 @@ double rf_soapy_set_tx_srate(void *h, double rate)
 #if SET_RF_BW
     size_t         bw_length;
     SoapySDRRange* bw_range = SoapySDRDevice_getBandwidthRange(handler->device, SOAPY_SDR_TX, i, &bw_length);
-    // try to set the BW a bit narrower than sampling rate to prevent aliasing but make sure to stay within device
-    // boundaries
-    double bw = rate * 0.75;
-    bw        = SRSLTE_MAX(bw, bw_range->minimum);
-    bw        = SRSLTE_MIN(bw, bw_range->maximum);
-    if (SoapySDRDevice_setBandwidth(handler->device, SOAPY_SDR_TX, i, bw) != 0) {
-      printf("setBandwidth fail: %s\n", SoapySDRDevice_lastError());
-      return SRSLTE_ERROR;
+    for (int k = 0; k < bw_length; ++k) {
+      // try to set the BW a bit narrower than sampling rate to prevent aliasing but make sure to stay within device
+      // boundaries
+      double bw = rate * 0.75;
+      bw        = SRSLTE_MAX(bw, bw_range[k].minimum);
+      bw        = SRSLTE_MIN(bw, bw_range[k].maximum);
+      if (SoapySDRDevice_setBandwidth(handler->device, SOAPY_SDR_TX, i, bw) != 0) {
+        printf("setBandwidth fail: %s\n", SoapySDRDevice_lastError());
+        return SRSLTE_ERROR;
+      }
+      printf("Set Tx bandwidth to %.2f MHz\n", SoapySDRDevice_getBandwidth(handler->device, SOAPY_SDR_TX, i) / 1e6);
     }
-    printf("Set Tx bandwidth to %.2f MHz\n", SoapySDRDevice_getBandwidth(handler->device, SOAPY_SDR_TX, i) / 1e6);
 #endif
   }
   if (rx_stream_active) {
@@ -749,8 +754,8 @@ int  rf_soapy_recv_with_time_multi(void *h,
     printf(" - rx_samples=%zd\n", rx_samples);
 #endif
 
-    void* buffs_ptr[SRSLTE_MAX_PORTS];
-    for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
+    void* buffs_ptr[SRSLTE_MAX_PORTS] = {};
+    for (int i = 0; i < handler->num_rx_channels; i++) {
       cf_t *data_c = (cf_t*) data[i];
       buffs_ptr[i] = &data_c[n];
     }
@@ -874,8 +879,8 @@ int rf_soapy_send_timed_multi(void*  h,
     printf(" - tx_samples=%zd at timeNs=%llu flags=%d\n", tx_samples, timeNs, flags);
 #endif
 
-    const void* buffs_ptr[SRSLTE_MAX_PORTS];
-    for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
+    const void* buffs_ptr[SRSLTE_MAX_PORTS] = {};
+    for (int i = 0; i < handler->num_tx_channels; i++) {
       cf_t* data_c = data[i] ? data[i] : zero_mem;
       buffs_ptr[i] = &data_c[n];
     }
