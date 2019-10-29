@@ -42,7 +42,7 @@ pthread_t          rx_thread;
 void* ue_rx_thread_function(void* args)
 {
   char rf_args[PARAM_LEN];
-  strncpy(rf_args, (char*)args, PARAM_LEN);
+  strncpy(rf_args, (char*)args, PARAM_LEN - 1);
   rf_args[PARAM_LEN - 1] = 0;
 
   // sleep(1);
@@ -74,7 +74,7 @@ void* ue_rx_thread_function(void* args)
 void enb_tx_function(const char* tx_args, bool timed_tx)
 {
   char rf_args[PARAM_LEN];
-  strncpy(rf_args, tx_args, PARAM_LEN);
+  strncpy(rf_args, tx_args, PARAM_LEN - 1);
   rf_args[PARAM_LEN - 1] = 0;
 
   printf("opening tx device with args=%s\n", rf_args);
