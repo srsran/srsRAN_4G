@@ -49,3 +49,25 @@ phy_cnfg =
     m_ri = 8; // RI period in CQI period
   };
 };
+
+rrc_cnfg =
+{
+  // Cells available for handover
+  meas_cell_list =
+  (
+    //{
+    //  cell_idx = 0x19C02;
+    //  dl_earfcn = 2850;
+    //  pci = 2;
+    //}
+  );
+
+  // ReportCfg (only A3 supported)
+  meas_report_desc = {
+    a3_report_type = "RSRP";
+    a3_offset = 6;
+    a3_hysteresis = 0;
+    a3_time_to_trigger = 480;
+    rsrq_config = 4;
+  };
+};
