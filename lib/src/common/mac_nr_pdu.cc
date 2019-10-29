@@ -53,7 +53,7 @@ uint32_t mac_nr_sch_subpdu::read_subheader(const uint8_t* ptr)
   ptr++;
   header_length = 1;
 
-  if (is_sdu() || is_var_len_ce()) {
+  if ((is_sdu() || is_var_len_ce()) && not is_ul_ccch()) {
     // Read first length byte
     sdu_length = (uint32_t)*ptr;
     ptr++;
@@ -76,8 +76,15 @@ void mac_nr_sch_subpdu::set_sdu(const uint32_t lcid_, const uint8_t* payload_, c
 {
   lcid          = lcid_;
   sdu           = const_cast<uint8_t*>(payload_);
+  header_length = is_ul_ccch() ? 1 : 2;
   sdu_length    = len_;
-  header_length = 2;
+  if (is_ul_ccch()) {
+    F_bit      = false;
+    sdu_length = sizeof_ce(lcid, parent->is_ulsch());
+    if (len_ != static_cast<uint32_t>(sdu_length)) {
+      fprintf(stderr, "Invalid SDU length of UL-SCH SDU (%d != %d)\n", len_, sdu_length);
+    }
+  }
 
   if (sdu_length >= 256) {
     F_bit = true;
@@ -153,30 +160,39 @@ uint8_t* mac_nr_sch_subpdu::get_sdu()
 
 uint32_t mac_nr_sch_subpdu::sizeof_ce(uint32_t lcid, bool is_ul)
 {
-    if (is_ul) {
-      switch (lcid) {
-        case CRNTI:
-          return 2;
-        case SHORT_TRUNC_BSR:
-          return 1;
-        case SHORT_BSR:
-          return 1;
-        case PADDING:
-          return 0;
-      }
-    } else {
-      switch (lcid) {
-        case CON_RES_ID:
-          return 6;
-        case TA_CMD:
-          return 1;
-        case DRX_CMD:
-          return 0;
-        case PADDING:
-          return 0;
-      }
+  if (is_ul) {
+    switch (lcid) {
+      case CCCH_SIZE_48:
+        return 6;
+      case CCCH_SIZE_64:
+        return 8;
+      case CRNTI:
+        return 2;
+      case SHORT_TRUNC_BSR:
+        return 1;
+      case SHORT_BSR:
+        return 1;
+      case PADDING:
+        return 0;
     }
+  } else {
+    switch (lcid) {
+      case CON_RES_ID:
+        return 6;
+      case TA_CMD:
+        return 1;
+      case DRX_CMD:
+        return 0;
+      case PADDING:
+        return 0;
+    }
+  }
   return 0;
+}
+
+inline bool mac_nr_sch_subpdu::is_ul_ccch()
+{
+  return (parent->is_ulsch() && (lcid == CCCH_SIZE_48 || lcid == CCCH_SIZE_64));
 }
 
 void mac_nr_sch_pdu::pack()
@@ -231,12 +247,16 @@ void mac_nr_sch_pdu::init_tx(byte_buffer_t* buffer_, uint32_t pdu_len_, bool uls
   ulsch         = ulsch_;
 }
 
-uint32_t mac_nr_sch_pdu::size_header_sdu(const uint32_t nbytes)
+uint32_t mac_nr_sch_pdu::size_header_sdu(const uint32_t lcid, const uint32_t nbytes)
 {
-  if (nbytes < 256) {
-    return 2;
+  if (ulsch && (lcid == mac_nr_sch_subpdu::CCCH_SIZE_48 || lcid == mac_nr_sch_subpdu::CCCH_SIZE_64)) {
+    return 1;
   } else {
-    return 3;
+    if (nbytes < 256) {
+      return 2;
+    } else {
+      return 3;
+    }
   }
 }
 
@@ -247,7 +267,7 @@ uint32_t mac_nr_sch_pdu::get_remaing_len()
 
 uint32_t mac_nr_sch_pdu::add_sdu(const uint32_t lcid_, const uint8_t* payload_, const uint32_t len_)
 {
-  int header_size = size_header_sdu(len_);
+  int header_size = size_header_sdu(lcid_, len_);
 
   if (header_size + len_ > remaining_len) {
     printf("Header and SDU exceed space in PDU (%d > %d).\n", header_size + len_, remaining_len);

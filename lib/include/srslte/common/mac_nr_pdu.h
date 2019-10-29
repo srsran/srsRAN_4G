@@ -37,6 +37,7 @@ public:
   // 3GPP 38.321 v15.3.0 Combined Tables 6.2.1-1, 6.2.1-2
   typedef enum {
     // Values for DL-SCH
+    CCCH       = 0b000000,
     DRX_CMD    = 0b111100,
     TA_CMD     = 0b111101,
     CON_RES_ID = 0b111110,
@@ -45,12 +46,13 @@ public:
     CRNTI           = 0b111010,
     SHORT_TRUNC_BSR = 0b111011,
     LONG_TRUNC_BSR  = 0b111100,
+    CCCH_SIZE_48    = 0b110100,
+    CCCH_SIZE_64    = 0b000000,
 
     SHORT_BSR = 0b111101,
     LONG_BSR  = 0b111110,
 
     // Common
-    CCCH    = 0b000000,
     PADDING = 0b111111,
   } nr_lcid_sch_t;
 
@@ -59,6 +61,7 @@ public:
   nr_lcid_sch_t get_type();
   bool          is_sdu();
   bool          is_var_len_ce();
+  bool          is_ul_ccch();
 
   uint32_t read_subheader(const uint8_t* ptr);
   uint32_t get_total_length();
@@ -103,7 +106,7 @@ public:
   uint32_t get_remaing_len();
 
 private:
-  uint32_t size_header_sdu(const uint32_t nbytes);
+  uint32_t size_header_sdu(const uint32_t lcid_, const uint32_t nbytes);
 
   bool                                              ulsch = false;
   std::vector<mac_nr_sch_subpdu>                    subpdus;

@@ -289,6 +289,54 @@ int mac_ul_sch_pdu_unpack_test1()
   return SRSLTE_SUCCESS;
 }
 
+int mac_ul_sch_pdu_unpack_and_pack_test2()
+{
+  // MAC PDU with UL-SCH (for UL-CCCH) subheader
+  // Bit 1-8
+  // |   |   |   |   |   |   |   |   |
+  // | R | R |         LCID          |  Octet 1
+
+  // TV1 - MAC PDU with short subheader for CCCH, MAC SDU length is 8 B, total PDU is 10 B
+  uint8_t mac_ul_sch_pdu_1[] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88};
+
+  if (pcap_handle) {
+    pcap_handle->write_ul_crnti(mac_ul_sch_pdu_1, sizeof(mac_ul_sch_pdu_1), PCAP_CRNTI, true, PCAP_TTI);
+  }
+
+  srslte::mac_nr_sch_pdu pdu(true);
+  pdu.unpack(mac_ul_sch_pdu_1, sizeof(mac_ul_sch_pdu_1));
+  TESTASSERT(pdu.get_num_subpdus() == 1);
+
+  mac_nr_sch_subpdu subpdu = pdu.get_subpdu(0);
+  TESTASSERT(subpdu.get_total_length() == 9);
+  TESTASSERT(subpdu.get_sdu_length() == 8);
+  TESTASSERT(subpdu.get_lcid() == 0);
+
+  // pack PDU again
+  byte_buffer_t tx_buffer;
+
+  srslte::mac_nr_sch_pdu tx_pdu;
+  tx_pdu.init_tx(&tx_buffer, sizeof(mac_ul_sch_pdu_1), true);
+
+  // Add SDU part of TV from above
+  tx_pdu.add_sdu(0, &mac_ul_sch_pdu_1[1], 8);
+
+  TESTASSERT(tx_pdu.get_remaing_len() == 0);
+  TESTASSERT(tx_buffer.N_bytes == sizeof(mac_ul_sch_pdu_1));
+  TESTASSERT(memcmp(tx_buffer.msg, mac_ul_sch_pdu_1, tx_buffer.N_bytes) == 0);
+
+  if (pcap_handle) {
+    pcap_handle->write_ul_crnti(tx_buffer.msg, tx_buffer.N_bytes, PCAP_CRNTI, true, PCAP_TTI);
+  }
+
+  srslte::log_filter log("MAC");
+  log.set_level(srslte::LOG_LEVEL_DEBUG);
+  log.set_hex_limit(100000);
+  log.info_hex(tx_buffer.msg, tx_buffer.N_bytes, "Generated MAC PDU (%d B)\n", tx_buffer.N_bytes);
+
+  return SRSLTE_SUCCESS;
+}
+
 int main(int argc, char** argv)
 {
 #if PCAP
@@ -323,6 +371,11 @@ int main(int argc, char** argv)
 
   if (mac_ul_sch_pdu_unpack_test1()) {
     fprintf(stderr, "mac_ul_sch_pdu_unpack_test1() failed.\n");
+    return SRSLTE_ERROR;
+  }
+
+  if (mac_ul_sch_pdu_unpack_and_pack_test2()) {
+    fprintf(stderr, "mac_ul_sch_pdu_unpack_and_pack_test2() failed.\n");
     return SRSLTE_ERROR;
   }
 
