@@ -45,7 +45,7 @@ public:
   void init(srsue::rlc_interface_pdcp* rlc_,
             srsue::rrc_interface_pdcp* rrc_,
             srsue::gw_interface_pdcp*  gw_,
-            srslte::timers*            timers_,
+            srslte::timer_handler*     timers_,
             srslte::log*               log_,
             uint32_t                   lcid_,
             pdcp_config_t              cfg_);
@@ -85,8 +85,7 @@ private:
 
   // Reordering Queue / Timers
   std::map<uint32_t, unique_byte_buffer_t> reorder_queue;
-  srslte::timers::timer*                   reordering_timer    = nullptr;
-  uint32_t                                 reordering_timer_id = 0;
+  timer_handler::unique_timer              reordering_timer;
 
   // Packing/Unpacking Helper functions
   uint32_t read_data_header(const unique_byte_buffer_t& sdu);
@@ -99,6 +98,7 @@ private:
   void pass_to_upper_layers(unique_byte_buffer_t pdu);
 
   // Reodering callback (t-Reordering)
+
   class reordering_callback;
   std::unique_ptr<reordering_callback> reordering_fnc;
 

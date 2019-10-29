@@ -91,7 +91,7 @@ public:
 
 protected:
   srslte::log*    log    = nullptr;
-  srslte::timers* timers = nullptr;
+  srslte::timer_handler* timers = nullptr;
 
   bool     active        = false;
   uint32_t lcid          = 0;
@@ -136,5 +136,7 @@ inline uint32_t pdcp_entity_base::COUNT(uint32_t hfn, uint32_t sn)
 {
   return (hfn << cfg.sn_len) | sn;
 }
+
 } // namespace srslte
+
 #endif // SRSLTE_PDCP_ENTITY_BASE_H

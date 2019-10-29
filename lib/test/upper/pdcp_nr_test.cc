@@ -126,7 +126,7 @@ int test_rx(std::vector<pdcp_test_event_t>      events,
   pdcp_nr_test_helper     pdcp_hlp_rx(cfg_rx, sec_cfg, log);
   srslte::pdcp_entity_nr* pdcp_rx   = &pdcp_hlp_rx.pdcp;
   gw_dummy*               gw_rx     = &pdcp_hlp_rx.gw;
-  srslte::timers*         timers_rx = &pdcp_hlp_rx.timers;
+  srslte::timer_handler*  timers_rx = &pdcp_hlp_rx.timers;
   pdcp_hlp_rx.set_pdcp_initial_state(init_state);
 
   // Generate test message and encript/decript SDU.
@@ -457,7 +457,7 @@ int run_all_tests(srslte::byte_buffer_pool* pool)
 {
   // Setup log
   srslte::log_filter log("PDCP NR Test");
-  log.set_level(srslte::LOG_LEVEL_DEBUG);
+  // log.set_level(srslte::LOG_LEVEL_DEBUG);
   log.set_hex_limit(128);
 
   TESTASSERT(test_tx_all(pool, &log) == 0);
@@ -474,6 +474,11 @@ int run_all_tests(srslte::byte_buffer_pool* pool)
 
 int main(int argc, char** argv)
 {
-  run_all_tests(srslte::byte_buffer_pool::get_instance());
+  if (run_all_tests(srslte::byte_buffer_pool::get_instance()) != SRSLTE_SUCCESS) {
+    fprintf(stderr, "pdcp_nr_tests() failed\n");
+    return SRSLTE_ERROR;
+  }
   srslte::byte_buffer_pool::cleanup();
+
+  return SRSLTE_SUCCESS;
 }

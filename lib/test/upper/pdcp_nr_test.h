@@ -165,11 +165,11 @@ public:
     pdcp.set_rx_reord(init_state.rx_reord);
   }
 
+  srslte::timer_handler  timers;
   srslte::pdcp_entity_nr pdcp;
   rlc_dummy              rlc;
   rrc_dummy              rrc;
   gw_dummy               gw;
-  srslte::timers         timers;
 };
 
 // Helper function to generate PDUs

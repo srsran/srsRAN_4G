@@ -32,7 +32,7 @@ pdcp_entity_nr::~pdcp_entity_nr() {}
 void pdcp_entity_nr::init(srsue::rlc_interface_pdcp* rlc_,
                           srsue::rrc_interface_pdcp* rrc_,
                           srsue::gw_interface_pdcp*  gw_,
-                          srslte::timers*            timers_,
+                          srslte::timer_handler*     timers_,
                           srslte::log*               log_,
                           uint32_t                   lcid_,
                           pdcp_config_t              cfg_)
@@ -51,10 +51,14 @@ void pdcp_entity_nr::init(srsue::rlc_interface_pdcp* rlc_,
   window_size = 1 << (cfg.sn_len - 1);
 
   // Timers
-  reordering_timer_id = timers->get_unique_id();
-  reordering_timer    = timers->get(reordering_timer_id);
-  reordering_timer->set(reordering_fnc.get(), (uint32_t)cfg.t_reordering);
- 
+  reordering_timer = timers_->get_unique_timer();
+
+  // configure timer
+  if (static_cast<uint32_t>(cfg.t_reordering) > 0) {
+    reordering_timer.set(static_cast<uint32_t>(cfg.t_reordering),
+                         [this](uint32_t tid) { reordering_fnc->timer_expired(tid); });
+  }
+
   // Mark entity as initialized 
   initialized = true;
 }
@@ -203,14 +207,13 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   }
 
   // Handle reordering timers
-  if (reordering_timer->is_running() and rx_deliv >= rx_reord) {
-    reordering_timer->stop();
-    reordering_timer->reset();
+  if (reordering_timer.is_running() and rx_deliv >= rx_reord) {
+    reordering_timer.stop();
   }
 
-  if (not reordering_timer->is_running() and rx_deliv < rx_next) {
+  if (not reordering_timer.is_running() and rx_deliv < rx_next) {
     rx_reord = rx_next;
-    reordering_timer->run();
+    reordering_timer.run();
   }
 }
 
@@ -346,7 +349,7 @@ void pdcp_entity_nr::reordering_callback::timer_expired(uint32_t timer_id)
 
   if (parent->rx_deliv < parent->rx_next) {
     parent->rx_reord = parent->rx_next;
-    parent->reordering_timer->run();
+    parent->reordering_timer.run();
   }
   return;
 }
