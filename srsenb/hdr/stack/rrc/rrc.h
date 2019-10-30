@@ -198,7 +198,7 @@ public:
   public:
     class rrc_mobility;
 
-    ue(rrc* outer_rrc = nullptr, uint16_t rnti = 0);
+    ue(rrc* outer_rrc, uint16_t rnti);
     bool is_connected();
     bool is_idle();
     bool is_timeout();
