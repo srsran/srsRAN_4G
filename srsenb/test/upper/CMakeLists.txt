@@ -22,3 +22,5 @@
 add_executable(plmn_test plmn_test.cc)
 target_link_libraries(plmn_test rrc_asn1)
 
+add_executable(rrc_mobility_test rrc_mobility_test.cc)
+target_link_libraries(rrc_mobility_test srsenb_rrc rrc_asn1 srslte_common)

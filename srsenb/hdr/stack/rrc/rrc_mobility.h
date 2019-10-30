@@ -27,10 +27,42 @@
 
 namespace srsenb {
 
+/**
+ * This class is responsible for storing the UE Measurement Configuration at the eNB side.
+ * Has the same fields as asn1::rrc::var_meas_cfg but stored in data structs that are easier to handle
+ */
+class var_meas_cfg_t
+{
+public:
+  explicit var_meas_cfg_t(srslte::log* log_) : rrc_log(log_) {}
+  using meas_cell_t  = asn1::rrc::cells_to_add_mod_s;
+  using meas_id_t    = asn1::rrc::meas_id_to_add_mod_s;
+  using meas_obj_t   = asn1::rrc::meas_obj_to_add_mod_s;
+  using report_cfg_t = asn1::rrc::report_cfg_to_add_mod_s;
+
+  std::tuple<bool, meas_obj_t*, meas_cell_t*> add_cell_cfg(const meas_cell_cfg_t& cellcfg);
+  uint32_t                                    get_new_obj_id();
+
+  void compute_diff_meas_cfg(const var_meas_cfg_t& target_cfg, asn1::rrc::meas_cfg_s* meas_cfg);
+  void compute_diff_meas_objs(const var_meas_cfg_t& target_cfg, asn1::rrc::meas_cfg_s* meas_cfg);
+  void compute_diff_cells(const asn1::rrc::meas_obj_eutra_s& target_it,
+                          asn1::rrc::meas_obj_eutra_s&       src_it,
+                          asn1::rrc::meas_obj_to_add_mod_s*  added_obj);
+
+  // getters
+  const asn1::rrc::meas_obj_to_add_mod_list_l& meas_objs() const { return var_meas.meas_obj_list; }
+
+private:
+  asn1::rrc::var_meas_cfg_s var_meas;
+  srslte::log*              rrc_log = nullptr;
+};
+
 class rrc::mobility_cfg
 {
 public:
   explicit mobility_cfg(rrc* outer_rrc);
+
+  var_meas_cfg_t current_meas_cfg;
 
 private:
   rrc* rrc_enb = nullptr;
@@ -39,14 +71,29 @@ private:
 class rrc::ue::rrc_mobility
 {
 public:
-  rrc_mobility(srsenb::rrc::ue* outer_ue);
+  explicit rrc_mobility(srsenb::rrc::ue* outer_ue);
+  bool fill_conn_recfg_msg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_recfg);
 
 private:
-  rrc::ue*                  rrc_ue;
-  rrc*                      rrc_enb;
-  rrc::mobility_cfg*        cfg;
-  srslte::byte_buffer_pool* pool;
-  srslte::log*              rrc_log;
+  rrc::ue*                  rrc_ue  = nullptr;
+  rrc*                      rrc_enb = nullptr;
+  rrc::mobility_cfg*        cfg     = nullptr;
+  srslte::byte_buffer_pool* pool    = nullptr;
+  srslte::log*              rrc_log = nullptr;
+
+  // vars
+  var_meas_cfg_t ue_var_meas;
+
+  class mobility_proc_t
+  {
+  public:
+    srslte::proc_outcome_t init() { return srslte::proc_outcome_t::yield; }
+    srslte::proc_outcome_t step() { return srslte::proc_outcome_t::yield; }
+
+  private:
+    enum class state_t { ho_started };
+  };
+  srslte::proc_t<mobility_proc_t> mobility_proc;
 };
 
 } // namespace srsenb

@@ -29,6 +29,7 @@
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/common.h"
 #include "srslte/common/log.h"
+#include "srslte/common/stack_procedure.h"
 #include "srslte/common/threads.h"
 #include "srslte/common/timeout.h"
 #include "srslte/interfaces/enb_interfaces.h"
