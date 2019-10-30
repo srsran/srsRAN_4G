@@ -36,7 +36,14 @@ mac_nr_sch_subpdu::nr_lcid_sch_t mac_nr_sch_subpdu::get_type()
 
 bool mac_nr_sch_subpdu::is_sdu()
 {
-  return get_type() == CCCH;
+  // for UL-SCH LCID 52 is also valid for carrying SDUs
+  return (lcid <= 32 || (parent->is_ulsch() && lcid == 52));
+}
+
+// returns false for all reserved values in Table 6.2.1-1 and 6.2.1-2
+bool mac_nr_sch_subpdu::is_valid_lcid()
+{
+  return (lcid <= 63 && ((parent->is_ulsch() && (lcid <= 32 || lcid >= 52)) || (lcid <= 32 || lcid >= 47)));
 }
 
 bool mac_nr_sch_subpdu::is_var_len_ce()
@@ -44,8 +51,8 @@ bool mac_nr_sch_subpdu::is_var_len_ce()
   return false;
 }
 
-// return length of PDU
-uint32_t mac_nr_sch_subpdu::read_subheader(const uint8_t* ptr)
+// return length of PDU (or SRSLTE_ERROR otherwise)
+int32_t mac_nr_sch_subpdu::read_subheader(const uint8_t* ptr)
 {
   // Skip R, read F bit and LCID
   F_bit = (bool)(*ptr & 0x40) ? true : false;
@@ -53,22 +60,27 @@ uint32_t mac_nr_sch_subpdu::read_subheader(const uint8_t* ptr)
   ptr++;
   header_length = 1;
 
-  if ((is_sdu() || is_var_len_ce()) && not is_ul_ccch()) {
-    // Read first length byte
-    sdu_length = (uint32_t)*ptr;
-    ptr++;
-    header_length++;
-
-    if (F_bit) {
-      // add second length byte
-      sdu_length = sdu_length << 8 | ((uint32_t)*ptr & 0xff);
+  if (is_valid_lcid()) {
+    if ((is_sdu() || is_var_len_ce()) && not is_ul_ccch()) {
+      // Read first length byte
+      sdu_length = (uint32_t)*ptr;
       ptr++;
       header_length++;
+
+      if (F_bit) {
+        // add second length byte
+        sdu_length = sdu_length << 8 | ((uint32_t)*ptr & 0xff);
+        ptr++;
+        header_length++;
+      }
+    } else {
+      sdu_length = sizeof_ce(lcid, parent->is_ulsch());
     }
+    sdu = (uint8_t*)ptr;
   } else {
-    sdu_length = sizeof_ce(lcid, parent->is_ulsch());
+    fprintf(stderr, "Invalid LCID (%d) in MAC PDU\n", lcid);
+    return SRSLTE_ERROR;
   }
-  sdu = (uint8_t*)ptr;
   return header_length;
 }
 
@@ -215,7 +227,10 @@ void mac_nr_sch_pdu::unpack(const uint8_t* payload, const uint32_t& len)
   uint32_t offset = 0;
   while (offset < len) {
     mac_nr_sch_subpdu sch_pdu(this);
-    sch_pdu.read_subheader(payload + offset);
+    if (sch_pdu.read_subheader(payload + offset) == SRSLTE_ERROR) {
+      fprintf(stderr, "Error parsing NR MAC PDU (len=%d, offset=%d)\n", len, offset);
+      return;
+    }
     offset += sch_pdu.get_total_length();
     subpdus.push_back(sch_pdu);
   }

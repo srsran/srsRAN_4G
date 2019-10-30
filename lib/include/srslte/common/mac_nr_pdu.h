@@ -60,10 +60,11 @@ public:
 
   nr_lcid_sch_t get_type();
   bool          is_sdu();
+  bool          is_valid_lcid();
   bool          is_var_len_ce();
   bool          is_ul_ccch();
 
-  uint32_t read_subheader(const uint8_t* ptr);
+  int32_t  read_subheader(const uint8_t* ptr);
   uint32_t get_total_length();
   uint32_t get_sdu_length();
   uint32_t get_lcid();
