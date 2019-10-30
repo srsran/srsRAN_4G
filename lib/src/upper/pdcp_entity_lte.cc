@@ -82,12 +82,6 @@ void pdcp_entity_lte::reestablish()
       rx_count        = 0;
       rx_hfn          = 0;
       next_pdcp_rx_sn = 0;
-    } else {
-      tx_count                  = 0;
-      rx_count                  = 0;
-      rx_hfn                    = 0;
-      next_pdcp_rx_sn           = 0;
-      last_submitted_pdcp_rx_sn = maximum_pdcp_sn;
     }
   }
 }
