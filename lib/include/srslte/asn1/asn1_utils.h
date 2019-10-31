@@ -231,6 +231,13 @@ public:
   T*       data() { return &data_[0]; }
   const T* data() const { return &data_[0]; }
 
+  T*       begin() { return &data_[0]; }
+  T*       end() { return &data_[size()]; }
+  const T* begin() const { return &data_[0]; }
+  const T* end() const { return &data_[size()]; }
+  using iterator       = T*;
+  using const_iterator = const T*;
+
 private:
   T        data_[MAX_N];
   uint32_t current_size;

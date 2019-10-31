@@ -27,6 +27,8 @@
 
 namespace srsenb {
 
+bool operator==(const asn1::rrc::report_cfg_eutra_s& lhs, const asn1::rrc::report_cfg_eutra_s& rhs);
+
 /**
  * This class is responsible for storing the UE Measurement Configuration at the eNB side.
  * Has the same fields as asn1::rrc::var_meas_cfg but stored in data structs that are easier to handle
@@ -41,16 +43,20 @@ public:
   using report_cfg_t = asn1::rrc::report_cfg_to_add_mod_s;
 
   std::tuple<bool, meas_obj_t*, meas_cell_t*> add_cell_cfg(const meas_cell_cfg_t& cellcfg);
-  uint32_t                                    get_new_obj_id();
+  report_cfg_t*                               add_report_cfg(const asn1::rrc::report_cfg_eutra_s& reportcfg);
+  meas_id_t*                                  add_measid_cfg(uint8_t measobjid, uint8_t repid);
 
-  void compute_diff_meas_cfg(const var_meas_cfg_t& target_cfg, asn1::rrc::meas_cfg_s* meas_cfg) const;
+  bool compute_diff_meas_cfg(const var_meas_cfg_t& target_cfg, asn1::rrc::meas_cfg_s* meas_cfg) const;
   void compute_diff_meas_objs(const var_meas_cfg_t& target_cfg, asn1::rrc::meas_cfg_s* meas_cfg) const;
   void compute_diff_cells(const asn1::rrc::meas_obj_eutra_s& target_it,
                           const asn1::rrc::meas_obj_eutra_s& src_it,
                           asn1::rrc::meas_obj_to_add_mod_s*  added_obj) const;
+  void compute_diff_report_cfgs(const var_meas_cfg_t& target_cfg, asn1::rrc::meas_cfg_s* meas_cfg) const;
+  void compute_diff_meas_ids(const var_meas_cfg_t& target_cfg, asn1::rrc::meas_cfg_s* meas_cfg) const;
 
   // getters
-  const asn1::rrc::meas_obj_to_add_mod_list_l& meas_objs() const { return var_meas.meas_obj_list; }
+  const asn1::rrc::meas_obj_to_add_mod_list_l&   meas_objs() const { return var_meas.meas_obj_list; }
+  const asn1::rrc::report_cfg_to_add_mod_list_l& rep_cfgs() const { return var_meas.report_cfg_list; }
 
 private:
   asn1::rrc::var_meas_cfg_s var_meas;

@@ -46,6 +46,22 @@ meas_cell_cfg_t generate_cell1()
   return cell1;
 }
 
+report_cfg_eutra_s generate_rep1()
+{
+  report_cfg_eutra_s rep{};
+  rep.report_amount.value = report_cfg_eutra_s::report_amount_opts::r16;
+  rep.report_interv.value = report_interv_opts::ms240;
+  rep.max_report_cells    = 2;
+  rep.report_quant.value  = report_cfg_eutra_s::report_quant_opts::both;
+  rep.trigger_quant.value = report_cfg_eutra_s::trigger_quant_opts::rsrp;
+  rep.trigger_type.set_event().event_id.set_event_a3();
+  rep.trigger_type.event().time_to_trigger.value               = time_to_trigger_opts::ms100;
+  rep.trigger_type.event().hysteresis                          = 0;
+  rep.trigger_type.event().event_id.event_a3().a3_offset       = 5;
+  rep.trigger_type.event().event_id.event_a3().report_on_leave = true;
+  return rep;
+}
+
 bool is_cell_cfg_equal(const meas_cell_cfg_t& cfg, const cells_to_add_mod_s& cell)
 {
   return cfg.pci == cell.pci and cell.cell_individual_offset.to_number() == (int8_t)round(cfg.q_offset) and
@@ -63,7 +79,9 @@ int test_correct_insertion()
   cell4                 = cell1;
   cell4.q_offset        = 1;
 
-  // TEST 1: cell insertion in empty varMeasCfg
+  report_cfg_eutra_s rep1 = generate_rep1();
+
+  // TEST 1: cell/rep insertion in empty varMeasCfg
   {
     var_meas_cfg_t var_cfg(&log_h);
     auto           ret = var_cfg.add_cell_cfg(cell1);
@@ -76,6 +94,10 @@ int test_correct_insertion()
     TESTASSERT(eutra.carrier_freq == cell1.earfcn);
     TESTASSERT(eutra.cells_to_add_mod_list.size() == 1);
     TESTASSERT(is_cell_cfg_equal(cell1, eutra.cells_to_add_mod_list[0]));
+
+    auto ret2 = var_cfg.add_report_cfg(rep1);
+    TESTASSERT(ret2->report_cfg_id == 1);
+    TESTASSERT(ret2->report_cfg.report_cfg_eutra() == rep1);
   }
 
   {
@@ -129,12 +151,22 @@ int test_correct_meascfg_calculation()
   cell2.pci      = 2;
   cell2.cell_id  = 0x19C02;
 
+  report_cfg_eutra_s rep1  = generate_rep1(), rep2{}, rep3{};
+  rep2                     = rep1;
+  rep2.trigger_quant.value = report_cfg_eutra_s::trigger_quant_opts::rsrq;
+  rep3                     = rep2;
+  rep3.report_quant.value  = report_cfg_eutra_s::report_quant_opts::same_as_trigger_quant;
+
   {
     meas_cfg_s result_meascfg;
 
     // TEST: Insertion of two cells in var_meas propagates to the resulting meas_cfg_s cellsToAddMod list
     target_var.add_cell_cfg(cell1);
     target_var.add_cell_cfg(cell2);
+    target_var.add_report_cfg(rep1);
+    target_var.add_report_cfg(rep2);
+    target_var.add_measid_cfg(1, 1);
+    target_var.add_measid_cfg(1, 2);
     src_var.compute_diff_meas_cfg(target_var, &result_meascfg);
     TESTASSERT(result_meascfg.meas_obj_to_add_mod_list_present);
     TESTASSERT(not result_meascfg.meas_obj_to_rem_list_present);
@@ -149,12 +181,26 @@ int test_correct_meascfg_calculation()
     TESTASSERT(is_cell_cfg_equal(cell1, *cell_item));
     cell_item++;
     TESTASSERT(is_cell_cfg_equal(cell2, *cell_item));
+    TESTASSERT(result_meascfg.report_cfg_to_add_mod_list_present and not result_meascfg.report_cfg_to_rem_list_present);
+    TESTASSERT(result_meascfg.report_cfg_to_add_mod_list.size() == 2);
+    TESTASSERT(result_meascfg.report_cfg_to_add_mod_list[0].report_cfg_id == 1);
+    TESTASSERT(result_meascfg.report_cfg_to_add_mod_list[0].report_cfg.report_cfg_eutra() == rep1);
+    TESTASSERT(result_meascfg.report_cfg_to_add_mod_list[1].report_cfg_id == 2);
+    TESTASSERT(result_meascfg.report_cfg_to_add_mod_list[1].report_cfg.report_cfg_eutra() == rep2);
+    TESTASSERT(result_meascfg.meas_id_to_add_mod_list_present and not result_meascfg.meas_id_to_rem_list_present);
+    TESTASSERT(result_meascfg.meas_id_to_add_mod_list.size() == 2);
+    auto* measid_item = &result_meascfg.meas_id_to_add_mod_list[0];
+    TESTASSERT(measid_item->meas_id == 1 and measid_item->meas_obj_id == 1 and measid_item->report_cfg_id == 1);
+    measid_item++;
+    TESTASSERT(measid_item->meas_id == 2 and measid_item->meas_obj_id == 1 and measid_item->report_cfg_id == 2);
 
     // TEST: if measCfg is empty if nothing was updated
     src_var = target_var;
     src_var.compute_diff_meas_cfg(target_var, &result_meascfg);
     TESTASSERT(not result_meascfg.meas_obj_to_add_mod_list_present);
     TESTASSERT(result_meascfg.meas_obj_to_add_mod_list.size() == 0);
+    TESTASSERT(not result_meascfg.report_cfg_to_rem_list_present);
+    TESTASSERT(result_meascfg.report_cfg_to_add_mod_list.size() == 0);
 
     // TEST: Cell is added to cellsToAddModList if just a field was updated
     cell1.pci = 3;
@@ -172,10 +218,12 @@ int test_correct_meascfg_calculation()
     cell_item = &eutra.cells_to_add_mod_list[0];
     TESTASSERT(is_cell_cfg_equal(cell1, *cell_item));
 
-    // TEST: Removal of cell from target propagates to the resulting meas_cfg_s cellsToRemoveList
+    // TEST: Removal of cell/rep from target propagates to the resulting meas_cfg_s
     src_var    = target_var;
     target_var = var_meas_cfg_t{&log_h};
     target_var.add_cell_cfg(cell2);
+    target_var.add_report_cfg(rep1);
+    target_var.add_report_cfg(rep3);
     src_var.compute_diff_meas_cfg(target_var, &result_meascfg);
     TESTASSERT(result_meascfg.meas_obj_to_add_mod_list_present);
     TESTASSERT(result_meascfg.meas_obj_to_add_mod_list.size() == 1);
@@ -186,6 +234,10 @@ int test_correct_meascfg_calculation()
     TESTASSERT(not eutra.cells_to_add_mod_list_present and eutra.cells_to_rem_list_present);
     TESTASSERT(eutra.cells_to_rem_list.size() == 1);
     TESTASSERT(eutra.cells_to_rem_list[0] == (cell1.cell_id & 0xFFu));
+    TESTASSERT(result_meascfg.report_cfg_to_add_mod_list_present and not result_meascfg.report_cfg_to_rem_list_present);
+    TESTASSERT(result_meascfg.report_cfg_to_add_mod_list.size() == 1);
+    TESTASSERT(result_meascfg.report_cfg_to_add_mod_list[0].report_cfg_id == 2);
+    TESTASSERT(result_meascfg.report_cfg_to_add_mod_list[0].report_cfg.report_cfg_eutra() == rep3);
   }
 
   return SRSLTE_SUCCESS;
