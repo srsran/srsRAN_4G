@@ -196,7 +196,7 @@ public:
   const T* begin() const { return &data_[0]; }
   const T* end() const { return &data_[size()]; }
   using iterator       = T*;
-  using const_iterator = T*;
+  using const_iterator = const T*;
 
 private:
   T*       data_ = nullptr;

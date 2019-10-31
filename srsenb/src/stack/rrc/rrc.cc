@@ -1908,6 +1908,10 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
     conn_reconf->ded_info_nas_list.resize(0);
   }
 
+  if (mobility_handler != nullptr) {
+    mobility_handler->fill_conn_recfg_msg(conn_reconf);
+  }
+
   // Reuse same PDU
   pdu->clear();
 

@@ -43,11 +43,11 @@ public:
   std::tuple<bool, meas_obj_t*, meas_cell_t*> add_cell_cfg(const meas_cell_cfg_t& cellcfg);
   uint32_t                                    get_new_obj_id();
 
-  void compute_diff_meas_cfg(const var_meas_cfg_t& target_cfg, asn1::rrc::meas_cfg_s* meas_cfg);
-  void compute_diff_meas_objs(const var_meas_cfg_t& target_cfg, asn1::rrc::meas_cfg_s* meas_cfg);
+  void compute_diff_meas_cfg(const var_meas_cfg_t& target_cfg, asn1::rrc::meas_cfg_s* meas_cfg) const;
+  void compute_diff_meas_objs(const var_meas_cfg_t& target_cfg, asn1::rrc::meas_cfg_s* meas_cfg) const;
   void compute_diff_cells(const asn1::rrc::meas_obj_eutra_s& target_it,
-                          asn1::rrc::meas_obj_eutra_s&       src_it,
-                          asn1::rrc::meas_obj_to_add_mod_s*  added_obj);
+                          const asn1::rrc::meas_obj_eutra_s& src_it,
+                          asn1::rrc::meas_obj_to_add_mod_s*  added_obj) const;
 
   // getters
   const asn1::rrc::meas_obj_to_add_mod_list_l& meas_objs() const { return var_meas.meas_obj_list; }
@@ -62,7 +62,7 @@ class rrc::mobility_cfg
 public:
   explicit mobility_cfg(rrc* outer_rrc);
 
-  var_meas_cfg_t current_meas_cfg;
+  std::shared_ptr<const var_meas_cfg_t> current_meas_cfg; ///< const to enable ptr comparison as identity comparison
 
 private:
   rrc* rrc_enb = nullptr;
@@ -82,7 +82,7 @@ private:
   srslte::log*              rrc_log = nullptr;
 
   // vars
-  var_meas_cfg_t ue_var_meas;
+  std::shared_ptr<const var_meas_cfg_t> ue_var_meas;
 
   class mobility_proc_t
   {
