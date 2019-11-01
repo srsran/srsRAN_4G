@@ -4,6 +4,7 @@ srsLTE
 [![Build Status](https://travis-ci.org/srsLTE/srsLTE.svg?branch=master)](https://travis-ci.org/srsLTE/srsLTE)
 
 srsLTE is a free and open-source LTE software suite developed by SRS (www.softwareradiosystems.com). 
+See the srsLTE project pages (www.srslte.com) for documentation, guides and project news.
 
 It includes:
   * srsUE - a complete SDR LTE UE application featuring all layers from PHY to IP
