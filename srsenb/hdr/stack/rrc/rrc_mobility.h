@@ -43,6 +43,7 @@ public:
   std::tuple<bool, meas_obj_t*, meas_cell_t*> add_cell_cfg(const meas_cell_cfg_t& cellcfg);
   report_cfg_t*                               add_report_cfg(const asn1::rrc::report_cfg_eutra_s& reportcfg);
   meas_id_t*                                  add_measid_cfg(uint8_t measobjid, uint8_t repid);
+  asn1::rrc::quant_cfg_s*                     add_quant_cfg(const asn1::rrc::quant_cfg_eutra_s& quantcfg);
 
   bool compute_diff_meas_cfg(const var_meas_cfg_t& target_cfg, asn1::rrc::meas_cfg_s* meas_cfg) const;
   void compute_diff_meas_objs(const var_meas_cfg_t& target_cfg, asn1::rrc::meas_cfg_s* meas_cfg) const;
@@ -51,6 +52,7 @@ public:
                           asn1::rrc::meas_obj_to_add_mod_s*  added_obj) const;
   void compute_diff_report_cfgs(const var_meas_cfg_t& target_cfg, asn1::rrc::meas_cfg_s* meas_cfg) const;
   void compute_diff_meas_ids(const var_meas_cfg_t& target_cfg, asn1::rrc::meas_cfg_s* meas_cfg) const;
+  void compute_diff_quant_cfg(const var_meas_cfg_t& target_cfg, asn1::rrc::meas_cfg_s* meas_cfg_msg) const;
 
   // getters
   const asn1::rrc::meas_obj_to_add_mod_list_l&   meas_objs() const { return var_meas.meas_obj_list; }

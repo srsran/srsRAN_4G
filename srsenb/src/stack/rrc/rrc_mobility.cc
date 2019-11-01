@@ -341,6 +341,14 @@ meas_id_to_add_mod_s* var_meas_cfg_t::add_measid_cfg(uint8_t measobjid, uint8_t 
   return std::lower_bound(var_meas.meas_id_list.begin(), var_meas.meas_id_list.end(), new_measid.meas_id, cmp);
 }
 
+asn1::rrc::quant_cfg_s* var_meas_cfg_t::add_quant_cfg(const asn1::rrc::quant_cfg_eutra_s& quantcfg)
+{
+  var_meas.quant_cfg_present                 = true;
+  var_meas.quant_cfg.quant_cfg_eutra_present = true;
+  var_meas.quant_cfg.quant_cfg_eutra         = quantcfg;
+  return &var_meas.quant_cfg;
+}
+
 bool var_meas_cfg_t::compute_diff_meas_cfg(const var_meas_cfg_t& target_cfg, asn1::rrc::meas_cfg_s* meas_cfg) const
 {
   *meas_cfg = {};
@@ -349,7 +357,7 @@ bool var_meas_cfg_t::compute_diff_meas_cfg(const var_meas_cfg_t& target_cfg, asn
   compute_diff_meas_objs(target_cfg, meas_cfg);
   compute_diff_report_cfgs(target_cfg, meas_cfg);
   compute_diff_meas_ids(target_cfg, meas_cfg);
-  //  deltaconfig_meas_quantity_config(target_cfg, meas_cfg);
+  compute_diff_quant_cfg(target_cfg, meas_cfg);
   meas_cfg->meas_gap_cfg_present         = false; // NOTE: we do not support inter-freq. HO
   meas_cfg->s_measure_present            = false; // NOTE: We do not support SCells
   meas_cfg->pre_regist_info_hrpd_present = false; // NOTE: not supported
@@ -526,6 +534,15 @@ void var_meas_cfg_t::compute_diff_meas_ids(const var_meas_cfg_t& target_cfg, asn
   }
 }
 
+void var_meas_cfg_t::compute_diff_quant_cfg(const var_meas_cfg_t& target_cfg, asn1::rrc::meas_cfg_s* meas_cfg_msg) const
+{
+  if (target_cfg.var_meas.quant_cfg_present and
+      (not var_meas.quant_cfg_present or not(target_cfg.var_meas.quant_cfg == var_meas.quant_cfg))) {
+    meas_cfg_msg->quant_cfg_present = true;
+    meas_cfg_msg->quant_cfg         = target_cfg.var_meas.quant_cfg;
+  }
+}
+
 /*************************************************************************************************
  *                                  mobility_cfg class
  ************************************************************************************************/
@@ -552,6 +569,9 @@ rrc::mobility_cfg::mobility_cfg(const rrc_cfg_t* cfg_, srslte::log* log_) : cfg(
         var_meas.add_measid_cfg(measobj.meas_obj_id, var_meas.rep_cfgs().begin()->report_cfg_id);
       }
     }
+
+    // insert quantity config
+    var_meas.add_quant_cfg(cfg->meas_cfg.quant_cfg);
   }
 
   current_meas_cfg = std::make_shared<var_meas_cfg_t>(var_meas);

@@ -26,10 +26,12 @@
 #include "srslte/srslte.h"
 
 #define HANDLEPARSERCODE(cond)                                                                                         \
-  if ((cond) != 0) {                                                                                                   \
-    printf("[%d][%s()] Parser Error detected\n", __LINE__, __FUNCTION__);                                              \
-    return -1;                                                                                                         \
-  }
+  do {                                                                                                                 \
+    if ((cond) != 0) {                                                                                                 \
+      printf("[%d][%s()] Parser Error detected\n", __LINE__, __FUNCTION__);                                            \
+      return -1;                                                                                                       \
+    }                                                                                                                  \
+  } while (0)
 
 using namespace asn1::rrc;
 
@@ -148,17 +150,17 @@ int field_carrier_freqs_info_list::parse(libconfig::Setting& root)
     int cell_resel_prio;
     if (root[i].lookupValue("cell_resel_prio", cell_resel_prio)) {
       data->carrier_freqs_info_list[i].common_info.cell_resel_prio_present = true;
-      data->carrier_freqs_info_list[i].common_info.cell_resel_prio = cell_resel_prio;
+      data->carrier_freqs_info_list[i].common_info.cell_resel_prio         = cell_resel_prio;
     }
 
     int p_max_geran;
     if (root[i].lookupValue("p_max_geran", p_max_geran)) {
       data->carrier_freqs_info_list[i].common_info.p_max_geran_present = true;
-      data->carrier_freqs_info_list[i].common_info.p_max_geran = p_max_geran;
+      data->carrier_freqs_info_list[i].common_info.p_max_geran         = p_max_geran;
     }
 
-    field_asn1_bitstring_number<asn1::fixed_bitstring<8>, uint8_t> ncc_permitted("ncc_permitted",
-                                    &data->carrier_freqs_info_list[i].common_info.ncc_permitted);
+    field_asn1_bitstring_number<asn1::fixed_bitstring<8>, uint8_t> ncc_permitted(
+        "ncc_permitted", &data->carrier_freqs_info_list[i].common_info.ncc_permitted);
     if (ncc_permitted.parse(root[i])) {
       ERROR("Error parsing `ncc_permitted` in carrier_freqs_info_lsit=%d\n", i);
       return -1;
@@ -191,7 +193,7 @@ int field_carrier_freqs_info_list::parse(libconfig::Setting& root)
     }
 
     field_asn1_enum_str<asn1::rrc::band_ind_geran_e> band_ind("band_ind",
-                                        &data->carrier_freqs_info_list[i].carrier_freqs.band_ind);
+                                                              &data->carrier_freqs_info_list[i].carrier_freqs.band_ind);
     if (band_ind.parse(root[i])) {
       ERROR("Error parsing `band_ind` in carrier_freqs_info_list=%d\n", i);
       return -1;
@@ -199,14 +201,14 @@ int field_carrier_freqs_info_list::parse(libconfig::Setting& root)
 
     data->carrier_freqs_info_list[i].carrier_freqs.following_arfcns.set_explicit_list_of_arfcns();
 
-    explicit_list_of_arfcns_l &exp_l =
-	      data->carrier_freqs_info_list[i].carrier_freqs.following_arfcns.explicit_list_of_arfcns();
+    explicit_list_of_arfcns_l& exp_l =
+        data->carrier_freqs_info_list[i].carrier_freqs.following_arfcns.explicit_list_of_arfcns();
     if (root[i].exists("explicit_list_of_arfcns")) {
       exp_l.resize((uint32_t)root[i]["explicit_list_of_arfcns"].getLength());
       if (exp_l.size() < 31) { /* SEQUENCE (SIZE (0..31)) OF ARFCN-ValueGERAN */
         for (uint32_t j = 0; j < exp_l.size(); j++) {
           int arfcn = root[i]["explicit_list_of_arfcns"][j];
-	  if (arfcn >= 0 && arfcn <= 1024) {
+          if (arfcn >= 0 && arfcn <= 1024) {
             exp_l[j] = (short unsigned int)arfcn;
           } else {
             fprintf(stderr, "Invalid ARFCN %d in for carrier_freqs_info_list=%d explicit_list_of_arfcns\n", i, j);
@@ -220,11 +222,9 @@ int field_carrier_freqs_info_list::parse(libconfig::Setting& root)
     } else {
       exp_l.resize(0);
     }
-
   }
   return 0;
 }
-
 
 int enb::parse_sib1(std::string filename, sib_type1_s* data)
 {
@@ -288,8 +288,8 @@ int mbsfn_sf_cfg_list_parser::parse(Setting& root)
   *enabled = true;
   mbsfn_list->resize(len);
 
-  field_asn1_choice_number<mbsfn_sf_cfg_s::sf_alloc_c_> c("subframeAllocation", "subframeAllocationNumFrames",
-                                                          &extract_sf_alloc, &(*mbsfn_list)[0].sf_alloc);
+  field_asn1_choice_number<mbsfn_sf_cfg_s::sf_alloc_c_> c(
+      "subframeAllocation", "subframeAllocationNumFrames", &extract_sf_alloc, &(*mbsfn_list)[0].sf_alloc);
   c.parse(root["mbsfnSubframeConfigList"]);
 
   parser::field<uint8_t> f("radioframeAllocationOffset", &(*mbsfn_list)[0].radioframe_alloc_offset);
@@ -521,8 +521,8 @@ int enb::parse_sib3(std::string filename, sib_type3_s* data)
   sib3.add_subsection(&resel_serving);
   sib_type3_s::cell_resel_serving_freq_info_s_* freqinfo = &data->cell_resel_serving_freq_info;
 
-  resel_serving.add_field(new parser::field<uint8>("s_non_intra_search", &freqinfo->s_non_intra_search,
-                                                   &freqinfo->s_non_intra_search_present));
+  resel_serving.add_field(new parser::field<uint8>(
+      "s_non_intra_search", &freqinfo->s_non_intra_search, &freqinfo->s_non_intra_search_present));
   resel_serving.add_field(new parser::field<uint8>("thresh_serving_low", &freqinfo->thresh_serving_low));
   resel_serving.add_field(new parser::field<uint8>("cell_resel_prio", &freqinfo->cell_resel_prio));
 
@@ -535,8 +535,8 @@ int enb::parse_sib3(std::string filename, sib_type3_s* data)
   intra_freq.add_field(new parser::field<int8>("p_max", &intrafreq->p_max, &intrafreq->p_max_present));
   intra_freq.add_field(
       new parser::field<uint8>("s_intra_search", &intrafreq->s_intra_search, &intrafreq->s_intra_search_present));
-  intra_freq.add_field(make_asn1_enum_number_parser("allowed_meas_bw", &intrafreq->allowed_meas_bw,
-                                                    &intrafreq->allowed_meas_bw_present));
+  intra_freq.add_field(make_asn1_enum_number_parser(
+      "allowed_meas_bw", &intrafreq->allowed_meas_bw, &intrafreq->allowed_meas_bw_present));
   intra_freq.add_field(new parser::field<bool>("presence_ant_port_1", &intrafreq->presence_ant_port1));
   intra_freq.add_field(make_asn1_bitstring_number_parser("neigh_cell_cnfg", &intrafreq->neigh_cell_cfg));
   intra_freq.add_field(new parser::field<uint8>("t_resel_eutra", &intrafreq->t_resel_eutra));
@@ -853,11 +853,13 @@ int enb::parse_rr(all_args_t* args, rrc_cfg_t* rrc_cfg)
     return SRSLTE_ERROR;
   } else if (args->enb.transmission_mode == 1 && args->enb.nof_ports > 1) {
     ERROR("Invalid number of ports (%d) for transmission mode (%d). Only one antenna port is allowed.\n",
-          args->enb.nof_ports, args->enb.transmission_mode);
+          args->enb.nof_ports,
+          args->enb.transmission_mode);
     return SRSLTE_ERROR;
   } else if (args->enb.transmission_mode > 1 && args->enb.nof_ports != 2) {
     ERROR("The selected number of ports (%d) are insufficient for the selected transmission mode (%d).\n",
-          args->enb.nof_ports, args->enb.transmission_mode);
+          args->enb.nof_ports,
+          args->enb.transmission_mode);
     return SRSLTE_ERROR;
   }
 
@@ -908,8 +910,8 @@ int enb::parse_rr(all_args_t* args, rrc_cfg_t* rrc_cfg)
   mac_cnfg.add_subsection(&ulsch_cnfg);
 
   rrc_cfg->mac_cnfg.ul_sch_cfg.tti_bundling = false;
-  ulsch_cnfg.add_field(make_asn1_enum_number_parser("max_harq_tx", &rrc_cfg->mac_cnfg.ul_sch_cfg.max_harq_tx,
-                                                    &rrc_cfg->mac_cnfg.ul_sch_cfg.max_harq_tx_present));
+  ulsch_cnfg.add_field(make_asn1_enum_number_parser(
+      "max_harq_tx", &rrc_cfg->mac_cnfg.ul_sch_cfg.max_harq_tx, &rrc_cfg->mac_cnfg.ul_sch_cfg.max_harq_tx_present));
   ulsch_cnfg.add_field(make_asn1_enum_number_parser("periodic_bsr_timer",
                                                     &rrc_cfg->mac_cnfg.ul_sch_cfg.periodic_bsr_timer,
                                                     &rrc_cfg->mac_cnfg.ul_sch_cfg.periodic_bsr_timer_present));

@@ -303,7 +303,7 @@ int test_mobility_class()
 
   srsenb::rrc rrc;
   mac_dummy   mac;
-  rrc.init(&cfg, nullptr, &mac, nullptr, nullptr, nullptr, nullptr, &log_h);
+  //  rrc.init(&cfg, nullptr, &mac, nullptr, nullptr, nullptr, nullptr, &log_h);
 
   return SRSLTE_SUCCESS;
 }

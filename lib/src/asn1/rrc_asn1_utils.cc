@@ -180,7 +180,6 @@ void to_asn1(asn1::rrc::rlc_cfg_c* asn1_type, const srslte::rlc_config_t& cfg)
       // stays TM
       break;
   }
-
 }
 
 /***************************
@@ -398,13 +397,13 @@ void set_phy_cfg_t_dedicated_cfg(phy_cfg_t* cfg, const asn1::rrc::phys_cfg_ded_s
   if (asn1_type.srs_ul_cfg_ded_present) {
     cfg->ul_cfg.srs.dedicated_enabled = asn1_type.srs_ul_cfg_ded.type() == asn1::rrc::setup_e::setup;
     if (cfg->ul_cfg.srs.dedicated_enabled) {
-      cfg->ul_cfg.srs.configured        = cfg->ul_cfg.srs.dedicated_enabled and cfg->ul_cfg.srs.common_enabled;
-      cfg->ul_cfg.srs.I_srs             = asn1_type.srs_ul_cfg_ded.setup().srs_cfg_idx;
-      cfg->ul_cfg.srs.B                 = asn1_type.srs_ul_cfg_ded.setup().srs_bw;
-      cfg->ul_cfg.srs.b_hop             = asn1_type.srs_ul_cfg_ded.setup().srs_hop_bw;
-      cfg->ul_cfg.srs.n_rrc             = asn1_type.srs_ul_cfg_ded.setup().freq_domain_position;
-      cfg->ul_cfg.srs.k_tc              = asn1_type.srs_ul_cfg_ded.setup().tx_comb;
-      cfg->ul_cfg.srs.n_srs             = asn1_type.srs_ul_cfg_ded.setup().cyclic_shift;
+      cfg->ul_cfg.srs.configured = cfg->ul_cfg.srs.dedicated_enabled and cfg->ul_cfg.srs.common_enabled;
+      cfg->ul_cfg.srs.I_srs      = asn1_type.srs_ul_cfg_ded.setup().srs_cfg_idx;
+      cfg->ul_cfg.srs.B          = asn1_type.srs_ul_cfg_ded.setup().srs_bw;
+      cfg->ul_cfg.srs.b_hop      = asn1_type.srs_ul_cfg_ded.setup().srs_hop_bw;
+      cfg->ul_cfg.srs.n_rrc      = asn1_type.srs_ul_cfg_ded.setup().freq_domain_position;
+      cfg->ul_cfg.srs.k_tc       = asn1_type.srs_ul_cfg_ded.setup().tx_comb;
+      cfg->ul_cfg.srs.n_srs      = asn1_type.srs_ul_cfg_ded.setup().cyclic_shift;
     }
   }
 
@@ -508,7 +507,7 @@ void set_phy_cfg_t_common_pucch(phy_cfg_t* cfg, const asn1::rrc::pucch_cfg_commo
 
 void set_phy_cfg_t_common_srs(phy_cfg_t* cfg, const asn1::rrc::srs_ul_cfg_common_c& asn1_type)
 {
-  cfg->ul_cfg.srs.common_enabled  = asn1_type.type() == asn1::rrc::setup_e::setup;
+  cfg->ul_cfg.srs.common_enabled = asn1_type.type() == asn1::rrc::setup_e::setup;
   if (cfg->ul_cfg.srs.common_enabled) {
     cfg->ul_cfg.srs.simul_ack       = asn1_type.setup().ack_nack_srs_simul_tx;
     cfg->ul_cfg.srs.bw_cfg          = asn1_type.setup().srs_bw_cfg.to_number();
@@ -662,14 +661,14 @@ void set_phy_cfg_t_scell_config(phy_cfg_t* cfg, const asn1::rrc::scell_to_add_mo
         if (ul_cfg_r10->srs_ul_cfg_ded_r10_present) {
           cfg->ul_cfg.srs.dedicated_enabled = ul_cfg_r10->srs_ul_cfg_ded_r10.type() == asn1::rrc::setup_e::setup;
           if (cfg->ul_cfg.srs.dedicated_enabled) {
-            auto* srs_ul_cfg_ded_r10 = &ul_cfg_r10->srs_ul_cfg_ded_r10.setup();
+            auto* srs_ul_cfg_ded_r10   = &ul_cfg_r10->srs_ul_cfg_ded_r10.setup();
             cfg->ul_cfg.srs.configured = cfg->ul_cfg.srs.dedicated_enabled and cfg->ul_cfg.srs.common_enabled;
-            cfg->ul_cfg.srs.I_srs    = srs_ul_cfg_ded_r10->srs_cfg_idx;
-            cfg->ul_cfg.srs.B        = srs_ul_cfg_ded_r10->srs_bw;
-            cfg->ul_cfg.srs.b_hop    = srs_ul_cfg_ded_r10->srs_hop_bw;
-            cfg->ul_cfg.srs.n_rrc    = srs_ul_cfg_ded_r10->freq_domain_position;
-            cfg->ul_cfg.srs.k_tc     = srs_ul_cfg_ded_r10->tx_comb;
-            cfg->ul_cfg.srs.n_srs    = srs_ul_cfg_ded_r10->cyclic_shift;
+            cfg->ul_cfg.srs.I_srs      = srs_ul_cfg_ded_r10->srs_cfg_idx;
+            cfg->ul_cfg.srs.B          = srs_ul_cfg_ded_r10->srs_bw;
+            cfg->ul_cfg.srs.b_hop      = srs_ul_cfg_ded_r10->srs_hop_bw;
+            cfg->ul_cfg.srs.n_rrc      = srs_ul_cfg_ded_r10->freq_domain_position;
+            cfg->ul_cfg.srs.k_tc       = srs_ul_cfg_ded_r10->tx_comb;
+            cfg->ul_cfg.srs.n_srs      = srs_ul_cfg_ded_r10->cyclic_shift;
           }
         }
       }
@@ -872,6 +871,20 @@ bool operator==(const report_cfg_to_add_mod_s& lhs, const report_cfg_to_add_mod_
 bool operator==(const meas_id_to_add_mod_s& lhs, const meas_id_to_add_mod_s& rhs)
 {
   return lhs.meas_id == rhs.meas_id and lhs.meas_obj_id == rhs.meas_obj_id and lhs.report_cfg_id == rhs.report_cfg_id;
+}
+
+bool operator==(const asn1::rrc::quant_cfg_s& lhs, const asn1::rrc::quant_cfg_s& rhs)
+{
+  if (lhs.ext or lhs.quant_cfg_geran_present or lhs.quant_cfg_utra_present or lhs.quant_cfg_cdma2000_present or
+      rhs.ext or rhs.quant_cfg_geran_present or rhs.quant_cfg_utra_present or rhs.quant_cfg_cdma2000_present) {
+    printf("[%d] quantCfg properties not supported\n", __LINE__);
+    return false;
+  }
+  return lhs.quant_cfg_eutra_present == rhs.quant_cfg_eutra_present and
+         lhs.quant_cfg_eutra.filt_coef_rsrp_present == rhs.quant_cfg_eutra.filt_coef_rsrp_present and
+         lhs.quant_cfg_eutra.filt_coef_rsrp == rhs.quant_cfg_eutra.filt_coef_rsrp and
+         lhs.quant_cfg_eutra.filt_coef_rsrq_present == rhs.quant_cfg_eutra.filt_coef_rsrq_present and
+         lhs.quant_cfg_eutra.filt_coef_rsrq == rhs.quant_cfg_eutra.filt_coef_rsrq;
 }
 
 } // namespace rrc

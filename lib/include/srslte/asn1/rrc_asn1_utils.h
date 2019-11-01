@@ -57,6 +57,7 @@ struct report_cfg_eutra_s;
 struct meas_obj_to_add_mod_s;
 struct report_cfg_to_add_mod_s;
 struct meas_id_to_add_mod_s;
+struct quant_cfg_s;
 
 } // namespace rrc
 } // namespace asn1
@@ -123,6 +124,7 @@ bool operator==(const asn1::rrc::meas_obj_to_add_mod_s& lhs, const asn1::rrc::me
 bool operator==(const asn1::rrc::report_cfg_eutra_s& lhs, const asn1::rrc::report_cfg_eutra_s& rhs);
 bool operator==(const asn1::rrc::report_cfg_to_add_mod_s& lhs, const asn1::rrc::report_cfg_to_add_mod_s& rhs);
 bool operator==(const asn1::rrc::meas_id_to_add_mod_s& lhs, const asn1::rrc::meas_id_to_add_mod_s& rhs);
+bool operator==(const asn1::rrc::quant_cfg_s& lhs, const asn1::rrc::quant_cfg_s& rhs);
 
 } // namespace rrc
 } // namespace asn1
