@@ -61,6 +61,7 @@ proc_outcome_t rrc::cell_search_proc::step()
       Error("Failed to trigger SI acquire for SIB0\n");
       return proc_outcome_t::error;
     }
+    Info("Completed successfully\n");
     return proc_outcome_t::success;
   }
   return proc_outcome_t::yield;
@@ -89,15 +90,13 @@ proc_outcome_t rrc::cell_search_proc::handle_cell_found(const phy_interface_rrc_
     return proc_outcome_t::success;
   }
 
+  Info("Cell has no SIB1. Obtaining SIB1...\n");
   si_acquire_fut = rrc_ptr->si_acquirer.get_future();
   if (not rrc_ptr->si_acquirer.launch(0)) {
     // disallow concurrent si_acquire
     Error("SI Acquire is already running...\n");
     return proc_outcome_t::error;
   }
-
-  // instruct MAC to look for SIB1
-  Info("Cell has no SIB1. Obtaining SIB1...\n");
   state = state_t::si_acquire;
   return proc_outcome_t::repeat;
 }
@@ -519,6 +518,7 @@ proc_outcome_t rrc::plmn_search_proc::step()
     return proc_outcome_t::success;
   }
 
+  cell_search_fut = rrc_ptr->cell_searcher.get_future();
   if (not rrc_ptr->cell_searcher.launch()) {
     Error("Failed due to fail to init cell search...\n");
     return proc_outcome_t::error;
