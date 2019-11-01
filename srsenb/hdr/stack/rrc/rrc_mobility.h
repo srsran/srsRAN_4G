@@ -27,8 +27,6 @@
 
 namespace srsenb {
 
-bool operator==(const asn1::rrc::report_cfg_eutra_s& lhs, const asn1::rrc::report_cfg_eutra_s& rhs);
-
 /**
  * This class is responsible for storing the UE Measurement Configuration at the eNB side.
  * Has the same fields as asn1::rrc::var_meas_cfg but stored in data structs that are easier to handle

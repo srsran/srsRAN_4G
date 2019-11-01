@@ -51,6 +51,12 @@ struct mbsfn_area_info_r9_s;
 struct mbsfn_sf_cfg_s;
 struct mcch_msg_s;
 struct sib_type13_r9_s;
+// MeasConfig
+struct cells_to_add_mod_s;
+struct report_cfg_eutra_s;
+struct meas_obj_to_add_mod_s;
+struct report_cfg_to_add_mod_s;
+struct meas_id_to_add_mod_s;
 
 } // namespace rrc
 } // namespace asn1
@@ -102,5 +108,23 @@ mcch_msg_t        make_mcch_msg(const asn1::rrc::mcch_msg_s& asn1_type);
 sib13_t           make_sib13(const asn1::rrc::sib_type13_r9_s& asn1_type);
 
 } // namespace srslte
+
+/************************
+ * ASN1 RRC extensions
+ ***********************/
+namespace asn1 {
+namespace rrc {
+
+/***************************
+ *      MeasConfig
+ **************************/
+bool operator==(const asn1::rrc::cells_to_add_mod_s& lhs, const asn1::rrc::cells_to_add_mod_s& rhs);
+bool operator==(const asn1::rrc::meas_obj_to_add_mod_s& lhs, const asn1::rrc::meas_obj_to_add_mod_s& rhs);
+bool operator==(const asn1::rrc::report_cfg_eutra_s& lhs, const asn1::rrc::report_cfg_eutra_s& rhs);
+bool operator==(const asn1::rrc::report_cfg_to_add_mod_s& lhs, const asn1::rrc::report_cfg_to_add_mod_s& rhs);
+bool operator==(const asn1::rrc::meas_id_to_add_mod_s& lhs, const asn1::rrc::meas_id_to_add_mod_s& rhs);
+
+} // namespace rrc
+} // namespace asn1
 
 #endif // SRSLTE_RRC_ASN1_UTILS_H

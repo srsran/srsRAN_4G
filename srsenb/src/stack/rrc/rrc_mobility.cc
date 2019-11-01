@@ -20,6 +20,7 @@
  */
 
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
+#include "srslte/asn1/rrc_asn1_utils.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/common.h"
 #include <algorithm>
@@ -36,88 +37,6 @@ using namespace asn1::rrc;
 /*************************************************************************************************
  *         Convenience Functions to handle ASN1 MeasObjs/MeasId/ReportCfg/Cells/etc.
  ************************************************************************************************/
-
-//! Convenience operator== overload to compare Fields of MeasObj/MeasId/ReportCfg/Cells/etc.
-bool operator==(const cells_to_add_mod_s& lhs, const cells_to_add_mod_s& rhs)
-{
-  return lhs.cell_idx == rhs.cell_idx and lhs.pci == rhs.pci and
-         lhs.cell_individual_offset == rhs.cell_individual_offset;
-}
-bool operator==(const meas_obj_to_add_mod_s& lhs, const meas_obj_to_add_mod_s& rhs)
-{
-  if (lhs.meas_obj_id != rhs.meas_obj_id or lhs.meas_obj.type() != lhs.meas_obj.type()) {
-    return false;
-  }
-  auto &lhs_eutra = lhs.meas_obj.meas_obj_eutra(), &rhs_eutra = rhs.meas_obj.meas_obj_eutra();
-  if (lhs_eutra.ext or rhs_eutra.ext) {
-    printf("[%d] extension of measObjToAddMod not supported\n", __LINE__);
-    return false;
-  }
-
-  if (lhs_eutra.offset_freq_present != rhs_eutra.offset_freq_present or
-      (lhs_eutra.offset_freq_present and lhs_eutra.offset_freq != rhs_eutra.offset_freq)) {
-    return false;
-  }
-
-  if (lhs_eutra.carrier_freq != rhs_eutra.carrier_freq or not(lhs_eutra.neigh_cell_cfg == rhs_eutra.neigh_cell_cfg) or
-      lhs_eutra.presence_ant_port1 != rhs_eutra.presence_ant_port1 or
-      lhs_eutra.allowed_meas_bw != rhs_eutra.allowed_meas_bw) {
-    return false;
-  }
-
-  if (lhs_eutra.cells_to_add_mod_list.size() != rhs_eutra.cells_to_add_mod_list.size()) {
-    return false;
-  }
-
-  auto cells_are_equal = [](const cells_to_add_mod_s& lhs, const cells_to_add_mod_s& rhs) { return lhs == rhs; };
-  return std::equal(lhs_eutra.cells_to_add_mod_list.begin(),
-                    lhs_eutra.cells_to_add_mod_list.end(),
-                    rhs_eutra.cells_to_add_mod_list.begin(),
-                    cells_are_equal);
-}
-bool operator==(const report_cfg_eutra_s& lhs, const report_cfg_eutra_s& rhs)
-{
-  if (lhs.ext or rhs.ext) {
-    printf("[%d] extension of reportCfgToAddMod not supported\n", __LINE__);
-    return false;
-  }
-  if (lhs.trigger_type.type() != rhs.trigger_type.type()) {
-    return false;
-  }
-  if (lhs.trigger_type.type().value == report_cfg_eutra_s::trigger_type_c_::types_opts::event) {
-    auto &lhs_ev = lhs.trigger_type.event(), &rhs_ev = rhs.trigger_type.event();
-    if (lhs_ev.hysteresis != rhs_ev.hysteresis or lhs_ev.time_to_trigger != rhs_ev.time_to_trigger or
-        lhs_ev.event_id.type() != rhs_ev.event_id.type()) {
-      return false;
-    }
-    if (lhs_ev.event_id.type().value != eutra_event_s::event_id_c_::types_opts::event_a3) {
-      printf("[%d] event type != A3 of reportCfgToAddMod not supported\n", __LINE__);
-      return false;
-    }
-    if (lhs_ev.event_id.event_a3().report_on_leave != rhs_ev.event_id.event_a3().report_on_leave or
-        lhs_ev.event_id.event_a3().a3_offset != rhs_ev.event_id.event_a3().a3_offset) {
-      return false;
-    }
-  } else {
-    if (lhs.trigger_type.periodical().purpose != rhs.trigger_type.periodical().purpose) {
-      return false;
-    }
-  }
-  return lhs.trigger_quant == rhs.trigger_quant and lhs.report_quant == rhs.report_quant and
-         lhs.max_report_cells == rhs.max_report_cells and lhs.report_interv == rhs.report_interv and
-         lhs.report_amount == rhs.report_amount;
-}
-bool operator==(const report_cfg_to_add_mod_s& lhs, const report_cfg_to_add_mod_s& rhs)
-{
-  if (lhs.report_cfg_id != rhs.report_cfg_id or lhs.report_cfg.type() != rhs.report_cfg.type()) {
-    return false;
-  }
-  return lhs.report_cfg.report_cfg_eutra() == rhs.report_cfg.report_cfg_eutra();
-}
-bool operator==(const meas_id_to_add_mod_s& lhs, const meas_id_to_add_mod_s& rhs)
-{
-  return lhs.meas_id == rhs.meas_id and lhs.meas_obj_id == rhs.meas_obj_id and lhs.report_cfg_id == rhs.report_cfg_id;
-}
 
 namespace rrc_details {
 
@@ -163,6 +82,7 @@ struct field_id_cmp {
 };
 using cell_id_cmp     = field_id_cmp<cells_to_add_mod_s>;
 using meas_obj_id_cmp = field_id_cmp<meas_obj_to_add_mod_s>;
+using rep_cfg_id_cmp  = field_id_cmp<report_cfg_to_add_mod_s>;
 
 //! Find MeasObj with same earfcn
 meas_obj_to_add_mod_s* find_meas_obj(meas_obj_to_add_mod_list_l& l, uint32_t earfcn)
@@ -360,7 +280,7 @@ var_meas_cfg_t::add_cell_cfg(const meas_cell_cfg_t& cellcfg)
     var_meas.meas_obj_list_present = true;
   }
 
-  return {inserted_flag, ret.first, ret.second};
+  return std::make_tuple(inserted_flag, ret.first, ret.second);
 }
 
 report_cfg_to_add_mod_s* var_meas_cfg_t::add_report_cfg(const report_cfg_eutra_s& reportcfg)
@@ -385,10 +305,8 @@ meas_id_to_add_mod_s* var_meas_cfg_t::add_measid_cfg(uint8_t measobjid, uint8_t 
     ERROR("Failed to add MeasId because MeasObjId=%d is not found.\n", measobjid);
     return nullptr;
   }
-  auto repit = std::lower_bound(var_meas.report_cfg_list.begin(),
-                                var_meas.report_cfg_list.end(),
-                                measrepid,
-                                rrc_details::field_id_cmp<report_cfg_to_add_mod_s>{});
+  auto repit = std::lower_bound(
+      var_meas.report_cfg_list.begin(), var_meas.report_cfg_list.end(), measrepid, rrc_details::rep_cfg_id_cmp{});
   if (repit == var_meas.report_cfg_list.end() or repit->report_cfg_id != measrepid) {
     ERROR("Failed to add MeasId because ReportCfgId=%d is not found.\n", measrepid);
     return nullptr;
@@ -611,8 +529,10 @@ rrc::mobility_cfg::mobility_cfg(rrc* outer_rrc) : rrc_enb(outer_rrc)
 
     // insert all meas ids
     // FIXME: add this to the parser
-    for (const auto& measobj : var_meas.meas_objs()) {
-      var_meas.add_measid_cfg(measobj.meas_obj_id, var_meas.rep_cfgs().begin()->report_cfg_id);
+    if (var_meas.rep_cfgs().size() > 0) {
+      for (const auto& measobj : var_meas.meas_objs()) {
+        var_meas.add_measid_cfg(measobj.meas_obj_id, var_meas.rep_cfgs().begin()->report_cfg_id);
+      }
     }
   }
 

@@ -20,6 +20,7 @@
  */
 
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
+#include "srslte/asn1/rrc_asn1_utils.h"
 #include <iostream>
 #include <srslte/common/log_filter.h>
 
