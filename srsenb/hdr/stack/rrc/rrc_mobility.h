@@ -64,12 +64,12 @@ private:
 class rrc::mobility_cfg
 {
 public:
-  explicit mobility_cfg(rrc* outer_rrc);
+  explicit mobility_cfg(const rrc_cfg_t* cfg_, srslte::log* log_);
 
   std::shared_ptr<const var_meas_cfg_t> current_meas_cfg; ///< const to enable ptr comparison as identity comparison
 
 private:
-  rrc* rrc_enb = nullptr;
+  const rrc_cfg_t* cfg = nullptr;
 };
 
 class rrc::ue::rrc_mobility

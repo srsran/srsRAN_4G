@@ -37,6 +37,22 @@ using namespace asn1::rrc;
 
 srslte::log_filter log_h("ALL");
 
+class mac_dummy : public mac_interface_rrc
+{
+public:
+  int  cell_cfg(sched_interface::cell_cfg_t* cell_cfg) override { return 0; }
+  void reset() override {}
+  int  ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg) override { return 0; }
+  int  ue_rem(uint16_t rnti) override { return 0; }
+  int  bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg) override { return 0; }
+  int  bearer_ue_rem(uint16_t rnti, uint32_t lc_id) override { return 0; }
+  int  set_dl_ant_info(uint16_t rnti, asn1::rrc::phys_cfg_ded_s::ant_info_c_* dl_ant_info) override { return 0; }
+  void phy_config_enabled(uint16_t rnti, bool enabled) override {}
+  void write_mcch(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s* mcch) override
+  {
+  }
+};
+
 meas_cell_cfg_t generate_cell1()
 {
   meas_cell_cfg_t cell1{};
@@ -244,10 +260,59 @@ int test_correct_meascfg_calculation()
   return SRSLTE_SUCCESS;
 }
 
+int test_mobility_class()
+{
+  rrc_cfg_t cfg;
+  cfg.sib1.cell_access_related_info.plmn_id_list.push_back({});
+  cfg.sib1.cell_access_related_info.plmn_id_list[0].plmn_id.mnc.resize(2);
+  cfg.sib1.cell_access_related_info.plmn_id_list[0].cell_reserved_for_oper.value =
+      plmn_id_info_s::cell_reserved_for_oper_opts::not_reserved;
+  cfg.sib1.cell_access_related_info.cell_barred.value =
+      sib_type1_s::cell_access_related_info_s_::cell_barred_opts::not_barred;
+  cfg.sib1.cell_access_related_info.intra_freq_resel.value =
+      sib_type1_s::cell_access_related_info_s_::intra_freq_resel_opts::allowed;
+  cfg.sib1.si_win_len.value = sib_type1_s::si_win_len_opts::ms5;
+  cfg.sib1.sched_info_list.push_back({});
+  cfg.sib1.sched_info_list[0].si_periodicity.value = sched_info_s::si_periodicity_opts::rf8;
+  auto& sib2                                       = cfg.sibs[1].set_sib2();
+  sib2.rr_cfg_common.rach_cfg_common.preamb_info.nof_ra_preambs.value =
+      rach_cfg_common_s::preamb_info_s_::nof_ra_preambs_opts::n4;
+  sib2.rr_cfg_common.rach_cfg_common.pwr_ramp_params.pwr_ramp_step.value = pwr_ramp_params_s::pwr_ramp_step_opts::db0;
+  sib2.rr_cfg_common.rach_cfg_common.pwr_ramp_params.preamb_init_rx_target_pwr.value =
+      pwr_ramp_params_s::preamb_init_rx_target_pwr_opts::dbm_minus90;
+  sib2.rr_cfg_common.rach_cfg_common.ra_supervision_info.preamb_trans_max.value = preamb_trans_max_opts::n4;
+  sib2.rr_cfg_common.rach_cfg_common.ra_supervision_info.ra_resp_win_size.value =
+      rach_cfg_common_s::ra_supervision_info_s_::ra_resp_win_size_opts::sf2;
+  sib2.rr_cfg_common.rach_cfg_common.ra_supervision_info.mac_contention_resolution_timer.value =
+      rach_cfg_common_s::ra_supervision_info_s_::mac_contention_resolution_timer_opts::sf8;
+  sib2.rr_cfg_common.bcch_cfg.mod_period_coeff.value     = bcch_cfg_s::mod_period_coeff_opts::n4;
+  sib2.rr_cfg_common.pcch_cfg.default_paging_cycle.value = pcch_cfg_s::default_paging_cycle_opts::rf32;
+  sib2.rr_cfg_common.pcch_cfg.nb.value                   = pcch_cfg_s::nb_opts::four_t;
+  sib2.rr_cfg_common.pusch_cfg_common.pusch_cfg_basic.hop_mode.value =
+      pusch_cfg_common_s::pusch_cfg_basic_s_::hop_mode_opts::inter_sub_frame;
+  sib2.rr_cfg_common.pucch_cfg_common.delta_pucch_shift.value = pucch_cfg_common_s::delta_pucch_shift_opts::ds1;
+  sib2.rr_cfg_common.srs_ul_cfg_common.set(setup_opts::release);
+  sib2.rr_cfg_common.ul_pwr_ctrl_common.alpha.value = alpha_r12_opts::al0;
+  bzero(&sib2.rr_cfg_common.ul_pwr_ctrl_common.delta_flist_pucch,
+        sizeof(sib2.rr_cfg_common.ul_pwr_ctrl_common.delta_flist_pucch));
+  sib2.rr_cfg_common.ul_cp_len.value = ul_cp_len_opts::len1;
+  bzero(&sib2.ue_timers_and_consts, sizeof(sib2.ue_timers_and_consts));
+  sib2.time_align_timer_common.value = time_align_timer_opts::sf500;
+  report_cfg_eutra_s rep             = generate_rep1();
+  cfg.meas_cfg.meas_reports.push_back(rep);
+
+  srsenb::rrc rrc;
+  mac_dummy   mac;
+  rrc.init(&cfg, nullptr, &mac, nullptr, nullptr, nullptr, nullptr, &log_h);
+
+  return SRSLTE_SUCCESS;
+}
+
 int main()
 {
   TESTASSERT(test_correct_insertion() == 0);
   TESTASSERT(test_correct_meascfg_calculation() == 0);
+  TESTASSERT(test_mobility_class() == 0);
 
   printf("Success\n");
 

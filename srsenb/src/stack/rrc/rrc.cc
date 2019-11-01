@@ -92,7 +92,7 @@ void rrc::init(rrc_cfg_t*               cfg_,
 
   nof_si_messages = generate_sibs();
   config_mac();
-  enb_mobility_cfg.reset(new mobility_cfg(this));
+  enb_mobility_cfg.reset(new mobility_cfg(&cfg, log_rrc));
 
   pthread_mutex_init(&user_mutex, NULL);
   pthread_mutex_init(&paging_mutex, NULL);

@@ -76,13 +76,30 @@ std::string to_string(const cells_to_add_mod_s& obj)
 //! meas field comparison based on ID solely
 template <typename T>
 struct field_id_cmp {
-  using IdType = decltype(get_id(T{}));
   bool operator()(const T& lhs, const T& rhs) const { return get_id(lhs) < get_id(rhs); }
-  bool operator()(const T& lhs, IdType id) const { return get_id(lhs) < id; }
+  template <typename IdType>
+  bool operator()(const T& lhs, IdType id) const
+  {
+    return get_id(lhs) < id;
+  }
+  template <typename IdType>
+  bool operator()(IdType id, const T& rhs) const
+  {
+    return id < get_id(rhs);
+  }
 };
 using cell_id_cmp     = field_id_cmp<cells_to_add_mod_s>;
 using meas_obj_id_cmp = field_id_cmp<meas_obj_to_add_mod_s>;
 using rep_cfg_id_cmp  = field_id_cmp<report_cfg_to_add_mod_s>;
+using meas_id_cmp     = field_id_cmp<meas_id_to_add_mod_s>;
+
+template <typename Container, typename IdType>
+typename Container::iterator binary_find(Container& c, IdType id)
+{
+  using item_type = decltype(*Container{}.begin());
+  auto it         = std::lower_bound(c.begin(), c.end(), id, field_id_cmp<item_type>{});
+  return (it == c.end() or get_id(*it) != id) ? c.end() : it;
+}
 
 //! Find MeasObj with same earfcn
 meas_obj_to_add_mod_s* find_meas_obj(meas_obj_to_add_mod_list_l& l, uint32_t earfcn)
@@ -107,15 +124,15 @@ find_cell(meas_obj_to_add_mod_list_l& l, uint32_t earfcn, uint8_t cell_id)
   // find meas_obj with same earfcn
   meas_obj_to_add_mod_s* obj = rrc_details::find_meas_obj(l, earfcn);
   if (obj == nullptr) {
-    return {nullptr, nullptr};
+    return std::make_pair(obj, (cells_to_add_mod_s*)nullptr);
   }
   // find cell with same id
   auto& cells = obj->meas_obj.meas_obj_eutra().cells_to_add_mod_list;
-  auto  it    = std::lower_bound(cells.begin(), cells.end(), cell_id, rrc_details::cell_id_cmp{});
-  if (it == cells.end() or it->cell_idx != cell_id) {
-    return {obj, nullptr};
+  auto  it    = binary_find(cells, cell_id);
+  if (it == cells.end()) {
+    it = nullptr;
   }
-  return {obj, it};
+  return std::make_pair(obj, it);
 }
 
 /**
@@ -128,7 +145,7 @@ meas_obj_to_add_mod_s* meascfg_add_meas_obj(meas_cfg_s* meas_cfg, const meas_obj
   meas_obj_to_add_mod_list_l& l              = meas_cfg->meas_obj_to_add_mod_list;
 
   // search for meas_obj by obj_id to ensure uniqueness (assume sorted)
-  auto found_it = std::lower_bound(l.begin(), l.end(), meas_obj.meas_obj_id, meas_obj_id_cmp{});
+  auto found_it = binary_find(l, meas_obj.meas_obj_id);
   // TODO: Assert dl_earfcn is the same
   if (found_it == l.end()) {
     l.push_back({});
@@ -196,6 +213,7 @@ private:
   const_iterator src_it, src_end, target_it, target_end;
 };
 
+//! Find a Gap in Ids in a list of Meas Fields
 template <typename Container, typename IdType = decltype(get_id(*Container{}.begin()))>
 IdType find_id_gap(const Container& c)
 {
@@ -512,18 +530,18 @@ void var_meas_cfg_t::compute_diff_meas_ids(const var_meas_cfg_t& target_cfg, asn
  *                                  mobility_cfg class
  ************************************************************************************************/
 
-rrc::mobility_cfg::mobility_cfg(rrc* outer_rrc) : rrc_enb(outer_rrc)
+rrc::mobility_cfg::mobility_cfg(const rrc_cfg_t* cfg_, srslte::log* log_) : cfg(cfg_)
 {
-  var_meas_cfg_t var_meas{outer_rrc->rrc_log};
+  var_meas_cfg_t var_meas{log_};
 
-  if (rrc_enb->cfg.meas_cfg_present) {
+  if (cfg->meas_cfg_present) {
     // inserts all neighbor cells
-    for (meas_cell_cfg_t& meascell : rrc_enb->cfg.meas_cfg.meas_cells) {
+    for (const meas_cell_cfg_t& meascell : cfg->meas_cfg.meas_cells) {
       var_meas.add_cell_cfg(meascell);
     }
 
     // insert all report cfgs
-    for (const report_cfg_eutra_s& reportcfg : rrc_enb->cfg.meas_cfg.meas_reports) {
+    for (const report_cfg_eutra_s& reportcfg : cfg->meas_cfg.meas_reports) {
       var_meas.add_report_cfg(reportcfg);
     }
 
