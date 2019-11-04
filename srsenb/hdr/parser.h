@@ -319,33 +319,67 @@ private:
 };
 
 template <typename T>
-int parse_opt_field(T& obj, bool& flag, const char* field_name, Setting& root)
-{
-  flag = root.lookupValue(field_name, obj);
-  return 0;
-}
-
-template <typename T, typename Parser>
-int parse_opt_field(T& obj, bool& flag, const char* field_name, Setting& root, Parser field_parser)
-{
-  flag = false;
-  if (root.exists(field_name)) {
-    flag = true;
-    return field_parser(obj, root[field_name]);
+struct DefaultFieldParser {
+  int operator()(T& obj, Setting& root) const
+  {
+    obj = (T)root;
+    return 0;
   }
-  return 0;
+};
+// specialization for uint16_t bc Setting does not have overloaded uint16_t operator
+template <>
+struct DefaultFieldParser<uint16_t> {
+  int operator()(uint16_t& obj, Setting& root) const
+  {
+    obj = (uint32_t)root;
+    return 0;
+  }
+};
+
+template <typename T, typename Parser = DefaultFieldParser<T> >
+int parse_opt_field(T&            obj,
+                    Setting&      root,
+                    const char*   field_name,
+                    const Parser& field_parser  = {},
+                    bool*         presence_flag = nullptr)
+{
+  bool exists = root.exists(field_name);
+  if (presence_flag != nullptr) {
+    *presence_flag = exists;
+  }
+  return exists ? field_parser(obj, root[field_name]) : 0;
 }
 
-template <typename NumberType>
-NumberType parse_bounded_number(Setting& fieldroot, NumberType num_min, NumberType num_max)
+//! Parse field if it exists. If not, default to "default_val"
+template <typename T, typename Parser = DefaultFieldParser<T> >
+int parse_default_field(T&            obj,
+                        Setting&      root,
+                        const char*   fieldname,
+                        const T&      default_val,
+                        const Parser& field_parser  = {},
+                        bool*         presence_flag = nullptr)
 {
-  NumberType num = (NumberType)fieldroot;
+  bool opt_flag;
+  int  ret = parse_opt_field(obj, root, fieldname, field_parser, &opt_flag);
+  if (not opt_flag) {
+    obj = default_val;
+  }
+  if (presence_flag != nullptr) {
+    *presence_flag = opt_flag;
+  }
+  return ret;
+}
+
+template <typename T>
+int parse_bounded_number(T& number, Setting& fieldroot, T num_min, T num_max)
+{
+  T num = (T)fieldroot;
   if (num < num_min or num > num_max) {
     std::cout << "Parser Warning: Value of " << fieldroot.getName() << " must be within bound [" << num_min << ", "
               << num_max << "]\n";
     num = (num > num_max) ? num_max : num_min;
   }
-  return num;
+  return 0;
 }
 
 namespace asn1_parsers {
@@ -389,7 +423,7 @@ int str_to_enum(EnumType& enum_val, Setting& root)
 template <typename EnumType>
 int opt_str_to_enum(EnumType& enum_val, bool& presence_flag, Setting& root, const char* name)
 {
-  return parse_opt_field(enum_val, presence_flag, name, root, str_to_enum<EnumType>);
+  return parse_opt_field(enum_val, root, name, str_to_enum<EnumType>, &presence_flag);
 }
 
 template <typename EnumType>
@@ -428,7 +462,7 @@ int number_to_enum(EnumType& enum_val, Setting& root)
 template <typename EnumType>
 int opt_number_to_enum(EnumType& enum_val, bool& presence_flag, Setting& root, const char* name)
 {
-  return parse_opt_field(enum_val, presence_flag, name, root, number_to_enum<EnumType>);
+  return parse_opt_field(enum_val, root, name, number_to_enum<EnumType>, &presence_flag);
 }
 
 } // namespace asn1_parsers

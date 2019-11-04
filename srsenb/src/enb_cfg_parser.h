@@ -115,10 +115,10 @@ namespace rr_sections {
 
 // rrc_cnfg
 
-class rrc_cnfg_section final : public parser::field_itf
+class cell_list_section final : public parser::field_itf
 {
 public:
-  explicit rrc_cnfg_section(all_args_t* all_args_, rrc_cfg_t* rrc_cfg_) : args(all_args_), rrc_cfg(rrc_cfg_) {}
+  explicit cell_list_section(all_args_t* all_args_, rrc_cfg_t* rrc_cfg_) : args(all_args_), rrc_cfg(rrc_cfg_) {}
 
   int parse(Setting& root) override;
 

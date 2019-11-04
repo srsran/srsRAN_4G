@@ -50,8 +50,21 @@ phy_cnfg =
   };
 };
 
-rrc_cnfg =
-{
+cell_list =
+(
+  // rf_port = 0;
+  // cell_id = 0x01;
+  // tac = 0x0001;
+  // pci = 1;
+  // root_seq_idx = 204;
+  // dl_earfcn = 3400;
+  // ul_earfcn = 474;
+
+  // CA cells
+  scell_list = (
+    {cell_id = 0x02; cross_carrier_scheduling = false; scheduling_cell_id = 0x02; ul_allowed = true};
+  );
+
   // Cells available for handover
   meas_cell_list =
   (
@@ -70,4 +83,4 @@ rrc_cnfg =
     a3_time_to_trigger = 480;
     rsrq_config = 4;
   };
-};
+);

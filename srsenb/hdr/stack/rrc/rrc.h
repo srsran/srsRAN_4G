@@ -97,9 +97,9 @@ struct rrc_meas_cfg_t {
 struct cell_cfg_t {
   uint32_t                 rf_port;
   uint32_t                 cell_id;
-  uint32_t                 tac;
+  uint16_t                 tac;
   uint32_t                 pci;
-  uint32_t                 root_seq_idx;
+  uint16_t                 root_seq_idx;
   uint32_t                 dl_earfcn;
   uint32_t                 ul_earfcn;
   std::vector<scell_cfg_t> scell_list;
