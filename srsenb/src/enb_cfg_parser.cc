@@ -1168,13 +1168,13 @@ static int parse_meas_cell_list(rrc_meas_cfg_t* meas_cfg, Setting& root)
   for (uint32_t i = 0; i < meas_cfg->meas_cells.size(); ++i) {
     meas_cfg->meas_cells[i].earfcn   = root[i]["dl_earfcn"];
     meas_cfg->meas_cells[i].pci      = (unsigned int)root[i]["pci"] % 504;
-    meas_cfg->meas_cells[i].cell_id  = (unsigned int)root[i]["cell_idx"];
+    meas_cfg->meas_cells[i].eci      = (unsigned int)root[i]["eci"];
     meas_cfg->meas_cells[i].q_offset = 0; // LIBLTE_RRC_Q_OFFSET_RANGE_DB_0; // TODO
                                           //    // FIXME: TEMP
                                           //    printf("PARSER: neighbor cell: {dl_earfcn=%d pci=%d cell_idx=0x%x}\n",
                                           //           meas_cfg->meas_cells[i].earfcn,
                                           //           meas_cfg->meas_cells[i].pci,
-                                          //           meas_cfg->meas_cells[i].cell_id);
+                                          //           meas_cfg->meas_cells[i].eci);
   }
   return 0;
 }

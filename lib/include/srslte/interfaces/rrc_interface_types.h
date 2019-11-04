@@ -83,6 +83,27 @@ struct plmn_id_t {
     }
     return SRSLTE_SUCCESS;
   }
+  std::pair<uint16_t, uint16_t> to_number()
+  {
+    uint16_t mcc_num, mnc_num;
+    srslte::bytes_to_mcc(&mcc[0], &mcc_num);
+    srslte::bytes_to_mnc(&mnc[0], &mnc_num, nof_mnc_digits);
+    return std::make_pair(mcc_num, mnc_num);
+  }
+  uint32_t to_s1ap_plmn()
+  {
+    auto     mcc_mnc_pair = to_number();
+    uint32_t s1ap_plmn;
+    srslte::s1ap_mccmnc_to_plmn(mcc_mnc_pair.first, mcc_mnc_pair.second, &s1ap_plmn);
+    return s1ap_plmn;
+  }
+  void to_s1ap_plmn_bytes(uint8_t* plmn_bytes)
+  {
+    uint32_t s1ap_plmn = to_s1ap_plmn();
+    s1ap_plmn          = htonl(s1ap_plmn);
+    uint8_t* plmn_ptr  = (uint8_t*)&s1ap_plmn;
+    memcpy(&plmn_bytes[0], plmn_ptr + 1, 3);
+  }
   int from_string(const std::string& plmn_str)
   {
     if (plmn_str.size() < 5 or plmn_str.size() > 6) {
@@ -250,12 +271,12 @@ inline std::string to_string(const rlc_type_t& type)
 class rlc_config_t
 {
 public:
-  rlc_type_t      type;
-  rlc_mode_t      rlc_mode;
-  rlc_am_config_t am;
-  rlc_um_config_t um;
+  rlc_type_t         type;
+  rlc_mode_t         rlc_mode;
+  rlc_am_config_t    am;
+  rlc_um_config_t    um;
   rlc_um_nr_config_t um_nr;
-  uint32_t        tx_queue_length;
+  uint32_t           tx_queue_length;
 
   rlc_config_t() :
     type(rlc_type_t::lte),

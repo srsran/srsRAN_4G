@@ -71,7 +71,7 @@ typedef struct {
 struct meas_cell_cfg_t {
   uint32_t earfcn;
   uint16_t pci;
-  uint32_t cell_id;
+  uint32_t eci;
   float    q_offset;
 };
 
@@ -285,9 +285,14 @@ public:
     bool is_csfb = false;
 
   private:
+    // args
     srslte::byte_buffer_pool* pool = nullptr;
     struct timeval            t_last_activity;
     struct timeval            t_ue_init;
+
+    // cached for ease of context transfer
+    asn1::rrc::rrc_conn_recfg_r8_ies_s  last_rrc_conn_recfg;
+    asn1::rrc::security_algorithm_cfg_s last_security_mode_cmd;
 
     asn1::rrc::establishment_cause_e establishment_cause;
     std::unique_ptr<rrc_mobility>    mobility_handler;
@@ -315,6 +320,7 @@ public:
 
     LIBLTE_S1AP_UEAGGREGATEMAXIMUMBITRATE_STRUCT bitrates;
     LIBLTE_S1AP_UESECURITYCAPABILITIES_STRUCT    security_capabilities;
+    bool                                         eutra_capabilities_unpacked = false;
     asn1::rrc::ue_eutra_cap_s                    eutra_capabilities;
 
     typedef struct {

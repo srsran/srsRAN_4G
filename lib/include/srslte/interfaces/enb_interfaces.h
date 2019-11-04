@@ -302,11 +302,15 @@ public:
                           uint32_t                                 m_tmsi,
                           uint8_t                                  mmec)                                                                           = 0;
   virtual void write_pdu(uint16_t rnti, srslte::unique_byte_buffer_t pdu)                                         = 0;
-  virtual bool user_exists(uint16_t rnti) = 0; 
-  virtual bool user_release(uint16_t rnti, LIBLTE_S1AP_CAUSERADIONETWORK_ENUM cause_radio) = 0;
-  virtual void ue_ctxt_setup_complete(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT *res) = 0;
-  virtual void ue_erab_setup_complete(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPRESPONSE_STRUCT *res) = 0;
-  virtual bool is_mme_connected() = 0;
+  virtual bool user_exists(uint16_t rnti) = 0;
+  virtual bool user_release(uint16_t rnti, LIBLTE_S1AP_CAUSERADIONETWORK_ENUM cause_radio)                        = 0;
+  virtual void ue_ctxt_setup_complete(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT* res) = 0;
+  virtual void ue_erab_setup_complete(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPRESPONSE_STRUCT* res)          = 0;
+  virtual bool is_mme_connected()                                                                                 = 0;
+  virtual bool send_ho_required(uint16_t                     rnti,
+                                uint32_t                     target_eci,
+                                srslte::plmn_id_t            target_plmn,
+                                srslte::unique_byte_buffer_t rrc_container)                                       = 0;
 };
 
 // Combined interface for PHY to access stack (MAC and RRC)

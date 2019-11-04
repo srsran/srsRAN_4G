@@ -284,7 +284,6 @@ inline void s1ap_mccmnc_to_plmn(uint16_t mcc, uint16_t mnc, uint32_t *plmn)
   *plmn |= nibbles[5];
 }
 
-
 } // namespace srslte
 
 #endif // SRSLTE_BCD_HELPERS_H

@@ -59,7 +59,7 @@ meas_cell_cfg_t generate_cell1()
   cell1.earfcn   = 3400;
   cell1.pci      = 1;
   cell1.q_offset = 0;
-  cell1.cell_id  = 0x19C01;
+  cell1.eci      = 0x19C01;
   return cell1;
 }
 
@@ -82,7 +82,7 @@ report_cfg_eutra_s generate_rep1()
 bool is_cell_cfg_equal(const meas_cell_cfg_t& cfg, const cells_to_add_mod_s& cell)
 {
   return cfg.pci == cell.pci and cell.cell_individual_offset.to_number() == (int8_t)round(cfg.q_offset) and
-         cell.cell_idx == (cfg.cell_id & 0xFFu);
+         cell.cell_idx == (cfg.eci & 0xFFu);
 }
 
 int test_correct_insertion()
@@ -90,7 +90,7 @@ int test_correct_insertion()
   meas_cell_cfg_t cell1 = generate_cell1(), cell2{}, cell3{}, cell4{};
   cell2                 = cell1;
   cell2.pci             = 2;
-  cell2.cell_id         = 0x19C02;
+  cell2.eci             = 0x19C02;
   cell3                 = cell1;
   cell3.earfcn          = 2850;
   cell4                 = cell1;
@@ -129,8 +129,8 @@ int test_correct_insertion()
     TESTASSERT(eutra.carrier_freq == cell1.earfcn);
     TESTASSERT(eutra.cells_to_add_mod_list.size() == 2);
     const cells_to_add_mod_s* cell_it = eutra.cells_to_add_mod_list.begin();
-    TESTASSERT(cell_it[0].cell_idx == (cell1.cell_id & 0xFFu));
-    TESTASSERT(cell_it[1].cell_idx == (cell2.cell_id & 0xFFu));
+    TESTASSERT(cell_it[0].cell_idx == (cell1.eci & 0xFFu));
+    TESTASSERT(cell_it[1].cell_idx == (cell2.eci & 0xFFu));
     TESTASSERT(cell_it[1].pci == cell2.pci);
 
     // TEST 3: insertion of cell in another frequency
@@ -148,7 +148,7 @@ int test_correct_insertion()
     TESTASSERT(objs.size() == 2 and objs[0].meas_obj_id == 1);
     TESTASSERT(eutra3.carrier_freq == cell4.earfcn);
     TESTASSERT(eutra3.cells_to_add_mod_list.size() == 2);
-    TESTASSERT(eutra3.cells_to_add_mod_list[0].cell_idx == (cell1.cell_id & 0xFFu));
+    TESTASSERT(eutra3.cells_to_add_mod_list[0].cell_idx == (cell1.eci & 0xFFu));
     TESTASSERT(eutra3.cells_to_add_mod_list[0].cell_individual_offset.to_number() == 1);
   }
 
@@ -163,10 +163,10 @@ int test_correct_meascfg_calculation()
   cell1.earfcn   = 3400;
   cell1.pci      = 1;
   cell1.q_offset = 0;
-  cell1.cell_id  = 0x19C01;
+  cell1.eci      = 0x19C01;
   cell2          = cell1;
   cell2.pci      = 2;
-  cell2.cell_id  = 0x19C02;
+  cell2.eci      = 0x19C02;
 
   report_cfg_eutra_s rep1  = generate_rep1(), rep2{}, rep3{};
   rep2                     = rep1;
@@ -250,7 +250,7 @@ int test_correct_meascfg_calculation()
     eutra = item->meas_obj.meas_obj_eutra();
     TESTASSERT(not eutra.cells_to_add_mod_list_present and eutra.cells_to_rem_list_present);
     TESTASSERT(eutra.cells_to_rem_list.size() == 1);
-    TESTASSERT(eutra.cells_to_rem_list[0] == (cell1.cell_id & 0xFFu));
+    TESTASSERT(eutra.cells_to_rem_list[0] == (cell1.eci & 0xFFu));
     TESTASSERT(result_meascfg.report_cfg_to_add_mod_list_present and not result_meascfg.report_cfg_to_rem_list_present);
     TESTASSERT(result_meascfg.report_cfg_to_add_mod_list.size() == 1);
     TESTASSERT(result_meascfg.report_cfg_to_add_mod_list[0].report_cfg_id == 2);

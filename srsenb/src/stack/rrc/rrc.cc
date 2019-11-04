@@ -1212,6 +1212,12 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
         state = RRC_STATE_IDLE;
       }
       break;
+    case ul_dcch_msg_type_c::c1_c_::types::meas_report:
+      printf("Received MEASUREMENT REPORT!\n");
+      if (mobility_handler != nullptr) {
+        mobility_handler->handle_ue_meas_report(ul_dcch_msg.msg.c1().meas_report());
+      }
+      break;
     default:
       parent->rrc_log->error("Msg: %s not supported\n", ul_dcch_msg.msg.c1().type().to_string().c_str());
       break;
@@ -1302,6 +1308,7 @@ bool rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
         parent->rrc_log->error("Failed to unpack EUTRA capabilities message\n");
         return false;
       }
+      eutra_capabilities_unpacked = true;
       parent->rrc_log->info("UE rnti: 0x%x category: %d\n", rnti, eutra_capabilities.ue_category);
     }
   }
@@ -1781,12 +1788,10 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   conn_reconf->rr_cfg_ded.phys_cfg_ded_present = true;
   phys_cfg_ded_s* phy_cfg                      = &conn_reconf->rr_cfg_ded.phys_cfg_ded;
 
-  phy_cfg->ant_info_present = true;
-  phy_cfg->ant_info.set(phys_cfg_ded_s::ant_info_c_::types::explicit_value);
-  phy_cfg->ant_info.explicit_value() = parent->cfg.antenna_info;
-
   // Configure PHY layer
-  phy_cfg->cqi_report_cfg_present = true;
+  phy_cfg->ant_info_present              = true;
+  phy_cfg->ant_info.set_explicit_value() = parent->cfg.antenna_info;
+  phy_cfg->cqi_report_cfg_present        = true;
   if (parent->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC) {
     phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic_present = true;
     if (phy_cfg->ant_info_present and
@@ -1797,12 +1802,11 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
     }
   } else {
     phy_cfg->cqi_report_cfg.cqi_report_periodic_present = true;
-    phy_cfg->cqi_report_cfg.cqi_report_periodic.set_setup();
-    cqi_get(&phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pmi_cfg_idx,
-            &phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pucch_res_idx);
-    phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_format_ind_periodic.set(
+    auto& cqi_rep                                       = phy_cfg->cqi_report_cfg.cqi_report_periodic.set_setup();
+    cqi_get(&cqi_rep.cqi_pmi_cfg_idx, &cqi_rep.cqi_pucch_res_idx);
+    cqi_rep.cqi_format_ind_periodic.set(
         cqi_report_periodic_c::setup_s_::cqi_format_ind_periodic_c_::types::wideband_cqi);
-    phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().simul_ack_nack_and_cqi = parent->cfg.cqi_cfg.simultaneousAckCQI;
+    cqi_rep.simul_ack_nack_and_cqi = parent->cfg.cqi_cfg.simultaneousAckCQI;
     if (phy_cfg->ant_info_present and
         ((phy_cfg->ant_info.explicit_value().tx_mode == ant_info_ded_s::tx_mode_e_::tm3) ||
          (phy_cfg->ant_info.explicit_value().tx_mode == ant_info_ded_s::tx_mode_e_::tm4))) {
@@ -1908,6 +1912,7 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   if (mobility_handler != nullptr) {
     mobility_handler->fill_conn_recfg_msg(conn_reconf);
   }
+  last_rrc_conn_recfg = *conn_reconf;
 
   // Reuse same PDU
   pdu->clear();
@@ -1987,6 +1992,7 @@ void rrc::ue::send_security_mode_command()
       (ciphering_algorithm_r12_e::options)cipher_algo;
   comm->crit_exts.c1().security_mode_cmd_r8().security_cfg_smc.security_algorithm_cfg.integrity_prot_algorithm =
       (security_algorithm_cfg_s::integrity_prot_algorithm_e_::options)integ_algo;
+  last_security_mode_cmd = comm->crit_exts.c1().security_mode_cmd_r8().security_cfg_smc.security_algorithm_cfg;
 
   send_dl_dcch(&dl_dcch_msg);
 }

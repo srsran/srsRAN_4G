@@ -38,15 +38,14 @@ namespace srsenb {
 
 typedef struct {
   uint32_t  rnti;
-  uint32_t  eNB_UE_S1AP_ID;
-  uint32_t  MME_UE_S1AP_ID;
-  bool      release_requested;
-  uint16_t  stream_id;
-}ue_ctxt_t;
+  uint32_t       eNB_UE_S1AP_ID;
+  uint32_t       MME_UE_S1AP_ID;
+  bool           release_requested;
+  uint16_t       stream_id;
+  struct timeval init_timestamp;
+} ue_ctxt_t;
 
-class s1ap
-    :public s1ap_interface_rrc
-    ,public thread
+class s1ap : public s1ap_interface_rrc, public thread
 {
 public:
   s1ap();
@@ -105,10 +104,11 @@ private:
   void build_tai_cgi();
   bool connect_mme();
   bool setup_s1();
+  bool sctp_send_s1ap_pdu(LIBLTE_S1AP_S1AP_PDU_STRUCT* tx_pdu, uint32_t rnti, const char* procedure_name);
 
   bool handle_s1ap_rx_pdu(srslte::byte_buffer_t* pdu);
-  bool handle_initiatingmessage(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT *msg);
-  bool handle_successfuloutcome(LIBLTE_S1AP_SUCCESSFULOUTCOME_STRUCT *msg);
+  bool handle_initiatingmessage(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT* msg);
+  bool handle_successfuloutcome(LIBLTE_S1AP_SUCCESSFULOUTCOME_STRUCT* msg);
   bool handle_unsuccessfuloutcome(LIBLTE_S1AP_UNSUCCESSFULOUTCOME_STRUCT *msg);
   bool handle_paging(LIBLTE_S1AP_MESSAGE_PAGING_STRUCT *msg);
 
@@ -131,14 +131,18 @@ private:
   bool send_uectxtreleasecomplete(uint16_t rnti, uint32_t mme_ue_id, uint32_t enb_ue_id);
   bool send_initial_ctxt_setup_response(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT *res_);
   bool send_initial_ctxt_setup_failure(uint16_t rnti);
-  bool send_erab_setup_response(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPRESPONSE_STRUCT *res_);
-  //bool send_ue_capabilities(uint16_t rnti, LIBLTE_RRC_UE_EUTRA_CAPABILITY_STRUCT *caps)
+  bool send_erab_setup_response(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPRESPONSE_STRUCT* res_);
+  // bool send_ue_capabilities(uint16_t rnti, LIBLTE_RRC_UE_EUTRA_CAPABILITY_STRUCT *caps)
   bool send_uectxmodifyresp(uint16_t rnti);
-  bool send_uectxmodifyfailure(uint16_t rnti, LIBLTE_S1AP_CAUSE_STRUCT *cause);
+  bool send_uectxmodifyfailure(uint16_t rnti, LIBLTE_S1AP_CAUSE_STRUCT* cause);
+  // handover
+  bool send_ho_required(uint16_t                     rnti,
+                        uint32_t                     target_eci,
+                        srslte::plmn_id_t            target_plmn,
+                        srslte::unique_byte_buffer_t rrc_container);
 
-  bool        find_mme_ue_id(uint32_t mme_ue_id, uint16_t *rnti, uint32_t *enb_ue_id);
-  std::string get_cause(LIBLTE_S1AP_CAUSE_STRUCT *c);
-
+  bool        find_mme_ue_id(uint32_t mme_ue_id, uint16_t* rnti, uint32_t* enb_ue_id);
+  std::string get_cause(LIBLTE_S1AP_CAUSE_STRUCT* c);
 };
 
 } // namespace srsenb

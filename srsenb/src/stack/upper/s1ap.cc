@@ -188,9 +188,10 @@ void s1ap::build_tai_cgi()
 ********************************************************************************/
 void s1ap::initial_ue(uint16_t rnti, LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause, srslte::unique_byte_buffer_t pdu)
 {
-  ue_ctxt_map[rnti].eNB_UE_S1AP_ID = next_eNB_UE_S1AP_ID++;
-  ue_ctxt_map[rnti].stream_id      = 1;
+  ue_ctxt_map[rnti].eNB_UE_S1AP_ID    = next_eNB_UE_S1AP_ID++;
+  ue_ctxt_map[rnti].stream_id         = 1;
   ue_ctxt_map[rnti].release_requested = false;
+  gettimeofday(&ue_ctxt_map[rnti].init_timestamp, nullptr);
   enbid_to_rnti_map[ue_ctxt_map[rnti].eNB_UE_S1AP_ID] = rnti;
   send_initialuemessage(rnti, cause, std::move(pdu), false);
 }
@@ -1146,7 +1147,126 @@ bool s1ap::send_uectxmodifyfailure(uint16_t rnti, LIBLTE_S1AP_CAUSE_STRUCT* caus
   return true;
 }
 
-//bool s1ap::send_ue_capabilities(uint16_t rnti, LIBLTE_RRC_UE_EUTRA_CAPABILITY_STRUCT *caps)
+/*********************
+ * Handover Messages
+ ********************/
+
+bool s1ap::send_ho_required(uint16_t                     rnti,
+                            uint32_t                     target_eci,
+                            srslte::plmn_id_t            target_plmn,
+                            srslte::unique_byte_buffer_t rrc_container)
+{
+  if (!mme_connected) {
+    return false;
+  }
+  auto ueit = ue_ctxt_map.find(rnti);
+  if (ueit == ue_ctxt_map.end()) {
+    s1ap_log->error("rnti=0x%x is not recognized.\n", rnti);
+    return false;
+  }
+  ue_ctxt_t* uectxt = &ueit->second;
+
+  /*** Setup S1AP PDU as HandoverRequired ***/
+  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu;
+  bzero(&tx_pdu, sizeof(tx_pdu));
+  tx_pdu.choice_type                                 = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
+  tx_pdu.choice.initiatingMessage.choice_type        = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_HANDOVERREQUIRED;
+  tx_pdu.choice.initiatingMessage.criticality        = LIBLTE_S1AP_CRITICALITY_IGNORE;
+  tx_pdu.choice.initiatingMessage.procedureCode      = LIBLTE_S1AP_PROC_ID_HANDOVERPREPARATION;
+  LIBLTE_S1AP_MESSAGE_HANDOVERREQUIRED_STRUCT& horeq = tx_pdu.choice.initiatingMessage.choice.HandoverRequired;
+
+  /*** fill HO Required message ***/
+  horeq.eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = uectxt->eNB_UE_S1AP_ID;
+  horeq.MME_UE_S1AP_ID.MME_UE_S1AP_ID = uectxt->MME_UE_S1AP_ID;
+  horeq.Direct_Forwarding_Path_Availability_present = false;             // NOTE: X2 for fwd path not supported
+  horeq.HandoverType.e              = LIBLTE_S1AP_HANDOVERTYPE_INTRALTE; // NOTE: only intra-LTE HO supported
+  horeq.Cause.choice_type           = LIBLTE_S1AP_CAUSE_CHOICE_RADIONETWORK;
+  horeq.Cause.choice.radioNetwork.e = LIBLTE_S1AP_CAUSERADIONETWORK_UNSPECIFIED;
+  // LIBLTE_S1AP_CAUSERADIONETWORK_S1_INTRA_SYSTEM_HANDOVER_TRIGGERED;
+
+  /*** set the target eNB ***/
+  horeq.TargetID.choice_type                 = LIBLTE_S1AP_TARGETID_CHOICE_TARGETENB_ID;
+  LIBLTE_S1AP_TARGETENB_ID_STRUCT* targetenb = &horeq.TargetID.choice.targeteNB_ID;
+  horeq.CSG_Id_present                       = false; // NOTE: CSG/hybrid target cell not supported
+  horeq.CellAccessMode_present               = false; // only for hybrid cells
+  // no GERAN/UTRAN/PS
+  horeq.SRVCCHOIndication_present      = false;
+  horeq.MSClassmark2_present           = false;
+  horeq.MSClassmark3_present           = false;
+  horeq.PS_ServiceNotAvailable_present = false;
+  // set PLMN of target and TAI
+  if (horeq.TargetID.choice_type != LIBLTE_S1AP_TARGETID_CHOICE_TARGETENB_ID) {
+    s1ap_log->error("Non-intraLTE HO not supported.\n");
+    return false;
+  }
+  // NOTE: Only HO without TAU supported.
+  uint16_t tmp16;
+  tmp16 = htons(args.tac);
+  memcpy(targetenb->selected_TAI.tAC.buffer, &tmp16, sizeof(uint16_t));
+  target_plmn.to_s1ap_plmn_bytes(targetenb->selected_TAI.pLMNidentity.buffer);
+  // NOTE: Only HO to different Macro eNB is supported.
+  targetenb->global_ENB_ID.eNB_ID.choice_type = LIBLTE_S1AP_ENB_ID_CHOICE_MACROENB_ID;
+  target_plmn.to_s1ap_plmn_bytes(targetenb->global_ENB_ID.pLMNidentity.buffer);
+  uint32_t tmp32 = htonl(target_eci >> 8u);
+  uint8_t  enb_id_bits[sizeof(uint32_t) * 8];
+  liblte_unpack((uint8_t*)&tmp32, sizeof(uint32_t), enb_id_bits);
+  memcpy(targetenb->global_ENB_ID.eNB_ID.choice.macroENB_ID.buffer,
+         &enb_id_bits[32 - LIBLTE_S1AP_MACROENB_ID_BIT_STRING_LEN],
+         LIBLTE_S1AP_MACROENB_ID_BIT_STRING_LEN);
+
+  /*** fill the transparent container ***/
+  horeq.Source_ToTarget_TransparentContainer_Secondary_present = false;
+  LIBLTE_S1AP_SOURCEENB_TOTARGETENB_TRANSPARENTCONTAINER_STRUCT transparent_cntr;
+  bzero(&transparent_cntr, sizeof(LIBLTE_S1AP_SOURCEENB_TOTARGETENB_TRANSPARENTCONTAINER_STRUCT));
+  transparent_cntr.e_RABInformationList_present      = false; // TODO: CHECK
+  transparent_cntr.subscriberProfileIDforRFP_present = false; // TODO: CHECK
+  // - set target cell ID
+  target_plmn.to_s1ap_plmn_bytes(transparent_cntr.targetCell_ID.pLMNidentity.buffer);
+  tmp32 = htonl(target_eci);
+  uint8_t eci_bits[32];
+  liblte_unpack((uint8_t*)&tmp32, sizeof(uint32_t), eci_bits);
+  memcpy(transparent_cntr.targetCell_ID.cell_ID.buffer,
+         &eci_bits[32 - LIBLTE_S1AP_CELLIDENTITY_BIT_STRING_LEN],
+         LIBLTE_S1AP_CELLIDENTITY_BIT_STRING_LEN); // [ENBID|CELLID|0]
+  // info specific to source cell and history of UE
+  // - set as last visited cell the source eNB PLMN & Cell ID
+  transparent_cntr.uE_HistoryInformation.len                   = 1;
+  transparent_cntr.uE_HistoryInformation.buffer[0].choice_type = LIBLTE_S1AP_LASTVISITEDCELL_ITEM_CHOICE_E_UTRAN_CELL;
+  LIBLTE_S1AP_LASTVISITEDEUTRANCELLINFORMATION_STRUCT* lastvisited =
+      &transparent_cntr.uE_HistoryInformation.buffer[0].choice.e_UTRAN_Cell;
+  lastvisited->cellType.cell_Size.e = LIBLTE_S1AP_CELL_SIZE_MEDIUM;
+  target_plmn.to_s1ap_plmn_bytes(lastvisited->global_Cell_ID.pLMNidentity.buffer);
+  memcpy(
+      lastvisited->global_Cell_ID.cell_ID.buffer, eutran_cgi.cell_ID.buffer, LIBLTE_S1AP_CELLIDENTITY_BIT_STRING_LEN);
+  // - set time spent in current source cell
+  struct timeval ts[3];
+  memcpy(&ts[1], &uectxt->init_timestamp, sizeof(struct timeval));
+  gettimeofday(&ts[2], nullptr);
+  get_time_interval(ts);
+  lastvisited->time_UE_StayedInCell.Time_UE_StayedInCell = (uint16_t)(ts[0].tv_usec / 1.0e6 + ts[0].tv_sec);
+  lastvisited->time_UE_StayedInCell.Time_UE_StayedInCell =
+      std::min(lastvisited->time_UE_StayedInCell.Time_UE_StayedInCell, (uint16_t)4095);
+  // - fill RRC container
+  memcpy(transparent_cntr.rRC_Container.buffer, rrc_container->buffer, rrc_container->N_bytes);
+  transparent_cntr.rRC_Container.n_octets = rrc_container->N_bytes;
+
+  /*** pack Transparent Container into HORequired message ***/
+  LIBLTE_BYTE_MSG_STRUCT bytemsg;
+  bytemsg.N_bytes = 0;
+  LIBLTE_BIT_MSG_STRUCT bitmsg;
+  uint8_t*              msg_ptr = bitmsg.msg;
+  liblte_s1ap_pack_sourceenb_totargetenb_transparentcontainer(&transparent_cntr, &msg_ptr);
+  bitmsg.N_bits = msg_ptr - bitmsg.msg;
+  liblte_pack(&bitmsg, &bytemsg);
+  memcpy(horeq.Source_ToTarget_TransparentContainer.buffer, bytemsg.msg, bytemsg.N_bytes);
+  horeq.Source_ToTarget_TransparentContainer.n_octets = bytemsg.N_bytes;
+
+  // TODO: Start timer TS1_{RELOCprep}
+
+  return sctp_send_s1ap_pdu(&tx_pdu, rnti, "HORequired");
+}
+
+// bool s1ap::send_ue_capabilities(uint16_t rnti, LIBLTE_RRC_UE_EUTRA_CAPABILITY_STRUCT *caps)
 //{
 //  srslte::byte_buffer_t msg;
 
@@ -1182,13 +1302,40 @@ bool s1ap::send_uectxmodifyfailure(uint16_t rnti, LIBLTE_S1AP_CAUSE_STRUCT* caus
 /* General helpers
 ********************************************************************************/
 
-bool s1ap::find_mme_ue_id(uint32_t mme_ue_id, uint16_t *rnti, uint32_t *enb_ue_id)
+bool s1ap::sctp_send_s1ap_pdu(LIBLTE_S1AP_S1AP_PDU_STRUCT* tx_pdu, uint32_t rnti, const char* procedure_name)
 {
-  typedef std::map<uint16_t, ue_ctxt_t>::iterator it_t;
-  for(it_t it=ue_ctxt_map.begin(); it!=ue_ctxt_map.end(); ++it) {
-    if(it->second.MME_UE_S1AP_ID == mme_ue_id) {
-      *rnti = it->second.rnti;
-      *enb_ue_id = it->second.eNB_UE_S1AP_ID;
+  srslte::unique_byte_buffer_t buf = srslte::allocate_unique_buffer(*pool, false);
+  if (buf == nullptr) {
+    s1ap_log->error("Fatal Error: Couldn't allocate buffer for %s.\n", procedure_name);
+    return false;
+  }
+
+  liblte_s1ap_pack_s1ap_pdu(tx_pdu, (LIBLTE_BYTE_MSG_STRUCT*)buf.get());
+  s1ap_log->info_hex(buf->msg, buf->N_bytes, "Sending %s for rnti=0x%x", procedure_name, rnti);
+  ssize_t n_sent = sctp_sendmsg(socket_fd,
+                                buf->msg,
+                                buf->N_bytes,
+                                (struct sockaddr*)&mme_addr,
+                                sizeof(struct sockaddr_in),
+                                htonl(PPID),
+                                0,
+                                ue_ctxt_map[rnti].stream_id,
+                                0,
+                                0);
+  if (n_sent == -1) {
+    s1ap_log->error("Failed to send %s for rnti=0x%x\n", procedure_name, rnti);
+    return false;
+  }
+
+  return true;
+}
+
+bool s1ap::find_mme_ue_id(uint32_t mme_ue_id, uint16_t* rnti, uint32_t* enb_ue_id)
+{
+  for (auto& it : ue_ctxt_map) {
+    if (it.second.MME_UE_S1AP_ID == mme_ue_id) {
+      *rnti      = it.second.rnti;
+      *enb_ue_id = it.second.eNB_UE_S1AP_ID;
       return true;
     }
   }

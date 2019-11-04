@@ -31,6 +31,12 @@
 namespace srsenb {
 
 #define Info(fmt, ...) rrc_log->info("Mobility: " fmt, ##__VA_ARGS__)
+#define Error(fmt, ...) rrc_log->error("Mobility: " fmt, ##__VA_ARGS__)
+#define Warning(fmt, ...) rrc_log->warning("Mobility: " fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...) rrc_log->debug("Mobility: " fmt, ##__VA_ARGS__)
+
+#define procInfo(fmt, ...) parent->rrc_log->info("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
+#define procError(fmt, ...) parent->rrc_log->error("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
 
 using namespace asn1::rrc;
 
@@ -44,6 +50,56 @@ namespace rrc_details {
 uint32_t eci_to_cellid(uint32_t eci)
 {
   return eci & 0xFFu;
+}
+uint16_t compute_mac_i(uint16_t                            crnti,
+                       uint32_t                            cellid,
+                       uint16_t                            pci,
+                       srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo,
+                       uint8_t*                            k_rrc_int)
+{
+  // Compute shortMAC-I
+  uint8_t varShortMAC_packed[16];
+  bzero(varShortMAC_packed, 16);
+  uint8_t mac_key[4];
+
+  // ASN.1 encode VarShortMAC-Input
+  asn1::rrc::var_short_mac_input_s var_short_mac;
+  var_short_mac.cell_id.from_number(cellid);
+  var_short_mac.pci = pci;
+  var_short_mac.c_rnti.from_number(crnti);
+
+  asn1::bit_ref bref(varShortMAC_packed, sizeof(varShortMAC_packed));
+  var_short_mac.pack(bref); // already zeroed, so no need to align
+  uint32_t N_bytes = bref.distance_bytes();
+
+  printf("Encoded varShortMAC: cellId=0x%x, PCI=%d, rnti=0x%x (%d bytes)\n", cellid, pci, crnti, N_bytes);
+
+  // Compute MAC-I
+  switch (integ_algo) {
+    case srslte::INTEGRITY_ALGORITHM_ID_128_EIA1:
+      srslte::security_128_eia1(&k_rrc_int[16],
+                                0xffffffff, // 32-bit all to ones
+                                0x1f,       // 5-bit all to ones
+                                1,          // 1-bit to one
+                                varShortMAC_packed,
+                                N_bytes,
+                                mac_key);
+      break;
+    case srslte::INTEGRITY_ALGORITHM_ID_128_EIA2:
+      srslte::security_128_eia2(&k_rrc_int[16],
+                                0xffffffff, // 32-bit all to ones
+                                0x1f,       // 5-bit all to ones
+                                1,          // 1-bit to one
+                                varShortMAC_packed,
+                                N_bytes,
+                                mac_key);
+      break;
+    default:
+      printf("Unsupported integrity algorithm.\n");
+  }
+
+  uint16_t short_mac_i = (((uint16_t)mac_key[2] << 8u) | (uint16_t)mac_key[3]);
+  return short_mac_i;
 }
 
 //! convenience function overload to extract Id from MeasObj/MeasId/ReportCfg/Cells
@@ -96,8 +152,13 @@ using meas_id_cmp     = field_id_cmp<meas_id_to_add_mod_s>;
 template <typename Container, typename IdType>
 typename Container::iterator binary_find(Container& c, IdType id)
 {
-  using item_type = decltype(*Container{}.begin());
-  auto it         = std::lower_bound(c.begin(), c.end(), id, field_id_cmp<item_type>{});
+  auto it = std::lower_bound(c.begin(), c.end(), id, field_id_cmp<decltype(*c.begin())>{});
+  return (it == c.end() or get_id(*it) != id) ? c.end() : it;
+}
+template <typename Container, typename IdType>
+typename Container::const_iterator binary_find(const Container& c, IdType id)
+{
+  auto it = std::lower_bound(c.begin(), c.end(), id, field_id_cmp<decltype(*c.begin())>{});
   return (it == c.end() or get_id(*it) != id) ? c.end() : it;
 }
 
@@ -242,8 +303,8 @@ var_meas_cfg_t::add_cell_cfg(const meas_cell_cfg_t& cellcfg)
   using namespace rrc_details;
   bool inserted_flag = true;
 
-  // FIXME: cellcfg.cell_id is the ECI
-  uint32_t         cell_id = rrc_details::eci_to_cellid(cellcfg.cell_id);
+  // FIXME: cellcfg.eci is the ECI
+  uint32_t         cell_id = rrc_details::eci_to_cellid(cellcfg.eci);
   q_offset_range_e offset;
   asn1::number_to_enum(offset, (int8_t)cellcfg.q_offset); // FIXME: What's the difference
 
@@ -264,7 +325,7 @@ var_meas_cfg_t::add_cell_cfg(const meas_cell_cfg_t& cellcfg)
         inserted_flag = false;
       }
     } else {
-      // cell_id not found. create new cell
+      // eci not found. create new cell
       auto& cell_list = ret.first->meas_obj.meas_obj_eutra().cells_to_add_mod_list;
       cell_list.push_back(new_cell);
       std::sort(cell_list.begin(), cell_list.end(), rrc_details::cell_id_cmp{});
@@ -586,7 +647,8 @@ rrc::ue::rrc_mobility::rrc_mobility(rrc::ue* outer_ue) :
   rrc_enb(outer_ue->parent),
   cfg(outer_ue->parent->enb_mobility_cfg.get()),
   pool(outer_ue->pool),
-  rrc_log(outer_ue->parent->rrc_log)
+  rrc_log(outer_ue->parent->rrc_log),
+  source_ho_proc(this)
 {
   ue_var_meas = std::make_shared<var_meas_cfg_t>(outer_ue->parent->rrc_log);
 }
@@ -594,8 +656,9 @@ rrc::ue::rrc_mobility::rrc_mobility(rrc::ue* outer_ue) :
 //! Method to add Mobility Info to a RRC Connection Reconfiguration Message
 bool rrc::ue::rrc_mobility::fill_conn_recfg_msg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_recfg)
 {
-  // only reconfigure meas_cfg if no handover is occurring
-  if (mobility_proc.is_busy()) {
+  // only reconfigure meas_cfg if no handover is occurring.
+  // NOTE: We basically freeze ue_var_meas for the whole duration of the handover procedure
+  if (source_ho_proc.is_busy()) {
     return false;
   }
 
@@ -614,6 +677,235 @@ bool rrc::ue::rrc_mobility::fill_conn_recfg_msg(asn1::rrc::rrc_conn_recfg_r8_ies
     return true;
   }
   return false;
+}
+
+//! Method called whenever the eNB receives a MeasReport from the UE. In normal situations, an HO procedure is started
+void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg)
+{
+  const meas_results_s& meas_res = msg.crit_exts.c1().meas_report_r8().meas_results;
+
+  const meas_id_to_add_mod_list_l& l         = ue_var_meas->meas_ids();
+  auto                             measid_it = rrc_details::binary_find(l, meas_res.meas_id);
+  if (measid_it == l.end()) {
+    Warning("The measurement ID %d provided by the UE does not exist.\n", meas_res.meas_id);
+    return;
+  }
+  if (not meas_res.meas_result_neigh_cells_present) {
+    Info("Received a MeasReport, but the UE did not detect any cell.\n");
+    return;
+  }
+  if (meas_res.meas_result_neigh_cells.type().value !=
+      meas_results_s::meas_result_neigh_cells_c_::types::meas_result_list_eutra) {
+    Error("MeasReports regarding non-EUTRA are not supported!\n");
+    return;
+  }
+
+  const meas_obj_to_add_mod_list_l&   objs       = ue_var_meas->meas_objs();
+  const report_cfg_to_add_mod_list_l& reps       = ue_var_meas->rep_cfgs();
+  auto                                obj_it     = rrc_details::binary_find(objs, measid_it->meas_obj_id);
+  auto                                rep_it     = rrc_details::binary_find(reps, measid_it->report_cfg_id);
+  const meas_result_list_eutra_l&     eutra_list = meas_res.meas_result_neigh_cells.meas_result_list_eutra();
+
+  // iterate from strongest to weakest cell
+  // NOTE: From now we just look at the strongest.
+  if (eutra_list.size() > 0) {
+    uint32_t i = 0;
+
+    uint16_t                       pci   = eutra_list[i].pci;
+    const cells_to_add_mod_list_l& cells = obj_it->meas_obj.meas_obj_eutra().cells_to_add_mod_list;
+
+    const cells_to_add_mod_s* cell_it =
+        std::find_if(cells.begin(), cells.end(), [pci](const cells_to_add_mod_s& c) { return c.pci == pci; });
+    if (cell_it == cells.end()) {
+      rrc_log->error("The PCI=%d inside the MeasReport is not recognized.\n", pci);
+      return;
+    }
+
+    // eNB found the respective cell. eNB takes "HO Decision"
+    // TODO: check what to do here to take the decision.
+    // NOTE: for now just accept anything.
+
+    // HO going forward.
+    auto&    L          = rrc_enb->cfg.meas_cfg.meas_cells;
+    uint32_t target_eci = std::find_if(L.begin(), L.end(), [pci](meas_cell_cfg_t& c) { return c.pci == pci; })->eci;
+    if (not source_ho_proc.launch(*measid_it, *obj_it, *rep_it, *cell_it, eutra_list[i], target_eci)) {
+      Error("Failed to start HO procedure, as it is already on-going\n");
+      return;
+    }
+  }
+}
+
+/**
+ * Description: Send "HO Required" message from source eNB to MME
+ *              - 1st Message of the handover preparation phase
+ *              - includes info about the target eNB and the radio resources of the source eNB
+ */
+bool rrc::ue::rrc_mobility::send_s1_ho_required(uint32_t target_eci, uint8_t measobj_id, bool fwd_direct_path_available)
+{
+  if (fwd_direct_path_available) {
+    Error("Direct tunnels not supported supported\n");
+    return false;
+  }
+
+  srslte::plmn_id_t target_plmn =
+      srslte::make_plmn_id_t(rrc_enb->cfg.sib1.cell_access_related_info.plmn_id_list[0].plmn_id);
+
+  /*** Fill HO Preparation Info ***/
+  asn1::rrc::ho_prep_info_s         hoprep;
+  asn1::rrc::ho_prep_info_r8_ies_s& hoprep_r8 = hoprep.crit_exts.set_c1().set_ho_prep_info_r8();
+  if (not rrc_ue->eutra_capabilities_unpacked) {
+    // FIXME: temporary. Made up something to please target eNB. (there must be at least one capability in this packet)
+    hoprep_r8.ue_radio_access_cap_info.resize(1);
+    hoprep_r8.ue_radio_access_cap_info[0].rat_type = asn1::rrc::rat_type_e::eutra;
+    asn1::rrc::ue_eutra_cap_s capitem;
+    capitem.access_stratum_release                            = asn1::rrc::access_stratum_release_e::rel8;
+    capitem.ue_category                                       = 4;
+    capitem.pdcp_params.max_num_rohc_context_sessions_present = true;
+    capitem.pdcp_params.max_num_rohc_context_sessions = asn1::rrc::pdcp_params_s::max_num_rohc_context_sessions_e_::cs2;
+    bzero(&capitem.pdcp_params.supported_rohc_profiles,
+          sizeof(asn1::rrc::rohc_profile_support_list_r15_s)); // FIXME: why is it r15?
+    capitem.phy_layer_params.ue_specific_ref_sigs_supported = false;
+    capitem.phy_layer_params.ue_tx_ant_sel_supported        = false;
+    capitem.rf_params.supported_band_list_eutra.resize(1);
+    capitem.rf_params.supported_band_list_eutra[0].band_eutra  = 7;
+    capitem.rf_params.supported_band_list_eutra[0].half_duplex = false;
+    capitem.meas_params.band_list_eutra.resize(1);
+    capitem.meas_params.band_list_eutra[0].inter_rat_band_list_present = false;
+    capitem.meas_params.band_list_eutra[0].inter_freq_band_list.resize(1);
+    capitem.meas_params.band_list_eutra[0].inter_freq_band_list[0].inter_freq_need_for_gaps = false;
+    capitem.feature_group_inds_present                                                      = true;
+    capitem.feature_group_inds.from_number(0xe6041000); // 0x5d0ffc80); // 0xe6041c00;
+    {
+      hoprep_r8.ue_radio_access_cap_info[0].ue_cap_rat_container.resize(128);
+      asn1::bit_ref bref(&hoprep_r8.ue_radio_access_cap_info[0].ue_cap_rat_container[0],
+                         hoprep_r8.ue_radio_access_cap_info[0].ue_cap_rat_container.size());
+      if (capitem.pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
+        rrc_log->error("Failed to pack UE EUTRA Capability\n");
+      }
+      hoprep_r8.ue_radio_access_cap_info[0].ue_cap_rat_container.resize((uint32_t)bref.distance_bytes());
+    }
+    Debug("UE RA Category: %d\n", capitem.ue_category);
+  } else {
+    hoprep_r8.ue_radio_access_cap_info.resize(1);
+    for (ue_cap_rat_container_s& ratcntr : hoprep_r8.ue_radio_access_cap_info) {
+      ratcntr.rat_type = asn1::rrc::rat_type_e::eutra;
+      asn1::bit_ref bref(&ratcntr.ue_cap_rat_container[0], ratcntr.ue_cap_rat_container.size());
+      rrc_ue->eutra_capabilities.pack(bref);
+    }
+  }
+  /*** fill AS-Config ***/
+  hoprep_r8.as_cfg_present = true;
+  // NOTE: set source_meas_cnfg equal to the UE's current var_meas_cfg
+  var_meas_cfg_t empty_meascfg{rrc_log}, target_var_meas = *ue_var_meas;
+  //  // however, reset the MeasObjToAdd Cells, so that the UE does not measure again the target eNB
+  //  meas_obj_to_add_mod_s* obj = rrc_details::binary_find(target_var_meas.meas_objs(), measobj_id);
+  //  obj->meas_obj.meas_obj_eutra().cells_to_add_mod_list.resize(0);
+  empty_meascfg.compute_diff_meas_cfg(target_var_meas, &hoprep_r8.as_cfg.source_meas_cfg);
+  // - fill source RR Config
+  hoprep_r8.as_cfg.source_rr_cfg.sps_cfg_present      = false; // TODO: CHECK
+  hoprep_r8.as_cfg.source_rr_cfg.mac_main_cfg_present = rrc_ue->last_rrc_conn_recfg.rr_cfg_ded.mac_main_cfg_present;
+  hoprep_r8.as_cfg.source_rr_cfg.mac_main_cfg         = rrc_ue->last_rrc_conn_recfg.rr_cfg_ded.mac_main_cfg;
+  hoprep_r8.as_cfg.source_rr_cfg.phys_cfg_ded_present = rrc_ue->last_rrc_conn_recfg.rr_cfg_ded.phys_cfg_ded_present;
+  hoprep_r8.as_cfg.source_rr_cfg.phys_cfg_ded         = rrc_ue->last_rrc_conn_recfg.rr_cfg_ded.phys_cfg_ded;
+  // Add SRB2 to the message
+  hoprep_r8.as_cfg.source_rr_cfg.srb_to_add_mod_list_present =
+      rrc_ue->last_rrc_conn_recfg.rr_cfg_ded.srb_to_add_mod_list_present;
+  hoprep_r8.as_cfg.source_rr_cfg.srb_to_add_mod_list = rrc_ue->last_rrc_conn_recfg.rr_cfg_ded.srb_to_add_mod_list;
+  //  hoprep_r8.as_cfg.source_rr_cfg.srb_to_add_mod_list_present = true;
+  //  asn1::rrc::srb_to_add_mod_list_l& srb_list                 = hoprep_r8.as_cfg.source_rr_cfg.srb_to_add_mod_list;
+  //  srb_list.resize(1);
+  //  srb_list[0].srb_id            = 2;
+  //  srb_list[0].lc_ch_cfg_present = true;
+  //  srb_list[0].lc_ch_cfg.set(asn1::rrc::srb_to_add_mod_s::lc_ch_cfg_c_::types::default_value);
+  //  srb_list[0].rlc_cfg_present = true;
+  //  srb_list[0].rlc_cfg.set_explicit_value();
+  //  auto& am = srb_list[0].rlc_cfg.explicit_value().set_am(); // FIXME: Which rlc cfg??? I took from a pcap for now
+  //  am.ul_am_rlc.t_poll_retx             = asn1::rrc::t_poll_retx_e::ms60;
+  //  am.ul_am_rlc.poll_pdu                = asn1::rrc::poll_pdu_e::p_infinity;
+  //  am.ul_am_rlc.poll_byte.value         = asn1::rrc::poll_byte_e::kbinfinity;
+  //  am.ul_am_rlc.max_retx_thres.value    = asn1::rrc::ul_am_rlc_s::max_retx_thres_e_::t32;
+  //  am.dl_am_rlc.t_reordering.value      = asn1::rrc::t_reordering_e::ms45;
+  //  am.dl_am_rlc.t_status_prohibit.value = asn1::rrc::t_status_prohibit_e::ms0;
+  // Get DRB1 configuration
+  hoprep_r8.as_cfg.source_rr_cfg.drb_to_add_mod_list_present =
+      rrc_ue->last_rrc_conn_recfg.rr_cfg_ded.drb_to_add_mod_list_present;
+  hoprep_r8.as_cfg.source_rr_cfg.drb_to_add_mod_list = rrc_ue->last_rrc_conn_recfg.rr_cfg_ded.drb_to_add_mod_list;
+  //  hoprep_r8.as_cfg.source_rr_cfg.drb_to_add_mod_list_present = true;
+  //  asn1::rrc::drb_to_add_mod_list_l& drb_list                 = hoprep_r8.as_cfg.source_rr_cfg.drb_to_add_mod_list;
+  //  drb_list.resize(1);
+  //  rrc_ue->get_drbid_config(&hoprep_r8.as_cfg.source_rr_cfg.drb_to_add_mod_list[0], 1);
+  //  hoprep_r8.as_cfg.source_rr_cfg.drb_to_release_list_present = true;
+  //  hoprep_r8.as_cfg.source_rr_cfg.drb_to_release_list.resize(1);
+  //  hoprep_r8.as_cfg.source_rr_cfg.drb_to_release_list[0] = 1;
+  hoprep_r8.as_cfg.source_security_algorithm_cfg = rrc_ue->last_security_mode_cmd;
+  hoprep_r8.as_cfg.source_ue_id.from_number(rrc_ue->rnti);
+  asn1::number_to_enum(hoprep_r8.as_cfg.source_mib.dl_bw, rrc_enb->cfg.cell.nof_prb);
+  hoprep_r8.as_cfg.source_mib.phich_cfg.phich_dur.value =
+      (asn1::rrc::phich_cfg_s::phich_dur_e_::options)rrc_enb->cfg.cell.phich_length;
+  hoprep_r8.as_cfg.source_mib.phich_cfg.phich_res.value =
+      (asn1::rrc::phich_cfg_s::phich_res_e_::options)rrc_enb->cfg.cell.phich_resources;
+  hoprep_r8.as_cfg.source_mib.sys_frame_num.from_number(0); // NOTE: The TS says this can go empty
+  hoprep_r8.as_cfg.source_sib_type1 = rrc_enb->cfg.sib1;
+  hoprep_r8.as_cfg.source_sib_type2 = rrc_enb->sib2;
+  asn1::number_to_enum(hoprep_r8.as_cfg.ant_info_common.ant_ports_count, rrc_enb->cfg.cell.nof_ports);
+  hoprep_r8.as_cfg.source_dl_carrier_freq = rrc_enb->cfg.dl_earfcn;
+  // - fill as_context
+  hoprep_r8.as_context_present               = true;
+  hoprep_r8.as_context.reest_info_present    = true;
+  hoprep_r8.as_context.reest_info.source_pci = rrc_enb->cfg.pci;
+  hoprep_r8.as_context.reest_info.target_cell_short_mac_i.from_number(
+      rrc_details::compute_mac_i(rrc_ue->rnti,
+                                 rrc_enb->cfg.sib1.cell_access_related_info.cell_id.to_number(),
+                                 rrc_enb->cfg.pci,
+                                 rrc_ue->integ_algo,
+                                 rrc_ue->k_rrc_int));
+
+  /*** pack HO Preparation Info into an RRC container buffer ***/
+  srslte::unique_byte_buffer_t buffer = srslte::allocate_unique_buffer(*pool);
+  asn1::bit_ref                bref(buffer->msg, buffer->get_tailroom());
+  if (hoprep.pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
+    Error("Failed to pack HO preparation msg\n");
+    return false;
+  }
+  buffer->N_bytes = bref.distance_bytes();
+
+  bool success = rrc_enb->s1ap->send_ho_required(rrc_ue->rnti, target_eci, target_plmn, std::move(buffer));
+  Info("sent s1ap msg with HO Required\n");
+  return success;
+}
+
+/*************************************************************************************************
+ *                                  sourceenb_ho_proc_t class
+ ************************************************************************************************/
+
+rrc::ue::rrc_mobility::sourceenb_ho_proc_t::sourceenb_ho_proc_t(rrc_mobility* ue_mobility_) : parent(ue_mobility_) {}
+
+srslte::proc_outcome_t rrc::ue::rrc_mobility::sourceenb_ho_proc_t::init(const meas_id_to_add_mod_s&    measid_,
+                                                                        const meas_obj_to_add_mod_s&   measobj_,
+                                                                        const report_cfg_to_add_mod_s& repcfg_,
+                                                                        const cells_to_add_mod_s&      cell_,
+                                                                        const meas_result_eutra_s&     meas_res_,
+                                                                        uint32_t                       target_eci_)
+{
+  measid     = &measid_;
+  measobj    = &measobj_;
+  repcfg     = &repcfg_;
+  cell       = &cell_;
+  meas_res   = meas_res_;
+  target_eci = target_eci_;
+
+  // TODO: Check X2 is available first. If fail, go for S1.
+  // NOTE: For now only S1-HO is supported. X2 also not available for fwd direct path
+  ho_interface              = ho_interface_t::S1;
+  fwd_direct_path_available = false;
+
+  state = state_t::ho_preparation;
+  procInfo("Started Handover of rnti=0x%x to %s.\n", parent->rrc_ue->rnti, rrc_details::to_string(*cell).c_str());
+  if (not parent->send_s1_ho_required(target_eci, measobj->meas_obj_id, fwd_direct_path_available)) {
+    procError("Failed to send HO Required to MME.\n");
+    return srslte::proc_outcome_t::error;
+  }
+  return srslte::proc_outcome_t::yield;
 }
 
 } // namespace srsenb
