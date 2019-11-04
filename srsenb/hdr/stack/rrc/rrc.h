@@ -67,12 +67,19 @@ typedef struct {
   asn1::rrc::rlc_cfg_c                          rlc_cfg;
 } rrc_cfg_qci_t;
 
-// structure used to parse the cfg file.
+//! Cell to measure for HO. Filled by cfg file parser.
 struct meas_cell_cfg_t {
   uint32_t earfcn;
   uint16_t pci;
   uint32_t cell_id;
   float    q_offset;
+};
+
+struct scell_cfg_t {
+  uint32_t cell_id;
+  bool     cross_carrier_sched;
+  uint32_t sched_cell_id;
+  bool     ul_allowed;
 };
 
 // neigh measurement Cell info
@@ -84,6 +91,18 @@ struct rrc_meas_cfg_t {
   //  srslte::rrc_meas_id_t meas_ids[LIBLTE_RRC_MAX_MEAS_ID];
   // FIXME: Add blacklist cells
   // FIXME: Add multiple meas configs
+};
+
+// Cell/Sector configuration
+struct cell_cfg_t {
+  uint32_t                 rf_port;
+  uint32_t                 cell_id;
+  uint32_t                 tac;
+  uint32_t                 pci;
+  uint32_t                 root_seq_idx;
+  uint32_t                 dl_earfcn;
+  uint32_t                 ul_earfcn;
+  std::vector<scell_cfg_t> scell_list;
 };
 
 #define MAX_NOF_QCI 10
@@ -106,6 +125,7 @@ struct rrc_cfg_t {
   srslte::INTEGRITY_ALGORITHM_ID_ENUM eia_preference_list[srslte::INTEGRITY_ALGORITHM_ID_N_ITEMS];
   bool                                meas_cfg_present = false;
   rrc_meas_cfg_t                      meas_cfg;
+  std::vector<cell_cfg_t>             cell_list;
   uint32_t                            pci;       // TODO: add this to srslte_cell_t?
   uint32_t                            dl_earfcn; // TODO: add this to srslte_cell_t?
 };

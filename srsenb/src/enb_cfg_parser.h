@@ -37,6 +37,8 @@ namespace srsenb {
 
 using namespace libconfig;
 
+class all_args_t;
+
 class field_sched_info final : public parser::field_itf
 {
 public:
@@ -97,7 +99,7 @@ private:
   uint32_t* nof_subframes;
 };
 
-class field_qci : public parser::field_itf
+class field_qci final : public parser::field_itf
 {
 public:
   explicit field_qci(rrc_cfg_qci_t* cfg_) { cfg = cfg_; }
@@ -116,14 +118,15 @@ namespace rr_sections {
 class rrc_cnfg_section final : public parser::field_itf
 {
 public:
-  explicit rrc_cnfg_section(rrc_meas_cfg_t* meas_cfg_) : meas_cfg(meas_cfg_) {}
+  explicit rrc_cnfg_section(all_args_t* all_args_, rrc_cfg_t* rrc_cfg_) : args(all_args_), rrc_cfg(rrc_cfg_) {}
 
   int parse(Setting& root) override;
 
   const char* get_name() override { return "meas_cell_list"; }
 
 private:
-  rrc_meas_cfg_t* meas_cfg;
+  rrc_cfg_t* rrc_cfg;
+  all_args_t* args;
 };
 
 } // namespace rr_sections
@@ -502,7 +505,6 @@ class phr_cnfg_parser : public parser::field_itf
 {
 public:
   explicit phr_cnfg_parser(asn1::rrc::mac_main_cfg_s::phr_cfg_c_* phr_cfg_) { phr_cfg = phr_cfg_; }
-  ~phr_cnfg_parser() override = default;
   int         parse(Setting& root) override;
   const char* get_name() override { return "phr_cnfg"; }
 
@@ -518,7 +520,6 @@ public:
     enabled(enabled_)
   {
   }
-  ~mbsfn_sf_cfg_list_parser() override = default;
   int         parse(Setting& root) override;
   const char* get_name() override { return "mbsfnSubframeConfigList"; }
 
@@ -535,7 +536,6 @@ public:
     enabled(enabled_)
   {
   }
-  ~mbsfn_area_info_list_parser() override = default;
   int         parse(Setting& root) override;
   const char* get_name() override { return "mbsfn_area_info_list"; }
 
