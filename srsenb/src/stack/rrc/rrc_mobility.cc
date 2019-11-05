@@ -776,13 +776,13 @@ bool rrc::ue::rrc_mobility::send_s1_ho_required(uint32_t target_eci, uint8_t mea
     capitem.feature_group_inds_present                                                      = true;
     capitem.feature_group_inds.from_number(0xe6041000); // 0x5d0ffc80); // 0xe6041c00;
     {
-      hoprep_r8.ue_radio_access_cap_info[0].ue_cap_rat_container.resize(128);
-      asn1::bit_ref bref(&hoprep_r8.ue_radio_access_cap_info[0].ue_cap_rat_container[0],
-                         hoprep_r8.ue_radio_access_cap_info[0].ue_cap_rat_container.size());
+      uint8_t       buffer[128];
+      asn1::bit_ref bref(&buffer[0], sizeof(buffer));
       if (capitem.pack(bref) == asn1::SRSASN_ERROR_ENCODE_FAIL) {
         rrc_log->error("Failed to pack UE EUTRA Capability\n");
       }
       hoprep_r8.ue_radio_access_cap_info[0].ue_cap_rat_container.resize((uint32_t)bref.distance_bytes());
+      memcpy(&hoprep_r8.ue_radio_access_cap_info[0].ue_cap_rat_container[0], &buffer[0], bref.distance_bytes());
     }
     Debug("UE RA Category: %d\n", capitem.ue_category);
   } else {

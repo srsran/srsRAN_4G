@@ -60,6 +60,7 @@ cell_list =
     // root_seq_idx = 204;
     // dl_earfcn = 3400;
     // ul_earfcn = 474;
+    ho_active = false;
 
     // CA cells
     scell_list = (
@@ -69,11 +70,11 @@ cell_list =
     // Cells available for handover
     meas_cell_list =
     (
-      //{
-      //  cell_idx = 0x19C02;
-      //  dl_earfcn = 2850;
-      //  pci = 2;
-      //}
+      {
+        eci = 0x19C02;
+        dl_earfcn = 2850;
+        pci = 2;
+      }
     );
 
     // ReportCfg (only A3 supported)

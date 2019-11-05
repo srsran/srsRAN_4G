@@ -347,7 +347,7 @@ public:
   };
 
 private:
-  std::map<uint16_t, ue> users;
+  std::map<uint16_t, std::unique_ptr<ue> > users; // NOTE: has to have fixed addr
 
   std::map<uint32_t, LIBLTE_S1AP_UEPAGINGID_STRUCT> pending_paging;
 

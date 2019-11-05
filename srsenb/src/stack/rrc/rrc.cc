@@ -216,7 +216,7 @@ void rrc::add_user(uint16_t rnti)
   pthread_mutex_lock(&user_mutex);
   auto user_it = users.find(rnti);
   if (user_it == users.end()) {
-    users.insert(std::make_pair(rnti, ue{this, rnti}));
+    users[rnti].reset(new ue{this, rnti});
     rlc->add_user(rnti);
     pdcp->add_user(rnti);
     rrc_log->info("Added new user rnti=0x%x\n", rnti);
@@ -257,10 +257,10 @@ void rrc::upd_user(uint16_t new_rnti, uint16_t old_rnti)
   pthread_mutex_lock(&user_mutex);
   auto old_it = users.find(old_rnti);
   if (old_it != users.end()) {
-    if (old_it->second.is_connected()) {
-      old_it->second.send_connection_reconf_upd(srslte::allocate_unique_buffer(*pool));
+    if (old_it->second->is_connected()) {
+      old_it->second->send_connection_reconf_upd(srslte::allocate_unique_buffer(*pool));
     } else {
-      old_it->second.send_connection_release();
+      old_it->second->send_connection_release();
     }
   }
   pthread_mutex_unlock(&user_mutex);
@@ -300,7 +300,7 @@ void rrc::write_dl_info(uint16_t rnti, srslte::unique_byte_buffer_t sdu)
 
     sdu->clear();
 
-    user_it->second.send_dl_dcch(&dl_dcch_msg, std::move(sdu));
+    user_it->second->send_dl_dcch(&dl_dcch_msg, std::move(sdu));
   } else {
     rrc_log->error("Rx SDU for unknown rnti=0x%x\n", rnti);
   }
@@ -365,29 +365,29 @@ bool rrc::setup_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRE
   }
 
   // UEAggregateMaximumBitrate
-  user_it->second.set_bitrates(&msg->uEaggregateMaximumBitrate);
+  user_it->second->set_bitrates(&msg->uEaggregateMaximumBitrate);
 
   // UESecurityCapabilities
-  user_it->second.set_security_capabilities(&msg->UESecurityCapabilities);
+  user_it->second->set_security_capabilities(&msg->UESecurityCapabilities);
 
   // SecurityKey
   uint8_t key[32];
   liblte_pack(msg->SecurityKey.buffer, LIBLTE_S1AP_SECURITYKEY_BIT_STRING_LEN, key);
-  user_it->second.set_security_key(key, LIBLTE_S1AP_SECURITYKEY_BIT_STRING_LEN / 8);
+  user_it->second->set_security_key(key, LIBLTE_S1AP_SECURITYKEY_BIT_STRING_LEN / 8);
 
   // CSFB
   if (msg->CSFallbackIndicator_present) {
     if (msg->CSFallbackIndicator.e == LIBLTE_S1AP_CSFALLBACKINDICATOR_CS_FALLBACK_REQUIRED ||
         msg->CSFallbackIndicator.e == LIBLTE_S1AP_CSFALLBACKINDICATOR_CS_FALLBACK_HIGH_PRIORITY) {
-      user_it->second.is_csfb = true;
+      user_it->second->is_csfb = true;
     }
   }
 
   // Send RRC security mode command
-  user_it->second.send_security_mode_command();
+  user_it->second->send_security_mode_command();
 
   // Setup E-RABs
-  user_it->second.setup_erabs(&msg->E_RABToBeSetupListCtxtSUReq);
+  user_it->second->setup_erabs(&msg->E_RABToBeSetupListCtxtSUReq);
 
   pthread_mutex_unlock(&user_mutex);
 
@@ -412,7 +412,7 @@ bool rrc::modify_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_UECONTEXTMODIFICATIO
     if (msg->CSFallbackIndicator.e == LIBLTE_S1AP_CSFALLBACKINDICATOR_CS_FALLBACK_REQUIRED ||
         msg->CSFallbackIndicator.e == LIBLTE_S1AP_CSFALLBACKINDICATOR_CS_FALLBACK_HIGH_PRIORITY) {
       /* Remember that we are in a CSFB right now */
-      user_it->second.is_csfb = true;
+      user_it->second->is_csfb = true;
     }
   }
 
@@ -441,22 +441,22 @@ bool rrc::modify_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_UECONTEXTMODIFICATIO
 
   // UEAggregateMaximumBitrate
   if (msg->uEaggregateMaximumBitrate_present) {
-    user_it->second.set_bitrates(&msg->uEaggregateMaximumBitrate);
+    user_it->second->set_bitrates(&msg->uEaggregateMaximumBitrate);
   }
 
   // UESecurityCapabilities
   if (msg->UESecurityCapabilities_present) {
-    user_it->second.set_security_capabilities(&msg->UESecurityCapabilities);
+    user_it->second->set_security_capabilities(&msg->UESecurityCapabilities);
   }
 
   // SecurityKey
   if (msg->SecurityKey_present) {
     uint8_t key[32];
     liblte_pack(msg->SecurityKey.buffer, LIBLTE_S1AP_SECURITYKEY_BIT_STRING_LEN, key);
-    user_it->second.set_security_key(key, LIBLTE_S1AP_SECURITYKEY_BIT_STRING_LEN / 8);
+    user_it->second->set_security_key(key, LIBLTE_S1AP_SECURITYKEY_BIT_STRING_LEN / 8);
 
     // Send RRC security mode command ??
-    user_it->second.send_security_mode_command();
+    user_it->second->send_security_mode_command();
   }
 
   pthread_mutex_unlock(&user_mutex);
@@ -479,11 +479,11 @@ bool rrc::setup_ue_erabs(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPREQUEST_ST
 
   if (msg->uEaggregateMaximumBitrate_present) {
     // UEAggregateMaximumBitrate
-    user_it->second.set_bitrates(&msg->uEaggregateMaximumBitrate);
+    user_it->second->set_bitrates(&msg->uEaggregateMaximumBitrate);
   }
 
   // Setup E-RABs
-  user_it->second.setup_erabs(&msg->E_RABToBeSetupListBearerSUReq);
+  user_it->second->setup_erabs(&msg->E_RABToBeSetupListBearerSUReq);
 
   pthread_mutex_unlock(&user_mutex);
 
@@ -502,7 +502,7 @@ bool rrc::release_erabs(uint32_t rnti)
     return false;
   }
 
-  bool ret = user_it->second.release_erabs();
+  bool ret = user_it->second->release_erabs();
   pthread_mutex_unlock(&user_mutex);
   return ret;
 }
@@ -649,7 +649,7 @@ void rrc::parse_ul_ccch(uint16_t rnti, srslte::unique_byte_buffer_t pdu)
     switch (ul_ccch_msg.msg.c1().type()) {
       case ul_ccch_msg_type_c::c1_c_::types::rrc_conn_request:
         if (user_it != users.end()) {
-          user_it->second.handle_rrc_con_req(&ul_ccch_msg.msg.c1().rrc_conn_request());
+          user_it->second->handle_rrc_con_req(&ul_ccch_msg.msg.c1().rrc_conn_request());
         } else {
           rrc_log->error("Received ConnectionSetup for rnti=0x%x without context\n", rnti);
         }
@@ -670,7 +670,7 @@ void rrc::parse_ul_ccch(uint16_t rnti, srslte::unique_byte_buffer_t pdu)
                            .crit_exts.rrc_conn_reest_request_r8()
                            .reest_cause.to_string()
                            .c_str());
-        if (user_it->second.is_idle()) {
+        if (user_it->second->is_idle()) {
           old_rnti = (uint16_t)ul_ccch_msg.msg.c1()
                          .rrc_conn_reest_request()
                          .crit_exts.rrc_conn_reest_request_r8()
@@ -678,11 +678,11 @@ void rrc::parse_ul_ccch(uint16_t rnti, srslte::unique_byte_buffer_t pdu)
           if (users.count(old_rnti)) {
             rrc_log->error("Not supported: ConnectionReestablishment for rnti=0x%x. Sending Connection Reject\n",
                            old_rnti);
-            user_it->second.send_connection_reest_rej();
+            user_it->second->send_connection_reest_rej();
             s1ap->user_release(old_rnti, LIBLTE_S1AP_CAUSERADIONETWORK_RELEASE_DUE_TO_EUTRAN_GENERATED_REASON);
           } else {
             rrc_log->error("Received ConnectionReestablishment for rnti=0x%x without context\n", old_rnti);
-            user_it->second.send_connection_reest_rej();
+            user_it->second->send_connection_reest_rej();
           }
           // remove temporal rnti
           rrc_log->warning(
@@ -704,7 +704,7 @@ void rrc::parse_ul_dcch(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer
   if (pdu) {
     auto user_it = users.find(rnti);
     if (user_it != users.end()) {
-      user_it->second.parse_ul_dcch(lcid, std::move(pdu));
+      user_it->second->parse_ul_dcch(lcid, std::move(pdu));
     } else {
       rrc_log->error("Processing %s: Unknown rnti=0x%x\n", rb_id_text[lcid], rnti);
     }
@@ -715,7 +715,7 @@ void rrc::process_rl_failure(uint16_t rnti)
 {
   auto user_it = users.find(rnti);
   if (user_it != users.end()) {
-    uint32_t n_rfl = user_it->second.rl_failure();
+    uint32_t n_rfl = user_it->second->rl_failure();
     if (n_rfl == 1) {
       rrc_log->info("Radio-Link failure detected rnti=0x%x\n", rnti);
       if (s1ap->user_exists(rnti)) {
@@ -740,9 +740,9 @@ void rrc::process_release_complete(uint16_t rnti)
   rrc_log->info("Received Release Complete rnti=0x%x\n", rnti);
   auto user_it = users.find(rnti);
   if (user_it != users.end()) {
-    if (!user_it->second.is_idle()) {
+    if (!user_it->second->is_idle()) {
       rlc->clear_buffer(rnti);
-      user_it->second.send_connection_release();
+      user_it->second->send_connection_release();
       // There is no RRCReleaseComplete message from UE thus wait ~50 subframes for tx
       usleep(50000);
     }
@@ -770,8 +770,8 @@ void rrc::rem_user(uint16_t rnti)
     pdcp->rem_user(rnti);
 
     // And deallocate resources from RRC
-    user_it->second.sr_free();
-    user_it->second.cqi_free();
+    user_it->second->sr_free();
+    user_it->second->cqi_free();
 
     users.erase(rnti);
     rrc_log->info("Removed user rnti=0x%x\n", rnti);
@@ -971,7 +971,7 @@ void rrc::run_thread()
           process_rl_failure(p.rnti);
           break;
         case LCID_ACT_USER:
-          user_it->second.set_activity();
+          user_it->second->set_activity();
           break;
         case LCID_EXIT:
           rrc_log->info("Exiting thread\n");
@@ -1028,12 +1028,13 @@ void rrc::activity_monitor::run_thread()
         }
       }
     }
-    if (rem_rnti) {
+    if (rem_rnti > 0) {
       if (parent->s1ap->user_exists(rem_rnti)) {
         parent->s1ap->user_release(rem_rnti, LIBLTE_S1AP_CAUSERADIONETWORK_USER_INACTIVITY);
       } else {
-        if (rem_rnti != SRSLTE_MRNTI)
+        if (rem_rnti != SRSLTE_MRNTI) {
           parent->rem_user_thread(rem_rnti);
+        }
       }
     }
     pthread_mutex_unlock(&parent->user_mutex);

@@ -938,7 +938,6 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_cellidentity(LIBLTE_S1AP_CELLIDENTITY_STRUCT*
     for (i = 0; i < LIBLTE_S1AP_CELLIDENTITY_BIT_STRING_LEN; i++) {
       liblte_value_2_bits(ie->buffer[i], ptr, 1);
     }
-    liblte_align_up_zero(ptr, 8);
     err = LIBLTE_SUCCESS;
   }
   return err;
@@ -955,7 +954,6 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_cellidentity(uint8_t** ptr, LIBLTE_S1AP_CEL
     for (i = 0; i < LIBLTE_S1AP_CELLIDENTITY_BIT_STRING_LEN; i++) {
       ie->buffer[i] = liblte_bits_2_value(ptr, 1);
     }
-    liblte_align_up(ptr, 8);
     err = LIBLTE_SUCCESS;
   }
   return err;
@@ -1494,7 +1492,6 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_macroenb_id(LIBLTE_S1AP_MACROENB_ID_STRUCT* i
     for (i = 0; i < LIBLTE_S1AP_MACROENB_ID_BIT_STRING_LEN; i++) {
       liblte_value_2_bits(ie->buffer[i], ptr, 1);
     }
-    liblte_align_up_zero(ptr, 8);
     err = LIBLTE_SUCCESS;
   }
   return err;
@@ -1511,7 +1508,6 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_macroenb_id(uint8_t** ptr, LIBLTE_S1AP_MACR
     for (i = 0; i < LIBLTE_S1AP_MACROENB_ID_BIT_STRING_LEN; i++) {
       ie->buffer[i] = liblte_bits_2_value(ptr, 1);
     }
-    liblte_align_up(ptr, 8);
     err = LIBLTE_SUCCESS;
   }
   return err;
@@ -3735,7 +3731,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_time_ue_stayedincell(LIBLTE_S1AP_TIME_UE_STAY
     // Integer - ie->Time_UE_StayedInCell
     // lb:0, ub:4095
     liblte_align_up_zero(ptr, 8);
-    liblte_value_2_bits(0, ptr, (1 * 8) - 12);
+    liblte_value_2_bits(0, ptr, (2 * 8) - 12);
     liblte_value_2_bits(ie->Time_UE_StayedInCell, ptr, 12);
     liblte_align_up_zero(ptr, 8);
     err = LIBLTE_SUCCESS;
@@ -14603,6 +14599,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_sourceenb_totargetenb_transparentcontainer(
     liblte_value_2_bits(ie->e_RABInformationList_present ? 1 : 0, ptr, 1);
     liblte_value_2_bits(ie->subscriberProfileIDforRFP_present ? 1 : 0, ptr, 1);
     liblte_value_2_bits(ie->iE_Extensions_present ? 1 : 0, ptr, 1);
+    liblte_align_up_zero(ptr, 8);
 
     if (liblte_s1ap_pack_rrc_container(&ie->rRC_Container, ptr) != LIBLTE_SUCCESS) {
       return LIBLTE_ERROR_ENCODE_FAIL;
@@ -14655,6 +14652,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_sourceenb_totargetenb_transparentcontainer(
     ie->e_RABInformationList_present      = liblte_bits_2_value(ptr, 1);
     ie->subscriberProfileIDforRFP_present = liblte_bits_2_value(ptr, 1);
     ie->iE_Extensions_present             = liblte_bits_2_value(ptr, 1);
+    liblte_align_up(ptr, 8);
 
     if (liblte_s1ap_unpack_rrc_container(ptr, &ie->rRC_Container) != LIBLTE_SUCCESS) {
       return LIBLTE_ERROR_DECODE_FAIL;

@@ -31,8 +31,9 @@
 #include "srslte/interfaces/enb_interfaces.h"
 #include "common_enb.h"
 
-#include "srslte/asn1/liblte_s1ap.h"
 #include "s1ap_metrics.h"
+#include "srslte/asn1/liblte_s1ap.h"
+#include "srslte/common/stack_procedure.h"
 
 namespace srsenb {
 
@@ -49,10 +50,9 @@ class s1ap : public s1ap_interface_rrc, public thread
 {
 public:
   s1ap();
-  ~s1ap();
-  bool init(s1ap_args_t args_, rrc_interface_s1ap *rrc_, srslte::log *s1ap_log_);
+  bool init(s1ap_args_t args_, rrc_interface_s1ap* rrc_, srslte::log* s1ap_log_, srslte::timer_handler* timers_);
   void stop();
-  void get_metrics(s1ap_metrics_t &m);
+  void get_metrics(s1ap_metrics_t& m);
 
   void run_thread();
 
@@ -98,9 +98,6 @@ private:
 
   LIBLTE_S1AP_MESSAGE_S1SETUPRESPONSE_STRUCT s1setupresponse;
 
-  std::map<uint16_t, ue_ctxt_t> ue_ctxt_map;
-  std::map<uint32_t, uint16_t>  enbid_to_rnti_map;
-
   void build_tai_cgi();
   bool connect_mme();
   bool setup_s1();
@@ -140,12 +137,64 @@ private:
                         uint32_t                     target_eci,
                         srslte::plmn_id_t            target_plmn,
                         srslte::unique_byte_buffer_t rrc_container);
+  bool handle_hopreparationfailure(LIBLTE_S1AP_MESSAGE_HANDOVERPREPARATIONFAILURE_STRUCT* msg);
 
   bool        find_mme_ue_id(uint32_t mme_ue_id, uint16_t* rnti, uint32_t* enb_ue_id);
-  std::string get_cause(LIBLTE_S1AP_CAUSE_STRUCT* c);
+  std::string get_cause(const LIBLTE_S1AP_CAUSE_STRUCT* c);
+
+  // UE-specific data and procedures
+  struct ue {
+    class ho_prep_proc_t
+    {
+    public:
+      struct ts1_reloc_prep_expired {
+      };
+      ho_prep_proc_t(s1ap::ue* ue_);
+      srslte::proc_outcome_t
+                             init(uint32_t target_eci_, srslte::plmn_id_t target_plmn_, srslte::unique_byte_buffer_t rrc_container);
+      srslte::proc_outcome_t step() { return srslte::proc_outcome_t::yield; }
+      srslte::proc_outcome_t react(ts1_reloc_prep_expired e);
+      srslte::proc_outcome_t react(const LIBLTE_S1AP_MESSAGE_HANDOVERPREPARATIONFAILURE_STRUCT& msg);
+      const char*            name() { return "HandoverPreparation"; }
+
+    private:
+      s1ap::ue* ue_ptr   = nullptr;
+      s1ap*     s1ap_ptr = nullptr;
+
+      uint32_t          target_eci = 0;
+      srslte::plmn_id_t target_plmn;
+    };
+
+    explicit ue(uint16_t rnti, s1ap* s1ap_ptr_);
+
+    bool                            start_ho_preparation(uint32_t                     target_eci_,
+                                                         srslte::plmn_id_t            target_plmn_,
+                                                         srslte::unique_byte_buffer_t rrc_container);
+    ue_ctxt_t&                      get_ctxt() { return ctxt; }
+    srslte::proc_t<ho_prep_proc_t>& get_ho_prep_proc() { return ho_prep_proc; }
+
+  private:
+    bool
+    send_ho_required(uint32_t target_eci_, srslte::plmn_id_t target_plmn_, srslte::unique_byte_buffer_t rrc_container);
+
+    s1ap*        s1ap_ptr;
+    srslte::log* s1ap_log;
+    ue_ctxt_t    ctxt = {};
+
+    srslte::timer_handler::unique_timer ts1_reloc_prep; ///< TS1_{RELOCprep} - max time for HO preparation
+
+    // user procedures
+    srslte::proc_t<ho_prep_proc_t> ho_prep_proc;
+  };
+  std::map<uint16_t, std::unique_ptr<ue> > users;
+  std::map<uint32_t, uint16_t>             enbid_to_rnti_map;
+
+  ue_ctxt_t* get_user_ctxt(uint16_t rnti);
+
+  // timers
+  srslte::timer_handler* timers = nullptr;
 };
 
 } // namespace srsenb
-
 
 #endif // SRSENB_S1AP_H

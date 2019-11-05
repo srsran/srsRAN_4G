@@ -1192,9 +1192,10 @@ static int parse_meas_report_desc(rrc_meas_cfg_t* meas_cfg, Setting& root)
   event.event_id.set_event_a3().report_on_leave = false;
   event.event_id.event_a3().a3_offset           = (int)root["a3_offset"];
   event.hysteresis                              = (int)root["a3_hysteresis"];
-  meas_item.max_report_cells                    = 1;                                        // TODO: parse
-  meas_item.report_amount.value                 = report_cfg_eutra_s::report_amount_e_::r1; // TODO: parse
-  meas_item.report_interv.value                 = report_interv_e::ms120;                   // TODO: parse
+  meas_item.max_report_cells                    = 1;                                           // TODO: parse
+  meas_item.report_amount.value                 = report_cfg_eutra_s::report_amount_e_::r1;    // TODO: parse
+  meas_item.report_interv.value                 = report_interv_e::ms120;                      // TODO: parse
+  meas_item.report_quant.value                  = report_cfg_eutra_s::report_quant_opts::both; // TODO: parse
   // quant coeff parsing
   auto& quant = meas_cfg->quant_cfg;
   HANDLEPARSERCODE(asn1_parsers::number_to_enum(event.time_to_trigger, root["a3_time_to_trigger"]));
@@ -1225,8 +1226,10 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
     parse_default_field(cell_cfg.dl_earfcn, cellroot, "dl_earfcn", args->enb.dl_earfcn);
     parse_default_field(cell_cfg.ul_earfcn, cellroot, "ul_earfcn", args->enb.ul_earfcn);
 
-    HANDLEPARSERCODE(parse_meas_cell_list(&rrc_cfg->meas_cfg, cellroot["meas_cell_list"]));
-    HANDLEPARSERCODE(parse_meas_report_desc(&rrc_cfg->meas_cfg, cellroot["meas_report_desc"]));
+    if (root["ho_active"]) {
+      HANDLEPARSERCODE(parse_meas_cell_list(&rrc_cfg->meas_cfg, cellroot["meas_cell_list"]));
+      HANDLEPARSERCODE(parse_meas_report_desc(&rrc_cfg->meas_cfg, cellroot["meas_report_desc"]));
+    }
 
     cell_cfg.scell_list.resize(cellroot["scell_list"].getLength());
     for (uint32_t i = 0; i < cell_cfg.scell_list.size(); ++i) {
