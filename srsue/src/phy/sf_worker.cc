@@ -98,7 +98,7 @@ bool sf_worker::set_cell(uint32_t cc_idx, srslte_cell_t cell_)
       goto unlock;
     }
   } else {
-    Error("Setting cell for cc=%d; Not enough CC workers (%ld);\n", cc_idx, cc_workers.size());
+    Error("Setting cell for cc=%d; Not enough CC workers (%zd);\n", cc_idx, cc_workers.size());
   }
 
   if (cc_idx == 0) {

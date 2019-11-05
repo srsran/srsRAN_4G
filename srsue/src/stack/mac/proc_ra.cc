@@ -580,7 +580,7 @@ bool ra_proc::contention_resolution_id_received(uint64_t rx_contention_id)
     uecri_successful = true;
     complete();
   } else {
-    rInfo("Transmitted UE Contention Id differs from received Contention ID (0x%lx != 0x%lx)\n",
+    rInfo("Transmitted UE Contention Id differs from received Contention ID (0x%" PRIx64 " != 0x%" PRIx64 ")\n",
           transmitted_contention_id,
           rx_contention_id);
 
