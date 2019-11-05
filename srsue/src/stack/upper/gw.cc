@@ -34,14 +34,10 @@
 
 namespace srsue {
 
-gw::gw() : if_up(false), default_lcid(0), thread("GW")
-{
-  current_ip_addr = 0;
-}
+gw::gw() : thread("GW"), pool(srslte::byte_buffer_pool::get_instance()) {}
 
 int gw::init(const gw_args_t& args_, srslte::logger* logger_, stack_interface_gw* stack_)
 {
-  pool       = srslte::byte_buffer_pool::get_instance();
   stack      = stack_;
   logger     = logger_;
   args       = args_;
@@ -52,8 +48,6 @@ int gw::init(const gw_args_t& args_, srslte::logger* logger_, stack_interface_gw
   log.set_hex_limit(args.log.gw_hex_limit);
 
   gettimeofday(&metrics_time[1], NULL);
-  dl_tput_bytes = 0;
-  ul_tput_bytes = 0;
 
   // MBSFN
   mbsfn_sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -68,8 +62,6 @@ int gw::init(const gw_args_t& args_, srslte::logger* logger_, stack_interface_gw
 
   mbsfn_sock_addr.sin_family      = AF_INET;
   mbsfn_sock_addr.sin_addr.s_addr =inet_addr("127.0.0.1");
-
-  bzero(mbsfn_ports, SRSLTE_N_MCH_LCIDS*sizeof(uint32_t));
 
   return SRSLTE_SUCCESS;
 }
