@@ -76,6 +76,11 @@ srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::react(const LIBLTE_S1AP_MESSAGE
   return srslte::proc_outcome_t::error;
 }
 
+void s1ap::ue::ho_prep_proc_t::then(const srslte::proc_state_t& result)
+{
+  s1ap_ptr->rrc->ho_preparation_complete(ue_ptr->ctxt.rnti, result.is_success());
+}
+
 /*********************************************************
  *                     S1AP class
  *********************************************************/
@@ -1254,7 +1259,14 @@ bool s1ap::send_ho_required(uint16_t                     rnti,
   if (it == users.end()) {
     return false;
   }
-  return it->second->start_ho_preparation(target_eci, target_plmn, std::move(rrc_container));
+
+  // launch procedure
+  if (not it->second->get_ho_prep_proc().launch(target_eci, target_plmn, std::move(rrc_container))) {
+    s1ap_log->error("Failed to initiate an HandoverPreparation procedure for user rnti=0x%x\n",
+                    it->second->get_ctxt().rnti);
+    return false;
+  }
+  return true;
 }
 
 // bool s1ap::send_ue_capabilities(uint16_t rnti, LIBLTE_RRC_UE_EUTRA_CAPABILITY_STRUCT *caps)
@@ -1386,17 +1398,6 @@ s1ap::ue::ue(uint16_t rnti_, s1ap* s1ap_ptr_) : s1ap_ptr(s1ap_ptr_), s1ap_log(s1
   // initialize timers
   ts1_reloc_prep = s1ap_ptr->timers->get_unique_timer();
   ts1_reloc_prep.set(10000, [this](uint32_t tid) { ho_prep_proc.trigger(ho_prep_proc_t::ts1_reloc_prep_expired{}); });
-}
-
-bool s1ap::ue::start_ho_preparation(uint32_t                     target_eci,
-                                    srslte::plmn_id_t            target_plmn,
-                                    srslte::unique_byte_buffer_t rrc_container)
-{
-  if (not ho_prep_proc.launch(target_eci, target_plmn, std::move(rrc_container))) {
-    s1ap_log->error("Failed to initiate an HandoverPreparation procedure for user rnti=0x%x\n", ctxt.rnti);
-    return false;
-  }
-  return true;
 }
 
 bool s1ap::ue::send_ho_required(uint32_t                     target_eci,

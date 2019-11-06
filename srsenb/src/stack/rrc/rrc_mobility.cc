@@ -740,7 +740,9 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg)
  *              - 1st Message of the handover preparation phase
  *              - includes info about the target eNB and the radio resources of the source eNB
  */
-bool rrc::ue::rrc_mobility::send_s1_ho_required(uint32_t target_eci, uint8_t measobj_id, bool fwd_direct_path_available)
+bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
+                                                 uint8_t  measobj_id,
+                                                 bool     fwd_direct_path_available)
 {
   if (fwd_direct_path_available) {
     Error("Direct tunnels not supported supported\n");
@@ -874,6 +876,11 @@ bool rrc::ue::rrc_mobility::send_s1_ho_required(uint32_t target_eci, uint8_t mea
   return success;
 }
 
+void rrc::ue::rrc_mobility::handle_ho_preparation_complete(bool is_success)
+{
+  source_ho_proc.trigger(sourceenb_ho_proc_t::ho_prep_result{is_success});
+}
+
 /*************************************************************************************************
  *                                  sourceenb_ho_proc_t class
  ************************************************************************************************/
@@ -901,11 +908,22 @@ srslte::proc_outcome_t rrc::ue::rrc_mobility::sourceenb_ho_proc_t::init(const me
 
   state = state_t::ho_preparation;
   procInfo("Started Handover of rnti=0x%x to %s.\n", parent->rrc_ue->rnti, rrc_details::to_string(*cell).c_str());
-  if (not parent->send_s1_ho_required(target_eci, measobj->meas_obj_id, fwd_direct_path_available)) {
+  if (not parent->start_ho_preparation(target_eci, measobj->meas_obj_id, fwd_direct_path_available)) {
     procError("Failed to send HO Required to MME.\n");
     return srslte::proc_outcome_t::error;
   }
   return srslte::proc_outcome_t::yield;
+}
+
+srslte::proc_outcome_t rrc::ue::rrc_mobility::sourceenb_ho_proc_t::react(ho_prep_result e)
+{
+  if (not e.is_success) {
+    procError("Failure during handover preparation.\n");
+    return srslte::proc_outcome_t::error;
+  }
+  procError("Handover preparation successful\n");
+  // TODO: send HO command to UE
+  return srslte::proc_outcome_t::success;
 }
 
 } // namespace srsenb

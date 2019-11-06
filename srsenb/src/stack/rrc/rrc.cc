@@ -625,6 +625,15 @@ void rrc::read_pdu_pcch(uint8_t* payload, uint32_t buffer_size)
 }
 
 /*******************************************************************************
+  Handover functions
+*******************************************************************************/
+
+void rrc::ho_preparation_complete(uint16_t rnti, bool is_success)
+{
+  users[rnti]->handle_ho_preparation_complete(is_success);
+}
+
+/*******************************************************************************
   Private functions
   All private functions are not mutexed and must be called from a mutexed enviornment
   from either a public function or the internal thread
@@ -2010,6 +2019,13 @@ void rrc::ue::send_ue_cap_enquiry()
   enq->crit_exts.c1().ue_cap_enquiry_r8().ue_cap_request[0].value = rat_type_e::eutra;
 
   send_dl_dcch(&dl_dcch_msg);
+}
+
+/********************** Handover **************************/
+
+void rrc::ue::handle_ho_preparation_complete(bool is_success)
+{
+  mobility_handler->handle_ho_preparation_complete(is_success);
 }
 
 /********************** HELPERS ***************************/

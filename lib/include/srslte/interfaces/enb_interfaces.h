@@ -268,10 +268,11 @@ public:
   virtual void write_dl_info(uint16_t rnti, srslte::unique_byte_buffer_t sdu)                           = 0;
   virtual void release_complete(uint16_t rnti) = 0;
   virtual bool setup_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT *msg) = 0;
-  virtual bool modify_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_UECONTEXTMODIFICATIONREQUEST_STRUCT *msg) = 0;
-  virtual bool setup_ue_erabs(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPREQUEST_STRUCT *msg) = 0;
-  virtual bool release_erabs(uint32_t rnti) = 0;
-  virtual void add_paging_id(uint32_t ueid, LIBLTE_S1AP_UEPAGINGID_STRUCT UEPagingID) = 0; 
+  virtual bool modify_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_UECONTEXTMODIFICATIONREQUEST_STRUCT* msg) = 0;
+  virtual bool setup_ue_erabs(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPREQUEST_STRUCT* msg)            = 0;
+  virtual bool release_erabs(uint32_t rnti)                                                                = 0;
+  virtual void add_paging_id(uint32_t ueid, LIBLTE_S1AP_UEPAGINGID_STRUCT UEPagingID)                      = 0;
+  virtual void ho_preparation_complete(uint16_t rnti, bool is_success)                                     = 0;
 };
 
 // GTPU interface for PDCP

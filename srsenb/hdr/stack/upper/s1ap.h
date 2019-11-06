@@ -155,6 +155,7 @@ private:
       srslte::proc_outcome_t step() { return srslte::proc_outcome_t::yield; }
       srslte::proc_outcome_t react(ts1_reloc_prep_expired e);
       srslte::proc_outcome_t react(const LIBLTE_S1AP_MESSAGE_HANDOVERPREPARATIONFAILURE_STRUCT& msg);
+      void                   then(const srslte::proc_state_t& result);
       const char*            name() { return "HandoverPreparation"; }
 
     private:
@@ -167,9 +168,6 @@ private:
 
     explicit ue(uint16_t rnti, s1ap* s1ap_ptr_);
 
-    bool                            start_ho_preparation(uint32_t                     target_eci_,
-                                                         srslte::plmn_id_t            target_plmn_,
-                                                         srslte::unique_byte_buffer_t rrc_container);
     ue_ctxt_t&                      get_ctxt() { return ctxt; }
     srslte::proc_t<ho_prep_proc_t>& get_ho_prep_proc() { return ho_prep_proc; }
 

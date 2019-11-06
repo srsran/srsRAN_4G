@@ -180,6 +180,7 @@ public:
   bool setup_ue_erabs(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPREQUEST_STRUCT* msg) override;
   bool release_erabs(uint32_t rnti) override;
   void add_paging_id(uint32_t ueid, LIBLTE_S1AP_UEPAGINGID_STRUCT UEPagingID) override;
+  void ho_preparation_complete(uint16_t rnti, bool is_success) override;
 
   // rrc_interface_pdcp
   void write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu) override;
@@ -258,6 +259,9 @@ public:
                     uint32_t                                    teid_out,
                     LIBLTE_S1AP_NAS_PDU_STRUCT*                 nas_pdu);
     bool release_erabs();
+
+    // handover
+    void handle_ho_preparation_complete(bool is_success);
 
     void notify_s1ap_ue_ctxt_setup_complete();
     void notify_s1ap_ue_erab_setup_response(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT* e);

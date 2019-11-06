@@ -85,11 +85,12 @@ public:
   explicit rrc_mobility(srsenb::rrc::ue* outer_ue);
   bool fill_conn_recfg_msg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_recfg);
   void handle_ue_meas_report(const asn1::rrc::meas_report_s& msg);
+  void handle_ho_preparation_complete(bool is_success);
 
 private:
   enum class ho_interface_t { S1, X2, interSector };
 
-  bool send_s1_ho_required(uint32_t target_eci, uint8_t measobj_id, bool fwd_direct_path_available);
+  bool start_ho_preparation(uint32_t target_eci, uint8_t measobj_id, bool fwd_direct_path_available);
 
   rrc::ue*                  rrc_ue  = nullptr;
   rrc*                      rrc_enb = nullptr;
@@ -103,6 +104,10 @@ private:
   class sourceenb_ho_proc_t
   {
   public:
+    struct ho_prep_result {
+      bool is_success;
+    };
+
     explicit sourceenb_ho_proc_t(rrc_mobility* ue_mobility_);
     srslte::proc_outcome_t init(const asn1::rrc::meas_id_to_add_mod_s&    measid_,
                                 const asn1::rrc::meas_obj_to_add_mod_s&   measobj_,
@@ -111,6 +116,7 @@ private:
                                 const asn1::rrc::meas_result_eutra_s&     meas_res_,
                                 uint32_t                                  target_eci_);
     srslte::proc_outcome_t step() { return srslte::proc_outcome_t::yield; }
+    srslte::proc_outcome_t react(ho_prep_result);
     static const char*     name() { return "Handover"; }
 
   private:
