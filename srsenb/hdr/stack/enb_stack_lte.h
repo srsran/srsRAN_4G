@@ -38,11 +38,12 @@
 
 #include "enb_stack_base.h"
 #include "srsenb/hdr/enb.h"
+#include "srslte/common/multiqueue.h"
 #include "srslte/interfaces/enb_interfaces.h"
 
 namespace srsenb {
 
-class enb_stack_lte final : public enb_stack_base, public stack_interface_phy_lte
+class enb_stack_lte final : public enb_stack_base, public stack_interface_phy_lte, public thread
 {
 public:
   enb_stack_lte(srslte::logger* logger_);
@@ -86,16 +87,18 @@ public:
   // Radio-Link status
   void rl_failure(uint16_t rnti) final { mac.rl_failure(rnti); }
   void rl_ok(uint16_t rnti) final { mac.rl_ok(rnti); }
-  void tti_clock() final
-  {
-    timers.step_all();
-    mac.tti_clock();
-  }
+  void tti_clock() override;
 
 private:
+  static const int STACK_MAIN_THREAD_PRIO = -1; // Use default high-priority below UHD
+  // thread loop
+  void run_thread() override;
+  void stop_impl();
+  void tti_clock_impl();
+
+  // args
   stack_args_t args    = {};
   rrc_cfg_t    rrc_cfg = {};
-  bool         started = false;
 
   srsenb::mac      mac;
   srslte::mac_pcap mac_pcap;
@@ -118,6 +121,19 @@ private:
 
   // RAT-specific interfaces
   phy_interface_stack_lte* phy = nullptr;
+
+  // state
+  bool started = false;
+  // NOTE: we use this struct instead of a std::function bc lambdas can't capture by move in C++11
+  struct task_t {
+    std::function<void(task_t*)> func;
+    srslte::unique_byte_buffer_t pdu;
+    task_t() = default;
+    explicit task_t(std::function<void(task_t*)> f_) : func(std::move(f_)) {}
+    void operator()() { func(this); }
+  };
+  srslte::multiqueue_handler<task_t> pending_tasks;
+  int                                enb_queue_id = -1, sync_queue_id = -1;
 };
 
 } // namespace srsenb

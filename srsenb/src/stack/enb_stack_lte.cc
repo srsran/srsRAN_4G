@@ -28,7 +28,9 @@ using namespace srslte;
 
 namespace srsenb {
 
-enb_stack_lte::enb_stack_lte(srslte::logger* logger_) : logger(logger_), pdcp(&pdcp_log), timers(128) {}
+enb_stack_lte::enb_stack_lte(srslte::logger* logger_) : logger(logger_), pdcp(&pdcp_log), timers(128), thread("STACK")
+{
+}
 
 enb_stack_lte::~enb_stack_lte()
 {
@@ -46,6 +48,7 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_, ph
   if (init(args_, rrc_cfg_)) {
     return SRSLTE_ERROR;
   }
+
   return SRSLTE_SUCCESS;
 }
 
@@ -127,29 +130,54 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
             &gtpu_log,
             args.embms.enable);
 
+  enb_queue_id  = pending_tasks.add_queue();
+  sync_queue_id = pending_tasks.add_queue();
+
   started = true;
+  start(STACK_MAIN_THREAD_PRIO);
 
   return SRSLTE_SUCCESS;
+}
+
+void enb_stack_lte::tti_clock()
+{
+  pending_tasks.push(sync_queue_id, task_t{[this](task_t*) { tti_clock_impl(); }});
+}
+
+void enb_stack_lte::tti_clock_impl()
+{
+  timers.step_all();
+  mac.tti_clock();
 }
 
 void enb_stack_lte::stop()
 {
   if (started) {
-    s1ap.stop();
-    gtpu.stop();
-    mac.stop();
-    usleep(50000);
-
-    rlc.stop();
-    pdcp.stop();
-    rrc.stop();
-
-    usleep(10000);
-    if (args.pcap.enable) {
-      mac_pcap.close();
-    }
-    started = false;
+    pending_tasks.push(enb_queue_id, task_t{[this](task_t*) { stop_impl(); }});
+    wait_thread_finish();
   }
+}
+
+void enb_stack_lte::stop_impl()
+{
+  // stop listening to events
+  pending_tasks.erase_queue(sync_queue_id);
+  pending_tasks.erase_queue(enb_queue_id);
+
+  s1ap.stop();
+  gtpu.stop();
+  mac.stop();
+  usleep(50000);
+
+  rlc.stop();
+  pdcp.stop();
+  rrc.stop();
+
+  usleep(10000);
+  if (args.pcap.enable) {
+    mac_pcap.close();
+  }
+  started = false;
 }
 
 bool enb_stack_lte::get_metrics(stack_metrics_t* metrics)
@@ -158,6 +186,16 @@ bool enb_stack_lte::get_metrics(stack_metrics_t* metrics)
   rrc.get_metrics(metrics->rrc);
   s1ap.get_metrics(metrics->s1ap);
   return true;
+}
+
+void enb_stack_lte::run_thread()
+{
+  while (started) {
+    task_t task{};
+    if (pending_tasks.wait_pop(&task) >= 0) {
+      task();
+    }
+  }
 }
 
 } // namespace srsenb
