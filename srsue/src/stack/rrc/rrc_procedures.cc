@@ -190,7 +190,7 @@ proc_outcome_t rrc::si_acquire_proc::step()
       Info("SIB%d acquired successfully\n", sib_index + 1);
       return proc_outcome_t::success;
     } else {
-      Error("Timeout while acquiring SIB1\n");
+      Error("Timeout while acquiring SIB%d\n", sib_index + 1);
       return proc_outcome_t::error;
     }
   } else {

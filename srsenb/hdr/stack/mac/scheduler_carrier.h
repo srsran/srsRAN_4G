@@ -150,9 +150,9 @@ public:
   // private:
   void generate_phich(tti_sched_result_t* tti_sched);
   //! Compute DL scheduler result for given TTI
-  int generate_dl_sched(tti_sched_result_t* tti_result);
+  void alloc_dl_users(tti_sched_result_t* tti_result);
   //! Compute UL scheduler result for given TTI
-  int generate_ul_sched(tti_sched_result_t* tti_sched);
+  int alloc_ul_users(tti_sched_result_t* tti_sched);
 
   // args
   sched*       sched_ptr = nullptr;

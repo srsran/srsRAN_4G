@@ -67,11 +67,11 @@ public:
   // getters
   uint32_t get_cfi() const { return current_cfix + 1; }
   void     get_allocs(alloc_result_t* vec = nullptr, pdcch_mask_t* tot_mask = nullptr, size_t idx = 0) const;
-  uint32_t nof_cces() const { return cce_size_array[current_cfix]; }
-  size_t   nof_allocs() const { return nof_dci_allocs; }
-  size_t   nof_alloc_combinations() const { return prev_end - prev_start; }
-  void     print_result(bool verbose = false) const;
-  uint32_t get_sf_idx() const { return sf_idx; }
+  uint32_t    nof_cces() const { return cce_size_array[current_cfix]; }
+  size_t      nof_allocs() const { return nof_dci_allocs; }
+  size_t      nof_alloc_combinations() const { return prev_end - prev_start; }
+  std::string result_to_string(bool verbose = false) const;
+  uint32_t    get_sf_idx() const { return sf_idx; }
 
 private:
   const static uint32_t nof_cfis = 3;

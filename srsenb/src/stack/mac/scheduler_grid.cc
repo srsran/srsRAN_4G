@@ -226,14 +226,11 @@ void pdcch_grid_t::get_allocs(alloc_result_t* vec, pdcch_mask_t* tot_mask, size_
   }
 }
 
-void pdcch_grid_t::print_result(bool verbose) const
+std::string pdcch_grid_t::result_to_string(bool verbose) const
 {
-  if (prev_start == prev_end) {
-    log_h->info("SCHED: No DCI allocations\n");
-  }
-
   std::stringstream ss;
-  ss << "SCHED: cfi=" << get_cfi() << ", " << prev_end - prev_start << " DCI allocation combinations:\n";
+  ss << "cfi=" << get_cfi() << ", mask_size=" << nof_cces() << ", " << prev_end - prev_start
+     << " DCI allocation combinations:\n";
   // get all the possible combinations of DCI allocations
   uint32_t count = 0;
   for (size_t i = prev_start; i < prev_end; ++i) {
@@ -256,7 +253,7 @@ void pdcch_grid_t::print_result(bool verbose) const
     count++;
   }
 
-  log_h->info("%s", ss.str().c_str());
+  return ss.str();
 }
 
 /*******************************************************
@@ -304,6 +301,13 @@ alloc_outcome_t tti_grid_t::alloc_dl(uint32_t aggr_lvl, alloc_type_t alloc_type,
 
   // Allocate DCI in PDCCH
   if (not pdcch_alloc.alloc_dci(alloc_type, aggr_lvl, user)) {
+    if (log_h->get_level() == srslte::LOG_LEVEL_DEBUG) {
+      if (user != nullptr) {
+        log_h->debug("No space in PDCCH for rnti=0x%x DL tx. Current PDCCH allocation: %s\n",
+                     user->get_rnti(),
+                     pdcch_alloc.result_to_string(true).c_str());
+      }
+    }
     return alloc_outcome_t::DCI_COLLISION;
   }
 
@@ -362,6 +366,11 @@ alloc_outcome_t tti_grid_t::alloc_ul_data(sched_ue* user, ul_harq_proc::ul_alloc
     uint32_t aggr_idx =
         user->get_aggr_level(srslte_dci_format_sizeof(&cell_cfg->cell, nullptr, nullptr, SRSLTE_DCI_FORMAT0));
     if (not pdcch_alloc.alloc_dci(alloc_type_t::UL_DATA, aggr_idx, user)) {
+      if (log_h->get_level() == srslte::LOG_LEVEL_DEBUG) {
+        log_h->debug("No space in PDCCH for rnti=0x%x UL tx. Current PDCCH allocation: %s\n",
+                     user->get_rnti(),
+                     pdcch_alloc.result_to_string(true).c_str());
+      }
       return alloc_outcome_t::DCI_COLLISION;
     }
   }

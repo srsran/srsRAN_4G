@@ -501,7 +501,7 @@ void sched::carrier_sched::tti_sched_result_t::generate_dcis()
 {
   /* Pick one of the possible DCI masks */
   pdcch_grid_t::alloc_result_t dci_result;
-  //  tti_alloc.get_pdcch_grid().print_result();
+  //  tti_alloc.get_pdcch_grid().result_to_string();
   tti_alloc.get_pdcch_grid().get_allocs(&dci_result, &pdcch_mask);
 
   /* Register final CFI */
@@ -897,15 +897,30 @@ sched::carrier_sched::tti_sched_result_t* sched::carrier_sched::generate_tti_res
     /* Schedule PHICH */
     generate_phich(tti_sched);
 
-    /* Schedule DL */
+    /* Schedule DL control data */
     if (tti_dl_mask[tti_sched->get_tti_tx_dl() % tti_dl_mask.size()] == 0) {
-      generate_dl_sched(tti_sched);
+      /* Schedule Broadcast data (SIB and paging) */
+      if (bc_sched_ptr != nullptr) {
+        bc_sched_ptr->dl_sched(tti_sched);
+      }
+
+      /* Schedule RAR */
+      ra_sched_ptr->dl_sched(tti_sched);
     }
 
-    /* Schedule UL */
-    generate_ul_sched(tti_sched);
+    /* Prioritize PDCCH scheduling for DL and UL data in a RoundRobin fashion */
+    if ((tti_rx % 2) == 0) {
+      alloc_ul_users(tti_sched);
+    }
 
-    /* Generate DCI */
+    /* Schedule DL user data */
+    alloc_dl_users(tti_sched);
+
+    if ((tti_rx % 2) == 1) {
+      alloc_ul_users(tti_sched);
+    }
+
+    /* Select the winner DCI allocation combination */
     tti_sched->generate_dcis();
 
     /* reset PIDs with pending data or blocked */
@@ -945,18 +960,12 @@ void sched::carrier_sched::generate_phich(tti_sched_result_t* tti_sched)
   tti_sched->ul_sched_result.nof_phich_elems = nof_phich_elems;
 }
 
-// Compute DL scheduler result
-int sched::carrier_sched::generate_dl_sched(tti_sched_result_t* tti_result)
+void sched::carrier_sched::alloc_dl_users(sched::carrier_sched::tti_sched_result_t* tti_result)
 {
-  /* Schedule Broadcast data (SIB and paging) */
-  if (bc_sched_ptr != nullptr) {
-    bc_sched_ptr->dl_sched(tti_result);
+  if (tti_dl_mask[tti_result->get_tti_tx_dl() % tti_dl_mask.size()] != 0) {
+    return;
   }
 
-  /* Schedule RAR */
-  ra_sched_ptr->dl_sched(tti_result);
-
-  /* Schedule pending RLC data */
   // NOTE: In case of 6 PRBs, do not transmit if there is going to be a PRACH in the UL to avoid collisions
   if (cfg->cell.nof_prb == 6) {
     uint32_t tti_rx_ack   = TTI_RX_ACK(tti_result->get_tti_rx());
@@ -969,16 +978,14 @@ int sched::carrier_sched::generate_dl_sched(tti_sched_result_t* tti_result)
     }
   }
 
-  // call scheduler metric to fill RB grid
+  // call DL scheduler metric to fill RB grid
   dl_metric->sched_users(sched_ptr->ue_db, tti_result);
-
-  return LIBLTE_SUCCESS;
 }
 
-int sched::carrier_sched::generate_ul_sched(sched::carrier_sched::tti_sched_result_t* tti_result)
+int sched::carrier_sched::alloc_ul_users(sched::carrier_sched::tti_sched_result_t* tti_sched)
 {
-  uint32_t   tti_tx_ul = tti_result->get_tti_tx_ul();
-  prbmask_t& ul_mask   = tti_result->get_ul_mask();
+  uint32_t   tti_tx_ul = tti_sched->get_tti_tx_ul();
+  prbmask_t& ul_mask   = tti_sched->get_ul_mask();
 
   /* reserve PRBs for PRACH */
   if (srslte_prach_tti_opportunity_config_fdd(cfg->prach_config, tti_tx_ul, -1)) {
@@ -987,7 +994,7 @@ int sched::carrier_sched::generate_ul_sched(sched::carrier_sched::tti_sched_resu
   }
 
   /* Allocate Msg3 if there's a pending RAR */
-  ra_sched_ptr->ul_sched(tti_result);
+  ra_sched_ptr->ul_sched(tti_sched);
 
   /* reserve PRBs for PUCCH */
   if (cfg->cell.nof_prb != 6 and (ul_mask & pucch_mask).any()) {
@@ -998,7 +1005,7 @@ int sched::carrier_sched::generate_ul_sched(sched::carrier_sched::tti_sched_resu
   ul_mask |= pucch_mask;
 
   /* Call scheduler for UL data */
-  ul_metric->sched_users(sched_ptr->ue_db, tti_result);
+  ul_metric->sched_users(sched_ptr->ue_db, tti_sched);
 
   /* Update pending data counters after this TTI */
   for (auto& user : sched_ptr->ue_db) {
