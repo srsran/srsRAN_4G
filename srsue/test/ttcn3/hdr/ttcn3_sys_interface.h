@@ -216,11 +216,12 @@ private:
           uint32_t lcid = id["Srb"].GetInt();
           if (lcid > 0) {
             log->info("Configure SRB%d\n", lcid);
-            pdcp_config_t pdcp_cfg = {.bearer_id    = static_cast<uint8_t>(lcid),
-                                      .rb_type      = PDCP_RB_IS_SRB,
-                                      .tx_direction = SECURITY_DIRECTION_DOWNLINK,
-                                      .rx_direction = SECURITY_DIRECTION_UPLINK,
-                                      .sn_len       = PDCP_SN_LEN_5};
+            pdcp_config_t pdcp_cfg = {.bearer_id     = static_cast<uint8_t>(lcid),
+                                      .rb_type       = PDCP_RB_IS_SRB,
+                                      .tx_direction  = SECURITY_DIRECTION_DOWNLINK,
+                                      .rx_direction  = SECURITY_DIRECTION_UPLINK,
+                                      .sn_len        = PDCP_SN_LEN_5,
+                                      .t_reorderding = srslte::pdcp_t_reordering_t::ms500};
             syssim->add_srb(lcid, pdcp_cfg);
           }
         } else if (config.HasMember("Release")) {

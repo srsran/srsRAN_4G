@@ -218,12 +218,12 @@ void rrc::add_user(uint16_t rnti)
   }
 
   if (rnti == SRSLTE_MRNTI) {
-    srslte::pdcp_config_t cfg = {.bearer_id     = 1,
-                                 .rb_type       = srslte::PDCP_RB_IS_DRB,
-                                 .tx_direction  = srslte::SECURITY_DIRECTION_DOWNLINK,
-                                 .rx_direction  = srslte::SECURITY_DIRECTION_UPLINK,
-                                 .sn_len        = srslte::PDCP_SN_LEN_12,
-                                 .t_reorderding = srslte::pdcp_t_reordering_t::ms500};
+    srslte::pdcp_config_t pdcp_cfg = {.bearer_id     = 1,
+                                      .rb_type       = srslte::PDCP_RB_IS_DRB,
+                                      .tx_direction  = srslte::SECURITY_DIRECTION_DOWNLINK,
+                                      .rx_direction  = srslte::SECURITY_DIRECTION_UPLINK,
+                                      .sn_len        = srslte::PDCP_SN_LEN_12,
+                                      .t_reorderding = srslte::pdcp_t_reordering_t::ms500};
 
     uint32_t teid_in = 1;
 
@@ -231,7 +231,7 @@ void rrc::add_user(uint16_t rnti)
          i++) {
       uint32_t lcid = mcch.msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[0].mbms_session_info_list_r9[i].lc_ch_id_r9;
       rlc->add_bearer_mrb(SRSLTE_MRNTI, lcid);
-      pdcp->add_bearer(SRSLTE_MRNTI, lcid, cfg_);
+      pdcp->add_bearer(SRSLTE_MRNTI, lcid, pdcp_cfg);
       gtpu->add_bearer(SRSLTE_MRNTI, lcid, 1, 1, &teid_in);
     }
   }
