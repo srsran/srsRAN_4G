@@ -89,7 +89,7 @@ private:
 
 };
 
-class prach_worker_pool:
+class prach_worker_pool
 {
 private:
   std::vector<std::unique_ptr<prach_worker> > prach_vec;
