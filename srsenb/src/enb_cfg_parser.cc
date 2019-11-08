@@ -1214,27 +1214,43 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
   rrc_cfg->cell_list.resize(root.getLength());
   for (uint32_t n = 0; n < rrc_cfg->cell_list.size(); ++n) {
     cell_cfg_t& cell_cfg = rrc_cfg->cell_list[n];
+    auto&       cellroot = root[n];
 
-    parse_opt_field(cell_cfg.rf_port, root[n], "rf_port");
-    parse_default_field(cell_cfg.cell_id, root[n], "cell_id", self_cellid, cell_id_parser);
-    parse_default_field(cell_cfg.tac, root[n], "tac", args->stack.s1ap.tac);
-    parse_default_field(cell_cfg.pci, root[n], "pci", args->enb.pci);
+    parse_opt_field(cell_cfg.rf_port, cellroot, "rf_port");
+    parse_default_field(cell_cfg.cell_id, cellroot, "cell_id", self_cellid, cell_id_parser);
+    parse_default_field(cell_cfg.tac, cellroot, "tac", args->stack.s1ap.tac);
+    parse_default_field(cell_cfg.pci, cellroot, "pci", args->enb.pci);
     parse_default_field(
-        cell_cfg.root_seq_idx, root[n], "root_seq_idx", rrc_cfg->sibs[1].sib2().rr_cfg_common.prach_cfg.root_seq_idx);
-    parse_default_field(cell_cfg.dl_earfcn, root[n], "dl_earfcn", args->enb.dl_earfcn);
-    parse_default_field(cell_cfg.ul_earfcn, root[n], "ul_earfcn", args->enb.ul_earfcn);
+        cell_cfg.root_seq_idx, cellroot, "root_seq_idx", rrc_cfg->sibs[1].sib2().rr_cfg_common.prach_cfg.root_seq_idx);
+    parse_default_field(cell_cfg.dl_earfcn, cellroot, "dl_earfcn", args->enb.dl_earfcn);
+    parse_default_field(cell_cfg.ul_earfcn, cellroot, "ul_earfcn", args->enb.ul_earfcn);
 
-    HANDLEPARSERCODE(parse_meas_cell_list(&rrc_cfg->meas_cfg, root[n]["meas_cell_list"]));
-    HANDLEPARSERCODE(parse_meas_report_desc(&rrc_cfg->meas_cfg, root[n]["meas_report_desc"]));
+    HANDLEPARSERCODE(parse_meas_cell_list(&rrc_cfg->meas_cfg, cellroot["meas_cell_list"]));
+    HANDLEPARSERCODE(parse_meas_report_desc(&rrc_cfg->meas_cfg, cellroot["meas_report_desc"]));
 
-    cell_cfg.scell_list.resize(root["scell_list"].getLength());
+    cell_cfg.scell_list.resize(cellroot["scell_list"].getLength());
     for (uint32_t i = 0; i < cell_cfg.scell_list.size(); ++i) {
       auto& scell     = cell_cfg.scell_list[i];
-      auto& scellroot = root["scell_list"][i];
+      auto& scellroot = cellroot["scell_list"][i];
       cell_id_parser(scell.cell_id, scellroot["cell_id"]);
       scell.cross_carrier_sched = (bool)scellroot["cross_carrier_scheduling"];
       cell_id_parser(scell.sched_cell_id, scellroot["scheduling_cell_id"]);
       scell.ul_allowed = (bool)scellroot["ul_allowed"];
+    }
+  }
+
+  // Configuration check
+  for (auto it = rrc_cfg->cell_list.begin(); it != rrc_cfg->cell_list.end(); it++) {
+    for (auto it2 = it + 1; it2 != rrc_cfg->cell_list.end(); it2++) {
+      // Check RF port is not repeated
+      if (it->rf_port == it2->rf_port) {
+        ERROR("Repeated RF port for multiple cells\n");
+      }
+
+      // Check cell ID is not repeated
+      if (it->cell_id == it2->cell_id) {
+        ERROR("Repeated Cell identifier\n");
+      }
     }
   }
 
@@ -1243,7 +1259,7 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
 
 int cell_list_section::parse(libconfig::Setting& root)
 {
-  HANDLEPARSERCODE(parse_cell_list(args, rrc_cfg, root["cell_list"]));
+  HANDLEPARSERCODE(parse_cell_list(args, rrc_cfg, root));
   return 0;
 }
 
