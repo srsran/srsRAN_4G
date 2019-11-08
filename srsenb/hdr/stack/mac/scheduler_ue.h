@@ -42,7 +42,7 @@ class sched_ue
 
 public:
   // used by sched_metric to store the pdsch/pusch allocations
-  bool has_pucch;
+  bool has_pucch = false;
 
   typedef struct {
     uint32_t cce_start[4][6];
@@ -119,14 +119,23 @@ public:
   void set_sr();
   void unset_sr();
 
-  void       set_needs_ta_cmd(uint32_t nof_ta_cmd);
+  void set_needs_ta_cmd(uint32_t nof_ta_cmd);
 
-  int generate_format1(
-      dl_harq_proc* h, sched_interface::dl_sched_data_t* data, uint32_t tti, uint32_t cfi, const rbgmask_t& user_mask);
-  int generate_format2a(
-      dl_harq_proc* h, sched_interface::dl_sched_data_t* data, uint32_t tti, uint32_t cfi, const rbgmask_t& user_mask);
-  int generate_format2(
-      dl_harq_proc* h, sched_interface::dl_sched_data_t* data, uint32_t tti, uint32_t cfi, const rbgmask_t& user_mask);
+  int generate_format1(dl_harq_proc*                     h,
+                       sched_interface::dl_sched_data_t* data,
+                       uint32_t                          tti,
+                       uint32_t                          cfi,
+                       const rbgmask_t&                  user_mask);
+  int generate_format2a(dl_harq_proc*                     h,
+                        sched_interface::dl_sched_data_t* data,
+                        uint32_t                          tti,
+                        uint32_t                          cfi,
+                        const rbgmask_t&                  user_mask);
+  int generate_format2(dl_harq_proc*                     h,
+                       sched_interface::dl_sched_data_t* data,
+                       uint32_t                          tti,
+                       uint32_t                          cfi,
+                       const rbgmask_t&                  user_mask);
   int generate_format0(sched_interface::ul_sched_data_t* data,
                        uint32_t                          tti,
                        ul_harq_proc::ul_alloc_t          alloc,
@@ -156,11 +165,16 @@ private:
   int  alloc_pdu(int tbs, sched_interface::dl_sched_pdu_t* pdu);
 
   static uint32_t format1_count_prb(uint32_t bitmask, uint32_t cell_nof_prb);
-  static int      cqi_to_tbs(
-           uint32_t cqi, uint32_t nof_prb, uint32_t nof_re, uint32_t max_mcs, uint32_t max_Qm, bool is_ul, uint32_t* mcs);
-  int alloc_tbs_dl(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int* mcs);
-  int alloc_tbs_ul(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int* mcs);
-  int alloc_tbs(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, bool is_ul, int* mcs);
+  static int      cqi_to_tbs(uint32_t  cqi,
+                             uint32_t  nof_prb,
+                             uint32_t  nof_re,
+                             uint32_t  max_mcs,
+                             uint32_t  max_Qm,
+                             bool      is_ul,
+                             uint32_t* mcs);
+  int             alloc_tbs_dl(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int* mcs);
+  int             alloc_tbs_ul(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, int* mcs);
+  int             alloc_tbs(uint32_t nof_prb, uint32_t nof_re, uint32_t req_bytes, bool is_ul, int* mcs);
 
   static bool bearer_is_ul(ue_bearer_t* lch);
   static bool bearer_is_dl(ue_bearer_t* lch);
@@ -172,55 +186,58 @@ private:
 
   bool needs_cqi_unlocked(uint32_t tti, bool will_send = false);
 
-  int generate_format2a_unlocked(
-      dl_harq_proc* h, sched_interface::dl_sched_data_t* data, uint32_t tti, uint32_t cfi, const rbgmask_t& user_mask);
+  int generate_format2a_unlocked(dl_harq_proc*                     h,
+                                 sched_interface::dl_sched_data_t* data,
+                                 uint32_t                          tti,
+                                 uint32_t                          cfi,
+                                 const rbgmask_t&                  user_mask);
 
   bool is_first_dl_tx();
 
-  sched_interface::ue_cfg_t cfg;
-  srslte_cell_t             cell;
-  srslte::log*              log_h;
+  sched_interface::ue_cfg_t cfg   = {};
+  srslte_cell_t             cell  = {};
+  srslte::log*              log_h = nullptr;
 
   std::mutex mutex;
 
   /* Buffer states */
-  bool        sr;
-  int         buf_mac;
-  int         buf_ul;
-  ue_bearer_t lch[sched_interface::MAX_LC];
+  bool                                             sr      = false;
+  int                                              buf_mac = 0;
+  int                                              buf_ul  = 0;
+  std::array<ue_bearer_t, sched_interface::MAX_LC> lch     = {};
 
-  int      power_headroom;
-  uint32_t dl_ri;
-  uint32_t dl_ri_tti;
-  uint32_t dl_pmi;
-  uint32_t dl_pmi_tti;
-  uint32_t dl_cqi;
-  uint32_t dl_cqi_tti;
-  uint32_t cqi_request_tti;
-  uint32_t ul_cqi;
-  uint32_t ul_cqi_tti;
-  uint16_t rnti;
-  uint32_t max_mcs_dl;
-  uint32_t max_aggr_level;
-  uint32_t max_mcs_ul;
-  uint32_t max_msg3retx;
-  int      fixed_mcs_ul;
-  int      fixed_mcs_dl;
-  uint32_t P;
+  int      power_headroom  = 0;
+  uint32_t dl_ri           = 0;
+  uint32_t dl_ri_tti       = 0;
+  uint32_t dl_pmi          = 0;
+  uint32_t dl_pmi_tti      = 0;
+  uint32_t dl_cqi          = 0;
+  uint32_t dl_cqi_tti      = 0;
+  uint32_t cqi_request_tti = 0;
+  uint32_t ul_cqi          = 0;
+  uint32_t ul_cqi_tti      = 0;
+  uint16_t rnti            = 0;
+  uint32_t max_mcs_dl      = 0;
+  uint32_t max_aggr_level  = 0;
+  uint32_t max_mcs_ul      = 0;
+  uint32_t max_msg3retx    = 0;
+  int      fixed_mcs_ul    = 0;
+  int      fixed_mcs_dl    = 0;
+  uint32_t P               = 0;
 
-  uint32_t nof_ta_cmd;
+  uint32_t nof_ta_cmd = 0;
 
-  int next_tpc_pusch;
-  int next_tpc_pucch;
+  int next_tpc_pusch = 0;
+  int next_tpc_pucch = 0;
 
   // Allowed DCI locations per CFI and per subframe
-  sched_dci_cce_t dci_locations[3][10];
+  std::array<std::array<sched_dci_cce_t, 10>, 3> dci_locations = {};
 
-  const static int SCHED_MAX_HARQ_PROC = SRSLTE_FDD_NOF_HARQ;
-  dl_harq_proc     dl_harq[SCHED_MAX_HARQ_PROC];
-  ul_harq_proc     ul_harq[SCHED_MAX_HARQ_PROC];
+  const static int                              SCHED_MAX_HARQ_PROC = SRSLTE_FDD_NOF_HARQ;
+  std::array<dl_harq_proc, SCHED_MAX_HARQ_PROC> dl_harq             = {};
+  std::array<ul_harq_proc, SCHED_MAX_HARQ_PROC> ul_harq             = {};
 
-  bool                                   phy_config_dedicated_enabled;
+  bool                                   phy_config_dedicated_enabled = false;
   asn1::rrc::phys_cfg_ded_s::ant_info_c_ dl_ant_info;
 };
 } // namespace srsenb

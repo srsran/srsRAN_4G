@@ -43,7 +43,9 @@ struct rbg_range_t {
 };
 
 // Range of PRBs
-struct prb_range_t {
+class prb_range_t
+{
+public:
   uint32_t prb_start = 0, prb_end = 0;
   prb_range_t() = default;
   prb_range_t(uint32_t s, uint32_t e) : prb_start(s), prb_end(e) {}

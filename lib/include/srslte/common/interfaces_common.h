@@ -60,7 +60,7 @@ typedef struct {
 class srslte_gw_config_t
 {
 public:
-  srslte_gw_config_t(uint32_t lcid_ = 0) : lcid(lcid_) {}
+  explicit srslte_gw_config_t(uint32_t lcid_ = 0) : lcid(lcid_) {}
 
   uint32_t lcid;
 };

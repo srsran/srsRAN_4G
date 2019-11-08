@@ -30,8 +30,8 @@
 #include "srslte/interfaces/sched_interface.h"
 #include <map>
 #include <mutex>
-#include <queue>
 #include <pthread.h>
+#include <queue>
 
 namespace srsenb {
 
@@ -142,8 +142,11 @@ public:
     const static int rv_idx[4] = {0, 2, 3, 1};
     return rv_idx[retx_idx % 4];
   }
-  static void generate_cce_location(
-      srslte_regs_t* regs, sched_ue::sched_dci_cce_t* location, uint32_t cfi, uint32_t sf_idx = 0, uint16_t rnti = 0);
+  static void     generate_cce_location(srslte_regs_t*             regs,
+                                        sched_ue::sched_dci_cce_t* location,
+                                        uint32_t                   cfi,
+                                        uint32_t                   sf_idx = 0,
+                                        uint16_t                   rnti   = 0);
   static uint32_t aggr_level(uint32_t aggr_idx) { return 1u << aggr_idx; }
 
   class carrier_sched;

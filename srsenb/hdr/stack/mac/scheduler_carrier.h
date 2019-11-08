@@ -115,12 +115,16 @@ public:
                              ul_harq_proc::ul_alloc_t               alloc,
                              tti_sched_result_t::ul_alloc_t::type_t alloc_type,
                              uint32_t                               msg3 = 0);
-    int             generate_format1a(
-                    uint32_t rb_start, uint32_t l_crb, uint32_t tbs, uint32_t rv, uint16_t rnti, srslte_dci_dl_t* dci);
-    void set_bc_sched_result(const pdcch_grid_t::alloc_result_t& dci_result);
-    void set_rar_sched_result(const pdcch_grid_t::alloc_result_t& dci_result);
-    void set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_result);
-    void set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_result);
+    int             generate_format1a(uint32_t         rb_start,
+                                      uint32_t         l_crb,
+                                      uint32_t         tbs,
+                                      uint32_t         rv,
+                                      uint16_t         rnti,
+                                      srslte_dci_dl_t* dci);
+    void            set_bc_sched_result(const pdcch_grid_t::alloc_result_t& dci_result);
+    void            set_rar_sched_result(const pdcch_grid_t::alloc_result_t& dci_result);
+    void            set_dl_data_sched_result(const pdcch_grid_t::alloc_result_t& dci_result);
+    void            set_ul_sched_result(const pdcch_grid_t::alloc_result_t& dci_result);
 
     // consts
     carrier_sched*  parent_carrier = nullptr;
@@ -210,8 +214,8 @@ private:
 class ra_sched
 {
 public:
-  using dl_sched_rar_info_t = sched_interface::dl_sched_rar_info_t;
-  using dl_sched_rar_t = sched_interface::dl_sched_rar_t;
+  using dl_sched_rar_info_t  = sched_interface::dl_sched_rar_info_t;
+  using dl_sched_rar_t       = sched_interface::dl_sched_rar_t;
   using dl_sched_rar_grant_t = sched_interface::dl_sched_rar_grant_t;
   struct pending_msg3_t {
     bool     enabled = false;
@@ -230,22 +234,15 @@ public:
   const pending_msg3_t& find_pending_msg3(uint32_t tti);
 
 private:
-  struct sched_rar_t {
-    int      buf_rar = 0;
-    uint16_t rnti    = 0;
-    uint32_t ra_id   = 0;
-    uint32_t rar_tti = 0;
-  };
-
   // args
   srslte::log*                  log_h = nullptr;
   sched::cell_cfg_t*            cfg;
   std::map<uint16_t, sched_ue>* ue_db = nullptr;
 
-  std::queue<dl_sched_rar_info_t> pending_rars;
-  std::array<pending_msg3_t, TTIMOD_SZ>          pending_msg3;
-  uint32_t                                       tti_tx_dl      = 0;
-  uint32_t                                       rar_aggr_level = 2;
+  std::queue<dl_sched_rar_info_t>       pending_rars;
+  std::array<pending_msg3_t, TTIMOD_SZ> pending_msg3;
+  uint32_t                              tti_tx_dl      = 0;
+  uint32_t                              rar_aggr_level = 2;
 };
 
 } // namespace srsenb

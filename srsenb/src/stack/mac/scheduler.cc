@@ -217,7 +217,8 @@ bool sched::ue_exists(uint16_t rnti)
   return ue_db_access(rnti, [](sched_ue& ue) {}) >= 0;
 }
 
-void sched::ue_needs_ta_cmd(uint16_t rnti, uint32_t nof_ta_cmd) {
+void sched::ue_needs_ta_cmd(uint16_t rnti, uint32_t nof_ta_cmd)
+{
   pthread_rwlock_rdlock(&rwlock);
   if (ue_db.count(rnti)) {
     ue_db[rnti].set_needs_ta_cmd(nof_ta_cmd);
@@ -395,8 +396,11 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
  *
  *******************************************************/
 
-void sched::generate_cce_location(
-    srslte_regs_t* regs_, sched_ue::sched_dci_cce_t* location, uint32_t cfi, uint32_t sf_idx, uint16_t rnti)
+void sched::generate_cce_location(srslte_regs_t*             regs_,
+                                  sched_ue::sched_dci_cce_t* location,
+                                  uint32_t                   cfi,
+                                  uint32_t                   sf_idx,
+                                  uint16_t                   rnti)
 {
   bzero(location, sizeof(sched_ue::sched_dci_cce_t));
 

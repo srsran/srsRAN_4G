@@ -46,7 +46,7 @@ struct rrc_cfg_sr_t {
   uint32_t                                                   nof_subframes;
 };
 
-typedef enum { RRC_CFG_CQI_MODE_PERIODIC = 0, RRC_CFG_CQI_MODE_APERIODIC, RRC_CFG_CQI_MODE_N_ITEMS } rrc_cfg_cqi_mode_t;
+enum rrc_cfg_cqi_mode_t { RRC_CFG_CQI_MODE_PERIODIC = 0, RRC_CFG_CQI_MODE_APERIODIC, RRC_CFG_CQI_MODE_N_ITEMS };
 
 static const char rrc_cfg_cqi_mode_text[RRC_CFG_CQI_MODE_N_ITEMS][20] = {"periodic", "aperiodic"};
 
@@ -141,30 +141,29 @@ public:
   void get_metrics(rrc_metrics_t& m);
 
   // rrc_interface_mac
-  void rl_failure(uint16_t rnti);
-  void add_user(uint16_t rnti);
-  void upd_user(uint16_t new_rnti, uint16_t old_rnti);
-  void set_activity_user(uint16_t rnti);
-  bool is_paging_opportunity(uint32_t tti, uint32_t* payload_len);
+  void rl_failure(uint16_t rnti) override;
+  void add_user(uint16_t rnti) override;
+  void upd_user(uint16_t new_rnti, uint16_t old_rnti) override;
+  void set_activity_user(uint16_t rnti) override;
+  bool is_paging_opportunity(uint32_t tti, uint32_t* payload_len) override;
 
   // rrc_interface_rlc
-  void read_pdu_bcch_dlsch(uint32_t sib_idx, uint8_t* payload);
-  void read_pdu_pcch(uint8_t* payload, uint32_t buffer_size);
-  void max_retx_attempted(uint16_t rnti);
+  void read_pdu_bcch_dlsch(uint32_t sib_idx, uint8_t* payload) override;
+  void read_pdu_pcch(uint8_t* payload, uint32_t buffer_size) override;
+  void max_retx_attempted(uint16_t rnti) override;
 
   // rrc_interface_s1ap
-  void write_dl_info(uint16_t rnti, srslte::unique_byte_buffer_t sdu);
-  void release_complete(uint16_t rnti);
-  bool setup_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT* msg);
-  bool modify_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_UECONTEXTMODIFICATIONREQUEST_STRUCT* msg);
-  bool setup_ue_erabs(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPREQUEST_STRUCT* msg);
-  bool release_erabs(uint32_t rnti);
-  void add_paging_id(uint32_t ueid, LIBLTE_S1AP_UEPAGINGID_STRUCT UEPagingID);
+  void write_dl_info(uint16_t rnti, srslte::unique_byte_buffer_t sdu) override;
+  void release_complete(uint16_t rnti) override;
+  bool setup_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT* msg) override;
+  bool modify_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_UECONTEXTMODIFICATIONREQUEST_STRUCT* msg) override;
+  bool setup_ue_erabs(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPREQUEST_STRUCT* msg) override;
+  bool release_erabs(uint32_t rnti) override;
+  void add_paging_id(uint32_t ueid, LIBLTE_S1AP_UEPAGINGID_STRUCT UEPagingID) override;
 
   // rrc_interface_pdcp
-  void write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu);
+  void write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu) override;
 
-  void     parse_sibs();
   uint32_t get_nof_users();
 
   // logging
@@ -180,16 +179,16 @@ public:
   };
   void set_connect_notifer(connect_notifier* cnotifier);
 
-  class activity_monitor : public thread
+  class activity_monitor final : public thread
   {
   public:
-    activity_monitor(rrc* parent_);
+    explicit activity_monitor(rrc* parent_);
     void stop();
 
   private:
     rrc* parent;
     bool running;
-    void run_thread();
+    void run_thread() override;
   };
 
   class ue
@@ -261,12 +260,12 @@ public:
     uint16_t rnti;
     rrc*     parent;
 
-    bool connect_notified;
+    bool connect_notified = false;
 
-    bool is_csfb;
+    bool is_csfb = false;
 
   private:
-    srslte::byte_buffer_pool* pool;
+    srslte::byte_buffer_pool* pool = nullptr;
     struct timeval            t_last_activity;
     struct timeval            t_ue_init;
 
@@ -274,13 +273,13 @@ public:
     std::unique_ptr<rrc_mobility>    mobility_handler;
 
     // S-TMSI for this UE
-    bool     has_tmsi;
-    uint32_t m_tmsi;
-    uint8_t  mmec;
+    bool     has_tmsi = false;
+    uint32_t m_tmsi   = 0;
+    uint8_t  mmec     = 0;
 
-    uint32_t    rlf_cnt;
-    uint8_t     transaction_id;
-    rrc_state_t state;
+    uint32_t    rlf_cnt        = 0;
+    uint8_t     transaction_id = 0;
+    rrc_state_t state          = RRC_STATE_IDLE;
 
     std::map<uint32_t, asn1::rrc::srb_to_add_mod_s> srbs;
     std::map<uint32_t, asn1::rrc::drb_to_add_mod_s> drbs;
@@ -306,18 +305,18 @@ public:
       uint32_t                                   teid_in;
     } erab_t;
     std::map<uint8_t, erab_t> erabs;
-    int                       sr_sched_sf_idx;
-    int                       sr_sched_prb_idx;
-    bool                      sr_allocated;
-    uint32_t                  sr_N_pucch;
-    uint32_t                  sr_I;
-    uint32_t                  cqi_pucch;
-    uint32_t                  cqi_idx;
-    bool                      cqi_allocated;
-    int                       cqi_sched_sf_idx;
-    int                       cqi_sched_prb_idx;
+    int                       sr_sched_sf_idx   = 0;
+    int                       sr_sched_prb_idx  = 0;
+    bool                      sr_allocated      = false;
+    uint32_t                  sr_N_pucch        = 0;
+    uint32_t                  sr_I              = 0;
+    uint32_t                  cqi_pucch         = 0;
+    uint32_t                  cqi_idx           = 0;
+    bool                      cqi_allocated     = false;
+    int                       cqi_sched_sf_idx  = 0;
+    int                       cqi_sched_prb_idx = 0;
     int                       get_drbid_config(asn1::rrc::drb_to_add_mod_s* drb, int drbid);
-    bool                      nas_pending;
+    bool                      nas_pending = false;
     srslte::byte_buffer_t     erab_info;
   };
 
@@ -375,7 +374,7 @@ private:
   const static uint32_t LCID_RLF_USER = 0xffff0003;
   const static uint32_t LCID_ACT_USER = 0xffff0004;
 
-  bool                         running;
+  bool                         running         = false;
   static const int             RRC_THREAD_PRIO = 65;
   srslte::block_queue<rrc_pdu> rx_pdu_queue;
 
@@ -386,7 +385,7 @@ private:
   sr_sched_t             sr_sched;
   sr_sched_t             cqi_sched;
   asn1::rrc::mcch_msg_s  mcch;
-  bool                   enable_mbms;
+  bool                   enable_mbms = false;
   rrc_cfg_t              cfg;
   uint32_t               nof_si_messages;
   asn1::rrc::sib_type2_s sib2;

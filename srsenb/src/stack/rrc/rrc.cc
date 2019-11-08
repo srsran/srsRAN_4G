@@ -29,8 +29,8 @@
 #include "srslte/interfaces/sched_interface.h"
 #include "srslte/srslte.h"
 
-using srslte::byte_buffer_t;
 using srslte::bit_buffer_t;
+using srslte::byte_buffer_t;
 using srslte::uint32_to_uint8;
 using srslte::uint8_to_uint32;
 
@@ -38,19 +38,19 @@ using namespace asn1::rrc;
 
 namespace srsenb {
 
-rrc::rrc() : act_monitor(this), cnotifier(NULL), running(false), nof_si_messages(0), thread("RRC")
+rrc::rrc() : act_monitor(this), cnotifier(nullptr), nof_si_messages(0), thread("RRC")
 {
   users.clear();
   pending_paging.clear();
 
-  pool    = NULL;
-  phy     = NULL;
-  mac     = NULL;
-  rlc     = NULL;
-  pdcp    = NULL;
-  gtpu    = NULL;
-  s1ap    = NULL;
-  rrc_log = NULL;
+  pool    = nullptr;
+  phy     = nullptr;
+  mac     = nullptr;
+  rlc     = nullptr;
+  pdcp    = nullptr;
+  gtpu    = nullptr;
+  s1ap    = nullptr;
+  rrc_log = nullptr;
 
   bzero(&sr_sched, sizeof(sr_sched));
   bzero(&cqi_sched, sizeof(cqi_sched));
@@ -71,14 +71,14 @@ void rrc::init(rrc_cfg_t*               cfg_,
                gtpu_interface_rrc*      gtpu_,
                srslte::log*             log_rrc)
 {
-  phy     = phy_; 
-  mac     = mac_; 
-  rlc     = rlc_; 
-  pdcp    = pdcp_; 
-  gtpu    = gtpu_;
-  s1ap    = s1ap_; 
-  rrc_log = log_rrc;
-  cnotifier = NULL; 
+  phy       = phy_;
+  mac       = mac_;
+  rlc       = rlc_;
+  pdcp      = pdcp_;
+  gtpu      = gtpu_;
+  s1ap      = s1ap_;
+  rrc_log   = log_rrc;
+  cnotifier = nullptr;
 
   running = false;
   pool    = srslte::byte_buffer_pool::get_instance();
@@ -94,8 +94,8 @@ void rrc::init(rrc_cfg_t*               cfg_,
   config_mac();
   enb_mobility_cfg.reset(new mobility_cfg(&cfg, log_rrc));
 
-  pthread_mutex_init(&user_mutex, NULL);
-  pthread_mutex_init(&paging_mutex, NULL);
+  pthread_mutex_init(&user_mutex, nullptr);
+  pthread_mutex_init(&paging_mutex, nullptr);
 
   act_monitor.start(RRC_THREAD_PRIO);
   bzero(&sr_sched, sizeof(sr_sched_t));
@@ -110,9 +110,9 @@ void rrc::set_connect_notifer(connect_notifier* cnotifier_)
 
 void rrc::stop()
 {
-  if(running) {
-    running = false;
-    rrc_pdu p = {0, LCID_EXIT, NULL};
+  if (running) {
+    running   = false;
+    rrc_pdu p = {0, LCID_EXIT, nullptr};
     rx_pdu_queue.push(std::move(p));
     wait_thread_finish();
   }
@@ -124,21 +124,20 @@ void rrc::stop()
   pthread_mutex_destroy(&paging_mutex);
 }
 
-
 /*******************************************************************************
   Public functions
 
-  All public functions must be mutexed. 
+  All public functions must be mutexed.
 *******************************************************************************/
 
-void rrc::get_metrics(rrc_metrics_t &m)
+void rrc::get_metrics(rrc_metrics_t& m)
 {
   if (running) {
     pthread_mutex_lock(&user_mutex);
     m.n_ues = 0;
-    for(std::map<uint16_t, ue>::iterator iter=users.begin(); m.n_ues < ENB_METRICS_MAX_USERS &&iter!=users.end(); ++iter) {
-      ue *u = (ue*) &iter->second;
-      if(iter->first != SRSLTE_MRNTI){
+    for (auto iter = users.begin(); m.n_ues < ENB_METRICS_MAX_USERS && iter != users.end(); ++iter) {
+      ue* u = (ue*)&iter->second;
+      if (iter->first != SRSLTE_MRNTI) {
         m.ues[m.n_ues++].state = u->get_state();
       }
     }
@@ -157,51 +156,59 @@ void rrc::read_pdu_bcch_dlsch(uint32_t sib_index, uint8_t* payload)
 {
   if (sib_index < ASN1_RRC_MAX_SIB) {
     memcpy(payload, sib_buffer[sib_index]->msg, sib_buffer[sib_index]->N_bytes);
-  } 
+  }
 }
 
 void rrc::rl_failure(uint16_t rnti)
 {
-  rrc_pdu p = {rnti, LCID_RLF_USER, NULL};
+  rrc_pdu p = {rnti, LCID_RLF_USER, nullptr};
   rx_pdu_queue.push(std::move(p));
 }
 
 void rrc::set_activity_user(uint16_t rnti)
 {
-  rrc_pdu p = {rnti, LCID_ACT_USER, NULL};
+  rrc_pdu p = {rnti, LCID_ACT_USER, nullptr};
   rx_pdu_queue.push(std::move(p));
 }
 
 void rrc::rem_user_thread(uint16_t rnti)
 {
-  rrc_pdu p = {rnti, LCID_REM_USER, NULL};
+  rrc_pdu p = {rnti, LCID_REM_USER, nullptr};
   rx_pdu_queue.push(std::move(p));
 }
 
-uint32_t rrc::get_nof_users() {
+uint32_t rrc::get_nof_users()
+{
   return users.size();
 }
 
 template <class T>
-void rrc::log_rrc_message(const std::string& source, const direction_t dir, const srslte::byte_buffer_t* pdu,
-                          const T& msg)
+void rrc::log_rrc_message(const std::string&           source,
+                          const direction_t            dir,
+                          const srslte::byte_buffer_t* pdu,
+                          const T&                     msg)
 {
   if (rrc_log->get_level() == srslte::LOG_LEVEL_INFO) {
-    rrc_log->info("%s - %s %s (%d B)\n", source.c_str(), dir == Tx ? "Tx" : "Rx",
-                  msg.msg.c1().type().to_string().c_str(), pdu->N_bytes);
+    rrc_log->info("%s - %s %s (%d B)\n",
+                  source.c_str(),
+                  dir == Tx ? "Tx" : "Rx",
+                  msg.msg.c1().type().to_string().c_str(),
+                  pdu->N_bytes);
   } else if (rrc_log->get_level() >= srslte::LOG_LEVEL_DEBUG) {
     asn1::json_writer json_writer;
     msg.to_json(json_writer);
-    rrc_log->debug_hex(pdu->msg, pdu->N_bytes, "%s - %s %s (%d B)\n", source.c_str(), dir == Tx ? "Tx" : "Rx",
-                       msg.msg.c1().type().to_string().c_str(), pdu->N_bytes);
+    rrc_log->debug_hex(pdu->msg,
+                       pdu->N_bytes,
+                       "%s - %s %s (%d B)\n",
+                       source.c_str(),
+                       dir == Tx ? "Tx" : "Rx",
+                       msg.msg.c1().type().to_string().c_str(),
+                       pdu->N_bytes);
     rrc_log->debug("Content:\n%s\n", json_writer.to_string().c_str());
   }
 }
 
-void rrc::max_retx_attempted(uint16_t rnti)
-{
-
-}
+void rrc::max_retx_attempted(uint16_t rnti) {}
 
 // This function is called from PRACH worker (can wait)
 void rrc::add_user(uint16_t rnti)
@@ -218,18 +225,16 @@ void rrc::add_user(uint16_t rnti)
   }
 
   if (rnti == SRSLTE_MRNTI) {
-    srslte::pdcp_config_t pdcp_cfg = {.bearer_id     = 1,
-                                      .rb_type       = srslte::PDCP_RB_IS_DRB,
-                                      .tx_direction  = srslte::SECURITY_DIRECTION_DOWNLINK,
-                                      .rx_direction  = srslte::SECURITY_DIRECTION_UPLINK,
-                                      .sn_len        = srslte::PDCP_SN_LEN_12,
-                                      .t_reorderding = srslte::pdcp_t_reordering_t::ms500};
+    srslte::pdcp_config_t pdcp_cfg{1,
+                                   srslte::PDCP_RB_IS_DRB,
+                                   srslte::SECURITY_DIRECTION_DOWNLINK,
+                                   srslte::SECURITY_DIRECTION_UPLINK,
+                                   srslte::PDCP_SN_LEN_12,
+                                   srslte::pdcp_t_reordering_t::ms500};
+    uint32_t              teid_in = 1;
 
-    uint32_t teid_in = 1;
-
-    for (uint32_t i = 0; i < mcch.msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[0].mbms_session_info_list_r9.size();
-         i++) {
-      uint32_t lcid = mcch.msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[0].mbms_session_info_list_r9[i].lc_ch_id_r9;
+    for (auto& mbms_item : mcch.msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[0].mbms_session_info_list_r9) {
+      uint32_t lcid = mbms_item.lc_ch_id_r9;
       rlc->add_bearer_mrb(SRSLTE_MRNTI, lcid);
       pdcp->add_bearer(SRSLTE_MRNTI, lcid, pdcp_cfg);
       gtpu->add_bearer(SRSLTE_MRNTI, lcid, 1, 1, &teid_in);
@@ -261,8 +266,6 @@ void rrc::upd_user(uint16_t new_rnti, uint16_t old_rnti)
   pthread_mutex_unlock(&user_mutex);
 }
 
-
-
 /*******************************************************************************
   PDCP interface
 *******************************************************************************/
@@ -288,11 +291,12 @@ void rrc::write_dl_info(uint16_t rnti, srslte::unique_byte_buffer_t sdu)
     dl_info_transfer_r8_ies_s* dl_info_r8 =
         &msg_c1->set_dl_info_transfer().crit_exts.set_c1().set_dl_info_transfer_r8();
     //    msg_c1->dl_info_transfer().rrc_transaction_id = ;
-    dl_info_r8->non_crit_ext_present      = false;
+    dl_info_r8->non_crit_ext_present = false;
     dl_info_r8->ded_info_type.set_ded_info_nas();
     dl_info_r8->ded_info_type.ded_info_nas().resize(sdu->N_bytes);
     memcpy(msg_c1->dl_info_transfer().crit_exts.c1().dl_info_transfer_r8().ded_info_type.ded_info_nas().data(),
-           sdu->msg, sdu->N_bytes);
+           sdu->msg,
+           sdu->N_bytes);
 
     sdu->clear();
 
@@ -304,12 +308,13 @@ void rrc::write_dl_info(uint16_t rnti, srslte::unique_byte_buffer_t sdu)
   pthread_mutex_unlock(&user_mutex);
 }
 
-void rrc::release_complete(uint16_t rnti) {
-  rrc_pdu p = {rnti, LCID_REL_USER, NULL};
+void rrc::release_complete(uint16_t rnti)
+{
+  rrc_pdu p = {rnti, LCID_REL_USER, nullptr};
   rx_pdu_queue.push(std::move(p));
 }
 
-bool rrc::setup_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT *msg)
+bool rrc::setup_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT* msg)
 {
   pthread_mutex_lock(&user_mutex);
 
@@ -322,40 +327,40 @@ bool rrc::setup_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRE
     return false;
   }
 
-  if(msg->AdditionalCSFallbackIndicator_present) {
+  if (msg->AdditionalCSFallbackIndicator_present) {
     rrc_log->warning("Not handling AdditionalCSFallbackIndicator\n");
   }
-  if(msg->CSGMembershipStatus_present) {
+  if (msg->CSGMembershipStatus_present) {
     rrc_log->warning("Not handling CSGMembershipStatus\n");
   }
-  if(msg->GUMMEI_ID_present) {
+  if (msg->GUMMEI_ID_present) {
     rrc_log->warning("Not handling GUMMEI_ID\n");
   }
-  if(msg->HandoverRestrictionList_present) {
+  if (msg->HandoverRestrictionList_present) {
     rrc_log->warning("Not handling HandoverRestrictionList\n");
   }
-  if(msg->ManagementBasedMDTAllowed_present) {
+  if (msg->ManagementBasedMDTAllowed_present) {
     rrc_log->warning("Not handling ManagementBasedMDTAllowed\n");
   }
-  if(msg->ManagementBasedMDTPLMNList_present) {
+  if (msg->ManagementBasedMDTPLMNList_present) {
     rrc_log->warning("Not handling ManagementBasedMDTPLMNList\n");
   }
-  if(msg->MME_UE_S1AP_ID_2_present) {
+  if (msg->MME_UE_S1AP_ID_2_present) {
     rrc_log->warning("Not handling MME_UE_S1AP_ID_2\n");
   }
-  if(msg->RegisteredLAI_present) {
+  if (msg->RegisteredLAI_present) {
     rrc_log->warning("Not handling RegisteredLAI\n");
   }
-  if(msg->SRVCCOperationPossible_present) {
+  if (msg->SRVCCOperationPossible_present) {
     rrc_log->warning("Not handling SRVCCOperationPossible\n");
   }
-  if(msg->SubscriberProfileIDforRFP_present) {
+  if (msg->SubscriberProfileIDforRFP_present) {
     rrc_log->warning("Not handling SubscriberProfileIDforRFP\n");
   }
-  if(msg->TraceActivation_present) {
+  if (msg->TraceActivation_present) {
     rrc_log->warning("Not handling TraceActivation\n");
   }
-  if(msg->UERadioCapability_present) {
+  if (msg->UERadioCapability_present) {
     rrc_log->warning("Not handling UERadioCapability\n");
   }
 
@@ -389,7 +394,7 @@ bool rrc::setup_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRE
   return true;
 }
 
-bool rrc::modify_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_UECONTEXTMODIFICATIONREQUEST_STRUCT *msg)
+bool rrc::modify_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_UECONTEXTMODIFICATIONREQUEST_STRUCT* msg)
 {
   bool err = false;
   pthread_mutex_lock(&user_mutex);
@@ -459,8 +464,7 @@ bool rrc::modify_ue_ctxt(uint16_t rnti, LIBLTE_S1AP_MESSAGE_UECONTEXTMODIFICATIO
   return true;
 }
 
-
-bool rrc::setup_ue_erabs(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPREQUEST_STRUCT *msg)
+bool rrc::setup_ue_erabs(uint16_t rnti, LIBLTE_S1AP_MESSAGE_E_RABSETUPREQUEST_STRUCT* msg)
 {
   pthread_mutex_lock(&user_mutex);
 
@@ -509,7 +513,7 @@ bool rrc::release_erabs(uint32_t rnti)
   than user map
 *******************************************************************************/
 
-void rrc::add_paging_id(uint32_t ueid, LIBLTE_S1AP_UEPAGINGID_STRUCT UEPagingID) 
+void rrc::add_paging_id(uint32_t ueid, LIBLTE_S1AP_UEPAGINGID_STRUCT UEPagingID)
 {
   pthread_mutex_lock(&paging_mutex);
   if (pending_paging.count(ueid) == 0) {
@@ -521,12 +525,12 @@ void rrc::add_paging_id(uint32_t ueid, LIBLTE_S1AP_UEPAGINGID_STRUCT UEPagingID)
 }
 
 // Described in Section 7 of 36.304
-bool rrc::is_paging_opportunity(uint32_t tti, uint32_t *payload_len)
+bool rrc::is_paging_opportunity(uint32_t tti, uint32_t* payload_len)
 {
   int sf_pattern[4][4] = {{9, 4, -1, 0}, {-1, 9, -1, 4}, {-1, -1, -1, 5}, {-1, -1, -1, 9}};
-  
+
   if (pending_paging.empty()) {
-    return false; 
+    return false;
   }
 
   pthread_mutex_lock(&paging_mutex);
@@ -539,15 +543,14 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t *payload_len)
   uint32_t T  = cfg.sibs[1].sib2().rr_cfg_common.pcch_cfg.default_paging_cycle.to_number();
   uint32_t Nb = T * cfg.sibs[1].sib2().rr_cfg_common.pcch_cfg.nb;
 
-  uint32_t N  = T<Nb?T:Nb;
-  uint32_t Ns = Nb/T>1?Nb/T:1; 
-  uint32_t sfn = tti/10;   
-  
+  uint32_t N   = T < Nb ? T : Nb;
+  uint32_t Ns  = Nb / T > 1 ? Nb / T : 1;
+  uint32_t sfn = tti / 10;
+
   std::vector<uint32_t> ue_to_remove;
 
   int n = 0;
-  for (std::map<uint32_t, LIBLTE_S1AP_UEPAGINGID_STRUCT>::iterator iter = pending_paging.begin();
-       n < ASN1_RRC_MAX_PAGE_REC && iter != pending_paging.end(); ++iter) {
+  for (auto iter = pending_paging.begin(); n < ASN1_RRC_MAX_PAGE_REC && iter != pending_paging.end(); ++iter) {
     LIBLTE_S1AP_UEPAGINGID_STRUCT u    = (LIBLTE_S1AP_UEPAGINGID_STRUCT)iter->second;
     uint32_t                      ueid = ((uint32_t)iter->first) % 1024;
     uint32_t                      i_s  = (ueid / N) % Ns;
@@ -571,7 +574,7 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t *payload_len)
           paging_elem.ue_id.s_tmsi().mmec.from_number(u.choice.s_TMSI.mMEC.buffer[0]);
           uint32_t m_tmsi = 0;
           for (int i = 0; i < LIBLTE_S1AP_M_TMSI_OCTET_STRING_LEN; i++) {
-            m_tmsi |= u.choice.s_TMSI.m_TMSI.buffer[i] << (8 * (LIBLTE_S1AP_M_TMSI_OCTET_STRING_LEN - i - 1));
+            m_tmsi |= u.choice.s_TMSI.m_TMSI.buffer[i] << (8u * (LIBLTE_S1AP_M_TMSI_OCTET_STRING_LEN - i - 1));
           }
           paging_elem.ue_id.s_tmsi().m_tmsi.from_number(m_tmsi);
         }
@@ -601,7 +604,9 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t *payload_len)
       *payload_len = byte_buf_paging.N_bytes;
     }
     rrc_log->info("Assembling PCCH payload with %d UE identities, payload_len=%d bytes, nbits=%d\n",
-                  paging_rec->paging_record_list.size(), byte_buf_paging.N_bytes, N_bits);
+                  paging_rec->paging_record_list.size(),
+                  byte_buf_paging.N_bytes,
+                  N_bits);
     log_rrc_message("PCCH-Message", Tx, &byte_buf_paging, pcch_msg);
 
     return true;
@@ -627,7 +632,7 @@ void rrc::read_pdu_pcch(uint8_t* payload, uint32_t buffer_size)
 
 void rrc::parse_ul_ccch(uint16_t rnti, srslte::unique_byte_buffer_t pdu)
 {
-  uint16_t old_rnti = 0; 
+  uint16_t old_rnti = 0;
 
   if (pdu) {
     ul_ccch_msg_s ul_ccch_msg;
@@ -757,7 +762,7 @@ void rrc::rem_user(uint16_t rnti)
 
     /* First remove MAC and GTPU to stop processing DL/UL traffic for this user
      */
-    mac->ue_rem(rnti);  // MAC handles PHY
+    mac->ue_rem(rnti); // MAC handles PHY
     gtpu->rem_user(rnti);
 
     // Now remove RLC and PDCP
@@ -781,7 +786,7 @@ void rrc::config_mac()
   // Fill MAC scheduler configuration for SIBs
   sched_interface::cell_cfg_t sched_cfg;
   bzero(&sched_cfg, sizeof(sched_interface::cell_cfg_t));
-  for (uint32_t i=0;i<nof_si_messages;i++) {
+  for (uint32_t i = 0; i < nof_si_messages; i++) {
     sched_cfg.sibs[i].len = sib_buffer[i]->N_bytes;
     if (i == 0) {
       sched_cfg.sibs[i].period_rf = 8; // SIB1 is always 8 rf
@@ -789,13 +794,14 @@ void rrc::config_mac()
       sched_cfg.sibs[i].period_rf = cfg.sib1.sched_info_list[i - 1].si_periodicity.to_number();
     }
   }
-  sched_cfg.prach_config        = cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.prach_cfg_info.prach_cfg_idx;
-  sched_cfg.prach_nof_preambles = cfg.sibs[1].sib2().rr_cfg_common.rach_cfg_common.preamb_info.nof_ra_preambs.to_number();
-  sched_cfg.si_window_ms        = cfg.sib1.si_win_len.to_number();
-  sched_cfg.prach_rar_window    =
+  sched_cfg.prach_config = cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.prach_cfg_info.prach_cfg_idx;
+  sched_cfg.prach_nof_preambles =
+      cfg.sibs[1].sib2().rr_cfg_common.rach_cfg_common.preamb_info.nof_ra_preambs.to_number();
+  sched_cfg.si_window_ms = cfg.sib1.si_win_len.to_number();
+  sched_cfg.prach_rar_window =
       cfg.sibs[1].sib2().rr_cfg_common.rach_cfg_common.ra_supervision_info.ra_resp_win_size.to_number();
-  sched_cfg.prach_freq_offset   = cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.prach_cfg_info.prach_freq_offset;
-  sched_cfg.maxharq_msg3tx      = cfg.sibs[1].sib2().rr_cfg_common.rach_cfg_common.max_harq_msg3_tx;
+  sched_cfg.prach_freq_offset = cfg.sibs[1].sib2().rr_cfg_common.prach_cfg.prach_cfg_info.prach_freq_offset;
+  sched_cfg.maxharq_msg3tx    = cfg.sibs[1].sib2().rr_cfg_common.rach_cfg_common.max_harq_msg3_tx;
 
   sched_cfg.nrb_pucch = SRSLTE_MAX(cfg.sr_cfg.nof_prb, cfg.cqi_cfg.nof_prb);
   rrc_log->info("Allocating %d PRBs for PUCCH\n", sched_cfg.nrb_pucch);
@@ -836,16 +842,16 @@ uint32_t rrc::generate_sibs()
     }
 
     // Add other SIBs to this message, if any
-    for (uint32_t mapping = 0; mapping < sched_info[sched_info_elem].sib_map_info.size(); mapping++) {
-      sib_list.push_back(cfg.sibs[(int)sched_info[sched_info_elem].sib_map_info[mapping] + 2]);
+    for (auto& mapping_enum : sched_info[sched_info_elem].sib_map_info) {
+      sib_list.push_back(cfg.sibs[(int)mapping_enum + 2]);
     }
   }
 
   // Pack payload for all messages
   for (uint32_t msg_index = 0; msg_index < nof_messages; msg_index++) {
     srslte::unique_byte_buffer_t sib = srslte::allocate_unique_buffer(*pool);
-    asn1::bit_ref          bref(sib->msg, sib->get_tailroom());
-    asn1::bit_ref          bref0 = bref;
+    asn1::bit_ref                bref(sib->msg, sib->get_tailroom());
+    asn1::bit_ref                bref0 = bref;
     msg[msg_index].pack(bref);
     sib->N_bytes = static_cast<uint32_t>((bref.distance(bref0) - 1) / 8 + 1);
     sib_buffer.push_back(std::move(sib));
@@ -861,7 +867,7 @@ uint32_t rrc::generate_sibs()
   return nof_messages;
 }
 
-void rrc::configure_mbsfn_sibs(sib_type2_s* sib2, sib_type13_r9_s* sib13)
+void rrc::configure_mbsfn_sibs(sib_type2_s* sib2_, sib_type13_r9_s* sib13_)
 {
   // Temp assignment of MCCH, this will eventually come from a cfg file
   mcch.msg.set_c1();
@@ -894,23 +900,24 @@ void rrc::configure_mbsfn_sibs(sib_type2_s* sib2, sib_type13_r9_s* sib13)
     pmch_item->mbms_session_info_list_r9[1].tmgi_r9.plmn_id_r9.set_explicit_value_r9() =
         pmch_item->mbms_session_info_list_r9[0].tmgi_r9.plmn_id_r9.explicit_value_r9();
     byte[2] = 1;
-    memcpy(&pmch_item->mbms_session_info_list_r9[1].tmgi_r9.service_id_r9[0], &byte[0],
+    memcpy(&pmch_item->mbms_session_info_list_r9[1].tmgi_r9.service_id_r9[0],
+           &byte[0],
            3); // FIXME: Check if service is set to 1
   }
   pmch_item->pmch_cfg_r9.data_mcs_r9         = 20;
   pmch_item->pmch_cfg_r9.mch_sched_period_r9 = pmch_cfg_r9_s::mch_sched_period_r9_e_::rf64;
   pmch_item->pmch_cfg_r9.sf_alloc_end_r9     = 64 * 6;
 
-  phy->configure_mbsfn(sib2, sib13, mcch);
-  mac->write_mcch(sib2, sib13, &mcch);
+  phy->configure_mbsfn(sib2_, sib13_, mcch);
+  mac->write_mcch(sib2_, sib13_, &mcch);
 }
 
-void rrc::configure_security(uint16_t rnti,
-                             uint32_t lcid,
-                             uint8_t *k_rrc_enc,
-                             uint8_t *k_rrc_int,
-                             uint8_t *k_up_enc,
-                             uint8_t *k_up_int,
+void rrc::configure_security(uint16_t                            rnti,
+                             uint32_t                            lcid,
+                             uint8_t*                            k_rrc_enc,
+                             uint8_t*                            k_rrc_int,
+                             uint8_t*                            k_up_enc,
+                             uint8_t*                            k_up_int,
                              srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                              srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
 {
@@ -937,7 +944,7 @@ void rrc::run_thread()
   rrc_pdu p;
   running = true;
 
-  while(running) {
+  while (running) {
     p = rx_pdu_queue.wait_pop();
     if (p.pdu) {
       rrc_log->info_hex(p.pdu->msg, p.pdu->N_bytes, "Rx %s PDU", rb_id_text[p.lcid]);
@@ -979,8 +986,6 @@ void rrc::run_thread()
   }
 }
 
-
-
 /*******************************************************************************
   Activity monitor class
 *******************************************************************************/
@@ -988,7 +993,7 @@ void rrc::run_thread()
 rrc::activity_monitor::activity_monitor(rrc* parent_) : thread("RRC_ACTIVITY_MONITOR")
 {
   running = true;
-  parent = parent_;
+  parent  = parent_;
 }
 
 void rrc::activity_monitor::stop()
@@ -1002,15 +1007,14 @@ void rrc::activity_monitor::stop()
 
 void rrc::activity_monitor::run_thread()
 {
-  while(running)
-  {
+  while (running) {
     usleep(10000);
     pthread_mutex_lock(&parent->user_mutex);
     uint16_t rem_rnti = 0;
-    for(std::map<uint16_t, ue>::iterator iter=parent->users.begin(); rem_rnti == 0 && iter!=parent->users.end(); ++iter) {
-      if(iter->first != SRSLTE_MRNTI){
-        ue *u = (ue*) &iter->second;
-        uint16_t rnti = (uint16_t) iter->first;
+    for (auto iter = parent->users.begin(); rem_rnti == 0 && iter != parent->users.end(); ++iter) {
+      if (iter->first != SRSLTE_MRNTI) {
+        ue*      u    = (ue*)&iter->second;
+        uint16_t rnti = (uint16_t)iter->first;
 
         if (parent->cnotifier && u->is_connected() && !u->connect_notified) {
           parent->cnotifier->user_connected(rnti);
@@ -1018,7 +1022,8 @@ void rrc::activity_monitor::run_thread()
         }
 
         if (u->is_timeout()) {
-          parent->rrc_log->info("User rnti=0x%x timed out. Exists in s1ap=%s\n", rnti, parent->s1ap->user_exists(rnti)?"yes":"no");
+          parent->rrc_log->info(
+              "User rnti=0x%x timed out. Exists in s1ap=%s\n", rnti, parent->s1ap->user_exists(rnti) ? "yes" : "no");
           rem_rnti = rnti;
         }
       }
@@ -1027,7 +1032,7 @@ void rrc::activity_monitor::run_thread()
       if (parent->s1ap->user_exists(rem_rnti)) {
         parent->s1ap->user_release(rem_rnti, LIBLTE_S1AP_CAUSERADIONETWORK_USER_INACTIVITY);
       } else {
-        if(rem_rnti != SRSLTE_MRNTI)
+        if (rem_rnti != SRSLTE_MRNTI)
           parent->rem_user_thread(rem_rnti);
       }
     }
@@ -1048,26 +1053,9 @@ rrc::ue::ue(rrc* outer_rrc, uint16_t rnti_) :
   pool(srslte::byte_buffer_pool::get_instance())
 {
   set_activity();
-  has_tmsi          = false;
-  connect_notified  = false;
-  transaction_id    = 0;
-  sr_allocated      = false;
-  sr_sched_sf_idx   = 0;
-  sr_sched_prb_idx  = 0;
-  sr_N_pucch        = 0;
-  sr_I              = 0;
-  cqi_allocated     = false;
-  cqi_pucch         = 0;
-  cqi_idx           = 0;
-  cqi_sched_sf_idx  = 0;
-  cqi_sched_prb_idx = 0;
-  rlf_cnt           = 0;
-  integ_algo        = srslte::INTEGRITY_ALGORITHM_ID_EIA0;
-  cipher_algo       = srslte::CIPHERING_ALGORITHM_ID_EEA0;
-  nas_pending       = false;
-  is_csfb           = false;
-  state             = RRC_STATE_IDLE;
-  gettimeofday(&t_ue_init, NULL);
+  integ_algo  = srslte::INTEGRITY_ALGORITHM_ID_EIA0;
+  cipher_algo = srslte::CIPHERING_ALGORITHM_ID_EEA0;
+  gettimeofday(&t_ue_init, nullptr);
   mobility_handler.reset(new rrc_mobility(this));
 }
 
@@ -1076,14 +1064,15 @@ rrc_state_t rrc::ue::get_state()
   return state;
 }
 
-uint32_t rrc::ue::rl_failure() {
+uint32_t rrc::ue::rl_failure()
+{
   rlf_cnt++;
   return rlf_cnt;
 }
 
-void rrc::ue::set_activity() 
+void rrc::ue::set_activity()
 {
-  gettimeofday(&t_last_activity, NULL);  
+  gettimeofday(&t_last_activity, nullptr);
   if (parent) {
     if (parent->rrc_log) {
       parent->rrc_log->debug("Activity registered rnti=0x%x\n", rnti);
@@ -1091,31 +1080,33 @@ void rrc::ue::set_activity()
   }
 }
 
-bool rrc::ue::is_connected() {
+bool rrc::ue::is_connected()
+{
   return state == RRC_STATE_REGISTERED;
 }
 
-bool rrc::ue::is_idle() {
+bool rrc::ue::is_idle()
+{
   return state == RRC_STATE_IDLE;
 }
 
-bool rrc::ue::is_timeout() 
+bool rrc::ue::is_timeout()
 {
   if (!parent) {
-    return false; 
+    return false;
   }
-  
-  struct timeval t[3]; 
-  uint32_t deadline_s  = 0; 
-  uint32_t deadline_us = 0; 
-  const char *deadline_str = NULL; 
+
+  struct timeval t[3];
+  uint32_t       deadline_s   = 0;
+  uint32_t       deadline_us  = 0;
+  const char*    deadline_str = nullptr;
   memcpy(&t[1], &t_last_activity, sizeof(struct timeval));
-  gettimeofday(&t[2], NULL);
+  gettimeofday(&t[2], nullptr);
   get_time_interval(t);
 
-  switch(state) {
-    case RRC_STATE_IDLE:  
-      deadline_s   = 0;
+  switch (state) {
+    case RRC_STATE_IDLE:
+      deadline_s = 0;
       deadline_us =
           static_cast<uint32_t>((parent->sib2.rr_cfg_common.rach_cfg_common.max_harq_msg3_tx + 1) * 16 * 1000);
       deadline_str = "RRCConnectionSetup";
@@ -1131,26 +1122,29 @@ bool rrc::ue::is_timeout()
       deadline_str = "RRCReleaseRequest";
       break;
     default:
-      deadline_s   = parent->cfg.inactivity_timeout_ms/1000;
-      deadline_us  = (parent->cfg.inactivity_timeout_ms%1000)*1000;
+      deadline_s   = parent->cfg.inactivity_timeout_ms / 1000;
+      deadline_us  = (parent->cfg.inactivity_timeout_ms % 1000) * 1000;
       deadline_str = "Activity";
-      break;    
+      break;
   }
-  
+
   if (deadline_str) {
-    int64_t deadline = deadline_s*1e6  + deadline_us;
-    int64_t elapsed  = t[0].tv_sec*1e6 + t[0].tv_usec;
+    int64_t deadline = deadline_s * 1e6 + deadline_us;
+    int64_t elapsed  = t[0].tv_sec * 1e6 + t[0].tv_usec;
     if (elapsed > deadline && elapsed > 0) {
-      parent->rrc_log->warning("User rnti=0x%x expired %s deadline: %ld:%ld>%d:%d us\n", 
-                                rnti, deadline_str, 
-                                t[0].tv_sec, t[0].tv_usec, 
-                               deadline_s, deadline_us);
+      parent->rrc_log->warning("User rnti=0x%x expired %s deadline: %ld:%ld>%d:%d us\n",
+                               rnti,
+                               deadline_str,
+                               t[0].tv_sec,
+                               t[0].tv_usec,
+                               deadline_s,
+                               deadline_us);
       memcpy(&t_last_activity, &t[2], sizeof(struct timeval));
       state = RRC_STATE_RELEASE_REQUEST;
-      return true; 
+      return true;
     }
   }
-  return false;       
+  return false;
 }
 
 void rrc::ue::parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
@@ -1246,9 +1240,8 @@ void rrc::ue::handle_rrc_con_req(rrc_conn_request_s* msg)
 
 void rrc::ue::handle_rrc_con_reest_req(rrc_conn_reest_request_r8_ies_s* msg)
 {
-  //TODO: Check Short-MAC-I value 
+  // TODO: Check Short-MAC-I value
   parent->rrc_log->error("Not Supported: ConnectionReestablishment. \n");
-  
 }
 
 void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srslte::unique_byte_buffer_t pdu)
@@ -1265,7 +1258,7 @@ void rrc::ue::handle_rrc_con_setup_complete(rrc_conn_setup_complete_s* msg, srsl
   // Acknowledge Dedicated Configuration
   parent->mac->phy_config_enabled(rnti, true);
 
-  if(has_tmsi) {
+  if (has_tmsi) {
     parent->s1ap->initial_ue(
         rnti, (LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM)establishment_cause.value, std::move(pdu), m_tmsi, mmec);
   } else {
@@ -1321,12 +1314,12 @@ bool rrc::ue::handle_ue_cap_info(ue_cap_info_s* msg)
   // parent->s1ap->ue_capabilities(rnti, &eutra_capabilities);
 }
 
-void rrc::ue::set_bitrates(LIBLTE_S1AP_UEAGGREGATEMAXIMUMBITRATE_STRUCT *rates)
+void rrc::ue::set_bitrates(LIBLTE_S1AP_UEAGGREGATEMAXIMUMBITRATE_STRUCT* rates)
 {
   memcpy(&bitrates, rates, sizeof(LIBLTE_S1AP_UEAGGREGATEMAXIMUMBITRATE_STRUCT));
 }
 
-void rrc::ue::set_security_capabilities(LIBLTE_S1AP_UESECURITYCAPABILITIES_STRUCT *caps)
+void rrc::ue::set_security_capabilities(LIBLTE_S1AP_UESECURITYCAPABILITIES_STRUCT* caps)
 {
   memcpy(&security_capabilities, caps, sizeof(LIBLTE_S1AP_UESECURITYCAPABILITIES_STRUCT));
 }
@@ -1335,25 +1328,18 @@ void rrc::ue::set_security_key(uint8_t* key, uint32_t length)
 {
   memcpy(k_enb, key, length);
   parent->rrc_log->info_hex(k_enb, 32, "Key eNodeB (k_enb)");
-  // Selects security algorithms (cipher_algo and integ_algo) based on capabilities and config preferences 
+  // Selects security algorithms (cipher_algo and integ_algo) based on capabilities and config preferences
   select_security_algorithms();
 
   parent->rrc_log->info("Selected security algorithms EEA: EEA%d EIA: EIA%d\n", cipher_algo, integ_algo);
-  
+
   // Generate K_rrc_enc and K_rrc_int
   srslte::security_generate_k_rrc(k_enb, cipher_algo, integ_algo, k_rrc_enc, k_rrc_int);
 
   // Generate K_up_enc and K_up_int
-  security_generate_k_up( k_enb,
-                          cipher_algo,
-                          integ_algo,
-                          k_up_enc,
-                          k_up_int);
+  security_generate_k_up(k_enb, cipher_algo, integ_algo, k_up_enc, k_up_int);
 
-  parent->configure_security(rnti, RB_ID_SRB1,
-                             k_rrc_enc, k_rrc_int,
-                             k_up_enc,  k_up_int,
-                             cipher_algo, integ_algo);
+  parent->configure_security(rnti, RB_ID_SRB1, k_rrc_enc, k_rrc_int, k_up_enc, k_up_int, cipher_algo, integ_algo);
 
   parent->enable_integrity(rnti, RB_ID_SRB1);
 
@@ -1362,49 +1348,52 @@ void rrc::ue::set_security_key(uint8_t* key, uint32_t length)
   parent->rrc_log->info_hex(k_up_enc, 32, "UP Encryption Key (k_up_enc)");
 }
 
-bool rrc::ue::setup_erabs(LIBLTE_S1AP_E_RABTOBESETUPLISTCTXTSUREQ_STRUCT *e)
+bool rrc::ue::setup_erabs(LIBLTE_S1AP_E_RABTOBESETUPLISTCTXTSUREQ_STRUCT* e)
 {
-  for(uint32_t i=0; i<e->len; i++) {
-    LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT *erab = &e->buffer[i];
-    if(erab->ext) {
+  for (uint32_t i = 0; i < e->len; i++) {
+    LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT* erab = &e->buffer[i];
+    if (erab->ext) {
       parent->rrc_log->warning("Not handling LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT extensions\n");
     }
-    if(erab->iE_Extensions_present) {
+    if (erab->iE_Extensions_present) {
       parent->rrc_log->warning("Not handling LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT extensions\n");
     }
-    if(erab->transportLayerAddress.n_bits > 32) {
+    if (erab->transportLayerAddress.n_bits > 32) {
       parent->rrc_log->error("IPv6 addresses not currently supported\n");
       return false;
     }
 
     uint32_t teid_out;
     uint8_to_uint32(erab->gTP_TEID.buffer, &teid_out);
-    LIBLTE_S1AP_NAS_PDU_STRUCT *nas_pdu = erab->nAS_PDU_present ? &erab->nAS_PDU : NULL;
-    setup_erab(erab->e_RAB_ID.E_RAB_ID, &erab->e_RABlevelQoSParameters,
-               &erab->transportLayerAddress, teid_out, nas_pdu);
+    LIBLTE_S1AP_NAS_PDU_STRUCT* nas_pdu = erab->nAS_PDU_present ? &erab->nAS_PDU : nullptr;
+    setup_erab(
+        erab->e_RAB_ID.E_RAB_ID, &erab->e_RABlevelQoSParameters, &erab->transportLayerAddress, teid_out, nas_pdu);
   }
   return true;
 }
 
-bool rrc::ue::setup_erabs(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT *e)
+bool rrc::ue::setup_erabs(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT* e)
 {
-  for(uint32_t i=0; i<e->len; i++) {
-    LIBLTE_S1AP_E_RABTOBESETUPITEMBEARERSUREQ_STRUCT *erab = &e->buffer[i];
-    if(erab->ext) {
+  for (uint32_t i = 0; i < e->len; i++) {
+    LIBLTE_S1AP_E_RABTOBESETUPITEMBEARERSUREQ_STRUCT* erab = &e->buffer[i];
+    if (erab->ext) {
       parent->rrc_log->warning("Not handling LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT extensions\n");
     }
-    if(erab->iE_Extensions_present) {
+    if (erab->iE_Extensions_present) {
       parent->rrc_log->warning("Not handling LIBLTE_S1AP_E_RABTOBESETUPITEMCTXTSUREQ_STRUCT extensions\n");
     }
-    if(erab->transportLayerAddress.n_bits > 32) {
+    if (erab->transportLayerAddress.n_bits > 32) {
       parent->rrc_log->error("IPv6 addresses not currently supported\n");
       return false;
     }
 
     uint32_t teid_out;
     uint8_to_uint32(erab->gTP_TEID.buffer, &teid_out);
-    setup_erab(erab->e_RAB_ID.E_RAB_ID, &erab->e_RABlevelQoSParameters,
-               &erab->transportLayerAddress, teid_out, &erab->nAS_PDU);
+    setup_erab(erab->e_RAB_ID.E_RAB_ID,
+               &erab->e_RABlevelQoSParameters,
+               &erab->transportLayerAddress,
+               teid_out,
+               &erab->nAS_PDU);
   }
 
   // Work in progress
@@ -1413,9 +1402,11 @@ bool rrc::ue::setup_erabs(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT *e)
   return true;
 }
 
-void rrc::ue::setup_erab(uint8_t id, LIBLTE_S1AP_E_RABLEVELQOSPARAMETERS_STRUCT *qos,
-                         LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT *addr, uint32_t teid_out,
-                         LIBLTE_S1AP_NAS_PDU_STRUCT *nas_pdu)
+void rrc::ue::setup_erab(uint8_t                                     id,
+                         LIBLTE_S1AP_E_RABLEVELQOSPARAMETERS_STRUCT* qos,
+                         LIBLTE_S1AP_TRANSPORTLAYERADDRESS_STRUCT*   addr,
+                         uint32_t                                    teid_out,
+                         LIBLTE_S1AP_NAS_PDU_STRUCT*                 nas_pdu)
 {
   erabs[id].id = id;
   memcpy(&erabs[id].qos_params, qos, sizeof(LIBLTE_S1AP_E_RABLEVELQOSPARAMETERS_STRUCT));
@@ -1423,11 +1414,11 @@ void rrc::ue::setup_erab(uint8_t id, LIBLTE_S1AP_E_RABLEVELQOSPARAMETERS_STRUCT 
   erabs[id].teid_out = teid_out;
 
   uint8_t* bit_ptr = addr->buffer;
-  uint32_t addr_ = liblte_bits_2_value(&bit_ptr, addr->n_bits);
-  uint8_t lcid  = id - 2;  // Map e.g. E-RAB 5 to LCID 3 (==DRB1)
+  uint32_t addr_   = liblte_bits_2_value(&bit_ptr, addr->n_bits);
+  uint8_t  lcid    = id - 2; // Map e.g. E-RAB 5 to LCID 3 (==DRB1)
   parent->gtpu->add_bearer(rnti, lcid, addr_, erabs[id].teid_out, &(erabs[id].teid_in));
 
-  if(nas_pdu) {
+  if (nas_pdu) {
     nas_pending = true;
     memcpy(erab_info.buffer, nas_pdu->buffer, nas_pdu->n_octets);
     erab_info.N_bytes = nas_pdu->n_octets;
@@ -1439,56 +1430,52 @@ void rrc::ue::setup_erab(uint8_t id, LIBLTE_S1AP_E_RABLEVELQOSPARAMETERS_STRUCT 
 
 bool rrc::ue::release_erabs()
 {
-  typedef std::map<uint8_t, erab_t>::iterator it_t;
-  for(it_t it=erabs.begin(); it!=erabs.end(); ++it) {
-    // TODO: notify GTPU layer
-  }
+  // TODO: notify GTPU layer for each ERAB
   erabs.clear();
-  return true; 
+  return true;
 }
 
 void rrc::ue::notify_s1ap_ue_ctxt_setup_complete()
 {
   LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPRESPONSE_STRUCT res;
-  res.ext = false;
+  res.ext                                     = false;
   res.E_RABFailedToSetupListCtxtSURes_present = false;
-  res.CriticalityDiagnostics_present = false;
+  res.CriticalityDiagnostics_present          = false;
 
-  res.E_RABSetupListCtxtSURes.len = 0;
+  res.E_RABSetupListCtxtSURes.len         = 0;
   res.E_RABFailedToSetupListCtxtSURes.len = 0;
 
-  typedef std::map<uint8_t, erab_t>::iterator it_t;
-  for(it_t it=erabs.begin(); it!=erabs.end(); ++it) {
-    uint32_t j = res.E_RABSetupListCtxtSURes.len++;
-    res.E_RABSetupListCtxtSURes.buffer[j].ext = false;
+  for (auto& erab : erabs) {
+    uint32_t j                                                  = res.E_RABSetupListCtxtSURes.len++;
+    res.E_RABSetupListCtxtSURes.buffer[j].ext                   = false;
     res.E_RABSetupListCtxtSURes.buffer[j].iE_Extensions_present = false;
-    res.E_RABSetupListCtxtSURes.buffer[j].e_RAB_ID.ext = false;
-    res.E_RABSetupListCtxtSURes.buffer[j].e_RAB_ID.E_RAB_ID = it->second.id;
-    uint32_to_uint8(it->second.teid_in, res.E_RABSetupListCtxtSURes.buffer[j].gTP_TEID.buffer);
+    res.E_RABSetupListCtxtSURes.buffer[j].e_RAB_ID.ext          = false;
+    res.E_RABSetupListCtxtSURes.buffer[j].e_RAB_ID.E_RAB_ID     = erab.second.id;
+    uint32_to_uint8(erab.second.teid_in, res.E_RABSetupListCtxtSURes.buffer[j].gTP_TEID.buffer);
   }
 
   parent->s1ap->ue_ctxt_setup_complete(rnti, &res);
 }
 
-void rrc::ue::notify_s1ap_ue_erab_setup_response(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT *e)
+void rrc::ue::notify_s1ap_ue_erab_setup_response(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT* e)
 {
   LIBLTE_S1AP_MESSAGE_E_RABSETUPRESPONSE_STRUCT res;
-  res.ext=false;
-  res.E_RABSetupListBearerSURes.len = 0;
+  res.ext                                   = false;
+  res.E_RABSetupListBearerSURes.len         = 0;
   res.E_RABFailedToSetupListBearerSURes.len = 0;
 
-  res.CriticalityDiagnostics_present = false;
+  res.CriticalityDiagnostics_present            = false;
   res.E_RABFailedToSetupListBearerSURes_present = false;
 
-  for(uint32_t i=0; i<e->len; i++) {
-    res.E_RABSetupListBearerSURes_present = true;
-    LIBLTE_S1AP_E_RABTOBESETUPITEMBEARERSUREQ_STRUCT *erab = &e->buffer[i];
-    uint8_t id = erab->e_RAB_ID.E_RAB_ID;
-    uint32_t j = res.E_RABSetupListBearerSURes.len++;
-    res.E_RABSetupListBearerSURes.buffer[j].ext = false;
+  for (uint32_t i = 0; i < e->len; i++) {
+    res.E_RABSetupListBearerSURes_present                         = true;
+    LIBLTE_S1AP_E_RABTOBESETUPITEMBEARERSUREQ_STRUCT* erab        = &e->buffer[i];
+    uint8_t                                           id          = erab->e_RAB_ID.E_RAB_ID;
+    uint32_t                                          j           = res.E_RABSetupListBearerSURes.len++;
+    res.E_RABSetupListBearerSURes.buffer[j].ext                   = false;
     res.E_RABSetupListBearerSURes.buffer[j].iE_Extensions_present = false;
-    res.E_RABSetupListBearerSURes.buffer[j].e_RAB_ID.ext = false;
-    res.E_RABSetupListBearerSURes.buffer[j].e_RAB_ID.E_RAB_ID = id;
+    res.E_RABSetupListBearerSURes.buffer[j].e_RAB_ID.ext          = false;
+    res.E_RABSetupListBearerSURes.buffer[j].e_RAB_ID.E_RAB_ID     = id;
     uint32_to_uint8(erabs[id].teid_in, res.E_RABSetupListBearerSURes.buffer[j].gTP_TEID.buffer);
   }
 
@@ -1518,7 +1505,7 @@ void rrc::ue::send_connection_setup(bool is_setup)
   dl_ccch_msg_s dl_ccch_msg;
   dl_ccch_msg.msg.set_c1();
 
-  rr_cfg_ded_s* rr_cfg = NULL;
+  rr_cfg_ded_s* rr_cfg = nullptr;
   if (is_setup) {
     dl_ccch_msg.msg.c1().set_rrc_conn_setup();
     dl_ccch_msg.msg.c1().rrc_conn_setup().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
@@ -1541,7 +1528,7 @@ void rrc::ue::send_connection_setup(bool is_setup)
   rr_cfg->srb_to_add_mod_list[0].rlc_cfg.set(srb_to_add_mod_s::rlc_cfg_c_::types::default_value);
 
   // mac-MainConfig
-  rr_cfg->mac_main_cfg_present = true;
+  rr_cfg->mac_main_cfg_present  = true;
   mac_main_cfg_s* mac_cfg       = &rr_cfg->mac_main_cfg.set_explicit_value();
   mac_cfg->ul_sch_cfg_present   = true;
   mac_cfg->ul_sch_cfg           = parent->cfg.mac_cnfg.ul_sch_cfg;
@@ -1569,18 +1556,19 @@ void rrc::ue::send_connection_setup(bool is_setup)
   phy_cfg->ant_info.explicit_value().ue_tx_ant_sel.set(setup_e::release);
 
   if (is_setup) {
-    if (sr_allocate(parent->cfg.sr_cfg.period, &phy_cfg->sched_request_cfg.setup().sr_cfg_idx,
+    if (sr_allocate(parent->cfg.sr_cfg.period,
+                    &phy_cfg->sched_request_cfg.setup().sr_cfg_idx,
                     &phy_cfg->sched_request_cfg.setup().sr_pucch_res_idx)) {
       parent->rrc_log->error("Allocating SR resources for rnti=%d\n", rnti);
-      return; 
+      return;
     }
   } else {
     phy_cfg->sched_request_cfg.setup().sr_cfg_idx       = (uint8_t)sr_I;
     phy_cfg->sched_request_cfg.setup().sr_pucch_res_idx = (uint16_t)sr_N_pucch;
   }
-  // Power control 
-  phy_cfg->ul_pwr_ctrl_ded_present = true; 
-  phy_cfg->ul_pwr_ctrl_ded.p0_ue_pusch = 0;
+  // Power control
+  phy_cfg->ul_pwr_ctrl_ded_present              = true;
+  phy_cfg->ul_pwr_ctrl_ded.p0_ue_pusch          = 0;
   phy_cfg->ul_pwr_ctrl_ded.delta_mcs_enabled    = ul_pwr_ctrl_ded_s::delta_mcs_enabled_e_::en0;
   phy_cfg->ul_pwr_ctrl_ded.accumulation_enabled = true;
   phy_cfg->ul_pwr_ctrl_ded.p0_ue_pucch = 0, phy_cfg->ul_pwr_ctrl_ded.p_srs_offset = 3;
@@ -1594,7 +1582,7 @@ void rrc::ue::send_connection_setup(bool is_setup)
   phy_cfg->pucch_cfg_ded.ack_nack_repeat.set(pucch_cfg_ded_s::ack_nack_repeat_c_::types::release);
 
   phy_cfg->cqi_report_cfg_present = true;
-  if(parent->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC) {
+  if (parent->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC) {
     phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic_present = true;
     phy_cfg->cqi_report_cfg.cqi_report_mode_aperiodic         = cqi_report_mode_aperiodic_e::rm30;
   } else {
@@ -1604,10 +1592,11 @@ void rrc::ue::send_connection_setup(bool is_setup)
         cqi_report_periodic_c::setup_s_::cqi_format_ind_periodic_c_::types::wideband_cqi);
     phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().simul_ack_nack_and_cqi = false;
     if (is_setup) {
-      if (cqi_allocate(parent->cfg.cqi_cfg.period, &phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pmi_cfg_idx,
+      if (cqi_allocate(parent->cfg.cqi_cfg.period,
+                       &phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pmi_cfg_idx,
                        &phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pucch_res_idx)) {
         parent->rrc_log->error("Allocating CQI resources for rnti=%d\n", rnti);
-        return; 
+        return;
       }
     } else {
       phy_cfg->cqi_report_cfg.cqi_report_periodic.setup().cqi_pucch_res_idx = (uint16_t)cqi_pucch;
@@ -1616,12 +1605,13 @@ void rrc::ue::send_connection_setup(bool is_setup)
   }
   phy_cfg->cqi_report_cfg.nom_pdsch_rs_epre_offset = 0;
 
-  // Add SRB1 to Scheduler 
-  srsenb::sched_interface::ue_cfg_t sched_cfg; 
+  // Add SRB1 to Scheduler
+  srsenb::sched_interface::ue_cfg_t sched_cfg;
   bzero(&sched_cfg, sizeof(srsenb::sched_interface::ue_cfg_t));
-  sched_cfg.maxharq_tx              = parent->cfg.mac_cnfg.ul_sch_cfg.max_harq_tx.to_number();
-  sched_cfg.continuous_pusch = false;   
-  sched_cfg.aperiodic_cqi_period = parent->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC?parent->cfg.cqi_cfg.period:0; 
+  sched_cfg.maxharq_tx       = parent->cfg.mac_cnfg.ul_sch_cfg.max_harq_tx.to_number();
+  sched_cfg.continuous_pusch = false;
+  sched_cfg.aperiodic_cqi_period =
+      parent->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC ? parent->cfg.cqi_cfg.period : 0;
   sched_cfg.ue_bearers[0].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
   sched_cfg.ue_bearers[1].direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
   if (parent->cfg.cqi_cfg.mode == RRC_CFG_CQI_MODE_APERIODIC) {
@@ -1640,19 +1630,19 @@ void rrc::ue::send_connection_setup(bool is_setup)
   sched_cfg.pucch_cfg.n_rb_2            = parent->sib2.rr_cfg_common.pucch_cfg_common.n_rb_cqi;
   sched_cfg.pucch_cfg.N_pucch_1         = parent->sib2.rr_cfg_common.pucch_cfg_common.n1_pucch_an;
 
-  // Configure MAC 
+  // Configure MAC
   parent->mac->ue_cfg(rnti, &sched_cfg);
-    
+
   // Configure SRB1 in RLC
   parent->rlc->add_bearer(rnti, 1, srslte::rlc_config_t::srb_config(1));
 
   // Configure SRB1 in PDCP
-  srslte::pdcp_config_t pdcp_cnfg{.bearer_id     = 1,
-                                  .rb_type       = srslte::PDCP_RB_IS_SRB,
-                                  .tx_direction  = srslte::SECURITY_DIRECTION_DOWNLINK,
-                                  .rx_direction  = srslte::SECURITY_DIRECTION_UPLINK,
-                                  .sn_len        = srslte::PDCP_SN_LEN_5,
-                                  .t_reorderding = srslte::pdcp_t_reordering_t::ms500};
+  srslte::pdcp_config_t pdcp_cnfg{1,
+                                  srslte::PDCP_RB_IS_SRB,
+                                  srslte::SECURITY_DIRECTION_DOWNLINK,
+                                  srslte::SECURITY_DIRECTION_UPLINK,
+                                  srslte::PDCP_SN_LEN_5,
+                                  srslte::pdcp_t_reordering_t::ms500};
 
   parent->pdcp->add_bearer(rnti, 1, pdcp_cnfg);
 
@@ -1661,10 +1651,10 @@ void rrc::ue::send_connection_setup(bool is_setup)
   parent->mac->set_dl_ant_info(rnti, &phy_cfg->ant_info);
   parent->mac->phy_config_enabled(rnti, false);
 
-  rr_cfg->drb_to_add_mod_list_present      = false;
-  rr_cfg->drb_to_release_list_present      = false;
+  rr_cfg->drb_to_add_mod_list_present = false;
+  rr_cfg->drb_to_release_list_present = false;
   rr_cfg->rlf_timers_and_consts_r9.set_present(false);
-  rr_cfg->sps_cfg_present                  = false;
+  rr_cfg->sps_cfg_present = false;
   //  rr_cfg->rlf_timers_and_constants_present = false;
 
   send_dl_ccch(&dl_ccch_msg);
@@ -1700,12 +1690,12 @@ int rrc::ue::get_drbid_config(drb_to_add_mod_s* drb, int drb_id)
 
   if (qci >= MAX_NOF_QCI) {
     parent->rrc_log->error("Invalid QCI=%d for ERAB_id=%d, DRB_id=%d\n", qci, erab_id, drb_id);
-    return -1; 
+    return -1;
   }
-  
+
   if (!parent->cfg.qci_cfg[qci].configured) {
     parent->rrc_log->error("QCI=%d not configured\n", qci);
-    return -1; 
+    return -1;
   }
 
   // Add DRB1 to the message
@@ -1726,12 +1716,12 @@ int rrc::ue::get_drbid_config(drb_to_add_mod_s* drb, int drb_id)
   drb->rlc_cfg_present = true;
   drb->rlc_cfg         = parent->cfg.qci_cfg[qci].rlc_cfg;
 
-  return 0; 
+  return 0;
 }
 
 void rrc::ue::send_connection_reconf_upd(srslte::unique_byte_buffer_t pdu)
 {
-  dl_dcch_msg_s dl_dcch_msg;
+  dl_dcch_msg_s     dl_dcch_msg;
   rrc_conn_recfg_s* rrc_conn_recfg   = &dl_dcch_msg.msg.set_c1().set_rrc_conn_recfg();
   rrc_conn_recfg->rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
   rrc_conn_recfg->crit_exts.set_c1().set_rrc_conn_recfg_r8();
@@ -1777,7 +1767,6 @@ void rrc::ue::send_connection_reconf_upd(srslte::unique_byte_buffer_t pdu)
   send_dl_dcch(&dl_dcch_msg, std::move(pdu));
 
   state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
-
 }
 
 void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
@@ -1859,7 +1848,7 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   // Add SRB2 and DRB1 to the scheduler
   srsenb::sched_interface::ue_bearer_cfg_t bearer_cfg;
   bearer_cfg.direction = srsenb::sched_interface::ue_bearer_cfg_t::BOTH;
-  bearer_cfg.group = 0;
+  bearer_cfg.group     = 0;
   parent->mac->bearer_ue_cfg(rnti, 2, &bearer_cfg);
   bearer_cfg.group = conn_reconf->rr_cfg_ded.drb_to_add_mod_list[0].lc_ch_cfg.ul_specific_params.lc_ch_group;
   parent->mac->bearer_ue_cfg(rnti, 3, &bearer_cfg);
@@ -1868,12 +1857,12 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   parent->rlc->add_bearer(rnti, 2, srslte::rlc_config_t::srb_config(2));
 
   // Configure SRB2 in PDCP
-  srslte::pdcp_config_t pdcp_cnfg_srb = {.bearer_id     = 2,
-                                         .rb_type       = srslte::PDCP_RB_IS_SRB,
-                                         .tx_direction  = srslte::SECURITY_DIRECTION_DOWNLINK,
-                                         .rx_direction  = srslte::SECURITY_DIRECTION_UPLINK,
-                                         .sn_len        = srslte::PDCP_SN_LEN_5,
-                                         .t_reorderding = srslte::pdcp_t_reordering_t::ms500};
+  srslte::pdcp_config_t pdcp_cnfg_srb = {2,
+                                         srslte::PDCP_RB_IS_SRB,
+                                         srslte::SECURITY_DIRECTION_DOWNLINK,
+                                         srslte::SECURITY_DIRECTION_UPLINK,
+                                         srslte::PDCP_SN_LEN_5,
+                                         srslte::pdcp_t_reordering_t::ms500};
 
   parent->pdcp->add_bearer(rnti, 2, pdcp_cnfg_srb);
   parent->pdcp->config_security(rnti, 2, k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo);
@@ -1884,12 +1873,12 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   parent->rlc->add_bearer(rnti, 3, srslte::make_rlc_config_t(conn_reconf->rr_cfg_ded.drb_to_add_mod_list[0].rlc_cfg));
 
   // Configure DRB1 in PDCP
-  srslte::pdcp_config_t pdcp_cnfg_drb = {.bearer_id     = 1,
-                                         .rb_type       = srslte::PDCP_RB_IS_DRB,
-                                         .tx_direction  = srslte::SECURITY_DIRECTION_DOWNLINK,
-                                         .rx_direction  = srslte::SECURITY_DIRECTION_UPLINK,
-                                         .sn_len        = srslte::PDCP_SN_LEN_12,
-                                         .t_reorderding = srslte::pdcp_t_reordering_t::ms500};
+  srslte::pdcp_config_t pdcp_cnfg_drb = {1,
+                                         srslte::PDCP_RB_IS_DRB,
+                                         srslte::SECURITY_DIRECTION_DOWNLINK,
+                                         srslte::SECURITY_DIRECTION_UPLINK,
+                                         srslte::PDCP_SN_LEN_12,
+                                         srslte::pdcp_t_reordering_t::ms500};
 
   if (conn_reconf->rr_cfg_ded.drb_to_add_mod_list[0].pdcp_cfg.rlc_um_present) {
     if (conn_reconf->rr_cfg_ded.drb_to_add_mod_list[0].pdcp_cfg.rlc_um.pdcp_sn_size.value ==
@@ -1904,8 +1893,9 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   // DRB1 has already been configured in GTPU through bearer setup
 
   // Add NAS Attach accept
-  if(nas_pending){
-    parent->rrc_log->info_hex(erab_info.buffer, erab_info.N_bytes, "connection_reconf erab_info -> nas_info rnti 0x%x\n", rnti);
+  if (nas_pending) {
+    parent->rrc_log->info_hex(
+        erab_info.buffer, erab_info.N_bytes, "connection_reconf erab_info -> nas_info rnti 0x%x\n", rnti);
     conn_reconf->ded_info_nas_list_present = true;
     conn_reconf->ded_info_nas_list.resize(1);
     conn_reconf->ded_info_nas_list[0].resize(erab_info.N_bytes);
@@ -1927,7 +1917,7 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   state = RRC_STATE_WAIT_FOR_CON_RECONF_COMPLETE;
 }
 
-void rrc::ue::send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT *e)
+void rrc::ue::send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBEARERSUREQ_STRUCT* e)
 {
   srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool);
 
@@ -1936,10 +1926,10 @@ void rrc::ue::send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBE
   dl_dcch_msg.msg.c1().rrc_conn_recfg().rrc_transaction_id = (uint8_t)((transaction_id++) % 4);
   rrc_conn_recfg_r8_ies_s* conn_reconf = &dl_dcch_msg.msg.c1().rrc_conn_recfg().crit_exts.c1().rrc_conn_recfg_r8();
 
-  for(uint32_t i=0; i<e->len; i++) {
-    LIBLTE_S1AP_E_RABTOBESETUPITEMBEARERSUREQ_STRUCT *erab = &e->buffer[i];
-    uint8_t id    = erab->e_RAB_ID.E_RAB_ID;
-    uint8_t lcid  = id - 2; // Map e.g. E-RAB 5 to LCID 3 (==DRB1)
+  for (uint32_t i = 0; i < e->len; i++) {
+    LIBLTE_S1AP_E_RABTOBESETUPITEMBEARERSUREQ_STRUCT* erab = &e->buffer[i];
+    uint8_t                                           id   = erab->e_RAB_ID.E_RAB_ID;
+    uint8_t                                           lcid = id - 2; // Map e.g. E-RAB 5 to LCID 3 (==DRB1)
 
     // Get DRB configuration
     drb_to_add_mod_s drb_item;
@@ -1959,12 +1949,12 @@ void rrc::ue::send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBE
 
     // Configure DRB in PDCP
     srslte::pdcp_config_t pdcp_config = {
-        .bearer_id     = (uint8_t)(drb_item.drb_id - 1), // TODO: Review all ID mapping LCID DRB ERAB EPSBID Mapping
-        .rb_type       = srslte::PDCP_RB_IS_DRB,
-        .tx_direction  = srslte::SECURITY_DIRECTION_DOWNLINK,
-        .rx_direction  = srslte::SECURITY_DIRECTION_UPLINK,
-        .sn_len        = srslte::PDCP_SN_LEN_12,
-        .t_reorderding = srslte::pdcp_t_reordering_t::ms500};
+        (uint8_t)(drb_item.drb_id - 1), // TODO: Review all ID mapping LCID DRB ERAB EPSBID Mapping
+        srslte::PDCP_RB_IS_DRB,
+        srslte::SECURITY_DIRECTION_DOWNLINK,
+        srslte::SECURITY_DIRECTION_UPLINK,
+        srslte::PDCP_SN_LEN_12,
+        srslte::pdcp_t_reordering_t::ms500};
 
     parent->pdcp->add_bearer(rnti, lcid, pdcp_config);
 
@@ -1973,7 +1963,8 @@ void rrc::ue::send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBE
     conn_reconf->rr_cfg_ded.drb_to_add_mod_list.push_back(drb_item);
 
     // Add NAS message
-    parent->rrc_log->info_hex(erab_info.buffer, erab_info.N_bytes, "reconf_new_bearer erab_info -> nas_info rnti 0x%x\n", rnti);
+    parent->rrc_log->info_hex(
+        erab_info.buffer, erab_info.N_bytes, "reconf_new_bearer erab_info -> nas_info rnti 0x%x\n", rnti);
     asn1::dyn_octstring octstr(erab_info.N_bytes);
     memcpy(octstr.data(), erab_info.msg, erab_info.N_bytes);
     conn_reconf->ded_info_nas_list.push_back(octstr);
@@ -1986,7 +1977,7 @@ void rrc::ue::send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBE
 
 void rrc::ue::send_security_mode_command()
 {
-  dl_dcch_msg_s dl_dcch_msg;
+  dl_dcch_msg_s        dl_dcch_msg;
   security_mode_cmd_s* comm = &dl_dcch_msg.msg.set_c1().set_security_mode_cmd();
   comm->rrc_transaction_id  = (uint8_t)((transaction_id++) % 4);
 
@@ -2028,102 +2019,100 @@ bool rrc::ue::select_security_algorithms()
   // Algorithms are defined in TS 33.401 [15].
   // Note: information missing
 
-  bool enc_algo_found = false;
+  bool enc_algo_found   = false;
   bool integ_algo_found = false;
 
-  for (int i = 0; i < srslte::CIPHERING_ALGORITHM_ID_N_ITEMS; i++) {
-    switch (parent->cfg.eea_preference_list[i]) {
-    case srslte::CIPHERING_ALGORITHM_ID_EEA0:
-      // “all bits equal to 0” – UE supports no other algorithm than EEA0,
-      // specification does not cover the case in which EEA0 is supported with other algorithms
-      // just assume that EEA0 is always supported even this can not be explicity signaled by S1AP
-      cipher_algo    = srslte::CIPHERING_ALGORITHM_ID_EEA0;
-      enc_algo_found = true;
-      parent->rrc_log->info("Selected EEA0 as RRC encryption algorithm\n");
-      break;
-    case srslte::CIPHERING_ALGORITHM_ID_128_EEA1:
-      // “first bit” – 128-EEA1,
-      if (security_capabilities.encryptionAlgorithms
-              .buffer[srslte::CIPHERING_ALGORITHM_ID_128_EEA1 - 1]) {
-        cipher_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA1;
+  for (auto& cipher_item : parent->cfg.eea_preference_list) {
+    switch (cipher_item) {
+      case srslte::CIPHERING_ALGORITHM_ID_EEA0:
+        // “all bits equal to 0” – UE supports no other algorithm than EEA0,
+        // specification does not cover the case in which EEA0 is supported with other algorithms
+        // just assume that EEA0 is always supported even this can not be explicity signaled by S1AP
+        cipher_algo    = srslte::CIPHERING_ALGORITHM_ID_EEA0;
         enc_algo_found = true;
-        parent->rrc_log->info("Selected EEA1 as RRC encryption algorithm\n");
+        parent->rrc_log->info("Selected EEA0 as RRC encryption algorithm\n");
         break;
-      } else {
-        parent->rrc_log->info("Failed to selected EEA1 as RRC encryption algorithm, due to unsupported algorithm\n");
-      }
-      break;
-    case srslte::CIPHERING_ALGORITHM_ID_128_EEA2:
-      // “second bit” – 128-EEA2,
-      if (security_capabilities.encryptionAlgorithms
-              .buffer[srslte::CIPHERING_ALGORITHM_ID_128_EEA2 - 1]) {
-        cipher_algo = srslte::CIPHERING_ALGORITHM_ID_128_EEA2;
-        enc_algo_found = true;
-        parent->rrc_log->info("Selected EEA2 as RRC encryption algorithm\n");
+      case srslte::CIPHERING_ALGORITHM_ID_128_EEA1:
+        // “first bit” – 128-EEA1,
+        if (security_capabilities.encryptionAlgorithms.buffer[srslte::CIPHERING_ALGORITHM_ID_128_EEA1 - 1]) {
+          cipher_algo    = srslte::CIPHERING_ALGORITHM_ID_128_EEA1;
+          enc_algo_found = true;
+          parent->rrc_log->info("Selected EEA1 as RRC encryption algorithm\n");
+          break;
+        } else {
+          parent->rrc_log->info("Failed to selected EEA1 as RRC encryption algorithm, due to unsupported algorithm\n");
+        }
         break;
-      } else {
-        parent->rrc_log->info("Failed to selected EEA2 as RRC encryption algorithm, due to unsupported algorithm\n");
-      }
-      break;
-    case srslte::CIPHERING_ALGORITHM_ID_128_EEA3:
-      // “third bit” – 128-EEA3,
-      if (security_capabilities.encryptionAlgorithms.buffer[srslte::CIPHERING_ALGORITHM_ID_128_EEA3 - 1]) {
-        cipher_algo    = srslte::CIPHERING_ALGORITHM_ID_128_EEA3;
-        enc_algo_found = true;
-        parent->rrc_log->info("Selected EEA3 as RRC encryption algorithm\n");
+      case srslte::CIPHERING_ALGORITHM_ID_128_EEA2:
+        // “second bit” – 128-EEA2,
+        if (security_capabilities.encryptionAlgorithms.buffer[srslte::CIPHERING_ALGORITHM_ID_128_EEA2 - 1]) {
+          cipher_algo    = srslte::CIPHERING_ALGORITHM_ID_128_EEA2;
+          enc_algo_found = true;
+          parent->rrc_log->info("Selected EEA2 as RRC encryption algorithm\n");
+          break;
+        } else {
+          parent->rrc_log->info("Failed to selected EEA2 as RRC encryption algorithm, due to unsupported algorithm\n");
+        }
         break;
-      } else {
-        parent->rrc_log->info("Failed to selected EEA2 as RRC encryption algorithm, due to unsupported algorithm\n");
-      }
-      break;
-    default:
-      enc_algo_found = false;
-      break;
+      case srslte::CIPHERING_ALGORITHM_ID_128_EEA3:
+        // “third bit” – 128-EEA3,
+        if (security_capabilities.encryptionAlgorithms.buffer[srslte::CIPHERING_ALGORITHM_ID_128_EEA3 - 1]) {
+          cipher_algo    = srslte::CIPHERING_ALGORITHM_ID_128_EEA3;
+          enc_algo_found = true;
+          parent->rrc_log->info("Selected EEA3 as RRC encryption algorithm\n");
+          break;
+        } else {
+          parent->rrc_log->info("Failed to selected EEA2 as RRC encryption algorithm, due to unsupported algorithm\n");
+        }
+        break;
+      default:
+        enc_algo_found = false;
+        break;
     }
     if (enc_algo_found) {
       break;
     }
   }
 
-  for (int i = 0; i < srslte::INTEGRITY_ALGORITHM_ID_N_ITEMS; i++) {
-    switch (parent->cfg.eia_preference_list[i]) {
-    case srslte::INTEGRITY_ALGORITHM_ID_EIA0:
-      // Null integrity is not supported
-      parent->rrc_log->info("Skipping EIA0 as RRC integrity algorithm. Null integrity is not supported.\n");
-      break;
-    case srslte::INTEGRITY_ALGORITHM_ID_128_EIA1:
-      // “first bit” – 128-EIA1,
-      if (security_capabilities.integrityProtectionAlgorithms.buffer[srslte::INTEGRITY_ALGORITHM_ID_128_EIA1 - 1]) {
-        integ_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA1;
-        integ_algo_found = true;
-        parent->rrc_log->info("Selected EIA1 as RRC integrity algorithm.\n");
-      } else {
-        parent->rrc_log->info("Failed to selected EIA1 as RRC encryption algorithm, due to unsupported algorithm\n");
-      }
-      break;
-    case srslte::INTEGRITY_ALGORITHM_ID_128_EIA2:
-      // “second bit” – 128-EIA2,
-      if (security_capabilities.integrityProtectionAlgorithms.buffer[srslte::INTEGRITY_ALGORITHM_ID_128_EIA2 - 1]) {
-        integ_algo = srslte::INTEGRITY_ALGORITHM_ID_128_EIA2;
-        integ_algo_found = true;
-        parent->rrc_log->info("Selected EIA2 as RRC integrity algorithm.\n");
-      } else {
-        parent->rrc_log->info("Failed to selected EIA2 as RRC encryption algorithm, due to unsupported algorithm\n");
-      }
-      break;
-    case srslte::INTEGRITY_ALGORITHM_ID_128_EIA3:
-      // “third bit” – 128-EIA3,
-      if (security_capabilities.integrityProtectionAlgorithms.buffer[srslte::INTEGRITY_ALGORITHM_ID_128_EIA3 - 1]) {
-        integ_algo       = srslte::INTEGRITY_ALGORITHM_ID_128_EIA3;
-        integ_algo_found = true;
-        parent->rrc_log->info("Selected EIA3 as RRC integrity algorithm.\n");
-      } else {
-        parent->rrc_log->info("Failed to selected EIA3 as RRC encryption algorithm, due to unsupported algorithm\n");
-      }
-      break;
-    default:
-      integ_algo_found = false;
-      break;
+  for (auto& eia_enum : parent->cfg.eia_preference_list) {
+    switch (eia_enum) {
+      case srslte::INTEGRITY_ALGORITHM_ID_EIA0:
+        // Null integrity is not supported
+        parent->rrc_log->info("Skipping EIA0 as RRC integrity algorithm. Null integrity is not supported.\n");
+        break;
+      case srslte::INTEGRITY_ALGORITHM_ID_128_EIA1:
+        // “first bit” – 128-EIA1,
+        if (security_capabilities.integrityProtectionAlgorithms.buffer[srslte::INTEGRITY_ALGORITHM_ID_128_EIA1 - 1]) {
+          integ_algo       = srslte::INTEGRITY_ALGORITHM_ID_128_EIA1;
+          integ_algo_found = true;
+          parent->rrc_log->info("Selected EIA1 as RRC integrity algorithm.\n");
+        } else {
+          parent->rrc_log->info("Failed to selected EIA1 as RRC encryption algorithm, due to unsupported algorithm\n");
+        }
+        break;
+      case srslte::INTEGRITY_ALGORITHM_ID_128_EIA2:
+        // “second bit” – 128-EIA2,
+        if (security_capabilities.integrityProtectionAlgorithms.buffer[srslte::INTEGRITY_ALGORITHM_ID_128_EIA2 - 1]) {
+          integ_algo       = srslte::INTEGRITY_ALGORITHM_ID_128_EIA2;
+          integ_algo_found = true;
+          parent->rrc_log->info("Selected EIA2 as RRC integrity algorithm.\n");
+        } else {
+          parent->rrc_log->info("Failed to selected EIA2 as RRC encryption algorithm, due to unsupported algorithm\n");
+        }
+        break;
+      case srslte::INTEGRITY_ALGORITHM_ID_128_EIA3:
+        // “third bit” – 128-EIA3,
+        if (security_capabilities.integrityProtectionAlgorithms.buffer[srslte::INTEGRITY_ALGORITHM_ID_128_EIA3 - 1]) {
+          integ_algo       = srslte::INTEGRITY_ALGORITHM_ID_128_EIA3;
+          integ_algo_found = true;
+          parent->rrc_log->info("Selected EIA3 as RRC integrity algorithm.\n");
+        } else {
+          parent->rrc_log->info("Failed to selected EIA3 as RRC encryption algorithm, due to unsupported algorithm\n");
+        }
+        break;
+      default:
+        integ_algo_found = false;
+        break;
     }
 
     if (integ_algo_found) {
@@ -2158,7 +2147,7 @@ void rrc::ue::send_dl_ccch(dl_ccch_msg_s* dl_ccch_msg)
 }
 
 void rrc::ue::send_dl_dcch(dl_dcch_msg_s* dl_dcch_msg, srslte::unique_byte_buffer_t pdu)
-{  
+{
   if (!pdu) {
     pdu = srslte::allocate_unique_buffer(*pool);
   }
@@ -2190,74 +2179,80 @@ int rrc::ue::sr_free()
     if (parent->sr_sched.nof_users[sr_sched_prb_idx][sr_sched_sf_idx] > 0) {
       parent->sr_sched.nof_users[sr_sched_prb_idx][sr_sched_sf_idx]--;
     } else {
-      parent->rrc_log->warning("Removing SR resources: no users in time-frequency slot (%d, %d)\n", sr_sched_prb_idx, sr_sched_sf_idx);
+      parent->rrc_log->warning(
+          "Removing SR resources: no users in time-frequency slot (%d, %d)\n", sr_sched_prb_idx, sr_sched_sf_idx);
     }
-    parent->rrc_log->info("Deallocated SR resources for time-frequency slot (%d, %d)\n", sr_sched_prb_idx, sr_sched_sf_idx);
+    parent->rrc_log->info(
+        "Deallocated SR resources for time-frequency slot (%d, %d)\n", sr_sched_prb_idx, sr_sched_sf_idx);
   }
-  return 0; 
+  return 0;
 }
 
 void rrc::ue::sr_get(uint8_t* I_sr, uint16_t* N_pucch_sr)
 {
-  *I_sr       = sr_I; 
-  *N_pucch_sr = sr_N_pucch; 
+  *I_sr       = sr_I;
+  *N_pucch_sr = sr_N_pucch;
 }
 
 int rrc::ue::sr_allocate(uint32_t period, uint8_t* I_sr, uint16_t* N_pucch_sr)
 {
-  uint32_t c = SRSLTE_CP_ISNORM(parent->cfg.cell.cp)?3:2;
+  uint32_t c                 = SRSLTE_CP_ISNORM(parent->cfg.cell.cp) ? 3 : 2;
   uint32_t delta_pucch_shift = parent->sib2.rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number();
 
-  uint32_t max_users = 12*c/delta_pucch_shift;
+  uint32_t max_users = 12 * c / delta_pucch_shift;
 
-  // Find freq-time resources with least number of users 
-  int i_min=0, j_min=0; 
+  // Find freq-time resources with least number of users
+  int      i_min = 0, j_min = 0;
   uint32_t min_users = 1e6;
-  for (uint32_t i=0;i<parent->cfg.sr_cfg.nof_prb;i++) {
-    for (uint32_t j=0;j<parent->cfg.sr_cfg.nof_subframes;j++) {
+  for (uint32_t i = 0; i < parent->cfg.sr_cfg.nof_prb; i++) {
+    for (uint32_t j = 0; j < parent->cfg.sr_cfg.nof_subframes; j++) {
       if (parent->sr_sched.nof_users[i][j] < min_users) {
-        i_min = i; 
-        j_min = j; 
+        i_min     = i;
+        j_min     = j;
         min_users = parent->sr_sched.nof_users[i][j];
       }
     }
   }
-  
+
   if (parent->sr_sched.nof_users[i_min][j_min] > max_users) {
     parent->rrc_log->error("Not enough PUCCH resources to allocate Scheduling Request\n");
-    return -1; 
+    return -1;
   }
-  
-  // Compute I_sr   
+
+  // Compute I_sr
   if (period != 5 && period != 10 && period != 20 && period != 40 && period != 80) {
     parent->rrc_log->error("Invalid SchedulingRequest period %d ms\n", period);
-    return -1; 
-  }  
+    return -1;
+  }
   if (parent->cfg.sr_cfg.sf_mapping[j_min] < period) {
     *I_sr = period - 5 + parent->cfg.sr_cfg.sf_mapping[j_min];
   } else {
-    parent->rrc_log->error("Allocating SR: invalid sf_idx=%d for period=%d\n", parent->cfg.sr_cfg.sf_mapping[j_min], period);
-    return -1; 
+    parent->rrc_log->error(
+        "Allocating SR: invalid sf_idx=%d for period=%d\n", parent->cfg.sr_cfg.sf_mapping[j_min], period);
+    return -1;
   }
 
-  // Compute N_pucch_sr 
-  *N_pucch_sr = i_min*max_users + parent->sr_sched.nof_users[i_min][j_min];
+  // Compute N_pucch_sr
+  *N_pucch_sr = i_min * max_users + parent->sr_sched.nof_users[i_min][j_min];
   if (parent->sib2.rr_cfg_common.pucch_cfg_common.n_cs_an) {
     *N_pucch_sr += parent->sib2.rr_cfg_common.pucch_cfg_common.n_cs_an;
   }
-    
-  // Allocate user 
-  parent->sr_sched.nof_users[i_min][j_min]++; 
-  sr_sched_prb_idx = i_min; 
-  sr_sched_sf_idx  = j_min; 
-  sr_allocated     = true; 
-  sr_I             = *I_sr; 
-  sr_N_pucch       = *N_pucch_sr; 
- 
-  parent->rrc_log->info("Allocated SR resources for time-frequency slot (%d, %d), N_pucch_sr=%d, I_sr=%d\n", 
-                        sr_sched_prb_idx, sr_sched_sf_idx, *N_pucch_sr, *I_sr);
 
-  return 0; 
+  // Allocate user
+  parent->sr_sched.nof_users[i_min][j_min]++;
+  sr_sched_prb_idx = i_min;
+  sr_sched_sf_idx  = j_min;
+  sr_allocated     = true;
+  sr_I             = *I_sr;
+  sr_N_pucch       = *N_pucch_sr;
+
+  parent->rrc_log->info("Allocated SR resources for time-frequency slot (%d, %d), N_pucch_sr=%d, I_sr=%d\n",
+                        sr_sched_prb_idx,
+                        sr_sched_sf_idx,
+                        *N_pucch_sr,
+                        *I_sr);
+
+  return 0;
 }
 
 int rrc::ue::cqi_free()
@@ -2266,81 +2261,84 @@ int rrc::ue::cqi_free()
     if (parent->cqi_sched.nof_users[cqi_sched_prb_idx][cqi_sched_sf_idx] > 0) {
       parent->cqi_sched.nof_users[cqi_sched_prb_idx][cqi_sched_sf_idx]--;
     } else {
-      parent->rrc_log->warning("Removing CQI resources: no users in time-frequency slot (%d, %d)\n", cqi_sched_prb_idx, cqi_sched_sf_idx);
+      parent->rrc_log->warning(
+          "Removing CQI resources: no users in time-frequency slot (%d, %d)\n", cqi_sched_prb_idx, cqi_sched_sf_idx);
     }
-    parent->rrc_log->info("Deallocated CQI resources for time-frequency slot (%d, %d)\n", cqi_sched_prb_idx, cqi_sched_sf_idx);
+    parent->rrc_log->info(
+        "Deallocated CQI resources for time-frequency slot (%d, %d)\n", cqi_sched_prb_idx, cqi_sched_sf_idx);
   }
-  return 0; 
+  return 0;
 }
 
 void rrc::ue::cqi_get(uint16_t* pmi_idx, uint16_t* n_pucch)
 {
-  *pmi_idx = cqi_idx; 
-  *n_pucch = cqi_pucch; 
+  *pmi_idx = cqi_idx;
+  *n_pucch = cqi_pucch;
 }
 
 int rrc::ue::cqi_allocate(uint32_t period, uint16_t* pmi_idx, uint16_t* n_pucch)
 {
-  uint32_t c = SRSLTE_CP_ISNORM(parent->cfg.cell.cp)?3:2;
+  uint32_t c                 = SRSLTE_CP_ISNORM(parent->cfg.cell.cp) ? 3 : 2;
   uint32_t delta_pucch_shift = parent->sib2.rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number();
 
-  uint32_t max_users = 12*c/delta_pucch_shift;
+  uint32_t max_users = 12 * c / delta_pucch_shift;
 
-  // Find freq-time resources with least number of users 
-  int i_min=0, j_min=0; 
+  // Find freq-time resources with least number of users
+  int      i_min = 0, j_min = 0;
   uint32_t min_users = 1e6;
-  for (uint32_t i=0;i<parent->cfg.cqi_cfg.nof_prb;i++) {
-    for (uint32_t j=0;j<parent->cfg.cqi_cfg.nof_subframes;j++) {
+  for (uint32_t i = 0; i < parent->cfg.cqi_cfg.nof_prb; i++) {
+    for (uint32_t j = 0; j < parent->cfg.cqi_cfg.nof_subframes; j++) {
       if (parent->cqi_sched.nof_users[i][j] < min_users) {
-        i_min = i; 
-        j_min = j; 
+        i_min     = i;
+        j_min     = j;
         min_users = parent->cqi_sched.nof_users[i][j];
       }
     }
   }
-  
+
   if (parent->cqi_sched.nof_users[i_min][j_min] > max_users) {
     parent->rrc_log->error("Not enough PUCCH resources to allocate Scheduling Request\n");
-    return -1; 
+    return -1;
   }
-  
-  // Compute I_sr   
-  if (period != 2 && period != 5 && period != 10 && period != 20 && period != 40 && period != 80 && 
-      period != 160 && period != 32 && period != 64 && period != 128) {
+
+  // Compute I_sr
+  if (period != 2 && period != 5 && period != 10 && period != 20 && period != 40 && period != 80 && period != 160 &&
+      period != 32 && period != 64 && period != 128) {
     parent->rrc_log->error("Invalid CQI Report period %d ms\n", period);
-    return -1; 
-  }  
+    return -1;
+  }
   if (parent->cfg.cqi_cfg.sf_mapping[j_min] < period) {
     if (period != 32 && period != 64 && period != 128) {
       if (period > 2) {
-        *pmi_idx = period - 3 + parent->cfg.cqi_cfg.sf_mapping[j_min]; 
+        *pmi_idx = period - 3 + parent->cfg.cqi_cfg.sf_mapping[j_min];
       } else {
-        *pmi_idx = parent->cfg.cqi_cfg.sf_mapping[j_min]; 
-      }      
+        *pmi_idx = parent->cfg.cqi_cfg.sf_mapping[j_min];
+      }
     } else {
       if (period == 32) {
-        *pmi_idx = 318 + parent->cfg.cqi_cfg.sf_mapping[j_min]; 
+        *pmi_idx = 318 + parent->cfg.cqi_cfg.sf_mapping[j_min];
       } else if (period == 64) {
-        *pmi_idx = 350 + parent->cfg.cqi_cfg.sf_mapping[j_min]; 
+        *pmi_idx = 350 + parent->cfg.cqi_cfg.sf_mapping[j_min];
       } else if (period == 128) {
-        *pmi_idx = 414 + parent->cfg.cqi_cfg.sf_mapping[j_min]; 
+        *pmi_idx = 414 + parent->cfg.cqi_cfg.sf_mapping[j_min];
       }
     }
   } else {
-    parent->rrc_log->error("Allocating SR: invalid sf_idx=%d for period=%d\n", parent->cfg.cqi_cfg.sf_mapping[j_min], period);
-    return -1; 
+    parent->rrc_log->error(
+        "Allocating SR: invalid sf_idx=%d for period=%d\n", parent->cfg.cqi_cfg.sf_mapping[j_min], period);
+    return -1;
   }
 
   // Compute n_pucch_2
-  *n_pucch = i_min*max_users + parent->cqi_sched.nof_users[i_min][j_min];
+  *n_pucch = i_min * max_users + parent->cqi_sched.nof_users[i_min][j_min];
   if (parent->sib2.rr_cfg_common.pucch_cfg_common.n_cs_an) {
     *n_pucch += parent->sib2.rr_cfg_common.pucch_cfg_common.n_cs_an;
   }
-    
-  // Allocate user 
-  parent->cqi_sched.nof_users[i_min][j_min]++; 
-  cqi_sched_prb_idx = i_min; 
-  cqi_sched_sf_idx  = j_min; 
+
+  // Allocate user
+  parent->cqi_sched.nof_users[i_min][j_min]++;
+  cqi_sched_prb_idx = i_min;
+  cqi_sched_sf_idx  = j_min;
   cqi_allocated     = true;
   cqi_idx           = *pmi_idx;
   cqi_pucch         = *n_pucch;
@@ -2351,7 +2349,7 @@ int rrc::ue::cqi_allocate(uint32_t period, uint16_t* pmi_idx, uint16_t* n_pucch)
                         *n_pucch,
                         *pmi_idx);
 
-  return 0; 
+  return 0;
 }
 
 int rrc::ue::ri_get(uint32_t m_ri, uint16_t* ri_idx)
@@ -2393,4 +2391,4 @@ int rrc::ue::ri_get(uint32_t m_ri, uint16_t* ri_idx)
 
   return ret;
 }
-}
+} // namespace srsenb

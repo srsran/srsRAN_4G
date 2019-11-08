@@ -192,8 +192,12 @@ void dl_harq_proc::new_tx(const rbgmask_t& new_mask, uint32_t tb_idx, uint32_t t
   new_tx_common(tb_idx, tti, mcs, tbs);
 }
 
-void dl_harq_proc::new_retx(
-    const rbgmask_t& new_mask, uint32_t tb_idx, uint32_t tti_, int* mcs, int* tbs, uint32_t n_cce_)
+void dl_harq_proc::new_retx(const rbgmask_t& new_mask,
+                            uint32_t         tb_idx,
+                            uint32_t         tti_,
+                            int*             mcs,
+                            int*             tbs,
+                            uint32_t         n_cce_)
 {
   n_cce   = n_cce_;
   rbgmask = new_mask;
