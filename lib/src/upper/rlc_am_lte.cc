@@ -722,9 +722,10 @@ int rlc_am_lte::rlc_am_lte_tx::build_segment(uint8_t* payload, uint32_t nof_byte
   if (pdu_len > static_cast<int>(nof_bytes)) {
     log->error("%s Retx PDU segment length error. Available: %d, Used: %d\n",
                RB_NAME, nof_bytes, pdu_len);
-    log->debug("%s Retx PDU segment length error. Header len: %" PRIu64 ", Payload len: %d, N_li: %d\n",
+    int header_len = (ptr - payload);
+    log->debug("%s Retx PDU segment length error. Header len: %d, Payload len: %d, N_li: %d\n",
                RB_NAME,
-               (ptr - payload),
+               header_len,
                len,
                new_header.N_li);
   }
@@ -1427,10 +1428,8 @@ void rlc_am_lte::rlc_am_lte_rx::reassemble_rx_sdus()
 #endif
           }
         } else {
-          log->error("Cannot read %d bytes from rx_window. vr_r=%d, msg-buffer=%" PRIu64 " bytes\n",
-                     len,
-                     vr_r,
-                     (rx_window[vr_r].buf->msg - rx_window[vr_r].buf->buffer));
+          int buf_len = rx_window[vr_r].buf->msg - rx_window[vr_r].buf->buffer;
+          log->error("Cannot read %d bytes from rx_window. vr_r=%d, msg-buffer=%d B\n", len, vr_r, buf_len);
           rx_sdu.reset();
           goto exit;
         }
