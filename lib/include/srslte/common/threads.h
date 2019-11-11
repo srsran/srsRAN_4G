@@ -50,14 +50,18 @@ class thread
 {
 public:
   thread(const std::string& name_) : _thread(0), name(name_) {}
-  thread(const thread&)     = delete;
-  thread(thread&&) noexcept = default;
-  thread& operator=(const thread&) = delete;
-  thread& operator=(thread&&) noexcept = default;
-  bool    start(int prio = -1) { return threads_new_rt_prio(&_thread, thread_function_entry, this, prio); }
-  bool start_cpu(int prio, int cpu) {
-    return threads_new_rt_cpu(&_thread, thread_function_entry, this, cpu, prio);    
+  thread(const thread&) = delete;
+  thread(thread&& other) noexcept
+  {
+    _thread       = other._thread;
+    name          = std::move(other.name);
+    other._thread = 0;
+    other.name    = "";
   }
+  thread& operator=(const thread&) = delete;
+  thread& operator=(thread&&) noexcept = delete;
+  bool    start(int prio = -1) { return threads_new_rt_prio(&_thread, thread_function_entry, this, prio); }
+  bool    start_cpu(int prio, int cpu) { return threads_new_rt_cpu(&_thread, thread_function_entry, this, cpu, prio); }
   bool start_cpu_mask(int prio, int mask)
   {
     return threads_new_rt_mask(&_thread, thread_function_entry, this, mask, prio);

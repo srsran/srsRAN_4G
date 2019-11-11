@@ -78,3 +78,6 @@ add_test(queue_test queue_test)
 
 add_executable(timer_test timer_test.cc)
 target_link_libraries(timer_test srslte_common)
+
+add_executable(rx_socket_handler_test rx_socket_handler_test.cc)
+target_link_libraries(rx_socket_handler_test srslte_common ${CMAKE_THREAD_LIBS_INIT} ${SCTP_LIBRARIES})
