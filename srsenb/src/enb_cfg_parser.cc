@@ -1226,7 +1226,7 @@ static int parse_cell_list(all_args_t* args, rrc_cfg_t* rrc_cfg, Setting& root)
     parse_default_field(cell_cfg.dl_earfcn, cellroot, "dl_earfcn", args->enb.dl_earfcn);
     parse_default_field(cell_cfg.ul_earfcn, cellroot, "ul_earfcn", args->enb.ul_earfcn);
 
-    if (root["ho_active"]) {
+    if (cellroot["ho_active"]) {
       HANDLEPARSERCODE(parse_meas_cell_list(&rrc_cfg->meas_cfg, cellroot["meas_cell_list"]));
       HANDLEPARSERCODE(parse_meas_report_desc(&rrc_cfg->meas_cfg, cellroot["meas_report_desc"]));
     }
