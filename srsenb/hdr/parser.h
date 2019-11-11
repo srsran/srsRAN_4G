@@ -430,7 +430,7 @@ template <typename EnumType>
 int number_to_enum(EnumType& enum_val, Setting& root)
 {
   if (root.isNumber()) {
-    typename EnumType::number_type val;
+    typename EnumType::number_type val = 0;
     if (root.getType() == Setting::TypeInt64) {
       val = (long int)root;
     } else if (root.getType() == Setting::TypeInt) {
