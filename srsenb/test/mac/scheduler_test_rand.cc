@@ -109,7 +109,7 @@ public:
   {
     info("[TESTER] UE stats:\n");
     for (auto& e : ue_stats) {
-      info("0x%x: {DL RBs: %lu, UL RBs: %lu}\n", e.first, e.second.nof_dl_rbs, e.second.nof_ul_rbs);
+      info("0x%x: {DL RBs: %" PRIu64 ", UL RBs: %" PRIu64 "}\n", e.first, e.second.nof_dl_rbs, e.second.nof_ul_rbs);
     }
     info("[TESTER] This was the seed: %u\n", seed);
   }
@@ -390,7 +390,7 @@ void sched_tester::process_results()
 void sched_tester::run_tti(uint32_t tti_rx)
 {
   new_test_tti(tti_rx);
-  log_out.info("[TESTER] ---- tti=%u | nof_ues=%lu ----\n", tti_rx, ue_db.size());
+  log_out.info("[TESTER] ---- tti=%u | nof_ues=%zd ----\n", tti_rx, ue_db.size());
 
   process_tti_args();
 
