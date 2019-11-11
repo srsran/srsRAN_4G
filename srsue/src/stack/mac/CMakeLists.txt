@@ -18,7 +18,6 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-file(GLOB SOURCES "*.cc")
+set(SOURCES demux.cc dl_harq.cc mac.cc mux.cc proc_bsr.cc proc_phr.cc proc_ra.cc proc_sr.cc ul_harq.cc)
 add_library(srsue_mac STATIC ${SOURCES})
-
 install(TARGETS srsue_mac DESTINATION ${LIBRARY_DIR})
