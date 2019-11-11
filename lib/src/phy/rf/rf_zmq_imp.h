@@ -33,7 +33,7 @@ SRSLTE_API int rf_zmq_open(char* args, void** handler);
 
 SRSLTE_API int rf_zmq_open_multi(char* args, void** handler, uint32_t nof_channels);
 
-SRSLTE_API char* rf_zmq_devname(void* h);
+SRSLTE_API const char* rf_zmq_devname(void* h);
 
 SRSLTE_API int rf_zmq_close(void* h);
 

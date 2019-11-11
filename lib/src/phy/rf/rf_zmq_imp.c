@@ -157,9 +157,9 @@ void rf_zmq_register_error_handler(void* h, srslte_rf_error_handler_t new_handle
   // do nothing
 }
 
-char* rf_zmq_devname(void* h)
+const char* rf_zmq_devname(void* h)
 {
-  return (char*)zmq_devname;
+  return zmq_devname;
 }
 
 int rf_zmq_start_rx_stream(void* h, bool now)

@@ -186,8 +186,7 @@ void rf_soapy_register_error_handler(void *h, srslte_rf_error_handler_t new_hand
   handler->soapy_error_handler = new_handler;
 }
 
-
-char* rf_soapy_devname(void* h)
+const char* rf_soapy_devname(void* h)
 {
   rf_soapy_handler_t *handler = (rf_soapy_handler_t*) h;
   return handler->devname;
@@ -209,9 +208,7 @@ void rf_soapy_calibrate_tx(void *h)
   char str_buf[25];
   snprintf(str_buf, sizeof(str_buf), "%f", actual_bw);
   str_buf[24] = 0;
-  if (SoapySDRDevice_writeSetting(handler->device, "CALIBRATE_TX", str_buf)) {
-    printf("Error calibrating Rx\n");
-  }
+  SoapySDRDevice_writeSetting(handler->device, "CALIBRATE_TX", str_buf);
 }
 
 int rf_soapy_start_rx_stream(void *h, bool now)
