@@ -38,19 +38,10 @@ using namespace asn1::rrc;
 
 namespace srsenb {
 
-rrc::rrc() : act_monitor(this), cnotifier(nullptr), nof_si_messages(0), thread("RRC")
+rrc::rrc() : cnotifier(nullptr), nof_si_messages(0)
 {
   users.clear();
   pending_paging.clear();
-
-  pool    = nullptr;
-  phy     = nullptr;
-  mac     = nullptr;
-  rlc     = nullptr;
-  pdcp    = nullptr;
-  gtpu    = nullptr;
-  s1ap    = nullptr;
-  rrc_log = nullptr;
 
   bzero(&sr_sched, sizeof(sr_sched));
   bzero(&cqi_sched, sizeof(cqi_sched));
@@ -69,6 +60,7 @@ void rrc::init(rrc_cfg_t*               cfg_,
                pdcp_interface_rrc*      pdcp_,
                s1ap_interface_rrc*      s1ap_,
                gtpu_interface_rrc*      gtpu_,
+               srslte::timer_handler*   timers_,
                srslte::log*             log_rrc)
 {
   phy       = phy_;
@@ -78,10 +70,10 @@ void rrc::init(rrc_cfg_t*               cfg_,
   gtpu      = gtpu_;
   s1ap      = s1ap_;
   rrc_log   = log_rrc;
+  timers    = timers_;
   cnotifier = nullptr;
 
-  running = false;
-  pool    = srslte::byte_buffer_pool::get_instance();
+  pool = srslte::byte_buffer_pool::get_instance();
 
   cfg = *cfg_;
 
@@ -97,10 +89,17 @@ void rrc::init(rrc_cfg_t*               cfg_,
   pthread_mutex_init(&user_mutex, nullptr);
   pthread_mutex_init(&paging_mutex, nullptr);
 
-  act_monitor.start(RRC_THREAD_PRIO);
   bzero(&sr_sched, sizeof(sr_sched_t));
 
-  start(RRC_THREAD_PRIO);
+  // run active monitor timer in a 10ms loop
+  activity_monitor_timer = timers->get_unique_timer();
+  activity_monitor_timer.set(10, [this](uint32_t tid) {
+    monitor_activity();
+    activity_monitor_timer.run();
+  });
+  activity_monitor_timer.run();
+
+  running = true;
 }
 
 void rrc::set_connect_notifer(connect_notifier* cnotifier_)
@@ -114,9 +113,7 @@ void rrc::stop()
     running   = false;
     rrc_pdu p = {0, LCID_EXIT, nullptr};
     rx_pdu_queue.push(std::move(p));
-    wait_thread_finish();
   }
-  act_monitor.stop();
   pthread_mutex_lock(&user_mutex);
   users.clear();
   pthread_mutex_unlock(&user_mutex);
@@ -763,7 +760,6 @@ void rrc::process_release_complete(uint16_t rnti)
 
 void rrc::rem_user(uint16_t rnti)
 {
-  pthread_mutex_lock(&user_mutex);
   auto user_it = users.find(rnti);
   if (user_it != users.end()) {
     rrc_log->console("Disconnecting rnti=0x%x.\n", rnti);
@@ -787,7 +783,6 @@ void rrc::rem_user(uint16_t rnti)
   } else {
     rrc_log->error("Removing user rnti=0x%x (does not exist)\n", rnti);
   }
-  pthread_mutex_unlock(&user_mutex);
 }
 
 void rrc::config_mac()
@@ -944,110 +939,97 @@ void rrc::enable_encryption(uint16_t rnti, uint32_t lcid)
   pdcp->enable_encryption(rnti, lcid);
 }
 
-/*******************************************************************************
-  RRC thread
-*******************************************************************************/
-
-void rrc::run_thread()
+void rrc::monitor_activity()
 {
-  rrc_pdu p;
-  running = true;
+  pthread_mutex_lock(&user_mutex);
 
-  while (running) {
-    p = rx_pdu_queue.wait_pop();
-    if (p.pdu) {
-      rrc_log->info_hex(p.pdu->msg, p.pdu->N_bytes, "Rx %s PDU", rb_id_text[p.lcid]);
+  uint16_t rem_rnti = 0;
+  for (auto& user : users) {
+    if (user.first == SRSLTE_MRNTI) {
+      continue;
+    }
+    ue*      u    = (ue*)&user.second;
+    uint16_t rnti = (uint16_t)user.first;
+
+    if (cnotifier && u->is_connected() && !u->connect_notified) {
+      cnotifier->user_connected(rnti);
+      u->connect_notified = true;
     }
 
-    // Mutex these calls even though it's a private function
-    auto user_it = users.find(p.rnti);
-    if (user_it != users.end()) {
-      switch (p.lcid) {
-        case RB_ID_SRB0:
-          parse_ul_ccch(p.rnti, std::move(p.pdu));
-          break;
-        case RB_ID_SRB1:
-        case RB_ID_SRB2:
-          parse_ul_dcch(p.rnti, p.lcid, std::move(p.pdu));
-          break;
-        case LCID_REM_USER:
-          rem_user(p.rnti);
-          break;
-        case LCID_REL_USER:
-          process_release_complete(p.rnti);
-          break;
-        case LCID_RLF_USER:
-          process_rl_failure(p.rnti);
-          break;
-        case LCID_ACT_USER:
-          user_it->second->set_activity();
-          break;
-        case LCID_EXIT:
-          rrc_log->info("Exiting thread\n");
-          break;
-        default:
-          rrc_log->error("Rx PDU with invalid bearer id: %d", p.lcid);
-          break;
-      }
+    if (u->is_timeout()) {
+      rrc_log->info("User rnti=0x%x timed out. Exists in s1ap=%s\n", rnti, s1ap->user_exists(rnti) ? "yes" : "no");
+      rem_rnti = rnti;
+      break;
+    }
+  }
+  if (rem_rnti > 0) {
+    if (s1ap->user_exists(rem_rnti)) {
+      s1ap->user_release(rem_rnti, LIBLTE_S1AP_CAUSERADIONETWORK_USER_INACTIVITY);
     } else {
-      rrc_log->warning("Discarding PDU for removed rnti=0x%x\n", p.rnti);
+      if (rem_rnti != SRSLTE_MRNTI) {
+        rem_user_thread(rem_rnti);
+      }
     }
   }
+
+  pthread_mutex_unlock(&user_mutex);
 }
 
 /*******************************************************************************
-  Activity monitor class
+  RRC run tti method
 *******************************************************************************/
 
-rrc::activity_monitor::activity_monitor(rrc* parent_) : thread("RRC_ACTIVITY_MONITOR")
+void rrc::tti_clock()
 {
-  running = true;
-  parent  = parent_;
-}
-
-void rrc::activity_monitor::stop()
-{
-  if (running) {
-    running = false;
-    thread_cancel();
-    wait_thread_finish();
+  pthread_mutex_lock(&user_mutex);
+  // pop cmd from queue
+  rrc_pdu p;
+  if (not rx_pdu_queue.try_pop(&p)) {
+    pthread_mutex_unlock(&user_mutex);
+    return;
   }
-}
-
-void rrc::activity_monitor::run_thread()
-{
-  while (running) {
-    usleep(10000);
-    pthread_mutex_lock(&parent->user_mutex);
-    uint16_t rem_rnti = 0;
-    for (auto iter = parent->users.begin(); rem_rnti == 0 && iter != parent->users.end(); ++iter) {
-      if (iter->first != SRSLTE_MRNTI) {
-        ue*      u    = (ue*)&iter->second;
-        uint16_t rnti = (uint16_t)iter->first;
-
-        if (parent->cnotifier && u->is_connected() && !u->connect_notified) {
-          parent->cnotifier->user_connected(rnti);
-          u->connect_notified = true;
-        }
-
-        if (u->is_timeout()) {
-          parent->rrc_log->info(
-              "User rnti=0x%x timed out. Exists in s1ap=%s\n", rnti, parent->s1ap->user_exists(rnti) ? "yes" : "no");
-          rem_rnti = rnti;
-        }
-      }
-    }
-    if (rem_rnti > 0) {
-      if (parent->s1ap->user_exists(rem_rnti)) {
-        parent->s1ap->user_release(rem_rnti, LIBLTE_S1AP_CAUSERADIONETWORK_USER_INACTIVITY);
-      } else {
-        if (rem_rnti != SRSLTE_MRNTI) {
-          parent->rem_user_thread(rem_rnti);
-        }
-      }
-    }
-    pthread_mutex_unlock(&parent->user_mutex);
+  // print Rx PDU
+  if (p.pdu != nullptr) {
+    rrc_log->info_hex(p.pdu->msg, p.pdu->N_bytes, "Rx %s PDU", rb_id_text[p.lcid]);
   }
+
+  // check if user exists
+  auto user_it = users.find(p.rnti);
+  if (user_it == users.end()) {
+    rrc_log->warning("Discarding PDU for removed rnti=0x%x\n", p.rnti);
+    pthread_mutex_unlock(&user_mutex);
+    return;
+  }
+
+  // handle queue cmd
+  switch (p.lcid) {
+    case RB_ID_SRB0:
+      parse_ul_ccch(p.rnti, std::move(p.pdu));
+      break;
+    case RB_ID_SRB1:
+    case RB_ID_SRB2:
+      parse_ul_dcch(p.rnti, p.lcid, std::move(p.pdu));
+      break;
+    case LCID_REM_USER:
+      rem_user(p.rnti);
+      break;
+    case LCID_REL_USER:
+      process_release_complete(p.rnti);
+      break;
+    case LCID_RLF_USER:
+      process_rl_failure(p.rnti);
+      break;
+    case LCID_ACT_USER:
+      user_it->second->set_activity();
+      break;
+    case LCID_EXIT:
+      rrc_log->info("Exiting thread\n");
+      break;
+    default:
+      rrc_log->error("Rx PDU with invalid bearer id: %d", p.lcid);
+      break;
+  }
+  pthread_mutex_unlock(&user_mutex);
 }
 
 /*******************************************************************************
@@ -2226,7 +2208,7 @@ int rrc::ue::sr_allocate(uint32_t period, uint8_t* I_sr, uint16_t* N_pucch_sr)
 
   // Find freq-time resources with least number of users
   int      i_min = 0, j_min = 0;
-  uint32_t min_users = 1e6;
+  uint32_t min_users = std::numeric_limits<uint32_t>::max();
   for (uint32_t i = 0; i < parent->cfg.sr_cfg.nof_prb; i++) {
     for (uint32_t j = 0; j < parent->cfg.sr_cfg.nof_subframes; j++) {
       if (parent->sr_sched.nof_users[i][j] < min_users) {
@@ -2308,7 +2290,7 @@ int rrc::ue::cqi_allocate(uint32_t period, uint16_t* pmi_idx, uint16_t* n_pucch)
 
   // Find freq-time resources with least number of users
   int      i_min = 0, j_min = 0;
-  uint32_t min_users = 1e6;
+  uint32_t min_users = std::numeric_limits<uint32_t>::max();
   for (uint32_t i = 0; i < parent->cfg.cqi_cfg.nof_prb; i++) {
     for (uint32_t j = 0; j < parent->cfg.cqi_cfg.nof_subframes; j++) {
       if (parent->cqi_sched.nof_users[i][j] < min_users) {
@@ -2342,7 +2324,7 @@ int rrc::ue::cqi_allocate(uint32_t period, uint16_t* pmi_idx, uint16_t* n_pucch)
         *pmi_idx = 318 + parent->cfg.cqi_cfg.sf_mapping[j_min];
       } else if (period == 64) {
         *pmi_idx = 350 + parent->cfg.cqi_cfg.sf_mapping[j_min];
-      } else if (period == 128) {
+      } else {
         *pmi_idx = 414 + parent->cfg.cqi_cfg.sf_mapping[j_min];
       }
     }

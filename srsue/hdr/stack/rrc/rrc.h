@@ -22,8 +22,6 @@
 #ifndef SRSUE_RRC_H
 #define SRSUE_RRC_H
 
-#include "pthread.h"
-
 #include "rrc_common.h"
 #include "rrc_metrics.h"
 #include "srslte/asn1/rrc_asn1.h"
@@ -35,7 +33,6 @@
 #include "srslte/common/log.h"
 #include "srslte/common/security.h"
 #include "srslte/common/stack_procedure.h"
-#include "srslte/common/threads.h"
 #include "srslte/interfaces/ue_interfaces.h"
 
 #include <map>

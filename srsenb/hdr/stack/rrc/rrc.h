@@ -30,7 +30,6 @@
 #include "srslte/common/common.h"
 #include "srslte/common/log.h"
 #include "srslte/common/stack_procedure.h"
-#include "srslte/common/threads.h"
 #include "srslte/common/timeout.h"
 #include "srslte/interfaces/enb_interfaces.h"
 #include <map>
@@ -141,8 +140,7 @@ static const char rrc_state_text[RRC_STATE_N_ITEMS][100] = {"IDLE",
 class rrc final : public rrc_interface_pdcp,
                   public rrc_interface_mac,
                   public rrc_interface_rlc,
-                  public rrc_interface_s1ap,
-                  public thread
+                  public rrc_interface_s1ap
 {
 public:
   rrc();
@@ -155,10 +153,12 @@ public:
             pdcp_interface_rrc*      pdcp,
             s1ap_interface_rrc*      s1ap,
             gtpu_interface_rrc*      gtpu,
+            srslte::timer_handler*   timers_,
             srslte::log*             log_rrc);
 
   void stop();
   void get_metrics(rrc_metrics_t& m);
+  void tti_clock();
 
   // rrc_interface_mac
   void rl_failure(uint16_t rnti) override;
@@ -199,18 +199,6 @@ public:
     virtual void user_connected(uint16_t rnti) = 0;
   };
   void set_connect_notifer(connect_notifier* cnotifier);
-
-  class activity_monitor final : public thread
-  {
-  public:
-    explicit activity_monitor(rrc* parent_);
-    void stop();
-
-  private:
-    rrc* parent;
-    bool running;
-    void run_thread() override;
-  };
 
   class ue
   {
@@ -351,11 +339,21 @@ public:
   };
 
 private:
-  std::map<uint16_t, std::unique_ptr<ue> > users; // NOTE: has to have fixed addr
+  // args
+  srslte::timer_handler*    timers  = nullptr;
+  srslte::byte_buffer_pool* pool    = nullptr;
+  phy_interface_stack_lte*  phy     = nullptr;
+  mac_interface_rrc*        mac     = nullptr;
+  rlc_interface_rrc*        rlc     = nullptr;
+  pdcp_interface_rrc*       pdcp    = nullptr;
+  gtpu_interface_rrc*       gtpu    = nullptr;
+  s1ap_interface_rrc*       s1ap    = nullptr;
+  srslte::log*              rrc_log = nullptr;
 
+  // state
+  std::map<uint16_t, std::unique_ptr<ue> >          users; // NOTE: has to have fixed addr
   std::map<uint32_t, LIBLTE_S1AP_UEPAGINGID_STRUCT> pending_paging;
-
-  activity_monitor act_monitor;
+  srslte::timer_handler::unique_timer               activity_monitor_timer;
 
   std::vector<srslte::unique_byte_buffer_t> sib_buffer;
 
@@ -368,29 +366,23 @@ private:
   uint32_t generate_sibs();
   void     configure_mbsfn_sibs(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13);
 
-  void                      config_mac();
-  void                      parse_ul_dcch(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu);
-  void                      parse_ul_ccch(uint16_t rnti, srslte::unique_byte_buffer_t pdu);
-  void                      configure_security(uint16_t                            rnti,
-                                               uint32_t                            lcid,
-                                               uint8_t*                            k_rrc_enc,
-                                               uint8_t*                            k_rrc_int,
-                                               uint8_t*                            k_up_enc,
-                                               uint8_t*                            k_up_int,
-                                               srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
-                                               srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
-  void                      enable_integrity(uint16_t rnti, uint32_t lcid);
-  void                      enable_encryption(uint16_t rnti, uint32_t lcid);
-  srslte::byte_buffer_pool* pool;
-  srslte::byte_buffer_t     byte_buf_paging;
+  void config_mac();
+  void parse_ul_dcch(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu);
+  void parse_ul_ccch(uint16_t rnti, srslte::unique_byte_buffer_t pdu);
+  void configure_security(uint16_t                            rnti,
+                          uint32_t                            lcid,
+                          uint8_t*                            k_rrc_enc,
+                          uint8_t*                            k_rrc_int,
+                          uint8_t*                            k_up_enc,
+                          uint8_t*                            k_up_int,
+                          srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
+                          srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
+  void enable_integrity(uint16_t rnti, uint32_t lcid);
+  void enable_encryption(uint16_t rnti, uint32_t lcid);
 
-  phy_interface_stack_lte* phy;
-  mac_interface_rrc*       mac;
-  rlc_interface_rrc*       rlc;
-  pdcp_interface_rrc*      pdcp;
-  gtpu_interface_rrc*      gtpu;
-  s1ap_interface_rrc*      s1ap;
-  srslte::log*             rrc_log;
+  void monitor_activity();
+
+  srslte::byte_buffer_t byte_buf_paging;
 
   typedef struct {
     uint16_t                     rnti;
@@ -424,7 +416,6 @@ private:
   class mobility_cfg;
   std::unique_ptr<mobility_cfg> enb_mobility_cfg;
 
-  void            run_thread() override;
   void            rem_user_thread(uint16_t rnti);
   pthread_mutex_t user_mutex;
 
