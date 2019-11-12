@@ -36,74 +36,93 @@
 
 namespace srslte {
 
-class rx_sctp_socket_ref;
+class rx_sctp_socket_ref_t;
 
 /**
- * @brief handles the lifetime of a SCTP socket and provides convenience methods for listening/connecting, and read/send
+ * Description: Class created for code reuse by different sockets
  */
-class sctp_socket
+class base_socket_t
 {
 public:
-  sctp_socket();
-  sctp_socket(sctp_socket&&) noexcept;
-  sctp_socket(const sctp_socket&) = delete;
-  ~sctp_socket();
-  sctp_socket& operator=(sctp_socket&&) noexcept;
-  sctp_socket& operator=(const sctp_socket&) = delete;
+  base_socket_t()                     = default;
+  base_socket_t(const base_socket_t&) = delete;
+  base_socket_t(base_socket_t&& other) noexcept;
+  virtual ~base_socket_t();
+  base_socket_t& operator=(const base_socket_t&) = delete;
+  base_socket_t& operator                        =(base_socket_t&&) noexcept;
 
+  bool is_init() const { return sockfd >= 0; }
+  int  fd() const { return sockfd; }
+
+  // generic read/write interface
+  virtual int read(void* buf, size_t nbytes) const = 0;
+  virtual int send(void* buf, size_t nbytes) const = 0;
+
+protected:
+  void        reset_();
+  int         bind_addr(const char* bind_addr_str, int port);
+  virtual int create_socket() = 0;
+  int         connect_to(struct sockaddr_in* dest_addr, const char* dest_addr_str, int dest_port);
+
+  int                sockfd  = -1;
+  struct sockaddr_in addr_in = {};
+};
+
+/**
+ * Description: handles the lifetime of a SCTP socket and provides convenience methods for listening/connecting, and
+ * read/send
+ */
+class sctp_socket_t final : public base_socket_t
+{
+public:
   void reset();
   int  listen_addr(const char* bind_addr_str, int port);
   int  connect_addr(const char* bind_addr_str, const char* dest_addr_str, int dest_port);
 
-  int read(void*                   buf,
-           ssize_t                 nbytes,
-           struct sockaddr_in*     from      = nullptr,
-           socklen_t               fromlen   = sizeof(sockaddr_in),
-           struct sctp_sndrcvinfo* sinfo     = nullptr,
-           int                     msg_flags = 0);
-  int send(void* buf, ssize_t nbytes, uint32_t ppid, uint32_t stream_id);
+  int read_from(void*                   buf,
+                size_t                  nbytes,
+                struct sockaddr_in*     from      = nullptr,
+                socklen_t*              fromlen   = nullptr,
+                struct sctp_sndrcvinfo* sinfo     = nullptr,
+                int                     msg_flags = 0) const;
+  int send(void* buf, size_t nbytes, uint32_t ppid, uint32_t stream_id) const;
 
-  const struct sockaddr_in& get_sockaddr_in() const { return addr_in; }
-  int                       fd() const { return sockfd; }
-                            operator rx_sctp_socket_ref(); ///< cast to rx_sctp_socket_ref is safe
+  int read(void* buf, size_t nbytes) const override { return read_from(buf, nbytes, nullptr, nullptr, nullptr, 0); }
+  int send(void* buf, size_t nbytes) const override
+  {
+    printf("SCTP interface send is invalid\n");
+    return -1;
+  }
 
 private:
-  int create_socket();
-  int bind_addr(const char* bind_addr_str, int port = 0);
+  int create_socket() override;
 
-  int                sockfd = -1;
-  struct sockaddr_in addr_in;
-  struct sockaddr_in dest_addr;
+  struct sockaddr_in dest_addr = {};
 };
 
-/**
- * @brief The rx_sctp_socket_ref class is a safe inteface/handler for receiving SCTP packets
- *        it basically forbids the user from trying to reset the socket while it is still
- *        registered to the rx_multisocket_handler for instance.
- */
-class rx_sctp_socket_ref
+class tcp_socket_t final : public base_socket_t
 {
 public:
-  rx_sctp_socket_ref(sctp_socket* sock_) : sock(sock_) {}
-  int read(void*                   buf,
-           ssize_t                 nbytes,
-           struct sockaddr_in*     from      = nullptr,
-           socklen_t               fromlen   = sizeof(sockaddr_in),
-           struct sctp_sndrcvinfo* sinfo     = nullptr,
-           int                     msg_flags = 0)
-  {
-    return sock->read(buf, nbytes, from, fromlen, sinfo, msg_flags);
-  }
-  int fd() const { return sock->fd(); }
+  void reset();
+  int  listen_addr(const char* bind_addr_str, int port);
+  int  accept_connection();
+  int  connect_addr(const char* bind_addr_str, const char* dest_addr_str, int dest_port);
+
+  int read(void* buf, size_t nbytes) const override;
+  int send(void* buf, size_t nbytes) const override;
 
 private:
-  sctp_socket* sock = nullptr;
+  int create_socket() override;
+
+  struct sockaddr_in dest_addr = {};
+  int                connfd    = -1;
 };
 
 class rx_multisocket_handler final : public thread
 {
 public:
-  using callback_t = std::function<void(rx_sctp_socket_ref)>;
+  using sctp_callback_t = std::function<void(const sctp_socket_t&)>;
+  using tcp_callback_t  = std::function<void(const tcp_socket_t&)>;
 
   rx_multisocket_handler(std::string name_, srslte::log* log_);
   rx_multisocket_handler(rx_multisocket_handler&&)      = delete;
@@ -112,7 +131,14 @@ public:
   rx_multisocket_handler& operator=(const rx_multisocket_handler&&) = delete;
   ~rx_multisocket_handler();
 
-  bool register_sctp_socket(rx_sctp_socket_ref sock, callback_t recv_handler_);
+  template <typename Sock, typename Handler>
+  bool register_socket(const Sock& s, Handler&& handler)
+  {
+    auto func = [&s, handler]() { handler(s); };
+    return register_socket_(std::pair<const int, std::function<void()> >(s.fd(), func));
+  }
+  //  bool register_sctp_socket(const sctp_socket_t& sock, const sctp_callback_t& recv_handler_);
+  //  bool register_tcp_socket(const tcp_socket_t& sock, const tcp_callback_t& recv_handler_);
 
   void run_thread() override;
 
@@ -124,19 +150,18 @@ private:
     cmd_id_t cmd    = cmd_id_t::EXIT;
     int      new_fd = -1;
   };
-  struct sctp_handler_t {
-    callback_t         callback;
-    rx_sctp_socket_ref sctp_ptr;
-  };
+
+  bool register_socket_(std::pair<const int, std::function<void()> >&& elem);
+
   // args
   std::string  name;
   srslte::log* log_h = nullptr;
 
   // state
-  std::mutex                    socket_mutex;
-  std::map<int, sctp_handler_t> active_sctp_sockets;
-  bool                          running   = false;
-  int                           pipefd[2] = {};
+  std::mutex                            socket_mutex;
+  std::map<int, std::function<void()> > active_sockets;
+  bool                                  running   = false;
+  int                                   pipefd[2] = {};
 };
 
 } // namespace srslte

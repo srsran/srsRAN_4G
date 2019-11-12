@@ -40,7 +40,7 @@ int test_socket_handler()
   int                       counter = 0;
   srslte::byte_buffer_pool* pool    = srslte::byte_buffer_pool::get_instance();
 
-  srslte::sctp_socket            server_sock, client_sock;
+  srslte::sctp_socket_t          server_sock, client_sock;
   srslte::rx_multisocket_handler sockhandler("RXSOCKETS", &log);
 
   TESTASSERT(server_sock.listen_addr("127.0.100.1", 36412) == 0);
@@ -48,7 +48,7 @@ int test_socket_handler()
 
   TESTASSERT(client_sock.connect_addr("127.0.0.1", "127.0.100.1", 36412) == 0);
 
-  sockhandler.register_sctp_socket(server_sock, [pool, &log, &counter](srslte::rx_sctp_socket_ref sock) {
+  sockhandler.register_socket(server_sock, [pool, &log, &counter](const srslte::sctp_socket_t& sock) {
     srslte::unique_byte_buffer_t pdu   = srslte::allocate_unique_buffer(*pool, true);
     int                          rd_sz = sock.read(pdu->msg, pdu->get_tailroom());
     if (rd_sz > 0) {
