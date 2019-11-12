@@ -18,7 +18,7 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-file(GLOB SOURCES "*.cc")
+set(SOURCES gtpu.cc pdcp.cc pdcp_entity_base.cc pdcp_entity_lte.cc pdcp_entity_nr.cc rlc.cc rlc_am_lte.cc rlc_um.cc rlc_tm.cc)
 add_library(srslte_upper STATIC ${SOURCES})
 target_link_libraries(srslte_upper srslte_common srslte_asn1)
 install(TARGETS srslte_upper DESTINATION ${LIBRARY_DIR})

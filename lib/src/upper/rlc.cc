@@ -20,9 +20,9 @@
  */
 
 #include "srslte/upper/rlc.h"
+#include "srslte/upper/rlc_am_lte.h"
 #include "srslte/upper/rlc_tm.h"
 #include "srslte/upper/rlc_um.h"
-#include "srslte/upper/rlc_am.h"
 
 namespace srslte {
 
@@ -387,7 +387,7 @@ void rlc::add_bearer(uint32_t lcid, rlc_config_t cnfg)
         rlc_entity = new rlc_tm(rlc_log, lcid, pdcp, rrc, timers);
         break;
       case rlc_mode_t::am:
-        rlc_entity = new rlc_am(rlc_log, lcid, pdcp, rrc, timers);
+        rlc_entity = new rlc_am_lte(rlc_log, lcid, pdcp, rrc, timers);
         break;
       case rlc_mode_t::um:
         rlc_entity = new rlc_um(rlc_log, lcid, pdcp, rrc, timers);

@@ -19,7 +19,7 @@
  *
  */
 
-#include "srslte/upper/rlc_am.h"
+#include "srslte/upper/rlc_am_lte.h"
 
 #include <iostream>
 #include <sstream>
@@ -32,23 +32,17 @@
 
 namespace srslte {
 
-rlc_am::rlc_am(srslte::log*               log_,
-               uint32_t                   lcid_,
-               srsue::pdcp_interface_rlc* pdcp_,
-               srsue::rrc_interface_rlc*  rrc_,
-               srslte::timer_handler*     timers_) :
-  log(log_),
-  rrc(rrc_),
-  pdcp(pdcp_),
-  timers(timers_),
-  lcid(lcid_),
-  tx(this),
-  rx(this)
+rlc_am_lte::rlc_am_lte(srslte::log*               log_,
+                       uint32_t                   lcid_,
+                       srsue::pdcp_interface_rlc* pdcp_,
+                       srsue::rrc_interface_rlc*  rrc_,
+                       srslte::timer_handler*     timers_) :
+  log(log_), rrc(rrc_), pdcp(pdcp_), timers(timers_), lcid(lcid_), tx(this), rx(this)
 {
 }
 
 // Applies new configuration. Must be just reestablished or initiated
-bool rlc_am::configure(rlc_config_t cfg_)
+bool rlc_am_lte::configure(rlc_config_t cfg_)
 {
   // determine bearer name and configure Rx/Tx objects
   rb_name = rrc->get_rb_name(lcid);
@@ -78,47 +72,47 @@ bool rlc_am::configure(rlc_config_t cfg_)
   return true;
 }
 
-void rlc_am::empty_queue()
+void rlc_am_lte::empty_queue()
 {
   // Drop all messages in TX SDU queue
   tx.empty_queue();
 }
 
-void rlc_am::reestablish()
+void rlc_am_lte::reestablish()
 {
   log->debug("Reestablished bearer %s\n", rb_name.c_str());
   tx.reestablish(); // calls stop and enables tx again
   rx.reestablish(); // calls only stop
 }
 
-void rlc_am::stop()
+void rlc_am_lte::stop()
 {
   log->debug("Stopped bearer %s\n", rb_name.c_str());
   tx.stop();
   rx.stop();
 }
 
-rlc_mode_t rlc_am::get_mode()
+rlc_mode_t rlc_am_lte::get_mode()
 {
   return rlc_mode_t::am;
 }
 
-uint32_t rlc_am::get_bearer()
+uint32_t rlc_am_lte::get_bearer()
 {
   return lcid;
 }
 
-uint32_t rlc_am::get_num_rx_bytes()
+uint32_t rlc_am_lte::get_num_rx_bytes()
 {
   return rx.get_num_rx_bytes();
 }
 
-uint32_t rlc_am::get_num_tx_bytes()
+uint32_t rlc_am_lte::get_num_tx_bytes()
 {
   return tx.get_num_tx_bytes();
 }
 
-void rlc_am::reset_metrics()
+void rlc_am_lte::reset_metrics()
 {
   tx.reset_metrics();
   rx.reset_metrics();
@@ -128,7 +122,7 @@ void rlc_am::reset_metrics()
  * PDCP interface
  ***************************************************************************/
 
-void rlc_am::write_sdu(unique_byte_buffer_t sdu, bool blocking)
+void rlc_am_lte::write_sdu(unique_byte_buffer_t sdu, bool blocking)
 {
   tx.write_sdu(std::move(sdu), blocking);
 }
@@ -137,22 +131,22 @@ void rlc_am::write_sdu(unique_byte_buffer_t sdu, bool blocking)
  * MAC interface
  ***************************************************************************/
 
-bool rlc_am::has_data()
+bool rlc_am_lte::has_data()
 {
   return tx.has_data();
 }
 
-uint32_t rlc_am::get_buffer_state()
+uint32_t rlc_am_lte::get_buffer_state()
 {
   return tx.get_buffer_state();
 }
 
-int rlc_am::read_pdu(uint8_t *payload, uint32_t nof_bytes)
+int rlc_am_lte::read_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   return tx.read_pdu(payload, nof_bytes);
 }
 
-void rlc_am::write_pdu(uint8_t *payload, uint32_t nof_bytes)
+void rlc_am_lte::write_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   rx.write_pdu(payload, nof_bytes);
 }
@@ -161,7 +155,7 @@ void rlc_am::write_pdu(uint8_t *payload, uint32_t nof_bytes)
  * Tx subclass implementation
  ***************************************************************************/
 
-rlc_am::rlc_am_tx::rlc_am_tx(rlc_am* parent_) :
+rlc_am_lte::rlc_am_lte_tx::rlc_am_lte_tx(rlc_am_lte* parent_) :
   parent(parent_),
   log(parent_->log),
   pool(byte_buffer_pool::get_instance()),
@@ -171,12 +165,12 @@ rlc_am::rlc_am_tx::rlc_am_tx(rlc_am* parent_) :
   pthread_mutex_init(&mutex, NULL);
 }
 
-rlc_am::rlc_am_tx::~rlc_am_tx()
+rlc_am_lte::rlc_am_lte_tx::~rlc_am_lte_tx()
 {
   pthread_mutex_destroy(&mutex);
 }
 
-bool rlc_am::rlc_am_tx::configure(rlc_config_t cfg_)
+bool rlc_am_lte::rlc_am_lte_tx::configure(rlc_config_t cfg_)
 {
   // TODO: add config checks
   cfg = cfg_.am;
@@ -204,7 +198,7 @@ bool rlc_am::rlc_am_tx::configure(rlc_config_t cfg_)
   return true;
 }
 
-void rlc_am::rlc_am_tx::stop()
+void rlc_am_lte::rlc_am_lte_tx::stop()
 {
   empty_queue();
 
@@ -236,7 +230,7 @@ void rlc_am::rlc_am_tx::stop()
   pthread_mutex_unlock(&mutex);
 }
 
-void rlc_am::rlc_am_tx::empty_queue()
+void rlc_am_lte::rlc_am_lte_tx::empty_queue()
 {
   pthread_mutex_lock(&mutex);
 
@@ -251,19 +245,19 @@ void rlc_am::rlc_am_tx::empty_queue()
   pthread_mutex_unlock(&mutex);
 }
 
-void rlc_am::rlc_am_tx::reestablish()
+void rlc_am_lte::rlc_am_lte_tx::reestablish()
 {
   stop();
   tx_enabled = true;
 }
 
-bool rlc_am::rlc_am_tx::do_status()
+bool rlc_am_lte::rlc_am_lte_tx::do_status()
 {
   return parent->rx.get_do_status();
 }
 
 // Function is supposed to return as fast as possible
-bool rlc_am::rlc_am_tx::has_data()
+bool rlc_am_lte::rlc_am_lte_tx::has_data()
 {
   return (((do_status() && not status_prohibit_timer.is_running())) || // if we have a status PDU to transmit
           (not retx_queue.empty()) ||                                  // if we have a retransmission
@@ -271,7 +265,7 @@ bool rlc_am::rlc_am_tx::has_data()
           (not tx_sdu_queue.is_empty())); // or if there is a SDU queued up for transmission
 }
 
-uint32_t rlc_am::rlc_am_tx::get_buffer_state()
+uint32_t rlc_am_lte::rlc_am_lte_tx::get_buffer_state()
 {
   pthread_mutex_lock(&mutex);
   uint32_t n_bytes = 0;
@@ -330,7 +324,7 @@ uint32_t rlc_am::rlc_am_tx::get_buffer_state()
   return n_bytes;
 }
 
-void rlc_am::rlc_am_tx::write_sdu(unique_byte_buffer_t sdu, bool blocking)
+void rlc_am_lte::rlc_am_lte_tx::write_sdu(unique_byte_buffer_t sdu, bool blocking)
 {
   if (!tx_enabled) {
     return;
@@ -369,7 +363,7 @@ void rlc_am::rlc_am_tx::write_sdu(unique_byte_buffer_t sdu, bool blocking)
   }
 }
 
-int rlc_am::rlc_am_tx::read_pdu(uint8_t *payload, uint32_t nof_bytes)
+int rlc_am_lte::rlc_am_lte_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   pthread_mutex_lock(&mutex);
 
@@ -411,7 +405,7 @@ unlock_and_exit:
   return pdu_size;
 }
 
-void rlc_am::rlc_am_tx::timer_expired(uint32_t timeout_id)
+void rlc_am_lte::rlc_am_lte_tx::timer_expired(uint32_t timeout_id)
 {
   pthread_mutex_lock(&mutex);
   if (poll_retx_timer.is_valid() && poll_retx_timer.id() == timeout_id) {
@@ -426,7 +420,7 @@ void rlc_am::rlc_am_tx::timer_expired(uint32_t timeout_id)
   pthread_mutex_unlock(&mutex);
 }
 
-void rlc_am::rlc_am_tx::retransmit_random_pdu()
+void rlc_am_lte::rlc_am_lte_tx::retransmit_random_pdu()
 {
   if (not tx_window.empty()) {
     // randomly select PDU in tx window for retransmission
@@ -442,12 +436,12 @@ void rlc_am::rlc_am_tx::retransmit_random_pdu()
   }
 }
 
-uint32_t rlc_am::rlc_am_tx::get_num_tx_bytes()
+uint32_t rlc_am_lte::rlc_am_lte_tx::get_num_tx_bytes()
 {
   return num_tx_bytes;
 }
 
-void rlc_am::rlc_am_tx::reset_metrics()
+void rlc_am_lte::rlc_am_lte_tx::reset_metrics()
 {
   pthread_mutex_lock(&mutex);
   num_tx_bytes = 0;
@@ -458,7 +452,7 @@ void rlc_am::rlc_am_tx::reset_metrics()
  * Helper functions
  ***************************************************************************/
 
-bool rlc_am::rlc_am_tx::poll_required()
+bool rlc_am_lte::rlc_am_lte_tx::poll_required()
 {
   if (cfg.poll_pdu > 0 && pdu_without_poll > static_cast<uint32_t>(cfg.poll_pdu)) {
     return true;
@@ -496,7 +490,7 @@ bool rlc_am::rlc_am_tx::poll_required()
   return false;
 }
 
-int rlc_am::rlc_am_tx::build_status_pdu(uint8_t *payload, uint32_t nof_bytes)
+int rlc_am_lte::rlc_am_lte_tx::build_status_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   int pdu_len = parent->rx.get_status_pdu(&tx_status, nof_bytes);
   log->debug("%s\n", rlc_am_status_pdu_to_string(&tx_status).c_str());
@@ -519,7 +513,7 @@ int rlc_am::rlc_am_tx::build_status_pdu(uint8_t *payload, uint32_t nof_bytes)
   return pdu_len;
 }
 
-int rlc_am::rlc_am_tx::build_retx_pdu(uint8_t *payload, uint32_t nof_bytes)
+int rlc_am_lte::rlc_am_lte_tx::build_retx_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   // Check there is at least 1 element before calling front()
   if (retx_queue.empty()) {
@@ -591,7 +585,8 @@ int rlc_am::rlc_am_tx::build_retx_pdu(uint8_t *payload, uint32_t nof_bytes)
   return (ptr-payload) + tx_window[retx.sn].buf->N_bytes;
 }
 
-int rlc_am::rlc_am_tx::build_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_retx_t retx) {
+int rlc_am_lte::rlc_am_lte_tx::build_segment(uint8_t* payload, uint32_t nof_bytes, rlc_amd_retx_t retx)
+{
   if (tx_window[retx.sn].buf == NULL) {
     log->error("In build_segment: retx.sn=%d has null buffer\n", retx.sn);
     return 0;
@@ -740,10 +735,9 @@ int rlc_am::rlc_am_tx::build_segment(uint8_t *payload, uint32_t nof_bytes, rlc_a
                 RB_NAME, retx.sn, pdu_len, retx.so_start, new_header.N_li);
 
   return pdu_len;
-
 }
 
-int rlc_am::rlc_am_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
+int rlc_am_lte::rlc_am_lte_tx::build_data_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   if (tx_sdu == NULL && tx_sdu_queue.size() == 0) {
     log->info("No data available to be sent\n");
@@ -906,7 +900,7 @@ int rlc_am::rlc_am_tx::build_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   return total_len;
 }
 
-void rlc_am::rlc_am_tx::handle_control_pdu(uint8_t *payload, uint32_t nof_bytes)
+void rlc_am_lte::rlc_am_lte_tx::handle_control_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   pthread_mutex_lock(&mutex);
 
@@ -1002,15 +996,13 @@ void rlc_am::rlc_am_tx::handle_control_pdu(uint8_t *payload, uint32_t nof_bytes)
   pthread_mutex_unlock(&mutex);
 }
 
-
-void rlc_am::rlc_am_tx::debug_state()
+void rlc_am_lte::rlc_am_lte_tx::debug_state()
 {
   log->debug("%s vt_a = %d, vt_ms = %d, vt_s = %d, poll_sn = %d\n",
              RB_NAME, vt_a, vt_ms, vt_s, poll_sn);
 }
 
-
-int rlc_am::rlc_am_tx::required_buffer_size(rlc_amd_retx_t retx)
+int rlc_am_lte::rlc_am_lte_tx::required_buffer_size(rlc_amd_retx_t retx)
 {
   if (!retx.is_segment) {
     if (tx_window.count(retx.sn) == 1) {
@@ -1083,7 +1075,7 @@ int rlc_am::rlc_am_tx::required_buffer_size(rlc_amd_retx_t retx)
   return rlc_am_packed_length(&new_header) + (retx.so_end-retx.so_start);
 }
 
-bool rlc_am::rlc_am_tx::retx_queue_has_sn(uint32_t sn)
+bool rlc_am_lte::rlc_am_lte_tx::retx_queue_has_sn(uint32_t sn)
 {
   std::deque<rlc_amd_retx_t>::iterator q_it;
   for (q_it = retx_queue.begin(); q_it != retx_queue.end(); ++q_it) {
@@ -1100,7 +1092,7 @@ bool rlc_am::rlc_am_tx::retx_queue_has_sn(uint32_t sn)
  * Rx subclass implementation
  ***************************************************************************/
 
-rlc_am::rlc_am_rx::rlc_am_rx(rlc_am* parent_) :
+rlc_am_lte::rlc_am_lte_rx::rlc_am_lte_rx(rlc_am_lte* parent_) :
   parent(parent_),
   pool(byte_buffer_pool::get_instance()),
   log(parent_->log),
@@ -1109,12 +1101,12 @@ rlc_am::rlc_am_rx::rlc_am_rx(rlc_am* parent_) :
   pthread_mutex_init(&mutex, NULL);
 }
 
-rlc_am::rlc_am_rx::~rlc_am_rx()
+rlc_am_lte::rlc_am_lte_rx::~rlc_am_lte_rx()
 {
   pthread_mutex_destroy(&mutex);
 }
 
-bool rlc_am::rlc_am_rx::configure(rlc_am_config_t cfg_)
+bool rlc_am_lte::rlc_am_lte_rx::configure(rlc_am_config_t cfg_)
 {
   // TODO: add config checks
   cfg = cfg_;
@@ -1133,12 +1125,12 @@ bool rlc_am::rlc_am_rx::configure(rlc_am_config_t cfg_)
   return true;
 }
 
-void rlc_am::rlc_am_rx::reestablish()
+void rlc_am_lte::rlc_am_lte_rx::reestablish()
 {
   stop();
 }
 
-void rlc_am::rlc_am_rx::stop()
+void rlc_am_lte::rlc_am_lte_rx::stop()
 {
   pthread_mutex_lock(&mutex);
 
@@ -1166,8 +1158,7 @@ void rlc_am::rlc_am_rx::stop()
   pthread_mutex_unlock(&mutex);
 }
 
-
-void rlc_am::rlc_am_rx::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes, rlc_amd_pdu_header_t &header)
+void rlc_am_lte::rlc_am_lte_rx::handle_data_pdu(uint8_t* payload, uint32_t nof_bytes, rlc_amd_pdu_header_t& header)
 {
   std::map<uint32_t, rlc_amd_rx_pdu_t>::iterator it;
 
@@ -1289,8 +1280,9 @@ void rlc_am::rlc_am_rx::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes, rl
   debug_state();
 }
 
-
-void rlc_am::rlc_am_rx::handle_data_pdu_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_pdu_header_t &header)
+void rlc_am_lte::rlc_am_lte_rx::handle_data_pdu_segment(uint8_t*              payload,
+                                                        uint32_t              nof_bytes,
+                                                        rlc_amd_pdu_header_t& header)
 {
   std::map<uint32_t, rlc_amd_rx_pdu_segments_t>::iterator it;
 
@@ -1377,8 +1369,7 @@ void rlc_am::rlc_am_rx::handle_data_pdu_segment(uint8_t *payload, uint32_t nof_b
   debug_state();
 }
 
-
-void rlc_am::rlc_am_rx::reassemble_rx_sdus()
+void rlc_am_lte::rlc_am_lte_rx::reassemble_rx_sdus()
 {
   uint32_t len = 0;
   if (rx_sdu == NULL) {
@@ -1500,7 +1491,7 @@ exit:
   }
 }
 
-void rlc_am::rlc_am_rx::reset_status()
+void rlc_am_lte::rlc_am_lte_rx::reset_status()
 {
   pthread_mutex_lock(&mutex);
   do_status = false;
@@ -1508,24 +1499,24 @@ void rlc_am::rlc_am_rx::reset_status()
   pthread_mutex_unlock(&mutex);
 }
 
-bool rlc_am::rlc_am_rx::get_do_status()
+bool rlc_am_lte::rlc_am_lte_rx::get_do_status()
 {
   return do_status;
 }
 
-uint32_t rlc_am::rlc_am_rx::get_num_rx_bytes()
+uint32_t rlc_am_lte::rlc_am_lte_rx::get_num_rx_bytes()
 {
   return num_rx_bytes;
 }
 
-void rlc_am::rlc_am_rx::reset_metrics()
+void rlc_am_lte::rlc_am_lte_rx::reset_metrics()
 {
   pthread_mutex_lock(&mutex);
   num_rx_bytes = 0;
   pthread_mutex_unlock(&mutex);
 }
 
-void rlc_am::rlc_am_rx::write_pdu(uint8_t* payload, const uint32_t nof_bytes)
+void rlc_am_lte::rlc_am_lte_rx::write_pdu(uint8_t* payload, const uint32_t nof_bytes)
 {
   if (nof_bytes < 1) return;
 
@@ -1554,7 +1545,7 @@ void rlc_am::rlc_am_rx::write_pdu(uint8_t* payload, const uint32_t nof_bytes)
   }
 }
 
-void rlc_am::rlc_am_rx::timer_expired(uint32_t timeout_id)
+void rlc_am_lte::rlc_am_lte_rx::timer_expired(uint32_t timeout_id)
 {
   pthread_mutex_lock(&mutex);
   if (reordering_timer.is_valid() and reordering_timer.id() == timeout_id) {
@@ -1584,7 +1575,7 @@ void rlc_am::rlc_am_rx::timer_expired(uint32_t timeout_id)
 }
 
 // Called from Tx object to pack status PDU that doesn't exceed a given size
-int rlc_am::rlc_am_rx::get_status_pdu(rlc_status_pdu_t* status, const uint32_t max_pdu_size)
+int rlc_am_lte::rlc_am_lte_rx::get_status_pdu(rlc_status_pdu_t* status, const uint32_t max_pdu_size)
 {
   pthread_mutex_lock(&mutex);
   status->N_nack = 0;
@@ -1626,7 +1617,7 @@ int rlc_am::rlc_am_rx::get_status_pdu(rlc_status_pdu_t* status, const uint32_t m
 }
 
 // Called from Tx object to obtain length of the full status PDU
-int rlc_am::rlc_am_rx::get_status_pdu_length()
+int rlc_am_lte::rlc_am_lte_rx::get_status_pdu_length()
 {
   pthread_mutex_lock(&mutex);
   rlc_status_pdu_t status = {};
@@ -1642,7 +1633,7 @@ int rlc_am::rlc_am_rx::get_status_pdu_length()
   return rlc_am_packed_length(&status);
 }
 
-void rlc_am::rlc_am_rx::print_rx_segments()
+void rlc_am_lte::rlc_am_lte_rx::print_rx_segments()
 {
   std::map<uint32_t, rlc_amd_rx_pdu_segments_t>::iterator it;
   std::stringstream ss;
@@ -1657,7 +1648,7 @@ void rlc_am::rlc_am_rx::print_rx_segments()
 }
 
 // NOTE: Preference would be to capture by value, and then move; but header is stack allocated
-bool rlc_am::rlc_am_rx::add_segment_and_check(rlc_amd_rx_pdu_segments_t *pdu, rlc_amd_rx_pdu_t *segment)
+bool rlc_am_lte::rlc_am_lte_rx::add_segment_and_check(rlc_amd_rx_pdu_segments_t* pdu, rlc_amd_rx_pdu_t* segment)
 {
   // Check for first segment
   if(0 == segment->header.so) {
@@ -1768,7 +1759,7 @@ bool rlc_am::rlc_am_rx::add_segment_and_check(rlc_amd_rx_pdu_segments_t *pdu, rl
   return true;
 }
 
-bool rlc_am::rlc_am_rx::inside_rx_window(const int16_t sn)
+bool rlc_am_lte::rlc_am_lte_rx::inside_rx_window(const int16_t sn)
 {
   if (RX_MOD_BASE(sn) >= RX_MOD_BASE(static_cast<int16_t>(vr_r)) && RX_MOD_BASE(sn) < RX_MOD_BASE(vr_mr)) {
     return true;
@@ -1777,7 +1768,7 @@ bool rlc_am::rlc_am_rx::inside_rx_window(const int16_t sn)
   }
 }
 
-void rlc_am::rlc_am_rx::debug_state()
+void rlc_am_lte::rlc_am_lte_rx::debug_state()
 {
   log->debug("%s vr_r = %d, vr_mr = %d, vr_x = %d, vr_ms = %d, vr_h = %d\n",
              RB_NAME, vr_r, vr_mr, vr_x, vr_ms, vr_h);

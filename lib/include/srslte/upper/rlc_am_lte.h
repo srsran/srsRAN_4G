@@ -19,8 +19,8 @@
  *
  */
 
-#ifndef SRSLTE_RLC_AM_H
-#define SRSLTE_RLC_AM_H
+#ifndef SRSLTE_RLC_AM_LTE_H
+#define SRSLTE_RLC_AM_LTE_H
 
 #include "srslte/common/buffer_pool.h"
 #include "srslte/common/log.h"
@@ -60,15 +60,14 @@ struct rlc_amd_retx_t{
   uint32_t  so_end;
 };
 
-
-class rlc_am : public rlc_common
+class rlc_am_lte : public rlc_common
 {
 public:
-  rlc_am(srslte::log*               log_,
-         uint32_t                   lcid_,
-         srsue::pdcp_interface_rlc* pdcp_,
-         srsue::rrc_interface_rlc*  rrc_,
-         srslte::timer_handler*     timers_);
+  rlc_am_lte(srslte::log*               log_,
+             uint32_t                   lcid_,
+             srsue::pdcp_interface_rlc* pdcp_,
+             srsue::rrc_interface_rlc*  rrc_,
+             srslte::timer_handler*     timers_);
   bool configure(rlc_config_t cfg_);
   void reestablish();
   void stop();
@@ -94,11 +93,11 @@ public:
 private:
 
   // Transmitter sub-class
-  class rlc_am_tx : public timer_callback
+  class rlc_am_lte_tx : public timer_callback
   {
   public:
-    rlc_am_tx(rlc_am* parent_);
-    ~rlc_am_tx();
+    rlc_am_lte_tx(rlc_am_lte* parent_);
+    ~rlc_am_lte_tx();
 
     bool configure(rlc_config_t cfg_);
 
@@ -137,7 +136,7 @@ private:
     bool poll_required();
     bool do_status();
 
-    rlc_am*           parent = nullptr;
+    rlc_am_lte*       parent = nullptr;
     byte_buffer_pool* pool   = nullptr;
     srslte::log*      log    = nullptr;
 
@@ -191,11 +190,11 @@ private:
   };
 
   // Receiver sub-class
-  class rlc_am_rx : public timer_callback
+  class rlc_am_lte_rx : public timer_callback
   {
   public:
-    rlc_am_rx(rlc_am* parent_);
-    ~rlc_am_rx();
+    rlc_am_lte_rx(rlc_am_lte* parent_);
+    ~rlc_am_lte_rx();
 
     bool configure(rlc_am_config_t cfg_);
     void reestablish();
@@ -224,7 +223,7 @@ private:
     void print_rx_segments();
     bool add_segment_and_check(rlc_amd_rx_pdu_segments_t *pdu, rlc_amd_rx_pdu_t *segment);
 
-    rlc_am*           parent = nullptr;
+    rlc_am_lte*       parent = nullptr;
     byte_buffer_pool* pool   = nullptr;
     srslte::log*      log    = nullptr;
 
@@ -282,8 +281,8 @@ private:
   static const int poll_periodicity = 8; // After how many data PDUs a status PDU shall be requested
 
   // Rx and Tx objects
-  rlc_am_tx tx;
-  rlc_am_rx rx;
+  rlc_am_lte_tx tx;
+  rlc_am_lte_rx rx;
 };
 
 /****************************************************************************
@@ -315,4 +314,4 @@ bool        rlc_am_not_start_aligned(const uint8_t fi);
 
 } // namespace srslte
 
-#endif // SRSLTE_RLC_AM_H
+#endif // SRSLTE_RLC_AM_LTE_H

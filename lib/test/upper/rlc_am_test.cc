@@ -19,13 +19,13 @@
  *
  */
 
-#include <iostream>
 #include "srslte/common/log_filter.h"
 #include "srslte/common/logger_stdout.h"
-#include "srslte/common/threads.h"
-#include "srslte/upper/rlc_am.h"
 #include "srslte/common/rlc_pcap.h"
+#include "srslte/common/threads.h"
+#include "srslte/upper/rlc_am_lte.h"
 #include <assert.h>
+#include <iostream>
 #define NBUFS 5
 #define HAVE_PCAP 0
 #define SDU_SIZE 500
@@ -66,7 +66,7 @@ public:
 class ul_writer : public thread
 {
 public:
-  ul_writer(rlc_am* rlc_) : rlc(rlc_), running(false), thread("UL_WRITER") {}
+  ul_writer(rlc_am_lte* rlc_) : rlc(rlc_), running(false), thread("UL_WRITER") {}
   ~ul_writer() { stop(); }
   void stop()
   {
@@ -102,11 +102,11 @@ private:
     running = false;
   }
 
-  rlc_am* rlc;
+  rlc_am_lte* rlc;
   bool running;
 };
 
-void basic_test_tx(rlc_am* rlc, byte_buffer_t pdu_bufs[NBUFS])
+void basic_test_tx(rlc_am_lte* rlc, byte_buffer_t pdu_bufs[NBUFS])
 {
 
   // Push 5 SDUs into RLC1
@@ -143,8 +143,8 @@ bool basic_test()
   timer_handler timers(8);
   byte_buffer_t pdu_bufs[NBUFS];
 
-  rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
-  rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc1(&log1, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc2(&log2, 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -202,8 +202,8 @@ bool concat_test()
   rlc_am_tester         tester;
   srslte::timer_handler timers(8);
 
-  rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
-  rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc1(&log1, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc2(&log2, 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -268,8 +268,8 @@ bool segment_test(bool in_seq_rx)
   srslte::timer_handler timers(8);
   int                   len = 0;
 
-  rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
-  rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc1(&log1, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc2(&log2, 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -362,8 +362,8 @@ bool retx_test()
   timer_handler timers(8);
   int           len = 0;
 
-  rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
-  rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc1(&log1, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc2(&log2, 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -456,8 +456,8 @@ bool resegment_test_1()
   timer_handler timers(8);
   int           len = 0;
 
-  rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
-  rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc1(&log1, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc2(&log2, 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -562,8 +562,8 @@ bool resegment_test_2()
   timer_handler timers(8);
   int           len = 0;
 
-  rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
-  rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc1(&log1, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc2(&log2, 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -664,8 +664,8 @@ bool resegment_test_3()
   rlc_am_tester         tester;
   srslte::timer_handler timers(8);
 
-  rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
-  rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc1(&log1, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc2(&log2, 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -761,8 +761,8 @@ bool resegment_test_4()
   rlc_am_tester         tester;
   srslte::timer_handler timers(8);
 
-  rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
-  rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc1(&log1, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc2(&log2, 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -860,8 +860,8 @@ bool resegment_test_5()
   rlc_am_tester         tester;
   srslte::timer_handler timers(8);
 
-  rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
-  rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc1(&log1, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc2(&log2, 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -960,8 +960,8 @@ bool resegment_test_6()
   srslte::timer_handler timers(8);
   int                   len = 0;
 
-  rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
-  rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc1(&log1, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc2(&log2, 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -1096,8 +1096,8 @@ bool resegment_test_7()
 #endif
   srslte::timer_handler timers(8);
 
-  rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
-  rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc1(&log1, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc2(&log2, 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -1269,8 +1269,8 @@ bool resegment_test_8()
 #endif
   srslte::timer_handler timers(8);
 
-  rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
-  rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc1(&log1, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc2(&log2, 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -1414,7 +1414,7 @@ bool reset_test()
   srslte::timer_handler timers(8);
   int                   len = 0;
 
-  rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc1(&log1, 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -1459,7 +1459,7 @@ bool resume_test()
   srslte::timer_handler timers(8);
   int                   len = 0;
 
-  rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc1(&log1, 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -1503,7 +1503,7 @@ bool stop_test()
   rlc_am_tester         tester;
   srslte::timer_handler timers(8);
 
-  rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc1(&log1, 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;
@@ -1536,8 +1536,8 @@ bool status_pdu_test()
   srslte::timer_handler timers(8);
   int                   len = 0;
 
-  rlc_am rlc1(&log1, 1, &tester, &tester, &timers);
-  rlc_am rlc2(&log2, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc1(&log1, 1, &tester, &tester, &timers);
+  rlc_am_lte rlc2(&log2, 1, &tester, &tester, &timers);
 
   if (not rlc1.configure(rlc_config_t::default_rlc_am_config())) {
     return -1;

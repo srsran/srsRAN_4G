@@ -19,9 +19,9 @@
  *
  */
 
+#include "srslte/upper/rlc_am_lte.h"
 #include <assert.h>
 #include <iostream>
-#include "srslte/upper/rlc_am.h"
 
 // Simple status PDU
 uint8_t pdu1[] = {0x00, 0x78};
