@@ -36,7 +36,29 @@
 
 namespace srslte {
 
-class rx_sctp_socket_ref_t;
+class rx_socket_itf_t
+{
+  virtual int read(void* buf, size_t nbytes) const = 0;
+};
+
+class tx_socket_itf_t
+{
+  virtual int send(const void* buf, size_t nbytes) const = 0;
+};
+
+class net_addr_t
+{
+public:
+  std::string        ip() const;
+  bool               set_ip(const char* ip_str);
+  void               set_port(int port) { addr.sin_port = port; }
+  int                port() const { return addr.sin_port; }
+  const sockaddr_in& get_sockaddr_in() const { return addr; }
+  sockaddr_in&       get_sockaddr_in() { return addr; }
+
+private:
+  struct sockaddr_in addr = {};
+};
 
 /**
  * Description: Class created for code reuse by different sockets
@@ -53,10 +75,6 @@ public:
 
   bool is_init() const { return sockfd >= 0; }
   int  fd() const { return sockfd; }
-
-  // generic read/write interface
-  virtual int read(void* buf, size_t nbytes) const = 0;
-  virtual int send(void* buf, size_t nbytes) const = 0;
 
 protected:
   void        reset_();
@@ -79,20 +97,14 @@ public:
   int  listen_addr(const char* bind_addr_str, int port);
   int  connect_addr(const char* bind_addr_str, const char* dest_addr_str, int dest_port);
 
-  int read_from(void*                   buf,
-                size_t                  nbytes,
-                struct sockaddr_in*     from      = nullptr,
-                socklen_t*              fromlen   = nullptr,
-                struct sctp_sndrcvinfo* sinfo     = nullptr,
-                int                     msg_flags = 0) const;
+  int read(void* buf, size_t nbytes, net_addr_t* addr) const;
+  int read(void*                   buf,
+           size_t                  nbytes,
+           struct sockaddr_in*     from      = nullptr,
+           socklen_t*              fromlen   = nullptr,
+           struct sctp_sndrcvinfo* sinfo     = nullptr,
+           int                     msg_flags = 0) const;
   int send(void* buf, size_t nbytes, uint32_t ppid, uint32_t stream_id) const;
-
-  int read(void* buf, size_t nbytes) const override { return read_from(buf, nbytes, nullptr, nullptr, nullptr, 0); }
-  int send(void* buf, size_t nbytes) const override
-  {
-    printf("SCTP interface send is invalid\n");
-    return -1;
-  }
 
 private:
   int create_socket() override;
@@ -100,7 +112,7 @@ private:
   struct sockaddr_in dest_addr = {};
 };
 
-class tcp_socket_t final : public base_socket_t
+class tcp_socket_t final : public base_socket_t, public rx_socket_itf_t, public tx_socket_itf_t
 {
 public:
   void reset();
@@ -109,7 +121,7 @@ public:
   int  connect_addr(const char* bind_addr_str, const char* dest_addr_str, int dest_port);
 
   int read(void* buf, size_t nbytes) const override;
-  int send(void* buf, size_t nbytes) const override;
+  int send(const void* buf, size_t nbytes) const override;
 
 private:
   int create_socket() override;

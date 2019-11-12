@@ -30,6 +30,27 @@
 
 namespace srslte {
 
+std::string net_addr_t::ip() const
+{
+  char ip_str[128];
+  inet_ntop(addr.sin_family, &addr.sin_addr, ip_str, sizeof(ip_str));
+  return std::string{ip_str};
+}
+
+bool net_addr_t::set_ip(const char* ip_str)
+{
+  addr.sin_family = AF_INET; // ip4 only for now
+  if (inet_pton(AF_INET, ip_str, &addr.sin_addr) != 1) {
+    perror("inet_pton");
+    return false;
+  }
+  return true;
+}
+
+/********************************************
+ *           Socket Classes
+ *******************************************/
+
 base_socket_t::base_socket_t(base_socket_t&& other) noexcept
 {
   sockfd = other.sockfd;
@@ -157,17 +178,28 @@ int sctp_socket_t::connect_addr(const char* bind_addr_str, const char* dest_addr
   return SRSLTE_SUCCESS;
 }
 
-int sctp_socket_t::read_from(void*                   buf,
-                             size_t                  nbytes,
-                             struct sockaddr_in*     from,
-                             socklen_t*              fromlen,
-                             struct sctp_sndrcvinfo* sinfo,
-                             int                     msg_flags) const
+int sctp_socket_t::read(void* buf, size_t nbytes, net_addr_t* addr) const
 {
-  if (fromlen != nullptr) {
-    *fromlen = sizeof(*from);
+  if (addr != nullptr) {
+    sockaddr_in* from    = &addr->get_sockaddr_in();
+    socklen_t    fromlen = sizeof(*from);
+    return read(buf, nbytes, from, &fromlen);
   }
-  return sctp_recvmsg(sockfd, buf, nbytes, (struct sockaddr*)from, fromlen, sinfo, &msg_flags);
+  return read(buf, nbytes);
+}
+
+int sctp_socket_t::read(void*                   buf,
+                        size_t                  nbytes,
+                        struct sockaddr_in*     from,
+                        socklen_t*              fromlen,
+                        struct sctp_sndrcvinfo* sinfo,
+                        int                     msg_flags) const
+{
+  if (from != nullptr) {
+    *fromlen = sizeof(*from);
+    return sctp_recvmsg(sockfd, buf, nbytes, (struct sockaddr*)from, fromlen, sinfo, &msg_flags);
+  }
+  return sctp_recvmsg(sockfd, buf, nbytes, nullptr, nullptr, sinfo, &msg_flags);
 }
 
 int sctp_socket_t::send(void* buf, size_t nbytes, uint32_t ppid, uint32_t stream_id) const
@@ -258,7 +290,7 @@ int tcp_socket_t::read(void* buf, size_t nbytes) const
   return n;
 }
 
-int tcp_socket_t::send(void* buf, size_t nbytes) const
+int tcp_socket_t::send(const void* buf, size_t nbytes) const
 {
   // Loop until all bytes are sent
   char* ptr = (char*)buf;
