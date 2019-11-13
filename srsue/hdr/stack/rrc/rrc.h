@@ -118,20 +118,18 @@ class cell_t
   }
 
   cell_t() {
-    phy_interface_rrc_lte::phy_cell_t tmp;
-    ZERO_OBJECT(tmp);
-    ZERO_OBJECT(phy_cell);
+    phy_interface_rrc_lte::phy_cell_t tmp = {};
     cell_t(tmp, 0);
   }
-  cell_t(phy_interface_rrc_lte::phy_cell_t phy_cell, float rsrp)
+  cell_t(phy_interface_rrc_lte::phy_cell_t phy_cell, float rsrp_)
   {
-    gettimeofday(&last_update, NULL);
+    gettimeofday(&last_update, nullptr);
     this->has_valid_sib1 = false;
     this->has_valid_sib2 = false;
     this->has_valid_sib3 = false;
     this->has_valid_sib13 = false;
-    this->phy_cell = phy_cell;
-    this->rsrp = rsrp;
+    this->phy_cell        = phy_cell;
+    rsrp                  = rsrp_;
     in_sync = true;
     bzero(&sib1, sizeof(sib1));
     bzero(&sib2, sizeof(sib2));
@@ -147,12 +145,13 @@ class cell_t
     return phy_cell.cell.id;
   }
 
-  void set_rsrp(float rsrp) {
-    if (!std::isnan(rsrp)) {
-      this->rsrp = rsrp;
+  void set_rsrp(float rsrp_)
+  {
+    if (!std::isnan(rsrp_)) {
+      rsrp = rsrp_;
     }
     in_sync = true;
-    gettimeofday(&last_update, NULL);
+    gettimeofday(&last_update, nullptr);
   }
 
   float get_rsrp() {
@@ -262,24 +261,24 @@ class cell_t
     return std::string{buf};
   }
 
-  phy_interface_rrc_lte::phy_cell_t phy_cell;
-  bool                              in_sync;
-  bool                              has_mcch;
-  asn1::rrc::sib_type1_s        sib1;
-  asn1::rrc::sib_type2_s        sib2;
-  asn1::rrc::sib_type3_s        sib3;
-  asn1::rrc::sib_type13_r9_s    sib13;
-  asn1::rrc::mcch_msg_s         mcch;
+  phy_interface_rrc_lte::phy_cell_t phy_cell = {};
+  bool                              in_sync  = false;
+  bool                              has_mcch = false;
+  asn1::rrc::sib_type1_s            sib1;
+  asn1::rrc::sib_type2_s            sib2;
+  asn1::rrc::sib_type3_s            sib3;
+  asn1::rrc::sib_type13_r9_s        sib13;
+  asn1::rrc::mcch_msg_s             mcch;
 
 private:
-  float    rsrp;
-  
-  struct timeval last_update;
+  float rsrp = NAN;
 
-  bool     has_valid_sib1;
-  bool     has_valid_sib2;
-  bool     has_valid_sib3;
-  bool     has_valid_sib13;
+  struct timeval last_update = {};
+
+  bool has_valid_sib1  = false;
+  bool has_valid_sib2  = false;
+  bool has_valid_sib3  = false;
+  bool has_valid_sib13 = false;
 };
 
 class rrc : public rrc_interface_nas,
@@ -417,8 +416,8 @@ private:
 
   // RRC constants and timers
   srslte::timer_handler*              timers = nullptr;
-  uint32_t                            n310_cnt, N310 = 0;
-  uint32_t                            n311_cnt, N311 = 0;
+  uint32_t                            n310_cnt = 0, N310 = 0;
+  uint32_t                            n311_cnt = 0, N311 = 0;
   srslte::timer_handler::unique_timer t300, t301, t302, t310, t311, t304;
 
   // Radio bearers
@@ -470,12 +469,8 @@ private:
   void                           delete_last_neighbour();
   std::string                    print_neighbour_cells();
 
-  bool                     initiated                                      = false;
-  asn1::rrc::reest_cause_e m_reest_cause                                  = asn1::rrc::reest_cause_e::nulltype;
-  uint16_t                 m_reest_rnti               = 0;
-  uint16_t                 m_reest_source_pci                             = 0;
-  bool                     reestablishment_started                        = false;
-  bool                     reestablishment_successful = false;
+  bool initiated                  = false;
+  bool reestablishment_successful = false;
 
   // Measurements sub-class
   class rrc_meas
@@ -621,15 +616,17 @@ private:
   class process_pcch_proc;
   class go_idle_proc;
   class cell_reselection_proc;
+  class connection_reest_proc;
   srslte::proc_t<cell_search_proc, phy_interface_rrc_lte::cell_search_ret_t> cell_searcher;
   srslte::proc_t<si_acquire_proc>                                            si_acquirer;
   srslte::proc_t<serving_cell_config_proc>                                   serv_cell_cfg;
   srslte::proc_t<cell_selection_proc, cs_result_t>                           cell_selector;
-  srslte::proc_t<go_idle_proc>             idle_setter;
-  srslte::proc_t<process_pcch_proc>        pcch_processor;
-  srslte::proc_t<connection_request_proc>  conn_req_proc;
-  srslte::proc_t<plmn_search_proc>         plmn_searcher;
-  srslte::proc_t<cell_reselection_proc>    cell_reselector;
+  srslte::proc_t<go_idle_proc>                                               idle_setter;
+  srslte::proc_t<process_pcch_proc>                                          pcch_processor;
+  srslte::proc_t<connection_request_proc>                                    conn_req_proc;
+  srslte::proc_t<plmn_search_proc>                                           plmn_searcher;
+  srslte::proc_t<cell_reselection_proc>                                      cell_reselector;
+  srslte::proc_t<connection_reest_proc>                                      connection_reest;
 
   srslte::proc_manager_list_t callback_list;
 
@@ -647,7 +644,7 @@ private:
 
   // Senders
   void send_con_request(srslte::establishment_cause_t cause);
-  void send_con_restablish_request();
+  void send_con_restablish_request(asn1::rrc::reest_cause_e cause, uint16_t rnti, uint16_t pci);
   void send_con_restablish_complete();
   void send_con_setup_complete(srslte::unique_byte_buffer_t nas_msg);
   void send_ul_info_transfer(srslte::unique_byte_buffer_t nas_msg);
@@ -674,8 +671,7 @@ private:
   void radio_link_failure();
   void leave_connected();
   void stop_timers();
-  void init_con_restablish_request(asn1::rrc::reest_cause_e cause);
-  void proc_con_restablish_request();
+  void start_con_restablishment(asn1::rrc::reest_cause_e cause);
   void start_cell_reselection();
 
   void log_rr_config_common();

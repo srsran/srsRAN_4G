@@ -230,6 +230,28 @@ private:
   srslte::proc_future_t<cs_result_t> cell_selection_fut;
 };
 
+class rrc::connection_reest_proc
+{
+public:
+  explicit connection_reest_proc(rrc* rrc_);
+  srslte::proc_outcome_t init(asn1::rrc::reest_cause_e cause);
+  srslte::proc_outcome_t step();
+  static const char*     name() { return "Connection re-establishment"; }
+
+private:
+  enum class state_t { init, cell_reselection, cell_configuration, cell_criteria, success, error } state;
+
+  rrc*                     rrc_ptr          = nullptr;
+  asn1::rrc::reest_cause_e reest_cause      = asn1::rrc::reest_cause_e::nulltype;
+  uint16_t                 reest_rnti       = 0;
+  uint16_t                 reest_source_pci = 0;
+
+  void step_init();
+  void step_cell_reselection();
+  void step_cell_configuration();
+  void step_cell_criteria();
+};
+
 } // namespace srsue
 
 #endif // SRSLTE_RRC_PROCEDURES_H

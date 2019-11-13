@@ -62,13 +62,13 @@ rrc::rrc(srslte::log* rrc_log_) :
   conn_req_proc(this),
   plmn_searcher(this),
   cell_reselector(this),
+  connection_reest(this),
   serving_cell(unique_cell_t(new cell_t({}, 0.0)))
 {
+  // Do nothing
 }
 
-rrc::~rrc()
-{
-}
+rrc::~rrc() = default;
 
 static void srslte_rrc_handler(asn1::srsasn_logger_level_t level, void* ctx, const char* str)
 {
@@ -233,10 +233,6 @@ void rrc::run_tti(uint32_t tti)
       }
       break;
     case RRC_STATE_CONNECTED:
-      // Performing reestablishment cell selection
-      if (m_reest_cause != asn1::rrc::reest_cause_e::nulltype) {
-        proc_con_restablish_request();
-      }
       measurements.run_tti(tti);
       break;
     default:
@@ -792,7 +788,7 @@ void rrc::radio_link_failure() {
   rrc_log->warning("Detected Radio-Link Failure\n");
   rrc_log->console("Warning: Detected Radio-Link Failure\n");
   if (state == RRC_STATE_CONNECTED) {
-    init_con_restablish_request(asn1::rrc::reest_cause_e::other_fail);
+    start_con_restablishment(asn1::rrc::reest_cause_e::other_fail);
   }
 }
 
@@ -882,15 +878,11 @@ void rrc::send_con_request(srslte::establishment_cause_t cause)
 }
 
 /* RRC connection re-establishment procedure (5.3.7.4) */
-void rrc::send_con_restablish_request()
+void rrc::send_con_restablish_request(asn1::rrc::reest_cause_e cause, uint16_t crnti, uint16_t pci)
 {
-  uint16_t crnti;
-  uint16_t pci;
   uint32_t cellid;
 
   // Clean reestablishment type
-  asn1::rrc::reest_cause_e cause = m_reest_cause;
-  m_reest_cause                  = asn1::rrc::reest_cause_e::nulltype;
   reestablishment_successful     = false;
 
   if (cause == asn1::rrc::reest_cause_e::ho_fail) {
@@ -899,11 +891,8 @@ void rrc::send_con_restablish_request()
     cellid = ho_src_cell.get_cell_id();
   } else if (cause == asn1::rrc::reest_cause_e::other_fail) {
     // use source PCI after RLF
-    crnti  = m_reest_rnti;
-    pci    = m_reest_source_pci;
     cellid = serving_cell->get_cell_id();
   } else {
-    crnti  = m_reest_rnti;
     pci    = serving_cell->get_pci();
     cellid = serving_cell->get_cell_id();
   }
@@ -1264,7 +1253,7 @@ bool rrc::con_reconfig(asn1::rrc::rrc_conn_recfg_s* reconfig)
 // HO failure from T304 expiry 5.3.5.6
 void rrc::ho_failed()
 {
-  init_con_restablish_request(asn1::rrc::reest_cause_e::ho_fail);
+  start_con_restablishment(asn1::rrc::reest_cause_e::ho_fail);
 }
 
 // Reconfiguration failure or Section 5.3.5.5
@@ -1280,7 +1269,7 @@ void rrc::con_reconfig_failed()
 
   if (security_is_activated) {
     // Start the Reestablishment Procedure
-    init_con_restablish_request(asn1::rrc::reest_cause_e::recfg_fail);
+    start_con_restablishment(asn1::rrc::reest_cause_e::recfg_fail);
   } else {
     start_go_idle();
   }
@@ -1315,7 +1304,6 @@ void rrc::leave_connected()
 {
   rrc_log->console("RRC IDLE\n");
   rrc_log->info("Leaving RRC_CONNECTED state\n");
-  m_reest_cause         = asn1::rrc::reest_cause_e::nulltype;
   state = RRC_STATE_IDLE;
   drb_up = false;
   security_is_activated = false;
@@ -1357,108 +1345,13 @@ void rrc::stop_timers()
  *
  *   The parameter cause shall indicate the cause of the reestablishment according to the sections mentioned adobe.
  */
-void rrc::init_con_restablish_request(asn1::rrc::reest_cause_e cause)
+void rrc::start_con_restablishment(asn1::rrc::reest_cause_e cause)
 {
-  // Save Current RNTI before MAC Reset
-  mac_interface_rrc::ue_rnti_t uernti;
-  mac->get_rntis(&uernti);
-
-  // If security is activated, RRC connected and C-RNTI available
-  if (security_is_activated && state == RRC_STATE_CONNECTED && uernti.crnti != 0) {
-    // Save reestablishment cause and current C-RNTI
-    m_reest_rnti  = uernti.crnti;
-    m_reest_cause = cause;
-    m_reest_source_pci = serving_cell->get_pci(); // needed for reestablishment with another cell
-
-    reestablishment_started = false;
-
-    // initiation of reestablishment procedure as indicates in 3GPP 36.331 Section 5.3.7.2
-    rrc_log->info("Initiating RRC Connection Reestablishment Procedure\n");
-  } else {
-    // 3GPP 36.331 Section 5.3.7.1
-    // If AS security has not been activated, the UE does not initiate the procedure but instead
-    // moves to RRC_IDLE directly
-    start_go_idle();
-  }
-}
-
-/* Implementation of procedure in 3GPP 36.331 Section 5.3.7.3: Actions following cell selection while T311 is running
- */
-void rrc::proc_con_restablish_request()
-{
-  if (!reestablishment_started) {
-
-    reestablishment_started = true;
-
-    rrc_log->info("Resetting timers and MAC in RRC Connection Reestablishment Procedure\n");
-
-    // stop timer T310, if running;
-    t310.stop();
-
-    // start timer T311;
-    t311.run();
-
-    // Suspend all RB except SRB0
-    for (int i = 1; i < SRSLTE_N_RADIO_BEARERS; i++) {
-      if (rlc->has_bearer(i)) {
-        rlc->suspend_bearer(i);
-      }
-    }
-
-    // reset MAC;
-    mac->reset();
-
-    // apply the default physical channel configuration as specified in 9.2.4;
-    set_phy_default_pucch_srs();
-
-    // apply the default semi-persistent scheduling configuration as specified in 9.2.3;
-    // N.A.
-
-    // apply the default MAC main configuration as specified in 9.2.2;
-    apply_mac_config_dedicated_default();
-
-    // perform cell selection in accordance with the cell selection process as specified in TS 36.304 [4];
-    start_cell_reselection();
+  if (not connection_reest.launch(cause)) {
+    rrc_log->info("Failed to launch connection re-establishment pocedure\n");
   }
 
-  // Check timer...
-  if (t311.is_running()) {
-    // Wait until we're synced and have obtained SIBs
-    if (serving_cell->in_sync && serving_cell->has_sib1() && serving_cell->has_sib2() && serving_cell->has_sib3()) {
-      // Perform cell selection in accordance to 36.304
-      if (cell_selection_criteria(serving_cell->get_rsrp())) {
-        // Actions following cell reselection while T311 is running 5.3.7.3
-        // Upon selecting a suitable E-UTRA cell, the UE shall:
-        rrc_log->info("Cell Selection criteria passed after %dms. Sending RRC Connection Reestablishment Request\n",
-                      t311.value());
-
-        // stop timer T311;
-        t311.stop();
-
-        // start timer T301;
-        t301.run();
-
-        // apply the timeAlignmentTimerCommon included in SystemInformationBlockType2;
-        // TODO
-
-        // initiate transmission of the RRCConnectionReestablishmentRequest message in accordance with 5.3.7.4;
-        send_con_restablish_request();
-      } else {
-        // Upon selecting an inter-RAT cell
-        rrc_log->warning("Reestablishment Cell Selection criteria failed.\n");
-        rrc_log->console("Reestablishment Cell Selection criteria failed (rsrp=%.2f)\n",
-                         serving_cell->get_rsrp());
-        leave_connected();
-      }
-    } else {
-      // No synchronized, do nothing
-    }
-  } else {
-    // t311 expired or stopped
-    rrc_log->info("T311 expired while selecting cell. Going to IDLE\n");
-    rrc_log->console("T311 expired while selecting cell. Going to IDLE\n");
-    leave_connected();
-  }
+  callback_list.add_proc(connection_reest);
 }
 
 void rrc::start_cell_reselection()
