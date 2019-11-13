@@ -130,7 +130,6 @@ class cell_t
     this->has_valid_sib13 = false;
     this->phy_cell        = phy_cell;
     rsrp                  = rsrp_;
-    in_sync = true;
     bzero(&sib1, sizeof(sib1));
     bzero(&sib2, sizeof(sib2));
     bzero(&sib3, sizeof(sib3));
@@ -150,7 +149,6 @@ class cell_t
     if (!std::isnan(rsrp_)) {
       rsrp = rsrp_;
     }
-    in_sync = true;
     gettimeofday(&last_update, nullptr);
   }
 

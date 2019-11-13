@@ -579,19 +579,9 @@ void rrc::clean_neighbours()
   }
 }
 
-// Sort neighbour cells by decreasing order of RSRP and remove old cells from neighbor list
+// Sort neighbour cells by decreasing order of RSRP
 void rrc::sort_neighbour_cells()
 {
-  // Remove out-of-sync cells
-  for (auto it = neighbour_cells.begin(); it != neighbour_cells.end();) {
-    if ((*it)->in_sync == false) {
-      rrc_log->info("Neighbour PCI=%d is out-of-sync. Deleting\n", (*it)->get_pci());
-      it = neighbour_cells.erase(it);
-    } else {
-      ++it;
-    }
-  }
-
   std::sort(std::begin(neighbour_cells), std::end(neighbour_cells), [](const unique_cell_t& a, const unique_cell_t& b) {
     return a->greater(b.get());
   });
