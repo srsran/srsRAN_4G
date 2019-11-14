@@ -58,11 +58,13 @@ uint32_t rlc_am_nr_read_data_pdu_header(const uint8_t*            payload,
     ptr++;
   } else if (sn_size == rlc_am_nr_sn_size_t::size18bits) {
     // sanity check
-    if (header->sn > 3) {
+    if ((*ptr & 0x0c) != 0) {
       fprintf(stderr, "Malformed PDU, reserved bits are set.\n");
       return 0;
     }
-    header->sn |= (*ptr & 0xFF); // bit 2-10 of SN
+    header->sn = (*ptr & 0x03) << 16; // first 4 bits SN
+    ptr++;
+    header->sn |= (*ptr & 0xFF) << 8; // bit 2-10 of SN
     ptr++;
     header->sn |= (*ptr & 0xFF); // last 8 bits SN
     ptr++;
@@ -123,9 +125,9 @@ uint32_t rlc_am_nr_write_data_pdu_header(const rlc_am_nr_pdu_header_t& header, b
     ptr++;
   } else {
     // 18bit SN
-    *ptr |= (header.sn & 0x3); // 2 bit SN
+    *ptr |= (header.sn >> 16) & 0x3; // 2 bit SN
     ptr++;
-    *ptr = (header.sn) >> 8; // bit 3 - 10 of SN
+    *ptr = header.sn >> 8; // bit 3 - 10 of SN
     ptr++;
     *ptr = (header.sn & 0xff); // remaining 8 bit of SN
     ptr++;

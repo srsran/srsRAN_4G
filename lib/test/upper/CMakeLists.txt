@@ -30,6 +30,10 @@ add_executable(rlc_am_test rlc_am_test.cc)
 target_link_libraries(rlc_am_test srslte_upper srslte_phy srslte_common)
 add_test(rlc_am_test rlc_am_test)
 
+add_executable(rlc_am_nr_pdu_test rlc_am_nr_pdu_test.cc)
+target_link_libraries(rlc_am_nr_pdu_test srslte_upper srslte_phy)
+add_test(rlc_am_nr_pdu_test rlc_am_nr_pdu_test)
+
 add_executable(rlc_stress_test rlc_stress_test.cc)
 target_link_libraries(rlc_stress_test srslte_upper srslte_phy srslte_common ${Boost_LIBRARIES})
 add_test(rlc_am_stress_test rlc_stress_test --mode=AM --loglevel 1 --sdu_gen_delay 250)
