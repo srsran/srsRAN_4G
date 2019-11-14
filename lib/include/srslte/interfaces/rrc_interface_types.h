@@ -203,6 +203,7 @@ inline uint16_t to_number(const rlc_umd_sn_size_t& sn_size)
   return enum_to_number(options, (uint32_t)rlc_mode_t::nulltype, (uint32_t)sn_size);
 }
 
+///< RLC UM NR sequence number field
 enum class rlc_um_nr_sn_size_t { size6bits, size12bits, nulltype };
 inline std::string to_string(const rlc_um_nr_sn_size_t& sn_size)
 {
@@ -212,6 +213,19 @@ inline std::string to_string(const rlc_um_nr_sn_size_t& sn_size)
 inline uint16_t to_number(const rlc_um_nr_sn_size_t& sn_size)
 {
   constexpr static uint16_t options[] = {6, 12};
+  return enum_to_number(options, (uint32_t)rlc_mode_t::nulltype, (uint32_t)sn_size);
+}
+
+///< RLC AM NR sequence number field
+enum class rlc_am_nr_sn_size_t { size12bits, size18bits, nulltype };
+inline std::string to_string(const rlc_am_nr_sn_size_t& sn_size)
+{
+  constexpr static const char* options[] = {"12 bits", "18 bits"};
+  return enum_to_text(options, (uint32_t)rlc_mode_t::nulltype, (uint32_t)sn_size);
+}
+inline uint16_t to_number(const rlc_am_nr_sn_size_t& sn_size)
+{
+  constexpr static uint16_t options[] = {12, 18};
   return enum_to_number(options, (uint32_t)rlc_mode_t::nulltype, (uint32_t)sn_size);
 }
 

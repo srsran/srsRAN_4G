@@ -77,11 +77,11 @@ static inline uint8_t operator&(rlc_nr_si_field_t lhs, int rhs)
                               static_cast<std::underlying_type<rlc_nr_si_field_t>::type>(rhs));
 }
 
-typedef enum{
+typedef enum {
   RLC_DC_FIELD_CONTROL_PDU = 0,
   RLC_DC_FIELD_DATA_PDU,
   RLC_DC_FIELD_N_ITEMS,
-}rlc_dc_field_t;
+} rlc_dc_field_t;
 static const char rlc_dc_field_text[RLC_DC_FIELD_N_ITEMS][20] = {"Control PDU",
                                                                  "Data PDU"};
 
@@ -168,6 +168,18 @@ struct rlc_status_pdu_t{
 
   rlc_status_pdu_t(){N_nack=0; ack_sn=0;}
 };
+
+/** RLC AM NR structs */
+
+///< AM NR PDU header
+typedef struct {
+  rlc_dc_field_t      dc;      ///< Data/Control (D/C) field
+  uint8_t             p;       ///< Polling bit
+  rlc_nr_si_field_t   si;      ///< Segmentation info
+  rlc_am_nr_sn_size_t sn_size; ///< Sequence number size (12 or 18 bits)
+  uint32_t            sn;      ///< Sequence number
+  uint16_t            so;      ///< Sequence offset
+} rlc_am_nr_pdu_header_t;
 
 /****************************************************************************
  * RLC Common interface
