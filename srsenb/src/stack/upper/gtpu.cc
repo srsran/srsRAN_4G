@@ -230,7 +230,12 @@ void gtpu::run_thread()
     } while (n == -1 && errno == EAGAIN);
 
     if (n < 0) {
-        gtpu_log->error("Failed to read from socket\n");
+      gtpu_log->error("Failed to read from socket\n");
+      break;
+    }
+
+    if (n == 0) {
+      continue;
     }
 
     gtpu_log->debug("Received %d bytes from S1-U interface\n", n);
@@ -409,6 +414,16 @@ void gtpu::mch_thread::run_thread()
     do{
       n =  recvfrom(m1u_sd, pdu->msg, SRSENB_MAX_BUFFER_SIZE_BYTES - SRSENB_BUFFER_HEADER_OFFSET, 0, (struct sockaddr *) &src_addr, &addrlen);
     } while (n == -1 && errno == EAGAIN);
+
+    if (n < 0) {
+      gtpu_log->error("Failed to read message from socket\n");
+      break;
+    }
+
+    if (n == 0) {
+      continue;
+    }
+
     gtpu_log->debug("Received %d bytes from M1-U interface\n", n);
 
     pdu->N_bytes = (uint32_t) n;
@@ -441,7 +456,7 @@ void gtpu::mch_thread::stop()
       thread_cancel();
     }
     wait_thread_finish();
-  } 
+  }
 }
 
 } // namespace srsenb
