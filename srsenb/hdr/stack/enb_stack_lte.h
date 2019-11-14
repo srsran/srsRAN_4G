@@ -100,6 +100,8 @@ private:
   stack_args_t args    = {};
   rrc_cfg_t    rrc_cfg = {};
 
+  srslte::timer_handler timers;
+
   srsenb::mac      mac;
   srslte::mac_pcap mac_pcap;
   srsenb::rlc      rlc;
@@ -109,7 +111,6 @@ private:
   srsenb::s1ap     s1ap;
 
   srslte::logger*       logger = nullptr;
-  srslte::timer_handler timers;
 
   // Radio and PHY log are in enb.cc
   srslte::log_filter mac_log;
