@@ -1513,7 +1513,7 @@ void rrc::write_pdu_bcch_bch(unique_byte_buffer_t pdu)
     asn1::json_writer json_writer;
     bch_msg.to_json(json_writer);
     rrc_log->debug_hex(pdu->msg, pdu->N_bytes, "BCCH-BCH - Rx (%d B)\n", pdu->N_bytes);
-    rrc_log->debug("Content:\n%s\n", json_writer.to_string().c_str());
+    rrc_log->debug_long("Content:\n%s\n", json_writer.to_string().c_str());
   }
 
   // Do we need to do something with BCH?
