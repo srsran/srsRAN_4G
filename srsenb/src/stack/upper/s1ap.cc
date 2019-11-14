@@ -137,6 +137,7 @@ void s1ap::run_thread()
         running = false;
         return;
       }
+      continue;
     }
 
     pdu->N_bytes = static_cast<uint32_t>(n_recv);
