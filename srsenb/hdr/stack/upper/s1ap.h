@@ -75,7 +75,6 @@ public:
   // void ue_capabilities(uint16_t rnti, LIBLTE_RRC_UE_EUTRA_CAPABILITY_STRUCT *caps);
 
   // Stack interface
-  //  bool handle_mme_rx_msg(srslte::unique_byte_buffer_t pdu);
   bool
   handle_mme_rx_msg(srslte::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags);
 

@@ -233,7 +233,7 @@ void enb_stack_lte::add_mme_socket(int fd)
       [this](srslte::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags) {
         handle_mme_rx_packet(std::move(pdu), from, sri, flags);
       };
-  rx_sockets->add_socket_sctp_handler(fd, mme_rx_handler);
+  rx_sockets->add_socket_sctp_pdu_handler(fd, mme_rx_handler);
 }
 
 void enb_stack_lte::remove_mme_socket(int fd)

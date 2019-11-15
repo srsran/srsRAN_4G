@@ -44,7 +44,7 @@ enum class protocol_type : int { NONE = -1, SCTP = IPPROTO_SCTP, TCP = IPPROTO_T
 enum class ppid_values : uint32_t { S1AP = 18 };
 const char* protocol_to_string(protocol_type p);
 
-// Convenience methods
+// Convenience functions
 bool                   set_sockaddr(sockaddr_in* addr, const char* ip_str, int port);
 std::string            get_ip(const sockaddr_in& addr);
 int                    get_port(const sockaddr_in& addr);
@@ -144,7 +144,7 @@ public:
   bool add_socket_handler(int fd, task_callback_t handler);
   // convenience methods for recv using buffer pool
   bool add_socket_pdu_handler(int fd, recv_callback_t pdu_task);
-  bool add_socket_sctp_handler(int fd, sctp_recv_callback_t task);
+  bool add_socket_sctp_pdu_handler(int fd, sctp_recv_callback_t task);
 
   void run_thread() override;
 

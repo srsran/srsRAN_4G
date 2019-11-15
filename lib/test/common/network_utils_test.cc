@@ -62,7 +62,7 @@ int test_socket_handler()
           counter++;
         }
       };
-  sockhandler.add_socket_sctp_handler(server_socket.fd(), pdu_handler);
+  sockhandler.add_socket_sctp_pdu_handler(server_socket.fd(), pdu_handler);
 
   uint8_t     buf[128]        = {};
   int32_t     nof_counts      = 5;
