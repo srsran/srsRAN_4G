@@ -81,6 +81,7 @@ typedef struct SRS_API {
   // tx & rx objects
   srslte_modem_table_t mod;
   srslte_sequence_t    seq;
+  srslte_sequence_t    seq_r14[SRSLTE_NPBCH_NUM_BLOCKS];
   srslte_viterbi_t     decoder;
   srslte_crc_t         crc;
   srslte_convcoder_t   encoder;

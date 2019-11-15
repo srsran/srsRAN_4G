@@ -36,8 +36,6 @@
 #define MAX_I_SF_VAL 7
 #define EUTRA_CONTROL_REGION_SIZE 3 // FIXME: Needs to be set by SIB1
 
-#define min(a, b) (a < b ? a : b)
-
 /// Number of repetitions according to Table 16.4.1.3-2 in TS 36.213 13.2.0
 const int n_rep_table[16] = {1, 2, 4, 8, 16, 32, 64, 128, 192, 256, 384, 512, 768, 1024, 1536, 2048};
 
@@ -139,9 +137,9 @@ static int nbiot_dl_dci_to_grant_mcs(srslte_ra_nbiot_dl_dci_t* dci, srslte_ra_nb
   grant->mcs[0].mod = SRSLTE_MOD_QPSK;
 
   // limit config values in DCI
-  dci->alloc.sched_info_sib1 = min(dci->alloc.sched_info_sib1, MAX_I_TBS_VAL_SIB);
-  dci->mcs_idx               = min(dci->mcs_idx, MAX_I_TBS_VAL);
-  dci->alloc.i_sf            = min(dci->alloc.i_sf, MAX_I_SF_VAL);
+  dci->alloc.sched_info_sib1 = SRSLTE_MIN(dci->alloc.sched_info_sib1, MAX_I_TBS_VAL_SIB);
+  dci->mcs_idx               = SRSLTE_MIN(dci->mcs_idx, MAX_I_TBS_VAL);
+  dci->alloc.i_sf            = SRSLTE_MIN(dci->alloc.i_sf, MAX_I_SF_VAL);
 
   if (dci->alloc.has_sib1) {
     i_tbs = dci->alloc.sched_info_sib1;
@@ -173,7 +171,7 @@ int srslte_ra_n_rep_sib1_nb(srslte_mib_nb_t* mib)
 
 int srslte_ra_nbiot_get_sib1_tbs(srslte_mib_nb_t* mib)
 {
-  uint32_t i_tbs = min(mib->sched_info_sib1, MAX_I_TBS_VAL_SIB);
+  uint32_t i_tbs = SRSLTE_MIN(mib->sched_info_sib1, MAX_I_TBS_VAL_SIB);
   return tbs_table_nbiot_sib1[i_tbs];
 }
 

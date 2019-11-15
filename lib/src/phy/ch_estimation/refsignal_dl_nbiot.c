@@ -131,7 +131,7 @@ int srslte_refsignal_dl_nbiot_set_cell(srslte_refsignal_dl_nbiot_t* q, srslte_nb
 
     srslte_sequence_t seq;
     bzero(&seq, sizeof(srslte_sequence_t));
-    if (srslte_sequence_init(&seq, 2 * 2 * SRSLTE_MAX_PRB)) {
+    if (srslte_sequence_init(&seq, SRSLTE_NOF_SLOTS_PER_SF * SRSLTE_NBIOT_MAX_PORTS * SRSLTE_MAX_PRB)) {
       goto free_and_exit;
     }
 
@@ -145,7 +145,7 @@ int srslte_refsignal_dl_nbiot_set_cell(srslte_refsignal_dl_nbiot_t* q, srslte_nb
           uint32_t c_init = 1024 * (7 * (ns + 1) + lp + 1) * (2 * cell.n_id_ncell + 1) + 2 * cell.n_id_ncell + N_cp;
 
           /* generate sequence for this symbol and slot */
-          srslte_sequence_set_LTE_pr(&seq, 2 * 2 * SRSLTE_MAX_PRB, c_init);
+          srslte_sequence_set_LTE_pr(&seq, SRSLTE_NOF_SLOTS_PER_SF + SRSLTE_NBIOT_MAX_PORTS * SRSLTE_MAX_PRB, c_init);
 
           /* Compute signal */
           for (uint32_t i = 0; i < 2; i++) {

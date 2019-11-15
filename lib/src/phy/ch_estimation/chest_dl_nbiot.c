@@ -170,7 +170,7 @@ static float estimate_noise_pilots(srslte_chest_dl_nbiot_t* q, uint32_t port_id)
   return power;
 }
 
-#define cesymb(i) ce[SRSLTE_RE_IDX(q->cell.base.nof_prb, i, 0)]
+#define cesymb(i) ce[SRSLTE_RE_IDX(q->cell.base.nof_prb, (i), 0)]
 
 static void interpolate_pilots(srslte_chest_dl_nbiot_t* q, cf_t* pilot_estimates, cf_t* ce, uint32_t port_id)
 {

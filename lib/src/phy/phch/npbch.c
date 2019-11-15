@@ -151,6 +151,10 @@ void srslte_npbch_free(srslte_npbch_t* q)
   if (q->rm_b) {
     free(q->rm_b);
   }
+  for (uint32_t i = 0; i < SRSLTE_NPBCH_NUM_BLOCKS; i++) {
+    srslte_sequence_free(&q->seq_r14[i]);
+  }
+
   srslte_sequence_free(&q->seq);
   srslte_modem_table_free(&q->mod);
   srslte_viterbi_free(&q->decoder);
@@ -174,6 +178,15 @@ int srslte_npbch_set_cell(srslte_npbch_t* q, srslte_nbiot_cell_t cell)
       if (srslte_sequence_npbch(&q->seq, q->cell.base.cp, q->cell.n_id_ncell)) {
         fprintf(stderr, "Error initiating NPBCH sequence.\n");
         return SRSLTE_ERROR;
+      }
+
+      // pre-compute the 8 rotation sequences for R14
+      if (q->cell.is_r14) {
+        for (uint32_t i = 0; i < SRSLTE_NPBCH_NUM_BLOCKS; i++) {
+          if (srslte_sequence_npbch_r14(&q->seq_r14[i], q->cell.n_id_ncell, i)) {
+            return SRSLTE_ERROR;
+          }
+        }
       }
     }
 
@@ -258,7 +271,6 @@ int srslte_npbch_encode(srslte_npbch_t* q,
                         cf_t*           sf[SRSLTE_MAX_PORTS],
                         uint32_t        frame_idx)
 {
-  int   nof_bits;
   int   block_idx = (frame_idx / SRSLTE_NPBCH_NUM_REP) % SRSLTE_NPBCH_NUM_BLOCKS;
   cf_t* x[SRSLTE_MAX_LAYERS];
 
@@ -269,7 +281,7 @@ int srslte_npbch_encode(srslte_npbch_t* q,
       }
     }
     // Set pointers for layermapping & precoding
-    nof_bits = 2 * q->nof_symbols;
+    int nof_bits = 2 * q->nof_symbols;
 
     // number of layers equals number of ports
     for (int i = 0; i < q->cell.nof_ports; i++) {
@@ -310,7 +322,7 @@ int srslte_npbch_encode(srslte_npbch_t* q,
     // Write exactly SRSLTE_NPBCH_NUM_RE (assumes symbols have been modulated before)
     for (int i = 0; i < q->cell.nof_ports; i++) {
       if (q->cell.is_r14) {
-        DEBUG("Applying phase rotattion on port %d in frame %d.\n", i, frame_idx);
+        DEBUG("Applying phase rotation on port %d in frame %d.\n", i, frame_idx);
         srslte_npbch_rotate(q, frame_idx, q->symbols[i], q->symbols[i], q->nof_symbols, false);
       }
       DEBUG("Putting MIB-NB block %d on port %d in frame %d.\n", block_idx, i, frame_idx);
@@ -336,14 +348,9 @@ int srslte_npbch_rotate(srslte_npbch_t* q,
   // Generate frame specific scrambling sequence for symbol rotation
   DEBUG("%sotating NPBCH in SFN=%d\n", back ? "De-R" : "R", nf);
 
-  srslte_sequence_t seq;
-  if (srslte_sequence_npbch_r14(&seq, q->cell.n_id_ncell, nf)) {
-    return SRSLTE_ERROR;
-  }
-
   for (int i = 0; i < num_samples; i++) {
-    int c_2i   = seq.c[2 * i];
-    int c_2ip1 = seq.c[2 * i + 1];
+    int c_2i   = q->seq_r14[nf % 8].c[2 * i];
+    int c_2ip1 = q->seq_r14[nf % 8].c[2 * i + 1];
 
 #if 1
     cf_t phi_f = 0;
@@ -374,7 +381,6 @@ int srslte_npbch_rotate(srslte_npbch_t* q,
     }
   }
 
-  srslte_sequence_free(&seq);
   return SRSLTE_SUCCESS;
 }
 

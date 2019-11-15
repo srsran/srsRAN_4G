@@ -84,7 +84,7 @@ int srslte_sequence_pmch(srslte_sequence_t* seq, uint32_t nslot, uint32_t mbsfn_
  */
 int srslte_sequence_npbch(srslte_sequence_t *seq, srslte_cp_t cp, uint32_t cell_id) {
    bzero(seq, sizeof(srslte_sequence_t));
-   return srslte_sequence_LTE_pr(seq, 1600, cell_id);
+   return srslte_sequence_LTE_pr(seq, SRSLTE_NBIOT_NPBCH_NOF_TOTAL_BITS, cell_id);
 }
 
 /**
@@ -93,7 +93,10 @@ int srslte_sequence_npbch(srslte_sequence_t *seq, srslte_cp_t cp, uint32_t cell_
 int srslte_sequence_npbch_r14(srslte_sequence_t *seq, uint32_t n_id_ncell, uint32_t nf)
 {
   bzero(seq, sizeof(srslte_sequence_t));
-  return srslte_sequence_LTE_pr(seq, 200, (n_id_ncell + 1) * (((nf % 8) + 1) * ((nf % 8) + 1) * ((nf % 8) + 1)) * 512 + n_id_ncell);
+  return srslte_sequence_LTE_pr(seq,
+                                SRSLTE_NBIOT_NPBCH_NOF_BITS_SF,
+                                (n_id_ncell + 1) * (((nf % 8) + 1) * ((nf % 8) + 1) * ((nf % 8) + 1)) * 512 +
+                                    n_id_ncell);
 }
 
 /**
