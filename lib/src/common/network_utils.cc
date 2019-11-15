@@ -416,28 +416,43 @@ int tcp_send(int remotefd, const void* buf, size_t nbytes, srslte::log* log_)
 
 /**
  * Description: Specialization of recv_task for the case the received data is
- * in the form of unique_byte_buffer, and a recv(...) call is used
+ * in the form of unique_byte_buffer, and a recvfrom(...) call is used
  */
-class recv_pdu_task final : public rx_multisocket_handler::recv_task
+class recvfrom_pdu_task final : public rx_multisocket_handler::recv_task
 {
 public:
-  using callback_t = std::function<void(srslte::unique_byte_buffer_t pdu)>;
-  explicit recv_pdu_task(srslte::byte_buffer_pool* pool_, callback_t func_) : pool(pool_), func(std::move(func_)) {}
+  using callback_t = std::function<void(srslte::unique_byte_buffer_t pdu, const sockaddr_in& from)>;
+  explicit recvfrom_pdu_task(srslte::byte_buffer_pool* pool_, srslte::log* log_, callback_t func_) :
+    pool(pool_),
+    log_h(log_),
+    func(std::move(func_))
+  {
+  }
 
   bool operator()(int fd) override
   {
-    srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, "Rxsocket", true);
-    // inside rx_sockets thread. Read socket
-    ssize_t n_recv = recv(fd, pdu->msg, pdu->get_tailroom(), 0);
-    if (n_recv > 0) {
-      pdu->N_bytes = static_cast<uint32_t>(n_recv);
+    srslte::unique_byte_buffer_t pdu     = srslte::allocate_unique_buffer(*pool, "Rxsocket", true);
+    sockaddr_in                  from    = {};
+    socklen_t                    fromlen = sizeof(from);
+
+    ssize_t n_recv = recvfrom(fd, pdu->msg, pdu->get_tailroom(), 0, (struct sockaddr*)&from, &fromlen);
+    if (n_recv == -1 and errno != EAGAIN) {
+      log_h->error("Error reading from SCTP socket: %s\n", strerror(errno));
+      return true;
     }
-    func(std::move(pdu));
-    return n_recv != 0;
+    if (n_recv == -1 and errno == EAGAIN) {
+      log_h->debug("Socket timeout reached\n");
+      return true;
+    }
+
+    pdu->N_bytes = static_cast<uint32_t>(n_recv);
+    func(std::move(pdu), from);
+    return true;
   }
 
 private:
-  srslte::byte_buffer_pool* pool = nullptr;
+  srslte::byte_buffer_pool* pool  = nullptr;
+  srslte::log*              log_h = nullptr;
   callback_t                func;
 };
 
@@ -542,10 +557,10 @@ void rx_multisocket_handler::stop()
 /**
  * Convenience method for read PDUs from socket
  */
-bool rx_multisocket_handler::add_socket_pdu_handler(int fd, recv_callback_t pdu_task)
+bool rx_multisocket_handler::add_socket_pdu_handler(int fd, recvfrom_callback_t pdu_task)
 {
   std::unique_ptr<srslte::rx_multisocket_handler::recv_task> task;
-  task.reset(new srslte::recv_pdu_task(pool, std::move(pdu_task)));
+  task.reset(new srslte::recvfrom_pdu_task(pool, log_h, std::move(pdu_task)));
   return add_socket_handler(fd, std::move(task));
 }
 

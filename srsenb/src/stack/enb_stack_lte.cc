@@ -34,6 +34,7 @@ enb_stack_lte::enb_stack_lte(srslte::logger* logger_) : logger(logger_), pdcp(&p
   enb_queue_id  = pending_tasks.add_queue();
   sync_queue_id = pending_tasks.add_queue();
   mme_queue_id  = pending_tasks.add_queue();
+  gtpu_queue_id = pending_tasks.add_queue();
 
   pool = byte_buffer_pool::get_instance();
 }
@@ -79,7 +80,7 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   rrc_log.set_level(args.log.rrc_level);
   gtpu_log.set_level(args.log.gtpu_level);
   s1ap_log.set_level(args.log.s1ap_level);
-  stack_log.set_level("INFO");
+  stack_log.set_level("DEBUG");
 
   mac_log.set_hex_limit(args.log.mac_hex_limit);
   rlc_log.set_hex_limit(args.log.rlc_hex_limit);
@@ -139,6 +140,7 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
             args.embms.m1u_multiaddr,
             args.embms.m1u_if_addr,
             &pdcp,
+            this,
             &gtpu_log,
             args.embms.enable);
 
@@ -170,7 +172,6 @@ void enb_stack_lte::stop()
 
 void enb_stack_lte::stop_impl()
 {
-
   s1ap.stop();
   gtpu.stop();
   mac.stop();
@@ -191,6 +192,7 @@ void enb_stack_lte::stop_impl()
   pending_tasks.erase_queue(sync_queue_id);
   pending_tasks.erase_queue(enb_queue_id);
   pending_tasks.erase_queue(mme_queue_id);
+  pending_tasks.erase_queue(gtpu_queue_id);
 
   started = false;
 }
@@ -239,6 +241,15 @@ void enb_stack_lte::add_mme_socket(int fd)
 void enb_stack_lte::remove_mme_socket(int fd)
 {
   rx_sockets->remove_socket(fd);
+}
+
+void enb_stack_lte::add_gtpu_socket(int fd)
+{
+  auto gtpu_rx_handler = [this](srslte::unique_byte_buffer_t pdu, const sockaddr_in& from) {
+    auto task_handler = [this, from](task_t* t) { gtpu.handle_gtpu_rx_packet(std::move(t->pdu), from); };
+    pending_tasks.push(gtpu_queue_id, task_t{task_handler, std::move(pdu)});
+  };
+  rx_sockets->add_socket_pdu_handler(fd, gtpu_rx_handler);
 }
 
 } // namespace srsenb

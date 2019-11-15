@@ -151,8 +151,8 @@ public:
     virtual ~recv_task()            = default;
     virtual bool operator()(int fd) = 0; // returns false, if socket needs to be removed
   };
-  using task_callback_t = std::unique_ptr<recv_task>;
-  using recv_callback_t = std::function<void(srslte::unique_byte_buffer_t)>;
+  using task_callback_t     = std::unique_ptr<recv_task>;
+  using recvfrom_callback_t = std::function<void(srslte::unique_byte_buffer_t, const sockaddr_in&)>;
   using sctp_recv_callback_t =
       std::function<void(srslte::unique_byte_buffer_t, const sockaddr_in&, const sctp_sndrcvinfo&, int)>;
 
@@ -167,7 +167,7 @@ public:
   bool remove_socket(int fd);
   bool add_socket_handler(int fd, task_callback_t handler);
   // convenience methods for recv using buffer pool
-  bool add_socket_pdu_handler(int fd, recv_callback_t pdu_task);
+  bool add_socket_pdu_handler(int fd, recvfrom_callback_t pdu_task);
   bool add_socket_sctp_pdu_handler(int fd, sctp_recv_callback_t task);
 
   void run_thread() override;

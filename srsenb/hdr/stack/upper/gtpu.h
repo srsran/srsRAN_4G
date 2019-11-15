@@ -35,16 +35,19 @@
 
 namespace srsenb {
 
-class gtpu
-    :public gtpu_interface_rrc
-    ,public gtpu_interface_pdcp
-    ,public thread
+class gtpu : public gtpu_interface_rrc, public gtpu_interface_pdcp
 {
 public:
-
   gtpu();
 
-  bool init(std::string gtp_bind_addr_, std::string mme_addr_, std::string m1u_multiaddr_, std::string m1u_if_addr_, pdcp_interface_gtpu *pdcp_, srslte::log *gtpu_log_, bool enable_mbsfn = false);
+  bool init(std::string               gtp_bind_addr_,
+            std::string               mme_addr_,
+            std::string               m1u_multiaddr_,
+            std::string               m1u_if_addr_,
+            pdcp_interface_gtpu*      pdcp_,
+            stack_interface_gtpu_lte* stack_,
+            srslte::log*              gtpu_log_,
+            bool                      enable_mbsfn = false);
   void stop();
 
   // gtpu_interface_rrc
@@ -55,12 +58,18 @@ public:
   // gtpu_interface_pdcp
   void write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu);
 
+  // stack interface
+  void handle_gtpu_rx_packet(srslte::unique_byte_buffer_t pdu, const sockaddr_in& addr);
+
 private:
   static const int THREAD_PRIO = 65;
   static const int GTPU_PORT   = 2152;
-  srslte::byte_buffer_pool     *pool;
-  bool                         running;
-  bool                         run_enable;
+
+  srslte::byte_buffer_pool* pool;
+  stack_interface_gtpu_lte* stack = nullptr;
+
+  bool running;
+  bool run_enable;
 
   bool                         enable_mbsfn;
   std::string                  gtp_bind_addr;
@@ -106,7 +115,6 @@ private:
   // Socket file descriptor
   int fd;
 
-  void run_thread();
   void echo_response(in_addr_t addr, in_port_t port, uint16_t seq);
 
   pthread_mutex_t mutex;

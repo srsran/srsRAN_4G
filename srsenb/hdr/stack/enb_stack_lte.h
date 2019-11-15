@@ -46,6 +46,7 @@ namespace srsenb {
 class enb_stack_lte final : public enb_stack_base,
                             public stack_interface_phy_lte,
                             public stack_interface_s1ap_lte,
+                            public stack_interface_gtpu_lte,
                             public thread
 {
 public:
@@ -95,6 +96,7 @@ public:
   /* STACK-S1AP interface*/
   void add_mme_socket(int fd) override;
   void remove_mme_socket(int fd) override;
+  void add_gtpu_socket(int fd) override;
 
 private:
   static const int STACK_MAIN_THREAD_PRIO = -1; // Use default high-priority below UHD
@@ -154,7 +156,7 @@ private:
     void operator()() { func(this); }
   };
   srslte::multiqueue_handler<task_t> pending_tasks;
-  int                                enb_queue_id = -1, sync_queue_id = -1, mme_queue_id = -1;
+  int                                enb_queue_id = -1, sync_queue_id = -1, mme_queue_id = -1, gtpu_queue_id = -1;
 };
 
 } // namespace srsenb

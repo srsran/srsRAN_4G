@@ -344,6 +344,12 @@ public:
   virtual void remove_mme_socket(int fd) = 0;
 };
 
+class stack_interface_gtpu_lte
+{
+public:
+  virtual void add_gtpu_socket(int fd) = 0;
+};
+
 } // namespace srsenb
 
 #endif // SRSLTE_ENB_INTERFACES_H

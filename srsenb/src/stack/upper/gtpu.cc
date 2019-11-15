@@ -20,6 +20,7 @@
  */
 #include "srslte/upper/gtpu.h"
 #include "srsenb/hdr/stack/upper/gtpu.h"
+#include "srslte/common/network_utils.h"
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/ip.h>
@@ -29,23 +30,30 @@
 using namespace srslte;
 namespace srsenb {
 
-gtpu::gtpu() : mchthread(), thread("GTPU")
+gtpu::gtpu() : mchthread()
 {
   pdcp          = NULL;
   gtpu_log      = NULL;
   pool          = NULL;
 
   pthread_mutex_init(&mutex, NULL);
-
 }
 
-bool gtpu::init(std::string gtp_bind_addr_, std::string mme_addr_, std::string m1u_multiaddr_, std::string m1u_if_addr_, srsenb::pdcp_interface_gtpu* pdcp_, srslte::log* gtpu_log_, bool enable_mbsfn)
+bool gtpu::init(std::string                  gtp_bind_addr_,
+                std::string                  mme_addr_,
+                std::string                  m1u_multiaddr_,
+                std::string                  m1u_if_addr_,
+                srsenb::pdcp_interface_gtpu* pdcp_,
+                stack_interface_gtpu_lte*    stack_,
+                srslte::log*                 gtpu_log_,
+                bool                         enable_mbsfn_)
 {
   pdcp          = pdcp_;
   gtpu_log      = gtpu_log_;
   gtp_bind_addr = gtp_bind_addr_;
   mme_addr      = mme_addr_;
   pool          = byte_buffer_pool::get_instance();
+  stack         = stack_;
 
   // Set up socket
   fd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -75,12 +83,13 @@ bool gtpu::init(std::string gtp_bind_addr_, std::string mme_addr_, std::string m
     return false;
   }
 
-  // Setup a thread to receive packets from the src socket
-  start(THREAD_PRIO);
+  run_enable = true;
+  running    = true;
+  stack->add_gtpu_socket(fd);
 
   // Start MCH thread if enabled
-  this->enable_mbsfn = enable_mbsfn;
-  if(enable_mbsfn) {
+  enable_mbsfn = enable_mbsfn_;
+  if (enable_mbsfn) {
     mchthread.init(m1u_multiaddr_, m1u_if_addr_, pdcp, gtpu_log);
   }
   return true;
@@ -100,11 +109,8 @@ void gtpu::stop()
       usleep(10000);
       cnt++;
     }
-    if (running) {
-      thread_cancel();
-    }
-    wait_thread_finish();
   }
+  running = false;
 
   if (fd) {
     close(fd);
@@ -205,84 +211,47 @@ void gtpu::rem_user(uint16_t rnti)
   pthread_mutex_unlock(&mutex);
 }
 
-void gtpu::run_thread()
+void gtpu::handle_gtpu_rx_packet(srslte::unique_byte_buffer_t pdu, const sockaddr_in& from)
 {
-  unique_byte_buffer_t pdu = allocate_unique_buffer(*pool);
+  gtpu_log->debug("Received %d bytes from S1-U interface\n", pdu->N_bytes);
 
-  if (!pdu.get()) {
-    gtpu_log->error("Fatal Error: Couldn't allocate buffer in gtpu::run_thread().\n");
+  gtpu_header_t header;
+  if (not gtpu_read_header(pdu.get(), &header, gtpu_log)) {
     return;
   }
-  run_enable = true;
 
-  sockaddr_in client;
-  socklen_t   client_len = sizeof(client);
-  size_t      buflen = SRSENB_MAX_BUFFER_SIZE_BYTES - SRSENB_BUFFER_HEADER_OFFSET;
+  switch (header.message_type) {
+    case GTPU_MSG_ECHO_REQUEST:
+      // Echo request - send response
+      echo_response(from.sin_addr.s_addr, from.sin_port, header.seq_number);
+      break;
+    case GTPU_MSG_DATA_PDU: {
+      uint16_t rnti = 0;
+      uint16_t lcid = 0;
+      teidin_to_rntilcid(header.teid, &rnti, &lcid);
 
-  running=true;
-  while(run_enable) {
+      pthread_mutex_lock(&mutex);
+      bool user_exists = (rnti_bearers.count(rnti) > 0);
+      pthread_mutex_unlock(&mutex);
 
-    pdu->clear();
-    gtpu_log->debug("Waiting for read...\n");
-    int n = 0;
-    do{
-      n = recvfrom(fd, pdu->msg, buflen, 0, (struct sockaddr *)&client, &client_len);
-    } while (n == -1 && errno == EAGAIN);
+      if (not user_exists) {
+        gtpu_log->error("Unrecognized RNTI for DL PDU: 0x%x - dropping packet\n", rnti);
+        return;
+      }
 
-    if (n < 0) {
-        gtpu_log->error("Failed to read from socket\n");
-    }
+      if (lcid < SRSENB_N_SRB || lcid >= SRSENB_N_RADIO_BEARERS) {
+        gtpu_log->error("Invalid LCID for DL PDU: %d - dropping packet\n", lcid);
+        return;
+      }
 
-    gtpu_log->debug("Received %d bytes from S1-U interface\n", n);
-    pdu->N_bytes = (uint32_t) n;
+      gtpu_log->info_hex(
+          pdu->msg, pdu->N_bytes, "RX GTPU PDU rnti=0x%x, lcid=%d, n_bytes=%d", rnti, lcid, pdu->N_bytes);
 
-    gtpu_header_t header;
-    if (!gtpu_read_header(pdu.get(), &header, gtpu_log)) {
-      continue;
-    }
-
-    switch(header.message_type) {
-
-      case GTPU_MSG_ECHO_REQUEST:
-        // Echo request - send response
-        echo_response(client.sin_addr.s_addr, client.sin_port, header.seq_number);
-        break;
-
-      case GTPU_MSG_DATA_PDU:
-
-        uint16_t rnti = 0;
-        uint16_t lcid = 0;
-        teidin_to_rntilcid(header.teid, &rnti, &lcid);
-
-        pthread_mutex_lock(&mutex);
-        bool user_exists = (rnti_bearers.count(rnti) > 0);
-        pthread_mutex_unlock(&mutex);
-
-        if(!user_exists) {
-          gtpu_log->error("Unrecognized RNTI for DL PDU: 0x%x - dropping packet\n", rnti);
-          continue;
-        }
-
-        if(lcid < SRSENB_N_SRB || lcid >= SRSENB_N_RADIO_BEARERS) {
-          gtpu_log->error("Invalid LCID for DL PDU: %d - dropping packet\n", lcid);
-          continue;
-        }
-
-        gtpu_log->info_hex(pdu->msg, pdu->N_bytes, "RX GTPU PDU rnti=0x%x, lcid=%d, n_bytes=%d", rnti, lcid, pdu->N_bytes);
-
-        pdcp->write_sdu(rnti, lcid, std::move(pdu));
-
-        do {
-          pdu = allocate_unique_buffer(*pool);
-          if (!pdu.get()) {
-            gtpu_log->console("GTPU Buffer pool empty. Trying again...\n");
-            usleep(10000);
-          }
-        } while (!pdu.get());
-        break;
-    }
+      pdcp->write_sdu(rnti, lcid, std::move(pdu));
+    } break;
+    default:
+      break;
   }
-  running = false;
 }
 
 void gtpu::echo_response(in_addr_t addr, in_port_t port, uint16_t seq)
