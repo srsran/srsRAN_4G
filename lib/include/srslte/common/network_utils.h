@@ -117,6 +117,11 @@ int  tcp_send(int remotefd, const void* buf, size_t nbytes, srslte::log* log_);
  * Rx multisocket handler
  ***************************/
 
+/**
+ * Description - Instantiates a thread that will block waiting for IO from multiple sockets, via a select
+ *               The user can register their own (socket fd, data handler) in this class via the
+ *               add_socket_handler(fd, task) API or its other variants
+ */
 class rx_multisocket_handler final : public thread
 {
 public:

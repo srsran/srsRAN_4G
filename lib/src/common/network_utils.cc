@@ -485,10 +485,10 @@ bool rx_multisocket_handler::add_socket_pdu_handler(int fd, recv_callback_t pdu_
 /**
  * Convenience method for reading PDUs from SCTP socket
  */
-bool rx_multisocket_handler::add_socket_sctp_pdu_handler(int fd, sctp_recv_callback_t task)
+bool rx_multisocket_handler::add_socket_sctp_pdu_handler(int fd, sctp_recv_callback_t pdu_task)
 {
   srslte::rx_multisocket_handler::task_callback_t task;
-  task.reset(new srslte::sctp_recvmsg_pdu_task(pool, log_h, std::move(task)));
+  task.reset(new srslte::sctp_recvmsg_pdu_task(pool, log_h, std::move(pdu_task)));
   return add_socket_handler(fd, std::move(task));
 }
 

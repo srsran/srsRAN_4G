@@ -141,10 +141,6 @@ srslte::proc_outcome_t s1ap::s1_setup_proc_t::react(const srsenb::s1ap::s1_setup
 void s1ap::s1_setup_proc_t::then(const srslte::proc_state_t& result) const
 {
   if (result.is_error()) {
-    // If a connection to the MME was created, it has to be erased again
-    //    if (s1ap_ptr->s1ap_socket.is_init()) {
-    //      s1ap_ptr->stack->remove_mme_socket(s1ap_ptr->s1ap_socket.fd());
-    //    }
     s1ap_ptr->s1ap_socket.reset();
     procInfo("S1AP socket closed.\n");
   }
