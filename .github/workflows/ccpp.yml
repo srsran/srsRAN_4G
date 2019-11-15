@@ -1,0 +1,31 @@
+name: C/C++ CI
+on: push
+jobs:
+  x86_build:
+    name: Build and test on x86
+    strategy:
+        matrix:
+          cc: [ gcc ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Build srsLTE on x86
+        run: |
+          sudo apt update
+          sudo apt install -y build-essential cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libconfig++-dev libsctp-dev colordiff ninja-build valgrind
+          mkdir build && cd build && cmake -GNinja .. && ninja && ctest -T memcheck
+    
+  aarch64_build:
+    runs-on: ubuntu-18.04
+    name: Build on aarch64
+    steps:
+    - uses: actions/checkout@v1
+    - name: Build srsLTE on aarch64
+      uses: uraimo/run-on-arch-action@master
+      with:
+        architecture: aarch64
+        distribution: ubuntu18.04
+        run: |
+          apt update
+          apt install -y build-essential cmake libfftw3-dev libmbedtls-dev libpcsclite-dev libboost-program-options-dev libconfig++-dev libsctp-dev ninja-build
+          ls -l && pwd && mkdir build && cd build && cmake -GNinja .. && ninja
