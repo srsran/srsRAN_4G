@@ -60,6 +60,9 @@ public:
     void     reset() { msg[0] = '\0'; }
     char*    str() { return msg; }
     uint32_t get_buffer_size() { return size; }
+#ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
+    char debug_name[SRSLTE_BUFFER_POOL_LOG_NAME_LEN] = {};
+#endif
 
   private:
     uint32_t size;
