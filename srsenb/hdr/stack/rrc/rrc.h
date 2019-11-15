@@ -269,8 +269,8 @@ public:
     void send_dl_dcch(asn1::rrc::dl_dcch_msg_s*    dl_dcch_msg,
                       srslte::unique_byte_buffer_t pdu = srslte::unique_byte_buffer_t());
 
-    uint16_t rnti;
-    rrc*     parent;
+    uint16_t rnti   = 0;
+    rrc*     parent = nullptr;
 
     bool connect_notified = false;
 
@@ -404,12 +404,12 @@ private:
     uint32_t nof_users[100][80];
   };
 
-  sr_sched_t             sr_sched;
-  sr_sched_t             cqi_sched;
+  sr_sched_t             sr_sched  = {};
+  sr_sched_t             cqi_sched = {};
   asn1::rrc::mcch_msg_s  mcch;
   bool                   enable_mbms = false;
-  rrc_cfg_t              cfg;
-  uint32_t               nof_si_messages;
+  rrc_cfg_t              cfg             = {};
+  uint32_t               nof_si_messages = 0;
   asn1::rrc::sib_type2_s sib2;
   asn1::rrc::sib_type7_s sib7;
 

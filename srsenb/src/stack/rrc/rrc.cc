@@ -42,13 +42,6 @@ rrc::rrc() : cnotifier(nullptr), nof_si_messages(0)
 {
   users.clear();
   pending_paging.clear();
-
-  bzero(&sr_sched, sizeof(sr_sched));
-  bzero(&cqi_sched, sizeof(cqi_sched));
-  bzero(&cfg.sr_cfg, sizeof(cfg.sr_cfg));
-  bzero(&cfg.cqi_cfg, sizeof(cfg.cqi_cfg));
-  bzero(&cfg.qci_cfg, sizeof(cfg.qci_cfg));
-  bzero(&cfg.cell, sizeof(cfg.cell));
 }
 
 rrc::~rrc() {}
@@ -133,7 +126,7 @@ void rrc::get_metrics(rrc_metrics_t& m)
     pthread_mutex_lock(&user_mutex);
     m.n_ues = 0;
     for (auto iter = users.begin(); m.n_ues < ENB_METRICS_MAX_USERS && iter != users.end(); ++iter) {
-      ue* u = (ue*)&iter->second;
+      ue* u = iter->second.get();
       if (iter->first != SRSLTE_MRNTI) {
         m.ues[m.n_ues++].state = u->get_state();
       }
@@ -632,7 +625,7 @@ void rrc::ho_preparation_complete(uint16_t rnti, bool is_success)
 
 /*******************************************************************************
   Private functions
-  All private functions are not mutexed and must be called from a mutexed enviornment
+  All private functions are not mutexed and must be called from a mutexed environment
   from either a public function or the internal thread
 *******************************************************************************/
 
@@ -705,6 +698,7 @@ void rrc::parse_ul_ccch(uint16_t rnti, srslte::unique_byte_buffer_t pdu)
   }
 }
 
+///< User mutex must be hold by caller
 void rrc::parse_ul_dcch(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t pdu)
 {
   if (pdu) {
@@ -717,6 +711,7 @@ void rrc::parse_ul_dcch(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer
   }
 }
 
+///< User mutex must be hold by caller
 void rrc::process_rl_failure(uint16_t rnti)
 {
   auto user_it = users.find(rnti);
@@ -741,6 +736,7 @@ void rrc::process_rl_failure(uint16_t rnti)
   }
 }
 
+///< User mutex must be hold by caller
 void rrc::process_release_complete(uint16_t rnti)
 {
   rrc_log->info("Received Release Complete rnti=0x%x\n", rnti);
@@ -758,6 +754,7 @@ void rrc::process_release_complete(uint16_t rnti)
   }
 }
 
+///< user mutex lock must be hold by calling function
 void rrc::rem_user(uint16_t rnti)
 {
   auto user_it = users.find(rnti);
@@ -948,7 +945,7 @@ void rrc::monitor_activity()
     if (user.first == SRSLTE_MRNTI) {
       continue;
     }
-    ue*      u    = (ue*)&user.second;
+    ue*      u    = user.second.get();
     uint16_t rnti = (uint16_t)user.first;
 
     if (cnotifier && u->is_connected() && !u->connect_notified) {
