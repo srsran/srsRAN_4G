@@ -33,22 +33,46 @@
 namespace srslte {
 
 namespace net_utils {
+
+//! Set IP:port for ipv4
 bool set_sockaddr(sockaddr_in* addr, const char* ip_str, int port)
 {
-  // TODO: check whether IP4 or IP6 based on provided input
   addr->sin_family = AF_INET;
-  if (inet_pton(AF_INET, ip_str, &addr->sin_addr) != 1) {
+  if (inet_pton(addr->sin_family, ip_str, &addr->sin_addr) != 1) {
     perror("inet_pton");
     return false;
   }
-  addr->sin_port = (port != 0) ? htons(port) : 0;
+  addr->sin_port = htons(port);
+  return true;
+}
+
+//! Set IP:port for ipv6
+bool set_sockaddr(sockaddr_in6* addr, const char* ip_str, int port)
+{
+  addr->sin6_family = AF_INET6;
+  if (inet_pton(addr->sin6_family, ip_str, &addr->sin6_addr) != 1) {
+    perror("inet_pton for ipv6");
+    return false;
+  }
+  addr->sin6_port = htons(port);
   return true;
 }
 
 std::string get_ip(const sockaddr_in& addr)
 {
-  char ip_str[128]; // TODO: check max size
-  inet_ntop(addr.sin_family, &addr.sin_addr, ip_str, sizeof(ip_str));
+  char ip_str[INET_ADDRSTRLEN];
+  if (inet_ntop(AF_INET, &addr.sin_addr, ip_str, sizeof(ip_str)) == nullptr) {
+    return "<bad ipv4 address>";
+  }
+  return std::string{ip_str};
+}
+
+std::string get_ip(const sockaddr_in6& addr)
+{
+  char ip_str[INET6_ADDRSTRLEN];
+  if (inet_ntop(AF_INET6, &addr.sin6_addr, ip_str, sizeof(ip_str)) == nullptr) {
+    return "<bad ipv6 address>";
+  }
   return std::string{ip_str};
 }
 
@@ -81,6 +105,107 @@ const char* protocol_to_string(protocol_type p)
       break;
   }
   return "";
+}
+
+int open_socket(net_utils::addr_family   ip_type,
+                net_utils::socket_type   socket_type,
+                net_utils::protocol_type protocol,
+                srslte::log*             log_)
+{
+  int fd = socket((int)ip_type, (int)socket_type, (int)protocol);
+  if (fd == -1) {
+    if (log_ != nullptr) {
+      log_->error("Failed to open %s socket.\n", net_utils::protocol_to_string(protocol));
+    } else {
+      perror("Could not create socket\n");
+    }
+  }
+
+  if (protocol == protocol_type::SCTP) {
+    // Sets the data_io_event to be able to use sendrecv_info
+    // Subscribes to the SCTP_SHUTDOWN event, to handle graceful shutdown
+    struct sctp_event_subscribe evnts = {};
+    evnts.sctp_data_io_event          = 1;
+    evnts.sctp_shutdown_event         = 1;
+    if (setsockopt(fd, IPPROTO_SCTP, SCTP_EVENTS, &evnts, sizeof(evnts)) != 0) {
+      if (log_ != nullptr) {
+        log_->error("Failed to subscribe to SCTP_SHUTDOWN event: %s\n", strerror(errno));
+      } else {
+        perror("setsockopt");
+      }
+    }
+  }
+
+  return fd;
+}
+
+bool bind_addr(int fd, const sockaddr_in& addr_in, srslte::log* log_)
+{
+  if (fd < 0) {
+    if (log_ != nullptr) {
+      log_->error("Trying to bind to a closed socket\n");
+    }
+    return false;
+  }
+
+  if (bind(fd, (struct sockaddr*)&addr_in, sizeof(addr_in)) != 0) {
+    if (log_ != nullptr) {
+      log_->error("Failed to bind on address %s: %s errno %d\n", get_ip(addr_in).c_str(), strerror(errno), errno);
+    } else {
+      perror("bind()");
+    }
+    return false;
+  }
+  return true;
+}
+
+bool bind_addr(int fd, const char* bind_addr_str, int port, sockaddr_in* addr_result, srslte::log* log_)
+{
+  sockaddr_in addr_tmp{};
+  if (not net_utils::set_sockaddr(&addr_tmp, bind_addr_str, port)) {
+    if (log_ != nullptr) {
+      log_->error("Failed to convert IP address (%s) to sockaddr_in struct\n", bind_addr_str);
+    }
+    return false;
+  }
+  bind_addr(fd, addr_tmp, log_);
+  if (addr_result != nullptr) {
+    *addr_result = addr_tmp;
+  }
+  return true;
+}
+
+bool connect_to(int fd, const char* dest_addr_str, int dest_port, sockaddr_in* dest_sockaddr, srslte::log* log_)
+{
+  if (fd < 0) {
+    if (log_ != nullptr) {
+      log_->error("tried to connect to remote address with an invalid socket.\n");
+    } else {
+      printf("ERROR: tried to connect to remote address with an invalid socket.\n");
+    }
+    return false;
+  }
+  sockaddr_in sockaddr_tmp{};
+  if (not net_utils::set_sockaddr(&sockaddr_tmp, dest_addr_str, dest_port)) {
+    if (log_ != nullptr) {
+      log_->error("Error converting IP address (%s) to sockaddr_in structure\n", dest_addr_str);
+    } else {
+      printf("Error converting IP address (%s) to sockaddr_in structure\n", dest_addr_str);
+    }
+    return false;
+  }
+  if (dest_sockaddr != nullptr) {
+    *dest_sockaddr = sockaddr_tmp;
+  }
+  if (connect(fd, (const struct sockaddr*)&sockaddr_tmp, sizeof(sockaddr_tmp)) == -1) {
+    if (log_ != nullptr) {
+      log_->error("Failed to establish socket connection to %s\n", dest_addr_str);
+    } else {
+      perror("connect()");
+    }
+    return false;
+  }
+  return true;
 }
 
 } // namespace net_utils
@@ -128,27 +253,7 @@ void socket_handler_t::reset()
 
 bool socket_handler_t::bind_addr(const char* bind_addr_str, int port, srslte::log* log_)
 {
-  if (sockfd < 0) {
-    if (log_ != nullptr) {
-      log_->error("Trying to bind to a closed socket\n");
-    }
-    return false;
-  }
-
-  if (not net_utils::set_sockaddr(&addr, bind_addr_str, port)) {
-    if (log_ != nullptr) {
-      log_->error("Failed to convert IP address (%s) to sockaddr_in struct\n", bind_addr_str);
-    }
-    return false;
-  }
-
-  if (bind(sockfd, (struct sockaddr*)&addr, sizeof(addr)) != 0) {
-    if (log_ != nullptr) {
-      log_->error("Failed to bind on address %s: %s errno %d\n", bind_addr_str, strerror(errno), errno);
-    }
-    return false;
-  }
-  return true;
+  return net_utils::bind_addr(sockfd, bind_addr_str, port, &addr, log_);
 }
 
 bool socket_handler_t::connect_to(const char*  dest_addr_str,
@@ -156,28 +261,7 @@ bool socket_handler_t::connect_to(const char*  dest_addr_str,
                                   sockaddr_in* dest_sockaddr,
                                   srslte::log* log_)
 {
-  if (sockfd < 0) {
-    if (log_ != nullptr) {
-      log_->error("tried to connect to remote address with a closed socket.\n");
-    }
-    return false;
-  }
-  sockaddr_in  sockaddr_tmp{};
-  sockaddr_in* sockaddr_ptr = (dest_sockaddr == nullptr) ? &sockaddr_tmp : dest_sockaddr;
-  *sockaddr_ptr             = {};
-  if (not net_utils::set_sockaddr(sockaddr_ptr, dest_addr_str, dest_port)) {
-    if (log_ != nullptr) {
-      log_->error("Error converting IP address (%s) to sockaddr_in structure\n", dest_addr_str);
-    }
-    return false;
-  }
-  if (connect(sockfd, (const struct sockaddr*)sockaddr_ptr, sizeof(*sockaddr_ptr)) == -1) {
-    if (log_ != nullptr) {
-      log_->error("Failed to establish socket connection to %s\n", dest_addr_str);
-    }
-    return false;
-  }
-  return true;
+  return net_utils::connect_to(sockfd, dest_addr_str, dest_port, dest_sockaddr, log_);
 }
 
 bool socket_handler_t::open_socket(net_utils::addr_family   ip_type,
@@ -191,15 +275,8 @@ bool socket_handler_t::open_socket(net_utils::addr_family   ip_type,
     }
     return false;
   }
-  sockfd = socket((int)ip_type, (int)socket_type, (int)protocol);
-  if (sockfd == -1) {
-    if (log_ != nullptr) {
-      log_->error("Failed to open %s socket.\n", net_utils::protocol_to_string(protocol));
-    }
-    perror("Could not create socket\n");
-    return false;
-  }
-  return true;
+  sockfd = net_utils::open_socket(ip_type, socket_type, protocol, log_);
+  return sockfd >= 0;
 }
 
 /***********************************************************************
@@ -215,16 +292,6 @@ bool sctp_init_socket(socket_handler_t*      socket,
                       srslte::log*           log_)
 {
   if (not socket->open_socket(net_utils::addr_family::ipv4, socktype, net_utils::protocol_type::SCTP, log_)) {
-    return false;
-  }
-  // Sets the data_io_event to be able to use sendrecv_info
-  // Subscribes to the SCTP_SHUTDOWN event, to handle graceful shutdown
-  struct sctp_event_subscribe evnts = {};
-  evnts.sctp_data_io_event          = 1;
-  evnts.sctp_shutdown_event         = 1;
-  if (setsockopt(socket->fd(), IPPROTO_SCTP, SCTP_EVENTS, &evnts, sizeof(evnts)) != 0) {
-    perror("setsockopt");
-    socket->reset();
     return false;
   }
   if (not socket->bind_addr(bind_addr_str, port, log_)) {
@@ -581,13 +648,15 @@ void rx_multisocket_handler::run_thread()
 
     // call read callback for all SCTP/TCP/UDP connections
     for (auto& handler_pair : active_sockets) {
-      if (not FD_ISSET(handler_pair.first, &read_fd_set)) {
+      int        fd       = handler_pair.first;
+      recv_task* callback = handler_pair.second.get();
+      if (not FD_ISSET(fd, &read_fd_set)) {
         continue;
       }
-      bool socket_valid = (*handler_pair.second)(handler_pair.first);
+      bool socket_valid = callback->operator()(fd);
       if (not socket_valid) {
-        rxSockWarn("The socket fd=%d has been closed by peer\n", handler_pair.first);
-        remove_socket_unprotected(handler_pair.first, &total_fd_set, &max_fd);
+        rxSockWarn("The socket fd=%d has been closed by peer\n", fd);
+        remove_socket_unprotected(fd, &total_fd_set, &max_fd);
       }
     }
 

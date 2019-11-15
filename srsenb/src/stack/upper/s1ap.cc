@@ -198,9 +198,6 @@ void s1ap::stop()
 {
   running = false;
   s1ap_socket.reset();
-  //  if (s1ap_socket.is_init()) {
-  //    stack->remove_mme_socket(s1ap_socket.fd());
-  //  }
 }
 
 void s1ap::get_metrics(s1ap_metrics_t& m)

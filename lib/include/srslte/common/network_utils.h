@@ -44,11 +44,30 @@ enum class protocol_type : int { NONE = -1, SCTP = IPPROTO_SCTP, TCP = IPPROTO_T
 enum class ppid_values : uint32_t { S1AP = 18 };
 const char* protocol_to_string(protocol_type p);
 
-// Convenience functions
+// Convenience addr functions
 bool                   set_sockaddr(sockaddr_in* addr, const char* ip_str, int port);
+bool                   set_sockaddr(sockaddr_in6* addr, const char* ip_str, int port);
 std::string            get_ip(const sockaddr_in& addr);
+std::string            get_ip(const sockaddr_in6& addr);
 int                    get_port(const sockaddr_in& addr);
 net_utils::socket_type get_addr_family(int fd);
+
+// Convenience socket functions
+int  open_socket(net_utils::addr_family   ip,
+                 net_utils::socket_type   socket_type,
+                 net_utils::protocol_type protocol,
+                 srslte::log*             log_ = nullptr);
+bool bind_addr(int fd, const sockaddr_in& addr_in, srslte::log* log_ = nullptr);
+bool bind_addr(int          fd,
+               const char*  bind_addr_str,
+               int          port,
+               sockaddr_in* addr_result = nullptr,
+               srslte::log* log_        = nullptr);
+bool connect_to(int          fd,
+                const char*  dest_addr_str,
+                int          dest_port,
+                sockaddr_in* dest_sockaddr = nullptr,
+                srslte::log* log_          = nullptr);
 
 } // namespace net_utils
 
