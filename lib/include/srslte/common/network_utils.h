@@ -36,144 +36,137 @@
 
 namespace srslte {
 
-class rx_socket_itf_t
-{
-  virtual int read(void* buf, size_t nbytes) const = 0;
-};
+namespace net_utils {
 
-class tx_socket_itf_t
-{
-  virtual int send(const void* buf, size_t nbytes) const = 0;
-};
+enum class addr_family { ipv4 = AF_INET, ipv6 = AF_INET6 };
+enum class socket_type : int { none = -1, datagram = SOCK_DGRAM, stream = SOCK_STREAM, seqpacket = SOCK_SEQPACKET };
+enum class protocol_type : int { NONE = -1, SCTP = IPPROTO_SCTP, TCP = IPPROTO_TCP, UDP = IPPROTO_UDP };
+enum class ppid_values : uint32_t { S1AP = 18 };
+const char* protocol_to_string(protocol_type p);
 
-class net_addr_t
-{
-public:
-  std::string        ip() const;
-  bool               set_ip(const char* ip_str);
-  void               set_port(int port) { addr.sin_port = port; }
-  int                port() const { return addr.sin_port; }
-  const sockaddr_in& get_sockaddr_in() const { return addr; }
-  sockaddr_in&       get_sockaddr_in() { return addr; }
+// Convenience methods
+bool                   set_sockaddr(sockaddr_in* addr, const char* ip_str, int port);
+std::string            get_ip(const sockaddr_in& addr);
+int                    get_port(const sockaddr_in& addr);
+net_utils::socket_type get_addr_family(int fd);
 
-private:
-  struct sockaddr_in addr = {};
-};
+} // namespace net_utils
 
 /**
- * Description: Class created for code reuse by different sockets
+ * Description: Net socket class with convenience methods for connecting, binding, and opening socket
  */
-class base_socket_t
+class socket_handler_t
 {
 public:
-  base_socket_t()                     = default;
-  base_socket_t(const base_socket_t&) = delete;
-  base_socket_t(base_socket_t&& other) noexcept;
-  virtual ~base_socket_t();
-  base_socket_t& operator=(const base_socket_t&) = delete;
-  base_socket_t& operator                        =(base_socket_t&&) noexcept;
+  socket_handler_t()                        = default;
+  socket_handler_t(const socket_handler_t&) = delete;
+  socket_handler_t(socket_handler_t&& other) noexcept;
+  ~socket_handler_t();
+  socket_handler_t& operator=(const socket_handler_t&) = delete;
+  socket_handler_t& operator                           =(socket_handler_t&&) noexcept;
 
-  bool is_init() const { return sockfd >= 0; }
-  int  fd() const { return sockfd; }
+  void close();
+  void reset();
+
+  bool                   is_init() const { return sockfd >= 0; }
+  int                    fd() const { return sockfd; }
+  const sockaddr_in&     get_addr_in() const { return addr; }
+  std::string            get_ip() const { return net_utils::get_ip(addr); }
+  net_utils::socket_type get_family() const { return net_utils::get_addr_family(sockfd); }
+
+  bool bind_addr(const char* bind_addr_str, int port, srslte::log* log_ = nullptr);
+  bool connect_to(const char*  dest_addr_str,
+                  int          dest_port,
+                  sockaddr_in* dest_sockaddr = nullptr,
+                  srslte::log* log_          = nullptr);
+  bool open_socket(net_utils::addr_family   ip,
+                   net_utils::socket_type   socket_type,
+                   net_utils::protocol_type protocol,
+                   srslte::log*             log_ = nullptr);
 
 protected:
-  void        reset_();
-  int         bind_addr(const char* bind_addr_str, int port);
-  virtual int create_socket() = 0;
-  int         connect_to(struct sockaddr_in* dest_addr, const char* dest_addr_str, int dest_port);
-
-  int                sockfd  = -1;
-  struct sockaddr_in addr_in = {};
+  sockaddr_in addr   = {};
+  int         sockfd = -1;
 };
 
-/**
- * Description: handles the lifetime of a SCTP socket and provides convenience methods for listening/connecting, and
- * read/send
- */
-class sctp_socket_t final : public base_socket_t
-{
-public:
-  void reset();
-  int  listen_addr(const char* bind_addr_str, int port);
-  int  connect_addr(const char* bind_addr_str, const char* dest_addr_str, int dest_port);
+namespace net_utils {
 
-  int read(void* buf, size_t nbytes, net_addr_t* addr) const;
-  int read(void*                   buf,
-           size_t                  nbytes,
-           struct sockaddr_in*     from      = nullptr,
-           socklen_t*              fromlen   = nullptr,
-           struct sctp_sndrcvinfo* sinfo     = nullptr,
-           int                     msg_flags = 0) const;
-  int send(void* buf, size_t nbytes, uint32_t ppid, uint32_t stream_id) const;
+bool sctp_init_client(socket_handler_t*      socket,
+                      net_utils::socket_type socktype,
+                      const char*            bind_addr_str,
+                      srslte::log*           log_);
+bool sctp_init_server(socket_handler_t*      socket,
+                      net_utils::socket_type socktype,
+                      const char*            bind_addr_str,
+                      int                    port,
+                      srslte::log*           log_);
 
-private:
-  int create_socket() override;
+// TODO: for TCP and UDP
+bool tcp_make_server(socket_handler_t* socket,
+                     const char*       bind_addr_str,
+                     int               port,
+                     int               nof_connections = 1,
+                     srslte::log*      log_            = nullptr);
+int  tcp_accept(socket_handler_t* socket, sockaddr_in* destaddr, srslte::log* log_);
+int  tcp_read(int remotefd, void* buf, size_t nbytes, srslte::log* log_);
+int  tcp_send(int remotefd, const void* buf, size_t nbytes, srslte::log* log_);
 
-  struct sockaddr_in dest_addr = {};
-};
+} // namespace net_utils
 
-class tcp_socket_t final : public base_socket_t, public rx_socket_itf_t, public tx_socket_itf_t
-{
-public:
-  void reset();
-  int  listen_addr(const char* bind_addr_str, int port);
-  int  accept_connection();
-  int  connect_addr(const char* bind_addr_str, const char* dest_addr_str, int dest_port);
-
-  int read(void* buf, size_t nbytes) const override;
-  int send(const void* buf, size_t nbytes) const override;
-
-private:
-  int create_socket() override;
-
-  struct sockaddr_in dest_addr = {};
-  int                connfd    = -1;
-};
+/****************************
+ * Rx multisocket handler
+ ***************************/
 
 class rx_multisocket_handler final : public thread
 {
 public:
-  using sctp_callback_t = std::function<void(const sctp_socket_t&)>;
-  using tcp_callback_t  = std::function<void(const tcp_socket_t&)>;
+  // polymorphic callback to handle the socket recv
+  class recv_task
+  {
+  public:
+    virtual ~recv_task()            = default;
+    virtual bool operator()(int fd) = 0; // returns false, if socket needs to be removed
+  };
+  using task_callback_t = std::unique_ptr<recv_task>;
+  using recv_callback_t = std::function<void(srslte::unique_byte_buffer_t)>;
+  using sctp_recv_callback_t =
+      std::function<void(srslte::unique_byte_buffer_t, const sockaddr_in&, const sctp_sndrcvinfo&, int)>;
 
-  rx_multisocket_handler(std::string name_, srslte::log* log_);
+  rx_multisocket_handler(std::string name_, srslte::log* log_, int thread_prio = 65);
   rx_multisocket_handler(rx_multisocket_handler&&)      = delete;
   rx_multisocket_handler(const rx_multisocket_handler&) = delete;
   rx_multisocket_handler& operator=(const rx_multisocket_handler&) = delete;
   rx_multisocket_handler& operator=(const rx_multisocket_handler&&) = delete;
   ~rx_multisocket_handler();
 
-  template <typename Sock, typename Handler>
-  bool register_socket(const Sock& s, Handler&& handler)
-  {
-    auto func = [&s, handler]() { handler(s); };
-    return register_socket_(std::pair<const int, std::function<void()> >(s.fd(), func));
-  }
-  //  bool register_sctp_socket(const sctp_socket_t& sock, const sctp_callback_t& recv_handler_);
-  //  bool register_tcp_socket(const tcp_socket_t& sock, const tcp_callback_t& recv_handler_);
+  void stop();
+  bool remove_socket(int fd);
+  bool add_socket_handler(int fd, task_callback_t handler);
+  // convenience methods for recv using buffer pool
+  bool add_socket_pdu_handler(int fd, recv_callback_t pdu_task);
+  bool add_socket_sctp_handler(int fd, sctp_recv_callback_t task);
 
   void run_thread() override;
 
 private:
-  const static int THREAD_PRIO = 65;
   // used to unlock select
   struct ctrl_cmd_t {
-    enum class cmd_id_t { EXIT, NEW_FD };
+    enum class cmd_id_t { EXIT, NEW_FD, RM_FD };
     cmd_id_t cmd    = cmd_id_t::EXIT;
     int      new_fd = -1;
   };
-
-  bool register_socket_(std::pair<const int, std::function<void()> >&& elem);
+  bool remove_socket_unprotected(int fd, fd_set* total_fd_set, int* max_fd);
 
   // args
-  std::string  name;
-  srslte::log* log_h = nullptr;
+  std::string               name;
+  srslte::log*              log_h = nullptr;
+  srslte::byte_buffer_pool* pool  = nullptr;
 
   // state
-  std::mutex                            socket_mutex;
-  std::map<int, std::function<void()> > active_sockets;
-  bool                                  running   = false;
-  int                                   pipefd[2] = {};
+  std::mutex                     socket_mutex;
+  std::map<int, task_callback_t> active_sockets;
+  bool                           running   = false;
+  int                            pipefd[2] = {};
 };
 
 } // namespace srslte

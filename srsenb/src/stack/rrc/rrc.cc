@@ -40,7 +40,6 @@ namespace srsenb {
 
 rrc::rrc() : cnotifier(nullptr), nof_si_messages(0)
 {
-  users.clear();
   pending_paging.clear();
 }
 
@@ -206,7 +205,7 @@ void rrc::add_user(uint16_t rnti)
   pthread_mutex_lock(&user_mutex);
   auto user_it = users.find(rnti);
   if (user_it == users.end()) {
-    users[rnti].reset(new ue{this, rnti});
+    users.insert(std::make_pair(rnti, std::unique_ptr<ue>(new ue{this, rnti})));
     rlc->add_user(rnti);
     pdcp->add_user(rnti);
     rrc_log->info("Added new user rnti=0x%x\n", rnti);
@@ -620,7 +619,7 @@ void rrc::read_pdu_pcch(uint8_t* payload, uint32_t buffer_size)
 
 void rrc::ho_preparation_complete(uint16_t rnti, bool is_success)
 {
-  users[rnti]->handle_ho_preparation_complete(is_success);
+  users.at(rnti)->handle_ho_preparation_complete(is_success);
 }
 
 /*******************************************************************************

@@ -340,6 +340,14 @@ typedef struct {
   sched_interface::sched_args_t sched;
   int                           link_failure_nof_err;
 } mac_args_t;
-}
+
+class stack_interface_s1ap_lte
+{
+public:
+  virtual void add_mme_socket(int fd)    = 0;
+  virtual void remove_mme_socket(int fd) = 0;
+};
+
+} // namespace srsenb
 
 #endif // SRSLTE_ENB_INTERFACES_H

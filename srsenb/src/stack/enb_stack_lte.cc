@@ -21,6 +21,7 @@
 
 #include "srsenb/hdr/stack/enb_stack_lte.h"
 #include "srsenb/hdr/enb.h"
+#include "srslte/common/network_utils.h"
 #include "srslte/srslte.h"
 #include <srslte/interfaces/enb_metrics_interface.h>
 
@@ -30,6 +31,11 @@ namespace srsenb {
 
 enb_stack_lte::enb_stack_lte(srslte::logger* logger_) : logger(logger_), pdcp(&pdcp_log), timers(128), thread("STACK")
 {
+  enb_queue_id  = pending_tasks.add_queue();
+  sync_queue_id = pending_tasks.add_queue();
+  mme_queue_id  = pending_tasks.add_queue();
+
+  pool = byte_buffer_pool::get_instance();
 }
 
 enb_stack_lte::~enb_stack_lte()
@@ -64,6 +70,7 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   rrc_log.init("RRC ", logger);
   gtpu_log.init("GTPU", logger);
   s1ap_log.init("S1AP", logger);
+  stack_log.init("STACK", logger);
 
   // Init logs
   mac_log.set_level(args.log.mac_level);
@@ -72,6 +79,7 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   rrc_log.set_level(args.log.rrc_level);
   gtpu_log.set_level(args.log.gtpu_level);
   s1ap_log.set_level(args.log.s1ap_level);
+  stack_log.set_level("INFO");
 
   mac_log.set_hex_limit(args.log.mac_hex_limit);
   rlc_log.set_hex_limit(args.log.rlc_hex_limit);
@@ -79,6 +87,7 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   rrc_log.set_hex_limit(args.log.rrc_hex_limit);
   gtpu_log.set_hex_limit(args.log.gtpu_hex_limit);
   s1ap_log.set_hex_limit(args.log.s1ap_hex_limit);
+  stack_log.set_hex_limit(128);
 
   // Set up pcap and trace
   if (args.pcap.enable) {
@@ -116,12 +125,15 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
     }
   }
 
+  // Init Rx socket handler
+  rx_sockets.reset(new srslte::rx_multisocket_handler("ENBSOCKETS", &stack_log));
+
   // Init all layers
   mac.init(args.mac, &cell_cfg, phy, &rlc, &rrc, &mac_log);
   rlc.init(&pdcp, &rrc, &mac, &timers, &rlc_log);
   pdcp.init(&rlc, &rrc, &gtpu);
   rrc.init(&rrc_cfg, phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, &timers, &rrc_log);
-  s1ap.init(args.s1ap, &rrc, &s1ap_log, &timers);
+  s1ap.init(args.s1ap, &rrc, &s1ap_log, &timers, this);
   gtpu.init(args.s1ap.gtp_bind_addr,
             args.s1ap.mme_addr,
             args.embms.m1u_multiaddr,
@@ -129,9 +141,6 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
             &pdcp,
             &gtpu_log,
             args.embms.enable);
-
-  enb_queue_id  = pending_tasks.add_queue();
-  sync_queue_id = pending_tasks.add_queue();
 
   started = true;
   start(STACK_MAIN_THREAD_PRIO);
@@ -161,9 +170,6 @@ void enb_stack_lte::stop()
 
 void enb_stack_lte::stop_impl()
 {
-  // stop listening to events
-  pending_tasks.erase_queue(sync_queue_id);
-  pending_tasks.erase_queue(enb_queue_id);
 
   s1ap.stop();
   gtpu.stop();
@@ -178,6 +184,14 @@ void enb_stack_lte::stop_impl()
   if (args.pcap.enable) {
     mac_pcap.close();
   }
+
+  rx_sockets->stop();
+
+  // erasing the queues is the last thing, bc we need them to call stop_impl()
+  pending_tasks.erase_queue(sync_queue_id);
+  pending_tasks.erase_queue(enb_queue_id);
+  pending_tasks.erase_queue(mme_queue_id);
+
   started = false;
 }
 
@@ -197,6 +211,34 @@ void enb_stack_lte::run_thread()
       task();
     }
   }
+}
+
+void enb_stack_lte::handle_mme_rx_packet(srslte::unique_byte_buffer_t pdu,
+                                         const sockaddr_in&           from,
+                                         const sctp_sndrcvinfo&       sri,
+                                         int                          flags)
+{
+  // Defer the handling of MME packet to eNB stack main thread
+  auto task_handler = [this, from, sri, flags](task_t* t) {
+    s1ap.handle_mme_rx_msg(std::move(t->pdu), from, sri, flags);
+  };
+  // Defer the handling of MME packet to main stack thread
+  pending_tasks.push(mme_queue_id, task_t{task_handler, std::move(pdu)});
+}
+
+void enb_stack_lte::add_mme_socket(int fd)
+{
+  // Pass MME Rx packet handler functor to socket handler to run in socket thread
+  auto mme_rx_handler =
+      [this](srslte::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags) {
+        handle_mme_rx_packet(std::move(pdu), from, sri, flags);
+      };
+  rx_sockets->add_socket_sctp_handler(fd, mme_rx_handler);
+}
+
+void enb_stack_lte::remove_mme_socket(int fd)
+{
+  rx_sockets->remove_socket(fd);
 }
 
 } // namespace srsenb

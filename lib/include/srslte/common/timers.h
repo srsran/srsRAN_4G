@@ -128,10 +128,10 @@ class timer_handler
     void trigger()
     {
       if (is_running()) {
+        running = false;
         if (callback) {
           callback(id());
         }
-        running = false;
       }
     }
   };

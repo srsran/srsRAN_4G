@@ -37,44 +37,56 @@ int test_socket_handler()
   log.set_level(srslte::LOG_LEVEL_DEBUG);
   log.set_hex_limit(128);
 
-  int                       counter = 0;
-  srslte::byte_buffer_pool* pool    = srslte::byte_buffer_pool::get_instance();
+  int counter = 0;
 
-  srslte::sctp_socket_t          server_sock, client_sock, client_sock2;
+  srslte::socket_handler_t       server_socket, client_socket, client_socket2;
   srslte::rx_multisocket_handler sockhandler("RXSOCKETS", &log);
+  int                            server_port = 36412;
+  const char*                    server_addr = "127.0.100.1";
+  using namespace srslte::net_utils;
 
-  TESTASSERT(server_sock.listen_addr("127.0.100.1", 36412) == 0);
-  log.info("Listening from fd=%d\n", server_sock.fd());
+  TESTASSERT(sctp_init_server(&server_socket, socket_type::seqpacket, server_addr, server_port, &log));
+  log.info("Listening from fd=%d\n", server_socket.fd());
 
-  TESTASSERT(client_sock.connect_addr("127.0.0.1", "127.0.100.1", 36412) == 0);
-  TESTASSERT(client_sock2.connect_addr("127.0.0.2", "127.0.100.1", 36412) == 0);
+  TESTASSERT(sctp_init_client(&client_socket, socket_type::seqpacket, "127.0.0.1", &log));
+  TESTASSERT(sctp_init_client(&client_socket2, socket_type::seqpacket, "127.0.0.2", &log));
+  TESTASSERT(client_socket.connect_to(server_addr, server_port));
+  TESTASSERT(client_socket2.connect_to(server_addr, server_port));
 
   // register server Rx handler
-  sockhandler.register_socket(server_sock, [pool, &log, &counter](const srslte::sctp_socket_t& sock) {
-    srslte::unique_byte_buffer_t pdu = srslte::allocate_unique_buffer(*pool, true);
-    srslte::net_addr_t           addr;
-    int                          rd_sz = sock.read(pdu->msg, pdu->get_tailroom(), &addr);
-    if (rd_sz > 0) {
-      pdu->N_bytes = rd_sz;
-      log.info_hex(pdu->msg, pdu->N_bytes, "Received msg from %s:", addr.ip().c_str());
-      counter++;
-    }
-  });
+  auto pdu_handler =
+      [&log,
+       &counter](srslte::unique_byte_buffer_t pdu, const sockaddr_in& from, const sctp_sndrcvinfo& sri, int flags) {
+        if (pdu->N_bytes > 0) {
+          log.info_hex(pdu->msg, pdu->N_bytes, "Received msg from %s:", get_ip(from).c_str());
+          counter++;
+        }
+      };
+  sockhandler.add_socket_sctp_handler(server_socket.fd(), pdu_handler);
 
-  int       PPID            = 18;
-  const int NONUE_STREAM_ID = 0;
-
-  uint8_t buf[128]   = {};
-  int32_t nof_counts = 5;
+  uint8_t     buf[128]        = {};
+  int32_t     nof_counts      = 5;
+  sockaddr_in server_addrin   = server_socket.get_addr_in();
+  socklen_t   socklen         = sizeof(server_addrin);
+  const int   NONUE_STREAM_ID = 0;
   for (int32_t i = 0; i < nof_counts; ++i) {
     buf[i] = i;
     // Round-robin between clients
-    srslte::sctp_socket_t* chosen = &client_sock;
+    srslte::socket_handler_t* chosen = &client_socket;
     if (i % 2 == 1) {
-      chosen = &client_sock2;
+      chosen = &client_socket2;
     }
     // send packet
-    ssize_t n_sent = chosen->send(buf, i + 1, PPID, NONUE_STREAM_ID);
+    ssize_t n_sent = sctp_sendmsg(chosen->fd(),
+                                  buf,
+                                  i + 1,
+                                  (struct sockaddr*)&server_addrin,
+                                  socklen,
+                                  (uint32_t)ppid_values::S1AP,
+                                  0,
+                                  NONUE_STREAM_ID,
+                                  0,
+                                  0);
     TESTASSERT(n_sent >= 0);
     usleep(1000);
     log.info("Message %d sent.\n", i);

@@ -43,7 +43,10 @@
 
 namespace srsenb {
 
-class enb_stack_lte final : public enb_stack_base, public stack_interface_phy_lte, public thread
+class enb_stack_lte final : public enb_stack_base,
+                            public stack_interface_phy_lte,
+                            public stack_interface_s1ap_lte,
+                            public thread
 {
 public:
   enb_stack_lte(srslte::logger* logger_);
@@ -52,7 +55,7 @@ public:
   // eNB stack base interface
   int         init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_, phy_interface_stack_lte* phy_);
   int         init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_);
-  void stop() final;
+  void        stop() final;
   std::string get_type() final;
   bool        get_metrics(stack_metrics_t* metrics) final;
 
@@ -79,7 +82,7 @@ public:
   {
     return mac.get_mch_sched(tti, is_mcch, dl_sched_res);
   }
-  int get_ul_sched(uint32_t tti, ul_sched_t* ul_sched_res) final { return mac.get_ul_sched(tti, ul_sched_res); }
+  int  get_ul_sched(uint32_t tti, ul_sched_t* ul_sched_res) final { return mac.get_ul_sched(tti, ul_sched_res); }
   void set_sched_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs) final
   {
     mac.set_sched_dl_tti_mask(tti_mask, nof_sfs);
@@ -89,18 +92,28 @@ public:
   void rl_ok(uint16_t rnti) final { mac.rl_ok(rnti); }
   void tti_clock() override;
 
+  /* STACK-S1AP interface*/
+  void add_mme_socket(int fd) override;
+  void remove_mme_socket(int fd) override;
+
 private:
   static const int STACK_MAIN_THREAD_PRIO = -1; // Use default high-priority below UHD
   // thread loop
   void run_thread() override;
   void stop_impl();
   void tti_clock_impl();
+  void handle_mme_rx_packet(srslte::unique_byte_buffer_t pdu,
+                            const sockaddr_in&           from,
+                            const sctp_sndrcvinfo&       sri,
+                            int                          flags);
 
   // args
   stack_args_t args    = {};
   rrc_cfg_t    rrc_cfg = {};
 
-  srslte::timer_handler timers;
+  // components that layers depend on (need to be destroyed after layers)
+  srslte::timer_handler                           timers;
+  std::unique_ptr<srslte::rx_multisocket_handler> rx_sockets;
 
   srsenb::mac      mac;
   srslte::mac_pcap mac_pcap;
@@ -110,7 +123,8 @@ private:
   srsenb::gtpu     gtpu;
   srsenb::s1ap     s1ap;
 
-  srslte::logger*       logger = nullptr;
+  srslte::logger*           logger = nullptr;
+  srslte::byte_buffer_pool* pool   = nullptr;
 
   // Radio and PHY log are in enb.cc
   srslte::log_filter mac_log;
@@ -119,6 +133,7 @@ private:
   srslte::log_filter rrc_log;
   srslte::log_filter s1ap_log;
   srslte::log_filter gtpu_log;
+  srslte::log_filter stack_log;
 
   // RAT-specific interfaces
   phy_interface_stack_lte* phy = nullptr;
@@ -131,10 +146,15 @@ private:
     srslte::unique_byte_buffer_t pdu;
     task_t() = default;
     explicit task_t(std::function<void(task_t*)> f_) : func(std::move(f_)) {}
+    task_t(std::function<void(task_t*)> f_, srslte::unique_byte_buffer_t pdu_) :
+      func(std::move(f_)),
+      pdu(std::move(pdu_))
+    {
+    }
     void operator()() { func(this); }
   };
   srslte::multiqueue_handler<task_t> pending_tasks;
-  int                                enb_queue_id = -1, sync_queue_id = -1;
+  int                                enb_queue_id = -1, sync_queue_id = -1, mme_queue_id = -1;
 };
 
 } // namespace srsenb
