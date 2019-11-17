@@ -53,3 +53,9 @@ add_test(srslte_asn1_nas_test srslte_asn1_nas_test)
 add_executable(rrc_asn1_test rrc_asn1_test.cc)
 target_link_libraries(rrc_asn1_test rrc_asn1)
 add_test(rrc_asn1_test rrc_asn1_test)
+
+add_executable(rrc_asn1_decoder rrc_asn1_decoder.cc)
+target_link_libraries(rrc_asn1_decoder rrc_asn1)
+
+add_executable(nas_decoder nas_decoder.cc)
+target_link_libraries(nas_decoder srslte_asn1)
