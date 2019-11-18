@@ -58,7 +58,7 @@ static const char pdcp_d_c_text[PDCP_D_C_N_ITEMS][20] = {"Control PDU", "Data PD
 class pdcp_entity_base
 {
 public:
-  pdcp_entity_base();
+  pdcp_entity_base(srslte::timer_handler* timers_, srslte::log* log_);
   virtual ~pdcp_entity_base();
   virtual void reset()       = 0;
   virtual void reestablish() = 0;

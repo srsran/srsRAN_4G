@@ -23,7 +23,7 @@
 
 namespace srslte {
 
-pdcp::pdcp(srslte::log* log_) : pdcp_log(log_)
+pdcp::pdcp(srslte::timer_handler* timers_, srslte::log* log_) : timers(timers_), pdcp_log(log_)
 {
   pthread_rwlock_init(&rwlock, NULL);
 }
@@ -124,11 +124,11 @@ void pdcp::add_bearer(uint32_t lcid, pdcp_config_t cfg)
 {
   pthread_rwlock_wrlock(&rwlock);
   if (not valid_lcid(lcid)) {
-    if (not pdcp_array.insert(pdcp_map_pair_t(lcid, new pdcp_entity_lte())).second) {
+    if (not pdcp_array.insert(pdcp_map_pair_t(lcid, new pdcp_entity_lte(rlc, rrc, gw, timers, pdcp_log))).second) {
       pdcp_log->error("Error inserting PDCP entity in to array\n.");
       goto unlock_and_exit;
     }
-    pdcp_array.at(lcid)->init(rlc, rrc, gw, pdcp_log, lcid, cfg);
+    pdcp_array.at(lcid)->init(lcid, cfg);
     pdcp_log->info("Add %s (lcid=%d, bearer_id=%d, sn_len=%dbits)\n",
                    rrc->get_rb_name(lcid).c_str(),
                    lcid,
@@ -145,11 +145,11 @@ void pdcp::add_bearer_mrb(uint32_t lcid, pdcp_config_t cfg)
 {
   pthread_rwlock_wrlock(&rwlock);
   if (not valid_mch_lcid(lcid)) {
-    if (not pdcp_array_mrb.insert(pdcp_map_pair_t(lcid, new pdcp_entity_lte())).second) {
+    if (not pdcp_array_mrb.insert(pdcp_map_pair_t(lcid, new pdcp_entity_lte(rlc, rrc, gw, timers, pdcp_log))).second) {
       pdcp_log->error("Error inserting PDCP entity in to array\n.");
       goto unlock_and_exit;
     }
-    pdcp_array_mrb.at(lcid)->init(rlc, rrc, gw, pdcp_log, lcid, cfg);
+    pdcp_array_mrb.at(lcid)->init( lcid, cfg);
     pdcp_log->info("Add %s (lcid=%d, bearer_id=%d, sn_len=%dbits)\n",
                    rrc->get_rb_name(lcid).c_str(),
                    lcid,

@@ -46,14 +46,13 @@ namespace srslte {
 class pdcp_entity_lte final : public pdcp_entity_base
 {
 public:
-  pdcp_entity_lte();
+  pdcp_entity_lte(srsue::rlc_interface_pdcp* rlc_,
+                  srsue::rrc_interface_pdcp* rrc_,
+                  srsue::gw_interface_pdcp*  gw_,
+                  srslte::timer_handler*     timers_,
+                  srslte::log*               log_);
   ~pdcp_entity_lte();
-  void init(srsue::rlc_interface_pdcp* rlc_,
-            srsue::rrc_interface_pdcp* rrc_,
-            srsue::gw_interface_pdcp*  gw_,
-            srslte::log*               log_,
-            uint32_t                   lcid_,
-            pdcp_config_t              cfg_);
+  void init(uint32_t lcid_, pdcp_config_t cfg_);
   void reset();
   void reestablish();
 

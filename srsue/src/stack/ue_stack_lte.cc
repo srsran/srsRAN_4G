@@ -36,7 +36,7 @@ ue_stack_lte::ue_stack_lte() :
   rlc(&rlc_log),
   mac(&mac_log),
   rrc(&rrc_log),
-  pdcp(&pdcp_log),
+  pdcp(&timers, &pdcp_log),
   nas(&nas_log, &timers),
   thread("STACK"),
   pending_tasks(1024),

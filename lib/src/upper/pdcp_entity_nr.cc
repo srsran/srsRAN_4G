@@ -25,23 +25,23 @@
 
 namespace srslte {
 
-pdcp_entity_nr::pdcp_entity_nr() : reordering_fnc(new pdcp_entity_nr::reordering_callback(this)) {}
+pdcp_entity_nr::pdcp_entity_nr(srsue::rlc_interface_pdcp* rlc_,
+                               srsue::rrc_interface_pdcp* rrc_,
+                               srsue::gw_interface_pdcp*  gw_,
+                               srslte::timer_handler*     timers_,
+                               srslte::log*               log_) :
+  pdcp_entity_base(timers_, log_),
+  rlc(rlc_),
+  rrc(rrc_),
+  gw(gw_),
+  reordering_fnc(new pdcp_entity_nr::reordering_callback(this))
+{
+}
 
 pdcp_entity_nr::~pdcp_entity_nr() {}
 
-void pdcp_entity_nr::init(srsue::rlc_interface_pdcp* rlc_,
-                          srsue::rrc_interface_pdcp* rrc_,
-                          srsue::gw_interface_pdcp*  gw_,
-                          srslte::timer_handler*     timers_,
-                          srslte::log*               log_,
-                          uint32_t                   lcid_,
-                          pdcp_config_t              cfg_)
+void pdcp_entity_nr::init(uint32_t lcid_, pdcp_config_t cfg_)
 {
-  rlc           = rlc_;
-  rrc           = rrc_;
-  gw            = gw_;
-  timers        = timers_;
-  log           = log_;
   lcid          = lcid_;
   cfg           = cfg_;
   active        = true;
@@ -51,7 +51,7 @@ void pdcp_entity_nr::init(srsue::rlc_interface_pdcp* rlc_,
   window_size = 1 << (cfg.sn_len - 1);
 
   // Timers
-  reordering_timer = timers_->get_unique_timer();
+  reordering_timer = timers->get_unique_timer();
 
   // configure timer
   if (static_cast<uint32_t>(cfg.t_reordering) > 0) {

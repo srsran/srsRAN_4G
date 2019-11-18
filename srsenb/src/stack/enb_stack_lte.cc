@@ -29,7 +29,11 @@ using namespace srslte;
 
 namespace srsenb {
 
-enb_stack_lte::enb_stack_lte(srslte::logger* logger_) : logger(logger_), pdcp(&pdcp_log), timers(128), thread("STACK")
+enb_stack_lte::enb_stack_lte(srslte::logger* logger_) :
+  timers(128),
+  logger(logger_),
+  pdcp(&timers, &pdcp_log),
+  thread("STACK")
 {
   enb_queue_id  = pending_tasks.add_queue();
   sync_queue_id = pending_tasks.add_queue();

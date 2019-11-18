@@ -24,21 +24,22 @@
 
 namespace srslte {
 
-pdcp_entity_lte::pdcp_entity_lte() {}
+pdcp_entity_lte::pdcp_entity_lte(srsue::rlc_interface_pdcp* rlc_,
+                                 srsue::rrc_interface_pdcp* rrc_,
+                                 srsue::gw_interface_pdcp*  gw_,
+                                 srslte::timer_handler* timers_,
+                                 srslte::log*               log_) :
+  pdcp_entity_base(timers_, log_),
+  rlc(rlc_),
+  rrc(rrc_),
+  gw(gw_)
+{
+}
 
 pdcp_entity_lte::~pdcp_entity_lte() {}
 
-void pdcp_entity_lte::init(srsue::rlc_interface_pdcp* rlc_,
-                           srsue::rrc_interface_pdcp* rrc_,
-                           srsue::gw_interface_pdcp*  gw_,
-                           srslte::log*               log_,
-                           uint32_t                   lcid_,
-                           pdcp_config_t              cfg_)
+void pdcp_entity_lte::init(uint32_t lcid_, pdcp_config_t cfg_)
 {
-  rlc           = rlc_;
-  rrc           = rrc_;
-  gw            = gw_;
-  log           = log_;
   lcid          = lcid_;
   cfg           = cfg_;
   active        = true;

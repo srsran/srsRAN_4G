@@ -148,9 +148,10 @@ public:
     rlc(log),
     rrc(log),
     gw(log),
-    timers(64)
+    timers(64),
+    pdcp(&rlc, &rrc, &gw, &timers, log)
   {
-    pdcp.init(&rlc, &rrc, &gw, &timers, log, 0, cfg);
+    pdcp.init(0, cfg);
     pdcp.config_security(
         sec_cfg.k_enc_rrc, sec_cfg.k_int_rrc, sec_cfg.k_enc_up, sec_cfg.k_int_up, sec_cfg.enc_algo, sec_cfg.int_algo);
     pdcp.enable_integrity();
@@ -165,11 +166,11 @@ public:
     pdcp.set_rx_reord(init_state.rx_reord);
   }
 
-  srslte::timer_handler  timers;
-  srslte::pdcp_entity_nr pdcp;
   rlc_dummy              rlc;
   rrc_dummy              rrc;
   gw_dummy               gw;
+  srslte::timer_handler  timers;
+  srslte::pdcp_entity_nr pdcp;
 };
 
 // Helper function to generate PDUs

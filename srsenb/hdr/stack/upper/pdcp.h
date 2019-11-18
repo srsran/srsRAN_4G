@@ -19,10 +19,11 @@
  *
  */
 
-#include <map>
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/common/timers.h"
 #include "srslte/interfaces/enb_interfaces.h"
+#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/upper/pdcp.h"
+#include <map>
 
 #ifndef SRSENB_PDCP_H
 #define SRSENB_PDCP_H
@@ -32,7 +33,7 @@ namespace srsenb {
 class pdcp : public pdcp_interface_rlc, public pdcp_interface_gtpu, public pdcp_interface_rrc
 {
 public:
-  pdcp(srslte::log* pdcp_log_);
+  pdcp(srslte::timer_handler* timers, srslte::log* pdcp_log_);
   virtual ~pdcp() {};
   void init(rlc_interface_pdcp* rlc_, rrc_interface_pdcp* rrc_, gtpu_interface_pdcp* gtpu_);
   void stop(); 
@@ -110,6 +111,7 @@ private:
   rlc_interface_pdcp*       rlc;
   rrc_interface_pdcp*       rrc;
   gtpu_interface_pdcp*      gtpu;
+  srslte::timer_handler*    timers;
   srslte::log*              log_h;
   srslte::byte_buffer_pool* pool;
 };
