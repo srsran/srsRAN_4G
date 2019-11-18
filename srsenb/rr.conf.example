@@ -85,6 +85,6 @@ cell_list =
       a3_time_to_trigger = 480;
       rsrq_config = 4;
     };
-  },
+  }
   // Add here more cells
 );
