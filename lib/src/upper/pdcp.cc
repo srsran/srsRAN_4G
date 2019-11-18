@@ -33,7 +33,7 @@ pdcp::~pdcp()
   // destroy all remaining entities
   pthread_rwlock_wrlock(&rwlock);
   for (pdcp_map_t::iterator it = pdcp_array.begin(); it != pdcp_array.end(); ++it) {
-    delete(it->second);
+    delete (it->second);
   }
   pdcp_array.clear();
 
@@ -48,16 +48,15 @@ pdcp::~pdcp()
 
 void pdcp::init(srsue::rlc_interface_pdcp* rlc_, srsue::rrc_interface_pdcp* rrc_, srsue::gw_interface_pdcp* gw_)
 {
-  rlc          = rlc_;
-  rrc          = rrc_;
-  gw           = gw_;
+  rlc = rlc_;
+  rrc = rrc_;
+  gw  = gw_;
 }
 
-void pdcp::stop()
+void pdcp::stop() {}
+
+void pdcp::reestablish()
 {
-}
-
-void pdcp::reestablish() {
   pthread_rwlock_rdlock(&rwlock);
   for (pdcp_map_t::iterator it = pdcp_array.begin(); it != pdcp_array.end(); ++it) {
     it->second->reestablish();
@@ -78,9 +77,9 @@ void pdcp::reset()
 {
   // destroy all bearers
   pthread_rwlock_wrlock(&rwlock);
-  for (pdcp_map_t::iterator it = pdcp_array.begin(); it != pdcp_array.end(); /* post increment in erase */ ) {
+  for (pdcp_map_t::iterator it = pdcp_array.begin(); it != pdcp_array.end(); /* post increment in erase */) {
     it->second->reset();
-    delete(it->second);
+    delete (it->second);
     pdcp_array.erase(it++);
   }
   pthread_rwlock_unlock(&rwlock);
@@ -114,7 +113,7 @@ void pdcp::write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, bool blocking)
 void pdcp::write_sdu_mch(uint32_t lcid, unique_byte_buffer_t sdu)
 {
   pthread_rwlock_rdlock(&rwlock);
-  if (valid_mch_lcid(lcid)){
+  if (valid_mch_lcid(lcid)) {
     pdcp_array_mrb.at(lcid)->write_sdu(std::move(sdu), true);
   }
   pthread_rwlock_unlock(&rwlock);
@@ -149,7 +148,7 @@ void pdcp::add_bearer_mrb(uint32_t lcid, pdcp_config_t cfg)
       pdcp_log->error("Error inserting PDCP entity in to array\n.");
       goto unlock_and_exit;
     }
-    pdcp_array_mrb.at(lcid)->init( lcid, cfg);
+    pdcp_array_mrb.at(lcid)->init(lcid, cfg);
     pdcp_log->info("Add %s (lcid=%d, bearer_id=%d, sn_len=%dbits)\n",
                    rrc->get_rb_name(lcid).c_str(),
                    lcid,
@@ -167,7 +166,7 @@ void pdcp::del_bearer(uint32_t lcid)
   pthread_rwlock_wrlock(&rwlock);
   if (valid_lcid(lcid)) {
     pdcp_map_t::iterator it = pdcp_array.find(lcid);
-    delete(it->second);
+    delete (it->second);
     pdcp_array.erase(it);
     pdcp_log->warning("Deleted PDCP bearer %s\n", rrc->get_rb_name(lcid).c_str());
   } else {
@@ -203,10 +202,10 @@ exit:
   pthread_rwlock_unlock(&rwlock);
 }
 
-void pdcp::config_security(uint32_t lcid,
-                           uint8_t *k_rrc_enc,
-                           uint8_t *k_rrc_int,
-                           uint8_t *k_up_enc,
+void pdcp::config_security(uint32_t                    lcid,
+                           uint8_t*                    k_rrc_enc,
+                           uint8_t*                    k_rrc_int,
+                           uint8_t*                    k_up_enc,
                            CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                            INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
 {
@@ -217,8 +216,11 @@ void pdcp::config_security(uint32_t lcid,
   pthread_rwlock_unlock(&rwlock);
 }
 
-void pdcp::config_security_all(uint8_t* k_rrc_enc, uint8_t* k_rrc_int, uint8_t* k_up_enc,
-                               CIPHERING_ALGORITHM_ID_ENUM cipher_algo, INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
+void pdcp::config_security_all(uint8_t*                    k_rrc_enc,
+                               uint8_t*                    k_rrc_int,
+                               uint8_t*                    k_up_enc,
+                               CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
+                               INTEGRITY_ALGORITHM_ID_ENUM integ_algo)
 {
   pthread_rwlock_rdlock(&rwlock);
   for (pdcp_map_t::iterator it = pdcp_array.begin(); it != pdcp_array.end(); ++it) {

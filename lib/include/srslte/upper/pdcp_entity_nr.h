@@ -46,8 +46,7 @@ public:
                  srslte::timer_handler*     timers_,
                  srslte::log*               log_);
   ~pdcp_entity_nr();
-  void init(            uint32_t                   lcid_,
-            pdcp_config_t              cfg_);
+  void init(uint32_t lcid_, pdcp_config_t cfg_);
   void reset();
   void reestablish();
 

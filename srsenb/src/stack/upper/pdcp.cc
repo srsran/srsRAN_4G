@@ -33,9 +33,9 @@ pdcp::pdcp(srslte::timer_handler* timers_, srslte::log* log_) :
 
 void pdcp::init(rlc_interface_pdcp* rlc_, rrc_interface_pdcp* rrc_, gtpu_interface_pdcp* gtpu_)
 {
-  rlc   = rlc_; 
-  rrc   = rrc_; 
-  gtpu  = gtpu_;
+  rlc  = rlc_;
+  rrc  = rrc_;
+  gtpu = gtpu_;
 
   pthread_rwlock_init(&rwlock, NULL);
 }
@@ -43,7 +43,7 @@ void pdcp::init(rlc_interface_pdcp* rlc_, rrc_interface_pdcp* rrc_, gtpu_interfa
 void pdcp::stop()
 {
   pthread_rwlock_wrlock(&rwlock);
-  for(std::map<uint32_t, user_interface>::iterator iter=users.begin(); iter!=users.end(); ++iter) {
+  for (std::map<uint32_t, user_interface>::iterator iter = users.begin(); iter != users.end(); ++iter) {
     clear_user(&iter->second);
   }
   users.clear();
@@ -60,17 +60,17 @@ void pdcp::add_user(uint16_t rnti)
     users[rnti].rlc_itf.rnti  = rnti;
     users[rnti].gtpu_itf.rnti = rnti;
     users[rnti].rrc_itf.rnti  = rnti;
-    
+
     users[rnti].rrc_itf.rrc   = rrc;
     users[rnti].rlc_itf.rlc   = rlc;
     users[rnti].gtpu_itf.gtpu = gtpu;
-    users[rnti].pdcp = obj;
+    users[rnti].pdcp          = obj;
   }
   pthread_rwlock_unlock(&rwlock);
 }
 
 // Private unlocked deallocation of user
-void pdcp::clear_user(user_interface *ue)
+void pdcp::clear_user(user_interface* ue)
 {
   ue->pdcp->stop();
   delete ue->pdcp;
@@ -91,7 +91,7 @@ void pdcp::add_bearer(uint16_t rnti, uint32_t lcid, srslte::pdcp_config_t cfg)
 {
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti)) {
-    if(rnti != SRSLTE_MRNTI){
+    if (rnti != SRSLTE_MRNTI) {
       users[rnti].pdcp->add_bearer(lcid, cfg);
     } else {
       users[rnti].pdcp->add_bearer_mrb(lcid, cfg);
@@ -109,7 +109,11 @@ void pdcp::reset(uint16_t rnti)
   pthread_rwlock_unlock(&rwlock);
 }
 
-void pdcp::config_security(uint16_t rnti, uint32_t lcid, uint8_t* k_rrc_enc_, uint8_t* k_rrc_int_, uint8_t* k_up_enc_,
+void pdcp::config_security(uint16_t                            rnti,
+                           uint32_t                            lcid,
+                           uint8_t*                            k_rrc_enc_,
+                           uint8_t*                            k_rrc_int_,
+                           uint8_t*                            k_up_enc_,
                            srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo_,
                            srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_)
 {
@@ -147,9 +151,9 @@ void pdcp::write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t 
 {
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti)) {
-    if(rnti != SRSLTE_MRNTI){
+    if (rnti != SRSLTE_MRNTI) {
       users[rnti].pdcp->write_sdu(lcid, std::move(sdu));
-    }else {
+    } else {
       users[rnti].pdcp->write_sdu_mch(lcid, std::move(sdu));
     }
   }
@@ -166,7 +170,8 @@ void pdcp::user_interface_rlc::write_sdu(uint32_t lcid, srslte::unique_byte_buff
   rlc->write_sdu(rnti, lcid, std::move(sdu));
 }
 
-bool pdcp::user_interface_rlc::rb_is_um(uint32_t lcid) {
+bool pdcp::user_interface_rlc::rb_is_um(uint32_t lcid)
+{
   return rlc->rb_is_um(rnti, lcid);
 }
 
@@ -195,4 +200,4 @@ std::string pdcp::user_interface_rrc::get_rb_name(uint32_t lcid)
   return std::string(rb_id_text[lcid]);
 }
 
-}
+} // namespace srsenb

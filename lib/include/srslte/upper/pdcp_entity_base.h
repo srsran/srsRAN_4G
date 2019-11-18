@@ -90,7 +90,7 @@ public:
   uint32_t COUNT(uint32_t hfn, uint32_t sn);
 
 protected:
-  srslte::log*    log    = nullptr;
+  srslte::log*           log    = nullptr;
   srslte::timer_handler* timers = nullptr;
 
   bool     active        = false;
@@ -119,7 +119,6 @@ protected:
   bool integrity_verify(uint8_t* msg, uint32_t msg_len, uint32_t count, uint8_t* mac);
   void cipher_encrypt(uint8_t* msg, uint32_t msg_len, uint32_t count, uint8_t* ct);
   void cipher_decrypt(uint8_t* ct, uint32_t ct_len, uint32_t count, uint8_t* msg);
-
 };
 
 inline uint32_t pdcp_entity_base::HFN(uint32_t count)
