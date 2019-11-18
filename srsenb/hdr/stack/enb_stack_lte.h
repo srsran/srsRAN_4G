@@ -97,6 +97,7 @@ public:
   void add_mme_socket(int fd) override;
   void remove_mme_socket(int fd) override;
   void add_gtpu_socket(int fd) override;
+  void add_gtpu_mch_socket(int fd) override;
 
 private:
   static const int STACK_MAIN_THREAD_PRIO = -1; // Use default high-priority below UHD

@@ -172,6 +172,8 @@ void enb_stack_lte::stop()
 
 void enb_stack_lte::stop_impl()
 {
+  rx_sockets->stop();
+
   s1ap.stop();
   gtpu.stop();
   mac.stop();
@@ -185,8 +187,6 @@ void enb_stack_lte::stop_impl()
   if (args.pcap.enable) {
     mac_pcap.close();
   }
-
-  rx_sockets->stop();
 
   // erasing the queues is the last thing, bc we need them to call stop_impl()
   pending_tasks.erase_queue(sync_queue_id);
@@ -250,6 +250,15 @@ void enb_stack_lte::add_gtpu_socket(int fd)
     pending_tasks.push(gtpu_queue_id, task_t{task_handler, std::move(pdu)});
   };
   rx_sockets->add_socket_pdu_handler(fd, gtpu_rx_handler);
+}
+
+void enb_stack_lte::add_gtpu_mch_socket(int fd)
+{
+  auto gtpu_mch_handler = [this](srslte::unique_byte_buffer_t pdu, const sockaddr_in& from) {
+    auto task_handler = [this, from](task_t* t) { gtpu.handle_gtpu_mch_rx_packet(std::move(t->pdu), from); };
+    pending_tasks.push(gtpu_queue_id, task_t{task_handler, std::move(pdu)});
+  };
+  rx_sockets->add_socket_pdu_handler(fd, gtpu_mch_handler);
 }
 
 } // namespace srsenb

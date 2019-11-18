@@ -347,7 +347,8 @@ public:
 class stack_interface_gtpu_lte
 {
 public:
-  virtual void add_gtpu_socket(int fd) = 0;
+  virtual void add_gtpu_socket(int fd)     = 0;
+  virtual void add_gtpu_mch_socket(int fd) = 0;
 };
 
 } // namespace srsenb

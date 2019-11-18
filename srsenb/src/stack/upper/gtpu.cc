@@ -30,13 +30,9 @@
 using namespace srslte;
 namespace srsenb {
 
-gtpu::gtpu() : mchthread()
+gtpu::gtpu() : mch(this)
 {
-  pdcp          = NULL;
-  gtpu_log      = NULL;
-  pool          = NULL;
-
-  pthread_mutex_init(&mutex, NULL);
+  pthread_mutex_init(&mutex, nullptr);
 }
 
 bool gtpu::init(std::string                  gtp_bind_addr_,
@@ -83,35 +79,20 @@ bool gtpu::init(std::string                  gtp_bind_addr_,
     return false;
   }
 
-  run_enable = true;
-  running    = true;
   stack->add_gtpu_socket(fd);
 
-  // Start MCH thread if enabled
+  // Start MCH socket if enabled
   enable_mbsfn = enable_mbsfn_;
   if (enable_mbsfn) {
-    mchthread.init(m1u_multiaddr_, m1u_if_addr_, pdcp, gtpu_log);
+    if (not mch.init(m1u_multiaddr_, m1u_if_addr_)) {
+      return false;
+    }
   }
   return true;
 }
 
 void gtpu::stop()
 {
-  if(enable_mbsfn){
-    mchthread.stop();
-  }
-
-  if (run_enable) {
-    run_enable = false;
-    // Wait thread to exit gracefully otherwise might leave a mutex locked
-    int cnt=0;
-    while(running && cnt<100) {
-      usleep(10000);
-      cnt++;
-    }
-  }
-  running = false;
-
   if (fd) {
     close(fd);
   }
@@ -254,6 +235,11 @@ void gtpu::handle_gtpu_rx_packet(srslte::unique_byte_buffer_t pdu, const sockadd
   }
 }
 
+void gtpu::handle_gtpu_mch_rx_packet(srslte::unique_byte_buffer_t pdu, const sockaddr_in& addr)
+{
+  mch.handle_rx_packet(std::move(pdu), addr);
+}
+
 void gtpu::echo_response(in_addr_t addr, in_port_t port, uint16_t seq)
 {
   gtpu_log->info("TX GTPU Echo Response, Seq: %d\n", seq);
@@ -294,21 +280,28 @@ void gtpu::rntilcid_to_teidin(uint16_t rnti, uint16_t lcid, uint32_t *teidin)
   *teidin = (rnti << 16) | lcid;
 }
 
-
 /****************************************************************************
-* Class to run the MCH thread
-***************************************************************************/
-bool gtpu::mch_thread::init(std::string m1u_multiaddr_, std::string m1u_if_addr_, pdcp_interface_gtpu *pdcp, srslte::log *gtpu_log)
-{
-  pool           = byte_buffer_pool::get_instance();
-  this->pdcp     = pdcp;
-  this->gtpu_log = gtpu_log;
-  m1u_multiaddr = m1u_multiaddr_;
-  m1u_if_addr   = m1u_if_addr_;
+ * Class to run the MCH thread
+ ***************************************************************************/
 
-  struct sockaddr_in bindaddr;
+gtpu::mch_handler::~mch_handler()
+{
+  if (initiated) {
+    close(m1u_sd);
+    initiated = false;
+  }
+}
+
+bool gtpu::mch_handler::init(std::string m1u_multiaddr_, std::string m1u_if_addr_)
+{
+  m1u_multiaddr = std::move(m1u_multiaddr_);
+  m1u_if_addr   = std::move(m1u_if_addr_);
+  pdcp          = parent->pdcp;
+  gtpu_log      = parent->gtpu_log;
 
   // Set up sink socket
+  struct sockaddr_in bindaddr {
+  };
   m1u_sd = socket(AF_INET, SOCK_DGRAM, 0);
   if (m1u_sd < 0) {
     gtpu_log->error("Failed to create M1-U sink socket\n");
@@ -316,101 +309,42 @@ bool gtpu::mch_thread::init(std::string m1u_multiaddr_, std::string m1u_if_addr_
   }
 
   /* Bind socket */
-  bzero((char *)&bindaddr, sizeof(struct sockaddr_in));
   bindaddr.sin_family = AF_INET;
-  bindaddr.sin_addr.s_addr = htonl(INADDR_ANY); //Multicast sockets require bind to INADDR_ANY
-  bindaddr.sin_port = htons(GTPU_PORT+1);
-  size_t addrlen = sizeof(bindaddr);
-
-  if (bind(m1u_sd, (struct sockaddr *) &bindaddr, sizeof(bindaddr)) < 0) {
+  bindaddr.sin_addr.s_addr = htonl(INADDR_ANY); // Multicast sockets require bind to INADDR_ANY
+  bindaddr.sin_port = htons(GTPU_PORT + 1);
+  if (bind(m1u_sd, (struct sockaddr*)&bindaddr, sizeof(bindaddr)) < 0) {
     gtpu_log->error("Failed to bind multicast socket\n");
     return false;
   }
 
   /* Send an ADD MEMBERSHIP message via setsockopt */
-  struct ip_mreq mreq;
-  mreq.imr_multiaddr.s_addr = inet_addr(m1u_multiaddr.c_str()); //Multicast address of the service
-  mreq.imr_interface.s_addr = inet_addr(m1u_if_addr.c_str());           //Address of the IF the socket will listen to.
-  if (setsockopt(m1u_sd, IPPROTO_IP, IP_ADD_MEMBERSHIP,
-                 &mreq, sizeof(mreq)) < 0) {
+  struct ip_mreq mreq {
+  };
+  mreq.imr_multiaddr.s_addr = inet_addr(m1u_multiaddr.c_str()); // Multicast address of the service
+  mreq.imr_interface.s_addr = inet_addr(m1u_if_addr.c_str());   // Address of the IF the socket will listen to.
+  if (setsockopt(m1u_sd, IPPROTO_IP, IP_ADD_MEMBERSHIP, &mreq, sizeof(mreq)) < 0) {
     gtpu_log->error("Register musticast group for M1-U\n");
     gtpu_log->error("M1-U infterface IP: %s, M1-U Multicast Address %s\n", m1u_if_addr.c_str(),m1u_multiaddr.c_str());
     return false;
   }
   gtpu_log->info("M1-U initialized\n");
 
-  initiated = true;
+  initiated    = true;
   lcid_counter = 1;
 
-  // Start thread
-  start(MCH_THREAD_PRIO);
+  // Register socket in stack rx sockets thread
+  parent->stack->add_gtpu_mch_socket(m1u_sd);
+
   return true;
 }
 
-void gtpu::mch_thread::run_thread()
+void gtpu::mch_handler::handle_rx_packet(srslte::unique_byte_buffer_t pdu, const sockaddr_in& addr)
 {
-  if (!initiated) {
-    ERROR("Fatal error running mch_thread without initialization\n");
-    return;
-  }
+  gtpu_log->debug("Received %d bytes from M1-U interface\n", pdu->N_bytes);
 
-  unique_byte_buffer_t pdu = allocate_unique_buffer(*pool);
-  int n;
-  socklen_t addrlen;
-  sockaddr_in src_addr;
-
-  bzero((char *)&src_addr, sizeof(src_addr));
-  src_addr.sin_family = AF_INET;
-  src_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-  src_addr.sin_port = htons(GTPU_PORT+1);
-  addrlen = sizeof(src_addr);
-
-  run_enable = true;
-  running=true;
-
-  // Warning: Use mutex here if creating multiple services each with a different thread
-  uint16_t lcid = lcid_counter;
-  lcid_counter++;
-
-  while(run_enable) {
-
-    pdu->clear();
-    do{
-      n =  recvfrom(m1u_sd, pdu->msg, SRSENB_MAX_BUFFER_SIZE_BYTES - SRSENB_BUFFER_HEADER_OFFSET, 0, (struct sockaddr *) &src_addr, &addrlen);
-    } while (n == -1 && errno == EAGAIN);
-    gtpu_log->debug("Received %d bytes from M1-U interface\n", n);
-
-    pdu->N_bytes = (uint32_t) n;
-
-    gtpu_header_t header;
-    gtpu_read_header(pdu.get(), &header, gtpu_log);
-    pdcp->write_sdu(SRSLTE_MRNTI, lcid, std::move(pdu));
-    do {
-      pdu = allocate_unique_buffer(*pool);
-      if (!pdu.get()) {
-        gtpu_log->console("GTPU Buffer pool empty. Trying again...\n");
-        usleep(10000);
-      }
-    } while (!pdu.get());
-  }
-  running = false;
-}
-
-void gtpu::mch_thread::stop()
-{
-  if (run_enable) {
-    run_enable = false;
-    // Wait thread to exit gracefully otherwise might leave a mutex locked
-    int cnt = 0;
-    while(running && cnt < 100) {
-      usleep(10000);
-      cnt++;
-    }
-    if (running) {
-      thread_cancel();
-    }
-    wait_thread_finish();
-  } 
+  gtpu_header_t header;
+  gtpu_read_header(pdu.get(), &header, gtpu_log);
+  pdcp->write_sdu(SRSLTE_MRNTI, lcid_counter++, std::move(pdu));
 }
 
 } // namespace srsenb
