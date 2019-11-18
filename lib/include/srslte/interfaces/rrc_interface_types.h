@@ -256,7 +256,7 @@ struct rlc_um_nr_config_t {
 
   rlc_um_nr_sn_size_t sn_field_length; // Number of bits used for sequence number
   uint32_t            UM_Window_Size;
-  uint32_t            mod; // Rx/Tx counter modulus
+  uint32_t            mod;             // Rx/Tx counter modulus
   int32_t             t_reassembly_ms; // Timer used by rx to detect PDU loss (ms)
 };
 
@@ -272,10 +272,10 @@ inline std::string to_string(const srslte_rat_t& type)
 class rlc_config_t
 {
 public:
-  srslte_rat_t          rat;
-  rlc_mode_t       rlc_mode;
-  rlc_am_config_t  am;
-  rlc_um_config_t  um;
+  srslte_rat_t       rat;
+  rlc_mode_t         rlc_mode;
+  rlc_am_config_t    am;
+  rlc_um_config_t    um;
   rlc_um_nr_config_t um_nr;
   uint32_t           tx_queue_length;
 

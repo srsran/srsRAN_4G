@@ -44,10 +44,10 @@ struct stack_metrics_t {
 
 typedef struct {
   srslte::rf_metrics_t rf;
-  phy_metrics_t   phy[ENB_METRICS_MAX_USERS];
-  stack_metrics_t stack;
-  bool            running;
-}enb_metrics_t;
+  phy_metrics_t        phy[ENB_METRICS_MAX_USERS];
+  stack_metrics_t      stack;
+  bool                 running;
+} enb_metrics_t;
 
 // ENB interface
 class enb_metrics_interface : public srslte::metrics_interface<enb_metrics_t>
