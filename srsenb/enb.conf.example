@@ -160,6 +160,7 @@ nof_ctrl_symbols = 3
 # m1u_if_addr:          Address of the inteferface the M1-U interface will listen for multicast packets.
 #
 #####################################################################
+[embms]
 #enable = false
 #m1u_multiaddr = 239.255.0.1
 #m1u_if_addr = 127.0.1.201
