@@ -60,7 +60,7 @@ public:
     pool(byte_buffer_pool::get_instance()),
     thread("TTCN3_SYSSIM"),
     rlc(&ss_rlc_log),
-    pdcp(&ss_pdcp_log){};
+    pdcp(&timers, &ss_pdcp_log){};
 
   ~ttcn3_syssim(){};
 
