@@ -101,7 +101,7 @@ public:
   void add_gtpu_m1u_socket_handler(int fd) override;
 
   /* Stack-MAC interface */
-  void process_pdus();
+  void process_pdus() override;
 
 private:
   static const int STACK_MAIN_THREAD_PRIO = -1; // Use default high-priority below UHD

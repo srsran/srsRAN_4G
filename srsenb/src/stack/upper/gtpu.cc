@@ -30,10 +30,7 @@
 using namespace srslte;
 namespace srsenb {
 
-gtpu::gtpu() : m1u(this)
-{
-  pthread_mutex_init(&mutex, nullptr);
-}
+gtpu::gtpu() : m1u(this) {}
 
 bool gtpu::init(std::string                  gtp_bind_addr_,
                 std::string                  mme_addr_,
@@ -166,7 +163,6 @@ void gtpu::add_bearer(uint16_t rnti, uint32_t lcid, uint32_t addr, uint32_t teid
 
 void gtpu::rem_bearer(uint16_t rnti, uint32_t lcid)
 {
-  pthread_mutex_lock(&mutex);
   gtpu_log->info("Removing bearer for rnti: 0x%x, lcid: %d\n", rnti, lcid);
 
   rnti_bearers[rnti].teids_in[lcid]  = 0;
@@ -179,17 +175,14 @@ void gtpu::rem_bearer(uint16_t rnti, uint32_t lcid)
       rem = false;
     }
   }
-  if(rem) {
+  if (rem) {
     rnti_bearers.erase(rnti);
   }
-  pthread_mutex_unlock(&mutex);
 }
 
 void gtpu::rem_user(uint16_t rnti)
 {
-  pthread_mutex_lock(&mutex);
   rnti_bearers.erase(rnti);
-  pthread_mutex_unlock(&mutex);
 }
 
 void gtpu::handle_gtpu_s1u_rx_packet(srslte::unique_byte_buffer_t pdu, const sockaddr_in& addr)
@@ -211,9 +204,7 @@ void gtpu::handle_gtpu_s1u_rx_packet(srslte::unique_byte_buffer_t pdu, const soc
       uint16_t lcid = 0;
       teidin_to_rntilcid(header.teid, &rnti, &lcid);
 
-      pthread_mutex_lock(&mutex);
       bool user_exists = (rnti_bearers.count(rnti) > 0);
-      pthread_mutex_unlock(&mutex);
 
       if (not user_exists) {
         gtpu_log->error("Unrecognized RNTI for DL PDU: 0x%x - dropping packet\n", rnti);

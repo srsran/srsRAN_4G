@@ -177,13 +177,10 @@ void enb_stack_lte::stop_impl()
   s1ap.stop();
   gtpu.stop();
   mac.stop();
-  usleep(50000);
-
   rlc.stop();
   pdcp.stop();
   rrc.stop();
 
-  usleep(10000);
   if (args.pcap.enable) {
     mac_pcap.close();
   }

@@ -235,7 +235,6 @@ void rrc::add_user(uint16_t rnti)
 
 /* Function called by MAC after the reception of a C-RNTI CE indicating that the UE still has a
  * valid RNTI.
- * Called by MAC reader thread (can wait to process)
  */
 void rrc::upd_user(uint16_t new_rnti, uint16_t old_rnti)
 {

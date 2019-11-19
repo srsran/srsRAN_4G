@@ -111,8 +111,6 @@ private:
 
   void echo_response(in_addr_t addr, in_port_t port, uint16_t seq);
 
-  pthread_mutex_t mutex;
-
   /****************************************************************************
    * TEID to RNIT/LCID helper functions
    ***************************************************************************/
