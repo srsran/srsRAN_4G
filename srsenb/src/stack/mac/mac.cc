@@ -694,12 +694,12 @@ int mac::get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_t* dl_sched_res)
          mch.mtch_sched[0].lcid, mch.mtch_sched[mch.num_mtch_sched - 1].stop,
          tti);
     phy_h->set_mch_period_stop(mch.mtch_sched[mch.num_mtch_sched - 1].stop);
-    for(uint32_t i = 0; i < mch.num_mtch_sched; i++) {
+    for (uint32_t i = 0; i < mch.num_mtch_sched; i++) {
       mch.pdu[i].lcid = srslte::sch_subh::MCH_SCHED_INFO;
-     // mch.mtch_sched[i].lcid = 1+i;
+      // m1u.mtch_sched[i].lcid = 1+i;
     }
 
-    mch.pdu[mch.num_mtch_sched].lcid = 0;
+    mch.pdu[mch.num_mtch_sched].lcid   = 0;
     mch.pdu[mch.num_mtch_sched].nbytes = current_mcch_length;
     dl_sched_res->pdsch[0].dci.rnti    = SRSLTE_MRNTI;
 

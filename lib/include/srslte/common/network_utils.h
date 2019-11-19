@@ -160,7 +160,7 @@ public:
   rx_multisocket_handler(rx_multisocket_handler&&)      = delete;
   rx_multisocket_handler(const rx_multisocket_handler&) = delete;
   rx_multisocket_handler& operator=(const rx_multisocket_handler&) = delete;
-  rx_multisocket_handler& operator=(const rx_multisocket_handler&&) = delete;
+  rx_multisocket_handler& operator=(rx_multisocket_handler&&) = delete;
   ~rx_multisocket_handler();
 
   void stop();

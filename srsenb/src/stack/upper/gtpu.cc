@@ -30,7 +30,7 @@
 using namespace srslte;
 namespace srsenb {
 
-gtpu::gtpu() : mch(this)
+gtpu::gtpu() : m1u(this)
 {
   pthread_mutex_init(&mutex, nullptr);
 }
@@ -79,12 +79,12 @@ bool gtpu::init(std::string                  gtp_bind_addr_,
     return false;
   }
 
-  stack->add_gtpu_socket(fd);
+  stack->add_gtpu_s1u_socket_handler(fd);
 
   // Start MCH socket if enabled
   enable_mbsfn = enable_mbsfn_;
   if (enable_mbsfn) {
-    if (not mch.init(m1u_multiaddr_, m1u_if_addr_)) {
+    if (not m1u.init(m1u_multiaddr_, m1u_if_addr_)) {
       return false;
     }
   }
@@ -192,7 +192,7 @@ void gtpu::rem_user(uint16_t rnti)
   pthread_mutex_unlock(&mutex);
 }
 
-void gtpu::handle_gtpu_rx_packet(srslte::unique_byte_buffer_t pdu, const sockaddr_in& from)
+void gtpu::handle_gtpu_s1u_rx_packet(srslte::unique_byte_buffer_t pdu, const sockaddr_in& addr)
 {
   gtpu_log->debug("Received %d bytes from S1-U interface\n", pdu->N_bytes);
 
@@ -204,7 +204,7 @@ void gtpu::handle_gtpu_rx_packet(srslte::unique_byte_buffer_t pdu, const sockadd
   switch (header.message_type) {
     case GTPU_MSG_ECHO_REQUEST:
       // Echo request - send response
-      echo_response(from.sin_addr.s_addr, from.sin_port, header.seq_number);
+      echo_response(addr.sin_addr.s_addr, addr.sin_port, header.seq_number);
       break;
     case GTPU_MSG_DATA_PDU: {
       uint16_t rnti = 0;
@@ -235,9 +235,9 @@ void gtpu::handle_gtpu_rx_packet(srslte::unique_byte_buffer_t pdu, const sockadd
   }
 }
 
-void gtpu::handle_gtpu_mch_rx_packet(srslte::unique_byte_buffer_t pdu, const sockaddr_in& addr)
+void gtpu::handle_gtpu_m1u_rx_packet(srslte::unique_byte_buffer_t pdu, const sockaddr_in& addr)
 {
-  mch.handle_rx_packet(std::move(pdu), addr);
+  m1u.handle_rx_packet(std::move(pdu), addr);
 }
 
 void gtpu::echo_response(in_addr_t addr, in_port_t port, uint16_t seq)
@@ -281,10 +281,10 @@ void gtpu::rntilcid_to_teidin(uint16_t rnti, uint16_t lcid, uint32_t *teidin)
 }
 
 /****************************************************************************
- * Class to run the MCH thread
+ * Class to handle MCH packet handling
  ***************************************************************************/
 
-gtpu::mch_handler::~mch_handler()
+gtpu::m1u_handler::~m1u_handler()
 {
   if (initiated) {
     close(m1u_sd);
@@ -292,7 +292,7 @@ gtpu::mch_handler::~mch_handler()
   }
 }
 
-bool gtpu::mch_handler::init(std::string m1u_multiaddr_, std::string m1u_if_addr_)
+bool gtpu::m1u_handler::init(std::string m1u_multiaddr_, std::string m1u_if_addr_)
 {
   m1u_multiaddr = std::move(m1u_multiaddr_);
   m1u_if_addr   = std::move(m1u_if_addr_);
@@ -300,9 +300,8 @@ bool gtpu::mch_handler::init(std::string m1u_multiaddr_, std::string m1u_if_addr
   gtpu_log      = parent->gtpu_log;
 
   // Set up sink socket
-  struct sockaddr_in bindaddr {
-  };
-  m1u_sd = socket(AF_INET, SOCK_DGRAM, 0);
+  struct sockaddr_in bindaddr = {};
+  m1u_sd                      = socket(AF_INET, SOCK_DGRAM, 0);
   if (m1u_sd < 0) {
     gtpu_log->error("Failed to create M1-U sink socket\n");
     return false;
@@ -333,12 +332,12 @@ bool gtpu::mch_handler::init(std::string m1u_multiaddr_, std::string m1u_if_addr
   lcid_counter = 1;
 
   // Register socket in stack rx sockets thread
-  parent->stack->add_gtpu_mch_socket(m1u_sd);
+  parent->stack->add_gtpu_m1u_socket_handler(m1u_sd);
 
   return true;
 }
 
-void gtpu::mch_handler::handle_rx_packet(srslte::unique_byte_buffer_t pdu, const sockaddr_in& addr)
+void gtpu::m1u_handler::handle_rx_packet(srslte::unique_byte_buffer_t pdu, const sockaddr_in& addr)
 {
   gtpu_log->debug("Received %d bytes from M1-U interface\n", pdu->N_bytes);
 

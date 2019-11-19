@@ -243,22 +243,22 @@ void enb_stack_lte::remove_mme_socket(int fd)
   rx_sockets->remove_socket(fd);
 }
 
-void enb_stack_lte::add_gtpu_socket(int fd)
+void enb_stack_lte::add_gtpu_s1u_socket_handler(int fd)
 {
-  auto gtpu_rx_handler = [this](srslte::unique_byte_buffer_t pdu, const sockaddr_in& from) {
-    auto task_handler = [this, from](task_t* t) { gtpu.handle_gtpu_rx_packet(std::move(t->pdu), from); };
+  auto gtpu_s1u_handler = [this](srslte::unique_byte_buffer_t pdu, const sockaddr_in& from) {
+    auto task_handler = [this, &from](task_t* t) { gtpu.handle_gtpu_s1u_rx_packet(std::move(t->pdu), from); };
     pending_tasks.push(gtpu_queue_id, task_t{task_handler, std::move(pdu)});
   };
-  rx_sockets->add_socket_pdu_handler(fd, gtpu_rx_handler);
+  rx_sockets->add_socket_pdu_handler(fd, gtpu_s1u_handler);
 }
 
-void enb_stack_lte::add_gtpu_mch_socket(int fd)
+void enb_stack_lte::add_gtpu_m1u_socket_handler(int fd)
 {
-  auto gtpu_mch_handler = [this](srslte::unique_byte_buffer_t pdu, const sockaddr_in& from) {
-    auto task_handler = [this, from](task_t* t) { gtpu.handle_gtpu_mch_rx_packet(std::move(t->pdu), from); };
+  auto gtpu_m1u_handler = [this](srslte::unique_byte_buffer_t pdu, const sockaddr_in& from) {
+    auto task_handler = [this, &from](task_t* t) { gtpu.handle_gtpu_m1u_rx_packet(std::move(t->pdu), from); };
     pending_tasks.push(gtpu_queue_id, task_t{task_handler, std::move(pdu)});
   };
-  rx_sockets->add_socket_pdu_handler(fd, gtpu_mch_handler);
+  rx_sockets->add_socket_pdu_handler(fd, gtpu_m1u_handler);
 }
 
 } // namespace srsenb
