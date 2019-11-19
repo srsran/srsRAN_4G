@@ -55,8 +55,7 @@ void pdcp_entity_nr::init(uint32_t lcid_, pdcp_config_t cfg_)
 
   // configure timer
   if (static_cast<uint32_t>(cfg.t_reordering) > 0) {
-    reordering_timer.set(static_cast<uint32_t>(cfg.t_reordering),
-                         [this](uint32_t tid) { reordering_fnc->timer_expired(tid); });
+    reordering_timer.set(static_cast<uint32_t>(cfg.t_reordering), *reordering_fnc);
   }
 
   // Mark entity as initialized 
@@ -332,7 +331,7 @@ void pdcp_entity_nr::deliver_all_consecutive_counts()
   }
 }
 
-void pdcp_entity_nr::reordering_callback::timer_expired(uint32_t timer_id)
+void pdcp_entity_nr::reordering_callback::operator()(uint32_t timer_id)
 {
   parent->log->debug("Reordering timer expired\n");
 
