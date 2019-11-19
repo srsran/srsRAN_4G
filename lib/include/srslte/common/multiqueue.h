@@ -30,6 +30,7 @@
 
 #include <algorithm>
 #include <condition_variable>
+#include <functional>
 #include <mutex>
 #include <queue>
 #include <vector>
@@ -257,7 +258,8 @@ moveable_task_t<Capture> bind_task(Func&& f, Capture&& c)
   return moveable_task_t<Capture>{std::forward<Func>(f), std::forward<Capture>(c)};
 }
 
-using multiqueue_task_handler = multiqueue_handler<moveable_task_t<srslte::unique_byte_buffer_t> >;
+template <typename Capture>
+using multiqueue_task_handler = multiqueue_handler<moveable_task_t<Capture> >;
 
 } // namespace srslte
 
