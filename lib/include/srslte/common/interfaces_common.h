@@ -76,7 +76,7 @@ const uint8_t PDCP_SN_LEN_18 = 18;
 
 typedef enum { PDCP_RB_IS_SRB, PDCP_RB_IS_DRB } pdcp_rb_type_t;
 
-// Take from PDCP-Config (TS 38.331 version 15.2.1)
+// Taken from PDCP-Config (TS 38.331 version 15.2.1)
 enum class pdcp_t_reordering_t {
   ms0    = 0,
   ms1    = 1,
@@ -116,6 +116,26 @@ enum class pdcp_t_reordering_t {
   ms3000 = 3000
 };
 
+// Taken from PDCP-Config (TS 38.331 version 15.2.1)
+enum class pdcp_discard_timer_t {
+  ms10 = 10,
+  ms20 = 20,
+  ms30 = 30,
+  ms40 = 40,
+  ms50 = 50,
+  ms60 = 60,
+  ms75 = 75,
+  ms100 = 100,
+  ms150 = 150,
+  ms200 = 200,
+  ms250 = 250,
+  ms300 = 300,
+  ms500 = 500,
+  ms750 = 750,
+  ms1500 = 1500,
+  infinity = 0
+};
+
 class pdcp_config_t
 {
 public:
@@ -142,7 +162,8 @@ public:
   uint8_t              sn_len        = PDCP_SN_LEN_12;
   uint8_t              hdr_len_bytes = 2;
 
-  pdcp_t_reordering_t t_reordering = pdcp_t_reordering_t::ms500;
+  pdcp_t_reordering_t  t_reordering  = pdcp_t_reordering_t::ms500;
+  pdcp_discard_timer_t discard_timer = pdcp_discard_timer_t::infinity;
 
   // TODO: Support the following configurations
   // bool do_rohc;

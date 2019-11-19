@@ -73,7 +73,7 @@ void pdcp_entity_nr::reestablish()
 void pdcp_entity_nr::reset()
 {
   active = false;
-  if (log) {
+  if (log != nullptr) {
     log->debug("Reset %s\n", rrc->get_rb_name(lcid).c_str());
   }
 }
@@ -103,7 +103,12 @@ void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, bool blocking)
     tx_overflow = true;
   }
 
-  // Start discard timer TODO
+  // Start discard timer
+  if (cfg.discard_timer != pdcp_discard_timer_t::infinity) {
+    timer_handler::unique_timer discard_timer = timers->get_unique_timer();
+    reordering_timer.set(static_cast<uint32_t>(cfg.discard_timer), [](uint32_t tid) {});
+  }
+
   // Perform header compression TODO
 
   // Integrity protection
