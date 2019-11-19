@@ -225,6 +225,40 @@ private:
   uint32_t                   nof_threads_waiting = 0;
 };
 
+/***********************************************************
+ * Specialization for tasks with content that is move-only
+ **********************************************************/
+
+template <typename Capture>
+class moveable_task_t
+{
+public:
+  moveable_task_t() = default;
+  template <typename Func>
+  moveable_task_t(Func&& f) : func(std::forward<Func>(f))
+  {
+  }
+  template <typename Func>
+  moveable_task_t(Func&& f, Capture&& c) :
+    func([this, f]() { f(std::move(capture)); }),
+    capture(std::forward<Capture>(c))
+  {
+  }
+  void operator()() { func(); }
+
+private:
+  std::function<void()> func;
+  Capture               capture;
+};
+
+template <typename Func, typename Capture>
+moveable_task_t<Capture> bind_task(Func&& f, Capture&& c)
+{
+  return moveable_task_t<Capture>{std::forward<Func>(f), std::forward<Capture>(c)};
+}
+
+using multiqueue_task_handler = multiqueue_handler<moveable_task_t<srslte::unique_byte_buffer_t> >;
+
 } // namespace srslte
 
 #endif // SRSLTE_MULTIQUEUE_H

@@ -147,20 +147,8 @@ private:
 
   // state
   bool started = false;
-  // NOTE: we use this struct instead of a std::function bc lambdas can't capture by move in C++11
-  struct task_t {
-    std::function<void(task_t*)> func;
-    srslte::unique_byte_buffer_t pdu;
-    task_t() = default;
-    explicit task_t(std::function<void(task_t*)> f_) : func(std::move(f_)) {}
-    task_t(std::function<void(task_t*)> f_, srslte::unique_byte_buffer_t pdu_) :
-      func(std::move(f_)),
-      pdu(std::move(pdu_))
-    {
-    }
-    void operator()() { func(this); }
-  };
-  srslte::multiqueue_handler<task_t> pending_tasks;
+  using task_t = srslte::moveable_task_t<srslte::unique_byte_buffer_t>;
+  srslte::multiqueue_task_handler pending_tasks;
   int enb_queue_id = -1, sync_queue_id = -1, mme_queue_id = -1, gtpu_queue_id = -1, mac_queue_id = -1;
 };
 

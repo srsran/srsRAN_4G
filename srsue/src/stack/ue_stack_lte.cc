@@ -42,7 +42,7 @@ ue_stack_lte::ue_stack_lte() :
   pending_tasks(1024),
   background_tasks(2)
 {
-  ue_queue_id   = pending_tasks.add_queue();
+  ue_queue_id         = pending_tasks.add_queue();
   sync_queue_id       = pending_tasks.add_queue();
   gw_queue_id         = pending_tasks.add_queue();
   mac_queue_id        = pending_tasks.add_queue();
@@ -139,7 +139,7 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
 void ue_stack_lte::stop()
 {
   if (running) {
-    pending_tasks.try_push(ue_queue_id, task_t{[this](task_t*) { stop_impl(); }});
+    pending_tasks.try_push(ue_queue_id, [this]() { stop_impl(); });
     wait_thread_finish();
   }
 }
@@ -167,9 +167,8 @@ void ue_stack_lte::stop_impl()
 bool ue_stack_lte::switch_on()
 {
   if (running) {
-    pending_tasks.try_push(ue_queue_id, task_t{[this](task_t*) {
-                             nas.start_attach_request(nullptr, srslte::establishment_cause_t::mo_data);
-                           }});
+    pending_tasks.try_push(ue_queue_id,
+                           [this]() { nas.start_attach_request(nullptr, srslte::establishment_cause_t::mo_data); });
     return true;
   }
   return false;
@@ -243,11 +242,11 @@ void ue_stack_lte::run_thread()
  */
 void ue_stack_lte::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking)
 {
-  task_t task{};
-  task.pdu  = std::move(sdu);
-  task.func = [this, lcid, blocking](task_t* task_ctxt) { pdcp.write_sdu(lcid, std::move(task_ctxt->pdu), blocking); };
-  std::pair<bool, task_t> ret = pending_tasks.try_push(gw_queue_id, std::move(task));
-  if (not ret.first) {
+  auto task = [this, lcid, blocking](srslte::unique_byte_buffer_t sdu) {
+    pdcp.write_sdu(lcid, std::move(sdu), blocking);
+  };
+  bool ret = pending_tasks.try_push(gw_queue_id, srslte::bind_task(task, std::move(sdu))).first;
+  if (not ret) {
     pdcp_log.warning("GW SDU with lcid=%d was discarded.\n", lcid);
   }
 }
@@ -261,17 +260,17 @@ void ue_stack_lte::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bo
  */
 void ue_stack_lte::in_sync()
 {
-  pending_tasks.push(sync_queue_id, task_t{[this](task_t*) { rrc.in_sync(); }});
+  pending_tasks.push(sync_queue_id, [this]() { rrc.in_sync(); });
 }
 
 void ue_stack_lte::out_of_sync()
 {
-  pending_tasks.push(sync_queue_id, task_t{[this](task_t*) { rrc.out_of_sync(); }});
+  pending_tasks.push(sync_queue_id, [this]() { rrc.out_of_sync(); });
 }
 
 void ue_stack_lte::run_tti(uint32_t tti)
 {
-  pending_tasks.push(sync_queue_id, task_t{[this, tti](task_t*) { run_tti_impl(tti); }});
+  pending_tasks.push(sync_queue_id, [this, tti]() { run_tti_impl(tti); });
 }
 
 void ue_stack_lte::run_tti_impl(uint32_t tti)
@@ -288,7 +287,7 @@ void ue_stack_lte::run_tti_impl(uint32_t tti)
 
 void ue_stack_lte::process_pdus()
 {
-  pending_tasks.push(mac_queue_id, task_t{[this](task_t*) { mac.process_pdus(); }});
+  pending_tasks.push(mac_queue_id, [this]() { mac.process_pdus(); });
 }
 
 void ue_stack_lte::wait_ra_completion(uint16_t rnti)
@@ -310,8 +309,7 @@ void ue_stack_lte::start_cell_search()
     phy_interface_rrc_lte::phy_cell_t        found_cell;
     phy_interface_rrc_lte::cell_search_ret_t ret = phy->cell_search(&found_cell);
     // notify back RRC
-    pending_tasks.push(background_queue_id,
-                       task_t{[this, found_cell, ret](task_t*) { rrc.cell_search_completed(ret, found_cell); }});
+    pending_tasks.push(background_queue_id, [this, found_cell, ret]() { rrc.cell_search_completed(ret, found_cell); });
   });
 }
 

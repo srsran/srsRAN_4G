@@ -160,16 +160,8 @@ private:
 
   // Thread
   static const int STACK_MAIN_THREAD_PRIO = -1; // Use default high-priority below UHD
-
-  // NOTE: we use this struct instead of a std::function bc lambdas can't capture by move in C++11
-  struct task_t {
-    std::function<void(task_t*)> func;
-    srslte::unique_byte_buffer_t pdu;
-    task_t() = default;
-    explicit task_t(std::function<void(task_t*)> f_) : func(std::move(f_)) {}
-    void operator()() { func(this); }
-  };
-  srslte::multiqueue_handler<task_t> pending_tasks;
+  using task_t                            = srslte::moveable_task_t<srslte::unique_byte_buffer_t>;
+  srslte::multiqueue_task_handler pending_tasks;
   int sync_queue_id = -1, ue_queue_id = -1, gw_queue_id = -1, mac_queue_id = -1, background_queue_id = -1;
   srslte::task_thread_pool background_tasks; ///< Thread pool used for long, low-priority tasks
 };
