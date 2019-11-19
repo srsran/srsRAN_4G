@@ -94,8 +94,6 @@ public:
   // Radio-Link status
   virtual void rl_failure(uint16_t rnti) = 0;
   virtual void rl_ok(uint16_t rnti)      = 0;
-
-  virtual void tti_clock() = 0;
 };
 
 /* Interface MAC -> PHY */
@@ -313,6 +311,8 @@ public:
 // Combined interface for PHY to access stack (MAC and RRC)
 class stack_interface_phy_lte : public mac_interface_phy_lte
 {
+public:
+  virtual void tti_clock() = 0;
 };
 
 // Combined interface for stack (MAC and RRC) to access PHY
@@ -349,6 +349,13 @@ class stack_interface_gtpu_lte
 public:
   virtual void add_gtpu_s1u_socket_handler(int fd) = 0;
   virtual void add_gtpu_m1u_socket_handler(int fd) = 0;
+};
+
+// STACK interface for MAC
+class stack_interface_mac_lte
+{
+public:
+  virtual void process_pdus() = 0;
 };
 
 } // namespace srsenb

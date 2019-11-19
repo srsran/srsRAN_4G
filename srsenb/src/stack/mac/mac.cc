@@ -38,12 +38,10 @@ using namespace asn1::rrc;
 
 namespace srsenb {
 
-mac::mac() : timers_db(128), timers_thread(this, &timers_db), last_rnti(0),
-             rar_pdu_msg(sched_interface::MAX_RAR_LIST), rar_payload(),
-             pdu_process_thread(this)
+mac::mac() : last_rnti(0), rar_pdu_msg(sched_interface::MAX_RAR_LIST), rar_payload()
 {
-  started = false;  
-  pcap = NULL;
+  started = false;
+  pcap    = NULL;
   phy_h = NULL;
   rlc_h = NULL;
   rrc_h = NULL;
@@ -71,14 +69,16 @@ bool mac::init(const mac_args_t&        args_,
                phy_interface_stack_lte* phy,
                rlc_interface_mac*       rlc,
                rrc_interface_mac*       rrc,
+               stack_interface_mac_lte* stack_,
                srslte::log*             log_h_)
 {
   started = false;
 
   if (cell_ && phy && rlc && log_h_) {
     phy_h = phy;
-    rlc_h = rlc; 
-    rrc_h = rrc; 
+    rlc_h = rlc;
+    rrc_h = rrc;
+    stack = stack_;
     log_h = log_h_;
 
     args = args_;
@@ -122,8 +122,6 @@ void mac::stop()
     srslte_softbuffer_tx_free(&pcch_softbuffer_tx);
     srslte_softbuffer_tx_free(&rar_softbuffer_tx);
     started = false;
-    timers_thread.stop();
-    pdu_process_thread.stop();
   }
   pthread_rwlock_unlock(&rwlock);
 }
@@ -132,8 +130,6 @@ void mac::stop()
 void mac::reset()
 {
   Info("Resetting MAC\n");
-
-  timers_db.stop_all();
 
   last_rnti = 70;
 
@@ -353,7 +349,7 @@ int mac::crc_info(uint32_t tti, uint16_t rnti, uint32_t nof_bytes, bool crc)
     if (crc) {
       Info("Pushing PDU rnti=%d, tti=%d, nof_bytes=%d\n", rnti, tti, nof_bytes);
       ue_db[rnti]->push_pdu(tti, nof_bytes);
-      pdu_process_thread.notify();
+      stack->process_pdus();
     } else {
       ue_db[rnti]->deallocate_pdu(tti);
     }
@@ -836,95 +832,12 @@ int mac::get_ul_sched(uint32_t tti, ul_sched_t *ul_sched_res)
   return SRSLTE_SUCCESS;
 }
 
-void mac::tti_clock()
-{
-  timers_thread.tti_clock();
-}
-
-/********************************************************
- *
- * Class to run timers with normal priority
- *
- *******************************************************/
-void mac::timer_thread::run_thread()
-{
-  running = true;
-  ttisync.set_producer_cntr(0);
-  ttisync.resync();
-  while(running) {
-    ttisync.wait();
-    timers->step_all();
-  }
-}
-
-void mac::timer_thread::stop()
-{
-  running = false;
-  ttisync.increase();
-  wait_thread_finish();
-}
-
-void mac::timer_thread::tti_clock()
-{
-  ttisync.increase();
-}
-
-
-
-/********************************************************
- *
- * Class that runs a thread to process DL MAC PDUs from
- * DEMUX unit
- *
- *******************************************************/
-mac::pdu_process::pdu_process(pdu_process_handler* h) : running(false), thread("MAC_PDU_PROCESS")
-{
-  handler = h;
-  pthread_mutex_init(&mutex, NULL);
-  pthread_cond_init(&cvar, NULL);
-  have_data = false;
-  start(MAC_PDU_THREAD_PRIO);
-}
-
-void mac::pdu_process::stop()
-{
-  pthread_mutex_lock(&mutex);
-  running = false;
-  pthread_cond_signal(&cvar);
-  pthread_mutex_unlock(&mutex);
-
-  wait_thread_finish();
-}
-
-void mac::pdu_process::notify()
-{
-  pthread_mutex_lock(&mutex);
-  have_data = true;
-  pthread_cond_signal(&cvar);
-  pthread_mutex_unlock(&mutex);
-}
-
-void mac::pdu_process::run_thread()
-{
-  running = true;
-  while(running) {
-    have_data = handler->process_pdus();
-    if (!have_data) {
-      pthread_mutex_lock(&mutex);
-      while(!have_data && running) {
-        pthread_cond_wait(&cvar, &mutex);
-      }
-      pthread_mutex_unlock(&mutex);
-    }
-  }
-}
-
 bool mac::process_pdus()
 {
   pthread_rwlock_rdlock(&rwlock);
   bool ret = false;
   for (auto& u : ue_db) {
-    ret = ret | u.second->process_pdus();
+    ret |= u.second->process_pdus();
   }
   pthread_rwlock_unlock(&rwlock);
   return ret;

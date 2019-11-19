@@ -22,29 +22,21 @@
 #ifndef SRSENB_MAC_H
 #define SRSENB_MAC_H
 
-#include <vector>
-#include "srslte/common/log.h"
-#include "srslte/common/timers.h"
-#include "srslte/interfaces/enb_interfaces.h"
-#include "srslte/interfaces/sched_interface.h"
-#include "srslte/common/tti_sync_cv.h"
-#include "srslte/common/threads.h"
-#include "srslte/common/tti_sync_cv.h"
-#include "srslte/common/mac_pcap.h"
 #include "scheduler.h"
 #include "scheduler_metric.h"
+#include "srslte/common/log.h"
+#include "srslte/common/mac_pcap.h"
+#include "srslte/common/threads.h"
+#include "srslte/common/tti_sync_cv.h"
+#include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
+#include "srslte/interfaces/sched_interface.h"
 #include "ue.h"
+#include <vector>
 
 namespace srsenb {
-  
-class pdu_process_handler
-{
-public: 
-  virtual bool process_pdus() = 0; 
-};
 
-class mac : public mac_interface_phy_lte, public mac_interface_rlc, public mac_interface_rrc, public pdu_process_handler
+class mac : public mac_interface_phy_lte, public mac_interface_rlc, public mac_interface_rrc
 {
 public:
   mac();
@@ -54,9 +46,10 @@ public:
             phy_interface_stack_lte* phy,
             rlc_interface_mac*       rlc,
             rrc_interface_mac*       rrc,
+            stack_interface_mac_lte* stack_,
             srslte::log*             log_h);
   void stop();
-  
+
   void start_pcap(srslte::mac_pcap* pcap_);
 
   /******** Interface from PHY (PHY -> MAC) ****************/
@@ -81,12 +74,11 @@ public:
   }
   void build_mch_sched(uint32_t tbs);
   void rl_failure(uint16_t rnti);
-  void rl_ok(uint16_t rnti); 
-  void tti_clock(); 
-  
-  /******** Interface from RRC (RRC -> MAC) ****************/ 
+  void rl_ok(uint16_t rnti);
+
+  /******** Interface from RRC (RRC -> MAC) ****************/
   /* Provides cell configuration including SIB periodicity, etc. */
-  int cell_cfg(sched_interface::cell_cfg_t *cell_cfg); 
+  int  cell_cfg(sched_interface::cell_cfg_t* cell_cfg);
   void reset();
 
   /* Manages UE scheduling context */
@@ -122,9 +114,10 @@ private:
   phy_interface_stack_lte* phy_h;
   rlc_interface_mac*       rlc_h;
   rrc_interface_mac*       rrc_h;
+  stack_interface_mac_lte* stack;
   srslte::log*             log_h;
 
-  srslte_cell_t cell; 
+  srslte_cell_t cell;
   mac_args_t    args; 
   
   bool          started;
@@ -169,46 +162,8 @@ private:
   const static int mtch_payload_len = 10000;
   uint8_t          mtch_payload_buffer[mtch_payload_len];
 
-  /* Functions for MAC Timers */
-  srslte::timer_handler timers_db;
-  void                  setup_timers();
-
   // pointer to MAC PCAP object
   srslte::mac_pcap* pcap;
-
-  /* Class to run upper-layer timers with normal priority */
-  class timer_thread : public thread
-  {
-  public:
-    timer_thread(mac* parent_, srslte::timer_handler* t) : ttisync(10240), timers(t), running(false), parent(parent_), thread("MAC_TIMER") { start(); }
-    void tti_clock();
-    void stop();
-
-  private:
-    void run_thread();
-    srslte::tti_sync_cv ttisync;
-    srslte::timer_handler *timers;
-    mac                *parent;
-    bool running; 
-  };
-  timer_thread timers_thread;
-
-  /* Class to process MAC PDUs from DEMUX unit */
-  class pdu_process : public thread {
-  public: 
-    pdu_process(pdu_process_handler *h);
-    void notify();
-    void stop();
-  private:
-    void run_thread();
-    bool running; 
-    bool have_data; 
-    pthread_mutex_t mutex;
-    pthread_cond_t  cvar;
-    pdu_process_handler *handler; 
-  };
-  pdu_process pdu_process_thread;
-  
 };
 
 } // namespace srsenb
