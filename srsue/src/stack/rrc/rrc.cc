@@ -1348,7 +1348,7 @@ void rrc::stop_timers()
 void rrc::start_con_restablishment(asn1::rrc::reest_cause_e cause)
 {
   if (not connection_reest.launch(cause)) {
-    rrc_log->info("Failed to launch connection re-establishment pocedure\n");
+    rrc_log->info("Failed to launch connection re-establishment procedure\n");
   }
 
   callback_list.add_proc(connection_reest);
@@ -2740,6 +2740,7 @@ void rrc::set_rrc_default()
   N310                   = 1;
   N311                   = 1;
   auto timer_expire_func = [this](uint32_t tid) { timer_expired(tid); };
+  t304.set(1000, timer_expire_func);
   t310.set(1000, timer_expire_func);
   t311.set(1000, timer_expire_func);
 }

@@ -423,7 +423,7 @@ void phy::enable_pregen_signals(bool enable)
   }
 }
 
-void phy::set_config(srslte::phy_cfg_t& config, uint32_t cc_idx, uint32_t earfcn, srslte_cell_t* cell_info)
+void phy::set_config(srslte::phy_cfg_t& config_, uint32_t cc_idx, uint32_t earfcn, srslte_cell_t* cell_info)
 {
   if (!is_initiated()) {
     fprintf(stderr, "Error calling set_config(): PHY not initialized\n");
@@ -439,11 +439,11 @@ void phy::set_config(srslte::phy_cfg_t& config, uint32_t cc_idx, uint32_t earfcn
       if (cell_info) {
         workers[i]->set_cell(cc_idx, *cell_info);
       }
-      workers[i]->set_config(cc_idx, config);
+      workers[i]->set_config(cc_idx, config_);
     }
 
     if (cc_idx == 0) {
-      prach_cfg = config.prach_cfg;
+      prach_cfg = config_.prach_cfg;
     } else if (cell_info) {
       // If SCell does not share synchronism with PCell ...
       if (m->radio_idx > 0) {
