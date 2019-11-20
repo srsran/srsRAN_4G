@@ -515,7 +515,7 @@ void rrc::add_paging_id(uint32_t ueid, LIBLTE_S1AP_UEPAGINGID_STRUCT UEPagingID)
 // Described in Section 7 of 36.304
 bool rrc::is_paging_opportunity(uint32_t tti, uint32_t* payload_len)
 {
-  int sf_pattern[4][4] = {{9, 4, -1, 0}, {-1, 9, -1, 4}, {-1, -1, -1, 5}, {-1, -1, -1, 9}};
+  constexpr static int sf_pattern[4][4] = {{9, 4, -1, 0}, {-1, 9, -1, 4}, {-1, -1, -1, 5}, {-1, -1, -1, 9}};
 
   if (pending_paging.empty()) {
     return false;
@@ -538,40 +538,46 @@ bool rrc::is_paging_opportunity(uint32_t tti, uint32_t* payload_len)
   std::vector<uint32_t> ue_to_remove;
 
   int n = 0;
-  for (auto iter = pending_paging.begin(); n < ASN1_RRC_MAX_PAGE_REC && iter != pending_paging.end(); ++iter) {
-    LIBLTE_S1AP_UEPAGINGID_STRUCT u    = (LIBLTE_S1AP_UEPAGINGID_STRUCT)iter->second;
-    uint32_t                      ueid = ((uint32_t)iter->first) % 1024;
+  for (auto& item : pending_paging) {
+    if (n >= ASN1_RRC_MAX_PAGE_REC) {
+      break;
+    }
+    LIBLTE_S1AP_UEPAGINGID_STRUCT u    = (LIBLTE_S1AP_UEPAGINGID_STRUCT)item.second;
+    uint32_t                      ueid = ((uint32_t)item.first) % 1024;
     uint32_t                      i_s  = (ueid / N) % Ns;
 
-    if ((sfn % T) == (T / N) * (ueid % N)) {
+    if ((sfn % T) != (T / N) * (ueid % N)) {
+      continue;
+    }
 
-      int sf_idx = sf_pattern[i_s % 4][(Ns - 1) % 4];
-      if (sf_idx < 0) {
-        rrc_log->error("SF pattern is N/A for Ns=%d, i_s=%d, imsi_decimal=%d\n", Ns, i_s, ueid);
-      } else if ((uint32_t)sf_idx == (tti % 10)) {
+    int sf_idx = sf_pattern[i_s % 4][(Ns - 1) % 4];
+    if (sf_idx < 0) {
+      rrc_log->error("SF pattern is N/A for Ns=%d, i_s=%d, imsi_decimal=%d\n", Ns, i_s, ueid);
+      continue;
+    }
 
-        paging_rec->paging_record_list_present = true;
-        paging_record_s paging_elem;
-        if (u.choice_type == LIBLTE_S1AP_UEPAGINGID_CHOICE_IMSI) {
-          paging_elem.ue_id.set_imsi();
-          paging_elem.ue_id.imsi().resize(u.choice.iMSI.n_octets);
-          memcpy(paging_elem.ue_id.imsi().data(), u.choice.iMSI.buffer, u.choice.iMSI.n_octets);
-          rrc_log->console("Warning IMSI paging not tested\n");
-        } else {
-          paging_elem.ue_id.set_s_tmsi();
-          paging_elem.ue_id.s_tmsi().mmec.from_number(u.choice.s_TMSI.mMEC.buffer[0]);
-          uint32_t m_tmsi = 0;
-          for (int i = 0; i < LIBLTE_S1AP_M_TMSI_OCTET_STRING_LEN; i++) {
-            m_tmsi |= u.choice.s_TMSI.m_TMSI.buffer[i] << (8u * (LIBLTE_S1AP_M_TMSI_OCTET_STRING_LEN - i - 1));
-          }
-          paging_elem.ue_id.s_tmsi().m_tmsi.from_number(m_tmsi);
+    if ((uint32_t)sf_idx == (tti % 10)) {
+      paging_rec->paging_record_list_present = true;
+      paging_record_s paging_elem;
+      if (u.choice_type == LIBLTE_S1AP_UEPAGINGID_CHOICE_IMSI) {
+        paging_elem.ue_id.set_imsi();
+        paging_elem.ue_id.imsi().resize(u.choice.iMSI.n_octets);
+        memcpy(paging_elem.ue_id.imsi().data(), u.choice.iMSI.buffer, u.choice.iMSI.n_octets);
+        rrc_log->console("Warning IMSI paging not tested\n");
+      } else {
+        paging_elem.ue_id.set_s_tmsi();
+        paging_elem.ue_id.s_tmsi().mmec.from_number(u.choice.s_TMSI.mMEC.buffer[0]);
+        uint32_t m_tmsi = 0;
+        for (int i = 0; i < LIBLTE_S1AP_M_TMSI_OCTET_STRING_LEN; i++) {
+          m_tmsi |= u.choice.s_TMSI.m_TMSI.buffer[i] << (8u * (LIBLTE_S1AP_M_TMSI_OCTET_STRING_LEN - i - 1));
         }
-        paging_elem.cn_domain = paging_record_s::cn_domain_e_::ps;
-        paging_rec->paging_record_list.push_back(paging_elem);
-        ue_to_remove.push_back(ueid);
-        n++;
-        rrc_log->info("Assembled paging for ue_id=%d, tti=%d\n", ueid, tti);
+        paging_elem.ue_id.s_tmsi().m_tmsi.from_number(m_tmsi);
       }
+      paging_elem.cn_domain = paging_record_s::cn_domain_e_::ps;
+      paging_rec->paging_record_list.push_back(paging_elem);
+      ue_to_remove.push_back(ueid);
+      n++;
+      rrc_log->info("Assembled paging for ue_id=%d, tti=%d\n", ueid, tti);
     }
   }
 
