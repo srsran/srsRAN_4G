@@ -151,7 +151,7 @@ int test_correct_insertion()
 int test_correct_meascfg_calculation()
 {
   srslte::scoped_tester_log log_test("MEASCFG_CALC");
-  var_meas_cfg_t    src_var(&log_h), target_var(&log_h);
+  var_meas_cfg_t            src_var(&log_h), target_var(&log_h);
 
   meas_cell_cfg_t cell1{}, cell2{};
   cell1.earfcn   = 3400;

@@ -101,11 +101,11 @@ void erase_if(MapContainer& c, Predicate should_remove)
  *     Logging     *
  *******************/
 
-class log_tester2 final : public srslte::scoped_tester_log
+class log_tester final : public srslte::scoped_tester_log
 {
 public:
-  log_tester2() : srslte::scoped_tester_log("MAC") { exit_on_error = true; }
-  ~log_tester2() override { log_diagnostics(); }
+  log_tester() : srslte::scoped_tester_log("MAC") { exit_on_error = true; }
+  ~log_tester() override { log_diagnostics(); }
 
   void log_diagnostics() override
   {
@@ -118,8 +118,8 @@ public:
     info("[TESTER] This was the seed: %u\n", seed);
   }
 };
-log_tester2 log_global;
-bool        check_old_pids = true;
+log_tester log_global;
+bool       check_old_pids = true;
 
 /*******************
  *     Dummies     *
