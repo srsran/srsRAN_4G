@@ -527,9 +527,8 @@ int srslte_viterbi_decode_f(srslte_viterbi_t *q, float *symbols, uint8_t *data, 
   } else {
     len = 3 * (frame_length + q->K - 1);
   }
-  if (!q->decode_f) {    
-    
-    float max = -9e9; 
+  if (!q->decode_f) {
+    float max = 1e-9;
     for (int i=0;i<len;i++) {
       if (fabs(symbols[i]) > max) {
         max = fabs(symbols[i]);
@@ -544,7 +543,7 @@ int srslte_viterbi_decode_f(srslte_viterbi_t *q, float *symbols, uint8_t *data, 
 #endif
   } else {
     return q->decode_f(q, symbols, data, frame_length);
-  }  
+  }
 }
 
 /* symbols are int16 */
