@@ -21,16 +21,9 @@
 
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
 #include "srslte/asn1/rrc_asn1_utils.h"
+#include "srslte/common/test_common.h"
 #include <iostream>
 #include <srslte/common/log_filter.h>
-
-#define TESTASSERT(cond)                                                                                               \
-  do {                                                                                                                 \
-    if (!(cond)) {                                                                                                     \
-      std::cout << "[" << __FUNCTION__ << "][Line " << __LINE__ << "]: FAIL at " << (#cond) << std::endl;              \
-      return -1;                                                                                                       \
-    }                                                                                                                  \
-  } while (0)
 
 using namespace srsenb;
 using namespace asn1::rrc;
@@ -157,7 +150,8 @@ int test_correct_insertion()
 
 int test_correct_meascfg_calculation()
 {
-  var_meas_cfg_t src_var(&log_h), target_var(&log_h);
+  srslte::scoped_tester_log log_test("MEASCFG_CALC");
+  var_meas_cfg_t    src_var(&log_h), target_var(&log_h);
 
   meas_cell_cfg_t cell1{}, cell2{};
   cell1.earfcn   = 3400;
@@ -262,6 +256,8 @@ int test_correct_meascfg_calculation()
 
 int test_mobility_class()
 {
+  srslte::scoped_tester_log log_test("MOBILITY_TEST");
+
   rrc_cfg_t cfg;
   cfg.sib1.cell_access_related_info.plmn_id_list.push_back({});
   cfg.sib1.cell_access_related_info.plmn_id_list[0].plmn_id.mnc.resize(2);
