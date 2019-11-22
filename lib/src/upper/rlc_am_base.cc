@@ -19,27 +19,19 @@
  *
  */
 
-#ifndef SRSLTE_RLC_AM_BASE_H
-#define SRSLTE_RLC_AM_BASE_H
-
-#include "srslte/common/buffer_pool.h"
-#include "srslte/common/common.h"
-#include "srslte/common/log.h"
-#include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/upper/rlc_common.h"
-#include "srslte/upper/rlc_tx_queue.h"
-#include <map>
-#include <mutex>
-#include <pthread.h>
-#include <queue>
+#include "srslte/upper/rlc_am_base.h"
+#include <sstream>
 
 namespace srslte {
 
-///< Add rlc_am_base here
+bool rlc_am_is_control_pdu(uint8_t* payload)
+{
+  return ((*(payload) >> 7) & 0x01) == RLC_DC_FIELD_CONTROL_PDU;
+}
 
-bool rlc_am_is_control_pdu(uint8_t* payload);
-bool rlc_am_is_control_pdu(byte_buffer_t* pdu);
+bool rlc_am_is_control_pdu(byte_buffer_t* pdu)
+{
+  return rlc_am_is_control_pdu(pdu->msg);
+}
 
 } // namespace srslte
-
-#endif // SRSLTE_RLC_AM_BASE_H

@@ -2035,16 +2035,6 @@ uint32_t rlc_am_packed_length(rlc_status_pdu_t *status)
   return (len_bits+7)/8;                  // Convert to bytes - integer rounding up
 }
 
-bool rlc_am_is_control_pdu(byte_buffer_t *pdu)
-{
-  return rlc_am_is_control_pdu(pdu->msg);
-}
-
-bool rlc_am_is_control_pdu(uint8_t *payload)
-{
-  return ((*(payload) >> 7) & 0x01) == RLC_DC_FIELD_CONTROL_PDU;
-}
-
 bool rlc_am_is_pdu_segment(uint8_t *payload)
 {
   return ((*(payload) >> 6) & 0x01) == 1;

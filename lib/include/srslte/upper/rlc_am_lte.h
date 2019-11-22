@@ -23,15 +23,16 @@
 #define SRSLTE_RLC_AM_LTE_H
 
 #include "srslte/common/buffer_pool.h"
-#include "srslte/common/log.h"
 #include "srslte/common/common.h"
-#include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/upper/rlc_tx_queue.h"
+#include "srslte/common/log.h"
 #include "srslte/common/timeout.h"
+#include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/upper/rlc_am_base.h"
 #include "srslte/upper/rlc_common.h"
-#include <map>
+#include "srslte/upper/rlc_tx_queue.h"
 #include <deque>
 #include <list>
+#include <map>
 
 namespace srslte {
 
@@ -303,8 +304,6 @@ uint32_t    rlc_am_packed_length(rlc_amd_pdu_header_t* header);
 uint32_t    rlc_am_packed_length(rlc_status_pdu_t* status);
 uint32_t    rlc_am_packed_length(rlc_amd_retx_t retx);
 bool        rlc_am_is_valid_status_pdu(const rlc_status_pdu_t& status);
-bool        rlc_am_is_control_pdu(byte_buffer_t* pdu);
-bool        rlc_am_is_control_pdu(uint8_t* payload);
 bool        rlc_am_is_pdu_segment(uint8_t* payload);
 std::string rlc_am_status_pdu_to_string(rlc_status_pdu_t* status);
 std::string rlc_amd_pdu_header_to_string(const rlc_amd_pdu_header_t& header);
