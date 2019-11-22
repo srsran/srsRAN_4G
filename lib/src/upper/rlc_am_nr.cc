@@ -146,4 +146,114 @@ uint32_t rlc_am_nr_write_data_pdu_header(const rlc_am_nr_pdu_header_t& header, b
   return len;
 }
 
+uint32_t
+rlc_am_nr_read_status_pdu(const byte_buffer_t* pdu, const rlc_am_nr_sn_size_t sn_size, rlc_am_nr_status_pdu_t* status)
+{
+  return rlc_am_nr_read_status_pdu(pdu->msg, pdu->N_bytes, sn_size, status);
+}
+
+uint32_t rlc_am_nr_read_status_pdu(const uint8_t*            payload,
+                                   const uint32_t            nof_bytes,
+                                   const rlc_am_nr_sn_size_t sn_size,
+                                   rlc_am_nr_status_pdu_t*   status)
+{
+  uint8_t* ptr = const_cast<uint8_t*>(payload);
+
+  // fixed part
+  status->cpt = (rlc_am_nr_control_pdu_type_t)((*ptr >> 4) & 0x07); // 3 bits CPT
+
+  // sanity check
+  if (status->cpt != rlc_am_nr_control_pdu_type_t::status_pdu) {
+    fprintf(stderr, "Malformed PDU, reserved bits are set.\n");
+    return 0;
+  }
+
+  if (sn_size == rlc_am_nr_sn_size_t::size12bits) {
+    status->ack_sn = (*ptr & 0x0F) << 8; // first 4 bits SN
+    ptr++;
+
+    status->ack_sn |= (*ptr & 0xFF); // last 8 bits SN
+    ptr++;
+
+    // read E1 flag
+    uint8_t e1 = *ptr & 0x80;
+
+    // sanity check for reserved bits
+    if ((*ptr & 0x7f) != 0) {
+      fprintf(stderr, "Malformed PDU, reserved bits are set.\n");
+      return 0;
+    }
+
+    // all good, continue with next byte depending on E1
+    ptr++;
+
+    // reset number of acks
+    status->N_nack = 0;
+
+    if (e1) {
+      // E1 flag set, read a NACK_SN
+      rlc_status_nack_t nack = {};
+      nack.nack_sn           = (*ptr & 0xff) << 4;
+      ptr++;
+      // uint8_t len2 = (*ptr & 0xF0) >> 4;
+      nack.nack_sn |= (*ptr & 0xF0) >> 4;
+      status->nacks[status->N_nack] = nack;
+
+      status->N_nack++;
+    }
+  }
+
+  return SRSLTE_SUCCESS;
+}
+
+/**
+ * Write a RLC AM NR status PDU to a PDU buffer and eets the length of the generate PDU accordingly
+ * @param status_pdu The status PDU
+ * @param pdu A pointer to a unique bytebuffer
+ * @return SRSLTE_SUCCESS if PDU was written, SRSLTE_ERROR otherwise
+ */
+int32_t rlc_am_nr_write_status_pdu(const rlc_am_nr_status_pdu_t& status_pdu,
+                                   const rlc_am_nr_sn_size_t     sn_size,
+                                   byte_buffer_t*                pdu)
+{
+  uint8_t* ptr = pdu->msg;
+
+  // fixed header part
+  *ptr = 0; ///< 1 bit D/C field and 3bit CPT are all zero
+
+  if (sn_size == rlc_am_nr_sn_size_t::size12bits) {
+    // write first 4 bit of ACK_SN
+    *ptr |= (status_pdu.ack_sn >> 8) & 0x0f; // 4 bit ACK_SN
+    ptr++;
+    *ptr = status_pdu.ack_sn & 0xff; // remaining 8 bit of SN
+    ptr++;
+
+    // write E1 flag in octet 3
+    *ptr = (status_pdu.N_nack > 0) ? 0x80 : 0x00;
+    ptr++;
+
+    if (status_pdu.N_nack > 0) {
+      // write first 8 bit of NACK_SN
+      *ptr = (status_pdu.nacks[0].nack_sn >> 4) & 0xff;
+      ptr++;
+
+      // write remaining 4 bits of NACK_SN
+      *ptr = status_pdu.nacks[0].nack_sn & 0xf0;
+      ptr++;
+    }
+  } else {
+    // 18bit SN
+    *ptr |= (status_pdu.ack_sn >> 14) & 0x0f; // 4 bit ACK_SN
+    ptr++;
+    *ptr = status_pdu.ack_sn >> 8; // bit 3 - 10 of SN
+    ptr++;
+    *ptr = (status_pdu.ack_sn & 0xff); // remaining 6 bit of SN
+    ptr++;
+  }
+
+  pdu->N_bytes = ptr - pdu->msg;
+
+  return SRSLTE_SUCCESS;
+}
+
 } // namespace srslte

@@ -59,6 +59,18 @@ uint32_t rlc_am_nr_write_data_pdu_header(const rlc_am_nr_pdu_header_t& header, b
 
 uint32_t rlc_am_nr_packed_length(const rlc_am_nr_pdu_header_t& header);
 
+uint32_t
+rlc_am_nr_read_status_pdu(const byte_buffer_t* pdu, const rlc_am_nr_sn_size_t sn_size, rlc_am_nr_status_pdu_t* status);
+
+uint32_t rlc_am_nr_read_status_pdu(const uint8_t*            payload,
+                                   const uint32_t            nof_bytes,
+                                   const rlc_am_nr_sn_size_t sn_size,
+                                   rlc_am_nr_status_pdu_t*   status);
+
+int32_t rlc_am_nr_write_status_pdu(const rlc_am_nr_status_pdu_t& status_pdu,
+                                   const rlc_am_nr_sn_size_t     sn_size,
+                                   byte_buffer_t*                pdu);
+
 } // namespace srslte
 
 #endif // SRSLTE_RLC_AM_NR_H

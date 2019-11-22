@@ -77,6 +77,13 @@ static inline uint8_t operator&(rlc_nr_si_field_t lhs, int rhs)
                               static_cast<std::underlying_type<rlc_nr_si_field_t>::type>(rhs));
 }
 
+enum class rlc_am_nr_control_pdu_type_t : unsigned { status_pdu = 0b000, nulltype };
+inline std::string to_string(const rlc_am_nr_control_pdu_type_t& type)
+{
+  constexpr static const char* options[] = {"Control PDU"};
+  return enum_to_text(options, (uint32_t)rlc_am_nr_control_pdu_type_t::nulltype, (uint32_t)type);
+}
+
 typedef enum {
   RLC_DC_FIELD_CONTROL_PDU = 0,
   RLC_DC_FIELD_DATA_PDU,
@@ -150,9 +157,9 @@ struct rlc_amd_pdu_header_t{
   }
 };
 
-// NACK helper
+// NACK helper (for LTE and NR)
 struct rlc_status_nack_t{
-  uint16_t nack_sn;
+  uint32_t nack_sn;
   bool     has_so;
   uint16_t so_start;
   uint16_t so_end;
@@ -180,6 +187,15 @@ typedef struct {
   uint32_t            sn;      ///< Sequence number
   uint16_t            so;      ///< Sequence offset
 } rlc_am_nr_pdu_header_t;
+
+///< AM NR Status PDU header (perhaps merge with LTE version)
+typedef struct {
+  rlc_am_nr_control_pdu_type_t cpt;
+  uint32_t                     ack_sn; ///< SN of the next not received RLC Data PDU
+  uint16_t                     N_nack; ///< number of NACKs
+  uint8_t           nack_range;        ///< number of consecutively lost RLC SDUs starting from and including NACK_SN
+  rlc_status_nack_t nacks[RLC_AM_WINDOW_SIZE];
+} rlc_am_nr_status_pdu_t;
 
 /****************************************************************************
  * RLC Common interface

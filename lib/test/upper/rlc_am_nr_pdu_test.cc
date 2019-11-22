@@ -234,6 +234,66 @@ int rlc_am_nr_pdu_test6()
   return SRSLTE_SUCCESS;
 }
 
+///< Control PDU tests
+// Status PDU for 12bit SN with ACK_SN=2065 and no further NACK_SN (E1 bit not set)
+int rlc_am_nr_control_pdu_test1()
+{
+  const int                len = 3;
+  std::array<uint8_t, len> tv  = {0x08, 0x11, 0x00};
+  srslte::byte_buffer_t    pdu = make_pdu_and_log(tv);
+
+  TESTASSERT(rlc_am_is_control_pdu(pdu.msg) == true);
+
+  // unpack PDU
+  rlc_am_nr_status_pdu_t status_pdu = {};
+  TESTASSERT(rlc_am_nr_read_status_pdu(&pdu, srslte::rlc_am_nr_sn_size_t::size12bits, &status_pdu) == SRSLTE_SUCCESS);
+  TESTASSERT(status_pdu.ack_sn == 2065);
+  TESTASSERT(status_pdu.N_nack == 0);
+
+  // reset status PDU
+  pdu.clear();
+
+  // pack again
+  TESTASSERT(rlc_am_nr_write_status_pdu(status_pdu, srslte::rlc_am_nr_sn_size_t::size12bits, &pdu) == SRSLTE_SUCCESS);
+  TESTASSERT(pdu.N_bytes == tv.size());
+
+  write_pdu_to_pcap(4, pdu.msg, pdu.N_bytes);
+
+  TESTASSERT(memcmp(pdu.msg, tv.data(), pdu.N_bytes) == 0);
+
+  return SRSLTE_SUCCESS;
+}
+
+// Status PDU for 12bit SN with ACK_SN=2065 and NACK_SN=273 (E1 bit set)
+int rlc_am_nr_control_pdu_test2()
+{
+  const int                len = 5;
+  std::array<uint8_t, len> tv  = {0x08, 0x11, 0x80, 0x11, 0x10};
+  srslte::byte_buffer_t    pdu = make_pdu_and_log(tv);
+
+  TESTASSERT(rlc_am_is_control_pdu(pdu.msg) == true);
+
+  // unpack PDU
+  rlc_am_nr_status_pdu_t status_pdu = {};
+  TESTASSERT(rlc_am_nr_read_status_pdu(&pdu, srslte::rlc_am_nr_sn_size_t::size12bits, &status_pdu) == SRSLTE_SUCCESS);
+  TESTASSERT(status_pdu.ack_sn == 2065);
+  TESTASSERT(status_pdu.N_nack == 1);
+  TESTASSERT(status_pdu.nacks[0].nack_sn == 273);
+
+  // reset status PDU
+  pdu.clear();
+
+  // pack again
+  TESTASSERT(rlc_am_nr_write_status_pdu(status_pdu, srslte::rlc_am_nr_sn_size_t::size12bits, &pdu) == SRSLTE_SUCCESS);
+  // TESTASSERT(pdu.N_bytes == tv.size());
+
+  write_pdu_to_pcap(4, pdu.msg, pdu.N_bytes);
+
+  TESTASSERT(memcmp(pdu.msg, tv.data(), pdu.N_bytes) == 0);
+
+  return SRSLTE_SUCCESS;
+}
+
 int main(int argc, char** argv)
 {
 #if PCAP
@@ -268,6 +328,16 @@ int main(int argc, char** argv)
 
   if (rlc_am_nr_pdu_test6()) {
     fprintf(stderr, "rlc_am_nr_pdu_test6() failed.\n");
+    return SRSLTE_ERROR;
+  }
+
+  if (rlc_am_nr_control_pdu_test1()) {
+    fprintf(stderr, "rlc_am_nr_control_pdu_test1() failed.\n");
+    return SRSLTE_ERROR;
+  }
+
+  if (rlc_am_nr_control_pdu_test2()) {
+    fprintf(stderr, "rlc_am_nr_control_pdu_test2() failed.\n");
     return SRSLTE_ERROR;
   }
 
