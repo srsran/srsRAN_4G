@@ -31,7 +31,7 @@
 #define dft_ceil(a,b) ((a-1)/b+1)
 #define dft_floor(a,b) (a/b)
 
-#define FFTW_WISDOM_FILE ".fftw_wisdom"
+#define FFTW_WISDOM_FILE "~/.srslte_fftwisdom"
 
 #ifdef FFTW_WISDOM_FILE
 #define FFTW_TYPE FFTW_MEASURE
