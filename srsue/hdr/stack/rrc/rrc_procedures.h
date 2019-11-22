@@ -239,17 +239,16 @@ public:
   static const char*     name() { return "Connection re-establishment"; }
 
 private:
-  enum class state_t { init, cell_reselection, cell_configuration, cell_criteria, success, error } state;
+  enum class state_t { cell_reselection, cell_configuration } state;
 
   rrc*                     rrc_ptr          = nullptr;
   asn1::rrc::reest_cause_e reest_cause      = asn1::rrc::reest_cause_e::nulltype;
   uint16_t                 reest_rnti       = 0;
   uint16_t                 reest_source_pci = 0;
 
-  void step_init();
-  void step_cell_reselection();
-  void step_cell_configuration();
-  void step_cell_criteria();
+  srslte::proc_outcome_t step_cell_reselection();
+  srslte::proc_outcome_t step_cell_configuration();
+  srslte::proc_outcome_t cell_criteria();
 };
 
 } // namespace srsue

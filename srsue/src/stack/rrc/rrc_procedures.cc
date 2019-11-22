@@ -873,7 +873,7 @@ proc_outcome_t rrc::cell_reselection_proc::step()
  *    RRC Connection Re-establishment procedure
  *************************************/
 
-rrc::connection_reest_proc::connection_reest_proc(srsue::rrc* rrc_) : rrc_ptr(rrc_), state(state_t::init) {}
+rrc::connection_reest_proc::connection_reest_proc(srsue::rrc* rrc_) : rrc_ptr(rrc_), state(state_t::cell_reselection) {}
 
 proc_outcome_t rrc::connection_reest_proc::init(asn1::rrc::reest_cause_e cause)
 {
@@ -892,8 +892,39 @@ proc_outcome_t rrc::connection_reest_proc::init(asn1::rrc::reest_cause_e cause)
 
     // the initiation of reestablishment procedure as indicates in 3GPP 36.331 Section 5.3.7.2
     // Cannot be called from here because it has PHY-MAC re-configuration that should be performed in a different thread
-    Info("Conditions are meet\n");
-    state = state_t::init;
+    Info("Conditions are meet. Initiating RRC Connection Reestablishment Procedure\n");
+
+    // stop timer T310, if running;
+    rrc_ptr->t310.stop();
+
+    // start timer T311;
+    rrc_ptr->t311.run();
+
+    // Suspend all RB except SRB0
+    for (int i = 1; i < SRSLTE_N_RADIO_BEARERS; i++) {
+      if (rrc_ptr->rlc->has_bearer(i)) {
+        rrc_ptr->rlc->suspend_bearer(i);
+      }
+    }
+
+    // reset MAC;
+    rrc_ptr->mac->reset();
+
+    // apply the default physical channel configuration as specified in 9.2.4;
+    rrc_ptr->set_phy_default_pucch_srs();
+
+    // apply the default semi-persistent scheduling configuration as specified in 9.2.3;
+    // N.A.
+
+    // apply the default MAC main configuration as specified in 9.2.2;
+    rrc_ptr->apply_mac_config_dedicated_default();
+
+    // Launch cell reselection
+    if (not rrc_ptr->cell_reselector.launch()) {
+      Error("Failed to initiate a Cell re-selection procedure...\n");
+      return proc_outcome_t::error;
+    }
+    state = state_t::cell_reselection;
 
   } else {
     // 3GPP 36.331 Section 5.3.7.1
@@ -901,118 +932,79 @@ proc_outcome_t rrc::connection_reest_proc::init(asn1::rrc::reest_cause_e cause)
     // moves to RRC_IDLE directly
     Info("Conditions are NOT meet\n");
     rrc_ptr->start_go_idle();
-    state = state_t::success;
+    return proc_outcome_t::success;
   }
 
   return proc_outcome_t::yield;
 }
 
-void rrc::connection_reest_proc::step_init()
+srslte::proc_outcome_t rrc::connection_reest_proc::step_cell_reselection()
 {
-  // initiation of reestablishment procedure as indicates in 3GPP 36.331 Section 5.3.7.2
-  Info("Initiating RRC Connection Reestablishment Procedure\n");
 
-  // stop timer T310, if running;
-  rrc_ptr->t310.stop();
-
-  // start timer T311;
-  rrc_ptr->t311.run();
-
-  // Suspend all RB except SRB0
-  for (int i = 1; i < SRSLTE_N_RADIO_BEARERS; i++) {
-    if (rrc_ptr->rlc->has_bearer(i)) {
-      rrc_ptr->rlc->suspend_bearer(i);
+  // Run cell reselection
+  if (not rrc_ptr->cell_reselector.run()) {
+    // Cell reselection finished or not started
+    if (rrc_ptr->serving_cell->in_sync) {
+      // In-sync, check SIBs
+      if (rrc_ptr->serving_cell->has_sib1() && rrc_ptr->serving_cell->has_sib2() && rrc_ptr->serving_cell->has_sib3()) {
+        Info("In-sync, SIBs available. Going to cell criteria\n");
+        return cell_criteria();
+      } else {
+        Info("SIBs missing (%d, %d, %d), launching serving cell configuration procedure\n",
+             rrc_ptr->serving_cell->has_sib1(),
+             rrc_ptr->serving_cell->has_sib2(),
+             rrc_ptr->serving_cell->has_sib3());
+        std::vector<uint32_t> required_sibs = {1, 2, 3};
+        if (!rrc_ptr->serv_cell_cfg.launch(required_sibs)) {
+          Error("Failed to initiate configure serving cell\n");
+          return proc_outcome_t::error;
+        }
+        state = state_t::cell_configuration;
+      }
+    } else {
+      // Out-of-sync, relaunch reselection
+      Info("Serving cell is out-of-sync, re-launching re-selection procedure\n");
+      if (!rrc_ptr->cell_reselector.launch()) {
+        return proc_outcome_t::error;
+      }
     }
   }
 
-  // reset MAC;
-  rrc_ptr->mac->reset();
-
-  // apply the default physical channel configuration as specified in 9.2.4;
-  rrc_ptr->set_phy_default_pucch_srs();
-
-  // apply the default semi-persistent scheduling configuration as specified in 9.2.3;
-  // N.A.
-
-  // apply the default MAC main configuration as specified in 9.2.2;
-  rrc_ptr->apply_mac_config_dedicated_default();
-
-  // Launch cell reselection
-  if (rrc_ptr->cell_reselector.launch()) {
-    state = state_t::cell_reselection;
-  } else {
-    Error("Failed to initiate a Cell re-selection procedure...\n");
-    state = state_t::error;
-  }
+  return proc_outcome_t::yield;
 }
 
-void rrc::connection_reest_proc::step_cell_reselection()
+proc_outcome_t rrc::connection_reest_proc::step_cell_configuration()
 {
-  if (!rrc_ptr->t311.is_running()) {
-    Info("During cell reselection, T311 expired. Aborting.\n");
-    state = state_t::success;
-  } else if (rrc_ptr->cell_reselector.run()) {
-    // Keep running, do nothing
-  } else if (!rrc_ptr->serving_cell->in_sync) {
-    Info("Serving cell is out-of-sync, re-launching re-selection procedure\n");
-    if (rrc_ptr->cell_reselector.launch()) {
+  if (not rrc_ptr->serv_cell_cfg.run()) {
+    // SIBs adquisition not started or finished
+    if (rrc_ptr->serving_cell->in_sync) {
+      // In-sync
+      if (rrc_ptr->serving_cell->has_sib1() && rrc_ptr->serving_cell->has_sib2() && rrc_ptr->serving_cell->has_sib3()) {
+        // All SIBs are available
+        return cell_criteria();
+      } else {
+        // Required SIBs are not available
+        Error("Failed to configure serving cell\n");
+        return proc_outcome_t::error;
+      }
+    } else {
+      // Out-of-sync, relaunch reselection
+      Info("Serving cell is out-of-sync, re-launching re-selection procedure\n");
+      if (!rrc_ptr->cell_reselector.launch()) {
+        Error("Failed to initiate a Cell re-selection procedure...\n");
+        return proc_outcome_t::error;
+      }
       state = state_t::cell_reselection;
-    } else {
-      // Error launching procedure
-      state = state_t::error;
-    }
-  } else if (rrc_ptr->serving_cell->has_sib1() && rrc_ptr->serving_cell->has_sib2() &&
-             rrc_ptr->serving_cell->has_sib3()) {
-    Info("In-sync, SIBs available. Going to cell criteria\n");
-    state = state_t::cell_criteria;
-  } else {
-    Info("SIBs missing (%d, %d, %d), launching serving cell configuration procedure\n",
-         rrc_ptr->serving_cell->has_sib1(),
-         rrc_ptr->serving_cell->has_sib2(),
-         rrc_ptr->serving_cell->has_sib3());
-    std::vector<uint32_t> required_sibs = {1, 2, 3};
-    if (rrc_ptr->serv_cell_cfg.launch(required_sibs)) {
-      state = state_t::cell_configuration;
-    } else {
-      Error("Failed to initiate configure serving cell\n");
-      state = state_t::error;
     }
   }
+
+  return proc_outcome_t::yield;
 }
 
-void rrc::connection_reest_proc::step_cell_configuration()
+srslte::proc_outcome_t rrc::connection_reest_proc::cell_criteria()
 {
-  if (!rrc_ptr->t311.is_running()) {
-    Info("During cell configuration, T311 expired. Aborting.\n");
-    state = state_t::success;
-  } else if (rrc_ptr->serv_cell_cfg.run()) {
-    // Keep running, do nothing
-  } else if (!rrc_ptr->serving_cell->in_sync) {
-    Info("Serving cell is out-of-sync, re-launching re-selection procedure\n");
-    if (rrc_ptr->cell_reselector.launch()) {
-      state = state_t::cell_reselection;
-    } else {
-      Error("Failed to initiate a Cell re-selection procedure...\n");
-      state = state_t::error;
-    }
-  } else if (rrc_ptr->serving_cell->has_sib1() && rrc_ptr->serving_cell->has_sib2() &&
-             rrc_ptr->serving_cell->has_sib3()) {
-    Info("SIBs available. Going to cell criteria\n");
-    state = state_t::cell_criteria;
-  } else {
-    Error("Failed to configure serving cell\n");
-    state = state_t::error;
-  }
-}
-
-void rrc::connection_reest_proc::step_cell_criteria()
-{
-  // Wait until we're synced and have obtained SIBs
   // Perform cell selection in accordance to 36.304
-  if (!rrc_ptr->t311.is_running()) {
-    Info("During cell selection criteria, T311 expired. Aborting.\n");
-    state = state_t::success;
-  } else if (rrc_ptr->cell_selection_criteria(rrc_ptr->serving_cell->get_rsrp())) {
+  if (rrc_ptr->cell_selection_criteria(rrc_ptr->serving_cell->get_rsrp())) {
     // Actions following cell reselection while T311 is running 5.3.7.3
     // Upon selecting a suitable E-UTRA cell, the UE shall:
     Info("Cell Selection criteria passed after %dms. Sending RRC Connection Reestablishment Request\n",
@@ -1025,55 +1017,38 @@ void rrc::connection_reest_proc::step_cell_criteria()
     rrc_ptr->t301.run();
 
     // apply the timeAlignmentTimerCommon included in SystemInformationBlockType2;
-    // TODO
+    // Not implemented yet.
 
     // initiate transmission of the RRCConnectionReestablishmentRequest message in accordance with 5.3.7.4;
     rrc_ptr->send_con_restablish_request(reest_cause, reest_rnti, reest_source_pci);
   } else {
     // Upon selecting an inter-RAT cell
-    Warning("Reestablishment Cell Selection criteria failed.\n");
+    Info("Reestablishment Cell Selection criteria failed.\n");
     rrc_ptr->leave_connected();
   }
-  state = state_t::success;
+  return proc_outcome_t::success;
 }
 
 proc_outcome_t rrc::connection_reest_proc::step()
 {
-  proc_outcome_t proc_outcome = srslte::proc_outcome_t::yield;
+  // Abort procedure if T311 expires
+  if (!rrc_ptr->t311.is_running()) {
+    Info("T311 expired. Aborting.\n");
+    return proc_outcome_t::success;
+  }
 
   /*
    * Implementation of procedure in 3GPP 36.331 Section 5.3.7.3: Actions following cell selection while T311 is running
    */
   switch (state) {
-
-    case state_t::init:
-      step_init();
-      break;
-
     case state_t::cell_reselection:
-      step_cell_reselection();
-      break;
+      return step_cell_reselection();
 
     case state_t::cell_configuration:
-      step_cell_configuration();
-      break;
-
-    case state_t::cell_criteria:
-      step_cell_criteria();
-      break;
-
-    case state_t::success:
-      Info("Finished successfully\n");
-      proc_outcome = srslte::proc_outcome_t::success;
-      break;
-
-    case state_t::error:
-      Info("Finished with error\n");
-      proc_outcome = srslte::proc_outcome_t::error;
-      break;
+      return step_cell_configuration();
   }
 
-  return proc_outcome;
+  return proc_outcome_t::error;
 }
 
 } // namespace srsue
