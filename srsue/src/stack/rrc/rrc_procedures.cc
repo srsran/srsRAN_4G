@@ -892,7 +892,7 @@ proc_outcome_t rrc::connection_reest_proc::init(asn1::rrc::reest_cause_e cause)
 
     // the initiation of reestablishment procedure as indicates in 3GPP 36.331 Section 5.3.7.2
     // Cannot be called from here because it has PHY-MAC re-configuration that should be performed in a different thread
-    Info("Conditions are meet. Initiating RRC Connection Reestablishment Procedure\n");
+    Info("Conditions are met. Initiating RRC Connection Reestablishment Procedure\n");
 
     // stop timer T310, if running;
     rrc_ptr->t310.stop();
@@ -930,7 +930,7 @@ proc_outcome_t rrc::connection_reest_proc::init(asn1::rrc::reest_cause_e cause)
     // 3GPP 36.331 Section 5.3.7.1
     // If AS security has not been activated, the UE does not initiate the procedure but instead
     // moves to RRC_IDLE directly
-    Info("Conditions are NOT meet\n");
+    Info("Conditions are NOT met\n");
     rrc_ptr->start_go_idle();
     return proc_outcome_t::success;
   }
