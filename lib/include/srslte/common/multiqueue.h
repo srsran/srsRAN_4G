@@ -240,10 +240,10 @@ public:
   {
   }
   template <typename Func>
-  moveable_task_t(Func&& f, Capture&& c) :
-    func([this, f]() { f(std::move(capture)); }),
-    capture(std::forward<Capture>(c))
+  moveable_task_t(Func&& f, Capture&& c) : capture(std::forward<Capture>(c))
   {
+    std::function<void(Capture)> ftmp{std::forward<Func>(f)};
+    func = [this, ftmp]() { ftmp(std::move(capture)); };
   }
   void operator()() { func(); }
 
