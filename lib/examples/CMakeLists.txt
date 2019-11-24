@@ -18,7 +18,6 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-
 #################################################################
 # Applications
 #################################################################
@@ -72,6 +71,12 @@ if(RF_FOUND)
   add_executable(usrp_capture_sync usrp_capture_sync.c)
   target_link_libraries(usrp_capture_sync srslte_phy srslte_rf)
 
+  add_executable(usrp_capture_sync_nbiot usrp_capture_sync_nbiot.c)
+  target_link_libraries(usrp_capture_sync_nbiot srslte_rf srslte_phy)
+
+  add_executable(cell_search_nbiot cell_search_nbiot.c)
+  target_link_libraries(cell_search_nbiot srslte_rf srslte_phy)
+
   add_executable(usrp_txrx usrp_txrx.c)
   target_link_libraries(usrp_txrx srslte_phy srslte_rf)
 
@@ -80,5 +85,3 @@ if(RF_FOUND)
 else(RF_FOUND)
   message(STATUS "   examples will NOT BE INSTALLED.")
 endif(RF_FOUND)
-
-
