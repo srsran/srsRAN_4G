@@ -224,6 +224,8 @@ exit:
     free(fft_buffer);
   }
 
+  srslte_dft_exit();
+
   return ret;
 }
 

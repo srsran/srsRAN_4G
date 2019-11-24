@@ -149,6 +149,8 @@ int main(int argc, char** argv)
   free(input_buffer);
   srslte_ofdm_tx_free(&ifft);
 
+  srslte_dft_exit();
+
   if (peak_pos == SRSLTE_NPSS_CORR_OFFSET) {
     printf("Ok\n");
     ret = SRSLTE_SUCCESS;
