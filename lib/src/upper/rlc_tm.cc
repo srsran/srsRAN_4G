@@ -115,6 +115,14 @@ void rlc_tm::write_sdu(unique_byte_buffer_t sdu, bool blocking)
   }
 }
 
+void rlc_tm::discard_sdu(uint32_t discard_sn)
+{
+  if (!tx_enabled) {
+    return;
+  }
+  log->warning("SDU discard not implemented on RLC TM\n");
+}
+
 // MAC interface
 bool rlc_tm::has_data()
 {

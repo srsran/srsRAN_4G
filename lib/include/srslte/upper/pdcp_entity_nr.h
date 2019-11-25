@@ -134,7 +134,7 @@ public:
 
 private:
   pdcp_entity_nr* parent;
-  uint32_t        sn;
+  uint32_t        discard_sn;
 };
 
 /*

@@ -54,6 +54,7 @@ public:
 
   // PDCP interface
   void write_sdu(unique_byte_buffer_t sdu, bool blocking);
+  void discard_sdu(uint32_t discard_sn);
 
   // MAC interface
   bool     has_data();

@@ -256,6 +256,7 @@ public:
 
   // PDCP interface
   virtual void write_sdu(unique_byte_buffer_t sdu, bool blocking) = 0;
+  virtual void discard_sdu(uint32_t discard_sn)                   = 0;
 
   // MAC interface
   virtual bool     has_data() = 0;

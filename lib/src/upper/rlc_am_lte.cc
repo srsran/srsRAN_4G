@@ -122,6 +122,11 @@ void rlc_am_lte::write_sdu(unique_byte_buffer_t sdu, bool blocking)
   tx.write_sdu(std::move(sdu), blocking);
 }
 
+void rlc_am_lte::discard_sdu(uint32_t discard_sn)
+{
+  tx.discard_sdu(discard_sn);
+}
+
 /****************************************************************************
  * MAC interface
  ***************************************************************************/
@@ -337,8 +342,8 @@ void rlc_am_lte::rlc_am_lte_tx::write_sdu(unique_byte_buffer_t sdu, bool blockin
       tx_sdu_queue.write(std::move(sdu));
     } else {
       // non-blocking write
-      uint8_t* msg_ptr   = sdu->msg;
-      uint32_t nof_bytes = sdu->N_bytes;
+      uint8_t*                              msg_ptr   = sdu->msg;
+      uint32_t                              nof_bytes = sdu->N_bytes;
       std::pair<bool, unique_byte_buffer_t> ret       = tx_sdu_queue.try_write(std::move(sdu));
       if (ret.first) {
         log->info_hex(
@@ -356,6 +361,14 @@ void rlc_am_lte::rlc_am_lte_tx::write_sdu(unique_byte_buffer_t sdu, bool blockin
   } else {
     log->warning("NULL SDU pointer in write_sdu()\n");
   }
+}
+
+void rlc_am_lte::rlc_am_lte_tx::discard_sdu(uint32_t discard_sn)
+{
+  if (!tx_enabled) {
+    return;
+  }
+  log->warning("Discard SDU not implemented yet\n");
 }
 
 int rlc_am_lte::rlc_am_lte_tx::read_pdu(uint8_t* payload, uint32_t nof_bytes)

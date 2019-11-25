@@ -287,7 +287,8 @@ public:
   /* PDCP calls RLC to push an RLC SDU. SDU gets placed into the RLC buffer and MAC pulls
    * RLC PDUs according to TB size. */
   virtual void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking = true) = 0;
-  virtual bool rb_is_um(uint32_t lcid) = 0;
+  virtual void discard_sdu(uint32_t discard_sn)                                                 = 0;
+  virtual bool rb_is_um(uint32_t lcid)                                                          = 0;
 };
 
 //RLC interface for MAC

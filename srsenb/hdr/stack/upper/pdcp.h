@@ -66,6 +66,7 @@ private:
     srsenb::rlc_interface_pdcp* rlc;
     // rlc_interface_pdcp
     void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking);
+    void discard_sdu(uint32_t discard_sn);
     bool rb_is_um(uint32_t lcid);
   };
 
