@@ -96,9 +96,11 @@ private:
   void pass_to_upper_layers(unique_byte_buffer_t pdu);
 
   // Reodering callback (t-Reordering)
-
   class reordering_callback;
   std::unique_ptr<reordering_callback> reordering_fnc;
+
+  // Discard callback (discardTimer)
+  class discard_callback;
 
   // COUNT overflow protection
   bool tx_overflow = false;
@@ -117,6 +119,22 @@ public:
 
 private:
   pdcp_entity_nr* parent;
+};
+
+// Discard callback (discardTimer)
+class pdcp_entity_nr::discard_callback
+{
+public:
+  discard_callback(pdcp_entity_nr* parent_, uint32_t sn_)
+  {
+    parent     = parent_;
+    discard_sn = sn_;
+  };
+  void operator()(uint32_t timer_id);
+
+private:
+  pdcp_entity_nr* parent;
+  uint32_t        sn;
 };
 
 /*

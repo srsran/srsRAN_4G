@@ -307,9 +307,6 @@ void pdcp_entity_nr::append_mac(const unique_byte_buffer_t& sdu, uint8_t* mac)
   sdu->N_bytes += 4;
 }
 
-/*
- * Reordering Helpers
- */
 // Deliver all consecutivly associated COUNTs.
 // Update RX_NEXT after submitting to higher layers
 void pdcp_entity_nr::deliver_all_consecutive_counts()
@@ -336,6 +333,9 @@ void pdcp_entity_nr::deliver_all_consecutive_counts()
   }
 }
 
+/*
+ * Reordering Timer Callback
+ */
 void pdcp_entity_nr::reordering_callback::operator()(uint32_t timer_id)
 {
   parent->log->debug("Reordering timer expired\n");
@@ -357,4 +357,17 @@ void pdcp_entity_nr::reordering_callback::operator()(uint32_t timer_id)
   }
   return;
 }
+
+/*
+ * Discard Timer Callback
+ */
+void pdcp_entity_nr::discard_callback::operator()(uint32_t timer_id)
+{
+  parent->log->debug("Discard timer expired for PDU with SN = %d\n", discard_sn);
+
+  // Notify the RLC of the discard. It's the RLC to actually discard, if no segment was transmitted yet.
+  parent->rlc->discard_sdu(discard_sn);
+  return;
+}
+
 } // namespace srslte
