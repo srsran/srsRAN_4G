@@ -58,7 +58,7 @@ const unsigned int buffer_size_tx = 1024;
 const unsigned int num_transfers  = 32;
 const unsigned int timeout_ms     = 4000;
 
-char* rf_blade_devname(UNUSED void* h)
+const char* rf_blade_devname(UNUSED void* h)
 {
   return DEVNAME;
 }

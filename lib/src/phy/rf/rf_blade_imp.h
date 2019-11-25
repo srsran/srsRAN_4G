@@ -30,7 +30,7 @@ SRSLTE_API int rf_blade_open(char *args,
 SRSLTE_API int rf_blade_open_multi(char *args, 
                         void **handler, uint32_t nof_channels);
 
-SRSLTE_API char* rf_blade_devname(void *h);
+SRSLTE_API const char* rf_blade_devname(void* h);
 
 SRSLTE_API int rf_blade_close(void *h);
 

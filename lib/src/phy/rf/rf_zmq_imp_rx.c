@@ -157,12 +157,12 @@ int rf_zmq_rx_open(rf_zmq_rx_t* q, char* id, void* zmq_ctx, char* sock_args)
       goto clean_exit;
     }
 
+    q->running = true;
     if (pthread_create(&q->thread, NULL, rf_zmq_async_rx_thread, q)) {
       fprintf(stderr, "Error: creating thread\n");
       goto clean_exit;
     }
 
-    q->running = true;
     ret        = SRSLTE_SUCCESS;
   }
 
