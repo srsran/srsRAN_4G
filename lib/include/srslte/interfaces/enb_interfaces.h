@@ -179,6 +179,7 @@ public:
   /* PDCP calls RLC to push an RLC SDU. SDU gets placed into the RLC buffer and MAC pulls
    * RLC PDUs according to TB size. */
   virtual void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu) = 0;
+  virtual void discard_sdu(uint16_t rnti, uint32_t lcid, uint32_t sn)                    = 0;
   virtual bool rb_is_um(uint16_t rnti, uint32_t lcid)                                    = 0;
 };
 
@@ -299,7 +300,8 @@ public:
                           LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause,
                           srslte::unique_byte_buffer_t             pdu,
                           uint32_t                                 m_tmsi,
-                          uint8_t                                  mmec)                                                                           = 0;
+                          uint8_t                                  mmec) = 0;
+
   virtual void write_pdu(uint16_t rnti, srslte::unique_byte_buffer_t pdu)                                         = 0;
   virtual bool user_exists(uint16_t rnti)                                                                         = 0;
   virtual bool user_release(uint16_t rnti, LIBLTE_S1AP_CAUSERADIONETWORK_ENUM cause_radio)                        = 0;

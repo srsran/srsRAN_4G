@@ -248,11 +248,11 @@ public:
     }
   }
 
-  virtual rlc_mode_t    get_mode() = 0;
-  virtual uint32_t      get_bearer() = 0;
+  virtual rlc_mode_t get_mode()   = 0;
+  virtual uint32_t   get_bearer() = 0;
 
   virtual rlc_bearer_metrics_t get_metrics()   = 0;
-  virtual void reset_metrics() = 0;
+  virtual void                 reset_metrics() = 0;
 
   // PDCP interface
   virtual void write_sdu(unique_byte_buffer_t sdu, bool blocking) = 0;

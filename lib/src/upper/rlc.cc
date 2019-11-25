@@ -235,6 +235,17 @@ bool rlc::rb_is_um(uint32_t lcid)
   return ret;
 }
 
+void rlc::discard_sdu(uint32_t lcid, uint32_t discard_sn)
+{
+  pthread_rwlock_rdlock(&rwlock);
+  if (valid_lcid(lcid)) {
+    rlc_array.at(lcid)->discard_sdu(discard_sn);
+  } else {
+    rlc_log->warning("RLC LCID %d doesn't exist. Ignoring discard SDU\n", lcid);
+  }
+  pthread_rwlock_unlock(&rwlock);
+}
+
 /*******************************************************************************
   MAC interface
 *******************************************************************************/

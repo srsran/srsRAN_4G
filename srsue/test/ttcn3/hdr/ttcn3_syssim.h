@@ -852,6 +852,8 @@ public:
     ue->new_tb(dl_grant, (const uint8_t*)mac_pdu_ptr);
   }
 
+  void discard_sdu(uint32_t lcid, uint32_t sn) {}
+
   bool rb_is_um(uint32_t lcid) { return false; }
 
   int set_as_security(const uint32_t                            lcid,

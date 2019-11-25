@@ -86,8 +86,14 @@ public:
     last_pdcp_pdu.swap(sdu);
     rx_count++;
   }
+  void discard_sdu(uint32_t lcid, uint32_t discard_sn)
+  {
+    log->info("Notifing RLC to discard SDU (SN=%" PRIu32 ")\n", discard_sn);
+    discard_count++;
+  }
 
-  uint64_t rx_count = 0;
+  uint64_t rx_count      = 0;
+  uint64_t discard_count = 0;
 
 private:
   srslte::log*                 log;

@@ -270,6 +270,11 @@ void rlc_um_base::rlc_um_base_tx::try_write_sdu(unique_byte_buffer_t sdu)
   }
 }
 
+void rlc_um_base::rlc_um_base_tx::discard_sdu(uint32_t discard_sn)
+{
+  log->warning("RLC UM: Discard SDU not implemented yet.\n");
+}
+
 int rlc_um_base::rlc_um_base_tx::build_data_pdu(uint8_t* payload, uint32_t nof_bytes)
 {
   unique_byte_buffer_t pdu;

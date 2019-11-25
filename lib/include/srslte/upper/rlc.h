@@ -37,10 +37,7 @@ namespace srslte {
  * Single interface for RLC layer - contains separate RLC entities for
  * each bearer.
  ***************************************************************************/
-class rlc
-    :public srsue::rlc_interface_mac
-    ,public srsue::rlc_interface_pdcp
-    ,public srsue::rlc_interface_rrc
+class rlc : public srsue::rlc_interface_mac, public srsue::rlc_interface_pdcp, public srsue::rlc_interface_rrc
 {
 public:
   rlc(log* rlc_log_);
@@ -57,6 +54,7 @@ public:
   void write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, bool blocking = true);
   void write_sdu_mch(uint32_t lcid, unique_byte_buffer_t sdu);
   bool rb_is_um(uint32_t lcid);
+  void discard_sdu(uint32_t lcid, uint32_t discard_sn);
 
   // MAC interface
   bool     has_data(const uint32_t lcid);
