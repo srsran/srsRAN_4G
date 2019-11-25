@@ -255,7 +255,7 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
       goto clean_exit;
     }
 
-    for (int i = 0; i < handler->nof_channels; i++) {
+    for (int i = 0; i < handler->nof_channels && args != NULL; i++) {
       // rxport
       {
         char config_arg[PARAM_LEN] = "rx_port=";
