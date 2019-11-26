@@ -109,6 +109,7 @@ void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, bool blocking)
     discard_callback            discard_fnc(this, tx_next);
     discard_timer.set(static_cast<uint32_t>(cfg.discard_timer), discard_fnc);
     discard_timer.run();
+    discard_timers_map.insert(std::make_pair(tx_next, std::move(discard_timer)));
     log->debug("Discard Timer set for SN %" PRIu32 ". Timeout: %" PRIu32 "ms\n",
                tx_next,
                static_cast<uint32_t>(cfg.discard_timer));

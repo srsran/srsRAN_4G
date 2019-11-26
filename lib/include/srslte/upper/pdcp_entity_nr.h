@@ -101,6 +101,7 @@ private:
 
   // Discard callback (discardTimer)
   class discard_callback;
+  std::map<uint32_t, timer_handler::unique_timer> discard_timers_map;
 
   // COUNT overflow protection
   bool tx_overflow = false;
