@@ -106,7 +106,12 @@ void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, bool blocking)
   // Start discard timer
   if (cfg.discard_timer != pdcp_discard_timer_t::infinity) {
     timer_handler::unique_timer discard_timer = timers->get_unique_timer();
-    reordering_timer.set(static_cast<uint32_t>(cfg.discard_timer), [](uint32_t tid) {});
+    discard_callback            discard_fnc(this, tx_next);
+    discard_timer.set(static_cast<uint32_t>(cfg.discard_timer), discard_fnc);
+    discard_timer.run();
+    log->debug("Discard Timer set for SN %" PRIu32 ". Timeout: %" PRIu32 "ms\n",
+               tx_next,
+               static_cast<uint32_t>(cfg.discard_timer));
   }
 
   // Perform header compression TODO
@@ -333,9 +338,11 @@ void pdcp_entity_nr::deliver_all_consecutive_counts()
   }
 }
 
+
 /*
- * Reordering Timer Callback
+ * Timers
  */
+// Reordering Timer Callback (t-reordering)
 void pdcp_entity_nr::reordering_callback::operator()(uint32_t timer_id)
 {
   parent->log->debug("Reordering timer expired\n");
@@ -358,9 +365,7 @@ void pdcp_entity_nr::reordering_callback::operator()(uint32_t timer_id)
   return;
 }
 
-/*
- * Discard Timer Callback
- */
+// Discard Timer Callback (discardTimer)
 void pdcp_entity_nr::discard_callback::operator()(uint32_t timer_id)
 {
   parent->log->debug("Discard timer expired for PDU with SN = %d\n", discard_sn);
