@@ -25,7 +25,7 @@
 #include <math.h>
 #include <pwd.h>
 #include <string.h>
-#include <zconf.h>
+#include <unistd.h>
 
 #include "srslte/phy/dft/dft.h"
 #include "srslte/phy/utils/vector.h"
