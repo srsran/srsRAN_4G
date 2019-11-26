@@ -215,7 +215,7 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
     strcpy(handler->id, "zmq\0");
 
     // parse args
-    if (args) {
+    if (args && strlen(args)) {
       // base_srate
       {
         const char config_arg[]          = "base_srate=";
@@ -244,6 +244,9 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
           remove_substring(args, config_str);
         }
       }
+    } else {
+      fprintf(stderr, "[zmq] Error: RF device args are required for ZMQ no-RF module\n");
+      goto clean_exit;
     }
 
     update_rates(handler, 1.92e6);
@@ -255,7 +258,7 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
       goto clean_exit;
     }
 
-    for (int i = 0; i < handler->nof_channels && args != NULL; i++) {
+    for (int i = 0; i < handler->nof_channels; i++) {
       // rxport
       {
         char config_arg[PARAM_LEN] = "rx_port=";
