@@ -205,12 +205,11 @@ void rlc::discard_sdu(uint16_t rnti, uint32_t lcid, uint32_t discard_sn)
 
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti)) {
-      users[rnti].rlc->discard_sdu(lcid, discard_sn);
-      tx_queue   = users[rnti].rlc->get_buffer_state(lcid);
-    }
-    // In the eNodeB, there is no polling for buffer state from the scheduler, thus 
+    users[rnti].rlc->discard_sdu(lcid, discard_sn);
+    tx_queue = users[rnti].rlc->get_buffer_state(lcid);
+
+    // In the eNodeB, there is no polling for buffer state from the scheduler, thus
     // communicate buffer state every time a new SDU is discarded
-    
     uint32_t retx_queue = 0; 
     mac->rlc_buffer_state(rnti, lcid, tx_queue, retx_queue);
     log_h->info("Buffer state: rnti=0x%x, lcid=%d, tx_queue=%d\n", rnti, lcid, tx_queue);

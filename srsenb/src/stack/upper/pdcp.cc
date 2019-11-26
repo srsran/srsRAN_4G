@@ -172,7 +172,7 @@ void pdcp::user_interface_rlc::write_sdu(uint32_t lcid, srslte::unique_byte_buff
 
 void pdcp::user_interface_rlc::discard_sdu(uint32_t lcid, uint32_t discard_sn)
 {
-  rlc->discard_sdu(lcid, discard_sn);
+  rlc->discard_sdu(rnti, lcid, discard_sn);
 }
 
 bool pdcp::user_interface_rlc::rb_is_um(uint32_t lcid)
