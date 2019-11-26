@@ -201,6 +201,8 @@ void rrc::run_tti(uint32_t tti)
     return;
   }
 
+  rrc_log->step(tti);
+
   if (simulate_rlf) {
     radio_link_failure();
     simulate_rlf = false;
@@ -425,7 +427,7 @@ void rrc::out_of_sync()
 {
   // CAUTION: We do not lock in this function since they are called from real-time threads
   if (serving_cell && timers && rrc_log) {
-    serving_cell->in_sync = false;
+    phy_sync_state = phy_out_of_sync;
 
     // upon receiving N310 consecutive "out-of-sync" indications for the PCell from lower layers while neither T300,
     //   T301, T304 nor T311 is running:
@@ -452,7 +454,7 @@ void rrc::out_of_sync()
 void rrc::in_sync()
 {
   // CAUTION: We do not lock in this function since they are called from real-time threads
-  serving_cell->in_sync = true;
+  phy_sync_state = phy_in_sync;
   if (t310.is_running()) {
     n311_cnt++;
     if (n311_cnt == N311) {
@@ -1346,7 +1348,7 @@ void rrc::start_con_restablishment(asn1::rrc::reest_cause_e cause)
 
 void rrc::start_cell_reselection()
 {
-  if (neighbour_cells.empty() and serving_cell->in_sync and phy->cell_is_camping()) {
+  if (neighbour_cells.empty() and phy_sync_state == phy_in_sync and phy->cell_is_camping()) {
     // don't bother with cell selection if there are no neighbours and we are already camping
     return;
   }

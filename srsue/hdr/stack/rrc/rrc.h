@@ -260,7 +260,6 @@ class cell_t
   }
 
   phy_interface_rrc_lte::phy_cell_t phy_cell = {};
-  bool                              in_sync  = false;
   bool                              has_mcch = false;
   asn1::rrc::sib_type1_s            sib1;
   asn1::rrc::sib_type2_s            sib2;
@@ -328,9 +327,9 @@ public:
   void     paging_completed(bool outcome) final;
 
   // PHY interface
-  void in_sync();
-  void out_of_sync();
-  void new_phy_meas(float rsrp, float rsrq, uint32_t tti, int earfcn, int pci);
+  void in_sync() final;
+  void out_of_sync() final;
+  void new_phy_meas(float rsrp, float rsrq, uint32_t tti, int earfcn, int pci) final;
 
   // MAC interface
   void ho_ra_completed(bool ra_successful);
@@ -389,6 +388,9 @@ private:
   bool                ue_identity_configured = false;
 
   bool drb_up = false;
+
+  typedef enum { phy_unknown_sync = 0, phy_in_sync, phy_out_of_sync } phy_sync_state_t;
+  phy_sync_state_t phy_sync_state = phy_unknown_sync;
 
   rrc_args_t args = {};
 

@@ -330,6 +330,7 @@ bool sync::cell_select(phy_interface_rrc_lte::phy_cell_t* new_cell)
   phy_state.run_sfn_sync();
   if (phy_state.is_camping()) {
     Info("Cell Select: SFN synchronized. CAMPING...\n");
+    stack->in_sync();
     ret = true;
   } else {
     Info("Cell Select: Could not synchronize SFN\n");

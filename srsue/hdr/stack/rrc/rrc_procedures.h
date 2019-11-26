@@ -117,6 +117,7 @@ public:
 
 private:
   srslte::proc_outcome_t step_cell_selection();
+  srslte::proc_outcome_t step_wait_in_sync();
   srslte::proc_outcome_t step_cell_search();
   srslte::proc_outcome_t step_cell_config();
 
@@ -124,7 +125,7 @@ private:
   rrc* rrc_ptr;
 
   // state variables
-  enum class search_state_t { cell_selection, cell_config, cell_search };
+  enum class search_state_t { cell_selection, wait_in_sync, cell_config, cell_search };
   cs_result_t                                                     cs_result;
   search_state_t                                                  state;
   uint32_t                                                        neigh_index;

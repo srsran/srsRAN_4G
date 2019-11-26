@@ -116,6 +116,7 @@ proc_outcome_t rrc::cell_search_proc::react(const cell_search_event_t& event)
       return handle_cell_found(search_result.found_cell);
     }
     case phy_interface_rrc_lte::cell_search_ret_t::CELL_NOT_FOUND:
+      rrc_ptr->phy_sync_state = phy_unknown_sync;
       Info("No cells found.\n");
       // do nothing
       return proc_outcome_t::success;
@@ -329,7 +330,7 @@ rrc::cell_selection_proc::cell_selection_proc(rrc* parent_) : rrc_ptr(parent_) {
  */
 proc_outcome_t rrc::cell_selection_proc::init()
 {
-  if (rrc_ptr->neighbour_cells.empty() and rrc_ptr->serving_cell->in_sync and rrc_ptr->phy->cell_is_camping()) {
+  if (rrc_ptr->neighbour_cells.empty() and rrc_ptr->phy_sync_state == phy_in_sync and rrc_ptr->phy->cell_is_camping()) {
     // don't bother with cell selection if there are no neighbours and we are already camping
     Debug("Skipping Cell Selection Procedure ..\n");
     cs_result = cs_result_t::same_cell;
@@ -350,35 +351,30 @@ proc_outcome_t rrc::cell_selection_proc::step_cell_selection()
   for (; neigh_index < rrc_ptr->neighbour_cells.size(); ++neigh_index) {
     /*TODO: CHECK that PLMN matches. Currently we don't receive SIB1 of neighbour cells
      * neighbour_cells[i]->plmn_equals(selected_plmn_id) && */
-    if (rrc_ptr->neighbour_cells.at(neigh_index)->in_sync) {
-      // Matches S criteria
-      float rsrp = rrc_ptr->neighbour_cells.at(neigh_index)->get_rsrp();
+    // Matches S criteria
+    float rsrp = rrc_ptr->neighbour_cells.at(neigh_index)->get_rsrp();
 
-      if (not rrc_ptr->serving_cell->in_sync or
-          (rrc_ptr->cell_selection_criteria(rsrp) and rsrp > rrc_ptr->serving_cell->get_rsrp() + 5)) {
-        // currently connected and verifies cell selection criteria
-        // Try to select Cell
-        rrc_ptr->set_serving_cell(rrc_ptr->neighbour_cells.at(neigh_index)->phy_cell);
-        Info("Selected cell: %s\n", rrc_ptr->serving_cell->print().c_str());
-        rrc_ptr->rrc_log->console("Selected cell: %s\n", rrc_ptr->serving_cell->print().c_str());
+    if (rrc_ptr->phy_sync_state != phy_in_sync or
+        (rrc_ptr->cell_selection_criteria(rsrp) and rsrp > rrc_ptr->serving_cell->get_rsrp() + 5)) {
+      // currently connected and verifies cell selection criteria
+      // Try to select Cell
+      rrc_ptr->set_serving_cell(rrc_ptr->neighbour_cells.at(neigh_index)->phy_cell);
+      Info("Selected cell: %s\n", rrc_ptr->serving_cell->print().c_str());
+      rrc_ptr->rrc_log->console("Selected cell: %s\n", rrc_ptr->serving_cell->print().c_str());
 
-        /* BLOCKING CALL */
-        if (rrc_ptr->phy->cell_select(&rrc_ptr->serving_cell->phy_cell)) {
-          serv_cell_cfg_fut = rrc_ptr->serv_cell_cfg.get_future();
-          if (not rrc_ptr->serv_cell_cfg.launch(rrc_ptr->ue_required_sibs)) {
-            return proc_outcome_t::error;
-          }
-          state = search_state_t::cell_config;
-          return proc_outcome_t::repeat;
-        } else {
-          rrc_ptr->serving_cell->in_sync = false;
-          Error("Could not camp on serving cell.\n");
-          // Continue to next neighbour cell
-        }
+      /* BLOCKING CALL */
+      if (rrc_ptr->phy->cell_select(&rrc_ptr->serving_cell->phy_cell)) {
+        Info("Wait PHY to be in-synch\n");
+        state = search_state_t::wait_in_sync;
+        return proc_outcome_t::repeat;
+      } else {
+        rrc_ptr->phy_sync_state = phy_unknown_sync;
+        Error("Could not camp on serving cell.\n");
+        // Continue to next neighbour cell
       }
     }
   }
-  if (rrc_ptr->serving_cell->in_sync) {
+  if (rrc_ptr->phy_sync_state == phy_in_sync) {
     if (not rrc_ptr->phy->cell_is_camping()) {
       Info("Serving cell %s is in-sync but not camping. Selecting it...\n", rrc_ptr->serving_cell->print().c_str());
 
@@ -386,7 +382,7 @@ proc_outcome_t rrc::cell_selection_proc::step_cell_selection()
       if (rrc_ptr->phy->cell_select(&rrc_ptr->serving_cell->phy_cell)) {
         Info("Selected serving cell OK.\n");
       } else {
-        rrc_ptr->serving_cell->in_sync = false;
+        rrc_ptr->phy_sync_state = phy_unknown_sync;
         Error("Could not camp on serving cell.\n");
         return proc_outcome_t::error;
       }
@@ -403,6 +399,19 @@ proc_outcome_t rrc::cell_selection_proc::step_cell_selection()
   }
   state = search_state_t::cell_search;
   return proc_outcome_t::repeat;
+}
+
+proc_outcome_t rrc::cell_selection_proc::step_wait_in_sync()
+{
+  if (rrc_ptr->phy_sync_state == phy_in_sync) {
+    Info("PHY is in SYNC\n");
+    serv_cell_cfg_fut = rrc_ptr->serv_cell_cfg.get_future();
+    if (not rrc_ptr->serv_cell_cfg.launch(rrc_ptr->ue_required_sibs)) {
+      return proc_outcome_t::error;
+    }
+    state = search_state_t::cell_config;
+  }
+  return proc_outcome_t::yield;
 }
 
 proc_outcome_t rrc::cell_selection_proc::step_cell_search()
@@ -443,6 +452,8 @@ proc_outcome_t rrc::cell_selection_proc::step()
   switch (state) {
     case search_state_t::cell_selection:
       return step_cell_selection();
+    case search_state_t::wait_in_sync:
+      return step_wait_in_sync();
     case search_state_t::cell_config:
       return step_cell_config();
     case search_state_t::cell_search:
@@ -684,11 +695,11 @@ srslte::proc_outcome_t rrc::connection_request_proc::react(const cell_selection_
     switch (cs_ret) {
       case cs_result_t::same_cell:
         log_h->warning("Did not reselect cell but serving cell is out-of-sync.\n");
-        rrc_ptr->serving_cell->in_sync = false;
+        rrc_ptr->phy_sync_state = phy_unknown_sync;
         break;
       case cs_result_t::changed_cell:
         log_h->warning("Selected a new cell but could not camp on. Setting out-of-sync.\n");
-        rrc_ptr->serving_cell->in_sync = false;
+        rrc_ptr->phy_sync_state = phy_unknown_sync;
         break;
       default:
         log_h->warning("Could not find any suitable cell to connect\n");
@@ -861,7 +872,7 @@ proc_outcome_t rrc::cell_reselection_proc::step()
     case cs_result_t::same_cell:
       if (!rrc_ptr->phy->cell_is_camping()) {
         Warning("Did not reselect cell but serving cell is out-of-sync.\n");
-        rrc_ptr->serving_cell->in_sync = false;
+        rrc_ptr->phy_sync_state = phy_unknown_sync;
       }
       break;
   }
@@ -945,7 +956,7 @@ srslte::proc_outcome_t rrc::connection_reest_proc::step_cell_reselection()
   // Run cell reselection
   if (not rrc_ptr->cell_reselector.run()) {
     // Cell reselection finished or not started
-    if (rrc_ptr->serving_cell->in_sync) {
+    if (rrc_ptr->phy_sync_state == phy_in_sync) {
       // In-sync, check SIBs
       if (rrc_ptr->serving_cell->has_sib1() && rrc_ptr->serving_cell->has_sib2() && rrc_ptr->serving_cell->has_sib3()) {
         Info("In-sync, SIBs available. Going to cell criteria\n");
@@ -978,7 +989,7 @@ proc_outcome_t rrc::connection_reest_proc::step_cell_configuration()
 {
   if (not rrc_ptr->serv_cell_cfg.run()) {
     // SIBs adquisition not started or finished
-    if (rrc_ptr->serving_cell->in_sync) {
+    if (rrc_ptr->phy_sync_state == phy_in_sync) {
       // In-sync
       if (rrc_ptr->serving_cell->has_sib1() && rrc_ptr->serving_cell->has_sib2() && rrc_ptr->serving_cell->has_sib3()) {
         // All SIBs are available
