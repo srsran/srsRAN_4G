@@ -221,7 +221,8 @@ private:
                                       .tx_direction  = SECURITY_DIRECTION_DOWNLINK,
                                       .rx_direction  = SECURITY_DIRECTION_UPLINK,
                                       .sn_len        = PDCP_SN_LEN_5,
-                                      .t_reorderding = srslte::pdcp_t_reordering_t::ms500};
+                                      .t_reorderding = srslte::pdcp_t_reordering_t::ms500,
+                                      .discard_timer = srslte::pdcp_discard_timer_t::infinity};
             syssim->add_srb(lcid, pdcp_cfg);
           }
         } else if (config.HasMember("Release")) {

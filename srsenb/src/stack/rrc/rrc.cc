@@ -219,8 +219,10 @@ void rrc::add_user(uint16_t rnti)
                                    srslte::SECURITY_DIRECTION_DOWNLINK,
                                    srslte::SECURITY_DIRECTION_UPLINK,
                                    srslte::PDCP_SN_LEN_12,
-                                   srslte::pdcp_t_reordering_t::ms500};
-    uint32_t              teid_in = 1;
+                                   srslte::pdcp_t_reordering_t::ms500,
+                                   srslte::pdcp_discard_timer_t::infinity};
+
+    uint32_t teid_in = 1;
 
     for (auto& mbms_item : mcch.msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[0].mbms_session_info_list_r9) {
       uint32_t lcid = mbms_item.lc_ch_id_r9;
@@ -1642,7 +1644,8 @@ void rrc::ue::send_connection_setup(bool is_setup)
                                   srslte::SECURITY_DIRECTION_DOWNLINK,
                                   srslte::SECURITY_DIRECTION_UPLINK,
                                   srslte::PDCP_SN_LEN_5,
-                                  srslte::pdcp_t_reordering_t::ms500};
+                                  srslte::pdcp_t_reordering_t::ms500,
+                                  srslte::pdcp_discard_timer_t::infinity};
 
   parent->pdcp->add_bearer(rnti, 1, pdcp_cnfg);
 
@@ -1859,7 +1862,8 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
                                          srslte::SECURITY_DIRECTION_DOWNLINK,
                                          srslte::SECURITY_DIRECTION_UPLINK,
                                          srslte::PDCP_SN_LEN_5,
-                                         srslte::pdcp_t_reordering_t::ms500};
+                                         srslte::pdcp_t_reordering_t::ms500,
+                                         srslte::pdcp_discard_timer_t::infinity};
 
   parent->pdcp->add_bearer(rnti, 2, pdcp_cnfg_srb);
   parent->pdcp->config_security(rnti, 2, k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo);
@@ -1875,7 +1879,8 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
                                          srslte::SECURITY_DIRECTION_DOWNLINK,
                                          srslte::SECURITY_DIRECTION_UPLINK,
                                          srslte::PDCP_SN_LEN_12,
-                                         srslte::pdcp_t_reordering_t::ms500};
+                                         srslte::pdcp_t_reordering_t::ms500,
+                                         srslte::pdcp_discard_timer_t::infinity};
 
   if (conn_reconf->rr_cfg_ded.drb_to_add_mod_list[0].pdcp_cfg.rlc_um_present) {
     if (conn_reconf->rr_cfg_ded.drb_to_add_mod_list[0].pdcp_cfg.rlc_um.pdcp_sn_size.value ==
@@ -1952,7 +1957,8 @@ void rrc::ue::send_connection_reconf_new_bearer(LIBLTE_S1AP_E_RABTOBESETUPLISTBE
         srslte::SECURITY_DIRECTION_DOWNLINK,
         srslte::SECURITY_DIRECTION_UPLINK,
         srslte::PDCP_SN_LEN_12,
-        srslte::pdcp_t_reordering_t::ms500};
+        srslte::pdcp_t_reordering_t::ms500,
+        srslte::pdcp_discard_timer_t::infinity};
 
     parent->pdcp->add_bearer(rnti, lcid, pdcp_config);
 

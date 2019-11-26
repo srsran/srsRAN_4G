@@ -103,7 +103,8 @@ protected:
                        SECURITY_DIRECTION_DOWNLINK,
                        SECURITY_DIRECTION_UPLINK,
                        PDCP_SN_LEN_12,
-                       pdcp_t_reordering_t::ms500};
+                       pdcp_t_reordering_t::ms500,
+                       pdcp_discard_timer_t::infinity};
 
   std::mutex mutex;
 

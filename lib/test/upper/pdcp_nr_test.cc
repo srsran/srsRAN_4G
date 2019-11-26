@@ -79,7 +79,8 @@ int test_tx(uint32_t                     n_packets,
                                srslte::SECURITY_DIRECTION_UPLINK,
                                srslte::SECURITY_DIRECTION_DOWNLINK,
                                pdcp_sn_len,
-                               srslte::pdcp_t_reordering_t::ms500};
+                               srslte::pdcp_t_reordering_t::ms500,
+                               srslte::pdcp_discard_timer_t::infinity};
 
   pdcp_nr_test_helper     pdcp_hlp(cfg, sec_cfg, log);
   srslte::pdcp_entity_nr* pdcp = &pdcp_hlp.pdcp;
@@ -121,7 +122,8 @@ int test_rx(std::vector<pdcp_test_event_t>      events,
                                   srslte::SECURITY_DIRECTION_DOWNLINK,
                                   srslte::SECURITY_DIRECTION_UPLINK,
                                   pdcp_sn_len,
-                                  srslte::pdcp_t_reordering_t::ms500};
+                                  srslte::pdcp_t_reordering_t::ms500,
+                                  srslte::pdcp_discard_timer_t::infinity};
 
   pdcp_nr_test_helper     pdcp_hlp_rx(cfg_rx, sec_cfg, log);
   srslte::pdcp_entity_nr* pdcp_rx   = &pdcp_hlp_rx.pdcp;
@@ -144,6 +146,47 @@ int test_rx(std::vector<pdcp_test_event_t>      events,
   srslte::unique_byte_buffer_t sdu_act = allocate_unique_buffer(*pool);
   gw_rx->get_last_pdu(sdu_act);
   TESTASSERT(compare_two_packets(sdu_exp, sdu_act) == 0);
+  return 0;
+}
+
+/*
+ * Genric function to test transmission of in-sequence packets
+ */
+int test_tx_sdu_discard(uint32_t                     n_packets,
+            const pdcp_initial_state&    init_state,
+            uint8_t                      pdcp_sn_len,
+            uint64_t                     n_pdus_exp,
+            srslte::unique_byte_buffer_t pdu_exp,
+            srslte::byte_buffer_pool*    pool,
+            srslte::log*                 log)
+{
+  srslte::pdcp_config_t cfg = {1,
+                               srslte::PDCP_RB_IS_DRB,
+                               srslte::SECURITY_DIRECTION_UPLINK,
+                               srslte::SECURITY_DIRECTION_DOWNLINK,
+                               pdcp_sn_len,
+                               srslte::pdcp_t_reordering_t::ms500,
+                               srslte::pdcp_discard_timer_t::ms50};
+
+  pdcp_nr_test_helper     pdcp_hlp(cfg, sec_cfg, log);
+  srslte::pdcp_entity_nr* pdcp = &pdcp_hlp.pdcp;
+  rlc_dummy*              rlc  = &pdcp_hlp.rlc;
+
+  pdcp_hlp.set_pdcp_initial_state(init_state);
+
+  // Run test
+  for (uint32_t i = 0; i < n_packets; ++i) {
+    // Test SDU
+    srslte::unique_byte_buffer_t sdu = allocate_unique_buffer(*pool);
+    sdu->append_bytes(sdu1, sizeof(sdu1));
+    pdcp->write_sdu(std::move(sdu), true);
+  }
+
+  srslte::unique_byte_buffer_t pdu_act = allocate_unique_buffer(*pool);
+  rlc->get_last_sdu(pdu_act);
+
+  TESTASSERT(rlc->rx_count == n_pdus_exp);
+  TESTASSERT(compare_two_packets(pdu_act, pdu_exp) == 0);
   return 0;
 }
 
@@ -287,6 +330,11 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
                      std::move(pdu_exp_count4294967295_len18),
                      pool,
                      log) == 0);
+
+  /*
+   * TX Test 9: PDCP Entity with SN LEN = 12
+   * Test TX PDU discard.
+   */
   return 0;
 }
 
@@ -462,17 +510,10 @@ int run_all_tests(srslte::byte_buffer_pool* pool)
 
   TESTASSERT(test_tx_all(pool, &log) == 0);
   TESTASSERT(test_rx_all(pool, &log) == 0);
-
-  // Helpers for generating expected PDUs
-  // srslte::unique_byte_buffer_t sdu = srslte::allocate_unique_buffer(*pool);
-  // sdu->append_bytes(sdu2, sizeof(sdu2));
-  // uint32_t tx_next = 1;
-  // srslte::unique_byte_buffer_t pdu = gen_expected_pdu(std::move(sdu), tx_next, srslte::PDCP_SN_LEN_18, sec_cfg, pool,
-  // &log); print_packet_array(pdu);
   return 0;
 }
 
-int main(int argc, char** argv)
+int main()
 {
   if (run_all_tests(srslte::byte_buffer_pool::get_instance()) != SRSLTE_SUCCESS) {
     fprintf(stderr, "pdcp_nr_tests() failed\n");
