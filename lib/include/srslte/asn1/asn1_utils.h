@@ -125,6 +125,9 @@ class dyn_array
 {
 public:
   typedef T item_type;
+  using iterator       = T*;
+  using const_iterator = const T*;
+
   dyn_array() = default;
   dyn_array(uint32_t new_size) : size_(new_size), cap_(new_size) { data_ = new T[size_]; }
   dyn_array(const dyn_array<T>& other)
@@ -186,17 +189,14 @@ public:
     resize(size() + 1, size() * 2);
     data_[size() - 1] = elem;
   }
-  T&       back() { return data_[size() - 1]; }
-  const T& back() const { return data_[size() - 1]; }
-  T*       data() { return &data_[0]; }
-  const T* data() const { return &data_[0]; }
-
-  T*       begin() { return &data_[0]; }
-  T*       end() { return &data_[size()]; }
-  const T* begin() const { return &data_[0]; }
-  const T* end() const { return &data_[size()]; }
-  using iterator       = T*;
-  using const_iterator = const T*;
+  T&             back() { return data_[size() - 1]; }
+  const T&       back() const { return data_[size() - 1]; }
+  T*             data() { return &data_[0]; }
+  const T*       data() const { return &data_[0]; }
+  iterator       begin() { return &data_[0]; }
+  iterator       end() { return &data_[size()]; }
+  const_iterator begin() const { return &data_[0]; }
+  const_iterator end() const { return &data_[size()]; }
 
 private:
   T*       data_ = nullptr;
@@ -209,6 +209,9 @@ class bounded_array
 {
 public:
   typedef T item_type;
+  using iterator       = T*;
+  using const_iterator = const T*;
+
   bounded_array(uint32_t size_ = 0) : current_size(size_) {}
   static uint32_t capacity() { return MAX_N; }
   uint32_t        size() const { return current_size; }
@@ -226,17 +229,14 @@ public:
     }
     data_[current_size++] = elem;
   }
-  T&       back() { return data_[current_size - 1]; }
-  const T& back() const { return data_[current_size - 1]; }
-  T*       data() { return &data_[0]; }
-  const T* data() const { return &data_[0]; }
-
-  T*       begin() { return &data_[0]; }
-  T*       end() { return &data_[size()]; }
-  const T* begin() const { return &data_[0]; }
-  const T* end() const { return &data_[size()]; }
-  using iterator       = T*;
-  using const_iterator = const T*;
+  T&             back() { return data_[current_size - 1]; }
+  const T&       back() const { return data_[current_size - 1]; }
+  T*             data() { return &data_[0]; }
+  const T*       data() const { return &data_[0]; }
+  iterator       begin() { return &data_[0]; }
+  iterator       end() { return &data_[size()]; }
+  const_iterator begin() const { return &data_[0]; }
+  const_iterator end() const { return &data_[size()]; }
 
 private:
   T        data_[MAX_N];

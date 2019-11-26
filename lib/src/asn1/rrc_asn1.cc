@@ -2776,10 +2776,8 @@ SRSASN_CODE sl_comm_tx_pool_sensing_cfg_r14_s::pack(bit_ref& bref) const
   HANDLE_CODE(bref.pack(sl_reselect_after_r14_present, 1));
 
   HANDLE_CODE(pack_dyn_seq_of(bref, pssch_tx_cfg_list_r14, 1, 16));
-  HANDLE_CODE(pack_fixed_seq_of(bref,
-                                &(*thres_pssch_rsrp_list_r14)[0],
-                                thres_pssch_rsrp_list_r14->size(),
-                                UnalignedIntegerPacker<uint8_t>(0, 66)));
+  HANDLE_CODE(pack_fixed_seq_of(
+      bref, &(thres_pssch_rsrp_list_r14)[0], thres_pssch_rsrp_list_r14.size(), UnalignedIntegerPacker<uint8_t>(0, 66)));
   if (restrict_res_reserv_period_r14_present) {
     HANDLE_CODE(pack_dyn_seq_of(bref, restrict_res_reserv_period_r14, 1, 16, EnumPacker()));
   }
@@ -2801,10 +2799,8 @@ SRSASN_CODE sl_comm_tx_pool_sensing_cfg_r14_s::unpack(bit_ref& bref)
   HANDLE_CODE(bref.unpack(sl_reselect_after_r14_present, 1));
 
   HANDLE_CODE(unpack_dyn_seq_of(pssch_tx_cfg_list_r14, bref, 1, 16));
-  HANDLE_CODE(unpack_fixed_seq_of(&(*thres_pssch_rsrp_list_r14)[0],
-                                  bref,
-                                  thres_pssch_rsrp_list_r14->size(),
-                                  UnalignedIntegerPacker<uint8_t>(0, 66)));
+  HANDLE_CODE(unpack_fixed_seq_of(
+      &(thres_pssch_rsrp_list_r14)[0], bref, thres_pssch_rsrp_list_r14.size(), UnalignedIntegerPacker<uint8_t>(0, 66)));
   if (restrict_res_reserv_period_r14_present) {
     HANDLE_CODE(unpack_dyn_seq_of(restrict_res_reserv_period_r14, bref, 1, 16, EnumPacker()));
   }
@@ -2828,8 +2824,8 @@ void sl_comm_tx_pool_sensing_cfg_r14_s::to_json(json_writer& j) const
   }
   j.end_array();
   j.start_array("thresPSSCH-RSRP-List-r14");
-  for (uint32_t i1 = 0; i1 < thres_pssch_rsrp_list_r14->size(); ++i1) {
-    j.write_int(((*thres_pssch_rsrp_list_r14)[i1]));
+  for (uint32_t i1 = 0; i1 < thres_pssch_rsrp_list_r14.size(); ++i1) {
+    j.write_int(thres_pssch_rsrp_list_r14[i1]);
   }
   j.end_array();
   if (restrict_res_reserv_period_r14_present) {

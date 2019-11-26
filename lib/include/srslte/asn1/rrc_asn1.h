@@ -1989,7 +1989,7 @@ struct sl_comm_tx_pool_sensing_cfg_r14_s {
   bool                                     p2x_sensing_cfg_r14_present            = false;
   bool                                     sl_reselect_after_r14_present          = false;
   sl_pssch_tx_cfg_list_r14_l               pssch_tx_cfg_list_r14;
-  copy_ptr<sl_thres_pssch_rsrp_list_r14_l> thres_pssch_rsrp_list_r14;
+  sl_thres_pssch_rsrp_list_r14_l           thres_pssch_rsrp_list_r14;
   sl_restrict_res_reserv_period_list_r14_l restrict_res_reserv_period_r14;
   prob_res_keep_r14_e_                     prob_res_keep_r14;
   p2x_sensing_cfg_r14_s_                   p2x_sensing_cfg_r14;
