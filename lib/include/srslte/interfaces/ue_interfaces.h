@@ -453,6 +453,7 @@ public:
   virtual void reconfiguration(const uint32_t& cc_idx, const bool& enable) = 0;
   virtual void reset() = 0;
   virtual void wait_uplink() = 0;
+  virtual void set_enable_ra_proc(bool en)                                 = 0;
 };
 
 /** PHY interface 

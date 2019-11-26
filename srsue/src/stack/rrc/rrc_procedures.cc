@@ -908,6 +908,7 @@ proc_outcome_t rrc::connection_reest_proc::init(asn1::rrc::reest_cause_e cause)
     }
 
     // reset MAC;
+    rrc_ptr->mac->set_enable_ra_proc(false); // Prevent MAC from running RA procedure
     rrc_ptr->mac->reset();
 
     // apply the default physical channel configuration as specified in 9.2.4;
@@ -1031,24 +1032,32 @@ srslte::proc_outcome_t rrc::connection_reest_proc::cell_criteria()
 
 proc_outcome_t rrc::connection_reest_proc::step()
 {
+  proc_outcome_t ret = proc_outcome_t::yield;
+
   // Abort procedure if T311 expires
   if (!rrc_ptr->t311.is_running()) {
     Info("T311 expired. Aborting.\n");
-    return proc_outcome_t::success;
+    ret = proc_outcome_t::success;
+  } else {
+    /*
+     * Implementation of procedure in 3GPP 36.331 Section 5.3.7.3: Actions following cell selection while T311 is
+     * running
+     */
+    switch (state) {
+      case state_t::cell_reselection:
+        ret = step_cell_reselection();
+        break;
+
+      case state_t::cell_configuration:
+        ret = step_cell_configuration();
+        break;
+    }
+  }
+  if (ret != proc_outcome_t::yield) {
+    rrc_ptr->mac->set_enable_ra_proc(true);
   }
 
-  /*
-   * Implementation of procedure in 3GPP 36.331 Section 5.3.7.3: Actions following cell selection while T311 is running
-   */
-  switch (state) {
-    case state_t::cell_reselection:
-      return step_cell_reselection();
-
-    case state_t::cell_configuration:
-      return step_cell_configuration();
-  }
-
-  return proc_outcome_t::error;
+  return ret;
 }
 
 } // namespace srsue

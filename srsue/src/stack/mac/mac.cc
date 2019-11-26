@@ -227,8 +227,10 @@ void mac::run_tti(const uint32_t tti)
   sr_procedure.step(tti);
 
   // Check SR if we need to start RA
-  if (sr_procedure.need_random_access()) {
-    ra_procedure.start_mac_order();
+  if (enable_ra_proc) {
+    if (sr_procedure.need_random_access()) {
+      ra_procedure.start_mac_order();
+    }
   }
 
   ra_procedure.step(tti);
