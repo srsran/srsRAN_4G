@@ -152,41 +152,40 @@ int test_rx(std::vector<pdcp_test_event_t>      events,
 /*
  * Genric function to test transmission of in-sequence packets
  */
-int test_tx_sdu_discard(uint32_t                     n_packets,
-            const pdcp_initial_state&    init_state,
-            uint8_t                      pdcp_sn_len,
-            uint64_t                     n_pdus_exp,
-            srslte::unique_byte_buffer_t pdu_exp,
-            srslte::byte_buffer_pool*    pool,
-            srslte::log*                 log)
+int test_tx_sdu_discard(const pdcp_initial_state&    init_state,
+                        srslte::pdcp_discard_timer_t discard_timeout,
+                        srslte::byte_buffer_pool*    pool,
+                        srslte::log*                 log)
 {
   srslte::pdcp_config_t cfg = {1,
                                srslte::PDCP_RB_IS_DRB,
                                srslte::SECURITY_DIRECTION_UPLINK,
                                srslte::SECURITY_DIRECTION_DOWNLINK,
-                               pdcp_sn_len,
+                               srslte::PDCP_SN_LEN_12,
                                srslte::pdcp_t_reordering_t::ms500,
-                               srslte::pdcp_discard_timer_t::ms50};
+                               discard_timeout};
 
   pdcp_nr_test_helper     pdcp_hlp(cfg, sec_cfg, log);
-  srslte::pdcp_entity_nr* pdcp = &pdcp_hlp.pdcp;
-  rlc_dummy*              rlc  = &pdcp_hlp.rlc;
+  srslte::pdcp_entity_nr* pdcp      = &pdcp_hlp.pdcp;
+  rlc_dummy*              rlc       = &pdcp_hlp.rlc;
+  srslte::timer_handler*  timers_rx = &pdcp_hlp.timers;
 
   pdcp_hlp.set_pdcp_initial_state(init_state);
 
   // Run test
-  for (uint32_t i = 0; i < n_packets; ++i) {
-    // Test SDU
-    srslte::unique_byte_buffer_t sdu = allocate_unique_buffer(*pool);
-    sdu->append_bytes(sdu1, sizeof(sdu1));
-    pdcp->write_sdu(std::move(sdu), true);
+
+  // Test SDU
+  srslte::unique_byte_buffer_t sdu = allocate_unique_buffer(*pool);
+  sdu->append_bytes(sdu1, sizeof(sdu1));
+  pdcp->write_sdu(std::move(sdu), true);
+
+  for (uint32_t i = 0; i < static_cast<uint32_t>(cfg.discard_timer); ++i) {
+    timers_rx->step_all();
   }
 
-  srslte::unique_byte_buffer_t pdu_act = allocate_unique_buffer(*pool);
-  rlc->get_last_sdu(pdu_act);
-
-  TESTASSERT(rlc->rx_count == n_pdus_exp);
-  TESTASSERT(compare_two_packets(pdu_act, pdu_exp) == 0);
+  TESTASSERT(rlc->discard_count == 0);
+  timers_rx->step_all();
+  TESTASSERT(rlc->discard_count == 1);
   return 0;
 }
 
@@ -335,6 +334,7 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
    * TX Test 9: PDCP Entity with SN LEN = 12
    * Test TX PDU discard.
    */
+  TESTASSERT(test_tx_sdu_discard(normal_init_state, srslte::pdcp_discard_timer_t::ms50, pool, log) == 0);
   return 0;
 }
 
@@ -505,11 +505,11 @@ int run_all_tests(srslte::byte_buffer_pool* pool)
 {
   // Setup log
   srslte::log_filter log("PDCP NR Test");
-  // log.set_level(srslte::LOG_LEVEL_DEBUG);
+  log.set_level(srslte::LOG_LEVEL_DEBUG);
   log.set_hex_limit(128);
 
   TESTASSERT(test_tx_all(pool, &log) == 0);
-  TESTASSERT(test_rx_all(pool, &log) == 0);
+  //TESTASSERT(test_rx_all(pool, &log) == 0);
   return 0;
 }
 
