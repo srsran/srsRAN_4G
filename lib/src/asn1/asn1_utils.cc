@@ -710,7 +710,7 @@ std::string octstring_to_string(const uint8_t* ptr, uint32_t N)
 void string_to_octstring(uint8_t* ptr, const std::string& str)
 {
   if (str.size() % 2 != 0) {
-    srsasn_log_print(LOG_LEVEL_WARN, "The provided hex string size=%d is not a multiple of 2\n.", str.size());
+    srsasn_log_print(LOG_LEVEL_WARN, "The provided hex string size=%zd is not a multiple of 2\n.", str.size());
   }
   char cstr[] = "\0\0\0";
   for (uint32_t i = 0; i < str.size(); i += 2) {
@@ -1071,7 +1071,7 @@ varlength_field_pack_guard::~varlength_field_pack_guard()
   uint32_t nof_bytes = bref_tracker->distance(bref0) / (uint32_t)8;
   if (nof_bytes > sizeof(buffer)) {
     srsasn_log_print(LOG_LEVEL_ERROR,
-                     "The packed variable sized field is too long for the reserved buffer (%d > %d)\n",
+                     "The packed variable sized field is too long for the reserved buffer (%d > %zd)\n",
                      nof_bytes,
                      sizeof(buffer));
   }
