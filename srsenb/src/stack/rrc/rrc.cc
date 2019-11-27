@@ -177,22 +177,14 @@ void rrc::log_rrc_message(const std::string&           source,
                           const srslte::byte_buffer_t* pdu,
                           const T&                     msg)
 {
+  const char* msg_type = msg.msg.c1().type().to_string().c_str();
   if (rrc_log->get_level() == srslte::LOG_LEVEL_INFO) {
-    rrc_log->info("%s - %s %s (%d B)\n",
-                  source.c_str(),
-                  dir == Tx ? "Tx" : "Rx",
-                  msg.msg.c1().type().to_string().c_str(),
-                  pdu->N_bytes);
+    rrc_log->info("%s - %s %s (%d B)\n", source.c_str(), dir == Tx ? "Tx" : "Rx", msg_type, pdu->N_bytes);
   } else if (rrc_log->get_level() >= srslte::LOG_LEVEL_DEBUG) {
     asn1::json_writer json_writer;
     msg.to_json(json_writer);
-    rrc_log->debug_hex(pdu->msg,
-                       pdu->N_bytes,
-                       "%s - %s %s (%d B)\n",
-                       source.c_str(),
-                       dir == Tx ? "Tx" : "Rx",
-                       msg.msg.c1().type().to_string().c_str(),
-                       pdu->N_bytes);
+    rrc_log->debug_hex(
+        pdu->msg, pdu->N_bytes, "%s - %s %s (%d B)\n", source.c_str(), dir == Tx ? "Tx" : "Rx", msg_type, pdu->N_bytes);
     rrc_log->debug_long("Content:\n%s\n", json_writer.to_string().c_str());
   }
 }
