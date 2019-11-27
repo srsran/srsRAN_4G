@@ -1,0 +1,23 @@
+extraction:
+  cpp:
+    prepare:
+       packages:
+         - build-essential
+         - cmake
+         - libfftw3-dev
+         - libmbedtls-dev
+         - libpcsclite-dev
+         - libboost-program-options-dev
+         - libconfig++-dev
+         - libsctp-dev
+         - libuhd-dev
+         - libzmq3-dev
+    configure:
+      command:
+        - mkdir build
+        - cd build
+        - cmake ..
+    index:
+      build_command:
+        - cd build
+        - make
