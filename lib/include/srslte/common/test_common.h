@@ -22,9 +22,12 @@
 #ifndef SRSLTE_TEST_COMMON_H
 #define SRSLTE_TEST_COMMON_H
 
+#include "srslte/config.h"
+
+#ifdef __cplusplus
+
 #include "srslte/common/log.h"
 #include "srslte/common/log_filter.h"
-#include "srslte/config.h"
 #include <cstdio>
 
 namespace srslte {
@@ -96,6 +99,62 @@ private:
 };
 srslte::log* scoped_tester_log::current_log = nullptr;
 
+// specialization of scoped_tester_log to store last logged message
+class nullsink_log : public scoped_tester_log
+{
+public:
+  explicit nullsink_log(std::string layer) : scoped_tester_log(std::move(layer)) {}
+
+  void debug(const char* message, ...) override __attribute__((format(printf, 2, 3)))
+  {
+    va_list args;
+    va_start(args, message);
+    log_va_list(LOG_LEVEL_DEBUG, message, args);
+  }
+
+  void info(const char* message, ...) override __attribute__((format(printf, 2, 3)))
+  {
+    va_list args;
+    va_start(args, message);
+    log_va_list(LOG_LEVEL_INFO, message, args);
+  }
+
+  void warning(const char* message, ...) override __attribute__((format(printf, 2, 3)))
+  {
+    warn_counter++;
+    va_list args;
+    va_start(args, message);
+    log_va_list(LOG_LEVEL_WARNING, message, args);
+  }
+
+  void error(const char* message, ...) override __attribute__((format(printf, 2, 3)))
+  {
+    error_counter++;
+    va_list args;
+    va_start(args, message);
+    log_va_list(LOG_LEVEL_ERROR, message, args);
+    if (exit_on_error) {
+      exit(-1);
+    }
+  }
+
+  srslte::LOG_LEVEL_ENUM last_log_level = LOG_LEVEL_NONE;
+  std::string            last_log_msg;
+
+private:
+  void log_va_list(srslte::LOG_LEVEL_ENUM loglevel, const char* message, va_list argp)
+  {
+    last_log_level = loglevel;
+    if (level >= loglevel) {
+      char args_msg[char_buff_size];
+      if (vsnprintf(args_msg, char_buff_size, message, argp) > 0) {
+        last_log_msg = args_msg;
+      }
+    }
+    va_end(argp);
+  }
+};
+
 } // namespace srslte
 
 #define TESTERROR(fmt, ...)                                                                                            \
@@ -125,5 +184,19 @@ srslte::log* scoped_tester_log::current_log = nullptr;
   } while (0)
 
 #define TESTASSERT(cond) CONDERROR((not(cond)), "[%s][Line %d] Fail at \"%s\"\n", __FUNCTION__, __LINE__, (#cond))
+
+#else // if C
+
+#include <stdio.h>
+
+#define TESTASSERT(cond)                                                                                               \
+  do {                                                                                                                 \
+    if (!(cond)) {                                                                                                     \
+      printf("[%s][Line %d] Fail at \"%s\"\n", __FUNCTION__, __LINE__, (#cond));                                       \
+      return -1;                                                                                                       \
+    }                                                                                                                  \
+  } while (0)
+
+#endif // __cplusplus
 
 #endif // SRSLTE_TEST_COMMON_H
