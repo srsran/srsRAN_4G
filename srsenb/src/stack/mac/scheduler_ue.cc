@@ -60,25 +60,21 @@ sched_ue::sched_ue()
   reset();
 }
 
-void sched_ue::set_cfg(uint16_t                     rnti_,
-                       sched_interface::ue_cfg_t*   cfg_,
-                       sched_interface::cell_cfg_t* cell_cfg,
-                       srslte_regs_t*               regs,
-                       srslte::log*                 log_h_)
+void sched_ue::set_cfg(uint16_t rnti_, const sched_params_t& sched_params_, sched_interface::ue_cfg_t* cfg_)
 {
   reset();
 
   {
     std::lock_guard<std::mutex> lock(mutex);
-    rnti  = rnti_;
-    log_h = log_h_;
-    memcpy(&cell, &cell_cfg->cell, sizeof(srslte_cell_t));
-    P = srslte_ra_type0_P(cell.nof_prb);
+    rnti         = rnti_;
+    sched_params = &sched_params_;
+    log_h        = sched_params->log_h;
+    cell         = sched_params->cfg->cell;
 
     max_mcs_dl     = 28;
     max_mcs_ul     = 28;
     max_aggr_level = 3;
-    max_msg3retx   = cell_cfg->maxharq_msg3tx;
+    max_msg3retx   = sched_params->cfg->maxharq_msg3tx;
 
     cfg = *cfg_;
 
@@ -95,7 +91,7 @@ void sched_ue::set_cfg(uint16_t                     rnti_,
     // Generate allowed CCE locations
     for (int cfi = 0; cfi < 3; cfi++) {
       for (int sf_idx = 0; sf_idx < 10; sf_idx++) {
-        sched::generate_cce_location(regs, &dci_locations[cfi][sf_idx], cfi + 1, sf_idx, rnti);
+        sched::generate_cce_location(sched_params->regs, &dci_locations[cfi][sf_idx], cfi + 1, sf_idx, rnti);
       }
     }
   }
@@ -103,6 +99,11 @@ void sched_ue::set_cfg(uint16_t                     rnti_,
   for (int i = 0; i < sched_interface::MAX_LC; i++) {
     set_bearer_cfg(i, &cfg.ue_bearers[i]);
   }
+
+  set_max_mcs(sched_params->sched_cfg.pusch_max_mcs,
+              sched_params->sched_cfg.pdsch_max_mcs,
+              sched_params->sched_cfg.max_aggr_level);
+  set_fixed_mcs(sched_params->sched_cfg.pusch_mcs, sched_params->sched_cfg.pdsch_mcs);
 }
 
 void sched_ue::reset()
@@ -894,12 +895,12 @@ uint32_t sched_ue::get_pending_ul_old_data_unlocked()
 
 uint32_t sched_ue::prb_to_rbg(uint32_t nof_prb)
 {
-  return (uint32_t)ceil((float)nof_prb / P);
+  return (uint32_t)ceil((float)nof_prb / sched_params->P);
 }
 
 uint32_t sched_ue::rgb_to_prb(uint32_t nof_rbg)
 {
-  return P * nof_rbg;
+  return sched_params->P * nof_rbg;
 }
 
 uint32_t sched_ue::get_required_prb_dl(uint32_t req_bytes, uint32_t nof_ctrl_symbols)

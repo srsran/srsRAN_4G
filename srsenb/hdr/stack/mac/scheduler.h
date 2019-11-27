@@ -50,6 +50,23 @@ inline bool is_in_tti_interval(uint32_t tti, uint32_t tti1, uint32_t tti2)
 
 } // namespace sched_utils
 
+//! struct to bundle together all the sched arguments, and share them with all the sched sub-components
+class sched_params_t
+{
+public:
+  srslte::log*                                             log_h            = nullptr;
+  sched_interface::cell_cfg_t*                             cfg              = nullptr;
+  sched_interface::sched_args_t                            sched_cfg        = {};
+  srslte_regs_t*                                           regs             = nullptr;
+  std::array<sched_ue::sched_dci_cce_t, 3>                 common_locations = {};
+  std::array<std::array<sched_ue::sched_dci_cce_t, 10>, 3> rar_locations    = {};
+  std::array<uint32_t, 3>                                  nof_cce_table    = {}; ///< map cfix -> nof cces in PDCCH
+  uint32_t                                                 P                = 0;
+  uint32_t                                                 nof_rbgs         = 0;
+
+  bool set_derived();
+};
+
 /* Caution: User addition (ue_cfg) and removal (ue_rem) are not thread-safe
  * Rest of operations are thread-safe
  *
@@ -154,11 +171,11 @@ public:
 protected:
   srslte::log*       log_h;
   rrc_interface_mac* rrc;
+  sched_params_t     sched_params;
 
   pthread_rwlock_t rwlock;
 
-  cell_cfg_t   cfg;
-  sched_args_t sched_cfg;
+  cell_cfg_t cfg;
 
   // This is for computing DCI locations
   srslte_regs_t regs;
@@ -168,10 +185,6 @@ protected:
   int ue_db_access(uint16_t rnti, Func);
 
   std::map<uint16_t, sched_ue> ue_db;
-
-  // Allowed DCI locations for SIB and RAR per CFI
-  std::array<sched_ue::sched_dci_cce_t, 3>                 common_locations;
-  std::array<std::array<sched_ue::sched_dci_cce_t, 10>, 3> rar_locations;
 
   // independent schedulers for each carrier
   std::vector<std::unique_ptr<carrier_sched> > carrier_schedulers;

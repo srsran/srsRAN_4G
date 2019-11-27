@@ -44,25 +44,10 @@ const char* alloc_outcome_t::to_string() const
  *             PDCCH Allocation Methods
  *******************************************************/
 
-void pdcch_grid_t::init(srslte::log*                                              log_,
-                        srslte_regs_t*                                            regs,
-                        std::array<sched_ue::sched_dci_cce_t, 3>&                 common_locs,
-                        std::array<std::array<sched_ue::sched_dci_cce_t, 10>, 3>& rar_locs)
+void pdcch_grid_t::init(const sched_params_t& sched_params_)
 {
-  log_h            = log_;
-  common_locations = &common_locs[0];
-  for (uint32_t cfix = 0; cfix < 3; ++cfix) {
-    rar_locations[cfix] = &rar_locs[cfix][0];
-  }
-
-  // precompute nof_cces
-  for (uint32_t cfix = 0; cfix < cce_size_array.size(); ++cfix) {
-    int ret = srslte_regs_pdcch_ncce(regs, cfix + 1);
-    if (ret < 0) {
-      log_h->error("SCHED: Failed to calculate the number of CCEs in the PDCCH\n");
-    }
-    cce_size_array[cfix] = (uint32_t)ret;
-  }
+  sched_params = &sched_params_;
+  log_h        = sched_params_.log_h;
 
   reset();
 }
@@ -79,11 +64,11 @@ const sched_ue::sched_dci_cce_t* pdcch_grid_t::get_cce_loc_table(alloc_type_t al
 {
   switch (alloc_type) {
     case alloc_type_t::DL_BC:
-      return &common_locations[current_cfix];
+      return &sched_params->common_locations[current_cfix];
     case alloc_type_t::DL_PCCH:
-      return &common_locations[current_cfix];
+      return &sched_params->common_locations[current_cfix];
     case alloc_type_t::DL_RAR:
-      return &rar_locations[current_cfix][sf_idx];
+      return &sched_params->rar_locations[current_cfix][sf_idx];
     case alloc_type_t::DL_DATA:
       return user->get_locations(current_cfix + 1, sf_idx);
     case alloc_type_t::UL_DATA:
@@ -187,6 +172,11 @@ bool pdcch_grid_t::set_cfi(uint32_t cfi)
   return true;
 }
 
+uint32_t pdcch_grid_t::nof_cces() const
+{
+  return sched_params->nof_cce_table[current_cfix];
+}
+
 void pdcch_grid_t::reset()
 {
   prev_start = 0;
@@ -260,17 +250,17 @@ std::string pdcch_grid_t::result_to_string(bool verbose) const
  *          TTI resource Scheduling Methods
  *******************************************************/
 
-void tti_grid_t::init(srslte::log* log_, sched_interface::cell_cfg_t* cell_, const pdcch_grid_t& pdcch_grid)
+void tti_grid_t::init(const sched_params_t& sched_params_)
 {
-  log_h      = log_;
-  cell_cfg   = cell_;
-  nof_prbs   = cell_cfg->cell.nof_prb;
-  uint32_t P = srslte_ra_type0_P(cell_cfg->cell.nof_prb);
-  nof_rbgs   = srslte::ceil_div(cell_cfg->cell.nof_prb, P);
-  si_n_rbg   = srslte::ceil_div(4, P);
-  rar_n_rbg  = srslte::ceil_div(3, P);
+  sched_params = &sched_params_;
+  log_h        = sched_params->log_h;
+  cell_cfg     = sched_params->cfg;
+  nof_prbs     = cell_cfg->cell.nof_prb;
+  nof_rbgs     = sched_params->nof_rbgs;
+  si_n_rbg     = srslte::ceil_div(4, sched_params->P);
+  rar_n_rbg    = srslte::ceil_div(3, sched_params->P);
 
-  pdcch_alloc = pdcch_grid;
+  pdcch_alloc.init(*sched_params);
 }
 
 void tti_grid_t::new_tti(uint32_t tti_rx_, uint32_t start_cfi)

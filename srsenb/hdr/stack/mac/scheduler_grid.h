@@ -56,18 +56,15 @@ public:
   };
   using alloc_result_t = std::vector<const alloc_t*>;
 
-  void init(srslte::log*                                              log_,
-            srslte_regs_t*                                            regs,
-            std::array<sched_ue::sched_dci_cce_t, 3>&                 common_locs,
-            std::array<std::array<sched_ue::sched_dci_cce_t, 10>, 3>& rar_locs);
+  void init(const sched_params_t& sched_params);
   void new_tti(uint32_t tti_rx_, uint32_t start_cfi);
   bool alloc_dci(alloc_type_t alloc_type, uint32_t aggr_idx, sched_ue* user = nullptr);
   bool set_cfi(uint32_t cfi);
 
   // getters
-  uint32_t get_cfi() const { return current_cfix + 1; }
-  void     get_allocs(alloc_result_t* vec = nullptr, pdcch_mask_t* tot_mask = nullptr, size_t idx = 0) const;
-  uint32_t    nof_cces() const { return cce_size_array[current_cfix]; }
+  uint32_t    get_cfi() const { return current_cfix + 1; }
+  void        get_allocs(alloc_result_t* vec = nullptr, pdcch_mask_t* tot_mask = nullptr, size_t idx = 0) const;
+  uint32_t    nof_cces() const;
   size_t      nof_allocs() const { return nof_dci_allocs; }
   size_t      nof_alloc_combinations() const { return prev_end - prev_start; }
   std::string result_to_string(bool verbose = false) const;
@@ -86,10 +83,8 @@ private:
                                                      const sched_ue::sched_dci_cce_t* dci_locs);
 
   // consts
-  srslte::log*                              log_h            = nullptr;
-  sched_ue::sched_dci_cce_t*                common_locations = nullptr;
-  std::array<sched_ue::sched_dci_cce_t*, 3> rar_locations{};
-  std::array<uint32_t, 3>                   cce_size_array{};
+  const sched_params_t* sched_params = nullptr;
+  srslte::log*          log_h        = nullptr;
 
   // tti vars
   uint32_t                 tti_rx       = 0;
@@ -109,7 +104,7 @@ public:
     rbg_range_t     rbg_range;
   };
 
-  void            init(srslte::log* log_, sched_interface::cell_cfg_t* cell_, const pdcch_grid_t& pdcch_grid);
+  void            init(const sched_params_t& sched_params_);
   void            new_tti(uint32_t tti_rx_, uint32_t start_cfi);
   dl_ctrl_alloc_t alloc_dl_ctrl(uint32_t aggr_lvl, alloc_type_t alloc_type);
   alloc_outcome_t alloc_dl_data(sched_ue* user, const rbgmask_t& user_mask);
@@ -133,10 +128,11 @@ private:
   alloc_outcome_t alloc_dl(uint32_t aggr_lvl, alloc_type_t alloc_type, rbgmask_t alloc_mask, sched_ue* user = nullptr);
 
   // consts
-  srslte::log*                 log_h    = nullptr;
-  sched_interface::cell_cfg_t* cell_cfg = nullptr;
-  uint32_t                     nof_prbs = 0;
-  uint32_t                     nof_rbgs = 0;
+  const sched_params_t*        sched_params = nullptr;
+  srslte::log*                 log_h        = nullptr;
+  sched_interface::cell_cfg_t* cell_cfg     = nullptr;
+  uint32_t                     nof_prbs     = 0;
+  uint32_t                     nof_rbgs     = 0;
   uint32_t                     si_n_rbg = 0, rar_n_rbg = 0;
 
   // tti const

@@ -128,8 +128,8 @@ public:
 
     // consts
     carrier_sched*  parent_carrier = nullptr;
+    sched_params_t* sched_params   = nullptr;
     srslte::log*    log_h          = nullptr;
-    uint32_t        P              = 0;
     cell_cfg_sib_t* sibs_cfg       = nullptr;
 
     // internal state

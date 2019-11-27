@@ -35,17 +35,10 @@ namespace srsenb {
 void sched::carrier_sched::tti_sched_result_t::init(carrier_sched* carrier_)
 {
   parent_carrier = carrier_;
-  log_h          = carrier_->log_h;
-  P              = srslte_ra_type0_P(parent_carrier->cfg->cell.nof_prb);
-  sibs_cfg       = carrier_->cfg->sibs;
-  //  nof_rbg = srslte::ceil_div(cfg->cell.nof_prb, P);
-
-  pdcch_grid_t pdcch_alloc;
-  pdcch_alloc.init(log_h,
-                   &parent_carrier->sched_ptr->regs,
-                   parent_carrier->sched_ptr->common_locations,
-                   parent_carrier->sched_ptr->rar_locations);
-  tti_alloc.init(log_h, parent_carrier->cfg, pdcch_alloc);
+  sched_params   = &carrier_->sched_ptr->sched_params;
+  log_h          = sched_params->log_h;
+  sibs_cfg       = sched_params->cfg->sibs;
+  tti_alloc.init(*sched_params);
 }
 
 void sched::carrier_sched::tti_sched_result_t::new_tti(uint32_t tti_rx_, uint32_t start_cfi)
@@ -268,7 +261,7 @@ void sched::carrier_sched::tti_sched_result_t::set_bc_sched_result(const pdcch_g
     bc->dci.location = dci_result[bc_alloc.dci_idx]->dci_pos;
 
     /* Generate DCI format1A */
-    prb_range_t prb_range = prb_range_t(bc_alloc.rbg_range, P);
+    prb_range_t prb_range = prb_range_t(bc_alloc.rbg_range, sched_params->P);
     int         tbs       = generate_format1a(
         prb_range.prb_start, prb_range.length(), bc_alloc.req_bytes, bc_alloc.rv, bc_alloc.rnti, &bc->dci);
 
@@ -337,7 +330,7 @@ void sched::carrier_sched::tti_sched_result_t::set_rar_sched_result(const pdcch_
     rar->dci.location = dci_result[rar_alloc.dci_idx]->dci_pos;
 
     /* Generate DCI format1A */
-    prb_range_t prb_range = prb_range_t(rar_alloc.rbg_range, P);
+    prb_range_t prb_range = prb_range_t(rar_alloc.rbg_range, sched_params->P);
     int         tbs =
         generate_format1a(prb_range.prb_start, prb_range.length(), rar_alloc.req_bytes, 0, rar_alloc.rnti, &rar->dci);
     if (tbs <= 0) {
@@ -852,8 +845,8 @@ void sched::carrier_sched::carrier_cfg()
   bc_sched_ptr->init(sched_ptr->rrc);
   ra_sched_ptr->init(log_h, sched_ptr->ue_db);
 
-  dl_metric->set_log(sched_ptr->log_h);
-  ul_metric->set_log(sched_ptr->log_h);
+  dl_metric->set_log(log_h);
+  ul_metric->set_log(log_h);
 
   // Setup constant PUCCH/PRACH mask
   pucch_mask.resize(cfg->cell.nof_prb);
@@ -887,7 +880,7 @@ sched::carrier_sched::tti_sched_result_t* sched::carrier_sched::generate_tti_res
 
   // if it is the first time tti is run, reset vars
   if (tti_rx != tti_sched->get_tti_rx()) {
-    uint32_t start_cfi = sched_ptr->sched_cfg.nof_ctrl_symbols;
+    uint32_t start_cfi = sched_ptr->sched_params.sched_cfg.nof_ctrl_symbols;
     tti_sched->new_tti(tti_rx, start_cfi);
 
     // Protects access to pending_rar[], pending_msg3[], pending_sibs[], rlc buffers

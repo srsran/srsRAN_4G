@@ -49,6 +49,49 @@ uint32_t max_tti(uint32_t tti1, uint32_t tti2)
 } // namespace sched_utils
 
 /*******************************************************
+ *                 Sched Params
+ *******************************************************/
+
+bool sched_params_t::set_derived()
+{
+  // Compute Common locations for DCI for each CFI
+  for (uint32_t cfi = 0; cfi < 3; cfi++) {
+    sched::generate_cce_location(regs, &common_locations[cfi], cfi + 1);
+  }
+
+  // Compute UE locations for RA-RNTI
+  for (uint32_t cfi = 0; cfi < 3; cfi++) {
+    for (uint32_t sf_idx = 0; sf_idx < 10; sf_idx++) {
+      sched::generate_cce_location(regs, &rar_locations[cfi][sf_idx], cfi + 1, sf_idx);
+    }
+  }
+
+  P        = srslte_ra_type0_P(cfg->cell.nof_prb);
+  nof_rbgs = srslte::ceil_div(cfg->cell.nof_prb, P);
+
+  // precompute nof cces in PDCCH for each CFI
+  for (uint32_t cfix = 0; cfix < nof_cce_table.size(); ++cfix) {
+    int ret = srslte_regs_pdcch_ncce(regs, cfix + 1);
+    if (ret < 0) {
+      log_h->error("SCHED: Failed to calculate the number of CCEs in the PDCCH\n");
+      return false;
+    }
+    nof_cce_table[cfix] = (uint32_t)ret;
+  }
+
+  if (common_locations[sched_cfg.nof_ctrl_symbols - 1].nof_loc[2] == 0) {
+    log_h->error("SCHED: Current cfi=%d is not valid for broadcast (check scheduler.nof_ctrl_symbols in conf file).\n",
+                 sched_cfg.nof_ctrl_symbols);
+    log_h->console(
+        "SCHED: Current cfi=%d is not valid for broadcast (check scheduler.nof_ctrl_symbols in conf file).\n",
+        sched_cfg.nof_ctrl_symbols);
+    return false;
+  }
+
+  return true;
+}
+
+/*******************************************************
  *
  * Initialization and sched configuration functions
  *
@@ -61,13 +104,7 @@ sched::sched()
 
   bzero(&cfg, sizeof(cfg));
   bzero(&regs, sizeof(regs));
-  bzero(&sched_cfg, sizeof(sched_cfg));
-  common_locations = {};
   bzero(&pdsch_re, sizeof(pdsch_re));
-
-  for (auto& rar : rar_locations) {
-    rar = {};
-  }
 
   pthread_rwlock_init(&rwlock, nullptr);
 
@@ -87,14 +124,16 @@ sched::~sched()
 
 void sched::init(rrc_interface_mac* rrc_, srslte::log* log)
 {
-  sched_cfg.pdsch_max_mcs    = 28;
-  sched_cfg.pdsch_mcs        = -1;
-  sched_cfg.pusch_max_mcs    = 28;
-  sched_cfg.pusch_mcs        = -1;
-  sched_cfg.nof_ctrl_symbols = 3;
-  sched_cfg.max_aggr_level   = 3;
-  log_h                      = log;
-  rrc                        = rrc_;
+  sched_params.sched_cfg.pdsch_max_mcs    = 28;
+  sched_params.sched_cfg.pdsch_mcs        = -1;
+  sched_params.sched_cfg.pusch_max_mcs    = 28;
+  sched_params.sched_cfg.pusch_mcs        = -1;
+  sched_params.sched_cfg.nof_ctrl_symbols = 3;
+  sched_params.sched_cfg.max_aggr_level   = 3;
+  sched_params.log_h                      = log;
+
+  log_h = log;
+  rrc   = rrc_;
   reset();
 }
 
@@ -113,7 +152,7 @@ int sched::reset()
 void sched::set_sched_cfg(sched_interface::sched_args_t* sched_cfg_)
 {
   if (sched_cfg_ != nullptr) {
-    sched_cfg = *sched_cfg_;
+    sched_params.sched_cfg = *sched_cfg_;
   }
 }
 
@@ -140,16 +179,10 @@ int sched::cell_cfg(sched_interface::cell_cfg_t* cell_cfg)
     return SRSLTE_ERROR;
   }
 
-  // Compute Common locations for DCI for each CFI
-  for (uint32_t cfi = 0; cfi < 3; cfi++) {
-    generate_cce_location(&regs, &common_locations[cfi], cfi + 1);
-  }
-
-  // Compute UE locations for RA-RNTI
-  for (uint32_t cfi = 0; cfi < 3; cfi++) {
-    for (uint32_t sf_idx = 0; sf_idx < 10; sf_idx++) {
-      generate_cce_location(&regs, &rar_locations[cfi][sf_idx], cfi + 1, sf_idx);
-    }
+  sched_params.cfg  = &cfg;
+  sched_params.regs = &regs;
+  if (not sched_params.set_derived()) {
+    return -1;
   }
 
   // Initiate the tti_scheduler for each TTI
@@ -169,14 +202,6 @@ int sched::cell_cfg(sched_interface::cell_cfg_t* cell_cfg)
     return -1;
   }
 
-  if (common_locations[sched_cfg.nof_ctrl_symbols - 1].nof_loc[2] == 0) {
-    Error("SCHED: Current cfi=%d is not valid for broadcast (check scheduler.nof_ctrl_symbols in conf file).\n",
-          sched_cfg.nof_ctrl_symbols);
-    log_h->console(
-        "SCHED: Current cfi=%d is not valid for broadcast (check scheduler.nof_ctrl_symbols in conf file).\n",
-        sched_cfg.nof_ctrl_symbols);
-  }
-
   return 0;
 }
 
@@ -190,9 +215,7 @@ int sched::ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* ue_cfg)
 {
   // Add or config user
   pthread_rwlock_wrlock(&rwlock);
-  ue_db[rnti].set_cfg(rnti, ue_cfg, &cfg, &regs, log_h);
-  ue_db[rnti].set_max_mcs(sched_cfg.pusch_max_mcs, sched_cfg.pdsch_max_mcs, sched_cfg.max_aggr_level);
-  ue_db[rnti].set_fixed_mcs(sched_cfg.pusch_mcs, sched_cfg.pdsch_mcs);
+  ue_db[rnti].set_cfg(rnti, sched_params, ue_cfg);
   pthread_rwlock_unlock(&rwlock);
 
   return 0;

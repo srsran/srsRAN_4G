@@ -32,6 +32,8 @@
 
 namespace srsenb {
 
+class sched_params_t;
+
 /** This class is designed to be thread-safe because it is called from workers through scheduler thread and from
  * higher layers and mac threads.
  *
@@ -57,11 +59,7 @@ public:
   sched_ue();
   void reset();
   void phy_config_enabled(uint32_t tti, bool enabled);
-  void set_cfg(uint16_t                     rnti,
-               sched_interface::ue_cfg_t*   cfg,
-               sched_interface::cell_cfg_t* cell_cfg,
-               srslte_regs_t*               regs,
-               srslte::log*                 log_h);
+  void set_cfg(uint16_t rnti, const sched_params_t& sched_params_, sched_interface::ue_cfg_t* cfg);
 
   void set_bearer_cfg(uint32_t lc_id, srsenb::sched_interface::ue_bearer_cfg_t* cfg);
   void rem_bearer(uint32_t lc_id);
@@ -197,6 +195,7 @@ private:
   sched_interface::ue_cfg_t cfg   = {};
   srslte_cell_t             cell  = {};
   srslte::log*              log_h = nullptr;
+  const sched_params_t*     sched_params;
 
   std::mutex mutex;
 
@@ -223,7 +222,6 @@ private:
   uint32_t max_msg3retx    = 0;
   int      fixed_mcs_ul    = 0;
   int      fixed_mcs_dl    = 0;
-  uint32_t P               = 0;
 
   uint32_t nof_ta_cmd = 0;
 

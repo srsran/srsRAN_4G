@@ -283,7 +283,7 @@ void sched_tester::new_test_tti(uint32_t tti_)
     tti_data.ul_sf_idx = (tti_data.tti_tx_ul + 10240 - FDD_HARQ_DELAY_MS) % 10;
   }
   tti_data.ul_pending_msg3 = carrier_schedulers[0]->ra_sched_ptr->find_pending_msg3(tti_data.tti_tx_ul);
-  tti_data.current_cfi     = sched_cfg.nof_ctrl_symbols;
+  tti_data.current_cfi     = sched_params.sched_cfg.nof_ctrl_symbols;
   tti_data.used_cce.resize(srslte_regs_pdcch_ncce(&regs, tti_data.current_cfi));
   tti_data.used_cce.reset();
   tti_data.ue_data.clear();
