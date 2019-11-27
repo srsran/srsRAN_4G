@@ -96,6 +96,18 @@ endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
 # Find dependencies
 ########################################################################
 
+# Enable ccache if not already enabled
+find_program(CCACHE_EXECUTABLE ccache)
+mark_as_advanced(CCACHE_EXECUTABLE)
+if(CCACHE_EXECUTABLE)
+  foreach(LANG C CXX)
+    if(NOT DEFINED CMAKE_${LANG}_COMPILER_LAUNCHER AND NOT CMAKE_${LANG}_COMPILER MATCHES ".*/ccache$")
+      message(STATUS "Enabling ccache for ${LANG}")
+      set(CMAKE_${LANG}_COMPILER_LAUNCHER ${CCACHE_EXECUTABLE} CACHE STRING "")
+    endif()
+  endforeach()
+endif()
+
 # Threads
 find_package(Threads REQUIRED)
 
