@@ -179,12 +179,10 @@ int test_tx_sdu_discard(const pdcp_initial_state&    init_state,
   sdu->append_bytes(sdu1, sizeof(sdu1));
   pdcp->write_sdu(std::move(sdu), true);
 
-  for (uint32_t i = 0; i < static_cast<uint32_t>(cfg.discard_timer); ++i) {
+  for (uint32_t i = 0; i < static_cast<uint32_t>(cfg.discard_timer) - 1; ++i) {
     timers->step_all();
-    printf("%d\n",i);
   }
   TESTASSERT(rlc->discard_count == 0);
-  timers->step_all();
   timers->step_all();
   TESTASSERT(rlc->discard_count == 1);
   return 0;
