@@ -88,14 +88,14 @@ public:
     void            generate_dcis();
     // dl_tti_sched itf
     alloc_outcome_t  alloc_dl_user(sched_ue* user, const rbgmask_t& user_mask, uint32_t pid) final;
-    uint32_t         get_tti_tx_dl() const final { return tti_alloc.get_tti_tx_dl(); }
+    uint32_t         get_tti_tx_dl() const final { return tti_params.tti_tx_dl; }
     uint32_t         get_nof_ctrl_symbols() const final;
     const rbgmask_t& get_dl_mask() const final { return tti_alloc.get_dl_mask(); }
     // ul_tti_sched itf
     alloc_outcome_t  alloc_ul_user(sched_ue* user, ul_harq_proc::ul_alloc_t alloc) final;
     alloc_outcome_t  alloc_ul_msg3(sched_ue* user, ul_harq_proc::ul_alloc_t alloc, uint32_t mcs);
     const prbmask_t& get_ul_mask() const final { return tti_alloc.get_ul_mask(); }
-    uint32_t         get_tti_tx_ul() const final { return tti_alloc.get_tti_tx_ul(); }
+    uint32_t         get_tti_tx_ul() const final { return tti_params.tti_tx_ul; }
 
     // getters
     const pdcch_mask_t&            get_pdcch_mask() const { return pdcch_mask; }
@@ -103,9 +103,9 @@ public:
     prbmask_t&                     get_ul_mask() { return tti_alloc.get_ul_mask(); }
     const std::vector<ul_alloc_t>& get_ul_allocs() const { return ul_data_allocs; }
     uint32_t                       get_cfi() const { return tti_alloc.get_cfi(); }
-    uint32_t                       get_tti_rx() const { return tti_alloc.get_tti_rx(); }
-    uint32_t                       get_sfn() const { return tti_alloc.get_sfn(); }
-    uint32_t                       get_sf_idx() const { return tti_alloc.get_sf_idx(); }
+    uint32_t                       get_tti_rx() const { return tti_params.tti_rx; }
+    uint32_t                       get_sfn() const { return tti_params.sfn; }
+    uint32_t                       get_sf_idx() const { return tti_params.sf_idx; }
 
   private:
     bool            is_dl_alloc(sched_ue* user) const final;
@@ -130,9 +130,9 @@ public:
     carrier_sched*  parent_carrier = nullptr;
     sched_params_t* sched_params   = nullptr;
     srslte::log*    log_h          = nullptr;
-    cell_cfg_sib_t* sibs_cfg       = nullptr;
 
     // internal state
+    tti_params_t             tti_params{10241};
     tti_grid_t               tti_alloc;
     std::vector<rar_alloc_t> rar_allocs;
     std::vector<bc_alloc_t>  bc_allocs;
@@ -166,9 +166,9 @@ public:
   prbmask_t pucch_mask;
 
   // TTI result storage and management
-  std::array<tti_sched_result_t, 10> tti_scheds;
-  tti_sched_result_t*                get_tti_sched(uint32_t tti_rx) { return &tti_scheds[tti_rx % tti_scheds.size()]; }
-  std::vector<uint8_t>               tti_dl_mask; ///< Some TTIs may be forbidden for DL sched due to MBMS
+  std::array<tti_sched_result_t, TTIMOD_SZ> tti_scheds;
+  tti_sched_result_t*  get_tti_sched(uint32_t tti_rx) { return &tti_scheds[tti_rx % tti_scheds.size()]; }
+  std::vector<uint8_t> tti_dl_mask; ///< Some TTIs may be forbidden for DL sched due to MBMS
 
   std::unique_ptr<bc_sched> bc_sched_ptr;
   std::unique_ptr<ra_sched> ra_sched_ptr;

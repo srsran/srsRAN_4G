@@ -37,13 +37,13 @@ void sched::carrier_sched::tti_sched_result_t::init(carrier_sched* carrier_)
   parent_carrier = carrier_;
   sched_params   = &carrier_->sched_ptr->sched_params;
   log_h          = sched_params->log_h;
-  sibs_cfg       = sched_params->cfg->sibs;
-  tti_alloc.init(*sched_params);
+  tti_alloc.init(*sched_params, 0);
 }
 
 void sched::carrier_sched::tti_sched_result_t::new_tti(uint32_t tti_rx_, uint32_t start_cfi)
 {
-  tti_alloc.new_tti(tti_rx_, start_cfi);
+  tti_params = tti_params_t{tti_rx_};
+  tti_alloc.new_tti(tti_params, start_cfi);
 
   // internal state
   rar_allocs.clear();
@@ -110,7 +110,7 @@ sched::carrier_sched::tti_sched_result_t::alloc_dl_ctrl(uint32_t aggr_lvl, uint3
 alloc_outcome_t
 sched::carrier_sched::tti_sched_result_t::alloc_bc(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t sib_ntx)
 {
-  uint32_t    sib_len = sibs_cfg[sib_idx].len;
+  uint32_t    sib_len = sched_params->cfg->sibs[sib_idx].len;
   uint32_t    rv      = get_rvidx(sib_ntx);
   ctrl_code_t ret     = alloc_dl_ctrl(aggr_lvl, sib_len, SRSLTE_SIRNTI);
   if (not ret.first) {
@@ -291,7 +291,7 @@ void sched::carrier_sched::tti_sched_result_t::set_bc_sched_result(const pdcch_g
                   bc->dci.location.ncce,
                   bc_alloc.rv,
                   bc_alloc.req_bytes,
-                  sibs_cfg[bc_alloc.sib_idx].period_rf,
+                  sched_params->cfg->sibs[bc_alloc.sib_idx].period_rf,
                   bc->dci.tb[0].mcs_idx);
     } else {
       // Paging
@@ -512,7 +512,7 @@ void sched::carrier_sched::tti_sched_result_t::generate_dcis()
 
 uint32_t sched::carrier_sched::tti_sched_result_t::get_nof_ctrl_symbols() const
 {
-  return tti_alloc.get_cfi() + ((parent_carrier->cfg->cell.nof_prb <= 10) ? 1 : 0);
+  return tti_alloc.get_cfi() + ((sched_params->cfg->cell.nof_prb <= 10) ? 1 : 0);
 }
 
 int sched::carrier_sched::tti_sched_result_t::generate_format1a(uint32_t         rb_start,
@@ -554,7 +554,7 @@ int sched::carrier_sched::tti_sched_result_t::generate_format1a(uint32_t        
 
   dci->alloc_type       = SRSLTE_RA_ALLOC_TYPE2;
   dci->type2_alloc.mode = srslte_ra_type2_t::SRSLTE_RA_TYPE2_LOC;
-  dci->type2_alloc.riv  = srslte_ra_type2_to_riv(l_crb, rb_start, parent_carrier->cfg->cell.nof_prb);
+  dci->type2_alloc.riv  = srslte_ra_type2_to_riv(l_crb, rb_start, sched_params->cfg->cell.nof_prb);
   dci->pid              = 0;
   dci->tb[0].mcs_idx    = mcs;
   dci->tb[0].rv         = rv;

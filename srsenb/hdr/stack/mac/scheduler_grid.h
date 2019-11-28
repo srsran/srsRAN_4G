@@ -41,7 +41,17 @@ struct alloc_outcome_t {
   alloc_outcome_t(result_enum e) : result(e) {}
               operator result_enum() { return result; }
               operator bool() { return result == SUCCESS; }
-  const char* to_string() const;
+              const char* to_string() const;
+};
+
+//! Params relative to a single TTI
+struct tti_params_t {
+  uint32_t tti_rx;
+  uint32_t tti_tx_dl;
+  uint32_t tti_tx_ul;
+  uint32_t sf_idx;
+  uint32_t sfn;
+  explicit tti_params_t(uint32_t tti_rx_);
 };
 
 //! Class responsible for managing a PDCCH CCE grid, namely cce allocs, and avoid collisions.
@@ -51,13 +61,13 @@ public:
   struct alloc_t {
     uint16_t              rnti    = 0;
     srslte_dci_location_t dci_pos = {0, 0};
-    pdcch_mask_t          current_mask;
-    pdcch_mask_t          total_mask;
+    pdcch_mask_t          current_mask; ///< this PDCCH alloc mask
+    pdcch_mask_t          total_mask;   ///< Accumulation of all PDCCH masks for the current solution (tree route)
   };
   using alloc_result_t = std::vector<const alloc_t*>;
 
   void init(const sched_params_t& sched_params);
-  void new_tti(uint32_t tti_rx_, uint32_t start_cfi);
+  void new_tti(const tti_params_t& tti_params_, uint32_t start_cfi);
   bool alloc_dci(alloc_type_t alloc_type, uint32_t aggr_idx, sched_ue* user = nullptr);
   bool set_cfi(uint32_t cfi);
 
@@ -68,7 +78,6 @@ public:
   size_t      nof_allocs() const { return nof_dci_allocs; }
   size_t      nof_alloc_combinations() const { return prev_end - prev_start; }
   std::string result_to_string(bool verbose = false) const;
-  uint32_t    get_sf_idx() const { return sf_idx; }
 
 private:
   const static uint32_t nof_cfis = 3;
@@ -87,8 +96,7 @@ private:
   srslte::log*          log_h        = nullptr;
 
   // tti vars
-  uint32_t                 tti_rx       = 0;
-  uint32_t                 sf_idx       = 0;
+  const tti_params_t*      tti_params   = nullptr;
   uint32_t                 current_cfix = 0;
   size_t                   prev_start = 0, prev_end = 0;
   std::vector<tree_node_t> dci_alloc_tree;
@@ -104,42 +112,33 @@ public:
     rbg_range_t     rbg_range;
   };
 
-  void            init(const sched_params_t& sched_params_);
-  void            new_tti(uint32_t tti_rx_, uint32_t start_cfi);
+  void            init(const sched_params_t& sched_params_, uint32_t cc_idx_);
+  void            new_tti(const tti_params_t& tti_params_, uint32_t start_cfi);
   dl_ctrl_alloc_t alloc_dl_ctrl(uint32_t aggr_lvl, alloc_type_t alloc_type);
   alloc_outcome_t alloc_dl_data(sched_ue* user, const rbgmask_t& user_mask);
   alloc_outcome_t alloc_ul_data(sched_ue* user, ul_harq_proc::ul_alloc_t alloc, bool needs_pdcch);
 
   // getters
-  uint32_t            get_avail_rbgs() const { return avail_rbg; }
   rbgmask_t&          get_dl_mask() { return dl_mask; }
   const rbgmask_t&    get_dl_mask() const { return dl_mask; }
   prbmask_t&          get_ul_mask() { return ul_mask; }
   const prbmask_t&    get_ul_mask() const { return ul_mask; }
   uint32_t            get_cfi() const { return pdcch_alloc.get_cfi(); }
   const pdcch_grid_t& get_pdcch_grid() const { return pdcch_alloc; }
-  uint32_t            get_tti_rx() const { return tti_rx; }
-  uint32_t            get_tti_tx_dl() const { return tti_tx_dl; }
-  uint32_t            get_tti_tx_ul() const { return tti_tx_ul; }
-  uint32_t            get_sfn() const { return sfn; }
-  uint32_t            get_sf_idx() const { return pdcch_alloc.get_sf_idx(); }
 
 private:
   alloc_outcome_t alloc_dl(uint32_t aggr_lvl, alloc_type_t alloc_type, rbgmask_t alloc_mask, sched_ue* user = nullptr);
 
   // consts
-  const sched_params_t*        sched_params = nullptr;
-  srslte::log*                 log_h        = nullptr;
-  sched_interface::cell_cfg_t* cell_cfg     = nullptr;
-  uint32_t                     nof_prbs     = 0;
-  uint32_t                     nof_rbgs     = 0;
-  uint32_t                     si_n_rbg = 0, rar_n_rbg = 0;
+  const sched_params_t* sched_params = nullptr;
+  srslte::log*          log_h        = nullptr;
+  uint32_t              nof_rbgs     = 0;
+  uint32_t              si_n_rbg = 0, rar_n_rbg = 0;
+  uint32_t              cc_idx = 0;
 
   // tti const
-  uint32_t tti_rx = 10241;
+  const tti_params_t* tti_params = nullptr;
   // derived
-  uint32_t     tti_tx_dl = 0, tti_tx_ul = 0;
-  uint32_t     sfn         = 0;
   pdcch_grid_t pdcch_alloc = {};
 
   // internal state

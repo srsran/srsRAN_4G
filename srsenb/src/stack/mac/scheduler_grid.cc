@@ -40,6 +40,15 @@ const char* alloc_outcome_t::to_string() const
   return "unknown error";
 }
 
+tti_params_t::tti_params_t(uint32_t tti_rx_) :
+  tti_rx(tti_rx_),
+  sf_idx(TTI_TX(tti_rx) % 10),
+  tti_tx_dl(TTI_TX(tti_rx)),
+  tti_tx_ul(TTI_RX_ACK(tti_rx)),
+  sfn(TTI_TX(tti_rx) / 10)
+{
+}
+
 /*******************************************************
  *             PDCCH Allocation Methods
  *******************************************************/
@@ -52,10 +61,9 @@ void pdcch_grid_t::init(const sched_params_t& sched_params_)
   reset();
 }
 
-void pdcch_grid_t::new_tti(uint32_t tti_rx_, uint32_t start_cfi)
+void pdcch_grid_t::new_tti(const tti_params_t& tti_params_, uint32_t start_cfi)
 {
-  tti_rx       = tti_rx_;
-  sf_idx       = TTI_TX(tti_rx) % 10;
+  tti_params   = &tti_params_;
   current_cfix = start_cfi - 1;
   reset();
 }
@@ -68,11 +76,11 @@ const sched_ue::sched_dci_cce_t* pdcch_grid_t::get_cce_loc_table(alloc_type_t al
     case alloc_type_t::DL_PCCH:
       return &sched_params->common_locations[current_cfix];
     case alloc_type_t::DL_RAR:
-      return &sched_params->rar_locations[current_cfix][sf_idx];
+      return &sched_params->rar_locations[current_cfix][tti_params->sf_idx];
     case alloc_type_t::DL_DATA:
-      return user->get_locations(current_cfix + 1, sf_idx);
+      return user->get_locations(current_cfix + 1, tti_params->sf_idx);
     case alloc_type_t::UL_DATA:
-      return user->get_locations(current_cfix + 1, sf_idx);
+      return user->get_locations(current_cfix + 1, tti_params->sf_idx);
   }
   return nullptr;
 }
@@ -131,7 +139,7 @@ void pdcch_grid_t::update_alloc_tree(int                              parent_nod
   for (uint32_t i = 0; i < nof_locs; ++i) {
     uint32_t startpos = dci_locs->cce_start[aggr_idx][i];
 
-    if (alloc_type == alloc_type_t::DL_DATA and user->pucch_sr_collision(TTI_TX(tti_rx), startpos)) {
+    if (alloc_type == alloc_type_t::DL_DATA and user->pucch_sr_collision(tti_params->tti_tx_dl, startpos)) {
       // will cause a collision in the PUCCH
       continue;
     }
@@ -250,35 +258,29 @@ std::string pdcch_grid_t::result_to_string(bool verbose) const
  *          TTI resource Scheduling Methods
  *******************************************************/
 
-void tti_grid_t::init(const sched_params_t& sched_params_)
+void tti_grid_t::init(const sched_params_t& sched_params_, uint32_t cc_idx_)
 {
   sched_params = &sched_params_;
   log_h        = sched_params->log_h;
-  cell_cfg     = sched_params->cfg;
-  nof_prbs     = cell_cfg->cell.nof_prb;
   nof_rbgs     = sched_params->nof_rbgs;
   si_n_rbg     = srslte::ceil_div(4, sched_params->P);
   rar_n_rbg    = srslte::ceil_div(3, sched_params->P);
+  cc_idx       = cc_idx_;
 
   pdcch_alloc.init(*sched_params);
 }
 
-void tti_grid_t::new_tti(uint32_t tti_rx_, uint32_t start_cfi)
+void tti_grid_t::new_tti(const tti_params_t& tti_params_, uint32_t start_cfi)
 {
-  tti_rx = tti_rx_;
-
-  // derived
-  tti_tx_dl = TTI_TX(tti_rx);
-  tti_tx_ul = TTI_RX_ACK(tti_rx);
-  sfn       = tti_tx_dl / 10;
+  tti_params = &tti_params_;
 
   // internal state
   avail_rbg = nof_rbgs;
   dl_mask.reset();
   dl_mask.resize(nof_rbgs);
   ul_mask.reset();
-  ul_mask.resize(nof_prbs);
-  pdcch_alloc.new_tti(tti_rx, start_cfi);
+  ul_mask.resize(sched_params->cfg->cell.nof_prb);
+  pdcch_alloc.new_tti(*tti_params, start_cfi);
 }
 
 //! Allocates CCEs and RBs for the given mask and allocation type (e.g. data, BC, RAR, paging)
@@ -335,7 +337,8 @@ tti_grid_t::dl_ctrl_alloc_t tti_grid_t::alloc_dl_ctrl(uint32_t aggr_lvl, alloc_t
 alloc_outcome_t tti_grid_t::alloc_dl_data(sched_ue* user, const rbgmask_t& user_mask)
 {
   srslte_dci_format_t dci_format = user->get_dci_format();
-  uint32_t aggr_level = user->get_aggr_level(srslte_dci_format_sizeof(&cell_cfg->cell, nullptr, nullptr, dci_format));
+  uint32_t            aggr_level =
+      user->get_aggr_level(srslte_dci_format_sizeof(&sched_params->cfg->cell, nullptr, nullptr, dci_format));
   return alloc_dl(aggr_level, alloc_type_t::DL_DATA, user_mask, user);
 }
 
@@ -354,7 +357,7 @@ alloc_outcome_t tti_grid_t::alloc_ul_data(sched_ue* user, ul_harq_proc::ul_alloc
   // Generate PDCCH except for RAR and non-adaptive retx
   if (needs_pdcch) {
     uint32_t aggr_idx =
-        user->get_aggr_level(srslte_dci_format_sizeof(&cell_cfg->cell, nullptr, nullptr, SRSLTE_DCI_FORMAT0));
+        user->get_aggr_level(srslte_dci_format_sizeof(&sched_params->cfg->cell, nullptr, nullptr, SRSLTE_DCI_FORMAT0));
     if (not pdcch_alloc.alloc_dci(alloc_type_t::UL_DATA, aggr_idx, user)) {
       if (log_h->get_level() == srslte::LOG_LEVEL_DEBUG) {
         log_h->debug("No space in PDCCH for rnti=0x%x UL tx. Current PDCCH allocation: %s\n",
