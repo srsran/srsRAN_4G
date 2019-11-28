@@ -388,9 +388,11 @@ int sched::dl_sched(uint32_t tti, sched_interface::dl_sched_res_t* sched_result)
   current_tti     = sched_utils::max_tti(current_tti, tti_rx);
 
   // Compute scheduling Result for tti_rx
-  carrier_sched::tti_sched_result_t* tti_sched = carrier_schedulers[0]->generate_tti_result(tti_rx);
+  pthread_rwlock_rdlock(&rwlock);
+  tti_sched_result_t* tti_sched = carrier_schedulers[0]->generate_tti_result(tti_rx);
+  pthread_rwlock_unlock(&rwlock);
 
-  // copy result
+  // Copy result
   *sched_result = tti_sched->dl_sched_result;
 
   return 0;
@@ -404,10 +406,12 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
   }
 
   // Compute scheduling Result for tti_rx
-  uint32_t                           tti_rx    = sched_utils::tti_subtract(tti, 2 * FDD_HARQ_DELAY_MS);
-  carrier_sched::tti_sched_result_t* tti_sched = carrier_schedulers[0]->generate_tti_result(tti_rx);
+  uint32_t tti_rx = sched_utils::tti_subtract(tti, 2 * FDD_HARQ_DELAY_MS);
+  pthread_rwlock_rdlock(&rwlock);
+  tti_sched_result_t* tti_sched = carrier_schedulers[0]->generate_tti_result(tti_rx);
+  pthread_rwlock_unlock(&rwlock);
 
-  // Copy results
+  // Copy result
   *sched_result = tti_sched->ul_sched_result;
 
   return SRSLTE_SUCCESS;
