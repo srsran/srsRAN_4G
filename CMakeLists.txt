@@ -85,6 +85,7 @@ option(ENABLE_TIDY     "Enable clang tidy"                        OFF)
 
 option(USE_LTE_RATES   "Use standard LTE sampling rates"          OFF)
 option(USE_GLIBC_IPV6  "Use glibc's own ipv6.h"                   ON)
+option(USE_MKL         "Use MKL instead of fftw"                  OFF)
 
 if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
   set(GCC_ARCH armv8-a CACHE STRING "GCC compile for specific architecture.")
@@ -117,12 +118,12 @@ endif()
 find_package(Threads REQUIRED)
 
 # FFT
-find_package(MKL)
-if(MKL_FOUND)
+if(USE_MKL)
+  find_package(MKL REQUIRED)
   include_directories(${MKL_INCLUDE_DIRS})
   link_directories(${MKL_LIBRARY_DIRS})
   set(FFT_LIBRARIES "${MKL_STATIC_LIBRARIES}") # Static by default
-else(MKL_FOUND)
+else(USE_MKL)
   find_package(FFTW3F REQUIRED)
   if(FFTW3F_FOUND)
     include_directories(${FFTW3F_INCLUDE_DIRS})
@@ -134,7 +135,7 @@ else(MKL_FOUND)
     endif(BUILD_STATIC)
     message(STATUS "FFT_LIBRARIES: " ${FFT_LIBRARIES})
   endif(FFTW3F_FOUND)
-endif(MKL_FOUND)
+endif(USE_MKL)
 
 # Crypto
 find_package(Polarssl)
