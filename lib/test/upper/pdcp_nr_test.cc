@@ -154,6 +154,7 @@ int test_rx(std::vector<pdcp_test_event_t>      events,
  */
 int test_tx_sdu_discard(const pdcp_initial_state&    init_state,
                         srslte::pdcp_discard_timer_t discard_timeout,
+                        bool                         imediate_notify,
                         srslte::byte_buffer_pool*    pool,
                         srslte::log*                 log)
 {
@@ -172,8 +173,6 @@ int test_tx_sdu_discard(const pdcp_initial_state&    init_state,
 
   pdcp_hlp.set_pdcp_initial_state(init_state);
 
-  // Run test
-
   // Test SDU
   srslte::unique_byte_buffer_t sdu = allocate_unique_buffer(*pool);
   sdu->append_bytes(sdu1, sizeof(sdu1));
@@ -184,7 +183,11 @@ int test_tx_sdu_discard(const pdcp_initial_state&    init_state,
   }
   TESTASSERT(rlc->discard_count == 0);
   timers->step_all();
-  TESTASSERT(rlc->discard_count == 1);
+  if (imediate_notify) {
+    TESTASSERT(rlc->discard_count == 0); // RLC imediatly notified the PDCP of tx, there should be no timeouts
+  } else {
+    TESTASSERT(rlc->discard_count == 1); // RLC does not notify the the PDCP of tx, there should be a timeout
+  }
   return 0;
 }
 
@@ -333,7 +336,7 @@ int test_tx_all(srslte::byte_buffer_pool* pool, srslte::log* log)
    * TX Test 9: PDCP Entity with SN LEN = 12
    * Test TX PDU discard.
    */
-  TESTASSERT(test_tx_sdu_discard(normal_init_state, srslte::pdcp_discard_timer_t::ms50, pool, log) == 0);
+  TESTASSERT(test_tx_sdu_discard(normal_init_state, srslte::pdcp_discard_timer_t::ms50, false, pool, log) == 0);
   return 0;
 }
 
