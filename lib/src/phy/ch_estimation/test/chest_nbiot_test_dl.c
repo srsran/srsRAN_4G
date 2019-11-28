@@ -78,10 +78,10 @@ void parse_args(int argc, char** argv)
   while ((opt = getopt(argc, argv, "recosvnm")) != -1) {
     switch (opt) {
       case 'r':
-        cell.base.nof_prb = atoi(argv[optind]);
+        cell.base.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'c':
-        cell.n_id_ncell = atoi(argv[optind]);
+        cell.n_id_ncell = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'n':
         have_channel = true;
@@ -90,7 +90,7 @@ void parse_args(int argc, char** argv)
         have_ofdm = true;
         break;
       case 's':
-        snr_db = (float)atof(argv[optind]);
+        snr_db = strtof(argv[optind], NULL);
         break;
       case 'v':
         srslte_verbose++;

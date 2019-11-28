@@ -221,7 +221,7 @@ private:
     if(line.substr(0,len).compare(key)) {
       return false;
     }
-    *var = (T)atoi(line.substr(len).c_str());
+    *var = (T)strtol(line.substr(len).c_str(), NULL, 10);
     return true;
   }
 
@@ -248,7 +248,7 @@ private:
       std::string substr;
       getline(ss, substr, ',');
       if (not substr.empty()) {
-        list.push_back(atoi(substr.c_str()));
+        list.push_back(strtol(substr.c_str(), nullptr, 10));
       }
     }
     return list;

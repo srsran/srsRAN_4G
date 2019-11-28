@@ -67,13 +67,13 @@ static void parse_args(int argc, char** argv)
         model = argv[optind];
         break;
       case 't':
-        duration_ms = (uint32_t)atof(argv[optind]);
+        duration_ms = (uint32_t)strtof(argv[optind], NULL);
         break;
       case 's':
-        srate = (uint32_t)atof(argv[optind]);
+        srate = (uint32_t)strtof(argv[optind], NULL);
         break;
       case 'r':
-        random_seed = (uint32_t)atoi(argv[optind]);
+        random_seed = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
 #ifdef ENABLE_GUI
       case 'g':

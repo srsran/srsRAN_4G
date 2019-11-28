@@ -87,46 +87,46 @@ void parse_args(int argc, char **argv) {
       input_file = argv[optind];
       break;
     case 'm':
-      mcs[0] = (uint32_t) atoi(argv[optind]);
+      mcs[0] = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'b':
       use_8_bit = true;
       break;
     case 'M':
-      mcs[1] = (uint32_t) atoi(argv[optind]);
+      mcs[1] = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 's':
-      subframe = atoi(argv[optind]);
+      subframe = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'X':
-      M = (uint32_t) atoi(argv[optind]);
+      M = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'r':
-      rv_idx[0] = (uint32_t) atoi(argv[optind]);
+      rv_idx[0] = (int)strtol(argv[optind], NULL, 10);
       break;
     case 't':
-      rv_idx[1] = (uint32_t) atoi(argv[optind]);
+      rv_idx[1] = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'R':
-      rnti = atoi(argv[optind]);
+      rnti = (uint16_t)strtol(argv[optind], NULL, 10);
       break;
     case 'F':
-      cfi = atoi(argv[optind]);
+      cfi = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'x':
-      tm = (srslte_tm_t)atoi(argv[optind]) - 1;
+      tm = (srslte_tm_t)(strtol(argv[optind], NULL, 10) - 1);
       break;
     case 'p':
-      pmi = (uint32_t) atoi(argv[optind]);
+      pmi = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'n':
-      cell.nof_prb = atoi(argv[optind]);
+      cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'c':
-      cell.id = atoi(argv[optind]);
+      cell.id = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'a':
-      nof_rx_antennas = (uint32_t) atoi(argv[optind]);
+      nof_rx_antennas = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'w':
       tb_cw_swap = true;

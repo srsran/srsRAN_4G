@@ -56,13 +56,13 @@ void parse_args(int argc, char **argv) {
   while ((opt = getopt(argc, argv, "csNnqv")) != -1) {
     switch(opt) {
     case 's':
-      subframe = atoi(argv[optind]);
+      subframe = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'n':
-      cell.nof_prb = atoi(argv[optind]);
+      cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'c':
-      cell.id = atoi(argv[optind]);
+      cell.id = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'q':
       test_cqi_only = true;

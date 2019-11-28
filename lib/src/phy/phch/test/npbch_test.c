@@ -49,13 +49,13 @@ void parse_args(int argc, char** argv)
   while ((opt = getopt(argc, argv, "cpnv")) != -1) {
     switch (opt) {
       case 'p':
-        cell.base.nof_ports = atoi(argv[optind]);
+        cell.base.nof_ports = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'n':
-        cell.base.nof_prb = atoi(argv[optind]);
+        cell.base.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'c':
-        cell.base.id = atoi(argv[optind]);
+        cell.base.id = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
         srslte_verbose++;

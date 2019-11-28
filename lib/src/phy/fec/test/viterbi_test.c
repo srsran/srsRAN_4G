@@ -61,13 +61,13 @@ void parse_args(int argc, char **argv) {
   while ((opt = getopt(argc, argv, "nlste")) != -1) {
     switch (opt) {
     case 'n':
-      nof_frames = atoi(argv[optind]);
+      nof_frames = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'l':
-      frame_length = atoi(argv[optind]);
+      frame_length = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'e':
-      ebno_db = atof(argv[optind]);
+      ebno_db = strtof(argv[optind], NULL);
       break;
     case 's':
       seed = (uint32_t) strtoul(argv[optind], NULL, 0);

@@ -77,25 +77,25 @@ void parse_args(int argc, char** argv)
         input_file_name = argv[optind];
         break;
       case 'l':
-        cell.n_id_ncell = atoi(argv[optind]);
+        cell.n_id_ncell = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'p':
-        cell.base.nof_prb = atoi(argv[optind]);
+        cell.base.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 't':
-        do_chest = atoi(argv[optind]);
+        do_chest = (strtol(argv[optind], NULL, 10) != 0);
         break;
       case 'n':
-        nof_frames = atoi(argv[optind]);
+        nof_frames = (int)strtol(argv[optind], NULL, 10);
         break;
       case 's':
-        sf_idx = atoi(argv[optind]) % 10;
+        sf_idx = (int)(strtol(argv[optind], NULL, 10) % 10);
         break;
       case 'v':
         srslte_verbose++;
         break;
       case 'r':
-        nf = atoi(argv[optind]);
+        nf = (int)strtol(argv[optind], NULL, 10);
         break;
       case 'R':
         cell.is_r14 = true;

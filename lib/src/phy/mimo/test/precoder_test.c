@@ -65,32 +65,32 @@ void parse_args(int argc, char **argv) {
   while ((opt = getopt(argc, argv, "mplnrcdsg")) != -1) {
     switch (opt) {
     case 'n':
-      nof_symbols = atoi(argv[optind]);
+      nof_symbols = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'p':
-      nof_tx_ports = atoi(argv[optind]);
+      nof_tx_ports = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'r':
-      nof_rx_ports = atoi(argv[optind]);
+      nof_rx_ports = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'l':
-      nof_layers = atoi(argv[optind]);
+      nof_layers = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'm':
       mimo_type_name = argv[optind];
       break;
     case 'c':
-      codebook_idx = (uint32_t) atoi(argv[optind]);
+      codebook_idx = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'd':
       strncpy(decoder_type_name, argv[optind], 15);
       decoder_type_name[15] = 0;
       break;
     case 's':
-      snr_db = (float) atof(argv[optind]);
+      snr_db = strtof(argv[optind], NULL);
       break;
     case 'g':
-      scaling = (float) atof(argv[optind]);
+      scaling = strtof(argv[optind], NULL);
       break;
     default:
       usage(argv[0]);

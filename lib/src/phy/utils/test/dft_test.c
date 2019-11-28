@@ -51,7 +51,7 @@ void parse_args(int argc, char **argv) {
   while ((opt = getopt(argc, argv, "Nbmnd")) != -1) {
     switch (opt) {
     case 'N':
-      N = atoi(argv[optind]);
+      N = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'b':
       forward = false;

@@ -66,19 +66,19 @@ void parse_args(int argc, char **argv) {
       rf_args = argv[optind];
       break;
     case 'g':
-      rf_gain = atof(argv[optind]);
+      rf_gain = strtof(argv[optind], NULL);
       break;
     case 'r':
-      rf_rate = atof(argv[optind]);
+      rf_rate = strtof(argv[optind], NULL);
       break;
     case 'f':
-      rf_freq = atof(argv[optind]);
+      rf_freq = strtof(argv[optind], NULL);
       break;
     case 'n':
-      nof_samples = atoi(argv[optind]);
+      nof_samples = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'A':
-      nof_rx_antennas = atoi(argv[optind]);
+      nof_rx_antennas = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'v':
       srslte_verbose++;

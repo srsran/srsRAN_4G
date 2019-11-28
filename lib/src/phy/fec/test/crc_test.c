@@ -47,10 +47,10 @@ void parse_args(int argc, char **argv) {
   while ((opt = getopt(argc, argv, "nlps")) != -1) {
     switch (opt) {
     case 'n':
-      num_bits = atoi(argv[optind]);
+      num_bits = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'l':
-      crc_length = atoi(argv[optind]);
+      crc_length = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'p':
       crc_poly = (uint32_t) strtoul(argv[optind], NULL, 16);

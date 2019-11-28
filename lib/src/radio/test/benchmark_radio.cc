@@ -61,7 +61,7 @@ static sem_t       plot_sem;
 static uint32_t    plot_sf_idx                        = 0;
 static plot_real_t fft_plot[SRSLTE_MAX_RADIOS]        = {};
 static cf_t*       fft_plot_buffer[SRSLTE_MAX_RADIOS] = {};
-static float*      fft_plot_temp                      = NULL;
+static float*      fft_plot_temp                      = nullptr;
 static uint32_t    fft_plot_buffer_size;
 srslte_dft_plan_t  dft_spectrum = {};
 #endif /* ENABLE_GUI */
@@ -94,10 +94,10 @@ void parse_args(int argc, char **argv) {
   while ((opt = getopt(argc, argv, "foabcderpsStvhmFxwg")) != -1) {
     switch (opt) {
       case 'f':
-        freq = atof(argv[optind]);
+        freq = strtof(argv[optind], NULL);
         break;
       case 'g':
-        rf_gain    = atof(argv[optind]);
+        rf_gain    = strtof(argv[optind], NULL);
         agc_enable = false;
         break;
       case 'o':
@@ -116,16 +116,16 @@ void parse_args(int argc, char **argv) {
         radios_args[2][63] = '\0';
         break;
       case 'r':
-        nof_radios = (uint32_t)atoi(argv[optind]);
+        nof_radios = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'p':
-        nof_ports = (uint32_t)atoi(argv[optind]);
+        nof_ports = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 's':
-        srate = atof(argv[optind]);
+        srate = strtof(argv[optind], NULL);
         break;
       case 't':
-        duration = atof(argv[optind]);
+        duration = strtof(argv[optind], NULL);
         break;
       case 'm':
         measure_delay ^= true;

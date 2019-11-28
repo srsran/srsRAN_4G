@@ -86,19 +86,19 @@ void parse_args(int argc, char **argv) {
       rf_args = argv[optind];
       break;
     case 'b':
-      band = atoi(argv[optind]);
+      band = (int)strtol(argv[optind], NULL, 10);
       break;
     case 's':
-      earfcn_start = atoi(argv[optind]);
+      earfcn_start = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'e':
-      earfcn_end = atoi(argv[optind]);
+      earfcn_end = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'n':
-      cell_detect_config.max_frames_pss = atoi(argv[optind]);
+      cell_detect_config.max_frames_pss = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'g':
-      rf_gain = atof(argv[optind]);
+      rf_gain = strtof(argv[optind], NULL);
       break;
     case 'v':
       srslte_verbose++;

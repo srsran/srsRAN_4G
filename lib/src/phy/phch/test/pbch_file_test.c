@@ -71,13 +71,13 @@ void parse_args(int argc, char **argv) {
       input_file_name = argv[optind];
       break;
     case 'c':
-      cell.id = atoi(argv[optind]);
+      cell.id = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'p':
-      cell.nof_prb = atoi(argv[optind]);
+      cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'n':
-      nof_frames = atoi(argv[optind]);
+      nof_frames = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'v':
       srslte_verbose++;

@@ -72,25 +72,25 @@ void parse_args(int argc, char **argv) {
       input_file_name = argv[optind];
       break;
     case 't':
-      threshold = atof(argv[optind]);
+      threshold = strtof(argv[optind], NULL);
       break;
     case 'e':
       cp = SRSLTE_CP_EXT;
       break;
     case 'i':
-      cell_id = atoi(argv[optind]);
+      cell_id = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'o':
-      file_offset = atoi(argv[optind]);
+      file_offset = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'l':
-      N_id_2_sync = atoi(argv[optind]);
+      N_id_2_sync = (int)strtol(argv[optind], NULL, 10);
       break;
     case 's':
-      fft_size = atoi(argv[optind]);
+      fft_size = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'n':
-      nof_frames = atoi(argv[optind]);
+      nof_frames = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'd':
       disable_plots = true;

@@ -208,19 +208,19 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       args->input_file_name = argv[optind];
       break;
     case 'p':
-      args->file_nof_prb = atoi(argv[optind]);
+      args->file_nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'P':
-      args->file_nof_ports = atoi(argv[optind]);
+      args->file_nof_ports = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'o':
-      args->file_offset_freq = atof(argv[optind]);
+      args->file_offset_freq = strtof(argv[optind], NULL);
       break;
     case 'O':
-      args->file_offset_time = atoi(argv[optind]);
+      args->file_offset_time = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'c':
-      args->file_cell_id = atoi(argv[optind]);
+      args->file_cell_id = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'I':
       args->rf_dev = argv[optind];
@@ -229,10 +229,10 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       args->rf_args = argv[optind];
       break;
     case 'A':
-      args->rf_nof_rx_ant = atoi(argv[optind]);
+      args->rf_nof_rx_ant = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'g':
-      args->rf_gain = atof(argv[optind]);
+      args->rf_gain = strtof(argv[optind], NULL);
       break;
     case 'C':
       args->disable_cfo = true;
@@ -244,34 +244,34 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       args->average_subframe = true;
       break;
     case 't':
-      args->time_offset = atoi(argv[optind]);
+      args->time_offset = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'f':
       args->rf_freq = strtod(argv[optind], NULL);
       break;
     case 'T':
-      args->tdd_special_sf = atoi(argv[optind]);
+      args->tdd_special_sf = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'G':
-      args->sf_config = atoi(argv[optind]);
+      args->sf_config = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'n':
-      args->nof_subframes = atoi(argv[optind]);
+      args->nof_subframes = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'r':
       args->rnti = strtol(argv[optind], NULL, 16);
       break;
     case 'l':
-      args->force_N_id_2 = atoi(argv[optind]);
+      args->force_N_id_2 = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'u':
-      args->net_port = atoi(argv[optind]);
+      args->net_port = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'U':
       args->net_address = argv[optind];
       break;
     case 's':
-      args->net_port_signal = atoi(argv[optind]);
+      args->net_port_signal = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'S':
       args->net_address_signal = argv[optind];
@@ -287,22 +287,22 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       args->verbose = srslte_verbose;
       break;
     case 'Z':
-      args->decimate = atoi(argv[optind]);
+      args->decimate = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'y':
-      args->cpu_affinity = atoi(argv[optind]);
+      args->cpu_affinity = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'W':
       output_file_name = argv[optind];
       break;
     case 'M':
-      args->mbsfn_area_id = atoi(argv[optind]);
+      args->mbsfn_area_id = (int32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'N':
-      args->non_mbsfn_region = atoi(argv[optind]);
+      args->non_mbsfn_region = (uint8_t)strtol(argv[optind], NULL, 10);
       break;
     case 'B':
-      args->mbsfn_sf_mask = atoi(argv[optind]);
+      args->mbsfn_sf_mask = (uint8_t)strtol(argv[optind], NULL, 10);
       break;
     case 'q':
       args->enable_256qam ^= true;

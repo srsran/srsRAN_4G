@@ -66,13 +66,13 @@ void parse_args(int argc, char** argv)
         input_file_name = argv[optind];
         break;
       case 'c':
-        n_id_ncell = atoi(argv[optind]);
+        n_id_ncell = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'n':
-        sfn = atoi(argv[optind]);
+        sfn = (int)strtol(argv[optind], NULL, 10);
         break;
       case 'r':
-        max_num_sf = atoi(argv[optind]);
+        max_num_sf = (int)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
         srslte_verbose = SRSLTE_VERBOSE_DEBUG;

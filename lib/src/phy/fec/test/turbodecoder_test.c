@@ -74,13 +74,13 @@ void parse_args(int argc, char **argv) {
   while ((opt = getopt(argc, argv, "kcinNledts")) != -1) {
     switch (opt) {
     case 'c':
-      nof_cb = atoi(argv[optind]);
+      nof_cb = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'n':
-      nof_frames = atoi(argv[optind]);
+      nof_frames = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'N':
-      nof_repetitions = atoi(argv[optind]);
+      nof_repetitions = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'k':
       test_known_data = 1;
@@ -89,16 +89,16 @@ void parse_args(int argc, char **argv) {
       test_errors = 1;
       break;
     case 'i':
-      nof_iterations = atoi(argv[optind]);
+      nof_iterations = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'l':
-      frame_length = atoi(argv[optind]);
+      frame_length = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'd':
-      tdec_type = (srslte_tdec_impl_type_t) atoi(argv[optind]);
+      tdec_type = (srslte_tdec_impl_type_t)strtol(argv[optind], NULL, 10);
       break;
     case 'e':
-      ebno_db = atof(argv[optind]);
+      ebno_db = strtof(argv[optind], NULL);
       break;
     case 's':
       seed = (uint32_t) strtoul(argv[optind], NULL, 0);

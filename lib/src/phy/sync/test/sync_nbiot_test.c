@@ -63,13 +63,13 @@ void parse_args(int argc, char** argv)
         input_file_name = argv[optind];
         break;
       case 'c':
-        cfo = atof(argv[optind]);
+        cfo = strtof(argv[optind], NULL);
         break;
       case 'g':
-        snr = atof(argv[optind]);
+        snr = strtof(argv[optind], NULL);
         break;
       case 'o':
-        offset = atoi(argv[optind]);
+        offset = (int)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
         srslte_verbose = SRSLTE_VERBOSE_DEBUG;

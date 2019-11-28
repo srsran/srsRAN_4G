@@ -75,7 +75,7 @@ void parse_args(int argc, char **argv) {
       input_file_name = argv[optind];
       break;
     case 'c':
-      cell.id = atoi(argv[optind]);
+      cell.id = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'r':
       rnti = strtoul(argv[optind], NULL, 0);
@@ -84,13 +84,13 @@ void parse_args(int argc, char **argv) {
       max_frames = strtoul(argv[optind], NULL, 0);
       break;
     case 'f':
-      cfi = atoi(argv[optind]);
+      cfi = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'n':
-      cell.nof_prb = atoi(argv[optind]);
+      cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'p':
-      cell.nof_ports = atoi(argv[optind]);
+      cell.nof_ports = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'o':
       dci_format = srslte_dci_format_from_string(argv[optind]);

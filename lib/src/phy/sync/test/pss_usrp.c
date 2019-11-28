@@ -75,31 +75,31 @@ void parse_args(int argc, char **argv) {
         rf_args = argv[optind];
         break;
       case 'g':
-        rf_gain = atof(argv[optind]);
+        rf_gain = strtof(argv[optind], NULL);
         break;
       case 'f':
-        rf_freq = atof(argv[optind]);
+        rf_freq = strtof(argv[optind], NULL);
         break;
       case 't':
-        threshold = atof(argv[optind]);
+        threshold = strtof(argv[optind], NULL);
         break;
       case 'e':
         cp = SRSLTE_CP_EXT;
         break;
       case 'i':
-        cell_id = atoi(argv[optind]);
+        cell_id = (int)strtol(argv[optind], NULL, 10);
         break;
       case 'T':
         tdd_mode = true;
         break;
       case 'l':
-        N_id_2_sync = atoi(argv[optind]);
+        N_id_2_sync = (int)strtol(argv[optind], NULL, 10);
         break;
       case 's':
-        fft_size = atoi(argv[optind]);
+        fft_size = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'n':
-        nof_frames = atoi(argv[optind]);
+        nof_frames = (int)strtol(argv[optind], NULL, 10);
         break;
       case 'd':
         disable_plots = true;

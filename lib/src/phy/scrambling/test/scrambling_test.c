@@ -48,10 +48,10 @@ void parse_args(int argc, char **argv) {
   while ((opt = getopt(argc, argv, "csefl")) != -1) {
     switch (opt) {
     case 'c':
-      cell_id = atoi(argv[optind]);
+      cell_id = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'l':
-      nof_bits = atoi(argv[optind]);
+      nof_bits = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'e':
       cp = SRSLTE_CP_EXT;

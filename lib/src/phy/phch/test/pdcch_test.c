@@ -57,19 +57,19 @@ void parse_args(int argc, char **argv) {
   while ((opt = getopt(argc, argv, "cfpndvAx")) != -1) {
     switch (opt) {
     case 'p':
-      cell.nof_ports = (uint32_t) atoi(argv[optind]);
+      cell.nof_ports = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'f':
-      cfi = (uint32_t) atoi(argv[optind]);
+      cfi = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'n':
-      cell.nof_prb = (uint32_t) atoi(argv[optind]);
+      cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'c':
-      cell.id = (uint32_t) atoi(argv[optind]);
+      cell.id = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'A':
-      nof_rx_ant = (uint32_t) atoi(argv[optind]);
+      nof_rx_ant = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'd':
       print_dci_table = true;

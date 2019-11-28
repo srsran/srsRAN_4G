@@ -43,7 +43,7 @@ void parse_args(int argc, char **argv) {
   while ((opt = getopt(argc, argv, "lv")) != -1) {
     switch (opt) {
     case 'l':
-      long_cb = atoi(argv[optind]);
+      long_cb = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'v':
       srslte_verbose++;

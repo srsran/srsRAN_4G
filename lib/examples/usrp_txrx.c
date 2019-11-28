@@ -66,22 +66,22 @@ void parse_args(int argc, char **argv) {
       input_filename = argv[optind];
       break;
     case 't':
-      tone_offset_hz = atof(argv[optind]);
+      tone_offset_hz = strtof(argv[optind], NULL);
       break;
     case 'T':
-      time_adv_samples = atoi(argv[optind]);
+      time_adv_samples = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'f':
-      rf_freq = atof(argv[optind]);
+      rf_freq = strtof(argv[optind], NULL);
       break;
     case 'g':
-      rf_rx_gain = atof(argv[optind]);
+      rf_rx_gain = strtof(argv[optind], NULL);
       break;
     case 'G':
-      srslte_rf_tx_gain = atof(argv[optind]);
+      srslte_rf_tx_gain = strtof(argv[optind], NULL);
       break;
     case 'p':
-      nof_prb = atoi(argv[optind]);
+      nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
       if (!srslte_nofprb_isvalid(nof_prb)) {
         ERROR("Invalid number of UL RB %d\n", nof_prb);
         exit(-1);
