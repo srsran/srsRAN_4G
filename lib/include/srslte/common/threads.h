@@ -19,6 +19,9 @@
  *
  */
 
+#ifndef SRSLTE_THREADS_H
+#define SRSLTE_THREADS_H
+
 #include <pthread.h>
 #include <stdint.h>
 #include <sys/timerfd.h>
@@ -43,9 +46,6 @@
 
 #include <string>
 
-#ifndef SRSLTE_THREADS_H
-#define SRSLTE_THREADS_H  
-  
 class thread
 {
 public:
@@ -182,8 +182,6 @@ private:
   }
 }; 
 
-
+#endif // __cplusplus
 
 #endif // SRSLTE_THREADS_H
-
-#endif // __cplusplus
