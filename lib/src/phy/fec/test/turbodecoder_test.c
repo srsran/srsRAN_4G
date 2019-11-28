@@ -27,9 +27,10 @@
 #include <math.h>
 #include <time.h>
 
+#include "srslte/srslte.h"
+#include <srslte/phy/utils/random.h>
 #include <sys/time.h>
 #include <time.h>
-#include "srslte/srslte.h"
 
 #include "turbodecoder_test.h"
 
@@ -114,6 +115,7 @@ void parse_args(int argc, char **argv) {
 
 
 int main(int argc, char **argv) {
+  srslte_random_t random_gen = srslte_random_init(0);
   uint32_t frame_cnt;
   float *llr;
   short *llr_s;
@@ -122,7 +124,7 @@ int main(int argc, char **argv) {
   uint32_t i, j;
   float var[SNR_POINTS];
   uint32_t snr_points;
-  uint32_t errors;
+  uint32_t        errors = 0;
   uint32_t coded_length;
   struct timeval tdata[3];
   float mean_usec;
@@ -210,12 +212,12 @@ int main(int argc, char **argv) {
     snr_points = SNR_POINTS;
     for (i = 0; i < snr_points; i++) {
       ebno_db = SNR_MIN + i * ebno_inc;
-      esno_db = ebno_db + 10 * log10((double) 1 / 3);
-      var[i] = sqrt(1 / (pow(10, esno_db / 10)));
+      esno_db = ebno_db + srslte_convert_power_to_dB(1.0f / 3.0f);
+      var[i]  = srslte_convert_dB_to_amplitude(-esno_db);
     }
   } else {
-    esno_db = ebno_db + 10 * log10((double) 1 / 3);
-    var[0] = sqrt(1 / (pow(10, esno_db / 10)));
+    esno_db    = ebno_db + srslte_convert_power_to_dB(1.0f / 3.0f);
+    var[0]     = srslte_convert_dB_to_amplitude(-esno_db);
     snr_points = 1;
   }
   for (i = 0; i < snr_points; i++) {
@@ -229,7 +231,7 @@ int main(int argc, char **argv) {
         if (test_known_data) {
           data_tx[j] = known_data[j];
         } else {
-          data_tx[j] = rand() % 2;
+          data_tx[j] = srslte_random_uniform_int_dist(random_gen, 0, 1);
         }
       }
 
@@ -292,9 +294,7 @@ int main(int argc, char **argv) {
     }
   }
 
-  if (data_rx_bytes) {
-    free(data_rx_bytes);
-  }
+  free(data_rx_bytes);
   free(data_tx);
   free(symbols);
   free(llr);
@@ -304,6 +304,7 @@ int main(int argc, char **argv) {
 
   srslte_tdec_free(&tdec);
   srslte_tcod_free(&tcod);
+  srslte_random_free(random_gen);
 
   printf("\n");
   printf("Done\n");

@@ -313,7 +313,7 @@ void srslte_dft_run_c(srslte_dft_plan_t *plan, const cf_t *in, cf_t *out) {
   }
   if (plan->db) {
     for (i=0;i<plan->size;i++) {
-      f_out[i] = 10*log10(f_out[i]);
+      f_out[i] = srslte_convert_power_to_dB(f_out[i]);
     }
   }
   copy_post((uint8_t*)out, (uint8_t*)plan->out, sizeof(cf_t), plan->size,
@@ -342,7 +342,7 @@ void srslte_dft_run_r(srslte_dft_plan_t *plan, const float *in, float *out) {
   }
   if (plan->db) {
     for (i=0;i<len;i++) {
-      f_out[i] = 10*log10(f_out[i]);
+      f_out[i] = srslte_convert_power_to_dB(f_out[i]);
     }
   }
   memcpy(out,plan->out,sizeof(float)*plan->size);

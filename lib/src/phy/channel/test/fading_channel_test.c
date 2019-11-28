@@ -196,12 +196,12 @@ int main(int argc, char** argv)
       srslte_dft_run_c_zerocopy(&fft, output_buffer, fft_buffer);
       srslte_vec_prod_conj_ccc(fft_buffer, fft_buffer, fft_buffer, srate / 1000);
       for (int i = 0; i < srate / 1000; i++) {
-        fft_mag[i] = 10.0f * log10f(__real__ fft_buffer[i]);
+        fft_mag[i] = srslte_convert_power_to_dB(__real__ fft_buffer[i]);
       }
       plot_real_setNewData(&plot_fft, fft_mag, srate / 1000);
 
       for (int i = 0; i < channel_fading.N; i++) {
-        fft_mag[i] = 20.0f * log10f(cabsf(channel_fading.h_freq[i]));
+        fft_mag[i] = srslte_convert_amplitude_to_dB(cabsf(channel_fading.h_freq[i]));
       }
       plot_real_setNewData(&plot_h, fft_mag, channel_fading.N);
 

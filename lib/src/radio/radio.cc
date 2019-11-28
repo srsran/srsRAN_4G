@@ -274,7 +274,7 @@ void radio::set_rx_gain(float gain)
   srslte_rf_set_rx_gain(&rf_device, gain);
 }
 
-double radio::set_rx_gain_th(float gain)
+float radio::set_rx_gain_th(float gain)
 {
   return srslte_rf_set_rx_gain_th(&rf_device, gain);
 }

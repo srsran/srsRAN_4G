@@ -176,7 +176,7 @@ void set_256QAMtable(cf_t* table)
       real *= ((i & (1 << (2 * j + 1)))) ? +1 : -1;
       imag *= ((i & (1 << (2 * j + 0)))) ? +1 : -1;
     }
-    __real__ table[i] = real / sqrt(170);
-    __imag__ table[i] = imag / sqrt(170);
+    __real__ table[i] = real / sqrtf(170);
+    __imag__ table[i] = imag / sqrtf(170);
   }
 }

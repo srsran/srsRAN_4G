@@ -390,7 +390,7 @@ void srslte_vec_abs_dB_cf(const cf_t* x, float default_value, float* abs, const 
     // Check boundaries
     if (isnormal(abs[i])) {
       // Avoid infinites and zeros
-      abs[i] = 20.0f * log10f(abs[i]);
+      abs[i] = srslte_convert_amplitude_to_dB(abs[i]);
     } else {
       // Set to default value instead
       abs[i] = default_value;

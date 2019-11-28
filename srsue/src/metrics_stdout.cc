@@ -129,7 +129,7 @@ std::string metrics_stdout::float_to_string(float f, int digits)
 
 std::string metrics_stdout::float_to_eng_string(float f, int digits)
 {
-  const int degree = (f == 0.0) ? 0 : lrint( floor( log10( fabs( f ) ) / 3) );
+  const int degree = (f == 0.0) ? 0 : lrint(floor(log10f(fabs(f)) / 3));
 
   std::string factor;
 

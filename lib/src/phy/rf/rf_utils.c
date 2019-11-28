@@ -63,7 +63,8 @@ int rf_rssi_scan(srslte_rf_t *rf, float *freqs, float *rssi, int nof_bands, doub
       }
     }
     rssi[i] = srslte_vec_avg_power_cf(buffer, nsamp);
-    printf("[%3d]: Freq %4.1f Mhz - RSSI: %3.2f dBm\r", i, f/1000000, 10*log10f(rssi[i]) + 30); fflush(stdout);
+    printf("[%3d]: Freq %4.1f Mhz - RSSI: %3.2f dBm\r", i, f / 1000000, srslte_convert_power_to_dBm(rssi[i]));
+    fflush(stdout);
     if (SRSLTE_VERBOSE_ISINFO()) {
       printf("\n");
     }
@@ -205,7 +206,7 @@ int rf_cell_search(srslte_rf_t *rf, uint32_t nof_rx_antennas,
            srslte_cp_string(found_cells[i].cp),
            found_cells[i].mode * 100,
            found_cells[i].psr,
-           20 * log10(found_cells[i].peak * 1000));
+           srslte_convert_amplitude_to_dB(found_cells[i].peak * 1000));
   }
 
   // Save result

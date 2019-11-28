@@ -354,7 +354,7 @@ float srslte_ue_ul_pusch_power(srslte_ue_ul_t* q, srslte_ue_ul_cfg_t* cfg, float
       MPR               = q->pusch_cfg.last_O_cqi;
     }
     MPR /= q->pusch.dci.nof_re;
-    delta = 10 * log10((pow(2, MPR * 1.25) - 1) * beta_offset_pusch);
+    delta = 10 * log10f((powf(2, MPR * 1.25) - 1) * beta_offset_pusch);
   }
 #else
   printf("Do this in pusch??");
@@ -362,10 +362,10 @@ float srslte_ue_ul_pusch_power(srslte_ue_ul_t* q, srslte_ue_ul_cfg_t* cfg, float
   // TODO: This implements closed-loop power control
   float f = 0;
 
-  float pusch_power = 10 * log10(cfg->ul_cfg.pusch.grant.L_prb) + p0_pusch + alpha * PL + delta + f;
+  float pusch_power = 10 * log10f(cfg->ul_cfg.pusch.grant.L_prb) + p0_pusch + alpha * PL + delta + f;
   DEBUG("PUSCH: P=%f -- 10M=%f, p0=%f,alpha=%f,PL=%f,\n",
         pusch_power,
-        10 * log10(cfg->ul_cfg.pusch.grant.L_prb),
+        10 * log10f(cfg->ul_cfg.pusch.grant.L_prb),
         p0_pusch,
         alpha,
         PL);
@@ -464,12 +464,12 @@ float srs_power(srslte_ue_ul_t* q, srslte_ue_ul_cfg_t* cfg, float PL)
     p_srs_offset = -10.5 + 1.5 * cfg->ul_cfg.power_ctrl.p_srs_offset;
   }
 
-  float p_srs = p_srs_offset + 10 * log10(M_sc) + p0_pusch + alpha * PL + f;
+  float p_srs = p_srs_offset + 10 * log10f(M_sc) + p0_pusch + alpha * PL + f;
 
   DEBUG("SRS: P=%f -- p_offset=%f, 10M=%f, p0_pusch=%f, alpha=%f, PL=%f, f=%f\n",
         p_srs,
         p_srs_offset,
-        10 * log10(M_sc),
+        10 * log10f(M_sc),
         p0_pusch,
         alpha,
         PL,

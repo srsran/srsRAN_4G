@@ -84,17 +84,17 @@ void measure::set_cell(srslte_cell_t cell)
 
 float measure::rssi()
 {
-  return 10 * log10(mean_rssi);
+  return srslte_convert_power_to_dB(mean_rssi);
 }
 
 float measure::rsrp()
 {
-  return 10 * log10(mean_rsrp) + 30 - rx_gain_offset;
+  return srslte_convert_power_to_dBm(mean_rsrp) - rx_gain_offset;
 }
 
 float measure::rsrq()
 {
-  return 10 * log10(mean_rsrq);
+  return srslte_convert_power_to_dB(mean_rsrq);
 }
 
 float measure::snr()
@@ -112,9 +112,9 @@ uint32_t measure::frame_st_idx()
   return final_offset;
 }
 
-void measure::set_rx_gain_offset(float rx_gain_offset)
+void measure::set_rx_gain_offset(float rx_gain_offset_)
 {
-  this->rx_gain_offset = rx_gain_offset;
+  rx_gain_offset = rx_gain_offset_;
 }
 
 measure::ret_code measure::run_multiple_subframes(cf_t* input_buffer, uint32_t offset, uint32_t sf_idx, uint32_t max_sf)

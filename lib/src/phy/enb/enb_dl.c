@@ -402,7 +402,7 @@ int srslte_enb_dl_put_pmch(srslte_enb_dl_t* q, srslte_pmch_cfg_t* pmch_cfg, uint
 void srslte_enb_dl_gen_signal(srslte_enb_dl_t* q)
 {
   // TODO: PAPR control
-  float norm_factor = 0.05f / sqrt(q->cell.nof_prb);
+  float norm_factor = 0.05f / sqrtf(q->cell.nof_prb);
 
   if (q->dl_sf.sf_type == SRSLTE_SF_MBSFN) {
     srslte_ofdm_tx_sf(&q->ifft_mbsfn);

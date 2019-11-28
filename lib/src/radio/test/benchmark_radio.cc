@@ -150,9 +150,9 @@ void parse_args(int argc, char **argv) {
   }
 }
 
-static double set_gain_callback(void* h, double gain)
+static float set_gain_callback(void* h, float gain)
 {
-  radio* r = (radio*)h;
+  auto r = (radio*)h;
   return r->set_rx_gain_th(gain);
 }
 
@@ -181,7 +181,7 @@ static void* plot_thread_run(void* arg)
         srslte_vec_abs_square_cf(fft_plot_buffer[r], fft_plot_temp, fft_plot_buffer_size);
 
         for (uint32_t j = 0; j < fft_plot_buffer_size; j++) {
-          fft_plot_temp[j] = 10.0f * log10f(fft_plot_temp[j]);
+          fft_plot_temp[j] = srslte_convert_power_to_dB(fft_plot_temp[j]);
         }
 
         plot_real_setNewData(&fft_plot[r], fft_plot_temp, fft_plot_buffer_size);
@@ -189,7 +189,7 @@ static void* plot_thread_run(void* arg)
     }
   }
 
-  return NULL;
+  return nullptr;
 }
 
 static int init_plots(uint32_t frame_size)

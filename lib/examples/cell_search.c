@@ -130,7 +130,8 @@ void sig_int_handler(int signo)
   }
 }
 
-double srslte_rf_set_rx_gain_wrapper(void *h, double f) {
+float srslte_rf_set_rx_gain_wrapper(void* h, float f)
+{
   return srslte_rf_set_rx_gain((srslte_rf_t*) h, f);
 }
 
@@ -249,14 +250,13 @@ int main(int argc, char **argv) {
 
   printf("\n\nFound %d cells\n", n_found_cells);
   for (int i=0;i<n_found_cells;i++) {
-    printf("Found CELL %.1f MHz, EARFCN=%d, PHYID=%d, %d PRB, %d ports, PSS power=%.1f dBm\n", 
+    printf("Found CELL %.1f MHz, EARFCN=%d, PHYID=%d, %d PRB, %d ports, PSS power=%.1f dBm\n",
            results[i].freq,
            results[i].dl_earfcn,
-           results[i].cell.id, 
-           results[i].cell.nof_prb, 
-           results[i].cell.nof_ports, 
-           10*log10(results[i].power));
-
+           results[i].cell.id,
+           results[i].cell.nof_prb,
+           results[i].cell.nof_ports,
+           srslte_convert_power_to_dB(results[i].power));
   }
   
   printf("\nBye\n");

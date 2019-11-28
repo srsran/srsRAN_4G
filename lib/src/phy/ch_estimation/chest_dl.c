@@ -839,33 +839,32 @@ static float get_rsrp_neighbour(srslte_chest_dl_t* q)
   return max;
 }
 
-#define dbm(a) (10 * log10(a) + 30)
-#define db(a) (10 * log10(a))
-
 static void fill_res(srslte_chest_dl_t* q, srslte_chest_dl_res_t* res)
 {
   res->noise_estimate     = get_noise(q);
-  res->noise_estimate_dbm = dbm(res->noise_estimate);
+  res->noise_estimate_dbm = srslte_convert_power_to_dBm(res->noise_estimate);
   res->cfo                = q->cfo;
   res->rsrp               = get_rsrp(q);
-  res->rsrp_dbm           = dbm(res->rsrp);
+  res->rsrp_dbm           = srslte_convert_power_to_dBm(res->rsrp);
   res->rsrp_neigh         = get_rsrp_neighbour(q);
   res->rsrq               = get_rsrq(q);
-  res->rsrq_db            = db(res->rsrq);
-  res->snr_db             = db(get_snr(q));
-  res->rssi_dbm           = dbm(get_rssi(q));
+  res->rsrq_db            = srslte_convert_power_to_dB(res->rsrq);
+  res->snr_db             = srslte_convert_power_to_dB(get_snr(q));
+  res->rssi_dbm           = srslte_convert_power_to_dBm(get_rssi(q));
   res->sync_error         = q->sync_err[0][0]; // Take only the channel used for synch
 
   for (uint32_t port_id = 0; port_id < q->cell.nof_ports; port_id++) {
-    res->rsrp_port_dbm[port_id] = dbm(get_rsrp_port(q, port_id));
+    res->rsrp_port_dbm[port_id] = srslte_convert_power_to_dBm(get_rsrp_port(q, port_id));
     for (uint32_t a = 0; a < q->nof_rx_antennas; a++) {
       if (q->noise_estimate[a]) {
-        res->snr_ant_port_db[a][port_id] = db(q->rsrp[a][port_id] / q->noise_estimate[a][port_id]);
+        res->snr_ant_port_db[a][port_id] =
+            srslte_convert_power_to_dB(q->rsrp[a][port_id] / q->noise_estimate[a][port_id]);
       } else {
-        res->snr_ant_port_db[a][port_id] = 0.0;
+        res->snr_ant_port_db[a][port_id] = 0.0f;
       }
-      res->rsrp_ant_port_dbm[a][port_id] = dbm(q->rsrp[a][port_id]);
-      res->rsrq_ant_port_db[a][port_id]  = db(q->cell.nof_prb * q->rsrp[a][port_id] / q->rssi[a][port_id]);
+      res->rsrp_ant_port_dbm[a][port_id] = srslte_convert_power_to_dBm(q->rsrp[a][port_id]);
+      res->rsrq_ant_port_db[a][port_id] =
+          srslte_convert_power_to_dB(q->cell.nof_prb * q->rsrp[a][port_id] / q->rssi[a][port_id]);
     }
   }
 }

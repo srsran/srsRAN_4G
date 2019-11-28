@@ -23,8 +23,8 @@
 
 #define QPSK_LEVEL M_SQRT1_2
 
-#define QAM16_LEVEL_1 (1.0f / sqrt(10.0f))
-#define QAM16_LEVEL_2 (3.0f / sqrt(10.0f))
+#define QAM16_LEVEL_1 (1.0f / sqrtf(10.0f))
+#define QAM16_LEVEL_2 (3.0f / sqrtf(10.0f))
 
 #define QAM64_LEVEL_1 (1.0f / sqrtf(42.0f))
 #define QAM64_LEVEL_2 (3.0f / sqrtf(42.0f))
@@ -38,7 +38,7 @@
 #define QAM64_THRESHOLD_3 (6.0f / sqrtf(42.0f))
 //=========================================//
 
-#define QAM64_LEVEL_x  2/sqrt(42)
+#define QAM64_LEVEL_x 2 / sqrtf(42)
 /* this is not an QAM64 level, but, rather, an auxiliary value that can be used for computing the
  * symbol from the bit sequence */
 

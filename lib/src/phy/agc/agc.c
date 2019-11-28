@@ -54,7 +54,12 @@ int srslte_agc_init_acc(srslte_agc_t *q, srslte_agc_mode_t mode, uint32_t nof_fr
   return SRSLTE_SUCCESS;
 }
 
-int srslte_agc_init_uhd(srslte_agc_t *q, srslte_agc_mode_t mode, uint32_t nof_frames, double (set_gain_callback)(void*, double), void *uhd_handler) {
+int srslte_agc_init_uhd(srslte_agc_t*     q,
+                        srslte_agc_mode_t mode,
+                        uint32_t          nof_frames,
+                        float(set_gain_callback)(void*, float),
+                        void* uhd_handler)
+{
   if (!srslte_agc_init_acc(q, mode, nof_frames)) {
     q->set_gain_callback = set_gain_callback;
     q->uhd_handler = uhd_handler;    
@@ -73,16 +78,17 @@ void srslte_agc_free(srslte_agc_t *q) {
 
 void srslte_agc_reset(srslte_agc_t *q) {
   q->bandwidth = SRSLTE_AGC_DEFAULT_BW;
-  q->lock = false; 
-  q->gain = pow(10,50/10);
+  q->lock      = false;
+  q->gain      = srslte_convert_dB_to_power(50.0f);
   q->y_out = 1.0; 
   q->isfirst = true; 
   if (q->set_gain_callback && q->uhd_handler) {
-    q->set_gain_callback(q->uhd_handler, 10*log10(q->gain));
+    q->set_gain_callback(q->uhd_handler, srslte_convert_power_to_dB(q->gain));
   }
 }
 
-void srslte_agc_set_gain_range(srslte_agc_t *q, double min_gain, double max_gain) {
+void srslte_agc_set_gain_range(srslte_agc_t* q, float min_gain, float max_gain)
+{
   if (q) {
     q->min_gain = min_gain;
     q->max_gain = max_gain;
@@ -119,8 +125,8 @@ void srslte_agc_lock(srslte_agc_t *q, bool enable) {
 
 void srslte_agc_process(srslte_agc_t *q, cf_t *signal, uint32_t len) {
   if (!q->lock) {
-    double gain_db = 10.0 * log10(q->gain);
-    double gain_uhd_db = 50.0;
+    float gain_db     = srslte_convert_power_to_dB(q->gain);
+    float gain_uhd_db = 50.0f;
 
     float y = 0; 
     // Apply current gain to input signal 
@@ -140,7 +146,7 @@ void srslte_agc_process(srslte_agc_t *q, cf_t *signal, uint32_t len) {
 
       // Set gain
       gain_uhd_db = q->set_gain_callback(q->uhd_handler, gain_db);
-      q->gain = pow(10, gain_uhd_db / 10);
+      q->gain     = srslte_convert_dB_to_power(gain_uhd_db);
     }
     float *t; 
     switch(q->mode) {

@@ -184,7 +184,7 @@ int main(int argc, char** argv)
   if (snr != -1.0) {
     snr -= 10.0;
     printf("Adding AWGN with target SNR: %.2fdB\n", snr);
-    float nstd = powf(10.0f, -snr / 20.0f);
+    float nstd = srslte_convert_dB_to_amplitude(-snr);
     srslte_ch_awgn_c(fft_buffer, fft_buffer, nstd, SFLEN);
   }
 

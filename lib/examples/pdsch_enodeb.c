@@ -999,7 +999,7 @@ int main(int argc, char **argv) {
         if (!null_file_sink) {
           /* Apply AWGN */
           if (output_file_snr != +INFINITY) {
-            float var = powf(10.0f, -(output_file_snr + 3.0f) / 20.0f);
+            float var = srslte_convert_dB_to_amplitude(-(output_file_snr + 3.0f));
             for (int k = 0; k < cell.nof_ports; k++) {
               srslte_ch_awgn_c(output_buffer[k], output_buffer[k], var, sf_n_samples);
             }

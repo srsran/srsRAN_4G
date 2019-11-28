@@ -130,8 +130,8 @@ void demod_16qam_lte(const cf_t *symbols, float *llr, int nsymbols) {
     
     llr[4*i+0] = -yre;
     llr[4*i+1] = -yim;
-    llr[4*i+2] = fabsf(yre)-2/sqrt(10);
-    llr[4*i+3] = fabsf(yim)-2/sqrt(10);
+    llr[4 * i + 2] = fabsf(yre) - 2 / sqrtf(10);
+    llr[4 * i + 3] = fabsf(yim) - 2 / sqrtf(10);
   }
 }
 
@@ -146,7 +146,7 @@ void demod_16qam_lte_s_neon(const cf_t *symbols, short *llr, int nsymbols) {
   int8x16_t result11, result21;
   result11 = vdupq_n_s8(0);
   result21 = vdupq_n_s8(0);
-  int16x8_t offset = vdupq_n_s16(2 * SCALE_SHORT_CONV_QAM16 / sqrt(10));
+  int16x8_t   offset  = vdupq_n_s16(2 * SCALE_SHORT_CONV_QAM16 / sqrtf(10));
   float32x4_t scale_v = vdupq_n_f32(-SCALE_SHORT_CONV_QAM16);
 
   for (int i = 0; i < nsymbols / 4; i++) {
@@ -180,8 +180,8 @@ void demod_16qam_lte_s_neon(const cf_t *symbols, short *llr, int nsymbols) {
 
     llr[4 * i + 0] = -yre;
     llr[4 * i + 1] = -yim;
-    llr[4 * i + 2] = abs(yre) - 2 * SCALE_SHORT_CONV_QAM16 / sqrt(10);
-    llr[4 * i + 3] = abs(yim) - 2 * SCALE_SHORT_CONV_QAM16 / sqrt(10);
+    llr[4 * i + 2] = abs(yre) - 2 * SCALE_SHORT_CONV_QAM16 / sqrtf(10);
+    llr[4 * i + 3] = abs(yim) - 2 * SCALE_SHORT_CONV_QAM16 / sqrtf(10);
   }
 }
 
@@ -192,7 +192,7 @@ void demod_16qam_lte_b_neon(const cf_t *symbols, int8_t *llr, int nsymbols) {
   int8x16_t symbol_i, symbol_abs;
   int16x8_t symbol_12, symbol_34;
   int32x4_t symbol_i1, symbol_i2, symbol_i3, symbol_i4;
-  int8x16_t offset = vdupq_n_s8(2 * SCALE_BYTE_CONV_QAM16 / sqrt(10));
+  int8x16_t   offset = vdupq_n_s8(2 * SCALE_BYTE_CONV_QAM16 / sqrtf(10));
   int8x16_t result1n, result2n;
   float32x4_t scale_v = vdupq_n_f32(-SCALE_BYTE_CONV_QAM16);
 
@@ -240,8 +240,8 @@ void demod_16qam_lte_b_neon(const cf_t *symbols, int8_t *llr, int nsymbols) {
 
     llr[4 * i + 0] = -yre;
     llr[4 * i + 1] = -yim;
-    llr[4 * i + 2] = abs(yre) - 2 * SCALE_BYTE_CONV_QAM16 / sqrt(10);
-    llr[4 * i + 3] = abs(yim) - 2 * SCALE_BYTE_CONV_QAM16 / sqrt(10);
+    llr[4 * i + 2] = abs(yre) - 2 * SCALE_BYTE_CONV_QAM16 / sqrtf(10);
+    llr[4 * i + 3] = abs(yim) - 2 * SCALE_BYTE_CONV_QAM16 / sqrtf(10);
   }
 }
 
@@ -254,7 +254,7 @@ void demod_16qam_lte_s_sse(const cf_t *symbols, short *llr, int nsymbols) {
   __m128i *resultPtr = (__m128i*) llr;
   __m128 symbol1, symbol2; 
   __m128i symbol_i1, symbol_i2, symbol_i, symbol_abs;
-  __m128i offset = _mm_set1_epi16(2*SCALE_SHORT_CONV_QAM16/sqrt(10));
+  __m128i  offset = _mm_set1_epi16(2 * SCALE_SHORT_CONV_QAM16 / sqrtf(10));
   __m128i result11, result12, result22, result21; 
   __m128 scale_v = _mm_set1_ps(-SCALE_SHORT_CONV_QAM16);
   __m128i shuffle_negated_1 = _mm_set_epi8(0xff,0xff,0xff,0xff,7,6,5,4,0xff,0xff,0xff,0xff,3,2,1,0);
@@ -289,8 +289,8 @@ void demod_16qam_lte_s_sse(const cf_t *symbols, short *llr, int nsymbols) {
         
     llr[4*i+0] = -yre;
     llr[4*i+1] = -yim;
-    llr[4*i+2] = abs(yre)-2*SCALE_SHORT_CONV_QAM16/sqrt(10);
-    llr[4*i+3] = abs(yim)-2*SCALE_SHORT_CONV_QAM16/sqrt(10);    
+    llr[4 * i + 2] = abs(yre) - 2 * SCALE_SHORT_CONV_QAM16 / sqrtf(10);
+    llr[4 * i + 3] = abs(yim) - 2 * SCALE_SHORT_CONV_QAM16 / sqrtf(10);
   }
 }
 
@@ -299,7 +299,7 @@ void demod_16qam_lte_b_sse(const cf_t *symbols, int8_t *llr, int nsymbols) {
   __m128i *resultPtr = (__m128i*) llr;
   __m128 symbol1, symbol2, symbol3, symbol4;
   __m128i symbol_i1, symbol_i2, symbol_i3, symbol_i4, symbol_i, symbol_abs, symbol_12, symbol_34;
-  __m128i offset = _mm_set1_epi8(2*SCALE_BYTE_CONV_QAM16/sqrt(10));
+  __m128i  offset = _mm_set1_epi8(2 * SCALE_BYTE_CONV_QAM16 / sqrtf(10));
   __m128i result1n, result1a, result2n, result2a;
   __m128 scale_v = _mm_set1_ps(-SCALE_BYTE_CONV_QAM16);
 
@@ -342,8 +342,8 @@ void demod_16qam_lte_b_sse(const cf_t *symbols, int8_t *llr, int nsymbols) {
 
     llr[4*i+0] = -yre;
     llr[4*i+1] = -yim;
-    llr[4*i+2] = abs(yre)-2*SCALE_BYTE_CONV_QAM16/sqrt(10);
-    llr[4*i+3] = abs(yim)-2*SCALE_BYTE_CONV_QAM16/sqrt(10);
+    llr[4 * i + 2] = abs(yre) - 2 * SCALE_BYTE_CONV_QAM16 / sqrtf(10);
+    llr[4 * i + 3] = abs(yim) - 2 * SCALE_BYTE_CONV_QAM16 / sqrtf(10);
   }
 }
 
@@ -362,8 +362,8 @@ void demod_16qam_lte_s(const cf_t *symbols, short *llr, int nsymbols) {
         
     llr[4*i+0] = -yre;
     llr[4*i+1] = -yim;
-    llr[4*i+2] = abs(yre)-2*SCALE_SHORT_CONV_QAM16/sqrt(10);
-    llr[4*i+3] = abs(yim)-2*SCALE_SHORT_CONV_QAM16/sqrt(10);    
+    llr[4 * i + 2] = abs(yre) - 2 * SCALE_SHORT_CONV_QAM16 / sqrtf(10);
+    llr[4 * i + 3] = abs(yim) - 2 * SCALE_SHORT_CONV_QAM16 / sqrtf(10);
   }
 #endif
 #endif
@@ -382,8 +382,8 @@ void demod_16qam_lte_b(const cf_t *symbols, int8_t *llr, int nsymbols) {
 
     llr[4*i+0] = -yre;
     llr[4*i+1] = -yim;
-    llr[4*i+2] = abs(yre)-2*SCALE_BYTE_CONV_QAM16/sqrt(10);
-    llr[4*i+3] = abs(yim)-2*SCALE_BYTE_CONV_QAM16/sqrt(10);
+    llr[4 * i + 2] = abs(yre) - 2 * SCALE_BYTE_CONV_QAM16 / sqrtf(10);
+    llr[4 * i + 3] = abs(yim) - 2 * SCALE_BYTE_CONV_QAM16 / sqrtf(10);
   }
 #endif
 #endif
@@ -397,10 +397,10 @@ void demod_64qam_lte(const cf_t *symbols, float *llr, int nsymbols)
 
     llr[6*i+0] = -yre;
     llr[6*i+1] = -yim;
-    llr[6*i+2] = fabsf(yre)-4/sqrt(42);
-    llr[6*i+3] = fabsf(yim)-4/sqrt(42);
-    llr[6*i+4] = fabsf(llr[6*i+2])-2/sqrt(42);
-    llr[6*i+5] = fabsf(llr[6*i+3])-2/sqrt(42);        
+    llr[6 * i + 2] = fabsf(yre) - 4 / sqrtf(42);
+    llr[6 * i + 3] = fabsf(yim) - 4 / sqrtf(42);
+    llr[6 * i + 4] = fabsf(llr[6 * i + 2]) - 2 / sqrtf(42);
+    llr[6 * i + 5] = fabsf(llr[6 * i + 3]) - 2 / sqrtf(42);
   }
   
 }
@@ -412,8 +412,8 @@ void demod_64qam_lte_s_neon(const cf_t *symbols, short *llr, int nsymbols) {
   float32x4_t symbol1, symbol2;
   int16x8_t symbol_i, symbol_abs, symbol_abs2;
   int32x4_t symbol_i1, symbol_i2;
-  int16x8_t offset1 = vdupq_n_s16(4 * SCALE_SHORT_CONV_QAM64 / sqrt(42));
-  int16x8_t offset2 = vdupq_n_s16(2 * SCALE_SHORT_CONV_QAM64 / sqrt(42));
+  int16x8_t   offset1 = vdupq_n_s16(4 * SCALE_SHORT_CONV_QAM64 / sqrtf(42));
+  int16x8_t   offset2 = vdupq_n_s16(2 * SCALE_SHORT_CONV_QAM64 / sqrtf(42));
   float32x4_t scale_v = vdupq_n_f32(-SCALE_SHORT_CONV_QAM64);
 
   int16x8_t result11 = vdupq_n_s16(0);
@@ -461,12 +461,10 @@ void demod_64qam_lte_s_neon(const cf_t *symbols, short *llr, int nsymbols) {
 
     llr[6 * i + 0] = -yre;
     llr[6 * i + 1] = -yim;
-    llr[6 * i + 2] = abs(yre) - 4 * SCALE_SHORT_CONV_QAM64 / sqrt(42);
-    llr[6 * i + 3] = abs(yim) - 4 * SCALE_SHORT_CONV_QAM64 / sqrt(42);
-    llr[6 * i + 4] =
-        abs(llr[6 * i + 2]) - 2 * SCALE_SHORT_CONV_QAM64 / sqrt(42);
-    llr[6 * i + 5] =
-        abs(llr[6 * i + 3]) - 2 * SCALE_SHORT_CONV_QAM64 / sqrt(42);
+    llr[6 * i + 2] = abs(yre) - 4 * SCALE_SHORT_CONV_QAM64 / sqrtf(42);
+    llr[6 * i + 3] = abs(yim) - 4 * SCALE_SHORT_CONV_QAM64 / sqrtf(42);
+    llr[6 * i + 4] = abs(llr[6 * i + 2]) - 2 * SCALE_SHORT_CONV_QAM64 / sqrtf(42);
+    llr[6 * i + 5] = abs(llr[6 * i + 3]) - 2 * SCALE_SHORT_CONV_QAM64 / sqrtf(42);
   }
 }
 
@@ -477,8 +475,8 @@ void demod_64qam_lte_b_neon(const cf_t *symbols, int8_t *llr, int nsymbols) {
   int8x16_t symbol_i, symbol_abs, symbol_abs2;
   int16x8_t symbol_12, symbol_34;
   int32x4_t symbol_i1, symbol_i2, symbol_i3, symbol_i4;
-  int8x16_t offset1 = vdupq_n_s8(4 * SCALE_BYTE_CONV_QAM64 / sqrt(42));
-  int8x16_t offset2 = vdupq_n_s8(2 * SCALE_BYTE_CONV_QAM64 / sqrt(42));
+  int8x16_t   offset1  = vdupq_n_s8(4 * SCALE_BYTE_CONV_QAM64 / sqrtf(42));
+  int8x16_t   offset2  = vdupq_n_s8(2 * SCALE_BYTE_CONV_QAM64 / sqrtf(42));
   float32x4_t scale_v = vdupq_n_f32(-SCALE_BYTE_CONV_QAM64);
   int8x16_t result11 = vdupq_n_s8(0);
   int8x16_t result21 = vdupq_n_s8(0);
@@ -561,10 +559,10 @@ void demod_64qam_lte_b_neon(const cf_t *symbols, int8_t *llr, int nsymbols) {
 
     llr[6 * i + 0] = -yre;
     llr[6 * i + 1] = -yim;
-    llr[6 * i + 2] = abs(yre) - 4 * SCALE_BYTE_CONV_QAM64 / sqrt(42);
-    llr[6 * i + 3] = abs(yim) - 4 * SCALE_BYTE_CONV_QAM64 / sqrt(42);
-    llr[6 * i + 4] = abs(llr[6 * i + 2]) - 2 * SCALE_BYTE_CONV_QAM64 / sqrt(42);
-    llr[6 * i + 5] = abs(llr[6 * i + 3]) - 2 * SCALE_BYTE_CONV_QAM64 / sqrt(42);
+    llr[6 * i + 2] = abs(yre) - 4 * SCALE_BYTE_CONV_QAM64 / sqrtf(42);
+    llr[6 * i + 3] = abs(yim) - 4 * SCALE_BYTE_CONV_QAM64 / sqrtf(42);
+    llr[6 * i + 4] = abs(llr[6 * i + 2]) - 2 * SCALE_BYTE_CONV_QAM64 / sqrtf(42);
+    llr[6 * i + 5] = abs(llr[6 * i + 3]) - 2 * SCALE_BYTE_CONV_QAM64 / sqrtf(42);
   }
 }
 
@@ -578,8 +576,8 @@ void demod_64qam_lte_s_sse(const cf_t *symbols, short *llr, int nsymbols)
   __m128i *resultPtr = (__m128i*) llr;
   __m128 symbol1, symbol2; 
   __m128i symbol_i1, symbol_i2, symbol_i, symbol_abs, symbol_abs2;
-  __m128i offset1 = _mm_set1_epi16(4*SCALE_SHORT_CONV_QAM64/sqrt(42));
-  __m128i offset2 = _mm_set1_epi16(2*SCALE_SHORT_CONV_QAM64/sqrt(42));
+  __m128i  offset1 = _mm_set1_epi16(4 * SCALE_SHORT_CONV_QAM64 / sqrtf(42));
+  __m128i  offset2 = _mm_set1_epi16(2 * SCALE_SHORT_CONV_QAM64 / sqrtf(42));
   __m128 scale_v = _mm_set1_ps(-SCALE_SHORT_CONV_QAM64);
   __m128i result11, result12, result13, result22, result21,result23, result31, result32, result33; 
 
@@ -628,10 +626,10 @@ void demod_64qam_lte_s_sse(const cf_t *symbols, short *llr, int nsymbols)
 
     llr[6*i+0] = -yre;
     llr[6*i+1] = -yim;
-    llr[6*i+2] = abs(yre)-4*SCALE_SHORT_CONV_QAM64/sqrt(42);
-    llr[6*i+3] = abs(yim)-4*SCALE_SHORT_CONV_QAM64/sqrt(42);
-    llr[6*i+4] = abs(llr[6*i+2])-2*SCALE_SHORT_CONV_QAM64/sqrt(42);
-    llr[6*i+5] = abs(llr[6*i+3])-2*SCALE_SHORT_CONV_QAM64/sqrt(42);        
+    llr[6 * i + 2] = abs(yre) - 4 * SCALE_SHORT_CONV_QAM64 / sqrtf(42);
+    llr[6 * i + 3] = abs(yim) - 4 * SCALE_SHORT_CONV_QAM64 / sqrtf(42);
+    llr[6 * i + 4] = abs(llr[6 * i + 2]) - 2 * SCALE_SHORT_CONV_QAM64 / sqrtf(42);
+    llr[6 * i + 5] = abs(llr[6 * i + 3]) - 2 * SCALE_SHORT_CONV_QAM64 / sqrtf(42);
   }
 }
 
@@ -641,8 +639,8 @@ void demod_64qam_lte_b_sse(const cf_t *symbols, int8_t *llr, int nsymbols)
   __m128i *resultPtr = (__m128i*) llr;
   __m128 symbol1, symbol2, symbol3, symbol4;
   __m128i symbol_i1, symbol_i2, symbol_i3, symbol_i4, symbol_i, symbol_abs, symbol_abs2,symbol_12, symbol_34;
-  __m128i offset1 = _mm_set1_epi8(4*SCALE_BYTE_CONV_QAM64/sqrt(42));
-  __m128i offset2 = _mm_set1_epi8(2*SCALE_BYTE_CONV_QAM64/sqrt(42));
+  __m128i  offset1 = _mm_set1_epi8(4 * SCALE_BYTE_CONV_QAM64 / sqrtf(42));
+  __m128i  offset2 = _mm_set1_epi8(2 * SCALE_BYTE_CONV_QAM64 / sqrtf(42));
   __m128 scale_v = _mm_set1_ps(-SCALE_BYTE_CONV_QAM64);
   __m128i result11, result12, result13, result22, result21,result23, result31, result32, result33;
 
@@ -697,10 +695,10 @@ void demod_64qam_lte_b_sse(const cf_t *symbols, int8_t *llr, int nsymbols)
 
     llr[6*i+0] = -yre;
     llr[6*i+1] = -yim;
-    llr[6*i+2] = abs(yre)-4*SCALE_BYTE_CONV_QAM64/sqrt(42);
-    llr[6*i+3] = abs(yim)-4*SCALE_BYTE_CONV_QAM64/sqrt(42);
-    llr[6*i+4] = abs(llr[6*i+2])-2*SCALE_BYTE_CONV_QAM64/sqrt(42);
-    llr[6*i+5] = abs(llr[6*i+3])-2*SCALE_BYTE_CONV_QAM64/sqrt(42);
+    llr[6 * i + 2] = abs(yre) - 4 * SCALE_BYTE_CONV_QAM64 / sqrtf(42);
+    llr[6 * i + 3] = abs(yim) - 4 * SCALE_BYTE_CONV_QAM64 / sqrtf(42);
+    llr[6 * i + 4] = abs(llr[6 * i + 2]) - 2 * SCALE_BYTE_CONV_QAM64 / sqrtf(42);
+    llr[6 * i + 5] = abs(llr[6 * i + 3]) - 2 * SCALE_BYTE_CONV_QAM64 / sqrtf(42);
   }
 }
   
@@ -720,10 +718,10 @@ void demod_64qam_lte_s(const cf_t *symbols, short *llr, int nsymbols)
 
     llr[6*i+0] = -yre;
     llr[6*i+1] = -yim;
-    llr[6*i+2] = abs(yre)-4*SCALE_SHORT_CONV_QAM64/sqrt(42);
-    llr[6*i+3] = abs(yim)-4*SCALE_SHORT_CONV_QAM64/sqrt(42);
-    llr[6*i+4] = abs(llr[6*i+2])-2*SCALE_SHORT_CONV_QAM64/sqrt(42);
-    llr[6*i+5] = abs(llr[6*i+3])-2*SCALE_SHORT_CONV_QAM64/sqrt(42);        
+    llr[6 * i + 2] = abs(yre) - 4 * SCALE_SHORT_CONV_QAM64 / sqrtf(42);
+    llr[6 * i + 3] = abs(yim) - 4 * SCALE_SHORT_CONV_QAM64 / sqrtf(42);
+    llr[6 * i + 4] = abs(llr[6 * i + 2]) - 2 * SCALE_SHORT_CONV_QAM64 / sqrtf(42);
+    llr[6 * i + 5] = abs(llr[6 * i + 3]) - 2 * SCALE_SHORT_CONV_QAM64 / sqrtf(42);
   }
 #endif
 #endif
@@ -743,10 +741,10 @@ void demod_64qam_lte_b(const cf_t *symbols, int8_t *llr, int nsymbols)
 
     llr[6*i+0] = -yre;
     llr[6*i+1] = -yim;
-    llr[6*i+2] = abs(yre)-4*SCALE_BYTE_CONV_QAM64/sqrt(42);
-    llr[6*i+3] = abs(yim)-4*SCALE_BYTE_CONV_QAM64/sqrt(42);
-    llr[6*i+4] = abs(llr[6*i+2])-2*SCALE_BYTE_CONV_QAM64/sqrt(42);
-    llr[6*i+5] = abs(llr[6*i+3])-2*SCALE_BYTE_CONV_QAM64/sqrt(42);
+    llr[6 * i + 2] = abs(yre) - 4 * SCALE_BYTE_CONV_QAM64 / sqrtf(42);
+    llr[6 * i + 3] = abs(yim) - 4 * SCALE_BYTE_CONV_QAM64 / sqrtf(42);
+    llr[6 * i + 4] = abs(llr[6 * i + 2]) - 2 * SCALE_BYTE_CONV_QAM64 / sqrtf(42);
+    llr[6 * i + 5] = abs(llr[6 * i + 3]) - 2 * SCALE_BYTE_CONV_QAM64 / sqrtf(42);
   }
 #endif
 #endif

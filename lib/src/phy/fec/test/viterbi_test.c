@@ -19,13 +19,14 @@
  *
  */
 
+#include <math.h>
+#include <srslte/phy/utils/random.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <unistd.h>
-#include <math.h>
 #include <time.h>
+#include <unistd.h>
 
 #include "srslte/srslte.h"
 
@@ -87,7 +88,7 @@ int main(int argc, char **argv) {
   uint16_t *llr_s;
   uint8_t *llr_c;
   uint8_t *data_tx, *data_rx, *data_rx2, *symbols;
-  int i, j;
+  int       j;
   float var[SNR_POINTS], varunc[SNR_POINTS];
   int snr_points;
   uint32_t errors;
@@ -170,20 +171,20 @@ int main(int argc, char **argv) {
   ebno_inc = (SNR_MAX - SNR_MIN) / SNR_POINTS;
   if (ebno_db == 100.0) {
     snr_points = SNR_POINTS;
-    for (i = 0; i < snr_points; i++) {
+    for (uint32_t i = 0; i < snr_points; i++) {
       ebno_db = SNR_MIN + i * ebno_inc;
-      esno_db = ebno_db + 10 * log10((double) 1 / 3);
-      var[i] = sqrt(1 / (pow(10, esno_db / 10)));
-      varunc[i] = sqrt(1 / (pow(10, ebno_db / 10)));
+      esno_db   = ebno_db + srslte_convert_power_to_dB(1.0f / 3.0f);
+      var[i]    = srslte_convert_dB_to_amplitude(esno_db);
+      varunc[i] = srslte_convert_dB_to_amplitude(ebno_db);
     }
   } else {
-    esno_db = ebno_db + 10 * log10((double) 1 / 3);
-    var[0] = sqrt(1 / (pow(10, esno_db / 10)));
-    varunc[0] = sqrt(1 / (pow(10, ebno_db / 10)));
+    esno_db    = ebno_db + srslte_convert_power_to_dB(1.0f / 3.0f);
+    var[0]     = srslte_convert_dB_to_amplitude(esno_db);
+    varunc[0]  = srslte_convert_dB_to_amplitude(ebno_db);
     snr_points = 1;
   }
 
-  for (i = 0; i < snr_points; i++) {
+  for (uint32_t i = 0; i < snr_points; i++) {
     frame_cnt = 0;
     errors = 0;
 #ifdef TEST_SSE
@@ -192,9 +193,11 @@ int main(int argc, char **argv) {
     while (frame_cnt < nof_frames) {
 
       /* generate data_tx */
+      srslte_random_t random_gen = srslte_random_init(0);
       for (j = 0; j < frame_length; j++) {
-        data_tx[j] = rand() % 2;
+        data_tx[j] = srslte_random_uniform_int_dist(random_gen, 0, 1);
       }
+      srslte_random_free(random_gen);
 
       /* uncoded BER */
       for (j = 0; j < frame_length; j++) {
@@ -217,10 +220,9 @@ int main(int argc, char **argv) {
       
       struct timeval t[3];
       gettimeofday(&t[1], NULL);
-      int M = 1; 
-  
-      
-      for (int i=0;i<M;i++) {
+      int M = 1;
+
+      for (uint32_t i = 0; i < M; i++) {
 #ifdef VITERBI_16
         srslte_viterbi_decode_us(&dec, llr_s, data_rx, frame_length);
 #else

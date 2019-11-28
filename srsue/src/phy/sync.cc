@@ -38,7 +38,8 @@ int radio_recv_callback(void *obj, cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsampl
   return ((sync*)obj)->radio_recv_fnc(data, nsamples, rx_time);
 }
 
-double callback_set_rx_gain(void *h, double gain) {
+float callback_set_rx_gain(void* h, float gain)
+{
   return ((sync*)h)->set_rx_gain(gain);
 }
 

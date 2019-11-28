@@ -47,14 +47,14 @@ typedef enum SRSLTE_API {
 
 typedef struct SRSLTE_API{
   float bandwidth;
-  double gain; 
-  double min_gain;
-  double max_gain;
+  float gain;
+  float min_gain;
+  float max_gain;
   float y_out;
   bool lock;
-  bool isfirst; 
-  void *uhd_handler; 
-  double (*set_gain_callback) (void*,double);
+  bool  isfirst;
+  void* uhd_handler;
+  float (*set_gain_callback)(void*, float);
   srslte_agc_mode_t mode; 
   float target;
   uint32_t nof_frames; 
@@ -66,17 +66,17 @@ SRSLTE_API int srslte_agc_init(srslte_agc_t *q, srslte_agc_mode_t mode);
 
 SRSLTE_API int srslte_agc_init_acc(srslte_agc_t *q, srslte_agc_mode_t mode, uint32_t nof_frames);
 
-SRSLTE_API int srslte_agc_init_uhd(srslte_agc_t *q, 
-                                   srslte_agc_mode_t mode, 
-                                   uint32_t nof_frames,
-                                   double (set_gain_callback)(void*, double), 
-                                   void *uhd_handler); 
+SRSLTE_API int srslte_agc_init_uhd(srslte_agc_t*     q,
+                                   srslte_agc_mode_t mode,
+                                   uint32_t          nof_frames,
+                                   float(set_gain_callback)(void*, float),
+                                   void* uhd_handler);
 
 SRSLTE_API void srslte_agc_free(srslte_agc_t *q);
 
 SRSLTE_API void srslte_agc_reset(srslte_agc_t *q);
 
-SRSLTE_API void srslte_agc_set_gain_range(srslte_agc_t *q, double min_gain, double max_gain);
+SRSLTE_API void srslte_agc_set_gain_range(srslte_agc_t* q, float min_gain, float max_gain);
 
 SRSLTE_API void srslte_agc_set_bandwidth(srslte_agc_t *q, 
                                          float bandwidth);

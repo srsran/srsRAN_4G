@@ -34,10 +34,10 @@
 extern "C" {
 #endif
 
-#include <stdio.h>
-#include <stdint.h>
 #include "srslte/config.h"
-
+#include <math.h>
+#include <stdint.h>
+#include <stdio.h>
 
 #define SRSLTE_MAX(a,b) ((a)>(b)?(a):(b))
 #define SRSLTE_MIN(a,b) ((a)<(b)?(a):(b))
@@ -51,6 +51,26 @@ extern "C" {
 // Exponential moving average
 #define SRSLTE_VEC_EMA(data, average, alpha) ((alpha)*(data)+(1-alpha)*(average))
 
+static inline float srslte_convert_amplitude_to_dB(float v)
+{
+  return 20.0f * log10f(v);
+}
+static inline float srslte_convert_power_to_dB(float v)
+{
+  return 10.0f * log10f(v);
+}
+static inline float srslte_convert_power_to_dBm(float v)
+{
+  return srslte_convert_power_to_dB(v) + 30.0f;
+}
+static inline float srslte_convert_dB_to_amplitude(float v)
+{
+  return powf(10.0f, v / 20.0f);
+}
+static inline float srslte_convert_dB_to_power(float v)
+{
+  return powf(10.0f, v / 10.0f);
+}
 
 /*logical operations */
 SRSLTE_API void srslte_vec_xor_bbb(int8_t *x,int8_t *y,int8_t *z, const uint32_t len);

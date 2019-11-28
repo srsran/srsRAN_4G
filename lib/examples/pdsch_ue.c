@@ -339,17 +339,18 @@ cf_t *sf_buffer[SRSLTE_MAX_PORTS] = {NULL};
 
 #ifndef DISABLE_RF
 
-int srslte_rf_recv_wrapper(void* h, cf_t* data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t* t)
+int srslte_rf_recv_wrapper(void* h, cf_t* data_[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t* t)
 {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
   void* ptr[SRSLTE_MAX_PORTS];
   for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
-    ptr[i] = data[i];
+    ptr[i] = data_[i];
   }
   return srslte_rf_recv_with_time_multi(h, ptr, nsamples, true, NULL, NULL);
 }
 
-double srslte_rf_set_rx_gain_th_wrapper_(void *h, double f) {
+float srslte_rf_set_rx_gain_th_wrapper_(void* h, float f)
+{
   return srslte_rf_set_rx_gain_th((srslte_rf_t*)h, f);
 }
 
@@ -879,7 +880,7 @@ int main(int argc, char **argv) {
           if (sf_idx == 5) {
             float gain = prog_args.rf_gain;
             if (gain < 0) {
-              gain = 10 * log10(srslte_agc_get_gain(&ue_sync.agc));
+              gain = srslte_convert_power_to_dB(srslte_agc_get_gain(&ue_sync.agc));
             }
 
             /* Print transmission scheme */
@@ -1051,7 +1052,7 @@ void *plot_thread_run(void *arg) {
     uint32_t nof_symbols = pdsch_cfg.grant.nof_re;
     if (!prog_args.disable_plots_except_constellation) {
       for (i = 0; i < nof_re; i++) {
-        tmp_plot[i] = 20 * log10f(cabsf(ue_dl.sf_symbols[0][i]));
+        tmp_plot[i] = srslte_convert_amplitude_to_dB(cabsf(ue_dl.sf_symbols[0][i]));
         if (isinf(tmp_plot[i])) {
           tmp_plot[i] = -80;
         }
@@ -1060,7 +1061,7 @@ void *plot_thread_run(void *arg) {
       bzero(tmp_plot2, sizeof(float) * sz);
       int g = (sz - 12 * ue_dl.cell.nof_prb) / 2;
       for (i = 0; i < 12 * ue_dl.cell.nof_prb; i++) {
-        tmp_plot2[g + i] = 20 * log10(cabs(ue_dl.chest_res.ce[0][0][i]));
+        tmp_plot2[g + i] = srslte_convert_amplitude_to_dB(cabs(ue_dl.chest_res.ce[0][0][i]));
         if (isinf(tmp_plot2[g + i])) {
           tmp_plot2[g + i] = -80;
         }

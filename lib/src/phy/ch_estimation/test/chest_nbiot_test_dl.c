@@ -47,7 +47,6 @@
 
 srslte_nbiot_cell_t cell = {.base           = {.nof_prb = 1, .cp = SRSLTE_CP_NORM, .id = 0},
                             .base.nof_ports = 1,
-                            .base.nof_prb   = 1,
                             .nbiot_prb      = 0,
                             .n_id_ncell     = 0};
 
@@ -184,7 +183,7 @@ int main(int argc, char** argv)
 
       if (have_channel) {
         // Add noise
-        float std_dev = powf(10, -(snr_db + 3.0f) / 20.0f) * 0.1f;
+        float std_dev = srslte_convert_dB_to_amplitude(-(snr_db + 3.0f)) * 0.1f;
         srslte_ch_awgn_c(est.pilot_recv_signal, est.pilot_recv_signal, std_dev, SRSLTE_REFSIGNAL_MAX_NUM_SF(1));
       }
 

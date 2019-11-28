@@ -2469,8 +2469,12 @@ int srslte_precoding_pmi_select_1l(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], 
   ret = srslte_precoding_pmi_select_1l_gen(h, nof_symbols, noise_estimate, pmi, sinr_list);
 #endif
 #endif
-  INFO("Precoder PMI Select for 1 layer SINR=[%.1fdB; %.1fdB; %.1fdB; %.1fdB] PMI=%d\n", 10 * log10(sinr_list[0]),
-       10 * log10(sinr_list[1]), 10 * log10(sinr_list[2]), 10 * log10(sinr_list[3]), *pmi);
+  INFO("Precoder PMI Select for 1 layer SINR=[%.1fdB; %.1fdB; %.1fdB; %.1fdB] PMI=%d\n",
+       srslte_convert_power_to_dB(sinr_list[0]),
+       srslte_convert_power_to_dB(sinr_list[1]),
+       srslte_convert_power_to_dB(sinr_list[2]),
+       srslte_convert_power_to_dB(sinr_list[3]),
+       *pmi);
 
   return ret;
 }
@@ -2865,8 +2869,10 @@ int srslte_precoding_pmi_select_2l(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], 
 #endif /* LV_HAVE_SSE */
 #endif /* LV_HAVE_AVX */
 
-  INFO("Precoder PMI Select for 2 layers SINR=[%.1fdB; %.1fdB] PMI=%d\n", 10 * log10(sinr_list[0]),
-       10 * log10(sinr_list[1]), *pmi);
+  INFO("Precoder PMI Select for 2 layers SINR=[%.1fdB; %.1fdB] PMI=%d\n",
+       srslte_convert_power_to_dB(sinr_list[0]),
+       srslte_convert_power_to_dB(sinr_list[1]),
+       *pmi);
 
   return ret;
 }

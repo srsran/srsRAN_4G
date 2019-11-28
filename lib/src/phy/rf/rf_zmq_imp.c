@@ -627,7 +627,7 @@ int rf_zmq_recv_with_time_multi(
     }
 
     // Set gain
-    float scale = powf(10.0f, handler->rx_gain / 20);
+    float scale = srslte_convert_dB_to_amplitude(handler->rx_gain);
     srslte_vec_sc_prod_cfc(data[0], scale, data[0], nsamples);
 
     // update rx time
