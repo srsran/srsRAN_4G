@@ -95,7 +95,7 @@ int test_tx_discard_all(srslte::byte_buffer_pool* pool, srslte::log* log)
    * TX Test 2: PDCP Entity with SN LEN = 12
    * Test TX PDU discard.
    */
-  //TESTASSERT(test_tx_sdu_discard(normal_init_state, srslte::pdcp_discard_timer_t::ms50, true, pool, log) == 0);
+  // TESTASSERT(test_tx_sdu_discard(normal_init_state, srslte::pdcp_discard_timer_t::ms50, true, pool, log) == 0);
   return 0;
 }
 

@@ -19,19 +19,19 @@
  *
  */
 
-#include <map>
-#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/interfaces/enb_interfaces.h"
+#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/upper/rlc.h"
+#include <map>
 
 #ifndef SRSENB_RLC_H
 #define SRSENB_RLC_H
 
 typedef struct {
-    uint32_t lcid;
-    uint32_t plmn;
-    uint16_t mtch_stop;
-    uint8_t* payload;
+  uint32_t lcid;
+  uint32_t plmn;
+  uint16_t mtch_stop;
+  uint8_t* payload;
 } mch_service_t;
 
 namespace srsenb {
@@ -48,7 +48,7 @@ public:
 
   // rlc_interface_rrc
   void clear_buffer(uint16_t rnti);
-  void add_user(uint16_t rnti); 
+  void add_user(uint16_t rnti);
   void rem_user(uint16_t rnti);
   void add_bearer(uint16_t rnti, uint32_t lcid, srslte::rlc_config_t cnfg);
   void add_bearer_mrb(uint16_t rnti, uint32_t lcid);
@@ -61,11 +61,11 @@ public:
   std::string get_rb_name(uint32_t lcid);
 
   // rlc_interface_mac
-  int  read_pdu(uint16_t rnti, uint32_t lcid, uint8_t *payload, uint32_t nof_bytes);
-  void read_pdu_bcch_dlsch(uint32_t sib_index, uint8_t *payload);
-  void write_pdu(uint16_t rnti, uint32_t lcid, uint8_t *payload, uint32_t nof_bytes);
-  void read_pdu_pcch(uint8_t *payload, uint32_t buffer_size); 
-  
+  int  read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes);
+  void read_pdu_bcch_dlsch(uint32_t sib_index, uint8_t* payload);
+  void write_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes);
+  void read_pdu_pcch(uint8_t* payload, uint32_t buffer_size);
+
 private:
   class user_interface : public srsue::pdcp_interface_rlc, public srsue::rrc_interface_rlc
   {
@@ -75,14 +75,14 @@ private:
     void        write_pdu_bcch_dlsch(srslte::unique_byte_buffer_t sdu);
     void        write_pdu_pcch(srslte::unique_byte_buffer_t sdu);
     void        write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu) {}
-    void max_retx_attempted(); 
+    void        max_retx_attempted();
     std::string get_rb_name(uint32_t lcid);
-    uint16_t rnti; 
+    uint16_t    rnti;
 
-    srsenb::pdcp_interface_rlc   *pdcp;
-    srsenb::rrc_interface_rlc    *rrc;
+    srsenb::pdcp_interface_rlc*  pdcp;
+    srsenb::rrc_interface_rlc*   rrc;
     std::unique_ptr<srslte::rlc> rlc;
-    srsenb::rlc                  *parent;
+    srsenb::rlc*                 parent;
   };
 
   pthread_rwlock_t rwlock;

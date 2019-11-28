@@ -28,7 +28,6 @@
 #include "srslte/upper/pdcp_entity_nr.h"
 #include <iostream>
 
-
 /*
  * Functions and macros for comparisions
  */
@@ -117,8 +116,10 @@ pdcp_initial_state normal_init_state = {};
 
 // Some tests regarding COUNT wraparound take really long.
 // This puts the PCDC state closer to wraparound quickly.
-pdcp_initial_state near_wraparound_init_state = {
-    .tx_next = 4294967295, .rx_next = 4294967295, .rx_deliv = 4294967295, .rx_reord = 0};
+pdcp_initial_state near_wraparound_init_state = {.tx_next  = 4294967295,
+                                                 .rx_next  = 4294967295,
+                                                 .rx_deliv = 4294967295,
+                                                 .rx_reord = 0};
 
 /*
  * Dummy classes

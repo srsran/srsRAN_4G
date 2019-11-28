@@ -21,7 +21,6 @@
 #include "pdcp_nr_test.h"
 #include <numeric>
 
-
 /*
  * Genric function to test transmission of in-sequence packets
  */

@@ -58,7 +58,7 @@ void pdcp_entity_nr::init(uint32_t lcid_, pdcp_config_t cfg_)
     reordering_timer.set(static_cast<uint32_t>(cfg.t_reordering), *reordering_fnc);
   }
 
-  // Mark entity as initialized 
+  // Mark entity as initialized
   initialized = true;
 }
 
@@ -339,7 +339,6 @@ void pdcp_entity_nr::deliver_all_consecutive_counts()
   }
 }
 
-
 /*
  * Timers
  */
@@ -374,7 +373,7 @@ void pdcp_entity_nr::discard_callback::operator()(uint32_t timer_id)
   // Notify the RLC of the discard. It's the RLC to actually discard, if no segment was transmitted yet.
   parent->rlc->discard_sdu(parent->lcid, discard_sn);
 
-  // Remove timer from map 
+  // Remove timer from map
   // NOTE: this will delete the callback. It *must* be the last instruction.
   parent->discard_timers_map.erase(discard_sn);
   return;

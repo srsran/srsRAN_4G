@@ -33,17 +33,16 @@ namespace srslte {
  * Ref: 3GPP TS 36.322 v10.0.0
  ***************************************************************************/
 
-#define RLC_AM_WINDOW_SIZE  512
-#define RLC_MAX_SDU_SIZE ((1<<11)-1) // Length of LI field is 11bits
+#define RLC_AM_WINDOW_SIZE 512
+#define RLC_MAX_SDU_SIZE ((1 << 11) - 1) // Length of LI field is 11bits
 
-
-typedef enum{
+typedef enum {
   RLC_FI_FIELD_START_AND_END_ALIGNED = 0,
   RLC_FI_FIELD_NOT_END_ALIGNED,
   RLC_FI_FIELD_NOT_START_ALIGNED,
   RLC_FI_FIELD_NOT_START_OR_END_ALIGNED,
   RLC_FI_FIELD_N_ITEMS,
-}rlc_fi_field_t;
+} rlc_fi_field_t;
 static const char rlc_fi_field_text[RLC_FI_FIELD_N_ITEMS][32] = {"Start and end aligned",
                                                                  "Not end aligned",
                                                                  "Not start aligned",
@@ -89,17 +88,16 @@ typedef enum {
   RLC_DC_FIELD_DATA_PDU,
   RLC_DC_FIELD_N_ITEMS,
 } rlc_dc_field_t;
-static const char rlc_dc_field_text[RLC_DC_FIELD_N_ITEMS][20] = {"Control PDU",
-                                                                 "Data PDU"};
+static const char rlc_dc_field_text[RLC_DC_FIELD_N_ITEMS][20] = {"Control PDU", "Data PDU"};
 
 // UMD PDU Header
-typedef struct{
+typedef struct {
   uint8_t           fi;                     // Framing info
   rlc_umd_sn_size_t sn_size;                // Sequence number size (5 or 10 bits)
   uint16_t          sn;                     // Sequence number
   uint32_t          N_li;                   // Number of length indicators
   uint16_t          li[RLC_AM_WINDOW_SIZE]; // Array of length indicators
-}rlc_umd_pdu_header_t;
+} rlc_umd_pdu_header_t;
 
 typedef struct {
   rlc_nr_si_field_t   si;      // Segmentation info
@@ -109,34 +107,32 @@ typedef struct {
 } rlc_um_nr_pdu_header_t;
 
 // AMD PDU Header
-struct rlc_amd_pdu_header_t{
-  rlc_dc_field_t dc;                      // Data or control
-  uint8_t        rf;                      // Resegmentation flag
-  uint8_t        p;                       // Polling bit
-  uint8_t        fi;                      // Framing info
-  uint16_t       sn;                      // Sequence number
-  uint8_t        lsf;                     // Last segment flag
-  uint16_t       so;                      // Segment offset
-  uint32_t       N_li;                    // Number of length indicators
-  uint16_t       li[RLC_AM_WINDOW_SIZE];  // Array of length indicators
+struct rlc_amd_pdu_header_t {
+  rlc_dc_field_t dc;                     // Data or control
+  uint8_t        rf;                     // Resegmentation flag
+  uint8_t        p;                      // Polling bit
+  uint8_t        fi;                     // Framing info
+  uint16_t       sn;                     // Sequence number
+  uint8_t        lsf;                    // Last segment flag
+  uint16_t       so;                     // Segment offset
+  uint32_t       N_li;                   // Number of length indicators
+  uint16_t       li[RLC_AM_WINDOW_SIZE]; // Array of length indicators
 
-  rlc_amd_pdu_header_t(){
-    dc = RLC_DC_FIELD_CONTROL_PDU;
-    rf = 0; 
-    p  = 0; 
-    fi = 0; 
-    sn = 0; 
-    lsf = 0; 
-    so = 0; 
-    N_li=0;
-    for(int i=0;i<RLC_AM_WINDOW_SIZE;i++)
+  rlc_amd_pdu_header_t()
+  {
+    dc   = RLC_DC_FIELD_CONTROL_PDU;
+    rf   = 0;
+    p    = 0;
+    fi   = 0;
+    sn   = 0;
+    lsf  = 0;
+    so   = 0;
+    N_li = 0;
+    for (int i = 0; i < RLC_AM_WINDOW_SIZE; i++)
       li[i] = 0;
   }
-  rlc_amd_pdu_header_t(const rlc_amd_pdu_header_t& h)
-  {
-    copy(h);
-  }
-  rlc_amd_pdu_header_t& operator= (const rlc_amd_pdu_header_t& h)
+  rlc_amd_pdu_header_t(const rlc_amd_pdu_header_t& h) { copy(h); }
+  rlc_amd_pdu_header_t& operator=(const rlc_amd_pdu_header_t& h)
   {
     copy(h);
     return *this;
@@ -158,22 +154,32 @@ struct rlc_amd_pdu_header_t{
 };
 
 // NACK helper (for LTE and NR)
-struct rlc_status_nack_t{
+struct rlc_status_nack_t {
   uint32_t nack_sn;
   bool     has_so;
   uint16_t so_start;
   uint16_t so_end;
 
-  rlc_status_nack_t(){has_so=false; nack_sn=0; so_start=0; so_end=0;}
+  rlc_status_nack_t()
+  {
+    has_so   = false;
+    nack_sn  = 0;
+    so_start = 0;
+    so_end   = 0;
+  }
 };
 
 // STATUS PDU
-struct rlc_status_pdu_t{
+struct rlc_status_pdu_t {
   uint16_t          ack_sn; // SN of the next not received RLC Data PDU
   uint32_t          N_nack;
   rlc_status_nack_t nacks[RLC_AM_WINDOW_SIZE];
 
-  rlc_status_pdu_t(){N_nack=0; ack_sn=0;}
+  rlc_status_pdu_t()
+  {
+    N_nack = 0;
+    ack_sn = 0;
+  }
 };
 
 /** RLC AM NR structs */
@@ -204,7 +210,6 @@ typedef struct {
 class rlc_common
 {
 public:
-
   // Size of the Uplink buffer in number of PDUs
   const static int RLC_BUFFER_NOF_PDU = 128;
 
@@ -259,10 +264,10 @@ public:
   virtual void discard_sdu(uint32_t discard_sn)                   = 0;
 
   // MAC interface
-  virtual bool     has_data() = 0;
-  virtual uint32_t get_buffer_state() = 0;
-  virtual int      read_pdu(uint8_t *payload, uint32_t nof_bytes) = 0;
-  virtual void     write_pdu(uint8_t *payload, uint32_t nof_bytes) = 0;
+  virtual bool     has_data()                                      = 0;
+  virtual uint32_t get_buffer_state()                              = 0;
+  virtual int      read_pdu(uint8_t* payload, uint32_t nof_bytes)  = 0;
+  virtual void     write_pdu(uint8_t* payload, uint32_t nof_bytes) = 0;
 
 private:
   bool is_suspended = false;
@@ -291,5 +296,4 @@ private:
 };
 
 } // namespace srslte
-
 #endif // SRSLTE_RLC_COMMON_H

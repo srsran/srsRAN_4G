@@ -42,54 +42,50 @@
 
 namespace srsue {
 
-typedef enum {
-  AUTH_OK,
-  AUTH_FAILED,
-  AUTH_SYNCH_FAILURE
-} auth_result_t;
+typedef enum { AUTH_OK, AUTH_FAILED, AUTH_SYNCH_FAILURE } auth_result_t;
 
 // USIM interface for NAS
 class usim_interface_nas
 {
 public:
-  virtual std::string get_imsi_str() = 0;
-  virtual std::string get_imei_str() = 0;
-  virtual bool get_imsi_vec(uint8_t* imsi_, uint32_t n) = 0;
-  virtual bool get_imei_vec(uint8_t* imei_, uint32_t n) = 0;
+  virtual std::string   get_imsi_str()                                                    = 0;
+  virtual std::string   get_imei_str()                                                    = 0;
+  virtual bool          get_imsi_vec(uint8_t* imsi_, uint32_t n)                          = 0;
+  virtual bool          get_imei_vec(uint8_t* imei_, uint32_t n)                          = 0;
   virtual bool          get_home_plmn_id(srslte::plmn_id_t* home_plmn_id)                 = 0;
-  virtual auth_result_t generate_authentication_response(uint8_t  *rand,
-                                                uint8_t  *autn_enb,
-                                                uint16_t  mcc,
-                                                uint16_t  mnc,
-                                                uint8_t  *res,
-                                                int      *res_len,
-                                                uint8_t  *k_asme) = 0;
-  virtual void generate_nas_keys(uint8_t *k_asme,
-                                 uint8_t *k_nas_enc,
-                                 uint8_t *k_nas_int,
-                                 srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
-                                 srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo) = 0;
+  virtual auth_result_t generate_authentication_response(uint8_t* rand,
+                                                         uint8_t* autn_enb,
+                                                         uint16_t mcc,
+                                                         uint16_t mnc,
+                                                         uint8_t* res,
+                                                         int*     res_len,
+                                                         uint8_t* k_asme)                 = 0;
+  virtual void          generate_nas_keys(uint8_t*                            k_asme,
+                                          uint8_t*                            k_nas_enc,
+                                          uint8_t*                            k_nas_int,
+                                          srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
+                                          srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo) = 0;
 };
 
 // USIM interface for RRC
 class usim_interface_rrc
 {
 public:
-  virtual void generate_as_keys(uint8_t *k_asme,
-                                uint32_t count_ul,
-                                uint8_t *k_rrc_enc,
-                                uint8_t *k_rrc_int,
-                                uint8_t *k_up_enc,
-                                uint8_t *k_up_int,
+  virtual void generate_as_keys(uint8_t*                            k_asme,
+                                uint32_t                            count_ul,
+                                uint8_t*                            k_rrc_enc,
+                                uint8_t*                            k_rrc_int,
+                                uint8_t*                            k_up_enc,
+                                uint8_t*                            k_up_int,
                                 srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
-                                srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo) = 0;
-  virtual void generate_as_keys_ho(uint32_t pci,
-                                   uint32_t earfcn,
-                                   int ncc,
-                                   uint8_t *k_rrc_enc,
-                                   uint8_t *k_rrc_int,
-                                   uint8_t *k_up_enc,
-                                   uint8_t *k_up_int,
+                                srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo)    = 0;
+  virtual void generate_as_keys_ho(uint32_t                            pci,
+                                   uint32_t                            earfcn,
+                                   int                                 ncc,
+                                   uint8_t*                            k_rrc_enc,
+                                   uint8_t*                            k_rrc_int,
+                                   uint8_t*                            k_up_enc,
+                                   uint8_t*                            k_up_int,
                                    srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                                    srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo) = 0;
 };
@@ -130,15 +126,15 @@ class rrc_interface_mac : public rrc_interface_mac_common
 {
 public:
   virtual void ho_ra_completed(bool ra_successful) = 0;
-  virtual void release_pucch_srs() = 0;
+  virtual void release_pucch_srs()                 = 0;
 };
 
 // RRC interface for PHY
 class rrc_interface_phy_lte
 {
 public:
-  virtual void in_sync() = 0;
-  virtual void out_of_sync() = 0;
+  virtual void in_sync()                                                                         = 0;
+  virtual void out_of_sync()                                                                     = 0;
   virtual void new_phy_meas(float rsrp, float rsrq, uint32_t tti, int earfcn = -1, int pci = -1) = 0;
 };
 
@@ -147,25 +143,25 @@ class rrc_interface_nas
 {
 public:
   typedef struct {
-    srslte::plmn_id_t    plmn_id;
-    uint16_t             tac;
+    srslte::plmn_id_t plmn_id;
+    uint16_t          tac;
   } found_plmn_t;
 
   const static int MAX_FOUND_PLMNS = 16;
 
-  virtual void        write_sdu(srslte::unique_byte_buffer_t sdu)                           = 0;
-  virtual uint16_t    get_mcc()                                                             = 0;
-  virtual uint16_t    get_mnc()                                                             = 0;
-  virtual void        enable_capabilities()                                                 = 0;
-  virtual bool        plmn_search()                                                         = 0;
-  virtual void        plmn_select(srslte::plmn_id_t plmn_id)                                = 0;
+  virtual void        write_sdu(srslte::unique_byte_buffer_t sdu)                       = 0;
+  virtual uint16_t    get_mcc()                                                         = 0;
+  virtual uint16_t    get_mnc()                                                         = 0;
+  virtual void        enable_capabilities()                                             = 0;
+  virtual bool        plmn_search()                                                     = 0;
+  virtual void        plmn_select(srslte::plmn_id_t plmn_id)                            = 0;
   virtual bool        connection_request(srslte::establishment_cause_t cause,
-                                         srslte::unique_byte_buffer_t     dedicatedInfoNAS) = 0;
-  virtual void        set_ue_identity(srslte::s_tmsi_t s_tmsi)                              = 0;
-  virtual bool        is_connected()                                                        = 0;
-  virtual void        paging_completed(bool outcome)                                        = 0;
-  virtual std::string get_rb_name(uint32_t lcid)                                            = 0;
-  virtual uint32_t    get_lcid_for_eps_bearer(const uint32_t& eps_bearer_id)                = 0;
+                                         srslte::unique_byte_buffer_t  dedicatedInfoNAS) = 0;
+  virtual void        set_ue_identity(srslte::s_tmsi_t s_tmsi)                          = 0;
+  virtual bool        is_connected()                                                    = 0;
+  virtual void        paging_completed(bool outcome)                                    = 0;
+  virtual std::string get_rb_name(uint32_t lcid)                                        = 0;
+  virtual uint32_t    get_lcid_for_eps_bearer(const uint32_t& eps_bearer_id)            = 0;
 };
 
 // RRC interface for PDCP
@@ -273,10 +269,10 @@ public:
   virtual void add_bearer_mrb(uint32_t lcid)                                                    = 0;
   virtual void del_bearer(uint32_t lcid)                                                        = 0;
   virtual void suspend_bearer(uint32_t lcid)                                                    = 0;
-  virtual void resume_bearer(uint32_t lcid)                                = 0;
+  virtual void resume_bearer(uint32_t lcid)                                                     = 0;
   virtual void change_lcid(uint32_t old_lcid, uint32_t new_lcid)                                = 0;
   virtual bool has_bearer(uint32_t lcid)                                                        = 0;
-  virtual bool has_data(const uint32_t lcid)                               = 0;
+  virtual bool has_data(const uint32_t lcid)                                                    = 0;
   virtual void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking = true) = 0;
 };
 
@@ -291,7 +287,7 @@ public:
   virtual bool rb_is_um(uint32_t lcid)                                                          = 0;
 };
 
-//RLC interface for MAC
+// RLC interface for MAC
 class rlc_interface_mac : public srslte::read_pdu_interface
 {
 public:
@@ -306,18 +302,18 @@ public:
 
   /* MAC calls RLC to get RLC segment of nof_bytes length.
    * Segmentation happens in this function. RLC PDU is stored in payload. */
-  virtual int     read_pdu(uint32_t lcid, uint8_t *payload, uint32_t nof_bytes) = 0;
+  virtual int read_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes) = 0;
 
   /* MAC calls RLC to push an RLC PDU. This function is called from an independent MAC thread.
    * PDU gets placed into the buffer and higher layer thread gets notified. */
-  virtual void write_pdu(uint32_t lcid, uint8_t *payload, uint32_t nof_bytes) = 0;
-  virtual void write_pdu_bcch_bch(uint8_t *payload, uint32_t nof_bytes) = 0;
-  virtual void write_pdu_bcch_dlsch(uint8_t *payload, uint32_t nof_bytes) = 0;
-  virtual void write_pdu_pcch(uint8_t *payload, uint32_t nof_bytes) = 0;
-  virtual void write_pdu_mch(uint32_t lcid, uint8_t *payload, uint32_t nof_bytes) = 0;
+  virtual void write_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)     = 0;
+  virtual void write_pdu_bcch_bch(uint8_t* payload, uint32_t nof_bytes)           = 0;
+  virtual void write_pdu_bcch_dlsch(uint8_t* payload, uint32_t nof_bytes)         = 0;
+  virtual void write_pdu_pcch(uint8_t* payload, uint32_t nof_bytes)               = 0;
+  virtual void write_pdu_mch(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes) = 0;
 };
 
-/** MAC interface 
+/** MAC interface
  *
  */
 /* Interface PHY -> MAC */
@@ -369,9 +365,9 @@ public:
   } tb_action_dl_t;
 
   typedef struct {
-    tb_action_t             tb;
-    uint32_t                current_tx_nb;
-    bool                    expect_ack;
+    tb_action_t tb;
+    uint32_t    current_tx_nb;
+    bool        expect_ack;
   } tb_action_ul_t;
 
   /* Query the MAC for the current RNTI to look for
@@ -418,7 +414,6 @@ public:
     uint16_t sps_rnti;
     uint64_t contention_id;
   } ue_rnti_t;
-
 };
 
 /* Interface RRC -> MAC */
@@ -444,20 +439,20 @@ public:
 
   virtual void set_config(srslte::mac_cfg_t& mac_cfg) = 0;
 
-  virtual void get_rntis(ue_rnti_t *rntis) = 0;
-  virtual void set_contention_id(uint64_t uecri) = 0;
+  virtual void get_rntis(ue_rnti_t* rntis)                      = 0;
+  virtual void set_contention_id(uint64_t uecri)                = 0;
   virtual void set_ho_rnti(uint16_t crnti, uint16_t target_pci) = 0;
 
   virtual void start_noncont_ho(uint32_t preamble_index, uint32_t prach_mask) = 0;
-  virtual void start_cont_ho() = 0;
+  virtual void start_cont_ho()                                                = 0;
 
   virtual void reconfiguration(const uint32_t& cc_idx, const bool& enable) = 0;
-  virtual void reset() = 0;
-  virtual void wait_uplink() = 0;
+  virtual void reset()                                                     = 0;
+  virtual void wait_uplink()                                               = 0;
   virtual void set_enable_ra_proc(bool en)                                 = 0;
 };
 
-/** PHY interface 
+/** PHY interface
  *
  */
 
@@ -467,7 +462,7 @@ typedef struct {
 } carrier_map_t;
 
 typedef struct {
-  std::string    type;
+  std::string            type;
   srslte::phy_log_args_t log;
 
   std::string           dl_earfcn;   // comma-separated list of EARFCNs
@@ -537,7 +532,7 @@ public:
 
   /* Time advance commands */
   virtual void set_timeadv_rar(uint32_t ta_cmd) = 0;
-  virtual void set_timeadv(uint32_t ta_cmd) = 0;
+  virtual void set_timeadv(uint32_t ta_cmd)     = 0;
 
   /* Activate / Disactivate SCell*/
   virtual void set_activation_deactivation_scell(uint32_t cmd) = 0;
@@ -547,7 +542,7 @@ public:
 
   virtual uint32_t get_current_tti() = 0;
 
-  virtual float get_phr() = 0;
+  virtual float get_phr()         = 0;
   virtual float get_pathloss_db() = 0;
 };
 
@@ -569,8 +564,8 @@ public:
   virtual prach_info_t prach_get_info()                                                                = 0;
 
   /* Indicates the transmission of a SR signal in the next opportunity */
-  virtual void sr_send() = 0;  
-  virtual int  sr_last_tx_tti() = 0; 
+  virtual void sr_send()        = 0;
+  virtual int  sr_last_tx_tti() = 0;
 
   virtual void set_mch_period_stop(uint32_t stop) = 0;
 };
@@ -594,10 +589,10 @@ public:
   /* Measurements interface */
   virtual void meas_reset()                              = 0;
   virtual int  meas_start(uint32_t earfcn, int pci = -1) = 0;
-  virtual int  meas_stop(uint32_t earfcn, int pci = -1) = 0;
+  virtual int  meas_stop(uint32_t earfcn, int pci = -1)  = 0;
 
   typedef struct {
-    enum {CELL_FOUND = 0, CELL_NOT_FOUND, ERROR} found;
+    enum { CELL_FOUND = 0, CELL_NOT_FOUND, ERROR } found;
     enum { MORE_FREQS = 0, NO_MORE_FREQS } last_freq;
   } cell_search_ret_t;
 
@@ -607,9 +602,9 @@ public:
   } phy_cell_t;
 
   /* Cell search and selection procedures */
-  virtual cell_search_ret_t  cell_search(phy_cell_t *cell) = 0;
-  virtual bool cell_select(phy_cell_t *cell = NULL) = 0;
-  virtual bool cell_is_camping() = 0;
+  virtual cell_search_ret_t cell_search(phy_cell_t* cell)        = 0;
+  virtual bool              cell_select(phy_cell_t* cell = NULL) = 0;
+  virtual bool              cell_is_camping()                    = 0;
 
   virtual void reset() = 0;
 

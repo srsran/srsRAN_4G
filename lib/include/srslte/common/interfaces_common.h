@@ -118,21 +118,21 @@ enum class pdcp_t_reordering_t {
 
 // Taken from PDCP-Config (TS 38.331 version 15.2.1)
 enum class pdcp_discard_timer_t {
-  ms10 = 10,
-  ms20 = 20,
-  ms30 = 30,
-  ms40 = 40,
-  ms50 = 50,
-  ms60 = 60,
-  ms75 = 75,
-  ms100 = 100,
-  ms150 = 150,
-  ms200 = 200,
-  ms250 = 250,
-  ms300 = 300,
-  ms500 = 500,
-  ms750 = 750,
-  ms1500 = 1500,
+  ms10     = 10,
+  ms20     = 20,
+  ms30     = 30,
+  ms40     = 40,
+  ms50     = 50,
+  ms60     = 60,
+  ms75     = 75,
+  ms100    = 100,
+  ms150    = 150,
+  ms200    = 200,
+  ms250    = 250,
+  ms300    = 300,
+  ms500    = 500,
+  ms750    = 750,
+  ms1500   = 1500,
   infinity = 0
 };
 
