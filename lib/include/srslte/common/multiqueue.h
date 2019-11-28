@@ -230,36 +230,33 @@ private:
  * Specialization for tasks with content that is move-only
  **********************************************************/
 
-template <typename Capture>
-class moveable_task_t
+class move_task_t
 {
 public:
-  moveable_task_t() = default;
+  move_task_t() = default;
   template <typename Func>
-  moveable_task_t(Func&& f) : func(std::forward<Func>(f))
+  move_task_t(Func&& f) : task_ptr(new derived_task<Func>(std::forward<Func>(f)))
   {
   }
-  template <typename Func>
-  moveable_task_t(Func&& f, Capture&& c) : capture(std::forward<Capture>(c))
-  {
-    std::function<void(Capture)> ftmp{std::forward<Func>(f)};
-    func = [this, ftmp]() { ftmp(std::move(capture)); };
-  }
-  void operator()() { func(); }
+  void operator()() { (*task_ptr)(); }
 
 private:
-  std::function<void()> func;
-  Capture               capture;
+  struct base_task {
+    virtual void operator()() = 0;
+  };
+  template <typename Func>
+  struct derived_task : public base_task {
+    derived_task(Func&& f_) : f(std::forward<Func>(f_)) {}
+    void operator()() final { f(); }
+
+  private:
+    Func f;
+  };
+
+  std::unique_ptr<base_task> task_ptr;
 };
 
-template <typename Func, typename Capture>
-moveable_task_t<Capture> bind_task(Func&& f, Capture&& c)
-{
-  return moveable_task_t<Capture>{std::forward<Func>(f), std::forward<Capture>(c)};
-}
-
-template <typename Capture>
-using multiqueue_task_handler = multiqueue_handler<moveable_task_t<Capture> >;
+using multiqueue_task_handler = multiqueue_handler<move_task_t>;
 
 } // namespace srslte
 

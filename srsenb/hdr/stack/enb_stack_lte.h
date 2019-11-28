@@ -146,8 +146,7 @@ private:
   phy_interface_stack_lte* phy = nullptr;
 
   // state
-  bool started = false;
-  using task_t = srslte::moveable_task_t<srslte::unique_byte_buffer_t>;
+  bool                            started = false;
   srslte::multiqueue_task_handler pending_tasks;
   int enb_queue_id = -1, sync_queue_id = -1, mme_queue_id = -1, gtpu_queue_id = -1, mac_queue_id = -1;
 };

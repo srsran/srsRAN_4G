@@ -210,7 +210,7 @@ bool enb_stack_lte::get_metrics(stack_metrics_t* metrics)
 void enb_stack_lte::run_thread()
 {
   while (started) {
-    task_t task{};
+    srslte::move_task_t task{};
     if (pending_tasks.wait_pop(&task) >= 0) {
       task();
     }
@@ -223,11 +223,11 @@ void enb_stack_lte::handle_mme_rx_packet(srslte::unique_byte_buffer_t pdu,
                                          int                          flags)
 {
   // Defer the handling of MME packet to eNB stack main thread
-  auto task_handler = [this, from, sri, flags](srslte::unique_byte_buffer_t t) {
+  auto task_handler = [this, from, sri, flags](srslte::unique_byte_buffer_t& t) {
     s1ap.handle_mme_rx_msg(std::move(t), from, sri, flags);
   };
   // Defer the handling of MME packet to main stack thread
-  pending_tasks.push(mme_queue_id, srslte::bind_task(task_handler, std::move(pdu)));
+  pending_tasks.push(mme_queue_id, std::bind(task_handler, std::move(pdu)));
 }
 
 void enb_stack_lte::add_mme_socket(int fd)

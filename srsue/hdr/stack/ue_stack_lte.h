@@ -159,9 +159,8 @@ private:
   gw_interface_stack*      gw  = nullptr;
 
   // Thread
-  static const int STACK_MAIN_THREAD_PRIO = -1; // Use default high-priority below UHD
-  using task_t                            = srslte::moveable_task_t<srslte::unique_byte_buffer_t>;
-  srslte::multiqueue_task_handler<srslte::unique_byte_buffer_t> pending_tasks;
+  static const int                STACK_MAIN_THREAD_PRIO = -1; // Use default high-priority below UHD
+  srslte::multiqueue_task_handler pending_tasks;
   int sync_queue_id = -1, ue_queue_id = -1, gw_queue_id = -1, mac_queue_id = -1, background_queue_id = -1;
   srslte::task_thread_pool background_tasks; ///< Thread pool used for long, low-priority tasks
 };

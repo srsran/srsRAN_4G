@@ -219,7 +219,7 @@ bool ue_stack_lte::get_metrics(stack_metrics_t* metrics)
 void ue_stack_lte::run_thread()
 {
   while (running) {
-    task_t task{};
+    srslte::move_task_t task{};
     if (pending_tasks.wait_pop(&task) >= 0) {
       task();
     }
@@ -242,10 +242,10 @@ void ue_stack_lte::run_thread()
  */
 void ue_stack_lte::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking)
 {
-  auto task = [this, lcid, blocking](srslte::unique_byte_buffer_t sdu) {
+  auto task = [this, lcid, blocking](srslte::unique_byte_buffer_t& sdu) {
     pdcp.write_sdu(lcid, std::move(sdu), blocking);
   };
-  bool ret = pending_tasks.try_push(gw_queue_id, srslte::bind_task(task, std::move(sdu))).first;
+  bool ret = pending_tasks.try_push(gw_queue_id, std::bind(task, std::move(sdu))).first;
   if (not ret) {
     pdcp_log.warning("GW SDU with lcid=%d was discarded.\n", lcid);
   }
