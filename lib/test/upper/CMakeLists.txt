@@ -64,9 +64,17 @@ add_executable(rlc_um_nr_test rlc_um_nr_test.cc)
 target_link_libraries(rlc_um_nr_test srslte_upper srslte_phy)
 add_test(rlc_um_nr_test rlc_um_nr_test)
 
-add_executable(pdcp_nr_test pdcp_nr_test.cc)
-target_link_libraries(pdcp_nr_test srslte_upper srslte_common)
-add_test(pdcp_nr_test pdcp_nr_test)
+add_executable(pdcp_nr_test_tx pdcp_nr_test_tx.cc)
+target_link_libraries(pdcp_nr_test_tx srslte_upper srslte_common)
+add_test(pdcp_nr_test_tx pdcp_nr_test_tx)
+
+add_executable(pdcp_nr_test_rx pdcp_nr_test_rx.cc)
+target_link_libraries(pdcp_nr_test_rx srslte_upper srslte_common)
+add_test(pdcp_nr_test_rx pdcp_nr_test_rx)
+
+add_executable(pdcp_nr_test_discard_sdu pdcp_nr_test_discard_sdu.cc)
+target_link_libraries(pdcp_nr_test_discard_sdu srslte_upper srslte_common)
+add_test(pdcp_nr_test_discard_sdu pdcp_nr_test_discard_sdu)
 
 ########################################################################
 # Option to run command after build (useful for remote builds)

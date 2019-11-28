@@ -28,6 +28,10 @@
 #include "srslte/upper/pdcp_entity_nr.h"
 #include <iostream>
 
+
+/*
+ * Functions and macros for comparisions
+ */
 #define TESTASSERT(cond)                                                                                               \
   {                                                                                                                    \
     if (!(cond)) {                                                                                                     \
@@ -45,6 +49,9 @@ int compare_two_packets(const srslte::unique_byte_buffer_t& msg1, const srslte::
   return 0;
 }
 
+/*
+ * Definition of helpful structs for testing
+ */
 struct pdcp_security_cfg {
   uint8_t*                            k_int_rrc;
   uint8_t*                            k_enc_rrc;
@@ -68,7 +75,54 @@ struct pdcp_test_event_t {
   uint32_t                     ticks = 0;
 };
 
-// dummy classes
+/*
+ * Constant definitions that are common to multiple tests
+ */
+// Encryption and Integrity Keys
+uint8_t k_int[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15,
+                   0x16, 0x17, 0x18, 0x19, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x30, 0x31};
+uint8_t k_enc[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15,
+                   0x16, 0x17, 0x18, 0x19, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x30, 0x31};
+
+// Security Configuration, common to all tests.
+pdcp_security_cfg sec_cfg = {
+    k_int,
+    k_enc,
+    k_int,
+    k_enc,
+    srslte::INTEGRITY_ALGORITHM_ID_128_EIA2,
+    srslte::CIPHERING_ALGORITHM_ID_128_EEA2,
+};
+
+// Test SDUs for tx
+uint8_t sdu1[] = {0x18, 0xe2};
+uint8_t sdu2[] = {0xde, 0xad};
+
+// Test PDUs for rx (generated from SDU1)
+uint8_t pdu1_count0_snlen12[]          = {0x80, 0x00, 0x8f, 0xe3, 0xe0, 0xdf, 0x82, 0x92};
+uint8_t pdu1_count2048_snlen12[]       = {0x88, 0x00, 0x8d, 0x2c, 0x47, 0x5e, 0xb1, 0x5b};
+uint8_t pdu1_count4096_snlen12[]       = {0x80, 0x00, 0x97, 0xbe, 0xa3, 0x32, 0xfa, 0x61};
+uint8_t pdu1_count4294967295_snlen12[] = {0x8f, 0xff, 0x1e, 0x47, 0xe6, 0x86, 0x28, 0x6c};
+uint8_t pdu1_count0_snlen18[]          = {0x80, 0x00, 0x00, 0x8f, 0xe3, 0xe0, 0xdf, 0x82, 0x92};
+uint8_t pdu1_count131072_snlen18[]     = {0x82, 0x00, 0x00, 0x15, 0x01, 0xf4, 0xb0, 0xfc, 0xc5};
+uint8_t pdu1_count262144_snlen18[]     = {0x80, 0x00, 0x00, 0xc2, 0x47, 0xa8, 0xdd, 0xc0, 0x73};
+uint8_t pdu1_count4294967295_snlen18[] = {0x83, 0xff, 0xff, 0x1e, 0x47, 0xe6, 0x86, 0x28, 0x6c};
+
+// Test PDUs for rx (generated from SDU2)
+uint8_t pdu2_count1_snlen12[] = {0x80, 0x01, 0x5e, 0x3d, 0x64, 0xaf, 0xac, 0x7c};
+uint8_t pdu2_count1_snlen18[] = {0x80, 0x00, 0x01, 0x5e, 0x3d, 0x64, 0xaf, 0xac, 0x7c};
+
+// This is the normal initial state. All state variables are set to zero
+pdcp_initial_state normal_init_state = {};
+
+// Some tests regarding COUNT wraparound take really long.
+// This puts the PCDC state closer to wraparound quickly.
+pdcp_initial_state near_wraparound_init_state = {
+    .tx_next = 4294967295, .rx_next = 4294967295, .rx_deliv = 4294967295, .rx_reord = 0};
+
+/*
+ * Dummy classes
+ */
 class rlc_dummy : public srsue::rlc_interface_pdcp
 {
 public:
@@ -146,7 +200,6 @@ private:
 /*
  * Helper classes to reduce copy / pasting in setting up tests
  */
-
 // PDCP helper to setup PDCP + Dummy
 class pdcp_nr_test_helper
 {
