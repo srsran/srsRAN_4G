@@ -54,12 +54,27 @@ int test_tx_sdu_discard(const pdcp_initial_state&    init_state,
     timers->step_all();
   }
   TESTASSERT(rlc->discard_count == 0);
+
+  // Check if timers were started
+  if (imediate_notify) {
+    TESTASSERT(pdcp->nof_discard_timers() == 0); // RLC notified PDCP already, timer should have been disarmed
+  } else {
+    TESTASSERT(pdcp->nof_discard_timers() == 1); // One timer should be running
+  }
+
+  // Last timer step
   timers->step_all();
+
+  // Check if RLC was notified of SDU discard
   if (imediate_notify) {
     TESTASSERT(rlc->discard_count == 0); // RLC imediatly notified the PDCP of tx, there should be no timeouts
   } else {
     TESTASSERT(rlc->discard_count == 1); // RLC does not notify the the PDCP of tx, there should be a timeout
   }
+
+  // Make sure there are no timers still left on the map
+  TESTASSERT(pdcp->nof_discard_timers() == 0);
+
   return 0;
 }
 
@@ -75,6 +90,12 @@ int test_tx_discard_all(srslte::byte_buffer_pool* pool, srslte::log* log)
    * Test TX PDU discard.
    */
   TESTASSERT(test_tx_sdu_discard(normal_init_state, srslte::pdcp_discard_timer_t::ms50, false, pool, log) == 0);
+
+  /*
+   * TX Test 2: PDCP Entity with SN LEN = 12
+   * Test TX PDU discard.
+   */
+  //TESTASSERT(test_tx_sdu_discard(normal_init_state, srslte::pdcp_discard_timer_t::ms50, true, pool, log) == 0);
   return 0;
 }
 

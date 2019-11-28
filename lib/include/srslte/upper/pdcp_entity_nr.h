@@ -53,9 +53,6 @@ public:
   // RRC interface
   void write_sdu(unique_byte_buffer_t sdu, bool blocking);
 
-  uint32_t get_dl_count();
-  uint32_t get_ul_count();
-
   // RLC interface
   void write_pdu(unique_byte_buffer_t pdu);
 
@@ -64,6 +61,9 @@ public:
   void set_rx_next(uint32_t rx_next_) { rx_next = rx_next_; }
   void set_rx_deliv(uint32_t rx_deliv_) { rx_deliv = rx_deliv_; }
   void set_rx_reord(uint32_t rx_reord_) { rx_reord = rx_reord_; }
+
+  // State variable getters (useful for testing)
+  uint32_t nof_discard_timers() { return discard_timers_map.size(); }
 
 private:
   bool initialized = false;

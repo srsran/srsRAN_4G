@@ -144,7 +144,7 @@ public:
   {
     log->info("Notifing RLC to discard SDU (SN=%" PRIu32 ")\n", discard_sn);
     discard_count++;
-    log->info("Discard_count=%" PRIu64 ")\n", discard_count);
+    log->info("Discard_count=%" PRIu64 "\n", discard_count);
   }
 
   uint64_t rx_count      = 0;
