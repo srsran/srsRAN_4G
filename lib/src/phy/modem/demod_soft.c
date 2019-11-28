@@ -95,32 +95,32 @@ void demod_16qam_lte_s_sse(const cf_t *symbols, short *llr, int nsymbols);
 
 void demod_bpsk_lte_b(const cf_t *symbols, int8_t *llr, int nsymbols) {
   for (int i=0;i<nsymbols;i++) {
-    llr[i] = (int8_t) -SCALE_BYTE_CONV_QPSK*(crealf(symbols[i]) + cimagf(symbols[i]))/sqrt(2);
+    llr[i] = (int8_t)(-SCALE_BYTE_CONV_QPSK * (crealf(symbols[i]) + cimagf(symbols[i])) * M_SQRT1_2);
   }
 }
 
 void demod_bpsk_lte_s(const cf_t *symbols, short *llr, int nsymbols) {
   for (int i=0;i<nsymbols;i++) {
-    llr[i] = (short) -SCALE_SHORT_CONV_QPSK*(crealf(symbols[i]) + cimagf(symbols[i]))/sqrt(2);
+    llr[i] = (short)(-SCALE_SHORT_CONV_QPSK * (crealf(symbols[i]) + cimagf(symbols[i])) * M_SQRT1_2);
   }
 }
 
 void demod_bpsk_lte(const cf_t *symbols, float *llr, int nsymbols) {
   for (int i=0;i<nsymbols;i++) {
-    llr[i] = -(crealf(symbols[i]) + cimagf(symbols[i]))/sqrt(2);
+    llr[i] = -(crealf(symbols[i]) + cimagf(symbols[i])) * M_SQRT1_2;
   }
 }
 
 void demod_qpsk_lte_b(const cf_t *symbols, int8_t *llr, int nsymbols) {
-  srslte_vec_convert_fb((const float*) symbols, -SCALE_BYTE_CONV_QPSK*sqrt(2), llr, nsymbols*2);
+  srslte_vec_convert_fb((const float*)symbols, -SCALE_BYTE_CONV_QPSK * M_SQRT2, llr, nsymbols * 2);
 }
 
 void demod_qpsk_lte_s(const cf_t *symbols, short *llr, int nsymbols) {
-  srslte_vec_convert_fi((const float*) symbols, -SCALE_SHORT_CONV_QPSK*sqrt(2), llr, nsymbols*2);
+  srslte_vec_convert_fi((const float*)symbols, -SCALE_SHORT_CONV_QPSK * M_SQRT2, llr, nsymbols * 2);
 }
 
 void demod_qpsk_lte(const cf_t *symbols, float *llr, int nsymbols) {
-  srslte_vec_sc_prod_fff((const float*) symbols, -sqrt(2), llr, nsymbols*2);
+  srslte_vec_sc_prod_fff((const float*)symbols, -M_SQRT2, llr, nsymbols * 2);
 }
 
 void demod_16qam_lte(const cf_t *symbols, float *llr, int nsymbols) {

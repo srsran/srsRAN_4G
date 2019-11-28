@@ -19,14 +19,15 @@
  *
  */
 
+#include <math.h>
+#include <srslte/phy/utils/random.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <unistd.h>
-#include <math.h>
 #include <time.h>
-#include <stdbool.h>
+#include <unistd.h>
 
 #include "srslte/srslte.h"
 #include "srslte/phy/channel/ch_awgn.h"
@@ -250,11 +251,14 @@ int main(int argc, char** argv)
   }
 
   /* Generate source random data */
+  srslte_random_t random_gen = srslte_random_init(0);
   for (i = 0; i < nof_layers; i++) {
     for (j = 0; j < nof_symbols; j++) {
-      x[i][j] = (2 * (rand() % 2) - 1 + (2 * (rand() % 2) - 1) * _Complex_I) / sqrt(2);
+      __real__ x[i][j] = (2 * srslte_random_uniform_int_dist(random_gen, 0, 1) - 1) * M_SQRT1_2;
+      __imag__ x[i][j] = (2 * srslte_random_uniform_int_dist(random_gen, 0, 1) - 1) * M_SQRT1_2;
     }
   }
+  srslte_random_free(random_gen);
 
   /* Execute Precoding (Tx) */
   if (srslte_precoding_type(x, y, nof_layers, nof_tx_ports, codebook_idx, nof_symbols, scaling, type) < 0) {

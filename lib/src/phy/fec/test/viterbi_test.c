@@ -198,7 +198,7 @@ int main(int argc, char **argv) {
 
       /* uncoded BER */
       for (j = 0; j < frame_length; j++) {
-        llr[j] = data_tx[j] ? sqrt(2) : -sqrt(2);
+        llr[j] = data_tx[j] ? M_SQRT2 : -M_SQRT2;
       }
       srslte_ch_awgn_f(llr, llr, varunc[i], frame_length);
 
@@ -206,7 +206,7 @@ int main(int argc, char **argv) {
       srslte_convcoder_encode(&cod, data_tx, symbols, frame_length);
 
       for (j = 0; j < coded_length; j++) {
-        llr[j] = symbols[j] ? sqrt(2) : -sqrt(2);
+        llr[j] = symbols[j] ? M_SQRT2 : -M_SQRT2;
       }
       
       srslte_ch_awgn_f(llr, llr, var[i], coded_length);

@@ -162,8 +162,8 @@ int srslte_refsignal_dl_nbiot_set_cell(srslte_refsignal_dl_nbiot_t* q, srslte_nb
                   i,
                   nsymbols,
                   l);
-            q->pilots[p][ns / 2][idx] =
-                (1 - 2 * (float)seq.c[2 * mp]) / sqrt(2) + _Complex_I * (1 - 2 * (float)seq.c[2 * mp + 1]) / sqrt(2);
+            __real__ q->pilots[p][ns / 2][idx] = (1 - 2 * (float)seq.c[2 * mp + 0]) * M_SQRT1_2;
+            __imag__ q->pilots[p][ns / 2][idx] = (1 - 2 * (float)seq.c[2 * mp + 1]) * M_SQRT1_2;
           }
         }
       }

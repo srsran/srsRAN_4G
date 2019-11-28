@@ -376,8 +376,8 @@ int srslte_predecoding_diversity_gen_(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_
         x1 += (-h10 * conj(r0) + conj(h01) * r1);
       }
       hh *= scaling;
-      x[0][i] = x0 / hh * sqrt(2);
-      x[1][i] = x1 / hh * sqrt(2);
+      x[0][i] = x0 / hh * M_SQRT2;
+      x[1][i] = x1 / hh * M_SQRT2;
     }
     return i;
   } else if (nof_ports == 4) {
@@ -410,10 +410,10 @@ int srslte_predecoding_diversity_gen_(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_
       hh02 *= scaling;
       hh13 *= scaling;
 
-      x[0][i] = x0 / hh02 * sqrt(2);
-      x[1][i] = x1 / hh02 * sqrt(2);
-      x[2][i] = x2 / hh13 * sqrt(2);
-      x[3][i] = x3 / hh13 * sqrt(2);
+      x[0][i] = x0 / hh02 * M_SQRT2;
+      x[1][i] = x1 / hh02 * M_SQRT2;
+      x[2][i] = x2 / hh13 * M_SQRT2;
+      x[3][i] = x3 / hh13 * M_SQRT2;
     }
     return i;
   } else {
@@ -444,8 +444,8 @@ int srslte_predecoding_diversity2_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_
   const float *yPtr1 = (const float*) y[1];
 
   __m128 conjugator = _mm_setr_ps(0, -0.f, 0, -0.f);
-  __m128 sqrt2      = _mm_set1_ps(sqrtf(2)/scaling);
-  
+  __m128 sqrt2      = _mm_set1_ps(M_SQRT2 / scaling);
+
   __m128 h0Val_00, h0Val_10, h1Val_00, h1Val_10, h000, h00conj0, h010, h01conj0, h100, h110;
   __m128 h0Val_01, h0Val_11, h1Val_01, h1Val_11, h001, h00conj1, h011, h01conj1, h101, h111;
   __m128 hh, hhshuf, hhsum, hhadd; 
@@ -592,8 +592,8 @@ int srslte_predecoding_diversity_csi(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_M
       csi[0][2*i + 1] = hh;
 
       hh *= scaling;
-      x[0][i] = x0 / hh * sqrt(2);
-      x[1][i] = x1 / hh * sqrt(2);
+      x[0][i] = x0 / hh * M_SQRT2;
+      x[1][i] = x1 / hh * M_SQRT2;
     }
     return i;
   } else if (nof_ports == 4) {
@@ -650,10 +650,10 @@ int srslte_predecoding_diversity_csi(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_M
       csi[0][4 * i + 2] = a2 / nof_rxant;
       csi[0][4 * i + 3] = a3 / nof_rxant;
 
-      x[0][i] = x0 / a0 * sqrtf(2.0f);
-      x[1][i] = x1 / a1 * sqrtf(2.0f);
-      x[2][i] = x2 / a2 * sqrtf(2.0f);
-      x[3][i] = x3 / a3 * sqrtf(2.0f);
+      x[0][i] = x0 / a0 * M_SQRT2;
+      x[1][i] = x1 / a1 * M_SQRT2;
+      x[2][i] = x2 / a2 * M_SQRT2;
+      x[3][i] = x3 / a3 * M_SQRT2;
     }
     return i;
   } else {
@@ -1856,11 +1856,11 @@ int srslte_precoding_diversity(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PO
       y[1][2 * i + 1] = conjf(x[0][i]);
     }
     // normalize
-    srslte_vec_sc_prod_cfc(y[0], scaling/sqrtf(2), y[0], 2*nof_symbols);
-    srslte_vec_sc_prod_cfc(y[1], scaling/sqrtf(2), y[1], 2*nof_symbols);
+    srslte_vec_sc_prod_cfc(y[0], scaling * M_SQRT1_2, y[0], 2 * nof_symbols);
+    srslte_vec_sc_prod_cfc(y[1], scaling * M_SQRT1_2, y[1], 2 * nof_symbols);
     return 2 * i;
   } else if (nof_ports == 4) {
-    scaling /=  sqrtf(2);
+    scaling /= M_SQRT2;
 
     //int m_ap = (nof_symbols%4)?(nof_symbols*4-2):nof_symbols*4;
     int m_ap = 4 * nof_symbols;
@@ -1987,7 +1987,7 @@ int srslte_precoding_multiplex(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PO
   int i = 0;
   if (nof_ports == 2) {
     if (nof_layers == 1) {
-      scaling /= sqrtf(2.0f);
+      scaling *= M_SQRT1_2;
       switch(codebook_idx) {
         case 0:
           srslte_vec_sc_prod_cfc(x[0], scaling, y[0], nof_symbols);
@@ -2015,7 +2015,7 @@ int srslte_precoding_multiplex(cf_t *x[SRSLTE_MAX_LAYERS], cf_t *y[SRSLTE_MAX_PO
     } else if (nof_layers == 2) {
       switch(codebook_idx) {
         case 0:
-          scaling /= sqrtf(2.0f);
+          scaling *= M_SQRT1_2;
           srslte_vec_sc_prod_cfc(x[0], scaling, y[0], nof_symbols);
           srslte_vec_sc_prod_cfc(x[1], scaling, y[1], nof_symbols);
           break;
