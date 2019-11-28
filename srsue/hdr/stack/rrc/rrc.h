@@ -416,8 +416,8 @@ private:
 
   // RRC constants and timers
   srslte::timer_handler*              timers = nullptr;
-  uint32_t                            n310_cnt = 0, N310 = 0;
-  uint32_t                            n311_cnt = 0, N311 = 0;
+  uint32_t                            n310_cnt, N310 = 0;
+  uint32_t                            n311_cnt, N311 = 0;
   srslte::timer_handler::unique_timer t300, t301, t302, t310, t311, t304;
 
   // Radio bearers
@@ -469,8 +469,12 @@ private:
   void                           delete_last_neighbour();
   std::string                    print_neighbour_cells();
 
-  bool initiated                  = false;
-  bool reestablishment_successful = false;
+  bool                     initiated                                      = false;
+  asn1::rrc::reest_cause_e m_reest_cause                                  = asn1::rrc::reest_cause_e::nulltype;
+  uint16_t                 m_reest_rnti               = 0;
+  uint16_t                 m_reest_source_pci                             = 0;
+  bool                     reestablishment_started                        = false;
+  bool                     reestablishment_successful = false;
 
   // Measurements sub-class
   class rrc_meas

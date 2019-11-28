@@ -800,7 +800,7 @@ int main(int argc, char **argv) {
   }
 #endif
 
-  if (update_radl(sf_idx)) {
+  if (update_radl()) {
     exit(-1);
   }
   
@@ -879,7 +879,7 @@ int main(int argc, char **argv) {
       srslte_pcfich_encode(&pcfich, &dl_sf, sf_symbols);
 
       /* Update DL resource allocation from control port */
-      if (update_control(sf_idx)) {
+      if (update_control()) {
         ERROR("Error updating parameters from control port\n");
       }
       

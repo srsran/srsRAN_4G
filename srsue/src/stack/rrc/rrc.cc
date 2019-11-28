@@ -3376,7 +3376,7 @@ uint8_t rrc::rrc_meas::value_to_range(quantity_t quant, float value) {
     case RSRP:
       if (value < -140) {
         range = 0;
-      } else if (-140 <= value && value < -44) {
+      } else if (value < -44) {
         range = 1u + (uint8_t)(value + 140);
       } else {
         range = 97;
@@ -3385,7 +3385,7 @@ uint8_t rrc::rrc_meas::value_to_range(quantity_t quant, float value) {
     case RSRQ:
       if (value < -19.5) {
         range = 0;
-      } else if (-19.5 <= value && value < -3) {
+      } else if (value < -3) {
         range = 1u + (uint8_t)(2 * (value + 19.5));
       } else {
         range = 34;

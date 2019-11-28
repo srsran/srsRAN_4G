@@ -519,7 +519,7 @@ static void average_pilots(srslte_chest_dl_t*     q,
                            float*                 filter,
                            uint32_t               filter_len)
 {
-  uint32_t nsymbols = (sf->sf_type == SRSLTE_SF_MBSFN) ? srslte_refsignal_mbsfn_nof_symbols(port_id)
+  uint32_t nsymbols = (sf->sf_type == SRSLTE_SF_MBSFN) ? srslte_refsignal_mbsfn_nof_symbols()
                                                        : srslte_refsignal_cs_nof_symbols(&q->csr_refs, sf, port_id);
   uint32_t nref = (sf->sf_type == SRSLTE_SF_MBSFN) ? 6 * q->cell.nof_prb : 2 * q->cell.nof_prb;
 

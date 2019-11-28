@@ -88,7 +88,8 @@ static uint16_t deinterleaver_sb[NOF_DEINTER_TABLE_SB_IDX][192][4][18448];
 
 static uint16_t temp_table1[3*6176], temp_table2[3*6176];
 
-static void srslte_rm_turbo_gentable_systematic(uint16_t *table_bits, int k0_vec[4][2], uint32_t nrows, int ndummy) {
+static void srslte_rm_turbo_gentable_systematic(uint16_t* table_bits, int k0_vec_[4][2], uint32_t nrows, int ndummy)
+{
 
   bool last_is_null=true;
   int k_b=0, buff_idx=0;
@@ -101,10 +102,10 @@ static void srslte_rm_turbo_gentable_systematic(uint16_t *table_bits, int k0_vec
       } else {
         last_is_null=true;
       }
-      for (int i=0;i<4;i++) {
-        if (k0_vec[i][1] == -1) {
-          if (k0_vec[i][0]%(3*nrows*NCOLS) <= buff_idx && !last_is_null) {
-            k0_vec[i][1] = k_b-1;
+      for (int k = 0; k < 4; k++) {
+        if (k0_vec_[k][1] == -1) {
+          if (k0_vec_[k][0] % (3 * nrows * NCOLS) <= buff_idx && !last_is_null) {
+            k0_vec_[k][1] = k_b - 1;
           }
         }
       }
@@ -113,8 +114,10 @@ static void srslte_rm_turbo_gentable_systematic(uint16_t *table_bits, int k0_vec
   }
 }
 
-static void srslte_rm_turbo_gentable_parity(uint16_t *table_parity, int k0_vec[4][2], int offset, uint16_t nrows, int ndummy) {
-  
+static void
+srslte_rm_turbo_gentable_parity(uint16_t* table_parity, int k0_vec_[4][2], int offset, uint16_t nrows, int ndummy)
+{
+
   bool last_is_null=true;
   int k_b=0, buff_idx0=0;
   int K_p = nrows*NCOLS;
@@ -128,10 +131,10 @@ static void srslte_rm_turbo_gentable_parity(uint16_t *table_parity, int k0_vec[4
       } else {
         last_is_null=true;
       }
-      for (int i=0;i<4;i++) {
-        if (k0_vec[i][1] == -1) {
-          if (k0_vec[i][0]%(3*K_p) <= 2*buff_idx0+K_p && !last_is_null) {
-            k0_vec[i][1] = offset+k_b-1;
+      for (int k = 0; k < 4; k++) {
+        if (k0_vec_[k][1] == -1) {
+          if (k0_vec_[k][0] % (3 * K_p) <= 2 * buff_idx0 + K_p && !last_is_null) {
+            k0_vec_[k][1] = offset + k_b - 1;
           }
         }
       }
@@ -145,10 +148,10 @@ static void srslte_rm_turbo_gentable_parity(uint16_t *table_parity, int k0_vec[4
       } else {
         last_is_null=true;
       }
-      for (int i=0;i<4;i++) {
-        if (k0_vec[i][1] == -1) {
-          if (k0_vec[i][0]%(3*K_p) <= 2*buff_idx1+1+K_p && !last_is_null) {
-            k0_vec[i][1] = offset+k_b-1;
+      for (int k = 0; k < 4; k++) {
+        if (k0_vec_[k][1] == -1) {
+          if (k0_vec_[k][0] % (3 * K_p) <= 2 * buff_idx1 + 1 + K_p && !last_is_null) {
+            k0_vec_[k][1] = offset + k_b - 1;
           }
         }
       }
