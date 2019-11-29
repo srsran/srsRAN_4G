@@ -151,6 +151,7 @@ srslte::rlc_config_t make_rlc_config_t(const asn1::rrc::srb_to_add_mod_s& asn1_t
   } else {
     asn1::rrc::rrc_log_print(
         asn1::LOG_LEVEL_ERROR, "SRB %d does not support default initialization type\n", asn1_type.srb_id);
+    return rlc_config_t();
   }
 }
 
