@@ -107,7 +107,7 @@ public:
    ************************************************************/
   sched_ue();
   void reset();
-  void phy_config_enabled(uint32_t tti, uint32_t cc_idx, bool enabled);
+  void phy_config_enabled(uint32_t tti, bool enabled);
   void set_cfg(uint16_t rnti, const sched_params_t& sched_params_, sched_interface::ue_cfg_t* cfg);
 
   void set_bearer_cfg(uint32_t lc_id, srsenb::sched_interface::ue_bearer_cfg_t* cfg);
@@ -243,12 +243,11 @@ private:
                                  const rbgmask_t&                  user_mask);
 
   bool is_first_dl_tx();
-  bool is_first_dl_tx(uint32_t cc_idx);
 
-  sched_interface::ue_cfg_t cfg   = {};
-  srslte_cell_t             cell  = {};
-  srslte::log*              log_h = nullptr;
-  const sched_params_t*     sched_params;
+  sched_interface::ue_cfg_t cfg          = {};
+  srslte_cell_t             cell         = {};
+  srslte::log*              log_h        = nullptr;
+  const sched_params_t*     sched_params = nullptr;
 
   std::mutex mutex;
 

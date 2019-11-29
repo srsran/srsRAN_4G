@@ -203,9 +203,7 @@ int mac::bearer_ue_rem(uint16_t rnti, uint32_t lc_id)
 
 void mac::phy_config_enabled(uint16_t rnti, bool enabled)
 {
-  // FIXME: "cc_idx must be specified"
-  uint32_t cc_idx = 0;
-  scheduler.phy_config_enabled(rnti, cc_idx, enabled);
+  scheduler.phy_config_enabled(rnti, enabled);
 }
 
 // Update UE configuration

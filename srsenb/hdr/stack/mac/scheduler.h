@@ -119,7 +119,7 @@ public:
   bool ue_exists(uint16_t rnti) final;
   void ue_needs_ta_cmd(uint16_t rnti, uint32_t nof_ta_cmd);
 
-  void phy_config_enabled(uint16_t rnti, uint32_t cc_idx, bool enabled);
+  void phy_config_enabled(uint16_t rnti, bool enabled);
 
   int bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, ue_bearer_cfg_t* cfg) final;
   int bearer_ue_rem(uint16_t rnti, uint32_t lc_id) final;

@@ -251,10 +251,10 @@ void sched::ue_needs_ta_cmd(uint16_t rnti, uint32_t nof_ta_cmd)
   pthread_rwlock_unlock(&rwlock);
 }
 
-void sched::phy_config_enabled(uint16_t rnti, uint32_t cc_idx, bool enabled)
+void sched::phy_config_enabled(uint16_t rnti, bool enabled)
 {
   // FIXME: Check if correct use of current_tti
-  ue_db_access(rnti, [this, cc_idx, enabled](sched_ue& ue) { ue.phy_config_enabled(current_tti, cc_idx, enabled); });
+  ue_db_access(rnti, [this, enabled](sched_ue& ue) { ue.phy_config_enabled(current_tti, enabled); });
 }
 
 int sched::bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg_)

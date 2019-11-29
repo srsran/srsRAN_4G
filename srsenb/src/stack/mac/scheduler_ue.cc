@@ -171,10 +171,11 @@ void sched_ue::rem_bearer(uint32_t lc_id)
   }
 }
 
-void sched_ue::phy_config_enabled(uint32_t tti, uint32_t cc_idx, bool enabled)
+void sched_ue::phy_config_enabled(uint32_t tti, bool enabled)
 {
-  carriers[cc_idx].dl_cqi_tti = tti;
-  // FIXME: "why do we need this?"
+  for (sched_ue_carrier& c : carriers) {
+    c.dl_cqi_tti = tti;
+  }
   phy_config_dedicated_enabled = enabled;
 }
 
@@ -400,7 +401,7 @@ int sched_ue::generate_format1(dl_harq_proc*                     h,
 
   // If this is the first transmission for this UE, make room for MAC Contention Resolution ID
   bool need_conres_ce = false;
-  if (is_first_dl_tx(cc_idx)) {
+  if (is_first_dl_tx()) {
     need_conres_ce = true;
   }
   if (h->is_empty(0)) {
@@ -727,19 +728,11 @@ uint32_t sched_ue::get_max_retx()
 
 bool sched_ue::is_first_dl_tx()
 {
-  for (uint32_t i = 0; i < carriers.size(); ++i) {
-    if (not is_first_dl_tx(i)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-bool sched_ue::is_first_dl_tx(uint32_t cc_idx)
-{
-  for (auto& h : carriers[cc_idx].dl_harq) {
-    if (h.nof_tx(0) > 0) {
-      return false;
+  for (const sched_ue_carrier& c : carriers) {
+    for (auto& h : c.dl_harq) {
+      if (h.nof_tx(0) > 0) {
+        return false;
+      }
     }
   }
   return true;
@@ -892,7 +885,7 @@ uint32_t sched_ue::get_required_prb_dl(uint32_t cc_idx, uint32_t req_bytes, uint
 
   uint32_t nbytes = 0;
   uint32_t n;
-  int      mcs0 = (is_first_dl_tx(cc_idx) and cell.nof_prb == 6) ? MCS_FIRST_DL : carriers[cc_idx].fixed_mcs_dl;
+  int      mcs0 = (is_first_dl_tx() and cell.nof_prb == 6) ? MCS_FIRST_DL : carriers[cc_idx].fixed_mcs_dl;
   for (n = 0; n < cell.nof_prb && nbytes < req_bytes; ++n) {
     nof_re = srslte_ra_dl_approx_nof_re(&cell, n + 1, nof_ctrl_symbols);
     if (mcs0 < 0) {
