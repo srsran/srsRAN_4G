@@ -581,7 +581,7 @@ public:
   {
     if (s.size() != N) {
       srsasn_log_print(
-          LOG_LEVEL_ERROR, "The provided string size=%d does not match the bit string size=%d\n", s.size(), N);
+          LOG_LEVEL_ERROR, "The provided string size=%zd does not match the bit string size=%d\n", s.size(), N);
     }
     memset(&octets_[0], 0, nof_octets());
     for (uint32_t i = 0; i < N; ++i)
