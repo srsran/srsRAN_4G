@@ -110,7 +110,7 @@ void pdcp_entity_nr::write_sdu(unique_byte_buffer_t sdu, bool blocking)
     discard_timer.set(static_cast<uint32_t>(cfg.discard_timer), discard_fnc);
     discard_timer.run();
     discard_timers_map.insert(std::make_pair(tx_next, std::move(discard_timer)));
-    log->debug("Discard Timer set for SN %" PRIu32 ". Timeout: %" PRIu32 "ms\n",
+    log->debug("Discard Timer set for SN %u. Timeout: %ums\n",
                tx_next,
                static_cast<uint32_t>(cfg.discard_timer));
   }
@@ -178,7 +178,7 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   }
   rcvd_count = COUNT(rcvd_hfn, rcvd_sn);
 
-  log->debug("RCVD_HFN %" PRIu32 " RCVD_SN %" PRIu32 ", RCVD_COUNT %" PRIu32 "\n", rcvd_hfn, rcvd_sn, rcvd_count);
+  log->debug("RCVD_HFN %u RCVD_SN %u, RCVD_COUNT %u\n", rcvd_hfn, rcvd_sn, rcvd_count);
 
   // Decripting
   cipher_decrypt(pdu->msg, pdu->N_bytes, rcvd_count, pdu->msg);
@@ -192,7 +192,7 @@ void pdcp_entity_nr::write_pdu(unique_byte_buffer_t pdu)
   // Check valid rcvd_count
   if (rcvd_count < rx_deliv) {
     log->debug("Out-of-order after time-out, duplicate or COUNT wrap-around\n");
-    log->debug("RCVD_COUNT %" PRIu32 ", RCVD_COUNT %" PRIu32 "\n", rcvd_count, rx_deliv);
+    log->debug("RCVD_COUNT %u, RCVD_COUNT %u\n", rcvd_count, rx_deliv);
     return; // Invalid count, drop.
   }
 
@@ -320,7 +320,7 @@ void pdcp_entity_nr::deliver_all_consecutive_counts()
   for (std::map<uint32_t, unique_byte_buffer_t>::iterator it = reorder_queue.begin();
        it != reorder_queue.end() && it->first == rx_deliv;
        reorder_queue.erase(it++)) {
-    log->debug("Delivering SDU with RCVD_COUNT %" PRIu32 "\n", it->first);
+    log->debug("Delivering SDU with RCVD_COUNT %u\n", it->first);
 
     // Check RX_DELIV overflow
     if (rx_overflow) {

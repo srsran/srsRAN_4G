@@ -143,7 +143,7 @@ public:
   }
   void discard_sdu(uint32_t lcid, uint32_t discard_sn)
   {
-    log->info("Notifing RLC to discard SDU (SN=%" PRIu32 ")\n", discard_sn);
+    log->info("Notifing RLC to discard SDU (SN=%u)\n", discard_sn);
     discard_count++;
     log->info("Discard_count=%" PRIu64 "\n", discard_count);
   }
