@@ -275,7 +275,7 @@ const ra_sched::pending_msg3_t& ra_sched::find_pending_msg3(uint32_t tti) const
  *                 Carrier scheduling
  *******************************************************/
 
-sched::carrier_sched::carrier_sched(sched* sched_) : sched_ptr(sched_)
+sched::carrier_sched::carrier_sched(sched* sched_, uint32_t cc_idx_) : sched_ptr(sched_), cc_idx(cc_idx_)
 {
   tti_dl_mask.resize(1, 0);
 }
@@ -314,7 +314,7 @@ void sched::carrier_sched::carrier_cfg()
 
   // Initiate the tti_scheduler for each TTI
   for (tti_sched_result_t& tti_sched : tti_scheds) {
-    tti_sched.init(*sched_params);
+    tti_sched.init(*sched_params, cc_idx);
   }
 }
 
@@ -370,7 +370,7 @@ tti_sched_result_t* sched::carrier_sched::generate_tti_result(uint32_t tti_rx)
 
     /* reset PIDs with pending data or blocked */
     for (auto& user : sched_ptr->ue_db) {
-      user.second.reset_pending_pids(tti_rx);
+      user.second.reset_pending_pids(tti_rx, cc_idx);
     }
   }
 
@@ -387,7 +387,7 @@ void sched::carrier_sched::generate_phich(tti_sched_result_t* tti_sched)
 
     //    user.has_pucch = false; // FIXME: What is this for?
 
-    ul_harq_proc* h = user.get_ul_harq(tti_sched->get_tti_rx());
+    ul_harq_proc* h = user.get_ul_harq(tti_sched->get_tti_rx(), cc_idx);
 
     /* Indicate PHICH acknowledgment if needed */
     if (h->has_pending_ack()) {
@@ -422,7 +422,7 @@ void sched::carrier_sched::alloc_dl_users(tti_sched_result_t* tti_result)
   }
 
   // call DL scheduler metric to fill RB grid
-  dl_metric->sched_users(sched_ptr->ue_db, tti_result);
+  dl_metric->sched_users(sched_ptr->ue_db, tti_result, cc_idx);
 }
 
 int sched::carrier_sched::alloc_ul_users(tti_sched_result_t* tti_sched)
@@ -448,11 +448,11 @@ int sched::carrier_sched::alloc_ul_users(tti_sched_result_t* tti_sched)
   ul_mask |= pucch_mask;
 
   /* Call scheduler for UL data */
-  ul_metric->sched_users(sched_ptr->ue_db, tti_sched);
+  ul_metric->sched_users(sched_ptr->ue_db, tti_sched, cc_idx);
 
   /* Update pending data counters after this TTI */
   for (auto& user : sched_ptr->ue_db) {
-    user.second.get_ul_harq(tti_tx_ul)->reset_pending_data();
+    user.second.get_ul_harq(tti_tx_ul, cc_idx)->reset_pending_data();
   }
 
   return SRSLTE_SUCCESS;

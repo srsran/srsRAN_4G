@@ -87,16 +87,16 @@ public:
   {
   public:
     /* Virtual methods for user metric calculation */
-    virtual void set_log(srslte::log* log_)                                                  = 0;
-    virtual void sched_users(std::map<uint16_t, sched_ue>& ue_db, dl_tti_sched_t* tti_sched) = 0;
+    virtual void set_log(srslte::log* log_)                                                                   = 0;
+    virtual void sched_users(std::map<uint16_t, sched_ue>& ue_db, dl_tti_sched_t* tti_sched, uint32_t cc_idx) = 0;
   };
 
   class metric_ul
   {
   public:
     /* Virtual methods for user metric calculation */
-    virtual void set_log(srslte::log* log_)                                                  = 0;
-    virtual void sched_users(std::map<uint16_t, sched_ue>& ue_db, ul_tti_sched_t* tti_sched) = 0;
+    virtual void set_log(srslte::log* log_)                                                                   = 0;
+    virtual void sched_users(std::map<uint16_t, sched_ue>& ue_db, ul_tti_sched_t* tti_sched, uint32_t cc_idx) = 0;
   };
 
   /*************************************************************
@@ -119,7 +119,7 @@ public:
   bool ue_exists(uint16_t rnti) final;
   void ue_needs_ta_cmd(uint16_t rnti, uint32_t nof_ta_cmd);
 
-  void phy_config_enabled(uint16_t rnti, bool enabled);
+  void phy_config_enabled(uint16_t rnti, uint32_t cc_idx, bool enabled);
 
   int bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, ue_bearer_cfg_t* cfg) final;
   int bearer_ue_rem(uint16_t rnti, uint32_t lc_id) final;
@@ -131,18 +131,18 @@ public:
   int dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code) final;
 
   int dl_ant_info(uint16_t rnti, asn1::rrc::phys_cfg_ded_s::ant_info_c_* dedicated);
-  int dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack) final;
+  int dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t tb_idx, bool ack) final;
   int dl_rach_info(dl_sched_rar_info_t rar_info) final;
-  int dl_ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value) final;
-  int dl_pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value) final;
-  int dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value) final;
+  int dl_ri_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t ri_value) final;
+  int dl_pmi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t pmi_value) final;
+  int dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t cqi_value) final;
 
-  int ul_crc_info(uint32_t tti, uint16_t rnti, bool crc) final;
+  int ul_crc_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, bool crc) final;
   int ul_sr_info(uint32_t tti, uint16_t rnti) override;
   int ul_bsr(uint16_t rnti, uint32_t lcid, uint32_t bsr, bool set_value = true) final;
   int ul_recv_len(uint16_t rnti, uint32_t lcid, uint32_t len) final;
   int ul_phr(uint16_t rnti, int phr) final;
-  int ul_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi, uint32_t ul_ch_code) final;
+  int ul_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t cqi, uint32_t ul_ch_code) final;
 
   int dl_sched(uint32_t tti, dl_sched_res_t* sched_result) final;
   int ul_sched(uint32_t tti, ul_sched_res_t* sched_result) final;

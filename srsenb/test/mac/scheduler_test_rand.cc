@@ -125,6 +125,8 @@ bool       check_old_pids = true;
  *     Dummies     *
  *******************/
 
+constexpr uint32_t CARRIER_IDX = 0;
+
 struct sched_sim_args {
   struct tti_event_t {
     struct user_event_t {
@@ -311,7 +313,7 @@ int sched_tester::process_tti_args()
     if (e.second.dl_data > 0) {
       uint32_t lcid = 0;
       // FIXME: Does it need TTI for checking pending data?
-      uint32_t tot_dl_data = ue_db[e.first].get_pending_dl_new_data(tti_data.tti_tx_dl) + e.second.dl_data;
+      uint32_t tot_dl_data = ue_db[e.first].get_pending_dl_new_data() + e.second.dl_data;
       dl_rlc_buffer_state(e.first, lcid, tot_dl_data, 0);
     }
   }
@@ -326,15 +328,15 @@ void sched_tester::before_sched()
     uint16_t              rnti = it.first;
     srsenb::sched_ue*     user = &it.second;
     tester_user_results   d;
-    srsenb::ul_harq_proc* hul = user->get_ul_harq(tti_data.tti_tx_ul);
+    srsenb::ul_harq_proc* hul = user->get_ul_harq(tti_data.tti_tx_ul, CARRIER_IDX);
     d.ul_pending_data         = get_ul_buffer(rnti);
     //        user->get_pending_ul_new_data(tti_data.tti_tx_ul) or hul->has_pending_retx(); // get_ul_buffer(rnti);
     d.dl_pending_data         = get_dl_buffer(rnti);
     d.has_ul_retx             = hul->has_pending_retx();
     d.has_ul_tx               = d.has_ul_retx or d.ul_pending_data > 0;
-    srsenb::dl_harq_proc* hdl = user->get_pending_dl_harq(tti_data.tti_tx_dl);
+    srsenb::dl_harq_proc* hdl = user->get_pending_dl_harq(tti_data.tti_tx_dl, CARRIER_IDX);
     d.has_dl_retx             = (hdl != nullptr) and hdl->has_pending_retx(0, tti_data.tti_tx_dl);
-    d.has_dl_tx    = (hdl != nullptr) or (it.second.get_empty_dl_harq() != nullptr and d.dl_pending_data > 0);
+    d.has_dl_tx = (hdl != nullptr) or (it.second.get_empty_dl_harq(CARRIER_IDX) != nullptr and d.dl_pending_data > 0);
     d.has_ul_newtx = not d.has_ul_retx and d.ul_pending_data > 0;
     tti_data.ue_data.insert(std::make_pair(rnti, d));
     tti_data.total_ues.dl_pending_data += d.dl_pending_data;
@@ -344,11 +346,11 @@ void sched_tester::before_sched()
     tti_data.total_ues.has_ul_newtx |= d.has_ul_newtx;
 
     for (uint32_t i = 0; i < 2 * FDD_HARQ_DELAY_MS; ++i) {
-      const srsenb::dl_harq_proc* h      = user->get_dl_harq(i);
+      const srsenb::dl_harq_proc* h      = user->get_dl_harq(i, CARRIER_IDX);
       tti_data.ue_data[rnti].dl_harqs[i] = *h;
     }
     // NOTE: ACK might have just cleared the harq for tti_data.tti_tx_ul
-    tti_data.ue_data[rnti].ul_harq = *user->get_ul_harq(tti_data.tti_tx_ul);
+    tti_data.ue_data[rnti].ul_harq = *user->get_ul_harq(tti_data.tti_tx_ul, CARRIER_IDX);
   }
 
   // TODO: Check whether pending pending_rar.rar_tti correspond to a prach_tti
@@ -583,7 +585,7 @@ int sched_tester::test_harqs()
     const auto&                 data = tti_data.sched_result_dl.data[i];
     uint32_t                    h_id = data.dci.pid;
     uint16_t                    rnti = data.dci.rnti;
-    const srsenb::dl_harq_proc* h    = ue_db[rnti].get_dl_harq(h_id);
+    const srsenb::dl_harq_proc* h    = ue_db[rnti].get_dl_harq(h_id, CARRIER_IDX);
     CONDERROR(h == nullptr, "[TESTER] scheduled DL harq pid=%d does not exist\n", h_id);
     CONDERROR(h->is_empty(), "[TESTER] Cannot schedule an empty harq proc\n");
     CONDERROR(h->get_tti() != tti_data.tti_tx_dl,
@@ -608,7 +610,7 @@ int sched_tester::test_harqs()
     const auto&                 pusch   = tti_data.sched_result_ul.pusch[i];
     uint16_t                    rnti    = pusch.dci.rnti;
     const auto&                 ue_data = tti_data.ue_data[rnti];
-    const srsenb::ul_harq_proc* h       = ue_db[rnti].get_ul_harq(tti_data.tti_tx_ul);
+    const srsenb::ul_harq_proc* h       = ue_db[rnti].get_ul_harq(tti_data.tti_tx_ul, CARRIER_IDX);
     CONDERROR(h == nullptr or h->is_empty(), "[TESTER] scheduled UL harq does not exist or is empty\n");
     CONDERROR(h->get_tti() != tti_data.tti_tx_ul,
               "[TESTER] The scheduled UL harq does not a valid tti=%u\n",
@@ -632,7 +634,7 @@ int sched_tester::test_harqs()
     const auto& phich = tti_data.sched_result_ul.phich[i];
     CONDERROR(tti_data.ue_data.count(phich.rnti) == 0, "[TESTER] Allocated PHICH rnti no longer exists\n");
     const auto& hprev = tti_data.ue_data[phich.rnti].ul_harq;
-    const auto* h     = ue_db[phich.rnti].get_ul_harq(tti_data.tti_tx_ul);
+    const auto* h     = ue_db[phich.rnti].get_ul_harq(tti_data.tti_tx_ul, CARRIER_IDX);
     CONDERROR(not hprev.has_pending_ack(), "[TESTER] Alloc PHICH did not have any pending ack\n");
     bool maxretx_flag = hprev.nof_retx(0) + 1 >= hprev.max_nof_retx();
     if (phich.phich == sched_interface::ul_sched_phich_t::ACK) {
@@ -660,10 +662,11 @@ int sched_tester::test_harqs()
   // schedule future acks
   for (uint32_t i = 0; i < tti_data.sched_result_dl.nof_data_elems; ++i) {
     ack_info_t ack_data;
-    ack_data.rnti                    = tti_data.sched_result_dl.data[i].dci.rnti;
-    ack_data.tti                     = FDD_HARQ_DELAY_MS + tti_data.tti_tx_dl;
-    const srsenb::dl_harq_proc* dl_h = ue_db[ack_data.rnti].get_dl_harq(tti_data.sched_result_dl.data[i].dci.pid);
-    ack_data.dl_harq                 = *dl_h;
+    ack_data.rnti = tti_data.sched_result_dl.data[i].dci.rnti;
+    ack_data.tti  = FDD_HARQ_DELAY_MS + tti_data.tti_tx_dl;
+    const srsenb::dl_harq_proc* dl_h =
+        ue_db[ack_data.rnti].get_dl_harq(tti_data.sched_result_dl.data[i].dci.pid, CARRIER_IDX);
+    ack_data.dl_harq = *dl_h;
     if (ack_data.dl_harq.nof_retx(0) == 0) {
       ack_data.dl_ack = randf() > sim_args.P_retx;
     } else { // always ack after three retxs
@@ -693,7 +696,7 @@ int sched_tester::test_harqs()
     const auto&   pusch = tti_data.sched_result_ul.pusch[i];
     ul_ack_info_t ack_data;
     ack_data.rnti      = pusch.dci.rnti;
-    ack_data.ul_harq   = *ue_db[ack_data.rnti].get_ul_harq(tti_data.tti_tx_ul);
+    ack_data.ul_harq   = *ue_db[ack_data.rnti].get_ul_harq(tti_data.tti_tx_ul, CARRIER_IDX);
     ack_data.tti_tx_ul = tti_data.tti_tx_ul;
     ack_data.tti_ack   = tti_data.tti_tx_ul + FDD_HARQ_DELAY_MS;
     if (ack_data.ul_harq.nof_retx(0) == 0) {
@@ -708,9 +711,11 @@ int sched_tester::test_harqs()
   if (check_old_pids) {
     for (auto& user : ue_db) {
       for (int i = 0; i < 2 * FDD_HARQ_DELAY_MS; i++) {
-        if (not(user.second.get_dl_harq(i)->is_empty(0) and user.second.get_dl_harq(1))) {
-          if (srslte_tti_interval(tti_data.tti_tx_dl, user.second.get_dl_harq(i)->get_tti()) > 49) {
-            TESTERROR("[TESTER] The pid=%d for rnti=0x%x got old.\n", user.second.get_dl_harq(i)->get_id(), user.first);
+        if (not(user.second.get_dl_harq(i, CARRIER_IDX)->is_empty(0) and user.second.get_dl_harq(1, CARRIER_IDX))) {
+          if (srslte_tti_interval(tti_data.tti_tx_dl, user.second.get_dl_harq(i, CARRIER_IDX)->get_tti()) > 49) {
+            TESTERROR("[TESTER] The pid=%d for rnti=0x%x got old.\n",
+                      user.second.get_dl_harq(i, CARRIER_IDX)->get_id(),
+                      user.first);
           }
         }
       }
@@ -920,7 +925,7 @@ int sched_tester::ack_txs()
     if (ack_it.second.tti != tti_data.tti_rx) {
       continue;
     }
-    srsenb::dl_harq_proc*       h    = ue_db[ack_it.second.rnti].get_dl_harq(ack_it.second.dl_harq.get_id());
+    srsenb::dl_harq_proc*       h = ue_db[ack_it.second.rnti].get_dl_harq(ack_it.second.dl_harq.get_id(), CARRIER_IDX);
     const srsenb::dl_harq_proc& hack = ack_it.second.dl_harq;
     CONDERROR(hack.is_empty(), "[TESTER] The acked DL harq was not active\n");
 
@@ -929,7 +934,7 @@ int sched_tester::ack_txs()
       if (ack_it.second.dl_harq.is_empty(tb)) {
         continue;
       }
-      ret |= dl_ack_info(tti_data.tti_rx, ack_it.second.rnti, tb, ack_it.second.dl_ack) > 0;
+      ret |= dl_ack_info(tti_data.tti_rx, ack_it.second.rnti, CARRIER_IDX, tb, ack_it.second.dl_ack) > 0;
     }
     CONDERROR(not ret, "[TESTER] The dl harq proc that was acked does not exist\n");
 
@@ -950,13 +955,13 @@ int sched_tester::ack_txs()
     if (ack_it.first != tti_data.tti_rx) {
       continue;
     }
-    srsenb::ul_harq_proc*       h    = ue_db[ack_it.second.rnti].get_ul_harq(tti_data.tti_rx);
+    srsenb::ul_harq_proc*       h    = ue_db[ack_it.second.rnti].get_ul_harq(tti_data.tti_rx, CARRIER_IDX);
     const srsenb::ul_harq_proc& hack = ack_it.second.ul_harq;
     CONDERROR(h == nullptr or h->get_tti() != hack.get_tti(), "[TESTER] UL Harq TTI does not match the ACK TTI\n");
     CONDERROR(h->is_empty(0), "[TESTER] The acked UL harq is not active\n");
     CONDERROR(hack.is_empty(0), "[TESTER] The acked UL harq was not active\n");
 
-    ul_crc_info(tti_data.tti_rx, ack_it.second.rnti, ack_it.second.ack);
+    ul_crc_info(tti_data.tti_rx, ack_it.second.rnti, CARRIER_IDX, ack_it.second.ack);
 
     CONDERROR(!h->get_pending_data(), "[TESTER] UL harq lost its pending data\n");
     CONDERROR(!h->has_pending_ack(), "[TESTER] ACK/NACKed UL harq should have a pending ACK\n");

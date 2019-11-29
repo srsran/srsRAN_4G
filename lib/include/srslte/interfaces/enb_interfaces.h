@@ -74,7 +74,9 @@ public:
     ul_sched_ack_t   phich[MAX_GRANTS];
     uint32_t         nof_grants;
     uint32_t         nof_phich;
-  } ul_sched_t;
+  } ul_sched_t; // per carrier
+
+  typedef std::vector<ul_sched_t> ul_sched_list_t;
 
   virtual int sr_detected(uint32_t tti, uint16_t rnti)                                                       = 0;
   virtual int rach_detected(uint32_t tti, uint32_t primary_cc_idx, uint32_t preamble_idx, uint32_t time_adv) = 0;

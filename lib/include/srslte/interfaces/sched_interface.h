@@ -230,19 +230,19 @@ public:
   virtual int dl_mac_buffer_state(uint16_t rnti, uint32_t ce_code)                                       = 0;
 
   /* DL information */
-  virtual int dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack) = 0;
-  virtual int dl_rach_info(dl_sched_rar_info_t rar_info)                          = 0;
-  virtual int dl_ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value)          = 0;
-  virtual int dl_pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value)        = 0;
-  virtual int dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value)        = 0;
+  virtual int dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t tb_idx, bool ack) = 0;
+  virtual int dl_rach_info(dl_sched_rar_info_t rar_info)                                           = 0;
+  virtual int dl_ri_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t ri_value)          = 0;
+  virtual int dl_pmi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t pmi_value)        = 0;
+  virtual int dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t cqi_value)        = 0;
 
   /* UL information */
-  virtual int ul_crc_info(uint32_t tti, uint16_t rnti, bool crc)                          = 0;
-  virtual int ul_sr_info(uint32_t tti, uint16_t rnti)                                     = 0;
-  virtual int ul_bsr(uint16_t rnti, uint32_t lcid, uint32_t bsr, bool set_value = true)   = 0;
-  virtual int ul_recv_len(uint16_t rnti, uint32_t lcid, uint32_t len)                     = 0;
-  virtual int ul_phr(uint16_t rnti, int phr)                                              = 0;
-  virtual int ul_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi, uint32_t ul_ch_code) = 0;
+  virtual int ul_crc_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, bool crc)                          = 0;
+  virtual int ul_sr_info(uint32_t tti, uint16_t rnti)                                                      = 0;
+  virtual int ul_bsr(uint16_t rnti, uint32_t lcid, uint32_t bsr, bool set_value = true)                    = 0;
+  virtual int ul_recv_len(uint16_t rnti, uint32_t lcid, uint32_t len)                                      = 0;
+  virtual int ul_phr(uint16_t rnti, int phr)                                                               = 0;
+  virtual int ul_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t cqi, uint32_t ul_ch_code) = 0;
 
   /* Run Scheduler for this tti */
   virtual int dl_sched(uint32_t tti, dl_sched_res_t* sched_result) = 0;

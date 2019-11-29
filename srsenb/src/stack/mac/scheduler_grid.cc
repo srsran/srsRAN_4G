@@ -342,8 +342,8 @@ tti_grid_t::dl_ctrl_alloc_t tti_grid_t::alloc_dl_ctrl(uint32_t aggr_lvl, alloc_t
 alloc_outcome_t tti_grid_t::alloc_dl_data(sched_ue* user, const rbgmask_t& user_mask)
 {
   srslte_dci_format_t dci_format = user->get_dci_format();
-  uint32_t            aggr_level =
-      user->get_aggr_level(srslte_dci_format_sizeof(&sched_params->cfg->cell, nullptr, nullptr, dci_format));
+  uint32_t            nof_bits   = srslte_dci_format_sizeof(&sched_params->cfg->cell, nullptr, nullptr, dci_format);
+  uint32_t            aggr_level = user->get_ue_carrier(cc_idx)->get_aggr_level(nof_bits);
   return alloc_dl(aggr_level, alloc_type_t::DL_DATA, user_mask, user);
 }
 
@@ -361,8 +361,8 @@ alloc_outcome_t tti_grid_t::alloc_ul_data(sched_ue* user, ul_harq_proc::ul_alloc
 
   // Generate PDCCH except for RAR and non-adaptive retx
   if (needs_pdcch) {
-    uint32_t aggr_idx =
-        user->get_aggr_level(srslte_dci_format_sizeof(&sched_params->cfg->cell, nullptr, nullptr, SRSLTE_DCI_FORMAT0));
+    uint32_t nof_bits = srslte_dci_format_sizeof(&sched_params->cfg->cell, nullptr, nullptr, SRSLTE_DCI_FORMAT0);
+    uint32_t aggr_idx = user->get_ue_carrier(cc_idx)->get_aggr_level(nof_bits);
     if (not pdcch_alloc.alloc_dci(alloc_type_t::UL_DATA, aggr_idx, user)) {
       if (log_h->get_level() == srslte::LOG_LEVEL_DEBUG) {
         log_h->debug("No space in PDCCH for rnti=0x%x UL tx. Current PDCCH allocation: %s\n",
@@ -382,9 +382,10 @@ alloc_outcome_t tti_grid_t::alloc_ul_data(sched_ue* user, ul_harq_proc::ul_alloc
  *          TTI resource Scheduling Methods
  *******************************************************/
 
-void tti_sched_result_t::init(const sched_params_t& sched_params_)
+void tti_sched_result_t::init(const sched_params_t& sched_params_, uint32_t cc_idx_)
 {
   sched_params = &sched_params_;
+  cc_idx       = cc_idx_;
   log_h        = sched_params->log_h;
   tti_alloc.init(*sched_params, 0);
 }
@@ -575,7 +576,7 @@ alloc_outcome_t tti_sched_result_t::alloc_ul_user(sched_ue* user, ul_harq_proc::
 {
   // check whether adaptive/non-adaptive retx/newtx
   tti_sched_result_t::ul_alloc_t::type_t alloc_type;
-  ul_harq_proc*                          h        = user->get_ul_harq(get_tti_tx_ul());
+  ul_harq_proc*                          h        = user->get_ul_harq(get_tti_tx_ul(), cc_idx);
   bool                                   has_retx = h->has_pending_retx();
   if (has_retx) {
     ul_harq_proc::ul_alloc_t prev_alloc = h->get_alloc();
@@ -722,21 +723,21 @@ void tti_sched_result_t::set_dl_data_sched_result(const pdcch_grid_t::alloc_resu
 
     // Generate DCI Format1/2/2A
     sched_ue*           user        = data_alloc.user_ptr;
-    dl_harq_proc*       h           = user->get_dl_harq(data_alloc.pid);
-    uint32_t            data_before = user->get_pending_dl_new_data(get_tti_tx_dl());
+    dl_harq_proc*       h           = user->get_dl_harq(data_alloc.pid, cc_idx);
+    uint32_t            data_before = user->get_pending_dl_new_data();
     srslte_dci_format_t dci_format  = user->get_dci_format();
     bool                is_newtx    = h->is_empty();
 
     int tbs = 0;
     switch (dci_format) {
       case SRSLTE_DCI_FORMAT1:
-        tbs = user->generate_format1(h, data, get_tti_tx_dl(), get_cfi(), data_alloc.user_mask);
+        tbs = user->generate_format1(h, data, get_tti_tx_dl(), cc_idx, get_cfi(), data_alloc.user_mask);
         break;
       case SRSLTE_DCI_FORMAT2:
-        tbs = user->generate_format2(h, data, get_tti_tx_dl(), get_cfi(), data_alloc.user_mask);
+        tbs = user->generate_format2(h, data, get_tti_tx_dl(), cc_idx, get_cfi(), data_alloc.user_mask);
         break;
       case SRSLTE_DCI_FORMAT2A:
-        tbs = user->generate_format2a(h, data, get_tti_tx_dl(), get_cfi(), data_alloc.user_mask);
+        tbs = user->generate_format2a(h, data, get_tti_tx_dl(), cc_idx, get_cfi(), data_alloc.user_mask);
         break;
       default:
         Error("DCI format (%d) not implemented\n", dci_format);
@@ -749,7 +750,7 @@ void tti_sched_result_t::set_dl_data_sched_result(const pdcch_grid_t::alloc_resu
                      h->get_id(),
                      data_alloc.user_mask.to_hex().c_str(),
                      tbs,
-                     user->get_pending_dl_new_data(get_tti_tx_dl()));
+                     user->get_pending_dl_new_data());
       continue;
     }
 
@@ -764,7 +765,7 @@ void tti_sched_result_t::set_dl_data_sched_result(const pdcch_grid_t::alloc_resu
                 h->nof_retx(0) + h->nof_retx(1),
                 tbs,
                 data_before,
-                user->get_pending_dl_new_data(get_tti_tx_dl()));
+                user->get_pending_dl_new_data());
 
     dl_sched_result.nof_data_elems++;
   }
@@ -788,10 +789,10 @@ void tti_sched_result_t::set_ul_sched_result(const pdcch_grid_t::alloc_result_t&
 
     /* Generate DCI Format1A */
     uint32_t pending_data_before = user->get_pending_ul_new_data(get_tti_tx_ul());
-    int      tbs =
-        user->generate_format0(pusch, get_tti_tx_ul(), ul_alloc.alloc, ul_alloc.needs_pdcch(), cce_range, fixed_mcs);
+    int      tbs                 = user->generate_format0(
+        pusch, get_tti_tx_ul(), cc_idx, ul_alloc.alloc, ul_alloc.needs_pdcch(), cce_range, fixed_mcs);
 
-    ul_harq_proc* h = user->get_ul_harq(get_tti_tx_ul());
+    ul_harq_proc* h = user->get_ul_harq(get_tti_tx_ul(), cc_idx);
     if (tbs <= 0) {
       log_h->warning("SCHED: Error %s %s rnti=0x%x, pid=%d, dci=(%d,%d), prb=(%d,%d), tbs=%d, bsr=%d\n",
                      ul_alloc.type == ul_alloc_t::MSG3 ? "Msg3" : "UL",
@@ -827,7 +828,7 @@ void tti_sched_result_t::set_ul_sched_result(const pdcch_grid_t::alloc_result_t&
                 tbs,
                 user->get_pending_ul_new_data(get_tti_tx_ul()),
                 pending_data_before,
-                user->get_pending_ul_old_data());
+                user->get_pending_ul_old_data(cc_idx));
 
     ul_sched_result.nof_dci_elems++;
   }

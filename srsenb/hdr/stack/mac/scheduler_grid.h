@@ -218,7 +218,7 @@ public:
   sched_interface::dl_sched_res_t dl_sched_result;
   sched_interface::ul_sched_res_t ul_sched_result;
 
-  void            init(const sched_params_t& sched_params_);
+  void            init(const sched_params_t& sched_params_, uint32_t cc_idx_);
   void            new_tti(uint32_t tti_rx_, uint32_t start_cfi);
   alloc_outcome_t alloc_bc(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t sib_ntx);
   alloc_outcome_t alloc_paging(uint32_t aggr_lvl, uint32_t paging_payload);
@@ -268,6 +268,7 @@ private:
   // consts
   const sched_params_t* sched_params = nullptr;
   srslte::log*          log_h        = nullptr;
+  uint32_t              cc_idx       = 0;
 
   // internal state
   tti_params_t             tti_params{10241};

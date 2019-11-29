@@ -106,13 +106,13 @@ int main(int argc, char *argv[])
   memcpy(&cell_cfg.cell, &cell_cfg_phy, sizeof(srslte_cell_t));
   cell_cfg.sibs[0].len = 18;
   cell_cfg.sibs[0].period_rf = 8;
-  cell_cfg.sibs[1].len = 41;
+  cell_cfg.sibs[1].len       = 41;
   cell_cfg.sibs[1].period_rf = 16;
-  cell_cfg.si_window_ms = 40;
-  
-  my_sched.init(NULL, &log_out);
+  cell_cfg.si_window_ms      = 40;
+
+  my_sched.init(nullptr, &log_out);
   my_sched.set_metric(&dl_metric, &ul_metric);
-  my_sched.cell_cfg(&cell_cfg);  
+  my_sched.cell_cfg(&cell_cfg);
 
   srsenb::sched_interface::dl_sched_res_t sched_result_dl;
   srsenb::sched_interface::ul_sched_res_t sched_result_ul;
@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
   my_sched.ue_cfg(rnti, &ue_cfg);
   my_sched.bearer_ue_cfg(rnti, 0, &bearer_cfg);
   // my_sched.dl_rlc_buffer_state(rnti, 0, 1e6, 0);
-  my_sched.ul_bsr(rnti, 0, 1e6, true);
+  my_sched.ul_bsr(rnti, 0, 1e6f, true);
 
   bool     running = true;
   uint32_t tti     = 0;
@@ -143,11 +143,9 @@ int main(int argc, char *argv[])
     }
     my_sched.dl_sched(tti, &sched_result_dl);
     my_sched.ul_sched(tti, &sched_result_ul);
-    tti = (tti+1)%10240;
+    tti = (tti + 1) % 10240;
     if (tti >= 4) {
-      my_sched.ul_crc_info(tti, rnti,  tti%2);
+      my_sched.ul_crc_info(tti, rnti, 0, tti % 2);
     }
   }
-  
-  
 }

@@ -203,7 +203,9 @@ int mac::bearer_ue_rem(uint16_t rnti, uint32_t lc_id)
 
 void mac::phy_config_enabled(uint16_t rnti, bool enabled)
 {
-  scheduler.phy_config_enabled(rnti, enabled);
+  // FIXME: "cc_idx must be specified"
+  uint32_t cc_idx = 0;
+  scheduler.phy_config_enabled(rnti, cc_idx, enabled);
 }
 
 // Update UE configuration
@@ -320,9 +322,11 @@ void mac::rl_ok(uint16_t rnti)
 
 int mac::ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack)
 {
+  // FIXME: add cc_idx to interface
+  uint32_t cc_idx = 0;
   pthread_rwlock_rdlock(&rwlock);
   log_h->step(tti);
-  uint32_t nof_bytes = scheduler.dl_ack_info(tti, rnti, tb_idx, ack);
+  uint32_t nof_bytes = scheduler.dl_ack_info(tti, rnti, cc_idx, tb_idx, ack);
   ue_db[rnti]->metrics_tx(ack, nof_bytes);
 
   if (ack) {
@@ -337,6 +341,8 @@ int mac::ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack)
 
 int mac::crc_info(uint32_t tti, uint16_t rnti, uint32_t nof_bytes, bool crc)
 {
+  // FIXME: add cc_idx to interface
+  uint32_t cc_idx = 0;
   log_h->step(tti);
   int ret = -1;
   pthread_rwlock_rdlock(&rwlock);
@@ -354,7 +360,7 @@ int mac::crc_info(uint32_t tti, uint16_t rnti, uint32_t nof_bytes, bool crc)
       ue_db[rnti]->deallocate_pdu(tti);
     }
 
-    ret = scheduler.ul_crc_info(tti, rnti, crc);
+    ret = scheduler.ul_crc_info(tti, rnti, cc_idx, crc);
   } else {
     Error("User rnti=0x%x not found\n", rnti);
   }
@@ -378,11 +384,13 @@ int mac::set_dl_ant_info(uint16_t rnti, phys_cfg_ded_s::ant_info_c_* dl_ant_info
 
 int mac::ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value)
 {
+  // FIXME: add cc_idx to interface
+  uint32_t cc_idx = 0;
   log_h->step(tti);
   int ret = -1;
   pthread_rwlock_rdlock(&rwlock);
   if (ue_db.count(rnti)) {
-    scheduler.dl_ri_info(tti, rnti, ri_value);
+    scheduler.dl_ri_info(tti, rnti, cc_idx, ri_value);
     ue_db[rnti]->metrics_dl_ri(ri_value);
     ret = 0;
   } else {
@@ -394,11 +402,13 @@ int mac::ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value)
 
 int mac::pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value)
 {
+  // FIXME: add cc_idx to interface
+  uint32_t cc_idx = 0;
   log_h->step(tti);
   pthread_rwlock_rdlock(&rwlock);
   int ret = -1;
   if (ue_db.count(rnti)) {
-    scheduler.dl_pmi_info(tti, rnti, pmi_value);
+    scheduler.dl_pmi_info(tti, rnti, cc_idx, pmi_value);
     ue_db[rnti]->metrics_dl_pmi(pmi_value);
     ret = 0;
   } else {
@@ -410,12 +420,14 @@ int mac::pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value)
 
 int mac::cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value)
 {
+  // FIXME: add cc_idx to interface
+  uint32_t cc_idx = 0;
   log_h->step(tti);
   int ret = -1;
 
   pthread_rwlock_rdlock(&rwlock);
   if (ue_db.count(rnti)) {
-    scheduler.dl_cqi_info(tti, rnti, cqi_value);
+    scheduler.dl_cqi_info(tti, rnti, cc_idx, cqi_value);
     ue_db[rnti]->metrics_dl_cqi(cqi_value);
     ret = 0;
   } else {
@@ -427,12 +439,14 @@ int mac::cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value)
 
 int mac::snr_info(uint32_t tti, uint16_t rnti, float snr)
 {
+  // FIXME: add cc_idx to interface
+  uint32_t cc_idx = 0;
   log_h->step(tti);
   int ret = -1;
   pthread_rwlock_rdlock(&rwlock);
   if (ue_db.count(rnti)) {
     uint32_t cqi = srslte_cqi_from_snr(snr);
-    scheduler.ul_cqi_info(tti, rnti, cqi, 0);
+    scheduler.ul_cqi_info(tti, rnti, cc_idx, cqi, 0);
     ret = 0;
   } else {
     Error("User rnti=0x%x not found\n", rnti);
