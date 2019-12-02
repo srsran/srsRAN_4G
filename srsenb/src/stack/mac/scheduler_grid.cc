@@ -382,10 +382,10 @@ alloc_outcome_t tti_grid_t::alloc_ul_data(sched_ue* user, ul_harq_proc::ul_alloc
  *          TTI resource Scheduling Methods
  *******************************************************/
 
-void tti_sched_result_t::init(const sched_params_t& sched_params_, uint32_t cc_idx_)
+void tti_sched_result_t::init(const sched_params_t& sched_params_, uint32_t enb_cc_idx_)
 {
   sched_params = &sched_params_;
-  cc_idx       = cc_idx_;
+  enb_cc_idx   = enb_cc_idx_;
   log_h        = sched_params->log_h;
   tti_alloc.init(*sched_params, 0);
 }
@@ -576,8 +576,8 @@ alloc_outcome_t tti_sched_result_t::alloc_ul_user(sched_ue* user, ul_harq_proc::
 {
   // check whether adaptive/non-adaptive retx/newtx
   tti_sched_result_t::ul_alloc_t::type_t alloc_type;
-  ul_harq_proc*                          h        = user->get_ul_harq(get_tti_tx_ul(), cc_idx);
-  bool                                   has_retx = h->has_pending_retx();
+  ul_harq_proc* h        = user->get_ul_harq(get_tti_tx_ul(), user->get_cell_index(enb_cc_idx).second);
+  bool          has_retx = h->has_pending_retx();
   if (has_retx) {
     ul_harq_proc::ul_alloc_t prev_alloc = h->get_alloc();
     if (prev_alloc.L == alloc.L and prev_alloc.RB_start == prev_alloc.L) {
@@ -723,7 +723,8 @@ void tti_sched_result_t::set_dl_data_sched_result(const pdcch_grid_t::alloc_resu
 
     // Generate DCI Format1/2/2A
     sched_ue*           user        = data_alloc.user_ptr;
-    dl_harq_proc*       h           = user->get_dl_harq(data_alloc.pid, cc_idx);
+    uint32_t            cell_index  = user->get_cell_index(enb_cc_idx).second;
+    dl_harq_proc*       h           = user->get_dl_harq(data_alloc.pid, cell_index);
     uint32_t            data_before = user->get_pending_dl_new_data();
     srslte_dci_format_t dci_format  = user->get_dci_format();
     bool                is_newtx    = h->is_empty();
@@ -731,13 +732,13 @@ void tti_sched_result_t::set_dl_data_sched_result(const pdcch_grid_t::alloc_resu
     int tbs = 0;
     switch (dci_format) {
       case SRSLTE_DCI_FORMAT1:
-        tbs = user->generate_format1(h, data, get_tti_tx_dl(), cc_idx, get_cfi(), data_alloc.user_mask);
+        tbs = user->generate_format1(h, data, get_tti_tx_dl(), cell_index, get_cfi(), data_alloc.user_mask);
         break;
       case SRSLTE_DCI_FORMAT2:
-        tbs = user->generate_format2(h, data, get_tti_tx_dl(), cc_idx, get_cfi(), data_alloc.user_mask);
+        tbs = user->generate_format2(h, data, get_tti_tx_dl(), cell_index, get_cfi(), data_alloc.user_mask);
         break;
       case SRSLTE_DCI_FORMAT2A:
-        tbs = user->generate_format2a(h, data, get_tti_tx_dl(), cc_idx, get_cfi(), data_alloc.user_mask);
+        tbs = user->generate_format2a(h, data, get_tti_tx_dl(), cell_index, get_cfi(), data_alloc.user_mask);
         break;
       default:
         Error("DCI format (%d) not implemented\n", dci_format);
@@ -777,7 +778,8 @@ void tti_sched_result_t::set_ul_sched_result(const pdcch_grid_t::alloc_result_t&
   for (const auto& ul_alloc : ul_data_allocs) {
     sched_interface::ul_sched_data_t* pusch = &ul_sched_result.pusch[ul_sched_result.nof_dci_elems];
 
-    sched_ue* user = ul_alloc.user_ptr;
+    sched_ue* user       = ul_alloc.user_ptr;
+    uint32_t  cell_index = user->get_cell_index(enb_cc_idx).second;
 
     srslte_dci_location_t cce_range = {0, 0};
     if (ul_alloc.needs_pdcch()) {
@@ -790,9 +792,9 @@ void tti_sched_result_t::set_ul_sched_result(const pdcch_grid_t::alloc_result_t&
     /* Generate DCI Format1A */
     uint32_t pending_data_before = user->get_pending_ul_new_data(get_tti_tx_ul());
     int      tbs                 = user->generate_format0(
-        pusch, get_tti_tx_ul(), cc_idx, ul_alloc.alloc, ul_alloc.needs_pdcch(), cce_range, fixed_mcs);
+        pusch, get_tti_tx_ul(), cell_index, ul_alloc.alloc, ul_alloc.needs_pdcch(), cce_range, fixed_mcs);
 
-    ul_harq_proc* h = user->get_ul_harq(get_tti_tx_ul(), cc_idx);
+    ul_harq_proc* h = user->get_ul_harq(get_tti_tx_ul(), cell_index);
     if (tbs <= 0) {
       log_h->warning("SCHED: Error %s %s rnti=0x%x, pid=%d, dci=(%d,%d), prb=(%d,%d), tbs=%d, bsr=%d\n",
                      ul_alloc.type == ul_alloc_t::MSG3 ? "Msg3" : "UL",
@@ -828,7 +830,7 @@ void tti_sched_result_t::set_ul_sched_result(const pdcch_grid_t::alloc_result_t&
                 tbs,
                 user->get_pending_ul_new_data(get_tti_tx_ul()),
                 pending_data_before,
-                user->get_pending_ul_old_data(cc_idx));
+                user->get_pending_ul_old_data(cell_index));
 
     ul_sched_result.nof_dci_elems++;
   }

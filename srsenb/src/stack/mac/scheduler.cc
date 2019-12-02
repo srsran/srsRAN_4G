@@ -331,9 +331,9 @@ int sched::dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t cq
   return ue_db_access(rnti, [tti, cc_idx, cqi_value](sched_ue& ue) { ue.set_dl_cqi(tti, cc_idx, cqi_value); });
 }
 
-int sched::dl_rach_info(uint32_t cc_idx, dl_sched_rar_info_t rar_info)
+int sched::dl_rach_info(uint32_t enb_cc_idx, dl_sched_rar_info_t rar_info)
 {
-  return carrier_schedulers[cc_idx]->dl_rach_info(rar_info);
+  return carrier_schedulers[enb_cc_idx]->dl_rach_info(rar_info);
 }
 
 int sched::ul_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t cqi, uint32_t ul_ch_code)

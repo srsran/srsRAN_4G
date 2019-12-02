@@ -276,10 +276,12 @@ const ra_sched::pending_msg3_t& ra_sched::find_pending_msg3(uint32_t tti) const
  *                 Carrier scheduling
  *******************************************************/
 
-sched::carrier_sched::carrier_sched(rrc_interface_mac* rrc_, std::map<uint16_t, sched_ue>* ue_db_, uint32_t cc_idx_) :
+sched::carrier_sched::carrier_sched(rrc_interface_mac*            rrc_,
+                                    std::map<uint16_t, sched_ue>* ue_db_,
+                                    uint32_t                      enb_cc_idx_) :
   rrc(rrc_),
   ue_db(ue_db_),
-  cc_idx(cc_idx_)
+  enb_cc_idx(enb_cc_idx_)
 {
   tti_dl_mask.resize(1, 0);
 }
@@ -318,7 +320,7 @@ void sched::carrier_sched::carrier_cfg(const sched_params_t& sched_params_)
 
   // Initiate the tti_scheduler for each TTI
   for (tti_sched_result_t& tti_sched : tti_scheds) {
-    tti_sched.init(*sched_params, cc_idx);
+    tti_sched.init(*sched_params, enb_cc_idx);
   }
 }
 
@@ -372,9 +374,9 @@ tti_sched_result_t* sched::carrier_sched::generate_tti_result(uint32_t tti_rx)
     /* Select the winner DCI allocation combination */
     tti_sched->generate_dcis();
 
-    /* reset PIDs with pending data or blocked */
+    /* clean-up blocked pids */
     for (auto& user : *ue_db) {
-      user.second.reset_pending_pids(tti_rx, cc_idx);
+      user.second.finish_tti(tti_sched->get_tti_params(), enb_cc_idx);
     }
   }
 
@@ -388,10 +390,16 @@ void sched::carrier_sched::generate_phich(tti_sched_result_t* tti_sched)
   for (auto& ue_pair : *ue_db) {
     sched_ue& user = ue_pair.second;
     uint16_t  rnti = ue_pair.first;
+    auto      p    = user.get_cell_index(enb_cc_idx);
+    if (not p.first) {
+      // user does not support this carrier
+      continue;
+    }
+    uint32_t cell_index = p.second;
 
     //    user.has_pucch = false; // FIXME: What is this for?
 
-    ul_harq_proc* h = user.get_ul_harq(tti_sched->get_tti_rx(), cc_idx);
+    ul_harq_proc* h = user.get_ul_harq(tti_sched->get_tti_rx(), cell_index);
 
     /* Indicate PHICH acknowledgment if needed */
     if (h->has_pending_ack()) {
@@ -426,7 +434,7 @@ void sched::carrier_sched::alloc_dl_users(tti_sched_result_t* tti_result)
   }
 
   // call DL scheduler metric to fill RB grid
-  dl_metric->sched_users(*ue_db, tti_result, cc_idx);
+  dl_metric->sched_users(*ue_db, tti_result, enb_cc_idx);
 }
 
 int sched::carrier_sched::alloc_ul_users(tti_sched_result_t* tti_sched)
@@ -452,12 +460,7 @@ int sched::carrier_sched::alloc_ul_users(tti_sched_result_t* tti_sched)
   ul_mask |= pucch_mask;
 
   /* Call scheduler for UL data */
-  ul_metric->sched_users(*ue_db, tti_sched, cc_idx);
-
-  /* Update pending data counters after this TTI */
-  for (auto& user : *ue_db) {
-    user.second.get_ul_harq(tti_tx_ul, cc_idx)->reset_pending_data();
-  }
+  ul_metric->sched_users(*ue_db, tti_sched, enb_cc_idx);
 
   return SRSLTE_SUCCESS;
 }

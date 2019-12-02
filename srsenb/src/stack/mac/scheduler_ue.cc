@@ -83,6 +83,7 @@ void sched_ue::set_cfg(uint16_t rnti_, const sched_params_t& sched_params_, sche
     // Init sched_ue carriers
     // TODO: check config for number of carriers
     carriers.emplace_back(&cfg, &cell, rnti, 0, log_h);
+    enb_ue_cellindex_map.insert(std::make_pair(0, 0)); // FIXME: use real values
 
     // Generate allowed CCE locations
     for (int cfi = 0; cfi < 3; cfi++) {
@@ -954,6 +955,30 @@ dl_harq_proc* sched_ue::find_dl_harq(uint32_t tti_rx, uint32_t cc_idx)
 dl_harq_proc* sched_ue::get_dl_harq(uint32_t idx, uint32_t cc_idx)
 {
   return &carriers[cc_idx].dl_harq[idx];
+}
+
+std::pair<bool, uint32_t> sched_ue::get_cell_index(uint32_t enb_cc_idx) const
+{
+  auto it = enb_ue_cellindex_map.find(enb_cc_idx);
+  if (it == enb_ue_cellindex_map.end()) {
+    log_h->error("The carrier with eNB_cc_idx=%d does not exist\n", enb_cc_idx);
+    return std::make_pair(false, 0);
+  }
+  return std::make_pair(true, it->second);
+}
+
+void sched_ue::finish_tti(const tti_params_t& tti_params, uint32_t enb_cc_idx)
+{
+  auto it = enb_ue_cellindex_map.find(enb_cc_idx);
+  if (it == enb_ue_cellindex_map.end()) {
+    return;
+  }
+
+  /* Clean-up all the UL Harqs with maxretx == 0 */
+  get_ul_harq(tti_params.tti_tx_ul, it->second)->reset_pending_data();
+
+  /* reset PIDs with pending data or blocked */
+  reset_pending_pids(tti_params.tti_rx, it->second);
 }
 
 srslte_dci_format_t sched_ue::get_dci_format()

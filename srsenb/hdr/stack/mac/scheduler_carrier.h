@@ -32,7 +32,7 @@ class ra_sched;
 class sched::carrier_sched
 {
 public:
-  explicit carrier_sched(rrc_interface_mac* rrc_, std::map<uint16_t, sched_ue>* ue_db_, uint32_t cc_idx_);
+  explicit carrier_sched(rrc_interface_mac* rrc_, std::map<uint16_t, sched_ue>* ue_db_, uint32_t enb_cc_idx_);
   void                reset();
   void                carrier_cfg(const sched_params_t& sched_params_);
   void                set_metric(sched::metric_dl* dl_metric_, sched::metric_ul* ul_metric_);
@@ -61,7 +61,7 @@ private:
   std::map<uint16_t, sched_ue>* ue_db        = nullptr;
   metric_dl*                    dl_metric    = nullptr;
   metric_ul*                    ul_metric    = nullptr;
-  const uint32_t                cc_idx;
+  const uint32_t                enb_cc_idx;
 
   // derived from args
   prbmask_t prach_mask;

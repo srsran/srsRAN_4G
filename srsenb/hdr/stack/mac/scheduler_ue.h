@@ -34,6 +34,7 @@
 namespace srsenb {
 
 class sched_params_t;
+struct tti_params_t;
 
 struct sched_ue_carrier {
   const static int SCHED_MAX_HARQ_PROC = SRSLTE_FDD_NOF_HARQ;
@@ -136,9 +137,10 @@ public:
   void set_max_mcs(int mcs_ul, int mcs_dl, int max_aggr_level = -1);
   void set_fixed_mcs(int mcs_ul, int mcs_dl);
 
-  dl_harq_proc* find_dl_harq(uint32_t tti_rx, uint32_t cc_idx);
-  dl_harq_proc* get_dl_harq(uint32_t idx, uint32_t cc_idx);
-  uint16_t      get_rnti() const { return rnti; }
+  dl_harq_proc*             find_dl_harq(uint32_t tti_rx, uint32_t cc_idx);
+  dl_harq_proc*             get_dl_harq(uint32_t idx, uint32_t cc_idx);
+  uint16_t                  get_rnti() const { return rnti; }
+  std::pair<bool, uint32_t> get_cell_index(uint32_t enb_cc_idx) const;
 
   /*******************************************************
    * Functions used by scheduler metric objects
@@ -158,6 +160,12 @@ public:
   dl_harq_proc* get_pending_dl_harq(uint32_t tti, uint32_t cc_idx);
   dl_harq_proc* get_empty_dl_harq(uint32_t cc_idx);
   ul_harq_proc* get_ul_harq(uint32_t tti, uint32_t cc_idx);
+
+  /*******************************************************
+   * Functions used by the scheduler carrier object
+   *******************************************************/
+
+  void finish_tti(const tti_params_t& tti_params, uint32_t enb_cc_idx);
 
   /*******************************************************
    * Functions used by the scheduler object
@@ -278,7 +286,8 @@ private:
   bool                                   phy_config_dedicated_enabled = false;
   asn1::rrc::phys_cfg_ded_s::ant_info_c_ dl_ant_info;
 
-  std::vector<sched_ue_carrier> carriers;
+  std::vector<sched_ue_carrier> carriers; ///< map of UE CellIndex to carrier configuration
+  std::map<uint32_t, uint32_t>  enb_ue_cellindex_map;
 };
 } // namespace srsenb
 

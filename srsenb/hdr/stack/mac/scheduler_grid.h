@@ -41,7 +41,7 @@ struct alloc_outcome_t {
   alloc_outcome_t(result_enum e) : result(e) {}
               operator result_enum() { return result; }
               operator bool() { return result == SUCCESS; }
-              const char* to_string() const;
+  const char* to_string() const;
 };
 
 //! Params relative to a single TTI
@@ -218,7 +218,7 @@ public:
   sched_interface::dl_sched_res_t dl_sched_result;
   sched_interface::ul_sched_res_t ul_sched_result;
 
-  void            init(const sched_params_t& sched_params_, uint32_t cc_idx_);
+  void            init(const sched_params_t& sched_params_, uint32_t enb_cc_idx_);
   void            new_tti(uint32_t tti_rx_, uint32_t start_cfi);
   alloc_outcome_t alloc_bc(uint32_t aggr_lvl, uint32_t sib_idx, uint32_t sib_ntx);
   alloc_outcome_t alloc_paging(uint32_t aggr_lvl, uint32_t paging_payload);
@@ -245,7 +245,8 @@ public:
   uint32_t                       get_tti_rx() const { return tti_params.tti_rx; }
   uint32_t                       get_sfn() const { return tti_params.sfn; }
   uint32_t                       get_sf_idx() const { return tti_params.sf_idx; }
-  uint32_t                       get_cc_idx() const { return cc_idx; }
+  uint32_t                       get_cc_idx() const { return enb_cc_idx; }
+  const tti_params_t&            get_tti_params() const { return tti_params; }
 
 private:
   bool            is_dl_alloc(sched_ue* user) const final;
@@ -269,7 +270,7 @@ private:
   // consts
   const sched_params_t* sched_params = nullptr;
   srslte::log*          log_h        = nullptr;
-  uint32_t              cc_idx       = 0;
+  uint32_t              enb_cc_idx   = 0;
 
   // internal state
   tti_params_t             tti_params{10241};
