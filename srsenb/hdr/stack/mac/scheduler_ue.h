@@ -223,15 +223,16 @@ private:
   bool is_sr_triggered();
   int  alloc_pdu(int tbs, sched_interface::dl_sched_pdu_t* pdu);
 
-  static uint32_t format1_count_prb(uint32_t bitmask, uint32_t cell_nof_prb);
+  uint32_t format1_count_prb(const rbgmask_t& bitmask);
 
   static bool bearer_is_ul(ue_bearer_t* lch);
-  static bool bearer_is_dl(ue_bearer_t* lch);
+  static bool bearer_is_dl(const ue_bearer_t* lch);
 
   uint32_t get_pending_dl_new_data_unlocked();
   uint32_t get_pending_ul_old_data_unlocked(uint32_t cc_idx);
   uint32_t get_pending_ul_new_data_unlocked(uint32_t tti);
   uint32_t get_pending_dl_new_data_total_unlocked();
+  bool     is_conres_ce_pending() const;
 
   bool needs_cqi_unlocked(uint32_t tti, uint32_t cc_idx, bool will_send = false);
 

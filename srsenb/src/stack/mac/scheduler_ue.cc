@@ -40,6 +40,8 @@
 
 namespace srsenb {
 
+constexpr uint32_t conres_ce_size = 6;
+
 /*******************************************************
  *
  * Initialization and configuration functions
@@ -399,18 +401,13 @@ int sched_ue::generate_format1(dl_harq_proc*                     h,
   dci->alloc_type              = SRSLTE_RA_ALLOC_TYPE0;
   dci->type0_alloc.rbg_bitmask = (uint32_t)user_mask.to_uint64();
 
-  // If this is the first transmission for this UE, make room for MAC Contention Resolution ID
-  bool need_conres_ce = false;
-  if (is_first_dl_tx()) {
-    need_conres_ce = true;
-  }
-
   if (h->is_empty(0)) {
 
     // Get total available data to transmit (includes MAC header)
-    uint32_t req_bytes = get_pending_dl_new_data_total_unlocked();
+    uint32_t req_bytes      = get_pending_dl_new_data_total_unlocked();
+    bool     need_conres_ce = is_conres_ce_pending();
 
-    uint32_t nof_prb = format1_count_prb((uint32_t)user_mask.to_uint64(), cell.nof_prb);
+    uint32_t nof_prb = format1_count_prb(user_mask);
 
     // Calculate exact number of RE for this PRB allocation
     srslte_pdsch_grant_t grant = {};
@@ -448,7 +445,7 @@ int sched_ue::generate_format1(dl_harq_proc*                     h,
       Info("SCHED: Added MAC Contention Resolution CE for rnti=0x%x\n", rnti);
 
     } else {
-      // Add TA CE. TODO: Common interface to add MAC CE
+      // Add TA CE
       // FIXME: Can't put it in Msg4 because current srsUE doesn't read it
       while (nof_ta_cmd > 0 && rem_tbs > 2) {
         data->pdu[0][data->nof_pdu_elems[0]].lcid = srslte::sch_subh::TA_CMD;
@@ -518,7 +515,7 @@ int sched_ue::generate_format2a_unlocked(dl_harq_proc*                     h,
   dci->alloc_type              = SRSLTE_RA_ALLOC_TYPE0;
   dci->type0_alloc.rbg_bitmask = (uint32_t)user_mask.to_uint64();
 
-  uint32_t nof_prb = format1_count_prb((uint32_t)user_mask.to_uint64(), cell.nof_prb); // FIXME: format1???
+  uint32_t nof_prb = format1_count_prb(user_mask); // FIXME: format1???
 
   // Calculate exact number of RE for this PRB allocation
   srslte_pdsch_grant_t grant = {};
@@ -717,7 +714,7 @@ bool sched_ue::bearer_is_ul(ue_bearer_t* lch)
          lch->cfg.direction == sched_interface::ue_bearer_cfg_t::BOTH;
 }
 
-bool sched_ue::bearer_is_dl(ue_bearer_t* lch)
+bool sched_ue::bearer_is_dl(const ue_bearer_t* lch)
 {
   return lch->cfg.direction == sched_interface::ue_bearer_cfg_t::DL ||
          lch->cfg.direction == sched_interface::ue_bearer_cfg_t::BOTH;
@@ -767,6 +764,11 @@ bool sched_ue::needs_cqi_unlocked(uint32_t tti, uint32_t cc_idx, bool will_be_se
   return ret;
 }
 
+bool sched_ue::is_conres_ce_pending() const
+{
+  return bearer_is_dl(&lch[0]) and (lch[0].buf_retx > 0 or lch[0].buf_tx > 0);
+}
+
 uint32_t sched_ue::get_pending_dl_new_data()
 {
   std::lock_guard<std::mutex> lock(mutex);
@@ -785,11 +787,11 @@ uint32_t sched_ue::get_pending_dl_new_data_total()
 uint32_t sched_ue::get_pending_dl_new_data_total_unlocked()
 {
   uint32_t req_bytes = get_pending_dl_new_data_unlocked();
+  if (is_conres_ce_pending()) {
+    req_bytes += conres_ce_size; // Account for ConRes
+  }
   if (req_bytes > 0) {
     req_bytes += (req_bytes < 128) ? 2 : 3; // consider the header
-    if (is_first_dl_tx()) {
-      req_bytes += 6; // count for RAR
-    }
   }
   return req_bytes;
 }
@@ -1017,19 +1019,12 @@ int sched_ue::alloc_pdu(int tbs_bytes, sched_interface::dl_sched_pdu_t* pdu)
   return x;
 }
 
-uint32_t sched_ue::format1_count_prb(uint32_t bitmask, uint32_t cell_nof_prb)
+uint32_t sched_ue::format1_count_prb(const rbgmask_t& bitmask)
 {
-  uint32_t P  = srslte_ra_type0_P(cell_nof_prb);
-  uint32_t nb = (int)ceilf((float)cell_nof_prb / P);
-
   uint32_t nof_prb = 0;
-  for (uint32_t i = 0; i < nb; i++) {
-    if (bitmask & (1u << (nb - i - 1))) {
-      for (uint32_t j = 0; j < P; j++) {
-        if (i * P + j < cell_nof_prb) {
-          nof_prb++;
-        }
-      }
+  for (uint32_t i = 0; i < bitmask.size(); i++) {
+    if (bitmask.test(i)) {
+      nof_prb += std::min(sched_params->cfg->cell.nof_prb - (i * sched_params->P), sched_params->P);
     }
   }
   return nof_prb;
