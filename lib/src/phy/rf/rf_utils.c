@@ -184,12 +184,13 @@ int rf_cell_search(srslte_rf_t *rf, uint32_t nof_rx_antennas,
   } else {
     ret = srslte_ue_cellsearch_scan(&cs, found_cells, &max_peak_cell); 
   }
+
+  srslte_rf_stop_rx_stream(rf);
+
   if (ret < 0) {
-    srslte_rf_stop_rx_stream(rf);
     ERROR("Error searching cell\n");
     return SRSLTE_ERROR;
   } else if (ret == 0) {
-    srslte_rf_stop_rx_stream(rf);
     ERROR("Could not find any cell in this frequency\n");
     return SRSLTE_SUCCESS;
   }
@@ -221,7 +222,6 @@ int rf_cell_search(srslte_rf_t *rf, uint32_t nof_rx_antennas,
     *cfo = found_cells[max_peak_cell].cfo;
   }
   
-  srslte_rf_stop_rx_stream(rf);
   srslte_ue_cellsearch_free(&cs);
 
   return ret; 
