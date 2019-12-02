@@ -39,8 +39,8 @@ int srslte_agc_init_acc(srslte_agc_t *q, srslte_agc_mode_t mode, uint32_t nof_fr
   bzero(q, sizeof(srslte_agc_t));
   q->mode = mode; 
   q->nof_frames = nof_frames;  
-  q->max_gain = 90.0;
-  q->min_gain = 0.0;
+  q->max_gain_db = 90.0;
+  q->min_gain_db = 0.0;
   if (nof_frames > 0) {
     q->y_tmp = srslte_vec_malloc(sizeof(float) * nof_frames);
     if (!q->y_tmp) {
@@ -87,11 +87,10 @@ void srslte_agc_reset(srslte_agc_t *q) {
   }
 }
 
-void srslte_agc_set_gain_range(srslte_agc_t* q, float min_gain, float max_gain)
-{
+void srslte_agc_set_gain_range(srslte_agc_t *q, float min_gain_db, float max_gain_db) {
   if (q) {
-    q->min_gain = min_gain;
-    q->max_gain = max_gain;
+    q->min_gain_db = min_gain_db;
+    q->max_gain_db = max_gain_db;
   }
 }
 
@@ -115,8 +114,8 @@ float srslte_agc_get_gain(srslte_agc_t *q) {
   return q->gain;
 }
 
-void srslte_agc_set_gain(srslte_agc_t *q, float init_gain_value) {
-  q->gain = init_gain_value;
+void srslte_agc_set_gain(srslte_agc_t *q, float init_gain_value_db) {
+  q->gain = pow(10, init_gain_value_db/10);
 }
 
 void srslte_agc_lock(srslte_agc_t *q, bool enable) {
@@ -133,14 +132,14 @@ void srslte_agc_process(srslte_agc_t *q, cf_t *signal, uint32_t len) {
     if (!q->uhd_handler) {
       srslte_vec_sc_prod_cfc(signal, q->gain, signal, len);
     } else {
-      if (gain_db < q->min_gain) {
-        gain_db = q->min_gain + 5.0;
+      if (gain_db < q->min_gain_db) {
+        gain_db = q->min_gain_db + 5.0;
         INFO("Warning: Rx signal strength is too high. Forcing minimum Rx gain %.2fdB\n", gain_db);
-      } else if (gain_db > q->max_gain) {
-        gain_db = q->max_gain;
+      } else if (gain_db > q->max_gain_db) {
+        gain_db = q->max_gain_db;
         INFO("Warning: Rx signal strength is too weak. Forcing maximum Rx gain %.2fdB\n", gain_db);
       } else if (isinf(gain_db) || isnan(gain_db)) {
-        gain_db = (q->min_gain + q->max_gain) / 2.0;
+        gain_db = (q->min_gain_db + q->max_gain_db) / 2.0;
         INFO("Warning: AGC went to an unknown state. Setting Rx gain to %.2fdB\n", gain_db);
       }
 
