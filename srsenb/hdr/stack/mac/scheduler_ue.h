@@ -264,6 +264,9 @@ private:
   uint16_t rnti            = 0;
   uint32_t max_msg3retx    = 0;
 
+  /* User State */
+  bool conres_ce_pending = true;
+
   uint32_t nof_ta_cmd = 0;
 
   int next_tpc_pusch = 0;

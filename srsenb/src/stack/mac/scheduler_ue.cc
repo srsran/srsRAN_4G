@@ -114,6 +114,7 @@ void sched_ue::reset()
     buf_ul                       = 0;
     phy_config_dedicated_enabled = false;
     cqi_request_tti              = 0;
+    conres_ce_pending            = true;
     for (auto& c : carriers) {
       c.reset();
     }
@@ -442,8 +443,8 @@ int sched_ue::generate_format1(dl_harq_proc*                     h,
     if (need_conres_ce) {
       data->pdu[0][data->nof_pdu_elems[0]].lcid = srslte::sch_subh::CON_RES_ID;
       data->nof_pdu_elems[0]++;
+      conres_ce_pending = false;
       Info("SCHED: Added MAC Contention Resolution CE for rnti=0x%x\n", rnti);
-
     } else {
       // Add TA CE
       // FIXME: Can't put it in Msg4 because current srsUE doesn't read it
@@ -766,7 +767,7 @@ bool sched_ue::needs_cqi_unlocked(uint32_t tti, uint32_t cc_idx, bool will_be_se
 
 bool sched_ue::is_conres_ce_pending() const
 {
-  return bearer_is_dl(&lch[0]) and (lch[0].buf_retx > 0 or lch[0].buf_tx > 0);
+  return conres_ce_pending and bearer_is_dl(&lch[0]) and (lch[0].buf_retx > 0 or lch[0].buf_tx > 0);
 }
 
 uint32_t sched_ue::get_pending_dl_new_data()

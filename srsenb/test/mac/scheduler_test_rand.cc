@@ -180,7 +180,8 @@ struct sched_tester : public srsenb::sched {
     srsenb::sched_interface::dl_sched_res_t sched_result_dl;
   };
   struct ue_info {
-    int                                      prach_tti = -1, rar_tti = -1, msg3_tti = -1;
+    int                                      prach_tti = -1, rar_tti = -1, msg3_tti = -1, msg4_tti = -1;
+    bool                                     drb_cfg_flag = false;
     srsenb::sched_interface::ue_bearer_cfg_t bearer_cfg;
     srsenb::sched_interface::ue_cfg_t        user_cfg;
     uint32_t                                 dl_data = 0;
@@ -305,15 +306,29 @@ int sched_tester::process_tti_args()
 
   // push UL SRs and DL packets
   for (auto& e : sim_args.tti_events[tti_data.tti_rx].users) {
-    if (e.second.sr_data > 0) {
+    if (e.second.sr_data > 0 and tester_ues[e.first].drb_cfg_flag) {
       uint32_t tot_ul_data = ue_db[e.first].get_pending_ul_new_data(tti_data.tti_tx_ul) + e.second.sr_data;
       uint32_t lcid        = 0;
       ul_bsr(e.first, lcid, tot_ul_data, true);
     }
-    if (e.second.dl_data > 0) {
-      uint32_t lcid = 0;
+    if (e.second.dl_data > 0 and tester_ues[e.first].msg3_tti >= 0 and
+        tester_ues[e.first].msg3_tti < (int)tti_data.tti_rx) {
+      // If Msg4 not yet sent, allocate data in SRB0 buffer
+      uint32_t lcid                = (tester_ues[e.first].msg4_tti >= 0) ? 2 : 0;
+      uint32_t pending_dl_new_data = ue_db[e.first].get_pending_dl_new_data();
+      if (lcid == 2 and not tester_ues[e.first].drb_cfg_flag) {
+        // If RRCSetup finished
+        if (pending_dl_new_data == 0) {
+          // setup lcid==2 bearer
+          tester_ues[e.first].drb_cfg_flag = true;
+          bearer_ue_cfg(e.first, 2, &tester_ues[e.first].bearer_cfg);
+        } else {
+          // Let SRB0 get emptied
+          continue;
+        }
+      }
       // FIXME: Does it need TTI for checking pending data?
-      uint32_t tot_dl_data = ue_db[e.first].get_pending_dl_new_data() + e.second.dl_data;
+      uint32_t tot_dl_data = pending_dl_new_data + e.second.dl_data;
       dl_rlc_buffer_state(e.first, lcid, tot_dl_data, 0);
     }
   }
@@ -415,13 +430,12 @@ int sched_tester::test_ra()
 
     // Check whether RA has completed correctly
     int prach_tti = userinfo.prach_tti;
-    if (userinfo.msg3_tti > prach_tti) { // Msg3 already scheduled
-      continue;
-    }
+    //    if (userinfo.msg4_tti > prach_tti) { // Msg4 already scheduled
+    //      continue;
+    //    }
 
-    bool     rar_not_sent = prach_tti >= userinfo.rar_tti;
-    uint32_t window[2]    = {(uint32_t)prach_tti + 3, prach_tti + 3 + cfg.prach_rar_window};
-    if (rar_not_sent) {
+    uint32_t window[2] = {(uint32_t)prach_tti + 3, prach_tti + 3 + cfg.prach_rar_window};
+    if (prach_tti >= userinfo.rar_tti) { // RAR not yet sent
       CONDERROR(tti_data.tti_tx_dl > window[1], "[TESTER] There was no RAR scheduled within the RAR Window\n");
       if (tti_data.tti_tx_dl >= window[0]) {
         for (uint32_t i = 0; i < tti_data.sched_result_dl.nof_rar_elems; ++i) {
@@ -432,7 +446,7 @@ int sched_tester::test_ra()
           }
         }
       }
-    } else { // RAR completed, check for Msg3
+    } else if (userinfo.msg3_tti < prach_tti) { // Msg3 not yet sent
       uint32_t msg3_tti = (uint32_t)(userinfo.rar_tti + FDD_HARQ_DELAY_MS + MSG3_DELAY_MS) % 10240;
       if (msg3_tti == tti_data.tti_tx_ul) {
         for (uint32_t i = 0; i < tti_data.sched_result_ul.nof_dci_elems; ++i) {
@@ -448,6 +462,23 @@ int sched_tester::test_ra()
         CONDERROR(msg3_count == 0, "[TESTER] No UL msg3 allocation was made\n");
       } else if (msg3_tti < tti_data.tti_tx_ul) {
         TESTERROR("[TESTER] No UL msg3 allocation was made\n");
+      }
+    }
+
+    // Find any Msg4 allocation
+    for (uint32_t i = 0; i < tti_data.sched_result_dl.nof_data_elems; ++i) {
+      auto& ue_data = tti_data.sched_result_dl.data[i];
+      if (ue_data.dci.rnti != rnti) {
+        continue;
+      }
+      for (uint32_t j = 0; j < tti_data.sched_result_dl.data[i].nof_pdu_elems[0]; ++j) {
+        if (ue_data.pdu[0][j].lcid == srslte::sch_subh::CON_RES_ID) {
+          // ConRes found
+          CONDERROR(ue_data.dci.format != SRSLTE_DCI_FORMAT1, "ConRes must be format1\n");
+          CONDERROR(userinfo.msg3_tti > (int)tti_data.tti_rx, "Transmitting ConRes without receiving Msg3\n");
+          CONDERROR(userinfo.msg4_tti >= 0, "ConRes CE cannot be retransmitted for the same rnti\n");
+          userinfo.msg4_tti = tti_data.tti_tx_dl;
+        }
       }
     }
   }
