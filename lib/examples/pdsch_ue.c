@@ -1061,7 +1061,7 @@ void *plot_thread_run(void *arg) {
       bzero(tmp_plot2, sizeof(float) * sz);
       int g = (sz - 12 * ue_dl.cell.nof_prb) / 2;
       for (i = 0; i < 12 * ue_dl.cell.nof_prb; i++) {
-        tmp_plot2[g + i] = srslte_convert_amplitude_to_dB(cabs(ue_dl.chest_res.ce[0][0][i]));
+        tmp_plot2[g + i] = srslte_convert_amplitude_to_dB(cabsf(ue_dl.chest_res.ce[0][0][i]));
         if (isinf(tmp_plot2[g + i])) {
           tmp_plot2[g + i] = -80;
         }

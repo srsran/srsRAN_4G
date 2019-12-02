@@ -704,7 +704,7 @@ static int estimate_port(srslte_chest_dl_t*     q,
 
   /* Compute RSRP for the channel estimates in this port */
   if (cfg->rsrp_neighbour) {
-    double energy = cabs(srslte_vec_acc_cc(q->pilot_estimates, npilots)/npilots);
+    double energy                   = cabsf(srslte_vec_acc_cc(q->pilot_estimates, npilots) / npilots);
     q->rsrp_corr[rxant_id][port_id] = energy * energy;
   }
   q->rsrp[rxant_id][port_id] = srslte_vec_avg_power_cf(q->pilot_recv_signal, npilots);

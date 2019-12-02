@@ -260,7 +260,7 @@ float cfo_estimate_nbiot(srslte_sync_nbiot_t* q, cf_t* input)
   cp_offset =
       srslte_cp_synch(&q->cp_synch, input, q->max_offset, SRSLTE_NPSS_CFO_NUM_SYMS, SRSLTE_CP_LEN_NORM(1, q->fft_size));
   cf_t  cp_corr_max = srslte_cp_synch_corr_output(&q->cp_synch, cp_offset);
-  float cfo         = -carg(cp_corr_max) / M_PI / 2;
+  float cfo         = -cargf(cp_corr_max) / M_PI / 2;
   return cfo;
 }
 

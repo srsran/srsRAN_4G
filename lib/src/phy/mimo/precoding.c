@@ -130,8 +130,8 @@ int srslte_predecoding_single_sse(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_
     cf_t r  = 0; 
     cf_t hh = 0; 
     for (int p=0;p<nof_rxant;p++) {
-      r  += y[p][i]*conj(h[p][i]);
-      hh += conj(h[p][i])*h[p][i];
+      r += y[p][i] * conjf(h[p][i]);
+      hh += conjf(h[p][i]) * h[p][i];
     }
     x[i] = scaling*r/(hh+noise_estimate);
   }
@@ -225,8 +225,8 @@ int srslte_predecoding_single_avx(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_
     cf_t r  = 0; 
     cf_t hh = 0; 
     for (int p=0;p<nof_rxant;p++) {
-      r  += y[p][i]*conj(h[p][i]);
-      hh += conj(h[p][i])*h[p][i];
+      r += y[p][i] * conjf(h[p][i]);
+      hh += conjf(h[p][i]) * h[p][i];
     }
     x[i] = r/((hh+noise_estimate) * scaling);
   }
@@ -240,8 +240,8 @@ int srslte_predecoding_single_gen(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_
     cf_t r  = 0; 
     cf_t hh = 0; 
     for (int p=0;p<nof_rxant;p++) {
-      r  += y[p][i]*conj(h[p][i]);
-      hh += conj(h[p][i])*h[p][i];
+      r += y[p][i] * conjf(h[p][i]);
+      hh += conjf(h[p][i]) * h[p][i];
     }
     x[i] = r / ((hh+noise_estimate) * scaling);
   }
@@ -280,7 +280,7 @@ int srslte_predecoding_single_csi(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_MAX_
     float hh = 0;
     float norm = 1.0f / scaling;
     for (int p = 0; p < nof_rxant; p++) {
-      r += y[p][i] * conj(h[p][i]);
+      r += y[p][i] * conjf(h[p][i]);
       hh += (__real__ h[p][i] * __real__ h[p][i]) + (__imag__ h[p][i] * __imag__ h[p][i]);
     }
     csi[i] = hh + noise_estimate;
@@ -373,7 +373,7 @@ int srslte_predecoding_diversity_gen_(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_
           hh = 1e-4;
         }
         x0 += (conjf(h00) * r0 + h11 * conjf(r1));
-        x1 += (-h10 * conj(r0) + conj(h01) * r1);
+        x1 += (-h10 * conjf(r0) + conjf(h01) * r1);
       }
       hh *= scaling;
       x[0][i] = x0 / hh * M_SQRT2;
@@ -585,7 +585,7 @@ int srslte_predecoding_diversity_csi(cf_t *y[SRSLTE_MAX_PORTS], cf_t *h[SRSLTE_M
           hh = 1e-4;
         }
         x0 += (conjf(h00) * r0 + h11 * conjf(r1));
-        x1 += (-h10 * conj(r0) + conj(h01) * r1);
+        x1 += (-h10 * conjf(r0) + conjf(h01) * r1);
       }
 
       csi[0][2*i + 0] = hh;

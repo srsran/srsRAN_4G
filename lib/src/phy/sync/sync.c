@@ -574,7 +574,7 @@ static float cfo_cp_estimate(srslte_sync_t *q, const cf_t *input)
   uint32_t cp_offset = 0; 
   cp_offset = srslte_cp_synch(&q->cp_synch, input, q->max_offset, q->cfo_cp_nsymbols, SRSLTE_CP_LEN_NORM(1,q->fft_size));
   cf_t cp_corr_max = srslte_cp_synch_corr_output(&q->cp_synch, cp_offset);
-  float cfo = -carg(cp_corr_max) / M_PI / 2; 
+  float cfo         = -cargf(cp_corr_max) / M_PI / 2;
   return cfo; 
 }
 
