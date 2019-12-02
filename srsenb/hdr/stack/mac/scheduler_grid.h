@@ -245,6 +245,7 @@ public:
   uint32_t                       get_tti_rx() const { return tti_params.tti_rx; }
   uint32_t                       get_sfn() const { return tti_params.sfn; }
   uint32_t                       get_sf_idx() const { return tti_params.sf_idx; }
+  uint32_t                       get_cc_idx() const { return cc_idx; }
 
 private:
   bool            is_dl_alloc(sched_ue* user) const final;

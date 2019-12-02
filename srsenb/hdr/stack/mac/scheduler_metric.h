@@ -31,7 +31,7 @@ class dl_metric_rr : public sched::metric_dl
   const static int MAX_RBG = 25;
 
 public:
-  void set_log(srslte::log* log_) final;
+  void set_params(const sched_params_t& sched_params_) final;
   void sched_users(std::map<uint16_t, sched_ue>& ue_db, dl_tti_sched_t* tti_sched, uint32_t cc_idx) final;
 
 private:
@@ -45,7 +45,7 @@ private:
 class ul_metric_rr : public sched::metric_ul
 {
 public:
-  void set_log(srslte::log* log_) final;
+  void set_params(const sched_params_t& sched_params_) final;
   void sched_users(std::map<uint16_t, sched_ue>& ue_db, ul_tti_sched_t* tti_sched, uint32_t cc_idx) final;
 
 private:

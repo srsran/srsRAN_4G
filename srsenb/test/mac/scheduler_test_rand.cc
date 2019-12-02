@@ -249,7 +249,7 @@ int sched_tester::add_user(uint16_t                                 rnti,
   rar_info.prach_tti           = tti_data.tti_rx;
   rar_info.temp_crnti          = rnti;
   rar_info.msg3_size           = 7;
-  dl_rach_info(rar_info);
+  dl_rach_info(CARRIER_IDX, rar_info);
 
   // setup bearers
   bearer_ue_cfg(rnti, 0, &bearer_cfg);

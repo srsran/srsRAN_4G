@@ -64,7 +64,8 @@ public:
   uint32_t                                                 P                = 0;
   uint32_t                                                 nof_rbgs         = 0;
 
-  bool set_derived();
+  sched_params_t();
+  bool set_cfg(srslte::log* log_, sched_interface::cell_cfg_t* cfg_, srslte_regs_t* regs_);
 };
 
 /* Caution: User addition (ue_cfg) and removal (ue_rem) are not thread-safe
@@ -87,7 +88,7 @@ public:
   {
   public:
     /* Virtual methods for user metric calculation */
-    virtual void set_log(srslte::log* log_)                                                                   = 0;
+    virtual void set_params(const sched_params_t& sched_params_)                                              = 0;
     virtual void sched_users(std::map<uint16_t, sched_ue>& ue_db, dl_tti_sched_t* tti_sched, uint32_t cc_idx) = 0;
   };
 
@@ -95,7 +96,7 @@ public:
   {
   public:
     /* Virtual methods for user metric calculation */
-    virtual void set_log(srslte::log* log_)                                                                   = 0;
+    virtual void set_params(const sched_params_t& sched_params_)                                              = 0;
     virtual void sched_users(std::map<uint16_t, sched_ue>& ue_db, ul_tti_sched_t* tti_sched, uint32_t cc_idx) = 0;
   };
 
@@ -132,7 +133,7 @@ public:
 
   int dl_ant_info(uint16_t rnti, asn1::rrc::phys_cfg_ded_s::ant_info_c_* dedicated);
   int dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t tb_idx, bool ack) final;
-  int dl_rach_info(dl_sched_rar_info_t rar_info) final;
+  int dl_rach_info(uint32_t cc_idx, dl_sched_rar_info_t rar_info) final;
   int dl_ri_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t ri_value) final;
   int dl_pmi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t pmi_value) final;
   int dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t cqi_value) final;

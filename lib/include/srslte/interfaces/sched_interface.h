@@ -100,22 +100,16 @@ public:
     enum { IDLE = 0, UL, DL, BOTH } direction;
   } ue_bearer_cfg_t;
 
-  typedef struct {
-
+  struct ue_cfg_t {
     /* ue capabilities, etc */
-
-    uint32_t maxharq_tx;
-    bool     continuous_pusch;
-
+    uint32_t                maxharq_tx;
+    bool                    continuous_pusch;
     srslte_uci_offset_cfg_t uci_offset;
     srslte_pucch_cfg_t      pucch_cfg;
-
-    uint32_t        aperiodic_cqi_period; // if 0 is periodic CQI
-    srslte_dl_cfg_t dl_cfg;
-
-    ue_bearer_cfg_t ue_bearers[MAX_LC];
-
-  } ue_cfg_t;
+    uint32_t                aperiodic_cqi_period; // if 0 is periodic CQI
+    srslte_dl_cfg_t         dl_cfg;
+    ue_bearer_cfg_t         ue_bearers[MAX_LC];
+  };
 
   typedef struct {
     uint32_t lcid;
@@ -153,13 +147,13 @@ public:
     srslte_dci_ul_t dci;
   } ul_sched_data_t;
 
-  typedef struct {
+  struct dl_sched_rar_info_t {
     uint32_t preamble_idx;
     uint32_t ta_cmd;
     uint16_t temp_crnti;
     uint32_t msg3_size;
     uint32_t prach_tti;
-  } dl_sched_rar_info_t;
+  };
 
   typedef struct {
     dl_sched_rar_info_t    data;
@@ -231,7 +225,7 @@ public:
 
   /* DL information */
   virtual int dl_ack_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t tb_idx, bool ack) = 0;
-  virtual int dl_rach_info(dl_sched_rar_info_t rar_info)                                           = 0;
+  virtual int dl_rach_info(uint32_t cc_idx, dl_sched_rar_info_t rar_info)                          = 0;
   virtual int dl_ri_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t ri_value)          = 0;
   virtual int dl_pmi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t pmi_value)        = 0;
   virtual int dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t cqi_value)        = 0;

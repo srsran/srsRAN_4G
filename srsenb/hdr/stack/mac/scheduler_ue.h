@@ -66,9 +66,9 @@ struct sched_ue_carrier {
   uint32_t dl_ri_tti  = 0;
   uint32_t dl_pmi     = 0;
   uint32_t dl_pmi_tti = 0;
-  uint32_t dl_cqi     = 0;
+  uint32_t dl_cqi     = 1;
   uint32_t dl_cqi_tti = 0;
-  uint32_t ul_cqi     = 0;
+  uint32_t ul_cqi     = 1;
   uint32_t ul_cqi_tti = 0;
 
   int      max_mcs_dl = 28, max_mcs_ul = 28;
@@ -244,6 +244,7 @@ private:
 
   bool is_first_dl_tx();
 
+  /* Args */
   sched_interface::ue_cfg_t cfg          = {};
   srslte_cell_t             cell         = {};
   srslte::log*              log_h        = nullptr;

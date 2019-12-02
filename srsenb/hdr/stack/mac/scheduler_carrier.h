@@ -32,9 +32,9 @@ class ra_sched;
 class sched::carrier_sched
 {
 public:
-  explicit carrier_sched(sched* sched_, uint32_t cc_idx_);
+  explicit carrier_sched(rrc_interface_mac* rrc_, std::map<uint16_t, sched_ue>* ue_db_, uint32_t cc_idx_);
   void                reset();
-  void                carrier_cfg();
+  void                carrier_cfg(const sched_params_t& sched_params_);
   void                set_metric(sched::metric_dl* dl_metric_, sched::metric_ul* ul_metric_);
   void                set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs);
   tti_sched_result_t* generate_tti_result(uint32_t tti_rx);
@@ -55,12 +55,13 @@ private:
   int alloc_ul_users(tti_sched_result_t* tti_sched);
 
   // args
-  sched*                sched_ptr    = nullptr;
-  const sched_params_t* sched_params = nullptr;
-  srslte::log*          log_h        = nullptr;
-  metric_dl*            dl_metric    = nullptr;
-  metric_ul*            ul_metric    = nullptr;
-  const uint32_t        cc_idx;
+  const sched_params_t*         sched_params = nullptr;
+  srslte::log*                  log_h        = nullptr;
+  rrc_interface_mac*            rrc          = nullptr;
+  std::map<uint16_t, sched_ue>* ue_db        = nullptr;
+  metric_dl*                    dl_metric    = nullptr;
+  metric_ul*                    ul_metric    = nullptr;
+  const uint32_t                cc_idx;
 
   // derived from args
   prbmask_t prach_mask;

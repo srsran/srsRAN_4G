@@ -52,8 +52,28 @@ uint32_t max_tti(uint32_t tti1, uint32_t tti2)
  *                 Sched Params
  *******************************************************/
 
-bool sched_params_t::set_derived()
+sched_params_t::sched_params_t()
 {
+  sched_cfg.pdsch_max_mcs    = 28;
+  sched_cfg.pdsch_mcs        = -1;
+  sched_cfg.pusch_max_mcs    = 28;
+  sched_cfg.pusch_mcs        = -1;
+  sched_cfg.nof_ctrl_symbols = 3;
+  sched_cfg.max_aggr_level   = 3;
+}
+
+bool sched_params_t::set_cfg(srslte::log* log_, sched_interface::cell_cfg_t* cfg_, srslte_regs_t* regs_)
+{
+  log_h = log_;
+  cfg   = cfg_;
+  regs  = regs_;
+
+  // Basic cell config checks
+  if (cfg->si_window_ms == 0) {
+    Error("SCHED: Invalid si-window length 0 ms\n");
+    return false;
+  }
+
   // Compute Common locations for DCI for each CFI
   for (uint32_t cfi = 0; cfi < 3; cfi++) {
     sched::generate_cce_location(regs, &common_locations[cfi], cfi + 1);
@@ -88,6 +108,17 @@ bool sched_params_t::set_derived()
     return false;
   }
 
+  // PRACH has to fit within the PUSCH space
+  bool invalid_prach = cfg->cell.nof_prb == 6 and (cfg->prach_freq_offset + 6 > cfg->cell.nof_prb);
+  invalid_prach |= cfg->cell.nof_prb > 6 and ((cfg->prach_freq_offset + 6) > (cfg->cell.nof_prb - cfg->nrb_pucch) or
+                                              (int) cfg->prach_freq_offset < cfg->nrb_pucch);
+  if (invalid_prach) {
+    log_h->error("Invalid PRACH configuration: frequency offset=%d outside bandwidth limits\n", cfg->prach_freq_offset);
+    log_h->console("Invalid PRACH configuration: frequency offset=%d outside bandwidth limits\n",
+                   cfg->prach_freq_offset);
+    return false;
+  }
+
   return true;
 }
 
@@ -108,32 +139,23 @@ sched::sched()
 
   pthread_rwlock_init(&rwlock, nullptr);
 
-  // Initialize Independent carrier schedulers
-  carrier_schedulers.emplace_back(new carrier_sched{this, 0});
-
   reset();
 }
 
 sched::~sched()
 {
   srslte_regs_free(&regs);
-  pthread_rwlock_wrlock(&rwlock);
-  pthread_rwlock_unlock(&rwlock);
   pthread_rwlock_destroy(&rwlock);
 }
 
 void sched::init(rrc_interface_mac* rrc_, srslte::log* log)
 {
-  sched_params.sched_cfg.pdsch_max_mcs    = 28;
-  sched_params.sched_cfg.pdsch_mcs        = -1;
-  sched_params.sched_cfg.pusch_max_mcs    = 28;
-  sched_params.sched_cfg.pusch_mcs        = -1;
-  sched_params.sched_cfg.nof_ctrl_symbols = 3;
-  sched_params.sched_cfg.max_aggr_level   = 3;
-  sched_params.log_h                      = log;
-
   log_h = log;
   rrc   = rrc_;
+
+  // Initialize Independent carrier schedulers
+  carrier_schedulers.emplace_back(new carrier_sched{rrc, &ue_db, 0});
+
   reset();
 }
 
@@ -165,12 +187,6 @@ void sched::set_metric(sched::metric_dl* dl_metric_, sched::metric_ul* ul_metric
 
 int sched::cell_cfg(sched_interface::cell_cfg_t* cell_cfg)
 {
-  // Basic cell config checks
-  if (cell_cfg->si_window_ms == 0) {
-    Error("SCHED: Invalid si-window length 0 ms\n");
-    return -1;
-  }
-
   cfg = *cell_cfg;
 
   // Get DCI locations
@@ -179,28 +195,16 @@ int sched::cell_cfg(sched_interface::cell_cfg_t* cell_cfg)
     return SRSLTE_ERROR;
   }
 
-  sched_params.cfg  = &cfg;
-  sched_params.regs = &regs;
-  if (not sched_params.set_derived()) {
+  // Setup common sched_params
+  if (not sched_params.set_cfg(log_h, &cfg, &regs)) {
     return -1;
   }
 
   // Initiate the tti_scheduler for each TTI
   for (std::unique_ptr<carrier_sched>& c : carrier_schedulers) {
-    c->carrier_cfg();
+    c->carrier_cfg(sched_params);
   }
   configured = true;
-
-  // PRACH has to fit within the PUSCH space
-  bool invalid_prach = cfg.cell.nof_prb == 6 and (cfg.prach_freq_offset + 6 > cfg.cell.nof_prb);
-  invalid_prach |= cfg.cell.nof_prb > 6 and ((cfg.prach_freq_offset + 6) > (cfg.cell.nof_prb - cfg.nrb_pucch) or
-                                             (int) cfg.prach_freq_offset < cfg.nrb_pucch);
-  if (invalid_prach) {
-    log_h->error("Invalid PRACH configuration: frequency offset=%d outside bandwidth limits\n", cfg.prach_freq_offset);
-    log_h->console("Invalid PRACH configuration: frequency offset=%d outside bandwidth limits\n",
-                   cfg.prach_freq_offset);
-    return -1;
-  }
 
   return 0;
 }
@@ -327,9 +331,9 @@ int sched::dl_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t cq
   return ue_db_access(rnti, [tti, cc_idx, cqi_value](sched_ue& ue) { ue.set_dl_cqi(tti, cc_idx, cqi_value); });
 }
 
-int sched::dl_rach_info(dl_sched_rar_info_t rar_info)
+int sched::dl_rach_info(uint32_t cc_idx, dl_sched_rar_info_t rar_info)
 {
-  return carrier_schedulers[0]->dl_rach_info(rar_info);
+  return carrier_schedulers[cc_idx]->dl_rach_info(rar_info);
 }
 
 int sched::ul_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t cqi, uint32_t ul_ch_code)

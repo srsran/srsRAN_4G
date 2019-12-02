@@ -404,6 +404,7 @@ int sched_ue::generate_format1(dl_harq_proc*                     h,
   if (is_first_dl_tx()) {
     need_conres_ce = true;
   }
+
   if (h->is_empty(0)) {
 
     // Get total available data to transmit (includes MAC header)
@@ -445,6 +446,7 @@ int sched_ue::generate_format1(dl_harq_proc*                     h,
       data->pdu[0][data->nof_pdu_elems[0]].lcid = srslte::sch_subh::CON_RES_ID;
       data->nof_pdu_elems[0]++;
       Info("SCHED: Added MAC Contention Resolution CE for rnti=0x%x\n", rnti);
+
     } else {
       // Add TA CE. TODO: Common interface to add MAC CE
       // FIXME: Can't put it in Msg4 because current srsUE doesn't read it
@@ -741,8 +743,7 @@ bool sched_ue::is_first_dl_tx()
 bool sched_ue::needs_cqi(uint32_t tti, uint32_t cc_idx, bool will_be_sent)
 {
   std::lock_guard<std::mutex> lock(mutex);
-  bool                        ret = needs_cqi_unlocked(tti, cc_idx, will_be_sent);
-  return ret;
+  return needs_cqi_unlocked(tti, cc_idx, will_be_sent);
 }
 
 // Private lock-free implemenentation

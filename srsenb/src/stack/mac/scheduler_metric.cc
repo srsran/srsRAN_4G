@@ -36,9 +36,9 @@ namespace srsenb {
  *
  *****************************************************************/
 
-void dl_metric_rr::set_log(srslte::log* log_)
+void dl_metric_rr::set_params(const sched_params_t& sched_params_)
 {
-  log_h = log_;
+  log_h = sched_params_.log_h;
 }
 
 void dl_metric_rr::sched_users(std::map<uint16_t, sched_ue>& ue_db, dl_tti_sched_t* tti_sched, uint32_t cc_idx)
@@ -148,9 +148,9 @@ dl_harq_proc* dl_metric_rr::allocate_user(sched_ue* user, uint32_t cc_idx)
  *
  *****************************************************************/
 
-void ul_metric_rr::set_log(srslte::log* log_)
+void ul_metric_rr::set_params(const sched_params_t& sched_params_)
 {
-  log_h = log_;
+  log_h = sched_params_.log_h;
 }
 
 void ul_metric_rr::sched_users(std::map<uint16_t, sched_ue>& ue_db, ul_tti_sched_t* tti_sched, uint32_t cc_idx)

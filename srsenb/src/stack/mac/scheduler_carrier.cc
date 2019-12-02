@@ -206,12 +206,13 @@ void ra_sched::dl_sched(srsenb::tti_sched_result_t* tti_sched)
     pending_msg3[pending_tti].n_prb   = n_prb;
     dl_sched_rar_grant_t* last_msg3   = &rar_grant.msg3_grant[rar_grant.nof_grants - 1];
     pending_msg3[pending_tti].mcs     = last_msg3->grant.trunc_mcs;
-    log_h->info("SCHED: Allocating Msg3 for rnti=%d at tti=%d\n",
+    log_h->info("SCHED: Queueing Msg3 for rnti=0x%x at tti=%d\n",
                 rar.temp_crnti,
                 tti_sched->get_tti_tx_dl() + MSG3_DELAY_MS + TX_DELAY);
 
-    // Remove pending RAR and exit
+    // Remove pending RAR
     pending_rars.pop();
+
     return;
   }
 }
@@ -275,7 +276,10 @@ const ra_sched::pending_msg3_t& ra_sched::find_pending_msg3(uint32_t tti) const
  *                 Carrier scheduling
  *******************************************************/
 
-sched::carrier_sched::carrier_sched(sched* sched_, uint32_t cc_idx_) : sched_ptr(sched_), cc_idx(cc_idx_)
+sched::carrier_sched::carrier_sched(rrc_interface_mac* rrc_, std::map<uint16_t, sched_ue>* ue_db_, uint32_t cc_idx_) :
+  rrc(rrc_),
+  ue_db(ue_db_),
+  cc_idx(cc_idx_)
 {
   tti_dl_mask.resize(1, 0);
 }
@@ -287,21 +291,21 @@ void sched::carrier_sched::reset()
   bc_sched_ptr.reset();
 }
 
-void sched::carrier_sched::carrier_cfg()
+void sched::carrier_sched::carrier_cfg(const sched_params_t& sched_params_)
 {
   // sched::cfg is now fully set
-  sched_params = &sched_ptr->sched_params;
+  sched_params = &sched_params_;
   log_h        = sched_params->log_h;
 
   const cell_cfg_t*           cfg_ = sched_params->cfg;
   std::lock_guard<std::mutex> lock(carrier_mutex);
 
   // init Broadcast/RA schedulers
-  bc_sched_ptr.reset(new bc_sched{*sched_params->cfg, sched_ptr->rrc});
-  ra_sched_ptr.reset(new ra_sched{*sched_params->cfg, log_h, sched_ptr->ue_db});
+  bc_sched_ptr.reset(new bc_sched{*sched_params->cfg, rrc});
+  ra_sched_ptr.reset(new ra_sched{*sched_params->cfg, log_h, *ue_db});
 
-  dl_metric->set_log(log_h);
-  ul_metric->set_log(log_h);
+  dl_metric->set_params(*sched_params);
+  ul_metric->set_params(*sched_params);
 
   // Setup constant PUCCH/PRACH mask
   pucch_mask.resize(cfg_->cell.nof_prb);
@@ -369,7 +373,7 @@ tti_sched_result_t* sched::carrier_sched::generate_tti_result(uint32_t tti_rx)
     tti_sched->generate_dcis();
 
     /* reset PIDs with pending data or blocked */
-    for (auto& user : sched_ptr->ue_db) {
+    for (auto& user : *ue_db) {
       user.second.reset_pending_pids(tti_rx, cc_idx);
     }
   }
@@ -381,7 +385,7 @@ void sched::carrier_sched::generate_phich(tti_sched_result_t* tti_sched)
 {
   // Allocate user PHICHs
   uint32_t nof_phich_elems = 0;
-  for (auto& ue_pair : sched_ptr->ue_db) {
+  for (auto& ue_pair : *ue_db) {
     sched_ue& user = ue_pair.second;
     uint16_t  rnti = ue_pair.first;
 
@@ -422,7 +426,7 @@ void sched::carrier_sched::alloc_dl_users(tti_sched_result_t* tti_result)
   }
 
   // call DL scheduler metric to fill RB grid
-  dl_metric->sched_users(sched_ptr->ue_db, tti_result, cc_idx);
+  dl_metric->sched_users(*ue_db, tti_result, cc_idx);
 }
 
 int sched::carrier_sched::alloc_ul_users(tti_sched_result_t* tti_sched)
@@ -448,10 +452,10 @@ int sched::carrier_sched::alloc_ul_users(tti_sched_result_t* tti_sched)
   ul_mask |= pucch_mask;
 
   /* Call scheduler for UL data */
-  ul_metric->sched_users(sched_ptr->ue_db, tti_sched, cc_idx);
+  ul_metric->sched_users(*ue_db, tti_sched, cc_idx);
 
   /* Update pending data counters after this TTI */
-  for (auto& user : sched_ptr->ue_db) {
+  for (auto& user : *ue_db) {
     user.second.get_ul_harq(tti_tx_ul, cc_idx)->reset_pending_data();
   }
 
