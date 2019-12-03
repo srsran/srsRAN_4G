@@ -235,6 +235,17 @@ void phy::stop()
 
 void phy::get_metrics(phy_metrics_t* m)
 {
+  uint32_t      dl_earfcn = 0;
+  srslte_cell_t cell      = {};
+  get_current_cell(&cell, &dl_earfcn);
+  m->info[0].pci       = cell.id;
+  m->info[0].dl_earfcn = dl_earfcn;
+
+  for (uint32_t i = 1; i < args.nof_carriers; i++) {
+    m->info[i].dl_earfcn = common.scell_cfg[i].earfcn;
+    m->info[i].pci       = common.scell_cfg[i].pci;
+  }
+
   common.get_dl_metrics(m->dl);
   common.get_ul_metrics(m->ul);
   common.get_sync_metrics(m->sync);
