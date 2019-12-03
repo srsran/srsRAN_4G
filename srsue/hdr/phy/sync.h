@@ -343,11 +343,13 @@ private:
   float current_srate                                        = 0;
 
   // This is the primary cell
-  srslte_cell_t cell              = {};
-  bool          started           = false;
-  float         time_adv_sec      = 0;
-  float         next_time_adv_sec = 0;
-  uint32_t      tti               = 0;
+  srslte_cell_t                               cell              = {};
+  bool                                        started           = false;
+  float                                       time_adv_sec      = 0;
+  float                                       next_time_adv_sec = 0;
+  uint32_t                                    tti               = 0;
+  srslte_timestamp_t                          tti_ts            = {};
+  srslte_timestamp_t                          radio_ts          = {};
   std::array<uint8_t, SRSLTE_BCH_PAYLOAD_LEN> mib;
 
   uint32_t tx_worker_cnt = 0;

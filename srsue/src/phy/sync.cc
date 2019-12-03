@@ -34,7 +34,8 @@
 
 namespace srsue {
 
-int radio_recv_callback(void *obj, cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *rx_time) {
+static int radio_recv_callback(void* obj, cf_t* data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t* rx_time)
+{
   return ((sync*)obj)->radio_recv_fnc(data, nsamples, rx_time);
 }
 
@@ -587,8 +588,8 @@ void sync::run_thread()
             nsamples = current_srate/1000;
           }
           Debug("Discarting %d samples\n", nsamples);
-          srslte_timestamp_t rx_time;
-          if (!radio_h->rx_now(0, dummy_buffer, nsamples, &rx_time)) {
+          srslte_timestamp_t rx_time = {};
+          if (!radio_recv_fnc(dummy_buffer, nsamples, &rx_time)) {
             log_h->console("SYNC:  Receiving from radio while in IDLE_RX\n");
           }
           // If radio is in locked state returns inmidiatetly. In that case, do a 1 ms sleep
@@ -641,8 +642,6 @@ void sync::run_thread()
 
     // Increase TTI counter
     tti = (tti+1) % 10240;
-
-    stack->run_tti(tti);
   }
 
   for (uint32_t p = 0; p < nof_rf_channels; p++) {
@@ -912,9 +911,32 @@ void sync::get_current_cell(srslte_cell_t* cell, uint32_t* earfcn)
 
 int sync::radio_recv_fnc(cf_t* data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t* rx_time)
 {
+  srslte_timestamp_t ts = {};
+
+  // Use local timestamp if timestamp is not provided
+  if (!rx_time) {
+    rx_time = &ts;
+  }
+
+  // Receive
   if (radio_h->rx_now(0, data, nsamples, rx_time)) {
+    // Detect Radio Timestamp reset
+    if (srslte_timestamp_compare(rx_time, &radio_ts) < 0) {
+      srslte_timestamp_init(&radio_ts, 0, 0.0);
+    }
+    srslte_timestamp_copy(&radio_ts, rx_time);
+
+    // Advance stack in time
+    while (srslte_timestamp_compare(rx_time, &tti_ts) > 0) {
+      // Run stack
+      stack->run_tti(tti);
+
+      // Increase one millisecond
+      srslte_timestamp_add(&tti_ts, 0, 1.0e-3f);
+    }
+
     if (channel_emulator && rx_time) {
-      channel_emulator->set_srate(current_srate);
+      channel_emulator->set_srate((uint32_t)current_srate);
       channel_emulator->run(data, data, nsamples, *rx_time);
     }
 
