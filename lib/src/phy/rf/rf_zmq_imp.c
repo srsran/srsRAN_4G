@@ -214,6 +214,13 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
     handler->nof_channels     = nof_channels;
     strcpy(handler->id, "zmq\0");
 
+    rf_zmq_opts_t rx_opts = {};
+    rf_zmq_opts_t tx_opts = {};
+    rx_opts.socket_type = ZMQ_REQ;
+    tx_opts.socket_type = ZMQ_REP;
+    tx_opts.id = handler->id;
+    rx_opts.id = handler->id;
+
     // parse args
     if (args && strlen(args)) {
       // base_srate
@@ -244,6 +251,77 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
           remove_substring(args, config_str);
         }
       }
+      // rx_type
+      {
+        const char config_arg[]                = "rx_type=";
+        char       config_str[PARAM_LEN_SHORT] = {0};
+        char*      config_ptr                  = strstr(args, config_arg);
+        if (config_ptr) {
+          copy_subdev_string(config_str, config_ptr + strlen(config_arg));
+          if (!strcmp(config_str, "sub")) {
+            rx_opts.socket_type = ZMQ_SUB;
+            printf("Using ZMQ_SUB for rx socket\n");
+          } else {
+            printf("Unsupported socket type %s. Using ZMQ_REQ for rx socket\n", config_str);
+          }
+          remove_substring(args, config_arg);
+          remove_substring(args, config_str);
+        }
+      }
+      // rx_format
+      {
+        const char config_arg[]                = "rx_format=";
+        char       config_str[PARAM_LEN_SHORT] = {0};
+        char*      config_ptr                  = strstr(args, config_arg);
+        if (config_ptr) {
+          copy_subdev_string(config_str, config_ptr + strlen(config_arg));
+          rx_opts.sample_format = ZMQ_TYPE_FC32;
+          if (!strcmp(config_str, "sc16")) {
+            rx_opts.sample_format = ZMQ_TYPE_SC16;
+            printf("Using sc16 format for rx socket\n");
+          } else {
+            printf("Unsupported sample format %s. Using fc32 for rx socket\n", config_str);
+          }
+          remove_substring(args, config_arg);
+          remove_substring(args, config_str);
+        }
+      }
+      // tx_type
+      {
+        const char config_arg[]                = "tx_type=";
+        char       config_str[PARAM_LEN_SHORT] = {0};
+        char*      config_ptr                  = strstr(args, config_arg);
+        if (config_ptr) {
+          copy_subdev_string(config_str, config_ptr + strlen(config_arg));
+          if (!strcmp(config_str, "pub")) {
+            tx_opts.socket_type = ZMQ_PUB;
+            printf("Using ZMQ_PUB for tx socket\n");
+          } else {
+            printf("Unsupported socket type %s. Using ZMQ_REP for tx socket\n", config_str);
+          }
+          remove_substring(args, config_arg);
+          remove_substring(args, config_str);
+        }
+      }
+      // tx_format
+      {
+        const char config_arg[]                = "tx_format=";
+        char       config_str[PARAM_LEN_SHORT] = {0};
+        char*      config_ptr                  = strstr(args, config_arg);
+        if (config_ptr) {
+          copy_subdev_string(config_str, config_ptr + strlen(config_arg));
+          tx_opts.sample_format = ZMQ_TYPE_FC32;
+          if (!strcmp(config_str, "sc16")) {
+            tx_opts.sample_format = ZMQ_TYPE_SC16;
+            printf("Using sc16 format for tx socket\n");
+          } else {
+            printf("Unsupported sample format %s. Using fc32 for tx socket\n", config_str);
+          }
+          remove_substring(args, config_arg);
+          remove_substring(args, config_str);
+        }
+      }
+
     } else {
       fprintf(stderr, "[zmq] Error: RF device args are required for ZMQ no-RF module\n");
       goto clean_exit;
@@ -303,7 +381,7 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
 
       // initialize transmitter
       if (strlen(handler->tx_port) != 0) {
-        if (rf_zmq_tx_open(&handler->transmitter[i], handler->id, handler->context, handler->tx_port) !=
+        if (rf_zmq_tx_open(&handler->transmitter[i], tx_opts, handler->context, handler->tx_port) !=
             SRSLTE_SUCCESS) {
           fprintf(stderr, "[zmq] Error: opening transmitter\n");
           goto clean_exit;
@@ -314,7 +392,7 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
 
       // initialize receiver
       if (strlen(handler->rx_port) != 0) {
-        if (rf_zmq_rx_open(&handler->receiver[i], handler->id, handler->context, handler->rx_port) != SRSLTE_SUCCESS) {
+        if (rf_zmq_rx_open(&handler->receiver[i], rx_opts, handler->context, handler->rx_port) != SRSLTE_SUCCESS) {
           fprintf(stderr, "[zmq] Error: opening receiver\n");
           goto clean_exit;
         }

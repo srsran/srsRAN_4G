@@ -40,17 +40,27 @@
 #define ZMQ_BASERATE_DEFAULT_HZ (23040000)
 #define ZMQ_ID_STRLEN 16
 
+typedef enum {
+  ZMQ_TYPE_FC32 = 0,
+  ZMQ_TYPE_SC16
+} rf_zmq_format_t;
+
 typedef struct {
   char            id[ZMQ_ID_STRLEN];
+  uint32_t        socket_type;
+  rf_zmq_format_t sample_format;
   void*           sock;
   uint64_t        nsamples;
   bool            running;
   pthread_mutex_t mutex;
   cf_t*           zeros;
+  void*           temp_buffer_convert;
 } rf_zmq_tx_t;
 
 typedef struct {
   char                id[ZMQ_ID_STRLEN];
+  uint32_t            socket_type;
+  rf_zmq_format_t sample_format;
   void*               sock;
   uint64_t            nsamples;
   bool                running;
@@ -58,7 +68,14 @@ typedef struct {
   pthread_mutex_t     mutex;
   srslte_ringbuffer_t ringbuffer;
   cf_t*               temp_buffer;
+  void*               temp_buffer_convert;
 } rf_zmq_rx_t;
+
+typedef struct {
+  const char      *id;
+  uint32_t        socket_type;
+  rf_zmq_format_t sample_format;
+} rf_zmq_opts_t;
 
 /*
  * Common functions
@@ -72,7 +89,7 @@ SRSLTE_API int rf_zmq_handle_error(char* id, const char* text);
 /*
  * Transmitter functions
  */
-SRSLTE_API int rf_zmq_tx_open(rf_zmq_tx_t* q, const char* id, void* zmq_ctx, char* sock_args);
+SRSLTE_API int rf_zmq_tx_open(rf_zmq_tx_t* q, rf_zmq_opts_t opts, void* zmq_ctx, char* sock_args);
 
 SRSLTE_API int rf_zmq_tx_align(rf_zmq_tx_t* q, uint64_t ts);
 
@@ -83,7 +100,7 @@ SRSLTE_API void rf_zmq_tx_close(rf_zmq_tx_t* q);
 /*
  * Receiver functions
  */
-SRSLTE_API int rf_zmq_rx_open(rf_zmq_rx_t* q, char* id, void* zmq_ctx, char* sock_args);
+SRSLTE_API int rf_zmq_rx_open(rf_zmq_rx_t* q, rf_zmq_opts_t opts, void* zmq_ctx, char* sock_args);
 
 SRSLTE_API int rf_zmq_rx_baseband(rf_zmq_rx_t* q, cf_t* buffer, uint32_t nsamples);
 

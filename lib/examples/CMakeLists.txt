@@ -52,6 +52,10 @@ if(SRSGUI_FOUND)
   add_definitions(-DENABLE_GUI)
 endif(SRSGUI_FOUND)
 
+if (ZEROMQ_FOUND)
+  add_executable(zmq_remote_rx zmq_remote_rx.c)
+  target_link_libraries(zmq_remote_rx srslte_phy srslte_rf)
+endif (ZEROMQ_FOUND)
 
 #################################################################
 # These examples need the UHD driver
