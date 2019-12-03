@@ -242,6 +242,7 @@ public:
 
 private:
   struct base_task {
+    virtual ~base_task() {}
     virtual void operator()() = 0;
   };
   template <typename Func>

@@ -110,6 +110,7 @@ public:
     va_list args;
     va_start(args, message);
     log_va_list(LOG_LEVEL_DEBUG, message, args);
+    va_end(args);
   }
 
   void info(const char* message, ...) override __attribute__((format(printf, 2, 3)))
@@ -117,6 +118,7 @@ public:
     va_list args;
     va_start(args, message);
     log_va_list(LOG_LEVEL_INFO, message, args);
+    va_end(args);
   }
 
   void warning(const char* message, ...) override __attribute__((format(printf, 2, 3)))
@@ -125,6 +127,7 @@ public:
     va_list args;
     va_start(args, message);
     log_va_list(LOG_LEVEL_WARNING, message, args);
+    va_end(args);
   }
 
   void error(const char* message, ...) override __attribute__((format(printf, 2, 3)))
@@ -133,6 +136,7 @@ public:
     va_list args;
     va_start(args, message);
     log_va_list(LOG_LEVEL_ERROR, message, args);
+    va_end(args);
     if (exit_on_error) {
       exit(-1);
     }
@@ -151,7 +155,6 @@ private:
         last_log_msg = args_msg;
       }
     }
-    va_end(argp);
   }
 };
 

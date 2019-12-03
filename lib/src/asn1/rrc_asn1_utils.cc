@@ -167,6 +167,7 @@ void to_asn1(asn1::rrc::rlc_cfg_c* asn1_type, const srslte::rlc_config_t& cfg)
           (asn1::rrc::sn_field_len_opts::options)cfg.um.rx_sn_field_length;
       asn1_type->um_bi_dir().ul_um_rlc.sn_field_len.value =
           (asn1::rrc::sn_field_len_opts::options)cfg.um.tx_sn_field_length;
+      break;
     case rlc_mode_t::am:
       asn1_type->set_am();
       asn1::number_to_enum(asn1_type->am().ul_am_rlc.t_poll_retx, cfg.am.t_poll_retx);
