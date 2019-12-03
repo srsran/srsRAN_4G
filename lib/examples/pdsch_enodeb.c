@@ -825,7 +825,7 @@ int main(int argc, char **argv) {
   nf = 0;
   
   bool send_data = false; 
-    for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+  for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
     srslte_softbuffer_tx_reset(softbuffers[i]);
   }
 
@@ -835,15 +835,15 @@ int main(int argc, char **argv) {
 #endif
 
   ZERO_OBJECT(pdsch_cfg);
-  for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
-    pdsch_cfg.softbuffers.tx[i] = softbuffers[i];
+  for (uint32_t j = 0; j < SRSLTE_MAX_CODEWORDS; j++) {
+    pdsch_cfg.softbuffers.tx[j] = softbuffers[j];
   }
   pdsch_cfg.rnti = UE_CRNTI;
 
   pmch_cfg.pdsch_cfg = pdsch_cfg;
 
   while ((nf < nof_frames || nof_frames == -1) && !go_exit) {
-    for (sf_idx = 0; sf_idx < SRSLTE_NOF_SF_X_FRAME && (nf < nof_frames || nof_frames == -1); sf_idx++) {
+    for (sf_idx = 0; sf_idx < SRSLTE_NOF_SF_X_FRAME && (nf < nof_frames || nof_frames == -1) && !go_exit; sf_idx++) {
       /* Set Antenna port resource elements to zero */
       bzero(sf_symbols[0], sizeof(cf_t) * sf_n_re);
 
@@ -944,7 +944,7 @@ int main(int argc, char **argv) {
               sem_post(&net_sem);
             }
           }
-        }else{ // We're sending MCH on subframe 1 - PDCCH + PMCH
+        } else { // We're sending MCH on subframe 1 - PDCCH + PMCH
           dl_sf.sf_type = SRSLTE_SF_MBSFN;
 
           /* Force 1 word and MCS 2 */
@@ -960,8 +960,8 @@ int main(int argc, char **argv) {
             exit(-1);
           }
 
-          for (int i = 0; i < pmch_cfg.pdsch_cfg.grant.tb[0].tbs / 8; i++) {
-            data_mbms[i] = i % 255;
+          for (int j = 0; j < pmch_cfg.pdsch_cfg.grant.tb[0].tbs / 8; j++) {
+            data_mbms[j] = j % 255;
           }
 
           pmch_cfg.area_id = mbsfn_area_id;
@@ -985,11 +985,11 @@ int main(int argc, char **argv) {
       }
 
       /* Transform to OFDM symbols */
-      if(mch_table[sf_idx] == 0 || mbsfn_area_id < 0){
+      if (mch_table[sf_idx] == 0 || mbsfn_area_id < 0) {
         for (i = 0; i < cell.nof_ports; i++) {
           srslte_ofdm_tx_sf(&ifft[i]);
         }
-      }else{
+      } else {
         srslte_ofdm_tx_sf(&ifft_mbsfn);
       }
   

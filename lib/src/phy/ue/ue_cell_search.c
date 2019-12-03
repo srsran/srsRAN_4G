@@ -121,6 +121,7 @@ int srslte_ue_cellsearch_init_multi(srslte_ue_cellsearch_t* q,
 
     for (int i = 0; i < nof_rx_antennas; i++) {
       q->sf_buffer[i] = srslte_vec_malloc(3 * sizeof(cf_t) * SRSLTE_SF_LEN_PRB(100));
+      bzero(q->sf_buffer[i], 3 * sizeof(cf_t) * SRSLTE_SF_LEN_PRB(100));
     }
     q->nof_rx_antennas = nof_rx_antennas;
 
@@ -263,6 +264,7 @@ int srslte_ue_cellsearch_scan(srslte_ue_cellsearch_t * q,
   uint32_t nof_detected_cells = 0;
 
   for (uint32_t N_id_2=0;N_id_2<3 && ret >= 0;N_id_2++) {
+    INFO("CELL SEARCH: Starting scan for N_id_2=%d\n", N_id_2);
     ret = srslte_ue_cellsearch_scan_N_id_2(q, N_id_2, &found_cells[N_id_2]);
     if (ret < 0) {
       ERROR("Error searching cell\n");
@@ -319,7 +321,7 @@ int srslte_ue_cellsearch_scan_N_id_2(srslte_ue_cellsearch_t * q,
           q->candidates[nof_detected_frames].psr        = srslte_sync_get_peak_value(&q->ue_sync.sfind);
           q->candidates[nof_detected_frames].cfo        = 15000 * srslte_sync_get_cfo(&q->ue_sync.sfind);
           q->candidates[nof_detected_frames].frame_type = srslte_ue_sync_get_frame_type(&q->ue_sync);
-          DEBUG("CELL SEARCH: [%d/%d/%d]: Found peak PSR=%.3f, Cell_id: %d CP: %s, CFO=%.1f KHz\n",
+          INFO("CELL SEARCH: [%d/%d/%d]: Found peak PSR=%.3f, Cell_id: %d CP: %s, CFO=%.1f KHz\n",
                 nof_detected_frames,
                 nof_scanned_frames,
                 q->nof_valid_frames,

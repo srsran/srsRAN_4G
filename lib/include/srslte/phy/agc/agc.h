@@ -48,8 +48,8 @@ typedef enum SRSLTE_API {
 typedef struct SRSLTE_API{
   float bandwidth;
   float gain;
-  float min_gain;
-  float max_gain;
+  float min_gain_db;
+  float max_gain_db;
   float y_out;
   bool lock;
   bool  isfirst;
@@ -76,7 +76,7 @@ SRSLTE_API void srslte_agc_free(srslte_agc_t *q);
 
 SRSLTE_API void srslte_agc_reset(srslte_agc_t *q);
 
-SRSLTE_API void srslte_agc_set_gain_range(srslte_agc_t* q, float min_gain, float max_gain);
+SRSLTE_API void srslte_agc_set_gain_range(srslte_agc_t *q, float min_gain_db, float max_gain_db);
 
 SRSLTE_API void srslte_agc_set_bandwidth(srslte_agc_t *q, 
                                          float bandwidth);
@@ -91,7 +91,7 @@ SRSLTE_API float srslte_agc_get_output_level(srslte_agc_t *q);
 SRSLTE_API float srslte_agc_get_gain(srslte_agc_t *q);
 
 SRSLTE_API void srslte_agc_set_gain(srslte_agc_t *q, 
-                                    float init_gain_value); 
+                                    float init_gain_value_db);
 
 SRSLTE_API void srslte_agc_lock(srslte_agc_t *q, 
                                 bool enable);
