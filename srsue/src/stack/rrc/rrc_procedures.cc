@@ -955,6 +955,13 @@ srslte::proc_outcome_t rrc::connection_reest_proc::step_cell_reselection()
 
   // Run cell reselection
   if (not rrc_ptr->cell_reselector.run()) {
+    // Check T311
+    if (!rrc_ptr->t311.is_running()) {
+      // Abort procedure if T311 expires
+      Info("T311 expired during cell reselection. Aborting.\n");
+      return proc_outcome_t::success;
+    }
+
     // Cell reselection finished or not started
     if (rrc_ptr->phy_sync_state == phy_in_sync) {
       // In-sync, check SIBs
@@ -975,7 +982,9 @@ srslte::proc_outcome_t rrc::connection_reest_proc::step_cell_reselection()
       }
     } else {
       // Out-of-sync, relaunch reselection
-      Info("Serving cell is out-of-sync, re-launching re-selection procedure\n");
+      Info("Serving cell is out-of-sync, re-launching re-selection procedure. T311: %d/%d ms\n",
+           rrc_ptr->t311.value(),
+           rrc_ptr->t311.duration());
       if (!rrc_ptr->cell_reselector.launch()) {
         return proc_outcome_t::error;
       }
@@ -988,6 +997,13 @@ srslte::proc_outcome_t rrc::connection_reest_proc::step_cell_reselection()
 proc_outcome_t rrc::connection_reest_proc::step_cell_configuration()
 {
   if (not rrc_ptr->serv_cell_cfg.run()) {
+    // Check T311
+    if (!rrc_ptr->t311.is_running()) {
+      // Abort procedure if T311 expires
+      Info("T311 expired during cell configuration. Aborting.\n");
+      return proc_outcome_t::success;
+    }
+
     // SIBs adquisition not started or finished
     if (rrc_ptr->phy_sync_state == phy_in_sync) {
       // In-sync
@@ -1045,25 +1061,20 @@ proc_outcome_t rrc::connection_reest_proc::step()
 {
   proc_outcome_t ret = proc_outcome_t::yield;
 
-  // Abort procedure if T311 expires
-  if (!rrc_ptr->t311.is_running()) {
-    Info("T311 expired. Aborting.\n");
-    ret = proc_outcome_t::success;
-  } else {
-    /*
-     * Implementation of procedure in 3GPP 36.331 Section 5.3.7.3: Actions following cell selection while T311 is
-     * running
-     */
-    switch (state) {
-      case state_t::cell_reselection:
-        ret = step_cell_reselection();
-        break;
+  /*
+   * Implementation of procedure in 3GPP 36.331 Section 5.3.7.3: Actions following cell selection while T311 is
+   * running
+   */
+  switch (state) {
+    case state_t::cell_reselection:
+      ret = step_cell_reselection();
+      break;
 
-      case state_t::cell_configuration:
-        ret = step_cell_configuration();
-        break;
-    }
+    case state_t::cell_configuration:
+      ret = step_cell_configuration();
+      break;
   }
+
   if (ret != proc_outcome_t::yield) {
     rrc_ptr->mac->set_enable_ra_proc(true);
   }
