@@ -384,7 +384,7 @@ void sched::tpc_dec(uint16_t rnti)
  *******************************************************/
 
 // Downlink Scheduler API
-int sched::dl_sched(uint32_t tti, sched_interface::dl_sched_res_t* sched_result)
+int sched::dl_sched(uint32_t tti, uint32_t cc_idx, sched_interface::dl_sched_res_t& sched_result)
 {
   if (!configured) {
     return 0;
@@ -393,19 +393,21 @@ int sched::dl_sched(uint32_t tti, sched_interface::dl_sched_res_t* sched_result)
   uint32_t tti_rx = sched_utils::tti_subtract(tti, TX_DELAY);
   current_tti     = sched_utils::max_tti(current_tti, tti_rx);
 
-  // Compute scheduling Result for tti_rx
-  pthread_rwlock_rdlock(&rwlock);
-  tti_sched_result_t* tti_sched = carrier_schedulers[0]->generate_tti_result(tti_rx);
-  pthread_rwlock_unlock(&rwlock);
+  if (cc_idx < carrier_schedulers.size()) {
+    // Compute scheduling Result for tti_rx
+    pthread_rwlock_rdlock(&rwlock);
+    tti_sched_result_t* tti_sched = carrier_schedulers[cc_idx]->generate_tti_result(tti_rx);
+    pthread_rwlock_unlock(&rwlock);
 
-  // Copy result
-  *sched_result = tti_sched->dl_sched_result;
+    // copy result
+    sched_result = tti_sched->dl_sched_result;
+  }
 
   return 0;
 }
 
 // Uplink Scheduler API
-int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched_result)
+int sched::ul_sched(uint32_t tti, uint32_t cc_idx, srsenb::sched_interface::ul_sched_res_t& sched_result)
 {
   if (!configured) {
     return 0;
@@ -413,12 +415,15 @@ int sched::ul_sched(uint32_t tti, srsenb::sched_interface::ul_sched_res_t* sched
 
   // Compute scheduling Result for tti_rx
   uint32_t tti_rx = sched_utils::tti_subtract(tti, 2 * FDD_HARQ_DELAY_MS);
-  pthread_rwlock_rdlock(&rwlock);
-  tti_sched_result_t* tti_sched = carrier_schedulers[0]->generate_tti_result(tti_rx);
-  pthread_rwlock_unlock(&rwlock);
 
-  // Copy result
-  *sched_result = tti_sched->ul_sched_result;
+  if (cc_idx < carrier_schedulers.size()) {
+    pthread_rwlock_rdlock(&rwlock);
+    tti_sched_result_t* tti_sched = carrier_schedulers[cc_idx]->generate_tti_result(tti_rx);
+    pthread_rwlock_unlock(&rwlock);
+
+    // copy result
+    sched_result = tti_sched->ul_sched_result;
+  }
 
   return SRSLTE_SUCCESS;
 }

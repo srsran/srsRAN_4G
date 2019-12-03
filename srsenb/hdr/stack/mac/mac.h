@@ -60,13 +60,13 @@ public:
 
   int ri_info(uint32_t tti, uint16_t rnti, uint32_t ri_value);
   int pmi_info(uint32_t tti, uint16_t rnti, uint32_t pmi_value);
-  int cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value); 
-  int snr_info(uint32_t tti, uint16_t rnti, float snr); 
+  int cqi_info(uint32_t tti, uint16_t rnti, uint32_t cqi_value);
+  int snr_info(uint32_t tti, uint16_t rnti, float snr);
   int ack_info(uint32_t tti, uint16_t rnti, uint32_t tb_idx, bool ack);
-  int crc_info(uint32_t tti, uint16_t rnti, uint32_t nof_bytes, bool crc_res); 
-    
-  int get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res);
-  int get_ul_sched(uint32_t tti, ul_sched_t *ul_sched_res);
+  int crc_info(uint32_t tti, uint16_t rnti, uint32_t nof_bytes, bool crc_res);
+
+  int  get_dl_sched(uint32_t tti, dl_sched_t* dl_sched_res);
+  int  get_ul_sched(uint32_t tti, ul_sched_t* ul_sched_res);
   int  get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_t* dl_sched_res);
   void set_sched_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs) final
   {
@@ -99,31 +99,31 @@ public:
   void     get_metrics(mac_metrics_t metrics[ENB_METRICS_MAX_USERS]);
   void     write_mcch(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s* mcch);
 
-private:  
+private:
+  static const int      MAX_LOCATIONS            = 20;
+  static const uint32_t cfi                      = 3;
+  srslte_dci_location_t locations[MAX_LOCATIONS] = {};
 
-  static const int MAX_LOCATIONS = 20;
-  static const uint32_t cfi = 3; 
-  srslte_dci_location_t locations[MAX_LOCATIONS];
-  
-  static const int MAC_PDU_THREAD_PRIO  = 60;
+  static const int MAC_PDU_THREAD_PRIO = 60;
 
-  // We use a rwlock in MAC to allow multiple workers to access MAC simultaneously. No conflicts will happen since access for different TTIs
-  pthread_rwlock_t rwlock;
+  // We use a rwlock in MAC to allow multiple workers to access MAC simultaneously. No conflicts will happen since
+  // access for different TTIs
+  pthread_rwlock_t rwlock = {};
 
   // Interaction with PHY
-  phy_interface_stack_lte* phy_h;
-  rlc_interface_mac*       rlc_h;
-  rrc_interface_mac*       rrc_h;
-  stack_interface_mac_lte* stack;
-  srslte::log*             log_h;
+  phy_interface_stack_lte* phy_h = nullptr;
+  rlc_interface_mac*       rlc_h = nullptr;
+  rrc_interface_mac*       rrc_h = nullptr;
+  stack_interface_mac_lte* stack = nullptr;
+  srslte::log*             log_h = nullptr;
 
   srslte_cell_t cell;
-  mac_args_t    args; 
-  
-  bool          started;
+  mac_args_t    args = {};
+
+  bool started = false;
 
   /* Scheduler unit */
-  sched            scheduler; 
+  sched                       scheduler;
   dl_metric_rr     sched_metric_dl_rr;
   ul_metric_rr     sched_metric_ul_rr;
   sched_interface::cell_cfg_t cell_config;
@@ -163,7 +163,7 @@ private:
   uint8_t          mtch_payload_buffer[mtch_payload_len];
 
   // pointer to MAC PCAP object
-  srslte::mac_pcap* pcap;
+  srslte::mac_pcap* pcap = nullptr;
 };
 
 } // namespace srsenb

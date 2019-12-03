@@ -239,8 +239,8 @@ public:
   virtual int ul_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t cqi, uint32_t ul_ch_code) = 0;
 
   /* Run Scheduler for this tti */
-  virtual int dl_sched(uint32_t tti, dl_sched_res_t* sched_result) = 0;
-  virtual int ul_sched(uint32_t tti, ul_sched_res_t* sched_result) = 0;
+  virtual int dl_sched(uint32_t tti, uint32_t cc_idx, dl_sched_res_t& sched_result) = 0;
+  virtual int ul_sched(uint32_t tti, uint32_t cc_idx, ul_sched_res_t& sched_result) = 0;
 
   /* Custom */
   virtual void set_dl_tti_mask(uint8_t* tti_mask, uint32_t nof_sfs) = 0;

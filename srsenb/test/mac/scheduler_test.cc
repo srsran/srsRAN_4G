@@ -139,10 +139,10 @@ int main(int argc, char *argv[])
   while(running) {
     log_out.step(tti);
     if (tti > 50) {
-      running = false; 
+      running = false;
     }
-    my_sched.dl_sched(tti, &sched_result_dl);
-    my_sched.ul_sched(tti, &sched_result_ul);
+    my_sched.dl_sched(tti, 0, sched_result_dl);
+    my_sched.ul_sched(tti, 0, sched_result_ul);
     tti = (tti + 1) % 10240;
     if (tti >= 4) {
       my_sched.ul_crc_info(tti, rnti, 0, tti % 2);

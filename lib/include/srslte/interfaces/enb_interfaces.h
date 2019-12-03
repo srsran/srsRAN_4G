@@ -53,7 +53,9 @@ public:
     dl_sched_grant_t pdsch[MAX_GRANTS];
     uint32_t         nof_grants;
     uint32_t         cfi;
-  } dl_sched_t;
+  } dl_sched_t; // per carrier
+
+  typedef std::vector<dl_sched_t> dl_sched_list_t;
 
   typedef struct {
     uint16_t rnti;

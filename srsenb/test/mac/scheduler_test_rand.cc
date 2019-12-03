@@ -410,8 +410,8 @@ void sched_tester::run_tti(uint32_t tti_rx)
   ack_txs();
   before_sched();
 
-  dl_sched(tti_data.tti_tx_dl, &tti_data.sched_result_dl);
-  ul_sched(tti_data.tti_tx_ul, &tti_data.sched_result_ul);
+  dl_sched(tti_data.tti_tx_dl, CARRIER_IDX, tti_data.sched_result_dl);
+  ul_sched(tti_data.tti_tx_ul, CARRIER_IDX, tti_data.sched_result_ul);
 
   process_results();
 }

@@ -145,8 +145,8 @@ public:
   int ul_phr(uint16_t rnti, int phr) final;
   int ul_cqi_info(uint32_t tti, uint16_t rnti, uint32_t cc_idx, uint32_t cqi, uint32_t ul_ch_code) final;
 
-  int dl_sched(uint32_t tti, dl_sched_res_t* sched_result) final;
-  int ul_sched(uint32_t tti, ul_sched_res_t* sched_result) final;
+  int dl_sched(uint32_t tti, uint32_t cc_idx, dl_sched_res_t& sched_result) final;
+  int ul_sched(uint32_t tti, uint32_t cc_idx, ul_sched_res_t& sched_result) final;
 
   /* Custom functions
    */

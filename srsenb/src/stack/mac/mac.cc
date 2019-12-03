@@ -40,22 +40,13 @@ namespace srsenb {
 
 mac::mac() : last_rnti(0), rar_pdu_msg(sched_interface::MAX_RAR_LIST), rar_payload()
 {
-  started = false;
-  pcap    = NULL;
-  phy_h = NULL;
-  rlc_h = NULL;
-  rrc_h = NULL;
-  log_h = NULL;
-
-  bzero(&locations, sizeof(locations));
   bzero(&cell, sizeof(cell));
-  bzero(&args, sizeof(args));
   bzero(&bcch_dlsch_payload, sizeof(bcch_dlsch_payload));
   bzero(&pcch_payload_buffer, sizeof(pcch_payload_buffer));
   bzero(&bcch_softbuffer_tx, sizeof(bcch_softbuffer_tx));
   bzero(&pcch_softbuffer_tx, sizeof(pcch_softbuffer_tx));
   bzero(&rar_softbuffer_tx, sizeof(rar_softbuffer_tx));
-  pthread_rwlock_init(&rwlock, NULL);
+  pthread_rwlock_init(&rwlock, nullptr);
 }
 
 mac::~mac()
@@ -540,9 +531,8 @@ int mac::get_dl_sched(uint32_t tti, dl_sched_t *dl_sched_res)
   }
 
   // Run scheduler with current info
-  sched_interface::dl_sched_res_t sched_result;
-  bzero(&sched_result, sizeof(sched_interface::dl_sched_res_t));
-  if (scheduler.dl_sched(tti, &sched_result) < 0) {
+  sched_interface::dl_sched_res_t sched_result = {};
+  if (scheduler.dl_sched(tti, 0, sched_result) < 0) {
     Error("Running scheduler\n");
     return SRSLTE_ERROR;
   }
@@ -790,9 +780,8 @@ int mac::get_ul_sched(uint32_t tti, ul_sched_t *ul_sched_res)
   }
 
   // Run scheduler with current info
-  sched_interface::ul_sched_res_t sched_result;
-  bzero(&sched_result, sizeof(sched_interface::ul_sched_res_t));
-  if (scheduler.ul_sched(tti, &sched_result)<0) {
+  sched_interface::ul_sched_res_t sched_result = {};
+  if (scheduler.ul_sched(tti, 0, sched_result) < 0) {
     Error("Running scheduler\n");
     return SRSLTE_ERROR;
   }
