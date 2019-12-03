@@ -115,7 +115,7 @@ float srslte_agc_get_gain(srslte_agc_t *q) {
 }
 
 void srslte_agc_set_gain(srslte_agc_t *q, float init_gain_value_db) {
-  q->gain = pow(10, init_gain_value_db/10);
+  q->gain = srslte_convert_dB_to_power(init_gain_value_db);
 }
 
 void srslte_agc_lock(srslte_agc_t *q, bool enable) {
