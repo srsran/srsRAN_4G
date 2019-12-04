@@ -36,6 +36,7 @@ namespace srsenb {
 #define Debug(fmt, ...) rrc_log->debug("Mobility: " fmt, ##__VA_ARGS__)
 
 #define procInfo(fmt, ...) parent->rrc_log->info("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
+#define procWarning(fmt, ...) parent->rrc_log->warning("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
 #define procError(fmt, ...) parent->rrc_log->error("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
 
 using namespace asn1::rrc;
@@ -738,7 +739,8 @@ void rrc::ue::rrc_mobility::handle_ue_meas_report(const meas_report_s& msg)
 /**
  * Description: Send "HO Required" message from source eNB to MME
  *              - 1st Message of the handover preparation phase
- *              - includes info about the target eNB and the radio resources of the source eNB
+ *              - The RRC stores info regarding the source eNB configuration in a HO Preparation Info struct
+ *              - This struct goes in a transparent container to the S1AP
  */
 bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
                                                  uint8_t  measobj_id,
@@ -876,9 +878,9 @@ bool rrc::ue::rrc_mobility::start_ho_preparation(uint32_t target_eci,
   return success;
 }
 
-void rrc::ue::rrc_mobility::handle_ho_preparation_complete(bool is_success)
+void rrc::ue::rrc_mobility::handle_ho_preparation_complete(bool is_success, srslte::unique_byte_buffer_t container)
 {
-  source_ho_proc.trigger(sourceenb_ho_proc_t::ho_prep_result{is_success});
+  source_ho_proc.trigger(sourceenb_ho_proc_t::ho_prep_result{is_success, std::move(container)});
 }
 
 /*************************************************************************************************
@@ -921,8 +923,47 @@ srslte::proc_outcome_t rrc::ue::rrc_mobility::sourceenb_ho_proc_t::react(ho_prep
     procError("Failure during handover preparation.\n");
     return srslte::proc_outcome_t::error;
   }
-  procError("Handover preparation successful\n");
-  // TODO: send HO command to UE
+
+  /* unpack RRC HOCmd struct and perform sanity checks */
+  asn1::rrc::ho_cmd_s rrchocmd;
+  {
+    asn1::bit_ref bref(e.rrc_container->msg, e.rrc_container->N_bytes);
+    if (rrchocmd.unpack(bref) != asn1::SRSASN_SUCCESS) {
+      procError("Unpacking of RRC HO Command was unsuccessful\n");
+      return srslte::proc_outcome_t::error;
+    }
+  }
+  if (rrchocmd.crit_exts.type().value != c1_or_crit_ext_opts::c1 or
+      rrchocmd.crit_exts.c1().type().value != ho_cmd_s::crit_exts_c_::c1_c_::types_opts::ho_cmd_r8) {
+    procError("Only handling r8 Handover Commands\n");
+  }
+
+  /* unpack DL-DCCH message containing the RRCRonnectionReconf (with MobilityInfo) to be sent to the UE */
+  asn1::rrc::dl_dcch_msg_s dl_dcch_msg;
+  {
+    asn1::bit_ref bref(&rrchocmd.crit_exts.c1().ho_cmd_r8().ho_cmd_msg[0],
+                       rrchocmd.crit_exts.c1().ho_cmd_r8().ho_cmd_msg.size());
+    if (dl_dcch_msg.unpack(bref) != asn1::SRSASN_SUCCESS) {
+      procError("Unpacking of RRC DL-DCCH message with HO Command was unsuccessful.\n");
+      return srslte::proc_outcome_t::error;
+    }
+  }
+  if (dl_dcch_msg.msg.type().value != dl_dcch_msg_type_c::types_opts::c1 or
+      dl_dcch_msg.msg.c1().type().value != dl_dcch_msg_type_c::c1_c_::types_opts::rrc_conn_recfg) {
+    procError("HandoverCommand is expected to contain an RRC Connection Reconf message inside\n");
+    return srslte::proc_outcome_t::error;
+  }
+  asn1::rrc::rrc_conn_recfg_s& reconf = dl_dcch_msg.msg.c1().rrc_conn_recfg();
+  if (not reconf.crit_exts.c1().rrc_conn_recfg_r8().mob_ctrl_info_present) {
+    procWarning("HandoverCommand is expected to have mobility control subfield\n");
+    return srslte::proc_outcome_t::error;
+  }
+
+  // TODO: Do anything with MeasCfg info within the Msg (e.g. update ue_var_meas)?
+
+  /* Send HO Command to UE */
+  parent->rrc_ue->send_dl_dcch(&dl_dcch_msg);
+  procInfo("Handover command of rnti=0x%x handled successfully.\n", parent->rrc_ue->rnti);
   return srslte::proc_outcome_t::success;
 }
 

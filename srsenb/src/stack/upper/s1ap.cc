@@ -37,6 +37,7 @@ using srslte::s1ap_mccmnc_to_plmn;
 using srslte::uint32_to_uint8;
 
 #define procError(fmt, ...) s1ap_ptr->s1ap_log->error("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
+#define procWarning(fmt, ...) s1ap_ptr->s1ap_log->warning("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
 #define procInfo(fmt, ...) s1ap_ptr->s1ap_log->info("Proc \"%s\" - " fmt, name(), ##__VA_ARGS__)
 
 namespace srsenb {
@@ -48,18 +49,19 @@ s1ap::ue::ho_prep_proc_t::ho_prep_proc_t(s1ap::ue* ue_) : ue_ptr(ue_), s1ap_ptr(
 
 srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::init(uint32_t                     target_eci_,
                                                       srslte::plmn_id_t            target_plmn_,
-                                                      srslte::unique_byte_buffer_t rrc_container)
+                                                      srslte::unique_byte_buffer_t rrc_container_)
 {
   target_eci  = target_eci_;
   target_plmn = target_plmn_;
 
   procInfo("Sending HandoverRequired to MME id=%d\n", ue_ptr->ctxt.MME_UE_S1AP_ID);
-  if (not ue_ptr->send_ho_required(target_eci, target_plmn, std::move(rrc_container))) {
+  if (not ue_ptr->send_ho_required(target_eci, target_plmn, std::move(rrc_container_))) {
     procError("Failed to send HORequired to cell 0x%x\n", target_eci);
     return srslte::proc_outcome_t::error;
   }
 
   ue_ptr->ts1_reloc_prep.run();
+
   return srslte::proc_outcome_t::yield;
 }
 srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::react(ts1_reloc_prep_expired e)
@@ -70,15 +72,74 @@ srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::react(ts1_reloc_prep_expired e)
 }
 srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::react(const LIBLTE_S1AP_MESSAGE_HANDOVERPREPARATIONFAILURE_STRUCT& msg)
 {
+  ue_ptr->ts1_reloc_prep.stop();
+
   std::string cause = s1ap_ptr->get_cause(&msg.Cause);
   procError("HO preparation Failure. Cause: %s\n", cause.c_str());
   s1ap_ptr->s1ap_log->console("HO preparation Failure. Cause: %s\n", cause.c_str());
+
   return srslte::proc_outcome_t::error;
+}
+
+/**
+ * TS 36.413 - Section 8.4.1.2 - HandoverPreparation Successful Operation
+ */
+srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::react(LIBLTE_S1AP_MESSAGE_HANDOVERCOMMAND_STRUCT& msg)
+{
+  // update timers
+  ue_ptr->ts1_reloc_prep.stop();
+  ue_ptr->ts1_reloc_overall.run();
+
+  // Check for unsupported S1AP fields
+  if (msg.ext or msg.Target_ToSource_TransparentContainer_Secondary_present or msg.HandoverType.ext or
+      msg.HandoverType.e != LIBLTE_S1AP_HANDOVERTYPE_INTRALTE or msg.CriticalityDiagnostics_present or
+      msg.NASSecurityParametersfromE_UTRAN_present) {
+    procWarning("Not handling HandoverCommand extensions and non-intraLTE params\n");
+  }
+
+  // Check for E-RABs that could not be admitted in the target
+  if (msg.E_RABtoReleaseListHOCmd_present) {
+    procWarning("Not handling E-RABtoReleaseList\n");
+    // TODO
+  }
+
+  // Check for E-RABs subject to being forwarded
+  if (msg.E_RABSubjecttoDataForwardingList_present) {
+    procWarning("Not handling E-RABSubjecttoDataForwardingList\n");
+    // TODO
+  }
+
+  // In case of intra-system Handover, Target to Source Transparent Container IE shall be encoded as
+  // Target eNB to Source eNB Transparent Container IE
+  LIBLTE_BIT_MSG_STRUCT                                         bit_msg;
+  uint8_t*                                                      bit_ptr = &bit_msg.msg[0];
+  LIBLTE_S1AP_TARGETENB_TOSOURCEENB_TRANSPARENTCONTAINER_STRUCT container;
+  liblte_unpack(
+      &msg.Target_ToSource_TransparentContainer.buffer[0], msg.Target_ToSource_TransparentContainer.n_octets, bit_ptr);
+  liblte_s1ap_unpack_targetenb_tosourceenb_transparentcontainer(&bit_ptr, &container);
+  if (container.iE_Extensions_present or container.ext) {
+    procWarning("Not handling extensions\n");
+  }
+
+  // Create a unique buffer out of transparent container to pass to RRC
+  rrc_container = srslte::allocate_unique_buffer(*s1ap_ptr->pool, false);
+  if (rrc_container == nullptr) {
+    procError("Fatal Error: Couldn't allocate buffer.\n");
+    return srslte::proc_outcome_t::error;
+  }
+  memcpy(rrc_container->msg, container.rRC_Container.buffer, container.rRC_Container.n_octets);
+
+  return srslte::proc_outcome_t::success;
 }
 
 void s1ap::ue::ho_prep_proc_t::then(const srslte::proc_state_t& result)
 {
-  s1ap_ptr->rrc->ho_preparation_complete(ue_ptr->ctxt.rnti, result.is_success());
+  if (result.is_error()) {
+    s1ap_ptr->rrc->ho_preparation_complete(ue_ptr->ctxt.rnti, false, {});
+  } else {
+    s1ap_ptr->rrc->ho_preparation_complete(ue_ptr->ctxt.rnti, true, std::move(rrc_container));
+    procInfo("Completed with success\n");
+  }
 }
 
 /*********************************************************
@@ -511,6 +572,8 @@ bool s1ap::handle_successfuloutcome(LIBLTE_S1AP_SUCCESSFULOUTCOME_STRUCT* msg)
   switch (msg->choice_type) {
     case LIBLTE_S1AP_SUCCESSFULOUTCOME_CHOICE_S1SETUPRESPONSE:
       return handle_s1setupresponse(&msg->choice.S1SetupResponse);
+    case LIBLTE_S1AP_SUCCESSFULOUTCOME_CHOICE_HANDOVERCOMMAND:
+      return handle_s1hocommand(msg->choice.HandoverCommand);
     default:
       s1ap_log->error("Unhandled successful outcome message: %s\n",
                       liblte_s1ap_successfuloutcome_choice_text[msg->choice_type]);
@@ -766,6 +829,16 @@ bool s1ap::handle_hopreparationfailure(LIBLTE_S1AP_MESSAGE_HANDOVERPREPARATIONFA
     s1ap_log->error("user rnti=0x%x no longer exists\n", user_it->first);
   }
   user_it->second->get_ho_prep_proc().trigger(*msg);
+  return true;
+}
+
+bool s1ap::handle_s1hocommand(LIBLTE_S1AP_MESSAGE_HANDOVERCOMMAND_STRUCT& msg)
+{
+  auto user_it = users.find(enbid_to_rnti_map[msg.eNB_UE_S1AP_ID.ENB_UE_S1AP_ID]);
+  if (user_it == users.end()) {
+    s1ap_log->error("user rnti=0x%x no longer exists\n", user_it->first);
+  }
+  user_it->second->get_ho_prep_proc().trigger(msg);
   return true;
 }
 
@@ -1282,6 +1355,8 @@ s1ap::ue::ue(uint16_t rnti_, s1ap* s1ap_ptr_) : s1ap_ptr(s1ap_ptr_), s1ap_log(s1
   // initialize timers
   ts1_reloc_prep = s1ap_ptr->timers->get_unique_timer();
   ts1_reloc_prep.set(10000, [this](uint32_t tid) { ho_prep_proc.trigger(ho_prep_proc_t::ts1_reloc_prep_expired{}); });
+  ts1_reloc_overall = s1ap_ptr->timers->get_unique_timer();
+  ts1_reloc_overall.set(10000, [this](uint32_t tid) {});
 }
 
 bool s1ap::ue::send_ho_required(uint32_t                     target_eci,

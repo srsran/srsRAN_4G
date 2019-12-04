@@ -85,7 +85,7 @@ public:
   explicit rrc_mobility(srsenb::rrc::ue* outer_ue);
   bool fill_conn_recfg_msg(asn1::rrc::rrc_conn_recfg_r8_ies_s* conn_recfg);
   void handle_ue_meas_report(const asn1::rrc::meas_report_s& msg);
-  void handle_ho_preparation_complete(bool is_success);
+  void handle_ho_preparation_complete(bool is_success, srslte::unique_byte_buffer_t container);
 
 private:
   enum class ho_interface_t { S1, X2, interSector };
@@ -105,7 +105,8 @@ private:
   {
   public:
     struct ho_prep_result {
-      bool is_success;
+      bool                         is_success;
+      srslte::unique_byte_buffer_t rrc_container;
     };
 
     explicit sourceenb_ho_proc_t(rrc_mobility* ue_mobility_);

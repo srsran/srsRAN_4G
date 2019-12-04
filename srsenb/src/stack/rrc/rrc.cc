@@ -624,9 +624,9 @@ void rrc::read_pdu_pcch(uint8_t* payload, uint32_t buffer_size)
   Handover functions
 *******************************************************************************/
 
-void rrc::ho_preparation_complete(uint16_t rnti, bool is_success)
+void rrc::ho_preparation_complete(uint16_t rnti, bool is_success, srslte::unique_byte_buffer_t rrc_container)
 {
-  users.at(rnti)->handle_ho_preparation_complete(is_success);
+  users.at(rnti)->handle_ho_preparation_complete(is_success, std::move(rrc_container));
 }
 
 /*******************************************************************************
@@ -2012,9 +2012,9 @@ void rrc::ue::send_ue_cap_enquiry()
 
 /********************** Handover **************************/
 
-void rrc::ue::handle_ho_preparation_complete(bool is_success)
+void rrc::ue::handle_ho_preparation_complete(bool is_success, srslte::unique_byte_buffer_t container)
 {
-  mobility_handler->handle_ho_preparation_complete(is_success);
+  mobility_handler->handle_ho_preparation_complete(is_success, std::move(container));
 }
 
 /********************** HELPERS ***************************/

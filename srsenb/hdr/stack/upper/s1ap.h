@@ -119,6 +119,7 @@ private:
   bool handle_paging(LIBLTE_S1AP_MESSAGE_PAGING_STRUCT* msg);
 
   bool handle_s1setupresponse(LIBLTE_S1AP_MESSAGE_S1SETUPRESPONSE_STRUCT* msg);
+
   bool handle_dlnastransport(LIBLTE_S1AP_MESSAGE_DOWNLINKNASTRANSPORT_STRUCT* msg);
   bool handle_initialctxtsetuprequest(LIBLTE_S1AP_MESSAGE_INITIALCONTEXTSETUPREQUEST_STRUCT* msg);
   bool handle_uectxtreleasecommand(LIBLTE_S1AP_MESSAGE_UECONTEXTRELEASECOMMAND_STRUCT* msg);
@@ -147,6 +148,7 @@ private:
                         srslte::plmn_id_t            target_plmn,
                         srslte::unique_byte_buffer_t rrc_container);
   bool handle_hopreparationfailure(LIBLTE_S1AP_MESSAGE_HANDOVERPREPARATIONFAILURE_STRUCT* msg);
+  bool handle_s1hocommand(LIBLTE_S1AP_MESSAGE_HANDOVERCOMMAND_STRUCT& msg);
 
   bool        find_mme_ue_id(uint32_t mme_ue_id, uint16_t* rnti, uint32_t* enb_ue_id);
   std::string get_cause(const LIBLTE_S1AP_CAUSE_STRUCT* c);
@@ -164,6 +166,7 @@ private:
       srslte::proc_outcome_t step() { return srslte::proc_outcome_t::yield; }
       srslte::proc_outcome_t react(ts1_reloc_prep_expired e);
       srslte::proc_outcome_t react(const LIBLTE_S1AP_MESSAGE_HANDOVERPREPARATIONFAILURE_STRUCT& msg);
+      srslte::proc_outcome_t react(LIBLTE_S1AP_MESSAGE_HANDOVERCOMMAND_STRUCT& msg);
       void                   then(const srslte::proc_state_t& result);
       const char*            name() { return "HandoverPreparation"; }
 
@@ -171,8 +174,9 @@ private:
       s1ap::ue* ue_ptr   = nullptr;
       s1ap*     s1ap_ptr = nullptr;
 
-      uint32_t          target_eci = 0;
-      srslte::plmn_id_t target_plmn;
+      uint32_t                     target_eci = 0;
+      srslte::plmn_id_t            target_plmn;
+      srslte::unique_byte_buffer_t rrc_container;
     };
 
     explicit ue(uint16_t rnti, s1ap* s1ap_ptr_);
@@ -188,7 +192,8 @@ private:
     srslte::log* s1ap_log;
     ue_ctxt_t    ctxt = {};
 
-    srslte::timer_handler::unique_timer ts1_reloc_prep; ///< TS1_{RELOCprep} - max time for HO preparation
+    srslte::timer_handler::unique_timer ts1_reloc_prep;    ///< TS1_{RELOCprep} - max time for HO preparation
+    srslte::timer_handler::unique_timer ts1_reloc_overall; ///< TS1_{RELOCOverall}
 
     // user procedures
     srslte::proc_t<ho_prep_proc_t> ho_prep_proc;
