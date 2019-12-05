@@ -224,7 +224,7 @@ static void parse_args(int argc, char **argv) {
         rf_gain = strtof(argv[optind], NULL);
         break;
       case 'm':
-        rf_recv_frame_size_ms = strtol(argv[optind], NULL);
+        rf_recv_frame_size_ms = strtol(argv[optind], NULL, 10);
         break;
       case 'r':
         rf_rate = strtof(argv[optind], NULL);
@@ -239,7 +239,7 @@ static void parse_args(int argc, char **argv) {
         zmq_args = argv[optind];
         break;
       case 'A':
-        nof_rx_antennas = strtol(argv[optind], NULL);
+        nof_rx_antennas = strtol(argv[optind], NULL, 10);
         break;
       default:
         usage(argv[0]);
