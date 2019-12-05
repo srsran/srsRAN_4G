@@ -33,8 +33,9 @@ if (RPATH)
   SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 endif (RPATH)
 
+add_library(enb_cfg_parser parser.cc enb_cfg_parser.cc)
 
-add_executable(srsenb main.cc enb.cc parser.cc enb_cfg_parser.cc metrics_stdout.cc metrics_csv.cc)
+add_executable(srsenb main.cc enb.cc metrics_stdout.cc metrics_csv.cc)
 target_link_libraries(srsenb  srsenb_radio
                               srsenb_phy
                               srsenb_stack
@@ -46,6 +47,7 @@ target_link_libraries(srsenb  srsenb_radio
                               srslte_upper
                               srslte_radio
                               rrc_asn1
+                              enb_cfg_parser
                               ${CMAKE_THREAD_LIBS_INIT}
                               ${Boost_LIBRARIES} 
                               ${SEC_LIBRARIES}

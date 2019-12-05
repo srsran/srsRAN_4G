@@ -37,7 +37,61 @@ namespace srsenb {
 
 using namespace libconfig;
 
-class all_args_t;
+struct all_args_t;
+struct phy_cfg_t;
+
+bool sib_is_present(const asn1::rrc::sched_info_list_l& l, asn1::rrc::sib_type_e sib_num);
+
+// enb.conf parsing
+namespace enb_conf_sections {
+
+int parse_cell_cfg(all_args_t* args_, srslte_cell_t* cell);
+int parse_cfg_files(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_);
+int set_derived_args(all_args_t* args_, rrc_cfg_t* rrc_cfg_, phy_cfg_t* phy_cfg_, srslte_cell_t* cell_cfg_);
+
+} // namespace enb_conf_sections
+
+// sib.conf parsing
+namespace sib_sections {
+
+int parse_sib1(std::string filename, asn1::rrc::sib_type1_s* data);
+int parse_sib2(std::string filename, asn1::rrc::sib_type2_s* data);
+int parse_sib3(std::string filename, asn1::rrc::sib_type3_s* data);
+int parse_sib4(std::string filename, asn1::rrc::sib_type4_s* data);
+int parse_sib7(std::string filename, asn1::rrc::sib_type7_s* data);
+int parse_sib9(std::string filename, asn1::rrc::sib_type9_s* data);
+int parse_sib13(std::string filename, asn1::rrc::sib_type13_r9_s* data);
+int parse_sibs(all_args_t* args_, rrc_cfg_t* rrc_cfg_, srsenb::phy_cfg_t* phy_config_common);
+
+} // namespace sib_sections
+
+// drb.conf parsing
+namespace drb_sections {
+
+int parse_drb(all_args_t* args, rrc_cfg_t* rrc_cfg);
+} // namespace drb_sections
+
+// rr.conf parsing
+namespace rr_sections {
+
+int parse_rr(all_args_t* args_, rrc_cfg_t* rrc_cfg_);
+
+// rrc_cnfg
+class cell_list_section final : public parser::field_itf
+{
+public:
+  explicit cell_list_section(all_args_t* all_args_, rrc_cfg_t* rrc_cfg_) : args(all_args_), rrc_cfg(rrc_cfg_) {}
+
+  int parse(Setting& root) override;
+
+  const char* get_name() override { return "meas_cell_list"; }
+
+private:
+  rrc_cfg_t*  rrc_cfg;
+  all_args_t* args;
+};
+
+} // namespace rr_sections
 
 class field_sched_info final : public parser::field_itf
 {
@@ -110,26 +164,6 @@ public:
 private:
   rrc_cfg_qci_t* cfg;
 };
-
-namespace rr_sections {
-
-// rrc_cnfg
-
-class cell_list_section final : public parser::field_itf
-{
-public:
-  explicit cell_list_section(all_args_t* all_args_, rrc_cfg_t* rrc_cfg_) : args(all_args_), rrc_cfg(rrc_cfg_) {}
-
-  int parse(Setting& root) override;
-
-  const char* get_name() override { return "meas_cell_list"; }
-
-private:
-  rrc_cfg_t* rrc_cfg;
-  all_args_t* args;
-};
-
-} // namespace rr_sections
 
 // ASN1 parsers
 

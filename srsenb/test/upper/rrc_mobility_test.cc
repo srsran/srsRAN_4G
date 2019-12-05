@@ -19,7 +19,10 @@
  *
  */
 
+#include "srsenb/hdr/enb.h"
 #include "srsenb/hdr/stack/rrc/rrc_mobility.h"
+#include "srsenb/src/enb_cfg_parser.h"
+#include "srsenb/test/common/dummy_classes.h"
 #include "srslte/asn1/rrc_asn1_utils.h"
 #include "srslte/common/test_common.h"
 #include <iostream>
@@ -28,7 +31,67 @@
 using namespace srsenb;
 using namespace asn1::rrc;
 
-srslte::log_filter log_h("ALL");
+srslte::scoped_tester_log log_h("ALL");
+
+namespace argparse {
+
+std::string            repository_dir;
+srslte::LOG_LEVEL_ENUM log_level;
+
+void usage(char* prog)
+{
+  printf("Usage: %s [v] -i repository_dir\n", prog);
+  printf("\t-v [set srslte_verbose to debug, default none]\n");
+}
+
+void parse_args(int argc, char** argv)
+{
+  int opt;
+
+  while ((opt = getopt(argc, argv, "i")) != -1) {
+    switch (opt) {
+      case 'i':
+        repository_dir = argv[optind];
+        break;
+      case 'v':
+        log_level = srslte::LOG_LEVEL_DEBUG;
+        break;
+      default:
+        usage(argv[0]);
+        exit(-1);
+    }
+  }
+  if (repository_dir.empty()) {
+    usage(argv[0]);
+    exit(-1);
+  }
+}
+
+} // namespace argparse
+
+namespace test_dummies {
+
+class s1ap_mobility_dummy : public s1ap_dummy
+{
+public:
+  struct ho_req_data {
+    uint16_t                     rnti;
+    uint32_t                     target_eci;
+    srslte::plmn_id_t            target_plmn;
+    srslte::unique_byte_buffer_t rrc_container;
+  } last_ho_required;
+
+  bool send_ho_required(uint16_t                     rnti,
+                        uint32_t                     target_eci,
+                        srslte::plmn_id_t            target_plmn,
+                        srslte::unique_byte_buffer_t rrc_container) final
+  {
+    last_ho_required = ho_req_data{rnti, target_eci, target_plmn, std::move(rrc_container)};
+    return true;
+  }
+};
+
+} // namespace test_dummies
 
 class mac_dummy : public mac_interface_rrc
 {
@@ -254,61 +317,173 @@ int test_correct_meascfg_calculation()
   return SRSLTE_SUCCESS;
 }
 
-int test_mobility_class()
+int parse_default_cfg(rrc_cfg_t* rrc_cfg, srsenb::all_args_t& args)
 {
-  srslte::scoped_tester_log log_test("MOBILITY_TEST");
+  args                      = {};
+  *rrc_cfg                  = {};
+  args.enb_files.sib_config = argparse::repository_dir + "/sib.conf.example";
+  args.enb_files.rr_config  = argparse::repository_dir + "/rr.conf.example";
+  args.enb_files.drb_config = argparse::repository_dir + "/drb.conf.example";
+  log_h.debug("sib file path=%s\n", args.enb_files.sib_config.c_str());
 
-  rrc_cfg_t cfg;
-  cfg.sib1.cell_access_related_info.plmn_id_list.push_back({});
-  cfg.sib1.cell_access_related_info.plmn_id_list[0].plmn_id.mnc.resize(2);
-  cfg.sib1.cell_access_related_info.plmn_id_list[0].cell_reserved_for_oper.value =
-      plmn_id_info_s::cell_reserved_for_oper_opts::not_reserved;
-  cfg.sib1.cell_access_related_info.cell_barred.value =
-      sib_type1_s::cell_access_related_info_s_::cell_barred_opts::not_barred;
-  cfg.sib1.cell_access_related_info.intra_freq_resel.value =
-      sib_type1_s::cell_access_related_info_s_::intra_freq_resel_opts::allowed;
-  cfg.sib1.si_win_len.value = sib_type1_s::si_win_len_opts::ms5;
-  cfg.sib1.sched_info_list.push_back({});
-  cfg.sib1.sched_info_list[0].si_periodicity.value = sched_info_s::si_periodicity_opts::rf8;
-  auto& sib2                                       = cfg.sibs[1].set_sib2();
-  sib2.rr_cfg_common.rach_cfg_common.preamb_info.nof_ra_preambs.value =
-      rach_cfg_common_s::preamb_info_s_::nof_ra_preambs_opts::n4;
-  sib2.rr_cfg_common.rach_cfg_common.pwr_ramp_params.pwr_ramp_step.value = pwr_ramp_params_s::pwr_ramp_step_opts::db0;
-  sib2.rr_cfg_common.rach_cfg_common.pwr_ramp_params.preamb_init_rx_target_pwr.value =
-      pwr_ramp_params_s::preamb_init_rx_target_pwr_opts::dbm_minus90;
-  sib2.rr_cfg_common.rach_cfg_common.ra_supervision_info.preamb_trans_max.value = preamb_trans_max_opts::n4;
-  sib2.rr_cfg_common.rach_cfg_common.ra_supervision_info.ra_resp_win_size.value =
-      rach_cfg_common_s::ra_supervision_info_s_::ra_resp_win_size_opts::sf2;
-  sib2.rr_cfg_common.rach_cfg_common.ra_supervision_info.mac_contention_resolution_timer.value =
-      rach_cfg_common_s::ra_supervision_info_s_::mac_contention_resolution_timer_opts::sf8;
-  sib2.rr_cfg_common.bcch_cfg.mod_period_coeff.value     = bcch_cfg_s::mod_period_coeff_opts::n4;
-  sib2.rr_cfg_common.pcch_cfg.default_paging_cycle.value = pcch_cfg_s::default_paging_cycle_opts::rf32;
-  sib2.rr_cfg_common.pcch_cfg.nb.value                   = pcch_cfg_s::nb_opts::four_t;
-  sib2.rr_cfg_common.pusch_cfg_common.pusch_cfg_basic.hop_mode.value =
-      pusch_cfg_common_s::pusch_cfg_basic_s_::hop_mode_opts::inter_sub_frame;
-  sib2.rr_cfg_common.pucch_cfg_common.delta_pucch_shift.value = pucch_cfg_common_s::delta_pucch_shift_opts::ds1;
-  sib2.rr_cfg_common.srs_ul_cfg_common.set(setup_opts::release);
-  sib2.rr_cfg_common.ul_pwr_ctrl_common.alpha.value = alpha_r12_opts::al0;
-  bzero(&sib2.rr_cfg_common.ul_pwr_ctrl_common.delta_flist_pucch,
-        sizeof(sib2.rr_cfg_common.ul_pwr_ctrl_common.delta_flist_pucch));
-  sib2.rr_cfg_common.ul_cp_len.value = ul_cp_len_opts::len1;
-  bzero(&sib2.ue_timers_and_consts, sizeof(sib2.ue_timers_and_consts));
-  sib2.time_align_timer_common.value = time_align_timer_opts::sf500;
-  report_cfg_eutra_s rep             = generate_rep1();
+  args.enb.dl_earfcn = 3400;
+  args.enb.n_prb     = 50;
+  TESTASSERT(srslte::string_to_mcc("001", &args.stack.s1ap.mcc));
+  TESTASSERT(srslte::string_to_mnc("01", &args.stack.s1ap.mnc));
+  args.enb.transmission_mode = 1;
+  args.enb.nof_ports         = 1;
+  args.general.eia_pref_list = "EIA2, EIA1, EIA0";
+  args.general.eea_pref_list = "EEA0, EEA2, EEA1";
+
+  phy_cfg_t phy_cfg;
+
+  return enb_conf_sections::parse_cfg_files(&args, rrc_cfg, &phy_cfg);
+}
+
+struct mobility_test_params {
+  enum class test_fail_at { never, wrong_measreport } fail_at;
+};
+
+int test_mobility_class(mobility_test_params test_params)
+{
+  log_h.info("----- TEST: test_mobility_class() -----\n");
+  srslte::log_filter           s1ap_log("S1AP");
+  srslte::scoped_tester_log    rrc_log("RRC ");
+  srslte::timer_handler        timers;
+  srslte::byte_buffer_pool*    pool = srslte::byte_buffer_pool::get_instance();
+  srslte::unique_byte_buffer_t pdu;
+
+  auto copy_msg_to_buffer = [pool](srslte::unique_byte_buffer_t& pdu, uint8_t* msg, size_t nof_bytes) {
+    pdu = srslte::allocate_unique_buffer(*pool, true);
+    memcpy(pdu->msg, msg, nof_bytes);
+    pdu->N_bytes = nof_bytes;
+  };
+
+  srsenb::all_args_t args;
+  rrc_cfg_t          cfg;
+  TESTASSERT(parse_default_cfg(&cfg, args) == SRSLTE_SUCCESS);
+  report_cfg_eutra_s rep = generate_rep1();
   cfg.meas_cfg.meas_reports.push_back(rep);
+  meas_cell_cfg_t cell2 = generate_cell1();
+  cell2.pci             = 2;
+  cell2.eci             = 0x19C02;
+  cfg.meas_cfg.meas_cells.push_back(cell2);
 
-  srsenb::rrc rrc;
-  mac_dummy   mac;
-  //  rrc.init(&cfg, nullptr, &mac, nullptr, nullptr, nullptr, nullptr, &log_h);
+  srsenb::rrc                       rrc;
+  mac_dummy                         mac;
+  rlc_dummy                         rlc;
+  pdcp_dummy                        pdcp;
+  phy_dummy                         phy;
+  test_dummies::s1ap_mobility_dummy s1ap;
+  gtpu_dummy                        gtpu;
+  rrc_log.set_level(srslte::LOG_LEVEL_INFO);
+  rrc_log.set_hex_limit(1024);
+  s1ap_log.set_level(srslte::LOG_LEVEL_INFO);
+  s1ap_log.set_hex_limit(1024);
+  rrc.init(&cfg, &phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, &timers, &rrc_log);
 
+  auto tic = [&timers, &rrc] {
+    timers.step_all();
+    rrc.tti_clock();
+  };
+
+  uint16_t rnti = 0x46;
+  rrc.add_user(rnti);
+
+  // Send RRCConnectionRequest
+  uint8_t rrc_conn_request[] = {0x40, 0x12, 0xf6, 0xfb, 0xe2, 0xc6};
+  copy_msg_to_buffer(pdu, rrc_conn_request, sizeof(rrc_conn_request));
+  rrc.write_pdu(rnti, 0, std::move(pdu));
+  tic();
+
+  // Send RRCConnectionSetupComplete
+  uint8_t rrc_conn_setup_complete[] = {0x20, 0x00, 0x40, 0x2e, 0x90, 0x50, 0x49, 0xe8, 0x06, 0x0e, 0x82, 0xa2,
+                                       0x17, 0xec, 0x13, 0xe2, 0x0f, 0x00, 0x02, 0x02, 0x5e, 0xdf, 0x7c, 0x58,
+                                       0x05, 0xc0, 0xc0, 0x00, 0x08, 0x04, 0x03, 0xa0, 0x23, 0x23, 0xc0};
+  copy_msg_to_buffer(pdu, rrc_conn_setup_complete, sizeof(rrc_conn_setup_complete));
+  rrc.write_pdu(rnti, 1, std::move(pdu));
+  tic();
+
+  // S1AP receives InitialContextSetupRequest and forwards it to RRC
+  uint8_t s1ap_init_ctxt_setup_req[] = {
+      0x00, 0x09, 0x00, 0x80, 0xc6, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x02, 0x00, 0x64, 0x00, 0x08, 0x00, 0x02, 0x00,
+      0x01, 0x00, 0x42, 0x00, 0x0a, 0x18, 0x3b, 0x9a, 0xca, 0x00, 0x60, 0x3b, 0x9a, 0xca, 0x00, 0x00, 0x18, 0x00, 0x78,
+      0x00, 0x00, 0x34, 0x00, 0x73, 0x45, 0x00, 0x09, 0x3c, 0x0f, 0x80, 0x0a, 0x00, 0x21, 0xf0, 0xb7, 0x36, 0x1c, 0x56,
+      0x64, 0x27, 0x3e, 0x5b, 0x04, 0xb7, 0x02, 0x07, 0x42, 0x02, 0x3e, 0x06, 0x00, 0x09, 0xf1, 0x07, 0x00, 0x07, 0x00,
+      0x37, 0x52, 0x66, 0xc1, 0x01, 0x09, 0x1b, 0x07, 0x74, 0x65, 0x73, 0x74, 0x31, 0x32, 0x33, 0x06, 0x6d, 0x6e, 0x63,
+      0x30, 0x37, 0x30, 0x06, 0x6d, 0x63, 0x63, 0x39, 0x30, 0x31, 0x04, 0x67, 0x70, 0x72, 0x73, 0x05, 0x01, 0xc0, 0xa8,
+      0x03, 0x02, 0x27, 0x0e, 0x80, 0x80, 0x21, 0x0a, 0x03, 0x00, 0x00, 0x0a, 0x81, 0x06, 0x08, 0x08, 0x08, 0x08, 0x50,
+      0x0b, 0xf6, 0x09, 0xf1, 0x07, 0x80, 0x01, 0x01, 0xf6, 0x7e, 0x72, 0x69, 0x13, 0x09, 0xf1, 0x07, 0x00, 0x01, 0x23,
+      0x05, 0xf4, 0xf6, 0x7e, 0x72, 0x69, 0x00, 0x6b, 0x00, 0x05, 0x18, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x49, 0x00, 0x20,
+      0x45, 0x25, 0xe4, 0x9a, 0x77, 0xc8, 0xd5, 0xcf, 0x26, 0x33, 0x63, 0xeb, 0x5b, 0xb9, 0xc3, 0x43, 0x9b, 0x9e, 0xb3,
+      0x86, 0x1f, 0xa8, 0xa7, 0xcf, 0x43, 0x54, 0x07, 0xae, 0x42, 0x2b, 0x63, 0xb9};
+  LIBLTE_S1AP_S1AP_PDU_STRUCT s1ap_pdu;
+  LIBLTE_BYTE_MSG_STRUCT      byte_buf;
+  byte_buf.N_bytes = sizeof(s1ap_init_ctxt_setup_req);
+  memcpy(byte_buf.msg, s1ap_init_ctxt_setup_req, byte_buf.N_bytes);
+  liblte_s1ap_unpack_s1ap_pdu(&byte_buf, &s1ap_pdu);
+  rrc.setup_ue_ctxt(rnti, &s1ap_pdu.choice.initiatingMessage.choice.InitialContextSetupRequest);
+  tic();
+
+  // Send SecurityModeComplete
+  uint8_t sec_mode_complete[] = {0x28, 0x00};
+  copy_msg_to_buffer(pdu, sec_mode_complete, sizeof(sec_mode_complete));
+  rrc.write_pdu(rnti, 1, std::move(pdu));
+  tic();
+
+  /* Receive MeasReport from UE (correct if PCI=2) */
+  if (test_params.fail_at == mobility_test_params::test_fail_at::wrong_measreport) {
+    uint8_t meas_report[] = {0x08, 0x10, 0x38, 0x74, 0x00, 0x0D, 0xBC, 0x80}; // PCI == 3
+    copy_msg_to_buffer(pdu, meas_report, sizeof(meas_report));
+  } else {
+    uint8_t meas_report[] = {0x08, 0x10, 0x38, 0x74, 0x00, 0x09, 0xBC, 0x80}; // PCI == 2
+    copy_msg_to_buffer(pdu, meas_report, sizeof(meas_report));
+  }
+  rrc.write_pdu(rnti, 1, std::move(pdu));
+  tic();
+
+  if (test_params.fail_at == mobility_test_params::test_fail_at::wrong_measreport) {
+    TESTASSERT(s1ap.last_ho_required.rrc_container == nullptr);
+    TESTASSERT(rrc_log.error_counter == 1);
+    return SRSLTE_SUCCESS;
+  }
+
+  // Check HO Required was sent to S1AP
+  TESTASSERT(s1ap.last_ho_required.rnti == rnti);
+  TESTASSERT(s1ap.last_ho_required.target_eci == cell2.eci);
+  TESTASSERT(s1ap.last_ho_required.target_plmn.to_string() == "00101");
+  {
+    asn1::bit_ref bref(s1ap.last_ho_required.rrc_container->msg, s1ap.last_ho_required.rrc_container->N_bytes);
+    asn1::rrc::ho_prep_info_s hoprep;
+    TESTASSERT(hoprep.unpack(bref) == asn1::SRSASN_SUCCESS);
+    ho_prep_info_r8_ies_s& hoprepr8 = hoprep.crit_exts.c1().ho_prep_info_r8();
+    TESTASSERT(hoprepr8.as_cfg_present);
+    // Check if RRC sends the current active bearers
+    TESTASSERT(hoprepr8.as_cfg.source_rr_cfg.drb_to_add_mod_list_present);
+    TESTASSERT(hoprepr8.as_cfg.source_rr_cfg.drb_to_add_mod_list[0].drb_id == 1);
+  }
+
+  // MME returns back an HandoverCommand
+  // TODO
+
+  TESTASSERT(rrc_log.error_counter == 0);
   return SRSLTE_SUCCESS;
 }
 
-int main()
+int main(int argc, char** argv)
 {
+  log_h.set_level(srslte::LOG_LEVEL_INFO);
+
+  if (argc < 3) {
+    argparse::usage(argv[0]);
+    return -1;
+  }
+  argparse::parse_args(argc, argv);
+
   TESTASSERT(test_correct_insertion() == 0);
   TESTASSERT(test_correct_meascfg_calculation() == 0);
-  TESTASSERT(test_mobility_class() == 0);
+  TESTASSERT(test_mobility_class(mobility_test_params{mobility_test_params::test_fail_at::never}) == 0);
+  TESTASSERT(test_mobility_class(mobility_test_params{mobility_test_params::test_fail_at::wrong_measreport}) == 0);
 
   printf("Success\n");
 

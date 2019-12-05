@@ -146,15 +146,15 @@ public:
   rrc();
   ~rrc();
 
-  void init(rrc_cfg_t*               cfg,
-            phy_interface_stack_lte* phy,
-            mac_interface_rrc*       mac,
-            rlc_interface_rrc*       rlc,
-            pdcp_interface_rrc*      pdcp,
-            s1ap_interface_rrc*      s1ap,
-            gtpu_interface_rrc*      gtpu,
-            srslte::timer_handler*   timers_,
-            srslte::log*             log_rrc);
+  void init(rrc_cfg_t*             cfg,
+            phy_interface_rrc_lte* phy,
+            mac_interface_rrc*     mac,
+            rlc_interface_rrc*     rlc,
+            pdcp_interface_rrc*    pdcp,
+            s1ap_interface_rrc*    s1ap,
+            gtpu_interface_rrc*    gtpu,
+            srslte::timer_handler* timers_,
+            srslte::log*           log_rrc);
 
   void stop();
   void get_metrics(rrc_metrics_t& m);
@@ -342,7 +342,7 @@ private:
   // args
   srslte::timer_handler*    timers  = nullptr;
   srslte::byte_buffer_pool* pool    = nullptr;
-  phy_interface_stack_lte*  phy     = nullptr;
+  phy_interface_rrc_lte*    phy     = nullptr;
   mac_interface_rrc*        mac     = nullptr;
   rlc_interface_rrc*        rlc     = nullptr;
   pdcp_interface_rrc*       pdcp    = nullptr;
@@ -407,7 +407,7 @@ private:
   sr_sched_t             sr_sched  = {};
   sr_sched_t             cqi_sched = {};
   asn1::rrc::mcch_msg_s  mcch;
-  bool                   enable_mbms = false;
+  bool                   enable_mbms     = false;
   rrc_cfg_t              cfg             = {};
   uint32_t               nof_si_messages = 0;
   asn1::rrc::sib_type2_s sib2;

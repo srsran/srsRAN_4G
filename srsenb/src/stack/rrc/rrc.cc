@@ -45,15 +45,15 @@ rrc::rrc() : cnotifier(nullptr), nof_si_messages(0)
 
 rrc::~rrc() {}
 
-void rrc::init(rrc_cfg_t*               cfg_,
-               phy_interface_stack_lte* phy_,
-               mac_interface_rrc*       mac_,
-               rlc_interface_rrc*       rlc_,
-               pdcp_interface_rrc*      pdcp_,
-               s1ap_interface_rrc*      s1ap_,
-               gtpu_interface_rrc*      gtpu_,
-               srslte::timer_handler*   timers_,
-               srslte::log*             log_rrc)
+void rrc::init(rrc_cfg_t*             cfg_,
+               phy_interface_rrc_lte* phy_,
+               mac_interface_rrc*     mac_,
+               rlc_interface_rrc*     rlc_,
+               pdcp_interface_rrc*    pdcp_,
+               s1ap_interface_rrc*    s1ap_,
+               gtpu_interface_rrc*    gtpu_,
+               srslte::timer_handler* timers_,
+               srslte::log*           log_rrc)
 {
   phy       = phy_;
   mac       = mac_;
@@ -1208,9 +1208,10 @@ void rrc::ue::parse_ul_dcch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
       }
       break;
     case ul_dcch_msg_type_c::c1_c_::types::meas_report:
-      printf("Received MEASUREMENT REPORT!\n");
       if (mobility_handler != nullptr) {
         mobility_handler->handle_ue_meas_report(ul_dcch_msg.msg.c1().meas_report());
+      } else {
+        parent->rrc_log->warning("Received MeasReport but no mobility configuration is available\n");
       }
       break;
     default:
