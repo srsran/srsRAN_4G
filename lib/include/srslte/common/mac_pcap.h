@@ -51,6 +51,9 @@ public:
 
   void write_ul_rrc_pdu(const uint8_t* input, const int32_t input_len);
 
+  // Sidelink
+  void write_sl_crnti(uint8_t* pdu, uint32_t pdu_len_bytes, uint16_t rnti, uint32_t reTX, uint32_t tti, uint8_t cc_idx);
+
 private:
   bool     enable_write;
   FILE*    pcap_file;

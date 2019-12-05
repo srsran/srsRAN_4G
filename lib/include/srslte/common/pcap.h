@@ -66,6 +66,10 @@ typedef struct pcaprec_hdr_s {
 #define SI_RNTI 4
 #define SPS_RNTI 5
 #define M_RNTI 6
+#define SL_BCH_RNTI 7
+#define SL_RNTI 8
+#define SC_RNTI 9
+#define G_RNTI 10
 
 #define MAC_LTE_START_STRING "mac-lte"
 #define MAC_LTE_PAYLOAD_TAG 0x01

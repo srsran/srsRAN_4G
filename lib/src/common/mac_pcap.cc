@@ -114,6 +114,17 @@ void mac_pcap::write_ul_crnti(uint8_t* pdu,
 {
   pack_and_write(pdu, pdu_len_bytes, reTX, true, cc_idx, tti, rnti, DIRECTION_UPLINK, C_RNTI);
 }
+
+void mac_pcap::write_sl_crnti(uint8_t* pdu,
+                              uint32_t pdu_len_bytes,
+                              uint16_t rnti,
+                              uint32_t reTX,
+                              uint32_t tti,
+                              uint8_t  cc_idx)
+{
+  pack_and_write(pdu, pdu_len_bytes, reTX, true, cc_idx, tti, rnti, DIRECTION_UPLINK, SL_RNTI);
+}
+
 void mac_pcap::write_dl_bch(uint8_t* pdu, uint32_t pdu_len_bytes, bool crc_ok, uint32_t tti, uint8_t cc_idx)
 {
   pack_and_write(pdu, pdu_len_bytes, 0, crc_ok, cc_idx, tti, 0, DIRECTION_DOWNLINK, NO_RNTI);
