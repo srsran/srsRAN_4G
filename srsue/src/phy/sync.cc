@@ -200,6 +200,7 @@ phy_interface_rrc_lte::cell_search_ret_t sync::cell_search(phy_interface_rrc_lte
   // Move state to IDLE
   Info("Cell Search: Start EARFCN index=%u/%zd\n", cellsearch_earfcn_index, earfcn.size());
   phy_state.go_idle();
+  worker_com->reset();
 
   try {
     if (current_earfcn != (int)earfcn.at(cellsearch_earfcn_index)) {
