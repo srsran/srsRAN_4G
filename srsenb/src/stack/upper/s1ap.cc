@@ -837,6 +837,7 @@ bool s1ap::handle_s1hocommand(LIBLTE_S1AP_MESSAGE_HANDOVERCOMMAND_STRUCT& msg)
   auto user_it = users.find(enbid_to_rnti_map[msg.eNB_UE_S1AP_ID.ENB_UE_S1AP_ID]);
   if (user_it == users.end()) {
     s1ap_log->error("user rnti=0x%x no longer exists\n", user_it->first);
+    return false;
   }
   user_it->second->get_ho_prep_proc().trigger(msg);
   return true;
@@ -1354,9 +1355,10 @@ s1ap::ue::ue(uint16_t rnti_, s1ap* s1ap_ptr_) : s1ap_ptr(s1ap_ptr_), s1ap_log(s1
 
   // initialize timers
   ts1_reloc_prep = s1ap_ptr->timers->get_unique_timer();
-  ts1_reloc_prep.set(10000, [this](uint32_t tid) { ho_prep_proc.trigger(ho_prep_proc_t::ts1_reloc_prep_expired{}); });
+  ts1_reloc_prep.set(ts1_reloc_prep_timeout_ms,
+                     [this](uint32_t tid) { ho_prep_proc.trigger(ho_prep_proc_t::ts1_reloc_prep_expired{}); });
   ts1_reloc_overall = s1ap_ptr->timers->get_unique_timer();
-  ts1_reloc_overall.set(10000, [this](uint32_t tid) {});
+  ts1_reloc_overall.set(ts1_reloc_overall_timeout_ms, [](uint32_t tid) { /* TODO */ });
 }
 
 bool s1ap::ue::send_ho_required(uint32_t                     target_eci,

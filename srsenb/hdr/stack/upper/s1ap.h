@@ -50,6 +50,9 @@ typedef struct {
 class s1ap : public s1ap_interface_rrc
 {
 public:
+  static const uint32_t ts1_reloc_prep_timeout_ms    = 10000;
+  static const uint32_t ts1_reloc_overall_timeout_ms = 10000;
+
   s1ap();
   bool init(s1ap_args_t                       args_,
             rrc_interface_s1ap*               rrc_,
