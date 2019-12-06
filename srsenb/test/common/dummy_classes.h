@@ -73,6 +73,11 @@ public:
   }
   void enable_integrity(uint16_t rnti, uint32_t lcid) override {}
   void enable_encryption(uint16_t rnti, uint32_t lcid) override {}
+  bool get_bearer_status(uint16_t rnti, uint32_t lcid, uint16_t* dlsn, uint16_t* dlhfn, uint16_t* ulsn, uint16_t* ulhfn)
+      override
+  {
+    return false;
+  }
 };
 
 class s1ap_dummy : public s1ap_interface_rrc
@@ -100,6 +105,10 @@ public:
                         uint32_t                     target_eci,
                         srslte::plmn_id_t            target_plmn,
                         srslte::unique_byte_buffer_t rrc_container) override
+  {
+    return true;
+  }
+  bool send_enb_status_transfer_proc(uint16_t rnti, std::vector<bearer_status_info>& bearer_status_list) override
   {
     return true;
   }
