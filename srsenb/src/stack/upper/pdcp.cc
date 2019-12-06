@@ -138,6 +138,18 @@ void pdcp::enable_encryption(uint16_t rnti, uint32_t lcid)
   pthread_rwlock_unlock(&rwlock);
 }
 
+bool pdcp::get_bearer_status(uint16_t  rnti,
+                             uint32_t  lcid,
+                             uint16_t* dlsn,
+                             uint16_t* dlhfn,
+                             uint16_t* ulsn,
+                             uint16_t* ulhfn)
+{
+  if (users.count(rnti) == 0)
+    return false;
+  return users[rnti].pdcp->get_bearer_status(lcid, dlsn, dlhfn, ulsn, ulhfn);
+}
+
 void pdcp::write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu)
 {
   pthread_rwlock_rdlock(&rwlock);

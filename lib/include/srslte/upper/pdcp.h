@@ -63,6 +63,7 @@ public:
                            INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
   void enable_integrity(uint32_t lcid);
   void enable_encryption(uint32_t lcid);
+  bool get_bearer_status(uint32_t lcid, uint16_t* dlsn, uint16_t* dlhfn, uint16_t* ulsn, uint16_t* ulhfn);
 
   // RLC interface
   void write_pdu(uint32_t lcid, unique_byte_buffer_t sdu);

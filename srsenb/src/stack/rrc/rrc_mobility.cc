@@ -883,6 +883,31 @@ void rrc::ue::rrc_mobility::handle_ho_preparation_complete(bool is_success, srsl
   source_ho_proc.trigger(sourceenb_ho_proc_t::ho_prep_result{is_success, std::move(container)});
 }
 
+/**
+ * TS 36.413, Section 8.4.6 - eNB Status Transfer
+ * Description: Send "eNBStatusTransfer" message from source eNB to MME
+ *              - Pass bearers' DL/UL HFN and PDCP SN to be put inside a transparent container
+ */
+bool rrc::ue::rrc_mobility::start_enb_status_transfer()
+{
+  std::vector<s1ap_interface_rrc::bearer_status_info> bearer_list;
+  bearer_list.reserve(rrc_ue->erabs.size());
+
+  for (const auto& erab_pair : rrc_ue->erabs) {
+    s1ap_interface_rrc::bearer_status_info b    = {};
+    uint8_t                                lcid = erab_pair.second.id - 2u;
+    b.erab_id                                   = erab_pair.second.id;
+    if (not rrc_enb->pdcp->get_bearer_status(rrc_ue->rnti, lcid, &b.pdcp_dl_sn, &b.dl_hfn, &b.pdcp_ul_sn, &b.ul_hfn)) {
+      Error("PDCP bearer lcid=%d for rnti=0x%x was not found\n", lcid, rrc_ue->rnti);
+      return false;
+    }
+    bearer_list.push_back(b);
+  }
+
+  Info("PDCP Bearer list sent to S1AP to initiate the eNB Status Transfer\n");
+  return rrc_enb->s1ap->send_enb_status_transfer_proc(rrc_ue->rnti, bearer_list);
+}
+
 /*************************************************************************************************
  *                                  sourceenb_ho_proc_t class
  ************************************************************************************************/
@@ -965,6 +990,13 @@ srslte::proc_outcome_t rrc::ue::rrc_mobility::sourceenb_ho_proc_t::react(ho_prep
   /* Send HO Command to UE */
   parent->rrc_ue->send_dl_dcch(&dl_dcch_msg);
   procInfo("HandoverCommand of rnti=0x%x handled successfully.\n", parent->rrc_ue->rnti);
+  state = state_t::ho_execution;
+
+  /* Start S1AP eNBStatusTransfer Procedure */
+  if (not parent->start_enb_status_transfer()) {
+    return srslte::proc_outcome_t::error;
+  }
+
   return srslte::proc_outcome_t::success;
 }
 

@@ -149,15 +149,17 @@ private:
   bool send_ho_required(uint16_t                     rnti,
                         uint32_t                     target_eci,
                         srslte::plmn_id_t            target_plmn,
-                        srslte::unique_byte_buffer_t rrc_container);
+                        srslte::unique_byte_buffer_t rrc_container) override;
   bool handle_hopreparationfailure(LIBLTE_S1AP_MESSAGE_HANDOVERPREPARATIONFAILURE_STRUCT* msg);
   bool handle_s1hocommand(LIBLTE_S1AP_MESSAGE_HANDOVERCOMMAND_STRUCT& msg);
+  bool send_enb_status_transfer_proc(uint16_t rnti, std::vector<bearer_status_info>& bearer_status_list) override;
 
   bool        find_mme_ue_id(uint32_t mme_ue_id, uint16_t* rnti, uint32_t* enb_ue_id);
   std::string get_cause(const LIBLTE_S1AP_CAUSE_STRUCT* c);
 
   // UE-specific data and procedures
   struct ue {
+    //! TS 36.413, Section 8.4.1 - Handover Preparation Procedure
     class ho_prep_proc_t
     {
     public:
@@ -187,9 +189,12 @@ private:
     ue_ctxt_t&                      get_ctxt() { return ctxt; }
     srslte::proc_t<ho_prep_proc_t>& get_ho_prep_proc() { return ho_prep_proc; }
 
+    bool send_enb_status_transfer_proc(std::vector<bearer_status_info>& bearer_status_list);
+
   private:
     bool
     send_ho_required(uint32_t target_eci_, srslte::plmn_id_t target_plmn_, srslte::unique_byte_buffer_t rrc_container);
+    //! TS 36.413, Section 8.4.6 - eNB Status Transfer procedure
 
     s1ap*        s1ap_ptr;
     srslte::log* s1ap_log;

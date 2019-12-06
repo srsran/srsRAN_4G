@@ -221,6 +221,8 @@ public:
                                srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_)          = 0;
   virtual void enable_integrity(uint16_t rnti, uint32_t lcid)                            = 0;
   virtual void enable_encryption(uint16_t rnti, uint32_t lcid)                           = 0;
+  virtual bool
+  get_bearer_status(uint16_t rnti, uint32_t lcid, uint16_t* dlsn, uint16_t* dlhfn, uint16_t* ulsn, uint16_t* ulhfn) = 0;
 };
 
 // PDCP interface for RLC
@@ -294,6 +296,12 @@ public:
 class s1ap_interface_rrc
 {
 public:
+  struct bearer_status_info {
+    uint8_t  erab_id;
+    uint16_t pdcp_dl_sn, pdcp_ul_sn;
+    uint16_t dl_hfn, ul_hfn;
+  };
+
   virtual void
                initial_ue(uint16_t rnti, LIBLTE_S1AP_RRC_ESTABLISHMENT_CAUSE_ENUM cause, srslte::unique_byte_buffer_t pdu) = 0;
   virtual void initial_ue(uint16_t                                 rnti,
@@ -312,6 +320,7 @@ public:
                                 uint32_t                     target_eci,
                                 srslte::plmn_id_t            target_plmn,
                                 srslte::unique_byte_buffer_t rrc_container)                                       = 0;
+  virtual bool send_enb_status_transfer_proc(uint16_t rnti, std::vector<bearer_status_info>& bearer_status_list)  = 0;
 };
 
 // Combined interface for PHY to access stack (MAC and RRC)

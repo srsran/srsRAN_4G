@@ -91,6 +91,7 @@ private:
   enum class ho_interface_t { S1, X2, interSector };
 
   bool start_ho_preparation(uint32_t target_eci, uint8_t measobj_id, bool fwd_direct_path_available);
+  bool start_enb_status_transfer();
 
   rrc::ue*                  rrc_ue  = nullptr;
   rrc*                      rrc_enb = nullptr;
@@ -131,7 +132,7 @@ private:
     asn1::rrc::meas_result_eutra_s            meas_res;
     uint32_t                                  target_eci = 0;
 
-    enum class state_t { ho_preparation } state{};
+    enum class state_t { ho_preparation, ho_execution } state{};
     ho_interface_t ho_interface{};
     bool           fwd_direct_path_available = false;
   };

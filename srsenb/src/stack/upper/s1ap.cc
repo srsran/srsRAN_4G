@@ -1221,6 +1221,19 @@ bool s1ap::send_ho_required(uint16_t                     rnti,
   return true;
 }
 
+bool s1ap::send_enb_status_transfer_proc(uint16_t rnti, std::vector<bearer_status_info>& bearer_status_list)
+{
+  if (not mme_connected) {
+    return false;
+  }
+  auto it = users.find(rnti);
+  if (it == users.end()) {
+    return false;
+  }
+
+  return it->second->send_enb_status_transfer_proc(bearer_status_list);
+}
+
 // bool s1ap::send_ue_capabilities(uint16_t rnti, LIBLTE_RRC_UE_EUTRA_CAPABILITY_STRUCT *caps)
 //{
 //  srslte::byte_buffer_t msg;
@@ -1466,6 +1479,42 @@ bool s1ap::ue::send_ho_required(uint32_t                     target_eci,
   horeq.Source_ToTarget_TransparentContainer.n_octets = bytemsg.N_bytes;
 
   return s1ap_ptr->sctp_send_s1ap_pdu(&tx_pdu, ctxt.rnti, "HORequired");
+}
+
+bool s1ap::ue::send_enb_status_transfer_proc(std::vector<bearer_status_info>& bearer_status_list)
+{
+  if (bearer_status_list.empty()) {
+    return false;
+  }
+
+  LIBLTE_S1AP_S1AP_PDU_STRUCT tx_pdu            = {};
+  tx_pdu.choice_type                            = LIBLTE_S1AP_S1AP_PDU_CHOICE_INITIATINGMESSAGE;
+  tx_pdu.choice.initiatingMessage.choice_type   = LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_ENBSTATUSTRANSFER;
+  tx_pdu.choice.initiatingMessage.procedureCode = 24;
+
+  auto& status                         = tx_pdu.choice.initiatingMessage.choice.ENBStatusTransfer;
+  status.eNB_UE_S1AP_ID.ENB_UE_S1AP_ID = ctxt.eNB_UE_S1AP_ID;
+  status.MME_UE_S1AP_ID.MME_UE_S1AP_ID = ctxt.MME_UE_S1AP_ID;
+
+  /* Create StatusTransfer transparent container with all the bearer ctxt to transfer */
+  LIBLTE_S1AP_ENB_STATUSTRANSFER_TRANSPARENTCONTAINER_STRUCT& status_cont =
+      status.eNB_StatusTransfer_TransparentContainer;
+  status_cont.bearers_SubjectToStatusTransferList.len = bearer_status_list.size();
+  for (uint32_t i = 0; i < bearer_status_list.size(); ++i) {
+    LIBLTE_S1AP_BEARERS_SUBJECTTOSTATUSTRANSFER_ITEM_STRUCT& asn1bearer =
+        status_cont.bearers_SubjectToStatusTransferList.buffer[i];
+    bearer_status_info& item = bearer_status_list[i];
+
+    asn1bearer.e_RAB_ID.E_RAB_ID             = item.erab_id;
+    asn1bearer.dL_COUNTvalue.pDCP_SN.PDCP_SN = item.pdcp_dl_sn;
+    asn1bearer.dL_COUNTvalue.hFN.HFN         = item.dl_hfn;
+    asn1bearer.uL_COUNTvalue.pDCP_SN.PDCP_SN = item.pdcp_ul_sn;
+    asn1bearer.uL_COUNTvalue.hFN.HFN         = item.ul_hfn;
+
+    //    TODO: asn1bearer.receiveStatusofULPDCPSDUs_present
+  }
+
+  return s1ap_ptr->sctp_send_s1ap_pdu(&tx_pdu, ctxt.rnti, "ENBStatusTransfer");
 }
 
 } // namespace srsenb

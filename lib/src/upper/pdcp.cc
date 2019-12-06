@@ -247,6 +247,15 @@ void pdcp::enable_encryption(uint32_t lcid)
   pthread_rwlock_unlock(&rwlock);
 }
 
+bool pdcp::get_bearer_status(uint32_t lcid, uint16_t* dlsn, uint16_t* dlhfn, uint16_t* ulsn, uint16_t* ulhfn)
+{
+  if (not valid_lcid(lcid)) {
+    return false;
+  }
+  pdcp_array[lcid]->get_bearer_status(dlsn, dlhfn, ulsn, ulhfn);
+  return true;
+}
+
 /*******************************************************************************
   RLC interface
 *******************************************************************************/

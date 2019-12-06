@@ -58,6 +58,7 @@ public:
 
   // GW/RRC interface
   void write_sdu(unique_byte_buffer_t sdu, bool blocking);
+  void get_bearer_status(uint16_t* dlsn, uint16_t* dlhfn, uint16_t* ulsn, uint16_t* ulhfn);
 
   uint32_t get_dl_count();
   uint32_t get_ul_count();

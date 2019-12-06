@@ -292,6 +292,28 @@ uint32_t pdcp_entity_lte::get_ul_count()
   return tx_count;
 }
 
+void pdcp_entity_lte::get_bearer_status(uint16_t* dlsn, uint16_t* dlhfn, uint16_t* ulsn, uint16_t* ulhfn)
+{
+  if (cfg.rb_type == PDCP_RB_IS_DRB) {
+    if (12 == cfg.sn_len) {
+      *dlsn  = (uint16_t)(tx_count & 0xFFFu);
+      *dlhfn = (uint16_t)((tx_count - *dlsn) >> 12u);
+      *ulsn  = (uint16_t)(rx_count & 0xFFFu);
+      *ulhfn = (uint16_t)((rx_count - *ulsn) >> 12u);
+    } else {
+      *dlsn  = (uint16_t)(tx_count & 0x7Fu);
+      *dlhfn = (uint16_t)((tx_count - *dlsn) >> 7u);
+      *ulsn  = (uint16_t)(rx_count & 0x7Fu);
+      *ulhfn = (uint16_t)((rx_count - *ulsn) >> 7u);
+    }
+  } else { // is control
+    *dlsn  = (uint16_t)(tx_count & 0x1Fu);
+    *dlhfn = (uint16_t)((tx_count - *dlsn) >> 5u);
+    *ulsn  = (uint16_t)(rx_count & 0x1Fu);
+    *ulhfn = (uint16_t)((rx_count - *ulsn) >> 5u);
+  }
+}
+
 /****************************************************************************
  * Pack/Unpack helper functions
  * Ref: 3GPP TS 36.323 v10.1.0

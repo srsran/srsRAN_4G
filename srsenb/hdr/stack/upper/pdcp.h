@@ -57,6 +57,8 @@ public:
                        srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_);
   void enable_integrity(uint16_t rnti, uint32_t lcid);
   void enable_encryption(uint16_t rnti, uint32_t lcid);
+  bool get_bearer_status(uint16_t rnti, uint32_t lcid, uint16_t* dlsn, uint16_t* dlhfn, uint16_t* ulsn, uint16_t* ulhfn)
+      override;
 
 private:
   class user_interface_rlc : public srsue::rlc_interface_pdcp
