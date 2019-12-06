@@ -76,7 +76,7 @@ public:
   bool get_bearer_status(uint16_t rnti, uint32_t lcid, uint16_t* dlsn, uint16_t* dlhfn, uint16_t* ulsn, uint16_t* ulhfn)
       override
   {
-    return false;
+    return true;
   }
 };
 
