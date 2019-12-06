@@ -437,7 +437,7 @@ public:
 
     ssize_t n_recv = recvfrom(fd, pdu->msg, pdu->get_tailroom(), 0, (struct sockaddr*)&from, &fromlen);
     if (n_recv == -1 and errno != EAGAIN) {
-      log_h->error("Error reading from SCTP socket: %s\n", strerror(errno));
+      log_h->error("Error reading from socket: %s\n", strerror(errno));
       return true;
     }
     if (n_recv == -1 and errno == EAGAIN) {

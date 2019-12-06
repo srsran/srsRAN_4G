@@ -929,7 +929,8 @@ srslte::proc_outcome_t rrc::ue::rrc_mobility::sourceenb_ho_proc_t::react(ho_prep
   {
     asn1::bit_ref bref(e.rrc_container->msg, e.rrc_container->N_bytes);
     if (rrchocmd.unpack(bref) != asn1::SRSASN_SUCCESS) {
-      procError("Unpacking of RRC HO Command was unsuccessful\n");
+      procError("Unpacking of RRC HOCommand was unsuccessful\n");
+      parent->rrc_log->error_hex(e.rrc_container->msg, e.rrc_container->N_bytes, "Received container:\n");
       return srslte::proc_outcome_t::error;
     }
   }

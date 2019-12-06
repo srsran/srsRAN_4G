@@ -84,6 +84,7 @@ srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::react(const LIBLTE_S1AP_MESSAGE
 
 /**
  * TS 36.413 - Section 8.4.1.2 - HandoverPreparation Successful Operation
+ * Description: MME returns back an HandoverCommand to the SeNB
  */
 srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::react(LIBLTE_S1AP_MESSAGE_HANDOVERCOMMAND_STRUCT& msg)
 {
@@ -117,6 +118,7 @@ srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::react(LIBLTE_S1AP_MESSAGE_HANDO
   LIBLTE_S1AP_TARGETENB_TOSOURCEENB_TRANSPARENTCONTAINER_STRUCT container;
   liblte_unpack(
       &msg.Target_ToSource_TransparentContainer.buffer[0], msg.Target_ToSource_TransparentContainer.n_octets, bit_ptr);
+  bit_msg.N_bits = bit_ptr - &bit_msg.msg[0];
   liblte_s1ap_unpack_targetenb_tosourceenb_transparentcontainer(&bit_ptr, &container);
   if (container.iE_Extensions_present or container.ext) {
     procWarning("Not handling extensions\n");
@@ -129,6 +131,7 @@ srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::react(LIBLTE_S1AP_MESSAGE_HANDO
     return srslte::proc_outcome_t::error;
   }
   memcpy(rrc_container->msg, container.rRC_Container.buffer, container.rRC_Container.n_octets);
+  rrc_container->N_bytes = container.rRC_Container.n_octets;
 
   return srslte::proc_outcome_t::success;
 }
@@ -239,7 +242,7 @@ bool s1ap::init(s1ap_args_t                       args_,
   mme_connect_timer.set(10000, mme_connect_run);
   // Setup S1Setup timeout
   s1setup_timeout              = timers->get_unique_timer();
-  uint32_t s1setup_timeout_val = 1000;
+  uint32_t s1setup_timeout_val = 5000;
   s1setup_timeout.set(s1setup_timeout_val, [this](uint32_t tid) {
     s1_setup_proc_t::s1setupresult res;
     res.success = false;

@@ -8232,6 +8232,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_targetenb_tosourceenb_transparentcontainer(
 
     liblte_value_2_bits(ie->iE_Extensions_present ? 1 : 0, ptr, 1);
 
+    liblte_align_up_zero(ptr, 8);
+
     if (liblte_s1ap_pack_rrc_container(&ie->rRC_Container, ptr) != LIBLTE_SUCCESS) {
       return LIBLTE_ERROR_ENCODE_FAIL;
     }
@@ -8261,6 +8263,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_targetenb_tosourceenb_transparentcontainer(
     }
 
     ie->iE_Extensions_present = liblte_bits_2_value(ptr, 1);
+
+    liblte_align_up_zero(ptr, 8);
 
     if (liblte_s1ap_unpack_rrc_container(ptr, &ie->rRC_Container) != LIBLTE_SUCCESS) {
       return LIBLTE_ERROR_DECODE_FAIL;
