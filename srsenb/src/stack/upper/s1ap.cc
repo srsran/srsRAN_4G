@@ -60,6 +60,7 @@ srslte::proc_outcome_t s1ap::ue::ho_prep_proc_t::init(uint32_t                  
     return srslte::proc_outcome_t::error;
   }
 
+  // Start HO preparation timer
   ue_ptr->ts1_reloc_prep.run();
 
   return srslte::proc_outcome_t::yield;

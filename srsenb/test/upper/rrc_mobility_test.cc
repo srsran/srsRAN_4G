@@ -91,23 +91,24 @@ public:
   }
 };
 
-} // namespace test_dummies
-
-class mac_dummy : public mac_interface_rrc
+class pdcp_mobility_dummy : public pdcp_dummy
 {
 public:
-  int  cell_cfg(sched_interface::cell_cfg_t* cell_cfg) override { return 0; }
-  void reset() override {}
-  int  ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg) override { return 0; }
-  int  ue_rem(uint16_t rnti) override { return 0; }
-  int  bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg) override { return 0; }
-  int  bearer_ue_rem(uint16_t rnti, uint32_t lc_id) override { return 0; }
-  int  set_dl_ant_info(uint16_t rnti, asn1::rrc::phys_cfg_ded_s::ant_info_c_* dl_ant_info) override { return 0; }
-  void phy_config_enabled(uint16_t rnti, bool enabled) override {}
-  void write_mcch(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s* mcch) override
+  struct last_sdu_t {
+    uint16_t                     rnti;
+    uint32_t                     lcid;
+    srslte::unique_byte_buffer_t sdu;
+  } last_sdu;
+
+  void write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu) override
   {
+    last_sdu.rnti = rnti;
+    last_sdu.lcid = lcid;
+    last_sdu.sdu  = std::move(sdu);
   }
 };
+
+} // namespace test_dummies
 
 meas_cell_cfg_t generate_cell1()
 {
@@ -317,6 +318,162 @@ int test_correct_meascfg_calculation()
   return SRSLTE_SUCCESS;
 }
 
+namespace test_helpers {
+
+int  parse_default_cfg(rrc_cfg_t* rrc_cfg, srsenb::all_args_t& args);
+void copy_msg_to_buffer(srslte::unique_byte_buffer_t& pdu, uint8_t* msg, size_t nof_bytes);
+int  bring_rrc_to_reconf_state(srsenb::rrc& rrc, srslte::timer_handler& timers, uint16_t rnti);
+
+} // namespace test_helpers
+
+struct mobility_test_params {
+  enum class test_fail_at { success, wrong_measreport, concurrent_ho, ho_prep_failure } fail_at;
+  const char* to_string()
+  {
+    switch (fail_at) {
+      case test_fail_at::success:
+        return "success";
+      case test_fail_at::wrong_measreport:
+        return "wrong measreport";
+      case test_fail_at::concurrent_ho:
+        return "measreport while in handover";
+      case test_fail_at::ho_prep_failure:
+        return "ho preparation failure";
+      default:
+        return "none";
+    }
+  }
+};
+
+int test_mobility_class(mobility_test_params test_params)
+{
+  printf("\n===== TEST: test_mobility_class() for event \"%s\" =====\n", test_params.to_string());
+  srslte::scoped_tester_log    rrc_log("RRC ");
+  srslte::timer_handler        timers;
+  srslte::unique_byte_buffer_t pdu;
+
+  srsenb::all_args_t args;
+  rrc_cfg_t          cfg;
+  TESTASSERT(test_helpers::parse_default_cfg(&cfg, args) == SRSLTE_SUCCESS);
+  report_cfg_eutra_s rep = generate_rep1();
+  cfg.meas_cfg.meas_reports.push_back(rep);
+  meas_cell_cfg_t cell2 = generate_cell1();
+  cell2.pci             = 2;
+  cell2.eci             = 0x19C02;
+  cfg.meas_cfg.meas_cells.push_back(cell2);
+
+  srsenb::rrc                       rrc;
+  mac_dummy                         mac;
+  rlc_dummy                         rlc;
+  test_dummies::pdcp_mobility_dummy pdcp;
+  phy_dummy                         phy;
+  test_dummies::s1ap_mobility_dummy s1ap;
+  gtpu_dummy                        gtpu;
+  rrc_log.set_level(srslte::LOG_LEVEL_NONE);
+  rrc_log.set_hex_limit(1024);
+  rrc.init(&cfg, &phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, &timers, &rrc_log);
+
+  auto tic = [&timers, &rrc] {
+    timers.step_all();
+    rrc.tti_clock();
+  };
+
+  uint16_t rnti = 0x46;
+  rrc.add_user(rnti);
+
+  // Do all the handshaking until the first RRC Connection Reconf
+  test_helpers::bring_rrc_to_reconf_state(rrc, timers, rnti);
+
+  rrc_log.set_level(srslte::LOG_LEVEL_INFO);
+
+  /* Receive MeasReport from UE (correct if PCI=2) */
+  if (test_params.fail_at == mobility_test_params::test_fail_at::wrong_measreport) {
+    uint8_t meas_report[] = {0x08, 0x10, 0x38, 0x74, 0x00, 0x0D, 0xBC, 0x80}; // PCI == 3
+    test_helpers::copy_msg_to_buffer(pdu, meas_report, sizeof(meas_report));
+  } else {
+    uint8_t meas_report[] = {0x08, 0x10, 0x38, 0x74, 0x00, 0x09, 0xBC, 0x80}; // PCI == 2
+    test_helpers::copy_msg_to_buffer(pdu, meas_report, sizeof(meas_report));
+  }
+  rrc.write_pdu(rnti, 1, std::move(pdu));
+  tic();
+
+  /* Test Case: the MeasReport is not valid */
+  if (test_params.fail_at == mobility_test_params::test_fail_at::wrong_measreport) {
+    TESTASSERT(s1ap.last_ho_required.rrc_container == nullptr);
+    TESTASSERT(rrc_log.error_counter == 1);
+    return SRSLTE_SUCCESS;
+  }
+
+  /* Test Case: Multiple concurrent MeasReports arrived. Only one HO procedure should be running */
+  if (test_params.fail_at == mobility_test_params::test_fail_at::concurrent_ho) {
+    s1ap.last_ho_required = {};
+    uint8_t meas_report[] = {0x08, 0x10, 0x38, 0x74, 0x00, 0x09, 0xBC, 0x80}; // PCI == 2
+    test_helpers::copy_msg_to_buffer(pdu, meas_report, sizeof(meas_report));
+    rrc.write_pdu(rnti, 1, std::move(pdu));
+    tic();
+    TESTASSERT(s1ap.last_ho_required.rrc_container == nullptr);
+    TESTASSERT(rrc_log.error_counter == 1);
+    return SRSLTE_SUCCESS;
+  }
+
+  /* Check HO Required was sent to S1AP */
+  TESTASSERT(s1ap.last_ho_required.rnti == rnti);
+  TESTASSERT(s1ap.last_ho_required.target_eci == cell2.eci);
+  TESTASSERT(s1ap.last_ho_required.target_plmn.to_string() == "00101");
+  {
+    asn1::bit_ref bref(s1ap.last_ho_required.rrc_container->msg, s1ap.last_ho_required.rrc_container->N_bytes);
+    asn1::rrc::ho_prep_info_s hoprep;
+    TESTASSERT(hoprep.unpack(bref) == asn1::SRSASN_SUCCESS);
+    ho_prep_info_r8_ies_s& hoprepr8 = hoprep.crit_exts.c1().ho_prep_info_r8();
+    TESTASSERT(hoprepr8.as_cfg_present);
+    // Check if RRC sends the current active bearers
+    TESTASSERT(hoprepr8.as_cfg.source_rr_cfg.drb_to_add_mod_list_present);
+    TESTASSERT(hoprepr8.as_cfg.source_rr_cfg.drb_to_add_mod_list[0].drb_id == 1);
+  }
+
+  /* Test Case: HandoverPreparation has failed */
+  if (test_params.fail_at == mobility_test_params::test_fail_at::ho_prep_failure) {
+    rrc.ho_preparation_complete(rnti, false, nullptr);
+    TESTASSERT(rrc_log.error_counter == 1);
+    return SRSLTE_SUCCESS;
+  }
+
+  /* MME returns back an HandoverCommand, S1AP unwraps the RRC container */
+  uint8_t ho_cmd_rrc_container[] = {0x01, 0xa9, 0x00, 0xd9, 0xfc, 0x00, 0x00, 0x00, 0x00, 0x0b, 0x22, 0x04, 0x00, 0x00,
+                                    0x01, 0x48, 0x04, 0xbc, 0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0x02, 0xa0, 0x07, 0xa0,
+                                    0x10, 0x00, 0x01, 0x00, 0x05, 0x00, 0xa7, 0xd0, 0xc1, 0xf6, 0xaf, 0x3e, 0x12, 0xcc,
+                                    0x86, 0x0d, 0x30, 0x00, 0x0b, 0x5a, 0x02, 0x17, 0x86, 0x00, 0x05, 0xa0, 0x20};
+  test_helpers::copy_msg_to_buffer(pdu, ho_cmd_rrc_container, sizeof(ho_cmd_rrc_container));
+  rrc.ho_preparation_complete(rnti, true, std::move(pdu));
+
+  TESTASSERT(rrc_log.error_counter == 0);
+  return SRSLTE_SUCCESS;
+}
+
+int main(int argc, char** argv)
+{
+  log_h.set_level(srslte::LOG_LEVEL_INFO);
+
+  if (argc < 3) {
+    argparse::usage(argv[0]);
+    return -1;
+  }
+  argparse::parse_args(argc, argv);
+
+  TESTASSERT(test_correct_insertion() == 0);
+  TESTASSERT(test_correct_meascfg_calculation() == 0);
+  TESTASSERT(test_mobility_class(mobility_test_params{mobility_test_params::test_fail_at::wrong_measreport}) == 0);
+  TESTASSERT(test_mobility_class(mobility_test_params{mobility_test_params::test_fail_at::concurrent_ho}) == 0);
+  TESTASSERT(test_mobility_class(mobility_test_params{mobility_test_params::test_fail_at::ho_prep_failure}) == 0);
+  TESTASSERT(test_mobility_class(mobility_test_params{mobility_test_params::test_fail_at::success}) == 0);
+
+  printf("\nSuccess\n");
+
+  return 0;
+}
+
+namespace test_helpers {
+
 int parse_default_cfg(rrc_cfg_t* rrc_cfg, srsenb::all_args_t& args)
 {
   args                      = {};
@@ -340,61 +497,24 @@ int parse_default_cfg(rrc_cfg_t* rrc_cfg, srsenb::all_args_t& args)
   return enb_conf_sections::parse_cfg_files(&args, rrc_cfg, &phy_cfg);
 }
 
-struct mobility_test_params {
-  enum class test_fail_at { never, wrong_measreport } fail_at;
+void copy_msg_to_buffer(srslte::unique_byte_buffer_t& pdu, uint8_t* msg, size_t nof_bytes)
+{
+  srslte::byte_buffer_pool* pool = srslte::byte_buffer_pool::get_instance();
+  pdu                            = srslte::allocate_unique_buffer(*pool, true);
+  memcpy(pdu->msg, msg, nof_bytes);
+  pdu->N_bytes = nof_bytes;
 };
 
-int test_mobility_class(mobility_test_params test_params)
+int bring_rrc_to_reconf_state(srsenb::rrc& rrc, srslte::timer_handler& timers, uint16_t rnti)
 {
-  log_h.info("----- TEST: test_mobility_class() -----\n");
-  srslte::log_filter           s1ap_log("S1AP");
-  srslte::scoped_tester_log    rrc_log("RRC ");
-  srslte::timer_handler        timers;
-  srslte::byte_buffer_pool*    pool = srslte::byte_buffer_pool::get_instance();
   srslte::unique_byte_buffer_t pdu;
-
-  auto copy_msg_to_buffer = [pool](srslte::unique_byte_buffer_t& pdu, uint8_t* msg, size_t nof_bytes) {
-    pdu = srslte::allocate_unique_buffer(*pool, true);
-    memcpy(pdu->msg, msg, nof_bytes);
-    pdu->N_bytes = nof_bytes;
-  };
-
-  srsenb::all_args_t args;
-  rrc_cfg_t          cfg;
-  TESTASSERT(parse_default_cfg(&cfg, args) == SRSLTE_SUCCESS);
-  report_cfg_eutra_s rep = generate_rep1();
-  cfg.meas_cfg.meas_reports.push_back(rep);
-  meas_cell_cfg_t cell2 = generate_cell1();
-  cell2.pci             = 2;
-  cell2.eci             = 0x19C02;
-  cfg.meas_cfg.meas_cells.push_back(cell2);
-
-  srsenb::rrc                       rrc;
-  mac_dummy                         mac;
-  rlc_dummy                         rlc;
-  pdcp_dummy                        pdcp;
-  phy_dummy                         phy;
-  test_dummies::s1ap_mobility_dummy s1ap;
-  gtpu_dummy                        gtpu;
-  rrc_log.set_level(srslte::LOG_LEVEL_INFO);
-  rrc_log.set_hex_limit(1024);
-  s1ap_log.set_level(srslte::LOG_LEVEL_INFO);
-  s1ap_log.set_hex_limit(1024);
-  rrc.init(&cfg, &phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, &timers, &rrc_log);
-
-  auto tic = [&timers, &rrc] {
-    timers.step_all();
-    rrc.tti_clock();
-  };
-
-  uint16_t rnti = 0x46;
-  rrc.add_user(rnti);
 
   // Send RRCConnectionRequest
   uint8_t rrc_conn_request[] = {0x40, 0x12, 0xf6, 0xfb, 0xe2, 0xc6};
   copy_msg_to_buffer(pdu, rrc_conn_request, sizeof(rrc_conn_request));
   rrc.write_pdu(rnti, 0, std::move(pdu));
-  tic();
+  timers.step_all();
+  rrc.tti_clock();
 
   // Send RRCConnectionSetupComplete
   uint8_t rrc_conn_setup_complete[] = {0x20, 0x00, 0x40, 0x2e, 0x90, 0x50, 0x49, 0xe8, 0x06, 0x0e, 0x82, 0xa2,
@@ -402,7 +522,8 @@ int test_mobility_class(mobility_test_params test_params)
                                        0x05, 0xc0, 0xc0, 0x00, 0x08, 0x04, 0x03, 0xa0, 0x23, 0x23, 0xc0};
   copy_msg_to_buffer(pdu, rrc_conn_setup_complete, sizeof(rrc_conn_setup_complete));
   rrc.write_pdu(rnti, 1, std::move(pdu));
-  tic();
+  timers.step_all();
+  rrc.tti_clock();
 
   // S1AP receives InitialContextSetupRequest and forwards it to RRC
   uint8_t s1ap_init_ctxt_setup_req[] = {
@@ -423,69 +544,17 @@ int test_mobility_class(mobility_test_params test_params)
   memcpy(byte_buf.msg, s1ap_init_ctxt_setup_req, byte_buf.N_bytes);
   liblte_s1ap_unpack_s1ap_pdu(&byte_buf, &s1ap_pdu);
   rrc.setup_ue_ctxt(rnti, &s1ap_pdu.choice.initiatingMessage.choice.InitialContextSetupRequest);
-  tic();
+  timers.step_all();
+  rrc.tti_clock();
 
   // Send SecurityModeComplete
   uint8_t sec_mode_complete[] = {0x28, 0x00};
   copy_msg_to_buffer(pdu, sec_mode_complete, sizeof(sec_mode_complete));
   rrc.write_pdu(rnti, 1, std::move(pdu));
-  tic();
+  timers.step_all();
+  rrc.tti_clock();
 
-  /* Receive MeasReport from UE (correct if PCI=2) */
-  if (test_params.fail_at == mobility_test_params::test_fail_at::wrong_measreport) {
-    uint8_t meas_report[] = {0x08, 0x10, 0x38, 0x74, 0x00, 0x0D, 0xBC, 0x80}; // PCI == 3
-    copy_msg_to_buffer(pdu, meas_report, sizeof(meas_report));
-  } else {
-    uint8_t meas_report[] = {0x08, 0x10, 0x38, 0x74, 0x00, 0x09, 0xBC, 0x80}; // PCI == 2
-    copy_msg_to_buffer(pdu, meas_report, sizeof(meas_report));
-  }
-  rrc.write_pdu(rnti, 1, std::move(pdu));
-  tic();
-
-  if (test_params.fail_at == mobility_test_params::test_fail_at::wrong_measreport) {
-    TESTASSERT(s1ap.last_ho_required.rrc_container == nullptr);
-    TESTASSERT(rrc_log.error_counter == 1);
-    return SRSLTE_SUCCESS;
-  }
-
-  // Check HO Required was sent to S1AP
-  TESTASSERT(s1ap.last_ho_required.rnti == rnti);
-  TESTASSERT(s1ap.last_ho_required.target_eci == cell2.eci);
-  TESTASSERT(s1ap.last_ho_required.target_plmn.to_string() == "00101");
-  {
-    asn1::bit_ref bref(s1ap.last_ho_required.rrc_container->msg, s1ap.last_ho_required.rrc_container->N_bytes);
-    asn1::rrc::ho_prep_info_s hoprep;
-    TESTASSERT(hoprep.unpack(bref) == asn1::SRSASN_SUCCESS);
-    ho_prep_info_r8_ies_s& hoprepr8 = hoprep.crit_exts.c1().ho_prep_info_r8();
-    TESTASSERT(hoprepr8.as_cfg_present);
-    // Check if RRC sends the current active bearers
-    TESTASSERT(hoprepr8.as_cfg.source_rr_cfg.drb_to_add_mod_list_present);
-    TESTASSERT(hoprepr8.as_cfg.source_rr_cfg.drb_to_add_mod_list[0].drb_id == 1);
-  }
-
-  // MME returns back an HandoverCommand
-  // TODO
-
-  TESTASSERT(rrc_log.error_counter == 0);
   return SRSLTE_SUCCESS;
 }
 
-int main(int argc, char** argv)
-{
-  log_h.set_level(srslte::LOG_LEVEL_INFO);
-
-  if (argc < 3) {
-    argparse::usage(argv[0]);
-    return -1;
-  }
-  argparse::parse_args(argc, argv);
-
-  TESTASSERT(test_correct_insertion() == 0);
-  TESTASSERT(test_correct_meascfg_calculation() == 0);
-  TESTASSERT(test_mobility_class(mobility_test_params{mobility_test_params::test_fail_at::never}) == 0);
-  TESTASSERT(test_mobility_class(mobility_test_params{mobility_test_params::test_fail_at::wrong_measreport}) == 0);
-
-  printf("Success\n");
-
-  return 0;
-}
+} // namespace test_helpers

@@ -26,6 +26,22 @@
 
 namespace srsenb {
 
+class mac_dummy : public mac_interface_rrc
+{
+public:
+  int  cell_cfg(sched_interface::cell_cfg_t* cell_cfg) override { return 0; }
+  void reset() override {}
+  int  ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg) override { return 0; }
+  int  ue_rem(uint16_t rnti) override { return 0; }
+  int  bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg) override { return 0; }
+  int  bearer_ue_rem(uint16_t rnti, uint32_t lc_id) override { return 0; }
+  int  set_dl_ant_info(uint16_t rnti, asn1::rrc::phys_cfg_ded_s::ant_info_c_* dl_ant_info) override { return 0; }
+  void phy_config_enabled(uint16_t rnti, bool enabled) override {}
+  void write_mcch(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s* mcch) override
+  {
+  }
+};
+
 class rlc_dummy : public rlc_interface_rrc
 {
 public:

@@ -963,7 +963,7 @@ srslte::proc_outcome_t rrc::ue::rrc_mobility::sourceenb_ho_proc_t::react(ho_prep
 
   /* Send HO Command to UE */
   parent->rrc_ue->send_dl_dcch(&dl_dcch_msg);
-  procInfo("Handover command of rnti=0x%x handled successfully.\n", parent->rrc_ue->rnti);
+  procInfo("HandoverCommand of rnti=0x%x handled successfully.\n", parent->rrc_ue->rnti);
   return srslte::proc_outcome_t::success;
 }
 
