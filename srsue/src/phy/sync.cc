@@ -222,6 +222,7 @@ phy_interface_rrc_lte::cell_search_ret_t sync::cell_search(phy_interface_rrc_lte
     case search::CELL_FOUND:
       // If a cell is found, configure it, synchronize and measure it
       if (set_cell()) {
+        intra_freq_meas.set_primay_cell(current_earfcn, cell);
 
         Info("Cell Search: Setting sampling rate and synchronizing SFN...\n");
         set_sampling_rate();
