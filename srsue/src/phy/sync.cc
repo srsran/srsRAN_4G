@@ -324,6 +324,9 @@ bool sync::cell_select(phy_interface_rrc_lte::phy_cell_t* new_cell)
         return ret;
       }
     }
+
+    /* Reconfigure intra-frequency measurement */
+    intra_freq_meas.set_primay_cell(current_earfcn, cell);
   }
 
   /* Change sampling rate if necessary */
@@ -814,7 +817,6 @@ bool sync::set_cell()
   }
   sfn_p.set_cell(cell);
   worker_com->set_cell(cell);
-  intra_freq_meas.set_primay_cell(current_earfcn, cell);
 
   for (uint32_t i = 0; i < workers_pool->get_nof_workers(); i++) {
     if (!((sf_worker*)workers_pool->get_worker(i))->set_cell(0, cell)) {
