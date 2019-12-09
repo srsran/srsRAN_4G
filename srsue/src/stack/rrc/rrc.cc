@@ -2963,7 +2963,7 @@ bool rrc::rrc_meas::process_event(eutra_event_s* event, uint32_t tti, bool enter
   if (!enter_condition) {
     cell->timer_enter_triggered = false;
   }
-  if (!enter_condition) {
+  if (!exit_condition) {
     cell->timer_exit_triggered = false;
   }
   return generate_report;
