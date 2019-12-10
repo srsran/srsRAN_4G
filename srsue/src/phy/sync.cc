@@ -283,7 +283,10 @@ bool sync::cell_select(phy_interface_rrc_lte::phy_cell_t* new_cell)
       log_h->error("Cell Select: Invalid cell. ID=%d, PRB=%d, ports=%d\n", cell.id, cell.nof_prb, cell.nof_ports);
       return ret;
     }
-    Info("Cell Select: Starting cell selection for PCI=%d, EARFCN=%d\n", new_cell->cell.id, new_cell->earfcn);
+    Info("Cell Select: Starting cell selection for PCI=%d, n_prb=%d, EARFCN=%d\n",
+         new_cell->cell.id,
+         new_cell->cell.nof_prb,
+         new_cell->earfcn);
   }
 
   // Wait for any pending PHICH
@@ -453,7 +456,15 @@ void sync::run_thread()
               // Force decode MIB if required
               if (force_camping_sfn_sync) {
                 uint32_t                 _tti = 0;
-                sync::sfn_sync::ret_code ret  = sfn_p.decode_mib(&cell, &_tti, buffer[0], mib);
+                srslte_cell_t            temp_cell = {};
+                sync::sfn_sync::ret_code ret       = sfn_p.decode_mib(&temp_cell, &_tti, buffer[0], mib);
+
+                if (srslte_cell_isvalid(&temp_cell)) {
+                  cell = temp_cell;
+                } else {
+                  Error("Invalid cell found PCI=%d, n_prb=%d;\n", temp_cell.id, temp_cell.nof_prb);
+                  log_h->console("Invalid cell found PCI=%d, n_prb=%d;\n", temp_cell.id, temp_cell.nof_prb);
+                }
 
                 if (ret == sfn_sync::SFN_FOUND) {
                   // Force tti
@@ -882,6 +893,11 @@ bool sync::set_frequency()
 void sync::set_sampling_rate()
 {
   float new_srate = (float)srslte_sampling_freq_hz(cell.nof_prb);
+  if (new_srate < 0.0) {
+    Error("Invalid sampling rate for %d PRBs. keeping same.\n", cell.nof_prb);
+    return;
+  }
+
   current_sflen   = (uint32_t)SRSLTE_SF_LEN_PRB(cell.nof_prb);
   if (current_srate != new_srate || srate_mode != SRATE_CAMP) {
     current_srate = new_srate;
