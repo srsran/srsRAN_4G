@@ -410,6 +410,7 @@ void rlc::add_bearer(uint32_t lcid, rlc_config_t cnfg)
           rlc_log->error("Cannot add RLC entity - invalid mode\n");
           goto unlock_and_exit;
       }
+#ifdef HAVE_5GNR
     } else if (cnfg.rat == srslte_rat_t::nr) {
       switch (cnfg.rlc_mode) {
         case rlc_mode_t::tm:
@@ -422,6 +423,10 @@ void rlc::add_bearer(uint32_t lcid, rlc_config_t cnfg)
           rlc_log->error("Cannot add RLC entity - invalid mode\n");
           goto unlock_and_exit;
       }
+#endif
+    } else {
+      rlc_log->error("RAT not supported\n");
+      goto unlock_and_exit;
     }
 
     if (not rlc_array.insert(rlc_map_pair_t(lcid, rlc_entity)).second) {

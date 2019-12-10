@@ -35,7 +35,7 @@
 
 #define LOG_HEX_LIMIT (-1)
 
-#define PCAP 1
+#define PCAP 0
 #define PCAP_CRNTI (0x1001)
 #define PCAP_TTI (666)
 

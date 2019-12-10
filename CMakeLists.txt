@@ -65,6 +65,7 @@ configure_file(
 option(ENABLE_SRSUE    "Build srsUE application"                  ON)
 option(ENABLE_SRSENB   "Build srsENB application"                 ON)
 option(ENABLE_SRSEPC   "Build srsEPC application"                 ON)
+option(ENABLE_5GNR     "Build with 5G-NR components"              OFF)
 option(DISABLE_SIMD    "disable simd instructions"                OFF)
 
 option(ENABLE_GUI      "Enable GUI (using srsGUI)"                ON)
@@ -91,6 +92,10 @@ if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
 else(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
   set(GCC_ARCH native CACHE STRING "GCC compile for specific architecture.")
 endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
+
+if (ENABLE_5GNR)
+  add_definitions(-DHAVE_5GNR)
+endif (ENABLE_5GNR)
 
 ########################################################################
 # Find dependencies

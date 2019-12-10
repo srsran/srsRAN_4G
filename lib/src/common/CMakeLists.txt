@@ -18,13 +18,38 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-file(GLOB CXX_SOURCES "*.cc")
-file(GLOB C_SOURCES "*.c")
+
+set(SOURCES arch_select.cc
+            backtrace.c
+            buffer_pool.cc
+            crash_handler.c
+            gen_mch_tables.c
+            liblte_security.cc
+            log_filter.cc
+            logger_file.cc
+            mac_pcap.cc
+            nas_pcap.cc
+            network_utils.cc
+            pdu.cc
+            pdu_queue.cc
+            rlc_pcap.cc
+            s1ap_pcap.cc
+            security.cc
+            snow_3g.cc
+            thread_pool.cc
+            threads.c
+            tti_sync_cv.cc
+            version.c
+            zuc.cc)
+
+if (ENABLE_5GNR)
+  set(SOURCES ${SOURCES} mac_nr_pcap.cc mac_nr_pdu.cc)
+endif(ENABLE_5GNR)
 
 # Avoid warnings caused by libmbedtls about deprecated functions
 set_source_files_properties(security.cc PROPERTIES COMPILE_FLAGS -Wno-deprecated-declarations)
 
-add_library(srslte_common STATIC ${C_SOURCES} ${CXX_SOURCES})
+add_library(srslte_common STATIC ${SOURCES})
 add_custom_target(gen_build_info COMMAND cmake -P ${CMAKE_BINARY_DIR}/SRSLTEbuildinfo.cmake)
 add_dependencies(srslte_common gen_build_info)
 
