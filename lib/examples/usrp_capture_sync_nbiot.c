@@ -141,7 +141,7 @@ int main(int argc, char** argv)
   buff_ptrs[0]                      = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB_NBIOT * 10);
 
   srslte_nbiot_ue_sync_t ue_sync;
-  if (srslte_nbiot_ue_sync_init(&ue_sync, cell, srslte_rf_recv_wrapper, (void*)&rf)) {
+  if (srslte_ue_sync_nbiot_init(&ue_sync, cell, srslte_rf_recv_wrapper, (void*)&rf)) {
     fprintf(stderr, "Error initiating ue_sync\n");
     exit(-1);
   }
@@ -151,7 +151,7 @@ int main(int argc, char** argv)
   bool     start_capture        = false;
   bool     stop_capture         = false;
   while ((subframe_count < nof_subframes || nof_subframes == -1) && !stop_capture) {
-    int n = srslte_nbiot_ue_sync_zerocopy_multi(&ue_sync, buff_ptrs);
+    int n = srslte_ue_sync_nbiot_zerocopy_multi(&ue_sync, buff_ptrs);
     if (n < 0) {
       fprintf(stderr, "Error receiving samples\n");
       exit(-1);
@@ -160,7 +160,7 @@ int main(int argc, char** argv)
     if (n == 1) {
       if (!start_capture) {
         if (nof_warmup_subframes <= 0) {
-          if (srslte_nbiot_ue_sync_get_sfidx(&ue_sync) == 9) {
+          if (srslte_ue_sync_nbiot_get_sfidx(&ue_sync) == 9) {
             printf("Starting capture ..\n");
             start_capture = true;
           }
@@ -168,16 +168,16 @@ int main(int argc, char** argv)
         nof_warmup_subframes--;
       } else {
         printf("Writing subframe %d (%d/%d) to file (cfo=%6.2f kHz)\n",
-               srslte_nbiot_ue_sync_get_sfidx(&ue_sync),
+               srslte_ue_sync_nbiot_get_sfidx(&ue_sync),
                subframe_count,
                nof_subframes,
-               srslte_nbiot_ue_sync_get_cfo(&ue_sync) / 1000);
+               srslte_ue_sync_nbiot_get_cfo(&ue_sync) / 1000);
         srslte_filesink_write(&sink, buff_ptrs[0], SRSLTE_SF_LEN_PRB(nof_prb));
         subframe_count++;
       }
     }
     if (!keep_running) {
-      if (!start_capture || (start_capture && srslte_nbiot_ue_sync_get_sfidx(&ue_sync) == 9)) {
+      if (!start_capture || (start_capture && srslte_ue_sync_nbiot_get_sfidx(&ue_sync) == 9)) {
         printf("Stopping capture ..\n");
         stop_capture = true;
       }
@@ -186,7 +186,7 @@ int main(int argc, char** argv)
 
   srslte_filesink_free(&sink);
   srslte_rf_close(&rf);
-  srslte_nbiot_ue_sync_free(&ue_sync);
+  srslte_ue_sync_nbiot_free(&ue_sync);
 
   printf("Ok - wrote %d subframes\n", subframe_count);
   exit(0);

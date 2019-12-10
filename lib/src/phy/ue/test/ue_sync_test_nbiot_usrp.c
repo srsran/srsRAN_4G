@@ -176,13 +176,13 @@ int main(int argc, char** argv)
   }
 
   srslte_nbiot_ue_sync_t ue_sync;
-  if (srslte_nbiot_ue_sync_init(&ue_sync, cell, srslte_rf_recv_wrapper_cs, (void*)&rf)) {
+  if (srslte_ue_sync_nbiot_init(&ue_sync, cell, srslte_rf_recv_wrapper_cs, (void*)&rf)) {
     fprintf(stderr, "Error initiating ue_sync\n");
     exit(-1);
   }
 
-  srslte_nbiot_ue_sync_set_cfo_enable(&ue_sync, do_cfo_corr);
-  srslte_nbiot_ue_sync_set_cfo_ema(&ue_sync, cfo_ema);
+  srslte_ue_sync_nbiot_set_cfo_enable(&ue_sync, do_cfo_corr);
+  srslte_ue_sync_nbiot_set_cfo_ema(&ue_sync, cfo_ema);
 
   srslte_rf_start_rx_stream(&rf, false);
 
@@ -190,20 +190,20 @@ int main(int argc, char** argv)
   printf("Trying to keep syncronized to cell for %d frames\n", nof_frames);
 
   while ((frame_cnt < nof_frames || nof_frames == -1) && !go_exit) {
-    if (srslte_nbiot_ue_sync_zerocopy_multi(&ue_sync, rx_buffer) < 0) {
+    if (srslte_ue_sync_nbiot_zerocopy_multi(&ue_sync, rx_buffer) < 0) {
       fprintf(stderr, "Error calling srslte_nbiot_ue_sync_work()\n");
       break;
     }
 
-    if (srslte_nbiot_ue_sync_get_sfidx(&ue_sync) == 0) {
-      printf("CFO: %+6.2f kHz\r", srslte_nbiot_ue_sync_get_cfo(&ue_sync) / 1000);
+    if (srslte_ue_sync_nbiot_get_sfidx(&ue_sync) == 0) {
+      printf("CFO: %+6.2f kHz\r", srslte_ue_sync_nbiot_get_cfo(&ue_sync) / 1000);
       frame_cnt++;
     }
 
 #ifndef DISABLE_GRAPHICS
     if (!disable_plots) {
       // get current CFO estimate
-      cfo_table[cfo_table_index++] = srslte_nbiot_ue_sync_get_cfo(&ue_sync) / 1000;
+      cfo_table[cfo_table_index++] = srslte_ue_sync_nbiot_get_cfo(&ue_sync) / 1000;
       if (cfo_table_index == cfo_num_plot) {
         do_plots_cfo(cfo_table, cfo_num_plot);
         cfo_table_index = 0;
@@ -220,7 +220,7 @@ int main(int argc, char** argv)
   }
 
 clean_exit:
-  srslte_nbiot_ue_sync_free(&ue_sync);
+  srslte_ue_sync_nbiot_free(&ue_sync);
   srslte_rf_close(&rf);
 
   for (uint32_t i = 0; i < SRSLTE_MAX_PORTS; i++) {

@@ -41,7 +41,7 @@ int srslte_ue_cellsearch_nbiot_init(srslte_ue_cellsearch_nbiot_t* q,
     ret = SRSLTE_ERROR;
     bzero(q, sizeof(srslte_ue_cellsearch_nbiot_t));
 
-    if (srslte_nbiot_ue_sync_init_multi(
+    if (srslte_ue_sync_nbiot_init_multi(
             &q->ue_sync, SRSLTE_NBIOT_MAX_PRB, recv_callback, SRSLTE_NBIOT_NUM_RX_ANTENNAS, stream_handler)) {
       fprintf(stderr, "Error initiating ue_sync\n");
       goto clean_exit;
@@ -83,7 +83,7 @@ void srslte_ue_cellsearch_nbiot_free(srslte_ue_cellsearch_nbiot_t* q)
     }
   }
 
-  srslte_nbiot_ue_sync_free(&q->ue_sync);
+  srslte_ue_sync_nbiot_free(&q->ue_sync);
   bzero(q, sizeof(srslte_ue_cellsearch_nbiot_t));
 }
 
@@ -108,18 +108,18 @@ int srslte_ue_cellsearch_nbiot_scan(srslte_ue_cellsearch_nbiot_t* q)
 
   if (q != NULL) {
     ret = SRSLTE_ERROR;
-    srslte_nbiot_ue_sync_reset(&q->ue_sync);
+    srslte_ue_sync_nbiot_reset(&q->ue_sync);
     q->nsss_sf_counter = 0;
 
     do {
-      ret = srslte_nbiot_ue_sync_zerocopy_multi(&q->ue_sync, q->rx_buffer);
+      ret = srslte_ue_sync_nbiot_zerocopy_multi(&q->ue_sync, q->rx_buffer);
       if (ret < 0) {
         fprintf(stderr, "Error calling srslte_nbiot_ue_sync_get_buffer()\n");
         break;
       } else if (ret == 1) {
         // we are in sync, wait until we have received two full frames, store subframe 9 for both
-        DEBUG("In tracking state sf_idx=%d\n", srslte_nbiot_ue_sync_get_sfidx(&q->ue_sync));
-        if (srslte_nbiot_ue_sync_get_sfidx(&q->ue_sync) == 9) {
+        DEBUG("In tracking state sf_idx=%d\n", srslte_ue_sync_nbiot_get_sfidx(&q->ue_sync));
+        if (srslte_ue_sync_nbiot_get_sfidx(&q->ue_sync) == 9) {
           // accumulate NSSS subframes for cell id detection
           memcpy(&q->nsss_buffer[q->nsss_sf_counter * SRSLTE_SF_LEN_PRB_NBIOT],
                  q->rx_buffer[0],
@@ -150,7 +150,7 @@ int srslte_ue_cellsearch_nbiot_detect(srslte_ue_cellsearch_nbiot_t* q, srslte_nb
       found_cells[0].n_id_ncell = (uint32_t)cell_id;
       found_cells[0].peak       = q->ue_sync.strack.npss.peak_value;
       found_cells[0].psr        = srslte_sync_nbiot_get_peak_value(&q->ue_sync.strack);
-      found_cells[0].cfo        = srslte_nbiot_ue_sync_get_cfo(&q->ue_sync);
+      found_cells[0].cfo        = srslte_ue_sync_nbiot_get_cfo(&q->ue_sync);
       INFO("CELL SEARCH: Found peak PSR=%.3f, Cell_id: %d\n", found_cells[0].psr, found_cells[0].n_id_ncell);
     }
   }

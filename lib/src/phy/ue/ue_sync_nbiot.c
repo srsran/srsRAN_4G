@@ -33,33 +33,30 @@
 #define REPEAT_FROM_FILE 0
 #define TIME_ALIGN_FROM_FILE 1
 #define MAX_TIME_OFFSET 128
-cf_t dummy[MAX_TIME_OFFSET];
 
 #define TRACK_MAX_LOST 4
 #define TRACK_FRAME_SIZE 32
 #define FIND_NOF_AVG_FRAMES 4
 #define DEFAULT_SFO_EMA_COEFF 0.1
 
-cf_t dummy_buffer_nbiot0[15 * 2048 / 2];
-cf_t dummy_buffer_nbiot1[15 * 2048 / 2];
-
-// FIXME: this will break for 4 antennas!!
-cf_t* dummy_offset_buffer_nbiot[SRSLTE_MAX_PORTS] = {dummy_buffer_nbiot0, dummy_buffer_nbiot1};
+static cf_t  dummy_buffer_nbiot0[15 * 2048 / 2];
+static cf_t  dummy_buffer_nbiot1[15 * 2048 / 2];
+static cf_t* dummy_offset_buffer_nbiot[SRSLTE_MAX_PORTS] = {dummy_buffer_nbiot0, dummy_buffer_nbiot1, NULL, NULL};
 
 ///< This is a list of CFO candidates that the sync object uses to pre-compensate the received signal
 static const float cfo_cands[] =
     {0.0, 1000.0, -1000.0, 2000.0, -2000.0, 3000.0, -3000.0, 4000.0, -4000.0, 5000.0, -5000.0};
 
-int srslte_nbiot_ue_sync_init_file(srslte_nbiot_ue_sync_t* q,
+int srslte_ue_sync_nbiot_init_file(srslte_nbiot_ue_sync_t* q,
                                    srslte_nbiot_cell_t     cell,
                                    char*                   file_name,
                                    int                     offset_time,
                                    float                   offset_freq)
 {
-  return srslte_nbiot_ue_sync_init_file_multi(q, cell, file_name, offset_time, offset_freq, 1);
+  return srslte_ue_sync_nbiot_init_file_multi(q, cell, file_name, offset_time, offset_freq, 1);
 }
 
-int srslte_nbiot_ue_sync_init_file_multi(srslte_nbiot_ue_sync_t* q,
+int srslte_ue_sync_nbiot_init_file_multi(srslte_nbiot_ue_sync_t* q,
                                          srslte_nbiot_cell_t     cell,
                                          char*                   file_name,
                                          int                     offset_time,
@@ -118,18 +115,18 @@ int srslte_nbiot_ue_sync_init_file_multi(srslte_nbiot_ue_sync_t* q,
     INFO("Offseting input file by %d samples and %.1f kHz\n", offset_time, offset_freq / 1000);
 
     srslte_filesource_read(&q->file_source, dummy_buffer_nbiot0, offset_time);
-    srslte_nbiot_ue_sync_reset(q);
+    srslte_ue_sync_nbiot_reset(q);
 
     ret = SRSLTE_SUCCESS;
   }
 clean_exit:
   if (ret == SRSLTE_ERROR) {
-    srslte_nbiot_ue_sync_free(q);
+    srslte_ue_sync_nbiot_free(q);
   }
   return ret;
 }
 
-int srslte_nbiot_ue_sync_start_agc(srslte_nbiot_ue_sync_t* q,
+int srslte_ue_sync_nbiot_start_agc(srslte_nbiot_ue_sync_t* q,
                                    float(set_gain_callback)(void*, float),
                                    float init_gain_value)
 {
@@ -153,19 +150,19 @@ int recv_callback_nbiot_multi_to_single(void* h, cf_t* x[SRSLTE_MAX_PORTS], uint
   return q->recv_callback_single(q->stream_single, (void*)x[0], nsamples, t);
 }
 
-int srslte_nbiot_ue_sync_init(srslte_nbiot_ue_sync_t* q,
+int srslte_ue_sync_nbiot_init(srslte_nbiot_ue_sync_t* q,
                               srslte_nbiot_cell_t     cell,
                               int(recv_callback)(void*, void*, uint32_t, srslte_timestamp_t*),
                               void* stream_handler)
 {
-  int ret = srslte_nbiot_ue_sync_init_multi(
+  int ret = srslte_ue_sync_nbiot_init_multi(
       q, SRSLTE_NBIOT_MAX_PRB, recv_callback_nbiot_multi_to_single, SRSLTE_NBIOT_NUM_RX_ANTENNAS, (void*)q);
   q->recv_callback_single = recv_callback;
   q->stream_single        = stream_handler;
   return ret;
 }
 
-int srslte_nbiot_ue_sync_init_multi(srslte_nbiot_ue_sync_t* q,
+int srslte_ue_sync_nbiot_init_multi(srslte_nbiot_ue_sync_t* q,
                                     uint32_t                max_prb,
                                     int(recv_callback)(void*, cf_t* [SRSLTE_MAX_PORTS], uint32_t, srslte_timestamp_t*),
                                     uint32_t nof_rx_antennas,
@@ -206,24 +203,24 @@ int srslte_nbiot_ue_sync_init_multi(srslte_nbiot_ue_sync_t* q,
       goto clean_exit;
     }
 
-    srslte_nbiot_ue_sync_reset(q);
+    srslte_ue_sync_nbiot_reset(q);
 
     ret = SRSLTE_SUCCESS;
   }
 
 clean_exit:
   if (ret == SRSLTE_ERROR) {
-    srslte_nbiot_ue_sync_free(q);
+    srslte_ue_sync_nbiot_free(q);
   }
   return ret;
 }
 
-uint32_t srslte_nbiot_ue_sync_sf_len(srslte_nbiot_ue_sync_t* q)
+uint32_t srslte_ue_sync_nbiot_sf_len(srslte_nbiot_ue_sync_t* q)
 {
   return q->frame_len;
 }
 
-void srslte_nbiot_ue_sync_free(srslte_nbiot_ue_sync_t* q)
+void srslte_ue_sync_nbiot_free(srslte_nbiot_ue_sync_t* q)
 {
   if (q->do_agc) {
     srslte_agc_free(&q->agc);
@@ -237,7 +234,7 @@ void srslte_nbiot_ue_sync_free(srslte_nbiot_ue_sync_t* q)
   bzero(q, sizeof(srslte_nbiot_ue_sync_t));
 }
 
-int srslte_nbiot_ue_sync_set_cell(srslte_nbiot_ue_sync_t* q, srslte_nbiot_cell_t cell)
+int srslte_ue_sync_nbiot_set_cell(srslte_nbiot_ue_sync_t* q, srslte_nbiot_cell_t cell)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
@@ -268,7 +265,7 @@ int srslte_nbiot_ue_sync_set_cell(srslte_nbiot_ue_sync_t* q, srslte_nbiot_cell_t
       return SRSLTE_ERROR;
     }
 
-    srslte_nbiot_ue_sync_reset(q);
+    srslte_ue_sync_nbiot_reset(q);
 
     ret = SRSLTE_SUCCESS;
   }
@@ -276,75 +273,75 @@ int srslte_nbiot_ue_sync_set_cell(srslte_nbiot_ue_sync_t* q, srslte_nbiot_cell_t
   return ret;
 }
 
-void srslte_nbiot_ue_sync_get_last_timestamp(srslte_nbiot_ue_sync_t* q, srslte_timestamp_t* timestamp)
+void srslte_ue_sync_nbiot_get_last_timestamp(srslte_nbiot_ue_sync_t* q, srslte_timestamp_t* timestamp)
 {
   memcpy(timestamp, &q->last_timestamp, sizeof(srslte_timestamp_t));
 }
 
-uint32_t srslte_nbiot_ue_sync_peak_idx(srslte_nbiot_ue_sync_t* q)
+uint32_t srslte_ue_sync_nbiot_peak_idx(srslte_nbiot_ue_sync_t* q)
 {
   return q->peak_idx;
 }
 
-srslte_nbiot_ue_sync_state_t srslte_nbiot_ue_sync_get_state(srslte_nbiot_ue_sync_t* q)
+srslte_nbiot_ue_sync_state_t srslte_ue_sync_nbiot_get_state(srslte_nbiot_ue_sync_t* q)
 {
   return q->state;
 }
-uint32_t srslte_nbiot_ue_sync_get_sfidx(srslte_nbiot_ue_sync_t* q)
+uint32_t srslte_ue_sync_nbiot_get_sfidx(srslte_nbiot_ue_sync_t* q)
 {
   return q->sf_idx;
 }
 
-void srslte_nbiot_ue_sync_set_cfo_enable(srslte_nbiot_ue_sync_t* q, bool enable)
+void srslte_ue_sync_nbiot_set_cfo_enable(srslte_nbiot_ue_sync_t* q, bool enable)
 {
   srslte_sync_nbiot_set_cfo_enable(&q->sfind, enable);
   srslte_sync_nbiot_set_cfo_enable(&q->strack, enable);
 }
 
-float srslte_nbiot_ue_sync_get_cfo(srslte_nbiot_ue_sync_t* q)
+float srslte_ue_sync_nbiot_get_cfo(srslte_nbiot_ue_sync_t* q)
 {
   return 15000 * (q->state == SF_TRACK ? srslte_sync_nbiot_get_cfo(&q->strack) : srslte_sync_nbiot_get_cfo(&q->sfind));
 }
 
-void srslte_nbiot_ue_sync_set_cfo(srslte_nbiot_ue_sync_t* q, float cfo)
+void srslte_ue_sync_nbiot_set_cfo(srslte_nbiot_ue_sync_t* q, float cfo)
 {
   srslte_sync_nbiot_set_cfo(&q->sfind, cfo / 15000);
   srslte_sync_nbiot_set_cfo(&q->strack, cfo / 15000);
 }
 
-float srslte_nbiot_ue_sync_get_sfo(srslte_nbiot_ue_sync_t* q)
+float srslte_ue_sync_nbiot_get_sfo(srslte_nbiot_ue_sync_t* q)
 {
   return q->mean_sfo / 5e-3;
 }
 
-int srslte_nbiot_ue_sync_get_last_sample_offset(srslte_nbiot_ue_sync_t* q)
+int srslte_ue_sync_nbiot_get_last_sample_offset(srslte_nbiot_ue_sync_t* q)
 {
   return q->last_sample_offset;
 }
 
-void srslte_nbiot_ue_sync_set_sample_offset_correct_period(srslte_nbiot_ue_sync_t* q, uint32_t nof_subframes)
+void srslte_ue_sync_nbiot_set_sample_offset_correct_period(srslte_nbiot_ue_sync_t* q, uint32_t nof_subframes)
 {
   q->sample_offset_correct_period = nof_subframes;
 }
 
-void srslte_nbiot_ue_sync_set_cfo_ema(srslte_nbiot_ue_sync_t* q, float ema)
+void srslte_ue_sync_nbiot_set_cfo_ema(srslte_nbiot_ue_sync_t* q, float ema)
 {
   srslte_sync_nbiot_set_cfo_ema_alpha(&q->sfind, ema);
   srslte_sync_nbiot_set_cfo_ema_alpha(&q->strack, ema);
 }
 
-void srslte_nbiot_ue_sync_set_cfo_tol(srslte_nbiot_ue_sync_t* q, float cfo_tol)
+void srslte_ue_sync_nbiot_set_cfo_tol(srslte_nbiot_ue_sync_t* q, float cfo_tol)
 {
   srslte_sync_nbiot_set_cfo_tol(&q->sfind, cfo_tol);
   srslte_sync_nbiot_set_cfo_tol(&q->strack, cfo_tol);
 }
 
-void srslte_nbiot_ue_sync_set_sfo_ema(srslte_nbiot_ue_sync_t* q, float ema_coefficient)
+void srslte_ue_sync_nbiot_set_sfo_ema(srslte_nbiot_ue_sync_t* q, float ema_coefficient)
 {
   q->sfo_ema = ema_coefficient;
 }
 
-void srslte_nbiot_ue_sync_set_agc_period(srslte_nbiot_ue_sync_t* q, uint32_t period)
+void srslte_ue_sync_nbiot_set_agc_period(srslte_nbiot_ue_sync_t* q, uint32_t period)
 {
   q->agc_period = period;
 }
@@ -425,7 +422,7 @@ static int track_peak_ok(srslte_nbiot_ue_sync_t* q, uint32_t track_idx)
       INFO("Time offset adjustment: %d samples (%.2f), mean SFO: %.2f Hz, %.5f samples/10-sf, ema=%f, length=%d\n",
            q->next_rf_sample_offset,
            q->mean_sample_offset,
-           srslte_nbiot_ue_sync_get_sfo(q),
+           srslte_ue_sync_nbiot_get_sfo(q),
            q->mean_sfo,
            q->sfo_ema,
            q->sample_offset_correct_period);
@@ -497,15 +494,15 @@ static int receive_samples(srslte_nbiot_ue_sync_t* q, cf_t* input_buffer[SRSLTE_
   return SRSLTE_SUCCESS;
 }
 
-int srslte_nbiot_ue_sync_zerocopy(srslte_nbiot_ue_sync_t* q, cf_t* input_buffer)
+int srslte_ue_sync_nbiot_zerocopy(srslte_nbiot_ue_sync_t* q, cf_t* input_buffer)
 {
   cf_t* _input_buffer[SRSLTE_MAX_PORTS] = {NULL};
   _input_buffer[0] = input_buffer;
-  return srslte_nbiot_ue_sync_zerocopy_multi(q, _input_buffer);
+  return srslte_ue_sync_nbiot_zerocopy_multi(q, _input_buffer);
 }
 
 /* Returns 1 if the subframe is synchronized in time, 0 otherwise */
-int srslte_nbiot_ue_sync_zerocopy_multi(srslte_nbiot_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_PORTS])
+int srslte_ue_sync_nbiot_zerocopy_multi(srslte_nbiot_ue_sync_t* q, cf_t** input_buffer)
 {
   int      ret = SRSLTE_ERROR_INVALID_INPUTS;
 
@@ -629,7 +626,7 @@ int srslte_nbiot_ue_sync_zerocopy_multi(srslte_nbiot_ue_sync_t* q, cf_t* input_b
   return ret;
 }
 
-void srslte_nbiot_ue_sync_reset(srslte_nbiot_ue_sync_t* q)
+void srslte_ue_sync_nbiot_reset(srslte_nbiot_ue_sync_t* q)
 {
   ///< Set default params
   srslte_sync_nbiot_set_cfo_enable(&q->sfind, true);

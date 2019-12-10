@@ -213,7 +213,7 @@ int main(int argc, char** argv)
         srslte_ue_cellsearch_nbiot_set_nof_valid_frames(&cs, cell_detect_config.nof_valid_pss_frames);
       }
       if (cell_detect_config.init_agc) {
-        srslte_nbiot_ue_sync_start_agc(&cs.ue_sync, srslte_rf_set_rx_gain_wrapper, cell_detect_config.init_agc);
+        srslte_ue_sync_nbiot_start_agc(&cs.ue_sync, srslte_rf_set_rx_gain_wrapper, cell_detect_config.init_agc);
       }
 
       INFO("Setting sampling frequency %.2f MHz for NPSS search\n", SRSLTE_CS_SAMP_FREQ / 1000000);

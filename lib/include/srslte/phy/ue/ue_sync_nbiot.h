@@ -93,73 +93,73 @@ typedef struct SRSLTE_API {
 #endif
 } srslte_nbiot_ue_sync_t;
 
-SRSLTE_API int srslte_nbiot_ue_sync_init(srslte_nbiot_ue_sync_t* q,
+SRSLTE_API int srslte_ue_sync_nbiot_init(srslte_nbiot_ue_sync_t* q,
                                          srslte_nbiot_cell_t     cell,
                                          int(recv_callback)(void*, void*, uint32_t, srslte_timestamp_t*),
                                          void* stream_handler);
 
 SRSLTE_API int
-srslte_nbiot_ue_sync_init_multi(srslte_nbiot_ue_sync_t* q,
+srslte_ue_sync_nbiot_init_multi(srslte_nbiot_ue_sync_t* q,
                                 uint32_t                max_prb,
                                 int(recv_callback)(void*, cf_t* [SRSLTE_MAX_PORTS], uint32_t, srslte_timestamp_t*),
                                 uint32_t nof_rx_antennas,
                                 void*    stream_handler);
 
-SRSLTE_API int srslte_nbiot_ue_sync_init_file(srslte_nbiot_ue_sync_t* q,
+SRSLTE_API int srslte_ue_sync_nbiot_init_file(srslte_nbiot_ue_sync_t* q,
                                               srslte_nbiot_cell_t     cell,
                                               char*                   file_name,
                                               int                     offset_time,
                                               float                   offset_freq);
 
-SRSLTE_API int srslte_nbiot_ue_sync_init_file_multi(srslte_nbiot_ue_sync_t* q,
+SRSLTE_API int srslte_ue_sync_nbiot_init_file_multi(srslte_nbiot_ue_sync_t* q,
                                                     srslte_nbiot_cell_t     cell,
                                                     char*                   file_name,
                                                     int                     offset_time,
                                                     float                   offset_freq,
                                                     uint32_t                nof_rx_ant);
 
-SRSLTE_API void srslte_nbiot_ue_sync_free(srslte_nbiot_ue_sync_t* q);
+SRSLTE_API void srslte_ue_sync_nbiot_free(srslte_nbiot_ue_sync_t* q);
 
-SRSLTE_API int srslte_nbiot_ue_sync_set_cell(srslte_nbiot_ue_sync_t* q, srslte_nbiot_cell_t cell);
+SRSLTE_API int srslte_ue_sync_nbiot_set_cell(srslte_nbiot_ue_sync_t* q, srslte_nbiot_cell_t cell);
 
-SRSLTE_API int srslte_nbiot_ue_sync_start_agc(srslte_nbiot_ue_sync_t* q,
+SRSLTE_API int srslte_ue_sync_nbiot_start_agc(srslte_nbiot_ue_sync_t* q,
                                               float(set_gain_callback)(void*, float),
                                               float init_gain_value);
 
-SRSLTE_API uint32_t srslte_nbiot_ue_sync_sf_len(srslte_nbiot_ue_sync_t* q);
+SRSLTE_API uint32_t srslte_ue_sync_nbiot_sf_len(srslte_nbiot_ue_sync_t* q);
 
 SRSLTE_API int srslte_nbiot_ue_sync_get_buffer(srslte_nbiot_ue_sync_t* q, cf_t** sf_symbols);
 
-SRSLTE_API void srslte_nbiot_ue_sync_set_agc_period(srslte_nbiot_ue_sync_t* q, uint32_t period);
+SRSLTE_API void srslte_ue_sync_nbiot_set_agc_period(srslte_nbiot_ue_sync_t* q, uint32_t period);
 
 /* CAUTION: input_buffer MUST have space for 2 subframes */
-SRSLTE_API int srslte_nbiot_ue_sync_zerocopy(srslte_nbiot_ue_sync_t* q, cf_t* input_buffer);
+SRSLTE_API int srslte_ue_sync_nbiot_zerocopy(srslte_nbiot_ue_sync_t* q, cf_t* input_buffer);
 
-SRSLTE_API int srslte_nbiot_ue_sync_zerocopy_multi(srslte_nbiot_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_PORTS]);
+SRSLTE_API int srslte_ue_sync_nbiot_zerocopy_multi(srslte_nbiot_ue_sync_t* q, cf_t** input_buffer);
 
-SRSLTE_API void srslte_nbiot_ue_sync_set_cfo(srslte_nbiot_ue_sync_t* q, float cfo);
+SRSLTE_API void srslte_ue_sync_nbiot_set_cfo(srslte_nbiot_ue_sync_t* q, float cfo);
 
-SRSLTE_API void srslte_nbiot_ue_sync_reset(srslte_nbiot_ue_sync_t* q);
+SRSLTE_API void srslte_ue_sync_nbiot_reset(srslte_nbiot_ue_sync_t* q);
 
-SRSLTE_API srslte_nbiot_ue_sync_state_t srslte_nbiot_ue_sync_get_state(srslte_nbiot_ue_sync_t* q);
+SRSLTE_API srslte_nbiot_ue_sync_state_t srslte_ue_sync_nbiot_get_state(srslte_nbiot_ue_sync_t* q);
 
-SRSLTE_API uint32_t srslte_nbiot_ue_sync_get_sfidx(srslte_nbiot_ue_sync_t* q);
+SRSLTE_API uint32_t srslte_ue_sync_nbiot_get_sfidx(srslte_nbiot_ue_sync_t* q);
 
-SRSLTE_API void srslte_nbiot_ue_sync_set_cfo_enable(srslte_nbiot_ue_sync_t* q, bool enable);
+SRSLTE_API void srslte_ue_sync_nbiot_set_cfo_enable(srslte_nbiot_ue_sync_t* q, bool enable);
 
-SRSLTE_API float srslte_nbiot_ue_sync_get_cfo(srslte_nbiot_ue_sync_t* q);
+SRSLTE_API float srslte_ue_sync_nbiot_get_cfo(srslte_nbiot_ue_sync_t* q);
 
-SRSLTE_API float srslte_nbiot_ue_sync_get_sfo(srslte_nbiot_ue_sync_t* q);
+SRSLTE_API float srslte_ue_sync_nbiot_get_sfo(srslte_nbiot_ue_sync_t* q);
 
-SRSLTE_API void srslte_nbiot_ue_sync_set_cfo_ema(srslte_nbiot_ue_sync_t* q, float ema);
+SRSLTE_API void srslte_ue_sync_nbiot_set_cfo_ema(srslte_nbiot_ue_sync_t* q, float ema);
 
-SRSLTE_API void srslte_nbiot_ue_sync_set_cfo_tol(srslte_nbiot_ue_sync_t* q, float cfo_tol);
+SRSLTE_API void srslte_ue_sync_nbiot_set_cfo_tol(srslte_nbiot_ue_sync_t* q, float cfo_tol);
 
-SRSLTE_API int srslte_nbiot_ue_sync_get_last_sample_offset(srslte_nbiot_ue_sync_t* q);
+SRSLTE_API int srslte_ue_sync_nbiot_get_last_sample_offset(srslte_nbiot_ue_sync_t* q);
 
-SRSLTE_API void srslte_nbiot_ue_sync_set_sample_offset_correct_period(srslte_nbiot_ue_sync_t* q,
+SRSLTE_API void srslte_ue_sync_nbiot_set_sample_offset_correct_period(srslte_nbiot_ue_sync_t* q,
                                                                       uint32_t                nof_subframes);
 
-SRSLTE_API void srslte_nbiot_ue_sync_get_last_timestamp(srslte_nbiot_ue_sync_t* q, srslte_timestamp_t* timestamp);
+SRSLTE_API void srslte_ue_sync_nbiot_get_last_timestamp(srslte_nbiot_ue_sync_t* q, srslte_timestamp_t* timestamp);
 
 #endif // SRSLTE_UE_SYNC_NBIOT_H

@@ -203,7 +203,7 @@ int srslte_ue_mib_sync_nbiot_init_multi(
     fprintf(stderr, "Error initiating ue_mib\n");
     return SRSLTE_ERROR;
   }
-  if (srslte_nbiot_ue_sync_init_multi(
+  if (srslte_ue_sync_nbiot_init_multi(
           &q->ue_sync, SRSLTE_NBIOT_MAX_PRB, recv_callback, q->nof_rx_antennas, stream_handler)) {
     fprintf(stderr, "Error initiating ue_sync\n");
     srslte_ue_mib_nbiot_free(&q->ue_mib);
@@ -218,7 +218,7 @@ int srslte_ue_mib_sync_nbiot_set_cell(srslte_ue_mib_sync_nbiot_t* q, srslte_nbio
     fprintf(stderr, "Error initiating ue_mib\n");
     return SRSLTE_ERROR;
   }
-  if (srslte_nbiot_ue_sync_set_cell(&q->ue_sync, cell)) {
+  if (srslte_ue_sync_nbiot_set_cell(&q->ue_sync, cell)) {
     fprintf(stderr, "Error initiating ue_sync\n");
     srslte_ue_mib_nbiot_free(&q->ue_mib);
     return SRSLTE_ERROR;
@@ -229,13 +229,13 @@ int srslte_ue_mib_sync_nbiot_set_cell(srslte_ue_mib_sync_nbiot_t* q, srslte_nbio
 void srslte_ue_mib_sync_nbiot_free(srslte_ue_mib_sync_nbiot_t* q)
 {
   srslte_ue_mib_nbiot_free(&q->ue_mib);
-  srslte_nbiot_ue_sync_free(&q->ue_sync);
+  srslte_ue_sync_nbiot_free(&q->ue_sync);
 }
 
 void srslte_ue_mib_sync_nbiot_reset(srslte_ue_mib_sync_nbiot_t* q)
 {
   srslte_ue_mib_nbiot_reset(&q->ue_mib);
-  srslte_nbiot_ue_sync_reset(&q->ue_sync);
+  srslte_ue_sync_nbiot_reset(&q->ue_sync);
 }
 
 int srslte_ue_mib_sync_nbiot_decode(srslte_ue_mib_sync_nbiot_t* q,
@@ -251,11 +251,11 @@ int srslte_ue_mib_sync_nbiot_decode(srslte_ue_mib_sync_nbiot_t* q,
     uint32_t nof_frames = 0;
     do {
       mib_ret = SRSLTE_UE_MIB_NBIOT_NOTFOUND;
-      ret     = srslte_nbiot_ue_sync_zerocopy_multi(&q->ue_sync, q->sf_buffer);
+      ret     = srslte_ue_sync_nbiot_zerocopy_multi(&q->ue_sync, q->sf_buffer);
       if (ret < 0) {
-        fprintf(stderr, "Error calling srslte_nbiot_ue_sync_zerocopy_multi()\n");
+        fprintf(stderr, "Error calling srslte_ue_sync_nbiot_zerocopy_multi()\n");
         break;
-      } else if (srslte_nbiot_ue_sync_get_sfidx(&q->ue_sync) == 0) {
+      } else if (srslte_ue_sync_nbiot_get_sfidx(&q->ue_sync) == 0) {
         mib_ret = srslte_ue_mib_nbiot_decode(&q->ue_mib, NULL, bch_payload, nof_tx_ports, sfn_offset);
         if (mib_ret < 0) {
           DEBUG("Resetting NPBCH decoder after %d frames\n", q->ue_mib.frame_cnt);

@@ -167,7 +167,7 @@ int main(int argc, char** argv)
     srslte_mib_nb_t mib_nb;
     srslte_npbch_mib_unpack(bch_payload_rx, &mib_nb);
     srslte_mib_nb_printf(stdout, cell, &mib_nb);
-    printf("CFO: %+6.2f kHz\n", srslte_nbiot_ue_sync_get_cfo(&mib_sync.ue_sync) / 1000);
+    printf("CFO: %+6.2f kHz\n", srslte_ue_sync_nbiot_get_cfo(&mib_sync.ue_sync) / 1000);
   } else {
     printf("Failed!\n");
   }
