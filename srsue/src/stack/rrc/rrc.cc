@@ -2366,7 +2366,7 @@ void rrc::apply_phy_scell_config(const asn1::rrc::scell_to_add_mod_r10_s& scell_
   srslte::phy_cfg_t scell_phy_cfg = current_phy_cfg;
   set_phy_cfg_t_scell_config(&scell_phy_cfg, scell_config);
 
-  phy->set_config(scell_phy_cfg, scell_config.s_cell_idx_r10, earfcn, &scell);
+  phy->set_config(scell_phy_cfg, scell_config.scell_idx_r10, earfcn, &scell);
 }
 
 void rrc::log_mac_config_dedicated()
@@ -2461,9 +2461,9 @@ void rrc::apply_scell_config(asn1::rrc::rrc_conn_recfg_r8_ies_s* reconfig_r8)
         rrc_conn_recfg_v1020_ies_s* reconfig_r1020 = &reconfig_r920->non_crit_ext;
 
         // Handle Add/Modify SCell list
-        if (reconfig_r1020->s_cell_to_add_mod_list_r10_present) {
-          for (uint32_t i = 0; i < reconfig_r1020->s_cell_to_add_mod_list_r10.size(); i++) {
-            auto scell_config = &reconfig_r1020->s_cell_to_add_mod_list_r10[i];
+        if (reconfig_r1020->scell_to_add_mod_list_r10_present) {
+          for (uint32_t i = 0; i < reconfig_r1020->scell_to_add_mod_list_r10.size(); i++) {
+            auto scell_config = &reconfig_r1020->scell_to_add_mod_list_r10[i];
 
             // Limit enable64_qam, if the ue does not
             // since the phy does not have information about the RRC category and release, the RRC shall limit the
@@ -2486,7 +2486,7 @@ void rrc::apply_scell_config(asn1::rrc::rrc_conn_recfg_r8_ies_s* reconfig_r8)
             }
 
             // Call mac reconfiguration
-            mac->reconfiguration(scell_config->s_cell_idx_r10, true);
+            mac->reconfiguration(scell_config->scell_idx_r10, true);
 
             // Call phy reconfiguration
             apply_phy_scell_config(*scell_config);
@@ -2494,10 +2494,10 @@ void rrc::apply_scell_config(asn1::rrc::rrc_conn_recfg_r8_ies_s* reconfig_r8)
         }
 
         // Handle Remove SCell list
-        if (reconfig_r1020->s_cell_to_release_list_r10_present) {
-          for (uint32_t i = 0; i < reconfig_r1020->s_cell_to_release_list_r10.size(); i++) {
+        if (reconfig_r1020->scell_to_release_list_r10_present) {
+          for (uint32_t i = 0; i < reconfig_r1020->scell_to_release_list_r10.size(); i++) {
             // Call mac reconfiguration
-            mac->reconfiguration(reconfig_r1020->s_cell_to_release_list_r10[i], false);
+            mac->reconfiguration(reconfig_r1020->scell_to_release_list_r10[i], false);
 
             // Call phy reconfiguration
             // TODO: Implement phy layer cell removal

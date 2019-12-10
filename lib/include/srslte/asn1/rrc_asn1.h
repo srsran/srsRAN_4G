@@ -214,7 +214,7 @@ ItemType convert_enum_idx(ItemType* array, uint32_t nof_types, uint32_t enum_val
 #define ASN1_RRC_MAX_PSSCH_TX_CFG_R14 16
 #define ASN1_RRC_MAX_QUANT_SETS_NR_R15 2
 #define ASN1_RRC_MAX_QCI_R13 6
-#define ASN1_RRC_MAX_RAT_CAPABILITIES 8
+#define ASN1_RRC_MAX_RAT_CAP 8
 #define ASN1_RRC_MAX_RE_MAP_QCL_R11 4
 #define ASN1_RRC_MAX_REPORT_CFG_ID 32
 #define ASN1_RRC_MAX_RESERV_PERIOD_R14 16
@@ -358,7 +358,6 @@ typedef mib_s bcch_bch_msg_type_s;
 
 // BCCH-BCH-Message ::= SEQUENCE
 struct bcch_bch_msg_s {
-  // member variables
   bcch_bch_msg_type_s msg;
 
   // sequence methods
@@ -395,7 +394,6 @@ typedef mib_mbms_r14_s bcch_bch_msg_type_mbms_r14_s;
 
 // BCCH-BCH-Message-MBMS ::= SEQUENCE
 struct bcch_bch_msg_mbms_s {
-  // member variables
   bcch_bch_msg_type_mbms_r14_s msg;
 
   // sequence methods
@@ -424,11 +422,11 @@ struct gnss_id_r15_s {
   void        to_json(json_writer& j) const;
 };
 
-// MCC ::= SEQUENCE (SIZE (3)) OF INTEGER
+// MCC ::= SEQUENCE (SIZE (3)) OF INTEGER (0..9)
 using mcc_l = std::array<uint8_t, 3>;
 
-// MNC ::= SEQUENCE (SIZE (2..3)) OF INTEGER
-typedef bounded_array<uint8_t, 3> mnc_l;
+// MNC ::= SEQUENCE (SIZE (2..3)) OF INTEGER (0..9)
+using mnc_l = bounded_array<uint8_t, 3>;
 
 // SBAS-ID-r15 ::= SEQUENCE
 struct sbas_id_r15_s {
@@ -452,7 +450,6 @@ struct sbas_id_r15_s {
 
 // PLMN-Identity ::= SEQUENCE
 struct plmn_id_s {
-  // member variables
   bool  mcc_present = false;
   mcc_l mcc;
   mnc_l mnc;
@@ -571,8 +568,8 @@ struct plmn_id_info_r15_s {
     }
 
   private:
-    types                              type_;
-    choice_buffer_t<sizeof(plmn_id_s)> c;
+    types                      type_;
+    choice_buffer_t<plmn_id_s> c;
 
     void destroy_();
   };
@@ -600,8 +597,8 @@ struct plmn_id_info_r15_s {
   void        to_json(json_writer& j) const;
 };
 
-// PosSIB-MappingInfo-r15 ::= SEQUENCE (SIZE (1..maxSIB)) OF PosSIB-Type-r15
-typedef dyn_array<pos_sib_type_r15_s> pos_sib_map_info_r15_l;
+// PosSIB-MappingInfo-r15 ::= SEQUENCE (SIZE (1..32)) OF PosSIB-Type-r15
+using pos_sib_map_info_r15_l = dyn_array<pos_sib_type_r15_s>;
 
 // CellIdentity-5GC-r15 ::= CHOICE
 struct cell_id_minus5_gc_r15_c {
@@ -655,8 +652,8 @@ struct cell_id_minus5_gc_r15_c {
   }
 
 private:
-  types                                        type_;
-  choice_buffer_t<sizeof(fixed_bitstring<28>)> c;
+  types                                 type_;
+  choice_buffer_t<fixed_bitstring<28> > c;
 
   void destroy_();
 };
@@ -679,8 +676,8 @@ struct plmn_id_info_v1530_s {
   void        to_json(json_writer& j) const;
 };
 
-// PLMN-IdentityList-r15 ::= SEQUENCE (SIZE (1..maxPLMN-r11)) OF PLMN-IdentityInfo-r15
-typedef dyn_array<plmn_id_info_r15_s> plmn_id_list_r15_l;
+// PLMN-IdentityList-r15 ::= SEQUENCE (SIZE (1..6)) OF PLMN-IdentityInfo-r15
+using plmn_id_list_r15_l = dyn_array<plmn_id_info_r15_s>;
 
 // PosSchedulingInfo-r15 ::= SEQUENCE
 struct pos_sched_info_r15_s {
@@ -705,10 +702,9 @@ struct pos_sched_info_r15_s {
 
 // CellAccessRelatedInfo-5GC-r15 ::= SEQUENCE
 struct cell_access_related_info_minus5_gc_r15_s {
-  // member variables
   bool                    ran_area_code_r15_present = false;
   plmn_id_list_r15_l      plmn_id_list_r15;
-  uint8_t                 ran_area_code_r15 = 0;
+  uint16_t                ran_area_code_r15 = 0;
   fixed_bitstring<24>     tac_minus5_gc_r15;
   cell_id_minus5_gc_r15_c cell_id_minus5_gc_r15;
 
@@ -740,7 +736,6 @@ struct cell_sel_info_ce_v1530_s {
 
 // MCS-PSSCH-Range-r15 ::= SEQUENCE
 struct mcs_pssch_range_r15_s {
-  // member variables
   uint8_t min_mcs_pssch_r15 = 0;
   uint8_t max_mcs_pssch_r15 = 0;
 
@@ -769,14 +764,14 @@ struct plmn_id_info_s {
   void        to_json(json_writer& j) const;
 };
 
-// PLMN-IdentityList-v1530 ::= SEQUENCE (SIZE (1..maxPLMN-r11)) OF PLMN-IdentityInfo-v1530
-typedef dyn_array<plmn_id_info_v1530_s> plmn_id_list_v1530_l;
+// PLMN-IdentityList-v1530 ::= SEQUENCE (SIZE (1..6)) OF PLMN-IdentityInfo-v1530
+using plmn_id_list_v1530_l = dyn_array<plmn_id_info_v1530_s>;
 
-// PosSchedulingInfoList-r15 ::= SEQUENCE (SIZE (1..maxSI-Message)) OF PosSchedulingInfo-r15
-typedef dyn_array<pos_sched_info_r15_s> pos_sched_info_list_r15_l;
+// PosSchedulingInfoList-r15 ::= SEQUENCE (SIZE (1..32)) OF PosSchedulingInfo-r15
+using pos_sched_info_list_r15_l = dyn_array<pos_sched_info_r15_s>;
 
-// SL-PriorityList-r13 ::= SEQUENCE (SIZE (1..maxSL-Prio-r13)) OF INTEGER
-typedef bounded_array<uint8_t, 8> sl_prio_list_r13_l;
+// SL-PriorityList-r13 ::= SEQUENCE (SIZE (1..8)) OF INTEGER (1..8)
+using sl_prio_list_r13_l = bounded_array<uint8_t, 8>;
 
 // SL-TxPower-r14 ::= CHOICE
 struct sl_tx_pwr_r14_c {
@@ -829,12 +824,11 @@ struct alpha_r12_opts {
 };
 typedef enumerated<alpha_r12_opts> alpha_r12_e;
 
-// PLMN-IdentityList ::= SEQUENCE (SIZE (1..maxPLMN-r11)) OF PLMN-IdentityInfo
-typedef dyn_array<plmn_id_info_s> plmn_id_list_l;
+// PLMN-IdentityList ::= SEQUENCE (SIZE (1..6)) OF PLMN-IdentityInfo
+using plmn_id_list_l = dyn_array<plmn_id_info_s>;
 
 // SL-MinT2Value-r15 ::= SEQUENCE
 struct sl_min_t2_value_r15_s {
-  // member variables
   sl_prio_list_r13_l prio_list_r15;
   uint8_t            min_t2_value_r15 = 10;
 
@@ -846,7 +840,7 @@ struct sl_min_t2_value_r15_s {
 
 // SL-PPPP-TxConfigIndex-r14 ::= SEQUENCE
 struct sl_pppp_tx_cfg_idx_r14_s {
-  typedef bounded_array<uint8_t, 16> tx_cfg_idx_list_r14_l_;
+  using tx_cfg_idx_list_r14_l_ = bounded_array<uint8_t, 16>;
 
   // member variables
   uint8_t                prio_thres_r14         = 1;
@@ -862,7 +856,7 @@ struct sl_pppp_tx_cfg_idx_r14_s {
 
 // SL-PPPP-TxConfigIndex-v1530 ::= SEQUENCE
 struct sl_pppp_tx_cfg_idx_v1530_s {
-  typedef dyn_array<mcs_pssch_range_r15_s> mcs_pssch_range_list_r15_l_;
+  using mcs_pssch_range_list_r15_l_ = dyn_array<mcs_pssch_range_r15_s>;
 
   // member variables
   bool                        mcs_pssch_range_list_r15_present = false;
@@ -902,7 +896,6 @@ struct sl_pssch_tx_params_r14_s {
 
 // SL-PSSCH-TxParameters-v1530 ::= SEQUENCE
 struct sl_pssch_tx_params_v1530_s {
-  // member variables
   uint8_t min_mcs_pssch_r15 = 0;
   uint8_t max_mcs_pssch_r15 = 0;
 
@@ -1015,8 +1008,8 @@ struct sib_type1_v1530_ies_s {
 
       std::string to_string() const;
     };
-    typedef enumerated<cell_barred_minus5_gc_crs_r15_opts>      cell_barred_minus5_gc_crs_r15_e_;
-    typedef dyn_array<cell_access_related_info_minus5_gc_r15_s> cell_access_related_info_list_minus5_gc_r15_l_;
+    typedef enumerated<cell_barred_minus5_gc_crs_r15_opts> cell_barred_minus5_gc_crs_r15_e_;
+    using cell_access_related_info_list_minus5_gc_r15_l_ = dyn_array<cell_access_related_info_minus5_gc_r15_s>;
 
     // member variables
     cell_barred_minus5_gc_r15_e_                   cell_barred_minus5_gc_r15;
@@ -1032,7 +1025,7 @@ struct sib_type1_v1530_ies_s {
   bool                                      pos_sched_info_list_r15_present                = false;
   bool                                      cell_access_related_info_minus5_gc_r15_present = false;
   bool                                      ims_emergency_support5_gc_r15_present          = false;
-  bool                                      e_call_over_ims_support5_gc_r15_present        = false;
+  bool                                      ecall_over_ims_support5_gc_r15_present         = false;
   bool                                      non_crit_ext_present                           = false;
   cell_sel_info_ce_v1530_s                  cell_sel_info_ce_v1530;
   crs_intf_mitig_cfg_r15_c_                 crs_intf_mitig_cfg_r15;
@@ -1057,7 +1050,6 @@ struct tdd_cfg_v1450_s {
 
 // CellAccessRelatedInfo-r14 ::= SEQUENCE
 struct cell_access_related_info_r14_s {
-  // member variables
   plmn_id_list_l      plmn_id_list_r14;
   fixed_bitstring<16> tac_r14;
   fixed_bitstring<28> cell_id_r14;
@@ -1070,7 +1062,6 @@ struct cell_access_related_info_r14_s {
 
 // CellSelectionInfoCE1-v1360 ::= SEQUENCE
 struct cell_sel_info_ce1_v1360_s {
-  // member variables
   int8_t delta_rx_lev_min_ce1_v1360 = -8;
 
   // sequence methods
@@ -1081,7 +1072,6 @@ struct cell_sel_info_ce1_v1360_s {
 
 // NS-PmaxValue-v10l0 ::= SEQUENCE
 struct ns_pmax_value_v10l0_s {
-  // member variables
   bool     add_spec_emission_v10l0_present = false;
   uint16_t add_spec_emission_v10l0         = 33;
 
@@ -1092,10 +1082,10 @@ struct ns_pmax_value_v10l0_s {
 };
 
 // SL-CBR-PPPP-TxConfigList-r14 ::= SEQUENCE (SIZE (1..8)) OF SL-PPPP-TxConfigIndex-r14
-typedef dyn_array<sl_pppp_tx_cfg_idx_r14_s> sl_cbr_pppp_tx_cfg_list_r14_l;
+using sl_cbr_pppp_tx_cfg_list_r14_l = dyn_array<sl_pppp_tx_cfg_idx_r14_s>;
 
 // SL-CBR-PPPP-TxConfigList-v1530 ::= SEQUENCE (SIZE (1..8)) OF SL-PPPP-TxConfigIndex-v1530
-typedef dyn_array<sl_pppp_tx_cfg_idx_v1530_s> sl_cbr_pppp_tx_cfg_list_v1530_l;
+using sl_cbr_pppp_tx_cfg_list_v1530_l = dyn_array<sl_pppp_tx_cfg_idx_v1530_s>;
 
 // SL-CP-Len-r12 ::= ENUMERATED
 struct sl_cp_len_r12_opts {
@@ -1105,8 +1095,8 @@ struct sl_cp_len_r12_opts {
 };
 typedef enumerated<sl_cp_len_r12_opts> sl_cp_len_r12_e;
 
-// SL-MinT2ValueList-r15 ::= SEQUENCE (SIZE (1..maxSL-Prio-r13)) OF SL-MinT2Value-r15
-typedef dyn_array<sl_min_t2_value_r15_s> sl_min_t2_value_list_r15_l;
+// SL-MinT2ValueList-r15 ::= SEQUENCE (SIZE (1..8)) OF SL-MinT2Value-r15
+using sl_min_t2_value_list_r15_l = dyn_array<sl_min_t2_value_r15_s>;
 
 // SL-OffsetIndicator-r12 ::= CHOICE
 struct sl_offset_ind_r12_c {
@@ -1160,15 +1150,14 @@ struct sl_offset_ind_r12_c {
   }
 
 private:
-  types              type_;
-  choice_buffer_t<8> c;
+  types               type_;
+  pod_choice_buffer_t c;
 
   void destroy_();
 };
 
 // SL-P2X-ResourceSelectionConfig-r14 ::= SEQUENCE
 struct sl_p2_x_res_sel_cfg_r14_s {
-  // member variables
   bool partial_sensing_r14_present = false;
   bool random_sel_r14_present      = false;
 
@@ -1207,13 +1196,11 @@ struct sl_pssch_tx_cfg_r14_s {
   void        to_json(json_writer& j) const;
 };
 
-// SL-RestrictResourceReservationPeriodList-r14 ::= SEQUENCE (SIZE (1..maxReservationPeriod-r14)) OF
-// SL-RestrictResourceReservationPeriod-r14
-typedef bounded_array<sl_restrict_res_reserv_period_r14_e, 16> sl_restrict_res_reserv_period_list_r14_l;
+// SL-RestrictResourceReservationPeriodList-r14 ::= SEQUENCE (SIZE (1..16)) OF SL-RestrictResourceReservationPeriod-r14
+using sl_restrict_res_reserv_period_list_r14_l = bounded_array<sl_restrict_res_reserv_period_r14_e, 16>;
 
 // SL-SyncAllowed-r14 ::= SEQUENCE
 struct sl_sync_allowed_r14_s {
-  // member variables
   bool gnss_sync_r14_present = false;
   bool enb_sync_r14_present  = false;
   bool ue_sync_r14_present   = false;
@@ -1226,7 +1213,6 @@ struct sl_sync_allowed_r14_s {
 
 // SL-TxParameters-r12 ::= SEQUENCE
 struct sl_tx_params_r12_s {
-  // member variables
   alpha_r12_e alpha_r12;
   int8_t      p0_r12 = -126;
 
@@ -1365,8 +1351,8 @@ struct sf_bitmap_sl_r12_c {
   }
 
 private:
-  types                                        type_;
-  choice_buffer_t<sizeof(fixed_bitstring<42>)> c;
+  types                                 type_;
+  choice_buffer_t<fixed_bitstring<42> > c;
 
   void destroy_();
 };
@@ -1515,15 +1501,14 @@ struct sf_bitmap_sl_r14_c {
   }
 
 private:
-  types                                         type_;
-  choice_buffer_t<sizeof(fixed_bitstring<100>)> c;
+  types                                  type_;
+  choice_buffer_t<fixed_bitstring<100> > c;
 
   void destroy_();
 };
 
 // SystemInformationBlockType1-v1450-IEs ::= SEQUENCE
 struct sib_type1_v1450_ies_s {
-  // member variables
   bool                  tdd_cfg_v1450_present = false;
   bool                  non_crit_ext_present  = false;
   tdd_cfg_v1450_s       tdd_cfg_v1450;
@@ -1619,7 +1604,6 @@ typedef enumerated<bandclass_cdma2000_opts, true> bandclass_cdma2000_e;
 
 // InterFreqCarrierFreqInfo-v1360 ::= SEQUENCE
 struct inter_freq_carrier_freq_info_v1360_s {
-  // member variables
   bool                      cell_sel_info_ce1_v1360_present = false;
   cell_sel_info_ce1_v1360_s cell_sel_info_ce1_v1360;
 
@@ -1629,12 +1613,11 @@ struct inter_freq_carrier_freq_info_v1360_s {
   void        to_json(json_writer& j) const;
 };
 
-// NS-PmaxList-v10l0 ::= SEQUENCE (SIZE (1..maxNS-Pmax-r10)) OF NS-PmaxValue-v10l0
-typedef dyn_array<ns_pmax_value_v10l0_s> ns_pmax_list_v10l0_l;
+// NS-PmaxList-v10l0 ::= SEQUENCE (SIZE (1..8)) OF NS-PmaxValue-v10l0
+using ns_pmax_list_v10l0_l = dyn_array<ns_pmax_value_v10l0_s>;
 
 // NS-PmaxValue-r10 ::= SEQUENCE
 struct ns_pmax_value_r10_s {
-  // member variables
   bool    add_pmax_r10_present = false;
   int8_t  add_pmax_r10         = -30;
   uint8_t add_spec_emission    = 1;
@@ -1645,8 +1628,8 @@ struct ns_pmax_value_r10_s {
   void        to_json(json_writer& j) const;
 };
 
-// PhysCellIdList-r13 ::= SEQUENCE (SIZE (1.. maxSL-DiscCells-r13)) OF INTEGER
-typedef bounded_array<uint16_t, 16> pci_list_r13_l;
+// PhysCellIdList-r13 ::= SEQUENCE (SIZE (1..16)) OF INTEGER (0..503)
+using pci_list_r13_l = bounded_array<uint16_t, 16>;
 
 // SL-CommResourcePoolV2X-r14 ::= SEQUENCE
 struct sl_comm_res_pool_v2x_r14_s {
@@ -1701,7 +1684,6 @@ struct sl_comm_res_pool_v2x_r14_s {
   };
   typedef enumerated<num_subch_r14_opts> num_subch_r14_e_;
   struct rx_params_ncell_r14_s_ {
-    // member variables
     bool      tdd_cfg_r14_present = false;
     tdd_cfg_s tdd_cfg_r14;
     uint8_t   sync_cfg_idx_r14 = 0;
@@ -1747,12 +1729,11 @@ struct sl_comm_res_pool_v2x_r14_s {
   void        to_json(json_writer& j) const;
 };
 
-// SL-PSSCH-TxConfigList-r14 ::= SEQUENCE (SIZE (1..maxPSSCH-TxConfig-r14)) OF SL-PSSCH-TxConfig-r14
-typedef dyn_array<sl_pssch_tx_cfg_r14_s> sl_pssch_tx_cfg_list_r14_l;
+// SL-PSSCH-TxConfigList-r14 ::= SEQUENCE (SIZE (1..16)) OF SL-PSSCH-TxConfig-r14
+using sl_pssch_tx_cfg_list_r14_l = dyn_array<sl_pssch_tx_cfg_r14_s>;
 
 // SL-PoolSelectionConfig-r12 ::= SEQUENCE
 struct sl_pool_sel_cfg_r12_s {
-  // member variables
   uint8_t thresh_low_r12  = 0;
   uint8_t thresh_high_r12 = 0;
 
@@ -1765,13 +1746,11 @@ struct sl_pool_sel_cfg_r12_s {
 // SL-SyncConfigNFreq-r13 ::= SEQUENCE
 struct sl_sync_cfg_nfreq_r13_s {
   struct async_params_r13_s_ {
-    // member variables
     sl_cp_len_r12_e sync_cp_len_r13;
     uint8_t         sync_offset_ind_r13 = 0;
     uint8_t         slssid_r13          = 0;
   };
   struct tx_params_r13_s_ {
-    // member variables
     bool                sync_info_reserved_r13_present = false;
     bool                sync_tx_periodic_r13_present   = false;
     sl_tx_params_r12_s  sync_tx_params_r13;
@@ -1821,7 +1800,6 @@ struct sl_sync_cfg_nfreq_r13_s {
 
 // SL-TF-ResourceConfig-r12 ::= SEQUENCE
 struct sl_tf_res_cfg_r12_s {
-  // member variables
   uint8_t             prb_num_r12   = 1;
   uint8_t             prb_start_r12 = 0;
   uint8_t             prb_end_r12   = 0;
@@ -1834,15 +1812,15 @@ struct sl_tf_res_cfg_r12_s {
   void        to_json(json_writer& j) const;
 };
 
-// SL-ThresPSSCH-RSRP-List-r14 ::= SEQUENCE (SIZE (64)) OF INTEGER
+// SL-ThresPSSCH-RSRP-List-r14 ::= SEQUENCE (SIZE (64)) OF INTEGER (0..66)
 using sl_thres_pssch_rsrp_list_r14_l = std::array<uint8_t, 64>;
 
 // SystemInformationBlockType1-v1430-IEs ::= SEQUENCE
 struct sib_type1_v1430_ies_s {
-  typedef dyn_array<cell_access_related_info_r14_s> cell_access_related_info_list_r14_l_;
+  using cell_access_related_info_list_r14_l_ = dyn_array<cell_access_related_info_r14_s>;
 
   // member variables
-  bool                                 e_call_over_ims_support_r14_present       = false;
+  bool                                 ecall_over_ims_support_r14_present        = false;
   bool                                 tdd_cfg_v1430_present                     = false;
   bool                                 cell_access_related_info_list_r14_present = false;
   bool                                 non_crit_ext_present                      = false;
@@ -1878,7 +1856,6 @@ struct tdd_cfg_v1130_s {
 
 // BandClassInfoCDMA2000 ::= SEQUENCE
 struct band_class_info_cdma2000_s {
-  // member variables
   bool                 ext                     = false;
   bool                 cell_resel_prio_present = false;
   bandclass_cdma2000_e band_class;
@@ -1895,7 +1872,6 @@ struct band_class_info_cdma2000_s {
 
 // CellSelectionInfoCE1-r13 ::= SEQUENCE
 struct cell_sel_info_ce1_r13_s {
-  // member variables
   bool   q_qual_min_rsrq_ce1_r13_present = false;
   int8_t q_rx_lev_min_ce1_r13            = -70;
   int8_t q_qual_min_rsrq_ce1_r13         = -34;
@@ -1906,18 +1882,18 @@ struct cell_sel_info_ce1_r13_s {
   void        to_json(json_writer& j) const;
 };
 
-// InterFreqCarrierFreqList-v13a0 ::= SEQUENCE (SIZE (1.. maxFreq)) OF InterFreqCarrierFreqInfo-v1360
-typedef dyn_array<inter_freq_carrier_freq_info_v1360_s> inter_freq_carrier_freq_list_v13a0_l;
+// InterFreqCarrierFreqList-v13a0 ::= SEQUENCE (SIZE (1..8)) OF InterFreqCarrierFreqInfo-v1360
+using inter_freq_carrier_freq_list_v13a0_l = dyn_array<inter_freq_carrier_freq_info_v1360_s>;
 
-// MultiBandInfoList-v10l0 ::= SEQUENCE (SIZE (1..maxMultiBands)) OF NS-PmaxList-v10l0
-typedef dyn_array<ns_pmax_list_v10l0_l> multi_band_info_list_v10l0_l;
+// MultiBandInfoList-v10l0 ::= SEQUENCE (SIZE (1..8)) OF NS-PmaxList-v10l0
+using multi_band_info_list_v10l0_l = dyn_array<ns_pmax_list_v10l0_l>;
 
-// NS-PmaxList-r10 ::= SEQUENCE (SIZE (1..maxNS-Pmax-r10)) OF NS-PmaxValue-r10
-typedef dyn_array<ns_pmax_value_r10_s> ns_pmax_list_r10_l;
+// NS-PmaxList-r10 ::= SEQUENCE (SIZE (1..8)) OF NS-PmaxValue-r10
+using ns_pmax_list_r10_l = dyn_array<ns_pmax_value_r10_s>;
 
 // NeighCellsPerBandclassCDMA2000-r11 ::= SEQUENCE
 struct neigh_cells_per_bandclass_cdma2000_r11_s {
-  typedef dyn_array<uint16_t> pci_list_r11_l_;
+  using pci_list_r11_l_ = dyn_array<uint16_t>;
 
   // member variables
   uint16_t        arfcn = 0;
@@ -1929,17 +1905,17 @@ struct neigh_cells_per_bandclass_cdma2000_r11_s {
   void        to_json(json_writer& j) const;
 };
 
-// PhysCellIdListCDMA2000 ::= SEQUENCE (SIZE (1..16)) OF INTEGER
-typedef bounded_array<uint16_t, 16> pci_list_cdma2000_l;
+// PhysCellIdListCDMA2000 ::= SEQUENCE (SIZE (1..16)) OF INTEGER (0..511)
+using pci_list_cdma2000_l = bounded_array<uint16_t, 16>;
 
-// PhysCellIdListCDMA2000-v920 ::= SEQUENCE (SIZE (0..24)) OF INTEGER
-typedef bounded_array<uint16_t, 24> pci_list_cdma2000_v920_l;
+// PhysCellIdListCDMA2000-v920 ::= SEQUENCE (SIZE (0..24)) OF INTEGER (0..511)
+using pci_list_cdma2000_v920_l = bounded_array<uint16_t, 24>;
 
-// SL-CommRxPoolListV2X-r14 ::= SEQUENCE (SIZE (1..maxSL-V2X-RxPool-r14)) OF SL-CommResourcePoolV2X-r14
-typedef dyn_array<sl_comm_res_pool_v2x_r14_s> sl_comm_rx_pool_list_v2x_r14_l;
+// SL-CommRxPoolListV2X-r14 ::= SEQUENCE (SIZE (1..16)) OF SL-CommResourcePoolV2X-r14
+using sl_comm_rx_pool_list_v2x_r14_l = dyn_array<sl_comm_res_pool_v2x_r14_s>;
 
-// SL-CommTxPoolListV2X-r14 ::= SEQUENCE (SIZE (1..maxSL-V2X-TxPool-r14)) OF SL-CommResourcePoolV2X-r14
-typedef dyn_array<sl_comm_res_pool_v2x_r14_s> sl_comm_tx_pool_list_v2x_r14_l;
+// SL-CommTxPoolListV2X-r14 ::= SEQUENCE (SIZE (1..8)) OF SL-CommResourcePoolV2X-r14
+using sl_comm_tx_pool_list_v2x_r14_l = dyn_array<sl_comm_res_pool_v2x_r14_s>;
 
 // SL-CommTxPoolSensingConfig-r14 ::= SEQUENCE
 struct sl_comm_tx_pool_sensing_cfg_r14_s {
@@ -1953,7 +1929,6 @@ struct sl_comm_tx_pool_sensing_cfg_r14_s {
   };
   typedef enumerated<prob_res_keep_r14_opts> prob_res_keep_r14_e_;
   struct p2x_sensing_cfg_r14_s_ {
-    // member variables
     uint8_t             min_num_candidate_sf_r14 = 1;
     fixed_bitstring<10> gap_candidate_sensing_r14;
   };
@@ -2076,7 +2051,6 @@ struct sl_disc_res_pool_r12_s {
     ue_sel_res_cfg_r12_s_ ue_sel_res_cfg_r12;
   };
   struct rx_params_r12_s_ {
-    // member variables
     bool      tdd_cfg_r12_present = false;
     tdd_cfg_s tdd_cfg_r12;
     uint8_t   sync_cfg_idx_r12 = 0;
@@ -2122,7 +2096,6 @@ struct sl_disc_res_pool_r12_s {
   };
   struct rx_params_add_neigh_freq_r13_c_ {
     struct setup_s_ {
-      // member variables
       pci_list_r13_l pci_r13;
     };
     typedef setup_e types;
@@ -2170,7 +2143,7 @@ struct sl_disc_res_pool_r12_s {
         // member variables
         bool     ul_carrier_freq_present = false;
         bool     ul_bw_present           = false;
-        uint16_t ul_carrier_freq         = 0;
+        uint32_t ul_carrier_freq         = 0;
         ul_bw_e_ ul_bw;
         uint8_t  add_spec_emission = 1;
       };
@@ -2221,7 +2194,6 @@ struct sl_disc_res_pool_r12_s {
   struct tx_params_add_neigh_freq_v1370_c_ {
     struct setup_s_ {
       struct freq_info_v1370_s_ {
-        // member variables
         uint16_t add_spec_emission_v1370 = 33;
       };
 
@@ -2284,8 +2256,8 @@ struct sl_disc_res_pool_r12_s {
   void        to_json(json_writer& j) const;
 };
 
-// SL-SyncConfigListNFreqV2X-r14 ::= SEQUENCE (SIZE (1..maxSL-V2X-SyncConfig-r14)) OF SL-SyncConfigNFreq-r13
-typedef dyn_array<sl_sync_cfg_nfreq_r13_s> sl_sync_cfg_list_nfreq_v2x_r14_l;
+// SL-SyncConfigListNFreqV2X-r14 ::= SEQUENCE (SIZE (1..16)) OF SL-SyncConfigNFreq-r13
+using sl_sync_cfg_list_nfreq_v2x_r14_l = dyn_array<sl_sync_cfg_nfreq_r13_s>;
 
 // SL-ZoneConfig-r14 ::= SEQUENCE
 struct sl_zone_cfg_r14_s {
@@ -2320,7 +2292,6 @@ struct sl_zone_cfg_r14_s {
 
 // SystemInformationBlockType1-v1360-IEs ::= SEQUENCE
 struct sib_type1_v1360_ies_s {
-  // member variables
   bool                      cell_sel_info_ce1_v1360_present = false;
   bool                      non_crit_ext_present            = false;
   cell_sel_info_ce1_v1360_s cell_sel_info_ce1_v1360;
@@ -2332,12 +2303,11 @@ struct sib_type1_v1360_ies_s {
   void        to_json(json_writer& j) const;
 };
 
-// BandClassListCDMA2000 ::= SEQUENCE (SIZE (1..maxCDMA-BandClass)) OF BandClassInfoCDMA2000
-typedef dyn_array<band_class_info_cdma2000_s> band_class_list_cdma2000_l;
+// BandClassListCDMA2000 ::= SEQUENCE (SIZE (1..32)) OF BandClassInfoCDMA2000
+using band_class_list_cdma2000_l = dyn_array<band_class_info_cdma2000_s>;
 
 // InterFreqCarrierFreqInfo-v10l0 ::= SEQUENCE
 struct inter_freq_carrier_freq_info_v10l0_s {
-  // member variables
   bool                         freq_band_info_v10l0_present       = false;
   bool                         multi_band_info_list_v10l0_present = false;
   ns_pmax_list_v10l0_l         freq_band_info_v10l0;
@@ -2351,7 +2321,6 @@ struct inter_freq_carrier_freq_info_v10l0_s {
 
 // MultiBandInfo-v9e0 ::= SEQUENCE
 struct multi_band_info_v9e0_s {
-  // member variables
   bool     freq_band_ind_v9e0_present = false;
   uint16_t freq_band_ind_v9e0         = 65;
 
@@ -2361,12 +2330,12 @@ struct multi_band_info_v9e0_s {
   void        to_json(json_writer& j) const;
 };
 
-// MultiBandInfoList-v10j0 ::= SEQUENCE (SIZE (1..maxMultiBands)) OF NS-PmaxList-r10
-typedef dyn_array<ns_pmax_list_r10_l> multi_band_info_list_v10j0_l;
+// MultiBandInfoList-v10j0 ::= SEQUENCE (SIZE (1..8)) OF NS-PmaxList-r10
+using multi_band_info_list_v10j0_l = dyn_array<ns_pmax_list_r10_l>;
 
 // NeighCellCDMA2000-r11 ::= SEQUENCE
 struct neigh_cell_cdma2000_r11_s {
-  typedef dyn_array<neigh_cells_per_bandclass_cdma2000_r11_s> neigh_freq_info_list_r11_l_;
+  using neigh_freq_info_list_r11_l_ = dyn_array<neigh_cells_per_bandclass_cdma2000_r11_s>;
 
   // member variables
   bandclass_cdma2000_e        band_class;
@@ -2380,7 +2349,6 @@ struct neigh_cell_cdma2000_r11_s {
 
 // NeighCellsPerBandclassCDMA2000 ::= SEQUENCE
 struct neigh_cells_per_bandclass_cdma2000_s {
-  // member variables
   uint16_t            arfcn = 0;
   pci_list_cdma2000_l pci_list;
 
@@ -2392,7 +2360,6 @@ struct neigh_cells_per_bandclass_cdma2000_s {
 
 // NeighCellsPerBandclassCDMA2000-v920 ::= SEQUENCE
 struct neigh_cells_per_bandclass_cdma2000_v920_s {
-  // member variables
   pci_list_cdma2000_v920_l pci_list_v920;
 
   // sequence methods
@@ -2486,7 +2453,6 @@ typedef enumerated<q_offset_range_opts> q_offset_range_e;
 
 // RedistributionNeighCell-r13 ::= SEQUENCE
 struct redist_neigh_cell_r13_s {
-  // member variables
   uint16_t pci_r13                = 0;
   uint8_t  redist_factor_cell_r13 = 1;
 
@@ -2496,12 +2462,11 @@ struct redist_neigh_cell_r13_s {
   void        to_json(json_writer& j) const;
 };
 
-// SL-DiscTxPoolList-r12 ::= SEQUENCE (SIZE (1..maxSL-TxPool-r12)) OF SL-DiscResourcePool-r12
-typedef dyn_array<sl_disc_res_pool_r12_s> sl_disc_tx_pool_list_r12_l;
+// SL-DiscTxPoolList-r12 ::= SEQUENCE (SIZE (1..4)) OF SL-DiscResourcePool-r12
+using sl_disc_tx_pool_list_r12_l = dyn_array<sl_disc_res_pool_r12_s>;
 
 // SL-DiscTxPowerInfo-r12 ::= SEQUENCE
 struct sl_disc_tx_pwr_info_r12_s {
-  // member variables
   bool   ext                 = false;
   int8_t disc_max_tx_pwr_r12 = -30;
   // ...
@@ -2514,7 +2479,6 @@ struct sl_disc_tx_pwr_info_r12_s {
 
 // SL-V2X-FreqSelectionConfig-r15 ::= SEQUENCE
 struct sl_v2x_freq_sel_cfg_r15_s {
-  // member variables
   bool               thresh_cbr_freq_resel_r15_present   = false;
   bool               thresh_cbr_freq_keeping_r15_present = false;
   sl_prio_list_r13_l prio_list_r15;
@@ -2529,7 +2493,6 @@ struct sl_v2x_freq_sel_cfg_r15_s {
 
 // SL-V2X-InterFreqUE-Config-r14 ::= SEQUENCE
 struct sl_v2x_inter_freq_ue_cfg_r14_s {
-  // member variables
   bool                              ext                                      = false;
   bool                              pci_list_r14_present                     = false;
   bool                              type_tx_sync_r14_present                 = false;
@@ -2580,13 +2543,13 @@ struct sched_info_br_r13_s {
   void        to_json(json_writer& j) const;
 };
 
-// SecondaryPreRegistrationZoneIdListHRPD ::= SEQUENCE (SIZE (1..2)) OF INTEGER
-typedef bounded_array<uint8_t, 2> secondary_pre_regist_zone_id_list_hrpd_l;
+// SecondaryPreRegistrationZoneIdListHRPD ::= SEQUENCE (SIZE (1..2)) OF INTEGER (0..255)
+using secondary_pre_regist_zone_id_list_hrpd_l = bounded_array<uint16_t, 2>;
 
 // SpeedStateScaleFactors ::= SEQUENCE
 struct speed_state_scale_factors_s {
   struct sf_medium_opts {
-    enum options { o_dot25, o_dot5, o_dot75, l_dot0, nulltype } value;
+    enum options { odot25, odot5, odot75, ldot0, nulltype } value;
     typedef float number_type;
 
     std::string to_string() const;
@@ -2595,7 +2558,7 @@ struct speed_state_scale_factors_s {
   };
   typedef enumerated<sf_medium_opts> sf_medium_e_;
   struct sf_high_opts {
-    enum options { o_dot25, o_dot5, o_dot75, l_dot0, nulltype } value;
+    enum options { odot25, odot5, odot75, ldot0, nulltype } value;
     typedef float number_type;
 
     std::string to_string() const;
@@ -2616,7 +2579,6 @@ struct speed_state_scale_factors_s {
 
 // SystemInformationBlockType1-v1350-IEs ::= SEQUENCE
 struct sib_type1_v1350_ies_s {
-  // member variables
   bool                    cell_sel_info_ce1_r13_present = false;
   bool                    non_crit_ext_present          = false;
   cell_sel_info_ce1_r13_s cell_sel_info_ce1_r13;
@@ -2630,7 +2592,6 @@ struct sib_type1_v1350_ies_s {
 
 // SystemInformationBlockType5-v13a0-IEs ::= SEQUENCE
 struct sib_type5_v13a0_ies_s {
-  // member variables
   bool                                 late_non_crit_ext_present                  = false;
   bool                                 inter_freq_carrier_freq_list_v13a0_present = false;
   bool                                 non_crit_ext_present                       = false;
@@ -2645,7 +2606,6 @@ struct sib_type5_v13a0_ies_s {
 
 // AC-BarringConfig1XRTT-r9 ::= SEQUENCE
 struct ac_barr_cfg1_xrtt_r9_s {
-  // member variables
   uint8_t ac_barr0to9_r9 = 0;
   uint8_t ac_barr10_r9   = 0;
   uint8_t ac_barr11_r9   = 0;
@@ -2722,7 +2682,6 @@ struct barr_per_acdc_category_r13_s {
 
 // CSFB-RegistrationParam1XRTT ::= SEQUENCE
 struct csfb_regist_param1_xrtt_s {
-  // member variables
   fixed_bitstring<15> sid;
   fixed_bitstring<16> nid;
   bool                multiple_sid    = false;
@@ -2751,12 +2710,12 @@ struct csfb_regist_param1_xrtt_v920_s {
   void        to_json(json_writer& j) const;
 };
 
-// CellList-r15 ::= SEQUENCE (SIZE (1.. maxCellMeasIdle-r15)) OF PhysCellIdRange
-typedef dyn_array<pci_range_s> cell_list_r15_l;
+// CellList-r15 ::= SEQUENCE (SIZE (1..8)) OF PhysCellIdRange
+using cell_list_r15_l = dyn_array<pci_range_s>;
 
 // CellReselectionParametersCDMA2000-r11 ::= SEQUENCE
 struct cell_resel_params_cdma2000_r11_s {
-  typedef dyn_array<neigh_cell_cdma2000_r11_s> neigh_cell_list_r11_l_;
+  using neigh_cell_list_r11_l_ = dyn_array<neigh_cell_cdma2000_r11_s>;
 
   // member variables
   bool                        t_resel_cdma2000_sf_present = false;
@@ -2773,7 +2732,6 @@ struct cell_resel_params_cdma2000_r11_s {
 
 // CellSelectionInfoCE-r13 ::= SEQUENCE
 struct cell_sel_info_ce_r13_s {
-  // member variables
   bool   q_qual_min_rsrq_ce_r13_present = false;
   int8_t q_rx_lev_min_ce_r13            = -70;
   int8_t q_qual_min_rsrq_ce_r13         = -34;
@@ -2827,12 +2785,11 @@ struct cell_sel_info_nfreq_r13_s {
   void        to_json(json_writer& j) const;
 };
 
-// ExplicitListOfARFCNs ::= SEQUENCE (SIZE (0..31)) OF INTEGER
-typedef bounded_array<uint16_t, 31> explicit_list_of_arfcns_l;
+// ExplicitListOfARFCNs ::= SEQUENCE (SIZE (0..31)) OF INTEGER (0..1023)
+using explicit_list_of_arfcns_l = bounded_array<uint16_t, 31>;
 
 // InterFreqCarrierFreqInfo-v10j0 ::= SEQUENCE
 struct inter_freq_carrier_freq_info_v10j0_s {
-  // member variables
   bool                         freq_band_info_r10_present         = false;
   bool                         multi_band_info_list_v10j0_present = false;
   ns_pmax_list_r10_l           freq_band_info_r10;
@@ -2846,7 +2803,6 @@ struct inter_freq_carrier_freq_info_v10j0_s {
 
 // InterFreqNeighCellInfo ::= SEQUENCE
 struct inter_freq_neigh_cell_info_s {
-  // member variables
   uint16_t         pci = 0;
   q_offset_range_e q_offset_cell;
 
@@ -2856,12 +2812,11 @@ struct inter_freq_neigh_cell_info_s {
   void        to_json(json_writer& j) const;
 };
 
-// MultiBandInfoList-v9e0 ::= SEQUENCE (SIZE (1..maxMultiBands)) OF MultiBandInfo-v9e0
-typedef dyn_array<multi_band_info_v9e0_s> multi_band_info_list_v9e0_l;
+// MultiBandInfoList-v9e0 ::= SEQUENCE (SIZE (1..8)) OF MultiBandInfo-v9e0
+using multi_band_info_list_v9e0_l = dyn_array<multi_band_info_v9e0_s>;
 
 // NS-PmaxValueNR-r15 ::= SEQUENCE
 struct ns_pmax_value_nr_r15_s {
-  // member variables
   bool    add_pmax_nr_r15_present  = false;
   int8_t  add_pmax_nr_r15          = -30;
   uint8_t add_spec_emission_nr_r15 = 0;
@@ -2873,10 +2828,10 @@ struct ns_pmax_value_nr_r15_s {
 };
 
 // NeighCellsPerBandclassListCDMA2000 ::= SEQUENCE (SIZE (1..16)) OF NeighCellsPerBandclassCDMA2000
-typedef dyn_array<neigh_cells_per_bandclass_cdma2000_s> neigh_cells_per_bandclass_list_cdma2000_l;
+using neigh_cells_per_bandclass_list_cdma2000_l = dyn_array<neigh_cells_per_bandclass_cdma2000_s>;
 
 // NeighCellsPerBandclassListCDMA2000-v920 ::= SEQUENCE (SIZE (1..16)) OF NeighCellsPerBandclassCDMA2000-v920
-typedef dyn_array<neigh_cells_per_bandclass_cdma2000_v920_s> neigh_cells_per_bandclass_list_cdma2000_v920_l;
+using neigh_cells_per_bandclass_list_cdma2000_v920_l = dyn_array<neigh_cells_per_bandclass_cdma2000_v920_s>;
 
 // PLMN-IdentityInfo2-r12 ::= CHOICE
 struct plmn_id_info2_r12_c {
@@ -2930,8 +2885,8 @@ struct plmn_id_info2_r12_c {
   }
 
 private:
-  types                              type_;
-  choice_buffer_t<sizeof(plmn_id_s)> c;
+  types                      type_;
+  choice_buffer_t<plmn_id_s> c;
 
   void destroy_();
 };
@@ -2962,7 +2917,7 @@ struct prach_params_ce_r13_s {
     uint8_t     to_number() const;
   };
   typedef enumerated<num_repeat_per_preamb_attempt_r13_opts> num_repeat_per_preamb_attempt_r13_e_;
-  typedef bounded_array<uint8_t, 2>                          mpdcch_nbs_to_monitor_r13_l_;
+  using mpdcch_nbs_to_monitor_r13_l_ = bounded_array<uint8_t, 2>;
   struct mpdcch_num_repeat_ra_r13_opts {
     enum options { r1, r2, r4, r8, r16, r32, r64, r128, r256, nulltype } value;
     typedef uint16_t number_type;
@@ -2998,11 +2953,10 @@ struct prach_params_ce_r13_s {
 
 // PreRegistrationInfoHRPD ::= SEQUENCE
 struct pre_regist_info_hrpd_s {
-  // member variables
   bool                                     pre_regist_zone_id_present                = false;
   bool                                     secondary_pre_regist_zone_id_list_present = false;
   bool                                     pre_regist_allowed                        = false;
-  uint8_t                                  pre_regist_zone_id                        = 0;
+  uint16_t                                 pre_regist_zone_id                        = 0;
   secondary_pre_regist_zone_id_list_hrpd_l secondary_pre_regist_zone_id_list;
 
   // sequence methods
@@ -3014,7 +2968,6 @@ struct pre_regist_info_hrpd_s {
 // RACH-CE-LevelInfo-r13 ::= SEQUENCE
 struct rach_ce_level_info_r13_s {
   struct preamb_map_info_r13_s_ {
-    // member variables
     uint8_t first_preamb_r13 = 0;
     uint8_t last_preamb_r13  = 0;
   };
@@ -3082,13 +3035,13 @@ struct rach_ce_level_info_r13_s {
   void        to_json(json_writer& j) const;
 };
 
-// RedistributionNeighCellList-r13 ::= SEQUENCE (SIZE (1..maxCellInter)) OF RedistributionNeighCell-r13
-typedef dyn_array<redist_neigh_cell_r13_s> redist_neigh_cell_list_r13_l;
+// RedistributionNeighCellList-r13 ::= SEQUENCE (SIZE (1..16)) OF RedistributionNeighCell-r13
+using redist_neigh_cell_list_r13_l = dyn_array<redist_neigh_cell_r13_s>;
 
 // SL-AllowedCarrierFreqList-r15 ::= SEQUENCE
 struct sl_allowed_carrier_freq_list_r15_s {
-  typedef bounded_array<uint32_t, 8> allowed_carrier_freq_set1_l_;
-  typedef bounded_array<uint32_t, 8> allowed_carrier_freq_set2_l_;
+  using allowed_carrier_freq_set1_l_ = bounded_array<uint32_t, 8>;
+  using allowed_carrier_freq_set2_l_ = bounded_array<uint32_t, 8>;
 
   // member variables
   allowed_carrier_freq_set1_l_ allowed_carrier_freq_set1;
@@ -3100,13 +3053,13 @@ struct sl_allowed_carrier_freq_list_r15_s {
   void        to_json(json_writer& j) const;
 };
 
-// SL-DestinationInfoList-r12 ::= SEQUENCE (SIZE (1..maxSL-Dest-r12)) OF BIT STRING
-typedef bounded_array<fixed_bitstring<24>, 16> sl_dest_info_list_r12_l;
+// SL-DestinationInfoList-r12 ::= SEQUENCE (SIZE (1..16)) OF BIT STRING (SIZE (24))
+using sl_dest_info_list_r12_l = bounded_array<fixed_bitstring<24>, 16>;
 
-// SL-DiscRxPoolList-r12 ::= SEQUENCE (SIZE (1..maxSL-RxPool-r12)) OF SL-DiscResourcePool-r12
-typedef dyn_array<sl_disc_res_pool_r12_s> sl_disc_rx_pool_list_r12_l;
+// SL-DiscRxPoolList-r12 ::= SEQUENCE (SIZE (1..16)) OF SL-DiscResourcePool-r12
+using sl_disc_rx_pool_list_r12_l = dyn_array<sl_disc_res_pool_r12_s>;
 
-// SL-DiscTxPowerInfoList-r12 ::= SEQUENCE (SIZE (maxSL-DiscPowerClass-r12)) OF SL-DiscTxPowerInfo-r12
+// SL-DiscTxPowerInfoList-r12 ::= SEQUENCE (SIZE (3)) OF SL-DiscTxPowerInfo-r12
 using sl_disc_tx_pwr_info_list_r12_l = std::array<sl_disc_tx_pwr_info_r12_s, 3>;
 
 // SL-DiscTxResourcesInterFreq-r13 ::= CHOICE
@@ -3153,20 +3106,20 @@ private:
   sl_disc_tx_pool_list_r12_l c;
 };
 
-// SL-SyncConfigListNFreq-r13 ::= SEQUENCE (SIZE (1..maxSL-SyncConfig-r12)) OF SL-SyncConfigNFreq-r13
-typedef dyn_array<sl_sync_cfg_nfreq_r13_s> sl_sync_cfg_list_nfreq_r13_l;
+// SL-SyncConfigListNFreq-r13 ::= SEQUENCE (SIZE (1..16)) OF SL-SyncConfigNFreq-r13
+using sl_sync_cfg_list_nfreq_r13_l = dyn_array<sl_sync_cfg_nfreq_r13_s>;
 
 // SL-V2X-FreqSelectionConfigList-r15 ::= SEQUENCE (SIZE (1..8)) OF SL-V2X-FreqSelectionConfig-r15
-typedef dyn_array<sl_v2x_freq_sel_cfg_r15_s> sl_v2x_freq_sel_cfg_list_r15_l;
+using sl_v2x_freq_sel_cfg_list_r15_l = dyn_array<sl_v2x_freq_sel_cfg_r15_s>;
 
-// SL-V2X-UE-ConfigList-r14 ::= SEQUENCE (SIZE (1.. maxCellIntra)) OF SL-V2X-InterFreqUE-Config-r14
-typedef dyn_array<sl_v2x_inter_freq_ue_cfg_r14_s> sl_v2x_ue_cfg_list_r14_l;
+// SL-V2X-UE-ConfigList-r14 ::= SEQUENCE (SIZE (1..16)) OF SL-V2X-InterFreqUE-Config-r14
+using sl_v2x_ue_cfg_list_r14_l = dyn_array<sl_v2x_inter_freq_ue_cfg_r14_s>;
 
-// SchedulingInfoList-BR-r13 ::= SEQUENCE (SIZE (1..maxSI-Message)) OF SchedulingInfo-BR-r13
-typedef dyn_array<sched_info_br_r13_s> sched_info_list_br_r13_l;
+// SchedulingInfoList-BR-r13 ::= SEQUENCE (SIZE (1..32)) OF SchedulingInfo-BR-r13
+using sched_info_list_br_r13_l = dyn_array<sched_info_br_r13_s>;
 
-// SystemInfoValueTagList-r13 ::= SEQUENCE (SIZE (1..maxSI-Message)) OF INTEGER
-typedef bounded_array<uint8_t, 32> sys_info_value_tag_list_r13_l;
+// SystemInfoValueTagList-r13 ::= SEQUENCE (SIZE (1..32)) OF INTEGER (0..3)
+using sys_info_value_tag_list_r13_l = bounded_array<uint8_t, 32>;
 
 // SystemInformationBlockType1-v1320-IEs ::= SEQUENCE
 struct sib_type1_v1320_ies_s {
@@ -3246,8 +3199,8 @@ struct sib_type1_v1320_ies_s {
       }
 
     private:
-      types                                                                       type_;
-      choice_buffer_t<MAX2(sizeof(interv_fdd_r13_e_), sizeof(interv_tdd_r13_e_))> c;
+      types               type_;
+      pod_choice_buffer_t c;
 
       void destroy_();
     };
@@ -3318,8 +3271,8 @@ struct sib_type1_v1320_ies_s {
       }
 
     private:
-      types                                                                       type_;
-      choice_buffer_t<MAX2(sizeof(interv_fdd_r13_e_), sizeof(interv_tdd_r13_e_))> c;
+      types               type_;
+      pod_choice_buffer_t c;
 
       void destroy_();
     };
@@ -3350,10 +3303,9 @@ struct sib_type1_v1320_ies_s {
 // SystemInformationBlockType2-v10m0-IEs ::= SEQUENCE
 struct sib_type2_v10m0_ies_s {
   struct freq_info_v10l0_s_ {
-    // member variables
     uint16_t add_spec_emission_v10l0 = 33;
   };
-  typedef bounded_array<uint16_t, 8> multi_band_info_list_v10l0_l_;
+  using multi_band_info_list_v10l0_l_ = bounded_array<uint16_t, 8>;
 
   // member variables
   bool                          freq_info_v10l0_present            = false;
@@ -3370,7 +3322,7 @@ struct sib_type2_v10m0_ies_s {
 
 // SystemInformationBlockType5-v10l0-IEs ::= SEQUENCE
 struct sib_type5_v10l0_ies_s {
-  typedef dyn_array<inter_freq_carrier_freq_info_v10l0_s> inter_freq_carrier_freq_list_v10l0_l_;
+  using inter_freq_carrier_freq_list_v10l0_l_ = dyn_array<inter_freq_carrier_freq_info_v10l0_s>;
 
   // member variables
   bool                                  inter_freq_carrier_freq_list_v10l0_present = false;
@@ -3437,8 +3389,8 @@ struct sys_time_info_cdma2000_s {
     }
 
   private:
-    types                                        type_;
-    choice_buffer_t<sizeof(fixed_bitstring<49>)> c;
+    types                                 type_;
+    choice_buffer_t<fixed_bitstring<49> > c;
 
     void destroy_();
   };
@@ -3455,7 +3407,6 @@ struct sys_time_info_cdma2000_s {
 
 // UAC-BarringPerCat-r15 ::= SEQUENCE
 struct uac_barr_per_cat_r15_s {
-  // member variables
   uint8_t access_category_r15       = 1;
   uint8_t uac_barr_info_set_idx_r15 = 1;
 
@@ -3496,14 +3447,13 @@ struct ac_barr_cfg_s {
   void        to_json(json_writer& j) const;
 };
 
-// BarringPerACDC-CategoryList-r13 ::= SEQUENCE (SIZE (1..maxACDC-Cat-r13)) OF BarringPerACDC-Category-r13
-typedef dyn_array<barr_per_acdc_category_r13_s> barr_per_acdc_category_list_r13_l;
+// BarringPerACDC-CategoryList-r13 ::= SEQUENCE (SIZE (1..16)) OF BarringPerACDC-Category-r13
+using barr_per_acdc_category_list_r13_l = dyn_array<barr_per_acdc_category_r13_s>;
 
 // CarrierFreqsGERAN ::= SEQUENCE
 struct carrier_freqs_geran_s {
   struct following_arfcns_c_ {
     struct equally_spaced_arfcns_s_ {
-      // member variables
       uint8_t arfcn_spacing        = 1;
       uint8_t nof_following_arfcns = 0;
     };
@@ -3572,9 +3522,8 @@ struct carrier_freqs_geran_s {
     }
 
   private:
-    types type_;
-    choice_buffer_t<MAX4(sizeof(dyn_octstring), sizeof(equally_spaced_arfcns_s_), sizeof(explicit_list_of_arfcns_l), 0)>
-        c;
+    types                                                                               type_;
+    choice_buffer_t<dyn_octstring, equally_spaced_arfcns_s_, explicit_list_of_arfcns_l> c;
 
     void destroy_();
   };
@@ -3592,7 +3541,7 @@ struct carrier_freqs_geran_s {
 
 // CellReselectionSubPriority-r13 ::= ENUMERATED
 struct cell_resel_sub_prio_r13_opts {
-  enum options { o_dot2, o_dot4, o_dot6, o_dot8, nulltype } value;
+  enum options { odot2, odot4, odot6, odot8, nulltype } value;
   typedef float number_type;
 
   std::string to_string() const;
@@ -3603,7 +3552,6 @@ typedef enumerated<cell_resel_sub_prio_r13_opts> cell_resel_sub_prio_r13_e;
 
 // CellSelectionInfo-v1250 ::= SEQUENCE
 struct cell_sel_info_v1250_s {
-  // member variables
   int8_t q_qual_min_rsrq_on_all_symbols_r12 = -34;
 
   // sequence methods
@@ -3679,7 +3627,7 @@ struct edt_prach_params_ce_r15_s {
       uint16_t    to_number() const;
     };
     typedef enumerated<prach_start_sf_r15_opts> prach_start_sf_r15_e_;
-    typedef bounded_array<uint8_t, 2>           mpdcch_nbs_to_monitor_r15_l_;
+    using mpdcch_nbs_to_monitor_r15_l_ = bounded_array<uint8_t, 2>;
 
     // member variables
     bool                         prach_start_sf_r15_present = false;
@@ -3727,12 +3675,11 @@ struct filt_coef_opts {
 };
 typedef enumerated<filt_coef_opts, true> filt_coef_e;
 
-// InterFreqBlackCellList ::= SEQUENCE (SIZE (1..maxCellBlack)) OF PhysCellIdRange
-typedef dyn_array<pci_range_s> inter_freq_black_cell_list_l;
+// InterFreqBlackCellList ::= SEQUENCE (SIZE (1..16)) OF PhysCellIdRange
+using inter_freq_black_cell_list_l = dyn_array<pci_range_s>;
 
 // InterFreqCarrierFreqInfo-v9e0 ::= SEQUENCE
 struct inter_freq_carrier_freq_info_v9e0_s {
-  // member variables
   bool                        dl_carrier_freq_v9e0_present      = false;
   bool                        multi_band_info_list_v9e0_present = false;
   uint32_t                    dl_carrier_freq_v9e0              = 65536;
@@ -3744,14 +3691,14 @@ struct inter_freq_carrier_freq_info_v9e0_s {
   void        to_json(json_writer& j) const;
 };
 
-// InterFreqNeighCellList ::= SEQUENCE (SIZE (1..maxCellInter)) OF InterFreqNeighCellInfo
-typedef dyn_array<inter_freq_neigh_cell_info_s> inter_freq_neigh_cell_list_l;
+// InterFreqNeighCellList ::= SEQUENCE (SIZE (1..16)) OF InterFreqNeighCellInfo
+using inter_freq_neigh_cell_list_l = dyn_array<inter_freq_neigh_cell_info_s>;
 
-// InterFreqNeighHSDN-CellList-r15 ::= SEQUENCE (SIZE (1..maxCellInter)) OF PhysCellIdRange
-typedef dyn_array<pci_range_s> inter_freq_neigh_hsdn_cell_list_r15_l;
+// InterFreqNeighHSDN-CellList-r15 ::= SEQUENCE (SIZE (1..16)) OF PhysCellIdRange
+using inter_freq_neigh_hsdn_cell_list_r15_l = dyn_array<pci_range_s>;
 
-// MBMS-SAI-List-r11 ::= SEQUENCE (SIZE (1..maxSAI-MBMS-r11)) OF INTEGER
-typedef dyn_array<uint16_t> mbms_sai_list_r11_l;
+// MBMS-SAI-List-r11 ::= SEQUENCE (SIZE (1..64)) OF INTEGER (0..65535)
+using mbms_sai_list_r11_l = dyn_array<uint32_t>;
 
 // MTC-SSB-NR-r15 ::= SEQUENCE
 struct mtc_ssb_nr_r15_s {
@@ -3868,8 +3815,8 @@ struct mtc_ssb_nr_r15_s {
     }
 
   private:
-    types              type_;
-    choice_buffer_t<8> c;
+    types               type_;
+    pod_choice_buffer_t c;
 
     void destroy_();
   };
@@ -3901,7 +3848,6 @@ struct meas_idle_carrier_eutra_r15_s {
   };
   typedef enumerated<report_quantities_opts> report_quantities_e_;
   struct quality_thres_r15_s_ {
-    // member variables
     bool    idle_rsrp_thres_r15_present = false;
     bool    idle_rsrq_thres_r15_present = false;
     uint8_t idle_rsrp_thres_r15         = 0;
@@ -3927,24 +3873,23 @@ struct meas_idle_carrier_eutra_r15_s {
   void        to_json(json_writer& j) const;
 };
 
-// MultiBandInfoList ::= SEQUENCE (SIZE (1..maxMultiBands)) OF INTEGER
-typedef bounded_array<uint8_t, 8> multi_band_info_list_l;
+// MultiBandInfoList ::= SEQUENCE (SIZE (1..8)) OF INTEGER (1..64)
+using multi_band_info_list_l = bounded_array<uint8_t, 8>;
 
-// MultiBandInfoList-r11 ::= SEQUENCE (SIZE (1..maxMultiBands)) OF INTEGER
-typedef bounded_array<uint16_t, 8> multi_band_info_list_r11_l;
+// MultiBandInfoList-r11 ::= SEQUENCE (SIZE (1..8)) OF INTEGER (1..256)
+using multi_band_info_list_r11_l = bounded_array<uint16_t, 8>;
 
-// MultiFrequencyBandListNR-r15 ::= SEQUENCE (SIZE (1.. maxMultiBandsNR-r15)) OF INTEGER
-typedef bounded_array<uint16_t, 32> multi_freq_band_list_nr_r15_l;
+// MultiFrequencyBandListNR-r15 ::= SEQUENCE (SIZE (1..32)) OF INTEGER (1..1024)
+using multi_freq_band_list_nr_r15_l = bounded_array<uint16_t, 32>;
 
-// N1PUCCH-AN-InfoList-r13 ::= SEQUENCE (SIZE(1..maxCE-Level-r13)) OF INTEGER
-typedef bounded_array<uint16_t, 4> n1_pucch_an_info_list_r13_l;
+// N1PUCCH-AN-InfoList-r13 ::= SEQUENCE (SIZE (1..4)) OF INTEGER (0..2047)
+using n1_pucch_an_info_list_r13_l = bounded_array<uint16_t, 4>;
 
 // NS-PmaxListNR-r15 ::= SEQUENCE (SIZE (1..8)) OF NS-PmaxValueNR-r15
-typedef dyn_array<ns_pmax_value_nr_r15_s> ns_pmax_list_nr_r15_l;
+using ns_pmax_list_nr_r15_l = dyn_array<ns_pmax_value_nr_r15_s>;
 
 // NeighCellCDMA2000 ::= SEQUENCE
 struct neigh_cell_cdma2000_s {
-  // member variables
   bandclass_cdma2000_e                      band_class;
   neigh_cells_per_bandclass_list_cdma2000_l neigh_cells_per_freq_list;
 
@@ -3956,7 +3901,6 @@ struct neigh_cell_cdma2000_s {
 
 // NeighCellCDMA2000-v920 ::= SEQUENCE
 struct neigh_cell_cdma2000_v920_s {
-  // member variables
   neigh_cells_per_bandclass_list_cdma2000_v920_l neigh_cells_per_freq_list_v920;
 
   // sequence methods
@@ -3965,12 +3909,11 @@ struct neigh_cell_cdma2000_v920_s {
   void        to_json(json_writer& j) const;
 };
 
-// PLMN-IdentityList4-r12 ::= SEQUENCE (SIZE (1..maxPLMN-r11)) OF PLMN-IdentityInfo2-r12
-typedef dyn_array<plmn_id_info2_r12_c> plmn_id_list4_r12_l;
+// PLMN-IdentityList4-r12 ::= SEQUENCE (SIZE (1..6)) OF PLMN-IdentityInfo2-r12
+using plmn_id_list4_r12_l = dyn_array<plmn_id_info2_r12_c>;
 
 // PRACH-ConfigInfo ::= SEQUENCE
 struct prach_cfg_info_s {
-  // member variables
   uint8_t prach_cfg_idx             = 0;
   bool    high_speed_flag           = false;
   uint8_t zero_correlation_zone_cfg = 0;
@@ -3982,8 +3925,8 @@ struct prach_cfg_info_s {
   void        to_json(json_writer& j) const;
 };
 
-// PRACH-ParametersListCE-r13 ::= SEQUENCE (SIZE(1..maxCE-Level-r13)) OF PRACH-ParametersCE-r13
-typedef dyn_array<prach_params_ce_r13_s> prach_params_list_ce_r13_l;
+// PRACH-ParametersListCE-r13 ::= SEQUENCE (SIZE (1..4)) OF PRACH-ParametersCE-r13
+using prach_params_list_ce_r13_l = dyn_array<prach_params_ce_r13_s>;
 
 // ParametersCDMA2000-r11 ::= SEQUENCE
 struct params_cdma2000_r11_s {
@@ -4024,13 +3967,11 @@ struct params_cdma2000_r11_s {
     sys_time_info_cdma2000_s c;
   };
   struct params_hrpd_r11_s_ {
-    // member variables
     bool                             cell_resel_params_hrpd_r11_present = false;
     pre_regist_info_hrpd_s           pre_regist_info_hrpd_r11;
     cell_resel_params_cdma2000_r11_s cell_resel_params_hrpd_r11;
   };
   struct params1_xrtt_r11_s_ {
-    // member variables
     bool                             csfb_regist_param1_xrtt_r11_present      = false;
     bool                             csfb_regist_param1_xrtt_ext_r11_present  = false;
     bool                             long_code_state1_xrtt_r11_present        = false;
@@ -4120,15 +4061,14 @@ struct preamb_trans_max_opts {
 };
 typedef enumerated<preamb_trans_max_opts> preamb_trans_max_e;
 
-// RACH-CE-LevelInfoList-r13 ::= SEQUENCE (SIZE (1..maxCE-Level-r13)) OF RACH-CE-LevelInfo-r13
-typedef dyn_array<rach_ce_level_info_r13_s> rach_ce_level_info_list_r13_l;
+// RACH-CE-LevelInfoList-r13 ::= SEQUENCE (SIZE (1..4)) OF RACH-CE-LevelInfo-r13
+using rach_ce_level_info_list_r13_l = dyn_array<rach_ce_level_info_r13_s>;
 
-// RSRP-ThresholdsPrachInfoList-r13 ::= SEQUENCE (SIZE(1..3)) OF INTEGER
-typedef bounded_array<uint8_t, 3> rsrp_thress_prach_info_list_r13_l;
+// RSRP-ThresholdsPrachInfoList-r13 ::= SEQUENCE (SIZE (1..3)) OF INTEGER (0..97)
+using rsrp_thress_prach_info_list_r13_l = bounded_array<uint8_t, 3>;
 
 // RedistributionInterFreqInfo-r13 ::= SEQUENCE
 struct redist_inter_freq_info_r13_s {
-  // member variables
   bool                         redist_factor_freq_r13_present     = false;
   bool                         redist_neigh_cell_list_r13_present = false;
   uint8_t                      redist_factor_freq_r13             = 1;
@@ -4140,12 +4080,11 @@ struct redist_inter_freq_info_r13_s {
   void        to_json(json_writer& j) const;
 };
 
-// SL-CBR-Levels-Config-r14 ::= SEQUENCE (SIZE (1..maxCBR-Level-r14)) OF INTEGER
-typedef bounded_array<uint8_t, 16> sl_cbr_levels_cfg_r14_l;
+// SL-CBR-Levels-Config-r14 ::= SEQUENCE (SIZE (1..16)) OF INTEGER (0..100)
+using sl_cbr_levels_cfg_r14_l = bounded_array<uint8_t, 16>;
 
 // SL-CBR-PSSCH-TxConfig-r14 ::= SEQUENCE
 struct sl_cbr_pssch_tx_cfg_r14_s {
-  // member variables
   uint16_t                 cr_limit_r14 = 0;
   sl_pssch_tx_params_r14_s tx_params_r14;
 
@@ -4157,7 +4096,6 @@ struct sl_cbr_pssch_tx_cfg_r14_s {
 
 // SL-DiscConfigOtherInterFreq-r13 ::= SEQUENCE
 struct sl_disc_cfg_other_inter_freq_r13_s {
-  // member variables
   bool                           tx_pwr_info_r13_present        = false;
   bool                           ref_carrier_common_r13_present = false;
   bool                           disc_sync_cfg_r13_present      = false;
@@ -4255,8 +4193,8 @@ struct sl_inter_freq_info_v2x_r14_s {
     }
 
   private:
-    types              type_;
-    choice_buffer_t<8> c;
+    types               type_;
+    pod_choice_buffer_t c;
 
     void destroy_();
   };
@@ -4288,7 +4226,6 @@ struct sl_inter_freq_info_v2x_r14_s {
 
 // SL-PPPR-Dest-CarrierFreq ::= SEQUENCE
 struct sl_pppr_dest_carrier_freq_s {
-  // member variables
   bool                               dest_info_list_r15_present            = false;
   bool                               allowed_carrier_freq_list_r15_present = false;
   sl_dest_info_list_r12_l            dest_info_list_r15;
@@ -4330,7 +4267,6 @@ typedef enumerated<sl_period_comm_r12_opts> sl_period_comm_r12_e;
 
 // SL-ResourcesInterFreq-r13 ::= SEQUENCE
 struct sl_res_inter_freq_r13_s {
-  // member variables
   bool                            disc_rx_res_inter_freq_r13_present = false;
   bool                            disc_tx_res_inter_freq_r13_present = false;
   sl_disc_rx_pool_list_r12_l      disc_rx_res_inter_freq_r13;
@@ -4345,7 +4281,6 @@ struct sl_res_inter_freq_r13_s {
 // SL-SyncConfig-r12 ::= SEQUENCE
 struct sl_sync_cfg_r12_s {
   struct tx_params_r12_s_ {
-    // member variables
     bool                sync_info_reserved_r12_present = false;
     sl_tx_params_r12_s  sync_tx_params_r12;
     uint8_t             sync_tx_thresh_ic_r12 = 0;
@@ -4398,9 +4333,8 @@ struct sl_sync_cfg_r12_s {
 
 // SS-RSSI-Measurement-r15 ::= SEQUENCE
 struct ss_rssi_meas_r15_s {
-  // member variables
-  dyn_bitstring meas_slots_r15;
-  uint8_t       end_symbol_r15 = 0;
+  bounded_bitstring<1, 80> meas_slots_r15;
+  uint8_t                  end_symbol_r15 = 0;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -4410,7 +4344,6 @@ struct ss_rssi_meas_r15_s {
 
 // SystemInformationBlockType1-v10l0-IEs ::= SEQUENCE
 struct sib_type1_v10l0_ies_s {
-  // member variables
   bool                         freq_band_info_v10l0_present       = false;
   bool                         multi_band_info_list_v10l0_present = false;
   bool                         non_crit_ext_present               = false;
@@ -4495,8 +4428,8 @@ struct sib_type1_v1310_ies_s {
       }
 
     private:
-      types                                        type_;
-      choice_buffer_t<sizeof(fixed_bitstring<40>)> c;
+      types                                 type_;
+      choice_buffer_t<fixed_bitstring<40> > c;
 
       void destroy_();
     };
@@ -4525,7 +4458,7 @@ struct sib_type1_v1310_ies_s {
 
   // member variables
   bool                                  hyper_sfn_r13_present                      = false;
-  bool                                  e_drx_allowed_r13_present                  = false;
+  bool                                  edrx_allowed_r13_present                   = false;
   bool                                  cell_sel_info_ce_r13_present               = false;
   bool                                  bw_reduced_access_related_info_r13_present = false;
   bool                                  non_crit_ext_present                       = false;
@@ -4542,7 +4475,6 @@ struct sib_type1_v1310_ies_s {
 
 // SystemInformationBlockType2-v9i0-IEs ::= SEQUENCE
 struct sib_type2_v9i0_ies_s {
-  // member variables
   bool          non_crit_ext_present = false;
   bool          dummy_present        = false;
   dyn_octstring non_crit_ext;
@@ -4555,7 +4487,7 @@ struct sib_type2_v9i0_ies_s {
 
 // SystemInformationBlockType5-v10j0-IEs ::= SEQUENCE
 struct sib_type5_v10j0_ies_s {
-  typedef dyn_array<inter_freq_carrier_freq_info_v10j0_s> inter_freq_carrier_freq_list_v10j0_l_;
+  using inter_freq_carrier_freq_list_v10j0_l_ = dyn_array<inter_freq_carrier_freq_info_v10j0_s>;
 
   // member variables
   bool                                  inter_freq_carrier_freq_list_v10j0_present = false;
@@ -4571,7 +4503,6 @@ struct sib_type5_v10j0_ies_s {
 
 // ThresholdListNR-r15 ::= SEQUENCE
 struct thres_list_nr_r15_s {
-  // member variables
   bool    nr_rsrp_r15_present = false;
   bool    nr_rsrq_r15_present = false;
   bool    nr_sinr_r15_present = false;
@@ -4585,8 +4516,8 @@ struct thres_list_nr_r15_s {
   void        to_json(json_writer& j) const;
 };
 
-// UAC-BarringPerCatList-r15 ::= SEQUENCE (SIZE (1..maxAccessCat-1-r15)) OF UAC-BarringPerCat-r15
-typedef dyn_array<uac_barr_per_cat_r15_s> uac_barr_per_cat_list_r15_l;
+// UAC-BarringPerCatList-r15 ::= SEQUENCE (SIZE (1..63)) OF UAC-BarringPerCat-r15
+using uac_barr_per_cat_list_r15_l = dyn_array<uac_barr_per_cat_r15_s>;
 
 // UDT-Restricting-r13 ::= SEQUENCE
 struct udt_restricting_r13_s {
@@ -4612,7 +4543,6 @@ struct udt_restricting_r13_s {
 
 // UL-ReferenceSignalsPUSCH ::= SEQUENCE
 struct ul_ref_sigs_pusch_s {
-  // member variables
   bool    group_hop_enabled  = false;
   uint8_t group_assign_pusch = 0;
   bool    seq_hop_enabled    = false;
@@ -4626,7 +4556,6 @@ struct ul_ref_sigs_pusch_s {
 
 // WLAN-Identifiers-r12 ::= SEQUENCE
 struct wlan_ids_r12_s {
-  // member variables
   bool               ext                = false;
   bool               ssid_r12_present   = false;
   bool               bssid_r12_present  = false;
@@ -4689,7 +4618,6 @@ typedef enumerated<wlan_backhaul_rate_r12_opts> wlan_backhaul_rate_r12_e;
 // AC-BarringPerPLMN-r12 ::= SEQUENCE
 struct ac_barr_per_plmn_r12_s {
   struct ac_barr_info_r12_s_ {
-    // member variables
     bool          ac_barr_for_mo_sig_r12_present  = false;
     bool          ac_barr_for_mo_data_r12_present = false;
     bool          ac_barr_for_emergency_r12       = false;
@@ -4719,7 +4647,6 @@ struct ac_barr_per_plmn_r12_s {
 
 // ACDC-BarringPerPLMN-r13 ::= SEQUENCE
 struct acdc_barr_per_plmn_r13_s {
-  // member variables
   uint8_t                           plmn_id_idx_r13         = 1;
   bool                              acdc_only_for_hplmn_r13 = false;
   barr_per_acdc_category_list_r13_l barr_per_acdc_category_list_r13;
@@ -4760,7 +4687,6 @@ struct bcch_cfg_v1310_s {
 
 // CIOT-OptimisationPLMN-r13 ::= SEQUENCE
 struct ciot_optim_plmn_r13_s {
-  // member variables
   bool up_cio_t_eps_optim_r13_present         = false;
   bool cp_cio_t_eps_optim_r13_present         = false;
   bool attach_without_pdn_connect_r13_present = false;
@@ -4773,7 +4699,7 @@ struct ciot_optim_plmn_r13_s {
 
 // CarrierFreqInfoUTRA-FDD-v8h0 ::= SEQUENCE
 struct carrier_freq_info_utra_fdd_v8h0_s {
-  typedef bounded_array<uint8_t, 8> multi_band_info_list_l_;
+  using multi_band_info_list_l_ = bounded_array<uint8_t, 8>;
 
   // member variables
   bool                    multi_band_info_list_present = false;
@@ -4788,7 +4714,7 @@ struct carrier_freq_info_utra_fdd_v8h0_s {
 // CarrierFreqNR-r15 ::= SEQUENCE
 struct carrier_freq_nr_r15_s {
   struct subcarrier_spacing_ssb_r15_opts {
-    enum options { k_hz15, k_hz30, k_hz120, k_hz240, nulltype } value;
+    enum options { khz15, khz30, khz120, khz240, nulltype } value;
     typedef uint8_t number_type;
 
     std::string to_string() const;
@@ -4796,7 +4722,6 @@ struct carrier_freq_nr_r15_s {
   };
   typedef enumerated<subcarrier_spacing_ssb_r15_opts> subcarrier_spacing_ssb_r15_e_;
   struct thresh_x_q_r15_s_ {
-    // member variables
     uint8_t thresh_x_high_q_r15 = 0;
     uint8_t thresh_x_low_q_r15  = 0;
   };
@@ -4845,7 +4770,6 @@ struct carrier_freq_nr_r15_s {
 // CarrierFreqUTRA-FDD ::= SEQUENCE
 struct carrier_freq_utra_fdd_s {
   struct thresh_x_q_r9_s_ {
-    // member variables
     uint8_t thresh_x_high_q_r9 = 0;
     uint8_t thresh_x_low_q_r9  = 0;
   };
@@ -4873,11 +4797,10 @@ struct carrier_freq_utra_fdd_s {
 // CarrierFreqUTRA-FDD-Ext-r12 ::= SEQUENCE
 struct carrier_freq_utra_fdd_ext_r12_s {
   struct thresh_x_q_r12_s_ {
-    // member variables
     uint8_t thresh_x_high_q_r12 = 0;
     uint8_t thresh_x_low_q_r12  = 0;
   };
-  typedef bounded_array<uint8_t, 8> multi_band_info_list_r12_l_;
+  using multi_band_info_list_r12_l_ = bounded_array<uint8_t, 8>;
 
   // member variables
   bool                        ext                                  = false;
@@ -4904,7 +4827,6 @@ struct carrier_freq_utra_fdd_ext_r12_s {
 
 // CarrierFreqUTRA-TDD ::= SEQUENCE
 struct carrier_freq_utra_tdd_s {
-  // member variables
   bool     ext                     = false;
   bool     cell_resel_prio_present = false;
   uint16_t carrier_freq            = 0;
@@ -4923,7 +4845,6 @@ struct carrier_freq_utra_tdd_s {
 
 // CarrierFreqUTRA-TDD-r12 ::= SEQUENCE
 struct carrier_freq_utra_tdd_r12_s {
-  // member variables
   bool     ext                                  = false;
   bool     cell_resel_prio_r12_present          = false;
   bool     reduced_meas_performance_r12_present = false;
@@ -4944,7 +4865,6 @@ struct carrier_freq_utra_tdd_r12_s {
 // CarrierFreqsInfoGERAN ::= SEQUENCE
 struct carrier_freqs_info_geran_s {
   struct common_info_s_ {
-    // member variables
     bool               cell_resel_prio_present = false;
     bool               p_max_geran_present     = false;
     uint8_t            cell_resel_prio         = 0;
@@ -4969,7 +4889,6 @@ struct carrier_freqs_info_geran_s {
 
 // CellSelectionInfo-v1130 ::= SEQUENCE
 struct cell_sel_info_v1130_s {
-  // member variables
   int8_t q_qual_min_wb_r11 = -34;
 
   // sequence methods
@@ -4997,8 +4916,8 @@ struct eab_cfg_r11_s {
   void        to_json(json_writer& j) const;
 };
 
-// EUTRA-CarrierList-r15 ::= SEQUENCE (SIZE (1..maxFreqIdle-r15)) OF MeasIdleCarrierEUTRA-r15
-typedef dyn_array<meas_idle_carrier_eutra_r15_s> eutra_carrier_list_r15_l;
+// EUTRA-CarrierList-r15 ::= SEQUENCE (SIZE (1..8)) OF MeasIdleCarrierEUTRA-r15
+using eutra_carrier_list_r15_l = dyn_array<meas_idle_carrier_eutra_r15_s>;
 
 // FreqHoppingParameters-r13 ::= SEQUENCE
 struct freq_hop_params_r13_s {
@@ -5077,8 +4996,8 @@ struct freq_hop_params_r13_s {
     }
 
   private:
-    types                                                                       type_;
-    choice_buffer_t<MAX2(sizeof(interv_fdd_r13_e_), sizeof(interv_tdd_r13_e_))> c;
+    types               type_;
+    pod_choice_buffer_t c;
 
     void destroy_();
   };
@@ -5149,8 +5068,8 @@ struct freq_hop_params_r13_s {
     }
 
   private:
-    types                                                                       type_;
-    choice_buffer_t<MAX2(sizeof(interv_fdd_r13_e_), sizeof(interv_tdd_r13_e_))> c;
+    types               type_;
+    pod_choice_buffer_t c;
 
     void destroy_();
   };
@@ -5221,8 +5140,8 @@ struct freq_hop_params_r13_s {
     }
 
   private:
-    types                                                                       type_;
-    choice_buffer_t<MAX2(sizeof(interv_fdd_r13_e_), sizeof(interv_tdd_r13_e_))> c;
+    types               type_;
+    pod_choice_buffer_t c;
 
     void destroy_();
   };
@@ -5293,8 +5212,8 @@ struct freq_hop_params_r13_s {
     }
 
   private:
-    types                                                                       type_;
-    choice_buffer_t<MAX2(sizeof(interv_fdd_r13_e_), sizeof(interv_tdd_r13_e_))> c;
+    types               type_;
+    pod_choice_buffer_t c;
 
     void destroy_();
   };
@@ -5321,7 +5240,6 @@ struct freq_hop_params_r13_s {
 
 // HighSpeedConfig-r14 ::= SEQUENCE
 struct high_speed_cfg_r14_s {
-  // member variables
   bool high_speed_enhanced_meas_flag_r14_present  = false;
   bool high_speed_enhanced_demod_flag_r14_present = false;
 
@@ -5342,7 +5260,6 @@ struct high_speed_cfg_v1530_s {
 // InterFreqCarrierFreqInfo ::= SEQUENCE
 struct inter_freq_carrier_freq_info_s {
   struct thresh_x_q_r9_s_ {
-    // member variables
     uint8_t thresh_x_high_q_r9 = 0;
     uint8_t thresh_x_low_q_r9  = 0;
   };
@@ -5355,7 +5272,7 @@ struct inter_freq_carrier_freq_info_s {
   bool                         q_offset_freq_present              = false;
   bool                         inter_freq_neigh_cell_list_present = false;
   bool                         inter_freq_black_cell_list_present = false;
-  uint16_t                     dl_carrier_freq                    = 0;
+  uint32_t                     dl_carrier_freq                    = 0;
   int8_t                       q_rx_lev_min                       = -70;
   int8_t                       p_max                              = -30;
   uint8_t                      t_resel_eutra                      = 0;
@@ -5387,7 +5304,6 @@ struct inter_freq_carrier_freq_info_s {
 // InterFreqCarrierFreqInfo-r12 ::= SEQUENCE
 struct inter_freq_carrier_freq_info_r12_s {
   struct thresh_x_q_r12_s_ {
-    // member variables
     uint8_t thresh_x_high_q_r12 = 0;
     uint8_t thresh_x_low_q_r12  = 0;
   };
@@ -5435,7 +5351,6 @@ struct inter_freq_carrier_freq_info_r12_s {
 
 // InterFreqCarrierFreqInfo-v1250 ::= SEQUENCE
 struct inter_freq_carrier_freq_info_v1250_s {
-  // member variables
   bool   reduced_meas_performance_r12_present       = false;
   bool   q_qual_min_rsrq_on_all_symbols_r12_present = false;
   int8_t q_qual_min_rsrq_on_all_symbols_r12         = -34;
@@ -5448,7 +5363,6 @@ struct inter_freq_carrier_freq_info_v1250_s {
 
 // InterFreqCarrierFreqInfo-v1310 ::= SEQUENCE
 struct inter_freq_carrier_freq_info_v1310_s {
-  // member variables
   bool                         cell_resel_sub_prio_r13_present    = false;
   bool                         redist_inter_freq_info_r13_present = false;
   bool                         cell_sel_info_ce_r13_present       = false;
@@ -5466,7 +5380,6 @@ struct inter_freq_carrier_freq_info_v1310_s {
 
 // InterFreqCarrierFreqInfo-v1350 ::= SEQUENCE
 struct inter_freq_carrier_freq_info_v1350_s {
-  // member variables
   bool                    cell_sel_info_ce1_r13_present = false;
   cell_sel_info_ce1_r13_s cell_sel_info_ce1_r13;
 
@@ -5478,7 +5391,6 @@ struct inter_freq_carrier_freq_info_v1350_s {
 
 // InterFreqCarrierFreqInfo-v1530 ::= SEQUENCE
 struct inter_freq_carrier_freq_info_v1530_s {
-  // member variables
   bool                                  inter_freq_neigh_hsdn_cell_list_r15_present = false;
   bool                                  cell_sel_info_ce_v1530_present              = false;
   bool                                  hsdn_ind_r15                                = false;
@@ -5493,7 +5405,6 @@ struct inter_freq_carrier_freq_info_v1530_s {
 
 // InterFreqCarrierFreqInfo-v8h0 ::= SEQUENCE
 struct inter_freq_carrier_freq_info_v8h0_s {
-  // member variables
   bool                   multi_band_info_list_present = false;
   multi_band_info_list_l multi_band_info_list;
 
@@ -5505,7 +5416,6 @@ struct inter_freq_carrier_freq_info_v8h0_s {
 
 // IntraFreqNeighCellInfo ::= SEQUENCE
 struct intra_freq_neigh_cell_info_s {
-  // member variables
   bool             ext = false;
   uint16_t         pci = 0;
   q_offset_range_e q_offset_cell;
@@ -5539,7 +5449,6 @@ struct mbms_carrier_type_r14_s {
 
 // MBMS-SAI-InterFreq-r11 ::= SEQUENCE
 struct mbms_sai_inter_freq_r11_s {
-  // member variables
   uint32_t            dl_carrier_freq_r11 = 0;
   mbms_sai_list_r11_l mbms_sai_list_r11;
 
@@ -5551,7 +5460,6 @@ struct mbms_sai_inter_freq_r11_s {
 
 // MBMS-SAI-InterFreq-v1140 ::= SEQUENCE
 struct mbms_sai_inter_freq_v1140_s {
-  // member variables
   bool                       multi_band_info_list_r11_present = false;
   multi_band_info_list_r11_l multi_band_info_list_r11;
 
@@ -5640,7 +5548,7 @@ struct mbsfn_area_info_r9_s {
 
   // member variables
   bool                    ext              = false;
-  uint8_t                 mbsfn_area_id_r9 = 0;
+  uint16_t                mbsfn_area_id_r9 = 0;
   non_mbsfn_region_len_e_ non_mbsfn_region_len;
   uint8_t                 notif_ind_r9 = 0;
   mcch_cfg_r9_s_          mcch_cfg_r9;
@@ -5719,8 +5627,8 @@ struct mbsfn_sf_cfg_s {
     }
 
   private:
-    types                                        type_;
-    choice_buffer_t<sizeof(fixed_bitstring<24>)> c;
+    types                                 type_;
+    choice_buffer_t<fixed_bitstring<24> > c;
 
     void destroy_();
   };
@@ -5791,8 +5699,8 @@ struct mbsfn_sf_cfg_v1430_s {
     }
 
   private:
-    types                                       type_;
-    choice_buffer_t<sizeof(fixed_bitstring<8>)> c;
+    types                                type_;
+    choice_buffer_t<fixed_bitstring<8> > c;
 
     void destroy_();
   };
@@ -5807,10 +5715,10 @@ struct mbsfn_sf_cfg_v1430_s {
 };
 
 // NeighCellListCDMA2000 ::= SEQUENCE (SIZE (1..16)) OF NeighCellCDMA2000
-typedef dyn_array<neigh_cell_cdma2000_s> neigh_cell_list_cdma2000_l;
+using neigh_cell_list_cdma2000_l = dyn_array<neigh_cell_cdma2000_s>;
 
 // NeighCellListCDMA2000-v920 ::= SEQUENCE (SIZE (1..16)) OF NeighCellCDMA2000-v920
-typedef dyn_array<neigh_cell_cdma2000_v920_s> neigh_cell_list_cdma2000_v920_l;
+using neigh_cell_list_cdma2000_v920_l = dyn_array<neigh_cell_cdma2000_v920_s>;
 
 // PCCH-Config ::= SEQUENCE
 struct pcch_cfg_s {
@@ -5885,7 +5793,6 @@ struct pcch_cfg_v1310_s {
 
 // PDSCH-ConfigCommon ::= SEQUENCE
 struct pdsch_cfg_common_s {
-  // member variables
   int8_t  ref_sig_pwr = -60;
   uint8_t p_b         = 0;
 
@@ -5928,7 +5835,6 @@ struct pdsch_cfg_common_v1310_s {
 
 // PLMN-Info-r15 ::= SEQUENCE
 struct plmn_info_r15_s {
-  // member variables
   bool upper_layer_ind_r15_present = false;
 
   // sequence methods
@@ -5939,7 +5845,6 @@ struct plmn_info_r15_s {
 
 // PRACH-Config-v1430 ::= SEQUENCE
 struct prach_cfg_v1430_s {
-  // member variables
   uint16_t root_seq_idx_high_speed_r14              = 0;
   uint8_t  zero_correlation_zone_cfg_high_speed_r14 = 0;
   uint8_t  prach_cfg_idx_high_speed_r14             = 0;
@@ -5953,7 +5858,6 @@ struct prach_cfg_v1430_s {
 
 // PRACH-ConfigSIB ::= SEQUENCE
 struct prach_cfg_sib_s {
-  // member variables
   uint16_t         root_seq_idx = 0;
   prach_cfg_info_s prach_cfg_info;
 
@@ -6033,8 +5937,8 @@ struct prach_cfg_sib_v1310_s {
     }
 
   private:
-    types                                                         type_;
-    choice_buffer_t<MAX2(sizeof(fdd_r13_e_), sizeof(tdd_r13_e_))> c;
+    types               type_;
+    pod_choice_buffer_t c;
 
     void destroy_();
   };
@@ -6055,7 +5959,7 @@ struct prach_cfg_sib_v1310_s {
 
 // PRACH-ConfigSIB-v1530 ::= SEQUENCE
 struct prach_cfg_sib_v1530_s {
-  typedef dyn_array<edt_prach_params_ce_r15_s> edt_prach_params_list_ce_r15_l_;
+  using edt_prach_params_list_ce_r15_l_ = dyn_array<edt_prach_params_ce_r15_s>;
 
   // member variables
   edt_prach_params_list_ce_r15_l_ edt_prach_params_list_ce_r15;
@@ -6079,8 +5983,8 @@ struct pucch_cfg_common_s {
 
   // member variables
   delta_pucch_shift_e_ delta_pucch_shift;
-  uint8_t              n_rb_cqi    = 0;
-  uint8_t              n_cs_an     = 0;
+  uint8_t              nrb_cqi     = 0;
+  uint8_t              ncs_an      = 0;
   uint16_t             n1_pucch_an = 0;
 
   // sequence methods
@@ -6404,7 +6308,6 @@ struct rss_cfg_r15_s {
 
 // ReferenceTime-r15 ::= SEQUENCE
 struct ref_time_r15_s {
-  // member variables
   uint32_t ref_days_r15                  = 0;
   uint32_t ref_seconds_r15               = 0;
   uint16_t ref_milli_seconds_r15         = 0;
@@ -6523,13 +6426,13 @@ struct sib8_per_plmn_r11_s {
   void        to_json(json_writer& j) const;
 };
 
-// SL-AnchorCarrierFreqList-V2X-r14 ::= SEQUENCE (SIZE (1..maxFreqV2X-r14)) OF INTEGER
-typedef bounded_array<uint32_t, 8> sl_anchor_carrier_freq_list_v2x_r14_l;
+// SL-AnchorCarrierFreqList-V2X-r14 ::= SEQUENCE (SIZE (1..8)) OF INTEGER (0..262143)
+using sl_anchor_carrier_freq_list_v2x_r14_l = bounded_array<uint32_t, 8>;
 
 // SL-CBR-CommonTxConfigList-r14 ::= SEQUENCE
 struct sl_cbr_common_tx_cfg_list_r14_s {
-  typedef dyn_array<sl_cbr_levels_cfg_r14_l>   cbr_range_common_cfg_list_r14_l_;
-  typedef dyn_array<sl_cbr_pssch_tx_cfg_r14_s> sl_cbr_pssch_tx_cfg_list_r14_l_;
+  using cbr_range_common_cfg_list_r14_l_ = dyn_array<sl_cbr_levels_cfg_r14_l>;
+  using sl_cbr_pssch_tx_cfg_list_r14_l_  = dyn_array<sl_cbr_pssch_tx_cfg_r14_s>;
 
   // member variables
   cbr_range_common_cfg_list_r14_l_ cbr_range_common_cfg_list_r14;
@@ -6543,7 +6446,6 @@ struct sl_cbr_common_tx_cfg_list_r14_s {
 
 // SL-CarrierFreqInfo-r12 ::= SEQUENCE
 struct sl_carrier_freq_info_r12_s {
-  // member variables
   bool                plmn_id_list_r12_present = false;
   uint32_t            carrier_freq_r12         = 0;
   plmn_id_list4_r12_l plmn_id_list_r12;
@@ -6556,7 +6458,6 @@ struct sl_carrier_freq_info_r12_s {
 
 // SL-CarrierFreqInfo-v1310 ::= SEQUENCE
 struct sl_carrier_freq_info_v1310_s {
-  // member variables
   bool                               ext                         = false;
   bool                               disc_res_non_ps_r13_present = false;
   bool                               disc_res_ps_r13_present     = false;
@@ -6575,19 +6476,16 @@ struct sl_carrier_freq_info_v1310_s {
 // SL-CommResourcePool-r12 ::= SEQUENCE
 struct sl_comm_res_pool_r12_s {
   struct ue_sel_res_cfg_r12_s_ {
-    // member variables
-    bool                trpt_subset_r12_present = false;
-    sl_tf_res_cfg_r12_s data_tf_res_cfg_r12;
-    dyn_bitstring       trpt_subset_r12;
+    bool                    trpt_subset_r12_present = false;
+    sl_tf_res_cfg_r12_s     data_tf_res_cfg_r12;
+    bounded_bitstring<3, 5> trpt_subset_r12;
   };
   struct rx_params_ncell_r12_s_ {
-    // member variables
     bool      tdd_cfg_r12_present = false;
     tdd_cfg_s tdd_cfg_r12;
     uint8_t   sync_cfg_idx_r12 = 0;
   };
   struct tx_params_r12_s_ {
-    // member variables
     sl_tx_params_r12_s sc_tx_params_r12;
     sl_tx_params_r12_s data_tx_params_r12;
   };
@@ -6615,13 +6513,13 @@ struct sl_comm_res_pool_r12_s {
   void        to_json(json_writer& j) const;
 };
 
-// SL-InterFreqInfoListV2X-r14 ::= SEQUENCE (SIZE (0..maxFreqV2X-1-r14)) OF SL-InterFreqInfoV2X-r14
-typedef dyn_array<sl_inter_freq_info_v2x_r14_s> sl_inter_freq_info_list_v2x_r14_l;
+// SL-InterFreqInfoListV2X-r14 ::= SEQUENCE (SIZE (0..7)) OF SL-InterFreqInfoV2X-r14
+using sl_inter_freq_info_list_v2x_r14_l = dyn_array<sl_inter_freq_info_v2x_r14_s>;
 
 // SL-PPPP-TxConfigIndex-r15 ::= SEQUENCE
 struct sl_pppp_tx_cfg_idx_r15_s {
-  typedef bounded_array<uint8_t, 16>       tx_cfg_idx_list_r15_l_;
-  typedef dyn_array<mcs_pssch_range_r15_s> mcs_pssch_range_list_r15_l_;
+  using tx_cfg_idx_list_r15_l_      = bounded_array<uint8_t, 16>;
+  using mcs_pssch_range_list_r15_l_ = dyn_array<mcs_pssch_range_r15_s>;
 
   // member variables
   uint8_t                     prio_thres_r15         = 1;
@@ -6636,11 +6534,11 @@ struct sl_pppp_tx_cfg_idx_r15_s {
   void        to_json(json_writer& j) const;
 };
 
-// SL-PPPR-Dest-CarrierFreqList-r15 ::= SEQUENCE (SIZE (1..maxSL-Dest-r12)) OF SL-PPPR-Dest-CarrierFreq
-typedef dyn_array<sl_pppr_dest_carrier_freq_s> sl_pppr_dest_carrier_freq_list_r15_l;
+// SL-PPPR-Dest-CarrierFreqList-r15 ::= SEQUENCE (SIZE (1..16)) OF SL-PPPR-Dest-CarrierFreq
+using sl_pppr_dest_carrier_freq_list_r15_l = dyn_array<sl_pppr_dest_carrier_freq_s>;
 
-// SL-SyncConfigListV2X-r14 ::= SEQUENCE (SIZE (1.. maxSL-V2X-SyncConfig-r14)) OF SL-SyncConfig-r12
-typedef dyn_array<sl_sync_cfg_r12_s> sl_sync_cfg_list_v2x_r14_l;
+// SL-SyncConfigListV2X-r14 ::= SEQUENCE (SIZE (1..16)) OF SL-SyncConfig-r12
+using sl_sync_cfg_list_v2x_r14_l = dyn_array<sl_sync_cfg_r12_s>;
 
 // SoundingRS-UL-ConfigCommon ::= CHOICE
 struct srs_ul_cfg_common_c {
@@ -6719,7 +6617,6 @@ private:
 
 // SystemInformationBlockType1-v10j0-IEs ::= SEQUENCE
 struct sib_type1_v10j0_ies_s {
-  // member variables
   bool                         freq_band_info_r10_present         = false;
   bool                         multi_band_info_list_v10j0_present = false;
   bool                         non_crit_ext_present               = false;
@@ -6736,7 +6633,6 @@ struct sib_type1_v10j0_ies_s {
 // SystemInformationBlockType1-v1250-IEs ::= SEQUENCE
 struct sib_type1_v1250_ies_s {
   struct cell_access_related_info_v1250_s_ {
-    // member variables
     bool category0_allowed_r12_present = false;
   };
 
@@ -6756,7 +6652,6 @@ struct sib_type1_v1250_ies_s {
 
 // SystemInformationBlockType2-v9e0-IEs ::= SEQUENCE
 struct sib_type2_v9e0_ies_s {
-  // member variables
   bool                 ul_carrier_freq_v9e0_present = false;
   bool                 non_crit_ext_present         = false;
   uint32_t             ul_carrier_freq_v9e0         = 65536;
@@ -6770,7 +6665,6 @@ struct sib_type2_v9e0_ies_s {
 
 // SystemInformationBlockType3-v10l0-IEs ::= SEQUENCE
 struct sib_type3_v10l0_ies_s {
-  // member variables
   bool                         freq_band_info_v10l0_present       = false;
   bool                         multi_band_info_list_v10l0_present = false;
   bool                         non_crit_ext_present               = false;
@@ -6785,7 +6679,7 @@ struct sib_type3_v10l0_ies_s {
 
 // SystemInformationBlockType5-v9e0-IEs ::= SEQUENCE
 struct sib_type5_v9e0_ies_s {
-  typedef dyn_array<inter_freq_carrier_freq_info_v9e0_s> inter_freq_carrier_freq_list_v9e0_l_;
+  using inter_freq_carrier_freq_list_v9e0_l_ = dyn_array<inter_freq_carrier_freq_info_v9e0_s>;
 
   // member variables
   bool                                 inter_freq_carrier_freq_list_v9e0_present = false;
@@ -6884,8 +6778,8 @@ struct uac_barr_per_plmn_r15_s {
     }
 
   private:
-    types                                                                                                type_;
-    choice_buffer_t<MAX2(sizeof(uac_barr_per_cat_list_r15_l), sizeof(uac_implicit_ac_barr_list_r15_l_))> c;
+    types                                                                          type_;
+    choice_buffer_t<uac_barr_per_cat_list_r15_l, uac_implicit_ac_barr_list_r15_l_> c;
 
     void destroy_();
   };
@@ -6903,7 +6797,6 @@ struct uac_barr_per_plmn_r15_s {
 
 // UDT-RestrictingPerPLMN-r13 ::= SEQUENCE
 struct udt_restricting_per_plmn_r13_s {
-  // member variables
   bool                  udt_restricting_r13_present = false;
   uint8_t               plmn_id_idx_r13             = 1;
   udt_restricting_r13_s udt_restricting_r13;
@@ -6926,7 +6819,6 @@ typedef enumerated<ul_cp_len_opts> ul_cp_len_e;
 
 // UplinkPowerControlCommon ::= SEQUENCE
 struct ul_pwr_ctrl_common_s {
-  // member variables
   int8_t              p0_nominal_pusch = -126;
   alpha_r12_e         alpha;
   int8_t              p0_nominal_pucch = -127;
@@ -6978,52 +6870,44 @@ struct ul_pwr_ctrl_common_v1020_s {
   void        to_json(json_writer& j) const;
 };
 
-// WLAN-Id-List-r12 ::= SEQUENCE (SIZE (1..maxWLAN-Id-r12)) OF WLAN-Identifiers-r12
-typedef dyn_array<wlan_ids_r12_s> wlan_id_list_r12_l;
+// WLAN-Id-List-r12 ::= SEQUENCE (SIZE (1..16)) OF WLAN-Identifiers-r12
+using wlan_id_list_r12_l = dyn_array<wlan_ids_r12_s>;
 
 // WLAN-OffloadConfig-r12 ::= SEQUENCE
 struct wlan_offload_cfg_r12_s {
   struct thres_rsrp_r12_s_ {
-    // member variables
     uint8_t thres_rsrp_low_r12  = 0;
     uint8_t thres_rsrp_high_r12 = 0;
   };
   struct thres_rsrq_r12_s_ {
-    // member variables
     uint8_t thres_rsrq_low_r12  = 0;
     uint8_t thres_rsrq_high_r12 = 0;
   };
   struct thres_rsrq_on_all_symbols_with_wb_r12_s_ {
-    // member variables
     uint8_t thres_rsrq_on_all_symbols_with_wb_low_r12  = 0;
     uint8_t thres_rsrq_on_all_symbols_with_wb_high_r12 = 0;
   };
   struct thres_rsrq_on_all_symbols_r12_s_ {
-    // member variables
     uint8_t thres_rsrq_on_all_symbols_low_r12  = 0;
     uint8_t thres_rsrq_on_all_symbols_high_r12 = 0;
   };
   struct thres_rsrq_wb_r12_s_ {
-    // member variables
     uint8_t thres_rsrq_wb_low_r12  = 0;
     uint8_t thres_rsrq_wb_high_r12 = 0;
   };
   struct thres_ch_utilization_r12_s_ {
-    // member variables
-    uint8_t thres_ch_utilization_low_r12  = 0;
-    uint8_t thres_ch_utilization_high_r12 = 0;
+    uint16_t thres_ch_utilization_low_r12  = 0;
+    uint16_t thres_ch_utilization_high_r12 = 0;
   };
   struct thres_backhaul_bw_r12_s_ {
-    // member variables
     wlan_backhaul_rate_r12_e thres_backhaul_dl_bw_low_r12;
     wlan_backhaul_rate_r12_e thres_backhaul_dl_bw_high_r12;
     wlan_backhaul_rate_r12_e thres_backhaul_ul_bw_low_r12;
     wlan_backhaul_rate_r12_e thres_backhaul_ul_bw_high_r12;
   };
   struct thres_wlan_rssi_r12_s_ {
-    // member variables
-    uint8_t thres_wlan_rssi_low_r12  = 0;
-    uint8_t thres_wlan_rssi_high_r12 = 0;
+    uint16_t thres_wlan_rssi_low_r12  = 0;
+    uint16_t thres_wlan_rssi_high_r12 = 0;
   };
 
   // member variables
@@ -7123,12 +7007,11 @@ struct wus_cfg_r15_s {
   void        to_json(json_writer& j) const;
 };
 
-// AC-BarringPerPLMN-List-r12 ::= SEQUENCE (SIZE (1.. maxPLMN-r11)) OF AC-BarringPerPLMN-r12
-typedef dyn_array<ac_barr_per_plmn_r12_s> ac_barr_per_plmn_list_r12_l;
+// AC-BarringPerPLMN-List-r12 ::= SEQUENCE (SIZE (1..6)) OF AC-BarringPerPLMN-r12
+using ac_barr_per_plmn_list_r12_l = dyn_array<ac_barr_per_plmn_r12_s>;
 
 // ACDC-BarringForCommon-r13 ::= SEQUENCE
 struct acdc_barr_for_common_r13_s {
-  // member variables
   bool                              acdc_hplm_nonly_r13 = false;
   barr_per_acdc_category_list_r13_l barr_per_acdc_category_list_r13;
 
@@ -7138,15 +7021,14 @@ struct acdc_barr_for_common_r13_s {
   void        to_json(json_writer& j) const;
 };
 
-// ACDC-BarringPerPLMN-List-r13 ::= SEQUENCE (SIZE (1.. maxPLMN-r11)) OF ACDC-BarringPerPLMN-r13
-typedef dyn_array<acdc_barr_per_plmn_r13_s> acdc_barr_per_plmn_list_r13_l;
+// ACDC-BarringPerPLMN-List-r13 ::= SEQUENCE (SIZE (1..6)) OF ACDC-BarringPerPLMN-r13
+using acdc_barr_per_plmn_list_r13_l = dyn_array<acdc_barr_per_plmn_r13_s>;
 
-// CIOT-EPS-OptimisationInfo-r13 ::= SEQUENCE (SIZE (1.. maxPLMN-r11)) OF CIOT-OptimisationPLMN-r13
-typedef dyn_array<ciot_optim_plmn_r13_s> ciot_eps_optim_info_r13_l;
+// CIOT-EPS-OptimisationInfo-r13 ::= SEQUENCE (SIZE (1..6)) OF CIOT-OptimisationPLMN-r13
+using ciot_eps_optim_info_r13_l = dyn_array<ciot_optim_plmn_r13_s>;
 
 // CarrierFreqInfoUTRA-v1250 ::= SEQUENCE
 struct carrier_freq_info_utra_v1250_s {
-  // member variables
   bool reduced_meas_performance_r12_present = false;
 
   // sequence methods
@@ -7155,23 +7037,23 @@ struct carrier_freq_info_utra_v1250_s {
   void        to_json(json_writer& j) const;
 };
 
-// CarrierFreqListNR-r15 ::= SEQUENCE (SIZE (1..maxFreq)) OF CarrierFreqNR-r15
-typedef dyn_array<carrier_freq_nr_r15_s> carrier_freq_list_nr_r15_l;
+// CarrierFreqListNR-r15 ::= SEQUENCE (SIZE (1..8)) OF CarrierFreqNR-r15
+using carrier_freq_list_nr_r15_l = dyn_array<carrier_freq_nr_r15_s>;
 
-// CarrierFreqListUTRA-FDD ::= SEQUENCE (SIZE (1..maxUTRA-FDD-Carrier)) OF CarrierFreqUTRA-FDD
-typedef dyn_array<carrier_freq_utra_fdd_s> carrier_freq_list_utra_fdd_l;
+// CarrierFreqListUTRA-FDD ::= SEQUENCE (SIZE (1..16)) OF CarrierFreqUTRA-FDD
+using carrier_freq_list_utra_fdd_l = dyn_array<carrier_freq_utra_fdd_s>;
 
-// CarrierFreqListUTRA-FDD-Ext-r12 ::= SEQUENCE (SIZE (1..maxUTRA-FDD-Carrier)) OF CarrierFreqUTRA-FDD-Ext-r12
-typedef dyn_array<carrier_freq_utra_fdd_ext_r12_s> carrier_freq_list_utra_fdd_ext_r12_l;
+// CarrierFreqListUTRA-FDD-Ext-r12 ::= SEQUENCE (SIZE (1..16)) OF CarrierFreqUTRA-FDD-Ext-r12
+using carrier_freq_list_utra_fdd_ext_r12_l = dyn_array<carrier_freq_utra_fdd_ext_r12_s>;
 
-// CarrierFreqListUTRA-TDD ::= SEQUENCE (SIZE (1..maxUTRA-TDD-Carrier)) OF CarrierFreqUTRA-TDD
-typedef dyn_array<carrier_freq_utra_tdd_s> carrier_freq_list_utra_tdd_l;
+// CarrierFreqListUTRA-TDD ::= SEQUENCE (SIZE (1..16)) OF CarrierFreqUTRA-TDD
+using carrier_freq_list_utra_tdd_l = dyn_array<carrier_freq_utra_tdd_s>;
 
-// CarrierFreqListUTRA-TDD-Ext-r12 ::= SEQUENCE (SIZE (1..maxUTRA-TDD-Carrier)) OF CarrierFreqUTRA-TDD-r12
-typedef dyn_array<carrier_freq_utra_tdd_r12_s> carrier_freq_list_utra_tdd_ext_r12_l;
+// CarrierFreqListUTRA-TDD-Ext-r12 ::= SEQUENCE (SIZE (1..16)) OF CarrierFreqUTRA-TDD-r12
+using carrier_freq_list_utra_tdd_ext_r12_l = dyn_array<carrier_freq_utra_tdd_r12_s>;
 
-// CarrierFreqsInfoListGERAN ::= SEQUENCE (SIZE (1..maxGNFG)) OF CarrierFreqsInfoGERAN
-typedef dyn_array<carrier_freqs_info_geran_s> carrier_freqs_info_list_geran_l;
+// CarrierFreqsInfoListGERAN ::= SEQUENCE (SIZE (1..16)) OF CarrierFreqsInfoGERAN
+using carrier_freqs_info_list_geran_l = dyn_array<carrier_freqs_info_geran_s>;
 
 // CellReselectionInfoCommon-v1460 ::= SEQUENCE
 struct cell_resel_info_common_v1460_s {
@@ -7195,7 +7077,6 @@ struct cell_resel_info_common_v1460_s {
 
 // CellReselectionInfoHSDN-r15 ::= SEQUENCE
 struct cell_resel_info_hsdn_r15_s {
-  // member variables
   uint8_t cell_equivalent_size_r15 = 2;
 
   // sequence methods
@@ -7206,7 +7087,6 @@ struct cell_resel_info_hsdn_r15_s {
 
 // CellReselectionParametersCDMA2000 ::= SEQUENCE
 struct cell_resel_params_cdma2000_s {
-  // member variables
   bool                        t_resel_cdma2000_sf_present = false;
   band_class_list_cdma2000_l  band_class_list;
   neigh_cell_list_cdma2000_l  neigh_cell_list;
@@ -7221,7 +7101,6 @@ struct cell_resel_params_cdma2000_s {
 
 // CellReselectionParametersCDMA2000-v920 ::= SEQUENCE
 struct cell_resel_params_cdma2000_v920_s {
-  // member variables
   neigh_cell_list_cdma2000_v920_l neigh_cell_list_v920;
 
   // sequence methods
@@ -7232,7 +7111,6 @@ struct cell_resel_params_cdma2000_v920_s {
 
 // CellReselectionServingFreqInfo-v1310 ::= SEQUENCE
 struct cell_resel_serving_freq_info_v1310_s {
-  // member variables
   cell_resel_sub_prio_r13_e cell_resel_sub_prio_r13;
 
   // sequence methods
@@ -7243,7 +7121,6 @@ struct cell_resel_serving_freq_info_v1310_s {
 
 // CellSelectionInfo-v920 ::= SEQUENCE
 struct cell_sel_info_v920_s {
-  // member variables
   bool    q_qual_min_offset_r9_present = false;
   int8_t  q_qual_min_r9                = -34;
   uint8_t q_qual_min_offset_r9         = 1;
@@ -7256,7 +7133,6 @@ struct cell_sel_info_v920_s {
 
 // EAB-ConfigPLMN-r11 ::= SEQUENCE
 struct eab_cfg_plmn_r11_s {
-  // member variables
   bool          eab_cfg_r11_present = false;
   eab_cfg_r11_s eab_cfg_r11;
 
@@ -7266,50 +7142,50 @@ struct eab_cfg_plmn_r11_s {
   void        to_json(json_writer& j) const;
 };
 
-// InterFreqCarrierFreqList ::= SEQUENCE (SIZE (1..maxFreq)) OF InterFreqCarrierFreqInfo
-typedef dyn_array<inter_freq_carrier_freq_info_s> inter_freq_carrier_freq_list_l;
+// InterFreqCarrierFreqList ::= SEQUENCE (SIZE (1..8)) OF InterFreqCarrierFreqInfo
+using inter_freq_carrier_freq_list_l = dyn_array<inter_freq_carrier_freq_info_s>;
 
-// InterFreqCarrierFreqList-v1250 ::= SEQUENCE (SIZE (1.. maxFreq)) OF InterFreqCarrierFreqInfo-v1250
-typedef dyn_array<inter_freq_carrier_freq_info_v1250_s> inter_freq_carrier_freq_list_v1250_l;
+// InterFreqCarrierFreqList-v1250 ::= SEQUENCE (SIZE (1..8)) OF InterFreqCarrierFreqInfo-v1250
+using inter_freq_carrier_freq_list_v1250_l = dyn_array<inter_freq_carrier_freq_info_v1250_s>;
 
-// InterFreqCarrierFreqList-v1310 ::= SEQUENCE (SIZE (1.. maxFreq)) OF InterFreqCarrierFreqInfo-v1310
-typedef dyn_array<inter_freq_carrier_freq_info_v1310_s> inter_freq_carrier_freq_list_v1310_l;
+// InterFreqCarrierFreqList-v1310 ::= SEQUENCE (SIZE (1..8)) OF InterFreqCarrierFreqInfo-v1310
+using inter_freq_carrier_freq_list_v1310_l = dyn_array<inter_freq_carrier_freq_info_v1310_s>;
 
-// InterFreqCarrierFreqList-v1350 ::= SEQUENCE (SIZE (1.. maxFreq)) OF InterFreqCarrierFreqInfo-v1350
-typedef dyn_array<inter_freq_carrier_freq_info_v1350_s> inter_freq_carrier_freq_list_v1350_l;
+// InterFreqCarrierFreqList-v1350 ::= SEQUENCE (SIZE (1..8)) OF InterFreqCarrierFreqInfo-v1350
+using inter_freq_carrier_freq_list_v1350_l = dyn_array<inter_freq_carrier_freq_info_v1350_s>;
 
-// InterFreqCarrierFreqList-v1530 ::= SEQUENCE (SIZE (1.. maxFreq)) OF InterFreqCarrierFreqInfo-v1530
-typedef dyn_array<inter_freq_carrier_freq_info_v1530_s> inter_freq_carrier_freq_list_v1530_l;
+// InterFreqCarrierFreqList-v1530 ::= SEQUENCE (SIZE (1..8)) OF InterFreqCarrierFreqInfo-v1530
+using inter_freq_carrier_freq_list_v1530_l = dyn_array<inter_freq_carrier_freq_info_v1530_s>;
 
-// InterFreqCarrierFreqListExt-r12 ::= SEQUENCE (SIZE (1.. maxFreq)) OF InterFreqCarrierFreqInfo-r12
-typedef dyn_array<inter_freq_carrier_freq_info_r12_s> inter_freq_carrier_freq_list_ext_r12_l;
+// InterFreqCarrierFreqListExt-r12 ::= SEQUENCE (SIZE (1..8)) OF InterFreqCarrierFreqInfo-r12
+using inter_freq_carrier_freq_list_ext_r12_l = dyn_array<inter_freq_carrier_freq_info_r12_s>;
 
-// InterFreqCarrierFreqListExt-v1280 ::= SEQUENCE (SIZE (1.. maxFreq)) OF InterFreqCarrierFreqInfo-v10j0
-typedef dyn_array<inter_freq_carrier_freq_info_v10j0_s> inter_freq_carrier_freq_list_ext_v1280_l;
+// InterFreqCarrierFreqListExt-v1280 ::= SEQUENCE (SIZE (1..8)) OF InterFreqCarrierFreqInfo-v10j0
+using inter_freq_carrier_freq_list_ext_v1280_l = dyn_array<inter_freq_carrier_freq_info_v10j0_s>;
 
-// InterFreqCarrierFreqListExt-v1310 ::= SEQUENCE (SIZE (1.. maxFreq)) OF InterFreqCarrierFreqInfo-v1310
-typedef dyn_array<inter_freq_carrier_freq_info_v1310_s> inter_freq_carrier_freq_list_ext_v1310_l;
+// InterFreqCarrierFreqListExt-v1310 ::= SEQUENCE (SIZE (1..8)) OF InterFreqCarrierFreqInfo-v1310
+using inter_freq_carrier_freq_list_ext_v1310_l = dyn_array<inter_freq_carrier_freq_info_v1310_s>;
 
-// InterFreqCarrierFreqListExt-v1350 ::= SEQUENCE (SIZE (1.. maxFreq)) OF InterFreqCarrierFreqInfo-v1350
-typedef dyn_array<inter_freq_carrier_freq_info_v1350_s> inter_freq_carrier_freq_list_ext_v1350_l;
+// InterFreqCarrierFreqListExt-v1350 ::= SEQUENCE (SIZE (1..8)) OF InterFreqCarrierFreqInfo-v1350
+using inter_freq_carrier_freq_list_ext_v1350_l = dyn_array<inter_freq_carrier_freq_info_v1350_s>;
 
-// InterFreqCarrierFreqListExt-v1360 ::= SEQUENCE (SIZE (1..maxFreq)) OF InterFreqCarrierFreqInfo-v1360
-typedef dyn_array<inter_freq_carrier_freq_info_v1360_s> inter_freq_carrier_freq_list_ext_v1360_l;
+// InterFreqCarrierFreqListExt-v1360 ::= SEQUENCE (SIZE (1..8)) OF InterFreqCarrierFreqInfo-v1360
+using inter_freq_carrier_freq_list_ext_v1360_l = dyn_array<inter_freq_carrier_freq_info_v1360_s>;
 
-// InterFreqCarrierFreqListExt-v1530 ::= SEQUENCE (SIZE (1..maxFreq)) OF InterFreqCarrierFreqInfo-v1530
-typedef dyn_array<inter_freq_carrier_freq_info_v1530_s> inter_freq_carrier_freq_list_ext_v1530_l;
+// InterFreqCarrierFreqListExt-v1530 ::= SEQUENCE (SIZE (1..8)) OF InterFreqCarrierFreqInfo-v1530
+using inter_freq_carrier_freq_list_ext_v1530_l = dyn_array<inter_freq_carrier_freq_info_v1530_s>;
 
-// IntraFreqBlackCellList ::= SEQUENCE (SIZE (1..maxCellBlack)) OF PhysCellIdRange
-typedef dyn_array<pci_range_s> intra_freq_black_cell_list_l;
+// IntraFreqBlackCellList ::= SEQUENCE (SIZE (1..16)) OF PhysCellIdRange
+using intra_freq_black_cell_list_l = dyn_array<pci_range_s>;
 
-// IntraFreqNeighCellList ::= SEQUENCE (SIZE (1..maxCellIntra)) OF IntraFreqNeighCellInfo
-typedef dyn_array<intra_freq_neigh_cell_info_s> intra_freq_neigh_cell_list_l;
+// IntraFreqNeighCellList ::= SEQUENCE (SIZE (1..16)) OF IntraFreqNeighCellInfo
+using intra_freq_neigh_cell_list_l = dyn_array<intra_freq_neigh_cell_info_s>;
 
-// IntraFreqNeighHSDN-CellList-r15 ::= SEQUENCE (SIZE (1..maxCellIntra)) OF PhysCellIdRange
-typedef dyn_array<pci_range_s> intra_freq_neigh_hsdn_cell_list_r15_l;
+// IntraFreqNeighHSDN-CellList-r15 ::= SEQUENCE (SIZE (1..16)) OF PhysCellIdRange
+using intra_freq_neigh_hsdn_cell_list_r15_l = dyn_array<pci_range_s>;
 
-// MBMS-InterFreqCarrierTypeList-r14 ::= SEQUENCE (SIZE (1..maxFreq)) OF MBMS-CarrierType-r14
-typedef dyn_array<mbms_carrier_type_r14_s> mbms_inter_freq_carrier_type_list_r14_l;
+// MBMS-InterFreqCarrierTypeList-r14 ::= SEQUENCE (SIZE (1..8)) OF MBMS-CarrierType-r14
+using mbms_inter_freq_carrier_type_list_r14_l = dyn_array<mbms_carrier_type_r14_s>;
 
 // MBMS-NotificationConfig-r9 ::= SEQUENCE
 struct mbms_notif_cfg_r9_s {
@@ -7335,7 +7211,6 @@ struct mbms_notif_cfg_r9_s {
 
 // MBMS-NotificationConfig-v1430 ::= SEQUENCE
 struct mbms_notif_cfg_v1430_s {
-  // member variables
   uint8_t notif_sf_idx_v1430 = 7;
 
   // sequence methods
@@ -7344,24 +7219,23 @@ struct mbms_notif_cfg_v1430_s {
   void        to_json(json_writer& j) const;
 };
 
-// MBMS-SAI-InterFreqList-r11 ::= SEQUENCE (SIZE (1..maxFreq)) OF MBMS-SAI-InterFreq-r11
-typedef dyn_array<mbms_sai_inter_freq_r11_s> mbms_sai_inter_freq_list_r11_l;
+// MBMS-SAI-InterFreqList-r11 ::= SEQUENCE (SIZE (1..8)) OF MBMS-SAI-InterFreq-r11
+using mbms_sai_inter_freq_list_r11_l = dyn_array<mbms_sai_inter_freq_r11_s>;
 
-// MBMS-SAI-InterFreqList-v1140 ::= SEQUENCE (SIZE (1..maxFreq)) OF MBMS-SAI-InterFreq-v1140
-typedef dyn_array<mbms_sai_inter_freq_v1140_s> mbms_sai_inter_freq_list_v1140_l;
+// MBMS-SAI-InterFreqList-v1140 ::= SEQUENCE (SIZE (1..8)) OF MBMS-SAI-InterFreq-v1140
+using mbms_sai_inter_freq_list_v1140_l = dyn_array<mbms_sai_inter_freq_v1140_s>;
 
-// MBSFN-AreaInfoList-r9 ::= SEQUENCE (SIZE(1..maxMBSFN-Area)) OF MBSFN-AreaInfo-r9
-typedef dyn_array<mbsfn_area_info_r9_s> mbsfn_area_info_list_r9_l;
+// MBSFN-AreaInfoList-r9 ::= SEQUENCE (SIZE (1..8)) OF MBSFN-AreaInfo-r9
+using mbsfn_area_info_list_r9_l = dyn_array<mbsfn_area_info_r9_s>;
 
-// MBSFN-SubframeConfigList ::= SEQUENCE (SIZE (1..maxMBSFN-Allocations)) OF MBSFN-SubframeConfig
-typedef dyn_array<mbsfn_sf_cfg_s> mbsfn_sf_cfg_list_l;
+// MBSFN-SubframeConfigList ::= SEQUENCE (SIZE (1..8)) OF MBSFN-SubframeConfig
+using mbsfn_sf_cfg_list_l = dyn_array<mbsfn_sf_cfg_s>;
 
-// MBSFN-SubframeConfigList-v1430 ::= SEQUENCE (SIZE (1..maxMBSFN-Allocations)) OF MBSFN-SubframeConfig-v1430
-typedef dyn_array<mbsfn_sf_cfg_v1430_s> mbsfn_sf_cfg_list_v1430_l;
+// MBSFN-SubframeConfigList-v1430 ::= SEQUENCE (SIZE (1..8)) OF MBSFN-SubframeConfig-v1430
+using mbsfn_sf_cfg_list_v1430_l = dyn_array<mbsfn_sf_cfg_v1430_s>;
 
 // MeasIdleConfigSIB-r15 ::= SEQUENCE
 struct meas_idle_cfg_sib_r15_s {
-  // member variables
   bool                     ext = false;
   eutra_carrier_list_r15_l meas_idle_carrier_list_eutra_r15;
   // ...
@@ -7403,12 +7277,11 @@ struct mob_state_params_s {
   void        to_json(json_writer& j) const;
 };
 
-// PLMN-InfoList-r15 ::= SEQUENCE (SIZE (1..maxPLMN-r11)) OF PLMN-Info-r15
-typedef dyn_array<plmn_info_r15_s> plmn_info_list_r15_l;
+// PLMN-InfoList-r15 ::= SEQUENCE (SIZE (1..6)) OF PLMN-Info-r15
+using plmn_info_list_r15_l = dyn_array<plmn_info_r15_s>;
 
 // RadioResourceConfigCommonSIB ::= SEQUENCE
 struct rr_cfg_common_sib_s {
-  // member variables
   bool                 ext = false;
   rach_cfg_common_s    rach_cfg_common;
   bcch_cfg_s           bcch_cfg;
@@ -7589,10 +7462,10 @@ struct sc_mcch_sched_info_r14_s {
       assert_choice_type("sf160", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
-    uint8_t& sf256()
+    uint16_t& sf256()
     {
       assert_choice_type("sf256", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
-      return c.get<uint8_t>();
+      return c.get<uint16_t>();
     }
     uint16_t& sf320()
     {
@@ -7669,10 +7542,10 @@ struct sc_mcch_sched_info_r14_s {
       assert_choice_type("sf160", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
-    const uint8_t& sf256() const
+    const uint16_t& sf256() const
     {
       assert_choice_type("sf256", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
-      return c.get<uint8_t>();
+      return c.get<uint16_t>();
     }
     const uint16_t& sf320() const
     {
@@ -7749,10 +7622,10 @@ struct sc_mcch_sched_info_r14_s {
       set(types::sf160);
       return c.get<uint8_t>();
     }
-    uint8_t& set_sf256()
+    uint16_t& set_sf256()
     {
       set(types::sf256);
-      return c.get<uint8_t>();
+      return c.get<uint16_t>();
     }
     uint16_t& set_sf320()
     {
@@ -7791,8 +7664,8 @@ struct sc_mcch_sched_info_r14_s {
     }
 
   private:
-    types              type_;
-    choice_buffer_t<8> c;
+    types               type_;
+    pod_choice_buffer_t c;
 
     void destroy_();
   };
@@ -7810,29 +7683,29 @@ struct sc_mcch_sched_info_r14_s {
   void        to_json(json_writer& j) const;
 };
 
-// SIB-MappingInfo ::= SEQUENCE (SIZE (0..maxSIB-1)) OF SIB-Type
-typedef bounded_array<sib_type_e, 31> sib_map_info_l;
+// SIB-MappingInfo ::= SEQUENCE (SIZE (0..31)) OF SIB-Type
+using sib_map_info_l = bounded_array<sib_type_e, 31>;
 
-// SIB8-PerPLMN-List-r11 ::= SEQUENCE (SIZE (1..maxPLMN-r11)) OF SIB8-PerPLMN-r11
-typedef dyn_array<sib8_per_plmn_r11_s> sib8_per_plmn_list_r11_l;
+// SIB8-PerPLMN-List-r11 ::= SEQUENCE (SIZE (1..6)) OF SIB8-PerPLMN-r11
+using sib8_per_plmn_list_r11_l = dyn_array<sib8_per_plmn_r11_s>;
 
 // SL-CBR-PPPP-TxConfigList-r15 ::= SEQUENCE (SIZE (1..8)) OF SL-PPPP-TxConfigIndex-r15
-typedef dyn_array<sl_pppp_tx_cfg_idx_r15_s> sl_cbr_pppp_tx_cfg_list_r15_l;
+using sl_cbr_pppp_tx_cfg_list_r15_l = dyn_array<sl_pppp_tx_cfg_idx_r15_s>;
 
-// SL-CarrierFreqInfoList-r12 ::= SEQUENCE (SIZE (1..maxFreq)) OF SL-CarrierFreqInfo-r12
-typedef dyn_array<sl_carrier_freq_info_r12_s> sl_carrier_freq_info_list_r12_l;
+// SL-CarrierFreqInfoList-r12 ::= SEQUENCE (SIZE (1..8)) OF SL-CarrierFreqInfo-r12
+using sl_carrier_freq_info_list_r12_l = dyn_array<sl_carrier_freq_info_r12_s>;
 
-// SL-CarrierFreqInfoList-v1310 ::= SEQUENCE (SIZE (1..maxFreq)) OF SL-CarrierFreqInfo-v1310
-typedef dyn_array<sl_carrier_freq_info_v1310_s> sl_carrier_freq_info_list_v1310_l;
+// SL-CarrierFreqInfoList-v1310 ::= SEQUENCE (SIZE (1..8)) OF SL-CarrierFreqInfo-v1310
+using sl_carrier_freq_info_list_v1310_l = dyn_array<sl_carrier_freq_info_v1310_s>;
 
-// SL-CommRxPoolList-r12 ::= SEQUENCE (SIZE (1..maxSL-RxPool-r12)) OF SL-CommResourcePool-r12
-typedef dyn_array<sl_comm_res_pool_r12_s> sl_comm_rx_pool_list_r12_l;
+// SL-CommRxPoolList-r12 ::= SEQUENCE (SIZE (1..16)) OF SL-CommResourcePool-r12
+using sl_comm_rx_pool_list_r12_l = dyn_array<sl_comm_res_pool_r12_s>;
 
-// SL-CommTxPoolList-r12 ::= SEQUENCE (SIZE (1..maxSL-TxPool-r12)) OF SL-CommResourcePool-r12
-typedef dyn_array<sl_comm_res_pool_r12_s> sl_comm_tx_pool_list_r12_l;
+// SL-CommTxPoolList-r12 ::= SEQUENCE (SIZE (1..4)) OF SL-CommResourcePool-r12
+using sl_comm_tx_pool_list_r12_l = dyn_array<sl_comm_res_pool_r12_s>;
 
-// SL-CommTxPoolListExt-r13 ::= SEQUENCE (SIZE (1..maxSL-TxPool-v1310)) OF SL-CommResourcePool-r12
-typedef dyn_array<sl_comm_res_pool_r12_s> sl_comm_tx_pool_list_ext_r13_l;
+// SL-CommTxPoolListExt-r13 ::= SEQUENCE (SIZE (1..4)) OF SL-CommResourcePool-r12
+using sl_comm_tx_pool_list_ext_r13_l = dyn_array<sl_comm_res_pool_r12_s>;
 
 // SL-DiscConfigRelayUE-r13 ::= SEQUENCE
 struct sl_disc_cfg_relay_ue_r13_s {
@@ -7893,12 +7766,11 @@ struct sl_disc_cfg_remote_ue_r13_s {
   void        to_json(json_writer& j) const;
 };
 
-// SL-SyncConfigList-r12 ::= SEQUENCE (SIZE (1..maxSL-SyncConfig-r12)) OF SL-SyncConfig-r12
-typedef dyn_array<sl_sync_cfg_r12_s> sl_sync_cfg_list_r12_l;
+// SL-SyncConfigList-r12 ::= SEQUENCE (SIZE (1..16)) OF SL-SyncConfig-r12
+using sl_sync_cfg_list_r12_l = dyn_array<sl_sync_cfg_r12_s>;
 
 // SL-V2X-ConfigCommon-r14 ::= SEQUENCE
 struct sl_v2x_cfg_common_r14_s {
-  // member variables
   bool                                  v2x_comm_rx_pool_r14_present               = false;
   bool                                  v2x_comm_tx_pool_normal_common_r14_present = false;
   bool                                  p2x_comm_tx_pool_normal_common_r14_present = false;
@@ -7934,7 +7806,6 @@ struct sl_v2x_cfg_common_r14_s {
 
 // SL-V2X-PacketDuplicationConfig-r15 ::= SEQUENCE
 struct sl_v2x_packet_dupl_cfg_r15_s {
-  // member variables
   bool                                 ext                                  = false;
   bool                                 allowed_carrier_freq_cfg_r15_present = false;
   uint8_t                              thresh_sl_reliability_r15            = 1;
@@ -7947,12 +7818,11 @@ struct sl_v2x_packet_dupl_cfg_r15_s {
   void        to_json(json_writer& j) const;
 };
 
-// SL-V2X-SyncFreqList-r15 ::= SEQUENCE (SIZE (1..maxFreqV2X-r14)) OF INTEGER
-typedef bounded_array<uint32_t, 8> sl_v2x_sync_freq_list_r15_l;
+// SL-V2X-SyncFreqList-r15 ::= SEQUENCE (SIZE (1..8)) OF INTEGER (0..262143)
+using sl_v2x_sync_freq_list_r15_l = bounded_array<uint32_t, 8>;
 
 // SystemInformationBlockType1-v1130-IEs ::= SEQUENCE
 struct sib_type1_v1130_ies_s {
-  // member variables
   bool                  tdd_cfg_v1130_present       = false;
   bool                  cell_sel_info_v1130_present = false;
   bool                  non_crit_ext_present        = false;
@@ -7968,7 +7838,6 @@ struct sib_type1_v1130_ies_s {
 
 // SystemInformationBlockType1-v9e0-IEs ::= SEQUENCE
 struct sib_type1_v9e0_ies_s {
-  // member variables
   bool                        freq_band_ind_v9e0_present        = false;
   bool                        multi_band_info_list_v9e0_present = false;
   bool                        non_crit_ext_present              = false;
@@ -7984,7 +7853,7 @@ struct sib_type1_v9e0_ies_s {
 
 // SystemInformationBlockType2-v8h0-IEs ::= SEQUENCE
 struct sib_type2_v8h0_ies_s {
-  typedef bounded_array<uint8_t, 8> multi_band_info_list_l_;
+  using multi_band_info_list_l_ = bounded_array<uint8_t, 8>;
 
   // member variables
   bool                    multi_band_info_list_present = false;
@@ -8000,7 +7869,6 @@ struct sib_type2_v8h0_ies_s {
 
 // SystemInformationBlockType3-v10j0-IEs ::= SEQUENCE
 struct sib_type3_v10j0_ies_s {
-  // member variables
   bool                         freq_band_info_r10_present         = false;
   bool                         multi_band_info_list_v10j0_present = false;
   bool                         non_crit_ext_present               = false;
@@ -8016,7 +7884,7 @@ struct sib_type3_v10j0_ies_s {
 
 // SystemInformationBlockType5-v8h0-IEs ::= SEQUENCE
 struct sib_type5_v8h0_ies_s {
-  typedef dyn_array<inter_freq_carrier_freq_info_v8h0_s> inter_freq_carrier_freq_list_v8h0_l_;
+  using inter_freq_carrier_freq_list_v8h0_l_ = dyn_array<inter_freq_carrier_freq_info_v8h0_s>;
 
   // member variables
   bool                                 inter_freq_carrier_freq_list_v8h0_present = false;
@@ -8032,7 +7900,7 @@ struct sib_type5_v8h0_ies_s {
 
 // SystemInformationBlockType6-v8h0-IEs ::= SEQUENCE
 struct sib_type6_v8h0_ies_s {
-  typedef dyn_array<carrier_freq_info_utra_fdd_v8h0_s> carrier_freq_list_utra_fdd_v8h0_l_;
+  using carrier_freq_list_utra_fdd_v8h0_l_ = dyn_array<carrier_freq_info_utra_fdd_v8h0_s>;
 
   // member variables
   bool                               carrier_freq_list_utra_fdd_v8h0_present = false;
@@ -8057,7 +7925,6 @@ typedef enumerated<time_align_timer_opts> time_align_timer_e;
 
 // TimeReferenceInfo-r15 ::= SEQUENCE
 struct time_ref_info_r15_s {
-  // member variables
   bool           uncertainty_r15_present    = false;
   bool           time_info_type_r15_present = false;
   bool           ref_sfn_r15_present        = false;
@@ -8079,14 +7946,14 @@ struct uac_ac1_select_assist_info_r15_opts {
 };
 typedef enumerated<uac_ac1_select_assist_info_r15_opts> uac_ac1_select_assist_info_r15_e;
 
-// UAC-BarringInfoSetList-r15 ::= SEQUENCE (SIZE (1..maxBarringInfoSet-r15)) OF UAC-BarringInfoSet-r15
-typedef dyn_array<uac_barr_info_set_r15_s> uac_barr_info_set_list_r15_l;
+// UAC-BarringInfoSetList-r15 ::= SEQUENCE (SIZE (1..8)) OF UAC-BarringInfoSet-r15
+using uac_barr_info_set_list_r15_l = dyn_array<uac_barr_info_set_r15_s>;
 
-// UAC-BarringPerPLMN-List-r15 ::= SEQUENCE (SIZE (1.. maxPLMN-r11)) OF UAC-BarringPerPLMN-r15
-typedef dyn_array<uac_barr_per_plmn_r15_s> uac_barr_per_plmn_list_r15_l;
+// UAC-BarringPerPLMN-List-r15 ::= SEQUENCE (SIZE (1..6)) OF UAC-BarringPerPLMN-r15
+using uac_barr_per_plmn_list_r15_l = dyn_array<uac_barr_per_plmn_r15_s>;
 
-// UDT-RestrictingPerPLMN-List-r13 ::= SEQUENCE (SIZE (1..maxPLMN-r11)) OF UDT-RestrictingPerPLMN-r13
-typedef dyn_array<udt_restricting_per_plmn_r13_s> udt_restricting_per_plmn_list_r13_l;
+// UDT-RestrictingPerPLMN-List-r13 ::= SEQUENCE (SIZE (1..6)) OF UDT-RestrictingPerPLMN-r13
+using udt_restricting_per_plmn_list_r13_l = dyn_array<udt_restricting_per_plmn_r13_s>;
 
 // UE-TimersAndConstants ::= SEQUENCE
 struct ue_timers_and_consts_s {
@@ -8200,7 +8067,6 @@ struct ue_timers_and_consts_s {
 
 // WLAN-OffloadInfoPerPLMN-r12 ::= SEQUENCE
 struct wlan_offload_info_per_plmn_r12_s {
-  // member variables
   bool                   ext                                 = false;
   bool                   wlan_offload_cfg_common_r12_present = false;
   bool                   wlan_id_list_r12_present            = false;
@@ -8237,7 +8103,6 @@ struct sched_info_s {
 
 // SystemInformation-v8a0-IEs ::= SEQUENCE
 struct sys_info_v8a0_ies_s {
-  // member variables
   bool          late_non_crit_ext_present = false;
   bool          non_crit_ext_present      = false;
   dyn_octstring late_non_crit_ext;
@@ -8250,7 +8115,6 @@ struct sys_info_v8a0_ies_s {
 
 // SystemInformationBlockPos-r15 ::= SEQUENCE
 struct sib_pos_r15_s {
-  // member variables
   bool          ext                       = false;
   bool          late_non_crit_ext_present = false;
   dyn_octstring assist_data_sib_elem_r15;
@@ -8265,7 +8129,6 @@ struct sib_pos_r15_s {
 
 // SystemInformationBlockType1-v8h0-IEs ::= SEQUENCE
 struct sib_type1_v8h0_ies_s {
-  // member variables
   bool                   multi_band_info_list_present = false;
   bool                   non_crit_ext_present         = false;
   multi_band_info_list_l multi_band_info_list;
@@ -8279,7 +8142,6 @@ struct sib_type1_v8h0_ies_s {
 
 // SystemInformationBlockType1-v920-IEs ::= SEQUENCE
 struct sib_type1_v920_ies_s {
-  // member variables
   bool                  ims_emergency_support_r9_present = false;
   bool                  cell_sel_info_v920_present       = false;
   bool                  non_crit_ext_present             = false;
@@ -8294,7 +8156,6 @@ struct sib_type1_v920_ies_s {
 
 // SystemInformationBlockType10 ::= SEQUENCE
 struct sib_type10_s {
-  // member variables
   bool                ext           = false;
   bool                dummy_present = false;
   fixed_bitstring<16> msg_id;
@@ -8372,7 +8233,6 @@ struct sib_type12_r9_s {
 
 // SystemInformationBlockType13-r9 ::= SEQUENCE
 struct sib_type13_r9_s {
-  // member variables
   bool                      ext                       = false;
   bool                      late_non_crit_ext_present = false;
   mbsfn_area_info_list_r9_l mbsfn_area_info_list_r9;
@@ -8391,7 +8251,7 @@ struct sib_type13_r9_s {
 // SystemInformationBlockType14-r11 ::= SEQUENCE
 struct sib_type14_r11_s {
   struct eab_param_r11_c_ {
-    typedef dyn_array<eab_cfg_plmn_r11_s> eab_per_plmn_list_r11_l_;
+    using eab_per_plmn_list_r11_l_ = dyn_array<eab_cfg_plmn_r11_s>;
     struct types_opts {
       enum options { eab_common_r11, eab_per_plmn_list_r11, nulltype } value;
 
@@ -8442,8 +8302,8 @@ struct sib_type14_r11_s {
     }
 
   private:
-    types                                                                          type_;
-    choice_buffer_t<MAX2(sizeof(eab_cfg_r11_s), sizeof(eab_per_plmn_list_r11_l_))> c;
+    types                                                    type_;
+    choice_buffer_t<eab_cfg_r11_s, eab_per_plmn_list_r11_l_> c;
 
     void destroy_();
   };
@@ -8475,7 +8335,6 @@ struct sib_type14_r11_s {
 
 // SystemInformationBlockType15-r11 ::= SEQUENCE
 struct sib_type15_r11_s {
-  // member variables
   bool                           ext                                  = false;
   bool                           mbms_sai_intra_freq_r11_present      = false;
   bool                           mbms_sai_inter_freq_list_r11_present = false;
@@ -8499,7 +8358,6 @@ struct sib_type15_r11_s {
 // SystemInformationBlockType16-r11 ::= SEQUENCE
 struct sib_type16_r11_s {
   struct time_info_r11_s_ {
-    // member variables
     bool               day_light_saving_time_r11_present = false;
     bool               leap_seconds_r11_present          = false;
     bool               local_time_offset_r11_present     = false;
@@ -8527,7 +8385,7 @@ struct sib_type16_r11_s {
 
 // SystemInformationBlockType17-r12 ::= SEQUENCE
 struct sib_type17_r12_s {
-  typedef dyn_array<wlan_offload_info_per_plmn_r12_s> wlan_offload_info_per_plmn_list_r12_l_;
+  using wlan_offload_info_per_plmn_list_r12_l_ = dyn_array<wlan_offload_info_per_plmn_r12_s>;
 
   // member variables
   bool                                   ext                                         = false;
@@ -8546,7 +8404,6 @@ struct sib_type17_r12_s {
 // SystemInformationBlockType18-r12 ::= SEQUENCE
 struct sib_type18_r12_s {
   struct comm_cfg_r12_s_ {
-    // member variables
     bool                       comm_tx_pool_normal_common_r12_present = false;
     bool                       comm_tx_pool_exceptional_r12_present   = false;
     bool                       comm_sync_cfg_r12_present              = false;
@@ -8577,7 +8434,6 @@ struct sib_type18_r12_s {
 // SystemInformationBlockType19-r12 ::= SEQUENCE
 struct sib_type19_r12_s {
   struct disc_cfg_r12_s_ {
-    // member variables
     bool                           disc_tx_pool_common_r12_present = false;
     bool                           disc_tx_pwr_info_r12_present    = false;
     bool                           disc_sync_cfg_r12_present       = false;
@@ -8587,18 +8443,15 @@ struct sib_type19_r12_s {
     sl_sync_cfg_list_r12_l         disc_sync_cfg_r12;
   };
   struct disc_cfg_v1310_s_ {
-    // member variables
     bool                              disc_inter_freq_list_v1310_present  = false;
     bool                              gap_requests_allowed_common_present = false;
     sl_carrier_freq_info_list_v1310_l disc_inter_freq_list_v1310;
   };
   struct disc_cfg_relay_r13_s_ {
-    // member variables
     sl_disc_cfg_relay_ue_r13_s  relay_ue_cfg_r13;
     sl_disc_cfg_remote_ue_r13_s remote_ue_cfg_r13;
   };
   struct disc_cfg_ps_minus13_s_ {
-    // member variables
     bool                       disc_tx_pool_ps_common_r13_present = false;
     sl_disc_rx_pool_list_r12_l disc_rx_pool_ps_r13;
     sl_disc_tx_pool_list_r12_l disc_tx_pool_ps_common_r13;
@@ -8627,7 +8480,6 @@ struct sib_type19_r12_s {
 // SystemInformationBlockType2 ::= SEQUENCE
 struct sib_type2_s {
   struct ac_barr_info_s_ {
-    // member variables
     bool          ac_barr_for_mo_sig_present  = false;
     bool          ac_barr_for_mo_data_present = false;
     bool          ac_barr_for_emergency       = false;
@@ -8647,7 +8499,7 @@ struct sib_type2_s {
     // member variables
     bool     ul_carrier_freq_present = false;
     bool     ul_bw_present           = false;
-    uint16_t ul_carrier_freq         = 0;
+    uint32_t ul_carrier_freq         = 0;
     ul_bw_e_ ul_bw;
     uint8_t  add_spec_emission = 1;
   };
@@ -8684,7 +8536,7 @@ struct sib_type2_s {
   bool                                          use_full_resume_id_r13_present = false;
   copy_ptr<udt_restricting_r13_s>               udt_restricting_for_common_r13;
   copy_ptr<udt_restricting_per_plmn_list_r13_l> udt_restricting_per_plmn_list_r13;
-  copy_ptr<ciot_eps_optim_info_r13_l>           c_io_t_eps_optim_info_r13;
+  copy_ptr<ciot_eps_optim_info_r13_l>           cio_t_eps_optim_info_r13;
   // group 6
   bool unicast_freq_hop_ind_r13_present = false;
   // group 7
@@ -8817,8 +8669,8 @@ struct sib_type20_r13_s {
       }
 
     private:
-      types                                                         type_;
-      choice_buffer_t<MAX2(sizeof(fdd_r14_e_), sizeof(tdd_r14_e_))> c;
+      types               type_;
+      pod_choice_buffer_t c;
 
       void destroy_();
     };
@@ -8919,7 +8771,6 @@ struct sib_type20_r13_s {
 
 // SystemInformationBlockType21-r14 ::= SEQUENCE
 struct sib_type21_r14_s {
-  // member variables
   bool                    ext                           = false;
   bool                    sl_v2x_cfg_common_r14_present = false;
   bool                    late_non_crit_ext_present     = false;
@@ -8935,7 +8786,6 @@ struct sib_type21_r14_s {
 
 // SystemInformationBlockType24-r15 ::= SEQUENCE
 struct sib_type24_r15_s {
-  // member variables
   bool                        ext                              = false;
   bool                        carrier_freq_list_nr_r15_present = false;
   bool                        t_resel_nr_sf_r15_present        = false;
@@ -8955,7 +8805,7 @@ struct sib_type24_r15_s {
 // SystemInformationBlockType25-r15 ::= SEQUENCE
 struct sib_type25_r15_s {
   struct uac_ac1_select_assist_info_r15_c_ {
-    typedef bounded_array<uac_ac1_select_assist_info_r15_e, 6> individual_plmn_list_r15_l_;
+    using individual_plmn_list_r15_l_ = bounded_array<uac_ac1_select_assist_info_r15_e, 6>;
     struct types_opts {
       enum options { plmn_common_r15, individual_plmn_list_r15, nulltype } value;
 
@@ -9006,8 +8856,8 @@ struct sib_type25_r15_s {
     }
 
   private:
-    types                                                                                                type_;
-    choice_buffer_t<MAX2(sizeof(individual_plmn_list_r15_l_), sizeof(uac_ac1_select_assist_info_r15_e))> c;
+    types                                        type_;
+    choice_buffer_t<individual_plmn_list_r15_l_> c;
 
     void destroy_();
   };
@@ -9033,7 +8883,6 @@ struct sib_type25_r15_s {
 
 // SystemInformationBlockType26-r15 ::= SEQUENCE
 struct sib_type26_r15_s {
-  // member variables
   bool                              ext                                  = false;
   bool                              v2x_inter_freq_info_list_r15_present = false;
   bool                              cbr_pssch_tx_cfg_list_r15_present    = false;
@@ -9120,14 +8969,12 @@ struct sib_type3_s {
     speed_state_resel_pars_s_ speed_state_resel_pars;
   };
   struct cell_resel_serving_freq_info_s_ {
-    // member variables
     bool    s_non_intra_search_present = false;
     uint8_t s_non_intra_search         = 0;
     uint8_t thresh_serving_low         = 0;
     uint8_t cell_resel_prio            = 0;
   };
   struct intra_freq_cell_resel_info_s_ {
-    // member variables
     bool                        p_max_present            = false;
     bool                        s_intra_search_present   = false;
     bool                        allowed_meas_bw_present  = false;
@@ -9142,12 +8989,10 @@ struct sib_type3_s {
     speed_state_scale_factors_s t_resel_eutra_sf;
   };
   struct s_intra_search_v920_s_ {
-    // member variables
     uint8_t s_intra_search_p_r9 = 0;
     uint8_t s_intra_search_q_r9 = 0;
   };
   struct s_non_intra_search_v920_s_ {
-    // member variables
     uint8_t s_non_intra_search_p_r9 = 0;
     uint8_t s_non_intra_search_q_r9 = 0;
   };
@@ -9198,7 +9043,6 @@ struct sib_type3_s {
 
 // SystemInformationBlockType4 ::= SEQUENCE
 struct sib_type4_s {
-  // member variables
   bool                         ext                                = false;
   bool                         intra_freq_neigh_cell_list_present = false;
   bool                         intra_freq_black_cell_list_present = false;
@@ -9220,7 +9064,6 @@ struct sib_type4_s {
 
 // SystemInformationBlockType5 ::= SEQUENCE
 struct sib_type5_s {
-  // member variables
   bool                           ext = false;
   inter_freq_carrier_freq_list_l inter_freq_carrier_freq_list;
   // ...
@@ -9255,8 +9098,8 @@ struct sib_type5_s {
 
 // SystemInformationBlockType6 ::= SEQUENCE
 struct sib_type6_s {
-  typedef dyn_array<carrier_freq_info_utra_v1250_s> carrier_freq_list_utra_fdd_v1250_l_;
-  typedef dyn_array<carrier_freq_info_utra_v1250_s> carrier_freq_list_utra_tdd_v1250_l_;
+  using carrier_freq_list_utra_fdd_v1250_l_ = dyn_array<carrier_freq_info_utra_v1250_s>;
+  using carrier_freq_list_utra_tdd_v1250_l_ = dyn_array<carrier_freq_info_utra_v1250_s>;
 
   // member variables
   bool                         ext                                = false;
@@ -9284,7 +9127,6 @@ struct sib_type6_s {
 
 // SystemInformationBlockType7 ::= SEQUENCE
 struct sib_type7_s {
-  // member variables
   bool                            ext                             = false;
   bool                            t_resel_geran_sf_present        = false;
   bool                            carrier_freqs_info_list_present = false;
@@ -9304,13 +9146,11 @@ struct sib_type7_s {
 // SystemInformationBlockType8 ::= SEQUENCE
 struct sib_type8_s {
   struct params_hrpd_s_ {
-    // member variables
     bool                         cell_resel_params_hrpd_present = false;
     pre_regist_info_hrpd_s       pre_regist_info_hrpd;
     cell_resel_params_cdma2000_s cell_resel_params_hrpd;
   };
   struct params1_xrtt_s_ {
-    // member variables
     bool                         csfb_regist_param1_xrtt_present = false;
     bool                         long_code_state1_xrtt_present   = false;
     bool                         cell_resel_params1_xrtt_present = false;
@@ -9352,7 +9192,6 @@ struct sib_type8_s {
 
 // SystemInformationBlockType9 ::= SEQUENCE
 struct sib_type9_s {
-  // member variables
   bool          ext              = false;
   bool          hnb_name_present = false;
   dyn_octstring hnb_name;
@@ -9824,12 +9663,12 @@ struct pos_sys_info_r15_ies_s {
     }
 
   private:
-    types                                  type_;
-    choice_buffer_t<sizeof(sib_pos_r15_s)> c;
+    types                          type_;
+    choice_buffer_t<sib_pos_r15_s> c;
 
     void destroy_();
   };
-  typedef dyn_array<pos_sib_type_and_info_r15_item_c_> pos_sib_type_and_info_r15_l_;
+  using pos_sib_type_and_info_r15_l_ = dyn_array<pos_sib_type_and_info_r15_item_c_>;
 
   // member variables
   bool                         late_non_crit_ext_present = false;
@@ -9843,8 +9682,8 @@ struct pos_sys_info_r15_ies_s {
   void        to_json(json_writer& j) const;
 };
 
-// SchedulingInfoList ::= SEQUENCE (SIZE (1..maxSI-Message)) OF SchedulingInfo
-typedef dyn_array<sched_info_s> sched_info_list_l;
+// SchedulingInfoList ::= SEQUENCE (SIZE (1..32)) OF SchedulingInfo
+using sched_info_list_l = dyn_array<sched_info_s>;
 
 struct sib_info_item_c {
   struct types_opts {
@@ -9895,232 +9734,232 @@ struct sib_info_item_c {
   // getters
   sib_type2_s& sib2()
   {
-    assert_choice_type("sib2", type_.to_string(), "");
+    assert_choice_type("sib2", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type2_s>();
   }
   sib_type3_s& sib3()
   {
-    assert_choice_type("sib3", type_.to_string(), "");
+    assert_choice_type("sib3", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type3_s>();
   }
   sib_type4_s& sib4()
   {
-    assert_choice_type("sib4", type_.to_string(), "");
+    assert_choice_type("sib4", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type4_s>();
   }
   sib_type5_s& sib5()
   {
-    assert_choice_type("sib5", type_.to_string(), "");
+    assert_choice_type("sib5", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type5_s>();
   }
   sib_type6_s& sib6()
   {
-    assert_choice_type("sib6", type_.to_string(), "");
+    assert_choice_type("sib6", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type6_s>();
   }
   sib_type7_s& sib7()
   {
-    assert_choice_type("sib7", type_.to_string(), "");
+    assert_choice_type("sib7", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type7_s>();
   }
   sib_type8_s& sib8()
   {
-    assert_choice_type("sib8", type_.to_string(), "");
+    assert_choice_type("sib8", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type8_s>();
   }
   sib_type9_s& sib9()
   {
-    assert_choice_type("sib9", type_.to_string(), "");
+    assert_choice_type("sib9", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type9_s>();
   }
   sib_type10_s& sib10()
   {
-    assert_choice_type("sib10", type_.to_string(), "");
+    assert_choice_type("sib10", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type10_s>();
   }
   sib_type11_s& sib11()
   {
-    assert_choice_type("sib11", type_.to_string(), "");
+    assert_choice_type("sib11", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type11_s>();
   }
   sib_type12_r9_s& sib12_v920()
   {
-    assert_choice_type("sib12-v920", type_.to_string(), "");
+    assert_choice_type("sib12-v920", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type12_r9_s>();
   }
   sib_type13_r9_s& sib13_v920()
   {
-    assert_choice_type("sib13-v920", type_.to_string(), "");
+    assert_choice_type("sib13-v920", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type13_r9_s>();
   }
   sib_type14_r11_s& sib14_v1130()
   {
-    assert_choice_type("sib14-v1130", type_.to_string(), "");
+    assert_choice_type("sib14-v1130", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type14_r11_s>();
   }
   sib_type15_r11_s& sib15_v1130()
   {
-    assert_choice_type("sib15-v1130", type_.to_string(), "");
+    assert_choice_type("sib15-v1130", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type15_r11_s>();
   }
   sib_type16_r11_s& sib16_v1130()
   {
-    assert_choice_type("sib16-v1130", type_.to_string(), "");
+    assert_choice_type("sib16-v1130", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type16_r11_s>();
   }
   sib_type17_r12_s& sib17_v1250()
   {
-    assert_choice_type("sib17-v1250", type_.to_string(), "");
+    assert_choice_type("sib17-v1250", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type17_r12_s>();
   }
   sib_type18_r12_s& sib18_v1250()
   {
-    assert_choice_type("sib18-v1250", type_.to_string(), "");
+    assert_choice_type("sib18-v1250", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type18_r12_s>();
   }
   sib_type19_r12_s& sib19_v1250()
   {
-    assert_choice_type("sib19-v1250", type_.to_string(), "");
+    assert_choice_type("sib19-v1250", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type19_r12_s>();
   }
   sib_type20_r13_s& sib20_v1310()
   {
-    assert_choice_type("sib20-v1310", type_.to_string(), "");
+    assert_choice_type("sib20-v1310", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type20_r13_s>();
   }
   sib_type21_r14_s& sib21_v1430()
   {
-    assert_choice_type("sib21-v1430", type_.to_string(), "");
+    assert_choice_type("sib21-v1430", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type21_r14_s>();
   }
   sib_type24_r15_s& sib24_v1530()
   {
-    assert_choice_type("sib24-v1530", type_.to_string(), "");
+    assert_choice_type("sib24-v1530", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type24_r15_s>();
   }
   sib_type25_r15_s& sib25_v1530()
   {
-    assert_choice_type("sib25-v1530", type_.to_string(), "");
+    assert_choice_type("sib25-v1530", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type25_r15_s>();
   }
   sib_type26_r15_s& sib26_v1530()
   {
-    assert_choice_type("sib26-v1530", type_.to_string(), "");
+    assert_choice_type("sib26-v1530", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type26_r15_s>();
   }
   const sib_type2_s& sib2() const
   {
-    assert_choice_type("sib2", type_.to_string(), "");
+    assert_choice_type("sib2", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type2_s>();
   }
   const sib_type3_s& sib3() const
   {
-    assert_choice_type("sib3", type_.to_string(), "");
+    assert_choice_type("sib3", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type3_s>();
   }
   const sib_type4_s& sib4() const
   {
-    assert_choice_type("sib4", type_.to_string(), "");
+    assert_choice_type("sib4", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type4_s>();
   }
   const sib_type5_s& sib5() const
   {
-    assert_choice_type("sib5", type_.to_string(), "");
+    assert_choice_type("sib5", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type5_s>();
   }
   const sib_type6_s& sib6() const
   {
-    assert_choice_type("sib6", type_.to_string(), "");
+    assert_choice_type("sib6", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type6_s>();
   }
   const sib_type7_s& sib7() const
   {
-    assert_choice_type("sib7", type_.to_string(), "");
+    assert_choice_type("sib7", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type7_s>();
   }
   const sib_type8_s& sib8() const
   {
-    assert_choice_type("sib8", type_.to_string(), "");
+    assert_choice_type("sib8", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type8_s>();
   }
   const sib_type9_s& sib9() const
   {
-    assert_choice_type("sib9", type_.to_string(), "");
+    assert_choice_type("sib9", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type9_s>();
   }
   const sib_type10_s& sib10() const
   {
-    assert_choice_type("sib10", type_.to_string(), "");
+    assert_choice_type("sib10", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type10_s>();
   }
   const sib_type11_s& sib11() const
   {
-    assert_choice_type("sib11", type_.to_string(), "");
+    assert_choice_type("sib11", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type11_s>();
   }
   const sib_type12_r9_s& sib12_v920() const
   {
-    assert_choice_type("sib12-v920", type_.to_string(), "");
+    assert_choice_type("sib12-v920", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type12_r9_s>();
   }
   const sib_type13_r9_s& sib13_v920() const
   {
-    assert_choice_type("sib13-v920", type_.to_string(), "");
+    assert_choice_type("sib13-v920", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type13_r9_s>();
   }
   const sib_type14_r11_s& sib14_v1130() const
   {
-    assert_choice_type("sib14-v1130", type_.to_string(), "");
+    assert_choice_type("sib14-v1130", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type14_r11_s>();
   }
   const sib_type15_r11_s& sib15_v1130() const
   {
-    assert_choice_type("sib15-v1130", type_.to_string(), "");
+    assert_choice_type("sib15-v1130", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type15_r11_s>();
   }
   const sib_type16_r11_s& sib16_v1130() const
   {
-    assert_choice_type("sib16-v1130", type_.to_string(), "");
+    assert_choice_type("sib16-v1130", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type16_r11_s>();
   }
   const sib_type17_r12_s& sib17_v1250() const
   {
-    assert_choice_type("sib17-v1250", type_.to_string(), "");
+    assert_choice_type("sib17-v1250", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type17_r12_s>();
   }
   const sib_type18_r12_s& sib18_v1250() const
   {
-    assert_choice_type("sib18-v1250", type_.to_string(), "");
+    assert_choice_type("sib18-v1250", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type18_r12_s>();
   }
   const sib_type19_r12_s& sib19_v1250() const
   {
-    assert_choice_type("sib19-v1250", type_.to_string(), "");
+    assert_choice_type("sib19-v1250", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type19_r12_s>();
   }
   const sib_type20_r13_s& sib20_v1310() const
   {
-    assert_choice_type("sib20-v1310", type_.to_string(), "");
+    assert_choice_type("sib20-v1310", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type20_r13_s>();
   }
   const sib_type21_r14_s& sib21_v1430() const
   {
-    assert_choice_type("sib21-v1430", type_.to_string(), "");
+    assert_choice_type("sib21-v1430", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type21_r14_s>();
   }
   const sib_type24_r15_s& sib24_v1530() const
   {
-    assert_choice_type("sib24-v1530", type_.to_string(), "");
+    assert_choice_type("sib24-v1530", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type24_r15_s>();
   }
   const sib_type25_r15_s& sib25_v1530() const
   {
-    assert_choice_type("sib25-v1530", type_.to_string(), "");
+    assert_choice_type("sib25-v1530", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type25_r15_s>();
   }
   const sib_type26_r15_s& sib26_v1530() const
   {
-    assert_choice_type("sib26-v1530", type_.to_string(), "");
+    assert_choice_type("sib26-v1530", type_.to_string(), "sib-TypeAndInfo-item");
     return c.get<sib_type26_r15_s>();
   }
   sib_type2_s& set_sib2()
@@ -10241,38 +10080,29 @@ struct sib_info_item_c {
 
 private:
   types type_;
-  choice_buffer_t<MAX32(sizeof(sib_type10_s),
-                        sizeof(sib_type11_s),
-                        sizeof(sib_type12_r9_s),
-                        sizeof(sib_type13_r9_s),
-                        sizeof(sib_type14_r11_s),
-                        sizeof(sib_type15_r11_s),
-                        sizeof(sib_type16_r11_s),
-                        sizeof(sib_type17_r12_s),
-                        sizeof(sib_type18_r12_s),
-                        sizeof(sib_type19_r12_s),
-                        sizeof(sib_type20_r13_s),
-                        sizeof(sib_type21_r14_s),
-                        sizeof(sib_type24_r15_s),
-                        sizeof(sib_type25_r15_s),
-                        sizeof(sib_type26_r15_s),
-                        sizeof(sib_type2_s),
-                        sizeof(sib_type3_s),
-                        sizeof(sib_type4_s),
-                        sizeof(sib_type5_s),
-                        sizeof(sib_type6_s),
-                        sizeof(sib_type7_s),
-                        sizeof(sib_type8_s),
-                        sizeof(sib_type9_s),
-                        0,
-                        0,
-                        0,
-                        0,
-                        0,
-                        0,
-                        0,
-                        0,
-                        0)>
+  choice_buffer_t<sib_type10_s,
+                  sib_type11_s,
+                  sib_type12_r9_s,
+                  sib_type13_r9_s,
+                  sib_type14_r11_s,
+                  sib_type15_r11_s,
+                  sib_type16_r11_s,
+                  sib_type17_r12_s,
+                  sib_type18_r12_s,
+                  sib_type19_r12_s,
+                  sib_type20_r13_s,
+                  sib_type21_r14_s,
+                  sib_type24_r15_s,
+                  sib_type25_r15_s,
+                  sib_type26_r15_s,
+                  sib_type2_s,
+                  sib_type3_s,
+                  sib_type4_s,
+                  sib_type5_s,
+                  sib_type6_s,
+                  sib_type7_s,
+                  sib_type8_s,
+                  sib_type9_s>
       c;
 
   void destroy_();
@@ -10280,8 +10110,8 @@ private:
 
 // SystemInformation-r8-IEs ::= SEQUENCE
 struct sys_info_r8_ies_s {
-  typedef sib_info_item_c                      sib_type_and_info_item_c_;
-  typedef dyn_array<sib_type_and_info_item_c_> sib_type_and_info_l_;
+  typedef sib_info_item_c sib_type_and_info_item_c_;
+  using sib_type_and_info_l_ = dyn_array<sib_type_and_info_item_c_>;
 
   // member variables
   bool                 non_crit_ext_present = false;
@@ -10296,7 +10126,6 @@ struct sys_info_r8_ies_s {
 
 // SystemInformationBlockType1-v890-IEs ::= SEQUENCE
 struct sib_type1_v890_ies_s {
-  // member variables
   bool                 late_non_crit_ext_present = false;
   bool                 non_crit_ext_present      = false;
   dyn_octstring        late_non_crit_ext;
@@ -10347,8 +10176,8 @@ struct sys_info_s {
       }
 
     private:
-      types                                           type_;
-      choice_buffer_t<sizeof(pos_sys_info_r15_ies_s)> c;
+      types                                   type_;
+      choice_buffer_t<pos_sys_info_r15_ies_s> c;
 
       void destroy_();
     };
@@ -10402,8 +10231,8 @@ struct sys_info_s {
     }
 
   private:
-    types                                                                             type_;
-    choice_buffer_t<MAX2(sizeof(crit_exts_future_r15_c_), sizeof(sys_info_r8_ies_s))> c;
+    types                                                       type_;
+    choice_buffer_t<crit_exts_future_r15_c_, sys_info_r8_ies_s> c;
 
     void destroy_();
   };
@@ -10444,7 +10273,6 @@ struct sib_type1_s {
     fixed_bitstring<27> csg_id;
   };
   struct cell_sel_info_s_ {
-    // member variables
     bool    q_rx_lev_min_offset_present = false;
     int8_t  q_rx_lev_min                = -70;
     uint8_t q_rx_lev_min_offset         = 1;
@@ -10533,8 +10361,8 @@ struct bcch_dl_sch_msg_type_c {
     }
 
   private:
-    types                                                          type_;
-    choice_buffer_t<MAX2(sizeof(sib_type1_s), sizeof(sys_info_s))> c;
+    types                                    type_;
+    choice_buffer_t<sib_type1_s, sys_info_s> c;
 
     void destroy_();
   };
@@ -10575,15 +10403,14 @@ struct bcch_dl_sch_msg_type_c {
   }
 
 private:
-  types                          type_;
-  choice_buffer_t<sizeof(c1_c_)> c;
+  types                  type_;
+  choice_buffer_t<c1_c_> c;
 
   void destroy_();
 };
 
 // BCCH-DL-SCH-Message ::= SEQUENCE
 struct bcch_dl_sch_msg_s {
-  // member variables
   bcch_dl_sch_msg_type_c msg;
 
   // sequence methods
@@ -10653,8 +10480,8 @@ struct bcch_dl_sch_msg_type_br_r13_c {
     }
 
   private:
-    types                                                                        type_;
-    choice_buffer_t<MAX2(sizeof(sib_type1_br_r13_s), sizeof(sys_info_br_r13_s))> c;
+    types                                                  type_;
+    choice_buffer_t<sib_type1_br_r13_s, sys_info_br_r13_s> c;
 
     void destroy_();
   };
@@ -10695,15 +10522,14 @@ struct bcch_dl_sch_msg_type_br_r13_c {
   }
 
 private:
-  types                          type_;
-  choice_buffer_t<sizeof(c1_c_)> c;
+  types                  type_;
+  choice_buffer_t<c1_c_> c;
 
   void destroy_();
 };
 
 // BCCH-DL-SCH-Message-BR ::= SEQUENCE
 struct bcch_dl_sch_msg_br_s {
-  // member variables
   bcch_dl_sch_msg_type_br_r13_c msg;
 
   // sequence methods
@@ -10731,8 +10557,8 @@ struct sib_type_mbms_r14_opts {
 };
 typedef enumerated<sib_type_mbms_r14_opts, true> sib_type_mbms_r14_e;
 
-// SIB-MappingInfo-MBMS-r14 ::= SEQUENCE (SIZE (0..maxSIB-1)) OF SIB-Type-MBMS-r14
-typedef bounded_array<sib_type_mbms_r14_e, 31> sib_map_info_mbms_r14_l;
+// SIB-MappingInfo-MBMS-r14 ::= SEQUENCE (SIZE (0..31)) OF SIB-Type-MBMS-r14
+using sib_map_info_mbms_r14_l = bounded_array<sib_type_mbms_r14_e, 31>;
 
 // SchedulingInfo-MBMS-r14 ::= SEQUENCE
 struct sched_info_mbms_r14_s {
@@ -10777,11 +10603,11 @@ struct non_mbsfn_sf_cfg_r14_s {
   void        to_json(json_writer& j) const;
 };
 
-// PLMN-IdentityList-MBMS-r14 ::= SEQUENCE (SIZE (1..maxPLMN-r11)) OF PLMN-Identity
-typedef dyn_array<plmn_id_s> plmn_id_list_mbms_r14_l;
+// PLMN-IdentityList-MBMS-r14 ::= SEQUENCE (SIZE (1..6)) OF PLMN-Identity
+using plmn_id_list_mbms_r14_l = dyn_array<plmn_id_s>;
 
-// SchedulingInfoList-MBMS-r14 ::= SEQUENCE (SIZE (1..maxSI-Message)) OF SchedulingInfo-MBMS-r14
-typedef dyn_array<sched_info_mbms_r14_s> sched_info_list_mbms_r14_l;
+// SchedulingInfoList-MBMS-r14 ::= SEQUENCE (SIZE (1..32)) OF SchedulingInfo-MBMS-r14
+using sched_info_list_mbms_r14_l = dyn_array<sched_info_mbms_r14_s>;
 
 // SystemInformation-MBMS-r14 ::= SystemInformation
 typedef sys_info_s sys_info_mbms_r14_s;
@@ -10789,7 +10615,6 @@ typedef sys_info_s sys_info_mbms_r14_s;
 // SystemInformationBlockType1-MBMS-r14 ::= SEQUENCE
 struct sib_type1_mbms_r14_s {
   struct cell_access_related_info_r14_s_ {
-    // member variables
     plmn_id_list_mbms_r14_l plmn_id_list_r14;
     fixed_bitstring<16>     tac_r14;
     fixed_bitstring<28>     cell_id_r14;
@@ -10801,8 +10626,8 @@ struct sib_type1_mbms_r14_s {
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  typedef enumerated<si_win_len_r14_opts>           si_win_len_r14_e_;
-  typedef dyn_array<cell_access_related_info_r14_s> cell_access_related_info_list_r14_l_;
+  typedef enumerated<si_win_len_r14_opts> si_win_len_r14_e_;
+  using cell_access_related_info_list_r14_l_ = dyn_array<cell_access_related_info_r14_s>;
 
   // member variables
   bool                                 multi_band_info_list_r14_present          = false;
@@ -10882,8 +10707,8 @@ struct bcch_dl_sch_msg_type_mbms_r14_c {
     }
 
   private:
-    types                                                                            type_;
-    choice_buffer_t<MAX2(sizeof(sib_type1_mbms_r14_s), sizeof(sys_info_mbms_r14_s))> c;
+    types                                                      type_;
+    choice_buffer_t<sib_type1_mbms_r14_s, sys_info_mbms_r14_s> c;
 
     void destroy_();
   };
@@ -10924,15 +10749,14 @@ struct bcch_dl_sch_msg_type_mbms_r14_c {
   }
 
 private:
-  types                          type_;
-  choice_buffer_t<sizeof(c1_c_)> c;
+  types                  type_;
+  choice_buffer_t<c1_c_> c;
 
   void destroy_();
 };
 
 // BCCH-DL-SCH-Message-MBMS ::= SEQUENCE
 struct bcch_dl_sch_msg_mbms_s {
-  // member variables
   bcch_dl_sch_msg_type_mbms_r14_c msg;
 
   // sequence methods
@@ -10955,20 +10779,17 @@ typedef enumerated<nzp_freq_density_r14_opts> nzp_freq_density_r14_e;
 struct p_c_and_cbsr_r13_s {
   struct cbsr_sel_r13_c_ {
     struct non_precoded_r13_s_ {
-      // member variables
       dyn_bitstring codebook_subset_restrict1_r13;
       dyn_bitstring codebook_subset_restrict2_r13;
     };
-    struct beamformed_k1a_r13_s_ {
-      // member variables
+    struct bf_k1a_r13_s_ {
       dyn_bitstring codebook_subset_restrict3_r13;
     };
-    struct beamformed_kn_r13_s_ {
-      // member variables
+    struct bf_kn_r13_s_ {
       dyn_bitstring codebook_subset_restrict_r13;
     };
     struct types_opts {
-      enum options { non_precoded_r13, beamformed_k1a_r13, beamformed_kn_r13, nulltype } value;
+      enum options { non_precoded_r13, bf_k1a_r13, bf_kn_r13, nulltype } value;
       typedef uint8_t number_type;
 
       std::string to_string() const;
@@ -10992,51 +10813,50 @@ struct p_c_and_cbsr_r13_s {
       assert_choice_type("nonPrecoded-r13", type_.to_string(), "cbsr-Selection-r13");
       return c.get<non_precoded_r13_s_>();
     }
-    beamformed_k1a_r13_s_& beamformed_k1a_r13()
+    bf_k1a_r13_s_& bf_k1a_r13()
     {
       assert_choice_type("beamformedK1a-r13", type_.to_string(), "cbsr-Selection-r13");
-      return c.get<beamformed_k1a_r13_s_>();
+      return c.get<bf_k1a_r13_s_>();
     }
-    beamformed_kn_r13_s_& beamformed_kn_r13()
+    bf_kn_r13_s_& bf_kn_r13()
     {
       assert_choice_type("beamformedKN-r13", type_.to_string(), "cbsr-Selection-r13");
-      return c.get<beamformed_kn_r13_s_>();
+      return c.get<bf_kn_r13_s_>();
     }
     const non_precoded_r13_s_& non_precoded_r13() const
     {
       assert_choice_type("nonPrecoded-r13", type_.to_string(), "cbsr-Selection-r13");
       return c.get<non_precoded_r13_s_>();
     }
-    const beamformed_k1a_r13_s_& beamformed_k1a_r13() const
+    const bf_k1a_r13_s_& bf_k1a_r13() const
     {
       assert_choice_type("beamformedK1a-r13", type_.to_string(), "cbsr-Selection-r13");
-      return c.get<beamformed_k1a_r13_s_>();
+      return c.get<bf_k1a_r13_s_>();
     }
-    const beamformed_kn_r13_s_& beamformed_kn_r13() const
+    const bf_kn_r13_s_& bf_kn_r13() const
     {
       assert_choice_type("beamformedKN-r13", type_.to_string(), "cbsr-Selection-r13");
-      return c.get<beamformed_kn_r13_s_>();
+      return c.get<bf_kn_r13_s_>();
     }
     non_precoded_r13_s_& set_non_precoded_r13()
     {
       set(types::non_precoded_r13);
       return c.get<non_precoded_r13_s_>();
     }
-    beamformed_k1a_r13_s_& set_beamformed_k1a_r13()
+    bf_k1a_r13_s_& set_bf_k1a_r13()
     {
-      set(types::beamformed_k1a_r13);
-      return c.get<beamformed_k1a_r13_s_>();
+      set(types::bf_k1a_r13);
+      return c.get<bf_k1a_r13_s_>();
     }
-    beamformed_kn_r13_s_& set_beamformed_kn_r13()
+    bf_kn_r13_s_& set_bf_kn_r13()
     {
-      set(types::beamformed_kn_r13);
-      return c.get<beamformed_kn_r13_s_>();
+      set(types::bf_kn_r13);
+      return c.get<bf_kn_r13_s_>();
     }
 
   private:
-    types type_;
-    choice_buffer_t<MAX4(sizeof(beamformed_k1a_r13_s_), sizeof(beamformed_kn_r13_s_), sizeof(non_precoded_r13_s_), 0)>
-        c;
+    types                                                             type_;
+    choice_buffer_t<bf_k1a_r13_s_, bf_kn_r13_s_, non_precoded_r13_s_> c;
 
     void destroy_();
   };
@@ -11055,7 +10875,6 @@ struct p_c_and_cbsr_r13_s {
 
 // CSI-RS-Config-NZP-v1430 ::= SEQUENCE
 struct csi_rs_cfg_nzp_v1430_s {
-  // member variables
   bool                   tx_comb_r14_present      = false;
   bool                   freq_density_r14_present = false;
   uint8_t                tx_comb_r14              = 0;
@@ -11107,7 +10926,6 @@ struct csi_rs_cfg_nzp_r11_s {
     typedef enumerated<crs_ports_count_r11_opts> crs_ports_count_r11_e_;
     struct mbsfn_sf_cfg_list_r11_c_ {
       struct setup_s_ {
-        // member variables
         mbsfn_sf_cfg_list_l sf_cfg_list;
       };
       typedef setup_e types;
@@ -11149,7 +10967,6 @@ struct csi_rs_cfg_nzp_r11_s {
   };
   struct mbsfn_sf_cfg_list_v1430_c_ {
     struct setup_s_ {
-      // member variables
       mbsfn_sf_cfg_list_v1430_l sf_cfg_list_v1430;
     };
     typedef setup_e types;
@@ -11212,7 +11029,6 @@ struct csi_rs_cfg_nzp_r11_s {
 
 // NZP-ResourceConfig-r13 ::= SEQUENCE
 struct nzp_res_cfg_r13_s {
-  // member variables
   bool    ext         = false;
   uint8_t res_cfg_r13 = 0;
   // ...
@@ -11229,11 +11045,10 @@ struct nzp_res_cfg_r13_s {
 };
 
 // P-C-AndCBSR-Pair-r13 ::= SEQUENCE (SIZE (1..2)) OF P-C-AndCBSR-r13
-typedef dyn_array<p_c_and_cbsr_r13_s> p_c_and_cbsr_pair_r13_l;
+using p_c_and_cbsr_pair_r13_l = dyn_array<p_c_and_cbsr_r13_s>;
 
 // P-C-AndCBSR-r15 ::= SEQUENCE
 struct p_c_and_cbsr_r15_s {
-  // member variables
   int8_t        p_c_r15 = -8;
   dyn_bitstring codebook_subset_restrict4_r15;
 
@@ -11244,23 +11059,23 @@ struct p_c_and_cbsr_r15_s {
 };
 
 // CSI-RS-ConfigBeamformed-r14 ::= SEQUENCE
-struct csi_rs_cfg_beamformed_r14_s {
-  typedef bounded_array<uint8_t, 7>          csi_rs_cfg_nzp_id_list_ext_r14_l_;
-  typedef bounded_array<uint8_t, 8>          csi_im_cfg_id_list_r14_l_;
-  typedef dyn_array<p_c_and_cbsr_pair_r13_l> p_c_and_cbsr_per_res_cfg_list_r14_l_;
-  typedef bounded_array<bool, 7>             ace_for4_tx_per_res_cfg_list_r14_l_;
-  typedef dyn_array<csi_rs_cfg_nzp_r11_s>    csi_rs_cfg_nzp_ap_list_r14_l_;
+struct csi_rs_cfg_bf_r14_s {
+  using csi_rs_cfg_nzp_id_list_ext_r14_l_    = bounded_array<uint8_t, 7>;
+  using csi_im_cfg_id_list_r14_l_            = bounded_array<uint8_t, 8>;
+  using p_c_and_cbsr_per_res_cfg_list_r14_l_ = dyn_array<p_c_and_cbsr_pair_r13_l>;
+  using ace_for4_tx_per_res_cfg_list_r14_l_  = bounded_array<bool, 7>;
+  using csi_rs_cfg_nzp_ap_list_r14_l_        = dyn_array<csi_rs_cfg_nzp_r11_s>;
 
   // member variables
-  bool                                 csi_rs_cfg_nzp_id_list_ext_r14_present              = false;
-  bool                                 csi_im_cfg_id_list_r14_present                      = false;
-  bool                                 p_c_and_cbsr_per_res_cfg_list_r14_present           = false;
-  bool                                 ace_for4_tx_per_res_cfg_list_r14_present            = false;
-  bool                                 alternative_codebook_enabled_beamformed_r14_present = false;
-  bool                                 ch_meas_restrict_r14_present                        = false;
-  bool                                 csi_rs_cfg_nzp_ap_list_r14_present                  = false;
-  bool                                 nzp_res_cfg_original_v1430_present                  = false;
-  bool                                 csi_rs_nzp_activation_r14_present                   = false;
+  bool                                 csi_rs_cfg_nzp_id_list_ext_r14_present    = false;
+  bool                                 csi_im_cfg_id_list_r14_present            = false;
+  bool                                 p_c_and_cbsr_per_res_cfg_list_r14_present = false;
+  bool                                 ace_for4_tx_per_res_cfg_list_r14_present  = false;
+  bool                                 alt_codebook_enabled_bf_r14_present       = false;
+  bool                                 ch_meas_restrict_r14_present              = false;
+  bool                                 csi_rs_cfg_nzp_ap_list_r14_present        = false;
+  bool                                 nzp_res_cfg_original_v1430_present        = false;
+  bool                                 csi_rs_nzp_activation_r14_present         = false;
   csi_rs_cfg_nzp_id_list_ext_r14_l_    csi_rs_cfg_nzp_id_list_ext_r14;
   csi_im_cfg_id_list_r14_l_            csi_im_cfg_id_list_r14;
   p_c_and_cbsr_per_res_cfg_list_r14_l_ p_c_and_cbsr_per_res_cfg_list_r14;
@@ -11278,7 +11093,7 @@ struct csi_rs_cfg_beamformed_r14_s {
 // CSI-RS-ConfigNZP-EMIMO-r13 ::= CHOICE
 struct csi_rs_cfg_nzp_emimo_r13_c {
   struct setup_s_ {
-    typedef dyn_array<nzp_res_cfg_r13_s> nzp_res_cfg_list_r13_l_;
+    using nzp_res_cfg_list_r13_l_ = dyn_array<nzp_res_cfg_r13_s>;
     struct cdm_type_r13_opts {
       enum options { cdm2, cdm4, nulltype } value;
       typedef uint8_t number_type;
@@ -11326,7 +11141,7 @@ private:
 
 // CSI-RS-ConfigNZP-EMIMO-v1430 ::= SEQUENCE
 struct csi_rs_cfg_nzp_emimo_v1430_s {
-  typedef dyn_array<nzp_res_cfg_r13_s> nzp_res_cfg_list_ext_r14_l_;
+  using nzp_res_cfg_list_ext_r14_l_ = dyn_array<nzp_res_cfg_r13_s>;
 
   // member variables
   bool                        cdm_type_v1430_present = false;
@@ -11339,7 +11154,7 @@ struct csi_rs_cfg_nzp_emimo_v1430_s {
 };
 
 // P-C-AndCBSR-Pair-r15 ::= SEQUENCE (SIZE (1..2)) OF P-C-AndCBSR-r15
-typedef dyn_array<p_c_and_cbsr_r15_s> p_c_and_cbsr_pair_r15_l;
+using p_c_and_cbsr_pair_r15_l = dyn_array<p_c_and_cbsr_r15_s>;
 
 // CQI-ReportModeAperiodic ::= ENUMERATED
 struct cqi_report_mode_aperiodic_opts {
@@ -11352,19 +11167,19 @@ struct cqi_report_mode_aperiodic_opts {
 typedef enumerated<cqi_report_mode_aperiodic_opts> cqi_report_mode_aperiodic_e;
 
 // CSI-RS-ConfigBeamformed-r13 ::= SEQUENCE
-struct csi_rs_cfg_beamformed_r13_s {
-  typedef bounded_array<uint8_t, 7>          csi_rs_cfg_nzp_id_list_ext_r13_l_;
-  typedef bounded_array<uint8_t, 8>          csi_im_cfg_id_list_r13_l_;
-  typedef dyn_array<p_c_and_cbsr_pair_r13_l> p_c_and_cbsr_per_res_cfg_list_r13_l_;
-  typedef bounded_array<bool, 7>             ace_for4_tx_per_res_cfg_list_r13_l_;
+struct csi_rs_cfg_bf_r13_s {
+  using csi_rs_cfg_nzp_id_list_ext_r13_l_    = bounded_array<uint8_t, 7>;
+  using csi_im_cfg_id_list_r13_l_            = bounded_array<uint8_t, 8>;
+  using p_c_and_cbsr_per_res_cfg_list_r13_l_ = dyn_array<p_c_and_cbsr_pair_r13_l>;
+  using ace_for4_tx_per_res_cfg_list_r13_l_  = bounded_array<bool, 7>;
 
   // member variables
-  bool                                 csi_rs_cfg_nzp_id_list_ext_r13_present              = false;
-  bool                                 csi_im_cfg_id_list_r13_present                      = false;
-  bool                                 p_c_and_cbsr_per_res_cfg_list_r13_present           = false;
-  bool                                 ace_for4_tx_per_res_cfg_list_r13_present            = false;
-  bool                                 alternative_codebook_enabled_beamformed_r13_present = false;
-  bool                                 ch_meas_restrict_r13_present                        = false;
+  bool                                 csi_rs_cfg_nzp_id_list_ext_r13_present    = false;
+  bool                                 csi_im_cfg_id_list_r13_present            = false;
+  bool                                 p_c_and_cbsr_per_res_cfg_list_r13_present = false;
+  bool                                 ace_for4_tx_per_res_cfg_list_r13_present  = false;
+  bool                                 alt_codebook_enabled_bf_r13_present       = false;
+  bool                                 ch_meas_restrict_r13_present              = false;
   csi_rs_cfg_nzp_id_list_ext_r13_l_    csi_rs_cfg_nzp_id_list_ext_r13;
   csi_im_cfg_id_list_r13_l_            csi_im_cfg_id_list_r13;
   p_c_and_cbsr_per_res_cfg_list_r13_l_ p_c_and_cbsr_per_res_cfg_list_r13;
@@ -11377,8 +11192,8 @@ struct csi_rs_cfg_beamformed_r13_s {
 };
 
 // CSI-RS-ConfigBeamformed-v1430 ::= SEQUENCE
-struct csi_rs_cfg_beamformed_v1430_s {
-  typedef dyn_array<csi_rs_cfg_nzp_r11_s> csi_rs_cfg_nzp_ap_list_r14_l_;
+struct csi_rs_cfg_bf_v1430_s {
+  using csi_rs_cfg_nzp_ap_list_r14_l_ = dyn_array<csi_rs_cfg_nzp_r11_s>;
 
   // member variables
   bool                            csi_rs_cfg_nzp_ap_list_r14_present = false;
@@ -11406,25 +11221,25 @@ struct csi_rs_cfg_emimo2_r14_c {
   SRSASN_CODE unpack(bit_ref& bref);
   void        to_json(json_writer& j) const;
   // getters
-  csi_rs_cfg_beamformed_r14_s& setup()
+  csi_rs_cfg_bf_r14_s& setup()
   {
     assert_choice_type("setup", type_.to_string(), "CSI-RS-ConfigEMIMO2-r14");
     return c;
   }
-  const csi_rs_cfg_beamformed_r14_s& setup() const
+  const csi_rs_cfg_bf_r14_s& setup() const
   {
     assert_choice_type("setup", type_.to_string(), "CSI-RS-ConfigEMIMO2-r14");
     return c;
   }
-  csi_rs_cfg_beamformed_r14_s& set_setup()
+  csi_rs_cfg_bf_r14_s& set_setup()
   {
     set(types::setup);
     return c;
   }
 
 private:
-  types                       type_;
-  csi_rs_cfg_beamformed_r14_s c;
+  types               type_;
+  csi_rs_cfg_bf_r14_s c;
 };
 
 // CSI-RS-ConfigNonPrecoded-r13 ::= SEQUENCE
@@ -11461,7 +11276,7 @@ struct csi_rs_cfg_non_precoded_r13_s {
     uint8_t     to_number() const;
   };
   typedef enumerated<codebook_over_sampling_rate_cfg_o2_r13_opts> codebook_over_sampling_rate_cfg_o2_r13_e_;
-  typedef bounded_array<uint8_t, 2>                               csi_im_cfg_id_list_r13_l_;
+  using csi_im_cfg_id_list_r13_l_ = bounded_array<uint8_t, 2>;
 
   // member variables
   bool                                      p_c_and_cbsr_list_r13_present                  = false;
@@ -11552,7 +11367,6 @@ struct csi_rs_cfg_non_precoded_v1480_s {
 
 // CSI-RS-ConfigNonPrecoded-v1530 ::= SEQUENCE
 struct csi_rs_cfg_non_precoded_v1530_s {
-  // member variables
   bool                    p_c_and_cbsr_list_r15_present = false;
   p_c_and_cbsr_pair_r15_l p_c_and_cbsr_list_r15;
 
@@ -11564,7 +11378,6 @@ struct csi_rs_cfg_non_precoded_v1530_s {
 
 // P-C-AndCBSR-r11 ::= SEQUENCE
 struct p_c_and_cbsr_r11_s {
-  // member variables
   int8_t        p_c_r11 = -8;
   dyn_bitstring codebook_subset_restrict_r11;
 
@@ -11576,7 +11389,6 @@ struct p_c_and_cbsr_r11_s {
 
 // CQI-ReportAperiodicProc-r11 ::= SEQUENCE
 struct cqi_report_aperiodic_proc_r11_s {
-  // member variables
   cqi_report_mode_aperiodic_e cqi_report_mode_aperiodic_r11;
   bool                        trigger01_r11 = false;
   bool                        trigger10_r11 = false;
@@ -11590,7 +11402,6 @@ struct cqi_report_aperiodic_proc_r11_s {
 
 // CQI-ReportAperiodicProc-v1310 ::= SEQUENCE
 struct cqi_report_aperiodic_proc_v1310_s {
-  // member variables
   bool trigger001_r13 = false;
   bool trigger010_r13 = false;
   bool trigger011_r13 = false;
@@ -11607,7 +11418,6 @@ struct cqi_report_aperiodic_proc_v1310_s {
 
 // CQI-ReportBothProc-r11 ::= SEQUENCE
 struct cqi_report_both_proc_r11_s {
-  // member variables
   bool    ri_ref_csi_process_id_r11_present = false;
   bool    pmi_ri_report_r11_present         = false;
   uint8_t ri_ref_csi_process_id_r11         = 1;
@@ -11621,7 +11431,6 @@ struct cqi_report_both_proc_r11_s {
 // CRI-ReportConfig-r13 ::= CHOICE
 struct cri_report_cfg_r13_c {
   struct setup_s_ {
-    // member variables
     bool     cri_cfg_idx2_r13_present = false;
     uint16_t cri_cfg_idx_r13          = 0;
     uint16_t cri_cfg_idx2_r13         = 0;
@@ -11660,11 +11469,10 @@ private:
 // CSI-RS-ConfigEMIMO-Hybrid-r14 ::= CHOICE
 struct csi_rs_cfg_emimo_hybrid_r14_c {
   struct setup_s_ {
-    // member variables
     bool                    periodicity_offset_idx_r14_present = false;
-    bool                    e_mimo_type2_r14_present           = false;
+    bool                    emimo_type2_r14_present            = false;
     uint16_t                periodicity_offset_idx_r14         = 0;
-    csi_rs_cfg_emimo2_r14_c e_mimo_type2_r14;
+    csi_rs_cfg_emimo2_r14_c emimo_type2_r14;
   };
   typedef setup_e types;
 
@@ -11701,7 +11509,7 @@ private:
 struct csi_rs_cfg_emimo_r13_c {
   struct setup_c_ {
     struct types_opts {
-      enum options { non_precoded_r13, beamformed_r13, nulltype } value;
+      enum options { non_precoded_r13, bf_r13, nulltype } value;
 
       std::string to_string() const;
     };
@@ -11723,35 +11531,35 @@ struct csi_rs_cfg_emimo_r13_c {
       assert_choice_type("nonPrecoded-r13", type_.to_string(), "setup");
       return c.get<csi_rs_cfg_non_precoded_r13_s>();
     }
-    csi_rs_cfg_beamformed_r13_s& beamformed_r13()
+    csi_rs_cfg_bf_r13_s& bf_r13()
     {
       assert_choice_type("beamformed-r13", type_.to_string(), "setup");
-      return c.get<csi_rs_cfg_beamformed_r13_s>();
+      return c.get<csi_rs_cfg_bf_r13_s>();
     }
     const csi_rs_cfg_non_precoded_r13_s& non_precoded_r13() const
     {
       assert_choice_type("nonPrecoded-r13", type_.to_string(), "setup");
       return c.get<csi_rs_cfg_non_precoded_r13_s>();
     }
-    const csi_rs_cfg_beamformed_r13_s& beamformed_r13() const
+    const csi_rs_cfg_bf_r13_s& bf_r13() const
     {
       assert_choice_type("beamformed-r13", type_.to_string(), "setup");
-      return c.get<csi_rs_cfg_beamformed_r13_s>();
+      return c.get<csi_rs_cfg_bf_r13_s>();
     }
     csi_rs_cfg_non_precoded_r13_s& set_non_precoded_r13()
     {
       set(types::non_precoded_r13);
       return c.get<csi_rs_cfg_non_precoded_r13_s>();
     }
-    csi_rs_cfg_beamformed_r13_s& set_beamformed_r13()
+    csi_rs_cfg_bf_r13_s& set_bf_r13()
     {
-      set(types::beamformed_r13);
-      return c.get<csi_rs_cfg_beamformed_r13_s>();
+      set(types::bf_r13);
+      return c.get<csi_rs_cfg_bf_r13_s>();
     }
 
   private:
-    types                                                                                             type_;
-    choice_buffer_t<MAX2(sizeof(csi_rs_cfg_beamformed_r13_s), sizeof(csi_rs_cfg_non_precoded_r13_s))> c;
+    types                                                               type_;
+    choice_buffer_t<csi_rs_cfg_bf_r13_s, csi_rs_cfg_non_precoded_r13_s> c;
 
     void destroy_();
   };
@@ -11790,7 +11598,7 @@ private:
 struct csi_rs_cfg_emimo_v1430_c {
   struct setup_c_ {
     struct types_opts {
-      enum options { non_precoded_v1430, beamformed_v1430, nulltype } value;
+      enum options { non_precoded_v1430, bf_v1430, nulltype } value;
 
       std::string to_string() const;
     };
@@ -11812,35 +11620,35 @@ struct csi_rs_cfg_emimo_v1430_c {
       assert_choice_type("nonPrecoded-v1430", type_.to_string(), "setup");
       return c.get<csi_rs_cfg_non_precoded_v1430_s>();
     }
-    csi_rs_cfg_beamformed_v1430_s& beamformed_v1430()
+    csi_rs_cfg_bf_v1430_s& bf_v1430()
     {
       assert_choice_type("beamformed-v1430", type_.to_string(), "setup");
-      return c.get<csi_rs_cfg_beamformed_v1430_s>();
+      return c.get<csi_rs_cfg_bf_v1430_s>();
     }
     const csi_rs_cfg_non_precoded_v1430_s& non_precoded_v1430() const
     {
       assert_choice_type("nonPrecoded-v1430", type_.to_string(), "setup");
       return c.get<csi_rs_cfg_non_precoded_v1430_s>();
     }
-    const csi_rs_cfg_beamformed_v1430_s& beamformed_v1430() const
+    const csi_rs_cfg_bf_v1430_s& bf_v1430() const
     {
       assert_choice_type("beamformed-v1430", type_.to_string(), "setup");
-      return c.get<csi_rs_cfg_beamformed_v1430_s>();
+      return c.get<csi_rs_cfg_bf_v1430_s>();
     }
     csi_rs_cfg_non_precoded_v1430_s& set_non_precoded_v1430()
     {
       set(types::non_precoded_v1430);
       return c.get<csi_rs_cfg_non_precoded_v1430_s>();
     }
-    csi_rs_cfg_beamformed_v1430_s& set_beamformed_v1430()
+    csi_rs_cfg_bf_v1430_s& set_bf_v1430()
     {
-      set(types::beamformed_v1430);
-      return c.get<csi_rs_cfg_beamformed_v1430_s>();
+      set(types::bf_v1430);
+      return c.get<csi_rs_cfg_bf_v1430_s>();
     }
 
   private:
-    types                                                                                                 type_;
-    choice_buffer_t<MAX2(sizeof(csi_rs_cfg_beamformed_v1430_s), sizeof(csi_rs_cfg_non_precoded_v1430_s))> c;
+    types                                                                   type_;
+    choice_buffer_t<csi_rs_cfg_bf_v1430_s, csi_rs_cfg_non_precoded_v1430_s> c;
 
     void destroy_();
   };
@@ -11879,7 +11687,7 @@ private:
 struct csi_rs_cfg_emimo_v1480_c {
   struct setup_c_ {
     struct types_opts {
-      enum options { non_precoded_v1480, beamformed_v1480, nulltype } value;
+      enum options { non_precoded_v1480, bf_v1480, nulltype } value;
 
       std::string to_string() const;
     };
@@ -11901,35 +11709,35 @@ struct csi_rs_cfg_emimo_v1480_c {
       assert_choice_type("nonPrecoded-v1480", type_.to_string(), "setup");
       return c.get<csi_rs_cfg_non_precoded_v1480_s>();
     }
-    csi_rs_cfg_beamformed_v1430_s& beamformed_v1480()
+    csi_rs_cfg_bf_v1430_s& bf_v1480()
     {
       assert_choice_type("beamformed-v1480", type_.to_string(), "setup");
-      return c.get<csi_rs_cfg_beamformed_v1430_s>();
+      return c.get<csi_rs_cfg_bf_v1430_s>();
     }
     const csi_rs_cfg_non_precoded_v1480_s& non_precoded_v1480() const
     {
       assert_choice_type("nonPrecoded-v1480", type_.to_string(), "setup");
       return c.get<csi_rs_cfg_non_precoded_v1480_s>();
     }
-    const csi_rs_cfg_beamformed_v1430_s& beamformed_v1480() const
+    const csi_rs_cfg_bf_v1430_s& bf_v1480() const
     {
       assert_choice_type("beamformed-v1480", type_.to_string(), "setup");
-      return c.get<csi_rs_cfg_beamformed_v1430_s>();
+      return c.get<csi_rs_cfg_bf_v1430_s>();
     }
     csi_rs_cfg_non_precoded_v1480_s& set_non_precoded_v1480()
     {
       set(types::non_precoded_v1480);
       return c.get<csi_rs_cfg_non_precoded_v1480_s>();
     }
-    csi_rs_cfg_beamformed_v1430_s& set_beamformed_v1480()
+    csi_rs_cfg_bf_v1430_s& set_bf_v1480()
     {
-      set(types::beamformed_v1480);
-      return c.get<csi_rs_cfg_beamformed_v1430_s>();
+      set(types::bf_v1480);
+      return c.get<csi_rs_cfg_bf_v1430_s>();
     }
 
   private:
-    types                                                                                                 type_;
-    choice_buffer_t<MAX2(sizeof(csi_rs_cfg_beamformed_v1430_s), sizeof(csi_rs_cfg_non_precoded_v1480_s))> c;
+    types                                                                   type_;
+    choice_buffer_t<csi_rs_cfg_bf_v1430_s, csi_rs_cfg_non_precoded_v1480_s> c;
 
     void destroy_();
   };
@@ -12018,7 +11826,7 @@ private:
 };
 
 // P-C-AndCBSR-Pair-r13a ::= SEQUENCE (SIZE (1..2)) OF P-C-AndCBSR-r11
-typedef dyn_array<p_c_and_cbsr_r11_s> p_c_and_cbsr_pair_r13a_l;
+using p_c_and_cbsr_pair_r13a_l = dyn_array<p_c_and_cbsr_r11_s>;
 
 // CQI-ReportPeriodicProcExt-r11 ::= SEQUENCE
 struct cqi_report_periodic_proc_ext_r11_s {
@@ -12101,14 +11909,13 @@ struct cqi_report_periodic_proc_ext_r11_s {
     }
 
   private:
-    types                                                                          type_;
-    choice_buffer_t<MAX2(sizeof(subband_cqi_r11_s_), sizeof(wideband_cqi_r11_s_))> c;
+    types                                                    type_;
+    choice_buffer_t<subband_cqi_r11_s_, wideband_cqi_r11_s_> c;
 
     void destroy_();
   };
   struct csi_cfg_idx_r11_c_ {
     struct setup_s_ {
-      // member variables
       bool     ri_cfg_idx2_r11_present = false;
       uint16_t cqi_pmi_cfg_idx2_r11    = 0;
       uint16_t ri_cfg_idx2_r11         = 0;
@@ -12176,7 +11983,6 @@ struct cqi_report_periodic_proc_ext_r11_s {
 
 // CSI-IM-Config-r11 ::= SEQUENCE
 struct csi_im_cfg_r11_s {
-  // member variables
   bool    ext               = false;
   uint8_t csi_im_cfg_id_r11 = 1;
   uint8_t res_cfg_r11       = 0;
@@ -12194,7 +12000,6 @@ struct csi_im_cfg_r11_s {
 
 // CSI-IM-ConfigExt-r12 ::= SEQUENCE
 struct csi_im_cfg_ext_r12_s {
-  // member variables
   bool    ext                 = false;
   uint8_t csi_im_cfg_id_v1250 = 4;
   uint8_t res_cfg_r12         = 0;
@@ -12215,8 +12020,8 @@ struct csi_im_cfg_ext_r12_s {
 // CSI-Process-r11 ::= SEQUENCE
 struct csi_process_r11_s {
   struct csi_im_cfg_id_list_r12_c_ {
-    typedef bounded_array<uint8_t, 2> setup_l_;
-    typedef setup_e                   types;
+    using setup_l_ = bounded_array<uint8_t, 2>;
+    typedef setup_e types;
 
     // choice methods
     csi_im_cfg_id_list_r12_c_() = default;
@@ -12354,24 +12159,24 @@ struct csi_process_r11_s {
   cqi_report_aperiodic_proc_r11_s cqi_report_aperiodic_proc_r11;
   // ...
   // group 0
-  bool                                        alternative_codebook_enabled_for4_tx_proc_r12_present = false;
+  bool                                        alt_codebook_enabled_for4_tx_proc_r12_present = false;
   copy_ptr<csi_im_cfg_id_list_r12_c_>         csi_im_cfg_id_list_r12;
   copy_ptr<cqi_report_aperiodic_proc2_r12_c_> cqi_report_aperiodic_proc2_r12;
   // group 1
   copy_ptr<cqi_report_aperiodic_proc_v1310_c_>  cqi_report_aperiodic_proc_v1310;
   copy_ptr<cqi_report_aperiodic_proc2_v1310_c_> cqi_report_aperiodic_proc2_v1310;
-  copy_ptr<csi_rs_cfg_emimo_r13_c>              e_mimo_type_r13;
+  copy_ptr<csi_rs_cfg_emimo_r13_c>              emimo_type_r13;
   // group 2
   bool                                    advanced_codebook_enabled_r14_present = false;
   copy_ptr<csi_rs_cfg_emimo_v1430_c>      dummy;
-  copy_ptr<csi_rs_cfg_emimo_hybrid_r14_c> e_mimo_hybrid_r14;
+  copy_ptr<csi_rs_cfg_emimo_hybrid_r14_c> emimo_hybrid_r14;
   bool                                    advanced_codebook_enabled_r14 = false;
   // group 3
-  copy_ptr<csi_rs_cfg_emimo_v1480_c> e_mimo_type_v1480;
+  copy_ptr<csi_rs_cfg_emimo_v1480_c> emimo_type_v1480;
   // group 4
   bool                               fe_comp_csi_enabled_v1530_present = false;
   bool                               fe_comp_csi_enabled_v1530         = false;
-  copy_ptr<csi_rs_cfg_emimo_v1530_c> e_mimo_type_v1530;
+  copy_ptr<csi_rs_cfg_emimo_v1530_c> emimo_type_v1530;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -12379,37 +12184,35 @@ struct csi_process_r11_s {
   void        to_json(json_writer& j) const;
 };
 
-// CQI-ReportPeriodicProcExtToAddModList-r11 ::= SEQUENCE (SIZE (1..maxCQI-ProcExt-r11)) OF
-// CQI-ReportPeriodicProcExt-r11
-typedef dyn_array<cqi_report_periodic_proc_ext_r11_s> cqi_report_periodic_proc_ext_to_add_mod_list_r11_l;
+// CQI-ReportPeriodicProcExtToAddModList-r11 ::= SEQUENCE (SIZE (1..3)) OF CQI-ReportPeriodicProcExt-r11
+using cqi_report_periodic_proc_ext_to_add_mod_list_r11_l = dyn_array<cqi_report_periodic_proc_ext_r11_s>;
 
-// CQI-ReportPeriodicProcExtToReleaseList-r11 ::= SEQUENCE (SIZE (1..maxCQI-ProcExt-r11)) OF INTEGER
-typedef bounded_array<uint8_t, 3> cqi_report_periodic_proc_ext_to_release_list_r11_l;
+// CQI-ReportPeriodicProcExtToReleaseList-r11 ::= SEQUENCE (SIZE (1..3)) OF INTEGER (1..3)
+using cqi_report_periodic_proc_ext_to_release_list_r11_l = bounded_array<uint8_t, 3>;
 
-// CSI-IM-ConfigToAddModList-r11 ::= SEQUENCE (SIZE (1..maxCSI-IM-r11)) OF CSI-IM-Config-r11
-typedef dyn_array<csi_im_cfg_r11_s> csi_im_cfg_to_add_mod_list_r11_l;
+// CSI-IM-ConfigToAddModList-r11 ::= SEQUENCE (SIZE (1..3)) OF CSI-IM-Config-r11
+using csi_im_cfg_to_add_mod_list_r11_l = dyn_array<csi_im_cfg_r11_s>;
 
-// CSI-IM-ConfigToAddModListExt-r13 ::= SEQUENCE (SIZE (1..maxCSI-IM-v1310)) OF CSI-IM-ConfigExt-r12
-typedef dyn_array<csi_im_cfg_ext_r12_s> csi_im_cfg_to_add_mod_list_ext_r13_l;
+// CSI-IM-ConfigToAddModListExt-r13 ::= SEQUENCE (SIZE (1..20)) OF CSI-IM-ConfigExt-r12
+using csi_im_cfg_to_add_mod_list_ext_r13_l = dyn_array<csi_im_cfg_ext_r12_s>;
 
-// CSI-IM-ConfigToReleaseList-r11 ::= SEQUENCE (SIZE (1..maxCSI-IM-r11)) OF INTEGER
-typedef bounded_array<uint8_t, 3> csi_im_cfg_to_release_list_r11_l;
+// CSI-IM-ConfigToReleaseList-r11 ::= SEQUENCE (SIZE (1..3)) OF INTEGER (1..3)
+using csi_im_cfg_to_release_list_r11_l = bounded_array<uint8_t, 3>;
 
-// CSI-IM-ConfigToReleaseListExt-r13 ::= SEQUENCE (SIZE (1..maxCSI-IM-v1310)) OF INTEGER
-typedef bounded_array<uint8_t, 20> csi_im_cfg_to_release_list_ext_r13_l;
+// CSI-IM-ConfigToReleaseListExt-r13 ::= SEQUENCE (SIZE (1..20)) OF INTEGER (5..24)
+using csi_im_cfg_to_release_list_ext_r13_l = bounded_array<uint8_t, 20>;
 
-// CSI-ProcessToAddModList-r11 ::= SEQUENCE (SIZE (1..maxCSI-Proc-r11)) OF CSI-Process-r11
-typedef dyn_array<csi_process_r11_s> csi_process_to_add_mod_list_r11_l;
+// CSI-ProcessToAddModList-r11 ::= SEQUENCE (SIZE (1..4)) OF CSI-Process-r11
+using csi_process_to_add_mod_list_r11_l = dyn_array<csi_process_r11_s>;
 
-// CSI-ProcessToReleaseList-r11 ::= SEQUENCE (SIZE (1..maxCSI-Proc-r11)) OF INTEGER
-typedef bounded_array<uint8_t, 4> csi_process_to_release_list_r11_l;
+// CSI-ProcessToReleaseList-r11 ::= SEQUENCE (SIZE (1..4)) OF INTEGER (1..4)
+using csi_process_to_release_list_r11_l = bounded_array<uint8_t, 4>;
 
-// DCI7-CandidatesPerAL-SPDCCH-r15 ::= SEQUENCE (SIZE(1..4)) OF INTEGER
-typedef bounded_array<uint8_t, 4> dci7_candidates_per_al_spdcch_r15_l;
+// DCI7-CandidatesPerAL-SPDCCH-r15 ::= SEQUENCE (SIZE (1..4)) OF INTEGER (0..6)
+using dci7_candidates_per_al_spdcch_r15_l = bounded_array<uint8_t, 4>;
 
 // N4SPUCCH-Resource-r15 ::= SEQUENCE
 struct n4_spucch_res_r15_s {
-  // member variables
   uint8_t n4start_prb_r15 = 0;
   uint8_t n4nof_prb_r15   = 0;
 
@@ -12481,7 +12284,7 @@ struct poll_pdu_r15_opts {
     p8192_r15,
     p12288_r15,
     p16384_r15,
-    p_infinity,
+    pinfinity,
     nulltype
   } value;
   typedef int16_t number_type;
@@ -12709,7 +12512,6 @@ typedef enumerated<t_status_prohibit_opts> t_status_prohibit_e;
 
 // ZeroTxPowerCSI-RS-r12 ::= SEQUENCE
 struct zero_tx_pwr_csi_rs_r12_s {
-  // member variables
   fixed_bitstring<16> zero_tx_pwr_res_cfg_list_r12;
   uint8_t             zero_tx_pwr_sf_cfg_r12 = 0;
 
@@ -12723,7 +12525,6 @@ struct zero_tx_pwr_csi_rs_r12_s {
 struct cqi_report_aperiodic_r10_c {
   struct setup_s_ {
     struct aperiodic_csi_trigger_r10_s_ {
-      // member variables
       fixed_bitstring<8> trigger1_r10;
       fixed_bitstring<8> trigger2_r10;
     };
@@ -12821,7 +12622,6 @@ private:
 struct cqi_report_aperiodic_v1310_c {
   struct setup_s_ {
     struct aperiodic_csi_trigger_v1310_s_ {
-      // member variables
       fixed_bitstring<32> trigger1_r13;
       fixed_bitstring<32> trigger2_r13;
       fixed_bitstring<32> trigger3_r13;
@@ -12831,7 +12631,6 @@ struct cqi_report_aperiodic_v1310_c {
     };
     struct aperiodic_csi_trigger2_r13_c_ {
       struct setup_s_ {
-        // member variables
         fixed_bitstring<32> trigger1_sf_set_ind_r13;
         fixed_bitstring<32> trigger2_sf_set_ind_r13;
         fixed_bitstring<32> trigger3_sf_set_ind_r13;
@@ -12911,17 +12710,14 @@ private:
 struct cqi_report_aperiodic_hybrid_r14_s {
   struct triggers_r14_c_ {
     struct one_bit_r14_s_ {
-      // member variables
       fixed_bitstring<8> trigger1_ind_r14;
     };
     struct two_bit_r14_s_ {
-      // member variables
       fixed_bitstring<8> trigger01_ind_r14;
       fixed_bitstring<8> trigger10_ind_r14;
       fixed_bitstring<8> trigger11_ind_r14;
     };
     struct three_bit_r14_s_ {
-      // member variables
       fixed_bitstring<32> trigger001_ind_r14;
       fixed_bitstring<32> trigger010_ind_r14;
       fixed_bitstring<32> trigger011_ind_r14;
@@ -12997,8 +12793,8 @@ struct cqi_report_aperiodic_hybrid_r14_s {
     }
 
   private:
-    types                                                                                              type_;
-    choice_buffer_t<MAX4(sizeof(one_bit_r14_s_), sizeof(three_bit_r14_s_), sizeof(two_bit_r14_s_), 0)> c;
+    types                                                             type_;
+    choice_buffer_t<one_bit_r14_s_, three_bit_r14_s_, two_bit_r14_s_> c;
 
     void destroy_();
   };
@@ -13015,7 +12811,6 @@ struct cqi_report_aperiodic_hybrid_r14_s {
 
 // CQI-ReportBoth-r11 ::= SEQUENCE
 struct cqi_report_both_r11_s {
-  // member variables
   bool                              csi_im_cfg_to_release_list_r11_present  = false;
   bool                              csi_im_cfg_to_add_mod_list_r11_present  = false;
   bool                              csi_process_to_release_list_r11_present = false;
@@ -13033,7 +12828,6 @@ struct cqi_report_both_r11_s {
 
 // CQI-ReportBoth-v1250 ::= SEQUENCE
 struct cqi_report_both_v1250_s {
-  // member variables
   bool                 csi_im_cfg_to_release_list_ext_r12_present = false;
   bool                 csi_im_cfg_to_add_mod_list_ext_r12_present = false;
   uint8_t              csi_im_cfg_to_release_list_ext_r12         = 4;
@@ -13047,7 +12841,6 @@ struct cqi_report_both_v1250_s {
 
 // CQI-ReportBoth-v1310 ::= SEQUENCE
 struct cqi_report_both_v1310_s {
-  // member variables
   bool                                 csi_im_cfg_to_release_list_ext_r13_present = false;
   bool                                 csi_im_cfg_to_add_mod_list_ext_r13_present = false;
   csi_im_cfg_to_release_list_ext_r13_l csi_im_cfg_to_release_list_ext_r13;
@@ -13141,14 +12934,13 @@ struct cqi_report_periodic_r10_c {
       }
 
     private:
-      types                                                                          type_;
-      choice_buffer_t<MAX2(sizeof(subband_cqi_r10_s_), sizeof(wideband_cqi_r10_s_))> c;
+      types                                                    type_;
+      choice_buffer_t<subband_cqi_r10_s_, wideband_cqi_r10_s_> c;
 
       void destroy_();
     };
     struct csi_cfg_idx_r10_c_ {
       struct setup_s_ {
-        // member variables
         bool     ri_cfg_idx2_r10_present = false;
         uint16_t cqi_pmi_cfg_idx2_r10    = 0;
         uint16_t ri_cfg_idx2_r10         = 0;
@@ -13230,7 +13022,6 @@ private:
 
 // CQI-ReportPeriodic-v1130 ::= SEQUENCE
 struct cqi_report_periodic_v1130_s {
-  // member variables
   bool                                               simul_ack_nack_and_cqi_format3_r11_present               = false;
   bool                                               cqi_report_periodic_proc_ext_to_release_list_r11_present = false;
   bool                                               cqi_report_periodic_proc_ext_to_add_mod_list_r11_present = false;
@@ -13245,7 +13036,6 @@ struct cqi_report_periodic_v1130_s {
 
 // CQI-ReportPeriodic-v1310 ::= SEQUENCE
 struct cqi_report_periodic_v1310_s {
-  // member variables
   bool                 cri_report_cfg_r13_present                         = false;
   bool                 simul_ack_nack_and_cqi_format4_format5_r13_present = false;
   cri_report_cfg_r13_c cri_report_cfg_r13;
@@ -13279,7 +13069,6 @@ struct cqi_report_periodic_v1320_s {
 
 // DL-AM-RLC-r15 ::= SEQUENCE
 struct dl_am_rlc_r15_s {
-  // member variables
   t_reordering_e      t_reordering_r15;
   t_status_prohibit_e t_status_prohibit_r15;
   bool                extended_rlc_li_field_r15 = false;
@@ -13292,7 +13081,6 @@ struct dl_am_rlc_r15_s {
 
 // DL-UM-RLC-r15 ::= SEQUENCE
 struct dl_um_rlc_r15_s {
-  // member variables
   sn_field_len_r15_e sn_field_len_r15;
   t_reordering_e     t_reordering_r15;
 
@@ -13372,8 +13160,8 @@ struct meas_sf_pattern_r10_c {
     }
 
   private:
-    types                                        type_;
-    choice_buffer_t<sizeof(fixed_bitstring<70>)> c;
+    types                                 type_;
+    choice_buffer_t<fixed_bitstring<70> > c;
 
     void destroy_();
   };
@@ -13427,8 +13215,8 @@ struct meas_sf_pattern_r10_c {
   }
 
 private:
-  types                                                                             type_;
-  choice_buffer_t<MAX2(sizeof(fixed_bitstring<40>), sizeof(sf_pattern_tdd_r10_c_))> c;
+  types                                                       type_;
+  choice_buffer_t<fixed_bitstring<40>, sf_pattern_tdd_r10_c_> c;
 
   void destroy_();
 };
@@ -13463,7 +13251,7 @@ typedef enumerated<poll_byte_opts> poll_byte_e;
 
 // PollPDU ::= ENUMERATED
 struct poll_pdu_opts {
-  enum options { p4, p8, p16, p32, p64, p128, p256, p_infinity, nulltype } value;
+  enum options { p4, p8, p16, p32, p64, p128, p256, pinfinity, nulltype } value;
   typedef int16_t number_type;
 
   std::string to_string() const;
@@ -13485,15 +13273,14 @@ struct spdcch_elems_r15_c {
 
       std::string to_string() const;
     };
-    typedef enumerated<tx_type_r15_opts>                   tx_type_r15_e_;
-    typedef bounded_array<uint8_t, 4>                      dci7_candidates_per_al_pdcch_r15_l_;
-    typedef dyn_array<dci7_candidates_per_al_spdcch_r15_l> dci7_candidate_sets_per_al_spdcch_r15_l_;
+    typedef enumerated<tx_type_r15_opts> tx_type_r15_e_;
+    using dci7_candidates_per_al_pdcch_r15_l_      = bounded_array<uint8_t, 4>;
+    using dci7_candidate_sets_per_al_spdcch_r15_l_ = dyn_array<dci7_candidates_per_al_spdcch_r15_l>;
     struct res_block_assign_r15_s_ {
-      // member variables
       uint8_t             num_rb_in_freq_domain_r15 = 2;
       fixed_bitstring<98> res_block_assign_r15;
     };
-    typedef bounded_array<uint8_t, 4> al_start_point_spdcch_r15_l_;
+    using al_start_point_spdcch_r15_l_ = bounded_array<uint8_t, 4>;
     struct sf_type_r15_opts {
       enum options { mbsfn, nonmbsfn, all, nulltype } value;
 
@@ -13571,9 +13358,9 @@ private:
 // SPUCCH-Elements-r15 ::= CHOICE
 struct spucch_elems_r15_c {
   struct setup_s_ {
-    typedef bounded_array<uint16_t, 4>     n1_subslot_spucch_an_list_r15_l_;
-    typedef dyn_array<n4_spucch_res_r15_s> n4_spucch_slot_res_r15_l_;
-    typedef dyn_array<n4_spucch_res_r15_s> n4_spucch_subslot_res_r15_l_;
+    using n1_subslot_spucch_an_list_r15_l_ = bounded_array<uint16_t, 4>;
+    using n4_spucch_slot_res_r15_l_        = dyn_array<n4_spucch_res_r15_s>;
+    using n4_spucch_subslot_res_r15_l_     = dyn_array<n4_spucch_res_r15_s>;
 
     // member variables
     bool                             n1_subslot_spucch_an_list_r15_present              = false;
@@ -13680,8 +13467,8 @@ struct tpc_idx_c {
   }
 
 private:
-  types              type_;
-  choice_buffer_t<8> c;
+  types               type_;
+  pod_choice_buffer_t c;
 
   void destroy_();
 };
@@ -13712,7 +13499,6 @@ struct ul_am_rlc_r15_s {
 
 // UL-UM-RLC ::= SEQUENCE
 struct ul_um_rlc_s {
-  // member variables
   sn_field_len_e sn_field_len;
 
   // sequence methods
@@ -13758,7 +13544,6 @@ private:
 struct cqi_report_cfg_r10_s {
   struct csi_sf_pattern_cfg_r10_c_ {
     struct setup_s_ {
-      // member variables
       meas_sf_pattern_r10_c csi_meas_sf_set1_r10;
       meas_sf_pattern_r10_c csi_meas_sf_set2_r10;
     };
@@ -13811,7 +13596,6 @@ struct cqi_report_cfg_r10_s {
 
 // CQI-ReportConfig-v1130 ::= SEQUENCE
 struct cqi_report_cfg_v1130_s {
-  // member variables
   cqi_report_periodic_v1130_s cqi_report_periodic_v1130;
   cqi_report_both_r11_s       cqi_report_both_r11;
 
@@ -13825,7 +13609,6 @@ struct cqi_report_cfg_v1130_s {
 struct cqi_report_cfg_v1250_s {
   struct csi_sf_pattern_cfg_r12_c_ {
     struct setup_s_ {
-      // member variables
       fixed_bitstring<10> csi_meas_sf_sets_r12;
     };
     typedef setup_e types;
@@ -13885,7 +13668,6 @@ struct cqi_report_cfg_v1250_s {
 
 // CQI-ReportConfig-v1310 ::= SEQUENCE
 struct cqi_report_cfg_v1310_s {
-  // member variables
   bool                         cqi_report_both_v1310_present      = false;
   bool                         cqi_report_aperiodic_v1310_present = false;
   bool                         cqi_report_periodic_v1310_present  = false;
@@ -13901,7 +13683,6 @@ struct cqi_report_cfg_v1310_s {
 
 // CQI-ReportConfig-v1320 ::= SEQUENCE
 struct cqi_report_cfg_v1320_s {
-  // member variables
   bool                        cqi_report_periodic_v1320_present = false;
   cqi_report_periodic_v1320_s cqi_report_periodic_v1320;
 
@@ -13913,7 +13694,6 @@ struct cqi_report_cfg_v1320_s {
 
 // CQI-ReportConfig-v1430 ::= SEQUENCE
 struct cqi_report_cfg_v1430_s {
-  // member variables
   bool                              cqi_report_aperiodic_hybrid_r14_present = false;
   cqi_report_aperiodic_hybrid_r14_s cqi_report_aperiodic_hybrid_r14;
 
@@ -13989,7 +13769,7 @@ struct csi_rs_cfg_r10_s {
 struct csi_rs_cfg_v1250_s {
   struct ds_zero_tx_pwr_csi_rs_r12_c_ {
     struct setup_s_ {
-      typedef dyn_array<zero_tx_pwr_csi_rs_r12_s> zero_tx_pwr_csi_rs_list_r12_l_;
+      using zero_tx_pwr_csi_rs_list_r12_l_ = dyn_array<zero_tx_pwr_csi_rs_r12_s>;
 
       // member variables
       zero_tx_pwr_csi_rs_list_r12_l_ zero_tx_pwr_csi_rs_list_r12;
@@ -14039,9 +13819,8 @@ struct csi_rs_cfg_v1250_s {
 
 // CSI-RS-Config-v1310 ::= SEQUENCE
 struct csi_rs_cfg_v1310_s {
-  // member variables
-  bool                   e_mimo_type_r13_present = false;
-  csi_rs_cfg_emimo_r13_c e_mimo_type_r13;
+  bool                   emimo_type_r13_present = false;
+  csi_rs_cfg_emimo_r13_c emimo_type_r13;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -14051,12 +13830,11 @@ struct csi_rs_cfg_v1310_s {
 
 // CSI-RS-Config-v1430 ::= SEQUENCE
 struct csi_rs_cfg_v1430_s {
-  // member variables
   bool                          dummy_present                         = false;
-  bool                          e_mimo_hybrid_r14_present             = false;
+  bool                          emimo_hybrid_r14_present              = false;
   bool                          advanced_codebook_enabled_r14_present = false;
   csi_rs_cfg_emimo_v1430_c      dummy;
-  csi_rs_cfg_emimo_hybrid_r14_c e_mimo_hybrid_r14;
+  csi_rs_cfg_emimo_hybrid_r14_c emimo_hybrid_r14;
   bool                          advanced_codebook_enabled_r14 = false;
 
   // sequence methods
@@ -14067,7 +13845,6 @@ struct csi_rs_cfg_v1430_s {
 
 // CSI-RS-ConfigZP-r11 ::= SEQUENCE
 struct csi_rs_cfg_zp_r11_s {
-  // member variables
   bool                ext                  = false;
   uint8_t             csi_rs_cfg_zp_id_r11 = 1;
   fixed_bitstring<16> res_cfg_list_r11;
@@ -14082,7 +13859,6 @@ struct csi_rs_cfg_zp_r11_s {
 
 // DL-AM-RLC ::= SEQUENCE
 struct dl_am_rlc_s {
-  // member variables
   t_reordering_e      t_reordering;
   t_status_prohibit_e t_status_prohibit;
 
@@ -14094,7 +13870,6 @@ struct dl_am_rlc_s {
 
 // DL-UM-RLC ::= SEQUENCE
 struct dl_um_rlc_s {
-  // member variables
   sn_field_len_e sn_field_len;
   t_reordering_e t_reordering;
 
@@ -14172,8 +13947,8 @@ struct epdcch_set_cfg_r11_s {
     typedef enumerated<num_prb_pairs_r11_opts> num_prb_pairs_r11_e_;
 
     // member variables
-    num_prb_pairs_r11_e_ num_prb_pairs_r11;
-    dyn_bitstring        res_block_assign_r11;
+    num_prb_pairs_r11_e_     num_prb_pairs_r11;
+    bounded_bitstring<4, 38> res_block_assign_r11;
   };
   struct csi_rs_cfg_zp_id2_r12_c_ {
     typedef setup_e types;
@@ -14304,8 +14079,8 @@ struct epdcch_set_cfg_r11_s {
         }
 
       private:
-        types                                                         type_;
-        choice_buffer_t<MAX2(sizeof(fdd_r13_e_), sizeof(tdd_r13_e_))> c;
+        types               type_;
+        pod_choice_buffer_t c;
 
         void destroy_();
       };
@@ -14382,14 +14157,12 @@ struct epdcch_set_cfg_r11_s {
 struct enable256_qam_r14_c {
   struct setup_c_ {
     struct tpc_sf_set_cfgured_r14_s_ {
-      // member variables
       bool sf_set1_dci_format0_r14 = false;
       bool sf_set1_dci_format4_r14 = false;
       bool sf_set2_dci_format0_r14 = false;
       bool sf_set2_dci_format4_r14 = false;
     };
     struct tpc_sf_set_not_cfgured_r14_s_ {
-      // member variables
       bool dci_format0_r14 = false;
       bool dci_format4_r14 = false;
     };
@@ -14443,8 +14216,8 @@ struct enable256_qam_r14_c {
     }
 
   private:
-    types                                                                                           type_;
-    choice_buffer_t<MAX2(sizeof(tpc_sf_set_cfgured_r14_s_), sizeof(tpc_sf_set_not_cfgured_r14_s_))> c;
+    types                                                                     type_;
+    choice_buffer_t<tpc_sf_set_cfgured_r14_s_, tpc_sf_set_not_cfgured_r14_s_> c;
 
     void destroy_();
   };
@@ -14535,7 +14308,6 @@ struct lc_ch_cfg_s {
   typedef enumerated<bit_rate_query_prohibit_timer_r14_opts> bit_rate_query_prohibit_timer_r14_e_;
   struct allowed_tti_lens_r15_c_ {
     struct setup_s_ {
-      // member variables
       bool short_tti_r15 = false;
       bool sf_tti_r15    = false;
     };
@@ -14690,7 +14462,6 @@ struct pdsch_re_map_qcl_cfg_r11_s {
     typedef enumerated<crs_ports_count_r11_opts> crs_ports_count_r11_e_;
     struct mbsfn_sf_cfg_list_r11_c_ {
       struct setup_s_ {
-        // member variables
         mbsfn_sf_cfg_list_l sf_cfg_list;
       };
       typedef setup_e types;
@@ -14741,7 +14512,6 @@ struct pdsch_re_map_qcl_cfg_r11_s {
   };
   struct mbsfn_sf_cfg_list_v1430_c_ {
     struct setup_s_ {
-      // member variables
       mbsfn_sf_cfg_list_v1430_l sf_cfg_list_v1430;
     };
     typedef setup_e types;
@@ -14870,21 +14640,17 @@ typedef enumerated<poll_pdu_v1310_opts> poll_pdu_v1310_e;
 struct rlc_cfg_r15_s {
   struct mode_r15_c_ {
     struct am_r15_s_ {
-      // member variables
       ul_am_rlc_r15_s ul_am_rlc_r15;
       dl_am_rlc_r15_s dl_am_rlc_r15;
     };
     struct um_bi_dir_r15_s_ {
-      // member variables
       ul_um_rlc_s     ul_um_rlc_r15;
       dl_um_rlc_r15_s dl_um_rlc_r15;
     };
     struct um_uni_dir_ul_r15_s_ {
-      // member variables
       ul_um_rlc_s ul_um_rlc_r15;
     };
     struct um_uni_dir_dl_r15_s_ {
-      // member variables
       dl_um_rlc_r15_s dl_um_rlc_r15;
     };
     struct types_opts {
@@ -14967,10 +14733,8 @@ struct rlc_cfg_r15_s {
     }
 
   private:
-    types type_;
-    choice_buffer_t<MAX4(
-        sizeof(am_r15_s_), sizeof(um_bi_dir_r15_s_), sizeof(um_uni_dir_dl_r15_s_), sizeof(um_uni_dir_ul_r15_s_))>
-        c;
+    types                                                                                    type_;
+    choice_buffer_t<am_r15_s_, um_bi_dir_r15_s_, um_uni_dir_dl_r15_s_, um_uni_dir_ul_r15_s_> c;
 
     void destroy_();
   };
@@ -14989,13 +14753,13 @@ struct rlc_cfg_r15_s {
 };
 
 // SPDCCH-Set-r15 ::= SEQUENCE (SIZE (1..4)) OF SPDCCH-Elements-r15
-typedef dyn_array<spdcch_elems_r15_c> spdcch_set_r15_l;
+using spdcch_set_r15_l = dyn_array<spdcch_elems_r15_c>;
 
 // SPUCCH-Set-r15 ::= SEQUENCE (SIZE (1..4)) OF SPUCCH-Elements-r15
-typedef dyn_array<spucch_elems_r15_c> spucch_set_r15_l;
+using spucch_set_r15_l = dyn_array<spucch_elems_r15_c>;
 
-// SR-SubslotSPUCCH-ResourceList-r15 ::= SEQUENCE (SIZE(1..4)) OF INTEGER
-typedef bounded_array<uint16_t, 4> sr_subslot_spucch_res_list_r15_l;
+// SR-SubslotSPUCCH-ResourceList-r15 ::= SEQUENCE (SIZE (1..4)) OF INTEGER (0..1319)
+using sr_subslot_spucch_res_list_r15_l = bounded_array<uint16_t, 4>;
 
 // SRS-AntennaPort ::= ENUMERATED
 struct srs_ant_port_opts {
@@ -15018,7 +14782,6 @@ typedef enumerated<short_tti_len_r15_opts> short_tti_len_r15_e;
 // TPC-PDCCH-Config ::= CHOICE
 struct tpc_pdcch_cfg_c {
   struct setup_s_ {
-    // member variables
     fixed_bitstring<16> tpc_rnti;
     tpc_idx_c           tpc_idx;
   };
@@ -15326,8 +15089,8 @@ struct ant_info_ded_stti_r15_c {
       }
 
     private:
-      types                                         type_;
-      choice_buffer_t<sizeof(fixed_bitstring<109>)> c;
+      types                                  type_;
+      choice_buffer_t<fixed_bitstring<109> > c;
 
       void destroy_();
     };
@@ -15468,7 +15231,6 @@ struct cqi_report_periodic_c {
   struct setup_s_ {
     struct cqi_format_ind_periodic_c_ {
       struct subband_cqi_s_ {
-        // member variables
         uint8_t k = 1;
       };
       struct types_opts {
@@ -15601,7 +15363,6 @@ struct crs_assist_info_r13_s {
 
 // CRS-AssistanceInfo-r15 ::= SEQUENCE
 struct crs_assist_info_r15_s {
-  // member variables
   bool     crs_intf_mitig_enabled_minus15_present = false;
   uint16_t pci_r15                                = 0;
 
@@ -15614,7 +15375,6 @@ struct crs_assist_info_r15_s {
 // CSI-RS-Config-r15 ::= CHOICE
 struct csi_rs_cfg_r15_c {
   struct setup_s_ {
-    // member variables
     bool               csi_rs_cfg_r10_present   = false;
     bool               csi_rs_cfg_v1250_present = false;
     bool               csi_rs_cfg_v1310_present = false;
@@ -15655,16 +15415,16 @@ private:
   setup_s_ c;
 };
 
-// CSI-RS-ConfigNZPToAddModList-r15 ::= SEQUENCE (SIZE (1..maxCSI-RS-NZP-r13)) OF CSI-RS-ConfigNZP-r11
-typedef dyn_array<csi_rs_cfg_nzp_r11_s> csi_rs_cfg_nzp_to_add_mod_list_r15_l;
+// CSI-RS-ConfigNZPToAddModList-r15 ::= SEQUENCE (SIZE (1..24)) OF CSI-RS-ConfigNZP-r11
+using csi_rs_cfg_nzp_to_add_mod_list_r15_l = dyn_array<csi_rs_cfg_nzp_r11_s>;
 
-// CSI-RS-ConfigNZPToReleaseList-r15 ::= SEQUENCE (SIZE (1..maxCSI-RS-NZP-r13)) OF INTEGER
-typedef bounded_array<uint8_t, 24> csi_rs_cfg_nzp_to_release_list_r15_l;
+// CSI-RS-ConfigNZPToReleaseList-r15 ::= SEQUENCE (SIZE (1..24)) OF INTEGER (1..24)
+using csi_rs_cfg_nzp_to_release_list_r15_l = bounded_array<uint8_t, 24>;
 
 // CSI-RS-ConfigZP-ApList-r14 ::= CHOICE
 struct csi_rs_cfg_zp_ap_list_r14_c {
-  typedef dyn_array<csi_rs_cfg_zp_r11_s> setup_l_;
-  typedef setup_e                        types;
+  using setup_l_ = dyn_array<csi_rs_cfg_zp_r11_s>;
+  typedef setup_e types;
 
   // choice methods
   csi_rs_cfg_zp_ap_list_r14_c() = default;
@@ -15695,16 +15455,15 @@ private:
   setup_l_ c;
 };
 
-// CSI-RS-ConfigZPToAddModList-r11 ::= SEQUENCE (SIZE (1..maxCSI-RS-ZP-r11)) OF CSI-RS-ConfigZP-r11
-typedef dyn_array<csi_rs_cfg_zp_r11_s> csi_rs_cfg_zp_to_add_mod_list_r11_l;
+// CSI-RS-ConfigZPToAddModList-r11 ::= SEQUENCE (SIZE (1..4)) OF CSI-RS-ConfigZP-r11
+using csi_rs_cfg_zp_to_add_mod_list_r11_l = dyn_array<csi_rs_cfg_zp_r11_s>;
 
-// CSI-RS-ConfigZPToReleaseList-r11 ::= SEQUENCE (SIZE (1..maxCSI-RS-ZP-r11)) OF INTEGER
-typedef bounded_array<uint8_t, 4> csi_rs_cfg_zp_to_release_list_r11_l;
+// CSI-RS-ConfigZPToReleaseList-r11 ::= SEQUENCE (SIZE (1..4)) OF INTEGER (1..4)
+using csi_rs_cfg_zp_to_release_list_r11_l = bounded_array<uint8_t, 4>;
 
 // DMRS-Config-r11 ::= CHOICE
 struct dmrs_cfg_r11_c {
   struct setup_s_ {
-    // member variables
     uint16_t scrambling_id_r11  = 0;
     uint16_t scrambling_id2_r11 = 0;
   };
@@ -15741,7 +15500,6 @@ private:
 
 // DMRS-Config-v1310 ::= SEQUENCE
 struct dmrs_cfg_v1310_s {
-  // member variables
   bool dmrs_table_alt_r13_present = false;
 
   // sequence methods
@@ -15880,7 +15638,6 @@ struct eimta_main_cfg_serv_cell_r12_c {
     typedef enumerated<eimta_harq_ref_cfg_r12_opts> eimta_harq_ref_cfg_r12_e_;
     struct mbsfn_sf_cfg_list_v1250_c_ {
       struct setup_s_ {
-        // member variables
         mbsfn_sf_cfg_list_l sf_cfg_list_r12;
       };
       typedef setup_e types;
@@ -15950,15 +15707,14 @@ private:
   setup_s_ c;
 };
 
-// EPDCCH-SetConfigToAddModList-r11 ::= SEQUENCE (SIZE(1..maxEPDCCH-Set-r11)) OF EPDCCH-SetConfig-r11
-typedef dyn_array<epdcch_set_cfg_r11_s> epdcch_set_cfg_to_add_mod_list_r11_l;
+// EPDCCH-SetConfigToAddModList-r11 ::= SEQUENCE (SIZE (1..2)) OF EPDCCH-SetConfig-r11
+using epdcch_set_cfg_to_add_mod_list_r11_l = dyn_array<epdcch_set_cfg_r11_s>;
 
-// EPDCCH-SetConfigToReleaseList-r11 ::= SEQUENCE (SIZE(1..maxEPDCCH-Set-r11)) OF INTEGER
-typedef bounded_array<uint8_t, 2> epdcch_set_cfg_to_release_list_r11_l;
+// EPDCCH-SetConfigToReleaseList-r11 ::= SEQUENCE (SIZE (1..2)) OF INTEGER (0..1)
+using epdcch_set_cfg_to_release_list_r11_l = bounded_array<uint8_t, 2>;
 
 // Format4-resource-r13 ::= SEQUENCE
 struct format4_res_r13_s {
-  // member variables
   uint8_t start_prb_format4_r13 = 0;
   uint8_t nof_prb_format4_r13   = 0;
 
@@ -15970,7 +15726,6 @@ struct format4_res_r13_s {
 
 // Format5-resource-r13 ::= SEQUENCE
 struct format5_res_r13_s {
-  // member variables
   uint8_t start_prb_format5_r13 = 0;
   uint8_t cdm_idx_format5_r13   = 0;
 
@@ -15980,11 +15735,11 @@ struct format5_res_r13_s {
   void        to_json(json_writer& j) const;
 };
 
-// N1PUCCH-AN-CS-r10 ::= SEQUENCE (SIZE (1..4)) OF INTEGER
-typedef bounded_array<uint16_t, 4> n1_pucch_an_cs_r10_l;
+// N1PUCCH-AN-CS-r10 ::= SEQUENCE (SIZE (1..4)) OF INTEGER (0..2047)
+using n1_pucch_an_cs_r10_l = bounded_array<uint16_t, 4>;
 
-// N1PUCCH-AN-PersistentList ::= SEQUENCE (SIZE (1..4)) OF INTEGER
-typedef bounded_array<uint16_t, 4> n1_pucch_an_persistent_list_l;
+// N1PUCCH-AN-PersistentList ::= SEQUENCE (SIZE (1..4)) OF INTEGER (0..2047)
+using n1_pucch_an_persistent_list_l = bounded_array<uint16_t, 4>;
 
 // NeighCellsInfo-r12 ::= SEQUENCE
 struct neigh_cells_info_r12_s {
@@ -15996,7 +15751,7 @@ struct neigh_cells_info_r12_s {
     uint8_t     to_number() const;
   };
   typedef enumerated<crs_ports_count_r12_opts> crs_ports_count_r12_e_;
-  typedef bounded_array<p_a_e, 3>              p_a_list_r12_l_;
+  using p_a_list_r12_l_ = bounded_array<p_a_e, 3>;
 
   // member variables
   bool                   ext                      = false;
@@ -16037,7 +15792,6 @@ struct pdcp_cfg_s {
   };
   typedef enumerated<discard_timer_opts> discard_timer_e_;
   struct rlc_am_s_ {
-    // member variables
     bool status_report_required = false;
   };
   struct rlc_um_s_ {
@@ -16056,7 +15810,6 @@ struct pdcp_cfg_s {
   struct hdr_compress_c_ {
     struct rohc_s_ {
       struct profiles_s_ {
-        // member variables
         bool profile0x0001 = false;
         bool profile0x0002 = false;
         bool profile0x0003 = false;
@@ -16396,7 +16149,6 @@ struct pdcp_cfg_s {
   struct ul_only_hdr_compress_r14_c_ {
     struct rohc_r14_s_ {
       struct profiles_r14_s_ {
-        // member variables
         bool profile0x0006_r14 = false;
       };
 
@@ -16452,7 +16204,7 @@ struct pdcp_cfg_s {
     };
     typedef enumerated<buffer_size_r15_opts> buffer_size_r15_e_;
     struct dictionary_r15_opts {
-      enum options { sip_sdp, operator_type, nulltype } value;
+      enum options { sip_sdp, operator_value, nulltype } value;
 
       std::string to_string() const;
     };
@@ -16567,10 +16319,10 @@ struct pucch_cfg_ded_v1530_s {
 
 // PUCCH-Format3-Conf-r13 ::= SEQUENCE
 struct pucch_format3_conf_r13_s {
-  typedef bounded_array<uint16_t, 4> n3_pucch_an_list_r13_l_;
+  using n3_pucch_an_list_r13_l_ = bounded_array<uint16_t, 4>;
   struct two_ant_port_activ_pucch_format3_r13_c_ {
     struct setup_s_ {
-      typedef bounded_array<uint16_t, 4> n3_pucch_an_list_p1_r13_l_;
+      using n3_pucch_an_list_p1_r13_l_ = bounded_array<uint16_t, 4>;
 
       // member variables
       n3_pucch_an_list_p1_r13_l_ n3_pucch_an_list_p1_r13;
@@ -16618,11 +16370,11 @@ struct pucch_format3_conf_r13_s {
   void        to_json(json_writer& j) const;
 };
 
-// RE-MappingQCLConfigToAddModList-r11 ::= SEQUENCE (SIZE (1..maxRE-MapQCL-r11)) OF PDSCH-RE-MappingQCL-Config-r11
-typedef dyn_array<pdsch_re_map_qcl_cfg_r11_s> re_map_qcl_cfg_to_add_mod_list_r11_l;
+// RE-MappingQCLConfigToAddModList-r11 ::= SEQUENCE (SIZE (1..4)) OF PDSCH-RE-MappingQCL-Config-r11
+using re_map_qcl_cfg_to_add_mod_list_r11_l = dyn_array<pdsch_re_map_qcl_cfg_r11_s>;
 
-// RE-MappingQCLConfigToReleaseList-r11 ::= SEQUENCE (SIZE (1..maxRE-MapQCL-r11)) OF INTEGER
-typedef bounded_array<uint8_t, 4> re_map_qcl_cfg_to_release_list_r11_l;
+// RE-MappingQCLConfigToReleaseList-r11 ::= SEQUENCE (SIZE (1..4)) OF INTEGER (1..4)
+using re_map_qcl_cfg_to_release_list_r11_l = bounded_array<uint8_t, 4>;
 
 // RLC-BearerConfig-r15 ::= CHOICE
 struct rlc_bearer_cfg_r15_c {
@@ -16678,8 +16430,8 @@ struct rlc_bearer_cfg_r15_c {
       }
 
     private:
-      types              type_;
-      choice_buffer_t<8> c;
+      types               type_;
+      pod_choice_buffer_t c;
 
       void destroy_();
     };
@@ -16725,21 +16477,17 @@ private:
 // RLC-Config ::= CHOICE
 struct rlc_cfg_c {
   struct am_s_ {
-    // member variables
     ul_am_rlc_s ul_am_rlc;
     dl_am_rlc_s dl_am_rlc;
   };
   struct um_bi_dir_s_ {
-    // member variables
     ul_um_rlc_s ul_um_rlc;
     dl_um_rlc_s dl_um_rlc;
   };
   struct um_uni_dir_ul_s_ {
-    // member variables
     ul_um_rlc_s ul_um_rlc;
   };
   struct um_uni_dir_dl_s_ {
-    // member variables
     dl_um_rlc_s dl_um_rlc;
   };
   struct types_opts {
@@ -16822,15 +16570,14 @@ struct rlc_cfg_c {
   }
 
 private:
-  types                                                                                                          type_;
-  choice_buffer_t<MAX4(sizeof(am_s_), sizeof(um_bi_dir_s_), sizeof(um_uni_dir_dl_s_), sizeof(um_uni_dir_ul_s_))> c;
+  types                                                                    type_;
+  choice_buffer_t<am_s_, um_bi_dir_s_, um_uni_dir_dl_s_, um_uni_dir_ul_s_> c;
 
   void destroy_();
 };
 
 // RLC-Config-v1250 ::= SEQUENCE
 struct rlc_cfg_v1250_s {
-  // member variables
   bool ul_extended_rlc_li_field_r12 = false;
   bool dl_extended_rlc_li_field_r12 = false;
 
@@ -16842,7 +16589,6 @@ struct rlc_cfg_v1250_s {
 
 // RLC-Config-v1310 ::= SEQUENCE
 struct rlc_cfg_v1310_s {
-  // member variables
   bool             poll_pdu_v1310_present    = false;
   bool             ul_extended_rlc_am_sn_r13 = false;
   bool             dl_extended_rlc_am_sn_r13 = false;
@@ -16857,7 +16603,6 @@ struct rlc_cfg_v1310_s {
 // RLC-Config-v1430 ::= CHOICE
 struct rlc_cfg_v1430_c {
   struct setup_s_ {
-    // member variables
     poll_byte_r14_e poll_byte_r14;
   };
   typedef setup_e types;
@@ -16936,7 +16681,6 @@ private:
 
 // RRCConnectionReject-v1320-IEs ::= SEQUENCE
 struct rrc_conn_reject_v1320_ies_s {
-  // member variables
   bool rrc_suspend_ind_r13_present = false;
   bool non_crit_ext_present        = false;
 
@@ -17072,13 +16816,11 @@ struct sps_cfg_ul_c {
     };
     typedef enumerated<implicit_release_after_opts> implicit_release_after_e_;
     struct p0_persistent_s_ {
-      // member variables
       int8_t p0_nominal_pusch_persistent = -126;
       int8_t p0_ue_pusch_persistent      = -8;
     };
     struct p0_persistent_sf_set2_r12_c_ {
       struct setup_s_ {
-        // member variables
         int8_t p0_nominal_pusch_persistent_sf_set2_r12 = -126;
         int8_t p0_ue_pusch_persistent_sf_set2_r12      = -8;
       };
@@ -17236,20 +16978,20 @@ struct sps_cfg_ul_stti_r15_c {
   struct setup_s_ {
     struct semi_persist_sched_interv_ul_stti_r15_opts {
       enum options {
-        s_tti1,
-        s_tti2,
-        s_tti3,
-        s_tti4,
-        s_tti6,
-        s_tti8,
-        s_tti12,
-        s_tti16,
-        s_tti20,
-        s_tti40,
-        s_tti60,
-        s_tti80,
-        s_tti120,
-        s_tti240,
+        stti1,
+        stti2,
+        stti3,
+        stti4,
+        stti6,
+        stti8,
+        stti12,
+        stti16,
+        stti20,
+        stti40,
+        stti60,
+        stti80,
+        stti120,
+        stti240,
         spare2,
         spare1,
         nulltype
@@ -17269,13 +17011,11 @@ struct sps_cfg_ul_stti_r15_c {
     };
     typedef enumerated<implicit_release_after_opts> implicit_release_after_e_;
     struct p0_persistent_r15_s_ {
-      // member variables
       int8_t p0_nominal_spusch_persistent_r15 = -126;
       int8_t p0_ue_spusch_persistent_r15      = -8;
     };
     struct p0_persistent_sf_set2_r15_c_ {
       struct setup_s_ {
-        // member variables
         int8_t p0_nominal_spusch_persistent_sf_set2_r15 = -126;
         int8_t p0_ue_spusch_persistent_sf_set2_r15      = -8;
       };
@@ -17362,7 +17102,7 @@ struct sps_cfg_ul_stti_r15_c {
     p0_persistent_r15_s_                             p0_persistent_r15;
     p0_persistent_sf_set2_r15_c_                     p0_persistent_sf_set2_r15;
     uint8_t                                          nof_conf_ul_sps_processes_stti_r15 = 1;
-    uint8_t                                          s_tti_start_time_ul_r15            = 0;
+    uint8_t                                          stti_start_time_ul_r15             = 0;
     tpc_pdcch_cfg_c                                  tpc_pdcch_cfg_pusch_sps_r15;
     cyclic_shift_sps_s_tti_r15_e_                    cyclic_shift_sps_s_tti_r15;
     bool                                             ifdma_cfg_sps_r15       = false;
@@ -17408,7 +17148,7 @@ private:
 struct spucch_cfg_r15_c {
   struct setup_s_ {
     struct two_ant_port_activ_spucch_format3_r15_s_ {
-      typedef bounded_array<uint16_t, 4> n3_spucch_an_list_r15_l_;
+      using n3_spucch_an_list_r15_l_ = bounded_array<uint16_t, 4>;
 
       // member variables
       n3_spucch_an_list_r15_l_ n3_spucch_an_list_r15;
@@ -17453,7 +17193,6 @@ private:
 
 // SRS-CC-SetIndex-r14 ::= SEQUENCE
 struct srs_cc_set_idx_r14_s {
-  // member variables
   uint8_t cc_set_idx_r14           = 0;
   uint8_t cc_idx_in_one_cc_set_r14 = 0;
 
@@ -17571,7 +17310,6 @@ struct srs_cfg_ap_v1310_s {
 
 // STAG-ToAddMod-r11 ::= SEQUENCE
 struct stag_to_add_mod_r11_s {
-  // member variables
   bool               ext         = false;
   uint8_t            stag_id_r11 = 1;
   time_align_timer_e time_align_timer_stag_r11;
@@ -17641,7 +17379,6 @@ private:
 
 // ShortTTI-r15 ::= SEQUENCE
 struct short_tti_r15_s {
-  // member variables
   bool                dl_stti_len_r15_present = false;
   bool                ul_stti_len_r15_present = false;
   short_tti_len_r15_e dl_stti_len_r15;
@@ -17728,9 +17465,9 @@ private:
 // SlotOrSubslotPUSCH-Config-r15 ::= CHOICE
 struct slot_or_subslot_pusch_cfg_r15_c {
   struct setup_s_ {
-    typedef bounded_array<uint8_t, 2> beta_offset_subslot_ack_idx_r15_l_;
-    typedef bounded_array<uint8_t, 2> beta_offset2_subslot_ack_idx_r15_l_;
-    typedef bounded_array<uint8_t, 2> beta_offset_subslot_ri_idx_r15_l_;
+    using beta_offset_subslot_ack_idx_r15_l_  = bounded_array<uint8_t, 2>;
+    using beta_offset2_subslot_ack_idx_r15_l_ = bounded_array<uint8_t, 2>;
+    using beta_offset_subslot_ri_idx_r15_l_   = bounded_array<uint8_t, 2>;
 
     // member variables
     bool                                ext                                       = false;
@@ -17838,7 +17575,6 @@ private:
 
 // UplinkPowerControlDedicatedSTTI-r15 ::= SEQUENCE
 struct ul_pwr_ctrl_ded_stti_r15_s {
-  // member variables
   bool                                delta_tx_d_offset_list_spucch_r15_present = false;
   bool                                accumulation_enabled_stti_r15             = false;
   delta_tx_d_offset_list_spucch_r15_s delta_tx_d_offset_list_spucch_r15;
@@ -18011,8 +17747,8 @@ struct ant_info_ded_s {
     }
 
   private:
-    types                                        type_;
-    choice_buffer_t<sizeof(fixed_bitstring<64>)> c;
+    types                                 type_;
+    choice_buffer_t<fixed_bitstring<64> > c;
 
     void destroy_();
   };
@@ -18146,8 +17882,7 @@ struct ant_info_ded_r10_s {
 
 // AntennaInfoDedicated-v1250 ::= SEQUENCE
 struct ant_info_ded_v1250_s {
-  // member variables
-  bool alternative_codebook_enabled_for4_tx_r12 = false;
+  bool alt_codebook_enabled_for4_tx_r12 = false;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -18157,7 +17892,6 @@ struct ant_info_ded_v1250_s {
 
 // AntennaInfoDedicated-v1430 ::= SEQUENCE
 struct ant_info_ded_v1430_s {
-  // member variables
   bool ce_ue_tx_ant_sel_cfg_r14_present = false;
 
   // sequence methods
@@ -18305,8 +18039,8 @@ struct ant_info_ded_v920_s {
     }
 
   private:
-    types                                        type_;
-    choice_buffer_t<sizeof(fixed_bitstring<32>)> c;
+    types                                 type_;
+    choice_buffer_t<fixed_bitstring<32> > c;
 
     void destroy_();
   };
@@ -18345,7 +18079,6 @@ struct ant_info_ul_r10_s {
 
 // BandClassPriority1XRTT ::= SEQUENCE
 struct band_class_prio1_xrtt_s {
-  // member variables
   bandclass_cdma2000_e band_class;
   uint8_t              cell_resel_prio = 0;
 
@@ -18357,7 +18090,6 @@ struct band_class_prio1_xrtt_s {
 
 // BandClassPriorityHRPD ::= SEQUENCE
 struct band_class_prio_hrpd_s {
-  // member variables
   bandclass_cdma2000_e band_class;
   uint8_t              cell_resel_prio = 0;
 
@@ -18369,7 +18101,6 @@ struct band_class_prio_hrpd_s {
 
 // CFI-Config-r15 ::= SEQUENCE
 struct cfi_cfg_r15_s {
-  // member variables
   bool    cfi_sf_non_mbsfn_r15_present           = false;
   bool    cfi_slot_subslot_non_mbsfn_r15_present = false;
   bool    cfi_sf_mbsfn_r15_present               = false;
@@ -18404,7 +18135,6 @@ struct cfi_pattern_cfg_r15_s {
 
 // CQI-ReportConfig ::= SEQUENCE
 struct cqi_report_cfg_s {
-  // member variables
   bool                        cqi_report_mode_aperiodic_present = false;
   bool                        cqi_report_periodic_present       = false;
   cqi_report_mode_aperiodic_e cqi_report_mode_aperiodic;
@@ -18440,7 +18170,6 @@ struct cqi_report_cfg_v1530_s {
 
 // CQI-ReportConfig-v920 ::= SEQUENCE
 struct cqi_report_cfg_v920_s {
-  // member variables
   bool cqi_mask_r9_present      = false;
   bool pmi_ri_report_r9_present = false;
 
@@ -18450,20 +18179,19 @@ struct cqi_report_cfg_v920_s {
   void        to_json(json_writer& j) const;
 };
 
-// CRS-AssistanceInfoList-r11 ::= SEQUENCE (SIZE (1..maxCellReport)) OF CRS-AssistanceInfo-r11
-typedef dyn_array<crs_assist_info_r11_s> crs_assist_info_list_r11_l;
+// CRS-AssistanceInfoList-r11 ::= SEQUENCE (SIZE (1..8)) OF CRS-AssistanceInfo-r11
+using crs_assist_info_list_r11_l = dyn_array<crs_assist_info_r11_s>;
 
-// CRS-AssistanceInfoList-r13 ::= SEQUENCE (SIZE (1..maxCellReport)) OF CRS-AssistanceInfo-r13
-typedef dyn_array<crs_assist_info_r13_s> crs_assist_info_list_r13_l;
+// CRS-AssistanceInfoList-r13 ::= SEQUENCE (SIZE (1..8)) OF CRS-AssistanceInfo-r13
+using crs_assist_info_list_r13_l = dyn_array<crs_assist_info_r13_s>;
 
-// CRS-AssistanceInfoList-r15 ::= SEQUENCE (SIZE (1..maxCellReport)) OF CRS-AssistanceInfo-r15
-typedef dyn_array<crs_assist_info_r15_s> crs_assist_info_list_r15_l;
+// CRS-AssistanceInfoList-r15 ::= SEQUENCE (SIZE (1..8)) OF CRS-AssistanceInfo-r15
+using crs_assist_info_list_r15_l = dyn_array<crs_assist_info_r15_s>;
 
 // CSI-RS-Config-v1480 ::= SEQUENCE
 struct csi_rs_cfg_v1480_s {
-  // member variables
-  bool                     e_mimo_type_v1480_present = false;
-  csi_rs_cfg_emimo_v1480_c e_mimo_type_v1480;
+  bool                     emimo_type_v1480_present = false;
+  csi_rs_cfg_emimo_v1480_c emimo_type_v1480;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -18473,9 +18201,8 @@ struct csi_rs_cfg_v1480_s {
 
 // CSI-RS-Config-v1530 ::= SEQUENCE
 struct csi_rs_cfg_v1530_s {
-  // member variables
-  bool                     e_mimo_type_v1530_present = false;
-  csi_rs_cfg_emimo_v1530_c e_mimo_type_v1530;
+  bool                     emimo_type_v1530_present = false;
+  csi_rs_cfg_emimo_v1530_c emimo_type_v1530;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -18483,17 +18210,17 @@ struct csi_rs_cfg_v1530_s {
   void        to_json(json_writer& j) const;
 };
 
-// CSI-RS-ConfigNZPToAddModList-r11 ::= SEQUENCE (SIZE (1..maxCSI-RS-NZP-r11)) OF CSI-RS-ConfigNZP-r11
-typedef dyn_array<csi_rs_cfg_nzp_r11_s> csi_rs_cfg_nzp_to_add_mod_list_r11_l;
+// CSI-RS-ConfigNZPToAddModList-r11 ::= SEQUENCE (SIZE (1..3)) OF CSI-RS-ConfigNZP-r11
+using csi_rs_cfg_nzp_to_add_mod_list_r11_l = dyn_array<csi_rs_cfg_nzp_r11_s>;
 
-// CSI-RS-ConfigNZPToAddModListExt-r13 ::= SEQUENCE (SIZE (1..maxCSI-RS-NZP-v1310)) OF CSI-RS-ConfigNZP-r11
-typedef dyn_array<csi_rs_cfg_nzp_r11_s> csi_rs_cfg_nzp_to_add_mod_list_ext_r13_l;
+// CSI-RS-ConfigNZPToAddModListExt-r13 ::= SEQUENCE (SIZE (1..21)) OF CSI-RS-ConfigNZP-r11
+using csi_rs_cfg_nzp_to_add_mod_list_ext_r13_l = dyn_array<csi_rs_cfg_nzp_r11_s>;
 
-// CSI-RS-ConfigNZPToReleaseList-r11 ::= SEQUENCE (SIZE (1..maxCSI-RS-NZP-r11)) OF INTEGER
-typedef bounded_array<uint8_t, 3> csi_rs_cfg_nzp_to_release_list_r11_l;
+// CSI-RS-ConfigNZPToReleaseList-r11 ::= SEQUENCE (SIZE (1..3)) OF INTEGER (1..3)
+using csi_rs_cfg_nzp_to_release_list_r11_l = bounded_array<uint8_t, 3>;
 
-// CSI-RS-ConfigNZPToReleaseListExt-r13 ::= SEQUENCE (SIZE (1..maxCSI-RS-NZP-v1310)) OF INTEGER
-typedef bounded_array<uint8_t, 21> csi_rs_cfg_nzp_to_release_list_ext_r13_l;
+// CSI-RS-ConfigNZPToReleaseListExt-r13 ::= SEQUENCE (SIZE (1..21)) OF INTEGER (4..24)
+using csi_rs_cfg_nzp_to_release_list_ext_r13_l = bounded_array<uint8_t, 21>;
 
 // DRB-ToAddMod ::= SEQUENCE
 struct drb_to_add_mod_s {
@@ -18713,10 +18440,10 @@ struct drx_cfg_c {
         assert_choice_type("sf160", type_.to_string(), "longDRX-CycleStartOffset");
         return c.get<uint8_t>();
       }
-      uint8_t& sf256()
+      uint16_t& sf256()
       {
         assert_choice_type("sf256", type_.to_string(), "longDRX-CycleStartOffset");
-        return c.get<uint8_t>();
+        return c.get<uint16_t>();
       }
       uint16_t& sf320()
       {
@@ -18793,10 +18520,10 @@ struct drx_cfg_c {
         assert_choice_type("sf160", type_.to_string(), "longDRX-CycleStartOffset");
         return c.get<uint8_t>();
       }
-      const uint8_t& sf256() const
+      const uint16_t& sf256() const
       {
         assert_choice_type("sf256", type_.to_string(), "longDRX-CycleStartOffset");
-        return c.get<uint8_t>();
+        return c.get<uint16_t>();
       }
       const uint16_t& sf320() const
       {
@@ -18873,10 +18600,10 @@ struct drx_cfg_c {
         set(types::sf160);
         return c.get<uint8_t>();
       }
-      uint8_t& set_sf256()
+      uint16_t& set_sf256()
       {
         set(types::sf256);
-        return c.get<uint8_t>();
+        return c.get<uint16_t>();
       }
       uint16_t& set_sf320()
       {
@@ -18915,8 +18642,8 @@ struct drx_cfg_c {
       }
 
     private:
-      types              type_;
-      choice_buffer_t<8> c;
+      types               type_;
+      pod_choice_buffer_t c;
 
       void destroy_();
     };
@@ -19157,8 +18884,8 @@ struct drx_cfg_v1130_s {
     }
 
   private:
-    types              type_;
-    choice_buffer_t<8> c;
+    types               type_;
+    pod_choice_buffer_t c;
 
     void destroy_();
   };
@@ -19178,7 +18905,6 @@ struct drx_cfg_v1130_s {
 // DRX-Config-v1310 ::= SEQUENCE
 struct drx_cfg_v1310_s {
   struct long_drx_cycle_start_offset_v1310_s_ {
-    // member variables
     uint8_t sf60_v1310 = 0;
   };
 
@@ -19208,7 +18934,6 @@ struct epdcch_cfg_r11_s {
     struct setup_s_ {
       struct sf_pattern_cfg_r11_c_ {
         struct setup_s_ {
-          // member variables
           meas_sf_pattern_r10_c sf_pattern_r11;
         };
         typedef setup_e types;
@@ -19294,8 +19019,7 @@ struct epdcch_cfg_r11_s {
 
 // FreqPriorityEUTRA ::= SEQUENCE
 struct freq_prio_eutra_s {
-  // member variables
-  uint16_t carrier_freq    = 0;
+  uint32_t carrier_freq    = 0;
   uint8_t  cell_resel_prio = 0;
 
   // sequence methods
@@ -19306,7 +19030,6 @@ struct freq_prio_eutra_s {
 
 // FreqPriorityEUTRA-r12 ::= SEQUENCE
 struct freq_prio_eutra_r12_s {
-  // member variables
   uint32_t carrier_freq_r12    = 0;
   uint8_t  cell_resel_prio_r12 = 0;
 
@@ -19318,7 +19041,6 @@ struct freq_prio_eutra_r12_s {
 
 // FreqPriorityEUTRA-v1310 ::= SEQUENCE
 struct freq_prio_eutra_v1310_s {
-  // member variables
   bool                      cell_resel_sub_prio_r13_present = false;
   cell_resel_sub_prio_r13_e cell_resel_sub_prio_r13;
 
@@ -19330,7 +19052,6 @@ struct freq_prio_eutra_v1310_s {
 
 // FreqPriorityNR-r15 ::= SEQUENCE
 struct freq_prio_nr_r15_s {
-  // member variables
   bool                      cell_resel_sub_prio_r15_present = false;
   uint32_t                  carrier_freq_r15                = 0;
   uint8_t                   cell_resel_prio_r15             = 0;
@@ -19344,7 +19065,6 @@ struct freq_prio_nr_r15_s {
 
 // FreqPriorityUTRA-FDD ::= SEQUENCE
 struct freq_prio_utra_fdd_s {
-  // member variables
   uint16_t carrier_freq    = 0;
   uint8_t  cell_resel_prio = 0;
 
@@ -19356,7 +19076,6 @@ struct freq_prio_utra_fdd_s {
 
 // FreqPriorityUTRA-TDD ::= SEQUENCE
 struct freq_prio_utra_tdd_s {
-  // member variables
   uint16_t carrier_freq    = 0;
   uint8_t  cell_resel_prio = 0;
 
@@ -19368,7 +19087,6 @@ struct freq_prio_utra_tdd_s {
 
 // FreqsPriorityGERAN ::= SEQUENCE
 struct freqs_prio_geran_s {
-  // member variables
   carrier_freqs_geran_s carrier_freqs;
   uint8_t               cell_resel_prio = 0;
 
@@ -19378,16 +19096,15 @@ struct freqs_prio_geran_s {
   void        to_json(json_writer& j) const;
 };
 
-// NeighCellsToAddModList-r12 ::= SEQUENCE (SIZE (1..maxNeighCell-r12)) OF NeighCellsInfo-r12
-typedef dyn_array<neigh_cells_info_r12_s> neigh_cells_to_add_mod_list_r12_l;
+// NeighCellsToAddModList-r12 ::= SEQUENCE (SIZE (1..8)) OF NeighCellsInfo-r12
+using neigh_cells_to_add_mod_list_r12_l = dyn_array<neigh_cells_info_r12_s>;
 
-// NeighCellsToReleaseList-r12 ::= SEQUENCE (SIZE (1..maxNeighCell-r12)) OF INTEGER
-typedef bounded_array<uint16_t, 8> neigh_cells_to_release_list_r12_l;
+// NeighCellsToReleaseList-r12 ::= SEQUENCE (SIZE (1..8)) OF INTEGER (0..503)
+using neigh_cells_to_release_list_r12_l = bounded_array<uint16_t, 8>;
 
 // PDCCH-CandidateReductions-r13 ::= CHOICE
 struct pdcch_candidate_reductions_r13_c {
   struct setup_s_ {
-    // member variables
     pdcch_candidate_reduction_value_r13_e pdcch_candidate_reduction_al1_r13;
     pdcch_candidate_reduction_value_r13_e pdcch_candidate_reduction_al2_r13;
     pdcch_candidate_reduction_value_r13_e pdcch_candidate_reduction_al3_r13;
@@ -19494,7 +19211,6 @@ struct pdsch_cfg_ded_v1280_s {
 
 // PDSCH-ConfigDedicated-v1310 ::= SEQUENCE
 struct pdsch_cfg_ded_v1310_s {
-  // member variables
   bool             dmrs_cfg_pdsch_v1310_present = false;
   dmrs_cfg_v1310_s dmrs_cfg_pdsch_v1310;
 
@@ -19541,7 +19257,7 @@ struct pdsch_cfg_ded_v1430_s {
 // PDSCH-ConfigDedicated-v1530 ::= SEQUENCE
 struct pdsch_cfg_ded_v1530_s {
   struct alt_mcs_table_scaling_cfg_r15_opts {
-    enum options { o_dot5, o_dot625, o_dot75, o_dot875, nulltype } value;
+    enum options { odot5, odot625, odot75, odot875, nulltype } value;
     typedef float number_type;
 
     std::string to_string() const;
@@ -19553,7 +19269,7 @@ struct pdsch_cfg_ded_v1530_s {
   // member variables
   bool                             qcl_operation_v1530_present                   = false;
   bool                             tbs_idx_alt3_r15_present                      = false;
-  bool                             ce_cqi_alternative_table_cfg_r15_present      = false;
+  bool                             ce_cqi_alt_table_cfg_r15_present              = false;
   bool                             ce_pdsch_minus64_qam_cfg_r15_present          = false;
   bool                             ce_pdsch_flex_start_prb_alloc_cfg_r15_present = false;
   bool                             alt_mcs_table_scaling_cfg_r15_present         = false;
@@ -19685,10 +19401,10 @@ struct pucch_cfg_ded_r13_s {
   typedef enumerated<tdd_ack_nack_feedback_mode_r13_opts> tdd_ack_nack_feedback_mode_r13_e_;
   struct pucch_format_r13_c_ {
     struct format3_r13_s_ {
-      typedef bounded_array<uint16_t, 4> n3_pucch_an_list_r13_l_;
+      using n3_pucch_an_list_r13_l_ = bounded_array<uint16_t, 4>;
       struct two_ant_port_activ_pucch_format3_r13_c_ {
         struct setup_s_ {
-          typedef bounded_array<uint16_t, 4> n3_pucch_an_list_p1_r13_l_;
+          using n3_pucch_an_list_p1_r13_l_ = bounded_array<uint16_t, 4>;
 
           // member variables
           n3_pucch_an_list_p1_r13_l_ n3_pucch_an_list_p1_r13;
@@ -19733,8 +19449,8 @@ struct pucch_cfg_ded_r13_s {
     struct ch_sel_r13_s_ {
       struct n1_pucch_an_cs_r13_c_ {
         struct setup_s_ {
-          typedef dyn_array<n1_pucch_an_cs_r10_l> n1_pucch_an_cs_list_r13_l_;
-          typedef bounded_array<uint16_t, 4>      n1_pucch_an_cs_list_p1_r13_l_;
+          using n1_pucch_an_cs_list_r13_l_    = dyn_array<n1_pucch_an_cs_r10_l>;
+          using n1_pucch_an_cs_list_p1_r13_l_ = bounded_array<uint16_t, 4>;
 
           // member variables
           n1_pucch_an_cs_list_r13_l_    n1_pucch_an_cs_list_r13;
@@ -19776,8 +19492,8 @@ struct pucch_cfg_ded_r13_s {
       n1_pucch_an_cs_r13_c_ n1_pucch_an_cs_r13;
     };
     struct format4_r13_s_ {
-      using format4_res_cfg_r13_l_ = std::array<format4_res_r13_s, 4>;
-      typedef dyn_array<format4_res_r13_s> format4_multi_csi_res_cfg_r13_l_;
+      using format4_res_cfg_r13_l_           = std::array<format4_res_r13_s, 4>;
+      using format4_multi_csi_res_cfg_r13_l_ = dyn_array<format4_res_r13_s>;
 
       // member variables
       bool                             format4_multi_csi_res_cfg_r13_present = false;
@@ -19874,22 +19590,20 @@ struct pucch_cfg_ded_r13_s {
     }
 
   private:
-    types type_;
-    choice_buffer_t<MAX4(sizeof(ch_sel_r13_s_), sizeof(format3_r13_s_), sizeof(format4_r13_s_), sizeof(format5_r13_s_))>
-        c;
+    types                                                                          type_;
+    choice_buffer_t<ch_sel_r13_s_, format3_r13_s_, format4_r13_s_, format5_r13_s_> c;
 
     void destroy_();
   };
-  struct n_pucch_param_r13_c_ {
+  struct npucch_param_r13_c_ {
     struct setup_s_ {
-      // member variables
-      uint16_t n_pucch_id_r13  = 0;
+      uint16_t npucch_id_r13   = 0;
       uint16_t n1_pucch_an_r13 = 0;
     };
     typedef setup_e types;
 
     // choice methods
-    n_pucch_param_r13_c_() = default;
+    npucch_param_r13_c_() = default;
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
@@ -19918,7 +19632,6 @@ struct pucch_cfg_ded_r13_s {
   };
   struct nka_pucch_param_r13_c_ {
     struct setup_s_ {
-      // member variables
       uint16_t nka_pucch_an_r13 = 0;
     };
     typedef setup_e types;
@@ -20053,8 +19766,8 @@ struct pucch_cfg_ded_r13_s {
       }
 
     private:
-      types                                                       type_;
-      choice_buffer_t<MAX2(sizeof(mode_a_s_), sizeof(mode_b_s_))> c;
+      types                                 type_;
+      choice_buffer_t<mode_a_s_, mode_b_s_> c;
 
       void destroy_();
     };
@@ -20095,7 +19808,7 @@ struct pucch_cfg_ded_r13_s {
   bool                              two_ant_port_activ_pucch_format1a1b_r13_present = false;
   bool                              simul_pucch_pusch_r13_present                   = false;
   bool                              n1_pucch_an_rep_p1_r13_present                  = false;
-  bool                              n_pucch_param_r13_present                       = false;
+  bool                              npucch_param_r13_present                        = false;
   bool                              nka_pucch_param_r13_present                     = false;
   bool                              codebooksize_determination_r13_present          = false;
   bool                              maximum_payload_coderate_r13_present            = false;
@@ -20104,7 +19817,7 @@ struct pucch_cfg_ded_r13_s {
   tdd_ack_nack_feedback_mode_r13_e_ tdd_ack_nack_feedback_mode_r13;
   pucch_format_r13_c_               pucch_format_r13;
   uint16_t                          n1_pucch_an_rep_p1_r13 = 0;
-  n_pucch_param_r13_c_              n_pucch_param_r13;
+  npucch_param_r13_c_               npucch_param_r13;
   nka_pucch_param_r13_c_            nka_pucch_param_r13;
   bool                              spatial_bundling_pucch_r13 = false;
   bool                              spatial_bundling_pusch_r13 = false;
@@ -20125,7 +19838,7 @@ struct pucch_cfg_ded_v1020_s {
     struct ch_sel_r10_s_ {
       struct n1_pucch_an_cs_r10_c_ {
         struct setup_s_ {
-          typedef dyn_array<n1_pucch_an_cs_r10_l> n1_pucch_an_cs_list_r10_l_;
+          using n1_pucch_an_cs_list_r10_l_ = dyn_array<n1_pucch_an_cs_r10_l>;
 
           // member variables
           n1_pucch_an_cs_list_r10_l_ n1_pucch_an_cs_list_r10;
@@ -20217,8 +19930,8 @@ struct pucch_cfg_ded_v1020_s {
     }
 
   private:
-    types                                                                          type_;
-    choice_buffer_t<MAX2(sizeof(ch_sel_r10_s_), sizeof(pucch_format3_conf_r13_s))> c;
+    types                                                    type_;
+    choice_buffer_t<ch_sel_r10_s_, pucch_format3_conf_r13_s> c;
 
     void destroy_();
   };
@@ -20241,7 +19954,7 @@ struct pucch_cfg_ded_v1020_s {
 struct pucch_cfg_ded_v1130_s {
   struct n1_pucch_an_cs_v1130_c_ {
     struct setup_s_ {
-      typedef bounded_array<uint16_t, 4> n1_pucch_an_cs_list_p1_r11_l_;
+      using n1_pucch_an_cs_list_p1_r11_l_ = bounded_array<uint16_t, 4>;
 
       // member variables
       n1_pucch_an_cs_list_p1_r11_l_ n1_pucch_an_cs_list_p1_r11;
@@ -20276,16 +19989,15 @@ struct pucch_cfg_ded_v1130_s {
     types    type_;
     setup_s_ c;
   };
-  struct n_pucch_param_r11_c_ {
+  struct npucch_param_r11_c_ {
     struct setup_s_ {
-      // member variables
-      uint16_t n_pucch_id_r11  = 0;
+      uint16_t npucch_id_r11   = 0;
       uint16_t n1_pucch_an_r11 = 0;
     };
     typedef setup_e types;
 
     // choice methods
-    n_pucch_param_r11_c_() = default;
+    npucch_param_r11_c_() = default;
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
@@ -20315,9 +20027,9 @@ struct pucch_cfg_ded_v1130_s {
 
   // member variables
   bool                    n1_pucch_an_cs_v1130_present = false;
-  bool                    n_pucch_param_r11_present    = false;
+  bool                    npucch_param_r11_present     = false;
   n1_pucch_an_cs_v1130_c_ n1_pucch_an_cs_v1130;
-  n_pucch_param_r11_c_    n_pucch_param_r11;
+  npucch_param_r11_c_     npucch_param_r11;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -20329,7 +20041,6 @@ struct pucch_cfg_ded_v1130_s {
 struct pucch_cfg_ded_v1250_s {
   struct nka_pucch_param_r12_c_ {
     struct setup_s_ {
-      // member variables
       uint16_t nka_pucch_an_r12 = 0;
     };
     typedef setup_e types;
@@ -20395,7 +20106,6 @@ struct pucch_cfg_ded_v1430_s {
 
 // PUSCH-ConfigDedicated ::= SEQUENCE
 struct pusch_cfg_ded_s {
-  // member variables
   uint8_t beta_offset_ack_idx = 0;
   uint8_t beta_offset_ri_idx  = 0;
   uint8_t beta_offset_cqi_idx = 0;
@@ -20409,7 +20119,6 @@ struct pusch_cfg_ded_s {
 // PUSCH-ConfigDedicated-r13 ::= SEQUENCE
 struct pusch_cfg_ded_r13_s {
   struct beta_offset_mc_r13_s_ {
-    // member variables
     bool    beta_offset2_ack_idx_mc_r13_present = false;
     uint8_t beta_offset_ack_idx_mc_r13          = 0;
     uint8_t beta_offset2_ack_idx_mc_r13         = 0;
@@ -20418,9 +20127,8 @@ struct pusch_cfg_ded_r13_s {
   };
   struct pusch_dmrs_r11_c_ {
     struct setup_s_ {
-      // member variables
-      uint16_t n_pusch_id_r13    = 0;
-      uint16_t n_dmrs_csh_id_r13 = 0;
+      uint16_t npusch_id_r13    = 0;
+      uint16_t ndmrs_csh_id_r13 = 0;
     };
     typedef setup_e types;
 
@@ -20455,7 +20163,6 @@ struct pusch_cfg_ded_r13_s {
   struct uci_on_pusch_c_ {
     struct setup_s_ {
       struct beta_offset_mc_r12_s_ {
-        // member variables
         bool    beta_offset2_ack_idx_mc_sf_set2_r13_present = false;
         uint8_t beta_offset_ack_idx_mc_sf_set2_r13          = 0;
         uint8_t beta_offset2_ack_idx_mc_sf_set2_r13         = 0;
@@ -20528,7 +20235,6 @@ struct pusch_cfg_ded_r13_s {
 // PUSCH-ConfigDedicated-v1020 ::= SEQUENCE
 struct pusch_cfg_ded_v1020_s {
   struct beta_offset_mc_r10_s_ {
-    // member variables
     uint8_t beta_offset_ack_idx_mc_r10 = 0;
     uint8_t beta_offset_ri_idx_mc_r10  = 0;
     uint8_t beta_offset_cqi_idx_mc_r10 = 0;
@@ -20550,9 +20256,8 @@ struct pusch_cfg_ded_v1020_s {
 struct pusch_cfg_ded_v1130_s {
   struct pusch_dmrs_r11_c_ {
     struct setup_s_ {
-      // member variables
-      uint16_t n_pusch_id_r11    = 0;
-      uint16_t n_dmrs_csh_id_r11 = 0;
+      uint16_t npusch_id_r11    = 0;
+      uint16_t ndmrs_csh_id_r11 = 0;
     };
     typedef setup_e types;
 
@@ -20599,7 +20304,6 @@ struct pusch_cfg_ded_v1250_s {
   struct uci_on_pusch_c_ {
     struct setup_s_ {
       struct beta_offset_mc_r12_s_ {
-        // member variables
         uint8_t beta_offset_ack_idx_mc_sf_set2_r12 = 0;
         uint8_t beta_offset_ri_idx_mc_sf_set2_r12  = 0;
         uint8_t beta_offset_cqi_idx_mc_sf_set2_r12 = 0;
@@ -20654,7 +20358,6 @@ struct pusch_cfg_ded_v1250_s {
 
 // PUSCH-ConfigDedicated-v1430 ::= SEQUENCE
 struct pusch_cfg_ded_v1430_s {
-  // member variables
   bool                   ce_pusch_nb_max_tbs_r14_present = false;
   bool                   ce_pusch_max_bw_r14_present     = false;
   bool                   tdd_pusch_up_pts_r14_present    = false;
@@ -20673,7 +20376,6 @@ struct pusch_cfg_ded_v1430_s {
 struct pusch_cfg_ded_v1530_s {
   struct ce_pusch_flex_start_prb_alloc_cfg_r15_c_ {
     struct setup_s_ {
-      // member variables
       bool   offset_ce_mode_b_r15_present = false;
       int8_t offset_ce_mode_b_r15         = -1;
     };
@@ -20709,7 +20411,6 @@ struct pusch_cfg_ded_v1530_s {
   };
   struct ce_pusch_sub_prb_cfg_r15_c_ {
     struct setup_s_ {
-      // member variables
       bool    location_ce_mode_b_r15_present = false;
       uint8_t location_ce_mode_b_r15         = 0;
       uint8_t six_tone_cyclic_shift_r15      = 0;
@@ -20827,8 +20528,8 @@ struct pusch_enhance_cfg_r14_c {
       }
 
     private:
-      types                                                                                           type_;
-      choice_buffer_t<MAX2(sizeof(interv_fdd_pusch_enh_r14_e_), sizeof(interv_tdd_pusch_enh_r14_e_))> c;
+      types               type_;
+      pod_choice_buffer_t c;
 
       void destroy_();
     };
@@ -20901,7 +20602,6 @@ typedef enumerated<periodic_bsr_timer_r12_opts> periodic_bsr_timer_r12_e;
 // PhysicalConfigDedicatedSTTI-r15 ::= CHOICE
 struct phys_cfg_ded_stti_r15_c {
   struct setup_s_ {
-    // member variables
     bool                                 ant_info_ded_stti_r15_present              = false;
     bool                                 ant_info_ul_stti_r15_present               = false;
     bool                                 pucch_cfg_ded_v1530_present                = false;
@@ -20940,8 +20640,8 @@ struct phys_cfg_ded_stti_r15_c {
     slot_or_subslot_pusch_cfg_r15_c      slot_or_subslot_pusch_cfg_r15;
     spdcch_cfg_r15_c                     spdcch_cfg_r15;
     spucch_cfg_r15_c                     spucch_cfg_r15;
-    bool                                 srs_dci7_triggering_cfg_r15 = false;
-    bool                                 short_processing_time_r15   = false;
+    bool                                 srs_dci7_trigger_cfg_r15  = false;
+    bool                                 short_processing_time_r15 = false;
     short_tti_r15_s                      short_tti_r15;
   };
   typedef setup_e types;
@@ -21051,7 +20751,6 @@ struct sps_cfg_dl_c {
     typedef enumerated<semi_persist_sched_interv_dl_opts> semi_persist_sched_interv_dl_e_;
     struct two_ant_port_activ_r10_c_ {
       struct setup_s_ {
-        // member variables
         n1_pucch_an_persistent_list_l n1_pucch_an_persistent_list_p1_r10;
       };
       typedef setup_e types;
@@ -21130,29 +20829,29 @@ private:
   setup_s_ c;
 };
 
-// SPS-ConfigSL-ToAddModList-r14 ::= SEQUENCE (SIZE (1..maxConfigSPS-r14)) OF SPS-ConfigSL-r14
-typedef dyn_array<sps_cfg_sl_r14_s> sps_cfg_sl_to_add_mod_list_r14_l;
+// SPS-ConfigSL-ToAddModList-r14 ::= SEQUENCE (SIZE (1..8)) OF SPS-ConfigSL-r14
+using sps_cfg_sl_to_add_mod_list_r14_l = dyn_array<sps_cfg_sl_r14_s>;
 
-// SPS-ConfigSL-ToReleaseList-r14 ::= SEQUENCE (SIZE (1..maxConfigSPS-r14)) OF INTEGER
-typedef bounded_array<uint8_t, 8> sps_cfg_sl_to_release_list_r14_l;
+// SPS-ConfigSL-ToReleaseList-r14 ::= SEQUENCE (SIZE (1..8)) OF INTEGER (1..8)
+using sps_cfg_sl_to_release_list_r14_l = bounded_array<uint8_t, 8>;
 
-// SPS-ConfigUL-STTI-ToAddModList-r15 ::= SEQUENCE (SIZE (1..maxConfigSPS-r15)) OF SPS-ConfigUL-STTI-r15
-typedef dyn_array<sps_cfg_ul_stti_r15_c> sps_cfg_ul_stti_to_add_mod_list_r15_l;
+// SPS-ConfigUL-STTI-ToAddModList-r15 ::= SEQUENCE (SIZE (1..6)) OF SPS-ConfigUL-STTI-r15
+using sps_cfg_ul_stti_to_add_mod_list_r15_l = dyn_array<sps_cfg_ul_stti_r15_c>;
 
-// SPS-ConfigUL-STTI-ToReleaseList-r15 ::= SEQUENCE (SIZE (1..maxConfigSPS-r15)) OF INTEGER
-typedef bounded_array<uint8_t, 6> sps_cfg_ul_stti_to_release_list_r15_l;
+// SPS-ConfigUL-STTI-ToReleaseList-r15 ::= SEQUENCE (SIZE (1..6)) OF INTEGER (1..6)
+using sps_cfg_ul_stti_to_release_list_r15_l = bounded_array<uint8_t, 6>;
 
-// SPS-ConfigUL-ToAddModList-r14 ::= SEQUENCE (SIZE (1..maxConfigSPS-r14)) OF SPS-ConfigUL
-typedef dyn_array<sps_cfg_ul_c> sps_cfg_ul_to_add_mod_list_r14_l;
+// SPS-ConfigUL-ToAddModList-r14 ::= SEQUENCE (SIZE (1..8)) OF SPS-ConfigUL
+using sps_cfg_ul_to_add_mod_list_r14_l = dyn_array<sps_cfg_ul_c>;
 
-// SPS-ConfigUL-ToAddModList-r15 ::= SEQUENCE (SIZE (1..maxConfigSPS-r15)) OF SPS-ConfigUL
-typedef dyn_array<sps_cfg_ul_c> sps_cfg_ul_to_add_mod_list_r15_l;
+// SPS-ConfigUL-ToAddModList-r15 ::= SEQUENCE (SIZE (1..6)) OF SPS-ConfigUL
+using sps_cfg_ul_to_add_mod_list_r15_l = dyn_array<sps_cfg_ul_c>;
 
-// SPS-ConfigUL-ToReleaseList-r14 ::= SEQUENCE (SIZE (1..maxConfigSPS-r14)) OF INTEGER
-typedef bounded_array<uint8_t, 8> sps_cfg_ul_to_release_list_r14_l;
+// SPS-ConfigUL-ToReleaseList-r14 ::= SEQUENCE (SIZE (1..8)) OF INTEGER (1..8)
+using sps_cfg_ul_to_release_list_r14_l = bounded_array<uint8_t, 8>;
 
-// SPS-ConfigUL-ToReleaseList-r15 ::= SEQUENCE (SIZE (1..maxConfigSPS-r15)) OF INTEGER
-typedef bounded_array<uint8_t, 6> sps_cfg_ul_to_release_list_r15_l;
+// SPS-ConfigUL-ToReleaseList-r15 ::= SEQUENCE (SIZE (1..6)) OF INTEGER (1..6)
+using sps_cfg_ul_to_release_list_r15_l = bounded_array<uint8_t, 6>;
 
 // SRB-ToAddMod ::= SEQUENCE
 struct srb_to_add_mod_s {
@@ -21253,7 +20952,7 @@ struct srb_to_add_mod_s {
 // SRS-TPC-PDCCH-Config-r14 ::= CHOICE
 struct srs_tpc_pdcch_cfg_r14_c {
   struct setup_s_ {
-    typedef dyn_array<srs_cc_set_idx_r14_s> srs_cc_set_idxlist_r14_l_;
+    using srs_cc_set_idxlist_r14_l_ = dyn_array<srs_cc_set_idx_r14_s>;
 
     // member variables
     bool                      srs_cc_set_idxlist_r14_present = false;
@@ -21293,11 +20992,11 @@ private:
   setup_s_ c;
 };
 
-// STAG-ToAddModList-r11 ::= SEQUENCE (SIZE (1..maxSTAG-r11)) OF STAG-ToAddMod-r11
-typedef dyn_array<stag_to_add_mod_r11_s> stag_to_add_mod_list_r11_l;
+// STAG-ToAddModList-r11 ::= SEQUENCE (SIZE (1..3)) OF STAG-ToAddMod-r11
+using stag_to_add_mod_list_r11_l = dyn_array<stag_to_add_mod_r11_s>;
 
-// STAG-ToReleaseList-r11 ::= SEQUENCE (SIZE (1..maxSTAG-r11)) OF INTEGER
-typedef bounded_array<uint8_t, 3> stag_to_release_list_r11_l;
+// STAG-ToReleaseList-r11 ::= SEQUENCE (SIZE (1..3)) OF INTEGER (1..3)
+using stag_to_release_list_r11_l = bounded_array<uint8_t, 3>;
 
 // SchedulingRequestConfig ::= CHOICE
 struct sched_request_cfg_c {
@@ -21349,7 +21048,6 @@ private:
 
 // SchedulingRequestConfig-v1020 ::= SEQUENCE
 struct sched_request_cfg_v1020_s {
-  // member variables
   bool     sr_pucch_res_idx_p1_r10_present = false;
   uint16_t sr_pucch_res_idx_p1_r10         = 0;
 
@@ -21429,7 +21127,6 @@ private:
 
 // SoundingRS-UL-ConfigDedicated-v1020 ::= SEQUENCE
 struct srs_ul_cfg_ded_v1020_s {
-  // member variables
   srs_ant_port_e srs_ant_port_r10;
 
   // sequence methods
@@ -21500,10 +21197,9 @@ private:
 // SoundingRS-UL-ConfigDedicatedAperiodic-r10 ::= CHOICE
 struct srs_ul_cfg_ded_aperiodic_r10_c {
   struct setup_s_ {
-    typedef dyn_array<srs_cfg_ap_r10_s> srs_cfg_ap_dci_format4_r10_l_;
+    using srs_cfg_ap_dci_format4_r10_l_ = dyn_array<srs_cfg_ap_r10_s>;
     struct srs_activ_ap_r10_c_ {
       struct setup_s_ {
-        // member variables
         bool             ext = false;
         srs_cfg_ap_r10_s srs_cfg_ap_dci_format0_r10;
         srs_cfg_ap_r10_s srs_cfg_ap_dci_format1a2b2c_r10;
@@ -21581,10 +21277,9 @@ private:
 // SoundingRS-UL-ConfigDedicatedAperiodic-v1310 ::= CHOICE
 struct srs_ul_cfg_ded_aperiodic_v1310_c {
   struct setup_s_ {
-    typedef dyn_array<srs_cfg_ap_v1310_s> srs_cfg_ap_dci_format4_v1310_l_;
+    using srs_cfg_ap_dci_format4_v1310_l_ = dyn_array<srs_cfg_ap_v1310_s>;
     struct srs_activ_ap_v1310_c_ {
       struct setup_s_ {
-        // member variables
         bool               srs_cfg_ap_dci_format0_v1310_present      = false;
         bool               srs_cfg_ap_dci_format1a2b2c_v1310_present = false;
         srs_cfg_ap_v1310_s srs_cfg_ap_dci_format0_v1310;
@@ -21669,10 +21364,9 @@ struct srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_c {
       uint8_t     to_number() const;
     };
     typedef enumerated<srs_up_pts_add_r13_opts> srs_up_pts_add_r13_e_;
-    typedef dyn_array<srs_cfg_ap_r13_s>         srs_cfg_ap_dci_format4_r13_l_;
+    using srs_cfg_ap_dci_format4_r13_l_ = dyn_array<srs_cfg_ap_r13_s>;
     struct srs_activ_ap_r13_c_ {
       struct setup_s_ {
-        // member variables
         srs_cfg_ap_r13_s srs_cfg_ap_dci_format0_r13;
         srs_cfg_ap_r13_s srs_cfg_ap_dci_format1a2b2c_r13;
       };
@@ -21850,7 +21544,7 @@ struct ul_pwr_ctrl_ded_s {
   delta_mcs_enabled_e_ delta_mcs_enabled;
   bool                 accumulation_enabled = false;
   int8_t               p0_ue_pucch          = -8;
-  uint8_t              p_srs_offset         = 0;
+  uint8_t              psrs_offset          = 0;
   filt_coef_e          filt_coef;
 
   // sequence methods
@@ -21861,11 +21555,10 @@ struct ul_pwr_ctrl_ded_s {
 
 // UplinkPowerControlDedicated-v1020 ::= SEQUENCE
 struct ul_pwr_ctrl_ded_v1020_s {
-  // member variables
   bool                               delta_tx_d_offset_list_pucch_r10_present = false;
-  bool                               p_srs_offset_ap_r10_present              = false;
+  bool                               psrs_offset_ap_r10_present               = false;
   delta_tx_d_offset_list_pucch_r10_s delta_tx_d_offset_list_pucch_r10;
-  uint8_t                            p_srs_offset_ap_r10 = 0;
+  uint8_t                            psrs_offset_ap_r10 = 0;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -21875,12 +21568,11 @@ struct ul_pwr_ctrl_ded_v1020_s {
 
 // UplinkPowerControlDedicated-v1130 ::= SEQUENCE
 struct ul_pwr_ctrl_ded_v1130_s {
-  // member variables
-  bool                                 p_srs_offset_v1130_present                 = false;
-  bool                                 p_srs_offset_ap_v1130_present              = false;
+  bool                                 psrs_offset_v1130_present                  = false;
+  bool                                 psrs_offset_ap_v1130_present               = false;
   bool                                 delta_tx_d_offset_list_pucch_v1130_present = false;
-  uint8_t                              p_srs_offset_v1130                         = 16;
-  uint8_t                              p_srs_offset_ap_v1130                      = 16;
+  uint8_t                              psrs_offset_v1130                          = 16;
+  uint8_t                              psrs_offset_ap_v1130                       = 16;
   delta_tx_d_offset_list_pucch_v1130_s delta_tx_d_offset_list_pucch_v1130;
 
   // sequence methods
@@ -21893,7 +21585,6 @@ struct ul_pwr_ctrl_ded_v1130_s {
 struct ul_pwr_ctrl_ded_v1250_s {
   struct set2_pwr_ctrl_param_c_ {
     struct setup_s_ {
-      // member variables
       fixed_bitstring<10> tpc_sf_set_r12;
       int8_t              p0_nominal_pusch_sf_set2_r12 = -126;
       alpha_r12_e         alpha_sf_set2_r12;
@@ -21941,7 +21632,6 @@ struct ul_pwr_ctrl_ded_v1250_s {
 
 // UplinkPowerControlDedicated-v1530 ::= SEQUENCE
 struct ul_pwr_ctrl_ded_v1530_s {
-  // member variables
   bool        alpha_ue_r15_present    = false;
   bool        p0_ue_pusch_r15_present = false;
   alpha_r12_e alpha_ue_r15;
@@ -21953,15 +21643,14 @@ struct ul_pwr_ctrl_ded_v1530_s {
   void        to_json(json_writer& j) const;
 };
 
-// BandClassPriorityList1XRTT ::= SEQUENCE (SIZE (1..maxCDMA-BandClass)) OF BandClassPriority1XRTT
-typedef dyn_array<band_class_prio1_xrtt_s> band_class_prio_list1_xrtt_l;
+// BandClassPriorityList1XRTT ::= SEQUENCE (SIZE (1..32)) OF BandClassPriority1XRTT
+using band_class_prio_list1_xrtt_l = dyn_array<band_class_prio1_xrtt_s>;
 
-// BandClassPriorityListHRPD ::= SEQUENCE (SIZE (1..maxCDMA-BandClass)) OF BandClassPriorityHRPD
-typedef dyn_array<band_class_prio_hrpd_s> band_class_prio_list_hrpd_l;
+// BandClassPriorityListHRPD ::= SEQUENCE (SIZE (1..32)) OF BandClassPriorityHRPD
+using band_class_prio_list_hrpd_l = dyn_array<band_class_prio_hrpd_s>;
 
 // CarrierFreqCDMA2000 ::= SEQUENCE
 struct carrier_freq_cdma2000_s {
-  // member variables
   bandclass_cdma2000_e band_class;
   uint16_t             arfcn = 0;
 
@@ -21971,24 +21660,23 @@ struct carrier_freq_cdma2000_s {
   void        to_json(json_writer& j) const;
 };
 
-// CarrierFreqListUTRA-TDD-r10 ::= SEQUENCE (SIZE (1..maxFreqUTRA-TDD-r10)) OF INTEGER
-typedef bounded_array<uint16_t, 6> carrier_freq_list_utra_tdd_r10_l;
+// CarrierFreqListUTRA-TDD-r10 ::= SEQUENCE (SIZE (1..6)) OF INTEGER (0..16383)
+using carrier_freq_list_utra_tdd_r10_l = bounded_array<uint16_t, 6>;
 
-// DRB-ToAddModList ::= SEQUENCE (SIZE (1..maxDRB)) OF DRB-ToAddMod
-typedef dyn_array<drb_to_add_mod_s> drb_to_add_mod_list_l;
+// DRB-ToAddModList ::= SEQUENCE (SIZE (1..11)) OF DRB-ToAddMod
+using drb_to_add_mod_list_l = dyn_array<drb_to_add_mod_s>;
 
-// DRB-ToAddModList-r15 ::= SEQUENCE (SIZE (1..maxDRB-r15)) OF DRB-ToAddMod
-typedef dyn_array<drb_to_add_mod_s> drb_to_add_mod_list_r15_l;
+// DRB-ToAddModList-r15 ::= SEQUENCE (SIZE (1..15)) OF DRB-ToAddMod
+using drb_to_add_mod_list_r15_l = dyn_array<drb_to_add_mod_s>;
 
-// DRB-ToReleaseList ::= SEQUENCE (SIZE (1..maxDRB)) OF INTEGER
-typedef bounded_array<uint8_t, 11> drb_to_release_list_l;
+// DRB-ToReleaseList ::= SEQUENCE (SIZE (1..11)) OF INTEGER (1..32)
+using drb_to_release_list_l = bounded_array<uint8_t, 11>;
 
-// DRB-ToReleaseList-r15 ::= SEQUENCE (SIZE (1..maxDRB-r15)) OF INTEGER
-typedef bounded_array<uint8_t, 15> drb_to_release_list_r15_l;
+// DRB-ToReleaseList-r15 ::= SEQUENCE (SIZE (1..15)) OF INTEGER (1..32)
+using drb_to_release_list_r15_l = bounded_array<uint8_t, 15>;
 
 // FreqPriorityEUTRA-v9e0 ::= SEQUENCE
 struct freq_prio_eutra_v9e0_s {
-  // member variables
   bool     carrier_freq_v9e0_present = false;
   uint32_t carrier_freq_v9e0         = 65536;
 
@@ -21998,29 +21686,29 @@ struct freq_prio_eutra_v9e0_s {
   void        to_json(json_writer& j) const;
 };
 
-// FreqPriorityListEUTRA ::= SEQUENCE (SIZE (1..maxFreq)) OF FreqPriorityEUTRA
-typedef dyn_array<freq_prio_eutra_s> freq_prio_list_eutra_l;
+// FreqPriorityListEUTRA ::= SEQUENCE (SIZE (1..8)) OF FreqPriorityEUTRA
+using freq_prio_list_eutra_l = dyn_array<freq_prio_eutra_s>;
 
-// FreqPriorityListEUTRA-v1310 ::= SEQUENCE (SIZE (1..maxFreq)) OF FreqPriorityEUTRA-v1310
-typedef dyn_array<freq_prio_eutra_v1310_s> freq_prio_list_eutra_v1310_l;
+// FreqPriorityListEUTRA-v1310 ::= SEQUENCE (SIZE (1..8)) OF FreqPriorityEUTRA-v1310
+using freq_prio_list_eutra_v1310_l = dyn_array<freq_prio_eutra_v1310_s>;
 
-// FreqPriorityListExtEUTRA-r12 ::= SEQUENCE (SIZE (1..maxFreq)) OF FreqPriorityEUTRA-r12
-typedef dyn_array<freq_prio_eutra_r12_s> freq_prio_list_ext_eutra_r12_l;
+// FreqPriorityListExtEUTRA-r12 ::= SEQUENCE (SIZE (1..8)) OF FreqPriorityEUTRA-r12
+using freq_prio_list_ext_eutra_r12_l = dyn_array<freq_prio_eutra_r12_s>;
 
-// FreqPriorityListExtEUTRA-v1310 ::= SEQUENCE (SIZE (1..maxFreq)) OF FreqPriorityEUTRA-v1310
-typedef dyn_array<freq_prio_eutra_v1310_s> freq_prio_list_ext_eutra_v1310_l;
+// FreqPriorityListExtEUTRA-v1310 ::= SEQUENCE (SIZE (1..8)) OF FreqPriorityEUTRA-v1310
+using freq_prio_list_ext_eutra_v1310_l = dyn_array<freq_prio_eutra_v1310_s>;
 
-// FreqPriorityListNR-r15 ::= SEQUENCE (SIZE (1..maxFreq)) OF FreqPriorityNR-r15
-typedef dyn_array<freq_prio_nr_r15_s> freq_prio_list_nr_r15_l;
+// FreqPriorityListNR-r15 ::= SEQUENCE (SIZE (1..8)) OF FreqPriorityNR-r15
+using freq_prio_list_nr_r15_l = dyn_array<freq_prio_nr_r15_s>;
 
-// FreqPriorityListUTRA-FDD ::= SEQUENCE (SIZE (1..maxUTRA-FDD-Carrier)) OF FreqPriorityUTRA-FDD
-typedef dyn_array<freq_prio_utra_fdd_s> freq_prio_list_utra_fdd_l;
+// FreqPriorityListUTRA-FDD ::= SEQUENCE (SIZE (1..16)) OF FreqPriorityUTRA-FDD
+using freq_prio_list_utra_fdd_l = dyn_array<freq_prio_utra_fdd_s>;
 
-// FreqPriorityListUTRA-TDD ::= SEQUENCE (SIZE (1..maxUTRA-TDD-Carrier)) OF FreqPriorityUTRA-TDD
-typedef dyn_array<freq_prio_utra_tdd_s> freq_prio_list_utra_tdd_l;
+// FreqPriorityListUTRA-TDD ::= SEQUENCE (SIZE (1..16)) OF FreqPriorityUTRA-TDD
+using freq_prio_list_utra_tdd_l = dyn_array<freq_prio_utra_tdd_s>;
 
-// FreqsPriorityListGERAN ::= SEQUENCE (SIZE (1..maxGNFG)) OF FreqsPriorityGERAN
-typedef dyn_array<freqs_prio_geran_s> freqs_prio_list_geran_l;
+// FreqsPriorityListGERAN ::= SEQUENCE (SIZE (1..16)) OF FreqsPriorityGERAN
+using freqs_prio_list_geran_l = dyn_array<freqs_prio_geran_s>;
 
 // MAC-MainConfig ::= SEQUENCE
 struct mac_main_cfg_s {
@@ -22105,25 +21793,25 @@ struct mac_main_cfg_s {
     setup_s_ c;
   };
   struct mac_main_cfg_v1020_s_ {
-    struct s_cell_deactivation_timer_r10_opts {
+    struct scell_deactivation_timer_r10_opts {
       enum options { rf2, rf4, rf8, rf16, rf32, rf64, rf128, spare, nulltype } value;
       typedef uint8_t number_type;
 
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    typedef enumerated<s_cell_deactivation_timer_r10_opts> s_cell_deactivation_timer_r10_e_;
+    typedef enumerated<scell_deactivation_timer_r10_opts> scell_deactivation_timer_r10_e_;
 
     // member variables
-    bool                             s_cell_deactivation_timer_r10_present = false;
-    bool                             extended_bsr_sizes_r10_present        = false;
-    bool                             extended_phr_r10_present              = false;
-    s_cell_deactivation_timer_r10_e_ s_cell_deactivation_timer_r10;
+    bool                            scell_deactivation_timer_r10_present = false;
+    bool                            extended_bsr_sizes_r10_present       = false;
+    bool                            extended_phr_r10_present             = false;
+    scell_deactivation_timer_r10_e_ scell_deactivation_timer_r10;
   };
   struct dual_connect_phr_c_ {
     struct setup_s_ {
       struct phr_mode_other_cg_r12_opts {
-        enum options { real, virtual_type, nulltype } value;
+        enum options { real, virtual_value, nulltype } value;
 
         std::string to_string() const;
       };
@@ -22206,7 +21894,7 @@ struct mac_main_cfg_s {
     types    type_;
     setup_s_ c;
   };
-  struct e_drx_cfg_cycle_start_offset_r13_c_ {
+  struct edrx_cfg_cycle_start_offset_r13_c_ {
     struct setup_c_ {
       struct types_opts {
         enum options { sf5120, sf10240, nulltype } value;
@@ -22260,15 +21948,15 @@ struct mac_main_cfg_s {
       }
 
     private:
-      types              type_;
-      choice_buffer_t<8> c;
+      types               type_;
+      pod_choice_buffer_t c;
 
       void destroy_();
     };
     typedef setup_e types;
 
     // choice methods
-    e_drx_cfg_cycle_start_offset_r13_c_() = default;
+    edrx_cfg_cycle_start_offset_r13_c_() = default;
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
@@ -22328,7 +22016,6 @@ struct mac_main_cfg_s {
   };
   struct skip_ul_tx_r14_c_ {
     struct setup_s_ {
-      // member variables
       bool skip_ul_tx_sps_r14_present     = false;
       bool skip_ul_tx_dynamic_r14_present = false;
     };
@@ -22364,7 +22051,6 @@ struct mac_main_cfg_s {
   };
   struct data_inactivity_timer_cfg_r14_c_ {
     struct setup_s_ {
-      // member variables
       data_inactivity_timer_r14_e data_inactivity_timer_r14;
     };
     typedef setup_e types;
@@ -22474,14 +22160,14 @@ struct mac_main_cfg_s {
   };
   struct dormant_state_timers_r15_c_ {
     struct setup_s_ {
-      struct s_cell_hibernation_timer_r15_opts {
+      struct scell_hibernation_timer_r15_opts {
         enum options { rf2, rf4, rf8, rf16, rf32, rf64, rf128, spare, nulltype } value;
         typedef uint8_t number_type;
 
         std::string to_string() const;
         uint8_t     to_number() const;
       };
-      typedef enumerated<s_cell_hibernation_timer_r15_opts> s_cell_hibernation_timer_r15_e_;
+      typedef enumerated<scell_hibernation_timer_r15_opts> scell_hibernation_timer_r15_e_;
       struct dormant_scell_deactivation_timer_r15_opts {
         enum options {
           rf2,
@@ -22510,9 +22196,9 @@ struct mac_main_cfg_s {
       typedef enumerated<dormant_scell_deactivation_timer_r15_opts> dormant_scell_deactivation_timer_r15_e_;
 
       // member variables
-      bool                                    s_cell_hibernation_timer_r15_present         = false;
+      bool                                    scell_hibernation_timer_r15_present          = false;
       bool                                    dormant_scell_deactivation_timer_r15_present = false;
-      s_cell_hibernation_timer_r15_e_         s_cell_hibernation_timer_r15;
+      scell_hibernation_timer_r15_e_          scell_hibernation_timer_r15;
       dormant_scell_deactivation_timer_r15_e_ dormant_scell_deactivation_timer_r15;
     };
     typedef setup_e types;
@@ -22571,10 +22257,10 @@ struct mac_main_cfg_s {
   copy_ptr<dual_connect_phr_c_> dual_connect_phr;
   copy_ptr<lc_ch_sr_cfg_r12_c_> lc_ch_sr_cfg_r12;
   // group 4
-  bool                                          extended_phr2_r13_present = false;
-  copy_ptr<drx_cfg_v1310_s>                     drx_cfg_v1310;
-  bool                                          extended_phr2_r13 = false;
-  copy_ptr<e_drx_cfg_cycle_start_offset_r13_c_> e_drx_cfg_cycle_start_offset_r13;
+  bool                                         extended_phr2_r13_present = false;
+  copy_ptr<drx_cfg_v1310_s>                    drx_cfg_v1310;
+  bool                                         extended_phr2_r13 = false;
+  copy_ptr<edrx_cfg_cycle_start_offset_r13_c_> edrx_cfg_cycle_start_offset_r13;
   // group 5
   copy_ptr<drx_cfg_r13_c_> drx_cfg_r13;
   // group 6
@@ -22630,7 +22316,6 @@ private:
 // NAICS-AssistanceInfo-r12 ::= CHOICE
 struct naics_assist_info_r12_c {
   struct setup_s_ {
-    // member variables
     bool                              neigh_cells_to_release_list_r12_present = false;
     bool                              neigh_cells_to_add_mod_list_r12_present = false;
     bool                              serv_cellp_a_r12_present                = false;
@@ -22844,7 +22529,6 @@ struct phys_cfg_ded_s {
   };
   struct add_spec_emission_ca_r10_c_ {
     struct setup_s_ {
-      // member variables
       uint8_t add_spec_emission_pcell_r10 = 1;
     };
     typedef setup_e types;
@@ -22915,8 +22599,8 @@ struct phys_cfg_ded_s {
     setup_e_ c;
   };
   struct type_a_srs_tpc_pdcch_group_r14_c_ {
-    typedef dyn_array<srs_tpc_pdcch_cfg_r14_c> setup_l_;
-    typedef setup_e                            types;
+    using setup_l_ = dyn_array<srs_tpc_pdcch_cfg_r14_c>;
+    typedef setup_e types;
 
     // choice methods
     type_a_srs_tpc_pdcch_group_r14_c_() = default;
@@ -23001,10 +22685,10 @@ struct phys_cfg_ded_s {
     types    type_;
     setup_s_ c;
   };
-  typedef dyn_array<srs_ul_cfg_ded_c>                          srs_ul_periodic_cfg_ded_list_r14_l_;
-  typedef dyn_array<srs_ul_cfg_ded_up_pts_ext_r13_c>           srs_ul_periodic_cfg_ded_up_pts_ext_list_r14_l_;
-  typedef dyn_array<srs_ul_cfg_ded_aperiodic_r10_c>            srs_ul_aperiodic_cfg_ded_list_r14_l_;
-  typedef dyn_array<srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_c> srs_ul_cfg_ded_ap_up_pts_ext_list_r14_l_;
+  using srs_ul_periodic_cfg_ded_list_r14_l_            = dyn_array<srs_ul_cfg_ded_c>;
+  using srs_ul_periodic_cfg_ded_up_pts_ext_list_r14_l_ = dyn_array<srs_ul_cfg_ded_up_pts_ext_r13_c>;
+  using srs_ul_aperiodic_cfg_ded_list_r14_l_           = dyn_array<srs_ul_cfg_ded_aperiodic_r10_c>;
+  using srs_ul_cfg_ded_ap_up_pts_ext_list_r14_l_       = dyn_array<srs_ul_cfg_ded_aperiodic_up_pts_ext_r13_c>;
   struct semi_static_cfi_cfg_r15_c_ {
     struct setup_c_ {
       struct types_opts {
@@ -23057,8 +22741,8 @@ struct phys_cfg_ded_s {
       }
 
     private:
-      types                                                                       type_;
-      choice_buffer_t<MAX2(sizeof(cfi_cfg_r15_s), sizeof(cfi_pattern_cfg_r15_s))> c;
+      types                                                 type_;
+      choice_buffer_t<cfi_cfg_r15_s, cfi_pattern_cfg_r15_s> c;
 
       void destroy_();
     };
@@ -23461,7 +23145,6 @@ private:
 
 // RRCConnectionReject-v1020-IEs ::= SEQUENCE
 struct rrc_conn_reject_v1020_ies_s {
-  // member variables
   bool                        extended_wait_time_r10_present = false;
   bool                        non_crit_ext_present           = false;
   uint16_t                    extended_wait_time_r10         = 1;
@@ -23475,7 +23158,6 @@ struct rrc_conn_reject_v1020_ies_s {
 
 // SPS-Config ::= SEQUENCE
 struct sps_cfg_s {
-  // member variables
   bool                semi_persist_sched_c_rnti_present = false;
   bool                sps_cfg_dl_present                = false;
   bool                sps_cfg_ul_present                = false;
@@ -23491,7 +23173,6 @@ struct sps_cfg_s {
 
 // SPS-Config-v1430 ::= SEQUENCE
 struct sps_cfg_v1430_s {
-  // member variables
   bool                             ul_sps_v_rnti_r14_present              = false;
   bool                             sl_sps_v_rnti_r14_present              = false;
   bool                             sps_cfg_ul_to_add_mod_list_r14_present = false;
@@ -23513,7 +23194,6 @@ struct sps_cfg_v1430_s {
 
 // SPS-Config-v1530 ::= SEQUENCE
 struct sps_cfg_v1530_s {
-  // member variables
   bool                                  semi_persist_sched_c_rnti_r15_present       = false;
   bool                                  sps_cfg_dl_present                          = false;
   bool                                  sps_cfg_ul_stti_to_add_mod_list_r15_present = false;
@@ -23537,10 +23217,10 @@ struct sps_cfg_v1530_s {
 using srb_to_add_mod_ext_list_r15_l = std::array<srb_to_add_mod_s, 1>;
 
 // SRB-ToAddModList ::= SEQUENCE (SIZE (1..2)) OF SRB-ToAddMod
-typedef dyn_array<srb_to_add_mod_s> srb_to_add_mod_list_l;
+using srb_to_add_mod_list_l = dyn_array<srb_to_add_mod_s>;
 
-// SRB-ToReleaseListDupl-r15 ::= SEQUENCE (SIZE (1..2)) OF INTEGER
-typedef bounded_array<uint8_t, 2> srb_to_release_list_dupl_r15_l;
+// SRB-ToReleaseListDupl-r15 ::= SEQUENCE (SIZE (1..2)) OF INTEGER (1..2)
+using srb_to_release_list_dupl_r15_l = bounded_array<uint8_t, 2>;
 
 // IdleModeMobilityControlInfo ::= SEQUENCE
 struct idle_mode_mob_ctrl_info_s {
@@ -23586,7 +23266,7 @@ struct idle_mode_mob_ctrl_info_s {
 
 // IdleModeMobilityControlInfo-v9e0 ::= SEQUENCE
 struct idle_mode_mob_ctrl_info_v9e0_s {
-  typedef dyn_array<freq_prio_eutra_v9e0_s> freq_prio_list_eutra_v9e0_l_;
+  using freq_prio_list_eutra_v9e0_l_ = dyn_array<freq_prio_eutra_v9e0_s>;
 
   // member variables
   freq_prio_list_eutra_v9e0_l_ freq_prio_list_eutra_v9e0;
@@ -23599,7 +23279,6 @@ struct idle_mode_mob_ctrl_info_v9e0_s {
 
 // RRCConnectionReestablishment-v8a0-IEs ::= SEQUENCE
 struct rrc_conn_reest_v8a0_ies_s {
-  // member variables
   bool          late_non_crit_ext_present = false;
   bool          non_crit_ext_present      = false;
   dyn_octstring late_non_crit_ext;
@@ -23612,7 +23291,6 @@ struct rrc_conn_reest_v8a0_ies_s {
 
 // RRCConnectionReestablishmentReject-v8a0-IEs ::= SEQUENCE
 struct rrc_conn_reest_reject_v8a0_ies_s {
-  // member variables
   bool          late_non_crit_ext_present = false;
   bool          non_crit_ext_present      = false;
   dyn_octstring late_non_crit_ext;
@@ -23625,7 +23303,6 @@ struct rrc_conn_reest_reject_v8a0_ies_s {
 
 // RRCConnectionReject-v8a0-IEs ::= SEQUENCE
 struct rrc_conn_reject_v8a0_ies_s {
-  // member variables
   bool                        late_non_crit_ext_present = false;
   bool                        non_crit_ext_present      = false;
   dyn_octstring               late_non_crit_ext;
@@ -23639,7 +23316,6 @@ struct rrc_conn_reject_v8a0_ies_s {
 
 // RRCConnectionSetup-v8a0-IEs ::= SEQUENCE
 struct rrc_conn_setup_v8a0_ies_s {
-  // member variables
   bool          late_non_crit_ext_present = false;
   bool          non_crit_ext_present      = false;
   dyn_octstring late_non_crit_ext;
@@ -23931,17 +23607,14 @@ struct redirected_carrier_info_r15_ies_c {
   }
 
 private:
-  types type_;
-  choice_buffer_t<MAX4(
-      sizeof(carrier_freq_cdma2000_s), sizeof(carrier_freq_list_utra_tdd_r10_l), sizeof(carrier_freqs_geran_s), 0)>
-      c;
+  types                                                                                             type_;
+  choice_buffer_t<carrier_freq_cdma2000_s, carrier_freq_list_utra_tdd_r10_l, carrier_freqs_geran_s> c;
 
   void destroy_();
 };
 
 // RRCConnectionReestablishment-r8-IEs ::= SEQUENCE
 struct rrc_conn_reest_r8_ies_s {
-  // member variables
   bool                      non_crit_ext_present = false;
   rr_cfg_ded_s              rr_cfg_ded;
   uint8_t                   next_hop_chaining_count = 0;
@@ -23955,7 +23628,6 @@ struct rrc_conn_reest_r8_ies_s {
 
 // RRCConnectionReestablishmentReject-r8-IEs ::= SEQUENCE
 struct rrc_conn_reest_reject_r8_ies_s {
-  // member variables
   bool                             non_crit_ext_present = false;
   rrc_conn_reest_reject_v8a0_ies_s non_crit_ext;
 
@@ -23967,7 +23639,6 @@ struct rrc_conn_reest_reject_r8_ies_s {
 
 // RRCConnectionReject-r8-IEs ::= SEQUENCE
 struct rrc_conn_reject_r8_ies_s {
-  // member variables
   bool                       non_crit_ext_present = false;
   uint8_t                    wait_time            = 1;
   rrc_conn_reject_v8a0_ies_s non_crit_ext;
@@ -23980,7 +23651,6 @@ struct rrc_conn_reject_r8_ies_s {
 
 // RRCConnectionSetup-r8-IEs ::= SEQUENCE
 struct rrc_conn_setup_r8_ies_s {
-  // member variables
   bool                      non_crit_ext_present = false;
   rr_cfg_ded_s              rr_cfg_ded;
   rrc_conn_setup_v8a0_ies_s non_crit_ext;
@@ -23993,7 +23663,6 @@ struct rrc_conn_setup_r8_ies_s {
 
 // RRCEarlyDataComplete-r15-IEs ::= SEQUENCE
 struct rrc_early_data_complete_r15_ies_s {
-  // member variables
   bool                              ded_info_nas_r15_present                = false;
   bool                              extended_wait_time_r15_present          = false;
   bool                              idle_mode_mob_ctrl_info_r15_present     = false;
@@ -24090,8 +23759,8 @@ struct rrc_conn_reest_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -24144,8 +23813,8 @@ struct rrc_conn_reest_reject_s {
     }
 
   private:
-    types                                                   type_;
-    choice_buffer_t<sizeof(rrc_conn_reest_reject_r8_ies_s)> c;
+    types                                           type_;
+    choice_buffer_t<rrc_conn_reest_reject_r8_ies_s> c;
 
     void destroy_();
   };
@@ -24228,8 +23897,8 @@ struct rrc_conn_reject_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -24312,8 +23981,8 @@ struct rrc_conn_setup_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -24366,8 +24035,8 @@ struct rrc_early_data_complete_r15_s {
     }
 
   private:
-    types                                                      type_;
-    choice_buffer_t<sizeof(rrc_early_data_complete_r15_ies_s)> c;
+    types                                              type_;
+    choice_buffer_t<rrc_early_data_complete_r15_ies_s> c;
 
     void destroy_();
   };
@@ -24464,10 +24133,8 @@ struct dl_ccch_msg_type_c {
     }
 
   private:
-    types type_;
-    choice_buffer_t<MAX4(
-        sizeof(rrc_conn_reest_reject_s), sizeof(rrc_conn_reest_s), sizeof(rrc_conn_reject_s), sizeof(rrc_conn_setup_s))>
-        c;
+    types                                                                                           type_;
+    choice_buffer_t<rrc_conn_reest_reject_s, rrc_conn_reest_s, rrc_conn_reject_s, rrc_conn_setup_s> c;
 
     void destroy_();
   };
@@ -24545,8 +24212,8 @@ struct dl_ccch_msg_type_c {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c2_c_)> c;
+    types                  type_;
+    choice_buffer_t<c2_c_> c;
 
     void destroy_();
   };
@@ -24602,15 +24269,14 @@ struct dl_ccch_msg_type_c {
   }
 
 private:
-  types                                                          type_;
-  choice_buffer_t<MAX2(sizeof(c1_c_), sizeof(msg_class_ext_c_))> c;
+  types                                    type_;
+  choice_buffer_t<c1_c_, msg_class_ext_c_> c;
 
   void destroy_();
 };
 
 // DL-CCCH-Message ::= SEQUENCE
 struct dl_ccch_msg_s {
-  // member variables
   dl_ccch_msg_type_c msg;
 
   // sequence methods
@@ -24632,7 +24298,6 @@ typedef enumerated<pdcch_candidate_reduction_value_r14_opts> pdcch_candidate_red
 // PDCCH-CandidateReductionsLAA-UL-r14 ::= CHOICE
 struct pdcch_candidate_reductions_laa_ul_r14_c {
   struct setup_s_ {
-    // member variables
     pdcch_candidate_reduction_value_r13_e pdcch_candidate_reduction_al1_r14;
     pdcch_candidate_reduction_value_r13_e pdcch_candidate_reduction_al2_r14;
     pdcch_candidate_reduction_value_r14_e pdcch_candidate_reduction_al3_r14;
@@ -24682,7 +24347,7 @@ struct aul_cfg_r15_c {
     };
     typedef enumerated<tx_mode_ul_aul_r15_opts> tx_mode_ul_aul_r15_e_;
     struct aul_start_partial_bw_inside_mcot_r15_opts {
-      enum options { o34, o43, o52, o61, o_os1, nulltype } value;
+      enum options { o34, o43, o52, o61, oos1, nulltype } value;
       typedef uint8_t number_type;
 
       std::string to_string() const;
@@ -24690,7 +24355,7 @@ struct aul_cfg_r15_c {
     };
     typedef enumerated<aul_start_partial_bw_inside_mcot_r15_opts> aul_start_partial_bw_inside_mcot_r15_e_;
     struct aul_start_partial_bw_outside_mcot_r15_opts {
-      enum options { o16, o25, o34, o43, o52, o61, o_os1, nulltype } value;
+      enum options { o16, o25, o34, o43, o52, o61, oos1, nulltype } value;
       typedef uint8_t number_type;
 
       std::string to_string() const;
@@ -24783,7 +24448,6 @@ struct cqi_report_periodic_scell_r15_c {
   struct setup_s_ {
     struct csi_sf_pattern_dormant_r15_c_ {
       struct setup_s_ {
-        // member variables
         meas_sf_pattern_r10_c csi_meas_sf_set1_r15;
         meas_sf_pattern_r10_c csi_meas_sf_set2_r15;
       };
@@ -24896,8 +24560,8 @@ struct cqi_report_periodic_scell_r15_c {
       }
 
     private:
-      types                                                                          type_;
-      choice_buffer_t<MAX2(sizeof(subband_cqi_r15_s_), sizeof(wideband_cqi_r15_s_))> c;
+      types                                                    type_;
+      choice_buffer_t<subband_cqi_r15_s_, wideband_cqi_r15_s_> c;
 
       void destroy_();
     };
@@ -24944,7 +24608,6 @@ private:
 
 // CrossCarrierSchedulingConfigLAA-UL-r14 ::= SEQUENCE
 struct cross_carrier_sched_cfg_laa_ul_r14_s {
-  // member variables
   uint8_t sched_cell_id_r14     = 0;
   uint8_t cif_in_sched_cell_r14 = 1;
 
@@ -25006,8 +24669,8 @@ struct lbt_cfg_r14_c {
   }
 
 private:
-  types              type_;
-  choice_buffer_t<8> c;
+  types               type_;
+  pod_choice_buffer_t c;
 
   void destroy_();
 };
@@ -25055,7 +24718,6 @@ struct pdcch_cfg_laa_r14_s {
 
 // PUSCH-ModeConfigLAA-r15 ::= SEQUENCE
 struct pusch_mode_cfg_laa_r15_s {
-  // member variables
   bool laa_pusch_mode1 = false;
   bool laa_pusch_mode2 = false;
   bool laa_pusch_mode3 = false;
@@ -25069,7 +24731,6 @@ struct pusch_mode_cfg_laa_r15_s {
 // SoundingRS-UL-ConfigDedicatedAperiodic-v1430 ::= CHOICE
 struct srs_ul_cfg_ded_aperiodic_v1430_c {
   struct setup_s_ {
-    // member variables
     bool    srs_sf_ind_r14_present = false;
     uint8_t srs_sf_ind_r14         = 1;
   };
@@ -25106,7 +24767,6 @@ private:
 
 // CQI-ReportConfigSCell-r10 ::= SEQUENCE
 struct cqi_report_cfg_scell_r10_s {
-  // member variables
   bool                        cqi_report_mode_aperiodic_r10_present = false;
   bool                        cqi_report_periodic_scell_r10_present = false;
   bool                        pmi_ri_report_r10_present             = false;
@@ -25225,8 +24885,8 @@ struct cqi_short_cfg_scell_r15_c {
       }
 
     private:
-      types                                                                                      type_;
-      choice_buffer_t<MAX2(sizeof(subband_cqi_short_r15_s_), sizeof(wideband_cqi_short_r15_s_))> c;
+      types                                                                type_;
+      choice_buffer_t<subband_cqi_short_r15_s_, wideband_cqi_short_r15_s_> c;
 
       void destroy_();
     };
@@ -25273,11 +24933,9 @@ private:
 struct cross_carrier_sched_cfg_r10_s {
   struct sched_cell_info_r10_c_ {
     struct own_r10_s_ {
-      // member variables
       bool cif_presence_r10 = false;
     };
     struct other_r10_s_ {
-      // member variables
       uint8_t sched_cell_id_r10 = 0;
       uint8_t pdsch_start_r10   = 1;
     };
@@ -25331,8 +24989,8 @@ struct cross_carrier_sched_cfg_r10_s {
     }
 
   private:
-    types                                                           type_;
-    choice_buffer_t<MAX2(sizeof(other_r10_s_), sizeof(own_r10_s_))> c;
+    types                                     type_;
+    choice_buffer_t<other_r10_s_, own_r10_s_> c;
 
     void destroy_();
   };
@@ -25350,11 +25008,9 @@ struct cross_carrier_sched_cfg_r10_s {
 struct cross_carrier_sched_cfg_r13_s {
   struct sched_cell_info_r13_c_ {
     struct own_r13_s_ {
-      // member variables
       bool cif_presence_r13 = false;
     };
     struct other_r13_s_ {
-      // member variables
       uint8_t sched_cell_id_r13     = 0;
       uint8_t pdsch_start_r13       = 1;
       uint8_t cif_in_sched_cell_r13 = 1;
@@ -25409,8 +25065,8 @@ struct cross_carrier_sched_cfg_r13_s {
     }
 
   private:
-    types                                                           type_;
-    choice_buffer_t<MAX2(sizeof(other_r13_s_), sizeof(own_r13_s_))> c;
+    types                                     type_;
+    choice_buffer_t<other_r13_s_, own_r13_s_> c;
 
     void destroy_();
   };
@@ -25659,7 +25315,6 @@ struct laa_scell_cfg_r13_s {
 struct laa_scell_cfg_v1430_s {
   struct cross_carrier_sched_cfg_ul_r14_c_ {
     struct setup_s_ {
-      // member variables
       cross_carrier_sched_cfg_laa_ul_r14_s cross_carrier_sched_cfg_laa_ul_r14;
     };
     typedef setup_e types;
@@ -25712,7 +25367,6 @@ struct laa_scell_cfg_v1430_s {
 
 // LAA-SCellConfiguration-v1530 ::= SEQUENCE
 struct laa_scell_cfg_v1530_s {
-  // member variables
   bool                     aul_cfg_r15_present            = false;
   bool                     pusch_mode_cfg_laa_r15_present = false;
   aul_cfg_r15_c            aul_cfg_r15;
@@ -25726,7 +25380,6 @@ struct laa_scell_cfg_v1530_s {
 
 // PDCCH-ConfigSCell-r13 ::= SEQUENCE
 struct pdcch_cfg_scell_r13_s {
-  // member variables
   bool skip_monitoring_dci_format0_minus1_a_r13_present = false;
 
   // sequence methods
@@ -25737,7 +25390,6 @@ struct pdcch_cfg_scell_r13_s {
 
 // PDSCH-ConfigDedicatedSCell-v1430 ::= SEQUENCE
 struct pdsch_cfg_ded_scell_v1430_s {
-  // member variables
   bool tbs_idx_alt2_r14_present = false;
 
   // sequence methods
@@ -25791,7 +25443,6 @@ struct pucch_cfg_ded_v1370_s {
 
 // PUSCH-ConfigDedicatedSCell-r10 ::= SEQUENCE
 struct pusch_cfg_ded_scell_r10_s {
-  // member variables
   bool group_hop_disabled_r10_present  = false;
   bool dmrs_with_occ_activ_r10_present = false;
 
@@ -25803,7 +25454,6 @@ struct pusch_cfg_ded_scell_r10_s {
 
 // PUSCH-ConfigDedicatedSCell-v1430 ::= SEQUENCE
 struct pusch_cfg_ded_scell_v1430_s {
-  // member variables
   bool                enable256_qam_r14_present = false;
   enable256_qam_r14_c enable256_qam_r14;
 
@@ -25817,7 +25467,6 @@ struct pusch_cfg_ded_scell_v1430_s {
 struct pusch_cfg_ded_scell_v1530_s {
   struct uci_on_pusch_r15_c_ {
     struct setup_s_ {
-      // member variables
       uint8_t beta_offset_aul_r15 = 0;
     };
     typedef setup_e types;
@@ -25912,7 +25561,7 @@ private:
 
 // SoundingRS-AperiodicSet-r14 ::= SEQUENCE
 struct srs_aperiodic_set_r14_s {
-  typedef dyn_array<srs_cc_set_idx_r14_s> srs_cc_set_idx_list_r14_l_;
+  using srs_cc_set_idx_list_r14_l_ = dyn_array<srs_cc_set_idx_r14_s>;
 
   // member variables
   bool                           srs_cc_set_idx_list_r14_present = false;
@@ -25927,7 +25576,7 @@ struct srs_aperiodic_set_r14_s {
 
 // SoundingRS-AperiodicSetUpPTsExt-r14 ::= SEQUENCE
 struct srs_aperiodic_set_up_pts_ext_r14_s {
-  typedef dyn_array<srs_cc_set_idx_r14_s> srs_cc_set_idx_list_r14_l_;
+  using srs_cc_set_idx_list_r14_l_ = dyn_array<srs_cc_set_idx_r14_s>;
 
   // member variables
   bool                                      srs_cc_set_idx_list_r14_present = false;
@@ -25943,7 +25592,6 @@ struct srs_aperiodic_set_up_pts_ext_r14_s {
 // TPC-PDCCH-ConfigSCell-r13 ::= CHOICE
 struct tpc_pdcch_cfg_scell_r13_c {
   struct setup_s_ {
-    // member variables
     tpc_idx_c tpc_idx_pucch_scell_r13;
   };
   typedef setup_e types;
@@ -25979,7 +25627,6 @@ private:
 
 // UplinkPUSCH-LessPowerControlDedicated-v1430 ::= SEQUENCE
 struct ul_pusch_less_pwr_ctrl_ded_v1430_s {
-  // member variables
   bool   p0_ue_periodic_srs_r14_present  = false;
   bool   p0_ue_aperiodic_srs_r14_present = false;
   int8_t p0_ue_periodic_srs_r14          = -8;
@@ -26003,20 +25650,20 @@ struct ul_pwr_ctrl_ded_scell_r10_s {
   };
   typedef enumerated<delta_mcs_enabled_r10_opts> delta_mcs_enabled_r10_e_;
   struct pathloss_ref_linking_r10_opts {
-    enum options { p_cell, s_cell, nulltype } value;
+    enum options { pcell, scell, nulltype } value;
 
     std::string to_string() const;
   };
   typedef enumerated<pathloss_ref_linking_r10_opts> pathloss_ref_linking_r10_e_;
 
   // member variables
-  bool                        p_srs_offset_ap_r10_present = false;
-  bool                        filt_coef_r10_present       = false;
-  int8_t                      p0_ue_pusch_r10             = -8;
+  bool                        psrs_offset_ap_r10_present = false;
+  bool                        filt_coef_r10_present      = false;
+  int8_t                      p0_ue_pusch_r10            = -8;
   delta_mcs_enabled_r10_e_    delta_mcs_enabled_r10;
   bool                        accumulation_enabled_r10 = false;
-  uint8_t                     p_srs_offset_r10         = 0;
-  uint8_t                     p_srs_offset_ap_r10      = 0;
+  uint8_t                     psrs_offset_r10          = 0;
+  uint8_t                     psrs_offset_ap_r10       = 0;
   filt_coef_e                 filt_coef_r10;
   pathloss_ref_linking_r10_e_ pathloss_ref_linking_r10;
 
@@ -26028,7 +25675,6 @@ struct ul_pwr_ctrl_ded_scell_r10_s {
 
 // UplinkPowerControlDedicatedSCell-v1310 ::= SEQUENCE
 struct ul_pwr_ctrl_ded_scell_v1310_s {
-  // member variables
   bool                               delta_tx_d_offset_list_pucch_r10_present = false;
   int8_t                             p0_ue_pucch                              = -8;
   delta_tx_d_offset_list_pucch_r10_s delta_tx_d_offset_list_pucch_r10;
@@ -26061,7 +25707,6 @@ struct ant_info_common_s {
 
 // HighSpeedConfigSCell-r14 ::= SEQUENCE
 struct high_speed_cfg_scell_r14_s {
-  // member variables
   bool high_speed_enhanced_demod_flag_r14_present = false;
 
   // sequence methods
@@ -26072,7 +25717,6 @@ struct high_speed_cfg_scell_r14_s {
 
 // MAC-MainConfigSCell-r11 ::= SEQUENCE
 struct mac_main_cfg_scell_r11_s {
-  // member variables
   bool    ext                 = false;
   bool    stag_id_r11_present = false;
   uint8_t stag_id_r11         = 1;
@@ -26086,7 +25730,6 @@ struct mac_main_cfg_scell_r11_s {
 
 // PRACH-Config ::= SEQUENCE
 struct prach_cfg_s {
-  // member variables
   bool             prach_cfg_info_present = false;
   uint16_t         root_seq_idx           = 0;
   prach_cfg_info_s prach_cfg_info;
@@ -26099,7 +25742,6 @@ struct prach_cfg_s {
 
 // PRACH-ConfigSCell-r10 ::= SEQUENCE
 struct prach_cfg_scell_r10_s {
-  // member variables
   uint8_t prach_cfg_idx_r10 = 0;
 
   // sequence methods
@@ -26111,7 +25753,6 @@ struct prach_cfg_scell_r10_s {
 // PhysicalConfigDedicatedSCell-r10 ::= SEQUENCE
 struct phys_cfg_ded_scell_r10_s {
   struct non_ul_cfg_r10_s_ {
-    // member variables
     bool                          ant_info_r10_present                = false;
     bool                          cross_carrier_sched_cfg_r10_present = false;
     bool                          csi_rs_cfg_r10_present              = false;
@@ -26122,7 +25763,6 @@ struct phys_cfg_ded_scell_r10_s {
     pdsch_cfg_ded_s               pdsch_cfg_ded_r10;
   };
   struct ul_cfg_r10_s_ {
-    // member variables
     bool                           ant_info_ul_r10_present              = false;
     bool                           pusch_cfg_ded_scell_r10_present      = false;
     bool                           ul_pwr_ctrl_ded_scell_r10_present    = false;
@@ -26140,7 +25780,6 @@ struct phys_cfg_ded_scell_r10_s {
   };
   struct pucch_scell_c_ {
     struct setup_s_ {
-      // member variables
       bool                          pucch_cfg_ded_r13_present             = false;
       bool                          sched_request_cfg_r13_present         = false;
       bool                          tpc_pdcch_cfg_pucch_scell_r13_present = false;
@@ -26182,10 +25821,10 @@ struct phys_cfg_ded_scell_r10_s {
     types    type_;
     setup_s_ c;
   };
-  typedef dyn_array<srs_ul_cfg_ded_c>                   srs_ul_periodic_cfg_ded_list_r14_l_;
-  typedef dyn_array<srs_ul_cfg_ded_up_pts_ext_r13_c>    srs_ul_periodic_cfg_ded_up_pts_ext_list_r14_l_;
-  typedef dyn_array<srs_aperiodic_set_r14_s>            srs_ul_aperiodic_cfg_ded_list_r14_l_;
-  typedef dyn_array<srs_aperiodic_set_up_pts_ext_r14_s> srs_ul_cfg_ded_ap_up_pts_ext_list_r14_l_;
+  using srs_ul_periodic_cfg_ded_list_r14_l_            = dyn_array<srs_ul_cfg_ded_c>;
+  using srs_ul_periodic_cfg_ded_up_pts_ext_list_r14_l_ = dyn_array<srs_ul_cfg_ded_up_pts_ext_r13_c>;
+  using srs_ul_aperiodic_cfg_ded_list_r14_l_           = dyn_array<srs_aperiodic_set_r14_s>;
+  using srs_ul_cfg_ded_ap_up_pts_ext_list_r14_l_       = dyn_array<srs_aperiodic_set_up_pts_ext_r14_s>;
   struct must_cfg_r14_c_ {
     struct setup_s_ {
       struct k_max_r14_opts {
@@ -26293,8 +25932,8 @@ struct phys_cfg_ded_scell_r10_s {
       }
 
     private:
-      types                                                                       type_;
-      choice_buffer_t<MAX2(sizeof(cfi_cfg_r15_s), sizeof(cfi_pattern_cfg_r15_s))> c;
+      types                                                 type_;
+      choice_buffer_t<cfi_cfg_r15_s, cfi_pattern_cfg_r15_s> c;
 
       void destroy_();
     };
@@ -26514,7 +26153,6 @@ struct phys_cfg_ded_scell_r10_s {
 struct phys_cfg_ded_scell_v1370_s {
   struct pucch_scell_v1370_c_ {
     struct setup_s_ {
-      // member variables
       bool                  pucch_cfg_ded_v1370_present = false;
       pucch_cfg_ded_v1370_s pucch_cfg_ded_v1370;
     };
@@ -26561,7 +26199,6 @@ struct phys_cfg_ded_scell_v1370_s {
 // RACH-ConfigCommonSCell-r11 ::= SEQUENCE
 struct rach_cfg_common_scell_r11_s {
   struct ra_supervision_info_r11_s_ {
-    // member variables
     preamb_trans_max_e preamb_trans_max_r11;
   };
 
@@ -26579,7 +26216,6 @@ struct rach_cfg_common_scell_r11_s {
 
 // UplinkPowerControlCommon-v1530 ::= SEQUENCE
 struct ul_pwr_ctrl_common_v1530_s {
-  // member variables
   delta_flist_spucch_r15_c delta_flist_spucch_r15;
 
   // sequence methods
@@ -26590,7 +26226,6 @@ struct ul_pwr_ctrl_common_v1530_s {
 
 // UplinkPowerControlCommonPUSCH-LessCell-v1430 ::= SEQUENCE
 struct ul_pwr_ctrl_common_pusch_less_cell_v1430_s {
-  // member variables
   bool        p0_nominal_periodic_srs_r14_present  = false;
   bool        p0_nominal_aperiodic_srs_r14_present = false;
   bool        alpha_srs_r14_present                = false;
@@ -26606,7 +26241,6 @@ struct ul_pwr_ctrl_common_pusch_less_cell_v1430_s {
 
 // UplinkPowerControlCommonSCell-r10 ::= SEQUENCE
 struct ul_pwr_ctrl_common_scell_r10_s {
-  // member variables
   int8_t      p0_nominal_pusch_r10 = -126;
   alpha_r12_e alpha_r10;
 
@@ -26618,7 +26252,6 @@ struct ul_pwr_ctrl_common_scell_r10_s {
 
 // UplinkPowerControlCommonSCell-v1130 ::= SEQUENCE
 struct ul_pwr_ctrl_common_scell_v1130_s {
-  // member variables
   int8_t delta_preamb_msg3_r11 = -1;
 
   // sequence methods
@@ -26757,7 +26390,7 @@ struct rr_cfg_common_scell_r10_s {
       // member variables
       bool         ul_carrier_freq_r10_present = false;
       bool         ul_bw_r10_present           = false;
-      uint16_t     ul_carrier_freq_r10         = 0;
+      uint32_t     ul_carrier_freq_r10         = 0;
       ul_bw_r10_e_ ul_bw_r10;
       uint8_t      add_spec_emission_scell_r10 = 1;
     };
@@ -26851,7 +26484,6 @@ struct rr_cfg_common_scell_r10_s {
 
 // RadioResourceConfigDedicatedSCell-r10 ::= SEQUENCE
 struct rr_cfg_ded_scell_r10_s {
-  // member variables
   bool                     ext                            = false;
   bool                     phys_cfg_ded_scell_r10_present = false;
   phys_cfg_ded_scell_r10_s phys_cfg_ded_scell_r10;
@@ -26879,7 +26511,6 @@ struct rr_cfg_ded_scell_r10_s {
 // SCellToAddModExt-r13 ::= SEQUENCE
 struct scell_to_add_mod_ext_r13_s {
   struct cell_identif_r13_s_ {
-    // member variables
     uint16_t pci_r13             = 0;
     uint32_t dl_carrier_freq_r13 = 0;
   };
@@ -26889,7 +26520,7 @@ struct scell_to_add_mod_ext_r13_s {
   bool                      rr_cfg_common_scell_r13_present = false;
   bool                      rr_cfg_ded_scell_r13_present    = false;
   bool                      ant_info_ded_scell_r13_present  = false;
-  uint8_t                   s_cell_idx_r13                  = 1;
+  uint8_t                   scell_idx_r13                   = 1;
   cell_identif_r13_s_       cell_identif_r13;
   rr_cfg_common_scell_r10_s rr_cfg_common_scell_r13;
   rr_cfg_ded_scell_r10_s    rr_cfg_ded_scell_r13;
@@ -26913,7 +26544,6 @@ typedef enumerated<ciphering_algorithm_r12_opts, true> ciphering_algorithm_r12_e
 
 // SCellConfigCommon-r15 ::= SEQUENCE
 struct scell_cfg_common_r15_s {
-  // member variables
   bool                      rr_cfg_common_scell_r15_present = false;
   bool                      rr_cfg_ded_scell_r15_present    = false;
   bool                      ant_info_ded_scell_r15_present  = false;
@@ -26927,15 +26557,14 @@ struct scell_cfg_common_r15_s {
   void        to_json(json_writer& j) const;
 };
 
-// SCellToAddModListExt-r13 ::= SEQUENCE (SIZE (1..maxSCell-r13)) OF SCellToAddModExt-r13
-typedef dyn_array<scell_to_add_mod_ext_r13_s> scell_to_add_mod_list_ext_r13_l;
+// SCellToAddModListExt-r13 ::= SEQUENCE (SIZE (1..31)) OF SCellToAddModExt-r13
+using scell_to_add_mod_list_ext_r13_l = dyn_array<scell_to_add_mod_ext_r13_s>;
 
-// SCellToReleaseListExt-r13 ::= SEQUENCE (SIZE (1..maxSCell-r13)) OF INTEGER
-typedef bounded_array<uint8_t, 31> scell_to_release_list_ext_r13_l;
+// SCellToReleaseListExt-r13 ::= SEQUENCE (SIZE (1..31)) OF INTEGER (1..31)
+using scell_to_release_list_ext_r13_l = bounded_array<uint8_t, 31>;
 
 // SL-DiscTxPoolToAddMod-r12 ::= SEQUENCE
 struct sl_disc_tx_pool_to_add_mod_r12_s {
-  // member variables
   uint8_t                pool_id_r12 = 1;
   sl_disc_res_pool_r12_s pool_r12;
 
@@ -26947,7 +26576,6 @@ struct sl_disc_tx_pool_to_add_mod_r12_s {
 
 // SL-TF-IndexPair-r12b ::= SEQUENCE
 struct sl_tf_idx_pair_r12b_s {
-  // member variables
   bool    disc_sf_idx_r12b_present  = false;
   bool    disc_prb_idx_r12b_present = false;
   uint8_t disc_sf_idx_r12b          = 0;
@@ -26961,14 +26589,13 @@ struct sl_tf_idx_pair_r12b_s {
 
 // SCellGroupToAddMod-r15 ::= SEQUENCE
 struct scell_group_to_add_mod_r15_s {
-  // member variables
-  bool                            s_cell_cfg_common_r15_present      = false;
-  bool                            s_cell_to_release_list_r15_present = false;
-  bool                            s_cell_to_add_mod_list_r15_present = false;
-  uint8_t                         s_cell_group_idx_r15               = 1;
-  scell_cfg_common_r15_s          s_cell_cfg_common_r15;
-  scell_to_release_list_ext_r13_l s_cell_to_release_list_r15;
-  scell_to_add_mod_list_ext_r13_l s_cell_to_add_mod_list_r15;
+  bool                            scell_cfg_common_r15_present      = false;
+  bool                            scell_to_release_list_r15_present = false;
+  bool                            scell_to_add_mod_list_r15_present = false;
+  uint8_t                         scell_group_idx_r15               = 1;
+  scell_cfg_common_r15_s          scell_cfg_common_r15;
+  scell_to_release_list_ext_r13_l scell_to_release_list_r15;
+  scell_to_add_mod_list_ext_r13_l scell_to_add_mod_list_r15;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -26976,8 +26603,8 @@ struct scell_group_to_add_mod_r15_s {
   void        to_json(json_writer& j) const;
 };
 
-// SL-DiscTxPoolToAddModList-r12 ::= SEQUENCE (SIZE (1..maxSL-TxPool-r12)) OF SL-DiscTxPoolToAddMod-r12
-typedef dyn_array<sl_disc_tx_pool_to_add_mod_r12_s> sl_disc_tx_pool_to_add_mod_list_r12_l;
+// SL-DiscTxPoolToAddModList-r12 ::= SEQUENCE (SIZE (1..4)) OF SL-DiscTxPoolToAddMod-r12
+using sl_disc_tx_pool_to_add_mod_list_r12_l = dyn_array<sl_disc_tx_pool_to_add_mod_r12_s>;
 
 // SL-HoppingConfigDisc-r12 ::= SEQUENCE
 struct sl_hop_cfg_disc_r12_s {
@@ -27001,11 +26628,11 @@ struct sl_hop_cfg_disc_r12_s {
   void        to_json(json_writer& j) const;
 };
 
-// SL-TF-IndexPairList-r12b ::= SEQUENCE (SIZE (1..maxSL-TF-IndexPair-r12)) OF SL-TF-IndexPair-r12b
-typedef dyn_array<sl_tf_idx_pair_r12b_s> sl_tf_idx_pair_list_r12b_l;
+// SL-TF-IndexPairList-r12b ::= SEQUENCE (SIZE (1..64)) OF SL-TF-IndexPair-r12b
+using sl_tf_idx_pair_list_r12b_l = dyn_array<sl_tf_idx_pair_r12b_s>;
 
-// SL-TxPoolToReleaseList-r12 ::= SEQUENCE (SIZE (1..maxSL-TxPool-r12)) OF INTEGER
-typedef bounded_array<uint8_t, 4> sl_tx_pool_to_release_list_r12_l;
+// SL-TxPoolToReleaseList-r12 ::= SEQUENCE (SIZE (1..4)) OF INTEGER (1..4)
+using sl_tx_pool_to_release_list_r12_l = bounded_array<uint8_t, 4>;
 
 // SecurityAlgorithmConfig ::= SEQUENCE
 struct security_algorithm_cfg_s {
@@ -27032,7 +26659,6 @@ struct security_algorithm_cfg_s {
 struct drb_to_add_mod_scg_r12_s {
   struct drb_type_r12_c_ {
     struct scg_r12_s_ {
-      // member variables
       bool       eps_bearer_id_r12_present = false;
       bool       pdcp_cfg_r12_present      = false;
       uint8_t    eps_bearer_id_r12         = 0;
@@ -27104,7 +26730,6 @@ struct drb_to_add_mod_scg_r12_s {
 
 // IKE-Identity-r13 ::= SEQUENCE
 struct ike_id_r13_s {
-  // member variables
   dyn_octstring id_i_r13;
 
   // sequence methods
@@ -27167,15 +26792,14 @@ struct ip_address_r13_c {
   }
 
 private:
-  types                                         type_;
-  choice_buffer_t<sizeof(fixed_bitstring<128>)> c;
+  types                                  type_;
+  choice_buffer_t<fixed_bitstring<128> > c;
 
   void destroy_();
 };
 
 // PhysicalConfigDedicated-v1370 ::= SEQUENCE
 struct phys_cfg_ded_v1370_s {
-  // member variables
   bool                  pucch_cfg_ded_v1370_present = false;
   pucch_cfg_ded_v1370_s pucch_cfg_ded_v1370;
 
@@ -27187,7 +26811,7 @@ struct phys_cfg_ded_v1370_s {
 
 // RAN-AreaConfig-r15 ::= SEQUENCE
 struct ran_area_cfg_r15_s {
-  typedef bounded_array<uint8_t, 32> ran_area_code_list_r15_l_;
+  using ran_area_code_list_r15_l_ = bounded_array<uint16_t, 32>;
 
   // member variables
   bool                      ran_area_code_list_r15_present = false;
@@ -27203,7 +26827,6 @@ struct ran_area_cfg_r15_s {
 // RadioResourceConfigCommonSCell-v10l0 ::= SEQUENCE
 struct rr_cfg_common_scell_v10l0_s {
   struct ul_cfg_v10l0_s_ {
-    // member variables
     uint16_t add_spec_emission_scell_v10l0 = 33;
   };
 
@@ -27220,7 +26843,6 @@ struct rr_cfg_common_scell_v10l0_s {
 struct rr_cfg_common_scell_v1440_s {
   struct ul_cfg_v1440_s_ {
     struct ul_freq_info_v1440_s_ {
-      // member variables
       uint16_t add_spec_emission_scell_v1440 = 33;
     };
 
@@ -27237,15 +26859,14 @@ struct rr_cfg_common_scell_v1440_s {
   void        to_json(json_writer& j) const;
 };
 
-// SCellGroupToAddModList-r15 ::= SEQUENCE (SIZE (1..maxSCellGroups-r15)) OF SCellGroupToAddMod-r15
-typedef dyn_array<scell_group_to_add_mod_r15_s> scell_group_to_add_mod_list_r15_l;
+// SCellGroupToAddModList-r15 ::= SEQUENCE (SIZE (1..4)) OF SCellGroupToAddMod-r15
+using scell_group_to_add_mod_list_r15_l = dyn_array<scell_group_to_add_mod_r15_s>;
 
-// SCellGroupToReleaseList-r15 ::= SEQUENCE (SIZE (1..maxSCellGroups-r15)) OF INTEGER
-typedef bounded_array<uint8_t, 4> scell_group_to_release_list_r15_l;
+// SCellGroupToReleaseList-r15 ::= SEQUENCE (SIZE (1..4)) OF INTEGER (1..4)
+using scell_group_to_release_list_r15_l = bounded_array<uint8_t, 4>;
 
 // SL-DiscTxConfigScheduled-r13 ::= SEQUENCE
 struct sl_disc_tx_cfg_sched_r13_s {
-  // member variables
   bool                       ext                          = false;
   bool                       disc_tx_cfg_r13_present      = false;
   bool                       disc_tf_idx_list_r13_present = false;
@@ -27263,7 +26884,6 @@ struct sl_disc_tx_cfg_sched_r13_s {
 
 // SL-DiscTxPoolDedicated-r13 ::= SEQUENCE
 struct sl_disc_tx_pool_ded_r13_s {
-  // member variables
   bool                                  pool_to_release_list_r13_present = false;
   bool                                  pool_to_add_mod_list_r13_present = false;
   sl_tx_pool_to_release_list_r12_l      pool_to_release_list_r13;
@@ -27275,12 +26895,11 @@ struct sl_disc_tx_pool_ded_r13_s {
   void        to_json(json_writer& j) const;
 };
 
-// SL-ReliabilityList-r15 ::= SEQUENCE (SIZE (1..maxSL-Reliability-r15)) OF INTEGER
-typedef bounded_array<uint8_t, 8> sl_reliability_list_r15_l;
+// SL-ReliabilityList-r15 ::= SEQUENCE (SIZE (1..8)) OF INTEGER (1..8)
+using sl_reliability_list_r15_l = bounded_array<uint8_t, 8>;
 
 // SL-TxPoolToAddMod-r14 ::= SEQUENCE
 struct sl_tx_pool_to_add_mod_r14_s {
-  // member variables
   uint8_t                    pool_id_r14 = 1;
   sl_comm_res_pool_v2x_r14_s pool_r14;
 
@@ -27294,7 +26913,6 @@ struct sl_tx_pool_to_add_mod_r14_s {
 struct security_cfg_ho_v1530_s {
   struct ho_type_v1530_c_ {
     struct intra5_gc_r15_s_ {
-      // member variables
       bool                     security_algorithm_cfg_r15_present = false;
       bool                     nas_container_r15_present          = false;
       security_algorithm_cfg_s security_algorithm_cfg_r15;
@@ -27303,12 +26921,10 @@ struct security_cfg_ho_v1530_s {
       dyn_octstring            nas_container_r15;
     };
     struct ngc_to_epc_r15_s_ {
-      // member variables
       security_algorithm_cfg_s security_algorithm_cfg_r15;
       uint8_t                  next_hop_chaining_count_r15 = 0;
     };
     struct epc_to_ngc_r15_s_ {
-      // member variables
       security_algorithm_cfg_s security_algorithm_cfg_r15;
       dyn_octstring            nas_container_r15;
     };
@@ -27379,8 +26995,8 @@ struct security_cfg_ho_v1530_s {
     }
 
   private:
-    types                                                                                                    type_;
-    choice_buffer_t<MAX4(sizeof(epc_to_ngc_r15_s_), sizeof(intra5_gc_r15_s_), sizeof(ngc_to_epc_r15_s_), 0)> c;
+    types                                                                   type_;
+    choice_buffer_t<epc_to_ngc_r15_s_, intra5_gc_r15_s_, ngc_to_epc_r15_s_> c;
 
     void destroy_();
   };
@@ -27478,12 +27094,11 @@ struct ul_pwr_ctrl_common_ps_cell_r12_s {
   void        to_json(json_writer& j) const;
 };
 
-// WLAN-Id-List-r13 ::= SEQUENCE (SIZE (1..maxWLAN-Id-r13)) OF WLAN-Identifiers-r12
-typedef dyn_array<wlan_ids_r12_s> wlan_id_list_r13_l;
+// WLAN-Id-List-r13 ::= SEQUENCE (SIZE (1..32)) OF WLAN-Identifiers-r12
+using wlan_id_list_r13_l = dyn_array<wlan_ids_r12_s>;
 
 // WLAN-SuspendConfig-r14 ::= SEQUENCE
 struct wlan_suspend_cfg_r14_s {
-  // member variables
   bool wlan_suspend_resume_allowed_r14_present         = false;
   bool wlan_suspend_triggers_status_report_r14_present = false;
   bool wlan_suspend_resume_allowed_r14                 = false;
@@ -27495,21 +27110,20 @@ struct wlan_suspend_cfg_r14_s {
   void        to_json(json_writer& j) const;
 };
 
-// DRB-ToAddModListSCG-r12 ::= SEQUENCE (SIZE (1..maxDRB)) OF DRB-ToAddModSCG-r12
-typedef dyn_array<drb_to_add_mod_scg_r12_s> drb_to_add_mod_list_scg_r12_l;
+// DRB-ToAddModListSCG-r12 ::= SEQUENCE (SIZE (1..11)) OF DRB-ToAddModSCG-r12
+using drb_to_add_mod_list_scg_r12_l = dyn_array<drb_to_add_mod_scg_r12_s>;
 
-// DRB-ToAddModListSCG-r15 ::= SEQUENCE (SIZE (1..maxDRB-r15)) OF DRB-ToAddModSCG-r12
-typedef dyn_array<drb_to_add_mod_scg_r12_s> drb_to_add_mod_list_scg_r15_l;
+// DRB-ToAddModListSCG-r15 ::= SEQUENCE (SIZE (1..15)) OF DRB-ToAddModSCG-r12
+using drb_to_add_mod_list_scg_r15_l = dyn_array<drb_to_add_mod_scg_r12_s>;
 
-// LogicalChGroupInfoList-r13 ::= SEQUENCE (SIZE (1..maxLCG-r13)) OF SL-PriorityList-r13
-typedef dyn_array<sl_prio_list_r13_l> lc_ch_group_info_list_r13_l;
+// LogicalChGroupInfoList-r13 ::= SEQUENCE (SIZE (1..4)) OF SL-PriorityList-r13
+using lc_ch_group_info_list_r13_l = dyn_array<sl_prio_list_r13_l>;
 
-// LogicalChGroupInfoList-v1530 ::= SEQUENCE (SIZE (1..maxLCG-r13)) OF SL-ReliabilityList-r15
-typedef dyn_array<sl_reliability_list_r15_l> lc_ch_group_info_list_v1530_l;
+// LogicalChGroupInfoList-v1530 ::= SEQUENCE (SIZE (1..4)) OF SL-ReliabilityList-r15
+using lc_ch_group_info_list_v1530_l = dyn_array<sl_reliability_list_r15_l>;
 
 // MAC-MainConfigSL-r12 ::= SEQUENCE
 struct mac_main_cfg_sl_r12_s {
-  // member variables
   bool                     periodic_bsr_timer_sl_present = false;
   periodic_bsr_timer_r12_e periodic_bsr_timer_sl;
   retx_bsr_timer_r12_e     retx_bsr_timer_sl;
@@ -27522,7 +27136,7 @@ struct mac_main_cfg_sl_r12_s {
 
 // PLMN-RAN-AreaCell-r15 ::= SEQUENCE
 struct plmn_ran_area_cell_r15_s {
-  typedef bounded_array<fixed_bitstring<28>, 32> ran_area_cells_r15_l_;
+  using ran_area_cells_r15_l_ = bounded_array<fixed_bitstring<28>, 32>;
 
   // member variables
   bool                  plmn_id_r15_present = false;
@@ -27537,7 +27151,7 @@ struct plmn_ran_area_cell_r15_s {
 
 // PLMN-RAN-AreaConfig-r15 ::= SEQUENCE
 struct plmn_ran_area_cfg_r15_s {
-  typedef dyn_array<ran_area_cfg_r15_s> ran_area_r15_l_;
+  using ran_area_r15_l_ = dyn_array<ran_area_cfg_r15_s>;
 
   // member variables
   bool            plmn_id_r15_present = false;
@@ -27552,7 +27166,6 @@ struct plmn_ran_area_cfg_r15_s {
 
 // RACH-ConfigDedicated ::= SEQUENCE
 struct rach_cfg_ded_s {
-  // member variables
   uint8_t ra_preamb_idx     = 0;
   uint8_t ra_prach_mask_idx = 0;
 
@@ -27617,8 +27230,8 @@ struct rach_skip_r14_s {
     }
 
   private:
-    types              type_;
-    choice_buffer_t<8> c;
+    types               type_;
+    pod_choice_buffer_t c;
 
     void destroy_();
   };
@@ -27718,19 +27331,19 @@ private:
 
 // RRCConnectionReconfiguration-v1530-IEs ::= SEQUENCE
 struct rrc_conn_recfg_v1530_ies_s {
-  typedef bounded_array<dyn_octstring, 15> ded_info_nas_list_r15_l_;
+  using ded_info_nas_list_r15_l_ = bounded_array<dyn_octstring, 15>;
 
   // member variables
-  bool                              security_cfg_ho_v1530_present            = false;
-  bool                              s_cell_group_to_release_list_r15_present = false;
-  bool                              s_cell_group_to_add_mod_list_r15_present = false;
-  bool                              ded_info_nas_list_r15_present            = false;
-  bool                              p_max_ue_fr1_r15_present                 = false;
-  bool                              smtc_r15_present                         = false;
-  bool                              non_crit_ext_present                     = false;
+  bool                              security_cfg_ho_v1530_present           = false;
+  bool                              scell_group_to_release_list_r15_present = false;
+  bool                              scell_group_to_add_mod_list_r15_present = false;
+  bool                              ded_info_nas_list_r15_present           = false;
+  bool                              p_max_ue_fr1_r15_present                = false;
+  bool                              smtc_r15_present                        = false;
+  bool                              non_crit_ext_present                    = false;
   security_cfg_ho_v1530_s           security_cfg_ho_v1530;
-  scell_group_to_release_list_r15_l s_cell_group_to_release_list_r15;
-  scell_group_to_add_mod_list_r15_l s_cell_group_to_add_mod_list_r15;
+  scell_group_to_release_list_r15_l scell_group_to_release_list_r15;
+  scell_group_to_add_mod_list_r15_l scell_group_to_add_mod_list_r15;
   ded_info_nas_list_r15_l_          ded_info_nas_list_r15;
   int8_t                            p_max_ue_fr1_r15 = -30;
   mtc_ssb_nr_r15_s                  smtc_r15;
@@ -27743,7 +27356,6 @@ struct rrc_conn_recfg_v1530_ies_s {
 
 // RadioResourceConfigCommonPSCell-r12 ::= SEQUENCE
 struct rr_cfg_common_ps_cell_r12_s {
-  // member variables
   bool                             ext = false;
   rr_cfg_common_scell_r10_s        basic_fields_r12;
   pucch_cfg_common_s               pucch_cfg_common_r12;
@@ -27763,7 +27375,6 @@ struct rr_cfg_common_ps_cell_r12_s {
 
 // RadioResourceConfigCommonPSCell-v12f0 ::= SEQUENCE
 struct rr_cfg_common_ps_cell_v12f0_s {
-  // member variables
   rr_cfg_common_scell_v10l0_s basic_fields_v12f0;
 
   // sequence methods
@@ -27774,7 +27385,6 @@ struct rr_cfg_common_ps_cell_v12f0_s {
 
 // RadioResourceConfigCommonPSCell-v1440 ::= SEQUENCE
 struct rr_cfg_common_ps_cell_v1440_s {
-  // member variables
   rr_cfg_common_scell_v1440_s basic_fields_v1440;
 
   // sequence methods
@@ -27785,7 +27395,6 @@ struct rr_cfg_common_ps_cell_v1440_s {
 
 // RadioResourceConfigDedicatedPSCell-r12 ::= SEQUENCE
 struct rr_cfg_ded_ps_cell_r12_s {
-  // member variables
   bool                    ext                              = false;
   bool                    phys_cfg_ded_ps_cell_r12_present = false;
   bool                    sps_cfg_r12_present              = false;
@@ -27812,7 +27421,6 @@ struct rr_cfg_ded_ps_cell_r12_s {
 
 // RadioResourceConfigDedicatedPSCell-v1370 ::= SEQUENCE
 struct rr_cfg_ded_ps_cell_v1370_s {
-  // member variables
   bool                 phys_cfg_ded_ps_cell_v1370_present = false;
   phys_cfg_ded_v1370_s phys_cfg_ded_ps_cell_v1370;
 
@@ -27825,23 +27433,22 @@ struct rr_cfg_ded_ps_cell_v1370_s {
 // SCellToAddMod-r10 ::= SEQUENCE
 struct scell_to_add_mod_r10_s {
   struct cell_identif_r10_s_ {
-    // member variables
     uint16_t pci_r10             = 0;
-    uint16_t dl_carrier_freq_r10 = 0;
+    uint32_t dl_carrier_freq_r10 = 0;
   };
-  struct s_cell_state_r15_opts {
+  struct scell_state_r15_opts {
     enum options { activ, dormant, nulltype } value;
 
     std::string to_string() const;
   };
-  typedef enumerated<s_cell_state_r15_opts> s_cell_state_r15_e_;
+  typedef enumerated<scell_state_r15_opts> scell_state_r15_e_;
 
   // member variables
   bool                      ext                             = false;
   bool                      cell_identif_r10_present        = false;
   bool                      rr_cfg_common_scell_r10_present = false;
   bool                      rr_cfg_ded_scell_r10_present    = false;
-  uint8_t                   s_cell_idx_r10                  = 1;
+  uint8_t                   scell_idx_r10                   = 1;
   cell_identif_r10_s_       cell_identif_r10;
   rr_cfg_common_scell_r10_s rr_cfg_common_scell_r10;
   rr_cfg_ded_scell_r10_s    rr_cfg_ded_scell_r10;
@@ -27855,8 +27462,8 @@ struct scell_to_add_mod_r10_s {
   bool    srs_switch_from_serv_cell_idx_r14_present = false;
   uint8_t srs_switch_from_serv_cell_idx_r14         = 0;
   // group 3
-  bool                s_cell_state_r15_present = false;
-  s_cell_state_r15_e_ s_cell_state_r15;
+  bool               scell_state_r15_present = false;
+  scell_state_r15_e_ scell_state_r15;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -27866,7 +27473,6 @@ struct scell_to_add_mod_r10_s {
 
 // SCellToAddMod-v10l0 ::= SEQUENCE
 struct scell_to_add_mod_v10l0_s {
-  // member variables
   bool                        rr_cfg_common_scell_v10l0_present = false;
   rr_cfg_common_scell_v10l0_s rr_cfg_common_scell_v10l0;
 
@@ -27878,7 +27484,6 @@ struct scell_to_add_mod_v10l0_s {
 
 // SCellToAddModExt-v1370 ::= SEQUENCE
 struct scell_to_add_mod_ext_v1370_s {
-  // member variables
   bool                        rr_cfg_common_scell_v1370_present = false;
   rr_cfg_common_scell_v10l0_s rr_cfg_common_scell_v1370;
 
@@ -27890,12 +27495,12 @@ struct scell_to_add_mod_ext_v1370_s {
 
 // SCellToAddModExt-v1430 ::= SEQUENCE
 struct scell_to_add_mod_ext_v1430_s {
-  struct s_cell_state_r15_opts {
+  struct scell_state_r15_opts {
     enum options { activ, dormant, nulltype } value;
 
     std::string to_string() const;
   };
-  typedef enumerated<s_cell_state_r15_opts> s_cell_state_r15_e_;
+  typedef enumerated<scell_state_r15_opts> scell_state_r15_e_;
 
   // member variables
   bool    ext                                       = false;
@@ -27903,8 +27508,8 @@ struct scell_to_add_mod_ext_v1430_s {
   uint8_t srs_switch_from_serv_cell_idx_r14         = 0;
   // ...
   // group 0
-  bool                s_cell_state_r15_present = false;
-  s_cell_state_r15_e_ s_cell_state_r15;
+  bool               scell_state_r15_present = false;
+  scell_state_r15_e_ scell_state_r15;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -27915,7 +27520,7 @@ struct scell_to_add_mod_ext_v1430_s {
 // SL-DiscTxRefCarrierDedicated-r13 ::= CHOICE
 struct sl_disc_tx_ref_carrier_ded_r13_c {
   struct types_opts {
-    enum options { p_cell, s_cell, nulltype } value;
+    enum options { pcell, scell, nulltype } value;
 
     std::string to_string() const;
   };
@@ -27929,19 +27534,19 @@ struct sl_disc_tx_ref_carrier_ded_r13_c {
   SRSASN_CODE unpack(bit_ref& bref);
   void        to_json(json_writer& j) const;
   // getters
-  uint8_t& s_cell()
+  uint8_t& scell()
   {
     assert_choice_type("sCell", type_.to_string(), "SL-DiscTxRefCarrierDedicated-r13");
     return c;
   }
-  const uint8_t& s_cell() const
+  const uint8_t& scell() const
   {
     assert_choice_type("sCell", type_.to_string(), "SL-DiscTxRefCarrierDedicated-r13");
     return c;
   }
-  uint8_t& set_s_cell()
+  uint8_t& set_scell()
   {
-    set(types::s_cell);
+    set(types::scell);
     return c;
   }
 
@@ -28003,8 +27608,8 @@ struct sl_disc_tx_res_r13_c {
     }
 
   private:
-    types                                                                                        type_;
-    choice_buffer_t<MAX2(sizeof(sl_disc_tx_cfg_sched_r13_s), sizeof(sl_disc_tx_pool_ded_r13_s))> c;
+    types                                                                  type_;
+    choice_buffer_t<sl_disc_tx_cfg_sched_r13_s, sl_disc_tx_pool_ded_r13_s> c;
 
     void destroy_();
   };
@@ -28068,10 +27673,10 @@ struct sl_gap_pattern_r13_s {
   typedef enumerated<gap_period_r13_opts> gap_period_r13_e_;
 
   // member variables
-  bool                ext = false;
-  gap_period_r13_e_   gap_period_r13;
-  sl_offset_ind_r12_c gap_offset_r12;
-  dyn_bitstring       gap_sf_bitmap_r13;
+  bool                        ext = false;
+  gap_period_r13_e_           gap_period_r13;
+  sl_offset_ind_r12_c         gap_offset_r12;
+  bounded_bitstring<1, 10240> gap_sf_bitmap_r13;
   // ...
 
   // sequence methods
@@ -28080,11 +27685,11 @@ struct sl_gap_pattern_r13_s {
   void        to_json(json_writer& j) const;
 };
 
-// SL-TxPoolToAddModListV2X-r14 ::= SEQUENCE (SIZE (1.. maxSL-V2X-TxPool-r14)) OF SL-TxPoolToAddMod-r14
-typedef dyn_array<sl_tx_pool_to_add_mod_r14_s> sl_tx_pool_to_add_mod_list_v2x_r14_l;
+// SL-TxPoolToAddModListV2X-r14 ::= SEQUENCE (SIZE (1..8)) OF SL-TxPoolToAddMod-r14
+using sl_tx_pool_to_add_mod_list_v2x_r14_l = dyn_array<sl_tx_pool_to_add_mod_r14_s>;
 
-// SL-TxPoolToReleaseListV2X-r14 ::= SEQUENCE (SIZE (1.. maxSL-V2X-TxPool-r14)) OF INTEGER
-typedef bounded_array<uint8_t, 8> sl_tx_pool_to_release_list_v2x_r14_l;
+// SL-TxPoolToReleaseListV2X-r14 ::= SEQUENCE (SIZE (1..8)) OF INTEGER (1..8)
+using sl_tx_pool_to_release_list_v2x_r14_l = bounded_array<uint8_t, 8>;
 
 // SubframeAssignment-r15 ::= ENUMERATED
 struct sf_assign_r15_opts {
@@ -28098,14 +27703,13 @@ typedef enumerated<sf_assign_r15_opts> sf_assign_r15_e;
 
 // TunnelConfigLWIP-r13 ::= SEQUENCE
 struct tunnel_cfg_lwip_r13_s {
-  // member variables
   bool             ext = false;
   ip_address_r13_c ip_address_r13;
   ike_id_r13_s     ike_id_r13;
   // ...
   // group 0
   bool     lwip_counter_r13_present = false;
-  uint16_t lwip_counter_r13         = 0;
+  uint32_t lwip_counter_r13         = 0;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -28115,24 +27719,24 @@ struct tunnel_cfg_lwip_r13_s {
 
 // WLAN-MobilityConfig-r13 ::= SEQUENCE
 struct wlan_mob_cfg_r13_s {
-  struct association_timer_r13_opts {
+  struct assoc_timer_r13_opts {
     enum options { s10, s30, s60, s120, s240, nulltype } value;
     typedef uint8_t number_type;
 
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  typedef enumerated<association_timer_r13_opts> association_timer_r13_e_;
+  typedef enumerated<assoc_timer_r13_opts> assoc_timer_r13_e_;
 
   // member variables
-  bool                     ext                                  = false;
-  bool                     wlan_to_release_list_r13_present     = false;
-  bool                     wlan_to_add_list_r13_present         = false;
-  bool                     association_timer_r13_present        = false;
-  bool                     success_report_requested_r13_present = false;
-  wlan_id_list_r13_l       wlan_to_release_list_r13;
-  wlan_id_list_r13_l       wlan_to_add_list_r13;
-  association_timer_r13_e_ association_timer_r13;
+  bool               ext                                  = false;
+  bool               wlan_to_release_list_r13_present     = false;
+  bool               wlan_to_add_list_r13_present         = false;
+  bool               assoc_timer_r13_present              = false;
+  bool               success_report_requested_r13_present = false;
+  wlan_id_list_r13_l wlan_to_release_list_r13;
+  wlan_id_list_r13_l wlan_to_add_list_r13;
+  assoc_timer_r13_e_ assoc_timer_r13;
   // ...
   // group 0
   copy_ptr<wlan_suspend_cfg_r14_s> wlan_suspend_cfg_r14;
@@ -28153,12 +27757,11 @@ typedef enumerated<ca_bw_class_r10_opts, true> ca_bw_class_r10_e;
 
 // LWA-Config-r13 ::= SEQUENCE
 struct lwa_cfg_r13_s {
-  // member variables
   bool               ext                        = false;
   bool               lwa_mob_cfg_r13_present    = false;
   bool               lwa_wt_counter_r13_present = false;
   wlan_mob_cfg_r13_s lwa_mob_cfg_r13;
-  uint16_t           lwa_wt_counter_r13 = 0;
+  uint32_t           lwa_wt_counter_r13 = 0;
   // ...
   // group 0
   bool               wt_mac_address_r14_present = false;
@@ -28172,7 +27775,6 @@ struct lwa_cfg_r13_s {
 
 // LWIP-Config-r13 ::= SEQUENCE
 struct lwip_cfg_r13_s {
-  // member variables
   bool                  ext                         = false;
   bool                  lwip_mob_cfg_r13_present    = false;
   bool                  tunnel_cfg_lwip_r13_present = false;
@@ -28217,16 +27819,15 @@ struct mob_ctrl_info_scg_r12_s {
   void        to_json(json_writer& j) const;
 };
 
-// PLMN-RAN-AreaCellList-r15 ::= SEQUENCE (SIZE (1..maxPLMN-r15)) OF PLMN-RAN-AreaCell-r15
-typedef dyn_array<plmn_ran_area_cell_r15_s> plmn_ran_area_cell_list_r15_l;
+// PLMN-RAN-AreaCellList-r15 ::= SEQUENCE (SIZE (1..8)) OF PLMN-RAN-AreaCell-r15
+using plmn_ran_area_cell_list_r15_l = dyn_array<plmn_ran_area_cell_r15_s>;
 
-// PLMN-RAN-AreaConfigList-r15 ::= SEQUENCE (SIZE (1..maxPLMN-r15)) OF PLMN-RAN-AreaConfig-r15
-typedef dyn_array<plmn_ran_area_cfg_r15_s> plmn_ran_area_cfg_list_r15_l;
+// PLMN-RAN-AreaConfigList-r15 ::= SEQUENCE (SIZE (1..8)) OF PLMN-RAN-AreaConfig-r15
+using plmn_ran_area_cfg_list_r15_l = dyn_array<plmn_ran_area_cfg_r15_s>;
 
 // PSCellToAddMod-r12 ::= SEQUENCE
 struct ps_cell_to_add_mod_r12_s {
   struct cell_identif_r12_s_ {
-    // member variables
     uint16_t pci_r12             = 0;
     uint32_t dl_carrier_freq_r12 = 0;
   };
@@ -28236,7 +27837,7 @@ struct ps_cell_to_add_mod_r12_s {
   bool                        cell_identif_r12_present          = false;
   bool                        rr_cfg_common_ps_cell_r12_present = false;
   bool                        rr_cfg_ded_ps_cell_r12_present    = false;
-  uint8_t                     s_cell_idx_r12                    = 1;
+  uint8_t                     scell_idx_r12                     = 1;
   cell_identif_r12_s_         cell_identif_r12;
   rr_cfg_common_ps_cell_r12_s rr_cfg_common_ps_cell_r12;
   rr_cfg_ded_ps_cell_r12_s    rr_cfg_ded_ps_cell_r12;
@@ -28244,8 +27845,8 @@ struct ps_cell_to_add_mod_r12_s {
   // group 0
   copy_ptr<ant_info_ded_v10i0_s> ant_info_ded_ps_cell_v1280;
   // group 1
-  bool    s_cell_idx_r13_present = false;
-  uint8_t s_cell_idx_r13         = 1;
+  bool    scell_idx_r13_present = false;
+  uint8_t scell_idx_r13         = 1;
   // group 2
   copy_ptr<rr_cfg_ded_ps_cell_v1370_s> rr_cfg_ded_ps_cell_v1370;
 
@@ -28257,7 +27858,6 @@ struct ps_cell_to_add_mod_r12_s {
 
 // PSCellToAddMod-v12f0 ::= SEQUENCE
 struct ps_cell_to_add_mod_v12f0_s {
-  // member variables
   bool                          rr_cfg_common_ps_cell_r12_present = false;
   rr_cfg_common_ps_cell_v12f0_s rr_cfg_common_ps_cell_r12;
 
@@ -28269,7 +27869,6 @@ struct ps_cell_to_add_mod_v12f0_s {
 
 // PSCellToAddMod-v1440 ::= SEQUENCE
 struct ps_cell_to_add_mod_v1440_s {
-  // member variables
   bool                          rr_cfg_common_ps_cell_r14_present = false;
   rr_cfg_common_ps_cell_v1440_s rr_cfg_common_ps_cell_r14;
 
@@ -28283,7 +27882,6 @@ struct ps_cell_to_add_mod_v1440_s {
 struct rclwi_cfg_r13_s {
   struct cmd_c_ {
     struct steer_to_wlan_r13_s_ {
-      // member variables
       wlan_id_list_r12_l mob_cfg_r13;
     };
     struct types_opts {
@@ -28337,7 +27935,6 @@ struct rclwi_cfg_r13_s {
 struct rrc_conn_recfg_v1510_ies_s {
   struct nr_cfg_r15_c_ {
     struct setup_s_ {
-      // member variables
       bool          nr_secondary_cell_group_cfg_r15_present = false;
       bool          p_max_eutra_r15_present                 = false;
       bool          endc_release_and_add_r15                = false;
@@ -28376,7 +27973,6 @@ struct rrc_conn_recfg_v1510_ies_s {
   };
   struct tdm_pattern_cfg_r15_c_ {
     struct setup_s_ {
-      // member variables
       sf_assign_r15_e sf_assign_r15;
       uint8_t         harq_offset_r15 = 0;
     };
@@ -28419,7 +28015,7 @@ struct rrc_conn_recfg_v1510_ies_s {
   bool                       tdm_pattern_cfg_r15_present      = false;
   bool                       non_crit_ext_present             = false;
   nr_cfg_r15_c_              nr_cfg_r15;
-  uint16_t                   sk_counter_r15 = 0;
+  uint32_t                   sk_counter_r15 = 0;
   dyn_octstring              nr_radio_bearer_cfg1_r15;
   dyn_octstring              nr_radio_bearer_cfg2_r15;
   tdm_pattern_cfg_r15_c_     tdm_pattern_cfg_r15;
@@ -28433,7 +28029,6 @@ struct rrc_conn_recfg_v1510_ies_s {
 
 // RadioResourceConfigDedicatedSCG-r12 ::= SEQUENCE
 struct rr_cfg_ded_scg_r12_s {
-  // member variables
   bool                            ext                                   = false;
   bool                            drb_to_add_mod_list_scg_r12_present   = false;
   bool                            mac_main_cfg_scg_r12_present          = false;
@@ -28451,24 +28046,23 @@ struct rr_cfg_ded_scg_r12_s {
   void        to_json(json_writer& j) const;
 };
 
-// SCellToAddModList-r10 ::= SEQUENCE (SIZE (1..maxSCell-r10)) OF SCellToAddMod-r10
-typedef dyn_array<scell_to_add_mod_r10_s> scell_to_add_mod_list_r10_l;
+// SCellToAddModList-r10 ::= SEQUENCE (SIZE (1..4)) OF SCellToAddMod-r10
+using scell_to_add_mod_list_r10_l = dyn_array<scell_to_add_mod_r10_s>;
 
-// SCellToAddModList-v10l0 ::= SEQUENCE (SIZE (1..maxSCell-r10)) OF SCellToAddMod-v10l0
-typedef dyn_array<scell_to_add_mod_v10l0_s> scell_to_add_mod_list_v10l0_l;
+// SCellToAddModList-v10l0 ::= SEQUENCE (SIZE (1..4)) OF SCellToAddMod-v10l0
+using scell_to_add_mod_list_v10l0_l = dyn_array<scell_to_add_mod_v10l0_s>;
 
-// SCellToAddModListExt-v1370 ::= SEQUENCE (SIZE (1..maxSCell-r13)) OF SCellToAddModExt-v1370
-typedef dyn_array<scell_to_add_mod_ext_v1370_s> scell_to_add_mod_list_ext_v1370_l;
+// SCellToAddModListExt-v1370 ::= SEQUENCE (SIZE (1..31)) OF SCellToAddModExt-v1370
+using scell_to_add_mod_list_ext_v1370_l = dyn_array<scell_to_add_mod_ext_v1370_s>;
 
-// SCellToAddModListExt-v1430 ::= SEQUENCE (SIZE (1..maxSCell-r13)) OF SCellToAddModExt-v1430
-typedef dyn_array<scell_to_add_mod_ext_v1430_s> scell_to_add_mod_list_ext_v1430_l;
+// SCellToAddModListExt-v1430 ::= SEQUENCE (SIZE (1..31)) OF SCellToAddModExt-v1430
+using scell_to_add_mod_list_ext_v1430_l = dyn_array<scell_to_add_mod_ext_v1430_s>;
 
-// SCellToReleaseList-r10 ::= SEQUENCE (SIZE (1..maxSCell-r10)) OF INTEGER
-typedef bounded_array<uint8_t, 4> scell_to_release_list_r10_l;
+// SCellToReleaseList-r10 ::= SEQUENCE (SIZE (1..4)) OF INTEGER (1..7)
+using scell_to_release_list_r10_l = bounded_array<uint8_t, 4>;
 
 // SL-CommTxPoolToAddMod-r12 ::= SEQUENCE
 struct sl_comm_tx_pool_to_add_mod_r12_s {
-  // member variables
   uint8_t                pool_id_r12 = 1;
   sl_comm_res_pool_r12_s pool_r12;
 
@@ -28480,7 +28074,6 @@ struct sl_comm_tx_pool_to_add_mod_r12_s {
 
 // SL-CommTxPoolToAddModExt-r13 ::= SEQUENCE
 struct sl_comm_tx_pool_to_add_mod_ext_r13_s {
-  // member variables
   uint8_t                pool_id_v1310 = 5;
   sl_comm_res_pool_r12_s pool_r13;
 
@@ -28492,7 +28085,6 @@ struct sl_comm_tx_pool_to_add_mod_ext_r13_s {
 
 // SL-DiscTxResourceInfoPerFreq-r13 ::= SEQUENCE
 struct sl_disc_tx_res_info_per_freq_r13_s {
-  // member variables
   bool                             ext                                 = false;
   bool                             disc_tx_res_r13_present             = false;
   bool                             disc_tx_res_ps_r13_present          = false;
@@ -28511,12 +28103,11 @@ struct sl_disc_tx_res_info_per_freq_r13_s {
   void        to_json(json_writer& j) const;
 };
 
-// SL-GapPatternList-r13 ::= SEQUENCE (SIZE (1..maxSL-GP-r13)) OF SL-GapPattern-r13
-typedef dyn_array<sl_gap_pattern_r13_s> sl_gap_pattern_list_r13_l;
+// SL-GapPatternList-r13 ::= SEQUENCE (SIZE (1..8)) OF SL-GapPattern-r13
+using sl_gap_pattern_list_r13_l = dyn_array<sl_gap_pattern_r13_s>;
 
 // SL-TF-IndexPair-r12 ::= SEQUENCE
 struct sl_tf_idx_pair_r12_s {
-  // member variables
   bool    disc_sf_idx_r12_present  = false;
   bool    disc_prb_idx_r12_present = false;
   uint8_t disc_sf_idx_r12          = 1;
@@ -28533,7 +28124,6 @@ struct sl_v2x_cfg_ded_r14_s {
   struct comm_tx_res_r14_c_ {
     struct setup_c_ {
       struct sched_r14_s_ {
-        // member variables
         bool                        v2x_sched_pool_r14_present = false;
         bool                        mcs_r14_present            = false;
         fixed_bitstring<16>         sl_v_rnti_r14;
@@ -28544,7 +28134,6 @@ struct sl_v2x_cfg_ded_r14_s {
       };
       struct ue_sel_r14_s_ {
         struct v2x_comm_tx_pool_normal_ded_r14_s_ {
-          // member variables
           bool                                 pool_to_release_list_r14_present         = false;
           bool                                 pool_to_add_mod_list_r14_present         = false;
           bool                                 v2x_comm_tx_pool_sensing_cfg_r14_present = false;
@@ -28606,8 +28195,8 @@ struct sl_v2x_cfg_ded_r14_s {
       }
 
     private:
-      types                                                              type_;
-      choice_buffer_t<MAX2(sizeof(sched_r14_s_), sizeof(ue_sel_r14_s_))> c;
+      types                                        type_;
+      choice_buffer_t<sched_r14_s_, ue_sel_r14_s_> c;
 
       void destroy_();
     };
@@ -28644,14 +28233,12 @@ struct sl_v2x_cfg_ded_r14_s {
   struct comm_tx_res_v1530_c_ {
     struct setup_c_ {
       struct sched_v1530_s_ {
-        // member variables
         bool                          lc_ch_group_info_list_v1530_present = false;
         bool                          mcs_r15_present                     = false;
         lc_ch_group_info_list_v1530_l lc_ch_group_info_list_v1530;
         uint8_t                       mcs_r15 = 0;
       };
       struct ue_sel_v1530_s_ {
-        // member variables
         bool                           v2x_freq_sel_cfg_list_r15_present = false;
         sl_v2x_freq_sel_cfg_list_r15_l v2x_freq_sel_cfg_list_r15;
       };
@@ -28705,8 +28292,8 @@ struct sl_v2x_cfg_ded_r14_s {
       }
 
     private:
-      types                                                                  type_;
-      choice_buffer_t<MAX2(sizeof(sched_v1530_s_), sizeof(ue_sel_v1530_s_))> c;
+      types                                            type_;
+      choice_buffer_t<sched_v1530_s_, ue_sel_v1530_s_> c;
 
       void destroy_();
     };
@@ -28768,7 +28355,6 @@ struct sl_v2x_cfg_ded_r14_s {
 
 // BandIndication-r14 ::= SEQUENCE
 struct band_ind_r14_s {
-  // member variables
   bool              ca_bw_class_ul_r14_present = false;
   uint16_t          band_eutra_r14             = 1;
   ca_bw_class_r10_e ca_bw_class_dl_r14;
@@ -28783,7 +28369,6 @@ struct band_ind_r14_s {
 // LWA-Configuration-r13 ::= CHOICE
 struct lwa_cfg_r13_c {
   struct setup_s_ {
-    // member variables
     lwa_cfg_r13_s lwa_cfg_r13;
   };
   typedef setup_e types;
@@ -28820,7 +28405,6 @@ private:
 // LWIP-Configuration-r13 ::= CHOICE
 struct lwip_cfg_r13_c {
   struct setup_s_ {
-    // member variables
     lwip_cfg_r13_s lwip_cfg_r13;
   };
   typedef setup_e types;
@@ -28856,7 +28440,6 @@ private:
 
 // MeasCSI-RS-Config-r12 ::= SEQUENCE
 struct meas_csi_rs_cfg_r12_s {
-  // member variables
   bool             ext                = false;
   uint8_t          meas_csi_rs_id_r12 = 1;
   uint16_t         pci_r12            = 0;
@@ -28874,7 +28457,6 @@ struct meas_csi_rs_cfg_r12_s {
 
 // PhysCellIdRangeUTRA-FDD-r9 ::= SEQUENCE
 struct pci_range_utra_fdd_r9_s {
-  // member variables
   bool     range_r9_present = false;
   uint16_t start_r9         = 0;
   uint16_t range_r9         = 2;
@@ -28887,7 +28469,6 @@ struct pci_range_utra_fdd_r9_s {
 
 // PowerCoordinationInfo-r12 ::= SEQUENCE
 struct pwr_coordination_info_r12_s {
-  // member variables
   uint8_t p_me_nb_r12       = 1;
   uint8_t p_se_nb_r12       = 1;
   uint8_t pwr_ctrl_mode_r12 = 1;
@@ -28950,8 +28531,8 @@ struct ran_notif_area_info_r15_c {
   }
 
 private:
-  types                                                                                              type_;
-  choice_buffer_t<MAX2(sizeof(plmn_ran_area_cell_list_r15_l), sizeof(plmn_ran_area_cfg_list_r15_l))> c;
+  types                                                                        type_;
+  choice_buffer_t<plmn_ran_area_cell_list_r15_l, plmn_ran_area_cfg_list_r15_l> c;
 
   void destroy_();
 };
@@ -28959,7 +28540,6 @@ private:
 // RCLWI-Configuration-r13 ::= CHOICE
 struct rclwi_cfg_r13_c {
   struct setup_s_ {
-    // member variables
     rclwi_cfg_r13_s rclwi_cfg_r13;
   };
   typedef setup_e types;
@@ -28995,14 +28575,13 @@ private:
 
 // RRCConnectionReconfiguration-v1430-IEs ::= SEQUENCE
 struct rrc_conn_recfg_v1430_ies_s {
-  // member variables
-  bool                              sl_v2x_cfg_ded_r14_present               = false;
-  bool                              s_cell_to_add_mod_list_ext_v1430_present = false;
-  bool                              per_cc_gap_ind_request_r14_present       = false;
-  bool                              sib_type2_ded_r14_present                = false;
-  bool                              non_crit_ext_present                     = false;
+  bool                              sl_v2x_cfg_ded_r14_present              = false;
+  bool                              scell_to_add_mod_list_ext_v1430_present = false;
+  bool                              per_cc_gap_ind_request_r14_present      = false;
+  bool                              sib_type2_ded_r14_present               = false;
+  bool                              non_crit_ext_present                    = false;
   sl_v2x_cfg_ded_r14_s              sl_v2x_cfg_ded_r14;
-  scell_to_add_mod_list_ext_v1430_l s_cell_to_add_mod_list_ext_v1430;
+  scell_to_add_mod_list_ext_v1430_l scell_to_add_mod_list_ext_v1430;
   dyn_octstring                     sib_type2_ded_r14;
   rrc_conn_recfg_v1510_ies_s        non_crit_ext;
 
@@ -29014,7 +28593,6 @@ struct rrc_conn_recfg_v1430_ies_s {
 
 // RadioResourceConfigDedicated-v1370 ::= SEQUENCE
 struct rr_cfg_ded_v1370_s {
-  // member variables
   bool                 phys_cfg_ded_v1370_present = false;
   phys_cfg_ded_v1370_s phys_cfg_ded_v1370;
 
@@ -29026,29 +28604,28 @@ struct rr_cfg_ded_v1370_s {
 
 // SCG-ConfigPartSCG-r12 ::= SEQUENCE
 struct scg_cfg_part_scg_r12_s {
-  // member variables
-  bool                        ext                                    = false;
-  bool                        rr_cfg_ded_scg_r12_present             = false;
-  bool                        s_cell_to_release_list_scg_r12_present = false;
-  bool                        p_scell_to_add_mod_r12_present         = false;
-  bool                        s_cell_to_add_mod_list_scg_r12_present = false;
-  bool                        mob_ctrl_info_scg_r12_present          = false;
+  bool                        ext                                   = false;
+  bool                        rr_cfg_ded_scg_r12_present            = false;
+  bool                        scell_to_release_list_scg_r12_present = false;
+  bool                        pscell_to_add_mod_r12_present         = false;
+  bool                        scell_to_add_mod_list_scg_r12_present = false;
+  bool                        mob_ctrl_info_scg_r12_present         = false;
   rr_cfg_ded_scg_r12_s        rr_cfg_ded_scg_r12;
-  scell_to_release_list_r10_l s_cell_to_release_list_scg_r12;
-  ps_cell_to_add_mod_r12_s    p_scell_to_add_mod_r12;
-  scell_to_add_mod_list_r10_l s_cell_to_add_mod_list_scg_r12;
+  scell_to_release_list_r10_l scell_to_release_list_scg_r12;
+  ps_cell_to_add_mod_r12_s    pscell_to_add_mod_r12;
+  scell_to_add_mod_list_r10_l scell_to_add_mod_list_scg_r12;
   mob_ctrl_info_scg_r12_s     mob_ctrl_info_scg_r12;
   // ...
   // group 0
-  copy_ptr<scell_to_release_list_ext_r13_l> s_cell_to_release_list_scg_ext_r13;
-  copy_ptr<scell_to_add_mod_list_ext_r13_l> s_cell_to_add_mod_list_scg_ext_r13;
+  copy_ptr<scell_to_release_list_ext_r13_l> scell_to_release_list_scg_ext_r13;
+  copy_ptr<scell_to_add_mod_list_ext_r13_l> scell_to_add_mod_list_scg_ext_r13;
   // group 1
-  copy_ptr<scell_to_add_mod_list_ext_v1370_l> s_cell_to_add_mod_list_scg_ext_v1370;
+  copy_ptr<scell_to_add_mod_list_ext_v1370_l> scell_to_add_mod_list_scg_ext_v1370;
   // group 2
-  copy_ptr<ps_cell_to_add_mod_v1440_s> p_scell_to_add_mod_v1440;
+  copy_ptr<ps_cell_to_add_mod_v1440_s> pscell_to_add_mod_v1440;
   // group 3
-  copy_ptr<scell_group_to_release_list_r15_l> s_cell_group_to_release_list_scg_r15;
-  copy_ptr<scell_group_to_add_mod_list_r15_l> s_cell_group_to_add_mod_list_scg_r15;
+  copy_ptr<scell_group_to_release_list_r15_l> scell_group_to_release_list_scg_r15;
+  copy_ptr<scell_group_to_add_mod_list_r15_l> scell_group_to_add_mod_list_scg_r15;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -29058,11 +28635,10 @@ struct scg_cfg_part_scg_r12_s {
 
 // SCG-ConfigPartSCG-v12f0 ::= SEQUENCE
 struct scg_cfg_part_scg_v12f0_s {
-  // member variables
-  bool                          p_scell_to_add_mod_v12f0_present         = false;
-  bool                          s_cell_to_add_mod_list_scg_v12f0_present = false;
-  ps_cell_to_add_mod_v12f0_s    p_scell_to_add_mod_v12f0;
-  scell_to_add_mod_list_v10l0_l s_cell_to_add_mod_list_scg_v12f0;
+  bool                          pscell_to_add_mod_v12f0_present         = false;
+  bool                          scell_to_add_mod_list_scg_v12f0_present = false;
+  ps_cell_to_add_mod_v12f0_s    pscell_to_add_mod_v12f0;
+  scell_to_add_mod_list_v10l0_l scell_to_add_mod_list_scg_v12f0;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -29070,19 +28646,19 @@ struct scg_cfg_part_scg_v12f0_s {
   void        to_json(json_writer& j) const;
 };
 
-// SL-CommTxPoolToAddModList-r12 ::= SEQUENCE (SIZE (1..maxSL-TxPool-r12)) OF SL-CommTxPoolToAddMod-r12
-typedef dyn_array<sl_comm_tx_pool_to_add_mod_r12_s> sl_comm_tx_pool_to_add_mod_list_r12_l;
+// SL-CommTxPoolToAddModList-r12 ::= SEQUENCE (SIZE (1..4)) OF SL-CommTxPoolToAddMod-r12
+using sl_comm_tx_pool_to_add_mod_list_r12_l = dyn_array<sl_comm_tx_pool_to_add_mod_r12_s>;
 
-// SL-CommTxPoolToAddModListExt-r13 ::= SEQUENCE (SIZE (1..maxSL-TxPool-v1310)) OF SL-CommTxPoolToAddModExt-r13
-typedef dyn_array<sl_comm_tx_pool_to_add_mod_ext_r13_s> sl_comm_tx_pool_to_add_mod_list_ext_r13_l;
+// SL-CommTxPoolToAddModListExt-r13 ::= SEQUENCE (SIZE (1..4)) OF SL-CommTxPoolToAddModExt-r13
+using sl_comm_tx_pool_to_add_mod_list_ext_r13_l = dyn_array<sl_comm_tx_pool_to_add_mod_ext_r13_s>;
 
-// SL-DiscSysInfoToReportFreqList-r13 ::= SEQUENCE (SIZE (1..maxFreq)) OF INTEGER
-typedef bounded_array<uint32_t, 8> sl_disc_sys_info_to_report_freq_list_r13_l;
+// SL-DiscSysInfoToReportFreqList-r13 ::= SEQUENCE (SIZE (1..8)) OF INTEGER (0..262143)
+using sl_disc_sys_info_to_report_freq_list_r13_l = bounded_array<uint32_t, 8>;
 
 // SL-DiscTxInfoInterFreqListAdd-r13 ::= SEQUENCE
 struct sl_disc_tx_info_inter_freq_list_add_r13_s {
-  typedef dyn_array<sl_disc_tx_res_info_per_freq_r13_s> disc_tx_freq_to_add_mod_list_r13_l_;
-  typedef bounded_array<uint32_t, 8>                    disc_tx_freq_to_release_list_r13_l_;
+  using disc_tx_freq_to_add_mod_list_r13_l_ = dyn_array<sl_disc_tx_res_info_per_freq_r13_s>;
+  using disc_tx_freq_to_release_list_r13_l_ = bounded_array<uint32_t, 8>;
 
   // member variables
   bool                                ext                                      = false;
@@ -29100,7 +28676,6 @@ struct sl_disc_tx_info_inter_freq_list_add_r13_s {
 
 // SL-GapConfig-r13 ::= SEQUENCE
 struct sl_gap_cfg_r13_s {
-  // member variables
   sl_gap_pattern_list_r13_l gap_pattern_list_r13;
 
   // sequence methods
@@ -29109,15 +28684,14 @@ struct sl_gap_cfg_r13_s {
   void        to_json(json_writer& j) const;
 };
 
-// SL-TF-IndexPairList-r12 ::= SEQUENCE (SIZE (1..maxSL-TF-IndexPair-r12)) OF SL-TF-IndexPair-r12
-typedef dyn_array<sl_tf_idx_pair_r12_s> sl_tf_idx_pair_list_r12_l;
+// SL-TF-IndexPairList-r12 ::= SEQUENCE (SIZE (1..64)) OF SL-TF-IndexPair-r12
+using sl_tf_idx_pair_list_r12_l = dyn_array<sl_tf_idx_pair_r12_s>;
 
-// SL-TxPoolToReleaseListExt-r13 ::= SEQUENCE (SIZE (1..maxSL-TxPool-v1310)) OF INTEGER
-typedef bounded_array<uint8_t, 4> sl_tx_pool_to_release_list_ext_r13_l;
+// SL-TxPoolToReleaseListExt-r13 ::= SEQUENCE (SIZE (1..4)) OF INTEGER (5..8)
+using sl_tx_pool_to_release_list_ext_r13_l = bounded_array<uint8_t, 4>;
 
 // AltTTT-CellsToAddMod-r12 ::= SEQUENCE
 struct alt_ttt_cells_to_add_mod_r12_s {
-  // member variables
   uint8_t     cell_idx_r12 = 1;
   pci_range_s pci_range_r12;
 
@@ -29127,15 +28701,14 @@ struct alt_ttt_cells_to_add_mod_r12_s {
   void        to_json(json_writer& j) const;
 };
 
-// BT-NameList-r15 ::= SEQUENCE (SIZE (1..maxBT-Name-r15)) OF OCTET STRING
-typedef bounded_array<dyn_octstring, 4> bt_name_list_r15_l;
+// BT-NameList-r15 ::= SEQUENCE (SIZE (1..4)) OF OCTET STRING (SIZE (1..248))
+using bt_name_list_r15_l = bounded_array<dyn_octstring, 4>;
 
-// BandCombination-r14 ::= SEQUENCE (SIZE (1..maxSimultaneousBands-r10)) OF BandIndication-r14
-typedef dyn_array<band_ind_r14_s> band_combination_r14_l;
+// BandCombination-r14 ::= SEQUENCE (SIZE (1..64)) OF BandIndication-r14
+using band_combination_r14_l = dyn_array<band_ind_r14_s>;
 
 // BlackCellsToAddMod ::= SEQUENCE
 struct black_cells_to_add_mod_s {
-  // member variables
   uint8_t     cell_idx = 1;
   pci_range_s pci_range;
 
@@ -29147,7 +28720,6 @@ struct black_cells_to_add_mod_s {
 
 // CellsToAddMod ::= SEQUENCE
 struct cells_to_add_mod_s {
-  // member variables
   uint8_t          cell_idx = 1;
   uint16_t         pci      = 0;
   q_offset_range_e cell_individual_offset;
@@ -29160,7 +28732,6 @@ struct cells_to_add_mod_s {
 
 // CellsToAddModCDMA2000 ::= SEQUENCE
 struct cells_to_add_mod_cdma2000_s {
-  // member variables
   uint8_t  cell_idx = 1;
   uint16_t pci      = 0;
 
@@ -29172,7 +28743,6 @@ struct cells_to_add_mod_cdma2000_s {
 
 // CellsToAddModNR-r15 ::= SEQUENCE
 struct cells_to_add_mod_nr_r15_s {
-  // member variables
   uint8_t  cell_idx_r15 = 1;
   uint16_t pci_r15      = 0;
 
@@ -29184,7 +28754,6 @@ struct cells_to_add_mod_nr_r15_s {
 
 // CellsToAddModUTRA-FDD ::= SEQUENCE
 struct cells_to_add_mod_utra_fdd_s {
-  // member variables
   uint8_t  cell_idx = 1;
   uint16_t pci      = 0;
 
@@ -29196,7 +28765,6 @@ struct cells_to_add_mod_utra_fdd_s {
 
 // CellsToAddModUTRA-TDD ::= SEQUENCE
 struct cells_to_add_mod_utra_tdd_s {
-  // member variables
   uint8_t cell_idx = 1;
   uint8_t pci      = 0;
 
@@ -29208,7 +28776,6 @@ struct cells_to_add_mod_utra_tdd_s {
 
 // FlightPathInfoReportConfig-r15 ::= SEQUENCE
 struct flight_path_info_report_cfg_r15_s {
-  // member variables
   bool    include_time_stamp_r15_present = false;
   uint8_t max_way_point_num_r15          = 1;
 
@@ -29218,11 +28785,11 @@ struct flight_path_info_report_cfg_r15_s {
   void        to_json(json_writer& j) const;
 };
 
-// MeasCSI-RS-ToAddModList-r12 ::= SEQUENCE (SIZE (1..maxCSI-RS-Meas-r12)) OF MeasCSI-RS-Config-r12
-typedef dyn_array<meas_csi_rs_cfg_r12_s> meas_csi_rs_to_add_mod_list_r12_l;
+// MeasCSI-RS-ToAddModList-r12 ::= SEQUENCE (SIZE (1..96)) OF MeasCSI-RS-Config-r12
+using meas_csi_rs_to_add_mod_list_r12_l = dyn_array<meas_csi_rs_cfg_r12_s>;
 
-// MeasCSI-RS-ToRemoveList-r12 ::= SEQUENCE (SIZE (1..maxCSI-RS-Meas-r12)) OF INTEGER
-typedef dyn_array<uint8_t> meas_csi_rs_to_rem_list_r12_l;
+// MeasCSI-RS-ToRemoveList-r12 ::= SEQUENCE (SIZE (1..96)) OF INTEGER (1..96)
+using meas_csi_rs_to_rem_list_r12_l = dyn_array<uint8_t>;
 
 // MeasIdleConfigDedicated-r15 ::= SEQUENCE
 struct meas_idle_cfg_ded_r15_s {
@@ -29248,11 +28815,11 @@ struct meas_idle_cfg_ded_r15_s {
   void        to_json(json_writer& j) const;
 };
 
-// MeasSubframeCellList-r10 ::= SEQUENCE (SIZE (1..maxCellMeas)) OF PhysCellIdRange
-typedef dyn_array<pci_range_s> meas_sf_cell_list_r10_l;
+// MeasSubframeCellList-r10 ::= SEQUENCE (SIZE (1..32)) OF PhysCellIdRange
+using meas_sf_cell_list_r10_l = dyn_array<pci_range_s>;
 
-// PhysCellIdRangeUTRA-FDDList-r9 ::= SEQUENCE (SIZE (1..maxPhysCellIdRange-r9)) OF PhysCellIdRangeUTRA-FDD-r9
-typedef dyn_array<pci_range_utra_fdd_r9_s> pci_range_utra_fdd_list_r9_l;
+// PhysCellIdRangeUTRA-FDDList-r9 ::= SEQUENCE (SIZE (1..4)) OF PhysCellIdRangeUTRA-FDD-r9
+using pci_range_utra_fdd_list_r9_l = dyn_array<pci_range_utra_fdd_r9_s>;
 
 // RRC-InactiveConfig-r15 ::= SEQUENCE
 struct rrc_inactive_cfg_r15_s {
@@ -29294,15 +28861,14 @@ struct rrc_inactive_cfg_r15_s {
 
 // RRCConnectionReconfiguration-v1310-IEs ::= SEQUENCE
 struct rrc_conn_recfg_v1310_ies_s {
-  // member variables
-  bool                            s_cell_to_release_list_ext_r13_present = false;
-  bool                            s_cell_to_add_mod_list_ext_r13_present = false;
-  bool                            lwa_cfg_r13_present                    = false;
-  bool                            lwip_cfg_r13_present                   = false;
-  bool                            rclwi_cfg_r13_present                  = false;
-  bool                            non_crit_ext_present                   = false;
-  scell_to_release_list_ext_r13_l s_cell_to_release_list_ext_r13;
-  scell_to_add_mod_list_ext_r13_l s_cell_to_add_mod_list_ext_r13;
+  bool                            scell_to_release_list_ext_r13_present = false;
+  bool                            scell_to_add_mod_list_ext_r13_present = false;
+  bool                            lwa_cfg_r13_present                   = false;
+  bool                            lwip_cfg_r13_present                  = false;
+  bool                            rclwi_cfg_r13_present                 = false;
+  bool                            non_crit_ext_present                  = false;
+  scell_to_release_list_ext_r13_l scell_to_release_list_ext_r13;
+  scell_to_add_mod_list_ext_r13_l scell_to_add_mod_list_ext_r13;
   lwa_cfg_r13_c                   lwa_cfg_r13;
   lwip_cfg_r13_c                  lwip_cfg_r13;
   rclwi_cfg_r13_c                 rclwi_cfg_r13;
@@ -29316,12 +28882,11 @@ struct rrc_conn_recfg_v1310_ies_s {
 
 // RRCConnectionReconfiguration-v1370-IEs ::= SEQUENCE
 struct rrc_conn_recfg_v1370_ies_s {
-  // member variables
-  bool                              rr_cfg_ded_v1370_present                 = false;
-  bool                              s_cell_to_add_mod_list_ext_v1370_present = false;
-  bool                              non_crit_ext_present                     = false;
+  bool                              rr_cfg_ded_v1370_present                = false;
+  bool                              scell_to_add_mod_list_ext_v1370_present = false;
+  bool                              non_crit_ext_present                    = false;
   rr_cfg_ded_v1370_s                rr_cfg_ded_v1370;
-  scell_to_add_mod_list_ext_v1370_l s_cell_to_add_mod_list_ext_v1370;
+  scell_to_add_mod_list_ext_v1370_l scell_to_add_mod_list_ext_v1370;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -29333,11 +28898,10 @@ struct rrc_conn_recfg_v1370_ies_s {
 struct scg_cfg_r12_c {
   struct setup_s_ {
     struct scg_cfg_part_mcg_r12_s_ {
-      // member variables
       bool                        ext                               = false;
       bool                        scg_counter_r12_present           = false;
       bool                        pwr_coordination_info_r12_present = false;
-      uint16_t                    scg_counter_r12                   = 0;
+      uint32_t                    scg_counter_r12                   = 0;
       pwr_coordination_info_r12_s pwr_coordination_info_r12;
       // ...
     };
@@ -29382,7 +28946,6 @@ private:
 // SCG-Configuration-v12f0 ::= CHOICE
 struct scg_cfg_v12f0_c {
   struct setup_s_ {
-    // member variables
     bool                     scg_cfg_part_scg_v12f0_present = false;
     scg_cfg_part_scg_v12f0_s scg_cfg_part_scg_v12f0;
   };
@@ -29422,7 +28985,6 @@ struct sl_comm_cfg_r12_s {
   struct comm_tx_res_r12_c_ {
     struct setup_c_ {
       struct sched_r12_s_ {
-        // member variables
         bool                   mcs_r12_present = false;
         fixed_bitstring<16>    sl_rnti_r12;
         mac_main_cfg_sl_r12_s  mac_main_cfg_r12;
@@ -29431,7 +28993,6 @@ struct sl_comm_cfg_r12_s {
       };
       struct ue_sel_r12_s_ {
         struct comm_tx_pool_normal_ded_r12_s_ {
-          // member variables
           bool                                  pool_to_release_list_r12_present = false;
           bool                                  pool_to_add_mod_list_r12_present = false;
           sl_tx_pool_to_release_list_r12_l      pool_to_release_list_r12;
@@ -29491,8 +29052,8 @@ struct sl_comm_cfg_r12_s {
       }
 
     private:
-      types                                                              type_;
-      choice_buffer_t<MAX2(sizeof(sched_r12_s_), sizeof(ue_sel_r12_s_))> c;
+      types                                        type_;
+      choice_buffer_t<sched_r12_s_, ue_sel_r12_s_> c;
 
       void destroy_();
     };
@@ -29529,13 +29090,11 @@ struct sl_comm_cfg_r12_s {
   struct comm_tx_res_v1310_c_ {
     struct setup_c_ {
       struct sched_v1310_s_ {
-        // member variables
         lc_ch_group_info_list_r13_l lc_ch_group_info_list_r13;
         bool                        multiple_tx_r13 = false;
       };
       struct ue_sel_v1310_s_ {
         struct comm_tx_pool_normal_ded_ext_r13_s_ {
-          // member variables
           bool                                      pool_to_release_list_ext_r13_present = false;
           bool                                      pool_to_add_mod_list_ext_r13_present = false;
           sl_tx_pool_to_release_list_ext_r13_l      pool_to_release_list_ext_r13;
@@ -29595,8 +29154,8 @@ struct sl_comm_cfg_r12_s {
       }
 
     private:
-      types                                                                  type_;
-      choice_buffer_t<MAX2(sizeof(sched_v1310_s_), sizeof(ue_sel_v1310_s_))> c;
+      types                                            type_;
+      choice_buffer_t<sched_v1310_s_, ue_sel_v1310_s_> c;
 
       void destroy_();
     };
@@ -29652,7 +29211,6 @@ struct sl_disc_cfg_r12_s {
   struct disc_tx_res_r12_c_ {
     struct setup_c_ {
       struct sched_r12_s_ {
-        // member variables
         bool                      disc_tx_cfg_r12_present      = false;
         bool                      disc_tf_idx_list_r12_present = false;
         bool                      disc_hop_cfg_r12_present     = false;
@@ -29662,7 +29220,6 @@ struct sl_disc_cfg_r12_s {
       };
       struct ue_sel_r12_s_ {
         struct disc_tx_pool_ded_r12_s_ {
-          // member variables
           bool                                  pool_to_release_list_r12_present = false;
           bool                                  pool_to_add_mod_list_r12_present = false;
           sl_tx_pool_to_release_list_r12_l      pool_to_release_list_r12;
@@ -29723,8 +29280,8 @@ struct sl_disc_cfg_r12_s {
       }
 
     private:
-      types                                                              type_;
-      choice_buffer_t<MAX2(sizeof(sched_r12_s_), sizeof(ue_sel_r12_s_))> c;
+      types                                        type_;
+      choice_buffer_t<sched_r12_s_, ue_sel_r12_s_> c;
 
       void destroy_();
     };
@@ -29760,7 +29317,6 @@ struct sl_disc_cfg_r12_s {
   };
   struct disc_tf_idx_list_v1260_c_ {
     struct setup_s_ {
-      // member variables
       sl_tf_idx_pair_list_r12b_l disc_tf_idx_list_r12b;
     };
     typedef setup_e types;
@@ -29796,7 +29352,6 @@ struct sl_disc_cfg_r12_s {
   struct disc_tx_res_ps_r13_c_ {
     struct setup_c_ {
       struct ue_sel_r13_s_ {
-        // member variables
         sl_disc_tx_pool_ded_r13_s disc_tx_pool_ps_ded_r13;
       };
       struct types_opts {
@@ -29849,8 +29404,8 @@ struct sl_disc_cfg_r12_s {
       }
 
     private:
-      types                                                                            type_;
-      choice_buffer_t<MAX2(sizeof(sl_disc_tx_cfg_sched_r13_s), sizeof(ue_sel_r13_s_))> c;
+      types                                                      type_;
+      choice_buffer_t<sl_disc_tx_cfg_sched_r13_s, ue_sel_r13_s_> c;
 
       void destroy_();
     };
@@ -29886,7 +29441,6 @@ struct sl_disc_cfg_r12_s {
   };
   struct disc_tx_inter_freq_info_r13_c_ {
     struct setup_s_ {
-      // member variables
       bool                                      disc_tx_carrier_freq_r13_present             = false;
       bool                                      disc_tx_ref_carrier_ded_r13_present          = false;
       bool                                      disc_tx_info_inter_freq_list_add_r13_present = false;
@@ -30061,7 +29615,6 @@ struct sl_sync_tx_ctrl_r12_s {
 
 // UECapabilityEnquiry-v1530-IEs ::= SEQUENCE
 struct ue_cap_enquiry_v1530_ies_s {
-  // member variables
   bool request_stti_spt_cap_r15_present = false;
   bool eutra_nr_only_r15_present        = false;
   bool non_crit_ext_present             = false;
@@ -30072,15 +29625,14 @@ struct ue_cap_enquiry_v1530_ies_s {
   void        to_json(json_writer& j) const;
 };
 
-// WLAN-ChannelList-r13 ::= SEQUENCE (SIZE (1..maxWLAN-Channels-r13)) OF INTEGER
-typedef bounded_array<uint8_t, 16> wlan_ch_list_r13_l;
+// WLAN-ChannelList-r13 ::= SEQUENCE (SIZE (1..16)) OF INTEGER (0..255)
+using wlan_ch_list_r13_l = bounded_array<uint16_t, 16>;
 
-// WLAN-NameList-r15 ::= SEQUENCE (SIZE (1..maxWLAN-Name-r15)) OF OCTET STRING
-typedef bounded_array<dyn_octstring, 4> wlan_name_list_r15_l;
+// WLAN-NameList-r15 ::= SEQUENCE (SIZE (1..4)) OF OCTET STRING (SIZE (1..32))
+using wlan_name_list_r15_l = bounded_array<dyn_octstring, 4>;
 
 // WhiteCellsToAddMod-r13 ::= SEQUENCE
 struct white_cells_to_add_mod_r13_s {
-  // member variables
   uint8_t     cell_idx_r13 = 1;
   pci_range_s pci_range_r13;
 
@@ -30090,8 +29642,8 @@ struct white_cells_to_add_mod_r13_s {
   void        to_json(json_writer& j) const;
 };
 
-// AltTTT-CellsToAddModList-r12 ::= SEQUENCE (SIZE (1..maxCellMeas)) OF AltTTT-CellsToAddMod-r12
-typedef dyn_array<alt_ttt_cells_to_add_mod_r12_s> alt_ttt_cells_to_add_mod_list_r12_l;
+// AltTTT-CellsToAddModList-r12 ::= SEQUENCE (SIZE (1..32)) OF AltTTT-CellsToAddMod-r12
+using alt_ttt_cells_to_add_mod_list_r12_l = dyn_array<alt_ttt_cells_to_add_mod_r12_s>;
 
 // BT-NameListConfig-r15 ::= CHOICE
 struct bt_name_list_cfg_r15_c {
@@ -30126,11 +29678,11 @@ private:
   bt_name_list_r15_l c;
 };
 
-// BandCombinationList-r14 ::= SEQUENCE (SIZE (1..maxBandComb-r13)) OF BandCombination-r14
-typedef dyn_array<band_combination_r14_l> band_combination_list_r14_l;
+// BandCombinationList-r14 ::= SEQUENCE (SIZE (1..384)) OF BandCombination-r14
+using band_combination_list_r14_l = dyn_array<band_combination_r14_l>;
 
-// BlackCellsToAddModList ::= SEQUENCE (SIZE (1..maxCellMeas)) OF BlackCellsToAddMod
-typedef dyn_array<black_cells_to_add_mod_s> black_cells_to_add_mod_list_l;
+// BlackCellsToAddModList ::= SEQUENCE (SIZE (1..32)) OF BlackCellsToAddMod
+using black_cells_to_add_mod_list_l = dyn_array<black_cells_to_add_mod_s>;
 
 // CDMA2000-Type ::= ENUMERATED
 struct cdma2000_type_opts {
@@ -30144,7 +29696,6 @@ typedef enumerated<cdma2000_type_opts> cdma2000_type_e;
 
 // CSG-AllowedReportingCells-r9 ::= SEQUENCE
 struct csg_allowed_report_cells_r9_s {
-  // member variables
   bool                         pci_range_utra_fdd_list_r9_present = false;
   pci_range_utra_fdd_list_r9_l pci_range_utra_fdd_list_r9;
 
@@ -30154,12 +29705,11 @@ struct csg_allowed_report_cells_r9_s {
   void        to_json(json_writer& j) const;
 };
 
-// CandidateServingFreqListNR-r15 ::= SEQUENCE (SIZE (1..maxFreqIDC-r11)) OF INTEGER
-typedef bounded_array<uint32_t, 32> candidate_serving_freq_list_nr_r15_l;
+// CandidateServingFreqListNR-r15 ::= SEQUENCE (SIZE (1..32)) OF INTEGER (0..3279165)
+using candidate_serving_freq_list_nr_r15_l = bounded_array<uint32_t, 32>;
 
 // CarrierFreqGERAN ::= SEQUENCE
 struct carrier_freq_geran_s {
-  // member variables
   uint16_t         arfcn = 0;
   band_ind_geran_e band_ind;
 
@@ -30169,23 +29719,23 @@ struct carrier_freq_geran_s {
   void        to_json(json_writer& j) const;
 };
 
-// CellIndexList ::= SEQUENCE (SIZE (1..maxCellMeas)) OF INTEGER
-typedef bounded_array<uint8_t, 32> cell_idx_list_l;
+// CellIndexList ::= SEQUENCE (SIZE (1..32)) OF INTEGER (1..32)
+using cell_idx_list_l = bounded_array<uint8_t, 32>;
 
-// CellsToAddModList ::= SEQUENCE (SIZE (1..maxCellMeas)) OF CellsToAddMod
-typedef dyn_array<cells_to_add_mod_s> cells_to_add_mod_list_l;
+// CellsToAddModList ::= SEQUENCE (SIZE (1..32)) OF CellsToAddMod
+using cells_to_add_mod_list_l = dyn_array<cells_to_add_mod_s>;
 
-// CellsToAddModListCDMA2000 ::= SEQUENCE (SIZE (1..maxCellMeas)) OF CellsToAddModCDMA2000
-typedef dyn_array<cells_to_add_mod_cdma2000_s> cells_to_add_mod_list_cdma2000_l;
+// CellsToAddModListCDMA2000 ::= SEQUENCE (SIZE (1..32)) OF CellsToAddModCDMA2000
+using cells_to_add_mod_list_cdma2000_l = dyn_array<cells_to_add_mod_cdma2000_s>;
 
-// CellsToAddModListNR-r15 ::= SEQUENCE (SIZE (1..maxCellMeas)) OF CellsToAddModNR-r15
-typedef dyn_array<cells_to_add_mod_nr_r15_s> cells_to_add_mod_list_nr_r15_l;
+// CellsToAddModListNR-r15 ::= SEQUENCE (SIZE (1..32)) OF CellsToAddModNR-r15
+using cells_to_add_mod_list_nr_r15_l = dyn_array<cells_to_add_mod_nr_r15_s>;
 
-// CellsToAddModListUTRA-FDD ::= SEQUENCE (SIZE (1..maxCellMeas)) OF CellsToAddModUTRA-FDD
-typedef dyn_array<cells_to_add_mod_utra_fdd_s> cells_to_add_mod_list_utra_fdd_l;
+// CellsToAddModListUTRA-FDD ::= SEQUENCE (SIZE (1..32)) OF CellsToAddModUTRA-FDD
+using cells_to_add_mod_list_utra_fdd_l = dyn_array<cells_to_add_mod_utra_fdd_s>;
 
-// CellsToAddModListUTRA-TDD ::= SEQUENCE (SIZE (1..maxCellMeas)) OF CellsToAddModUTRA-TDD
-typedef dyn_array<cells_to_add_mod_utra_tdd_s> cells_to_add_mod_list_utra_tdd_l;
+// CellsToAddModListUTRA-TDD ::= SEQUENCE (SIZE (1..32)) OF CellsToAddModUTRA-TDD
+using cells_to_add_mod_list_utra_tdd_l = dyn_array<cells_to_add_mod_utra_tdd_s>;
 
 // MeasCycleSCell-r10 ::= ENUMERATED
 struct meas_cycle_scell_r10_opts {
@@ -30268,8 +29818,8 @@ struct meas_ds_cfg_r12_c {
       }
 
     private:
-      types              type_;
-      choice_buffer_t<8> c;
+      types               type_;
+      pod_choice_buffer_t c;
 
       void destroy_();
     };
@@ -30324,8 +29874,8 @@ struct meas_ds_cfg_r12_c {
       }
 
     private:
-      types              type_;
-      choice_buffer_t<8> c;
+      types               type_;
+      pod_choice_buffer_t c;
 
       void destroy_();
     };
@@ -30718,8 +30268,8 @@ struct meas_gap_cfg_c {
       }
 
     private:
-      types              type_;
-      choice_buffer_t<8> c;
+      types               type_;
+      pod_choice_buffer_t c;
 
       void destroy_();
     };
@@ -30760,7 +30310,6 @@ private:
 
 // MeasRSSI-ReportConfig-r13 ::= SEQUENCE
 struct meas_rssi_report_cfg_r13_s {
-  // member variables
   bool    ch_occupancy_thres_r13_present = false;
   uint8_t ch_occupancy_thres_r13         = 0;
 
@@ -30796,7 +30345,6 @@ struct meas_sensing_cfg_r15_s {
 // MeasSubframePatternConfigNeigh-r10 ::= CHOICE
 struct meas_sf_pattern_cfg_neigh_r10_c {
   struct setup_s_ {
-    // member variables
     bool                    meas_sf_cell_list_r10_present = false;
     meas_sf_pattern_r10_c   meas_sf_pattern_neigh_r10;
     meas_sf_cell_list_r10_l meas_sf_cell_list_r10;
@@ -30834,7 +30382,6 @@ private:
 
 // MobilityControlInfo-v10l0 ::= SEQUENCE
 struct mob_ctrl_info_v10l0_s {
-  // member variables
   bool     add_spec_emission_v10l0_present = false;
   uint16_t add_spec_emission_v10l0         = 33;
 
@@ -30846,7 +30393,6 @@ struct mob_ctrl_info_v10l0_s {
 
 // PhysCellIdGERAN ::= SEQUENCE
 struct pci_geran_s {
-  // member variables
   fixed_bitstring<3> network_colour_code;
   fixed_bitstring<3> base_station_colour_code;
 
@@ -30858,7 +30404,6 @@ struct pci_geran_s {
 
 // QuantityConfigRS-NR-r15 ::= SEQUENCE
 struct quant_cfg_rs_nr_r15_s {
-  // member variables
   bool        filt_coeff_rsrp_r15_present = false;
   bool        filt_coeff_rsrq_r15_present = false;
   bool        filt_coef_sinr_r13_present  = false;
@@ -31002,7 +30547,6 @@ struct rrc_conn_recfg_v1250_ies_s {
 
 // RRCConnectionReconfiguration-v12f0-IEs ::= SEQUENCE
 struct rrc_conn_recfg_v12f0_ies_s {
-  // member variables
   bool                       scg_cfg_v12f0_present     = false;
   bool                       late_non_crit_ext_present = false;
   bool                       non_crit_ext_present      = false;
@@ -31048,7 +30592,7 @@ struct rrc_conn_release_v1530_ies_s {
 // RS-ConfigSSB-NR-r15 ::= SEQUENCE
 struct rs_cfg_ssb_nr_r15_s {
   struct subcarrier_spacing_ssb_r15_opts {
-    enum options { k_hz15, k_hz30, k_hz120, k_hz240, nulltype } value;
+    enum options { khz15, khz30, khz120, khz240, nulltype } value;
     typedef uint8_t number_type;
 
     std::string to_string() const;
@@ -31131,7 +30675,6 @@ typedef enumerated<report_interv_opts> report_interv_e;
 
 // ReportQuantityNR-r15 ::= SEQUENCE
 struct report_quant_nr_r15_s {
-  // member variables
   bool ss_rsrp = false;
   bool ss_rsrq = false;
   bool ss_sinr = false;
@@ -31144,7 +30687,6 @@ struct report_quant_nr_r15_s {
 
 // ReportQuantityWLAN-r13 ::= SEQUENCE
 struct report_quant_wlan_r13_s {
-  // member variables
   bool ext                                                   = false;
   bool band_request_wlan_r13_present                         = false;
   bool carrier_info_request_wlan_r13_present                 = false;
@@ -31161,15 +30703,14 @@ struct report_quant_wlan_r13_s {
   void        to_json(json_writer& j) const;
 };
 
-// SystemInfoListGERAN ::= SEQUENCE (SIZE (1..maxGERAN-SI)) OF OCTET STRING
-typedef bounded_array<dyn_octstring, 10> sys_info_list_geran_l;
+// SystemInfoListGERAN ::= SEQUENCE (SIZE (1..10)) OF OCTET STRING (SIZE (1..23))
+using sys_info_list_geran_l = bounded_array<dyn_octstring, 10>;
 
 // TargetMBSFN-Area-r12 ::= SEQUENCE
 struct target_mbsfn_area_r12_s {
-  // member variables
   bool     ext                       = false;
   bool     mbsfn_area_id_r12_present = false;
-  uint8_t  mbsfn_area_id_r12         = 0;
+  uint16_t mbsfn_area_id_r12         = 0;
   uint32_t carrier_freq_r12          = 0;
   // ...
 
@@ -31231,8 +30772,8 @@ struct thres_eutra_c {
   }
 
 private:
-  types              type_;
-  choice_buffer_t<8> c;
+  types               type_;
+  pod_choice_buffer_t c;
 
   void destroy_();
 };
@@ -31304,8 +30845,8 @@ struct thres_nr_r15_c {
   }
 
 private:
-  types              type_;
-  choice_buffer_t<8> c;
+  types               type_;
+  pod_choice_buffer_t c;
 
   void destroy_();
 };
@@ -31364,8 +30905,8 @@ struct thres_utra_c {
   }
 
 private:
-  types              type_;
-  choice_buffer_t<8> c;
+  types               type_;
+  pod_choice_buffer_t c;
 
   void destroy_();
 };
@@ -31398,12 +30939,11 @@ struct time_to_trigger_opts {
 };
 typedef enumerated<time_to_trigger_opts> time_to_trigger_e;
 
-// Tx-ResourcePoolMeasList-r14 ::= SEQUENCE (SIZE (1..maxSL-PoolToMeasure-r14)) OF INTEGER
-typedef dyn_array<uint8_t> tx_res_pool_meas_list_r14_l;
+// Tx-ResourcePoolMeasList-r14 ::= SEQUENCE (SIZE (1..72)) OF INTEGER (1..72)
+using tx_res_pool_meas_list_r14_l = dyn_array<uint8_t>;
 
 // UECapabilityEnquiry-v1510-IEs ::= SEQUENCE
 struct ue_cap_enquiry_v1510_ies_s {
-  // member variables
   bool                       requested_freq_bands_nr_mrdc_r15_present = false;
   bool                       non_crit_ext_present                     = false;
   dyn_octstring              requested_freq_bands_nr_mrdc_r15;
@@ -31417,7 +30957,6 @@ struct ue_cap_enquiry_v1510_ies_s {
 
 // UEInformationRequest-v1530-IEs ::= SEQUENCE
 struct ue_info_request_v1530_ies_s {
-  // member variables
   bool                              idle_mode_meas_req_r15_present   = false;
   bool                              flight_path_info_req_r15_present = false;
   bool                              non_crit_ext_present             = false;
@@ -31518,7 +31057,7 @@ struct wlan_carrier_info_r13_s {
   bool                operating_class_r13_present = false;
   bool                country_code_r13_present    = false;
   bool                ch_nums_r13_present         = false;
-  uint8_t             operating_class_r13         = 0;
+  uint16_t            operating_class_r13         = 0;
   country_code_r13_e_ country_code_r13;
   wlan_ch_list_r13_l  ch_nums_r13;
   // ...
@@ -31562,12 +31101,11 @@ private:
   wlan_name_list_r15_l c;
 };
 
-// WhiteCellsToAddModList-r13 ::= SEQUENCE (SIZE (1..maxCellMeas)) OF WhiteCellsToAddMod-r13
-typedef dyn_array<white_cells_to_add_mod_r13_s> white_cells_to_add_mod_list_r13_l;
+// WhiteCellsToAddModList-r13 ::= SEQUENCE (SIZE (1..32)) OF WhiteCellsToAddMod-r13
+using white_cells_to_add_mod_list_r13_l = dyn_array<white_cells_to_add_mod_r13_s>;
 
 // CellInfoGERAN-r9 ::= SEQUENCE
 struct cell_info_geran_r9_s {
-  // member variables
   pci_geran_s           pci_r9;
   carrier_freq_geran_s  carrier_freq_r9;
   sys_info_list_geran_l sys_info_r9;
@@ -31580,7 +31118,6 @@ struct cell_info_geran_r9_s {
 
 // CellInfoUTRA-FDD-r9 ::= SEQUENCE
 struct cell_info_utra_fdd_r9_s {
-  // member variables
   uint16_t      pci_r9 = 0;
   dyn_octstring utra_bcch_container_r9;
 
@@ -31592,7 +31129,6 @@ struct cell_info_utra_fdd_r9_s {
 
 // CellInfoUTRA-TDD-r10 ::= SEQUENCE
 struct cell_info_utra_tdd_r10_s {
-  // member variables
   uint8_t       pci_r10          = 0;
   uint16_t      carrier_freq_r10 = 0;
   dyn_octstring utra_bcch_container_r10;
@@ -31605,7 +31141,6 @@ struct cell_info_utra_tdd_r10_s {
 
 // CellInfoUTRA-TDD-r9 ::= SEQUENCE
 struct cell_info_utra_tdd_r9_s {
-  // member variables
   uint8_t       pci_r9 = 0;
   dyn_octstring utra_bcch_container_r9;
 
@@ -31617,7 +31152,6 @@ struct cell_info_utra_tdd_r9_s {
 
 // DRB-CountMSB-Info ::= SEQUENCE
 struct drb_count_msb_info_s {
-  // member variables
   uint8_t  drb_id       = 1;
   uint32_t count_msb_ul = 0;
   uint32_t count_msb_dl = 0;
@@ -31705,7 +31239,6 @@ struct idc_cfg_r11_s {
 
 // LoggedMeasurementConfiguration-v1530-IEs ::= SEQUENCE
 struct logged_meas_cfg_v1530_ies_s {
-  // member variables
   bool                 bt_name_list_r15_present   = false;
   bool                 wlan_name_list_r15_present = false;
   bool                 non_crit_ext_present       = false;
@@ -31720,7 +31253,6 @@ struct logged_meas_cfg_v1530_ies_s {
 
 // MeasGapConfigPerCC-r14 ::= SEQUENCE
 struct meas_gap_cfg_per_cc_r14_s {
-  // member variables
   uint8_t        serv_cell_id_r14 = 0;
   meas_gap_cfg_c meas_gap_cfg_cc_r14;
 
@@ -31732,7 +31264,6 @@ struct meas_gap_cfg_per_cc_r14_s {
 
 // MeasObjectCDMA2000 ::= SEQUENCE
 struct meas_obj_cdma2000_s {
-  // member variables
   bool                             ext                                  = false;
   bool                             search_win_size_present              = false;
   bool                             offset_freq_present                  = false;
@@ -31804,7 +31335,7 @@ struct meas_obj_eutra_s {
   bool                          black_cells_to_rem_list_present      = false;
   bool                          black_cells_to_add_mod_list_present  = false;
   bool                          cell_for_which_to_report_cgi_present = false;
-  uint16_t                      carrier_freq                         = 0;
+  uint32_t                      carrier_freq                         = 0;
   allowed_meas_bw_e             allowed_meas_bw;
   bool                          presence_ant_port1 = false;
   fixed_bitstring<2>            neigh_cell_cfg;
@@ -31851,7 +31382,6 @@ struct meas_obj_eutra_s {
 
 // MeasObjectEUTRA-v9e0 ::= SEQUENCE
 struct meas_obj_eutra_v9e0_s {
-  // member variables
   uint32_t carrier_freq_v9e0 = 65536;
 
   // sequence methods
@@ -31862,7 +31392,6 @@ struct meas_obj_eutra_v9e0_s {
 
 // MeasObjectGERAN ::= SEQUENCE
 struct meas_obj_geran_s {
-  // member variables
   bool                  ext                                  = false;
   bool                  offset_freq_present                  = false;
   bool                  ncc_permitted_present                = false;
@@ -31881,7 +31410,7 @@ struct meas_obj_geran_s {
 
 // MeasObjectNR-r15 ::= SEQUENCE
 struct meas_obj_nr_r15_s {
-  typedef bounded_array<uint16_t, 3> cells_for_which_to_report_sftd_r15_l_;
+  using cells_for_which_to_report_sftd_r15_l_ = bounded_array<uint16_t, 3>;
   struct band_nr_r15_c_ {
     typedef setup_e types;
 
@@ -31999,8 +31528,8 @@ struct meas_obj_utra_s {
     }
 
   private:
-    types                                                                                                     type_;
-    choice_buffer_t<MAX2(sizeof(cells_to_add_mod_list_utra_fdd_l), sizeof(cells_to_add_mod_list_utra_tdd_l))> c;
+    types                                                                               type_;
+    choice_buffer_t<cells_to_add_mod_list_utra_fdd_l, cells_to_add_mod_list_utra_tdd_l> c;
 
     void destroy_();
   };
@@ -32055,8 +31584,8 @@ struct meas_obj_utra_s {
     }
 
   private:
-    types              type_;
-    choice_buffer_t<8> c;
+    types               type_;
+    pod_choice_buffer_t c;
 
     void destroy_();
   };
@@ -32088,8 +31617,8 @@ struct meas_obj_utra_s {
 // MeasObjectWLAN-r13 ::= SEQUENCE
 struct meas_obj_wlan_r13_s {
   struct carrier_freq_r13_c_ {
-    typedef bounded_array<wlan_band_ind_r13_e, 8> band_ind_list_wlan_r13_l_;
-    typedef dyn_array<wlan_carrier_info_r13_s>    carrier_info_list_wlan_r13_l_;
+    using band_ind_list_wlan_r13_l_     = bounded_array<wlan_band_ind_r13_e, 8>;
+    using carrier_info_list_wlan_r13_l_ = dyn_array<wlan_carrier_info_r13_s>;
     struct types_opts {
       enum options { band_ind_list_wlan_r13, carrier_info_list_wlan_r13, nulltype } value;
 
@@ -32140,8 +31669,8 @@ struct meas_obj_wlan_r13_s {
     }
 
   private:
-    types                                                                                           type_;
-    choice_buffer_t<MAX2(sizeof(band_ind_list_wlan_r13_l_), sizeof(carrier_info_list_wlan_r13_l_))> c;
+    types                                                                     type_;
+    choice_buffer_t<band_ind_list_wlan_r13_l_, carrier_info_list_wlan_r13_l_> c;
 
     void destroy_();
   };
@@ -32164,7 +31693,6 @@ struct meas_obj_wlan_r13_s {
 
 // ObtainLocationConfig-r11 ::= SEQUENCE
 struct obtain_location_cfg_r11_s {
-  // member variables
   bool obtain_location_r11_present = false;
 
   // sequence methods
@@ -32240,7 +31768,6 @@ private:
 
 // QuantityConfigNR-r15 ::= SEQUENCE
 struct quant_cfg_nr_r15_s {
-  // member variables
   bool                  meas_quant_rs_idx_nr_r15_present = false;
   quant_cfg_rs_nr_r15_s meas_quant_cell_nr_r15;
   quant_cfg_rs_nr_r15_s meas_quant_rs_idx_nr_r15;
@@ -32253,13 +31780,12 @@ struct quant_cfg_nr_r15_s {
 
 // RRCConnectionReconfiguration-v10l0-IEs ::= SEQUENCE
 struct rrc_conn_recfg_v10l0_ies_s {
-  // member variables
-  bool                          mob_ctrl_info_v10l0_present          = false;
-  bool                          s_cell_to_add_mod_list_v10l0_present = false;
-  bool                          late_non_crit_ext_present            = false;
-  bool                          non_crit_ext_present                 = false;
+  bool                          mob_ctrl_info_v10l0_present         = false;
+  bool                          scell_to_add_mod_list_v10l0_present = false;
+  bool                          late_non_crit_ext_present           = false;
+  bool                          non_crit_ext_present                = false;
   mob_ctrl_info_v10l0_s         mob_ctrl_info_v10l0;
-  scell_to_add_mod_list_v10l0_l s_cell_to_add_mod_list_v10l0;
+  scell_to_add_mod_list_v10l0_l scell_to_add_mod_list_v10l0;
   dyn_octstring                 late_non_crit_ext;
   rrc_conn_recfg_v12f0_ies_s    non_crit_ext;
 
@@ -32271,7 +31797,6 @@ struct rrc_conn_recfg_v10l0_ies_s {
 
 // RRCConnectionReconfiguration-v1130-IEs ::= SEQUENCE
 struct rrc_conn_recfg_v1130_ies_s {
-  // member variables
   bool                       sib_type1_ded_r11_present = false;
   bool                       non_crit_ext_present      = false;
   dyn_octstring              sib_type1_ded_r11;
@@ -32285,7 +31810,6 @@ struct rrc_conn_recfg_v1130_ies_s {
 
 // RRCConnectionRelease-v1320-IEs ::= SEQUENCE
 struct rrc_conn_release_v1320_ies_s {
-  // member variables
   bool                         resume_id_r13_present = false;
   bool                         non_crit_ext_present  = false;
   fixed_bitstring<40>          resume_id_r13;
@@ -32300,58 +31824,46 @@ struct rrc_conn_release_v1320_ies_s {
 struct eutra_event_s {
   struct event_id_c_ {
     struct event_a1_s_ {
-      // member variables
       thres_eutra_c a1_thres;
     };
     struct event_a2_s_ {
-      // member variables
       thres_eutra_c a2_thres;
     };
     struct event_a3_s_ {
-      // member variables
       int8_t a3_offset       = -30;
       bool   report_on_leave = false;
     };
     struct event_a4_s_ {
-      // member variables
       thres_eutra_c a4_thres;
     };
     struct event_a5_s_ {
-      // member variables
       thres_eutra_c a5_thres1;
       thres_eutra_c a5_thres2;
     };
     struct event_a6_r10_s_ {
-      // member variables
       int8_t a6_offset_r10          = -30;
       bool   a6_report_on_leave_r10 = false;
     };
     struct event_c1_r12_s_ {
-      // member variables
       uint8_t c1_thres_r12           = 0;
       bool    c1_report_on_leave_r12 = false;
     };
     struct event_c2_r12_s_ {
-      // member variables
       uint8_t c2_ref_csi_rs_r12      = 1;
       int8_t  c2_offset_r12          = -30;
       bool    c2_report_on_leave_r12 = false;
     };
     struct event_v1_r14_s_ {
-      // member variables
       uint8_t v1_thres_r14 = 0;
     };
     struct event_v2_r14_s_ {
-      // member variables
       uint8_t v2_thres_r14 = 0;
     };
     struct event_h1_r15_s_ {
-      // member variables
       uint16_t h1_thres_offset_r15   = 0;
       uint8_t  h1_hysteresis_minus15 = 1;
     };
     struct event_h2_r15_s_ {
-      // member variables
       uint16_t h2_thres_offset_r15   = 0;
       uint8_t  h2_hysteresis_minus15 = 1;
     };
@@ -32571,22 +32083,18 @@ struct eutra_event_s {
 
   private:
     types type_;
-    choice_buffer_t<MAX16(sizeof(event_a1_s_),
-                          sizeof(event_a2_s_),
-                          sizeof(event_a3_s_),
-                          sizeof(event_a4_s_),
-                          sizeof(event_a5_s_),
-                          sizeof(event_a6_r10_s_),
-                          sizeof(event_c1_r12_s_),
-                          sizeof(event_c2_r12_s_),
-                          sizeof(event_h1_r15_s_),
-                          sizeof(event_h2_r15_s_),
-                          sizeof(event_v1_r14_s_),
-                          sizeof(event_v2_r14_s_),
-                          0,
-                          0,
-                          0,
-                          0)>
+    choice_buffer_t<event_a1_s_,
+                    event_a2_s_,
+                    event_a3_s_,
+                    event_a4_s_,
+                    event_a5_s_,
+                    event_a6_r10_s_,
+                    event_c1_r12_s_,
+                    event_c2_r12_s_,
+                    event_h1_r15_s_,
+                    event_h2_r15_s_,
+                    event_v1_r14_s_,
+                    event_v2_r14_s_>
         c;
 
     void destroy_();
@@ -32668,8 +32176,8 @@ struct report_cfg_eutra_s {
     }
 
   private:
-    types                                                          type_;
-    choice_buffer_t<MAX2(sizeof(event_s_), sizeof(periodical_s_))> c;
+    types                                    type_;
+    choice_buffer_t<event_s_, periodical_s_> c;
 
     void destroy_();
   };
@@ -32693,11 +32201,11 @@ struct report_cfg_eutra_s {
     int8_t      to_number() const;
   };
   typedef enumerated<report_amount_opts> report_amount_e_;
-  struct alternative_time_to_trigger_r12_c_ {
+  struct alt_time_to_trigger_r12_c_ {
     typedef setup_e types;
 
     // choice methods
-    alternative_time_to_trigger_r12_c_() = default;
+    alt_time_to_trigger_r12_c_() = default;
     void        set(types::options e = types::nulltype);
     types       type() const { return type_; }
     SRSASN_CODE pack(bit_ref& bref) const;
@@ -32735,9 +32243,9 @@ struct report_cfg_eutra_s {
 
       // member variables
       bool                  trigger_quant_v1310_present = false;
-      bool                  a_n_thres1_r13_present      = false;
+      bool                  an_thres1_r13_present       = false;
       bool                  a5_thres2_r13_present       = false;
-      uint8_t               a_n_thres1_r13              = 0;
+      uint8_t               an_thres1_r13               = 0;
       uint8_t               a5_thres2_r13               = 0;
       report_quant_v1310_e_ report_quant_v1310;
     };
@@ -32794,19 +32302,19 @@ struct report_cfg_eutra_s {
   bool include_location_info_r10_present = false;
   bool report_add_neigh_meas_r10_present = false;
   // group 2
-  bool                                         use_t312_r12_present                 = false;
-  bool                                         use_ps_cell_r12_present              = false;
-  bool                                         report_strongest_csi_rss_r12_present = false;
-  bool                                         report_crs_meas_r12_present          = false;
-  bool                                         trigger_quant_csi_rs_r12_present     = false;
-  copy_ptr<alternative_time_to_trigger_r12_c_> alternative_time_to_trigger_r12;
-  bool                                         use_t312_r12    = false;
-  bool                                         use_ps_cell_r12 = false;
-  copy_ptr<rsrq_range_cfg_r12_c>               a_n_thres1_v1250;
-  copy_ptr<rsrq_range_cfg_r12_c>               a5_thres2_v1250;
-  bool                                         report_strongest_csi_rss_r12 = false;
-  bool                                         report_crs_meas_r12          = false;
-  bool                                         trigger_quant_csi_rs_r12     = false;
+  bool                                 use_t312_r12_present                 = false;
+  bool                                 use_ps_cell_r12_present              = false;
+  bool                                 report_strongest_csi_rss_r12_present = false;
+  bool                                 report_crs_meas_r12_present          = false;
+  bool                                 trigger_quant_csi_rs_r12_present     = false;
+  copy_ptr<alt_time_to_trigger_r12_c_> alt_time_to_trigger_r12;
+  bool                                 use_t312_r12    = false;
+  bool                                 use_ps_cell_r12 = false;
+  copy_ptr<rsrq_range_cfg_r12_c>       an_thres1_v1250;
+  copy_ptr<rsrq_range_cfg_r12_c>       a5_thres2_v1250;
+  bool                                 report_strongest_csi_rss_r12 = false;
+  bool                                 report_crs_meas_r12          = false;
+  bool                                 trigger_quant_csi_rs_r12     = false;
   // group 3
   bool                                 report_sstd_meas_r13_present        = false;
   bool                                 use_white_cell_list_r13_present     = false;
@@ -32827,11 +32335,11 @@ struct report_cfg_eutra_s {
   uint8_t max_report_rs_idx_r15         = 0;
   // group 7
   bool                               purpose_r15_present               = false;
-  bool                               nof_triggering_cells_r15_present  = false;
+  bool                               nof_trigger_cells_r15_present     = false;
   bool                               a4_a5_report_on_leave_r15_present = false;
   copy_ptr<bt_name_list_cfg_r15_c>   include_bt_meas_r15;
   copy_ptr<wlan_name_list_cfg_r15_c> include_wlan_meas_r15;
-  uint8_t                            nof_triggering_cells_r15  = 2;
+  uint8_t                            nof_trigger_cells_r15     = 2;
   bool                               a4_a5_report_on_leave_r15 = false;
 
   // sequence methods
@@ -32912,8 +32420,8 @@ struct report_cfg_inter_rat_s {
             }
 
           private:
-            types                                 type_;
-            choice_buffer_t<sizeof(thres_utra_c)> c;
+            types                         type_;
+            choice_buffer_t<thres_utra_c> c;
 
             void destroy_();
           };
@@ -32988,8 +32496,8 @@ struct report_cfg_inter_rat_s {
             }
 
           private:
-            types                                 type_;
-            choice_buffer_t<sizeof(thres_utra_c)> c;
+            types                         type_;
+            choice_buffer_t<thres_utra_c> c;
 
             void destroy_();
           };
@@ -32999,25 +32507,20 @@ struct report_cfg_inter_rat_s {
           b2_thres2_c_  b2_thres2;
         };
         struct event_w1_r13_s_ {
-          // member variables
           uint8_t w1_thres_r13 = 0;
         };
         struct event_w2_r13_s_ {
-          // member variables
           uint8_t w2_thres1_r13 = 0;
           uint8_t w2_thres2_r13 = 0;
         };
         struct event_w3_r13_s_ {
-          // member variables
           uint8_t w3_thres_r13 = 0;
         };
         struct event_b1_nr_r15_s_ {
-          // member variables
           thres_nr_r15_c b1_thres_nr_r15;
           bool           report_on_leave_r15 = false;
         };
         struct event_b2_nr_r15_s_ {
-          // member variables
           thres_eutra_c  b2_thres1_r15;
           thres_nr_r15_c b2_thres2_nr_r15;
           bool           report_on_leave_r15 = false;
@@ -33158,14 +32661,13 @@ struct report_cfg_inter_rat_s {
 
       private:
         types type_;
-        choice_buffer_t<MAX8(sizeof(event_b1_nr_r15_s_),
-                             sizeof(event_b1_s_),
-                             sizeof(event_b2_nr_r15_s_),
-                             sizeof(event_b2_s_),
-                             sizeof(event_w1_r13_s_),
-                             sizeof(event_w2_r13_s_),
-                             sizeof(event_w3_r13_s_),
-                             0)>
+        choice_buffer_t<event_b1_nr_r15_s_,
+                        event_b1_s_,
+                        event_b2_nr_r15_s_,
+                        event_b2_s_,
+                        event_w1_r13_s_,
+                        event_w2_r13_s_,
+                        event_w3_r13_s_>
             c;
 
         void destroy_();
@@ -33237,8 +32739,8 @@ struct report_cfg_inter_rat_s {
     }
 
   private:
-    types                                                          type_;
-    choice_buffer_t<MAX2(sizeof(event_s_), sizeof(periodical_s_))> c;
+    types                                    type_;
+    choice_buffer_t<event_s_, periodical_s_> c;
 
     void destroy_();
   };
@@ -33282,7 +32784,7 @@ struct report_cfg_inter_rat_s {
     int8_t c;
   };
   struct report_sftd_meas_r15_opts {
-    enum options { p_scell, neighbor_cells, nulltype } value;
+    enum options { pscell, neighbor_cells, nulltype } value;
 
     std::string to_string() const;
   };
@@ -33327,7 +32829,6 @@ struct report_cfg_inter_rat_s {
 
 // ReportProximityConfig-r9 ::= SEQUENCE
 struct report_proximity_cfg_r9_s {
-  // member variables
   bool proximity_ind_eutra_r9_present = false;
   bool proximity_ind_utra_r9_present  = false;
 
@@ -33337,12 +32838,12 @@ struct report_proximity_cfg_r9_s {
   void        to_json(json_writer& j) const;
 };
 
-// TargetMBSFN-AreaList-r12 ::= SEQUENCE (SIZE (0..maxMBSFN-Area)) OF TargetMBSFN-Area-r12
-typedef dyn_array<target_mbsfn_area_r12_s> target_mbsfn_area_list_r12_l;
+// TargetMBSFN-AreaList-r12 ::= SEQUENCE (SIZE (0..8)) OF TargetMBSFN-Area-r12
+using target_mbsfn_area_list_r12_l = dyn_array<target_mbsfn_area_r12_s>;
 
 // TrackingAreaCodeList-v1130 ::= SEQUENCE
 struct tac_list_v1130_s {
-  typedef dyn_array<plmn_id_s> plmn_id_per_tac_list_r11_l_;
+  using plmn_id_per_tac_list_r11_l_ = dyn_array<plmn_id_s>;
 
   // member variables
   plmn_id_per_tac_list_r11_l_ plmn_id_per_tac_list_r11;
@@ -33355,7 +32856,6 @@ struct tac_list_v1130_s {
 
 // UECapabilityEnquiry-v1430-IEs ::= SEQUENCE
 struct ue_cap_enquiry_v1430_ies_s {
-  // member variables
   bool                        request_diff_fallback_comb_list_r14_present = false;
   bool                        non_crit_ext_present                        = false;
   band_combination_list_r14_l request_diff_fallback_comb_list_r14;
@@ -33369,7 +32869,6 @@ struct ue_cap_enquiry_v1430_ies_s {
 
 // UEInformationRequest-v1250-IEs ::= SEQUENCE
 struct ue_info_request_v1250_ies_s {
-  // member variables
   bool                        mob_history_report_req_r12_present = false;
   bool                        non_crit_ext_present               = false;
   ue_info_request_v1530_ies_s non_crit_ext;
@@ -33382,7 +32881,6 @@ struct ue_info_request_v1250_ies_s {
 
 // AreaConfiguration-v1130 ::= SEQUENCE
 struct area_cfg_v1130_s {
-  // member variables
   tac_list_v1130_s tac_list_v1130;
 
   // sequence methods
@@ -33393,7 +32891,6 @@ struct area_cfg_v1130_s {
 
 // CellGlobalIdEUTRA ::= SEQUENCE
 struct cell_global_id_eutra_s {
-  // member variables
   plmn_id_s           plmn_id;
   fixed_bitstring<28> cell_id;
 
@@ -33403,24 +32900,23 @@ struct cell_global_id_eutra_s {
   void        to_json(json_writer& j) const;
 };
 
-// CellInfoListGERAN-r9 ::= SEQUENCE (SIZE (1..maxCellInfoGERAN-r9)) OF CellInfoGERAN-r9
-typedef dyn_array<cell_info_geran_r9_s> cell_info_list_geran_r9_l;
+// CellInfoListGERAN-r9 ::= SEQUENCE (SIZE (1..32)) OF CellInfoGERAN-r9
+using cell_info_list_geran_r9_l = dyn_array<cell_info_geran_r9_s>;
 
-// CellInfoListUTRA-FDD-r9 ::= SEQUENCE (SIZE (1..maxCellInfoUTRA-r9)) OF CellInfoUTRA-FDD-r9
-typedef dyn_array<cell_info_utra_fdd_r9_s> cell_info_list_utra_fdd_r9_l;
+// CellInfoListUTRA-FDD-r9 ::= SEQUENCE (SIZE (1..16)) OF CellInfoUTRA-FDD-r9
+using cell_info_list_utra_fdd_r9_l = dyn_array<cell_info_utra_fdd_r9_s>;
 
-// CellInfoListUTRA-TDD-r10 ::= SEQUENCE (SIZE (1..maxCellInfoUTRA-r9)) OF CellInfoUTRA-TDD-r10
-typedef dyn_array<cell_info_utra_tdd_r10_s> cell_info_list_utra_tdd_r10_l;
+// CellInfoListUTRA-TDD-r10 ::= SEQUENCE (SIZE (1..16)) OF CellInfoUTRA-TDD-r10
+using cell_info_list_utra_tdd_r10_l = dyn_array<cell_info_utra_tdd_r10_s>;
 
-// CellInfoListUTRA-TDD-r9 ::= SEQUENCE (SIZE (1..maxCellInfoUTRA-r9)) OF CellInfoUTRA-TDD-r9
-typedef dyn_array<cell_info_utra_tdd_r9_s> cell_info_list_utra_tdd_r9_l;
+// CellInfoListUTRA-TDD-r9 ::= SEQUENCE (SIZE (1..16)) OF CellInfoUTRA-TDD-r9
+using cell_info_list_utra_tdd_r9_l = dyn_array<cell_info_utra_tdd_r9_s>;
 
-// DRB-CountMSB-InfoListExt-r15 ::= SEQUENCE (SIZE (1..maxDRBExt-r15)) OF DRB-CountMSB-Info
-typedef dyn_array<drb_count_msb_info_s> drb_count_msb_info_list_ext_r15_l;
+// DRB-CountMSB-InfoListExt-r15 ::= SEQUENCE (SIZE (1..4)) OF DRB-CountMSB-Info
+using drb_count_msb_info_list_ext_r15_l = dyn_array<drb_count_msb_info_s>;
 
 // HandoverFromEUTRAPreparationRequest-v1020-IEs ::= SEQUENCE
 struct ho_from_eutra_prep_request_v1020_ies_s {
-  // member variables
   bool                    dual_rx_tx_redirect_ind_r10_present               = false;
   bool                    redirect_carrier_cdma2000_minus1_xrtt_r10_present = false;
   bool                    non_crit_ext_present                              = false;
@@ -33434,7 +32930,6 @@ struct ho_from_eutra_prep_request_v1020_ies_s {
 
 // LoggedMeasurementConfiguration-v1250-IEs ::= SEQUENCE
 struct logged_meas_cfg_v1250_ies_s {
-  // member variables
   bool                         target_mbsfn_area_list_r12_present = false;
   bool                         non_crit_ext_present               = false;
   target_mbsfn_area_list_r12_l target_mbsfn_area_list_r12;
@@ -33446,15 +32941,14 @@ struct logged_meas_cfg_v1250_ies_s {
   void        to_json(json_writer& j) const;
 };
 
-// MeasGapConfigToAddModList-r14 ::= SEQUENCE (SIZE (1..maxServCell-r13)) OF MeasGapConfigPerCC-r14
-typedef dyn_array<meas_gap_cfg_per_cc_r14_s> meas_gap_cfg_to_add_mod_list_r14_l;
+// MeasGapConfigToAddModList-r14 ::= SEQUENCE (SIZE (1..32)) OF MeasGapConfigPerCC-r14
+using meas_gap_cfg_to_add_mod_list_r14_l = dyn_array<meas_gap_cfg_per_cc_r14_s>;
 
-// MeasGapConfigToRemoveList-r14 ::= SEQUENCE (SIZE (1..maxServCell-r13)) OF INTEGER
-typedef bounded_array<uint8_t, 32> meas_gap_cfg_to_rem_list_r14_l;
+// MeasGapConfigToRemoveList-r14 ::= SEQUENCE (SIZE (1..32)) OF INTEGER (0..31)
+using meas_gap_cfg_to_rem_list_r14_l = bounded_array<uint8_t, 32>;
 
 // MeasIdToAddMod ::= SEQUENCE
 struct meas_id_to_add_mod_s {
-  // member variables
   uint8_t meas_id       = 1;
   uint8_t meas_obj_id   = 1;
   uint8_t report_cfg_id = 1;
@@ -33467,7 +32961,6 @@ struct meas_id_to_add_mod_s {
 
 // MeasIdToAddMod-v1310 ::= SEQUENCE
 struct meas_id_to_add_mod_v1310_s {
-  // member variables
   bool    meas_obj_id_v1310_present = false;
   uint8_t meas_obj_id_v1310         = 33;
 
@@ -33479,7 +32972,6 @@ struct meas_id_to_add_mod_v1310_s {
 
 // MeasIdToAddModExt-r12 ::= SEQUENCE
 struct meas_id_to_add_mod_ext_r12_s {
-  // member variables
   uint8_t meas_id_v1250     = 33;
   uint8_t meas_obj_id_r12   = 1;
   uint8_t report_cfg_id_r12 = 1;
@@ -33615,14 +33107,12 @@ struct meas_obj_to_add_mod_s {
 
   private:
     types type_;
-    choice_buffer_t<MAX8(sizeof(meas_obj_cdma2000_s),
-                         sizeof(meas_obj_eutra_s),
-                         sizeof(meas_obj_geran_s),
-                         sizeof(meas_obj_nr_r15_s),
-                         sizeof(meas_obj_utra_s),
-                         sizeof(meas_obj_wlan_r13_s),
-                         0,
-                         0)>
+    choice_buffer_t<meas_obj_cdma2000_s,
+                    meas_obj_eutra_s,
+                    meas_obj_geran_s,
+                    meas_obj_nr_r15_s,
+                    meas_obj_utra_s,
+                    meas_obj_wlan_r13_s>
         c;
 
     void destroy_();
@@ -33640,7 +33130,6 @@ struct meas_obj_to_add_mod_s {
 
 // MeasObjectToAddMod-v9e0 ::= SEQUENCE
 struct meas_obj_to_add_mod_v9e0_s {
-  // member variables
   bool                  meas_obj_eutra_v9e0_present = false;
   meas_obj_eutra_v9e0_s meas_obj_eutra_v9e0;
 
@@ -33775,14 +33264,12 @@ struct meas_obj_to_add_mod_ext_r13_s {
 
   private:
     types type_;
-    choice_buffer_t<MAX8(sizeof(meas_obj_cdma2000_s),
-                         sizeof(meas_obj_eutra_s),
-                         sizeof(meas_obj_geran_s),
-                         sizeof(meas_obj_nr_r15_s),
-                         sizeof(meas_obj_utra_s),
-                         sizeof(meas_obj_wlan_r13_s),
-                         0,
-                         0)>
+    choice_buffer_t<meas_obj_cdma2000_s,
+                    meas_obj_eutra_s,
+                    meas_obj_geran_s,
+                    meas_obj_nr_r15_s,
+                    meas_obj_utra_s,
+                    meas_obj_wlan_r13_s>
         c;
 
     void destroy_();
@@ -33800,7 +33287,6 @@ struct meas_obj_to_add_mod_ext_r13_s {
 
 // MobilityFromEUTRACommand-v1530-IEs ::= SEQUENCE
 struct mob_from_eutra_cmd_v1530_ies_s {
-  // member variables
   bool             smtc_r15_present     = false;
   bool             non_crit_ext_present = false;
   mtc_ssb_nr_r15_s smtc_r15;
@@ -34088,7 +33574,7 @@ struct other_cfg_r9_s {
 };
 
 // PLMN-IdentityList3-r11 ::= SEQUENCE (SIZE (1..16)) OF PLMN-Identity
-typedef dyn_array<plmn_id_s> plmn_id_list3_r11_l;
+using plmn_id_list3_r11_l = dyn_array<plmn_id_s>;
 
 // PRACH-Config-v1310 ::= SEQUENCE
 struct prach_cfg_v1310_s {
@@ -34160,8 +33646,8 @@ struct prach_cfg_v1310_s {
     }
 
   private:
-    types                                                         type_;
-    choice_buffer_t<MAX2(sizeof(fdd_r13_e_), sizeof(tdd_r13_e_))> c;
+    types               type_;
+    pod_choice_buffer_t c;
 
     void destroy_();
   };
@@ -34204,7 +33690,6 @@ struct quant_cfg_cdma2000_s {
 
 // QuantityConfigEUTRA ::= SEQUENCE
 struct quant_cfg_eutra_s {
-  // member variables
   bool        filt_coef_rsrp_present = false;
   bool        filt_coef_rsrq_present = false;
   filt_coef_e filt_coef_rsrp;
@@ -34218,7 +33703,6 @@ struct quant_cfg_eutra_s {
 
 // QuantityConfigEUTRA-v1250 ::= SEQUENCE
 struct quant_cfg_eutra_v1250_s {
-  // member variables
   bool        filt_coef_csi_rsrp_r12_present = false;
   filt_coef_e filt_coef_csi_rsrp_r12;
 
@@ -34230,7 +33714,6 @@ struct quant_cfg_eutra_v1250_s {
 
 // QuantityConfigEUTRA-v1310 ::= SEQUENCE
 struct quant_cfg_eutra_v1310_s {
-  // member variables
   bool        filt_coef_rs_sinr_r13_present = false;
   filt_coef_e filt_coef_rs_sinr_r13;
 
@@ -34242,7 +33725,6 @@ struct quant_cfg_eutra_v1310_s {
 
 // QuantityConfigGERAN ::= SEQUENCE
 struct quant_cfg_geran_s {
-  // member variables
   bool        filt_coef_present = false;
   filt_coef_e filt_coef;
 
@@ -34252,8 +33734,8 @@ struct quant_cfg_geran_s {
   void        to_json(json_writer& j) const;
 };
 
-// QuantityConfigNRList-r15 ::= SEQUENCE (SIZE (1..maxQuantSetsNR-r15)) OF QuantityConfigNR-r15
-typedef dyn_array<quant_cfg_nr_r15_s> quant_cfg_nr_list_r15_l;
+// QuantityConfigNRList-r15 ::= SEQUENCE (SIZE (1..2)) OF QuantityConfigNR-r15
+using quant_cfg_nr_list_r15_l = dyn_array<quant_cfg_nr_r15_s>;
 
 // QuantityConfigUTRA ::= SEQUENCE
 struct quant_cfg_utra_s {
@@ -34279,7 +33761,6 @@ struct quant_cfg_utra_s {
 
 // QuantityConfigUTRA-v1020 ::= SEQUENCE
 struct quant_cfg_utra_v1020_s {
-  // member variables
   bool        filt_coef2_fdd_r10_present = false;
   filt_coef_e filt_coef2_fdd_r10;
 
@@ -34291,7 +33772,6 @@ struct quant_cfg_utra_v1020_s {
 
 // QuantityConfigWLAN-r13 ::= SEQUENCE
 struct quant_cfg_wlan_r13_s {
-  // member variables
   bool        filt_coef_r13_present = false;
   filt_coef_e filt_coef_r13;
 
@@ -34303,12 +33783,11 @@ struct quant_cfg_wlan_r13_s {
 
 // RRCConnectionReconfiguration-v1020-IEs ::= SEQUENCE
 struct rrc_conn_recfg_v1020_ies_s {
-  // member variables
-  bool                        s_cell_to_release_list_r10_present = false;
-  bool                        s_cell_to_add_mod_list_r10_present = false;
-  bool                        non_crit_ext_present               = false;
-  scell_to_release_list_r10_l s_cell_to_release_list_r10;
-  scell_to_add_mod_list_r10_l s_cell_to_add_mod_list_r10;
+  bool                        scell_to_release_list_r10_present = false;
+  bool                        scell_to_add_mod_list_r10_present = false;
+  bool                        non_crit_ext_present              = false;
+  scell_to_release_list_r10_l scell_to_release_list_r10;
+  scell_to_add_mod_list_r10_l scell_to_add_mod_list_r10;
   rrc_conn_recfg_v1130_ies_s  non_crit_ext;
 
   // sequence methods
@@ -34319,7 +33798,6 @@ struct rrc_conn_recfg_v1020_ies_s {
 
 // RRCConnectionReconfiguration-v10i0-IEs ::= SEQUENCE
 struct rrc_conn_recfg_v10i0_ies_s {
-  // member variables
   bool                       ant_info_ded_pcell_v10i0_present = false;
   bool                       non_crit_ext_present             = false;
   ant_info_ded_v10i0_s       ant_info_ded_pcell_v10i0;
@@ -34333,7 +33811,6 @@ struct rrc_conn_recfg_v10i0_ies_s {
 
 // RRCConnectionRelease-v1020-IEs ::= SEQUENCE
 struct rrc_conn_release_v1020_ies_s {
-  // member variables
   bool                         extended_wait_time_r10_present = false;
   bool                         non_crit_ext_present           = false;
   uint16_t                     extended_wait_time_r10         = 1;
@@ -34347,7 +33824,6 @@ struct rrc_conn_release_v1020_ies_s {
 
 // RRCConnectionResume-v1530-IEs ::= SEQUENCE
 struct rrc_conn_resume_v1530_ies_s {
-  // member variables
   bool full_cfg_r15_present = false;
   bool non_crit_ext_present = false;
 
@@ -34359,7 +33835,6 @@ struct rrc_conn_resume_v1530_ies_s {
 
 // RedirectedCarrierInfo-v9e0 ::= SEQUENCE
 struct redirected_carrier_info_v9e0_s {
-  // member variables
   uint32_t eutra_v9e0 = 65536;
 
   // sequence methods
@@ -34421,8 +33896,8 @@ struct report_cfg_to_add_mod_s {
     }
 
   private:
-    types                                                                             type_;
-    choice_buffer_t<MAX2(sizeof(report_cfg_eutra_s), sizeof(report_cfg_inter_rat_s))> c;
+    types                                                       type_;
+    choice_buffer_t<report_cfg_eutra_s, report_cfg_inter_rat_s> c;
 
     void destroy_();
   };
@@ -34439,7 +33914,6 @@ struct report_cfg_to_add_mod_s {
 
 // UECapabilityEnquiry-v1310-IEs ::= SEQUENCE
 struct ue_cap_enquiry_v1310_ies_s {
-  // member variables
   bool                       request_reduced_format_r13_present            = false;
   bool                       request_skip_fallback_comb_r13_present        = false;
   bool                       requested_max_ccs_dl_r13_present              = false;
@@ -34458,7 +33932,6 @@ struct ue_cap_enquiry_v1310_ies_s {
 
 // UEInformationRequest-v1130-IEs ::= SEQUENCE
 struct ue_info_request_v1130_ies_s {
-  // member variables
   bool                        conn_est_fail_report_req_r11_present = false;
   bool                        non_crit_ext_present                 = false;
   ue_info_request_v1250_ies_s non_crit_ext;
@@ -34537,10 +34010,9 @@ struct carrier_bw_eutra_s {
 
 // CarrierFreqEUTRA ::= SEQUENCE
 struct carrier_freq_eutra_s {
-  // member variables
   bool     ul_carrier_freq_present = false;
-  uint16_t dl_carrier_freq         = 0;
-  uint16_t ul_carrier_freq         = 0;
+  uint32_t dl_carrier_freq         = 0;
+  uint32_t ul_carrier_freq         = 0;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -34550,7 +34022,6 @@ struct carrier_freq_eutra_s {
 
 // CarrierFreqEUTRA-v9e0 ::= SEQUENCE
 struct carrier_freq_eutra_v9e0_s {
-  // member variables
   bool     ul_carrier_freq_v9e0_present = false;
   uint32_t dl_carrier_freq_v9e0         = 0;
   uint32_t ul_carrier_freq_v9e0         = 0;
@@ -34564,7 +34035,7 @@ struct carrier_freq_eutra_v9e0_s {
 // CarrierInfoNR-r15 ::= SEQUENCE
 struct carrier_info_nr_r15_s {
   struct subcarrier_spacing_ssb_r15_opts {
-    enum options { k_hz15, k_hz30, k_hz120, k_hz240, nulltype } value;
+    enum options { khz15, khz30, khz120, khz240, nulltype } value;
     typedef uint8_t number_type;
 
     std::string to_string() const;
@@ -34585,11 +34056,10 @@ struct carrier_info_nr_r15_s {
 };
 
 // CellGlobalIdList-r10 ::= SEQUENCE (SIZE (1..32)) OF CellGlobalIdEUTRA
-typedef dyn_array<cell_global_id_eutra_s> cell_global_id_list_r10_l;
+using cell_global_id_list_r10_l = dyn_array<cell_global_id_eutra_s>;
 
 // CounterCheck-v1530-IEs ::= SEQUENCE
 struct counter_check_v1530_ies_s {
-  // member variables
   bool                              drb_count_msb_info_list_ext_r15_present = false;
   bool                              non_crit_ext_present                    = false;
   drb_count_msb_info_list_ext_r15_l drb_count_msb_info_list_ext_r15;
@@ -34602,7 +34072,6 @@ struct counter_check_v1530_ies_s {
 
 // HandoverFromEUTRAPreparationRequest-v920-IEs ::= SEQUENCE
 struct ho_from_eutra_prep_request_v920_ies_s {
-  // member variables
   bool                                   concurr_prep_cdma2000_hrpd_r9_present = false;
   bool                                   non_crit_ext_present                  = false;
   bool                                   concurr_prep_cdma2000_hrpd_r9         = false;
@@ -34616,7 +34085,6 @@ struct ho_from_eutra_prep_request_v920_ies_s {
 
 // LoggedMeasurementConfiguration-v1130-IEs ::= SEQUENCE
 struct logged_meas_cfg_v1130_ies_s {
-  // member variables
   bool                        plmn_id_list_r11_present = false;
   bool                        area_cfg_v1130_present   = false;
   bool                        non_crit_ext_present     = false;
@@ -34995,8 +34463,8 @@ struct meas_gap_cfg_dense_prs_r15_c {
       }
 
     private:
-      types              type_;
-      choice_buffer_t<8> c;
+      types               type_;
+      pod_choice_buffer_t c;
 
       void destroy_();
     };
@@ -35038,7 +34506,6 @@ private:
 // MeasGapConfigPerCC-List-r14 ::= CHOICE
 struct meas_gap_cfg_per_cc_list_r14_c {
   struct setup_s_ {
-    // member variables
     bool                               meas_gap_cfg_to_rem_list_r14_present     = false;
     bool                               meas_gap_cfg_to_add_mod_list_r14_present = false;
     meas_gap_cfg_to_rem_list_r14_l     meas_gap_cfg_to_rem_list_r14;
@@ -35122,38 +34589,38 @@ private:
   setup_s_ c;
 };
 
-// MeasIdToAddModList ::= SEQUENCE (SIZE (1..maxMeasId)) OF MeasIdToAddMod
-typedef dyn_array<meas_id_to_add_mod_s> meas_id_to_add_mod_list_l;
+// MeasIdToAddModList ::= SEQUENCE (SIZE (1..32)) OF MeasIdToAddMod
+using meas_id_to_add_mod_list_l = dyn_array<meas_id_to_add_mod_s>;
 
-// MeasIdToAddModList-v1310 ::= SEQUENCE (SIZE (1..maxMeasId)) OF MeasIdToAddMod-v1310
-typedef dyn_array<meas_id_to_add_mod_v1310_s> meas_id_to_add_mod_list_v1310_l;
+// MeasIdToAddModList-v1310 ::= SEQUENCE (SIZE (1..32)) OF MeasIdToAddMod-v1310
+using meas_id_to_add_mod_list_v1310_l = dyn_array<meas_id_to_add_mod_v1310_s>;
 
-// MeasIdToAddModListExt-r12 ::= SEQUENCE (SIZE (1..maxMeasId)) OF MeasIdToAddModExt-r12
-typedef dyn_array<meas_id_to_add_mod_ext_r12_s> meas_id_to_add_mod_list_ext_r12_l;
+// MeasIdToAddModListExt-r12 ::= SEQUENCE (SIZE (1..32)) OF MeasIdToAddModExt-r12
+using meas_id_to_add_mod_list_ext_r12_l = dyn_array<meas_id_to_add_mod_ext_r12_s>;
 
-// MeasIdToAddModListExt-v1310 ::= SEQUENCE (SIZE (1..maxMeasId)) OF MeasIdToAddMod-v1310
-typedef dyn_array<meas_id_to_add_mod_v1310_s> meas_id_to_add_mod_list_ext_v1310_l;
+// MeasIdToAddModListExt-v1310 ::= SEQUENCE (SIZE (1..32)) OF MeasIdToAddMod-v1310
+using meas_id_to_add_mod_list_ext_v1310_l = dyn_array<meas_id_to_add_mod_v1310_s>;
 
-// MeasIdToRemoveList ::= SEQUENCE (SIZE (1..maxMeasId)) OF INTEGER
-typedef bounded_array<uint8_t, 32> meas_id_to_rem_list_l;
+// MeasIdToRemoveList ::= SEQUENCE (SIZE (1..32)) OF INTEGER (1..32)
+using meas_id_to_rem_list_l = bounded_array<uint8_t, 32>;
 
-// MeasIdToRemoveListExt-r12 ::= SEQUENCE (SIZE (1..maxMeasId)) OF INTEGER
-typedef bounded_array<uint8_t, 32> meas_id_to_rem_list_ext_r12_l;
+// MeasIdToRemoveListExt-r12 ::= SEQUENCE (SIZE (1..32)) OF INTEGER (33..64)
+using meas_id_to_rem_list_ext_r12_l = bounded_array<uint8_t, 32>;
 
-// MeasObjectToAddModList ::= SEQUENCE (SIZE (1..maxObjectId)) OF MeasObjectToAddMod
-typedef dyn_array<meas_obj_to_add_mod_s> meas_obj_to_add_mod_list_l;
+// MeasObjectToAddModList ::= SEQUENCE (SIZE (1..32)) OF MeasObjectToAddMod
+using meas_obj_to_add_mod_list_l = dyn_array<meas_obj_to_add_mod_s>;
 
-// MeasObjectToAddModList-v9e0 ::= SEQUENCE (SIZE (1..maxObjectId)) OF MeasObjectToAddMod-v9e0
-typedef dyn_array<meas_obj_to_add_mod_v9e0_s> meas_obj_to_add_mod_list_v9e0_l;
+// MeasObjectToAddModList-v9e0 ::= SEQUENCE (SIZE (1..32)) OF MeasObjectToAddMod-v9e0
+using meas_obj_to_add_mod_list_v9e0_l = dyn_array<meas_obj_to_add_mod_v9e0_s>;
 
-// MeasObjectToAddModListExt-r13 ::= SEQUENCE (SIZE (1..maxObjectId)) OF MeasObjectToAddModExt-r13
-typedef dyn_array<meas_obj_to_add_mod_ext_r13_s> meas_obj_to_add_mod_list_ext_r13_l;
+// MeasObjectToAddModListExt-r13 ::= SEQUENCE (SIZE (1..32)) OF MeasObjectToAddModExt-r13
+using meas_obj_to_add_mod_list_ext_r13_l = dyn_array<meas_obj_to_add_mod_ext_r13_s>;
 
-// MeasObjectToRemoveList ::= SEQUENCE (SIZE (1..maxObjectId)) OF INTEGER
-typedef bounded_array<uint8_t, 32> meas_obj_to_rem_list_l;
+// MeasObjectToRemoveList ::= SEQUENCE (SIZE (1..32)) OF INTEGER (1..32)
+using meas_obj_to_rem_list_l = bounded_array<uint8_t, 32>;
 
-// MeasObjectToRemoveListExt-r13 ::= SEQUENCE (SIZE (1..maxObjectId)) OF INTEGER
-typedef bounded_array<uint8_t, 32> meas_obj_to_rem_list_ext_r13_l;
+// MeasObjectToRemoveListExt-r13 ::= SEQUENCE (SIZE (1..32)) OF INTEGER (33..64)
+using meas_obj_to_rem_list_ext_r13_l = bounded_array<uint8_t, 32>;
 
 // MeasScaleFactor-r12 ::= ENUMERATED
 struct meas_scale_factor_r12_opts {
@@ -35167,7 +34634,6 @@ typedef enumerated<meas_scale_factor_r12_opts> meas_scale_factor_r12_e;
 
 // MobilityControlInfoV2X-r14 ::= SEQUENCE
 struct mob_ctrl_info_v2x_r14_s {
-  // member variables
   bool                            v2x_comm_tx_pool_exceptional_r14_present = false;
   bool                            v2x_comm_rx_pool_r14_present             = false;
   bool                            v2x_comm_sync_cfg_r14_present            = false;
@@ -35185,7 +34651,6 @@ struct mob_ctrl_info_v2x_r14_s {
 
 // MobilityFromEUTRACommand-v8d0-IEs ::= SEQUENCE
 struct mob_from_eutra_cmd_v8d0_ies_s {
-  // member variables
   bool             band_ind_present     = false;
   bool             non_crit_ext_present = false;
   band_ind_geran_e band_ind;
@@ -35198,7 +34663,6 @@ struct mob_from_eutra_cmd_v8d0_ies_s {
 
 // MobilityFromEUTRACommand-v960-IEs ::= SEQUENCE
 struct mob_from_eutra_cmd_v960_ies_s {
-  // member variables
   bool                           band_ind_present     = false;
   bool                           non_crit_ext_present = false;
   band_ind_geran_e               band_ind;
@@ -35212,7 +34676,6 @@ struct mob_from_eutra_cmd_v960_ies_s {
 
 // QuantityConfig ::= SEQUENCE
 struct quant_cfg_s {
-  // member variables
   bool                 ext                        = false;
   bool                 quant_cfg_eutra_present    = false;
   bool                 quant_cfg_utra_present     = false;
@@ -35251,7 +34714,6 @@ typedef enumerated<rat_type_opts, true> rat_type_e;
 
 // RRCConnectionReconfiguration-v8m0-IEs ::= SEQUENCE
 struct rrc_conn_recfg_v8m0_ies_s {
-  // member variables
   bool                       late_non_crit_ext_present = false;
   bool                       non_crit_ext_present      = false;
   dyn_octstring              late_non_crit_ext;
@@ -35265,7 +34727,6 @@ struct rrc_conn_recfg_v8m0_ies_s {
 
 // RRCConnectionReconfiguration-v920-IEs ::= SEQUENCE
 struct rrc_conn_recfg_v920_ies_s {
-  // member variables
   bool                       other_cfg_r9_present = false;
   bool                       full_cfg_r9_present  = false;
   bool                       non_crit_ext_present = false;
@@ -35362,10 +34823,10 @@ struct rrc_conn_release_v920_ies_s {
 
   private:
     types type_;
-    choice_buffer_t<MAX4(sizeof(cell_info_list_geran_r9_l),
-                         sizeof(cell_info_list_utra_fdd_r9_l),
-                         sizeof(cell_info_list_utra_tdd_r10_l),
-                         sizeof(cell_info_list_utra_tdd_r9_l))>
+    choice_buffer_t<cell_info_list_geran_r9_l,
+                    cell_info_list_utra_fdd_r9_l,
+                    cell_info_list_utra_tdd_r10_l,
+                    cell_info_list_utra_tdd_r9_l>
         c;
 
     void destroy_();
@@ -35385,7 +34846,6 @@ struct rrc_conn_release_v920_ies_s {
 
 // RRCConnectionRelease-v9e0-IEs ::= SEQUENCE
 struct rrc_conn_release_v9e0_ies_s {
-  // member variables
   bool                           redirected_carrier_info_v9e0_present = false;
   bool                           idle_mode_mob_ctrl_info_v9e0_present = false;
   bool                           non_crit_ext_present                 = false;
@@ -35400,12 +34860,11 @@ struct rrc_conn_release_v9e0_ies_s {
 
 // RRCConnectionResume-v1510-IEs ::= SEQUENCE
 struct rrc_conn_resume_v1510_ies_s {
-  // member variables
   bool                        sk_counter_r15_present           = false;
   bool                        nr_radio_bearer_cfg1_r15_present = false;
   bool                        nr_radio_bearer_cfg2_r15_present = false;
   bool                        non_crit_ext_present             = false;
-  uint16_t                    sk_counter_r15                   = 0;
+  uint32_t                    sk_counter_r15                   = 0;
   dyn_octstring               nr_radio_bearer_cfg1_r15;
   dyn_octstring               nr_radio_bearer_cfg2_r15;
   rrc_conn_resume_v1530_ies_s non_crit_ext;
@@ -35418,7 +34877,6 @@ struct rrc_conn_resume_v1510_ies_s {
 
 // RadioResourceConfigCommon ::= SEQUENCE
 struct rr_cfg_common_s {
-  // member variables
   bool                 ext                        = false;
   bool                 rach_cfg_common_present    = false;
   bool                 pdsch_cfg_common_present   = false;
@@ -35472,11 +34930,11 @@ struct rr_cfg_common_s {
   void        to_json(json_writer& j) const;
 };
 
-// ReportConfigToAddModList ::= SEQUENCE (SIZE (1..maxReportConfigId)) OF ReportConfigToAddMod
-typedef dyn_array<report_cfg_to_add_mod_s> report_cfg_to_add_mod_list_l;
+// ReportConfigToAddModList ::= SEQUENCE (SIZE (1..32)) OF ReportConfigToAddMod
+using report_cfg_to_add_mod_list_l = dyn_array<report_cfg_to_add_mod_s>;
 
-// ReportConfigToRemoveList ::= SEQUENCE (SIZE (1..maxReportConfigId)) OF INTEGER
-typedef bounded_array<uint8_t, 32> report_cfg_to_rem_list_l;
+// ReportConfigToRemoveList ::= SEQUENCE (SIZE (1..32)) OF INTEGER (1..32)
+using report_cfg_to_rem_list_l = bounded_array<uint8_t, 32>;
 
 // SI-OrPSI-GERAN ::= CHOICE
 struct si_or_psi_geran_c {
@@ -35530,18 +34988,18 @@ struct si_or_psi_geran_c {
   }
 
 private:
-  types                                          type_;
-  choice_buffer_t<sizeof(sys_info_list_geran_l)> c;
+  types                                  type_;
+  choice_buffer_t<sys_info_list_geran_l> c;
 
   void destroy_();
 };
 
-// TrackingAreaCodeList-r10 ::= SEQUENCE (SIZE (1..8)) OF BIT STRING
-typedef bounded_array<fixed_bitstring<16>, 8> tac_list_r10_l;
+// TrackingAreaCodeList-r10 ::= SEQUENCE (SIZE (1..8)) OF BIT STRING (SIZE (16))
+using tac_list_r10_l = bounded_array<fixed_bitstring<16>, 8>;
 
 // UECapabilityEnquiry-v1180-IEs ::= SEQUENCE
 struct ue_cap_enquiry_v1180_ies_s {
-  typedef bounded_array<uint16_t, 16> requested_freq_bands_r11_l_;
+  using requested_freq_bands_r11_l_ = bounded_array<uint16_t, 16>;
 
   // member variables
   bool                        requested_freq_bands_r11_present = false;
@@ -35557,7 +35015,6 @@ struct ue_cap_enquiry_v1180_ies_s {
 
 // UEInformationRequest-v1020-IEs ::= SEQUENCE
 struct ue_info_request_v1020_ies_s {
-  // member variables
   bool                        log_meas_report_req_r10_present = false;
   bool                        non_crit_ext_present            = false;
   ue_info_request_v1130_ies_s non_crit_ext;
@@ -35620,15 +35077,14 @@ struct area_cfg_r10_c {
   }
 
 private:
-  types                                                                            type_;
-  choice_buffer_t<MAX2(sizeof(cell_global_id_list_r10_l), sizeof(tac_list_r10_l))> c;
+  types                                                      type_;
+  choice_buffer_t<cell_global_id_list_r10_l, tac_list_r10_l> c;
 
   void destroy_();
 };
 
 // CSFBParametersResponseCDMA2000-v8a0-IEs ::= SEQUENCE
 struct csfb_params_resp_cdma2000_v8a0_ies_s {
-  // member variables
   bool          late_non_crit_ext_present = false;
   bool          non_crit_ext_present      = false;
   dyn_octstring late_non_crit_ext;
@@ -35651,7 +35107,6 @@ struct cell_change_order_s {
   typedef enumerated<t304_opts> t304_e_;
   struct target_rat_type_c_ {
     struct geran_s_ {
-      // member variables
       bool                 network_ctrl_order_present = false;
       bool                 sys_info_present           = false;
       pci_geran_s          pci;
@@ -35691,7 +35146,6 @@ struct cell_change_order_s {
 
 // CounterCheck-v8a0-IEs ::= SEQUENCE
 struct counter_check_v8a0_ies_s {
-  // member variables
   bool                      late_non_crit_ext_present = false;
   bool                      non_crit_ext_present      = false;
   dyn_octstring             late_non_crit_ext;
@@ -35705,7 +35159,6 @@ struct counter_check_v8a0_ies_s {
 
 // DLInformationTransfer-v8a0-IEs ::= SEQUENCE
 struct dl_info_transfer_v8a0_ies_s {
-  // member variables
   bool          late_non_crit_ext_present = false;
   bool          non_crit_ext_present      = false;
   dyn_octstring late_non_crit_ext;
@@ -35716,8 +35169,8 @@ struct dl_info_transfer_v8a0_ies_s {
   void        to_json(json_writer& j) const;
 };
 
-// DRB-CountMSB-InfoList ::= SEQUENCE (SIZE (1..maxDRB)) OF DRB-CountMSB-Info
-typedef dyn_array<drb_count_msb_info_s> drb_count_msb_info_list_l;
+// DRB-CountMSB-InfoList ::= SEQUENCE (SIZE (1..11)) OF DRB-CountMSB-Info
+using drb_count_msb_info_list_l = dyn_array<drb_count_msb_info_s>;
 
 // E-CSFB-r9 ::= SEQUENCE
 struct e_csfb_r9_s {
@@ -35779,7 +35232,6 @@ struct ho_s {
 
 // HandoverFromEUTRAPreparationRequest-v890-IEs ::= SEQUENCE
 struct ho_from_eutra_prep_request_v890_ies_s {
-  // member variables
   bool                                  late_non_crit_ext_present = false;
   bool                                  non_crit_ext_present      = false;
   dyn_octstring                         late_non_crit_ext;
@@ -35793,7 +35245,6 @@ struct ho_from_eutra_prep_request_v890_ies_s {
 
 // LoggedMeasurementConfiguration-v1080-IEs ::= SEQUENCE
 struct logged_meas_cfg_v1080_ies_s {
-  // member variables
   bool                        late_non_crit_ext_r10_present = false;
   bool                        non_crit_ext_present          = false;
   dyn_octstring               late_non_crit_ext_r10;
@@ -35829,7 +35280,6 @@ typedef enumerated<logging_interv_r10_opts> logging_interv_r10_e;
 struct meas_cfg_s {
   struct speed_state_pars_c_ {
     struct setup_s_ {
-      // member variables
       mob_state_params_s          mob_state_params;
       speed_state_scale_factors_s time_to_trigger_sf;
     };
@@ -36042,7 +35492,6 @@ struct mob_ctrl_info_s {
 
 // MobilityFromEUTRACommand-v8a0-IEs ::= SEQUENCE
 struct mob_from_eutra_cmd_v8a0_ies_s {
-  // member variables
   bool                          late_non_crit_ext_present = false;
   bool                          non_crit_ext_present      = false;
   dyn_octstring                 late_non_crit_ext;
@@ -36056,7 +35505,6 @@ struct mob_from_eutra_cmd_v8a0_ies_s {
 
 // MobilityFromEUTRACommand-v930-IEs ::= SEQUENCE
 struct mob_from_eutra_cmd_v930_ies_s {
-  // member variables
   bool                          late_non_crit_ext_present = false;
   bool                          non_crit_ext_present      = false;
   dyn_octstring                 late_non_crit_ext;
@@ -36121,8 +35569,8 @@ struct rn_sf_cfg_r10_s {
     }
 
   private:
-    types                                       type_;
-    choice_buffer_t<sizeof(fixed_bitstring<8>)> c;
+    types                                type_;
+    choice_buffer_t<fixed_bitstring<8> > c;
 
     void destroy_();
   };
@@ -36247,8 +35695,8 @@ struct rn_sf_cfg_r10_s {
         }
 
       private:
-        types                                        type_;
-        choice_buffer_t<sizeof(fixed_bitstring<25>)> c;
+        types                                 type_;
+        choice_buffer_t<fixed_bitstring<25> > c;
 
         void destroy_();
       };
@@ -36365,8 +35813,8 @@ struct rn_sf_cfg_r10_s {
         }
 
       private:
-        types                                        type_;
-        choice_buffer_t<sizeof(fixed_bitstring<13>)> c;
+        types                                 type_;
+        choice_buffer_t<fixed_bitstring<13> > c;
 
         void destroy_();
       };
@@ -36423,8 +35871,8 @@ struct rn_sf_cfg_r10_s {
       }
 
     private:
-      types                                                              type_;
-      choice_buffer_t<MAX2(sizeof(type01_r10_c_), sizeof(type2_r10_c_))> c;
+      types                                        type_;
+      choice_buffer_t<type01_r10_c_, type2_r10_c_> c;
 
       void destroy_();
     };
@@ -36470,21 +35918,20 @@ struct rn_sf_cfg_r10_s {
       }
 
     private:
-      types                                           type_;
-      choice_buffer_t<sizeof(no_interleaving_r10_e_)> c;
+      types               type_;
+      pod_choice_buffer_t c;
 
       void destroy_();
     };
     struct pucch_cfg_r10_c_ {
       struct tdd_c_ {
         struct ch_sel_mux_bundling_s_ {
-          typedef bounded_array<uint16_t, 4> n1_pucch_an_list_r10_l_;
+          using n1_pucch_an_list_r10_l_ = bounded_array<uint16_t, 4>;
 
           // member variables
           n1_pucch_an_list_r10_l_ n1_pucch_an_list_r10;
         };
         struct fallback_for_format3_s_ {
-          // member variables
           bool     n1_pucch_an_p1_r10_present = false;
           uint16_t n1_pucch_an_p0_r10         = 0;
           uint16_t n1_pucch_an_p1_r10         = 0;
@@ -36541,13 +35988,12 @@ struct rn_sf_cfg_r10_s {
         }
 
       private:
-        types                                                                                  type_;
-        choice_buffer_t<MAX2(sizeof(ch_sel_mux_bundling_s_), sizeof(fallback_for_format3_s_))> c;
+        types                                                            type_;
+        choice_buffer_t<ch_sel_mux_bundling_s_, fallback_for_format3_s_> c;
 
         void destroy_();
       };
       struct fdd_s_ {
-        // member variables
         bool     n1_pucch_an_p1_r10_present = false;
         uint16_t n1_pucch_an_p0_r10         = 0;
         uint16_t n1_pucch_an_p1_r10         = 0;
@@ -36602,8 +36048,8 @@ struct rn_sf_cfg_r10_s {
       }
 
     private:
-      types                                                 type_;
-      choice_buffer_t<MAX2(sizeof(fdd_s_), sizeof(tdd_c_))> c;
+      types                           type_;
+      choice_buffer_t<fdd_s_, tdd_c_> c;
 
       void destroy_();
     };
@@ -36634,7 +36080,6 @@ struct rn_sf_cfg_r10_s {
 
 // RN-SystemInfo-r10 ::= SEQUENCE
 struct rn_sys_info_r10_s {
-  // member variables
   bool          ext                   = false;
   bool          sib_type1_r10_present = false;
   bool          sib_type2_r10_present = false;
@@ -36650,7 +36095,6 @@ struct rn_sys_info_r10_s {
 
 // RRCConnectionReconfiguration-v890-IEs ::= SEQUENCE
 struct rrc_conn_recfg_v890_ies_s {
-  // member variables
   bool                      late_non_crit_ext_present = false;
   bool                      non_crit_ext_present      = false;
   dyn_octstring             late_non_crit_ext;
@@ -36664,7 +36108,6 @@ struct rrc_conn_recfg_v890_ies_s {
 
 // RRCConnectionRelease-v890-IEs ::= SEQUENCE
 struct rrc_conn_release_v890_ies_s {
-  // member variables
   bool                        late_non_crit_ext_present = false;
   bool                        non_crit_ext_present      = false;
   dyn_octstring               late_non_crit_ext;
@@ -36678,7 +36121,6 @@ struct rrc_conn_release_v890_ies_s {
 
 // RRCConnectionResume-v1430-IEs ::= SEQUENCE
 struct rrc_conn_resume_v1430_ies_s {
-  // member variables
   bool                        other_cfg_r14_present             = false;
   bool                        rrc_conn_resume_v1510_ies_present = false;
   other_cfg_r9_s              other_cfg_r14;
@@ -36721,10 +36163,10 @@ struct redirected_carrier_info_c {
   SRSASN_CODE unpack(bit_ref& bref);
   void        to_json(json_writer& j) const;
   // getters
-  uint16_t& eutra()
+  uint32_t& eutra()
   {
     assert_choice_type("eutra", type_.to_string(), "RedirectedCarrierInfo");
-    return c.get<uint16_t>();
+    return c.get<uint32_t>();
   }
   carrier_freqs_geran_s& geran()
   {
@@ -36761,10 +36203,10 @@ struct redirected_carrier_info_c {
     assert_choice_type("nr-r15", type_.to_string(), "RedirectedCarrierInfo");
     return c.get<carrier_info_nr_r15_s>();
   }
-  const uint16_t& eutra() const
+  const uint32_t& eutra() const
   {
     assert_choice_type("eutra", type_.to_string(), "RedirectedCarrierInfo");
-    return c.get<uint16_t>();
+    return c.get<uint32_t>();
   }
   const carrier_freqs_geran_s& geran() const
   {
@@ -36801,10 +36243,10 @@ struct redirected_carrier_info_c {
     assert_choice_type("nr-r15", type_.to_string(), "RedirectedCarrierInfo");
     return c.get<carrier_info_nr_r15_s>();
   }
-  uint16_t& set_eutra()
+  uint32_t& set_eutra()
   {
     set(types::eutra);
-    return c.get<uint16_t>();
+    return c.get<uint32_t>();
   }
   carrier_freqs_geran_s& set_geran()
   {
@@ -36844,10 +36286,10 @@ struct redirected_carrier_info_c {
 
 private:
   types type_;
-  choice_buffer_t<MAX4(sizeof(carrier_freq_cdma2000_s),
-                       sizeof(carrier_freq_list_utra_tdd_r10_l),
-                       sizeof(carrier_freqs_geran_s),
-                       sizeof(carrier_info_nr_r15_s))>
+  choice_buffer_t<carrier_freq_cdma2000_s,
+                  carrier_freq_list_utra_tdd_r10_l,
+                  carrier_freqs_geran_s,
+                  carrier_info_nr_r15_s>
       c;
 
   void destroy_();
@@ -36865,14 +36307,12 @@ typedef enumerated<release_cause_opts> release_cause_e;
 struct security_cfg_ho_s {
   struct ho_type_c_ {
     struct intra_lte_s_ {
-      // member variables
       bool                     security_algorithm_cfg_present = false;
       security_algorithm_cfg_s security_algorithm_cfg;
       bool                     key_change_ind          = false;
       uint8_t                  next_hop_chaining_count = 0;
     };
     struct inter_rat_s_ {
-      // member variables
       security_algorithm_cfg_s security_algorithm_cfg;
       fixed_octstring<6>       nas_security_param_to_eutra;
     };
@@ -36926,8 +36366,8 @@ struct security_cfg_ho_s {
     }
 
   private:
-    types                                                             type_;
-    choice_buffer_t<MAX2(sizeof(inter_rat_s_), sizeof(intra_lte_s_))> c;
+    types                                       type_;
+    choice_buffer_t<inter_rat_s_, intra_lte_s_> c;
 
     void destroy_();
   };
@@ -36945,7 +36385,6 @@ struct security_cfg_ho_s {
 
 // SecurityConfigSMC ::= SEQUENCE
 struct security_cfg_smc_s {
-  // member variables
   bool                     ext = false;
   security_algorithm_cfg_s security_algorithm_cfg;
   // ...
@@ -36958,7 +36397,6 @@ struct security_cfg_smc_s {
 
 // SecurityModeCommand-v8a0-IEs ::= SEQUENCE
 struct security_mode_cmd_v8a0_ies_s {
-  // member variables
   bool          late_non_crit_ext_present = false;
   bool          non_crit_ext_present      = false;
   dyn_octstring late_non_crit_ext;
@@ -36971,7 +36409,6 @@ struct security_mode_cmd_v8a0_ies_s {
 
 // TraceReference-r10 ::= SEQUENCE
 struct trace_ref_r10_s {
-  // member variables
   plmn_id_s          plmn_id_r10;
   fixed_octstring<3> trace_id_r10;
 
@@ -36981,12 +36418,11 @@ struct trace_ref_r10_s {
   void        to_json(json_writer& j) const;
 };
 
-// UE-CapabilityRequest ::= SEQUENCE (SIZE (1..maxRAT-Capabilities)) OF RAT-Type
-typedef bounded_array<rat_type_e, 8> ue_cap_request_l;
+// UE-CapabilityRequest ::= SEQUENCE (SIZE (1..8)) OF RAT-Type
+using ue_cap_request_l = bounded_array<rat_type_e, 8>;
 
 // UECapabilityEnquiry-v8a0-IEs ::= SEQUENCE
 struct ue_cap_enquiry_v8a0_ies_s {
-  // member variables
   bool                       late_non_crit_ext_present = false;
   bool                       non_crit_ext_present      = false;
   dyn_octstring              late_non_crit_ext;
@@ -37000,7 +36436,6 @@ struct ue_cap_enquiry_v8a0_ies_s {
 
 // UEInformationRequest-v930-IEs ::= SEQUENCE
 struct ue_info_request_v930_ies_s {
-  // member variables
   bool                        late_non_crit_ext_present = false;
   bool                        non_crit_ext_present      = false;
   dyn_octstring               late_non_crit_ext;
@@ -37014,7 +36449,6 @@ struct ue_info_request_v930_ies_s {
 
 // CSFBParametersResponseCDMA2000-r8-IEs ::= SEQUENCE
 struct csfb_params_resp_cdma2000_r8_ies_s {
-  // member variables
   bool                                 non_crit_ext_present = false;
   fixed_bitstring<32>                  rand;
   dyn_octstring                        mob_params;
@@ -37028,7 +36462,6 @@ struct csfb_params_resp_cdma2000_r8_ies_s {
 
 // CounterCheck-r8-IEs ::= SEQUENCE
 struct counter_check_r8_ies_s {
-  // member variables
   bool                      non_crit_ext_present = false;
   drb_count_msb_info_list_l drb_count_msb_info_list;
   counter_check_v8a0_ies_s  non_crit_ext;
@@ -37107,8 +36540,8 @@ struct dl_info_transfer_r15_ies_s {
     }
 
   private:
-    types                                  type_;
-    choice_buffer_t<sizeof(dyn_octstring)> c;
+    types                          type_;
+    choice_buffer_t<dyn_octstring> c;
 
     void destroy_();
   };
@@ -37195,8 +36628,8 @@ struct dl_info_transfer_r8_ies_s {
     }
 
   private:
-    types                                  type_;
-    choice_buffer_t<sizeof(dyn_octstring)> c;
+    types                          type_;
+    choice_buffer_t<dyn_octstring> c;
 
     void destroy_();
   };
@@ -37214,7 +36647,6 @@ struct dl_info_transfer_r8_ies_s {
 
 // HandoverFromEUTRAPreparationRequest-r8-IEs ::= SEQUENCE
 struct ho_from_eutra_prep_request_r8_ies_s {
-  // member variables
   bool                                  rand_present         = false;
   bool                                  mob_params_present   = false;
   bool                                  non_crit_ext_present = false;
@@ -37231,7 +36663,6 @@ struct ho_from_eutra_prep_request_r8_ies_s {
 
 // LoggedMeasurementConfiguration-r10-IEs ::= SEQUENCE
 struct logged_meas_cfg_r10_ies_s {
-  // member variables
   bool                        area_cfg_r10_present = false;
   bool                        non_crit_ext_present = false;
   trace_ref_r10_s             trace_ref_r10;
@@ -37302,8 +36733,8 @@ struct mob_from_eutra_cmd_r8_ies_s {
     }
 
   private:
-    types                                                            type_;
-    choice_buffer_t<MAX2(sizeof(cell_change_order_s), sizeof(ho_s))> c;
+    types                                      type_;
+    choice_buffer_t<cell_change_order_s, ho_s> c;
 
     void destroy_();
   };
@@ -37388,8 +36819,8 @@ struct mob_from_eutra_cmd_r9_ies_s {
     }
 
   private:
-    types                                                                                    type_;
-    choice_buffer_t<MAX4(sizeof(cell_change_order_s), sizeof(e_csfb_r9_s), sizeof(ho_s), 0)> c;
+    types                                                   type_;
+    choice_buffer_t<cell_change_order_s, e_csfb_r9_s, ho_s> c;
 
     void destroy_();
   };
@@ -37408,7 +36839,6 @@ struct mob_from_eutra_cmd_r9_ies_s {
 
 // RNReconfiguration-r10-IEs ::= SEQUENCE
 struct rn_recfg_r10_ies_s {
-  // member variables
   bool              rn_sys_info_r10_present   = false;
   bool              rn_sf_cfg_r10_present     = false;
   bool              late_non_crit_ext_present = false;
@@ -37425,7 +36855,7 @@ struct rn_recfg_r10_ies_s {
 
 // RRCConnectionReconfiguration-r8-IEs ::= SEQUENCE
 struct rrc_conn_recfg_r8_ies_s {
-  typedef bounded_array<dyn_octstring, 11> ded_info_nas_list_l_;
+  using ded_info_nas_list_l_ = bounded_array<dyn_octstring, 11>;
 
   // member variables
   bool                      meas_cfg_present          = false;
@@ -37449,7 +36879,6 @@ struct rrc_conn_recfg_r8_ies_s {
 
 // RRCConnectionRelease-r8-IEs ::= SEQUENCE
 struct rrc_conn_release_r8_ies_s {
-  // member variables
   bool                        redirected_carrier_info_present = false;
   bool                        idle_mode_mob_ctrl_info_present = false;
   bool                        non_crit_ext_present            = false;
@@ -37466,7 +36895,6 @@ struct rrc_conn_release_r8_ies_s {
 
 // RRCConnectionResume-r13-IEs ::= SEQUENCE
 struct rrc_conn_resume_r13_ies_s {
-  // member variables
   bool                        rr_cfg_ded_r13_present            = false;
   bool                        meas_cfg_r13_present              = false;
   bool                        ant_info_ded_pcell_r13_present    = false;
@@ -37488,7 +36916,6 @@ struct rrc_conn_resume_r13_ies_s {
 
 // SecurityModeCommand-r8-IEs ::= SEQUENCE
 struct security_mode_cmd_r8_ies_s {
-  // member variables
   bool                         non_crit_ext_present = false;
   security_cfg_smc_s           security_cfg_smc;
   security_mode_cmd_v8a0_ies_s non_crit_ext;
@@ -37501,7 +36928,6 @@ struct security_mode_cmd_r8_ies_s {
 
 // UECapabilityEnquiry-r8-IEs ::= SEQUENCE
 struct ue_cap_enquiry_r8_ies_s {
-  // member variables
   bool                      non_crit_ext_present = false;
   ue_cap_request_l          ue_cap_request;
   ue_cap_enquiry_v8a0_ies_s non_crit_ext;
@@ -37514,7 +36940,6 @@ struct ue_cap_enquiry_r8_ies_s {
 
 // UEInformationRequest-r9-IEs ::= SEQUENCE
 struct ue_info_request_r9_ies_s {
-  // member variables
   bool                       non_crit_ext_present = false;
   bool                       rach_report_req_r9   = false;
   bool                       rlf_report_req_r9    = false;
@@ -37566,8 +36991,8 @@ struct csfb_params_resp_cdma2000_s {
     }
 
   private:
-    types                                                       type_;
-    choice_buffer_t<sizeof(csfb_params_resp_cdma2000_r8_ies_s)> c;
+    types                                               type_;
+    choice_buffer_t<csfb_params_resp_cdma2000_r8_ies_s> c;
 
     void destroy_();
   };
@@ -37651,8 +37076,8 @@ struct counter_check_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -37721,8 +37146,8 @@ struct dl_info_transfer_s {
       }
 
     private:
-      types                                                                                        type_;
-      choice_buffer_t<MAX2(sizeof(dl_info_transfer_r15_ies_s), sizeof(dl_info_transfer_r8_ies_s))> c;
+      types                                                                  type_;
+      choice_buffer_t<dl_info_transfer_r15_ies_s, dl_info_transfer_r8_ies_s> c;
 
       void destroy_();
     };
@@ -37756,8 +37181,8 @@ struct dl_info_transfer_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -37841,8 +37266,8 @@ struct ho_from_eutra_prep_request_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -37926,8 +37351,8 @@ struct logged_meas_cfg_r10_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -37995,8 +37420,8 @@ struct mob_from_eutra_cmd_s {
       }
 
     private:
-      types                                                                                           type_;
-      choice_buffer_t<MAX2(sizeof(mob_from_eutra_cmd_r8_ies_s), sizeof(mob_from_eutra_cmd_r9_ies_s))> c;
+      types                                                                     type_;
+      choice_buffer_t<mob_from_eutra_cmd_r8_ies_s, mob_from_eutra_cmd_r9_ies_s> c;
 
       void destroy_();
     };
@@ -38030,8 +37455,8 @@ struct mob_from_eutra_cmd_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -38115,8 +37540,8 @@ struct rn_recfg_r10_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -38200,8 +37625,8 @@ struct rrc_conn_recfg_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -38285,8 +37710,8 @@ struct rrc_conn_release_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -38370,8 +37795,8 @@ struct rrc_conn_resume_r13_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -38455,8 +37880,8 @@ struct security_mode_cmd_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -38540,8 +37965,8 @@ struct ue_cap_enquiry_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -38625,8 +38050,8 @@ struct ue_info_request_r9_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -38880,22 +38305,19 @@ struct dl_dcch_msg_type_c {
 
   private:
     types type_;
-    choice_buffer_t<MAX16(sizeof(counter_check_s),
-                          sizeof(csfb_params_resp_cdma2000_s),
-                          sizeof(dl_info_transfer_s),
-                          sizeof(ho_from_eutra_prep_request_s),
-                          sizeof(logged_meas_cfg_r10_s),
-                          sizeof(mob_from_eutra_cmd_s),
-                          sizeof(rn_recfg_r10_s),
-                          sizeof(rrc_conn_recfg_s),
-                          sizeof(rrc_conn_release_s),
-                          sizeof(rrc_conn_resume_r13_s),
-                          sizeof(security_mode_cmd_s),
-                          sizeof(ue_cap_enquiry_s),
-                          sizeof(ue_info_request_r9_s),
-                          0,
-                          0,
-                          0)>
+    choice_buffer_t<counter_check_s,
+                    csfb_params_resp_cdma2000_s,
+                    dl_info_transfer_s,
+                    ho_from_eutra_prep_request_s,
+                    logged_meas_cfg_r10_s,
+                    mob_from_eutra_cmd_s,
+                    rn_recfg_r10_s,
+                    rrc_conn_recfg_s,
+                    rrc_conn_release_s,
+                    rrc_conn_resume_r13_s,
+                    security_mode_cmd_s,
+                    ue_cap_enquiry_s,
+                    ue_info_request_r9_s>
         c;
 
     void destroy_();
@@ -38937,15 +38359,14 @@ struct dl_dcch_msg_type_c {
   }
 
 private:
-  types                          type_;
-  choice_buffer_t<sizeof(c1_c_)> c;
+  types                  type_;
+  choice_buffer_t<c1_c_> c;
 
   void destroy_();
 };
 
 // DL-DCCH-Message ::= SEQUENCE
 struct dl_dcch_msg_s {
-  // member variables
   dl_dcch_msg_type_c msg;
 
   // sequence methods
@@ -39007,8 +38428,8 @@ struct tmgi_r9_s {
     }
 
   private:
-    types                              type_;
-    choice_buffer_t<sizeof(plmn_id_s)> c;
+    types                      type_;
+    choice_buffer_t<plmn_id_s> c;
 
     void destroy_();
   };
@@ -39025,7 +38446,6 @@ struct tmgi_r9_s {
 
 // MBMS-SessionInfo-r9 ::= SEQUENCE
 struct mbms_session_info_r9_s {
-  // member variables
   bool               ext                   = false;
   bool               session_id_r9_present = false;
   tmgi_r9_s          tmgi_r9;
@@ -39039,8 +38459,8 @@ struct mbms_session_info_r9_s {
   void        to_json(json_writer& j) const;
 };
 
-// MBMS-SessionInfoList-r9 ::= SEQUENCE (SIZE (0..maxSessionPerPMCH)) OF MBMS-SessionInfo-r9
-typedef dyn_array<mbms_session_info_r9_s> mbms_session_info_list_r9_l;
+// MBMS-SessionInfoList-r9 ::= SEQUENCE (SIZE (0..29)) OF MBMS-SessionInfo-r9
+using mbms_session_info_list_r9_l = dyn_array<mbms_session_info_r9_s>;
 
 // PMCH-Config-r12 ::= SEQUENCE
 struct pmch_cfg_r12_s {
@@ -39095,8 +38515,8 @@ struct pmch_cfg_r12_s {
     }
 
   private:
-    types              type_;
-    choice_buffer_t<8> c;
+    types               type_;
+    pod_choice_buffer_t c;
 
     void destroy_();
   };
@@ -39133,12 +38553,11 @@ struct pmch_cfg_r12_s {
   void        to_json(json_writer& j) const;
 };
 
-// CommonSF-AllocPatternList-r14 ::= SEQUENCE (SIZE (1..maxMBSFN-Allocations)) OF MBSFN-SubframeConfig-v1430
-typedef dyn_array<mbsfn_sf_cfg_v1430_s> common_sf_alloc_pattern_list_r14_l;
+// CommonSF-AllocPatternList-r14 ::= SEQUENCE (SIZE (1..8)) OF MBSFN-SubframeConfig-v1430
+using common_sf_alloc_pattern_list_r14_l = dyn_array<mbsfn_sf_cfg_v1430_s>;
 
 // PMCH-InfoExt-r12 ::= SEQUENCE
 struct pmch_info_ext_r12_s {
-  // member variables
   bool                        ext = false;
   pmch_cfg_r12_s              pmch_cfg_r12;
   mbms_session_info_list_r9_l mbms_session_info_list_r12;
@@ -39152,7 +38571,6 @@ struct pmch_info_ext_r12_s {
 
 // MBSFNAreaConfiguration-v1430-IEs ::= SEQUENCE
 struct mbsfn_area_cfg_v1430_ies_s {
-  // member variables
   bool                               non_crit_ext_present = false;
   common_sf_alloc_pattern_list_r14_l common_sf_alloc_r14;
 
@@ -39186,12 +38604,11 @@ struct pmch_cfg_r9_s {
   void        to_json(json_writer& j) const;
 };
 
-// PMCH-InfoListExt-r12 ::= SEQUENCE (SIZE (0..maxPMCH-PerMBSFN)) OF PMCH-InfoExt-r12
-typedef dyn_array<pmch_info_ext_r12_s> pmch_info_list_ext_r12_l;
+// PMCH-InfoListExt-r12 ::= SEQUENCE (SIZE (0..15)) OF PMCH-InfoExt-r12
+using pmch_info_list_ext_r12_l = dyn_array<pmch_info_ext_r12_s>;
 
 // CountingRequestInfo-r10 ::= SEQUENCE
 struct count_request_info_r10_s {
-  // member variables
   bool      ext = false;
   tmgi_r9_s tmgi_r10;
   // ...
@@ -39204,7 +38621,6 @@ struct count_request_info_r10_s {
 
 // MBSFNAreaConfiguration-v1250-IEs ::= SEQUENCE
 struct mbsfn_area_cfg_v1250_ies_s {
-  // member variables
   bool                       pmch_info_list_ext_r12_present = false;
   bool                       non_crit_ext_present           = false;
   pmch_info_list_ext_r12_l   pmch_info_list_ext_r12;
@@ -39218,7 +38634,6 @@ struct mbsfn_area_cfg_v1250_ies_s {
 
 // PMCH-Info-r9 ::= SEQUENCE
 struct pmch_info_r9_s {
-  // member variables
   bool                        ext = false;
   pmch_cfg_r9_s               pmch_cfg_r9;
   mbms_session_info_list_r9_l mbms_session_info_list_r9;
@@ -39230,15 +38645,14 @@ struct pmch_info_r9_s {
   void        to_json(json_writer& j) const;
 };
 
-// CommonSF-AllocPatternList-r9 ::= SEQUENCE (SIZE (1..maxMBSFN-Allocations)) OF MBSFN-SubframeConfig
-typedef dyn_array<mbsfn_sf_cfg_s> common_sf_alloc_pattern_list_r9_l;
+// CommonSF-AllocPatternList-r9 ::= SEQUENCE (SIZE (1..8)) OF MBSFN-SubframeConfig
+using common_sf_alloc_pattern_list_r9_l = dyn_array<mbsfn_sf_cfg_s>;
 
-// CountingRequestList-r10 ::= SEQUENCE (SIZE (1..maxServiceCount)) OF CountingRequestInfo-r10
-typedef dyn_array<count_request_info_r10_s> count_request_list_r10_l;
+// CountingRequestList-r10 ::= SEQUENCE (SIZE (1..16)) OF CountingRequestInfo-r10
+using count_request_list_r10_l = dyn_array<count_request_info_r10_s>;
 
 // MBSFNAreaConfiguration-v930-IEs ::= SEQUENCE
 struct mbsfn_area_cfg_v930_ies_s {
-  // member variables
   bool                       late_non_crit_ext_present = false;
   bool                       non_crit_ext_present      = false;
   dyn_octstring              late_non_crit_ext;
@@ -39250,12 +38664,11 @@ struct mbsfn_area_cfg_v930_ies_s {
   void        to_json(json_writer& j) const;
 };
 
-// PMCH-InfoList-r9 ::= SEQUENCE (SIZE (0..maxPMCH-PerMBSFN)) OF PMCH-Info-r9
-typedef dyn_array<pmch_info_r9_s> pmch_info_list_r9_l;
+// PMCH-InfoList-r9 ::= SEQUENCE (SIZE (0..15)) OF PMCH-Info-r9
+using pmch_info_list_r9_l = dyn_array<pmch_info_r9_s>;
 
 // MBMSCountingRequest-r10 ::= SEQUENCE
 struct mbms_count_request_r10_s {
-  // member variables
   bool                     late_non_crit_ext_present = false;
   bool                     non_crit_ext_present      = false;
   count_request_list_r10_l count_request_list_r10;
@@ -39371,8 +38784,8 @@ struct mcch_msg_type_c {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c2_c_)> c;
+    types                  type_;
+    choice_buffer_t<c2_c_> c;
 
     void destroy_();
   };
@@ -39428,15 +38841,14 @@ struct mcch_msg_type_c {
   }
 
 private:
-  types                                                  type_;
-  choice_buffer_t<MAX2(sizeof(c1_c_), sizeof(later_c_))> c;
+  types                            type_;
+  choice_buffer_t<c1_c_, later_c_> c;
 
   void destroy_();
 };
 
 // MCCH-Message ::= SEQUENCE
 struct mcch_msg_s {
-  // member variables
   mcch_msg_type_c msg;
 
   // sequence methods
@@ -39447,7 +38859,6 @@ struct mcch_msg_s {
 
 // Paging-v1530-IEs ::= SEQUENCE
 struct paging_v1530_ies_s {
-  // member variables
   bool access_type_present  = false;
   bool non_crit_ext_present = false;
 
@@ -39457,12 +38868,11 @@ struct paging_v1530_ies_s {
   void        to_json(json_writer& j) const;
 };
 
-// IMSI ::= SEQUENCE (SIZE (6..21)) OF INTEGER
-typedef bounded_array<uint8_t, 21> imsi_l;
+// IMSI ::= SEQUENCE (SIZE (6..21)) OF INTEGER (0..9)
+using imsi_l = bounded_array<uint8_t, 21>;
 
 // Paging-v1310-IEs ::= SEQUENCE
 struct paging_v1310_ies_s {
-  // member variables
   bool               redist_ind_r13_present         = false;
   bool               sys_info_mod_e_drx_r13_present = false;
   bool               non_crit_ext_present           = false;
@@ -39476,7 +38886,6 @@ struct paging_v1310_ies_s {
 
 // S-TMSI ::= SEQUENCE
 struct s_tmsi_s {
-  // member variables
   fixed_bitstring<8>  mmec;
   fixed_bitstring<32> m_tmsi;
 
@@ -39488,7 +38897,6 @@ struct s_tmsi_s {
 
 // Paging-v1130-IEs ::= SEQUENCE
 struct paging_v1130_ies_s {
-  // member variables
   bool               eab_param_mod_r11_present = false;
   bool               non_crit_ext_present      = false;
   paging_v1310_ies_s non_crit_ext;
@@ -39583,15 +38991,14 @@ struct paging_ue_id_c {
   }
 
 private:
-  types                                                                                   type_;
-  choice_buffer_t<MAX4(sizeof(fixed_bitstring<48>), sizeof(imsi_l), sizeof(s_tmsi_s), 0)> c;
+  types                                                  type_;
+  choice_buffer_t<fixed_bitstring<48>, imsi_l, s_tmsi_s> c;
 
   void destroy_();
 };
 
 // Paging-v920-IEs ::= SEQUENCE
 struct paging_v920_ies_s {
-  // member variables
   bool               cmas_ind_r9_present  = false;
   bool               non_crit_ext_present = false;
   paging_v1130_ies_s non_crit_ext;
@@ -39625,7 +39032,6 @@ struct paging_record_s {
 
 // Paging-v890-IEs ::= SEQUENCE
 struct paging_v890_ies_s {
-  // member variables
   bool              late_non_crit_ext_present = false;
   bool              non_crit_ext_present      = false;
   dyn_octstring     late_non_crit_ext;
@@ -39637,12 +39043,11 @@ struct paging_v890_ies_s {
   void        to_json(json_writer& j) const;
 };
 
-// PagingRecordList ::= SEQUENCE (SIZE (1..maxPageRec)) OF PagingRecord
-typedef dyn_array<paging_record_s> paging_record_list_l;
+// PagingRecordList ::= SEQUENCE (SIZE (1..16)) OF PagingRecord
+using paging_record_list_l = dyn_array<paging_record_s>;
 
 // Paging ::= SEQUENCE
 struct paging_s {
-  // member variables
   bool                 paging_record_list_present = false;
   bool                 sys_info_mod_present       = false;
   bool                 etws_ind_present           = false;
@@ -39715,15 +39120,14 @@ struct pcch_msg_type_c {
   }
 
 private:
-  types                          type_;
-  choice_buffer_t<sizeof(c1_c_)> c;
+  types                  type_;
+  choice_buffer_t<c1_c_> c;
 
   void destroy_();
 };
 
 // PCCH-Message ::= SEQUENCE
 struct pcch_msg_s {
-  // member variables
   pcch_msg_type_c msg;
 
   // sequence methods
@@ -39734,7 +39138,6 @@ struct pcch_msg_s {
 
 // MBMSSessionInfo-r13 ::= SEQUENCE
 struct mbms_session_info_r13_s {
-  // member variables
   bool               session_id_r13_present = false;
   tmgi_r9_s          tmgi_r13;
   fixed_octstring<1> session_id_r13;
@@ -39860,10 +39263,10 @@ struct sc_mtch_sched_info_br_r14_s {
       assert_choice_type("sf160", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
-    uint8_t& sf256()
+    uint16_t& sf256()
     {
       assert_choice_type("sf256", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
-      return c.get<uint8_t>();
+      return c.get<uint16_t>();
     }
     uint16_t& sf320()
     {
@@ -39940,10 +39343,10 @@ struct sc_mtch_sched_info_br_r14_s {
       assert_choice_type("sf160", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
       return c.get<uint8_t>();
     }
-    const uint8_t& sf256() const
+    const uint16_t& sf256() const
     {
       assert_choice_type("sf256", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r14");
-      return c.get<uint8_t>();
+      return c.get<uint16_t>();
     }
     const uint16_t& sf320() const
     {
@@ -40020,10 +39423,10 @@ struct sc_mtch_sched_info_br_r14_s {
       set(types::sf160);
       return c.get<uint8_t>();
     }
-    uint8_t& set_sf256()
+    uint16_t& set_sf256()
     {
       set(types::sf256);
-      return c.get<uint8_t>();
+      return c.get<uint16_t>();
     }
     uint16_t& set_sf320()
     {
@@ -40062,8 +39465,8 @@ struct sc_mtch_sched_info_br_r14_s {
     }
 
   private:
-    types              type_;
-    choice_buffer_t<8> c;
+    types               type_;
+    pod_choice_buffer_t c;
 
     void destroy_();
   };
@@ -40214,10 +39617,10 @@ struct sc_mtch_sched_info_r13_s {
       assert_choice_type("sf160", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r13");
       return c.get<uint8_t>();
     }
-    uint8_t& sf256()
+    uint16_t& sf256()
     {
       assert_choice_type("sf256", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r13");
-      return c.get<uint8_t>();
+      return c.get<uint16_t>();
     }
     uint16_t& sf320()
     {
@@ -40294,10 +39697,10 @@ struct sc_mtch_sched_info_r13_s {
       assert_choice_type("sf160", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r13");
       return c.get<uint8_t>();
     }
-    const uint8_t& sf256() const
+    const uint16_t& sf256() const
     {
       assert_choice_type("sf256", type_.to_string(), "schedulingPeriodStartOffsetSCPTM-r13");
-      return c.get<uint8_t>();
+      return c.get<uint16_t>();
     }
     const uint16_t& sf320() const
     {
@@ -40374,10 +39777,10 @@ struct sc_mtch_sched_info_r13_s {
       set(types::sf160);
       return c.get<uint8_t>();
     }
-    uint8_t& set_sf256()
+    uint16_t& set_sf256()
     {
       set(types::sf256);
-      return c.get<uint8_t>();
+      return c.get<uint16_t>();
     }
     uint16_t& set_sf320()
     {
@@ -40416,8 +39819,8 @@ struct sc_mtch_sched_info_r13_s {
     }
 
   private:
-    types              type_;
-    choice_buffer_t<8> c;
+    types               type_;
+    pod_choice_buffer_t c;
 
     void destroy_();
   };
@@ -40437,7 +39840,6 @@ struct sc_mtch_sched_info_r13_s {
 
 // PCI-ARFCN-r13 ::= SEQUENCE
 struct pci_arfcn_r13_s {
-  // member variables
   bool     carrier_freq_r13_present = false;
   uint16_t pci_r13                  = 0;
   uint32_t carrier_freq_r13         = 0;
@@ -40526,8 +39928,8 @@ struct sc_mtch_info_br_r14_s {
     }
 
   private:
-    types                                                         type_;
-    choice_buffer_t<MAX2(sizeof(fdd_r14_e_), sizeof(tdd_r14_e_))> c;
+    types               type_;
+    pod_choice_buffer_t c;
 
     void destroy_();
   };
@@ -40638,18 +40040,17 @@ struct sc_mtch_info_r13_s {
   void        to_json(json_writer& j) const;
 };
 
-// SC-MTCH-InfoList-BR-r14 ::= SEQUENCE (SIZE (0..maxSC-MTCH-BR-r14)) OF SC-MTCH-Info-BR-r14
-typedef dyn_array<sc_mtch_info_br_r14_s> sc_mtch_info_list_br_r14_l;
+// SC-MTCH-InfoList-BR-r14 ::= SEQUENCE (SIZE (0..128)) OF SC-MTCH-Info-BR-r14
+using sc_mtch_info_list_br_r14_l = dyn_array<sc_mtch_info_br_r14_s>;
 
-// SC-MTCH-InfoList-r13 ::= SEQUENCE (SIZE (0..maxSC-MTCH-r13)) OF SC-MTCH-Info-r13
-typedef dyn_array<sc_mtch_info_r13_s> sc_mtch_info_list_r13_l;
+// SC-MTCH-InfoList-r13 ::= SEQUENCE (SIZE (0..1023)) OF SC-MTCH-Info-r13
+using sc_mtch_info_list_r13_l = dyn_array<sc_mtch_info_r13_s>;
 
-// SCPTM-NeighbourCellList-r13 ::= SEQUENCE (SIZE (1..maxNeighCell-SCPTM-r13)) OF PCI-ARFCN-r13
-typedef dyn_array<pci_arfcn_r13_s> scptm_neighbour_cell_list_r13_l;
+// SCPTM-NeighbourCellList-r13 ::= SEQUENCE (SIZE (1..8)) OF PCI-ARFCN-r13
+using scptm_neighbour_cell_list_r13_l = dyn_array<pci_arfcn_r13_s>;
 
 // SCPTMConfiguration-v1340 ::= SEQUENCE
 struct scptm_cfg_v1340_s {
-  // member variables
   bool    p_b_r13_present      = false;
   bool    non_crit_ext_present = false;
   uint8_t p_b_r13              = 0;
@@ -40662,7 +40063,6 @@ struct scptm_cfg_v1340_s {
 
 // SCPTMConfiguration-BR-r14 ::= SEQUENCE
 struct scptm_cfg_br_r14_s {
-  // member variables
   bool                            scptm_neighbour_cell_list_r14_present = false;
   bool                            p_b_r14_present                       = false;
   bool                            late_non_crit_ext_present             = false;
@@ -40680,7 +40080,6 @@ struct scptm_cfg_br_r14_s {
 
 // SCPTMConfiguration-r13 ::= SEQUENCE
 struct scptm_cfg_r13_s {
-  // member variables
   bool                            scptm_neighbour_cell_list_r13_present = false;
   bool                            late_non_crit_ext_present             = false;
   bool                            non_crit_ext_present                  = false;
@@ -40791,8 +40190,8 @@ struct sc_mcch_msg_type_r13_c {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c2_c_)> c;
+    types                  type_;
+    choice_buffer_t<c2_c_> c;
 
     void destroy_();
   };
@@ -40848,15 +40247,14 @@ struct sc_mcch_msg_type_r13_c {
   }
 
 private:
-  types                                                          type_;
-  choice_buffer_t<MAX2(sizeof(c1_c_), sizeof(msg_class_ext_c_))> c;
+  types                                    type_;
+  choice_buffer_t<c1_c_, msg_class_ext_c_> c;
 
   void destroy_();
 };
 
 // SC-MCCH-Message-r13 ::= SEQUENCE
 struct sc_mcch_msg_r13_s {
-  // member variables
   sc_mcch_msg_type_r13_c msg;
 
   // sequence methods
@@ -40935,15 +40333,14 @@ struct init_ue_id_c {
   }
 
 private:
-  types                                                                type_;
-  choice_buffer_t<MAX2(sizeof(fixed_bitstring<40>), sizeof(s_tmsi_s))> c;
+  types                                          type_;
+  choice_buffer_t<fixed_bitstring<40>, s_tmsi_s> c;
 
   void destroy_();
 };
 
 // ReestabUE-Identity ::= SEQUENCE
 struct reestab_ue_id_s {
-  // member variables
   fixed_bitstring<16> c_rnti;
   uint16_t            pci = 0;
   fixed_bitstring<16> short_mac_i;
@@ -40988,7 +40385,7 @@ struct resume_cause_r15_opts {
     mt_access,
     mo_sig,
     mo_data,
-    rna_update,
+    rna_upd,
     mo_voice_call,
     spare1,
     nulltype
@@ -41000,7 +40397,6 @@ typedef enumerated<resume_cause_r15_opts> resume_cause_r15_e;
 
 // RRCConnectionReestablishmentRequest-r8-IEs ::= SEQUENCE
 struct rrc_conn_reest_request_r8_ies_s {
-  // member variables
   reestab_ue_id_s    ue_id;
   reest_cause_e      reest_cause;
   fixed_bitstring<2> spare;
@@ -41013,7 +40409,6 @@ struct rrc_conn_reest_request_r8_ies_s {
 
 // RRCConnectionRequest-r8-IEs ::= SEQUENCE
 struct rrc_conn_request_r8_ies_s {
-  // member variables
   init_ue_id_c          ue_id;
   establishment_cause_e establishment_cause;
   fixed_bitstring<1>    spare;
@@ -41077,8 +40472,8 @@ struct rrc_conn_resume_request_minus5_gc_r15_ies_s {
     }
 
   private:
-    types                                        type_;
-    choice_buffer_t<sizeof(fixed_bitstring<40>)> c;
+    types                                 type_;
+    choice_buffer_t<fixed_bitstring<40> > c;
 
     void destroy_();
   };
@@ -41148,8 +40543,8 @@ struct rrc_conn_resume_request_r13_ies_s {
     }
 
   private:
-    types                                        type_;
-    choice_buffer_t<sizeof(fixed_bitstring<40>)> c;
+    types                                 type_;
+    choice_buffer_t<fixed_bitstring<40> > c;
 
     void destroy_();
   };
@@ -41225,8 +40620,8 @@ struct rrc_conn_reest_request_s {
     }
 
   private:
-    types                                                    type_;
-    choice_buffer_t<sizeof(rrc_conn_reest_request_r8_ies_s)> c;
+    types                                            type_;
+    choice_buffer_t<rrc_conn_reest_request_r8_ies_s> c;
 
     void destroy_();
   };
@@ -41278,8 +40673,8 @@ struct rrc_conn_request_s {
     }
 
   private:
-    types                                              type_;
-    choice_buffer_t<sizeof(rrc_conn_request_r8_ies_s)> c;
+    types                                      type_;
+    choice_buffer_t<rrc_conn_request_r8_ies_s> c;
 
     void destroy_();
   };
@@ -41346,10 +40741,8 @@ struct rrc_conn_resume_request_r13_s {
     }
 
   private:
-    types type_;
-    choice_buffer_t<MAX2(sizeof(rrc_conn_resume_request_minus5_gc_r15_ies_s),
-                         sizeof(rrc_conn_resume_request_r13_ies_s))>
-        c;
+    types                                                                                           type_;
+    choice_buffer_t<rrc_conn_resume_request_minus5_gc_r15_ies_s, rrc_conn_resume_request_r13_ies_s> c;
 
     void destroy_();
   };
@@ -41401,8 +40794,8 @@ struct rrc_early_data_request_r15_s {
     }
 
   private:
-    types                                                     type_;
-    choice_buffer_t<sizeof(rrc_early_data_request_r15_ies_s)> c;
+    types                                             type_;
+    choice_buffer_t<rrc_early_data_request_r15_ies_s> c;
 
     void destroy_();
   };
@@ -41469,8 +40862,8 @@ struct ul_ccch_msg_type_c {
     }
 
   private:
-    types                                                                               type_;
-    choice_buffer_t<MAX2(sizeof(rrc_conn_reest_request_s), sizeof(rrc_conn_request_s))> c;
+    types                                                         type_;
+    choice_buffer_t<rrc_conn_reest_request_s, rrc_conn_request_s> c;
 
     void destroy_();
   };
@@ -41569,8 +40962,8 @@ struct ul_ccch_msg_type_c {
       }
 
     private:
-      types                          type_;
-      choice_buffer_t<sizeof(c3_c_)> c;
+      types                  type_;
+      choice_buffer_t<c3_c_> c;
 
       void destroy_();
     };
@@ -41626,8 +41019,8 @@ struct ul_ccch_msg_type_c {
     }
 
   private:
-    types                                                                     type_;
-    choice_buffer_t<MAX2(sizeof(c2_c_), sizeof(msg_class_ext_future_r13_c_))> c;
+    types                                               type_;
+    choice_buffer_t<c2_c_, msg_class_ext_future_r13_c_> c;
 
     void destroy_();
   };
@@ -41683,15 +41076,14 @@ struct ul_ccch_msg_type_c {
   }
 
 private:
-  types                                                          type_;
-  choice_buffer_t<MAX2(sizeof(c1_c_), sizeof(msg_class_ext_c_))> c;
+  types                                    type_;
+  choice_buffer_t<c1_c_, msg_class_ext_c_> c;
 
   void destroy_();
 };
 
 // UL-CCCH-Message ::= SEQUENCE
 struct ul_ccch_msg_s {
-  // member variables
   ul_ccch_msg_type_c msg;
 
   // sequence methods
@@ -41754,15 +41146,14 @@ struct cell_global_id_cdma2000_c {
   }
 
 private:
-  types                                         type_;
-  choice_buffer_t<sizeof(fixed_bitstring<128>)> c;
+  types                                  type_;
+  choice_buffer_t<fixed_bitstring<128> > c;
 
   void destroy_();
 };
 
 // AdditionalSI-Info-r9 ::= SEQUENCE
 struct add_si_info_r9_s {
-  // member variables
   bool                csg_member_status_r9_present = false;
   bool                csg_id_r9_present            = false;
   fixed_bitstring<27> csg_id_r9;
@@ -41776,7 +41167,6 @@ struct add_si_info_r9_s {
 // BLER-Result-r12 ::= SEQUENCE
 struct bler_result_r12_s {
   struct blocks_rx_r12_s_ {
-    // member variables
     fixed_bitstring<3> n_r12;
     fixed_bitstring<8> m_r12;
   };
@@ -41793,7 +41183,6 @@ struct bler_result_r12_s {
 
 // CellGlobalIdUTRA ::= SEQUENCE
 struct cell_global_id_utra_s {
-  // member variables
   plmn_id_s           plmn_id;
   fixed_bitstring<28> cell_id;
 
@@ -41806,7 +41195,6 @@ struct cell_global_id_utra_s {
 // MeasResultCDMA2000 ::= SEQUENCE
 struct meas_result_cdma2000_s {
   struct meas_result_s_ {
-    // member variables
     bool     ext                    = false;
     bool     pilot_pn_phase_present = false;
     uint16_t pilot_pn_phase         = 0;
@@ -41827,11 +41215,10 @@ struct meas_result_cdma2000_s {
 };
 
 // PLMN-IdentityList2 ::= SEQUENCE (SIZE (1..5)) OF PLMN-Identity
-typedef dyn_array<plmn_id_s> plmn_id_list2_l;
+using plmn_id_list2_l = dyn_array<plmn_id_s>;
 
 // CellGlobalIdGERAN ::= SEQUENCE
 struct cell_global_id_geran_s {
-  // member variables
   plmn_id_s           plmn_id;
   fixed_bitstring<16> location_area_code;
   fixed_bitstring<16> cell_id;
@@ -41844,7 +41231,6 @@ struct cell_global_id_geran_s {
 
 // DataBLER-MCH-Result-r12 ::= SEQUENCE
 struct data_bler_mch_result_r12_s {
-  // member variables
   uint8_t           mch_idx_r12 = 1;
   bler_result_r12_s data_bler_result_r12;
 
@@ -41857,7 +41243,6 @@ struct data_bler_mch_result_r12_s {
 // MeasResultEUTRA ::= SEQUENCE
 struct meas_result_eutra_s {
   struct cgi_info_s_ {
-    // member variables
     bool                   plmn_id_list_present = false;
     cell_global_id_eutra_s cell_global_id;
     fixed_bitstring<16>    tac;
@@ -41865,14 +41250,13 @@ struct meas_result_eutra_s {
   };
   struct meas_result_s_ {
     struct cgi_info_v1310_s_ {
-      // member variables
       bool                       freq_band_ind_r13_present        = false;
       bool                       multi_band_info_list_r13_present = false;
       bool                       freq_band_ind_prio_r13_present   = false;
       uint16_t                   freq_band_ind_r13                = 1;
       multi_band_info_list_r11_l multi_band_info_list_r13;
     };
-    typedef dyn_array<cell_access_related_info_minus5_gc_r15_s> cgi_info_minus5_gc_r15_l_;
+    using cgi_info_minus5_gc_r15_l_ = dyn_array<cell_access_related_info_minus5_gc_r15_s>;
 
     // member variables
     bool    ext                 = false;
@@ -41918,7 +41302,6 @@ struct meas_result_eutra_s {
 // MeasResultIdleEUTRA-r15 ::= SEQUENCE
 struct meas_result_idle_eutra_r15_s {
   struct meas_result_r15_s_ {
-    // member variables
     uint8_t rsrp_result_r15 = 0;
     int8_t  rsrq_result_r15 = -30;
   };
@@ -41936,8 +41319,8 @@ struct meas_result_idle_eutra_r15_s {
   void        to_json(json_writer& j) const;
 };
 
-// MeasResultListCDMA2000 ::= SEQUENCE (SIZE (1..maxCellReport)) OF MeasResultCDMA2000
-typedef dyn_array<meas_result_cdma2000_s> meas_result_list_cdma2000_l;
+// MeasResultListCDMA2000 ::= SEQUENCE (SIZE (1..8)) OF MeasResultCDMA2000
+using meas_result_list_cdma2000_l = dyn_array<meas_result_cdma2000_s>;
 
 // MeasResultUTRA ::= SEQUENCE
 struct meas_result_utra_s {
@@ -41992,13 +41375,12 @@ struct meas_result_utra_s {
     }
 
   private:
-    types              type_;
-    choice_buffer_t<8> c;
+    types               type_;
+    pod_choice_buffer_t c;
 
     void destroy_();
   };
   struct cgi_info_s_ {
-    // member variables
     bool                  location_area_code_present = false;
     bool                  routing_area_code_present  = false;
     bool                  plmn_id_list_present       = false;
@@ -42008,7 +41390,6 @@ struct meas_result_utra_s {
     plmn_id_list2_l       plmn_id_list;
   };
   struct meas_result_s_ {
-    // member variables
     bool    ext                = false;
     bool    utra_rscp_present  = false;
     bool    utra_ec_n0_present = false;
@@ -42038,12 +41419,11 @@ struct meas_result_utra_s {
   void        to_json(json_writer& j) const;
 };
 
-// PLMN-IdentityListNR-r15 ::= SEQUENCE (SIZE (1.. maxPLMN-NR-r15)) OF PLMN-Identity
-typedef dyn_array<plmn_id_s> plmn_id_list_nr_r15_l;
+// PLMN-IdentityListNR-r15 ::= SEQUENCE (SIZE (1..12)) OF PLMN-Identity
+using plmn_id_list_nr_r15_l = dyn_array<plmn_id_s>;
 
 // RegisteredAMF-r15 ::= SEQUENCE
 struct registered_amf_r15_s {
-  // member variables
   bool                plmn_id_r15_present = false;
   plmn_id_s           plmn_id_r15;
   fixed_bitstring<24> amf_id_r15;
@@ -42106,14 +41486,14 @@ struct s_nssai_r15_c {
   }
 
 private:
-  types                                        type_;
-  choice_buffer_t<sizeof(fixed_bitstring<32>)> c;
+  types                                 type_;
+  choice_buffer_t<fixed_bitstring<32> > c;
 
   void destroy_();
 };
 
-// DataBLER-MCH-ResultList-r12 ::= SEQUENCE (SIZE (1.. maxPMCH-PerMBSFN)) OF DataBLER-MCH-Result-r12
-typedef dyn_array<data_bler_mch_result_r12_s> data_bler_mch_result_list_r12_l;
+// DataBLER-MCH-ResultList-r12 ::= SEQUENCE (SIZE (1..15)) OF DataBLER-MCH-Result-r12
+using data_bler_mch_result_list_r12_l = dyn_array<data_bler_mch_result_r12_s>;
 
 // LocationInfo-r10 ::= SEQUENCE
 struct location_info_r10_s {
@@ -42255,8 +41635,8 @@ struct location_info_r10_s {
     }
 
   private:
-    types                                  type_;
-    choice_buffer_t<sizeof(dyn_octstring)> c;
+    types                          type_;
+    choice_buffer_t<dyn_octstring> c;
 
     void destroy_();
   };
@@ -42311,8 +41691,8 @@ struct location_info_r10_s {
     }
 
   private:
-    types                                  type_;
-    choice_buffer_t<sizeof(dyn_octstring)> c;
+    types                          type_;
+    choice_buffer_t<dyn_octstring> c;
 
     void destroy_();
   };
@@ -42337,13 +41717,11 @@ struct location_info_r10_s {
 // MeasResultGERAN ::= SEQUENCE
 struct meas_result_geran_s {
   struct cgi_info_s_ {
-    // member variables
     bool                   routing_area_code_present = false;
     cell_global_id_geran_s cell_global_id;
     fixed_bitstring<8>     routing_area_code;
   };
   struct meas_result_s_ {
-    // member variables
     bool    ext  = false;
     uint8_t rssi = 0;
     // ...
@@ -42362,18 +41740,17 @@ struct meas_result_geran_s {
   void        to_json(json_writer& j) const;
 };
 
-// MeasResultIdleListEUTRA-r15 ::= SEQUENCE (SIZE (1..maxCellMeasIdle-r15)) OF MeasResultIdleEUTRA-r15
-typedef dyn_array<meas_result_idle_eutra_r15_s> meas_result_idle_list_eutra_r15_l;
+// MeasResultIdleListEUTRA-r15 ::= SEQUENCE (SIZE (1..8)) OF MeasResultIdleEUTRA-r15
+using meas_result_idle_list_eutra_r15_l = dyn_array<meas_result_idle_eutra_r15_s>;
 
-// MeasResultListEUTRA ::= SEQUENCE (SIZE (1..maxCellReport)) OF MeasResultEUTRA
-typedef dyn_array<meas_result_eutra_s> meas_result_list_eutra_l;
+// MeasResultListEUTRA ::= SEQUENCE (SIZE (1..8)) OF MeasResultEUTRA
+using meas_result_list_eutra_l = dyn_array<meas_result_eutra_s>;
 
-// MeasResultListUTRA ::= SEQUENCE (SIZE (1..maxCellReport)) OF MeasResultUTRA
-typedef dyn_array<meas_result_utra_s> meas_result_list_utra_l;
+// MeasResultListUTRA ::= SEQUENCE (SIZE (1..8)) OF MeasResultUTRA
+using meas_result_list_utra_l = dyn_array<meas_result_utra_s>;
 
 // MeasResultNR-r15 ::= SEQUENCE
 struct meas_result_nr_r15_s {
-  // member variables
   bool    ext                        = false;
   bool    rsrp_result_r15_present    = false;
   bool    rsrq_result_r15_present    = false;
@@ -42391,7 +41768,6 @@ struct meas_result_nr_r15_s {
 
 // MeasResultsCDMA2000 ::= SEQUENCE
 struct meas_results_cdma2000_s {
-  // member variables
   bool                        pre_regist_status_hrpd = false;
   meas_result_list_cdma2000_l meas_result_list_cdma2000;
 
@@ -42403,12 +41779,11 @@ struct meas_results_cdma2000_s {
 
 // PLMN-IdentityInfoNR-r15 ::= SEQUENCE
 struct plmn_id_info_nr_r15_s {
-  // member variables
   bool                  tac_r15_present           = false;
   bool                  ran_area_code_r15_present = false;
   plmn_id_list_nr_r15_l plmn_id_list_r15;
   fixed_bitstring<24>   tac_r15;
-  uint8_t               ran_area_code_r15 = 0;
+  uint16_t              ran_area_code_r15 = 0;
   fixed_bitstring<36>   cell_id_r15;
 
   // sequence methods
@@ -42419,7 +41794,7 @@ struct plmn_id_info_nr_r15_s {
 
 // RRCConnectionSetupComplete-v1530-IEs ::= SEQUENCE
 struct rrc_conn_setup_complete_v1530_ies_s {
-  typedef dyn_array<s_nssai_r15_c> s_nssai_list_r15_l_;
+  using s_nssai_list_r15_l_ = dyn_array<s_nssai_r15_c>;
   struct ng_minus5_g_s_tmsi_bits_r15_c_ {
     struct types_opts {
       enum options { ng_minus5_g_s_tmsi_r15, ng_minus5_g_s_tmsi_part2_r15, nulltype } value;
@@ -42471,8 +41846,8 @@ struct rrc_conn_setup_complete_v1530_ies_s {
     }
 
   private:
-    types                                        type_;
-    choice_buffer_t<sizeof(fixed_bitstring<48>)> c;
+    types                                 type_;
+    choice_buffer_t<fixed_bitstring<48> > c;
 
     void destroy_();
   };
@@ -42499,7 +41874,6 @@ struct rrc_conn_setup_complete_v1530_ies_s {
 
 // RSRQ-Type-r12 ::= SEQUENCE
 struct rsrq_type_r12_s {
-  // member variables
   bool all_symbols_r12 = false;
   bool wide_band_r12   = false;
 
@@ -42530,7 +41904,7 @@ struct wlan_rtt_r15_s {
   bool             rtt_accuracy_r15_present = false;
   uint32_t         rtt_value_r15            = 0;
   rtt_units_r15_e_ rtt_units_r15;
-  uint8_t          rtt_accuracy_r15 = 0;
+  uint16_t         rtt_accuracy_r15 = 0;
   // ...
 
   // sequence methods
@@ -42539,19 +41913,18 @@ struct wlan_rtt_r15_s {
   void        to_json(json_writer& j) const;
 };
 
-// AffectedCarrierFreqComb-r15 ::= SEQUENCE (SIZE (1..maxServCell-r13)) OF INTEGER
-typedef bounded_array<uint8_t, 32> affected_carrier_freq_comb_r15_l;
+// AffectedCarrierFreqComb-r15 ::= SEQUENCE (SIZE (1..32)) OF INTEGER (1..64)
+using affected_carrier_freq_comb_r15_l = bounded_array<uint8_t, 32>;
 
-// AffectedCarrierFreqCombNR-r15 ::= SEQUENCE (SIZE (1..maxServCellNR-r15)) OF INTEGER
-typedef bounded_array<uint32_t, 16> affected_carrier_freq_comb_nr_r15_l;
+// AffectedCarrierFreqCombNR-r15 ::= SEQUENCE (SIZE (1..16)) OF INTEGER (0..3279165)
+using affected_carrier_freq_comb_nr_r15_l = bounded_array<uint32_t, 16>;
 
 // LogMeasResultBT-r15 ::= SEQUENCE
 struct log_meas_result_bt_r15_s {
-  // member variables
   bool                ext                 = false;
   bool                rssi_bt_r15_present = false;
   fixed_bitstring<48> bt_addr_r15;
-  int8_t              rssi_bt_r15 = -128;
+  int16_t             rssi_bt_r15 = -128;
   // ...
 
   // sequence methods
@@ -42562,7 +41935,6 @@ struct log_meas_result_bt_r15_s {
 
 // LogMeasResultWLAN-r15 ::= SEQUENCE
 struct log_meas_result_wlan_r15_s {
-  // member variables
   bool           ext                   = false;
   bool           rssi_wlan_r15_present = false;
   bool           rtt_wlan_r15_present  = false;
@@ -42579,7 +41951,6 @@ struct log_meas_result_wlan_r15_s {
 
 // MeasResult2CDMA2000-r9 ::= SEQUENCE
 struct meas_result2_cdma2000_r9_s {
-  // member variables
   carrier_freq_cdma2000_s carrier_freq_r9;
   meas_results_cdma2000_s meas_result_list_r9;
 
@@ -42591,8 +41962,7 @@ struct meas_result2_cdma2000_r9_s {
 
 // MeasResult2EUTRA-r9 ::= SEQUENCE
 struct meas_result2_eutra_r9_s {
-  // member variables
-  uint16_t                 carrier_freq_r9 = 0;
+  uint32_t                 carrier_freq_r9 = 0;
   meas_result_list_eutra_l meas_result_list_r9;
 
   // sequence methods
@@ -42603,7 +41973,6 @@ struct meas_result2_eutra_r9_s {
 
 // MeasResult2EUTRA-v1250 ::= SEQUENCE
 struct meas_result2_eutra_v1250_s {
-  // member variables
   bool            rsrq_type_r12_present = false;
   rsrq_type_r12_s rsrq_type_r12;
 
@@ -42615,7 +41984,6 @@ struct meas_result2_eutra_v1250_s {
 
 // MeasResult2EUTRA-v9e0 ::= SEQUENCE
 struct meas_result2_eutra_v9e0_s {
-  // member variables
   bool     carrier_freq_v9e0_present = false;
   uint32_t carrier_freq_v9e0         = 65536;
 
@@ -42627,7 +41995,6 @@ struct meas_result2_eutra_v9e0_s {
 
 // MeasResult2UTRA-r9 ::= SEQUENCE
 struct meas_result2_utra_r9_s {
-  // member variables
   uint16_t                carrier_freq_r9 = 0;
   meas_result_list_utra_l meas_result_list_r9;
 
@@ -42640,7 +42007,6 @@ struct meas_result2_utra_r9_s {
 // MeasResultIdle-r15 ::= SEQUENCE
 struct meas_result_idle_r15_s {
   struct meas_result_serving_cell_r15_s_ {
-    // member variables
     uint8_t rsrp_result_r15 = 0;
     int8_t  rsrq_result_r15 = -30;
   };
@@ -42678,14 +42044,13 @@ struct meas_result_idle_r15_s {
   void        to_json(json_writer& j) const;
 };
 
-// MeasResultListGERAN ::= SEQUENCE (SIZE (1..maxCellReport)) OF MeasResultGERAN
-typedef dyn_array<meas_result_geran_s> meas_result_list_geran_l;
+// MeasResultListGERAN ::= SEQUENCE (SIZE (1..8)) OF MeasResultGERAN
+using meas_result_list_geran_l = dyn_array<meas_result_geran_s>;
 
 // MeasResultMBSFN-r12 ::= SEQUENCE
 struct meas_result_mbsfn_r12_s {
   struct mbsfn_area_r12_s_ {
-    // member variables
-    uint8_t  mbsfn_area_id_r12 = 0;
+    uint16_t mbsfn_area_id_r12 = 0;
     uint32_t carrier_freq_r12  = 0;
   };
 
@@ -42708,7 +42073,6 @@ struct meas_result_mbsfn_r12_s {
 
 // MeasResultSSB-Index-r15 ::= SEQUENCE
 struct meas_result_ssb_idx_r15_s {
-  // member variables
   bool                 ext                             = false;
   bool                 meas_result_ssb_idx_r15_present = false;
   uint8_t              ssb_idx_r15                     = 0;
@@ -42721,8 +42085,8 @@ struct meas_result_ssb_idx_r15_s {
   void        to_json(json_writer& j) const;
 };
 
-// PLMN-IdentityInfoListNR-r15 ::= SEQUENCE (SIZE (1..maxPLMN-NR-r15)) OF PLMN-IdentityInfoNR-r15
-typedef dyn_array<plmn_id_info_nr_r15_s> plmn_id_info_list_nr_r15_l;
+// PLMN-IdentityInfoListNR-r15 ::= SEQUENCE (SIZE (1..12)) OF PLMN-IdentityInfoNR-r15
+using plmn_id_info_list_nr_r15_l = dyn_array<plmn_id_info_nr_r15_s>;
 
 // PerCC-GapIndication-r14 ::= SEQUENCE
 struct per_cc_gap_ind_r14_s {
@@ -42745,7 +42109,6 @@ struct per_cc_gap_ind_r14_s {
 
 // RRCConnectionReconfigurationComplete-v1530-IEs ::= SEQUENCE
 struct rrc_conn_recfg_complete_v1530_ies_s {
-  // member variables
   bool log_meas_available_bt_r15_present      = false;
   bool log_meas_available_wlan_r15_present    = false;
   bool flight_path_info_available_r15_present = false;
@@ -42759,10 +42122,9 @@ struct rrc_conn_recfg_complete_v1530_ies_s {
 
 // RRCConnectionSetupComplete-v1430-IEs ::= SEQUENCE
 struct rrc_conn_setup_complete_v1430_ies_s {
-  // member variables
   bool                                dcn_id_r14_present   = false;
   bool                                non_crit_ext_present = false;
-  uint16_t                            dcn_id_r14           = 0;
+  uint32_t                            dcn_id_r14           = 0;
   rrc_conn_setup_complete_v1530_ies_s non_crit_ext;
 
   // sequence methods
@@ -42773,7 +42135,6 @@ struct rrc_conn_setup_complete_v1430_ies_s {
 
 // VictimSystemType-r11 ::= SEQUENCE
 struct victim_sys_type_r11_s {
-  // member variables
   bool gps_r11_present       = false;
   bool glonass_r11_present   = false;
   bool bds_r11_present       = false;
@@ -42791,7 +42152,6 @@ struct victim_sys_type_r11_s {
 struct visited_cell_info_r12_s {
   struct visited_cell_id_r12_c_ {
     struct pci_arfcn_r12_s_ {
-      // member variables
       uint16_t pci_r12          = 0;
       uint32_t carrier_freq_r12 = 0;
     };
@@ -42845,8 +42205,8 @@ struct visited_cell_info_r12_s {
     }
 
   private:
-    types                                                                           type_;
-    choice_buffer_t<MAX2(sizeof(cell_global_id_eutra_s), sizeof(pci_arfcn_r12_s_))> c;
+    types                                                     type_;
+    choice_buffer_t<cell_global_id_eutra_s, pci_arfcn_r12_s_> c;
 
     void destroy_();
   };
@@ -42866,7 +42226,6 @@ struct visited_cell_info_r12_s {
 
 // WayPointLocation-r15 ::= SEQUENCE
 struct way_point_location_r15_s {
-  // member variables
   bool                time_stamp_r15_present = false;
   location_info_r10_s way_point_location_r15;
   fixed_bitstring<48> time_stamp_r15;
@@ -42886,7 +42245,6 @@ struct affected_carrier_freq_comb_info_mrdc_r15_s {
   };
   typedef enumerated<interference_direction_mrdc_r15_opts> interference_direction_mrdc_r15_e_;
   struct affected_carrier_freq_comb_mrdc_r15_s_ {
-    // member variables
     bool                                affected_carrier_freq_comb_eutra_r15_present = false;
     affected_carrier_freq_comb_r15_l    affected_carrier_freq_comb_eutra_r15;
     affected_carrier_freq_comb_nr_r15_l affected_carrier_freq_comb_nr_r15;
@@ -42907,9 +42265,8 @@ struct affected_carrier_freq_comb_info_mrdc_r15_s {
 // CGI-InfoNR-r15 ::= SEQUENCE
 struct cgi_info_nr_r15_s {
   struct no_sib1_r15_s_ {
-    // member variables
-    uint8_t ssb_subcarrier_offset_r15 = 0;
-    uint8_t pdcch_cfg_sib1_r15        = 0;
+    uint8_t  ssb_subcarrier_offset_r15 = 0;
+    uint16_t pdcch_cfg_sib1_r15        = 0;
   };
 
   // member variables
@@ -42930,7 +42287,7 @@ struct cgi_info_nr_r15_s {
 
 // FlightPathInfoReport-r15 ::= SEQUENCE
 struct flight_path_info_report_r15_s {
-  typedef dyn_array<way_point_location_r15_s> flight_path_r15_l_;
+  using flight_path_r15_l_ = dyn_array<way_point_location_r15_s>;
 
   // member variables
   bool               flight_path_r15_present = false;
@@ -42943,45 +42300,44 @@ struct flight_path_info_report_r15_s {
   void        to_json(json_writer& j) const;
 };
 
-// LogMeasResultListBT-r15 ::= SEQUENCE (SIZE (1..maxBT-IdReport-r15)) OF LogMeasResultBT-r15
-typedef dyn_array<log_meas_result_bt_r15_s> log_meas_result_list_bt_r15_l;
+// LogMeasResultListBT-r15 ::= SEQUENCE (SIZE (1..32)) OF LogMeasResultBT-r15
+using log_meas_result_list_bt_r15_l = dyn_array<log_meas_result_bt_r15_s>;
 
-// LogMeasResultListWLAN-r15 ::= SEQUENCE (SIZE (1..maxWLAN-Id-Report-r14)) OF LogMeasResultWLAN-r15
-typedef dyn_array<log_meas_result_wlan_r15_s> log_meas_result_list_wlan_r15_l;
+// LogMeasResultListWLAN-r15 ::= SEQUENCE (SIZE (1..32)) OF LogMeasResultWLAN-r15
+using log_meas_result_list_wlan_r15_l = dyn_array<log_meas_result_wlan_r15_s>;
 
-// MeasResultList2CDMA2000-r9 ::= SEQUENCE (SIZE (1..maxFreq)) OF MeasResult2CDMA2000-r9
-typedef dyn_array<meas_result2_cdma2000_r9_s> meas_result_list2_cdma2000_r9_l;
+// MeasResultList2CDMA2000-r9 ::= SEQUENCE (SIZE (1..8)) OF MeasResult2CDMA2000-r9
+using meas_result_list2_cdma2000_r9_l = dyn_array<meas_result2_cdma2000_r9_s>;
 
-// MeasResultList2EUTRA-r9 ::= SEQUENCE (SIZE (1..maxFreq)) OF MeasResult2EUTRA-r9
-typedef dyn_array<meas_result2_eutra_r9_s> meas_result_list2_eutra_r9_l;
+// MeasResultList2EUTRA-r9 ::= SEQUENCE (SIZE (1..8)) OF MeasResult2EUTRA-r9
+using meas_result_list2_eutra_r9_l = dyn_array<meas_result2_eutra_r9_s>;
 
-// MeasResultList2EUTRA-v1250 ::= SEQUENCE (SIZE (1..maxFreq)) OF MeasResult2EUTRA-v1250
-typedef dyn_array<meas_result2_eutra_v1250_s> meas_result_list2_eutra_v1250_l;
+// MeasResultList2EUTRA-v1250 ::= SEQUENCE (SIZE (1..8)) OF MeasResult2EUTRA-v1250
+using meas_result_list2_eutra_v1250_l = dyn_array<meas_result2_eutra_v1250_s>;
 
-// MeasResultList2EUTRA-v9e0 ::= SEQUENCE (SIZE (1..maxFreq)) OF MeasResult2EUTRA-v9e0
-typedef dyn_array<meas_result2_eutra_v9e0_s> meas_result_list2_eutra_v9e0_l;
+// MeasResultList2EUTRA-v9e0 ::= SEQUENCE (SIZE (1..8)) OF MeasResult2EUTRA-v9e0
+using meas_result_list2_eutra_v9e0_l = dyn_array<meas_result2_eutra_v9e0_s>;
 
-// MeasResultList2GERAN-r10 ::= SEQUENCE (SIZE (1..maxCellListGERAN)) OF MeasResultListGERAN
-typedef dyn_array<meas_result_list_geran_l> meas_result_list2_geran_r10_l;
+// MeasResultList2GERAN-r10 ::= SEQUENCE (SIZE (1..3)) OF MeasResultListGERAN
+using meas_result_list2_geran_r10_l = dyn_array<meas_result_list_geran_l>;
 
-// MeasResultList2UTRA-r9 ::= SEQUENCE (SIZE (1..maxFreq)) OF MeasResult2UTRA-r9
-typedef dyn_array<meas_result2_utra_r9_s> meas_result_list2_utra_r9_l;
+// MeasResultList2UTRA-r9 ::= SEQUENCE (SIZE (1..8)) OF MeasResult2UTRA-r9
+using meas_result_list2_utra_r9_l = dyn_array<meas_result2_utra_r9_s>;
 
-// MeasResultListIdle-r15 ::= SEQUENCE (SIZE (1..maxIdleMeasCarriers-r15)) OF MeasResultIdle-r15
-typedef dyn_array<meas_result_idle_r15_s> meas_result_list_idle_r15_l;
+// MeasResultListIdle-r15 ::= SEQUENCE (SIZE (1..3)) OF MeasResultIdle-r15
+using meas_result_list_idle_r15_l = dyn_array<meas_result_idle_r15_s>;
 
-// MeasResultListMBSFN-r12 ::= SEQUENCE (SIZE (1..maxMBSFN-Area)) OF MeasResultMBSFN-r12
-typedef dyn_array<meas_result_mbsfn_r12_s> meas_result_list_mbsfn_r12_l;
+// MeasResultListMBSFN-r12 ::= SEQUENCE (SIZE (1..8)) OF MeasResultMBSFN-r12
+using meas_result_list_mbsfn_r12_l = dyn_array<meas_result_mbsfn_r12_s>;
 
-// MeasResultSSB-IndexList-r15 ::= SEQUENCE (SIZE (1..maxRS-IndexReport-r15)) OF MeasResultSSB-Index-r15
-typedef dyn_array<meas_result_ssb_idx_r15_s> meas_result_ssb_idx_list_r15_l;
+// MeasResultSSB-IndexList-r15 ::= SEQUENCE (SIZE (1..32)) OF MeasResultSSB-Index-r15
+using meas_result_ssb_idx_list_r15_l = dyn_array<meas_result_ssb_idx_r15_s>;
 
-// PerCC-GapIndicationList-r14 ::= SEQUENCE (SIZE (1..maxServCell-r13)) OF PerCC-GapIndication-r14
-typedef dyn_array<per_cc_gap_ind_r14_s> per_cc_gap_ind_list_r14_l;
+// PerCC-GapIndicationList-r14 ::= SEQUENCE (SIZE (1..32)) OF PerCC-GapIndication-r14
+using per_cc_gap_ind_list_r14_l = dyn_array<per_cc_gap_ind_r14_s>;
 
 // RRCConnectionReconfigurationComplete-v1510-IEs ::= SEQUENCE
 struct rrc_conn_recfg_complete_v1510_ies_s {
-  // member variables
   bool                                scg_cfg_resp_nr_r15_present = false;
   bool                                non_crit_ext_present        = false;
   dyn_octstring                       scg_cfg_resp_nr_r15;
@@ -42995,7 +42351,6 @@ struct rrc_conn_recfg_complete_v1510_ies_s {
 
 // RRCConnectionReestablishmentComplete-v1530-IEs ::= SEQUENCE
 struct rrc_conn_reest_complete_v1530_ies_s {
-  // member variables
   bool log_meas_available_bt_r15_present      = false;
   bool log_meas_available_wlan_r15_present    = false;
   bool flight_path_info_available_r15_present = false;
@@ -43009,7 +42364,6 @@ struct rrc_conn_reest_complete_v1530_ies_s {
 
 // RRCConnectionSetupComplete-v1330-IEs ::= SEQUENCE
 struct rrc_conn_setup_complete_v1330_ies_s {
-  // member variables
   bool                                ue_ce_need_ul_gaps_r13_present = false;
   bool                                non_crit_ext_present           = false;
   rrc_conn_setup_complete_v1430_ies_s non_crit_ext;
@@ -43020,18 +42374,16 @@ struct rrc_conn_setup_complete_v1330_ies_s {
   void        to_json(json_writer& j) const;
 };
 
-// VisitedCellInfoList-r12 ::= SEQUENCE (SIZE (1..maxCellHistory-r12)) OF VisitedCellInfo-r12
-typedef dyn_array<visited_cell_info_r12_s> visited_cell_info_list_r12_l;
+// VisitedCellInfoList-r12 ::= SEQUENCE (SIZE (1..16)) OF VisitedCellInfo-r12
+using visited_cell_info_list_r12_l = dyn_array<visited_cell_info_r12_s>;
 
 // LogMeasInfo-r10 ::= SEQUENCE
 struct log_meas_info_r10_s {
   struct meas_result_serv_cell_r10_s_ {
-    // member variables
     uint8_t rsrp_result_r10 = 0;
     uint8_t rsrq_result_r10 = 0;
   };
   struct meas_result_neigh_cells_r10_s_ {
-    // member variables
     bool                            meas_result_list_eutra_r10_present    = false;
     bool                            meas_result_list_utra_r10_present     = false;
     bool                            meas_result_list_geran_r10_present    = false;
@@ -43077,7 +42429,7 @@ struct log_meas_info_r10_s {
 
 // MRDC-AssistanceInfo-r15 ::= SEQUENCE
 struct mrdc_assist_info_r15_s {
-  typedef dyn_array<affected_carrier_freq_comb_info_mrdc_r15_s> affected_carrier_freq_comb_info_list_mrdc_r15_l_;
+  using affected_carrier_freq_comb_info_list_mrdc_r15_l_ = dyn_array<affected_carrier_freq_comb_info_mrdc_r15_s>;
 
   // member variables
   bool                                             ext = false;
@@ -43092,7 +42444,6 @@ struct mrdc_assist_info_r15_s {
 
 // MeasResultCellNR-r15 ::= SEQUENCE
 struct meas_result_cell_nr_r15_s {
-  // member variables
   bool                           ext                                 = false;
   bool                           meas_result_rs_idx_list_r15_present = false;
   uint16_t                       pci_r15                             = 0;
@@ -43113,7 +42464,6 @@ typedef visited_cell_info_list_r12_l mob_history_report_r12_l;
 
 // RRCConnectionReconfigurationComplete-v1430-IEs ::= SEQUENCE
 struct rrc_conn_recfg_complete_v1430_ies_s {
-  // member variables
   bool                                per_cc_gap_ind_list_r14_present        = false;
   bool                                num_freq_effective_r14_present         = false;
   bool                                num_freq_effective_reduced_r14_present = false;
@@ -43131,7 +42481,6 @@ struct rrc_conn_recfg_complete_v1430_ies_s {
 
 // RRCConnectionReestablishmentComplete-v1250-IEs ::= SEQUENCE
 struct rrc_conn_reest_complete_v1250_ies_s {
-  // member variables
   bool                                log_meas_available_mbsfn_r12_present = false;
   bool                                non_crit_ext_present                 = false;
   rrc_conn_reest_complete_v1530_ies_s non_crit_ext;
@@ -43144,7 +42493,6 @@ struct rrc_conn_reest_complete_v1250_ies_s {
 
 // RRCConnectionSetupComplete-v1320-IEs ::= SEQUENCE
 struct rrc_conn_setup_complete_v1320_ies_s {
-  // member variables
   bool                                ce_mode_b_r13_present                  = false;
   bool                                s_tmsi_r13_present                     = false;
   bool                                attach_without_pdn_connect_r13_present = false;
@@ -43162,7 +42510,6 @@ struct rrc_conn_setup_complete_v1320_ies_s {
 
 // TrafficPatternInfo-v1530 ::= SEQUENCE
 struct traffic_pattern_info_v1530_s {
-  // member variables
   bool                traffic_dest_r15_present        = false;
   bool                reliability_info_sl_r15_present = false;
   fixed_bitstring<24> traffic_dest_r15;
@@ -43176,7 +42523,6 @@ struct traffic_pattern_info_v1530_s {
 
 // UEInformationResponse-v1530-IEs ::= SEQUENCE
 struct ue_info_resp_v1530_ies_s {
-  // member variables
   bool                          meas_result_list_idle_r15_present   = false;
   bool                          flight_path_info_report_r15_present = false;
   bool                          non_crit_ext_present                = false;
@@ -43191,7 +42537,6 @@ struct ue_info_resp_v1530_ies_s {
 
 // AffectedCarrierFreq-v1310 ::= SEQUENCE
 struct affected_carrier_freq_v1310_s {
-  // member variables
   bool    carrier_freq_v1310_present = false;
   uint8_t carrier_freq_v1310         = 33;
 
@@ -43201,19 +42546,17 @@ struct affected_carrier_freq_v1310_s {
   void        to_json(json_writer& j) const;
 };
 
-// AffectedCarrierFreqComb-r13 ::= SEQUENCE (SIZE (2..maxServCell-r13)) OF INTEGER
-typedef bounded_array<uint8_t, 32> affected_carrier_freq_comb_r13_l;
+// AffectedCarrierFreqComb-r13 ::= SEQUENCE (SIZE (2..32)) OF INTEGER (1..64)
+using affected_carrier_freq_comb_r13_l = bounded_array<uint8_t, 32>;
 
 // ConnEstFailReport-r11 ::= SEQUENCE
 struct conn_est_fail_report_r11_s {
   struct meas_result_failed_cell_r11_s_ {
-    // member variables
     bool    rsrq_result_r11_present = false;
     uint8_t rsrp_result_r11         = 0;
     uint8_t rsrq_result_r11         = 0;
   };
   struct meas_result_neigh_cells_r11_s_ {
-    // member variables
     bool                            meas_result_list_eutra_r11_present = false;
     bool                            meas_result_list_utra_r11_present  = false;
     bool                            meas_result_list_geran_r11_present = false;
@@ -43259,10 +42602,9 @@ struct conn_est_fail_report_r11_s {
 
 // DRB-CountInfo ::= SEQUENCE
 struct drb_count_info_s {
-  // member variables
   uint8_t  drb_id   = 1;
-  uint32_t count_ul = 0;
-  uint32_t count_dl = 0;
+  uint64_t count_ul = 0;
+  uint64_t count_dl = 0;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -43272,7 +42614,6 @@ struct drb_count_info_s {
 
 // InDeviceCoexIndication-v1530-IEs ::= SEQUENCE
 struct in_dev_coex_ind_v1530_ies_s {
-  // member variables
   bool                   mrdc_assist_info_r15_present = false;
   bool                   non_crit_ext_present         = false;
   mrdc_assist_info_r15_s mrdc_assist_info_r15;
@@ -43283,15 +42624,14 @@ struct in_dev_coex_ind_v1530_ies_s {
   void        to_json(json_writer& j) const;
 };
 
-// LogMeasInfoList-r10 ::= SEQUENCE (SIZE (1..maxLogMeasReport-r10)) OF LogMeasInfo-r10
-typedef dyn_array<log_meas_info_r10_s> log_meas_info_list_r10_l;
+// LogMeasInfoList-r10 ::= SEQUENCE (SIZE (1..520)) OF LogMeasInfo-r10
+using log_meas_info_list_r10_l = dyn_array<log_meas_info_r10_s>;
 
-// MeasResultCellListNR-r15 ::= SEQUENCE (SIZE (1..maxCellReport)) OF MeasResultCellNR-r15
-typedef dyn_array<meas_result_cell_nr_r15_s> meas_result_cell_list_nr_r15_l;
+// MeasResultCellListNR-r15 ::= SEQUENCE (SIZE (1..8)) OF MeasResultCellNR-r15
+using meas_result_cell_list_nr_r15_l = dyn_array<meas_result_cell_nr_r15_s>;
 
 // RRCConnectionReconfigurationComplete-v1250-IEs ::= SEQUENCE
 struct rrc_conn_recfg_complete_v1250_ies_s {
-  // member variables
   bool                                log_meas_available_mbsfn_r12_present = false;
   bool                                non_crit_ext_present                 = false;
   rrc_conn_recfg_complete_v1430_ies_s non_crit_ext;
@@ -43304,7 +42644,6 @@ struct rrc_conn_recfg_complete_v1250_ies_s {
 
 // RRCConnectionReestablishmentComplete-v1130-IEs ::= SEQUENCE
 struct rrc_conn_reest_complete_v1130_ies_s {
-  // member variables
   bool                                conn_est_fail_info_available_r11_present = false;
   bool                                non_crit_ext_present                     = false;
   rrc_conn_reest_complete_v1250_ies_s non_crit_ext;
@@ -43340,7 +42679,6 @@ struct rrc_conn_setup_complete_v1250_ies_s {
 
 // SL-V2X-CommTxResourceReq-r14 ::= SEQUENCE
 struct sl_v2x_comm_tx_res_req_r14_s {
-  // member variables
   bool                    carrier_freq_comm_tx_r14_present = false;
   bool                    v2x_type_tx_sync_r14_present     = false;
   bool                    v2x_dest_info_list_r14_present   = false;
@@ -43354,12 +42692,11 @@ struct sl_v2x_comm_tx_res_req_r14_s {
   void        to_json(json_writer& j) const;
 };
 
-// TrafficPatternInfoList-v1530 ::= SEQUENCE (SIZE (1..maxTrafficPattern-r14)) OF TrafficPatternInfo-v1530
-typedef dyn_array<traffic_pattern_info_v1530_s> traffic_pattern_info_list_v1530_l;
+// TrafficPatternInfoList-v1530 ::= SEQUENCE (SIZE (1..8)) OF TrafficPatternInfo-v1530
+using traffic_pattern_info_list_v1530_l = dyn_array<traffic_pattern_info_v1530_s>;
 
 // UEInformationResponse-v1250-IEs ::= SEQUENCE
 struct ue_info_resp_v1250_ies_s {
-  // member variables
   bool                     mob_history_report_r12_present = false;
   bool                     non_crit_ext_present           = false;
   mob_history_report_r12_l mob_history_report_r12;
@@ -43371,21 +42708,20 @@ struct ue_info_resp_v1250_ies_s {
   void        to_json(json_writer& j) const;
 };
 
-// AffectedCarrierFreqComb-r11 ::= SEQUENCE (SIZE (2..maxServCell-r10)) OF INTEGER
-typedef bounded_array<uint8_t, 5> affected_carrier_freq_comb_r11_l;
+// AffectedCarrierFreqComb-r11 ::= SEQUENCE (SIZE (2..5)) OF INTEGER (1..32)
+using affected_carrier_freq_comb_r11_l = bounded_array<uint8_t, 5>;
 
-// AffectedCarrierFreqCombList-r13 ::= SEQUENCE (SIZE (1..maxCombIDC-r11)) OF AffectedCarrierFreqComb-r13
-typedef dyn_array<affected_carrier_freq_comb_r13_l> affected_carrier_freq_comb_list_r13_l;
+// AffectedCarrierFreqCombList-r13 ::= SEQUENCE (SIZE (1..128)) OF AffectedCarrierFreqComb-r13
+using affected_carrier_freq_comb_list_r13_l = dyn_array<affected_carrier_freq_comb_r13_l>;
 
-// AffectedCarrierFreqList-v1310 ::= SEQUENCE (SIZE (1..maxFreqIDC-r11)) OF AffectedCarrierFreq-v1310
-typedef dyn_array<affected_carrier_freq_v1310_s> affected_carrier_freq_list_v1310_l;
+// AffectedCarrierFreqList-v1310 ::= SEQUENCE (SIZE (1..32)) OF AffectedCarrierFreq-v1310
+using affected_carrier_freq_list_v1310_l = dyn_array<affected_carrier_freq_v1310_s>;
 
-// DRB-CountInfoListExt-r15 ::= SEQUENCE (SIZE (1..maxDRBExt-r15)) OF DRB-CountInfo
-typedef dyn_array<drb_count_info_s> drb_count_info_list_ext_r15_l;
+// DRB-CountInfoListExt-r15 ::= SEQUENCE (SIZE (1..4)) OF DRB-CountInfo
+using drb_count_info_list_ext_r15_l = dyn_array<drb_count_info_s>;
 
 // FailureReportSCG-v12d0 ::= SEQUENCE
 struct fail_report_scg_v12d0_s {
-  // member variables
   bool                           meas_result_neigh_cells_v12d0_present = false;
   meas_result_list2_eutra_v9e0_l meas_result_neigh_cells_v12d0;
 
@@ -43465,8 +42801,8 @@ struct idc_sf_pattern_r11_c {
     }
 
   private:
-    types                                        type_;
-    choice_buffer_t<sizeof(fixed_bitstring<70>)> c;
+    types                                 type_;
+    choice_buffer_t<fixed_bitstring<70> > c;
 
     void destroy_();
   };
@@ -43520,15 +42856,14 @@ struct idc_sf_pattern_r11_c {
   }
 
 private:
-  types                                                                            type_;
-  choice_buffer_t<MAX2(sizeof(fixed_bitstring<4>), sizeof(sf_pattern_tdd_r11_c_))> c;
+  types                                                      type_;
+  choice_buffer_t<fixed_bitstring<4>, sf_pattern_tdd_r11_c_> c;
 
   void destroy_();
 };
 
 // InDeviceCoexIndication-v1360-IEs ::= SEQUENCE
 struct in_dev_coex_ind_v1360_ies_s {
-  // member variables
   bool                        hardware_sharing_problem_r13_present = false;
   bool                        non_crit_ext_present                 = false;
   in_dev_coex_ind_v1530_ies_s non_crit_ext;
@@ -43541,7 +42876,6 @@ struct in_dev_coex_ind_v1360_ies_s {
 
 // LogMeasReport-r10 ::= SEQUENCE
 struct log_meas_report_r10_s {
-  // member variables
   bool                     ext                            = false;
   bool                     log_meas_available_r10_present = false;
   fixed_bitstring<48>      absolute_time_stamp_r10;
@@ -43562,7 +42896,6 @@ struct log_meas_report_r10_s {
 
 // MBMS-ServiceInfo-r13 ::= SEQUENCE
 struct mbms_service_info_r13_s {
-  // member variables
   tmgi_r9_s tmgi_r13;
 
   // sequence methods
@@ -43573,7 +42906,6 @@ struct mbms_service_info_r13_s {
 
 // MeasResultCBR-r14 ::= SEQUENCE
 struct meas_result_cbr_r14_s {
-  // member variables
   bool    cbr_pscch_r14_present = false;
   uint8_t pool_id_r14           = 1;
   uint8_t cbr_pssch_r14         = 0;
@@ -43587,7 +42919,6 @@ struct meas_result_cbr_r14_s {
 
 // MeasResultCSI-RS-r12 ::= SEQUENCE
 struct meas_result_csi_rs_r12_s {
-  // member variables
   bool    ext                 = false;
   uint8_t meas_csi_rs_id_r12  = 1;
   uint8_t csi_rsrp_result_r12 = 0;
@@ -43601,7 +42932,6 @@ struct meas_result_csi_rs_r12_s {
 
 // MeasResultCellSFTD-r15 ::= SEQUENCE
 struct meas_result_cell_sftd_r15_s {
-  // member variables
   bool     rsrp_result_r15_present          = false;
   uint16_t pci_r15                          = 0;
   uint16_t sfn_offset_result_r15            = 0;
@@ -43616,7 +42946,6 @@ struct meas_result_cell_sftd_r15_s {
 
 // MeasResultFreqFailNR-r15 ::= SEQUENCE
 struct meas_result_freq_fail_nr_r15_s {
-  // member variables
   bool                           ext                               = false;
   bool                           meas_result_cell_list_r15_present = false;
   uint32_t                       carrier_freq_r15                  = 0;
@@ -43632,22 +42961,18 @@ struct meas_result_freq_fail_nr_r15_s {
 // MeasResultServFreq-r10 ::= SEQUENCE
 struct meas_result_serv_freq_r10_s {
   struct meas_result_scell_r10_s_ {
-    // member variables
     uint8_t rsrp_result_scell_r10 = 0;
     uint8_t rsrq_result_scell_r10 = 0;
   };
   struct meas_result_best_neigh_cell_r10_s_ {
-    // member variables
     uint16_t pci_r10               = 0;
     uint8_t  rsrp_result_ncell_r10 = 0;
     uint8_t  rsrq_result_ncell_r10 = 0;
   };
   struct meas_result_scell_v1310_s_ {
-    // member variables
     uint8_t rs_sinr_result_r13 = 0;
   };
   struct meas_result_best_neigh_cell_v1310_s_ {
-    // member variables
     uint8_t rs_sinr_result_r13 = 0;
   };
 
@@ -43677,14 +43002,12 @@ struct meas_result_serv_freq_r10_s {
 // MeasResultServFreq-r13 ::= SEQUENCE
 struct meas_result_serv_freq_r13_s {
   struct meas_result_scell_r13_s_ {
-    // member variables
     bool    rs_sinr_result_r13_present = false;
     uint8_t rsrp_result_scell_r13      = 0;
     int8_t  rsrq_result_scell_r13      = -30;
     uint8_t rs_sinr_result_r13         = 0;
   };
   struct meas_result_best_neigh_cell_r13_s_ {
-    // member variables
     bool     rs_sinr_result_r13_present = false;
     uint16_t pci_r13                    = 0;
     uint8_t  rsrp_result_ncell_r13      = 0;
@@ -43692,7 +43015,6 @@ struct meas_result_serv_freq_r13_s {
     uint8_t  rs_sinr_result_r13         = 0;
   };
   struct meas_result_best_neigh_cell_v1360_s_ {
-    // member variables
     int8_t rsrp_result_ncell_v1360 = -17;
   };
 
@@ -43715,7 +43037,6 @@ struct meas_result_serv_freq_r13_s {
 
 // MeasResultServFreqNR-r15 ::= SEQUENCE
 struct meas_result_serv_freq_nr_r15_s {
-  // member variables
   bool                      ext                                     = false;
   bool                      meas_result_scell_r15_present           = false;
   bool                      meas_result_best_neigh_cell_r15_present = false;
@@ -43732,7 +43053,6 @@ struct meas_result_serv_freq_nr_r15_s {
 
 // MeasResultWLAN-r13 ::= SEQUENCE
 struct meas_result_wlan_r13_s {
-  // member variables
   bool                     ext                                           = false;
   bool                     carrier_info_wlan_r13_present                 = false;
   bool                     band_wlan_r13_present                         = false;
@@ -43749,8 +43069,8 @@ struct meas_result_wlan_r13_s {
   uint16_t                 available_admission_capacity_wlan_r13 = 0;
   wlan_backhaul_rate_r12_e backhaul_dl_bw_wlan_r13;
   wlan_backhaul_rate_r12_e backhaul_ul_bw_wlan_r13;
-  uint8_t                  ch_utilization_wlan_r13 = 0;
-  uint16_t                 station_count_wlan_r13  = 0;
+  uint16_t                 ch_utilization_wlan_r13 = 0;
+  uint32_t                 station_count_wlan_r13  = 0;
   // ...
 
   // sequence methods
@@ -43762,12 +43082,10 @@ struct meas_result_wlan_r13_s {
 // OverheatingAssistance-r14 ::= SEQUENCE
 struct overheat_assist_r14_s {
   struct reduced_ue_category_s_ {
-    // member variables
     uint8_t reduced_ue_category_dl = 0;
     uint8_t reduced_ue_category_ul = 0;
   };
   struct reduced_max_ccs_s_ {
-    // member variables
     uint8_t reduced_ccs_dl = 0;
     uint8_t reduced_ccs_ul = 0;
   };
@@ -43786,7 +43104,6 @@ struct overheat_assist_r14_s {
 
 // RLF-Report-v9e0 ::= SEQUENCE
 struct rlf_report_v9e0_s {
-  // member variables
   meas_result_list2_eutra_v9e0_l meas_result_list_eutra_v9e0;
 
   // sequence methods
@@ -43797,7 +43114,6 @@ struct rlf_report_v9e0_s {
 
 // RRCConnectionReconfigurationComplete-v1130-IEs ::= SEQUENCE
 struct rrc_conn_recfg_complete_v1130_ies_s {
-  // member variables
   bool                                conn_est_fail_info_available_r11_present = false;
   bool                                non_crit_ext_present                     = false;
   rrc_conn_recfg_complete_v1250_ies_s non_crit_ext;
@@ -43810,7 +43126,6 @@ struct rrc_conn_recfg_complete_v1130_ies_s {
 
 // RRCConnectionReestablishmentComplete-v1020-IEs ::= SEQUENCE
 struct rrc_conn_reest_complete_v1020_ies_s {
-  // member variables
   bool                                log_meas_available_r10_present = false;
   bool                                non_crit_ext_present           = false;
   rrc_conn_reest_complete_v1130_ies_s non_crit_ext;
@@ -43823,7 +43138,6 @@ struct rrc_conn_reest_complete_v1020_ies_s {
 
 // RRCConnectionSetupComplete-v1130-IEs ::= SEQUENCE
 struct rrc_conn_setup_complete_v1130_ies_s {
-  // member variables
   bool                                conn_est_fail_info_available_r11_present = false;
   bool                                non_crit_ext_present                     = false;
   rrc_conn_setup_complete_v1250_ies_s non_crit_ext;
@@ -43837,7 +43151,6 @@ struct rrc_conn_setup_complete_v1130_ies_s {
 // SL-DiscSysInfoReport-r13 ::= SEQUENCE
 struct sl_disc_sys_info_report_r13_s {
   struct disc_cell_sel_info_r13_s_ {
-    // member variables
     bool    q_rx_lev_min_offset_r13_present = false;
     int8_t  q_rx_lev_min_r13                = -70;
     uint8_t q_rx_lev_min_offset_r13         = 1;
@@ -43889,12 +43202,11 @@ struct sl_disc_sys_info_report_r13_s {
     bool         ul_carrier_freq_r13_present   = false;
     bool         ul_bw_r13_present             = false;
     bool         add_spec_emission_r13_present = false;
-    uint16_t     ul_carrier_freq_r13           = 0;
+    uint32_t     ul_carrier_freq_r13           = 0;
     ul_bw_r13_e_ ul_bw_r13;
     uint8_t      add_spec_emission_r13 = 1;
   };
   struct freq_info_v1370_s_ {
-    // member variables
     uint16_t add_spec_emission_v1370 = 33;
   };
 
@@ -43938,7 +43250,6 @@ struct sl_disc_sys_info_report_r13_s {
 
 // SL-DiscTxResourceReq-r13 ::= SEQUENCE
 struct sl_disc_tx_res_req_r13_s {
-  // member variables
   bool    carrier_freq_disc_tx_r13_present = false;
   uint8_t carrier_freq_disc_tx_r13         = 1;
   uint8_t disc_tx_res_req_r13              = 1;
@@ -43951,7 +43262,6 @@ struct sl_disc_tx_res_req_r13_s {
 
 // SL-GapFreqInfo-r13 ::= SEQUENCE
 struct sl_gap_freq_info_r13_s {
-  // member variables
   bool                      carrier_freq_r13_present = false;
   uint32_t                  carrier_freq_r13         = 0;
   sl_gap_pattern_list_r13_l gap_pattern_list_r13;
@@ -43962,15 +43272,14 @@ struct sl_gap_freq_info_r13_s {
   void        to_json(json_writer& j) const;
 };
 
-// SL-V2X-CommFreqList-r14 ::= SEQUENCE (SIZE (1..maxFreqV2X-r14)) OF INTEGER
-typedef bounded_array<uint8_t, 8> sl_v2x_comm_freq_list_r14_l;
+// SL-V2X-CommFreqList-r14 ::= SEQUENCE (SIZE (1..8)) OF INTEGER (0..7)
+using sl_v2x_comm_freq_list_r14_l = bounded_array<uint8_t, 8>;
 
-// SL-V2X-CommTxFreqList-r14 ::= SEQUENCE (SIZE (1..maxFreqV2X-r14)) OF SL-V2X-CommTxResourceReq-r14
-typedef dyn_array<sl_v2x_comm_tx_res_req_r14_s> sl_v2x_comm_tx_freq_list_r14_l;
+// SL-V2X-CommTxFreqList-r14 ::= SEQUENCE (SIZE (1..8)) OF SL-V2X-CommTxResourceReq-r14
+using sl_v2x_comm_tx_freq_list_r14_l = dyn_array<sl_v2x_comm_tx_res_req_r14_s>;
 
 // SensingResult-r15 ::= SEQUENCE
 struct sensing_result_r15_s {
-  // member variables
   uint16_t res_idx_r15 = 1;
 
   // sequence methods
@@ -43981,7 +43290,6 @@ struct sensing_result_r15_s {
 
 // SidelinkUEInformation-v1530-IEs ::= SEQUENCE
 struct sidelink_ue_info_v1530_ies_s {
-  // member variables
   bool                      reliability_info_list_sl_r15_present = false;
   bool                      non_crit_ext_present                 = false;
   sl_reliability_list_r15_l reliability_info_list_sl_r15;
@@ -44063,7 +43371,6 @@ struct ue_radio_paging_info_r12_s {
 // UEAssistanceInformation-v1530-IEs ::= SEQUENCE
 struct ueassist_info_v1530_ies_s {
   struct sps_assist_info_v1530_s_ {
-    // member variables
     traffic_pattern_info_list_v1530_l traffic_pattern_info_list_sl_v1530;
   };
 
@@ -44080,7 +43387,6 @@ struct ueassist_info_v1530_ies_s {
 
 // UEInformationResponse-v1130-IEs ::= SEQUENCE
 struct ue_info_resp_v1130_ies_s {
-  // member variables
   bool                       conn_est_fail_report_r11_present = false;
   bool                       non_crit_ext_present             = false;
   conn_est_fail_report_r11_s conn_est_fail_report_r11;
@@ -44134,8 +43440,8 @@ struct affected_carrier_freq_r11_s {
   void        to_json(json_writer& j) const;
 };
 
-// AffectedCarrierFreqCombList-r11 ::= SEQUENCE (SIZE (1..maxCombIDC-r11)) OF AffectedCarrierFreqComb-r11
-typedef dyn_array<affected_carrier_freq_comb_r11_l> affected_carrier_freq_comb_list_r11_l;
+// AffectedCarrierFreqCombList-r11 ::= SEQUENCE (SIZE (1..128)) OF AffectedCarrierFreqComb-r11
+using affected_carrier_freq_comb_list_r11_l = dyn_array<affected_carrier_freq_comb_r11_l>;
 
 // BW-Preference-r14 ::= SEQUENCE
 struct bw_pref_r14_s {
@@ -44172,7 +43478,6 @@ struct bw_pref_r14_s {
 
 // CounterCheckResponse-v1530-IEs ::= SEQUENCE
 struct counter_check_resp_v1530_ies_s {
-  // member variables
   bool                          drb_count_info_list_ext_r15_present = false;
   bool                          non_crit_ext_present                = false;
   drb_count_info_list_ext_r15_l drb_count_info_list_ext_r15;
@@ -44185,7 +43490,6 @@ struct counter_check_resp_v1530_ies_s {
 
 // CountingResponseInfo-r10 ::= SEQUENCE
 struct count_resp_info_r10_s {
-  // member variables
   bool    ext                    = false;
   uint8_t count_resp_service_r10 = 0;
   // ...
@@ -44304,18 +43608,17 @@ struct delay_budget_report_r14_c {
   }
 
 private:
-  types                                                     type_;
-  choice_buffer_t<MAX2(sizeof(type1_e_), sizeof(type2_e_))> c;
+  types               type_;
+  pod_choice_buffer_t c;
 
   void destroy_();
 };
 
-// IDC-SubframePatternList-r11 ::= SEQUENCE (SIZE (1..maxSubframePatternIDC-r11)) OF IDC-SubframePattern-r11
-typedef dyn_array<idc_sf_pattern_r11_c> idc_sf_pattern_list_r11_l;
+// IDC-SubframePatternList-r11 ::= SEQUENCE (SIZE (1..8)) OF IDC-SubframePattern-r11
+using idc_sf_pattern_list_r11_l = dyn_array<idc_sf_pattern_r11_c>;
 
 // InDeviceCoexIndication-v1310-IEs ::= SEQUENCE
 struct in_dev_coex_ind_v1310_ies_s {
-  // member variables
   bool                                  affected_carrier_freq_list_v1310_present    = false;
   bool                                  affected_carrier_freq_comb_list_r13_present = false;
   bool                                  non_crit_ext_present                        = false;
@@ -44329,18 +43632,17 @@ struct in_dev_coex_ind_v1310_ies_s {
   void        to_json(json_writer& j) const;
 };
 
-// MBMS-ServiceList-r13 ::= SEQUENCE (SIZE (0..maxMBMS-ServiceListPerUE-r13)) OF MBMS-ServiceInfo-r13
-typedef dyn_array<mbms_service_info_r13_s> mbms_service_list_r13_l;
+// MBMS-ServiceList-r13 ::= SEQUENCE (SIZE (0..15)) OF MBMS-ServiceInfo-r13
+using mbms_service_list_r13_l = dyn_array<mbms_service_info_r13_s>;
 
-// MeasResultCSI-RS-List-r12 ::= SEQUENCE (SIZE (1..maxCellReport)) OF MeasResultCSI-RS-r12
-typedef dyn_array<meas_result_csi_rs_r12_s> meas_result_csi_rs_list_r12_l;
+// MeasResultCSI-RS-List-r12 ::= SEQUENCE (SIZE (1..8)) OF MeasResultCSI-RS-r12
+using meas_result_csi_rs_list_r12_l = dyn_array<meas_result_csi_rs_r12_s>;
 
-// MeasResultCellListSFTD-r15 ::= SEQUENCE (SIZE (1..maxCellSFTD)) OF MeasResultCellSFTD-r15
-typedef dyn_array<meas_result_cell_sftd_r15_s> meas_result_cell_list_sftd_r15_l;
+// MeasResultCellListSFTD-r15 ::= SEQUENCE (SIZE (1..3)) OF MeasResultCellSFTD-r15
+using meas_result_cell_list_sftd_r15_l = dyn_array<meas_result_cell_sftd_r15_s>;
 
 // MeasResultForECID-r9 ::= SEQUENCE
 struct meas_result_for_ecid_r9_s {
-  // member variables
   uint16_t            ue_rx_tx_time_diff_result_r9 = 0;
   fixed_bitstring<10> current_sfn_r9;
 
@@ -44352,7 +43654,6 @@ struct meas_result_for_ecid_r9_s {
 
 // MeasResultForRSSI-r13 ::= SEQUENCE
 struct meas_result_for_rssi_r13_s {
-  // member variables
   bool    ext              = false;
   uint8_t rssi_result_r13  = 0;
   uint8_t ch_occupancy_r13 = 0;
@@ -44364,21 +43665,20 @@ struct meas_result_for_rssi_r13_s {
   void        to_json(json_writer& j) const;
 };
 
-// MeasResultFreqListFailNR-r15 ::= SEQUENCE (SIZE (1..maxFreqNR-r15)) OF MeasResultFreqFailNR-r15
-typedef dyn_array<meas_result_freq_fail_nr_r15_s> meas_result_freq_list_fail_nr_r15_l;
+// MeasResultFreqListFailNR-r15 ::= SEQUENCE (SIZE (1..5)) OF MeasResultFreqFailNR-r15
+using meas_result_freq_list_fail_nr_r15_l = dyn_array<meas_result_freq_fail_nr_r15_s>;
 
-// MeasResultListCBR-r14 ::= SEQUENCE (SIZE (1..maxCBR-Report-r14)) OF MeasResultCBR-r14
-typedef dyn_array<meas_result_cbr_r14_s> meas_result_list_cbr_r14_l;
+// MeasResultListCBR-r14 ::= SEQUENCE (SIZE (1..72)) OF MeasResultCBR-r14
+using meas_result_list_cbr_r14_l = dyn_array<meas_result_cbr_r14_s>;
 
-// MeasResultListWLAN-r13 ::= SEQUENCE (SIZE (1..maxCellReport)) OF MeasResultWLAN-r13
-typedef dyn_array<meas_result_wlan_r13_s> meas_result_list_wlan_r13_l;
+// MeasResultListWLAN-r13 ::= SEQUENCE (SIZE (1..8)) OF MeasResultWLAN-r13
+using meas_result_list_wlan_r13_l = dyn_array<meas_result_wlan_r13_s>;
 
-// MeasResultListWLAN-r14 ::= SEQUENCE (SIZE (1..maxWLAN-Id-Report-r14)) OF MeasResultWLAN-r13
-typedef dyn_array<meas_result_wlan_r13_s> meas_result_list_wlan_r14_l;
+// MeasResultListWLAN-r14 ::= SEQUENCE (SIZE (1..32)) OF MeasResultWLAN-r13
+using meas_result_list_wlan_r14_l = dyn_array<meas_result_wlan_r13_s>;
 
 // MeasResultSSTD-r13 ::= SEQUENCE
 struct meas_result_sstd_r13_s {
-  // member variables
   uint16_t sfn_offset_result_r13            = 0;
   int8_t   frame_boundary_offset_result_r13 = -5;
   uint8_t  sf_boundary_offset_result_r13    = 0;
@@ -44391,7 +43691,7 @@ struct meas_result_sstd_r13_s {
 
 // MeasResultSensing-r15 ::= SEQUENCE
 struct meas_result_sensing_r15_s {
-  typedef dyn_array<sensing_result_r15_s> sensing_result_r15_l_;
+  using sensing_result_r15_l_ = dyn_array<sensing_result_r15_s>;
 
   // member variables
   uint16_t              sl_sf_ref_r15 = 0;
@@ -44403,18 +43703,17 @@ struct meas_result_sensing_r15_s {
   void        to_json(json_writer& j) const;
 };
 
-// MeasResultServFreqList-r10 ::= SEQUENCE (SIZE (1..maxServCell-r10)) OF MeasResultServFreq-r10
-typedef dyn_array<meas_result_serv_freq_r10_s> meas_result_serv_freq_list_r10_l;
+// MeasResultServFreqList-r10 ::= SEQUENCE (SIZE (1..5)) OF MeasResultServFreq-r10
+using meas_result_serv_freq_list_r10_l = dyn_array<meas_result_serv_freq_r10_s>;
 
-// MeasResultServFreqListExt-r13 ::= SEQUENCE (SIZE (1..maxServCell-r13)) OF MeasResultServFreq-r13
-typedef dyn_array<meas_result_serv_freq_r13_s> meas_result_serv_freq_list_ext_r13_l;
+// MeasResultServFreqListExt-r13 ::= SEQUENCE (SIZE (1..32)) OF MeasResultServFreq-r13
+using meas_result_serv_freq_list_ext_r13_l = dyn_array<meas_result_serv_freq_r13_s>;
 
-// MeasResultServFreqListNR-r15 ::= SEQUENCE (SIZE (1..maxServCell-r13)) OF MeasResultServFreqNR-r15
-typedef dyn_array<meas_result_serv_freq_nr_r15_s> meas_result_serv_freq_list_nr_r15_l;
+// MeasResultServFreqListNR-r15 ::= SEQUENCE (SIZE (1..32)) OF MeasResultServFreqNR-r15
+using meas_result_serv_freq_list_nr_r15_l = dyn_array<meas_result_serv_freq_nr_r15_s>;
 
 // RRCConnectionReconfigurationComplete-v1020-IEs ::= SEQUENCE
 struct rrc_conn_recfg_complete_v1020_ies_s {
-  // member variables
   bool                                rlf_info_available_r10_present = false;
   bool                                log_meas_available_r10_present = false;
   bool                                non_crit_ext_present           = false;
@@ -44428,7 +43727,6 @@ struct rrc_conn_recfg_complete_v1020_ies_s {
 
 // RRCConnectionReestablishmentComplete-v8a0-IEs ::= SEQUENCE
 struct rrc_conn_reest_complete_v8a0_ies_s {
-  // member variables
   bool                                late_non_crit_ext_present = false;
   bool                                non_crit_ext_present      = false;
   dyn_octstring                       late_non_crit_ext;
@@ -44834,15 +44132,15 @@ struct rstd_inter_freq_info_r10_s {
     }
 
   private:
-    types              type_;
-    choice_buffer_t<8> c;
+    types               type_;
+    pod_choice_buffer_t c;
 
     void destroy_();
   };
 
   // member variables
   bool     ext                 = false;
-  uint16_t carrier_freq_r10    = 0;
+  uint32_t carrier_freq_r10    = 0;
   uint8_t  meas_prs_offset_r10 = 0;
   // ...
   // group 0
@@ -44859,7 +44157,6 @@ struct rstd_inter_freq_info_r10_s {
 
 // SCGFailureInformation-v12d0-IEs ::= SEQUENCE
 struct scg_fail_info_v12d0_ies_s {
-  // member variables
   bool                    fail_report_scg_v12d0_present = false;
   bool                    non_crit_ext_present          = false;
   fail_report_scg_v12d0_s fail_report_scg_v12d0;
@@ -44872,7 +44169,6 @@ struct scg_fail_info_v12d0_ies_s {
 
 // SL-CommTxResourceReq-r12 ::= SEQUENCE
 struct sl_comm_tx_res_req_r12_s {
-  // member variables
   bool                    carrier_freq_r12_present = false;
   uint32_t                carrier_freq_r12         = 0;
   sl_dest_info_list_r12_l dest_info_list_r12;
@@ -44883,19 +44179,17 @@ struct sl_comm_tx_res_req_r12_s {
   void        to_json(json_writer& j) const;
 };
 
-// SL-DiscSysInfoReportFreqList-r13 ::= SEQUENCE (SIZE (1.. maxSL-DiscSysInfoReportFreq-r13)) OF
-// SL-DiscSysInfoReport-r13
-typedef dyn_array<sl_disc_sys_info_report_r13_s> sl_disc_sys_info_report_freq_list_r13_l;
+// SL-DiscSysInfoReportFreqList-r13 ::= SEQUENCE (SIZE (1..8)) OF SL-DiscSysInfoReport-r13
+using sl_disc_sys_info_report_freq_list_r13_l = dyn_array<sl_disc_sys_info_report_r13_s>;
 
-// SL-DiscTxResourceReqPerFreqList-r13 ::= SEQUENCE (SIZE (1..maxFreq)) OF SL-DiscTxResourceReq-r13
-typedef dyn_array<sl_disc_tx_res_req_r13_s> sl_disc_tx_res_req_per_freq_list_r13_l;
+// SL-DiscTxResourceReqPerFreqList-r13 ::= SEQUENCE (SIZE (1..8)) OF SL-DiscTxResourceReq-r13
+using sl_disc_tx_res_req_per_freq_list_r13_l = dyn_array<sl_disc_tx_res_req_r13_s>;
 
-// SL-GapRequest-r13 ::= SEQUENCE (SIZE (1..maxFreq)) OF SL-GapFreqInfo-r13
-typedef dyn_array<sl_gap_freq_info_r13_s> sl_gap_request_r13_l;
+// SL-GapRequest-r13 ::= SEQUENCE (SIZE (1..8)) OF SL-GapFreqInfo-r13
+using sl_gap_request_r13_l = dyn_array<sl_gap_freq_info_r13_s>;
 
 // SidelinkUEInformation-v1430-IEs ::= SEQUENCE
 struct sidelink_ue_info_v1430_ies_s {
-  // member variables
   bool                           v2x_comm_rx_interested_freq_list_r14_present = false;
   bool                           p2x_comm_tx_type_r14_present                 = false;
   bool                           v2x_comm_tx_res_req_r14_present              = false;
@@ -44910,12 +44204,11 @@ struct sidelink_ue_info_v1430_ies_s {
   void        to_json(json_writer& j) const;
 };
 
-// TrafficPatternInfoList-r14 ::= SEQUENCE (SIZE (1..maxTrafficPattern-r14)) OF TrafficPatternInfo-r14
-typedef dyn_array<traffic_pattern_info_r14_s> traffic_pattern_info_list_r14_l;
+// TrafficPatternInfoList-r14 ::= SEQUENCE (SIZE (1..8)) OF TrafficPatternInfo-r14
+using traffic_pattern_info_list_r14_l = dyn_array<traffic_pattern_info_r14_s>;
 
 // UE-CapabilityRAT-Container ::= SEQUENCE
 struct ue_cap_rat_container_s {
-  // member variables
   rat_type_e    rat_type;
   dyn_octstring ue_cap_rat_container;
 
@@ -44927,7 +44220,6 @@ struct ue_cap_rat_container_s {
 
 // UEAssistanceInformation-v1450-IEs ::= SEQUENCE
 struct ueassist_info_v1450_ies_s {
-  // member variables
   bool                      overheat_assist_r14_present = false;
   bool                      non_crit_ext_present        = false;
   overheat_assist_r14_s     overheat_assist_r14;
@@ -44941,7 +44233,6 @@ struct ueassist_info_v1450_ies_s {
 
 // UECapabilityInformation-v1250-IEs ::= SEQUENCE
 struct ue_cap_info_v1250_ies_s {
-  // member variables
   bool                       ue_radio_paging_info_r12_present = false;
   bool                       non_crit_ext_present             = false;
   ue_radio_paging_info_r12_s ue_radio_paging_info_r12;
@@ -44954,7 +44245,6 @@ struct ue_cap_info_v1250_ies_s {
 
 // UEInformationResponse-v1020-IEs ::= SEQUENCE
 struct ue_info_resp_v1020_ies_s {
-  // member variables
   bool                     log_meas_report_r10_present = false;
   bool                     non_crit_ext_present        = false;
   log_meas_report_r10_s    log_meas_report_r10;
@@ -44968,7 +44258,6 @@ struct ue_info_resp_v1020_ies_s {
 
 // UEInformationResponse-v9e0-IEs ::= SEQUENCE
 struct ue_info_resp_v9e0_ies_s {
-  // member variables
   bool              rlf_report_v9e0_present = false;
   bool              non_crit_ext_present    = false;
   rlf_report_v9e0_s rlf_report_v9e0;
@@ -44979,8 +44268,8 @@ struct ue_info_resp_v9e0_ies_s {
   void        to_json(json_writer& j) const;
 };
 
-// UL-PDCP-DelayResultList-r13 ::= SEQUENCE (SIZE (1..maxQCI-r13)) OF UL-PDCP-DelayResult-r13
-typedef dyn_array<ul_pdcp_delay_result_r13_s> ul_pdcp_delay_result_list_r13_l;
+// UL-PDCP-DelayResultList-r13 ::= SEQUENCE (SIZE (1..6)) OF UL-PDCP-DelayResult-r13
+using ul_pdcp_delay_result_list_r13_l = dyn_array<ul_pdcp_delay_result_r13_s>;
 
 // WLAN-Status-v1430 ::= ENUMERATED
 struct wlan_status_v1430_opts {
@@ -44990,12 +44279,11 @@ struct wlan_status_v1430_opts {
 };
 typedef enumerated<wlan_status_v1430_opts> wlan_status_v1430_e;
 
-// AffectedCarrierFreqList-r11 ::= SEQUENCE (SIZE (1..maxFreqIDC-r11)) OF AffectedCarrierFreq-r11
-typedef dyn_array<affected_carrier_freq_r11_s> affected_carrier_freq_list_r11_l;
+// AffectedCarrierFreqList-r11 ::= SEQUENCE (SIZE (1..32)) OF AffectedCarrierFreq-r11
+using affected_carrier_freq_list_r11_l = dyn_array<affected_carrier_freq_r11_s>;
 
 // CSFBParametersRequestCDMA2000-v8a0-IEs ::= SEQUENCE
 struct csfb_params_request_cdma2000_v8a0_ies_s {
-  // member variables
   bool          late_non_crit_ext_present = false;
   bool          non_crit_ext_present      = false;
   dyn_octstring late_non_crit_ext;
@@ -45006,12 +44294,11 @@ struct csfb_params_request_cdma2000_v8a0_ies_s {
   void        to_json(json_writer& j) const;
 };
 
-// CarrierFreqListMBMS-r11 ::= SEQUENCE (SIZE (1..maxFreqMBMS-r11)) OF INTEGER
-typedef bounded_array<uint32_t, 5> carrier_freq_list_mbms_r11_l;
+// CarrierFreqListMBMS-r11 ::= SEQUENCE (SIZE (1..5)) OF INTEGER (0..262143)
+using carrier_freq_list_mbms_r11_l = bounded_array<uint32_t, 5>;
 
 // CounterCheckResponse-v8a0-IEs ::= SEQUENCE
 struct counter_check_resp_v8a0_ies_s {
-  // member variables
   bool                           late_non_crit_ext_present = false;
   bool                           non_crit_ext_present      = false;
   dyn_octstring                  late_non_crit_ext;
@@ -45023,11 +44310,11 @@ struct counter_check_resp_v8a0_ies_s {
   void        to_json(json_writer& j) const;
 };
 
-// CountingResponseList-r10 ::= SEQUENCE (SIZE (1..maxServiceCount)) OF CountingResponseInfo-r10
-typedef dyn_array<count_resp_info_r10_s> count_resp_list_r10_l;
+// CountingResponseList-r10 ::= SEQUENCE (SIZE (1..16)) OF CountingResponseInfo-r10
+using count_resp_list_r10_l = dyn_array<count_resp_info_r10_s>;
 
-// DRB-CountInfoList ::= SEQUENCE (SIZE (0..maxDRB)) OF DRB-CountInfo
-typedef dyn_array<drb_count_info_s> drb_count_info_list_l;
+// DRB-CountInfoList ::= SEQUENCE (SIZE (0..11)) OF DRB-CountInfo
+using drb_count_info_list_l = dyn_array<drb_count_info_s>;
 
 // FailureReportSCG-NR-r15 ::= SEQUENCE
 struct fail_report_scg_nr_r15_s {
@@ -45096,7 +44383,6 @@ struct fail_report_scg_r12_s {
 // InDeviceCoexIndication-v11d0-IEs ::= SEQUENCE
 struct in_dev_coex_ind_v11d0_ies_s {
   struct ul_ca_assist_info_r11_s_ {
-    // member variables
     bool                                  affected_carrier_freq_comb_list_r11_present = false;
     affected_carrier_freq_comb_list_r11_l affected_carrier_freq_comb_list_r11;
     victim_sys_type_r11_s                 victim_sys_type_r11;
@@ -45116,7 +44402,6 @@ struct in_dev_coex_ind_v11d0_ies_s {
 
 // MBMSInterestIndication-v1310-IEs ::= SEQUENCE
 struct mbms_interest_ind_v1310_ies_s {
-  // member variables
   bool                    mbms_services_r13_present = false;
   bool                    non_crit_ext_present      = false;
   mbms_service_list_r13_l mbms_services_r13;
@@ -45130,7 +44415,6 @@ struct mbms_interest_ind_v1310_ies_s {
 // MeasResults ::= SEQUENCE
 struct meas_results_s {
   struct meas_result_pcell_s_ {
-    // member variables
     uint8_t rsrp_result = 0;
     uint8_t rsrq_result = 0;
   };
@@ -45241,20 +44525,16 @@ struct meas_results_s {
 
   private:
     types type_;
-    choice_buffer_t<MAX8(sizeof(meas_result_cell_list_nr_r15_l),
-                         sizeof(meas_result_list_eutra_l),
-                         sizeof(meas_result_list_geran_l),
-                         sizeof(meas_result_list_utra_l),
-                         sizeof(meas_results_cdma2000_s),
-                         0,
-                         0,
-                         0)>
+    choice_buffer_t<meas_result_cell_list_nr_r15_l,
+                    meas_result_list_eutra_l,
+                    meas_result_list_geran_l,
+                    meas_result_list_utra_l,
+                    meas_results_cdma2000_s>
         c;
 
     void destroy_();
   };
   struct meas_result_pcell_v1310_s_ {
-    // member variables
     uint8_t rs_sinr_result_r13 = 0;
   };
 
@@ -45307,7 +44587,6 @@ struct meas_results_s {
 
 // MeasurementReport-v8a0-IEs ::= SEQUENCE
 struct meas_report_v8a0_ies_s {
-  // member variables
   bool          late_non_crit_ext_present = false;
   bool          non_crit_ext_present      = false;
   dyn_octstring late_non_crit_ext;
@@ -45320,7 +44599,6 @@ struct meas_report_v8a0_ies_s {
 
 // ProximityIndication-v930-IEs ::= SEQUENCE
 struct proximity_ind_v930_ies_s {
-  // member variables
   bool          late_non_crit_ext_present = false;
   bool          non_crit_ext_present      = false;
   dyn_octstring late_non_crit_ext;
@@ -45334,13 +44612,11 @@ struct proximity_ind_v930_ies_s {
 // RLF-Report-r9 ::= SEQUENCE
 struct rlf_report_r9_s {
   struct meas_result_last_serv_cell_r9_s_ {
-    // member variables
     bool    rsrq_result_r9_present = false;
     uint8_t rsrp_result_r9         = 0;
     uint8_t rsrq_result_r9         = 0;
   };
   struct meas_result_neigh_cells_r9_s_ {
-    // member variables
     bool                            meas_result_list_eutra_r9_present = false;
     bool                            meas_result_list_utra_r9_present  = false;
     bool                            meas_result_list_geran_r9_present = false;
@@ -45352,9 +44628,8 @@ struct rlf_report_r9_s {
   };
   struct failed_pcell_id_r10_c_ {
     struct pci_arfcn_r10_s_ {
-      // member variables
       uint16_t pci_r10          = 0;
-      uint16_t carrier_freq_r10 = 0;
+      uint32_t carrier_freq_r10 = 0;
     };
     struct types_opts {
       enum options { cell_global_id_r10, pci_arfcn_r10, nulltype } value;
@@ -45406,8 +44681,8 @@ struct rlf_report_r9_s {
     }
 
   private:
-    types                                                                           type_;
-    choice_buffer_t<MAX2(sizeof(cell_global_id_eutra_s), sizeof(pci_arfcn_r10_s_))> c;
+    types                                                     type_;
+    choice_buffer_t<cell_global_id_eutra_s, pci_arfcn_r10_s_> c;
 
     void destroy_();
   };
@@ -45418,7 +44693,6 @@ struct rlf_report_r9_s {
   };
   typedef enumerated<conn_fail_type_r10_opts> conn_fail_type_r10_e_;
   struct failed_pcell_id_v1090_s_ {
-    // member variables
     uint32_t carrier_freq_v1090 = 65536;
   };
   struct basic_fields_r11_s_ {
@@ -45488,8 +44762,8 @@ struct rlf_report_r9_s {
       }
 
     private:
-      types              type_;
-      choice_buffer_t<8> c;
+      types               type_;
+      pod_choice_buffer_t c;
 
       void destroy_();
     };
@@ -45552,8 +44826,8 @@ struct rlf_report_r9_s {
       }
 
     private:
-      types              type_;
-      choice_buffer_t<8> c;
+      types               type_;
+      pod_choice_buffer_t c;
 
       void destroy_();
     };
@@ -45563,7 +44837,6 @@ struct rlf_report_r9_s {
     pci_r11_c_ pci_r11;
   };
   struct failed_pcell_id_v1250_s_ {
-    // member variables
     fixed_bitstring<16> tac_failed_pcell_r12;
   };
 
@@ -45611,7 +44884,6 @@ struct rlf_report_r9_s {
 
 // RRCConnectionReconfigurationComplete-v8a0-IEs ::= SEQUENCE
 struct rrc_conn_recfg_complete_v8a0_ies_s {
-  // member variables
   bool                                late_non_crit_ext_present = false;
   bool                                non_crit_ext_present      = false;
   dyn_octstring                       late_non_crit_ext;
@@ -45625,7 +44897,6 @@ struct rrc_conn_recfg_complete_v8a0_ies_s {
 
 // RRCConnectionReestablishmentComplete-v920-IEs ::= SEQUENCE
 struct rrc_conn_reest_complete_v920_ies_s {
-  // member variables
   bool                               rlf_info_available_r9_present = false;
   bool                               non_crit_ext_present          = false;
   rrc_conn_reest_complete_v8a0_ies_s non_crit_ext;
@@ -45638,7 +44909,6 @@ struct rrc_conn_reest_complete_v920_ies_s {
 
 // RRCConnectionResumeComplete-v1530-IEs ::= SEQUENCE
 struct rrc_conn_resume_complete_v1530_ies_s {
-  // member variables
   bool log_meas_available_bt_r15_present      = false;
   bool log_meas_available_wlan_r15_present    = false;
   bool idle_meas_available_r15_present        = false;
@@ -45653,7 +44923,6 @@ struct rrc_conn_resume_complete_v1530_ies_s {
 
 // RRCConnectionSetupComplete-v8a0-IEs ::= SEQUENCE
 struct rrc_conn_setup_complete_v8a0_ies_s {
-  // member variables
   bool                                late_non_crit_ext_present = false;
   bool                                non_crit_ext_present      = false;
   dyn_octstring                       late_non_crit_ext;
@@ -45665,12 +44934,11 @@ struct rrc_conn_setup_complete_v8a0_ies_s {
   void        to_json(json_writer& j) const;
 };
 
-// RSTD-InterFreqInfoList-r10 ::= SEQUENCE (SIZE(1..maxRSTD-Freq-r10)) OF RSTD-InterFreqInfo-r10
-typedef dyn_array<rstd_inter_freq_info_r10_s> rstd_inter_freq_info_list_r10_l;
+// RSTD-InterFreqInfoList-r10 ::= SEQUENCE (SIZE (1..3)) OF RSTD-InterFreqInfo-r10
+using rstd_inter_freq_info_list_r10_l = dyn_array<rstd_inter_freq_info_r10_s>;
 
 // RegisteredMME ::= SEQUENCE
 struct registered_mme_s {
-  // member variables
   bool                plmn_id_present = false;
   plmn_id_s           plmn_id;
   fixed_bitstring<16> mmegi;
@@ -45684,7 +44952,6 @@ struct registered_mme_s {
 
 // SCGFailureInformation-v1310-IEs ::= SEQUENCE
 struct scg_fail_info_v1310_ies_s {
-  // member variables
   bool          late_non_crit_ext_present = false;
   bool          non_crit_ext_present      = false;
   dyn_octstring late_non_crit_ext;
@@ -45697,7 +44964,6 @@ struct scg_fail_info_v1310_ies_s {
 
 // SecurityModeComplete-v8a0-IEs ::= SEQUENCE
 struct security_mode_complete_v8a0_ies_s {
-  // member variables
   bool          late_non_crit_ext_present = false;
   bool          non_crit_ext_present      = false;
   dyn_octstring late_non_crit_ext;
@@ -45710,7 +44976,6 @@ struct security_mode_complete_v8a0_ies_s {
 
 // SecurityModeFailure-v8a0-IEs ::= SEQUENCE
 struct security_mode_fail_v8a0_ies_s {
-  // member variables
   bool          late_non_crit_ext_present = false;
   bool          non_crit_ext_present      = false;
   dyn_octstring late_non_crit_ext;
@@ -45739,7 +45004,6 @@ struct sidelink_ue_info_v1310_ies_s {
     ue_type_r13_e_           ue_type_r13;
   };
   struct disc_tx_res_req_v1310_s_ {
-    // member variables
     bool                                   carrier_freq_disc_tx_r13_present     = false;
     bool                                   disc_tx_res_req_add_freq_r13_present = false;
     uint8_t                                carrier_freq_disc_tx_r13             = 1;
@@ -45793,7 +45057,7 @@ struct tdm_assist_info_r11_c {
     // member variables
     bool                   drx_offset_r11_present = false;
     drx_cycle_len_r11_e_   drx_cycle_len_r11;
-    uint8_t                drx_offset_r11 = 0;
+    uint16_t               drx_offset_r11 = 0;
     drx_active_time_r11_e_ drx_active_time_r11;
   };
   struct types_opts {
@@ -45846,19 +45110,18 @@ struct tdm_assist_info_r11_c {
   }
 
 private:
-  types                                                                                    type_;
-  choice_buffer_t<MAX2(sizeof(drx_assist_info_r11_s_), sizeof(idc_sf_pattern_list_r11_l))> c;
+  types                                                              type_;
+  choice_buffer_t<drx_assist_info_r11_s_, idc_sf_pattern_list_r11_l> c;
 
   void destroy_();
 };
 
-// UE-CapabilityRAT-ContainerList ::= SEQUENCE (SIZE (0..maxRAT-Capabilities)) OF UE-CapabilityRAT-Container
-typedef dyn_array<ue_cap_rat_container_s> ue_cap_rat_container_list_l;
+// UE-CapabilityRAT-ContainerList ::= SEQUENCE (SIZE (0..8)) OF UE-CapabilityRAT-Container
+using ue_cap_rat_container_list_l = dyn_array<ue_cap_rat_container_s>;
 
 // UEAssistanceInformation-v1430-IEs ::= SEQUENCE
 struct ueassist_info_v1430_ies_s {
   struct sps_assist_info_r14_s_ {
-    // member variables
     bool                            traffic_pattern_info_list_sl_r14_present = false;
     bool                            traffic_pattern_info_list_ul_r14_present = false;
     traffic_pattern_info_list_r14_l traffic_pattern_info_list_sl_r14;
@@ -45906,7 +45169,6 @@ struct ueassist_info_v1430_ies_s {
 
 // UECapabilityInformation-v8a0-IEs ::= SEQUENCE
 struct ue_cap_info_v8a0_ies_s {
-  // member variables
   bool                    late_non_crit_ext_present = false;
   bool                    non_crit_ext_present      = false;
   dyn_octstring           late_non_crit_ext;
@@ -45920,7 +45182,6 @@ struct ue_cap_info_v8a0_ies_s {
 
 // UEInformationResponse-v930-IEs ::= SEQUENCE
 struct ue_info_resp_v930_ies_s {
-  // member variables
   bool                     late_non_crit_ext_present = false;
   bool                     non_crit_ext_present      = false;
   dyn_octstring            late_non_crit_ext;
@@ -45934,7 +45195,6 @@ struct ue_info_resp_v930_ies_s {
 
 // ULHandoverPreparationTransfer-v8a0-IEs ::= SEQUENCE
 struct ul_ho_prep_transfer_v8a0_ies_s {
-  // member variables
   bool          late_non_crit_ext_present = false;
   bool          non_crit_ext_present      = false;
   dyn_octstring late_non_crit_ext;
@@ -45947,7 +45207,6 @@ struct ul_ho_prep_transfer_v8a0_ies_s {
 
 // ULInformationTransfer-v8a0-IEs ::= SEQUENCE
 struct ul_info_transfer_v8a0_ies_s {
-  // member variables
   bool          late_non_crit_ext_present = false;
   bool          non_crit_ext_present      = false;
   dyn_octstring late_non_crit_ext;
@@ -45960,7 +45219,7 @@ struct ul_info_transfer_v8a0_ies_s {
 
 // WLAN-Status-r13 ::= ENUMERATED
 struct wlan_status_r13_opts {
-  enum options { successful_association, fail_wlan_radio_link, fail_wlan_unavailable, fail_timeout, nulltype } value;
+  enum options { successful_assoc, fail_wlan_radio_link, fail_wlan_unavailable, fail_timeout, nulltype } value;
 
   std::string to_string() const;
 };
@@ -45968,7 +45227,6 @@ typedef enumerated<wlan_status_r13_opts> wlan_status_r13_e;
 
 // WLANConnectionStatusReport-v1430-IEs ::= SEQUENCE
 struct wlan_conn_status_report_v1430_ies_s {
-  // member variables
   bool                non_crit_ext_present = false;
   wlan_status_v1430_e wlan_status_v1430;
 
@@ -45980,7 +45238,6 @@ struct wlan_conn_status_report_v1430_ies_s {
 
 // CSFBParametersRequestCDMA2000-r8-IEs ::= SEQUENCE
 struct csfb_params_request_cdma2000_r8_ies_s {
-  // member variables
   bool                                    non_crit_ext_present = false;
   csfb_params_request_cdma2000_v8a0_ies_s non_crit_ext;
 
@@ -45992,7 +45249,6 @@ struct csfb_params_request_cdma2000_r8_ies_s {
 
 // CounterCheckResponse-r8-IEs ::= SEQUENCE
 struct counter_check_resp_r8_ies_s {
-  // member variables
   bool                          non_crit_ext_present = false;
   drb_count_info_list_l         drb_count_info_list;
   counter_check_resp_v8a0_ies_s non_crit_ext;
@@ -46039,7 +45295,6 @@ struct failed_lc_ch_info_r15_s {
 
 // InDeviceCoexIndication-r11-IEs ::= SEQUENCE
 struct in_dev_coex_ind_r11_ies_s {
-  // member variables
   bool                             affected_carrier_freq_list_r11_present = false;
   bool                             tdm_assist_info_r11_present            = false;
   bool                             late_non_crit_ext_present              = false;
@@ -46059,7 +45314,6 @@ struct in_dev_coex_ind_r11_ies_s {
 struct inter_freq_rstd_meas_ind_r10_ies_s {
   struct rstd_inter_freq_ind_r10_c_ {
     struct start_s_ {
-      // member variables
       rstd_inter_freq_info_list_r10_l rstd_inter_freq_info_list_r10;
     };
     struct types_opts {
@@ -46112,7 +45366,6 @@ struct inter_freq_rstd_meas_ind_r10_ies_s {
 
 // MBMSCountingResponse-r10-IEs ::= SEQUENCE
 struct mbms_count_resp_r10_ies_s {
-  // member variables
   bool                  mbsfn_area_idx_r10_present  = false;
   bool                  count_resp_list_r10_present = false;
   bool                  late_non_crit_ext_present   = false;
@@ -46129,7 +45382,6 @@ struct mbms_count_resp_r10_ies_s {
 
 // MBMSInterestIndication-r11-IEs ::= SEQUENCE
 struct mbms_interest_ind_r11_ies_s {
-  // member variables
   bool                          mbms_freq_list_r11_present = false;
   bool                          mbms_prio_r11_present      = false;
   bool                          late_non_crit_ext_present  = false;
@@ -46168,7 +45420,6 @@ struct meas_report_app_layer_r15_ies_s {
 
 // MeasurementReport-r8-IEs ::= SEQUENCE
 struct meas_report_r8_ies_s {
-  // member variables
   bool                   non_crit_ext_present = false;
   meas_results_s         meas_results;
   meas_report_v8a0_ies_s non_crit_ext;
@@ -46208,10 +45459,10 @@ struct proximity_ind_r9_ies_s {
     SRSASN_CODE unpack(bit_ref& bref);
     void        to_json(json_writer& j) const;
     // getters
-    uint16_t& eutra_r9()
+    uint32_t& eutra_r9()
     {
       assert_choice_type("eutra-r9", type_.to_string(), "carrierFreq-r9");
-      return c.get<uint16_t>();
+      return c.get<uint32_t>();
     }
     uint16_t& utra_r9()
     {
@@ -46223,10 +45474,10 @@ struct proximity_ind_r9_ies_s {
       assert_choice_type("eutra2-v9e0", type_.to_string(), "carrierFreq-r9");
       return c.get<uint32_t>();
     }
-    const uint16_t& eutra_r9() const
+    const uint32_t& eutra_r9() const
     {
       assert_choice_type("eutra-r9", type_.to_string(), "carrierFreq-r9");
-      return c.get<uint16_t>();
+      return c.get<uint32_t>();
     }
     const uint16_t& utra_r9() const
     {
@@ -46238,10 +45489,10 @@ struct proximity_ind_r9_ies_s {
       assert_choice_type("eutra2-v9e0", type_.to_string(), "carrierFreq-r9");
       return c.get<uint32_t>();
     }
-    uint16_t& set_eutra_r9()
+    uint32_t& set_eutra_r9()
     {
       set(types::eutra_r9);
-      return c.get<uint16_t>();
+      return c.get<uint32_t>();
     }
     uint16_t& set_utra_r9()
     {
@@ -46255,8 +45506,8 @@ struct proximity_ind_r9_ies_s {
     }
 
   private:
-    types              type_;
-    choice_buffer_t<8> c;
+    types               type_;
+    pod_choice_buffer_t c;
 
     void destroy_();
   };
@@ -46275,7 +45526,6 @@ struct proximity_ind_r9_ies_s {
 
 // RNReconfigurationComplete-r10-IEs ::= SEQUENCE
 struct rn_recfg_complete_r10_ies_s {
-  // member variables
   bool          late_non_crit_ext_present = false;
   bool          non_crit_ext_present      = false;
   dyn_octstring late_non_crit_ext;
@@ -46288,7 +45538,6 @@ struct rn_recfg_complete_r10_ies_s {
 
 // RRCConnectionReconfigurationComplete-r8-IEs ::= SEQUENCE
 struct rrc_conn_recfg_complete_r8_ies_s {
-  // member variables
   bool                               non_crit_ext_present = false;
   rrc_conn_recfg_complete_v8a0_ies_s non_crit_ext;
 
@@ -46300,7 +45549,6 @@ struct rrc_conn_recfg_complete_r8_ies_s {
 
 // RRCConnectionReestablishmentComplete-r8-IEs ::= SEQUENCE
 struct rrc_conn_reest_complete_r8_ies_s {
-  // member variables
   bool                               non_crit_ext_present = false;
   rrc_conn_reest_complete_v920_ies_s non_crit_ext;
 
@@ -46344,7 +45592,6 @@ struct rrc_conn_resume_complete_r13_ies_s {
 
 // RRCConnectionSetupComplete-r8-IEs ::= SEQUENCE
 struct rrc_conn_setup_complete_r8_ies_s {
-  // member variables
   bool                               registered_mme_present = false;
   bool                               non_crit_ext_present   = false;
   uint8_t                            sel_plmn_id            = 1;
@@ -46360,7 +45607,6 @@ struct rrc_conn_setup_complete_r8_ies_s {
 
 // SCGFailureInformation-r12-IEs ::= SEQUENCE
 struct scg_fail_info_r12_ies_s {
-  // member variables
   bool                      fail_report_scg_r12_present = false;
   bool                      non_crit_ext_present        = false;
   fail_report_scg_r12_s     fail_report_scg_r12;
@@ -46374,7 +45620,6 @@ struct scg_fail_info_r12_ies_s {
 
 // SCGFailureInformationNR-r15-IEs ::= SEQUENCE
 struct scg_fail_info_nr_r15_ies_s {
-  // member variables
   bool                     fail_report_scg_nr_r15_present = false;
   bool                     non_crit_ext_present           = false;
   fail_report_scg_nr_r15_s fail_report_scg_nr_r15;
@@ -46387,7 +45632,6 @@ struct scg_fail_info_nr_r15_ies_s {
 
 // SecurityModeComplete-r8-IEs ::= SEQUENCE
 struct security_mode_complete_r8_ies_s {
-  // member variables
   bool                              non_crit_ext_present = false;
   security_mode_complete_v8a0_ies_s non_crit_ext;
 
@@ -46399,7 +45643,6 @@ struct security_mode_complete_r8_ies_s {
 
 // SecurityModeFailure-r8-IEs ::= SEQUENCE
 struct security_mode_fail_r8_ies_s {
-  // member variables
   bool                          non_crit_ext_present = false;
   security_mode_fail_v8a0_ies_s non_crit_ext;
 
@@ -46411,7 +45654,6 @@ struct security_mode_fail_r8_ies_s {
 
 // SidelinkUEInformation-r12-IEs ::= SEQUENCE
 struct sidelink_ue_info_r12_ies_s {
-  // member variables
   bool                         comm_rx_interested_freq_r12_present = false;
   bool                         comm_tx_res_req_r12_present         = false;
   bool                         disc_rx_interest_r12_present        = false;
@@ -46455,7 +45697,6 @@ struct ueassist_info_r11_ies_s {
 
 // UECapabilityInformation-r8-IEs ::= SEQUENCE
 struct ue_cap_info_r8_ies_s {
-  // member variables
   bool                        non_crit_ext_present = false;
   ue_cap_rat_container_list_l ue_cap_rat_container_list;
   ue_cap_info_v8a0_ies_s      non_crit_ext;
@@ -46469,7 +45710,6 @@ struct ue_cap_info_r8_ies_s {
 // UEInformationResponse-r9-IEs ::= SEQUENCE
 struct ue_info_resp_r9_ies_s {
   struct rach_report_r9_s_ {
-    // member variables
     uint8_t nof_preambs_sent_r9    = 1;
     bool    contention_detected_r9 = false;
   };
@@ -46490,7 +45730,6 @@ struct ue_info_resp_r9_ies_s {
 
 // ULHandoverPreparationTransfer-r8-IEs ::= SEQUENCE
 struct ul_ho_prep_transfer_r8_ies_s {
-  // member variables
   bool                           meid_present         = false;
   bool                           non_crit_ext_present = false;
   cdma2000_type_e                cdma2000_type;
@@ -46572,8 +45811,8 @@ struct ul_info_transfer_r8_ies_s {
     }
 
   private:
-    types                                  type_;
-    choice_buffer_t<sizeof(dyn_octstring)> c;
+    types                          type_;
+    choice_buffer_t<dyn_octstring> c;
 
     void destroy_();
   };
@@ -46591,7 +45830,6 @@ struct ul_info_transfer_r8_ies_s {
 
 // ULInformationTransferMRDC-r15-IEs ::= SEQUENCE
 struct ul_info_transfer_mrdc_r15_ies_s {
-  // member variables
   bool          ul_dcch_msg_nr_r15_present = false;
   bool          late_non_crit_ext_present  = false;
   bool          non_crit_ext_present       = false;
@@ -46606,7 +45844,6 @@ struct ul_info_transfer_mrdc_r15_ies_s {
 
 // WLANConnectionStatusReport-r13-IEs ::= SEQUENCE
 struct wlan_conn_status_report_r13_ies_s {
-  // member variables
   bool                                late_non_crit_ext_present = false;
   bool                                non_crit_ext_present      = false;
   wlan_status_r13_e                   wlan_status_r13;
@@ -46659,8 +45896,8 @@ struct csfb_params_request_cdma2000_s {
     }
 
   private:
-    types                                                          type_;
-    choice_buffer_t<sizeof(csfb_params_request_cdma2000_r8_ies_s)> c;
+    types                                                  type_;
+    choice_buffer_t<csfb_params_request_cdma2000_r8_ies_s> c;
 
     void destroy_();
   };
@@ -46712,8 +45949,8 @@ struct counter_check_resp_s {
     }
 
   private:
-    types                                                type_;
-    choice_buffer_t<sizeof(counter_check_resp_r8_ies_s)> c;
+    types                                        type_;
+    choice_buffer_t<counter_check_resp_r8_ies_s> c;
 
     void destroy_();
   };
@@ -46730,7 +45967,6 @@ struct counter_check_resp_s {
 
 // FailureInformation-r15 ::= SEQUENCE
 struct fail_info_r15_s {
-  // member variables
   bool                    failed_lc_ch_info_r15_present = false;
   failed_lc_ch_info_r15_s failed_lc_ch_info_r15;
 
@@ -46809,8 +46045,8 @@ struct in_dev_coex_ind_r11_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -46893,8 +46129,8 @@ struct inter_freq_rstd_meas_ind_r10_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -46977,8 +46213,8 @@ struct mbms_count_resp_r10_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -47061,8 +46297,8 @@ struct mbms_interest_ind_r11_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -47114,8 +46350,8 @@ struct meas_report_app_layer_r15_s {
     }
 
   private:
-    types                                                    type_;
-    choice_buffer_t<sizeof(meas_report_app_layer_r15_ies_s)> c;
+    types                                            type_;
+    choice_buffer_t<meas_report_app_layer_r15_ies_s> c;
 
     void destroy_();
   };
@@ -47198,8 +46434,8 @@ struct meas_report_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -47282,8 +46518,8 @@ struct proximity_ind_r9_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -47366,8 +46602,8 @@ struct rn_recfg_complete_r10_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -47420,8 +46656,8 @@ struct rrc_conn_recfg_complete_s {
     }
 
   private:
-    types                                                     type_;
-    choice_buffer_t<sizeof(rrc_conn_recfg_complete_r8_ies_s)> c;
+    types                                             type_;
+    choice_buffer_t<rrc_conn_recfg_complete_r8_ies_s> c;
 
     void destroy_();
   };
@@ -47474,8 +46710,8 @@ struct rrc_conn_reest_complete_s {
     }
 
   private:
-    types                                                     type_;
-    choice_buffer_t<sizeof(rrc_conn_reest_complete_r8_ies_s)> c;
+    types                                             type_;
+    choice_buffer_t<rrc_conn_reest_complete_r8_ies_s> c;
 
     void destroy_();
   };
@@ -47528,8 +46764,8 @@ struct rrc_conn_resume_complete_r13_s {
     }
 
   private:
-    types                                                       type_;
-    choice_buffer_t<sizeof(rrc_conn_resume_complete_r13_ies_s)> c;
+    types                                               type_;
+    choice_buffer_t<rrc_conn_resume_complete_r13_ies_s> c;
 
     void destroy_();
   };
@@ -47613,8 +46849,8 @@ struct rrc_conn_setup_complete_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -47698,8 +46934,8 @@ struct scg_fail_info_r12_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -47782,8 +47018,8 @@ struct scg_fail_info_nr_r15_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -47835,8 +47071,8 @@ struct security_mode_complete_s {
     }
 
   private:
-    types                                                    type_;
-    choice_buffer_t<sizeof(security_mode_complete_r8_ies_s)> c;
+    types                                            type_;
+    choice_buffer_t<security_mode_complete_r8_ies_s> c;
 
     void destroy_();
   };
@@ -47889,8 +47125,8 @@ struct security_mode_fail_s {
     }
 
   private:
-    types                                                type_;
-    choice_buffer_t<sizeof(security_mode_fail_r8_ies_s)> c;
+    types                                        type_;
+    choice_buffer_t<security_mode_fail_r8_ies_s> c;
 
     void destroy_();
   };
@@ -47974,8 +47210,8 @@ struct sidelink_ue_info_r12_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -48058,8 +47294,8 @@ struct ueassist_info_r11_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -48142,8 +47378,8 @@ struct ue_cap_info_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -48227,8 +47463,8 @@ struct ue_info_resp_r9_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -48312,8 +47548,8 @@ struct ul_ho_prep_transfer_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -48396,8 +47632,8 @@ struct ul_info_transfer_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -48480,8 +47716,8 @@ struct ul_info_transfer_mrdc_r15_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -48564,8 +47800,8 @@ struct wlan_conn_status_report_r13_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -48863,22 +48099,22 @@ struct ul_dcch_msg_type_c {
 
   private:
     types type_;
-    choice_buffer_t<MAX16(sizeof(counter_check_resp_s),
-                          sizeof(csfb_params_request_cdma2000_s),
-                          sizeof(inter_freq_rstd_meas_ind_r10_s),
-                          sizeof(mbms_count_resp_r10_s),
-                          sizeof(meas_report_s),
-                          sizeof(proximity_ind_r9_s),
-                          sizeof(rn_recfg_complete_r10_s),
-                          sizeof(rrc_conn_recfg_complete_s),
-                          sizeof(rrc_conn_reest_complete_s),
-                          sizeof(rrc_conn_setup_complete_s),
-                          sizeof(security_mode_complete_s),
-                          sizeof(security_mode_fail_s),
-                          sizeof(ue_cap_info_s),
-                          sizeof(ue_info_resp_r9_s),
-                          sizeof(ul_ho_prep_transfer_s),
-                          sizeof(ul_info_transfer_s))>
+    choice_buffer_t<counter_check_resp_s,
+                    csfb_params_request_cdma2000_s,
+                    inter_freq_rstd_meas_ind_r10_s,
+                    mbms_count_resp_r10_s,
+                    meas_report_s,
+                    proximity_ind_r9_s,
+                    rn_recfg_complete_r10_s,
+                    rrc_conn_recfg_complete_s,
+                    rrc_conn_reest_complete_s,
+                    rrc_conn_setup_complete_s,
+                    security_mode_complete_s,
+                    security_mode_fail_s,
+                    ue_cap_info_s,
+                    ue_info_resp_r9_s,
+                    ul_ho_prep_transfer_s,
+                    ul_info_transfer_s>
         c;
 
     void destroy_();
@@ -49089,22 +48325,17 @@ struct ul_dcch_msg_type_c {
 
     private:
       types type_;
-      choice_buffer_t<MAX16(sizeof(fail_info_r15_s),
-                            sizeof(in_dev_coex_ind_r11_s),
-                            sizeof(mbms_interest_ind_r11_s),
-                            sizeof(meas_report_app_layer_r15_s),
-                            sizeof(rrc_conn_resume_complete_r13_s),
-                            sizeof(scg_fail_info_nr_r15_s),
-                            sizeof(scg_fail_info_r12_s),
-                            sizeof(sidelink_ue_info_r12_s),
-                            sizeof(ueassist_info_r11_s),
-                            sizeof(ul_info_transfer_mrdc_r15_s),
-                            sizeof(wlan_conn_status_report_r13_s),
-                            0,
-                            0,
-                            0,
-                            0,
-                            0)>
+      choice_buffer_t<fail_info_r15_s,
+                      in_dev_coex_ind_r11_s,
+                      mbms_interest_ind_r11_s,
+                      meas_report_app_layer_r15_s,
+                      rrc_conn_resume_complete_r13_s,
+                      scg_fail_info_nr_r15_s,
+                      scg_fail_info_r12_s,
+                      sidelink_ue_info_r12_s,
+                      ueassist_info_r11_s,
+                      ul_info_transfer_mrdc_r15_s,
+                      wlan_conn_status_report_r13_s>
           c;
 
       void destroy_();
@@ -49146,8 +48377,8 @@ struct ul_dcch_msg_type_c {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c2_c_)> c;
+    types                  type_;
+    choice_buffer_t<c2_c_> c;
 
     void destroy_();
   };
@@ -49203,15 +48434,14 @@ struct ul_dcch_msg_type_c {
   }
 
 private:
-  types                                                          type_;
-  choice_buffer_t<MAX2(sizeof(c1_c_), sizeof(msg_class_ext_c_))> c;
+  types                                    type_;
+  choice_buffer_t<c1_c_, msg_class_ext_c_> c;
 
   void destroy_();
 };
 
 // UL-DCCH-Message ::= SEQUENCE
 struct ul_dcch_msg_s {
-  // member variables
   ul_dcch_msg_type_c msg;
 
   // sequence methods
@@ -49222,7 +48452,6 @@ struct ul_dcch_msg_s {
 
 // InterFreqBandInfo ::= SEQUENCE
 struct inter_freq_band_info_s {
-  // member variables
   bool inter_freq_need_for_gaps = false;
 
   // sequence methods
@@ -49233,7 +48462,6 @@ struct inter_freq_band_info_s {
 
 // InterRAT-BandInfo ::= SEQUENCE
 struct inter_rat_band_info_s {
-  // member variables
   bool inter_rat_need_for_gaps = false;
 
   // sequence methods
@@ -49242,15 +48470,14 @@ struct inter_rat_band_info_s {
   void        to_json(json_writer& j) const;
 };
 
-// InterFreqBandList ::= SEQUENCE (SIZE (1..maxBands)) OF InterFreqBandInfo
-typedef dyn_array<inter_freq_band_info_s> inter_freq_band_list_l;
+// InterFreqBandList ::= SEQUENCE (SIZE (1..64)) OF InterFreqBandInfo
+using inter_freq_band_list_l = dyn_array<inter_freq_band_info_s>;
 
-// InterRAT-BandList ::= SEQUENCE (SIZE (1..maxBands)) OF InterRAT-BandInfo
-typedef dyn_array<inter_rat_band_info_s> inter_rat_band_list_l;
+// InterRAT-BandList ::= SEQUENCE (SIZE (1..64)) OF InterRAT-BandInfo
+using inter_rat_band_list_l = dyn_array<inter_rat_band_info_s>;
 
 // BandInfoEUTRA ::= SEQUENCE
 struct band_info_eutra_s {
-  // member variables
   bool                   inter_rat_band_list_present = false;
   inter_freq_band_list_l inter_freq_band_list;
   inter_rat_band_list_l  inter_rat_band_list;
@@ -49261,8 +48488,8 @@ struct band_info_eutra_s {
   void        to_json(json_writer& j) const;
 };
 
-// BandCombinationListEUTRA-r10 ::= SEQUENCE (SIZE (1..maxBandComb-r10)) OF BandInfoEUTRA
-typedef dyn_array<band_info_eutra_s> band_combination_list_eutra_r10_l;
+// BandCombinationListEUTRA-r10 ::= SEQUENCE (SIZE (1..128)) OF BandInfoEUTRA
+using band_combination_list_eutra_r10_l = dyn_array<band_info_eutra_s>;
 
 // MIMO-CapabilityDL-r10 ::= ENUMERATED
 struct mimo_cap_dl_r10_opts {
@@ -49286,7 +48513,6 @@ typedef enumerated<mimo_cap_ul_r10_opts> mimo_cap_ul_r10_e;
 
 // CA-MIMO-ParametersDL-r10 ::= SEQUENCE
 struct ca_mimo_params_dl_r10_s {
-  // member variables
   bool              supported_mimo_cap_dl_r10_present = false;
   ca_bw_class_r10_e ca_bw_class_dl_r10;
   mimo_cap_dl_r10_e supported_mimo_cap_dl_r10;
@@ -49299,7 +48525,6 @@ struct ca_mimo_params_dl_r10_s {
 
 // CA-MIMO-ParametersUL-r10 ::= SEQUENCE
 struct ca_mimo_params_ul_r10_s {
-  // member variables
   bool              supported_mimo_cap_ul_r10_present = false;
   ca_bw_class_r10_e ca_bw_class_ul_r10;
   mimo_cap_ul_r10_e supported_mimo_cap_ul_r10;
@@ -49310,15 +48535,14 @@ struct ca_mimo_params_ul_r10_s {
   void        to_json(json_writer& j) const;
 };
 
-// BandParametersDL-r10 ::= SEQUENCE (SIZE (1..maxBandwidthClass-r10)) OF CA-MIMO-ParametersDL-r10
-typedef dyn_array<ca_mimo_params_dl_r10_s> band_params_dl_r10_l;
+// BandParametersDL-r10 ::= SEQUENCE (SIZE (1..16)) OF CA-MIMO-ParametersDL-r10
+using band_params_dl_r10_l = dyn_array<ca_mimo_params_dl_r10_s>;
 
-// BandParametersUL-r10 ::= SEQUENCE (SIZE (1..maxBandwidthClass-r10)) OF CA-MIMO-ParametersUL-r10
-typedef dyn_array<ca_mimo_params_ul_r10_s> band_params_ul_r10_l;
+// BandParametersUL-r10 ::= SEQUENCE (SIZE (1..16)) OF CA-MIMO-ParametersUL-r10
+using band_params_ul_r10_l = dyn_array<ca_mimo_params_ul_r10_s>;
 
 // BandParameters-r10 ::= SEQUENCE
 struct band_params_r10_s {
-  // member variables
   bool                 band_params_ul_r10_present = false;
   bool                 band_params_dl_r10_present = false;
   uint8_t              band_eutra_r10             = 1;
@@ -49331,8 +48555,8 @@ struct band_params_r10_s {
   void        to_json(json_writer& j) const;
 };
 
-// BandCombinationParameters-r10 ::= SEQUENCE (SIZE (1..maxSimultaneousBands-r10)) OF BandParameters-r10
-typedef dyn_array<band_params_r10_s> band_combination_params_r10_l;
+// BandCombinationParameters-r10 ::= SEQUENCE (SIZE (1..64)) OF BandParameters-r10
+using band_combination_params_r10_l = dyn_array<band_params_r10_s>;
 
 // BandParameters-r11 ::= SEQUENCE
 struct band_params_r11_s {
@@ -49362,16 +48586,16 @@ struct band_params_r11_s {
 
 // BandCombinationParameters-r11 ::= SEQUENCE
 struct band_combination_params_r11_s {
-  typedef dyn_array<band_params_r11_s> band_param_list_r11_l_;
+  using band_param_list_r11_l_ = dyn_array<band_params_r11_s>;
 
   // member variables
-  bool                   ext                                      = false;
-  bool                   supported_bw_combination_set_r11_present = false;
-  bool                   multiple_timing_advance_r11_present      = false;
-  bool                   simul_rx_tx_r11_present                  = false;
-  band_param_list_r11_l_ band_param_list_r11;
-  dyn_bitstring          supported_bw_combination_set_r11;
-  band_info_eutra_s      band_info_eutra_r11;
+  bool                     ext                                      = false;
+  bool                     supported_bw_combination_set_r11_present = false;
+  bool                     multiple_timing_advance_r11_present      = false;
+  bool                     simul_rx_tx_r11_present                  = false;
+  band_param_list_r11_l_   band_param_list_r11;
+  bounded_bitstring<1, 32> supported_bw_combination_set_r11;
+  band_info_eutra_s        band_info_eutra_r11;
   // ...
 
   // sequence methods
@@ -49406,7 +48630,7 @@ struct intra_band_contiguous_cc_info_r12_s {
 
 // CA-MIMO-ParametersDL-r13 ::= SEQUENCE
 struct ca_mimo_params_dl_r13_s {
-  typedef dyn_array<intra_band_contiguous_cc_info_r12_s> intra_band_contiguous_cc_info_list_r13_l_;
+  using intra_band_contiguous_cc_info_list_r13_l_ = dyn_array<intra_band_contiguous_cc_info_r12_s>;
 
   // member variables
   bool                                      supported_mimo_cap_dl_r13_present = false;
@@ -49455,7 +48679,7 @@ struct band_params_r13_s {
 
 // BandCombinationParameters-r13 ::= SEQUENCE
 struct band_combination_params_r13_s {
-  typedef dyn_array<band_params_r13_s> band_param_list_r13_l_;
+  using band_param_list_r13_l_ = dyn_array<band_params_r13_s>;
   struct dc_support_r13_s_ {
     struct supported_cell_grouping_r13_c_ {
       struct types_opts {
@@ -49525,8 +48749,8 @@ struct band_combination_params_r13_s {
       }
 
     private:
-      types                                        type_;
-      choice_buffer_t<sizeof(fixed_bitstring<15>)> c;
+      types                                 type_;
+      choice_buffer_t<fixed_bitstring<15> > c;
 
       void destroy_();
     };
@@ -49538,19 +48762,19 @@ struct band_combination_params_r13_s {
   };
 
   // member variables
-  bool                   different_fallback_supported_r13_present  = false;
-  bool                   supported_bw_combination_set_r13_present  = false;
-  bool                   multiple_timing_advance_r13_present       = false;
-  bool                   simul_rx_tx_r13_present                   = false;
-  bool                   dc_support_r13_present                    = false;
-  bool                   supported_naics_minus2_crs_ap_r13_present = false;
-  bool                   comm_supported_bands_per_bc_r13_present   = false;
-  band_param_list_r13_l_ band_param_list_r13;
-  dyn_bitstring          supported_bw_combination_set_r13;
-  band_info_eutra_s      band_info_eutra_r13;
-  dc_support_r13_s_      dc_support_r13;
-  dyn_bitstring          supported_naics_minus2_crs_ap_r13;
-  dyn_bitstring          comm_supported_bands_per_bc_r13;
+  bool                     different_fallback_supported_r13_present  = false;
+  bool                     supported_bw_combination_set_r13_present  = false;
+  bool                     multiple_timing_advance_r13_present       = false;
+  bool                     simul_rx_tx_r13_present                   = false;
+  bool                     dc_support_r13_present                    = false;
+  bool                     supported_naics_minus2_crs_ap_r13_present = false;
+  bool                     comm_supported_bands_per_bc_r13_present   = false;
+  band_param_list_r13_l_   band_param_list_r13;
+  bounded_bitstring<1, 32> supported_bw_combination_set_r13;
+  band_info_eutra_s        band_info_eutra_r13;
+  dc_support_r13_s_        dc_support_r13;
+  bounded_bitstring<1, 8>  supported_naics_minus2_crs_ap_r13;
+  bounded_bitstring<1, 64> comm_supported_bands_per_bc_r13;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -49560,7 +48784,6 @@ struct band_combination_params_r13_s {
 
 // BandParameters-v1090 ::= SEQUENCE
 struct band_params_v1090_s {
-  // member variables
   bool     ext                      = false;
   bool     band_eutra_v1090_present = false;
   uint16_t band_eutra_v1090         = 65;
@@ -49572,12 +48795,11 @@ struct band_params_v1090_s {
   void        to_json(json_writer& j) const;
 };
 
-// BandCombinationParameters-v1090 ::= SEQUENCE (SIZE (1..maxSimultaneousBands-r10)) OF BandParameters-v1090
-typedef dyn_array<band_params_v1090_s> band_combination_params_v1090_l;
+// BandCombinationParameters-v1090 ::= SEQUENCE (SIZE (1..64)) OF BandParameters-v1090
+using band_combination_params_v1090_l = dyn_array<band_params_v1090_s>;
 
 // CA-MIMO-ParametersDL-v10i0 ::= SEQUENCE
 struct ca_mimo_params_dl_v10i0_s {
-  // member variables
   bool four_layer_tm3_tm4_r10_present = false;
 
   // sequence methods
@@ -49588,7 +48810,7 @@ struct ca_mimo_params_dl_v10i0_s {
 
 // BandParameters-v10i0 ::= SEQUENCE
 struct band_params_v10i0_s {
-  typedef dyn_array<ca_mimo_params_dl_v10i0_s> band_params_dl_v10i0_l_;
+  using band_params_dl_v10i0_l_ = dyn_array<ca_mimo_params_dl_v10i0_s>;
 
   // member variables
   band_params_dl_v10i0_l_ band_params_dl_v10i0;
@@ -49601,7 +48823,7 @@ struct band_params_v10i0_s {
 
 // BandCombinationParameters-v10i0 ::= SEQUENCE
 struct band_combination_params_v10i0_s {
-  typedef dyn_array<band_params_v10i0_s> band_param_list_v10i0_l_;
+  using band_param_list_v10i0_l_ = dyn_array<band_params_v10i0_s>;
 
   // member variables
   bool                     band_param_list_v10i0_present = false;
@@ -49635,7 +48857,7 @@ struct band_params_v1130_s {
 
 // BandCombinationParameters-v1130 ::= SEQUENCE
 struct band_combination_params_v1130_s {
-  typedef dyn_array<band_params_v1130_s> band_param_list_r11_l_;
+  using band_param_list_r11_l_ = dyn_array<band_params_v1130_s>;
 
   // member variables
   bool                   ext                                 = false;
@@ -49722,8 +48944,8 @@ struct band_combination_params_v1250_s {
       }
 
     private:
-      types                                        type_;
-      choice_buffer_t<sizeof(fixed_bitstring<15>)> c;
+      types                                 type_;
+      choice_buffer_t<fixed_bitstring<15> > c;
 
       void destroy_();
     };
@@ -49735,13 +48957,13 @@ struct band_combination_params_v1250_s {
   };
 
   // member variables
-  bool              ext                                       = false;
-  bool              dc_support_r12_present                    = false;
-  bool              supported_naics_minus2_crs_ap_r12_present = false;
-  bool              comm_supported_bands_per_bc_r12_present   = false;
-  dc_support_r12_s_ dc_support_r12;
-  dyn_bitstring     supported_naics_minus2_crs_ap_r12;
-  dyn_bitstring     comm_supported_bands_per_bc_r12;
+  bool                     ext                                       = false;
+  bool                     dc_support_r12_present                    = false;
+  bool                     supported_naics_minus2_crs_ap_r12_present = false;
+  bool                     comm_supported_bands_per_bc_r12_present   = false;
+  dc_support_r12_s_        dc_support_r12;
+  bounded_bitstring<1, 8>  supported_naics_minus2_crs_ap_r12;
+  bounded_bitstring<1, 64> comm_supported_bands_per_bc_r12;
   // ...
 
   // sequence methods
@@ -49752,7 +48974,7 @@ struct band_combination_params_v1250_s {
 
 // CA-MIMO-ParametersDL-v1270 ::= SEQUENCE
 struct ca_mimo_params_dl_v1270_s {
-  typedef dyn_array<intra_band_contiguous_cc_info_r12_s> intra_band_contiguous_cc_info_list_r12_l_;
+  using intra_band_contiguous_cc_info_list_r12_l_ = dyn_array<intra_band_contiguous_cc_info_r12_s>;
 
   // member variables
   intra_band_contiguous_cc_info_list_r12_l_ intra_band_contiguous_cc_info_list_r12;
@@ -49765,7 +48987,7 @@ struct ca_mimo_params_dl_v1270_s {
 
 // BandParameters-v1270 ::= SEQUENCE
 struct band_params_v1270_s {
-  typedef dyn_array<ca_mimo_params_dl_v1270_s> band_params_dl_v1270_l_;
+  using band_params_dl_v1270_l_ = dyn_array<ca_mimo_params_dl_v1270_s>;
 
   // member variables
   band_params_dl_v1270_l_ band_params_dl_v1270;
@@ -49778,7 +49000,7 @@ struct band_params_v1270_s {
 
 // BandCombinationParameters-v1270 ::= SEQUENCE
 struct band_combination_params_v1270_s {
-  typedef dyn_array<band_params_v1270_s> band_param_list_v1270_l_;
+  using band_param_list_v1270_l_ = dyn_array<band_params_v1270_s>;
 
   // member variables
   bool                     band_param_list_v1270_present = false;
@@ -49791,11 +49013,10 @@ struct band_combination_params_v1270_s {
 };
 
 // MIMO-BeamformedCapabilities-r13 ::= SEQUENCE
-struct mimo_beamformed_capabilities_r13_s {
-  // member variables
-  bool          n_max_list_r13_present = false;
-  uint8_t       k_max_r13              = 1;
-  dyn_bitstring n_max_list_r13;
+struct mimo_bf_cap_r13_s {
+  bool                    n_max_list_r13_present = false;
+  uint8_t                 k_max_r13              = 1;
+  bounded_bitstring<1, 7> n_max_list_r13;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -49803,12 +49024,11 @@ struct mimo_beamformed_capabilities_r13_s {
   void        to_json(json_writer& j) const;
 };
 
-// MIMO-BeamformedCapabilityList-r13 ::= SEQUENCE (SIZE (1..maxCSI-Proc-r11)) OF MIMO-BeamformedCapabilities-r13
-typedef dyn_array<mimo_beamformed_capabilities_r13_s> mimo_beamformed_cap_list_r13_l;
+// MIMO-BeamformedCapabilityList-r13 ::= SEQUENCE (SIZE (1..4)) OF MIMO-BeamformedCapabilities-r13
+using mimo_bf_cap_list_r13_l = dyn_array<mimo_bf_cap_r13_s>;
 
 // MIMO-NonPrecodedCapabilities-r13 ::= SEQUENCE
-struct mimo_non_precoded_capabilities_r13_s {
-  // member variables
+struct mimo_non_precoded_cap_r13_s {
   bool cfg1_r13_present = false;
   bool cfg2_r13_present = false;
   bool cfg3_r13_present = false;
@@ -49822,12 +49042,11 @@ struct mimo_non_precoded_capabilities_r13_s {
 
 // MIMO-CA-ParametersPerBoBCPerTM-r13 ::= SEQUENCE
 struct mimo_ca_params_per_bo_bc_per_tm_r13_s {
-  // member variables
-  bool                                 non_precoded_r13_present = false;
-  bool                                 beamformed_r13_present   = false;
-  bool                                 dmrs_enhance_r13_present = false;
-  mimo_non_precoded_capabilities_r13_s non_precoded_r13;
-  mimo_beamformed_cap_list_r13_l       beamformed_r13;
+  bool                        non_precoded_r13_present = false;
+  bool                        bf_r13_present           = false;
+  bool                        dmrs_enhance_r13_present = false;
+  mimo_non_precoded_cap_r13_s non_precoded_r13;
+  mimo_bf_cap_list_r13_l      bf_r13;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -49837,7 +49056,6 @@ struct mimo_ca_params_per_bo_bc_per_tm_r13_s {
 
 // MIMO-CA-ParametersPerBoBC-r13 ::= SEQUENCE
 struct mimo_ca_params_per_bo_bc_r13_s {
-  // member variables
   bool                                  params_tm9_r13_present  = false;
   bool                                  params_tm10_r13_present = false;
   mimo_ca_params_per_bo_bc_per_tm_r13_s params_tm9_r13;
@@ -49851,7 +49069,6 @@ struct mimo_ca_params_per_bo_bc_r13_s {
 
 // BandParameters-v1320 ::= SEQUENCE
 struct band_params_v1320_s {
-  // member variables
   mimo_ca_params_per_bo_bc_r13_s band_params_dl_v1320;
 
   // sequence methods
@@ -49862,7 +49079,7 @@ struct band_params_v1320_s {
 
 // BandCombinationParameters-v1320 ::= SEQUENCE
 struct band_combination_params_v1320_s {
-  typedef dyn_array<band_params_v1320_s> band_param_list_v1320_l_;
+  using band_param_list_v1320_l_ = dyn_array<band_params_v1320_s>;
 
   // member variables
   bool                     band_param_list_v1320_present         = false;
@@ -49877,7 +49094,6 @@ struct band_combination_params_v1320_s {
 
 // BandParameters-v1380 ::= SEQUENCE
 struct band_params_v1380_s {
-  // member variables
   bool    tx_ant_switch_dl_r13_present = false;
   bool    tx_ant_switch_ul_r13_present = false;
   uint8_t tx_ant_switch_dl_r13         = 1;
@@ -49891,7 +49107,7 @@ struct band_params_v1380_s {
 
 // BandCombinationParameters-v1380 ::= SEQUENCE
 struct band_combination_params_v1380_s {
-  typedef dyn_array<band_params_v1380_s> band_param_list_v1380_l_;
+  using band_param_list_v1380_l_ = dyn_array<band_params_v1380_s>;
 
   // member variables
   bool                     band_param_list_v1380_present = false;
@@ -49905,7 +49121,6 @@ struct band_combination_params_v1380_s {
 
 // MIMO-CA-ParametersPerBoBCPerTM-v1430 ::= SEQUENCE
 struct mimo_ca_params_per_bo_bc_per_tm_v1430_s {
-  // member variables
   bool csi_report_np_r14_present       = false;
   bool csi_report_advanced_r14_present = false;
 
@@ -49917,7 +49132,6 @@ struct mimo_ca_params_per_bo_bc_per_tm_v1430_s {
 
 // MIMO-CA-ParametersPerBoBC-v1430 ::= SEQUENCE
 struct mimo_ca_params_per_bo_bc_v1430_s {
-  // member variables
   bool                                    params_tm9_v1430_present  = false;
   bool                                    params_tm10_v1430_present = false;
   mimo_ca_params_per_bo_bc_per_tm_v1430_s params_tm9_v1430;
@@ -50005,7 +49219,6 @@ struct retuning_time_info_r14_s {
 
 // UL-256QAM-perCC-Info-r14 ::= SEQUENCE
 struct ul_minus256_qam_per_cc_info_r14_s {
-  // member variables
   bool ul_minus256_qam_per_cc_r14_present = false;
 
   // sequence methods
@@ -50016,8 +49229,8 @@ struct ul_minus256_qam_per_cc_info_r14_s {
 
 // BandParameters-v1430 ::= SEQUENCE
 struct band_params_v1430_s {
-  typedef dyn_array<ul_minus256_qam_per_cc_info_r14_s> ul_minus256_qam_per_cc_info_list_r14_l_;
-  typedef dyn_array<retuning_time_info_r14_s>          retuning_time_info_band_list_r14_l_;
+  using ul_minus256_qam_per_cc_info_list_r14_l_ = dyn_array<ul_minus256_qam_per_cc_info_r14_s>;
+  using retuning_time_info_band_list_r14_l_     = dyn_array<retuning_time_info_r14_s>;
 
   // member variables
   bool                                    band_params_dl_v1430_present                 = false;
@@ -50036,15 +49249,15 @@ struct band_params_v1430_s {
 
 // BandCombinationParameters-v1430 ::= SEQUENCE
 struct band_combination_params_v1430_s {
-  typedef dyn_array<band_params_v1430_s> band_param_list_v1430_l_;
+  using band_param_list_v1430_l_ = dyn_array<band_params_v1430_s>;
 
   // member variables
-  bool                     band_param_list_v1430_present                      = false;
-  bool                     v2x_supported_tx_band_comb_list_per_bc_r14_present = false;
-  bool                     v2x_supported_rx_band_comb_list_per_bc_r14_present = false;
-  band_param_list_v1430_l_ band_param_list_v1430;
-  dyn_bitstring            v2x_supported_tx_band_comb_list_per_bc_r14;
-  dyn_bitstring            v2x_supported_rx_band_comb_list_per_bc_r14;
+  bool                      band_param_list_v1430_present                      = false;
+  bool                      v2x_supported_tx_band_comb_list_per_bc_r14_present = false;
+  bool                      v2x_supported_rx_band_comb_list_per_bc_r14_present = false;
+  band_param_list_v1430_l_  band_param_list_v1430;
+  bounded_bitstring<1, 384> v2x_supported_tx_band_comb_list_per_bc_r14;
+  bounded_bitstring<1, 384> v2x_supported_rx_band_comb_list_per_bc_r14;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -50054,7 +49267,6 @@ struct band_combination_params_v1430_s {
 
 // MUST-Parameters-r14 ::= SEQUENCE
 struct must_params_r14_s {
-  // member variables
   bool must_tm234_up_to2_tx_r14_present                     = false;
   bool must_tm89_up_to_one_interfering_layer_r14_present    = false;
   bool must_tm10_up_to_one_interfering_layer_r14_present    = false;
@@ -50069,7 +49281,6 @@ struct must_params_r14_s {
 
 // BandParameters-v1450 ::= SEQUENCE
 struct band_params_v1450_s {
-  // member variables
   bool              must_cap_per_band_r14_present = false;
   must_params_r14_s must_cap_per_band_r14;
 
@@ -50081,7 +49292,7 @@ struct band_params_v1450_s {
 
 // BandCombinationParameters-v1450 ::= SEQUENCE
 struct band_combination_params_v1450_s {
-  typedef dyn_array<band_params_v1450_s> band_param_list_v1450_l_;
+  using band_param_list_v1450_l_ = dyn_array<band_params_v1450_s>;
 
   // member variables
   bool                     band_param_list_v1450_present = false;
@@ -50116,7 +49327,6 @@ struct mimo_ca_params_per_bo_bc_per_tm_v1470_s {
 
 // MIMO-CA-ParametersPerBoBC-v1470 ::= SEQUENCE
 struct mimo_ca_params_per_bo_bc_v1470_s {
-  // member variables
   mimo_ca_params_per_bo_bc_per_tm_v1470_s params_tm9_v1470;
   mimo_ca_params_per_bo_bc_per_tm_v1470_s params_tm10_v1470;
 
@@ -50128,7 +49338,6 @@ struct mimo_ca_params_per_bo_bc_v1470_s {
 
 // BandParameters-v1470 ::= SEQUENCE
 struct band_params_v1470_s {
-  // member variables
   bool                             band_params_dl_v1470_present = false;
   mimo_ca_params_per_bo_bc_v1470_s band_params_dl_v1470;
 
@@ -50140,7 +49349,7 @@ struct band_params_v1470_s {
 
 // BandCombinationParameters-v1470 ::= SEQUENCE
 struct band_combination_params_v1470_s {
-  typedef dyn_array<band_params_v1470_s> band_param_list_v1470_l_;
+  using band_param_list_v1470_l_ = dyn_array<band_params_v1470_s>;
 
   // member variables
   bool                     band_param_list_v1470_present = false;
@@ -50156,7 +49365,6 @@ struct band_combination_params_v1470_s {
 
 // DL-UL-CCs-r15 ::= SEQUENCE
 struct dl_ul_ccs_r15_s {
-  // member variables
   bool    max_num_dl_ccs_r15_present = false;
   bool    max_num_ul_ccs_r15_present = false;
   uint8_t max_num_dl_ccs_r15         = 1;
@@ -50170,7 +49378,7 @@ struct dl_ul_ccs_r15_s {
 
 // CA-MIMO-ParametersDL-r15 ::= SEQUENCE
 struct ca_mimo_params_dl_r15_s {
-  typedef dyn_array<intra_band_contiguous_cc_info_r12_s> intra_band_contiguous_cc_info_list_r15_l_;
+  using intra_band_contiguous_cc_info_list_r15_l_ = dyn_array<intra_band_contiguous_cc_info_r12_s>;
 
   // member variables
   bool                                      supported_mimo_cap_dl_r15_present              = false;
@@ -50187,7 +49395,6 @@ struct ca_mimo_params_dl_r15_s {
 
 // CA-MIMO-ParametersUL-r15 ::= SEQUENCE
 struct ca_mimo_params_ul_r15_s {
-  // member variables
   bool              supported_mimo_cap_ul_r15_present = false;
   mimo_cap_ul_r10_e supported_mimo_cap_ul_r15;
 
@@ -50199,9 +49406,9 @@ struct ca_mimo_params_ul_r15_s {
 
 // STTI-SupportedCombinations-r15 ::= SEQUENCE
 struct stti_supported_combinations_r15_s {
-  typedef dyn_array<dl_ul_ccs_r15_s> combination_minus22_minus27_r15_l_;
-  typedef dyn_array<dl_ul_ccs_r15_s> combination_minus77_minus22_r15_l_;
-  typedef dyn_array<dl_ul_ccs_r15_s> combination_minus77_minus27_r15_l_;
+  using combination_minus22_minus27_r15_l_ = dyn_array<dl_ul_ccs_r15_s>;
+  using combination_minus77_minus22_r15_l_ = dyn_array<dl_ul_ccs_r15_s>;
+  using combination_minus77_minus27_r15_l_ = dyn_array<dl_ul_ccs_r15_s>;
 
   // member variables
   bool                               combination_minus22_r15_present         = false;
@@ -50225,14 +49432,14 @@ struct stti_supported_combinations_r15_s {
 
 // STTI-SPT-BandParameters-r15 ::= SEQUENCE
 struct stti_spt_band_params_r15_s {
-  struct s_tti_supported_csi_proc_r15_opts {
+  struct stti_supported_csi_proc_r15_opts {
     enum options { n1, n3, n4, nulltype } value;
     typedef uint8_t number_type;
 
     std::string to_string() const;
     uint8_t     to_number() const;
   };
-  typedef enumerated<s_tti_supported_csi_proc_r15_opts> s_tti_supported_csi_proc_r15_e_;
+  typedef enumerated<stti_supported_csi_proc_r15_opts> stti_supported_csi_proc_r15_e_;
 
   // member variables
   bool                              ext                                            = false;
@@ -50240,20 +49447,20 @@ struct stti_spt_band_params_r15_s {
   bool                              dl_minus1024_qam_subslot_ta_minus1_r15_present = false;
   bool                              dl_minus1024_qam_subslot_ta_minus2_r15_present = false;
   bool                              simul_tx_different_tx_dur_r15_present          = false;
-  bool                              s_tti_ca_mimo_params_dl_r15_present            = false;
-  bool                              s_tti_fd_mimo_coexistence_present              = false;
-  bool                              s_tti_mimo_ca_params_per_bo_bcs_r15_present    = false;
-  bool                              s_tti_mimo_ca_params_per_bo_bcs_v1530_present  = false;
-  bool                              s_tti_supported_combinations_r15_present       = false;
-  bool                              s_tti_supported_csi_proc_r15_present           = false;
+  bool                              stti_ca_mimo_params_dl_r15_present             = false;
+  bool                              stti_fd_mimo_coexistence_present               = false;
+  bool                              stti_mimo_ca_params_per_bo_bcs_r15_present     = false;
+  bool                              stti_mimo_ca_params_per_bo_bcs_v1530_present   = false;
+  bool                              stti_supported_combinations_r15_present        = false;
+  bool                              stti_supported_csi_proc_r15_present            = false;
   bool                              ul_minus256_qam_slot_r15_present               = false;
   bool                              ul_minus256_qam_subslot_r15_present            = false;
-  ca_mimo_params_dl_r15_s           s_tti_ca_mimo_params_dl_r15;
-  ca_mimo_params_ul_r15_s           s_tti_ca_mimo_params_ul_r15;
-  mimo_ca_params_per_bo_bc_r13_s    s_tti_mimo_ca_params_per_bo_bcs_r15;
-  mimo_ca_params_per_bo_bc_v1430_s  s_tti_mimo_ca_params_per_bo_bcs_v1530;
-  stti_supported_combinations_r15_s s_tti_supported_combinations_r15;
-  s_tti_supported_csi_proc_r15_e_   s_tti_supported_csi_proc_r15;
+  ca_mimo_params_dl_r15_s           stti_ca_mimo_params_dl_r15;
+  ca_mimo_params_ul_r15_s           stti_ca_mimo_params_ul_r15;
+  mimo_ca_params_per_bo_bc_r13_s    stti_mimo_ca_params_per_bo_bcs_r15;
+  mimo_ca_params_per_bo_bc_v1430_s  stti_mimo_ca_params_per_bo_bcs_v1530;
+  stti_supported_combinations_r15_s stti_supported_combinations_r15;
+  stti_supported_csi_proc_r15_e_    stti_supported_csi_proc_r15;
   // ...
 
   // sequence methods
@@ -50264,7 +49471,6 @@ struct stti_spt_band_params_r15_s {
 
 // BandParameters-v1530 ::= SEQUENCE
 struct band_params_v1530_s {
-  // member variables
   bool                       ue_tx_ant_sel_srs_minus1_t4_r_r15_present              = false;
   bool                       ue_tx_ant_sel_srs_minus2_t4_r_minus2_pairs_r15_present = false;
   bool                       ue_tx_ant_sel_srs_minus2_t4_r_minus3_pairs_r15_present = false;
@@ -50282,7 +49488,6 @@ struct band_params_v1530_s {
 
 // SPT-Parameters-r15 ::= SEQUENCE
 struct spt_params_r15_s {
-  // member variables
   bool               frame_structure_type_spt_r15_present = false;
   bool               max_num_ccs_spt_r15_present          = false;
   fixed_bitstring<3> frame_structure_type_spt_r15;
@@ -50296,7 +49501,7 @@ struct spt_params_r15_s {
 
 // BandCombinationParameters-v1530 ::= SEQUENCE
 struct band_combination_params_v1530_s {
-  typedef dyn_array<band_params_v1530_s> band_param_list_v1530_l_;
+  using band_param_list_v1530_l_ = dyn_array<band_params_v1530_s>;
 
   // member variables
   bool                     band_param_list_v1530_present = false;
@@ -50312,9 +49517,8 @@ struct band_combination_params_v1530_s {
 
 // BandCombinationParametersExt-r10 ::= SEQUENCE
 struct band_combination_params_ext_r10_s {
-  // member variables
-  bool          supported_bw_combination_set_r10_present = false;
-  dyn_bitstring supported_bw_combination_set_r10;
+  bool                     supported_bw_combination_set_r10_present = false;
+  bounded_bitstring<1, 32> supported_bw_combination_set_r10;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -50322,8 +49526,8 @@ struct band_combination_params_ext_r10_s {
   void        to_json(json_writer& j) const;
 };
 
-// BandListEUTRA ::= SEQUENCE (SIZE (1..maxBands)) OF BandInfoEUTRA
-typedef dyn_array<band_info_eutra_s> band_list_eutra_l;
+// BandListEUTRA ::= SEQUENCE (SIZE (1..64)) OF BandInfoEUTRA
+using band_list_eutra_l = dyn_array<band_info_eutra_s>;
 
 // V2X-BandwidthClass-r14 ::= ENUMERATED
 struct v2x_bw_class_r14_opts {
@@ -50335,12 +49539,11 @@ struct v2x_bw_class_r14_opts {
 };
 typedef enumerated<v2x_bw_class_r14_opts, true, 1> v2x_bw_class_r14_e;
 
-// V2X-BandwidthClassSL-r14 ::= SEQUENCE (SIZE (1..maxBandwidthClass-r10)) OF V2X-BandwidthClass-r14
-typedef bounded_array<v2x_bw_class_r14_e, 16> v2x_bw_class_sl_r14_l;
+// V2X-BandwidthClassSL-r14 ::= SEQUENCE (SIZE (1..16)) OF V2X-BandwidthClass-r14
+using v2x_bw_class_sl_r14_l = bounded_array<v2x_bw_class_r14_e, 16>;
 
 // BandParametersRxSL-r14 ::= SEQUENCE
 struct band_params_rx_sl_r14_s {
-  // member variables
   bool                  v2x_high_reception_r14_present = false;
   v2x_bw_class_sl_r14_l v2x_bw_class_rx_sl_r14;
 
@@ -50352,7 +49555,6 @@ struct band_params_rx_sl_r14_s {
 
 // BandParametersTxSL-r14 ::= SEQUENCE
 struct band_params_tx_sl_r14_s {
-  // member variables
   bool                  v2x_e_nb_sched_r14_present = false;
   bool                  v2x_high_pwr_r14_present   = false;
   v2x_bw_class_sl_r14_l v2x_bw_class_tx_sl_r14;
@@ -50389,14 +49591,13 @@ struct feature_set_dl_per_cc_r15_s {
 
 // MIMO-CA-ParametersPerBoBCPerTM-r15 ::= SEQUENCE
 struct mimo_ca_params_per_bo_bc_per_tm_r15_s {
-  // member variables
-  bool                                 non_precoded_r13_present        = false;
-  bool                                 beamformed_r13_present          = false;
-  bool                                 dmrs_enhance_r13_present        = false;
-  bool                                 csi_report_np_r14_present       = false;
-  bool                                 csi_report_advanced_r14_present = false;
-  mimo_non_precoded_capabilities_r13_s non_precoded_r13;
-  mimo_beamformed_cap_list_r13_l       beamformed_r13;
+  bool                        non_precoded_r13_present        = false;
+  bool                        bf_r13_present                  = false;
+  bool                        dmrs_enhance_r13_present        = false;
+  bool                        csi_report_np_r14_present       = false;
+  bool                        csi_report_advanced_r14_present = false;
+  mimo_non_precoded_cap_r13_s non_precoded_r13;
+  mimo_bf_cap_list_r13_l      bf_r13;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -50406,7 +49607,6 @@ struct mimo_ca_params_per_bo_bc_per_tm_r15_s {
 
 // MIMO-CA-ParametersPerBoBC-r15 ::= SEQUENCE
 struct mimo_ca_params_per_bo_bc_r15_s {
-  // member variables
   bool                                  params_tm9_r15_present  = false;
   bool                                  params_tm10_r15_present = false;
   mimo_ca_params_per_bo_bc_per_tm_r15_s params_tm9_r15;
@@ -50420,7 +49620,7 @@ struct mimo_ca_params_per_bo_bc_r15_s {
 
 // FeatureSetDL-r15 ::= SEQUENCE
 struct feature_set_dl_r15_s {
-  typedef bounded_array<uint8_t, 32> feature_set_per_cc_list_dl_r15_l_;
+  using feature_set_per_cc_list_dl_r15_l_ = bounded_array<uint8_t, 32>;
 
   // member variables
   bool                              mimo_ca_params_per_bo_bc_r15_present = false;
@@ -50435,7 +49635,6 @@ struct feature_set_dl_r15_s {
 
 // FeatureSetUL-PerCC-r15 ::= SEQUENCE
 struct feature_set_ul_per_cc_r15_s {
-  // member variables
   bool              supported_mimo_cap_ul_r15_present = false;
   bool              ul_minus256_qam_r15_present       = false;
   mimo_cap_ul_r10_e supported_mimo_cap_ul_r15;
@@ -50448,7 +49647,7 @@ struct feature_set_ul_per_cc_r15_s {
 
 // FeatureSetUL-r15 ::= SEQUENCE
 struct feature_set_ul_r15_s {
-  typedef bounded_array<uint8_t, 32> feature_set_per_cc_list_ul_r15_l_;
+  using feature_set_per_cc_list_ul_r15_l_ = bounded_array<uint8_t, 32>;
 
   // member variables
   feature_set_per_cc_list_ul_r15_l_ feature_set_per_cc_list_ul_r15;
@@ -50461,10 +49660,10 @@ struct feature_set_ul_r15_s {
 
 // FeatureSetsEUTRA-r15 ::= SEQUENCE
 struct feature_sets_eutra_r15_s {
-  typedef dyn_array<feature_set_dl_r15_s>        feature_sets_dl_r15_l_;
-  typedef dyn_array<feature_set_dl_per_cc_r15_s> feature_sets_dl_per_cc_r15_l_;
-  typedef dyn_array<feature_set_ul_r15_s>        feature_sets_ul_r15_l_;
-  typedef dyn_array<feature_set_ul_per_cc_r15_s> feature_sets_ul_per_cc_r15_l_;
+  using feature_sets_dl_r15_l_        = dyn_array<feature_set_dl_r15_s>;
+  using feature_sets_dl_per_cc_r15_l_ = dyn_array<feature_set_dl_per_cc_r15_s>;
+  using feature_sets_ul_r15_l_        = dyn_array<feature_set_ul_r15_s>;
+  using feature_sets_ul_per_cc_r15_l_ = dyn_array<feature_set_ul_per_cc_r15_s>;
 
   // member variables
   bool                          ext                                = false;
@@ -50484,11 +49683,11 @@ struct feature_sets_eutra_r15_s {
   void        to_json(json_writer& j) const;
 };
 
-// FreqBandIndicatorListEUTRA-r12 ::= SEQUENCE (SIZE (1..maxBands)) OF INTEGER
-typedef dyn_array<uint16_t> freq_band_ind_list_eutra_r12_l;
+// FreqBandIndicatorListEUTRA-r12 ::= SEQUENCE (SIZE (1..64)) OF INTEGER (1..256)
+using freq_band_ind_list_eutra_r12_l = dyn_array<uint16_t>;
 
-// SupportedBandList1XRTT ::= SEQUENCE (SIZE (1..maxCDMA-BandClass)) OF BandclassCDMA2000
-typedef bounded_array<bandclass_cdma2000_e, 32> supported_band_list1_xrtt_l;
+// SupportedBandList1XRTT ::= SEQUENCE (SIZE (1..32)) OF BandclassCDMA2000
+using supported_band_list1_xrtt_l = bounded_array<bandclass_cdma2000_e, 32>;
 
 // IRAT-ParametersCDMA2000-1XRTT ::= SEQUENCE
 struct irat_params_cdma2000_minus1_xrtt_s {
@@ -50516,8 +49715,8 @@ struct irat_params_cdma2000_minus1_xrtt_s {
   void        to_json(json_writer& j) const;
 };
 
-// SupportedBandListHRPD ::= SEQUENCE (SIZE (1..maxCDMA-BandClass)) OF BandclassCDMA2000
-typedef bounded_array<bandclass_cdma2000_e, 32> supported_band_list_hrpd_l;
+// SupportedBandListHRPD ::= SEQUENCE (SIZE (1..32)) OF BandclassCDMA2000
+using supported_band_list_hrpd_l = bounded_array<bandclass_cdma2000_e, 32>;
 
 // IRAT-ParametersCDMA2000-HRPD ::= SEQUENCE
 struct irat_params_cdma2000_hrpd_s {
@@ -50572,12 +49771,11 @@ struct supported_band_geran_opts {
 };
 typedef enumerated<supported_band_geran_opts, true> supported_band_geran_e;
 
-// SupportedBandListGERAN ::= SEQUENCE (SIZE (1..maxBands)) OF SupportedBandGERAN
-typedef dyn_array<supported_band_geran_e> supported_band_list_geran_l;
+// SupportedBandListGERAN ::= SEQUENCE (SIZE (1..64)) OF SupportedBandGERAN
+using supported_band_list_geran_l = dyn_array<supported_band_geran_e>;
 
 // IRAT-ParametersGERAN ::= SEQUENCE
 struct irat_params_geran_s {
-  // member variables
   supported_band_list_geran_l supported_band_list_geran;
   bool                        inter_rat_ps_ho_to_geran = false;
 
@@ -50589,7 +49787,6 @@ struct irat_params_geran_s {
 
 // SupportedBandNR-r15 ::= SEQUENCE
 struct supported_band_nr_r15_s {
-  // member variables
   uint16_t band_nr_r15 = 1;
 
   // sequence methods
@@ -50598,12 +49795,11 @@ struct supported_band_nr_r15_s {
   void        to_json(json_writer& j) const;
 };
 
-// SupportedBandListNR-r15 ::= SEQUENCE (SIZE (1..maxBandsNR-r15)) OF SupportedBandNR-r15
-typedef dyn_array<supported_band_nr_r15_s> supported_band_list_nr_r15_l;
+// SupportedBandListNR-r15 ::= SEQUENCE (SIZE (1..1024)) OF SupportedBandNR-r15
+using supported_band_list_nr_r15_l = dyn_array<supported_band_nr_r15_s>;
 
 // IRAT-ParametersNR-r15 ::= SEQUENCE
 struct irat_params_nr_r15_s {
-  // member variables
   bool                         en_dc_r15_present                  = false;
   bool                         event_b2_r15_present               = false;
   bool                         supported_band_list_nr_r15_present = false;
@@ -50658,12 +49854,11 @@ struct supported_band_utra_fdd_opts {
 };
 typedef enumerated<supported_band_utra_fdd_opts, true, 16> supported_band_utra_fdd_e;
 
-// SupportedBandListUTRA-FDD ::= SEQUENCE (SIZE (1..maxBands)) OF SupportedBandUTRA-FDD
-typedef dyn_array<supported_band_utra_fdd_e> supported_band_list_utra_fdd_l;
+// SupportedBandListUTRA-FDD ::= SEQUENCE (SIZE (1..64)) OF SupportedBandUTRA-FDD
+using supported_band_list_utra_fdd_l = dyn_array<supported_band_utra_fdd_e>;
 
 // IRAT-ParametersUTRA-FDD ::= SEQUENCE
 struct irat_params_utra_fdd_s {
-  // member variables
   supported_band_list_utra_fdd_l supported_band_list_utra_fdd;
 
   // sequence methods
@@ -50680,12 +49875,11 @@ struct supported_band_utra_tdd128_opts {
 };
 typedef enumerated<supported_band_utra_tdd128_opts, true> supported_band_utra_tdd128_e;
 
-// SupportedBandListUTRA-TDD128 ::= SEQUENCE (SIZE (1..maxBands)) OF SupportedBandUTRA-TDD128
-typedef dyn_array<supported_band_utra_tdd128_e> supported_band_list_utra_tdd128_l;
+// SupportedBandListUTRA-TDD128 ::= SEQUENCE (SIZE (1..64)) OF SupportedBandUTRA-TDD128
+using supported_band_list_utra_tdd128_l = dyn_array<supported_band_utra_tdd128_e>;
 
 // IRAT-ParametersUTRA-TDD128 ::= SEQUENCE
 struct irat_params_utra_tdd128_s {
-  // member variables
   supported_band_list_utra_tdd128_l supported_band_list_utra_tdd128;
 
   // sequence methods
@@ -50702,12 +49896,11 @@ struct supported_band_utra_tdd384_opts {
 };
 typedef enumerated<supported_band_utra_tdd384_opts, true> supported_band_utra_tdd384_e;
 
-// SupportedBandListUTRA-TDD384 ::= SEQUENCE (SIZE (1..maxBands)) OF SupportedBandUTRA-TDD384
-typedef dyn_array<supported_band_utra_tdd384_e> supported_band_list_utra_tdd384_l;
+// SupportedBandListUTRA-TDD384 ::= SEQUENCE (SIZE (1..64)) OF SupportedBandUTRA-TDD384
+using supported_band_list_utra_tdd384_l = dyn_array<supported_band_utra_tdd384_e>;
 
 // IRAT-ParametersUTRA-TDD384 ::= SEQUENCE
 struct irat_params_utra_tdd384_s {
-  // member variables
   supported_band_list_utra_tdd384_l supported_band_list_utra_tdd384;
 
   // sequence methods
@@ -50724,12 +49917,11 @@ struct supported_band_utra_tdd768_opts {
 };
 typedef enumerated<supported_band_utra_tdd768_opts, true> supported_band_utra_tdd768_e;
 
-// SupportedBandListUTRA-TDD768 ::= SEQUENCE (SIZE (1..maxBands)) OF SupportedBandUTRA-TDD768
-typedef dyn_array<supported_band_utra_tdd768_e> supported_band_list_utra_tdd768_l;
+// SupportedBandListUTRA-TDD768 ::= SEQUENCE (SIZE (1..64)) OF SupportedBandUTRA-TDD768
+using supported_band_list_utra_tdd768_l = dyn_array<supported_band_utra_tdd768_e>;
 
 // IRAT-ParametersUTRA-TDD768 ::= SEQUENCE
 struct irat_params_utra_tdd768_s {
-  // member variables
   supported_band_list_utra_tdd768_l supported_band_list_utra_tdd768;
 
   // sequence methods
@@ -50740,7 +49932,7 @@ struct irat_params_utra_tdd768_s {
 
 // IRAT-ParametersWLAN-r13 ::= SEQUENCE
 struct irat_params_wlan_r13_s {
-  typedef bounded_array<wlan_band_ind_r13_e, 8> supported_band_list_wlan_r13_l_;
+  using supported_band_list_wlan_r13_l_ = bounded_array<wlan_band_ind_r13_e, 8>;
 
   // member variables
   bool                            supported_band_list_wlan_r13_present = false;
@@ -50764,7 +49956,6 @@ typedef enumerated<processing_timeline_set_r15_opts> processing_timeline_set_r15
 
 // SkipSubframeProcessing-r15 ::= SEQUENCE
 struct skip_sf_processing_r15_s {
-  // member variables
   bool    skip_processing_dl_slot_r15_present     = false;
   bool    skip_processing_dl_sub_slot_r15_present = false;
   bool    skip_processing_ul_slot_r15_present     = false;
@@ -50782,7 +49973,7 @@ struct skip_sf_processing_r15_s {
 
 // MAC-Parameters-v1530 ::= SEQUENCE
 struct mac_params_v1530_s {
-  typedef bounded_array<processing_timeline_set_r15_e, 3> min_proc_timeline_subslot_r15_l_;
+  using min_proc_timeline_subslot_r15_l_ = bounded_array<processing_timeline_set_r15_e, 3>;
 
   // member variables
   bool                             min_proc_timeline_subslot_r15_present = false;
@@ -50803,10 +49994,9 @@ struct mac_params_v1530_s {
 };
 
 // MIMO-UE-BeamformedCapabilities-r13 ::= SEQUENCE
-struct mimo_ue_beamformed_capabilities_r13_s {
-  // member variables
-  bool                           alt_codebook_r13_present = false;
-  mimo_beamformed_cap_list_r13_l mimo_beamformed_capabilities_r13;
+struct mimo_ue_bf_cap_r13_s {
+  bool                   alt_codebook_r13_present = false;
+  mimo_bf_cap_list_r13_l mimo_bf_cap_r13;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -50816,14 +50006,13 @@ struct mimo_ue_beamformed_capabilities_r13_s {
 
 // MIMO-UE-ParametersPerTM-r13 ::= SEQUENCE
 struct mimo_ue_params_per_tm_r13_s {
-  // member variables
-  bool                                  non_precoded_r13_present       = false;
-  bool                                  beamformed_r13_present         = false;
-  bool                                  ch_meas_restrict_r13_present   = false;
-  bool                                  dmrs_enhance_r13_present       = false;
-  bool                                  csi_rs_enhance_tdd_r13_present = false;
-  mimo_non_precoded_capabilities_r13_s  non_precoded_r13;
-  mimo_ue_beamformed_capabilities_r13_s beamformed_r13;
+  bool                        non_precoded_r13_present       = false;
+  bool                        bf_r13_present                 = false;
+  bool                        ch_meas_restrict_r13_present   = false;
+  bool                        dmrs_enhance_r13_present       = false;
+  bool                        csi_rs_enhance_tdd_r13_present = false;
+  mimo_non_precoded_cap_r13_s non_precoded_r13;
+  mimo_ue_bf_cap_r13_s        bf_r13;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -50833,7 +50022,6 @@ struct mimo_ue_params_per_tm_r13_s {
 
 // MIMO-UE-Parameters-r13 ::= SEQUENCE
 struct mimo_ue_params_r13_s {
-  // member variables
   bool                        params_tm9_r13_present                 = false;
   bool                        params_tm10_r13_present                = false;
   bool                        srs_enhance_tdd_r13_present            = false;
@@ -50851,31 +50039,31 @@ struct mimo_ue_params_r13_s {
 // MIMO-UE-ParametersPerTM-v1430 ::= SEQUENCE
 struct mimo_ue_params_per_tm_v1430_s {
   struct nzp_csi_rs_aperiodic_info_r14_s_ {
-    struct n_max_res_r14_opts {
+    struct nmax_res_r14_opts {
       enum options { ffs1, ffs2, ffs3, ffs4, nulltype } value;
       typedef uint8_t number_type;
 
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    typedef enumerated<n_max_res_r14_opts> n_max_res_r14_e_;
+    typedef enumerated<nmax_res_r14_opts> nmax_res_r14_e_;
 
     // member variables
-    uint8_t          n_max_proc_r14 = 5;
-    n_max_res_r14_e_ n_max_res_r14;
+    uint8_t         nmax_proc_r14 = 5;
+    nmax_res_r14_e_ nmax_res_r14;
   };
   struct nzp_csi_rs_periodic_info_r14_s_ {
-    struct n_max_res_r14_opts {
+    struct nmax_res_r14_opts {
       enum options { ffs1, ffs2, ffs3, ffs4, nulltype } value;
       typedef uint8_t number_type;
 
       std::string to_string() const;
       uint8_t     to_number() const;
     };
-    typedef enumerated<n_max_res_r14_opts> n_max_res_r14_e_;
+    typedef enumerated<nmax_res_r14_opts> nmax_res_r14_e_;
 
     // member variables
-    n_max_res_r14_e_ n_max_res_r14;
+    nmax_res_r14_e_ nmax_res_r14;
   };
 
   // member variables
@@ -50900,7 +50088,6 @@ struct mimo_ue_params_per_tm_v1430_s {
 
 // MIMO-UE-Parameters-v1430 ::= SEQUENCE
 struct mimo_ue_params_v1430_s {
-  // member variables
   bool                          params_tm9_v1430_present  = false;
   bool                          params_tm10_v1430_present = false;
   mimo_ue_params_per_tm_v1430_s params_tm9_v1430;
@@ -50935,7 +50122,6 @@ struct mimo_ue_params_per_tm_v1470_s {
 
 // MIMO-UE-Parameters-v1470 ::= SEQUENCE
 struct mimo_ue_params_v1470_s {
-  // member variables
   mimo_ue_params_per_tm_v1470_s params_tm9_v1470;
   mimo_ue_params_per_tm_v1470_s params_tm10_v1470;
 
@@ -50947,7 +50133,6 @@ struct mimo_ue_params_v1470_s {
 
 // MeasParameters ::= SEQUENCE
 struct meas_params_s {
-  // member variables
   band_list_eutra_l band_list_eutra;
 
   // sequence methods
@@ -50958,7 +50143,6 @@ struct meas_params_s {
 
 // MeasParameters-v1020 ::= SEQUENCE
 struct meas_params_v1020_s {
-  // member variables
   band_combination_list_eutra_r10_l band_combination_list_eutra_r10;
 
   // sequence methods
@@ -51008,12 +50192,11 @@ struct naics_cap_entry_r12_s {
   void        to_json(json_writer& j) const;
 };
 
-// NAICS-Capability-List-r12 ::= SEQUENCE (SIZE (1..maxNAICS-Entries-r12)) OF NAICS-Capability-Entry-r12
-typedef dyn_array<naics_cap_entry_r12_s> naics_cap_list_r12_l;
+// NAICS-Capability-List-r12 ::= SEQUENCE (SIZE (1..8)) OF NAICS-Capability-Entry-r12
+using naics_cap_list_r12_l = dyn_array<naics_cap_entry_r12_s>;
 
 // NonContiguousUL-RA-WithinCC-r10 ::= SEQUENCE
 struct non_contiguous_ul_ra_within_cc_r10_s {
-  // member variables
   bool non_contiguous_ul_ra_within_cc_info_r10_present = false;
 
   // sequence methods
@@ -51022,12 +50205,11 @@ struct non_contiguous_ul_ra_within_cc_r10_s {
   void        to_json(json_writer& j) const;
 };
 
-// NonContiguousUL-RA-WithinCC-List-r10 ::= SEQUENCE (SIZE (1..maxBands)) OF NonContiguousUL-RA-WithinCC-r10
-typedef dyn_array<non_contiguous_ul_ra_within_cc_r10_s> non_contiguous_ul_ra_within_cc_list_r10_l;
+// NonContiguousUL-RA-WithinCC-List-r10 ::= SEQUENCE (SIZE (1..64)) OF NonContiguousUL-RA-WithinCC-r10
+using non_contiguous_ul_ra_within_cc_list_r10_l = dyn_array<non_contiguous_ul_ra_within_cc_r10_s>;
 
 // ROHC-ProfileSupportList-r15 ::= SEQUENCE
 struct rohc_profile_support_list_r15_s {
-  // member variables
   bool profile0x0001_r15 = false;
   bool profile0x0002_r15 = false;
   bool profile0x0003_r15 = false;
@@ -51088,7 +50270,6 @@ struct pdcp_params_s {
 
 // SupportedOperatorDic-r15 ::= SEQUENCE
 struct supported_operator_dic_r15_s {
-  // member variables
   uint8_t   version_of_dictionary_r15 = 0;
   plmn_id_s associated_plmn_id_r15;
 
@@ -51100,7 +50281,6 @@ struct supported_operator_dic_r15_s {
 
 // SupportedUDC-r15 ::= SEQUENCE
 struct supported_udc_r15_s {
-  // member variables
   bool                         supported_standard_dic_r15_present = false;
   bool                         supported_operator_dic_r15_present = false;
   supported_operator_dic_r15_s supported_operator_dic_r15;
@@ -51113,7 +50293,6 @@ struct supported_udc_r15_s {
 
 // PDCP-Parameters-v1530 ::= SEQUENCE
 struct pdcp_params_v1530_s {
-  // member variables
   bool                supported_udc_r15_present = false;
   bool                pdcp_dupl_r15_present     = false;
   supported_udc_r15_s supported_udc_r15;
@@ -51153,7 +50332,6 @@ struct pdcp_params_nr_r15_s {
   };
   typedef enumerated<rohc_context_max_sessions_r15_opts> rohc_context_max_sessions_r15_e_;
   struct rohc_profiles_ul_only_r15_s_ {
-    // member variables
     bool profile0x0006_r15 = false;
   };
 
@@ -51176,7 +50354,6 @@ struct pdcp_params_nr_r15_s {
 
 // PhyLayerParameters-v1020 ::= SEQUENCE
 struct phy_layer_params_v1020_s {
-  // member variables
   bool                                      two_ant_ports_for_pucch_r10_present             = false;
   bool                                      tm9_with_minus8_tx_fdd_r10_present              = false;
   bool                                      pmi_disabling_r10_present                       = false;
@@ -51194,7 +50371,6 @@ struct phy_layer_params_v1020_s {
 
 // PhyLayerParameters-v1250 ::= SEQUENCE
 struct phy_layer_params_v1250_s {
-  // member variables
   bool                 e_harq_pattern_fdd_r12_present               = false;
   bool                 enhanced_minus4_tx_codebook_r12_present      = false;
   bool                 tdd_fdd_ca_pcell_duplex_r12_present          = false;
@@ -51217,7 +50393,6 @@ struct phy_layer_params_v1250_s {
 
 // PhyLayerParameters-v1320 ::= SEQUENCE
 struct phy_layer_params_v1320_s {
-  // member variables
   bool                 mimo_ue_params_r13_present = false;
   mimo_ue_params_r13_s mimo_ue_params_r13;
 
@@ -51229,7 +50404,6 @@ struct phy_layer_params_v1320_s {
 
 // PhyLayerParameters-v1330 ::= SEQUENCE
 struct phy_layer_params_v1330_s {
-  // member variables
   bool    cch_interf_mitigation_ref_rec_type_a_r13_present = false;
   bool    cch_interf_mitigation_ref_rec_type_b_r13_present = false;
   bool    cch_interf_mitigation_max_num_ccs_r13_present    = false;
@@ -51245,7 +50419,6 @@ struct phy_layer_params_v1330_s {
 
 // FeMBMS-Unicast-Parameters-r14 ::= SEQUENCE
 struct fe_mbms_unicast_params_r14_s {
-  // member variables
   bool unicast_fembms_mixed_scell_r14_present = false;
   bool empty_unicast_region_r14_present       = false;
 
@@ -51289,7 +50462,7 @@ struct phy_layer_params_v1430_s {
   bool                         tdd_tti_bundling_r14_present           = false;
   bool                         dmrs_less_up_pts_r14_present           = false;
   bool                         mimo_ue_params_v1430_present           = false;
-  bool                         alternative_tbs_idx_r14_present        = false;
+  bool                         alt_tbs_idx_r14_present                = false;
   bool                         fe_mbms_unicast_params_r14_present     = false;
   ce_pdsch_pusch_max_bw_r14_e_ ce_pdsch_pusch_max_bw_r14;
   ce_retuning_symbols_r14_e_   ce_retuning_symbols_r14;
@@ -51304,7 +50477,6 @@ struct phy_layer_params_v1430_s {
 
 // PhyLayerParameters-v1470 ::= SEQUENCE
 struct phy_layer_params_v1470_s {
-  // member variables
   bool                   mimo_ue_params_v1470_present     = false;
   bool                   srs_up_pts_minus6sym_r14_present = false;
   mimo_ue_params_v1470_s mimo_ue_params_v1470;
@@ -51317,7 +50489,7 @@ struct phy_layer_params_v1470_s {
 
 // PhyLayerParameters-v1530 ::= SEQUENCE
 struct phy_layer_params_v1530_s {
-  struct stti_spt_capabilities_r15_s_ {
+  struct stti_spt_cap_r15_s_ {
     struct max_layers_slot_or_subslot_pusch_r15_opts {
       enum options { one_layer, two_layers, four_layers, nulltype } value;
       typedef uint8_t number_type;
@@ -51334,55 +50506,54 @@ struct phy_layer_params_v1530_s {
     typedef enumerated<sps_stti_r15_opts> sps_stti_r15_e_;
 
     // member variables
-    bool                                    aperiodic_csi_report_stti_r15_present                 = false;
-    bool                                    dmrs_based_spdcch_mbsfn_r15_present                   = false;
-    bool                                    dmrs_based_spdcch_non_mbsfn_r15_present               = false;
-    bool                                    dmrs_position_pattern_r15_present                     = false;
-    bool                                    dmrs_sharing_subslot_pdsch_r15_present                = false;
-    bool                                    dmrs_repeat_subslot_pdsch_r15_present                 = false;
-    bool                                    epdcch_spt_different_cells_r15_present                = false;
-    bool                                    epdcch_stti_different_cells_r15_present               = false;
-    bool                                    max_layers_slot_or_subslot_pusch_r15_present          = false;
-    bool                                    max_num_updated_csi_proc_spt_r15_present              = false;
-    bool                                    max_num_updated_csi_proc_stti_comb77_r15_present      = false;
-    bool                                    max_num_updated_csi_proc_stti_comb27_r15_present      = false;
-    bool                                    max_num_updated_csi_proc_stti_comb22_set1_r15_present = false;
-    bool                                    max_num_updated_csi_proc_stti_comb22_set2_r15_present = false;
-    bool                                    mimo_ue_params_stti_r15_present                       = false;
-    bool                                    mimo_ue_params_stti_v1530_present                     = false;
-    bool                                    nof_blind_decodes_uss_r15_present                     = false;
-    bool                                    pdsch_slot_subslot_pdsch_decoding_r15_present         = false;
-    bool                                    pwr_uci_slot_pusch_present                            = false;
-    bool                                    pwr_uci_subslot_pusch_present                         = false;
-    bool                                    slot_pdsch_tx_div_tm9and10_present                    = false;
-    bool                                    subslot_pdsch_tx_div_tm9and10_present                 = false;
-    bool                                    spdcch_different_rs_types_r15_present                 = false;
-    bool                                    srs_dci7_triggering_fs2_r15_present                   = false;
-    bool                                    sps_cyclic_shift_r15_present                          = false;
-    bool                                    spdcch_reuse_r15_present                              = false;
-    bool                                    sps_stti_r15_present                                  = false;
-    bool                                    tm8_slot_pdsch_r15_present                            = false;
-    bool                                    tm9_slot_subslot_r15_present                          = false;
-    bool                                    tm9_slot_subslot_mbsfn_r15_present                    = false;
-    bool                                    tm10_slot_subslot_r15_present                         = false;
-    bool                                    tm10_slot_subslot_mbsfn_r15_present                   = false;
-    bool                                    tx_div_spucch_r15_present                             = false;
-    bool                                    ul_async_harq_sharing_diff_tti_lens_r15_present       = false;
+    bool                                    aperiodic_csi_report_stti_r15_present             = false;
+    bool                                    dmrs_based_spdcch_mbsfn_r15_present               = false;
+    bool                                    dmrs_based_spdcch_non_mbsfn_r15_present           = false;
+    bool                                    dmrs_position_pattern_r15_present                 = false;
+    bool                                    dmrs_sharing_subslot_pdsch_r15_present            = false;
+    bool                                    dmrs_repeat_subslot_pdsch_r15_present             = false;
+    bool                                    epdcch_spt_different_cells_r15_present            = false;
+    bool                                    epdcch_stti_different_cells_r15_present           = false;
+    bool                                    max_layers_slot_or_subslot_pusch_r15_present      = false;
+    bool                                    max_num_upd_csi_proc_spt_r15_present              = false;
+    bool                                    max_num_upd_csi_proc_stti_comb77_r15_present      = false;
+    bool                                    max_num_upd_csi_proc_stti_comb27_r15_present      = false;
+    bool                                    max_num_upd_csi_proc_stti_comb22_set1_r15_present = false;
+    bool                                    max_num_upd_csi_proc_stti_comb22_set2_r15_present = false;
+    bool                                    mimo_ue_params_stti_r15_present                   = false;
+    bool                                    mimo_ue_params_stti_v1530_present                 = false;
+    bool                                    nof_blind_decodes_uss_r15_present                 = false;
+    bool                                    pdsch_slot_subslot_pdsch_decoding_r15_present     = false;
+    bool                                    pwr_uci_slot_pusch_present                        = false;
+    bool                                    pwr_uci_subslot_pusch_present                     = false;
+    bool                                    slot_pdsch_tx_div_tm9and10_present                = false;
+    bool                                    subslot_pdsch_tx_div_tm9and10_present             = false;
+    bool                                    spdcch_different_rs_types_r15_present             = false;
+    bool                                    srs_dci7_trigger_fs2_r15_present                  = false;
+    bool                                    sps_cyclic_shift_r15_present                      = false;
+    bool                                    spdcch_reuse_r15_present                          = false;
+    bool                                    sps_stti_r15_present                              = false;
+    bool                                    tm8_slot_pdsch_r15_present                        = false;
+    bool                                    tm9_slot_subslot_r15_present                      = false;
+    bool                                    tm9_slot_subslot_mbsfn_r15_present                = false;
+    bool                                    tm10_slot_subslot_r15_present                     = false;
+    bool                                    tm10_slot_subslot_mbsfn_r15_present               = false;
+    bool                                    tx_div_spucch_r15_present                         = false;
+    bool                                    ul_async_harq_sharing_diff_tti_lens_r15_present   = false;
     max_layers_slot_or_subslot_pusch_r15_e_ max_layers_slot_or_subslot_pusch_r15;
-    uint8_t                                 max_num_updated_csi_proc_spt_r15              = 5;
-    uint8_t                                 max_num_updated_csi_proc_stti_comb77_r15      = 1;
-    uint8_t                                 max_num_updated_csi_proc_stti_comb27_r15      = 1;
-    uint8_t                                 max_num_updated_csi_proc_stti_comb22_set1_r15 = 1;
-    uint8_t                                 max_num_updated_csi_proc_stti_comb22_set2_r15 = 1;
+    uint8_t                                 max_num_upd_csi_proc_spt_r15              = 5;
+    uint8_t                                 max_num_upd_csi_proc_stti_comb77_r15      = 1;
+    uint8_t                                 max_num_upd_csi_proc_stti_comb27_r15      = 1;
+    uint8_t                                 max_num_upd_csi_proc_stti_comb22_set1_r15 = 1;
+    uint8_t                                 max_num_upd_csi_proc_stti_comb22_set2_r15 = 1;
     mimo_ue_params_r13_s                    mimo_ue_params_stti_r15;
     mimo_ue_params_v1430_s                  mimo_ue_params_stti_v1530;
     uint8_t                                 nof_blind_decodes_uss_r15 = 4;
     sps_stti_r15_e_                         sps_stti_r15;
   };
-  struct ce_capabilities_r15_s_ {
-    // member variables
+  struct ce_cap_r15_s_ {
     bool ce_crs_intf_mitig_r15_present                 = false;
-    bool ce_cqi_alternative_table_r15_present          = false;
+    bool ce_cqi_alt_table_r15_present                  = false;
     bool ce_pdsch_flex_start_prb_ce_mode_a_r15_present = false;
     bool ce_pdsch_flex_start_prb_ce_mode_b_r15_present = false;
     bool ce_pdsch_minus64_qam_r15_present              = false;
@@ -51391,8 +50562,7 @@ struct phy_layer_params_v1530_s {
     bool ce_pusch_sub_prb_alloc_r15_present            = false;
     bool ce_ul_harq_ack_feedback_r15_present           = false;
   };
-  struct urllc_capabilities_r15_s_ {
-    // member variables
+  struct urllc_cap_r15_s_ {
     bool    pdsch_rep_sf_r15_present                  = false;
     bool    pdsch_rep_slot_r15_present                = false;
     bool    pdsch_rep_subslot_r15_present             = false;
@@ -51422,17 +50592,17 @@ struct phy_layer_params_v1530_s {
   };
 
   // member variables
-  bool                         stti_spt_capabilities_r15_present          = false;
-  bool                         ce_capabilities_r15_present                = false;
-  bool                         short_cqi_for_scell_activation_r15_present = false;
-  bool                         mimo_cbsr_advanced_csi_r15_present         = false;
-  bool                         crs_intf_mitig_r15_present                 = false;
-  bool                         ul_pwr_ctrl_enhance_r15_present            = false;
-  bool                         urllc_capabilities_r15_present             = false;
-  bool                         alt_mcs_table_r15_present                  = false;
-  stti_spt_capabilities_r15_s_ stti_spt_capabilities_r15;
-  ce_capabilities_r15_s_       ce_capabilities_r15;
-  urllc_capabilities_r15_s_    urllc_capabilities_r15;
+  bool                stti_spt_cap_r15_present                   = false;
+  bool                ce_cap_r15_present                         = false;
+  bool                short_cqi_for_scell_activation_r15_present = false;
+  bool                mimo_cbsr_advanced_csi_r15_present         = false;
+  bool                crs_intf_mitig_r15_present                 = false;
+  bool                ul_pwr_ctrl_enhance_r15_present            = false;
+  bool                urllc_cap_r15_present                      = false;
+  bool                alt_mcs_table_r15_present                  = false;
+  stti_spt_cap_r15_s_ stti_spt_cap_r15;
+  ce_cap_r15_s_       ce_cap_r15;
+  urllc_cap_r15_s_    urllc_cap_r15;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -51442,7 +50612,6 @@ struct phy_layer_params_v1530_s {
 
 // SupportedBandEUTRA ::= SEQUENCE
 struct supported_band_eutra_s {
-  // member variables
   uint8_t band_eutra  = 1;
   bool    half_duplex = false;
 
@@ -51452,12 +50621,11 @@ struct supported_band_eutra_s {
   void        to_json(json_writer& j) const;
 };
 
-// SupportedBandListEUTRA ::= SEQUENCE (SIZE (1..maxBands)) OF SupportedBandEUTRA
-typedef dyn_array<supported_band_eutra_s> supported_band_list_eutra_l;
+// SupportedBandListEUTRA ::= SEQUENCE (SIZE (1..64)) OF SupportedBandEUTRA
+using supported_band_list_eutra_l = dyn_array<supported_band_eutra_s>;
 
 // RF-Parameters ::= SEQUENCE
 struct rf_params_s {
-  // member variables
   supported_band_list_eutra_l supported_band_list_eutra;
 
   // sequence methods
@@ -51466,12 +50634,11 @@ struct rf_params_s {
   void        to_json(json_writer& j) const;
 };
 
-// SupportedBandCombination-r10 ::= SEQUENCE (SIZE (1..maxBandComb-r10)) OF BandCombinationParameters-r10
-typedef dyn_array<band_combination_params_r10_l> supported_band_combination_r10_l;
+// SupportedBandCombination-r10 ::= SEQUENCE (SIZE (1..128)) OF BandCombinationParameters-r10
+using supported_band_combination_r10_l = dyn_array<band_combination_params_r10_l>;
 
 // RF-Parameters-v1020 ::= SEQUENCE
 struct rf_params_v1020_s {
-  // member variables
   supported_band_combination_r10_l supported_band_combination_r10;
 
   // sequence methods
@@ -51480,12 +50647,11 @@ struct rf_params_v1020_s {
   void        to_json(json_writer& j) const;
 };
 
-// SupportedBandCombinationExt-r10 ::= SEQUENCE (SIZE (1..maxBandComb-r10)) OF BandCombinationParametersExt-r10
-typedef dyn_array<band_combination_params_ext_r10_s> supported_band_combination_ext_r10_l;
+// SupportedBandCombinationExt-r10 ::= SEQUENCE (SIZE (1..128)) OF BandCombinationParametersExt-r10
+using supported_band_combination_ext_r10_l = dyn_array<band_combination_params_ext_r10_s>;
 
 // RF-Parameters-v1060 ::= SEQUENCE
 struct rf_params_v1060_s {
-  // member variables
   supported_band_combination_ext_r10_l supported_band_combination_ext_r10;
 
   // sequence methods
@@ -51494,12 +50660,11 @@ struct rf_params_v1060_s {
   void        to_json(json_writer& j) const;
 };
 
-// SupportedBandCombination-v1090 ::= SEQUENCE (SIZE (1..maxBandComb-r10)) OF BandCombinationParameters-v1090
-typedef dyn_array<band_combination_params_v1090_l> supported_band_combination_v1090_l;
+// SupportedBandCombination-v1090 ::= SEQUENCE (SIZE (1..128)) OF BandCombinationParameters-v1090
+using supported_band_combination_v1090_l = dyn_array<band_combination_params_v1090_l>;
 
 // RF-Parameters-v1090 ::= SEQUENCE
 struct rf_params_v1090_s {
-  // member variables
   bool                               supported_band_combination_v1090_present = false;
   supported_band_combination_v1090_l supported_band_combination_v1090;
 
@@ -51509,12 +50674,11 @@ struct rf_params_v1090_s {
   void        to_json(json_writer& j) const;
 };
 
-// SupportedBandCombination-v10i0 ::= SEQUENCE (SIZE (1..maxBandComb-r10)) OF BandCombinationParameters-v10i0
-typedef dyn_array<band_combination_params_v10i0_s> supported_band_combination_v10i0_l;
+// SupportedBandCombination-v10i0 ::= SEQUENCE (SIZE (1..128)) OF BandCombinationParameters-v10i0
+using supported_band_combination_v10i0_l = dyn_array<band_combination_params_v10i0_s>;
 
 // RF-Parameters-v10i0 ::= SEQUENCE
 struct rf_params_v10i0_s {
-  // member variables
   bool                               supported_band_combination_v10i0_present = false;
   supported_band_combination_v10i0_l supported_band_combination_v10i0;
 
@@ -51524,12 +50688,11 @@ struct rf_params_v10i0_s {
   void        to_json(json_writer& j) const;
 };
 
-// SupportedBandCombination-v1130 ::= SEQUENCE (SIZE (1..maxBandComb-r10)) OF BandCombinationParameters-v1130
-typedef dyn_array<band_combination_params_v1130_s> supported_band_combination_v1130_l;
+// SupportedBandCombination-v1130 ::= SEQUENCE (SIZE (1..128)) OF BandCombinationParameters-v1130
+using supported_band_combination_v1130_l = dyn_array<band_combination_params_v1130_s>;
 
 // RF-Parameters-v1130 ::= SEQUENCE
 struct rf_params_v1130_s {
-  // member variables
   bool                               supported_band_combination_v1130_present = false;
   supported_band_combination_v1130_l supported_band_combination_v1130;
 
@@ -51539,12 +50702,12 @@ struct rf_params_v1130_s {
   void        to_json(json_writer& j) const;
 };
 
-// SupportedBandCombinationAdd-r11 ::= SEQUENCE (SIZE (1..maxBandComb-r11)) OF BandCombinationParameters-r11
-typedef dyn_array<band_combination_params_r11_s> supported_band_combination_add_r11_l;
+// SupportedBandCombinationAdd-r11 ::= SEQUENCE (SIZE (1..256)) OF BandCombinationParameters-r11
+using supported_band_combination_add_r11_l = dyn_array<band_combination_params_r11_s>;
 
 // RF-Parameters-v1180 ::= SEQUENCE
 struct rf_params_v1180_s {
-  typedef dyn_array<uint16_t> requested_bands_r11_l_;
+  using requested_bands_r11_l_ = dyn_array<uint16_t>;
 
   // member variables
   bool                                 freq_band_retrieval_r11_present            = false;
@@ -51559,12 +50722,11 @@ struct rf_params_v1180_s {
   void        to_json(json_writer& j) const;
 };
 
-// SupportedBandCombinationAdd-v11d0 ::= SEQUENCE (SIZE (1..maxBandComb-r11)) OF BandCombinationParameters-v10i0
-typedef dyn_array<band_combination_params_v10i0_s> supported_band_combination_add_v11d0_l;
+// SupportedBandCombinationAdd-v11d0 ::= SEQUENCE (SIZE (1..256)) OF BandCombinationParameters-v10i0
+using supported_band_combination_add_v11d0_l = dyn_array<band_combination_params_v10i0_s>;
 
 // RF-Parameters-v11d0 ::= SEQUENCE
 struct rf_params_v11d0_s {
-  // member variables
   bool                                   supported_band_combination_add_v11d0_present = false;
   supported_band_combination_add_v11d0_l supported_band_combination_add_v11d0;
 
@@ -51576,7 +50738,6 @@ struct rf_params_v11d0_s {
 
 // SupportedBandEUTRA-v1250 ::= SEQUENCE
 struct supported_band_eutra_v1250_s {
-  // member variables
   bool dl_minus256_qam_r12_present = false;
   bool ul_minus64_qam_r12_present  = false;
 
@@ -51586,18 +50747,17 @@ struct supported_band_eutra_v1250_s {
   void        to_json(json_writer& j) const;
 };
 
-// SupportedBandCombination-v1250 ::= SEQUENCE (SIZE (1..maxBandComb-r10)) OF BandCombinationParameters-v1250
-typedef dyn_array<band_combination_params_v1250_s> supported_band_combination_v1250_l;
+// SupportedBandCombination-v1250 ::= SEQUENCE (SIZE (1..128)) OF BandCombinationParameters-v1250
+using supported_band_combination_v1250_l = dyn_array<band_combination_params_v1250_s>;
 
-// SupportedBandCombinationAdd-v1250 ::= SEQUENCE (SIZE (1..maxBandComb-r11)) OF BandCombinationParameters-v1250
-typedef dyn_array<band_combination_params_v1250_s> supported_band_combination_add_v1250_l;
+// SupportedBandCombinationAdd-v1250 ::= SEQUENCE (SIZE (1..256)) OF BandCombinationParameters-v1250
+using supported_band_combination_add_v1250_l = dyn_array<band_combination_params_v1250_s>;
 
-// SupportedBandListEUTRA-v1250 ::= SEQUENCE (SIZE (1..maxBands)) OF SupportedBandEUTRA-v1250
-typedef dyn_array<supported_band_eutra_v1250_s> supported_band_list_eutra_v1250_l;
+// SupportedBandListEUTRA-v1250 ::= SEQUENCE (SIZE (1..64)) OF SupportedBandEUTRA-v1250
+using supported_band_list_eutra_v1250_l = dyn_array<supported_band_eutra_v1250_s>;
 
 // RF-Parameters-v1250 ::= SEQUENCE
 struct rf_params_v1250_s {
-  // member variables
   bool                                   supported_band_list_eutra_v1250_present      = false;
   bool                                   supported_band_combination_v1250_present     = false;
   bool                                   supported_band_combination_add_v1250_present = false;
@@ -51612,15 +50772,14 @@ struct rf_params_v1250_s {
   void        to_json(json_writer& j) const;
 };
 
-// SupportedBandCombination-v1270 ::= SEQUENCE (SIZE (1..maxBandComb-r10)) OF BandCombinationParameters-v1270
-typedef dyn_array<band_combination_params_v1270_s> supported_band_combination_v1270_l;
+// SupportedBandCombination-v1270 ::= SEQUENCE (SIZE (1..128)) OF BandCombinationParameters-v1270
+using supported_band_combination_v1270_l = dyn_array<band_combination_params_v1270_s>;
 
-// SupportedBandCombinationAdd-v1270 ::= SEQUENCE (SIZE (1..maxBandComb-r11)) OF BandCombinationParameters-v1270
-typedef dyn_array<band_combination_params_v1270_s> supported_band_combination_add_v1270_l;
+// SupportedBandCombinationAdd-v1270 ::= SEQUENCE (SIZE (1..256)) OF BandCombinationParameters-v1270
+using supported_band_combination_add_v1270_l = dyn_array<band_combination_params_v1270_s>;
 
 // RF-Parameters-v1270 ::= SEQUENCE
 struct rf_params_v1270_s {
-  // member variables
   bool                                   supported_band_combination_v1270_present     = false;
   bool                                   supported_band_combination_add_v1270_present = false;
   supported_band_combination_v1270_l     supported_band_combination_v1270;
@@ -51634,7 +50793,6 @@ struct rf_params_v1270_s {
 
 // SupportedBandEUTRA-v1310 ::= SEQUENCE
 struct supported_band_eutra_v1310_s {
-  // member variables
   bool ue_pwr_class_minus5_r13_present = false;
 
   // sequence methods
@@ -51643,16 +50801,15 @@ struct supported_band_eutra_v1310_s {
   void        to_json(json_writer& j) const;
 };
 
-// SupportedBandCombinationReduced-r13 ::= SEQUENCE (SIZE (1..maxBandComb-r13)) OF BandCombinationParameters-r13
-typedef dyn_array<band_combination_params_r13_s> supported_band_combination_reduced_r13_l;
+// SupportedBandCombinationReduced-r13 ::= SEQUENCE (SIZE (1..384)) OF BandCombinationParameters-r13
+using supported_band_combination_reduced_r13_l = dyn_array<band_combination_params_r13_s>;
 
-// SupportedBandListEUTRA-v1310 ::= SEQUENCE (SIZE (1..maxBands)) OF SupportedBandEUTRA-v1310
-typedef dyn_array<supported_band_eutra_v1310_s> supported_band_list_eutra_v1310_l;
+// SupportedBandListEUTRA-v1310 ::= SEQUENCE (SIZE (1..64)) OF SupportedBandEUTRA-v1310
+using supported_band_list_eutra_v1310_l = dyn_array<supported_band_eutra_v1310_s>;
 
 // RF-Parameters-v1310 ::= SEQUENCE
 struct rf_params_v1310_s {
-  struct e_nb_requested_params_r13_s_ {
-    // member variables
+  struct enb_requested_params_r13_s_ {
     bool    reduced_int_non_cont_comb_requested_r13_present = false;
     bool    requested_ccs_dl_r13_present                    = false;
     bool    requested_ccs_ul_r13_present                    = false;
@@ -51662,13 +50819,13 @@ struct rf_params_v1310_s {
   };
 
   // member variables
-  bool                                     e_nb_requested_params_r13_present              = false;
+  bool                                     enb_requested_params_r13_present               = false;
   bool                                     maximum_ccs_retrieval_r13_present              = false;
   bool                                     skip_fallback_combinations_r13_present         = false;
   bool                                     reduced_int_non_cont_comb_r13_present          = false;
   bool                                     supported_band_list_eutra_v1310_present        = false;
   bool                                     supported_band_combination_reduced_r13_present = false;
-  e_nb_requested_params_r13_s_             e_nb_requested_params_r13;
+  enb_requested_params_r13_s_              enb_requested_params_r13;
   supported_band_list_eutra_v1310_l        supported_band_list_eutra_v1310;
   supported_band_combination_reduced_r13_l supported_band_combination_reduced_r13;
 
@@ -51700,21 +50857,20 @@ struct supported_band_eutra_v1320_s {
   void        to_json(json_writer& j) const;
 };
 
-// SupportedBandCombination-v1320 ::= SEQUENCE (SIZE (1..maxBandComb-r10)) OF BandCombinationParameters-v1320
-typedef dyn_array<band_combination_params_v1320_s> supported_band_combination_v1320_l;
+// SupportedBandCombination-v1320 ::= SEQUENCE (SIZE (1..128)) OF BandCombinationParameters-v1320
+using supported_band_combination_v1320_l = dyn_array<band_combination_params_v1320_s>;
 
-// SupportedBandCombinationAdd-v1320 ::= SEQUENCE (SIZE (1..maxBandComb-r11)) OF BandCombinationParameters-v1320
-typedef dyn_array<band_combination_params_v1320_s> supported_band_combination_add_v1320_l;
+// SupportedBandCombinationAdd-v1320 ::= SEQUENCE (SIZE (1..256)) OF BandCombinationParameters-v1320
+using supported_band_combination_add_v1320_l = dyn_array<band_combination_params_v1320_s>;
 
-// SupportedBandCombinationReduced-v1320 ::= SEQUENCE (SIZE (1..maxBandComb-r13)) OF BandCombinationParameters-v1320
-typedef dyn_array<band_combination_params_v1320_s> supported_band_combination_reduced_v1320_l;
+// SupportedBandCombinationReduced-v1320 ::= SEQUENCE (SIZE (1..384)) OF BandCombinationParameters-v1320
+using supported_band_combination_reduced_v1320_l = dyn_array<band_combination_params_v1320_s>;
 
-// SupportedBandListEUTRA-v1320 ::= SEQUENCE (SIZE (1..maxBands)) OF SupportedBandEUTRA-v1320
-typedef dyn_array<supported_band_eutra_v1320_s> supported_band_list_eutra_v1320_l;
+// SupportedBandListEUTRA-v1320 ::= SEQUENCE (SIZE (1..64)) OF SupportedBandEUTRA-v1320
+using supported_band_list_eutra_v1320_l = dyn_array<supported_band_eutra_v1320_s>;
 
 // RF-Parameters-v1320 ::= SEQUENCE
 struct rf_params_v1320_s {
-  // member variables
   bool                                       supported_band_list_eutra_v1320_present          = false;
   bool                                       supported_band_combination_v1320_present         = false;
   bool                                       supported_band_combination_add_v1320_present     = false;
@@ -51730,18 +50886,17 @@ struct rf_params_v1320_s {
   void        to_json(json_writer& j) const;
 };
 
-// SupportedBandCombination-v1380 ::= SEQUENCE (SIZE (1..maxBandComb-r10)) OF BandCombinationParameters-v1380
-typedef dyn_array<band_combination_params_v1380_s> supported_band_combination_v1380_l;
+// SupportedBandCombination-v1380 ::= SEQUENCE (SIZE (1..128)) OF BandCombinationParameters-v1380
+using supported_band_combination_v1380_l = dyn_array<band_combination_params_v1380_s>;
 
-// SupportedBandCombinationAdd-v1380 ::= SEQUENCE (SIZE (1..maxBandComb-r11)) OF BandCombinationParameters-v1380
-typedef dyn_array<band_combination_params_v1380_s> supported_band_combination_add_v1380_l;
+// SupportedBandCombinationAdd-v1380 ::= SEQUENCE (SIZE (1..256)) OF BandCombinationParameters-v1380
+using supported_band_combination_add_v1380_l = dyn_array<band_combination_params_v1380_s>;
 
-// SupportedBandCombinationReduced-v1380 ::= SEQUENCE (SIZE (1..maxBandComb-r13)) OF BandCombinationParameters-v1380
-typedef dyn_array<band_combination_params_v1380_s> supported_band_combination_reduced_v1380_l;
+// SupportedBandCombinationReduced-v1380 ::= SEQUENCE (SIZE (1..384)) OF BandCombinationParameters-v1380
+using supported_band_combination_reduced_v1380_l = dyn_array<band_combination_params_v1380_s>;
 
 // RF-Parameters-v1380 ::= SEQUENCE
 struct rf_params_v1380_s {
-  // member variables
   bool                                       supported_band_combination_v1380_present         = false;
   bool                                       supported_band_combination_add_v1380_present     = false;
   bool                                       supported_band_combination_reduced_v1380_present = false;
@@ -51757,7 +50912,6 @@ struct rf_params_v1380_s {
 
 // BandCombinationParameters-v1390 ::= SEQUENCE
 struct band_combination_params_v1390_s {
-  // member variables
   bool ue_ca_pwr_class_n_r13_present = false;
 
   // sequence methods
@@ -51766,18 +50920,17 @@ struct band_combination_params_v1390_s {
   void        to_json(json_writer& j) const;
 };
 
-// SupportedBandCombination-v1390 ::= SEQUENCE (SIZE (1..maxBandComb-r10)) OF BandCombinationParameters-v1390
-typedef dyn_array<band_combination_params_v1390_s> supported_band_combination_v1390_l;
+// SupportedBandCombination-v1390 ::= SEQUENCE (SIZE (1..128)) OF BandCombinationParameters-v1390
+using supported_band_combination_v1390_l = dyn_array<band_combination_params_v1390_s>;
 
-// SupportedBandCombinationAdd-v1390 ::= SEQUENCE (SIZE (1..maxBandComb-r11)) OF BandCombinationParameters-v1390
-typedef dyn_array<band_combination_params_v1390_s> supported_band_combination_add_v1390_l;
+// SupportedBandCombinationAdd-v1390 ::= SEQUENCE (SIZE (1..256)) OF BandCombinationParameters-v1390
+using supported_band_combination_add_v1390_l = dyn_array<band_combination_params_v1390_s>;
 
-// SupportedBandCombinationReduced-v1390 ::= SEQUENCE (SIZE (1..maxBandComb-r13)) OF BandCombinationParameters-v1390
-typedef dyn_array<band_combination_params_v1390_s> supported_band_combination_reduced_v1390_l;
+// SupportedBandCombinationReduced-v1390 ::= SEQUENCE (SIZE (1..384)) OF BandCombinationParameters-v1390
+using supported_band_combination_reduced_v1390_l = dyn_array<band_combination_params_v1390_s>;
 
 // RF-Parameters-v1390 ::= SEQUENCE
 struct rf_params_v1390_s {
-  // member variables
   bool                                       supported_band_combination_v1390_present         = false;
   bool                                       supported_band_combination_add_v1390_present     = false;
   bool                                       supported_band_combination_reduced_v1390_present = false;
@@ -51791,19 +50944,18 @@ struct rf_params_v1390_s {
   void        to_json(json_writer& j) const;
 };
 
-// SupportedBandCombination-v1430 ::= SEQUENCE (SIZE (1..maxBandComb-r10)) OF BandCombinationParameters-v1430
-typedef dyn_array<band_combination_params_v1430_s> supported_band_combination_v1430_l;
+// SupportedBandCombination-v1430 ::= SEQUENCE (SIZE (1..128)) OF BandCombinationParameters-v1430
+using supported_band_combination_v1430_l = dyn_array<band_combination_params_v1430_s>;
 
-// SupportedBandCombinationAdd-v1430 ::= SEQUENCE (SIZE (1..maxBandComb-r11)) OF BandCombinationParameters-v1430
-typedef dyn_array<band_combination_params_v1430_s> supported_band_combination_add_v1430_l;
+// SupportedBandCombinationAdd-v1430 ::= SEQUENCE (SIZE (1..256)) OF BandCombinationParameters-v1430
+using supported_band_combination_add_v1430_l = dyn_array<band_combination_params_v1430_s>;
 
-// SupportedBandCombinationReduced-v1430 ::= SEQUENCE (SIZE (1..maxBandComb-r13)) OF BandCombinationParameters-v1430
-typedef dyn_array<band_combination_params_v1430_s> supported_band_combination_reduced_v1430_l;
+// SupportedBandCombinationReduced-v1430 ::= SEQUENCE (SIZE (1..384)) OF BandCombinationParameters-v1430
+using supported_band_combination_reduced_v1430_l = dyn_array<band_combination_params_v1430_s>;
 
 // RF-Parameters-v1430 ::= SEQUENCE
 struct rf_params_v1430_s {
-  struct e_nb_requested_params_v1430_s_ {
-    // member variables
+  struct enb_requested_params_v1430_s_ {
     band_combination_list_r14_l requested_diff_fallback_comb_list_r14;
   };
 
@@ -51811,12 +50963,12 @@ struct rf_params_v1430_s {
   bool                                       supported_band_combination_v1430_present         = false;
   bool                                       supported_band_combination_add_v1430_present     = false;
   bool                                       supported_band_combination_reduced_v1430_present = false;
-  bool                                       e_nb_requested_params_v1430_present              = false;
+  bool                                       enb_requested_params_v1430_present               = false;
   bool                                       diff_fallback_comb_report_r14_present            = false;
   supported_band_combination_v1430_l         supported_band_combination_v1430;
   supported_band_combination_add_v1430_l     supported_band_combination_add_v1430;
   supported_band_combination_reduced_v1430_l supported_band_combination_reduced_v1430;
-  e_nb_requested_params_v1430_s_             e_nb_requested_params_v1430;
+  enb_requested_params_v1430_s_              enb_requested_params_v1430;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -51824,18 +50976,17 @@ struct rf_params_v1430_s {
   void        to_json(json_writer& j) const;
 };
 
-// SupportedBandCombination-v1450 ::= SEQUENCE (SIZE (1..maxBandComb-r10)) OF BandCombinationParameters-v1450
-typedef dyn_array<band_combination_params_v1450_s> supported_band_combination_v1450_l;
+// SupportedBandCombination-v1450 ::= SEQUENCE (SIZE (1..128)) OF BandCombinationParameters-v1450
+using supported_band_combination_v1450_l = dyn_array<band_combination_params_v1450_s>;
 
-// SupportedBandCombinationAdd-v1450 ::= SEQUENCE (SIZE (1..maxBandComb-r11)) OF BandCombinationParameters-v1450
-typedef dyn_array<band_combination_params_v1450_s> supported_band_combination_add_v1450_l;
+// SupportedBandCombinationAdd-v1450 ::= SEQUENCE (SIZE (1..256)) OF BandCombinationParameters-v1450
+using supported_band_combination_add_v1450_l = dyn_array<band_combination_params_v1450_s>;
 
-// SupportedBandCombinationReduced-v1450 ::= SEQUENCE (SIZE (1..maxBandComb-r13)) OF BandCombinationParameters-v1450
-typedef dyn_array<band_combination_params_v1450_s> supported_band_combination_reduced_v1450_l;
+// SupportedBandCombinationReduced-v1450 ::= SEQUENCE (SIZE (1..384)) OF BandCombinationParameters-v1450
+using supported_band_combination_reduced_v1450_l = dyn_array<band_combination_params_v1450_s>;
 
 // RF-Parameters-v1450 ::= SEQUENCE
 struct rf_params_v1450_s {
-  // member variables
   bool                                       supported_band_combination_v1450_present         = false;
   bool                                       supported_band_combination_add_v1450_present     = false;
   bool                                       supported_band_combination_reduced_v1450_present = false;
@@ -51849,18 +51000,17 @@ struct rf_params_v1450_s {
   void        to_json(json_writer& j) const;
 };
 
-// SupportedBandCombination-v1470 ::= SEQUENCE (SIZE (1..maxBandComb-r10)) OF BandCombinationParameters-v1470
-typedef dyn_array<band_combination_params_v1470_s> supported_band_combination_v1470_l;
+// SupportedBandCombination-v1470 ::= SEQUENCE (SIZE (1..128)) OF BandCombinationParameters-v1470
+using supported_band_combination_v1470_l = dyn_array<band_combination_params_v1470_s>;
 
-// SupportedBandCombinationAdd-v1470 ::= SEQUENCE (SIZE (1..maxBandComb-r11)) OF BandCombinationParameters-v1470
-typedef dyn_array<band_combination_params_v1470_s> supported_band_combination_add_v1470_l;
+// SupportedBandCombinationAdd-v1470 ::= SEQUENCE (SIZE (1..256)) OF BandCombinationParameters-v1470
+using supported_band_combination_add_v1470_l = dyn_array<band_combination_params_v1470_s>;
 
-// SupportedBandCombinationReduced-v1470 ::= SEQUENCE (SIZE (1..maxBandComb-r13)) OF BandCombinationParameters-v1470
-typedef dyn_array<band_combination_params_v1470_s> supported_band_combination_reduced_v1470_l;
+// SupportedBandCombinationReduced-v1470 ::= SEQUENCE (SIZE (1..384)) OF BandCombinationParameters-v1470
+using supported_band_combination_reduced_v1470_l = dyn_array<band_combination_params_v1470_s>;
 
 // RF-Parameters-v1470 ::= SEQUENCE
 struct rf_params_v1470_s {
-  // member variables
   bool                                       supported_band_combination_v1470_present         = false;
   bool                                       supported_band_combination_add_v1470_present     = false;
   bool                                       supported_band_combination_reduced_v1470_present = false;
@@ -51874,19 +51024,18 @@ struct rf_params_v1470_s {
   void        to_json(json_writer& j) const;
 };
 
-// SupportedBandCombination-v1530 ::= SEQUENCE (SIZE (1..maxBandComb-r10)) OF BandCombinationParameters-v1530
-typedef dyn_array<band_combination_params_v1530_s> supported_band_combination_v1530_l;
+// SupportedBandCombination-v1530 ::= SEQUENCE (SIZE (1..128)) OF BandCombinationParameters-v1530
+using supported_band_combination_v1530_l = dyn_array<band_combination_params_v1530_s>;
 
-// SupportedBandCombinationAdd-v1530 ::= SEQUENCE (SIZE (1..maxBandComb-r11)) OF BandCombinationParameters-v1530
-typedef dyn_array<band_combination_params_v1530_s> supported_band_combination_add_v1530_l;
+// SupportedBandCombinationAdd-v1530 ::= SEQUENCE (SIZE (1..256)) OF BandCombinationParameters-v1530
+using supported_band_combination_add_v1530_l = dyn_array<band_combination_params_v1530_s>;
 
-// SupportedBandCombinationReduced-v1530 ::= SEQUENCE (SIZE (1..maxBandComb-r13)) OF BandCombinationParameters-v1530
-typedef dyn_array<band_combination_params_v1530_s> supported_band_combination_reduced_v1530_l;
+// SupportedBandCombinationReduced-v1530 ::= SEQUENCE (SIZE (1..384)) OF BandCombinationParameters-v1530
+using supported_band_combination_reduced_v1530_l = dyn_array<band_combination_params_v1530_s>;
 
 // RF-Parameters-v1530 ::= SEQUENCE
 struct rf_params_v1530_s {
-  // member variables
-  bool                                       s_tti_spt_supported_r15_present                  = false;
+  bool                                       stti_spt_supported_r15_present                   = false;
   bool                                       supported_band_combination_v1530_present         = false;
   bool                                       supported_band_combination_add_v1530_present     = false;
   bool                                       supported_band_combination_reduced_v1530_present = false;
@@ -51903,7 +51052,6 @@ struct rf_params_v1530_s {
 
 // SupportedBandEUTRA-v9e0 ::= SEQUENCE
 struct supported_band_eutra_v9e0_s {
-  // member variables
   bool     band_eutra_v9e0_present = false;
   uint16_t band_eutra_v9e0         = 65;
 
@@ -51913,12 +51061,11 @@ struct supported_band_eutra_v9e0_s {
   void        to_json(json_writer& j) const;
 };
 
-// SupportedBandListEUTRA-v9e0 ::= SEQUENCE (SIZE (1..maxBands)) OF SupportedBandEUTRA-v9e0
-typedef dyn_array<supported_band_eutra_v9e0_s> supported_band_list_eutra_v9e0_l;
+// SupportedBandListEUTRA-v9e0 ::= SEQUENCE (SIZE (1..64)) OF SupportedBandEUTRA-v9e0
+using supported_band_list_eutra_v9e0_l = dyn_array<supported_band_eutra_v9e0_s>;
 
 // RF-Parameters-v9e0 ::= SEQUENCE
 struct rf_params_v9e0_s {
-  // member variables
   bool                             supported_band_list_eutra_v9e0_present = false;
   supported_band_list_eutra_v9e0_l supported_band_list_eutra_v9e0;
 
@@ -51930,7 +51077,6 @@ struct rf_params_v9e0_s {
 
 // SupportedBandInfo-r12 ::= SEQUENCE
 struct supported_band_info_r12_s {
-  // member variables
   bool support_r12_present = false;
 
   // sequence methods
@@ -51939,8 +51085,8 @@ struct supported_band_info_r12_s {
   void        to_json(json_writer& j) const;
 };
 
-// SupportedBandInfoList-r12 ::= SEQUENCE (SIZE (1..maxBands)) OF SupportedBandInfo-r12
-typedef dyn_array<supported_band_info_r12_s> supported_band_info_list_r12_l;
+// SupportedBandInfoList-r12 ::= SEQUENCE (SIZE (1..64)) OF SupportedBandInfo-r12
+using supported_band_info_list_r12_l = dyn_array<supported_band_info_r12_s>;
 
 // SL-Parameters-r12 ::= SEQUENCE
 struct sl_params_r12_s {
@@ -51973,7 +51119,6 @@ struct sl_params_r12_s {
 
 // V2X-BandParameters-r14 ::= SEQUENCE
 struct v2x_band_params_r14_s {
-  // member variables
   bool                    band_params_tx_sl_r14_present = false;
   bool                    band_params_rx_sl_r14_present = false;
   uint16_t                v2x_freq_band_eutra_r14       = 1;
@@ -51986,15 +51131,14 @@ struct v2x_band_params_r14_s {
   void        to_json(json_writer& j) const;
 };
 
-// V2X-BandCombinationParameters-r14 ::= SEQUENCE (SIZE (1.. maxSimultaneousBands-r10)) OF V2X-BandParameters-r14
-typedef dyn_array<v2x_band_params_r14_s> v2x_band_combination_params_r14_l;
+// V2X-BandCombinationParameters-r14 ::= SEQUENCE (SIZE (1..64)) OF V2X-BandParameters-r14
+using v2x_band_combination_params_r14_l = dyn_array<v2x_band_params_r14_s>;
 
-// V2X-SupportedBandCombination-r14 ::= SEQUENCE (SIZE (1..maxBandComb-r13)) OF V2X-BandCombinationParameters-r14
-typedef dyn_array<v2x_band_combination_params_r14_l> v2x_supported_band_combination_r14_l;
+// V2X-SupportedBandCombination-r14 ::= SEQUENCE (SIZE (1..384)) OF V2X-BandCombinationParameters-r14
+using v2x_supported_band_combination_r14_l = dyn_array<v2x_band_combination_params_r14_l>;
 
 // SL-Parameters-v1430 ::= SEQUENCE
 struct sl_params_v1430_s {
-  // member variables
   bool                                 zone_based_pool_sel_r14_present                 = false;
   bool                                 ue_autonomous_with_full_sensing_r14_present     = false;
   bool                                 ue_autonomous_with_partial_sensing_r14_present  = false;
@@ -52015,7 +51159,6 @@ struct sl_params_v1430_s {
 
 // V2X-BandParameters-v1530 ::= SEQUENCE
 struct v2x_band_params_v1530_s {
-  // member variables
   bool v2x_enhanced_high_reception_r15_present = false;
 
   // sequence methods
@@ -52024,12 +51167,11 @@ struct v2x_band_params_v1530_s {
   void        to_json(json_writer& j) const;
 };
 
-// V2X-BandCombinationParameters-v1530 ::= SEQUENCE (SIZE (1.. maxSimultaneousBands-r10)) OF V2X-BandParameters-v1530
-typedef dyn_array<v2x_band_params_v1530_s> v2x_band_combination_params_v1530_l;
+// V2X-BandCombinationParameters-v1530 ::= SEQUENCE (SIZE (1..64)) OF V2X-BandParameters-v1530
+using v2x_band_combination_params_v1530_l = dyn_array<v2x_band_params_v1530_s>;
 
 // UE-CategorySL-r15 ::= SEQUENCE
 struct ue_category_sl_r15_s {
-  // member variables
   uint8_t ue_category_sl_c_tx_r15 = 1;
   uint8_t ue_category_sl_c_rx_r15 = 1;
 
@@ -52039,8 +51181,8 @@ struct ue_category_sl_r15_s {
   void        to_json(json_writer& j) const;
 };
 
-// V2X-SupportedBandCombination-v1530 ::= SEQUENCE (SIZE (1..maxBandComb-r13)) OF V2X-BandCombinationParameters-v1530
-typedef dyn_array<v2x_band_combination_params_v1530_l> v2x_supported_band_combination_v1530_l;
+// V2X-SupportedBandCombination-v1530 ::= SEQUENCE (SIZE (1..384)) OF V2X-BandCombinationParameters-v1530
+using v2x_supported_band_combination_v1530_l = dyn_array<v2x_band_combination_params_v1530_l>;
 
 // SL-Parameters-v1530 ::= SEQUENCE
 struct sl_params_v1530_s {
@@ -52067,28 +51209,28 @@ struct sl_params_v1530_s {
   void        to_json(json_writer& j) const;
 };
 
-// N1SPUCCH-AN-PersistentList-r15 ::= SEQUENCE (SIZE (1..4)) OF INTEGER
-typedef bounded_array<uint16_t, 4> n1_spucch_an_persistent_list_r15_l;
+// N1SPUCCH-AN-PersistentList-r15 ::= SEQUENCE (SIZE (1..4)) OF INTEGER (0..2047)
+using n1_spucch_an_persistent_list_r15_l = bounded_array<uint16_t, 4>;
 
 // SPS-ConfigDL-STTI-r15 ::= CHOICE
 struct sps_cfg_dl_stti_r15_c {
   struct setup_s_ {
     struct semi_persist_sched_interv_dl_stti_r15_opts {
       enum options {
-        s_tti1,
-        s_tti2,
-        s_tti3,
-        s_tti4,
-        s_tti6,
-        s_tti8,
-        s_tti12,
-        s_tti16,
-        s_tti20,
-        s_tti40,
-        s_tti60,
-        s_tti80,
-        s_tti120,
-        s_tti240,
+        stti1,
+        stti2,
+        stti3,
+        stti4,
+        stti6,
+        stti8,
+        stti12,
+        stti16,
+        stti20,
+        stti40,
+        stti60,
+        stti80,
+        stti120,
+        stti240,
         spare2,
         spare1,
         nulltype
@@ -52101,7 +51243,6 @@ struct sps_cfg_dl_stti_r15_c {
     typedef enumerated<semi_persist_sched_interv_dl_stti_r15_opts> semi_persist_sched_interv_dl_stti_r15_e_;
     struct two_ant_port_activ_r15_c_ {
       struct setup_s_ {
-        // member variables
         n1_spucch_an_persistent_list_r15_l n1_spucch_an_persistent_list_p1_r15;
       };
       typedef setup_e types;
@@ -52142,7 +51283,7 @@ struct sps_cfg_dl_stti_r15_c {
     semi_persist_sched_interv_dl_stti_r15_e_ semi_persist_sched_interv_dl_stti_r15;
     uint8_t                                  nof_conf_sps_processes_stti_r15 = 1;
     two_ant_port_activ_r15_c_                two_ant_port_activ_r15;
-    uint8_t                                  s_tti_start_time_dl_r15 = 0;
+    uint8_t                                  stti_start_time_dl_r15 = 0;
     tpc_pdcch_cfg_c                          tpc_pdcch_cfg_pucch_sps_r15;
     // ...
   };
@@ -52179,7 +51320,6 @@ private:
 
 // NeighCellSI-AcquisitionParameters-v1530 ::= SEQUENCE
 struct neigh_cell_si_acquisition_params_v1530_s {
-  // member variables
   bool report_cgi_nr_en_dc_r15_present    = false;
   bool report_cgi_nr_no_en_dc_r15_present = false;
 
@@ -52191,7 +51331,6 @@ struct neigh_cell_si_acquisition_params_v1530_s {
 
 // LAA-Parameters-v1530 ::= SEQUENCE
 struct laa_params_v1530_s {
-  // member variables
   bool aul_r15_present             = false;
   bool laa_pusch_mode1_r15_present = false;
   bool laa_pusch_mode2_r15_present = false;
@@ -52205,7 +51344,6 @@ struct laa_params_v1530_s {
 
 // MeasParameters-v1530 ::= SEQUENCE
 struct meas_params_v1530_s {
-  // member variables
   bool qoe_meas_report_r15_present            = false;
   bool qoe_mtsi_meas_report_r15_present       = false;
   bool ca_idle_mode_meass_r15_present         = false;
@@ -52221,7 +51359,6 @@ struct meas_params_v1530_s {
 
 // Other-Parameters-v1530 ::= SEQUENCE
 struct other_params_v1530_s {
-  // member variables
   bool assist_info_bit_for_lc_r15_present = false;
   bool time_ref_provision_r15_present     = false;
   bool flight_path_plan_r15_present       = false;
@@ -52234,7 +51371,6 @@ struct other_params_v1530_s {
 
 // RLC-Parameters-v1530 ::= SEQUENCE
 struct rlc_params_v1530_s {
-  // member variables
   bool flex_um_am_combinations_r15_present = false;
   bool rlc_am_ooo_delivery_r15_present     = false;
   bool rlc_um_ooo_delivery_r15_present     = false;
@@ -52247,7 +51383,6 @@ struct rlc_params_v1530_s {
 
 // UE-BasedNetwPerfMeasParameters-v1530 ::= SEQUENCE
 struct ue_based_netw_perf_meas_params_v1530_s {
-  // member variables
   bool logged_meas_bt_r15_present   = false;
   bool logged_meas_wlan_r15_present = false;
   bool imm_meas_bt_r15_present      = false;
@@ -52261,7 +51396,6 @@ struct ue_based_netw_perf_meas_params_v1530_s {
 
 // UE-EUTRA-CapabilityAddXDD-Mode-v1530 ::= SEQUENCE
 struct ue_eutra_cap_add_xdd_mode_v1530_s {
-  // member variables
   bool                                     neigh_cell_si_acquisition_params_v1530_present = false;
   bool                                     reduced_cp_latency_r15_present                 = false;
   neigh_cell_si_acquisition_params_v1530_s neigh_cell_si_acquisition_params_v1530;
@@ -52274,7 +51408,6 @@ struct ue_eutra_cap_add_xdd_mode_v1530_s {
 
 // MeasParameters-v1520 ::= SEQUENCE
 struct meas_params_v1520_s {
-  // member variables
   bool               meas_gap_patterns_v1520_present = false;
   fixed_bitstring<8> meas_gap_patterns_v1520;
 
@@ -52286,7 +51419,6 @@ struct meas_params_v1520_s {
 
 // UE-EUTRA-Capability-v1530-IEs ::= SEQUENCE
 struct ue_eutra_cap_v1530_ies_s {
-  // member variables
   bool                                     meas_params_v1530_present                      = false;
   bool                                     other_params_v1530_present                     = false;
   bool                                     neigh_cell_si_acquisition_params_v1530_present = false;
@@ -52302,8 +51434,8 @@ struct ue_eutra_cap_v1530_ies_s {
   bool                                     reduced_cp_latency_r15_present                 = false;
   bool                                     laa_params_v1530_present                       = false;
   bool                                     ue_category_ul_v1530_present                   = false;
-  bool                                     fdd_add_ue_eutra_capabilities_v1530_present    = false;
-  bool                                     tdd_add_ue_eutra_capabilities_v1530_present    = false;
+  bool                                     fdd_add_ue_eutra_cap_v1530_present             = false;
+  bool                                     tdd_add_ue_eutra_cap_v1530_present             = false;
   bool                                     non_crit_ext_present                           = false;
   meas_params_v1530_s                      meas_params_v1530;
   other_params_v1530_s                     other_params_v1530;
@@ -52318,8 +51450,8 @@ struct ue_eutra_cap_v1530_ies_s {
   sl_params_v1530_s                        sl_params_v1530;
   laa_params_v1530_s                       laa_params_v1530;
   uint8_t                                  ue_category_ul_v1530 = 22;
-  ue_eutra_cap_add_xdd_mode_v1530_s        fdd_add_ue_eutra_capabilities_v1530;
-  ue_eutra_cap_add_xdd_mode_v1530_s        tdd_add_ue_eutra_capabilities_v1530;
+  ue_eutra_cap_add_xdd_mode_v1530_s        fdd_add_ue_eutra_cap_v1530;
+  ue_eutra_cap_add_xdd_mode_v1530_s        tdd_add_ue_eutra_cap_v1530;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -52329,7 +51461,6 @@ struct ue_eutra_cap_v1530_ies_s {
 
 // UE-EUTRA-Capability-v1520-IEs ::= SEQUENCE
 struct ue_eutra_cap_v1520_ies_s {
-  // member variables
   bool                     non_crit_ext_present = false;
   meas_params_v1520_s      meas_params_v1520;
   ue_eutra_cap_v1530_ies_s non_crit_ext;
@@ -52342,7 +51473,6 @@ struct ue_eutra_cap_v1520_ies_s {
 
 // UE-EUTRA-CapabilityAddXDD-Mode-v1510 ::= SEQUENCE
 struct ue_eutra_cap_add_xdd_mode_v1510_s {
-  // member variables
   bool                 pdcp_params_nr_r15_present = false;
   pdcp_params_nr_r15_s pdcp_params_nr_r15;
 
@@ -52354,7 +51484,6 @@ struct ue_eutra_cap_add_xdd_mode_v1510_s {
 
 // Other-Parameters-v1460 ::= SEQUENCE
 struct other_params_v1460_s {
-  // member variables
   bool non_csg_si_report_r14_present = false;
 
   // sequence methods
@@ -52365,18 +51494,17 @@ struct other_params_v1460_s {
 
 // UE-EUTRA-Capability-v1510-IEs ::= SEQUENCE
 struct ue_eutra_cap_v1510_ies_s {
-  // member variables
-  bool                              irat_params_nr_r15_present                  = false;
-  bool                              feature_sets_eutra_r15_present              = false;
-  bool                              pdcp_params_nr_r15_present                  = false;
-  bool                              fdd_add_ue_eutra_capabilities_v1510_present = false;
-  bool                              tdd_add_ue_eutra_capabilities_v1510_present = false;
-  bool                              non_crit_ext_present                        = false;
+  bool                              irat_params_nr_r15_present         = false;
+  bool                              feature_sets_eutra_r15_present     = false;
+  bool                              pdcp_params_nr_r15_present         = false;
+  bool                              fdd_add_ue_eutra_cap_v1510_present = false;
+  bool                              tdd_add_ue_eutra_cap_v1510_present = false;
+  bool                              non_crit_ext_present               = false;
   irat_params_nr_r15_s              irat_params_nr_r15;
   feature_sets_eutra_r15_s          feature_sets_eutra_r15;
   pdcp_params_nr_r15_s              pdcp_params_nr_r15;
-  ue_eutra_cap_add_xdd_mode_v1510_s fdd_add_ue_eutra_capabilities_v1510;
-  ue_eutra_cap_add_xdd_mode_v1510_s tdd_add_ue_eutra_capabilities_v1510;
+  ue_eutra_cap_add_xdd_mode_v1510_s fdd_add_ue_eutra_cap_v1510;
+  ue_eutra_cap_add_xdd_mode_v1510_s tdd_add_ue_eutra_cap_v1510;
   ue_eutra_cap_v1520_ies_s          non_crit_ext;
 
   // sequence methods
@@ -52387,7 +51515,6 @@ struct ue_eutra_cap_v1510_ies_s {
 
 // OtherParameters-v1450 ::= SEQUENCE
 struct other_params_v1450_s {
-  // member variables
   bool overheat_ind_r14_present = false;
 
   // sequence methods
@@ -52398,7 +51525,6 @@ struct other_params_v1450_s {
 
 // PhyLayerParameters-v1450 ::= SEQUENCE
 struct phy_layer_params_v1450_s {
-  // member variables
   bool ce_srs_enhancement_without_comb4_r14_present = false;
   bool crs_less_dw_pts_r14_present                  = false;
 
@@ -52410,7 +51536,6 @@ struct phy_layer_params_v1450_s {
 
 // UE-EUTRA-Capability-v1460-IEs ::= SEQUENCE
 struct ue_eutra_cap_v1460_ies_s {
-  // member variables
   bool                     ue_category_dl_v1460_present = false;
   bool                     non_crit_ext_present         = false;
   uint8_t                  ue_category_dl_v1460         = 21;
@@ -52425,7 +51550,6 @@ struct ue_eutra_cap_v1460_ies_s {
 
 // LWA-Parameters-v1440 ::= SEQUENCE
 struct lwa_params_v1440_s {
-  // member variables
   bool lwa_rlc_um_r14_present = false;
 
   // sequence methods
@@ -52436,7 +51560,6 @@ struct lwa_params_v1440_s {
 
 // MAC-Parameters-v1440 ::= SEQUENCE
 struct mac_params_v1440_s {
-  // member variables
   bool rai_support_r14_present = false;
 
   // sequence methods
@@ -52447,7 +51570,6 @@ struct mac_params_v1440_s {
 
 // MMTEL-Parameters-r14 ::= SEQUENCE
 struct mmtel_params_r14_s {
-  // member variables
   bool delay_budget_report_r14_present        = false;
   bool pusch_enhance_r14_present              = false;
   bool recommended_bit_rate_r14_present       = false;
@@ -52461,7 +51583,6 @@ struct mmtel_params_r14_s {
 
 // UE-EUTRA-Capability-v1450-IEs ::= SEQUENCE
 struct ue_eutra_cap_v1450_ies_s {
-  // member variables
   bool                     phy_layer_params_v1450_present = false;
   bool                     rf_params_v1450_present        = false;
   bool                     ue_category_dl_v1450_present   = false;
@@ -52480,7 +51601,6 @@ struct ue_eutra_cap_v1450_ies_s {
 
 // CE-Parameters-v1430 ::= SEQUENCE
 struct ce_params_v1430_s {
-  // member variables
   bool ce_switch_without_ho_r14_present = false;
 
   // sequence methods
@@ -52491,7 +51611,6 @@ struct ce_params_v1430_s {
 
 // HighSpeedEnhParameters-r14 ::= SEQUENCE
 struct high_speed_enh_params_r14_s {
-  // member variables
   bool meas_enhance_r14_present  = false;
   bool demod_enhance_r14_present = false;
   bool prach_enhance_r14_present = false;
@@ -52505,7 +51624,7 @@ struct high_speed_enh_params_r14_s {
 // LAA-Parameters-v1430 ::= SEQUENCE
 struct laa_params_v1430_s {
   struct two_step_sched_timing_info_r14_opts {
-    enum options { n_plus1, n_plus2, n_plus3, nulltype } value;
+    enum options { nplus1, nplus2, nplus3, nulltype } value;
     typedef uint8_t number_type;
 
     std::string to_string() const;
@@ -52530,7 +51649,6 @@ struct laa_params_v1430_s {
 
 // LWA-Parameters-v1430 ::= SEQUENCE
 struct lwa_params_v1430_s {
-  // member variables
   bool     lwa_ho_without_wt_change_r14_present = false;
   bool     lwa_ul_r14_present                   = false;
   bool     wlan_periodic_meas_r14_present       = false;
@@ -52546,7 +51664,6 @@ struct lwa_params_v1430_s {
 
 // LWIP-Parameters-v1430 ::= SEQUENCE
 struct lwip_params_v1430_s {
-  // member variables
   bool lwip_aggregation_dl_r14_present = false;
   bool lwip_aggregation_ul_r14_present = false;
 
@@ -52558,7 +51675,6 @@ struct lwip_params_v1430_s {
 
 // MAC-Parameters-v1430 ::= SEQUENCE
 struct mac_params_v1430_s {
-  // member variables
   bool short_sps_interv_fdd_r14_present = false;
   bool short_sps_interv_tdd_r14_present = false;
   bool skip_ul_dynamic_r14_present      = false;
@@ -52574,7 +51690,6 @@ struct mac_params_v1430_s {
 
 // MBMS-Parameters-v1430 ::= SEQUENCE
 struct mbms_params_v1430_s {
-  // member variables
   bool fembms_ded_cell_r14_present                   = false;
   bool fembms_mixed_cell_r14_present                 = false;
   bool subcarrier_spacing_mbms_khz7dot5_r14_present  = false;
@@ -52588,7 +51703,6 @@ struct mbms_params_v1430_s {
 
 // MeasParameters-v1430 ::= SEQUENCE
 struct meas_params_v1430_s {
-  // member variables
   bool ce_meass_r14_present                  = false;
   bool ncsg_r14_present                      = false;
   bool short_meas_gap_r14_present            = false;
@@ -52603,7 +51717,6 @@ struct meas_params_v1430_s {
 
 // MobilityParameters-r14 ::= SEQUENCE
 struct mob_params_r14_s {
-  // member variables
   bool make_before_break_r14_present = false;
   bool rach_less_r14_present         = false;
 
@@ -52615,7 +51728,6 @@ struct mob_params_r14_s {
 
 // Other-Parameters-v1430 ::= SEQUENCE
 struct other_params_v1430_s {
-  // member variables
   bool bw_pref_ind_r14_present        = false;
   bool rlm_report_support_r14_present = false;
 
@@ -52628,7 +51740,6 @@ struct other_params_v1430_s {
 // PDCP-Parameters-v1430 ::= SEQUENCE
 struct pdcp_params_v1430_s {
   struct supported_ul_only_rohc_profiles_r14_s_ {
-    // member variables
     bool profile0x0006_r14 = false;
   };
   struct max_num_rohc_context_sessions_r14_opts {
@@ -52671,7 +51782,6 @@ struct pdcp_params_v1430_s {
 
 // RLC-Parameters-v1430 ::= SEQUENCE
 struct rlc_params_v1430_s {
-  // member variables
   bool extended_poll_byte_r14_present = false;
 
   // sequence methods
@@ -52682,7 +51792,6 @@ struct rlc_params_v1430_s {
 
 // UE-BasedNetwPerfMeasParameters-v1430 ::= SEQUENCE
 struct ue_based_netw_perf_meas_params_v1430_s {
-  // member variables
   bool location_report_r14_present = false;
 
   // sequence methods
@@ -52693,7 +51802,6 @@ struct ue_based_netw_perf_meas_params_v1430_s {
 
 // UE-EUTRA-Capability-v1440-IEs ::= SEQUENCE
 struct ue_eutra_cap_v1440_ies_s {
-  // member variables
   bool                     non_crit_ext_present = false;
   lwa_params_v1440_s       lwa_params_v1440;
   mac_params_v1440_s       mac_params_v1440;
@@ -52707,7 +51815,6 @@ struct ue_eutra_cap_v1440_ies_s {
 
 // UE-EUTRA-CapabilityAddXDD-Mode-v1430 ::= SEQUENCE
 struct ue_eutra_cap_add_xdd_mode_v1430_s {
-  // member variables
   bool                     phy_layer_params_v1430_present = false;
   bool                     mmtel_params_r14_present       = false;
   phy_layer_params_v1430_s phy_layer_params_v1430;
@@ -52789,7 +51896,6 @@ struct mbms_params_v1470_s {
 
 // Other-Parameters-v1360 ::= SEQUENCE
 struct other_params_v1360_s {
-  // member variables
   bool in_dev_coex_ind_hardware_sharing_ind_r13_present = false;
 
   // sequence methods
@@ -52822,8 +51928,8 @@ struct ue_eutra_cap_v1430_ies_s {
   bool                                   lwip_params_v1430_present                    = false;
   bool                                   mmtel_params_r14_present                     = false;
   bool                                   mob_params_r14_present                       = false;
-  bool                                   fdd_add_ue_eutra_capabilities_v1430_present  = false;
-  bool                                   tdd_add_ue_eutra_capabilities_v1430_present  = false;
+  bool                                   fdd_add_ue_eutra_cap_v1430_present           = false;
+  bool                                   tdd_add_ue_eutra_cap_v1430_present           = false;
   bool                                   mbms_params_v1430_present                    = false;
   bool                                   sl_params_v1430_present                      = false;
   bool                                   ue_based_netw_perf_meas_params_v1430_present = false;
@@ -52843,8 +51949,8 @@ struct ue_eutra_cap_v1430_ies_s {
   mmtel_params_r14_s                     mmtel_params_r14;
   mob_params_r14_s                       mob_params_r14;
   ce_params_v1430_s                      ce_params_v1430;
-  ue_eutra_cap_add_xdd_mode_v1430_s      fdd_add_ue_eutra_capabilities_v1430;
-  ue_eutra_cap_add_xdd_mode_v1430_s      tdd_add_ue_eutra_capabilities_v1430;
+  ue_eutra_cap_add_xdd_mode_v1430_s      fdd_add_ue_eutra_cap_v1430;
+  ue_eutra_cap_add_xdd_mode_v1430_s      tdd_add_ue_eutra_cap_v1430;
   mbms_params_v1430_s                    mbms_params_v1430;
   sl_params_v1430_s                      sl_params_v1430;
   ue_based_netw_perf_meas_params_v1430_s ue_based_netw_perf_meas_params_v1430;
@@ -52859,7 +51965,6 @@ struct ue_eutra_cap_v1430_ies_s {
 
 // CE-Parameters-v1350 ::= SEQUENCE
 struct ce_params_v1350_s {
-  // member variables
   bool unicast_freq_hop_r13_present = false;
 
   // sequence methods
@@ -52870,7 +51975,6 @@ struct ce_params_v1350_s {
 
 // UE-EUTRA-Capability-v1360-IEs ::= SEQUENCE
 struct ue_eutra_cap_v1360_ies_s {
-  // member variables
   bool                     other_params_v1360_present = false;
   bool                     non_crit_ext_present       = false;
   other_params_v1360_s     other_params_v1360;
@@ -52884,7 +51988,6 @@ struct ue_eutra_cap_v1360_ies_s {
 
 // UE-EUTRA-Capability-v1470-IEs ::= SEQUENCE
 struct ue_eutra_cap_v1470_ies_s {
-  // member variables
   bool                     mbms_params_v1470_present      = false;
   bool                     phy_layer_params_v1470_present = false;
   bool                     rf_params_v1470_present        = false;
@@ -52901,7 +52004,6 @@ struct ue_eutra_cap_v1470_ies_s {
 
 // CE-Parameters-v1380 ::= SEQUENCE
 struct ce_params_v1380_s {
-  // member variables
   bool tm6_ce_mode_a_r13_present = false;
 
   // sequence methods
@@ -52912,7 +52014,6 @@ struct ce_params_v1380_s {
 
 // UE-EUTRA-Capability-v1350-IEs ::= SEQUENCE
 struct ue_eutra_cap_v1350_ies_s {
-  // member variables
   bool                     ue_category_dl_v1350_present = false;
   bool                     ue_category_ul_v1350_present = false;
   bool                     non_crit_ext_present         = false;
@@ -52927,7 +52028,6 @@ struct ue_eutra_cap_v1350_ies_s {
 
 // UE-EUTRA-Capability-v13x0-IEs ::= SEQUENCE
 struct ue_eutra_cap_v13x0_ies_s {
-  // member variables
   bool                     late_non_crit_ext_present = false;
   bool                     non_crit_ext_present      = false;
   dyn_octstring            late_non_crit_ext;
@@ -52941,7 +52041,6 @@ struct ue_eutra_cap_v13x0_ies_s {
 
 // CE-Parameters-v1370 ::= SEQUENCE
 struct ce_params_v1370_s {
-  // member variables
   bool tm9_ce_mode_a_r13_present = false;
   bool tm9_ce_mode_b_r13_present = false;
 
@@ -52953,7 +52052,6 @@ struct ce_params_v1370_s {
 
 // SCPTM-Parameters-r13 ::= SEQUENCE
 struct scptm_params_r13_s {
-  // member variables
   bool scptm_parallel_reception_r13_present = false;
   bool scptm_scell_r13_present              = false;
   bool scptm_non_serving_cell_r13_present   = false;
@@ -52967,7 +52065,6 @@ struct scptm_params_r13_s {
 
 // UE-EUTRA-Capability-v1340-IEs ::= SEQUENCE
 struct ue_eutra_cap_v1340_ies_s {
-  // member variables
   bool                     ue_category_ul_v1340_present = false;
   bool                     non_crit_ext_present         = false;
   uint8_t                  ue_category_ul_v1340         = 15;
@@ -52981,7 +52078,6 @@ struct ue_eutra_cap_v1340_ies_s {
 
 // UE-EUTRA-Capability-v1390-IEs ::= SEQUENCE
 struct ue_eutra_cap_v1390_ies_s {
-  // member variables
   bool                     rf_params_v1390_present = false;
   bool                     non_crit_ext_present    = false;
   rf_params_v1390_s        rf_params_v1390;
@@ -52995,7 +52091,6 @@ struct ue_eutra_cap_v1390_ies_s {
 
 // UE-EUTRA-CapabilityAddXDD-Mode-v1380 ::= SEQUENCE
 struct ue_eutra_cap_add_xdd_mode_v1380_s {
-  // member variables
   ce_params_v1380_s ce_params_v1380;
 
   // sequence methods
@@ -53006,7 +52101,6 @@ struct ue_eutra_cap_add_xdd_mode_v1380_s {
 
 // CE-Parameters-v1320 ::= SEQUENCE
 struct ce_params_v1320_s {
-  // member variables
   bool intra_freq_a3_ce_mode_a_r13_present = false;
   bool intra_freq_a3_ce_mode_b_r13_present = false;
   bool intra_freq_ho_ce_mode_a_r13_present = false;
@@ -53021,7 +52115,6 @@ struct ce_params_v1320_s {
 // PhyLayerParameters-v1310 ::= SEQUENCE
 struct phy_layer_params_v1310_s {
   struct supported_blind_decoding_r13_s_ {
-    // member variables
     bool    max_num_decoding_r13_present                     = false;
     bool    pdcch_candidate_reductions_r13_present           = false;
     bool    skip_monitoring_dci_format0_minus1_a_r13_present = false;
@@ -53033,7 +52126,7 @@ struct phy_layer_params_v1310_s {
   bool                            codebook_harq_ack_r13_present          = false;
   bool                            cross_carrier_sched_b5_c_r13_present   = false;
   bool                            fdd_harq_timing_tdd_r13_present        = false;
-  bool                            max_num_updated_csi_proc_r13_present   = false;
+  bool                            max_num_upd_csi_proc_r13_present       = false;
   bool                            pucch_format4_r13_present              = false;
   bool                            pucch_format5_r13_present              = false;
   bool                            pucch_scell_r13_present                = false;
@@ -53044,7 +52137,7 @@ struct phy_layer_params_v1310_s {
   bool                            pdsch_collision_handling_r13_present   = false;
   fixed_bitstring<2>              aperiodic_csi_report_r13;
   fixed_bitstring<2>              codebook_harq_ack_r13;
-  uint8_t                         max_num_updated_csi_proc_r13 = 5;
+  uint8_t                         max_num_upd_csi_proc_r13 = 5;
   supported_blind_decoding_r13_s_ supported_blind_decoding_r13;
 
   // sequence methods
@@ -53055,7 +52148,6 @@ struct phy_layer_params_v1310_s {
 
 // UE-EUTRA-Capability-v1330-IEs ::= SEQUENCE
 struct ue_eutra_cap_v1330_ies_s {
-  // member variables
   bool                     ue_category_dl_v1330_present   = false;
   bool                     phy_layer_params_v1330_present = false;
   bool                     ue_ce_need_ul_gaps_r13_present = false;
@@ -53072,13 +52164,12 @@ struct ue_eutra_cap_v1330_ies_s {
 
 // UE-EUTRA-Capability-v1380-IEs ::= SEQUENCE
 struct ue_eutra_cap_v1380_ies_s {
-  // member variables
   bool                              rf_params_v1380_present = false;
   bool                              non_crit_ext_present    = false;
   rf_params_v1380_s                 rf_params_v1380;
   ce_params_v1380_s                 ce_params_v1380;
-  ue_eutra_cap_add_xdd_mode_v1380_s fdd_add_ue_eutra_capabilities_v1380;
-  ue_eutra_cap_add_xdd_mode_v1380_s tdd_add_ue_eutra_capabilities_v1380;
+  ue_eutra_cap_add_xdd_mode_v1380_s fdd_add_ue_eutra_cap_v1380;
+  ue_eutra_cap_add_xdd_mode_v1380_s tdd_add_ue_eutra_cap_v1380;
   ue_eutra_cap_v1390_ies_s          non_crit_ext;
 
   // sequence methods
@@ -53089,7 +52180,6 @@ struct ue_eutra_cap_v1380_ies_s {
 
 // UE-EUTRA-CapabilityAddXDD-Mode-v1320 ::= SEQUENCE
 struct ue_eutra_cap_add_xdd_mode_v1320_s {
-  // member variables
   bool                     phy_layer_params_v1320_present = false;
   bool                     scptm_params_r13_present       = false;
   phy_layer_params_v1320_s phy_layer_params_v1320;
@@ -53103,7 +52193,6 @@ struct ue_eutra_cap_add_xdd_mode_v1320_s {
 
 // UE-EUTRA-CapabilityAddXDD-Mode-v1370 ::= SEQUENCE
 struct ue_eutra_cap_add_xdd_mode_v1370_s {
-  // member variables
   bool              ce_params_v1370_present = false;
   ce_params_v1370_s ce_params_v1370;
 
@@ -53115,7 +52204,6 @@ struct ue_eutra_cap_add_xdd_mode_v1370_s {
 
 // CE-Parameters-r13 ::= SEQUENCE
 struct ce_params_r13_s {
-  // member variables
   bool ce_mode_a_r13_present = false;
   bool ce_mode_b_r13_present = false;
 
@@ -53127,7 +52215,6 @@ struct ce_params_r13_s {
 
 // DC-Parameters-v1310 ::= SEQUENCE
 struct dc_params_v1310_s {
-  // member variables
   bool pdcp_transfer_split_ul_r13_present = false;
   bool ue_sstd_meas_r13_present           = false;
 
@@ -53139,7 +52226,6 @@ struct dc_params_v1310_s {
 
 // LAA-Parameters-r13 ::= SEQUENCE
 struct laa_params_r13_s {
-  // member variables
   bool cross_carrier_sched_laa_dl_r13_present = false;
   bool csi_rs_drs_rrm_meass_laa_r13_present   = false;
   bool dl_laa_r13_present                     = false;
@@ -53156,7 +52242,6 @@ struct laa_params_r13_s {
 
 // LWA-Parameters-r13 ::= SEQUENCE
 struct lwa_params_r13_s {
-  // member variables
   bool               lwa_r13_present              = false;
   bool               lwa_split_bearer_r13_present = false;
   bool               wlan_mac_address_r13_present = false;
@@ -53171,7 +52256,6 @@ struct lwa_params_r13_s {
 
 // LWIP-Parameters-r13 ::= SEQUENCE
 struct lwip_params_r13_s {
-  // member variables
   bool lwip_r13_present = false;
 
   // sequence methods
@@ -53182,7 +52266,6 @@ struct lwip_params_r13_s {
 
 // MAC-Parameters-v1310 ::= SEQUENCE
 struct mac_params_v1310_s {
-  // member variables
   bool extended_mac_len_field_r13_present = false;
   bool extended_long_drx_r13_present      = false;
 
@@ -53194,7 +52277,6 @@ struct mac_params_v1310_s {
 
 // MeasParameters-v1310 ::= SEQUENCE
 struct meas_params_v1310_s {
-  // member variables
   bool rs_sinr_meas_r13_present                 = false;
   bool white_cell_list_r13_present              = false;
   bool extended_max_obj_id_r13_present          = false;
@@ -53211,7 +52293,6 @@ struct meas_params_v1310_s {
 
 // PDCP-Parameters-v1310 ::= SEQUENCE
 struct pdcp_params_v1310_s {
-  // member variables
   bool pdcp_sn_ext_minus18bits_r13_present = false;
 
   // sequence methods
@@ -53222,7 +52303,6 @@ struct pdcp_params_v1310_s {
 
 // RLC-Parameters-v1310 ::= SEQUENCE
 struct rlc_params_v1310_s {
-  // member variables
   bool extended_rlc_sn_so_field_r13_present = false;
 
   // sequence methods
@@ -53233,7 +52313,6 @@ struct rlc_params_v1310_s {
 
 // SL-Parameters-v1310 ::= SEQUENCE
 struct sl_params_v1310_s {
-  // member variables
   bool disc_sys_info_report_r13_present = false;
   bool comm_multiple_tx_r13_present     = false;
   bool disc_inter_freq_tx_r13_present   = false;
@@ -53247,18 +52326,17 @@ struct sl_params_v1310_s {
 
 // UE-EUTRA-Capability-v1320-IEs ::= SEQUENCE
 struct ue_eutra_cap_v1320_ies_s {
-  // member variables
-  bool                              ce_params_v1320_present                     = false;
-  bool                              phy_layer_params_v1320_present              = false;
-  bool                              rf_params_v1320_present                     = false;
-  bool                              fdd_add_ue_eutra_capabilities_v1320_present = false;
-  bool                              tdd_add_ue_eutra_capabilities_v1320_present = false;
-  bool                              non_crit_ext_present                        = false;
+  bool                              ce_params_v1320_present            = false;
+  bool                              phy_layer_params_v1320_present     = false;
+  bool                              rf_params_v1320_present            = false;
+  bool                              fdd_add_ue_eutra_cap_v1320_present = false;
+  bool                              tdd_add_ue_eutra_cap_v1320_present = false;
+  bool                              non_crit_ext_present               = false;
   ce_params_v1320_s                 ce_params_v1320;
   phy_layer_params_v1320_s          phy_layer_params_v1320;
   rf_params_v1320_s                 rf_params_v1320;
-  ue_eutra_cap_add_xdd_mode_v1320_s fdd_add_ue_eutra_capabilities_v1320;
-  ue_eutra_cap_add_xdd_mode_v1320_s tdd_add_ue_eutra_capabilities_v1320;
+  ue_eutra_cap_add_xdd_mode_v1320_s fdd_add_ue_eutra_cap_v1320;
+  ue_eutra_cap_add_xdd_mode_v1320_s tdd_add_ue_eutra_cap_v1320;
   ue_eutra_cap_v1330_ies_s          non_crit_ext;
 
   // sequence methods
@@ -53269,14 +52347,13 @@ struct ue_eutra_cap_v1320_ies_s {
 
 // UE-EUTRA-Capability-v1370-IEs ::= SEQUENCE
 struct ue_eutra_cap_v1370_ies_s {
-  // member variables
-  bool                              ce_params_v1370_present                     = false;
-  bool                              fdd_add_ue_eutra_capabilities_v1370_present = false;
-  bool                              tdd_add_ue_eutra_capabilities_v1370_present = false;
-  bool                              non_crit_ext_present                        = false;
+  bool                              ce_params_v1370_present            = false;
+  bool                              fdd_add_ue_eutra_cap_v1370_present = false;
+  bool                              tdd_add_ue_eutra_cap_v1370_present = false;
+  bool                              non_crit_ext_present               = false;
   ce_params_v1370_s                 ce_params_v1370;
-  ue_eutra_cap_add_xdd_mode_v1370_s fdd_add_ue_eutra_capabilities_v1370;
-  ue_eutra_cap_add_xdd_mode_v1370_s tdd_add_ue_eutra_capabilities_v1370;
+  ue_eutra_cap_add_xdd_mode_v1370_s fdd_add_ue_eutra_cap_v1370;
+  ue_eutra_cap_add_xdd_mode_v1370_s tdd_add_ue_eutra_cap_v1370;
   ue_eutra_cap_v1380_ies_s          non_crit_ext;
 
   // sequence methods
@@ -53287,7 +52364,6 @@ struct ue_eutra_cap_v1370_ies_s {
 
 // UE-EUTRA-CapabilityAddXDD-Mode-v1310 ::= SEQUENCE
 struct ue_eutra_cap_add_xdd_mode_v1310_s {
-  // member variables
   bool                     phy_layer_params_v1310_present = false;
   phy_layer_params_v1310_s phy_layer_params_v1310;
 
@@ -53299,7 +52375,6 @@ struct ue_eutra_cap_add_xdd_mode_v1310_s {
 
 // WLAN-IW-Parameters-v1310 ::= SEQUENCE
 struct wlan_iw_params_v1310_s {
-  // member variables
   bool rclwi_r13_present = false;
 
   // sequence methods
@@ -53310,8 +52385,7 @@ struct wlan_iw_params_v1310_s {
 
 // PhyLayerParameters-v1280 ::= SEQUENCE
 struct phy_layer_params_v1280_s {
-  // member variables
-  bool alternative_tbs_indices_r12_present = false;
+  bool alt_tbs_indices_r12_present = false;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -53321,7 +52395,6 @@ struct phy_layer_params_v1280_s {
 
 // RF-Parameters-v12b0 ::= SEQUENCE
 struct rf_params_v12b0_s {
-  // member variables
   bool max_layers_mimo_ind_r12_present = false;
 
   // sequence methods
@@ -53332,7 +52405,6 @@ struct rf_params_v12b0_s {
 
 // UE-EUTRA-Capability-v12x0-IEs ::= SEQUENCE
 struct ue_eutra_cap_v12x0_ies_s {
-  // member variables
   bool                     late_non_crit_ext_present = false;
   bool                     non_crit_ext_present      = false;
   dyn_octstring            late_non_crit_ext;
@@ -53364,21 +52436,21 @@ struct ue_eutra_cap_v1310_ies_s {
   typedef enumerated<ue_category_ul_v1310_opts> ue_category_ul_v1310_e_;
 
   // member variables
-  bool                              ue_category_dl_v1310_present                = false;
-  bool                              ue_category_ul_v1310_present                = false;
-  bool                              mac_params_v1310_present                    = false;
-  bool                              phy_layer_params_v1310_present              = false;
-  bool                              rf_params_v1310_present                     = false;
-  bool                              meas_params_v1310_present                   = false;
-  bool                              dc_params_v1310_present                     = false;
-  bool                              sl_params_v1310_present                     = false;
-  bool                              scptm_params_r13_present                    = false;
-  bool                              ce_params_r13_present                       = false;
-  bool                              laa_params_r13_present                      = false;
-  bool                              lwa_params_r13_present                      = false;
-  bool                              fdd_add_ue_eutra_capabilities_v1310_present = false;
-  bool                              tdd_add_ue_eutra_capabilities_v1310_present = false;
-  bool                              non_crit_ext_present                        = false;
+  bool                              ue_category_dl_v1310_present       = false;
+  bool                              ue_category_ul_v1310_present       = false;
+  bool                              mac_params_v1310_present           = false;
+  bool                              phy_layer_params_v1310_present     = false;
+  bool                              rf_params_v1310_present            = false;
+  bool                              meas_params_v1310_present          = false;
+  bool                              dc_params_v1310_present            = false;
+  bool                              sl_params_v1310_present            = false;
+  bool                              scptm_params_r13_present           = false;
+  bool                              ce_params_r13_present              = false;
+  bool                              laa_params_r13_present             = false;
+  bool                              lwa_params_r13_present             = false;
+  bool                              fdd_add_ue_eutra_cap_v1310_present = false;
+  bool                              tdd_add_ue_eutra_cap_v1310_present = false;
+  bool                              non_crit_ext_present               = false;
   ue_category_dl_v1310_e_           ue_category_dl_v1310;
   ue_category_ul_v1310_e_           ue_category_ul_v1310;
   pdcp_params_v1310_s               pdcp_params_v1310;
@@ -53396,8 +52468,8 @@ struct ue_eutra_cap_v1310_ies_s {
   lwa_params_r13_s                  lwa_params_r13;
   wlan_iw_params_v1310_s            wlan_iw_params_v1310;
   lwip_params_r13_s                 lwip_params_r13;
-  ue_eutra_cap_add_xdd_mode_v1310_s fdd_add_ue_eutra_capabilities_v1310;
-  ue_eutra_cap_add_xdd_mode_v1310_s tdd_add_ue_eutra_capabilities_v1310;
+  ue_eutra_cap_add_xdd_mode_v1310_s fdd_add_ue_eutra_cap_v1310;
+  ue_eutra_cap_add_xdd_mode_v1310_s tdd_add_ue_eutra_cap_v1310;
   ue_eutra_cap_v1320_ies_s          non_crit_ext;
 
   // sequence methods
@@ -53408,7 +52480,6 @@ struct ue_eutra_cap_v1310_ies_s {
 
 // UE-EUTRA-Capability-v1280-IEs ::= SEQUENCE
 struct ue_eutra_cap_v1280_ies_s {
-  // member variables
   bool                     phy_layer_params_v1280_present = false;
   bool                     non_crit_ext_present           = false;
   phy_layer_params_v1280_s phy_layer_params_v1280;
@@ -53422,7 +52493,6 @@ struct ue_eutra_cap_v1280_ies_s {
 
 // UE-EUTRA-Capability-v12b0-IEs ::= SEQUENCE
 struct ue_eutra_cap_v12b0_ies_s {
-  // member variables
   bool                     rf_params_v12b0_present = false;
   bool                     non_crit_ext_present    = false;
   rf_params_v12b0_s        rf_params_v12b0;
@@ -53436,9 +52506,8 @@ struct ue_eutra_cap_v12b0_ies_s {
 
 // MeasParameters-v1250 ::= SEQUENCE
 struct meas_params_v1250_s {
-  // member variables
   bool timer_t312_r12_present                    = false;
-  bool alternative_time_to_trigger_r12_present   = false;
+  bool alt_time_to_trigger_r12_present           = false;
   bool inc_mon_eutra_r12_present                 = false;
   bool inc_mon_utra_r12_present                  = false;
   bool extended_max_meas_id_r12_present          = false;
@@ -53455,7 +52524,6 @@ struct meas_params_v1250_s {
 
 // Other-Parameters-v11d0 ::= SEQUENCE
 struct other_params_v11d0_s {
-  // member variables
   bool in_dev_coex_ind_ul_ca_r11_present = false;
 
   // sequence methods
@@ -53466,7 +52534,6 @@ struct other_params_v11d0_s {
 
 // RF-Parameters-v10j0 ::= SEQUENCE
 struct rf_params_v10j0_s {
-  // member variables
   bool multi_ns_pmax_r10_present = false;
 
   // sequence methods
@@ -53477,7 +52544,6 @@ struct rf_params_v10j0_s {
 
 // UE-EUTRA-Capability-v11x0-IEs ::= SEQUENCE
 struct ue_eutra_cap_v11x0_ies_s {
-  // member variables
   bool                     late_non_crit_ext_present = false;
   bool                     non_crit_ext_present      = false;
   dyn_octstring            late_non_crit_ext;
@@ -53491,7 +52557,6 @@ struct ue_eutra_cap_v11x0_ies_s {
 
 // UE-EUTRA-Capability-v1270-IEs ::= SEQUENCE
 struct ue_eutra_cap_v1270_ies_s {
-  // member variables
   bool                     rf_params_v1270_present = false;
   bool                     non_crit_ext_present    = false;
   rf_params_v1270_s        rf_params_v1270;
@@ -53505,7 +52570,6 @@ struct ue_eutra_cap_v1270_ies_s {
 
 // DC-Parameters-r12 ::= SEQUENCE
 struct dc_params_r12_s {
-  // member variables
   bool drb_type_split_r12_present = false;
   bool drb_type_scg_r12_present   = false;
 
@@ -53517,7 +52581,6 @@ struct dc_params_r12_s {
 
 // MAC-Parameters-r12 ::= SEQUENCE
 struct mac_params_r12_s {
-  // member variables
   bool lc_ch_sr_prohibit_timer_r12_present = false;
   bool long_drx_cmd_r12_present            = false;
 
@@ -53529,7 +52592,6 @@ struct mac_params_r12_s {
 
 // MBMS-Parameters-v1250 ::= SEQUENCE
 struct mbms_params_v1250_s {
-  // member variables
   bool mbms_async_dc_r12_present = false;
 
   // sequence methods
@@ -53556,7 +52618,6 @@ struct ue_based_netw_perf_meas_params_v1250_s {
 
 // UE-EUTRA-Capability-v10j0-IEs ::= SEQUENCE
 struct ue_eutra_cap_v10j0_ies_s {
-  // member variables
   bool              rf_params_v10j0_present = false;
   bool              non_crit_ext_present    = false;
   rf_params_v10j0_s rf_params_v10j0;
@@ -53569,7 +52630,6 @@ struct ue_eutra_cap_v10j0_ies_s {
 
 // UE-EUTRA-Capability-v11d0-IEs ::= SEQUENCE
 struct ue_eutra_cap_v11d0_ies_s {
-  // member variables
   bool                     rf_params_v11d0_present    = false;
   bool                     other_params_v11d0_present = false;
   bool                     non_crit_ext_present       = false;
@@ -53585,7 +52645,6 @@ struct ue_eutra_cap_v11d0_ies_s {
 
 // UE-EUTRA-Capability-v1260-IEs ::= SEQUENCE
 struct ue_eutra_cap_v1260_ies_s {
-  // member variables
   bool                     ue_category_dl_v1260_present = false;
   bool                     non_crit_ext_present         = false;
   uint8_t                  ue_category_dl_v1260         = 15;
@@ -53599,7 +52658,6 @@ struct ue_eutra_cap_v1260_ies_s {
 
 // UE-EUTRA-CapabilityAddXDD-Mode-v1250 ::= SEQUENCE
 struct ue_eutra_cap_add_xdd_mode_v1250_s {
-  // member variables
   bool                     phy_layer_params_v1250_present = false;
   bool                     meas_params_v1250_present      = false;
   phy_layer_params_v1250_s phy_layer_params_v1250;
@@ -53613,7 +52671,6 @@ struct ue_eutra_cap_add_xdd_mode_v1250_s {
 
 // WLAN-IW-Parameters-r12 ::= SEQUENCE
 struct wlan_iw_params_r12_s {
-  // member variables
   bool wlan_iw_ran_rules_r12_present      = false;
   bool wlan_iw_andsf_policies_r12_present = false;
 
@@ -53625,7 +52682,6 @@ struct wlan_iw_params_r12_s {
 
 // MBMS-Parameters-r11 ::= SEQUENCE
 struct mbms_params_r11_s {
-  // member variables
   bool mbms_scell_r11_present            = false;
   bool mbms_non_serving_cell_r11_present = false;
 
@@ -53637,7 +52693,6 @@ struct mbms_params_r11_s {
 
 // MeasParameters-v11a0 ::= SEQUENCE
 struct meas_params_v11a0_s {
-  // member variables
   bool benefits_from_interruption_r11_present = false;
 
   // sequence methods
@@ -53648,7 +52703,6 @@ struct meas_params_v11a0_s {
 
 // RF-Parameters-v10f0 ::= SEQUENCE
 struct rf_params_v10f0_s {
-  // member variables
   bool                modified_mpr_behavior_r10_present = false;
   fixed_bitstring<32> modified_mpr_behavior_r10;
 
@@ -53660,7 +52714,6 @@ struct rf_params_v10f0_s {
 
 // UE-EUTRA-Capability-v10i0-IEs ::= SEQUENCE
 struct ue_eutra_cap_v10i0_ies_s {
-  // member variables
   bool                     rf_params_v10i0_present   = false;
   bool                     late_non_crit_ext_present = false;
   bool                     non_crit_ext_present      = false;
@@ -53676,7 +52729,6 @@ struct ue_eutra_cap_v10i0_ies_s {
 
 // UE-EUTRA-Capability-v1250-IEs ::= SEQUENCE
 struct ue_eutra_cap_v1250_ies_s {
-  // member variables
   bool                                   phy_layer_params_v1250_present               = false;
   bool                                   rf_params_v1250_present                      = false;
   bool                                   rlc_params_r12_present                       = false;
@@ -53688,8 +52740,8 @@ struct ue_eutra_cap_v1250_ies_s {
   bool                                   dc_params_r12_present                        = false;
   bool                                   mbms_params_v1250_present                    = false;
   bool                                   mac_params_r12_present                       = false;
-  bool                                   fdd_add_ue_eutra_capabilities_v1250_present  = false;
-  bool                                   tdd_add_ue_eutra_capabilities_v1250_present  = false;
+  bool                                   fdd_add_ue_eutra_cap_v1250_present           = false;
+  bool                                   tdd_add_ue_eutra_cap_v1250_present           = false;
   bool                                   sl_params_r12_present                        = false;
   bool                                   non_crit_ext_present                         = false;
   phy_layer_params_v1250_s               phy_layer_params_v1250;
@@ -53703,8 +52755,8 @@ struct ue_eutra_cap_v1250_ies_s {
   dc_params_r12_s                        dc_params_r12;
   mbms_params_v1250_s                    mbms_params_v1250;
   mac_params_r12_s                       mac_params_r12;
-  ue_eutra_cap_add_xdd_mode_v1250_s      fdd_add_ue_eutra_capabilities_v1250;
-  ue_eutra_cap_add_xdd_mode_v1250_s      tdd_add_ue_eutra_capabilities_v1250;
+  ue_eutra_cap_add_xdd_mode_v1250_s      fdd_add_ue_eutra_cap_v1250;
+  ue_eutra_cap_add_xdd_mode_v1250_s      tdd_add_ue_eutra_cap_v1250;
   sl_params_r12_s                        sl_params_r12;
   ue_eutra_cap_v1260_ies_s               non_crit_ext;
 
@@ -53715,8 +52767,7 @@ struct ue_eutra_cap_v1250_ies_s {
 };
 
 // OTDOA-PositioningCapabilities-r10 ::= SEQUENCE
-struct otdoa_positioning_capabilities_r10_s {
-  // member variables
+struct otdoa_positioning_cap_r10_s {
   bool inter_freq_rstd_meas_r10_present = false;
 
   // sequence methods
@@ -53727,7 +52778,6 @@ struct otdoa_positioning_capabilities_r10_s {
 
 // UE-EUTRA-Capability-v10f0-IEs ::= SEQUENCE
 struct ue_eutra_cap_v10f0_ies_s {
-  // member variables
   bool                     rf_params_v10f0_present = false;
   bool                     non_crit_ext_present    = false;
   rf_params_v10f0_s        rf_params_v10f0;
@@ -53741,7 +52791,6 @@ struct ue_eutra_cap_v10f0_ies_s {
 
 // UE-EUTRA-Capability-v11a0-IEs ::= SEQUENCE
 struct ue_eutra_cap_v11a0_ies_s {
-  // member variables
   bool                     ue_category_v11a0_present = false;
   bool                     meas_params_v11a0_present = false;
   bool                     non_crit_ext_present      = false;
@@ -53757,7 +52806,6 @@ struct ue_eutra_cap_v11a0_ies_s {
 
 // UE-EUTRA-CapabilityAddXDD-Mode-v1180 ::= SEQUENCE
 struct ue_eutra_cap_add_xdd_mode_v1180_s {
-  // member variables
   mbms_params_r11_s mbms_params_r11;
 
   // sequence methods
@@ -53776,7 +52824,6 @@ struct irat_params_utra_v9h0_s {
 
 // MeasParameters-v1130 ::= SEQUENCE
 struct meas_params_v1130_s {
-  // member variables
   bool rsrq_meas_wideband_r11_present = false;
 
   // sequence methods
@@ -53787,7 +52834,6 @@ struct meas_params_v1130_s {
 
 // Other-Parameters-r11 ::= SEQUENCE
 struct other_params_r11_s {
-  // member variables
   bool in_dev_coex_ind_r11_present          = false;
   bool pwr_pref_ind_r11_present             = false;
   bool ue_rx_tx_time_diff_meass_r11_present = false;
@@ -53800,9 +52846,8 @@ struct other_params_r11_s {
 
 // PhyLayerParameters-v1130 ::= SEQUENCE
 struct phy_layer_params_v1130_s {
-  // member variables
   bool crs_interf_handl_r11_present         = false;
-  bool e_pdcch_r11_present                  = false;
+  bool epdcch_r11_present                   = false;
   bool multi_ack_csi_report_r11_present     = false;
   bool ss_cch_interf_handl_r11_present      = false;
   bool tdd_special_sf_r11_present           = false;
@@ -53817,7 +52862,6 @@ struct phy_layer_params_v1130_s {
 
 // PhyLayerParameters-v1170 ::= SEQUENCE
 struct phy_layer_params_v1170_s {
-  // member variables
   bool               inter_band_tdd_ca_with_different_cfg_r11_present = false;
   fixed_bitstring<2> inter_band_tdd_ca_with_different_cfg_r11;
 
@@ -53829,11 +52873,10 @@ struct phy_layer_params_v1170_s {
 
 // UE-EUTRA-Capability-v10c0-IEs ::= SEQUENCE
 struct ue_eutra_cap_v10c0_ies_s {
-  // member variables
-  bool                                 otdoa_positioning_capabilities_r10_present = false;
-  bool                                 non_crit_ext_present                       = false;
-  otdoa_positioning_capabilities_r10_s otdoa_positioning_capabilities_r10;
-  ue_eutra_cap_v10f0_ies_s             non_crit_ext;
+  bool                        otdoa_positioning_cap_r10_present = false;
+  bool                        non_crit_ext_present              = false;
+  otdoa_positioning_cap_r10_s otdoa_positioning_cap_r10;
+  ue_eutra_cap_v10f0_ies_s    non_crit_ext;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -53843,16 +52886,15 @@ struct ue_eutra_cap_v10c0_ies_s {
 
 // UE-EUTRA-Capability-v1180-IEs ::= SEQUENCE
 struct ue_eutra_cap_v1180_ies_s {
-  // member variables
-  bool                              rf_params_v1180_present                     = false;
-  bool                              mbms_params_r11_present                     = false;
-  bool                              fdd_add_ue_eutra_capabilities_v1180_present = false;
-  bool                              tdd_add_ue_eutra_capabilities_v1180_present = false;
-  bool                              non_crit_ext_present                        = false;
+  bool                              rf_params_v1180_present            = false;
+  bool                              mbms_params_r11_present            = false;
+  bool                              fdd_add_ue_eutra_cap_v1180_present = false;
+  bool                              tdd_add_ue_eutra_cap_v1180_present = false;
+  bool                              non_crit_ext_present               = false;
   rf_params_v1180_s                 rf_params_v1180;
   mbms_params_r11_s                 mbms_params_r11;
-  ue_eutra_cap_add_xdd_mode_v1180_s fdd_add_ue_eutra_capabilities_v1180;
-  ue_eutra_cap_add_xdd_mode_v1180_s tdd_add_ue_eutra_capabilities_v1180;
+  ue_eutra_cap_add_xdd_mode_v1180_s fdd_add_ue_eutra_cap_v1180;
+  ue_eutra_cap_add_xdd_mode_v1180_s tdd_add_ue_eutra_cap_v1180;
   ue_eutra_cap_v11a0_ies_s          non_crit_ext;
 
   // sequence methods
@@ -53863,7 +52905,6 @@ struct ue_eutra_cap_v1180_ies_s {
 
 // IRAT-ParametersCDMA2000-v1130 ::= SEQUENCE
 struct irat_params_cdma2000_v1130_s {
-  // member variables
   bool cdma2000_nw_sharing_r11_present = false;
 
   // sequence methods
@@ -53874,7 +52915,6 @@ struct irat_params_cdma2000_v1130_s {
 
 // PDCP-Parameters-v1130 ::= SEQUENCE
 struct pdcp_params_v1130_s {
-  // member variables
   bool pdcp_sn_ext_r11_present                   = false;
   bool support_rohc_context_continue_r11_present = false;
 
@@ -53886,7 +52926,6 @@ struct pdcp_params_v1130_s {
 
 // UE-EUTRA-Capability-v1170-IEs ::= SEQUENCE
 struct ue_eutra_cap_v1170_ies_s {
-  // member variables
   bool                     phy_layer_params_v1170_present = false;
   bool                     ue_category_v1170_present      = false;
   bool                     non_crit_ext_present           = false;
@@ -53902,7 +52941,6 @@ struct ue_eutra_cap_v1170_ies_s {
 
 // UE-EUTRA-Capability-v9h0-IEs ::= SEQUENCE
 struct ue_eutra_cap_v9h0_ies_s {
-  // member variables
   bool                     inter_rat_params_utra_v9h0_present = false;
   bool                     late_non_crit_ext_present          = false;
   bool                     non_crit_ext_present               = false;
@@ -53918,7 +52956,6 @@ struct ue_eutra_cap_v9h0_ies_s {
 
 // UE-EUTRA-CapabilityAddXDD-Mode-v1130 ::= SEQUENCE
 struct ue_eutra_cap_add_xdd_mode_v1130_s {
-  // member variables
   bool                     ext                            = false;
   bool                     phy_layer_params_v1130_present = false;
   bool                     meas_params_v1130_present      = false;
@@ -53952,7 +52989,6 @@ struct irat_params_utra_tdd_v1020_s {
 
 // PhyLayerParameters-v9d0 ::= SEQUENCE
 struct phy_layer_params_v9d0_s {
-  // member variables
   bool tm5_fdd_r9_present = false;
   bool tm5_tdd_r9_present = false;
 
@@ -53964,19 +53000,18 @@ struct phy_layer_params_v9d0_s {
 
 // UE-EUTRA-Capability-v1130-IEs ::= SEQUENCE
 struct ue_eutra_cap_v1130_ies_s {
-  // member variables
-  bool                              phy_layer_params_v1130_present              = false;
-  bool                              fdd_add_ue_eutra_capabilities_v1130_present = false;
-  bool                              tdd_add_ue_eutra_capabilities_v1130_present = false;
-  bool                              non_crit_ext_present                        = false;
+  bool                              phy_layer_params_v1130_present     = false;
+  bool                              fdd_add_ue_eutra_cap_v1130_present = false;
+  bool                              tdd_add_ue_eutra_cap_v1130_present = false;
+  bool                              non_crit_ext_present               = false;
   pdcp_params_v1130_s               pdcp_params_v1130;
   phy_layer_params_v1130_s          phy_layer_params_v1130;
   rf_params_v1130_s                 rf_params_v1130;
   meas_params_v1130_s               meas_params_v1130;
   irat_params_cdma2000_v1130_s      inter_rat_params_cdma2000_v1130;
   other_params_r11_s                other_params_r11;
-  ue_eutra_cap_add_xdd_mode_v1130_s fdd_add_ue_eutra_capabilities_v1130;
-  ue_eutra_cap_add_xdd_mode_v1130_s tdd_add_ue_eutra_capabilities_v1130;
+  ue_eutra_cap_add_xdd_mode_v1130_s fdd_add_ue_eutra_cap_v1130;
+  ue_eutra_cap_add_xdd_mode_v1130_s tdd_add_ue_eutra_cap_v1130;
   ue_eutra_cap_v1170_ies_s          non_crit_ext;
 
   // sequence methods
@@ -53987,7 +53022,6 @@ struct ue_eutra_cap_v1130_ies_s {
 
 // UE-EUTRA-Capability-v9e0-IEs ::= SEQUENCE
 struct ue_eutra_cap_v9e0_ies_s {
-  // member variables
   bool                    rf_params_v9e0_present = false;
   bool                    non_crit_ext_present   = false;
   rf_params_v9e0_s        rf_params_v9e0;
@@ -54001,7 +53035,6 @@ struct ue_eutra_cap_v9e0_ies_s {
 
 // IRAT-ParametersCDMA2000-1XRTT-v920 ::= SEQUENCE
 struct irat_params_cdma2000_minus1_xrtt_v920_s {
-  // member variables
   bool e_csfb_conc_ps_mob1_xrtt_r9_present = false;
 
   // sequence methods
@@ -54020,7 +53053,6 @@ struct irat_params_utra_v920_s {
 
 // IRAT-ParametersUTRA-v9c0 ::= SEQUENCE
 struct irat_params_utra_v9c0_s {
-  // member variables
   bool voice_over_ps_hs_utra_fdd_r9_present             = false;
   bool voice_over_ps_hs_utra_tdd128_r9_present          = false;
   bool srvcc_from_utra_fdd_to_utra_fdd_r9_present       = false;
@@ -54036,7 +53068,6 @@ struct irat_params_utra_v9c0_s {
 
 // NeighCellSI-AcquisitionParameters-r9 ::= SEQUENCE
 struct neigh_cell_si_acquisition_params_r9_s {
-  // member variables
   bool intra_freq_si_acquisition_for_ho_r9_present = false;
   bool inter_freq_si_acquisition_for_ho_r9_present = false;
   bool utran_si_acquisition_for_ho_r9_present      = false;
@@ -54049,7 +53080,6 @@ struct neigh_cell_si_acquisition_params_r9_s {
 
 // PhyLayerParameters ::= SEQUENCE
 struct phy_layer_params_s {
-  // member variables
   bool ue_tx_ant_sel_supported        = false;
   bool ue_specific_ref_sigs_supported = false;
 
@@ -54061,7 +53091,6 @@ struct phy_layer_params_s {
 
 // UE-EUTRA-Capability-v1090-IEs ::= SEQUENCE
 struct ue_eutra_cap_v1090_ies_s {
-  // member variables
   bool                     rf_params_v1090_present = false;
   bool                     non_crit_ext_present    = false;
   rf_params_v1090_s        rf_params_v1090;
@@ -54075,7 +53104,6 @@ struct ue_eutra_cap_v1090_ies_s {
 
 // UE-EUTRA-Capability-v9d0-IEs ::= SEQUENCE
 struct ue_eutra_cap_v9d0_ies_s {
-  // member variables
   bool                    phy_layer_params_v9d0_present = false;
   bool                    non_crit_ext_present          = false;
   phy_layer_params_v9d0_s phy_layer_params_v9d0;
@@ -54089,7 +53117,6 @@ struct ue_eutra_cap_v9d0_ies_s {
 
 // UE-EUTRA-CapabilityAddXDD-Mode-v1060 ::= SEQUENCE
 struct ue_eutra_cap_add_xdd_mode_v1060_s {
-  // member variables
   bool                                     ext                                     = false;
   bool                                     phy_layer_params_v1060_present          = false;
   bool                                     feature_group_ind_rel10_v1060_present   = false;
@@ -54101,7 +53128,7 @@ struct ue_eutra_cap_add_xdd_mode_v1060_s {
   irat_params_utra_tdd_v1020_s             inter_rat_params_utra_tdd_v1060;
   // ...
   // group 0
-  copy_ptr<otdoa_positioning_capabilities_r10_s> otdoa_positioning_capabilities_r10;
+  copy_ptr<otdoa_positioning_cap_r10_s> otdoa_positioning_cap_r10;
 
   // sequence methods
   SRSASN_CODE pack(bit_ref& bref) const;
@@ -54111,7 +53138,6 @@ struct ue_eutra_cap_add_xdd_mode_v1060_s {
 
 // UE-BasedNetwPerfMeasParameters-r10 ::= SEQUENCE
 struct ue_based_netw_perf_meas_params_r10_s {
-  // member variables
   bool logged_meass_idle_r10_present        = false;
   bool standalone_gnss_location_r10_present = false;
 
@@ -54123,13 +53149,12 @@ struct ue_based_netw_perf_meas_params_r10_s {
 
 // UE-EUTRA-Capability-v1060-IEs ::= SEQUENCE
 struct ue_eutra_cap_v1060_ies_s {
-  // member variables
-  bool                              fdd_add_ue_eutra_capabilities_v1060_present = false;
-  bool                              tdd_add_ue_eutra_capabilities_v1060_present = false;
-  bool                              rf_params_v1060_present                     = false;
-  bool                              non_crit_ext_present                        = false;
-  ue_eutra_cap_add_xdd_mode_v1060_s fdd_add_ue_eutra_capabilities_v1060;
-  ue_eutra_cap_add_xdd_mode_v1060_s tdd_add_ue_eutra_capabilities_v1060;
+  bool                              fdd_add_ue_eutra_cap_v1060_present = false;
+  bool                              tdd_add_ue_eutra_cap_v1060_present = false;
+  bool                              rf_params_v1060_present            = false;
+  bool                              non_crit_ext_present               = false;
+  ue_eutra_cap_add_xdd_mode_v1060_s fdd_add_ue_eutra_cap_v1060;
+  ue_eutra_cap_add_xdd_mode_v1060_s tdd_add_ue_eutra_cap_v1060;
   rf_params_v1060_s                 rf_params_v1060;
   ue_eutra_cap_v1090_ies_s          non_crit_ext;
 
@@ -54141,7 +53166,6 @@ struct ue_eutra_cap_v1060_ies_s {
 
 // UE-EUTRA-Capability-v9c0-IEs ::= SEQUENCE
 struct ue_eutra_cap_v9c0_ies_s {
-  // member variables
   bool                    inter_rat_params_utra_v9c0_present = false;
   bool                    non_crit_ext_present               = false;
   irat_params_utra_v9c0_s inter_rat_params_utra_v9c0;
@@ -54155,7 +53179,6 @@ struct ue_eutra_cap_v9c0_ies_s {
 
 // UE-EUTRA-CapabilityAddXDD-Mode-r9 ::= SEQUENCE
 struct ue_eutra_cap_add_xdd_mode_r9_s {
-  // member variables
   bool                                    ext                                         = false;
   bool                                    phy_layer_params_r9_present                 = false;
   bool                                    feature_group_inds_r9_present               = false;
@@ -54181,7 +53204,6 @@ struct ue_eutra_cap_add_xdd_mode_r9_s {
 
 // UE-EUTRA-Capability-v1020-IEs ::= SEQUENCE
 struct ue_eutra_cap_v1020_ies_s {
-  // member variables
   bool                                     ue_category_v1020_present                  = false;
   bool                                     phy_layer_params_v1020_present             = false;
   bool                                     rf_params_v1020_present                    = false;
@@ -54209,14 +53231,13 @@ struct ue_eutra_cap_v1020_ies_s {
 
 // UE-EUTRA-Capability-v9a0-IEs ::= SEQUENCE
 struct ue_eutra_cap_v9a0_ies_s {
-  // member variables
-  bool                           feature_group_ind_rel9_add_r9_present    = false;
-  bool                           fdd_add_ue_eutra_capabilities_r9_present = false;
-  bool                           tdd_add_ue_eutra_capabilities_r9_present = false;
-  bool                           non_crit_ext_present                     = false;
+  bool                           feature_group_ind_rel9_add_r9_present = false;
+  bool                           fdd_add_ue_eutra_cap_r9_present       = false;
+  bool                           tdd_add_ue_eutra_cap_r9_present       = false;
+  bool                           non_crit_ext_present                  = false;
   fixed_bitstring<32>            feature_group_ind_rel9_add_r9;
-  ue_eutra_cap_add_xdd_mode_r9_s fdd_add_ue_eutra_capabilities_r9;
-  ue_eutra_cap_add_xdd_mode_r9_s tdd_add_ue_eutra_capabilities_r9;
+  ue_eutra_cap_add_xdd_mode_r9_s fdd_add_ue_eutra_cap_r9;
+  ue_eutra_cap_add_xdd_mode_r9_s tdd_add_ue_eutra_cap_r9;
   ue_eutra_cap_v9c0_ies_s        non_crit_ext;
 
   // sequence methods
@@ -54227,7 +53248,6 @@ struct ue_eutra_cap_v9a0_ies_s {
 
 // CSG-ProximityIndicationParameters-r9 ::= SEQUENCE
 struct csg_proximity_ind_params_r9_s {
-  // member variables
   bool intra_freq_proximity_ind_r9_present = false;
   bool inter_freq_proximity_ind_r9_present = false;
   bool utran_proximity_ind_r9_present      = false;
@@ -54240,7 +53260,6 @@ struct csg_proximity_ind_params_r9_s {
 
 // IRAT-ParametersGERAN-v920 ::= SEQUENCE
 struct irat_params_geran_v920_s {
-  // member variables
   bool dtm_r9_present                 = false;
   bool e_redirection_geran_r9_present = false;
 
@@ -54252,7 +53271,6 @@ struct irat_params_geran_v920_s {
 
 // PhyLayerParameters-v920 ::= SEQUENCE
 struct phy_layer_params_v920_s {
-  // member variables
   bool enhanced_dual_layer_fdd_r9_present = false;
   bool enhanced_dual_layer_tdd_r9_present = false;
 
@@ -54264,7 +53282,6 @@ struct phy_layer_params_v920_s {
 
 // SON-Parameters-r9 ::= SEQUENCE
 struct son_params_r9_s {
-  // member variables
   bool rach_report_r9_present = false;
 
   // sequence methods
@@ -54275,7 +53292,6 @@ struct son_params_r9_s {
 
 // UE-EUTRA-Capability-v940-IEs ::= SEQUENCE
 struct ue_eutra_cap_v940_ies_s {
-  // member variables
   bool                     late_non_crit_ext_present = false;
   bool                     non_crit_ext_present      = false;
   dyn_octstring            late_non_crit_ext;
@@ -54299,7 +53315,6 @@ typedef enumerated<access_stratum_release_opts, true> access_stratum_release_e;
 
 // UE-EUTRA-Capability-v920-IEs ::= SEQUENCE
 struct ue_eutra_cap_v920_ies_s {
-  // member variables
   bool                                    inter_rat_params_utra_v920_present     = false;
   bool                                    inter_rat_params_cdma2000_v920_present = false;
   bool                                    dev_type_r9_present                    = false;
@@ -54322,7 +53337,6 @@ struct ue_eutra_cap_v920_ies_s {
 // UE-EUTRA-Capability ::= SEQUENCE
 struct ue_eutra_cap_s {
   struct inter_rat_params_s_ {
-    // member variables
     bool                               utra_fdd_present             = false;
     bool                               utra_tdd128_present          = false;
     bool                               utra_tdd384_present          = false;
@@ -54360,7 +53374,6 @@ struct ue_eutra_cap_s {
 
 // SCG-Config-r12-IEs ::= SEQUENCE
 struct scg_cfg_r12_ies_s {
-  // member variables
   bool                   scg_radio_cfg_r12_present = false;
   bool                   non_crit_ext_present      = false;
   scg_cfg_part_scg_r12_s scg_radio_cfg_r12;
@@ -54373,7 +53386,6 @@ struct scg_cfg_r12_ies_s {
 
 // AS-ConfigNR-r15 ::= SEQUENCE
 struct as_cfg_nr_r15_s {
-  // member variables
   bool          source_rb_cfg_nr_r15_present       = false;
   bool          source_rb_cfg_sn_nr_r15_present    = false;
   bool          source_other_cfg_sn_nr_r15_present = false;
@@ -54456,8 +53468,8 @@ struct scg_cfg_r12_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -54473,7 +53485,6 @@ struct scg_cfg_r12_s {
 
 // AS-Config ::= SEQUENCE
 struct as_cfg_s {
-  // member variables
   bool                     ext = false;
   meas_cfg_s               source_meas_cfg;
   rr_cfg_ded_s             source_rr_cfg;
@@ -54483,7 +53494,7 @@ struct as_cfg_s {
   sib_type1_s              source_sib_type1;
   sib_type2_s              source_sib_type2;
   ant_info_common_s        ant_info_common;
-  uint16_t                 source_dl_carrier_freq = 0;
+  uint32_t                 source_dl_carrier_freq = 0;
   // ...
   // group 0
   bool                     source_sib_type1_ext_present = false;
@@ -54504,7 +53515,6 @@ struct as_cfg_s {
 
 // AS-Config-v10j0 ::= SEQUENCE
 struct as_cfg_v10j0_s {
-  // member variables
   bool                 ant_info_ded_pcell_v10i0_present = false;
   ant_info_ded_v10i0_s ant_info_ded_pcell_v10i0;
 
@@ -54516,7 +53526,6 @@ struct as_cfg_v10j0_s {
 
 // AS-Config-v1250 ::= SEQUENCE
 struct as_cfg_v1250_s {
-  // member variables
   bool                   source_wlan_offload_cfg_r12_present = false;
   bool                   source_sl_comm_cfg_r12_present      = false;
   bool                   source_sl_disc_cfg_r12_present      = false;
@@ -54532,7 +53541,6 @@ struct as_cfg_v1250_s {
 
 // AS-Config-v1320 ::= SEQUENCE
 struct as_cfg_v1320_s {
-  // member variables
   bool                            source_scell_cfg_list_r13_present = false;
   bool                            source_rclwi_cfg_r13_present      = false;
   scell_to_add_mod_list_ext_r13_l source_scell_cfg_list_r13;
@@ -54546,7 +53554,6 @@ struct as_cfg_v1320_s {
 
 // AS-Config-v1430 ::= SEQUENCE
 struct as_cfg_v1430_s {
-  // member variables
   bool                        source_sl_v2x_comm_cfg_r14_present  = false;
   bool                        source_lwa_cfg_r14_present          = false;
   bool                        source_wlan_meas_result_r14_present = false;
@@ -54562,7 +53569,6 @@ struct as_cfg_v1430_s {
 
 // AS-Config-v9e0 ::= SEQUENCE
 struct as_cfg_v9e0_s {
-  // member variables
   uint32_t source_dl_carrier_freq_v9e0 = 65536;
 
   // sequence methods
@@ -54573,7 +53579,6 @@ struct as_cfg_v9e0_s {
 
 // AdditionalReestabInfo ::= SEQUENCE
 struct add_reestab_info_s {
-  // member variables
   fixed_bitstring<28>  cell_id;
   fixed_bitstring<256> key_e_node_b_star;
   fixed_bitstring<16>  short_mac_i;
@@ -54584,12 +53589,11 @@ struct add_reestab_info_s {
   void        to_json(json_writer& j) const;
 };
 
-// AdditionalReestabInfoList ::= SEQUENCE (SIZE (1..maxReestabInfo)) OF AdditionalReestabInfo
-typedef dyn_array<add_reestab_info_s> add_reestab_info_list_l;
+// AdditionalReestabInfoList ::= SEQUENCE (SIZE (1..32)) OF AdditionalReestabInfo
+using add_reestab_info_list_l = dyn_array<add_reestab_info_s>;
 
 // ReestablishmentInfo ::= SEQUENCE
 struct reest_info_s {
-  // member variables
   bool                    ext                           = false;
   bool                    add_reestab_info_list_present = false;
   uint16_t                source_pci                    = 0;
@@ -54605,7 +53609,6 @@ struct reest_info_s {
 
 // AS-Context ::= SEQUENCE
 struct as_context_s {
-  // member variables
   bool         reest_info_present = false;
   reest_info_s reest_info;
 
@@ -54617,7 +53620,6 @@ struct as_context_s {
 
 // AS-Context-v1130 ::= SEQUENCE
 struct as_context_v1130_s {
-  // member variables
   bool          ext                           = false;
   bool          idc_ind_r11_present           = false;
   bool          mbms_interest_ind_r11_present = false;
@@ -54641,7 +53643,6 @@ struct as_context_v1130_s {
 
 // AS-Context-v1320 ::= SEQUENCE
 struct as_context_v1320_s {
-  // member variables
   bool          wlan_conn_status_report_r13_present = false;
   dyn_octstring wlan_conn_status_report_r13;
 
@@ -54651,17 +53652,16 @@ struct as_context_v1320_s {
   void        to_json(json_writer& j) const;
 };
 
-// CSI-RS-TriggeredList-r12 ::= SEQUENCE (SIZE (1..maxCSI-RS-Meas-r12)) OF INTEGER
-typedef dyn_array<uint8_t> csi_rs_triggered_list_r12_l;
+// CSI-RS-TriggeredList-r12 ::= SEQUENCE (SIZE (1..96)) OF INTEGER (1..96)
+using csi_rs_triggered_list_r12_l = dyn_array<uint8_t>;
 
 // CandidateCellInfo-r10 ::= SEQUENCE
 struct candidate_cell_info_r10_s {
-  // member variables
   bool     ext                     = false;
   bool     rsrp_result_r10_present = false;
   bool     rsrq_result_r10_present = false;
   uint16_t pci_r10                 = 0;
-  uint16_t dl_carrier_freq_r10     = 0;
+  uint32_t dl_carrier_freq_r10     = 0;
   uint8_t  rsrp_result_r10         = 0;
   uint8_t  rsrq_result_r10         = 0;
   // ...
@@ -54681,23 +53681,20 @@ struct candidate_cell_info_r10_s {
   void        to_json(json_writer& j) const;
 };
 
-// CandidateCellInfoList-r10 ::= SEQUENCE (SIZE (1..maxFreq)) OF CandidateCellInfo-r10
-typedef dyn_array<candidate_cell_info_r10_s> candidate_cell_info_list_r10_l;
+// CandidateCellInfoList-r10 ::= SEQUENCE (SIZE (1..8)) OF CandidateCellInfo-r10
+using candidate_cell_info_list_r10_l = dyn_array<candidate_cell_info_r10_s>;
 
 // Cell-ToAddMod-r12 ::= SEQUENCE
 struct cell_to_add_mod_r12_s {
   struct cell_identif_r12_s_ {
-    // member variables
     uint16_t pci_r12             = 0;
     uint32_t dl_carrier_freq_r12 = 0;
   };
   struct meas_result_cell_to_add_r12_s_ {
-    // member variables
     uint8_t rsrp_result_r12 = 0;
     uint8_t rsrq_result_r12 = 0;
   };
   struct meas_result_cell_to_add_v1310_s_ {
-    // member variables
     uint8_t rs_sinr_result_r13 = 0;
   };
 
@@ -54705,13 +53702,13 @@ struct cell_to_add_mod_r12_s {
   bool                           ext                                 = false;
   bool                           cell_identif_r12_present            = false;
   bool                           meas_result_cell_to_add_r12_present = false;
-  uint8_t                        s_cell_idx_r12                      = 1;
+  uint8_t                        scell_idx_r12                       = 1;
   cell_identif_r12_s_            cell_identif_r12;
   meas_result_cell_to_add_r12_s_ meas_result_cell_to_add_r12;
   // ...
   // group 0
-  bool                                       s_cell_idx_r13_present = false;
-  uint8_t                                    s_cell_idx_r13         = 1;
+  bool                                       scell_idx_r13_present = false;
+  uint8_t                                    scell_idx_r13         = 1;
   copy_ptr<meas_result_cell_to_add_v1310_s_> meas_result_cell_to_add_v1310;
 
   // sequence methods
@@ -54720,8 +53717,8 @@ struct cell_to_add_mod_r12_s {
   void        to_json(json_writer& j) const;
 };
 
-// SSB-IndexList-r15 ::= SEQUENCE (SIZE (1..maxRS-Index-r15)) OF INTEGER
-typedef dyn_array<uint8_t> ssb_idx_list_r15_l;
+// SSB-IndexList-r15 ::= SEQUENCE (SIZE (1..64)) OF INTEGER (0..63)
+using ssb_idx_list_r15_l = dyn_array<uint8_t>;
 
 struct cells_triggered_list_item_c_ {
   struct pci_utra_c_ {
@@ -54775,18 +53772,16 @@ struct cells_triggered_list_item_c_ {
     }
 
   private:
-    types              type_;
-    choice_buffer_t<8> c;
+    types               type_;
+    pod_choice_buffer_t c;
 
     void destroy_();
   };
   struct pci_geran_s_ {
-    // member variables
     carrier_freq_geran_s carrier_freq;
     pci_geran_s          pci;
   };
   struct pci_nr_r15_s_ {
-    // member variables
     bool               rs_idx_list_r15_present = false;
     uint32_t           carrier_freq            = 0;
     uint16_t           pci                     = 0;
@@ -54904,14 +53899,14 @@ struct cells_triggered_list_item_c_ {
   }
 
 private:
-  types                                                                                                           type_;
-  choice_buffer_t<MAX4(sizeof(pci_geran_s_), sizeof(pci_nr_r15_s_), sizeof(pci_utra_c_), sizeof(wlan_ids_r12_s))> c;
+  types                                                                     type_;
+  choice_buffer_t<pci_geran_s_, pci_nr_r15_s_, pci_utra_c_, wlan_ids_r12_s> c;
 
   void destroy_();
 };
 
-// CellsTriggeredList ::= SEQUENCE (SIZE (1..maxCellMeas)) OF CellsTriggeredList-item
-typedef dyn_array<cells_triggered_list_item_c_> cells_triggered_list_l;
+// CellsTriggeredList ::= SEQUENCE (SIZE (1..32)) OF CellsTriggeredList-item
+using cells_triggered_list_l = dyn_array<cells_triggered_list_item_c_>;
 
 // DRB-InfoSCG-r12 ::= SEQUENCE
 struct drb_info_scg_r12_s {
@@ -54937,15 +53932,14 @@ struct drb_info_scg_r12_s {
   void        to_json(json_writer& j) const;
 };
 
-// DRB-InfoListSCG-r12 ::= SEQUENCE (SIZE (1..maxDRB)) OF DRB-InfoSCG-r12
-typedef dyn_array<drb_info_scg_r12_s> drb_info_list_scg_r12_l;
+// DRB-InfoListSCG-r12 ::= SEQUENCE (SIZE (1..11)) OF DRB-InfoSCG-r12
+using drb_info_list_scg_r12_l = dyn_array<drb_info_scg_r12_s>;
 
-// DRB-InfoListSCG-r15 ::= SEQUENCE (SIZE (1..maxDRB-r15)) OF DRB-InfoSCG-r12
-typedef dyn_array<drb_info_scg_r12_s> drb_info_list_scg_r15_l;
+// DRB-InfoListSCG-r15 ::= SEQUENCE (SIZE (1..15)) OF DRB-InfoSCG-r12
+using drb_info_list_scg_r15_l = dyn_array<drb_info_scg_r12_s>;
 
 // HandoverCommand-r8-IEs ::= SEQUENCE
 struct ho_cmd_r8_ies_s {
-  // member variables
   bool          non_crit_ext_present = false;
   dyn_octstring ho_cmd_msg;
 
@@ -55024,8 +54018,8 @@ struct ho_cmd_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -55041,7 +54035,6 @@ struct ho_cmd_s {
 
 // HandoverPreparationInformation-v1430-IEs ::= SEQUENCE
 struct ho_prep_info_v1430_ies_s {
-  // member variables
   bool           as_cfg_v1430_present              = false;
   bool           make_before_break_req_r14_present = false;
   bool           non_crit_ext_present              = false;
@@ -55055,7 +54048,6 @@ struct ho_prep_info_v1430_ies_s {
 
 // HandoverPreparationInformation-v1320-IEs ::= SEQUENCE
 struct ho_prep_info_v1320_ies_s {
-  // member variables
   bool                     as_cfg_v1320_present     = false;
   bool                     as_context_v1320_present = false;
   bool                     non_crit_ext_present     = false;
@@ -55071,7 +54063,6 @@ struct ho_prep_info_v1320_ies_s {
 
 // HandoverPreparationInformation-v1250-IEs ::= SEQUENCE
 struct ho_prep_info_v1250_ies_s {
-  // member variables
   bool                     ue_supported_earfcn_r12_present = false;
   bool                     as_cfg_v1250_present            = false;
   bool                     non_crit_ext_present            = false;
@@ -55087,7 +54078,6 @@ struct ho_prep_info_v1250_ies_s {
 
 // HandoverPreparationInformation-v10j0-IEs ::= SEQUENCE
 struct ho_prep_info_v10j0_ies_s {
-  // member variables
   bool           as_cfg_v10j0_present = false;
   bool           non_crit_ext_present = false;
   as_cfg_v10j0_s as_cfg_v10j0;
@@ -55100,7 +54090,6 @@ struct ho_prep_info_v10j0_ies_s {
 
 // HandoverPreparationInformation-v1130-IEs ::= SEQUENCE
 struct ho_prep_info_v1130_ies_s {
-  // member variables
   bool                     as_context_v1130_present = false;
   bool                     non_crit_ext_present     = false;
   as_context_v1130_s       as_context_v1130;
@@ -55114,7 +54103,6 @@ struct ho_prep_info_v1130_ies_s {
 
 // HandoverPreparationInformation-v9e0-IEs ::= SEQUENCE
 struct ho_prep_info_v9e0_ies_s {
-  // member variables
   bool                     as_cfg_v9e0_present  = false;
   bool                     non_crit_ext_present = false;
   as_cfg_v9e0_s            as_cfg_v9e0;
@@ -55128,7 +54116,6 @@ struct ho_prep_info_v9e0_ies_s {
 
 // HandoverPreparationInformation-v9j0-IEs ::= SEQUENCE
 struct ho_prep_info_v9j0_ies_s {
-  // member variables
   bool                     late_non_crit_ext_present = false;
   bool                     non_crit_ext_present      = false;
   dyn_octstring            late_non_crit_ext;
@@ -55142,7 +54129,6 @@ struct ho_prep_info_v9j0_ies_s {
 
 // HandoverPreparationInformation-v9d0-IEs ::= SEQUENCE
 struct ho_prep_info_v9d0_ies_s {
-  // member variables
   bool                    late_non_crit_ext_present = false;
   bool                    non_crit_ext_present      = false;
   dyn_octstring           late_non_crit_ext;
@@ -55268,7 +54254,6 @@ struct rrm_cfg_s {
 
 // HandoverPreparationInformation-r8-IEs ::= SEQUENCE
 struct ho_prep_info_r8_ies_s {
-  // member variables
   bool                        as_cfg_present       = false;
   bool                        rrm_cfg_present      = false;
   bool                        as_context_present   = false;
@@ -55354,8 +54339,8 @@ struct ho_prep_info_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -55371,7 +54356,6 @@ struct ho_prep_info_s {
 
 // HandoverPreparationInformation-v1530-IEs ::= SEQUENCE
 struct ho_prep_info_v1530_ies_s {
-  // member variables
   bool                      ran_notif_area_info_r15_present = false;
   bool                      non_crit_ext_present            = false;
   ran_notif_area_info_r15_c ran_notif_area_info_r15;
@@ -55382,8 +54366,8 @@ struct ho_prep_info_v1530_ies_s {
   void        to_json(json_writer& j) const;
 };
 
-// LogMeasInfoList2-r10 ::= SEQUENCE (SIZE (1..maxLogMeas-r10)) OF LogMeasInfo-r10
-typedef dyn_array<log_meas_info_r10_s> log_meas_info_list2_r10_l;
+// LogMeasInfoList2-r10 ::= SEQUENCE (SIZE (1..4060)) OF LogMeasInfo-r10
+using log_meas_info_list2_r10_l = dyn_array<log_meas_info_r10_s>;
 
 // TDD-ConfigSL-r12 ::= SEQUENCE
 struct tdd_cfg_sl_r12_s {
@@ -55455,7 +54439,6 @@ struct mib_sl_v2x_r14_s {
 
 // MeasResultRSSI-SCG-r13 ::= SEQUENCE
 struct meas_result_rssi_scg_r13_s {
-  // member variables
   uint8_t                    serv_cell_id_r13 = 0;
   meas_result_for_rssi_r13_s meas_result_for_rssi_r13;
 
@@ -55465,18 +54448,16 @@ struct meas_result_rssi_scg_r13_s {
   void        to_json(json_writer& j) const;
 };
 
-// MeasResultListRSSI-SCG-r13 ::= SEQUENCE (SIZE (1..maxServCell-r13)) OF MeasResultRSSI-SCG-r13
-typedef dyn_array<meas_result_rssi_scg_r13_s> meas_result_list_rssi_scg_r13_l;
+// MeasResultListRSSI-SCG-r13 ::= SEQUENCE (SIZE (1..32)) OF MeasResultRSSI-SCG-r13
+using meas_result_list_rssi_scg_r13_l = dyn_array<meas_result_rssi_scg_r13_s>;
 
 // MeasResultServCellSCG-r12 ::= SEQUENCE
 struct meas_result_serv_cell_scg_r12_s {
   struct meas_result_scell_r12_s_ {
-    // member variables
     uint8_t rsrp_result_scell_r12 = 0;
     uint8_t rsrq_result_scell_r12 = 0;
   };
   struct meas_result_scell_v1310_s_ {
-    // member variables
     uint8_t rs_sinr_result_scell_r13 = 0;
   };
 
@@ -55496,18 +54477,17 @@ struct meas_result_serv_cell_scg_r12_s {
   void        to_json(json_writer& j) const;
 };
 
-// MeasResultServCellListSCG-Ext-r13 ::= SEQUENCE (SIZE (1..maxServCell-r13)) OF MeasResultServCellSCG-r12
-typedef dyn_array<meas_result_serv_cell_scg_r12_s> meas_result_serv_cell_list_scg_ext_r13_l;
+// MeasResultServCellListSCG-Ext-r13 ::= SEQUENCE (SIZE (1..32)) OF MeasResultServCellSCG-r12
+using meas_result_serv_cell_list_scg_ext_r13_l = dyn_array<meas_result_serv_cell_scg_r12_s>;
 
-// MeasResultServCellListSCG-r12 ::= SEQUENCE (SIZE (1..maxServCell-r10)) OF MeasResultServCellSCG-r12
-typedef dyn_array<meas_result_serv_cell_scg_r12_s> meas_result_serv_cell_list_scg_r12_l;
+// MeasResultServCellListSCG-r12 ::= SEQUENCE (SIZE (1..5)) OF MeasResultServCellSCG-r12
+using meas_result_serv_cell_list_scg_r12_l = dyn_array<meas_result_serv_cell_scg_r12_s>;
 
 // SBCCH-SL-BCH-MessageType ::= MasterInformationBlock-SL
 typedef mib_sl_s sbcch_sl_bch_msg_type_s;
 
 // SBCCH-SL-BCH-Message ::= SEQUENCE
 struct sbcch_sl_bch_msg_s {
-  // member variables
   sbcch_sl_bch_msg_type_s msg;
 
   // sequence methods
@@ -55521,7 +54501,6 @@ typedef mib_sl_v2x_r14_s sbcch_sl_bch_msg_type_v2x_r14_s;
 
 // SBCCH-SL-BCH-Message-V2X-r14 ::= SEQUENCE
 struct sbcch_sl_bch_msg_v2x_r14_s {
-  // member variables
   sbcch_sl_bch_msg_type_v2x_r14_s msg;
 
   // sequence methods
@@ -55532,7 +54511,6 @@ struct sbcch_sl_bch_msg_v2x_r14_s {
 
 // SCG-ConfigInfo-v1530-IEs ::= SEQUENCE
 struct scg_cfg_info_v1530_ies_s {
-  // member variables
   bool                      drb_to_add_mod_list_scg_r15_present = false;
   bool                      drb_to_release_list_scg_r15_present = false;
   bool                      non_crit_ext_present                = false;
@@ -55547,7 +54525,6 @@ struct scg_cfg_info_v1530_ies_s {
 
 // SCG-ConfigInfo-v1430-IEs ::= SEQUENCE
 struct scg_cfg_info_v1430_ies_s {
-  // member variables
   bool                           make_before_break_scg_req_r14_present = false;
   bool                           meas_gap_cfg_per_cc_list_present      = false;
   bool                           non_crit_ext_present                  = false;
@@ -55562,7 +54539,6 @@ struct scg_cfg_info_v1430_ies_s {
 
 // SCG-ConfigInfo-v1330-IEs ::= SEQUENCE
 struct scg_cfg_info_v1330_ies_s {
-  // member variables
   bool                            meas_result_list_rssi_scg_r13_present = false;
   bool                            non_crit_ext_present                  = false;
   meas_result_list_rssi_scg_r13_l meas_result_list_rssi_scg_r13;
@@ -55574,23 +54550,22 @@ struct scg_cfg_info_v1330_ies_s {
   void        to_json(json_writer& j) const;
 };
 
-// SCellToAddModListSCG-Ext-r13 ::= SEQUENCE (SIZE (1..maxSCell-r13)) OF Cell-ToAddMod-r12
-typedef dyn_array<cell_to_add_mod_r12_s> scell_to_add_mod_list_scg_ext_r13_l;
+// SCellToAddModListSCG-Ext-r13 ::= SEQUENCE (SIZE (1..31)) OF Cell-ToAddMod-r12
+using scell_to_add_mod_list_scg_ext_r13_l = dyn_array<cell_to_add_mod_r12_s>;
 
 // SCG-ConfigInfo-v1310-IEs ::= SEQUENCE
 struct scg_cfg_info_v1310_ies_s {
-  // member variables
   bool                                     meas_result_sstd_r13_present                   = false;
-  bool                                     s_cell_to_add_mod_list_mcg_ext_r13_present     = false;
+  bool                                     scell_to_add_mod_list_mcg_ext_r13_present      = false;
   bool                                     meas_result_serv_cell_list_scg_ext_r13_present = false;
-  bool                                     s_cell_to_add_mod_list_scg_ext_r13_present     = false;
-  bool                                     s_cell_to_release_list_scg_ext_r13_present     = false;
+  bool                                     scell_to_add_mod_list_scg_ext_r13_present      = false;
+  bool                                     scell_to_release_list_scg_ext_r13_present      = false;
   bool                                     non_crit_ext_present                           = false;
   meas_result_sstd_r13_s                   meas_result_sstd_r13;
-  scell_to_add_mod_list_ext_r13_l          s_cell_to_add_mod_list_mcg_ext_r13;
+  scell_to_add_mod_list_ext_r13_l          scell_to_add_mod_list_mcg_ext_r13;
   meas_result_serv_cell_list_scg_ext_r13_l meas_result_serv_cell_list_scg_ext_r13;
-  scell_to_add_mod_list_scg_ext_r13_l      s_cell_to_add_mod_list_scg_ext_r13;
-  scell_to_release_list_ext_r13_l          s_cell_to_release_list_scg_ext_r13;
+  scell_to_add_mod_list_scg_ext_r13_l      scell_to_add_mod_list_scg_ext_r13;
+  scell_to_release_list_ext_r13_l          scell_to_release_list_scg_ext_r13;
   scg_cfg_info_v1330_ies_s                 non_crit_ext;
 
   // sequence methods
@@ -55601,7 +54576,6 @@ struct scg_cfg_info_v1310_ies_s {
 
 // SCG-ConfigRestrictInfo-r12 ::= SEQUENCE
 struct scg_cfg_restrict_info_r12_s {
-  // member variables
   uint8_t max_sch_tb_bits_dl_r12 = 1;
   uint8_t max_sch_tb_bits_ul_r12 = 1;
 
@@ -55611,14 +54585,13 @@ struct scg_cfg_restrict_info_r12_s {
   void        to_json(json_writer& j) const;
 };
 
-// SCellToAddModListSCG-r12 ::= SEQUENCE (SIZE (1..maxSCell-r10)) OF Cell-ToAddMod-r12
-typedef dyn_array<cell_to_add_mod_r12_s> scell_to_add_mod_list_scg_r12_l;
+// SCellToAddModListSCG-r12 ::= SEQUENCE (SIZE (1..4)) OF Cell-ToAddMod-r12
+using scell_to_add_mod_list_scg_r12_l = dyn_array<cell_to_add_mod_r12_s>;
 
 // SCG-ConfigInfo-r12-IEs ::= SEQUENCE
 struct scg_cfg_info_r12_ies_s {
-  // member variables
   bool                                 rr_cfg_ded_mcg_r12_present                 = false;
-  bool                                 s_cell_to_add_mod_list_mcg_r12_present     = false;
+  bool                                 scell_to_add_mod_list_mcg_r12_present      = false;
   bool                                 meas_gap_cfg_r12_present                   = false;
   bool                                 pwr_coordination_info_r12_present          = false;
   bool                                 scg_radio_cfg_r12_present                  = false;
@@ -55628,12 +54601,12 @@ struct scg_cfg_info_r12_ies_s {
   bool                                 meas_result_serv_cell_list_scg_r12_present = false;
   bool                                 drb_to_add_mod_list_scg_r12_present        = false;
   bool                                 drb_to_release_list_scg_r12_present        = false;
-  bool                                 s_cell_to_add_mod_list_scg_r12_present     = false;
-  bool                                 s_cell_to_release_list_scg_r12_present     = false;
+  bool                                 scell_to_add_mod_list_scg_r12_present      = false;
+  bool                                 scell_to_release_list_scg_r12_present      = false;
   bool                                 p_max_r12_present                          = false;
   bool                                 non_crit_ext_present                       = false;
   rr_cfg_ded_s                         rr_cfg_ded_mcg_r12;
-  scell_to_add_mod_list_r10_l          s_cell_to_add_mod_list_mcg_r12;
+  scell_to_add_mod_list_r10_l          scell_to_add_mod_list_mcg_r12;
   meas_gap_cfg_c                       meas_gap_cfg_r12;
   pwr_coordination_info_r12_s          pwr_coordination_info_r12;
   scg_cfg_part_scg_r12_s               scg_radio_cfg_r12;
@@ -55643,8 +54616,8 @@ struct scg_cfg_info_r12_ies_s {
   meas_result_serv_cell_list_scg_r12_l meas_result_serv_cell_list_scg_r12;
   drb_info_list_scg_r12_l              drb_to_add_mod_list_scg_r12;
   drb_to_release_list_l                drb_to_release_list_scg_r12;
-  scell_to_add_mod_list_scg_r12_l      s_cell_to_add_mod_list_scg_r12;
-  scell_to_release_list_r10_l          s_cell_to_release_list_scg_r12;
+  scell_to_add_mod_list_scg_r12_l      scell_to_add_mod_list_scg_r12;
+  scell_to_release_list_r10_l          scell_to_release_list_scg_r12;
   int8_t                               p_max_r12 = -30;
   scg_cfg_info_v1310_ies_s             non_crit_ext;
 
@@ -55723,8 +54696,8 @@ struct scg_cfg_info_r12_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -55740,7 +54713,7 @@ struct scg_cfg_info_r12_s {
 
 // SL-PPPP-TxPreconfigIndex-r14 ::= SEQUENCE
 struct sl_pppp_tx_precfg_idx_r14_s {
-  typedef bounded_array<uint8_t, 16> tx_cfg_idx_list_r14_l_;
+  using tx_cfg_idx_list_r14_l_ = bounded_array<uint8_t, 16>;
 
   // member variables
   uint8_t                prio_thres_r14         = 1;
@@ -55755,11 +54728,11 @@ struct sl_pppp_tx_precfg_idx_r14_s {
 };
 
 // SL-CBR-PPPP-TxPreconfigList-r14 ::= SEQUENCE (SIZE (1..8)) OF SL-PPPP-TxPreconfigIndex-r14
-typedef dyn_array<sl_pppp_tx_precfg_idx_r14_s> sl_cbr_pppp_tx_precfg_list_r14_l;
+using sl_cbr_pppp_tx_precfg_list_r14_l = dyn_array<sl_pppp_tx_precfg_idx_r14_s>;
 
 // SL-PPPP-TxPreconfigIndex-v1530 ::= SEQUENCE
 struct sl_pppp_tx_precfg_idx_v1530_s {
-  typedef dyn_array<mcs_pssch_range_r15_s> mcs_pssch_range_r15_l_;
+  using mcs_pssch_range_r15_l_ = dyn_array<mcs_pssch_range_r15_s>;
 
   // member variables
   bool                   mcs_pssch_range_r15_present = false;
@@ -55772,12 +54745,12 @@ struct sl_pppp_tx_precfg_idx_v1530_s {
 };
 
 // SL-CBR-PPPP-TxPreconfigList-v1530 ::= SEQUENCE (SIZE (1..8)) OF SL-PPPP-TxPreconfigIndex-v1530
-typedef dyn_array<sl_pppp_tx_precfg_idx_v1530_s> sl_cbr_pppp_tx_precfg_list_v1530_l;
+using sl_cbr_pppp_tx_precfg_list_v1530_l = dyn_array<sl_pppp_tx_precfg_idx_v1530_s>;
 
 // SL-CBR-PreconfigTxConfigList-r14 ::= SEQUENCE
 struct sl_cbr_precfg_tx_cfg_list_r14_s {
-  typedef dyn_array<sl_cbr_levels_cfg_r14_l>   cbr_range_common_cfg_list_r14_l_;
-  typedef dyn_array<sl_cbr_pssch_tx_cfg_r14_s> sl_cbr_pssch_tx_cfg_list_r14_l_;
+  using cbr_range_common_cfg_list_r14_l_ = dyn_array<sl_cbr_levels_cfg_r14_l>;
+  using sl_cbr_pssch_tx_cfg_list_r14_l_  = dyn_array<sl_cbr_pssch_tx_cfg_r14_s>;
 
   // member variables
   cbr_range_common_cfg_list_r14_l_ cbr_range_common_cfg_list_r14;
@@ -55791,17 +54764,16 @@ struct sl_cbr_precfg_tx_cfg_list_r14_s {
 
 // SL-PreconfigCommPool-r12 ::= SEQUENCE
 struct sl_precfg_comm_pool_r12_s {
-  // member variables
-  bool                  ext = false;
-  sl_cp_len_r12_e       sc_cp_len_r12;
-  sl_period_comm_r12_e  sc_period_r12;
-  sl_tf_res_cfg_r12_s   sc_tf_res_cfg_r12;
-  int8_t                sc_tx_params_r12 = -126;
-  sl_cp_len_r12_e       data_cp_len_r12;
-  sl_tf_res_cfg_r12_s   data_tf_res_cfg_r12;
-  sl_hop_cfg_comm_r12_s data_hop_cfg_r12;
-  int8_t                data_tx_params_r12 = -126;
-  dyn_bitstring         trpt_subset_r12;
+  bool                    ext = false;
+  sl_cp_len_r12_e         sc_cp_len_r12;
+  sl_period_comm_r12_e    sc_period_r12;
+  sl_tf_res_cfg_r12_s     sc_tf_res_cfg_r12;
+  int8_t                  sc_tx_params_r12 = -126;
+  sl_cp_len_r12_e         data_cp_len_r12;
+  sl_tf_res_cfg_r12_s     data_tf_res_cfg_r12;
+  sl_hop_cfg_comm_r12_s   data_hop_cfg_r12;
+  int8_t                  data_tx_params_r12 = -126;
+  bounded_bitstring<3, 5> trpt_subset_r12;
   // ...
   // group 0
   copy_ptr<sl_prio_list_r13_l> prio_list_r13;
@@ -55812,14 +54784,14 @@ struct sl_precfg_comm_pool_r12_s {
   void        to_json(json_writer& j) const;
 };
 
-// SL-PreconfigCommPoolList4-r12 ::= SEQUENCE (SIZE (1..maxSL-TxPool-r12)) OF SL-PreconfigCommPool-r12
-typedef dyn_array<sl_precfg_comm_pool_r12_s> sl_precfg_comm_pool_list4_r12_l;
+// SL-PreconfigCommPoolList4-r12 ::= SEQUENCE (SIZE (1..4)) OF SL-PreconfigCommPool-r12
+using sl_precfg_comm_pool_list4_r12_l = dyn_array<sl_precfg_comm_pool_r12_s>;
 
-// SL-PreconfigCommRxPoolList-r13 ::= SEQUENCE (SIZE (1..maxSL-CommRxPoolPreconf-v1310)) OF SL-PreconfigCommPool-r12
-typedef dyn_array<sl_precfg_comm_pool_r12_s> sl_precfg_comm_rx_pool_list_r13_l;
+// SL-PreconfigCommRxPoolList-r13 ::= SEQUENCE (SIZE (1..12)) OF SL-PreconfigCommPool-r12
+using sl_precfg_comm_rx_pool_list_r13_l = dyn_array<sl_precfg_comm_pool_r12_s>;
 
-// SL-PreconfigCommTxPoolList-r13 ::= SEQUENCE (SIZE (1..maxSL-CommTxPoolPreconf-v1310)) OF SL-PreconfigCommPool-r12
-typedef dyn_array<sl_precfg_comm_pool_r12_s> sl_precfg_comm_tx_pool_list_r13_l;
+// SL-PreconfigCommTxPoolList-r13 ::= SEQUENCE (SIZE (1..7)) OF SL-PreconfigCommPool-r12
+using sl_precfg_comm_tx_pool_list_r13_l = dyn_array<sl_precfg_comm_pool_r12_s>;
 
 // SL-PreconfigDiscPool-r13 ::= SEQUENCE
 struct sl_precfg_disc_pool_r13_s {
@@ -55881,16 +54853,15 @@ struct sl_precfg_disc_pool_r13_s {
   void        to_json(json_writer& j) const;
 };
 
-// SL-PreconfigDiscRxPoolList-r13 ::= SEQUENCE (SIZE (1..maxSL-DiscRxPoolPreconf-r13)) OF SL-PreconfigDiscPool-r13
-typedef dyn_array<sl_precfg_disc_pool_r13_s> sl_precfg_disc_rx_pool_list_r13_l;
+// SL-PreconfigDiscRxPoolList-r13 ::= SEQUENCE (SIZE (1..16)) OF SL-PreconfigDiscPool-r13
+using sl_precfg_disc_rx_pool_list_r13_l = dyn_array<sl_precfg_disc_pool_r13_s>;
 
-// SL-PreconfigDiscTxPoolList-r13 ::= SEQUENCE (SIZE (1..maxSL-DiscTxPoolPreconf-r13)) OF SL-PreconfigDiscPool-r13
-typedef dyn_array<sl_precfg_disc_pool_r13_s> sl_precfg_disc_tx_pool_list_r13_l;
+// SL-PreconfigDiscTxPoolList-r13 ::= SEQUENCE (SIZE (1..4)) OF SL-PreconfigDiscPool-r13
+using sl_precfg_disc_tx_pool_list_r13_l = dyn_array<sl_precfg_disc_pool_r13_s>;
 
 // SL-PreconfigGeneral-r12 ::= SEQUENCE
 struct sl_precfg_general_r12_s {
   struct rohc_profiles_r12_s_ {
-    // member variables
     bool profile0x0001_r12 = false;
     bool profile0x0002_r12 = false;
     bool profile0x0004_r12 = false;
@@ -55930,7 +54901,6 @@ struct sl_precfg_general_r12_s {
 
 // SL-PreconfigRelay-r13 ::= SEQUENCE
 struct sl_precfg_relay_r13_s {
-  // member variables
   resel_info_relay_r13_s resel_info_oo_c_r13;
 
   // sequence methods
@@ -56066,12 +55036,11 @@ struct sl_v2x_precfg_comm_pool_r14_s {
   void        to_json(json_writer& j) const;
 };
 
-// SL-PreconfigV2X-RxPoolList-r14 ::= SEQUENCE (SIZE (1..maxSL-V2X-RxPoolPreconf-r14)) OF SL-V2X-PreconfigCommPool-r14
-typedef dyn_array<sl_v2x_precfg_comm_pool_r14_s> sl_precfg_v2x_rx_pool_list_r14_l;
+// SL-PreconfigV2X-RxPoolList-r14 ::= SEQUENCE (SIZE (1..16)) OF SL-V2X-PreconfigCommPool-r14
+using sl_precfg_v2x_rx_pool_list_r14_l = dyn_array<sl_v2x_precfg_comm_pool_r14_s>;
 
 // SL-V2X-SyncOffsetIndicators-r14 ::= SEQUENCE
 struct sl_v2x_sync_offset_inds_r14_s {
-  // member variables
   bool    sync_offset_ind3_r14_present = false;
   uint8_t sync_offset_ind1_r14         = 0;
   uint8_t sync_offset_ind2_r14         = 0;
@@ -56120,19 +55089,17 @@ struct sl_precfg_v2x_sync_r14_s {
   void        to_json(json_writer& j) const;
 };
 
-// SL-PreconfigV2X-TxPoolList-r14 ::= SEQUENCE (SIZE (1..maxSL-V2X-TxPoolPreconf-r14)) OF SL-V2X-PreconfigCommPool-r14
-typedef dyn_array<sl_v2x_precfg_comm_pool_r14_s> sl_precfg_v2x_tx_pool_list_r14_l;
+// SL-PreconfigV2X-TxPoolList-r14 ::= SEQUENCE (SIZE (1..8)) OF SL-V2X-PreconfigCommPool-r14
+using sl_precfg_v2x_tx_pool_list_r14_l = dyn_array<sl_v2x_precfg_comm_pool_r14_s>;
 
 // SL-Preconfiguration-r12 ::= SEQUENCE
 struct sl_precfg_r12_s {
   struct precfg_comm_v1310_s_ {
-    // member variables
     bool                              comm_tx_pool_list_r13_present = false;
     sl_precfg_comm_rx_pool_list_r13_l comm_rx_pool_list_r13;
     sl_precfg_comm_tx_pool_list_r13_l comm_tx_pool_list_r13;
   };
   struct precfg_disc_r13_s_ {
-    // member variables
     bool                              disc_tx_pool_list_r13_present = false;
     sl_precfg_disc_rx_pool_list_r13_l disc_rx_pool_list_r13;
     sl_precfg_disc_tx_pool_list_r13_l disc_tx_pool_list_r13;
@@ -56191,8 +55158,8 @@ struct sl_v2x_precfg_freq_info_r14_s {
   void        to_json(json_writer& j) const;
 };
 
-// SL-V2X-PreconfigFreqList-r14 ::= SEQUENCE (SIZE (1..maxFreqV2X-r14)) OF SL-V2X-PreconfigFreqInfo-r14
-typedef dyn_array<sl_v2x_precfg_freq_info_r14_s> sl_v2x_precfg_freq_list_r14_l;
+// SL-V2X-PreconfigFreqList-r14 ::= SEQUENCE (SIZE (1..8)) OF SL-V2X-PreconfigFreqInfo-r14
+using sl_v2x_precfg_freq_list_r14_l = dyn_array<sl_v2x_precfg_freq_info_r14_s>;
 
 // SL-V2X-TxProfile-r15 ::= ENUMERATED
 struct sl_v2x_tx_profile_r15_opts {
@@ -56205,11 +55172,10 @@ struct sl_v2x_tx_profile_r15_opts {
 typedef enumerated<sl_v2x_tx_profile_r15_opts, true> sl_v2x_tx_profile_r15_e;
 
 // SL-V2X-TxProfileList-r15 ::= SEQUENCE (SIZE (1..256)) OF SL-V2X-TxProfile-r15
-typedef dyn_array<sl_v2x_tx_profile_r15_e> sl_v2x_tx_profile_list_r15_l;
+using sl_v2x_tx_profile_list_r15_l = dyn_array<sl_v2x_tx_profile_r15_e>;
 
 // SL-V2X-Preconfiguration-r14 ::= SEQUENCE
 struct sl_v2x_precfg_r14_s {
-  // member variables
   bool                                  ext                                  = false;
   bool                                  anchor_carrier_freq_list_r14_present = false;
   bool                                  cbr_precfg_list_r14_present          = false;
@@ -56231,7 +55197,6 @@ struct sl_v2x_precfg_r14_s {
 
 // UEPagingCoverageInformation-r13-IEs ::= SEQUENCE
 struct ue_paging_coverage_info_r13_ies_s {
-  // member variables
   bool     mpdcch_num_repeat_r13_present = false;
   bool     non_crit_ext_present          = false;
   uint16_t mpdcch_num_repeat_r13         = 1;
@@ -56321,8 +55286,8 @@ struct ue_paging_coverage_info_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -56338,7 +55303,6 @@ struct ue_paging_coverage_info_s {
 
 // UERadioAccessCapabilityInformation-r8-IEs ::= SEQUENCE
 struct ue_radio_access_cap_info_r8_ies_s {
-  // member variables
   bool          non_crit_ext_present = false;
   dyn_octstring ue_radio_access_cap_info;
 
@@ -56427,8 +55391,8 @@ struct ue_radio_access_cap_info_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -56444,7 +55408,7 @@ struct ue_radio_access_cap_info_s {
 
 // UERadioPagingInformation-v1310-IEs ::= SEQUENCE
 struct ue_radio_paging_info_v1310_ies_s {
-  typedef dyn_array<uint16_t> supported_band_list_eutra_for_paging_r13_l_;
+  using supported_band_list_eutra_for_paging_r13_l_ = dyn_array<uint16_t>;
 
   // member variables
   bool                                        supported_band_list_eutra_for_paging_r13_present = false;
@@ -56459,7 +55423,6 @@ struct ue_radio_paging_info_v1310_ies_s {
 
 // UERadioPagingInformation-r12-IEs ::= SEQUENCE
 struct ue_radio_paging_info_r12_ies_s {
-  // member variables
   bool                             non_crit_ext_present = false;
   dyn_octstring                    ue_radio_paging_info_r12;
   ue_radio_paging_info_v1310_ies_s non_crit_ext;
@@ -56549,8 +55512,8 @@ struct ue_radio_paging_info_s {
     }
 
   private:
-    types                          type_;
-    choice_buffer_t<sizeof(c1_c_)> c;
+    types                  type_;
+    choice_buffer_t<c1_c_> c;
 
     void destroy_();
   };
@@ -56566,7 +55529,6 @@ struct ue_radio_paging_info_s {
 
 // VarConnEstFailReport-r11 ::= SEQUENCE
 struct var_conn_est_fail_report_r11_s {
-  // member variables
   conn_est_fail_report_r11_s conn_est_fail_report_r11;
   plmn_id_s                  plmn_id_r11;
 
@@ -56578,7 +55540,6 @@ struct var_conn_est_fail_report_r11_s {
 
 // VarLogMeasConfig-r10 ::= SEQUENCE
 struct var_log_meas_cfg_r10_s {
-  // member variables
   bool                 area_cfg_r10_present = false;
   area_cfg_r10_c       area_cfg_r10;
   logging_dur_r10_e    logging_dur_r10;
@@ -56592,7 +55553,6 @@ struct var_log_meas_cfg_r10_s {
 
 // VarLogMeasConfig-r11 ::= SEQUENCE
 struct var_log_meas_cfg_r11_s {
-  // member variables
   bool                 area_cfg_r10_present   = false;
   bool                 area_cfg_v1130_present = false;
   area_cfg_r10_c       area_cfg_r10;
@@ -56608,7 +55568,6 @@ struct var_log_meas_cfg_r11_s {
 
 // VarLogMeasConfig-r12 ::= SEQUENCE
 struct var_log_meas_cfg_r12_s {
-  // member variables
   bool                         area_cfg_r10_present               = false;
   bool                         area_cfg_v1130_present             = false;
   bool                         target_mbsfn_area_list_r12_present = false;
@@ -56626,7 +55585,6 @@ struct var_log_meas_cfg_r12_s {
 
 // VarLogMeasConfig-r15 ::= SEQUENCE
 struct var_log_meas_cfg_r15_s {
-  // member variables
   bool                         area_cfg_r10_present               = false;
   bool                         area_cfg_v1130_present             = false;
   bool                         target_mbsfn_area_list_r12_present = false;
@@ -56648,7 +55606,6 @@ struct var_log_meas_cfg_r15_s {
 
 // VarLogMeasReport-r10 ::= SEQUENCE
 struct var_log_meas_report_r10_s {
-  // member variables
   trace_ref_r10_s           trace_ref_r10;
   fixed_octstring<2>        trace_recording_session_ref_r10;
   fixed_octstring<1>        tce_id_r10;
@@ -56664,7 +55621,6 @@ struct var_log_meas_report_r10_s {
 
 // VarLogMeasReport-r11 ::= SEQUENCE
 struct var_log_meas_report_r11_s {
-  // member variables
   trace_ref_r10_s           trace_ref_r10;
   fixed_octstring<2>        trace_recording_session_ref_r10;
   fixed_octstring<1>        tce_id_r10;
@@ -56682,7 +55638,6 @@ struct var_log_meas_report_r11_s {
 struct var_meas_cfg_s {
   struct speed_state_pars_c_ {
     struct setup_s_ {
-      // member variables
       mob_state_params_s          mob_state_params;
       speed_state_scale_factors_s time_to_trigger_sf;
     };
@@ -56775,7 +55730,6 @@ struct var_meas_idle_cfg_r15_s {
 
 // VarMeasIdleReport-r15 ::= SEQUENCE
 struct var_meas_idle_report_r15_s {
-  // member variables
   meas_result_list_idle_r15_l meas_report_idle_r15;
 
   // sequence methods
@@ -56786,7 +55740,6 @@ struct var_meas_idle_report_r15_s {
 
 // VarMeasReport ::= SEQUENCE
 struct var_meas_report_s {
-  // member variables
   bool                        meas_id_v1250_present             = false;
   bool                        cells_triggered_list_present      = false;
   bool                        csi_rs_triggered_list_r12_present = false;
@@ -56804,18 +55757,17 @@ struct var_meas_report_s {
   void        to_json(json_writer& j) const;
 };
 
-// VarMeasReportList ::= SEQUENCE (SIZE (1..maxMeasId)) OF VarMeasReport
-typedef dyn_array<var_meas_report_s> var_meas_report_list_l;
+// VarMeasReportList ::= SEQUENCE (SIZE (1..32)) OF VarMeasReport
+using var_meas_report_list_l = dyn_array<var_meas_report_s>;
 
-// VarMeasReportList-r12 ::= SEQUENCE (SIZE (1..maxMeasId-r12)) OF VarMeasReport
-typedef dyn_array<var_meas_report_s> var_meas_report_list_r12_l;
+// VarMeasReportList-r12 ::= SEQUENCE (SIZE (1..64)) OF VarMeasReport
+using var_meas_report_list_r12_l = dyn_array<var_meas_report_s>;
 
 // VarMobilityHistoryReport-r12 ::= VisitedCellInfoList-r12
 typedef visited_cell_info_list_r12_l var_mob_history_report_r12_l;
 
 // VarRLF-Report-r10 ::= SEQUENCE
 struct var_rlf_report_r10_s {
-  // member variables
   rlf_report_r9_s rlf_report_r10;
   plmn_id_s       plmn_id_r10;
 
@@ -56827,7 +55779,6 @@ struct var_rlf_report_r10_s {
 
 // VarRLF-Report-r11 ::= SEQUENCE
 struct var_rlf_report_r11_s {
-  // member variables
   rlf_report_r9_s     rlf_report_r10;
   plmn_id_list3_r11_l plmn_id_list_r11;
 
@@ -56839,7 +55790,6 @@ struct var_rlf_report_r11_s {
 
 // VarShortINACTIVE-MAC-Input-r15 ::= SEQUENCE
 struct var_short_inactive_mac_input_r15_s {
-  // member variables
   fixed_bitstring<28> cell_id_r15;
   uint16_t            pci_r15 = 0;
   fixed_bitstring<16> c_rnti_r15;
@@ -56852,7 +55802,6 @@ struct var_short_inactive_mac_input_r15_s {
 
 // VarShortMAC-Input ::= SEQUENCE
 struct var_short_mac_input_s {
-  // member variables
   fixed_bitstring<28> cell_id;
   uint16_t            pci = 0;
   fixed_bitstring<16> c_rnti;
@@ -56868,7 +55817,6 @@ typedef var_short_mac_input_s var_short_mac_input_nb_r13_s;
 
 // VarShortResumeMAC-Input-r13 ::= SEQUENCE
 struct var_short_resume_mac_input_r13_s {
-  // member variables
   fixed_bitstring<28> cell_id_r13;
   uint16_t            pci_r13 = 0;
   fixed_bitstring<16> c_rnti_r13;
@@ -56885,7 +55833,6 @@ typedef var_short_resume_mac_input_r13_s var_short_resume_mac_input_nb_r13_s;
 
 // VarWLAN-MobilityConfig ::= SEQUENCE
 struct var_wlan_mob_cfg_s {
-  // member variables
   bool                   wlan_mob_set_r13_present         = false;
   bool                   success_report_requested_present = false;
   bool                   wlan_suspend_cfg_r14_present     = false;
@@ -56900,7 +55847,6 @@ struct var_wlan_mob_cfg_s {
 
 // VarWLAN-Status-r13 ::= SEQUENCE
 struct var_wlan_status_r13_s {
-  // member variables
   bool                status_r14_present = false;
   wlan_status_r13_e   status_r13;
   wlan_status_v1430_e status_r14;

@@ -1574,7 +1574,7 @@ void rrc::ue::send_connection_setup(bool is_setup)
   phy_cfg->ul_pwr_ctrl_ded.p0_ue_pusch          = 0;
   phy_cfg->ul_pwr_ctrl_ded.delta_mcs_enabled    = ul_pwr_ctrl_ded_s::delta_mcs_enabled_e_::en0;
   phy_cfg->ul_pwr_ctrl_ded.accumulation_enabled = true;
-  phy_cfg->ul_pwr_ctrl_ded.p0_ue_pucch = 0, phy_cfg->ul_pwr_ctrl_ded.p_srs_offset = 3;
+  phy_cfg->ul_pwr_ctrl_ded.p0_ue_pucch = 0, phy_cfg->ul_pwr_ctrl_ded.psrs_offset = 3;
 
   // PDSCH
   phy_cfg->pdsch_cfg_ded_present = true;
@@ -1629,8 +1629,8 @@ void rrc::ue::send_connection_setup(bool is_setup)
   sched_cfg.pucch_cfg.sr_configured     = true;
   sched_cfg.pucch_cfg.n_pucch           = cqi_pucch;
   sched_cfg.pucch_cfg.delta_pucch_shift = parent->sib2.rr_cfg_common.pucch_cfg_common.delta_pucch_shift.to_number();
-  sched_cfg.pucch_cfg.N_cs              = parent->sib2.rr_cfg_common.pucch_cfg_common.n_cs_an;
-  sched_cfg.pucch_cfg.n_rb_2            = parent->sib2.rr_cfg_common.pucch_cfg_common.n_rb_cqi;
+  sched_cfg.pucch_cfg.N_cs              = parent->sib2.rr_cfg_common.pucch_cfg_common.ncs_an;
+  sched_cfg.pucch_cfg.n_rb_2            = parent->sib2.rr_cfg_common.pucch_cfg_common.nrb_cqi;
   sched_cfg.pucch_cfg.N_pucch_1         = parent->sib2.rr_cfg_common.pucch_cfg_common.n1_pucch_an;
 
   // Configure MAC
@@ -2247,8 +2247,8 @@ int rrc::ue::sr_allocate(uint32_t period, uint8_t* I_sr, uint16_t* N_pucch_sr)
 
   // Compute N_pucch_sr
   *N_pucch_sr = i_min * max_users + parent->sr_sched.nof_users[i_min][j_min];
-  if (parent->sib2.rr_cfg_common.pucch_cfg_common.n_cs_an) {
-    *N_pucch_sr += parent->sib2.rr_cfg_common.pucch_cfg_common.n_cs_an;
+  if (parent->sib2.rr_cfg_common.pucch_cfg_common.ncs_an) {
+    *N_pucch_sr += parent->sib2.rr_cfg_common.pucch_cfg_common.ncs_an;
   }
 
   // Allocate user
@@ -2344,8 +2344,8 @@ int rrc::ue::cqi_allocate(uint32_t period, uint16_t* pmi_idx, uint16_t* n_pucch)
 
   // Compute n_pucch_2
   *n_pucch = i_min * max_users + parent->cqi_sched.nof_users[i_min][j_min];
-  if (parent->sib2.rr_cfg_common.pucch_cfg_common.n_cs_an) {
-    *n_pucch += parent->sib2.rr_cfg_common.pucch_cfg_common.n_cs_an;
+  if (parent->sib2.rr_cfg_common.pucch_cfg_common.ncs_an) {
+    *n_pucch += parent->sib2.rr_cfg_common.pucch_cfg_common.ncs_an;
   }
 
   // Allocate user

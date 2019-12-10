@@ -334,7 +334,7 @@ void set_phy_cfg_t_dedicated_cfg(phy_cfg_t* cfg, const asn1::rrc::phys_cfg_ded_s
         asn1_type.ul_pwr_ctrl_ded.delta_mcs_enabled == asn1::rrc::ul_pwr_ctrl_ded_s::delta_mcs_enabled_e_::en0;
     cfg->ul_cfg.power_ctrl.acc_enabled  = asn1_type.ul_pwr_ctrl_ded.accumulation_enabled;
     cfg->ul_cfg.power_ctrl.p0_ue_pucch  = asn1_type.ul_pwr_ctrl_ded.p0_ue_pucch;
-    cfg->ul_cfg.power_ctrl.p_srs_offset = asn1_type.ul_pwr_ctrl_ded.p_srs_offset;
+    cfg->ul_cfg.power_ctrl.p_srs_offset = asn1_type.ul_pwr_ctrl_ded.psrs_offset;
   }
 
   if (asn1_type.ul_pwr_ctrl_ded.filt_coef_present) {
@@ -501,8 +501,8 @@ void set_phy_cfg_t_common_pucch(phy_cfg_t* cfg, const asn1::rrc::pucch_cfg_commo
 {
   /* PUCCH configuration */
   cfg->ul_cfg.pucch.delta_pucch_shift = asn1_type.delta_pucch_shift.to_number();
-  cfg->ul_cfg.pucch.N_cs              = asn1_type.n_cs_an;
-  cfg->ul_cfg.pucch.n_rb_2            = asn1_type.n_rb_cqi;
+  cfg->ul_cfg.pucch.N_cs              = asn1_type.ncs_an;
+  cfg->ul_cfg.pucch.n_rb_2            = asn1_type.nrb_cqi;
   cfg->ul_cfg.pucch.N_pucch_1         = asn1_type.n1_pucch_an;
 }
 

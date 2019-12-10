@@ -322,7 +322,7 @@ int mbsfn_area_info_list_parser::parse(Setting& root)
     return -1;
   }
 
-  parser::field<uint8_t> areaid("mbsfn_area_id", &mbsfn_item->mbsfn_area_id_r9);
+  parser::field<uint16_t> areaid("mbsfn_area_id", &mbsfn_item->mbsfn_area_id_r9);
   if (areaid.parse(root["mbsfn_area_info_list"])) {
     fprintf(stderr, "Error parsing mbsfn_area_id\n");
     return -1;
@@ -1072,8 +1072,8 @@ int parse_sib2(std::string filename, sib_type2_s* data)
   rr_config.add_subsection(&pucch_cnfg);
   pucch_cnfg.add_field(
       make_asn1_enum_number_parser("delta_pucch_shift", &rr_cfg_common->pucch_cfg_common.delta_pucch_shift));
-  pucch_cnfg.add_field(new parser::field<uint8>("n_rb_cqi", &rr_cfg_common->pucch_cfg_common.n_rb_cqi));
-  pucch_cnfg.add_field(new parser::field<uint8>("n_cs_an", &rr_cfg_common->pucch_cfg_common.n_cs_an));
+  pucch_cnfg.add_field(new parser::field<uint8>("n_rb_cqi", &rr_cfg_common->pucch_cfg_common.nrb_cqi));
+  pucch_cnfg.add_field(new parser::field<uint8>("n_cs_an", &rr_cfg_common->pucch_cfg_common.ncs_an));
   pucch_cnfg.add_field(new parser::field<uint16>("n1_pucch_an", &rr_cfg_common->pucch_cfg_common.n1_pucch_an));
 
   // UL PWR Ctrl configuration

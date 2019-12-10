@@ -85,8 +85,8 @@ void phy::parse_config(const phy_cfg_t& cfg)
 
   // PUCCH
   workers_common.ul_cfg_com.pucch.delta_pucch_shift = cfg.pucch_cnfg.delta_pucch_shift.to_number();
-  workers_common.ul_cfg_com.pucch.N_cs              = cfg.pucch_cnfg.n_cs_an;
-  workers_common.ul_cfg_com.pucch.n_rb_2            = cfg.pucch_cnfg.n_rb_cqi;
+  workers_common.ul_cfg_com.pucch.N_cs              = cfg.pucch_cnfg.ncs_an;
+  workers_common.ul_cfg_com.pucch.n_rb_2            = cfg.pucch_cnfg.nrb_cqi;
   workers_common.ul_cfg_com.pucch.N_pucch_1         = cfg.pucch_cnfg.n1_pucch_an;
   workers_common.ul_cfg_com.pucch.threshold_format1 = 0.8;
 

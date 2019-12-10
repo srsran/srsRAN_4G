@@ -66,7 +66,7 @@ void print_console(srsasn_logger_level_t log_level, void* ctx, const char* str)
 }
 
 struct TestLogger {
-  TestLogger(const std::string& layer_) : layer(layer_), last_level(LOG_LEVEL_INFO) {}
+  TestLogger(const std::string& layer_) : layer(layer_) {}
   void log(srsasn_logger_level_t log_level, const char* str)
   {
     last_level = log_level;
@@ -395,7 +395,7 @@ int ue_rrc_conn_recfg_r15_v10_test()
   dl_dcch_msg_s dl_dcch_msg;
   dl_dcch_msg.unpack(bref);
 
-  TESTASSERT(ceil(bref.distance(bref0) / 8.0) == rrc_msg_len);
+  TESTASSERT(bref.distance_bytes() == (int)rrc_msg_len);
 
   TESTASSERT(dl_dcch_msg.msg.type() == dl_dcch_msg_type_c::types::c1);
   TESTASSERT(dl_dcch_msg.msg.c1().type() == dl_dcch_msg_type_c::c1_c_::types::rrc_conn_recfg);
@@ -450,7 +450,7 @@ int ue_rrc_conn_recfg_r15_v10_test()
   TESTASSERT(explicit_value.type() == rlc_cfg_c::types::am);
   rlc_cfg_c::am_s_& am = explicit_value.am();
   TESTASSERT(am.ul_am_rlc.t_poll_retx == t_poll_retx_e::ms35);
-  TESTASSERT(am.ul_am_rlc.poll_pdu == poll_pdu_e::p_infinity);
+  TESTASSERT(am.ul_am_rlc.poll_pdu == poll_pdu_e::pinfinity);
   TESTASSERT(am.ul_am_rlc.poll_byte == poll_byte_e::kbinfinity);
   TESTASSERT(am.ul_am_rlc.max_retx_thres == ul_am_rlc_s::max_retx_thres_e_::t32);
   TESTASSERT(am.dl_am_rlc.t_reordering == t_reordering_e::ms35);
@@ -511,8 +511,8 @@ int ue_rrc_conn_recfg_r15_v10_test()
   TESTASSERT(rrc_recfg_r8->non_crit_ext.non_crit_ext_present);
   TESTASSERT(not rrc_recfg_r8->non_crit_ext.non_crit_ext.other_cfg_r9_present);
   TESTASSERT(not rrc_recfg_r8->non_crit_ext.non_crit_ext.full_cfg_r9_present);
-  TESTASSERT(not rrc_recfg_r8->non_crit_ext.non_crit_ext.non_crit_ext.s_cell_to_release_list_r10_present);
-  TESTASSERT(not rrc_recfg_r8->non_crit_ext.non_crit_ext.non_crit_ext.s_cell_to_add_mod_list_r10_present);
+  TESTASSERT(not rrc_recfg_r8->non_crit_ext.non_crit_ext.non_crit_ext.scell_to_release_list_r10_present);
+  TESTASSERT(not rrc_recfg_r8->non_crit_ext.non_crit_ext.non_crit_ext.scell_to_add_mod_list_r10_present);
   TESTASSERT(rrc_recfg_r8->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present);
   TESTASSERT(not rrc_recfg_r8->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.sib_type1_ded_r11_present);
   TESTASSERT(rrc_recfg_r8->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present);
@@ -527,9 +527,9 @@ int ue_rrc_conn_recfg_r15_v10_test()
       not rrc_recfg_r8->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.sl_comm_cfg_r12_present);
   TESTASSERT(rrc_recfg_r8->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext_present);
   TESTASSERT(not rrc_recfg_r8->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
-                     .s_cell_to_release_list_ext_r13_present);
+                     .scell_to_release_list_ext_r13_present);
   TESTASSERT(not rrc_recfg_r8->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
-                     .s_cell_to_add_mod_list_ext_r13_present);
+                     .scell_to_add_mod_list_ext_r13_present);
   TESTASSERT(not rrc_recfg_r8->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
                      .lwa_cfg_r13_present);
   TESTASSERT(not rrc_recfg_r8->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
@@ -541,7 +541,7 @@ int ue_rrc_conn_recfg_r15_v10_test()
   TESTASSERT(not rrc_recfg_r8->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
                      .non_crit_ext.sl_v2x_cfg_ded_r14_present);
   TESTASSERT(not rrc_recfg_r8->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
-                     .non_crit_ext.s_cell_to_add_mod_list_ext_v1430_present);
+                     .non_crit_ext.scell_to_add_mod_list_ext_v1430_present);
   TESTASSERT(not rrc_recfg_r8->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
                      .non_crit_ext.per_cc_gap_ind_request_r14_present);
   TESTASSERT(not rrc_recfg_r8->non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext.non_crit_ext
@@ -594,6 +594,54 @@ int unrecognized_ext_group_test()
   return 0;
 }
 
+int v2x_test()
+{
+  // Suspected sl_v2x_preconfig message
+  static uint8_t rrc_msg[] = {
+      0x20, 0x98, 0x03, 0x5E, 0x5B, 0x5F, 0xB0, 0x00, 0x00, 0x00, 0x40, 0xA0, 0x00, 0x00, 0x00, 0xBF, 0xFF, 0xFE,
+      0x54, 0x02, 0x54, 0x06, 0x97, 0xFF, 0xFF, 0xCA, 0x80, 0x4A, 0x92, 0x88, 0x01, 0x00, 0x06, 0x01, 0x30, 0x00,
+      0x81, 0x84, 0xE0, 0x8C, 0x00, 0x10, 0xC2, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x82, 0x30, 0x0E, 0x02,
+      0x22, 0xAC, 0x04, 0x41, 0x02, 0x16, 0x2C, 0x58, 0xB1, 0x62, 0xC1, 0x02, 0x16, 0x2C, 0x58, 0xB1, 0x62, 0xC1,
+      0x02, 0x16, 0x2C, 0x58, 0xB1, 0x62, 0xC1, 0x02, 0x16, 0x2C, 0x58, 0xB1, 0x62, 0xC1, 0x02, 0x16, 0x2C, 0x58,
+      0xB1, 0x62, 0xC1, 0x02, 0x16, 0x2C, 0x58, 0xB1, 0x62, 0xC1, 0x02, 0x16, 0x2C, 0x58, 0xB1, 0x62, 0xC1, 0x02,
+      0x16, 0x2C, 0x58, 0xB1, 0x62, 0xC0, 0xA2, 0x80, 0x04, 0x30, 0x72, 0x19, 0xE8, 0x34, 0x32, 0x19, 0xE8, 0x34,
+      0x32, 0x08, 0x9C, 0x42, 0x0E, 0x00, 0x8E, 0x00, 0x19, 0x10, 0x70, 0x04, 0x70, 0x01, 0x2C, 0x83, 0x80, 0x23,
+      0x80, 0x01, 0xE4, 0x1C, 0x01, 0x1C, 0x00, 0x07, 0xA0, 0xE0, 0x08, 0xE0, 0x00, 0x79, 0x31, 0xC0, 0x47, 0x00,
+      0x02, 0x88, 0x38, 0x02, 0x38, 0x00, 0x0F, 0x4C, 0x70, 0x11, 0xC0, 0x00, 0x52, 0x0E, 0x00, 0x8E, 0x00};
+  // 2098035E5B5FB000000040A0000000BFFFFE5402540697FFFFCA804A92880100060130008184E08C0010C22000000000000282300E0222AC044102162C58B162C102162C58B162C102162C58B162C102162C58B162C102162C58B162C102162C58B162C102162C58B162C102162C58B162C0A28004307219E8343219E83432089C420E008E001910700470012C8380238001E41C011C0007A0E008E0007931C047000288380238000F4C7011C000520E008E00
+
+  bit_ref             bref(rrc_msg, sizeof(rrc_msg));
+  sl_v2x_precfg_r14_s sl_preconf{};
+  TESTASSERT(sl_preconf.unpack(bref) == SRSASN_SUCCESS);
+
+  //  asn1::json_writer json_writer;
+  //  sl_preconf.to_json(json_writer);
+  //  printf("Content: %s\n", json_writer.to_string().c_str());
+
+  return SRSASN_SUCCESS;
+}
+
+int test_rrc_conn_reconf_r15_2()
+{
+  uint8_t rrc_msg[] = {0x20, 0x16, 0x15, 0xC8, 0x40, 0x00, 0x03, 0xC2, 0x84, 0x18, 0x10, 0xA8, 0x04, 0xD7, 0x95, 0x14,
+                       0xA2, 0x01, 0x02, 0x18, 0x9A, 0x01, 0x80, 0x14, 0x81, 0x0A, 0xCB, 0x84, 0x08, 0x00, 0xAD, 0x6D,
+                       0xC4, 0x06, 0x08, 0xAF, 0x6D, 0xC7, 0xA0, 0xC0, 0x82, 0x00, 0x00, 0x0C, 0x38, 0x60, 0x20, 0x30,
+                       0xC3, 0x00, 0x00, 0x10, 0x04, 0x40, 0x10, 0xC2, 0x3C, 0x2A, 0x06, 0x20, 0x30, 0x11, 0x10, 0x28,
+                       0x13, 0xDA, 0x4E, 0x96, 0xDA, 0x80, 0x83, 0xA1, 0x00, 0xA4, 0x83, 0x00, 0x32, 0x7B, 0x08, 0x95,
+                       0xAE, 0x00, 0x16, 0xA9, 0x00, 0xE0, 0x80, 0x84, 0x8C, 0x82, 0xBB, 0xB1, 0xB4, 0xBA, 0x18, 0x83,
+                       0x36, 0xB7, 0x31, 0x98, 0x18, 0x98, 0x83, 0x36, 0xB1, 0xB1, 0x9A, 0x1B, 0x1B, 0x02, 0x33, 0xB8,
+                       0x39, 0x39, 0x82, 0x80, 0x85, 0x7F, 0x80, 0x80, 0xAF, 0x03, 0x7F, 0x7F, 0x7D, 0x7D, 0x7F, 0x7F,
+                       0x28, 0x05, 0xFB, 0x32, 0x7B, 0x08, 0xC0, 0x00, 0x01, 0xF8, 0x3E, 0x3C, 0xB1, 0xB2, 0x00, 0xC0,
+                       0x30, 0x38, 0x1F, 0xFA, 0x9C, 0x08, 0x3E, 0xA2, 0x5F, 0x1C, 0xE1, 0xD0, 0x84};
+  // 201615C8400003C2841810A804D79514A20102189A018014810ACB840800AD6DC40608AF6DC7A0C08200000C38602030C3000010044010C23C2A06203011102813DA4E96DA8083A100A48300327B0895AE0016A900E080848C82BBB1B4BA188336B7319818988336B1B19A1B1B0233B839398280857F8080AF037F7F7D7D7F7F2805FB327B08C00001F83E3CB1B200C030381FFA9C083EA25F1CE1D084
+
+  bit_ref       bref(rrc_msg, sizeof(rrc_msg));
+  dl_dcch_msg_s recfg_msg;
+  TESTASSERT(recfg_msg.unpack(bref) == SRSASN_SUCCESS);
+
+  return SRSASN_SUCCESS;
+}
+
 int main()
 {
   srsasn_log_register_handler(&asn_logger, print_console);
@@ -609,6 +657,8 @@ int main()
   TESTASSERT(ue_rrc_conn_recfg_r15_v10_test() == 0);
   TESTASSERT(failed_dl_ccch_unpack() == 0);
   TESTASSERT(unrecognized_ext_group_test() == 0);
+  TESTASSERT(v2x_test() == 0);
+  TESTASSERT(test_rrc_conn_reconf_r15_2() == 0);
 
   printf("Success\n");
   return 0;
