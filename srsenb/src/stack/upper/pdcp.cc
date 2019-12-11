@@ -145,8 +145,9 @@ bool pdcp::get_bearer_status(uint16_t  rnti,
                              uint16_t* ulsn,
                              uint16_t* ulhfn)
 {
-  if (users.count(rnti) == 0)
+  if (users.count(rnti) == 0) {
     return false;
+  }
   return users[rnti].pdcp->get_bearer_status(lcid, dlsn, dlhfn, ulsn, ulhfn);
 }
 
