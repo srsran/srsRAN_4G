@@ -459,13 +459,6 @@ void sync::run_thread()
                 srslte_cell_t            temp_cell = {};
                 sync::sfn_sync::ret_code ret       = sfn_p.decode_mib(&temp_cell, &_tti, buffer[0], mib);
 
-                if (srslte_cell_isvalid(&temp_cell)) {
-                  cell = temp_cell;
-                } else {
-                  Error("Invalid cell found PCI=%d, n_prb=%d;\n", temp_cell.id, temp_cell.nof_prb);
-                  log_h->console("Invalid cell found PCI=%d, n_prb=%d;\n", temp_cell.id, temp_cell.nof_prb);
-                }
-
                 if (ret == sfn_sync::SFN_FOUND) {
                   // Force tti
                   tti = _tti;
