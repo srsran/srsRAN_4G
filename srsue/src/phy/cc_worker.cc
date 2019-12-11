@@ -432,6 +432,7 @@ int cc_worker::decode_pdsch(srslte_pdsch_ack_resource_t            ack_resource,
   }
 
   // Generate ACKs for MAC and PUCCH
+  uint32_t nof_tb                             = 0;
   uint8_t pending_acks[SRSLTE_MAX_CODEWORDS] = {};
   for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
     // For MAC, set to true if it's a duplicate
@@ -440,9 +441,13 @@ int cc_worker::decode_pdsch(srslte_pdsch_ack_resource_t            ack_resource,
     // For PUCCH feedback, need to send even if duplicate, but only those CW that were enabled before disabling in th
     // grant
     pending_acks[tb] = tb_enable[tb] ? mac_acks[tb] : 2;
+
+    if (tb_enable[tb]) {
+      nof_tb++;
+    }
   }
 
-  if (action->generate_ack && ue_dl_cfg.cfg.pdsch.grant.nof_tb > 0) {
+  if (action->generate_ack && nof_tb > 0) {
     phy->set_dl_pending_ack(&sf_cfg_dl, cc_idx, pending_acks, ack_resource);
   }
 
