@@ -50,19 +50,17 @@ log_filter::log_filter(std::string layer) : log()
   init(layer, &def_logger_stdout, do_tti);
 }
 
-log_filter::log_filter(std::string layer, logger* logger_, bool tti)
+log_filter::log_filter(std::string layer, logger* logger_, bool tti) : log()
 {
   do_tti      = false;
   time_src    = NULL;
   time_format = TIME;
-  init(layer, logger_, tti);
+  init(std::move(layer), logger_, tti);
 }
-
-log_filter::~log_filter() {}
 
 void log_filter::init(std::string layer, logger* logger_, bool tti)
 {
-  service_name = layer;
+  set_service_name(layer);
   logger_h     = logger_;
   do_tti       = tti;
 }

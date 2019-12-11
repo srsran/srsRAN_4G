@@ -139,6 +139,22 @@ int basic_hex_test()
   return SRSLTE_SUCCESS;
 }
 
+int test_log_singleton()
+{
+  {
+    log_filter   test_log("LAYER1");
+    srslte::log* log_ptr = srslte::log::get("LAYER1");
+    TESTASSERT(log_ptr == &test_log);
+    TESTASSERT(log_ptr->get_service_name() == "LAYER1");
+    test_log.set_service_name("LAYER2");
+    // log_ptr should now point to LAYER2
+    TESTASSERT(srslte::log::get("LAYER1") == nullptr);
+    TESTASSERT(srslte::log::get("LAYER2") == &test_log);
+  }
+  TESTASSERT(srslte::log::get("LAYER2") == nullptr);
+  return SRSLTE_SUCCESS;
+}
+
 int full_test()
 {
   bool        result;
@@ -158,11 +174,11 @@ int full_test()
 
   return SRSLTE_SUCCESS;
 }
-
 int main(int argc, char** argv)
 {
   TESTASSERT(basic_hex_test() == SRSLTE_SUCCESS);
   TESTASSERT(full_test() == SRSLTE_SUCCESS);
+  TESTASSERT(test_log_singleton() == SRSLTE_SUCCESS);
 
   return SRSLTE_SUCCESS;
 }

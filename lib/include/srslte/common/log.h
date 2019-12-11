@@ -31,6 +31,7 @@
 #define SRSLTE_LOG_H
 
 #include <algorithm>
+#include <map>
 #include <stdint.h>
 #include <string>
 
@@ -67,9 +68,27 @@ public:
     level         = LOG_LEVEL_NONE;
     hex_limit     = 0;
     add_string_en = false;
+    log::register_log(this);
   }
 
-  virtual ~log() = default;
+  log(const log&) = delete;
+  log& operator=(const log&) = delete;
+
+  virtual ~log()
+  {
+    if (not service_name.empty()) {
+      log::deregister_log(service_name);
+    }
+  }
+
+  void set_service_name(std::string service_name_)
+  {
+    if (not service_name.empty()) {
+      log::deregister_log(service_name);
+    }
+    service_name = std::move(service_name_);
+    log::register_log(this);
+  }
 
   // This function shall be called at the start of every tti for printing tti
   void step(uint32_t tti_)
@@ -109,6 +128,7 @@ public:
   }
 
   LOG_LEVEL_ENUM get_level() { return level; }
+  std::string    get_service_name() { return service_name; }
 
   void set_hex_limit(int limit) { hex_limit = limit; }
   int  get_hex_limit() { return hex_limit; }
@@ -140,15 +160,54 @@ public:
     error("debug_hex not implemented.\n");
   }
 
+  // Access to log pool
+  static log* get(const std::string& servicename)
+  {
+    auto* pool = log::get_pool_instance();
+    auto  it   = pool->find(servicename);
+    if (it == pool->end()) {
+      return nullptr;
+    }
+    return it->second;
+  }
+
 protected:
-  std::string    get_service_name() { return service_name; }
   uint32_t       tti;
   LOG_LEVEL_ENUM level;
   int            hex_limit;
-  std::string    service_name;
 
   bool        add_string_en;
   std::string add_string_val;
+
+  static bool register_log(log* log_ptr)
+  {
+    auto* pool = log::get_pool_instance();
+    auto  it   = pool->find(log_ptr->get_service_name());
+    if (it == pool->end()) {
+      pool->insert(std::make_pair(log_ptr->get_service_name(), log_ptr));
+      return true;
+    }
+    it->second = log_ptr;
+    return false;
+  }
+
+  static bool deregister_log(const std::string& servicename)
+  {
+    auto* pool = log::get_pool_instance();
+    return pool->erase(servicename) > 0;
+  }
+
+private:
+  static std::map<std::string, log*>* get_pool_instance()
+  {
+    static std::map<std::string, log*>* log_pool = nullptr;
+    if (log_pool == nullptr) {
+      log_pool = new std::map<std::string, log*>;
+    }
+    return log_pool;
+  }
+
+  std::string service_name;
 };
 
 } // namespace srslte
