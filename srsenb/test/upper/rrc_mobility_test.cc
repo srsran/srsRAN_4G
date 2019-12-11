@@ -369,7 +369,7 @@ int test_mobility_class(mobility_test_params test_params)
   phy_dummy                         phy;
   test_dummies::s1ap_mobility_dummy s1ap;
   gtpu_dummy                        gtpu;
-  rrc_log.set_level(srslte::LOG_LEVEL_NONE);
+  rrc_log.set_level(srslte::LOG_LEVEL_INFO);
   rrc_log.set_hex_limit(1024);
   rrc.init(&cfg, &phy, &mac, &rlc, &pdcp, &s1ap, &gtpu, &timers, &rrc_log);
 
@@ -381,6 +381,7 @@ int test_mobility_class(mobility_test_params test_params)
   uint16_t rnti = 0x46;
   rrc.add_user(rnti);
 
+  rrc_log.set_level(srslte::LOG_LEVEL_NONE); // mute all the startup log
   // Do all the handshaking until the first RRC Connection Reconf
   test_helpers::bring_rrc_to_reconf_state(rrc, timers, rnti);
 

@@ -19,72 +19,15 @@
 */
 
 #include "srslte/asn1/rrc_asn1.h"
+#include "srslte/common/test_common.h"
 #include <cstdio>
-#include <iostream>
-
-#define TESTASSERT(cond)                                                                                               \
-  {                                                                                                                    \
-    if (!(cond)) {                                                                                                     \
-      std::cout << "[" << __FUNCTION__ << "][Line " << __LINE__ << "]: FAIL at " << (#cond) << std::endl;              \
-      return -1;                                                                                                       \
-    }                                                                                                                  \
-  }
 
 using namespace asn1;
 using namespace asn1::rrc;
 
-struct ConsoleLogger {
-  ConsoleLogger(const std::string& layer_) : layer(layer_) {}
-
-  void log(srsasn_logger_level_t log_level, const char* str)
-  {
-    switch (log_level) {
-      case LOG_LEVEL_DEBUG:
-        printf("[%s][D] %s", layer.c_str(), str);
-        break;
-      case LOG_LEVEL_INFO:
-        printf("[%s][I] %s", layer.c_str(), str);
-        break;
-      case LOG_LEVEL_WARN:
-        printf("[%s][W] %s", layer.c_str(), str);
-        break;
-      case LOG_LEVEL_ERROR:
-        printf("[%s][E] %s", layer.c_str(), str);
-        break;
-      default:
-        break;
-    }
-  }
-
-private:
-  std::string layer;
-};
-void print_console(srsasn_logger_level_t log_level, void* ctx, const char* str)
-{
-  ConsoleLogger* logger = (ConsoleLogger*)ctx;
-  logger->log(log_level, str);
-}
-
-struct TestLogger {
-  TestLogger(const std::string& layer_) : layer(layer_) {}
-  void log(srsasn_logger_level_t log_level, const char* str)
-  {
-    last_level = log_level;
-    last_str   = str;
-  }
-  std::string           layer;
-  srsasn_logger_level_t last_level;
-  std::string           last_str;
-};
-void test_print(srsasn_logger_level_t log_level, void* ctx, const char* str)
-{
-  TestLogger* logger = (TestLogger*)ctx;
-  logger->log(log_level, str);
-}
-
-ConsoleLogger asn_logger("ASN");
-ConsoleLogger rrc_logger("RRC");
-TestLogger    test_logger("TEST");
+srslte::log_filter        asn_logger("ASN1");
+srslte::log_filter        rrc_logger("RRC");
+srslte::scoped_tester_log test_logger("TEST");
 
 // TESTS
 
@@ -96,13 +39,17 @@ int test_generic()
   TESTASSERT(choice_type1.type() == pusch_enhance_cfg_r14_c::types::nulltype);
 
   // test logger handler
-  rrc_log_register_handler(&test_logger, test_print);
-  std::string test_str = "This is a console test to see if the RRC logger is working fine\n";
-  rrc_log_print(LOG_LEVEL_INFO, test_str.c_str());
-  TESTASSERT(test_logger.last_str == test_str);
-  TESTASSERT(test_logger.last_level == LOG_LEVEL_INFO);
-  // go back to original logger
-  rrc_log_register_handler(&rrc_logger, print_console);
+  {
+    srslte::nullsink_log null_log("NULL");
+    null_log.set_level(LOG_LEVEL_INFO);
+    rrc_log_register_handler(&null_log);
+    std::string test_str = "This is a console test to see if the RRC logger is working fine\n";
+    rrc_log_print(LOG_LEVEL_INFO, test_str.c_str());
+    TESTASSERT(null_log.last_log_msg == test_str);
+    TESTASSERT(null_log.last_log_level == LOG_LEVEL_INFO);
+    // go back to original logger
+    rrc_log_register_handler(&rrc_logger);
+  }
 
   // Test deep copy of choice types
   sib_type14_r11_s::eab_param_r11_c_ choice2;
@@ -181,6 +128,8 @@ int test_mib_msg()
   //  bcch_bch_msg.to_json(j);
   //  std::cout << j.to_string() << std::endl;
 
+  TESTASSERT(test_pack_unpack_consistency(bcch_bch_msg) == SRSASN_SUCCESS);
+
   return 0;
 }
 
@@ -258,6 +207,8 @@ int test_bcch_dl_sch_msg()
   //  bcch_msg.to_json(j);
   //  std::cout << j.to_string() << std::endl;
 
+  TESTASSERT(test_pack_unpack_consistency(bcch_msg) == SRSASN_SUCCESS);
+
   return 0;
 }
 
@@ -288,6 +239,8 @@ int test_bcch_dl_sch_msg2()
   bcch_msg.pack(bref2);
   TESTASSERT(bref.distance(bref0) == bref2.distance(bit_ref(&rrc_msg2[0], sizeof(rrc_msg2))));
   TESTASSERT(memcmp(rrc_msg2, rrc_msg, rrc_msg_len) == 0);
+
+  TESTASSERT(test_pack_unpack_consistency(bcch_msg) == SRSASN_SUCCESS);
 
   return 0;
 }
@@ -321,6 +274,8 @@ int test_bcch_dl_sch_msg3()
 
   TESTASSERT(bref.distance(rrc_msg) == bref2.distance(rrc_msg2));
   TESTASSERT(memcmp(rrc_msg2, rrc_msg, bref.distance_bytes(rrc_msg)) == 0);
+
+  TESTASSERT(test_pack_unpack_consistency(bcch_msg) == SRSASN_SUCCESS);
 
   return 0;
 }
@@ -360,16 +315,12 @@ int test_dl_dcch_msg()
   //...
   TESTASSERT(drb->rlc_cfg_v1510.is_present());
 
-  uint8_t rrc_msg2[rrc_msg_len];
-  bit_ref bref2(&rrc_msg2[0], sizeof(rrc_msg2)), bref2_0(&rrc_msg2[0], sizeof(rrc_msg2));
-  dl_dcch_msg.pack(bref2); // FIXME: Should I generate a pack/unpack method for RLC-Config-v1510???
-  TESTASSERT(bref.distance(bref0) == bref2.distance(bref2_0));
-  TESTASSERT(memcmp(rrc_msg2, rrc_msg, rrc_msg_len) == 0);
-
   //  // test print
   //  json_writer j;
   //  dl_dcch_msg.to_json(j);
   //  std::cout << j.to_string() << std::endl;
+
+  TESTASSERT(test_pack_unpack_consistency(dl_dcch_msg) == SRSASN_SUCCESS);
 
   return 0;
 }
@@ -572,6 +523,8 @@ int failed_dl_ccch_unpack()
 
   TESTASSERT(msg.unpack(bref) == SRSASN_SUCCESS);
 
+  TESTASSERT(test_pack_unpack_consistency(msg) == SRSASN_SUCCESS);
+
   return 0;
 }
 
@@ -590,6 +543,8 @@ int unrecognized_ext_group_test()
 
   TESTASSERT(dl_sch_msg.msg.type() == bcch_dl_sch_msg_type_c::types::c1);
   TESTASSERT(dl_sch_msg.msg.c1().type() == bcch_dl_sch_msg_type_c::c1_c_::types::sys_info);
+
+  TESTASSERT(test_pack_unpack_consistency(dl_sch_msg) == SRSASN_SUCCESS);
 
   return 0;
 }
@@ -618,6 +573,8 @@ int v2x_test()
   //  sl_preconf.to_json(json_writer);
   //  printf("Content: %s\n", json_writer.to_string().c_str());
 
+  TESTASSERT(test_pack_unpack_consistency(sl_preconf) == SRSASN_SUCCESS);
+
   return SRSASN_SUCCESS;
 }
 
@@ -639,13 +596,19 @@ int test_rrc_conn_reconf_r15_2()
   dl_dcch_msg_s recfg_msg;
   TESTASSERT(recfg_msg.unpack(bref) == SRSASN_SUCCESS);
 
+  TESTASSERT(test_pack_unpack_consistency(recfg_msg) == SRSASN_SUCCESS);
+
   return SRSASN_SUCCESS;
 }
 
 int main()
 {
-  srsasn_log_register_handler(&asn_logger, print_console);
-  rrc_log_register_handler(&rrc_logger, print_console);
+  asn_logger.set_level(LOG_LEVEL_DEBUG);
+  rrc_logger.set_level(LOG_LEVEL_DEBUG);
+  test_logger.set_level(LOG_LEVEL_DEBUG);
+
+  srsasn_log_register_handler(&asn_logger);
+  rrc_log_register_handler(&rrc_logger);
 
   TESTASSERT(test_generic() == 0);
   TESTASSERT(test_json_printer() == 0);

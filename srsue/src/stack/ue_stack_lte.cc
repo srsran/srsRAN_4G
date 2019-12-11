@@ -88,6 +88,8 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   rrc_log.init("RRC ", logger);
   nas_log.init("NAS ", logger);
   usim_log.init("USIM", logger);
+  asn1_log.init("ASN1", logger);
+  rrc_asn1_log.init("ASN1::RRC", logger);
 
   pool_log.init("POOL", logger);
   pool_log.set_level(srslte::LOG_LEVEL_ERROR);
@@ -99,6 +101,8 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   rrc_log.set_level(args.log.rrc_level);
   nas_log.set_level(args.log.nas_level);
   usim_log.set_level(args.log.usim_level);
+  asn1_log.set_level(LOG_LEVEL_INFO);
+  rrc_asn1_log.set_level(args.log.rrc_level);
 
   mac_log.set_hex_limit(args.log.mac_hex_limit);
   rlc_log.set_hex_limit(args.log.rlc_hex_limit);
@@ -106,6 +110,10 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   rrc_log.set_hex_limit(args.log.rrc_hex_limit);
   nas_log.set_hex_limit(args.log.nas_hex_limit);
   usim_log.set_hex_limit(args.log.usim_hex_limit);
+  asn1_log.set_hex_limit(128);
+  rrc_asn1_log.set_hex_limit(args.log.rrc_hex_limit);
+  asn1::srsasn_log_register_handler(&asn1_log);
+  asn1::rrc::rrc_log_register_handler(&rrc_log);
 
   // Set up pcap
   if (args.pcap.enable) {

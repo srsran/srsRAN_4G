@@ -65,25 +65,9 @@ rrc::rrc(srslte::log* rrc_log_) :
   connection_reest(this),
   serving_cell(unique_cell_t(new cell_t({}, 0.0)))
 {
-  // Do nothing
 }
 
 rrc::~rrc() = default;
-
-static void srslte_rrc_handler(asn1::srsasn_logger_level_t level, void* ctx, const char* str)
-{
-  rrc *r = (rrc *) ctx;
-  r->srslte_rrc_log(str); // FIXME use log level
-}
-
-void rrc::srslte_rrc_log(const char* str)
-{
-  if (rrc_log) {
-    rrc_log->warning("[ASN]: %s\n", str);
-  } else {
-    rrc_log->console("[ASN]: %s\n", str);
-  }
-}
 
 template <class T>
 void rrc::log_rrc_message(const std::string source, const direction_t dir, const byte_buffer_t* pdu, const T& msg)
@@ -140,9 +124,6 @@ void rrc::init(phy_interface_rrc_lte* phy_,
   ue_identity_configured = false;
 
   transaction_id = 0;
-
-  // Register logging handler with asn1 rrc
-  asn1::rrc::rrc_log_register_handler(this, srslte_rrc_handler);
 
   cell_clean_cnt = 0;
 

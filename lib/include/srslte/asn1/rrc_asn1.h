@@ -39,59 +39,21 @@ namespace rrc {
  *                        Functions for external logging
  ******************************************************************************/
 
-static log_handler_t log_handler;
-static void*         callback_ctx = NULL;
+extern srslte::log* rrc_log_ptr;
 
-inline void rrc_log_register_handler(void* ctx, log_handler_t handler)
-{
-  log_handler  = handler;
-  callback_ctx = ctx;
-}
+void rrc_log_register_handler(srslte::log* ctx);
 
-inline void rrc_log_print(srsasn_logger_level_t log_level, const char* format, ...)
-{
-  va_list args;
-  va_start(args, format);
-  vlog_print(log_handler, callback_ctx, log_level, format, args);
-  va_end(args);
-}
+void rrc_log_print(srslte::LOG_LEVEL_ENUM log_level, const char* format, ...);
 
-inline void log_invalid_access_choice_id(uint32_t val, uint32_t choice_id)
-{
-  rrc_log_print(LOG_LEVEL_ERROR, "The access choice id is invalid (%d!=%d)\n", val, choice_id);
-}
+void log_invalid_access_choice_id(uint32_t val, uint32_t choice_id);
 
-inline void assert_choice_type(uint32_t val, uint32_t choice_id)
-{
-  if (val != choice_id) {
-    log_invalid_access_choice_id(val, choice_id);
-  }
-}
+void assert_choice_type(uint32_t val, uint32_t choice_id);
 
-inline void
-assert_choice_type(const std::string& access_type, const std::string& current_type, const std::string& choice_type)
-{
-  if (access_type != current_type) {
-    rrc_log_print(LOG_LEVEL_ERROR,
-                  "Invalid field access for choice type \"%s\" (\"%s\"!=\"%s\")\n",
-                  choice_type.c_str(),
-                  access_type.c_str(),
-                  current_type.c_str());
-  }
-}
+void assert_choice_type(const std::string& access_type,
+                        const std::string& current_type,
+                        const std::string& choice_type);
 
-inline const char* convert_enum_idx(const char* array[], uint32_t nof_types, uint32_t enum_val, const char* enum_type)
-{
-  if (enum_val >= nof_types) {
-    if (enum_val == nof_types) {
-      rrc_log_print(LOG_LEVEL_ERROR, "The enum of type %s was not initialized.\n", enum_type);
-    } else {
-      rrc_log_print(LOG_LEVEL_ERROR, "The enum value=%d of type %s is not valid.\n", enum_val, enum_type);
-    }
-    return "";
-  }
-  return array[enum_val];
-}
+const char* convert_enum_idx(const char* array[], uint32_t nof_types, uint32_t enum_val, const char* enum_type);
 
 template <class ItemType>
 ItemType convert_enum_idx(ItemType* array, uint32_t nof_types, uint32_t enum_val, const char* enum_type)

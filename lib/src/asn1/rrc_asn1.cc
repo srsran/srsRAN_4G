@@ -26,12 +26,65 @@ using namespace asn1;
 using namespace asn1::rrc;
 
 /*******************************************************************************
- *                               Helper Functions
+ *                              Logging Utilities
  ******************************************************************************/
+
+srslte::log* asn1::rrc::rrc_log_ptr = nullptr;
+
+void asn1::rrc::rrc_log_register_handler(srslte::log* ctx)
+{
+  rrc_log_ptr = ctx;
+}
+
+void asn1::rrc::rrc_log_print(srslte::LOG_LEVEL_ENUM log_level, const char* format, ...)
+{
+  va_list args;
+  va_start(args, format);
+  vlog_print(rrc_log_ptr, log_level, format, args);
+  va_end(args);
+}
+
+void asn1::rrc::log_invalid_access_choice_id(uint32_t val, uint32_t choice_id)
+{
+  rrc_log_print(LOG_LEVEL_ERROR, "The access choice id is invalid (%d!=%d)\n", val, choice_id);
+}
+
+void asn1::rrc::assert_choice_type(uint32_t val, uint32_t choice_id)
+{
+  if (val != choice_id) {
+    log_invalid_access_choice_id(val, choice_id);
+  }
+}
+
+void asn1::rrc::assert_choice_type(const std::string& access_type,
+                                   const std::string& current_type,
+                                   const std::string& choice_type)
+{
+  if (access_type != current_type) {
+    rrc_log_print(LOG_LEVEL_ERROR,
+                  "Invalid field access for choice type \"%s\" (\"%s\"!=\"%s\")\n",
+                  choice_type.c_str(),
+                  access_type.c_str(),
+                  current_type.c_str());
+  }
+}
+
+const char* convert_enum_idx(const char* array[], uint32_t nof_types, uint32_t enum_val, const char* enum_type)
+{
+  if (enum_val >= nof_types) {
+    if (enum_val == nof_types) {
+      rrc_log_print(LOG_LEVEL_ERROR, "The enum of type %s was not initialized.\n", enum_type);
+    } else {
+      rrc_log_print(LOG_LEVEL_ERROR, "The enum value=%d of type %s is not valid.\n", enum_val, enum_type);
+    }
+    return "";
+  }
+  return array[enum_val];
+}
 
 #define rrc_asn1_warn_assert(cond, file, line)                                                                         \
   if ((cond)) {                                                                                                        \
-    rrc_log_print(LOG_LEVEL_WARN, "Assertion in [%s][%d] failed.\n", (file), (line));                                  \
+    rrc_log_print(LOG_LEVEL_WARNING, "Assertion in [%s][%d] failed.\n", (file), (line));                               \
   }
 
 static void log_invalid_choice_id(uint32_t val, const char* choice_type)

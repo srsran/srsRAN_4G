@@ -29,12 +29,35 @@ namespace asn1 {
         logging
 ************************/
 
-void vlog_print(log_handler_t handler, void* ctx, srsasn_logger_level_t log_level, const char* format, va_list args)
+// Global ASN1 Log
+static srslte::log* asn1_log_ptr = nullptr;
+
+// Demux of log level to respective log method
+void srs_log_call(srslte::LOG_LEVEL_ENUM log_level, srslte::log* log_ptr, const char* str)
 {
-  if (handler) {
-    char* args_msg = NULL;
+  switch (log_level) {
+    case LOG_LEVEL_ERROR:
+      log_ptr->error("%s", str);
+      break;
+    case LOG_LEVEL_WARNING:
+      log_ptr->warning("%s", str);
+      break;
+    case LOG_LEVEL_INFO:
+      log_ptr->info("%s", str);
+      break;
+    case LOG_LEVEL_DEBUG:
+      log_ptr->debug("%s", str);
+    default:
+      break;
+  }
+}
+
+void vlog_print(srslte::log* log_ptr, srsasn_logger_level_t log_level, const char* format, va_list args)
+{
+  if (log_ptr != nullptr) {
+    char* args_msg = nullptr;
     if (vasprintf(&args_msg, format, args) > 0) {
-      handler(log_level, ctx, args_msg);
+      srs_log_call(log_level, log_ptr, args_msg);
     }
     if (args_msg) {
       free(args_msg);
@@ -44,20 +67,16 @@ void vlog_print(log_handler_t handler, void* ctx, srsasn_logger_level_t log_leve
   }
 }
 
-static log_handler_t log_handler;
-static void*         callback_ctx = NULL;
-
-void srsasn_log_register_handler(void* ctx, log_handler_t handler)
+void srsasn_log_register_handler(srslte::log* ctx)
 {
-  log_handler  = handler;
-  callback_ctx = ctx;
+  asn1_log_ptr = ctx;
 }
 
-void srsasn_log_print(srsasn_logger_level_t log_level, const char* format, ...)
+void srsasn_log_print(srslte::LOG_LEVEL_ENUM log_level, const char* format, ...)
 {
   va_list args;
   va_start(args, format);
-  vlog_print(log_handler, callback_ctx, log_level, format, args);
+  vlog_print(asn1_log_ptr, log_level, format, args);
   va_end(args);
 }
 
@@ -75,7 +94,7 @@ void log_error_code(SRSASN_CODE code, const char* filename, int line)
       srsasn_log_print(LOG_LEVEL_ERROR, "[%s][%d] Decoding failure.\n", filename, line);
       break;
     default:
-      srsasn_log_print(LOG_LEVEL_WARN, "[%s][%d] SRSASN_CODE=%u not recognized.\n", filename, line, (uint32_t)code);
+      srsasn_log_print(LOG_LEVEL_WARNING, "[%s][%d] SRSASN_CODE=%u not recognized.\n", filename, line, (uint32_t)code);
   }
 }
 
@@ -910,7 +929,7 @@ std::string octstring_to_string(const uint8_t* ptr, uint32_t N)
 void string_to_octstring(uint8_t* ptr, const std::string& str)
 {
   if (str.size() % 2 != 0) {
-    srsasn_log_print(LOG_LEVEL_WARN, "The provided hex string size=%zu is not a multiple of 2\n.", str.size());
+    srsasn_log_print(LOG_LEVEL_WARNING, "The provided hex string size=%zu is not a multiple of 2\n.", str.size());
   }
   char cstr[] = "\0\0\0";
   for (uint32_t i = 0; i < str.size(); i += 2) {

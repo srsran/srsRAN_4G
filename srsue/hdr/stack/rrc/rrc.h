@@ -67,18 +67,12 @@ namespace srsue {
 
 class cell_t
 {
- public:
-  bool is_valid() {
-    return phy_cell.earfcn != 0 && srslte_cell_isvalid(&phy_cell.cell);
-  }
-  bool equals(cell_t *x) {
-    return equals(x->phy_cell.earfcn, x->phy_cell.cell.id);
-  }
+public:
+  bool is_valid() { return phy_cell.earfcn != 0 && srslte_cell_isvalid(&phy_cell.cell); }
+  bool equals(cell_t* x) { return equals(x->phy_cell.earfcn, x->phy_cell.cell.id); }
   bool equals(uint32_t earfcn, uint32_t pci) { return earfcn == phy_cell.earfcn && pci == phy_cell.cell.id; }
   // NaN means an RSRP value has not yet been obtained. Keep then in the list and clean them if never updated
-  bool greater(cell_t *x) {
-    return rsrp > x->rsrp || std::isnan(rsrp);
-  }
+  bool greater(cell_t* x) { return rsrp > x->rsrp || std::isnan(rsrp); }
   bool plmn_equals(asn1::rrc::plmn_id_s plmn_id)
   {
     if (has_valid_sib1) {
@@ -92,7 +86,8 @@ class cell_t
     return false;
   }
 
-  uint32_t nof_plmns() {
+  uint32_t nof_plmns()
+  {
     if (has_valid_sib1) {
       return sib1.cell_access_related_info.plmn_id_list.size();
     } else {
@@ -109,7 +104,8 @@ class cell_t
     }
   }
 
-  uint16_t get_tac() {
+  uint16_t get_tac()
+  {
     if (has_valid_sib1) {
       return (uint16_t)sib1.cell_access_related_info.tac.to_number();
     } else {
@@ -117,16 +113,17 @@ class cell_t
     }
   }
 
-  cell_t() {
+  cell_t()
+  {
     phy_interface_rrc_lte::phy_cell_t tmp = {};
     cell_t(tmp, 0);
   }
   cell_t(phy_interface_rrc_lte::phy_cell_t phy_cell, float rsrp_)
   {
     gettimeofday(&last_update, nullptr);
-    this->has_valid_sib1 = false;
-    this->has_valid_sib2 = false;
-    this->has_valid_sib3 = false;
+    this->has_valid_sib1  = false;
+    this->has_valid_sib2  = false;
+    this->has_valid_sib3  = false;
     this->has_valid_sib13 = false;
     this->phy_cell        = phy_cell;
     rsrp                  = rsrp_;
@@ -136,13 +133,9 @@ class cell_t
     bzero(&sib13, sizeof(sib13));
   }
 
-  uint32_t get_earfcn() {
-    return phy_cell.earfcn;
-  }
+  uint32_t get_earfcn() { return phy_cell.earfcn; }
 
-  uint32_t get_pci() {
-    return phy_cell.cell.id;
-  }
+  uint32_t get_pci() { return phy_cell.cell.id; }
 
   void set_rsrp(float rsrp_)
   {
@@ -152,9 +145,7 @@ class cell_t
     gettimeofday(&last_update, nullptr);
   }
 
-  float get_rsrp() {
-    return rsrp;
-  }
+  float get_rsrp() { return rsrp; }
 
   void set_sib1(asn1::rrc::sib_type1_s* sib1_)
   {
@@ -178,7 +169,8 @@ class cell_t
   }
 
   // TODO: replace with TTI count
-  uint32_t timeout_secs(struct timeval now) {
+  uint32_t timeout_secs(struct timeval now)
+  {
     struct timeval t[3];
     memcpy(&t[2], &now, sizeof(struct timeval));
     memcpy(&t[1], &last_update, sizeof(struct timeval));
@@ -193,21 +185,14 @@ class cell_t
 
   uint32_t get_cell_id() { return (uint32_t)sib1.cell_access_related_info.cell_id.to_number(); }
 
-  bool has_sib1() {
-    return has_valid_sib1;
-  }
-  bool has_sib2() {
-    return has_valid_sib2;
-  }
-  bool has_sib3() {
-    return has_valid_sib3;
-  }
-  bool has_sib13() {
-    return has_valid_sib13;
-  }
+  bool has_sib1() { return has_valid_sib1; }
+  bool has_sib2() { return has_valid_sib2; }
+  bool has_sib3() { return has_valid_sib3; }
+  bool has_sib13() { return has_valid_sib13; }
 
-  bool has_sib(uint32_t index) {
-    switch(index) {
+  bool has_sib(uint32_t index)
+  {
+    switch (index) {
       case 0:
         return has_sib1();
       case 1:
@@ -220,14 +205,16 @@ class cell_t
     return false;
   }
 
-  void reset_sibs() {
-    has_valid_sib1 = false;
-    has_valid_sib2 = false;
-    has_valid_sib3 = false;
+  void reset_sibs()
+  {
+    has_valid_sib1  = false;
+    has_valid_sib2  = false;
+    has_valid_sib3  = false;
     has_valid_sib13 = false;
   }
 
-  uint16_t get_mcc() {
+  uint16_t get_mcc()
+  {
     uint16_t mcc;
     if (has_valid_sib1) {
       if (sib1.cell_access_related_info.plmn_id_list.size() > 0) {
@@ -239,11 +226,13 @@ class cell_t
     return 0;
   }
 
-  uint16_t get_mnc() {
+  uint16_t get_mnc()
+  {
     uint16_t mnc;
     if (has_valid_sib1) {
       if (sib1.cell_access_related_info.plmn_id_list.size() > 0) {
-        if (srslte::bytes_to_mnc(&sib1.cell_access_related_info.plmn_id_list[0].plmn_id.mnc[0], &mnc,
+        if (srslte::bytes_to_mnc(&sib1.cell_access_related_info.plmn_id_list[0].plmn_id.mnc[0],
+                                 &mnc,
                                  sib1.cell_access_related_info.plmn_id_list[0].plmn_id.mnc.size())) {
           return mnc;
         }
@@ -313,11 +302,11 @@ public:
   void log_rrc_message(const std::string source, const direction_t dir, const srslte::byte_buffer_t* pdu, const T& msg);
 
   std::string print_mbms();
-  bool mbms_service_start(uint32_t serv, uint32_t port);
+  bool        mbms_service_start(uint32_t serv, uint32_t port);
 
   // NAS interface
   void     write_sdu(srslte::unique_byte_buffer_t sdu);
-  void enable_capabilities();
+  void     enable_capabilities();
   uint16_t get_mcc();
   uint16_t get_mnc();
   bool     plmn_search() final;
@@ -356,7 +345,7 @@ private:
   typedef struct {
     enum { PDU, PCCH, PDU_MCH, RLF, PDU_BCCH_DLSCH, STOP } command;
     srslte::unique_byte_buffer_t pdu;
-    uint16_t lcid;
+    uint16_t                     lcid;
   } cmd_msg_t;
 
   bool                           running = false;
@@ -380,12 +369,12 @@ private:
   void send_ul_ccch_msg(const asn1::rrc::ul_ccch_msg_s& msg);
   void send_ul_dcch_msg(uint32_t lcid, const asn1::rrc::ul_dcch_msg_s& msg);
 
-  srslte::bit_buffer_t          bit_buf;
+  srslte::bit_buffer_t bit_buf;
 
-  rrc_state_t         state = RRC_STATE_IDLE, last_state = RRC_STATE_IDLE;
-  uint8_t             transaction_id = 0;
-  srslte::s_tmsi_t    ue_identity;
-  bool                ue_identity_configured = false;
+  rrc_state_t      state = RRC_STATE_IDLE, last_state = RRC_STATE_IDLE;
+  uint8_t          transaction_id = 0;
+  srslte::s_tmsi_t ue_identity;
+  bool             ue_identity_configured = false;
 
   bool drb_up = false;
 
@@ -396,12 +385,12 @@ private:
 
   uint32_t cell_clean_cnt = 0;
 
-  uint16_t                         ho_src_rnti = 0;
-  cell_t                           ho_src_cell = {};
-  srslte::phy_cfg_t                current_phy_cfg, previous_phy_cfg = {};
-  srslte::mac_cfg_t                current_mac_cfg, previous_mac_cfg = {};
-  bool                             pending_mob_reconf = false;
-  asn1::rrc::rrc_conn_recfg_s      mob_reconf         = {};
+  uint16_t                    ho_src_rnti = 0;
+  cell_t                      ho_src_cell = {};
+  srslte::phy_cfg_t           current_phy_cfg, previous_phy_cfg = {};
+  srslte::mac_cfg_t           current_mac_cfg, previous_mac_cfg = {};
+  bool                        pending_mob_reconf = false;
+  asn1::rrc::rrc_conn_recfg_s mob_reconf         = {};
 
   uint8_t k_rrc_enc[32] = {};
   uint8_t k_rrc_int[32] = {};
@@ -454,33 +443,33 @@ private:
   typedef std::unique_ptr<cell_t> unique_cell_t;
   std::vector<unique_cell_t>      neighbour_cells;
   unique_cell_t                   serving_cell = nullptr;
-  void set_serving_cell(uint32_t cell_idx);
+  void                            set_serving_cell(uint32_t cell_idx);
   void                            set_serving_cell(phy_interface_rrc_lte::phy_cell_t phy_cell);
 
-  unique_cell_t                  remove_neighbour_cell(const uint32_t earfcn, const uint32_t pci);
-  cell_t*                        get_neighbour_cell_handle(const uint32_t earfcn, const uint32_t pci);
-  bool                           has_neighbour_cell(const uint32_t earfcn, const uint32_t pci);
-  int  find_neighbour_cell(uint32_t earfcn, uint32_t pci);
-  bool add_neighbour_cell(uint32_t earfcn, uint32_t pci, float rsrp);
-  bool                           add_neighbour_cell(phy_interface_rrc_lte::phy_cell_t phy_cell, float rsrp);
-  bool                           add_neighbour_cell(unique_cell_t new_cell);
-  void                           sort_neighbour_cells();
-  void                           clean_neighbours();
-  void                           delete_last_neighbour();
-  std::string                    print_neighbour_cells();
+  unique_cell_t remove_neighbour_cell(const uint32_t earfcn, const uint32_t pci);
+  cell_t*       get_neighbour_cell_handle(const uint32_t earfcn, const uint32_t pci);
+  bool          has_neighbour_cell(const uint32_t earfcn, const uint32_t pci);
+  int           find_neighbour_cell(uint32_t earfcn, uint32_t pci);
+  bool          add_neighbour_cell(uint32_t earfcn, uint32_t pci, float rsrp);
+  bool          add_neighbour_cell(phy_interface_rrc_lte::phy_cell_t phy_cell, float rsrp);
+  bool          add_neighbour_cell(unique_cell_t new_cell);
+  void          sort_neighbour_cells();
+  void          clean_neighbours();
+  void          delete_last_neighbour();
+  std::string   print_neighbour_cells();
 
-  bool                     initiated                                      = false;
-  asn1::rrc::reest_cause_e m_reest_cause                                  = asn1::rrc::reest_cause_e::nulltype;
+  bool                     initiated                  = false;
+  asn1::rrc::reest_cause_e m_reest_cause              = asn1::rrc::reest_cause_e::nulltype;
   uint16_t                 m_reest_rnti               = 0;
-  uint16_t                 m_reest_source_pci                             = 0;
-  bool                     reestablishment_started                        = false;
+  uint16_t                 m_reest_source_pci         = 0;
+  bool                     reestablishment_started    = false;
   bool                     reestablishment_successful = false;
 
   // Measurements sub-class
   class rrc_meas
   {
   public:
-    void init(rrc *parent);
+    void init(rrc* parent);
     void reset();
     bool parse_meas_config(asn1::rrc::meas_cfg_s* meas_config);
     void new_phy_meas(uint32_t earfcn, uint32_t pci, float rsrp, float rsrq, uint32_t tti);
@@ -488,11 +477,11 @@ private:
     bool timer_expired(uint32_t timer_id);
     void ho_finish();
     void delete_report(uint32_t earfcn, uint32_t pci);
-  private:
 
+  private:
     const static int NOF_MEASUREMENTS = 3;
 
-    typedef enum {RSRP = 0, RSRQ = 1, BOTH = 2} quantity_t;
+    typedef enum { RSRP = 0, RSRQ = 1, BOTH = 2 } quantity_t;
 
     typedef struct {
       uint32_t pci;
@@ -507,13 +496,13 @@ private:
     } meas_obj_t;
 
     typedef struct {
-      uint32_t   interval;
-      uint32_t   max_cell;
-      uint32_t   amount;
-      quantity_t trigger_quantity;
-      quantity_t report_quantity;
+      uint32_t                 interval;
+      uint32_t                 max_cell;
+      uint32_t                 amount;
+      quantity_t               trigger_quantity;
+      quantity_t               report_quantity;
       asn1::rrc::eutra_event_s event;
-      enum {EVENT, PERIODIC} trigger_type;
+      enum { EVENT, PERIODIC } trigger_type;
     } report_cfg_t;
 
     typedef struct {
@@ -534,9 +523,9 @@ private:
       std::map<uint32_t, meas_value_t>    cell_values; // Value for each PCI in this object
     } meas_t;
 
-    std::map<uint32_t, meas_obj_t>    objects;
-    std::map<uint32_t, report_cfg_t>  reports_cfg;
-    std::map<uint32_t, meas_t>        active;
+    std::map<uint32_t, meas_obj_t>   objects;
+    std::map<uint32_t, report_cfg_t> reports_cfg;
+    std::map<uint32_t, meas_t>       active;
 
     rrc*                   parent = nullptr;
     srslte::log*           log_h  = nullptr;
@@ -551,16 +540,16 @@ private:
     bool  s_measure_enabled = false;
     float s_measure_value   = 0.0;
 
-    void stop_reports(meas_t *m);
-    void stop_reports_object(uint32_t object_id);
-    void remove_meas_object(uint32_t object_id);
-    void remove_meas_report(uint32_t report_id);
-    void remove_meas_id(uint32_t measId);
+    void    stop_reports(meas_t* m);
+    void    stop_reports_object(uint32_t object_id);
+    void    remove_meas_object(uint32_t object_id);
+    void    remove_meas_report(uint32_t report_id);
+    void    remove_meas_id(uint32_t measId);
     void    remove_meas_id(std::map<uint32_t, meas_t>::iterator it);
     void    calculate_triggers(uint32_t tti);
     void    update_phy();
-    void L3_filter(meas_value_t *value, float rsrp[NOF_MEASUREMENTS]);
-    bool find_earfcn_cell(uint32_t earfcn, uint32_t pci, meas_obj_t **object, int *cell_idx);
+    void    L3_filter(meas_value_t* value, float rsrp[NOF_MEASUREMENTS]);
+    bool    find_earfcn_cell(uint32_t earfcn, uint32_t pci, meas_obj_t** object, int* cell_idx);
     float   range_to_value(quantity_t quant, uint8_t range);
     uint8_t value_to_range(quantity_t quant, float value);
     bool    process_event(asn1::rrc::eutra_event_s* event,
@@ -577,15 +566,15 @@ private:
 
   // Measurement object from phy
   typedef struct {
-    float rsrp;
-    float rsrq;
+    float    rsrp;
+    float    rsrq;
     uint32_t tti;
     uint32_t earfcn;
     uint32_t pci;
   } phy_meas_t;
 
-  void process_phy_meas();
-  void process_new_phy_meas(phy_meas_t meas);
+  void                            process_phy_meas();
+  void                            process_new_phy_meas(phy_meas_t meas);
   srslte::block_queue<phy_meas_t> phy_meas_q;
 
   // Cell selection/reselection functions/variables
@@ -601,8 +590,8 @@ private:
 
   cell_resel_cfg_t cell_resel_cfg = {};
 
-  float         get_srxlev(float Qrxlevmeas);
-  float         get_squal(float Qqualmeas);
+  float get_srxlev(float Qrxlevmeas);
+  float get_squal(float Qqualmeas);
 
   /********************
    *  RRC Procedures
@@ -695,15 +684,15 @@ private:
   void handle_sib3();
   void handle_sib13();
 
-  void handle_con_setup(asn1::rrc::rrc_conn_setup_s* setup);
-  void handle_con_reest(asn1::rrc::rrc_conn_reest_s* setup);
-  void handle_rrc_con_reconfig(uint32_t lcid, asn1::rrc::rrc_conn_recfg_s* reconfig);
-  void handle_ue_capability_enquiry(const asn1::rrc::ue_cap_enquiry_s& enquiry);
-  void add_srb(asn1::rrc::srb_to_add_mod_s* srb_cnfg);
-  void add_drb(asn1::rrc::drb_to_add_mod_s* drb_cnfg);
-  void release_drb(uint32_t drb_id);
+  void     handle_con_setup(asn1::rrc::rrc_conn_setup_s* setup);
+  void     handle_con_reest(asn1::rrc::rrc_conn_reest_s* setup);
+  void     handle_rrc_con_reconfig(uint32_t lcid, asn1::rrc::rrc_conn_recfg_s* reconfig);
+  void     handle_ue_capability_enquiry(const asn1::rrc::ue_cap_enquiry_s& enquiry);
+  void     add_srb(asn1::rrc::srb_to_add_mod_s* srb_cnfg);
+  void     add_drb(asn1::rrc::drb_to_add_mod_s* drb_cnfg);
+  void     release_drb(uint32_t drb_id);
   uint32_t get_lcid_for_eps_bearer(const uint32_t& eps_bearer_id);
-  void add_mrb(uint32_t lcid, uint32_t port);
+  void     add_mrb(uint32_t lcid, uint32_t port);
 
   // Helpers for setting default values
   void set_phy_default_pucch_srs();
@@ -714,6 +703,5 @@ private:
 };
 
 } // namespace srsue
-
 
 #endif // SRSUE_RRC_H

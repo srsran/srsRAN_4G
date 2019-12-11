@@ -26,7 +26,7 @@ using namespace asn1;
 using namespace asn1::rrc;
 
 /*******************************************************************************
- *                               Helper Functions
+ *                              Logging Utilities
  ******************************************************************************/
 
 static void invalid_enum_number(int value, const char* name)

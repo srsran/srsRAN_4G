@@ -77,6 +77,8 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   gtpu_log.init("GTPU", logger);
   s1ap_log.init("S1AP", logger);
   stack_log.init("STACK", logger);
+  asn1_log.init("ASN1", logger);
+  rrc_asn1_log.init("ASN1::RRC", logger);
 
   // Init logs
   mac_log.set_level(args.log.mac_level);
@@ -85,7 +87,9 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   rrc_log.set_level(args.log.rrc_level);
   gtpu_log.set_level(args.log.gtpu_level);
   s1ap_log.set_level(args.log.s1ap_level);
-  stack_log.set_level("DEBUG");
+  stack_log.set_level(LOG_LEVEL_INFO);
+  asn1_log.set_level(LOG_LEVEL_INFO);
+  rrc_asn1_log.set_level(args.log.rrc_level);
 
   mac_log.set_hex_limit(args.log.mac_hex_limit);
   rlc_log.set_hex_limit(args.log.rlc_hex_limit);
@@ -94,6 +98,10 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   gtpu_log.set_hex_limit(args.log.gtpu_hex_limit);
   s1ap_log.set_hex_limit(args.log.s1ap_hex_limit);
   stack_log.set_hex_limit(128);
+  asn1_log.set_hex_limit(128);
+  asn1::srsasn_log_register_handler(&asn1_log);
+  rrc_asn1_log.set_hex_limit(args.log.rrc_hex_limit);
+  asn1::rrc::rrc_log_register_handler(&rrc_log);
 
   // Set up pcap and trace
   if (args.pcap.enable) {

@@ -22,6 +22,7 @@
 #ifndef SRSASN_COMMON_UTILS_H
 #define SRSASN_COMMON_UTILS_H
 
+#include "srslte/common/log.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -49,14 +50,14 @@ constexpr Integer ceil_frac(Integer n, Integer d)
         logging
 ************************/
 
-typedef enum { LOG_LEVEL_INFO, LOG_LEVEL_DEBUG, LOG_LEVEL_WARN, LOG_LEVEL_ERROR } srsasn_logger_level_t;
+using srsasn_logger_level_t = srslte::LOG_LEVEL_ENUM;
+using srslte::LOG_LEVEL_DEBUG;
+using srslte::LOG_LEVEL_ERROR;
+using srslte::LOG_LEVEL_INFO;
+using srslte::LOG_LEVEL_WARNING;
 
-typedef void (*log_handler_t)(srsasn_logger_level_t log_level, void* ctx, const char* str);
-
-void vlog_print(log_handler_t handler, void* ctx, srsasn_logger_level_t log_level, const char* format, va_list args);
-
-void srsasn_log_register_handler(void* ctx, log_handler_t handler);
-
+void vlog_print(srslte::log* log_ptr, srsasn_logger_level_t log_level, const char* format, va_list args);
+void srsasn_log_register_handler(srslte::log* ctx);
 void srsasn_log_print(srsasn_logger_level_t log_level, const char* format, ...);
 
 /************************
@@ -68,13 +69,13 @@ enum SRSASN_CODE { SRSASN_SUCCESS, SRSASN_ERROR_ENCODE_FAIL, SRSASN_ERROR_DECODE
 void log_error_code(SRSASN_CODE code, const char* filename, int line);
 
 #define HANDLE_CODE(ret)                                                                                               \
-  {                                                                                                                    \
+  do {                                                                                                                 \
     SRSASN_CODE macrocode = ((ret));                                                                                   \
     if (macrocode != SRSASN_SUCCESS) {                                                                                 \
       log_error_code(macrocode, __FILE__, __LINE__);                                                                   \
       return macrocode;                                                                                                \
     }                                                                                                                  \
-  }
+  } while (0)
 
 /************************
         bit_ref
@@ -235,7 +236,7 @@ public:
   void push_back(const T& elem)
   {
     if (current_size >= MAX_N) {
-      srsasn_log_print(LOG_LEVEL_ERROR, "Maximum size %d achieved for bounded_array.\n", MAX_N);
+      srsasn_log_print(srslte::LOG_LEVEL_ERROR, "Maximum size %d achieved for bounded_array.\n", MAX_N);
     }
     data_[current_size++] = elem;
   }
@@ -598,7 +599,8 @@ public:
   fixed_octstring<N, aligned>& from_string(const std::string& hexstr)
   {
     if (hexstr.size() != 2 * N) {
-      srsasn_log_print(LOG_LEVEL_ERROR, "The provided hex string size is not valid (%d!=2*%d).\n", hexstr.size(), N);
+      srsasn_log_print(
+          srslte::LOG_LEVEL_ERROR, "The provided hex string size is not valid (%d!=2*%d).\n", hexstr.size(), N);
     } else {
       string_to_octstring(&octets_[0], hexstr);
     }
@@ -734,7 +736,7 @@ public:
   {
     if (s.size() != N) {
       srsasn_log_print(
-          LOG_LEVEL_ERROR, "The provided string size=%d does not match the bit string size=%d\n", s.size(), N);
+          srslte::LOG_LEVEL_ERROR, "The provided string size=%d does not match the bit string size=%d\n", s.size(), N);
     }
     memset(&octets_[0], 0, nof_octets());
     for (uint32_t i = 0; i < N; ++i)
@@ -791,7 +793,7 @@ public:
   derived_t&  from_string(const std::string& s)
   {
     if (s.size() < derived_t::lb or s.size() > derived_t::ub) {
-      srsasn_log_print(LOG_LEVEL_ERROR,
+      srsasn_log_print(srslte::LOG_LEVEL_ERROR,
                        "The provided string size=%d is not withing the bounds [%d, %d]\n",
                        s.size(),
                        derived_t::lb,
@@ -908,41 +910,6 @@ private:
 };
 
 using dyn_bitstring = unbounded_bitstring<false, false>;
-
-// class dyn_bitstring
-//{
-// public:
-//  dyn_bitstring() = default;
-//  dyn_bitstring(uint32_t n_bits_);
-//  dyn_bitstring(const char* s);
-//
-//  bool operator==(const dyn_bitstring& other) const { return octets_ == other.octets_; }
-//  bool operator==(const char* other_str) const;
-//  bool get(uint32_t idx) const { return bitstring_get(&octets_[0], idx); }
-//  void set(uint32_t idx, bool value) { bitstring_set(&octets_[0], idx, value); }
-//
-//  void           resize(uint32_t new_size);
-//  uint32_t       length() const { return n_bits; }
-//  uint32_t       nof_octets() const { return (uint32_t)ceilf(length() / 8.0f); }
-//  std::string    to_string() const { return bitstring_to_string(&octets_[0], length()); }
-//  uint64_t       to_number() const { return bitstring_to_number(&octets_[0], length()); }
-//  dyn_bitstring& from_number(uint64_t val)
-//  {
-//    number_to_bitstring(&octets_[0], val, length());
-//    return *this;
-//  }
-//  const uint8_t* data() const { return &octets_[0]; }
-//  uint8_t*       data() { return &octets_[0]; }
-//
-//  SRSASN_CODE pack(bit_ref& bref, uint32_t lb = 0, uint32_t ub = 0) const;
-//  SRSASN_CODE pack(bit_ref& bref, bool ext, uint32_t lb = 0, uint32_t ub = 0) const;
-//  SRSASN_CODE unpack(bit_ref& bref, uint32_t lb = 0, uint32_t ub = 0);
-//  SRSASN_CODE unpack(bit_ref& bref, bool& ext, uint32_t lb = 0, uint32_t ub = 0);
-//
-// private:
-//  dyn_array<uint8_t> octets_;
-//  uint32_t           n_bits = 0;
-//};
 
 /*********************
   fixed sequence of
@@ -1348,6 +1315,50 @@ private:
   enum separator_t { COMMA, NEWLINE, NONE };
   separator_t sep;
 };
+
+/*******************
+  Test pack/unpack
+*******************/
+
+template <class Msg>
+int test_pack_unpack_consistency(const Msg& msg)
+{
+  uint8_t buf[2048], buf2[2048];
+  bzero(buf, sizeof(buf));
+  bzero(buf2, sizeof(buf2));
+  Msg           msg2;
+  asn1::bit_ref bref(&buf[0], sizeof(buf)), bref2(&buf[0], sizeof(buf)), bref3(&buf2[0], sizeof(buf2));
+
+  if (msg.pack(bref) != asn1::SRSASN_SUCCESS) {
+    log_error_code(SRSASN_ERROR_ENCODE_FAIL, __FILE__, __LINE__);
+    return -1;
+  }
+  if (msg2.unpack(bref2) != asn1::SRSASN_SUCCESS) {
+    log_error_code(SRSASN_ERROR_DECODE_FAIL, __FILE__, __LINE__);
+    return -1;
+  }
+  if (msg2.pack(bref3) != asn1::SRSASN_SUCCESS) {
+    log_error_code(SRSASN_ERROR_ENCODE_FAIL, __FILE__, __LINE__);
+    return -1;
+  }
+
+  // unpack and last pack done for the same number of bits
+  if (bref3.distance() != bref2.distance()) {
+    srsasn_log_print(LOG_LEVEL_ERROR, "[%s][%d] .\n", __FILE__, __LINE__);
+    return -1;
+  }
+
+  // ensure packed messages are the same
+  if (bref3.distance() != bref.distance()) {
+    srsasn_log_print(LOG_LEVEL_ERROR, "[%s][%d] .\n", __FILE__, __LINE__);
+    return -1;
+  }
+  if (memcmp(buf, buf2, bref.distance_bytes()) != 0) {
+    srsasn_log_print(LOG_LEVEL_ERROR, "[%s][%d] .\n", __FILE__, __LINE__);
+    return -1;
+  }
+  return SRSASN_SUCCESS;
+}
 
 } // namespace asn1
 
