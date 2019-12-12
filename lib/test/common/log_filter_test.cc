@@ -22,9 +22,10 @@
 #define NTHREADS 100
 #define NMSGS    100
 
-#include <stdio.h>
 #include "srslte/common/log_filter.h"
 #include "srslte/common/logger_file.h"
+#include "srslte/common/test_common.h"
+#include <stdio.h>
 
 using namespace srslte;
 
@@ -56,8 +57,9 @@ void* thread_loop_hex(void *a) {
   char    buf[100];
   uint8_t hex[100];
 
-  for(int i=0;i<100;i++)
+  for (int i = 0; i < 100; i++) {
     hex[i] = i & 0xFF;
+  }
   sprintf(buf, "LAYER%d", args->thread_id);
   log_filter filter(buf, args->l);
   filter.set_level(LOG_LEVEL_DEBUG);
@@ -92,7 +94,6 @@ bool read(std::string filename) {
   bool pass = true;
   bool written[NTHREADS][NMSGS];
   int thread, msg;
-  int r;
 
   for(int i=0;i<NTHREADS;i++) {
     for(int j=0;j<NMSGS;j++) {
@@ -114,17 +115,51 @@ bool read(std::string filename) {
   return pass;
 }
 
-int main(int argc, char **argv) {
+int basic_hex_test()
+{
+  logger_stdout l;
+
+  log_filter filter("layer", &l);
+  filter.set_level(LOG_LEVEL_DEBUG);
+  filter.set_hex_limit(500);
+
+  const uint32_t hex_len = 497;
+
+  uint8_t hex[hex_len];
+  for (uint32_t i = 0; i < hex_len; i++) {
+    hex[i] = i & 0xFF;
+  }
+
+  filter.debug_hex(hex, hex_len, "This is the long hex msg (%d B)\n", hex_len);
+  filter.debug("This is a message after the long hex msg that should not be cut\n");
+
+  return SRSLTE_SUCCESS;
+}
+
+int full_test()
+{
   bool result;
   std::string f("log.txt");
   write(f);
-//  result = read(f);
-//  remove(f.c_str());
-//  if(result) {
-//    printf("Passed\n");
-//    exit(0);
-//  }else{
-//    printf("Failed\n;");
-//    exit(1);
-//  }
+#if 0
+  result = read(f);
+  remove(f.c_str());
+  if(result) {
+    printf("Passed\n");
+    exit(0);
+  }else{
+    printf("Failed\n;");
+   exit(1);
+  }
+#endif
+
+  return SRSLTE_SUCCESS;
+}
+
+int main(int argc, char** argv)
+{
+  TESTASSERT(basic_hex_test() == SRSLTE_SUCCESS);
+  TESTASSERT(full_test() == SRSLTE_SUCCESS);
+
+  return SRSLTE_SUCCESS;
 }
