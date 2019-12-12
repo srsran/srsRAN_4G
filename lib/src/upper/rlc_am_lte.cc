@@ -1605,7 +1605,7 @@ int rlc_am_lte::rlc_am_lte_rx::get_status_pdu(rlc_status_pdu_t* status, const ui
     // make sure we don't exceed grant size
     if (rlc_am_packed_length(status) > max_pdu_size) {
       log->debug("Status PDU too big (%d > %d)\n", rlc_am_packed_length(status), max_pdu_size);
-      if (status->N_nack >= 1) {
+      if (status->N_nack >= 1 && status->N_nack < RLC_AM_WINDOW_SIZE) {
         log->debug("Removing last NACK SN=%d\n", status->nacks[status->N_nack].nack_sn);
         status->N_nack--;
         // make sure we don't have the current ACK_SN in the NACK list
