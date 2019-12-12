@@ -38,9 +38,9 @@ enum class proc_outcome_t { repeat, yield, success, error };
 namespace proc_detail {
 // used by proc_t<T> to call T::then() method only if it exists
 template <typename T, typename ProcResult>
-auto optional_then(T* obj, const ProcResult& result) -> decltype(obj->then(result))
+auto optional_then(T* obj, const ProcResult* result) -> decltype(obj->then(*result))
 {
-  obj->then(result);
+  obj->then(*result);
 }
 inline auto optional_then(...) -> void
 {
@@ -356,7 +356,7 @@ protected:
       future_result.reset();
     }
     // call T::then() if it exists
-    proc_detail::optional_then(proc_ptr.get(), result);
+    proc_detail::optional_then(proc_ptr.get(), &result);
     // signal continuations
     complete_callbacks(result);
     // back to inactive
