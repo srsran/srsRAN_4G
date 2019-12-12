@@ -59,9 +59,8 @@ uint16_t compute_mac_i(uint16_t                            crnti,
                        uint8_t*                            k_rrc_int)
 {
   // Compute shortMAC-I
-  uint8_t varShortMAC_packed[16];
-  bzero(varShortMAC_packed, 16);
-  uint8_t mac_key[4];
+  uint8_t varShortMAC_packed[16] = {};
+  uint8_t mac_key[4]             = {};
 
   // ASN.1 encode VarShortMAC-Input
   asn1::rrc::var_short_mac_input_s var_short_mac;
