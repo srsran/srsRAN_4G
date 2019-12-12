@@ -193,7 +193,7 @@ int srslte_ra_nbiot_get_npusch_tbs(uint32_t i_tbs, uint32_t i_ru)
   }
 }
 
-int srslte_ra_n_rep_sib1_nb_idx(srslte_mib_nb_t* mib)
+uint32_t srslte_ra_n_rep_sib1_nb_idx(srslte_mib_nb_t* mib)
 {
   switch (srslte_ra_n_rep_sib1_nb(mib)) {
     case 4:
@@ -203,7 +203,7 @@ int srslte_ra_n_rep_sib1_nb_idx(srslte_mib_nb_t* mib)
     case 16:
       return 2;
     default:
-      return SRSLTE_ERROR;
+      return 0;
   }
 }
 
