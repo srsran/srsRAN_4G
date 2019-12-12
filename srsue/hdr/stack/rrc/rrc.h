@@ -498,7 +498,7 @@ private:
     typedef struct {
       uint32_t                 interval;
       uint32_t                 max_cell;
-      uint32_t                 amount;
+      int32_t                  amount;
       quantity_t               trigger_quantity;
       quantity_t               report_quantity;
       asn1::rrc::eutra_event_s event;

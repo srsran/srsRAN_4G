@@ -2734,10 +2734,10 @@ void rrc::set_rrc_default()
 
 void rrc::rrc_meas::init(rrc* parent_)
 {
-  this->parent      = parent_;
-  this->log_h       = parent_->rrc_log;
-  this->phy         = parent_->phy;
-  this->timers      = parent_->timers;
+  parent            = parent_;
+  log_h             = parent_->rrc_log;
+  phy               = parent_->phy;
+  timers            = parent_->timers;
   s_measure_enabled = false;
   reset();
 }
@@ -2902,7 +2902,8 @@ void rrc::rrc_meas::generate_report(uint32_t meas_id)
   m->nof_reports_sent++;
   m->periodic_timer.stop();
 
-  if (m->nof_reports_sent < cfg->amount) {
+  // re-arm timer if needed (also includes case where amount is infinity)
+  if (m->nof_reports_sent < static_cast<uint32_t>(cfg->amount)) {
     m->periodic_timer.run();
   } else {
     if (cfg->trigger_type == report_cfg_t::PERIODIC) {
@@ -2969,12 +2970,11 @@ void rrc::rrc_meas::calculate_triggers(uint32_t tti)
         Ocp = serving_object->found_cells[serving_cell_idx].q_offset;
       }
     } else {
-      log_h->warning("Can't find current eafcn=%d, pci=%d in objects list. Using Ofp=0, Ocp=0\n",
-                     phy->get_current_earfcn(), phy->get_current_pci());
+      log_h->warning("Can't find current earfcn=%d, pci=%d in objects list. Using Ofp=0, Ocp=0\n",
+                     phy->get_current_earfcn(),
+                     phy->get_current_pci());
     }
   }
-
-
 
   for (std::map<uint32_t, meas_t>::iterator m = active.begin(); m != active.end(); ++m) {
     report_cfg_t *cfg = &reports_cfg[m->second.report_id];
@@ -2987,10 +2987,8 @@ void rrc::rrc_meas::calculate_triggers(uint32_t tti)
     bool gen_report = false;
 
     if (cfg->trigger_type == report_cfg_t::EVENT) {
-
       // A1 & A2 are for serving cell only
       if (event_id.type().value < eutra_event_s::event_id_c_::types::event_a3) {
-
         bool enter_condition;
         bool exit_condition;
         if (event_id.type() == eutra_event_s::event_id_c_::types::event_a1) {
@@ -3105,7 +3103,7 @@ bool rrc::rrc_meas::timer_expired(uint32_t timer_id)
 {
   for (std::map<uint32_t, meas_t>::iterator iter = active.begin(); iter != active.end(); ++iter) {
     if (iter->second.periodic_timer.id() == timer_id) {
-      log_h->info("Generate report MeasId=%d, from timerId=%d\n", iter->first, timer_id);
+      log_h->info("Periodic report timer expired for MeasId=%d (timer_id=%d)\n", iter->first, timer_id);
       generate_report(iter->first);
       return true;
     }
@@ -3247,7 +3245,7 @@ bool rrc::rrc_meas::parse_meas_config(meas_cfg_s* cfg)
         if (dst_rep->trigger_type == report_cfg_t::EVENT) {
           dst_rep->event = src_rep->trigger_type.event();
         }
-        dst_rep->amount           = (uint8_t)src_rep->report_amount.to_number();
+        dst_rep->amount           = src_rep->report_amount.to_number();
         dst_rep->interval         = src_rep->report_interv.to_number();
         dst_rep->max_cell         = src_rep->max_report_cells;
         dst_rep->trigger_quantity = (quantity_t)src_rep->trigger_quant.value;
@@ -3317,6 +3315,9 @@ bool rrc::rrc_meas::parse_meas_config(meas_cfg_s* cfg)
       }
       active[meas_id->meas_id].object_id = meas_id->meas_obj_id;
       active[meas_id->meas_id].report_id = meas_id->report_cfg_id;
+      active[meas_id->meas_id].periodic_timer.set(reports_cfg[meas_id->report_cfg_id].interval,
+                                                  [this](uint32_t tid) { timer_expired(tid); });
+
       log_h->info("MEAS: %s measId=%d, measObjectId=%d, reportConfigId=%d, timer_id=%u, nof_values=%zd\n",
                   is_new ? "Added" : "Updated",
                   meas_id->meas_id,
