@@ -2942,7 +2942,7 @@ bool rrc::rrc_meas::process_event(eutra_event_s* event, uint32_t tti, bool enter
     if (!cell->timer_enter_triggered) {
       cell->timer_enter_triggered = true;
       cell->enter_tti     = tti;
-    } else if (srslte_tti_interval(tti, cell->enter_tti) >= event->time_to_trigger) {
+    } else if (srslte_tti_interval(tti, cell->enter_tti) >= event->time_to_trigger.to_number()) {
       m->triggered        = true;
       cell->triggered     = true;
       m->nof_reports_sent = 0;
@@ -2952,7 +2952,7 @@ bool rrc::rrc_meas::process_event(eutra_event_s* event, uint32_t tti, bool enter
     if (!cell->timer_exit_triggered) {
       cell->timer_exit_triggered = true;
       cell->exit_tti             = tti;
-    } else if (srslte_tti_interval(tti, cell->exit_tti) >= event->time_to_trigger) {
+    } else if (srslte_tti_interval(tti, cell->exit_tti) >= event->time_to_trigger.to_number()) {
       m->triggered    = false;
       cell->triggered = false;
       m->periodic_timer.stop();
