@@ -2723,6 +2723,10 @@ void rrc::set_phy_default_pucch_srs()
 {
   rrc_log->info("Setting default PHY config dedicated\n");
   set_phy_config_dedicated_default();
+
+  // SR configuration affects to MAC SR too
+  current_mac_cfg.sr_cfg.reset();
+  mac->set_config(current_mac_cfg);
 }
 
 void rrc::set_mac_default() {

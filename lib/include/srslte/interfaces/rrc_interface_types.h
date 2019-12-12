@@ -480,6 +480,7 @@ struct mac_cfg_t {
   void set_defaults()
   {
     rach_cfg.reset();
+    sr_cfg.reset();
     set_mac_main_cfg_default();
   }
 
@@ -487,7 +488,6 @@ struct mac_cfg_t {
   {
     bsr_cfg.reset();
     phr_cfg.reset();
-    sr_cfg.reset();
     harq_cfg.reset();
     time_alignment_timer = -1;
   }
@@ -497,7 +497,7 @@ struct mac_cfg_t {
   sr_cfg_t      sr_cfg;
   rach_cfg_t    rach_cfg;
   ul_harq_cfg_t harq_cfg;
-  int           time_alignment_timer;
+  int           time_alignment_timer = -1;
 };
 
 /***************************

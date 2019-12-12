@@ -176,6 +176,8 @@ public:
 
     void set(uint32_t duration_) { impl()->set(duration_); }
 
+    bool is_set() const { return (impl()->duration != 0); }
+
     bool is_running() const { return impl()->is_running(); }
 
     bool is_expired() const { return impl()->is_expired(); }
