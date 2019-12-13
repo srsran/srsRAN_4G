@@ -131,7 +131,7 @@ static int _rf_zmq_tx_baseband(rf_zmq_tx_t* q, cf_t* buffer, uint32_t nsamples)
     }
 
     // convert samples if necessary
-    void *buf          = buffer;
+    void*    buf       = (buffer) ? buffer : q->zeros;
     uint32_t sample_sz = sizeof(cf_t);
 
     if (q->sample_format == ZMQ_TYPE_SC16) {
