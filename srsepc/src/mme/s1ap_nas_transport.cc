@@ -19,7 +19,6 @@
  *
  */
 
-#include "srsepc/hdr/mme/mme.h"
 #include "srsepc/hdr/mme/s1ap_nas_transport.h"
 #include "srsepc/hdr/mme/mme.h"
 #include "srsepc/hdr/mme/s1ap.h"
@@ -70,7 +69,7 @@ void s1ap_nas_transport::init()
   m_s1ap_log = m_s1ap->m_s1ap_log;
   m_pool     = srslte::byte_buffer_pool::get_instance();
 
-  //Init NAS args
+  // Init NAS args
   m_nas_init.mcc          = m_s1ap->m_s1ap_args.mcc;
   m_nas_init.mnc          = m_s1ap->m_s1ap_args.mnc;
   m_nas_init.mme_code     = m_s1ap->m_s1ap_args.mme_code;
@@ -121,8 +120,8 @@ bool s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUE
     case LIBLTE_MME_SECURITY_HDR_TYPE_SERVICE_REQUEST:
       m_s1ap_log->console("Received Initial UE message -- Service Request\n");
       m_s1ap_log->info("Received Initial UE message -- Service Request\n");
-      err = nas::handle_service_request(m_tmsi, enb_ue_s1ap_id, enb_sri, nas_msg, m_nas_init, m_nas_if,
-                                        m_s1ap->m_nas_log);
+      err = nas::handle_service_request(
+          m_tmsi, enb_ue_s1ap_id, enb_sri, nas_msg, m_nas_init, m_nas_if, m_s1ap->m_nas_log);
       break;
     case LIBLTE_MME_MSG_TYPE_DETACH_REQUEST:
       m_s1ap_log->console("Received Initial UE message -- Detach Request\n");
@@ -133,8 +132,8 @@ bool s1ap_nas_transport::handle_initial_ue_message(LIBLTE_S1AP_MESSAGE_INITIALUE
     case LIBLTE_MME_MSG_TYPE_TRACKING_AREA_UPDATE_REQUEST:
       m_s1ap_log->console("Received Initial UE message -- Tracking Area Update Request\n");
       m_s1ap_log->info("Received Initial UE message -- Tracking Area Update Request\n");
-      err = nas::handle_tracking_area_update_request(m_tmsi, enb_ue_s1ap_id, enb_sri, nas_msg, m_nas_init, m_nas_if,
-                                                     m_s1ap->m_nas_log);
+      err = nas::handle_tracking_area_update_request(
+          m_tmsi, enb_ue_s1ap_id, enb_sri, nas_msg, m_nas_init, m_nas_if, m_s1ap->m_nas_log);
       break;
     default:
       m_s1ap_log->info("Unhandled Initial UE Message 0x%x \n", msg_type);
@@ -242,7 +241,8 @@ bool s1ap_nas_transport::handle_uplink_nas_transport(LIBLTE_S1AP_MESSAGE_UPLINKN
   // - DETACH ACCEPT;
   // - TRACKING AREA UPDATE REQUEST.
   m_s1ap_log->info("UL NAS: sec_hdr_type: %s, mac_vaild: %s, msg_encrypted: %s\n",
-                   liblte_nas_sec_hdr_type_to_string(sec_hdr_type), mac_valid == true ? "yes" : "no",
+                   liblte_nas_sec_hdr_type_to_string(sec_hdr_type),
+                   mac_valid == true ? "yes" : "no",
                    msg_encrypted == true ? "yes" : "no");
 
   switch (msg_type) {

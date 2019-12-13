@@ -79,10 +79,10 @@ void parse_args(int argc, char **argv) {
       matlab_file_name = argv[optind];
       break;
     case 'c':
-      cell.id = atoi(argv[optind]);
+      cell.id = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'f':
-      nof_ctrl_symbols = atoi(argv[optind]);
+      nof_ctrl_symbols = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'g':
       if (!strcmp(argv[optind], "1/6")) {
@@ -101,10 +101,10 @@ void parse_args(int argc, char **argv) {
       cell.phich_length = SRSLTE_PHICH_EXT;
       break;
     case 'n':
-      cell.nof_prb = atoi(argv[optind]);
+      cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'p':
-      cell.nof_ports = atoi(argv[optind]);
+      cell.nof_ports = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'v':
       srslte_verbose++;

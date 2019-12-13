@@ -22,6 +22,7 @@
 #include "srsenb/hdr/enb.h"
 #include "srsenb/hdr/radio/enb_radio_multi.h"
 #include "srsenb/hdr/stack/enb_stack_lte.h"
+#include "srsenb/src/enb_cfg_parser.h"
 #include "srslte/build_info.h"
 #include <boost/algorithm/string.hpp>
 #include <iostream>
@@ -39,7 +40,7 @@ enb* enb::get_instance()
     instance = new enb();
   }
   pthread_mutex_unlock(&enb_instance_mutex);
-  return(instance);
+  return (instance);
 }
 void enb::cleanup()
 {
@@ -61,10 +62,7 @@ enb::enb() : started(false), pool(srslte::byte_buffer_pool::get_instance(ENB_POO
   srslte_dft_load();
 }
 
-enb::~enb()
-{
-
-}
+enb::~enb() {}
 
 int enb::init(const all_args_t& args_)
 {
@@ -164,112 +162,16 @@ int enb::parse_args(const all_args_t& args_)
 {
   // set member variable
   args = args_;
-
-  // Parse config files
-  srslte_cell_t cell_cfg = {};
-
-  if (parse_cell_cfg(&args, &cell_cfg)) {
-    fprintf(stderr, "Error parsing Cell configuration\n");
-    return SRSLTE_ERROR;
-  }
-  if (parse_sibs(&args, &rrc_cfg, &phy_cfg)) {
-    fprintf(stderr, "Error parsing SIB configuration\n");
-    return SRSLTE_ERROR;
-  }
-  if (parse_rr(&args, &rrc_cfg)) {
-    fprintf(stderr, "Error parsing Radio Resources configuration\n");
-    return SRSLTE_ERROR;
-  }
-  if (parse_drb(&args, &rrc_cfg)) {
-    fprintf(stderr, "Error parsing DRB configuration\n");
-    return SRSLTE_ERROR;
-  }
-
-  if (args.enb.transmission_mode == 1) {
-    phy_cfg.pdsch_cnfg.p_b = 0; // Default TM1
-    rrc_cfg.sibs[1].sib2().rr_cfg_common.pdsch_cfg_common.p_b = 0;
-  } else {
-    phy_cfg.pdsch_cnfg.p_b = 1; // Default TM2,3,4
-    rrc_cfg.sibs[1].sib2().rr_cfg_common.pdsch_cfg_common.p_b = 1;
-  }
-
-  rrc_cfg.inactivity_timeout_ms = args.general.rrc_inactivity_timer;
-  rrc_cfg.enable_mbsfn          = args.stack.embms.enable;
-
-  // Check number of control symbols
-  if (cell_cfg.nof_prb < 50 && args.stack.mac.sched.nof_ctrl_symbols != 3) {
-    args.stack.mac.sched.nof_ctrl_symbols = 3;
-    fprintf(stdout,
-            "Setting number of control symbols to %d for %d PRB cell.\n",
-            args.stack.mac.sched.nof_ctrl_symbols,
-            cell_cfg.nof_prb);
-  }
-
-  // Parse EEA preference list
-  std::vector<std::string> eea_pref_list;
-  boost::split(eea_pref_list, args.general.eea_pref_list, boost::is_any_of(","));
-  int i = 0;
-  for (auto it = eea_pref_list.begin(); it != eea_pref_list.end() && i < srslte::CIPHERING_ALGORITHM_ID_N_ITEMS; it++) {
-    boost::trim_left(*it);
-    if ((*it) == "EEA0") {
-      rrc_cfg.eea_preference_list[i] = srslte::CIPHERING_ALGORITHM_ID_EEA0;
-      i++;
-    } else if ((*it) == "EEA1") {
-      rrc_cfg.eea_preference_list[i] = srslte::CIPHERING_ALGORITHM_ID_128_EEA1;
-      i++;
-    } else if ((*it) == "EEA2") {
-      rrc_cfg.eea_preference_list[i] = srslte::CIPHERING_ALGORITHM_ID_128_EEA2;
-      i++;
-    } else if ((*it) == "EEA3") {
-      rrc_cfg.eea_preference_list[i] = srslte::CIPHERING_ALGORITHM_ID_128_EEA3;
-      i++;
-    } else {
-      fprintf(stderr, "Failed to parse EEA prefence list %s \n", args.general.eea_pref_list.c_str());
-      return SRSLTE_ERROR;
-    }
-  }
-
-  // Parse EIA preference list
-  std::vector<std::string> eia_pref_list;
-  boost::split(eia_pref_list, args.general.eia_pref_list, boost::is_any_of(","));
-  i = 0;
-  for (auto it = eia_pref_list.begin(); it != eia_pref_list.end() && i < srslte::INTEGRITY_ALGORITHM_ID_N_ITEMS; it++) {
-    boost::trim_left(*it);
-    if ((*it) == "EIA0") {
-      rrc_cfg.eia_preference_list[i] = srslte::INTEGRITY_ALGORITHM_ID_EIA0;
-      i++;
-    } else if ((*it) == "EIA1") {
-      rrc_cfg.eia_preference_list[i] = srslte::INTEGRITY_ALGORITHM_ID_128_EIA1;
-      i++;
-    } else if ((*it) == "EIA2") {
-      rrc_cfg.eia_preference_list[i] = srslte::INTEGRITY_ALGORITHM_ID_128_EIA2;
-      i++;
-    } else if ((*it) == "EIA3") {
-      rrc_cfg.eia_preference_list[i] = srslte::INTEGRITY_ALGORITHM_ID_128_EIA3;
-      i++;
-    } else {
-      fprintf(stderr, "Failed to parse EIA prefence list %s \n", args.general.eia_pref_list.c_str());
-      return SRSLTE_ERROR;
-    }
-  }
-
-  // Copy cell struct to rrc and phy
-  rrc_cfg.cell = cell_cfg;
-  phy_cfg.cell = cell_cfg;
-
-  // Patch certain args that are not exposed yet
-  args.rf.nof_radios      = 1;
-  args.rf.nof_rf_channels = 1;
-  args.rf.nof_rx_ant      = args.enb.nof_ports;
-
-  return SRSLTE_SUCCESS;
+  return enb_conf_sections::parse_cfg_files(&args, &rrc_cfg, &phy_cfg);
 }
 
-void enb::start_plot() {
+void enb::start_plot()
+{
   phy->start_plot();
 }
 
-void enb::print_pool() {
+void enb::print_pool()
+{
   srslte::byte_buffer_pool::get_instance()->print_all_buffers();
 }
 
@@ -285,17 +187,17 @@ bool enb::get_metrics(enb_metrics_t* m)
 srslte::LOG_LEVEL_ENUM enb::level(std::string l)
 {
   boost::to_upper(l);
-  if("NONE" == l){
+  if ("NONE" == l) {
     return srslte::LOG_LEVEL_NONE;
-  }else if("ERROR" == l){
+  } else if ("ERROR" == l) {
     return srslte::LOG_LEVEL_ERROR;
-  }else if("WARNING" == l){
+  } else if ("WARNING" == l) {
     return srslte::LOG_LEVEL_WARNING;
-  }else if("INFO" == l){
+  } else if ("INFO" == l) {
     return srslte::LOG_LEVEL_INFO;
-  }else if("DEBUG" == l){
+  } else if ("DEBUG" == l) {
     return srslte::LOG_LEVEL_DEBUG;
-  }else{
+  } else {
     return srslte::LOG_LEVEL_NONE;
   }
 }

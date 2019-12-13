@@ -28,6 +28,7 @@
 #include "srslte/common/thread_pool.h"
 #include "srslte/common/threads.h"
 #include "srslte/radio/radio.h"
+#include "srslte/phy/channel/channel.h"
 
 namespace srsenb {
     
@@ -40,27 +41,27 @@ public:
   bool init(srslte::radio_interface_phy* radio_handler,
             srslte::thread_pool*         _workers_pool,
             phy_common*                  worker_com,
-            prach_worker*                prach,
+            prach_worker_pool*           prach_,
             srslte::log*                 log_h,
             uint32_t                     prio);
   void stop();
     
 private:
-  void run_thread();
+  void run_thread() final;
 
-  srslte::radio_interface_phy* radio_h;
-  srslte::log          *log_h;
-  srslte::thread_pool  *workers_pool;
-  prach_worker*         prach;
-  phy_common*           worker_com;
+  srslte::radio_interface_phy* radio_h      = nullptr;
+  srslte::log*                 log_h        = nullptr;
+  srslte::thread_pool*         workers_pool = nullptr;
+  prach_worker_pool*           prach        = nullptr;
+  phy_common*                  worker_com   = nullptr;
+  srslte::channel_ptr          ul_channel   = nullptr;
 
-  // Main system TTI counter   
-  uint32_t tti;
+  // Main system TTI counter
+  uint32_t tti = 0;
 
-  uint32_t tx_worker_cnt;
-  uint32_t nof_workers;
-  
-  bool running; 
+  uint32_t tx_worker_cnt = 0;
+  uint32_t nof_workers   = 0;
+  bool     running       = false;
 };
 
 } // namespace srsenb

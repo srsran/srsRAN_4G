@@ -255,18 +255,18 @@ bool s1ap::handle_initiating_message(LIBLTE_S1AP_INITIATINGMESSAGE_STRUCT* msg, 
       break;
     case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_INITIALUEMESSAGE:
       m_s1ap_log->info("Received Initial UE Message.\n");
-      m_s1ap_nas_transport->handle_initial_ue_message(&msg->choice.InitialUEMessage, enb_sri, reply_buffer,
-                                                      &reply_flag);
+      m_s1ap_nas_transport->handle_initial_ue_message(
+          &msg->choice.InitialUEMessage, enb_sri, reply_buffer, &reply_flag);
       break;
     case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_UPLINKNASTRANSPORT:
       m_s1ap_log->info("Received Uplink NAS Transport Message.\n");
-      m_s1ap_nas_transport->handle_uplink_nas_transport(&msg->choice.UplinkNASTransport, enb_sri, reply_buffer,
-                                                        &reply_flag);
+      m_s1ap_nas_transport->handle_uplink_nas_transport(
+          &msg->choice.UplinkNASTransport, enb_sri, reply_buffer, &reply_flag);
       break;
     case LIBLTE_S1AP_INITIATINGMESSAGE_CHOICE_UECONTEXTRELEASEREQUEST:
       m_s1ap_log->info("Received UE Context Release Request Message.\n");
-      m_s1ap_ctx_mngmt_proc->handle_ue_context_release_request(&msg->choice.UEContextReleaseRequest, enb_sri,
-                                                               reply_buffer, &reply_flag);
+      m_s1ap_ctx_mngmt_proc->handle_ue_context_release_request(
+          &msg->choice.UEContextReleaseRequest, enb_sri, reply_buffer, &reply_flag);
       break;
     default:
       m_s1ap_log->error("Unhandled S1AP intiating message: %s\n",
@@ -348,7 +348,7 @@ void s1ap::delete_enb_ctx(int32_t assoc_id)
   return;
 }
 
-//UE Context Management
+// UE Context Management
 bool s1ap::add_nas_ctx_to_imsi_map(nas* nas_ctx)
 {
   std::map<uint64_t, nas*>::iterator ctx_it = m_imsi_to_nas_ctx.find(nas_ctx->m_emm_ctx.imsi);
@@ -441,8 +441,8 @@ void s1ap::release_ues_ecm_ctx_in_enb(int32_t enb_assoc)
       emm_ctx_t*                         emm_ctx = &nas_ctx->second->m_emm_ctx;
       ecm_ctx_t*                         ecm_ctx = &nas_ctx->second->m_ecm_ctx;
 
-      m_s1ap_log->info("Releasing UE context. IMSI: %015" PRIu64 ", UE-MME S1AP Id: %d\n", emm_ctx->imsi,
-                       ecm_ctx->mme_ue_s1ap_id);
+      m_s1ap_log->info(
+          "Releasing UE context. IMSI: %015" PRIu64 ", UE-MME S1AP Id: %d\n", emm_ctx->imsi, ecm_ctx->mme_ue_s1ap_id);
       if (emm_ctx->state == EMM_STATE_REGISTERED) {
         m_mme_gtpc->send_delete_session_request(emm_ctx->imsi);
         emm_ctx->state = EMM_STATE_DEREGISTERED;
@@ -509,7 +509,7 @@ bool s1ap::delete_ue_ctx(uint64_t imsi)
   return true;
 }
 
-//UE Bearer Managment
+// UE Bearer Managment
 void s1ap::activate_eps_bearer(uint64_t imsi, uint8_t ebi)
 {
   std::map<uint64_t, nas*>::iterator ue_ctx_it = m_imsi_to_nas_ctx.find(imsi);
@@ -530,10 +530,14 @@ void s1ap::activate_eps_bearer(uint64_t imsi, uint8_t ebi)
   if (esm_ctx->state != ERAB_CTX_SETUP) {
     m_s1ap_log->error(
         "Could not be activate EPS Bearer, bearer in wrong state: MME S1AP Id %d, EPS Bearer id %d, state %d\n",
-        mme_ue_s1ap_id, ebi, esm_ctx->state);
+        mme_ue_s1ap_id,
+        ebi,
+        esm_ctx->state);
     m_s1ap_log->console(
         "Could not be activate EPS Bearer, bearer in wrong state: MME S1AP Id %d, EPS Bearer id %d, state %d\n",
-        mme_ue_s1ap_id, ebi, esm_ctx->state);
+        mme_ue_s1ap_id,
+        ebi,
+        esm_ctx->state);
     return;
   }
 
@@ -579,8 +583,8 @@ void s1ap::print_enb_ctx_info(const std::string& prefix, const enb_ctx_t& enb_ct
   srslte::mcc_to_string(enb_ctx.mcc, &mcc_str);
   srslte::mnc_to_string(enb_ctx.mnc, &mnc_str);
   m_s1ap_log->info("%s - MCC:%s, MNC:%s, PLMN: %d\n", prefix.c_str(), mcc_str.c_str(), mnc_str.c_str(), enb_ctx.plmn);
-  m_s1ap_log->console("%s - MCC:%s, MNC:%s, PLMN: %d\n", prefix.c_str(), mcc_str.c_str(), mnc_str.c_str(),
-                      enb_ctx.plmn);
+  m_s1ap_log->console(
+      "%s - MCC:%s, MNC:%s, PLMN: %d\n", prefix.c_str(), mcc_str.c_str(), mnc_str.c_str(), enb_ctx.plmn);
   for (int i = 0; i < enb_ctx.nof_supported_ta; i++) {
     for (int j = 0; i < enb_ctx.nof_supported_ta; i++) {
       m_s1ap_log->info("%s - TAC %d, B-PLMN %d\n", prefix.c_str(), enb_ctx.tac[i], enb_ctx.bplmns[i][j]);

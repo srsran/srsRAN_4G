@@ -98,7 +98,7 @@ class radio {
   void set_tx_gain(float gain);
   void set_rx_gain(float gain);
   void set_tx_rx_gain_offset(float offset);
-  double set_rx_gain_th(float gain);
+  float set_rx_gain_th(float gain);
 
   void set_freq_offset(double freq);
   void set_tx_freq(uint32_t chan, double freq);

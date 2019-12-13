@@ -34,11 +34,13 @@
 
 namespace srsue {
 
-int radio_recv_callback(void *obj, cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *rx_time) {
+static int radio_recv_callback(void* obj, cf_t* data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t* rx_time)
+{
   return ((sync*)obj)->radio_recv_fnc(data, nsamples, rx_time);
 }
 
-double callback_set_rx_gain(void *h, double gain) {
+float callback_set_rx_gain(void* h, float gain)
+{
   return ((sync*)h)->set_rx_gain(gain);
 }
 
@@ -198,6 +200,7 @@ phy_interface_rrc_lte::cell_search_ret_t sync::cell_search(phy_interface_rrc_lte
   // Move state to IDLE
   Info("Cell Search: Start EARFCN index=%u/%zd\n", cellsearch_earfcn_index, earfcn.size());
   phy_state.go_idle();
+  worker_com->reset();
 
   try {
     if (current_earfcn != (int)earfcn.at(cellsearch_earfcn_index)) {
@@ -219,6 +222,7 @@ phy_interface_rrc_lte::cell_search_ret_t sync::cell_search(phy_interface_rrc_lte
     case search::CELL_FOUND:
       // If a cell is found, configure it, synchronize and measure it
       if (set_cell()) {
+        intra_freq_meas.set_primary_cell(current_earfcn, cell);
 
         Info("Cell Search: Setting sampling rate and synchronizing SFN...\n");
         set_sampling_rate();
@@ -276,11 +280,14 @@ bool sync::cell_select(phy_interface_rrc_lte::phy_cell_t* new_cell)
   if (!new_cell) {
     Info("Cell Select: Starting cell resynchronization\n");
   } else {
-    if (!srslte_cell_isvalid(&cell)) {
+    if (!srslte_cell_isvalid(&new_cell->cell)) {
       log_h->error("Cell Select: Invalid cell. ID=%d, PRB=%d, ports=%d\n", cell.id, cell.nof_prb, cell.nof_ports);
       return ret;
     }
-    Info("Cell Select: Starting cell selection for PCI=%d, EARFCN=%d\n", new_cell->cell.id, new_cell->earfcn);
+    Info("Cell Select: Starting cell selection for PCI=%d, n_prb=%d, EARFCN=%d\n",
+         new_cell->cell.id,
+         new_cell->cell.nof_prb,
+         new_cell->earfcn);
   }
 
   // Wait for any pending PHICH
@@ -318,6 +325,9 @@ bool sync::cell_select(phy_interface_rrc_lte::phy_cell_t* new_cell)
         return ret;
       }
     }
+
+    /* Reconfigure intra-frequency measurement */
+    intra_freq_meas.set_primary_cell(current_earfcn, cell);
   }
 
   /* Change sampling rate if necessary */
@@ -330,6 +340,7 @@ bool sync::cell_select(phy_interface_rrc_lte::phy_cell_t* new_cell)
   phy_state.run_sfn_sync();
   if (phy_state.is_camping()) {
     Info("Cell Select: SFN synchronized. CAMPING...\n");
+    stack->in_sync();
     ret = true;
   } else {
     Info("Cell Select: Could not synchronize SFN\n");
@@ -449,7 +460,8 @@ void sync::run_thread()
               // Force decode MIB if required
               if (force_camping_sfn_sync) {
                 uint32_t                 _tti = 0;
-                sync::sfn_sync::ret_code ret  = sfn_p.decode_mib(&cell, &_tti, buffer[0], mib);
+                srslte_cell_t            temp_cell = {};
+                sync::sfn_sync::ret_code ret       = sfn_p.decode_mib(&temp_cell, &_tti, buffer[0], mib);
 
                 if (ret == sfn_sync::SFN_FOUND) {
                   // Force tti
@@ -585,8 +597,8 @@ void sync::run_thread()
             nsamples = current_srate/1000;
           }
           Debug("Discarting %d samples\n", nsamples);
-          srslte_timestamp_t rx_time;
-          if (!radio_h->rx_now(0, dummy_buffer, nsamples, &rx_time)) {
+          srslte_timestamp_t rx_time = {};
+          if (!radio_recv_fnc(dummy_buffer, nsamples, &rx_time)) {
             log_h->console("SYNC:  Receiving from radio while in IDLE_RX\n");
           }
           // If radio is in locked state returns inmidiatetly. In that case, do a 1 ms sleep
@@ -639,8 +651,6 @@ void sync::run_thread()
 
     // Increase TTI counter
     tti = (tti+1) % 10240;
-
-    stack->run_tti(tti);
   }
 
   for (uint32_t p = 0; p < nof_rf_channels; p++) {
@@ -808,7 +818,6 @@ bool sync::set_cell()
   }
   sfn_p.set_cell(cell);
   worker_com->set_cell(cell);
-  intra_freq_meas.set_primay_cell(current_earfcn, cell);
 
   for (uint32_t i = 0; i < workers_pool->get_nof_workers(); i++) {
     if (!((sf_worker*)workers_pool->get_worker(i))->set_cell(0, cell)) {
@@ -880,6 +889,11 @@ bool sync::set_frequency()
 void sync::set_sampling_rate()
 {
   float new_srate = (float)srslte_sampling_freq_hz(cell.nof_prb);
+  if (new_srate < 0.0) {
+    Error("Invalid sampling rate for %d PRBs. keeping same.\n", cell.nof_prb);
+    return;
+  }
+
   current_sflen   = (uint32_t)SRSLTE_SF_LEN_PRB(cell.nof_prb);
   if (current_srate != new_srate || srate_mode != SRATE_CAMP) {
     current_srate = new_srate;
@@ -910,9 +924,32 @@ void sync::get_current_cell(srslte_cell_t* cell, uint32_t* earfcn)
 
 int sync::radio_recv_fnc(cf_t* data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t* rx_time)
 {
+  srslte_timestamp_t ts = {};
+
+  // Use local timestamp if timestamp is not provided
+  if (!rx_time) {
+    rx_time = &ts;
+  }
+
+  // Receive
   if (radio_h->rx_now(0, data, nsamples, rx_time)) {
+    // Detect Radio Timestamp reset
+    if (srslte_timestamp_compare(rx_time, &radio_ts) < 0) {
+      srslte_timestamp_init(&radio_ts, 0, 0.0);
+    }
+    srslte_timestamp_copy(&radio_ts, rx_time);
+
+    // Advance stack in time
+    while (srslte_timestamp_compare(rx_time, &tti_ts) > 0) {
+      // Run stack
+      stack->run_tti(tti);
+
+      // Increase one millisecond
+      srslte_timestamp_add(&tti_ts, 0, 1.0e-3f);
+    }
+
     if (channel_emulator && rx_time) {
-      channel_emulator->set_srate(current_srate);
+      channel_emulator->set_srate((uint32_t)current_srate);
       channel_emulator->run(data, data, nsamples, *rx_time);
     }
 

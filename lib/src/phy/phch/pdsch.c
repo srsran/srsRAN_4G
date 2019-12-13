@@ -522,7 +522,7 @@ static float apply_power_allocation(srslte_pdsch_t* q, srslte_pdsch_cfg_t* cfg, 
   uint32_t nof_re_symbol    = SRSLTE_NRE * q->cell.nof_prb;
 
   /* Set power allocation according to 3GPP 36.213 clause 5.2 Downlink power allocation */
-  float rho_a = powf(10.0f, cfg->p_a / 20.0f) * ((q->cell.nof_ports == 1) ? 1.0f : sqrtf(2.0f));
+  float rho_a = srslte_convert_dB_to_amplitude(cfg->p_a) * ((q->cell.nof_ports == 1) ? 1.0f : M_SQRT2);
 
   uint32_t idx0                = (q->cell.nof_ports == 1) ? 0 : 1;
   float    cell_specific_ratio = pdsch_cfg_cell_specific_ratio_table[idx0][cfg->p_b];

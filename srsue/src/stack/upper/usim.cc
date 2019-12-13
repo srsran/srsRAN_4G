@@ -238,9 +238,7 @@ void usim::generate_as_keys(uint8_t *k_asme,
 {
 
   // Generate K_enb
-   security_generate_k_enb( k_asme,
-                            count_ul,
-                            k_enb);
+  security_generate_k_enb(k_asme, count_ul, k_enb);
 
   memcpy(this->k_asme, k_asme, 32);
 

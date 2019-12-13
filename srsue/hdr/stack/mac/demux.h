@@ -44,10 +44,10 @@ class demux : public srslte::pdu_queue::process_callback
 {
 public:
   demux(srslte::log* log_);
-  void init(phy_interface_mac_common* phy_h_,
-            rlc_interface_mac*        rlc,
-            mac_interface_demux*      mac,
-            srslte::timers::timer*    time_alignment_timer);
+  void init(phy_interface_mac_common*            phy_h_,
+            rlc_interface_mac*                   rlc,
+            mac_interface_demux*                 mac,
+            srslte::timer_handler::unique_timer* time_alignment_timer);
 
   bool     process_pdus();
   uint8_t* request_buffer(uint32_t len);
@@ -77,18 +77,18 @@ private:
   void            process_sch_pdu(srslte::sch_pdu* pdu);
   void            process_mch_pdu(srslte::mch_pdu* pdu);
 
-  bool process_ce(srslte::sch_subh *subheader);
+  bool process_ce(srslte::sch_subh* subheader);
 
   bool is_uecrid_successful;
 
-  phy_interface_mac_common* phy_h                = nullptr;
-  srslte::log*              log_h                = nullptr;
-  srslte::timers::timer*    time_alignment_timer = nullptr;
-  rlc_interface_mac*        rlc                  = nullptr;
-  mac_interface_demux*      mac                  = nullptr;
+  phy_interface_mac_common*            phy_h                = nullptr;
+  srslte::log*                         log_h                = nullptr;
+  srslte::timer_handler::unique_timer* time_alignment_timer = nullptr;
+  rlc_interface_mac*                   rlc                  = nullptr;
+  mac_interface_demux*                 mac                  = nullptr;
 
   // Buffer of PDUs
-  srslte::pdu_queue pdus; 
+  srslte::pdu_queue pdus;
 };
 
 } // namespace srsue

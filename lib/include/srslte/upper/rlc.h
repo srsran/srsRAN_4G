@@ -37,15 +37,15 @@ namespace srslte {
  * Single interface for RLC layer - contains separate RLC entities for
  * each bearer.
  ***************************************************************************/
-class rlc
-    :public srsue::rlc_interface_mac
-    ,public srsue::rlc_interface_pdcp
-    ,public srsue::rlc_interface_rrc
+class rlc : public srsue::rlc_interface_mac, public srsue::rlc_interface_pdcp, public srsue::rlc_interface_rrc
 {
 public:
   rlc(log* rlc_log_);
   virtual ~rlc();
-  void init(srsue::pdcp_interface_rlc* pdcp_, srsue::rrc_interface_rlc* rrc_, srslte::timers* timers_, uint32_t lcid_);
+  void init(srsue::pdcp_interface_rlc* pdcp_,
+            srsue::rrc_interface_rlc*  rrc_,
+            srslte::timer_handler*     timers_,
+            uint32_t                   lcid_);
   void stop();
 
   void get_metrics(rlc_metrics_t& m);
@@ -54,6 +54,7 @@ public:
   void write_sdu(uint32_t lcid, unique_byte_buffer_t sdu, bool blocking = true);
   void write_sdu_mch(uint32_t lcid, unique_byte_buffer_t sdu);
   bool rb_is_um(uint32_t lcid);
+  void discard_sdu(uint32_t lcid, uint32_t discard_sn);
 
   // MAC interface
   bool     has_data(const uint32_t lcid);
@@ -85,11 +86,11 @@ public:
 private:
   void reset_metrics();
 
-  byte_buffer_pool*             pool       = nullptr;
-  srslte::log*                  rlc_log    = nullptr;
-  srsue::pdcp_interface_rlc*    pdcp       = nullptr;
-  srsue::rrc_interface_rlc*     rrc        = nullptr;
-  srslte::timers*               timers     = nullptr;
+  byte_buffer_pool*          pool    = nullptr;
+  srslte::log*               rlc_log = nullptr;
+  srsue::pdcp_interface_rlc* pdcp    = nullptr;
+  srsue::rrc_interface_rlc*  rrc     = nullptr;
+  srslte::timer_handler*     timers  = nullptr;
 
   typedef std::map<uint16_t, rlc_common*>  rlc_map_t;
   typedef std::pair<uint16_t, rlc_common*> rlc_map_pair_t;

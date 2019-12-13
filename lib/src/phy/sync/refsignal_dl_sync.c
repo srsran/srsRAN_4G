@@ -278,13 +278,13 @@ void srslte_refsignal_dl_sync_run(srslte_refsignal_dl_sync_t* q, cf_t* buffer, u
       }
 
       // Calculate in dBm
-      q->rsrp_dBfs = 10.0f * log10f(rsrp_lin) + 30.0f;
+      q->rsrp_dBfs = srslte_convert_power_to_dBm(rsrp_lin);
 
       // Calculate RSSI in dBm
-      q->rssi_dBfs = 10.0f * log10f(rssi_lin) + 30.0f;
+      q->rssi_dBfs = srslte_convert_power_to_dBm(rssi_lin);
 
       // Calculate RSRQ
-      q->rsrq_dB = 10.0f * log10f(q->refsignal.cell.nof_prb) + q->rsrp_dBfs - q->rssi_dBfs;
+      q->rsrq_dB = srslte_convert_power_to_dB(q->refsignal.cell.nof_prb) + q->rsrp_dBfs - q->rssi_dBfs;
 
       q->found      = true;
       q->cfo_Hz     = cfo_acc;

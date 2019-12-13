@@ -44,10 +44,10 @@ void parse_args(int argc, char **argv) {
   while ((opt = getopt(argc, argv, "nf")) != -1) {
     switch (opt) {
     case 'n':
-      num_samples = atoi(argv[optind]);
+      num_samples = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'f':
-      freq = atof(argv[optind]);
+      freq = strtof(argv[optind], NULL);
       break;
     default:
       usage(argv[0]);

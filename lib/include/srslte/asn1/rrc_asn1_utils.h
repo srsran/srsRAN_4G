@@ -22,6 +22,7 @@
 #ifndef SRSLTE_RRC_ASN1_UTILS_H
 #define SRSLTE_RRC_ASN1_UTILS_H
 
+#include "srslte/common/interfaces_common.h"
 #include "srslte/interfaces/rrc_interface_types.h"
 
 /************************
@@ -51,6 +52,13 @@ struct mbsfn_area_info_r9_s;
 struct mbsfn_sf_cfg_s;
 struct mcch_msg_s;
 struct sib_type13_r9_s;
+// MeasConfig
+struct cells_to_add_mod_s;
+struct report_cfg_eutra_s;
+struct meas_obj_to_add_mod_s;
+struct report_cfg_to_add_mod_s;
+struct meas_id_to_add_mod_s;
+struct quant_cfg_s;
 
 } // namespace rrc
 } // namespace asn1
@@ -72,6 +80,12 @@ void     to_asn1(asn1::rrc::s_tmsi_s* asn1_type, const s_tmsi_t& cfg);
 rlc_config_t make_rlc_config_t(const asn1::rrc::rlc_cfg_c& asn1_type);
 rlc_config_t make_rlc_config_t(const asn1::rrc::srb_to_add_mod_s& asn1_type);
 void         to_asn1(asn1::rrc::rlc_cfg_c* asn1_type, const rlc_config_t& cfg);
+
+/***************************
+ *      PDCP Config
+ **************************/
+srslte::pdcp_config_t make_srb_pdcp_config_t(const uint8_t bearer_id, bool is_ue);
+srslte::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue);
 
 /***************************
  *      MAC Config
@@ -102,5 +116,24 @@ mcch_msg_t        make_mcch_msg(const asn1::rrc::mcch_msg_s& asn1_type);
 sib13_t           make_sib13(const asn1::rrc::sib_type13_r9_s& asn1_type);
 
 } // namespace srslte
+
+/************************
+ * ASN1 RRC extensions
+ ***********************/
+namespace asn1 {
+namespace rrc {
+
+/***************************
+ *      MeasConfig
+ **************************/
+bool operator==(const asn1::rrc::cells_to_add_mod_s& lhs, const asn1::rrc::cells_to_add_mod_s& rhs);
+bool operator==(const asn1::rrc::meas_obj_to_add_mod_s& lhs, const asn1::rrc::meas_obj_to_add_mod_s& rhs);
+bool operator==(const asn1::rrc::report_cfg_eutra_s& lhs, const asn1::rrc::report_cfg_eutra_s& rhs);
+bool operator==(const asn1::rrc::report_cfg_to_add_mod_s& lhs, const asn1::rrc::report_cfg_to_add_mod_s& rhs);
+bool operator==(const asn1::rrc::meas_id_to_add_mod_s& lhs, const asn1::rrc::meas_id_to_add_mod_s& rhs);
+bool operator==(const asn1::rrc::quant_cfg_s& lhs, const asn1::rrc::quant_cfg_s& rhs);
+
+} // namespace rrc
+} // namespace asn1
 
 #endif // SRSLTE_RRC_ASN1_UTILS_H

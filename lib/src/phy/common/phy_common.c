@@ -46,7 +46,7 @@ bool srslte_cellid_isvalid(uint32_t cell_id) {
 }
 
 bool srslte_nofprb_isvalid(uint32_t nof_prb) {
-  if (nof_prb >= 6 && nof_prb <= 100) {
+  if (nof_prb == 1 || (nof_prb >= 6 && nof_prb <= SRSLTE_MAX_PRB)) {
     return true;
   } else {
     return false;
@@ -731,8 +731,19 @@ uint32_t srslte_print_check(char* s, size_t max_len, uint32_t cur_len, const cha
   if (cur_len < max_len - 1) {
     va_list args;
     va_start(args, format);
-    cur_len += vsnprintf(&s[cur_len], max_len - cur_len, format, args);
+    size_t n   = max_len - cur_len;
+    int    ret = vsnprintf(&s[cur_len], n, format, args);
     va_end(args);
+
+    if (ret >= 0 && ret < n) {
+      // Notice that only when this returned value is non-negative and less than n, the string has been completely
+      // written.
+      cur_len += ret;
+    } else {
+      // Formatting error detected
+      ERROR("Formatting error when printing string\n");
+      exit(-1);
+    }
   } else {
     ERROR("Buffer full when printing string\n");
     exit(-1);

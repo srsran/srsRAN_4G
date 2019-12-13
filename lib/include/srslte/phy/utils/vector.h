@@ -34,20 +34,43 @@
 extern "C" {
 #endif
 
-#include <stdio.h>
-#include <stdint.h>
 #include "srslte/config.h"
-
+#include <math.h>
+#include <stdint.h>
+#include <stdio.h>
 
 #define SRSLTE_MAX(a,b) ((a)>(b)?(a):(b))
 #define SRSLTE_MIN(a,b) ((a)<(b)?(a):(b))
 
 // Cumulative moving average
-#define SRSLTE_VEC_CMA(data, average, n) ((average) + ((data) - (average)) / ((n)+1)) 
+#define SRSLTE_VEC_CMA(data, average, n) ((average) + ((data) - (average)) / ((n) + 1))
+
+// Proportional moving average
+#define SRSLTE_VEC_PMA(average1, n1, average2, n2) (((average1) * (n1) + (average2) * (n2)) / ((n1) + (n2)))
 
 // Exponential moving average
 #define SRSLTE_VEC_EMA(data, average, alpha) ((alpha)*(data)+(1-alpha)*(average))
 
+static inline float srslte_convert_amplitude_to_dB(float v)
+{
+  return 20.0f * log10f(v);
+}
+static inline float srslte_convert_power_to_dB(float v)
+{
+  return 10.0f * log10f(v);
+}
+static inline float srslte_convert_power_to_dBm(float v)
+{
+  return srslte_convert_power_to_dB(v) + 30.0f;
+}
+static inline float srslte_convert_dB_to_amplitude(float v)
+{
+  return powf(10.0f, v / 20.0f);
+}
+static inline float srslte_convert_dB_to_power(float v)
+{
+  return powf(10.0f, v / 10.0f);
+}
 
 /*logical operations */
 SRSLTE_API void srslte_vec_xor_bbb(int8_t *x,int8_t *y,int8_t *z, const uint32_t len);
@@ -152,6 +175,57 @@ SRSLTE_API void srslte_vec_quant_sus(const int16_t *in, uint16_t *out, const flo
 /* magnitude of each vector element */
 SRSLTE_API void srslte_vec_abs_cf(const cf_t *x, float *abs, const uint32_t len);
 SRSLTE_API void srslte_vec_abs_square_cf(const cf_t *x, float *abs_square, const uint32_t len);
+
+/**
+ * @brief Extracts module in decibels of a complex vector
+ *
+ * This function extracts the module in decibels of a complex array input. Abnormal absolute value inputs (zero,
+ * infinity and not-a-number) are set to default_value outputs.
+ *
+ * Equivalent code:
+ *   for (int i = 0; i < len; i++) {
+ *     float mag = x[i];
+ *
+ *     // Check boundaries
+ *     if (isnormal(mag)) {
+ *       // Avoid infinites and zeros
+ *       abs[i] = 20.0f * log10f(mag);
+ *     } else {
+ *       // Set to default value instead
+ *       abs[i] = default_value;
+ *     }
+ *   }
+ *
+ * @param x is the input complex vector
+ * @param default_value is the value to use in case of having an abnormal absolute value.
+ * @param abs is the destination vector
+ * @param len is the input and output number of samples
+ *
+ */
+SRSLTE_API void srslte_vec_abs_dB_cf(const cf_t* x, float default_value, float* abs, const uint32_t len);
+
+/**
+ * @brief Extracts argument in degrees from a complex vector
+ *
+ * This function extracts the argument from a complex vector. Infinity and not-a-number results are set to
+ * default_value.
+ *
+ * Equivalent code:
+ *   for(int i = 0; i < len; i++) {
+ *     arg[i] = cargf(x[i]) * (180.0f / M_PI);
+ *
+ *     if (arg[i]!=0.0f && !isnormal(arg[i])) {
+ *      arg[i] = default_value;
+ *     }
+ *   }
+ *
+ * @param x is the input complex vector
+ * @param default_value is the value to use in case of having an abnormal result.
+ * @param arg is the destination vector
+ * @param len is the input and output number of samples
+ *
+ */
+SRSLTE_API void srslte_vec_arg_deg_cf(const cf_t* x, float default_value, float* arg, const uint32_t len);
 
 /* Copy 256 bit aligned vector */
 SRSLTE_API void srs_vec_cf_cpy(const cf_t *src, cf_t *dst, const int len);

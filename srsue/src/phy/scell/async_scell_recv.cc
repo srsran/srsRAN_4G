@@ -79,9 +79,9 @@ static int radio_recv_callback(void* obj, cf_t* data[SRSLTE_MAX_PORTS], uint32_t
   return ((async_scell_recv*)obj)->radio_recv_fnc(data, nsamples, rx_time);
 }
 
-static double callback_set_rx_gain(void* h, double gain)
+static float callback_set_rx_gain(void* h, float gain)
 {
-  return ((async_scell_recv*)h)->set_rx_gain(gain);
+  return (float)((async_scell_recv*)h)->set_rx_gain(gain);
 }
 
 void async_scell_recv::init(srslte::radio_interface_phy* _radio_handler, phy_common* _worker_com, srslte::log* _log_h)

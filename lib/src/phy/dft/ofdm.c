@@ -455,12 +455,11 @@ void srslte_ofdm_rx_sf(srslte_ofdm_t *q) {
   if (q->freq_shift) {
     srslte_vec_prod_ccc(q->in_buffer, q->shift_buffer, q->in_buffer, 2*q->slot_sz);
   }
-  if(!q->mbsfn_subframe){
+  if (!q->mbsfn_subframe) {
     for (n=0;n<2;n++) {
       srslte_ofdm_rx_slot(q, n);
     }
-  }
-  else{
+  } else {
     srslte_ofdm_rx_slot_mbsfn(q, &q->in_buffer[0*q->slot_sz], &q->out_buffer[0*q->nof_re*q->nof_symbols]);
     srslte_ofdm_rx_slot(q, 1);
   }
@@ -469,14 +468,13 @@ void srslte_ofdm_rx_sf(srslte_ofdm_t *q) {
 void srslte_ofdm_rx_sf_ng(srslte_ofdm_t *q, cf_t *input, cf_t *output) {
   uint32_t n;
   if (q->freq_shift) {
-    srslte_vec_prod_ccc(q->in_buffer, q->shift_buffer, q->in_buffer, 2*q->slot_sz);
+    srslte_vec_prod_ccc(input, q->shift_buffer, input, 2*q->slot_sz);
   }
-  if(!q->mbsfn_subframe){
+  if (!q->mbsfn_subframe) {
     for (n=0;n<2;n++) {
       srslte_ofdm_rx_slot_ng(q, &input[n*q->slot_sz], &output[n*q->nof_re*q->nof_symbols]);
     }
-  }
-  else{
+  } else {
     srslte_ofdm_rx_slot_mbsfn(q, &q->in_buffer[0*q->slot_sz], &q->out_buffer[0*q->nof_re*q->nof_symbols]);
     srslte_ofdm_rx_slot(q, 1);
   }

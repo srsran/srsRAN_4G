@@ -42,7 +42,9 @@ typedef enum {
   EMM_STATE_DEREGISTERED_INITIATED,
   EMM_STATE_N_ITEMS,
 } emm_state_t;
-static const char emm_state_text[EMM_STATE_N_ITEMS][100] = {"DEREGISTERED", "COMMON PROCEDURE INITIATED", "REGISTERED",
+static const char emm_state_text[EMM_STATE_N_ITEMS][100] = {"DEREGISTERED",
+                                                            "COMMON PROCEDURE INITIATED",
+                                                            "REGISTERED",
                                                             "DEREGISTERED INITIATED"};
 
 // MME ECM states (3GPP 23.401 v10.0.0, section 4.6.3)

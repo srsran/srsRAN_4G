@@ -302,12 +302,39 @@ static const float w_n_oc[2][3][4] = {
 
 };
 
+#if defined(__clang__)
+
+/* Precomputed constants printed with printf %a specifier (hexadecimal notation) for maximum precision
+ *    cf_t val = cexpf(I * 2 * M_PI / 5));
+ *    printf("%a + %aI\n", str, creal(val), cimag(val));
+ *
+ * clang expects compile-time contant expressions in the initializer list and using cexpf results
+ * in the following error
+ *    error: initializer element is not a compile-time constant
+ */
+static const cf_t cexpf_i_2_mpi_5 = 0x1.3c6ef2p-2 + 0x1.e6f0e2p-1I;
+static const cf_t cexpf_i_4_mpi_5 = -0x1.9e377cp-1 + 0x1.2cf22ep-1I;
+static const cf_t cexpf_i_6_mpi_5 = -0x1.9e3778p-1 + -0x1.2cf234p-1I;
+static const cf_t cexpf_i_8_mpi_5 = 0x1.3c6efcp-2 + -0x1.e6f0ep-1I;
+
+static cf_t pucch3_w_n_oc_5[5][5] = {
+    {1, 1, 1, 1, 1},
+    {1, cexpf_i_2_mpi_5, cexpf_i_4_mpi_5, cexpf_i_6_mpi_5, cexpf_i_8_mpi_5},
+    {1, cexpf_i_4_mpi_5, cexpf_i_8_mpi_5, cexpf_i_2_mpi_5, cexpf_i_6_mpi_5},
+    {1, cexpf_i_6_mpi_5, cexpf_i_2_mpi_5, cexpf_i_8_mpi_5, cexpf_i_4_mpi_5},
+    {1, cexpf_i_8_mpi_5, cexpf_i_6_mpi_5, cexpf_i_4_mpi_5, cexpf_i_2_mpi_5},
+};
+
+#else // defined(__clang__)
+
 static const cf_t pucch3_w_n_oc_5[5][5] = {
     {1, 1, 1, 1, 1},
     {1, cexpf(I * 2 * M_PI / 5), cexpf(I * 4 * M_PI / 5), cexpf(I * 6 * M_PI / 5), cexpf(I * 8 * M_PI / 5)},
     {1, cexpf(I * 4 * M_PI / 5), cexpf(I * 8 * M_PI / 5), cexpf(I * 2 * M_PI / 5), cexpf(I * 6 * M_PI / 5)},
     {1, cexpf(I * 6 * M_PI / 5), cexpf(I * 2 * M_PI / 5), cexpf(I * 8 * M_PI / 5), cexpf(I * 4 * M_PI / 5)},
     {1, cexpf(I * 8 * M_PI / 5), cexpf(I * 6 * M_PI / 5), cexpf(I * 4 * M_PI / 5), cexpf(I * 2 * M_PI / 5)}};
+
+#endif // defined(__clang__)
 
 static const cf_t pucch3_w_n_oc_4[4][4] = {{+1, +1, +1, +1}, {+1, -1, +1, -1}, {+1, +1, -1, -1}, {+1, -1, -1, +1}};
 

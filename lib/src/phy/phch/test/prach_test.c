@@ -50,16 +50,16 @@ void parse_args(int argc, char **argv) {
   while ((opt = getopt(argc, argv, "nfrz")) != -1) {
     switch (opt) {
       case 'n':
-        nof_prb = atoi(argv[optind]);
+        nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'f':
-        config_idx = atoi(argv[optind]);
+        config_idx = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'r':
-        root_seq_idx = atoi(argv[optind]);
+        root_seq_idx = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'z':
-        zero_corr_zone = atoi(argv[optind]);
+        zero_corr_zone = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       default:
         usage(argv[0]);

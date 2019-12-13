@@ -27,7 +27,7 @@ rlc_tm::rlc_tm(srslte::log*               log_,
                uint32_t                   lcid_,
                srsue::pdcp_interface_rlc* pdcp_,
                srsue::rrc_interface_rlc*  rrc_,
-               srslte::timers*            timers_,
+               srslte::timer_handler*     timers_,
                uint32_t                   queue_len_) :
   ul_queue(queue_len_),
   log(log_),
@@ -115,6 +115,14 @@ void rlc_tm::write_sdu(unique_byte_buffer_t sdu, bool blocking)
   }
 }
 
+void rlc_tm::discard_sdu(uint32_t discard_sn)
+{
+  if (!tx_enabled) {
+    return;
+  }
+  log->warning("SDU discard not implemented on RLC TM\n");
+}
+
 // MAC interface
 bool rlc_tm::has_data()
 {
@@ -126,20 +134,14 @@ uint32_t rlc_tm::get_buffer_state()
   return ul_queue.size_bytes();
 }
 
-uint32_t rlc_tm::get_num_tx_bytes()
+rlc_bearer_metrics_t rlc_tm::get_metrics()
 {
-  return num_tx_bytes;
-}
-
-uint32_t rlc_tm::get_num_rx_bytes()
-{
-  return num_rx_bytes;
+  return metrics;
 }
 
 void rlc_tm::reset_metrics()
 {
-  num_tx_bytes = 0;
-  num_rx_bytes = 0;
+  metrics = {};
 }
 
 int rlc_tm::read_pdu(uint8_t *payload, uint32_t nof_bytes)
@@ -163,7 +165,7 @@ int rlc_tm::read_pdu(uint8_t *payload, uint32_t nof_bytes)
                   ul_queue.size(),
                   ul_queue.size_bytes());
 
-    num_tx_bytes += pdu_size;
+    metrics.num_tx_bytes += pdu_size;
     return pdu_size;
   } else {
     log->warning("Queue empty while trying to read\n");
@@ -182,7 +184,7 @@ void rlc_tm::write_pdu(uint8_t *payload, uint32_t nof_bytes)
     memcpy(buf->msg, payload, nof_bytes);
     buf->N_bytes = nof_bytes;
     buf->set_timestamp();
-    num_rx_bytes += nof_bytes;
+    metrics.num_rx_bytes += nof_bytes;
     if (rrc->get_rb_name(lcid) == "SRB0") {
       rrc->write_pdu(lcid, std::move(buf));
     } else {

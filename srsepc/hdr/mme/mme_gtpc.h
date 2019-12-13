@@ -76,7 +76,7 @@ private:
 
   int                m_s11;
   struct sockaddr_un m_mme_addr, m_spgw_addr;
-  in_addr_t m_mme_gtpc_ip;
+  in_addr_t          m_mme_gtpc_ip;
 
   bool     init_s11();
   uint32_t get_new_ctrl_teid();

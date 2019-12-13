@@ -938,7 +938,6 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_cellidentity(LIBLTE_S1AP_CELLIDENTITY_STRUCT*
     for (i = 0; i < LIBLTE_S1AP_CELLIDENTITY_BIT_STRING_LEN; i++) {
       liblte_value_2_bits(ie->buffer[i], ptr, 1);
     }
-    liblte_align_up_zero(ptr, 8);
     err = LIBLTE_SUCCESS;
   }
   return err;
@@ -955,7 +954,6 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_cellidentity(uint8_t** ptr, LIBLTE_S1AP_CEL
     for (i = 0; i < LIBLTE_S1AP_CELLIDENTITY_BIT_STRING_LEN; i++) {
       ie->buffer[i] = liblte_bits_2_value(ptr, 1);
     }
-    liblte_align_up(ptr, 8);
     err = LIBLTE_SUCCESS;
   }
   return err;
@@ -1494,7 +1492,6 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_macroenb_id(LIBLTE_S1AP_MACROENB_ID_STRUCT* i
     for (i = 0; i < LIBLTE_S1AP_MACROENB_ID_BIT_STRING_LEN; i++) {
       liblte_value_2_bits(ie->buffer[i], ptr, 1);
     }
-    liblte_align_up_zero(ptr, 8);
     err = LIBLTE_SUCCESS;
   }
   return err;
@@ -1511,7 +1508,6 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_macroenb_id(uint8_t** ptr, LIBLTE_S1AP_MACR
     for (i = 0; i < LIBLTE_S1AP_MACROENB_ID_BIT_STRING_LEN; i++) {
       ie->buffer[i] = liblte_bits_2_value(ptr, 1);
     }
-    liblte_align_up(ptr, 8);
     err = LIBLTE_SUCCESS;
   }
   return err;
@@ -1896,7 +1892,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_hfn(LIBLTE_S1AP_HFN_STRUCT* ie, uint8_t** ptr
     // lb:0, ub:1048575
     // Range > 65536 - encoded based on value
     {
-      uint32_t n_bits   = floor(log2(ie->HFN - 0) + 1);
+      uint32_t n_bits   = (ie->HFN == 0) ? 1u : (uint32_t)floor(log2(ie->HFN - 0) + 1); // avoid log(0)
       uint32_t n_octets = (n_bits + 7) / 8;
       liblte_value_2_bits(n_octets - 1, ptr, 2);
       liblte_align_up_zero(ptr, 8);
@@ -3438,7 +3434,7 @@ liblte_s1ap_unpack_source_totarget_transparentcontainer(uint8_t**               
       if (0 == liblte_bits_2_value(ptr, 1)) {
         ie->n_octets = liblte_bits_2_value(ptr, 14);
       } else {
-        // FIXME: Unlikely to have more than 16K of octets
+        // FIXME: Unlikely to have more than 16k of octets
       }
     }
 
@@ -3499,7 +3495,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_srvcchoindication(uint8_t** ptr, LIBLTE_S1A
 /* ProtocolIE SourceRNC_ToTargetRNC_TransparentContainer DYNAMIC OCTET STRING
 ********************************************************************************/
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_sourcernc_totargetrnc_transparentcontainer(
-    LIBLTE_S1AP_SOURCERNC_TOTARGETRNC_TRANSPARENTCONTAINER_STRUCT* ie, uint8_t** ptr)
+    LIBLTE_S1AP_SOURCERNC_TOTARGETRNC_TRANSPARENTCONTAINER_STRUCT* ie,
+    uint8_t**                                                      ptr)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -3528,7 +3525,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_sourcernc_totargetrnc_transparentcontainer(
 }
 
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_sourcernc_totargetrnc_transparentcontainer(
-    uint8_t** ptr, LIBLTE_S1AP_SOURCERNC_TOTARGETRNC_TRANSPARENTCONTAINER_STRUCT* ie)
+    uint8_t**                                                      ptr,
+    LIBLTE_S1AP_SOURCERNC_TOTARGETRNC_TRANSPARENTCONTAINER_STRUCT* ie)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -3639,7 +3637,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_synchronizationstatus(uint8_t**            
 /* ProtocolIE TargetRNC_ToSourceRNC_TransparentContainer DYNAMIC OCTET STRING
 ********************************************************************************/
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_targetrnc_tosourcernc_transparentcontainer(
-    LIBLTE_S1AP_TARGETRNC_TOSOURCERNC_TRANSPARENTCONTAINER_STRUCT* ie, uint8_t** ptr)
+    LIBLTE_S1AP_TARGETRNC_TOSOURCERNC_TRANSPARENTCONTAINER_STRUCT* ie,
+    uint8_t**                                                      ptr)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -3668,7 +3667,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_targetrnc_tosourcernc_transparentcontainer(
 }
 
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_targetrnc_tosourcernc_transparentcontainer(
-    uint8_t** ptr, LIBLTE_S1AP_TARGETRNC_TOSOURCERNC_TRANSPARENTCONTAINER_STRUCT* ie)
+    uint8_t**                                                      ptr,
+    LIBLTE_S1AP_TARGETRNC_TOSOURCERNC_TRANSPARENTCONTAINER_STRUCT* ie)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -3735,7 +3735,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_time_ue_stayedincell(LIBLTE_S1AP_TIME_UE_STAY
     // Integer - ie->Time_UE_StayedInCell
     // lb:0, ub:4095
     liblte_align_up_zero(ptr, 8);
-    liblte_value_2_bits(0, ptr, (1 * 8) - 12);
+    liblte_value_2_bits(0, ptr, (2 * 8) - 12);
     liblte_value_2_bits(ie->Time_UE_StayedInCell, ptr, 12);
     liblte_align_up_zero(ptr, 8);
     err = LIBLTE_SUCCESS;
@@ -5782,7 +5782,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_serialnumber(uint8_t** ptr, LIBLTE_S1AP_SER
 /* ProtocolIE SourceBSS_ToTargetBSS_TransparentContainer DYNAMIC OCTET STRING
 ********************************************************************************/
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_sourcebss_totargetbss_transparentcontainer(
-    LIBLTE_S1AP_SOURCEBSS_TOTARGETBSS_TRANSPARENTCONTAINER_STRUCT* ie, uint8_t** ptr)
+    LIBLTE_S1AP_SOURCEBSS_TOTARGETBSS_TRANSPARENTCONTAINER_STRUCT* ie,
+    uint8_t**                                                      ptr)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -5811,7 +5812,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_sourcebss_totargetbss_transparentcontainer(
 }
 
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_sourcebss_totargetbss_transparentcontainer(
-    uint8_t** ptr, LIBLTE_S1AP_SOURCEBSS_TOTARGETBSS_TRANSPARENTCONTAINER_STRUCT* ie)
+    uint8_t**                                                      ptr,
+    LIBLTE_S1AP_SOURCEBSS_TOTARGETBSS_TRANSPARENTCONTAINER_STRUCT* ie)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -6204,7 +6206,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_threshold_rsrp(uint8_t** ptr, LIBLTE_S1AP_T
 /* ProtocolIE Time_UE_StayedInCell_EnhancedGranularity INTEGER
 ********************************************************************************/
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_time_ue_stayedincell_enhancedgranularity(
-    LIBLTE_S1AP_TIME_UE_STAYEDINCELL_ENHANCEDGRANULARITY_STRUCT* ie, uint8_t** ptr)
+    LIBLTE_S1AP_TIME_UE_STAYEDINCELL_ENHANCEDGRANULARITY_STRUCT* ie,
+    uint8_t**                                                    ptr)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -6221,7 +6224,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_time_ue_stayedincell_enhancedgranularity(
 }
 
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_time_ue_stayedincell_enhancedgranularity(
-    uint8_t** ptr, LIBLTE_S1AP_TIME_UE_STAYEDINCELL_ENHANCEDGRANULARITY_STRUCT* ie)
+    uint8_t**                                                    ptr,
+    LIBLTE_S1AP_TIME_UE_STAYEDINCELL_ENHANCEDGRANULARITY_STRUCT* ie)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -8221,7 +8225,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_tabasedmdt(uint8_t** ptr, LIBLTE_S1AP_TABAS
 /* ProtocolIE TargeteNB_ToSourceeNB_TransparentContainer SEQUENCE
 ********************************************************************************/
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_targetenb_tosourceenb_transparentcontainer(
-    LIBLTE_S1AP_TARGETENB_TOSOURCEENB_TRANSPARENTCONTAINER_STRUCT* ie, uint8_t** ptr)
+    LIBLTE_S1AP_TARGETENB_TOSOURCEENB_TRANSPARENTCONTAINER_STRUCT* ie,
+    uint8_t**                                                      ptr)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -8235,6 +8240,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_targetenb_tosourceenb_transparentcontainer(
     }
 
     liblte_value_2_bits(ie->iE_Extensions_present ? 1 : 0, ptr, 1);
+
+    liblte_align_up_zero(ptr, 8);
 
     if (liblte_s1ap_pack_rrc_container(&ie->rRC_Container, ptr) != LIBLTE_SUCCESS) {
       return LIBLTE_ERROR_ENCODE_FAIL;
@@ -8251,7 +8258,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_targetenb_tosourceenb_transparentcontainer(
 }
 
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_targetenb_tosourceenb_transparentcontainer(
-    uint8_t** ptr, LIBLTE_S1AP_TARGETENB_TOSOURCEENB_TRANSPARENTCONTAINER_STRUCT* ie)
+    uint8_t**                                                      ptr,
+    LIBLTE_S1AP_TARGETENB_TOSOURCEENB_TRANSPARENTCONTAINER_STRUCT* ie)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -8265,6 +8273,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_targetenb_tosourceenb_transparentcontainer(
     }
 
     ie->iE_Extensions_present = liblte_bits_2_value(ptr, 1);
+
+    liblte_align_up_zero(ptr, 8);
 
     if (liblte_s1ap_unpack_rrc_container(ptr, &ie->rRC_Container) != LIBLTE_SUCCESS) {
       return LIBLTE_ERROR_DECODE_FAIL;
@@ -10123,7 +10133,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_targetenb_id(uint8_t** ptr, LIBLTE_S1AP_TAR
 /* ProtocolIE TargetBSS_ToSourceBSS_TransparentContainer DYNAMIC OCTET STRING
 ********************************************************************************/
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_targetbss_tosourcebss_transparentcontainer(
-    LIBLTE_S1AP_TARGETBSS_TOSOURCEBSS_TRANSPARENTCONTAINER_STRUCT* ie, uint8_t** ptr)
+    LIBLTE_S1AP_TARGETBSS_TOSOURCEBSS_TRANSPARENTCONTAINER_STRUCT* ie,
+    uint8_t**                                                      ptr)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -10152,7 +10163,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_targetbss_tosourcebss_transparentcontainer(
 }
 
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_targetbss_tosourcebss_transparentcontainer(
-    uint8_t** ptr, LIBLTE_S1AP_TARGETBSS_TOSOURCEBSS_TRANSPARENTCONTAINER_STRUCT* ie)
+    uint8_t**                                                      ptr,
+    LIBLTE_S1AP_TARGETBSS_TOSOURCEBSS_TRANSPARENTCONTAINER_STRUCT* ie)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -14587,7 +14599,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_mdtmode(uint8_t** ptr, LIBLTE_S1AP_MDTMODE_
 /* ProtocolIE SourceeNB_ToTargeteNB_TransparentContainer SEQUENCE
 ********************************************************************************/
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_sourceenb_totargetenb_transparentcontainer(
-    LIBLTE_S1AP_SOURCEENB_TOTARGETENB_TRANSPARENTCONTAINER_STRUCT* ie, uint8_t** ptr)
+    LIBLTE_S1AP_SOURCEENB_TOTARGETENB_TRANSPARENTCONTAINER_STRUCT* ie,
+    uint8_t**                                                      ptr)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -14603,6 +14616,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_sourceenb_totargetenb_transparentcontainer(
     liblte_value_2_bits(ie->e_RABInformationList_present ? 1 : 0, ptr, 1);
     liblte_value_2_bits(ie->subscriberProfileIDforRFP_present ? 1 : 0, ptr, 1);
     liblte_value_2_bits(ie->iE_Extensions_present ? 1 : 0, ptr, 1);
+    liblte_align_up_zero(ptr, 8);
 
     if (liblte_s1ap_pack_rrc_container(&ie->rRC_Container, ptr) != LIBLTE_SUCCESS) {
       return LIBLTE_ERROR_ENCODE_FAIL;
@@ -14639,7 +14653,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_sourceenb_totargetenb_transparentcontainer(
 }
 
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_sourceenb_totargetenb_transparentcontainer(
-    uint8_t** ptr, LIBLTE_S1AP_SOURCEENB_TOTARGETENB_TRANSPARENTCONTAINER_STRUCT* ie)
+    uint8_t**                                                      ptr,
+    LIBLTE_S1AP_SOURCEENB_TOTARGETENB_TRANSPARENTCONTAINER_STRUCT* ie)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -14655,6 +14670,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_sourceenb_totargetenb_transparentcontainer(
     ie->e_RABInformationList_present      = liblte_bits_2_value(ptr, 1);
     ie->subscriberProfileIDforRFP_present = liblte_bits_2_value(ptr, 1);
     ie->iE_Extensions_present             = liblte_bits_2_value(ptr, 1);
+
+    liblte_align_up(ptr, 8);
 
     if (liblte_s1ap_unpack_rrc_container(ptr, &ie->rRC_Container) != LIBLTE_SUCCESS) {
       return LIBLTE_ERROR_DECODE_FAIL;
@@ -14980,7 +14997,8 @@ liblte_s1ap_pack_enb_statustransfer_transparentcontainer(LIBLTE_S1AP_ENB_STATUST
 }
 
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_enb_statustransfer_transparentcontainer(
-    uint8_t** ptr, LIBLTE_S1AP_ENB_STATUSTRANSFER_TRANSPARENTCONTAINER_STRUCT* ie)
+    uint8_t**                                                   ptr,
+    LIBLTE_S1AP_ENB_STATUSTRANSFER_TRANSPARENTCONTAINER_STRUCT* ie)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -16630,7 +16648,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_taiitem(uint8_t** ptr, LIBLTE_S1AP_TAIITEM_
 ********************************************************************************/
 // lb:1, ub:256
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_ue_associatedlogicals1_connectionlistres(
-    LIBLTE_S1AP_UE_ASSOCIATEDLOGICALS1_CONNECTIONLISTRES_STRUCT* ie, uint8_t** ptr)
+    LIBLTE_S1AP_UE_ASSOCIATEDLOGICALS1_CONNECTIONLISTRES_STRUCT* ie,
+    uint8_t**                                                    ptr)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -16673,7 +16692,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_ue_associatedlogicals1_connectionlistres(
 }
 
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_ue_associatedlogicals1_connectionlistres(
-    uint8_t** ptr, LIBLTE_S1AP_UE_ASSOCIATEDLOGICALS1_CONNECTIONLISTRES_STRUCT* ie)
+    uint8_t**                                                    ptr,
+    LIBLTE_S1AP_UE_ASSOCIATEDLOGICALS1_CONNECTIONLISTRES_STRUCT* ie)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -16714,7 +16734,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_ue_associatedlogicals1_connectionlistres(
 ********************************************************************************/
 // lb:1, ub:256
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_ue_associatedlogicals1_connectionlistresack(
-    LIBLTE_S1AP_UE_ASSOCIATEDLOGICALS1_CONNECTIONLISTRESACK_STRUCT* ie, uint8_t** ptr)
+    LIBLTE_S1AP_UE_ASSOCIATEDLOGICALS1_CONNECTIONLISTRESACK_STRUCT* ie,
+    uint8_t**                                                       ptr)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -16757,7 +16778,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_ue_associatedlogicals1_connectionlistresack(
 }
 
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_ue_associatedlogicals1_connectionlistresack(
-    uint8_t** ptr, LIBLTE_S1AP_UE_ASSOCIATEDLOGICALS1_CONNECTIONLISTRESACK_STRUCT* ie)
+    uint8_t**                                                       ptr,
+    LIBLTE_S1AP_UE_ASSOCIATEDLOGICALS1_CONNECTIONLISTRESACK_STRUCT* ie)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -18084,7 +18106,8 @@ liblte_s1ap_pack_allocationandretentionpriority_ext(LIBLTE_S1AP_MESSAGE_ALLOCATI
 }
 
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_allocationandretentionpriority_ext(
-    uint8_t** ptr, LIBLTE_S1AP_MESSAGE_ALLOCATIONANDRETENTIONPRIORITY_EXT_STRUCT* msg)
+    uint8_t**                                                      ptr,
+    LIBLTE_S1AP_MESSAGE_ALLOCATIONANDRETENTIONPRIORITY_EXT_STRUCT* msg)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -18872,7 +18895,8 @@ liblte_s1ap_pack_criticalitydiagnostics_ie_item_ext(LIBLTE_S1AP_MESSAGE_CRITICAL
 }
 
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_criticalitydiagnostics_ie_item_ext(
-    uint8_t** ptr, LIBLTE_S1AP_MESSAGE_CRITICALITYDIAGNOSTICS_IE_ITEM_EXT_STRUCT* msg)
+    uint8_t**                                                      ptr,
+    LIBLTE_S1AP_MESSAGE_CRITICALITYDIAGNOSTICS_IE_ITEM_EXT_STRUCT* msg)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -18934,7 +18958,8 @@ liblte_s1ap_pack_emergencyareaid_broadcast_item_ext(LIBLTE_S1AP_MESSAGE_EMERGENC
 }
 
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_emergencyareaid_broadcast_item_ext(
-    uint8_t** ptr, LIBLTE_S1AP_MESSAGE_EMERGENCYAREAID_BROADCAST_ITEM_EXT_STRUCT* msg)
+    uint8_t**                                                      ptr,
+    LIBLTE_S1AP_MESSAGE_EMERGENCYAREAID_BROADCAST_ITEM_EXT_STRUCT* msg)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -18996,7 +19021,8 @@ liblte_s1ap_pack_emergencyareaid_cancelled_item_ext(LIBLTE_S1AP_MESSAGE_EMERGENC
 }
 
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_emergencyareaid_cancelled_item_ext(
-    uint8_t** ptr, LIBLTE_S1AP_MESSAGE_EMERGENCYAREAID_CANCELLED_ITEM_EXT_STRUCT* msg)
+    uint8_t**                                                      ptr,
+    LIBLTE_S1AP_MESSAGE_EMERGENCYAREAID_CANCELLED_ITEM_EXT_STRUCT* msg)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -19209,7 +19235,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_globalenb_id_ext(uint8_t** ptr, LIBLTE_S1AP
 /* Protocol Message ENB_StatusTransfer_TransparentContainer_Ext STRUCT
 ********************************************************************************/
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_enb_statustransfer_transparentcontainer_ext(
-    LIBLTE_S1AP_MESSAGE_ENB_STATUSTRANSFER_TRANSPARENTCONTAINER_EXT_STRUCT* msg, uint8_t** ptr)
+    LIBLTE_S1AP_MESSAGE_ENB_STATUSTRANSFER_TRANSPARENTCONTAINER_EXT_STRUCT* msg,
+    uint8_t**                                                               ptr)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -19238,7 +19265,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_enb_statustransfer_transparentcontainer_ext(
 }
 
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_enb_statustransfer_transparentcontainer_ext(
-    uint8_t** ptr, LIBLTE_S1AP_MESSAGE_ENB_STATUSTRANSFER_TRANSPARENTCONTAINER_EXT_STRUCT* msg)
+    uint8_t**                                                               ptr,
+    LIBLTE_S1AP_MESSAGE_ENB_STATUSTRANSFER_TRANSPARENTCONTAINER_EXT_STRUCT* msg)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -21140,7 +21168,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_targetrnc_id_ext(uint8_t** ptr, LIBLTE_S1AP
 /* Protocol Message TargeteNB_ToSourceeNB_TransparentContainer_Ext STRUCT
 ********************************************************************************/
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_targetenb_tosourceenb_transparentcontainer_ext(
-    LIBLTE_S1AP_MESSAGE_TARGETENB_TOSOURCEENB_TRANSPARENTCONTAINER_EXT_STRUCT* msg, uint8_t** ptr)
+    LIBLTE_S1AP_MESSAGE_TARGETENB_TOSOURCEENB_TRANSPARENTCONTAINER_EXT_STRUCT* msg,
+    uint8_t**                                                                  ptr)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -21169,7 +21198,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_targetenb_tosourceenb_transparentcontainer_ex
 }
 
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_targetenb_tosourceenb_transparentcontainer_ext(
-    uint8_t** ptr, LIBLTE_S1AP_MESSAGE_TARGETENB_TOSOURCEENB_TRANSPARENTCONTAINER_EXT_STRUCT* msg)
+    uint8_t**                                                                  ptr,
+    LIBLTE_S1AP_MESSAGE_TARGETENB_TOSOURCEENB_TRANSPARENTCONTAINER_EXT_STRUCT* msg)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -21449,7 +21479,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_ue_s1ap_id_pair_ext(uint8_t**              
 /* Protocol Message UE_associatedLogicalS1_ConnectionItemExt STRUCT
 ********************************************************************************/
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_ue_associatedlogicals1_connectionitemext(
-    LIBLTE_S1AP_MESSAGE_UE_ASSOCIATEDLOGICALS1_CONNECTIONITEMEXT_STRUCT* msg, uint8_t** ptr)
+    LIBLTE_S1AP_MESSAGE_UE_ASSOCIATEDLOGICALS1_CONNECTIONITEMEXT_STRUCT* msg,
+    uint8_t**                                                            ptr)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -21478,7 +21509,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_ue_associatedlogicals1_connectionitemext(
 }
 
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_ue_associatedlogicals1_connectionitemext(
-    uint8_t** ptr, LIBLTE_S1AP_MESSAGE_UE_ASSOCIATEDLOGICALS1_CONNECTIONITEMEXT_STRUCT* msg)
+    uint8_t**                                                            ptr,
+    LIBLTE_S1AP_MESSAGE_UE_ASSOCIATEDLOGICALS1_CONNECTIONITEMEXT_STRUCT* msg)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -21694,7 +21726,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_enbx2exttla_ext(uint8_t** ptr, LIBLTE_S1AP_
 /* Protocol Message SourceeNB_ToTargeteNB_TransparentContainer_Ext STRUCT
 ********************************************************************************/
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_sourceenb_totargetenb_transparentcontainer_ext(
-    LIBLTE_S1AP_MESSAGE_SOURCEENB_TOTARGETENB_TRANSPARENTCONTAINER_EXT_STRUCT* msg, uint8_t** ptr)
+    LIBLTE_S1AP_MESSAGE_SOURCEENB_TOTARGETENB_TRANSPARENTCONTAINER_EXT_STRUCT* msg,
+    uint8_t**                                                                  ptr)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -21743,7 +21776,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_sourceenb_totargetenb_transparentcontainer_ex
 }
 
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_sourceenb_totargetenb_transparentcontainer_ext(
-    uint8_t** ptr, LIBLTE_S1AP_MESSAGE_SOURCEENB_TOTARGETENB_TRANSPARENTCONTAINER_EXT_STRUCT* msg)
+    uint8_t**                                                                  ptr,
+    LIBLTE_S1AP_MESSAGE_SOURCEENB_TOTARGETENB_TRANSPARENTCONTAINER_EXT_STRUCT* msg)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -21882,7 +21916,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_e_rabinformationlist(uint8_t**             
 /* Protocol Message LastVisitedEUTRANCellInformation_Ext STRUCT
 ********************************************************************************/
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_lastvisitedeutrancellinformation_ext(
-    LIBLTE_S1AP_MESSAGE_LASTVISITEDEUTRANCELLINFORMATION_EXT_STRUCT* msg, uint8_t** ptr)
+    LIBLTE_S1AP_MESSAGE_LASTVISITEDEUTRANCELLINFORMATION_EXT_STRUCT* msg,
+    uint8_t**                                                        ptr)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -21951,7 +21986,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_lastvisitedeutrancellinformation_ext(
 }
 
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_lastvisitedeutrancellinformation_ext(
-    uint8_t** ptr, LIBLTE_S1AP_MESSAGE_LASTVISITEDEUTRANCELLINFORMATION_EXT_STRUCT* msg)
+    uint8_t**                                                        ptr,
+    LIBLTE_S1AP_MESSAGE_LASTVISITEDEUTRANCELLINFORMATION_EXT_STRUCT* msg)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -22103,7 +22139,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_soninformationreply_ext(uint8_t**          
 /* Protocol Message Bearers_SubjectToStatusTransfer_ItemExt STRUCT
 ********************************************************************************/
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_bearers_subjecttostatustransfer_itemext(
-    LIBLTE_S1AP_MESSAGE_BEARERS_SUBJECTTOSTATUSTRANSFER_ITEMEXT_STRUCT* msg, uint8_t** ptr)
+    LIBLTE_S1AP_MESSAGE_BEARERS_SUBJECTTOSTATUSTRANSFER_ITEMEXT_STRUCT* msg,
+    uint8_t**                                                           ptr)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -22194,7 +22231,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_bearers_subjecttostatustransfer_itemext(
 }
 
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_bearers_subjecttostatustransfer_itemext(
-    uint8_t** ptr, LIBLTE_S1AP_MESSAGE_BEARERS_SUBJECTTOSTATUSTRANSFER_ITEMEXT_STRUCT* msg)
+    uint8_t**                                                           ptr,
+    LIBLTE_S1AP_MESSAGE_BEARERS_SUBJECTTOSTATUSTRANSFER_ITEMEXT_STRUCT* msg)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -22538,7 +22576,8 @@ liblte_s1ap_unpack_x2tnlconfigurationinfo_ext(uint8_t** ptr, LIBLTE_S1AP_MESSAGE
 /* Protocol Message Bearers_SubjectToStatusTransfer_Item STRUCT
 ********************************************************************************/
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_bearers_subjecttostatustransfer_item(
-    LIBLTE_S1AP_MESSAGE_BEARERS_SUBJECTTOSTATUSTRANSFER_ITEM_STRUCT* msg, uint8_t** ptr)
+    LIBLTE_S1AP_MESSAGE_BEARERS_SUBJECTTOSTATUSTRANSFER_ITEM_STRUCT* msg,
+    uint8_t**                                                        ptr)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -22584,7 +22623,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_bearers_subjecttostatustransfer_item(
 }
 
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_bearers_subjecttostatustransfer_item(
-    uint8_t** ptr, LIBLTE_S1AP_MESSAGE_BEARERS_SUBJECTTOSTATUSTRANSFER_ITEM_STRUCT* msg)
+    uint8_t**                                                        ptr,
+    LIBLTE_S1AP_MESSAGE_BEARERS_SUBJECTTOSTATUSTRANSFER_ITEM_STRUCT* msg)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -24976,7 +25016,8 @@ liblte_s1ap_pack_e_rabtobemodifyitembearermodreqext(LIBLTE_S1AP_MESSAGE_E_RABTOB
 }
 
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_e_rabtobemodifyitembearermodreqext(
-    uint8_t** ptr, LIBLTE_S1AP_MESSAGE_E_RABTOBEMODIFYITEMBEARERMODREQEXT_STRUCT* msg)
+    uint8_t**                                                      ptr,
+    LIBLTE_S1AP_MESSAGE_E_RABTOBEMODIFYITEMBEARERMODREQEXT_STRUCT* msg)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -28284,7 +28325,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_nasnondeliveryindication(uint8_t**         
 /* Protocol Message UE_associatedLogicalS1_ConnectionItem STRUCT
 ********************************************************************************/
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_ue_associatedlogicals1_connectionitem(
-    LIBLTE_S1AP_MESSAGE_UE_ASSOCIATEDLOGICALS1_CONNECTIONITEM_STRUCT* msg, uint8_t** ptr)
+    LIBLTE_S1AP_MESSAGE_UE_ASSOCIATEDLOGICALS1_CONNECTIONITEM_STRUCT* msg,
+    uint8_t**                                                         ptr)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -28330,7 +28372,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_ue_associatedlogicals1_connectionitem(
 }
 
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_ue_associatedlogicals1_connectionitem(
-    uint8_t** ptr, LIBLTE_S1AP_MESSAGE_UE_ASSOCIATEDLOGICALS1_CONNECTIONITEM_STRUCT* msg)
+    uint8_t**                                                         ptr,
+    LIBLTE_S1AP_MESSAGE_UE_ASSOCIATEDLOGICALS1_CONNECTIONITEM_STRUCT* msg)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -28377,7 +28420,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_ue_associatedlogicals1_connectionitem(
 /* Protocol Message UE_associatedLogicalS1_ConnectionItemRes STRUCT
 ********************************************************************************/
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_ue_associatedlogicals1_connectionitemres(
-    LIBLTE_S1AP_MESSAGE_UE_ASSOCIATEDLOGICALS1_CONNECTIONITEMRES_STRUCT* msg, uint8_t** ptr)
+    LIBLTE_S1AP_MESSAGE_UE_ASSOCIATEDLOGICALS1_CONNECTIONITEMRES_STRUCT* msg,
+    uint8_t**                                                            ptr)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -28424,7 +28468,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_ue_associatedlogicals1_connectionitemres(
 }
 
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_ue_associatedlogicals1_connectionitemres(
-    uint8_t** ptr, LIBLTE_S1AP_MESSAGE_UE_ASSOCIATEDLOGICALS1_CONNECTIONITEMRES_STRUCT* msg)
+    uint8_t**                                                            ptr,
+    LIBLTE_S1AP_MESSAGE_UE_ASSOCIATEDLOGICALS1_CONNECTIONITEMRES_STRUCT* msg)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -31473,7 +31518,8 @@ liblte_s1ap_pack_locationreportingfailureindication(LIBLTE_S1AP_MESSAGE_LOCATION
 }
 
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_locationreportingfailureindication(
-    uint8_t** ptr, LIBLTE_S1AP_MESSAGE_LOCATIONREPORTINGFAILUREINDICATION_STRUCT* msg)
+    uint8_t**                                                      ptr,
+    LIBLTE_S1AP_MESSAGE_LOCATIONREPORTINGFAILUREINDICATION_STRUCT* msg)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -33588,7 +33634,8 @@ liblte_s1ap_unpack_uplinkueassociatedlppatransport(uint8_t**                    
 /* Protocol Message DownlinkNonUEAssociatedLPPaTransport STRUCT
 ********************************************************************************/
 LIBLTE_ERROR_ENUM liblte_s1ap_pack_downlinknonueassociatedlppatransport(
-    LIBLTE_S1AP_MESSAGE_DOWNLINKNONUEASSOCIATEDLPPATRANSPORT_STRUCT* msg, uint8_t** ptr)
+    LIBLTE_S1AP_MESSAGE_DOWNLINKNONUEASSOCIATEDLPPATRANSPORT_STRUCT* msg,
+    uint8_t**                                                        ptr)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -33646,7 +33693,8 @@ LIBLTE_ERROR_ENUM liblte_s1ap_pack_downlinknonueassociatedlppatransport(
 }
 
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_downlinknonueassociatedlppatransport(
-    uint8_t** ptr, LIBLTE_S1AP_MESSAGE_DOWNLINKNONUEASSOCIATEDLPPATRANSPORT_STRUCT* msg)
+    uint8_t**                                                        ptr,
+    LIBLTE_S1AP_MESSAGE_DOWNLINKNONUEASSOCIATEDLPPATRANSPORT_STRUCT* msg)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -33756,7 +33804,8 @@ liblte_s1ap_pack_uplinknonueassociatedlppatransport(LIBLTE_S1AP_MESSAGE_UPLINKNO
 }
 
 LIBLTE_ERROR_ENUM liblte_s1ap_unpack_uplinknonueassociatedlppatransport(
-    uint8_t** ptr, LIBLTE_S1AP_MESSAGE_UPLINKNONUEASSOCIATEDLPPATRANSPORT_STRUCT* msg)
+    uint8_t**                                                      ptr,
+    LIBLTE_S1AP_MESSAGE_UPLINKNONUEASSOCIATEDLPPATRANSPORT_STRUCT* msg)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 

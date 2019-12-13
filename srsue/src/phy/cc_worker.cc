@@ -432,6 +432,7 @@ int cc_worker::decode_pdsch(srslte_pdsch_ack_resource_t            ack_resource,
   }
 
   // Generate ACKs for MAC and PUCCH
+  uint32_t nof_tb                             = 0;
   uint8_t pending_acks[SRSLTE_MAX_CODEWORDS] = {};
   for (uint32_t tb = 0; tb < SRSLTE_MAX_CODEWORDS; tb++) {
     // For MAC, set to true if it's a duplicate
@@ -440,9 +441,13 @@ int cc_worker::decode_pdsch(srslte_pdsch_ack_resource_t            ack_resource,
     // For PUCCH feedback, need to send even if duplicate, but only those CW that were enabled before disabling in th
     // grant
     pending_acks[tb] = tb_enable[tb] ? mac_acks[tb] : 2;
+
+    if (tb_enable[tb]) {
+      nof_tb++;
+    }
   }
 
-  if (action->generate_ack && ue_dl_cfg.cfg.pdsch.grant.nof_tb > 0) {
+  if (action->generate_ack && nof_tb > 0) {
     phy->set_dl_pending_ack(&sf_cfg_dl, cc_idx, pending_acks, ack_resource);
   }
 
@@ -904,16 +909,10 @@ void cc_worker::set_config(srslte::phy_cfg_t& phy_cfg)
 
 int cc_worker::read_ce_abs(float* ce_abs, uint32_t tx_antenna, uint32_t rx_antenna)
 {
-  uint32_t i  = 0;
   int      sz = srslte_symbol_sz(cell.nof_prb);
   bzero(ce_abs, sizeof(float) * sz);
   int g = (sz - 12 * cell.nof_prb) / 2;
-  for (i = 0; i < 12 * cell.nof_prb; i++) {
-    ce_abs[g + i] = 20 * log10f(std::abs(std::complex<float>(ue_dl.chest_res.ce[tx_antenna][rx_antenna][i])));
-    if (std::isinf(ce_abs[g + i])) {
-      ce_abs[g + i] = -80;
-    }
-  }
+  srslte_vec_abs_dB_cf(ue_dl.chest_res.ce[tx_antenna][rx_antenna], -80, &ce_abs[g], SRSLTE_NRE * cell.nof_prb);
   return sz;
 }
 

@@ -35,15 +35,15 @@
 #include "txrx.h"
 
 namespace srsenb {
- 
-typedef struct {
+
+struct phy_cfg_t {
   srslte_cell_t                  cell;
   asn1::rrc::prach_cfg_sib_s     prach_cnfg;
   asn1::rrc::pdsch_cfg_common_s  pdsch_cnfg;
   asn1::rrc::pusch_cfg_common_s  pusch_cnfg;
   asn1::rrc::pucch_cfg_common_s  pucch_cnfg;
   asn1::rrc::srs_ul_cfg_common_c srs_ul_cnfg;
-} phy_cfg_t;
+};
 
 class phy : public enb_phy_base, public phy_interface_stack_lte, public srslte::phy_interface_radio
 {
@@ -60,9 +60,9 @@ public:
   std::string get_type() { return "lte"; };
 
   /* MAC->PHY interface */
-  int  add_rnti(uint16_t rnti, bool is_temporal = false);
-  void rem_rnti(uint16_t rnti);
-  void set_mch_period_stop(uint32_t stop);
+  int  add_rnti(uint16_t rnti, bool is_temporal = false) final;
+  void rem_rnti(uint16_t rnti) final;
+  void set_mch_period_stop(uint32_t stop) final;
 
   /*RRC-PHY interface*/
   void configure_mbsfn(asn1::rrc::sib_type2_s* sib2, asn1::rrc::sib_type13_r9_s* sib13, asn1::rrc::mcch_msg_s mcch);
@@ -95,11 +95,11 @@ private:
   std::vector<std::unique_ptr<srslte::log_filter> > log_vec;
   srslte::log*                                      log_h = nullptr;
 
-  srslte::thread_pool      workers_pool;
-  std::vector<sf_worker>    workers;
-  phy_common                workers_common;
-  prach_worker             prach;
-  txrx                      tx_rx;
+  srslte::thread_pool    workers_pool;
+  std::vector<sf_worker> workers;
+  phy_common             workers_common;
+  prach_worker_pool      prach;
+  txrx                   tx_rx;
 
   bool initialized = false;
 

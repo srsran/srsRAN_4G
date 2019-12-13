@@ -107,7 +107,7 @@ void metrics_csv::set_metrics(enb_metrics_t &metrics, const uint32_t period_usec
 std::string metrics_csv::float_to_string(float f, int digits, bool add_semicolon)
 {
   std::ostringstream os;
-  const int precision = (f == 0.0) ? digits-1 : digits - log10(fabs(f))-2*DBL_EPSILON;
+  const int          precision = (f == 0.0) ? digits - 1 : digits - log10f(fabs(f)) - 2 * DBL_EPSILON;
   os << std::fixed << std::setprecision(precision) << f;
   if (add_semicolon)
     os << ';';

@@ -55,13 +55,13 @@ void parse_args(int argc, char **argv) {
   while ((opt = getopt(argc, argv, "cei")) != -1) {
     switch (opt) {
     case 'c':
-      cb_idx = atoi(argv[optind]);
+      cb_idx = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'e':
-      nof_e_bits = atoi(argv[optind]);
+      nof_e_bits = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'i':
-      rv_idx = atoi(argv[optind]);
+      rv_idx = (int)strtol(argv[optind], NULL, 10);
       break;
     default:
       usage(argv[0]);

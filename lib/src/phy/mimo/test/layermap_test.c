@@ -50,13 +50,13 @@ void parse_args(int argc, char **argv) {
   while ((opt = getopt(argc, argv, "mcln")) != -1) {
     switch (opt) {
     case 'n':
-      nof_symbols = atoi(argv[optind]);
+      nof_symbols = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'c':
-      nof_cw = atoi(argv[optind]);
+      nof_cw = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'l':
-      nof_layers = atoi(argv[optind]);
+      nof_layers = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'm':
       mimo_type_name = argv[optind];

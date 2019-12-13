@@ -22,14 +22,14 @@
 #include <complex.h>
 #include <stdlib.h>
 #include <strings.h>
-#include <math.h>
 
 #include "gauss.h"
-#include "srslte/phy/channel/ch_awgn.h"
+#include <srslte/phy/channel/ch_awgn.h>
+#include <srslte/phy/utils/vector.h>
 
 float srslte_ch_awgn_get_variance(float ebno_db, float rate) {
-  float esno_db = ebno_db + 10 * log10f(rate);
-  return sqrtf(1 / (powf(10, esno_db / 10)));
+  float esno_db = ebno_db + srslte_convert_power_to_dB(rate);
+  return srslte_convert_dB_to_amplitude(-esno_db);
 }
 
 void srslte_ch_awgn_c(const cf_t* x, cf_t* y, float variance, uint32_t len) {

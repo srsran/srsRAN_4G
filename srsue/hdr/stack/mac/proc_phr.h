@@ -37,32 +37,30 @@ class phr_proc : public srslte::timer_callback
 {
 public:
   phr_proc();
-  void init(phy_interface_mac_lte* phy_h, srslte::log* log_h_, srslte::timers* timers_db_);
+  void init(phy_interface_mac_lte* phy_h, srslte::log* log_h_, srslte::timer_handler* timers_db_);
   void set_config(srslte::phr_cfg_t& cfg);
   void step(uint32_t tti);
   void reset();
-  
-  bool generate_phr_on_ul_grant(float *phr);
+
+  bool generate_phr_on_ul_grant(float* phr);
   bool is_extended();
   void timer_expired(uint32_t timer_id);
 
   void start_timer();
 
 private:
-  
-  bool pathloss_changed(); 
-  
-  srslte::log* log_h;
-  phy_interface_mac_lte*       phy_h;
-  srslte::timers* timers_db;
-  srslte::phr_cfg_t            phr_cfg;
-  bool initiated;
-  int last_pathloss_db;
-  bool phr_is_triggered;
+  bool pathloss_changed();
 
-  uint32_t timer_periodic_id;
-  uint32_t timer_prohibit_id;
+  srslte::log*           log_h;
+  phy_interface_mac_lte* phy_h;
+  srslte::timer_handler* timers_db;
+  srslte::phr_cfg_t      phr_cfg;
+  bool                   initiated;
+  int                    last_pathloss_db;
+  bool                   phr_is_triggered;
 
+  srslte::timer_handler::unique_timer timer_periodic;
+  srslte::timer_handler::unique_timer timer_prohibit;
 };
 
 } // namespace srsue

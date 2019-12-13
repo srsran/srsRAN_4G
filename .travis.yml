@@ -7,6 +7,28 @@ before_script:
 
 language: cpp
 
+matrix:
+  include:
+    # works on Precise and Trusty
+    - os: linux
+      addons:
+        apt:
+          sources:
+            - llvm-toolchain-trusty-8
+            - key_url: 'http://apt.llvm.org/llvm-snapshot.gpg.key'
+          packages:
+            - clang-format-8
+            - clang-8
+      env:
+        - MATRIX_EVAL="CC=clang-8 && CXX=clang++-8"
+        
+before_install:
+    - eval "${MATRIX_EVAL}"        
+        
+compiler:
+  - gcc
+  - clang
+
 addons:
   apt:
     sources:
@@ -14,6 +36,7 @@ addons:
       - key_url: 'http://apt.llvm.org/llvm-snapshot.gpg.key'
     packages:
       - clang-format-8
+      - clang-8
 
 script:
  - sudo ln -s /usr/bin/clang-format-diff-8 /usr/bin/clang-format-diff

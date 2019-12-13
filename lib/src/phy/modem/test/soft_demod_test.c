@@ -46,36 +46,36 @@ void parse_args(int argc, char **argv) {
   while ((opt = getopt(argc, argv, "nmvf")) != -1) {
     switch (opt) {
     case 'n':
-      num_bits = atoi(argv[optind]);
+      num_bits = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'f':
-      nof_frames = atoi(argv[optind]);
+      nof_frames = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'v':
       srslte_verbose++;
       break;
     case 'm':
-      switch(atoi(argv[optind])) {
-      case 1:
-        modulation = SRSLTE_MOD_BPSK;
-        break;
-      case 2:
-        modulation = SRSLTE_MOD_QPSK;
-        break;
-      case 4:
-        modulation = SRSLTE_MOD_16QAM;
-        break;
-      case 6:
-        modulation = SRSLTE_MOD_64QAM;
-        break;
-      case 8:
-        modulation = SRSLTE_MOD_256QAM;
-        break;
-      default:
-        ERROR("Invalid modulation %d. Possible values: "
-              "(1: BPSK, 2: QPSK, 4: QAM16, 6: QAM64)\n",
-              atoi(argv[optind]));
-        break;
+      switch (strtol(argv[optind], NULL, 10)) {
+        case 1:
+          modulation = SRSLTE_MOD_BPSK;
+          break;
+        case 2:
+          modulation = SRSLTE_MOD_QPSK;
+          break;
+        case 4:
+          modulation = SRSLTE_MOD_16QAM;
+          break;
+        case 6:
+          modulation = SRSLTE_MOD_64QAM;
+          break;
+        case 8:
+          modulation = SRSLTE_MOD_256QAM;
+          break;
+        default:
+          ERROR("Invalid modulation %d. Possible values: "
+                "(1: BPSK, 2: QPSK, 4: QAM16, 6: QAM64)\n",
+                (int)strtol(argv[optind], NULL, 10));
+          break;
       }
       break;
     default:

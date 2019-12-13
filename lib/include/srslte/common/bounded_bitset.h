@@ -23,6 +23,7 @@
 #define SRSLTE_DYN_BITSET_H
 
 #include <cstdint>
+#include <inttypes.h>
 #include <string>
 
 #define CEILFRAC(x, y) (((x) > 0) ? ((((x)-1) / (y)) + 1) : 0)
@@ -52,7 +53,7 @@ public:
   void resize(size_t new_size) noexcept
   {
     if (new_size > max_size()) {
-      printf("ERROR: bitset resize out of bounds: %lu>=%lu\n", max_size(), new_size);
+      printf("ERROR: bitset resize out of bounds: %zd>=%zd\n", max_size(), new_size);
       return;
     } else if (new_size == cur_size) {
       return;
@@ -67,7 +68,7 @@ public:
   void set(size_t pos) noexcept
   {
     if (pos >= size()) {
-      printf("ERROR: bitset out of bounds: %lu>=%lu\n", pos, size());
+      printf("ERROR: bitset out of bounds: %zd>=%zd\n", pos, size());
       return;
     }
     set_(pos);
@@ -76,7 +77,7 @@ public:
   void reset(size_t pos) noexcept
   {
     if (pos >= size()) {
-      printf("ERROR: bitset out of bounds: %lu>=%lu\n", pos, size());
+      printf("ERROR: bitset out of bounds: %zd>=%zd\n", pos, size());
       return;
     }
     reset_(pos);
@@ -92,7 +93,7 @@ public:
   bool test(size_t pos) const noexcept
   {
     if (pos >= size()) {
-      printf("ERROR: bitset out of bounds: %lu>=%lu\n", pos, size());
+      printf("ERROR: bitset out of bounds: %zd>=%zd\n", pos, size());
       return false;
     }
     return test_(pos);
@@ -110,7 +111,7 @@ public:
   bounded_bitset<N, reversed>& fill(size_t startpos, size_t endpos, bool value = true) noexcept
   {
     if (endpos > size() or startpos > endpos) {
-      printf("ERROR: bounds (%lu, %lu) are not valid for bitset of size: %lu\n", startpos, endpos, size());
+      printf("ERROR: bounds (%zd, %zd) are not valid for bitset of size: %zd\n", startpos, endpos, size());
       return *this;
     }
     // NOTE: can be optimized
@@ -154,7 +155,7 @@ public:
   bool any(size_t start, size_t stop) const noexcept
   {
     if (start > stop or stop > size()) {
-      printf("ERROR: bounds (%lu, %lu) are not valid for bitset of size: %lu\n", start, stop, size());
+      printf("ERROR: bounds (%zd, %zd) are not valid for bitset of size: %zd\n", start, stop, size());
       return false;
     }
     // NOTE: can be optimized
@@ -198,7 +199,7 @@ public:
   bounded_bitset<N, reversed>& operator|=(const bounded_bitset<N, reversed>& other) noexcept
   {
     if (other.size() != size()) {
-      printf("ERROR: operator|= called for bitsets of different sizes (%lu!=%lu)\n", size(), other.size());
+      printf("ERROR: operator|= called for bitsets of different sizes (%zd!=%zd)\n", size(), other.size());
       return *this;
     }
     for (size_t i = 0; i < nof_words_(); ++i) {
@@ -210,7 +211,7 @@ public:
   bounded_bitset<N, reversed>& operator&=(const bounded_bitset<N, reversed>& other) noexcept
   {
     if (other.size() != size()) {
-      printf("ERROR: operator&= called for bitsets of different sizes (%lu!=%lu)\n", size(), other.size());
+      printf("ERROR: operator&= called for bitsets of different sizes (%zd!=%zd)\n", size(), other.size());
       return *this;
     }
     for (size_t i = 0; i < nof_words_(); ++i) {
@@ -249,7 +250,7 @@ public:
   uint64_t to_uint64() const noexcept
   {
     if (nof_words_() > 1) {
-      printf("ERROR: cannot convert bitset of size %lu bits to uint64_t\n", size());
+      printf("ERROR: cannot convert bitset of size %zd bits to uint64_t\n", size());
       return 0;
     }
     return get_word_(0);
@@ -262,7 +263,7 @@ public:
     size_t count = 0;
 
     for (int i = nof_words_() - 1; i >= 0; --i) {
-      count += sprintf(&cstr[count], "%016lx", buffer[i]);
+      count += sprintf(&cstr[count], "%016" PRIx64, buffer[i]);
     }
 
     size_t skip = nof_words_() * bits_per_word / 4 - nof_digits;

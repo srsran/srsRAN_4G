@@ -33,5 +33,5 @@ float rand_gauss (void) {
     s = v1*v1 + v2*v2;
   } while ( s >= 1.0 || s == 0.0);
 
-    return (v1*sqrt(-2.0 * log(s) / s));
+  return (v1 * sqrtf(-2.0 * log(s) / s));
 }

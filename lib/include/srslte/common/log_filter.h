@@ -57,6 +57,7 @@ public:
   void error(const char * message, ...)   __attribute__ ((format (printf, 2, 3)));
   void warning(const char * message, ...) __attribute__ ((format (printf, 2, 3)));
   void info(const char * message, ...)    __attribute__ ((format (printf, 2, 3)));
+  void info_long(const char* message, ...) __attribute__((format(printf, 2, 3)));
   void debug(const char * message, ...)   __attribute__ ((format (printf, 2, 3)));
   void debug_long(const char* message, ...) __attribute__((format(printf, 2, 3)));
 

@@ -90,7 +90,7 @@ static inline float get_doppler_dispersion(double t, double a, double w, double 
 static inline void
 generate_tap(float delay_ns, float power_db, float srate, float phase, cf_t* buf, uint32_t N, uint32_t path_delay)
 {
-  float amplitude = powf(10.0f, power_db / 20.0f);
+  float amplitude = srslte_convert_dB_to_power(power_db);
   float O         = (delay_ns * 1e-9f * srate + path_delay) / (float)N;
   cf_t  a0        = amplitude * cexpf(-_Complex_I * phase) / N;
 

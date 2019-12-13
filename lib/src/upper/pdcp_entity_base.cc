@@ -24,7 +24,7 @@
 
 namespace srslte {
 
-pdcp_entity_base::pdcp_entity_base() {}
+pdcp_entity_base::pdcp_entity_base(srslte::timer_handler* timers_, srslte::log* log_) : log(log_), timers(timers_) {}
 
 pdcp_entity_base::~pdcp_entity_base() {}
 
@@ -86,7 +86,7 @@ void pdcp_entity_base::integrity_generate(uint8_t* msg, uint32_t msg_len, uint32
       break;
   }
 
-  log->debug("Integrity gen input: COUNT %d, Bearer ID %d, Direction %s\n",
+  log->debug("Integrity gen input: COUNT %" PRIu32 ", Bearer ID %d, Direction %s\n",
              count,
              cfg.bearer_id,
              (cfg.tx_direction == SECURITY_DIRECTION_DOWNLINK ? "Downlink" : "Uplink"));
@@ -123,7 +123,7 @@ bool pdcp_entity_base::integrity_verify(uint8_t* msg, uint32_t msg_len, uint32_t
       break;
   }
 
-  log->debug("Integrity check input: COUNT %d, Bearer ID %d, Direction %s\n",
+  log->debug("Integrity check input: COUNT %" PRIu32 ", Bearer ID %d, Direction %s\n",
              count,
              cfg.bearer_id,
              cfg.rx_direction == SECURITY_DIRECTION_DOWNLINK ? "Downlink" : "Uplink");
@@ -158,7 +158,7 @@ void pdcp_entity_base::cipher_encrypt(uint8_t* msg, uint32_t msg_len, uint32_t c
     k_enc = k_up_enc;
   }
 
-  log->debug("Cipher encrypt input: COUNT: %d, Bearer ID: %d, Direction %s\n",
+  log->debug("Cipher encrypt input: COUNT: %" PRIu32 ", Bearer ID: %d, Direction %s\n",
              count,
              cfg.bearer_id,
              cfg.tx_direction == SECURITY_DIRECTION_DOWNLINK ? "Downlink" : "Uplink");
@@ -197,7 +197,7 @@ void pdcp_entity_base::cipher_decrypt(uint8_t* ct, uint32_t ct_len, uint32_t cou
     k_enc = k_up_enc;
   }
 
-  log->debug("Cipher decrypt input: COUNT: %d, Bearer ID: %d, Direction %s\n",
+  log->debug("Cipher decrypt input: COUNT: %" PRIu32 ", Bearer ID: %d, Direction %s\n",
              count,
              cfg.bearer_id,
              (cfg.rx_direction == SECURITY_DIRECTION_DOWNLINK) ? "Downlink" : "Uplink");

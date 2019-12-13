@@ -69,16 +69,16 @@ void parse_args(int argc, char **argv) {
       input_file_name = argv[optind];
       break;
     case 'c':
-      cell.id = atoi(argv[optind]);
+      cell.id = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'd':
       use_standard_lte_rates = true;
       break;
     case 'n':
-      cell.nof_prb = atoi(argv[optind]);
+      cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'p':
-      cell.nof_ports = atoi(argv[optind]);
+      cell.nof_ports = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'o':
       matlab_file_name = argv[optind];

@@ -65,6 +65,7 @@ configure_file(
 option(ENABLE_SRSUE    "Build srsUE application"                  ON)
 option(ENABLE_SRSENB   "Build srsENB application"                 ON)
 option(ENABLE_SRSEPC   "Build srsEPC application"                 ON)
+option(ENABLE_5GNR     "Build with 5G-NR components"              OFF)
 option(DISABLE_SIMD    "disable simd instructions"                OFF)
 
 option(ENABLE_GUI      "Enable GUI (using srsGUI)"                ON)
@@ -86,12 +87,32 @@ option(USE_LTE_RATES   "Use standard LTE sampling rates"          OFF)
 option(USE_GLIBC_IPV6  "Use glibc's own ipv6.h"                   ON)
 option(USE_MKL         "Use MKL instead of fftw"                  OFF)
 
-set(GCC_ARCH native CACHE STRING "GCC compile for specific architecture.")
+if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
+  set(GCC_ARCH armv8-a CACHE STRING "GCC compile for specific architecture.")
+  message(STATUS "Detected aarch64 processor")
+else(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
+  set(GCC_ARCH native CACHE STRING "GCC compile for specific architecture.")
+endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
 
+if (ENABLE_5GNR)
+  add_definitions(-DHAVE_5GNR)
+endif (ENABLE_5GNR)
 
 ########################################################################
 # Find dependencies
 ########################################################################
+
+# Enable ccache if not already enabled
+find_program(CCACHE_EXECUTABLE ccache)
+mark_as_advanced(CCACHE_EXECUTABLE)
+if(CCACHE_EXECUTABLE)
+  foreach(LANG C CXX)
+    if(NOT DEFINED CMAKE_${LANG}_COMPILER_LAUNCHER AND NOT CMAKE_${LANG}_COMPILER MATCHES ".*/ccache$")
+      message(STATUS "Enabling ccache for ${LANG}")
+      set(CMAKE_${LANG}_COMPILER_LAUNCHER ${CCACHE_EXECUTABLE} CACHE STRING "")
+    endif()
+  endforeach()
+endif()
 
 # Threads
 find_package(Threads REQUIRED)
@@ -289,7 +310,10 @@ macro(ADD_C_COMPILER_FLAG_IF_AVAILABLE flag have)
 endmacro(ADD_C_COMPILER_FLAG_IF_AVAILABLE)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-comment -Wno-reorder -Wno-unused-but-set-variable -Wno-unused-variable -Wtype-limits -std=c++11")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-comment -Wno-reorder -Wno-unused-variable -Wtype-limits -std=c++11")
+
+  ADD_C_COMPILER_FLAG_IF_AVAILABLE("-Wno-unused-but-set-variable" HAVE_WNO_UNUSED_BUT_SET_VARIABLE)
+  ADD_CXX_COMPILER_FLAG_IF_AVAILABLE("-Wno-unused-but-set-variable" HAVE_WNO_UNUSED_BUT_SET_VARIABLE)
 
   find_package(SSE)
   if (HAVE_AVX2)
@@ -361,14 +385,23 @@ if(CMAKE_C_COMPILER_ID MATCHES "GNU" OR CMAKE_C_COMPILER_ID MATCHES "Clang")
     endif(HAVE_SSE)
   endif(NOT ${CMAKE_BUILD_TYPE} STREQUAL "Debug")
 
-  if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm" OR ${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DIS_ARM -DHAVE_NEON -mfloat-abi=hard -mfpu=neon")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DIS_ARM -mfloat-abi=hard -mfpu=neon")
+  if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm" OR ${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch" OR ${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DIS_ARM -DHAVE_NEON")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DIS_ARM")
+    if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
+      set(HAVE_NEONv8 "True")
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DHAVE_NEONv8")
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DHAVE_NEONv8")
+    endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
+    if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mfloat-abi=hard -mfpu=neon")
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mfloat-abi=hard -mfpu=neon")
+    endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm")
     message(STATUS "Detected ARM processor")
     set(HAVE_NEON "True")
-  else(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm" OR ${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch")
+  else(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm" OR ${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch" OR ${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
     set(HAVE_NEON "False")
-  endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm" OR ${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch")
+  endif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "arm" OR ${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch" OR ${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
   set(CMAKE_REQUIRED_FLAGS ${CMAKE_C_FLAGS})
 
   if(NOT HAVE_SSE AND NOT HAVE_NEON AND NOT DISABLE_SIMD)
@@ -400,9 +433,14 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
    set(CMAKE_SHARED_LINKER_FLAGS "-undefined dynamic_lookup")
 endif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
+# Add colored output when using the Ninja generator
+if("Ninja" STREQUAL ${CMAKE_GENERATOR})
+   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fdiagnostics-color=always")
+   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fdiagnostics-color=always")
+endif()
 
 # Add -Werror to C/C++ flags for newer compilers
-if(NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9)
+if(NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 4.9 AND NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 endif()

@@ -33,25 +33,7 @@ namespace srsenb {
 class prach_worker : thread
 {
 public:
-  prach_worker() :
-    initiated(false),
-    prach_nof_det(0),
-    max_prach_offset_us(0),
-    buffer_pool(8),
-    running(false),
-    nof_sf(0),
-    sf_cnt(0),
-    thread("PRACH_WORKER")
-  {
-    log_h = NULL;
-    stack = NULL;
-    bzero(&prach, sizeof(srslte_prach_t));
-    bzero(&prach_indices, sizeof(prach_indices));
-    bzero(&prach_offsets, sizeof(prach_offsets));
-    bzero(&prach_p2avg, sizeof(prach_p2avg));
-    bzero(&cell, sizeof(cell));
-    bzero(&prach_cfg, sizeof(prach_cfg));
-  }
+  prach_worker(uint32_t cc_idx_) : buffer_pool(8), thread("PRACH_WORKER") { cc_idx = cc_idx_; }
 
   int  init(const srslte_cell_t&      cell_,
             const srslte_prach_cfg_t& prach_cfg_,
@@ -63,51 +45,96 @@ public:
   void stop();
   
 private:
-  uint32_t prach_nof_det;
-  uint32_t prach_indices[165]; 
-  float    prach_offsets[165]; 
-  float    prach_p2avg[165];
- 
-  srslte_cell_t cell; 
-  srslte_prach_cfg_t prach_cfg;
-  srslte_prach_t  prach;
+  uint32_t cc_idx             = 0;
+  uint32_t prach_nof_det      = 0;
+  uint32_t prach_indices[165] = {};
+  float    prach_offsets[165] = {};
+  float    prach_p2avg[165]   = {};
+
+  srslte_cell_t      cell      = {};
+  srslte_prach_cfg_t prach_cfg = {};
+  srslte_prach_t     prach     = {};
 
   const static int sf_buffer_sz = 128*1024;
   class sf_buffer {
   public:
-    sf_buffer()
-    {
-      nof_samples = 0;
-      tti         = 0;
-    }
+    sf_buffer() = default;
     void reset()
     {
       nof_samples = 0;
       tti         = 0;
     }
-    cf_t     samples[sf_buffer_sz];
-    uint32_t nof_samples;
-    uint32_t tti;
+    cf_t     samples[sf_buffer_sz] = {};
+    uint32_t nof_samples           = 0;
+    uint32_t tti                   = 0;
 #ifdef SRSLTE_BUFFER_POOL_LOG_ENABLED
     char debug_name[SRSLTE_BUFFER_POOL_LOG_NAME_LEN];
 #endif /* SRSLTE_BUFFER_POOL_LOG_ENABLED */
   };
   srslte::buffer_pool<sf_buffer>  buffer_pool;
   srslte::block_queue<sf_buffer*> pending_buffers;
-  sf_buffer* current_buffer;
 
-  srslte::log* log_h;
-  stack_interface_phy_lte* stack;
-  float max_prach_offset_us;
-  bool initiated;
-  bool running;
-  uint32_t nof_sf;
-  uint32_t sf_cnt;
+  sf_buffer*               current_buffer      = nullptr;
+  srslte::log*             log_h               = nullptr;
+  stack_interface_phy_lte* stack               = nullptr;
+  float                    max_prach_offset_us = 0.0f;
+  bool                     initiated           = false;
+  bool                     running             = false;
+  uint32_t                 nof_sf              = 0;
+  uint32_t                 sf_cnt              = 0;
 
-  void run_thread();
+  void run_thread() final;
   int run_tti(sf_buffer *b);
 
 
+};
+
+class prach_worker_pool
+{
+private:
+  std::vector<std::unique_ptr<prach_worker> > prach_vec;
+
+public:
+  prach_worker_pool()  = default;
+  ~prach_worker_pool() = default;
+
+  void init(uint32_t                  cc_idx,
+            const srslte_cell_t&      cell_,
+            const srslte_prach_cfg_t& prach_cfg_,
+            stack_interface_phy_lte*  mac,
+            srslte::log*              log_h,
+            int                       priority)
+  {
+    // Create PRACH worker if required
+    while (cc_idx >= prach_vec.size()) {
+      prach_vec.push_back(std::unique_ptr<prach_worker>(new prach_worker(prach_vec.size())));
+    }
+
+    prach_vec[cc_idx]->init(cell_, prach_cfg_, mac, log_h, priority);
+  }
+
+  void set_max_prach_offset_us(float delay_us)
+  {
+    for (auto& prach : prach_vec) {
+      prach->set_max_prach_offset_us(delay_us);
+    }
+  }
+
+  void stop()
+  {
+    for (auto& prach : prach_vec) {
+      prach->stop();
+    }
+  }
+
+  int new_tti(uint32_t cc_idx, uint32_t tti, cf_t* buffer)
+  {
+    int ret = SRSLTE_ERROR;
+    if (cc_idx < prach_vec.size()) {
+      ret = prach_vec[cc_idx]->new_tti(tti, buffer);
+    }
+    return ret;
+  }
 };
 }
 #endif // SRSENB_PRACH_WORKER_H

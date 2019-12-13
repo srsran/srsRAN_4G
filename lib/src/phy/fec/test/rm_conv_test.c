@@ -41,10 +41,10 @@ void parse_args(int argc, char **argv) {
   while ((opt = getopt(argc, argv, "tr")) != -1) {
     switch (opt) {
     case 't':
-      nof_tx_bits = atoi(argv[optind]);
+      nof_tx_bits = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'r':
-      nof_rx_bits = atoi(argv[optind]);
+      nof_rx_bits = (int)strtol(argv[optind], NULL, 10);
       break;
     default:
       usage(argv[0]);

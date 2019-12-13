@@ -46,19 +46,19 @@ namespace srslte {
 class pdcp_entity_lte final : public pdcp_entity_base
 {
 public:
-  pdcp_entity_lte();
+  pdcp_entity_lte(srsue::rlc_interface_pdcp* rlc_,
+                  srsue::rrc_interface_pdcp* rrc_,
+                  srsue::gw_interface_pdcp*  gw_,
+                  srslte::timer_handler*     timers_,
+                  srslte::log*               log_);
   ~pdcp_entity_lte();
-  void init(srsue::rlc_interface_pdcp* rlc_,
-            srsue::rrc_interface_pdcp* rrc_,
-            srsue::gw_interface_pdcp*  gw_,
-            srslte::log*               log_,
-            uint32_t                   lcid_,
-            pdcp_config_t              cfg_);
+  void init(uint32_t lcid_, pdcp_config_t cfg_);
   void reset();
   void reestablish();
 
   // GW/RRC interface
   void write_sdu(unique_byte_buffer_t sdu, bool blocking);
+  void get_bearer_status(uint16_t* dlsn, uint16_t* dlhfn, uint16_t* ulsn, uint16_t* ulhfn);
 
   uint32_t get_dl_count();
   uint32_t get_ul_count();

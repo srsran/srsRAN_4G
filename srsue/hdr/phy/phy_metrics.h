@@ -26,6 +26,11 @@
 
 namespace srsue {
 
+struct info_metrics_t {
+  uint32_t pci;
+  uint32_t dl_earfcn;
+};
+
 struct sync_metrics_t
 {
   float ta_us;
@@ -55,6 +60,7 @@ struct ul_metrics_t
 
 struct phy_metrics_t
 {
+  info_metrics_t info[SRSLTE_MAX_CARRIERS];
   sync_metrics_t sync[SRSLTE_MAX_CARRIERS];
   dl_metrics_t   dl[SRSLTE_MAX_CARRIERS];
   ul_metrics_t   ul[SRSLTE_MAX_CARRIERS];

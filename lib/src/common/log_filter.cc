@@ -20,9 +20,10 @@
  */
 
 #include <cstdlib>
+#include <inttypes.h>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
-#include <iomanip>
 #include <string.h>
 #include <sys/time.h>
 
@@ -153,6 +154,19 @@ void log_filter::info(const char * message, ...) {
   all_log_expand(LOG_LEVEL_INFO);
 }
 
+void log_filter::info_long(const char* message, ...)
+{
+  if (level >= LOG_LEVEL_INFO) {
+    char*   args_msg = NULL;
+    va_list args;
+    va_start(args, message);
+    if (vasprintf(&args_msg, message, args) > 0)
+      all_log(LOG_LEVEL_INFO, tti, args_msg, nullptr, strlen(args_msg), true);
+    va_end(args);
+    free(args_msg);
+  }
+}
+
 void log_filter::debug(const char * message, ...) {
   all_log_expand(LOG_LEVEL_DEBUG);
 }
@@ -220,7 +234,7 @@ void log_filter::now_time(char* buffer, const uint32_t buffer_len)
       strncat(buffer, us, buffer_len - dest_len - 1);
     } else {
       usec_epoch = rawtime.tv_sec * 1000000 + rawtime.tv_usec;
-      snprintf(buffer, buffer_len, "%ld", usec_epoch);
+      snprintf(buffer, buffer_len, "%" PRIu64, usec_epoch);
     }
   } else {
     now = time_src->get_time();
@@ -229,7 +243,7 @@ void log_filter::now_time(char* buffer, const uint32_t buffer_len)
       snprintf(buffer, buffer_len, "%ld:%06u", now.full_secs, (uint32_t)(now.frac_secs * 1e6));
     } else {
       usec_epoch = now.full_secs * 1000000 + (uint32_t) (now.frac_secs * 1e6);
-      snprintf(buffer, buffer_len, "%ld", usec_epoch);
+      snprintf(buffer, buffer_len, "%" PRIu64, usec_epoch);
     }
   }
 }

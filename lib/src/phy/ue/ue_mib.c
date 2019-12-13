@@ -160,12 +160,12 @@ int srslte_ue_mib_decode(srslte_ue_mib_t * q,
   if (ret < 0) {
     ERROR("Error decoding PBCH (%d)\n", ret);
   } else if (ret == 1) {
-    INFO("MIB decoded: %u\n", q->frame_cnt);
+    INFO("MIB decoded: %u, snr=%.1f dB\n", q->frame_cnt, q->chest_res.snr_db);
     srslte_ue_mib_reset(q);
     ret = SRSLTE_UE_MIB_FOUND; 
   } else {
     ret = SRSLTE_UE_MIB_NOTFOUND;
-    INFO("MIB not decoded: %u\n", q->frame_cnt);
+    INFO("MIB not decoded: %u, snr=%.1f dB\n", q->frame_cnt, q->chest_res.snr_db);
     q->frame_cnt++;
   }    
   

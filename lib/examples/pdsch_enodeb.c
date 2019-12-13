@@ -163,52 +163,52 @@ void parse_args(int argc, char **argv) {
       rf_args = argv[optind];
       break;
     case 'g':
-      rf_gain = atof(argv[optind]);
+      rf_gain = strtof(argv[optind], NULL);
       break;
     case 'l':
-      rf_amp = atof(argv[optind]);
+      rf_amp = strtof(argv[optind], NULL);
       break;
     case 'f':
-      rf_freq = atof(argv[optind]);
+      rf_freq = strtof(argv[optind], NULL);
       break;
     case 'o':
       output_file_name = argv[optind];
       break;
     case 'm':
-      mcs_idx = atoi(argv[optind]);
+      mcs_idx = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'u':
-      net_port = atoi(argv[optind]);
+      net_port = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'n':
-      nof_frames = atoi(argv[optind]);
+      nof_frames = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'p':
-      cell.nof_prb = atoi(argv[optind]);
+      cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'c':
-      cell.id = atoi(argv[optind]);
+      cell.id = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'x':
-      transmission_mode = (srslte_tm_t)(atoi(argv[optind]) - 1);
+      transmission_mode = (srslte_tm_t)(strtol(argv[optind], NULL, 10) - 1);
       break;
     case 'b':
-      multiplex_pmi = (uint32_t) atoi(argv[optind]);
+      multiplex_pmi = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'w':
-      multiplex_nof_layers = (uint32_t) atoi(argv[optind]);
+      multiplex_nof_layers = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'M':
-      mbsfn_area_id = atoi(argv[optind]);
+      mbsfn_area_id = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'v':
       srslte_verbose++;
       break;
     case 's':
-      output_file_snr = atof(argv[optind]);
+      output_file_snr = strtof(argv[optind], NULL);
       break;
     case 'B':
-      mbsfn_sf_mask = atoi(argv[optind]);
+      mbsfn_sf_mask = (uint8_t)strtol(argv[optind], NULL, 10);
       break;
     case 'q':
       enable_256qam ^= true;
@@ -627,7 +627,7 @@ int update_control() {
             break;
           default:
             last_mcs_idx = mcs_idx;
-            mcs_idx = atoi(input);
+            mcs_idx      = strtol(input, NULL, 10);
         }
       }
       bzero(input,sizeof(input));
@@ -800,7 +800,7 @@ int main(int argc, char **argv) {
   }
 #endif
 
-  if (update_radl(sf_idx)) {
+  if (update_radl()) {
     exit(-1);
   }
   
@@ -825,7 +825,7 @@ int main(int argc, char **argv) {
   nf = 0;
   
   bool send_data = false; 
-    for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
+  for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
     srslte_softbuffer_tx_reset(softbuffers[i]);
   }
 
@@ -835,15 +835,15 @@ int main(int argc, char **argv) {
 #endif
 
   ZERO_OBJECT(pdsch_cfg);
-  for (uint32_t i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
-    pdsch_cfg.softbuffers.tx[i] = softbuffers[i];
+  for (uint32_t j = 0; j < SRSLTE_MAX_CODEWORDS; j++) {
+    pdsch_cfg.softbuffers.tx[j] = softbuffers[j];
   }
   pdsch_cfg.rnti = UE_CRNTI;
 
   pmch_cfg.pdsch_cfg = pdsch_cfg;
 
   while ((nf < nof_frames || nof_frames == -1) && !go_exit) {
-    for (sf_idx = 0; sf_idx < SRSLTE_NOF_SF_X_FRAME && (nf < nof_frames || nof_frames == -1); sf_idx++) {
+    for (sf_idx = 0; sf_idx < SRSLTE_NOF_SF_X_FRAME && (nf < nof_frames || nof_frames == -1) && !go_exit; sf_idx++) {
       /* Set Antenna port resource elements to zero */
       bzero(sf_symbols[0], sizeof(cf_t) * sf_n_re);
 
@@ -879,7 +879,7 @@ int main(int argc, char **argv) {
       srslte_pcfich_encode(&pcfich, &dl_sf, sf_symbols);
 
       /* Update DL resource allocation from control port */
-      if (update_control(sf_idx)) {
+      if (update_control()) {
         ERROR("Error updating parameters from control port\n");
       }
       
@@ -944,7 +944,7 @@ int main(int argc, char **argv) {
               sem_post(&net_sem);
             }
           }
-        }else{ // We're sending MCH on subframe 1 - PDCCH + PMCH
+        } else { // We're sending MCH on subframe 1 - PDCCH + PMCH
           dl_sf.sf_type = SRSLTE_SF_MBSFN;
 
           /* Force 1 word and MCS 2 */
@@ -960,8 +960,8 @@ int main(int argc, char **argv) {
             exit(-1);
           }
 
-          for (int i = 0; i < pmch_cfg.pdsch_cfg.grant.tb[0].tbs / 8; i++) {
-            data_mbms[i] = i % 255;
+          for (int j = 0; j < pmch_cfg.pdsch_cfg.grant.tb[0].tbs / 8; j++) {
+            data_mbms[j] = j % 255;
           }
 
           pmch_cfg.area_id = mbsfn_area_id;
@@ -985,11 +985,11 @@ int main(int argc, char **argv) {
       }
 
       /* Transform to OFDM symbols */
-      if(mch_table[sf_idx] == 0 || mbsfn_area_id < 0){
+      if (mch_table[sf_idx] == 0 || mbsfn_area_id < 0) {
         for (i = 0; i < cell.nof_ports; i++) {
           srslte_ofdm_tx_sf(&ifft[i]);
         }
-      }else{
+      } else {
         srslte_ofdm_tx_sf(&ifft_mbsfn);
       }
   
@@ -999,7 +999,7 @@ int main(int argc, char **argv) {
         if (!null_file_sink) {
           /* Apply AWGN */
           if (output_file_snr != +INFINITY) {
-            float var = powf(10.0f, -(output_file_snr + 3.0f) / 20.0f);
+            float var = srslte_convert_dB_to_amplitude(-(output_file_snr + 3.0f));
             for (int k = 0; k < cell.nof_ports; k++) {
               srslte_ch_awgn_c(output_buffer[k], output_buffer[k], var, sf_n_samples);
             }

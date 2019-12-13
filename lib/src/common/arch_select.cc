@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <sys/auxv.h>
 #include <asm/hwcap.h>
+#define USER_HWCAP_NEON (1 << 12)
 #else
 #include <cpuid.h>
 #define X86_CPUID_BASIC_LEAF 1
@@ -86,7 +87,11 @@ const char* x86_get_isa()
 #ifdef IS_ARM
 const char* arm_get_isa()
 {
+#ifdef HAVE_NEONv8
+  if (getauxval(AT_HWCAP) & USER_HWCAP_NEON) {
+#else
   if (getauxval(AT_HWCAP) & HWCAP_NEON) {
+#endif
     return "neon";
   } else {
     return "generic";

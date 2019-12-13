@@ -67,22 +67,22 @@ void parse_args(int argc, char **argv) {
       rf_args = argv[optind];
       break;
     case 'g':
-      rf_gain = atof(argv[optind]);
+      rf_gain = strtof(argv[optind], NULL);
       break;
     case 'p':
-      nof_prb = atoi(argv[optind]);
+      nof_prb = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'f':
-      rf_freq = atof(argv[optind]);
+      rf_freq = strtof(argv[optind], NULL);
       break;
     case 'n':
-      nof_subframes = atoi(argv[optind]);
+      nof_subframes = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'l':
-      N_id_2 = atoi(argv[optind]);
+      N_id_2 = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'A':
-      nof_rx_antennas = (uint32_t) atoi(argv[optind]);
+      nof_rx_antennas = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'v':
       srslte_verbose++;
@@ -98,11 +98,12 @@ void parse_args(int argc, char **argv) {
   }
 }
 
-int srslte_rf_recv_wrapper(void *h, cf_t *data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t *t) {
+int srslte_rf_recv_wrapper(void* h, cf_t* data_[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t* t)
+{
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
   void* ptr[SRSLTE_MAX_PORTS];
   for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
-    ptr[i] = data[i];
+    ptr[i] = data_[i];
   }
   return srslte_rf_recv_with_time_multi(h, ptr, nsamples, true, NULL, NULL);
 }

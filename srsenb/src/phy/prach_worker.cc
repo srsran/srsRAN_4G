@@ -62,7 +62,7 @@ void prach_worker::stop()
   srslte_prach_free(&prach);
 
   running = false;
-  sf_buffer *s = NULL;
+  sf_buffer* s = nullptr;
   pending_buffers.push(s);
   wait_thread_finish();
 }
@@ -127,11 +127,17 @@ int prach_worker::run_tti(sf_buffer *b)
     
     if (prach_nof_det) {
       for (uint32_t i=0;i<prach_nof_det;i++) {
-        log_h->info("PRACH: %d/%d, preamble=%d, offset=%.1f us, peak2avg=%.1f, max_offset=%.1f us\n", 
-            i, prach_nof_det, prach_indices[i], prach_offsets[i]*1e6, prach_p2avg[i], max_prach_offset_us);
-        
+        log_h->info("PRACH: cc=%d, %d/%d, preamble=%d, offset=%.1f us, peak2avg=%.1f, max_offset=%.1f us\n",
+                    cc_idx,
+                    i,
+                    prach_nof_det,
+                    prach_indices[i],
+                    prach_offsets[i] * 1e6,
+                    prach_p2avg[i],
+                    max_prach_offset_us);
+
         if (prach_offsets[i]*1e6 < max_prach_offset_us) {
-          stack->rach_detected(b->tti, prach_indices[i], (uint32_t)(prach_offsets[i] * 1e6));
+          stack->rach_detected(b->tti, cc_idx, prach_indices[i], (uint32_t)(prach_offsets[i] * 1e6));
         }
       }
     }

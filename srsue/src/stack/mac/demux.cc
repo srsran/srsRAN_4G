@@ -43,10 +43,10 @@ demux::demux(srslte::log* log_) :
 {
 }
 
-void demux::init(phy_interface_mac_common* phy_,
-                 rlc_interface_mac*        rlc_,
-                 mac_interface_demux*      mac_,
-                 srslte::timers::timer*    time_alignment_timer_)
+void demux::init(phy_interface_mac_common*            phy_,
+                 rlc_interface_mac*                   rlc_,
+                 mac_interface_demux*                 mac_,
+                 srslte::timer_handler::unique_timer* time_alignment_timer_)
 {
   phy_h                = phy_;
   rlc                  = rlc_;
@@ -272,10 +272,12 @@ bool demux::process_ce(srslte::sch_subh *subh) {
       break;
     case srslte::sch_subh::TA_CMD:
       phy_h->set_timeadv(subh->get_ta_cmd());
-      Info("Received TA=%d\n", subh->get_ta_cmd());
-      // Start or restart timeAlignmentTimer only if running
-      if (time_alignment_timer->is_running()) {
-        time_alignment_timer->reset();
+      Info("Received TA=%d (%d/%d) \n",
+           subh->get_ta_cmd(),
+           time_alignment_timer->value(),
+           time_alignment_timer->duration());
+      // Start or restart timeAlignmentTimer only if set
+      if (time_alignment_timer->is_set()) {
         time_alignment_timer->run();
       }
       break;

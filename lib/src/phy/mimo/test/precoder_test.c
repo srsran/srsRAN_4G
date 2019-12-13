@@ -19,14 +19,15 @@
  *
  */
 
+#include <math.h>
+#include <srslte/phy/utils/random.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <unistd.h>
-#include <math.h>
 #include <time.h>
-#include <stdbool.h>
+#include <unistd.h>
 
 #include "srslte/srslte.h"
 #include "srslte/phy/channel/ch_awgn.h"
@@ -40,6 +41,7 @@ char *mimo_type_name = NULL;
 char decoder_type_name [17] = "zf";
 float snr_db = 100.0f;
 float scaling = 0.1f;
+static srslte_random_t random_gen             = NULL;
 
 void usage(char *prog) {
   printf("Usage: %s -m [%s|%s|%s|%s] -l [nof_layers] -p [nof_tx_ports]\n"
@@ -63,32 +65,32 @@ void parse_args(int argc, char **argv) {
   while ((opt = getopt(argc, argv, "mplnrcdsg")) != -1) {
     switch (opt) {
     case 'n':
-      nof_symbols = atoi(argv[optind]);
+      nof_symbols = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'p':
-      nof_tx_ports = atoi(argv[optind]);
+      nof_tx_ports = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'r':
-      nof_rx_ports = atoi(argv[optind]);
+      nof_rx_ports = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'l':
-      nof_layers = atoi(argv[optind]);
+      nof_layers = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'm':
       mimo_type_name = argv[optind];
       break;
     case 'c':
-      codebook_idx = (uint32_t) atoi(argv[optind]);
+      codebook_idx = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'd':
       strncpy(decoder_type_name, argv[optind], 15);
       decoder_type_name[15] = 0;
       break;
     case 's':
-      snr_db = (float) atof(argv[optind]);
+      snr_db = strtof(argv[optind], NULL);
       break;
     case 'g':
-      scaling = (float) atof(argv[optind]);
+      scaling = strtof(argv[optind], NULL);
       break;
     default:
       usage(argv[0]);
@@ -107,7 +109,7 @@ void populate_channel_cdd(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], uint32_t 
   for (i = 0; i < nof_tx_ports; i++) {
     for (j = 0; j < nof_rx_ports; j++) {
       for (k = 0; k < n; k++) {
-        h[i][j][k] = (float) rand() / RAND_MAX + ((float) rand() / RAND_MAX) * _Complex_I;
+        h[i][j][k] = srslte_random_uniform_complex_dist(random_gen, -1.0f, +1.0f);
       }
     }
   }
@@ -119,7 +121,7 @@ void populate_channel_diversity(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], uin
   for (i = 0; i < nof_tx_ports; i++) {
     for (j = 0; j < nof_rx_ports; j++) {
       for (k = 0; k < n / nof_layers; k++) {
-        cf_t hsymb = (float) rand() / RAND_MAX + ((float) rand() / RAND_MAX) * _Complex_I;
+        cf_t hsymb = srslte_random_uniform_complex_dist(random_gen, -1.0f, +1.0f);
         for (l = 0; l < nof_layers; l++) {
           // assume the channel is the same for all symbols
           h[i][j][k * nof_layers + l] = hsymb;
@@ -133,7 +135,7 @@ void populate_channel_single(cf_t *h) {
   int i;
 
   for (i = 0; i < nof_re; i++) {
-    h[i] = (float)rand() / RAND_MAX + ((float)rand() / RAND_MAX) * _Complex_I;
+    h[i] = srslte_random_uniform_complex_dist(random_gen, -1.0f, +1.0f);
   }
 }
 
@@ -155,7 +157,7 @@ void populate_channel(srslte_tx_scheme_t type, cf_t* h[SRSLTE_MAX_PORTS][SRSLTE_
 
 static void awgn(cf_t *y[SRSLTE_MAX_PORTS], uint32_t n, float snr) {
   int i;
-  float std_dev = powf(10, - (snr + 3.0f) / 20.0f) * scaling;
+  float std_dev = srslte_convert_dB_to_amplitude(-(snr + 3.0f)) * scaling;
 
   for (i = 0; i < nof_rx_ports; i++) {
     srslte_ch_awgn_c(y[i], y[i], std_dev, n);
@@ -250,9 +252,11 @@ int main(int argc, char** argv)
   }
 
   /* Generate source random data */
+  random_gen = srslte_random_init(0);
   for (i = 0; i < nof_layers; i++) {
     for (j = 0; j < nof_symbols; j++) {
-      x[i][j] = (2 * (rand() % 2) - 1 + (2 * (rand() % 2) - 1) * _Complex_I) / sqrt(2);
+      __real__ x[i][j] = (2 * srslte_random_uniform_int_dist(random_gen, 0, 1) - 1) * M_SQRT1_2;
+      __imag__ x[i][j] = (2 * srslte_random_uniform_int_dist(random_gen, 0, 1) - 1) * M_SQRT1_2;
     }
   }
 
@@ -292,8 +296,18 @@ int main(int argc, char** argv)
   /* predecoding / equalization */
   struct timeval t[3];
   gettimeofday(&t[1], NULL);
-  srslte_predecoding_type(r, h, xr, NULL, nof_rx_ports, nof_tx_ports, nof_layers,
-                          codebook_idx, nof_re, type, scaling, powf(10, -snr_db / 10));
+  srslte_predecoding_type(r,
+                          h,
+                          xr,
+                          NULL,
+                          nof_rx_ports,
+                          nof_tx_ports,
+                          nof_layers,
+                          codebook_idx,
+                          nof_re,
+                          type,
+                          scaling,
+                          srslte_convert_dB_to_power(-snr_db));
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
 
@@ -318,10 +332,12 @@ int main(int argc, char** argv)
   } 
 
   quit:
-  /* Free all data */
-  for (i = 0; i < nof_layers; i++) {
-    free(x[i]);
-    free(xr[i]);
+    srslte_random_free(random_gen);
+
+    /* Free all data */
+    for (i = 0; i < nof_layers; i++) {
+      free(x[i]);
+      free(xr[i]);
   }
 
   for (i = 0; i < nof_rx_ports; i++) {

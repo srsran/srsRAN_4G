@@ -177,7 +177,7 @@ bool mme_gtpc::send_create_session_request(uint64_t imsi)
   cs_req_pdu.header.piggyback    = false;
   cs_req_pdu.header.teid_present = true;
   cs_req_pdu.header.teid         = 0; // Send create session request to the butler TEID
-  cs_req_pdu.header.type = srslte::GTPC_MSG_TYPE_CREATE_SESSION_REQUEST;
+  cs_req_pdu.header.type         = srslte::GTPC_MSG_TYPE_CREATE_SESSION_REQUEST;
 
   // Setup GTP-C Create Session Request IEs
   cs_req->imsi = imsi;
@@ -259,7 +259,7 @@ bool mme_gtpc::handle_create_session_response(srslte::gtpc_pdu* cs_resp_pdu)
 
   // Get S-GW Control F-TEID
   srslte::gtp_fteid_t sgw_ctr_fteid = {};
-  sgw_ctr_fteid.teid = cs_resp_pdu->header.teid;
+  sgw_ctr_fteid.teid                = cs_resp_pdu->header.teid;
   sgw_ctr_fteid.ipv4 = 0; // FIXME This is not used for now. In the future it will be obtained from the socket addr_info
 
   // Get S-GW S1-u F-TEID

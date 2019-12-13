@@ -19,6 +19,7 @@
  *
  */
 
+#include <inttypes.h>
 #include <iostream>
 #include <string.h>
 
@@ -38,29 +39,35 @@ ue::ue(uint16_t           rnti_,
        sched_interface*   sched_,
        rrc_interface_mac* rrc_,
        rlc_interface_mac* rlc_,
-       srslte::log*       log_) :
+       srslte::log*       log_,
+       uint32_t           nof_rx_harq_proc_,
+       uint32_t           nof_tx_harq_proc_) :
   rnti(rnti_),
   sched(sched_),
   rrc(rrc_),
   rlc(rlc_),
   log_h(log_),
-  mac_msg_dl(20, log_h),
-  mch_mac_msg_dl(10, log_h),
-  mac_msg_ul(20, log_h),
-  pdus(128)
+  mac_msg_dl(20, log_),
+  mch_mac_msg_dl(10, log_),  mac_msg_ul(20, log_),
+  pdus(128),
+  nof_rx_harq_proc(nof_rx_harq_proc_),
+  nof_tx_harq_proc(nof_tx_harq_proc_)
 {
   bzero(&metrics, sizeof(mac_metrics_t));
   bzero(&mutex, sizeof(pthread_mutex_t));
-  bzero(softbuffer_tx, sizeof(softbuffer_tx));
-  bzero(softbuffer_rx, sizeof(softbuffer_rx));
   pthread_mutex_init(&mutex, NULL);
 
   pdus.init(this, log_h);
 
-  for (int i = 0; i < NOF_RX_HARQ_PROCESSES; i++) {
+  softbuffer_tx.reserve(nof_tx_harq_proc);
+  softbuffer_rx.reserve(nof_rx_harq_proc);
+  pending_buffers.reserve(nof_rx_harq_proc);
+
+  for (int i = 0; i < nof_rx_harq_proc; i++) {
     srslte_softbuffer_rx_init(&softbuffer_rx[i], nof_prb);
+    pending_buffers[i] = nullptr;
   }
-  for (int i = 0; i < NOF_TX_HARQ_PROCESSES; i++) {
+  for (int i = 0; i < nof_tx_harq_proc; i++) {
     srslte_softbuffer_tx_init(&softbuffer_tx[i], nof_prb);
   }
   // don't need to reset because just initiated the buffers
@@ -72,10 +79,10 @@ ue::ue(uint16_t           rnti_,
 
 ue::~ue()
 {
-  for (int i = 0; i < NOF_RX_HARQ_PROCESSES; i++) {
+  for (int i = 0; i < nof_rx_harq_proc; i++) {
     srslte_softbuffer_rx_free(&softbuffer_rx[i]);
   }
-  for (int i = 0; i < NOF_TX_HARQ_PROCESSES; i++) {
+  for (int i = 0; i < nof_tx_harq_proc; i++) {
     srslte_softbuffer_tx_free(&softbuffer_tx[i]);
   }
   pthread_mutex_destroy(&mutex);
@@ -86,10 +93,10 @@ void ue::reset()
   bzero(&metrics, sizeof(mac_metrics_t));
 
   nof_failures = 0;
-  for (int i = 0; i < NOF_RX_HARQ_PROCESSES; i++) {
+  for (int i = 0; i < nof_rx_harq_proc; i++) {
     srslte_softbuffer_rx_reset(&softbuffer_rx[i]);
   }
-  for (int i = 0; i < NOF_TX_HARQ_PROCESSES; i++) {
+  for (int i = 0; i < nof_tx_harq_proc; i++) {
     srslte_softbuffer_tx_reset(&softbuffer_tx[i]);
   }
 }
@@ -121,24 +128,24 @@ void ue::set_lcg(uint32_t lcid, uint32_t lcg)
 
 srslte_softbuffer_rx_t* ue::get_rx_softbuffer(uint32_t tti)
 {
-  return &softbuffer_rx[tti % NOF_RX_HARQ_PROCESSES];
+  return &softbuffer_rx[tti % nof_rx_harq_proc];
 }
 
 srslte_softbuffer_tx_t* ue::get_tx_softbuffer(uint32_t harq_process, uint32_t tb_idx)
 {
-  return &softbuffer_tx[(harq_process * SRSLTE_MAX_TB + tb_idx) % NOF_TX_HARQ_PROCESSES];
+  return &softbuffer_tx[(harq_process * SRSLTE_MAX_TB + tb_idx) % nof_tx_harq_proc];
 }
 
 uint8_t* ue::request_buffer(uint32_t tti, uint32_t len)
 {
   uint8_t* ret = NULL;
   if (len > 0) {
-    if (!pending_buffers[tti % NOF_RX_HARQ_PROCESSES]) {
+    if (!pending_buffers[tti % nof_rx_harq_proc]) {
       ret                                          = pdus.request(len);
-      pending_buffers[tti % NOF_RX_HARQ_PROCESSES] = ret;
+      pending_buffers[tti % nof_rx_harq_proc] = ret;
     } else {
-      log_h->console("Error requesting buffer for pid %d, not pushed yet\n", tti % NOF_RX_HARQ_PROCESSES);
-      log_h->error("Requesting buffer for pid %d, not pushed yet\n", tti % NOF_RX_HARQ_PROCESSES);
+      log_h->console("Error requesting buffer for pid %d, not pushed yet\n", tti % nof_rx_harq_proc);
+      log_h->error("Requesting buffer for pid %d, not pushed yet\n", tti % nof_rx_harq_proc);
     }
   } else {
     log_h->warning("Requesting buffer for zero bytes\n");
@@ -153,6 +160,21 @@ bool ue::process_pdus()
 
 void ue::set_tti(uint32_t tti) {
   last_tti = tti; 
+}
+
+uint32_t ue::set_ta(int ta_) {
+  int ta = ta_;
+  uint32_t nof_cmd = 0;
+  int ta_value = 0;
+  do {
+    ta_value    = SRSLTE_MAX(-31, SRSLTE_MIN(32, ta));
+    ta             -= ta_value;
+    uint32_t ta_cmd = (uint32_t) (ta_value + 31);
+    pending_ta_commands.try_push(ta_cmd);
+    nof_cmd++;
+    Info("Added TA CMD: rnti=0x%x, ta=%d, ta_value=%d, ta_cmd=%d\n", rnti, ta_, ta_value, ta_cmd);
+  } while (ta_value <= -31 || ta_value >= 32);
+  return nof_cmd;
 }
 
 #include <assert.h>
@@ -258,21 +280,21 @@ void ue::process_pdu(uint8_t* pdu, uint32_t nof_bytes, srslte::pdu_queue::channe
 
 void ue::deallocate_pdu(uint32_t tti)
 {
-  if (pending_buffers[tti % NOF_RX_HARQ_PROCESSES]) {
-    pdus.deallocate(pending_buffers[tti % NOF_RX_HARQ_PROCESSES]);
-    pending_buffers[tti % NOF_RX_HARQ_PROCESSES] = NULL;
+  if (pending_buffers[tti % nof_rx_harq_proc]) {
+    pdus.deallocate(pending_buffers[tti % nof_rx_harq_proc]);
+    pending_buffers[tti % nof_rx_harq_proc] = NULL;
   } else {
-    log_h->console("Error deallocating buffer for pid=%d. Not requested\n", tti % NOF_RX_HARQ_PROCESSES);
+    log_h->console("Error deallocating buffer for pid=%d. Not requested\n", tti % nof_rx_harq_proc);
   }
 }
 
 void ue::push_pdu(uint32_t tti, uint32_t len)
 {
-  if (pending_buffers[tti % NOF_RX_HARQ_PROCESSES]) {
-    pdus.push(pending_buffers[tti % NOF_RX_HARQ_PROCESSES], len);
-    pending_buffers[tti % NOF_RX_HARQ_PROCESSES] = NULL;
+  if (pending_buffers[tti % nof_rx_harq_proc]) {
+    pdus.push(pending_buffers[tti % nof_rx_harq_proc], len);
+    pending_buffers[tti % nof_rx_harq_proc] = NULL;
   } else {
-    log_h->console("Error pushing buffer for pid=%d. Not requested\n", tti % NOF_RX_HARQ_PROCESSES);
+    log_h->console("Error pushing buffer for pid=%d. Not requested\n", tti % nof_rx_harq_proc);
   }
 }
 
@@ -369,10 +391,23 @@ void ue::allocate_sdu(srslte::sch_pdu *pdu, uint32_t lcid, uint32_t total_sdu_le
 void ue::allocate_ce(srslte::sch_pdu *pdu, uint32_t lcid)
 {
   switch((srslte::sch_subh::cetype) lcid) {
-    case srslte::sch_subh::CON_RES_ID: 
+    case srslte::sch_subh::TA_CMD:
+      if (pdu->new_subh()) {
+        uint32_t ta_cmd = 31;
+        pending_ta_commands.try_pop(&ta_cmd);
+        if (pdu->get()->set_ta_cmd(ta_cmd)) {
+          Info("CE:    Added TA CMD=%d\n", ta_cmd);
+        } else {
+          Error("CE:    Setting TA CMD CE\n");
+        }
+      } else {
+        Error("CE:    Setting TA CMD CE. No space for a subheader\n");
+      }
+      break;
+    case srslte::sch_subh::CON_RES_ID:
       if (pdu->new_subh()) {
         if (pdu->get()->set_con_res_id(conres_id)) {
-          Info("CE:    Added Contention Resolution ID=0x%lx\n", conres_id);
+          Info("CE:    Added Contention Resolution ID=0x%" PRIx64 "\n", conres_id);
         } else {
           Error("CE:    Setting Contention Resolution ID CE\n");
         }

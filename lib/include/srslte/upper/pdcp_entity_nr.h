@@ -29,6 +29,7 @@
 #include "srslte/common/log.h"
 #include "srslte/common/security.h"
 #include "srslte/common/threads.h"
+#include <map>
 
 namespace srslte {
 
@@ -39,27 +40,34 @@ namespace srslte {
 class pdcp_entity_nr : public pdcp_entity_base
 {
 public:
-  pdcp_entity_nr();
+  pdcp_entity_nr(srsue::rlc_interface_pdcp* rlc_,
+                 srsue::rrc_interface_pdcp* rrc_,
+                 srsue::gw_interface_pdcp*  gw_,
+                 srslte::timer_handler*     timers_,
+                 srslte::log*               log_);
   ~pdcp_entity_nr();
-  void init(srsue::rlc_interface_pdcp* rlc_,
-            srsue::rrc_interface_pdcp* rrc_,
-            srsue::gw_interface_pdcp*  gw_,
-            srslte::log*               log_,
-            uint32_t                   lcid_,
-            pdcp_config_t              cfg_);
+  void init(uint32_t lcid_, pdcp_config_t cfg_);
   void reset();
   void reestablish();
 
   // RRC interface
   void write_sdu(unique_byte_buffer_t sdu, bool blocking);
 
-  uint32_t get_dl_count();
-  uint32_t get_ul_count();
-
   // RLC interface
   void write_pdu(unique_byte_buffer_t pdu);
 
+  // State variable setters (should be used only for testing)
+  void set_tx_next(uint32_t tx_next_) { tx_next = tx_next_; }
+  void set_rx_next(uint32_t rx_next_) { rx_next = rx_next_; }
+  void set_rx_deliv(uint32_t rx_deliv_) { rx_deliv = rx_deliv_; }
+  void set_rx_reord(uint32_t rx_reord_) { rx_reord = rx_reord_; }
+
+  // State variable getters (useful for testing)
+  uint32_t nof_discard_timers() { return discard_timers_map.size(); }
+
 private:
+  bool initialized = false;
+
   srsue::rlc_interface_pdcp* rlc = nullptr;
   srsue::rrc_interface_pdcp* rrc = nullptr;
   srsue::gw_interface_pdcp*  gw  = nullptr;
@@ -73,12 +81,74 @@ private:
   // Constants: 3GPP TS 38.323 v15.2.0, section 7.2
   uint32_t window_size = 0;
 
+  // Reordering Queue / Timers
+  std::map<uint32_t, unique_byte_buffer_t> reorder_queue;
+  timer_handler::unique_timer              reordering_timer;
+
   // Packing/Unpacking Helper functions
   uint32_t read_data_header(const unique_byte_buffer_t& sdu);
   void     write_data_header(const unique_byte_buffer_t& sdu, uint32_t sn);
   void     extract_mac(const unique_byte_buffer_t& sdu, uint8_t* mac);
   void     append_mac(const unique_byte_buffer_t& sdu, uint8_t* mac);
+
+  // Pass to Upper Layers Helper function
+  void deliver_all_consecutive_counts();
+  void pass_to_upper_layers(unique_byte_buffer_t pdu);
+
+  // Reodering callback (t-Reordering)
+  class reordering_callback;
+  std::unique_ptr<reordering_callback> reordering_fnc;
+
+  // Discard callback (discardTimer)
+  class discard_callback;
+  std::map<uint32_t, timer_handler::unique_timer> discard_timers_map;
+
+  // COUNT overflow protection
+  bool tx_overflow = false;
+  bool rx_overflow = false;
 };
+
+/*
+ * Timer callbacks
+ */
+// Reordering callback (t-Reordering)
+class pdcp_entity_nr::reordering_callback
+{
+public:
+  reordering_callback(pdcp_entity_nr* parent_) { parent = parent_; };
+  void operator()(uint32_t timer_id);
+
+private:
+  pdcp_entity_nr* parent;
+};
+
+// Discard callback (discardTimer)
+class pdcp_entity_nr::discard_callback
+{
+public:
+  discard_callback(pdcp_entity_nr* parent_, uint32_t sn_)
+  {
+    parent     = parent_;
+    discard_sn = sn_;
+  };
+  void operator()(uint32_t timer_id);
+
+private:
+  pdcp_entity_nr* parent;
+  uint32_t        discard_sn;
+};
+
+/*
+ * Helpers
+ */
+inline void pdcp_entity_nr::pass_to_upper_layers(unique_byte_buffer_t sdu)
+{
+  if (is_srb()) {
+    rrc->write_pdu(lcid, std::move(sdu));
+  } else {
+    gw->write_pdu(lcid, std::move(sdu));
+  }
+}
 
 } // namespace srslte
 #endif // SRSLTE_PDCP_ENTITY_NR_H

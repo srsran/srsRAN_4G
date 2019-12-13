@@ -54,13 +54,13 @@ void parse_args(int argc, char **argv) {
   while ((opt = getopt(argc, argv, "ner")) != -1) {
     switch (opt) {
     case 'n':
-      nof_prb = atoi(argv[optind]);
+      nof_prb = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'e':
       cp = SRSLTE_CP_EXT;
       break;
     case 'r':
-      nof_repetitions = atoi(argv[optind]);
+      nof_repetitions = (int)strtol(argv[optind], NULL, 10);
       break;
     default:
       usage(argv[0]);

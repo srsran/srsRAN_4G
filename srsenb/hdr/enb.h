@@ -134,9 +134,8 @@ public:
   // eNodeB metrics interface
   bool get_metrics(enb_metrics_t* m);
 
-
 private:
-  static enb *instance;
+  static enb* instance;
 
   const static int ENB_POOL_SIZE = 1024*10;
 
@@ -169,18 +168,7 @@ private:
   srslte::LOG_LEVEL_ENUM level(std::string l);
 
   //  bool check_srslte_version();
-  int  parse_sib1(std::string filename, asn1::rrc::sib_type1_s* data);
-  int  parse_sib2(std::string filename, asn1::rrc::sib_type2_s* data);
-  int  parse_sib3(std::string filename, asn1::rrc::sib_type3_s* data);
-  int  parse_sib4(std::string filename, asn1::rrc::sib_type4_s* data);
-  int  parse_sib7(std::string filename, asn1::rrc::sib_type7_s* data);
-  int  parse_sib9(std::string filename, asn1::rrc::sib_type9_s* data);
-  int  parse_sib13(std::string filename, asn1::rrc::sib_type13_r9_s* data);
-  int  parse_sibs(all_args_t* args, rrc_cfg_t* rrc_cfg, phy_cfg_t* phy_config_common);
-  int  parse_rr(all_args_t* args, rrc_cfg_t* rrc_cfg);
-  int  parse_drb(all_args_t* args, rrc_cfg_t* rrc_cfg);
-  bool sib_is_present(const asn1::rrc::sched_info_list_l& l, asn1::rrc::sib_type_e sib_num);
-  int  parse_cell_cfg(all_args_t* args, srslte_cell_t* cell);
+  int parse_cell_cfg(all_args_t* args, srslte_cell_t* cell);
 
   std::string get_build_mode();
   std::string get_build_info();

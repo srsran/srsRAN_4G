@@ -55,13 +55,13 @@ void parse_args(int argc, char **argv) {
   while ((opt = getopt(argc, argv, "recv")) != -1) {
     switch(opt) {
     case 'r':
-      cell.nof_prb = atoi(argv[optind]);
+      cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'e':
       cell.cp = SRSLTE_CP_EXT;
       break;
     case 'c':
-      cell.id = atoi(argv[optind]);
+      cell.id = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'v':
       srslte_verbose++;

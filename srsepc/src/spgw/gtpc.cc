@@ -258,7 +258,8 @@ void spgw::gtpc::handle_modify_bearer_request(const struct srslte::gtpc_header& 
   struct in_addr addr;
   addr.s_addr = tunnel_ctx->ue_ipv4;
   m_gtpc_log->info("IMSI: %015" PRIu64 ", UE IP: %s \n", tunnel_ctx->imsi, inet_ntoa(addr));
-  m_gtpc_log->info("S-GW Rx Ctrl TEID 0x%x, MME Rx Ctrl TEID 0x%x\n", tunnel_ctx->up_ctrl_fteid.teid,
+  m_gtpc_log->info("S-GW Rx Ctrl TEID 0x%x, MME Rx Ctrl TEID 0x%x\n",
+                   tunnel_ctx->up_ctrl_fteid.teid,
                    tunnel_ctx->dw_ctrl_fteid.teid);
   m_gtpc_log->info("S-GW Rx Ctrl IP (NA), MME Rx Ctrl IP (NA)\n");
 
@@ -377,7 +378,8 @@ bool spgw::gtpc::send_downlink_data_notification(uint32_t spgw_ctr_teid)
 }
 
 void spgw::gtpc::handle_downlink_data_notification_acknowledge(
-    const srslte::gtpc_header& header, const srslte::gtpc_downlink_data_notification_acknowledge& not_ack)
+    const srslte::gtpc_header&                                 header,
+    const srslte::gtpc_downlink_data_notification_acknowledge& not_ack)
 {
   m_gtpc_log->debug("Handling downlink data notification acknowledge\n");
 
@@ -405,7 +407,8 @@ void spgw::gtpc::handle_downlink_data_notification_acknowledge(
 }
 
 void spgw::gtpc::handle_downlink_data_notification_failure_indication(
-    const srslte::gtpc_header& header, const srslte::gtpc_downlink_data_notification_failure_indication& not_fail)
+    const srslte::gtpc_header&                                        header,
+    const srslte::gtpc_downlink_data_notification_failure_indication& not_fail)
 {
   m_gtpc_log->debug("Handling downlink data notification failure indication\n");
   // Find tunel ctxt
@@ -508,11 +511,12 @@ bool spgw::gtpc::queue_downlink_packet(uint32_t ctrl_teid, srslte::byte_buffer_t
 
   if (tunnel_ctx->paging_queue.size() < m_max_paging_queue) {
     tunnel_ctx->paging_queue.push(msg);
-    m_gtpc_log->debug("Queued packet. IMSI %" PRIu64 ", Packets in Queue %zd\n", tunnel_ctx->imsi,
-                      tunnel_ctx->paging_queue.size());
+    m_gtpc_log->debug(
+        "Queued packet. IMSI %" PRIu64 ", Packets in Queue %zd\n", tunnel_ctx->imsi, tunnel_ctx->paging_queue.size());
   } else {
-    m_gtpc_log->debug("Paging queue full. IMSI %" PRIu64 ", Packets in Queue %zd\n", tunnel_ctx->imsi,
-                        tunnel_ctx->paging_queue.size());
+    m_gtpc_log->debug("Paging queue full. IMSI %" PRIu64 ", Packets in Queue %zd\n",
+                      tunnel_ctx->imsi,
+                      tunnel_ctx->paging_queue.size());
     goto pkt_discard;
   }
   return true;
@@ -544,7 +548,8 @@ int spgw::gtpc::init_ue_ip(spgw_args_t* args, const std::map<std::string, uint64
   // check for collision w/our ip address
   if (iter != ip_to_imsi.end()) {
     m_gtpc_log->error("SPGW: static ip addr %s for imsi %015" PRIu64 ", is reserved for the epc tun interface\n",
-                      iter->first.c_str(), iter->second);
+                      iter->first.c_str(),
+                      iter->second);
     return SRSLTE_ERROR_OUT_OF_BOUNDS;
   }
 
@@ -553,7 +558,8 @@ int spgw::gtpc::init_ue_ip(spgw_args_t* args, const std::map<std::string, uint64
     struct in_addr in_addr;
     in_addr.s_addr = inet_addr(iter->first.c_str());
     if (!m_imsi_to_ip.insert(std::make_pair(iter->second, in_addr)).second) {
-      m_gtpc_log->error("SPGW: duplicate imsi %015" PRIu64 " for static ip address %s.\n", iter->second, iter->first.c_str());
+      m_gtpc_log->error(
+          "SPGW: duplicate imsi %015" PRIu64 " for static ip address %s.\n", iter->second, iter->first.c_str());
       return SRSLTE_ERROR_OUT_OF_BOUNDS;
     }
   }
@@ -567,7 +573,8 @@ int spgw::gtpc::init_ue_ip(spgw_args_t* args, const std::map<std::string, uint64
     std::map<std::string, uint64_t>::const_iterator iter = ip_to_imsi.find(inet_ntoa(ue_addr));
     if (iter != ip_to_imsi.end()) {
       m_gtpc_log->debug("SPGW: init_ue_ip ue ip addr %s is reserved for imsi %015" PRIu64 ", not adding to pool\n",
-                        iter->first.c_str(), iter->second);
+                        iter->first.c_str(),
+                        iter->second);
     } else {
       m_ue_ip_addr_pool.insert(ue_addr.s_addr);
       m_gtpc_log->debug("SPGW: init_ue_ip ue ip addr %s is added to pool\n", inet_ntoa(ue_addr));

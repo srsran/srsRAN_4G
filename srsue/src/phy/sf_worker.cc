@@ -98,7 +98,7 @@ bool sf_worker::set_cell(uint32_t cc_idx, srslte_cell_t cell_)
       goto unlock;
     }
   } else {
-    Error("Setting cell for cc=%d; Not enough CC workers (%ld);\n", cc_idx, cc_workers.size());
+    Error("Setting cell for cc=%d; Not enough CC workers (%zd);\n", cc_idx, cc_workers.size());
   }
 
   if (cc_idx == 0) {
@@ -293,11 +293,11 @@ void sf_worker::update_measurements()
   if (get_id() == 0) {
 
     // Average RSSI over all symbols in antenna port 0 (make sure SF length is non-zero)
-    float rssi_dbm =
-        SRSLTE_SF_LEN_PRB(cell.nof_prb) > 0
-            ? (10 * log10(srslte_vec_avg_power_cf(cc_workers[0]->get_rx_buffer(0), SRSLTE_SF_LEN_PRB(cell.nof_prb))) +
-               30)
-            : 0;
+    float rssi_dbm = SRSLTE_SF_LEN_PRB(cell.nof_prb) > 0
+                         ? (srslte_convert_power_to_dB(srslte_vec_avg_power_cf(cc_workers[0]->get_rx_buffer(0),
+                                                                               SRSLTE_SF_LEN_PRB(cell.nof_prb))) +
+                            30)
+                         : 0;
     if (std::isnormal(rssi_dbm)) {
       phy->avg_rssi_dbm = SRSLTE_VEC_EMA(rssi_dbm, phy->avg_rssi_dbm, phy->args->snr_ema_coeff);
     }

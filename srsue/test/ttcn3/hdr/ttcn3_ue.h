@@ -55,7 +55,7 @@ public:
 
     args.stack.rrc.feature_group       = 0xe6041000;
     args.stack.rrc.ue_category_str     = SRSLTE_UE_CATEGORY_DEFAULT;
-    args.stack.rrc.ue_category         = atoi(args.stack.rrc.ue_category_str.c_str());
+    args.stack.rrc.ue_category         = strtol(args.stack.rrc.ue_category_str.c_str(), nullptr, 10);
     args.stack.rrc.nof_supported_bands = 1;
     args.stack.rrc.supported_bands[0]  = 7;
     args.stack.rrc.release             = 8;
@@ -100,7 +100,13 @@ public:
 
   void stop()
   {
-    // nothing to do here
+    if (stack) {
+      stack->stop();
+    }
+
+    if (phy) {
+      phy->stop();
+    }
   }
 
   bool switch_on() { return stack->switch_on(); }

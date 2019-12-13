@@ -70,27 +70,27 @@ public:
 private:
   static const int GW_THREAD_PRIO = 7;
 
-  stack_interface_gw*       stack;
-  srslte::byte_buffer_pool* pool;
-  srslte::logger*           logger;
+  stack_interface_gw*       stack  = nullptr;
+  srslte::byte_buffer_pool* pool   = nullptr;
+  srslte::logger*           logger = nullptr;
 
-  gw_args_t args;
+  gw_args_t args = {};
 
-  bool                running;
-  bool                run_enable;
-  int32_t             tun_fd;
-  struct ifreq        ifr;
-  int32_t             sock;
-  bool                if_up;
+  bool                running      = false;
+  bool                run_enable   = false;
+  int32_t             tun_fd       = 0;
+  struct ifreq        ifr          = {};
+  int32_t             sock         = 0;
+  bool                if_up        = false;
   uint32_t            default_lcid = 0;
 
   srslte::log_filter log;
 
-  uint32_t            current_ip_addr;
+  uint32_t            current_ip_addr = 0;
   uint8_t             current_if_id[8];
 
-  long                ul_tput_bytes;
-  long                dl_tput_bytes;
+  long                ul_tput_bytes = 0;
+  long                dl_tput_bytes = 0;
   struct timeval      metrics_time[3];
 
   void run_thread();
@@ -101,9 +101,9 @@ private:
   void del_ipv6_addr(struct in6_addr* in6p);
 
   // MBSFN
-  int      mbsfn_sock_fd;                   // Sink UDP socket file descriptor
-  struct   sockaddr_in mbsfn_sock_addr;     // Target address
-  uint32_t mbsfn_ports[SRSLTE_N_MCH_LCIDS]; // Target ports for MBSFN data
+  int                mbsfn_sock_fd                   = 0;  // Sink UDP socket file descriptor
+  struct sockaddr_in mbsfn_sock_addr                 = {}; // Target address
+  uint32_t           mbsfn_ports[SRSLTE_N_MCH_LCIDS] = {}; // Target ports for MBSFN data
 
   // TFT
   std::mutex                                      tft_mutex;
@@ -114,6 +114,5 @@ private:
 };
 
 } // namespace srsue
-
 
 #endif // SRSUE_GW_H

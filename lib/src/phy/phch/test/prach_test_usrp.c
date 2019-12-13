@@ -73,41 +73,41 @@ void parse_args(int argc, char **argv) {
       output_filename = argv[optind];
       break;
     case 'f':
-      uhd_freq = atof(argv[optind]);
+      uhd_freq = strtof(argv[optind], NULL);
       break;
     case 'g':
-      uhd_rx_gain = atof(argv[optind]);
+      uhd_rx_gain = strtof(argv[optind], NULL);
       break;
     case 'G':
-      uhd_tx_gain = atof(argv[optind]);
+      uhd_tx_gain = strtof(argv[optind], NULL);
       break;
     case 'P':
-      preamble_format = atoi(argv[optind]);
+      preamble_format = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'O':
-      frequency_offset = atoi(argv[optind]);
+      frequency_offset = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 't':
-      timeadv = atof(argv[optind]);
+      timeadv = strtof(argv[optind], NULL);
       break;
     case 'p':
-      nof_prb = atoi(argv[optind]);
+      nof_prb = (int)strtol(argv[optind], NULL, 10);
       if (!srslte_nofprb_isvalid(nof_prb)) {
         ERROR("Invalid number of UL RB %d\n", nof_prb);
         exit(-1);
       }
       break;
     case 'F':
-      preamble_format = atoi(argv[optind]);
+      preamble_format = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'r':
-      root_seq_idx = atoi(argv[optind]);
+      root_seq_idx = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 's':
-      seq_idx = atoi(argv[optind]);
+      seq_idx = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'z':
-      zero_corr_zone = atoi(argv[optind]);
+      zero_corr_zone = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     default:
       usage(argv[0]);

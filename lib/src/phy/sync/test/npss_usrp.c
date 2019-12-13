@@ -84,26 +84,26 @@ void parse_args(int argc, char** argv)
         has_cfo_corr = false;
         break;
       case 'c':
-        cfo_fixed = atof(argv[optind]);
+        cfo_fixed = strtof(argv[optind], NULL);
         break;
       case 'g':
-        rf_gain = atof(argv[optind]);
+        rf_gain = strtof(argv[optind], NULL);
         break;
       case 'f':
-        rf_freq = atof(argv[optind]);
+        rf_freq = strtof(argv[optind], NULL);
         break;
       case 't':
-        threshold = atof(argv[optind]);
+        threshold = strtof(argv[optind], NULL);
         break;
       case 'i':
-        cell.base.id = atoi(argv[optind]);
+        cell.base.id = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 's':
         save_frame_to_file = true;
         disable_plots      = true;
         break;
       case 'n':
-        nof_frames = atoi(argv[optind]);
+        nof_frames = (int)strtol(argv[optind], NULL, 10);
         break;
       case 'd':
         disable_plots = true;

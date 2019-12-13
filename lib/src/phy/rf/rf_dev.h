@@ -22,7 +22,7 @@
 /* RF frontend API */
 typedef struct {
   const char *name;
-  char*  (*srslte_rf_devname) (void *h);
+  const char* (*srslte_rf_devname)(void* h);
   int    (*srslte_rf_start_rx_stream)(void *h, bool now);
   int    (*srslte_rf_stop_rx_stream)(void *h);
   void   (*srslte_rf_flush_buffer)(void *h);

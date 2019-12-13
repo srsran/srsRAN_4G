@@ -22,16 +22,16 @@
 #ifndef SRSEPC_S1AP_COMMON_H
 #define SRSEPC_S1AP_COMMON_H
 
-#include "srslte/common/security.h"
 #include "srslte/asn1/gtpc_ies.h"
-#include "srslte/asn1/liblte_s1ap.h"
 #include "srslte/asn1/liblte_mme.h"
+#include "srslte/asn1/liblte_s1ap.h"
+#include "srslte/common/security.h"
 #include <netinet/sctp.h>
 
-namespace srsepc{
+namespace srsepc {
 
-static const uint8_t MAX_TA=255;  //Maximum TA supported
-static const uint8_t MAX_BPLMN=6; //Maximum broadcasted PLMNs per TAC
+static const uint8_t MAX_TA    = 255; // Maximum TA supported
+static const uint8_t MAX_BPLMN = 6;   // Maximum broadcasted PLMNs per TAC
 
 typedef struct {
   uint8_t                             mme_code;
@@ -50,20 +50,20 @@ typedef struct {
   srslte::INTEGRITY_ALGORITHM_ID_ENUM integrity_algo;
 } s1ap_args_t;
 
-typedef struct{
-  bool     enb_name_present;
-  uint32_t enb_id;
-  uint8_t  enb_name[150];
-  uint16_t mcc, mnc;
-  uint32_t plmn;
-  uint8_t  nof_supported_ta;
-  uint16_t tac[MAX_TA];
-  uint8_t  nof_supported_bplmns[MAX_TA];
-  uint16_t bplmns[MAX_TA][MAX_BPLMN];
+typedef struct {
+  bool                       enb_name_present;
+  uint32_t                   enb_id;
+  uint8_t                    enb_name[150];
+  uint16_t                   mcc, mnc;
+  uint32_t                   plmn;
+  uint8_t                    nof_supported_ta;
+  uint16_t                   tac[MAX_TA];
+  uint8_t                    nof_supported_bplmns[MAX_TA];
+  uint16_t                   bplmns[MAX_TA][MAX_BPLMN];
   LIBLTE_S1AP_PAGINGDRX_ENUM drx;
-  struct   sctp_sndrcvinfo sri;
+  struct sctp_sndrcvinfo     sri;
 } enb_ctx_t;
 
-}//namespace
+} // namespace srsepc
 
 #endif // SRSEPC_S1AP_COMMON_H

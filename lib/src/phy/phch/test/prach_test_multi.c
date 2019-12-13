@@ -52,19 +52,19 @@ void parse_args(int argc, char **argv) {
   while ((opt = getopt(argc, argv, "Nfrzn")) != -1) {
     switch (opt) {
     case 'N':
-      nof_prb = atoi(argv[optind]);
+      nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'f':
-      preamble_format = atoi(argv[optind]);
+      preamble_format = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'r':
-      root_seq_idx = atoi(argv[optind]);
+      root_seq_idx = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'z':
-      zero_corr_zone = atoi(argv[optind]);
+      zero_corr_zone = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'n':
-      n_seqs = atoi(argv[optind]);
+      n_seqs = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     default:
       usage(argv[0]);

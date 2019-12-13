@@ -208,19 +208,19 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       args->input_file_name = argv[optind];
       break;
     case 'p':
-      args->file_nof_prb = atoi(argv[optind]);
+      args->file_nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'P':
-      args->file_nof_ports = atoi(argv[optind]);
+      args->file_nof_ports = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'o':
-      args->file_offset_freq = atof(argv[optind]);
+      args->file_offset_freq = strtof(argv[optind], NULL);
       break;
     case 'O':
-      args->file_offset_time = atoi(argv[optind]);
+      args->file_offset_time = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'c':
-      args->file_cell_id = atoi(argv[optind]);
+      args->file_cell_id = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'I':
       args->rf_dev = argv[optind];
@@ -229,10 +229,10 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       args->rf_args = argv[optind];
       break;
     case 'A':
-      args->rf_nof_rx_ant = atoi(argv[optind]);
+      args->rf_nof_rx_ant = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'g':
-      args->rf_gain = atof(argv[optind]);
+      args->rf_gain = strtof(argv[optind], NULL);
       break;
     case 'C':
       args->disable_cfo = true;
@@ -244,34 +244,34 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       args->average_subframe = true;
       break;
     case 't':
-      args->time_offset = atoi(argv[optind]);
+      args->time_offset = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'f':
       args->rf_freq = strtod(argv[optind], NULL);
       break;
     case 'T':
-      args->tdd_special_sf = atoi(argv[optind]);
+      args->tdd_special_sf = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'G':
-      args->sf_config = atoi(argv[optind]);
+      args->sf_config = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'n':
-      args->nof_subframes = atoi(argv[optind]);
+      args->nof_subframes = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'r':
       args->rnti = strtol(argv[optind], NULL, 16);
       break;
     case 'l':
-      args->force_N_id_2 = atoi(argv[optind]);
+      args->force_N_id_2 = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'u':
-      args->net_port = atoi(argv[optind]);
+      args->net_port = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'U':
       args->net_address = argv[optind];
       break;
     case 's':
-      args->net_port_signal = atoi(argv[optind]);
+      args->net_port_signal = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'S':
       args->net_address_signal = argv[optind];
@@ -287,22 +287,22 @@ void parse_args(prog_args_t *args, int argc, char **argv) {
       args->verbose = srslte_verbose;
       break;
     case 'Z':
-      args->decimate = atoi(argv[optind]);
+      args->decimate = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'y':
-      args->cpu_affinity = atoi(argv[optind]);
+      args->cpu_affinity = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'W':
       output_file_name = argv[optind];
       break;
     case 'M':
-      args->mbsfn_area_id = atoi(argv[optind]);
+      args->mbsfn_area_id = (int32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'N':
-      args->non_mbsfn_region = atoi(argv[optind]);
+      args->non_mbsfn_region = (uint8_t)strtol(argv[optind], NULL, 10);
       break;
     case 'B':
-      args->mbsfn_sf_mask = atoi(argv[optind]);
+      args->mbsfn_sf_mask = (uint8_t)strtol(argv[optind], NULL, 10);
       break;
     case 'q':
       args->enable_256qam ^= true;
@@ -339,17 +339,18 @@ cf_t *sf_buffer[SRSLTE_MAX_PORTS] = {NULL};
 
 #ifndef DISABLE_RF
 
-int srslte_rf_recv_wrapper(void* h, cf_t* data[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t* t)
+int srslte_rf_recv_wrapper(void* h, cf_t* data_[SRSLTE_MAX_PORTS], uint32_t nsamples, srslte_timestamp_t* t)
 {
   DEBUG(" ----  Receive %d samples  ---- \n", nsamples);
   void* ptr[SRSLTE_MAX_PORTS];
   for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
-    ptr[i] = data[i];
+    ptr[i] = data_[i];
   }
   return srslte_rf_recv_with_time_multi(h, ptr, nsamples, true, NULL, NULL);
 }
 
-double srslte_rf_set_rx_gain_th_wrapper_(void *h, double f) {
+float srslte_rf_set_rx_gain_th_wrapper_(void* h, float f)
+{
   return srslte_rf_set_rx_gain_th((srslte_rf_t*)h, f);
 }
 
@@ -879,7 +880,7 @@ int main(int argc, char **argv) {
           if (sf_idx == 5) {
             float gain = prog_args.rf_gain;
             if (gain < 0) {
-              gain = 10 * log10(srslte_agc_get_gain(&ue_sync.agc));
+              gain = srslte_convert_power_to_dB(srslte_agc_get_gain(&ue_sync.agc));
             }
 
             /* Print transmission scheme */
@@ -1051,7 +1052,7 @@ void *plot_thread_run(void *arg) {
     uint32_t nof_symbols = pdsch_cfg.grant.nof_re;
     if (!prog_args.disable_plots_except_constellation) {
       for (i = 0; i < nof_re; i++) {
-        tmp_plot[i] = 20 * log10f(cabsf(ue_dl.sf_symbols[0][i]));
+        tmp_plot[i] = srslte_convert_amplitude_to_dB(cabsf(ue_dl.sf_symbols[0][i]));
         if (isinf(tmp_plot[i])) {
           tmp_plot[i] = -80;
         }
@@ -1060,7 +1061,7 @@ void *plot_thread_run(void *arg) {
       bzero(tmp_plot2, sizeof(float) * sz);
       int g = (sz - 12 * ue_dl.cell.nof_prb) / 2;
       for (i = 0; i < 12 * ue_dl.cell.nof_prb; i++) {
-        tmp_plot2[g + i] = 20 * log10(cabs(ue_dl.chest_res.ce[0][0][i]));
+        tmp_plot2[g + i] = srslte_convert_amplitude_to_dB(cabsf(ue_dl.chest_res.ce[0][0][i]));
         if (isinf(tmp_plot2[g + i])) {
           tmp_plot2[g + i] = -80;
         }

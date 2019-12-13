@@ -30,6 +30,7 @@
 
 #include <algorithm>
 #include <condition_variable>
+#include <functional>
 #include <mutex>
 #include <queue>
 #include <vector>
@@ -224,6 +225,39 @@ private:
   uint32_t                   capacity            = 0;
   uint32_t                   nof_threads_waiting = 0;
 };
+
+/***********************************************************
+ * Specialization for tasks with content that is move-only
+ **********************************************************/
+
+class move_task_t
+{
+public:
+  move_task_t() = default;
+  template <typename Func>
+  move_task_t(Func&& f) : task_ptr(new derived_task<Func>(std::forward<Func>(f)))
+  {
+  }
+  void operator()() { (*task_ptr)(); }
+
+private:
+  struct base_task {
+    virtual ~base_task() {}
+    virtual void operator()() = 0;
+  };
+  template <typename Func>
+  struct derived_task : public base_task {
+    derived_task(Func&& f_) : f(std::forward<Func>(f_)) {}
+    void operator()() final { f(); }
+
+  private:
+    Func f;
+  };
+
+  std::unique_ptr<base_task> task_ptr;
+};
+
+using multiqueue_task_handler = multiqueue_handler<move_task_t>;
 
 } // namespace srslte
 

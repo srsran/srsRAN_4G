@@ -38,7 +38,8 @@
 #include "srslte/config.h"
 
 #define SRSLTE_NOF_SF_X_FRAME 10
-#define SRSLTE_NSLOTS_X_FRAME (2 * SRSLTE_NOF_SF_X_FRAME)
+#define SRSLTE_NOF_SLOTS_PER_SF 2
+#define SRSLTE_NSLOTS_X_FRAME (SRSLTE_NOF_SLOTS_PER_SF * SRSLTE_NOF_SF_X_FRAME)
 
 #define SRSLTE_NSOFT_BITS  250368 // Soft buffer size for Category 1 UE
 
@@ -322,6 +323,10 @@ typedef struct SRSLTE_API {
 #define SRSLTE_DEFAULT_MAX_FRAMES_NPBCH 500
 #define SRSLTE_DEFAULT_MAX_FRAMES_NPSS 20
 #define SRSLTE_DEFAULT_NOF_VALID_NPSS_FRAMES 20
+
+#define SRSLTE_NBIOT_NPBCH_NOF_TOTAL_BITS (1600) ///< Number of bits for the entire NPBCH (See 36.211 Sec 10.2.4.1)
+#define SRSLTE_NBIOT_NPBCH_NOF_BITS_SF                                                                                 \
+  (SRSLTE_NBIOT_NPBCH_NOF_TOTAL_BITS / 8) ///< The NPBCH is transmitted in 8 blocks (See 36.211 Sec 10.2.4.4)
 
 SRSLTE_API bool srslte_cell_isvalid(srslte_cell_t *cell);
 

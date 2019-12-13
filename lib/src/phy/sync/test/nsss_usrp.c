@@ -75,22 +75,22 @@ void parse_args(int argc, char** argv)
         has_cfo_corr = false;
         break;
       case 'c':
-        cfo_fixed = atof(argv[optind]);
+        cfo_fixed = strtof(argv[optind], NULL);
         break;
       case 'g':
-        rf_gain = atof(argv[optind]);
+        rf_gain = strtof(argv[optind], NULL);
         break;
       case 'f':
-        rf_freq = atof(argv[optind]);
+        rf_freq = strtof(argv[optind], NULL);
         break;
       case 't':
-        threshold = atof(argv[optind]);
+        threshold = strtof(argv[optind], NULL);
         break;
       case 'i':
-        cell.n_id_ncell = atoi(argv[optind]);
+        cell.n_id_ncell = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'n':
-        nof_frames = atoi(argv[optind]);
+        nof_frames = (int)strtol(argv[optind], NULL, 10);
         break;
       case 'v':
         srslte_verbose++;

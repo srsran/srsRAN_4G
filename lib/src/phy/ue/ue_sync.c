@@ -137,15 +137,15 @@ void srslte_ue_sync_reset(srslte_ue_sync_t *q) {
 }
 
 int srslte_ue_sync_start_agc(srslte_ue_sync_t *q,
-                             double (set_gain_callback)(void *, double),
-                             double min_gain,
-                             double max_gain,
-                             double init_gain_value) {
+                             float (set_gain_callback)(void *, float),
+                             float min_gain_db,
+                             float max_gain_db,
+                             float init_gain_value_db) {
   int n = srslte_agc_init_uhd(&q->agc, SRSLTE_AGC_MODE_PEAK_AMPLITUDE, 0, set_gain_callback, q->stream);
   q->do_agc = n==0?true:false;
   if (q->do_agc) {
-    srslte_agc_set_gain_range(&q->agc, min_gain, max_gain);
-    srslte_agc_set_gain(&q->agc, init_gain_value);
+    srslte_agc_set_gain_range(&q->agc, min_gain_db, max_gain_db);
+    srslte_agc_set_gain(&q->agc, init_gain_value_db);
     srslte_ue_sync_set_agc_period(q, 4);
   }
   return n; 
@@ -594,7 +594,7 @@ static int track_peak_ok(srslte_ue_sync_t* q, uint32_t track_idx)
   /* Adjust current CFO estimation with PSS
    * Since sync track has enabled only PSS-based correlation, get_cfo() returns that value only, already filtered.
    */
-  INFO("TRACK: cfo_current=%f, cfo_strack=%f\n", 15000*q->cfo_current_value, 15000*srslte_sync_get_cfo(&q->strack));
+  DEBUG("TRACK: cfo_current=%f, cfo_strack=%f\n", 15000*q->cfo_current_value, 15000*srslte_sync_get_cfo(&q->strack));
   if (15000*fabsf(srslte_sync_get_cfo(&q->strack)) > q->cfo_pss_min) {
     q->cfo_current_value += srslte_sync_get_cfo(&q->strack)*q->cfo_loop_bw_pss;
     q->pss_stable_cnt = 0;
@@ -764,9 +764,10 @@ int srslte_ue_sync_zerocopy(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_P
             srslte_agc_process(&q->agc, input_buffer[0], q->sf_len);
           }
 
-          INFO("SYNC FIND: sf_idx=%d, ret=%d, next_state=%d\n", q->sf_idx, ret, q->state);
+          INFO("SYNC FIND: sf_idx=%d, ret=%d, peak_pos=%d, peak_value=%.2f, mean_cp_cfo=%.2f, mean_pss_cfo=%.2f, total_cfo_khz=%.1f\n", q->sf_idx, ret, q->peak_idx,
+               q->sfind.peak_value, q->sfind.cfo_cp_mean, q->sfind.cfo_pss_mean, 15 * srslte_sync_get_cfo(&q->sfind));
 
-        break;
+          break;
         case SF_TRACK:
          
           ret = 1;
@@ -828,10 +829,12 @@ int srslte_ue_sync_zerocopy(srslte_ue_sync_t* q, cf_t* input_buffer[SRSLTE_MAX_P
             }
 
             q->frame_total_cnt++;
+
+            INFO("SYNC TRACK: sf_idx=%d, ret=%d, peak_pos=%d, peak_value=%.2f, mean_cp_cfo=%.2f, mean_pss_cfo=%.2f, total_cfo_khz=%.1f\n", q->sf_idx, ret, track_idx,
+                q->strack.peak_value, q->strack.cfo_cp_mean, q->strack.cfo_pss_mean, 15 * srslte_sync_get_cfo(&q->strack));
+          } else {
+            INFO("SYNC TRACK: sf_idx=%d, ret=%d, next_state=%d\n", q->sf_idx, ret, q->state);
           }
-
-          INFO("SYNC TRACK: sf_idx=%d, ret=%d, next_state=%d\n", q->sf_idx, ret, q->state);
-
         break;
       }
     }

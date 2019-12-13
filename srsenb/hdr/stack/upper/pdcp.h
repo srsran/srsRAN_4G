@@ -19,10 +19,11 @@
  *
  */
 
-#include <map>
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/common/timers.h"
 #include "srslte/interfaces/enb_interfaces.h"
+#include "srslte/interfaces/ue_interfaces.h"
 #include "srslte/upper/pdcp.h"
+#include <map>
 
 #ifndef SRSENB_PDCP_H
 #define SRSENB_PDCP_H
@@ -32,11 +33,11 @@ namespace srsenb {
 class pdcp : public pdcp_interface_rlc, public pdcp_interface_gtpu, public pdcp_interface_rrc
 {
 public:
-  pdcp(srslte::log* pdcp_log_);
-  virtual ~pdcp() {};
+  pdcp(srslte::timer_handler* timers, srslte::log* pdcp_log_);
+  virtual ~pdcp(){};
   void init(rlc_interface_pdcp* rlc_, rrc_interface_pdcp* rrc_, gtpu_interface_pdcp* gtpu_);
-  void stop(); 
-  
+  void stop();
+
   // pdcp_interface_rlc
   void write_pdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t sdu);
   void write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t sdu) {}
@@ -56,6 +57,8 @@ public:
                        srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo_);
   void enable_integrity(uint16_t rnti, uint32_t lcid);
   void enable_encryption(uint16_t rnti, uint32_t lcid);
+  bool get_bearer_status(uint16_t rnti, uint32_t lcid, uint16_t* dlsn, uint16_t* dlhfn, uint16_t* ulsn, uint16_t* ulhfn)
+      override;
 
 private:
   class user_interface_rlc : public srsue::rlc_interface_pdcp
@@ -65,6 +68,7 @@ private:
     srsenb::rlc_interface_pdcp* rlc;
     // rlc_interface_pdcp
     void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking);
+    void discard_sdu(uint32_t lcid, uint32_t discard_sn);
     bool rb_is_um(uint32_t lcid);
   };
 
@@ -110,6 +114,7 @@ private:
   rlc_interface_pdcp*       rlc;
   rrc_interface_pdcp*       rrc;
   gtpu_interface_pdcp*      gtpu;
+  srslte::timer_handler*    timers;
   srslte::log*              log_h;
   srslte::byte_buffer_pool* pool;
 };

@@ -36,8 +36,8 @@ ue_stack_lte::ue_stack_lte() :
   rlc(&rlc_log),
   mac(&mac_log),
   rrc(&rrc_log),
-  pdcp(&pdcp_log),
-  nas(&nas_log),
+  pdcp(&timers, &pdcp_log),
+  nas(&nas_log, &timers),
   thread("STACK"),
   pending_tasks(1024),
   background_tasks(2)
@@ -88,6 +88,8 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   rrc_log.init("RRC ", logger);
   nas_log.init("NAS ", logger);
   usim_log.init("USIM", logger);
+  asn1_log.init("ASN1", logger);
+  rrc_asn1_log.init("ASN1::RRC", logger);
 
   pool_log.init("POOL", logger);
   pool_log.set_level(srslte::LOG_LEVEL_ERROR);
@@ -99,6 +101,8 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   rrc_log.set_level(args.log.rrc_level);
   nas_log.set_level(args.log.nas_level);
   usim_log.set_level(args.log.usim_level);
+  asn1_log.set_level(LOG_LEVEL_INFO);
+  rrc_asn1_log.set_level(args.log.rrc_level);
 
   mac_log.set_hex_limit(args.log.mac_hex_limit);
   rlc_log.set_hex_limit(args.log.rlc_hex_limit);
@@ -106,6 +110,10 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   rrc_log.set_hex_limit(args.log.rrc_hex_limit);
   nas_log.set_hex_limit(args.log.nas_hex_limit);
   usim_log.set_hex_limit(args.log.usim_hex_limit);
+  asn1_log.set_hex_limit(128);
+  rrc_asn1_log.set_hex_limit(args.log.rrc_hex_limit);
+  asn1::srsasn_log_register_handler(&asn1_log);
+  asn1::rrc::rrc_log_register_handler(&rrc_log);
 
   // Set up pcap
   if (args.pcap.enable) {
@@ -139,7 +147,7 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
 void ue_stack_lte::stop()
 {
   if (running) {
-    pending_tasks.try_push(ue_queue_id, task_t{[this](task_t*) { stop_impl(); }});
+    pending_tasks.try_push(ue_queue_id, [this]() { stop_impl(); });
     wait_thread_finish();
   }
 }
@@ -167,15 +175,10 @@ void ue_stack_lte::stop_impl()
 bool ue_stack_lte::switch_on()
 {
   if (running) {
-    proc_state_t proc_result = proc_state_t::on_going;
     pending_tasks.try_push(ue_queue_id,
-                           task_t{[this, &proc_result](task_t*) { nas.start_attach_request(&proc_result); }});
-    while (proc_result == proc_state_t::on_going) {
-      usleep(1000);
-    }
-    return proc_result == proc_state_t::success;
+                           [this]() { nas.start_attach_request(nullptr, srslte::establishment_cause_t::mo_data); });
+    return true;
   }
-
   return false;
 }
 
@@ -224,7 +227,7 @@ bool ue_stack_lte::get_metrics(stack_metrics_t* metrics)
 void ue_stack_lte::run_thread()
 {
   while (running) {
-    task_t task{};
+    srslte::move_task_t task{};
     if (pending_tasks.wait_pop(&task) >= 0) {
       task();
     }
@@ -247,11 +250,11 @@ void ue_stack_lte::run_thread()
  */
 void ue_stack_lte::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking)
 {
-  task_t task{};
-  task.pdu  = std::move(sdu);
-  task.func = [this, lcid, blocking](task_t* task_ctxt) { pdcp.write_sdu(lcid, std::move(task_ctxt->pdu), blocking); };
-  std::pair<bool, task_t> ret = pending_tasks.try_push(gw_queue_id, std::move(task));
-  if (not ret.first) {
+  auto task = [this, lcid, blocking](srslte::unique_byte_buffer_t& sdu) {
+    pdcp.write_sdu(lcid, std::move(sdu), blocking);
+  };
+  bool ret = pending_tasks.try_push(gw_queue_id, std::bind(task, std::move(sdu))).first;
+  if (not ret) {
     pdcp_log.warning("GW SDU with lcid=%d was discarded.\n", lcid);
   }
 }
@@ -265,17 +268,17 @@ void ue_stack_lte::write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bo
  */
 void ue_stack_lte::in_sync()
 {
-  pending_tasks.push(sync_queue_id, task_t{[this](task_t*) { rrc.in_sync(); }});
+  pending_tasks.push(sync_queue_id, [this]() { rrc.in_sync(); });
 }
 
 void ue_stack_lte::out_of_sync()
 {
-  pending_tasks.push(sync_queue_id, task_t{[this](task_t*) { rrc.out_of_sync(); }});
+  pending_tasks.push(sync_queue_id, [this]() { rrc.out_of_sync(); });
 }
 
 void ue_stack_lte::run_tti(uint32_t tti)
 {
-  pending_tasks.push(sync_queue_id, task_t{[this, tti](task_t*) { run_tti_impl(tti); }});
+  pending_tasks.push(sync_queue_id, [this, tti]() { run_tti_impl(tti); });
 }
 
 void ue_stack_lte::run_tti_impl(uint32_t tti)
@@ -292,7 +295,7 @@ void ue_stack_lte::run_tti_impl(uint32_t tti)
 
 void ue_stack_lte::process_pdus()
 {
-  pending_tasks.push(mac_queue_id, task_t{[this](task_t*) { mac.process_pdus(); }});
+  pending_tasks.push(mac_queue_id, [this]() { mac.process_pdus(); });
 }
 
 void ue_stack_lte::wait_ra_completion(uint16_t rnti)
@@ -314,8 +317,7 @@ void ue_stack_lte::start_cell_search()
     phy_interface_rrc_lte::phy_cell_t        found_cell;
     phy_interface_rrc_lte::cell_search_ret_t ret = phy->cell_search(&found_cell);
     // notify back RRC
-    pending_tasks.push(background_queue_id,
-                       task_t{[this, found_cell, ret](task_t*) { rrc.cell_search_completed(ret, found_cell); }});
+    pending_tasks.push(background_queue_id, [this, found_cell, ret]() { rrc.cell_search_completed(ret, found_cell); });
   });
 }
 

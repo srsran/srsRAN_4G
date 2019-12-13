@@ -616,6 +616,6 @@ float srslte_pss_cfo_compute(srslte_pss_t* q, const cf_t *pss_recv) {
 
   y0 = srslte_vec_dot_prod_ccc(q->pss_signal_time[q->N_id_2], pss_ptr, q->fft_size/2);
   y1 = srslte_vec_dot_prod_ccc(&q->pss_signal_time[q->N_id_2][q->fft_size/2], &pss_ptr[q->fft_size/2], q->fft_size/2);
-  return carg(conjf(y0) * y1)/M_PI;
+  return cargf(conjf(y0) * y1) / M_PI;
 }
 

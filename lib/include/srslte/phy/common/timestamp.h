@@ -52,7 +52,7 @@ SRSLTE_API void srslte_timestamp_init_uint64(srslte_timestamp_t* ts_time, uint64
 
 SRSLTE_API int srslte_timestamp_copy(srslte_timestamp_t* dest, srslte_timestamp_t* src);
 
-SRSLTE_API int srslte_timestamp_compare(srslte_timestamp_t* a, srslte_timestamp_t* b);
+SRSLTE_API int srslte_timestamp_compare(const srslte_timestamp_t* a, const srslte_timestamp_t* b);
 
 SRSLTE_API int srslte_timestamp_add(srslte_timestamp_t* t, time_t full_secs, double frac_secs);
 

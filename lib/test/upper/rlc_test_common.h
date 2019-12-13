@@ -35,10 +35,23 @@ public:
   // PDCP interface
   void write_pdu(uint32_t lcid, unique_byte_buffer_t sdu)
   {
+    // check length
     if (lcid != 3 && sdu->N_bytes != expected_sdu_len) {
       printf("Received PDU with size %d, expected %d. Exiting.\n", sdu->N_bytes, expected_sdu_len);
       exit(-1);
     }
+
+    // check content
+    uint8_t first_byte = *sdu->msg;
+    for (uint32_t i = 0; i < sdu->N_bytes; i++) {
+      if (sdu->msg[i] != first_byte) {
+        printf("Received corrupted SDU with size %d. Exiting.\n", sdu->N_bytes);
+        srslte_vec_fprint_byte(stdout, sdu->msg, sdu->N_bytes);
+        exit(-1);
+      }
+    }
+
+    // srslte_vec_fprint_byte(stdout, sdu->msg, sdu->N_bytes);
     sdus.push_back(std::move(sdu));
   }
   void write_pdu_bcch_bch(unique_byte_buffer_t sdu) {}

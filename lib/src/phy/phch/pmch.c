@@ -198,38 +198,36 @@ int srslte_pmch_init(srslte_pmch_t* q, uint32_t max_prb, uint32_t nof_rx_antenna
 }
 
 void srslte_pmch_free(srslte_pmch_t *q) {
-  uint16_t i;
-
   if (q->e) {
     free(q->e);
   }
   if (q->d) {
     free(q->d);
   }
-  for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
+  for (uint32_t i = 0; i < SRSLTE_MAX_PORTS; i++) {
     if (q->x[i]) {
       free(q->x[i]);
     }
-    for (int j=0;j<q->nof_rx_antennas;j++) {
+    for (uint32_t j = 0; j < q->nof_rx_antennas; j++) {
       if (q->ce[i][j]) {
         free(q->ce[i][j]);
       }
     }
   }
-  for (i=0;i<q->nof_rx_antennas;i++) {
+  for (uint32_t i = 0; i < q->nof_rx_antennas; i++) {
     if (q->symbols[i]) {
       free(q->symbols[i]);
     }          
   }
   if (q->seqs) {
-    for (i=0; i<SRSLTE_MAX_MBSFN_AREA_IDS; i++) {
+    for (uint32_t i = 0; i < SRSLTE_MAX_MBSFN_AREA_IDS; i++) {
       if (q->seqs[i]) {
         srslte_pmch_free_area_id(q, i);
       }
     }      
     free(q->seqs);
   }
-  for (i = 0; i < 4; i++) {
+  for (uint32_t i = 0; i < 4; i++) {
     srslte_modem_table_free(&q->mod[i]);
   }
 

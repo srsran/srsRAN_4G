@@ -18,6 +18,8 @@
 # and at http://www.gnu.org/licenses/.
 #
 
+find_package(SCTP REQUIRED)
+
 #######################################################################
 # COMMON TESTS
 #######################################################################
@@ -65,12 +67,27 @@ add_executable(pdu_test pdu_test.cc)
 target_link_libraries(pdu_test srslte_phy srslte_common ${CMAKE_THREAD_LIBS_INIT})
 add_test(pdu_test pdu_test)
 
-add_executable(mac_nr_pdu_test mac_nr_pdu_test.cc)
-target_link_libraries(mac_nr_pdu_test srslte_phy srslte_common ${CMAKE_THREAD_LIBS_INIT})
-add_test(mac_nr_pdu_test mac_nr_pdu_test)
+if (ENABLE_5GNR)
+  add_executable(mac_nr_pdu_test mac_nr_pdu_test.cc)
+  target_link_libraries(mac_nr_pdu_test srslte_phy srslte_common ${CMAKE_THREAD_LIBS_INIT})
+  add_test(mac_nr_pdu_test mac_nr_pdu_test)
+endif(ENABLE_5GNR)
 
 add_executable(stack_procedure_test stack_procedure_test.cc)
+add_test(stack_procedure_test stack_procedure_test)
 
 add_executable(queue_test queue_test.cc)
 target_link_libraries(queue_test srslte_common ${CMAKE_THREAD_LIBS_INIT})
 add_test(queue_test queue_test)
+
+add_executable(timer_test timer_test.cc)
+target_link_libraries(timer_test srslte_common)
+add_test(timer_test timer_test)
+
+add_executable(network_utils_test network_utils_test.cc)
+target_link_libraries(network_utils_test srslte_common ${SCTP_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+add_test(network_utils_test network_utils_test)
+
+add_executable(test_common_test test_common_test.cc)
+target_link_libraries(test_common_test srslte_common)
+add_test(test_common_test test_common_test)

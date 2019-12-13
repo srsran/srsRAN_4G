@@ -34,10 +34,10 @@ using namespace srslte;
 class ttcn3_srb_interface : public netsource_handler
 {
 public:
-  ttcn3_srb_interface() : syssim(nullptr), pool(byte_buffer_pool::get_instance()), netsource_handler("TTCN3_SRB_IF"){};
+  ttcn3_srb_interface() : pool(byte_buffer_pool::get_instance()), netsource_handler("TTCN3_SRB_IF"){};
   ~ttcn3_srb_interface(){};
 
-  void init(syssim_interface* syssim_, srslte::log* log_, std::string net_ip_, uint32_t net_port_)
+  void init(ss_srb_interface* syssim_, srslte::log* log_, std::string net_ip_, uint32_t net_port_)
   {
     syssim   = syssim_;
     log      = log_;
@@ -151,6 +151,11 @@ private:
     memcpy(pdu->msg, payload, pdu->N_bytes);
 
     syssim->add_ccch_pdu(std::move(pdu));
+
+    // FIXME: is there a better way to check for RRCConnectionReestablishment?
+    if (ccch_is_rrc_reestablishment(document)) {
+      syssim->reestablish_bearer(1);
+    }
   }
 
   // Todo: move to SYSSIM
@@ -166,7 +171,20 @@ private:
     syssim->add_dcch_pdu(lcid, std::move(pdu));
   }
 
-  syssim_interface* syssim = nullptr;
+  bool ccch_is_rrc_reestablishment(Document& document)
+  {
+    const Value& dcch = document["RrcPdu"]["Ccch"];
+    if (dcch.HasMember("message_")) {
+      if (dcch["message_"].HasMember("c1")) {
+        if (dcch["message_"]["c1"].HasMember("rrcConnectionReestablishment")) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  ss_srb_interface* syssim = nullptr;
   byte_buffer_pool* pool   = nullptr;
 };
 

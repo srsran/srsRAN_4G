@@ -194,12 +194,11 @@ public:
     }
 
     // Undo srslte_enb_dl_gen_signal scaling
-    float scale = sqrt(cell_base.nof_prb) / 0.05f / enb_dl.ifft->symbol_sz;
+    float scale = sqrtf(cell_base.nof_prb) / 0.05f / enb_dl.ifft->symbol_sz;
 
     // Apply Neighbour cell attenuation
     if (enb_dl.cell.id != cell_id_start) {
-      float scale_dB = -ncell_attenuation_dB;
-      scale *= powf(10.0f, scale_dB / 20.0f);
+      scale *= srslte_convert_dB_to_amplitude(-ncell_attenuation_dB);
     }
 
     // Scale signal
@@ -450,7 +449,7 @@ int main(int argc, char** argv)
   logger.set_level(intra_meas_log_level);
 
   intra_measure.init(&common, &rrc, &logger);
-  intra_measure.set_primay_cell(serving_cell_id, cell_base);
+  intra_measure.set_primary_cell(serving_cell_id, cell_base);
 
   if (earfcn_dl >= 0) {
     // Create radio log

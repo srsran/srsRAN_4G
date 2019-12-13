@@ -75,8 +75,8 @@ public:
                     srslte::log_filter*                    gtpc_log,
                     srslte::log_filter*                    spgw_log,
                     const std::map<std::string, uint64_t>& ip_to_imsi);
-  void stop();
-  void run_thread();
+  void         stop();
+  void         run_thread();
 
 private:
   spgw();

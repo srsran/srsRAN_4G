@@ -23,8 +23,11 @@
 #include "srslte/asn1/rrc_asn1.h"
 #include "srslte/config.h"
 #include <algorithm>
+#include <srslte/common/interfaces_common.h>
 
 namespace srslte {
+
+using namespace asn1::rrc;
 
 /***************************
  *        PLMN ID
@@ -166,6 +169,7 @@ void to_asn1(asn1::rrc::rlc_cfg_c* asn1_type, const srslte::rlc_config_t& cfg)
           (asn1::rrc::sn_field_len_opts::options)cfg.um.rx_sn_field_length;
       asn1_type->um_bi_dir().ul_um_rlc.sn_field_len.value =
           (asn1::rrc::sn_field_len_opts::options)cfg.um.tx_sn_field_length;
+      break;
     case rlc_mode_t::am:
       asn1_type->set_am();
       asn1::number_to_enum(asn1_type->am().ul_am_rlc.t_poll_retx, cfg.am.t_poll_retx);
@@ -179,7 +183,34 @@ void to_asn1(asn1::rrc::rlc_cfg_c* asn1_type, const srslte::rlc_config_t& cfg)
       // stays TM
       break;
   }
+}
 
+/**
+ * PDCP Config
+ */
+
+srslte::pdcp_config_t make_srb_pdcp_config_t(const uint8_t bearer_id, bool is_ue)
+{
+  pdcp_config_t cfg(bearer_id,
+                    PDCP_RB_IS_SRB,
+                    is_ue ? SECURITY_DIRECTION_UPLINK : SECURITY_DIRECTION_DOWNLINK,
+                    is_ue ? SECURITY_DIRECTION_DOWNLINK : SECURITY_DIRECTION_UPLINK,
+                    PDCP_SN_LEN_5,
+                    pdcp_t_reordering_t::ms500,
+                    pdcp_discard_timer_t::infinity);
+  return cfg;
+}
+
+srslte::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue)
+{
+  pdcp_config_t cfg(bearer_id,
+                    PDCP_RB_IS_DRB,
+                    is_ue ? SECURITY_DIRECTION_UPLINK : SECURITY_DIRECTION_DOWNLINK,
+                    is_ue ? SECURITY_DIRECTION_DOWNLINK : SECURITY_DIRECTION_UPLINK,
+                    PDCP_SN_LEN_12,
+                    pdcp_t_reordering_t::ms500,
+                    pdcp_discard_timer_t::infinity);
+  return cfg;
 }
 
 /***************************
@@ -333,7 +364,7 @@ void set_phy_cfg_t_dedicated_cfg(phy_cfg_t* cfg, const asn1::rrc::phys_cfg_ded_s
         asn1_type.ul_pwr_ctrl_ded.delta_mcs_enabled == asn1::rrc::ul_pwr_ctrl_ded_s::delta_mcs_enabled_e_::en0;
     cfg->ul_cfg.power_ctrl.acc_enabled  = asn1_type.ul_pwr_ctrl_ded.accumulation_enabled;
     cfg->ul_cfg.power_ctrl.p0_ue_pucch  = asn1_type.ul_pwr_ctrl_ded.p0_ue_pucch;
-    cfg->ul_cfg.power_ctrl.p_srs_offset = asn1_type.ul_pwr_ctrl_ded.p_srs_offset;
+    cfg->ul_cfg.power_ctrl.p_srs_offset = asn1_type.ul_pwr_ctrl_ded.psrs_offset;
   }
 
   if (asn1_type.ul_pwr_ctrl_ded.filt_coef_present) {
@@ -500,8 +531,8 @@ void set_phy_cfg_t_common_pucch(phy_cfg_t* cfg, const asn1::rrc::pucch_cfg_commo
 {
   /* PUCCH configuration */
   cfg->ul_cfg.pucch.delta_pucch_shift = asn1_type.delta_pucch_shift.to_number();
-  cfg->ul_cfg.pucch.N_cs              = asn1_type.n_cs_an;
-  cfg->ul_cfg.pucch.n_rb_2            = asn1_type.n_rb_cqi;
+  cfg->ul_cfg.pucch.N_cs              = asn1_type.ncs_an;
+  cfg->ul_cfg.pucch.n_rb_2            = asn1_type.nrb_cqi;
   cfg->ul_cfg.pucch.N_pucch_1         = asn1_type.n1_pucch_an;
 }
 
@@ -780,3 +811,112 @@ sib13_t make_sib13(const asn1::rrc::sib_type13_r9_s& asn1_type)
 }
 
 } // namespace srslte
+
+namespace asn1 {
+namespace rrc {
+
+/***************************
+ *      MeasConfig
+ **************************/
+
+bool operator==(const cells_to_add_mod_s& lhs, const cells_to_add_mod_s& rhs)
+{
+  return lhs.cell_idx == rhs.cell_idx and lhs.pci == rhs.pci and
+         lhs.cell_individual_offset == rhs.cell_individual_offset;
+}
+
+bool operator==(const meas_obj_to_add_mod_s& lhs, const meas_obj_to_add_mod_s& rhs)
+{
+  if (lhs.meas_obj_id != rhs.meas_obj_id or lhs.meas_obj.type() != lhs.meas_obj.type()) {
+    return false;
+  }
+  auto &lhs_eutra = lhs.meas_obj.meas_obj_eutra(), &rhs_eutra = rhs.meas_obj.meas_obj_eutra();
+  if (lhs_eutra.ext or rhs_eutra.ext) {
+    printf("[%d] extension of measObjToAddMod not supported\n", __LINE__);
+    return false;
+  }
+
+  if (lhs_eutra.offset_freq_present != rhs_eutra.offset_freq_present or
+      (lhs_eutra.offset_freq_present and lhs_eutra.offset_freq != rhs_eutra.offset_freq)) {
+    return false;
+  }
+
+  if (lhs_eutra.carrier_freq != rhs_eutra.carrier_freq or not(lhs_eutra.neigh_cell_cfg == rhs_eutra.neigh_cell_cfg) or
+      lhs_eutra.presence_ant_port1 != rhs_eutra.presence_ant_port1 or
+      lhs_eutra.allowed_meas_bw != rhs_eutra.allowed_meas_bw) {
+    return false;
+  }
+
+  if (lhs_eutra.cells_to_add_mod_list.size() != rhs_eutra.cells_to_add_mod_list.size()) {
+    return false;
+  }
+
+  auto cells_are_equal = [](const cells_to_add_mod_s& lhs, const cells_to_add_mod_s& rhs) { return lhs == rhs; };
+  return std::equal(lhs_eutra.cells_to_add_mod_list.begin(),
+                    lhs_eutra.cells_to_add_mod_list.end(),
+                    rhs_eutra.cells_to_add_mod_list.begin(),
+                    cells_are_equal);
+}
+
+bool operator==(const report_cfg_eutra_s& lhs, const report_cfg_eutra_s& rhs)
+{
+  if (lhs.ext or rhs.ext) {
+    printf("[%d] extension of reportCfgToAddMod not supported\n", __LINE__);
+    return false;
+  }
+  if (lhs.trigger_type.type() != rhs.trigger_type.type()) {
+    return false;
+  }
+  if (lhs.trigger_type.type().value == report_cfg_eutra_s::trigger_type_c_::types_opts::event) {
+    auto &lhs_ev = lhs.trigger_type.event(), &rhs_ev = rhs.trigger_type.event();
+    if (lhs_ev.hysteresis != rhs_ev.hysteresis or lhs_ev.time_to_trigger != rhs_ev.time_to_trigger or
+        lhs_ev.event_id.type() != rhs_ev.event_id.type()) {
+      return false;
+    }
+    if (lhs_ev.event_id.type().value != eutra_event_s::event_id_c_::types_opts::event_a3) {
+      printf("[%d] event type != A3 of reportCfgToAddMod not supported\n", __LINE__);
+      return false;
+    }
+    if (lhs_ev.event_id.event_a3().report_on_leave != rhs_ev.event_id.event_a3().report_on_leave or
+        lhs_ev.event_id.event_a3().a3_offset != rhs_ev.event_id.event_a3().a3_offset) {
+      return false;
+    }
+  } else {
+    if (lhs.trigger_type.periodical().purpose != rhs.trigger_type.periodical().purpose) {
+      return false;
+    }
+  }
+  return lhs.trigger_quant == rhs.trigger_quant and lhs.report_quant == rhs.report_quant and
+         lhs.max_report_cells == rhs.max_report_cells and lhs.report_interv == rhs.report_interv and
+         lhs.report_amount == rhs.report_amount;
+}
+
+bool operator==(const report_cfg_to_add_mod_s& lhs, const report_cfg_to_add_mod_s& rhs)
+{
+  if (lhs.report_cfg_id != rhs.report_cfg_id or lhs.report_cfg.type() != rhs.report_cfg.type()) {
+    return false;
+  }
+  return lhs.report_cfg.report_cfg_eutra() == rhs.report_cfg.report_cfg_eutra();
+}
+
+bool operator==(const meas_id_to_add_mod_s& lhs, const meas_id_to_add_mod_s& rhs)
+{
+  return lhs.meas_id == rhs.meas_id and lhs.meas_obj_id == rhs.meas_obj_id and lhs.report_cfg_id == rhs.report_cfg_id;
+}
+
+bool operator==(const asn1::rrc::quant_cfg_s& lhs, const asn1::rrc::quant_cfg_s& rhs)
+{
+  if (lhs.ext or lhs.quant_cfg_geran_present or lhs.quant_cfg_utra_present or lhs.quant_cfg_cdma2000_present or
+      rhs.ext or rhs.quant_cfg_geran_present or rhs.quant_cfg_utra_present or rhs.quant_cfg_cdma2000_present) {
+    printf("[%d] quantCfg properties not supported\n", __LINE__);
+    return false;
+  }
+  return lhs.quant_cfg_eutra_present == rhs.quant_cfg_eutra_present and
+         lhs.quant_cfg_eutra.filt_coef_rsrp_present == rhs.quant_cfg_eutra.filt_coef_rsrp_present and
+         lhs.quant_cfg_eutra.filt_coef_rsrp == rhs.quant_cfg_eutra.filt_coef_rsrp and
+         lhs.quant_cfg_eutra.filt_coef_rsrq_present == rhs.quant_cfg_eutra.filt_coef_rsrq_present and
+         lhs.quant_cfg_eutra.filt_coef_rsrq == rhs.quant_cfg_eutra.filt_coef_rsrq;
+}
+
+} // namespace rrc
+} // namespace asn1

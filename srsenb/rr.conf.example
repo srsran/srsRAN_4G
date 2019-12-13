@@ -49,3 +49,42 @@ phy_cnfg =
     m_ri = 8; // RI period in CQI period
   };
 };
+
+cell_list =
+(
+  {
+    // rf_port = 0;
+    // cell_id = 0x01;
+    // tac = 0x0001;
+    // pci = 1;
+    // root_seq_idx = 204;
+    // dl_earfcn = 3400;
+    // ul_earfcn = 474;
+    ho_active = false;
+
+    // CA cells
+    scell_list = (
+      {cell_id = 0x02; cross_carrier_scheduling = false; scheduling_cell_id = 0x02; ul_allowed = true}
+    )
+
+    // Cells available for handover
+    meas_cell_list =
+    (
+      {
+        eci = 0x19C02;
+        dl_earfcn = 2850;
+        pci = 2;
+      }
+    );
+
+    // ReportCfg (only A3 supported)
+    meas_report_desc = {
+      a3_report_type = "RSRP";
+      a3_offset = 6;
+      a3_hysteresis = 0;
+      a3_time_to_trigger = 480;
+      rsrq_config = 4;
+    };
+  }
+  // Add here more cells
+);

@@ -226,7 +226,7 @@ wait_sensor_locked(rf_uhd_handler_t* handler, char* sensor_name, bool is_mboard,
   return error;
 }
 
-char* rf_uhd_devname(void* h)
+const char* rf_uhd_devname(void* h)
 {
   rf_uhd_handler_t* handler = (rf_uhd_handler_t*)h;
   return handler->devname;

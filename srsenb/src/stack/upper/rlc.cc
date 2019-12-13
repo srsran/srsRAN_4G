@@ -24,11 +24,11 @@
 
 namespace srsenb {
 
-void rlc::init(pdcp_interface_rlc* pdcp_,
-               rrc_interface_rlc*  rrc_,
-               mac_interface_rlc*  mac_,
-               srslte::timers*     timers_,
-               srslte::log*        log_h_)
+void rlc::init(pdcp_interface_rlc*    pdcp_,
+               rrc_interface_rlc*     rrc_,
+               mac_interface_rlc*     mac_,
+               srslte::timer_handler* timers_,
+               srslte::log*           log_h_)
 {
   pdcp   = pdcp_;
   rrc    = rrc_;
@@ -38,7 +38,7 @@ void rlc::init(pdcp_interface_rlc* pdcp_,
 
   pool = srslte::byte_buffer_pool::get_instance();
 
-  pthread_rwlock_init(&rwlock, NULL);
+  pthread_rwlock_init(&rwlock, nullptr);
 }
 
 void rlc::stop()
@@ -62,7 +62,7 @@ void rlc::add_user(uint16_t rnti)
     users[rnti].pdcp   = pdcp;
     users[rnti].rrc    = rrc;
     users[rnti].rlc    = std::move(obj);
-    users[rnti].parent = this; 
+    users[rnti].parent = this;
   }
   pthread_rwlock_unlock(&rwlock);
 }
@@ -84,8 +84,8 @@ void rlc::clear_buffer(uint16_t rnti)
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti)) {
     users[rnti].rlc->empty_queue();
-    for (int i=0;i<SRSLTE_N_RADIO_BEARERS;i++) {
-      mac->rlc_buffer_state(rnti, i, 0, 0);      
+    for (int i = 0; i < SRSLTE_N_RADIO_BEARERS; i++) {
+      mac->rlc_buffer_state(rnti, i, 0, 0);
     }
     log_h->info("Cleared buffer rnti=0x%x\n", rnti);
   }
@@ -128,25 +128,25 @@ void rlc::read_pdu_pcch(uint8_t* payload, uint32_t buffer_size)
 
 int rlc::read_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof_bytes)
 {
-  int ret;
+  int      ret;
   uint32_t tx_queue;
 
   pthread_rwlock_rdlock(&rwlock);
-  if(users.count(rnti)) {
-    if(rnti != SRSLTE_MRNTI) {
-      ret = users[rnti].rlc->read_pdu(lcid, payload, nof_bytes);
+  if (users.count(rnti)) {
+    if (rnti != SRSLTE_MRNTI) {
+      ret      = users[rnti].rlc->read_pdu(lcid, payload, nof_bytes);
       tx_queue = users[rnti].rlc->get_buffer_state(lcid);
     } else {
-      ret = users[rnti].rlc->read_pdu_mch(lcid, payload, nof_bytes);
+      ret      = users[rnti].rlc->read_pdu_mch(lcid, payload, nof_bytes);
       tx_queue = users[rnti].rlc->get_total_mch_buffer_state(lcid);
     }
     // In the eNodeB, there is no polling for buffer state from the scheduler, thus
     // communicate buffer state every time a PDU is read
-      
+
     uint32_t retx_queue = 0;
     log_h->debug("Buffer state PDCP: rnti=0x%x, lcid=%d, tx_queue=%d\n", rnti, lcid, tx_queue);
     mac->rlc_buffer_state(rnti, lcid, tx_queue, retx_queue);
-  }else{
+  } else {
     ret = SRSLTE_ERROR;
   }
   pthread_rwlock_unlock(&rwlock);
@@ -158,18 +158,18 @@ void rlc::write_pdu(uint16_t rnti, uint32_t lcid, uint8_t* payload, uint32_t nof
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti)) {
     users[rnti].rlc->write_pdu(lcid, payload, nof_bytes);
-    
-    // In the eNodeB, there is no polling for buffer state from the scheduler, thus 
+
+    // In the eNodeB, there is no polling for buffer state from the scheduler, thus
     // communicate buffer state every time a new PDU is written
     uint32_t tx_queue   = users[rnti].rlc->get_buffer_state(lcid);
-    uint32_t retx_queue = 0; 
+    uint32_t retx_queue = 0;
     log_h->debug("Buffer state PDCP: rnti=0x%x, lcid=%d, tx_queue=%d\n", rnti, lcid, tx_queue);
     mac->rlc_buffer_state(rnti, lcid, tx_queue, retx_queue);
   }
   pthread_rwlock_unlock(&rwlock);
 }
 
-void rlc::read_pdu_bcch_dlsch(uint32_t sib_index, uint8_t *payload)
+void rlc::read_pdu_bcch_dlsch(uint32_t sib_index, uint8_t* payload)
 {
   // RLC is transparent for BCCH
   rrc->read_pdu_bcch_dlsch(sib_index, payload);
@@ -181,24 +181,44 @@ void rlc::write_sdu(uint16_t rnti, uint32_t lcid, srslte::unique_byte_buffer_t s
 
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti)) {
-    if(rnti != SRSLTE_MRNTI){
+    if (rnti != SRSLTE_MRNTI) {
       users[rnti].rlc->write_sdu(lcid, std::move(sdu), false);
-      tx_queue   = users[rnti].rlc->get_buffer_state(lcid);
-    }else {
+      tx_queue = users[rnti].rlc->get_buffer_state(lcid);
+    } else {
       users[rnti].rlc->write_sdu_mch(lcid, std::move(sdu));
-      tx_queue   = users[rnti].rlc->get_total_mch_buffer_state(lcid);
+      tx_queue = users[rnti].rlc->get_total_mch_buffer_state(lcid);
     }
-    // In the eNodeB, there is no polling for buffer state from the scheduler, thus 
+    // In the eNodeB, there is no polling for buffer state from the scheduler, thus
     // communicate buffer state every time a new SDU is written
-    
-    uint32_t retx_queue = 0; 
+
+    uint32_t retx_queue = 0;
     mac->rlc_buffer_state(rnti, lcid, tx_queue, retx_queue);
     log_h->info("Buffer state: rnti=0x%x, lcid=%d, tx_queue=%d\n", rnti, lcid, tx_queue);
   }
   pthread_rwlock_unlock(&rwlock);
 }
 
-bool rlc::rb_is_um(uint16_t rnti, uint32_t lcid) {
+void rlc::discard_sdu(uint16_t rnti, uint32_t lcid, uint32_t discard_sn)
+{
+
+  uint32_t tx_queue;
+
+  pthread_rwlock_rdlock(&rwlock);
+  if (users.count(rnti)) {
+    users[rnti].rlc->discard_sdu(lcid, discard_sn);
+    tx_queue = users[rnti].rlc->get_buffer_state(lcid);
+
+    // In the eNodeB, there is no polling for buffer state from the scheduler, thus
+    // communicate buffer state every time a new SDU is discarded
+    uint32_t retx_queue = 0;
+    mac->rlc_buffer_state(rnti, lcid, tx_queue, retx_queue);
+    log_h->info("Buffer state: rnti=0x%x, lcid=%d, tx_queue=%d\n", rnti, lcid, tx_queue);
+  }
+  pthread_rwlock_unlock(&rwlock);
+}
+
+bool rlc::rb_is_um(uint16_t rnti, uint32_t lcid)
+{
   bool ret = false;
   pthread_rwlock_rdlock(&rwlock);
   if (users.count(rnti)) {
@@ -242,4 +262,4 @@ std::string rlc::user_interface::get_rb_name(uint32_t lcid)
   return std::string(rb_id_text[lcid]);
 }
 
-}
+} // namespace srsenb

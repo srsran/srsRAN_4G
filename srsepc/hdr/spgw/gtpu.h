@@ -92,6 +92,5 @@ inline in_addr_t spgw::gtpu::get_s1u_addr()
   return m_s1u_addr.sin_addr.s_addr;
 }
 
-
 } // namespace srsepc
 #endif // SRSEPC_GTPU_H

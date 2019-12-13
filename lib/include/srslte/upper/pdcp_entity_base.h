@@ -58,7 +58,7 @@ static const char pdcp_d_c_text[PDCP_D_C_N_ITEMS][20] = {"Control PDU", "Data PD
 class pdcp_entity_base
 {
 public:
-  pdcp_entity_base();
+  pdcp_entity_base(srslte::timer_handler* timers_, srslte::log* log_);
   virtual ~pdcp_entity_base();
   virtual void reset()       = 0;
   virtual void reestablish() = 0;
@@ -90,14 +90,21 @@ public:
   uint32_t COUNT(uint32_t hfn, uint32_t sn);
 
 protected:
-  srslte::log* log = nullptr;
+  srslte::log*           log    = nullptr;
+  srslte::timer_handler* timers = nullptr;
 
   bool     active        = false;
   uint32_t lcid          = 0;
   bool     do_integrity  = false;
   bool     do_encryption = false;
 
-  pdcp_config_t cfg = {1, PDCP_RB_IS_DRB, SECURITY_DIRECTION_DOWNLINK, SECURITY_DIRECTION_UPLINK, PDCP_SN_LEN_12};
+  pdcp_config_t cfg = {1,
+                       PDCP_RB_IS_DRB,
+                       SECURITY_DIRECTION_DOWNLINK,
+                       SECURITY_DIRECTION_UPLINK,
+                       PDCP_SN_LEN_12,
+                       pdcp_t_reordering_t::ms500,
+                       pdcp_discard_timer_t::infinity};
 
   std::mutex mutex;
 
@@ -129,5 +136,7 @@ inline uint32_t pdcp_entity_base::COUNT(uint32_t hfn, uint32_t sn)
 {
   return (hfn << cfg.sn_len) | sn;
 }
+
 } // namespace srslte
+
 #endif // SRSLTE_PDCP_ENTITY_BASE_H

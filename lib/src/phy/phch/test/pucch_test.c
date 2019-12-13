@@ -56,13 +56,13 @@ void parse_args(int argc, char **argv) {
   while ((opt = getopt(argc, argv, "csNnqv")) != -1) {
     switch(opt) {
     case 's':
-      subframe = atoi(argv[optind]);
+      subframe = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'n':
-      cell.nof_prb = atoi(argv[optind]);
+      cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'c':
-      cell.id = atoi(argv[optind]);
+      cell.id = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'q':
       test_cqi_only = true;
@@ -176,8 +176,8 @@ int main(int argc, char **argv) {
   srslte_ul_sf_cfg_t ul_sf;
   ZERO_OBJECT(ul_sf);
 
-  srslte_pucch_format_t format; 
-  for (format=0;format<=SRSLTE_PUCCH_FORMAT_2B;format++) {
+  srslte_pucch_format_t format;
+  for (format = 0; format <= SRSLTE_PUCCH_FORMAT_3; format++) {
     for (uint32_t d=1;d<=3;d++) {
       for (uint32_t ncs=0;ncs<8;ncs+=d) {
         for (uint32_t n_pucch=1;n_pucch<130;n_pucch+=50) {
@@ -208,6 +208,7 @@ int main(int argc, char **argv) {
               break;
             case SRSLTE_PUCCH_FORMAT_1B:
             case SRSLTE_PUCCH_FORMAT_2B:
+            case SRSLTE_PUCCH_FORMAT_3:
               uci_data.value.ack.ack_value[0] = 1;
               uci_data.value.ack.ack_value[1] = 1;
               uci_data.cfg.ack[0].nof_acks    = 2;
@@ -238,7 +239,7 @@ int main(int argc, char **argv) {
           INFO("format %d, n_pucch: %d, ncs: %d, d: %d, t_exec=%ld us\n", format, n_pucch, ncs, d, t[0].tv_usec);
         }
       }
-    }    
+    }
   }
 
   ret = 0;

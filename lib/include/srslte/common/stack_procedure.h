@@ -23,23 +23,189 @@
 #include <list>
 #include <memory>
 #include <mutex>
+#include <vector>
 
 #ifndef SRSLTE_RESUMABLE_PROCEDURES_H
 #define SRSLTE_RESUMABLE_PROCEDURES_H
 
 namespace srslte {
 
-enum class proc_state_t { on_going, success, error, inactive };
 enum class proc_outcome_t { repeat, yield, success, error };
 
 /**************************************************************************************
- * class: proc_impl_t
- * Provides an polymorphic interface for resumable procedures. This base can then be used
- * by a task dispatch queue via the method "run()".
- * Every procedure starts in inactive state, and finishes with success or error.
- * With methods:
- * - run() - executes a procedure, returning true if the procedure is still running
- *           or false, if it has completed
+ * helper functions for method optional overloading
+ ************************************************************************************/
+namespace proc_detail {
+// used by proc_t<T> to call T::then() method only if it exists
+template <typename T, typename ProcResult>
+auto optional_then(T* obj, const ProcResult* result) -> decltype(obj->then(*result))
+{
+  obj->then(*result);
+}
+inline auto optional_then(...) -> void
+{
+  // do nothing
+}
+// used by proc_t<T> to call proc T::clear() method only if it exists
+template <class T>
+auto optional_clear(T* obj) -> decltype(obj->clear())
+{
+  obj->clear();
+}
+inline auto optional_clear(...) -> void
+{
+  // do nothing
+}
+template <class T>
+auto        get_result_type(const T& obj) -> decltype(obj.get_result());
+inline auto get_result_type(...) -> void;
+} // namespace proc_detail
+
+/**************************************************************************************
+ * class: callback_group_t<Args...>
+ *        Bundles several callbacks with callable interface "void(Args...)".
+ *        Calls to operator(Args&&...) call all the registered callbacks.
+ *        Two methods to register a callback - call it once, or always call it.
+ ************************************************************************************/
+
+template <typename... Args>
+class callback_group_t
+{
+public:
+  using callback_id_t = uint32_t;
+  using callback_t    = std::function<void(Args...)>;
+
+  //! register callback, that gets called once
+  callback_id_t on_next_call(callback_t f_)
+  {
+    uint32_t idx               = get_new_callback();
+    func_list[idx].func        = std::move(f_);
+    func_list[idx].call_always = false;
+    return idx;
+  }
+  callback_id_t on_every_call(callback_t f_)
+  {
+    uint32_t idx               = get_new_callback();
+    func_list[idx].func        = std::move(f_);
+    func_list[idx].call_always = true;
+    return idx;
+  }
+
+  // call all callbacks
+  template <typename... ArgsRef>
+  void operator()(const ArgsRef&... args)
+  {
+    for (auto& f : func_list) {
+      if (f.active) {
+        f.func(args...);
+        if (not f.call_always) {
+          f.active = false;
+        }
+      }
+    }
+  }
+
+private:
+  uint32_t get_new_callback()
+  {
+    uint32_t i = 0;
+    for (; i < func_list.size() and func_list[i].active; ++i) {
+    }
+    if (i == func_list.size()) {
+      func_list.emplace_back();
+    }
+    func_list[i].active = true;
+    return i;
+  }
+
+  struct call_item_t {
+    bool       active;
+    callback_t func;
+    bool       call_always;
+  };
+  std::vector<call_item_t> func_list;
+};
+
+/**************************************************************************************
+ * class: proc_result_t
+ * Stores the result of a procedure run. Can optionally contain a value T, in case of a
+ * successful run.
+ **************************************************************************************/
+
+namespace proc_detail {
+struct proc_result_base_t {
+  bool is_success() const { return state == result_state_t::value; }
+  bool is_error() const { return state == result_state_t::error; }
+  bool is_complete() const { return state != result_state_t::none; }
+  void set_val() { state = result_state_t::value; }
+  void set_error() { state = result_state_t::error; }
+  void clear() { state = result_state_t::none; }
+
+protected:
+  enum class result_state_t { none, value, error } state = result_state_t::none;
+};
+} // namespace proc_detail
+template <typename T>
+struct proc_result_t : public proc_detail::proc_result_base_t {
+  const T* value() const { return state == result_state_t::value ? &t : nullptr; }
+  void     set_val(const T& t_)
+  {
+    proc_result_base_t::set_val();
+    t = t_;
+  }
+  template <typename Proc>
+  void extract_val(Proc& p)
+  {
+    set_val(p.get_result());
+  }
+
+protected:
+  T t;
+};
+template <>
+struct proc_result_t<void> : public proc_detail::proc_result_base_t {
+  template <typename Proc>
+  void extract_val(Proc& p)
+  {
+    set_val();
+  }
+};
+// specialization for ResultType=void
+using proc_state_t = proc_result_t<void>;
+
+/**************************************************************************************
+ * class: proc_future_t
+ * Contains a pointer to the result of a procedure run. This pointer gets updated with
+ * the actual result once the procedure completes.
+ **************************************************************************************/
+template <typename ResultType>
+class proc_future_t
+{
+public:
+  proc_future_t() = default;
+  explicit proc_future_t(const std::shared_ptr<proc_result_t<ResultType> >& p_) : ptr(p_) {}
+  bool              is_error() const { return ptr->is_error(); }
+  bool              is_success() const { return ptr->is_success(); }
+  bool              is_complete() const { return ptr->is_complete(); }
+  const ResultType* value() const { return is_success() ? ptr->value() : nullptr; }
+  bool              is_valid() const { return ptr != nullptr; }
+
+private:
+  std::shared_ptr<proc_result_t<ResultType> > ptr;
+};
+using proc_future_state_t = proc_future_t<void>;
+
+/**************************************************************************************
+ * class: proc_base_t
+ * Provides a polymorphic interface for resumable procedures. This base can then be used
+ * by a "proc_manager_list_t" via the virtual method "proc_base_t::run()".
+ * With public methods:
+ * - run() - executes proc_t<T>::step(), and updates procedure state.
+ * - is_busy()/is_idle() - tells if procedure is currently running. Busy procedures
+ *                         cannot be re-launched
+ * - then() - called automatically when a procedure has finished. Useful for actions
+ *            upon procedure completion, like sending back a response or logging.
+ * With protected methods:
  * - step() - method overriden by child class that will be called by run(). step()
  *            executes a procedure "action" based on its current internal state,
  *            and return a proc_outcome_t variable with possible values:
@@ -48,268 +214,268 @@ enum class proc_outcome_t { repeat, yield, success, error };
  *            recall step() again (probably the procedure state has changed)
  *            - error - the procedure has finished unsuccessfully
  *            - success - the procedure has completed successfully
- * - stop() - called automatically when a procedure has finished. Useful for actions
- *            upon procedure completion, like sending back a response.
- * - set_proc_state() / is_#() - setter and getters for current procedure state
  ************************************************************************************/
-class proc_impl_t
+class proc_base_t
 {
 public:
-  proc_impl_t() : proc_state(proc_state_t::inactive) {}
-  virtual ~proc_impl_t()        = default;
-  virtual proc_outcome_t step() = 0;
-  virtual void           stop() {} // may be overloaded
+  virtual ~proc_base_t() = default;
 
+  //! common proc::run() interface. Returns true if procedure is still running
   bool run()
   {
     proc_outcome_t outcome = proc_outcome_t::repeat;
-    while (is_running() and outcome == proc_outcome_t::repeat) {
+    while (is_busy() and outcome == proc_outcome_t::repeat) {
       outcome = step();
-      if (outcome == proc_outcome_t::error) {
-        set_proc_state(proc_state_t::error);
-      } else if (outcome == proc_outcome_t::success) {
-        set_proc_state(proc_state_t::success);
-      }
+      handle_outcome(outcome);
     }
-    return is_running();
+    return is_busy();
   }
 
-  void set_proc_state(proc_state_t new_state)
+  //! interface to check if proc is still running
+  bool is_busy() const { return proc_state == proc_status_t::on_going; }
+  bool is_idle() const { return proc_state == proc_status_t::idle; }
+
+protected:
+  enum class proc_status_t { idle, on_going };
+  virtual proc_outcome_t step()                    = 0;
+  virtual void           run_then(bool is_success) = 0;
+
+  void handle_outcome(proc_outcome_t outcome)
   {
-    proc_state = new_state;
-    if (proc_state == proc_state_t::error or proc_state == proc_state_t::success) {
-      stop();
+    if (outcome == proc_outcome_t::error or outcome == proc_outcome_t::success) {
+      bool success = outcome == proc_outcome_t::success;
+      run_then(success);
     }
   }
-  bool is_error() const { return proc_state == proc_state_t::error; }
-  bool is_success() const { return proc_state == proc_state_t::success; }
-  bool is_running() const { return proc_state == proc_state_t::on_going; }
-  bool is_complete() const { return is_success() or is_error(); }
-  bool is_active() const { return proc_state != proc_state_t::inactive; }
 
-private:
-  proc_state_t proc_state;
+  proc_status_t proc_state = proc_status_t::idle;
 };
 
 /**************************************************************************************
- * class: proc_t<T>
- * Handles the lifetime, of a procedure T that derives from proc_impl_t, including
- * its alloc, initialization, and reset back to initial state once the procedure has been
- * completed and the user has extracted its results.
- * Can only be re-launched when a procedure T becomes inactive.
+ * class: proc_t<T, ResultType>
+ * Manages the lifetime of a procedure of type T, including its alloc, launching,
+ * and reset back to "inactive" state once the procedure has been completed.
+ * The result of a procedure run is of type "proc_result_t<ResultType>". ResultType has
+ * to coincide with the type returned by the method "T::get_result()".
+ * There are three main ways to use the result of a procedure run:
+ * - "T::then(const proc_result_t<T>&)" - method in T that runs on completion, and
+ *                                        gets as argument the result of the run
+ * - "proc_t<T>::get_future()" - returns a proc_future_t<T> which the user can use
+ *                               directly to check the result of a run
+ * - "proc_t<T>::then/then_always()" - provide dynamically a continuation task, for
+ *                                     instance, by providing a lambda
  * It uses a unique_ptr<T> to allow the use of procedures that are forward declared.
- * It provides the following methods:
- * - run() - calls proc_impl_t::run(). See above.
- * - launch() - initializes the procedure T by calling T::init(...). Handles the case
- *              of failed initialization, and forbids the initialization of procedures
- *              that are already active.
- * - pop() - extracts the result of the procedure if it has finished, and sets
- *           proc_t<T> back to inactive
- * - trigger_event(Event) - used for handling external events. The procedure T will
- *                          have to define a method "trigger_event(Event)" as well,
- *                          specifying how each event type should be handled.
  ************************************************************************************/
-template <class T>
-class proc_t
+
+// Implementation of the Procedure Manager functionality, including launching, trigger events, clearing
+template <class T, typename ResultType = void>
+class proc_t : public proc_base_t
 {
 public:
-  explicit proc_t() : proc_impl_ptr(new T()) {}
-  T*   get() { return proc_impl_ptr.get(); }
-  bool is_active() const { return proc_impl_ptr->is_active(); }
-  bool is_complete() const { return proc_impl_ptr->is_complete(); }
-  T*   release() { return proc_impl_ptr.release(); }
-  bool run() { return proc_impl_ptr->run(); }
-  void clear()
+  //  cannot derive automatically this type
+  using result_type          = ResultType;
+  using proc_result_type     = proc_result_t<result_type>;
+  using proc_future_type     = proc_future_t<result_type>;
+  using then_callback_list_t = callback_group_t<proc_result_type>;
+  using callback_t           = typename then_callback_list_t::callback_t;
+  using callback_id_t        = typename then_callback_list_t::callback_id_t;
+
+  template <typename... Args>
+  explicit proc_t(Args&&... args) : proc_ptr(new T(std::forward<Args>(args)...))
   {
-    // Destructs the current object, and calls default ctor (which sets proc back to inactive and ready for another run)
-    proc_impl_ptr->~T();
-    new (proc_impl_ptr.get()) T();
+    static_assert(std::is_same<result_type, decltype(proc_detail::get_result_type(std::declval<T>()))>::value,
+                  "The types \"proc_t::result_type\" and the return of T::get_result() have to match");
   }
 
+  const T* get() const { return proc_ptr.get(); }
+  T*       release() { return proc_ptr.release(); }
+
+  //! method to handle external events. "T" must have the method "T::react(const Event&)" for the trigger to take effect
   template <class Event>
-  void trigger_event(Event&& e)
+  void trigger(Event&& e)
   {
-    if (proc_impl_ptr->is_running()) {
-      proc_outcome_t outcome = proc_impl_ptr->trigger_event(std::forward<Event>(e));
-      if (outcome == proc_outcome_t::error) {
-        proc_impl_ptr->set_proc_state(proc_state_t::error);
-      } else if (outcome == proc_outcome_t::success) {
-        proc_impl_ptr->set_proc_state(proc_state_t::success);
+    if (is_busy()) {
+      proc_outcome_t outcome = proc_ptr->react(std::forward<Event>(e));
+      handle_outcome(outcome);
+      if (outcome == proc_outcome_t::repeat) {
+        run();
       }
     }
   }
 
-  T pop()
+  //! returns an object which the user can use to check if the procedure has ended.
+  proc_future_type get_future()
   {
-    if (not proc_impl_ptr->is_complete()) {
-      return T();
+    if (future_result == nullptr) {
+      future_result = std::make_shared<proc_result_type>();
     }
-    T ret(std::move(*proc_impl_ptr));
-    clear();
-    return ret;
+    return proc_future_type{future_result};
   }
 
+  //! methods to schedule continuation tasks
+  callback_id_t then(const callback_t& c) { return complete_callbacks.on_next_call(c); }
+  callback_id_t then_always(const callback_t& c) { return complete_callbacks.on_every_call(c); }
+
+  //! launch a procedure, returning true if successful or running and false if it error or it failed to launch
   template <class... Args>
   bool launch(Args&&... args)
   {
-    if (is_active()) {
-      // if already active
+    if (is_busy()) {
       return false;
     }
-    proc_impl_ptr->set_proc_state(proc_state_t::on_going);
-    proc_outcome_t init_ret = proc_impl_ptr->init(std::forward<Args>(args)...);
+    proc_state              = proc_base_t::proc_status_t::on_going;
+    proc_outcome_t init_ret = proc_ptr->init(std::forward<Args>(args)...);
+    handle_outcome(init_ret);
     switch (init_ret) {
       case proc_outcome_t::error:
-        proc_impl_ptr->set_proc_state(proc_state_t::error); // call stop as an error
-        clear();
         return false;
-      case proc_outcome_t::success:
-        proc_impl_ptr->set_proc_state(proc_state_t::success);
-        break;
       case proc_outcome_t::repeat:
         run(); // call run right away
         break;
-      case proc_outcome_t::yield:
+      default:
         break;
     }
     return true;
   }
 
+protected:
+  proc_outcome_t step() final { return proc_ptr->step(); }
+
+  void run_then(bool is_success) final
+  {
+    proc_result_type result;
+    // update result state
+    if (is_success) {
+      result.extract_val(*proc_ptr);
+    } else {
+      result.set_error();
+    }
+    // propagate proc_result to future if it exists, and release future
+    if (future_result != nullptr) {
+      *future_result = result;
+      future_result.reset();
+    }
+    // call T::then() if it exists
+    proc_detail::optional_then(proc_ptr.get(), &result);
+    // signal continuations
+    complete_callbacks(result);
+    // back to inactive
+    proc_detail::optional_clear(proc_ptr.get());
+    proc_state = proc_status_t::idle;
+  }
+
+  std::unique_ptr<T>                proc_ptr;
+  std::shared_ptr<proc_result_type> future_result; //! used if get_future() itf is used.
+  then_callback_list_t              complete_callbacks;
+};
+
+/**************************************************************************************
+ * class: event_handler_t<Args...>
+ *        Bundles several proc_managers together with same trigger(Args...) itf.
+ *        Once trigger(...) is called, all registered proc_managers get triggered
+ *        as well.
+ ************************************************************************************/
+// NOTE: Potential improvements: a method "trigger_during_this_run" that unregisters the handler
+//       once the procedure run is finished.
+template <typename EventType>
+class event_handler_t
+{
+public:
+  using callback_id_t = typename callback_group_t<EventType>::callback_id_t;
+
+  template <typename Proc, typename ResultType>
+  callback_id_t on_next_trigger(proc_t<Proc, ResultType>& p)
+  {
+    return callbacks.on_next_call([&p](EventType&& ev) { p.trigger(std::forward<EventType>(ev)); });
+  }
+
+  template <typename Proc, typename ResultType>
+  callback_id_t on_every_trigger(proc_t<Proc, ResultType>& p)
+  {
+    return callbacks.on_every_call([&p](EventType&& ev) { p.trigger(std::forward<EventType>(ev)); });
+  }
+
+  void trigger(EventType&& ev) { callbacks(std::forward<EventType>(ev)); }
+
 private:
-  std::unique_ptr<T> proc_impl_ptr;
+  callback_group_t<EventType> callbacks;
 };
 
 /**************************************************************************************
  * class: func_proc_t
- * A proc_impl_t used to store lambda functions and other function pointers as a step()
+ * A proc used to store lambda functions and other function pointers as a step()
  * method, avoiding this way, always having to create a new class per procedure.
  ************************************************************************************/
-class func_proc_t : public proc_impl_t
+class func_proc_t
 {
 public:
-  proc_outcome_t init(std::function<proc_outcome_t()> step_func_)
-  {
-    step_func = std::move(step_func_);
-    return proc_outcome_t::yield;
-  }
-
-  proc_outcome_t step() final { return step_func(); }
+  explicit func_proc_t(std::function<proc_outcome_t()> step_func_) : step_func(std::move(step_func_)) {}
+  proc_outcome_t init() { return proc_outcome_t::yield; }
+  proc_outcome_t step() { return step_func(); }
 
 private:
   std::function<proc_outcome_t()> step_func;
 };
 
 /**************************************************************************************
- * class: func_proc_t
- * A helper proc_impl_t whose step()/stop() are no op, but has a trigger_event() that
- * signals that the method has finished and store a result of type OutcomeType.
- ************************************************************************************/
-template <class OutcomeType>
-class query_proc_t : public proc_impl_t
-{
-public:
-  proc_outcome_t init() { return proc_outcome_t::yield; }
-  proc_outcome_t step() final { return proc_outcome_t::yield; }
-
-  proc_outcome_t trigger_event(const OutcomeType& outcome_)
-  {
-    outcome = outcome_;
-    return proc_outcome_t::success;
-  }
-
-  const OutcomeType& result() const { return outcome; }
-
-private:
-  OutcomeType outcome;
-};
-
-/**************************************************************************************
- * class: callback_list_t
- * Stores procedures that derive from proc_impl_t. Its run() method calls sequentially
- * all the stored procedures run() method, and removes the procedures if they have
- * completed.
- * There are different ways to add a procedure to the list:
+ * class: proc_manager_list_t
+ * Stores procedure managers and, when run() is called, calls sequentially all
+ * the stored procedures run() method, and removes the procedures if they have
+ * already completed.
+ * There are two ways to add a procedure to the list:
  * - add_proc(...) - adds a proc_t<T>, and once the procedure has completed, takes it
- *                   out of the container without resetting it back to its initial state
- *                   or deleting. This is useful, if the user wants to extract the
- *                   procedure result via proc_t<T>::pop()
- * - consume_proc(...) - receives a proc_t<T> as a rvalue, and calls the proc_t<T>
- *                       destructor once the procedure has ended. Useful, for procedures
- *                       for which the user is not interested in the result, or reusing
- * - defer_proc(...) - same as add_proc(...), but once the procedure has finished, it
- *                     automatically sets the procedure back to its initial state.
- *                     Useful if the user is not interested in handling the result
- * - defer_task(...) - same as consume_proc(...) but takes a function pointer that
- *                     specifies a proc_impl_t step() function
+ *                   out of the container. In case a r-value ref is passed, this class
+ *                   calls its destructor.
+ * - add_task(...) - same as add_proc(...) but takes a function pointer that
+ *                   specifies a proc_impl_t step() function
  ************************************************************************************/
-class callback_list_t
+class proc_manager_list_t
 {
+  using proc_deleter_t = std::function<void(proc_base_t*)>;
+  using proc_obj_t     = std::unique_ptr<proc_base_t, proc_deleter_t>;
+
 public:
-  typedef std::function<void(proc_impl_t*)>            proc_deleter_t;
-  typedef std::unique_ptr<proc_impl_t, proc_deleter_t> callback_obj_t;
-  template <class T>
-  struct recycle_deleter_t {
-    void operator()(proc_impl_t* p)
-    {
-      if (p != nullptr) {
-        T* Tp = static_cast<T*>(p);
-        Tp->~T();
-        new (Tp) T();
-      }
-    }
-  };
-
-  template <class T>
-  void add_proc(proc_t<T>& proc)
+  template <typename T, typename ResultType>
+  void add_proc(proc_t<T, ResultType>& proc)
   {
-    if (proc.is_complete()) {
+    if (proc.is_idle()) {
       return;
     }
-    callback_obj_t ptr(proc.get(), [](proc_impl_t* p) { /* do nothing */ });
-    callbacks.push_back(std::move(ptr));
+    proc_obj_t ptr(&proc, [](proc_base_t* p) { /* do nothing */ });
+    proc_list.push_back(std::move(ptr));
   }
 
-  template <class T>
-  void consume_proc(proc_t<T>&& proc)
+  // since it receives a r-value, it calls the default destructor
+  template <class T, typename ResultType>
+  void add_proc(proc_t<T, ResultType>&& proc)
   {
-    if (proc.is_complete()) {
+    if (proc.is_idle()) {
       return;
     }
-    callback_obj_t ptr(proc.release(), std::default_delete<proc_impl_t>());
-    callbacks.push_back(std::move(ptr));
+    proc_obj_t ptr(new proc_t<T, ResultType>(std::move(proc)), std::default_delete<proc_base_t>());
+    proc_list.push_back(std::move(ptr));
   }
 
-  template <class T>
-  void defer_proc(proc_t<T>& proc)
+  bool add_task(std::function<proc_outcome_t()> step_func)
   {
-    if (proc.is_complete()) {
-      proc.pop();
-      return;
-    }
-    callback_obj_t ptr(proc.get(), recycle_deleter_t<T>());
-    callbacks.push_back(std::move(ptr));
-  }
-
-  bool defer_task(std::function<proc_outcome_t()> step_func)
-  {
-    proc_t<func_proc_t> proc;
-    if (not proc.launch(std::move(step_func))) {
+    proc_t<func_proc_t> proc(std::move(step_func));
+    if (not proc.launch()) {
       return false;
     }
-    consume_proc(std::move(proc));
+    add_proc(std::move(proc));
     return true;
   }
 
   void run()
   {
     // Calls run for all callbacks. Remove the ones that have finished. The proc dtor is called.
-    callbacks.remove_if([](callback_obj_t& elem) { return not elem->run(); });
+    proc_list.remove_if([](proc_obj_t& elem) { return not elem->run(); });
   }
 
-  size_t size() const { return callbacks.size(); }
+  size_t size() const { return proc_list.size(); }
 
 private:
-  std::list<callback_obj_t> callbacks;
+  std::list<proc_obj_t> proc_list;
 };
 
 } // namespace srslte

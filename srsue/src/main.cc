@@ -431,7 +431,7 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
 
   // Apply all_level to any unset layers
   if (vm.count("log.all_level")) {
-    if (!vm.count("log.phy_level")) {
+    if (!vm.count("log.rf_level")) {
       args->rf.log_level = args->log.all_level;
     }
     if (!vm.count("log.phy_level")) {
@@ -583,14 +583,10 @@ int main(int argc, char* argv[])
   pthread_create(&input, nullptr, &input_loop, &args);
 
   cout << "Attaching UE..." << endl;
-  while (!ue.switch_on() && running) {
-    sleep(1);
-  }
+  ue.switch_on();
 
-  if (running) {
-    if (args.gui.enable) {
-      ue.start_plot();
-    }
+  if (args.gui.enable) {
+    ue.start_plot();
   }
 
   while (running) {

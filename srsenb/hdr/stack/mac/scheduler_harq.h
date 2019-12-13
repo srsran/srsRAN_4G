@@ -43,7 +43,9 @@ struct rbg_range_t {
 };
 
 // Range of PRBs
-struct prb_range_t {
+class prb_range_t
+{
+public:
   uint32_t prb_start = 0, prb_end = 0;
   prb_range_t() = default;
   prb_range_t(uint32_t s, uint32_t e) : prb_start(s), prb_end(e) {}
@@ -52,7 +54,7 @@ struct prb_range_t {
   static prb_range_t riv_to_prbs(uint32_t riv, uint32_t nof_prbs, int nof_vrbs = -1);
 };
 
-class harq_proc 
+class harq_proc
 {
 public:
   void     config(uint32_t id, uint32_t max_retx, srslte::log* log_h);
@@ -68,20 +70,19 @@ public:
   uint32_t max_nof_retx() const;
 
 protected:
-
-  void     new_tx_common(uint32_t tb_idx, uint32_t tti, int mcs, int tbs);
-  void     new_retx_common(uint32_t tb_idx, uint32_t tti, int* mcs, int* tbs);
-  bool     has_pending_retx_common(uint32_t tb_idx) const;
-  void     set_ack_common(uint32_t tb_idx, bool ack);
-  void     reset_pending_data_common();
+  void new_tx_common(uint32_t tb_idx, uint32_t tti, int mcs, int tbs);
+  void new_retx_common(uint32_t tb_idx, uint32_t tti, int* mcs, int* tbs);
+  bool has_pending_retx_common(uint32_t tb_idx) const;
+  void set_ack_common(uint32_t tb_idx, bool ack);
+  void reset_pending_data_common();
 
   enum ack_t { NULL_ACK, NACK, ACK };
 
   ack_t    ack_state[SRSLTE_MAX_TB];
   bool     active[SRSLTE_MAX_TB];
   bool     ndi[SRSLTE_MAX_TB];
-  uint32_t id;  
-  uint32_t max_retx; 
+  uint32_t id;
+  uint32_t max_retx;
   uint32_t n_rtx[SRSLTE_MAX_TB];
   uint32_t tx_cnt[SRSLTE_MAX_TB];
   int      tti;
@@ -114,7 +115,6 @@ private:
 class ul_harq_proc : public harq_proc
 {
 public:
-  
   struct ul_alloc_t {
     uint32_t RB_start;
     uint32_t L;
@@ -134,15 +134,15 @@ public:
   bool       has_pending_retx() const;
   bool       is_adaptive_retx() const;
 
-  void       reset_pending_data();
-  bool       has_pending_ack() const;
-  bool       get_pending_ack() const;
-  uint32_t   get_pending_data() const;
+  void     reset_pending_data();
+  bool     has_pending_ack() const;
+  bool     get_pending_ack() const;
+  uint32_t get_pending_data() const;
 
 private:
   ul_alloc_t allocation;
-  int  pending_data;
-  bool is_adaptive;
+  int        pending_data;
+  bool       is_adaptive;
   ack_t      pending_ack;
 };
 

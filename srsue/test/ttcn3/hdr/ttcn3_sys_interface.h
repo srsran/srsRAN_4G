@@ -35,7 +35,7 @@ public:
   ttcn3_sys_interface() : netsource_handler("TTCN3_SYS_IF"){};
   ~ttcn3_sys_interface(){};
 
-  void init(syssim_interface* syssim_, srslte::log* log_, std::string net_ip_, uint32_t net_port_)
+  void init(ss_sys_interface* syssim_, srslte::log* log_, std::string net_ip_, uint32_t net_port_)
   {
     syssim      = syssim_;
     net_ip      = net_ip_;
@@ -103,8 +103,8 @@ private:
         sib->N_bytes = tb_len;
 
         // Push to main component
-        log->info_hex(sib->msg, sib->N_bytes, "Received BCCH DL-SCH\n");
-        syssim->add_bcch_pdu(std::move(sib));
+        log->info_hex(sib->msg, sib->N_bytes, "Received BCCH DL-SCH for %s\n", cell_name.GetString());
+        syssim->add_bcch_dlsch_pdu(cell_name.GetString(), std::move(sib));
 
         consumed_bytes = payload_ptr - payload;
       }
@@ -216,11 +216,13 @@ private:
           uint32_t lcid = id["Srb"].GetInt();
           if (lcid > 0) {
             log->info("Configure SRB%d\n", lcid);
-            pdcp_config_t pdcp_cfg = {.bearer_id    = static_cast<uint8_t>(lcid),
-                                      .rb_type      = PDCP_RB_IS_SRB,
-                                      .tx_direction = SECURITY_DIRECTION_DOWNLINK,
-                                      .rx_direction = SECURITY_DIRECTION_UPLINK,
-                                      .sn_len       = PDCP_SN_LEN_5};
+            pdcp_config_t pdcp_cfg = {.bearer_id     = static_cast<uint8_t>(lcid),
+                                      .rb_type       = PDCP_RB_IS_SRB,
+                                      .tx_direction  = SECURITY_DIRECTION_DOWNLINK,
+                                      .rx_direction  = SECURITY_DIRECTION_UPLINK,
+                                      .sn_len        = PDCP_SN_LEN_5,
+                                      .t_reorderding = srslte::pdcp_t_reordering_t::ms500,
+                                      .discard_timer = srslte::pdcp_discard_timer_t::infinity};
             syssim->add_srb(lcid, pdcp_cfg);
           }
         } else if (config.HasMember("Release")) {
@@ -547,7 +549,7 @@ private:
         StringBuffer               buffer;
         PrettyWriter<StringBuffer> writer(buffer);
         document.Accept(writer);
-        log->info("Received %d bytes\n%s\n", json_len, (char*)buffer.GetString());
+        log->info_long("Received %d bytes\n%s\n", json_len, (char*)buffer.GetString());
 
         // check for common
         assert(document.HasMember("Common"));
@@ -596,7 +598,7 @@ private:
   }
 
   phy_interface_syssim* phy    = nullptr;
-  syssim_interface*     syssim = nullptr;
+  ss_sys_interface*     syssim = nullptr;
   byte_buffer_pool*     pool   = nullptr;
 };
 

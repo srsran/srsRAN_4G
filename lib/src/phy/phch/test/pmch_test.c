@@ -83,31 +83,31 @@ void parse_args(int argc, char **argv) {
       input_file = argv[optind];
       break;
     case 'm':
-      mcs_idx = (uint32_t) atoi(argv[optind]);
+      mcs_idx = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 's':
-      subframe = atoi(argv[optind]);
+      subframe = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'r':
-      rv_idx[0] = (uint32_t) atoi(argv[optind]);
+      rv_idx[0] = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'R':
-      rnti = atoi(argv[optind]);
+      rnti = (uint16_t)strtol(argv[optind], NULL, 10);
       break;
     case 'F':
-      cfi = atoi(argv[optind]);
+      cfi = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'p':
-      pmi = (uint32_t) atoi(argv[optind]);
+      pmi = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'n':
-      cell.nof_prb = atoi(argv[optind]);
+      cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'c':
-      cell.id = atoi(argv[optind]);
+      cell.id = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'a':
-      nof_rx_antennas = (uint32_t) atoi(argv[optind]);
+      nof_rx_antennas = (uint32_t)strtol(argv[optind], NULL, 10);
       break;
     case 'v':
       srslte_verbose++;

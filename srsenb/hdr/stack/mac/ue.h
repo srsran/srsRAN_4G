@@ -26,9 +26,11 @@
 #include "srslte/common/pdu.h"
 #include "srslte/common/mac_pcap.h"
 #include "srslte/common/pdu_queue.h"
+#include "srslte/common/block_queue.h"
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/sched_interface.h"
 #include <pthread.h>
+#include <vector>
 #include "mac_metrics.h"
 
 namespace srsenb {
@@ -42,14 +44,18 @@ public:
      sched_interface*   sched,
      rrc_interface_mac* rrc_,
      rlc_interface_mac* rlc,
-     srslte::log*       log_);
+     srslte::log*       log_,
+     uint32_t           nof_rx_harq_proc = SRSLTE_FDD_NOF_HARQ,
+     uint32_t           nof_tx_harq_proc = SRSLTE_FDD_NOF_HARQ * SRSLTE_MAX_TB);
   virtual ~ue();
 
   void     reset();
   
   void     start_pcap(srslte::mac_pcap* pcap_);
 
-  void     set_tti(uint32_t tti); 
+  void     set_tti(uint32_t tti);
+
+  uint32_t set_ta(int ta);
   
   void     config(uint16_t rnti, uint32_t nof_prb, sched_interface *sched, rrc_interface_mac *rrc_, rlc_interface_mac *rlc, srslte::log *log_h);
   uint8_t* generate_pdu(uint32_t                        harq_pid,
@@ -108,12 +114,13 @@ private:
 
   uint32_t nof_failures = 0;
 
-  const static int       NOF_RX_HARQ_PROCESSES = SRSLTE_FDD_NOF_HARQ;
-  const static int       NOF_TX_HARQ_PROCESSES = SRSLTE_FDD_NOF_HARQ * SRSLTE_MAX_TB;
-  srslte_softbuffer_tx_t softbuffer_tx[NOF_TX_HARQ_PROCESSES];
-  srslte_softbuffer_rx_t softbuffer_rx[NOF_RX_HARQ_PROCESSES];
+  srslte::block_queue<uint32_t> pending_ta_commands;
 
-  uint8_t* pending_buffers[NOF_RX_HARQ_PROCESSES] = {nullptr};
+  int                                nof_rx_harq_proc = 0;
+  int                                nof_tx_harq_proc = 0;
+  std::vector<srslte_softbuffer_tx_t> softbuffer_tx;
+  std::vector<srslte_softbuffer_rx_t> softbuffer_rx;
+  std::vector<uint8_t*>               pending_buffers;
 
   // For DL there are two buffers, one for each Transport block
   srslte::byte_buffer_t tx_payload_buffer[SRSLTE_FDD_NOF_HARQ][SRSLTE_MAX_TB];

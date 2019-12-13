@@ -25,20 +25,24 @@
 
 static inline double calculate_delay_us(srslte_channel_delay_t* q, const srslte_timestamp_t* ts)
 {
-  // Convert period from seconds to samples
-  uint64_t period_nsamples = (uint64_t)roundf(q->period_s * q->srate_hz);
+  if (q->period_s) {
+    // Convert period from seconds to samples
+    uint64_t period_nsamples = (uint64_t)roundf(q->period_s * q->srate_hz);
 
-  // Convert timestamp to samples
-  uint64_t ts_nsamples = srslte_timestamp_uint64(ts, q->srate_hz) + (uint64_t)q->init_time_s * q->srate_hz;
+    // Convert timestamp to samples
+    uint64_t ts_nsamples = srslte_timestamp_uint64(ts, q->srate_hz) + (uint64_t)q->init_time_s * q->srate_hz;
 
-  // Calculate time modulus in period
-  uint64_t mod_t_nsamples = ts_nsamples - period_nsamples * (ts_nsamples / period_nsamples);
-  double   t              = (double)mod_t_nsamples / (double)q->srate_hz;
+    // Calculate time modulus in period
+    uint64_t mod_t_nsamples = ts_nsamples - period_nsamples * (ts_nsamples / period_nsamples);
+    double   t              = (double)mod_t_nsamples / (double)q->srate_hz;
 
-  double   arg      = 2.0 * M_PI * t / (double)q->period_s;
-  double   delay_us = q->delay_min_us + (q->delay_max_us - q->delay_min_us) * (1.0 + sin(arg)) / 2.0;
+    double   arg      = 2.0 * M_PI * t / (double)q->period_s;
+    double   delay_us = q->delay_min_us + (q->delay_max_us - q->delay_min_us) * (1.0 + sin(arg)) / 2.0;
 
-  return delay_us;
+    return delay_us;
+  } else {
+    return q->delay_max_us;
+  }
 }
 
 static inline uint32_t calculate_delay_nsamples(srslte_channel_delay_t* q)

@@ -27,6 +27,7 @@
 #include "srslte/common/log.h"
 #include "srslte/common/thread_pool.h"
 #include "srslte/common/threads.h"
+#include "srslte/phy/channel/channel.h"
 #include "srslte/interfaces/common_interfaces.h"
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
@@ -41,6 +42,8 @@ typedef struct {
   std::string            type;
   srslte::phy_log_args_t log;
 
+  uint32_t nof_carriers;
+
   float       max_prach_offset_us;
   int         pusch_max_its;
   bool        pusch_8bit_decoder;
@@ -49,6 +52,9 @@ typedef struct {
   std::string equalizer_mode;
   float       estimator_fil_w;
   bool        pregenerate_signals;
+
+  srslte::channel::args_t dl_channel_args;
+  srslte::channel::args_t ul_channel_args;
 } phy_args_t;
 
 class phy_common
@@ -66,21 +72,22 @@ public:
   void worker_end(uint32_t tx_mutex_cnt, cf_t *buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t tx_time);
 
   // Common objects
-  srslte_cell_t cell;
-  phy_args_t    params;
+  srslte_cell_t cell   = {};
+  phy_args_t    params = {};
 
   // Physical Uplink Config common
-  srslte_ul_cfg_t ul_cfg_com;
+  srslte_ul_cfg_t ul_cfg_com = {};
 
   // Physical Downlink Config common
-  srslte_dl_cfg_t dl_cfg_com;
+  srslte_dl_cfg_t dl_cfg_com = {};
 
-  srslte::radio_interface_phy* radio;
-  stack_interface_phy_lte* stack;
+  srslte::radio_interface_phy* radio = nullptr;
+  stack_interface_phy_lte*     stack = nullptr;
+  srslte::channel_ptr          dl_channel = nullptr;
 
   // Common objects for schedulign grants
-  stack_interface_phy_lte::ul_sched_t ul_grants[TTIMOD_SZ];
-  stack_interface_phy_lte::dl_sched_t dl_grants[TTIMOD_SZ];
+  stack_interface_phy_lte::ul_sched_t ul_grants[TTIMOD_SZ] = {};
+  stack_interface_phy_lte::dl_sched_t dl_grants[TTIMOD_SZ] = {};
 
   // Map of pending ACKs for each user 
   typedef struct {
@@ -90,19 +97,19 @@ public:
 
   class common_ue {
    public:
-    pending_ack_t pending_ack;
-    uint8_t ri;
-    srslte_ra_tb_t last_tb[SRSLTE_MAX_HARQ_PROC];
+     pending_ack_t  pending_ack                   = {};
+     uint8_t        ri                            = 0;
+     srslte_ra_tb_t last_tb[SRSLTE_MAX_HARQ_PROC] = {};
   };
 
   std::map<uint16_t, common_ue> common_ue_db;
-  
-  void ue_db_add_rnti(uint16_t rnti);
-  void ue_db_rem_rnti(uint16_t rnti);
+
+  void    ue_db_add_rnti(uint16_t rnti);
+  void    ue_db_rem_rnti(uint16_t rnti);
   void    ue_db_clear(uint32_t tti);
   void    ue_db_set_ack_pending(uint32_t tti, uint16_t rnti, uint32_t tb_idx, uint32_t n_pdcch);
-  bool    ue_db_is_ack_pending(uint32_t tti, uint16_t rnti, uint32_t tb_idx, uint32_t* last_n_pdcch = NULL);
-  void ue_db_set_ri(uint16_t rnti, uint8_t ri);
+  bool    ue_db_is_ack_pending(uint32_t tti, uint16_t rnti, uint32_t tb_idx, uint32_t* last_n_pdcch = nullptr);
+  void    ue_db_set_ri(uint16_t rnti, uint8_t ri);
   uint8_t ue_db_get_ri(uint16_t rnti);
 
   void           ue_db_set_last_ul_tb(uint16_t rnti, uint32_t pid, srslte_ra_tb_t tb);
@@ -116,23 +123,22 @@ public:
 
 private:
   std::vector<sem_t>    tx_sem;
-  bool            is_first_tx;
-  bool            is_first_of_burst; 
+  bool                  is_first_tx = false;
 
-  uint32_t        nof_workers;
-  uint32_t        max_workers;
+  uint32_t nof_workers = 0;
+  uint32_t max_workers = 0;
 
-  pthread_mutex_t user_mutex;
+  pthread_mutex_t user_mutex = {};
 
-  bool                                have_mtch_stop;
-  pthread_mutex_t                     mtch_mutex;
-  pthread_cond_t                      mtch_cvar;
+  bool                                     have_mtch_stop = false;
+  pthread_mutex_t                          mtch_mutex     = {};
+  pthread_cond_t                           mtch_cvar      = {};
   phy_interface_stack_lte::phy_cfg_mbsfn_t mbsfn;
-  bool sib13_configured;
-  bool mcch_configured;
+  bool                                     sib13_configured   = false;
+  bool                                     mcch_configured    = false;
   uint8_t                                  mch_table[40]  = {};
   uint8_t                                  mcch_table[10] = {};
-  uint32_t                            mch_period_stop;
+  uint32_t                                 mch_period_stop    = 0;
   uint8_t                                  mch_sf_idx_lut[10] = {};
   bool    is_mch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti);
   bool    is_mcch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti);

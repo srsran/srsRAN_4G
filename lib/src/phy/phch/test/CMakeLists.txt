@@ -32,6 +32,18 @@ add_test(pbch_test_50 pbch_test -p 1 -n 50 -c 50)
 add_test(pbch_test_502 pbch_test -p 2 -n 50 -c 50) 
 add_test(pbch_test_504 pbch_test -p 4 -n 50 -c 50) 
 
+########################################################################
+# NPBCH TEST
+########################################################################
+
+add_executable(npbch_test npbch_test.c)
+target_link_libraries(npbch_test srslte_phy)
+add_test(npbch_test npbch_test)
+
+add_test(npbch_file_test_r13 npbch_file_test -i ${CMAKE_CURRENT_SOURCE_DIR}/signal_nbiot_amari_nid0_sfn514_sib2.bin)
+add_test(npbch_file_test_r14 npbch_file_test -l 256 -R -r 0 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal_nbiot_nid256_r14_sf0.bin)
+add_test(npbch_file_test_nid257_r13 npbch_file_test -l 257 -r 4 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal_nbiot_nid257_r13_sf0.bin)
+add_test(npbch_file_test_nid257_r14 npbch_file_test -l 257 -R -r 7 -i ${CMAKE_CURRENT_SOURCE_DIR}/signal_nbiot_nid257_r14_sf0.bin)
 
 ########################################################################
 # PCFICH TEST  
@@ -199,14 +211,12 @@ add_test(pdsch_test_multiplex2cw_p1_100 pdsch_test -x 4 -a 2 -t 0 -p 1 -n 100)
 # PMCH TEST  
 ########################################################################
 
-
 add_executable(pmch_test pmch_test.c)
 target_link_libraries(pmch_test srslte_phy)
 
 add_test(pmch_test_qpsk pmch_test -m 6 -n 50)
 add_test(pmch_test_qam16 pmch_test -m 15 -n 100)
 add_test(pmch_test_qam64 pmch_test -m 25 -n 100)
-
 
 ########################################################################
 # FILE TEST  
@@ -226,6 +236,11 @@ target_link_libraries(pdcch_file_test srslte_phy)
 
 add_executable(pdsch_pdcch_file_test pdsch_pdcch_file_test.c)
 target_link_libraries(pdsch_pdcch_file_test srslte_phy)
+
+add_executable(npbch_file_test npbch_file_test.c)
+target_link_libraries(npbch_file_test srslte_phy)
+
+add_test(pbch_file_test pbch_file_test -i ${CMAKE_CURRENT_SOURCE_DIR}/signal.1.92M.dat)
 
 add_executable(pmch_file_test pmch_file_test.c)
 target_link_libraries(pmch_file_test srslte_phy)

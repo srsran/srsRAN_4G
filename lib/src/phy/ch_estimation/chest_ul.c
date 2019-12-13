@@ -320,8 +320,8 @@ int srslte_chest_ul_estimate_pusch(
     res->snr = NAN;
   }
 
-  res->snr_db             = 10 * log10(res->snr);
-  res->noise_estimate_dbm = 10 * log10(res->noise_estimate) + 30;
+  res->snr_db             = srslte_convert_power_to_dB(res->snr);
+  res->noise_estimate_dbm = srslte_convert_power_to_dBm(res->noise_estimate);
 
   return 0;
 }

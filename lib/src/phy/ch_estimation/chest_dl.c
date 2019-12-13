@@ -393,7 +393,7 @@ static float estimate_noise_pss(srslte_chest_dl_t *q, cf_t *input, cf_t *ce)
   srslte_vec_sub_ccc(q->tmp_pss_noisy, q->tmp_pss, q->tmp_pss_noisy, SRSLTE_PSS_LEN);
 
   /* Compute average power */
-  float power = q->cell.nof_ports*srslte_vec_avg_power_cf(q->tmp_pss_noisy, SRSLTE_PSS_LEN)/sqrt(2);
+  float power = q->cell.nof_ports * srslte_vec_avg_power_cf(q->tmp_pss_noisy, SRSLTE_PSS_LEN) * M_SQRT1_2;
   return power; 
 }
 
@@ -519,7 +519,7 @@ static void average_pilots(srslte_chest_dl_t*     q,
                            float*                 filter,
                            uint32_t               filter_len)
 {
-  uint32_t nsymbols = (sf->sf_type == SRSLTE_SF_MBSFN) ? srslte_refsignal_mbsfn_nof_symbols(port_id)
+  uint32_t nsymbols = (sf->sf_type == SRSLTE_SF_MBSFN) ? srslte_refsignal_mbsfn_nof_symbols()
                                                        : srslte_refsignal_cs_nof_symbols(&q->csr_refs, sf, port_id);
   uint32_t nref = (sf->sf_type == SRSLTE_SF_MBSFN) ? 6 * q->cell.nof_prb : 2 * q->cell.nof_prb;
 
@@ -704,7 +704,7 @@ static int estimate_port(srslte_chest_dl_t*     q,
 
   /* Compute RSRP for the channel estimates in this port */
   if (cfg->rsrp_neighbour) {
-    double energy = cabs(srslte_vec_acc_cc(q->pilot_estimates, npilots)/npilots);
+    double energy                   = cabsf(srslte_vec_acc_cc(q->pilot_estimates, npilots) / npilots);
     q->rsrp_corr[rxant_id][port_id] = energy * energy;
   }
   q->rsrp[rxant_id][port_id] = srslte_vec_avg_power_cf(q->pilot_recv_signal, npilots);
@@ -839,33 +839,32 @@ static float get_rsrp_neighbour(srslte_chest_dl_t* q)
   return max;
 }
 
-#define dbm(a) (10 * log10(a) + 30)
-#define db(a) (10 * log10(a))
-
 static void fill_res(srslte_chest_dl_t* q, srslte_chest_dl_res_t* res)
 {
   res->noise_estimate     = get_noise(q);
-  res->noise_estimate_dbm = dbm(res->noise_estimate);
+  res->noise_estimate_dbm = srslte_convert_power_to_dBm(res->noise_estimate);
   res->cfo                = q->cfo;
   res->rsrp               = get_rsrp(q);
-  res->rsrp_dbm           = dbm(res->rsrp);
+  res->rsrp_dbm           = srslte_convert_power_to_dBm(res->rsrp);
   res->rsrp_neigh         = get_rsrp_neighbour(q);
   res->rsrq               = get_rsrq(q);
-  res->rsrq_db            = db(res->rsrq);
-  res->snr_db             = db(get_snr(q));
-  res->rssi_dbm           = dbm(get_rssi(q));
+  res->rsrq_db            = srslte_convert_power_to_dB(res->rsrq);
+  res->snr_db             = srslte_convert_power_to_dB(get_snr(q));
+  res->rssi_dbm           = srslte_convert_power_to_dBm(get_rssi(q));
   res->sync_error         = q->sync_err[0][0]; // Take only the channel used for synch
 
   for (uint32_t port_id = 0; port_id < q->cell.nof_ports; port_id++) {
-    res->rsrp_port_dbm[port_id] = dbm(get_rsrp_port(q, port_id));
+    res->rsrp_port_dbm[port_id] = srslte_convert_power_to_dBm(get_rsrp_port(q, port_id));
     for (uint32_t a = 0; a < q->nof_rx_antennas; a++) {
       if (q->noise_estimate[a]) {
-        res->snr_ant_port_db[a][port_id] = db(q->rsrp[a][port_id] / q->noise_estimate[a][port_id]);
+        res->snr_ant_port_db[a][port_id] =
+            srslte_convert_power_to_dB(q->rsrp[a][port_id] / q->noise_estimate[a][port_id]);
       } else {
-        res->snr_ant_port_db[a][port_id] = 0.0;
+        res->snr_ant_port_db[a][port_id] = 0.0f;
       }
-      res->rsrp_ant_port_dbm[a][port_id] = dbm(q->rsrp[a][port_id]);
-      res->rsrq_ant_port_db[a][port_id]  = db(q->cell.nof_prb * q->rsrp[a][port_id] / q->rssi[a][port_id]);
+      res->rsrp_ant_port_dbm[a][port_id] = srslte_convert_power_to_dBm(q->rsrp[a][port_id]);
+      res->rsrq_ant_port_db[a][port_id] =
+          srslte_convert_power_to_dB(q->cell.nof_prb * q->rsrp[a][port_id] / q->rssi[a][port_id]);
     }
   }
 }

@@ -103,10 +103,11 @@ int srslte_refsignal_cs_set_cell(srslte_refsignal_t* q, srslte_cell_t cell)
 
             /* Compute signal */
             for (uint32_t i = 0; i < 2 * q->cell.nof_prb; i++) {
+              uint32_t idx = SRSLTE_REFSIGNAL_PILOT_IDX(i, (ns % 2) * nsymbols + l, q->cell);
               mp = i + SRSLTE_MAX_PRB - cell.nof_prb;
               /* save signal */
-              q->pilots[p][ns / 2][SRSLTE_REFSIGNAL_PILOT_IDX(i, (ns % 2) * nsymbols + l, q->cell)] =
-                  (1 - 2 * (float)seq.c[2 * mp]) / sqrt(2) + _Complex_I * (1 - 2 * (float)seq.c[2 * mp + 1]) / sqrt(2);
+              __real__ q->pilots[p][ns / 2][idx] = (1 - 2 * (float)seq.c[2 * mp + 0]) * M_SQRT1_2;
+              __imag__ q->pilots[p][ns / 2][idx] = (1 - 2 * (float)seq.c[2 * mp + 1]) * M_SQRT1_2;
             }
           }
         }
@@ -228,7 +229,11 @@ inline uint32_t srslte_refsignal_cs_nof_symbols(srslte_refsignal_t* q, srslte_dl
 
 inline uint32_t srslte_refsignal_cs_nof_re(srslte_refsignal_t* q, srslte_dl_sf_cfg_t* sf, uint32_t port_id)
 {
-  return srslte_refsignal_cs_nof_symbols(q, sf, port_id) * q->cell.nof_prb * 2; // 2 RE per PRB
+  uint32_t nof_re = srslte_refsignal_cs_nof_symbols(q, sf, port_id);
+  if (q != NULL) {
+    nof_re *= q->cell.nof_prb * 2; // 2 RE per PRB
+  }
+  return nof_re;
 }
 
 inline uint32_t srslte_refsignal_cs_fidx(srslte_cell_t cell, uint32_t l, uint32_t port_id, uint32_t m) {
@@ -380,10 +385,10 @@ int srslte_refsignal_mbsfn_gen_seq(srslte_refsignal_t* q, srslte_cell_t cell, ui
         c_init        = 512 * (7 * (slot + 1) + lp + 1) * (2 * N_mbsfn_id + 1) + N_mbsfn_id;
         srslte_sequence_set_LTE_pr(&seq_mbsfn, SRSLTE_MAX_PRB * 20, c_init);
         for (i = 0; i < 6 * q->cell.nof_prb; i++) {
+          uint32_t idx                   = SRSLTE_REFSIGNAL_PILOT_IDX_MBSFN(i, l, q->cell);
           mp = i + 3 * (SRSLTE_MAX_PRB - cell.nof_prb);
-          q->pilots[p][ns][SRSLTE_REFSIGNAL_PILOT_IDX_MBSFN(i, l, q->cell)] =
-              (1 - 2 * (float)seq_mbsfn.c[2 * mp]) / sqrt(2) +
-              _Complex_I * (1 - 2 * (float)seq_mbsfn.c[2 * mp + 1]) / sqrt(2);
+          __real__ q->pilots[p][ns][idx] = (1 - 2 * (float)seq_mbsfn.c[2 * mp + 0]) * M_SQRT1_2;
+          __imag__ q->pilots[p][ns][idx] = (1 - 2 * (float)seq_mbsfn.c[2 * mp + 1]) * M_SQRT1_2;
         }
       }
     }

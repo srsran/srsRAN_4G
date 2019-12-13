@@ -380,6 +380,38 @@ void srslte_vec_abs_cf(const cf_t *x, float *abs, const uint32_t len) {
   srslte_vec_abs_cf_simd(x, abs, len);
 }
 
+void srslte_vec_abs_dB_cf(const cf_t* x, float default_value, float* abs, const uint32_t len)
+{
+  // Convert complex input to absplute value
+  srslte_vec_abs_cf(x, abs, len);
+
+  // Convert absolute value to dB
+  for (int i = 0; i < len; i++) {
+    // Check boundaries
+    if (isnormal(abs[i])) {
+      // Avoid infinites and zeros
+      abs[i] = srslte_convert_amplitude_to_dB(abs[i]);
+    } else {
+      // Set to default value instead
+      abs[i] = default_value;
+    }
+  }
+}
+
+void srslte_vec_arg_deg_cf(const cf_t* x, float default_value, float* arg, const uint32_t len)
+{
+  for (int i = 0; i < len; i++) {
+    // Convert complex value to argument in degrees
+    arg[i] = cargf(x[i]) * (180.0f / M_PI);
+
+    // Check boundaries
+    if (arg[i] != 0.0f && !isnormal(arg[i])) {
+      // different than zero and not normal
+      arg[i] = default_value;
+    }
+  }
+}
+
 // PRACH 
 void srslte_vec_abs_square_cf(const cf_t *x, float *abs_square, const uint32_t len) {
   srslte_vec_abs_square_cf_simd(x,abs_square,len);

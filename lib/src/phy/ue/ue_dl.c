@@ -725,7 +725,7 @@ static int select_pmi(srslte_ue_dl_t* q, uint32_t ri, uint32_t* pmi, float* sinr
 
     /* Set PMI */
     if (sinr_db != NULL) {
-      *sinr_db = 10.0f * log10f(sinr_list[*pmi % SRSLTE_MAX_CODEBOOKS]);
+      *sinr_db = srslte_convert_power_to_dB(sinr_list[*pmi % SRSLTE_MAX_CODEBOOKS]);
     }
   }
 

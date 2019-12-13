@@ -1,0 +1,30 @@
+---
+# All Clang-Tidy Checks allowed, except:
+# - forbidden vararg
+# - forbidden magic numbers
+# - forbidden namespace "using"
+# - forbidden array->pointer decay
+# - init of static memory may cause an exception (cert-err58)
+# - forbidden implicit conversion from pointer/int to bool
+# - recommended auto
+# Naming conventions set to snake_case
+Checks: '*,-fuchsia-*,
+         -cppcoreguidelines-pro-type-vararg,-hicpp-vararg,
+         -cppcoreguidelines-avoid-magic-numbers,-readability-magic-numbers,
+         -cppcoreguidelines-pro-bounds-array-to-pointer-decay,-hicpp-no-array-decay,
+         -cppcoreguidelines-pro-bounds-constant-array-index,-cppcoreguidelines-pro-type-cstyle-cast,
+         -cppcoreguidelines-pro-type-union-access,
+         -modernize-use-using,
+         -modernize-use-auto,-hicpp-use-auto,
+         -google-runtime-references,-google-readability-casting,-google-build-using-namespace,
+         google-default-arguments,-cppcoreguidelines-pro-bounds-pointer-arithmetic,
+         -cert-err58-cpp,
+         readability-identifier-naming'
+HeaderFilterRegex: ''
+AnalyzeTemporaryDtors: false
+CheckOptions:
+  - { key: readability-identifier-naming.NamespaceCase, value: lower_case }
+  - { key: readibility-identifier-naming.ClassCase,     value: lower_case }
+  - { key: readibility-identifier-naming.StructCase,    value: lower_case }
+  - { key: readibility-identifier-naming.VariableCase,  value: lower_case }
+

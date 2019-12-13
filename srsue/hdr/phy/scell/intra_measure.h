@@ -41,7 +41,7 @@ public:
   void stop();
   void add_cell(int pci);
   void rem_cell(int pci);
-  void set_primay_cell(uint32_t earfcn, srslte_cell_t cell);
+  void set_primary_cell(uint32_t earfcn, srslte_cell_t cell);
   void clear_cells();
   int  get_offset(uint32_t pci);
   void write(uint32_t tti, cf_t* data, uint32_t nsamples);

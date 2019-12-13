@@ -53,7 +53,7 @@ int srslte_timestamp_copy(srslte_timestamp_t *dest, srslte_timestamp_t *src){
   return ret;
 }
 
-int srslte_timestamp_compare(srslte_timestamp_t* a, srslte_timestamp_t* b)
+int srslte_timestamp_compare(const srslte_timestamp_t* a, const srslte_timestamp_t* b)
 {
   int ret = 0;
 

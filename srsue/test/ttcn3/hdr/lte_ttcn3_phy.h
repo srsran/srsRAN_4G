@@ -120,6 +120,8 @@ public:
   void run_tti();
 
 private:
+  void select_pcell();
+
   srslte::logger*    logger = nullptr;
   srslte::log_filter log;
 

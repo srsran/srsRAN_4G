@@ -23,7 +23,9 @@
 #include <complex.h>
 #include <fftw3.h>
 #include <math.h>
+#include <pwd.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "srslte/phy/dft/dft.h"
 #include "srslte/phy/utils/vector.h"
@@ -31,7 +33,17 @@
 #define dft_ceil(a,b) ((a-1)/b+1)
 #define dft_floor(a,b) (a/b)
 
-#define FFTW_WISDOM_FILE ".fftw_wisdom"
+#define FFTW_WISDOM_FILE "%s/.srslte_fftwisdom"
+
+static int get_fftw_wisdom_file(char* full_path, uint32_t n)
+{
+  const char* homedir = NULL;
+  if ((homedir = getenv("HOME")) == NULL) {
+    homedir = getpwuid(getuid())->pw_dir;
+  }
+
+  return snprintf(full_path, n, FFTW_WISDOM_FILE, homedir);
+}
 
 #ifdef FFTW_WISDOM_FILE
 #define FFTW_TYPE FFTW_MEASURE
@@ -43,7 +55,9 @@ static pthread_mutex_t fft_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void srslte_dft_load() {
 #ifdef FFTW_WISDOM_FILE
-  fftwf_import_wisdom_from_filename(FFTW_WISDOM_FILE);
+  char full_path[256];
+  get_fftw_wisdom_file(full_path, sizeof(full_path));
+  fftwf_import_wisdom_from_filename(full_path);
 #else
   printf("Warning: FFTW Wisdom file not defined\n");
 #endif
@@ -51,7 +65,9 @@ void srslte_dft_load() {
 
 void srslte_dft_exit() {
 #ifdef FFTW_WISDOM_FILE
-  fftwf_export_wisdom_to_filename(FFTW_WISDOM_FILE);
+  char full_path[256];
+  get_fftw_wisdom_file(full_path, sizeof(full_path));
+  fftwf_export_wisdom_to_filename(full_path);
 #endif
   fftwf_cleanup();
 }
@@ -297,7 +313,7 @@ void srslte_dft_run_c(srslte_dft_plan_t *plan, const cf_t *in, cf_t *out) {
   }
   if (plan->db) {
     for (i=0;i<plan->size;i++) {
-      f_out[i] = 10*log10(f_out[i]);
+      f_out[i] = srslte_convert_power_to_dB(f_out[i]);
     }
   }
   copy_post((uint8_t*)out, (uint8_t*)plan->out, sizeof(cf_t), plan->size,
@@ -326,7 +342,7 @@ void srslte_dft_run_r(srslte_dft_plan_t *plan, const float *in, float *out) {
   }
   if (plan->db) {
     for (i=0;i<len;i++) {
-      f_out[i] = 10*log10(f_out[i]);
+      f_out[i] = srslte_convert_power_to_dB(f_out[i]);
     }
   }
   memcpy(out,plan->out,sizeof(float)*plan->size);

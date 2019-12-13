@@ -60,25 +60,25 @@ void parse_args(int argc, char **argv) {
       output_file_name = argv[optind];
       break;
     case 'n':
-      nof_frames = atoi(argv[optind]);
+      nof_frames = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'l':
-      frame_length = atoi(argv[optind]);
+      frame_length = (int)strtol(argv[optind], NULL, 10);
       break;
     case 't':
-      corr_peak_threshold = atof(argv[optind]);
+      corr_peak_threshold = strtof(argv[optind], NULL);
       break;
     case 's':
-      symbol_sz = atof(argv[optind]);
+      symbol_sz = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'N':
-      out_N_id_2 = atoi(argv[optind]);
+      out_N_id_2 = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'f':
-      force_N_id_2 = atoi(argv[optind]);
+      force_N_id_2 = (int)strtol(argv[optind], NULL, 10);
       break;
     case 'c':
-      force_cfo = atof(argv[optind]);
+      force_cfo = strtof(argv[optind], NULL);
       break;
     case 'v':
       srslte_verbose++;

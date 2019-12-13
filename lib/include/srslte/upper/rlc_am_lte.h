@@ -19,19 +19,20 @@
  *
  */
 
-#ifndef SRSLTE_RLC_AM_H
-#define SRSLTE_RLC_AM_H
+#ifndef SRSLTE_RLC_AM_LTE_H
+#define SRSLTE_RLC_AM_LTE_H
 
 #include "srslte/common/buffer_pool.h"
-#include "srslte/common/log.h"
 #include "srslte/common/common.h"
-#include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/upper/rlc_tx_queue.h"
+#include "srslte/common/log.h"
 #include "srslte/common/timeout.h"
+#include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/upper/rlc_am_base.h"
 #include "srslte/upper/rlc_common.h"
-#include <map>
+#include "srslte/upper/rlc_tx_queue.h"
 #include <deque>
 #include <list>
+#include <map>
 
 namespace srslte {
 
@@ -60,15 +61,14 @@ struct rlc_amd_retx_t{
   uint32_t  so_end;
 };
 
-
-class rlc_am : public rlc_common
+class rlc_am_lte : public rlc_common
 {
 public:
-  rlc_am(srslte::log*               log_,
-         uint32_t                   lcid_,
-         srsue::pdcp_interface_rlc* pdcp_,
-         srsue::rrc_interface_rlc*  rrc_,
-         srslte::timers*            timers_);
+  rlc_am_lte(srslte::log*               log_,
+             uint32_t                   lcid_,
+             srsue::pdcp_interface_rlc* pdcp_,
+             srsue::rrc_interface_rlc*  rrc_,
+             srslte::timer_handler*     timers_);
   bool configure(rlc_config_t cfg_);
   void reestablish();
   void stop();
@@ -80,6 +80,7 @@ public:
 
   // PDCP interface
   void write_sdu(unique_byte_buffer_t sdu, bool blocking = true);
+  void discard_sdu(uint32_t pdcp_sn);
 
   // MAC interface
   bool     has_data();
@@ -87,18 +88,17 @@ public:
   int      read_pdu(uint8_t *payload, uint32_t nof_bytes);
   void     write_pdu(uint8_t *payload, uint32_t nof_bytes);
 
-  uint32_t get_num_tx_bytes();
-  uint32_t get_num_rx_bytes();
+  rlc_bearer_metrics_t get_metrics();
   void reset_metrics();
 
 private:
 
   // Transmitter sub-class
-  class rlc_am_tx : public timer_callback
+  class rlc_am_lte_tx : public timer_callback
   {
   public:
-    rlc_am_tx(rlc_am* parent_);
-    ~rlc_am_tx();
+    rlc_am_lte_tx(rlc_am_lte* parent_);
+    ~rlc_am_lte_tx();
 
     bool configure(rlc_config_t cfg_);
 
@@ -107,7 +107,8 @@ private:
     void stop();
 
     void write_sdu(unique_byte_buffer_t sdu, bool blocking);
-    int read_pdu(uint8_t *payload, uint32_t nof_bytes);
+    int  read_pdu(uint8_t* payload, uint32_t nof_bytes);
+    void discard_sdu(uint32_t discard_sn);
 
     bool     has_data();
     uint32_t get_buffer_state();
@@ -137,7 +138,7 @@ private:
     bool poll_required();
     bool do_status();
 
-    rlc_am*           parent = nullptr;
+    rlc_am_lte*       parent = nullptr;
     byte_buffer_pool* pool   = nullptr;
     srslte::log*      log    = nullptr;
 
@@ -176,29 +177,26 @@ private:
      * Ref: 3GPP TS 36.322 v10.0.0 Section 7
      ***************************************************************************/
 
-    srslte::timers::timer* poll_retx_timer    = nullptr;
-    uint32_t               poll_retx_timer_id = 0;
-
-    srslte::timers::timer* status_prohibit_timer    = nullptr;
-    uint32_t               status_prohibit_timer_id = 0;
+    srslte::timer_handler::unique_timer poll_retx_timer;
+    srslte::timer_handler::unique_timer status_prohibit_timer;
 
     // Tx windows
-    std::map<uint32_t, rlc_amd_tx_pdu_t>          tx_window;
-    std::deque<rlc_amd_retx_t>                    retx_queue;
+    std::map<uint32_t, rlc_amd_tx_pdu_t> tx_window;
+    std::deque<rlc_amd_retx_t>           retx_queue;
 
     // Mutexes
-    pthread_mutex_t     mutex;
+    pthread_mutex_t mutex;
 
     // Metrics
     uint32_t num_tx_bytes = 0;
   };
 
   // Receiver sub-class
-  class rlc_am_rx : public timer_callback
+  class rlc_am_lte_rx : public timer_callback
   {
   public:
-    rlc_am_rx(rlc_am* parent_);
-    ~rlc_am_rx();
+    rlc_am_lte_rx(rlc_am_lte* parent_);
+    ~rlc_am_lte_rx();
 
     bool configure(rlc_am_config_t cfg_);
     void reestablish();
@@ -227,7 +225,7 @@ private:
     void print_rx_segments();
     bool add_segment_and_check(rlc_amd_rx_pdu_segments_t *pdu, rlc_amd_rx_pdu_t *segment);
 
-    rlc_am*           parent = nullptr;
+    rlc_am_lte*       parent = nullptr;
     byte_buffer_pool* pool   = nullptr;
     srslte::log*      log    = nullptr;
 
@@ -270,15 +268,14 @@ private:
      * Ref: 3GPP TS 36.322 v10.0.0 Section 7
      ***************************************************************************/
 
-    srslte::timers::timer* reordering_timer    = nullptr;
-    uint32_t               reordering_timer_id = 0;
+    srslte::timer_handler::unique_timer reordering_timer;
   };
 
   // Common variables needed/provided by parent class
   srsue::rrc_interface_rlc*  rrc    = nullptr;
   srslte::log*               log    = nullptr;
   srsue::pdcp_interface_rlc* pdcp   = nullptr;
-  srslte::timers*            timers = nullptr;
+  srslte::timer_handler*     timers = nullptr;
   uint32_t                   lcid   = 0;
   rlc_config_t               cfg    = {};
   std::string                rb_name;
@@ -286,32 +283,32 @@ private:
   static const int poll_periodicity = 8; // After how many data PDUs a status PDU shall be requested
 
   // Rx and Tx objects
-  rlc_am_tx tx;
-  rlc_am_rx rx;
+  rlc_am_lte_tx tx;
+  rlc_am_lte_rx rx;
+
+  rlc_bearer_metrics_t metrics = {};
 };
 
 /****************************************************************************
  * Header pack/unpack helper functions
  * Ref: 3GPP TS 36.322 v10.0.0 Section 6.2.1
  ***************************************************************************/
-void        rlc_am_read_data_pdu_header(byte_buffer_t *pdu, rlc_amd_pdu_header_t *header);
-void        rlc_am_read_data_pdu_header(uint8_t **payload, uint32_t *nof_bytes, rlc_amd_pdu_header_t *header);
-void        rlc_am_write_data_pdu_header(rlc_amd_pdu_header_t *header, byte_buffer_t *pdu);
-void        rlc_am_write_data_pdu_header(rlc_amd_pdu_header_t *header, uint8_t **payload);
-void        rlc_am_read_status_pdu(byte_buffer_t *pdu, rlc_status_pdu_t *status);
-void        rlc_am_read_status_pdu(uint8_t *payload, uint32_t nof_bytes, rlc_status_pdu_t *status);
-void        rlc_am_write_status_pdu(rlc_status_pdu_t *status, byte_buffer_t *pdu );
-int         rlc_am_write_status_pdu(rlc_status_pdu_t *status, uint8_t *payload);
+void rlc_am_read_data_pdu_header(byte_buffer_t* pdu, rlc_amd_pdu_header_t* header);
+void rlc_am_read_data_pdu_header(uint8_t** payload, uint32_t* nof_bytes, rlc_amd_pdu_header_t* header);
+void rlc_am_write_data_pdu_header(rlc_amd_pdu_header_t* header, byte_buffer_t* pdu);
+void rlc_am_write_data_pdu_header(rlc_amd_pdu_header_t* header, uint8_t** payload);
+void rlc_am_read_status_pdu(byte_buffer_t* pdu, rlc_status_pdu_t* status);
+void rlc_am_read_status_pdu(uint8_t* payload, uint32_t nof_bytes, rlc_status_pdu_t* status);
+void rlc_am_write_status_pdu(rlc_status_pdu_t* status, byte_buffer_t* pdu);
+int  rlc_am_write_status_pdu(rlc_status_pdu_t* status, uint8_t* payload);
 
-uint32_t    rlc_am_packed_length(rlc_amd_pdu_header_t *header);
-uint32_t    rlc_am_packed_length(rlc_status_pdu_t *status);
+uint32_t    rlc_am_packed_length(rlc_amd_pdu_header_t* header);
+uint32_t    rlc_am_packed_length(rlc_status_pdu_t* status);
 uint32_t    rlc_am_packed_length(rlc_amd_retx_t retx);
 bool        rlc_am_is_valid_status_pdu(const rlc_status_pdu_t& status);
-bool        rlc_am_is_control_pdu(byte_buffer_t *pdu);
-bool        rlc_am_is_control_pdu(uint8_t *payload);
-bool        rlc_am_is_pdu_segment(uint8_t *payload);
-std::string rlc_am_status_pdu_to_string(rlc_status_pdu_t *status);
-std::string rlc_amd_pdu_header_to_string(const rlc_amd_pdu_header_t &header);
+bool        rlc_am_is_pdu_segment(uint8_t* payload);
+std::string rlc_am_status_pdu_to_string(rlc_status_pdu_t* status);
+std::string rlc_amd_pdu_header_to_string(const rlc_amd_pdu_header_t& header);
 bool        rlc_am_start_aligned(const uint8_t fi);
 bool        rlc_am_end_aligned(const uint8_t fi);
 bool        rlc_am_is_unaligned(const uint8_t fi);
@@ -319,4 +316,4 @@ bool        rlc_am_not_start_aligned(const uint8_t fi);
 
 } // namespace srslte
 
-#endif // SRSLTE_RLC_AM_H
+#endif // SRSLTE_RLC_AM_LTE_H

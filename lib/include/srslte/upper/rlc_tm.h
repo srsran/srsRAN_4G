@@ -38,7 +38,7 @@ public:
          uint32_t                   lcid_,
          srsue::pdcp_interface_rlc* pdcp_,
          srsue::rrc_interface_rlc*  rrc_,
-         srslte::timers*            timers_,
+         srslte::timer_handler*     timers_,
          uint32_t                   queue_len = 16);
   ~rlc_tm();
   bool configure(rlc_config_t cnfg);
@@ -49,12 +49,12 @@ public:
   rlc_mode_t    get_mode();
   uint32_t      get_bearer();
 
-  uint32_t get_num_tx_bytes();
-  uint32_t get_num_rx_bytes();
+  rlc_bearer_metrics_t get_metrics();
   void reset_metrics();
 
   // PDCP interface
   void write_sdu(unique_byte_buffer_t sdu, bool blocking);
+  void discard_sdu(uint32_t discard_sn);
 
   // MAC interface
   bool     has_data();
@@ -71,8 +71,7 @@ private:
 
   bool tx_enabled = true;
 
-  uint32_t num_tx_bytes = 0;
-  uint32_t num_rx_bytes = 0;
+  rlc_bearer_metrics_t metrics = {};
 
   // Thread-safe queues for MAC messages
   rlc_tx_queue    ul_queue;

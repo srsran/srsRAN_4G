@@ -29,6 +29,7 @@
 #include <inttypes.h> // for printing uint64_t
 #include <iostream>
 #include <math.h>
+#include <numeric>
 #include <sstream>
 #include <string.h>
 #include <unistd.h>
@@ -52,28 +53,21 @@ rrc::rrc(srslte::log* rrc_log_) :
   last_state(RRC_STATE_CONNECTED),
   drb_up(false),
   rrc_log(rrc_log_),
+  cell_searcher(this),
+  si_acquirer(this),
+  serv_cell_cfg(this),
+  cell_selector(this),
+  idle_setter(this),
+  pcch_processor(this),
+  conn_req_proc(this),
+  plmn_searcher(this),
+  cell_reselector(this),
+  connection_reest(this),
   serving_cell(unique_cell_t(new cell_t({}, 0.0)))
 {
 }
 
-rrc::~rrc()
-{
-}
-
-static void srslte_rrc_handler(asn1::srsasn_logger_level_t level, void* ctx, const char* str)
-{
-  rrc *r = (rrc *) ctx;
-  r->srslte_rrc_log(str); // FIXME use log level
-}
-
-void rrc::srslte_rrc_log(const char* str)
-{
-  if (rrc_log) {
-    rrc_log->warning("[ASN]: %s\n", str);
-  } else {
-    rrc_log->console("[ASN]: %s\n", str);
-  }
-}
+rrc::~rrc() = default;
 
 template <class T>
 void rrc::log_rrc_message(const std::string source, const direction_t dir, const byte_buffer_t* pdu, const T& msg)
@@ -102,7 +96,7 @@ void rrc::init(phy_interface_rrc_lte* phy_,
                nas_interface_rrc*     nas_,
                usim_interface_rrc*    usim_,
                gw_interface_rrc*      gw_,
-               srslte::timers*        timers_,
+               srslte::timer_handler* timers_,
                stack_interface_rrc*   stack_,
                const rrc_args_t&      args_)
 {
@@ -125,19 +119,16 @@ void rrc::init(phy_interface_rrc_lte* phy_,
 
   security_is_activated = false;
 
-  t300 = timers->get_unique_id();
-  t301 = timers->get_unique_id();
-  t302 = timers->get_unique_id();
-  t310 = timers->get_unique_id();
-  t311 = timers->get_unique_id();
-  t304 = timers->get_unique_id();
+  t300 = timers->get_unique_timer();
+  t301 = timers->get_unique_timer();
+  t302 = timers->get_unique_timer();
+  t310 = timers->get_unique_timer();
+  t311 = timers->get_unique_timer();
+  t304 = timers->get_unique_timer();
 
   ue_identity_configured = false;
 
   transaction_id = 0;
-
-  // Register logging handler with asn1 rrc
-  asn1::rrc::rrc_log_register_handler(this, srslte_rrc_handler);
 
   cell_clean_cnt = 0;
 
@@ -175,7 +166,8 @@ void rrc::get_metrics(rrc_metrics_t& m)
   m.state = state;
 }
 
-bool rrc::is_connected() {
+bool rrc::is_connected()
+{
   return (RRC_STATE_CONNECTED == state);
 }
 
@@ -194,6 +186,8 @@ void rrc::run_tti(uint32_t tti)
   if (!initiated) {
     return;
   }
+
+  rrc_log->step(tti);
 
   if (simulate_rlf) {
     radio_link_failure();
@@ -227,10 +221,6 @@ void rrc::run_tti(uint32_t tti)
       }
       break;
     case RRC_STATE_CONNECTED:
-      // Performing reestablishment cell selection
-      if (m_reest_cause != asn1::rrc::reest_cause_e::nulltype) {
-        proc_con_restablish_request();
-      }
       measurements.run_tti(tti);
       break;
     default:
@@ -306,11 +296,11 @@ uint16_t rrc::get_mnc() {
  */
 bool rrc::plmn_search()
 {
-  if (not plmn_searcher.launch(this)) {
+  if (not plmn_searcher.launch()) {
     rrc_log->error("Unable to initiate PLMN search\n");
     return false;
   }
-  callback_list.defer_proc(plmn_searcher);
+  callback_list.add_proc(plmn_searcher);
   return true;
 }
 
@@ -335,11 +325,11 @@ void rrc::plmn_select(srslte::plmn_id_t plmn_id)
  */
 bool rrc::connection_request(srslte::establishment_cause_t cause, srslte::unique_byte_buffer_t dedicated_info_nas_)
 {
-  if (not conn_req_proc.launch(this, cause, std::move(dedicated_info_nas_))) {
+  if (not conn_req_proc.launch(cause, std::move(dedicated_info_nas_))) {
     rrc_log->error("Failed to initiate connection request procedure\n");
     return false;
   }
-  callback_list.defer_proc(conn_req_proc);
+  callback_list.add_proc(conn_req_proc);
   return true;
 }
 
@@ -421,29 +411,26 @@ void rrc::process_new_phy_meas(phy_meas_t meas)
 // Detection of physical layer problems in RRC_CONNECTED (5.3.11.1)
 void rrc::out_of_sync()
 {
-
   // CAUTION: We do not lock in this function since they are called from real-time threads
+  if (serving_cell && timers && rrc_log) {
+    phy_sync_state = phy_out_of_sync;
 
-  serving_cell->in_sync = false;
-
-  // upon receiving N310 consecutive "out-of-sync" indications for the PCell from lower layers while neither T300,
-  //   T301, T304 nor T311 is running:
-  if (state == RRC_STATE_CONNECTED) {
-    if (!timers->get(t300)->is_running() && !timers->get(t301)->is_running() && !timers->get(t304)->is_running() &&
-        !timers->get(t310)->is_running() && !timers->get(t311)->is_running()) {
-      rrc_log->info("Received out-of-sync while in state %s. n310=%d, t311=%s, t310=%s\n",
-                    rrc_state_text[state],
-                    n310_cnt,
-                    timers->get(t311)->is_running() ? "running" : "stop",
-                    timers->get(t310)->is_running() ? "running" : "stop");
-      n310_cnt++;
-      if (n310_cnt == N310) {
-        rrc_log->info("Detected %d out-of-sync from PHY. Trying to resync. Starting T310 timer %d ms\n",
-                      N310,
-                      timers->get(t310)->get_timeout());
-        timers->get(t310)->reset();
-        timers->get(t310)->run();
-        n310_cnt = 0;
+    // upon receiving N310 consecutive "out-of-sync" indications for the PCell from lower layers while neither T300,
+    //   T301, T304 nor T311 is running:
+    if (state == RRC_STATE_CONNECTED) {
+      if (!t300.is_running() && !t301.is_running() && !t304.is_running() && !t310.is_running() && !t311.is_running()) {
+        rrc_log->info("Received out-of-sync while in state %s. n310=%d, t311=%s, t310=%s\n",
+                      rrc_state_text[state],
+                      n310_cnt,
+                      t311.is_running() ? "running" : "stop",
+                      t310.is_running() ? "running" : "stop");
+        n310_cnt++;
+        if (n310_cnt == N310) {
+          rrc_log->info(
+              "Detected %d out-of-sync from PHY. Trying to resync. Starting T310 timer %d ms\n", N310, t310.duration());
+          t310.run();
+          n310_cnt = 0;
+        }
       }
     }
   }
@@ -453,11 +440,11 @@ void rrc::out_of_sync()
 void rrc::in_sync()
 {
   // CAUTION: We do not lock in this function since they are called from real-time threads
-  serving_cell->in_sync = true;
-  if (timers->get(t310)->is_running()) {
+  phy_sync_state = phy_in_sync;
+  if (t310.is_running()) {
     n311_cnt++;
     if (n311_cnt == N311) {
-      timers->get(t310)->stop();
+      t310.stop();
       n311_cnt = 0;
       rrc_log->info("Detected %d in-sync from PHY. Stopping T310 timer\n", N311);
     }
@@ -580,19 +567,9 @@ void rrc::clean_neighbours()
   }
 }
 
-// Sort neighbour cells by decreasing order of RSRP and remove old cells from neighbor list
+// Sort neighbour cells by decreasing order of RSRP
 void rrc::sort_neighbour_cells()
 {
-  // Remove out-of-sync cells
-  for (auto it = neighbour_cells.begin(); it != neighbour_cells.end();) {
-    if ((*it)->in_sync == false) {
-      rrc_log->info("Neighbour PCI=%d is out-of-sync. Deleting\n", (*it)->get_pci());
-      it = neighbour_cells.erase(it);
-    } else {
-      ++it;
-    }
-  }
-
   std::sort(std::begin(neighbour_cells), std::end(neighbour_cells), [](const unique_cell_t& a, const unique_cell_t& b) {
     return a->greater(b.get());
   });
@@ -698,6 +675,20 @@ bool rrc::has_neighbour_cell(const uint32_t earfcn, const uint32_t pci)
   return get_neighbour_cell_handle(earfcn, pci) != nullptr;
 }
 
+std::string rrc::print_neighbour_cells()
+{
+  if (neighbour_cells.empty()) {
+    return "";
+  }
+  std::string s;
+  s.reserve(256);
+  for (auto it = neighbour_cells.begin(); it != neighbour_cells.end() - 1; ++it) {
+    s += (*it)->print() + ", ";
+  }
+  s += neighbour_cells.back()->print();
+  return s;
+}
+
 /*******************************************************************************
  *
  *
@@ -775,7 +766,7 @@ void rrc::radio_link_failure() {
   rrc_log->warning("Detected Radio-Link Failure\n");
   rrc_log->console("Warning: Detected Radio-Link Failure\n");
   if (state == RRC_STATE_CONNECTED) {
-    init_con_restablish_request(asn1::rrc::reest_cause_e::other_fail);
+    start_con_restablishment(asn1::rrc::reest_cause_e::other_fail);
   }
 }
 
@@ -799,50 +790,44 @@ void rrc::max_retx_attempted() {
   cmd_q.push(std::move(msg));
 }
 
-void rrc::timer_expired(uint32_t timeout_id) {
-  if (timeout_id == t310) {
+void rrc::timer_expired(uint32_t timeout_id)
+{
+  if (timeout_id == t310.id()) {
     rrc_log->info("Timer T310 expired: Radio Link Failure\n");
     radio_link_failure();
-  } else if (timeout_id == t311) {
+  } else if (timeout_id == t311.id()) {
     rrc_log->info("Timer T311 expired: Going to RRC IDLE\n");
     start_go_idle();
-  } else if (timeout_id == t301) {
+  } else if (timeout_id == t301.id()) {
     if (state == RRC_STATE_IDLE) {
       rrc_log->info("Timer T301 expired: Already in IDLE.\n");
     } else {
       rrc_log->info("Timer T301 expired: Going to RRC IDLE\n");
       start_go_idle();
     }
-  } else if (timeout_id == t302) {
+  } else if (timeout_id == t302.id()) {
     rrc_log->info("Timer T302 expired. Informing NAS about barrier alleviation\n");
     nas->set_barring(nas_interface_rrc::BARRING_NONE);
-  } else if (timeout_id == t300) {
+  } else if (timeout_id == t300.id()) {
     // Do nothing, handled in connection_request()
-  } else if (timeout_id == t304) {
+  } else if (timeout_id == t304.id()) {
     rrc_log->console("Timer T304 expired: Handover failed\n");
     ho_failed();
-  // fw to measurement
+    // fw to measurement
   } else if (!measurements.timer_expired(timeout_id)) {
     rrc_log->error("Timeout from unknown timer id %d\n", timeout_id);
   }
 }
 
-
-
-
-
-
-
-
 /*******************************************************************************
-*
-*
-*
-* Connection Control: Establishment, Reconfiguration, Reestablishment and Release
-*
-*
-*
-*******************************************************************************/
+ *
+ *
+ *
+ * Connection Control: Establishment, Reconfiguration, Reestablishment and Release
+ *
+ *
+ *
+ *******************************************************************************/
 
 void rrc::send_con_request(srslte::establishment_cause_t cause)
 {
@@ -871,30 +856,27 @@ void rrc::send_con_request(srslte::establishment_cause_t cause)
 }
 
 /* RRC connection re-establishment procedure (5.3.7.4) */
-void rrc::send_con_restablish_request()
+void rrc::send_con_restablish_request(asn1::rrc::reest_cause_e cause, uint16_t crnti, uint16_t pci)
 {
-  uint16_t crnti;
-  uint16_t pci;
   uint32_t cellid;
 
   // Clean reestablishment type
-  asn1::rrc::reest_cause_e cause = m_reest_cause;
-  m_reest_cause                  = asn1::rrc::reest_cause_e::nulltype;
   reestablishment_successful     = false;
 
   if (cause == asn1::rrc::reest_cause_e::ho_fail) {
     crnti  = ho_src_rnti;
     pci    = ho_src_cell.get_pci();
     cellid = ho_src_cell.get_cell_id();
+  } else if (cause == asn1::rrc::reest_cause_e::other_fail) {
+    // use source PCI after RLF
+    cellid = serving_cell->get_cell_id();
   } else {
-    crnti  = m_reest_rnti;
     pci    = serving_cell->get_pci();
     cellid = serving_cell->get_cell_id();
   }
 
   // Compute shortMAC-I
-  uint8_t varShortMAC_packed[16];
-  bzero(varShortMAC_packed, 16);
+  uint8_t       varShortMAC_packed[16] = {};
   asn1::bit_ref bref(varShortMAC_packed, sizeof(varShortMAC_packed));
 
   // ASN.1 encode VarShortMAC-Input
@@ -1043,8 +1025,8 @@ bool rrc::ho_prepare()
     }
 
     // Section 5.3.5.4
-    timers->get(t310)->stop();
-    timers->get(t304)->set(this, mob_ctrl_info->t304.to_number());
+    t310.stop();
+    t304.set(mob_ctrl_info->t304.to_number(), [this](uint32_t tid) { timer_expired(tid); });
 
     // Save serving cell and current configuration
     ho_src_cell = *serving_cell;
@@ -1129,12 +1111,12 @@ void rrc::ho_ra_completed(bool ra_successful)
         measurements.parse_meas_config(&mob_reconf_r8->meas_cfg);
       }
 
-      timers->get(t304)->stop();
+      t304.stop();
     }
     // T304 will expiry and send ho_failure
 
-    rrc_log->info("HO %ssuccessful\n", ra_successful?"":"un");
-    rrc_log->console("HO %ssuccessful\n", ra_successful?"":"un");
+    rrc_log->info("HO %ssuccessful\n", ra_successful ? "" : "un");
+    rrc_log->console("HO %ssuccessful\n", ra_successful ? "" : "un");
 
     pending_mob_reconf = false;
   } else {
@@ -1165,7 +1147,7 @@ bool rrc::con_reconfig_ho(asn1::rrc::rrc_conn_recfg_s* reconfig)
 
 void rrc::start_ho()
 {
-  callback_list.defer_task([this]() {
+  callback_list.add_task([this]() {
     if (state != RRC_STATE_CONNECTED) {
       rrc_log->info("HO interrupted, since RRC is no longer in connected state\n");
       return srslte::proc_outcome_t::success;
@@ -1180,11 +1162,11 @@ void rrc::start_ho()
 
 void rrc::start_go_idle()
 {
-  if (not idle_setter.launch(this)) {
+  if (not idle_setter.launch()) {
     rrc_log->info("Failed to set RRC to IDLE\n");
     return;
   }
-  callback_list.defer_proc(idle_setter);
+  callback_list.add_proc(idle_setter);
 }
 
 // Handle RRC Reconfiguration without MobilityInformation Section 5.3.5.3
@@ -1249,7 +1231,7 @@ bool rrc::con_reconfig(asn1::rrc::rrc_conn_recfg_s* reconfig)
 // HO failure from T304 expiry 5.3.5.6
 void rrc::ho_failed()
 {
-  init_con_restablish_request(asn1::rrc::reest_cause_e::ho_fail);
+  start_con_restablishment(asn1::rrc::reest_cause_e::ho_fail);
 }
 
 // Reconfiguration failure or Section 5.3.5.5
@@ -1265,7 +1247,7 @@ void rrc::con_reconfig_failed()
 
   if (security_is_activated) {
     // Start the Reestablishment Procedure
-    init_con_restablish_request(asn1::rrc::reest_cause_e::recfg_fail);
+    start_con_restablishment(asn1::rrc::reest_cause_e::recfg_fail);
   } else {
     start_go_idle();
   }
@@ -1300,7 +1282,6 @@ void rrc::leave_connected()
 {
   rrc_log->console("RRC IDLE\n");
   rrc_log->info("Leaving RRC_CONNECTED state\n");
-  m_reest_cause         = asn1::rrc::reest_cause_e::nulltype;
   state = RRC_STATE_IDLE;
   drb_up = false;
   security_is_activated = false;
@@ -1324,11 +1305,11 @@ void rrc::leave_connected()
 
 void rrc::stop_timers()
 {
-  timers->get(t300)->stop();
-  timers->get(t301)->stop();
-  timers->get(t310)->stop();
-  timers->get(t311)->stop();
-  timers->get(t304)->stop();
+  t300.stop();
+  t301.stop();
+  t310.stop();
+  t311.stop();
+  t304.stop();
 }
 
 /* Implementation of procedure in 3GPP 36.331 Section 5.3.7.2: Initiation
@@ -1342,155 +1323,37 @@ void rrc::stop_timers()
  *
  *   The parameter cause shall indicate the cause of the reestablishment according to the sections mentioned adobe.
  */
-void rrc::init_con_restablish_request(asn1::rrc::reest_cause_e cause)
+void rrc::start_con_restablishment(asn1::rrc::reest_cause_e cause)
 {
-  // Save Current RNTI before MAC Reset
-  mac_interface_rrc::ue_rnti_t uernti;
-  mac->get_rntis(&uernti);
-
-  // If security is activated, RRC connected and C-RNTI available
-  if (security_is_activated && state == RRC_STATE_CONNECTED && uernti.crnti != 0) {
-    // Save reestablishment cause and current C-RNTI
-    m_reest_rnti  = uernti.crnti;
-    m_reest_cause = cause;
-    reestablishment_started = false;
-
-    // initiation of reestablishment procedure as indicates in 3GPP 36.331 Section 5.3.7.2
-    rrc_log->info("Initiating RRC Connection Reestablishment Procedure\n");
-  } else {
-    // 3GPP 36.331 Section 5.3.7.1
-    // If AS security has not been activated, the UE does not initiate the procedure but instead
-    // moves to RRC_IDLE directly
-    start_go_idle();
-  }
-}
-
-/* Implementation of procedure in 3GPP 36.331 Section 5.3.7.3: Actions following cell selection while T311 is running
- */
-void rrc::proc_con_restablish_request()
-{
-  if (!reestablishment_started) {
-
-    reestablishment_started = true;
-
-    rrc_log->info("Resetting timers and MAC in RRC Connection Reestablishment Procedure\n");
-
-    // stop timer T310, if running;
-    timers->get(t310)->stop();
-
-    // start timer T311;
-    timers->get(t311)->reset();
-    timers->get(t311)->run();
-
-    // Suspend all RB except SRB0
-    for (int i = 1; i < SRSLTE_N_RADIO_BEARERS; i++) {
-      if (rlc->has_bearer(i)) {
-        rlc->suspend_bearer(i);
-      }
-    }
-
-    // reset MAC;
-    mac->reset();
-
-    // apply the default physical channel configuration as specified in 9.2.4;
-    set_phy_default_pucch_srs();
-
-    // apply the default semi-persistent scheduling configuration as specified in 9.2.3;
-    // N.A.
-
-    // apply the default MAC main configuration as specified in 9.2.2;
-    apply_mac_config_dedicated_default();
-
-    // perform cell selection in accordance with the cell selection process as specified in TS 36.304 [4];
-    // ... this happens in rrc::run_tti()
+  if (not connection_reest.launch(cause)) {
+    rrc_log->info("Failed to launch connection re-establishment procedure\n");
   }
 
-  // Check timer...
-  if (timers->get(t311)->is_running()) {
-    // Check for synchronism
-    if (serving_cell->in_sync) {
-      // Perform cell selection in accordance to 36.304
-      if (cell_selection_criteria(serving_cell->get_rsrp())) {
-        // Actions following cell reselection while T311 is running 5.3.7.3
-        // Upon selecting a suitable E-UTRA cell, the UE shall:
-        rrc_log->info("Cell Selection criteria passed after %dms. Sending RRC Connection Reestablishment Request\n",
-                      timers->get(t311)->value());
-
-        // stop timer T311;
-        timers->get(t301)->reset();
-
-        // start timer T301;
-        timers->get(t301)->run();
-
-        // apply the timeAlignmentTimerCommon included in SystemInformationBlockType2;
-        timers->get(t311)->stop();
-
-        // initiate transmission of the RRCConnectionReestablishmentRequest message in accordance with 5.3.7.4;
-        send_con_restablish_request();
-      } else {
-        // Upon selecting an inter-RAT cell
-        rrc_log->warning("Reestablishment Cell Selection criteria failed.\n");
-        rrc_log->console("Reestablishment Cell Selection criteria failed. in_sync=%d\n", serving_cell->in_sync);
-        leave_connected();
-      }
-    } else {
-      // No synchronized, do nothing
-    }
-  } else {
-    // t311 expired or stopped
-    rrc_log->info("T311 expired while selecting cell. Going to IDLE\n");
-    rrc_log->console("T311 expired while selecting cell. Going to IDLE\n");
-    leave_connected();
-  }
+  callback_list.add_proc(connection_reest);
 }
 
 void rrc::start_cell_reselection()
 {
-  if (neighbour_cells.empty() and serving_cell->in_sync and phy->cell_is_camping()) {
+  if (neighbour_cells.empty() and phy_sync_state == phy_in_sync and phy->cell_is_camping()) {
     // don't bother with cell selection if there are no neighbours and we are already camping
     return;
   }
 
-  if (not cell_selector.launch(this)) {
-    rrc_log->error("Failed to initiate a Cell Selection procedure...\n");
+  if (cell_reselector.is_busy()) {
+    // it is already running
     return;
   }
 
-  rrc_log->info("Cell Reselection - Starting...\n");
-  callback_list.defer_task([this]() {
-    if (cell_selector.run()) {
-      return srslte::proc_outcome_t::yield;
-    }
-    cell_selection_proc ret = cell_selector.pop();
-    if (ret.is_error()) {
-      rrc_log->error("Cell Reselection - Error while selecting a cell\n");
-      return srslte::proc_outcome_t::error;
-    } else {
-      switch (ret.get_cs_result()) {
-        case cs_result_t::changed_cell:
-          // New cell has been selected, start receiving PCCH
-          mac->pcch_start_rx();
-          break;
-        case cs_result_t::no_cell:
-          rrc_log->warning("Could not find any cell to camp on\n");
-          break;
-        case cs_result_t::same_cell:
-          if (!phy->cell_is_camping()) {
-            rrc_log->warning("Did not reselect cell but serving cell is out-of-sync.\n");
-            serving_cell->in_sync = false;
-          }
-          break;
-      }
-    }
-    rrc_log->info("Cell Reselection - Finished successfully\n");
-    return srslte::proc_outcome_t::success;
-  });
+  if (not cell_reselector.launch()) {
+    rrc_log->error("Failed to initiate a Cell Reselection procedure...\n");
+  }
+  callback_list.add_proc(cell_reselector);
 }
 
 void rrc::cell_search_completed(const phy_interface_rrc_lte::cell_search_ret_t& cs_ret,
                                 const phy_interface_rrc_lte::phy_cell_t&        found_cell)
 {
-  cell_searcher.trigger_event(cell_search_proc::cell_search_event_t{cs_ret, found_cell});
+  cell_searcher.trigger(cell_search_proc::cell_search_event_t{cs_ret, found_cell});
 }
 
 /*******************************************************************************
@@ -1657,20 +1520,21 @@ void rrc::handle_sib2()
 
   log_rr_config_common();
 
-  timers->get(t300)->set(this, sib2->ue_timers_and_consts.t300.to_number());
-  timers->get(t301)->set(this, sib2->ue_timers_and_consts.t301.to_number());
-  timers->get(t310)->set(this, sib2->ue_timers_and_consts.t310.to_number());
-  timers->get(t311)->set(this, sib2->ue_timers_and_consts.t311.to_number());
+  auto timer_expire_func = [this](uint32_t tid) { timer_expired(tid); };
+  t300.set(sib2->ue_timers_and_consts.t300.to_number(), timer_expire_func);
+  t301.set(sib2->ue_timers_and_consts.t301.to_number(), timer_expire_func);
+  t310.set(sib2->ue_timers_and_consts.t310.to_number(), timer_expire_func);
+  t311.set(sib2->ue_timers_and_consts.t311.to_number(), timer_expire_func);
   N310 = sib2->ue_timers_and_consts.n310.to_number();
   N311 = sib2->ue_timers_and_consts.n311.to_number();
 
   rrc_log->info("Set Constants and Timers: N310=%d, N311=%d, t300=%d, t301=%d, t310=%d, t311=%d\n",
                 N310,
                 N311,
-                timers->get(t300)->get_timeout(),
-                timers->get(t301)->get_timeout(),
-                timers->get(t310)->get_timeout(),
-                timers->get(t311)->get_timeout());
+                t300.duration(),
+                t301.duration(),
+                t310.duration(),
+                t311.duration());
 }
 
 void rrc::handle_sib3()
@@ -1723,7 +1587,7 @@ void rrc::write_pdu_pcch(unique_byte_buffer_t pdu)
 
 void rrc::paging_completed(bool outcome)
 {
-  pcch_processor.trigger_event(process_pcch_proc::paging_complete{outcome});
+  pcch_processor.trigger(process_pcch_proc::paging_complete{outcome});
 }
 
 void rrc::process_pcch(unique_byte_buffer_t pdu)
@@ -1752,13 +1616,13 @@ void rrc::process_pcch(unique_byte_buffer_t pdu)
     paging->paging_record_list.resize(ASN1_RRC_MAX_PAGE_REC);
   }
 
-  if (not pcch_processor.launch(this, *paging)) {
+  if (not pcch_processor.launch(*paging)) {
     rrc_log->error("Failed to launch process PCCH procedure\n");
     return;
   }
 
   // we do not care about the outcome
-  callback_list.defer_proc(pcch_processor);
+  callback_list.add_proc(pcch_processor);
 }
 
 void rrc::write_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
@@ -1908,12 +1772,12 @@ void rrc::parse_dl_ccch(unique_byte_buffer_t pdu)
       rrc_log->info("Received ConnectionReject. Wait time: %d\n", reject_r8->wait_time);
       rrc_log->console("Received ConnectionReject. Wait time: %d\n", reject_r8->wait_time);
 
-      timers->get(t300)->stop();
+      t300.stop();
 
       if (reject_r8->wait_time) {
         nas->set_barring(nas_interface_rrc::BARRING_ALL);
-        timers->get(t302)->set(this, reject_r8->wait_time * 1000u);
-        timers->get(t302)->run();
+        t302.set(reject_r8->wait_time * 1000, [this](uint32_t tid) { timer_expired(tid); });
+        t302.run();
       } else {
         // Perform the actions upon expiry of T302 if wait time is zero
         nas->set_barring(nas_interface_rrc::BARRING_NONE);
@@ -2484,7 +2348,7 @@ void rrc::apply_phy_scell_config(const asn1::rrc::scell_to_add_mod_r10_s& scell_
   srslte::phy_cfg_t scell_phy_cfg = current_phy_cfg;
   set_phy_cfg_t_scell_config(&scell_phy_cfg, scell_config);
 
-  phy->set_config(scell_phy_cfg, scell_config.s_cell_idx_r10, earfcn, &scell);
+  phy->set_config(scell_phy_cfg, scell_config.scell_idx_r10, earfcn, &scell);
 }
 
 void rrc::log_mac_config_dedicated()
@@ -2537,19 +2401,20 @@ bool rrc::apply_rr_config_dedicated(rr_cfg_ded_s* cnfg)
     // TODO
   }
   if (cnfg->rlf_timers_and_consts_r9.is_present() and cnfg->rlf_timers_and_consts_r9->type() == setup_e::setup) {
-    timers->get(t301)->set(this, cnfg->rlf_timers_and_consts_r9->setup().t301_r9.to_number());
-    timers->get(t310)->set(this, cnfg->rlf_timers_and_consts_r9->setup().t310_r9.to_number());
-    timers->get(t311)->set(this, cnfg->rlf_timers_and_consts_r9->setup().t311_r9.to_number());
+    auto timer_expire_func = [this](uint32_t tid) { timer_expired(tid); };
+    t301.set(cnfg->rlf_timers_and_consts_r9->setup().t301_r9.to_number(), timer_expire_func);
+    t310.set(cnfg->rlf_timers_and_consts_r9->setup().t310_r9.to_number(), timer_expire_func);
+    t311.set(cnfg->rlf_timers_and_consts_r9->setup().t311_r9.to_number(), timer_expire_func);
     N310 = cnfg->rlf_timers_and_consts_r9->setup().n310_r9.to_number();
     N311 = cnfg->rlf_timers_and_consts_r9->setup().n311_r9.to_number();
 
     rrc_log->info("Updated Constants and Timers: N310=%d, N311=%d, t300=%u, t301=%u, t310=%u, t311=%u\n",
                   N310,
                   N311,
-                  timers->get(t300)->get_timeout(),
-                  timers->get(t301)->get_timeout(),
-                  timers->get(t310)->get_timeout(),
-                  timers->get(t311)->get_timeout());
+                  t300.duration(),
+                  t301.duration(),
+                  t310.duration(),
+                  t311.duration());
   }
   for (uint32_t i = 0; i < cnfg->srb_to_add_mod_list.size(); i++) {
     // TODO: handle SRB modification
@@ -2578,9 +2443,9 @@ void rrc::apply_scell_config(asn1::rrc::rrc_conn_recfg_r8_ies_s* reconfig_r8)
         rrc_conn_recfg_v1020_ies_s* reconfig_r1020 = &reconfig_r920->non_crit_ext;
 
         // Handle Add/Modify SCell list
-        if (reconfig_r1020->s_cell_to_add_mod_list_r10_present) {
-          for (uint32_t i = 0; i < reconfig_r1020->s_cell_to_add_mod_list_r10.size(); i++) {
-            auto scell_config = &reconfig_r1020->s_cell_to_add_mod_list_r10[i];
+        if (reconfig_r1020->scell_to_add_mod_list_r10_present) {
+          for (uint32_t i = 0; i < reconfig_r1020->scell_to_add_mod_list_r10.size(); i++) {
+            auto scell_config = &reconfig_r1020->scell_to_add_mod_list_r10[i];
 
             // Limit enable64_qam, if the ue does not
             // since the phy does not have information about the RRC category and release, the RRC shall limit the
@@ -2603,7 +2468,7 @@ void rrc::apply_scell_config(asn1::rrc::rrc_conn_recfg_r8_ies_s* reconfig_r8)
             }
 
             // Call mac reconfiguration
-            mac->reconfiguration(scell_config->s_cell_idx_r10, true);
+            mac->reconfiguration(scell_config->scell_idx_r10, true);
 
             // Call phy reconfiguration
             apply_phy_scell_config(*scell_config);
@@ -2611,10 +2476,10 @@ void rrc::apply_scell_config(asn1::rrc::rrc_conn_recfg_r8_ies_s* reconfig_r8)
         }
 
         // Handle Remove SCell list
-        if (reconfig_r1020->s_cell_to_release_list_r10_present) {
-          for (uint32_t i = 0; i < reconfig_r1020->s_cell_to_release_list_r10.size(); i++) {
+        if (reconfig_r1020->scell_to_release_list_r10_present) {
+          for (uint32_t i = 0; i < reconfig_r1020->scell_to_release_list_r10.size(); i++) {
             // Call mac reconfiguration
-            mac->reconfiguration(reconfig_r1020->s_cell_to_release_list_r10[i], false);
+            mac->reconfiguration(reconfig_r1020->scell_to_release_list_r10[i], false);
 
             // Call phy reconfiguration
             // TODO: Implement phy layer cell removal
@@ -2629,8 +2494,8 @@ void rrc::handle_con_setup(rrc_conn_setup_s* setup)
 {
   // Must enter CONNECT before stopping T300
   state = RRC_STATE_CONNECTED;
-  timers->get(t300)->stop();
-  timers->get(t302)->stop();
+  t300.stop();
+  t302.stop();
   rrc_log->console("RRC Connected\n");
 
   // Apply the Radio Resource configuration
@@ -2648,8 +2513,7 @@ void rrc::handle_con_setup(rrc_conn_setup_s* setup)
 /* Reception of RRCConnectionReestablishment by the UE 5.3.7.5 */
 void rrc::handle_con_reest(rrc_conn_reest_s* setup)
 {
-
-  timers->get(t301)->stop();
+  t301.stop();
 
   // Reestablish PDCP and RLC for SRB1
   pdcp->reestablish(1);
@@ -2683,12 +2547,7 @@ void rrc::handle_con_reest(rrc_conn_reest_s* setup)
 void rrc::add_srb(srb_to_add_mod_s* srb_cnfg)
 {
   // Setup PDCP
-  pdcp_config_t pdcp_cfg = {.bearer_id    = srb_cnfg->srb_id,
-                            .rb_type      = PDCP_RB_IS_SRB,
-                            .tx_direction = SECURITY_DIRECTION_UPLINK,
-                            .rx_direction = SECURITY_DIRECTION_DOWNLINK,
-                            .sn_len       = PDCP_SN_LEN_5};
-  pdcp->add_bearer(srb_cnfg->srb_id, pdcp_cfg);
+  pdcp->add_bearer(srb_cnfg->srb_id, make_srb_pdcp_config_t(srb_cnfg->srb_id, true));
   if (RB_ID_SRB2 == srb_cnfg->srb_id) {
     pdcp->config_security(srb_cnfg->srb_id, k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo);
     pdcp->enable_integrity(srb_cnfg->srb_id);
@@ -2760,11 +2619,8 @@ void rrc::add_drb(drb_to_add_mod_s* drb_cnfg)
   }
 
   // Setup PDCP
-  pdcp_config_t pdcp_cfg = {.bearer_id    = drb_cnfg->drb_id,
-                            .rb_type      = PDCP_RB_IS_DRB,
-                            .tx_direction = SECURITY_DIRECTION_UPLINK,
-                            .rx_direction = SECURITY_DIRECTION_DOWNLINK,
-                            .sn_len       = PDCP_SN_LEN_12};
+  pdcp_config_t pdcp_cfg = make_drb_pdcp_config_t(drb_cnfg->drb_id, true);
+
   if (drb_cnfg->pdcp_cfg.rlc_um_present) {
     if (drb_cnfg->pdcp_cfg.rlc_um.pdcp_sn_size == pdcp_cfg_s::rlc_um_s_::pdcp_sn_size_e_::len7bits) {
       pdcp_cfg.sn_len = 7;
@@ -2835,6 +2691,10 @@ void rrc::set_phy_default_pucch_srs()
 {
   rrc_log->info("Setting default PHY config dedicated\n");
   set_phy_config_dedicated_default();
+
+  // SR configuration affects to MAC SR too
+  current_mac_cfg.sr_cfg.reset();
+  mac->set_config(current_mac_cfg);
 }
 
 void rrc::set_mac_default() {
@@ -2843,10 +2703,12 @@ void rrc::set_mac_default() {
 
 void rrc::set_rrc_default()
 {
-  N310 = 1;
-  N311 = 1;
-  timers->get(t310)->set(this, 1000);
-  timers->get(t311)->set(this, 1000);
+  N310                   = 1;
+  N311                   = 1;
+  auto timer_expire_func = [this](uint32_t tid) { timer_expired(tid); };
+  t304.set(1000, timer_expire_func);
+  t310.set(1000, timer_expire_func);
+  t311.set(1000, timer_expire_func);
 }
 
 /************************************************************************
@@ -3025,11 +2887,10 @@ void rrc::rrc_meas::generate_report(uint32_t meas_id)
   report->meas_result_neigh_cells_present = neigh_list.size() > 0;
 
   m->nof_reports_sent++;
-  timers->get(m->periodic_timer)->stop();
+  m->periodic_timer.stop();
 
   if (m->nof_reports_sent < cfg->amount) {
-    timers->get(m->periodic_timer)->reset();
-    timers->get(m->periodic_timer)->run();
+    m->periodic_timer.run();
   } else {
     if (cfg->trigger_type == report_cfg_t::PERIODIC) {
       m->triggered = false;
@@ -3049,7 +2910,7 @@ bool rrc::rrc_meas::process_event(eutra_event_s* event, uint32_t tti, bool enter
     if (!cell->timer_enter_triggered) {
       cell->timer_enter_triggered = true;
       cell->enter_tti     = tti;
-    } else if (srslte_tti_interval(tti, cell->enter_tti) >= event->time_to_trigger) {
+    } else if (srslte_tti_interval(tti, cell->enter_tti) >= event->time_to_trigger.to_number()) {
       m->triggered        = true;
       cell->triggered     = true;
       m->nof_reports_sent = 0;
@@ -3058,11 +2919,11 @@ bool rrc::rrc_meas::process_event(eutra_event_s* event, uint32_t tti, bool enter
   } else if (exit_condition) {
     if (!cell->timer_exit_triggered) {
       cell->timer_exit_triggered = true;
-      cell->exit_tti      = tti;
-    } else if (srslte_tti_interval(tti, cell->exit_tti) >= event->time_to_trigger) {
+      cell->exit_tti             = tti;
+    } else if (srslte_tti_interval(tti, cell->exit_tti) >= event->time_to_trigger.to_number()) {
       m->triggered    = false;
       cell->triggered = false;
-      timers->get(m->periodic_timer)->stop();
+      m->periodic_timer.stop();
       if (event) {
         if (event->event_id.type() == eutra_event_s::event_id_c_::types::event_a3 &&
             event->event_id.event_a3().report_on_leave) {
@@ -3074,7 +2935,7 @@ bool rrc::rrc_meas::process_event(eutra_event_s* event, uint32_t tti, bool enter
   if (!enter_condition) {
     cell->timer_enter_triggered = false;
   }
-  if (!enter_condition) {
+  if (!exit_condition) {
     cell->timer_exit_triggered = false;
   }
   return generate_report;
@@ -3227,9 +3088,10 @@ void rrc::rrc_meas::ho_finish() {
 }
 
 // 5.5.4.1 expiry of periodical reporting timer
-bool rrc::rrc_meas::timer_expired(uint32_t timer_id) {
+bool rrc::rrc_meas::timer_expired(uint32_t timer_id)
+{
   for (std::map<uint32_t, meas_t>::iterator iter = active.begin(); iter != active.end(); ++iter) {
-    if (iter->second.periodic_timer == timer_id) {
+    if (iter->second.periodic_timer.id() == timer_id) {
       log_h->info("Generate report MeasId=%d, from timerId=%d\n", iter->first, timer_id);
       generate_report(iter->first);
       return true;
@@ -3240,11 +3102,12 @@ bool rrc::rrc_meas::timer_expired(uint32_t timer_id) {
 
 void rrc::rrc_meas::stop_reports(meas_t* m)
 {
-  timers->get(m->periodic_timer)->stop();
+  m->periodic_timer.stop();
   m->triggered = false;
 }
 
-void rrc::rrc_meas::stop_reports_object(uint32_t object_id) {
+void rrc::rrc_meas::stop_reports_object(uint32_t object_id)
+{
   for (std::map<uint32_t, meas_t>::iterator iter = active.begin(); iter != active.end(); ++iter) {
     if (iter->second.object_id == object_id) {
       stop_reports(&iter->second);
@@ -3277,8 +3140,6 @@ void rrc::rrc_meas::remove_meas_report(uint32_t report_id) {
 void rrc::rrc_meas::remove_meas_id(uint32_t measId)
 {
   if (active.count(measId)) {
-    timers->get(active[measId].periodic_timer)->stop();
-    timers->release_id(active[measId].periodic_timer);
     log_h->info("MEAS: Removed measId=%d\n", measId);
     active.erase(measId);
   } else {
@@ -3288,8 +3149,6 @@ void rrc::rrc_meas::remove_meas_id(uint32_t measId)
 
 void rrc::rrc_meas::remove_meas_id(std::map<uint32_t, meas_t>::iterator it)
 {
-  timers->get(it->second.periodic_timer)->stop();
-  timers->release_id(it->second.periodic_timer);
   log_h->info("MEAS: Removed measId=%d\n", it->first);
   active.erase(it);
 }
@@ -3438,16 +3297,20 @@ bool rrc::rrc_meas::parse_meas_config(meas_cfg_s* cfg)
       // Stop the timer if the entry exists or create the timer if not
       bool is_new = false;
       if (active.count(meas_id->meas_id)) {
-        timers->get(active[meas_id->meas_id].periodic_timer)->stop();
+        active[meas_id->meas_id].periodic_timer.stop();
       } else {
         is_new                                  = true;
-        active[meas_id->meas_id].periodic_timer = timers->get_unique_id();
+        active[meas_id->meas_id].periodic_timer = timers->get_unique_timer();
       }
       active[meas_id->meas_id].object_id = meas_id->meas_obj_id;
       active[meas_id->meas_id].report_id = meas_id->report_cfg_id;
       log_h->info("MEAS: %s measId=%d, measObjectId=%d, reportConfigId=%d, timer_id=%u, nof_values=%zd\n",
-                  is_new ? "Added" : "Updated", meas_id->meas_id, meas_id->meas_obj_id, meas_id->report_cfg_id,
-                  active[meas_id->meas_id].periodic_timer, active[meas_id->meas_id].cell_values.size());
+                  is_new ? "Added" : "Updated",
+                  meas_id->meas_id,
+                  meas_id->meas_obj_id,
+                  meas_id->report_cfg_id,
+                  active[meas_id->meas_id].periodic_timer.id(),
+                  active[meas_id->meas_id].cell_values.size());
     }
   }
 
@@ -3487,7 +3350,7 @@ uint8_t rrc::rrc_meas::value_to_range(quantity_t quant, float value) {
     case RSRP:
       if (value < -140) {
         range = 0;
-      } else if (-140 <= value && value < -44) {
+      } else if (value < -44) {
         range = 1u + (uint8_t)(value + 140);
       } else {
         range = 97;
@@ -3496,7 +3359,7 @@ uint8_t rrc::rrc_meas::value_to_range(quantity_t quant, float value) {
     case RSRQ:
       if (value < -19.5) {
         range = 0;
-      } else if (-19.5 <= value && value < -3) {
+      } else if (value < -3) {
         range = 1u + (uint8_t)(2 * (value + 19.5));
       } else {
         range = 34;

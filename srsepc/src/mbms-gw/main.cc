@@ -18,14 +18,14 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
-#include <iostream>
-#include <fstream>
-#include <errno.h>
-#include <signal.h>
-#include <boost/program_options.hpp>
-#include <boost/algorithm/string.hpp>
-#include "srslte/common/config_file.h"
 #include "srsepc/hdr/mbms-gw/mbms-gw.h"
+#include "srslte/common/config_file.h"
+#include <boost/algorithm/string.hpp>
+#include <boost/program_options.hpp>
+#include <errno.h>
+#include <fstream>
+#include <iostream>
+#include <signal.h>
 
 using namespace std;
 using namespace srsepc;
@@ -33,39 +33,38 @@ namespace bpo = boost::program_options;
 
 bool running = true;
 
-void 
-sig_int_handler(int signo){
+void sig_int_handler(int signo)
+{
   running = false;
 }
 
 typedef struct {
-  std::string   mbms_gw_level;
-  int           mbms_gw_hex_limit;
-  std::string   all_level;
-  int           all_hex_limit;
-  std::string   filename;
-}log_args_t;
+  std::string mbms_gw_level;
+  int         mbms_gw_hex_limit;
+  std::string all_level;
+  int         all_hex_limit;
+  std::string filename;
+} log_args_t;
 
 typedef struct {
   mbms_gw_args_t mbms_gw_args;
   log_args_t     log_args;
-}all_args_t;
+} all_args_t;
 
-srslte::LOG_LEVEL_ENUM
-level(std::string l)
+srslte::LOG_LEVEL_ENUM level(std::string l)
 {
   boost::to_upper(l);
-  if("NONE" == l){
+  if ("NONE" == l) {
     return srslte::LOG_LEVEL_NONE;
-  }else if("ERROR" == l){
+  } else if ("ERROR" == l) {
     return srslte::LOG_LEVEL_ERROR;
-  }else if("WARNING" == l){
+  } else if ("WARNING" == l) {
     return srslte::LOG_LEVEL_WARNING;
-  }else if("INFO" == l){
+  } else if ("INFO" == l) {
     return srslte::LOG_LEVEL_INFO;
-  }else if("DEBUG" == l){
+  } else if ("DEBUG" == l) {
     return srslte::LOG_LEVEL_DEBUG;
-  }else{
+  } else {
     return srslte::LOG_LEVEL_NONE;
   }
 }
@@ -75,8 +74,8 @@ level(std::string l)
  ***********************************************************************/
 string config_file;
 
-void
-parse_args(all_args_t *args, int argc, char* argv[]) {
+void parse_args(all_args_t* args, int argc, char* argv[])
+{
 
   string mbms_gw_name;
   string mbms_gw_sgi_mb_if_name;
@@ -89,6 +88,8 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
 
   // Command line only options
   bpo::options_description general("General options");
+
+  // clang-format off
   general.add_options()
       ("help,h", "Produce help message")
       ("version,v", "Print version information and exit")
@@ -117,28 +118,30 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
   position.add_options()
   ("config_file", bpo::value< string >(&config_file), "MBMS-GW configuration file")
   ;
+
+  // clang-format on
   bpo::positional_options_description p;
   p.add("config_file", -1);
 
   // these options are allowed on the command line
   bpo::options_description cmdline_options;
-  cmdline_options.add(common).add(position).add(general);  
+  cmdline_options.add(common).add(position).add(general);
 
   // parse the command line and store result in vm
   bpo::variables_map vm;
   try {
     bpo::store(bpo::command_line_parser(argc, argv).options(cmdline_options).positional(p).run(), vm);
     bpo::notify(vm);
-  } catch(bpo::error &e) {
-    cerr<< e.what() << endl;
+  } catch (bpo::error& e) {
+    cerr << e.what() << endl;
     exit(1);
   }
 
   // help option was given - print usage and exit
   if (vm.count("help")) {
-      cout << "Usage: " << argv[0] << " [OPTIONS] config_file" << endl << endl;
-      cout << common << endl << general << endl;
-      exit(0);
+    cout << "Usage: " << argv[0] << " [OPTIONS] config_file" << endl << endl;
+    cout << common << endl << general << endl;
+    exit(0);
   }
 
   // if no config file given, check users home path
@@ -149,17 +152,17 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
     }
   }
 
-  //Parsing Config File
+  // Parsing Config File
   cout << "Reading configuration file " << config_file << "..." << endl;
   ifstream conf(config_file.c_str(), ios::in);
-  if(conf.fail()) {
+  if (conf.fail()) {
     cout << "Failed to read configuration file " << config_file << " - exiting" << endl;
     exit(1);
   }
   bpo::store(bpo::parse_config_file(conf, common), vm);
   bpo::notify(vm);
 
-  args->mbms_gw_args.name = mbms_gw_name;
+  args->mbms_gw_args.name           = mbms_gw_name;
   args->mbms_gw_args.sgi_mb_if_name = mbms_gw_sgi_mb_if_name;
   args->mbms_gw_args.sgi_mb_if_addr = mbms_gw_sgi_mb_if_addr;
   args->mbms_gw_args.sgi_mb_if_mask = mbms_gw_sgi_mb_if_mask;
@@ -168,36 +171,33 @@ parse_args(all_args_t *args, int argc, char* argv[]) {
 
   // Apply all_level to any unset layers
   if (vm.count("log.all_level")) {
-    if(!vm.count("log.mbms_gw_level")) {
+    if (!vm.count("log.mbms_gw_level")) {
       args->log_args.mbms_gw_level = args->log_args.all_level;
     }
   }
 
   // Apply all_hex_limit to any unset layers
   if (vm.count("log.all_hex_limit")) {
-    if(!vm.count("log.mbms_gw_hex_limit")) {
+    if (!vm.count("log.mbms_gw_hex_limit")) {
       args->log_args.mbms_gw_hex_limit = args->log_args.all_hex_limit;
     }
   }
   return;
 }
 
-
-
-int
-main (int argc,char * argv[] )
+int main(int argc, char* argv[])
 {
-  cout << endl <<"---  Software Radio Systems MBMS  ---" << endl << endl;
+  cout << endl << "---  Software Radio Systems MBMS  ---" << endl << endl;
   signal(SIGINT, sig_int_handler);
   signal(SIGTERM, sig_int_handler);
   signal(SIGKILL, sig_int_handler);
 
   all_args_t args;
-  parse_args(&args, argc, argv); 
+  parse_args(&args, argc, argv);
 
   srslte::logger_stdout logger_stdout;
   srslte::logger_file   logger_file;
-  srslte::logger        *logger;
+  srslte::logger*       logger;
 
   /*Init logger*/
   if (!args.log_args.filename.compare("stdout")) {
@@ -209,24 +209,24 @@ main (int argc,char * argv[] )
   }
 
   srslte::log_filter mbms_gw_log;
-  mbms_gw_log.init("MBMS",logger);
+  mbms_gw_log.init("MBMS", logger);
   mbms_gw_log.set_level(level(args.log_args.mbms_gw_level));
   mbms_gw_log.set_hex_limit(args.log_args.mbms_gw_hex_limit);
 
-  mbms_gw *mbms_gw = mbms_gw::get_instance();
-  if(mbms_gw->init(&args.mbms_gw_args,&mbms_gw_log)) {
+  mbms_gw* mbms_gw = mbms_gw::get_instance();
+  if (mbms_gw->init(&args.mbms_gw_args, &mbms_gw_log)) {
     cout << "Error initializing MBMS-GW" << endl;
     exit(1);
-  } 
+  }
 
-  mbms_gw->start(); 
-  while(running) {
+  mbms_gw->start();
+  while (running) {
     sleep(1);
   }
 
   mbms_gw->stop();
   mbms_gw->cleanup();
 
-  cout << std::endl <<"---  exiting  ---" << endl;  
+  cout << std::endl << "---  exiting  ---" << endl;
   return 0;
 }

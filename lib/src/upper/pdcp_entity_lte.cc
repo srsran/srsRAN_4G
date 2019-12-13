@@ -24,21 +24,22 @@
 
 namespace srslte {
 
-pdcp_entity_lte::pdcp_entity_lte() {}
+pdcp_entity_lte::pdcp_entity_lte(srsue::rlc_interface_pdcp* rlc_,
+                                 srsue::rrc_interface_pdcp* rrc_,
+                                 srsue::gw_interface_pdcp*  gw_,
+                                 srslte::timer_handler*     timers_,
+                                 srslte::log*               log_) :
+  pdcp_entity_base(timers_, log_),
+  rlc(rlc_),
+  rrc(rrc_),
+  gw(gw_)
+{
+}
 
 pdcp_entity_lte::~pdcp_entity_lte() {}
 
-void pdcp_entity_lte::init(srsue::rlc_interface_pdcp* rlc_,
-                           srsue::rrc_interface_pdcp* rrc_,
-                           srsue::gw_interface_pdcp*  gw_,
-                           srslte::log*               log_,
-                           uint32_t                   lcid_,
-                           pdcp_config_t              cfg_)
+void pdcp_entity_lte::init(uint32_t lcid_, pdcp_config_t cfg_)
 {
-  rlc           = rlc_;
-  rrc           = rrc_;
-  gw            = gw_;
-  log           = log_;
   lcid          = lcid_;
   cfg           = cfg_;
   active        = true;
@@ -82,12 +83,6 @@ void pdcp_entity_lte::reestablish()
       rx_count        = 0;
       rx_hfn          = 0;
       next_pdcp_rx_sn = 0;
-    } else {
-      tx_count                  = 0;
-      rx_count                  = 0;
-      rx_hfn                    = 0;
-      next_pdcp_rx_sn           = 0;
-      last_submitted_pdcp_rx_sn = maximum_pdcp_sn;
     }
   }
 }
@@ -295,6 +290,28 @@ uint32_t pdcp_entity_lte::get_dl_count()
 uint32_t pdcp_entity_lte::get_ul_count()
 {
   return tx_count;
+}
+
+void pdcp_entity_lte::get_bearer_status(uint16_t* dlsn, uint16_t* dlhfn, uint16_t* ulsn, uint16_t* ulhfn)
+{
+  if (cfg.rb_type == PDCP_RB_IS_DRB) {
+    if (12 == cfg.sn_len) {
+      *dlsn  = (uint16_t)(tx_count & 0xFFFu);
+      *dlhfn = (uint16_t)((tx_count - *dlsn) >> 12u);
+      *ulsn  = (uint16_t)(rx_count & 0xFFFu);
+      *ulhfn = (uint16_t)((rx_count - *ulsn) >> 12u);
+    } else {
+      *dlsn  = (uint16_t)(tx_count & 0x7Fu);
+      *dlhfn = (uint16_t)((tx_count - *dlsn) >> 7u);
+      *ulsn  = (uint16_t)(rx_count & 0x7Fu);
+      *ulhfn = (uint16_t)((rx_count - *ulsn) >> 7u);
+    }
+  } else { // is control
+    *dlsn  = (uint16_t)(tx_count & 0x1Fu);
+    *dlhfn = (uint16_t)((tx_count - *dlsn) >> 5u);
+    *ulsn  = (uint16_t)(rx_count & 0x1Fu);
+    *ulhfn = (uint16_t)((rx_count - *ulsn) >> 5u);
+  }
 }
 
 /****************************************************************************
