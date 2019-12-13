@@ -18,7 +18,7 @@
 # and at http://www.gnu.org/licenses/.
 #
 
-set(SOURCES rrc.cc rrc_procedures.cc)
+set(SOURCES rrc.cc rrc_procedures.cc rrc_meas.cc)
 
 add_library(srsue_rrc STATIC ${SOURCES})
 

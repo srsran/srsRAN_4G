@@ -85,10 +85,13 @@ private:
 
     void in_sync() override { notify_in_sync(); }
     void out_of_sync() override { notify_out_of_sync(); }
-    void new_phy_meas(float rsrp, float rsrq, uint32_t tti, int earfcn, int pci) override
+    void new_cell_meas(std::vector<phy_meas_t>& meas) override
     {
-      notify_new_phy_meas();
-      log_h.info("New measurement earfcn=%d; pci=%d; rsrp=%+.1fdBm; rsrq=%+.1fdB;\n", earfcn, pci, rsrp, rsrq);
+      for (auto& m : meas) {
+        notify_new_phy_meas();
+        log_h.info(
+            "New measurement earfcn=%d; pci=%d; rsrp=%+.1fdBm; rsrq=%+.1fdB;\n", m.earfcn, m.pci, m.rsrp, m.rsrq);
+      }
     }
     uint16_t get_dl_sched_rnti(uint32_t tti) override { return rnti; }
     uint16_t get_ul_sched_rnti(uint32_t tti) override { return rnti; }
@@ -491,7 +494,7 @@ int main(int argc, char** argv)
   auto                                     cell_search_res = phy_test->get_phy_interface_rrc()->cell_search(&phy_cell);
   TESTASSERT(cell_search_res.found == srsue::phy_interface_rrc_lte::cell_search_ret_t::CELL_FOUND);
   TESTASSERT(phy_test->get_stack()->wait_in_sync(default_timeout));
-  TESTASSERT(memcmp(&phy_cell.cell, &cell, sizeof(srslte_cell_t)) == 0);
+  TESTASSERT(phy_cell.pci == cell.id);
 
   // 2. Cell select
   phy_test->get_phy_interface_rrc()->cell_select(&phy_cell);

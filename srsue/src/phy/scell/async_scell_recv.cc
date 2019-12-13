@@ -259,8 +259,6 @@ void async_scell_recv::set_ue_sync_opts(srslte_ue_sync_t* q, float cfo)
                                  worker_com->args->cfo_loop_pss_tol,
                                  worker_com->args->cfo_loop_pss_conv);
 
-  q->strack.pss.chest_on_filter = worker_com->args->sic_pss_enabled;
-
   // Disable CP based CFO estimation during find
   if (cfo != 0) {
     q->cfo_current_value       = cfo / 15000;

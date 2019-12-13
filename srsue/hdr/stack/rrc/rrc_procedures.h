@@ -131,6 +131,7 @@ private:
   uint32_t                                                        neigh_index;
   srslte::proc_future_t<phy_interface_rrc_lte::cell_search_ret_t> cell_search_fut;
   srslte::proc_future_t<void>                                     serv_cell_cfg_fut;
+  bool                                                            discard_serving = false;
 };
 
 class rrc::plmn_search_proc
@@ -211,6 +212,7 @@ public:
   static const char*     name() { return "Go Idle"; }
 
 private:
+  bool                  wait = false;
   rrc*                  rrc_ptr;
   static const uint32_t rlc_flush_timeout = 2000;
 
@@ -238,6 +240,7 @@ public:
   srslte::proc_outcome_t init(asn1::rrc::reest_cause_e cause);
   srslte::proc_outcome_t step();
   static const char*     name() { return "Connection re-establishment"; }
+  uint32_t               get_source_earfcn() const { return reest_source_freq; }
 
 private:
   enum class state_t { cell_reselection, cell_configuration } state;
@@ -246,6 +249,7 @@ private:
   asn1::rrc::reest_cause_e reest_cause      = asn1::rrc::reest_cause_e::nulltype;
   uint16_t                 reest_rnti       = 0;
   uint16_t                 reest_source_pci = 0;
+  uint32_t                 reest_source_freq = 0;
 
   srslte::proc_outcome_t step_cell_reselection();
   srslte::proc_outcome_t step_cell_configuration();

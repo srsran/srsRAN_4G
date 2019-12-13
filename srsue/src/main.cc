@@ -302,10 +302,6 @@ static int parse_args(all_args_t* args, int argc, char* argv[])
      bpo::value<uint32_t>(&args->phy.cfo_loop_pss_conv)->default_value(DEFAULT_PSS_STABLE_TIMEOUT),
      "After the PSS estimation is below cfo_loop_pss_tol for cfo_loop_pss_timeout times consecutively, RS adjustments are allowed.")
 
-    ("phy.sic_pss_enabled",
-     bpo::value<bool>(&args->phy.sic_pss_enabled)->default_value(false),
-     "Applies Successive Interference Cancellation to PSS signals when searching for neighbour cells. Must be disabled if cells have identical channel and timing.")
-
     ("phy.interpolate_subframe_enabled",
      bpo::value<bool>(&args->phy.interpolate_subframe_enabled)->default_value(false),
      "Interpolates in the time domain the channel estimates within 1 subframe.")

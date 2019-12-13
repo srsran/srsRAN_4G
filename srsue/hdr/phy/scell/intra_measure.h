@@ -39,36 +39,33 @@ public:
   ~intra_measure();
   void init(phy_common* common, rrc_interface_phy_lte* rrc, srslte::log* log_h);
   void stop();
-  void add_cell(int pci);
-  void rem_cell(int pci);
   void set_primary_cell(uint32_t earfcn, srslte_cell_t cell);
-  void clear_cells();
-  int  get_offset(uint32_t pci);
+  void     set_cells_to_meas(std::set<uint32_t>& pci);
+  void     meas_stop();
   void write(uint32_t tti, cf_t* data, uint32_t nsamples);
+  uint32_t get_earfcn() { return current_earfcn; };
 
 private:
   void             run_thread();
   const static int INTRA_FREQ_MEAS_PRIO = DEFAULT_PRIORITY + 5;
 
-  scell_recv             scell          = {};
-  rrc_interface_phy_lte* rrc            = nullptr;
-  srslte::log*           log_h          = nullptr;
-  phy_common*            common         = nullptr;
-  uint32_t               current_earfcn = 0;
-  uint32_t               current_sflen  = 0;
-  srslte_cell_t          primary_cell   = {};
-  std::vector<int>       active_pci;
+  scell_recv             scell            = {};
+  rrc_interface_phy_lte* rrc              = nullptr;
+  srslte::log*           log_h            = nullptr;
+  phy_common*            common           = nullptr;
+  uint32_t               current_earfcn   = 0;
+  uint32_t               current_sflen    = 0;
+  srslte_cell_t          serving_cell     = {};
+  std::set<uint32_t>     active_pci       = {};
+  std::mutex             active_pci_mutex = {};
 
   srslte::tti_sync_cv tti_sync;
 
   cf_t* search_buffer = nullptr;
 
-  scell_recv::cell_info_t info[scell_recv::MAX_CELLS] = {};
-
   bool                running         = false;
   bool                receive_enabled = false;
   bool                receiving       = false;
-  uint32_t            measure_tti     = 0;
   uint32_t            receive_cnt     = 0;
   srslte_ringbuffer_t ring_buffer     = {};
 

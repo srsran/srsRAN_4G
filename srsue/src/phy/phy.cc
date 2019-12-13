@@ -253,7 +253,7 @@ void phy::get_metrics(phy_metrics_t* m)
 {
   uint32_t      dl_earfcn = 0;
   srslte_cell_t cell      = {};
-  get_current_cell(&cell, &dl_earfcn);
+  sfsync.get_current_cell(&cell, &dl_earfcn);
   m->info[0].pci       = cell.id;
   m->info[0].dl_earfcn = dl_earfcn;
 
@@ -315,19 +315,14 @@ void phy::configure_prach_params()
   }
 }
 
-void phy::meas_reset()
+void phy::set_cells_to_meas(uint32_t earfcn, std::set<uint32_t>& pci)
 {
-  sfsync.meas_reset();
+  sfsync.set_cells_to_meas(earfcn, pci);
 }
 
-int phy::meas_start(uint32_t earfcn, int pci)
+void phy::meas_stop()
 {
-  return sfsync.meas_start(earfcn, pci);
-}
-
-int phy::meas_stop(uint32_t earfcn, int pci)
-{
-  return sfsync.meas_stop(earfcn, pci);
+  sfsync.meas_stop();
 }
 
 bool phy::cell_select(phy_cell_t* cell)
@@ -354,25 +349,6 @@ float phy::get_phr()
 float phy::get_pathloss_db()
 {
   return common.cur_pathloss;
-}
-
-void phy::get_current_cell(srslte_cell_t* cell, uint32_t* current_earfcn)
-{
-  sfsync.get_current_cell(cell, current_earfcn);
-}
-
-uint32_t phy::get_current_pci()
-{
-  srslte_cell_t cell;
-  sfsync.get_current_cell(&cell);
-  return cell.id;
-}
-
-uint32_t phy::get_current_earfcn()
-{
-  uint32_t earfcn;
-  sfsync.get_current_cell(nullptr, &earfcn);
-  return earfcn;
 }
 
 void phy::prach_send(uint32_t preamble_idx, int allowed_subframe, float target_power_dbm)
@@ -477,6 +453,11 @@ void phy::set_config(srslte::phy_cfg_t& config_, uint32_t cc_idx, uint32_t earfc
         workers[i]->set_cell(cc_idx, *cell_info);
       }
       workers[i]->set_config(cc_idx, config_);
+    }
+
+    // Set inter-frequency measurement primary cell
+    if (cell_info) {
+      sfsync.set_inter_frequency_measurement(cc_idx, earfcn, *cell_info);
     }
 
     if (cc_idx == 0) {

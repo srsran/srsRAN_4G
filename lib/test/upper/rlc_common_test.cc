@@ -71,7 +71,7 @@ public:
   uint32_t             expected_sdu_len;
 };
 
-int basic_test()
+int meas_obj_test()
 {
   srslte::log_filter log1("RLC_1");
   srslte::log_filter log2("RLC_2");
@@ -204,7 +204,7 @@ int basic_test()
 
 int main(int argc, char** argv)
 {
-  if (basic_test()) {
+  if (meas_obj_test()) {
     return -1;
   }
   byte_buffer_pool::get_instance()->cleanup();

@@ -38,7 +38,7 @@
 using namespace asn1;
 using namespace asn1::rrc;
 
-int basic_test()
+int meas_obj_test()
 {
   srslte::log_filter log1("RRC");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
@@ -100,6 +100,6 @@ int basic_test()
 
 int main(int argc, char** argv)
 {
-  TESTASSERT(basic_test() == 0);
+  TESTASSERT(meas_obj_test() == 0);
   return 0;
 }

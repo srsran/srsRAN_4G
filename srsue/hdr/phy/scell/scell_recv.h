@@ -22,9 +22,9 @@
 #ifndef SRSUE_SCELL_RECV_H
 #define SRSUE_SCELL_RECV_H
 
+#include "srsue/hdr/phy/phy_common.h"
+#include <set>
 #include <srslte/srslte.h>
-
-#include "measure.h"
 
 namespace srsue {
 namespace scell {
@@ -33,21 +33,10 @@ namespace scell {
 class scell_recv
 {
 public:
-  const static int MAX_CELLS = 8;
-  typedef struct {
-    uint32_t pci;
-    float    rsrp;
-    float    rsrq;
-    uint32_t offset;
-  } cell_info_t;
-  void init(srslte::log* log_h, bool sic_pss_enabled, uint32_t max_sf_window, phy_common* worker_com);
+  void               init(srslte::log* log_h, uint32_t max_sf_window);
   void deinit();
   void reset();
-  int  find_cells(cf_t*         input_buffer,
-                  float         rx_gain_offset,
-                  srslte_cell_t current_cell,
-                  uint32_t      nof_sf,
-                  cell_info_t   found_cells[MAX_CELLS]);
+  std::set<uint32_t> find_cells(const cf_t* input_buffer, const srslte_cell_t serving_cell, const uint32_t nof_sf);
 
 private:
   // 36.133 9.1.2.1 for band 7
@@ -57,9 +46,7 @@ private:
   srslte::log*  log_h;
   srslte_sync_t sync_find;
 
-  bool     sic_pss_enabled;
   uint32_t current_fft_sz;
-  measure  measure_p;
 };
 
 } // namespace scell

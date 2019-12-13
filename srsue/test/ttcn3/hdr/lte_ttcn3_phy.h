@@ -78,7 +78,7 @@ public:
   void set_config_mbsfn_mcch(const srslte::mcch_msg_t& mcch){};
 
   // Measurements interface
-  void meas_reset();
+  void meas_stop();
   int  meas_start(uint32_t earfcn, int pci = -1);
   int  meas_stop(uint32_t earfcn, int pci = -1);
 

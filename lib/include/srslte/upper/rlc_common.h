@@ -221,17 +221,17 @@ public:
 
   bool suspend()
   {
-    if (is_suspended) {
+    if (suspended) {
       return false;
     }
-    is_suspended = true;
+    suspended = true;
     return true;
   }
 
   // Pops all PDUs from queue and calls write_pdu() method for the bearer type
   bool resume()
   {
-    if (!is_suspended) {
+    if (!suspended) {
       return false;
     }
     pdu_t p;
@@ -240,13 +240,13 @@ public:
       write_pdu(p.payload, p.nof_bytes);
       free(p.payload);
     }
-    is_suspended = false;
+    suspended = false;
     return true;
   }
 
   void write_pdu_s(uint8_t* payload, uint32_t nof_bytes)
   {
-    if (is_suspended) {
+    if (suspended) {
       queue_pdu(payload, nof_bytes);
     } else {
       write_pdu(payload, nof_bytes);
@@ -265,12 +265,13 @@ public:
 
   // MAC interface
   virtual bool     has_data()                                      = 0;
+  bool             is_suspended() { return suspended; };
   virtual uint32_t get_buffer_state()                              = 0;
   virtual int      read_pdu(uint8_t* payload, uint32_t nof_bytes)  = 0;
   virtual void     write_pdu(uint8_t* payload, uint32_t nof_bytes) = 0;
 
 private:
-  bool is_suspended = false;
+  bool suspended = false;
 
   // Enqueues the PDU in the resume queue
   void queue_pdu(uint8_t* payload, uint32_t nof_bytes)

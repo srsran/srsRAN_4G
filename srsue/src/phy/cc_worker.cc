@@ -541,10 +541,11 @@ void cc_worker::update_measurements()
   // Average RSRQ over DEFAULT_MEAS_PERIOD_MS then sent to RRC
   float rsrq_db = ue_dl.chest_res.rsrq_db;
   if (std::isnormal(rsrq_db)) {
-    if (!(CURRENT_TTI % phy->pcell_report_period) || !std::isnormal(phy->avg_rsrq_db)) {
-      phy->avg_rsrq_db = rsrq_db;
+    if (!(CURRENT_TTI % phy->pcell_report_period) || !std::isnormal(phy->avg_rsrq_db[cc_idx])) {
+      phy->avg_rsrq_db[cc_idx] = rsrq_db;
     } else {
-      phy->avg_rsrq_db = SRSLTE_VEC_CMA(rsrq_db, phy->avg_rsrq_db, CURRENT_TTI % phy->pcell_report_period);
+      phy->avg_rsrq_db[cc_idx] =
+          SRSLTE_VEC_CMA(rsrq_db, phy->avg_rsrq_db[cc_idx], CURRENT_TTI % phy->pcell_report_period);
     }
   }
 
@@ -597,8 +598,8 @@ void cc_worker::update_measurements()
   // Store metrics
   dl_metrics.n        = phy->avg_noise[cc_idx];
   dl_metrics.rsrp     = phy->avg_rsrp_dbm[cc_idx];
-  dl_metrics.rsrq     = phy->avg_rsrq_db;
-  dl_metrics.rssi     = phy->avg_rssi_dbm;
+  dl_metrics.rsrq     = phy->avg_rsrq_db[cc_idx];
+  dl_metrics.rssi     = phy->avg_rssi_dbm[cc_idx];
   dl_metrics.pathloss = phy->pathloss[cc_idx];
   dl_metrics.sinr     = phy->avg_snr_db_cqi[cc_idx];
   dl_metrics.sync_err = ue_dl.chest_res.sync_error;

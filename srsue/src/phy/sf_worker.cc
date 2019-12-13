@@ -297,7 +297,7 @@ void sf_worker::update_measurements()
                             30)
                          : 0;
     if (std::isnormal(rssi_dbm)) {
-      phy->avg_rssi_dbm = SRSLTE_VEC_EMA(rssi_dbm, phy->avg_rssi_dbm, phy->args->snr_ema_coeff);
+      phy->avg_rssi_dbm[0] = SRSLTE_VEC_EMA(rssi_dbm, phy->avg_rssi_dbm[0], phy->args->snr_ema_coeff);
     }
 
     if (!rssi_read_cnt) {
@@ -310,26 +310,29 @@ void sf_worker::update_measurements()
   }
 
   // Run measurements in all carriers
+  std::vector<rrc_interface_phy_lte::phy_meas_t> serving_cells = {};
   for (uint32_t cc_idx = 0; cc_idx < cc_workers.size(); cc_idx++) {
+    bool active = (cc_idx == 0 || phy->scell_cfg[cc_idx].configured);
+
     // Update measurement of the Component Carrier
     cc_workers[cc_idx]->update_measurements();
 
-    // Send measurements
-    if ((tti % phy->pcell_report_period) == phy->pcell_report_period - 1) {
-      if (cc_idx == 0) {
-        // Send report for PCell
-        phy->stack->new_phy_meas(phy->avg_rsrp_dbm[0], phy->avg_rsrq_db, tti);
-      } else {
-        // Send report for SCell (if enabled)
-        if (phy->scell_cfg[cc_idx].enabled) {
-          phy->stack->new_phy_meas(phy->avg_rsrp_dbm[cc_idx],
-                                   phy->avg_rsrq_db,
-                                   tti,
-                                   phy->scell_cfg[cc_idx].earfcn,
-                                   phy->scell_cfg[cc_idx].pci);
-        }
+    // Send measurements for serving cells
+    if (active && ((tti % phy->pcell_report_period) == phy->pcell_report_period - 1)) {
+      rrc_interface_phy_lte::phy_meas_t meas = {};
+      meas.rsrp                              = phy->avg_rsrp_dbm[cc_idx];
+      meas.rsrq                              = phy->avg_rsrq_db[cc_idx];
+      // Save EARFCN and PCI for secondary cells, primary cell has earfcn=0
+      if (cc_idx > 0) {
+        meas.earfcn = phy->scell_cfg[cc_idx].earfcn;
+        meas.pci    = phy->scell_cfg[cc_idx].pci;
       }
+      serving_cells.push_back(meas);
     }
+  }
+  // Send report to stack
+  if (not serving_cells.empty()) {
+    phy->stack->new_cell_meas(serving_cells);
   }
 
   // Check in-sync / out-sync conditions

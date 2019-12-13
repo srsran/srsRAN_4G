@@ -41,7 +41,6 @@ public:
 
   bool init(srslte::log*                         log_h,
             mac_interface_rrc::ue_rnti_t*        rntis,
-            srslte::timer_handler::unique_timer* timer_aligment_timer,
             demux*                               demux_unit);
   void reset();
   void start_pcap(srslte::mac_pcap* pcap_);
@@ -121,7 +120,6 @@ private:
 
   std::vector<dl_harq_process>         proc;
   dl_harq_process                      bcch_proc;
-  srslte::timer_handler::unique_timer* timer_aligment_timer = nullptr;
   demux*                               demux_unit;
   srslte::log*                         log_h;
   srslte::mac_pcap*                    pcap;

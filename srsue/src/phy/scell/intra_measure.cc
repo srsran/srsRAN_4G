@@ -45,18 +45,18 @@ intra_measure::~intra_measure()
   free(search_buffer);
 }
 
-void intra_measure::init(phy_common* common, rrc_interface_phy_lte* rrc, srslte::log* log_h)
+void intra_measure::init(phy_common* common_, rrc_interface_phy_lte* rrc_, srslte::log* log_h_)
 {
-  this->rrc       = rrc;
-  this->log_h     = log_h;
-  this->common    = common;
+  this->rrc       = rrc_;
+  this->log_h     = log_h_;
+  this->common    = common_;
   receive_enabled = false;
 
   // Initialise Reference signal measurement
   srslte_refsignal_dl_sync_init(&refsignal_dl_sync);
 
   // Start scell
-  scell.init(log_h, common->args->sic_pss_enabled, common->args->intra_freq_meas_len_ms, common);
+  scell.init(log_h, common->args->intra_freq_meas_len_ms);
 
   search_buffer =
       (cf_t*)srslte_vec_malloc(common->args->intra_freq_meas_len_ms * SRSLTE_SF_LEN_PRB(SRSLTE_MAX_PRB) * sizeof(cf_t));
@@ -83,52 +83,27 @@ void intra_measure::set_primary_cell(uint32_t earfcn, srslte_cell_t cell)
 {
   this->current_earfcn = earfcn;
   current_sflen        = (uint32_t)SRSLTE_SF_LEN_PRB(cell.nof_prb);
-  this->primary_cell   = cell;
+  this->serving_cell   = cell;
 }
 
-void intra_measure::clear_cells()
+void intra_measure::meas_stop()
 {
-  active_pci.clear();
   receive_enabled = false;
   receiving       = false;
   receive_cnt     = 0;
   srslte_ringbuffer_reset(&ring_buffer);
-}
-
-void intra_measure::add_cell(int pci)
-{
-  if (std::find(active_pci.begin(), active_pci.end(), pci) == active_pci.end()) {
-    active_pci.push_back(pci);
-    receive_enabled = true;
-    Info("INTRA: Starting intra-frequency measurement for pci=%d\n", pci);
-  } else {
-    Debug("INTRA: Requested to start already existing intra-frequency measurement for PCI=%d\n", pci);
+  if (log_h) {
+    log_h->info("INTRA: Disabled neighbour cell search for EARFCN %d\n", get_earfcn());
   }
 }
 
-int intra_measure::get_offset(uint32_t pci)
+void intra_measure::set_cells_to_meas(std::set<uint32_t>& pci)
 {
-  for (auto& i : info) {
-    if (i.pci == pci) {
-      return i.offset;
-    }
-  }
-  return -1;
-}
-
-void intra_measure::rem_cell(int pci)
-{
-  auto newEnd = std::remove(active_pci.begin(), active_pci.end(), pci);
-
-  if (newEnd != active_pci.end()) {
-    active_pci.erase(newEnd, active_pci.end());
-    if (active_pci.empty()) {
-      receive_enabled = false;
-    }
-    Info("INTRA: Stopping intra-frequency measurement for pci=%d. Number of cells: %zu\n", pci, active_pci.size());
-  } else {
-    Warning("INTRA: Requested to stop non-existing intra-frequency measurement for PCI=%d\n", pci);
-  }
+  active_pci_mutex.lock();
+  active_pci = pci;
+  active_pci_mutex.unlock();
+  receive_enabled = true;
+  log_h->info("INTRA: Received list of %lu neighbour cells to measure in EARFCN %d.\n", pci.size(), current_earfcn);
 }
 
 void intra_measure::write(uint32_t tti, cf_t* data, uint32_t nsamples)
@@ -137,7 +112,6 @@ void intra_measure::write(uint32_t tti, cf_t* data, uint32_t nsamples)
     if ((tti % common->args->intra_freq_meas_period_ms) == 0) {
       receiving   = true;
       receive_cnt = 0;
-      measure_tti = tti;
       srslte_ringbuffer_reset(&ring_buffer);
     }
     if (receiving) {
@@ -157,6 +131,8 @@ void intra_measure::write(uint32_t tti, cf_t* data, uint32_t nsamples)
 
 void intra_measure::run_thread()
 {
+  std::set<uint32_t> cells_to_measure = {};
+
   while (running) {
     if (running) {
       tti_sync.wait();
@@ -164,77 +140,62 @@ void intra_measure::run_thread()
 
     if (running) {
 
+      active_pci_mutex.lock();
+      cells_to_measure = active_pci;
+      active_pci_mutex.unlock();
+
       // Read data from buffer and find cells in it
       srslte_ringbuffer_read(
           &ring_buffer, search_buffer, common->args->intra_freq_meas_len_ms * current_sflen * sizeof(cf_t));
-      int found_cells = scell.find_cells(
-          search_buffer, common->rx_gain_offset, primary_cell, common->args->intra_freq_meas_len_ms, info);
+
+      // Detect new cells using PSS/SSS
+      std::set<uint32_t> detected_cells =
+          scell.find_cells(search_buffer, serving_cell, common->args->intra_freq_meas_len_ms);
+
+      // Add detected cells to the list of cells to measure
+      for (auto& c : detected_cells) {
+        cells_to_measure.insert(c);
+      }
+
       receiving = false;
 
-      // Look for other cells not found automatically
-      // Using Cell Reference signal synchronization for all known active PCI
-      for (auto q : active_pci) {
-        srslte_cell_t cell = primary_cell;
-        cell.id            = q;
+      std::vector<rrc_interface_phy_lte::phy_meas_t> neigbhour_cells = {};
+
+      // Use Cell Reference signal to measure cells in the time domain for all known active PCI
+      for (auto id : cells_to_measure) {
+        // Do not measure serving cell here since it's measured by workers
+        if (id == serving_cell.id) {
+          continue;
+        }
+        srslte_cell_t cell = serving_cell;
+        cell.id            = id;
 
         srslte_refsignal_dl_sync_set_cell(&refsignal_dl_sync, cell);
         srslte_refsignal_dl_sync_run(
             &refsignal_dl_sync, search_buffer, common->args->intra_freq_meas_len_ms * current_sflen);
 
         if (refsignal_dl_sync.found) {
-          Info("INTRA: Found neighbour cell: PCI=%03d, RSRP=%5.1f dBm, RSRQ=%5.1f, peak_idx=%5d, CFO=%+.1fHz\n",
-               cell.id,
-               refsignal_dl_sync.rsrp_dBfs,
-               refsignal_dl_sync.rsrq_dB,
+          rrc_interface_phy_lte::phy_meas_t m = {};
+          m.pci                               = cell.id;
+          m.earfcn                            = current_earfcn;
+          m.rsrp                              = refsignal_dl_sync.rsrp_dBfs - common->rx_gain_offset;
+          m.rsrq                              = refsignal_dl_sync.rsrq_dB;
+          neigbhour_cells.push_back(m);
+
+          Info("INTRA: Found neighbour cell: EARFCN=%d, PCI=%03d, RSRP=%5.1f dBm, RSRQ=%5.1f, peak_idx=%5d, "
+               "CFO=%+.1fHz\n",
+               m.earfcn,
+               m.pci,
+               m.rsrp,
+               m.rsrq,
                refsignal_dl_sync.peak_index,
                refsignal_dl_sync.cfo_Hz);
-
-          bool     found              = false;
-          float    weakest_rsrp_value = +INFINITY;
-          uint32_t weakest_rsrp_index = 0;
-
-          // Try to find PCI in info list
-          for (int i = 0; i < found_cells && !found; i++) {
-            // Finds cell, update
-            if (info[i].pci == cell.id) {
-              info[i].rsrp   = refsignal_dl_sync.rsrp_dBfs;
-              info[i].rsrq   = refsignal_dl_sync.rsrq_dB;
-              info[i].offset = refsignal_dl_sync.peak_index;
-              found          = true;
-            } else if (weakest_rsrp_value > info[i].rsrp) {
-              // Update weakest
-              weakest_rsrp_value = info[i].rsrp;
-              weakest_rsrp_index = i;
-            }
-          }
-
-          if (!found) {
-            // If number of cells exceeds
-            if (found_cells >= scell_recv::MAX_CELLS) {
-              // overwrite weakest cell if stronger
-              if (refsignal_dl_sync.rsrp_dBfs > weakest_rsrp_value) {
-                info[weakest_rsrp_index].pci    = cell.id;
-                info[weakest_rsrp_index].rsrp   = refsignal_dl_sync.rsrp_dBfs;
-                info[weakest_rsrp_index].rsrq   = refsignal_dl_sync.rsrq_dB;
-                info[weakest_rsrp_index].offset = refsignal_dl_sync.peak_index;
-              } else {
-                // Ignore measurement
-              }
-            } else {
-              // Otherwise append cell
-              info[found_cells].pci    = cell.id;
-              info[found_cells].rsrp   = refsignal_dl_sync.rsrp_dBfs;
-              info[found_cells].rsrq   = refsignal_dl_sync.rsrq_dB;
-              info[found_cells].offset = refsignal_dl_sync.peak_index;
-              found_cells++;
-            }
-          }
         }
       }
 
       // Send measurements to RRC
-      for (int i = 0; i < found_cells; i++) {
-        rrc->new_phy_meas(info[i].rsrp, info[i].rsrq, measure_tti, current_earfcn, info[i].pci);
+      if (neigbhour_cells.size() > 0) {
+        rrc->new_cell_meas(neigbhour_cells);
       }
     }
   }

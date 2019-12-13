@@ -240,25 +240,28 @@ public:
 
   void in_sync() override {}
   void out_of_sync() override {}
-  void new_phy_meas(float rsrp, float rsrq, uint32_t tti, int earfcn, int pci) override
+  void new_cell_meas(std::vector<phy_meas_t>& meas) override
   {
-    if (!cells.count(pci)) {
-      cells[pci].rsrp_min = rsrp;
-      cells[pci].rsrp_max = rsrp;
-      cells[pci].rsrp_avg = rsrp;
-      cells[pci].rsrq_min = rsrq;
-      cells[pci].rsrq_max = rsrq;
-      cells[pci].rsrq_avg = rsrq;
-      cells[pci].count    = 1;
-    } else {
-      cells[pci].rsrp_min = SRSLTE_MIN(cells[pci].rsrp_min, rsrp);
-      cells[pci].rsrp_max = SRSLTE_MAX(cells[pci].rsrp_max, rsrp);
-      cells[pci].rsrp_avg = (rsrp + cells[pci].rsrp_avg * cells[pci].count) / (cells[pci].count + 1);
+    for (auto& m : meas) {
+      uint32_t pci = m.pci;
+      if (!cells.count(pci)) {
+        cells[pci].rsrp_min = m.rsrp;
+        cells[pci].rsrp_max = m.rsrp;
+        cells[pci].rsrp_avg = m.rsrp;
+        cells[pci].rsrq_min = m.rsrq;
+        cells[pci].rsrq_max = m.rsrq;
+        cells[pci].rsrq_avg = m.rsrq;
+        cells[pci].count    = 1;
+      } else {
+        cells[pci].rsrp_min = SRSLTE_MIN(cells[pci].rsrp_min, m.rsrp);
+        cells[pci].rsrp_max = SRSLTE_MAX(cells[pci].rsrp_max, m.rsrp);
+        cells[pci].rsrp_avg = (m.rsrp + cells[pci].rsrp_avg * cells[pci].count) / (cells[pci].count + 1);
 
-      cells[pci].rsrq_min = SRSLTE_MIN(cells[pci].rsrq_min, rsrq);
-      cells[pci].rsrq_max = SRSLTE_MAX(cells[pci].rsrq_max, rsrq);
-      cells[pci].rsrq_avg = (rsrq + cells[pci].rsrq_avg * cells[pci].count) / (cells[pci].count + 1);
-      cells[pci].count++;
+        cells[pci].rsrq_min = SRSLTE_MIN(cells[pci].rsrq_min, m.rsrq);
+        cells[pci].rsrq_max = SRSLTE_MAX(cells[pci].rsrq_max, m.rsrq);
+        cells[pci].rsrq_avg = (m.rsrq + cells[pci].rsrq_avg * cells[pci].count) / (cells[pci].count + 1);
+        cells[pci].count++;
+      }
     }
   }
 
@@ -393,7 +396,6 @@ int main(int argc, char** argv)
   phy_args.estimator_fil_auto           = false;
   phy_args.estimator_fil_order          = 4;
   phy_args.estimator_fil_stddev         = 1.0f;
-  phy_args.sic_pss_enabled              = false;
   phy_args.interpolate_subframe_enabled = false;
   phy_args.nof_rx_ant                   = 1;
   phy_args.cfo_is_doppler               = true;
@@ -450,6 +452,8 @@ int main(int argc, char** argv)
   intra_measure.init(&common, &rrc, &logger);
   intra_measure.set_primary_cell(serving_cell_id, cell_base);
 
+  std::set<uint32_t> pcis_to_meas = {};
+
   if (earfcn_dl >= 0) {
     // Create radio log
     radio_log = std::unique_ptr<srslte::log_filter>(new srslte::log_filter("Radio"));
@@ -490,7 +494,7 @@ int main(int argc, char** argv)
 
       // Add cell to known cells
       if (cell_list.empty()) {
-        intra_measure.add_cell(cell.id);
+        pcis_to_meas.insert(cell.id);
       }
     }
   }
@@ -499,7 +503,7 @@ int main(int argc, char** argv)
   if (cell_list == "all") {
     // Add all possible cells
     for (int i = 0; i < 504; i++) {
-      intra_measure.add_cell(i);
+      pcis_to_meas.insert(i);
     }
   } else if (cell_list == "none") {
     // Do nothing
@@ -516,9 +520,12 @@ int main(int argc, char** argv)
     while (ss.good()) {
       std::string substr;
       getline(ss, substr, ',');
-      intra_measure.add_cell((uint32_t)strtoul(substr.c_str(), nullptr, 10));
+      pcis_to_meas.insert((uint32_t)strtoul(substr.c_str(), nullptr, 10));
     }
   }
+
+  // pass cells to measure to intra_measure object
+  intra_measure.set_cells_to_meas(pcis_to_meas);
 
   // Run loop
   for (uint32_t sf_idx = 0; sf_idx < duration_execution_s * 1000; sf_idx++) {

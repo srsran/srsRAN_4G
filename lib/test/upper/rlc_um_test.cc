@@ -74,7 +74,7 @@ public:
   rlc_um_lte            rlc1, rlc2;
 };
 
-int basic_test()
+int meas_obj_test()
 {
   rlc_um_lte_test_context1 ctxt;
 
@@ -392,7 +392,7 @@ int reassmble_test2()
 
 int main(int argc, char** argv)
 {
-  if (basic_test()) {
+  if (meas_obj_test()) {
     return -1;
   }
   byte_buffer_pool::get_instance()->cleanup();

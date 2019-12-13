@@ -70,9 +70,9 @@ public:
   bool                                     cell_is_camping();
 
   // RRC interface for controlling the neighbour cell measurement
-  void meas_reset();
-  int  meas_start(uint32_t earfcn, int pci);
-  int  meas_stop(uint32_t earfcn, int pci);
+  void set_cells_to_meas(uint32_t earfcn, std::set<uint32_t>& pci);
+  void set_inter_frequency_measurement(uint32_t cc_idx, uint32_t earfcn_, srslte_cell_t cell_);
+  void meas_stop();
 
   // from chest_feedback_itf
   void in_sync() final;
@@ -172,7 +172,7 @@ private:
   // Objects for internal use
   search               search_p;
   sfn_sync             sfn_p;
-  scell::intra_measure intra_freq_meas;
+  std::vector<std::unique_ptr<scell::intra_measure> > intra_freq_meas;
 
   uint32_t current_sflen                        = 0;
   int      next_offset                          = 0;  // Sample offset triggered by Time aligment commands

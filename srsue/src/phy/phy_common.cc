@@ -667,15 +667,14 @@ void phy_common::reset()
   cur_pusch_power = 0;
   sr_last_tx_tti  = -1;
   cur_pusch_power = 0;
+  pcell_report_period = 20;
+
   ZERO_OBJECT(pathloss);
   ZERO_OBJECT(avg_snr_db_cqi);
   ZERO_OBJECT(avg_rsrp);
   ZERO_OBJECT(avg_rsrp_dbm);
+  ZERO_OBJECT(avg_rsrq_db);
   ZERO_OBJECT(scell_cfg);
-  avg_rsrq_db = 0;
-
-  pcell_report_period = 20;
-
   ZERO_OBJECT(pending_dl_ack);
   ZERO_OBJECT(pending_dl_dai);
   ZERO_OBJECT(pending_ul_ack);

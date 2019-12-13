@@ -298,10 +298,6 @@ enable = false
 #
 # interpolate_subframe_enabled: Interpolates in the time domain the channel estimates within 1 subframe. Default is to average.
 #
-# sic_pss_enabled:      Applies Successive Interference Cancellation to PSS signals when searching for neighbour cells.
-#                       Must be disabled if cells have identical channel and timing, for instance if generated from
-#                       the same source.
-#
 # pdsch_csi_enabled:     Stores the Channel State Information and uses it for weightening the softbits. It is only
 #                        used in TM1. It is True by default.
 #
@@ -333,7 +329,6 @@ enable = false
 #estimator_fil_order  = 4
 #snr_to_cqi_offset   = 0.0
 #interpolate_subframe_enabled = false
-#sic_pss_enabled     = true
 #pregenerate_signals = false
 #pdsch_csi_enabled  = true
 #pdsch_8bit_decoder = false

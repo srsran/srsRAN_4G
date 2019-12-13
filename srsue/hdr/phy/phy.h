@@ -72,9 +72,8 @@ public:
   cell_search_ret_t cell_search(phy_cell_t* cell) final;
   bool              cell_select(phy_cell_t* cell) final;
 
-  void meas_reset() final;
-  int  meas_start(uint32_t earfcn, int pci) final;
-  int  meas_stop(uint32_t earfcn, int pci) final;
+  void set_cells_to_meas(uint32_t earfcn, std::set<uint32_t>& pci) final;
+  void meas_stop() final;
 
   // also MAC interface
   bool cell_is_camping() final;
@@ -119,10 +118,6 @@ public:
   float get_pathloss_db() final;
 
   uint32_t get_current_tti() final;
-
-  void     get_current_cell(srslte_cell_t* cell, uint32_t* current_earfcn) final;
-  uint32_t get_current_earfcn() final;
-  uint32_t get_current_pci() final;
 
   void start_plot() final;
 

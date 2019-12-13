@@ -58,6 +58,7 @@ public:
 
   // MAC interface
   bool     has_data(const uint32_t lcid);
+  bool     is_suspended(const uint32_t lcid);
   uint32_t get_buffer_state(const uint32_t lcid);
   uint32_t get_total_mch_buffer_state(uint32_t lcid);
   int      read_pdu(uint32_t lcid, uint8_t* payload, uint32_t nof_bytes);

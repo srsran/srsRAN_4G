@@ -34,25 +34,20 @@ namespace srsue {
 
 dl_harq_entity::dl_harq_entity() : proc(SRSLTE_MAX_HARQ_PROC)
 {
-  pcap                 = NULL;
-  demux_unit           = NULL;
-  log_h                = NULL;
-  timer_aligment_timer = NULL;
+  pcap                 = nullptr;
+  demux_unit           = nullptr;
+  log_h                = nullptr;
   si_window_start      = 0;
   last_temporal_crnti  = 0;
   average_retx         = 0;
   nof_pkts             = 0;
 }
 
-bool dl_harq_entity::init(srslte::log*                         log_h,
-                          mac_interface_rrc::ue_rnti_t*        rntis,
-                          srslte::timer_handler::unique_timer* timer_aligment_timer_,
-                          demux*                               demux_unit)
+bool dl_harq_entity::init(srslte::log* log_h_, mac_interface_rrc::ue_rnti_t* rntis_, demux* demux_unit_)
 {
-  timer_aligment_timer = timer_aligment_timer_;
-  this->demux_unit     = demux_unit;
-  this->log_h          = log_h;
-  this->rntis          = rntis;
+  demux_unit = demux_unit_;
+  log_h      = log_h_;
+  rntis      = rntis_;
 
   for (uint32_t i = 0; i < SRSLTE_MAX_HARQ_PROC; i++) {
     if (!proc[i].init(i, this)) {
@@ -329,12 +324,8 @@ void dl_harq_entity::dl_harq_process::dl_tb_process::new_grant_dl(mac_interface_
     }
   }
 
-  if (is_bcch || harq_entity->timer_aligment_timer->is_expired()) {
-    // Do not generate ACK
-    action->generate_ack = false;
-  } else {
-    action->generate_ack = true;
-  }
+  // Do NOT generate ACK if Broadcast Control Channel
+  action->generate_ack = not is_bcch;
 }
 
 void dl_harq_entity::dl_harq_process::dl_tb_process::tb_decoded(mac_interface_phy_lte::mac_grant_dl_t grant,

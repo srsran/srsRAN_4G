@@ -23,6 +23,7 @@
 #include "srslte/asn1/rrc_asn1.h"
 #include "srslte/common/bcd_helpers.h"
 #include "srslte/common/security.h"
+#include "srsue/hdr/stack/rrc/rrc_meas.h"
 #include "srsue/hdr/stack/rrc/rrc_procedures.h"
 #include <cstdlib>
 #include <ctime>
@@ -30,6 +31,7 @@
 #include <iostream>
 #include <math.h>
 #include <numeric>
+#include <srsue/hdr/stack/rrc/rrc.h>
 #include <sstream>
 #include <string.h>
 #include <unistd.h>
@@ -63,11 +65,15 @@ rrc::rrc(srslte::log* rrc_log_) :
   plmn_searcher(this),
   cell_reselector(this),
   connection_reest(this),
-  serving_cell(unique_cell_t(new cell_t({}, 0.0)))
+  serving_cell(unique_cell_t(new cell_t()))
 {
+  measurements = new rrc_meas(rrc_log);
 }
 
-rrc::~rrc() = default;
+rrc::~rrc()
+{
+  delete measurements;
+}
 
 template <class T>
 void rrc::log_rrc_message(const std::string    source,
@@ -140,7 +146,7 @@ void rrc::init(phy_interface_rrc_lte* phy_,
   // Set default values for RRC. MAC and PHY are set to default themselves
   set_rrc_default();
 
-  measurements.init(this);
+  measurements->init(this);
 
   struct timeval tv;
   gettimeofday(&tv, NULL);
@@ -199,7 +205,7 @@ void rrc::run_tti(uint32_t tti)
   }
 
   // Process pending PHY measurements in IDLE/CONNECTED
-  process_phy_meas();
+  process_cell_meas();
 
   // Process on-going callbacks, and clear finished callbacks
   callback_list.run();
@@ -225,7 +231,7 @@ void rrc::run_tti(uint32_t tti)
       }
       break;
     case RRC_STATE_CONNECTED:
-      measurements.run_tti(tti);
+      measurements->run_tti(tti);
       break;
     default:
       break;
@@ -250,6 +256,9 @@ void rrc::run_tti(uint32_t tti)
           break;
         case cmd_msg_t::PDU_BCCH_DLSCH:
           parse_pdu_bcch_dlsch(std::move(msg.pdu));
+          break;
+        case cmd_msg_t::HO_COMPLETE:
+          process_ho_ra_completed(msg.lcid > 0);
           break;
         case cmd_msg_t::STOP:
           return;
@@ -352,59 +361,61 @@ void rrc::set_ue_identity(srslte::s_tmsi_t s_tmsi)
 /* This function is called from a PHY worker thus must return very quickly.
  * Queue the values of the measurements and process them from the RRC thread
  */
-void rrc::new_phy_meas(float rsrp, float rsrq, uint32_t tti, int earfcn_i, int pci_i)
+void rrc::new_cell_meas(std::vector<phy_meas_t>& meas)
 {
-  uint32_t pci    = 0;
-  uint32_t earfcn = 0;
-  if (earfcn_i < 0) {
-    earfcn = (uint32_t)serving_cell->get_earfcn();
-  } else {
-    earfcn = (uint32_t)earfcn_i;
-  }
-  if (pci_i < 0) {
-    pci = (uint32_t)serving_cell->get_pci();
-  } else {
-    pci = (uint32_t)pci_i;
-  }
-  phy_meas_t new_meas = {rsrp, rsrq, tti, earfcn, pci};
-  phy_meas_q.push(new_meas);
-  rrc_log->info("MEAS:  New measurement earfcn=%d, pci=%d (%s), rsrp=%.1f dBm.\n",
-                earfcn_i,
-                pci,
-                pci_i < 0 ? "serving" : "neighbour",
-                rsrp);
+  cell_meas_q.push(meas);
 }
 
 /* Processes all pending PHY measurements in queue. Must be called from a mutexed function
  */
-void rrc::process_phy_meas()
+void rrc::process_cell_meas()
 {
-  phy_meas_t m;
-  while (phy_meas_q.try_pop(&m)) {
-    rrc_log->debug("MEAS:  Processing measurement. %zd measurements in queue\n", phy_meas_q.size());
-    process_new_phy_meas(m);
+  std::vector<phy_meas_t> m;
+  while (cell_meas_q.try_pop(&m)) {
+    if (cell_meas_q.size() > 0) {
+      rrc_log->debug("MEAS:  Processing measurement. %zd measurements in queue\n", cell_meas_q.size());
+    }
+    process_new_cell_meas(m);
   }
 }
 
-void rrc::process_new_phy_meas(phy_meas_t meas)
+void rrc::process_new_cell_meas(std::vector<phy_meas_t>& meas)
 {
-  float    rsrp   = meas.rsrp;
-  float    rsrq   = meas.rsrq;
-  uint32_t tti    = meas.tti;
-  uint32_t earfcn = meas.earfcn;
-  uint32_t pci    = meas.pci;
-
-  if (state == RRC_STATE_IDLE) {
-    // Update serving cell
-    if (serving_cell->equals(earfcn, pci)) {
-      serving_cell->set_rsrp(rsrp);
+  bool neighbour_added = false;
+  rrc_log->debug("MEAS:  Processing measurement of %lu cells\n", meas.size());
+  for (auto& m : meas) {
+    cell_t* c = nullptr;
+    // Get serving_cell handle if it's the serving cell
+    if (m.earfcn == 0 or (m.earfcn == serving_cell->get_earfcn() and m.pci == serving_cell->get_pci())) {
+      c = serving_cell.get();
+      if (c == nullptr || !serving_cell->is_valid()) {
+        rrc_log->error("MEAS:  Received serving cell measurement but undefined or invalid\n");
+        return;
+      }
+      // Or update/add RRC neighbour cell database
     } else {
-      // Or update/add neighbour cell
-      add_neighbour_cell(earfcn, pci, rsrp);
+      c = get_neighbour_cell_handle(m.earfcn, m.pci);
     }
-  } else {
-    // Measurements in RRC_CONNECTED go through measurement class to log reports etc.
-    measurements.new_phy_meas(earfcn, pci, rsrp, rsrq, tti);
+    // Filter RSRP/RSRQ measurements if cell exits
+    if (c != nullptr) {
+      c->set_rsrp(measurements->rsrp_filter(m.rsrp, c->get_rsrp()));
+      c->set_rsrq(measurements->rsrq_filter(m.rsrq, c->get_rsrq()));
+    } else {
+      // or just set initial value
+      neighbour_added = add_neighbour_cell(m);
+    }
+
+    if (m.earfcn == 0) {
+      rrc_log->info("MEAS:  New measurement serving cell: rsrp=%.2f dBm.\n", m.rsrp);
+    } else {
+      rrc_log->info(
+          "MEAS:  New measurement neighbour cell: earfcn=%d, pci=%d, rsrp=%.2f dBm.\n", m.earfcn, m.pci, m.rsrp);
+    }
+  }
+
+  // Instruct measurements subclass to update phy with new cells to measure based on strongest neighbours
+  if (state == RRC_STATE_CONNECTED && neighbour_added) {
+    measurements->update_phy();
   }
 }
 
@@ -418,7 +429,10 @@ void rrc::out_of_sync()
     // upon receiving N310 consecutive "out-of-sync" indications for the PCell from lower layers while neither T300,
     //   T301, T304 nor T311 is running:
     if (state == RRC_STATE_CONNECTED) {
-      if (!t300.is_running() && !t301.is_running() && !t304.is_running() && !t310.is_running() && !t311.is_running()) {
+      // upon receiving N310 consecutive "out-of-sync" indications from lower layers while neither T300, T301, T304
+      // nor T311 is running
+      bool t311_running = t311.is_running() || connection_reest.is_busy();
+      if (!t300.is_running() and !t301.is_running() and !t304.is_running() and !t310.is_running() and !t311_running) {
         rrc_log->info("Received out-of-sync while in state %s. n310=%d, t311=%s, t310=%s\n",
                       rrc_state_text[state],
                       n310_cnt,
@@ -485,37 +499,31 @@ void rrc::cell_reselection(float rsrp, float rsrq)
   // Intra-frequency cell-reselection criteria
 
   if (get_srxlev(rsrp) > cell_resel_cfg.s_intrasearchP && rsrp > -95.0) {
-    // UE may not perform intra-frequency measurements.
-    phy->meas_reset();
-    // keep measuring serving cell
-    phy->meas_start(phy->get_current_earfcn(), phy->get_current_pci());
+    // UE may not perform intra-frequency measurements->
+    phy->meas_stop();
   } else {
     // UE must start intra-frequency measurements
-    phy->meas_start(phy->get_current_earfcn(), -1);
+    auto pci = get_neighbour_pcis(serving_cell->get_earfcn());
+    phy->set_cells_to_meas(serving_cell->get_earfcn(), pci);
   }
 
   // TODO: Inter-frequency cell reselection
 }
 
 // Set new serving cell
-void rrc::set_serving_cell(phy_interface_rrc_lte::phy_cell_t phy_cell)
+void rrc::set_serving_cell(phy_interface_rrc_lte::phy_cell_t phy_cell, bool discard_serving)
 {
-  if (has_neighbour_cell(phy_cell.earfcn, phy_cell.cell.id)) {
+  if (has_neighbour_cell(phy_cell.earfcn, phy_cell.pci)) {
     // Remove future serving cell from neighbours to make space for current serving cell
-    unique_cell_t new_serving_cell = remove_neighbour_cell(phy_cell.earfcn, phy_cell.cell.id);
+    unique_cell_t new_serving_cell = remove_neighbour_cell(phy_cell.earfcn, phy_cell.pci);
+    bool same_cell = (phy_cell.earfcn == serving_cell->get_earfcn() and phy_cell.pci == serving_cell->get_pci());
 
     // Move serving cell to neighbours list
-    if (serving_cell->is_valid()) {
-      if (has_neighbour_cell(serving_cell->get_earfcn(), serving_cell->get_pci())) {
-        rrc_log->error("Error serving cell is already in the neighbour list.\n");
-        // note, removing it here is not an option
-      } else {
-        if (add_neighbour_cell(std::move(serving_cell)) == false) {
-          rrc_log->info("Serving cell not added to list of neighbours. Worse than current neighbours\n");
-        }
+    if (serving_cell->is_valid() and not same_cell and not discard_serving) {
+      if (not add_neighbour_cell(std::move(serving_cell))) {
+        rrc_log->info("Serving cell not added to list of neighbours. Worse than current neighbours\n");
       }
     }
-
     // Set new serving cell
     serving_cell = std::move(new_serving_cell);
     rrc_log->info("Setting serving cell earfcn=%d, PCI=%d, rsrp=%.2f, nof_neighbours=%zd\n",
@@ -524,7 +532,7 @@ void rrc::set_serving_cell(phy_interface_rrc_lte::phy_cell_t phy_cell)
                   serving_cell->get_rsrp(),
                   neighbour_cells.size());
   } else {
-    rrc_log->error("Setting serving cell: Unknown cell with earfcn=%d, PCI=%d\n", phy_cell.earfcn, phy_cell.cell.id);
+    rrc_log->error("Setting serving cell: Unknown cell with earfcn=%d, PCI=%d\n", phy_cell.earfcn, phy_cell.pci);
   }
 }
 
@@ -533,7 +541,6 @@ void rrc::delete_last_neighbour()
   if (not neighbour_cells.empty()) {
     auto& it = neighbour_cells.back();
     rrc_log->debug("Delete cell earfcn=%d, pci=%d from neighbor list.\n", (*it).get_earfcn(), (*it).get_pci());
-    measurements.delete_report((*it).get_earfcn(), (*it).get_pci());
     neighbour_cells.pop_back();
   }
 }
@@ -555,21 +562,16 @@ void rrc::clean_neighbours()
   }
 }
 
-// Sort neighbour cells by decreasing order of RSRP
-void rrc::sort_neighbour_cells()
+void rrc::log_neighbour_cells()
 {
-  std::sort(std::begin(neighbour_cells), std::end(neighbour_cells), [](const unique_cell_t& a, const unique_cell_t& b) {
-    return a->greater(b.get());
-  });
-
-  if (neighbour_cells.size() > 0) {
+  if (not neighbour_cells.empty()) {
     char ordered[512] = {};
     int  n            = 0;
     n += snprintf(ordered,
                   512,
                   "[earfcn=%d, pci=%d, rsrp=%.2f",
                   neighbour_cells[0]->get_earfcn(),
-                  neighbour_cells[0]->phy_cell.cell.id,
+                  neighbour_cells[0]->phy_cell.pci,
                   neighbour_cells[0]->get_rsrp());
     for (uint32_t i = 1; i < neighbour_cells.size(); i++) {
       int m = snprintf(&ordered[n],
@@ -586,9 +588,31 @@ void rrc::sort_neighbour_cells()
   }
 }
 
+// Sort neighbour cells by decreasing order of RSRP
+void rrc::sort_neighbour_cells()
+{
+  std::sort(std::begin(neighbour_cells), std::end(neighbour_cells), [](const unique_cell_t& a, const unique_cell_t& b) {
+    return a->greater(b.get());
+  });
+
+  log_neighbour_cells();
+}
+
 bool rrc::add_neighbour_cell(unique_cell_t new_cell)
 {
   bool ret = false;
+  // Make sure cell is valid
+  if (!new_cell->is_valid()) {
+    rrc_log->error(
+        "Trying to add cell EARFCN=%d, PCI=%d but is not valid", new_cell->get_earfcn(), new_cell->get_pci());
+    return ret;
+  }
+  // First make sure it doesn't exist
+  if (has_neighbour_cell(new_cell->get_earfcn(), new_cell->get_pci())) {
+    rrc_log->warning(
+        "Trying to add cell EARFCN=%d, PCI=%d but already exists", new_cell->get_earfcn(), new_cell->get_pci());
+    return ret;
+  }
   if (neighbour_cells.size() < NOF_NEIGHBOUR_CELLS) {
     ret = true;
   } else if (new_cell->greater(neighbour_cells.back().get())) {
@@ -597,10 +621,8 @@ bool rrc::add_neighbour_cell(unique_cell_t new_cell)
     ret = true;
   }
   if (ret) {
-    rrc_log->info("Adding neighbour cell EARFCN=%d, PCI=%d, nof_neighbours=%zd\n",
-                  new_cell->get_earfcn(),
-                  new_cell->get_pci(),
-                  neighbour_cells.size() + 1);
+    rrc_log->info(
+        "Adding neighbour cell %s, nof_neighbours=%zd\n", new_cell->print().c_str(), neighbour_cells.size() + 1);
     neighbour_cells.push_back(std::move(new_cell));
   }
 
@@ -609,30 +631,15 @@ bool rrc::add_neighbour_cell(unique_cell_t new_cell)
 }
 
 // If only neighbour PCI is provided, copy full cell from serving cell
-bool rrc::add_neighbour_cell(uint32_t earfcn, uint32_t pci, float rsrp)
+bool rrc::add_neighbour_cell(phy_meas_t meas)
 {
-  if (serving_cell->is_valid()) {
-    phy_interface_rrc_lte::phy_cell_t phy_cell;
-    phy_cell         = serving_cell->phy_cell;
-    phy_cell.earfcn  = earfcn;
-    phy_cell.cell.id = pci;
-    return add_neighbour_cell(phy_cell, rsrp);
-  }
-  return false;
-}
-
-bool rrc::add_neighbour_cell(phy_interface_rrc_lte::phy_cell_t phy_cell, float rsrp)
-{
-  // if cell exists, update RSRP, if provided, sort again and return
-  cell_t* cell = get_neighbour_cell_handle(phy_cell.earfcn, phy_cell.cell.id);
-  if (cell && std::isnormal(rsrp)) {
-    cell->set_rsrp(rsrp);
-    sort_neighbour_cells();
-    return true;
-  }
-
-  // if cell doesn't exist, add it
-  return add_neighbour_cell(unique_cell_t(new cell_t(phy_cell, rsrp)));
+  phy_interface_rrc_lte::phy_cell_t phy_cell = {};
+  phy_cell.earfcn                            = meas.earfcn;
+  phy_cell.pci                               = meas.pci;
+  unique_cell_t c                            = unique_cell_t(new cell_t(phy_cell));
+  c.get()->set_rsrp(meas.rsrp);
+  c.get()->set_rsrq(meas.rsrq);
+  return add_neighbour_cell(std::move(c));
 }
 
 // This will remove the cell from the current neighbour list
@@ -678,6 +685,17 @@ std::string rrc::print_neighbour_cells()
   return s;
 }
 
+std::set<uint32_t> rrc::get_neighbour_pcis(uint32_t earfcn)
+{
+  std::set<uint32_t> pcis = {};
+  for (auto& cell : neighbour_cells) {
+    if (cell->get_earfcn() == earfcn) {
+      pcis.insert(cell->get_pci());
+    }
+  }
+  return pcis;
+}
+
 /*******************************************************************************
  *
  *
@@ -689,7 +707,7 @@ std::string rrc::print_neighbour_cells()
  *******************************************************************************/
 std::string rrc::print_mbms()
 {
-  asn1::rrc::mcch_msg_type_c msg = serving_cell->mcch.msg;
+  mcch_msg_type_c            msg = serving_cell->mcch.msg;
   std::stringstream          ss;
   for (uint32_t i = 0; i < msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9.size(); i++) {
     ss << "PMCH: " << i << std::endl;
@@ -722,7 +740,7 @@ bool rrc::mbms_service_start(uint32_t serv, uint32_t port)
 
   rrc_log->info("%s\n", print_mbms().c_str());
 
-  asn1::rrc::mcch_msg_type_c msg = serving_cell->mcch.msg;
+  mcch_msg_type_c msg = serving_cell->mcch.msg;
   for (uint32_t i = 0; i < msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9.size(); i++) {
     pmch_info_r9_s* pmch = &msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[i];
     for (uint32_t j = 0; j < pmch->mbms_session_info_list_r9.size(); j++) {
@@ -756,7 +774,7 @@ void rrc::radio_link_failure()
   rrc_log->warning("Detected Radio-Link Failure\n");
   rrc_log->console("Warning: Detected Radio-Link Failure\n");
   if (state == RRC_STATE_CONNECTED) {
-    start_con_restablishment(asn1::rrc::reest_cause_e::other_fail);
+    start_con_restablishment(reest_cause_e::other_fail);
   }
 }
 
@@ -789,8 +807,12 @@ void rrc::timer_expired(uint32_t timeout_id)
     rrc_log->info("Timer T310 expired: Radio Link Failure\n");
     radio_link_failure();
   } else if (timeout_id == t311.id()) {
-    rrc_log->info("Timer T311 expired: Going to RRC IDLE\n");
-    start_go_idle();
+    if (connection_reest.is_idle()) {
+      rrc_log->info("Timer T311 expired: Going to RRC IDLE\n");
+      start_go_idle();
+    } else {
+      // Do nothing, this is handled by the procedure
+    }
   } else if (timeout_id == t301.id()) {
     if (state == RRC_STATE_IDLE) {
       rrc_log->info("Timer T301 expired: Already in IDLE.\n");
@@ -806,8 +828,7 @@ void rrc::timer_expired(uint32_t timeout_id)
   } else if (timeout_id == t304.id()) {
     rrc_log->console("Timer T304 expired: Handover failed\n");
     ho_failed();
-    // fw to measurement
-  } else if (!measurements.timer_expired(timeout_id)) {
+  } else {
     rrc_log->error("Timeout from unknown timer id %d\n", timeout_id);
   }
 }
@@ -843,24 +864,24 @@ void rrc::send_con_request(srslte::establishment_cause_t cause)
     }
     rrc_conn_req->ue_id.random_value().from_number(random_id);
   }
-  rrc_conn_req->establishment_cause = (asn1::rrc::establishment_cause_opts::options)cause;
+  rrc_conn_req->establishment_cause = (establishment_cause_opts::options)cause;
 
   send_ul_ccch_msg(ul_ccch_msg);
 }
 
 /* RRC connection re-establishment procedure (5.3.7.4) */
-void rrc::send_con_restablish_request(asn1::rrc::reest_cause_e cause, uint16_t crnti, uint16_t pci)
+void rrc::send_con_restablish_request(reest_cause_e cause, uint16_t crnti, uint16_t pci)
 {
   uint32_t cellid;
 
   // Clean reestablishment type
   reestablishment_successful = false;
 
-  if (cause == asn1::rrc::reest_cause_e::ho_fail) {
+  if (cause == reest_cause_e::ho_fail) {
     crnti  = ho_src_rnti;
     pci    = ho_src_cell.get_pci();
     cellid = ho_src_cell.get_cell_id();
-  } else if (cause == asn1::rrc::reest_cause_e::other_fail) {
+  } else if (cause == reest_cause_e::other_fail) {
     // use source PCI after RLF
     cellid = serving_cell->get_cell_id();
   } else {
@@ -939,7 +960,7 @@ void rrc::send_con_restablish_complete()
   rrc_log->console("RRC Connected\n");
 
   // Prepare ConnectionSetupComplete packet
-  asn1::rrc::ul_dcch_msg_s ul_dcch_msg;
+  ul_dcch_msg_s ul_dcch_msg;
   ul_dcch_msg.msg.set_c1().set_rrc_conn_reest_complete().crit_exts.set_rrc_conn_reest_complete_r8();
   ul_dcch_msg.msg.c1().rrc_conn_reest_complete().rrc_transaction_id = transaction_id;
 
@@ -985,7 +1006,7 @@ void rrc::send_security_mode_complete()
   rrc_log->debug("Preparing Security Mode Complete\n");
 
   // Prepare Security Mode Command Complete
-  asn1::rrc::ul_dcch_msg_s ul_dcch_msg;
+  ul_dcch_msg_s ul_dcch_msg;
   ul_dcch_msg.msg.set_c1().set_security_mode_complete().crit_exts.set_security_mode_complete_r8();
   ul_dcch_msg.msg.c1().security_mode_complete().rrc_transaction_id = transaction_id;
 
@@ -996,7 +1017,7 @@ void rrc::send_rrc_con_reconfig_complete()
 {
   rrc_log->debug("Preparing RRC Connection Reconfig Complete\n");
 
-  asn1::rrc::ul_dcch_msg_s ul_dcch_msg;
+  ul_dcch_msg_s ul_dcch_msg;
   ul_dcch_msg.msg.set_c1().set_rrc_conn_recfg_complete().crit_exts.set_rrc_conn_recfg_complete_r8();
   ul_dcch_msg.msg.c1().rrc_conn_recfg_complete().rrc_transaction_id = transaction_id;
 
@@ -1006,8 +1027,8 @@ void rrc::send_rrc_con_reconfig_complete()
 bool rrc::ho_prepare()
 {
   if (pending_mob_reconf) {
-    asn1::rrc::rrc_conn_recfg_r8_ies_s* mob_reconf_r8 = &mob_reconf.crit_exts.c1().rrc_conn_recfg_r8();
-    asn1::rrc::mob_ctrl_info_s*         mob_ctrl_info = &mob_reconf_r8->mob_ctrl_info;
+    rrc_conn_recfg_r8_ies_s* mob_reconf_r8 = &mob_reconf.crit_exts.c1().rrc_conn_recfg_r8();
+    mob_ctrl_info_s*         mob_ctrl_info = &mob_reconf_r8->mob_ctrl_info;
     rrc_log->info("Processing HO command to target PCell=%d\n", mob_ctrl_info->target_pci);
 
     uint32_t target_earfcn = (mob_ctrl_info->carrier_freq_present) ? mob_ctrl_info->carrier_freq.dl_carrier_freq
@@ -1035,7 +1056,6 @@ bool rrc::ho_prepare()
     rlc->reestablish();
     mac->wait_uplink();
     mac->clear_rntis();
-    phy->meas_reset();
     mac->reset();
     phy->reset();
 
@@ -1050,12 +1070,17 @@ bool rrc::ho_prepare()
 
     cell_t* target_cell = get_neighbour_cell_handle(target_earfcn, mob_ctrl_info->target_pci);
     if (!phy->cell_select(&target_cell->phy_cell)) {
-      rrc_log->error("Could not synchronize with target cell pci=%d. Trying to return to source PCI\n",
-                     target_cell->get_pci());
+      rrc_log->error("Could not synchronize with target cell %s. Removing cell and trying to return to source %s\n",
+                     target_cell->print().c_str(),
+                     serving_cell->print().c_str());
+
+      // Remove cell from list to avoid cell re-selection, picking the same cell
+      target_cell->set_rsrp(-INFINITY);
+
       return false;
     }
 
-    set_serving_cell(target_cell->phy_cell);
+    set_serving_cell(target_cell->phy_cell, false);
 
     // Extract and apply scell config if any
     apply_scell_config(mob_reconf_r8);
@@ -1089,7 +1114,7 @@ bool rrc::ho_prepare()
     }
 
     usim->generate_as_keys_ho(mob_ctrl_info->target_pci,
-                              phy->get_current_earfcn(),
+                              serving_cell->get_earfcn(),
                               ncc,
                               k_rrc_enc,
                               k_rrc_int,
@@ -1106,15 +1131,20 @@ bool rrc::ho_prepare()
 
 void rrc::ho_ra_completed(bool ra_successful)
 {
+  cmd_msg_t msg;
+  msg.command = cmd_msg_t::HO_COMPLETE;
+  msg.lcid    = ra_successful ? 1 : 0;
+  cmd_q.push(std::move(msg));
+}
+
+void rrc::process_ho_ra_completed(bool ra_successful)
+{
   if (pending_mob_reconf) {
-    asn1::rrc::rrc_conn_recfg_r8_ies_s* mob_reconf_r8 = &mob_reconf.crit_exts.c1().rrc_conn_recfg_r8();
     if (ra_successful) {
-      measurements.ho_finish();
-
-      if (mob_reconf_r8->meas_cfg_present) {
-        measurements.parse_meas_config(&mob_reconf_r8->meas_cfg);
+      if (!measurements->parse_meas_config(
+              &mob_reconf.crit_exts.c1().rrc_conn_recfg_r8(), true, ho_src_cell.get_earfcn())) {
+        rrc_log->error("Parsing measurementConfig. TODO: Send ReconfigurationReject\n");
       }
-
       t304.stop();
     }
     // T304 will expiry and send ho_failure
@@ -1128,10 +1158,10 @@ void rrc::ho_ra_completed(bool ra_successful)
   }
 }
 
-bool rrc::con_reconfig_ho(asn1::rrc::rrc_conn_recfg_s* reconfig)
+bool rrc::con_reconfig_ho(rrc_conn_recfg_s* reconfig)
 {
-  asn1::rrc::rrc_conn_recfg_r8_ies_s* mob_reconf_r8 = &reconfig->crit_exts.c1().rrc_conn_recfg_r8();
-  if (mob_reconf_r8->mob_ctrl_info.target_pci == phy->get_current_pci()) {
+  rrc_conn_recfg_r8_ies_s* mob_reconf_r8 = &reconfig->crit_exts.c1().rrc_conn_recfg_r8();
+  if (mob_reconf_r8->mob_ctrl_info.target_pci == serving_cell->get_pci()) {
     rrc_log->console("Warning: Received HO command to own cell\n");
     rrc_log->warning("Received HO command to own cell\n");
     return false;
@@ -1175,9 +1205,9 @@ void rrc::start_go_idle()
 }
 
 // Handle RRC Reconfiguration without MobilityInformation Section 5.3.5.3
-bool rrc::con_reconfig(asn1::rrc::rrc_conn_recfg_s* reconfig)
+bool rrc::con_reconfig(rrc_conn_recfg_s* reconfig)
 {
-  asn1::rrc::rrc_conn_recfg_r8_ies_s* reconfig_r8 = &reconfig->crit_exts.c1().rrc_conn_recfg_r8();
+  rrc_conn_recfg_r8_ies_s* reconfig_r8 = &reconfig->crit_exts.c1().rrc_conn_recfg_r8();
 
   // If this is the first con_reconfig after a reestablishment
   if (reestablishment_successful) {
@@ -1200,6 +1230,11 @@ bool rrc::con_reconfig(asn1::rrc::rrc_conn_recfg_s* reconfig)
 
   apply_scell_config(reconfig_r8);
 
+  if (!measurements->parse_meas_config(
+          reconfig_r8, reestablishment_successful, connection_reest.get()->get_source_earfcn())) {
+    return false;
+  }
+
   // If first message after reestablishment, resume SRB2 and all DRB
   if (reestablishment_successful) {
     reestablishment_successful = false;
@@ -1207,12 +1242,6 @@ bool rrc::con_reconfig(asn1::rrc::rrc_conn_recfg_s* reconfig)
       if (rlc->has_bearer(i)) {
         rlc->resume_bearer(i);
       }
-    }
-  }
-
-  if (reconfig_r8->meas_cfg_present) {
-    if (!measurements.parse_meas_config(&reconfig_r8->meas_cfg)) {
-      return false;
     }
   }
 
@@ -1236,7 +1265,7 @@ bool rrc::con_reconfig(asn1::rrc::rrc_conn_recfg_s* reconfig)
 // HO failure from T304 expiry 5.3.5.6
 void rrc::ho_failed()
 {
-  start_con_restablishment(asn1::rrc::reest_cause_e::ho_fail);
+  start_con_restablishment(reest_cause_e::ho_fail);
 }
 
 // Reconfiguration failure or Section 5.3.5.5
@@ -1252,18 +1281,18 @@ void rrc::con_reconfig_failed()
 
   if (security_is_activated) {
     // Start the Reestablishment Procedure
-    start_con_restablishment(asn1::rrc::reest_cause_e::recfg_fail);
+    start_con_restablishment(reest_cause_e::recfg_fail);
   } else {
     start_go_idle();
   }
 }
 
-void rrc::handle_rrc_con_reconfig(uint32_t lcid, asn1::rrc::rrc_conn_recfg_s* reconfig)
+void rrc::handle_rrc_con_reconfig(uint32_t lcid, rrc_conn_recfg_s* reconfig)
 {
   previous_phy_cfg = current_phy_cfg;
   previous_mac_cfg = current_mac_cfg;
 
-  asn1::rrc::rrc_conn_recfg_r8_ies_s* reconfig_r8 = &reconfig->crit_exts.c1().rrc_conn_recfg_r8();
+  rrc_conn_recfg_r8_ies_s* reconfig_r8 = &reconfig->crit_exts.c1().rrc_conn_recfg_r8();
   if (reconfig_r8->mob_ctrl_info_present) {
     if (!con_reconfig_ho(reconfig)) {
       con_reconfig_failed();
@@ -1291,7 +1320,7 @@ void rrc::leave_connected()
   state                 = RRC_STATE_IDLE;
   drb_up                = false;
   security_is_activated = false;
-  measurements.reset();
+  measurements->reset();
   nas->left_rrc_connected();
   pdcp->reset();
   rlc->reset();
@@ -1304,8 +1333,6 @@ void rrc::leave_connected()
   if (phy->cell_is_camping()) {
     // Receive paging
     mac->pcch_start_rx();
-    // Instruct PHY to measure serving cell for cell reselection
-    phy->meas_start(phy->get_current_earfcn(), phy->get_current_pci());
   }
 }
 
@@ -1329,7 +1356,7 @@ void rrc::stop_timers()
  *
  *   The parameter cause shall indicate the cause of the reestablishment according to the sections mentioned adobe.
  */
-void rrc::start_con_restablishment(asn1::rrc::reest_cause_e cause)
+void rrc::start_con_restablishment(reest_cause_e cause)
 {
   if (not connection_reest.launch(cause)) {
     rrc_log->info("Failed to launch connection re-establishment procedure\n");
@@ -1364,6 +1391,46 @@ void rrc::cell_search_completed(const phy_interface_rrc_lte::cell_search_ret_t& 
 
 /*******************************************************************************
  *
+ * Interface from RRC measurements class
+ *
+ *******************************************************************************/
+void rrc::send_srb1_msg(const ul_dcch_msg_s& msg)
+{
+  send_ul_dcch_msg(RB_ID_SRB1, msg);
+}
+
+std::set<uint32_t> rrc::get_cells(const uint32_t earfcn)
+{
+  return get_neighbour_pcis(earfcn);
+}
+
+float rrc::get_cell_rsrp(const uint32_t earfcn, const uint32_t pci)
+{
+  cell_t* c = get_neighbour_cell_handle(earfcn, pci);
+  if (c != nullptr) {
+    return c->get_rsrp();
+  } else {
+    return NAN;
+  }
+}
+
+float rrc::get_cell_rsrq(const uint32_t earfcn, const uint32_t pci)
+{
+  cell_t* c = get_neighbour_cell_handle(earfcn, pci);
+  if (c != nullptr) {
+    return c->get_rsrq();
+  } else {
+    return NAN;
+  }
+}
+
+cell_t* rrc::get_serving_cell()
+{
+  return serving_cell.get();
+}
+
+/*******************************************************************************
+ *
  *
  *
  * Reception of Broadcast messages (MIB and SIBs)
@@ -1373,7 +1440,7 @@ void rrc::cell_search_completed(const phy_interface_rrc_lte::cell_search_ret_t& 
  *******************************************************************************/
 void rrc::write_pdu_bcch_bch(unique_byte_buffer_t pdu)
 {
-  asn1::rrc::bcch_bch_msg_s bch_msg;
+  bcch_bch_msg_s            bch_msg;
   asn1::cbit_ref            bch_bref(pdu->msg, pdu->N_bytes);
   asn1::SRSASN_CODE         err = bch_msg.unpack(bch_bref);
   if (err != asn1::SRSASN_SUCCESS) {
@@ -1399,8 +1466,9 @@ void rrc::parse_pdu_bcch_dlsch(unique_byte_buffer_t pdu)
   // Stop BCCH search after successful reception of 1 BCCH block
   mac->bcch_stop_rx();
 
-  asn1::rrc::bcch_dl_sch_msg_s dlsch_msg;
-  asn1::cbit_ref               dlsch_bref(pdu->msg, pdu->N_bytes);
+  bcch_dl_sch_msg_s dlsch_msg;
+  asn1::cbit_ref    dlsch_bref(pdu->msg, pdu->N_bytes);
+
   asn1::SRSASN_CODE            err = dlsch_msg.unpack(dlsch_bref);
   if (err != asn1::SRSASN_SUCCESS or dlsch_msg.msg.type().value != bcch_dl_sch_msg_type_c::types_opts::c1) {
     rrc_log->error("Could not unpack BCCH DL-SCH message.\n");
@@ -1667,7 +1735,7 @@ void rrc::parse_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
  *
  *******************************************************************************/
 
-void rrc::send_ul_ccch_msg(const asn1::rrc::ul_ccch_msg_s& msg)
+void rrc::send_ul_ccch_msg(const ul_ccch_msg_s& msg)
 {
   // Reset and reuse sdu buffer if provided
   unique_byte_buffer_t pdcp_buf = srslte::allocate_unique_buffer(*pool, true);
@@ -1699,7 +1767,7 @@ void rrc::send_ul_ccch_msg(const asn1::rrc::ul_ccch_msg_s& msg)
   rlc->write_sdu(lcid, std::move(pdcp_buf));
 }
 
-void rrc::send_ul_dcch_msg(uint32_t lcid, const asn1::rrc::ul_dcch_msg_s& msg)
+void rrc::send_ul_dcch_msg(uint32_t lcid, const ul_dcch_msg_s& msg)
 {
   // Reset and reuse sdu buffer if provided
   unique_byte_buffer_t pdcp_buf = srslte::allocate_unique_buffer(*pool, true);
@@ -1898,11 +1966,11 @@ void rrc::enable_capabilities()
   rrc_log->info("%s 64QAM PUSCH\n", enable_ul_64 ? "Enabling" : "Disabling");
 }
 
-void rrc::handle_ue_capability_enquiry(const asn1::rrc::ue_cap_enquiry_s& enquiry)
+void rrc::handle_ue_capability_enquiry(const ue_cap_enquiry_s& enquiry)
 {
   rrc_log->debug("Preparing UE Capability Info\n");
 
-  asn1::rrc::ul_dcch_msg_s ul_dcch_msg;
+  ul_dcch_msg_s            ul_dcch_msg;
   ue_cap_info_r8_ies_s*    info = &ul_dcch_msg.msg.set_c1().set_ue_cap_info().crit_exts.set_c1().set_ue_cap_info_r8();
   ul_dcch_msg.msg.c1().ue_cap_info().rrc_transaction_id = transaction_id;
 
@@ -2299,7 +2367,7 @@ void rrc::apply_phy_config_dedicated(const phys_cfg_ded_s& phy_cnfg)
   }
 }
 
-void rrc::apply_phy_scell_config(const asn1::rrc::scell_to_add_mod_r10_s& scell_config)
+void rrc::apply_phy_scell_config(const scell_to_add_mod_r10_s& scell_config)
 {
   srslte_cell_t scell  = {};
   uint32_t      earfcn = 0;
@@ -2310,7 +2378,7 @@ void rrc::apply_phy_scell_config(const asn1::rrc::scell_to_add_mod_r10_s& scell_
   }
 
   // Initialise default parameters from primary cell
-  phy->get_current_cell(&scell, &earfcn);
+  earfcn = serving_cell->get_earfcn();
 
   // Parse identification
   if (scell_config.cell_identif_r10_present) {
@@ -2436,7 +2504,7 @@ bool rrc::apply_rr_config_dedicated(rr_cfg_ded_s* cnfg)
 /*
  * Extracts and applies SCell configuration from an ASN.1 reconfiguration struct
  */
-void rrc::apply_scell_config(asn1::rrc::rrc_conn_recfg_r8_ies_s* reconfig_r8)
+void rrc::apply_scell_config(rrc_conn_recfg_r8_ies_s* reconfig_r8)
 {
   if (reconfig_r8->non_crit_ext_present) {
     auto reconfig_r890 = &reconfig_r8->non_crit_ext;
@@ -2525,7 +2593,7 @@ void rrc::handle_con_reest(rrc_conn_reest_s* setup)
   // Update RRC Integrity keys
   int ncc = setup->crit_exts.c1().rrc_conn_reest_r8().next_hop_chaining_count;
   usim->generate_as_keys_ho(serving_cell->get_pci(),
-                            phy->get_current_earfcn(),
+                            serving_cell->get_earfcn(),
                             ncc,
                             k_rrc_enc,
                             k_rrc_int,
@@ -2713,720 +2781,6 @@ void rrc::set_rrc_default()
   t304.set(1000, timer_expire_func);
   t310.set(1000, timer_expire_func);
   t311.set(1000, timer_expire_func);
-}
-
-/************************************************************************
- *
- *
- * RRC Measurements
- *
- *
- ************************************************************************/
-
-void rrc::rrc_meas::init(rrc* parent_)
-{
-  parent            = parent_;
-  log_h             = parent_->rrc_log;
-  phy               = parent_->phy;
-  timers            = parent_->timers;
-  s_measure_enabled = false;
-  reset();
-}
-
-void rrc::rrc_meas::reset()
-{
-  filter_k_rsrp = filt_coef_e(filt_coef_e::fc4).to_number();
-  filter_k_rsrq = filt_coef_e(filt_coef_e::fc4).to_number();
-
-  // TODO: Turn struct into a class and use destructor
-  std::map<uint32_t, meas_t>::iterator iter = active.begin();
-  while (iter != active.end()) {
-    remove_meas_id(iter++);
-  }
-
-  // These objects do not need destructor
-  objects.clear();
-  reports_cfg.clear();
-  phy->meas_reset();
-  bzero(&pcell_measurement, sizeof(meas_value_t));
-}
-
-/* L3 filtering 5.5.3.2 */
-void rrc::rrc_meas::L3_filter(meas_value_t* value, float values[NOF_MEASUREMENTS])
-{
-  for (int i = 0; i < NOF_MEASUREMENTS; i++) {
-    if (value->ms[i]) {
-      value->ms[i] = SRSLTE_VEC_EMA(values[i], value->ms[i], filter_a[i]);
-    } else {
-      value->ms[i] = values[i];
-    }
-  }
-}
-
-void rrc::rrc_meas::new_phy_meas(uint32_t earfcn, uint32_t pci, float rsrp, float rsrq, uint32_t tti)
-{
-  float values[NOF_MEASUREMENTS] = {rsrp, rsrq};
-
-  // This indicates serving cell
-  if (parent->serving_cell->equals(earfcn, pci)) {
-
-    log_h->debug("MEAS:  New measurement serving cell, rsrp=%f, rsrq=%f, tti=%d\n", rsrp, rsrq, tti);
-
-    L3_filter(&pcell_measurement, values);
-
-    // Update serving cell measurement
-    parent->serving_cell->set_rsrp(rsrp);
-
-  } else {
-
-    // Add to list of neighbour cells
-    bool added = parent->add_neighbour_cell(earfcn, pci, rsrp);
-
-    log_h->debug("MEAS:  New measurement %s earfcn=%d, pci=%d, rsrp=%f, rsrq=%f, tti=%d\n",
-                 added ? "added" : "not added",
-                 earfcn,
-                 pci,
-                 rsrp,
-                 rsrq,
-                 tti);
-
-    // Only report measurements of 8th strongest cells
-    if (added) {
-      // Save PHY measurement for all active measurements whose earfcn/pci matches
-      for (std::map<uint32_t, meas_t>::iterator iter = active.begin(); iter != active.end(); ++iter) {
-        meas_t* m = &iter->second;
-        if (objects[m->object_id].earfcn == earfcn) {
-          // If it's a newly discovered cell, add it to objects
-          if (!m->cell_values.count(pci)) {
-            uint32_t cell_idx                                    = objects[m->object_id].found_cells.size();
-            objects[m->object_id].found_cells[cell_idx].pci      = pci;
-            objects[m->object_id].found_cells[cell_idx].q_offset = 0;
-          }
-          // Update or add cell
-          L3_filter(&m->cell_values[pci], values);
-        }
-      }
-    }
-  }
-}
-
-// Remove all stored measurements for a given cell
-void rrc::rrc_meas::delete_report(uint32_t earfcn, uint32_t pci)
-{
-  for (std::map<uint32_t, meas_t>::iterator iter = active.begin(); iter != active.end(); ++iter) {
-    meas_t* m = &iter->second;
-    if (objects[m->object_id].earfcn == earfcn) {
-      if (m->cell_values.count(pci)) {
-        m->cell_values.erase(pci);
-        log_h->info("Deleting report PCI=%d from cell_values\n", pci);
-      }
-    }
-  }
-}
-
-void rrc::rrc_meas::run_tti(uint32_t tti)
-{
-  // Measurement Report Triggering Section 5.5.4
-  calculate_triggers(tti);
-}
-
-bool rrc::rrc_meas::find_earfcn_cell(uint32_t earfcn, uint32_t pci, meas_obj_t** object, int* cell_idx)
-{
-  if (object) {
-    *object = NULL;
-  }
-  for (std::map<uint32_t, meas_obj_t>::iterator obj = objects.begin(); obj != objects.end(); ++obj) {
-    if (obj->second.earfcn == earfcn) {
-      if (object) {
-        *object = &obj->second;
-      }
-      for (std::map<uint32_t, meas_cell_t>::iterator c = obj->second.found_cells.begin();
-           c != obj->second.found_cells.end();
-           ++c) {
-        if (c->second.pci == pci) {
-          if (cell_idx) {
-            *cell_idx = c->first;
-            return true;
-          }
-        }
-      }
-      // return true if cell idx not found but frequency is found
-      if (cell_idx) {
-        *cell_idx = -1;
-      }
-      return true;
-    }
-  }
-  return false;
-}
-
-/* Generate report procedure 5.5.5 */
-void rrc::rrc_meas::generate_report(uint32_t meas_id)
-{
-  asn1::rrc::ul_dcch_msg_s ul_dcch_msg;
-  ul_dcch_msg.msg.set_c1().set_meas_report().crit_exts.set_c1().set_meas_report_r8();
-  meas_results_s* report = &ul_dcch_msg.msg.c1().meas_report().crit_exts.c1().meas_report_r8().meas_results;
-
-  meas_t*       m   = &active[meas_id];
-  report_cfg_t* cfg = &reports_cfg[m->report_id];
-
-  report->meas_id                       = (uint8_t)meas_id;
-  report->meas_result_pcell.rsrp_result = value_to_range(RSRP, pcell_measurement.ms[RSRP]);
-  report->meas_result_pcell.rsrq_result = value_to_range(RSRQ, pcell_measurement.ms[RSRQ]);
-
-  log_h->info("MEAS:  Generate report MeasId=%d, nof_reports_send=%d, Pcell rsrp=%f rsrq=%f\n",
-              report->meas_id,
-              m->nof_reports_sent,
-              pcell_measurement.ms[RSRP],
-              pcell_measurement.ms[RSRQ]);
-
-  meas_result_list_eutra_l& neigh_list = report->meas_result_neigh_cells.set_meas_result_list_eutra();
-  // TODO: report up to 8 best cells
-  for (const auto& cell : m->cell_values) {
-    if (cell.second.triggered and neigh_list.size() <= 8) {
-      meas_result_eutra_s rc;
-
-      rc.pci                             = (uint16_t)cell.first;
-      rc.meas_result.rsrp_result_present = cfg->report_quantity == RSRP || cfg->report_quantity == BOTH;
-      rc.meas_result.rsrq_result_present = cfg->report_quantity == RSRQ || cfg->report_quantity == BOTH;
-      rc.meas_result.rsrp_result         = value_to_range(RSRP, cell.second.ms[RSRP]);
-      rc.meas_result.rsrq_result         = value_to_range(RSRQ, cell.second.ms[RSRQ]);
-
-      log_h->info("MEAS:  Adding to report neighbour=%d, pci=%d, rsrp=%f, rsrq=%f\n",
-                  neigh_list.size(),
-                  rc.pci,
-                  cell.second.ms[RSRP],
-                  cell.second.ms[RSRQ]);
-
-      neigh_list.push_back(rc);
-    }
-  }
-  report->meas_result_neigh_cells_present = neigh_list.size() > 0;
-
-  m->nof_reports_sent++;
-  m->periodic_timer.stop();
-
-  // re-arm timer if needed (also includes case where amount is infinity)
-  if (m->nof_reports_sent < static_cast<uint32_t>(cfg->amount)) {
-    m->periodic_timer.run();
-  } else {
-    if (cfg->trigger_type == report_cfg_t::PERIODIC) {
-      m->triggered = false;
-    }
-  }
-
-  // Send to lower layers
-  parent->send_ul_dcch_msg(RB_ID_SRB1, ul_dcch_msg);
-}
-
-/* Handle entering/leaving event conditions 5.5.4.1 */
-bool rrc::rrc_meas::process_event(eutra_event_s* event,
-                                  uint32_t       tti,
-                                  bool           enter_condition,
-                                  bool           exit_condition,
-                                  meas_t*        m,
-                                  meas_value_t*  cell)
-{
-  bool generate_report = false;
-  if (enter_condition && (!m->triggered || !cell->triggered)) {
-    if (!cell->timer_enter_triggered) {
-      cell->timer_enter_triggered = true;
-      cell->enter_tti             = tti;
-    } else if (srslte_tti_interval(tti, cell->enter_tti) >= event->time_to_trigger.to_number()) {
-      m->triggered        = true;
-      cell->triggered     = true;
-      m->nof_reports_sent = 0;
-      generate_report     = true;
-    }
-  } else if (exit_condition) {
-    if (!cell->timer_exit_triggered) {
-      cell->timer_exit_triggered = true;
-      cell->exit_tti             = tti;
-    } else if (srslte_tti_interval(tti, cell->exit_tti) >= event->time_to_trigger.to_number()) {
-      m->triggered    = false;
-      cell->triggered = false;
-      m->periodic_timer.stop();
-      if (event) {
-        if (event->event_id.type() == eutra_event_s::event_id_c_::types::event_a3 &&
-            event->event_id.event_a3().report_on_leave) {
-          generate_report = true;
-        }
-      }
-    }
-  }
-  if (!enter_condition) {
-    cell->timer_enter_triggered = false;
-  }
-  if (!exit_condition) {
-    cell->timer_exit_triggered = false;
-  }
-  return generate_report;
-}
-
-/* Calculate trigger conditions for each cell 5.5.4 */
-void rrc::rrc_meas::calculate_triggers(uint32_t tti)
-{
-  float       Ofp = 0, Ocp = 0;
-  meas_obj_t* serving_object   = NULL;
-  int         serving_cell_idx = 0;
-
-  // Get serving cell
-  if (active.size()) {
-    if (find_earfcn_cell(phy->get_current_earfcn(), phy->get_current_pci(), &serving_object, &serving_cell_idx)) {
-      Ofp = serving_object->q_offset;
-      if (serving_cell_idx >= 0) {
-        Ocp = serving_object->found_cells[serving_cell_idx].q_offset;
-      }
-    } else {
-      log_h->warning("Can't find current earfcn=%d, pci=%d in objects list. Using Ofp=0, Ocp=0\n",
-                     phy->get_current_earfcn(),
-                     phy->get_current_pci());
-    }
-  }
-
-  for (std::map<uint32_t, meas_t>::iterator m = active.begin(); m != active.end(); ++m) {
-    // make sure report config exists
-    if (reports_cfg.find(m->second.report_id) == reports_cfg.end()) {
-      log_h->error("Error in measurement id=%d, report id=%d is not configured.\n", m->first, m->second.report_id);
-      break;
-    }
-    report_cfg_t* cfg  = &reports_cfg.at(m->second.report_id);
-    double        hyst = 0.5 * cfg->event.hysteresis;
-    float         Mp   = pcell_measurement.ms[cfg->trigger_quantity];
-
-    bool gen_report = false;
-
-    if (cfg->trigger_type == report_cfg_t::EVENT) {
-      // A1 & A2 are for serving cell only
-      if (cfg->event.event_id.type().value < eutra_event_s::event_id_c_::types::event_a3) {
-        bool enter_condition;
-        bool exit_condition;
-        if (cfg->event.event_id.type() == eutra_event_s::event_id_c_::types::event_a1) {
-          uint8_t range;
-          if (cfg->event.event_id.event_a1().a1_thres.type().value == thres_eutra_c::types::thres_rsrp) {
-            range = cfg->event.event_id.event_a1().a1_thres.thres_rsrp();
-          } else {
-            range = cfg->event.event_id.event_a1().a1_thres.thres_rsrq();
-          }
-          enter_condition = Mp - hyst > range_to_value(cfg->trigger_quantity, range);
-          exit_condition  = Mp + hyst < range_to_value(cfg->trigger_quantity, range);
-        } else {
-          uint8_t range;
-          if (cfg->event.event_id.event_a2().a2_thres.type() == thres_eutra_c::types::thres_rsrp) {
-            range = cfg->event.event_id.event_a2().a2_thres.thres_rsrp();
-          } else {
-            range = cfg->event.event_id.event_a2().a2_thres.thres_rsrq();
-          }
-          enter_condition = Mp + hyst < range_to_value(cfg->trigger_quantity, range);
-          exit_condition  = Mp - hyst > range_to_value(cfg->trigger_quantity, range);
-        }
-
-        // check only if
-        gen_report |= process_event(&cfg->event, tti, enter_condition, exit_condition, &m->second, &pcell_measurement);
-
-        if (gen_report) {
-          log_h->info("Triggered by A1/A2 event\n");
-        }
-        // Rest are evaluated for every cell in frequency
-      } else {
-        meas_obj_t* obj = &objects[m->second.object_id];
-        for (std::map<uint32_t, meas_cell_t>::iterator cell = obj->found_cells.begin(); cell != obj->found_cells.end();
-             ++cell) {
-          if (m->second.cell_values.count(cell->second.pci)) {
-            float   Ofn = obj->q_offset;
-            float   Ocn = cell->second.q_offset;
-            float   Mn  = m->second.cell_values[cell->second.pci].ms[cfg->trigger_quantity];
-            double  Off = 0;
-            float   th = 0, th1 = 0, th2 = 0;
-            bool    enter_condition = false;
-            bool    exit_condition  = false;
-            uint8_t range, range2;
-            switch (cfg->event.event_id.type().value) {
-              case eutra_event_s::event_id_c_::types::event_a3:
-                Off             = 0.5 * cfg->event.event_id.event_a3().a3_offset;
-                enter_condition = Mn + Ofn + Ocn - hyst > Mp + Ofp + Ocp + Off;
-                exit_condition  = Mn + Ofn + Ocn + hyst < Mp + Ofp + Ocp + Off;
-                break;
-              case eutra_event_s::event_id_c_::types::event_a4:
-                if (cfg->event.event_id.event_a4().a4_thres.type() == thres_eutra_c::types::thres_rsrp) {
-                  range = cfg->event.event_id.event_a4().a4_thres.thres_rsrp();
-                } else {
-                  range = cfg->event.event_id.event_a4().a4_thres.thres_rsrq();
-                }
-                th              = range_to_value(cfg->trigger_quantity, range);
-                enter_condition = Mn + Ofn + Ocn - hyst > th;
-                exit_condition  = Mn + Ofn + Ocn + hyst < th;
-                break;
-              case eutra_event_s::event_id_c_::types::event_a5:
-                if (cfg->event.event_id.event_a5().a5_thres1.type() == thres_eutra_c::types::thres_rsrp) {
-                  range = cfg->event.event_id.event_a5().a5_thres1.thres_rsrp();
-                } else {
-                  range = cfg->event.event_id.event_a5().a5_thres1.thres_rsrq();
-                }
-                if (cfg->event.event_id.event_a5().a5_thres2.type() == thres_eutra_c::types::thres_rsrp) {
-                  range2 = cfg->event.event_id.event_a5().a5_thres2.thres_rsrp();
-                } else {
-                  range2 = cfg->event.event_id.event_a5().a5_thres2.thres_rsrq();
-                }
-                th1             = range_to_value(cfg->trigger_quantity, range);
-                th2             = range_to_value(cfg->trigger_quantity, range2);
-                enter_condition = (Mp + hyst < th1) && (Mn + Ofn + Ocn - hyst > th2);
-                exit_condition  = (Mp - hyst > th1) && (Mn + Ofn + Ocn + hyst < th2);
-                break;
-              default:
-                log_h->error("Error event %s not implemented\n", cfg->event.event_id.type().to_string().c_str());
-            }
-            gen_report |= process_event(&cfg->event,
-                                        tti,
-                                        enter_condition,
-                                        exit_condition,
-                                        &m->second,
-                                        &m->second.cell_values[cell->second.pci]);
-          }
-        }
-      }
-    }
-    if (gen_report) {
-      log_h->info("Generate report MeasId=%d, from event\n", m->first);
-      generate_report(m->first);
-    }
-  }
-}
-
-// Procedure upon handover or reestablishment 5.5.6.1
-void rrc::rrc_meas::ho_finish()
-{
-  // Remove all measId with trigger periodic
-  std::map<uint32_t, meas_t>::iterator iter = active.begin();
-  while (iter != active.end()) {
-    if (reports_cfg[iter->second.report_id].trigger_type == report_cfg_t::PERIODIC) {
-      remove_meas_id(iter++);
-    } else {
-      ++iter;
-    }
-  }
-
-  // TODO: Inter-frequency handover
-
-  // Stop all reports
-  for (auto& item : active) {
-    stop_reports(&item.second);
-  }
-}
-
-// 5.5.4.1 expiry of periodical reporting timer
-bool rrc::rrc_meas::timer_expired(uint32_t timer_id)
-{
-  for (std::map<uint32_t, meas_t>::iterator iter = active.begin(); iter != active.end(); ++iter) {
-    if (iter->second.periodic_timer.id() == timer_id) {
-      log_h->info("Periodic report timer expired for MeasId=%d (timer_id=%d)\n", iter->first, timer_id);
-      generate_report(iter->first);
-      return true;
-    }
-  }
-  return false;
-}
-
-void rrc::rrc_meas::stop_reports(meas_t* m)
-{
-  m->periodic_timer.stop();
-  m->triggered = false;
-}
-
-void rrc::rrc_meas::stop_reports_object(uint32_t object_id)
-{
-  for (std::map<uint32_t, meas_t>::iterator iter = active.begin(); iter != active.end(); ++iter) {
-    if (iter->second.object_id == object_id) {
-      stop_reports(&iter->second);
-    }
-  }
-}
-
-void rrc::rrc_meas::remove_meas_object(uint32_t object_id)
-{
-  std::map<uint32_t, meas_t>::iterator iter = active.begin();
-  while (iter != active.end()) {
-    if (iter->second.object_id == object_id) {
-      remove_meas_id(iter++);
-    } else {
-      ++iter;
-    }
-  }
-}
-
-void rrc::rrc_meas::remove_meas_report(uint32_t report_id)
-{
-  std::map<uint32_t, meas_t>::iterator iter = active.begin();
-  while (iter != active.end()) {
-    if (iter->second.report_id == report_id) {
-      remove_meas_id(iter++);
-    } else {
-      ++iter;
-    }
-  }
-}
-
-void rrc::rrc_meas::remove_meas_id(uint32_t measId)
-{
-  if (active.count(measId)) {
-    log_h->info("MEAS: Removed measId=%d\n", measId);
-    active.erase(measId);
-  } else {
-    log_h->warning("MEAS: Removing unexistent measId=%d\n", measId);
-  }
-}
-
-void rrc::rrc_meas::remove_meas_id(std::map<uint32_t, meas_t>::iterator it)
-{
-  log_h->info("MEAS: Removed measId=%d\n", it->first);
-  active.erase(it);
-}
-
-/* Parses MeasConfig object from RRCConnectionReconfiguration message and applies configuration
- * as per section 5.5.2
- */
-bool rrc::rrc_meas::parse_meas_config(meas_cfg_s* cfg)
-{
-  // Measurement object removal 5.5.2.4
-  for (uint32_t i = 0; i < cfg->meas_obj_to_rem_list.size(); i++) {
-    objects.erase(cfg->meas_obj_to_rem_list[i]);
-    remove_meas_object(cfg->meas_obj_to_rem_list[i]);
-    log_h->info("MEAS: Removed measObjectId=%d\n", cfg->meas_obj_to_rem_list[i]);
-  }
-
-  // Measurement object addition/modification Section 5.5.2.5
-  if (cfg->meas_obj_to_add_mod_list_present) {
-    for (uint32_t i = 0; i < cfg->meas_obj_to_add_mod_list.size(); i++) {
-      if (cfg->meas_obj_to_add_mod_list[i].meas_obj.type() ==
-          meas_obj_to_add_mod_s::meas_obj_c_::types::meas_obj_eutra) {
-        meas_obj_eutra_s* src_obj = &cfg->meas_obj_to_add_mod_list[i].meas_obj.meas_obj_eutra();
-
-        // Access the object if exists or create it
-        meas_obj_t* dst_obj = &objects[cfg->meas_obj_to_add_mod_list[i].meas_obj_id];
-
-        dst_obj->earfcn = src_obj->carrier_freq;
-        ;
-        if (src_obj->offset_freq_present) {
-          dst_obj->q_offset = src_obj->offset_freq.to_number();
-        } else {
-          dst_obj->q_offset = 0;
-        }
-
-        if (src_obj->black_cells_to_rem_list_present) {
-          for (uint32_t j = 0; j < src_obj->black_cells_to_rem_list.size(); j++) {
-            dst_obj->meas_cells.erase(src_obj->black_cells_to_rem_list[i]);
-          }
-        }
-
-        for (uint32_t j = 0; j < src_obj->cells_to_add_mod_list.size(); j++) {
-          dst_obj->meas_cells[src_obj->cells_to_add_mod_list[j].cell_idx].q_offset =
-              src_obj->cells_to_add_mod_list[j].cell_individual_offset.to_number();
-          dst_obj->meas_cells[src_obj->cells_to_add_mod_list[j].cell_idx].pci = src_obj->cells_to_add_mod_list[j].pci;
-
-          log_h->info("MEAS: Added measObjectId=%d, earfcn=%d, q_offset=%f, pci=%d, offset_cell=%f\n",
-                      cfg->meas_obj_to_add_mod_list[i].meas_obj_id,
-                      dst_obj->earfcn,
-                      dst_obj->q_offset,
-                      dst_obj->meas_cells[src_obj->cells_to_add_mod_list[j].cell_idx].pci,
-                      dst_obj->meas_cells[src_obj->cells_to_add_mod_list[j].cell_idx].q_offset);
-        }
-
-        // Untrigger reports and stop timers
-        stop_reports_object(cfg->meas_obj_to_add_mod_list[i].meas_obj_id);
-
-        // TODO: Blackcells
-        // TODO: meassubframepattern
-
-      } else {
-        log_h->warning("MEAS: Unsupported MeasObject type %s\n",
-                       cfg->meas_obj_to_add_mod_list[i].meas_obj.type().to_string().c_str());
-      }
-    }
-  }
-
-  // Reporting configuration removal 5.5.2.6
-  for (uint32_t i = 0; i < cfg->report_cfg_to_rem_list.size(); i++) {
-    reports_cfg.erase(cfg->report_cfg_to_rem_list[i]);
-    remove_meas_report(cfg->report_cfg_to_rem_list[i]);
-    log_h->info("MEAS: Removed reportConfigId=%d\n", cfg->report_cfg_to_rem_list[i]);
-  }
-
-  // Reporting configuration addition/modification 5.5.2.7
-  if (cfg->report_cfg_to_add_mod_list_present) {
-    for (uint32_t i = 0; i < cfg->report_cfg_to_add_mod_list.size(); i++) {
-      if (cfg->report_cfg_to_add_mod_list[i].report_cfg.type() ==
-          report_cfg_to_add_mod_s::report_cfg_c_::types::report_cfg_eutra) {
-        report_cfg_eutra_s* src_rep = &cfg->report_cfg_to_add_mod_list[i].report_cfg.report_cfg_eutra();
-        // Access the object if exists or create it
-        report_cfg_t* dst_rep = &reports_cfg[cfg->report_cfg_to_add_mod_list[i].report_cfg_id];
-
-        dst_rep->trigger_type = src_rep->trigger_type.type() == report_cfg_eutra_s::trigger_type_c_::types::event
-                                    ? report_cfg_t::EVENT
-                                    : report_cfg_t::PERIODIC;
-        if (dst_rep->trigger_type == report_cfg_t::EVENT) {
-          dst_rep->event = src_rep->trigger_type.event();
-        }
-        dst_rep->amount           = src_rep->report_amount.to_number();
-        dst_rep->interval         = src_rep->report_interv.to_number();
-        dst_rep->max_cell         = src_rep->max_report_cells;
-        dst_rep->trigger_quantity = (quantity_t)src_rep->trigger_quant.value;
-        dst_rep->report_quantity  = src_rep->report_quant == report_cfg_eutra_s::report_quant_e_::same_as_trigger_quant
-                                       ? dst_rep->trigger_quantity
-                                       : BOTH;
-
-        if (dst_rep->trigger_type == report_cfg_t::EVENT) {
-          log_h->info("MEAS: Added reportConfigId=%d, event=%s, amount=%d, interval=%d\n",
-                      cfg->report_cfg_to_add_mod_list[i].report_cfg_id,
-                      dst_rep->event.event_id.type().to_string().c_str(),
-                      dst_rep->amount,
-                      dst_rep->interval);
-        } else {
-          log_h->info("MEAS: Added reportConfigId=%d, type=periodical, amount=%d, interval=%d\n",
-                      cfg->report_cfg_to_add_mod_list[i].report_cfg_id,
-                      dst_rep->amount,
-                      dst_rep->interval);
-        }
-
-        // Reset reports counter
-        for (std::map<uint32_t, meas_t>::iterator iter = active.begin(); iter != active.end(); ++iter) {
-          if (iter->second.report_id == cfg->report_cfg_to_add_mod_list[i].report_cfg_id) {
-            iter->second.nof_reports_sent = 0;
-            stop_reports(&iter->second);
-          }
-        }
-      } else {
-        log_h->warning("MEAS: Unsupported reportConfigType %s\n",
-                       cfg->report_cfg_to_add_mod_list[i].report_cfg.type().to_string().c_str());
-      }
-    }
-  }
-
-  // Quantity configuration 5.5.2.8
-  if (cfg->quant_cfg_present && cfg->quant_cfg.quant_cfg_eutra_present) {
-    if (cfg->quant_cfg.quant_cfg_eutra.filt_coef_rsrp_present) {
-      filter_k_rsrp = cfg->quant_cfg.quant_cfg_eutra.filt_coef_rsrp.to_number();
-    } else {
-      filter_k_rsrp = filt_coef_e(filt_coef_e::fc4).to_number();
-    }
-    if (cfg->quant_cfg.quant_cfg_eutra.filt_coef_rsrq_present) {
-      filter_k_rsrq = cfg->quant_cfg.quant_cfg_eutra.filt_coef_rsrq.to_number();
-    } else {
-      filter_k_rsrq = filt_coef_e(filt_coef_e::fc4).to_number();
-    }
-    filter_a[RSRP] = powf(0.5, (float)filter_k_rsrp / 4);
-    filter_a[RSRQ] = powf(0.5, (float)filter_k_rsrq / 4);
-
-    log_h->info("MEAS: Quantity configuration k_rsrp=%d, k_rsrq=%d\n", filter_k_rsrp, filter_k_rsrq);
-  }
-
-  // Measurement identity removal 5.5.2.2
-  for (uint32_t i = 0; i < cfg->meas_id_to_rem_list.size(); i++) {
-    remove_meas_id(cfg->meas_id_to_rem_list[i]);
-  }
-
-  log_h->info("nof active measId=%zd\n", active.size());
-
-  // Measurement identity addition/modification 5.5.2.3
-  if (cfg->meas_id_to_add_mod_list_present) {
-    for (uint32_t i = 0; i < cfg->meas_id_to_add_mod_list.size(); i++) {
-      meas_id_to_add_mod_s* meas_id = &cfg->meas_id_to_add_mod_list[i];
-      // Stop the timer if the entry exists or create the timer if not
-      bool is_new = false;
-      if (active.count(meas_id->meas_id)) {
-        active[meas_id->meas_id].periodic_timer.stop();
-      } else {
-        is_new                                  = true;
-        active[meas_id->meas_id].periodic_timer = timers->get_unique_timer();
-      }
-      active[meas_id->meas_id].object_id = meas_id->meas_obj_id;
-      active[meas_id->meas_id].report_id = meas_id->report_cfg_id;
-      active[meas_id->meas_id].periodic_timer.set(reports_cfg[meas_id->report_cfg_id].interval,
-                                                  [this](uint32_t tid) { timer_expired(tid); });
-
-      log_h->info("MEAS: %s measId=%d, measObjectId=%d, reportConfigId=%d, timer_id=%u, nof_values=%zd\n",
-                  is_new ? "Added" : "Updated",
-                  meas_id->meas_id,
-                  meas_id->meas_obj_id,
-                  meas_id->report_cfg_id,
-                  active[meas_id->meas_id].periodic_timer.id(),
-                  active[meas_id->meas_id].cell_values.size());
-    }
-  }
-
-  // S-Measure
-  if (cfg->s_measure_present) {
-    if (cfg->s_measure) {
-      s_measure_enabled = true;
-      s_measure_value   = range_to_value(RSRP, cfg->s_measure);
-    } else {
-      s_measure_enabled = false;
-    }
-  }
-
-  update_phy();
-
-  return true;
-}
-
-/* Instruct PHY to start measurement */
-void rrc::rrc_meas::update_phy()
-{
-  phy->meas_reset();
-  for (const auto& obj : objects) {
-    meas_obj_t o = obj.second;
-    // Instruct PHY to look for neighbour cells on this frequency
-    phy->meas_start(o.earfcn);
-    for (const auto& cell : o.meas_cells) {
-      // Instruct PHY to look for cells IDs on this frequency
-      phy->meas_start(o.earfcn, cell.second.pci);
-    }
-  }
-}
-
-uint8_t rrc::rrc_meas::value_to_range(quantity_t quant, float value)
-{
-  uint8_t range = 0;
-  switch (quant) {
-    case RSRP:
-      if (value < -140) {
-        range = 0;
-      } else if (value < -44) {
-        range = 1u + (uint8_t)(value + 140);
-      } else {
-        range = 97;
-      }
-      break;
-    case RSRQ:
-      if (value < -19.5) {
-        range = 0;
-      } else if (value < -3) {
-        range = 1u + (uint8_t)(2 * (value + 19.5));
-      } else {
-        range = 34;
-      }
-      break;
-    case BOTH:
-      log_h->error("Error quantity both not supported in value_to_range\n");
-      break;
-  }
-  return range;
-}
-
-float rrc::rrc_meas::range_to_value(quantity_t quant, uint8_t range)
-{
-  float val = 0;
-  switch (quant) {
-    case RSRP:
-      val = -140 + (float)range;
-      break;
-    case RSRQ:
-      val = -19.5f + (float)range / 2;
-      break;
-    case BOTH:
-      log_h->error("Error quantity both not supported in range_to_value\n");
-      break;
-  }
-  return val;
 }
 
 const std::string rrc::rb_id_str[] =

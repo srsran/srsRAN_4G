@@ -28,6 +28,7 @@
 #ifndef SRSLTE_UE_INTERFACES_H
 #define SRSLTE_UE_INTERFACES_H
 
+#include <set>
 #include <string>
 
 #include "rrc_interface_types.h"
@@ -133,9 +134,17 @@ public:
 class rrc_interface_phy_lte
 {
 public:
-  virtual void in_sync()                                                                         = 0;
-  virtual void out_of_sync()                                                                     = 0;
-  virtual void new_phy_meas(float rsrp, float rsrq, uint32_t tti, int earfcn = -1, int pci = -1) = 0;
+  // Measurement object from phy
+  typedef struct {
+    float    rsrp;
+    float    rsrq;
+    uint32_t earfcn;
+    uint32_t pci;
+  } phy_meas_t;
+
+  virtual void in_sync()                                    = 0;
+  virtual void out_of_sync()                                = 0;
+  virtual void new_cell_meas(std::vector<phy_meas_t>& meas) = 0;
 };
 
 // RRC interface for NAS
@@ -273,6 +282,7 @@ public:
   virtual void change_lcid(uint32_t old_lcid, uint32_t new_lcid)                                = 0;
   virtual bool has_bearer(uint32_t lcid)                                                        = 0;
   virtual bool has_data(const uint32_t lcid)                                                    = 0;
+  virtual bool is_suspended(const uint32_t lcid)                                                = 0;
   virtual void write_sdu(uint32_t lcid, srslte::unique_byte_buffer_t sdu, bool blocking = true) = 0;
 };
 
@@ -514,7 +524,6 @@ typedef struct {
   uint32_t      estimator_fil_order              = 4;
   float         snr_to_cqi_offset                = 0.0f;
   std::string   sss_algorithm                    = "full";
-  bool          sic_pss_enabled                  = false;
   float         rx_gain_offset                   = 62;
   bool          pdsch_csi_enabled                = true;
   bool          pdsch_8bit_decoder               = false;
@@ -582,10 +591,6 @@ public:
 class phy_interface_rrc_lte
 {
 public:
-  virtual void     get_current_cell(srslte_cell_t* cell, uint32_t* current_earfcn = NULL) = 0;
-  virtual uint32_t get_current_earfcn()                                                   = 0;
-  virtual uint32_t get_current_pci()                                                      = 0;
-
   virtual void set_config(srslte::phy_cfg_t& config,
                           uint32_t           cc_idx    = 0,
                           uint32_t           earfcn    = 0,
@@ -596,9 +601,8 @@ public:
   virtual void set_config_mbsfn_mcch(const srslte::mcch_msg_t& mcch)                      = 0;
 
   /* Measurements interface */
-  virtual void meas_reset()                              = 0;
-  virtual int  meas_start(uint32_t earfcn, int pci = -1) = 0;
-  virtual int  meas_stop(uint32_t earfcn, int pci = -1)  = 0;
+  virtual void set_cells_to_meas(uint32_t earfcn, std::set<uint32_t>& pci) = 0;
+  virtual void meas_stop()                                                 = 0;
 
   typedef struct {
     enum { CELL_FOUND = 0, CELL_NOT_FOUND, ERROR } found;
@@ -606,8 +610,8 @@ public:
   } cell_search_ret_t;
 
   typedef struct {
-    srslte_cell_t cell;
-    uint32_t      earfcn;
+    uint32_t pci;
+    uint32_t earfcn;
   } phy_cell_t;
 
   /* Cell search and selection procedures */

@@ -131,7 +131,7 @@ void basic_test_tx(rlc_am_lte* rlc, byte_buffer_t pdu_bufs[NBUFS])
   assert(0 == rlc->get_buffer_state());
 }
 
-bool basic_test()
+bool meas_obj_test()
 {
   srslte::log_filter log1("RLC_AM_1");
   srslte::log_filter log2("RLC_AM_2");
@@ -1647,7 +1647,7 @@ bool status_pdu_test()
 
 int main(int argc, char** argv)
 {
-  if (basic_test()) {
+  if (meas_obj_test()) {
     printf("basic_test failed\n");
     exit(-1);
   };

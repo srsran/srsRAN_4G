@@ -77,10 +77,7 @@ public:
   // RRC interface for PHY
   void in_sync() final;
   void out_of_sync() final;
-  void new_phy_meas(float rsrp, float rsrq, uint32_t tti, int earfcn = -1, int pci = -1)
-  {
-    rrc.new_phy_meas(rsrp, rsrq, tti, earfcn, pci);
-  };
+  void new_cell_meas(std::vector<phy_meas_t>& meas) { rrc.new_cell_meas(meas); }
 
   // MAC Interface for PHY
   uint16_t get_dl_sched_rnti(uint32_t tti) { return mac.get_dl_sched_rnti(tti); }

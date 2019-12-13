@@ -36,7 +36,7 @@
 using namespace asn1;
 using namespace asn1::rrc;
 
-void nas_test()
+int nas_test()
 {
   srslte::log_filter log1("NAS");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
@@ -93,9 +93,10 @@ void nas_test()
     default:
       break;
   }
+  return 0;
 }
 
-int basic_test()
+int meas_obj_test()
 {
   srslte::log_filter log1("RRC");
   log1.set_level(srslte::LOG_LEVEL_DEBUG);
@@ -154,6 +155,6 @@ int basic_test()
 
 int main(int argc, char** argv)
 {
-  TESTASSERT(basic_test() == 0);
-  nas_test();
+  TESTASSERT(meas_obj_test() == 0);
+  TESTASSERT(nas_test() == 0);
 }

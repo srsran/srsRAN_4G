@@ -260,6 +260,18 @@ bool rlc::has_data(uint32_t lcid)
 
   return has_data;
 }
+bool rlc::is_suspended(const uint32_t lcid)
+{
+  bool ret = false;
+
+  pthread_rwlock_rdlock(&rwlock);
+  if (valid_lcid(lcid)) {
+    ret = rlc_array.at(lcid)->is_suspended();
+  }
+  pthread_rwlock_unlock(&rwlock);
+
+  return ret;
+}
 
 uint32_t rlc::get_buffer_state(uint32_t lcid)
 {

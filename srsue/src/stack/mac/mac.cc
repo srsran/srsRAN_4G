@@ -90,7 +90,7 @@ bool mac::init(phy_interface_mac_lte* phy,
 
   // Create UL/DL unique HARQ pointers
   ul_harq.at(0)->init(log_h, &uernti, &ra_procedure, &mux_unit);
-  dl_harq.at(0)->init(log_h, &uernti, &timer_alignment, &demux_unit);
+  dl_harq.at(0)->init(log_h, &uernti, &demux_unit);
 
   reset();
 
@@ -137,7 +137,7 @@ void mac::reconfiguration(const uint32_t& cc_idx, const bool& enable)
     }
     while (dl_harq.size() < cc_idx + 1) {
       auto dl = dl_harq_entity_ptr(new dl_harq_entity());
-      dl->init(log_h, &uernti, &timer_alignment, &demux_unit);
+      dl->init(log_h, &uernti, &demux_unit);
 
       if (pcap) {
         dl->start_pcap(pcap);
@@ -538,6 +538,7 @@ void mac::setup_timers(int time_alignment_timer)
 void mac::timer_expired(uint32_t timer_id)
 {
   if (timer_id == timer_alignment.id()) {
+    Info("Time Alignment Timer expired\n");
     timer_alignment_expire();
   } else {
     Warning("Received callback from unknown timer_id=%d\n", timer_id);

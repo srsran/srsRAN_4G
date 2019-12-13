@@ -118,7 +118,7 @@ void lte_ttcn3_phy::set_config(srslte::phy_cfg_t& config, uint32_t cc_idx, uint3
 }
 
 // Measurements interface
-void lte_ttcn3_phy::meas_reset(){};
+void lte_ttcn3_phy::meas_stop(){};
 
 int lte_ttcn3_phy::meas_start(uint32_t earfcn, int pci)
 {
