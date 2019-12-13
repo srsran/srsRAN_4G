@@ -233,13 +233,13 @@ inline void byte_buffer_deleter::operator()(byte_buffer_t* buf) const
 
 inline unique_byte_buffer_t allocate_unique_buffer(byte_buffer_pool& pool, bool blocking = false)
 {
-  return std::move(unique_byte_buffer_t(pool.allocate(nullptr, blocking), byte_buffer_deleter(&pool)));
+  return unique_byte_buffer_t(pool.allocate(nullptr, blocking), byte_buffer_deleter(&pool));
 }
 
 inline unique_byte_buffer_t
 allocate_unique_buffer(byte_buffer_pool& pool, const char* debug_name, bool blocking = false)
 {
-  return std::move(unique_byte_buffer_t(pool.allocate(debug_name, blocking), byte_buffer_deleter(&pool)));
+  return unique_byte_buffer_t(pool.allocate(debug_name, blocking), byte_buffer_deleter(&pool));
 }
 
 } // namespace srslte

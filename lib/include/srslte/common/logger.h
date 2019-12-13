@@ -92,7 +92,7 @@ public:
   };
   typedef std::unique_ptr<log_str, log_str_deleter> unique_log_str_t;
 
-  void log_char(const char* msg) { log(std::move(unique_log_str_t(new log_str(msg), log_str_deleter()))); }
+  void log_char(const char* msg) { log(unique_log_str_t(new log_str(msg), log_str_deleter())); }
 
   virtual void log(unique_log_str_t msg) = 0;
 
