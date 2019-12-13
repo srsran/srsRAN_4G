@@ -1275,7 +1275,7 @@ pack(bit_ref& bref, const std::string& s, size_t lb, size_t ub, size_t alb, size
     // TODO: print error
     // NOTE: This should be valid for exts
     srsasn_log_print(
-        LOG_LEVEL_ERROR, "The PrintableString size=%d is not within the limits [%d, %d]\n", s.size(), alb, aub);
+        LOG_LEVEL_ERROR, "The PrintableString size=%zd is not within the limits [%d, %d]\n", s.size(), alb, aub);
     return SRSASN_ERROR_ENCODE_FAIL;
   }
   size_t b              = asn_string_utils::get_nof_bits_per_char(lb, ub, aligned);
