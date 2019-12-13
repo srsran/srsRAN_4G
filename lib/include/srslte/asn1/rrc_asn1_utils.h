@@ -22,6 +22,7 @@
 #ifndef SRSLTE_RRC_ASN1_UTILS_H
 #define SRSLTE_RRC_ASN1_UTILS_H
 
+#include "srslte/common/interfaces_common.h"
 #include "srslte/interfaces/rrc_interface_types.h"
 
 /************************
@@ -79,6 +80,12 @@ void     to_asn1(asn1::rrc::s_tmsi_s* asn1_type, const s_tmsi_t& cfg);
 rlc_config_t make_rlc_config_t(const asn1::rrc::rlc_cfg_c& asn1_type);
 rlc_config_t make_rlc_config_t(const asn1::rrc::srb_to_add_mod_s& asn1_type);
 void         to_asn1(asn1::rrc::rlc_cfg_c* asn1_type, const rlc_config_t& cfg);
+
+/***************************
+ *      PDCP Config
+ **************************/
+srslte::pdcp_config_t make_srb_pdcp_config_t(const uint8_t bearer_id, bool is_ue);
+srslte::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue);
 
 /***************************
  *      MAC Config
