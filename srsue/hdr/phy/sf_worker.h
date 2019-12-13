@@ -63,15 +63,16 @@ public:
   void set_crnti(uint16_t rnti);
   void enable_pregen_signals(bool enabled);
 
-  /* Methods for plotting */
+  ///< Methods for plotting called from GUI thread
   int      read_ce_abs(float* ce_abs, uint32_t tx_antenna, uint32_t rx_antenna);
   uint32_t get_cell_nof_ports()
   {
-    if (cell_initiated) {
-      return cell.nof_ports;
-    } else {
-      return 1;
+    // wait until cell is initialized
+    std::unique_lock<std::mutex> lock(mutex);
+    while (!cell_initiated) {
+      cell_init_cond.wait(lock);
     }
+    return cell.nof_ports;
   }
   uint32_t get_rx_nof_antennas() { return phy->args->nof_rx_ant; }
   int      read_pdsch_d(cf_t* pdsch_d);
@@ -101,6 +102,7 @@ private:
   srslte_cell_t       cell       = {};
   srslte_tdd_config_t tdd_config = {};
 
+  std::condition_variable cell_init_cond;
   bool cell_initiated = false;
 
   cf_t* prach_ptr   = nullptr;

@@ -374,8 +374,7 @@ bool sync::cell_is_camping()
 
 void sync::run_thread()
 {
-  sf_worker* worker                                      = NULL;
-  sf_worker* last_worker                                 = NULL;
+  sf_worker* worker                                      = nullptr;
   cf_t*      buffer[SRSLTE_MAX_RADIOS][SRSLTE_MAX_PORTS] = {NULL};
 
   bool is_end_of_burst        = false;
