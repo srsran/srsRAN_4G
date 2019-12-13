@@ -216,7 +216,7 @@ int mac::ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg)
     }
 
     // Update Scheduler configuration
-    if (scheduler.ue_cfg(rnti, cfg)) {
+    if ((cfg != NULL) ? scheduler.ue_cfg(rnti, cfg) : false) {
       Error("Registering new UE rnti=0x%x to SCHED\n", rnti);
     } else {
       ret = 0;
@@ -267,10 +267,8 @@ void mac::get_metrics(mac_metrics_t metrics[ENB_METRICS_MAX_USERS])
   pthread_rwlock_rdlock(&rwlock);
   int cnt = 0;
   for (auto& u : ue_db) {
-    if (u.first != SRSLTE_MRNTI) {
-      u.second->metrics_read(&metrics[cnt]);
-      cnt++;
-    }
+    u.second->metrics_read(&metrics[cnt]);
+    cnt++;
   }
   pthread_rwlock_unlock(&rwlock);
 }
@@ -698,6 +696,7 @@ int mac::get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_t* dl_sched_res)
     dl_sched_res->pdsch[0].dci.rnti    = SRSLTE_MRNTI;
 
     // we use TTI % HARQ to make sure we use different buffers for consecutive TTIs to avoid races between PHY workers
+    ue_db[SRSLTE_MRNTI]->metrics_tx(true, mcs.tbs);
     dl_sched_res->pdsch[0].data[0] =
         ue_db[SRSLTE_MRNTI]->generate_mch_pdu(tti % SRSLTE_FDD_NOF_HARQ, mch, mch.num_mtch_sched + 1, mcs.tbs / 8);
 
@@ -723,6 +722,7 @@ int mac::get_mch_sched(uint32_t tti, bool is_mcch, dl_sched_t* dl_sched_res)
       mch.mtch_sched[0].mtch_payload  = mtch_payload_buffer;
       dl_sched_res->pdsch[0].dci.rnti = SRSLTE_MRNTI;
       if (bytes_received) {
+        ue_db[SRSLTE_MRNTI]->metrics_tx(true, mcs.tbs);
         dl_sched_res->pdsch[0].data[0] =
             ue_db[SRSLTE_MRNTI]->generate_mch_pdu(tti % SRSLTE_FDD_NOF_HARQ, mch, 1, mcs_data.tbs / 8);
       }

@@ -126,9 +126,7 @@ void rrc::get_metrics(rrc_metrics_t& m)
     m.n_ues = 0;
     for (auto iter = users.begin(); m.n_ues < ENB_METRICS_MAX_USERS && iter != users.end(); ++iter) {
       ue* u = iter->second.get();
-      if (iter->first != SRSLTE_MRNTI) {
-        m.ues[m.n_ues++].state = u->get_state();
-      }
+      m.ues[m.n_ues++].state = u->get_state();
     }
     pthread_mutex_unlock(&user_mutex);
   }
@@ -214,6 +212,9 @@ void rrc::add_user(uint16_t rnti)
     uint32_t teid_in = 1;
     for (auto& mbms_item : mcch.msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[0].mbms_session_info_list_r9) {
       uint32_t lcid = mbms_item.lc_ch_id_r9;
+
+      // adding UE object to MAC for MRNTI without scheduling configuration (broadcast not part of regular scheduling)
+      mac->ue_cfg(SRSLTE_MRNTI, NULL);
       rlc->add_bearer_mrb(SRSLTE_MRNTI, lcid);
       pdcp->add_bearer(SRSLTE_MRNTI, lcid, srslte::make_drb_pdcp_config_t(1, false));
       gtpu->add_bearer(SRSLTE_MRNTI, lcid, 1, 1, &teid_in);

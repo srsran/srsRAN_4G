@@ -658,8 +658,10 @@ int cc_worker::encode_pmch(stack_interface_phy_lte::dl_sched_grant_t* grant, srs
   // Logging
   char str[512];
   srslte_pdsch_tx_info(&pmch_cfg.pdsch_cfg, str, 512);
-  Info("pmch: %s\n", str);
+  Info("PMCH: %s\n", str);
 
+  // Save metrics stats
+  ue_db[SRSLTE_MRNTI]->metrics_dl(mbsfn_cfg->mbsfn_mcs);
   return SRSLTE_SUCCESS;
 }
 
@@ -728,7 +730,8 @@ uint32_t cc_worker::get_metrics(phy_metrics_t metrics[ENB_METRICS_MAX_USERS])
   std::lock_guard<std::mutex> lock(mutex);
   uint32_t                    cnt = 0;
   for (auto& ue : ue_db) {
-    if (SRSLTE_RNTI_ISUSER(ue.first) && cnt < ENB_METRICS_MAX_USERS) {
+    if ((SRSLTE_RNTI_ISUSER(ue.first) || ue.first == SRSLTE_MRNTI) &&
+        cnt < ENB_METRICS_MAX_USERS) {
       ue.second->metrics_read(&metrics[cnt]);
       cnt++;
     }
