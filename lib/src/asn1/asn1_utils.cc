@@ -929,7 +929,7 @@ std::string octstring_to_string(const uint8_t* ptr, uint32_t N)
 void string_to_octstring(uint8_t* ptr, const std::string& str)
 {
   if (str.size() % 2 != 0) {
-    srsasn_log_print(LOG_LEVEL_WARNING, "The provided hex string size=%zu is not a multiple of 2\n.", str.size());
+    srsasn_log_print(LOG_LEVEL_WARNING, "The provided hex string size=%zd is not a multiple of 2\n.", str.size());
   }
   char cstr[] = "\0\0\0";
   for (uint32_t i = 0; i < str.size(); i += 2) {
@@ -1275,7 +1275,7 @@ pack(bit_ref& bref, const std::string& s, size_t lb, size_t ub, size_t alb, size
     // TODO: print error
     // NOTE: This should be valid for exts
     srsasn_log_print(
-        LOG_LEVEL_ERROR, "The PrintableString size=%d is not within the limits [%d, %d]\n", s.size(), alb, aub);
+        LOG_LEVEL_ERROR, "The PrintableString size=%zd is not within the limits [%d, %d]\n", s.size(), alb, aub);
     return SRSASN_ERROR_ENCODE_FAIL;
   }
   size_t b              = asn_string_utils::get_nof_bits_per_char(lb, ub, aligned);
