@@ -23,6 +23,7 @@
 #include "srslte/asn1/rrc_asn1.h"
 #include "srslte/config.h"
 #include <algorithm>
+#include <srslte/common/interfaces_common.h>
 
 namespace srslte {
 
@@ -182,6 +183,34 @@ void to_asn1(asn1::rrc::rlc_cfg_c* asn1_type, const srslte::rlc_config_t& cfg)
       // stays TM
       break;
   }
+}
+
+/**
+ * PDCP Config
+ */
+
+srslte::pdcp_config_t make_srb_pdcp_config_t(const uint8_t bearer_id, bool is_ue)
+{
+  pdcp_config_t cfg(bearer_id,
+                    PDCP_RB_IS_SRB,
+                    is_ue ? SECURITY_DIRECTION_UPLINK : SECURITY_DIRECTION_DOWNLINK,
+                    is_ue ? SECURITY_DIRECTION_DOWNLINK : SECURITY_DIRECTION_UPLINK,
+                    PDCP_SN_LEN_5,
+                    pdcp_t_reordering_t::ms500,
+                    pdcp_discard_timer_t::infinity);
+  return cfg;
+}
+
+srslte::pdcp_config_t make_drb_pdcp_config_t(const uint8_t bearer_id, bool is_ue)
+{
+  pdcp_config_t cfg(bearer_id,
+                    PDCP_RB_IS_DRB,
+                    is_ue ? SECURITY_DIRECTION_UPLINK : SECURITY_DIRECTION_DOWNLINK,
+                    is_ue ? SECURITY_DIRECTION_DOWNLINK : SECURITY_DIRECTION_UPLINK,
+                    PDCP_SN_LEN_12,
+                    pdcp_t_reordering_t::ms500,
+                    pdcp_discard_timer_t::infinity);
+  return cfg;
 }
 
 /***************************

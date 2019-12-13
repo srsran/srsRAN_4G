@@ -211,20 +211,11 @@ void rrc::add_user(uint16_t rnti)
   }
 
   if (rnti == SRSLTE_MRNTI) {
-    srslte::pdcp_config_t pdcp_cfg{1,
-                                   srslte::PDCP_RB_IS_DRB,
-                                   srslte::SECURITY_DIRECTION_DOWNLINK,
-                                   srslte::SECURITY_DIRECTION_UPLINK,
-                                   srslte::PDCP_SN_LEN_12,
-                                   srslte::pdcp_t_reordering_t::ms500,
-                                   srslte::pdcp_discard_timer_t::infinity};
-
     uint32_t teid_in = 1;
-
     for (auto& mbms_item : mcch.msg.c1().mbsfn_area_cfg_r9().pmch_info_list_r9[0].mbms_session_info_list_r9) {
       uint32_t lcid = mbms_item.lc_ch_id_r9;
       rlc->add_bearer_mrb(SRSLTE_MRNTI, lcid);
-      pdcp->add_bearer(SRSLTE_MRNTI, lcid, pdcp_cfg);
+      pdcp->add_bearer(SRSLTE_MRNTI, lcid, srslte::make_drb_pdcp_config_t(1, false));
       gtpu->add_bearer(SRSLTE_MRNTI, lcid, 1, 1, &teid_in);
     }
   }
@@ -1638,15 +1629,7 @@ void rrc::ue::send_connection_setup(bool is_setup)
   parent->rlc->add_bearer(rnti, 1, srslte::rlc_config_t::srb_config(1));
 
   // Configure SRB1 in PDCP
-  srslte::pdcp_config_t pdcp_cnfg{1,
-                                  srslte::PDCP_RB_IS_SRB,
-                                  srslte::SECURITY_DIRECTION_DOWNLINK,
-                                  srslte::SECURITY_DIRECTION_UPLINK,
-                                  srslte::PDCP_SN_LEN_5,
-                                  srslte::pdcp_t_reordering_t::ms500,
-                                  srslte::pdcp_discard_timer_t::infinity};
-
-  parent->pdcp->add_bearer(rnti, 1, pdcp_cnfg);
+  parent->pdcp->add_bearer(rnti, 1, srslte::make_srb_pdcp_config_t(1, false));
 
   // Configure PHY layer
   parent->phy->set_config_dedicated(rnti, phy_cfg);
@@ -1856,15 +1839,7 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   parent->rlc->add_bearer(rnti, 2, srslte::rlc_config_t::srb_config(2));
 
   // Configure SRB2 in PDCP
-  srslte::pdcp_config_t pdcp_cnfg_srb = {2,
-                                         srslte::PDCP_RB_IS_SRB,
-                                         srslte::SECURITY_DIRECTION_DOWNLINK,
-                                         srslte::SECURITY_DIRECTION_UPLINK,
-                                         srslte::PDCP_SN_LEN_5,
-                                         srslte::pdcp_t_reordering_t::ms500,
-                                         srslte::pdcp_discard_timer_t::infinity};
-
-  parent->pdcp->add_bearer(rnti, 2, pdcp_cnfg_srb);
+  parent->pdcp->add_bearer(rnti, 2, srslte::make_srb_pdcp_config_t(2, false));
   parent->pdcp->config_security(rnti, 2, k_rrc_enc, k_rrc_int, k_up_enc, cipher_algo, integ_algo);
   parent->pdcp->enable_integrity(rnti, 2);
   parent->pdcp->enable_encryption(rnti, 2);
@@ -1873,14 +1848,7 @@ void rrc::ue::send_connection_reconf(srslte::unique_byte_buffer_t pdu)
   parent->rlc->add_bearer(rnti, 3, srslte::make_rlc_config_t(conn_reconf->rr_cfg_ded.drb_to_add_mod_list[0].rlc_cfg));
 
   // Configure DRB1 in PDCP
-  srslte::pdcp_config_t pdcp_cnfg_drb = {1,
-                                         srslte::PDCP_RB_IS_DRB,
-                                         srslte::SECURITY_DIRECTION_DOWNLINK,
-                                         srslte::SECURITY_DIRECTION_UPLINK,
-                                         srslte::PDCP_SN_LEN_12,
-                                         srslte::pdcp_t_reordering_t::ms500,
-                                         srslte::pdcp_discard_timer_t::infinity};
-
+  srslte::pdcp_config_t pdcp_cnfg_drb = srslte::make_drb_pdcp_config_t(1, false);
   if (conn_reconf->rr_cfg_ded.drb_to_add_mod_list[0].pdcp_cfg.rlc_um_present) {
     if (conn_reconf->rr_cfg_ded.drb_to_add_mod_list[0].pdcp_cfg.rlc_um.pdcp_sn_size.value ==
         pdcp_cfg_s::rlc_um_s_::pdcp_sn_size_e_::len7bits) {
