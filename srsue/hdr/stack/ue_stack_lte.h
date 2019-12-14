@@ -129,16 +129,23 @@ public:
 private:
   void run_thread() final;
   void run_tti_impl(uint32_t tti);
+  void           calc_tti_stats(const uint32_t duration_us);
+  const uint32_t TTI_STAT_PERIOD           = 1024;
+  const uint32_t TTI_WARN_THRESHOLD_US     = 5000;
+  const uint32_t SYNC_QUEUE_WARN_THRESHOLD = 5;
+  const float    US_PER_MS                 = 1000.0;
   void stop_impl();
 
   bool                running;
   srsue::stack_args_t args;
+  std::vector<uint32_t> proc_time;
 
   // timers
   srslte::timer_handler timers;
 
   // UE stack logging
   srslte::logger*    logger = nullptr;
+  srslte::log_filter log; ///< our own log filter
   srslte::log_filter mac_log;
   srslte::log_filter rlc_log;
   srslte::log_filter pdcp_log;

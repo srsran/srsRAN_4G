@@ -77,7 +77,7 @@ int enb_stack_lte::init(const stack_args_t& args_, const rrc_cfg_t& rrc_cfg_)
   rrc_log.init("RRC ", logger);
   gtpu_log.init("GTPU", logger);
   s1ap_log.init("S1AP", logger);
-  stack_log.init("STACK", logger);
+  stack_log.init("STCK", logger);
 
   // Init logs
   mac_log.set_level(args.log.mac_level);

@@ -22,6 +22,9 @@
 #include "srsue/hdr/stack/ue_stack_lte.h"
 #include "srslte/common/logmap.h"
 #include "srslte/srslte.h"
+#include <algorithm>
+#include <chrono>
+#include <numeric>
 
 using namespace srslte;
 
@@ -50,6 +53,8 @@ ue_stack_lte::ue_stack_lte() :
   background_queue_id = pending_tasks.add_queue();
 
   background_tasks.start();
+
+  proc_time.reserve(TTI_STAT_PERIOD);
 }
 
 ue_stack_lte::~ue_stack_lte()
@@ -88,6 +93,10 @@ int ue_stack_lte::init(const stack_args_t& args_, srslte::logger* logger_)
   pdcp_log.init("PDCP", logger);
   rrc_log.init("RRC ", logger);
   usim_log.init("USIM", logger);
+
+  // init own logger
+  log.init("STCK", logger);
+  log.set_level(srslte::LOG_LEVEL_INFO);
 
   pool_log.init("POOL", logger);
   pool_log.set_level(srslte::LOG_LEVEL_ERROR);
@@ -278,10 +287,43 @@ void ue_stack_lte::run_tti(uint32_t tti)
 
 void ue_stack_lte::run_tti_impl(uint32_t tti)
 {
+  auto start = std::chrono::steady_clock::now();
+
+  // perform tasks in this TTI
   mac.run_tti(tti);
   rrc.run_tti(tti);
   nas.run_tti(tti);
   timers.step_all();
+
+  auto end = std::chrono::steady_clock::now();
+  calc_tti_stats(std::chrono::duration_cast<std::chrono::microseconds>(end - start).count());
+}
+
+void ue_stack_lte::calc_tti_stats(const uint32_t duration_us)
+{
+  log.debug("proc_time=%.2fms\n", duration_us / US_PER_MS);
+  if (duration_us > TTI_WARN_THRESHOLD_US) {
+    log.warning("Long TTI proc_time=%.2fms\n", duration_us / US_PER_MS);
+  }
+
+  proc_time.push_back(duration_us);
+  if (proc_time.size() == TTI_STAT_PERIOD) {
+    uint32_t min = 0, max = 0, sum = 0;
+    for (auto& item : proc_time) {
+      max = std::max(max, item);
+      min = std::min(min, item);
+      sum += item;
+    }
+    auto avg = sum / proc_time.size();
+    log.info("proc_time=%.2f,%.2f,%.2f (min,avg,max)\n", min / US_PER_MS, avg / US_PER_MS, max / US_PER_MS);
+
+    proc_time.clear();
+  }
+
+  // print warning if PHY pushes new TTI messages faster than we process them
+  if (pending_tasks.size(sync_queue_id) > SYNC_QUEUE_WARN_THRESHOLD) {
+    log.warning("Detected slow task processing (sync_queue_len=%zd).\n", pending_tasks.size(sync_queue_id));
+  }
 }
 
 /********************
