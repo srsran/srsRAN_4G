@@ -1378,16 +1378,9 @@ void rrc::write_pdu_bcch_bch(unique_byte_buffer_t pdu)
     return;
   }
 
-  if (rrc_log->get_level() == srslte::LOG_LEVEL_INFO) {
-    rrc_log->info("BCCH-BCH - Rx (%d B)\n", pdu->N_bytes);
-  } else if (rrc_log->get_level() >= srslte::LOG_LEVEL_DEBUG) {
-    asn1::json_writer json_writer;
-    bch_msg.to_json(json_writer);
-    rrc_log->debug_hex(pdu->msg, pdu->N_bytes, "BCCH-BCH - Rx (%d B)\n", pdu->N_bytes);
-    rrc_log->debug("Content:\n%s\n", json_writer.to_string().c_str());
-  }
+  log_rrc_message("BCCH-BCH", Rx, pdu.get(), bch_msg, "MIB");
 
-  // Do we need to do something with BCH?
+  // Nothing else to do ..
 }
 
 void rrc::write_pdu_bcch_dlsch(unique_byte_buffer_t pdu)
