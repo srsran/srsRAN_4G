@@ -462,62 +462,64 @@ typedef struct {
 } carrier_map_t;
 
 typedef struct {
-  std::string            type;
-  srslte::phy_log_args_t log;
+  std::string            type = "lte";
+  srslte::phy_log_args_t log  = {
+      .phy_level     = "none",
+      .phy_lib_level = "none",
+      .phy_hex_limit = -1,
+  };
 
-  std::string           dl_earfcn;   // comma-separated list of EARFCNs
-  std::vector<uint32_t> earfcn_list; // vectorized version of dl_earfcn that gets populated during init
+  std::string           dl_earfcn   = "3400"; // comma-separated list of EARFCNs
+  std::vector<uint32_t> earfcn_list = {3400}; // vectorized version of dl_earfcn that gets populated during init
 
-  float dl_freq;
-  float ul_freq;
+  float dl_freq = -1.0f;
+  float ul_freq = -1.0f;
 
-  bool  ul_pwr_ctrl_en;
-  float prach_gain;
-  int   pdsch_max_its;
-  bool  attach_enable_64qam;
-  int   nof_phy_threads;
+  bool  ul_pwr_ctrl_en  = false;
+  float prach_gain      = -1;
+  int   pdsch_max_its   = 8;
+  int   nof_phy_threads = 3;
 
-  int worker_cpu_mask;
-  int sync_cpu_affinity;
+  int worker_cpu_mask   = -1;
+  int sync_cpu_affinity = -1;
 
-  uint32_t      nof_carriers;
-  uint32_t      nof_radios;
-  uint32_t      nof_rx_ant;
-  uint32_t      nof_rf_channels;
-  carrier_map_t carrier_map[SRSLTE_MAX_CARRIERS];
-  std::string   equalizer_mode;
-  int           cqi_max;
-  int           cqi_fixed;
-  float         snr_ema_coeff;
-  std::string   snr_estim_alg;
-  bool          agc_enable;
-  bool          cfo_is_doppler;
-  bool          cfo_integer_enabled;
-  float         cfo_correct_tol_hz;
-  float         cfo_pss_ema;
-  float         cfo_ref_ema;
-  float         cfo_loop_bw_pss;
-  float         cfo_loop_bw_ref;
-  float         cfo_loop_ref_min;
-  float         cfo_loop_pss_tol;
-  float         sfo_ema;
-  uint32_t      sfo_correct_period;
-  uint32_t      cfo_loop_pss_conv;
-  uint32_t      cfo_ref_mask;
-  bool          interpolate_subframe_enabled;
-  bool          estimator_fil_auto;
-  float         estimator_fil_stddev;
-  uint32_t      estimator_fil_order;
-  float         snr_to_cqi_offset;
-  std::string   sss_algorithm;
-  bool          sic_pss_enabled;
-  float         rx_gain_offset;
-  bool          pdsch_csi_enabled;
-  bool          pdsch_8bit_decoder;
-  uint32_t      intra_freq_meas_len_ms;
-  uint32_t      intra_freq_meas_period_ms;
-  bool          pregenerate_signals;
-  float         force_ul_amplitude;
+  uint32_t      nof_carriers                     = 1;
+  uint32_t      nof_radios                       = 1;
+  uint32_t      nof_rx_ant                       = 1;
+  uint32_t      nof_rf_channels                  = 1;
+  carrier_map_t carrier_map[SRSLTE_MAX_CARRIERS] = {};
+  std::string   equalizer_mode                   = "mmse";
+  int           cqi_max                          = 15;
+  int           cqi_fixed                        = -1;
+  float         snr_ema_coeff                    = 0.1f;
+  std::string   snr_estim_alg                    = "refs";
+  bool          agc_enable                       = true;
+  bool          cfo_is_doppler                   = false;
+  bool          cfo_integer_enabled              = false;
+  float         cfo_correct_tol_hz               = 1.0f;
+  float         cfo_pss_ema                      = DEFAULT_CFO_EMA_TRACK;
+  float         cfo_loop_bw_pss                  = DEFAULT_CFO_BW_PSS;
+  float         cfo_loop_bw_ref                  = DEFAULT_CFO_BW_REF;
+  float         cfo_loop_ref_min                 = DEFAULT_CFO_REF_MIN;
+  float         cfo_loop_pss_tol                 = DEFAULT_CFO_PSS_MIN;
+  float         sfo_ema                          = DEFAULT_SFO_EMA_COEFF;
+  uint32_t      sfo_correct_period               = DEFAULT_SAMPLE_OFFSET_CORRECT_PERIOD;
+  uint32_t      cfo_loop_pss_conv                = DEFAULT_PSS_STABLE_TIMEOUT;
+  uint32_t      cfo_ref_mask                     = 1023;
+  bool          interpolate_subframe_enabled     = false;
+  bool          estimator_fil_auto               = false;
+  float         estimator_fil_stddev             = 1.0f;
+  uint32_t      estimator_fil_order              = 4;
+  float         snr_to_cqi_offset                = 0.0f;
+  std::string   sss_algorithm                    = "full";
+  bool          sic_pss_enabled                  = false;
+  float         rx_gain_offset                   = 62;
+  bool          pdsch_csi_enabled                = true;
+  bool          pdsch_8bit_decoder               = false;
+  uint32_t      intra_freq_meas_len_ms           = 20;
+  uint32_t      intra_freq_meas_period_ms        = 200;
+  bool          pregenerate_signals              = false;
+  float         force_ul_amplitude               = 0.0f;
 
   srslte::channel::args_t dl_channel_args;
   srslte::channel::args_t ul_channel_args;
