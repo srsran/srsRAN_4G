@@ -124,6 +124,16 @@ void *srslte_vec_malloc(uint32_t size) {
   }
 }
 
+cf_t* srslte_vec_cf_malloc(uint32_t nsamples)
+{
+  return (cf_t*)srslte_vec_malloc((uint32_t)sizeof(cf_t) * nsamples);
+}
+
+float* srslte_vec_f_malloc(uint32_t nsamples)
+{
+  return (float*)srslte_vec_malloc((uint32_t)sizeof(float) * nsamples);
+}
+
 void *srslte_vec_realloc(void *ptr, uint32_t old_size, uint32_t new_size) {
 #ifndef LV_HAVE_SSE
   return realloc(ptr, new_size);

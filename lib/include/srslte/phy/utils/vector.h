@@ -80,6 +80,8 @@ SRSLTE_API float srslte_vec_acc_ff(const float *x, const uint32_t len);
 SRSLTE_API cf_t srslte_vec_acc_cc(const cf_t *x, const uint32_t len);
 
 SRSLTE_API void *srslte_vec_malloc(uint32_t size);
+SRSLTE_API cf_t*  srslte_vec_cf_malloc(uint32_t size);
+SRSLTE_API float* srslte_vec_f_malloc(uint32_t size);
 
 SRSLTE_API void *srslte_vec_realloc(void *ptr, uint32_t old_size, uint32_t new_size);
 
