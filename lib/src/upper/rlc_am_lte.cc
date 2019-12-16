@@ -57,12 +57,12 @@ bool rlc_am_lte::configure(rlc_config_t cfg_)
   cfg = cfg_;
 
   if (not rx.configure(cfg.am)) {
-    log->error("Error resuming bearer (RX)\n");
+    log->error("Error configuring bearer (RX)\n");
     return false;
   }
 
   if (not tx.configure(cfg)) {
-    log->error("Error resuming bearer (TX)\n");
+    log->error("Error configuring bearer (TX)\n");
     return false;
   }
 
