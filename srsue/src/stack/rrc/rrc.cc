@@ -70,11 +70,14 @@ rrc::rrc(srslte::log* rrc_log_) :
 rrc::~rrc() = default;
 
 template <class T>
-void rrc::log_rrc_message(const std::string source, const direction_t dir, const byte_buffer_t* pdu, const T& msg)
+void rrc::log_rrc_message(const std::string    source,
+                          const direction_t    dir,
+                          const byte_buffer_t* pdu,
+                          const T&             msg,
+                          const std::string&   msg_type)
 {
-  const char* msg_type = msg.msg.c1().type().to_string().c_str();
   if (rrc_log->get_level() == srslte::LOG_LEVEL_INFO) {
-    rrc_log->info("%s - %s %s (%d B)\n", source.c_str(), (dir == Rx) ? "Rx" : "Tx", msg_type, pdu->N_bytes);
+    rrc_log->info("%s - %s %s (%d B)\n", source.c_str(), (dir == Rx) ? "Rx" : "Tx", msg_type.c_str(), pdu->N_bytes);
   } else if (rrc_log->get_level() >= srslte::LOG_LEVEL_DEBUG) {
     asn1::json_writer json_writer;
     msg.to_json(json_writer);
@@ -83,7 +86,7 @@ void rrc::log_rrc_message(const std::string source, const direction_t dir, const
                        "%s - %s %s (%d B)\n",
                        source.c_str(),
                        (dir == Rx) ? "Rx" : "Tx",
-                       msg_type,
+                       msg_type.c_str(),
                        pdu->N_bytes);
     rrc_log->debug_long("Content:\n%s\n", json_writer.to_string().c_str());
   }
@@ -1408,7 +1411,7 @@ void rrc::parse_pdu_bcch_dlsch(unique_byte_buffer_t pdu)
     return;
   }
 
-  log_rrc_message("BCCH-DLSCH", Rx, pdu.get(), dlsch_msg);
+  log_rrc_message("BCCH-DLSCH", Rx, pdu.get(), dlsch_msg, dlsch_msg.msg.c1().type().to_string());
 
   if (dlsch_msg.msg.c1().type() == bcch_dl_sch_msg_type_c::c1_c_::types::sib_type1) {
     rrc_log->info("Processing SIB1 (1/1)\n");
@@ -1604,7 +1607,7 @@ void rrc::process_pcch(unique_byte_buffer_t pdu)
     return;
   }
 
-  log_rrc_message("PCCH", Rx, pdu.get(), pcch_msg);
+  log_rrc_message("PCCH", Rx, pdu.get(), pcch_msg, pcch_msg.msg.c1().type().to_string());
 
   if (not ue_identity_configured) {
     rrc_log->warning("Received paging message but no ue-Identity is configured\n");
@@ -1651,7 +1654,7 @@ void rrc::parse_pdu_mch(uint32_t lcid, srslte::unique_byte_buffer_t pdu)
   }
   serving_cell->has_mcch = true;
   phy->set_config_mbsfn_mcch(srslte::make_mcch_msg(serving_cell->mcch));
-  log_rrc_message("MCH", Rx, pdu.get(), serving_cell->mcch);
+  log_rrc_message("MCH", Rx, pdu.get(), serving_cell->mcch, serving_cell->mcch.msg.c1().type().to_string());
   if (args.mbms_service_id >= 0) {
     rrc_log->info("Attempting to auto-start MBMS service %d\n", args.mbms_service_id);
     mbms_service_start(args.mbms_service_id, args.mbms_service_port);
@@ -1697,7 +1700,7 @@ void rrc::send_ul_ccch_msg(const asn1::rrc::ul_ccch_msg_s& msg)
   mac->set_contention_id(uecri);
 
   uint32_t lcid = RB_ID_SRB0;
-  log_rrc_message(get_rb_name(lcid).c_str(), Tx, pdcp_buf.get(), msg);
+  log_rrc_message(get_rb_name(lcid).c_str(), Tx, pdcp_buf.get(), msg, msg.msg.c1().type().to_string());
 
   rlc->write_sdu(lcid, std::move(pdcp_buf));
 }
@@ -1717,7 +1720,7 @@ void rrc::send_ul_dcch_msg(uint32_t lcid, const asn1::rrc::ul_dcch_msg_s& msg)
   pdcp_buf->N_bytes = (uint32_t)bref.distance_bytes(pdcp_buf->msg);
   pdcp_buf->set_timestamp();
 
-  log_rrc_message(get_rb_name(lcid).c_str(), Tx, pdcp_buf.get(), msg);
+  log_rrc_message(get_rb_name(lcid).c_str(), Tx, pdcp_buf.get(), msg, msg.msg.c1().type().to_string());
 
   pdcp->write_sdu(lcid, std::move(pdcp_buf));
 }
@@ -1766,7 +1769,7 @@ void rrc::parse_dl_ccch(unique_byte_buffer_t pdu)
     rrc_log->error("Failed to unpack DL-CCCH message\n");
     return;
   }
-  log_rrc_message(get_rb_name(RB_ID_SRB0).c_str(), Rx, pdu.get(), dl_ccch_msg);
+  log_rrc_message(get_rb_name(RB_ID_SRB0).c_str(), Rx, pdu.get(), dl_ccch_msg, dl_ccch_msg.msg.c1().type().to_string());
 
   dl_ccch_msg_type_c::c1_c_* c1 = &dl_ccch_msg.msg.c1();
   switch (dl_ccch_msg.msg.c1().type().value) {
@@ -1817,7 +1820,7 @@ void rrc::parse_dl_dcch(uint32_t lcid, unique_byte_buffer_t pdu)
     rrc_log->error("Failed to unpack DL-DCCH message\n");
     return;
   }
-  log_rrc_message(get_rb_name(lcid).c_str(), Rx, pdu.get(), dl_dcch_msg);
+  log_rrc_message(get_rb_name(lcid).c_str(), Rx, pdu.get(), dl_dcch_msg, dl_dcch_msg.msg.c1().type().to_string());
 
   dl_dcch_msg_type_c::c1_c_* c1 = &dl_dcch_msg.msg.c1();
   switch (dl_dcch_msg.msg.c1().type().value) {

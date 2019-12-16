@@ -299,7 +299,11 @@ public:
 
   typedef enum { Rx = 0, Tx } direction_t;
   template <class T>
-  void log_rrc_message(const std::string source, const direction_t dir, const srslte::byte_buffer_t* pdu, const T& msg);
+  void log_rrc_message(const std::string            source,
+                       const direction_t            dir,
+                       const srslte::byte_buffer_t* pdu,
+                       const T&                     msg,
+                       const std::string&           msg_type);
 
   std::string print_mbms();
   bool        mbms_service_start(uint32_t serv, uint32_t port);
