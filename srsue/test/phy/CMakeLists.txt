@@ -29,6 +29,23 @@ link_directories(
         ${SEC_LIBRARY_DIRS}
 )
 
+add_executable(phy_worker_test phy_worker_test.cc)
+target_link_libraries(phy_worker_test
+        srsue_phy
+        srsue_stack
+        srsue_upper
+        srsue_mac
+        srsue_rrc
+        srslte_common
+        srslte_phy
+        srslte_radio
+        srslte_upper
+        rrc_asn1
+        ${CMAKE_THREAD_LIBS_INIT}
+        ${Boost_LIBRARIES})
+add_test(phy_worker_test phy_worker_test)
+
+
 add_executable(scell_search_test scell_search_test.cc)
 target_link_libraries(scell_search_test
         srsue_phy
