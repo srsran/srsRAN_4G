@@ -19,8 +19,8 @@
  *
  */
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "srslte/config.h"
 
@@ -29,8 +29,7 @@
 
 #define SRSLTE_NOF_TC_CB_SIZES 188
 
-
- typedef struct SRSLTE_API {
+typedef struct SRSLTE_API {
   uint32_t F;
   uint32_t C;
   uint32_t K1;
@@ -39,16 +38,15 @@
   uint32_t K2_idx;
   uint32_t C1;
   uint32_t C2;
-  uint32_t tbs; 
+  uint32_t tbs;
 } srslte_cbsegm_t;
 
-SRSLTE_API int  srslte_cbsegm(srslte_cbsegm_t *s, 
-                              uint32_t tbs); 
+SRSLTE_API int srslte_cbsegm(srslte_cbsegm_t* s, uint32_t tbs);
 
-SRSLTE_API int  srslte_cbsegm_cbsize(uint32_t index);
+SRSLTE_API int srslte_cbsegm_cbsize(uint32_t index);
 
-SRSLTE_API bool srslte_cbsegm_cbsize_isvalid(uint32_t size); 
+SRSLTE_API bool srslte_cbsegm_cbsize_isvalid(uint32_t size);
 
-SRSLTE_API int  srslte_cbsegm_cbindex(uint32_t long_cb);
+SRSLTE_API int srslte_cbsegm_cbindex(uint32_t long_cb);
 
 #endif // SRSLTE_CBSEGM_H

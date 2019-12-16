@@ -19,74 +19,76 @@
  *
  */
 
+#include <math.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <unistd.h>
-#include <math.h>
 #include <time.h>
-#include <stdbool.h>
+#include <unistd.h>
 
 #include "srslte/srslte.h"
 
-time_t start, finish;
+time_t         start, finish;
 struct timeval x, y;
 
-int num_bits = 1000;
+int          num_bits   = 1000;
 srslte_mod_t modulation = SRSLTE_MOD_BPSK;
 
-void usage(char *prog) {
+void usage(char* prog)
+{
   printf("Usage: %s [nmse]\n", prog);
   printf("\t-n num_bits [Default %d]\n", num_bits);
   printf("\t-m modulation (1: BPSK, 2: QPSK, 4: QAM16, 6: QAM64, 8: QAM256) [Default BPSK]\n");
 }
 
-void parse_args(int argc, char **argv) {
+void parse_args(int argc, char** argv)
+{
   int opt;
   while ((opt = getopt(argc, argv, "nm")) != -1) {
     switch (opt) {
-    case 'n':
-      num_bits = (int)strtol(argv[optind], NULL, 10);
-      break;
-    case 'm':
-      switch (strtol(argv[optind], NULL, 10)) {
-        case 1:
-          modulation = SRSLTE_MOD_BPSK;
-          break;
-        case 2:
-          modulation = SRSLTE_MOD_QPSK;
-          break;
-        case 4:
-          modulation = SRSLTE_MOD_16QAM;
-          break;
-        case 6:
-          modulation = SRSLTE_MOD_64QAM;
-          break;
-        case 8:
-          modulation = SRSLTE_MOD_256QAM;
-          break;
-        default:
-          ERROR("Invalid modulation %ld. Possible values: "
-                "(1: BPSK, 2: QPSK, 4: QAM16, 6: QAM64, 8: QAM256)\n",
-                strtol(argv[optind], NULL, 10));
-          break;
-      }
-      break;
-    default:
-      usage(argv[0]);
-      exit(-1);
+      case 'n':
+        num_bits = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 'm':
+        switch (strtol(argv[optind], NULL, 10)) {
+          case 1:
+            modulation = SRSLTE_MOD_BPSK;
+            break;
+          case 2:
+            modulation = SRSLTE_MOD_QPSK;
+            break;
+          case 4:
+            modulation = SRSLTE_MOD_16QAM;
+            break;
+          case 6:
+            modulation = SRSLTE_MOD_64QAM;
+            break;
+          case 8:
+            modulation = SRSLTE_MOD_256QAM;
+            break;
+          default:
+            ERROR("Invalid modulation %ld. Possible values: "
+                  "(1: BPSK, 2: QPSK, 4: QAM16, 6: QAM64, 8: QAM256)\n",
+                  strtol(argv[optind], NULL, 10));
+            break;
+        }
+        break;
+      default:
+        usage(argv[0]);
+        exit(-1);
     }
   }
 }
 
-
-int main(int argc, char **argv) {
+int main(int argc, char** argv)
+{
   int                  ret = SRSLTE_SUCCESS;
-  int i;
+  int                  i;
   srslte_modem_table_t mod;
-  uint8_t *input, *input_bytes, *output;
-  cf_t *symbols, *symbols_bytes;
+  uint8_t *            input, *input_bytes, *output;
+  cf_t *               symbols, *symbols_bytes;
   float*               llr;
 
   parse_args(argc, argv);
@@ -96,7 +98,7 @@ int main(int argc, char **argv) {
     ERROR("Error initializing modem table\n");
     exit(-1);
   }
-  
+
   srslte_modem_table_bytes(&mod);
 
   /* check that num_bits is multiple of num_bits x symbol */
@@ -111,7 +113,7 @@ int main(int argc, char **argv) {
     perror("malloc");
     exit(-1);
   }
-  input_bytes = srslte_vec_malloc(sizeof(uint8_t) * num_bits/8);
+  input_bytes = srslte_vec_malloc(sizeof(uint8_t) * num_bits / 8);
   if (!input_bytes) {
     perror("malloc");
     exit(-1);
@@ -139,34 +141,33 @@ int main(int argc, char **argv) {
   }
 
   /* generate random data */
-  for (i=0;i<num_bits;i++) {
-    input[i] = rand()%2;
+  for (i = 0; i < num_bits; i++) {
+    input[i] = rand() % 2;
   }
 
   /* modulate */
   struct timeval t[3];
   gettimeofday(&t[1], NULL);
-  int ntrials = 100; 
-  for (int i=0;i<ntrials;i++) {
+  int ntrials = 100;
+  for (int i = 0; i < ntrials; i++) {
     srslte_mod_modulate(&mod, input, symbols, num_bits);
   }
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
-  
+
   printf("Bit: %ld us\n", t[0].tv_usec);
-  
+
   /* Test packed implementation */
   srslte_bit_pack_vector(input, input_bytes, num_bits);
   gettimeofday(&t[1], NULL);
-  for (int i=0;i<ntrials;i++) {
+  for (int i = 0; i < ntrials; i++) {
     srslte_mod_modulate_bytes(&mod, input_bytes, symbols_bytes, num_bits);
   }
   gettimeofday(&t[2], NULL);
   get_time_interval(t);
-  
-  
+
   printf("Byte: %ld us\n", t[0].tv_usec);
-  for (int i=0;i<num_bits/mod.nbits_x_symbol;i++) {
+  for (int i = 0; i < num_bits / mod.nbits_x_symbol; i++) {
     if (symbols[i] != symbols_bytes[i]) {
       printf("error in symbol %d\n", i);
       exit(-1);
@@ -181,8 +182,8 @@ int main(int argc, char **argv) {
   srslte_demod_soft_demodulate(modulation, symbols, llr, num_bits / mod.nbits_x_symbol);
   gettimeofday(&y, NULL);
   printf("\nElapsed time [us]: %ld\n", y.tv_usec - x.tv_usec);
-  for (i=0;i<num_bits;i++) {
-    output[i] = llr[i]>=0 ? 1 : 0;
+  for (i = 0; i < num_bits; i++) {
+    output[i] = llr[i] >= 0 ? 1 : 0;
   }
 
   /* check errors */

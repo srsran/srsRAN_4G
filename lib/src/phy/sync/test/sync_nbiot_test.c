@@ -84,7 +84,7 @@ void parse_args(int argc, char** argv)
 int main(int argc, char** argv)
 {
   int            ret        = SRSLTE_ERROR;
-  int            sf_idx = 0;
+  int            sf_idx     = 0;
   cf_t*          fft_buffer = NULL;
   _Complex float buffer[SFLEN]; // FLEN + fft_size
 

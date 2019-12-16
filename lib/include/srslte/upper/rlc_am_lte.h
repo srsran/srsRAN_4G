@@ -38,27 +38,27 @@ namespace srslte {
 
 #undef RLC_AM_BUFFER_DEBUG
 
-struct rlc_amd_rx_pdu_t{
-  rlc_amd_pdu_header_t  header;
-  unique_byte_buffer_t  buf;
+struct rlc_amd_rx_pdu_t {
+  rlc_amd_pdu_header_t header;
+  unique_byte_buffer_t buf;
 };
 
-struct rlc_amd_rx_pdu_segments_t{
+struct rlc_amd_rx_pdu_segments_t {
   std::list<rlc_amd_rx_pdu_t> segments;
 };
 
-struct rlc_amd_tx_pdu_t{
-  rlc_amd_pdu_header_t  header;
-  unique_byte_buffer_t  buf;
-  uint32_t              retx_count;
-  bool                  is_acked;
+struct rlc_amd_tx_pdu_t {
+  rlc_amd_pdu_header_t header;
+  unique_byte_buffer_t buf;
+  uint32_t             retx_count;
+  bool                 is_acked;
 };
 
-struct rlc_amd_retx_t{
-  uint32_t  sn;
-  bool      is_segment;
-  uint32_t  so_start;
-  uint32_t  so_end;
+struct rlc_amd_retx_t {
+  uint32_t sn;
+  bool     is_segment;
+  uint32_t so_start;
+  uint32_t so_end;
 };
 
 class rlc_am_lte : public rlc_common
@@ -85,14 +85,13 @@ public:
   // MAC interface
   bool     has_data();
   uint32_t get_buffer_state();
-  int      read_pdu(uint8_t *payload, uint32_t nof_bytes);
-  void     write_pdu(uint8_t *payload, uint32_t nof_bytes);
+  int      read_pdu(uint8_t* payload, uint32_t nof_bytes);
+  void     write_pdu(uint8_t* payload, uint32_t nof_bytes);
 
   rlc_bearer_metrics_t get_metrics();
-  void reset_metrics();
+  void                 reset_metrics();
 
 private:
-
   // Transmitter sub-class
   class rlc_am_lte_tx : public timer_callback
   {
@@ -113,20 +112,19 @@ private:
     bool     has_data();
     uint32_t get_buffer_state();
     uint32_t get_num_tx_bytes();
-    void reset_metrics();
+    void     reset_metrics();
 
     // Timeout callback interface
     void timer_expired(uint32_t timeout_id);
 
     // Interface for Rx subclass
-    void handle_control_pdu(uint8_t *payload, uint32_t nof_bytes);
+    void handle_control_pdu(uint8_t* payload, uint32_t nof_bytes);
 
   private:
-
-    int  build_status_pdu(uint8_t *payload, uint32_t nof_bytes);
-    int  build_retx_pdu(uint8_t *payload, uint32_t nof_bytes);
-    int  build_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_retx_t retx);
-    int  build_data_pdu(uint8_t *payload, uint32_t nof_bytes);
+    int build_status_pdu(uint8_t* payload, uint32_t nof_bytes);
+    int build_retx_pdu(uint8_t* payload, uint32_t nof_bytes);
+    int build_segment(uint8_t* payload, uint32_t nof_bytes, rlc_amd_retx_t retx);
+    int build_data_pdu(uint8_t* payload, uint32_t nof_bytes);
 
     void debug_state();
 
@@ -150,7 +148,7 @@ private:
     rlc_am_config_t cfg = {};
 
     // TX SDU buffers
-    rlc_tx_queue       tx_sdu_queue;
+    rlc_tx_queue         tx_sdu_queue;
     unique_byte_buffer_t tx_sdu;
 
     bool tx_enabled = false;
@@ -202,28 +200,28 @@ private:
     void reestablish();
     void stop();
 
-    void write_pdu(uint8_t *payload, uint32_t nof_bytes);
+    void write_pdu(uint8_t* payload, uint32_t nof_bytes);
 
     uint32_t get_num_rx_bytes();
-    void reset_metrics();
+    void     reset_metrics();
 
     // Timeout callback interface
     void timer_expired(uint32_t timeout_id);
 
     // Functions needed by Tx subclass to query rx state
-    int get_status_pdu_length();
-    int get_status_pdu(rlc_status_pdu_t* status, const uint32_t nof_bytes);
+    int  get_status_pdu_length();
+    int  get_status_pdu(rlc_status_pdu_t* status, const uint32_t nof_bytes);
     bool get_do_status();
     void reset_status(); // called when status PDU has been sent
 
   private:
-    void handle_data_pdu(uint8_t *payload, uint32_t nof_bytes, rlc_amd_pdu_header_t &header);
-    void handle_data_pdu_segment(uint8_t *payload, uint32_t nof_bytes, rlc_amd_pdu_header_t &header);
+    void handle_data_pdu(uint8_t* payload, uint32_t nof_bytes, rlc_amd_pdu_header_t& header);
+    void handle_data_pdu_segment(uint8_t* payload, uint32_t nof_bytes, rlc_amd_pdu_header_t& header);
     void reassemble_rx_sdus();
     bool inside_rx_window(const int16_t sn);
     void debug_state();
     void print_rx_segments();
-    bool add_segment_and_check(rlc_amd_rx_pdu_segments_t *pdu, rlc_amd_rx_pdu_t *segment);
+    bool add_segment_and_check(rlc_amd_rx_pdu_segments_t* pdu, rlc_amd_rx_pdu_t* segment);
 
     rlc_am_lte*       parent = nullptr;
     byte_buffer_pool* pool   = nullptr;
@@ -251,7 +249,7 @@ private:
     uint32_t vr_h  = 0;                  // Highest rx state. SN following PDU with highest SN among rxed PDUs.
 
     // Mutexes
-    pthread_mutex_t     mutex;
+    pthread_mutex_t mutex;
 
     // Rx windows
     std::map<uint32_t, rlc_amd_rx_pdu_t>          rx_window;

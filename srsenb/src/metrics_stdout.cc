@@ -21,36 +21,49 @@
 
 #include "srsenb/hdr/metrics_stdout.h"
 
-#include <unistd.h>
-#include <sstream>
-#include <stdlib.h>
-#include <math.h>
 #include <float.h>
 #include <iomanip>
 #include <iostream>
+#include <math.h>
+#include <sstream>
+#include <stdlib.h>
+#include <unistd.h>
 
 #include <stdio.h>
 #include <string.h>
 
 using namespace std;
 
-namespace srsenb{
+namespace srsenb {
 
-char const * const prefixes[2][9] =
-{
-  {   "",   "m",   "u",   "n",    "p",    "f",    "a",    "z",    "y", },
-  {   "",   "k",   "M",   "G",    "T",    "P",    "E",    "Z",    "Y", },
+char const* const prefixes[2][9] = {
+    {
+        "",
+        "m",
+        "u",
+        "n",
+        "p",
+        "f",
+        "a",
+        "z",
+        "y",
+    },
+    {
+        "",
+        "k",
+        "M",
+        "G",
+        "T",
+        "P",
+        "E",
+        "Z",
+        "Y",
+    },
 };
 
+metrics_stdout::metrics_stdout() : do_print(false), n_reports(10), enb(NULL) {}
 
-metrics_stdout::metrics_stdout()
-    :do_print(false)
-    ,n_reports(10)
-    ,enb(NULL)
-{
-}
-
-void metrics_stdout::set_handle(enb_metrics_interface *enb_)
+void metrics_stdout::set_handle(enb_metrics_interface* enb_)
 {
   enb = enb_;
 }
@@ -60,7 +73,7 @@ void metrics_stdout::toggle_print(bool b)
   do_print = b;
 }
 
-void metrics_stdout::set_metrics(enb_metrics_t &metrics, const uint32_t period_usec)
+void metrics_stdout::set_metrics(enb_metrics_t& metrics, const uint32_t period_usec)
 {
   if (!do_print || enb == nullptr) {
     return;
@@ -144,12 +157,11 @@ void metrics_stdout::set_metrics(enb_metrics_t &metrics, const uint32_t period_u
 std::string metrics_stdout::float_to_string(float f, int digits)
 {
   std::ostringstream os;
-  int precision;
+  int                precision;
   if (isnan(f) or fabs(f) < 0.0001) {
-    f = 0.0;
-    precision = digits-1;
-  }
-  else {
+    f         = 0.0;
+    precision = digits - 1;
+  } else {
     precision = digits - (int)(log10f(fabs(f)) - 2 * DBL_EPSILON);
   }
   os << std::setw(6) << std::fixed << std::setprecision(precision) << f;
@@ -162,17 +174,16 @@ std::string metrics_stdout::float_to_eng_string(float f, int digits)
 
   std::string factor;
 
-  if ( abs( degree ) < 9 )
-  {
-    if(degree < 0)
-      factor = prefixes[0][ abs( degree ) ];
+  if (abs(degree) < 9) {
+    if (degree < 0)
+      factor = prefixes[0][abs(degree)];
     else
-      factor = prefixes[1][ abs( degree ) ];
+      factor = prefixes[1][abs(degree)];
   } else {
     return "failed";
   }
 
-  const double scaled = f * pow( 1000.0, -degree );
+  const double scaled = f * pow(1000.0, -degree);
   if (degree != 0) {
     return float_to_string(scaled, digits) + factor;
   } else {
@@ -180,4 +191,4 @@ std::string metrics_stdout::float_to_eng_string(float f, int digits)
   }
 }
 
-} // namespace srsue
+} // namespace srsenb

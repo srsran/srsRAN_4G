@@ -19,23 +19,24 @@
  *
  */
 
-#include <stdlib.h>
-#include <math.h>
-#include <string.h>
 #include <assert.h>
 #include <complex.h>
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "srslte/phy/common/phy_common.h"
 #include "srslte/phy/utils/cexptab.h"
 
-int srslte_cexptab_init(srslte_cexptab_t *h, uint32_t size) {
+int srslte_cexptab_init(srslte_cexptab_t* h, uint32_t size)
+{
   uint32_t i;
 
   h->size = size;
-  h->tab = malloc(sizeof(cf_t) * (1+size));
+  h->tab  = malloc(sizeof(cf_t) * (1 + size));
   if (h->tab) {
     for (i = 0; i < size; i++) {
-      h->tab[i] = cexpf(_Complex_I * 2 * M_PI * (float) i / size);
+      h->tab[i] = cexpf(_Complex_I * 2 * M_PI * (float)i / size);
     }
     return SRSLTE_SUCCESS;
   } else {
@@ -43,34 +44,36 @@ int srslte_cexptab_init(srslte_cexptab_t *h, uint32_t size) {
   }
 }
 
-void srslte_cexptab_free(srslte_cexptab_t *h) {
+void srslte_cexptab_free(srslte_cexptab_t* h)
+{
   if (h->tab) {
     free(h->tab);
   }
   bzero(h, sizeof(srslte_cexptab_t));
 }
 
-void srslte_cexptab_gen(srslte_cexptab_t *h, cf_t *x, float freq, uint32_t len) {
+void srslte_cexptab_gen(srslte_cexptab_t* h, cf_t* x, float freq, uint32_t len)
+{
   uint32_t i;
   uint32_t idx;
-  float phase_inc = freq * h->size;
-  float phase=0;
+  float    phase_inc = freq * h->size;
+  float    phase     = 0;
 
   for (i = 0; i < len; i++) {
-    while (phase >= (float) h->size) {
-      phase -= (float) h->size;
+    while (phase >= (float)h->size) {
+      phase -= (float)h->size;
     }
     while (phase < 0) {
-      phase += (float) h->size;
+      phase += (float)h->size;
     }
-    idx = (uint32_t) phase;
+    idx  = (uint32_t)phase;
     x[i] = h->tab[idx];
     phase += phase_inc;
-
   }
 }
 
-void srslte_cexptab_gen_direct(cf_t *x, float freq, uint32_t len) {
+void srslte_cexptab_gen_direct(cf_t* x, float freq, uint32_t len)
+{
   uint32_t i;
   for (i = 0; i < len; i++) {
     x[i] = cexpf(_Complex_I * 2 * M_PI * freq * i);

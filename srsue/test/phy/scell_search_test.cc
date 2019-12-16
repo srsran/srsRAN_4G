@@ -31,17 +31,17 @@
 #include <vector>
 
 // Common execution parameters
-static uint32_t          duration_execution_s;
-static srslte_cell_t     cell_base = {.nof_prb         = 6,
+static uint32_t      duration_execution_s;
+static srslte_cell_t cell_base = {.nof_prb         = 6,
                                   .nof_ports       = 1,
                                   .id              = 0,
                                   .cp              = SRSLTE_CP_NORM,
                                   .phich_length    = SRSLTE_PHICH_NORM,
                                   .phich_resources = SRSLTE_PHICH_R_1_6,
                                   .frame_type      = SRSLTE_FDD};
-static std::string       intra_meas_log_level;
-static std::string       cell_list;
-static int               phy_lib_log_level;
+static std::string   intra_meas_log_level;
+static std::string   cell_list;
+static int           phy_lib_log_level;
 
 // On the Fly parameters
 static int         earfcn_dl;
@@ -170,7 +170,7 @@ public:
 
       // Enable power allocation
       pdsch_cfg.power_scale  = true;
-      pdsch_cfg.p_a          = 0.0f;                                     // 0 dB
+      pdsch_cfg.p_a          = 0.0f;                                         // 0 dB
       pdsch_cfg.p_b          = (serving_cell_pdsch_tm > SRSLTE_TM1) ? 1 : 0; // 0 dB
       pdsch_cfg.rnti         = serving_cell_pdsch_rnti;
       pdsch_cfg.meas_time_en = false;
@@ -249,7 +249,7 @@ public:
       cells[pci].rsrq_min = rsrq;
       cells[pci].rsrq_max = rsrq;
       cells[pci].rsrq_avg = rsrq;
-      cells[pci].count = 1;
+      cells[pci].count    = 1;
     } else {
       cells[pci].rsrp_min = SRSLTE_MIN(cells[pci].rsrp_min, rsrp);
       cells[pci].rsrp_max = SRSLTE_MAX(cells[pci].rsrp_max, rsrp);
@@ -362,7 +362,7 @@ int parse_args(int argc, char** argv, srsue::phy_args_t* phy_args)
 
 int main(int argc, char** argv)
 {
-  int ret = SRSLTE_SUCCESS;
+  int               ret      = SRSLTE_SUCCESS;
   srsue::phy_args_t phy_args = {};
 
   // Parse args

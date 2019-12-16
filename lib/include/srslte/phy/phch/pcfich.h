@@ -40,33 +40,33 @@
 #include "srslte/phy/phch/regs.h"
 #include "srslte/phy/scrambling/scrambling.h"
 
-#define PCFICH_CFI_LEN  32
-#define PCFICH_RE       PCFICH_CFI_LEN/2
+#define PCFICH_CFI_LEN 32
+#define PCFICH_RE PCFICH_CFI_LEN / 2
 
 /* PCFICH object */
 typedef struct SRSLTE_API {
   srslte_cell_t cell;
-  int nof_symbols;
-  
-  uint32_t nof_rx_antennas; 
+  int           nof_symbols;
+
+  uint32_t nof_rx_antennas;
 
   /* handler to REGs resource mapper */
-  srslte_regs_t *regs;
+  srslte_regs_t* regs;
 
   /* buffers */
   cf_t ce[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS][PCFICH_RE];
   cf_t symbols[SRSLTE_MAX_PORTS][PCFICH_RE];
   cf_t x[SRSLTE_MAX_PORTS][PCFICH_RE];
   cf_t d[PCFICH_RE];
-  
-  // cfi table in floats 
+
+  // cfi table in floats
   float cfi_table_float[3][PCFICH_CFI_LEN];
 
   /* bit message */
   uint8_t data[PCFICH_CFI_LEN];
 
   /* received soft bits */
-  float data_f[PCFICH_CFI_LEN]; 
+  float data_f[PCFICH_CFI_LEN];
 
   /* tx & rx objects */
   srslte_modem_table_t mod;
@@ -74,14 +74,11 @@ typedef struct SRSLTE_API {
 
 } srslte_pcfich_t;
 
-SRSLTE_API int srslte_pcfich_init(srslte_pcfich_t *q,
-                                  uint32_t nof_rx_antennas);
+SRSLTE_API int srslte_pcfich_init(srslte_pcfich_t* q, uint32_t nof_rx_antennas);
 
-SRSLTE_API int srslte_pcfich_set_cell(srslte_pcfich_t *q,
-                                      srslte_regs_t *regs,
-                                      srslte_cell_t cell);
+SRSLTE_API int srslte_pcfich_set_cell(srslte_pcfich_t* q, srslte_regs_t* regs, srslte_cell_t cell);
 
-SRSLTE_API void srslte_pcfich_free(srslte_pcfich_t *q);
+SRSLTE_API void srslte_pcfich_free(srslte_pcfich_t* q);
 
 SRSLTE_API int srslte_pcfich_decode(srslte_pcfich_t*       q,
                                     srslte_dl_sf_cfg_t*    sf,

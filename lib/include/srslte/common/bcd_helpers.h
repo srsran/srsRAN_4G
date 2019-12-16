@@ -33,25 +33,25 @@ namespace srslte {
  * Digits are represented by 4-bit nibbles. Unused nibbles are filled with 0xF.
  * MCC 001 results in 0xF001
  *****************************************************************************/
-inline bool string_to_mcc(std::string str, uint16_t *mcc)
+inline bool string_to_mcc(std::string str, uint16_t* mcc)
 {
   uint32_t len = (uint32_t)str.size();
-  if(len != 3) {
+  if (len != 3) {
     return false;
   }
-  if(!isdigit(str[0]) || !isdigit(str[1]) || !isdigit(str[2])) {
+  if (!isdigit(str[0]) || !isdigit(str[1]) || !isdigit(str[2])) {
     return false;
   }
   *mcc = 0xF000;
-  *mcc |= ((uint8_t)(str[0]-'0') << 8);
-  *mcc |= ((uint8_t)(str[1]-'0') << 4);
-  *mcc |= ((uint8_t)(str[2]-'0'));
+  *mcc |= ((uint8_t)(str[0] - '0') << 8);
+  *mcc |= ((uint8_t)(str[1] - '0') << 4);
+  *mcc |= ((uint8_t)(str[2] - '0'));
   return true;
 }
 
-inline bool mcc_to_string(uint16_t mcc, std::string *str)
+inline bool mcc_to_string(uint16_t mcc, std::string* str)
 {
-  if((mcc & 0xF000) != 0xF000) {
+  if ((mcc & 0xF000) != 0xF000) {
     return false;
   }
   *str = "";
@@ -104,40 +104,40 @@ inline std::string mcc_bytes_to_string(uint8_t* mcc_bytes)
  * MNC 001 results in 0xF001
  * MNC 01 results in 0xFF01
  *****************************************************************************/
-inline bool string_to_mnc(std::string str, uint16_t *mnc)
+inline bool string_to_mnc(std::string str, uint16_t* mnc)
 {
   uint32_t len = str.size();
-  if(len != 3 && len != 2) {
+  if (len != 3 && len != 2) {
     return false;
   }
-  if(len == 3) {
-    if(!isdigit(str[0]) || !isdigit(str[1]) || !isdigit(str[2])) {
+  if (len == 3) {
+    if (!isdigit(str[0]) || !isdigit(str[1]) || !isdigit(str[2])) {
       return false;
     }
     *mnc = 0xF000;
-    *mnc |= ((uint8_t)(str[0]-'0') << 8);
-    *mnc |= ((uint8_t)(str[1]-'0') << 4);
-    *mnc |= ((uint8_t)(str[2]-'0'));
+    *mnc |= ((uint8_t)(str[0] - '0') << 8);
+    *mnc |= ((uint8_t)(str[1] - '0') << 4);
+    *mnc |= ((uint8_t)(str[2] - '0'));
   }
-  if(len == 2) {
-    if(!isdigit(str[0]) || !isdigit(str[1])) {
+  if (len == 2) {
+    if (!isdigit(str[0]) || !isdigit(str[1])) {
       return false;
     }
     *mnc = 0xFF00;
-    *mnc |= ((uint8_t)(str[0]-'0') << 4);
-    *mnc |= ((uint8_t)(str[1]-'0'));
+    *mnc |= ((uint8_t)(str[0] - '0') << 4);
+    *mnc |= ((uint8_t)(str[1] - '0'));
   }
 
   return true;
 }
 
-inline bool mnc_to_string(uint16_t mnc, std::string *str)
+inline bool mnc_to_string(uint16_t mnc, std::string* str)
 {
-  if((mnc & 0xF000) != 0xF000) {
+  if ((mnc & 0xF000) != 0xF000) {
     return false;
   }
   *str = "";
-  if((mnc & 0xFF00) != 0xFF00) {
+  if ((mnc & 0xFF00) != 0xFF00) {
     *str += ((mnc & 0x0F00) >> 8) + '0';
   }
   *str += ((mnc & 0x00F0) >> 4) + '0';
@@ -220,7 +220,7 @@ std::string mnc_bytes_to_string(Vec mnc_bytes)
  * MNC 01 represented as 0xFF01
  * PLMN encoded as per TS 36.413 sec 9.2.3.8
  *****************************************************************************/
-inline void s1ap_plmn_to_mccmnc(uint32_t plmn, uint16_t *mcc, uint16_t *mnc)
+inline void s1ap_plmn_to_mccmnc(uint32_t plmn, uint16_t* mcc, uint16_t* mnc)
 {
   uint8_t nibbles[6];
   nibbles[0] = (plmn & 0xF00000) >> 20;
@@ -232,20 +232,20 @@ inline void s1ap_plmn_to_mccmnc(uint32_t plmn, uint16_t *mcc, uint16_t *mnc)
 
   *mcc = 0xF000;
   *mnc = 0xF000;
-  *mcc |= nibbles[1] << 8;    // MCC digit 1
-  *mcc |= nibbles[0] << 4;    // MCC digit 2
-  *mcc |= nibbles[3];         // MCC digit 3
+  *mcc |= nibbles[1] << 8; // MCC digit 1
+  *mcc |= nibbles[0] << 4; // MCC digit 2
+  *mcc |= nibbles[3];      // MCC digit 3
 
-  if(nibbles[2] == 0xF) {
+  if (nibbles[2] == 0xF) {
     // 2-digit MNC
-    *mnc |= 0x0F00;           // MNC digit 1
-    *mnc |= nibbles[5] << 4;  // MNC digit 2
-    *mnc |= nibbles[4];       // MNC digit 3
+    *mnc |= 0x0F00;          // MNC digit 1
+    *mnc |= nibbles[5] << 4; // MNC digit 2
+    *mnc |= nibbles[4];      // MNC digit 3
   } else {
     // 3-digit MNC
-    *mnc |= nibbles[2] << 8;  // MNC digit 1
-    *mnc |= nibbles[5] << 4;  // MNC digit 2
-    *mnc |= nibbles[4] ;      // MNC digit 3
+    *mnc |= nibbles[2] << 8; // MNC digit 1
+    *mnc |= nibbles[5] << 4; // MNC digit 2
+    *mnc |= nibbles[4];      // MNC digit 3
   }
 }
 
@@ -256,14 +256,14 @@ inline void s1ap_plmn_to_mccmnc(uint32_t plmn, uint16_t *mcc, uint16_t *mnc)
  * MNC 01 represented as 0xFF01
  * PLMN encoded as per TS 36.413 sec 9.2.3.8
  *****************************************************************************/
-inline void s1ap_mccmnc_to_plmn(uint16_t mcc, uint16_t mnc, uint32_t *plmn)
+inline void s1ap_mccmnc_to_plmn(uint16_t mcc, uint16_t mnc, uint32_t* plmn)
 {
   uint8_t nibbles[6];
   nibbles[1] = (mcc & 0x0F00) >> 8; // MCC digit 1
   nibbles[0] = (mcc & 0x00F0) >> 4; // MCC digit 2
   nibbles[3] = (mcc & 0x000F);      // MCC digit 3
 
-  if((mnc & 0xFF00) == 0xFF00) {
+  if ((mnc & 0xFF00) == 0xFF00) {
     // 2-digit MNC
     nibbles[2] = 0x0F;                // MNC digit 1
     nibbles[5] = (mnc & 0x00F0) >> 4; // MNC digit 2

@@ -19,4 +19,4 @@
  *
  */
 
-float rand_gauss (void);
+float rand_gauss(void);

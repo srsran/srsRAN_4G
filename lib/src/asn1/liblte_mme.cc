@@ -3270,7 +3270,8 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_generic_message_container_ie(uint8** ie_ptr,
                         24.008 v10.2.0 Section 10.5.5.28
 *********************************************************************/
 LIBLTE_ERROR_ENUM liblte_mme_pack_voice_domain_pref_and_ue_usage_setting_ie(
-    LIBLTE_MME_VOICE_DOMAIN_PREF_AND_UE_USAGE_SETTING_STRUCT* voice_domain_pref_and_ue_usage_setting, uint8** ie_ptr)
+    LIBLTE_MME_VOICE_DOMAIN_PREF_AND_UE_USAGE_SETTING_STRUCT* voice_domain_pref_and_ue_usage_setting,
+    uint8**                                                   ie_ptr)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -3287,7 +3288,8 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_voice_domain_pref_and_ue_usage_setting_ie(
   return (err);
 }
 LIBLTE_ERROR_ENUM liblte_mme_unpack_voice_domain_pref_and_ue_usage_setting_ie(
-    uint8** ie_ptr, LIBLTE_MME_VOICE_DOMAIN_PREF_AND_UE_USAGE_SETTING_STRUCT* voice_domain_pref_and_ue_usage_setting)
+    uint8**                                                   ie_ptr,
+    LIBLTE_MME_VOICE_DOMAIN_PREF_AND_UE_USAGE_SETTING_STRUCT* voice_domain_pref_and_ue_usage_setting)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -3674,8 +3676,10 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_esm_cause_ie(uint8** ie_ptr, uint8* cause)
 
     Document Reference: 24.301 v10.2.0 Section 9.9.4.5
 *********************************************************************/
-LIBLTE_ERROR_ENUM liblte_mme_pack_esm_info_transfer_flag_ie(
-    LIBLTE_MME_ESM_INFO_TRANSFER_FLAG_ENUM esm_info_transfer_flag, uint8 bit_offset, uint8** ie_ptr)
+LIBLTE_ERROR_ENUM
+liblte_mme_pack_esm_info_transfer_flag_ie(LIBLTE_MME_ESM_INFO_TRANSFER_FLAG_ENUM esm_info_transfer_flag,
+                                          uint8                                  bit_offset,
+                                          uint8**                                ie_ptr)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -3687,8 +3691,10 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_esm_info_transfer_flag_ie(
 
   return (err);
 }
-LIBLTE_ERROR_ENUM liblte_mme_unpack_esm_info_transfer_flag_ie(
-    uint8** ie_ptr, uint8 bit_offset, LIBLTE_MME_ESM_INFO_TRANSFER_FLAG_ENUM* esm_info_transfer_flag)
+LIBLTE_ERROR_ENUM
+liblte_mme_unpack_esm_info_transfer_flag_ie(uint8**                                 ie_ptr,
+                                            uint8                                   bit_offset,
+                                            LIBLTE_MME_ESM_INFO_TRANSFER_FLAG_ENUM* esm_info_transfer_flag)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
 
@@ -6335,7 +6341,8 @@ liblte_mme_pack_guti_reallocation_complete_msg(LIBLTE_MME_GUTI_REALLOCATION_COMP
   return (err);
 }
 LIBLTE_ERROR_ENUM liblte_mme_unpack_guti_reallocation_complete_msg(
-    LIBLTE_BYTE_MSG_STRUCT* msg, LIBLTE_MME_GUTI_REALLOCATION_COMPLETE_MSG_STRUCT* guti_realloc_complete)
+    LIBLTE_BYTE_MSG_STRUCT*                           msg,
+    LIBLTE_MME_GUTI_REALLOCATION_COMPLETE_MSG_STRUCT* guti_realloc_complete)
 {
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
@@ -7315,7 +7322,8 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_tracking_area_update_complete_msg(
   return (err);
 }
 LIBLTE_ERROR_ENUM liblte_mme_unpack_tracking_area_update_complete_msg(
-    LIBLTE_BYTE_MSG_STRUCT* msg, LIBLTE_MME_TRACKING_AREA_UPDATE_COMPLETE_MSG_STRUCT* ta_update_complete)
+    LIBLTE_BYTE_MSG_STRUCT*                              msg,
+    LIBLTE_MME_TRACKING_AREA_UPDATE_COMPLETE_MSG_STRUCT* ta_update_complete)
 {
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
@@ -7579,7 +7587,8 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_downlink_generic_nas_transport_msg(
   return (err);
 }
 LIBLTE_ERROR_ENUM liblte_mme_unpack_downlink_generic_nas_transport_msg(
-    LIBLTE_BYTE_MSG_STRUCT* msg, LIBLTE_MME_DOWNLINK_GENERIC_NAS_TRANSPORT_MSG_STRUCT* dl_generic_nas_transport)
+    LIBLTE_BYTE_MSG_STRUCT*                               msg,
+    LIBLTE_MME_DOWNLINK_GENERIC_NAS_TRANSPORT_MSG_STRUCT* dl_generic_nas_transport)
 {
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
@@ -7669,7 +7678,8 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_uplink_generic_nas_transport_msg(
   return (err);
 }
 LIBLTE_ERROR_ENUM liblte_mme_unpack_uplink_generic_nas_transport_msg(
-    LIBLTE_BYTE_MSG_STRUCT* msg, LIBLTE_MME_UPLINK_GENERIC_NAS_TRANSPORT_MSG_STRUCT* ul_generic_nas_transport)
+    LIBLTE_BYTE_MSG_STRUCT*                             msg,
+    LIBLTE_MME_UPLINK_GENERIC_NAS_TRANSPORT_MSG_STRUCT* ul_generic_nas_transport)
 {
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
@@ -8460,7 +8470,8 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_activate_default_eps_bearer_context_request_
     Document Reference: 24.301 v10.2.0 Section 8.3.7
 *********************************************************************/
 LIBLTE_ERROR_ENUM liblte_mme_pack_bearer_resource_allocation_reject_msg(
-    LIBLTE_MME_BEARER_RESOURCE_ALLOCATION_REJECT_MSG_STRUCT* bearer_res_alloc_rej, LIBLTE_BYTE_MSG_STRUCT* msg)
+    LIBLTE_MME_BEARER_RESOURCE_ALLOCATION_REJECT_MSG_STRUCT* bearer_res_alloc_rej,
+    LIBLTE_BYTE_MSG_STRUCT*                                  msg)
 {
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
@@ -8504,7 +8515,8 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_bearer_resource_allocation_reject_msg(
   return (err);
 }
 LIBLTE_ERROR_ENUM liblte_mme_unpack_bearer_resource_allocation_reject_msg(
-    LIBLTE_BYTE_MSG_STRUCT* msg, LIBLTE_MME_BEARER_RESOURCE_ALLOCATION_REJECT_MSG_STRUCT* bearer_res_alloc_rej)
+    LIBLTE_BYTE_MSG_STRUCT*                                  msg,
+    LIBLTE_MME_BEARER_RESOURCE_ALLOCATION_REJECT_MSG_STRUCT* bearer_res_alloc_rej)
 {
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
@@ -8557,7 +8569,8 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_bearer_resource_allocation_reject_msg(
     Document Reference: 24.301 v10.2.0 Section 8.3.8
 *********************************************************************/
 LIBLTE_ERROR_ENUM liblte_mme_pack_bearer_resource_allocation_request_msg(
-    LIBLTE_MME_BEARER_RESOURCE_ALLOCATION_REQUEST_MSG_STRUCT* bearer_res_alloc_req, LIBLTE_BYTE_MSG_STRUCT* msg)
+    LIBLTE_MME_BEARER_RESOURCE_ALLOCATION_REQUEST_MSG_STRUCT* bearer_res_alloc_req,
+    LIBLTE_BYTE_MSG_STRUCT*                                   msg)
 {
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
@@ -8607,7 +8620,8 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_bearer_resource_allocation_request_msg(
   return (err);
 }
 LIBLTE_ERROR_ENUM liblte_mme_unpack_bearer_resource_allocation_request_msg(
-    LIBLTE_BYTE_MSG_STRUCT* msg, LIBLTE_MME_BEARER_RESOURCE_ALLOCATION_REQUEST_MSG_STRUCT* bearer_res_alloc_req)
+    LIBLTE_BYTE_MSG_STRUCT*                                   msg,
+    LIBLTE_MME_BEARER_RESOURCE_ALLOCATION_REQUEST_MSG_STRUCT* bearer_res_alloc_req)
 {
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
@@ -8666,7 +8680,8 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_bearer_resource_allocation_request_msg(
     Document Reference: 24.301 v10.2.0 Section 8.3.9
 *********************************************************************/
 LIBLTE_ERROR_ENUM liblte_mme_pack_bearer_resource_modification_reject_msg(
-    LIBLTE_MME_BEARER_RESOURCE_MODIFICATION_REJECT_MSG_STRUCT* bearer_res_mod_rej, LIBLTE_BYTE_MSG_STRUCT* msg)
+    LIBLTE_MME_BEARER_RESOURCE_MODIFICATION_REJECT_MSG_STRUCT* bearer_res_mod_rej,
+    LIBLTE_BYTE_MSG_STRUCT*                                    msg)
 {
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
@@ -8710,7 +8725,8 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_bearer_resource_modification_reject_msg(
   return (err);
 }
 LIBLTE_ERROR_ENUM liblte_mme_unpack_bearer_resource_modification_reject_msg(
-    LIBLTE_BYTE_MSG_STRUCT* msg, LIBLTE_MME_BEARER_RESOURCE_MODIFICATION_REJECT_MSG_STRUCT* bearer_res_mod_rej)
+    LIBLTE_BYTE_MSG_STRUCT*                                    msg,
+    LIBLTE_MME_BEARER_RESOURCE_MODIFICATION_REJECT_MSG_STRUCT* bearer_res_mod_rej)
 {
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
@@ -8763,7 +8779,8 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_bearer_resource_modification_reject_msg(
     Document Reference: 24.301 v10.2.0 Section 8.3.10
 *********************************************************************/
 LIBLTE_ERROR_ENUM liblte_mme_pack_bearer_resource_modification_request_msg(
-    LIBLTE_MME_BEARER_RESOURCE_MODIFICATION_REQUEST_MSG_STRUCT* bearer_res_mod_req, LIBLTE_BYTE_MSG_STRUCT* msg)
+    LIBLTE_MME_BEARER_RESOURCE_MODIFICATION_REQUEST_MSG_STRUCT* bearer_res_mod_req,
+    LIBLTE_BYTE_MSG_STRUCT*                                     msg)
 {
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
@@ -8824,7 +8841,8 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_bearer_resource_modification_request_msg(
   return (err);
 }
 LIBLTE_ERROR_ENUM liblte_mme_unpack_bearer_resource_modification_request_msg(
-    LIBLTE_BYTE_MSG_STRUCT* msg, LIBLTE_MME_BEARER_RESOURCE_MODIFICATION_REQUEST_MSG_STRUCT* bearer_res_mod_req)
+    LIBLTE_BYTE_MSG_STRUCT*                                     msg,
+    LIBLTE_MME_BEARER_RESOURCE_MODIFICATION_REQUEST_MSG_STRUCT* bearer_res_mod_req)
 {
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
@@ -9488,7 +9506,8 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_modify_eps_bearer_context_accept_msg(
   return (err);
 }
 LIBLTE_ERROR_ENUM liblte_mme_unpack_modify_eps_bearer_context_accept_msg(
-    LIBLTE_BYTE_MSG_STRUCT* msg, LIBLTE_MME_MODIFY_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT* mod_eps_bearer_context_accept)
+    LIBLTE_BYTE_MSG_STRUCT*                                 msg,
+    LIBLTE_MME_MODIFY_EPS_BEARER_CONTEXT_ACCEPT_MSG_STRUCT* mod_eps_bearer_context_accept)
 {
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
@@ -9529,7 +9548,8 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_modify_eps_bearer_context_accept_msg(
     Document Reference: 24.301 v10.2.0 Section 8.3.17
 *********************************************************************/
 LIBLTE_ERROR_ENUM liblte_mme_pack_modify_eps_bearer_context_reject_msg(
-    LIBLTE_MME_MODIFY_EPS_BEARER_CONTEXT_REJECT_MSG_STRUCT* mod_eps_bearer_context_rej, LIBLTE_BYTE_MSG_STRUCT* msg)
+    LIBLTE_MME_MODIFY_EPS_BEARER_CONTEXT_REJECT_MSG_STRUCT* mod_eps_bearer_context_rej,
+    LIBLTE_BYTE_MSG_STRUCT*                                 msg)
 {
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
@@ -9566,7 +9586,8 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_modify_eps_bearer_context_reject_msg(
   return (err);
 }
 LIBLTE_ERROR_ENUM liblte_mme_unpack_modify_eps_bearer_context_reject_msg(
-    LIBLTE_BYTE_MSG_STRUCT* msg, LIBLTE_MME_MODIFY_EPS_BEARER_CONTEXT_REJECT_MSG_STRUCT* mod_eps_bearer_context_rej)
+    LIBLTE_BYTE_MSG_STRUCT*                                 msg,
+    LIBLTE_MME_MODIFY_EPS_BEARER_CONTEXT_REJECT_MSG_STRUCT* mod_eps_bearer_context_rej)
 {
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
@@ -9610,7 +9631,8 @@ LIBLTE_ERROR_ENUM liblte_mme_unpack_modify_eps_bearer_context_reject_msg(
     Document Reference: 24.301 v10.2.0 Section 8.3.18
 *********************************************************************/
 LIBLTE_ERROR_ENUM liblte_mme_pack_modify_eps_bearer_context_request_msg(
-    LIBLTE_MME_MODIFY_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT* mod_eps_bearer_context_req, LIBLTE_BYTE_MSG_STRUCT* msg)
+    LIBLTE_MME_MODIFY_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT* mod_eps_bearer_context_req,
+    LIBLTE_BYTE_MSG_STRUCT*                                  msg)
 {
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;
@@ -9693,7 +9715,8 @@ LIBLTE_ERROR_ENUM liblte_mme_pack_modify_eps_bearer_context_request_msg(
   return (err);
 }
 LIBLTE_ERROR_ENUM liblte_mme_unpack_modify_eps_bearer_context_request_msg(
-    LIBLTE_BYTE_MSG_STRUCT* msg, LIBLTE_MME_MODIFY_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT* mod_eps_bearer_context_req)
+    LIBLTE_BYTE_MSG_STRUCT*                                  msg,
+    LIBLTE_MME_MODIFY_EPS_BEARER_CONTEXT_REQUEST_MSG_STRUCT* mod_eps_bearer_context_req)
 {
   LIBLTE_ERROR_ENUM err     = LIBLTE_ERROR_INVALID_INPUTS;
   uint8*            msg_ptr = msg->msg;

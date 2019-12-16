@@ -47,8 +47,11 @@ typedef enum {
   EMM_STATE_TAU_INITIATED,
   EMM_STATE_N_ITEMS,
 } emm_state_t;
-static const char emm_state_text[EMM_STATE_N_ITEMS][100] = {
-    "NULL", "DEREGISTERED", "REGISTERED", "DEREGISTERED INITIATED", "TRACKING AREA UPDATE INITIATED"};
+static const char emm_state_text[EMM_STATE_N_ITEMS][100] = {"NULL",
+                                                            "DEREGISTERED",
+                                                            "REGISTERED",
+                                                            "DEREGISTERED INITIATED",
+                                                            "TRACKING AREA UPDATE INITIATED"};
 
 } // namespace srsue
 

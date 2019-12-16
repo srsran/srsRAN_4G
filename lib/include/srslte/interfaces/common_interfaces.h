@@ -51,10 +51,10 @@ public:
   virtual void set_tx_freq(const uint32_t& radio_idx, const uint32_t& channel_idx, const double& freq) = 0;
   virtual void set_rx_freq(const uint32_t& radio_idx, const uint32_t& channel_idx, const double& freq) = 0;
 
-  virtual float  set_rx_gain_th(const float& gain)                            = 0;
-  virtual void   set_rx_gain(const uint32_t& radio_idx, const float& gain)    = 0;
-  virtual void   set_tx_srate(const uint32_t& radio_idx, const double& srate) = 0;
-  virtual void   set_rx_srate(const uint32_t& radio_idx, const double& srate) = 0;
+  virtual float set_rx_gain_th(const float& gain)                            = 0;
+  virtual void  set_rx_gain(const uint32_t& radio_idx, const float& gain)    = 0;
+  virtual void  set_tx_srate(const uint32_t& radio_idx, const double& srate) = 0;
+  virtual void  set_rx_srate(const uint32_t& radio_idx, const double& srate) = 0;
 
   // getter
   virtual float             get_rx_gain(const uint32_t& radio_idx)           = 0;

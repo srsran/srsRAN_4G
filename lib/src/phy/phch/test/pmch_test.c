@@ -48,18 +48,19 @@ srslte_cell_t cell = {
 
 };
 
-uint32_t cfi = 2;
-uint32_t mcs_idx = 2;
-uint32_t subframe = 1;
-int rv_idx[SRSLTE_MAX_CODEWORDS] = {0, 1};
-uint16_t rnti = 1234;
-uint32_t nof_rx_antennas = 1;
-uint32_t pmi = 0;
-char *input_file = NULL; 
-uint32_t mbsfn_area_id = 1;
-uint32_t non_mbsfn_region = 2;
+uint32_t cfi                          = 2;
+uint32_t mcs_idx                      = 2;
+uint32_t subframe                     = 1;
+int      rv_idx[SRSLTE_MAX_CODEWORDS] = {0, 1};
+uint16_t rnti                         = 1234;
+uint32_t nof_rx_antennas              = 1;
+uint32_t pmi                          = 0;
+char*    input_file                   = NULL;
+uint32_t mbsfn_area_id                = 1;
+uint32_t non_mbsfn_region             = 2;
 
-void usage(char *prog) {
+void usage(char* prog)
+{
   printf("Usage: %s [fmMcsrtRFpnwav] \n", prog);
   printf("\t-f read signal from file [Default generate it with pdsch_encode()]\n");
   printf("\t-m MCS [Default %d]\n", mcs_idx);
@@ -75,55 +76,57 @@ void usage(char *prog) {
   printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
-void parse_args(int argc, char **argv) {
+void parse_args(int argc, char** argv)
+{
   int opt;
   while ((opt = getopt(argc, argv, "fmMcsrtRFpnav")) != -1) {
-    switch(opt) {
-    case 'f':
-      input_file = argv[optind];
-      break;
-    case 'm':
-      mcs_idx = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 's':
-      subframe = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 'r':
-      rv_idx[0] = (int)strtol(argv[optind], NULL, 10);
-      break;
-    case 'R':
-      rnti = (uint16_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 'F':
-      cfi = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 'p':
-      pmi = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 'n':
-      cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 'c':
-      cell.id = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 'a':
-      nof_rx_antennas = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 'v':
-      srslte_verbose++;
-      break;
-    default:
-      usage(argv[0]);
-      exit(-1);
+    switch (opt) {
+      case 'f':
+        input_file = argv[optind];
+        break;
+      case 'm':
+        mcs_idx = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 's':
+        subframe = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'r':
+        rv_idx[0] = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 'R':
+        rnti = (uint16_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'F':
+        cfi = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'p':
+        pmi = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'n':
+        cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'c':
+        cell.id = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'a':
+        nof_rx_antennas = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'v':
+        srslte_verbose++;
+        break;
+      default:
+        usage(argv[0]);
+        exit(-1);
     }
   }
 }
 
-int main(int argc, char **argv) {
-  uint32_t i, j, k;
-  int ret = -1;
+int main(int argc, char** argv)
+{
+  uint32_t       i, j, k;
+  int            ret = -1;
   struct timeval t[3];
-  int M=1;
+  int            M = 1;
 
   static uint8_t*         data_tx[SRSLTE_MAX_CODEWORDS] = {NULL};
   static uint8_t*         data_rx[SRSLTE_MAX_CODEWORDS] = {NULL};
@@ -142,20 +145,20 @@ int main(int argc, char **argv) {
   srslte_pmch_cfg_t     pmch_cfg;
   srslte_ofdm_t         ifft_mbsfn[SRSLTE_MAX_PORTS], fft_mbsfn[SRSLTE_MAX_PORTS];
 
-  parse_args(argc,argv);
+  parse_args(argc, argv);
   /* Initialise to zeros */
   bzero(&pmch, sizeof(srslte_pmch_t));
-  bzero(tx_slot_symbols, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
-  bzero(rx_slot_symbols, sizeof(cf_t*)*SRSLTE_MAX_PORTS);
+  bzero(tx_slot_symbols, sizeof(cf_t*) * SRSLTE_MAX_PORTS);
+  bzero(rx_slot_symbols, sizeof(cf_t*) * SRSLTE_MAX_PORTS);
   bzero(t, 3 * sizeof(struct timeval));
 
   cell.nof_ports = 1;
-  
+
   /* init memory */
   srslte_chest_dl_res_init(&chest_dl_res, cell.nof_prb);
   srslte_chest_dl_res_set_identity(&chest_dl_res);
 
-  for (i=0;i<SRSLTE_MAX_PORTS;i++) {
+  for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
     rx_slot_symbols[i] = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_NOF_RE(cell));
     if (!rx_slot_symbols[i]) {
       perror("srslte_vec_malloc");
@@ -200,7 +203,7 @@ int main(int argc, char **argv) {
 
   for (i = 0; i < cell.nof_ports; i++) {
     tx_sf_symbols[i] = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
-    bzero(tx_sf_symbols[i],sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
+    bzero(tx_sf_symbols[i], sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
     if (srslte_ofdm_tx_init_mbsfn(&ifft_mbsfn[i], SRSLTE_CP_EXT, tx_slot_symbols[i], tx_sf_symbols[i], cell.nof_prb)) {
       ERROR("Error creating iFFT object\n");
       exit(-1);
@@ -212,7 +215,7 @@ int main(int argc, char **argv) {
 
   for (i = 0; i < nof_rx_antennas; i++) {
     rx_sf_symbols[i] = srslte_vec_malloc(sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
-    bzero(rx_sf_symbols[i],sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
+    bzero(rx_sf_symbols[i], sizeof(cf_t) * SRSLTE_SF_LEN_PRB(cell.nof_prb));
     if (srslte_ofdm_rx_init_mbsfn(&fft_mbsfn[i], SRSLTE_CP_EXT, rx_sf_symbols[i], rx_slot_symbols[i], cell.nof_prb)) {
       ERROR("Error creating iFFT object\n");
       exit(-1);
@@ -221,7 +224,6 @@ int main(int argc, char **argv) {
     srslte_ofdm_set_non_mbsfn_region(&fft_mbsfn[i], non_mbsfn_region);
     srslte_ofdm_set_normalize(&fft_mbsfn[i], true);
   }
-
 
 #endif /* DO_OFDM */
 
@@ -271,8 +273,8 @@ int main(int argc, char **argv) {
   INFO("       nof_ports=%d\n", cell.nof_ports);
   INFO("              id=%d\n", cell.id);
   INFO("              cp=%s\n", srslte_cp_string(cell.cp));
-  INFO("    phich_length=%d\n", (int) cell.phich_length);
-  INFO(" phich_resources=%d\n", (int) cell.phich_resources);
+  INFO("    phich_length=%d\n", (int)cell.phich_length);
+  INFO(" phich_resources=%d\n", (int)cell.phich_resources);
   INFO("         nof_prb=%d\n", pmch_cfg.pdsch_cfg.grant.nof_prb);
   INFO("          sf_idx=%d\n", subframe);
   INFO("          nof_tb=%d\n", pmch_cfg.pdsch_cfg.grant.nof_tb);
@@ -314,7 +316,6 @@ int main(int argc, char **argv) {
     srslte_ofdm_tx_sf(&ifft_mbsfn[i]);
   }
 
-
   /* combine outputs */
   for (j = 0; j < nof_rx_antennas; j++) {
     for (k = 0; k < NOF_CE_SYMBOLS; k++) {
@@ -324,29 +325,27 @@ int main(int argc, char **argv) {
       }
     }
   }
-    
-  #else
-    /* combine outputs */
-    for (j = 0; j < nof_rx_antennas; j++) {
-      for (k = 0; k < SRSLTE_NOF_RE(cell); k++) {
-        rx_slot_symbols[j][k] = 0.0f;
-        for (i = 0; i < cell.nof_ports; i++) {
-          rx_slot_symbols[j][k] += tx_slot_symbols[i][k] * ce[i][j][k];
-        }
+
+#else
+  /* combine outputs */
+  for (j = 0; j < nof_rx_antennas; j++) {
+    for (k = 0; k < SRSLTE_NOF_RE(cell); k++) {
+      rx_slot_symbols[j][k] = 0.0f;
+      for (i = 0; i < cell.nof_ports; i++) {
+        rx_slot_symbols[j][k] += tx_slot_symbols[i][k] * ce[i][j][k];
       }
     }
-  #endif
+  }
+#endif
 
-
-  
-  int r=0;
+  int r = 0;
   gettimeofday(&t[1], NULL);
 
 #ifdef DO_OFDM
-    /* For each Rx antenna demodulate OFDM */
-    for (i = 0; i < nof_rx_antennas; i++) {
-      srslte_ofdm_rx_sf(&fft_mbsfn[i]);
-    }
+  /* For each Rx antenna demodulate OFDM */
+  for (i = 0; i < nof_rx_antennas; i++) {
+    srslte_ofdm_rx_sf(&fft_mbsfn[i]);
+  }
 #endif
   for (i = 0; i < SRSLTE_MAX_CODEWORDS; i++) {
     if (pmch_cfg.pdsch_cfg.grant.tb[i].enabled) {
@@ -421,7 +420,7 @@ quit:
     }
   }
 
-  for (i=0;i<SRSLTE_MAX_PORTS;i++) {
+  for (i = 0; i < SRSLTE_MAX_PORTS; i++) {
     if (tx_sf_symbols[i]) {
       free(tx_sf_symbols[i]);
     }

@@ -43,7 +43,7 @@ public:
 
   virtual int init(const phy_args_t& args_) = 0;
 
-  virtual void stop()                                                 = 0;
+  virtual void stop() = 0;
 
   virtual void set_earfcn(std::vector<uint32_t> earfcns) = 0;
 

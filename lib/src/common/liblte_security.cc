@@ -626,8 +626,13 @@ LIBLTE_ERROR_ENUM liblte_security_generate_k_up(uint8*                          
                         33.102 v10.0.0 Section 6.5.4
                         RFC4493
 *********************************************************************/
-LIBLTE_ERROR_ENUM liblte_security_128_eia2(
-    uint8* key, uint32 count, uint8 bearer, uint8 direction, uint8* msg, uint32 msg_len, uint8* mac)
+LIBLTE_ERROR_ENUM liblte_security_128_eia2(uint8* key,
+                                           uint32 count,
+                                           uint8  bearer,
+                                           uint8  direction,
+                                           uint8* msg,
+                                           uint32 msg_len,
+                                           uint8* mac)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
   uint8             M[msg_len + 8 + 16];
@@ -712,8 +717,12 @@ LIBLTE_ERROR_ENUM liblte_security_128_eia2(
 
   return (err);
 }
-LIBLTE_ERROR_ENUM liblte_security_128_eia2(
-    uint8* key, uint32 count, uint8 bearer, uint8 direction, LIBLTE_BIT_MSG_STRUCT* msg, uint8* mac)
+LIBLTE_ERROR_ENUM liblte_security_128_eia2(uint8*                 key,
+                                           uint32                 count,
+                                           uint8                  bearer,
+                                           uint8                  direction,
+                                           LIBLTE_BIT_MSG_STRUCT* msg,
+                                           uint8*                 mac)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
   uint8             M[msg->N_bits * 8 + 8 + 16];
@@ -824,8 +833,13 @@ u8 GET_BIT(uint8_t* DATA, u32 i)
   return (DATA[i / 8] & (1 << (7 - (i % 8)))) ? 1 : 0;
 }
 
-LIBLTE_ERROR_ENUM liblte_security_128_eia3(
-    uint8* key, uint32 count, uint8 bearer, uint8 direction, uint8* msg, uint32 msg_len, uint8* mac)
+LIBLTE_ERROR_ENUM liblte_security_128_eia3(uint8* key,
+                                           uint32 count,
+                                           uint8  bearer,
+                                           uint8  direction,
+                                           uint8* msg,
+                                           uint32 msg_len,
+                                           uint8* mac)
 
 {
   LIBLTE_ERROR_ENUM err    = LIBLTE_ERROR_INVALID_INPUTS;
@@ -900,8 +914,13 @@ LIBLTE_ERROR_ENUM liblte_security_128_eia3(
                         Specification of the 3GPP Confidentiality and
                             Integrity Algorithms UEA2 & UIA2 D1 v2.1
 *********************************************************************/
-LIBLTE_ERROR_ENUM liblte_security_encryption_eea1(
-    uint8* key, uint32 count, uint8 bearer, uint8 direction, uint8* msg, uint32 msg_len, uint8* out)
+LIBLTE_ERROR_ENUM liblte_security_encryption_eea1(uint8* key,
+                                                  uint32 count,
+                                                  uint8  bearer,
+                                                  uint8  direction,
+                                                  uint8* msg,
+                                                  uint32 msg_len,
+                                                  uint8* out)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
   S3G_STATE         state, *state_ptr;
@@ -972,8 +991,13 @@ LIBLTE_ERROR_ENUM liblte_security_encryption_eea1(
                         Specification of the 3GPP Confidentiality and
                             Integrity Algorithms UEA2 & UIA2 D1 v2.1
 *********************************************************************/
-LIBLTE_ERROR_ENUM liblte_security_decryption_eea1(
-    uint8* key, uint32 count, uint8 bearer, uint8 direction, uint8* ct, uint32 ct_len, uint8* out)
+LIBLTE_ERROR_ENUM liblte_security_decryption_eea1(uint8* key,
+                                                  uint32 count,
+                                                  uint8  bearer,
+                                                  uint8  direction,
+                                                  uint8* ct,
+                                                  uint32 ct_len,
+                                                  uint8* out)
 {
   return liblte_security_encryption_eea1(key, count, bearer, direction, ct, ct_len, out);
 }
@@ -985,8 +1009,13 @@ LIBLTE_ERROR_ENUM liblte_security_decryption_eea1(
 
     Document Reference: 33.401 v13.1.0 Annex B.1.3
 *********************************************************************/
-LIBLTE_ERROR_ENUM liblte_security_encryption_eea2(
-    uint8* key, uint32 count, uint8 bearer, uint8 direction, uint8* msg, uint32 msg_len, uint8* out)
+LIBLTE_ERROR_ENUM liblte_security_encryption_eea2(uint8* key,
+                                                  uint32 count,
+                                                  uint8  bearer,
+                                                  uint8  direction,
+                                                  uint8* msg,
+                                                  uint32 msg_len,
+                                                  uint8* out)
 {
   LIBLTE_ERROR_ENUM err = LIBLTE_ERROR_INVALID_INPUTS;
   aes_context       ctx;
@@ -1028,8 +1057,13 @@ LIBLTE_ERROR_ENUM liblte_security_encryption_eea2(
 
     Document Reference: 33.401 v13.1.0 Annex B.1.3
 *********************************************************************/
-LIBLTE_ERROR_ENUM liblte_security_decryption_eea2(
-    uint8* key, uint32 count, uint8 bearer, uint8 direction, uint8* ct, uint32 ct_len, uint8* out)
+LIBLTE_ERROR_ENUM liblte_security_decryption_eea2(uint8* key,
+                                                  uint32 count,
+                                                  uint8  bearer,
+                                                  uint8  direction,
+                                                  uint8* ct,
+                                                  uint32 ct_len,
+                                                  uint8* out)
 {
   return liblte_security_encryption_eea2(key, count, bearer, direction, ct, ct_len, out);
 }
@@ -1044,8 +1078,13 @@ LIBLTE_ERROR_ENUM liblte_security_decryption_eea2(
                         Specification of the 3GPP Confidentiality and
                             Integrity Algorithms UEA2 & UIA2 D1 v2.1
 *********************************************************************/
-LIBLTE_ERROR_ENUM liblte_security_encryption_eea3(
-    uint8* key, uint32 count, uint8 bearer, uint8 direction, uint8* msg, uint32 msg_len, uint8* out)
+LIBLTE_ERROR_ENUM liblte_security_encryption_eea3(uint8* key,
+                                                  uint32 count,
+                                                  uint8  bearer,
+                                                  uint8  direction,
+                                                  uint8* msg,
+                                                  uint32 msg_len,
+                                                  uint8* out)
 {
   LIBLTE_ERROR_ENUM err    = LIBLTE_ERROR_INVALID_INPUTS;
   uint8_t           iv[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -1111,8 +1150,13 @@ LIBLTE_ERROR_ENUM liblte_security_encryption_eea3(
   return (err);
 }
 
-LIBLTE_ERROR_ENUM liblte_security_decryption_eea3(
-    uint8* key, uint32 count, uint8 bearer, uint8 direction, uint8* msg, uint32 msg_len, uint8* out)
+LIBLTE_ERROR_ENUM liblte_security_decryption_eea3(uint8* key,
+                                                  uint32 count,
+                                                  uint8  bearer,
+                                                  uint8  direction,
+                                                  uint8* msg,
+                                                  uint32 msg_len,
+                                                  uint8* out)
 {
   return liblte_security_encryption_eea3(key, count, bearer, direction, msg, msg_len, out);
 }

@@ -82,7 +82,7 @@ public:
   virtual bool resync_sqn(uint64_t imsi, uint8_t* auts)                                                          = 0;
 };
 
-class mme_interface_nas   //NAS -> MME
+class mme_interface_nas // NAS -> MME
 {
 public:
   virtual bool add_nas_timer(int timer_fd, enum nas_timer_type type, uint64_t imsi) = 0;
@@ -90,7 +90,7 @@ public:
   virtual bool remove_nas_timer(enum nas_timer_type type, uint64_t imsi)            = 0;
 };
 
-class s1ap_interface_mme   //MME -> S1AP
+class s1ap_interface_mme // MME -> S1AP
 {
 public:
   virtual bool expire_nas_timer(enum nas_timer_type type, uint64_t imsi) = 0;
@@ -111,11 +111,11 @@ public:
                                        std::queue<srslte::byte_buffer_t*>& pkt_queue)                             = 0;
 };
 
-class gtpc_interface_gtpu //GTP-U -> GTP-C
+class gtpc_interface_gtpu // GTP-U -> GTP-C
 {
 public:
-  virtual bool queue_downlink_packet(uint32_t spgw_ctr_teid, srslte::byte_buffer_t *msg) = 0;
-  virtual bool send_downlink_data_notification(uint32_t spgw_ctr_teid) = 0;
+  virtual bool queue_downlink_packet(uint32_t spgw_ctr_teid, srslte::byte_buffer_t* msg) = 0;
+  virtual bool send_downlink_data_notification(uint32_t spgw_ctr_teid)                   = 0;
 };
 
 } // namespace srsepc

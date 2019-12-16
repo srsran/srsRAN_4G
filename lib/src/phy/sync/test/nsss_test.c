@@ -92,8 +92,8 @@ int main(int argc, char** argv)
   srslte_ofdm_t       ifft       = {};
   int                 fft_size   = 0;
   float               peak_value = 0.0;
-  int                 num_sf = 1;
-  int                 ret    = SRSLTE_ERROR;
+  int                 num_sf     = 1;
+  int                 ret        = SRSLTE_ERROR;
 
   parse_args(argc, argv);
 

@@ -19,10 +19,10 @@
  *
  */
 
-#include <stdint.h>
-#include "srslte/srslte.h"
-#include "srslte/common/pcap.h"
 #include "srslte/common/mac_pcap.h"
+#include "srslte/common/pcap.h"
+#include "srslte/srslte.h"
+#include <stdint.h>
 
 namespace srslte {
 
@@ -35,12 +35,12 @@ mac_pcap::~mac_pcap()
 
 void mac_pcap::enable(bool en)
 {
-  enable_write = true; 
+  enable_write = true;
 }
 void mac_pcap::open(const char* filename, uint32_t ue_id)
 {
-  pcap_file = LTE_PCAP_Open(MAC_LTE_DLT, filename);
-  this->ue_id = ue_id;
+  pcap_file    = LTE_PCAP_Open(MAC_LTE_DLT, filename);
+  this->ue_id  = ue_id;
   enable_write = true;
 }
 void mac_pcap::close()
@@ -53,23 +53,31 @@ void mac_pcap::close()
   }
 }
 
-void mac_pcap::set_ue_id(uint16_t ue_id) {
+void mac_pcap::set_ue_id(uint16_t ue_id)
+{
   this->ue_id = ue_id;
 }
 
-void mac_pcap::pack_and_write(uint8_t* pdu, uint32_t pdu_len_bytes, uint32_t reTX, bool crc_ok, uint32_t tti, 
-                              uint16_t crnti, uint8_t direction, uint8_t rnti_type)
+void mac_pcap::pack_and_write(uint8_t* pdu,
+                              uint32_t pdu_len_bytes,
+                              uint32_t reTX,
+                              bool     crc_ok,
+                              uint32_t tti,
+                              uint16_t crnti,
+                              uint8_t  direction,
+                              uint8_t  rnti_type)
 {
   if (enable_write) {
-    MAC_Context_Info_t  context =
-    {
-        FDD_RADIO, direction, rnti_type,
-        crnti,       /* RNTI */
+    MAC_Context_Info_t context = {
+        FDD_RADIO,
+        direction,
+        rnti_type,
+        crnti,                /* RNTI */
         (uint16_t)ue_id,      /* UEId */
         (uint8_t)reTX,        /* Retx */
-        crc_ok,        /* CRC Stsatus (i.e. OK) */
-        (uint16_t)(tti/10),        /* Sysframe number */
-        (uint16_t)(tti%10)        /* Subframe number */
+        crc_ok,               /* CRC Stsatus (i.e. OK) */
+        (uint16_t)(tti / 10), /* Sysframe number */
+        (uint16_t)(tti % 10)  /* Subframe number */
     };
     if (pdu) {
       LTE_PCAP_MAC_WritePDU(pcap_file, &context, pdu, pdu_len_bytes);
@@ -178,4 +186,4 @@ void mac_pcap::write_ul_rrc_pdu(const uint8_t* input, const int32_t input_len)
 
   write_ul_crnti(pdu, pdu_ptr - pdu, 14931, true, 0);
 }
-}
+} // namespace srslte

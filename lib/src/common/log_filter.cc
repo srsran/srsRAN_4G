@@ -29,7 +29,7 @@
 
 #include "srslte/common/log_filter.h"
 
-namespace srslte{
+namespace srslte {
 
 #define CHARS_FOR_HEX_DUMP(size)                                                                                       \
   (3 * size + size / 16 * 20) // 3 chars per byte, plus 20 per line for position and newline)
@@ -50,7 +50,7 @@ log_filter::log_filter(std::string layer) : log()
   init(layer, &def_logger_stdout, do_tti);
 }
 
-log_filter::log_filter(std::string layer, logger *logger_, bool tti)
+log_filter::log_filter(std::string layer, logger* logger_, bool tti)
 {
   do_tti      = false;
   time_src    = NULL;
@@ -58,19 +58,21 @@ log_filter::log_filter(std::string layer, logger *logger_, bool tti)
   init(layer, logger_, tti);
 }
 
-log_filter::~log_filter()
+log_filter::~log_filter() {}
+
+void log_filter::init(std::string layer, logger* logger_, bool tti)
 {
+  service_name = layer;
+  logger_h     = logger_;
+  do_tti       = tti;
 }
 
-void log_filter::init(std::string layer, logger *logger_, bool tti)
-{
-  service_name  = layer;
-  logger_h      = logger_;
-  do_tti        = tti;
-}
-
-void log_filter::all_log(
-    srslte::LOG_LEVEL_ENUM level, uint32_t tti, const char* msg, const uint8_t* hex, int size, bool long_msg)
+void log_filter::all_log(srslte::LOG_LEVEL_ENUM level,
+                         uint32_t               tti,
+                         const char*            msg,
+                         const uint8_t*         hex,
+                         int                    size,
+                         bool                   long_msg)
 {
   char buffer_tti[16]  = {};
   char buffer_time[64] = {};
@@ -111,12 +113,13 @@ void log_filter::all_log(
   }
 }
 
-void log_filter::console(const char * message, ...) {
-  char      args_msg[char_buff_size];
-  va_list   args;
+void log_filter::console(const char* message, ...)
+{
+  char    args_msg[char_buff_size];
+  va_list args;
   va_start(args, message);
   if (vsnprintf(args_msg, char_buff_size, message, args) > 0)
-    printf("%s",args_msg); // Print directly to stdout
+    printf("%s", args_msg); // Print directly to stdout
   fflush(stdout);
   va_end(args);
 }
@@ -145,15 +148,18 @@ void log_filter::console(const char * message, ...) {
     }                                                                                                                  \
   } while (0)
 
-void log_filter::error(const char * message, ...) {
+void log_filter::error(const char* message, ...)
+{
   all_log_expand(LOG_LEVEL_ERROR);
 }
 
-void log_filter::warning(const char * message, ...) {
+void log_filter::warning(const char* message, ...)
+{
   all_log_expand(LOG_LEVEL_WARNING);
 }
 
-void log_filter::info(const char * message, ...) {
+void log_filter::info(const char* message, ...)
+{
   all_log_expand(LOG_LEVEL_INFO);
 }
 
@@ -170,15 +176,16 @@ void log_filter::info_long(const char* message, ...)
   }
 }
 
-void log_filter::debug(const char * message, ...) {
+void log_filter::debug(const char* message, ...)
+{
   all_log_expand(LOG_LEVEL_DEBUG);
 }
 
 void log_filter::debug_long(const char* message, ...)
 {
   if (level >= LOG_LEVEL_DEBUG) {
-    char*     args_msg = NULL;
-    va_list   args;
+    char*   args_msg = NULL;
+    va_list args;
     va_start(args, message);
     if (vasprintf(&args_msg, message, args) > 0)
       all_log(LOG_LEVEL_DEBUG, tti, args_msg, nullptr, strlen(args_msg), true);
@@ -187,23 +194,28 @@ void log_filter::debug_long(const char* message, ...)
   }
 }
 
-void log_filter::error_hex(const uint8_t *hex, int size, const char * message, ...) {
+void log_filter::error_hex(const uint8_t* hex, int size, const char* message, ...)
+{
   all_log_hex_expand(LOG_LEVEL_ERROR);
 }
 
-void log_filter::warning_hex(const uint8_t *hex, int size, const char * message, ...) {
+void log_filter::warning_hex(const uint8_t* hex, int size, const char* message, ...)
+{
   all_log_hex_expand(LOG_LEVEL_WARNING);
 }
 
-void log_filter::info_hex(const uint8_t *hex, int size, const char * message, ...) {
+void log_filter::info_hex(const uint8_t* hex, int size, const char* message, ...)
+{
   all_log_hex_expand(LOG_LEVEL_INFO);
 }
 
-void log_filter::debug_hex(const uint8_t *hex, int size, const char * message, ...) {
+void log_filter::debug_hex(const uint8_t* hex, int size, const char* message, ...)
+{
   all_log_hex_expand(LOG_LEVEL_DEBUG);
 }
 
-void log_filter::set_time_src(time_itf *source, time_format_t format) {
+void log_filter::set_time_src(time_itf* source, time_format_t format)
+{
   this->time_src    = source;
   this->time_format = format;
 }
@@ -215,11 +227,11 @@ void log_filter::get_tti_str(const uint32_t tti_, char* buffer, const uint32_t b
 void log_filter::now_time(char* buffer, const uint32_t buffer_len)
 {
   struct timeval rawtime;
-  struct tm * timeinfo;
-  char us[16];
+  struct tm*     timeinfo;
+  char           us[16];
 
   srslte_timestamp_t now;
-  uint64_t usec_epoch;
+  uint64_t           usec_epoch;
 
   if (buffer_len < 16) {
     fprintf(stderr, "Error buffer provided for time too small\n");
@@ -245,25 +257,25 @@ void log_filter::now_time(char* buffer, const uint32_t buffer_len)
     if (time_format == TIME) {
       snprintf(buffer, buffer_len, "%ld:%06u", now.full_secs, (uint32_t)(now.frac_secs * 1e6));
     } else {
-      usec_epoch = now.full_secs * 1000000 + (uint32_t) (now.frac_secs * 1e6);
+      usec_epoch = now.full_secs * 1000000 + (uint32_t)(now.frac_secs * 1e6);
       snprintf(buffer, buffer_len, "%" PRIu64, usec_epoch);
     }
   }
 }
 
-std::string log_filter::hex_string(const uint8_t *hex, int size)
+std::string log_filter::hex_string(const uint8_t* hex, int size)
 {
   std::stringstream ss;
-  int c = 0;
+  int               c = 0;
 
   ss << std::hex << std::setfill('0');
-  if(hex_limit >= 0) {
+  if (hex_limit >= 0) {
     size = (size > hex_limit) ? hex_limit : size;
   }
-  while(c < size) {
+  while (c < size) {
     ss << "             " << std::setw(4) << static_cast<unsigned>(c) << ": ";
-    int tmp = (size-c < 16) ? size-c : 16;
-    for(int i=0;i<tmp;i++) {
+    int tmp = (size - c < 16) ? size - c : 16;
+    for (int i = 0; i < tmp; i++) {
       ss << std::setw(2) << static_cast<unsigned>(hex[c++]) << " ";
     }
     ss << "\n";

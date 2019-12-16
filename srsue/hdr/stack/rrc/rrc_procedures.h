@@ -50,7 +50,7 @@ private:
   srslte::proc_outcome_t handle_cell_found(const phy_interface_rrc_lte::phy_cell_t& new_cell);
 
   // conts
-  rrc*         rrc_ptr;
+  rrc* rrc_ptr;
 
   // state vars
   cell_search_event_t         search_result;

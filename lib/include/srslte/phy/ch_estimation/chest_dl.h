@@ -41,9 +41,9 @@
 #include "srslte/config.h"
 
 #include "srslte/phy/ch_estimation/chest_common.h"
-#include "srslte/phy/resampling/interp.h"
 #include "srslte/phy/ch_estimation/refsignal_dl.h"
 #include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/resampling/interp.h"
 #include "srslte/phy/sync/pss.h"
 
 typedef struct SRSLTE_API {
@@ -77,25 +77,25 @@ typedef struct SRSLTE_API {
   uint32_t      nof_rx_antennas;
 
   srslte_refsignal_t   csr_refs;
-  srslte_refsignal_t **mbsfn_refs;
+  srslte_refsignal_t** mbsfn_refs;
 
-  cf_t *pilot_estimates;
-  cf_t *pilot_estimates_average; 
-  cf_t *pilot_recv_signal; 
-  cf_t *tmp_noise; 
-  cf_t *tmp_cfo_estimate;
+  cf_t* pilot_estimates;
+  cf_t* pilot_estimates_average;
+  cf_t* pilot_recv_signal;
+  cf_t* tmp_noise;
+  cf_t* tmp_cfo_estimate;
 
-#ifdef FREQ_SEL_SNR  
+#ifdef FREQ_SEL_SNR
   float snr_vector[12000];
   float pilot_power[12000];
 #endif
 
-  srslte_interp_linsrslte_vec_t srslte_interp_linvec; 
-  srslte_interp_lin_t srslte_interp_lin; 
-  srslte_interp_lin_t srslte_interp_lin_3;
-  srslte_interp_lin_t srslte_interp_lin_mbsfn;
+  srslte_interp_linsrslte_vec_t srslte_interp_linvec;
+  srslte_interp_lin_t           srslte_interp_lin;
+  srslte_interp_lin_t           srslte_interp_lin_3;
+  srslte_interp_lin_t           srslte_interp_lin_mbsfn;
 
-  float rssi[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS]; 
+  float rssi[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
   float rsrp[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
   float rsrp_corr[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
   float noise_estimate[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
@@ -106,7 +106,7 @@ typedef struct SRSLTE_API {
   cf_t pss_signal[SRSLTE_PSS_LEN];
   cf_t tmp_pss[SRSLTE_PSS_LEN];
   cf_t tmp_pss_noisy[SRSLTE_PSS_LEN];
-  
+
 } srslte_chest_dl_t;
 
 typedef struct SRSLTE_API {

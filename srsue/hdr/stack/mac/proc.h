@@ -26,27 +26,19 @@
 
 /* Interface for a MAC procedure */
 
-
 namespace srsue {
-  
+
 class proc
 {
 public:
-  proc() {
-    running = false; 
-  }
-  void run() {
-    running = true; 
-  }
-  void stop() {
-    running = false; 
-  }
-  bool is_running() {
-    return running; 
-  }
-  virtual void step(uint32_t tti) = 0; 
+  proc() { running = false; }
+  void         run() { running = true; }
+  void         stop() { running = false; }
+  bool         is_running() { return running; }
+  virtual void step(uint32_t tti) = 0;
+
 private:
-  bool running; 
+  bool running;
 };
 
 } // namespace srsue

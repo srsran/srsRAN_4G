@@ -19,42 +19,65 @@
  *
  */
 
+#include "srslte/phy/rf/rf.h"
+#include <stdbool.h>
+
 /* RF frontend API */
 typedef struct {
-  const char *name;
+  const char* name;
   const char* (*srslte_rf_devname)(void* h);
-  int    (*srslte_rf_start_rx_stream)(void *h, bool now);
-  int    (*srslte_rf_stop_rx_stream)(void *h);
-  void   (*srslte_rf_flush_buffer)(void *h);
-  bool   (*srslte_rf_has_rssi)(void *h);
-  float  (*srslte_rf_get_rssi)(void *h);
-  void   (*srslte_rf_suppress_stdout)(void *h);
-  void   (*srslte_rf_register_error_handler)(void *h, srslte_rf_error_handler_t error_handler);
-  int    (*srslte_rf_open)(char *args, void **h);
-  int    (*srslte_rf_open_multi)(char *args, void **h, uint32_t nof_channels);
-  int    (*srslte_rf_close)(void *h);
-  double (*srslte_rf_set_rx_srate)(void *h, double freq);
-  double (*srslte_rf_set_rx_gain)(void *h, double gain);
-  double (*srslte_rf_set_tx_gain)(void *h, double gain);
-  double (*srslte_rf_get_rx_gain)(void *h);
-  double (*srslte_rf_get_tx_gain)(void *h);
-  srslte_rf_info_t *(*srslte_rf_get_info)(void *h);
+  int (*srslte_rf_start_rx_stream)(void* h, bool now);
+  int (*srslte_rf_stop_rx_stream)(void* h);
+  void (*srslte_rf_flush_buffer)(void* h);
+  bool (*srslte_rf_has_rssi)(void* h);
+  float (*srslte_rf_get_rssi)(void* h);
+  void (*srslte_rf_suppress_stdout)(void* h);
+  void (*srslte_rf_register_error_handler)(void* h, srslte_rf_error_handler_t error_handler);
+  int (*srslte_rf_open)(char* args, void** h);
+  int (*srslte_rf_open_multi)(char* args, void** h, uint32_t nof_channels);
+  int (*srslte_rf_close)(void* h);
+  double (*srslte_rf_set_rx_srate)(void* h, double freq);
+  double (*srslte_rf_set_rx_gain)(void* h, double gain);
+  double (*srslte_rf_set_tx_gain)(void* h, double gain);
+  double (*srslte_rf_get_rx_gain)(void* h);
+  double (*srslte_rf_get_tx_gain)(void* h);
+  srslte_rf_info_t* (*srslte_rf_get_info)(void* h);
   double (*srslte_rf_set_rx_freq)(void* h, uint32_t ch, double freq);
-  double (*srslte_rf_set_tx_srate)(void *h, double freq);
+  double (*srslte_rf_set_tx_srate)(void* h, double freq);
   double (*srslte_rf_set_tx_freq)(void* h, uint32_t ch, double freq);
   void (*srslte_rf_get_time)(void* h, time_t* secs, double* frac_secs);
   void (*srslte_rf_sync_pps)(void* h);
-  int    (*srslte_rf_recv_with_time)(void *h, void *data, uint32_t nsamples, 
-                           bool blocking, time_t *secs,double *frac_secs);
-  int    (*srslte_rf_recv_with_time_multi)(void *h, void **data, uint32_t nsamples, 
-                           bool blocking, time_t *secs,double *frac_secs);
-  int    (*srslte_rf_send_timed)(void *h, void *data, int nsamples,
-                     time_t secs, double frac_secs, bool has_time_spec,
-                     bool blocking, bool is_start_of_burst, bool is_end_of_burst);
-  int    (*srslte_rf_send_timed_multi)(void *h, void *data[4], int nsamples,
-                     time_t secs, double frac_secs, bool has_time_spec,
-                     bool blocking, bool is_start_of_burst, bool is_end_of_burst);
-} rf_dev_t; 
+  int (*srslte_rf_recv_with_time)(void*    h,
+                                  void*    data,
+                                  uint32_t nsamples,
+                                  bool     blocking,
+                                  time_t*  secs,
+                                  double*  frac_secs);
+  int (*srslte_rf_recv_with_time_multi)(void*    h,
+                                        void**   data,
+                                        uint32_t nsamples,
+                                        bool     blocking,
+                                        time_t*  secs,
+                                        double*  frac_secs);
+  int (*srslte_rf_send_timed)(void*  h,
+                              void*  data,
+                              int    nsamples,
+                              time_t secs,
+                              double frac_secs,
+                              bool   has_time_spec,
+                              bool   blocking,
+                              bool   is_start_of_burst,
+                              bool   is_end_of_burst);
+  int (*srslte_rf_send_timed_multi)(void*  h,
+                                    void*  data[4],
+                                    int    nsamples,
+                                    time_t secs,
+                                    double frac_secs,
+                                    bool   has_time_spec,
+                                    bool   blocking,
+                                    bool   is_start_of_burst,
+                                    bool   is_end_of_burst);
+} rf_dev_t;
 
 /* Define implementation for UHD */
 #ifdef ENABLE_UHD
@@ -195,43 +218,17 @@ static rf_dev_t dev_zmq = {"zmq",
 //#define ENABLE_DUMMY_DEV
 
 #ifdef ENABLE_DUMMY_DEV
-int dummy_rcv() {
+int dummy_rcv()
+{
   usleep(100000);
-  return 1; 
+  return 1;
 }
-void dummy_fnc() {
-  
-}
+void dummy_fnc() {}
 
-static rf_dev_t dev_dummy = {
-  "dummy", 
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc, 
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc,  
-  dummy_rcv,
-  dummy_fnc,
-  dummy_fnc,
-  dummy_fnc
-};
+static rf_dev_t dev_dummy = {"dummy",   dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc,
+                             dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc,
+                             dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc, dummy_fnc,
+                             dummy_fnc, dummy_fnc, dummy_rcv, dummy_fnc, dummy_fnc, dummy_fnc};
 #endif
 
 static rf_dev_t* available_devices[] = {

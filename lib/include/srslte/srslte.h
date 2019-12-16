@@ -35,10 +35,10 @@ extern "C" {
 #include "srslte/version.h"
 
 #include "srslte/phy/utils/bit.h"
-#include "srslte/phy/utils/ringbuffer.h"
+#include "srslte/phy/utils/cexptab.h"
 #include "srslte/phy/utils/convolution.h"
 #include "srslte/phy/utils/debug.h"
-#include "srslte/phy/utils/cexptab.h"
+#include "srslte/phy/utils/ringbuffer.h"
 #include "srslte/phy/utils/vector.h"
 
 #include "srslte/phy/common/phy_common.h"
@@ -46,30 +46,30 @@ extern "C" {
 #include "srslte/phy/common/timestamp.h"
 #include "srslte/phy/utils/phy_logger.h"
 
-#include "srslte/phy/ch_estimation/chest_ul.h"
 #include "srslte/phy/ch_estimation/chest_dl.h"
+#include "srslte/phy/ch_estimation/chest_ul.h"
 #include "srslte/phy/ch_estimation/refsignal_dl.h"
 #include "srslte/phy/ch_estimation/refsignal_ul.h"
 
-#include "srslte/phy/resampling/interp.h"
 #include "srslte/phy/resampling/decim.h"
+#include "srslte/phy/resampling/interp.h"
 #include "srslte/phy/resampling/resample_arb.h"
 
 #include "srslte/phy/channel/ch_awgn.h"
 
-#include "srslte/phy/fec/viterbi.h"
+#include "srslte/phy/fec/cbsegm.h"
 #include "srslte/phy/fec/convcoder.h"
 #include "srslte/phy/fec/crc.h"
+#include "srslte/phy/fec/rm_conv.h"
+#include "srslte/phy/fec/rm_turbo.h"
 #include "srslte/phy/fec/tc_interl.h"
 #include "srslte/phy/fec/turbocoder.h"
 #include "srslte/phy/fec/turbodecoder.h"
-#include "srslte/phy/fec/cbsegm.h"
-#include "srslte/phy/fec/rm_conv.h"
-#include "srslte/phy/fec/rm_turbo.h"
+#include "srslte/phy/fec/viterbi.h"
 
+#include "srslte/phy/dft/dft.h"
 #include "srslte/phy/dft/dft_precoding.h"
 #include "srslte/phy/dft/ofdm.h"
-#include "srslte/phy/dft/dft.h"
 
 #include "srslte/phy/io/binsource.h"
 #include "srslte/phy/io/filesink.h"
@@ -82,8 +82,8 @@ extern "C" {
 #include "srslte/phy/modem/mod.h"
 #include "srslte/phy/modem/modem_table.h"
 
-#include "srslte/phy/mimo/precoding.h"
 #include "srslte/phy/mimo/layermap.h"
+#include "srslte/phy/mimo/precoding.h"
 
 #include "srslte/phy/fec/softbuffer.h"
 #include "srslte/phy/phch/cqi.h"
@@ -103,10 +103,10 @@ extern "C" {
 #include "srslte/phy/phch/sch.h"
 #include "srslte/phy/phch/uci.h"
 
-#include "srslte/phy/ue/ue_sync.h"
-#include "srslte/phy/ue/ue_mib.h"
 #include "srslte/phy/ue/ue_cell_search.h"
 #include "srslte/phy/ue/ue_dl.h"
+#include "srslte/phy/ue/ue_mib.h"
+#include "srslte/phy/ue/ue_sync.h"
 #include "srslte/phy/ue/ue_ul.h"
 
 #include "srslte/phy/enb/enb_dl.h"

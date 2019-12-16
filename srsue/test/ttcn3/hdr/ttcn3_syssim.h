@@ -906,21 +906,21 @@ private:
 
   uint32_t run_id = 0;
 
-  int32_t                           tti                  = 0;
-  int32_t                           prach_tti            = -1;
-  int32_t                           rar_tti              = -1;
-  int32_t                           msg3_tti             = -1;
-  int32_t                           sr_tti               = -1;
-  uint32_t                          prach_preamble_index = 0;
-  uint16_t                          dl_rnti              = 0;
-  uint16_t                          crnti                = TTCN3_CRNTI;
-  srslte::timer_handler             timers;
-  bool                              last_dl_ndi[2 * FDD_HARQ_DELAY_MS] = {};
-  bool                              last_ul_ndi[2 * FDD_HARQ_DELAY_MS] = {};
+  int32_t               tti                  = 0;
+  int32_t               prach_tti            = -1;
+  int32_t               rar_tti              = -1;
+  int32_t               msg3_tti             = -1;
+  int32_t               sr_tti               = -1;
+  uint32_t              prach_preamble_index = 0;
+  uint16_t              dl_rnti              = 0;
+  uint16_t              crnti                = TTCN3_CRNTI;
+  srslte::timer_handler timers;
+  bool                  last_dl_ndi[2 * FDD_HARQ_DELAY_MS] = {};
+  bool                  last_ul_ndi[2 * FDD_HARQ_DELAY_MS] = {};
 
   // Map between the cellId (name) used by 3GPP test suite and srsLTE cell struct
   typedef struct {
-    std::string   name;
+    std::string                       name;
     srslte_cell_t                     cell          = {};
     float                             initial_power = 0.0;
     float                             attenuation   = 0.0;
@@ -945,8 +945,8 @@ private:
   srslte::rlc  rlc;
   srslte::pdcp pdcp;
 
-  std::vector<std::string> rb_id_vec = {
-      "SRB0", "SRB1", "SRB2", "DRB1", "DRB2", "DRB3", "DRB4", "DRB5", "DRB6", "DRB7", "DRB8"};
+  std::vector<std::string> rb_id_vec =
+      {"SRB0", "SRB1", "SRB2", "DRB1", "DRB2", "DRB3", "DRB4", "DRB5", "DRB6", "DRB7", "DRB8"};
 };
 
 #endif // SRSUE_TTCN3_SYSSIM_H

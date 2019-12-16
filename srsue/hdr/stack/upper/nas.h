@@ -71,7 +71,7 @@ public:
   void timer_expired(uint32_t timeout_id);
 
   // PCAP
-  void start_pcap(srslte::nas_pcap *pcap_);
+  void start_pcap(srslte::nas_pcap* pcap_);
 
 private:
   srslte::byte_buffer_pool* pool    = nullptr;
@@ -86,19 +86,19 @@ private:
 
   nas_interface_rrc::barring_t current_barring = BARRING_NONE;
 
-  bool                 plmn_is_selected = false;
-  srslte::plmn_id_t    current_plmn;
-  srslte::plmn_id_t    home_plmn;
+  bool              plmn_is_selected = false;
+  srslte::plmn_id_t current_plmn;
+  srslte::plmn_id_t home_plmn;
 
   std::vector<srslte::plmn_id_t> known_plmns;
 
   // Security context
-  struct nas_sec_ctxt{
-    uint8_t  ksi;
-    uint8_t  k_asme[32];
-    uint32_t tx_count;
-    uint32_t rx_count;
-    uint32_t k_enb_count;
+  struct nas_sec_ctxt {
+    uint8_t                              ksi;
+    uint8_t                              k_asme[32];
+    uint32_t                             tx_count;
+    uint32_t                             rx_count;
+    uint32_t                             k_enb_count;
     srslte::CIPHERING_ALGORITHM_ID_ENUM  cipher_algo;
     srslte::INTEGRITY_ALGORITHM_ID_ENUM  integ_algo;
     LIBLTE_MME_EPS_MOBILE_ID_GUTI_STRUCT guti;
@@ -147,18 +147,14 @@ private:
 
   bool running = false;
 
-  void integrity_generate(uint8_t *key_128,
-                          uint32_t count,
-                          uint8_t direction,
-                          uint8_t *msg,
-                          uint32_t msg_len,
-                          uint8_t *mac);
+  void
+       integrity_generate(uint8_t* key_128, uint32_t count, uint8_t direction, uint8_t* msg, uint32_t msg_len, uint8_t* mac);
   bool integrity_check(srslte::byte_buffer_t* pdu);
   void cipher_encrypt(srslte::byte_buffer_t* pdu);
   void cipher_decrypt(srslte::byte_buffer_t* pdu);
   void set_k_enb_count(uint32_t count);
 
-  bool check_cap_replay(LIBLTE_MME_UE_SECURITY_CAPABILITIES_STRUCT *caps);
+  bool check_cap_replay(LIBLTE_MME_UE_SECURITY_CAPABILITIES_STRUCT* caps);
 
   void select_plmn();
 
@@ -190,7 +186,7 @@ private:
   void send_esm_information_response(const uint8 proc_transaction_id);
   void send_authentication_response(const uint8_t* res, const size_t res_len, const uint8_t sec_hdr_type);
   void send_authentication_failure(const uint8_t cause, const uint8_t* auth_fail_param);
-  void gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT *msg);
+  void gen_pdn_connectivity_request(LIBLTE_BYTE_MSG_STRUCT* msg);
   void send_security_mode_reject(uint8_t cause);
   void send_detach_request(bool switch_off);
   void send_detach_accept();
@@ -209,32 +205,32 @@ private:
 
   // ctxt file helpers
   std::string hex_to_string(uint8_t* hex, int size);
-  bool        string_to_hex(std::string hex_str, uint8_t *hex, uint32_t len);
-  std::string emm_info_str(LIBLTE_MME_EMM_INFORMATION_MSG_STRUCT *info);
+  bool        string_to_hex(std::string hex_str, uint8_t* hex, uint32_t len);
+  std::string emm_info_str(LIBLTE_MME_EMM_INFORMATION_MSG_STRUCT* info);
 
   template <class T>
-  bool readvar(std::istream &file, const char *key, T *var)
+  bool readvar(std::istream& file, const char* key, T* var)
   {
     std::string line;
-    size_t len = strlen(key);
+    size_t      len = strlen(key);
     std::getline(file, line);
-    if(line.substr(0,len).compare(key)) {
+    if (line.substr(0, len).compare(key)) {
       return false;
     }
     *var = (T)strtol(line.substr(len).c_str(), NULL, 10);
     return true;
   }
 
-  bool readvar(std::istream &file, const char *key, uint8_t *var, int varlen)
+  bool readvar(std::istream& file, const char* key, uint8_t* var, int varlen)
   {
     std::string line;
-    size_t len = strlen(key);
+    size_t      len = strlen(key);
     std::getline(file, line);
-    if(line.substr(0,len).compare(key)) {
+    if (line.substr(0, len).compare(key)) {
       return false;
     }
     std::string tmp = line.substr(len);
-    if(!string_to_hex(tmp, var, varlen)) {
+    if (!string_to_hex(tmp, var, varlen)) {
       return false;
     }
     return true;

@@ -32,7 +32,7 @@
 
 int srslte_ue_cellsearch_nbiot_init(srslte_ue_cellsearch_nbiot_t* q,
                                     uint32_t                      max_frames_total,
-                                    int(recv_callback)(void*, cf_t* [SRSLTE_MAX_PORTS], uint32_t, srslte_timestamp_t*),
+                                    int(recv_callback)(void*, cf_t * [SRSLTE_MAX_PORTS], uint32_t, srslte_timestamp_t*),
                                     void* stream_handler)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
@@ -132,7 +132,7 @@ int srslte_ue_cellsearch_nbiot_scan(srslte_ue_cellsearch_nbiot_t* q)
         }
       } else if (ret == 0) {
         //< This means a peak is not yet found and we are in find state, do nothing, just wait and increase
-        //nof_scanned_frames counter
+        // nof_scanned_frames counter
         nof_scanned_frames++;
       }
     } while (nof_scanned_frames < q->max_frames && nof_detected_frames < q->nof_valid_frames);

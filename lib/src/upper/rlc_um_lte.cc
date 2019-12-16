@@ -32,7 +32,7 @@ rlc_um_lte::rlc_um_lte(srslte::log*               log_,
                        uint32_t                   lcid_,
                        srsue::pdcp_interface_rlc* pdcp_,
                        srsue::rrc_interface_rlc*  rrc_,
-                       srslte::timer_handler*            timers_) :
+                       srslte::timer_handler*     timers_) :
   rlc_um_base(log_, lcid_, pdcp_, rrc_, timers_)
 {
 }
@@ -115,7 +115,7 @@ bool rlc_um_lte::rlc_um_lte_tx::configure(rlc_config_t cnfg_, std::string rb_nam
 
   tx_sdu_queue.resize(cnfg_.tx_queue_length);
 
-  rb_name    = rb_name_;
+  rb_name = rb_name_;
 
   return true;
 }
@@ -220,13 +220,13 @@ void rlc_um_lte::rlc_um_lte_tx::debug_state()
  * Rx subclass implementation
  ***************************************************************************/
 
-rlc_um_lte::rlc_um_lte_rx::rlc_um_lte_rx(rlc_um_base* parent_) : rlc_um_base_rx(parent_), reordering_timer(timers->get_unique_timer())
+rlc_um_lte::rlc_um_lte_rx::rlc_um_lte_rx(rlc_um_base* parent_) :
+  rlc_um_base_rx(parent_),
+  reordering_timer(timers->get_unique_timer())
 {
 }
 
-rlc_um_lte::rlc_um_lte_rx::~rlc_um_lte_rx()
-{
-}
+rlc_um_lte::rlc_um_lte_rx::~rlc_um_lte_rx() {}
 
 bool rlc_um_lte::rlc_um_lte_rx::configure()
 {

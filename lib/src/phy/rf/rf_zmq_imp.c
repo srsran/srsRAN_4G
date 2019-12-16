@@ -47,7 +47,7 @@ typedef struct {
   bool     tx_used;
 
   // Server
-  void* context;
+  void*       context;
   rf_zmq_tx_t transmitter[SRSLTE_MAX_PORTS];
   rf_zmq_rx_t receiver[SRSLTE_MAX_PORTS];
 
@@ -62,7 +62,7 @@ typedef struct {
   // Rx timestamp
   uint64_t next_rx_ts;
 
-  pthread_t       thread;
+  pthread_t thread;
 } rf_zmq_handler_t;
 
 void update_rates(rf_zmq_handler_t* handler, double srate);
@@ -216,10 +216,10 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
 
     rf_zmq_opts_t rx_opts = {};
     rf_zmq_opts_t tx_opts = {};
-    rx_opts.socket_type = ZMQ_REQ;
-    tx_opts.socket_type = ZMQ_REP;
-    tx_opts.id = handler->id;
-    rx_opts.id = handler->id;
+    rx_opts.socket_type   = ZMQ_REQ;
+    tx_opts.socket_type   = ZMQ_REP;
+    tx_opts.id            = handler->id;
+    rx_opts.id            = handler->id;
 
     // parse args
     if (args && strlen(args)) {
@@ -381,8 +381,7 @@ int rf_zmq_open_multi(char* args, void** h, uint32_t nof_channels)
 
       // initialize transmitter
       if (strlen(handler->tx_port) != 0) {
-        if (rf_zmq_tx_open(&handler->transmitter[i], tx_opts, handler->context, handler->tx_port) !=
-            SRSLTE_SUCCESS) {
+        if (rf_zmq_tx_open(&handler->transmitter[i], tx_opts, handler->context, handler->tx_port) != SRSLTE_SUCCESS) {
           fprintf(stderr, "[zmq] Error: opening transmitter\n");
           goto clean_exit;
         }
@@ -477,11 +476,15 @@ void update_rates(rf_zmq_handler_t* handler, double srate)
       handler->srate        = (uint32_t)srate;
       handler->decim_factor = handler->base_srate / handler->srate;
     } else {
-      fprintf(stderr, "Error: couldn't update sample rate. %.2f is not divisible by %.2f\n", srate / 1e6,
+      fprintf(stderr,
+              "Error: couldn't update sample rate. %.2f is not divisible by %.2f\n",
+              srate / 1e6,
               handler->base_srate / 1e6);
     }
-    printf("Current sample rate is %.2f MHz with a base rate of %.2f MHz (x%d decimation)\n", handler->srate / 1e6,
-           handler->base_srate / 1e6, handler->decim_factor);
+    printf("Current sample rate is %.2f MHz with a base rate of %.2f MHz (x%d decimation)\n",
+           handler->srate / 1e6,
+           handler->base_srate / 1e6,
+           handler->decim_factor);
   }
 }
 
@@ -588,8 +591,12 @@ int rf_zmq_recv_with_time(void* h, void* data, uint32_t nsamples, bool blocking,
   return rf_zmq_recv_with_time_multi(h, &data, nsamples, blocking, secs, frac_secs);
 }
 
-int rf_zmq_recv_with_time_multi(
-    void* h, void* data[4], uint32_t nsamples, bool blocking, time_t* secs, double* frac_secs)
+int rf_zmq_recv_with_time_multi(void*    h,
+                                void*    data[4],
+                                uint32_t nsamples,
+                                bool     blocking,
+                                time_t*  secs,
+                                double*  frac_secs)
 {
   int ret = SRSLTE_ERROR;
 
@@ -731,8 +738,8 @@ int rf_zmq_send_timed(void*  h,
 {
   void* _data[4] = {data, NULL, NULL, NULL};
 
-  return rf_zmq_send_timed_multi(h, _data, nsamples, secs, frac_secs, has_time_spec, blocking, is_start_of_burst,
-                                 is_end_of_burst);
+  return rf_zmq_send_timed_multi(
+      h, _data, nsamples, secs, frac_secs, has_time_spec, blocking, is_start_of_burst, is_end_of_burst);
 }
 
 // TODO: Implement Tx upsampling

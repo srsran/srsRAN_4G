@@ -22,14 +22,12 @@
 #ifndef SRSUE_PROC_PHR_H
 #define SRSUE_PROC_PHR_H
 
-#include <stdint.h>
+#include "srslte/common/log.h"
 #include "srslte/common/timers.h"
 #include "srslte/interfaces/ue_interfaces.h"
-#include "srslte/common/log.h"
-
+#include <stdint.h>
 
 /* Power headroom report procedure */
-
 
 namespace srsue {
 

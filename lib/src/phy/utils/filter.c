@@ -23,6 +23,7 @@
 #define SRSLTE_NUM_FILTERS 8
 #define SRSLTE_MAX_FILTER_SIZE 11
 
+// clang-format off
 float srslte_filt_decim2[SRSLTE_NUM_FILTERS][SRSLTE_MAX_FILTER_SIZE] = 
 {
     {0.0167364016736,   0.48326359832636,   0.48326359832636,   0.01673640167364,0,0,0,0,0,0,0},
@@ -48,7 +49,6 @@ float srslte_filt_decim3[SRSLTE_NUM_FILTERS][SRSLTE_MAX_FILTER_SIZE] =
     
 };
 
-
 float srslte_filt_decim4[SRSLTE_NUM_FILTERS][SRSLTE_MAX_FILTER_SIZE]  = 
 {
     { 0.038579006748772,   0.461420993251228,   0.461420993251228,   0.038579006748772,0,0,0,0,0,0,0},
@@ -61,61 +61,57 @@ float srslte_filt_decim4[SRSLTE_NUM_FILTERS][SRSLTE_MAX_FILTER_SIZE]  =
     {-0.003871323167475,   0.000000000000000,   0.032087799410030,   0.116708621643743,   0.220701186106900,   0.268747432013603,   0.220701186106900,   0.116708621643743 ,  0.032087799410030,   0.000000000000000,-0.003871323167475}
 };
 
-
-void srslte_filt_decim_cc_init(srslte_filt_cc_t *q, int factor, int order)
+// clang-format on
+void srslte_filt_decim_cc_init(srslte_filt_cc_t* q, int factor, int order)
 {
-    q->factor = factor;
-    q->num_taps = order + 1;
-    q->is_decimator = true;
-    q->taps = malloc(q->num_taps * sizeof(float));
-   
-    switch(q->factor)
-    {
-        case 2:
-            for(int i = 0; i <(q->num_taps); i++)
-                q->taps[i] = srslte_filt_decim2[(q->num_taps) - 4][i];
-        break;
-        case 3:
-            for(int i = 0; i <(q->num_taps); i++)
-                q->taps[i] = srslte_filt_decim3[(q->num_taps) - 4][i];
-        break;
-        case 4:
-            for(int i = 0; i <(q->num_taps); i++)
-                q->taps[i] = srslte_filt_decim4[(q->num_taps) - 4][i];
-        break;
-        default:
-        
-        break;
-    }
-    
-    for(int x = 0; x<(q->num_taps);x++)
-    {
-        printf("tap : %f.9\n" ,q->taps[x]);
-    }
+  q->factor       = factor;
+  q->num_taps     = order + 1;
+  q->is_decimator = true;
+  q->taps         = malloc(q->num_taps * sizeof(float));
+
+  switch (q->factor) {
+    case 2:
+      for (int i = 0; i < (q->num_taps); i++)
+        q->taps[i] = srslte_filt_decim2[(q->num_taps) - 4][i];
+      break;
+    case 3:
+      for (int i = 0; i < (q->num_taps); i++)
+        q->taps[i] = srslte_filt_decim3[(q->num_taps) - 4][i];
+      break;
+    case 4:
+      for (int i = 0; i < (q->num_taps); i++)
+        q->taps[i] = srslte_filt_decim4[(q->num_taps) - 4][i];
+      break;
+    default:
+
+      break;
+  }
+
+  for (int x = 0; x < (q->num_taps); x++) {
+    printf("tap : %f.9\n", q->taps[x]);
+  }
 }
 
-void srslte_filt_decim_cc_free(srslte_filt_cc_t *q)
+void srslte_filt_decim_cc_free(srslte_filt_cc_t* q)
 {
-    free(q->taps);
+  free(q->taps);
 }
 
-void srslte_filt_decim_cc_execute(srslte_filt_cc_t *q, cf_t *input, cf_t *downsampled_input, cf_t *output, int size)
+void srslte_filt_decim_cc_execute(srslte_filt_cc_t* q, cf_t* input, cf_t* downsampled_input, cf_t* output, int size)
 {
-    // we assume that "downsampled_input" made size (input/2 + order) so as to have prepended zeros //
-    srslte_downsample_cc(input, downsampled_input + (q->num_taps - 1), q->factor, size);
-    
-    for(int i = 0;i < size/q->factor;i++)
-    {
-        output[i] = srslte_vec_dot_prod_cfc(&(downsampled_input[i]), q->taps, q->num_taps);
-    }
-    
-    
+  // we assume that "downsampled_input" made size (input/2 + order) so as to have prepended zeros //
+  srslte_downsample_cc(input, downsampled_input + (q->num_taps - 1), q->factor, size);
+
+  for (int i = 0; i < size / q->factor; i++) {
+    output[i] = srslte_vec_dot_prod_cfc(&(downsampled_input[i]), q->taps, q->num_taps);
+  }
 }
 
 /* Performs integer linear downsamling by a factor of M */
-void srslte_downsample_cc(cf_t *input, cf_t *output, int M, int size) {
+void srslte_downsample_cc(cf_t* input, cf_t* output, int M, int size)
+{
   int i;
-  for (i=0;i<size/M;i++) {
-    output[i] = input[i*M];
+  for (i = 0; i < size / M; i++) {
+    output[i] = input[i * M];
   }
 }

@@ -19,6 +19,10 @@
  *
  */
 
+#include <inttypes.h>
+
+typedef _Complex float cf_t;
+
 /* Thresholds for Demodulation */
 /* Assume perfect amplitude and phase alignment.
  *  Check threshold values for real case
@@ -35,20 +39,12 @@
 #define QAM256_THRESHOLD_6 (12 / sqrtf(170))
 #define QAM256_THRESHOLD_7 (14 / sqrtf(170))
 
-void hard_bpsk_demod(const cf_t* in, 
-                     uint8_t* out, 
-                     uint32_t N);
+void hard_bpsk_demod(const cf_t* in, uint8_t* out, uint32_t N);
 
-void hard_qpsk_demod(const cf_t* in, 
-                     uint8_t* out, 
-                     uint32_t N);
+void hard_qpsk_demod(const cf_t* in, uint8_t* out, uint32_t N);
 
-void hard_qam16_demod(const cf_t* in, 
-                                 uint8_t* out, 
-                                 uint32_t N);
+void hard_qam16_demod(const cf_t* in, uint8_t* out, uint32_t N);
 
-void hard_qam64_demod(const cf_t* in, 
-                                 uint8_t* out, 
-                                 uint32_t N);
+void hard_qam64_demod(const cf_t* in, uint8_t* out, uint32_t N);
 
 void hard_qam256_demod(const cf_t* in, uint8_t* out, uint32_t N);

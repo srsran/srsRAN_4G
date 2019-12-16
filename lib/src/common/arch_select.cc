@@ -26,9 +26,9 @@
 #include <unistd.h>
 
 #ifdef IS_ARM
+#include <asm/hwcap.h>
 #include <stdio.h>
 #include <sys/auxv.h>
-#include <asm/hwcap.h>
 #define USER_HWCAP_NEON (1 << 12)
 #else
 #include <cpuid.h>
@@ -39,8 +39,12 @@
 #define MAX_CMD_LEN (64)
 
 #ifndef IS_ARM
-static __inline int __get_cpuid_count_redef(unsigned int __leaf, unsigned int __subleaf, unsigned int* __eax,
-                                            unsigned int* __ebx, unsigned int* __ecx, unsigned int* __edx)
+static __inline int __get_cpuid_count_redef(unsigned int  __leaf,
+                                            unsigned int  __subleaf,
+                                            unsigned int* __eax,
+                                            unsigned int* __ebx,
+                                            unsigned int* __ecx,
+                                            unsigned int* __edx)
 {
   unsigned int __max_leaf = __get_cpuid_max(__leaf & 0x80000000, 0);
 
@@ -53,15 +57,15 @@ static __inline int __get_cpuid_count_redef(unsigned int __leaf, unsigned int __
 
 const char* x86_get_isa()
 {
-  int ret = 0;
-  int has_sse42 = 0, has_avx = 0, has_avx2 = 0;
+  int          ret       = 0;
+  int          has_sse42 = 0, has_avx = 0, has_avx2 = 0;
   unsigned int eax = 0, ebx = 0, ecx = 0, edx = 0;
 
   // query basic features
   ret = __get_cpuid(X86_CPUID_BASIC_LEAF, &eax, &ebx, &ecx, &edx);
   if (ret) {
     has_sse42 = ecx & bit_SSE4_2;
-    has_avx = ecx & bit_AVX;
+    has_avx   = ecx & bit_AVX;
   }
 
   // query advanced features
@@ -72,11 +76,9 @@ const char* x86_get_isa()
 
   if (has_avx2) {
     return "avx2";
-  } else
-  if (has_avx) {
+  } else if (has_avx) {
     return "avx";
-  } else
-  if (has_sse42) {
+  } else if (has_sse42) {
     return "sse4.2";
   } else {
     return "generic";
@@ -99,7 +101,7 @@ const char* arm_get_isa()
 }
 #endif
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
   char cmd[MAX_CMD_LEN];
 #ifdef IS_ARM

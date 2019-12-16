@@ -32,20 +32,16 @@
 #ifndef SRSLTE_CONVCODER_H
 #define SRSLTE_CONVCODER_H
 
-#include <stdbool.h>
 #include "srslte/config.h"
+#include <stdbool.h>
 
 typedef struct SRSLTE_API {
   uint32_t R;
   uint32_t K;
-  int poly[3];
-  bool tail_biting;
-}srslte_convcoder_t;
+  int      poly[3];
+  bool     tail_biting;
+} srslte_convcoder_t;
 
-SRSLTE_API int srslte_convcoder_encode(srslte_convcoder_t *q, 
-                                       uint8_t *input, 
-                                       uint8_t *output, 
-                                       uint32_t frame_length);
-
+SRSLTE_API int srslte_convcoder_encode(srslte_convcoder_t* q, uint8_t* input, uint8_t* output, uint32_t frame_length);
 
 #endif // SRSLTE_CONVCODER_H

@@ -27,10 +27,10 @@
 #include "srslte/common/log.h"
 #include "srslte/common/thread_pool.h"
 #include "srslte/common/threads.h"
-#include "srslte/phy/channel/channel.h"
 #include "srslte/interfaces/common_interfaces.h"
 #include "srslte/interfaces/enb_interfaces.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
+#include "srslte/phy/channel/channel.h"
 #include "srslte/radio/radio.h"
 #include <map>
 #include <semaphore.h>
@@ -66,10 +66,11 @@ public:
   void set_nof_workers(uint32_t nof_workers);
 
   bool init(const srslte_cell_t& cell_, srslte::radio_interface_phy* radio_handler, stack_interface_phy_lte* mac);
-  void reset(); 
+  void reset();
   void stop();
-  
-  void worker_end(uint32_t tx_mutex_cnt, cf_t *buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t tx_time);
+
+  void
+  worker_end(uint32_t tx_mutex_cnt, cf_t* buffer[SRSLTE_MAX_PORTS], uint32_t nof_samples, srslte_timestamp_t tx_time);
 
   // Common objects
   srslte_cell_t cell   = {};
@@ -81,25 +82,26 @@ public:
   // Physical Downlink Config common
   srslte_dl_cfg_t dl_cfg_com = {};
 
-  srslte::radio_interface_phy* radio = nullptr;
-  stack_interface_phy_lte*     stack = nullptr;
+  srslte::radio_interface_phy* radio      = nullptr;
+  stack_interface_phy_lte*     stack      = nullptr;
   srslte::channel_ptr          dl_channel = nullptr;
 
   // Common objects for schedulign grants
   stack_interface_phy_lte::ul_sched_t ul_grants[TTIMOD_SZ] = {};
   stack_interface_phy_lte::dl_sched_t dl_grants[TTIMOD_SZ] = {};
 
-  // Map of pending ACKs for each user 
+  // Map of pending ACKs for each user
   typedef struct {
-    bool is_pending[TTIMOD_SZ][SRSLTE_MAX_TB];
+    bool     is_pending[TTIMOD_SZ][SRSLTE_MAX_TB];
     uint16_t n_pdcch[TTIMOD_SZ];
   } pending_ack_t;
 
-  class common_ue {
-   public:
-     pending_ack_t  pending_ack                   = {};
-     uint8_t        ri                            = 0;
-     srslte_ra_tb_t last_tb[SRSLTE_MAX_HARQ_PROC] = {};
+  class common_ue
+  {
+  public:
+    pending_ack_t  pending_ack                   = {};
+    uint8_t        ri                            = 0;
+    srslte_ra_tb_t last_tb[SRSLTE_MAX_HARQ_PROC] = {};
   };
 
   std::map<uint16_t, common_ue> common_ue_db;
@@ -122,8 +124,8 @@ public:
   void set_mch_period_stop(uint32_t stop);
 
 private:
-  std::vector<sem_t>    tx_sem;
-  bool                  is_first_tx = false;
+  std::vector<sem_t> tx_sem;
+  bool               is_first_tx = false;
 
   uint32_t nof_workers = 0;
   uint32_t max_workers = 0;
@@ -136,15 +138,14 @@ private:
   phy_interface_stack_lte::phy_cfg_mbsfn_t mbsfn;
   bool                                     sib13_configured   = false;
   bool                                     mcch_configured    = false;
-  uint8_t                                  mch_table[40]  = {};
-  uint8_t                                  mcch_table[10] = {};
+  uint8_t                                  mch_table[40]      = {};
+  uint8_t                                  mcch_table[10]     = {};
   uint32_t                                 mch_period_stop    = 0;
   uint8_t                                  mch_sf_idx_lut[10] = {};
-  bool    is_mch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti);
-  bool    is_mcch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti);
+  bool                                     is_mch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti);
+  bool                                     is_mcch_subframe(srslte_mbsfn_cfg_t* cfg, uint32_t phy_tti);
 
   void add_rnti(uint16_t rnti);
-  
 };
 
 } // namespace srsenb

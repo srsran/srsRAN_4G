@@ -45,8 +45,8 @@ std::string radio_multi::get_type()
 
 int radio_multi::init(const rf_args_t& args_, phy_interface_radio* phy_)
 {
-  args   = args_;
-  phy    = phy_;
+  args = args_;
+  phy  = phy_;
 
   // Init log
   log.init("RF  ", logger);
@@ -133,7 +133,7 @@ void radio_multi::stop()
 
 bool radio_multi::get_metrics(rf_metrics_t* metrics)
 {
-  *metrics = rf_metrics;
+  *metrics   = rf_metrics;
   rf_metrics = {};
   return true;
 }

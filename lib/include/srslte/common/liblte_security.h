@@ -107,7 +107,9 @@ typedef enum {
   LIBLTE_SECURITY_CIPHERING_ALGORITHM_ID_N_ITEMS,
 } LIBLTE_SECURITY_CIPHERING_ALGORITHM_ID_ENUM;
 static const char liblte_security_ciphering_algorithm_id_text[LIBLTE_SECURITY_CIPHERING_ALGORITHM_ID_N_ITEMS][20] = {
-    "EEA0", "128-EEA1", "128-EEA2"};
+    "EEA0",
+    "128-EEA1",
+    "128-EEA2"};
 typedef enum {
   LIBLTE_SECURITY_INTEGRITY_ALGORITHM_ID_EIA0 = 0,
   LIBLTE_SECURITY_INTEGRITY_ALGORITHM_ID_128_EIA1,
@@ -116,7 +118,9 @@ typedef enum {
   LIBLTE_SECURITY_INTEGRITY_ALGORITHM_ID_N_ITEMS,
 } LIBLTE_SECURITY_INTEGRITY_ALGORITHM_ID_ENUM;
 static const char liblte_security_integrity_algorithm_id_text[LIBLTE_SECURITY_INTEGRITY_ALGORITHM_ID_N_ITEMS][20] = {
-    "EIA0", "128-EIA1", "128-EIA2"};
+    "EIA0",
+    "128-EIA1",
+    "128-EIA2"};
 // Structs
 // Functions
 LIBLTE_ERROR_ENUM liblte_security_generate_k_nas(uint8*                                      k_asme,
@@ -175,12 +179,26 @@ LIBLTE_ERROR_ENUM liblte_security_generate_k_up(uint8*                          
 // Enums
 // Structs
 // Functions
-LIBLTE_ERROR_ENUM liblte_security_128_eia2(
-    uint8* key, uint32 count, uint8 bearer, uint8 direction, uint8* msg, uint32 msg_len, uint8* mac);
-LIBLTE_ERROR_ENUM liblte_security_128_eia2(
-    uint8* key, uint32 count, uint8 bearer, uint8 direction, LIBLTE_BIT_MSG_STRUCT* msg, uint8* mac);
-LIBLTE_ERROR_ENUM liblte_security_128_eia3(
-    uint8* key, uint32 count, uint8 bearer, uint8 direction, uint8* msg, uint32 msg_len, uint8* mac);
+LIBLTE_ERROR_ENUM liblte_security_128_eia2(uint8* key,
+                                           uint32 count,
+                                           uint8  bearer,
+                                           uint8  direction,
+                                           uint8* msg,
+                                           uint32 msg_len,
+                                           uint8* mac);
+LIBLTE_ERROR_ENUM liblte_security_128_eia2(uint8*                 key,
+                                           uint32                 count,
+                                           uint8                  bearer,
+                                           uint8                  direction,
+                                           LIBLTE_BIT_MSG_STRUCT* msg,
+                                           uint8*                 mac);
+LIBLTE_ERROR_ENUM liblte_security_128_eia3(uint8* key,
+                                           uint32 count,
+                                           uint8  bearer,
+                                           uint8  direction,
+                                           uint8* msg,
+                                           uint32 msg_len,
+                                           uint8* mac);
 
 /*********************************************************************
     Name: liblte_security_encryption_eea1
@@ -192,8 +210,13 @@ LIBLTE_ERROR_ENUM liblte_security_128_eia3(
                         Specification of the 3GPP Confidentiality and
                             Integrity Algorithms UEA2 & UIA2 D1 v2.1
 *********************************************************************/
-LIBLTE_ERROR_ENUM liblte_security_encryption_eea1(
-    uint8* key, uint32 count, uint8 bearer, uint8 direction, uint8* msg, uint32 msg_len, uint8* out);
+LIBLTE_ERROR_ENUM liblte_security_encryption_eea1(uint8* key,
+                                                  uint32 count,
+                                                  uint8  bearer,
+                                                  uint8  direction,
+                                                  uint8* msg,
+                                                  uint32 msg_len,
+                                                  uint8* out);
 
 /*********************************************************************
     Name: liblte_security_decryption_eea1
@@ -205,8 +228,13 @@ LIBLTE_ERROR_ENUM liblte_security_encryption_eea1(
                         Specification of the 3GPP Confidentiality and
                             Integrity Algorithms UEA2 & UIA2 D1 v2.1
 *********************************************************************/
-LIBLTE_ERROR_ENUM liblte_security_decryption_eea1(
-    uint8* key, uint32 count, uint8 bearer, uint8 direction, uint8* ct, uint32 ct_len, uint8* out);
+LIBLTE_ERROR_ENUM liblte_security_decryption_eea1(uint8* key,
+                                                  uint32 count,
+                                                  uint8  bearer,
+                                                  uint8  direction,
+                                                  uint8* ct,
+                                                  uint32 ct_len,
+                                                  uint8* out);
 
 /*********************************************************************
     Name: liblte_security_encryption_eea2
@@ -215,8 +243,13 @@ LIBLTE_ERROR_ENUM liblte_security_decryption_eea1(
 
     Document Reference: 33.401 v13.1.0 Annex B.1.3
 *********************************************************************/
-LIBLTE_ERROR_ENUM liblte_security_encryption_eea2(
-    uint8* key, uint32 count, uint8 bearer, uint8 direction, uint8* msg, uint32 msg_len, uint8* out);
+LIBLTE_ERROR_ENUM liblte_security_encryption_eea2(uint8* key,
+                                                  uint32 count,
+                                                  uint8  bearer,
+                                                  uint8  direction,
+                                                  uint8* msg,
+                                                  uint32 msg_len,
+                                                  uint8* out);
 
 /*********************************************************************
     Name: liblte_security_decryption_eea2
@@ -225,14 +258,29 @@ LIBLTE_ERROR_ENUM liblte_security_encryption_eea2(
 
     Document Reference: 33.401 v13.1.0 Annex B.1.3
 *********************************************************************/
-LIBLTE_ERROR_ENUM liblte_security_decryption_eea2(
-    uint8* key, uint32 count, uint8 bearer, uint8 direction, uint8* ct, uint32 ct_len, uint8* out);
+LIBLTE_ERROR_ENUM liblte_security_decryption_eea2(uint8* key,
+                                                  uint32 count,
+                                                  uint8  bearer,
+                                                  uint8  direction,
+                                                  uint8* ct,
+                                                  uint32 ct_len,
+                                                  uint8* out);
 
-LIBLTE_ERROR_ENUM liblte_security_encryption_eea3(
-    uint8* key, uint32 count, uint8 bearer, uint8 direction, uint8* msg, uint32 msg_len, uint8* out);
+LIBLTE_ERROR_ENUM liblte_security_encryption_eea3(uint8* key,
+                                                  uint32 count,
+                                                  uint8  bearer,
+                                                  uint8  direction,
+                                                  uint8* msg,
+                                                  uint32 msg_len,
+                                                  uint8* out);
 
-LIBLTE_ERROR_ENUM liblte_security_decryption_eea3(
-    uint8* key, uint32 count, uint8 bearer, uint8 direction, uint8* msg, uint32 msg_len, uint8* out);
+LIBLTE_ERROR_ENUM liblte_security_decryption_eea3(uint8* key,
+                                                  uint32 count,
+                                                  uint8  bearer,
+                                                  uint8  direction,
+                                                  uint8* msg,
+                                                  uint32 msg_len,
+                                                  uint8* out);
 
 /*********************************************************************
     Name: liblte_security_milenage_f1

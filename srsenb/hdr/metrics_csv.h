@@ -27,11 +27,11 @@
 #ifndef SRSENB_METRICS_CSV_H
 #define SRSENB_METRICS_CSV_H
 
+#include <fstream>
+#include <iostream>
 #include <pthread.h>
 #include <stdint.h>
 #include <string>
-#include <iostream>
-#include <fstream>
 
 #include "srslte/common/metrics_hub.h"
 #include "srslte/interfaces/enb_metrics_interface.h"
@@ -44,8 +44,8 @@ public:
   metrics_csv(std::string filename);
   ~metrics_csv();
 
-  void set_metrics(enb_metrics_t &m, const uint32_t period_usec);
-  void set_handle(enb_metrics_interface *enb_);
+  void set_metrics(enb_metrics_t& m, const uint32_t period_usec);
+  void set_handle(enb_metrics_interface* enb_);
   void stop();
 
 private:

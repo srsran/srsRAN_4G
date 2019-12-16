@@ -19,13 +19,13 @@
  *
  */
 
-#define LOG_BUFFER_SIZE 1024*32
+#define LOG_BUFFER_SIZE 1024 * 32
 
 #include "srslte/common/logger_file.h"
 
 using namespace std;
 
-namespace srslte{
+namespace srslte {
 
 logger_file::logger_file() : logfile(NULL), is_running(false), cur_length(0), max_length(0), thread("LOGGER_FILE")
 {
@@ -40,16 +40,17 @@ logger_file::~logger_file()
   pthread_cond_destroy(&not_empty);
 }
 
-void logger_file::init(std::string file, int max_length_) {
+void logger_file::init(std::string file, int max_length_)
+{
   if (is_running) {
     fprintf(stderr, "Error: logger thread is already running.\n");
     return;
   }
   pthread_mutex_lock(&mutex);
-  max_length = (int64_t)max_length_*1024;
-  name_idx = 0;
-  filename = file;
-  logfile = fopen(filename.c_str(), "w");
+  max_length = (int64_t)max_length_ * 1024;
+  name_idx   = 0;
+  filename   = file;
+  logfile    = fopen(filename.c_str(), "w");
   if (logfile == NULL) {
     printf("Error: could not create log file, no messages will be logged!\n");
   }
@@ -89,10 +90,11 @@ void logger_file::log(unique_log_str_t msg)
   pthread_mutex_unlock(&mutex);
 }
 
-void logger_file::run_thread() {
-  while(is_running) {
+void logger_file::run_thread()
+{
+  while (is_running) {
     pthread_mutex_lock(&mutex);
-    while(buffer.empty()) {
+    while (buffer.empty()) {
       pthread_cond_wait(&not_empty, &mutex);
       if (!is_running) {
         pthread_mutex_unlock(&mutex);
@@ -108,15 +110,15 @@ void logger_file::run_thread() {
     buffer.pop_front();
 
     if (n > 0) {
-      cur_length += (int64_t) n;
+      cur_length += (int64_t)n;
       if (cur_length >= max_length && max_length > 0) {
         fclose(logfile);
         name_idx++;
         char numstr[21]; // enough to hold all numbers up to 64-bits
         sprintf(numstr, ".%d", name_idx);
-        string newfilename = filename + numstr ;
-        logfile = fopen(newfilename.c_str(), "w");
-        if(logfile==NULL) {
+        string newfilename = filename + numstr;
+        logfile            = fopen(newfilename.c_str(), "w");
+        if (logfile == NULL) {
           printf("Error: could not create log file, no messages will be logged!\n");
         }
         cur_length = 0;

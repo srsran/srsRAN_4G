@@ -23,23 +23,23 @@
 
 #include <string.h>
 
-#define REMOVE_SUBSTRING_WITHCOMAS(S, TOREMOVE) \
-  remove_substring(S, TOREMOVE ",");\
-  remove_substring(S, TOREMOVE ", ");\
-  remove_substring(S, "," TOREMOVE);\
-  remove_substring(S, ", " TOREMOVE);\
+#define REMOVE_SUBSTRING_WITHCOMAS(S, TOREMOVE)                                                                        \
+  remove_substring(S, TOREMOVE ",");                                                                                   \
+  remove_substring(S, TOREMOVE ", ");                                                                                  \
+  remove_substring(S, "," TOREMOVE);                                                                                   \
+  remove_substring(S, ", " TOREMOVE);                                                                                  \
   remove_substring(S, TOREMOVE)
 
 static inline void remove_substring(char* s, const char* toremove)
 {
-  while((s=strstr(s,toremove))) {
-    memmove(s,s+strlen(toremove),1+strlen(s+strlen(toremove)));
+  while ((s = strstr(s, toremove))) {
+    memmove(s, s + strlen(toremove), 1 + strlen(s + strlen(toremove)));
   }
 }
 
 static inline void copy_subdev_string(char* dst, char* src)
 {
-  int n = 0;
+  int n   = 0;
   int len = (int)strlen(src);
   /* Copy until end of string or comma */
   while (n < len && src[n] != '\0' && src[n] != ',') {

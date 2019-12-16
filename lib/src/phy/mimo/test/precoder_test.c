@@ -29,21 +29,22 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "srslte/srslte.h"
 #include "srslte/phy/channel/ch_awgn.h"
+#include "srslte/srslte.h"
 
-#define MSE_THRESHOLD	0.0005
+#define MSE_THRESHOLD 0.0005
 
-int nof_symbols = 1000;
-uint32_t codebook_idx = 0;
-int nof_layers = 1, nof_tx_ports = 1, nof_rx_ports = 1, nof_re = 1;
-char *mimo_type_name = NULL;
-char decoder_type_name [17] = "zf";
-float snr_db = 100.0f;
-float scaling = 0.1f;
-static srslte_random_t random_gen             = NULL;
+int                    nof_symbols  = 1000;
+uint32_t               codebook_idx = 0;
+int                    nof_layers = 1, nof_tx_ports = 1, nof_rx_ports = 1, nof_re = 1;
+char*                  mimo_type_name        = NULL;
+char                   decoder_type_name[17] = "zf";
+float                  snr_db                = 100.0f;
+float                  scaling               = 0.1f;
+static srslte_random_t random_gen            = NULL;
 
-void usage(char *prog) {
+void usage(char* prog)
+{
   printf("Usage: %s -m [%s|%s|%s|%s] -l [nof_layers] -p [nof_tx_ports]\n"
          " -r [nof_rx_ports] -g [scaling]\n",
          prog,
@@ -60,41 +61,42 @@ void usage(char *prog) {
   printf("* Performance test example:\n\t for snr in {0..20..1}; do ./precoding_test -m single -s $snr; done; \n\n");
 }
 
-void parse_args(int argc, char **argv) {
+void parse_args(int argc, char** argv)
+{
   int opt;
   while ((opt = getopt(argc, argv, "mplnrcdsg")) != -1) {
     switch (opt) {
-    case 'n':
-      nof_symbols = (int)strtol(argv[optind], NULL, 10);
-      break;
-    case 'p':
-      nof_tx_ports = (int)strtol(argv[optind], NULL, 10);
-      break;
-    case 'r':
-      nof_rx_ports = (int)strtol(argv[optind], NULL, 10);
-      break;
-    case 'l':
-      nof_layers = (int)strtol(argv[optind], NULL, 10);
-      break;
-    case 'm':
-      mimo_type_name = argv[optind];
-      break;
-    case 'c':
-      codebook_idx = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 'd':
-      strncpy(decoder_type_name, argv[optind], 15);
-      decoder_type_name[15] = 0;
-      break;
-    case 's':
-      snr_db = strtof(argv[optind], NULL);
-      break;
-    case 'g':
-      scaling = strtof(argv[optind], NULL);
-      break;
-    default:
-      usage(argv[0]);
-      exit(-1);
+      case 'n':
+        nof_symbols = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 'p':
+        nof_tx_ports = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 'r':
+        nof_rx_ports = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 'l':
+        nof_layers = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 'm':
+        mimo_type_name = argv[optind];
+        break;
+      case 'c':
+        codebook_idx = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'd':
+        strncpy(decoder_type_name, argv[optind], 15);
+        decoder_type_name[15] = 0;
+        break;
+      case 's':
+        snr_db = strtof(argv[optind], NULL);
+        break;
+      case 'g':
+        scaling = strtof(argv[optind], NULL);
+        break;
+      default:
+        usage(argv[0]);
+        exit(-1);
     }
   }
   if (!mimo_type_name) {
@@ -103,7 +105,8 @@ void parse_args(int argc, char **argv) {
   }
 }
 
-void populate_channel_cdd(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], uint32_t n) {
+void populate_channel_cdd(cf_t* h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], uint32_t n)
+{
   int i, j, k;
 
   for (i = 0; i < nof_tx_ports; i++) {
@@ -115,7 +118,8 @@ void populate_channel_cdd(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], uint32_t 
   }
 }
 
-void populate_channel_diversity(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], uint32_t n) {
+void populate_channel_diversity(cf_t* h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], uint32_t n)
+{
   int i, j, k, l;
 
   for (i = 0; i < nof_tx_ports; i++) {
@@ -131,7 +135,8 @@ void populate_channel_diversity(cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS], uin
   }
 }
 
-void populate_channel_single(cf_t *h) {
+void populate_channel_single(cf_t* h)
+{
   int i;
 
   for (i = 0; i < nof_re; i++) {
@@ -147,7 +152,7 @@ void populate_channel(srslte_tx_scheme_t type, cf_t* h[SRSLTE_MAX_PORTS][SRSLTE_
       populate_channel_cdd(h, (uint32_t)nof_re);
       break;
     case SRSLTE_TXSCHEME_DIVERSITY:
-      populate_channel_diversity(h, (uint32_t) nof_re);
+      populate_channel_diversity(h, (uint32_t)nof_re);
       break;
     case SRSLTE_TXSCHEME_PORT0:
     default:
@@ -155,8 +160,9 @@ void populate_channel(srslte_tx_scheme_t type, cf_t* h[SRSLTE_MAX_PORTS][SRSLTE_
   }
 }
 
-static void awgn(cf_t *y[SRSLTE_MAX_PORTS], uint32_t n, float snr) {
-  int i;
+static void awgn(cf_t* y[SRSLTE_MAX_PORTS], uint32_t n, float snr)
+{
+  int   i;
   float std_dev = srslte_convert_dB_to_amplitude(-(snr + 3.0f)) * scaling;
 
   for (i = 0; i < nof_rx_ports; i++) {
@@ -166,7 +172,7 @@ static void awgn(cf_t *y[SRSLTE_MAX_PORTS], uint32_t n, float snr) {
 
 int main(int argc, char** argv)
 {
-  int i, j, k, nof_errors = 0, ret = SRSLTE_SUCCESS;
+  int   i, j, k, nof_errors = 0, ret = SRSLTE_SUCCESS;
   float mse;
   cf_t *x[SRSLTE_MAX_LAYERS], *r[SRSLTE_MAX_PORTS], *y[SRSLTE_MAX_PORTS], *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS],
       *xr[SRSLTE_MAX_LAYERS];
@@ -195,14 +201,14 @@ int main(int argc, char** argv)
       nof_re = nof_symbols;
       break;
     case SRSLTE_TXSCHEME_CDD:
-      nof_re = nof_symbols*nof_tx_ports/nof_layers;
+      nof_re = nof_symbols * nof_tx_ports / nof_layers;
       if (nof_rx_ports != 2 || nof_tx_ports != 2) {
         ERROR("CDD nof_tx_ports=%d nof_rx_ports=%d is not currently supported\n", nof_tx_ports, nof_rx_ports);
         exit(-1);
       }
       break;
     default:
-      nof_re = nof_symbols*nof_layers;
+      nof_re = nof_symbols * nof_layers;
   }
 
   /* Allocate x and xr (received symbols) in memory for each layer */
@@ -273,14 +279,14 @@ int main(int argc, char** argv)
    (we are in the frequency domain so it's a multiplication) */
   for (i = 0; i < nof_rx_ports; i++) {
     for (k = 0; k < nof_re; k++) {
-      r[i][k] = (cf_t) (0.0 + 0.0 * _Complex_I);
+      r[i][k] = (cf_t)(0.0 + 0.0 * _Complex_I);
       for (j = 0; j < nof_tx_ports; j++) {
         r[i][k] += y[j][k] * h[j][i][k];
       }
     }
   }
 
-  awgn(r, (uint32_t) nof_re, snr_db);
+  awgn(r, (uint32_t)nof_re, snr_db);
 
   /* If CDD or Spatial muliplex choose decoder */
   if (strncmp(decoder_type_name, "zf", 16) == 0) {
@@ -291,7 +297,6 @@ int main(int argc, char** argv)
     ret = SRSLTE_ERROR;
     goto quit;
   }
-
 
   /* predecoding / equalization */
   struct timeval t[3];
@@ -318,26 +323,29 @@ int main(int argc, char** argv)
       mse += cabsf(xr[i][j] - x[i][j]);
 
       if ((crealf(xr[i][j]) > 0) != (crealf(x[i][j]) > 0)) {
-        nof_errors ++;
+        nof_errors++;
       }
       if ((cimagf(xr[i][j]) > 0) != (cimagf(x[i][j]) > 0)) {
-        nof_errors ++;
+        nof_errors++;
       }
     }
   }
-  printf("SNR: %5.1fdB;\tExecution time: %5ldus;\tMSE: %.6f;\tBER: %.6f\n", snr_db, t[0].tv_usec,
-         mse / nof_layers / nof_symbols, (float) nof_errors / (4.0f * nof_re));
+  printf("SNR: %5.1fdB;\tExecution time: %5ldus;\tMSE: %.6f;\tBER: %.6f\n",
+         snr_db,
+         t[0].tv_usec,
+         mse / nof_layers / nof_symbols,
+         (float)nof_errors / (4.0f * nof_re));
   if (mse / nof_layers / nof_symbols > MSE_THRESHOLD) {
     ret = SRSLTE_ERROR;
-  } 
+  }
 
-  quit:
-    srslte_random_free(random_gen);
+quit:
+  srslte_random_free(random_gen);
 
-    /* Free all data */
-    for (i = 0; i < nof_layers; i++) {
-      free(x[i]);
-      free(xr[i]);
+  /* Free all data */
+  for (i = 0; i < nof_layers; i++) {
+    free(x[i]);
+    free(xr[i]);
   }
 
   for (i = 0; i < nof_rx_ports; i++) {

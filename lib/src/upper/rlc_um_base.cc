@@ -31,7 +31,12 @@ rlc_um_base::rlc_um_base(srslte::log*               log_,
                          srsue::pdcp_interface_rlc* pdcp_,
                          srsue::rrc_interface_rlc*  rrc_,
                          srslte::timer_handler*     timers_) :
-  log(log_), lcid(lcid_), pdcp(pdcp_), rrc(rrc_), timers(timers_), pool(byte_buffer_pool::get_instance())
+  log(log_),
+  lcid(lcid_),
+  pdcp(pdcp_),
+  rrc(rrc_),
+  timers(timers_),
+  pool(byte_buffer_pool::get_instance())
 {
 }
 

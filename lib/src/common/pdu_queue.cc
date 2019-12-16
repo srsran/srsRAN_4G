@@ -19,47 +19,45 @@
  *
  */
 
-#define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
+#define Error(fmt, ...) log_h->error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    log_h->info(fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   log_h->debug(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...) log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...) log_h->debug(fmt, ##__VA_ARGS__)
 
 #include "srslte/common/pdu_queue.h"
 
-
 namespace srslte {
-    
 
-void pdu_queue::init(process_callback *callback_, log* log_h_)
+void pdu_queue::init(process_callback* callback_, log* log_h_)
 {
-  callback  = callback_;
-  log_h     = log_h_;   
+  callback = callback_;
+  log_h    = log_h_;
 }
 
 uint8_t* pdu_queue::request(uint32_t len)
-{  
+{
   if (len > MAX_PDU_LEN) {
     ERROR("Error request buffer of invalid size %d. Max bytes %d\n", len, MAX_PDU_LEN);
-    return NULL; 
+    return NULL;
   }
   pdu_t* pdu = pool.allocate("pdu_queue::request", true);
   if (!pdu) {
     if (log_h) {
-      log_h->error("Not enough buffers for MAC PDU\n");      
+      log_h->error("Not enough buffers for MAC PDU\n");
     }
     ERROR("Not enough buffers for MAC PDU\n");
   }
-  if ((void*) pdu->ptr != (void*) pdu) {
+  if ((void*)pdu->ptr != (void*)pdu) {
     ERROR("Fatal error in memory alignment in struct pdu_queue::pdu_t\n");
     exit(-1);
   }
-  
-  return pdu->ptr; 
+
+  return pdu->ptr;
 }
 
 void pdu_queue::deallocate(uint8_t* pdu)
 {
-  if (!pool.deallocate((pdu_t*) pdu)) {
+  if (!pool.deallocate((pdu_t*)pdu)) {
     log_h->warning("Error deallocating from buffer pool in deallocate(): buffer not created in this pool.\n");
   }
 }
@@ -71,8 +69,8 @@ void pdu_queue::deallocate(uint8_t* pdu)
 void pdu_queue::push(uint8_t* ptr, uint32_t len, channel_t channel)
 {
   if (ptr) {
-    pdu_t *pdu  = (pdu_t*) ptr;
-    pdu->len    = len;
+    pdu_t* pdu   = (pdu_t*)ptr;
+    pdu->len     = len;
     pdu->channel = channel;
     pdu_q.push(pdu);
   } else {
@@ -82,10 +80,10 @@ void pdu_queue::push(uint8_t* ptr, uint32_t len, channel_t channel)
 
 bool pdu_queue::process_pdus()
 {
-  bool have_data = false;
-  uint32_t cnt  = 0;
-  pdu_t *pdu;
-  while(pdu_q.try_pop(&pdu)) {
+  bool     have_data = false;
+  uint32_t cnt       = 0;
+  pdu_t*   pdu;
+  while (pdu_q.try_pop(&pdu)) {
     if (callback) {
       callback->process_pdu(pdu->ptr, pdu->len, pdu->channel);
     }
@@ -98,7 +96,7 @@ bool pdu_queue::process_pdus()
     }
     printf("Warning PDU queue dispatched %d packets\n", cnt);
   }
-  return have_data; 
+  return have_data;
 }
 
-}
+} // namespace srslte

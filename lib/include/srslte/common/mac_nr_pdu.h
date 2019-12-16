@@ -94,11 +94,11 @@ class mac_nr_sch_pdu
 public:
   mac_nr_sch_pdu(bool ulsch_ = false) : ulsch(ulsch_) {}
 
-  void                pack();
-  void                unpack(const uint8_t* payload, const uint32_t& len);
-  uint32_t            get_num_subpdus();
+  void                     pack();
+  void                     unpack(const uint8_t* payload, const uint32_t& len);
+  uint32_t                 get_num_subpdus();
   const mac_nr_sch_subpdu& get_subpdu(const uint32_t& index);
-  bool                is_ulsch();
+  bool                     is_ulsch();
 
   void init_tx(byte_buffer_t* buffer_, uint32_t pdu_len_, bool is_ulsch_ = false);
 
@@ -109,8 +109,8 @@ public:
 private:
   uint32_t size_header_sdu(const uint32_t lcid_, const uint32_t nbytes);
 
-  bool                                              ulsch = false;
-  std::vector<mac_nr_sch_subpdu>                    subpdus;
+  bool                           ulsch = false;
+  std::vector<mac_nr_sch_subpdu> subpdus;
 
   byte_buffer_t* buffer        = nullptr;
   uint32_t       pdu_len       = 0;

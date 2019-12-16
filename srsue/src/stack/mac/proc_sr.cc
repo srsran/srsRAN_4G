@@ -19,51 +19,52 @@
  *
  */
 
-#define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
+#define Error(fmt, ...) log_h->error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    log_h->info(fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   log_h->debug(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...) log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...) log_h->debug(fmt, ##__VA_ARGS__)
 
 #include "srsue/hdr/stack/mac/proc_sr.h"
 
 namespace srsue {
 
-sr_proc::sr_proc() {
+sr_proc::sr_proc()
+{
   initiated = false;
 }
 
 void sr_proc::init(phy_interface_mac_lte* phy_h_, rrc_interface_mac* rrc_, srslte::log* log_h_)
 {
-  log_h     = log_h_;
-  rrc       = rrc_; 
-  phy_h     = phy_h_;
-  initiated    = true;
-  sr_counter   = 0;
-  do_ra = false; 
+  log_h      = log_h_;
+  rrc        = rrc_;
+  phy_h      = phy_h_;
+  initiated  = true;
+  sr_counter = 0;
+  do_ra      = false;
 }
-  
+
 void sr_proc::reset()
 {
   is_pending_sr = false;
 }
 
-bool sr_proc::need_tx(uint32_t tti) 
+bool sr_proc::need_tx(uint32_t tti)
 {
   int last_tx_tti = phy_h->sr_last_tx_tti();
   Debug("SR:    need_tx(): last_tx_tti=%d, tti=%d\n", last_tx_tti, tti);
-  if (last_tx_tti >= 0)  {
+  if (last_tx_tti >= 0) {
     if (tti > (uint32_t)last_tx_tti) {
       if (tti - last_tx_tti > 8) {
-        return true; 
+        return true;
       }
     } else {
-      uint32_t interval = 10240-last_tx_tti+tti;
+      uint32_t interval = 10240 - last_tx_tti + tti;
       if (interval > 8 && tti < 8) {
-        return true; 
+        return true;
       }
     }
   }
-  return false; 
+  return false;
 }
 
 void sr_proc::set_config(srslte::sr_cfg_t& cfg)
@@ -89,26 +90,27 @@ void sr_proc::step(uint32_t tti)
                  sr_cfg.dsr_transmax);
             log_h->console("Scheduling request failed: releasing RRC connection...\n");
             rrc->release_pucch_srs();
-            do_ra = true; 
-            is_pending_sr = false; 
+            do_ra         = true;
+            is_pending_sr = false;
           }
         }
       } else {
         Info("SR:    PUCCH not configured. Starting RA procedure\n");
-        do_ra = true; 
+        do_ra = true;
         reset();
       }
     }
   }
 }
 
-bool sr_proc::need_random_access() {
+bool sr_proc::need_random_access()
+{
   if (initiated) {
     if (do_ra) {
-      do_ra = false; 
-      return true; 
+      do_ra = false;
+      return true;
     } else {
-      return false; 
+      return false;
     }
   }
   return false;
@@ -118,7 +120,7 @@ void sr_proc::start()
 {
   if (initiated) {
     if (!is_pending_sr) {
-      sr_counter = 0;
+      sr_counter    = 0;
       is_pending_sr = true;
     }
     if (sr_cfg.enabled) {
@@ -127,5 +129,4 @@ void sr_proc::start()
   }
 }
 
-}
-
+} // namespace srsue

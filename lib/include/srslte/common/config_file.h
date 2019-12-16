@@ -22,17 +22,17 @@
 #ifndef SRSLTE_CONFIG_FILE_H
 #define SRSLTE_CONFIG_FILE_H
 
+#include "common.h"
 #include <fstream>
 #include <pwd.h>
-#include "common.h"
 
-bool config_exists(std::string &filename, std::string default_name)
+bool config_exists(std::string& filename, std::string default_name)
 {
   std::ifstream conf(filename.c_str(), std::ios::in);
   if (conf.fail()) {
     // try config folder instead
     const char* homedir = NULL;
-    char full_path[256];
+    char        full_path[256];
     ZERO_OBJECT(full_path);
     if ((homedir = getenv("HOME")) == NULL) {
       homedir = getpwuid(getuid())->pw_dir;

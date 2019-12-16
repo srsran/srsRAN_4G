@@ -35,18 +35,18 @@
 #include "srslte/phy/phch/pucch_cfg.h"
 #include "srslte/phy/phch/pusch_cfg.h"
 
-#define SRSLTE_NOF_GROUPS_U    30
+#define SRSLTE_NOF_GROUPS_U 30
 #define SRSLTE_NOF_SEQUENCES_U 2
-#define SRSLTE_NOF_DELTA_SS    30
-#define SRSLTE_NOF_CSHIFT      8
+#define SRSLTE_NOF_DELTA_SS 30
+#define SRSLTE_NOF_CSHIFT 8
 
-#define SRSLTE_REFSIGNAL_UL_L(ns_idx, cp) ((ns_idx+1)*SRSLTE_CP_NSYMB(cp)-4)
+#define SRSLTE_REFSIGNAL_UL_L(ns_idx, cp) ((ns_idx + 1) * SRSLTE_CP_NSYMB(cp) - 4)
 
 /* PUSCH DMRS common configuration (received in SIB2) */
 typedef struct SRSLTE_API {
-  uint32_t cyclic_shift; 
-  uint32_t delta_ss;  
-  bool group_hopping_en;
+  uint32_t cyclic_shift;
+  uint32_t delta_ss;
+  bool     group_hopping_en;
   bool     sequence_hopping_en;
 } srslte_refsignal_dmrs_pusch_cfg_t;
 
@@ -57,12 +57,12 @@ typedef struct SRSLTE_API {
   uint32_t bw_cfg;
   bool     simul_ack;
 
-  // Dedicated configuration 
-  uint32_t B; 
-  uint32_t b_hop; 
-  uint32_t n_srs; 
-  uint32_t I_srs; 
-  uint32_t k_tc; 
+  // Dedicated configuration
+  uint32_t B;
+  uint32_t b_hop;
+  uint32_t n_srs;
+  uint32_t I_srs;
+  uint32_t k_tc;
   uint32_t n_rrc;
   bool     dedicated_enabled;
   bool     common_enabled;
@@ -75,8 +75,9 @@ typedef struct SRSLTE_API {
 
   float* tmp_arg;
 
-  uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_CP_NORM_NSYMB]; 
-  uint32_t n_prs_pusch[SRSLTE_NOF_DELTA_SS][SRSLTE_NSLOTS_X_FRAME]; // We precompute n_prs needed for cyclic shift alpha at srslte_refsignal_dl_init()
+  uint32_t n_cs_cell[SRSLTE_NSLOTS_X_FRAME][SRSLTE_CP_NORM_NSYMB];
+  uint32_t n_prs_pusch[SRSLTE_NOF_DELTA_SS][SRSLTE_NSLOTS_X_FRAME]; // We precompute n_prs needed for cyclic shift alpha
+                                                                    // at srslte_refsignal_dl_init()
   uint32_t f_gh[SRSLTE_NSLOTS_X_FRAME];
   uint32_t u_pucch[SRSLTE_NSLOTS_X_FRAME];
   uint32_t v_pusch[SRSLTE_NSLOTS_X_FRAME][SRSLTE_NOF_DELTA_SS];
@@ -90,13 +91,11 @@ typedef struct {
   cf_t* r[SRSLTE_NOF_SF_X_FRAME];
 } srslte_refsignal_srs_pregen_t;
 
-SRSLTE_API int srslte_refsignal_ul_init(srslte_refsignal_ul_t *q, 
-                                        uint32_t max_prb);
+SRSLTE_API int srslte_refsignal_ul_init(srslte_refsignal_ul_t* q, uint32_t max_prb);
 
-SRSLTE_API int srslte_refsignal_ul_set_cell(srslte_refsignal_ul_t *q,
-                                            srslte_cell_t cell);
+SRSLTE_API int srslte_refsignal_ul_set_cell(srslte_refsignal_ul_t* q, srslte_cell_t cell);
 
-SRSLTE_API void srslte_refsignal_ul_free(srslte_refsignal_ul_t *q);
+SRSLTE_API void srslte_refsignal_ul_free(srslte_refsignal_ul_t* q);
 
 SRSLTE_API void srslte_refsignal_r_uv_arg_1prb(float* arg, uint32_t u);
 
@@ -166,8 +165,11 @@ SRSLTE_API int srslte_refsignal_srs_gen(srslte_refsignal_ul_t*             q,
                                         uint32_t                           sf_idx,
                                         cf_t*                              r_srs);
 
-SRSLTE_API int srslte_refsignal_srs_put(
-    srslte_refsignal_ul_t* q, srslte_refsignal_srs_cfg_t* cfg, uint32_t tti, cf_t* r_srs, cf_t* sf_symbols);
+SRSLTE_API int srslte_refsignal_srs_put(srslte_refsignal_ul_t*      q,
+                                        srslte_refsignal_srs_cfg_t* cfg,
+                                        uint32_t                    tti,
+                                        cf_t*                       r_srs,
+                                        cf_t*                       sf_symbols);
 
 SRSLTE_API void srslte_refsignal_srs_pusch_shortened(srslte_refsignal_ul_t*      q,
                                                      srslte_ul_sf_cfg_t*         sf,

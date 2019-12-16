@@ -21,24 +21,21 @@
 
 #include "srsue/hdr/metrics_csv.h"
 
-#include <unistd.h>
-#include <sstream>
-#include <stdlib.h>
-#include <math.h>
 #include <float.h>
 #include <iomanip>
 #include <iostream>
+#include <math.h>
+#include <sstream>
+#include <stdlib.h>
+#include <unistd.h>
 
 #include <stdio.h>
 
 using namespace std;
 
-namespace srsue{
+namespace srsue {
 
-metrics_csv::metrics_csv(std::string filename)
-  :n_reports(0)
-  ,metrics_report_period(1.0)
-  ,ue(NULL)
+metrics_csv::metrics_csv(std::string filename) : n_reports(0), metrics_report_period(1.0), ue(NULL)
 {
   file.open(filename.c_str(), std::ios_base::out);
   pthread_mutex_init(&mutex, NULL);
@@ -50,7 +47,7 @@ metrics_csv::~metrics_csv()
   pthread_mutex_destroy(&mutex);
 }
 
-void metrics_csv::set_ue_handle(ue_metrics_interface *ue_)
+void metrics_csv::set_ue_handle(ue_metrics_interface* ue_)
 {
   ue = ue_;
 }
@@ -66,12 +63,13 @@ void metrics_csv::stop()
   pthread_mutex_unlock(&mutex);
 }
 
-void metrics_csv::set_metrics(ue_metrics_t &metrics, const uint32_t period_usec)
+void metrics_csv::set_metrics(ue_metrics_t& metrics, const uint32_t period_usec)
 {
   pthread_mutex_lock(&mutex);
   if (file.is_open() && ue != NULL) {
-    if(n_reports == 0) {
-      file << "time;rsrp;pl;cfo;dl_mcs;dl_snr;dl_turbo;dl_brate;dl_bler;ul_ta;ul_mcs;ul_buff;ul_brate;ul_bler;rf_o;rf_u;rf_l;is_attached\n";
+    if (n_reports == 0) {
+      file << "time;rsrp;pl;cfo;dl_mcs;dl_snr;dl_turbo;dl_brate;dl_bler;ul_ta;ul_mcs;ul_buff;ul_brate;ul_bler;rf_o;rf_"
+              "u;rf_l;is_attached\n";
     }
 
     file << (metrics_report_period * n_reports) << ";";

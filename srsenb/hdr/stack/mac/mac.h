@@ -82,15 +82,15 @@ public:
   void reset();
 
   /* Manages UE scheduling context */
-  int ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t *cfg); 
+  int ue_cfg(uint16_t rnti, sched_interface::ue_cfg_t* cfg);
   int ue_rem(uint16_t rnti);
-  
+
   // Indicates that the PHY config dedicated has been enabled or not
-  void phy_config_enabled(uint16_t rnti, bool enabled); 
+  void phy_config_enabled(uint16_t rnti, bool enabled);
 
   /* Manages UE bearers and associated configuration */
-  int bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t *cfg); 
-  int bearer_ue_rem(uint16_t rnti, uint32_t lc_id); 
+  int bearer_ue_cfg(uint16_t rnti, uint32_t lc_id, sched_interface::ue_bearer_cfg_t* cfg);
+  int bearer_ue_rem(uint16_t rnti, uint32_t lc_id);
   int rlc_buffer_state(uint16_t rnti, uint32_t lc_id, uint32_t tx_queue, uint32_t retx_queue);
 
   bool process_pdus();
@@ -124,37 +124,39 @@ private:
 
   /* Scheduler unit */
   sched                       scheduler;
-  dl_metric_rr     sched_metric_dl_rr;
-  ul_metric_rr     sched_metric_ul_rr;
+  dl_metric_rr                sched_metric_dl_rr;
+  ul_metric_rr                sched_metric_ul_rr;
   sched_interface::cell_cfg_t cell_config;
-  
-  
+
   sched_interface::dl_pdu_mch_t mch;
-  
-  
+
   /* Map of active UEs */
-  std::map<uint16_t, ue*> ue_db;   
-  uint16_t        last_rnti;   
-  
-  uint8_t* assemble_rar(sched_interface::dl_sched_rar_grant_t *grants, uint32_t nof_grants, int rar_idx, uint32_t pdu_len, uint32_t tti);
+  std::map<uint16_t, ue*> ue_db;
+  uint16_t                last_rnti;
+
+  uint8_t* assemble_rar(sched_interface::dl_sched_rar_grant_t* grants,
+                        uint32_t                               nof_grants,
+                        int                                    rar_idx,
+                        uint32_t                               pdu_len,
+                        uint32_t                               tti);
   uint8_t* assemble_si(uint32_t index);
 
   const static int             rar_payload_len = 128;
   std::vector<srslte::rar_pdu> rar_pdu_msg;
   srslte::byte_buffer_t        rar_payload[sched_interface::MAX_RAR_LIST];
 
-  const static int NOF_BCCH_DLSCH_MSG=sched_interface::MAX_SIBS;
-  uint8_t bcch_dlsch_payload[sched_interface::MAX_SIB_PAYLOAD_LEN];
-  
-  const static int pcch_payload_buffer_len = 1024;
-  uint8_t pcch_payload_buffer[pcch_payload_buffer_len]; 
+  const static int NOF_BCCH_DLSCH_MSG = sched_interface::MAX_SIBS;
+  uint8_t          bcch_dlsch_payload[sched_interface::MAX_SIB_PAYLOAD_LEN];
+
+  const static int       pcch_payload_buffer_len = 1024;
+  uint8_t                pcch_payload_buffer[pcch_payload_buffer_len];
   srslte_softbuffer_tx_t bcch_softbuffer_tx[NOF_BCCH_DLSCH_MSG];
   srslte_softbuffer_tx_t pcch_softbuffer_tx;
   srslte_softbuffer_tx_t rar_softbuffer_tx;
-  
-  const static int mcch_payload_len = 3000; //TODO FIND OUT MAX LENGTH
-  int current_mcch_length;
-  uint8_t mcch_payload_buffer[mcch_payload_len];
+
+  const static int           mcch_payload_len = 3000; // TODO FIND OUT MAX LENGTH
+  int                        current_mcch_length;
+  uint8_t                    mcch_payload_buffer[mcch_payload_len];
   asn1::rrc::mcch_msg_s      mcch;
   asn1::rrc::sib_type2_s     sib2;
   asn1::rrc::sib_type13_r9_s sib13;

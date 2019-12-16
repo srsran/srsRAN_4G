@@ -19,10 +19,10 @@
  *
  */
 
-#define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
+#define Error(fmt, ...) log_h->error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    log_h->info(fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   log_h->debug(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...) log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...) log_h->debug(fmt, ##__VA_ARGS__)
 
 #include "srsue/hdr/stack/mac/proc_phr.h"
 #include "srslte/interfaces/ue_interfaces.h"
@@ -84,7 +84,8 @@ void phr_proc::set_config(srslte::phr_cfg_t& cfg)
   }
 }
 
-bool phr_proc::pathloss_changed() {
+bool phr_proc::pathloss_changed()
+{
   if (!phr_cfg.enabled) {
     return false;
   }
@@ -160,4 +161,4 @@ bool phr_proc::is_extended()
 {
   return phr_cfg.extended;
 }
-}
+} // namespace srsue

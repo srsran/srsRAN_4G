@@ -19,10 +19,10 @@
  *
  */
 
-#define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
+#define Error(fmt, ...) log_h->error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    log_h->info(fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   log_h->debug(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...) log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...) log_h->debug(fmt, ##__VA_ARGS__)
 
 #include "srsue/hdr/stack/mac/demux.h"
 #include "srslte/interfaces/ue_interfaces.h"
@@ -56,7 +56,8 @@ void demux::init(phy_interface_mac_common*            phy_,
   bzero(&mch_lcids, SRSLTE_N_MCH_LCIDS);
 }
 
-bool demux::get_uecrid_successful() {
+bool demux::get_uecrid_successful()
+{
   return is_uecrid_successful;
 }
 
@@ -76,29 +77,29 @@ uint8_t* demux::request_buffer_bcch(uint32_t len)
 }
 
 uint8_t* demux::request_buffer(uint32_t len)
-{  
+{
   return pdus.request(len);
 }
 
-/* Demultiplexing of MAC PDU associated with a Temporal C-RNTI. The PDU will 
- * remain in buffer until demultiplex_pending_pdu() is called. 
- * This features is provided to enable the Random Access Procedure to decide 
- * wether the PDU shall pass to upper layers or not, which depends on the 
- * Contention Resolution result. 
- * 
- * Warning: this function does some processing here assuming ACK deadline is not an 
+/* Demultiplexing of MAC PDU associated with a Temporal C-RNTI. The PDU will
+ * remain in buffer until demultiplex_pending_pdu() is called.
+ * This features is provided to enable the Random Access Procedure to decide
+ * wether the PDU shall pass to upper layers or not, which depends on the
+ * Contention Resolution result.
+ *
+ * Warning: this function does some processing here assuming ACK deadline is not an
  * issue here because Temp C-RNTI messages have small payloads
  */
-void demux::push_pdu_temp_crnti(uint8_t *buff, uint32_t nof_bytes) 
+void demux::push_pdu_temp_crnti(uint8_t* buff, uint32_t nof_bytes)
 {
   if (nof_bytes > 0) {
-    // Unpack DLSCH MAC PDU 
+    // Unpack DLSCH MAC PDU
     pending_mac_msg.init_rx(nof_bytes);
     pending_mac_msg.parse_packet(buff);
 
     // Look for Contention Resolution UE ID
     is_uecrid_successful = false;
-    while(pending_mac_msg.next() && !is_uecrid_successful) {
+    while (pending_mac_msg.next() && !is_uecrid_successful) {
       if (pending_mac_msg.get()->ce_type() == srslte::sch_subh::CON_RES_ID) {
         Debug("Found Contention Resolution ID CE\n");
         is_uecrid_successful = mac->contention_resolution_id_rcv(pending_mac_msg.get()->get_con_res_id());
@@ -139,7 +140,7 @@ void demux::push_pdu_bcch(uint8_t* buff, uint32_t nof_bytes)
 
 void demux::push_pdu_mch(uint8_t* buff, uint32_t nof_bytes)
 {
-  uint8_t *mch_buffer_ptr = request_buffer(nof_bytes);
+  uint8_t* mch_buffer_ptr = request_buffer(nof_bytes);
   memcpy(mch_buffer_ptr, buff, nof_bytes);
   pdus.push(mch_buffer_ptr, nof_bytes, srslte::pdu_queue::MCH);
   mch_buffer_ptr = NULL;
@@ -153,7 +154,7 @@ bool demux::process_pdus()
 void demux::process_pdu(uint8_t* mac_pdu, uint32_t nof_bytes, srslte::pdu_queue::channel_t channel)
 {
   Debug("Processing MAC PDU channel %d\n", channel);
-  switch(channel) {
+  switch (channel) {
     case srslte::pdu_queue::DCH:
       // Unpack DLSCH MAC PDU
       mac_msg.init_rx(nof_bytes);
@@ -193,15 +194,15 @@ void demux::process_sch_pdu_rt(uint8_t* buff, uint32_t nof_bytes)
   }
 }
 
-void demux::process_sch_pdu(srslte::sch_pdu *pdu_msg)
-{  
-  while(pdu_msg->next()) {
+void demux::process_sch_pdu(srslte::sch_pdu* pdu_msg)
+{
+  while (pdu_msg->next()) {
     if (pdu_msg->get()->is_sdu()) {
-      bool route_pdu = true; 
+      bool route_pdu = true;
       if (pdu_msg->get()->get_sdu_lcid() == 0) {
-        uint8_t *x = pdu_msg->get()->get_sdu_ptr();
-        uint32_t sum = 0; 
-        for (uint32_t i=0;i<pdu_msg->get()->get_payload_size();i++) {
+        uint8_t* x   = pdu_msg->get()->get_sdu_ptr();
+        uint32_t sum = 0;
+        for (uint32_t i = 0; i < pdu_msg->get()->get_payload_size(); i++) {
           sum += x[i];
         }
         if (sum == 0) {
@@ -209,28 +210,32 @@ void demux::process_sch_pdu(srslte::sch_pdu *pdu_msg)
           Warning("Received all zero PDU\n");
         }
       }
-      // Route logical channel 
+      // Route logical channel
       if (route_pdu) {
         Info("Delivering PDU for lcid=%d, %d bytes\n",
              pdu_msg->get()->get_sdu_lcid(),
              pdu_msg->get()->get_payload_size());
         if (pdu_msg->get()->get_payload_size() < MAX_PDU_LEN) {
-          rlc->write_pdu(pdu_msg->get()->get_sdu_lcid(), pdu_msg->get()->get_sdu_ptr(), pdu_msg->get()->get_payload_size());
+          rlc->write_pdu(
+              pdu_msg->get()->get_sdu_lcid(), pdu_msg->get()->get_sdu_ptr(), pdu_msg->get()->get_payload_size());
         } else {
           char tmp[1024];
           srslte_vec_sprint_hex(tmp, sizeof(tmp), pdu_msg->get()->get_sdu_ptr(), 32);
           Error("PDU size %d exceeds maximum PDU buffer size, lcid=%d, hex=[%s]\n",
-                pdu_msg->get()->get_payload_size(), pdu_msg->get()->get_sdu_lcid(), tmp);
+                pdu_msg->get()->get_payload_size(),
+                pdu_msg->get()->get_sdu_lcid(),
+                tmp);
         }
       }
     } else {
       // Ignore MAC Control Element
     }
-  }      
+  }
 }
-void demux::process_mch_pdu(srslte::mch_pdu *mch_msg){
-    //disgarding headers that have already been processed
-  while(mch_msg->next()){
+void demux::process_mch_pdu(srslte::mch_pdu* mch_msg)
+{
+  // disgarding headers that have already been processed
+  while (mch_msg->next()) {
 
     if (srslte::sch_subh::MCH_SCHED_INFO == mch_msg->get()->ce_type()) {
       uint16_t stop;
@@ -239,24 +244,24 @@ void demux::process_mch_pdu(srslte::mch_pdu *mch_msg){
         Info("MCH Sched Info: LCID: %d, Stop: %d, tti is %d \n", lcid, stop, phy_h->get_current_tti());
       }
     }
-    if(mch_msg->get()->is_sdu()) {
+    if (mch_msg->get()->is_sdu()) {
       uint32_t lcid = mch_msg->get()->get_sdu_lcid();
 
-      if(lcid >= SRSLTE_N_MCH_LCIDS) {
+      if (lcid >= SRSLTE_N_MCH_LCIDS) {
         Error("Radio bearer id must be in [0:%d] - %d\n", SRSLTE_N_MCH_LCIDS, lcid);
         return;
       }
       Debug("Wrote MCH LCID=%d to RLC\n", lcid);
-      if(1 == mch_lcids[lcid]) {
+      if (1 == mch_lcids[lcid]) {
         rlc->write_pdu_mch(lcid, mch_msg->get()->get_sdu_ptr(), mch_msg->get()->get_payload_size());
-      } 
+      }
     }
   }
 }
 
 void demux::mch_start_rx(uint32_t lcid)
 {
-  if(lcid < 32) {
+  if (lcid < 32) {
     Info("MCH Channel Setup: LCID=%d\n", lcid);
     mch_lcids[lcid] = 1;
   } else {
@@ -264,9 +269,10 @@ void demux::mch_start_rx(uint32_t lcid)
   }
 }
 
-bool demux::process_ce(srslte::sch_subh *subh) {
+bool demux::process_ce(srslte::sch_subh* subh)
+{
   uint32_t cc_idx = 0;
-  switch(subh->ce_type()) {
+  switch (subh->ce_type()) {
     case srslte::sch_subh::CON_RES_ID:
       // Do nothing
       break;
@@ -292,8 +298,7 @@ bool demux::process_ce(srslte::sch_subh *subh) {
       Error("MAC CE 0x%x not supported\n", subh->ce_type());
       break;
   }
-  return true; 
+  return true;
 }
 
-
-}
+} // namespace srsue

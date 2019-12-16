@@ -19,10 +19,10 @@
  *
  */
 
-#define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
+#define Error(fmt, ...) log_h->error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    log_h->info(fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   log_h->debug(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...) log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...) log_h->debug(fmt, ##__VA_ARGS__)
 
 #include <inttypes.h> // for printing uint64_t
 #include <signal.h>
@@ -111,14 +111,14 @@ void ra_proc::read_params()
   rach_cfg = new_cfg;
   mutex.unlock();
 
-  // Read initialization parameters   
+  // Read initialization parameters
   if (noncontention_enabled) {
-    preambleIndex             = next_preamble_idx;
-    maskIndex                 = next_prach_mask;
-    noncontention_enabled     = false;
+    preambleIndex         = next_preamble_idx;
+    maskIndex             = next_prach_mask;
+    noncontention_enabled = false;
   } else {
-    preambleIndex             = 0; // pass when called from higher layers for non-contention based RA
-    maskIndex                 = 0; // same
+    preambleIndex = 0; // pass when called from higher layers for non-contention based RA
+    maskIndex     = 0; // same
   }
 
   if (rach_cfg.nof_groupA_preambles == 0) {
@@ -256,7 +256,7 @@ void ra_proc::initialization()
 {
   read_params();
   transmitted_contention_id   = 0;
-  preambleTransmissionCounter = 1; 
+  preambleTransmissionCounter = 1;
   mux_unit->msg3_flush();
   backoff_param_ms = 0;
 
@@ -280,15 +280,15 @@ void ra_proc::resource_selection()
   if (preambleIndex > 0) {
     // Preamble is chosen by Higher layers (ie Network)
     sel_maskIndex = maskIndex;
-    sel_preamble = (uint32_t) preambleIndex;
+    sel_preamble  = (uint32_t)preambleIndex;
   } else {
     // Preamble is chosen by MAC UE
     if (!mux_unit->msg3_is_transmitted()) {
       if (nof_groupB_preambles &&
           new_ra_msg_len > rach_cfg.messageSizeGroupA) { // Check also pathloss (Pcmax,deltaPreamble and powerOffset)
-        sel_group = RA_GROUP_B; 
+        sel_group = RA_GROUP_B;
       } else {
-        sel_group = RA_GROUP_A; 
+        sel_group = RA_GROUP_A;
       }
       last_msg3_group = sel_group;
     } else {
@@ -301,7 +301,7 @@ void ra_proc::resource_selection()
       } else {
         rError("Selected group preamble A but nof_groupA_preambles=0\n");
         state = IDLE;
-        return; 
+        return;
       }
     } else {
       if (nof_groupB_preambles) {
@@ -310,10 +310,10 @@ void ra_proc::resource_selection()
       } else {
         rError("Selected group preamble B but nof_groupA_preambles=0\n");
         state = IDLE;
-        return; 
+        return;
       }
     }
-    sel_maskIndex = 0;           
+    sel_maskIndex = 0;
   }
 
   rDebug("Selected preambleIndex=%d maskIndex=%d GroupA=%d, GroupB=%d\n",
@@ -396,29 +396,29 @@ void ra_proc::tb_decoded_ok(const uint32_t tti)
   if (pcap) {
     pcap->write_dl_ranti(rar_pdu_buffer, rar_grant_nbytes, ra_rnti, true, tti);
   }
-  
+
   rDebug("RAR decoded successfully TBS=%d\n", rar_grant_nbytes);
-  
+
   rar_pdu_msg.init_rx(rar_grant_nbytes);
   rar_pdu_msg.parse_packet(rar_pdu_buffer);
 
   // Set Backoff parameter
   if (rar_pdu_msg.has_backoff()) {
-    backoff_param_ms = backoff_table[rar_pdu_msg.get_backoff()%16];
+    backoff_param_ms = backoff_table[rar_pdu_msg.get_backoff() % 16];
   } else {
-    backoff_param_ms = 0; 
+    backoff_param_ms = 0;
   }
-  
-  current_ta = 0; 
-  
-  while(rar_pdu_msg.next()) {
+
+  current_ta = 0;
+
+  while (rar_pdu_msg.next()) {
     if (rar_pdu_msg.get()->has_rapid() && rar_pdu_msg.get()->get_rapid() == sel_preamble) {
 
-      rar_received = true; 
+      rar_received = true;
       process_timeadv_cmd(rar_pdu_msg.get()->get_ta_cmd());
-      
+
       // FIXME: Indicate received target power
-      //phy_h->set_target_power_rar(iniReceivedTargetPower, (preambleTransmissionCounter-1)*powerRampingStep);
+      // phy_h->set_target_power_rar(iniReceivedTargetPower, (preambleTransmissionCounter-1)*powerRampingStep);
 
       uint8_t grant[srslte::rar_subh::RAR_GRANT_LEN];
       rar_pdu_msg.get()->get_sched_grant(grant);
@@ -526,8 +526,8 @@ void ra_proc::complete()
 
 void ra_proc::start_noncont(uint32_t preamble_index, uint32_t prach_mask)
 {
-  next_preamble_idx = preamble_index;
-  next_prach_mask   = prach_mask;
+  next_preamble_idx     = preamble_index;
+  next_prach_mask       = prach_mask;
   noncontention_enabled = true;
   start_mac_order(56, true);
 }
@@ -535,7 +535,7 @@ void ra_proc::start_noncont(uint32_t preamble_index, uint32_t prach_mask)
 void ra_proc::start_mac_order(uint32_t msg_len_bits, bool is_ho)
 {
   if (state == IDLE) {
-    ra_is_ho = is_ho;
+    ra_is_ho         = is_ho;
     started_by_pdcch = false;
     new_ra_msg_len   = msg_len_bits;
     rInfo("Starting PRACH by MAC order\n");
@@ -634,5 +634,4 @@ void ra_proc::harq_max_retx()
   Warning("Contention Resolution is considered not successful. Stopping PDCCH Search and going to Response Error\n");
   response_error();
 }
-}
-
+} // namespace srsue

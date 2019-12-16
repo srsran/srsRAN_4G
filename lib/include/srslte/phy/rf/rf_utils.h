@@ -19,11 +19,11 @@
  *
  */
 
-#ifndef SRSLTE_RF_UTILS_H 
+#ifndef SRSLTE_RF_UTILS_H
 #define SRSLTE_RF_UTILS_H
 
-#include "srslte/srslte.h"
 #include "srslte/phy/rf/rf.h"
+#include "srslte/srslte.h"
 
 typedef struct SRSLTE_API {
   uint32_t max_frames_pbch;      // timeout in number of 5ms frames for MIB decoding
@@ -33,32 +33,23 @@ typedef struct SRSLTE_API {
   bool     force_tdd;
 } cell_search_cfg_t;
 
-SRSLTE_API int rf_rssi_scan(srslte_rf_t *rf, 
-                            float *freqs, 
-                            float *rssi, 
-                            int nof_bands, 
-                            double fs, 
-                            int nsamp);
+SRSLTE_API int rf_rssi_scan(srslte_rf_t* rf, float* freqs, float* rssi, int nof_bands, double fs, int nsamp);
 
-SRSLTE_API int rf_mib_decoder(srslte_rf_t *rf, 
-                              uint32_t nof_rx_antennas,
-                              cell_search_cfg_t *config, 
-                              srslte_cell_t *cell, 
-                              float *cfo);
+SRSLTE_API int
+rf_mib_decoder(srslte_rf_t* rf, uint32_t nof_rx_antennas, cell_search_cfg_t* config, srslte_cell_t* cell, float* cfo);
 
-SRSLTE_API int rf_cell_search(srslte_rf_t *rf, 
-                              uint32_t nof_rx_antennas,
-                              cell_search_cfg_t *config, 
-                              int force_N_id_2, 
-                              srslte_cell_t *cell, 
-                              float *cfo);
+SRSLTE_API int rf_cell_search(srslte_rf_t*       rf,
+                              uint32_t           nof_rx_antennas,
+                              cell_search_cfg_t* config,
+                              int                force_N_id_2,
+                              srslte_cell_t*     cell,
+                              float*             cfo);
 
-SRSLTE_API int rf_search_and_decode_mib(srslte_rf_t *rf, 
-                                        uint32_t nof_rx_antennas,
-                                        cell_search_cfg_t *config, 
-                                        int force_N_id_2, 
-                                        srslte_cell_t *cell, 
-                                        float *cfo);
+SRSLTE_API int rf_search_and_decode_mib(srslte_rf_t*       rf,
+                                        uint32_t           nof_rx_antennas,
+                                        cell_search_cfg_t* config,
+                                        int                force_N_id_2,
+                                        srslte_cell_t*     cell,
+                                        float*             cfo);
 
 #endif // SRSLTE_RF_UTILS_H
-

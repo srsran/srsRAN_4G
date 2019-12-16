@@ -19,14 +19,14 @@
  *
  */
 
-#define Error(fmt, ...)   log_h->error(fmt, ##__VA_ARGS__)
+#define Error(fmt, ...) log_h->error(fmt, ##__VA_ARGS__)
 #define Warning(fmt, ...) log_h->warning(fmt, ##__VA_ARGS__)
-#define Info(fmt, ...)    log_h->info(fmt, ##__VA_ARGS__)
-#define Debug(fmt, ...)   log_h->debug(fmt, ##__VA_ARGS__)
+#define Info(fmt, ...) log_h->info(fmt, ##__VA_ARGS__)
+#define Debug(fmt, ...) log_h->debug(fmt, ##__VA_ARGS__)
 
+#include <pthread.h>
 #include <string.h>
 #include <strings.h>
-#include <pthread.h>
 #include <unistd.h>
 
 #include "srslte/common/log.h"
@@ -148,10 +148,11 @@ void mac::reconfiguration(const uint32_t& cc_idx, const bool& enable)
   }
 }
 
-void mac::wait_uplink() {
-  int cnt=0;
+void mac::wait_uplink()
+{
+  int cnt = 0;
   Info("Waiting to uplink...\n");
-  while(mux_unit.is_pending_any_sdu() && cnt<20) {
+  while (mux_unit.is_pending_any_sdu() && cnt < 20) {
     usleep(1000);
     cnt++;
   }
@@ -264,8 +265,8 @@ void mac::pcch_start_rx()
 
 void mac::clear_rntis()
 {
-  p_window_start  = 0;
-  si_window_start = 0;
+  p_window_start   = 0;
+  si_window_start  = 0;
   ra_window_start  = -1;
   ra_window_length = -1;
   bzero(&uernti, sizeof(ue_rnti_t));

@@ -18,9 +18,9 @@
  * and at http://www.gnu.org/licenses/.
  *
  */
-#include <stdint.h>
 #include "srslte/asn1/gtpc.h"
 #include "srslte/common/common.h"
+#include <stdint.h>
 
 namespace srslte {
 

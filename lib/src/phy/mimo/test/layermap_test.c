@@ -31,11 +31,12 @@
 
 #include "srslte/srslte.h"
 
-int nof_symbols = 1000;
-int nof_cw = 1, nof_layers = 1;
-char *mimo_type_name = NULL;
+int   nof_symbols = 1000;
+int   nof_cw = 1, nof_layers = 1;
+char* mimo_type_name = NULL;
 
-void usage(char *prog) {
+void usage(char* prog)
+{
   printf("Usage: %s -m [%s|%s|%s|%s] -c [nof_cw] -l [nof_layers]\n",
          prog,
          srslte_mimotype2str(0),
@@ -45,25 +46,26 @@ void usage(char *prog) {
   printf("\t-n num_symbols [Default %d]\n", nof_symbols);
 }
 
-void parse_args(int argc, char **argv) {
+void parse_args(int argc, char** argv)
+{
   int opt;
   while ((opt = getopt(argc, argv, "mcln")) != -1) {
     switch (opt) {
-    case 'n':
-      nof_symbols = (int)strtol(argv[optind], NULL, 10);
-      break;
-    case 'c':
-      nof_cw = (int)strtol(argv[optind], NULL, 10);
-      break;
-    case 'l':
-      nof_layers = (int)strtol(argv[optind], NULL, 10);
-      break;
-    case 'm':
-      mimo_type_name = argv[optind];
-      break;
-    default:
-      usage(argv[0]);
-      exit(-1);
+      case 'n':
+        nof_symbols = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 'c':
+        nof_cw = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 'l':
+        nof_layers = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 'm':
+        mimo_type_name = argv[optind];
+        break;
+      default:
+        usage(argv[0]);
+        exit(-1);
     }
   }
   if (!mimo_type_name) {
@@ -72,13 +74,14 @@ void parse_args(int argc, char **argv) {
   }
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv)
+{
   srslte_random_t    random = srslte_random_init(0);
-  int i, j, num_errors, symbols_layer;
-  cf_t *d[SRSLTE_MAX_CODEWORDS], *x[SRSLTE_MAX_LAYERS], *dp[SRSLTE_MAX_CODEWORDS];
+  int                i, j, num_errors, symbols_layer;
+  cf_t *             d[SRSLTE_MAX_CODEWORDS], *x[SRSLTE_MAX_LAYERS], *dp[SRSLTE_MAX_CODEWORDS];
   srslte_tx_scheme_t type;
-  int nof_symb_cw[SRSLTE_MAX_CODEWORDS];
-  int n[2];
+  int                nof_symb_cw[SRSLTE_MAX_CODEWORDS];
+  int                n[2];
 
   parse_args(argc, argv);
 
@@ -88,8 +91,8 @@ int main(int argc, char **argv) {
   }
 
   if (nof_cw > 1) {
-    n[0] = nof_layers / nof_cw;
-    n[1] = nof_layers - n[0];
+    n[0]           = nof_layers / nof_cw;
+    n[1]           = nof_layers - n[0];
     nof_symb_cw[0] = nof_symbols * n[0];
     nof_symb_cw[1] = nof_symbols * n[1];
   } else {
@@ -97,7 +100,7 @@ int main(int argc, char **argv) {
     nof_symb_cw[1] = 0;
   }
 
-  for (i=0;i<nof_cw;i++) {
+  for (i = 0; i < nof_cw; i++) {
     d[i] = srslte_vec_malloc(sizeof(cf_t) * nof_symb_cw[i]);
     if (!d[i]) {
       perror("malloc");
@@ -109,7 +112,7 @@ int main(int argc, char **argv) {
       exit(-1);
     }
   }
-  for (i=0;i<nof_layers;i++) {
+  for (i = 0; i < nof_layers; i++) {
     x[i] = srslte_vec_malloc(sizeof(cf_t) * nof_symbols);
     if (!x[i]) {
       perror("malloc");
@@ -118,8 +121,8 @@ int main(int argc, char **argv) {
   }
 
   /* generate random data */
-  for (i=0;i<nof_cw;i++) {
-    for (j=0;j<nof_symb_cw[i];j++) {
+  for (i = 0; i < nof_cw; i++) {
+    for (j = 0; j < nof_symb_cw[i]; j++) {
       d[i][j] = srslte_random_uniform_complex_dist(random, -10, 10);
     }
   }
@@ -131,26 +134,26 @@ int main(int argc, char **argv) {
   }
 
   /* layer de-mapping */
-  if (srslte_layerdemap_type(x, dp, nof_layers, nof_cw, nof_symbols/nof_layers, nof_symb_cw, type) < 0) {
+  if (srslte_layerdemap_type(x, dp, nof_layers, nof_cw, nof_symbols / nof_layers, nof_symb_cw, type) < 0) {
     ERROR("Error layer mapper encoder\n");
     exit(-1);
   }
 
   /* check errors */
   num_errors = 0;
-  for (i=0;i<nof_cw;i++) {
-    for (j=0;j<nof_symb_cw[i];j++) {
+  for (i = 0; i < nof_cw; i++) {
+    for (j = 0; j < nof_symb_cw[i]; j++) {
       if (d[i][j] != dp[i][j]) {
         num_errors++;
       }
     }
   }
 
-  for (i=0;i<nof_cw;i++) {
+  for (i = 0; i < nof_cw; i++) {
     free(d[i]);
     free(dp[i]);
   }
-  for (i=0;i<nof_layers;i++) {
+  for (i = 0; i < nof_layers; i++) {
     free(x[i]);
   }
 

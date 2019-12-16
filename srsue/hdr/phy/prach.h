@@ -24,55 +24,56 @@
 
 #include <string.h>
 
-#include "srslte/srslte.h"
-#include "srslte/radio/radio.h"
 #include "srslte/common/log.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/radio/radio.h"
+#include "srslte/srslte.h"
 
 namespace srsue {
 
-  class prach {
-  public: 
-    prach() {
-      bzero(&prach_obj, sizeof(srslte_prach_t));
-      bzero(&cell, sizeof(srslte_cell_t));
-      bzero(&cfo_h, sizeof(srslte_cfo_t));
+class prach
+{
+public:
+  prach()
+  {
+    bzero(&prach_obj, sizeof(srslte_prach_t));
+    bzero(&cell, sizeof(srslte_cell_t));
+    bzero(&cfo_h, sizeof(srslte_cfo_t));
 
-      transmitted_tti   = 0;
-      target_power_dbm  = 0;
-      mem_initiated     = false;
-      cell_initiated    = false;
-      signal_buffer     = NULL;   
-    }
-    ~prach();
-    void           init(uint32_t max_prb, srslte::log* log_h);
-    void           stop();
-    bool           set_cell(srslte_cell_t cell, srslte_prach_cfg_t prach_cfg);
-    bool           prepare_to_send(uint32_t preamble_idx, int allowed_subframe = -1, float target_power_dbm = -1);
-    bool           is_ready_to_send(uint32_t current_tti);
-    bool           is_pending();
-    cf_t*          generate(float cfo, uint32_t *nof_sf, float *target_power = NULL);
+    transmitted_tti  = 0;
+    target_power_dbm = 0;
+    mem_initiated    = false;
+    cell_initiated   = false;
+    signal_buffer    = NULL;
+  }
+  ~prach();
+  void  init(uint32_t max_prb, srslte::log* log_h);
+  void  stop();
+  bool  set_cell(srslte_cell_t cell, srslte_prach_cfg_t prach_cfg);
+  bool  prepare_to_send(uint32_t preamble_idx, int allowed_subframe = -1, float target_power_dbm = -1);
+  bool  is_ready_to_send(uint32_t current_tti);
+  bool  is_pending();
+  cf_t* generate(float cfo, uint32_t* nof_sf, float* target_power = NULL);
 
-    phy_interface_mac_lte::prach_info_t get_info();
+  phy_interface_mac_lte::prach_info_t get_info();
 
-  private:
-    const static int MAX_LEN_SF = 3;
+private:
+  const static int MAX_LEN_SF = 3;
 
-    srslte::log   *log_h;
-    int            preamble_idx;  
-    int            allowed_subframe; 
-    bool           mem_initiated;
-    bool           cell_initiated;
-    uint32_t       len;
-    cf_t*          buffer[12][64];
-    srslte_prach_t prach_obj;
-    int            transmitted_tti;
-    srslte_cell_t  cell;
-    cf_t          *signal_buffer;
-    srslte_cfo_t   cfo_h; 
-    float          target_power_dbm;
-    
-  };
+  srslte::log*   log_h;
+  int            preamble_idx;
+  int            allowed_subframe;
+  bool           mem_initiated;
+  bool           cell_initiated;
+  uint32_t       len;
+  cf_t*          buffer[12][64];
+  srslte_prach_t prach_obj;
+  int            transmitted_tti;
+  srslte_cell_t  cell;
+  cf_t*          signal_buffer;
+  srslte_cfo_t   cfo_h;
+  float          target_power_dbm;
+};
 
 } // namespace srsue
 

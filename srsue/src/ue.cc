@@ -55,7 +55,6 @@ ue::~ue()
   // destruct stack components before cleaning buffer pool
   stack.reset();
   byte_buffer_pool::cleanup();
-
 }
 
 int ue::init(const all_args_t& args_, srslte::logger* logger_)
@@ -164,8 +163,8 @@ int ue::parse_args(const all_args_t& args_)
   }
 
   // replicate some RF parameter to make them available to PHY
-  args.phy.nof_rx_ant  = args.rf.nof_rx_ant;
-  args.phy.agc_enable  = args.rf.rx_gain < 0.0f;
+  args.phy.nof_rx_ant = args.rf.nof_rx_ant;
+  args.phy.agc_enable = args.rf.rx_gain < 0.0f;
 
   // Calculate number of carriers available in all radios
   args.phy.nof_radios      = args.rf.nof_radios;

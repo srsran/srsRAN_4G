@@ -646,7 +646,7 @@ bool sch_subh::set_next_mch_sched_info(uint8_t lcid_, uint16_t mtch_stop)
 int sch_subh::set_sdu(uint32_t lcid_, uint32_t requested_bytes_, read_pdu_interface* sdu_itf_)
 {
   if (((sch_pdu*)parent)->has_space_sdu(requested_bytes_)) {
-    lcid = lcid_;
+    lcid    = lcid_;
     payload = ((sch_pdu*)parent)->get_current_sdu_ptr();
 
     // Copy data and get final number of bytes written to the MAC PDU

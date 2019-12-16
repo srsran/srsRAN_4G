@@ -116,7 +116,7 @@ void mac_nr_sch_subpdu::set_padding(const uint32_t len_)
 uint32_t mac_nr_sch_subpdu::write_subpdu(const uint8_t* start_)
 {
   uint8_t* ptr = const_cast<uint8_t*>(start_);
-  *ptr = (uint8_t)((F_bit ? 1 : 0) << 6) | ((uint8_t)lcid & 0x3f);
+  *ptr         = (uint8_t)((F_bit ? 1 : 0) << 6) | ((uint8_t)lcid & 0x3f);
   ptr += 1;
 
   if (header_length == 3) {

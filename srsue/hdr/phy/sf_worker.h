@@ -41,8 +41,11 @@ namespace srsue {
 class sf_worker : public srslte::thread_pool::worker
 {
 public:
-  sf_worker(
-      uint32_t max_prb, phy_common* phy, srslte::log* log, srslte::log* log_phy_lib_h, chest_feedback_itf* chest_loop);
+  sf_worker(uint32_t            max_prb,
+            phy_common*         phy,
+            srslte::log*        log,
+            srslte::log*        log_phy_lib_h,
+            chest_feedback_itf* chest_loop);
   virtual ~sf_worker();
   void reset();
 

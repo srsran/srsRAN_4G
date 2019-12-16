@@ -19,34 +19,36 @@
  *
  */
 
-#include <stdio.h>
+#include <math.h>
 #include <signal.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <unistd.h>
-#include <math.h>
 #include <time.h>
+#include <unistd.h>
 
 #include <stdbool.h>
 
-#include "srslte/srslte.h"
 #include "srslte/phy/rf/rf.h"
+#include "srslte/srslte.h"
 
-static bool keep_running = true;
-char *output_file_name = NULL;
-char *rf_args="";
-float rf_gain=60.0, rf_freq=-1.0;
-int nof_prb = 6;
-int nof_subframes = -1;
-int N_id_2 = -1; 
-uint32_t nof_rx_antennas = 1;
+static bool keep_running     = true;
+char*       output_file_name = NULL;
+char*       rf_args          = "";
+float       rf_gain = 60.0, rf_freq = -1.0;
+int         nof_prb         = 6;
+int         nof_subframes   = -1;
+int         N_id_2          = -1;
+uint32_t    nof_rx_antennas = 1;
 
-void int_handler(int dummy) {
+void int_handler(int dummy)
+{
   keep_running = false;
 }
 
-void usage(char *prog) {
+void usage(char* prog)
+{
   printf("Usage: %s [agrnv] -l N_id_2 -f rx_frequency_hz -o output_file\n", prog);
   printf("\t-a RF args [Default %s]\n", rf_args);
   printf("\t-g RF Gain [Default %.2f dB]\n", rf_gain);
@@ -56,40 +58,41 @@ void usage(char *prog) {
   printf("\t-v verbose\n");
 }
 
-void parse_args(int argc, char **argv) {
+void parse_args(int argc, char** argv)
+{
   int opt;
   while ((opt = getopt(argc, argv, "agpnvfolA")) != -1) {
     switch (opt) {
-    case 'o':
-      output_file_name = argv[optind];
-      break;
-    case 'a':
-      rf_args = argv[optind];
-      break;
-    case 'g':
-      rf_gain = strtof(argv[optind], NULL);
-      break;
-    case 'p':
-      nof_prb = (int)strtol(argv[optind], NULL, 10);
-      break;
-    case 'f':
-      rf_freq = strtof(argv[optind], NULL);
-      break;
-    case 'n':
-      nof_subframes = (int)strtol(argv[optind], NULL, 10);
-      break;
-    case 'l':
-      N_id_2 = (int)strtol(argv[optind], NULL, 10);
-      break;
-    case 'A':
-      nof_rx_antennas = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 'v':
-      srslte_verbose++;
-      break;
-    default:
-      usage(argv[0]);
-      exit(-1);
+      case 'o':
+        output_file_name = argv[optind];
+        break;
+      case 'a':
+        rf_args = argv[optind];
+        break;
+      case 'g':
+        rf_gain = strtof(argv[optind], NULL);
+        break;
+      case 'p':
+        nof_prb = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 'f':
+        rf_freq = strtof(argv[optind], NULL);
+        break;
+      case 'n':
+        nof_subframes = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 'l':
+        N_id_2 = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 'A':
+        nof_rx_antennas = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'v':
+        srslte_verbose++;
+        break;
+      default:
+        usage(argv[0]);
+        exit(-1);
     }
   }
   if (&rf_freq < 0 || N_id_2 == -1 || output_file_name == NULL) {
@@ -108,18 +111,19 @@ int srslte_rf_recv_wrapper(void* h, cf_t* data_[SRSLTE_MAX_PORTS], uint32_t nsam
   return srslte_rf_recv_with_time_multi(h, ptr, nsamples, true, NULL, NULL);
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv)
+{
   cf_t*             buffer[SRSLTE_MAX_PORTS] = {NULL};
-  int n;
-  srslte_rf_t rf;
+  int               n;
+  srslte_rf_t       rf;
   srslte_filesink_t sink;
-  srslte_ue_sync_t ue_sync; 
-  srslte_cell_t cell; 
+  srslte_ue_sync_t  ue_sync;
+  srslte_cell_t     cell;
 
   signal(SIGINT, int_handler);
 
   parse_args(argc, argv);
-  
+
   srslte_filesink_init(&sink, output_file_name, SRSLTE_COMPLEX_FLOAT_BIN);
 
   printf("Opening RF device...\n");
@@ -131,7 +135,7 @@ int main(int argc, char **argv) {
   for (int i = 0; i < nof_rx_antennas; i++) {
     buffer[i] = srslte_vec_malloc(3 * sizeof(cf_t) * SRSLTE_SF_LEN_PRB(100));
   }
-  
+
   sigset_t sigset;
   sigemptyset(&sigset);
   sigaddset(&sigset, SIGINT);
@@ -139,28 +143,29 @@ int main(int argc, char **argv) {
 
   printf("Set RX freq: %.6f MHz\n", srslte_rf_set_rx_freq(&rf, nof_rx_antennas, rf_freq) / 1000000);
   printf("Set RX gain: %.1f dB\n", srslte_rf_set_rx_gain(&rf, rf_gain));
-    int srate = srslte_sampling_freq_hz(nof_prb);    
-    if (srate != -1) {  
-      printf("Setting sampling rate %.2f MHz\n", (float) srate/1000000);
-      float srate_rf = srslte_rf_set_rx_srate(&rf, (double) srate);
-      if (srate_rf != srate) {
-        ERROR("Could not set sampling rate\n");
-        exit(-1);
-      }
-    } else {
-      ERROR("Invalid number of PRB %d\n", nof_prb);
+  int srate = srslte_sampling_freq_hz(nof_prb);
+  if (srate != -1) {
+    printf("Setting sampling rate %.2f MHz\n", (float)srate / 1000000);
+    float srate_rf = srslte_rf_set_rx_srate(&rf, (double)srate);
+    if (srate_rf != srate) {
+      ERROR("Could not set sampling rate\n");
       exit(-1);
     }
+  } else {
+    ERROR("Invalid number of PRB %d\n", nof_prb);
+    exit(-1);
+  }
   srslte_rf_start_rx_stream(&rf, false);
 
-  cell.cp = SRSLTE_CP_NORM; 
-  cell.id = N_id_2;
-  cell.nof_prb = nof_prb; 
-  cell.nof_ports = 1; 
-  
-  if (srslte_ue_sync_init_multi(&ue_sync, cell.nof_prb, cell.id==1000, srslte_rf_recv_wrapper, nof_rx_antennas, (void*) &rf)) {
+  cell.cp        = SRSLTE_CP_NORM;
+  cell.id        = N_id_2;
+  cell.nof_prb   = nof_prb;
+  cell.nof_ports = 1;
+
+  if (srslte_ue_sync_init_multi(
+          &ue_sync, cell.nof_prb, cell.id == 1000, srslte_rf_recv_wrapper, nof_rx_antennas, (void*)&rf)) {
     fprintf(stderr, "Error initiating ue_sync\n");
-    exit(-1); 
+    exit(-1);
   }
   if (srslte_ue_sync_set_cell(&ue_sync, cell)) {
     ERROR("Error initiating ue_sync\n");
@@ -168,11 +173,9 @@ int main(int argc, char **argv) {
   }
 
   uint32_t subframe_count = 0;
-  bool start_capture = false; 
-  bool stop_capture = false; 
-  while((subframe_count < nof_subframes || nof_subframes == -1)
-        && !stop_capture)
-  {
+  bool     start_capture  = false;
+  bool     stop_capture   = false;
+  while ((subframe_count < nof_subframes || nof_subframes == -1) && !stop_capture) {
     n = srslte_ue_sync_zerocopy(&ue_sync, buffer);
     if (n < 0) {
       ERROR("Error receiving samples\n");
@@ -181,21 +184,21 @@ int main(int argc, char **argv) {
     if (n == 1) {
       if (!start_capture) {
         if (srslte_ue_sync_get_sfidx(&ue_sync) == 9) {
-          start_capture = true; 
-        }        
+          start_capture = true;
+        }
       } else {
         printf("Writing to file %6d subframes...\r", subframe_count);
-        srslte_filesink_write_multi(&sink, (void**) buffer, SRSLTE_SF_LEN_PRB(nof_prb),nof_rx_antennas);
-        subframe_count++;                              
-      }      
+        srslte_filesink_write_multi(&sink, (void**)buffer, SRSLTE_SF_LEN_PRB(nof_prb), nof_rx_antennas);
+        subframe_count++;
+      }
     }
     if (!keep_running) {
       if (!start_capture || (start_capture && srslte_ue_sync_get_sfidx(&ue_sync) == 9)) {
-        stop_capture = true; 
+        stop_capture = true;
       }
     }
   }
-  
+
   srslte_filesink_free(&sink);
   srslte_rf_close(&rf);
   srslte_ue_sync_free(&ue_sync);

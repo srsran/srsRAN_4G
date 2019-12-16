@@ -35,18 +35,10 @@
 #ifndef SRSLTE_CH_AWGN_H
 #define SRSLTE_CH_AWGN_H
 
-SRSLTE_API void srslte_ch_awgn_c(const cf_t* input, 
-                                 cf_t* output, 
-                                 float variance, 
-                                 uint32_t len);
+SRSLTE_API void srslte_ch_awgn_c(const cf_t* input, cf_t* output, float variance, uint32_t len);
 
-SRSLTE_API void srslte_ch_awgn_f(const float* x, 
-                                 float* y, 
-                                 float variance, 
-                                 uint32_t len);
+SRSLTE_API void srslte_ch_awgn_f(const float* x, float* y, float variance, uint32_t len);
 
-SRSLTE_API float srslte_ch_awgn_get_variance(float ebno_db, 
-                                             float rate);
-
+SRSLTE_API float srslte_ch_awgn_get_variance(float ebno_db, float rate);
 
 #endif // SRSLTE_CH_AWGN_H

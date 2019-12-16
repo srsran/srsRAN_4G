@@ -61,10 +61,10 @@ public:
     args.stack.rrc.release             = 8;
     args.stack.rrc.mbms_service_id     = -1;
 
-    args.phy.dl_earfcn     = "3400";
-    args.rf.type           = "none";
-    args.stack.type        = "lte";
-    args.phy.type          = "lte_ttcn3";
+    args.phy.dl_earfcn = "3400";
+    args.rf.type       = "none";
+    args.stack.type    = "lte";
+    args.phy.type      = "lte_ttcn3";
 
     // Instantiate layers and stack together our UE
     if (args.stack.type == "lte") {

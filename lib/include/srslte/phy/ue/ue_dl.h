@@ -36,28 +36,27 @@
 #include <stdbool.h>
 
 #include "srslte/phy/ch_estimation/chest_dl.h"
-#include "srslte/phy/dft/ofdm.h"
 #include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/dft/ofdm.h"
 
 #include "srslte/phy/phch/dci.h"
 #include "srslte/phy/phch/pcfich.h"
 #include "srslte/phy/phch/pdcch.h"
 #include "srslte/phy/phch/pdsch.h"
-#include "srslte/phy/phch/pmch.h"
 #include "srslte/phy/phch/pdsch_cfg.h"
 #include "srslte/phy/phch/phich.h"
+#include "srslte/phy/phch/pmch.h"
 #include "srslte/phy/phch/ra.h"
 #include "srslte/phy/phch/regs.h"
 
 #include "srslte/phy/sync/cfo.h"
 
-#include "srslte/phy/utils/vector.h"
 #include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/vector.h"
 
 #include "srslte/config.h"
 
-
-#define MAX_CANDIDATES_UE  16 // From 36.213 Table 9.1.1-1
+#define MAX_CANDIDATES_UE 16 // From 36.213 Table 9.1.1-1
 #define MAX_CANDIDATES_COM 6 // From 36.213 Table 9.1.1-1
 #define MAX_CANDIDATES (MAX_CANDIDATES_UE + MAX_CANDIDATES_COM)
 
@@ -67,9 +66,9 @@
 #define SRSLTE_MAX_DCI_MSG SRSLTE_MAX_CARRIERS
 
 typedef struct SRSLTE_API {
-  srslte_dci_format_t format; 
+  srslte_dci_format_t   format;
   srslte_dci_location_t loc[MAX_CANDIDATES];
-  uint32_t nof_locations;
+  uint32_t              nof_locations;
 } dci_blind_search_t;
 
 typedef struct SRSLTE_API {
@@ -165,8 +164,7 @@ SRSLTE_API void srslte_ue_dl_set_rnti(srslte_ue_dl_t* q, uint16_t rnti);
 
 SRSLTE_API int srslte_ue_dl_set_mbsfn_area_id(srslte_ue_dl_t* q, uint16_t mbsfn_area_id);
 
-SRSLTE_API void srslte_ue_dl_set_non_mbsfn_region(srslte_ue_dl_t *q,
-                                                  uint8_t non_mbsfn_region_length);
+SRSLTE_API void srslte_ue_dl_set_non_mbsfn_region(srslte_ue_dl_t* q, uint8_t non_mbsfn_region_length);
 
 SRSLTE_API void srslte_ue_dl_set_mi_manual(srslte_ue_dl_t* q, uint32_t mi_idx);
 
@@ -218,8 +216,11 @@ SRSLTE_API int srslte_ue_dl_decode_phich(srslte_ue_dl_t*       q,
 
 SRSLTE_API int srslte_ue_dl_select_ri(srslte_ue_dl_t* q, uint32_t* ri, float* cn);
 
-SRSLTE_API void srslte_ue_dl_gen_cqi_periodic(
-    srslte_ue_dl_t* q, srslte_ue_dl_cfg_t* cfg, uint32_t wideband_value, uint32_t tti, srslte_uci_data_t* uci_data);
+SRSLTE_API void srslte_ue_dl_gen_cqi_periodic(srslte_ue_dl_t*     q,
+                                              srslte_ue_dl_cfg_t* cfg,
+                                              uint32_t            wideband_value,
+                                              uint32_t            tti,
+                                              srslte_uci_data_t*  uci_data);
 
 SRSLTE_API void srslte_ue_dl_gen_cqi_aperiodic(srslte_ue_dl_t*     q,
                                                srslte_ue_dl_cfg_t* cfg,

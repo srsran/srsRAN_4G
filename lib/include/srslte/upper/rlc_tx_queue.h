@@ -39,7 +39,8 @@ namespace srslte {
 class rlc_tx_queue : public block_queue<unique_byte_buffer_t>::call_mutexed_itf
 {
 public:
-  rlc_tx_queue(int capacity = 128) : queue(capacity) {
+  rlc_tx_queue(int capacity = 128) : queue(capacity)
+  {
     unread_bytes = 0;
     queue.set_mutexed_itf(this);
   }
@@ -61,19 +62,10 @@ public:
 
   bool try_read(unique_byte_buffer_t* msg) { return queue.try_pop(msg); }
 
-  void resize(uint32_t capacity)
-  {
-    queue.resize(capacity);
-  }
-  uint32_t size()
-  {
-    return (uint32_t) queue.size();
-  }
+  void     resize(uint32_t capacity) { queue.resize(capacity); }
+  uint32_t size() { return (uint32_t)queue.size(); }
 
-  uint32_t size_bytes()
-  {
-    return unread_bytes;
-  }
+  uint32_t size_bytes() { return unread_bytes; }
 
   uint32_t size_tail_bytes()
   {
@@ -83,24 +75,19 @@ public:
         return m->N_bytes;
       }
     }
-    return 0; 
+    return 0;
   }
 
   // This is a hack to reset N_bytes counter when queue is corrupted (see line 89)
-  void reset() {
-    unread_bytes = 0;
-  }
+  void reset() { unread_bytes = 0; }
 
-  bool is_empty() {
-    return queue.empty();
-  }
+  bool is_empty() { return queue.empty(); }
 
 private:
   block_queue<unique_byte_buffer_t> queue;
-  uint32_t                    unread_bytes;
+  uint32_t                          unread_bytes;
 };
 
 } // namespace srslte
-
 
 #endif // SRSLTE_MSG_QUEUE_H

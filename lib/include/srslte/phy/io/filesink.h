@@ -41,23 +41,16 @@
 
 /* Low-level API */
 typedef struct SRSLTE_API {
-  FILE *f;
+  FILE*             f;
   srslte_datatype_t type;
 } srslte_filesink_t;
 
-SRSLTE_API int srslte_filesink_init(srslte_filesink_t *q, 
-                                    char *filename, 
-                                    srslte_datatype_t type);
+SRSLTE_API int srslte_filesink_init(srslte_filesink_t* q, char* filename, srslte_datatype_t type);
 
-SRSLTE_API void srslte_filesink_free(srslte_filesink_t *q);
+SRSLTE_API void srslte_filesink_free(srslte_filesink_t* q);
 
-SRSLTE_API int srslte_filesink_write(srslte_filesink_t *q, 
-                                     void *buffer, 
-                                     int nsamples);
+SRSLTE_API int srslte_filesink_write(srslte_filesink_t* q, void* buffer, int nsamples);
 
-SRSLTE_API int srslte_filesink_write_multi(srslte_filesink_t *q,
-                                           void **buffer,
-                                           int nsamples,
-                                           int nchannels);
+SRSLTE_API int srslte_filesink_write_multi(srslte_filesink_t* q, void** buffer, int nsamples, int nchannels);
 
 #endif // SRSLTE_FILESINK_H

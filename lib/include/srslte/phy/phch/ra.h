@@ -30,8 +30,8 @@
 #ifndef SRSLTE_RA_H
 #define SRSLTE_RA_H
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 #include "srslte/config.h"
 #include "srslte/phy/common/phy_common.h"
@@ -70,15 +70,9 @@ typedef struct SRSLTE_API {
 
 typedef struct SRSLTE_API {
   uint32_t riv; // if L_crb==0, DCI message packer will take this value directly
-  enum {
-    SRSLTE_RA_TYPE2_NPRB1A_2 = 0, SRSLTE_RA_TYPE2_NPRB1A_3 = 1
-  } n_prb1a;
-  enum {
-    SRSLTE_RA_TYPE2_NG1 = 0, SRSLTE_RA_TYPE2_NG2 = 1
-  } n_gap;
-  enum {
-    SRSLTE_RA_TYPE2_LOC = 0, SRSLTE_RA_TYPE2_DIST = 1
-  } mode;
+  enum { SRSLTE_RA_TYPE2_NPRB1A_2 = 0, SRSLTE_RA_TYPE2_NPRB1A_3 = 1 } n_prb1a;
+  enum { SRSLTE_RA_TYPE2_NG1 = 0, SRSLTE_RA_TYPE2_NG2 = 1 } n_gap;
+  enum { SRSLTE_RA_TYPE2_LOC = 0, SRSLTE_RA_TYPE2_DIST = 1 } mode;
 } srslte_ra_type2_t;
 
 SRSLTE_API uint32_t srslte_ra_type0_P(uint32_t nof_prb);
@@ -93,11 +87,8 @@ SRSLTE_API uint32_t srslte_ra_type1_N_rb(uint32_t nof_prb);
 
 SRSLTE_API uint32_t srslte_ra_type2_to_riv(uint32_t L_crb, uint32_t RB_start, uint32_t nof_prb);
 
-SRSLTE_API void srslte_ra_type2_from_riv(uint32_t riv,
-                                         uint32_t* L_crb,
-                                         uint32_t* RB_start,
-                                         uint32_t nof_prb,
-                                         uint32_t nof_vrb);
+SRSLTE_API void
+srslte_ra_type2_from_riv(uint32_t riv, uint32_t* L_crb, uint32_t* RB_start, uint32_t nof_prb, uint32_t nof_vrb);
 
 SRSLTE_API int srslte_ra_tbs_idx_from_mcs(uint32_t mcs, bool is_ul);
 

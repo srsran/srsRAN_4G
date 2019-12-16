@@ -19,78 +19,82 @@
  *
  */
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
 #include <unistd.h>
-#include <math.h>
 
 #include "srslte/srslte.h"
 
-int nof_prb = -1;
-srslte_cp_t cp = SRSLTE_CP_NORM;
-int nof_repetitions = 128;
+int         nof_prb         = -1;
+srslte_cp_t cp              = SRSLTE_CP_NORM;
+int         nof_repetitions = 128;
 
-static double elapsed_us(struct timeval *ts_start, struct timeval *ts_end) {
+static double elapsed_us(struct timeval* ts_start, struct timeval* ts_end)
+{
   if (ts_end->tv_usec > ts_start->tv_usec) {
-    return ((double) ts_end->tv_sec - (double) ts_start->tv_sec) * 1000000 +
-           (double) ts_end->tv_usec - (double) ts_start->tv_usec;
+    return ((double)ts_end->tv_sec - (double)ts_start->tv_sec) * 1000000 + (double)ts_end->tv_usec -
+           (double)ts_start->tv_usec;
   } else {
-    return ((double) ts_end->tv_sec - (double) ts_start->tv_sec - 1) * 1000000 +
-           ((double) ts_end->tv_usec + 1000000) - (double) ts_start->tv_usec;
+    return ((double)ts_end->tv_sec - (double)ts_start->tv_sec - 1) * 1000000 + ((double)ts_end->tv_usec + 1000000) -
+           (double)ts_start->tv_usec;
   }
 }
 
-void usage(char *prog) {
+void usage(char* prog)
+{
   printf("Usage: %s\n", prog);
   printf("\t-n nof_prb [Default All]\n");
   printf("\t-e extended cyclic prefix [Default Normal]\n");
   printf("\t-r nof_repetitions [Default %d]\n", nof_repetitions);
 }
 
-void parse_args(int argc, char **argv) {
+void parse_args(int argc, char** argv)
+{
   int opt;
   while ((opt = getopt(argc, argv, "ner")) != -1) {
     switch (opt) {
-    case 'n':
-      nof_prb = (int)strtol(argv[optind], NULL, 10);
-      break;
-    case 'e':
-      cp = SRSLTE_CP_EXT;
-      break;
-    case 'r':
-      nof_repetitions = (int)strtol(argv[optind], NULL, 10);
-      break;
-    default:
-      usage(argv[0]);
-      exit(-1);
+      case 'n':
+        nof_prb = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 'e':
+        cp = SRSLTE_CP_EXT;
+        break;
+      case 'r':
+        nof_repetitions = (int)strtol(argv[optind], NULL, 10);
+        break;
+      default:
+        usage(argv[0]);
+        exit(-1);
     }
   }
 }
 
-
-int main(int argc, char **argv) {
+int main(int argc, char** argv)
+{
   struct timeval start, end;
-  srslte_ofdm_t fft, ifft;
-  cf_t *input, *outfft, *outifft;
-  float mse;
-  int n_prb, max_prb, n_re;
-  int i;
+  srslte_ofdm_t  fft, ifft;
+  cf_t *         input, *outfft, *outifft;
+  float          mse;
+  int            n_prb, max_prb, n_re;
+  int            i;
 
   parse_args(argc, argv);
 
   if (nof_prb == -1) {
-    n_prb = 6;
+    n_prb   = 6;
     max_prb = 100;
   } else {
-    n_prb = nof_prb;
+    n_prb   = nof_prb;
     max_prb = nof_prb;
   }
-  while(n_prb <= max_prb) {
+  while (n_prb <= max_prb) {
     n_re = SRSLTE_CP_NSYMB(cp) * n_prb * SRSLTE_NRE;
 
-    printf("Running test for %d PRB, %d RE... ", n_prb, n_re);fflush(stdout);
+    printf("Running test for %d PRB, %d RE... ", n_prb, n_re);
+    fflush(stdout);
 
     input = srslte_vec_malloc(sizeof(cf_t) * n_re * 2);
     if (!input) {
@@ -121,31 +125,42 @@ int main(int argc, char **argv) {
     }
     srslte_ofdm_set_normalize(&ifft, true);
 
-    for (i=0;i<n_re;i++) {
-      input[i] = 100 * ((float) rand() / (float) RAND_MAX + I * ((float) rand() / (float) RAND_MAX));
-      //input[i] = 100;
+    for (i = 0; i < n_re; i++) {
+      input[i] = 100 * ((float)rand() / (float)RAND_MAX + I * ((float)rand() / (float)RAND_MAX));
+      // input[i] = 100;
     }
 
-  gettimeofday(&start, NULL);
-  for (int i = 0; i < nof_repetitions; i++) {
+    gettimeofday(&start, NULL);
+    for (int i = 0; i < nof_repetitions; i++) {
       srslte_ofdm_tx_slot(&ifft, 0);
-  }
-  gettimeofday(&end, NULL);\
-  printf(" Tx@%.1fMsps", (float)(SRSLTE_SLOT_LEN(srslte_symbol_sz(n_prb))*nof_repetitions)/elapsed_us(&start, &end));
+    }
+    gettimeofday(&end, NULL);
+    printf(" Tx@%.1fMsps",
+           (float)(SRSLTE_SLOT_LEN(srslte_symbol_sz(n_prb)) * nof_repetitions) / elapsed_us(&start, &end));
 
-  gettimeofday(&start, NULL);
-  for (int i = 0; i < nof_repetitions; i++) {
-    srslte_ofdm_rx_slot(&fft, 0);
-  }
-  gettimeofday(&end, NULL);\
-  printf(" Rx@%.1fMsps", (float)(SRSLTE_SLOT_LEN(srslte_symbol_sz(n_prb))*nof_repetitions)/elapsed_us(&start, &end));
+    gettimeofday(&start, NULL);
+    for (int i = 0; i < nof_repetitions; i++) {
+      srslte_ofdm_rx_slot(&fft, 0);
+    }
+    gettimeofday(&end, NULL);
+    printf(" Rx@%.1fMsps",
+           (float)(SRSLTE_SLOT_LEN(srslte_symbol_sz(n_prb)) * nof_repetitions) / elapsed_us(&start, &end));
 
     /* compute MSE */
     mse = 0.0f;
-    for (i=0;i<n_re;i++) {
+    for (i = 0; i < n_re; i++) {
       cf_t error = input[i] - outfft[i];
-      mse += (__real__ error * __real__ error + __imag__ error * __imag__ error)/cabsf(input[i]);
-      if (mse > 1.0f) printf("%04d. %+.1f%+.1fi Vs. %+.1f%+.1f %+.1f%+.1f (mse=%f)\n", i, __real__ input[i], __imag__ input[i], __real__ outifft[i], __imag__ outifft[i], __real__ outfft[i], __imag__ outfft[i], mse);
+      mse += (__real__ error * __real__ error + __imag__ error * __imag__ error) / cabsf(input[i]);
+      if (mse > 1.0f)
+        printf("%04d. %+.1f%+.1fi Vs. %+.1f%+.1f %+.1f%+.1f (mse=%f)\n",
+               i,
+               __real__ input[i],
+               __imag__ input[i],
+               __real__ outifft[i],
+               __imag__ outifft[i],
+               __real__ outfft[i],
+               __imag__ outfft[i],
+               mse);
     }
     /*for (i=0;i<n_re;i++) {
       mse += cabsf(input[i] - outfft[i]);

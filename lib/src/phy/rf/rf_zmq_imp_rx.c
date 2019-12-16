@@ -25,11 +25,11 @@
  */
 
 #include "rf_zmq_imp_trx.h"
+#include <inttypes.h>
 #include <srslte/phy/utils/vector.h>
 #include <stdlib.h>
 #include <string.h>
 #include <zmq.h>
-#include <inttypes.h>
 
 static void* rf_zmq_async_rx_thread(void* h)
 {
@@ -180,7 +180,7 @@ int rf_zmq_rx_open(rf_zmq_rx_t* q, rf_zmq_opts_t opts, void* zmq_ctx, char* sock
       goto clean_exit;
     }
 
-    ret        = SRSLTE_SUCCESS;
+    ret = SRSLTE_SUCCESS;
   }
 
 clean_exit:
@@ -189,20 +189,20 @@ clean_exit:
 
 int rf_zmq_rx_baseband(rf_zmq_rx_t* q, cf_t* buffer, uint32_t nsamples)
 {
-  void *dst_buffer   = buffer;
-  uint32_t sample_sz = sizeof(cf_t);
+  void*    dst_buffer = buffer;
+  uint32_t sample_sz  = sizeof(cf_t);
   if (q->sample_format != ZMQ_TYPE_FC32) {
     dst_buffer = q->temp_buffer_convert;
-    sample_sz  = 2*sizeof(short);
+    sample_sz  = 2 * sizeof(short);
   }
 
-  int n = srslte_ringbuffer_read_timed(&q->ringbuffer, dst_buffer, sample_sz*nsamples, ZMQ_TIMEOUT_MS);
+  int n = srslte_ringbuffer_read_timed(&q->ringbuffer, dst_buffer, sample_sz * nsamples, ZMQ_TIMEOUT_MS);
   if (n < 0) {
     return n;
   }
 
   if (q->sample_format == ZMQ_TYPE_SC16) {
-    srslte_vec_convert_if(dst_buffer, INT16_MAX, (float*) buffer, 2*nsamples);
+    srslte_vec_convert_if(dst_buffer, INT16_MAX, (float*)buffer, 2 * nsamples);
   }
 
   return n;

@@ -19,26 +19,27 @@
  *
  */
 
+#include <complex.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <math.h>
 #include <time.h>
-#include <complex.h>
+#include <unistd.h>
 
 #include "srslte/phy/phch/prach.h"
 #include "srslte/phy/utils/debug.h"
 
-#define MAX_LEN  70176
+#define MAX_LEN 70176
 
-uint32_t nof_prb          = 6;
-uint32_t preamble_format  = 0;
-uint32_t root_seq_idx     = 0;
-uint32_t zero_corr_zone   = 1;
-uint32_t n_seqs           = 64;
+uint32_t nof_prb         = 6;
+uint32_t preamble_format = 0;
+uint32_t root_seq_idx    = 0;
+uint32_t zero_corr_zone  = 1;
+uint32_t n_seqs          = 64;
 
-void usage(char *prog) {
+void usage(char* prog)
+{
   printf("Usage: %s\n", prog);
   printf("\t-N Uplink number of PRB [Default %d]\n", nof_prb);
   printf("\t-f Preamble format [Default 0]\n");
@@ -47,28 +48,29 @@ void usage(char *prog) {
   printf("\t-n Number of sequences used for each test [Default 64]\n");
 }
 
-void parse_args(int argc, char **argv) {
+void parse_args(int argc, char** argv)
+{
   int opt;
   while ((opt = getopt(argc, argv, "Nfrzn")) != -1) {
     switch (opt) {
-    case 'N':
-      nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 'f':
-      preamble_format = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 'r':
-      root_seq_idx = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 'z':
-      zero_corr_zone = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 'n':
-      n_seqs = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    default:
-      usage(argv[0]);
-      exit(-1);
+      case 'N':
+        nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'f':
+        preamble_format = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'r':
+        root_seq_idx = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'z':
+        zero_corr_zone = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'n':
+        n_seqs = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      default:
+        usage(argv[0]);
+        exit(-1);
     }
   }
 }
@@ -78,12 +80,12 @@ int main(int argc, char** argv)
   parse_args(argc, argv);
   srslte_prach_t prach;
 
-  bool high_speed_flag      = false;
+  bool high_speed_flag = false;
 
   cf_t preamble[MAX_LEN];
-  memset(preamble, 0, sizeof(cf_t)*MAX_LEN);
+  memset(preamble, 0, sizeof(cf_t) * MAX_LEN);
   cf_t preamble_sum[MAX_LEN];
-  memset(preamble_sum, 0, sizeof(cf_t)*MAX_LEN);
+  memset(preamble_sum, 0, sizeof(cf_t) * MAX_LEN);
 
   srslte_prach_cfg_t prach_cfg;
   ZERO_OBJECT(prach_cfg);
@@ -102,18 +104,17 @@ int main(int argc, char** argv)
     return -1;
   }
 
-  uint32_t seq_index = 0;
+  uint32_t seq_index        = 0;
   uint32_t frequency_offset = 0;
 
   uint32_t indices[64];
   uint32_t n_indices = 0;
-  for(int i=0;i<64;i++)
+  for (int i = 0; i < 64; i++)
     indices[i] = 0;
 
   srslte_prach_set_detect_factor(&prach, 10);
 
-  for(seq_index=0;seq_index<n_seqs;seq_index++)
-  {
+  for (seq_index = 0; seq_index < n_seqs; seq_index++) {
     srslte_prach_gen(&prach, seq_index, frequency_offset, preamble);
 
     for (int i = 0; i < prach.N_cp + prach.N_seq; i++) {

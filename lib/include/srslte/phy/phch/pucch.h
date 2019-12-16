@@ -69,9 +69,9 @@ typedef struct SRSLTE_API {
   uint32_t f_gh[SRSLTE_NSLOTS_X_FRAME];
   float    tmp_arg[SRSLTE_PUCCH_N_SEQ];
 
-  cf_t *z;
-  cf_t *z_tmp;
-  cf_t *ce;
+  cf_t* z;
+  cf_t* z_tmp;
+  cf_t* ce;
 
 } srslte_pucch_t;
 
@@ -81,11 +81,11 @@ typedef struct SRSLTE_API {
   bool               detected;
 } srslte_pucch_res_t;
 
-SRSLTE_API int srslte_pucch_init_ue(srslte_pucch_t *q);
+SRSLTE_API int srslte_pucch_init_ue(srslte_pucch_t* q);
 
-SRSLTE_API int srslte_pucch_init_enb(srslte_pucch_t *q);
+SRSLTE_API int srslte_pucch_init_enb(srslte_pucch_t* q);
 
-SRSLTE_API void srslte_pucch_free(srslte_pucch_t *q);
+SRSLTE_API void srslte_pucch_free(srslte_pucch_t* q);
 
 /* These functions modify the state of the object and may take some time */
 SRSLTE_API int srslte_pucch_set_cell(srslte_pucch_t* q, srslte_cell_t cell);
@@ -97,11 +97,11 @@ SRSLTE_API void srslte_pucch_free_rnti(srslte_pucch_t* q, uint16_t rnti);
 /* These functions do not modify the state and run in real-time */
 SRSLTE_API void srslte_pucch_uci_gen_cfg(srslte_pucch_t* q, srslte_pucch_cfg_t* cfg, srslte_uci_data_t* uci_data);
 
-SRSLTE_API int srslte_pucch_encode(srslte_pucch_t* q,
+SRSLTE_API int srslte_pucch_encode(srslte_pucch_t*     q,
                                    srslte_ul_sf_cfg_t* sf,
                                    srslte_pucch_cfg_t* cfg,
                                    srslte_uci_value_t* uci_data,
-                                   cf_t* sf_symbols);
+                                   cf_t*               sf_symbols);
 
 SRSLTE_API int srslte_pucch_decode(srslte_pucch_t*        q,
                                    srslte_ul_sf_cfg_t*    sf,
@@ -138,15 +138,11 @@ SRSLTE_API char* srslte_pucch_format_text(srslte_pucch_format_t format);
 
 SRSLTE_API char* srslte_pucch_format_text_short(srslte_pucch_format_t format);
 
-SRSLTE_API void srslte_pucch_tx_info(srslte_pucch_cfg_t* cfg,
-                                     srslte_uci_value_t* uci_data,
-                                     char* str,
-                                     uint32_t str_len);
+SRSLTE_API void
+srslte_pucch_tx_info(srslte_pucch_cfg_t* cfg, srslte_uci_value_t* uci_data, char* str, uint32_t str_len);
 
-SRSLTE_API void srslte_pucch_rx_info(srslte_pucch_cfg_t* cfg,
-                                     srslte_uci_value_t* uci_data,
-                                     char* str,
-                                     uint32_t str_len);
+SRSLTE_API void
+srslte_pucch_rx_info(srslte_pucch_cfg_t* cfg, srslte_uci_value_t* uci_data, char* str, uint32_t str_len);
 
 SRSLTE_API bool srslte_pucch_cfg_isvalid(srslte_pucch_cfg_t* cfg, uint32_t nof_prb);
 

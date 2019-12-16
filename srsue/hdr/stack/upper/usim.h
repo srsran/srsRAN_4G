@@ -22,17 +22,16 @@
 #ifndef SRSUE_USIM_H
 #define SRSUE_USIM_H
 
-#include <string>
-#include "usim_base.h"
-#include "srslte/common/log.h"
 #include "srslte/common/common.h"
-#include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/common/log.h"
 #include "srslte/common/security.h"
+#include "srslte/interfaces/ue_interfaces.h"
+#include "usim_base.h"
+#include <string>
 
 namespace srsue {
 
-class usim
-    :public usim_base
+class usim : public usim_base
 {
 public:
   usim(srslte::log* log_);
@@ -47,57 +46,56 @@ public:
   bool get_imei_vec(uint8_t* imei_, uint32_t n);
   bool get_home_plmn_id(srslte::plmn_id_t* home_plmn_id);
 
-  auth_result_t generate_authentication_response(uint8_t  *rand,
-                                                 uint8_t  *autn_enb,
-                                                 uint16_t  mcc,
-                                                 uint16_t  mnc,
-                                                 uint8_t  *res,
-                                                 int      *res_len,
-                                                 uint8_t  *k_asme);
+  auth_result_t generate_authentication_response(uint8_t* rand,
+                                                 uint8_t* autn_enb,
+                                                 uint16_t mcc,
+                                                 uint16_t mnc,
+                                                 uint8_t* res,
+                                                 int*     res_len,
+                                                 uint8_t* k_asme);
 
-  void generate_nas_keys(uint8_t *k_asme,
-                         uint8_t *k_nas_enc,
-                         uint8_t *k_nas_int,
+  void generate_nas_keys(uint8_t*                            k_asme,
+                         uint8_t*                            k_nas_enc,
+                         uint8_t*                            k_nas_int,
                          srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                          srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
 
   // RRC interface
-  void generate_as_keys(uint8_t *k_asme,
-                        uint32_t count_ul,
-                        uint8_t *k_rrc_enc,
-                        uint8_t *k_rrc_int,
-                        uint8_t *k_up_enc,
-                        uint8_t *k_up_int,
+  void generate_as_keys(uint8_t*                            k_asme,
+                        uint32_t                            count_ul,
+                        uint8_t*                            k_rrc_enc,
+                        uint8_t*                            k_rrc_int,
+                        uint8_t*                            k_up_enc,
+                        uint8_t*                            k_up_int,
                         srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                         srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
 
-  void generate_as_keys_ho(uint32_t pci,
-                           uint32_t earfcn,
-                           int ncc,
-                           uint8_t *k_rrc_enc,
-                           uint8_t *k_rrc_int,
-                           uint8_t *k_up_enc,
-                           uint8_t *k_up_int,
+  void generate_as_keys_ho(uint32_t                            pci,
+                           uint32_t                            earfcn,
+                           int                                 ncc,
+                           uint8_t*                            k_rrc_enc,
+                           uint8_t*                            k_rrc_int,
+                           uint8_t*                            k_up_enc,
+                           uint8_t*                            k_up_int,
                            srslte::CIPHERING_ALGORITHM_ID_ENUM cipher_algo,
                            srslte::INTEGRITY_ALGORITHM_ID_ENUM integ_algo);
 
-
 private:
-  auth_result_t gen_auth_res_milenage(uint8_t  *rand,
-                                      uint8_t  *autn_enb,
-                                      uint16_t  mcc,
-                                      uint16_t  mnc,
-                                      uint8_t  *res,
-                                      int      *res_len,
-                                      uint8_t  *k_asme);
-  auth_result_t gen_auth_res_xor(uint8_t  *rand,
-                                 uint8_t  *autn_enb,
-                                 uint16_t  mcc,
-                                 uint16_t  mnc,
-                                 uint8_t  *res,
-                                 int      *res_len,
-                                 uint8_t  *k_asme);
-  void str_to_hex(std::string str, uint8_t *hex);
+  auth_result_t gen_auth_res_milenage(uint8_t* rand,
+                                      uint8_t* autn_enb,
+                                      uint16_t mcc,
+                                      uint16_t mnc,
+                                      uint8_t* res,
+                                      int*     res_len,
+                                      uint8_t* k_asme);
+  auth_result_t gen_auth_res_xor(uint8_t* rand,
+                                 uint8_t* autn_enb,
+                                 uint16_t mcc,
+                                 uint16_t mnc,
+                                 uint8_t* res,
+                                 int*     res_len,
+                                 uint8_t* k_asme);
+  void          str_to_hex(std::string str, uint8_t* hex);
 
   srslte::log* usim_log = nullptr;
 
@@ -133,6 +131,5 @@ private:
 };
 
 } // namespace srsue
-
 
 #endif // SRSUE_USIM_H

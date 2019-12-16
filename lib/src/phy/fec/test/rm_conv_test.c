@@ -19,36 +19,38 @@
  *
  */
 
+#include <math.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <unistd.h>
-#include <math.h>
 #include <time.h>
-#include <stdbool.h>
+#include <unistd.h>
 
 #include "srslte/srslte.h"
 
-int nof_tx_bits=-1, nof_rx_bits=-1;
+int nof_tx_bits = -1, nof_rx_bits = -1;
 
-void usage(char *prog) {
+void usage(char* prog)
+{
   printf("Usage: %s -t nof_tx_bits -r nof_rx_bits\n", prog);
 }
 
-void parse_args(int argc, char **argv) {
+void parse_args(int argc, char** argv)
+{
   int opt;
   while ((opt = getopt(argc, argv, "tr")) != -1) {
     switch (opt) {
-    case 't':
-      nof_tx_bits = (int)strtol(argv[optind], NULL, 10);
-      break;
-    case 'r':
-      nof_rx_bits = (int)strtol(argv[optind], NULL, 10);
-      break;
-    default:
-      usage(argv[0]);
-      exit(-1);
+      case 't':
+        nof_tx_bits = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 'r':
+        nof_rx_bits = (int)strtol(argv[optind], NULL, 10);
+        break;
+      default:
+        usage(argv[0]);
+        exit(-1);
     }
   }
   if (nof_tx_bits == -1) {
@@ -61,11 +63,12 @@ void parse_args(int argc, char **argv) {
   }
 }
 
-int main(int argc, char **argv) {
-  int i;
+int main(int argc, char** argv)
+{
+  int      i;
   uint8_t *bits, *rm_bits;
-  float *rm_symbols, *unrm_symbols;
-  int nof_errors;
+  float *  rm_symbols, *unrm_symbols;
+  int      nof_errors;
 
   parse_args(argc, argv);
 
@@ -90,16 +93,16 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  for (i=0;i<nof_tx_bits;i++) {
-    bits[i] = rand()%2;
+  for (i = 0; i < nof_tx_bits; i++) {
+    bits[i] = rand() % 2;
   }
 
   if (srslte_rm_conv_tx(bits, nof_tx_bits, rm_bits, nof_rx_bits)) {
     exit(-1);
   }
 
-  for (i=0;i<nof_rx_bits;i++) {
-    rm_symbols[i] = rm_bits[i]?1:-1;
+  for (i = 0; i < nof_rx_bits; i++) {
+    rm_symbols[i] = rm_bits[i] ? 1 : -1;
   }
 
   if (srslte_rm_conv_rx(rm_symbols, nof_rx_bits, unrm_symbols, nof_tx_bits)) {
@@ -107,7 +110,7 @@ int main(int argc, char **argv) {
   }
 
   nof_errors = 0;
-  for (i=0;i<nof_tx_bits;i++) {
+  for (i = 0; i < nof_tx_bits; i++) {
     if ((unrm_symbols[i] > 0) != bits[i]) {
       nof_errors++;
     }

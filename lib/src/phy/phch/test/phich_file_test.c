@@ -27,8 +27,8 @@
 
 #include "srslte/srslte.h"
 
-char *input_file_name = NULL;
-char *matlab_file_name = NULL;
+char* input_file_name  = NULL;
+char* matlab_file_name = NULL;
 
 srslte_cell_t cell = {
     50,                // cell.nof_prb
@@ -43,19 +43,20 @@ srslte_cell_t cell = {
 
 int flen;
 int nof_ctrl_symbols = 1;
-int numsubframe = 0;
+int numsubframe      = 0;
 
-FILE *fmatlab = NULL;
+FILE* fmatlab = NULL;
 
-srslte_filesource_t fsrc;
+srslte_filesource_t   fsrc;
 cf_t *                input_buffer, *fft_buffer[SRSLTE_MAX_CODEWORDS];
-srslte_phich_t phich;
-srslte_regs_t regs;
-srslte_ofdm_t fft;
-srslte_chest_dl_t chest;
+srslte_phich_t        phich;
+srslte_regs_t         regs;
+srslte_ofdm_t         fft;
+srslte_chest_dl_t     chest;
 srslte_chest_dl_res_t chest_res;
 
-void usage(char *prog) {
+void usage(char* prog)
+{
   printf("Usage: %s [vcoe] -i input_file\n", prog);
   printf("\t-o output matlab file name [Default Disabled]\n");
   printf("\t-c cell.id [Default %d]\n", cell.id);
@@ -68,53 +69,54 @@ void usage(char *prog) {
   printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
-void parse_args(int argc, char **argv) {
+void parse_args(int argc, char** argv)
+{
   int opt;
   while ((opt = getopt(argc, argv, "iovcenpfgl")) != -1) {
-    switch(opt) {
-    case 'i':
-      input_file_name = argv[optind];
-      break;
-    case 'o':
-      matlab_file_name = argv[optind];
-      break;
-    case 'c':
-      cell.id = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 'f':
-      nof_ctrl_symbols = (int)strtol(argv[optind], NULL, 10);
-      break;
-    case 'g':
-      if (!strcmp(argv[optind], "1/6")) {
-        cell.phich_resources = SRSLTE_PHICH_R_1_6;
-      } else if (!strcmp(argv[optind], "1/2")) {
-        cell.phich_resources = SRSLTE_PHICH_R_1_2;
-      } else if (!strcmp(argv[optind], "1")) {
-        cell.phich_resources = SRSLTE_PHICH_R_1;
-      } else if (!strcmp(argv[optind], "2")) {
-        cell.phich_resources = SRSLTE_PHICH_R_2;
-      } else {
-        ERROR("Invalid phich ng factor %s. Setting to default.\n", argv[optind]);
-      }
-      break;
-    case 'e':
-      cell.phich_length = SRSLTE_PHICH_EXT;
-      break;
-    case 'n':
-      cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 'p':
-      cell.nof_ports = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 'v':
-      srslte_verbose++;
-      break;
-    case 'l':
-      cell.cp = SRSLTE_CP_EXT;
-      break;
-    default:
-      usage(argv[0]);
-      exit(-1);
+    switch (opt) {
+      case 'i':
+        input_file_name = argv[optind];
+        break;
+      case 'o':
+        matlab_file_name = argv[optind];
+        break;
+      case 'c':
+        cell.id = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'f':
+        nof_ctrl_symbols = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 'g':
+        if (!strcmp(argv[optind], "1/6")) {
+          cell.phich_resources = SRSLTE_PHICH_R_1_6;
+        } else if (!strcmp(argv[optind], "1/2")) {
+          cell.phich_resources = SRSLTE_PHICH_R_1_2;
+        } else if (!strcmp(argv[optind], "1")) {
+          cell.phich_resources = SRSLTE_PHICH_R_1;
+        } else if (!strcmp(argv[optind], "2")) {
+          cell.phich_resources = SRSLTE_PHICH_R_2;
+        } else {
+          ERROR("Invalid phich ng factor %s. Setting to default.\n", argv[optind]);
+        }
+        break;
+      case 'e':
+        cell.phich_length = SRSLTE_PHICH_EXT;
+        break;
+      case 'n':
+        cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'p':
+        cell.nof_ports = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'v':
+        srslte_verbose++;
+        break;
+      case 'l':
+        cell.cp = SRSLTE_CP_EXT;
+        break;
+      default:
+        usage(argv[0]);
+        exit(-1);
     }
   }
   if (!input_file_name) {
@@ -123,7 +125,8 @@ void parse_args(int argc, char **argv) {
   }
 }
 
-int base_init() {
+int base_init()
+{
 
   if (srslte_filesource_init(&fsrc, input_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
     ERROR("Error opening file %s\n", input_file_name);
@@ -196,7 +199,8 @@ int base_init() {
   return 0;
 }
 
-void base_free() {
+void base_free()
+{
 
   srslte_filesource_free(&fsrc);
   if (fmatlab) {
@@ -216,8 +220,9 @@ void base_free() {
   srslte_regs_free(&regs);
 }
 
-int main(int argc, char **argv) {
-  int n;
+int main(int argc, char** argv)
+{
+  int      n;
   uint32_t ngroup, nseq, max_nseq;
 
   if (argc < 3) {
@@ -225,9 +230,9 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  parse_args(argc,argv);
+  parse_args(argc, argv);
 
-  max_nseq = SRSLTE_CP_ISNORM(cell.cp)?SRSLTE_PHICH_NORM_NSEQUENCES:SRSLTE_PHICH_EXT_NSEQUENCES;
+  max_nseq = SRSLTE_CP_ISNORM(cell.cp) ? SRSLTE_PHICH_NORM_NSEQUENCES : SRSLTE_PHICH_EXT_NSEQUENCES;
 
   if (base_init()) {
     ERROR("Error initializing memory\n");

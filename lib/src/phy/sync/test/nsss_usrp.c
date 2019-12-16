@@ -39,9 +39,9 @@
 
 char*    rf_args = "";
 float    rf_gain = 40.0, rf_freq = -1.0;
-int      nof_frames = -1;
-uint32_t fft_size   = 128;
-float    threshold  = 0.4;
+int      nof_frames   = -1;
+uint32_t fft_size     = 128;
+float    threshold    = 0.4;
 bool     has_cfo_corr = true;
 float    cfo_fixed    = 0.0;
 

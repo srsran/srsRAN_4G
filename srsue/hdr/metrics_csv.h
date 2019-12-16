@@ -27,11 +27,11 @@
 #ifndef SRSUE_METRICS_CSV_H
 #define SRSUE_METRICS_CSV_H
 
+#include <fstream>
+#include <iostream>
 #include <pthread.h>
 #include <stdint.h>
 #include <string>
-#include <iostream>
-#include <fstream>
 
 #include "srslte/common/metrics_hub.h"
 #include "ue_metrics_interface.h"
@@ -44,8 +44,8 @@ public:
   metrics_csv(std::string filename);
   ~metrics_csv();
 
-  void set_metrics(ue_metrics_t &m, const uint32_t period_usec);
-  void set_ue_handle(ue_metrics_interface *ue_);
+  void set_metrics(ue_metrics_t& m, const uint32_t period_usec);
+  void set_ue_handle(ue_metrics_interface* ue_);
   void stop();
 
 private:

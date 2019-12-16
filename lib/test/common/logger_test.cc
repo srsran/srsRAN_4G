@@ -20,59 +20,61 @@
  */
 
 #define NTHREADS 100
-#define NMSGS    100
+#define NMSGS 100
 
-#include <stdlib.h>
-#include <stdio.h>
 #include "srslte/common/logger_file.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 using namespace srslte;
 
 typedef struct {
-  logger_file *l;
-  int thread_id;
-}args_t;
+  logger_file* l;
+  int          thread_id;
+} args_t;
 
-void* thread_loop(void *a) {
-  args_t *args = (args_t*)a;
-  char buf[100];
-  for(int i=0;i<NMSGS;i++)
-  {
+void* thread_loop(void* a)
+{
+  args_t* args = (args_t*)a;
+  char    buf[100];
+  for (int i = 0; i < NMSGS; i++) {
     sprintf(buf, "Thread %d: %d", args->thread_id, i);
     args->l->log_char(buf);
   }
   return NULL;
 }
 
-void write(std::string filename) {
+void write(std::string filename)
+{
   logger_file l;
   l.init(filename);
   pthread_t threads[NTHREADS];
   args_t    args[NTHREADS];
-  for(int i=0;i<NTHREADS;i++) {
-    args[i].l = &l;
+  for (int i = 0; i < NTHREADS; i++) {
+    args[i].l         = &l;
     args[i].thread_id = i;
     pthread_create(&threads[i], NULL, &thread_loop, &args[i]);
   }
-  for(int i=0;i<NTHREADS;i++) {
+  for (int i = 0; i < NTHREADS; i++) {
     pthread_join(threads[i], NULL);
   }
 }
 
-bool read(std::string filename) {
+bool read(std::string filename)
+{
   bool pass = true;
   bool written[NTHREADS][NMSGS];
-  int thread = 0, msg = 0;
-  int r;
+  int  thread = 0, msg = 0;
+  int  r;
 
-  for(int i=0;i<NTHREADS;i++) {
-    for(int j=0;j<NMSGS;j++) {
+  for (int i = 0; i < NTHREADS; i++) {
+    for (int j = 0; j < NMSGS; j++) {
       written[i][j] = false;
     }
   }
-  FILE *f = fopen(filename.c_str(), "r");
-  if(f!=NULL) {
-    while(fscanf(f, "Thread %d: %d\n", &thread, &msg)) {
+  FILE* f = fopen(filename.c_str(), "r");
+  if (f != NULL) {
+    while (fscanf(f, "Thread %d: %d\n", &thread, &msg)) {
       if (thread < NTHREADS && msg < NMSGS) {
         written[thread][msg] = true;
       } else {
@@ -83,16 +85,18 @@ bool read(std::string filename) {
     }
     fclose(f);
   }
-  for(int i=0;i<NTHREADS;i++) {
-    for(int j=0;j<NMSGS;j++) {
-      if(!written[i][j]) pass = false;
+  for (int i = 0; i < NTHREADS; i++) {
+    for (int j = 0; j < NMSGS; j++) {
+      if (!written[i][j])
+        pass = false;
     }
   }
   return pass;
 }
 
-int main(int argc, char **argv) {
-  bool result;
+int main(int argc, char** argv)
+{
+  bool        result;
   std::string f("log.txt");
   write(f);
   result = read(f);
@@ -101,10 +105,10 @@ int main(int argc, char **argv) {
     perror("Removing file");
   }
 
-  if(result) {
+  if (result) {
     printf("Passed\n");
     exit(0);
-  }else{
+  } else {
     printf("Failed\n;");
     exit(1);
   }

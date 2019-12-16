@@ -19,31 +19,31 @@
  *
  */
 
+#include <complex.h>
+#include <math.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <unistd.h>
-#include <math.h>
 #include <time.h>
-#include <stdbool.h>
-#include <complex.h>
+#include <unistd.h>
 
-
-#include "srslte/phy/utils/vector.h"
-#include "srslte/phy/mimo/precoding.h"
 #include "pmi_select_test.h"
+#include "srslte/phy/mimo/precoding.h"
 #include "srslte/phy/utils/debug.h"
+#include "srslte/phy/utils/vector.h"
 
-int main(int argc, char **argv) {
-  cf_t *h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
-  float noise_estimate;
-  float sinr_1l[SRSLTE_MAX_CODEBOOKS];
-  float sinr_2l[SRSLTE_MAX_CODEBOOKS];
-  float cn;
+int main(int argc, char** argv)
+{
+  cf_t*    h[SRSLTE_MAX_PORTS][SRSLTE_MAX_PORTS];
+  float    noise_estimate;
+  float    sinr_1l[SRSLTE_MAX_CODEBOOKS];
+  float    sinr_2l[SRSLTE_MAX_CODEBOOKS];
+  float    cn;
   uint32_t pmi[2];
-  uint32_t nof_symbols = (uint32_t) SRSLTE_SF_LEN_RE(6, SRSLTE_CP_NORM);
-  int ret = SRSLTE_ERROR;
+  uint32_t nof_symbols = (uint32_t)SRSLTE_SF_LEN_RE(6, SRSLTE_CP_NORM);
+  int      ret         = SRSLTE_ERROR;
 
   /* Allocate channels */
   for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
   }
 
   for (int c = 0; c < PMI_SELECT_TEST_NOF_CASES; c++) {
-    pmi_select_test_case_gold_t *gold = &pmi_select_test_case_gold[c];
+    pmi_select_test_case_gold_t* gold = &pmi_select_test_case_gold[c];
 
     /* Set channel */
     for (int i = 0; i < 2; i++) {
@@ -84,7 +84,10 @@ int main(int argc, char **argv) {
     for (int i = 0; i < ret; i++) {
       if (fabsf(gold->snri_1l[i] - sinr_1l[i]) > 0.1) {
         ERROR("Test case %d failed computing 1 layer SINR for codebook %d (test=%.2f; gold=%.2f)\n",
-              c + 1, i, sinr_1l[i], gold->snri_1l[i]);
+              c + 1,
+              i,
+              sinr_1l[i],
+              gold->snri_1l[i]);
         goto clean;
       }
     }
@@ -106,7 +109,10 @@ int main(int argc, char **argv) {
     for (int i = 0; i < ret; i++) {
       if (fabsf(gold->snri_2l[i] - sinr_2l[i]) > 0.1) {
         ERROR("Test case %d failed computing 2 layer SINR for codebook %d (test=%.2f; gold=%.2f)\n",
-              c + 1, i, sinr_2l[i], gold->snri_2l[i]);
+              c + 1,
+              i,
+              sinr_2l[i],
+              gold->snri_2l[i]);
         goto clean;
       }
     }
@@ -125,8 +131,7 @@ int main(int argc, char **argv) {
 
     /* Check condition number */
     if (fabsf(gold->k - cn) > 0.1) {
-      ERROR("Test case %d failed computing condition number (test=%.2f; gold=%.2f)\n",
-            c + 1, cn, gold->k);
+      ERROR("Test case %d failed computing condition number (test=%.2f; gold=%.2f)\n", c + 1, cn, gold->k);
       goto clean;
     }
   }
@@ -134,7 +139,7 @@ int main(int argc, char **argv) {
   /* Test passed */
   ret = SRSLTE_SUCCESS;
 
-  clean:
+clean:
   for (int i = 0; i < SRSLTE_MAX_PORTS; i++) {
     for (int j = 0; j < SRSLTE_MAX_PORTS; j++) {
       if (h[i][j]) {

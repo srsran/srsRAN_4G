@@ -26,28 +26,25 @@
 
 #include "srslte/phy/ue/ue_ul.h"
 
-#define CURRENT_FFTSIZE   srslte_symbol_sz(q->cell.nof_prb)
-#define CURRENT_SFLEN     SRSLTE_SF_LEN(CURRENT_FFTSIZE)
+#define CURRENT_FFTSIZE srslte_symbol_sz(q->cell.nof_prb)
+#define CURRENT_SFLEN SRSLTE_SF_LEN(CURRENT_FFTSIZE)
 
 #define CURRENT_SLOTLEN_RE SRSLTE_SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)
 #define CURRENT_SFLEN_RE SRSLTE_NOF_RE(q->cell)
 
-#define MAX_SFLEN     SRSLTE_SF_LEN(srslte_symbol_sz(max_prb))
+#define MAX_SFLEN SRSLTE_SF_LEN(srslte_symbol_sz(max_prb))
 
-#define DEFAULT_CFO_TOL   1.0 // Hz
+#define DEFAULT_CFO_TOL 1.0 // Hz
 
 static bool srs_tx_enabled(srslte_refsignal_srs_cfg_t* srs_cfg, uint32_t tti);
 
-int srslte_ue_ul_init(srslte_ue_ul_t *q,
-                      cf_t *out_buffer,
-                      uint32_t max_prb)
+int srslte_ue_ul_init(srslte_ue_ul_t* q, cf_t* out_buffer, uint32_t max_prb)
 {
-  int ret = SRSLTE_ERROR_INVALID_INPUTS; 
-  
-  if (q != NULL)
-  {
+  int ret = SRSLTE_ERROR_INVALID_INPUTS;
+
+  if (q != NULL) {
     ret = SRSLTE_ERROR;
-    
+
     bzero(q, sizeof(srslte_ue_ul_t));
 
     q->sf_symbols = srslte_vec_malloc(SRSLTE_SF_LEN_PRB(max_prb) * sizeof(cf_t));
@@ -83,35 +80,36 @@ int srslte_ue_ul_init(srslte_ue_ul_t *q,
     q->refsignal = srslte_vec_malloc(2 * SRSLTE_NRE * max_prb * sizeof(cf_t));
     if (!q->refsignal) {
       perror("malloc");
-      goto clean_exit; 
+      goto clean_exit;
     }
-    
+
     q->srs_signal = srslte_vec_malloc(SRSLTE_NRE * max_prb * sizeof(cf_t));
     if (!q->srs_signal) {
       perror("malloc");
-      goto clean_exit; 
+      goto clean_exit;
     }
     q->out_buffer           = out_buffer;
-    q->signals_pregenerated = false; 
-    ret = SRSLTE_SUCCESS;
+    q->signals_pregenerated = false;
+    ret                     = SRSLTE_SUCCESS;
   } else {
     ERROR("Invalid parameters\n");
   }
 
-clean_exit: 
+clean_exit:
   if (ret == SRSLTE_ERROR) {
     srslte_ue_ul_free(q);
   }
   return ret;
 }
 
-void srslte_ue_ul_free(srslte_ue_ul_t *q) {
+void srslte_ue_ul_free(srslte_ue_ul_t* q)
+{
   if (q) {
     srslte_ofdm_tx_free(&q->fft);
     srslte_pusch_free(&q->pusch);
     srslte_pucch_free(&q->pucch);
 
-    srslte_cfo_free(&q->cfo); 
+    srslte_cfo_free(&q->cfo);
     srslte_refsignal_ul_free(&q->signals);
 
     if (q->sf_symbols) {
@@ -133,13 +131,11 @@ void srslte_ue_ul_free(srslte_ue_ul_t *q) {
   }
 }
 
-int srslte_ue_ul_set_cell(srslte_ue_ul_t *q,
-                          srslte_cell_t cell)
+int srslte_ue_ul_set_cell(srslte_ue_ul_t* q, srslte_cell_t cell)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
-  if (q != NULL && srslte_cell_isvalid(&cell))
-  {
+  if (q != NULL && srslte_cell_isvalid(&cell)) {
     if (q->cell.id != cell.id || q->cell.nof_prb == 0) {
       q->cell = cell;
 
@@ -180,9 +176,10 @@ int srslte_ue_ul_set_cell(srslte_ue_ul_t *q,
 
 /* Precalculate the PUSCH scramble sequences for a given RNTI. This function takes a while
  * to execute, so shall be called once the final C-RNTI has been allocated for the session.
- * For the connection procedure, use srslte_pusch_encode_rnti() or srslte_pusch_decode_rnti() functions 
+ * For the connection procedure, use srslte_pusch_encode_rnti() or srslte_pusch_decode_rnti() functions
  */
-void srslte_ue_ul_set_rnti(srslte_ue_ul_t *q, uint16_t rnti) {
+void srslte_ue_ul_set_rnti(srslte_ue_ul_t* q, uint16_t rnti)
+{
   srslte_pusch_set_rnti(&q->pusch, rnti);
   srslte_pucch_set_rnti(&q->pucch, rnti);
   q->current_rnti = rnti;
@@ -200,7 +197,7 @@ int srslte_ue_ul_pregen_signals(srslte_ue_ul_t* q, srslte_ue_ul_cfg_t* cfg)
   if (srslte_refsignal_srs_pregen(&q->signals, &q->pregen_srs, &cfg->ul_cfg.srs, &cfg->ul_cfg.dmrs)) {
     return SRSLTE_ERROR;
   }
-  q->signals_pregenerated = true; 
+  q->signals_pregenerated = true;
   return SRSLTE_SUCCESS;
 }
 
@@ -224,16 +221,16 @@ void srslte_ue_ul_pusch_hopping(srslte_ue_ul_t*       q,
   return srslte_ra_ul_pusch_hopping(&q->hopping, sf, &cfg->ul_cfg.hopping, grant);
 }
 
-static float limit_norm_factor(srslte_ue_ul_t *q, float norm_factor, cf_t *output_signal)
+static float limit_norm_factor(srslte_ue_ul_t* q, float norm_factor, cf_t* output_signal)
 {
-  uint32_t p = srslte_vec_max_abs_fi((float*) output_signal, 2*SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
-  float amp = fabsf(*((float*) output_signal + p));
+  uint32_t p   = srslte_vec_max_abs_fi((float*)output_signal, 2 * SRSLTE_SF_LEN_PRB(q->cell.nof_prb));
+  float    amp = fabsf(*((float*)output_signal + p));
 
-  if (amp*norm_factor > 0.95) {
-    norm_factor = 0.95/amp;
+  if (amp * norm_factor > 0.95) {
+    norm_factor = 0.95 / amp;
   }
-  if (amp*norm_factor < 0.1) {
-    norm_factor = 0.1/amp;
+  if (amp * norm_factor < 0.1) {
+    norm_factor = 0.1 / amp;
   }
   return norm_factor;
 }
@@ -248,7 +245,7 @@ static void apply_cfo(srslte_ue_ul_t* q, srslte_ue_ul_cfg_t* cfg)
 
 static void apply_norm(srslte_ue_ul_t* q, srslte_ue_ul_cfg_t* cfg, float norm_factor)
 {
-  uint32_t sf_len = SRSLTE_SF_LEN_PRB(q->cell.nof_prb);
+  uint32_t sf_len               = SRSLTE_SF_LEN_PRB(q->cell.nof_prb);
   float*   buf                  = NULL;
   float    force_peak_amplitude = cfg->force_peak_amplitude > 0 ? cfg->force_peak_amplitude : 1.0f;
 
@@ -315,7 +312,7 @@ static int pusch_encode(srslte_ue_ul_t* q, srslte_ul_sf_cfg_t* sf, srslte_ue_ul_
                                           cfg->ul_cfg.pusch.grant.n_dmrs,
                                           q->refsignal)) {
         ERROR("Error generating PUSCH DMRS signals\n");
-        return ret; 
+        return ret;
       }
       srslte_refsignal_dmrs_pusch_put(&q->signals, &cfg->ul_cfg.pusch, q->refsignal, q->sf_symbols);
     }
@@ -339,7 +336,7 @@ float srslte_ue_ul_pusch_power(srslte_ue_ul_t* q, srslte_ue_ul_cfg_t* cfg, float
   float p0_pusch, alpha;
   if (p0_preamble) {
     p0_pusch = p0_preamble + cfg->ul_cfg.power_ctrl.delta_preamble_msg3;
-    alpha = 1;
+    alpha    = 1;
   } else {
     alpha    = cfg->ul_cfg.power_ctrl.alpha;
     p0_pusch = cfg->ul_cfg.power_ctrl.p0_nominal_pusch + cfg->ul_cfg.power_ctrl.p0_ue_pusch;
@@ -404,14 +401,13 @@ float srslte_ue_ul_pucch_power(srslte_ue_ul_t* q, srslte_ue_ul_cfg_t* cfg, srslt
       }
     }
   }
-  
-  //TODO: This implements closed-loop power control
-  float g = 0; 
- 
+
+  // TODO: This implements closed-loop power control
+  float g = 0;
+
   float pucch_power = p0_pucch + PL + h + delta_f + g;
-  
-  DEBUG("PUCCH: P=%f -- p0=%f, PL=%f, delta_f=%f, h=%f, g=%f\n", 
-         pucch_power, p0_pucch, PL, delta_f, h, g);
+
+  DEBUG("PUCCH: P=%f -- p0=%f, PL=%f, delta_f=%f, h=%f, g=%f\n", pucch_power, p0_pucch, PL, delta_f, h, g);
 
   return 0;
 }
@@ -475,7 +471,7 @@ float srs_power(srslte_ue_ul_t* q, srslte_ue_ul_cfg_t* cfg, float PL)
         PL,
         f);
 
-  return p_srs; 
+  return p_srs;
 }
 
 /* Choose PUCCH format based on pending transmission as described in 10.1 of 36.213 */
@@ -992,13 +988,13 @@ int srslte_ue_ul_sr_send_tti(srslte_pucch_cfg_t* cfg, uint32_t current_tti)
     sr_N_offset    = I_sr - 35;
   } else if (I_sr < 155) {
     sr_periodicity = 80;
-    sr_N_offset    = I_sr-75; 
+    sr_N_offset    = I_sr - 75;
   } else if (I_sr < 157) {
     sr_periodicity = 2;
-    sr_N_offset    = I_sr-155; 
+    sr_N_offset    = I_sr - 155;
   } else if (I_sr == 157) {
     sr_periodicity = 1;
-    sr_N_offset    = I_sr-157; 
+    sr_N_offset    = I_sr - 157;
   } else {
     return SRSLTE_ERROR;
   }
@@ -1063,8 +1059,11 @@ int srslte_ue_ul_encode(srslte_ue_ul_t* q, srslte_ul_sf_cfg_t* sf, srslte_ue_ul_
   return ret;
 }
 
-bool srslte_ue_ul_info(
-    srslte_ue_ul_cfg_t* cfg, srslte_ul_sf_cfg_t* sf, srslte_uci_value_t* uci_data, char* str, uint32_t str_len)
+bool srslte_ue_ul_info(srslte_ue_ul_cfg_t* cfg,
+                       srslte_ul_sf_cfg_t* sf,
+                       srslte_uci_value_t* uci_data,
+                       char*               str,
+                       uint32_t            str_len)
 {
   uint32_t n   = 0;
   bool     ret = false;

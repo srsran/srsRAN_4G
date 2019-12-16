@@ -422,8 +422,11 @@ int srslte_npss_generate(cf_t* signal)
 
 /** 36.211 10.3 section 6.11.1.2
  */
-void srslte_npss_put_subframe(
-    srslte_npss_synch_t* q, cf_t* npss_signal, cf_t* sf, const uint32_t nof_prb, const uint32_t nbiot_prb_offset)
+void srslte_npss_put_subframe(srslte_npss_synch_t* q,
+                              cf_t*                npss_signal,
+                              cf_t*                sf,
+                              const uint32_t       nof_prb,
+                              const uint32_t       nbiot_prb_offset)
 {
   // skip first 3 OFDM symbols over all PRBs completely
   uint32_t k = 3 * nof_prb * SRSLTE_NRE + nbiot_prb_offset * SRSLTE_NRE;

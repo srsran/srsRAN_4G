@@ -26,7 +26,7 @@
 
 namespace srsenb {
 
-typedef enum{
+typedef enum {
   RRC_STATE_IDLE = 0,
   RRC_STATE_WAIT_FOR_CON_SETUP_COMPLETE,
   RRC_STATE_WAIT_FOR_SECURITY_MODE_COMPLETE,
@@ -35,16 +35,14 @@ typedef enum{
   RRC_STATE_REGISTERED,
   RRC_STATE_RELEASE_REQUEST,
   RRC_STATE_N_ITEMS,
-}rrc_state_t;
+} rrc_state_t;
 
-struct rrc_ue_metrics_t
-{
+struct rrc_ue_metrics_t {
   rrc_state_t state;
 };
 
-struct rrc_metrics_t
-{
-  uint16_t n_ues;
+struct rrc_metrics_t {
+  uint16_t         n_ues;
   rrc_ue_metrics_t ues[ENB_METRICS_MAX_USERS];
 };
 

@@ -29,13 +29,13 @@
 class ss_ut_interface
 {
 public:
-  virtual void     tc_start(const char* name)                                                                     = 0;
-  virtual void     tc_end()                                                                                       = 0;
-  virtual void     power_off_ue()                                                                                 = 0;
-  virtual void     switch_on_ue()                                                                                 = 0;
-  virtual void     switch_off_ue()                                                                                = 0;
-  virtual void     enable_data()                                                                                  = 0;
-  virtual void     disable_data()                                                                                 = 0;
+  virtual void tc_start(const char* name) = 0;
+  virtual void tc_end()                   = 0;
+  virtual void power_off_ue()             = 0;
+  virtual void switch_on_ue()             = 0;
+  virtual void switch_off_ue()            = 0;
+  virtual void enable_data()              = 0;
+  virtual void disable_data()             = 0;
 };
 
 class ss_sys_interface
@@ -67,8 +67,8 @@ public:
 class syssim_interface_phy
 {
 public:
-  virtual void prach_indication(uint32_t preamble_index, const uint32_t& cell_id) = 0;
-  virtual void sr_req(uint32_t tti_tx)                                            = 0;
+  virtual void prach_indication(uint32_t preamble_index, const uint32_t& cell_id)   = 0;
+  virtual void sr_req(uint32_t tti_tx)                                              = 0;
   virtual void tx_pdu(const uint8_t* payload, const int len, const uint32_t tx_tti) = 0;
 };
 

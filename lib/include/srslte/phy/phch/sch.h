@@ -32,10 +32,10 @@
 
 #include "srslte/config.h"
 #include "srslte/phy/common/phy_common.h"
+#include "srslte/phy/fec/crc.h"
 #include "srslte/phy/fec/rm_turbo.h"
 #include "srslte/phy/fec/turbocoder.h"
 #include "srslte/phy/fec/turbodecoder.h"
-#include "srslte/phy/fec/crc.h"
 #include "srslte/phy/phch/pdsch_cfg.h"
 #include "srslte/phy/phch/pusch_cfg.h"
 #include "srslte/phy/phch/uci.h"
@@ -50,32 +50,32 @@
 
 /* DL-SCH AND UL-SCH common functions */
 typedef struct SRSLTE_API {
-  
+
   uint32_t max_iterations;
   float    avg_iterations;
 
   bool llr_is_8bit;
 
   /* buffers */
-  uint8_t *cb_in; 
-  uint8_t *parity_bits;  
-  void *e;
-  uint8_t *temp_g_bits;
-  uint32_t *ul_interleaver;
+  uint8_t*         cb_in;
+  uint8_t*         parity_bits;
+  void*            e;
+  uint8_t*         temp_g_bits;
+  uint32_t*        ul_interleaver;
   srslte_uci_bit_t ack_ri_bits[57600]; // 4*M_sc*Qm_max for RI and ACK
 
   srslte_tcod_t encoder;
-  srslte_tdec_t decoder;  
-  srslte_crc_t crc_tb;
-  srslte_crc_t crc_cb;
-  
+  srslte_tdec_t decoder;
+  srslte_crc_t  crc_tb;
+  srslte_crc_t  crc_cb;
+
   srslte_uci_cqi_pusch_t uci_cqi;
-  
+
 } srslte_sch_t;
 
-SRSLTE_API int srslte_sch_init(srslte_sch_t *q);
+SRSLTE_API int srslte_sch_init(srslte_sch_t* q);
 
-SRSLTE_API void srslte_sch_free(srslte_sch_t *q);
+SRSLTE_API void srslte_sch_free(srslte_sch_t* q);
 
 SRSLTE_API void srslte_sch_set_max_noi(srslte_sch_t* q, uint32_t max_iterations);
 
@@ -83,21 +83,21 @@ SRSLTE_API float srslte_sch_last_noi(srslte_sch_t* q);
 
 SRSLTE_API int srslte_dlsch_encode(srslte_sch_t* q, srslte_pdsch_cfg_t* cfg, uint8_t* data, uint8_t* e_bits);
 
-SRSLTE_API int srslte_dlsch_encode2(srslte_sch_t* q,
+SRSLTE_API int srslte_dlsch_encode2(srslte_sch_t*       q,
                                     srslte_pdsch_cfg_t* cfg,
-                                    uint8_t* data,
-                                    uint8_t* e_bits,
-                                    int codeword_idx,
-                                    uint32_t nof_layers);
+                                    uint8_t*            data,
+                                    uint8_t*            e_bits,
+                                    int                 codeword_idx,
+                                    uint32_t            nof_layers);
 
 SRSLTE_API int srslte_dlsch_decode(srslte_sch_t* q, srslte_pdsch_cfg_t* cfg, int16_t* e_bits, uint8_t* data);
 
-SRSLTE_API int srslte_dlsch_decode2(srslte_sch_t* q,
+SRSLTE_API int srslte_dlsch_decode2(srslte_sch_t*       q,
                                     srslte_pdsch_cfg_t* cfg,
-                                    int16_t* e_bits,
-                                    uint8_t* data,
-                                    int codeword_idx,
-                                    uint32_t nof_layers);
+                                    int16_t*            e_bits,
+                                    uint8_t*            data,
+                                    int                 codeword_idx,
+                                    uint32_t            nof_layers);
 
 SRSLTE_API int srslte_ulsch_encode(srslte_sch_t*       q,
                                    srslte_pusch_cfg_t* cfg,

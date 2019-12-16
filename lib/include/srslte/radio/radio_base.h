@@ -43,7 +43,7 @@ public:
   virtual std::string get_type() = 0;
 
   virtual int  init(const rf_args_t& args_, phy_interface_radio* phy_) = 0;
-  virtual void stop()                                                = 0;
+  virtual void stop()                                                  = 0;
 
   virtual bool get_metrics(rf_metrics_t* metrics) = 0;
 };

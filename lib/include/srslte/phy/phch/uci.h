@@ -37,38 +37,37 @@
 #include "srslte/phy/phch/pusch_cfg.h"
 #include "srslte/phy/phch/uci_cfg.h"
 
-#define SRSLTE_UCI_MAX_CQI_LEN_PUSCH       512
-#define SRSLTE_UCI_MAX_CQI_LEN_PUCCH       13
-#define SRSLTE_UCI_CQI_CODED_PUCCH_B       20
+#define SRSLTE_UCI_MAX_CQI_LEN_PUSCH 512
+#define SRSLTE_UCI_MAX_CQI_LEN_PUCCH 13
+#define SRSLTE_UCI_CQI_CODED_PUCCH_B 20
 #define SRSLTE_UCI_STR_MAX_CHAR 32
 
 typedef struct SRSLTE_API {
-  srslte_crc_t crc;
-  srslte_viterbi_t viterbi; 
-  uint8_t tmp_cqi[SRSLTE_UCI_MAX_CQI_LEN_PUSCH];
-  uint8_t encoded_cqi[3*SRSLTE_UCI_MAX_CQI_LEN_PUSCH];
-  int16_t encoded_cqi_s[3*SRSLTE_UCI_MAX_CQI_LEN_PUSCH];
-  uint8_t *cqi_table[11];
-  int16_t *cqi_table_s[11];
+  srslte_crc_t     crc;
+  srslte_viterbi_t viterbi;
+  uint8_t          tmp_cqi[SRSLTE_UCI_MAX_CQI_LEN_PUSCH];
+  uint8_t          encoded_cqi[3 * SRSLTE_UCI_MAX_CQI_LEN_PUSCH];
+  int16_t          encoded_cqi_s[3 * SRSLTE_UCI_MAX_CQI_LEN_PUSCH];
+  uint8_t*         cqi_table[11];
+  int16_t*         cqi_table_s[11];
 } srslte_uci_cqi_pusch_t;
 
 typedef struct SRSLTE_API {
-  uint8_t **cqi_table;
-  int16_t **cqi_table_s;
+  uint8_t** cqi_table;
+  int16_t** cqi_table_s;
 } srslte_uci_cqi_pucch_t;
 
-SRSLTE_API void srslte_uci_cqi_pucch_init(srslte_uci_cqi_pucch_t *q);
+SRSLTE_API void srslte_uci_cqi_pucch_init(srslte_uci_cqi_pucch_t* q);
 
-SRSLTE_API void srslte_uci_cqi_pucch_free(srslte_uci_cqi_pucch_t *q);
+SRSLTE_API void srslte_uci_cqi_pucch_free(srslte_uci_cqi_pucch_t* q);
 
-SRSLTE_API int srslte_uci_encode_cqi_pucch(uint8_t *cqi_data,
-                                           uint32_t cqi_len, 
-                                           uint8_t b_bits[SRSLTE_UCI_CQI_CODED_PUCCH_B]);
+SRSLTE_API int
+srslte_uci_encode_cqi_pucch(uint8_t* cqi_data, uint32_t cqi_len, uint8_t b_bits[SRSLTE_UCI_CQI_CODED_PUCCH_B]);
 
-SRSLTE_API int srslte_uci_encode_cqi_pucch_from_table(srslte_uci_cqi_pucch_t *q,
-                                                      uint8_t *cqi_data,
-                                                      uint32_t cqi_len,
-                                                      uint8_t b_bits[SRSLTE_UCI_CQI_CODED_PUCCH_B]);
+SRSLTE_API int srslte_uci_encode_cqi_pucch_from_table(srslte_uci_cqi_pucch_t* q,
+                                                      uint8_t*                cqi_data,
+                                                      uint32_t                cqi_len,
+                                                      uint8_t                 b_bits[SRSLTE_UCI_CQI_CODED_PUCCH_B]);
 
 SRSLTE_API int16_t srslte_uci_decode_cqi_pucch(srslte_uci_cqi_pucch_t* q,
                                                int16_t                 b_bits[SRSLTE_CQI_MAX_BITS], // aligned for simd
@@ -79,24 +78,24 @@ SRSLTE_API void srslte_uci_encode_ack_sr_pucch3(uint8_t* data, uint32_t nof_bits
 
 SRSLTE_API int srslte_uci_cqi_init(srslte_uci_cqi_pusch_t* q);
 
-SRSLTE_API void srslte_uci_cqi_free(srslte_uci_cqi_pusch_t *q);
+SRSLTE_API void srslte_uci_cqi_free(srslte_uci_cqi_pusch_t* q);
 
-SRSLTE_API int srslte_uci_encode_cqi_pusch(srslte_uci_cqi_pusch_t *q, 
-                                           srslte_pusch_cfg_t *cfg,
-                                           uint8_t *cqi_data, 
-                                           uint32_t cqi_len, 
-                                           float beta, 
-                                           uint32_t Q_prime_ri, 
-                                           uint8_t *q_bits);
+SRSLTE_API int srslte_uci_encode_cqi_pusch(srslte_uci_cqi_pusch_t* q,
+                                           srslte_pusch_cfg_t*     cfg,
+                                           uint8_t*                cqi_data,
+                                           uint32_t                cqi_len,
+                                           float                   beta,
+                                           uint32_t                Q_prime_ri,
+                                           uint8_t*                q_bits);
 
-SRSLTE_API int srslte_uci_decode_cqi_pusch(srslte_uci_cqi_pusch_t *q, 
-                                           srslte_pusch_cfg_t *cfg,
-                                           int16_t *q_bits, 
-                                           float beta, 
-                                           uint32_t Q_prime_ri, 
-                                           uint32_t cqi_len, 
-                                           uint8_t *cqi_data, 
-                                           bool *cqi_ack);
+SRSLTE_API int srslte_uci_decode_cqi_pusch(srslte_uci_cqi_pusch_t* q,
+                                           srslte_pusch_cfg_t*     cfg,
+                                           int16_t*                q_bits,
+                                           float                   beta,
+                                           uint32_t                Q_prime_ri,
+                                           uint32_t                cqi_len,
+                                           uint8_t*                cqi_data,
+                                           bool*                   cqi_ack);
 
 SRSLTE_API int srslte_uci_encode_ack(srslte_pusch_cfg_t* cfg,
                                      uint8_t             acks[2],
@@ -131,9 +130,7 @@ SRSLTE_API uint32_t srslte_uci_cfg_total_ack(srslte_uci_cfg_t* uci_cfg);
 
 SRSLTE_API void srslte_uci_data_reset(srslte_uci_data_t* uci_data);
 
-SRSLTE_API int srslte_uci_data_info(srslte_uci_cfg_t* uci_cfg,
-                                    srslte_uci_value_t* uci_data,
-                                    char* str,
-                                    uint32_t maxlen);
+SRSLTE_API int
+srslte_uci_data_info(srslte_uci_cfg_t* uci_cfg, srslte_uci_value_t* uci_data, char* str, uint32_t maxlen);
 
 #endif // SRSLTE_UCI_H

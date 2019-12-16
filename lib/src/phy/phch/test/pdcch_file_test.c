@@ -27,7 +27,7 @@
 
 #include "srslte/srslte.h"
 
-char *input_file_name = NULL;
+char* input_file_name = NULL;
 
 srslte_cell_t cell = {
     6,                 // cell.cell.cell.nof_prb
@@ -41,20 +41,21 @@ srslte_cell_t cell = {
 };
 
 uint32_t cfi = 2;
-int flen;
-uint16_t rnti = SRSLTE_SIRNTI;
-int max_frames = 10;
+int      flen;
+uint16_t rnti       = SRSLTE_SIRNTI;
+int      max_frames = 10;
 
-srslte_dci_format_t dci_format = SRSLTE_DCI_FORMAT1A;
-srslte_filesource_t fsrc;
-srslte_pdcch_t pdcch;
+srslte_dci_format_t   dci_format = SRSLTE_DCI_FORMAT1A;
+srslte_filesource_t   fsrc;
+srslte_pdcch_t        pdcch;
 cf_t *                input_buffer, *fft_buffer[SRSLTE_MAX_CODEWORDS];
-srslte_regs_t regs;
-srslte_ofdm_t fft;
-srslte_chest_dl_t chest;
+srslte_regs_t         regs;
+srslte_ofdm_t         fft;
+srslte_chest_dl_t     chest;
 srslte_chest_dl_res_t chest_res;
 
-void usage(char *prog) {
+void usage(char* prog)
+{
   printf("Usage: %s [vcfoe] -i input_file\n", prog);
   printf("\t-c cell.id [Default %d]\n", cell.id);
   printf("\t-f cfi [Default %d]\n", cfi);
@@ -67,47 +68,48 @@ void usage(char *prog) {
   printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
-void parse_args(int argc, char **argv) {
+void parse_args(int argc, char** argv)
+{
   int opt;
   while ((opt = getopt(argc, argv, "irvofcenmp")) != -1) {
-    switch(opt) {
-    case 'i':
-      input_file_name = argv[optind];
-      break;
-    case 'c':
-      cell.id = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 'r':
-      rnti = strtoul(argv[optind], NULL, 0);
-      break;
-    case 'm':
-      max_frames = strtoul(argv[optind], NULL, 0);
-      break;
-    case 'f':
-      cfi = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 'n':
-      cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 'p':
-      cell.nof_ports = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 'o':
-      dci_format = srslte_dci_format_from_string(argv[optind]);
-      if (dci_format == SRSLTE_DCI_NOF_FORMATS) {
-        ERROR("Error unsupported format %s\n", argv[optind]);
+    switch (opt) {
+      case 'i':
+        input_file_name = argv[optind];
+        break;
+      case 'c':
+        cell.id = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'r':
+        rnti = strtoul(argv[optind], NULL, 0);
+        break;
+      case 'm':
+        max_frames = strtoul(argv[optind], NULL, 0);
+        break;
+      case 'f':
+        cfi = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'n':
+        cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'p':
+        cell.nof_ports = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'o':
+        dci_format = srslte_dci_format_from_string(argv[optind]);
+        if (dci_format == SRSLTE_DCI_NOF_FORMATS) {
+          ERROR("Error unsupported format %s\n", argv[optind]);
+          exit(-1);
+        }
+        break;
+      case 'v':
+        srslte_verbose++;
+        break;
+      case 'e':
+        cell.cp = SRSLTE_CP_EXT;
+        break;
+      default:
+        usage(argv[0]);
         exit(-1);
-      }
-      break;
-    case 'v':
-      srslte_verbose++;
-      break;
-    case 'e':
-      cell.cp = SRSLTE_CP_EXT;
-      break;
-    default:
-      usage(argv[0]);
-      exit(-1);
     }
   }
   if (!input_file_name) {
@@ -116,7 +118,8 @@ void parse_args(int argc, char **argv) {
   }
 }
 
-int base_init() {
+int base_init()
+{
 
   if (srslte_filesource_init(&fsrc, input_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
     ERROR("Error opening file %s\n", input_file_name);
@@ -179,7 +182,8 @@ int base_init() {
   return 0;
 }
 
-void base_free() {
+void base_free()
+{
 
   srslte_filesource_free(&fsrc);
 
@@ -196,27 +200,28 @@ void base_free() {
   srslte_regs_free(&regs);
 }
 
-int main(int argc, char **argv) {
-  int i;
-  int frame_cnt;
-  int ret;
+int main(int argc, char** argv)
+{
+  int                   i;
+  int                   frame_cnt;
+  int                   ret;
   srslte_dci_location_t locations[MAX_CANDIDATES];
-  uint32_t nof_locations;
-  srslte_dci_msg_t dci_msg; 
+  uint32_t              nof_locations;
+  srslte_dci_msg_t      dci_msg;
 
   if (argc < 3) {
     usage(argv[0]);
     exit(-1);
   }
 
-  parse_args(argc,argv);
+  parse_args(argc, argv);
 
   if (base_init()) {
     ERROR("Error initializing memory\n");
     exit(-1);
   }
 
-  ret = -1;
+  ret       = -1;
   frame_cnt = 0;
   do {
     srslte_filesource_read(&fsrc, input_buffer, flen);
@@ -250,7 +255,7 @@ int main(int argc, char **argv) {
 
     ZERO_OBJECT(dci_msg);
 
-    for (i=0;i<nof_locations && dci_msg.rnti != rnti;i++) {
+    for (i = 0; i < nof_locations && dci_msg.rnti != rnti; i++) {
       dci_msg.location = locations[i];
       dci_msg.format   = dci_format;
       if (srslte_pdcch_decode_msg(&pdcch, &dl_sf, &dci_cfg, &dci_msg)) {

@@ -19,17 +19,17 @@
  *
  */
 
-#include <assert.h>
 #include "srslte/common/bcd_helpers.h"
+#include <assert.h>
 
 using namespace srslte;
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
   std::string mcc_str = "001";
   std::string mnc_str = "001";
-  uint16_t mcc;
-  uint16_t mnc;
+  uint16_t    mcc;
+  uint16_t    mnc;
 
   // String to code
 
@@ -47,8 +47,8 @@ int main(int argc, char **argv)
 
   mcc_str = "";
   mnc_str = "";
-  mcc = 0xF001;
-  mnc = 0xF001;
+  mcc     = 0xF001;
+  mnc     = 0xF001;
 
   assert(mcc_to_string(mcc, &mcc_str));
   assert(mcc_str.compare("001") == 0);

@@ -383,7 +383,7 @@ LIBLTE_ERROR_ENUM liblte_s1ap_unpack_protocolie_singlecontainer(uint8_t**       
  *******************************************************************************/
 // lb:1, ub:65535
 typedef struct {
-  uint32_t len;
+  uint32_t                                  len;
   LIBLTE_M2AP_PROTOCOLEXTENSIONFIELD_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_M2AP_PROTOCOLEXTENSIONCONTAINER_STRUCT;
 
@@ -532,7 +532,7 @@ typedef struct {
  *******************************************************************************/
 // lb:1, ub:256
 typedef struct {
-  uint32_t len;
+  uint32_t                                          len;
   LIBLTE_M2AP_CRITICALITYDIAGNOSTICS_IE_ITEM_STRUCT buffer[32]; // WARNING: Artificial limit to reduce memory footprint
 } LIBLTE_M2AP_CRITICALITYDIAGNOSTICS_IE_LIST_STRUCT;
 
@@ -628,7 +628,7 @@ LIBLTE_ERROR_ENUM liblte_m2ap_unpack_mbmsservicearea(uint8_t** ptr, LIBLTE_M2AP_
  * ProtocolIE MBMS-Service-Area-Id-List SEQUENCE
  *******************************************************************************/
 typedef struct {
-  uint8_t len;
+  uint8_t                              len;
   LIBLTE_M2AP_MBMS_SERVICE_AREA_STRUCT buffer[32]; // Waring: Artificial limit to reduce memory footprint
 } LIBLTE_M2AP_MBMS_SERVICE_AREA_ID_LIST_STRUCT;
 
@@ -664,9 +664,11 @@ typedef struct {
 } LIBLTE_M2AP_ENB_MBMS_CONFIGURATION_DATA_CONFIGUPDATE_ITEM_STRUCT;
 
 LIBLTE_ERROR_ENUM liblte_m2ap_pack_enbmbmsconfigurationdataconfigupdateitem(
-    LIBLTE_M2AP_ENB_MBMS_CONFIGURATION_DATA_CONFIGUPDATE_ITEM_STRUCT* ie, uint8_t** ptr);
+    LIBLTE_M2AP_ENB_MBMS_CONFIGURATION_DATA_CONFIGUPDATE_ITEM_STRUCT* ie,
+    uint8_t**                                                         ptr);
 LIBLTE_ERROR_ENUM liblte_m2ap_unpack_enbmbmsconfigurationdataconfigupdateitem(
-    uint8_t** ptr, LIBLTE_M2AP_ENB_MBMS_CONFIGURATION_DATA_CONFIGUPDATE_ITEM_STRUCT* ie);
+    uint8_t**                                                         ptr,
+    LIBLTE_M2AP_ENB_MBMS_CONFIGURATION_DATA_CONFIGUPDATE_ITEM_STRUCT* ie);
 
 /*******************************************************************************
  * ProtocolIE ENB-MBMS-M2AP-ID INTEGER
@@ -761,9 +763,11 @@ typedef struct {
 } LIBLTE_M2AP_MBMS_SERVICE_ASSOCIATEDLOGICALM2_CONNECTIONITEM_STRUCT;
 
 LIBLTE_ERROR_ENUM liblte_m2ap_pack_mbmsserviceassociatedlogicalm2connectionitem(
-    LIBLTE_M2AP_MBMS_SERVICE_ASSOCIATEDLOGICALM2_CONNECTIONITEM_STRUCT* ie, uint8_t** ptr);
+    LIBLTE_M2AP_MBMS_SERVICE_ASSOCIATEDLOGICALM2_CONNECTIONITEM_STRUCT* ie,
+    uint8_t**                                                           ptr);
 LIBLTE_ERROR_ENUM liblte_m2ap_unpack_mbmsserviceassociatedlogicalm2connectionitem(
-    uint8_t** ptr, LIBLTE_M2AP_MBMS_SERVICE_ASSOCIATEDLOGICALM2_CONNECTIONITEM_STRUCT* ie);
+    uint8_t**                                                           ptr,
+    LIBLTE_M2AP_MBMS_SERVICE_ASSOCIATEDLOGICALM2_CONNECTIONITEM_STRUCT* ie);
 
 /*******************************************************************************
  * ProtocolIE MBMS-Session-Id STATIC OCTET STRING
@@ -1001,9 +1005,11 @@ typedef struct {
 } LIBLTE_M2AP_MCCH_RELATED_BCCH_CONFIG_PER_MBSFN_AREA_ITEM_STRUCT;
 
 LIBLTE_ERROR_ENUM liblte_m2ap_pack_mcchrelatedbcchconfigpermbsfnareaitem(
-    LIBLTE_M2AP_MCCH_RELATED_BCCH_CONFIG_PER_MBSFN_AREA_ITEM_STRUCT* ie, uint8_t** ptr);
+    LIBLTE_M2AP_MCCH_RELATED_BCCH_CONFIG_PER_MBSFN_AREA_ITEM_STRUCT* ie,
+    uint8_t**                                                        ptr);
 LIBLTE_ERROR_ENUM liblte_m2ap_unpack_mcchrelatedbcchconfigpermbsfnareaitem(
-    uint8_t** ptr, LIBLTE_M2AP_MCCH_RELATED_BCCH_CONFIG_PER_MBSFN_AREA_ITEM_STRUCT* ie);
+    uint8_t**                                                        ptr,
+    LIBLTE_M2AP_MCCH_RELATED_BCCH_CONFIG_PER_MBSFN_AREA_ITEM_STRUCT* ie);
 
 /*******************************************************************************
  * ProtocolIE MCCHrelatedBCCH-ConfigPerMBSFNArea DYNAMIC SEQUENCE
@@ -1200,7 +1206,7 @@ LIBLTE_ERROR_ENUM liblte_m2ap_unpack_tnlinformation(uint8_t** ptr, LIBLTE_M2AP_T
  *******************************************************************************/
 // lb:1;ub:maxnofCells (256)
 typedef struct {
-  uint8_t len;
+  uint8_t                                             len;
   LIBLTE_M2AP_ENB_MBMS_CONFIGURATION_DATA_ITEM_STRUCT buffer[32]; // Waring: Artificial limit to reduce memory footprint
 } LIBLTE_M2AP_ENB_MBMS_CONFIGURATION_DATA_LIST_STRUCT;
 
@@ -1229,7 +1235,7 @@ LIBLTE_ERROR_ENUM liblte_m2ap_unpack_mbsfnareaconfigurationitem(uint8_t**       
  *******************************************************************************/
 // lb:1;ub:maxnofCells (256)
 typedef struct {
-  uint8_t len;
+  uint8_t                                          len;
   LIBLTE_M2AP_MBSFN_AREA_CONFIGURATION_ITEM_STRUCT buffer[32]; // Waring: Artificial limit to reduce memory footprint
 } LIBLTE_M2AP_MBSFN_AREA_CONFIGURATION_LIST_STRUCT;
 

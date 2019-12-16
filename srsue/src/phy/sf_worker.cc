@@ -19,9 +19,10 @@
  *
  */
 
-#include "srslte/srslte.h"
-#include "srsue/hdr/phy/sf_worker.h"
 #include "srslte/interfaces/ue_interfaces.h"
+#include "srslte/srslte.h"
+
+#include "srsue/hdr/phy/sf_worker.h"
 #include <string.h>
 #include <unistd.h>
 
@@ -60,10 +61,10 @@ sf_worker::sf_worker(uint32_t            max_prb,
                      srslte::log*        log_phy_lib_h_,
                      chest_feedback_itf* chest_loop_)
 {
-  phy                 = phy_;
-  log_h               = log_h_;
-  log_phy_lib_h       = log_phy_lib_h_;
-  chest_loop          = chest_loop_;
+  phy           = phy_;
+  log_h         = log_h_;
+  log_phy_lib_h = log_phy_lib_h_;
+  chest_loop    = chest_loop_;
 
   // ue_sync in phy.cc requires a buffer for 3 subframes
   for (uint32_t r = 0; r < phy->args->nof_carriers; r++) {
@@ -89,7 +90,7 @@ void sf_worker::reset()
 
 bool sf_worker::set_cell(uint32_t cc_idx, srslte_cell_t cell_)
 {
-  bool ret = false;
+  bool                        ret = false;
   std::lock_guard<std::mutex> lock(mutex);
 
   if (cc_idx < cc_workers.size()) {
@@ -258,7 +259,6 @@ void sf_worker::work_imp()
     }
   }
 
-
   // Call worker_end to transmit the signal
   phy->worker_end(tx_sem_id, tx_signal_ready, tx_signal_ptr, nof_samples, tx_time);
 
@@ -425,8 +425,8 @@ static float       sync_buffer[SYNC_PLOT_LEN];
 
 void* plot_thread_run(void* arg)
 {
-  auto              worker    = (srsue::sf_worker*)arg;
-  uint32_t          row_count = 0;
+  auto     worker    = (srsue::sf_worker*)arg;
+  uint32_t row_count = 0;
 
   sdrgui_init();
   for (uint32_t tx = 0; tx < worker->get_cell_nof_ports(); tx++) {
@@ -510,7 +510,7 @@ void init_plots(srsue::sf_worker* worker)
 
   pthread_attr_t     attr;
   struct sched_param param = {};
-  param.sched_priority = 0;
+  param.sched_priority     = 0;
   pthread_attr_init(&attr);
   pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
   pthread_attr_setschedpolicy(&attr, SCHED_OTHER);

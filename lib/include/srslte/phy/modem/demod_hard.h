@@ -33,22 +33,19 @@
 
 #include <stdint.h>
 
-#include "srslte/config.h"
 #include "modem_table.h"
+#include "srslte/config.h"
+
+typedef _Complex float cf_t;
 
 typedef struct SRSLTE_API {
   srslte_mod_t mod; /* In this implementation, mapping table is hard-coded */
-}srslte_demod_hard_t;
-
+} srslte_demod_hard_t;
 
 SRSLTE_API void srslte_demod_hard_init(srslte_demod_hard_t* q);
 
-SRSLTE_API void srslte_demod_hard_table_set(srslte_demod_hard_t* q, 
-                                            srslte_mod_t mod);
+SRSLTE_API void srslte_demod_hard_table_set(srslte_demod_hard_t* q, srslte_mod_t mod);
 
-SRSLTE_API int srslte_demod_hard_demodulate(srslte_demod_hard_t* q, 
-                                            cf_t* symbols, 
-                                            uint8_t *bits, 
-                                            uint32_t nsymbols);
+SRSLTE_API int srslte_demod_hard_demodulate(srslte_demod_hard_t* q, cf_t* symbols, uint8_t* bits, uint32_t nsymbols);
 
 #endif // SRSLTE_DEMOD_HARD_H

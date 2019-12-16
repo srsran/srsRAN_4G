@@ -22,7 +22,7 @@
 /******************************************************************************
  * File:        metrics_hub.h
  * Description: Centralizes metrics interfaces to allow different metrics clients
- *              to get metrics 
+ *              to get metrics
  *****************************************************************************/
 
 #ifndef SRSLTE_METRICS_HUB_H
@@ -35,22 +35,22 @@
 
 namespace srslte {
 
-template<typename metrics_t>
-class metrics_interface 
+template <typename metrics_t>
+class metrics_interface
 {
 public:
   virtual bool get_metrics(metrics_t* m) = 0;
-}; 
-
-template<typename metrics_t>
-class metrics_listener
-{
-public: 
-  virtual void set_metrics(metrics_t &m, const uint32_t period_usec) = 0;
-  virtual void stop() = 0;
 };
 
-template<typename metrics_t>
+template <typename metrics_t>
+class metrics_listener
+{
+public:
+  virtual void set_metrics(metrics_t& m, const uint32_t period_usec) = 0;
+  virtual void stop()                                                = 0;
+};
+
+template <typename metrics_t>
 class metrics_hub : public periodic_thread
 {
 public:
@@ -59,23 +59,22 @@ public:
   {
     m = m_;
     // Start with user-default priority
-    start_periodic(report_period_secs_*1e6, -2);
+    start_periodic(report_period_secs_ * 1e6, -2);
     return true;
   }
-  void stop() {
+  void stop()
+  {
     stop_thread();
     // stop all listeners
-    for (uint32_t i=0;i<listeners.size();i++) {
+    for (uint32_t i = 0; i < listeners.size(); i++) {
       listeners[i]->stop();
     }
     thread_cancel();
     wait_thread_finish();
   }
-  
-  void add_listener(metrics_listener<metrics_t> *listener) {
-    listeners.push_back(listener);
-  }
-  
+
+  void add_listener(metrics_listener<metrics_t>* listener) { listeners.push_back(listener); }
+
 private:
   void run_period()
   {
@@ -86,14 +85,14 @@ private:
     if (m) {
       metrics_t metric;
       m->get_metrics(&metric);
-      for (uint32_t i=0;i<listeners.size();i++) {
+      for (uint32_t i = 0; i < listeners.size(); i++) {
         listeners[i]->set_metrics(metric, period_usec.count());
       }
     }
     // store start of sleep period
     sleep_start = std::chrono::steady_clock::now();
   }
-  metrics_interface<metrics_t> *m;
+  metrics_interface<metrics_t>*             m;
   std::vector<metrics_listener<metrics_t>*> listeners;
   std::chrono::steady_clock::time_point     sleep_start;
 };

@@ -26,15 +26,13 @@
 #include <math.h>
 #include <string.h>
 
-#define CURRENT_FFTSIZE   srslte_symbol_sz(q->cell.nof_prb)
-#define CURRENT_SFLEN     SRSLTE_SF_LEN(CURRENT_FFTSIZE)
+#define CURRENT_FFTSIZE srslte_symbol_sz(q->cell.nof_prb)
+#define CURRENT_SFLEN SRSLTE_SF_LEN(CURRENT_FFTSIZE)
 
 #define CURRENT_SLOTLEN_RE SRSLTE_SLOT_LEN_RE(q->cell.nof_prb, q->cell.cp)
 #define CURRENT_SFLEN_RE SRSLTE_NOF_RE(q->cell)
 
-int srslte_enb_ul_init(srslte_enb_ul_t *q,
-                       cf_t *in_buffer,
-                       uint32_t max_prb)
+int srslte_enb_ul_init(srslte_enb_ul_t* q, cf_t* in_buffer, uint32_t max_prb)
 {
   int ret = SRSLTE_ERROR_INVALID_INPUTS;
 
@@ -90,7 +88,7 @@ clean_exit:
   return ret;
 }
 
-void srslte_enb_ul_free(srslte_enb_ul_t *q)
+void srslte_enb_ul_free(srslte_enb_ul_t* q)
 {
   if (q) {
 
@@ -148,7 +146,7 @@ int srslte_enb_ul_set_cell(srslte_enb_ul_t* q, srslte_cell_t cell, srslte_refsig
   return ret;
 }
 
-int srslte_enb_ul_add_rnti(srslte_enb_ul_t *q, uint16_t rnti)
+int srslte_enb_ul_add_rnti(srslte_enb_ul_t* q, uint16_t rnti)
 {
   if (srslte_pucch_set_rnti(&q->pucch, rnti)) {
     ERROR("Error setting PUCCH rnti\n");
@@ -167,7 +165,7 @@ void srslte_enb_ul_rem_rnti(srslte_enb_ul_t* q, uint16_t rnti)
   srslte_pusch_free_rnti(&q->pusch, rnti);
 }
 
-void srslte_enb_ul_fft(srslte_enb_ul_t *q)
+void srslte_enb_ul_fft(srslte_enb_ul_t* q)
 {
   srslte_ofdm_rx_sf(&q->fft);
 }

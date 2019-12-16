@@ -120,10 +120,7 @@ public:
 
   uint8_t* get_current_sdu_ptr() { return &buffer_tx->msg[buffer_tx->N_bytes]; }
 
-  void add_sdu(uint32_t sdu_sz)
-  {
-    buffer_tx->N_bytes += sdu_sz;
-  }
+  void add_sdu(uint32_t sdu_sz) { buffer_tx->N_bytes += sdu_sz; }
 
   // Section 6.1.2
   void parse_packet(uint8_t* ptr)
@@ -167,12 +164,12 @@ protected:
   /* Prepares the PDU for parsing or writing by setting the number of subheaders to 0 and the pdu length */
   virtual void init_(byte_buffer_t* buffer_tx_, uint32_t pdu_len_bytes, bool is_ulsch)
   {
-    nof_subheaders   = 0;
-    pdu_len          = pdu_len_bytes;
-    rem_len          = pdu_len;
-    pdu_is_ul        = is_ulsch;
-    buffer_tx        = buffer_tx_;
-    last_sdu_idx     = -1;
+    nof_subheaders = 0;
+    pdu_len        = pdu_len_bytes;
+    rem_len        = pdu_len;
+    pdu_is_ul      = is_ulsch;
+    buffer_tx      = buffer_tx_;
+    last_sdu_idx   = -1;
     reset();
     for (uint32_t i = 0; i < max_subheaders; i++) {
       subheaders[i].parent = this;
@@ -391,12 +388,12 @@ private:
   /* Prepares the PDU for parsing or writing by setting the number of subheaders to 0 and the pdu length */
   virtual void init_(byte_buffer_t* buffer_tx_, uint32_t pdu_len_bytes, bool is_ulsch)
   {
-    nof_subheaders   = 0;
-    pdu_len          = pdu_len_bytes;
-    rem_len          = pdu_len;
-    pdu_is_ul        = is_ulsch;
-    buffer_tx        = buffer_tx_;
-    last_sdu_idx     = -1;
+    nof_subheaders = 0;
+    pdu_len        = pdu_len_bytes;
+    rem_len        = pdu_len;
+    pdu_is_ul      = is_ulsch;
+    buffer_tx      = buffer_tx_;
+    last_sdu_idx   = -1;
     reset();
     for (uint32_t i = 0; i < max_subheaders; i++) {
       subheaders[i].set_type(MCH_SUBH_TYPE);

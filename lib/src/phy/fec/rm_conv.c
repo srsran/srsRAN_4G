@@ -19,9 +19,9 @@
  *
  */
 
-#include <string.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
+#include <string.h>
 
 #include "srslte/phy/fec/rm_conv.h"
 #include "srslte/phy/utils/debug.h"
@@ -29,11 +29,10 @@
 #define NCOLS 32
 #define NROWS_MAX NCOLS
 
-uint8_t RM_PERM_CC[NCOLS] = { 1, 17, 9, 25, 5, 21, 13, 29, 3, 19, 11, 27,
-    7, 23, 15, 31, 0, 16, 8, 24, 4, 20, 12, 28, 2, 18, 10, 26, 6, 22, 14, 30 };
-uint8_t RM_PERM_CC_INV[NCOLS] =
-    { 16, 0, 24, 8, 20, 4, 28, 12, 18, 2, 26, 10, 22, 6, 30, 14, 17, 1, 25, 9,
-        21, 5, 29, 13, 19, 3, 27, 11, 23, 7, 31, 15 };
+uint8_t RM_PERM_CC[NCOLS]     = {1, 17, 9, 25, 5, 21, 13, 29, 3, 19, 11, 27, 7, 23, 15, 31,
+                             0, 16, 8, 24, 4, 20, 12, 28, 2, 18, 10, 26, 6, 22, 14, 30};
+uint8_t RM_PERM_CC_INV[NCOLS] = {16, 0, 24, 8, 20, 4, 28, 12, 18, 2, 26, 10, 22, 6, 30, 14,
+                                 17, 1, 25, 9, 21, 5, 29, 13, 19, 3, 27, 11, 23, 7, 31, 15};
 
 /**
  * Rate matching for convolution encoder
@@ -41,19 +40,20 @@ uint8_t RM_PERM_CC_INV[NCOLS] =
  * @param[in] input Unpacked bit array. Size in_len
  * @param[output] output Unpacked bit array. Size out_len <= in_len
  */
-int srslte_rm_conv_tx(uint8_t *input, uint32_t in_len, uint8_t *output, uint32_t out_len) {
+int srslte_rm_conv_tx(uint8_t* input, uint32_t in_len, uint8_t* output, uint32_t out_len)
+{
 
   uint8_t tmp[3 * NCOLS * NROWS_MAX];
-  int nrows, ndummy, K_p;
+  int     nrows, ndummy, K_p;
 
   int i, j, k, s;
 
-  nrows = (uint32_t) (in_len / 3 - 1) / NCOLS + 1;
+  nrows = (uint32_t)(in_len / 3 - 1) / NCOLS + 1;
   if (nrows > NROWS_MAX) {
     ERROR("Input too large. Max input length is %d\n", 3 * NCOLS * NROWS_MAX);
     return -1;
   }
-  K_p = nrows * NCOLS;
+  K_p    = nrows * NCOLS;
   ndummy = K_p - in_len / 3;
   if (ndummy < 0) {
     ndummy = 0;
@@ -91,15 +91,16 @@ int srslte_rm_conv_tx(uint8_t *input, uint32_t in_len, uint8_t *output, uint32_t
 /* Undoes Convolutional Code Rate Matching.
  * 3GPP TS 36.212 v10.1.0 section 5.1.4.2
  */
-int srslte_rm_conv_rx(float *input, uint32_t in_len, float *output, uint32_t out_len) {
+int srslte_rm_conv_rx(float* input, uint32_t in_len, float* output, uint32_t out_len)
+{
 
   int nrows, ndummy, K_p;
   int i, j, k;
   int d_i, d_j;
 
   float tmp[3 * NCOLS * NROWS_MAX];
-  
-  nrows = (uint32_t) (out_len / 3 - 1) / NCOLS + 1;
+
+  nrows = (uint32_t)(out_len / 3 - 1) / NCOLS + 1;
   if (nrows > NROWS_MAX) {
     ERROR("Output too large. Max output length is %d\n", 3 * NCOLS * NROWS_MAX);
     return -1;
@@ -152,20 +153,21 @@ int srslte_rm_conv_rx(float *input, uint32_t in_len, float *output, uint32_t out
   return 0;
 }
 
-/************* FIX THIS. MOVE ALL PROCESSING TO INT16 AND HAVE ONLY 1 IMPLEMENTATION ******/ 
+/************* FIX THIS. MOVE ALL PROCESSING TO INT16 AND HAVE ONLY 1 IMPLEMENTATION ******/
 
 /* Undoes Convolutional Code Rate Matching.
  * 3GPP TS 36.212 v10.1.0 section 5.1.4.2
  */
-int srslte_rm_conv_rx_s(int16_t *input, uint32_t in_len, int16_t *output, uint32_t out_len) {
+int srslte_rm_conv_rx_s(int16_t* input, uint32_t in_len, int16_t* output, uint32_t out_len)
+{
 
   int nrows, ndummy, K_p;
   int i, j, k;
   int d_i, d_j;
 
   int16_t tmp[3 * NCOLS * NROWS_MAX];
-  
-  nrows = (uint32_t) (out_len / 3 - 1) / NCOLS + 1;
+
+  nrows = (uint32_t)(out_len / 3 - 1) / NCOLS + 1;
   if (nrows > NROWS_MAX) {
     ERROR("Output too large. Max output length is %d\n", 3 * NCOLS * NROWS_MAX);
     return -1;
@@ -217,4 +219,3 @@ int srslte_rm_conv_rx_s(int16_t *input, uint32_t in_len, int16_t *output, uint32
   }
   return 0;
 }
-

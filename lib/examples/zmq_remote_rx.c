@@ -19,37 +19,37 @@
  *
  */
 
-#include <stdio.h>
+#include <math.h>
 #include <signal.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <strings.h>
-#include <unistd.h>
-#include <math.h>
 #include <time.h>
+#include <unistd.h>
 #include <zmq.h>
 
 #include <stdbool.h>
 
-#include "srslte/srslte.h"
 #include "srslte/phy/rf/rf.h"
+#include "srslte/srslte.h"
 
-static bool keep_running = true;
-static uint32_t nof_rx_antennas = 1;
+static bool           keep_running    = true;
+static uint32_t       nof_rx_antennas = 1;
 static const uint32_t max_rx_antennas = 1;
 
 static void int_handler(int dummy);
-static void usage(char *prog);
-static void parse_args(int argc, char **argv);
-static int  init_radio(uint32_t *buf_len);
-static int  rx_radio(void **buffer, uint32_t buff_len);
+static void usage(char* prog);
+static void parse_args(int argc, char** argv);
+static int  init_radio(uint32_t* buf_len);
+static int  rx_radio(void** buffer, uint32_t buff_len);
 static void close_radio();
 
 /* Example function to initialize ZMQ socket */
-static void *zmq_ctx  = NULL;
-static void *zmq_sock = NULL;
-static const char *zmq_args = "tcp://*:5550";
-static int init_zmq()
+static void*       zmq_ctx  = NULL;
+static void*       zmq_sock = NULL;
+static const char* zmq_args = "tcp://*:5550";
+static int         init_zmq()
 {
   zmq_ctx = zmq_ctx_new();
 
@@ -69,7 +69,7 @@ static int init_zmq()
 }
 
 /* Example function to write samples to ZMQ socket */
-static int tx_zmq(void **buffer, uint32_t buffer_len)
+static int tx_zmq(void** buffer, uint32_t buffer_len)
 {
   // wait for request
   uint8_t dummy;
@@ -77,10 +77,11 @@ static int tx_zmq(void **buffer, uint32_t buffer_len)
   return zmq_send(zmq_sock, buffer[0], buffer_len, 0);
 }
 
-int main(int argc, char **argv) {
-  void *buffer[max_rx_antennas];
-  int n = 0;
-  uint32_t buflen = 0; // in samples
+int main(int argc, char** argv)
+{
+  void*    buffer[max_rx_antennas];
+  int      n           = 0;
+  uint32_t buflen      = 0; // in samples
   uint32_t sample_size = 8;
 
   // Sets signal handlers
@@ -105,9 +106,9 @@ int main(int argc, char **argv) {
   }
 
   // Initializes memory for input buffer
-  bzero(buffer, sizeof(void*)*max_rx_antennas);
+  bzero(buffer, sizeof(void*) * max_rx_antennas);
   for (int i = 0; i < nof_rx_antennas; i++) {
-    buffer[i] = malloc(buflen*sizeof(cf_t));
+    buffer[i] = malloc(buflen * sizeof(cf_t));
     if (!buffer[i]) {
       perror("malloc");
       exit(-1);
@@ -116,7 +117,7 @@ int main(int argc, char **argv) {
 
   printf("Streaming samples...\n");
   uint32_t print_cnt = 0;
-  while(keep_running) {
+  while (keep_running) {
     n = rx_radio(buffer, buflen);
     if (n < 0) {
       ERROR("Error receiving samples\n");
@@ -126,7 +127,7 @@ int main(int argc, char **argv) {
       printf("Received %d samples from radio\n", n);
     }
 
-    n = tx_zmq((void**) buffer, n*sample_size);
+    n = tx_zmq((void**)buffer, n * sample_size);
 
     if (n == -1) {
       print_cnt++;
@@ -156,11 +157,11 @@ int main(int argc, char **argv) {
 /* Example function to initialize the Radio frontend. In this case, we use srsLTE RF API to open a device,
  * which automatically picks UHD, bladeRF, limeSDR, etc.
  */
-static srslte_rf_t rf = {};
-static char *rf_args = "fastpath";
-static float rf_gain = 40.0, rf_freq = -1.0, rf_rate = 11.52e6;
-static uint32_t rf_recv_frame_size_ms = 1;
-static int init_radio(uint32_t *buffer_len)
+static srslte_rf_t rf      = {};
+static char*       rf_args = "fastpath";
+static float       rf_gain = 40.0, rf_freq = -1.0, rf_rate = 11.52e6;
+static uint32_t    rf_recv_frame_size_ms = 1;
+static int         init_radio(uint32_t* buffer_len)
 {
   // Uses srsLTE RF API to open a device, could use other code here
   printf("Opening RF device...\n");
@@ -178,17 +179,17 @@ static int init_radio(uint32_t *buffer_len)
   }
 
   if (buffer_len) {
-    *buffer_len = srate*rf_recv_frame_size_ms*1e-3;
+    *buffer_len = srate * rf_recv_frame_size_ms * 1e-3;
   }
 
-  printf("Set RX rate: %.2f MHz\n", srate*1e-6);
+  printf("Set RX rate: %.2f MHz\n", srate * 1e-6);
   srslte_rf_start_rx_stream(&rf, false);
   return 0;
 }
 
 /* Example implementation to receive from Radio frontend. In this case we use srsLTE
  */
-static int rx_radio(void **buffer, uint32_t buf_len)
+static int rx_radio(void** buffer, uint32_t buf_len)
 {
   return srslte_rf_recv_with_time_multi(&rf, buffer, buf_len, true, NULL, NULL);
 }
@@ -198,11 +199,13 @@ static void close_radio()
   srslte_rf_close(&rf);
 }
 
-static void int_handler(int dummy) {
+static void int_handler(int dummy)
+{
   keep_running = false;
 }
 
-static void usage(char *prog) {
+static void usage(char* prog)
+{
   printf("Usage: %s [agrAzv] -f rx_frequency_hz\n", prog);
   printf("\t-a RF args [Default %s]\n", rf_args);
   printf("\t-g RF Gain [Default %.2f dB]\n", rf_gain);
@@ -213,7 +216,8 @@ static void usage(char *prog) {
   printf("\t-v srslte_verbose\n");
 }
 
-static void parse_args(int argc, char **argv) {
+static void parse_args(int argc, char** argv)
+{
   int opt;
   while ((opt = getopt(argc, argv, "agrfvmzA")) != -1) {
     switch (opt) {
@@ -256,4 +260,3 @@ static void parse_args(int argc, char **argv) {
     exit(-1);
   }
 }
-

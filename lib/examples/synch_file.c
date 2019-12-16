@@ -22,21 +22,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
-#include <unistd.h>
 #include <sys/time.h>
+#include <unistd.h>
 
 #include "srslte/srslte.h"
 
-char *input_file_name;
-char *output_file_name="abs_corr.txt";
-int nof_frames=100, frame_length=9600, symbol_sz=128;
-float corr_peak_threshold=25.0;
-int out_N_id_2 = 0, force_N_id_2=-1;
+char* input_file_name;
+char* output_file_name = "abs_corr.txt";
+int   nof_frames = 100, frame_length = 9600, symbol_sz = 128;
+float corr_peak_threshold = 25.0;
+int   out_N_id_2 = 0, force_N_id_2 = -1;
 
-#define CFO_AUTO  -9999.0
+#define CFO_AUTO -9999.0
 float force_cfo = CFO_AUTO;
 
-void usage(char *prog) {
+void usage(char* prog)
+{
   printf("Usage: %s [olntsNfcv] -i input_file\n", prog);
   printf("\t-o output_file [Default %s]\n", output_file_name);
   printf("\t-l frame_length [Default %d]\n", frame_length);
@@ -49,43 +50,44 @@ void usage(char *prog) {
   printf("\t-v srslte_verbose\n");
 }
 
-void parse_args(int argc, char **argv) {
+void parse_args(int argc, char** argv)
+{
   int opt;
   while ((opt = getopt(argc, argv, "ionltsNfcv")) != -1) {
-    switch(opt) {
-    case 'i':
-      input_file_name = argv[optind];
-      break;
-    case 'o':
-      output_file_name = argv[optind];
-      break;
-    case 'n':
-      nof_frames = (int)strtol(argv[optind], NULL, 10);
-      break;
-    case 'l':
-      frame_length = (int)strtol(argv[optind], NULL, 10);
-      break;
-    case 't':
-      corr_peak_threshold = strtof(argv[optind], NULL);
-      break;
-    case 's':
-      symbol_sz = (int)strtol(argv[optind], NULL, 10);
-      break;
-    case 'N':
-      out_N_id_2 = (int)strtol(argv[optind], NULL, 10);
-      break;
-    case 'f':
-      force_N_id_2 = (int)strtol(argv[optind], NULL, 10);
-      break;
-    case 'c':
-      force_cfo = strtof(argv[optind], NULL);
-      break;
-    case 'v':
-      srslte_verbose++;
-      break;
-    default:
-      usage(argv[0]);
-      exit(-1);
+    switch (opt) {
+      case 'i':
+        input_file_name = argv[optind];
+        break;
+      case 'o':
+        output_file_name = argv[optind];
+        break;
+      case 'n':
+        nof_frames = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 'l':
+        frame_length = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 't':
+        corr_peak_threshold = strtof(argv[optind], NULL);
+        break;
+      case 's':
+        symbol_sz = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 'N':
+        out_N_id_2 = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 'f':
+        force_N_id_2 = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 'c':
+        force_cfo = strtof(argv[optind], NULL);
+        break;
+      case 'v':
+        srslte_verbose++;
+        break;
+      default:
+        usage(argv[0]);
+        exit(-1);
     }
   }
   if (!input_file_name) {
@@ -94,33 +96,35 @@ void parse_args(int argc, char **argv) {
   }
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv)
+{
   srslte_filesource_t fsrc;
-  srslte_filesink_t fsink;
-  srslte_pss_t pss[3]; // One for each N_id_2
-  srslte_sss_t sss[3]; // One for each N_id_2
-  srslte_cfo_t cfocorr;
-  int peak_pos[3];
-  float *cfo;
-  float peak_value[3];
-  int frame_cnt;
-  cf_t *input;
-  uint32_t m0, m1;
-  float m0_value, m1_value;
-  uint32_t N_id_2;
-  int sss_idx;
-  struct timeval tdata[3];
-  int *exec_time;
+  srslte_filesink_t   fsink;
+  srslte_pss_t        pss[3]; // One for each N_id_2
+  srslte_sss_t        sss[3]; // One for each N_id_2
+  srslte_cfo_t        cfocorr;
+  int                 peak_pos[3];
+  float*              cfo;
+  float               peak_value[3];
+  int                 frame_cnt;
+  cf_t*               input;
+  uint32_t            m0, m1;
+  float               m0_value, m1_value;
+  uint32_t            N_id_2;
+  int                 sss_idx;
+  struct timeval      tdata[3];
+  int*                exec_time;
 
   if (argc < 3) {
     usage(argv[0]);
     exit(-1);
   }
 
-  parse_args(argc,argv);
+  parse_args(argc, argv);
 
   gettimeofday(&tdata[1], NULL);
-  printf("Initializing...");fflush(stdout);
+  printf("Initializing...");
+  fflush(stdout);
 
   if (srslte_filesource_init(&fsrc, input_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
     ERROR("Error opening file %s\n", input_file_name);
@@ -131,17 +135,17 @@ int main(int argc, char **argv) {
     exit(-1);
   }
 
-  input = malloc(frame_length*sizeof(cf_t));
+  input = malloc(frame_length * sizeof(cf_t));
   if (!input) {
     perror("malloc");
     exit(-1);
   }
-  cfo = malloc(nof_frames*sizeof(float));
+  cfo = malloc(nof_frames * sizeof(float));
   if (!cfo) {
     perror("malloc");
     exit(-1);
   }
-  exec_time = malloc(nof_frames*sizeof(int));
+  exec_time = malloc(nof_frames * sizeof(int));
   if (!exec_time) {
     perror("malloc");
     exit(-1);
@@ -157,7 +161,7 @@ int main(int argc, char **argv) {
    * b) We create 1 pss object which scans for each N_id_2 one after another.
    * a) requries more memory but has less latency and is paralellizable.
    */
-  for (N_id_2=0;N_id_2<3;N_id_2++) {
+  for (N_id_2 = 0; N_id_2 < 3; N_id_2++) {
     if (srslte_pss_init_fft(&pss[N_id_2], frame_length, symbol_sz)) {
       ERROR("Error initializing PSS object\n");
       exit(-1);
@@ -177,35 +181,34 @@ int main(int argc, char **argv) {
   }
   gettimeofday(&tdata[2], NULL);
   get_time_interval(tdata);
-  printf("done in %ld s %ld ms\n", tdata[0].tv_sec, tdata[0].tv_usec/1000);
+  printf("done in %ld s %ld ms\n", tdata[0].tv_sec, tdata[0].tv_usec / 1000);
 
   printf("\n\tFr.Cnt\tN_id_2\tN_id_1\tSubf\tPSS Peak/Avg\tIdx\tm0\tm1\tCFO\n");
   printf("\t===============================================================================\n");
 
   /* read all file or nof_frames */
   frame_cnt = 0;
-  while (frame_length == srslte_filesource_read(&fsrc, input, frame_length)
-      && frame_cnt < nof_frames) {
+  while (frame_length == srslte_filesource_read(&fsrc, input, frame_length) && frame_cnt < nof_frames) {
 
     gettimeofday(&tdata[1], NULL);
     if (force_cfo != CFO_AUTO) {
-      srslte_cfo_correct(&cfocorr, input, input, force_cfo/128);
+      srslte_cfo_correct(&cfocorr, input, input, force_cfo / 128);
     }
 
     if (force_N_id_2 != -1) {
-      N_id_2 = force_N_id_2;
+      N_id_2           = force_N_id_2;
       peak_pos[N_id_2] = srslte_pss_find_pss(&pss[N_id_2], input, &peak_value[N_id_2]);
     } else {
-      for (N_id_2=0;N_id_2<3;N_id_2++) {
+      for (N_id_2 = 0; N_id_2 < 3; N_id_2++) {
         peak_pos[N_id_2] = srslte_pss_find_pss(&pss[N_id_2], input, &peak_value[N_id_2]);
       }
-      float max_value=-99999;
-      N_id_2=-1;
+      float max_value = -99999;
+      N_id_2          = -1;
       int i;
-      for (i=0;i<3;i++) {
+      for (i = 0; i < 3; i++) {
         if (peak_value[i] > max_value) {
           max_value = peak_value[i];
-          N_id_2 = i;
+          N_id_2    = i;
         }
       }
     }
@@ -213,12 +216,11 @@ int main(int argc, char **argv) {
     /* If peak detected */
     if (peak_value[N_id_2] > corr_peak_threshold) {
 
-      sss_idx = peak_pos[N_id_2]-2*(symbol_sz+SRSLTE_CP_LEN(symbol_sz,SRSLTE_CP_NORM_LEN));
+      sss_idx = peak_pos[N_id_2] - 2 * (symbol_sz + SRSLTE_CP_LEN(symbol_sz, SRSLTE_CP_NORM_LEN));
       if (sss_idx >= 0) {
-        srslte_sss_m0m1_diff(&sss[N_id_2], &input[sss_idx],
-            &m0, &m0_value, &m1, &m1_value);
+        srslte_sss_m0m1_diff(&sss[N_id_2], &input[sss_idx], &m0, &m0_value, &m1, &m1_value);
 
-        cfo[frame_cnt] = srslte_pss_cfo_compute(&pss[N_id_2], &input[peak_pos[N_id_2]-128]);
+        cfo[frame_cnt] = srslte_pss_cfo_compute(&pss[N_id_2], &input[peak_pos[N_id_2] - 128]);
         printf("\t%d\t%d\t%d\t%d\t%.3f\t\t%3d\t%d\t%d\t%.3f\n",
                frame_cnt,
                N_id_2,
@@ -237,23 +239,25 @@ int main(int argc, char **argv) {
     frame_cnt++;
   }
 
-  int i;
-  float avg_time=0;
-  for (i=0;i<frame_cnt;i++) {
-    avg_time += (float) exec_time[i];
+  int   i;
+  float avg_time = 0;
+  for (i = 0; i < frame_cnt; i++) {
+    avg_time += (float)exec_time[i];
   }
   avg_time /= frame_cnt;
   printf("\n");
   printf("Average exec time: %.3f ms / frame. %.3f Msamp/s (%.3f\%% CPU)\n",
-      avg_time / 1000, frame_length / avg_time, 100 * avg_time / 5000 * (9600 / (float) frame_length ));
+         avg_time / 1000,
+         frame_length / avg_time,
+         100 * avg_time / 5000 * (9600 / (float)frame_length));
 
-  float cfo_mean=0;
-  for (i=0;i<frame_cnt;i++) {
+  float cfo_mean = 0;
+  for (i = 0; i < frame_cnt; i++) {
     cfo_mean += cfo[i] / frame_cnt * (9600 / frame_length);
   }
   printf("Average CFO: %.3f\n", cfo_mean);
 
-  for (N_id_2=0;N_id_2<3;N_id_2++) {
+  for (N_id_2 = 0; N_id_2 < 3; N_id_2++) {
     srslte_pss_free(&pss[N_id_2]);
     srslte_sss_free(&sss[N_id_2]);
   }

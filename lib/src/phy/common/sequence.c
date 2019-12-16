@@ -19,10 +19,10 @@
  *
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <strings.h>
 #include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <strings.h>
 
 #include "srslte/phy/common/sequence.h"
 #include "srslte/phy/utils/bit.h"
@@ -41,11 +41,12 @@
  * Section 7.2
  */
 #ifdef static_memory
-static uint8_t x1[Nc+MAX_SEQ_LEN+31];
-static uint8_t x2[Nc+MAX_SEQ_LEN+31];
+static uint8_t x1[Nc + MAX_SEQ_LEN + 31];
+static uint8_t x2[Nc + MAX_SEQ_LEN + 31];
 
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-int srslte_sequence_set_LTE_pr(srslte_sequence_t *q, uint32_t len, uint32_t seed) {
+int                    srslte_sequence_set_LTE_pr(srslte_sequence_t* q, uint32_t len, uint32_t seed)
+{
   int n;
 
   if (len > q->max_len) {
@@ -66,7 +67,7 @@ int srslte_sequence_set_LTE_pr(srslte_sequence_t *q, uint32_t len, uint32_t seed
 
   for (n = 0; n < Nc + len; n++) {
     x1[n + 31] = (x1[n + 3] + x1[n]) & 0x1;
-    x2[n + 31] = (x2[n + 3] + x2[n + 2] + x2[n+1] + x2[n]) & 0x1;
+    x2[n + 31] = (x2[n + 3] + x2[n + 2] + x2[n + 1] + x2[n]) & 0x1;
   }
 
   for (n = 0; n < len; n++) {
@@ -78,8 +79,9 @@ int srslte_sequence_set_LTE_pr(srslte_sequence_t *q, uint32_t len, uint32_t seed
 }
 
 #else
-int srslte_sequence_set_LTE_pr(srslte_sequence_t *q, uint32_t len, uint32_t seed) {
-  int n;
+int srslte_sequence_set_LTE_pr(srslte_sequence_t* q, uint32_t len, uint32_t seed)
+{
+  int       n;
   uint32_t *x1, *x2;
 
   if (len > q->max_len) {
@@ -106,7 +108,7 @@ int srslte_sequence_set_LTE_pr(srslte_sequence_t *q, uint32_t len, uint32_t seed
 
   for (n = 0; n < Nc + len; n++) {
     x1[n + 31] = (x1[n + 3] + x1[n]) & 0x1;
-    x2[n + 31] = (x2[n + 3] + x2[n + 2] + +x2[n+1] + x2[n]) & 0x1;
+    x2[n + 31] = (x2[n + 3] + x2[n + 2] + +x2[n + 1] + x2[n]) & 0x1;
   }
 
   for (n = 0; n < len; n++) {
@@ -121,22 +123,25 @@ int srslte_sequence_set_LTE_pr(srslte_sequence_t *q, uint32_t len, uint32_t seed
 
 #endif
 
-int srslte_sequence_LTE_pr(srslte_sequence_t *q, uint32_t len, uint32_t seed) {
+int srslte_sequence_LTE_pr(srslte_sequence_t* q, uint32_t len, uint32_t seed)
+{
   if (srslte_sequence_init(q, len)) {
     return SRSLTE_ERROR;
   }
   q->cur_len = len;
   srslte_sequence_set_LTE_pr(q, len, seed);
   srslte_bit_pack_vector(q->c, q->c_bytes, len);
-  for (int i=0;i<len;i++) {
-    q->c_float[i] = (1-2*q->c[i]);
-    q->c_short[i] = (int16_t) q->c_float[i];
-    q->c_char[i]  = (int8_t) q->c_float[i];;
+  for (int i = 0; i < len; i++) {
+    q->c_float[i] = (1 - 2 * q->c[i]);
+    q->c_short[i] = (int16_t)q->c_float[i];
+    q->c_char[i]  = (int8_t)q->c_float[i];
+    ;
   }
   return SRSLTE_SUCCESS;
 }
 
-int srslte_sequence_init(srslte_sequence_t *q, uint32_t len) {
+int srslte_sequence_init(srslte_sequence_t* q, uint32_t len)
+{
   if (q->c && len > q->max_len) {
     srslte_sequence_free(q);
   }
@@ -145,7 +150,7 @@ int srslte_sequence_init(srslte_sequence_t *q, uint32_t len) {
     if (!q->c) {
       return SRSLTE_ERROR;
     }
-    q->c_bytes = srslte_vec_malloc(len * sizeof(uint8_t)/8+8);
+    q->c_bytes = srslte_vec_malloc(len * sizeof(uint8_t) / 8 + 8);
     if (!q->c_bytes) {
       return SRSLTE_ERROR;
     }
@@ -166,7 +171,8 @@ int srslte_sequence_init(srslte_sequence_t *q, uint32_t len) {
   return SRSLTE_SUCCESS;
 }
 
-void srslte_sequence_free(srslte_sequence_t *q) {
+void srslte_sequence_free(srslte_sequence_t* q)
+{
   if (q->c) {
     free(q->c);
   }
@@ -184,5 +190,3 @@ void srslte_sequence_free(srslte_sequence_t *q) {
   }
   bzero(q, sizeof(srslte_sequence_t));
 }
-
-

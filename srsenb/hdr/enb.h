@@ -28,9 +28,9 @@
 #ifndef SRSENB_ENB_H
 #define SRSENB_ENB_H
 
+#include <pthread.h>
 #include <stdarg.h>
 #include <string>
-#include <pthread.h>
 
 #include "phy/phy.h"
 #include "srsenb/hdr/stack/rrc/rrc.h"
@@ -59,13 +59,13 @@ namespace srsenb {
 *******************************************************************************/
 
 struct enb_args_t {
-  uint32_t    dl_earfcn;
-  uint32_t    ul_earfcn;
-  uint32_t    n_prb;
-  uint32_t    pci;
-  uint32_t    nof_ports;
-  uint32_t    transmission_mode;
-  float       p_a;
+  uint32_t dl_earfcn;
+  uint32_t ul_earfcn;
+  uint32_t n_prb;
+  uint32_t pci;
+  uint32_t nof_ports;
+  uint32_t transmission_mode;
+  float    p_a;
 };
 
 struct enb_files_t {
@@ -115,7 +115,7 @@ struct all_args_t {
 class enb : public enb_metrics_interface
 {
 public:
-  static enb *get_instance(void);
+  static enb* get_instance(void);
 
   static void cleanup(void);
 
@@ -137,7 +137,7 @@ public:
 private:
   static enb* instance;
 
-  const static int ENB_POOL_SIZE = 1024*10;
+  const static int ENB_POOL_SIZE = 1024 * 10;
 
   enb();
 
@@ -155,7 +155,7 @@ private:
   srslte::logger*       logger = nullptr;
   srslte::log_filter    log; // Own logger for eNB
 
-  srslte::log_filter  pool_log;
+  srslte::log_filter pool_log;
 
   srslte::byte_buffer_pool* pool = nullptr;
 
@@ -178,4 +178,3 @@ private:
 } // namespace srsenb
 
 #endif // SRSENB_ENB_H
-  

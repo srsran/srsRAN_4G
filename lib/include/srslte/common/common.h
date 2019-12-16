@@ -46,14 +46,14 @@
 #define MSG3_DELAY_MS 2 // Delay added to TX_DELAY
 
 #define TTI_SUB(a, b) ((((a) + 10240) - (b)) % 10240)
-#define TTI_ADD(a, b)  (((a) + (b)) % 10240)
+#define TTI_ADD(a, b) (((a) + (b)) % 10240)
 
 #define TTI_TX(tti) TTI_ADD(tti, TX_DELAY)
 
 // Use only in FDD mode!!
 #define FDD_HARQ_DELAY_MS 4
-#define TTI_RX(tti)      (TTI_SUB(tti, FDD_HARQ_DELAY_MS))
-#define TTI_RX_ACK(tti)  (TTI_ADD(tti, FDD_HARQ_DELAY_MS + TX_DELAY))
+#define TTI_RX(tti) (TTI_SUB(tti, FDD_HARQ_DELAY_MS))
+#define TTI_RX_ACK(tti) (TTI_ADD(tti, FDD_HARQ_DELAY_MS + TX_DELAY))
 
 #define TTIMOD_SZ 20
 #define TTIMOD(tti) (tti % TTIMOD_SZ)

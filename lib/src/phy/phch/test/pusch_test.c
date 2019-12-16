@@ -31,11 +31,11 @@
 #include "srslte/srslte.h"
 
 static srslte_cell_t cell = {
-    .nof_prb = 6,                         // nof_prb
-    .nof_ports = 1,                       // nof_ports
-    .id = 0,                              // cell_id
-    .cp = SRSLTE_CP_NORM,                 // cyclic prefix
-    .phich_length = SRSLTE_PHICH_NORM,    // PHICH length
+    .nof_prb         = 6,                 // nof_prb
+    .nof_ports       = 1,                 // nof_ports
+    .id              = 0,                 // cell_id
+    .cp              = SRSLTE_CP_NORM,    // cyclic prefix
+    .phich_length    = SRSLTE_PHICH_NORM, // PHICH length
     .phich_resources = SRSLTE_PHICH_R_1_6 // PHICH resources
 };
 
@@ -48,16 +48,17 @@ static srslte_uci_offset_cfg_t uci_cfg = {
 static srslte_uci_data_t uci_data_tx = {};
 
 uint32_t     L_rb          = 2;
-uint32_t tbs = 0;
-uint32_t subframe = 10;
-srslte_mod_t modulation = SRSLTE_MOD_QPSK;
-uint32_t rv_idx = 0;
-int freq_hop = -1;
-int riv = -1;
-uint32_t mcs_idx = 0;
-bool enable_64_qam = false;
+uint32_t     tbs           = 0;
+uint32_t     subframe      = 10;
+srslte_mod_t modulation    = SRSLTE_MOD_QPSK;
+uint32_t     rv_idx        = 0;
+int          freq_hop      = -1;
+int          riv           = -1;
+uint32_t     mcs_idx       = 0;
+bool         enable_64_qam = false;
 
-void usage(char *prog) {
+void usage(char* prog)
+{
   printf("Usage: %s [csrnfvmtF] \n", prog);
   printf("\n\tCell specific parameters:\n");
   printf("\t\t-n number of PRB [Default %d]\n", cell.nof_prb);
@@ -81,25 +82,26 @@ void usage(char *prog) {
   printf("\t\t-p uci_ack [Default none]\n");
 
   printf("\n\tOther parameters:\n");
-  printf("\t\t-p enable_64qam [Default %s]\n", enable_64_qam ? "enabled":"disabled");
+  printf("\t\t-p enable_64qam [Default %s]\n", enable_64_qam ? "enabled" : "disabled");
   printf("\t\t-s number of subframes [Default %d]\n", subframe);
   printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
-void parse_extensive_param(char *param, char *arg) {
+void parse_extensive_param(char* param, char* arg)
+{
   int ext_code = SRSLTE_SUCCESS;
   if (!strcmp(param, "I_offset_cqi")) {
-    uci_cfg.I_offset_cqi = (uint32_t) strtol(arg, NULL, 10);
+    uci_cfg.I_offset_cqi = (uint32_t)strtol(arg, NULL, 10);
     if (uci_cfg.I_offset_cqi > 15) {
       ext_code = SRSLTE_ERROR;
     }
   } else if (!strcmp(param, "I_offset_ri")) {
-    uci_cfg.I_offset_ri = (uint32_t) strtol(arg, NULL, 10);
+    uci_cfg.I_offset_ri = (uint32_t)strtol(arg, NULL, 10);
     if (uci_cfg.I_offset_ri > 15) {
       ext_code = SRSLTE_ERROR;
     }
   } else if (!strcmp(param, "I_offset_ack")) {
-    uci_cfg.I_offset_ack = (uint32_t) strtol(arg, NULL, 10);
+    uci_cfg.I_offset_ack = (uint32_t)strtol(arg, NULL, 10);
     if (uci_cfg.I_offset_ack > 15) {
       ext_code = SRSLTE_ERROR;
     }
@@ -134,33 +136,34 @@ void parse_extensive_param(char *param, char *arg) {
   }
 }
 
-void parse_args(int argc, char **argv) {
+void parse_args(int argc, char** argv)
+{
   int opt;
   while ((opt = getopt(argc, argv, "msLFrncpvf")) != -1) {
     switch (opt) {
       case 'm':
-        mcs_idx = (uint32_t) strtol(argv[optind], NULL, 10);
+        mcs_idx = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 's':
-        subframe = (uint32_t) strtol(argv[optind], NULL, 10);
+        subframe = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'R':
-        riv = (int) strtol(argv[optind], NULL, 10);
+        riv = (int)strtol(argv[optind], NULL, 10);
         break;
       case 'L':
         L_rb = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'F':
-        freq_hop = (int) strtol(argv[optind], NULL, 10);
+        freq_hop = (int)strtol(argv[optind], NULL, 10);
         break;
       case 'r':
-        rv_idx = (uint32_t) strtol(argv[optind], NULL, 10);
+        rv_idx = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'n':
-        cell.nof_prb = (uint32_t) strtol(argv[optind], NULL, 10);
+        cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'c':
-        cell.id = (uint32_t) strtol(argv[optind], NULL, 10);
+        cell.id = (uint32_t)strtol(argv[optind], NULL, 10);
         break;
       case 'p':
         parse_extensive_param(argv[optind], argv[optind + 1]);
@@ -180,14 +183,14 @@ int main(int argc, char** argv)
 {
   srslte_random_t        random_h = srslte_random_init(0);
   srslte_chest_ul_res_t  chest_res;
-  srslte_pusch_t pusch_tx;
-  srslte_pusch_t pusch_rx;
-  uint8_t *data = NULL;
-  uint8_t *data_rx = NULL;
-  cf_t *sf_symbols = NULL;
-  int ret = -1;
-  struct timeval t[3];
-  srslte_pusch_cfg_t cfg;
+  srslte_pusch_t         pusch_tx;
+  srslte_pusch_t         pusch_rx;
+  uint8_t*               data       = NULL;
+  uint8_t*               data_rx    = NULL;
+  cf_t*                  sf_symbols = NULL;
+  int                    ret        = -1;
+  struct timeval         t[3];
+  srslte_pusch_cfg_t     cfg;
   srslte_softbuffer_tx_t softbuffer_tx;
   srslte_softbuffer_rx_t softbuffer_rx;
 
@@ -204,7 +207,7 @@ int main(int argc, char** argv)
 
   dci.freq_hop_fl = freq_hop;
   if (riv >= 0) {
-    dci.type2_alloc.riv = (uint32_t) riv;
+    dci.type2_alloc.riv = (uint32_t)riv;
   } else {
     dci.type2_alloc.riv = srslte_ra_type2_to_riv(L_rb, 0, cell.nof_prb);
   }
@@ -248,7 +251,7 @@ int main(int argc, char** argv)
   srslte_pusch_set_rnti(&pusch_rx, rnti);
 
   uint32_t nof_re = SRSLTE_NRE * cell.nof_prb * 2 * SRSLTE_CP_NSYMB(cell.cp);
-  sf_symbols = srslte_vec_malloc(sizeof(cf_t) * nof_re);
+  sf_symbols      = srslte_vec_malloc(sizeof(cf_t) * nof_re);
   if (!sf_symbols) {
     perror("malloc");
     exit(-1);
@@ -386,15 +389,15 @@ int main(int argc, char** argv)
            (float)cfg.grant.tb.tbs / t[0].tv_usec);
   }
 
-  quit:
-    srslte_chest_ul_res_free(&chest_res);
-    srslte_pusch_free(&pusch_tx);
-    srslte_pusch_free(&pusch_rx);
-    srslte_softbuffer_tx_free(&softbuffer_tx);
-    srslte_softbuffer_rx_free(&softbuffer_rx);
-    srslte_random_free(random_h);
-    if (sf_symbols) {
-      free(sf_symbols);
+quit:
+  srslte_chest_ul_res_free(&chest_res);
+  srslte_pusch_free(&pusch_tx);
+  srslte_pusch_free(&pusch_rx);
+  srslte_softbuffer_tx_free(&softbuffer_tx);
+  srslte_softbuffer_rx_free(&softbuffer_rx);
+  srslte_random_free(random_h);
+  if (sf_symbols) {
+    free(sf_symbols);
   }
   if (data) {
     free(data);

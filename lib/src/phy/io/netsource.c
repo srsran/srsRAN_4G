@@ -19,95 +19,98 @@
  *
  */
 
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
-#include <unistd.h>
+#include <errno.h>
 #include <fcntl.h>
+#include <netinet/in.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
-#include <errno.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
 #include "srslte/phy/io/netsource.h"
 
-int srslte_netsource_init(srslte_netsource_t *q, const char *address, uint16_t port, srslte_netsource_type_t type) {
+int srslte_netsource_init(srslte_netsource_t* q, const char* address, uint16_t port, srslte_netsource_type_t type)
+{
   bzero(q, sizeof(srslte_netsource_t));
 
-  q->sockfd=socket(AF_INET,type==SRSLTE_NETSOURCE_TCP?SOCK_STREAM:SOCK_DGRAM,0);
+  q->sockfd = socket(AF_INET, type == SRSLTE_NETSOURCE_TCP ? SOCK_STREAM : SOCK_DGRAM, 0);
 
   if (q->sockfd < 0) {
     perror("socket");
-    return -1; 
+    return -1;
   }
 
-  // Make sockets reusable 
+  // Make sockets reusable
   int enable = 1;
-#if defined (SO_REUSEADDR)
+#if defined(SO_REUSEADDR)
   if (setsockopt(q->sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
-      perror("setsockopt(SO_REUSEADDR) failed");
+    perror("setsockopt(SO_REUSEADDR) failed");
 #endif
-#if defined (SO_REUSEPORT)
+#if defined(SO_REUSEPORT)
   if (setsockopt(q->sockfd, SOL_SOCKET, SO_REUSEPORT, &enable, sizeof(int)) < 0)
-      perror("setsockopt(SO_REUSEPORT) failed");
+    perror("setsockopt(SO_REUSEPORT) failed");
 #endif
-  q->type = type; 
-  
-  q->servaddr.sin_family = AF_INET;
-  q->servaddr.sin_addr.s_addr=inet_addr(address);
-  q->servaddr.sin_port=htons(port);
-  
-  if (bind(q->sockfd,(struct sockaddr *)&q->servaddr,sizeof(struct sockaddr_in))) {
+  q->type = type;
+
+  q->servaddr.sin_family      = AF_INET;
+  q->servaddr.sin_addr.s_addr = inet_addr(address);
+  q->servaddr.sin_port        = htons(port);
+
+  if (bind(q->sockfd, (struct sockaddr*)&q->servaddr, sizeof(struct sockaddr_in))) {
     perror("bind");
-    return -1; 
+    return -1;
   }
-  q->connfd = 0; 
+  q->connfd = 0;
 
   return 0;
 }
 
-void srslte_netsource_free(srslte_netsource_t *q) {
+void srslte_netsource_free(srslte_netsource_t* q)
+{
   if (q->sockfd) {
     close(q->sockfd);
   }
   bzero(q, sizeof(srslte_netsource_t));
 }
 
-int srslte_netsource_read(srslte_netsource_t *q, void *buffer, int nbytes) {
+int srslte_netsource_read(srslte_netsource_t* q, void* buffer, int nbytes)
+{
   if (q->type == SRSLTE_NETSOURCE_UDP) {
     int n = recv(q->sockfd, buffer, nbytes, 0);
-    
+
     if (n == -1) {
       if (errno == EAGAIN) {
-        return 0; 
+        return 0;
       } else {
-        return -1; 
+        return -1;
       }
     } else {
-      return n; 
-    }    
+      return n;
+    }
   } else {
     if (q->connfd == 0) {
       printf("Waiting for TCP connection\n");
       listen(q->sockfd, 1);
       socklen_t clilen = sizeof(q->cliaddr);
-      q->connfd = accept(q->sockfd, (struct sockaddr *)&q->cliaddr, &clilen);
+      q->connfd        = accept(q->sockfd, (struct sockaddr*)&q->cliaddr, &clilen);
       if (q->connfd < 0) {
-          perror("accept");
-          return -1;
+        perror("accept");
+        return -1;
       }
     }
     int n = read(q->connfd, buffer, nbytes);
     if (n == 0) {
       printf("Connection closed\n");
       close(q->connfd);
-      q->connfd = 0;       
+      q->connfd = 0;
       return 0;
     }
     if (n == -1) {
-      perror("read");      
+      perror("read");
     }
-    return n; 
+    return n;
   }
 }
 
@@ -127,21 +130,23 @@ int srslte_netsource_write(srslte_netsource_t* q, void* buffer, int nbytes)
   return SRSLTE_SUCCESS;
 }
 
-int srslte_netsource_set_nonblocking(srslte_netsource_t *q) {
+int srslte_netsource_set_nonblocking(srslte_netsource_t* q)
+{
   if (fcntl(q->sockfd, F_SETFL, O_NONBLOCK)) {
     perror("fcntl");
-    return -1; 
+    return -1;
   }
-  return 0; 
+  return 0;
 }
 
-int srslte_netsource_set_timeout(srslte_netsource_t *q, uint32_t microseconds) {
-  struct timeval t; 
-  t.tv_sec = 0; 
-  t.tv_usec = microseconds; 
+int srslte_netsource_set_timeout(srslte_netsource_t* q, uint32_t microseconds)
+{
+  struct timeval t;
+  t.tv_sec  = 0;
+  t.tv_usec = microseconds;
   if (setsockopt(q->sockfd, SOL_SOCKET, SO_RCVTIMEO, &t, sizeof(struct timeval))) {
     perror("setsockopt");
-    return -1; 
+    return -1;
   }
-  return 0; 
+  return 0;
 }

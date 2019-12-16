@@ -27,7 +27,7 @@
 
 #include "srslte/srslte.h"
 
-char *input_file_name = NULL;
+char* input_file_name = NULL;
 
 srslte_cell_t cell = {
     100,               // nof_prb
@@ -44,18 +44,19 @@ int flen;
 
 uint32_t cfi = 2;
 
-int max_frames = 150;
-uint32_t sf_idx = 1;
+int      max_frames = 150;
+uint32_t sf_idx     = 1;
 
 uint8_t non_mbsfn_region = 2;
-int mbsfn_area_id = 1;
+int     mbsfn_area_id    = 1;
 
 srslte_softbuffer_rx_t softbuffer_rx;
-srslte_filesource_t fsrc;
-srslte_ue_dl_t ue_dl;
-cf_t *input_buffer[SRSLTE_MAX_PORTS];
+srslte_filesource_t    fsrc;
+srslte_ue_dl_t         ue_dl;
+cf_t*                  input_buffer[SRSLTE_MAX_PORTS];
 
-void usage(char *prog) {
+void usage(char* prog)
+{
   printf("Usage: %s [rvfcenmps] -i input_file\n", prog);
   printf("\t-c cell.id [Default %d]\n", cell.id);
   printf("\t-s Start subframe_idx [Default %d]\n", sf_idx);
@@ -67,40 +68,41 @@ void usage(char *prog) {
   printf("\t-v [set srslte_verbose to debug, default none]\n");
 }
 
-void parse_args(int argc, char **argv) {
+void parse_args(int argc, char** argv)
+{
   int opt;
   while ((opt = getopt(argc, argv, "ivfcenmps")) != -1) {
-    switch(opt) {
-    case 'i':
-      input_file_name = argv[optind];
-      break;
-    case 'c':
-      cell.id = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 's':
-      sf_idx = (int)strtol(argv[optind], NULL, 10);
-      break;
-    case 'f':
-      cfi = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 'n':
-      cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 'p':
-      cell.nof_ports = (uint32_t)strtol(argv[optind], NULL, 10);
-      break;
-    case 'M':
-      mbsfn_area_id = (int)strtol(argv[optind], NULL, 10);
-      break;
-    case 'v':
-      srslte_verbose++;
-      break;
-    case 'e':
-      cell.cp = SRSLTE_CP_EXT;
-      break;
-    default:
-      usage(argv[0]);
-      exit(-1);
+    switch (opt) {
+      case 'i':
+        input_file_name = argv[optind];
+        break;
+      case 'c':
+        cell.id = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 's':
+        sf_idx = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 'f':
+        cfi = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'n':
+        cell.nof_prb = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'p':
+        cell.nof_ports = (uint32_t)strtol(argv[optind], NULL, 10);
+        break;
+      case 'M':
+        mbsfn_area_id = (int)strtol(argv[optind], NULL, 10);
+        break;
+      case 'v':
+        srslte_verbose++;
+        break;
+      case 'e':
+        cell.cp = SRSLTE_CP_EXT;
+        break;
+      default:
+        usage(argv[0]);
+        exit(-1);
     }
   }
   if (!input_file_name) {
@@ -109,7 +111,8 @@ void parse_args(int argc, char **argv) {
   }
 }
 
-int base_init() {
+int base_init()
+{
 
   if (srslte_filesource_init(&fsrc, input_file_name, SRSLTE_COMPLEX_FLOAT_BIN)) {
     ERROR("Error opening file %s\n", input_file_name);
@@ -128,7 +131,6 @@ int base_init() {
     ERROR("Error initializing UE DL\n");
     return -1;
   }
-  
 
   if (srslte_ue_dl_set_cell(&ue_dl, cell)) {
     ERROR("Error initializing UE DL\n");
@@ -145,27 +147,29 @@ int base_init() {
   return 0;
 }
 
-void base_free() {
+void base_free()
+{
   srslte_filesource_free(&fsrc);
   srslte_ue_dl_free(&ue_dl);
   free(input_buffer[0]);
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv)
+{
   int ret;
 
   if (argc < 3) {
     usage(argv[0]);
     exit(-1);
   }
-  parse_args(argc,argv);
+  parse_args(argc, argv);
   srslte_use_standard_symbol_size(false);
   if (base_init()) {
     ERROR("Error initializing memory\n");
     exit(-1);
   }
 
-  uint8_t *data = malloc(100000);
+  uint8_t* data = malloc(100000);
   if (!data) {
     perror("malloc");
     exit(-1);
@@ -229,6 +233,6 @@ int main(int argc, char **argv) {
   if (ret >= 0) {
     exit(0);
   } else {
-    exit(-1); 
+    exit(-1);
   }
 }
