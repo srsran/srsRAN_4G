@@ -564,7 +564,7 @@ void phy_common::worker_end(void*              tx_sem_id,
   }
 
   // Allow next TTI to transmit
-  semaphore.release(tx_sem_id);
+  semaphore.release();
 }
 
 void phy_common::set_cell(const srslte_cell_t& c)

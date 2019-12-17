@@ -64,7 +64,7 @@ public:
     fifo.push_back(id);
   }
 
-  void release(T id)
+  void release()
   {
     std::unique_lock<std::mutex> lock(mutex);
     fifo.pop_front();

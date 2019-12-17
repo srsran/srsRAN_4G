@@ -110,7 +110,7 @@ protected:
     radio->tx(tti);
 
     // Release semaphore
-    tti_semaphore->release(tti);
+    tti_semaphore->release();
   }
 };
 
@@ -160,7 +160,7 @@ int main(int argc, char** argv)
     pool.init_worker(i, worker);
   }
 
-  for (uint32_t tti = 0; tti < nof_tti && radio.is_late(); tti++) {
+  for (uint32_t tti = 0; tti < nof_tti && !radio.is_late(); tti++) {
     if (enable_probability > srslte_random_uniform_real_dist(random_gen, 0.0f, 1.0f)) {
       // Wait worker
       auto worker = (dummy_worker*)pool.wait_worker(tti);
@@ -173,6 +173,11 @@ int main(int argc, char** argv)
       pool.start_worker(worker);
     }
   }
+
+  if (radio.is_late()) {
+    ret = SRSLTE_ERROR;
+  }
+
   tti_semaphore.wait_all();
   pool.stop();
   srslte_random_free(random_gen);
