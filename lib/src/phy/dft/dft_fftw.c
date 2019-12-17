@@ -53,7 +53,7 @@ static int get_fftw_wisdom_file(char* full_path, uint32_t n)
 
 static pthread_mutex_t fft_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-void srslte_dft_load()
+__attribute__((constructor)) void srslte_dft_load()
 {
 #ifdef FFTW_WISDOM_FILE
   char full_path[256];
@@ -64,7 +64,7 @@ void srslte_dft_load()
 #endif
 }
 
-void srslte_dft_exit()
+__attribute__((destructor)) void srslte_dft_exit()
 {
 #ifdef FFTW_WISDOM_FILE
   char full_path[256];
