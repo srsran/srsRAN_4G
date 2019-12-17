@@ -584,7 +584,7 @@ void sync::run_thread()
           if (current_srate > 0) {
             nsamples = current_srate/1000;
           }
-          Debug("Discarting %d samples\n", nsamples);
+          Debug("Discarding %d samples\n", nsamples);
           srslte_timestamp_t rx_time;
           if (!radio_h->rx_now(0, dummy_buffer, nsamples, &rx_time)) {
             log_h->console("SYNC:  Receiving from radio while in IDLE_RX\n");

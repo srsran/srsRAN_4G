@@ -113,7 +113,7 @@ void harq_proc::set_ack_common(uint32_t tb_idx, bool ack_)
   ack_state[tb_idx] = ack_ ? ACK : NACK;
   log_h->debug("ACK=%d received pid=%d, tb_idx=%d, n_rtx=%d, max_retx=%d\n", ack_, id, tb_idx, n_rtx[tb_idx], max_retx);
   if (!ack_ && (n_rtx[tb_idx] + 1 >= max_retx)) {
-    Warning("SCHED: discarting TB %d pid=%d, tti=%d, maximum number of retx exceeded (%d)\n", tb_idx, id, tti, max_retx);
+    Warning("SCHED: discarding TB %d pid=%d, tti=%d, maximum number of retx exceeded (%d)\n", tb_idx, id, tti, max_retx);
     active[tb_idx] = false;
   } else if (ack_) {
     active[tb_idx] = false;

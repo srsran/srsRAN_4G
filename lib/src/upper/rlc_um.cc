@@ -696,7 +696,7 @@ void rlc_um::rlc_um_rx::handle_data_pdu(uint8_t *payload, uint32_t nof_bytes)
   // Write to rx window
   pdu.buf = allocate_unique_buffer(*pool);
   if (!pdu.buf) {
-    log->error("Discarting packet: no space in buffer pool\n");
+    log->error("Discarding packet: no space in buffer pool\n");
     return;
   }
   memcpy(pdu.buf->msg, payload, nof_bytes);

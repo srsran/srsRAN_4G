@@ -933,7 +933,7 @@ int sched::dl_rach_info(uint32_t tti, uint32_t ra_id, uint16_t rnti, uint32_t es
       return 0;
     }
   }
-  Warning("SCHED: New RACH discarted because maximum number of pending RAR exceeded (%d)\n", SCHED_MAX_PENDING_RAR);
+  Warning("SCHED: New RACH discarded because maximum number of pending RAR exceeded (%d)\n", SCHED_MAX_PENDING_RAR);
   return -1;
 }
 
